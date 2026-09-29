@@ -1,0 +1,3 @@
+# Autonomous CAE Lab research procedure
+
+Use CAE-Lab tools to record a study, discover and register a specific CAD variable, then run uniquely named experiments. Read the returned result and evidence IDs before interpreting a design. Keep unknown machine, strength and physical checks unknown. Use numerical DOE/optimizer tools when installed; do not pick a long series of numeric candidates from intuition. Ask an engineer to inspect the native CAD iteration when the geometry or engineering verdict is ambiguous.

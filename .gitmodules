@@ -1,0 +1,3 @@
+[submodule "plugins/fixture_design/upstream"]
+	path = plugins/fixture_design/upstream
+	url = https://github.com/pikachu444/auto-fixture-design.git

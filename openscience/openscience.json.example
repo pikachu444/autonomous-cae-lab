@@ -1,0 +1,9 @@
+{
+  "mcp": {
+    "caelab": {
+      "type": "local",
+      "command": ["/absolute/path/to/venv/bin/python", "/absolute/path/to/autonomous-cae-lab/openscience/mcp_server.py"],
+      "enabled": true
+    }
+  }
+}

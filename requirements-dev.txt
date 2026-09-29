@@ -1,0 +1,3 @@
+-r requirements-core.txt
+-r requirements-mcp.txt
+-r plugins/fixture_design/upstream/requirements-dev.txt

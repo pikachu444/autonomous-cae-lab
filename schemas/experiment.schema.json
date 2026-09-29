@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://caelab.local/schemas/experiment/1.0",
+  "title": "CAE-Lab experiment proposal",
+  "type": "object",
+  "required": ["schema_version", "id", "study_id", "hypothesis_id", "domain", "physics", "model", "parameters", "outputs", "objectives", "constraints", "validation_requirements", "execution", "registry_revision"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,79}$"},
+    "study_id": {"type": "string"},
+    "hypothesis_id": {"type": "string"},
+    "domain": {"type": "string"},
+    "physics": {
+      "type": "object",
+      "required": ["domain", "analysis_type", "backend"],
+      "properties": {"domain": {"type": "string"}, "analysis_type": {"type": "string"}, "backend": {"type": ["string", "null"]}}
+    },
+    "model": {
+      "type": "object",
+      "properties": {
+        "geometry": {"type": ["object", "null"]}, "mesh": {"type": ["object", "null"]},
+        "materials": {"type": "array"}, "sections": {"type": "array"},
+        "interfaces": {"type": "array"}, "contact": {"type": "array"},
+        "coordinate_systems": {"type": "array"}
+      }, "additionalProperties": true
+    },
+    "parameters": {"type": "object", "additionalProperties": {"type": ["number", "string", "boolean"]}},
+    "boundary_conditions": {"type": "array"},
+    "loads": {"type": "array"}, "initial_conditions": {"type": "array"},
+    "outputs": {"type": "object", "properties": {"fields": {"type": "array"}, "history": {"type": "array"}, "metrics": {"type": "array"}}},
+    "objectives": {"type": "array"}, "constraints": {"type": "array"},
+    "validation_requirements": {"type": "array"},
+    "execution": {"type": "object"},
+    "optimizer": {"type": ["object", "null"]},
+    "artifacts": {"type": "array"},
+    "provenance": {"type": "object"},
+    "registry_revision": {"type": "integer", "minimum": 0},
+    "extensions": {"type": "object", "description": "Namespaced adapter options; Core does not interpret them"}
+  },
+  "additionalProperties": false
+}

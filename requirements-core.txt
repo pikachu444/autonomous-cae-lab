@@ -1,0 +1,2 @@
+jsonschema==4.26.0
+filelock==3.32.7
