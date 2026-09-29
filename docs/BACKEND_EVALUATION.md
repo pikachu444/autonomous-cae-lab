@@ -1,6 +1,6 @@
 # Backend research gates (official documentation; not yet executed here)
 
-The working roles below are hypotheses for staged benchmark work. The CadQuery fixture and FreeCAD native adapters have passed their respective CAD acceptance; the first CalculiX structural child-run adapter is awaiting its real solver CI benchmark. A feature listed in a manual is not a validated CAE-Lab capability.
+The working roles below are hypotheses for staged benchmark work. The CadQuery fixture, FreeCAD native and preliminary CalculiX linear child-run adapters have passed their respective CAD/solver CI acceptance. Nonlinear or physical qualification has not been demonstrated. A feature listed in a manual is not a validated CAE-Lab capability.
 
 | Workload | Candidate and adapter boundary | First proof / gap |
 | --- | --- | --- |

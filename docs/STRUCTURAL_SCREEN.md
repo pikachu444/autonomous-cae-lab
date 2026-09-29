@@ -29,8 +29,35 @@ and roller contact, it is only a diagnostic. Reaction balance remains
 interface, physical load and durability remain `UNKNOWN`; final decision is
 `NOT_RELEASED`.
 
+## Executed acceptance
+
+[GitHub Actions run 36634609802](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36634609802)
+executed the Core CAD experiment and a separate child run with Gmsh 4.12.1
+and CalculiX 2.21. The stored `simulation/input.step` matched the parent's
+`cad/assembly.step` SHA-256
+`c69700fff6c077a2d46b4bf2479396a2253ea036151d17b10eab3d9bbd196685`.
+The CAD revision was
+`d7ae994052d029f7131fa1c2121fd7d5d6ebb2611ffba56fcb2c63571f207332`.
+
+| Nominal max mesh size (mm) | C3D10 elements | Maximum loaded-node displacement (mm) | Mesh/CAD volume difference |
+| ---: | ---: | ---: | ---: |
+| 4 | 5,319 | 0.006438958 | 1.619% |
+| 3 | 9,340 | 0.006620161 | 0.907% |
+| 2 | 23,488 | 0.006365624 | 0.501% |
+
+The final pair differed by **3.999%**, passing this screen's declared 5%
+displacement trend limit. All three mesh Jacobian and CAD-volume preflights
+passed; the child result registered 38 artifacts with matching SHA-256 and
+sizes. Its `solver_status=COMPLETED`, `status=COMPLETED_REVIEW_REQUIRED`,
+`decision=NOT_RELEASED`. The 0.87783 MPa averaged nodal peak stress remains
+an **invalid engineering metric** (`valid=false`), not a strength allowable or
+a converged stress claim. Reaction balance, contact/bolts, material
+qualification, machine interface, physical load and durability evidence are
+still `UNKNOWN`. [The retained workflow artifact](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36634609802)
+contains the native CAD, meshes, decks, commands, logs, DAT/FRD and the
+result/evidence thread; its ZIP digest is
+`sha256:4a299444bb96d87b7b22b9d63574db7a5518a0dd8d59b944ded450285497f89f`.
+
 The current development container has no Gmsh or CalculiX executable. Local
 tests verify real CAD/STEP preflight, tampering rejection and Core child-run
-linkage using a test adapter. The new GitHub Actions structural job must run
-before claiming solver acceptance. Retain its raw artifacts and inspect the
-reported mesh sensitivity and logs before changing any numerical threshold.
+linkage using a test adapter. The solver proof above was executed in CI.
