@@ -1,6 +1,7 @@
 # ADR 0004 — Saddle load discretization in the fixture structural adapter
 
-Status: Accepted for the next linear screen; solver benchmark pending.
+Status: Accepted; canonical structural and seeded DOE solver screens executed
+in CI run 36641675306. Finer-mesh and physical-contact verification remain open.
 
 ## Context
 
@@ -48,3 +49,17 @@ linear screen's boundary definition.
 Only the fixture solver adapter and its validation/evidence change. Core
 schemas, OpenScience operations, DOE engine and GUI/headless contract remain
 solver-independent. No engineering release is implied.
+
+## Executed verification
+
+Independent review checked nine retained meshes, the clipping/integration,
+load centers and replacement deck sections. The first new CI run 36641106365
+stopped in CalculiX 2.21 while reading a 22-character `*CLOAD` number. A
+separate correction limited force serialization to 12 significant digits,
+checked the serialized total, and added the reproduced field-width test.
+CI run 36641675306 then passed all core/native/structural/DOE jobs. The
+canonical last-pair displacement change was 2.336%; the valid DOE samples
+were 1.866%, 1.367% and 3.845%, below the unchanged 5% screen. These are
+preliminary numerical results under the stated traction approximation.
+See `docs/STRUCTURAL_SCREEN.md` and `docs/DOE_CAMPAIGNS.md` for artifact
+digests, response values and remaining evidence requirements.

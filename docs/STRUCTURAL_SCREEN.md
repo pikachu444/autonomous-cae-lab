@@ -99,3 +99,40 @@ serialization across runs. For this run the parent/solver STEP SHA-256 was
 The current development container has no Gmsh or CalculiX executable. Local
 tests verify real CAD/STEP preflight, tampering rejection and Core child-run
 linkage using a test adapter. The solver proof above was executed in CI.
+
+## Area-weighted saddle load acceptance
+
+Adapter version 2 identifies the unique cylindrical CPS6 boundary surface,
+subdivides its straight-sided quadratic triangles and clips the load patch at
+`y=±12 mm`. The patch area is integrated into equivalent vertical nodal
+forces whose total is normalized to the declared 100 N. The NSET and CLOAD
+sections are replaced together; fixed-base, material and volume elements
+remain owned by the pinned upstream writer. Each mesh retains
+`saddle_load.json` with the weights, patch area, node IDs and method.
+
+The first new [CI attempt 36641106365](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36641106365)
+exposed a CalculiX 2.21 parser failure on a 22-character CLOAD number. The
+follow-up uses 12 significant digits and checks the serialized force total.
+[CI run 36641675306](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36641675306)
+completed all four jobs at `dad581f`.
+
+| Nominal max mesh size (mm) | Maximum loaded-node displacement (mm) | Patch area (mm²) | Load fraction on lip |
+| ---: | ---: | ---: | ---: |
+| 4 | 0.005505997 | 304.8613 | 13.0645% |
+| 3 | 0.005574470 | 308.4726 | 9.4754% |
+| 2 | 0.005707813 | 310.8197 | 6.5948% |
+
+The 3→2 mm change is **2.3361%**. The maximum signed reaction imbalance
+across all three meshes is `1.4574e-8`, below the unchanged `0.01` limit.
+The child has 41 registered artifacts, `COMPLETED_REVIEW_REQUIRED`,
+`max_displacement.valid=true` for this preliminary numerical screen, and
+`decision=NOT_RELEASED`. The exact solver STEP matches the parent's hash
+`e57a02ed5077932a263555883329f2c6a2b4d4ab5557514cdc62b9b212421b1f`.
+The downloaded ZIP verified with SHA-256
+`2108775bc1577a659328ea9690f915e32714a5990f1f9627fe6bc1853689e6de`;
+the experiment ledger and individual artifact hashes verified locally.
+
+This integrates a piecewise linear tessellation, not the exact quadratic
+surface shape functions. A finer mesh check remains open. The load remains
+an assumed vertical traction, and contact, fasteners, material allowables,
+stress convergence and physical qualification remain unresolved.

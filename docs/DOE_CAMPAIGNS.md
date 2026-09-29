@@ -70,6 +70,33 @@ convergence for a fixed physical traction. [ADR 0004](../ADR/0004-saddle-load-di
 specifies a surface-area replacement and a new benchmark; no old experiment
 is relabeled or overwritten.
 
+## Area-weighted load rerun
+
+[CI run 36641675306](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36641675306)
+reran the same seed and registered parameter bounds using adapter version 2's
+area-weighted central saddle load. The plans and earlier results are preserved
+in their respective CI artifacts; the new run uses a fresh experiment store.
+
+| Variable | Proposed value (mm) | Fine-mesh maximum displacement (mm) | 3→2 mm change | New run outcome |
+| --- | ---: | ---: | ---: | --- |
+| `support_width` | 31.986170466921056 | 0.005840948 | 1.8660% | preliminary numerical screen passed |
+| `support_width` | 39.71242440353106 | 0.005713472 | 1.3669% | preliminary numerical screen passed |
+| `bolt_pitch` | 21.6413125226886 | 0.005875083 | 3.8451% | preliminary numerical screen passed |
+| `bolt_pitch` | 35.80611140647361 | — | — | CAD relation rejection; no solver child |
+
+The 5% displacement threshold and 1% signed reaction threshold are unchanged.
+All three valid candidates retain complete solver evidence and
+`COMPLETED_REVIEW_REQUIRED`; peak stress remains invalid and every campaign
+decision is `NOT_RELEASED`. This does not establish an optimum, physical
+contact behavior or qualified strength. A 1.5 mm continuation remains a
+separate numerical gate for the surface-load approximation.
+
+The downloaded DOE ZIP has SHA-256
+`7617eec58790d3e17449affd0b2c451ef1402b10843406428db8b4f4518d589f`.
+`Lab.inspect_doe` verified both campaign journals and all referenced
+experiments; `Lab.inspect_experiment` verified each child's artifact/result
+ledger. The source was recorded with `core_dirty=false`.
+
 This is **DOE**, not an optimization convergence claim. DAKOTA remains a
 candidate for broader black-box optimization/UQ, and SciPy sampling does not
 replace objective/constraint selection, sensitivity or an engineering release

@@ -1,0 +1,106 @@
+{
+  "record_type": "executed_acceptance",
+  "recorded_date_kst": "2026-09-30",
+  "source_commit": "dad581fea4fb8e20d26d329ed53592f2897dfd05",
+  "workflow_run_id": 36641675306,
+  "workflow_url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36641675306",
+  "jobs": {
+    "core": "success",
+    "native": "success",
+    "structural": "success",
+    "doe": "success"
+  },
+  "local_tests_passed": 32,
+  "limits": {
+    "displacement_mesh_change_ratio": 0.05,
+    "reaction_balance_ratio": 0.01
+  },
+  "assumptions": [
+    "100 N per support is illustrative, not measured",
+    "Printed material is assumed and unqualified",
+    "Fixed base substitutes for actual bolts",
+    "Tessellated saddle vertical traction substitutes for roller contact",
+    "Stress remains an invalid engineering metric"
+  ],
+  "artifacts": [
+    {
+      "role": "structural",
+      "artifact_id": 11066728804,
+      "sha256": "2108775bc1577a659328ea9690f915e32714a5990f1f9627fe6bc1853689e6de",
+      "expires_utc": "2026-10-29T22:50:39Z"
+    },
+    {
+      "role": "doe",
+      "artifact_id": 11067036430,
+      "sha256": "7617eec58790d3e17449affd0b2c451ef1402b10843406428db8b4f4518d589f",
+      "expires_utc": "2026-10-29T22:51:26Z"
+    }
+  ],
+  "linear_acceptance": {
+    "status": "PASS",
+    "cad_revision": "d7ae994052d029f7131fa1c2121fd7d5d6ebb2611ffba56fcb2c63571f207332",
+    "parent_step_sha256": "e57a02ed5077932a263555883329f2c6a2b4d4ab5557514cdc62b9b212421b1f",
+    "solver_status": "COMPLETED",
+    "decision": "NOT_RELEASED",
+    "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+    "displacement_valid": true,
+    "displacement_mm": 0.005707813,
+    "mesh_change_ratio": 0.02336148714052128,
+    "reaction_balance_ratio": 1.4573531101046888e-08,
+    "artifact_count": 41
+  },
+  "doe_acceptance": {
+    "status": "PASS",
+    "solver_runs": 3,
+    "numerical_rejections": [],
+    "rejected_before_solver": "E-C-pitch-002",
+    "algorithm": {
+      "engine": "scipy.latin_hypercube",
+      "numpy_version": "2.3.5",
+      "optimization": null,
+      "seed": 13,
+      "strength": 1,
+      "version": "1.17.0"
+    },
+    "samples": [
+      {
+        "campaign": "C-width",
+        "values": {
+          "support_width": 31.986170466921056
+        },
+        "cad_revision": "4a849415d2c98bc5bfae767cb71ea5939d956e4fc5d5a49b72810e04a534de00",
+        "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+        "displacement_mm": 0.005840948,
+        "displacement_valid": true,
+        "mesh_change_ratio": 0.01866032705649841,
+        "reaction_balance_ratio": 4.371282480794738e-09
+      },
+      {
+        "campaign": "C-width",
+        "values": {
+          "support_width": 39.71242440353106
+        },
+        "cad_revision": "09877fd89bf62833cb4cc0a81f72f3206787c01c185ebcb18aaad49879f69b0d",
+        "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+        "displacement_mm": 0.005713472,
+        "displacement_valid": true,
+        "mesh_change_ratio": 0.013669271504262186,
+        "reaction_balance_ratio": 9.508582266176936e-09
+      },
+      {
+        "campaign": "C-pitch",
+        "values": {
+          "bolt_pitch": 21.6413125226886
+        },
+        "cad_revision": "9a4a47ff0c3c99ca5a3102bfdc18c547a9d09c36a5a5d8b0cb8119eb1cd3f13c",
+        "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+        "displacement_mm": 0.005875083,
+        "displacement_valid": true,
+        "mesh_change_ratio": 0.03845120145536665,
+        "reaction_balance_ratio": 4.507379636394086e-09
+      }
+    ],
+    "decision": "NOT_RELEASED"
+  },
+  "decision": "NOT_RELEASED"
+}
