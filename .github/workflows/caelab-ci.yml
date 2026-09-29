@@ -65,7 +65,7 @@ jobs:
           echo "FREECAD_APPIMAGE=/tmp/fixture-freecad.AppImage" >> "$GITHUB_ENV"
           echo "FREECAD_CMD=$PWD/plugins/fixture_design/upstream/scripts/freecad_appimage.sh" >> "$GITHUB_ENV"
       - name: Core to native Part and Sketcher acceptance
-        run: python scripts/verify_native.py --store artifacts/native-lab
+        run: python -m scripts.verify_native --store artifacts/native-lab
       - name: Preserve CAD revisions and evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
