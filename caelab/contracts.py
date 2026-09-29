@@ -41,5 +41,17 @@ class CADAdapter(Protocol):
     def regenerate(self, model: str, native_values: dict[str, float], output: Path) -> Outcome: ...
 
 
+class AnalysisAdapter(Protocol):
+    """Solver-specific implementation behind a common research operation."""
+
+    backend: str
+    version: str
+    analysis_type: str
+    default_metrics: list[str]
+
+    def solve(self, parent_result: dict[str, Any], parent_root: Path,
+              output: Path, settings: dict[str, Any]) -> dict[str, Any]: ...
+
+
 class CapabilityUnavailable(RuntimeError):
     """A backend has no executable adapter in this installation."""

@@ -72,7 +72,13 @@ def parser():
     cmp.add_argument("--experiments", nargs="+", required=True)
     report = sub.add_parser("report")
     report.add_argument("--experiment", required=True)
-    for future in ("mesh", "solve", "pde", "doe", "optimize"):
+    solve = sub.add_parser("solve")
+    solve.add_argument("--parent", required=True, help="Validated CAD experiment ID")
+    solve.add_argument("--experiment", required=True, help="New, immutable solver run ID")
+    solve.add_argument("--backend", default="fixture.calculix")
+    solve.add_argument("--settings", required=True,
+                       help="JSON material, load and mesh settings; no solver deck syntax")
+    for future in ("mesh", "pde", "doe", "optimize"):
         sub.add_parser(future)
     sub.add_parser("demo")
     return p
@@ -120,6 +126,10 @@ def main(argv=None):
             _json(lab.compare(args.experiments))
         elif args.command == "report":
             _json(lab.research_summary(args.experiment))
+        elif args.command == "solve":
+            _json(lab.run_analysis(parent_experiment_id=args.parent,
+                                   experiment_id=args.experiment, backend=args.backend,
+                                   settings=json.loads(args.settings)))
         elif args.command == "demo":
             lab.create_study("S-demo", "3-point bending fixture", "Does a wider roller support remain CAD-valid?",
                              "Widening the support from 32 to 38 mm retains hole clearance.",

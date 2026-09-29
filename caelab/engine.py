@@ -9,7 +9,7 @@ from filelock import FileLock
 
 from .adapters.fixture_cadquery import FixtureCadQueryAdapter
 from .adapters.fixture_freecad import FixtureFreeCADAdapter
-from .contracts import CADAdapter, CapabilityUnavailable
+from .contracts import AnalysisAdapter, CADAdapter, CapabilityUnavailable
 from .registry import register_parameter, validate_assignments
 from .schema import validate as validate_schema
 from .storage import (artifact_manifest, canonical_hash, check_artifacts, check_id,
@@ -18,12 +18,17 @@ import hashlib
 
 
 class Lab:
-    def __init__(self, store: str | Path, *, adapters: dict[str, CADAdapter] | None = None):
+    def __init__(self, store: str | Path, *, adapters: dict[str, CADAdapter] | None = None,
+                 analysis_adapters: dict[str, AnalysisAdapter] | None = None):
         self.store = Path(store).resolve()
         self.adapters = adapters if adapters is not None else {
             FixtureCadQueryAdapter.backend: FixtureCadQueryAdapter(),
             FixtureFreeCADAdapter.backend: FixtureFreeCADAdapter(self.store),
         }
+        if analysis_adapters is None:
+            from .adapters.fixture_calculix import FixtureCalculiXAdapter
+            analysis_adapters = {FixtureCalculiXAdapter.backend: FixtureCalculiXAdapter()}
+        self.analysis_adapters = analysis_adapters
 
     def create_native_model(self, *, template: str = "roller_support") -> dict[str, Any]:
         return self._adapter("fixture.freecad").create_sample(template)
@@ -285,6 +290,179 @@ class Lab:
         })
         return result
 
+    def run_analysis(self, *, parent_experiment_id: str, experiment_id: str,
+                     backend: str, settings: dict[str, Any]) -> dict[str, Any]:
+        """Create a child solver run on a verified, immutable CAD revision."""
+        check_id(experiment_id)
+        parent_id = check_id(parent_experiment_id)
+        if parent_id == experiment_id:
+            raise ValueError("An analysis must have a distinct experiment ID")
+        if not isinstance(settings, dict):
+            raise ValueError("Analysis settings must be a mapping")
+        if backend not in self.analysis_adapters:
+            raise CapabilityUnavailable(f"No executable analysis adapter for {backend}")
+        adapter = self.analysis_adapters[backend]
+        parent_root = self.store / "experiments" / parent_id
+        parent = self.inspect_experiment(parent_id)
+        parent_proposal = load_json(parent_root / "proposal.json")
+        if (parent_proposal["physics"]["analysis_type"] != "cad_preflight" or
+                parent["status"] != "COMPLETED_REVIEW_REQUIRED" or not parent["cad_revision"]):
+            raise ValueError("Analysis requires a completed, verified CAD experiment")
+        registry = load_json(parent_root / "registry_snapshot.json")
+        if canonical_hash(registry) != parent["provenance"]["registry_sha256"]:
+            raise ValueError("Parent parameter registry snapshot hash mismatch")
+
+        proposal = {"schema_version": "1.0", "id": experiment_id,
+                    "study_id": parent["study"]["id"],
+                    "parent_experiment_id": parent_id,
+                    "hypothesis_id": parent["study"]["hypothesis_id"],
+                    "domain": parent_proposal["domain"],
+                    "physics": {"domain": parent_proposal["physics"]["domain"],
+                                "analysis_type": adapter.analysis_type, "backend": backend},
+                    "model": {"geometry": {"source_experiment_id": parent_id,
+                                           "cad_revision": parent["cad_revision"]},
+                              "mesh": deepcopy(settings.get("mesh"))},
+                    "parameters": deepcopy(parent["input_parameters"]),
+                    "loads": [deepcopy(settings["load"])] if "load" in settings else [],
+                    "outputs": {"metrics": adapter.default_metrics},
+                    "objectives": [], "constraints": [], "validation_requirements": [],
+                    "execution": deepcopy(settings),
+                    "registry_revision": parent["registry_revision"]}
+        if "material" in settings:
+            proposal["model"]["materials"] = [deepcopy(settings["material"])]
+        validate_schema("experiment", proposal)
+        canonical_hash(proposal)
+
+        folder = self.store / "experiments" / experiment_id
+        folder.mkdir(parents=True, exist_ok=False)
+        save_json(folder / "proposal.json", proposal)
+        save_json(folder / "registry_snapshot.json", registry)
+        parent_result_hash = hashlib.sha256((parent_root / "result.json").read_bytes()).hexdigest()
+        save_json(folder / "parent_reference.json", {
+            "experiment_id": parent_id, "cad_revision": parent["cad_revision"],
+            "result_sha256": parent_result_hash})
+
+        execution_error = False
+        outcome = None
+        try:
+            outcome = adapter.solve(parent, parent_root, folder / "simulation", deepcopy(settings))
+            if (not isinstance(outcome, dict) or outcome.get("status") not in ("COMPLETED", "REJECTED") or
+                    not isinstance(outcome.get("checks"), list) or
+                    not isinstance(outcome.get("metrics"), dict) or
+                    not isinstance(outcome.get("provenance"), dict) or
+                    not isinstance(outcome.get("solver_status"), str) or
+                    not isinstance(outcome.get("pending_validations"), list) or
+                    any(not isinstance(k, str) or not k for k in outcome["pending_validations"]) or
+                    type(outcome.get("converged")) not in (bool, type(None))):
+                raise ValueError("Analysis adapter returned an invalid common outcome")
+            if any(not isinstance(check, dict) or
+                   check.get("status") not in ("PASS", "FAIL", "UNKNOWN", "WARNING") or
+                   not isinstance(check.get("code"), str) or not check["code"]
+                   for check in outcome["checks"]):
+                raise ValueError("Analysis adapter returned an invalid validation check")
+            if any(not isinstance(metric, dict) or
+                   not {"value", "unit", "valid"} <= metric.keys() or
+                   not isinstance(metric["unit"], str) or
+                   type(metric["valid"]) is not bool or
+                   (not metric["valid"] and not metric.get("reason"))
+                   for metric in outcome["metrics"].values()):
+                raise ValueError("Analysis adapter returned an invalid metric")
+            if (outcome["status"] == "COMPLETED" and
+                    (outcome["converged"] is not True or not outcome["metrics"])):
+                raise ValueError("Completed analysis requires convergence and metrics")
+            canonical_hash(outcome)  # Reject NaN and non-serializable nested observations.
+        except Exception as exc:
+            execution_error = True
+            outcome = {"status": "REJECTED", "checks": [{"code": "analysis_execution",
+                       "status": "FAIL", "observed": f"{type(exc).__name__}: {exc}"}],
+                       "metrics": {}, "solver_status": "FAILED_EXECUTION", "converged": None,
+                       "pending_validations": [], "provenance": {}, "raw_result": None}
+        checks = outcome["checks"]
+        if outcome["status"] == "REJECTED" and not any(c["status"] == "FAIL" for c in checks):
+            checks.append({"code": "adapter_rejected", "status": "FAIL",
+                           "observed": "Analysis adapter rejected without a detailed failure"})
+        raw_result = outcome.get("raw_result")
+        artifact_path = Path(raw_result) if isinstance(raw_result, str) else None
+        evidence_artifact = (raw_result if artifact_path and not artifact_path.is_absolute() and
+                             ".." not in artifact_path.parts and
+                             (folder / artifact_path).resolve().is_relative_to(folder.resolve()) and
+                             (folder / artifact_path).is_file() else "proposal.json")
+        evidence, validations = [], []
+        for index, check in enumerate(checks, 1):
+            evidence_id = f"EV-{experiment_id}-{index:03d}"
+            evidence.append({"id": evidence_id, "type": "script_metric",
+                             "method": check["code"], "observation": deepcopy(check),
+                             "source": backend, "artifact": evidence_artifact,
+                             "recorded_utc": utc_now()})
+            validations.append({"type": check["code"], "validator": backend,
+                                "status": check["status"], "blocking": True,
+                                "threshold": check.get("limit"),
+                                "expected_range": check.get("expected"),
+                                "evidence_ids": [evidence_id],
+                                "cad_revision": parent["cad_revision"],
+                                "experiment_id": experiment_id,
+                                "solver_run_id": experiment_id, "timestamp": utc_now(),
+                                "notes": check.get("detail")})
+        for kind in outcome.get("pending_validations", []):
+            validations.append({"type": kind, "validator": "not_executed",
+                                "status": "UNKNOWN", "blocking": True,
+                                "threshold": None, "expected_range": None, "evidence_ids": [],
+                                "cad_revision": parent["cad_revision"],
+                                "experiment_id": experiment_id, "solver_run_id": experiment_id,
+                                "timestamp": utc_now(),
+                                "notes": "Separate engineering evidence required"})
+        status = ("FAILED_EXECUTION" if execution_error else
+                  "REJECTED" if outcome["status"] == "REJECTED" or
+                  any(c["status"] == "FAIL" for c in checks) else
+                  "COMPLETED_REVIEW_REQUIRED")
+        artifacts = artifact_manifest(folder, revision=parent["cad_revision"])
+        result = {"schema_version": "1.0", "experiment_id": experiment_id,
+                  "parent_experiment_id": parent_id, "study": deepcopy(parent["study"]),
+                  "status": status, "decision": "NOT_RELEASED",
+                  "solver_status": outcome.get("solver_status", "NOT_RUN"),
+                  "converged": outcome.get("converged"),
+                  "cad_revision": parent["cad_revision"],
+                  "proposal_revision": canonical_hash(proposal),
+                  "registry_revision": parent["registry_revision"],
+                  "input_parameters": deepcopy(parent["input_parameters"]),
+                  "metrics": outcome["metrics"], "validations": validations,
+                  "evidence": evidence, "artifacts": artifacts,
+                  "provenance": {"proposal_sha256": canonical_hash(proposal),
+                                 "registry_sha256": canonical_hash(registry),
+                                 "parent_experiment_id": parent_id,
+                                 "parent_result_sha256": parent_result_hash,
+                                 "cad_source_sha256": parent["provenance"].get("cad_source_sha256"),
+                                 "source_commit": parent["provenance"].get("source_commit"),
+                                 "adapter": backend, "adapter_version": adapter.version,
+                                 "mesh": outcome["provenance"].get("mesh"),
+                                 "material": deepcopy(settings.get("material")),
+                                 "solver": {"backend": backend,
+                                            "status": outcome.get("solver_status"),
+                                            "versions": outcome["provenance"].get("versions")},
+                                 "adapter_details": deepcopy(outcome["provenance"]),
+                                 "execution_settings": deepcopy(settings),
+                                 "created_utc": utc_now(),
+                                 **source_identity(Path(__file__).resolve().parents[1])}}
+        thread = {"hypothesis": proposal["hypothesis_id"],
+                  "study": proposal["study_id"], "experiment": experiment_id,
+                  "parent_experiment": parent_id,
+                  "parent_result_sha256": parent_result_hash,
+                  "registry_revision": parent["registry_revision"],
+                  "cad_revision": parent["cad_revision"],
+                  "mesh": outcome["provenance"].get("mesh"),
+                  "solver_deck": outcome["provenance"].get("solver_deck"),
+                  "run": experiment_id, "result": "result.json",
+                  "evidence": [e["id"] for e in evidence], "decision": result["decision"]}
+        validate_schema("result", result)
+        save_json(folder / "result.json", result)
+        save_json(folder / "thread.json", thread)
+        save_json(self.store / "ledger" / f"{experiment_id}.json", {
+            "experiment_id": experiment_id,
+            "result_sha256": hashlib.sha256((folder / "result.json").read_bytes()).hexdigest(),
+            "thread_sha256": hashlib.sha256((folder / "thread.json").read_bytes()).hexdigest(),
+            "created_utc": utc_now()})
+        return result
+
     def inspect_experiment(self, experiment_id: str, *, verify: bool = True) -> dict[str, Any]:
         folder = self.store / "experiments" / check_id(experiment_id)
         result = load_json(folder / "result.json")
@@ -297,11 +475,23 @@ class Lab:
             corrupt = check_artifacts(folder, result["artifacts"])
             if corrupt:
                 raise ValueError("Artifact hash mismatch: " + ", ".join(corrupt))
+            parent_id = result.get("parent_experiment_id")
+            if parent_id:
+                if parent_id == experiment_id:
+                    raise ValueError("Analysis parent cannot be its own experiment")
+                parent = self.inspect_experiment(check_id(parent_id))
+                parent_file = self.store / "experiments" / parent_id / "result.json"
+                if (hashlib.sha256(parent_file.read_bytes()).hexdigest() !=
+                        result["provenance"]["parent_result_sha256"] or
+                        parent["cad_revision"] != result["cad_revision"]):
+                    raise ValueError("Parent CAD revision or result hash mismatch")
         return result
 
     def research_summary(self, experiment_id: str) -> dict[str, Any]:
         result = self.inspect_experiment(experiment_id)
         return {"experiment_id": result["experiment_id"], "study": result["study"],
+                **({"parent_experiment_id": result["parent_experiment_id"]}
+                   if "parent_experiment_id" in result else {}),
                 "status": result["status"], "decision": result["decision"],
                 "parameters": result["input_parameters"], "metrics": result["metrics"],
                 "failures": [{"type": v["type"], "evidence_ids": v["evidence_ids"]}

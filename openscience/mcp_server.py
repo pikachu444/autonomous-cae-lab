@@ -120,5 +120,14 @@ def experiment_compare(experiment_ids: list[str]) -> list[dict]:
     return _lab().compare(experiment_ids)
 
 
+@mcp.tool()
+def analysis_run(parent_experiment_id: str, experiment_id: str, backend: str,
+                 settings: dict) -> dict:
+    """Analyze a verified CAD revision as a new child experiment with explicit load/material/mesh."""
+    return _lab().run_analysis(parent_experiment_id=parent_experiment_id,
+                               experiment_id=experiment_id, backend=backend,
+                               settings=settings)
+
+
 if __name__ == "__main__":
     mcp.run(transport="stdio")

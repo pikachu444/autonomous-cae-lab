@@ -8,6 +8,7 @@
     "schema_version": {"const": "1.0"},
     "id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,79}$"},
     "study_id": {"type": "string"},
+    "parent_experiment_id": {"type": "string"},
     "hypothesis_id": {"type": "string"},
     "domain": {"type": "string"},
     "physics": {
