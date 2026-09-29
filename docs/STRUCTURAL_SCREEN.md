@@ -31,6 +31,17 @@ limit. This checks numerical equilibrium under the **idealized** boundary
 conditions. Machine interface, physical load and durability remain `UNKNOWN`;
 final decision is `NOT_RELEASED`.
 
+The first adapter version used equal force per selected saddle node. Later
+inspection of the retained raw decks found that the 3 mm and 2 mm meshes put
+25.56% and 12.25% of the total load on the saddle lip, respectively. The
+4 mm mesh put 42.62% there. These historical displacement trends therefore
+mix mesh changes with changes in spatial loading; their old PASS label is
+retained as historical evidence, **not accepted as a fixed-boundary-condition
+convergence finding**. [ADR 0004](../ADR/0004-saddle-load-discretization.md)
+records the replacement with area-weighted forces on the central saddle
+patch. New solver results must be inspected independently before claiming
+the 5% screen passes under that revised boundary definition.
+
 ## Initial executed acceptance
 
 [GitHub Actions run 36634609802](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36634609802)

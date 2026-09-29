@@ -8,7 +8,7 @@ import pytest
 from caelab.adapters.fixture_cadquery import FixtureCadQueryAdapter
 from caelab.adapters.fixture_calculix import (FixtureCalculiXAdapter, UPSTREAM,
                                               _base_reactions, _finite_displacement_table,
-                                              _request_base_reactions)
+                                              _request_base_reactions, _apply_saddle_forces)
 from caelab.storage import artifact_manifest
 
 
@@ -111,3 +111,22 @@ def test_reaction_request_preserves_the_existing_step(tmp_path):
     _request_base_reactions(deck)
     assert deck.read_text().endswith("*NODE PRINT, NSET=ROLLER_NODES\nU\n"
                                      "*NODE PRINT, NSET=BASE_FIXED\nRF\n*END STEP\n")
+
+
+def test_area_load_replaces_only_saddle_set_and_forces(tmp_path):
+    deck = tmp_path / "support.inp"
+    deck.write_text("*NSET, NSET=BASE_FIXED\n10\n"
+                    "*NSET, NSET=ROLLER_NODES\n1, 2\n"
+                    "*MATERIAL, NAME=PRINT_INPUT\n*ELASTIC\n100, 0.3\n"
+                    "*STEP\n*STATIC\n*BOUNDARY\nBASE_FIXED, 1, 3\n"
+                    "*CLOAD\n1, 3, -50\n2, 3, -50\n"
+                    "*NODE PRINT, NSET=ROLLER_NODES\nU\n*END STEP\n")
+    _apply_saddle_forces(deck, {1: -20.0, 2: -30.0, 3: -50.0}, 2)
+    text = deck.read_text()
+    assert "*NSET, NSET=BASE_FIXED\n10\n" in text
+    assert "*NSET, NSET=ROLLER_NODES\n1, 2, 3\n" in text
+    assert "*CLOAD\n1, 3, -20\n2, 3, -30\n3, 3, -50\n" in text
+    assert "*MATERIAL, NAME=PRINT_INPUT\n*ELASTIC\n100, 0.3\n" in text
+    deck.write_text(text.replace("*CLOAD\n", "*DLOAD\n"))
+    with pytest.raises(RuntimeError, match="Unexpected solver deck structure"):
+        _apply_saddle_forces(deck, {1: -100.0}, 2)

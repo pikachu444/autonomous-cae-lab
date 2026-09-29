@@ -22,6 +22,7 @@ from typing import Any
 
 import cadquery as cq
 
+from .fixture_saddle_load import saddle_nodal_forces
 from ..storage import save_json
 
 
@@ -117,6 +118,42 @@ def _request_base_reactions(deck: Path) -> None:
                     "*NODE PRINT, NSET=BASE_FIXED\nRF\n" + marker)
 
 
+def _apply_saddle_forces(deck: Path, nodal_loads: dict[int, float],
+                         expected_old_count: int) -> None:
+    """Replace the fixture screen's equal-node saddle BC, preserving the deck.
+
+    The upstream writer owns material, element and fixed-base definitions. We
+    require its exact section boundaries before replacing just the load set
+    and nodal forces; an upstream deck format change fails closed.
+    """
+    if (not nodal_loads or any(type(node) is not int or node <= 0 or
+                               not math.isfinite(force) or force >= 0
+                               for node, force in nodal_loads.items())):
+        raise ValueError("Invalid downward saddle nodal loads")
+    content = deck.read_text()
+    nset = "*NSET, NSET=ROLLER_NODES\n"
+    material = "*MATERIAL, NAME=PRINT_INPUT\n"
+    cload = "*CLOAD\n"
+    print_set = "*NODE PRINT, NSET=ROLLER_NODES\n"
+    if any(content.count(marker) != 1 for marker in (nset, material, cload, print_set)):
+        raise RuntimeError("Unexpected solver deck structure for saddle loads")
+    start, rest = content.split(nset, 1)
+    old_set, rest = rest.split(material, 1)
+    if not old_set.strip() or "*" in old_set:
+        raise RuntimeError("Unexpected original saddle node set")
+    before_load, rest = rest.split(cload, 1)
+    old_loads, after_load = rest.split(print_set, 1)
+    old_lines = old_loads.strip().splitlines()
+    if len(old_lines) != expected_old_count or any(len(line.split(",")) != 3 for line in old_lines):
+        raise RuntimeError("Unexpected original saddle force definition")
+    identifiers = sorted(nodal_loads)
+    new_set = "".join(", ".join(map(str, identifiers[i:i + 12])) + "\n"
+                      for i in range(0, len(identifiers), 12))
+    new_loads = "".join(f"{node}, 3, {nodal_loads[node]:.16g}\n" for node in identifiers)
+    deck.write_text(start + nset + new_set + material + before_load + cload +
+                    new_loads + print_set + after_load)
+
+
 def _base_reactions(dat: Path, fixed: set[int], applied_force_N: float) -> dict:
     """Read all fixed-node RF vectors and check signed, three-axis equilibrium.
 
@@ -165,7 +202,7 @@ def _base_reactions(dat: Path, fixed: set[int], applied_force_N: float) -> dict:
 
 class FixtureCalculiXAdapter:
     backend = "fixture.calculix"
-    version = "1"
+    version = "2"
     analysis_type = "linear_static"
     default_metrics = ["max_displacement", "peak_stress", "displacement_mesh_change_ratio",
                        "applied_force_per_support", "reaction_force", "reaction_balance_ratio"]
@@ -276,6 +313,7 @@ class FixtureCalculiXAdapter:
         provenance.update({"force_per_support_N": load["force_per_support_N"],
                            "load_source": load["source"], "material": material,
                            "mesh_max_sizes_mm": sizes,
+                           "load_discretization": "clipped_tessellated_saddle_surface_area_v1",
                            "model_idealization": "fixed bottom; distributed saddle nodal force; one printed support"})
 
         # Inspect only the hashed STEP. Do not regenerate the old hard-coded
@@ -360,6 +398,17 @@ class FixtureCalculiXAdapter:
             deck = folder / f"{job}.inp"
             boundary = screen.write_deck(deck, nodes, elements, support, material,
                                          load["force_per_support_N"])
+            weighted = saddle_nodal_forces(mesh, nodes, bb, radius_mm=4.15,
+                                            force_N=load["force_per_support_N"])
+            _apply_saddle_forces(deck, weighted["nodal_loads"], boundary["loaded_node_count"])
+            boundary.pop("per_node_force_N")
+            boundary.update({key: value for key, value in weighted.items() if key != "nodal_loads"})
+            boundary["loaded_node_count"] = len(weighted["nodal_loads"])
+            save_json(folder / "saddle_load.json", weighted)
+            checks.append({"code": f"mesh_{index}_saddle_load", "status": "PASS",
+                           "observed": {key: value for key, value in weighted.items()
+                                        if key not in ("nodal_loads", "loaded_node_ids")},
+                           "limit": "Unique cylindrical face; central 24 mm patch; normalized total force"})
             _request_base_reactions(deck)
             checks.append({"code": f"mesh_{index}_cad_volume", "status": "PASS",
                            "observed": boundary["mesh_volume_relative_error"], "limit": .08})
@@ -389,6 +438,7 @@ class FixtureCalculiXAdapter:
                             "reactions": reactions,
                             "stress_diagnostic": stress,
                             "files": {"mesh": f"{job}/gmsh.inp", "deck": f"{job}/{job}.inp",
+                                      "saddle_load": f"{job}/saddle_load.json",
                                       "commands": f"{job}/commands.json",
                                       "gmsh_log": f"{job}/gmsh.log", "ccx_log": f"{job}/ccx.log",
                                       "field_results": f"{job}/{job}.frd",
@@ -432,6 +482,7 @@ class FixtureCalculiXAdapter:
                   "mesh_studies": studies,
                   "limitations": ["Fixed bottom substitutes for actual fasteners and base.",
                                   "Distributed nodal load substitutes for roller contact.",
+                                  "Tessellated surface-area loading approximates a uniform vertical traction, not measured roller contact.",
                                   "Averaged nodal peak stress is diagnostic only.",
                                   "Material allowables and physical evidence remain unknown."]}
         save_json(output / "result.json", result)

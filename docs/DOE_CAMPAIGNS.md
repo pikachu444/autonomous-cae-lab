@@ -61,6 +61,15 @@ unqualified, and the campaign's overall engineering decision is
 `NOT_RELEASED`. A solver child is retained as evidence even when its
 numerical metric fails validation.
 
+The retained decks also reveal a boundary-discretization limitation: equal
+force per selected node changed the fraction of 100 N applied at the saddle
+lip from 25.56% (3 mm) to 12.25% (2 mm). The pitch sample's historical 0.69%
+PASS and the width failures compare these different load distributions. They
+remain recorded exactly as observed, but the PASS does not establish mesh
+convergence for a fixed physical traction. [ADR 0004](../ADR/0004-saddle-load-discretization.md)
+specifies a surface-area replacement and a new benchmark; no old experiment
+is relabeled or overwritten.
+
 This is **DOE**, not an optimization convergence claim. DAKOTA remains a
 candidate for broader black-box optimization/UQ, and SciPy sampling does not
 replace objective/constraint selection, sensitivity or an engineering release
