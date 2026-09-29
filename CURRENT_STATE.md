@@ -29,6 +29,7 @@ Refactor candidates in upstream: move `DESIGNS` away from a repository-global ru
 
 - Live OpenScience agent/tool round trip; its exact product identity needs confirmation from the unavailable older transcript. Local MCP transport was tested; OpenScience CLI v2.0.145 could not load config in this container because its PID identity check saw an inconsistent `/proc` view.
 - Local native FreeCAD adapter run, a physical machine interface, printed part strength and physical load/fatigue tests.
+- A Core-to-FreeCAD native acceptance workflow has been added but its GitHub Actions run is pending; the old upstream CI did not exercise the new bridge. The Sketcher index-shift discovery and cross-file registration transaction limits are tracked in `docs/NATIVE_ACCEPTANCE.md`.
 - Code_Aster/SALOME-MECA nonlinear contact benchmark, OpenRadioss explicit preprocessing and converter coverage, FEniCSx PDE prototype, optimizer integration. These are research candidates, not implemented adapters.
 - Source and dependency license obligations for corporate deployment, including bundled SALOME components and OpenRadioss AGPL.
 - Repository `autonomous-cae-lab` did not exist in the connected GitHub account; no create-repository API was exposed. A local git repository is prepared for a later private remote.

@@ -52,7 +52,14 @@ class FixtureFreeCADAdapter:
     def discover(self, model: str) -> list[Candidate]:
         info = self._call("discover", model=model)
         registered = {p["key"]: p for p in info["parameters"]}
-        candidates = [*info["candidates"], *info["parameters"]]
+        # An engineer can reorder Sketcher constraints in the GUI. The
+        # registered dimension is resolved by its stable constraint name in
+        # FreeCAD; do not rediscover it at a new positional index.
+        named = {(p["object"], p["constraint"]) for p in info["parameters"]
+                 if p["kind"] == "constraint" and "constraint" in p}
+        candidates = [p for p in info["candidates"]
+                      if (p["object"], p["dimension"]) not in named]
+        candidates += info["parameters"]
         return [Candidate(
             native={"backend": self.backend, "document": model,
                     "object": p["object"], "path": p["key"]},
@@ -71,6 +78,9 @@ class FixtureFreeCADAdapter:
                           parameter_id=parameter_id, display_name=display_name,
                           lower=lower, upper=upper)["source_sha256"]
 
+    def preflight_effects(self, model: str, native_values: dict[str, float]) -> list[dict[str, Any]]:
+        return self._call("preflight", model=model, values=native_values)["checks"]
+
     def regenerate(self, model: str, native_values: dict[str, float], output: Path) -> Outcome:
         result = self._call("regenerate", model=model, values=native_values, output=str(output))
         metrics: dict[str, dict[str, Any]] = {}
@@ -82,8 +92,9 @@ class FixtureFreeCADAdapter:
         return Outcome(decision=result["decision"],
                        checks=[*result["checks"], *result["cad_checks"]],
                        generated=result["cad_generated"], metrics=metrics,
-                       pending_validations=["machine_interface", "static_strength", "physical_load_test",
-                                            "fatigue_durability"],
+                       pending_validations=["domain_clearance", "manufacturability",
+                                            "machine_interface", "static_strength",
+                                            "physical_load_test", "fatigue_durability"],
                        native_revision=result["source_sha256"],
                        source_sha256=result["source_sha256"], raw_result="cad/result.json")
 
