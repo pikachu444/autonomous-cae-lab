@@ -37,6 +37,8 @@ Refactor candidates in upstream: move `DESIGNS` away from a repository-global ru
 
 ## Next acceptance gates
 
+The full original scope is retained in `PROJECT_SCOPE.md` (all 52 section IDs), with startup instructions in `AGENTS.md` and a reproducible local/new-session checkpoint in `HANDOFF.md`. The committed area-load summary is `benchmarks/records/20260930-area-load.json`; raw CI artifact ZIPs have 30-day retention and are not included in a clone. Important raw-evidence archival remains open.
+
 1. The CadQuery vertical slice is executed here: discover actual source variables, register selected variables and bounds, regenerate 32→38 mm, reject invalid inputs before export, record hashes/evidence/validation, return a research summary.
 2. The sample Part/Sketcher Core bridge is now CI-executed. Verify imported, arbitrary FCStd models and edit/reorder Sketcher constraints in a GUI, then refresh registry without ambiguous discovery.
 3. The seeded DOE and revised saddle-load solver CI have passed, including artifact/journal inspection. Add a finer 1.5 mm mesh benchmark to check the surface-load approximation, then objective/constraint and failed-design policies for a true optimization engine, a canonical weak-form PDE benchmark, and representative contact/bolt/material evidence. Keep every unverified release requirement `UNKNOWN`.
