@@ -25,7 +25,7 @@ async def main():
                 assert {"study_create", "parameters_discover", "parameters_register",
                         "experiment_run", "experiment_summary", "model_native_new",
                         "model_native_import", "model_native_inspect", "model_native_select_final",
-                        "analysis_run"} <= names
+                        "analysis_run", "doe_plan", "doe_run", "doe_inspect"} <= names
 
                 async def call(name, arguments):
                     response = await session.call_tool(name, arguments)
@@ -50,7 +50,16 @@ async def main():
                 assert content["status"] == "COMPLETED_REVIEW_REQUIRED", content
                 assert content["decision"] == "NOT_RELEASED"
                 assert content["metrics"]["cad_bounds"]["value"][0] == 38
-                print(json.dumps({"mcp_tools": sorted(names), "result": content}, ensure_ascii=False))
+                await call("doe_plan", {"study_id": "S-MCP", "campaign_id": "C-MCP",
+                           "backend": "fixture.cadquery", "model": "roller_support",
+                           "parameter_ids": ["support_width"], "sample_count": 2, "seed": 13})
+                campaign = await call("doe_run", {"campaign_id": "C-MCP"})
+                progress = campaign.structuredContent or json.loads(campaign.content[0].text)
+                assert len(progress["samples"]) == 2 and progress["decision"] == "NOT_RELEASED"
+                checked = await call("doe_inspect", {"campaign_id": "C-MCP"})
+                assert (checked.structuredContent or json.loads(checked.content[0].text)) == progress
+                print(json.dumps({"mcp_tools": sorted(names), "result": content,
+                                  "doe_samples": len(progress["samples"])}, ensure_ascii=False))
 
 
 if __name__ == "__main__":

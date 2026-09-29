@@ -8,6 +8,7 @@
     "schema_version": {"const": "1.0"},
     "experiment_id": {"type": "string"}, "study": {"type": "object"},
     "parent_experiment_id": {"type": "string"},
+    "campaign_id": {"type": "string"},
     "status": {"enum": ["REJECTED", "COMPLETED_REVIEW_REQUIRED", "FAILED_EXECUTION"]},
     "decision": {"enum": ["NOT_RELEASED", "RELEASED"]},
     "solver_status": {"type": "string"}, "converged": {"type": ["boolean", "null"]},

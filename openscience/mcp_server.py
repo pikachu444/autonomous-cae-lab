@@ -129,5 +129,31 @@ def analysis_run(parent_experiment_id: str, experiment_id: str, backend: str,
                                settings=settings)
 
 
+@mcp.tool()
+def doe_plan(study_id: str, campaign_id: str, backend: str, model: str,
+             parameter_ids: list[str], sample_count: int, seed: int,
+             analysis_backend: str | None = None,
+             analysis_settings: dict | None = None,
+             engine: str = "scipy.latin_hypercube") -> dict:
+    """Persist seeded numerical samples of registered research variables before execution."""
+    return _lab().plan_doe(study_id=study_id, campaign_id=campaign_id,
+                           backend=backend, model=model, parameter_ids=parameter_ids,
+                           sample_count=sample_count, seed=seed,
+                           analysis_backend=analysis_backend,
+                           analysis_settings=analysis_settings, engine=engine)
+
+
+@mcp.tool()
+def doe_run(campaign_id: str) -> dict:
+    """Execute a persisted DOE; invalid CAD points never reach the solver."""
+    return _lab().run_doe(campaign_id)
+
+
+@mcp.tool()
+def doe_inspect(campaign_id: str) -> dict:
+    """Read the checked campaign plan, sample journal and result references."""
+    return _lab().inspect_doe(campaign_id)
+
+
 if __name__ == "__main__":
     mcp.run(transport="stdio")

@@ -59,6 +59,7 @@ def test_solver_child_preserves_parent_revision_and_evidence(tmp_path):
         a["path"] for a in child["artifacts"]}
     assert lab.research_summary("E-solver")["parent_experiment_id"] == "E-cad"
     assert "physical_load_test" in lab.research_summary("E-solver")["unknown"]
+    assert "machine_interface" in lab.research_summary("E-solver")["unknown"]
     assert lab.inspect_experiment("E-solver") == child
     with pytest.raises(FileExistsError):
         lab.run_analysis(parent_experiment_id="E-cad", experiment_id="E-solver",

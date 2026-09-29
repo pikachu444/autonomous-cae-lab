@@ -53,5 +53,15 @@ class AnalysisAdapter(Protocol):
               output: Path, settings: dict[str, Any]) -> dict[str, Any]: ...
 
 
+class DOEAdapter(Protocol):
+    """Deterministic numerical design generator; no CAD or solver calls."""
+
+    engine: str
+    version: str
+
+    def sample(self, variables: list[dict], *, count: int, seed: int
+               ) -> tuple[list[dict[str, float]], dict]: ...
+
+
 class CapabilityUnavailable(RuntimeError):
     """A backend has no executable adapter in this installation."""

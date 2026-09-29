@@ -9,7 +9,7 @@ from filelock import FileLock
 
 from .adapters.fixture_cadquery import FixtureCadQueryAdapter
 from .adapters.fixture_freecad import FixtureFreeCADAdapter
-from .contracts import AnalysisAdapter, CADAdapter, CapabilityUnavailable
+from .contracts import AnalysisAdapter, CADAdapter, DOEAdapter, CapabilityUnavailable
 from .registry import register_parameter, validate_assignments
 from .schema import validate as validate_schema
 from .storage import (artifact_manifest, canonical_hash, check_artifacts, check_id,
@@ -19,7 +19,8 @@ import hashlib
 
 class Lab:
     def __init__(self, store: str | Path, *, adapters: dict[str, CADAdapter] | None = None,
-                 analysis_adapters: dict[str, AnalysisAdapter] | None = None):
+                 analysis_adapters: dict[str, AnalysisAdapter] | None = None,
+                 doe_adapters: dict[str, DOEAdapter] | None = None):
         self.store = Path(store).resolve()
         self.adapters = adapters if adapters is not None else {
             FixtureCadQueryAdapter.backend: FixtureCadQueryAdapter(),
@@ -29,6 +30,10 @@ class Lab:
             from .adapters.fixture_calculix import FixtureCalculiXAdapter
             analysis_adapters = {FixtureCalculiXAdapter.backend: FixtureCalculiXAdapter()}
         self.analysis_adapters = analysis_adapters
+        if doe_adapters is None:
+            from .optimizers.scipy_lhs import ScipyLatinHypercube
+            doe_adapters = {ScipyLatinHypercube.engine: ScipyLatinHypercube()}
+        self.doe_adapters = doe_adapters
 
     def create_native_model(self, *, template: str = "roller_support") -> dict[str, Any]:
         return self._adapter("fixture.freecad").create_sample(template)
@@ -145,8 +150,11 @@ class Lab:
     def run_experiment(self, *, study_id: str, experiment_id: str, backend: str,
                        model: str, values: dict[str, Any],
                        hypothesis_id: str | None = None,
-                       settings: dict[str, Any] | None = None) -> dict[str, Any]:
+                       settings: dict[str, Any] | None = None,
+                       campaign_id: str | None = None) -> dict[str, Any]:
         check_id(experiment_id)
+        if campaign_id is not None:
+            check_id(campaign_id)
         study = self.inspect_study(study_id)
         registry = self.registry(study_id)
         adapter = self._adapter(backend)
@@ -173,6 +181,8 @@ class Lab:
                     "parameters": deepcopy(values), "outputs": {"metrics": adapter.default_metrics},
                     "objectives": [], "constraints": [], "validation_requirements": [],
                     "execution": deepcopy(settings or {}), "registry_revision": registry["revision"]}
+        if campaign_id is not None:
+            proposal["campaign_id"] = campaign_id
         validate_schema("experiment", proposal)
         canonical_hash(proposal)  # Reject non-JSON values before reserving an experiment ID.
         folder.mkdir(parents=True, exist_ok=False)
@@ -272,12 +282,16 @@ class Lab:
                                  "random_seed": (settings or {}).get("random_seed"),
                                  "material": None, "mesh": None, "solver": None,
                                  "created_utc": utc_now(), **source_identity(Path(__file__).resolve().parents[1])}}
+        if campaign_id is not None:
+            result["campaign_id"] = campaign_id
         thread = {"hypothesis": proposal["hypothesis_id"], "study": study_id,
                   "experiment": experiment_id, "registry_revision": registry["revision"],
                   "cad_revision": revision,
                   "mesh": None, "solver_deck": None, "run": None,
                   "result": "result.json", "evidence": [e["id"] for e in evidence],
                   "decision": result["decision"]}
+        if campaign_id is not None:
+            thread["campaign"] = campaign_id
         validate_schema("result", result)
         save_json(folder / "result.json", result)
         save_json(folder / "thread.json", thread)
@@ -328,6 +342,8 @@ class Lab:
                     "objectives": [], "constraints": [], "validation_requirements": [],
                     "execution": deepcopy(settings),
                     "registry_revision": parent["registry_revision"]}
+        if "campaign_id" in parent:
+            proposal["campaign_id"] = parent["campaign_id"]
         if "material" in settings:
             proposal["model"]["materials"] = [deepcopy(settings["material"])]
         validate_schema("experiment", proposal)
@@ -411,6 +427,21 @@ class Lab:
                                 "experiment_id": experiment_id, "solver_run_id": experiment_id,
                                 "timestamp": utc_now(),
                                 "notes": "Separate engineering evidence required"})
+        # A child solver run cannot erase unresolved CAD/engineering gates.
+        # Keep the parent record immutable and link back to it for detail.
+        observed_types = {v["type"] for v in validations}
+        for prior in parent["validations"]:
+            if prior["status"] != "UNKNOWN" or prior["type"] in observed_types:
+                continue
+            validations.append({"type": prior["type"], "validator": "inherited_parent",
+                                "status": "UNKNOWN", "blocking": prior["blocking"],
+                                "threshold": prior.get("threshold"),
+                                "expected_range": prior.get("expected_range"),
+                                "evidence_ids": [], "cad_revision": parent["cad_revision"],
+                                "experiment_id": experiment_id, "solver_run_id": experiment_id,
+                                "timestamp": utc_now(),
+                                "notes": f"Unresolved in parent experiment {parent_id}"})
+            observed_types.add(prior["type"])
         status = ("FAILED_EXECUTION" if execution_error else
                   "REJECTED" if outcome["status"] == "REJECTED" or
                   any(c["status"] == "FAIL" for c in checks) else
@@ -443,6 +474,8 @@ class Lab:
                                  "execution_settings": deepcopy(settings),
                                  "created_utc": utc_now(),
                                  **source_identity(Path(__file__).resolve().parents[1])}}
+        if "campaign_id" in parent:
+            result["campaign_id"] = parent["campaign_id"]
         thread = {"hypothesis": proposal["hypothesis_id"],
                   "study": proposal["study_id"], "experiment": experiment_id,
                   "parent_experiment": parent_id,
@@ -453,6 +486,8 @@ class Lab:
                   "solver_deck": outcome["provenance"].get("solver_deck"),
                   "run": experiment_id, "result": "result.json",
                   "evidence": [e["id"] for e in evidence], "decision": result["decision"]}
+        if "campaign_id" in parent:
+            thread["campaign"] = parent["campaign_id"]
         validate_schema("result", result)
         save_json(folder / "result.json", result)
         save_json(folder / "thread.json", thread)
@@ -492,6 +527,8 @@ class Lab:
         return {"experiment_id": result["experiment_id"], "study": result["study"],
                 **({"parent_experiment_id": result["parent_experiment_id"]}
                    if "parent_experiment_id" in result else {}),
+                **({"campaign_id": result["campaign_id"]}
+                   if "campaign_id" in result else {}),
                 "status": result["status"], "decision": result["decision"],
                 "parameters": result["input_parameters"], "metrics": result["metrics"],
                 "failures": [{"type": v["type"], "evidence_ids": v["evidence_ids"]}
@@ -502,3 +539,23 @@ class Lab:
 
     def compare(self, experiment_ids: list[str]) -> list[dict[str, Any]]:
         return [self.research_summary(check_id(identifier)) for identifier in experiment_ids]
+
+    def plan_doe(self, *, study_id: str, campaign_id: str, backend: str, model: str,
+                 parameter_ids: list[str], sample_count: int, seed: int,
+                 analysis_backend: str | None = None,
+                 analysis_settings: dict[str, Any] | None = None,
+                 engine: str = "scipy.latin_hypercube") -> dict[str, Any]:
+        from .campaign import plan_doe
+        return plan_doe(self, study_id=study_id, campaign_id=campaign_id,
+                        backend=backend, model=model, parameter_ids=parameter_ids,
+                        sample_count=sample_count, seed=seed,
+                        analysis_backend=analysis_backend, analysis_settings=analysis_settings,
+                        engine=engine)
+
+    def run_doe(self, campaign_id: str) -> dict[str, Any]:
+        from .campaign import run_doe
+        return run_doe(self, campaign_id)
+
+    def inspect_doe(self, campaign_id: str) -> dict[str, Any]:
+        from .campaign import inspect_doe
+        return inspect_doe(self, campaign_id)

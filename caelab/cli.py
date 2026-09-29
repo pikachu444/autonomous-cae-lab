@@ -78,7 +78,22 @@ def parser():
     solve.add_argument("--backend", default="fixture.calculix")
     solve.add_argument("--settings", required=True,
                        help="JSON material, load and mesh settings; no solver deck syntax")
-    for future in ("mesh", "pde", "doe", "optimize"):
+    doe = sub.add_parser("doe")
+    doe_sub = doe.add_subparsers(dest="action", required=True)
+    plan = doe_sub.add_parser("plan")
+    plan.add_argument("--study", required=True)
+    plan.add_argument("--campaign", required=True)
+    plan.add_argument("--backend", default="fixture.cadquery")
+    plan.add_argument("--model", required=True)
+    plan.add_argument("--variables", nargs="+", required=True)
+    plan.add_argument("--samples", type=int, required=True)
+    plan.add_argument("--seed", type=int, required=True)
+    plan.add_argument("--engine", default="scipy.latin_hypercube")
+    plan.add_argument("--analysis-backend")
+    plan.add_argument("--analysis-settings", help="JSON load, material and mesh inputs")
+    doe_sub.add_parser("run").add_argument("--campaign", required=True)
+    doe_sub.add_parser("inspect").add_argument("--campaign", required=True)
+    for future in ("mesh", "pde", "optimize"):
         sub.add_parser(future)
     sub.add_parser("demo")
     return p
@@ -130,6 +145,19 @@ def main(argv=None):
             _json(lab.run_analysis(parent_experiment_id=args.parent,
                                    experiment_id=args.experiment, backend=args.backend,
                                    settings=json.loads(args.settings)))
+        elif args.command == "doe":
+            if args.action == "plan":
+                _json(lab.plan_doe(study_id=args.study, campaign_id=args.campaign,
+                                   backend=args.backend, model=args.model,
+                                   parameter_ids=args.variables, sample_count=args.samples,
+                                   seed=args.seed, engine=args.engine,
+                                   analysis_backend=args.analysis_backend,
+                                   analysis_settings=(json.loads(args.analysis_settings)
+                                                      if args.analysis_settings else None)))
+            elif args.action == "run":
+                _json(lab.run_doe(args.campaign))
+            else:
+                _json(lab.inspect_doe(args.campaign))
         elif args.command == "demo":
             lab.create_study("S-demo", "3-point bending fixture", "Does a wider roller support remain CAD-valid?",
                              "Widening the support from 32 to 38 mm retains hole clearance.",
