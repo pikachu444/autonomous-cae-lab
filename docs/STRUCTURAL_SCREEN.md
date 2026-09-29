@@ -24,12 +24,14 @@ relative difference in maximum loaded-node displacement for this preliminary
 screen's declared mesh trend check to pass. A solver's successful exit is
 recorded separately from this check. The averaged nodal peak stress is marked
 `valid=false`: without converged stress, material allowables, actual fasteners
-and roller contact, it is only a diagnostic. Reaction balance remains
-`UNKNOWN` pending explicit RF extraction and a signed force check. Machine
-interface, physical load and durability remain `UNKNOWN`; final decision is
-`NOT_RELEASED`.
+and roller contact, it is only a diagnostic. The adapter now requests RF at
+every fixed base node, requires a complete finite table and checks all three
+signed force components against the applied load on each mesh at a 1% relative
+limit. This checks numerical equilibrium under the **idealized** boundary
+conditions. Machine interface, physical load and durability remain `UNKNOWN`;
+final decision is `NOT_RELEASED`.
 
-## Executed acceptance
+## Initial executed acceptance
 
 [GitHub Actions run 36634609802](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36634609802)
 executed the Core CAD experiment and a separate child run with Gmsh 4.12.1
@@ -51,12 +53,37 @@ passed; the child result registered 38 artifacts with matching SHA-256 and
 sizes. Its `solver_status=COMPLETED`, `status=COMPLETED_REVIEW_REQUIRED`,
 `decision=NOT_RELEASED`. The 0.87783 MPa averaged nodal peak stress remains
 an **invalid engineering metric** (`valid=false`), not a strength allowable or
-a converged stress claim. Reaction balance, contact/bolts, material
-qualification, machine interface, physical load and durability evidence are
-still `UNKNOWN`. [The retained workflow artifact](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36634609802)
+a converged stress claim. At this initial commit reaction balance,
+contact/bolts, material qualification, machine interface, physical load and
+durability evidence were `UNKNOWN`. [The retained workflow artifact](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36634609802)
 contains the native CAD, meshes, decks, commands, logs, DAT/FRD and the
 result/evidence thread; its ZIP digest is
 `sha256:4a299444bb96d87b7b22b9d63574db7a5518a0dd8d59b944ded450285497f89f`.
+
+## Signed reaction balance acceptance
+
+[GitHub Actions run 36635621706](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36635621706)
+repeated the same nominal CAD revision and structural setup with a fixed-base
+RF request. The 4/3/2 mm meshes returned respectively 1,273/1,515/2,287
+fixed-node records. For the finest mesh, the reaction vector was approximately
+`[-5.66e-8, -2.01e-8, +100.00000008] N` against the applied
+`[0, 0, -100] N`. The largest relative imbalance among all three meshes was
+`4.893e-9` (limit `0.01`). All three `mesh_*_reaction_balance` validations
+are `PASS`, and `reaction_balance` is no longer an unknown validation for
+this numerical model. The displacement trend and `NOT_RELEASED` decision
+remain unchanged. The 38 child artifacts matched their SHA-256 records, and
+the source commit was recorded with `core_dirty=false`. [The retained
+artifact](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36635621706)
+has ZIP digest
+`sha256:ffdcd8870ebce87035b4a032a214b1a3b4f739c83063ec8ecbc9cdf9595b93af`.
+
+The parent STEP SHA differs between these two CI runs because Open CASCADE
+writes the export timestamp into the STEP header. Within **each** run, the
+solver input and its parent artifact have identical SHA-256. The CAD revision
+identifies registered inputs and source; a file hash identifies the exact
+export bytes. Do not equate reproducible geometry with byte-for-byte STEP
+serialization across runs. For this run the parent/solver STEP SHA-256 was
+`d9e21dda417bfcb7685d74b131c9794da0a42b9b70de977883b57b8d49225709`.
 
 The current development container has no Gmsh or CalculiX executable. Local
 tests verify real CAD/STEP preflight, tampering rejection and Core child-run
