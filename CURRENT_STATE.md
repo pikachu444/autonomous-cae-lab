@@ -28,14 +28,13 @@ Refactor candidates in upstream: move `DESIGNS` away from a repository-global ru
 ## Still unverified or undecided
 
 - Live OpenScience agent/tool round trip; its exact product identity needs confirmation from the unavailable older transcript. Local MCP transport was tested; OpenScience CLI v2.0.145 could not load config in this container because its PID identity check saw an inconsistent `/proc` view.
-- Local native FreeCAD adapter run, a physical machine interface, printed part strength and physical load/fatigue tests.
-- A Core-to-FreeCAD native acceptance workflow has been added but its GitHub Actions run is pending; the old upstream CI did not exercise the new bridge. The Sketcher index-shift discovery and cross-file registration transaction limits are tracked in `docs/NATIVE_ACCEPTANCE.md`.
+- Local native FreeCAD execution remains unavailable, but the Core-to-FreeCAD Part/Sketcher acceptance passed in GitHub Actions run 36632876593. The result artifact was inspected; details and the remaining Sketcher index-shift discovery and cross-file registration transaction limits are in `docs/NATIVE_ACCEPTANCE.md`. Physical machine interface, printed-part strength and load/fatigue tests remain unknown.
 - Code_Aster/SALOME-MECA nonlinear contact benchmark, OpenRadioss explicit preprocessing and converter coverage, FEniCSx PDE prototype, optimizer integration. These are research candidates, not implemented adapters.
 - Source and dependency license obligations for corporate deployment, including bundled SALOME components and OpenRadioss AGPL.
-- Repository `autonomous-cae-lab` did not exist in the connected GitHub account; no create-repository API was exposed. A local git repository is prepared for a later private remote.
+- The user supplied [pikachu444/autonomous-cae-lab](https://github.com/pikachu444/autonomous-cae-lab), currently public. The prior local architecture/acceptance and the native verification work are reflected in its `main` branch. A company/private visibility decision remains open.
 
 ## Next acceptance gates
 
 1. The CadQuery vertical slice is executed here: discover actual source variables, register selected variables and bounds, regenerate 32→38 mm, reject invalid inputs before export, record hashes/evidence/validation, return a research summary.
-2. Repeat with FreeCADCmd in a supported environment and point CAE-Lab at an editable FCStd document; validate native property and Sketcher mapping.
+2. The sample Part/Sketcher Core bridge is now CI-executed. Verify imported, arbitrary FCStd models and edit/reorder Sketcher constraints in a GUI, then refresh registry without ambiguous discovery.
 3. Attach a solver result to the **same CAD revision**, then add a numerical DOE driver and a canonical PDE benchmark. Keep every unverified release requirement `UNKNOWN`.

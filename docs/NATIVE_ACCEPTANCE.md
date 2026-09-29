@@ -1,11 +1,25 @@
 # Native FreeCAD Core acceptance
 
-The pinned fixture repository's earlier FreeCAD CI tested its worker directly. The
-new workflow `.github/workflows/caelab-ci.yml` invokes `scripts/verify_native.py`
-through **CAE-Lab's public `Lab` API**. It downloads the same SHA-256-pinned
-FreeCAD 1.1.4 AppImage used by the upstream acceptance. The local development
-container has no FreeCADCmd, so the native path is not locally accepted until
-the new workflow succeeds and its artifact/result ledger is inspected.
+The pinned fixture repository's earlier FreeCAD CI tested its worker directly.
+The new workflow `.github/workflows/caelab-ci.yml` invokes
+`python -m scripts.verify_native` through **CAE-Lab's public `Lab` API**. It
+downloads the same SHA-256-pinned FreeCAD 1.1.4 AppImage used by the upstream
+acceptance. The local development container has no FreeCADCmd; the new native
+bridge ran successfully in [Actions run 36632876593](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36632876593)
+at commit `252d58b9d29dd5545b7e1269837a48cd705b86ba`.
+
+The run's preserved artifact (SHA-256
+`0ccf9dadcfe56cc2393be75ae2fb43600ec3cfb0605b6a03bd844c8cff501ec8`)
+was opened after the job: `native_acceptance.json` reports Part width
+`[38, 40, 26]` mm, Sketcher bounds `[12, 12, 8]` mm, successful reopening of
+the editable FCStd and rejection of the ineffective dimension. The valid Part
+and Sketcher results each record 12 artifacts and `NOT_RELEASED`; the bore
+radius 5 mm result records `REJECTED`, `cad_revision=null` and a
+`bore_1_edge_land` FAIL, without exported geometry in that experiment. The Core
+job passed eight tests and a local-client MCP round trip. The earlier
+[run 36632462887](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36632462887)
+failed before native execution because a file-path invocation could not import
+`caelab`; the subsequent module invocation fixed it.
 
 The script records a study, discovers actual Part and Sketcher dimensions,
 registers research names/bounds in both the Core and FCStd, executes 32→38 mm
