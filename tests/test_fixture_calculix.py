@@ -7,7 +7,8 @@ import pytest
 
 from caelab.adapters.fixture_cadquery import FixtureCadQueryAdapter
 from caelab.adapters.fixture_calculix import (FixtureCalculiXAdapter, UPSTREAM,
-                                              _finite_displacement_table)
+                                              _base_reactions, _finite_displacement_table,
+                                              _request_base_reactions)
 from caelab.storage import artifact_manifest
 
 
@@ -81,3 +82,32 @@ def test_displacement_table_rejects_nonfinite_nonextreme_node(tmp_path):
                    "2 0.0 0.0 -0.5\n"
                    "3 0.0 0.0 -1.1\n")
     _finite_displacement_table(dat, {1, 2, 3})
+
+
+def test_fixed_reaction_table_checks_signed_balance_and_completeness(tmp_path):
+    dat = tmp_path / "solver.dat"
+    dat.write_text("displacements (vx,vy,vz) for set ROLLER_NODES\n"
+                   "3 0 0 -0.01\n\n"
+                   "forces (fx,fy,fz) for set BASE_FIXED and time  0.1000000E+01\n\n"
+                   "1 1.0 0.0 30.0\n"
+                   "2 -1.0 0.0 70.0\n\n")
+    reaction = _base_reactions(dat, {1, 2}, 100.0)
+    assert reaction["reaction_force_N"] == [0.0, 0.0, 100.0]
+    assert reaction["relative_imbalance"] == 0
+    original = dat.read_text()
+    dat.write_text(original.replace("70.0", "-70.0"))
+    assert _base_reactions(dat, {1, 2}, 100.0)["relative_imbalance"] > 1
+    dat.write_text(original.replace("2 -1.0 0.0 70.0", ""))
+    with pytest.raises(RuntimeError, match="Incomplete fixed-node reactions"):
+        _base_reactions(dat, {1, 2}, 100.0)
+    dat.write_text(original.replace("2 -1.0 0.0 70.0", "2 -1.0 NaN 70.0"))
+    with pytest.raises(RuntimeError, match="Nonfinite fixed-node reaction"):
+        _base_reactions(dat, {1, 2}, 100.0)
+
+
+def test_reaction_request_preserves_the_existing_step(tmp_path):
+    deck = tmp_path / "support.inp"
+    deck.write_text("*STEP\n*STATIC\n*NODE PRINT, NSET=ROLLER_NODES\nU\n*END STEP\n")
+    _request_base_reactions(deck)
+    assert deck.read_text().endswith("*NODE PRINT, NSET=ROLLER_NODES\nU\n"
+                                     "*NODE PRINT, NSET=BASE_FIXED\nRF\n*END STEP\n")

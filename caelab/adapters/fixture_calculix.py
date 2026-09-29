@@ -107,12 +107,68 @@ def _finite_displacement_table(dat: Path, loaded: set[int]) -> None:
         raise RuntimeError(f"Incomplete loaded-node displacement: {len(records)}/{len(loaded)}")
 
 
+def _request_base_reactions(deck: Path) -> None:
+    """Ask CalculiX for RF only where there are no applied nodal loads."""
+    content = deck.read_text()
+    marker = "*END STEP\n"
+    if content.count(marker) != 1 or not content.endswith(marker):
+        raise RuntimeError("Unexpected solver deck step structure")
+    deck.write_text(content[:-len(marker)] +
+                    "*NODE PRINT, NSET=BASE_FIXED\nRF\n" + marker)
+
+
+def _base_reactions(dat: Path, fixed: set[int], applied_force_N: float) -> dict:
+    """Read all fixed-node RF vectors and check signed, three-axis equilibrium.
+
+    CalculiX RF is external force; it equals the reaction on this fixed set
+    because the concentrated saddle load and fixed-node sets are disjoint.
+    """
+    lines = dat.read_text(errors="replace").splitlines()
+    header = re.compile(r"^\s*forces\s*\(fx,fy,fz\)\s+for set\s+BASE_FIXED\b", re.I)
+    starts = [i for i, line in enumerate(lines) if header.search(line)]
+    if len(starts) != 1:
+        raise RuntimeError(f"Expected one BASE_FIXED reaction table, found {len(starts)}")
+    records: dict[int, list[float]] = {}
+    started = False
+    for line in lines[starts[0] + 1:]:
+        fields = line.strip().split()
+        if not fields:
+            if started:
+                break
+            continue
+        try:
+            node = int(fields[0])
+        except ValueError:
+            if started:
+                break
+            continue
+        if len(fields) != 4 or node not in fixed or node in records:
+            raise RuntimeError(f"Invalid or duplicate fixed-node reaction: {node}")
+        try:
+            vector = [float(value.replace("D", "E").replace("d", "e"))
+                      for value in fields[1:]]
+        except ValueError as exc:
+            raise RuntimeError(f"Malformed fixed-node reaction: {node}") from exc
+        if not all(math.isfinite(value) for value in vector):
+            raise RuntimeError(f"Nonfinite fixed-node reaction: {node}")
+        records[node] = vector
+        started = True
+    if set(records) != fixed:
+        raise RuntimeError(f"Incomplete fixed-node reactions: {len(records)}/{len(fixed)}")
+    reaction = [math.fsum(v[axis] for v in records.values()) for axis in range(3)]
+    residual = [reaction[0], reaction[1], reaction[2] - applied_force_N]
+    relative = math.sqrt(math.fsum(component * component for component in residual)) / applied_force_N
+    return {"reaction_force_N": reaction, "applied_force_N": [0.0, 0.0, -applied_force_N],
+            "residual_force_N": residual, "relative_imbalance": relative,
+            "fixed_node_count": len(records)}
+
+
 class FixtureCalculiXAdapter:
     backend = "fixture.calculix"
     version = "1"
     analysis_type = "linear_static"
     default_metrics = ["max_displacement", "peak_stress", "displacement_mesh_change_ratio",
-                       "applied_force_per_support"]
+                       "applied_force_per_support", "reaction_force", "reaction_balance_ratio"]
 
     def solve(self, parent_result: dict, parent_root: Path, output: Path,
               settings: dict) -> dict:
@@ -304,6 +360,7 @@ class FixtureCalculiXAdapter:
             deck = folder / f"{job}.inp"
             boundary = screen.write_deck(deck, nodes, elements, support, material,
                                          load["force_per_support_N"])
+            _request_base_reactions(deck)
             checks.append({"code": f"mesh_{index}_cad_volume", "status": "PASS",
                            "observed": boundary["mesh_volume_relative_error"], "limit": .08})
             ccx = subprocess.run(["ccx", job], cwd=folder, text=True, capture_output=True, timeout=300)
@@ -316,11 +373,20 @@ class FixtureCalculiXAdapter:
             displacement = screen.extract_vertical_displacements(dat, loaded_nodes)
             if displacement["min_vertical_displacement_mm"] >= 0:
                 raise RuntimeError("Loaded saddle did not move in the expected -Z direction")
+            fixed_nodes = {node for node, (_, _, z) in nodes.items()
+                           if abs(z - support.BoundingBox().zmin) < 1e-4}
+            if len(fixed_nodes) != boundary["fixed_node_count"] or fixed_nodes & loaded_nodes:
+                raise RuntimeError("Fixed node set differs from the declared solver boundary")
+            reactions = _base_reactions(dat, fixed_nodes, load["force_per_support_N"])
+            checks.append({"code": f"mesh_{index}_reaction_balance",
+                           "status": "PASS" if reactions["relative_imbalance"] <= .01 else "FAIL",
+                           "observed": reactions, "limit": .01})
             stress = screen.extract_stress_diagnostic(frd, nodes)
             studies.append({"mesh_size_max_mm": size, "nodes": len(nodes),
                             "elements_C3D10": len(elements),
                             "minimum_quadratic_jacobian_mm3": jac,
                             "boundary": boundary, "displacement": displacement,
+                            "reactions": reactions,
                             "stress_diagnostic": stress,
                             "files": {"mesh": f"{job}/gmsh.inp", "deck": f"{job}/{job}.inp",
                                       "commands": f"{job}/commands.json",
@@ -339,6 +405,7 @@ class FixtureCalculiXAdapter:
         checks.append({"code": "displacement_mesh_trend", "status": "PASS" if trend <= .05 else "FAIL",
                        "observed": trend, "limit": .05})
         mesh_trend_passed = trend <= .05
+        reaction_passed = all(v["reactions"]["relative_imbalance"] <= .01 for v in studies)
         metrics = {
             "max_displacement": {"value": denominator, "unit": "mm", "valid": mesh_trend_passed,
                                  **({"reason": "Declared mesh trend threshold exceeded"}
@@ -347,13 +414,20 @@ class FixtureCalculiXAdapter:
                             "unit": "MPa", "valid": False,
                             "reason": "Averaged nodal diagnostic; no stress convergence or material allowable"},
             "displacement_mesh_change_ratio": {"value": trend, "unit": "1", "valid": True},
+            "reaction_force": {"value": fine["reactions"]["reaction_force_N"], "unit": "N",
+                               "valid": reaction_passed,
+                               **({"reason": "A mesh exceeds the 1% signed force balance limit"}
+                                  if not reaction_passed else {})},
+            "reaction_balance_ratio": {"value": max(v["reactions"]["relative_imbalance"]
+                                                    for v in studies), "unit": "1", "valid": True},
             "applied_force_per_support": {"value": load["force_per_support_N"], "unit": "N", "valid": True},
         }
         provenance.update({"mesh": ["simulation/" + v["files"]["mesh"] for v in studies],
                            "solver_deck": ["simulation/" + v["files"]["deck"] for v in studies]})
-        result = {"status": "COMPLETED" if mesh_trend_passed else "REJECTED", "checks": checks,
+        result = {"status": "COMPLETED" if mesh_trend_passed and reaction_passed else "REJECTED", "checks": checks,
                   "metrics": metrics, "solver_status": "COMPLETED",
-                  "converged": True, "pending_validations": list(_PENDING),
+                  "converged": True,
+                  "pending_validations": [kind for kind in _PENDING if kind != "reaction_balance"],
                   "provenance": provenance, "raw_result": "simulation/result.json",
                   "mesh_studies": studies,
                   "limitations": ["Fixed bottom substitutes for actual fasteners and base.",

@@ -41,6 +41,11 @@ def run(store: Path):
     assert "static_strength" in lab.research_summary("E-linear-solve")["unknown"]
     assert analysis["metrics"]["max_displacement"]["valid"] is True
     assert analysis["metrics"]["peak_stress"]["valid"] is False
+    assert analysis["metrics"]["reaction_force"]["valid"] is True
+    assert analysis["metrics"]["reaction_balance_ratio"]["value"] <= .01
+    assert sum(v["type"].endswith("_reaction_balance") and v["status"] == "PASS"
+               for v in analysis["validations"]) == 3
+    assert "reaction_balance" not in lab.research_summary("E-linear-solve")["unknown"]
     parent_step = store / "experiments/E-linear-cad/cad/assembly.step"
     simulation = store / "experiments/E-linear-solve/simulation"
     assert hashlib.sha256(parent_step.read_bytes()).hexdigest() == hashlib.sha256(
@@ -59,6 +64,7 @@ def run(store: Path):
                "solver_status": analysis["solver_status"], "decision": analysis["decision"],
                "displacement_mm": analysis["metrics"]["max_displacement"]["value"],
                "mesh_change_ratio": analysis["metrics"]["displacement_mesh_change_ratio"]["value"],
+               "reaction_balance_ratio": analysis["metrics"]["reaction_balance_ratio"]["value"],
                "artifact_count": len(artifacts)}
     (store / "linear_acceptance.json").write_text(json.dumps(summary, indent=2) + "\n")
     print(json.dumps(summary))
