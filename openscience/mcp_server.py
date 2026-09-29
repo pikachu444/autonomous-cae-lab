@@ -66,6 +66,24 @@ def model_native_select_final(model: str, final: str) -> dict:
 
 
 @mcp.tool()
+def model_native_new(template: str = "roller_support") -> dict:
+    """Create a trusted editable fixture template when FreeCADCmd is installed."""
+    return _lab().create_native_model(template=template)
+
+
+@mcp.tool()
+def model_native_import(file_name: str) -> dict:
+    """Import an existing FCStd from the configured CAELAB_IMPORT_ROOT folder."""
+    root = os.environ.get("CAELAB_IMPORT_ROOT")
+    if not root or not file_name or Path(file_name).name != file_name or not file_name.endswith(".FCStd"):
+        raise ValueError("Select an FCStd filename under CAELAB_IMPORT_ROOT")
+    source = (Path(root) / file_name).resolve()
+    if not source.is_relative_to(Path(root).resolve()):
+        raise ValueError("FCStd path escapes CAELAB_IMPORT_ROOT")
+    return _lab().import_native_model(source)
+
+
+@mcp.tool()
 def parameters_register(study_id: str, backend: str, model: str, native_path: str,
                         parameter_id: str, display_name: str, lower: float, upper: float,
                         mode: str = "free", kind: str = "continuous") -> dict:

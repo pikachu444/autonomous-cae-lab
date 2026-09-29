@@ -23,7 +23,8 @@ async def main():
                 await session.initialize()
                 names = {tool.name for tool in (await session.list_tools()).tools}
                 assert {"study_create", "parameters_discover", "parameters_register",
-                        "experiment_run", "experiment_summary"} <= names
+                        "experiment_run", "experiment_summary", "model_native_new",
+                        "model_native_import", "model_native_inspect", "model_native_select_final"} <= names
 
                 async def call(name, arguments):
                     response = await session.call_tool(name, arguments)

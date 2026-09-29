@@ -11,9 +11,9 @@ git submodule update --init
 python -m pip install -r requirements-core.txt -r requirements-mcp.txt
 python -m pip install -r plugins/fixture_design/upstream/requirements.txt
 python -m caelab --store runs demo
-python -m caelab inspect --store runs --experiment E-demo-width38
+python -m caelab --store runs inspect --experiment E-demo-width38
 ```
 
 The demo requires a fresh store (or a new directory) because experiment IDs cannot be overwritten. API, CLI and MCP call the same engine. `python -m pytest -q` runs Core acceptance tests after installing `pytest` and upstream dependencies. `python scripts/verify_mcp.py` checks an actual local stdio MCP tool round trip. To run the original fixture GUI, execute `python -m fixturelab serve` from `plugins/fixture_design/upstream`. That GUI does not yet list CAE-Lab experiment IDs; open stored CAD source or FCStd and reports by path.
 
-Read [CURRENT_STATE.md](CURRENT_STATE.md), [ARCHITECTURE.md](ARCHITECTURE.md), [ADR 0001](ADR/0001-platform-boundaries.md), and [the OpenScience contract](openscience/contract.md) before adding adapters.
+Read [CURRENT_STATE.md](CURRENT_STATE.md), [ARCHITECTURE.md](ARCHITECTURE.md), [ADR 0001](ADR/0001-platform-boundaries.md), [acceptance record](docs/ACCEPTANCE_20260930.md), and [the OpenScience contract](openscience/contract.md) before adding adapters.
