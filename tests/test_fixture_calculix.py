@@ -130,3 +130,16 @@ def test_area_load_replaces_only_saddle_set_and_forces(tmp_path):
     deck.write_text(text.replace("*CLOAD\n", "*DLOAD\n"))
     with pytest.raises(RuntimeError, match="Unexpected solver deck structure"):
         _apply_saddle_forces(deck, {1: -100.0}, 2)
+
+
+def test_area_load_keeps_small_forces_within_calculix_field_width(tmp_path):
+    deck = tmp_path / "support.inp"
+    deck.write_text("*NSET, NSET=ROLLER_NODES\n1\n"
+                    "*MATERIAL, NAME=PRINT_INPUT\n*STEP\n*CLOAD\n1, 3, -100\n"
+                    "*NODE PRINT, NSET=ROLLER_NODES\nU\n*END STEP\n")
+    forces = {1: -99.99994951471318, 2: -5.048528681584956e-05}
+    _apply_saddle_forces(deck, forces, 1)
+    fields = [line.split(",")[-1].strip() for line in
+              deck.read_text().split("*CLOAD\n")[1].split("*NODE PRINT")[0].splitlines()]
+    assert max(map(len, fields)) <= 20
+    assert sum(map(float, fields)) == pytest.approx(sum(forces.values()), abs=1e-8)

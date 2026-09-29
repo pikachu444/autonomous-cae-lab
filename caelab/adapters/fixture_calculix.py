@@ -149,7 +149,17 @@ def _apply_saddle_forces(deck: Path, nodal_loads: dict[int, float],
     identifiers = sorted(nodal_loads)
     new_set = "".join(", ".join(map(str, identifiers[i:i + 12])) + "\n"
                       for i in range(0, len(identifiers), 12))
-    new_loads = "".join(f"{node}, 3, {nodal_loads[node]:.16g}\n" for node in identifiers)
+    # CalculiX 2.21's *CLOAD reader rejects a 22-character numeric field.
+    # Twelve significant digits keep this field below its observed limit and
+    # lose far less than the declared 1% reaction-balance tolerance.
+    formatted = [f"{nodal_loads[node]:.12g}" for node in identifiers]
+    if any(len(value) > 20 for value in formatted):
+        raise ValueError("A saddle force exceeds the verified *CLOAD field width")
+    new_loads = "".join(f"{node}, 3, {value}\n"
+                        for node, value in zip(identifiers, formatted))
+    if abs(math.fsum(float(value) for value in formatted) -
+           math.fsum(nodal_loads.values())) > 1e-8 * abs(math.fsum(nodal_loads.values())):
+        raise ValueError("Saddle force serialization changed the applied load")
     deck.write_text(start + nset + new_set + material + before_load + cload +
                     new_loads + print_set + after_load)
 
