@@ -27,6 +27,15 @@ CalculiX** child path and records the invalid bolt-pitch rule without a
 solver child. The material and 100 N per-support load are assumed; no sampled
 stress is qualified. The campaign decision is always `NOT_RELEASED`.
 
+A solver finishing does not make every sample numerically valid. The first
+CI attempt recorded displacement mesh changes of 6.52% and 7.70% for the two
+width samples, exceeding the declared 5% limit. Both child runs are
+`REJECTED` with `max_displacement.valid=false`, despite completed CalculiX
+jobs and passing reaction checks. The valid bolt-pitch sample passed its
+numerical screen; the second pitch sample failed CAD relations and skipped
+the solver. The acceptance checks these distinctions rather than treating a
+campaign with rejected points as a failed execution or an optimum.
+
 This is **DOE**, not an optimization convergence claim. DAKOTA remains a
 candidate for broader black-box optimization/UQ, and SciPy sampling does not
 replace objective/constraint selection, sensitivity or an engineering release

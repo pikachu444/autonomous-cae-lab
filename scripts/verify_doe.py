@@ -36,7 +36,8 @@ def run(store: Path):
     assert [v["values"] for v in pitch_plan["samples"]] == [v["values"] for v in pitch["samples"]]
     assert width["algorithm"]["seed"] == pitch["algorithm"]["seed"] == 13
     assert [v["cad_status"] for v in width["samples"]] == ["COMPLETED_REVIEW_REQUIRED"] * 2
-    assert [v["analysis_status"] for v in width["samples"]] == ["COMPLETED_REVIEW_REQUIRED"] * 2
+    assert all(v["analysis_status"] in {"COMPLETED_REVIEW_REQUIRED", "REJECTED"}
+               for v in width["samples"])
     assert [v["cad_status"] for v in pitch["samples"]] == ["COMPLETED_REVIEW_REQUIRED", "REJECTED"]
     assert [v["analysis_status"] for v in pitch["samples"]] == [
         "COMPLETED_REVIEW_REQUIRED", "SKIPPED_CAD_REJECTED"]
@@ -45,6 +46,7 @@ def run(store: Path):
     assert "cad_source_relation" in {v["type"] for v in pitch["samples"][1]["failures"]}
     revisions = set()
     verified = []
+    numerical_rejections = []
     for campaign in (width, pitch):
         assert campaign["decision"] == "NOT_RELEASED"
         for row in campaign["samples"]:
@@ -58,9 +60,18 @@ def run(store: Path):
             assert solve["parent_experiment_id"] == cad["experiment_id"]
             assert solve["campaign_id"] == campaign["campaign_id"]
             assert solve["solver_status"] == "COMPLETED" and solve["converged"] is True
-            assert solve["metrics"]["max_displacement"]["valid"] is True
             assert solve["metrics"]["reaction_force"]["valid"] is True
             assert solve["metrics"]["peak_stress"]["valid"] is False
+            if solve["status"] == "REJECTED":
+                failures = {v["type"] for v in solve["validations"] if v["status"] == "FAIL"}
+                assert failures == {"displacement_mesh_trend"}, failures
+                assert solve["metrics"]["max_displacement"]["valid"] is False
+                assert solve["metrics"]["displacement_mesh_change_ratio"]["value"] > .05
+                numerical_rejections.append(solve["experiment_id"])
+            else:
+                assert solve["status"] == "COMPLETED_REVIEW_REQUIRED"
+                assert solve["metrics"]["max_displacement"]["valid"] is True
+                assert solve["metrics"]["displacement_mesh_change_ratio"]["value"] <= .05
             assert solve["decision"] == "NOT_RELEASED"
             assert solve["provenance"]["core_dirty"] is False
             a = store / "experiments" / cad["experiment_id"] / "cad/assembly.step"
@@ -69,10 +80,15 @@ def run(store: Path):
             revisions.add(cad["cad_revision"])
             verified.append({"campaign": campaign["campaign_id"], "values": row["values"],
                              "cad_revision": cad["cad_revision"],
+                             "analysis_status": solve["status"],
                              "displacement_mm": solve["metrics"]["max_displacement"]["value"],
+                             "displacement_valid": solve["metrics"]["max_displacement"]["valid"],
+                             "mesh_change_ratio": solve["metrics"]["displacement_mesh_change_ratio"]["value"],
                              "reaction_balance_ratio": solve["metrics"]["reaction_balance_ratio"]["value"]})
     assert len(revisions) >= 3
+    assert len(verified) == 3 and any(v["displacement_valid"] for v in verified)
     report = {"status": "PASS", "solver_runs": len(verified),
+              "numerical_rejections": numerical_rejections,
               "rejected_before_solver": pitch["samples"][1]["cad_experiment_id"],
               "algorithm": width["algorithm"], "samples": verified,
               "decision": "NOT_RELEASED"}
