@@ -242,6 +242,8 @@ jobs:
         run: python -m scripts.verify_plasticity --store artifacts/plasticity-lab
       - name: Verify real MGIS and MTest stress histories and consistent tangents
         run: python -m scripts.verify_material_point --store artifacts/material-point-lab
+      - name: Search declared modulus using measured native fields with interruption and replay
+        run: python -m scripts.verify_model_optimization --store artifacts/model-optimization-lab
       - name: Preserve native inputs, guarded mesh, MED fields and analytical evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -251,6 +253,7 @@ jobs:
             artifacts/codeaster-lab/
             artifacts/plasticity-lab/
             artifacts/material-point-lab/
+            artifacts/model-optimization-lab/
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30

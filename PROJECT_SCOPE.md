@@ -55,9 +55,9 @@ These slices do not close any phase or remove a requirement.
 | --- | --- | --- |
 | R01 | General research platform: CAD, linear/nonlinear structural, implicit/explicit, failure, constitutive/PDE/multiphysics, DOE/optimization/inverse/UQ/surrogate and physical loop. | Partial: Core + real CAD/linear/DOE/adaptive optimization/bounded PDE; advanced backends remain planned. |
 | R02 | Top-down OpenScience → research definition → Core → adapters → evidence → OpenScience; no solver syntax in research operations. | Implemented boundary: ARCHITECTURE; ADR 0001; transport contract. Live agent loop open. |
-| R03 | OpenScience owns hypothesis/campaign/reasoning; deterministic engines own numerical search. | Implemented separation for seeded DOE and bounded SciPy adaptive search; live research-agent acceptance open. |
+| R03 | OpenScience owns hypothesis/campaign/reasoning; deterministic engines own numerical search. | Implemented separation for seeded DOE/shared CAD and model-input SciPy search; actual staged local research loop passed, general autonomous planning remains open. |
 | R04 | Read and reuse auto-fixture-design discovery, native/CadQuery edits, effect checks, validation/export/artifacts/examples/tests/CI. | Partial: pinned source and acceptance reused; recovered history in CURRENT_STATE. Earlier full chats unavailable. |
-| R05 | Separate generic Core from Fixture/Material/Drop/Structure/PDE/Constitutive domain plugins. | Partial: reused Fixture and tested pure elasticity reference plugin; shared declared-model/PDE Core in ADR 0007. Native elasticity acceptance pending; other domains planned. |
+| R05 | Separate generic Core from Fixture/Material/Drop/Structure/PDE/Constitutive domain plugins. | Partial: Fixture, elasticity, plasticity, material-point, explicit and PDE plugins/adapters share Core records; actual bounded native proofs passed or preserve rejection. Wider domain coverage remains open. |
 | R06 | Design Parameter Registry maps research IDs to native CAD, including full metadata below. | Partial: registry and effect evidence implemented; broader types/dependency execution need adapters and acceptance. |
 | R07 | Generic CAD load/discover/select/name/unit/bounds/type/fixed/dependency/register workflow; detect ineffective parameters. | Partial: CadQuery and native Part/Sketcher executed; arbitrary FCStd and future CAD backends open. |
 | R08 | Stage validation before export/solver; stop unnecessary work at invalid gates. | Partial: parameter/CAD/export/solver preflight and numerical gates executed; full manufacturing/interface/physics validators open. |
@@ -102,7 +102,7 @@ These slices do not close any phase or remove a requirement.
 | R47 | Persist sub-agent questions/findings/sources/implementation/verification/adopted/rejected alternatives in repo. | Partial ADR/backend/acceptance notes; continue recording each important task. |
 | R48 | Actually create/install/run/test/fix/retry/compare, maintaining the whole research loop; avoid installation traps. | Ongoing; actual failed CLOAD attempt and correction preserved. |
 | R49 | Recover prior state before implementation; CURRENT_STATE, ARCHITECTURE and initial ADR with all required contents. | Partial recovery, docs exist; unretrievable prior chat/product identity remains disclosed. |
-| R50 | First actual research-request-to-CAD/evidence vertical slice before FEA/optimizer; not documentation only. | Partial: real CAD and MCP contract verified, then linear/DOE added; live OpenScience acceptance remains open. |
+| R50 | First actual research-request-to-CAD/evidence vertical slice before FEA/optimizer; not documentation only. | Partial: actual staged OpenScience live05 research/discovery/registration/CAD valid+rejected/evidence/interpretation loop passed with mixed-source identities; general autonomous planning remains open. |
 | R51 | Architecture changes require reasons/alternatives/requirement check/ADR/tests/contract-impact check. | Ongoing; ADR 0002–0006 retain these boundaries and verification. |
 | R52 | Prioritize connected research loop, automation, human inspection, reproducibility, evidence, solver independence, extensibility and verification over feature count. | Ongoing governing acceptance principle. |
 
@@ -233,18 +233,19 @@ authorization. Simulation alone cannot qualify every fixture requirement.
 | Phase | Executed scope | Required continuation |
 | --- | --- | --- |
 | 0 | Architecture/ADRs, schemas, registry, evidence/validation/artifact thread, Python/CLI/MCP | Extend contracts with independently verified backend features; corporate deployment review. |
-| 1 | CadQuery and native Part/Sketcher real CAD, valid/invalid gates, editable artifacts; local MCP round trip | Live OpenScience agent acceptance; arbitrary GUI-edited FCStd refresh/transactions. |
+| 1 | CadQuery/native Part/Sketcher, valid/invalid gates, editable artifacts; actual staged OpenScience MCP loop and retained official GUI trace | General autonomous planning; arbitrary GUI-edited FCStd refresh/transactions. |
 | 2 | Exact STEP to Gmsh/CalculiX child run, 4/3/2/1.5 mm area-load screen/reactions | Validated materials/fasteners/contact/stress/structural reference solution. |
-| 3 | Seeded LHS DOE and real bounded SciPy DE with gated children, explicit metrics/constraints and exact replay | Converged fixture optimization, broader variable/engine/UQ/multiobjective coverage. |
+| 3 | Seeded LHS DOE/shared SciPy DE; actual CAD and declared-input native candidates, explicit constraints and exact replay | Converged fixture optimization, broader variable/engine/UQ/multiobjective coverage. |
 | 4 | Real declared scalar weak-form FEniCSx canonical/reaction/rejection proof | General domains/nonlinear/coupled PDE and MPI/HPC acceptance. |
-| 5 | Research only | Code_Aster/SALOME-MECA nonlinear benchmark progression. |
-| 6 | Research only | OpenRadioss canonical explicit and preprocessing acceptance. |
-| 7 | Extensible envelope/research only | Constitutive/multiphysics/inverse/UQ/surrogate/multiobjective/HPC/physical loop. |
+| 5 | Actual affine elasticity and small-strain J2 full load/unload fields on two meshes/materials | Geometric nonlinearity/contact/hyperelasticity/viscoelasticity/native energy/physical qualification. |
+| 6 | Actual OpenRadioss flight sensitivities/energy/clock gates; ideal-wall velocity/impulse correctly REJECTED | Compliant finite-force reference, surface/rotating contact, failure and physical qualification. |
+| 7 | Actual MFront/MGIS/MTest material-point stress/tangent/sensitivity gates | Native synthetic inverse underway; MOOSE/multiphysics/UQ/surrogate/multiobjective/HPC/physical loop. |
 
 This table is a planning map, not an instruction to install every candidate
 before testing the research loop. `HANDOFF.md` records the next concrete task.
 
-Phase3 additive checkpoint: declared-model input bindings now reuse the shared
-numerical engine and replay, with 224 frozen-source regressions and actual MCP
-metadata checks. Its actual native campaign is pending. This does not complete
-Phase3 or replace the remaining requirements above.
+Phase3 additive checkpoint: declared-model input bindings reuse the shared
+numerical engine and replay, with 224 frozen-source regressions, actual MCP
+metadata checks and a clean-source native nine-candidate/eighteen-mesh campaign
+at `9330055`. Four adaptive trials did not improve the best initial-population
+member. This does not establish convergence or complete Phase3.

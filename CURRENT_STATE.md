@@ -2,6 +2,13 @@
 
 ## Latest integration checkpoint
 
+Main `0535e37189bfa32e26dc2644e3c43dff49f72bea` is pushed and its exact
+[CI 36694913981](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36694913981)
+passed all eight jobs, including actual J2/MGIS/MTest/OpenRadioss execution.
+Full downloaded archive inspection is underway; explicit wall rejection remains
+expected evidence, not a contact pass. The following older archive proof remains
+the previously completed raw verification authority.
+
 Exact main `7c6600601969611a43299d2037486547f53c6946` passed
 [CI 36686065707](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36686065707):
 all seven jobs, 513 tests. Independent Code_Aster archive inspection verified
@@ -21,7 +28,8 @@ Core defaults, generic HTTP/preset dispatch and local runtime configuration
 connect them without a CAD parent. Integration tests passed 69 cases in
 56.63 seconds, followed by four actual HTTP backend admission tests in 11.19
 seconds; independent wiring/CI review found no remaining P1/P2.
-New integrated-source native CI remains pending until the next push completes.
+This adapter integration now has successful exact-source CI; downloaded raw
+archive inspection remains pending.
 The 16 original worker stores were copied without alteration: 2,268 files /
 673,830,029 bytes, including five hidden files. All payload hashes and the
 15 final common experiment records passed independent retention inspection.
@@ -34,8 +42,7 @@ interpretation. This was a staged local-model workflow, not autonomous planning
 or physical approval; source records explicitly span 03bfd71/d0473e4. The Lab
 screen remains a direct execution surface with no AI chat.
 
-Root's declared-model input optimization is in a separate worktree, with
-contract/replay/context tests and a predeclared actual-solver acceptance gate.
+Root's declared-model input optimization has been integrated into main.
 Nonlinear PDE, a separate compliant-stop reference, and native material inverse
 research continue in isolated ownership. All phases 1–7 remain partial; no
 solver/CI success changes UNKNOWN qualification or NOT_RELEASED.
@@ -51,8 +58,17 @@ The final frozen-source parameter/model/optimizer/CAD/declared-model suites
 passed 224 tests in 634.04 seconds. Actual MCP verification exposed 26 tools,
 ran the existing CAD/DOE/search checks and passed model discover/register/plan
 metadata checks; it did not execute a native model candidate.
-Fresh clean-source native modulus search is the next acceptance gate.
+Fresh clean-source native modulus search passed at `9330055`, Core SHA
+`52651dad...9280a`: nine actual model candidates / eighteen mesh solves, two
+immutable evaluations replayed without native reruns. Best measured DX is
+0.0009593477575244732 mm at E=208474.97524367843 MPa under the 0.001 mm screen;
+three measured candidates are infeasible. One generation ended MAX_GENERATIONS
+without convergence. Independent native evidence review is pending.
+HTTP model discover/register/plan now joins the shared service; fifty server
+tests passed in 27.25 seconds with a synthetic runtime only for metadata tests.
+New integrated-source native CI includes this acceptance and remains pending.
 See [the unit record](benchmarks/records/20260930-declared-input-engine.json).
+See [the native record](benchmarks/records/20260930-model-input-native.json).
 All phases remain partial; physical qualification remains UNKNOWN/NOT_RELEASED.
 
 ## Prior implementation checkpoint (historical)

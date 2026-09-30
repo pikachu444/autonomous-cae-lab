@@ -25,8 +25,11 @@ OPERATIONS = {
     "model_analysis_run": "run_model_analysis", "doe_plan": "plan_doe",
     "doe_run": "run_doe", "optimization_plan": "plan_optimization",
     "optimization_run": "run_optimization",
+    "model_parameters_discover": "discover_model_parameters",
+    "model_parameters_register": "register_model_parameter",
+    "model_optimization_plan": "plan_model_optimization",
 }
-READ_OPERATIONS = frozenset({"parameter_discover", "native_inspect"})
+READ_OPERATIONS = frozenset({"parameter_discover", "native_inspect", "model_parameters_discover"})
 REFERENCE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 
 
@@ -111,6 +114,9 @@ class LabService:
             "doe_run": ("DOE 실행", "scipy.latin_hypercube", "IMPLEMENTED", "기존 Core의 개별 실험과 증거 재사용"),
             "optimization_plan": ("최적화 계획", "scipy.differential_evolution", "IMPLEMENTED", "수치 엔진의 목적 함수·제약·seed"),
             "optimization_run": ("수치 최적화 실행", "scipy.differential_evolution", "IMPLEMENTED", "SciPy 후보와 기존 validation 판정; 자동 release 아님"),
+            "model_parameters_discover": ("해석 모델 변수 찾기", None, "IMPLEMENTED", "adapter가 선언한 수치 입력과 단위·범위"),
+            "model_parameters_register": ("해석 모델 변수 등록", None, "IMPLEMENTED", "선택한 입력만 변경하고 나머지 모델 선언 보존"),
+            "model_optimization_plan": ("해석 모델 최적화 계획", "scipy.differential_evolution", "IMPLEMENTED", "공통 수치 엔진과 model 기준 목적 함수·제약·재개 기록"),
         }
         lab = self._selected().lab
         rows = [{"operation": operation, "label": label, "backend": backend,

@@ -12,7 +12,7 @@ const operationNames = {
   study_create: "연구 만들기", parameter_discover: "CAD 변수 발견", parameter_register: "연구 변수 등록",
   registry_refresh: "원본 CAD 등록부 갱신", cad_run: "CAD 실험", native_create: "네이티브 모델 만들기",
   native_inspect: "네이티브 모델 확인", native_final: "최종 솔리드 선택", analysis_run: "CAD 구조 해석",
-  pde_run: "선언한 weak form 실행", model_analysis_run: "선언한 탄성 모델 해석",
+  pde_run: "선언한 weak form 실행", model_analysis_run: "선언한 모델·재료·동해석",
   doe_plan: "DOE 계획 저장", doe_run: "DOE 실행", optimization_plan: "최적화 계획 저장",
   optimization_run: "수치 최적화 실행",
 };

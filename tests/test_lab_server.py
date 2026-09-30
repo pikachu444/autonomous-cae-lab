@@ -271,12 +271,49 @@ def test_configured_library_is_read_only_and_path_selection_is_rejected(client):
                                    {"id": "history", "label": "history", "writable": False}]
     assert client.request("/api/studies/S-history")["study"]["id"] == "S-history"
     client.request("/api/jobs", {"operation": "study_create", "arguments": study_arguments()}, expected=403)
+    for operation in ("model_parameters_register", "model_optimization_plan"):
+        client.request("/api/jobs", {"operation": operation, "arguments": {}}, expected=403)
     client.job("parameter_discover", {"backend": "fixture.cadquery", "model": "roller_support"})
     client.request("/api/store", {"id": str(library)}, expected=400)
     client.request("/api/store", {"id": "local", "path": str(library)}, expected=400)
     assert file_hashes(library) == before
     client.request("/api/store", {"id": "local"})
     client.job("study_create", study_arguments())
+
+
+def test_http_declared_input_metadata_uses_common_registry_and_plan_without_native(client, monkeypatch):
+    from caelab.adapters.codeaster_elasticity import CodeAsterElasticityAdapter
+    from scripts.verify_codeaster import specification
+
+    # Only runtime identity is synthetic: the actual domain declarations,
+    # parameter registry, bound checks and shared plan are exercised through HTTP.
+    monkeypatch.setattr(CodeAsterElasticityAdapter, "input_runtime_identity",
+                        lambda self: {"test_only": "No external runtime is executed"})
+    def unexpected_solve(*args, **kwargs):
+        raise AssertionError("Metadata operations must not run a native solver")
+    monkeypatch.setattr(CodeAsterElasticityAdapter, "solve", unexpected_solve)
+    client.job("study_create", study_arguments())
+    arguments = {"backend": "structural.code_aster", "settings": specification()}
+    discovered = client.job("model_parameters_discover", arguments)["result"]
+    assert len(discovered) == 1 and discovered[0]["native"]["path"] == "youngs_modulus_mpa"
+    registered = client.job("model_parameters_register", {
+        **arguments, "study_id": "S-http", "input_id": "youngs_modulus_mpa",
+        "parameter_id": "modulus", "display_name": "Elastic modulus",
+        "lower": 100000, "upper": 300000})["result"]
+    assert registered["parameter_id"] == "modulus"
+    plan = client.job("model_optimization_plan", {
+        **arguments, "study_id": "S-http", "campaign_id": "C-model-http", "parameter_ids": ["modulus"],
+        "objective": {"source": "model", "metric": "axial_tip_displacement", "unit": "mm", "direction": "maximize"},
+        "constraints": [], "seed": 13, "initial_values": {"modulus": 210000}})["result"]
+    assert plan["route"] == "model_analysis" and plan["backend"] == "structural.code_aster"
+    root = client.server.service._selected().path
+    assert not (root / "experiments").exists()
+    assert (root / "optimizations/C-model-http/plan.json").is_file()
+    library = client.server.service._stores["history"].path
+    before = file_hashes(library)
+    client.request("/api/store", {"id": "history"})
+    client.job("model_parameters_discover", arguments)
+    assert file_hashes(library) == before
 
 
 def test_single_writer_blocks_second_job_and_store_switch_while_reads_work(tmp_path):

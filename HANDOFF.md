@@ -2,14 +2,17 @@
 
 ## Declared-input route continuation
 
-The verified additive model-input implementation is ready for a clean-source
-native campaign. Run `scripts.verify_model_optimization` in a fresh store:
+The additive model-input implementation passed a fresh clean-source native
+campaign at `9330055`. `scripts.verify_model_optimization` ran in a new store:
 Code_Aster E in 100000–300000 MPa, measured axial displacement objective,
 unchanged numerical gates, seed13/population5/one generation/at most10 unique
 evaluations. The script preserves an interrupted first two candidates, resumes
 without rerunning them, and verifies completed reuse with no live adapters.
-The 224 regression tests and 26-tool MCP checks passed; native optimization is
-PENDING and cannot be inferred from metadata tests. Root owns integration.
+The 224 regression tests and 26-tool MCP checks passed. Actual native acceptance
+passed nine candidates / eighteen mesh solves and exact two-evaluation replay,
+with MAX_GENERATIONS and no convergence claim. Independent native inspection
+and the new integrated-source CI are pending. HTTP bindings passed fifty server
+tests. Continue the remaining optimization/PDE/contact/inverse gates.
 
 ## Start here
 
@@ -25,7 +28,10 @@ handoff record, not a claim that the model retains every past chat forever.
 
 ## Current continuation
 
-Latest exact remote proof is main `7c66006`,
+Latest exact remote execution proof is main `0535e37`,
+[CI 36694913981](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36694913981),
+all eight jobs successful, including J2/MFront/OpenRadioss. Downloaded full
+archive inspection is underway. Previous completed archive proof is `7c66006`,
 [CI 36686065707](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36686065707),
 seven successful jobs / 513 tests. Its Code_Aster archive fully verifies three
 experiments / 144 artifacts with hidden cache files. Fresh clean HTTP repair
@@ -36,7 +42,7 @@ New material-point, J2 plasticity and explicit adapters are integrated after
 independent native/source reviews. Defaults, CLI/MCP common model operation,
 HTTP presets and launcher are connected; 69 integration regressions plus four
 actual HTTP backend admission tests pass.
-Their new integrated-source CI is pending. Explicit flight passes; both ideal
+Their exact-source CI at `0535e37` passed. Explicit flight passes; both ideal
 wall histories remain REJECTED. Never promote PARTIAL contact to Phase6 success.
 Review docs/MATERIAL_POINT_ACCEPTANCE.md, PLASTICITY_ACCEPTANCE.md and
 EXPLICIT_DYNAMICS_ACCEPTANCE.md for exact native source identities and limits.
