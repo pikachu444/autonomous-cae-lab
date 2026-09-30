@@ -196,7 +196,35 @@ def model_analysis_run(study_id: str, experiment_id: str, backend: str, settings
                        hypothesis_id: str | None = None) -> dict:
     """Analyze a declared research model without a CAD parent and retain checked numerical evidence."""
     return _lab().run_model_analysis(study_id=study_id, experiment_id=experiment_id,
-                                     backend=backend, settings=settings, hypothesis_id=hypothesis_id)
+                                    backend=backend, settings=settings, hypothesis_id=hypothesis_id)
+
+
+@mcp.tool()
+def model_parameters_discover(backend: str, settings: dict) -> list[dict]:
+    """Discover advertised scalar model inputs; preserve fixed loads/mesh/numerical limits."""
+    return _lab().discover_model_parameters(backend, settings)
+
+
+@mcp.tool()
+def model_parameters_register(study_id: str, backend: str, settings: dict, input_id: str,
+                              parameter_id: str, display_name: str, lower: float, upper: float,
+                              mode: str = "free") -> dict:
+    """Map one named declared-model input; declaration effect is not physical qualification."""
+    return _lab().register_model_parameter(study_id, backend, settings, input_id,
+                                          parameter_id, display_name, lower, upper, mode)
+
+
+@mcp.tool()
+def model_optimization_plan(study_id: str, campaign_id: str, backend: str, settings: dict,
+                            parameter_ids: list[str], objective: dict, constraints: list[dict],
+                            seed: int, max_generations: int = 1, population_size: int = 5,
+                            initial_values: dict | None = None, required_validations: dict | None = None,
+                            engine: str = "scipy.differential_evolution") -> dict:
+    """Freeze declared-model input bindings and runtime for the existing numerical search engine."""
+    return _lab().plan_model_optimization(study_id=study_id, campaign_id=campaign_id, backend=backend,
+             settings=settings, parameter_ids=parameter_ids, objective=objective, constraints=constraints,
+             seed=seed, max_generations=max_generations, population_size=population_size,
+             initial_values=initial_values, required_validations=required_validations, engine=engine)
 
 
 if __name__ == "__main__":

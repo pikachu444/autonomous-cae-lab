@@ -113,6 +113,28 @@ def parser():
     opt_plan.add_argument("--engine", default="scipy.differential_evolution")
     opt_sub.add_parser("run").add_argument("--campaign", required=True)
     opt_sub.add_parser("inspect").add_argument("--campaign", required=True)
+    model_plan = opt_sub.add_parser("plan-model")
+    for name in ("study", "campaign", "backend", "settings", "objective", "constraints"):
+        model_plan.add_argument("--" + name, required=True)
+    model_plan.add_argument("--variables", nargs="+", required=True)
+    model_plan.add_argument("--seed", type=int, required=True)
+    model_plan.add_argument("--generations", type=int, default=1)
+    model_plan.add_argument("--population", type=int, default=5)
+    model_plan.add_argument("--initial-values")
+    model_plan.add_argument("--required-validations", help="JSON model check names")
+    model_plan.add_argument("--engine", default="scipy.differential_evolution")
+    inputs = sub.add_parser("model-inputs")
+    input_sub = inputs.add_subparsers(dest="action", required=True)
+    discover_inputs = input_sub.add_parser("discover")
+    register_input = input_sub.add_parser("register")
+    for target in (discover_inputs, register_input):
+        target.add_argument("--backend", required=True)
+        target.add_argument("--settings", required=True)
+    for name in ("study", "input", "id", "name"):
+        register_input.add_argument("--" + name, required=True)
+    for name in ("lower", "upper"):
+        register_input.add_argument("--" + name, type=float, required=True)
+    register_input.add_argument("--mode", choices=("free", "fixed"), default="free")
     pde = sub.add_parser("pde")
     pde.add_argument("--study", required=True)
     pde.add_argument("--experiment", required=True)
@@ -189,7 +211,15 @@ def main(argv=None):
             else:
                 _json(lab.inspect_doe(args.campaign))
         elif args.command == "optimize":
-            if args.action == "plan":
+            if args.action == "plan-model":
+                _json(lab.plan_model_optimization(study_id=args.study, campaign_id=args.campaign,
+                      backend=args.backend, settings=json.loads(args.settings), parameter_ids=args.variables,
+                      objective=json.loads(args.objective), constraints=json.loads(args.constraints), seed=args.seed,
+                      max_generations=args.generations, population_size=args.population,
+                      initial_values=json.loads(args.initial_values) if args.initial_values else None,
+                      required_validations=json.loads(args.required_validations) if args.required_validations else None,
+                      engine=args.engine))
+            elif args.action == "plan":
                 _json(lab.plan_optimization(study_id=args.study, campaign_id=args.campaign,
                                            backend=args.backend, model=args.model,
                                            parameter_ids=args.variables, objective=json.loads(args.objective),
@@ -204,6 +234,13 @@ def main(argv=None):
                 _json(lab.run_optimization(args.campaign))
             else:
                 _json(lab.inspect_optimization(args.campaign))
+        elif args.command == "model-inputs":
+            settings = json.loads(args.settings)
+            if args.action == "discover":
+                _json(lab.discover_model_parameters(args.backend, settings))
+            else:
+                _json(lab.register_model_parameter(args.study, args.backend, settings, args.input,
+                      args.id, args.name, args.lower, args.upper, args.mode))
         elif args.command == "pde":
             _json(lab.run_pde(study_id=args.study, experiment_id=args.experiment,
                            backend=args.backend, settings=json.loads(args.settings)))

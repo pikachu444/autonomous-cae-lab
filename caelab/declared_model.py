@@ -13,7 +13,10 @@ from .storage import artifact_manifest, canonical_hash, check_id, save_json, sou
 
 def run_declared_model(lab, *, study_id: str, experiment_id: str, backend: str,
                        settings: dict, hypothesis_id: str | None, adapters: dict,
-                       namespace: str, output_directory: str, description: bool = False) -> dict:
+                       namespace: str, output_directory: str, description: bool = False,
+                       campaign_id: str | None = None, values: dict | None = None,
+                       objectives: list | None = None, constraints: list | None = None,
+                       binding: dict | None = None) -> dict:
     check_id(experiment_id)
     study = lab.inspect_study(study_id)
     label = "PDE" if namespace == "pde" else "model analysis"
@@ -24,7 +27,55 @@ def run_declared_model(lab, *, study_id: str, experiment_id: str, backend: str,
     canonical_hash(settings)
     settings = deepcopy(settings)
     adapter = adapters[backend]
-    declaration, declaration_error = {}, None
+    parameters = deepcopy(values) if values is not None else {}
+    goals = deepcopy(objectives) if objectives is not None else []
+    restrictions = deepcopy(constraints) if constraints is not None else []
+    registry = lab.registry(study_id)
+    binding_error = None
+    bound_declaration = None
+    if campaign_id is not None:
+        check_id(campaign_id)
+    if not isinstance(parameters, dict) or not isinstance(goals, list) or not isinstance(restrictions, list):
+        raise ValueError("Model research context must contain assignments and goal lists")
+    if parameters or binding is not None:
+        from .model_parameters import (describe, bind as bind_inputs,
+                                       expected_settings, expected_declaration, ModelInputRejected)
+        from .registry import validate_assignments
+        if (namespace != "model_analysis" or not isinstance(binding, dict) or
+                set(binding) != {"template_settings", "template_revision", "input_ids", "source_fingerprint"} or
+                not isinstance(binding["input_ids"], dict) or set(binding["input_ids"]) != set(parameters)):
+            raise ValueError("Research assignments require frozen, declared model bindings")
+        template = describe(lab, backend, binding["template_settings"])
+        if (template["revision"] != binding["template_revision"] or
+                template["fingerprint"] != binding["source_fingerprint"]):
+            raise ValueError("Model binding template revision changed")
+        candidates = {item.native["path"]: item for item in template["candidates"]}
+        entries = {entry["parameter_id"]: entry for entry in registry["entries"]}
+        selected = []
+        native_values = {}
+        for name, value in parameters.items():
+            entry = entries.get(name)
+            input_id = binding["input_ids"][name]
+            candidate = candidates.get(input_id)
+            if (entry is None or entry.get("target") != "model_analysis" or candidate is None or
+                    entry["native"] != candidate.native or entry["source_sha256"] != candidate.source_sha256 or
+                    input_id in native_values):
+                raise ValueError("Research assignment does not match its registered model input")
+            selected.append(entry)
+            native_values[input_id] = value
+        if any(check["status"] != "PASS" for check in validate_assignments(selected, parameters)):
+            raise ValueError("Research assignment violates registered bounds or mode")
+        expected = expected_settings(binding["template_settings"], template["descriptors"], native_values)
+        if canonical_hash(settings) != canonical_hash(expected):
+            raise ValueError("Executed model settings differ from registered research assignments")
+        bound_declaration = expected_declaration(template["declaration"], template["descriptors"], native_values)
+        try:
+            bind_inputs(adapter, binding["template_settings"], native_values)
+        except ModelInputRejected as exc:
+            binding_error = exc
+    canonical_hash({"parameters": parameters, "objectives": goals, "constraints": restrictions,
+                    "binding": binding})
+    declaration, declaration_error = {}, binding_error
     if description and callable(getattr(adapter, "describe_model", None)):
         try:
             declaration = deepcopy(adapter.describe_model(deepcopy(settings)))
@@ -37,21 +88,26 @@ def run_declared_model(lab, *, study_id: str, experiment_id: str, backend: str,
         except Exception as exc:
             declaration = {}
             declaration_error = exc
+    if bound_declaration is not None and declaration_error is None and canonical_hash(declaration) != canonical_hash(bound_declaration):
+        raise ValueError("Final model declaration changed frozen context outside registered inputs")
     model_revision = canonical_hash({"settings": settings, "declaration": declaration}) if description else canonical_hash(settings)
     extension = {"model_revision": model_revision}
     if declaration:
         extension["declaration"] = deepcopy(declaration)
-    registry = lab.registry(study_id)
+    if binding is not None:
+        extension["parameter_binding"] = deepcopy(binding)
     proposal = {"schema_version": "1.0", "id": experiment_id, "study_id": study_id,
                 "hypothesis_id": hypothesis_id or study_id + "-H1", "domain": adapter.domain,
                 "physics": {"domain": adapter.physics_domain, "analysis_type": adapter.analysis_type,
                             "backend": backend},
                 "model": {"geometry": None, "mesh": deepcopy(settings.get("mesh"))},
                 "model_revision": model_revision,
-                "parameters": {}, "outputs": {"metrics": deepcopy(adapter.default_metrics)},
-                "objectives": [], "constraints": [], "validation_requirements": [],
+                "parameters": parameters, "outputs": {"metrics": deepcopy(adapter.default_metrics)},
+                "objectives": goals, "constraints": restrictions, "validation_requirements": [],
                 "execution": deepcopy(settings), "registry_revision": registry["revision"],
                 "extensions": {namespace: deepcopy(extension)}}
+    if campaign_id is not None:
+        proposal["campaign_id"] = campaign_id
     if declaration:
         baseline = deepcopy(proposal)
         try:
@@ -129,7 +185,7 @@ def run_declared_model(lab, *, study_id: str, experiment_id: str, backend: str,
               "converged": outcome["converged"], "cad_revision": None,
               "model_revision": model_revision,
               "proposal_revision": revision, "registry_revision": registry["revision"],
-              "input_parameters": {}, "metrics": deepcopy(outcome["metrics"]),
+              "input_parameters": deepcopy(parameters), "metrics": deepcopy(outcome["metrics"]),
               "validations": validations, "evidence": evidence,
               "artifacts": artifact_manifest(folder, revision=revision),
               "extensions": {namespace: deepcopy(extension)},
@@ -141,13 +197,18 @@ def run_declared_model(lab, *, study_id: str, experiment_id: str, backend: str,
                                         "versions": outcome["provenance"].get("versions")},
                              "adapter_details": deepcopy(outcome["provenance"]),
                              "created_utc": utc_now(), **identity}}
+    if campaign_id is not None:
+        result["campaign_id"] = campaign_id
     validate_schema("result", result)
     save_json(folder / "result.json", result)
-    save_json(folder / "thread.json", {"hypothesis": proposal["hypothesis_id"], "study": study_id,
+    thread = {"hypothesis": proposal["hypothesis_id"], "study": study_id,
                                        "experiment": experiment_id, "cad_revision": None,
                                        "model_revision": model_revision,
                                        "run": experiment_id, "result": "result.json",
-                                       "evidence": [e["id"] for e in evidence], "decision": "NOT_RELEASED"})
+                                       "evidence": [e["id"] for e in evidence], "decision": "NOT_RELEASED"}
+    if campaign_id is not None:
+        thread["campaign"] = campaign_id
+    save_json(folder / "thread.json", thread)
     save_json(lab.store / "ledger" / f"{experiment_id}.json", {
         "experiment_id": experiment_id,
         "result_sha256": hashlib.sha256((folder / "result.json").read_bytes()).hexdigest(),

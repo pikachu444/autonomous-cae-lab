@@ -40,6 +40,21 @@ Nonlinear PDE, a separate compliant-stop reference, and native material inverse
 research continue in isolated ownership. All phases 1–7 remain partial; no
 solver/CI success changes UNKNOWN qualification or NOT_RELEASED.
 
+## Declared-input numerical engine checkpoint
+
+Core now supports an additive declared-model input route through the existing
+SciPy DE engine, journal, gates and replay. Typed input bindings independently
+preserve every unselected setting and declaration; runtime/source drift and
+forged completed records fail closed. CAD optimization keeps its existing route.
+ADR 0009 and the OpenScience contract record the boundary.
+The final frozen-source parameter/model/optimizer/CAD/declared-model suites
+passed 224 tests in 634.04 seconds. Actual MCP verification exposed 26 tools,
+ran the existing CAD/DOE/search checks and passed model discover/register/plan
+metadata checks; it did not execute a native model candidate.
+Fresh clean-source native modulus search is the next acceptance gate.
+See [the unit record](benchmarks/records/20260930-declared-input-engine.json).
+All phases remain partial; physical qualification remains UNKNOWN/NOT_RELEASED.
+
 ## Prior implementation checkpoint (historical)
 
 Source `03bfd7115ca3933cb18af17c55cc751839e91c98` was pushed. Its exact-source

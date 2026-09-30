@@ -3,12 +3,19 @@
   "$id": "https://caelab.local/schemas/optimization-plan/1.0",
   "title": "CAE-Lab adaptive numerical optimization plan",
   "type": "object",
-  "required": ["schema_version", "campaign_id", "study_id", "status", "backend", "model", "registry_revision", "registry_sha256", "core_source_sha256", "cad_adapter_version", "cad_source_fingerprint", "analysis_adapter_version", "variables", "algorithm", "objective", "constraints", "required_validations", "analysis", "failure_policy", "created_utc"],
+  "required": ["schema_version", "campaign_id", "study_id", "status", "backend", "registry_revision", "registry_sha256", "core_source_sha256", "variables", "algorithm", "objective", "constraints", "required_validations", "failure_policy", "created_utc"],
   "properties": {
     "schema_version": {"const": "1.0"},
     "campaign_id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,57}$"},
     "study_id": {"type": "string"}, "status": {"const": "PLANNED"},
     "backend": {"type": "string"}, "model": {"type": "string"},
+    "route": {"const": "model_analysis"},
+    "model_template": {"type": "object"},
+    "model_template_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "model_input_descriptors": {"type": "array", "minItems": 1, "maxItems": 32},
+    "model_declaration": {"type": "object"},
+    "model_source_fingerprint": {"type": "object", "required": ["adapter", "version", "source_files", "runtime"]},
+    "model_adapter_version": {"type": "string"},
     "registry_revision": {"type": "integer", "minimum": 1},
     "registry_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "core_source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
@@ -18,8 +25,21 @@
     "algorithm": {"type": "object", "required": ["engine", "version", "seed", "initial_population", "max_generations", "population_size"]},
     "objective": {"type": "object", "required": ["source", "metric", "unit", "direction"]},
     "constraints": {"type": "array", "items": {"type": "object", "required": ["source", "metric", "unit", "operator", "limit", "scale"]}},
-    "required_validations": {"type": "object", "required": ["cad", "analysis"]},
+    "required_validations": {"type": "object"},
     "analysis": {"type": ["object", "null"]}, "failure_policy": {"type": "object"}, "created_utc": {"type": "string"}
   },
+  "allOf": [{
+    "if": {"required": ["route"]},
+    "then": {
+      "required": ["model_template", "model_template_revision", "model_input_descriptors", "model_declaration", "model_source_fingerprint", "model_adapter_version"],
+      "properties": {"required_validations": {"required": ["model"]}},
+      "not": {"anyOf": [{"required": ["model"]}, {"required": ["cad_adapter_version"]}, {"required": ["cad_source_fingerprint"]}, {"required": ["analysis_adapter_version"]}, {"required": ["analysis"]}]}
+    },
+    "else": {
+      "required": ["model", "cad_adapter_version", "cad_source_fingerprint", "analysis_adapter_version", "analysis"],
+      "properties": {"required_validations": {"required": ["cad", "analysis"]}},
+      "not": {"anyOf": [{"required": ["model_template"]}, {"required": ["model_adapter_version"]}]}
+    }
+  }],
   "additionalProperties": false
 }

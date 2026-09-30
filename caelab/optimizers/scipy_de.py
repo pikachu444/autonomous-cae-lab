@@ -42,10 +42,10 @@ def _validated_variables(variables: list[dict]) -> tuple[list[str], list[list[fl
         name = variable.get("parameter_id")
         if not isinstance(name, str) or not name.strip() or name in names:
             raise ValueError("Optimization variable IDs must be nonempty and distinct")
-        effect = variable.get("geometry_effect")
+        effect = variable.get("input_effect") if variable.get("target") == "model_analysis" else variable.get("geometry_effect")
         if (variable.get("kind") != "continuous" or variable.get("mode") != "free" or
                 not isinstance(effect, dict) or effect.get("status") != "PASS"):
-            raise ValueError("Optimization requires continuous free variables with PASS CAD effect")
+            raise ValueError("Optimization requires continuous free variables with PASS registered binding effect")
         lower = _finite_number(variable.get("lower_bound"), f"{name} lower bound")
         upper = _finite_number(variable.get("upper_bound"), f"{name} upper bound")
         if lower >= upper:

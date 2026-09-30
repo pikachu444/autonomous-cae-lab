@@ -6,10 +6,14 @@
   "required": ["schema_version", "campaign_id", "study_id", "status", "decision", "plan_sha256", "registry_sha256", "algorithm", "objective", "constraints", "evaluations", "incumbent", "termination", "provenance", "completed_utc"],
   "properties": {
     "schema_version": {"const": "1.0"}, "campaign_id": {"type": "string"}, "study_id": {"type": "string"},
+    "route": {"const": "model_analysis"},
     "status": {"enum": ["COMPLETED_REVIEW_REQUIRED", "NO_FEASIBLE_DESIGN"]}, "decision": {"const": "NOT_RELEASED"},
     "plan_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "registry_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "algorithm": {"type": "object"}, "objective": {"type": "object"}, "constraints": {"type": "array"},
-    "evaluations": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["index", "values", "key", "cad_experiment_id", "cad_result_sha256", "analysis_experiment_id", "analysis_result_sha256", "objective", "constraints", "usable", "numerically_feasible", "feedback", "decision"]}},
+    "evaluations": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["index", "values", "key", "objective", "constraints", "usable", "numerically_feasible", "feedback", "decision"], "oneOf": [
+      {"required": ["cad_experiment_id", "cad_result_sha256", "analysis_experiment_id", "analysis_result_sha256"], "not": {"required": ["model_experiment_id"]}},
+      {"required": ["model_experiment_id", "model_result_sha256", "model_status", "model_settings", "model_declaration", "model_revision"], "not": {"anyOf": [{"required": ["cad_experiment_id"]}, {"required": ["analysis_experiment_id"]}]}}
+    ]}},
     "incumbent": {"type": ["object", "null"]},
     "termination": {"type": "object", "required": ["converged", "termination_reason", "generations", "evaluation_count"]},
     "provenance": {"type": "object"}, "completed_utc": {"type": "string"}
