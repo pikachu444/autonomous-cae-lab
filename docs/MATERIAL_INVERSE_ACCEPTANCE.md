@@ -1,9 +1,10 @@
 # Bounded synthetic material inverse prerequisite
 
-Date: 2026-09-30. The inverse contract and its pure tests have passed.
-Actual native inverse acceptance is **NOT_RUN** at this implementation
-checkpoint. This record is a predeclared prerequisite, not proof of a fitted
-material. The result decision remains **NOT_RELEASED**.
+Date: 2026-09-30. The bounded native inverse prerequisite has **PASS**
+in fresh `runs/material-inverse-native-01` at clean implementation source
+`0457af3716a0abb5f3a5fcb87c81b99d0d9766df`. This is a synthetic-reference
+prerequisite, not proof of a fitted physical material. The result decision
+remains **NOT_RELEASED**.
 
 ## Reused boundary and source
 
@@ -98,14 +99,88 @@ No source, library or solver image is vendored into Git. A failed or completed
 historical store is never overwritten; a corrected attempt uses a new store.
 Completed reuse must preserve every retained file without rerunning native work.
 
+## Actual bounded result and retained evidence
+
+The existing engine evaluated **nine unique native candidates**, including
+four values beyond the frozen five-point initial population; exact memoization
+kept a repeated value from becoming a tenth native execution. Generation one
+ended at **MAX_GENERATIONS**, `converged=false`. Every candidate retained all
+fourteen required PASS checks, nine UNKNOWN validations and NOT_RELEASED.
+There are 3663 reliable integration returns, 3564 independent signed FD probes
+and 108 MTest states. All candidates used native library SHA256
+`da2be94e6ce95c76bb9ca20efb118efba4bd67043a72ddaa54b86e890de9c35f`.
+
+| Observation | Initial candidate | Best observed candidate |
+| --- | --- | --- |
+| Index | 1 | 5 |
+| Young modulus (MPa) | 210000 | 208474.97524367843 |
+| Actual MGIS physical xx stress at 1 s (MPa) | 282.69230769230774 | 280.63938975110557 |
+| Unit-1 squared normalized residual | 0.002013477975016451 | 0.0014461846908559938 |
+
+The residual improved **28.174794619%** from the fixed initial candidate.
+The best point was in the initial population. The four later adaptive
+observations did not improve that point. This one-generation result makes no
+claim of numerical convergence or final identification. Its E differs from
+the known synthetic value by 8474.97524367843 MPa. The target residual was not
+changed, and the target remains a reference dataset rather than a measurement.
+The worst pointwise post-run oracle objective disagreement is
+`1.3877787807814457e-16`, below the fixed 1e-12 limit.
+
+Maximum actual full-history physical/Kelvin stress error is
+`1.7053025658242404e-13` MPa; maximum MTest cross-driver error is
+`1.9895196601282805e-13` MPa. Native reported tangent/reference error is zero.
+Maximum all-candidate FD normalized errors at h=1e-7, 1e-8 and 1e-9 are
+`1.3517448054973002e-12`, `2.414746735524178e-11` and
+`1.8320081507341172e-10`, respectively; every step/column passed against both
+actual reported tangent and independent reference at every h. The independent
+read-only review recalculated all nominal fields, probes, state chains,
+properties, temperature, mapping and inverse objectives with zero mismatches.
+It also independently verified all nine proposal/model/result/thread/evidence/
+ledger links and candidate/journal/checkpoint chains against frozen source,
+runtime, settings and objective feedback.
+
+Owner rehash verified all **720 registered artifacts**, totaling 26,754,344
+bytes. The machine record retains their full hash/size manifest, canonical
+manifest SHA256
+`e31e0814c42d350fb8d2203de3804bf3810e0ce1c199266b33b60c80eb210dbf`.
+Completed campaign reuse preserved every file. A further actual inspection and
+reuse with **all adapter and numerical-engine registries empty** also passed,
+with all 788 store file hashes unchanged. The independent read-only reviewer
+verified the same 720 artifacts and retained-store stability; its 788-file
+manifest SHA256 is
+`47b554dbd7ae513292552452bc5a613d89082484394a8474d189fdee134f9d64`.
+This used retained evidence and started no native build or solver.
+
+| Record | SHA256 |
+| --- | --- |
+| Native acceptance | `06b9d72838448974d65af8fac6a064d0d134e1d2af1205592bc7ebc448e3119a` |
+| Frozen inverse packet | `ceab63afbad1a43d67864df15b87d2ed9f109ef12a1b14c981ecd48031eb7396` |
+| Frozen algorithm | `2711e2d8b626d3483abe870046974f5464a83f36055e0bb4676a16afd6e3747d` |
+| Campaign plan | `0efa1a360379d20bbafee6971a6f5c0b1656743be1fbddb8e4c74aa10f55b1c3` |
+| Campaign result | `c6609182e36108a01f97311c345680340d335b9a06d34ec7b26ee47602a91af7` |
+
+The clean Core source SHA256 is
+`9cd17cd3c7b98b861d9424fd0b131610e163e81b8cd4c45085d7f65b43bdded3`.
+The new adapter, plugin and verifier SHA256 are respectively
+`48860e6a34316ed79375359a01b077d55b75e88ef13b107a9fa950fa3f63f187`,
+`672895563072afd482a9c38da8cd0756d19cbbef5e371faaa653c814377e29f6`, and
+`515e7c418f4ba5335452748ab29971df3820840766a34675b4c590483ee4ae15`.
+The actual Singularity wrapper is `/usr/bin/singularity`, SHA256
+`994f404350a92a919264e16e1239f409ac550b3fa8118e80cdee1634fc36ff0a`.
+Base adapter/worker/plugin hashes remain identical to the native08 precursor.
+A later evidence-only documentation commit is not another native verification.
+
 ## Verification status and remaining limits
 
 `python -m pytest -q tests/test_material_inverse.py`: **54 passed in 33.25 s**.
 These are pure contracts and clearly marked TEST ONLY process substitutions;
 the end-to-end test executes the real shared Core and SciPy engine but does
-not load MGIS or establish a native/physical proof. Material/declared-model/shared-input/optimization regressions passed
-**204 tests in 221.41 s** in this integrated worktree. Actual inverse native acceptance and independent review remain
-pending. Native execution requires a clean committed source checkpoint.
+not load MGIS or establish a native/physical proof. The material/declared-model/
+shared-input/optimization regressions passed **204 tests in 221.41 s** in this
+integrated worktree. Actual native acceptance is PASS at the clean source above.
+Independent static, all-actual-field and artifact/ledger/journal review
+**PASS** with no open P1/P2 findings. The native source stayed clean and
+unchanged during execution.
 
 The machine-readable [inverse record](../benchmarks/records/20260930-material-inverse-native.json)
 retains exact frozen settings, observations, declaration and source hashes.
@@ -114,6 +189,7 @@ fatigue/durability, solver coupling, identification, corporate license and
 corporate security qualification. This limited synthetic elastic prerequisite
 does not establish measured-material identification, uncertainty or statistical
 fit, nonlinear material behavior, coupled solver behavior or release.
-Exact-source CI has not run; remote integration and default registration are
-Root's responsibility. Locally retained ignored artifacts do not survive a
+The independent exact-source GitHub CI query returned `[]` for clean source
+`0457af3716a0abb5f3a5fcb87c81b99d0d9766df`, confirming **NOT_RUN**. Remote
+integration and default registration are Root's responsibility. Locally retained ignored artifacts do not survive a
 clone or off-machine handoff unless explicitly exported.
