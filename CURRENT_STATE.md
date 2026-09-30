@@ -1,5 +1,30 @@
 # Current state — 2026-09-30 (Asia/Seoul)
 
+## Reviewed material inverse runtime integration
+
+The reviewed seven-file inverse-v2 packet73639f6 is integrated with ADR0010
+and a real CI inverse step. Its deployment-only SEALED_OCI selection is scoped
+to that step; local LOCAL_EXACT_SIF remains the default with no fallback.
+All original physics, numerical thresholds, seed and model/engine interfaces
+are preserved. Independent source/CI/ADR/contract review passed; the Main
+focused regression gate passed290 tests/1warning in815.09s. A new exact-source
+CI run and alternate-image inverse execution are pending after source push.
+
+The separate clean f0b5fa39 local SEALED_OCI proof completed nine actual native
+candidates,3,663 MGIS integrations/3,564 FD probes/108 MTest states and19 runtime
+admissions. Best initial-population point reduced the initial residual by
+28.174794619%; later adaptive candidates did not improve that best. The stop
+is MAX_GENERATIONS, converged=false, with nine UNKNOWN qualifications per
+candidate and NOT_RELEASED. This is synthetic reference identification.
+
+All818 original files/28,409,611bytes were independently copied unchanged into
+artifacts/integrated-20260930-material-inverse-runtime; the raw files remain
+local. Source/evidence73639f6 is preserved on the pushed acceptance branch.
+Read docs/MATERIAL_INVERSE_RUNTIME_ACCEPTANCE.md and
+benchmarks/records/20260930-inverse-runtime-integration.json for exact source,
+runtime, hashes, earlier draft failures and pending Main/CI gates. No clean
+Main native success or alternate-image acceptance is inferred from this unit.
+
 ## Verified clean d363 native, CI and browser checkpoint
 
 Exact source d36387b is pushed. All eight CI jobs36710166010 passed:

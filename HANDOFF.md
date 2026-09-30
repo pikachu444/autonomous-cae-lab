@@ -1,5 +1,31 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Material inverse runtime integration continuation
+
+Main now contains reviewed inverse-v2 source/evidence73639f6, ADR0010 and an
+actual SEALED_OCI inverse CI step with full failed/hidden store upload. The
+default remains LOCAL_EXACT_SIF. Independent Main delta review and290 focused
+tests/1warning/815.09s passed. After source push, inspect the exact CI commit
+and independently audit the changed Code_Aster/material archive, including
+its actual configured SIF,19 admissions and nine fresh inverse candidates.
+Do not assume that the earlier material-point alternate SIF proof qualifies
+the inverse runtime. Keep any failed admission/raw output unchanged.
+
+The clean f0b5fa39 local proof is separate: nine candidates/747artifacts,
+19 admissions/38 commands,3,663 MGIS integrations,3,564 FD probes and108 MTest
+states. All818files/28,409,611bytes were copied unchanged into the primary
+artifact directory; store manifest4dc42f37 is independently matched.
+Final evidence73639f6 and its branch are pushed, while raw retention remains
+local. Read the runtime acceptance and inverse-runtime-integration record.
+MAX_GENERATIONS/converged=false, synthetic data and all UNKNOWN/NOT_RELEASED
+restrictions remain in force.
+
+Continue the fixed-budget clean269d8bf fixture campaign, its interrupted-prefix
+replay/native refinement audit, reviewed OpenScience boot-source correction
+and the new Phase5/7 viscoelastic state/energy acceptance. Lab8766 stays on its
+clean pinned d363 worktree during these Main changes. No complete phase is
+claimed and this integration is not a reason to stop implementation.
+
 ## Verified clean d363 continuation checkpoint
 
 The exact numerical source d36387b is pushed and CI36710166010 passed all

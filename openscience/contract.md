@@ -58,6 +58,14 @@ CLI additions are `model-inputs discover/register` and `optimize plan-model`.
 MCP names are `model_parameters_discover`, `model_parameters_register` and
 `model_optimization_plan`; the existing `optimization_run/inspect` apply.
 
+Native runtime admission is deployment configuration, not a research input.
+For `material.mfront.inverse`, the default remains the measured exact local
+SIF; an operator-configured `SEALED_OCI` profile requires actual fixed bounded
+image/OCI/binding/tool/source verification before the same model-input route.
+No tool/model settings select a profile or trigger a fallback. Feedback still
+requires the original native numerical gates; qualification stays UNKNOWN and
+decision NOT_RELEASED. See ADR0010 and MATERIAL_INVERSE_RUNTIME_ACCEPTANCE.
+
 The earlier cloud process-identity failure remains historical. The primary
 Windows session installed pinned Synthetic Sciences OpenScience 2.0.146 with
 an isolated profile/local provider and connected this MCP server. A failed live
