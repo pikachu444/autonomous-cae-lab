@@ -14,6 +14,31 @@ phase units. The owner's persistent project execution objective is ACTIVE.
 Preserve/reuse prior work; later effects on earlier gates become explicit bounded
 correction items and revalidation, followed by the existing queue.
 
+Latest Main a1a323ad37e02a94de67e47540376e818233aa4a admission/commit/push is
+confirmed; exact CI36744346642 passed all8 jobs. Parent259 CI36740379901 ended
+seven PASS/one PDE cancelled. The serving worktree is clean a1/fixture3e48bf6.
+Clean configured-MCP/readiness/metadata/empty official GUI/Stop passed independent
+review:292 source files and591 raw files/16,677,445bytes; zero model/Core calls.
+
+Actual research run p1-openscience-research-a1a323a-20261001-01 failed at300s after
+one study tool/three Core files; no discovery/registry/CAD/interpretation pass.
+Abort200/true/provider client_cancelled and natural CLI exit are retained; later
+idle-before-server-Stop/owned cleanup passed with unchanged store/Lab/Ollama.
+Closed local raw/store copy contains1,633files/40,454,753bytes. Retain the original
+bytes=null aggregation defect and v2; raw retention is local only.
+
+CURRENT bounded P1.1 correction: independently found missing explicit idle before
+live CLI termination. Root's candidate adds exact project/session metadata and
+bounded idle receipts; unconfirmed idle preserves CLI/session/relay. Launcher47
+mocks passed; unchanged controller52 gives99 current mocks. Independently admit/
+commit, then update the STOPPED serving worktree to the clean corrected source.
+Use a NEW profile/store for full research with provider500s/stage600s, unchanged
+model/output4096/steps3/tool/CAD/numerical conditions. Read ADR0011 and
+benchmarks/records/20261001-openscience-clean-runtime.json. P1.1 remains OPEN.
+
+### Historical pre-a1 admission instructions
+
+The paragraphs in this subsection are superseded by the current checkpoint above.
 Source admission is completed at Main259649ddcd38ed774d83a712cf19b45401fe660e:
 packet03 independent review passed with no open P1/P2; staged diff checked,
 commit/push and exact remote HEAD confirmed. Its source proof is controller46

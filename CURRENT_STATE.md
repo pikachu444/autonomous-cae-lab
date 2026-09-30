@@ -14,6 +14,36 @@ retained52 requirements. Concrete tasks are in
 [SYSTEM_WORKLIST](docs/SYSTEM_WORKLIST.md). Earlier work is preserved/reused;
 later feature effects require a recorded bounded correction and revalidation.
 
+Latest source a1a323ad37e02a94de67e47540376e818233aa4a is independently admitted,
+committed/pushed and served from clean openscience-integrated. Exact
+CI36744346642 passed all8 jobs. Parent259 CI36740379901 ended seven PASS/one
+PDE cancelled; the earlier in-progress snapshot below remains historical.
+
+Actual clean-a1 configured MCP Git identity, readiness/version/isolated metadata,
+empty official Workspace and owned Stop passed independent review. All292 source
+files and591 closed raw files/16,677,445bytes match, with independently reproduced
+boot e107f031/tree f7d57629. This run has zero model/Core calls.
+
+Research run p1-openscience-research-a1a323a-20261001-01 is FAILED_OR_PARTIAL:
+one actual study_create/three Core files, then300s timeout during follow-up.
+First provider response181.471s and tool about95s; precise latency cause UNKNOWN.
+Official GUI shows its actual study receipt. Abort200/true, client_cancelled and
+natural CLI exit are retained; no forced CLI stop after idle was observed. Later
+idle-before-server-Stop/Windows/WSL cleanup passed with unchanged store/Lab/Ollama.
+Closed local raw copy:1,633files/40,454,753bytes. Original manifest bytes=null
+aggregation defect is preserved; v2 uses an explicit sum. Raw is not remote-durable.
+
+CURRENT bounded correction: independent P2 found missing explicit idle before
+timeout-driven live CLI stop against ADR0011. Candidate verifies exact session/
+project metadata and bounded idle; busy/unavailable/malformed/foreign status
+preserves CLI/session/relay. Launcher47 mocks passed; unchanged controller52 is
+separately attributed (99 current mocks, zero model/Core). Frozen independent
+admission/commit and fresh full research/GUI/cancellation remain next. Predeclared
+retry budget: provider500s/stage600s, same model/output4096/steps3/tool permissions/
+CAD cases/numerical limits. Read the clean-runtime record.
+
+### Historical pre-a1 admission checkpoint
+
 Main259649ddcd38ed774d83a712cf19b45401fe660e source admission is committed/pushed
 and exact remote HEAD confirmed. Packet03 independent review closed the sole
 packet02 P2 finalizer finding; controller46 plus launcher39 passed85 mock gates

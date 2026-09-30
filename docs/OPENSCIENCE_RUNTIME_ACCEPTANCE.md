@@ -280,3 +280,39 @@ This local correction has not run remote CI. Root's next gate is renewed frozen
 independent review, integration and a fresh owned runtime on the chosen clean
 source. No new autonomous research, actual model cancellation, GUI interaction,
 CAD, solver, physical qualification or release is implied.
+
+## Main clean-a1 checkpoint and timeout-idle correction, 2026-10-01
+
+Source a1a323ad37e02a94de67e47540376e818233aa4a is reviewed/committed/pushed;
+CI36744346642 passed all8 jobs. Parent259 CI36740379901 ended sevenPASS/PDE
+cancelled, separate from its original running snapshot and Windows proof.
+
+Clean a1 configured-MCP identity/readiness/official2.0.146 isolated metadata/
+empty official Workspace/owned Stop passed independent review. All292 tracked
+source bodies/indices and591 closed raw files/16,677,445bytes match. Canonical
+boot e107f03121429e97639b6ead9b16c7662941e9e8ae0fbec1094f748e5f689fc8 and tree
+f7d57629049b25349d942951a59376e845bd281662922b6f4a1d071ff8776f6e are reproduced.
+Serving CRLF controller39db1daa and candidate LF ad5f2167 remain distinct raw
+identities with equal normalized bodies. Readiness contains zero model/Core calls.
+
+Actual p1-openscience-research-a1a323a-20261001-01 FAILED_OR_PARTIAL at study-create:
+one actual tool/three Core files; provider1 took181.471s, first tool about95s,
+then300s timeout during provider2. Official GUI shows the exact study receipt.
+Abort200/true and client_cancelled plus natural CLI exit are real evidence.
+Later idle-before-server-Stop/all4 owned Windows PIDs and exact WSL MCP gone,
+unchanged store/Lab/Ollama passed. This does not prove a forced CLI stop after
+an observed idle gate. No discovery/registry/CAD/interpretation or full phase pass.
+
+Independent review found the explicit timeout idle P2 against ADR0011. Candidate
+now checks exact project/session metadata and bounded idle before live CLI stop,
+records separate abort/idle outcomes, and preserves CLI/session/relay on refusal.
+Launcher47 changed mock gates passed; controller52 is unchanged/separate (99
+current mocks). Fresh clean actual research/GUI/cancellation and renewed independent
+source admission remain next. Provider500s/stage600s retry is predeclared with
+unchanged model/output4096/steps3/tools/CAD/numerical criteria.
+
+Failed-run original/copy raw1,633files/40,454,753bytes remain local. Original
+manifest bytes=null aggregate defect is preserved; v2 uses an explicit integer
+sum without modifying payloads. Precise source/run/review/CI/hash attribution is
+in [the clean-runtime record](../benchmarks/records/20261001-openscience-clean-runtime.json).
+Full P1.1 remains OPEN; UNKNOWN/NOT_RELEASED and corporate/raw-retention gaps remain.

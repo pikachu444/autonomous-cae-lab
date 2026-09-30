@@ -91,3 +91,32 @@ the exact commit, dirty=false and fixture3e48bf6. This diagnostic did not start
 OpenScience or call a model/Core mutation. Clean new-config runtime/research/
 GUI/cancellation and bounded independent source admission remain separate gates.
 See the openscience-wsl-git-correction record. Advances R11/R21/R25/R43/R51/R52.
+
+## Timeout idle enforcement correction, 2026-10-01
+
+Clean a1 readiness/metadata/owned cleanup passed independently. Actual research
+run01 failed at300s after one study tool. Exact abort200/true caused provider
+client_cancelled and natural CLI exit; later idle-before-server-Stop passed.
+There is no actual forced CLI termination after idle proof at this source.
+
+Independent review found a P2: CLI timeout performed abort then owned termination
+without an explicit idle query, contrary to this ADR's decision. Enforce the
+existing decision by checking exact session/project metadata through lifecycle
+identity and retaining bounded session-status/idle receipts before CLI stop.
+Busy/unavailable/malformed/foreign state refuses termination and preserves the
+continuing CLI/session/log relay. Abort confirmation and idle confirmation have
+separate fields and refusal reasons. General schema/Core/research operations,
+model/tools/numerical thresholds are unchanged; old receipts are not upgraded.
+
+Trusting HTTP200/true alone or replacing retained evidence with later idle would
+leave the gap. Immediate blind kill or deleting a session is rejected. Separate
+unchanged controller52 and changed launcher47 mock gates pass with zero model/
+Core calls, including actual helper busy-to-idle order and refusal/log retention.
+Independent source admission and fresh clean research/cancellation remain open.
+Requirement impact: R11/R13/R21/R25/R43/R45/R51/R52; operation contract unchanged.
+
+Retry wallclock policy is declared before execution: provider500s/stage600s,
+same output4096/steps3/model/tools/CAD inputs/numerical criteria. The old response
+took181.471s and first tool about95s; exact latency cause remains UNKNOWN.
+This changes waiting time, not numerical acceptance. Preserve original failure,
+both raw copies/manifests and all UNKNOWN/NOT_RELEASED qualification.

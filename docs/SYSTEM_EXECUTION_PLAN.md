@@ -57,11 +57,11 @@ and verified work remains useful at its recorded source and scope.
 
 | Gate | Current evidence | Completion requirement |
 | --- | --- | --- |
-| Source admission | Main259649d reviewed, committed/pushed; original finalizer85 mocks passed. Managed-Windows-worktree Git correction now passes52 controller plus unchanged39 launcher gates | Admit bounded correction independently, commit/push; no provider/Core mutations. |
-| Clean runtime | Old fresh04 readiness belongs to HEAD1f6cb07 plus frozen correction | Fresh clean integrated serving source; actual version, boot pin, isolated profile, MCP connection and exact owned Stop receipts. |
-| Actual research | Historical live05 used explicitly mixed source identities | New actual model/MCP calls: study, real discovery, registration, width38 CAD, bolt30 rejection, inspect/summary/compare and evidence-based AI interpretation. Verify Core artifacts/ledgers; no invented tool calls. |
+| Source admission | Main a1 reviewed/pushed/CI8PASS; timeout-idle P2 candidate passes47 launcher plus unchanged52 controller gates | Independently admit/commit idle correction before fresh execution; mocks have zero model/Core calls. |
+| Clean runtime | Clean a1 configured-MCP/readiness/version/isolated metadata/Stop independently passed;292 source/591 raw files verified | Preserve a1 proof; fresh corrected source must bind its own boot/runtime identity and metadata. |
+| Actual research | New clean-a1 run01 FAILED_OR_PARTIAL after one study tool/three files; historical live05 retained separately | Fresh model/MCP study, discovery, registration, width38 CAD, bolt30 rejection, inspect/summary/compare and evidence-based interpretation; verify artifacts/ledgers. |
 | Human inspection | Earlier official GUI and Lab checks have their own source/run IDs | Official Workspace shows the same new project/session/tool results; human-readable CAD/result artifacts match the Core experiment revision. |
-| Cancellation | Mocks/readiness only for the new controller | Actual in-flight model cancellation, confirmed idle/final log receipts and owned cleanup; preserve failures and unrelated processes. |
+| Cancellation | Run01 abort200/client_cancelled/natural CLI exit and later idle-before-server-Stop verified; missing explicit idle-before-live-CLI-stop P2 | Admit bounded idle gate, then actual in-flight cancellation with idle/final log/owned cleanup receipts. |
 | Checkpoint | Not complete | Independent actual-evidence review, precise acceptance/state/ledger updates, commit/push. CI and Windows runtime proof stay separately attributed. |
 
 Do not move/checkout a live serving worktree. Keep Lab8766 pinned to d36387b
@@ -73,8 +73,16 @@ managed-worktree absolute .git pointer, so the new MCP transport must reuse
 the existing invocation-scoped host-Git bridge. Freeze its tracked LF wrapper
 and host Git identity; verify actual Core commit/dirty and fixture identity
 through the exact configured environment before model execution. The read-only
-diagnostic passed against clean259 with the candidate Main wrapper; it is not
-a new configured-MCP or research proof. No global Git/PATH change is authorized.
+diagnostic passed against clean259 with the candidate Main wrapper; subsequent
+clean a1 configured-MCP/readiness passed independently. No global Git/PATH change
+occurred. Actual research run01 remained failed/partial.
+
+P1.1 timeout-idle correction: before live CLI termination after confirmed abort,
+verify exact owned session metadata and persist bounded idle status. Busy/
+unavailable/malformed/foreign status preserves CLI/session/relay. This enforces
+ADR0011 without Core/schema/model/tool/numerical changes. Retry predeclares
+provider500s/stage600s from observed181.471s provider plus about95s tool latency;
+output4096/steps3 and all CAD/validation cases stay unchanged.
 
 ## Remaining phase queue
 

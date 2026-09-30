@@ -138,6 +138,7 @@ setTimeout(()=>{
     $taskMockOrder=[Collections.Generic.List[string]]::new()
     $taskMockMissing=$false; $taskMockForeign=$false; $taskMockBusy=$false; $taskMockAbortConfirmed=$true; $taskMockRestoreFailure=$false
     $taskMockModelDigest=('a'*64);$taskMockDuplicateModel=$false
+    $taskMockIdleState=[pscustomobject]@{poll=0;busy_responses=1;unavailable=$false;malformed=$false;foreign=$false;lifecycle_calls=0}
     $taskTests=[Collections.Generic.List[object]]::new()
     # Scope-local interceptions; no real server/provider/MCP mutation/inference.
     function Assert-OpenScienceContext {
@@ -145,8 +146,9 @@ setTimeout(()=>{
         if($Context.LauncherPath -ne $taskFakeLauncher -or $Context.RepoRoot -ne $RepoRoot){throw 'Mock context changed.'}
     }
     function Get-OpenScienceLocalRuntime {
-        param([string]$OwnerPath)
-        if($taskMockMissing){throw 'Mock current MCP is disconnected.'}
+        param([string]$OwnerPath,[switch]$LifecycleOnly)
+        if($LifecycleOnly){$taskMockIdleState.lifecycle_calls++}
+        if($taskMockMissing -and -not $LifecycleOnly){throw 'Mock current MCP is disconnected.'}
         if($taskMockForeign){return [pscustomobject]@{RunName=$taskMockContext.RunName;RepoRoot='C:\foreign-owner'}}
         return $taskMockContext
     }
@@ -172,6 +174,23 @@ setTimeout(()=>{
         if($Uri.EndsWith('/abort')){return $true}
         if($Uri.EndsWith('/session/ses_mock123')){return [pscustomobject]@{id='ses_mock123';directory=$taskMockContext.RepoRoot}}
         throw 'Unexpected mock route.'
+    }
+    function Invoke-OpenScienceHttp {
+        param([string]$Uri,[string]$Method='GET',$Headers=@{},$Body,[int]$TimeoutSeconds)
+        $taskMockCalls.Add([ordered]@{kind='idle_http_mock';method=$Method;uri=$Uri;directory=$Headers['x-openscience-directory']})
+        if($Uri.EndsWith('/session/ses_mock123')){
+            $taskDirectory=if($taskMockIdleState.foreign){'C:\foreign-project'}else{$taskMockContext.RepoRoot}
+            return [pscustomobject]@{StatusCode=200;Content=(@{id='ses_mock123';directory=$taskDirectory}|ConvertTo-Json -Compress)}
+        }
+        if($Uri.EndsWith('/session/status')){
+            $taskMockIdleState.poll++
+            if($taskMockIdleState.unavailable){return [pscustomobject]@{StatusCode=503;Content='{}'}}
+            if($taskMockIdleState.malformed){return [pscustomobject]@{StatusCode=200;Content='[]'}}
+            if($taskMockIdleState.poll -le $taskMockIdleState.busy_responses){return [pscustomobject]@{StatusCode=200;Content='{"ses_mock123":{"type":"busy"}}'}}
+            $taskMockOrder.Add('idle:ses_mock123')
+            return [pscustomobject]@{StatusCode=200;Content='{}'}
+        }
+        throw 'Unexpected idle mock route; no real HTTP request is permitted.'
     }
     function Invoke-OpenScienceSessionAbort {
         param($Context,[string]$SessionId)
@@ -202,7 +221,12 @@ setTimeout(()=>{
         $taskTimeoutDir=Join-Path $taskChecksRoot '02-timeout'
         $taskTimeoutResult=Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--log-path',(Join-Path $taskTimeoutDir 'stdout.jsonl'),'--mock-timeout','--','No actual provider request') -LogDirectory $taskTimeoutDir -TimeoutSeconds 1 -RequiredTool 'caelab_study_create'
         Assert-LauncherCheck ($taskTimeoutResult.timed_out -and $taskTimeoutResult.session_id -eq 'ses_mock123') 'session identity is verified before launcher starts'
-        Assert-LauncherCheck ($taskTimeoutResult.cancellation_before_cli_stop -and -not $taskTimeoutResult.launcher_still_running -and $taskMockOrder[0] -eq 'abort:ses_mock123' -and $taskMockOrder[1].StartsWith('stop:')) 'exact session abort precedes verified CLI stop'
+        Assert-LauncherCheck ($taskTimeoutResult.cancellation_before_cli_stop -and $taskTimeoutResult.cancellation_idle_confirmed -and -not $taskTimeoutResult.launcher_still_running -and
+            $taskMockOrder[0] -eq 'abort:ses_mock123' -and $taskMockOrder[1] -eq 'idle:ses_mock123' -and $taskMockOrder[2].StartsWith('stop:')) 'exact session abort and observed idle precede verified CLI stop'
+        $taskIdleSaved=Read-OpenScienceJson (Join-Path $taskTimeoutDir 'timeout-session-idle.json')
+        Assert-LauncherCheck ($taskMockIdleState.poll -eq 2 -and $taskIdleSaved.session_id -eq 'ses_mock123' -and $taskIdleSaved.state -eq 'IDLE_CONFIRMED' -and
+            (Get-OpenScienceHash $taskIdleSaved.status_path) -eq $taskIdleSaved.status_sha256 -and
+            (Read-OpenScienceJson (Join-Path $taskTimeoutDir 'timeout-session-idle-status-001.json')).ses_mock123.type -eq 'busy') 'busy-to-idle raw receipts are persisted before CLI termination'
         $taskAbortCall=@($taskMockCalls | Where-Object { $_.uri -like '*/abort' })
         Assert-LauncherCheck ($taskAbortCall.Count -eq 1 -and $taskAbortCall[0].abort_source -eq 'runner_timeout' -and $taskAbortCall[0].directory -eq $RepoRoot) 'timeout uses official abort route and header'
         Assert-LauncherCheck (@($taskMockCalls | Where-Object method -eq 'Delete').Count -eq 0) 'session and evidence are never deleted'
@@ -230,6 +254,44 @@ setTimeout(()=>{
             if(-not(Test-Path -LiteralPath (Join-Path $taskAbortRefusalDir 'relay-final.json'))){throw 'Known no-provider mock relay failed to finalize after explicit test cleanup.'}
         }
         $taskMockAbortConfirmed=$true
+        $taskIdleRefusalDir=Join-Path $taskChecksRoot '03-unconfirmed-idle'
+        $taskMockIdleState.unavailable=$true
+        $taskStopCountBefore=@($taskMockOrder | Where-Object {$_.StartsWith('stop:')}).Count
+        $taskIdleRefusal=Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--log-path',(Join-Path $taskIdleRefusalDir 'stdout.jsonl'),'--mock-timeout','--','No actual provider request') -LogDirectory $taskIdleRefusalDir -TimeoutSeconds 1 -RequiredTool 'caelab_study_create'
+        try {
+            Assert-LauncherCheck ($taskIdleRefusal.cancellation_before_cli_stop -and -not $taskIdleRefusal.cancellation_idle_confirmed -and
+                $taskIdleRefusal.cleanup_refused_after_idle_failure -and -not $taskIdleRefusal.cleanup_refused_after_abort_failure -and
+                $taskIdleRefusal.launcher_still_running -and $null -eq $taskIdleRefusal.launcher_stop -and
+                @($taskMockOrder | Where-Object {$_.StartsWith('stop:')}).Count -eq $taskStopCountBefore -and
+                (Test-Path -LiteralPath (Join-Path $taskIdleRefusalDir 'timeout-session-idle-failure.json'))) 'abort200 without observable idle refuses CLI stop and records the distinct idle failure'
+            $taskIdleLogBefore=(Get-Item -LiteralPath $taskIdleRefusal.stdout_path).Length
+            Start-Sleep -Milliseconds 700
+            Assert-LauncherCheck ((Get-Item -LiteralPath $taskIdleRefusal.stdout_path).Length -gt $taskIdleLogBefore -and
+                $taskIdleRefusal.log_relay_still_running -and -not $taskIdleRefusal.output_hashes_finalized) 'idle refusal preserves the continuing CLI log relay'
+        } finally {
+            Stop-OpenScienceOwnedLauncher -Context $taskMockContext -ProcessIdentity $taskIdleRefusal.launcher_identity
+            $taskIdleRelayWait=[Diagnostics.Stopwatch]::StartNew()
+            while(-not(Test-Path -LiteralPath (Join-Path $taskIdleRefusalDir 'relay-final.json')) -and $taskIdleRelayWait.Elapsed.TotalSeconds -lt 5){Start-Sleep -Milliseconds 100}
+            if(-not(Test-Path -LiteralPath (Join-Path $taskIdleRefusalDir 'relay-final.json'))){throw 'Known idle-refusal mock relay did not finalize after explicit test cleanup.'}
+            $taskMockIdleState.unavailable=$false
+        }
+        foreach($taskIdleCase in @('busy','unavailable','malformed','foreign')){
+            $taskIdleCaseDir=Join-Path $taskChecksRoot ('idle-helper-'+$taskIdleCase)
+            New-Item -ItemType Directory -Path $taskIdleCaseDir | Out-Null
+            $taskMockIdleState.poll=0;$taskMockIdleState.busy_responses=if($taskIdleCase -eq 'busy'){100}else{0}
+            $taskMockIdleState.unavailable=($taskIdleCase -eq 'unavailable');$taskMockIdleState.malformed=($taskIdleCase -eq 'malformed');$taskMockIdleState.foreign=($taskIdleCase -eq 'foreign')
+            $taskIdleCaseRejected=$false
+            try{Confirm-OpenScienceCancelledSessionIdle -Context $taskMockContext -SessionId 'ses_mock123' -LogDirectory $taskIdleCaseDir -TimeoutSeconds 1 | Out-Null}catch{$taskIdleCaseRejected=$true}
+            Assert-LauncherCheck ($taskIdleCaseRejected -and (Test-Path -LiteralPath (Join-Path $taskIdleCaseDir 'timeout-session-idle-failure.json')) -and
+                -not(Test-Path -LiteralPath (Join-Path $taskIdleCaseDir 'timeout-session-idle.json'))) "actual idle helper refuses $taskIdleCase status without a confirmed idle receipt"
+        }
+        $taskMockIdleState.poll=0;$taskMockIdleState.busy_responses=0;$taskMockIdleState.unavailable=$false;$taskMockIdleState.malformed=$false;$taskMockIdleState.foreign=$false
+        $taskMockMissing=$true
+        $taskLifecycleIdleDir=Join-Path $taskChecksRoot 'idle-helper-disconnected-mcp'
+        New-Item -ItemType Directory -Path $taskLifecycleIdleDir | Out-Null
+        $taskLifecycleIdle=Confirm-OpenScienceCancelledSessionIdle -Context $taskMockContext -SessionId 'ses_mock123' -LogDirectory $taskLifecycleIdleDir -TimeoutSeconds 1
+        Assert-LauncherCheck ($taskLifecycleIdle.state -eq 'IDLE_CONFIRMED' -and $taskMockIdleState.lifecycle_calls -gt 0) 'idle confirmation uses lifecycle identity and remains available with disconnected MCP'
+        $taskMockMissing=$false
         $taskRejected=$false; $taskJoinedDir=Join-Path $taskChecksRoot '04-joined-session'
         try { Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--session=ses_foreign','--','No inference') -LogDirectory $taskJoinedDir | Out-Null } catch { $taskRejected=$true }
         Assert-LauncherCheck ($taskRejected -and -not(Test-Path -LiteralPath (Join-Path $taskJoinedDir 'stdout.jsonl'))) 'joined session override is rejected before inference'
@@ -468,6 +530,7 @@ function Invoke-TaskCli([string]$Name,[string[]]$CliArguments,[string[]]$Allowed
         name=$Name;elapsed_seconds=$taskCommand.elapsed_seconds;exit_code=$taskCommand.exit_code;timed_out=$taskCommand.timed_out;failure=$taskCommand.failure
         allowed_tools=$AllowedTools;arguments=$taskCommand.arguments;done=$taskDone;session_id=$taskCommand.session_id
         cancellation_before_cli_stop=$taskCommand.cancellation_before_cli_stop;launcher_still_running=$taskCommand.launcher_still_running
+        cancellation_idle_confirmed=$taskCommand.cancellation_idle_confirmed;cleanup_refused_after_idle_failure=$taskCommand.cleanup_refused_after_idle_failure
         guard_restore_failure=$taskCommand.guard_restore_failure;workspace_default_guard_restored=$taskCommand.workspace_default_guard_restored
         provenance=$taskProvenance;requested_arguments=$CliArguments
         tool_event_count=$taskTools.Count;tool_events=$taskTools;stdout_sha256=$taskCommand.stdout_sha256;stderr_sha256=$taskCommand.stderr_sha256

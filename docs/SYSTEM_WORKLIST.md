@@ -29,17 +29,22 @@ Currently only **P1.1** is active. Later rows are queued, not running.
   implement the bounded invocation-scoped bridge correction. Controller52
   mocks passed; actual diagnostic returned clean259/fixture3e48 via frozen
   candidate wrapper. Zero provider/Core mutations; launcher39 unchanged.
-- [ ] Independently admit/commit/push this bounded correction; update the
-  unused serving worktree to that clean commit and verify actual source
-  identity through its exact configured MCP environment before any model call.
-- [ ] Obtain a clean pinned serving worktree at that exact integrated commit;
-  initialize the exact fixture submodule and verify existing runtime paths.
-- [ ] Start a new isolated profile/store; record version, HEAD/working-byte
-  boot pin, actual MCP connection, owner/process identity and official metadata.
-- [ ] Stop that readiness run through the owned controller; verify its exact
-  Windows/WSL children are gone, without changing Lab8766 or old profiles.
-- [ ] Start a distinct new research run from the same frozen source. Execute
-  scripts/verify_openscience_live.ps1 against its actual OwnerPath.
+- [x] Independently admit/commit/push the Git correction as a1a323a and confirm
+  exact remote HEAD. CI36744346642 all8PASS; parent259 CI sevenPASS/PDEcancelled.
+- [x] Obtain clean pinned openscience-integrated at a1/fixture3e48 and verify
+  exact configured-MCP Git identity before model execution; source292 retained.
+- [x] Start fresh a1 readiness profile; actual boot/MCP/version/isolated CLI
+  metadata/empty official Workspace passed independent readiness review.
+- [x] Stop a1 readiness through owned controller; exact Windows/WSL children
+  gone, Lab/Ollama unchanged. All591raw files/16,677,445bytes match local copy.
+- [x] Execute the first distinct actual a1 research attempt through its owner.
+  Run01 FAILED_OR_PARTIAL after one study tool/three files; not full acceptance.
+- [x] Diagnose independent timeout-idle P2 from run01, implement exact-owned
+  session metadata/bounded idle before CLI stop, and pass47 launcher mocks.
+  Unchanged controller52 is separate (99 current mocks); no model/Core calls.
+- [ ] Independently admit/commit/push the idle correction, update the stopped
+  serving worktree, then execute NEW clean-source research profile/store with
+  predeclared provider500s/stage600s and unchanged model/tool/CAD/numerical cases.
 - [ ] Verify real model/tool receipts for study creation and actual parameter
   discovery/registration; research IDs must map to discovered native paths.
 - [ ] Verify width38 valid CAD and bolt30 rejected CAD in the fresh Core store:
@@ -49,8 +54,10 @@ Currently only **P1.1** is active. Later rows are queued, not running.
   in those exact receipts; do not accept a response that merely claims execution.
 - [ ] Inspect the official Workspace in the browser and save its same-session
   tool/results view; verify displayed experiment IDs match the Core store.
-- [ ] Perform a bounded actual in-flight model cancellation; retain abort/idle,
-  final relay output hashes and exact owned cleanup receipts, including failures.
+- [ ] Complete actual in-flight cancellation with the corrected idle gate.
+  Run01 confirmed abort200/client_cancelled/natural CLI exit and later idle-before-
+  server-Stop only; missing idle-before-live-CLI-stop P2 retained. Closed failed
+  raw/store copy:1,633files/40,454,753bytes; original bytes=null manifest retained.
 - [ ] Freeze finished source/output inventory; obtain independent actual-evidence
   review. Update the acceptance record, state, handoff and ledger; commit/push
   exact checkpoints and inspect applicable exact-source CI.

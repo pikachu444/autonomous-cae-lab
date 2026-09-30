@@ -85,8 +85,11 @@ session_id를 별도 --session 값으로 지정한다. --continue로 최신 세�
 & .\scripts\openscience-server-local.ps1 -Mode Stop -OwnerPath $runtime.OwnerPath
 ~~~
 
-시간 제한이 지나면 정확한 세션의 공식 abort를 먼저 확인하고 이 실행기의 검증된 CLI만
-종료한다. 취소가 확인되지 않으면 종료를 거부하고 PID/세션/실패 근거를 보존한다.
+시간 제한이 지나면 정확한 세션의 공식 abort를 확인한 뒤, 같은 프로젝트의 세션인지와
+실제 idle 상태를 확인·기록하고 이 실행기의 검증된 CLI를 종료한다. 취소 또는 idle을
+확인하지 못하면 종료를 거부하고 PID/세션/실패 근거와 계속 기록되는 로그를 보존한다.
+취소 응답 성공과 idle 확인은 별도 근거다. a1 연구 run01은 취소 응답과 자연 CLI 종료,
+나중의 서버 종료 전 idle만 증명한다. 해당 소스의 timeout idle 누락은 별도 보완한다.
 CLI는 독립적인 task relay를 통해 로그 파일에 직접 쓰므로 호출자가 반환하거나 종료해도
 실행 중인 로그를 끊지 않는다. 이때 command.json의 해시는 당시의 진단용 snapshot이며,
 실제 종료 후 relay-final.json에 기록한 해시와 구분한다. 종료 근거가 없는 이전 CLI가
