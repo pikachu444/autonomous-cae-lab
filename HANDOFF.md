@@ -28,6 +28,11 @@ Continue fresh corrected HTTP acceptance, actual material/plasticity/explicit
 gates, declared-model numerical optimization, then remaining phases. Worktree
 native failures are preserved; no material/contact/strength release is implied.
 
+`d0473e4` CI 36683183680 failed due to synthetic test campaigns leaking into the
+shared overview fixture (512 tests passed; six native jobs skipped). The test
+isolation repair requires new exact-source CI. HTTP clean-02 runs independently
+against frozen d047; do not change main until that acceptance finishes.
+
 **Primary work continues across all 52 requirements.** The checkpoint below
 is not a stopping condition. Root resumed actual OpenScience and independent
 Code_Aster/model-Core work after correcting an earlier premature stop. Read

@@ -19,6 +19,11 @@ passed 105 cases plus two added service mutation cases; the real DE regression
 passed, with its parent integrity recursion retained. Fresh HTTP reproduction
 is pending. See [the checkpoint record](benchmarks/records/20260930-connected-inspection-repair.json).
 
+Correction source `d0473e4` CI 36683183680 failed one test (512 passed): the two
+new synthetic service campaigns leaked into a shared test fixture's overview.
+They now use per-test temporary routing outside that store. Native jobs were
+skipped; neither this CI nor the upload repair has new numerical proof yet.
+
 Actual MFront material-point, Code_Aster plasticity and OpenRadioss execution
 continue in isolated worktrees with independent review. Their new native
 acceptance remains open; observed runtime/parser/contact failures are retained.
