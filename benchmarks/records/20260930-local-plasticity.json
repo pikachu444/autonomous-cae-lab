@@ -1,0 +1,1337 @@
+{
+  "acceptance_artifact": {
+    "path": "artifacts/local-20260930-plasticity-draft-03/acceptance.json",
+    "sha256": "df628b9fb3ae517808715f7503cb2929ddcb9224e5225de089573aab985906e0",
+    "size_bytes": 34706
+  },
+  "cases": {
+    "E-j2-canonical": {
+      "analysis_raw": {
+        "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/analysis_raw.json",
+        "sha256": "ce99d58fef37fbe5a4f70c87adf9dab6ec1e94e1a5d021b79690e672d7f88a29",
+        "size_bytes": 47291759
+      },
+      "artifact_bytes": 184053066,
+      "artifact_count": 177,
+      "cad_revision": null,
+      "captured_source_sha256": {
+        "codeaster_plasticity_worker.py": "21ede73832a55ed4ea463744cccbbbdd99c76db375e5110d828c3b520ab0e88e",
+        "codeaster_worker.py": "6ddfcfb574b429ae1f813e80e19fc84f0e773b93e4ed9bf243e83a94e11e25c3",
+        "domain_reference.py": "b127aedf89c79c8fdb00d757a84e0dd31e6064daa6703c5e3f387335be7cecff",
+        "mesh_runtime_adapter.py": "3eb3d06a6a6370cfcb4ebaa8e20c77088786f5842edccbdbc063b46731b227da",
+        "plasticity_adapter.py": "4da5d766801f92dd8844df790f8e90c374adb7508eb5da29bc59a57e9e69b1ce"
+      },
+      "container_isolation": {
+        "cleanenv": true,
+        "containall": true,
+        "mpi_ranks": 1,
+        "no_home": true,
+        "omp_threads": 2,
+        "preferences": "Fresh experiment-only home content",
+        "tmp": "Fresh per-level disk scratch"
+      },
+      "converged": true,
+      "decision": "NOT_RELEASED",
+      "derived_energy": {
+        "dissipation": "derived_plastic_work - stored_hardening",
+        "first_plastic_entry_lower_stress_mpa": 250.0,
+        "method": "trapezoidal_native_stress_xx_d_eq_plastic_strain",
+        "native_energy_field": false,
+        "physical_energy_balance": false,
+        "stored_hardening": "0.5 * H * native_q^2",
+        "subsequent_lower_stress": "previous_native_stress_xx"
+      },
+      "failed_checks": [],
+      "mesh_response": {
+        "agreement_by_field": {
+          "mean_eq_plastic_strain": 3.968308767396647e-14,
+          "mean_stress_xx_mpa": 3.0118764625188177e-15,
+          "reaction_x_n": 2.431811366033712e-14,
+          "right_face_axial_displacement_mm": 1.1564823173178715e-16
+        },
+        "agreement_statistic": "max_minus_min_across_all_meshes_at_every_time",
+        "fields": [
+          "right_face_axial_displacement_mm",
+          "mean_stress_xx_mpa",
+          "mean_eq_plastic_strain",
+          "reaction_x_n"
+        ],
+        "normalization": "global_peak_reference_scale_per_field",
+        "statistic": "arithmetic_mean_of_right_face_DX_or_integration_point_field",
+        "times_s": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          5.0,
+          6.0,
+          7.0,
+          8.0,
+          9.0
+        ]
+      },
+      "meshes": [
+        {
+          "actual_result_orders": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "artifacts": {
+            "aster.mess": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/aster.mess",
+              "sha256": "e16afab9b8d281051c16ee8602ffbf487cfa17f447d881f2a9c1c2ff01c6a40c",
+              "size_bytes": 127051
+            },
+            "convergence.measure": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/convergence.measure",
+              "sha256": "97cb89e34e0464dcdea27864afd995c9046c7e657c0ad32ac745e441bad3a62d",
+              "size_bytes": 2640
+            },
+            "expected_mesh.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/expected_mesh.json",
+              "sha256": "f4d680a8d516a94003810cce3198b9dbcdda2053ac2d70c71d8acc38cff37297",
+              "size_bytes": 79350
+            },
+            "mesh.msh": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/mesh.msh",
+              "sha256": "50364985bb97ee76b58faaf7e8a2081a23ba7dfd114f4624850e72c023c9a731",
+              "size_bytes": 28125
+            },
+            "model.comm": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/model.comm",
+              "sha256": "2b3e2e808f856337a2bb1265d223a3d8845f6497e0c49ebc0d9bdc7ce4d46736",
+              "size_bytes": 131
+            },
+            "model.export": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/model.export",
+              "sha256": "0c2b82ae1ce0a1659e14d1040f99135b73e10eb5431911f6e45113922b196a36",
+              "size_bytes": 309
+            },
+            "model.geo": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/model.geo",
+              "sha256": "0dbcfcb27e592a1e66adc1d9dfe600d1260c096b3b85769bd00c3ae57195930d",
+              "size_bytes": 614
+            },
+            "native_access_parameters.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/native_access_parameters.json",
+              "sha256": "d4e562df428d8b59b09f4dcd2427b61dc37a96770c70a2e663184280ac38baf5",
+              "size_bytes": 376
+            },
+            "native_material.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/native_material.json",
+              "sha256": "3610d8268b9c92be89031c97f0e0e16f72cad4f9da1caa65157d64a80cb7be7b",
+              "size_bytes": 226
+            },
+            "native_mesh_checks.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/native_mesh_checks.json",
+              "sha256": "6a20a0caa2f91db40836084cb579b260fa4a66f11b49c48ee5b50b93c5a0e4a5",
+              "size_bytes": 24860
+            },
+            "nonlinear_convergence.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/nonlinear_convergence.json",
+              "sha256": "d449bdf2ee8646e15edacc1c41f213d5a62a6f654246f4e46804d915169b0ff7",
+              "size_bytes": 21744
+            },
+            "parsed_history.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/parsed_history.json",
+              "sha256": "12066663fc226f8a097fd0131ed7d3fb5352d608bc158b92409c5f0263a0e701",
+              "size_bytes": 6345506
+            },
+            "results.med": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/results.med",
+              "sha256": "8876106d6672384a6d742add80244c7cb715e6722e0e43e15d3651f72d828f5c",
+              "size_bytes": 1309635
+            },
+            "solver.stderr.log": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/solver.stderr.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "size_bytes": 0
+            },
+            "solver.stdout.log": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/solver.stdout.log",
+              "sha256": "dc032cf36aff5e7585bdc97590ecea4d11c80fb3a02e6f52e53efd554715480f",
+              "size_bytes": 129814
+            },
+            "spack.lock.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/spack.lock.json",
+              "sha256": "54bba96d81889b26a246442900a8e7d7dbd880282da44bfe98d7a6aec24046ff",
+              "size_bytes": 433469
+            },
+            "worker_result.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_0/worker_result.json",
+              "sha256": "1b44d8ad88741124855f026bc33d594778bff1c0d0bd78a289ee2cb99570d11f",
+              "size_bytes": 9697801
+            }
+          },
+          "gauss_points_per_element": 5,
+          "gauss_rows_per_time": 1105,
+          "measure_statistics_status": "PASS",
+          "mesh_size_mm": 2.0,
+          "native_absolute_residual_max": 1.72448721969e-11,
+          "native_relative_residual_max": 1.732461088168e-13,
+          "newton_iteration_counts": [
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1
+          ],
+          "node_count": 506,
+          "scratch": {
+            "container_mount": "/tmp",
+            "path": "simulation/scratch/level_0",
+            "retention_status": "REMOVED_AFTER_VALID_EXTRACTION"
+          },
+          "strict_convergence_status": "PASS",
+          "times_s": [
+            0.0,
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            5.0,
+            6.0,
+            7.0,
+            8.0,
+            9.0
+          ],
+          "volume_element_count": 221
+        },
+        {
+          "actual_result_orders": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "artifacts": {
+            "aster.mess": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/aster.mess",
+              "sha256": "6d45b7c3c18212f9d8157e1aea294c79f7adece200974c219888a5f8734394cf",
+              "size_bytes": 127061
+            },
+            "convergence.measure": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/convergence.measure",
+              "sha256": "e17b106c4178d0ece3013fe973cd67956c98b272d4bce0261743de125f4cedc8",
+              "size_bytes": 2640
+            },
+            "expected_mesh.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/expected_mesh.json",
+              "sha256": "b5634a8d4f593970d4672a3118187c6ba3b45a8260541c2b69f82bde7889adf8",
+              "size_bytes": 384323
+            },
+            "mesh.msh": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/mesh.msh",
+              "sha256": "478498394db2315792ec99aa365ee40f1da8882ddf5c98df479e3f64961effa3",
+              "size_bytes": 162777
+            },
+            "model.comm": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/model.comm",
+              "sha256": "8fed9b14bd47484a8dbc9d6f285b248f774350a97899fb3677ef61a4cdaa0561",
+              "size_bytes": 131
+            },
+            "model.export": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/model.export",
+              "sha256": "45d6bc54225bc9b806eb2b68b4253c775a10a3aa7516d1f554a74fd6d290a794",
+              "size_bytes": 309
+            },
+            "model.geo": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/model.geo",
+              "sha256": "b243ca69e2ecd3fde901d289e3f09cc4d5e8826e2d1d90cc77467f7f5db54ac2",
+              "size_bytes": 614
+            },
+            "native_access_parameters.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/native_access_parameters.json",
+              "sha256": "d4e562df428d8b59b09f4dcd2427b61dc37a96770c70a2e663184280ac38baf5",
+              "size_bytes": 376
+            },
+            "native_material.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/native_material.json",
+              "sha256": "3610d8268b9c92be89031c97f0e0e16f72cad4f9da1caa65157d64a80cb7be7b",
+              "size_bytes": 226
+            },
+            "native_mesh_checks.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/native_mesh_checks.json",
+              "sha256": "abc047d934eea7ef3c25153d6672e71adf11fe4faca74b1dfa32cf7e737a254b",
+              "size_bytes": 108143
+            },
+            "nonlinear_convergence.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/nonlinear_convergence.json",
+              "sha256": "0a9b40e35adb2a9527e1e97092287e092f762a97dee2eb47186d336f4f817ebd",
+              "size_bytes": 21723
+            },
+            "parsed_history.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/parsed_history.json",
+              "sha256": "97e47d065aaa0345459e58fec37bbc2b3752cfb642221b595853898f59c5fefb",
+              "size_bytes": 29208231
+            },
+            "results.med": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/results.med",
+              "sha256": "131b3a4f025ea372b5ae94cf49c29f3351f55a06b042c074e18c95ea3e69f7c8",
+              "size_bytes": 5444592
+            },
+            "solver.stderr.log": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/solver.stderr.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "size_bytes": 0
+            },
+            "solver.stdout.log": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/solver.stdout.log",
+              "sha256": "1d65e86b03a4a1b9e67d3db93ebba89bd8af9d3e51a2a0961f8340a279cd7c68",
+              "size_bytes": 129824
+            },
+            "spack.lock.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/spack.lock.json",
+              "sha256": "54bba96d81889b26a246442900a8e7d7dbd880282da44bfe98d7a6aec24046ff",
+              "size_bytes": 433469
+            },
+            "worker_result.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/simulation/level_1/worker_result.json",
+              "sha256": "640eba8605d37c7eb517fb7433b9d524802af5709d679199084eaab96004de2b",
+              "size_bytes": 44965448
+            }
+          },
+          "gauss_points_per_element": 5,
+          "gauss_rows_per_time": 5160,
+          "measure_statistics_status": "PASS",
+          "mesh_size_mm": 1.0,
+          "native_absolute_residual_max": 1.710203731754e-11,
+          "native_relative_residual_max": 2.543526032562e-13,
+          "newton_iteration_counts": [
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1
+          ],
+          "node_count": 2063,
+          "scratch": {
+            "container_mount": "/tmp",
+            "path": "simulation/scratch/level_1",
+            "retention_status": "REMOVED_AFTER_VALID_EXTRACTION"
+          },
+          "strict_convergence_status": "PASS",
+          "times_s": [
+            0.0,
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            5.0,
+            6.0,
+            7.0,
+            8.0,
+            9.0
+          ],
+          "volume_element_count": 1032
+        }
+      ],
+      "metrics": {
+        "displacement_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.7570538444858056e-13
+        },
+        "final_stress": {
+          "unit": "MPa",
+          "valid": true,
+          "value": -60.21327014217991
+        },
+        "hardening_energy_density": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 0.011456391365872282
+        },
+        "max_component_displacement_error": {
+          "unit": "mm",
+          "valid": true,
+          "value": 3.3084646133829665e-14
+        },
+        "max_component_stress_error": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 4.75353090223507e-11
+        },
+        "max_eq_plastic_strain_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 7.310124727766265e-15
+        },
+        "max_unload_residual_strain_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.6020852139652106e-18
+        },
+        "mesh_agreement_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 3.968308767396647e-14
+        },
+        "peak_eq_plastic_strain": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0047867298578199045
+        },
+        "peak_stress": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 254.7867298578204
+        },
+        "plastic_dissipation_absolute_error": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 1.87871940227069e-12
+        },
+        "plastic_dissipation_density": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 1.1966824644549772
+        },
+        "plastic_work_density": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 1.2081388558208495
+        },
+        "reaction_absolute_error": {
+          "unit": "N",
+          "valid": true,
+          "value": 3.803384551460775e-11
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.865964798079947e-14
+        },
+        "reaction_x": {
+          "unit": "N",
+          "valid": true,
+          "value": 481.70616113745047
+        },
+        "stress_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.8656901420602676e-13
+        },
+        "unload_residual_strain": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.004786729857819904
+        }
+      },
+      "model_revision": "9ce5ad13f3bf4fd68b5c27ee0d5ffed8f71947aa125b3db3a608f3944b94c9ae",
+      "nonlinear_policy": {
+        "absolute_residual_limit": 1e-08,
+        "archive": "Every declared instant including initial zero",
+        "automatic_subdivision": false,
+        "command": "STAT_NON_LINE",
+        "deformation": "PETIT",
+        "integration": "ANALYTIQUE",
+        "linear_method": "MUMPS",
+        "maximum_iterations": 40,
+        "relation": "VMIS_ISOT_LINE",
+        "relative_residual_limit": 1e-10
+      },
+      "process_budgets": {
+        "gmsh_address_space_bytes": 2147483648,
+        "solver_memory_mb": 1024,
+        "solver_time_seconds": 120,
+        "subprocess_timeout_seconds": 180
+      },
+      "proposal": {
+        "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/proposal.json",
+        "sha256": "c8e952281b2a59f009d1a13464938e94bfe1ec1cb23de85e32fe717d65e1c989",
+        "size_bytes": 9138
+      },
+      "result": {
+        "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-canonical/result.json",
+        "sha256": "d21586c915d0a8c856cf6efcaf333e52a601b148f26fa55b164ffc670e2ba169",
+        "size_bytes": 140592
+      },
+      "runtime": {
+        "branch": "v17.4.0",
+        "parentid": "spack-local",
+        "uncommitted": [
+          "built with Spack"
+        ],
+        "version": "17.4.0"
+      },
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "unknown_validations": [
+        "static_strength",
+        "material_qualification",
+        "model_qualification",
+        "physical_validation",
+        "fatigue_durability"
+      ],
+      "validation_status_counts": {
+        "PASS": 19,
+        "UNKNOWN": 5
+      },
+      "versions": {
+        "code_aster": "17.4.0",
+        "gmsh": "4.12.1",
+        "mpi4py": "3.1.5",
+        "numpy": "1.26.4",
+        "petsc": "3.24.0",
+        "petsc4py": "3.24.1",
+        "python": "3.11.14",
+        "scipy": "1.15.2",
+        "singularity": "singularity-ce version 4.1.1"
+      }
+    },
+    "E-j2-changed": {
+      "analysis_raw": {
+        "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/analysis_raw.json",
+        "sha256": "574b104d3dcda6cb57df2897319c8df330d25bb829a664eb9496524e8dcf2428",
+        "size_bytes": 47288340
+      },
+      "artifact_bytes": 184058225,
+      "artifact_count": 177,
+      "cad_revision": null,
+      "captured_source_sha256": {
+        "codeaster_plasticity_worker.py": "21ede73832a55ed4ea463744cccbbbdd99c76db375e5110d828c3b520ab0e88e",
+        "codeaster_worker.py": "6ddfcfb574b429ae1f813e80e19fc84f0e773b93e4ed9bf243e83a94e11e25c3",
+        "domain_reference.py": "b127aedf89c79c8fdb00d757a84e0dd31e6064daa6703c5e3f387335be7cecff",
+        "mesh_runtime_adapter.py": "3eb3d06a6a6370cfcb4ebaa8e20c77088786f5842edccbdbc063b46731b227da",
+        "plasticity_adapter.py": "4da5d766801f92dd8844df790f8e90c374adb7508eb5da29bc59a57e9e69b1ce"
+      },
+      "container_isolation": {
+        "cleanenv": true,
+        "containall": true,
+        "mpi_ranks": 1,
+        "no_home": true,
+        "omp_threads": 2,
+        "preferences": "Fresh experiment-only home content",
+        "tmp": "Fresh per-level disk scratch"
+      },
+      "converged": true,
+      "decision": "NOT_RELEASED",
+      "derived_energy": {
+        "dissipation": "derived_plastic_work - stored_hardening",
+        "first_plastic_entry_lower_stress_mpa": 225.0,
+        "method": "trapezoidal_native_stress_xx_d_eq_plastic_strain",
+        "native_energy_field": false,
+        "physical_energy_balance": false,
+        "stored_hardening": "0.5 * H * native_q^2",
+        "subsequent_lower_stress": "previous_native_stress_xx"
+      },
+      "failed_checks": [],
+      "mesh_response": {
+        "agreement_by_field": {
+          "mean_eq_plastic_strain": 3.101760997806356e-14,
+          "mean_stress_xx_mpa": 5.260098421139787e-15,
+          "reaction_x_n": 1.1131836193574898e-14,
+          "right_face_axial_displacement_mm": 1.1564823173178715e-16
+        },
+        "agreement_statistic": "max_minus_min_across_all_meshes_at_every_time",
+        "fields": [
+          "right_face_axial_displacement_mm",
+          "mean_stress_xx_mpa",
+          "mean_eq_plastic_strain",
+          "reaction_x_n"
+        ],
+        "normalization": "global_peak_reference_scale_per_field",
+        "statistic": "arithmetic_mean_of_right_face_DX_or_integration_point_field",
+        "times_s": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          5.0,
+          6.0,
+          7.0,
+          8.0,
+          9.0
+        ]
+      },
+      "meshes": [
+        {
+          "actual_result_orders": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "artifacts": {
+            "aster.mess": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/aster.mess",
+              "sha256": "588e107c5a651c7b266f05b91a2f8495d306accd98fed3d3e7a7d9db6f107bb4",
+              "size_bytes": 127053
+            },
+            "convergence.measure": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/convergence.measure",
+              "sha256": "ea080f4f2fa218e9b93a3045b57d0a4f042eee831a036b68c77712c43c6b7469",
+              "size_bytes": 2640
+            },
+            "expected_mesh.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/expected_mesh.json",
+              "sha256": "f4d680a8d516a94003810cce3198b9dbcdda2053ac2d70c71d8acc38cff37297",
+              "size_bytes": 79350
+            },
+            "mesh.msh": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/mesh.msh",
+              "sha256": "50364985bb97ee76b58faaf7e8a2081a23ba7dfd114f4624850e72c023c9a731",
+              "size_bytes": 28125
+            },
+            "model.comm": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/model.comm",
+              "sha256": "2b3e2e808f856337a2bb1265d223a3d8845f6497e0c49ebc0d9bdc7ce4d46736",
+              "size_bytes": 131
+            },
+            "model.export": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/model.export",
+              "sha256": "0c2b82ae1ce0a1659e14d1040f99135b73e10eb5431911f6e45113922b196a36",
+              "size_bytes": 309
+            },
+            "model.geo": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/model.geo",
+              "sha256": "0dbcfcb27e592a1e66adc1d9dfe600d1260c096b3b85769bd00c3ae57195930d",
+              "size_bytes": 614
+            },
+            "native_access_parameters.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/native_access_parameters.json",
+              "sha256": "d4e562df428d8b59b09f4dcd2427b61dc37a96770c70a2e663184280ac38baf5",
+              "size_bytes": 376
+            },
+            "native_material.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/native_material.json",
+              "sha256": "629d625081fbb8a9e187e713601bdab2151502d4f8914457f54835b4eda8217a",
+              "size_bytes": 228
+            },
+            "native_mesh_checks.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/native_mesh_checks.json",
+              "sha256": "6a20a0caa2f91db40836084cb579b260fa4a66f11b49c48ee5b50b93c5a0e4a5",
+              "size_bytes": 24860
+            },
+            "nonlinear_convergence.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/nonlinear_convergence.json",
+              "sha256": "56c116ce4bd3fec38b7cb6c8310ff4119d022b3c29d492d8dc1eb72c967e79ab",
+              "size_bytes": 21741
+            },
+            "parsed_history.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/parsed_history.json",
+              "sha256": "efada1ea2f01e2638b1f95aaade1f6fc2267e35dd216a5a6d37ce21bab60d612",
+              "size_bytes": 6347293
+            },
+            "results.med": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/results.med",
+              "sha256": "e2bad0397839d8cbcb9b6ed0ac8aceb318d9e4e0ddfbb98677a935dd0a36f6bf",
+              "size_bytes": 1309635
+            },
+            "solver.stderr.log": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/solver.stderr.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "size_bytes": 0
+            },
+            "solver.stdout.log": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/solver.stdout.log",
+              "sha256": "8d564a79c6a5a364ad36559c8a5640880f2909700c1a5f91d4ecd0946142c206",
+              "size_bytes": 129816
+            },
+            "spack.lock.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/spack.lock.json",
+              "sha256": "54bba96d81889b26a246442900a8e7d7dbd880282da44bfe98d7a6aec24046ff",
+              "size_bytes": 433469
+            },
+            "worker_result.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_0/worker_result.json",
+              "sha256": "636d0f95d639923d90fee24906f91416242ecd3f5657dd772ab6259ac008fef8",
+              "size_bytes": 9699587
+            }
+          },
+          "gauss_points_per_element": 5,
+          "gauss_rows_per_time": 1105,
+          "measure_statistics_status": "PASS",
+          "mesh_size_mm": 2.0,
+          "native_absolute_residual_max": 1.436717411707e-11,
+          "native_relative_residual_max": 3.279916021319e-13,
+          "newton_iteration_counts": [
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1
+          ],
+          "node_count": 506,
+          "scratch": {
+            "container_mount": "/tmp",
+            "path": "simulation/scratch/level_0",
+            "retention_status": "REMOVED_AFTER_VALID_EXTRACTION"
+          },
+          "strict_convergence_status": "PASS",
+          "times_s": [
+            0.0,
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            5.0,
+            6.0,
+            7.0,
+            8.0,
+            9.0
+          ],
+          "volume_element_count": 221
+        },
+        {
+          "actual_result_orders": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "artifacts": {
+            "aster.mess": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/aster.mess",
+              "sha256": "a2225db9717067a7457b9140dc080cd21b49273d81c19ef00dd117872ef03dbe",
+              "size_bytes": 127063
+            },
+            "convergence.measure": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/convergence.measure",
+              "sha256": "3f883d7f1c058c954c5686bf766ef79ab87e75fe655e8a0296f8cfe0958275d5",
+              "size_bytes": 2640
+            },
+            "expected_mesh.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/expected_mesh.json",
+              "sha256": "b5634a8d4f593970d4672a3118187c6ba3b45a8260541c2b69f82bde7889adf8",
+              "size_bytes": 384323
+            },
+            "mesh.msh": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/mesh.msh",
+              "sha256": "478498394db2315792ec99aa365ee40f1da8882ddf5c98df479e3f64961effa3",
+              "size_bytes": 162777
+            },
+            "model.comm": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/model.comm",
+              "sha256": "8fed9b14bd47484a8dbc9d6f285b248f774350a97899fb3677ef61a4cdaa0561",
+              "size_bytes": 131
+            },
+            "model.export": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/model.export",
+              "sha256": "45d6bc54225bc9b806eb2b68b4253c775a10a3aa7516d1f554a74fd6d290a794",
+              "size_bytes": 309
+            },
+            "model.geo": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/model.geo",
+              "sha256": "b243ca69e2ecd3fde901d289e3f09cc4d5e8826e2d1d90cc77467f7f5db54ac2",
+              "size_bytes": 614
+            },
+            "native_access_parameters.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/native_access_parameters.json",
+              "sha256": "d4e562df428d8b59b09f4dcd2427b61dc37a96770c70a2e663184280ac38baf5",
+              "size_bytes": 376
+            },
+            "native_material.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/native_material.json",
+              "sha256": "629d625081fbb8a9e187e713601bdab2151502d4f8914457f54835b4eda8217a",
+              "size_bytes": 228
+            },
+            "native_mesh_checks.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/native_mesh_checks.json",
+              "sha256": "abc047d934eea7ef3c25153d6672e71adf11fe4faca74b1dfa32cf7e737a254b",
+              "size_bytes": 108143
+            },
+            "nonlinear_convergence.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/nonlinear_convergence.json",
+              "sha256": "61fe021151ba8641c82823af9af7b7288e89d4bc6cb929c6aeca559aa458a16b",
+              "size_bytes": 21710
+            },
+            "parsed_history.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/parsed_history.json",
+              "sha256": "f22b1d4f835f040a4e16ee402b569077942bd933961c691832666e44874b3d34",
+              "size_bytes": 29209301
+            },
+            "results.med": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/results.med",
+              "sha256": "aa813687b1e168e7fabafeaabb53d6c97f389f664cbe684667c4d47114e9ce8e",
+              "size_bytes": 5444592
+            },
+            "solver.stderr.log": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/solver.stderr.log",
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "size_bytes": 0
+            },
+            "solver.stdout.log": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/solver.stdout.log",
+              "sha256": "0fb74eb01eda9f7c3ee90a2c55b36fd75676e4812b0fa0a14212102a34a05e7a",
+              "size_bytes": 129826
+            },
+            "spack.lock.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/spack.lock.json",
+              "sha256": "54bba96d81889b26a246442900a8e7d7dbd880282da44bfe98d7a6aec24046ff",
+              "size_bytes": 433469
+            },
+            "worker_result.json": {
+              "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/simulation/level_1/worker_result.json",
+              "sha256": "af06dbcf59037a2310b563ab5eb0fab4dbce2a876041475a14e30e4bee4fa4b8",
+              "size_bytes": 44966544
+            }
+          },
+          "gauss_points_per_element": 5,
+          "gauss_rows_per_time": 5160,
+          "measure_statistics_status": "PASS",
+          "mesh_size_mm": 1.0,
+          "native_absolute_residual_max": 1.24344978758e-11,
+          "native_relative_residual_max": 4.723397231592e-13,
+          "newton_iteration_counts": [
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1
+          ],
+          "node_count": 2063,
+          "scratch": {
+            "container_mount": "/tmp",
+            "path": "simulation/scratch/level_1",
+            "retention_status": "REMOVED_AFTER_VALID_EXTRACTION"
+          },
+          "strict_convergence_status": "PASS",
+          "times_s": [
+            0.0,
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            5.0,
+            6.0,
+            7.0,
+            8.0,
+            9.0
+          ],
+          "volume_element_count": 1032
+        }
+      ],
+      "metrics": {
+        "displacement_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.2917907484440624e-13
+        },
+        "final_stress": {
+          "unit": "MPa",
+          "valid": true,
+          "value": -82.65957446808525
+        },
+        "hardening_energy_density": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 0.01796061566319539
+        },
+        "max_component_displacement_error": {
+          "unit": "mm",
+          "valid": true,
+          "value": 1.5501488981328748e-14
+        },
+        "max_component_stress_error": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 4.445155354915187e-11
+        },
+        "max_eq_plastic_strain_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 5.159934979293013e-15
+        },
+        "max_unload_residual_strain_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.6020852139652106e-18
+        },
+        "mesh_agreement_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 3.101760997806356e-14
+        },
+        "peak_eq_plastic_strain": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.00489361702127651
+        },
+        "peak_stress": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 232.34042553191458
+        },
+        "plastic_dissipation_absolute_error": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 1.2179146580137967e-12
+        },
+        "plastic_dissipation_density": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 1.1010638297872144
+        },
+        "plastic_work_density": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 1.11902444545041
+        },
+        "reaction_absolute_error": {
+          "unit": "N",
+          "valid": true,
+          "value": 3.65145403218245e-11
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.9644956446036524e-14
+        },
+        "reaction_x": {
+          "unit": "N",
+          "valid": true,
+          "value": 661.2765957446928
+        },
+        "stress_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.9132078908517735e-13
+        },
+        "unload_residual_strain": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.004893617021276596
+        }
+      },
+      "model_revision": "ab7ff0571dba0fcfdde390f0599d97272eaeeb7eaf02c3258db5c2fcf84cb61e",
+      "nonlinear_policy": {
+        "absolute_residual_limit": 1e-08,
+        "archive": "Every declared instant including initial zero",
+        "automatic_subdivision": false,
+        "command": "STAT_NON_LINE",
+        "deformation": "PETIT",
+        "integration": "ANALYTIQUE",
+        "linear_method": "MUMPS",
+        "maximum_iterations": 40,
+        "relation": "VMIS_ISOT_LINE",
+        "relative_residual_limit": 1e-10
+      },
+      "process_budgets": {
+        "gmsh_address_space_bytes": 2147483648,
+        "solver_memory_mb": 1024,
+        "solver_time_seconds": 120,
+        "subprocess_timeout_seconds": 180
+      },
+      "proposal": {
+        "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/proposal.json",
+        "sha256": "a563e6e044d75682954218bf0d350222e5ba6b87ca392d452e6bbfbe2e2eb889",
+        "size_bytes": 9136
+      },
+      "result": {
+        "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-changed/result.json",
+        "sha256": "d05b7bf54df83bfcfb58d369b8c7de101ac25f85186ccdcdc258924d848283e1",
+        "size_bytes": 140408
+      },
+      "runtime": {
+        "branch": "v17.4.0",
+        "parentid": "spack-local",
+        "uncommitted": [
+          "built with Spack"
+        ],
+        "version": "17.4.0"
+      },
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "unknown_validations": [
+        "static_strength",
+        "material_qualification",
+        "model_qualification",
+        "physical_validation",
+        "fatigue_durability"
+      ],
+      "validation_status_counts": {
+        "PASS": 19,
+        "UNKNOWN": 5
+      },
+      "versions": {
+        "code_aster": "17.4.0",
+        "gmsh": "4.12.1",
+        "mpi4py": "3.1.5",
+        "numpy": "1.26.4",
+        "petsc": "3.24.0",
+        "petsc4py": "3.24.1",
+        "python": "3.11.14",
+        "scipy": "1.15.2",
+        "singularity": "singularity-ce version 4.1.1"
+      }
+    },
+    "E-j2-history-reject": {
+      "artifact_bytes": 2267,
+      "artifact_count": 2,
+      "cad_revision": null,
+      "converged": null,
+      "decision": "NOT_RELEASED",
+      "metrics": {},
+      "model_revision": "99f40de5a8c5be40d47a645b788d03056ef3ece3165dedd53daf0368613562fb",
+      "proposal": {
+        "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-history-reject/proposal.json",
+        "sha256": "87c7843df2d3c55728413cbcb60cfc2487019942da16f8213c89d3e2729a7094",
+        "size_bytes": 2230
+      },
+      "result": {
+        "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-history-reject/result.json",
+        "sha256": "fbb15d9b5285a6bf9d72eeba47fda1a1efb7854ea44338d1ab885df9007f1d02",
+        "size_bytes": 5189
+      },
+      "solver_status": "NOT_RUN",
+      "status": "REJECTED",
+      "unknown_validations": [
+        "model_qualification",
+        "physical_validation"
+      ],
+      "validation_status_counts": {
+        "FAIL": 1,
+        "UNKNOWN": 2
+      }
+    },
+    "E-j2-material-reject": {
+      "artifact_bytes": 2269,
+      "artifact_count": 2,
+      "cad_revision": null,
+      "converged": null,
+      "decision": "NOT_RELEASED",
+      "metrics": {},
+      "model_revision": "7619f85b7792a13ddd0b167f5099706558307a9faaae0a58847c1a8cfd1a9ce3",
+      "proposal": {
+        "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-material-reject/proposal.json",
+        "sha256": "77415b1486cf483f1ab434c95f2d3e6aa6bd36e528f42b7b58856cd2efa72782",
+        "size_bytes": 2232
+      },
+      "result": {
+        "path": "artifacts/local-20260930-plasticity-draft-03/experiments/E-j2-material-reject/result.json",
+        "sha256": "f38a1de82f027c9d82af4207a1d379b92a92b3d4a9c2cac051213d48842cbab8",
+        "size_bytes": 5178
+      },
+      "solver_status": "NOT_RUN",
+      "status": "REJECTED",
+      "unknown_validations": [
+        "model_qualification",
+        "physical_validation"
+      ],
+      "validation_status_counts": {
+        "FAIL": 1,
+        "UNKNOWN": 2
+      }
+    }
+  },
+  "changed_case_preflight": {
+    "eq_plastic_strain_history": [
+      0.0,
+      0.0,
+      0.0,
+      0.000425531914893617,
+      0.0009219858156028368,
+      0.0019148936170212765,
+      0.004893617021276595,
+      0.004893617021276595,
+      0.004893617021276595,
+      0.004893617021276595
+    ],
+    "method": "Independent E/yield/H scalar closed return map",
+    "nonzero_after_initial": true,
+    "stress_history_mpa": [
+      0.0,
+      105.0,
+      210.0,
+      225.63829787234042,
+      226.3829787234043,
+      227.87234042553195,
+      232.340425531915,
+      127.3404255319149,
+      22.340425531915,
+      -82.6595744680851
+    ]
+  },
+  "changed_settings": {
+    "case": "uniaxial_j2_isotropic_hardening",
+    "dimensions_mm": [
+      20.0,
+      4.0,
+      2.0
+    ],
+    "history": {
+      "axial_strain": [
+        0.0,
+        0.0005,
+        0.001,
+        0.0015,
+        0.002,
+        0.003,
+        0.006,
+        0.0055,
+        0.005,
+        0.0045
+      ],
+      "times_s": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ]
+    },
+    "limits": {
+      "displacement_absolute_mm": 1e-10,
+      "displacement_relative": 1e-07,
+      "mesh_agreement_relative": 1e-07,
+      "plastic_dissipation_absolute_mpa": 1e-08,
+      "plastic_dissipation_relative": 1e-06,
+      "plastic_strain_absolute": 1e-09,
+      "reaction_absolute_n": 1e-08,
+      "reaction_relative": 1e-07,
+      "stress_absolute_mpa": 1e-08,
+      "stress_relative": 1e-07
+    },
+    "material": {
+      "plastic_modulus_mpa": 1500.0,
+      "poisson_ratio": 0.3,
+      "yield_stress_mpa": 225.0,
+      "youngs_modulus_mpa": 210000.0
+    },
+    "mesh_sizes_mm": [
+      2.0,
+      1.0
+    ]
+  },
+  "checkpoint_meaning": "Later byte-equivalent local implementation commit; not a new native execution",
+  "decision": "NOT_RELEASED",
+  "failed_attempts": [
+    {
+      "decision": "NOT_RELEASED",
+      "experiment_id": "E-j2-canonical",
+      "explanation": "Native first mesh complete, host parser required an absent selected CREA_TABLE INST column; no acceptance",
+      "historical_core_status": "FAILED_EXECUTION",
+      "numerical_verdict": "UNKNOWN: native first mesh complete but host result contract failed; no full acceptance",
+      "result": {
+        "path": "artifacts/local-20260930-plasticity-draft-01/experiments/E-j2-canonical/result.json",
+        "sha256": "c142427c2ef2a32abcde1a2bb2e6b57b3b9592343d7d54aaaf8b49bc2ebc8c0a",
+        "size_bytes": 40619
+      },
+      "retention": "Inputs, native raw fields, source copies, logs and failure scratch remain preserved",
+      "solver_status": "FAILED_EXECUTION",
+      "store": "artifacts/local-20260930-plasticity-draft-01"
+    },
+    {
+      "absolute_limit": 1e-08,
+      "decision": "NOT_RELEASED",
+      "distinct_canonical_result": {
+        "path": "artifacts/local-20260930-plasticity-draft-02/experiments/E-j2-canonical/result.json",
+        "sha256": "dff962ac91338edfbeadcfe88cc025ba6a55588c7d620c18ff166fcfd0d665a4",
+        "size_bytes": 126742
+      },
+      "distinct_canonical_status": "COMPLETED_REVIEW_REQUIRED",
+      "experiment_id": "E-j2-changed",
+      "explanation": "Native first mesh complete; changed200/H2000 zero-stress instant8 exceeds unchanged relative residual limit; original Core FAILED_EXECUTION not rewritten",
+      "historical_core_status": "FAILED_EXECUTION",
+      "independent_result_sha256": "67acda498e9507866ad1116501d20654b4a3b9277f61041b24119742c125b827",
+      "material": {
+        "plastic_modulus_mpa": 2000.0,
+        "yield_stress_mpa": 200.0
+      },
+      "new_parser_regression": "Complete finite numerical failure becomes REJECTED/all-invalid metrics; original historical file unchanged",
+      "numerical_verdict": "FAIL; not retrospectively accepted",
+      "observed_native_absolute_residual": 4.587885078385e-12,
+      "observed_native_relative_residual": 0.7304156366457,
+      "reference_eq_plastic_strain": 0.005,
+      "reference_stress_mpa": 0.0,
+      "relative_limit": 1e-10,
+      "result": {
+        "path": "artifacts/local-20260930-plasticity-draft-02/experiments/E-j2-changed/result.json",
+        "sha256": "67acda498e9507866ad1116501d20654b4a3b9277f61041b24119742c125b827",
+        "size_bytes": 40623
+      },
+      "retention": "Inputs, native raw fields, source copies, logs and failure scratch remain preserved",
+      "solver_status": "FAILED_EXECUTION",
+      "store": "artifacts/local-20260930-plasticity-draft-02",
+      "zero_force_time_s": 8.0
+    }
+  ],
+  "focused_tests": {
+    "command": "python -m pytest -q tests/test_plasticity_reference.py tests/test_codeaster_plasticity.py",
+    "duration_seconds": 11.23,
+    "native_solver_executed_by_unit_tests": false,
+    "passed": 194
+  },
+  "implementation_checkpoint_commit": "2e2c6a707ab52bb908ab34358660d04f48f8ea8d",
+  "independent_review": {
+    "completed_utc": "2026-09-30T08:04:24.526617+00:00",
+    "draft02_changed_artifact_hashes_verified": 103,
+    "draft03_artifact_hashes_verified": 358,
+    "draft03_experiment_result_and_ledger_records_verified": 4,
+    "machine_record_hash_references_verified": 88,
+    "machine_record_status": "PASS",
+    "native_solver_executed_by_reviewer": false,
+    "original_code_findings": "X flags and missing selected-field INST findings closed; no remaining P1/P2",
+    "reviewer": "Independent plasticity reviewer, read-only",
+    "scope": "Frozen source and all four actual native worker tables, raw-to-parsed identity, plane sums, equilibrium, .mess residuals/flags and STAT timing/count/state",
+    "status": "PASS",
+    "verdict": "Bounded PASS; no remaining actionable P1/P2"
+  },
+  "limitations": [
+    "Material/strength/model/physical/fatigue qualification UNKNOWN; decision NOT_RELEASED",
+    "Contact, geometric nonlinearity, finite strain and reverse plasticity unverified; not complete Phase5",
+    "Affine patch agreement only; no mesh convergence order",
+    "Unloading residual strain is stress-compensated native displacement/stress estimate, not fully unloaded state measurement",
+    "Plastic work and dissipation are derived stress/plastic-strain observations, not native energy field/global physical balance",
+    "Zero-force relative-normalization common policy unresolved; original case remains rejected",
+    "Local artifacts are retained but not uploaded by this commit"
+  ],
+  "native_ci_for_addition": "UNKNOWN: pending Root integration",
+  "native_run_finished_utc": "2026-09-30T07:38:37.659036+00:00",
+  "native_run_source": {
+    "core_commit": "03bfd7115ca3933cb18af17c55cc751839e91c98",
+    "core_dirty": true,
+    "core_source_sha256": "83d5cf0e015066e46af1b8e79db027d9e7d214980af9674b6475ad7f1a342c54"
+  },
+  "native_run_started_utc": "2026-09-30T07:31:31.746183+00:00",
+  "runtime_image": {
+    "distribution": "Solver-only vendor OCI with MPI rank compatibility patch; not pristine upstream",
+    "image_path": "/home/pikachu444/.local/share/autonomous-cae-lab/code_aster_17.4.0-oci.sif",
+    "image_sha256": "f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64",
+    "oci_manifest_sha256": "d8d19ea91989eac0d38195bc5795c54c69f530f7196f53d67697ffa57c9106d5"
+  },
+  "schema_version": "1",
+  "scope": "Bounded small-strain J2 isotropic-hardening loading and elastic unloading only",
+  "settings": {
+    "case": "uniaxial_j2_isotropic_hardening",
+    "dimensions_mm": [
+      20.0,
+      4.0,
+      2.0
+    ],
+    "history": {
+      "axial_strain": [
+        0.0,
+        0.0005,
+        0.001,
+        0.0015,
+        0.002,
+        0.003,
+        0.006,
+        0.0055,
+        0.005,
+        0.0045
+      ],
+      "times_s": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ]
+    },
+    "limits": {
+      "displacement_absolute_mm": 1e-10,
+      "displacement_relative": 1e-07,
+      "mesh_agreement_relative": 1e-07,
+      "plastic_dissipation_absolute_mpa": 1e-08,
+      "plastic_dissipation_relative": 1e-06,
+      "plastic_strain_absolute": 1e-09,
+      "reaction_absolute_n": 1e-08,
+      "reaction_relative": 1e-07,
+      "stress_absolute_mpa": 1e-08,
+      "stress_relative": 1e-07
+    },
+    "material": {
+      "plastic_modulus_mpa": 1000.0,
+      "poisson_ratio": 0.3,
+      "yield_stress_mpa": 250.0,
+      "youngs_modulus_mpa": 210000.0
+    },
+    "mesh_sizes_mm": [
+      2.0,
+      1.0
+    ]
+  },
+  "source_files": {
+    "caelab/adapters/codeaster_plasticity.py": {
+      "path": "caelab/adapters/codeaster_plasticity.py",
+      "sha256": "4da5d766801f92dd8844df790f8e90c374adb7508eb5da29bc59a57e9e69b1ce",
+      "size_bytes": 26930
+    },
+    "caelab/adapters/codeaster_plasticity_worker.py": {
+      "path": "caelab/adapters/codeaster_plasticity_worker.py",
+      "sha256": "21ede73832a55ed4ea463744cccbbbdd99c76db375e5110d828c3b520ab0e88e",
+      "size_bytes": 21377
+    },
+    "plugins/elasticity/plasticity_reference.py": {
+      "path": "plugins/elasticity/plasticity_reference.py",
+      "sha256": "b127aedf89c79c8fdb00d757a84e0dd31e6064daa6703c5e3f387335be7cecff",
+      "size_bytes": 31487
+    },
+    "scripts/verify_plasticity.py": {
+      "path": "scripts/verify_plasticity.py",
+      "sha256": "9504d4bc44e62bd8927eac756316741800c426fbc3da7441d6b2a185f1435620",
+      "size_bytes": 8001
+    },
+    "tests/test_codeaster_plasticity.py": {
+      "path": "tests/test_codeaster_plasticity.py",
+      "sha256": "6c7ee688f51793fcde0ac6d010905548191dc9e08faa5a328df0ebb99d128545",
+      "size_bytes": 27469
+    },
+    "tests/test_plasticity_reference.py": {
+      "path": "tests/test_plasticity_reference.py",
+      "sha256": "50918b52eedec9d935ac0170b32e88ad219798102eaceb0ceba58c036a2355d2",
+      "size_bytes": 25370
+    }
+  },
+  "status": "PASS",
+  "store": "artifacts/local-20260930-plasticity-draft-03",
+  "submodule_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8"
+}
