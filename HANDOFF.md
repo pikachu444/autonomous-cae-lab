@@ -1,6 +1,37 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
-## Reduced compliant-stop integration checkpoint
+## Verified clean d363 continuation checkpoint
+
+The exact numerical source d36387b is pushed and CI36710166010 passed all
+eight jobs (1,321 tests/1warning/91.90s;26 MCP tools). Independent changed
+PDE/explicit archive review passed28 common records/889 artifacts/four actual
+PDE HTTP ZIPs. Ideal-wall failure remains REJECTED; this is no release claim.
+
+New primary stores local-20260930-nonlinear-declaration2-clean-01,
+local-20260930-compliant-integrated-clean-01 and local-20260930-http-d363-clean-01
+passed actual execution and independent16-record/423-artifact/five-ZIP audit.
+All494 original store files remain unchanged. The retained full275-file
+working-byte snapshot closes exact source/plugin bodies and Core4c351e52;
+CI Core3048c81c and pinned-browser Core8b953b12 remain separate identities.
+Two new native GUI records E-ui-d363-compliant/E-ui-d363-nonlinear visibly
+verified on clean pinned d363. Independent snapshot/old-store audit passed both
+records/106 artifacts; all298 old files remain unchanged with112 expected new
+files. Serving model-campaign worktree must remain pinned while live.
+
+Continue reviewed inverse-v2 integration and actual sealed OCI CI admission;
+the default exact local SIF remains protected. Restore persistent OpenScience
+after its boot-source-attribution correction passes review/readiness. Run the
+fixed-budget multigeneration fixture verifier only after external-supervisor
+static PASS and a clean source commit. Broader phase gates remain authoritative
+in PROJECT_SCOPE.md; do not stop at this evidence checkpoint.
+
+Read docs/INTEGRATED_NATIVE_CHECKPOINT_20260930.md and its compact record.
+Preserve failed15f CI, the interrupted broader local test log, first incorrect
+server-library startup and prior audit-helper diagnostics. No new solver proof
+is attributed to the documentation commit. Raw local artifacts are not durable
+remote retention merely because their hashes are committed.
+
+## Historical reduced compliant-stop integration checkpoint
 
 PDE compatibility correction d87ba15 is committed and pushed after535 focused
 tests passed. Its exact-source full CI is separate from the prior15f failure.

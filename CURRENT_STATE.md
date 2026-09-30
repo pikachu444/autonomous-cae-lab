@@ -1,6 +1,32 @@
 # Current state — 2026-09-30 (Asia/Seoul)
 
-## Reduced finite-force drop/rebound integration
+## Verified clean d363 native, CI and browser checkpoint
+
+Exact source d36387b is pushed. All eight CI jobs36710166010 passed:
+1,321 tests/1warning/91.90s and26 MCP tools. Independent changed-family
+raw archive review passed5 stores/28 common records/889 artifacts; four
+retained PDE HTTP ZIPs match original bytes. Existing explicit wall cases
+remain solver-completed but numerically REJECTED.
+
+Fresh clean primary-source nonlinear adapter2, compliant1.1 and HTTP runs
+passed. Independent review verified16 records/423 artifacts, all494 original
+store files and five actual ZIPs. The275-file working-byte snapshot closes
+exact Git/plugin bodies, Core4c351e52 and applicationb12db891. CI's Git-LF
+Core3048c81c is recorded separately. Two new browser-triggered native records
+also completed and visibly verified from pinned clean d363/Core8b953b12;
+independent source/store review passed2 records/106 artifacts with all298 older
+files unchanged and112 expected additions. Lab8766 now uses this source
+and15 read-only libraries. The first restart failed on an incorrect inverse
+library path; the corrected startup retains its separate log and old store.
+
+Read docs/INTEGRATED_NATIVE_CHECKPOINT_20260930.md and its compact benchmark
+record for exact hashes, preserved15f CI failure, interrupted local suite and
+audit-helper diagnostics. Numerical/physical qualification and complete
+phases remain separate; all decisions remain NOT_RELEASED. Sealed-runtime
+inverse admission, OpenScience boot-source correction and multigeneration
+fixture refinement continue as separately reviewed implementation units.
+
+## Historical reduced finite-force integration checkpoint
 
 Compatibility correction d87ba15 is pushed;535 focused common/PDE/explicit/HTTP
 tests pass (1warning,160.89s). Reviewed compliant sourcec29b14c and evidence

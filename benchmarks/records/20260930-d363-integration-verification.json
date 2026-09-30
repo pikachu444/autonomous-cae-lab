@@ -1,0 +1,194 @@
+{
+  "schema_version": "1.0",
+  "date": "2026-09-30",
+  "source_commit": "d36387b309e6e0938e53c170415d0b210c4ee2e7",
+  "status": "PASS_BOUNDED_NATIVE_CI_HTTP_AND_BROWSER_EXECUTION",
+  "decision": "NOT_RELEASED",
+  "source_identities": {
+    "primary_working_core_sha256": "4c351e5298b0cf0843bb06c0282e4e3820b1bb0f7fb2eff533dd43203e915ce2",
+    "primary_working_application_sha256": "b12db8910e762b3be4a71fe0bbc17f088bda6b406a8d43fb7a376a051769d124",
+    "primary_snapshot": "artifacts/source-snapshot-d363-clean-01",
+    "primary_snapshot_manifest_sha256": "889efe84fc76b063912847a80a1a837303c3d7ff70f7172c79144564353c7e4b",
+    "primary_snapshot_source_files": 275,
+    "primary_snapshot_source_bytes": 6483308,
+    "pinned_browser_working_core_sha256": "8b953b12c93c279f0d8af8ec929cfd8b5a7169364f49cca29dfe763ee8d6dc69",
+    "pinned_browser_snapshot_computed_application_sha256": "17b56fb66aaa9df0f686b85946147db353f74207c3f3d39d7ec9d8766e382302",
+    "pinned_browser_application_per_run_capture": "NOT_CAPTURED; independent snapshot computation only",
+    "pinned_browser_snapshot": "artifacts/source-snapshot-pinned-d363-clean-01",
+    "pinned_browser_snapshot_manifest_sha256": "d194b9ac1df51e60d0f57e9c5f32a1bd4c8693b6723f7e9dd7071551d18bf1fe",
+    "ci_git_lf_core_sha256": "3048c81cb4d49375e5af417798ee4ce570b91bb46b417083083804601c84f8f6",
+    "pinned_fixture_plugin_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "working_byte_fingerprints_are_not_interchangeable": true
+  },
+  "local_native": {
+    "nonlinear_pde": {
+      "adapter_version": "2",
+      "explicit_declaration_opt_in": true,
+      "store": "artifacts/local-20260930-nonlinear-declaration2-clean-01",
+      "report": "nonlinear_pde_acceptance.json",
+      "report_sha256": "e4c8737383d624ec47d68661517bfa3316f0f7a74a7903b93acca5eb700cd30f",
+      "log": "artifacts/nonlinear-declaration2-clean-01.log",
+      "log_sha256": "71d224ae5b139c03e9290cfd77d2f117693b153372e108ca2804a74e9ca0f926",
+      "actual_alpha_cases": [
+        1,
+        0,
+        2
+      ],
+      "fresh_legacy_linear_comparison": "PASS",
+      "actual_wrong_reference_numerical_rejection": "PASS",
+      "invalid_input_preflight_rejections": 3,
+      "legacy_settings_only_revision": "PRESERVED"
+    },
+    "compliant_drop": {
+      "adapter_version": "1.1",
+      "store": "artifacts/local-20260930-compliant-integrated-clean-01",
+      "report": "acceptance.json",
+      "report_sha256": "c0f513bce6c40373da21b0fcd6609ecbece1b0838b302a3e46b6f913b360738e",
+      "log": "artifacts/compliant-integrated-clean-01.log",
+      "log_sha256": "5fbf185770f4e922059dd698175124f7180b988c2f53c22775ba0395818b3fa7",
+      "actual_cases": 3,
+      "unchanged_numerical_gates_per_case": 28,
+      "invalid_input_preflight_rejections": 2,
+      "signed_native_spring_work_preserved": true,
+      "general_surface_contact_qualification": "UNKNOWN"
+    },
+    "http": {
+      "store": "artifacts/local-20260930-http-d363-clean-01",
+      "report": "http_acceptance.json",
+      "report_sha256": "1cd998844e7d6384a9d3f5de6f4e17f04cb5a33560003856e2e62036fbe45b7f",
+      "log_sha256": "b219e071b9a5a9ab6dfd19a564413b19a2e6efc97b420bdc64b76c1d859af3ef",
+      "retained_actual_evidence_zips": 5,
+      "readonly_library_inspections": 13,
+      "readonly_mutations_denied_403": 2,
+      "browser_rendering_in_http_verifier": "NOT_CHECKED"
+    },
+    "mcp": {
+      "status": "PASS",
+      "tools": 26,
+      "numerical_optimization_evaluations": 9,
+      "log": "artifacts/d363-mcp.log",
+      "log_sha256": "9dbadef682b6eaf578f1c8043be715776f895779fed66c24ff2cc002b60bcafc"
+    },
+    "independent_common_source_zip_audit": {
+      "status": "PASS",
+      "path": "artifacts/d363-local-independent-audit/audit.json",
+      "sha256": "483f1269dccf12a802718def792d50ce4a58e080758c7131f160f8175e5f3e4a",
+      "common_records": 16,
+      "registered_artifacts": 423,
+      "original_store_files_unchanged": 494,
+      "snapshot_files_including_manifest_unchanged": 276,
+      "exact_original_byte_evidence_zips": 5
+    }
+  },
+  "ci": {
+    "run_id": 36710166010,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36710166010",
+    "jobs_successful": 8,
+    "tests_passed": 1321,
+    "warnings": 1,
+    "test_elapsed_seconds": 91.9,
+    "independent_changed_archive_audit": {
+      "status": "PASS",
+      "path": "artifacts/github-ci-36710166010/independent-delta-audit-v3.json",
+      "sha256": "8de8f9289c12175136d167beb7d7675ec6130d4f021ba2923eacadff51702341",
+      "archives": 2,
+      "stores": 5,
+      "common_records": 28,
+      "registered_artifacts": 889,
+      "extracted_files": 1004,
+      "extracted_bytes": 162296522,
+      "retained_pde_http_zips": 4,
+      "other_archive_reinspection": "NOT_PERFORMED",
+      "old_explicit_status": "PARTIAL",
+      "old_solver_completed_wall_cases": "REJECTED",
+      "prior_audit_helper_diagnostics": "v1/v2 preserved; corrected envelope and native-cycle assumptions only",
+      "retention_manifest_sha256": "c3df2a0ea0eb893a0c25a6f5c28ac847c3ae8ad11cbe782a153431812f084b37",
+      "owned_evidence_files": 1210,
+      "owned_evidence_bytes": 177827407,
+      "owned_evidence_tree_sha256": "376149d9a3dd409333a14dd90c5a88d9a24fcdf0ab10daa848bd628c9bf85d9c"
+    }
+  },
+  "browser": {
+    "url": "http://127.0.0.1:8766/#results",
+    "source_commit": "d36387b309e6e0938e53c170415d0b210c4ee2e7",
+    "source_clean": true,
+    "store": "runs/local-20260930-lab-browser-draft",
+    "new_actual_experiments": [
+      "E-ui-d363-compliant",
+      "E-ui-d363-nonlinear"
+    ],
+    "status": "COMPLETED_REVIEW_REQUIRED",
+    "artifact_inspection": "VERIFIED",
+    "decision": "NOT_RELEASED",
+    "screenshots": [
+      {
+        "path": "artifacts/ui-d363-compliant-verified.png",
+        "sha256": "e150cec03af09a3717fa0724653f4225644ad1a7dfec9fe273724d93088d3f7b"
+      },
+      {
+        "path": "artifacts/ui-d363-nonlinear-verified.png",
+        "sha256": "b697c3c2ee2fad94aa66f6fe7fb98cfa171043e584f5ba423146926449dc58b2"
+      }
+    ],
+    "independent_snapshot_and_old_store_audit": {
+      "status": "PASS",
+      "path": "artifacts/d363-local-independent-audit/pinned-ui-audit.json",
+      "sha256": "4fd7b8ad683fb0576b6cb807c7ce1e02f29ee9ee144222081969d2e2ce56502a",
+      "original_files_unchanged": 298,
+      "expected_added_files": 112,
+      "full_store_files_unchanged_during_audit": 410,
+      "new_common_records": 2,
+      "new_registered_artifacts": 106,
+      "pinned_snapshot_source_files": 275,
+      "pinned_snapshot_source_bytes": 6493983
+    },
+    "old_store_before_manifest_sha256": "a0c0482b54249e3cfc098a5dc5520f81513514368ec8451b366460b78deb2aa3",
+    "verified_result_projections": [
+      {
+        "experiment_id": "E-ui-d363-compliant",
+        "result_sha256": "a8b1430e670b9d83315f1cb9aac725f74a41957fa93dd10cff67f3e5e0f33c6a",
+        "adapter": "explicit.openradioss",
+        "adapter_version": "1.1",
+        "numerical_passes": 28,
+        "unknown": [
+          "model_qualification",
+          "material_qualification",
+          "static_strength",
+          "physical_validation",
+          "fatigue_durability",
+          "failure_model",
+          "contact_peak_force",
+          "contact_peak_acceleration",
+          "rotational_surface_contact"
+        ],
+        "model_revision": "6d694ff19562ec5f84733bbc3bdc4c90f6435e2feb872f79ca6af43889df7c2d",
+        "proposal_revision": "1e9985dd4c55ca3118df22efb6902e1639155d35a1ed0057656ca2e676408170"
+      },
+      {
+        "experiment_id": "E-ui-d363-nonlinear",
+        "result_sha256": "7d2069c342a03d1f97e71605ecb4e0096b534d37db41fb9a940611e07d39916a",
+        "adapter": "pde.fenicsx.nonlinear",
+        "adapter_version": "2",
+        "numerical_passes": 10,
+        "unknown": [
+          "physical_validation",
+          "model_qualification"
+        ],
+        "model_revision": "b7471f3d9903d349bfbb55654448b4f98a8d7df519b653fb7920d12ee045f97d",
+        "proposal_revision": "32daaf0ce07191dde04a2a880c37417a7e1d0556a1c34b6546b67a843b959c82"
+      }
+    ]
+  },
+  "preserved_failures": {
+    "prior_15f_ci": "36705097865: 1 failed / 1271 passed / 1 warning; legacy PDE compatibility corrected by d87ba15",
+    "broader_local_suite": "INTERRUPTED after 565 passed / 1 warning / 961.30s; not a completed suite",
+    "first_pinned_d363_server_start": "FAILED: nonexistent inverse library path; corrected startup log retained separately",
+    "original_wall_contact": "REJECTED; no threshold or observation substituted"
+  },
+  "limitations": [
+    "Numerical benchmark and artifact integrity do not qualify a physical model, material, strength, fatigue, failure or release.",
+    "No complete Phase1 through Phase7 is claimed; the requirement ledger remains authoritative.",
+    "Ignored local raw stores and snapshots are not remotely durable merely because this compact record is committed.",
+    "The later documentation commit does not change the verified d363 solver source."
+  ]
+}
