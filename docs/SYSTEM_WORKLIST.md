@@ -16,11 +16,14 @@ Currently only **P1.1** is active. Later rows are queued, not running.
   connection (ADR0012); auth19/controller52/launcher47 checks pass, no inference.
 - [x] Add diagnostic resident-MCP source resource;8 tests including actual
   stdio pass with no store/CAD/model. Historical unavailable provenance remains.
-- [ ] Complete human ChatGPT authentication and verify explicitly selected
-  model with actual completed inference; first signin/provider catalog failed.
-- [ ] Integrate/review native OAuth transport and read source resource through
-  the actual OpenScience connection before Core mutation. Logical plugin hooks
-  cannot be claimed as final offered-tool/every-HTTP/wire-receipt verification.
+- [x] Complete official ChatGPT authentication; preserve the two failed attempts.
+  Owner selected openai-codex/gpt-5.6-sol. Catalog is support metadata, not access.
+- [x] Implement/review native OAuth source; native28/Node20/shared-auth19 and
+  launcher47 checks pass without provider/Core/CAD. Bind native/static context
+  and preserve exact lifecycle cancellation under inference-file drift.
+- [ ] Start clean native source/profile and read the resource through the actual
+  OpenScience MCP connection before Core mutation; verify selected-model completed
+  inference. Final offered schemas/every-HTTP/wire evidence remains UNKNOWN.
 
 - [x] Recover ledger, handoff, state, architecture/ADRs and contract; preserve
   Main33ea11d, pinned fixture3e48bf6 and previous acceptance stores.

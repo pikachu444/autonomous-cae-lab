@@ -1,6 +1,7 @@
 # ADR 0012 — Explicit research model and official ChatGPT authentication
 
-Status: accepted for model selection and auth-only setup, 2026-10-01.
+Status: accepted for model selection, authentication and native provider source,
+2026-10-01.
 Authenticated inference and connected research transport acceptance remain OPEN.
 
 ## Decision
@@ -40,16 +41,26 @@ using a paid API-key fallback or treating login/catalog/CI as research success
 are rejected. No native OpenScience binary, model body, Core schema, numerical
 threshold, fixture implementation or engineering verdict is changed.
 
-The current legacy controller's Ollama proxy cannot transport official Codex
-OAuth. A future native OAuth branch must preserve owned boot/process/config/MCP/
-attach/abort/idle gates. Public `chat.params` and `tool.execute.before` hooks can
+The legacy controller's Ollama proxy cannot transport official Codex OAuth.
+The native branch reuses owned boot/process/config/MCP/attach/abort/idle gates
+with an external research config and the exact separately owned auth data dir.
+Only native executable/runtime fields matching the independent auth pin may
+launch; the immutable context hash binds store/model/environment/settings.
+Inference config/plugin drift blocks research while exact owned cancellation,
+idle and no-proxy cleanup remain available. Public `chat.params` and
+`tool.execute.before` hooks can
 check logical streams and actual tool calls. They do not inspect final offered
 tool schemas or every SDK/Codex HTTP retry. Do not claim proxy-equivalent wire
 receipts/source checks for OAuth; those remain UNKNOWN until separately proved.
 Do not loosen ADR0011 research acceptance to turn auth-only work into PASS.
 
-Next: complete actual login, verify available model/access, implement and review
-the native provider transport, read the resource through OpenScience's actual
+The third official login actually completed; the owner selected5.6 Sol. The CLI
+model list is a public catalog/fixed OAuth support list, not account entitlements.
+Official latest2.0.147 also lacks6.1 Sol in the filter; its account access remains
+UNKNOWN. Native28/Node20/shared-auth19/launcher47 source checks and independent
+review closed the bounded source unit. See the native provider source record.
+
+Next: verify selected-model access and native loading, read the resource through OpenScience's actual
 MCP connection, then run the unchanged valid/rejected CAD and interpretation
 cases in a new clean-source store. P1.1 and Phases2–7 remain open.
 

@@ -21,6 +21,13 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Status vocabulary
 
+2026-10-01 native-provider checkpoint: the owner completed official ChatGPT
+authentication and chose `openai-codex/gpt-5.6-sol`. Native transport source and
+its bounded checks/review are implemented; actual new-source provider/MCP/CAD
+research acceptance remains OPEN. All52 requirement descriptions and existing
+partial/planned statuses remain; this source unit does not complete Phase1.
+Evidence: `benchmarks/records/20261001-openscience-native-provider-source.json`.
+
 - **Implemented**: the stated bounded behavior exists and has execution evidence.
 - **Partial**: some behavior exists, but the full requirement/acceptance is open.
 - **Planned**: required scope retained; no executable integration is claimed.

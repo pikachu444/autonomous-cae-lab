@@ -2,17 +2,26 @@
 
 ## Authoritative serial queue from the project owner
 
-Latest owner steering: use explicit model selection and prepare official
-ChatGPT OAuth; no more silent Qwen/replacement-model runs. Read ADR0012 and
-the ChatGPT connection preparation record. New auth-only adapter uses the
-existing official2.0.146 and an external marked data directory; no credential
-copy/API-key fallback.19 auth checks,52 controller/47 launcher mocks and8 MCP
-resource tests passed, zero inference/CAD/Core mutations. Both actual logins
-returned0 but NOT_COMPLETED/no auth file; preauth catalog returned0 with
-provider error. Authenticated inference/native OAuth research transport are
-still OPEN. Root must complete login/model/access and actual connected-resource
-verification before a new clean-source research store. Human participates only
-in account authentication/consent. Keep failures/UNKNOWN/NOT_RELEASED intact.
+The owner completed official ChatGPT login on2026-10-01 and explicitly chose
+**openai-codex/gpt-5.6-sol**. Reuse external auth profile
+`%LOCALAPPDATA%/AutonomousCAELab/profiles/chatgpt-cae-20261001-02`; no new login,
+credential copy or provider/model fallback. The two failed earlier signins remain
+historical. The7 model IDs are an OpenScience/models.dev support list, not account
+entitlements. Official2.0.147 also lacks6.1 Sol in its fixed OAuth filter.
+
+Native provider source now reuses the owned controller/MCP/attach/abort/idle
+gates and adds public logical-stream/pre-tool hooks. Native28, Node20, shared
+auth19 and legacy launcher47 checks pass with zero model/Core/CAD calls;
+controller52 is separately attributed in the native transport record. Independent
+review closed executable/context binding and lifecycle cleanup findings.
+Final offered schemas/every HTTP retry/wire receipts remain UNKNOWN.
+Read ADR0012 and the20261001-openscience-native-provider-source record.
+
+NEXT P1.1: start this source's clean new native profile/store, read source identity
+through the actual OpenScience MCP connection, then verify completed5.6 Sol
+inference and unchanged valid/rejected CAD/results/interpretation/GUI/cancellation.
+No further human action is currently required. Research acceptance is still OPEN;
+authentication, source tests and CI do not close it. UNKNOWN/NOT_RELEASED remain.
 
 The owner reasserted the complete connected-system objective on2026-10-01.
 Follow [SYSTEM_EXECUTION_PLAN](docs/SYSTEM_EXECUTION_PLAN.md): one active P1.1
@@ -26,7 +35,7 @@ phase units. The owner's persistent project execution objective is ACTIVE.
 Preserve/reuse prior work; later effects on earlier gates become explicit bounded
 correction items and revalidation, followed by the existing queue.
 
-CURRENT Main source4e21d18341cbc5a516aae2234c3eae3fd770aa4f is independently
+Historical Main source4e21d18341cbc5a516aae2234c3eae3fd770aa4f is independently
 admitted/committed/pushed with exact remote confirmation; CI36756215416 all8PASS.
 Source review70d7ff87 closes the idle P2 in source, with47 changed launcher plus
 52 separately attributed controller mocks. It does not close actual P1.1.

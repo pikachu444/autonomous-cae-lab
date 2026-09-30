@@ -2,17 +2,28 @@
 
 ## Current serial work: Phase1 persistent OpenScience
 
-Owner steering now requires explicit model choice and official ChatGPT OAuth;
-Root's silent Qwen selection was not an upstream recommendation. Automatic
-Qwen defaults are removed. Auth-only official2.0.146 connection and read-only
-resident-MCP source resource are implemented (ADR0012):19 auth checks,
-52 controller/47 launcher mocks and8 resource tests passed separately, zero
-inference/CAD/Core mutations. Both actual signin attempts ended NOT_COMPLETED with
-exit0/no auth file; preauth catalog also returned exit0/provider error. Neither
-is a connection PASS. Tokens stay outside Git; native OAuth research transport,
-actual connected-MCP resource read, model inference and P1.1 remain OPEN.
-Do not repeat Qwen or silently choose a replacement. Resume the explicit
-ChatGPT path while continuing independent work in this same P1.1 unit.
+Official ChatGPT login actually completed on2026-10-01; the owner explicitly
+selected `openai-codex/gpt-5.6-sol`. Its auth file stays in the external marked
+profile; values were not inspected/copied/committed. Earlier two failed signins
+and preauth exit0/provider error are retained. The installed CLI's7 model IDs
+are a public catalog/fixed support filter, not account entitlements. Both pinned
+2.0.146 and latest official2.0.147 omit6.1 Sol; account access to6.1 is UNKNOWN.
+
+Native provider source uses the original controller/source/process/socket/MCP/
+attach/abort/idle gates with supported file-plugin logical-stream/pre-tool checks.
+Native28, Node20, shared-auth19 and launcher47 checks passed without provider,
+CAD or Core calls. Source review closed native-executable/static-context integrity
+and lifecycle-drift/no-proxy cleanup findings. Earlier test-only wrong receipt
+directory failures remain in their original profiles; the bounded path fix passed.
+The separate controller evidence and exact source hashes are in the native record.
+Actual native loading/connected-resource read/inference/research are next and OPEN.
+No automatic replacement or Qwen run is authorized. Wire/final schemas/every HTTP
+retry remain UNKNOWN; no numerical/engineering verdict is upgraded.
+
+Committed baseline2fdf01d2fdf0f56616fb6487ce55071604aba69c is remotely confirmed;
+its exact CI36786334907 completed all8 jobs successfully. That does not verify
+the following native provider source or actual OAuth research. See ADR0012 and
+benchmarks/records/20261001-openscience-native-provider-source.json.
 
 Current execution order is authoritative in
 [SYSTEM_EXECUTION_PLAN](docs/SYSTEM_EXECUTION_PLAN.md), recorded2026-10-01 after
@@ -26,7 +37,7 @@ retained52 requirements. Concrete tasks are in
 [SYSTEM_WORKLIST](docs/SYSTEM_WORKLIST.md). Earlier work is preserved/reused;
 later feature effects require a recorded bounded correction and revalidation.
 
-Latest source4e21d18341cbc5a516aae2234c3eae3fd770aa4f closes the timeout-idle
+Historical source4e21d18341cbc5a516aae2234c3eae3fd770aa4f closes the timeout-idle
 source finding: independent review70d7ff87 passed, commit/push and exact remote
 HEAD are confirmed, and CI36756215416 passed all8 jobs. The changed launcher47
 and unchanged controller52 mocks remain separately attributed.

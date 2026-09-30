@@ -1,5 +1,25 @@
 # OpenScience local runtime acceptance — 2026-09-30
 
+## Native ChatGPT provider source and completed login, 2026-10-01
+
+The third actual official signin completed; the wrapper returned0 with an
+updated external auth file. The owner selected `openai-codex/gpt-5.6-sol`.
+No tokens/account identity are stored in Git. The7 returned model IDs are
+public catalog/fixed OpenScience support metadata, not an entitlement response.
+
+Native28/Node20/shared-auth19/launcher47 source checks passed, no provider/CAD/
+Core calls. Independent review closed native executable/static-context binding
+and lifecycle cleanup defects, including no-proxy finalization under config/plugin
+drift. The controller evidence is separately scoped in the native source record;
+CI36786334907 all8PASS belongs to baseline2fdf01d, not this new native transport.
+
+Public hooks check each logical stream and actual tool execution. Final offered
+schemas, internal SDK/Codex HTTP retries and wire responses remain UNKNOWN.
+Actual native plugin loading, connected-resource identity,5.6 Sol completed
+inference and full new-store CAD/rejection/results/GUI/cancellation remain OPEN.
+No numerical thresholds or engineering decisions changed. Source tests, login
+and catalog do not count as research acceptance. See ADR0012/native record.
+
 ## Explicit model and ChatGPT connection preparation, 2026-10-01
 
 ADR0012 removes silent Qwen defaults and adds the official auth-only ChatGPT

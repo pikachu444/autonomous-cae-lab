@@ -35,6 +35,10 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m pytest -q
       - run: python scripts/verify_mcp.py
+      - name: Verify native OpenScience source and tool guards without model calls
+        run: |
+          node --version
+          node --test openscience/tests/native_guard.test.mjs
       - name: Connect the local HTTP research, CAD gates and verified evidence exports
         run: python -m scripts.verify_lab_ui --store artifacts/http-core-lab --skip-pde
       - name: Preserve common HTTP acceptance and portable evidence

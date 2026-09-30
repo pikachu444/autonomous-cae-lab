@@ -76,8 +76,13 @@ not a new validation/release verdict. See ADR0012.
 Research models must be selected explicitly. Official ChatGPT authentication
 uses the installed OpenScience `openai-codex` provider and external owned data
 directory. Auth-only setup has no selected model or tools; login/catalog/exit0
-do not close actual inference/research. Native OAuth transport acceptance remains
-OPEN and cannot claim the legacy proxy's unproved per-HTTP/offered-tool evidence.
+do not close actual inference/research. Native research has a separate owned
+config, reuses the exact auth data dir and restricts actual tools to the declared
+existing boundary. Public plugin hooks admit logical streams and pre-tool calls
+against boot source/model/stage/stopping; actual HTTP retries/final offered schemas
+remain UNKNOWN. Immutable context/runtime identity still applies to exact owned
+abort/idle/Stop; mutable inference-file drift cannot disable those lifecycle gates.
+Native OAuth acceptance remains OPEN; source checks do not prove actual loading.
 
 The historical local persistent transport uses the installed pinned official OpenScience
 2.0.146 and existing local model. Its attached CLI and official workspace share

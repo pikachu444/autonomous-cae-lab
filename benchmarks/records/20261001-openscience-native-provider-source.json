@@ -1,0 +1,175 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.openscience-native-provider-source",
+  "recorded_utc": "2026-09-30T23:16:40.204041Z",
+  "source_parent": "2fdf01d2fdf0f56616fb6487ce55071604aba69c",
+  "source_version": "Commit carrying this record; per-file worktree hashes are the reviewed as-run candidate bytes, not normalized checkout bytes",
+  "phase": "P1.1",
+  "outcome": "PASS_BOUNDED_SOURCE_CHECKS",
+  "research_acceptance": "OPEN",
+  "official_runtime": {
+    "source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+    "version": "2.0.146",
+    "package": "@synsci/openscience"
+  },
+  "authentication": {
+    "wrapper_exit_code": 0,
+    "earlier_failed_attempts": "Retained in20261001-chatgpt-connection-preparation.json",
+    "status": "COMPLETED",
+    "credential_copy": false,
+    "credential_publication": false,
+    "attempt": 3,
+    "observed_cli_message": "Login successful",
+    "updated_auth_file_exists": true,
+    "auth_file_last_write_utc": "2026-09-30T22:52:41.0222746Z",
+    "auth_profile_tag": "chatgpt-cae-20261001-02",
+    "token_values_read_by_agent": false
+  },
+  "model": {
+    "catalog_ids": [
+      "openai-codex/gpt-5.4",
+      "openai-codex/gpt-5.4-mini",
+      "openai-codex/gpt-5.5",
+      "openai-codex/gpt-5.6-luna",
+      "openai-codex/gpt-5.6-sol",
+      "openai-codex/gpt-5.6-terra",
+      "openai-codex/gpt-6-astra"
+    ],
+    "authenticated_inference": "NOT_RUN",
+    "weights_digest": "UNKNOWN",
+    "account_entitlements": "UNKNOWN",
+    "catalog_kind": "PUBLIC_MODELS_DEV_AND_FIXED_OPENSCIENCE_SUPPORT_FILTER",
+    "fallback": false,
+    "selection": "openai-codex/gpt-5.6-sol",
+    "selection_authority": "Project owner explicitly selected5.6 Sol after official login and model-list explanation"
+  },
+  "official_sources": {
+    "tool_execute_before": "https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/backend/cli/src/session/prompt.ts#L2403",
+    "gpt61_sol_fixed_support": "ABSENT",
+    "latest_release": "2.0.147",
+    "file_plugin_loader": "https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/backend/cli/src/plugin/index.ts#L124",
+    "gpt61_sol_account_access": "UNKNOWN",
+    "pinned_codex_filter": "https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/backend/cli/src/provider/provider.ts#L633",
+    "chat_params": "https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/backend/cli/src/session/llm.ts#L188",
+    "latest_release_filter": "https://github.com/synthetic-sciences/openscience/blob/6f40204176c9cad27d27b860101fb1785524f95a/backend/cli/src/provider/provider.ts#L633"
+  },
+  "reviewed_source_files": [
+    {
+      "path": "scripts/openscience-server-local.ps1",
+      "sha256": "a3b0a0220f0eb1bc87841b0a49da08244cb1a85172e96d289ccc2ee9ef654e14"
+    },
+    {
+      "path": "scripts/openscience-local.ps1",
+      "sha256": "1e017aa8164926ffe4d65bab2605805197b4b6db83dc926b9ca2b9284b14fedc"
+    },
+    {
+      "path": "scripts/openscience-chatgpt.ps1",
+      "sha256": "f52d9803aa7f8d51ae489ee14cadaec56932db194be26a656937232bfaa80390"
+    },
+    {
+      "path": "scripts/openscience-chatgpt-functions.ps1",
+      "sha256": "6e0df6cbcc025eb53bdaf70ad2a8ed40753502c364125f7462ef9a9610539cfd"
+    },
+    {
+      "path": "scripts/openscience-native-provider.ps1",
+      "sha256": "7d0ee7db4da9c0b1c895e67201ce43b19d0be301b81cfd5adc67c2e6d0dbad5a"
+    },
+    {
+      "path": "scripts/verify_openscience_native.ps1",
+      "sha256": "2a4b803f10cde8b2f4654382ac7da2a0133d0a781a8c6eb2bdc85b3b0f2c9334"
+    },
+    {
+      "path": "openscience/native_guard.mjs",
+      "sha256": "a295e948721560c86f967140653b4c3eb2b9fb096d11a143533d57aa0e318464"
+    },
+    {
+      "path": "openscience/tests/native_guard.test.mjs",
+      "sha256": "667bdd96e56d9df42284a3c74e649b09dc289f5605b789486ff8d9158926389c"
+    }
+  ],
+  "checks": [
+    {
+      "count": 28,
+      "artifact": "artifacts/openscience-native-check-20261001-04/native-checks.json",
+      "sha256": "fbc0bd96c5c8a57f4148f57fbf73a87fb8ece220d2c7d96c25b7c09f2b58fbc0",
+      "scope": "Native PowerShell synthetic transport",
+      "status": "PASS"
+    },
+    {
+      "count": 20,
+      "duration_ms": 1934.8277,
+      "scope": "Native JS synthetic plugin hooks",
+      "status": "PASS",
+      "command": "node --test openscience/tests/native_guard.test.mjs"
+    },
+    {
+      "count": 19,
+      "artifact": "artifacts/chatgpt-shared-helper-check-20261001-01/connection-checks.json",
+      "sha256": "6ee80033125a5723e520dbddbea9254196057892e08f4d563f572f6d9523d554",
+      "scope": "Shared auth helper regression",
+      "status": "PASS"
+    },
+    {
+      "count": 52,
+      "artifact": "artifacts/native-transport-controller-20261001-02/self-test.json",
+      "sha256": "01beeb463e719616fd7918a103e2ec0d8dd5bd53bed6f76fa6b66b2d09477e4f",
+      "scope": "Legacy controller mocks on final controller bytes",
+      "status": "PASS"
+    },
+    {
+      "sha256": "09e944520912a626b89a89c2e9b47b6c31d0527a3ceca4ecf9fb37ff73135b79",
+      "status": "PASS",
+      "count": 47,
+      "scope": "Legacy launcher mocks on final shared controller",
+      "artifact": "artifacts/native-transport-launcher-20261001-02/launcher-checks/checks.json"
+    }
+  ],
+  "source_review": {
+    "reviewer": "chatgpt_connection_review",
+    "closed_findings": [
+      "P1: credential-bearing NativePath/runtime binding to independent auth pin",
+      "P2: canonical immutable static context/store/model/environment/settings binding",
+      "P2: config/plugin drift must preserve lifecycle abort/idle/Stop and null-proxy finalization"
+    ],
+    "status": "PASS_NO_OPEN_MATERIAL_FINDINGS"
+  },
+  "retained_failed_tests": {
+    "native_run01": "Failed test-only lifecycle receipt directory outside external profile; no provider/Core/CAD calls",
+    "final_native_run04": "28 PASS",
+    "native_run03": "27 checks PASS before no-proxy correction",
+    "native_run02": "Same test-only path failure, stack captured, preserved"
+  },
+  "counts": {
+    "provider_inference_calls": 0,
+    "core_mutations": 0,
+    "cad_calls": 0
+  },
+  "unverified": [
+    "actual native plugin loading",
+    "actual OpenScience-connected resident MCP resource",
+    "authenticated completed5.6 Sol inference",
+    "fresh store valid/rejected CAD/results/interpretation/official GUI",
+    "actual in-flight cancellation and owned cleanup"
+  ],
+  "guard_scope": {
+    "each_http_retry": "UNKNOWN",
+    "final_offered_schemas": "UNKNOWN",
+    "logical_stream": "chat.params",
+    "input_output_args_rewritten": false,
+    "model_body_modified": false,
+    "wire_receipts": "UNKNOWN",
+    "actual_tool": "tool.execute.before"
+  },
+  "baseline_ci": {
+    "native_oauth_inference_claim": false,
+    "run_id": 36786334907,
+    "status": "ALL_8_JOBS_SUCCESS",
+    "source": "2fdf01d2fdf0f56616fb6487ce55071604aba69c"
+  },
+  "retention": {
+    "credentials": "External auth data only, excluded from commits",
+    "raw": "Ignored/external local profiles, not remotely durable raw",
+    "public_record": "This sanitized source record and tests"
+  },
+  "decision": "NOT_RELEASED"
+}

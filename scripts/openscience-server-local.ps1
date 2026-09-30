@@ -10,6 +10,8 @@ param(
     [string]$StoreRoot,
     [string]$RuntimePrefix,
     [string]$ModelId,
+    [ValidateSet('Ollama', 'ChatGPT')][string]$Transport = 'Ollama',
+    [string]$AuthProfileRoot,
     [string]$WslDistro = 'Ubuntu',
     [string]$WslPython = '/home/pikachu444/.local/share/autonomous-cae-lab/venv-py312/bin/python',
     [string[]]$AllowedTools = @('caelab_study_create', 'caelab_study_inspect', 'caelab_parameters_discover',
@@ -290,7 +292,7 @@ function Assert-OpenSciencePinnedRuntime($Context) {
     }
 }
 
-function Assert-OpenScienceContext($Context) {
+function Assert-OpenScienceContext($Context, [switch]$LifecycleOnly) {
     $markerPath = Assert-OpenScienceContainedPath (Join-Path $Context.ProfileRoot 'caelab-profile-owner.json') $Context.ProfileRoot
     $marker = Read-OpenScienceJson $markerPath
     Assert-OpenScienceCondition ($marker.kind -eq 'autonomous-cae-lab.openscience-profile' -and $marker.schema -eq 1 -and
@@ -298,6 +300,7 @@ function Assert-OpenScienceContext($Context) {
         $marker.profile_root -eq $Context.ProfileRoot -and $marker.intent_sha256 -eq $Context.IntentSha256) 'Profile ownership does not match this repository, run and configuration.'
     foreach ($key in @('ConfigPath', 'GuardPath', 'OwnerPath')) { Assert-OpenScienceContainedPath $Context.$key $Context.ProfileRoot | Out-Null }
     Assert-OpenSciencePinnedRuntime $Context
+    if ($Context.Transport -ceq 'ChatGPT') { Assert-OpenScienceNativeContext $Context -LifecycleOnly:$LifecycleOnly }
 }
 
 function New-OpenScienceMcpGitTransport {
@@ -335,6 +338,7 @@ function New-OpenScienceLocalContext {
         [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ProfileTag = 'runtime',
         [string]$StoreRoot, [string]$RuntimePrefix,
         [string]$ModelId,
+        [ValidateSet('Ollama', 'ChatGPT')][string]$Transport = 'Ollama', [string]$AuthProfileRoot,
         [string]$WslDistro = 'Ubuntu',
         [string]$WslPython = '/home/pikachu444/.local/share/autonomous-cae-lab/venv-py312/bin/python',
         [AllowEmptyCollection()][string[]]$AllowedTools = $script:OpenScienceBoundedTools,
@@ -343,6 +347,11 @@ function New-OpenScienceLocalContext {
         [ValidateRange(30, 600)][int]$ProviderTimeoutSeconds = 260
     )
     Assert-OpenScienceCondition ($PSVersionTable.PSVersion.Major -ge 7) 'PowerShell 7 is required for native ArgumentList handling.'
+    if ($Transport -ceq 'ChatGPT') {
+        return New-OpenScienceNativeContext -RepoRoot $RepoRoot -RunName $RunName -ProfileTag $ProfileTag -StoreRoot $StoreRoot -RuntimePrefix $RuntimePrefix `
+            -ModelId $ModelId -AuthProfileRoot $AuthProfileRoot -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools `
+            -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds
+    }
     $RepoRoot = [IO.Path]::GetFullPath($RepoRoot)
     $wslRoot = ConvertTo-OpenScienceWslPath $RepoRoot
     if (-not $StoreRoot) { $StoreRoot = Join-Path $RepoRoot "runs\$RunName" }
@@ -481,6 +490,7 @@ function New-OpenScienceLocalProcessInfo {
     foreach ($argument in $Arguments) { $info.ArgumentList.Add($argument) }
     foreach ($name in @(Get-OpenScienceRemovedEnvironment @($info.Environment.Keys)) + @($Context.RemoveEnvironment)) { $info.Environment.Remove($name) | Out-Null }
     foreach ($name in $Context.Environment.Keys) { $info.Environment[$name] = [string]$Context.Environment[$name] }
+    if ($Context.Transport -ceq 'ChatGPT') { $info.Environment['OPENSCIENCE_BIN_PATH'] = $Context.NativePath }
     return $info
 }
 
@@ -558,11 +568,11 @@ function Invoke-OpenScienceHttp([string]$Uri, [string]$Method = 'GET', [hashtabl
     Invoke-WebRequest -Uri $Uri -Method $Method -Headers $Headers -TimeoutSec $TimeoutSeconds -MaximumRedirection 0 -SkipHttpErrorCheck -ErrorAction Stop
 }
 
-function Read-OpenScienceRuntimeOwner([string]$Path) {
+function Read-OpenScienceRuntimeOwner([string]$Path, [switch]$LifecycleOnly) {
     $owner = Read-OpenScienceJson ([IO.Path]::GetFullPath($Path))
     Assert-OpenScienceCondition ($owner.kind -eq 'autonomous-cae-lab.openscience-runtime' -and $owner.schema -eq 1) 'Unrecognized runtime ownership marker.'
     $context = [pscustomobject]$owner.context
-    Assert-OpenScienceContext $context
+    Assert-OpenScienceContext $context -LifecycleOnly:$LifecycleOnly
     Assert-OpenScienceCondition ([IO.Path]::GetFullPath($Path) -eq $context.OwnerPath -and
         $owner.run_name -eq $context.RunName -and $owner.repo_root -eq $context.RepoRoot -and $owner.profile_root -eq $context.ProfileRoot) 'Runtime owner path or repository identity does not match.'
     Assert-OpenScienceContainedPath $owner.runtime_directory $context.ProfileRoot | Out-Null
@@ -572,7 +582,7 @@ function Read-OpenScienceRuntimeOwner([string]$Path) {
 function Get-OpenScienceLocalRuntime {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$OwnerPath, [switch]$LifecycleOnly)
-    $owner = Read-OpenScienceRuntimeOwner $OwnerPath
+    $owner = Read-OpenScienceRuntimeOwner $OwnerPath -LifecycleOnly:$LifecycleOnly
     Assert-OpenScienceCondition ($owner.state -eq 'ready' -or ($LifecycleOnly -and $owner.state -in @('stopping', 'guard_failed'))) "Owned runtime is not ready (state=$($owner.state))."
     Assert-OpenScienceRuntimeBootSource $owner -LifecycleOnly:$LifecycleOnly
     $context = [pscustomobject]$owner.context
@@ -586,8 +596,17 @@ function Get-OpenScienceLocalRuntime {
     Assert-OpenScienceCondition (@(Get-OpenScienceDescendants $owner.launcher.Pid | Where-Object Pid -eq $native.Pid).Count -eq 1) 'Runtime native PID is not the official launcher descendant.'
     $connections = @(Get-NetTCPConnection -State Listen -OwningProcess $native.Pid -ErrorAction Stop)
     Assert-OpenScienceReadiness $context $owner.runtime_url $owner.native.Pid $native $connections $null $null
+    if (-not $LifecycleOnly -or $context.Transport -cne 'ChatGPT') {
     Assert-OpenScienceCondition ((Get-OpenScienceHash $context.ConfigPath) -eq $owner.config_sha256) 'Active profile configuration changed.'
     $config = Read-OpenScienceJson $context.ConfigPath
+    if ($context.Transport -ceq 'ChatGPT') {
+        Assert-OpenScienceCondition ($config.model -ceq $context.Model -and @($config.enabled_providers).Count -eq 1 -and
+            $config.enabled_providers[0] -ceq 'openai-codex' -and -not $owner.proxy) 'Native provider/model differs from this owned runtime.'
+        if (-not $LifecycleOnly) {
+            Assert-OpenScienceNativeGuardLoaded $context $owner
+            Assert-OpenScienceCondition (-not (Read-OpenScienceJson $context.GuardPath).stopping) 'This profile is stopping; new research is blocked.'
+        }
+    } else {
     Assert-OpenScienceCondition ($config.provider.ollama.options.baseURL -eq $owner.proxy_url -and $config.provider.ollama.api -eq $owner.proxy_url -and
         $config.model -eq $context.Model) 'Active provider/model differs from the owned proxy configuration.'
     if (-not $LifecycleOnly) {
@@ -607,6 +626,8 @@ function Get-OpenScienceLocalRuntime {
         Assert-OpenScienceCondition ($proxyHealth.boot_source_sha256 -ceq $owner.boot_source_sha256) 'Proxy startup source belongs to another runtime.'
         Assert-OpenScienceCondition (-not (Read-OpenScienceJson $context.GuardPath).stopping) 'This profile is stopping; new model actions are blocked.'
     }
+    }
+    }
     $healthResponse = Invoke-OpenScienceHttp "$($owner.runtime_url)/global/health"
     Assert-OpenScienceCondition ($healthResponse.StatusCode -eq 200) 'Current owned health request failed.'
     $health = $healthResponse.Content | ConvertFrom-Json -AsHashtable
@@ -616,7 +637,7 @@ function Get-OpenScienceLocalRuntime {
         Assert-OpenScienceCondition ($mcpResponse.StatusCode -eq 200 -and ($mcpResponse.Content | ConvertFrom-Json).caelab.status -eq 'connected') 'Current GET /mcp is not connected; model action blocked.'
     }
     Assert-OpenScienceProcessIdentity $owner.native (Get-OpenScienceProcessIdentity -ProcessId $owner.native.Pid)
-    if (-not $LifecycleOnly) { Assert-OpenScienceProcessIdentity $owner.proxy (Get-OpenScienceProcessIdentity -ProcessId $owner.proxy.Pid) }
+    if (-not $LifecycleOnly -and $context.Transport -cne 'ChatGPT') { Assert-OpenScienceProcessIdentity $owner.proxy (Get-OpenScienceProcessIdentity -ProcessId $owner.proxy.Pid) }
     Assert-OpenScienceRuntimeBootSource $owner -LifecycleOnly:$LifecycleOnly
     $context | Add-Member -NotePropertyName RuntimeURL -NotePropertyValue $owner.runtime_url -Force
     $context | Add-Member -NotePropertyName WorkspaceURL -NotePropertyValue $owner.workspace_url -Force
@@ -741,7 +762,7 @@ function Get-OpenScienceNonIdleSessionIds($Status) {
 }
 
 function Pause-OpenScienceModelForwards($Context, [string]$Directory) {
-    Assert-OpenScienceContext $Context
+    Assert-OpenScienceContext $Context -LifecycleOnly
     $snapshot = Assert-OpenScienceContainedPath (Join-Path $Directory 'guard-before-stop.json') $Context.ProfileRoot
     $lock = Open-OpenScienceToolGuardLock $Context
     try {
@@ -796,7 +817,7 @@ function Confirm-OpenScienceSessionsIdleForStop($Context) {
 function Stop-OpenScienceOwnedLauncher {
     [CmdletBinding()]
     param([Parameter(Mandatory)]$Context, [Parameter(Mandatory)]$ProcessIdentity)
-    Assert-OpenScienceContext $Context
+    Assert-OpenScienceContext $Context -LifecycleOnly
     $actual = Get-OpenScienceProcessIdentity -ProcessId $ProcessIdentity.Pid
     if ($null -eq $actual) { return [pscustomobject]@{ AlreadyExited = $true; StoppedPids = @(); LauncherPid = $ProcessIdentity.Pid } }
     Assert-OpenScienceProcessIdentity $ProcessIdentity $actual
@@ -815,8 +836,8 @@ function Stop-OpenScienceOwnedLauncher {
 }
 
 function Stop-OpenScienceOwnedProxy($Context, $Owner) {
-    Assert-OpenScienceContext $Context
     if (-not $Owner.proxy) { return }
+    Assert-OpenScienceContext $Context -LifecycleOnly
     $actual = Get-OpenScienceProcessIdentity -ProcessId $Owner.proxy.Pid
     if ($null -eq $actual) { return }
     Assert-OpenScienceProcessIdentity $Owner.proxy $actual
@@ -1105,6 +1126,12 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
     Save-OpenScienceRuntimeOwner $owner
     $proxyLogged = $null; $serverLogged = $null; $stoppedExplicitly = $false
     try {
+        if ($context.Transport -ceq 'ChatGPT') {
+            Initialize-OpenScienceNativeGuard $context $owner
+            $watch = [Diagnostics.Stopwatch]::StartNew()
+            $config = Read-OpenScienceJson $context.ConfigPath
+            Write-OpenScienceJson (Join-Path $directory 'config-before-serve.json') $config -CreateNew
+        } else {
         [IO.File]::WriteAllText($owner.proxy_script, (Get-OpenScienceProxySource), [Text.UTF8Encoding]::new($false))
         $owner.proxy_script_sha256 = Get-OpenScienceHash $owner.proxy_script
         $receipts = Join-Path $directory 'http-receipts'; New-Item -ItemType Directory -Path $receipts -ErrorAction Stop | Out-Null
@@ -1134,6 +1161,7 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
         $config.provider.ollama.api = $proxyReady.url; $config.provider.ollama.options.baseURL = $proxyReady.url
         Write-OpenScienceJson (Join-Path $directory 'config-before-serve.json') $config -CreateNew
         Write-OpenScienceJson $context.ConfigPath $config
+        }
         $owner.config_sha256 = Get-OpenScienceHash $context.ConfigPath
         Assert-OpenScienceRepositorySourcePin $owner.boot_source (Get-OpenScienceRepositorySourcePin -Context $context -GitPath $owner.boot_source.git_path -GitSha256 $owner.boot_source.git_sha256)
         $arguments = @('serve', '--port', [string]$spec.port, '--format', 'json')
@@ -1159,6 +1187,7 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
         $mcp = $mcpResponse.Content | ConvertFrom-Json -AsHashtable
         Write-OpenScienceJson (Join-Path $directory 'mcp-current.json') $mcp -CreateNew
         Assert-OpenScienceCondition ($mcpResponse.StatusCode -eq 200 -and $mcp.caelab.status -eq 'connected') 'Current owned MCP is not connected; startup remains failed.'
+        if ($context.Transport -ceq 'ChatGPT') { Assert-OpenScienceNativeGuardLoaded $context $owner }
         Assert-OpenScienceRepositorySourcePin $owner.boot_source (Get-OpenScienceRepositorySourcePin -Context $context -GitPath $owner.boot_source.git_path -GitSha256 $owner.boot_source.git_sha256)
         $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($context.RepoRoot)).TrimEnd('=').Replace('+', '-').Replace('/', '_')
         $owner.workspace_url = "$($ready.Url)/$encoded/session"
@@ -1166,7 +1195,7 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
         Write-Output ("Owned OpenScience ready at " + $owner.runtime_url)
         $handledStopRequests = [Collections.Generic.HashSet[string]]::new()
         while (-not $serverLogged.Process.WaitForExit(500)) {
-            if ($proxyLogged.Process.HasExited -and $owner.state -ne 'guard_failed') {
+            if ($proxyLogged -and $proxyLogged.Process.HasExited -and $owner.state -ne 'guard_failed') {
                 $owner.state = 'guard_failed'; $owner.guard_failure = 'Proxy exited. Inference is blocked; lifecycle cancellation remains available.'
                 Save-OpenScienceRuntimeOwner $owner
             }
@@ -1189,7 +1218,7 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
                     $serverLogged.Process.WaitForExit(10000) | Out-Null
                     break
                 } catch {
-                    $owner.state = $(if ($proxyLogged.Process.HasExited) { 'guard_failed' } else { 'ready' })
+                    $owner.state = $(if ($proxyLogged -and $proxyLogged.Process.HasExited) { 'guard_failed' } else { 'ready' })
                     $owner.stop_refused = $true; $owner.stop_refusal = $_.Exception.Message; $owner.stop_refused_utc = [DateTime]::UtcNow.ToString('o')
                     Save-OpenScienceRuntimeOwner $owner
                 }
@@ -1293,7 +1322,7 @@ function Start-OpenScienceLocalServerLocked($Context, [int]$Port, [int]$StartupT
 }
 
 function Stop-OpenScienceLocalServer([string]$OwnerPath) {
-    $owner = Read-OpenScienceRuntimeOwner $OwnerPath
+    $owner = Read-OpenScienceRuntimeOwner $OwnerPath -LifecycleOnly
     $context = [pscustomobject]$owner.context
     if ($owner.state -eq 'stopped') { return [pscustomobject]@{ State = 'stopped'; OwnerPath = $OwnerPath; AlreadyStopped = $true } }
     $controller = Get-OpenScienceProcessIdentity $owner.controller.Pid
@@ -1309,7 +1338,7 @@ function Stop-OpenScienceLocalServer([string]$OwnerPath) {
         reason = 'explicit_stop'; idle_receipt = $preflight.directory; requested_utc = [DateTime]::UtcNow.ToString('o') } -CreateNew
     $watch = [Diagnostics.Stopwatch]::StartNew()
     while ($watch.Elapsed.TotalSeconds -lt 30) {
-        $current = Read-OpenScienceRuntimeOwner $OwnerPath
+        $current = Read-OpenScienceRuntimeOwner $OwnerPath -LifecycleOnly
         Assert-OpenScienceCondition (-not ($current.stop_refused -and $current.stop_request_path -eq $requestPath)) "Controller refused termination: $($current.stop_refusal). Receipts remain at $($preflight.directory)."
         if ($current.state -in @('stopped', 'failed') -and $current.closed_utc) {
             Assert-OpenScienceCondition ($current.state -eq 'stopped') 'Owned cleanup failed; preserved owner diagnostics identify the unverified process.'
@@ -1618,17 +1647,22 @@ process.stdout.write('{}');
     [pscustomobject]$record
 }
 
+. (Join-Path $PSScriptRoot 'openscience-chatgpt-functions.ps1')
+. (Join-Path $PSScriptRoot 'openscience-native-provider.ps1')
 if ($Library) { return }
 $ErrorActionPreference = 'Stop'
 if ($Mode -eq 'ServeInternal') { Invoke-OpenScienceServeInternal $ContextPath $LaunchToken; return }
 if ($Mode -eq 'SelfTest') { Invoke-OpenScienceRuntimeSelfTest $RepoRoot $RunName; return }
-if (-not $OwnerPath) { $OwnerPath = Join-Path ([IO.Path]::GetFullPath($RepoRoot)) "artifacts\$RunName\profiles\$ProfileTag\runtime-owner.json" }
+if (-not $OwnerPath) {
+    $OwnerPath = if ($Transport -ceq 'ChatGPT') { Join-Path $env:LOCALAPPDATA "AutonomousCAELab/profiles/$RunName-$ProfileTag-research/runtime-owner.json" }
+        else { Join-Path ([IO.Path]::GetFullPath($RepoRoot)) "artifacts\$RunName\profiles\$ProfileTag\runtime-owner.json" }
+}
 switch ($Mode) {
     'Status' { Get-OpenScienceLocalRuntime -OwnerPath $OwnerPath }
     'Stop' { Stop-OpenScienceLocalServer -OwnerPath $OwnerPath }
     'Start' {
         $context = New-OpenScienceLocalContext -RepoRoot $RepoRoot -RunName $RunName -ProfileTag $ProfileTag -StoreRoot $StoreRoot -RuntimePrefix $RuntimePrefix `
-            -ModelId $ModelId -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds
+            -ModelId $ModelId -Transport $Transport -AuthProfileRoot $AuthProfileRoot -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds
         Start-OpenScienceLocalServer $context $Port $StartupTimeoutSeconds
     }
 }
