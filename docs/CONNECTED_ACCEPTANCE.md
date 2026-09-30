@@ -95,7 +95,8 @@ Static UI checks and the bounded actual browser flow passed.
 Root's CuA browser actions then actually registered both variables, executed
 the width38 CAD and bolt30 rejection, compared their retained UNKNOWN/missing
 metrics, executed canonical PDE and downloaded its evidence ZIP. Separate
-Core/ZIP byte inspection passed (three experiments, 25 bundle members,
+Core/ZIP byte inspection passed (three experiments, 26 ZIP members comprising
+25 manifest-listed files and the bundle manifest,
 SHA256 `e6559f135710638fcc45971692575fd245ae5aad92239117755c303b40e55db8`).
 The read-only native library opened its original source revision and loaded
 the verified PNG preview. Native surface3D was absent in that older experiment;

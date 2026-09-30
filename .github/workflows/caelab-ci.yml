@@ -43,6 +43,7 @@ jobs:
         with:
           name: http-core-cae-lab-${{ github.sha }}
           path: artifacts/http-core-lab/
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30
 
@@ -83,6 +84,7 @@ jobs:
         with:
           name: native-cae-lab-${{ github.sha }}
           path: artifacts/native-lab/
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30
 
@@ -122,6 +124,7 @@ jobs:
           path: |
             artifacts/linear-lab/
             artifacts/finer-lab/
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30
 
@@ -158,6 +161,7 @@ jobs:
         with:
           name: optimization-cae-lab-${{ github.sha }}
           path: artifacts/optimization-lab/
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30
 
@@ -200,6 +204,7 @@ jobs:
           path: |
             artifacts/pde-lab/
             artifacts/http-pde-lab/
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30
 
@@ -239,6 +244,7 @@ jobs:
         with:
           name: codeaster-cae-lab-${{ github.sha }}
           path: artifacts/codeaster-lab/
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30
 
@@ -274,5 +280,6 @@ jobs:
         with:
           name: doe-cae-lab-${{ github.sha }}
           path: artifacts/doe-lab/
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30

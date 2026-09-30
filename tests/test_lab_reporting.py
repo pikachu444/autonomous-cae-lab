@@ -461,6 +461,63 @@ def _memory_record(identifier, *, study_id=STUDY):
             "hashes": {"documents": documents}, "parent_chain": []}
 
 
+def test_aggregate_preflight_deduplicates_parents_without_rendering_summaries(tmp_path, monkeypatch):
+    lab, results = _store(tmp_path)
+    originals = _originals(tmp_path)
+    calls = []
+    preflight = reporting._preflight
+
+    def counted(store, identifier):
+        calls.append(identifier)
+        return preflight(store, identifier)
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Aggregate preflight does not need a Core inspection or a research summary")
+
+    monkeypatch.setattr(reporting, "_preflight", counted)
+    monkeypatch.setattr(lab, "inspect_experiment", forbidden)
+    monkeypatch.setattr(lab, "research_summary", forbidden)
+    records = reporting.preflight_records(lab, ["E-child", "E-cad", "E-child", "E-model"])
+    assert calls == ["E-child", "E-cad", "E-model"]
+    assert {item["result"]["experiment_id"] for item in records} == {"E-child", "E-cad", "E-model"}
+    assert all(item["result"] == results[item["result"]["experiment_id"]] for item in records)
+    reporting.recheck_records(lab, records)
+    assert _originals(tmp_path) == originals
+
+
+@pytest.mark.parametrize("phase", ["before", "after"])
+def test_aggregate_inspection_detects_changed_payload_before_and_after_core(tmp_path, phase):
+    lab, _ = _store(tmp_path)
+    records = reporting.preflight_records(lab, ["E-child", "E-cad"])
+    (tmp_path / "experiments/E-child/simulation/raw.log").write_bytes(b"Changed TEST ONLY bytes")
+    with pytest.raises(ValueError, match="hash mismatch"):
+        if phase == "before":
+            reporting.preflight_records(lab, ["E-child"])
+        else:
+            reporting.recheck_records(lab, records)
+
+
+def test_aggregate_preflight_rejects_parent_cycle_before_any_payload(tmp_path, monkeypatch):
+    child, parent = _memory_record("E-child"), _memory_record("E-parent")
+    child["result"]["parent_experiment_id"] = "E-parent"
+    parent["result"]["parent_experiment_id"] = "E-child"
+    records = {"E-child": child, "E-parent": parent}
+    monkeypatch.setattr(reporting, "_preflight", lambda store, identifier: deepcopy(records[identifier]))
+    lab, forbidden = _memory_lab(tmp_path)
+    monkeypatch.setattr(reporting, "_read", forbidden)
+    with pytest.raises(ValueError, match="Cyclic"):
+        reporting.preflight_records(lab, ["E-child"])
+
+
+def test_aggregate_preflight_rejects_portable_alias_before_any_payload(tmp_path, monkeypatch):
+    records = {name: _memory_record(name) for name in ("E-cad", "e-cad")}
+    monkeypatch.setattr(reporting, "_preflight", lambda store, identifier: deepcopy(records[identifier]))
+    lab, forbidden = _memory_lab(tmp_path)
+    monkeypatch.setattr(reporting, "_read", forbidden)
+    with pytest.raises(ValueError, match="Case-insensitive"):
+        reporting.preflight_records(lab, ["E-cad", "e-cad"])
+
+
 def _memory_lab(tmp_path):
     def forbidden(*args, **kwargs):
         pytest.fail("Portable collision reached Core or artifact collection")

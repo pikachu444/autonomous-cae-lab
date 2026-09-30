@@ -14,6 +14,20 @@ handoff record, not a claim that the model retains every past chat forever.
 
 ## Verified checkpoint
 
+**Latest source and active work:** main `03bfd7115ca3933cb18af17c55cc751839e91c98`
+passed [CI 36676495776](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36676495776)
+(seven jobs, 506 tests) and fresh local clean Code_Aster acceptance (three
+experiments). Independent raw archive inspection found two missing hidden cache
+files, so full CI archive integrity is 43/45 experiments plus three campaigns.
+The upload correction and campaign inspection performance repair have focused
+verification, but their new exact-source CI and fresh HTTP proof are pending.
+HTTP clean-01 failed the unchanged 180-second optimization campaign request;
+do not label it complete. Read
+[the repair record](benchmarks/records/20260930-connected-inspection-repair.json).
+Continue fresh corrected HTTP acceptance, actual material/plasticity/explicit
+gates, declared-model numerical optimization, then remaining phases. Worktree
+native failures are preserved; no material/contact/strength release is implied.
+
 **Primary work continues across all 52 requirements.** The checkpoint below
 is not a stopping condition. Root resumed actual OpenScience and independent
 Code_Aster/model-Core work after correcting an earlier premature stop. Read

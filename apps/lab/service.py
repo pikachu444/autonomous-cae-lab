@@ -202,15 +202,15 @@ class LabService:
             raise ServiceError(404 if not matches else 409, "Campaign is missing or its ID is ambiguous")
         return matches[0]
 
-    def _campaign_preflight(self, selected: Store, identifier: str) -> str:
-        from .reporting import verified_record
+    def _campaign_preflight(self, selected: Store, identifier: str, *, with_records=False):
+        from .reporting import preflight_records
         kind, folder = self._campaign(selected, identifier)
         references = set()
 
         def collect(value):
             if isinstance(value, dict):
                 for key, item in value.items():
-                    if key in {"experiment_id", "cad_experiment_id", "analysis_experiment_id"} and item:
+                    if key in {"experiment_id", "cad_experiment_id", "analysis_experiment_id", "model_experiment_id"} and item:
                         references.add(check_id(item))
                     collect(item)
             elif isinstance(value, list):
@@ -226,17 +226,19 @@ class LabService:
                 paths.extend(contained(folder, f"{namespace}/{p.name}") for p in directory.glob("*.json"))
         for path in paths:
             collect(load_json(path))
-        for experiment_id in sorted(references):
-            root = contained(selected.path, f"experiments/{experiment_id}")
-            if root.exists():
-                verified_record(selected.lab, experiment_id)
-        return kind
+        existing = [experiment_id for experiment_id in sorted(references)
+                    if contained(selected.path, f"experiments/{experiment_id}").exists()]
+        records = preflight_records(selected.lab, existing)
+        return (kind, records) if with_records else kind
 
     def campaign(self, identifier: str) -> dict:
         selected = self._selected()
-        kind = self._campaign_preflight(selected, identifier)
+        from .reporting import recheck_records
+        kind, records = self._campaign_preflight(selected, identifier, with_records=True)
         method = selected.lab.inspect_doe if kind == "doe" else selected.lab.inspect_optimization
-        return {"type": kind, "record": method(identifier)}
+        record = method(identifier)
+        recheck_records(selected.lab, records)
+        return {"type": kind, "record": record}
 
     def compare(self, identifiers: list[str]) -> list[dict]:
         from .reporting import verified_record

@@ -42,6 +42,13 @@ Broader physics and engineering release gates remain open.
 
 ## Original section ledger
 
+Latest bounded source `03bfd71` passed seven CI jobs/506 tests and clean local
+declared elasticity acceptance. Archive inspection remains partial (43/45 CI
+experiment bundles intact; two hidden cache files omitted). Campaign HTTP
+inspection repair, material-point, plasticity and explicit integrations are
+active, with fresh acceptance pending. These additions do not close any phase
+or remove a requirement; see CURRENT_STATE and the repair record.
+
 | ID | Requirement retained from original section | Status / evidence / remaining gate |
 | --- | --- | --- |
 | R01 | General research platform: CAD, linear/nonlinear structural, implicit/explicit, failure, constitutive/PDE/multiphysics, DOE/optimization/inverse/UQ/surrogate and physical loop. | Partial: Core + real CAD/linear/DOE/adaptive optimization/bounded PDE; advanced backends remain planned. |
