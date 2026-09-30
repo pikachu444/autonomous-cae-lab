@@ -32,8 +32,10 @@ fixture decision remains **`NOT_RELEASED`**. The verified code checkpoint is
 The primary local session subsequently reproduced the existing CAD/native/
 structural/DOE acceptance at main `16fba8c`, with 32 Core and 58 upstream tests;
 see [the local execution record](benchmarks/records/20260930-local-environment.json).
-This restores execution and preserves all 52 requirements; it does not complete
-the finer mesh, optimizer, PDE or engineering release gates.
+The continuation now integrates bounded adaptive optimization and a declared
+weak-form PDE, with preliminary finer/PDE execution and final clean-source
+acceptance pending. ADRs 0005/0006 preserve the original boundaries and all 52
+requirements. Broader physics and engineering release gates remain open.
 
 ## Original section ledger
 
@@ -41,7 +43,7 @@ the finer mesh, optimizer, PDE or engineering release gates.
 | --- | --- | --- |
 | R01 | General research platform: CAD, linear/nonlinear structural, implicit/explicit, failure, constitutive/PDE/multiphysics, DOE/optimization/inverse/UQ/surrogate and physical loop. | Partial: Core + real CAD/linear/DOE; advanced backends remain planned. |
 | R02 | Top-down OpenScience → research definition → Core → adapters → evidence → OpenScience; no solver syntax in research operations. | Implemented boundary: ARCHITECTURE; ADR 0001; transport contract. Live agent loop open. |
-| R03 | OpenScience owns hypothesis/campaign/reasoning; deterministic engines own numerical search. | Implemented separation for seeded DOE; actual optimizer planned. |
+| R03 | OpenScience owns hypothesis/campaign/reasoning; deterministic engines own numerical search. | Implemented separation for seeded DOE and bounded SciPy adaptive search; live research-agent acceptance open. |
 | R04 | Read and reuse auto-fixture-design discovery, native/CadQuery edits, effect checks, validation/export/artifacts/examples/tests/CI. | Partial: pinned source and acceptance reused; recovered history in CURRENT_STATE. Earlier full chats unavailable. |
 | R05 | Separate generic Core from Fixture/Material/Drop/Structure/PDE/Constitutive domain plugins. | Partial: Fixture first plugin; other domains planned. ADR 0001. |
 | R06 | Design Parameter Registry maps research IDs to native CAD, including full metadata below. | Partial: registry and effect evidence implemented; broader types/dependency execution need adapters and acceptance. |
@@ -54,25 +56,25 @@ the finer mesh, optimizer, PDE or engineering release gates.
 | R13 | Equal importance for engineer GUI and autonomous headless workflows sharing underlying models/artifacts. | Partial: original GUI/native CAD and headless artifacts; unified revision/result UI not implemented. |
 | R14 | Evaluate Code_Aster/SALOME-MECA as main nonlinear implicit, CalculiX/PrePoMax secondary; benchmark materials/contact/convergence and automation/license. | Partial research in BACKEND_EVALUATION; actual CalculiX linear screen only. Code_Aster nonlinear acceptance planned. |
 | R15 | OpenRadioss primarily explicit; investigate preprocessing gap, conversion and full explicit cards/controls. | Planned integration; gap explicitly recorded in backend research. |
-| R16 | Compare FEniCSx/UFL, FreeFEM, GetDP/Gmsh, GetFEM, MOOSE for user equations/weak form, nonlinear/multiphysics/AD/PETSc/HPC. | Partial research; canonical custom weak-form backend not implemented. |
+| R16 | Compare FEniCSx/UFL, FreeFEM, GetDP/Gmsh, GetFEM, MOOSE for user equations/weak form, nonlinear/multiphysics/AD/PETSc/HPC. | Partial: real bounded scalar FEniCSx form and analytical draft executed; clean proof and general nonlinear/multiphysics/HPC coverage open. |
 | R17 | MFront/TFEL for material definition, material-point tests, tangents, finite strain, codegen, solver interfaces and identification. | Planned integration; official source research retained. |
-| R18 | Evaluate DAKOTA/OpenMDAO/pymoo/SciPy/NLopt/TAO/MOOSE by problem type; DOE/search/UQ/sensitivity/surrogate/multiobjective numerical engines. | Partial: reproducible SciPy continuous LHS DOE; search/identification/UQ etc. open. |
+| R18 | Evaluate DAKOTA/OpenMDAO/pymoo/SciPy/NLopt/TAO/MOOSE by problem type; DOE/search/UQ/sensitivity/surrogate/multiobjective numerical engines. | Partial: SciPy LHS and adaptive continuous single-objective DE with analytical engine regression; other engine roles remain open. |
 | R19 | Common experiment schema for study/physics/model/parameters/BC-load/output/objectives/constraints/validation/campaign/environment/provenance with adapter extensions. | Partial: v1 common JSON envelope and campaign schema; per-backend full semantics not all executed. |
 | R20 | Common result/metrics with validity, units, solver quality and raw/evidence refs; LLM consumes summary rather than GB raw results. | Partial: common result and CAD/linear summaries; advanced fields/quality metrics planned. |
-| R21 | Stable CLI and Python API call the same Core for study/model/parameters/validate/mesh/solve/PDE/inspect/compare/DOE/optimize/report. | Partial: core CAD/analysis/DOE + MCP exist; unsupported operations are capability gaps. |
+| R21 | Stable CLI and Python API call the same Core for study/model/parameters/validate/mesh/solve/PDE/inspect/compare/DOE/optimize/report. | Partial: CAD/analysis/DOE/optimization/bounded PDE + MCP exist; generic mesh/full report and unsupported domains remain capability gaps. |
 | R22 | Extensible repo and actual code-level Core/plugin/adapter/refactor/discard classification; no blind source copy. | Implemented current ownership/pinned submodule; future migration must keep provenance. |
 | R23 | Phase 0 architecture/Core/contracts first; only minimal mock for contract verification. | Partial foundation executed; typed CAD/analysis/DOE, broader protocol slots planned. |
-| R24 | ADR 0001 platform boundaries and cumulative ADRs for significant decisions. | Implemented ADR 0001–0004; ongoing obligation. |
+| R24 | ADR 0001 platform boundaries and cumulative ADRs for significant decisions. | Implemented ADR 0001–0006; ongoing obligation. |
 | R25 | Phase 1 actual OpenScience request → discovery → registry → CAD change/regeneration → validation/artifacts/evidence → research result. | Partial: real CadQuery/native and actual stdio MCP loop executed; live OpenScience agent round trip blocked/unverified. |
 | R26 | Phase 2 simulation-driven fixture design: exact CAD → mesh → implicit solver → mechanical metrics/constraints/evidence. | Partial: exact STEP Gmsh/CalculiX linear screen; actual contact/bolts/material/stress qualification open. |
-| R27 | Phase 3 numerical DOE/optimization through gated CAD/FEA, trace every iteration including optimizer state. | Partial: frozen seeded DOE and resumable journals; actual optimization/objective/constraint/failure policy open. |
-| R28 | Phase 4 real general PDE adapter with canonical benchmark and user-defined equation/weak form. | Planned; FEniCSx primary candidate, selection remains evidence-based. |
+| R27 | Phase 3 numerical DOE/optimization through gated CAD/FEA, trace every iteration including optimizer state. | Partial: actual adaptive engine, metric semantics/failure policy/replay integrated; final structural campaign pending; wider optimization remains open. |
+| R28 | Phase 4 real general PDE adapter with canonical benchmark and user-defined equation/weak form. | Partial: real scalar linear elliptic family and analytical drafts; final clean proof and wider custom PDE coverage open. |
 | R29 | Phase 5 implicit benchmarks: linear, geometric nonlinearity, plasticity, contact, hyperelasticity, viscoelasticity with trusted references. | Planned suite; fixture linear screen is not this full benchmark suite. |
 | R30 | Phase 6 actual OpenRadioss impact/drop with IC/gravity/contact/rigid/energy/forces/acceleration/timestep/failure validation. | Planned; no explicit acceptance claimed. |
 | R31 | Phase 7 MFront/MOOSE/multiphysics/inverse/UQ/sensitivity/surrogate/multiobjective/HPC/SSH/Slurm/PBS/physical integration. | Planned beyond current slices. |
 | R32 | Physical test architecture: fabrication/calibration/machine/measurement/durability evidence with digital-twin calibration loop. | Partial extensible evidence envelope; equipment control/physical acceptance not implemented. |
 | R33 | UI Design/Simulation/Explore/Results/Research areas after Core slice; reuse original browser UI. | Partial: original fixture GUI retained; integrated lab UI planned. |
-| R34 | Automated canonical/regression verification for CAD/rejection/linear/nonlinear/contact/explicit/PDE/DOE/optimization; physical validity separate from execution. | Partial: CAD/native/linear/DOE regression; remaining backends planned; stricter references/finer meshes open. |
+| R34 | Automated canonical/regression verification for CAD/rejection/linear/nonlinear/contact/explicit/PDE/DOE/optimization; physical validity separate from execution. | Partial: CAD/native/linear/DOE plus adaptive/analytical PDE regressions and finer draft; clean acceptance pending, nonlinear/contact/explicit references open. |
 | R35 | Dependency license/commercial/internal/redistribution/linking + Windows/Linux/WSL/container/HPC; OpenScience sandbox/telemetry/trace/endpoints/data protection. | Partial inventory/research; corporate licensing/security and platform deployment approval incomplete. |
 | R36 | GitHub private-repo attempt or local fallback; determine relationship to old fixture repo. | Supplied repo populated on main; pinned fixture submodule. Repo currently public; private/corporate choice open. |
 | R37 | Purposeful sub-agent parallel work and independent verification under one Root architecture owner. | Ongoing; relevant findings/reviews in ADR/docs; do not delegate boundaries blindly. |
@@ -89,7 +91,7 @@ the finer mesh, optimizer, PDE or engineering release gates.
 | R48 | Actually create/install/run/test/fix/retry/compare, maintaining the whole research loop; avoid installation traps. | Ongoing; actual failed CLOAD attempt and correction preserved. |
 | R49 | Recover prior state before implementation; CURRENT_STATE, ARCHITECTURE and initial ADR with all required contents. | Partial recovery, docs exist; unretrievable prior chat/product identity remains disclosed. |
 | R50 | First actual research-request-to-CAD/evidence vertical slice before FEA/optimizer; not documentation only. | Partial: real CAD and MCP contract verified, then linear/DOE added; live OpenScience acceptance remains open. |
-| R51 | Architecture changes require reasons/alternatives/requirement check/ADR/tests/contract-impact check. | Ongoing; ADR 0002–0004 retain these boundaries and verification. |
+| R51 | Architecture changes require reasons/alternatives/requirement check/ADR/tests/contract-impact check. | Ongoing; ADR 0002–0006 retain these boundaries and verification. |
 | R52 | Prioritize connected research loop, automation, human inspection, reproducibility, evidence, solver independence, extensibility and verification over feature count. | Ongoing governing acceptance principle. |
 
 ## Detailed acceptance inventory

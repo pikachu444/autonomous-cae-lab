@@ -1,5 +1,6 @@
 """Reuse the exact pinned fixture implementation; keep its rules outside Core."""
 
+import hashlib
 import math
 from pathlib import Path
 import subprocess
@@ -140,3 +141,16 @@ class FixtureCadQueryAdapter:
                                            text=True, stderr=subprocess.DEVNULL).strip()
         except (OSError, subprocess.CalledProcessError):
             return "unknown"
+
+    @staticmethod
+    def source_fingerprint() -> dict:
+        """Freeze the reused plugin commit and actual non-ignored source files."""
+        names = subprocess.check_output(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+            cwd=UPSTREAM).decode().split("\0")
+        digest = hashlib.sha256()
+        for name in sorted(set(name for name in names if name)):
+            source = UPSTREAM / name
+            digest.update(name.encode())
+            digest.update(hashlib.sha256(source.read_bytes()).digest() if source.is_file() else b"MISSING")
+        return {"commit": FixtureCadQueryAdapter.source_commit(), "files_sha256": digest.hexdigest()}

@@ -155,5 +155,41 @@ def doe_inspect(campaign_id: str) -> dict:
     return _lab().inspect_doe(campaign_id)
 
 
+@mcp.tool()
+def optimization_plan(study_id: str, campaign_id: str, backend: str, model: str,
+                      parameter_ids: list[str], objective: dict, constraints: list[dict],
+                      seed: int, max_generations: int = 1, population_size: int = 5,
+                      initial_values: dict | None = None, analysis_backend: str | None = None,
+                      analysis_settings: dict | None = None, required_validations: dict | None = None,
+                      engine: str = "scipy.differential_evolution") -> dict:
+    """Freeze research metric semantics and a deterministic bounded numerical search; no engineering release."""
+    return _lab().plan_optimization(study_id=study_id, campaign_id=campaign_id, backend=backend,
+                                    model=model, parameter_ids=parameter_ids, objective=objective,
+                                    constraints=constraints, seed=seed, max_generations=max_generations,
+                                    population_size=population_size, initial_values=initial_values,
+                                    analysis_backend=analysis_backend, analysis_settings=analysis_settings,
+                                    required_validations=required_validations, engine=engine)
+
+
+@mcp.tool()
+def optimization_run(campaign_id: str) -> dict:
+    """Run or exactly replay adaptive numerical evaluations; preserve invalid evidence and stop backend failures."""
+    return _lab().run_optimization(campaign_id)
+
+
+@mcp.tool()
+def optimization_inspect(campaign_id: str) -> dict:
+    """Read checked optimizer state, valid incumbent, metric semantics and every immutable evaluation."""
+    return _lab().inspect_optimization(campaign_id)
+
+
+@mcp.tool()
+def pde_run(study_id: str, experiment_id: str, backend: str, settings: dict,
+            hypothesis_id: str | None = None) -> dict:
+    """Run a declared weak-form PDE and record analytical error/field evidence through the common Core."""
+    return _lab().run_pde(study_id=study_id, experiment_id=experiment_id, backend=backend,
+                           settings=settings, hypothesis_id=hypothesis_id)
+
+
 if __name__ == "__main__":
     mcp.run(transport="stdio")

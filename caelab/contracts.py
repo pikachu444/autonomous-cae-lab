@@ -63,5 +63,33 @@ class DOEAdapter(Protocol):
                ) -> tuple[list[dict[str, float]], dict]: ...
 
 
+class OptimizationAdapter(Protocol):
+    """Numerical search; Core supplies checked objective/constraint feedback."""
+
+    engine: str
+    version: str
+
+    def describe(self, variables: list[dict], *, seed: int, max_generations: int,
+                 population_size: int, initial_values: dict | None,
+                 constraint_count: int) -> dict: ...
+
+    def run(self, variables: list[dict], evaluate: Any, *, seed: int,
+            max_generations: int, population_size: int, initial_values: dict | None,
+            constraint_count: int) -> dict: ...
+
+
+class PDEAdapter(Protocol):
+    """A mathematical model can produce common evidence without a CAD parent."""
+
+    backend: str
+    version: str
+    domain: str
+    physics_domain: str
+    analysis_type: str
+    default_metrics: list[str]
+
+    def solve(self, output: Path, settings: dict[str, Any]) -> dict[str, Any]: ...
+
+
 class CapabilityUnavailable(RuntimeError):
     """A backend has no executable adapter in this installation."""

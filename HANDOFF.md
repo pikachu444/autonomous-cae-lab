@@ -14,6 +14,15 @@ handoff record, not a claim that the model retains every past chat forever.
 
 ## Verified checkpoint
 
+**Integrated continuation under verification:** bounded numerical optimization
+and a declared FEniCSx weak-form PDE now use the shared Core/API/CLI/MCP. Read
+ADRs 0005/0006 and the acceptance documents before extending them. Dirty-source
+drafts passed the finer 1.5 mm mesh and analytical PDE checks; they remain
+separate from the required final clean-source runs. Core/adapter/engine
+regressions and expanded MCP acceptance are being verified, then all three
+continuation scripts must execute in fresh stores at a committed source revision.
+No draft or solver success establishes engineering release.
+
 **Primary local restoration:** the checkout now exists at
 `C:\SourceCodes\autonomous-cae-lab`; the current session directly completed
 Core 32 tests, upstream 58 tests, MCP, CAD demo and native/structural/DOE
@@ -57,8 +66,12 @@ failed CLOAD parser attempt are in `docs/STRUCTURAL_SCREEN.md`,
   stores/ledgers, campaign journal and typed contracts.
 - `caelab/adapters/`: CadQuery/FreeCAD bridges, fixture CalculiX child-run and
   saddle-load implementation. Fixture assumptions stay behind adapters.
-- `caelab/optimizers/scipy_lhs.py`: deterministic continuous Latin hypercube
-  sampling with recorded seed/version. No actual numerical optimizer yet.
+- `caelab/optimizers/`: deterministic SciPy Latin hypercube and bounded adaptive
+  differential evolution; exact numeric generation stays inside the engine.
+- `caelab/optimization.py`: source/registry/plugin-frozen search plans,
+  scalar/unit/check gates, journals/checkpoints and exact interruption replay.
+- `caelab/pde.py` plus FEniCSx adapter/worker: common PDE records with no CAD
+  parent, bounded weak-form input, isolated system Python and analytical checks.
 - `plugins/fixture_design/upstream`: tested fixture source, native worker,
   domain rules, browser GUI and exporters; pinned submodule, not copied code.
 - `openscience/`: common research operation contract and local stdio MCP.
@@ -68,10 +81,11 @@ failed CLOAD parser attempt are in `docs/STRUCTURAL_SCREEN.md`,
 
 Public operations currently include study create/inspect; native new/import/
 inspect/select-final; parameter discover/register/list/refresh; CAD experiment
-run/inspect/summary/compare; structural child run; DOE plan/run/inspect. API,
-CLI and MCP use the same Core. The basic `report` CLI returns a research
-summary. Full research-report generation, PDE/optimization/unified UI/HPC/
-physical operations remain scope requirements, not completed capabilities.
+run/inspect/summary/compare; structural child run; DOE and optimization
+plan/run/inspect; declared PDE run. API, CLI and MCP use the same Core. The
+basic `report` CLI returns a research summary. Full research-report generation,
+general nonlinear/coupled PDE, wider optimization engines, unified UI/HPC and
+physical operations remain scope requirements.
 
 ## Local checkout and core verification
 
@@ -161,6 +175,12 @@ CAD/results in this currently public Git repository.
 3. **General PDE slice:** select/test a canonical user weak form via a real
    FEniCSx or evidence-supported adapter; verify analytical/reference error
    through the same common result/evidence contract.
+
+The three integrated scripts are `scripts.verify_finer_mesh`,
+`scripts.verify_optimization` and `scripts.verify_pde`. Run each with `--store`
+pointing to a fresh path after the source/tests/review checkpoint. Record clean
+commit, actual versions, complete results/ledger/artifact checks and exact CI
+run before replacing the pending continuation status above.
 4. In parallel where supported: live OpenScience MCP agent acceptance;
    arbitrary GUI-edited FCStd refresh/index drift and registration transaction
    review; durable raw-artifact retention and corporate license/security review.

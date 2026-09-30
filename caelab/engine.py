@@ -9,8 +9,10 @@ from filelock import FileLock
 
 from .adapters.fixture_cadquery import FixtureCadQueryAdapter
 from .adapters.fixture_freecad import FixtureFreeCADAdapter
-from .contracts import AnalysisAdapter, CADAdapter, DOEAdapter, CapabilityUnavailable
+from .contracts import (AnalysisAdapter, CADAdapter, DOEAdapter, OptimizationAdapter,
+                        PDEAdapter, CapabilityUnavailable)
 from .registry import register_parameter, validate_assignments
+from .outcomes import validate_outcome
 from .schema import validate as validate_schema
 from .storage import (artifact_manifest, canonical_hash, check_artifacts, check_id,
                       load_json, save_json, source_identity, utc_now)
@@ -20,7 +22,9 @@ import hashlib
 class Lab:
     def __init__(self, store: str | Path, *, adapters: dict[str, CADAdapter] | None = None,
                  analysis_adapters: dict[str, AnalysisAdapter] | None = None,
-                 doe_adapters: dict[str, DOEAdapter] | None = None):
+                 doe_adapters: dict[str, DOEAdapter] | None = None,
+                 optimization_adapters: dict[str, OptimizationAdapter] | None = None,
+                 pde_adapters: dict[str, PDEAdapter] | None = None):
         self.store = Path(store).resolve()
         self.adapters = adapters if adapters is not None else {
             FixtureCadQueryAdapter.backend: FixtureCadQueryAdapter(),
@@ -34,6 +38,14 @@ class Lab:
             from .optimizers.scipy_lhs import ScipyLatinHypercube
             doe_adapters = {ScipyLatinHypercube.engine: ScipyLatinHypercube()}
         self.doe_adapters = doe_adapters
+        if optimization_adapters is None:
+            from .optimizers.scipy_de import ScipyDifferentialEvolution
+            optimization_adapters = {ScipyDifferentialEvolution.engine: ScipyDifferentialEvolution()}
+        self.optimization_adapters = optimization_adapters
+        if pde_adapters is None:
+            from .adapters.fenicsx_pde import FenicsxPDEAdapter
+            pde_adapters = {FenicsxPDEAdapter.backend: FenicsxPDEAdapter()}
+        self.pde_adapters = pde_adapters
 
     def create_native_model(self, *, template: str = "roller_support") -> dict[str, Any]:
         return self._adapter("fixture.freecad").create_sample(template)
@@ -151,7 +163,9 @@ class Lab:
                        model: str, values: dict[str, Any],
                        hypothesis_id: str | None = None,
                        settings: dict[str, Any] | None = None,
-                       campaign_id: str | None = None) -> dict[str, Any]:
+                       campaign_id: str | None = None,
+                       objectives: list[dict] | None = None,
+                       constraints: list[dict] | None = None) -> dict[str, Any]:
         check_id(experiment_id)
         if campaign_id is not None:
             check_id(campaign_id)
@@ -179,7 +193,8 @@ class Lab:
                                                           "analysis_type": adapter.analysis_type, "backend": None},
                     "model": {"geometry": {"backend": backend, "source": model}},
                     "parameters": deepcopy(values), "outputs": {"metrics": adapter.default_metrics},
-                    "objectives": [], "constraints": [], "validation_requirements": [],
+                    "objectives": deepcopy(objectives or []),
+                    "constraints": deepcopy(constraints or []), "validation_requirements": [],
                     "execution": deepcopy(settings or {}), "registry_revision": registry["revision"]}
         if campaign_id is not None:
             proposal["campaign_id"] = campaign_id
@@ -339,7 +354,8 @@ class Lab:
                     "parameters": deepcopy(parent["input_parameters"]),
                     "loads": [deepcopy(settings["load"])] if "load" in settings else [],
                     "outputs": {"metrics": adapter.default_metrics},
-                    "objectives": [], "constraints": [], "validation_requirements": [],
+                    "objectives": deepcopy(parent_proposal["objectives"]),
+                    "constraints": deepcopy(parent_proposal["constraints"]), "validation_requirements": [],
                     "execution": deepcopy(settings),
                     "registry_revision": parent["registry_revision"]}
         if "campaign_id" in parent:
@@ -362,31 +378,8 @@ class Lab:
         outcome = None
         try:
             outcome = adapter.solve(parent, parent_root, folder / "simulation", deepcopy(settings))
-            if (not isinstance(outcome, dict) or outcome.get("status") not in ("COMPLETED", "REJECTED") or
-                    not isinstance(outcome.get("checks"), list) or
-                    not isinstance(outcome.get("metrics"), dict) or
-                    not isinstance(outcome.get("provenance"), dict) or
-                    not isinstance(outcome.get("solver_status"), str) or
-                    not isinstance(outcome.get("pending_validations"), list) or
-                    any(not isinstance(k, str) or not k for k in outcome["pending_validations"]) or
-                    type(outcome.get("converged")) not in (bool, type(None))):
-                raise ValueError("Analysis adapter returned an invalid common outcome")
-            if any(not isinstance(check, dict) or
-                   check.get("status") not in ("PASS", "FAIL", "UNKNOWN", "WARNING") or
-                   not isinstance(check.get("code"), str) or not check["code"]
-                   for check in outcome["checks"]):
-                raise ValueError("Analysis adapter returned an invalid validation check")
-            if any(not isinstance(metric, dict) or
-                   not {"value", "unit", "valid"} <= metric.keys() or
-                   not isinstance(metric["unit"], str) or
-                   type(metric["valid"]) is not bool or
-                   (not metric["valid"] and not metric.get("reason"))
-                   for metric in outcome["metrics"].values()):
-                raise ValueError("Analysis adapter returned an invalid metric")
-            if (outcome["status"] == "COMPLETED" and
-                    (outcome["converged"] is not True or not outcome["metrics"])):
-                raise ValueError("Completed analysis requires convergence and metrics")
-            canonical_hash(outcome)  # Reject NaN and non-serializable nested observations.
+            validate_outcome(outcome)
+            execution_error = outcome["solver_status"] == "FAILED_EXECUTION"
         except Exception as exc:
             execution_error = True
             outcome = {"status": "REJECTED", "checks": [{"code": "analysis_execution",
@@ -559,3 +552,34 @@ class Lab:
     def inspect_doe(self, campaign_id: str) -> dict[str, Any]:
         from .campaign import inspect_doe
         return inspect_doe(self, campaign_id)
+
+    def plan_optimization(self, *, study_id: str, campaign_id: str, backend: str,
+                          model: str, parameter_ids: list[str], objective: dict,
+                          constraints: list[dict], seed: int, max_generations: int = 1,
+                          population_size: int = 5, initial_values: dict | None = None,
+                          analysis_backend: str | None = None,
+                          analysis_settings: dict | None = None,
+                          required_validations: dict | None = None,
+                          engine: str = "scipy.differential_evolution") -> dict:
+        from .optimization import plan_optimization
+        return plan_optimization(self, study_id=study_id, campaign_id=campaign_id,
+                                 backend=backend, model=model, parameter_ids=parameter_ids,
+                                 objective=objective, constraints=constraints, seed=seed,
+                                 max_generations=max_generations, population_size=population_size,
+                                 initial_values=initial_values, analysis_backend=analysis_backend,
+                                 analysis_settings=analysis_settings,
+                                 required_validations=required_validations, engine=engine)
+
+    def run_optimization(self, campaign_id: str) -> dict:
+        from .optimization import run_optimization
+        return run_optimization(self, campaign_id)
+
+    def inspect_optimization(self, campaign_id: str) -> dict:
+        from .optimization import inspect_optimization
+        return inspect_optimization(self, campaign_id)
+
+    def run_pde(self, *, study_id: str, experiment_id: str, backend: str,
+                settings: dict, hypothesis_id: str | None = None) -> dict:
+        from .pde import run_pde
+        return run_pde(self, study_id=study_id, experiment_id=experiment_id,
+                       backend=backend, settings=settings, hypothesis_id=hypothesis_id)

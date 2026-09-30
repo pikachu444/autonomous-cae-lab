@@ -99,3 +99,4 @@ class FixtureFreeCADAdapter:
                        source_sha256=result["source_sha256"], raw_result="cad/result.json")
 
     source_commit = staticmethod(FixtureCadQueryAdapter.source_commit)
+    source_fingerprint = staticmethod(FixtureCadQueryAdapter.source_fingerprint)

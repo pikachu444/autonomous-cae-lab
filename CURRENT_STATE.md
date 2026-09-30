@@ -15,9 +15,45 @@ These new local results supersede the old cloud environment limitation below;
 the older verification history remains preserved. Release remains
 `NOT_RELEASED`, with strength/contact/material/physical requirements `UNKNOWN`.
 
-The next numerical gate is the unchanged 1.5 mm saddle-load continuation,
-then actual numerical optimization and a canonical weak-form PDE. Their
-implementation/execution must be recorded separately from environment setup.
+## Continuation implementation and preliminary execution
+
+Root integrated the unchanged 1.5 mm saddle-load benchmark, a real public SciPy
+differential-evolution engine and bounded FEniCSx weak-form PDE operations.
+Optimization uses explicit CAD/analysis scalar metric selectors, frozen
+sources/registry/plugin/runtime, numerical gates and exact evaluation replay.
+PDE records use the common evidence/result envelope without a CAD parent.
+Architecture/contract changes and alternatives are in ADRs 0005/0006.
+
+The dirty-source finer draft passed: 2→1.5 mm displacement change
+`0.008817093498804473`, finest displacement `0.005758587` mm, patch-area
+relative error `0.004110449222696655`. The dirty PDE draft passed its
+manufactured solution (L2 `0.0013504362485536208`, finest rate
+`1.9934926491266785`), a reaction-3 equation, wrong-reference numerical rejection
+and unsafe-expression preflight rejection. Independent inspection verified
+their experiment ledgers and artifacts. These drafts are retained in
+`artifacts/local-20260930-finer-draft` and `artifacts/local-20260930-pde-draft`;
+they are not final clean-source proof after subsequent repairs.
+
+Independent reviewers required source-qualified metrics, finite validity and
+numerical-check gating, symbolic analytical PDE errors and actual residuals.
+Root repaired a journal-before-checkpoint interruption gap, contradictory
+common outcomes, completion-state compatibility and plugin fingerprint/version
+drift checks. Separate implementation workers own engine/adapter tests and an
+independent worker owns Core interruption/failure/tamper regressions. Root owns
+all shared interfaces and integration. The expanded local MCP test completed
+CAD, DOE, nine real CAD optimizer evaluations and PDE preflight rejection;
+it is not a live OpenScience agent run.
+
+Final clean-source finer/real-structural-optimization/PDE acceptance and exact
+CI evidence are pending this verification checkpoint. Engineering decision
+remains `NOT_RELEASED`; unknown physical and strength requirements are retained.
+
+Verified implementation checks: the existing 32 regressions, 54 engine tests
+and 76 PDE-adapter tests passed together (162 total, 104 seconds). The expanded
+MCP test passed. Independent review closed with no remaining actionable finding
+at source hash `a9f9e28ac755ded2f1739159315a463da45a04c724fc1ade7840ddab92534e5f`.
+The separate 55 Core interruption/failure/tamper tests are still running; their
+final result must be recorded before claiming the integrated test gate passed.
 
 ## Recovered decisions and sources
 
@@ -44,7 +80,7 @@ The upstream repository is retained as a pinned **git submodule**, called throug
 
 Refactor candidates in upstream: move `DESIGNS` away from a repository-global runtime path; separate the roller example's bore check from generic `freecad_worker.py`; expose native parameter definitions without global module patching. Legacy demo and duplicated report formats are retained upstream as provenance, not copied into Core. No license file was found at the upstream root; clarify licensing before distributing bundled code.
 
-## Still unverified or undecided
+## Historical verification progression and remaining limits
 
 - Live OpenScience agent/tool round trip; its exact product identity needs confirmation from the unavailable older transcript. Local MCP transport was tested; OpenScience CLI v2.0.145 could not load config in this container because its PID identity check saw an inconsistent `/proc` view.
 - Local native FreeCAD execution remains unavailable, but the Core-to-FreeCAD Part/Sketcher acceptance passed in GitHub Actions run 36632876593. The result artifact was inspected; details and the remaining Sketcher index-shift discovery and cross-file registration transaction limits are in `docs/NATIVE_ACCEPTANCE.md`. Physical machine interface, printed-part strength and load/fatigue tests remain unknown.

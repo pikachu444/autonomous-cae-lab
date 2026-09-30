@@ -93,7 +93,32 @@ def parser():
     plan.add_argument("--analysis-settings", help="JSON load, material and mesh inputs")
     doe_sub.add_parser("run").add_argument("--campaign", required=True)
     doe_sub.add_parser("inspect").add_argument("--campaign", required=True)
-    for future in ("mesh", "pde", "optimize"):
+    optimize = sub.add_parser("optimize")
+    opt_sub = optimize.add_subparsers(dest="action", required=True)
+    opt_plan = opt_sub.add_parser("plan")
+    opt_plan.add_argument("--study", required=True)
+    opt_plan.add_argument("--campaign", required=True)
+    opt_plan.add_argument("--backend", default="fixture.cadquery")
+    opt_plan.add_argument("--model", required=True)
+    opt_plan.add_argument("--variables", nargs="+", required=True)
+    opt_plan.add_argument("--objective", required=True, help="JSON metric selector and direction")
+    opt_plan.add_argument("--constraints", required=True, help="JSON metric constraints with units/limits/scales")
+    opt_plan.add_argument("--seed", type=int, required=True)
+    opt_plan.add_argument("--generations", type=int, default=1)
+    opt_plan.add_argument("--population", type=int, default=5)
+    opt_plan.add_argument("--initial-values", help="JSON research parameter values")
+    opt_plan.add_argument("--analysis-backend")
+    opt_plan.add_argument("--analysis-settings")
+    opt_plan.add_argument("--required-validations", help="JSON cad/analysis check names")
+    opt_plan.add_argument("--engine", default="scipy.differential_evolution")
+    opt_sub.add_parser("run").add_argument("--campaign", required=True)
+    opt_sub.add_parser("inspect").add_argument("--campaign", required=True)
+    pde = sub.add_parser("pde")
+    pde.add_argument("--study", required=True)
+    pde.add_argument("--experiment", required=True)
+    pde.add_argument("--backend", default="pde.fenicsx")
+    pde.add_argument("--settings", required=True, help="JSON mathematical model, mesh and benchmark limits")
+    for future in ("mesh",):
         sub.add_parser(future)
     sub.add_parser("demo")
     return p
@@ -158,6 +183,25 @@ def main(argv=None):
                 _json(lab.run_doe(args.campaign))
             else:
                 _json(lab.inspect_doe(args.campaign))
+        elif args.command == "optimize":
+            if args.action == "plan":
+                _json(lab.plan_optimization(study_id=args.study, campaign_id=args.campaign,
+                                           backend=args.backend, model=args.model,
+                                           parameter_ids=args.variables, objective=json.loads(args.objective),
+                                           constraints=json.loads(args.constraints), seed=args.seed,
+                                           max_generations=args.generations, population_size=args.population,
+                                           initial_values=json.loads(args.initial_values) if args.initial_values else None,
+                                           analysis_backend=args.analysis_backend,
+                                           analysis_settings=json.loads(args.analysis_settings) if args.analysis_settings else None,
+                                           required_validations=json.loads(args.required_validations) if args.required_validations else None,
+                                           engine=args.engine))
+            elif args.action == "run":
+                _json(lab.run_optimization(args.campaign))
+            else:
+                _json(lab.inspect_optimization(args.campaign))
+        elif args.command == "pde":
+            _json(lab.run_pde(study_id=args.study, experiment_id=args.experiment,
+                              backend=args.backend, settings=json.loads(args.settings)))
         elif args.command == "demo":
             lab.create_study("S-demo", "3-point bending fixture", "Does a wider roller support remain CAD-valid?",
                              "Widening the support from 32 to 38 mm retains hole clearance.",

@@ -19,7 +19,7 @@ OpenScience selects research questions, variables and campaign strategy and inte
 
 ## Boundaries and contracts
 
-`schemas/experiment.schema.json` and `schemas/result.schema.json` define versioned JSON envelopes. `caelab.schema` validates them again in Python. Executable Core operations include `create_study`, `discover_parameters`, `register_parameter`, `run_experiment`, `run_analysis`, `inspect_experiment`, `compare`, `plan_doe`, `run_doe` and `inspect_doe`. Standalone generic `mesh`, `pde_solve` and `optimize` operations remain future capabilities. OpenScience uses these operations and never needs native property paths. Unimplemented operations return explicit capability errors.
+`schemas/experiment.schema.json` and `schemas/result.schema.json` define versioned JSON envelopes. `caelab.schema` validates them again in Python. Executable Core operations include study/parameter/CAD/analysis/inspection/DOE, `plan_optimization`, `run_optimization`, `inspect_optimization` and `run_pde`. Standalone generic `mesh` remains a future capability. PDE and optimization have bounded adapter capabilities rather than universal backend coverage. OpenScience uses registered research IDs and declared mathematics, without native CAD paths or solver syntax. Unimplemented operations return explicit capability errors.
 
 A registry entry maps `parameter_id` to an adapter-owned native reference (`backend`, `document`, `object`, `path`) with unit, type, bounds, fixed/free, dependency references, source, revision and geometry-effect evidence. Only explicit registration promotes a discovery candidate into a research variable. The adapter verifies that a candidate is writable and influences the final model where the backend permits. Core checks types, bounds and fixed values before CAD work, and validates dependency references at registration. Adapter-owned expressions and model relations are checked during CAD regeneration; Core does not evaluate arbitrary CAD formulas.
 
@@ -29,6 +29,21 @@ A registry entry maps `parameter_id` to an adapter-owned native reference (`back
 
 `DOEAdapter.sample(registered_variables, count, seed)` owns numerical point generation. `plan_doe` freezes every point and registry/source/adapter identity before execution; `run_doe` reuses the CAD and analysis Core operations with one journal checkpoint per point. The first SciPy Latin hypercube adapter handles continuous variables only, and invalid CAD points have no solver child. Engine choice, rather than solver-specific syntax, is exposed to OpenScience. See ADR 0003 and `docs/DOE_CAMPAIGNS.md`.
 
+`OptimizationAdapter.describe/run` owns adaptive candidate generation and public
+numerical-engine settings. Core freezes source/registry/plugin identity,
+objective/constraint source and units, required numerical checks and failure
+policy. It evaluates candidates through the existing CAD/analysis operations,
+persists exact journals/checkpoints and resumes by deterministic evaluation
+replay. Invalid observations never become an incumbent. See ADR 0005 and
+`docs/OPTIMIZATION.md`.
+
+`PDEAdapter.solve(output, settings)` operates on a declared mathematical model
+without a fictitious CAD parent. `run_pde` uses the common experiment/result
+envelope, model-revision extension and checked evidence/artifact ledger. The
+first FEniCSx adapter owns its bounded AST-to-UFL translation and separate
+system-Python process. Canonical error and convergence evidence remain distinct
+from physical qualification. See ADR 0006 and `docs/PDE_ACCEPTANCE.md`.
+
 Execution order: proposal → parameter checks → CAD regeneration → geometry/domain/manufacturing/interface checks → mesh and solver preflight → simulation → numerical/engineering checks → evidence and decision. A FAIL in a blocking gate suppresses later work. An UNKNOWN blocking release requirement prevents `RELEASED`; it does not fabricate a FAIL or PASS. The Phase 1 CAD-only operation stops before mesh and returns `NOT_RELEASED` even if its CAD checks pass.
 
 Each validation record has `validator`, `type`, `status` (`PASS`, `FAIL`, `UNKNOWN`, `WARNING`), `blocking`, threshold/expected, timestamp, evidence IDs and related revision/run. Evidence is a distinct observation, with metric/value/unit/method/source/artifact linkage. Result metrics contain values and explicit validity or reason; an absent FEA metric is never zero. An artifact record includes relative path, SHA-256, byte size, MIME and revision. The experiment manifest links study/hypothesis → proposal → registry snapshot → CAD revision → artifacts/evidence/validations → decision; future mesh, deck, solver and physical-test nodes extend the same thread.
@@ -37,7 +52,7 @@ The experiment store is append-only by experiment ID. Each run writes a new dire
 
 ## Adapters and plugins
 
-Core has CAD, preprocessor, structural solver, PDE, postprocessor, optimizer and future physical-test protocol slots. `FixtureCadQueryAdapter` delegates to the pinned `auto-fixture-design` implementation. `FixtureFreeCADAdapter` wraps its inspect/register/generate worker and FCStd in an isolated child process; the Core bridge was executed in a [FreeCAD GitHub Actions acceptance](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36632876593), while the local container still lacks FreeCADCmd. Fixture-specific checks stay in the upstream plugin, not in `caelab`.
+Core has CAD, preprocessor, structural solver, PDE, postprocessor, optimizer and future physical-test protocol slots. `FixtureCadQueryAdapter` delegates to the pinned `auto-fixture-design` implementation. `FixtureFreeCADAdapter` wraps its inspect/register/generate worker and FCStd in an isolated child process; the Core bridge passed historical [FreeCAD CI acceptance](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36632876593) and the primary Windows/WSL local restoration. See `docs/LOCAL_EXECUTION.md`. Fixture-specific checks stay in the upstream plugin, not in `caelab`.
 
 Candidates for later stages: Code_Aster with SALOME-MECA GUI for nonlinear implicit, CalculiX/PrePoMax as alternatives, OpenRadioss for explicit, FEniCSx for weak-form research, GetDP/Gmsh for GUI formulation, MOOSE for larger multiphysics, MFront/MTest for constitutive verification, DAKOTA for black-box DOE/UQ, OpenMDAO for MDO, pymoo for multiobjective and PETSc TAO/MOOSE for PDE-constrained work. A candidate becomes an adapter only after an executable benchmark and source-backed capability/license check. See `docs/BACKEND_EVALUATION.md`.
 
