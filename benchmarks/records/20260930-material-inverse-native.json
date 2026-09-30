@@ -1,0 +1,577 @@
+{
+  "artifact_retention": "Fresh local ignored store; sources and binaries retained only as experiment artifacts",
+  "backend": "material.mfront.inverse",
+  "date": "2026-09-30",
+  "decision": "NOT_RELEASED",
+  "exact_source_ci": "NOT_RUN",
+  "frozen_packet": {
+    "decision": "NOT_RELEASED",
+    "engine": {
+      "initial_modulus_mpa": 210000.0,
+      "max_generations": 1,
+      "maximum_evaluations": 10,
+      "name": "scipy.differential_evolution",
+      "population_size": 5,
+      "seed": 13
+    },
+    "input": {
+      "declaration_paths": [
+        [
+          "model",
+          "materials",
+          0,
+          "youngs_modulus_mpa"
+        ]
+      ],
+      "id": "youngs_modulus_mpa",
+      "label": "Young modulus",
+      "lower": 100000.0,
+      "settings_path": [
+        "material",
+        "youngs_modulus_mpa"
+      ],
+      "unit": "MPa",
+      "upper": 300000.0,
+      "value": 210000.0
+    },
+    "objective": {
+      "direction": "minimize",
+      "metric": "inverse_residual",
+      "source": "model",
+      "unit": "1"
+    },
+    "oracle": {
+      "acceptance": "Best observed residual must improve over the initial candidate; no final-fit tolerance",
+      "known_modulus_mpa": 200000.0,
+      "pointwise_objective_agreement_absolute": 1e-12
+    },
+    "pending_validations": [
+      "model_qualification",
+      "material_qualification",
+      "physical_validation",
+      "static_strength",
+      "fatigue_durability",
+      "solver_coupling",
+      "corporate_license_approval",
+      "corporate_security_approval",
+      "identification_qualification"
+    ],
+    "required_validations": {
+      "model": [
+        "reliable_integrations",
+        "native_tensor_mapping",
+        "immutable_probe_state",
+        "driver_continuity",
+        "nominal_history",
+        "max_physical_stress_error",
+        "max_kelvin_stress_error",
+        "cross_driver_stress_error",
+        "analytical_tangent_relative_error",
+        "fd_tangent_relative_error_1e-07",
+        "fd_tangent_relative_error_1e-08",
+        "fd_tangent_relative_error_1e-09",
+        "elastic_energy_density",
+        "inverse_observation_contract"
+      ]
+    },
+    "settings": {
+      "case": "isotropic_small_strain",
+      "history": [
+        {
+          "strain": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "time_s": 0.0
+        },
+        {
+          "strain": [
+            0.001,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "time_s": 1.0
+        },
+        {
+          "strain": [
+            0.0,
+            -0.0007,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "time_s": 2.0
+        },
+        {
+          "strain": [
+            0.0,
+            0.0,
+            0.0004,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "time_s": 3.0
+        },
+        {
+          "strain": [
+            0.0,
+            0.0,
+            0.0,
+            0.0003,
+            0.0,
+            0.0
+          ],
+          "time_s": 4.0
+        },
+        {
+          "strain": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -0.0002,
+            0.0
+          ],
+          "time_s": 5.0
+        },
+        {
+          "strain": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0005
+          ],
+          "time_s": 6.0
+        },
+        {
+          "strain": [
+            0.0008,
+            -0.0003,
+            0.0002,
+            0.00015,
+            -0.00025,
+            0.00035
+          ],
+          "time_s": 7.0
+        },
+        {
+          "strain": [
+            -0.0008,
+            0.0003,
+            -0.0002,
+            -0.00015,
+            0.00025,
+            -0.00035
+          ],
+          "time_s": 8.0
+        },
+        {
+          "strain": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "time_s": 9.0
+        },
+        {
+          "strain": [
+            0.0008,
+            -0.0003,
+            0.0002,
+            0.00015,
+            -0.00025,
+            0.00035
+          ],
+          "time_s": 10.0
+        },
+        {
+          "strain": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "time_s": 11.0
+        }
+      ],
+      "limits": {
+        "finite_difference_steps": [
+          1e-07,
+          1e-08,
+          1e-09
+        ],
+        "stress_absolute_mpa": 1e-10,
+        "stress_relative": 1e-08,
+        "tangent_relative": 1e-08
+      },
+      "material": {
+        "poisson_ratio": 0.3,
+        "youngs_modulus_mpa": 210000.0
+      },
+      "observation_dataset": {
+        "observations": [
+          {
+            "component": "xx",
+            "quantity": "stress",
+            "scale_mpa": 300.0,
+            "time_s": 1.0,
+            "unit": "MPa",
+            "value": 269.2307692307692
+          }
+        ],
+        "schema_version": "1",
+        "sha256": "7cee08a79e631f26a1957b787c437c8a26a9024f77c54b75fc041feeee428377",
+        "source": {
+          "generator": "independent_python_hooke_v1",
+          "kind": "SYNTHETIC_REFERENCE",
+          "known_material": {
+            "poisson_ratio": 0.3,
+            "youngs_modulus_mpa": 200000.0
+          },
+          "physical_measurement": false,
+          "temperature_k": 293.15
+        }
+      },
+      "temperature_k": 293.15
+    }
+  },
+  "implementation_source_hashes": {
+    "caelab/adapters/mfront_inverse.py": "48860e6a34316ed79375359a01b077d55b75e88ef13b107a9fa950fa3f63f187",
+    "caelab/adapters/mfront_material.py": "01b27ce119afd33e7404bac8960d65e5d17f8aa5648b79fcbdb20ca905187e0c",
+    "caelab/adapters/mfront_material_worker.py": "3d909f2e68a29807a6e9333817b6eed3308c51bca126a029465f347f61b71c99",
+    "plugins/material_point/inverse_reference.py": "672895563072afd482a9c38da8cd0756d19cbbef5e371faaa653c814377e29f6",
+    "plugins/material_point/reference.py": "fc06840f0d36c5a94db4c09123d53c9355bceb38027d6e4b5a5f908c07391762"
+  },
+  "independent_review": "PENDING",
+  "material_and_shared_regressions": {
+    "command": "python -m pytest -q tests/test_material_point_reference.py tests/test_mfront_material_adapter.py tests/test_declared_model.py tests/test_model_parameters.py tests/test_model_optimization.py",
+    "count": 204,
+    "elapsed_seconds": 221.41,
+    "scope": "Existing material/declared-model plus integrated shared model input/search regressions; no new native proof",
+    "status": "PASS"
+  },
+  "material_precursor_source_commit": "c29d6af2a47578b5100ade7d52109d3772e71940",
+  "model_declaration": {
+    "boundary_conditions": [],
+    "initial_conditions": [
+      {
+        "type": "strain",
+        "unit": "1",
+        "value": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "type": "stress",
+        "unit": "MPa",
+        "value": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "type": "temperature",
+        "unit": "K",
+        "value": 293.15
+      }
+    ],
+    "loads": [
+      {
+        "components": [
+          "xx",
+          "yy",
+          "zz",
+          "xy",
+          "xz",
+          "yz"
+        ],
+        "convention": "physical_tensor",
+        "history": [
+          {
+            "strain": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "time_s": 0.0
+          },
+          {
+            "strain": [
+              0.001,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "time_s": 1.0
+          },
+          {
+            "strain": [
+              0.0,
+              -0.0007,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "time_s": 2.0
+          },
+          {
+            "strain": [
+              0.0,
+              0.0,
+              0.0004,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "time_s": 3.0
+          },
+          {
+            "strain": [
+              0.0,
+              0.0,
+              0.0,
+              0.0003,
+              0.0,
+              0.0
+            ],
+            "time_s": 4.0
+          },
+          {
+            "strain": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              -0.0002,
+              0.0
+            ],
+            "time_s": 5.0
+          },
+          {
+            "strain": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0005
+            ],
+            "time_s": 6.0
+          },
+          {
+            "strain": [
+              0.0008,
+              -0.0003,
+              0.0002,
+              0.00015,
+              -0.00025,
+              0.00035
+            ],
+            "time_s": 7.0
+          },
+          {
+            "strain": [
+              -0.0008,
+              0.0003,
+              -0.0002,
+              -0.00015,
+              0.00025,
+              -0.00035
+            ],
+            "time_s": 8.0
+          },
+          {
+            "strain": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "time_s": 9.0
+          },
+          {
+            "strain": [
+              0.0008,
+              -0.0003,
+              0.0002,
+              0.00015,
+              -0.00025,
+              0.00035
+            ],
+            "time_s": 10.0
+          },
+          {
+            "strain": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "time_s": 11.0
+          }
+        ],
+        "strain_measure": "infinitesimal",
+        "time_unit": "s",
+        "type": "prescribed_strain_history",
+        "unit": "1"
+      }
+    ],
+    "model": {
+      "geometry": null,
+      "inverse_problem": {
+        "kind": "bounded_synthetic_reference_prerequisite",
+        "objective": {
+          "definition": "((actual physical stress xx at time 1 s - target MPa) / 300 MPa)^2",
+          "direction": "minimize",
+          "metric": "inverse_residual",
+          "unit": "1"
+        },
+        "observation_dataset": {
+          "observations": [
+            {
+              "component": "xx",
+              "quantity": "stress",
+              "scale_mpa": 300.0,
+              "time_s": 1.0,
+              "unit": "MPa",
+              "value": 269.2307692307692
+            }
+          ],
+          "schema_version": "1",
+          "sha256": "7cee08a79e631f26a1957b787c437c8a26a9024f77c54b75fc041feeee428377",
+          "source": {
+            "generator": "independent_python_hooke_v1",
+            "kind": "SYNTHETIC_REFERENCE",
+            "known_material": {
+              "poisson_ratio": 0.3,
+              "youngs_modulus_mpa": 200000.0
+            },
+            "physical_measurement": false,
+            "temperature_k": 293.15
+          }
+        },
+        "qualification": "UNKNOWN: no measured material, statistical fit, global optimum or engineering release"
+      },
+      "materials": [
+        {
+          "id": "isotropic-elastic",
+          "law": "isotropic_linear_elasticity",
+          "poisson_ratio": 0.3,
+          "qualified": false,
+          "stress_unit": "MPa",
+          "youngs_modulus_mpa": 210000.0
+        }
+      ],
+      "mesh": null
+    },
+    "outputs": {
+      "fields": [
+        {
+          "components": [
+            "xx",
+            "yy",
+            "zz",
+            "xy",
+            "xz",
+            "yz"
+          ],
+          "name": "stress",
+          "unit": "MPa"
+        },
+        {
+          "name": "tangent_kelvin",
+          "shape": [
+            6,
+            6
+          ],
+          "unit": "MPa"
+        }
+      ],
+      "history": [
+        {
+          "name": "stress_physical",
+          "unit": "MPa"
+        },
+        {
+          "name": "elastic_energy_density",
+          "unit": "MPa"
+        }
+      ]
+    },
+    "scope": "Synthetic-reference inverse prerequisite; native constitutive gates mandatory; qualification UNKNOWN"
+  },
+  "native_acceptance": "NOT_RUN",
+  "native_store": null,
+  "pinned_sif_sha256": "f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64",
+  "remote_status": "LOCAL_ONLY",
+  "runtime_inventory_basis": "Measured native08 installed binaries sealed to exact SIF; rechecked per candidate",
+  "schema_version": "1.0",
+  "scope": "Bounded synthetic-reference inverse prerequisite; no physical identification or final fit claim",
+  "sealed_native_inventory": {
+    "compiler": {
+      "sha256": "dd91977c184e327710578363ad93ebb175c3a457b6236b874fd3911b7c055c65"
+    },
+    "mfront": {
+      "sha256": "a2131b191d41dcf7bf8b71ecce4e35e61d43713062ead58affd4f1e30468713f"
+    },
+    "mgis_binding": {
+      "sha256": "60f70796a3d575a678891425d096d2fd5832ed1d4f9f5dcd9a7cd79d926aa8be"
+    },
+    "mtest": {
+      "sha256": "988522d0665c78104ac8ecc714ed158383999fd31b311e81db219328bdb042a6"
+    },
+    "mtest_binding": {
+      "sha256": "88ab5619cc5cbf8ec82ca0f97e0f71f0f6785000f3398c31f64d53028d8a0f21"
+    },
+    "tfel_config": {
+      "sha256": "9ed8dd6fcb9b958b4e376ea7c69d2fe2162bbbae46a2b7750f7ac6bcc5e7be9b"
+    }
+  },
+  "settings_sha256": "0ef498a6830465225e46a532f2818a0cb582d4a15dec0e0d7c1159ace821ab9c",
+  "shared_feature_source_commit": "933005556d7522dd8f8dbb6c29cc2334f96b3398",
+  "source_parent_commit": "8f8b1b7",
+  "status": "NATIVE_NOT_RUN",
+  "unit_tests": {
+    "command": "python -m pytest -q tests/test_material_inverse.py",
+    "count": 54,
+    "elapsed_seconds": 33.25,
+    "scope": "Pure contracts plus existing SciPy/Core engine with TEST ONLY substituted native process; no native proof",
+    "status": "PASS"
+  },
+  "verifier_sha256": "515e7c418f4ba5335452748ab29971df3820840766a34675b4c590483ee4ae15"
+}
