@@ -66,11 +66,22 @@ No tool/model settings select a profile or trigger a fallback. Feedback still
 requires the original native numerical gates; qualification stays UNKNOWN and
 decision NOT_RELEASED. See ADR0010 and MATERIAL_INVERSE_RUNTIME_ACCEPTANCE.
 
-The earlier cloud process-identity failure remains historical. The primary
-Windows session installed pinned Synthetic Sciences OpenScience 2.0.146 with
-an isolated profile/local provider and connected this MCP server. A failed live
-attempt returned exit0 without tools and is explicitly not acceptance. A later
-bounded live study_create call actually persisted a study through MCP; registry,
-valid/invalid CAD and returned-evidence interpretation are still in progress.
-See [connected continuation](../docs/CONNECTED_CONTINUATION.md). A real tool
-trace plus checked store records, not merely transport/CLI completion, are required.
+The local persistent transport uses the installed pinned official OpenScience
+2.0.146 and existing local model. Its attached CLI and official workspace share
+an isolated profile/project/store and exact session IDs. The server pins tracked
+Core/plugin/recursive submodule source before MCP imports Lab; every later
+inference binds to this boot identity, including browser forwarding. Disk/HEAD
+drift blocks inference, with exact owned abort/Stop preserved. Confirmed official
+abort/idle and owned process identity precede termination; an unconfirmed command
+keeps its process/session/output relay and blocks new CLI commands. Runtime
+ownership does not change operation schemas or authorize broader tool access.
+See ADR0011 and [runtime acceptance](../docs/OPENSCIENCE_RUNTIME_ACCEPTANCE.md).
+
+The earlier cloud identity failure and exit0-without-tools attempt remain
+historical failures. The retained staged live05 actually called thirteen tools
+for study/discovery/registry/valid+invalid CAD/inspection/comparison and a corrected
+evidence interpretation; its mixed source identities are recorded separately.
+That does not establish a full new-launcher or arbitrary autonomous research
+acceptance. Read [connected continuation](../docs/CONNECTED_CONTINUATION.md) and
+[usage](../docs/OPENSCIENCE_USE.md). Real tool receipts and checked store bytes,
+not transport/CLI completion or readiness, are required.

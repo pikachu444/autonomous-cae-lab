@@ -1,5 +1,62 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Authoritative serial queue from the project owner
+
+The owner reasserted the complete connected-system objective on2026-10-01.
+Follow [SYSTEM_EXECUTION_PLAN](docs/SYSTEM_EXECUTION_PLAN.md): one active P1.1
+unit, explicit source/runtime/research/GUI/cancellation gates, then the ordered
+phase queue. Solvers, CAD, numerical engines and other programs are components
+of the OpenScience-led system; isolated backend success cannot close a phase.
+Earlier checkpoint "next" paragraphs below are historical, not competing queues.
+
+Use [SYSTEM_WORKLIST](docs/SYSTEM_WORKLIST.md) for concrete P1.1 tasks and later
+phase units. The owner's persistent project execution objective is ACTIVE.
+Preserve/reuse prior work; later effects on earlier gates become explicit bounded
+correction items and revalidation, followed by the existing queue.
+
+Before source admission, renew review of the bounded Main finalizer correction:
+packet02 found P2 when a first failure left the lazy store absent. Launcher39
+checks now pass, including actual-finalizer absent/partial/hash/write failure
+cases; unchanged controller46 remains valid (85 current gates, zero provider/
+Core calls). Preserve packet02, original verifier and parser failure diagnostic.
+Latest mock record: artifacts/openscience-launcher-finalizer-20261001-01/
+launcher-checks/checks.json (bb3901d6...). Actual new P1.1 research is still next.
+
+Do one acceptance unit at a time. Finish verification, integration, meaningful
+commit and confirmed push before opening the next unit. First close Phase1
+local OpenScience: review this imported a60b854/ADR0011 Main delta, commit it,
+then use a clean pinned serving worktree for actual startup/boot metadata/Stop,
+official GUI and real model/tool/Core research/cancellation. Main81 mock checks
+passed but add no real research claim. Preserve old profiles/stores and Lab8766's
+clean pinned d363 server; do not checkout a live serving worktree.
+
+The original fresh04 proof is readiness/cleanup only at HEAD1f+frozen correction,
+not clean a60/Main. Read OPENSCIENCE_RUNTIME_ACCEPTANCE and the compact new
+integration record for hashes,2191-file local copy and failed attempts. New
+viscoelastic/hyperelastic implementation is deferred; its working files remain
+in the material-point worktree. Fixture269 actual5-generation23-evaluation run
+has a PASS report and observed refinement, but independent audit/metadata/Main
+integration is deferred to Phase3. Keep all original raw bytes and source pins.
+
+Exact33 CI36722365195 and its independently audited new sealed inverse passed;
+separate clean33 local default-profile native proof passed independent review.
+Primary audit paths are artifacts/github-ci-36722365195/independent-inverse-audit.json
+and artifacts/33ea-local-inverse-independent-audit/audit_summary.json. Source,
+image/EOL/runtime identities remain distinct; all decisions stay NOT_RELEASED.
+
+After Phase1, Phase2 prioritizes an external NAFEMS linear structural benchmark,
+initial candidate P18/LE10. Obtain complete authoritative conditions and the
+corrected publication revision/target-stress location before any execution.
+Do not guess missing target values or claim NAFEMS acceptance from a regression
+count, mesh trend, own patch test or solver exit. Declare error limits beforehand,
+compare reference quantities/mesh convergence and independent solver outputs.
+Phase5 material R0026 and contact R0081 are subsequent benchmark families.
+Official catalog references: [P18](https://www.nafems.org/publications/resource_center/p18/),
+[R0026](https://www.nafems.org/publications/resource_center/r0026/) and
+[R0081](https://www.nafems.org/publications/resource_center/r0081/).
+The publicly read catalog is not the full specification; raw published books
+are not acquired or redistributed. Physical data remains UNKNOWN until measured.
+
 ## Material inverse runtime integration continuation
 
 Main now contains reviewed inverse-v2 source/evidence73639f6, ADR0010 and an

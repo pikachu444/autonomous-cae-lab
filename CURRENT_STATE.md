@@ -1,4 +1,71 @@
-# Current state — 2026-09-30 (Asia/Seoul)
+# Current state — 2026-10-01 (Asia/Seoul)
+
+## Current serial work: Phase1 persistent OpenScience
+
+Current execution order is authoritative in
+[SYSTEM_EXECUTION_PLAN](docs/SYSTEM_EXECUTION_PLAN.md), recorded2026-10-01 after
+the owner's correction. P1.1 is the only active acceptance. It requires actual
+research/tool/Core execution and same-record human inspection/cancellation,
+not just solver examples or launcher readiness. Older "next" sections below
+retain history; use the current queue when resuming.
+
+The primary session's persistent execution objective is ACTIVE for the full
+retained52 requirements. Concrete tasks are in
+[SYSTEM_WORKLIST](docs/SYSTEM_WORKLIST.md). Earlier work is preserved/reused;
+later feature effects require a recorded bounded correction and revalidation.
+
+Main packet02 independent review found one P2: a failed first request left no
+lazy Core store, causing final inventory collection to skip saving the final
+FAILED_OR_PARTIAL checkpoint. Root corrected the finalizer only; absent stores
+stay absent, original failures/logs stay intact, and inventory/hash/write errors
+force failure with a guaranteed checkpoint attempt. Latest launcher39 checks
+passed with zero actual provider/Core calls; controller46 source/checks are
+unchanged (85 current mock gates). Renewed independent review/source commit
+and all actual P1.1 execution gates remain pending. Packet02 and the initial
+correction-parser diagnostic are retained; old81 checks keep their old source.
+
+The owner explicitly requires one acceptance at a time, closing execution,
+verification, integration, commit and push before the next phase unit. New
+viscoelastic/hyperelastic work and the completed fixture-refinement metadata
+audit are deferred with all source/raw/draft files preserved. Continue Phase1
+local OpenScience first; then proceed through remaining phase gates in order.
+No physical/strength/measurement gap is promoted from UNKNOWN.
+
+Reviewed a60b854 transport is imported with ADR0011 and unchanged Core/tool
+schemas. Main controller46 and launcher35 mock checks passed with zero actual
+provider/Core calls. The retained fresh04 readiness/cleanup proof belongs to
+HEAD1f6cb07 plus frozen correction before the later document append; it is not
+a clean-a60 or Main model run. Main clean pinned startup, same official GUI,
+actual model/tool/Core research and in-flight cancellation remain next gates.
+Source a60b854 is pushed on its preservation branch. All2,191 payload files/
+42,037,605bytes are copied unchanged locally, with separate source-reference
+attribution and preserved audit01 aggregation defect. Read the runtime acceptance
+and compact openscience-runtime-integration record; raw copies are not remote
+retention and mocks/readiness are not research acceptance.
+
+Exact numerical Main33ea11d CI36722365195 passed all8 jobs:1,387 tests/1warning,
+26 MCP tools and Core HTTP. Independent changed Code_Aster archive audit passed
+5stores/28records/2,038artifacts, including the new9-candidate inverse on actual
+SEALED_OCI image91ffb52f. A separate clean33 local LOCAL_EXACT_SIF run also passed
+9 candidates/747artifacts and independent full-source/raw/immutable-read audit.
+CI source/LF2961f2bd, local working/Coreee333372 and prior f0 remain distinct.
+Both searches stop MAX_GENERATIONS/converged=false with no later improvement;
+synthetic data/nine UNKNOWNs/NOT_RELEASED remain explicit.
+
+The clean269d8bf fixture report records completed5generations/23evaluations,
+24CADcalls/20solverchildren/40mesh solves, exact seven-point resume and observed
+later CAD-volume improvement of1,240.258687714424mm^3 (~4.4%). It finished within
+the fixed5,400s supervisor budget. Its independent native/metadata gate and Main
+integration are still pending and deferred to Phase3; preserved source is pushed
+separately. Do not claim convergence or a completed phase from that report.
+
+NAFEMS is now the preferred external structural benchmark family. Existing
+analytical/manufactured/FD checks remain valid at their stated scope and are
+not NAFEMS passes. After Phase1, obtain the complete corrected P18/LE10
+specification for the Phase2 benchmark; freeze publication revision, geometry,
+material, loads, constraints, measurement point and error limits before native
+execution. R0026 material and R0081 contact follow at their phase gates. Full
+NAFEMS definitions/reference values have not yet been obtained or executed.
 
 ## Reviewed material inverse runtime integration
 

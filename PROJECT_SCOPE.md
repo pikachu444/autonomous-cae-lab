@@ -27,7 +27,7 @@ experiments → evidence/validation → research interpretation and next campaig
 - **Ongoing**: a working/process obligation that applies throughout the project.
 
 These labels describe project progress, not an engineering release. Overall
-fixture decision remains **`NOT_RELEASED`**. The latest verified code checkpoint
+fixture decision remains **`NOT_RELEASED`**. An earlier verified code checkpoint
 is `41a9858bad7ebeb72de0db0d75d1f910a4a50dc4`, with six successful jobs in
 [CI 36656020195](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36656020195).
 The earlier area-load proof at `dad581f`/CI 36641675306 remains immutable.
@@ -42,7 +42,15 @@ Broader physics and engineering release gates remain open.
 
 ## Original section ledger
 
-Latest exact remote source `88bbb72` passed all eight CI jobs, including actual
+Current verified numerical baseline is `33ea11d` with all8 jobs successful in
+CI36722365195 and independently inspected native evidence. The current P1.1
+system unit and ordered remaining gates are in
+[SYSTEM_EXECUTION_PLAN](docs/SYSTEM_EXECUTION_PLAN.md); all52 requirements remain.
+The imported OpenScience source passed81 Main mock checks; the bounded failure
+finalizer correction now has39 launcher plus unchanged46 controller gates, with new clean
+actual research/GUI/cancellation still pending. No full phase is complete.
+
+Historical exact remote source `88bbb72` passed all eight CI jobs, including actual
 declared-input numerical search. The preceding `0535e37` retained archive audit
 verified sixty experiments/three campaigns/1,833 artifacts; its missing rejected
 PDE export ZIP remains disclosed. The independent local synthetic inverse proof
@@ -78,16 +86,16 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R22 | Extensible repo and actual code-level Core/plugin/adapter/refactor/discard classification; no blind source copy. | Implemented current ownership/pinned submodule; future migration must keep provenance. |
 | R23 | Phase 0 architecture/Core/contracts first; only minimal mock for contract verification. | Partial foundation executed; typed CAD/analysis/DOE, broader protocol slots planned. |
 | R24 | ADR 0001 platform boundaries and cumulative ADRs for significant decisions. | Implemented ADR 0001–0009; ongoing obligation; new execution acceptance tracked separately. |
-| R25 | Phase 1 actual OpenScience request → discovery → registry → CAD change/regeneration → validation/artifacts/evidence → research result. | Partial: live05 actual thirteen-tool study/discovery/registry/valid+invalid CAD/inspect/summary/compare and corrected AI interpretation passed; official served GUI inspected. Staged prompts/mixed source identities, broader autonomous research remains open. |
+| R25 | Phase 1 actual OpenScience request → discovery → registry → CAD change/regeneration → validation/artifacts/evidence → research result. | Partial: historical live05 thirteen-tool CAD/research loop and official GUI checked at explicit mixed sources. Imported persistent boot-source controller/attached CLI plus bounded first-failure correction passed85 current mock gates; renewed independent review and clean new runtime/full real research/cancellation next under serial work policy. Broader autonomous research open. |
 | R26 | Phase 2 simulation-driven fixture design: exact CAD → mesh → implicit solver → mechanical metrics/constraints/evidence. | Partial: exact STEP Gmsh/CalculiX linear screen; actual contact/bolts/material/stress qualification open. |
 | R27 | Phase 3 numerical DOE/optimization through gated CAD/FEA, trace every iteration including optimizer state. | Partial: actual adaptive structural campaign passed (9 evaluations/8 children), metric semantics/failure/replay verified; converged/global optimum and wider optimization remain open. |
 | R28 | Phase 4 real general PDE adapter with canonical benchmark and user-defined equation/weak form. | Partial: clean d363 adapter2 nonlinear/linear-limit/reference-rejection/HTTP and actual browser runs passed; explicit opt-in preserves legacy revisions. Exact CI36710166010 and independent changed-family raw review passed. Wider custom/coupled/MPI/physical PDE coverage open. |
 | R29 | Phase 5 implicit benchmarks: linear, geometric nonlinearity, plasticity, contact, hyperelasticity, viscoelasticity with trusted references. | Partial: affine elasticity and J2 full-field loading/unloading at two meshes/two materials passed; retained zero-force relative residual failure remains. Geometric nonlinearity/contact/hyperelasticity/viscoelasticity/native energy open. |
 | R30 | Phase 6 actual OpenRadioss impact/drop with IC/gravity/contact/rigid/energy/forces/acceleration/timestep/failure validation. | Partial: clean d363 three reduced compliant cases passed28 full-history gates each plus two preflight blocks; native browser run, all8 CI jobs and independent raw archive review passed. Wall contact remains rejected; general surface/material/physical/failure/rotating contact open. |
-| R31 | Phase 7 MFront/MOOSE/multiphysics/inverse/UQ/sensitivity/surrogate/multiobjective/HPC/SSH/Slurm/PBS/physical integration. | Partial: actual MFront stress/tangent/sensitivity and nine-candidate synthetic inverse, shared engine/default/HTTP connected. Reviewed explicit sealed-runtime profile has a fresh local nine-candidate proof,290 Main regressions and actual CI step; alternate-image/exact Main native CI pending. No measured fit/convergence; MOOSE/coupling/UQ/surrogate/multiobjective/HPC/physical integrations remain open. |
+| R31 | Phase 7 MFront/MOOSE/multiphysics/inverse/UQ/sensitivity/surrogate/multiobjective/HPC/SSH/Slurm/PBS/physical integration. | Partial: MFront stress/tangent/sensitivity and synthetic nine-candidate inverse connected to shared engine/default/HTTP. Exact33 local default proof and sealed CI36722365195 native/raw independent audits passed; no measured fit/convergence. Viscoelastic extension deferred under serial phase order; MOOSE/coupling/UQ/surrogate/multiobjective/HPC/physical integrations remain open. |
 | R32 | Physical test architecture: fabrication/calibration/machine/measurement/durability evidence with digital-twin calibration loop. | Partial extensible evidence envelope; equipment control/physical acceptance not implemented. |
 | R33 | UI Design/Simulation/Explore/Results/Research areas after Core slice; reuse original browser UI. | Partial: original fixture GUI/native viewer retained; common Lab HTTP plus actual bounded study/registry/CAD/PDE/results/native-preview/DOE browser flow passed, ADR 0008/CONTRACT. No AI chat in Lab; full UI/official OpenScience GUI acceptance separate. User usage question did not request redesign. |
-| R34 | Automated canonical/regression verification for CAD/rejection/linear/nonlinear/contact/explicit/PDE/DOE/optimization; physical validity separate from execution. | Partial: 217 regressions and CAD/native/linear/finer/DOE/optimization/analytical PDE acceptance; nonlinear/contact/explicit references open. |
+| R34 | Automated canonical/regression verification for CAD/rejection/linear/nonlinear/contact/explicit/PDE/DOE/optimization; physical validity separate from execution. | Partial: exact33 1,387 regressions plus actual analytical/manufactured/FD/native and raw evidence audits. NAFEMS external benchmark family adopted; complete corrected LE10 conditions/targets must be obtained and predeclared before Phase2 execution, later material/contact families follow. No NAFEMS pass or physical qualification claimed. |
 | R35 | Dependency license/commercial/internal/redistribution/linking + Windows/Linux/WSL/container/HPC; OpenScience sandbox/telemetry/trace/endpoints/data protection. | Partial inventory/research; corporate licensing/security and platform deployment approval incomplete. |
 | R36 | GitHub private-repo attempt or local fallback; determine relationship to old fixture repo. | Supplied repo populated on main; pinned fixture submodule. Repo currently public; private/corporate choice open. |
 | R37 | Purposeful sub-agent parallel work and independent verification under one Root architecture owner. | Ongoing; relevant findings/reviews in ADR/docs; do not delegate boundaries blindly. |
@@ -234,13 +242,13 @@ authorization. Simulation alone cannot qualify every fixture requirement.
 | Phase | Executed scope | Required continuation |
 | --- | --- | --- |
 | 0 | Architecture/ADRs, schemas, registry, evidence/validation/artifact thread, Python/CLI/MCP | Extend contracts with independently verified backend features; corporate deployment review. |
-| 1 | CadQuery/native Part/Sketcher, valid/invalid gates, editable artifacts; actual staged OpenScience MCP loop and retained official GUI trace | General autonomous planning; arbitrary GUI-edited FCStd refresh/transactions. |
-| 2 | Exact STEP to Gmsh/CalculiX child run, 4/3/2/1.5 mm area-load screen/reactions | Validated materials/fasteners/contact/stress/structural reference solution. |
+| 1 | CadQuery/native Part/Sketcher, valid/invalid gates; historical staged OpenScience loop/GUI; reviewed persistent source pin/81 Main mocks | CURRENT SERIAL UNIT: clean integrated OpenScience startup/GUI/real research/cancellation, then general planning/native edited-CAD transactions. |
+| 2 | Exact STEP to Gmsh/CalculiX child run, 4/3/2/1.5 mm area-load screen/reactions | NEXT AFTER PHASE1: complete authoritative corrected NAFEMS LE10 definition/reference then native benchmark/cross-solver/mesh checks; materials/fasteners/contact/stress/physical qualification. |
 | 3 | Seeded LHS DOE/shared SciPy DE; actual CAD and declared-input native candidates, explicit constraints and exact replay | Converged fixture optimization, broader variable/engine/UQ/multiobjective coverage. |
 | 4 | Clean d363 declared scalar FEniCSx linear/nonlinear/linear-limit/reference-rejection proof, HTTP/browser and independently audited CI | Wider nonlinear/general domains, coupled PDE and MPI/HPC acceptance. |
 | 5 | Actual affine elasticity and small-strain J2 full load/unload fields on two meshes/materials | Geometric nonlinearity/contact/hyperelasticity/viscoelasticity/native energy/physical qualification. |
 | 6 | Actual flight and clean d363 three-case compliant force/acceleration/energy/impulse/rebound proof; ideal-wall correctly REJECTED | General surface/rotating contact, material/failure and physical qualification. |
-| 7 | Actual MFront/MGIS/MTest stress/tangent/sensitivity and nine-candidate synthetic inverse; reviewed runtime-profile integration/290 Main regressions | Exact-source sealed OCI inverse CI/raw audit; measured-data identification/viscoelastic state-energy/MOOSE/multiphysics/UQ/surrogate/multiobjective/HPC/physical loop. |
+| 7 | MFront/MGIS/MTest stress/tangent/sensitivity; exact33 local default and sealed CI nine-candidate synthetic inverse with independent raw audits | Measured-data identification/viscoelastic state-energy/MOOSE/multiphysics/UQ/surrogate/multiobjective/HPC/physical loop after earlier phase gates. |
 
 This table is a planning map, not an instruction to install every candidate
 before testing the research loop. `HANDOFF.md` records the next concrete task.

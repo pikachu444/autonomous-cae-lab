@@ -102,9 +102,17 @@ calibration, fabrication and machine evidence stay `UNKNOWN` until measured.
 
 `openscience/contract.md` fixes operation names, JSON input/output and failure
 semantics. The actual stdio MCP bridge uses the same Core. Task-owned local
-OpenScience 2.0.146 has made real study/registry calls; whole live research-loop
-acceptance remains unverified. Failed/partial attempts are retained in
-CONNECTED_CONTINUATION. Permissions, sandbox availability, traces/endpoints and
+OpenScience 2.0.146 has made the retained staged live05 study/discovery/registry,
+valid/invalid CAD and evidence-interpretation calls. Its mixed historical source
+identities remain explicit; general autonomous research is still unverified.
+The task-owned persistent controller and attached CLI bind browser/model calls
+to the server's pre-MCP boot source pin and exact profile/project/store. Drift
+blocks inference while verified owned cancellation/Stop remains available;
+final relay receipts retain continuing output and confirmed command identity.
+This is local transport ownership, not engineering logic. New-launcher full
+model research remains a separate gate. See ADR0011 and the runtime acceptance.
+Failed/partial attempts are retained in CONNECTED_CONTINUATION. Permissions,
+sandbox availability, traces/endpoints and
 company-data policy remain explicit; transport or tool completion is not a
 research/numerical approval.
 
