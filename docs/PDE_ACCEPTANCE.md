@@ -62,6 +62,10 @@ CAD/structural runs.
 
 The dirty-source draft passed with L2 error `0.0013504362485536208`, finest
 rate `1.9934926491266785` and maximum relative residual
-`3.8917060164593486e-14`. This is preliminary execution evidence; clean-source
-integration and CI still need to be recorded. Physical validation and model
-qualification remain `UNKNOWN`, and every decision is `NOT_RELEASED`.
+`3.8917060164593486e-14`. Subsequent clean-source execution at `41a9858` and
+CI 36656020195 passed the four cases with the same numerical observations.
+Raw symbolic errors, all pair rates, boundary/topology and residuals were
+independently inspected. See
+[the local record](../benchmarks/records/20260930-local-pde.json) and
+[NUMERICAL_CONTINUATION](NUMERICAL_CONTINUATION.md). Physical validation and
+model qualification remain `UNKNOWN`, and every decision is `NOT_RELEASED`.

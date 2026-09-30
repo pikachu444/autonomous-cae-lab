@@ -1,0 +1,278 @@
+{
+  "acceptance": {
+    "artifact_hashes": {
+      "pde/command.json": "295d30850fd3f48e36874c37d60f1586591aef7b2173d30c67fb626b963abaa4",
+      "pde/input.json": "ce318803e2bb1ab9be889f941f53256e54b055d4a9d3015009e5f0916ce5f522",
+      "pde/level_n16/field.h5": "5d123d116b522dcb4f47451fcee3cdd60089b30566509218ca71d08b589b2a46",
+      "pde/level_n16/field.xdmf": "bb874d36b566e06e14a2980ed8785e7a6df71548ea2bde77ba7c3967c8774046",
+      "pde/level_n16/forms.ufl.txt": "257dea60062e249f71c687dec73373d0c3031a2f114bbe5de73d084a4fa83538",
+      "pde/level_n32/field.h5": "9dc3ba0071b67ca2b5e7435d0b7d7fc1939c3137627f73ae540887af586e13c7",
+      "pde/level_n32/field.xdmf": "5c4349c410a7c1f7561e0de0aaafcea9c1c41e4fa6865111e40dab95593f8963",
+      "pde/level_n32/forms.ufl.txt": "acefa571f437f06dc4db100c872a017407d917bd9f8a87b7a3c23b012ea79e65",
+      "pde/level_n8/field.h5": "cb435cb175b433d7c392e71cbcc1b0fb9f542451198e5facba081c46cb353832",
+      "pde/level_n8/field.xdmf": "b4d85d86d7c26088771302759b43b6b341c13db40a9d70dde4f051c1d008dbb7",
+      "pde/level_n8/forms.ufl.txt": "f9c949cd9871b3546d7d82d37965d11812d32b2b4f3dd0b0764366f95d0431c2",
+      "pde/result.json": "147fd37a90978b3efa3a653ff4d90428dceda92f2e45aeff24132057e5bb68be",
+      "pde/stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pde/stdout.log": "b4ca7e31a99b73ecdf35bbb4a0a0c86d3187ba83586ca7a69825ba93f002c9eb",
+      "pde/weak_form.txt": "c514b0add768ad34665ba99a4cce33c525fb95ba04f2a188a1eb1c2700a503e2",
+      "pde/worker.py": "2e1cd29a71e4a216be6677e44b841205193ef72658d7a29d010dca7253d57301",
+      "pde/worker_result.json": "b772a7d21236ddf361894c776bebba236a3eda118de72407b705c3fc3c899dde",
+      "proposal.json": "e8ebe00a0b8ad1675ab5f56fe8810e6c47b91479ef34f73bda4e25849f7e41aa",
+      "registry_snapshot.json": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245"
+    },
+    "canonical_experiment_id": "E-pde-poisson",
+    "decision": "NOT_RELEASED",
+    "limitations": [
+      "Bounded scalar linear elliptic forms on a dimensionless unit square only.",
+      "Serial execution does not establish MPI/HPC acceptance.",
+      "Analytical mathematical proof does not qualify a physical model."
+    ],
+    "limits": {
+      "max_l2_error": 0.003,
+      "max_residual_relative": 1e-10,
+      "min_l2_rate": 1.8
+    },
+    "mesh_studies": [
+      {
+        "artifact_sha256": {
+          "field": "b4d85d86d7c26088771302759b43b6b341c13db40a9d70dde4f051c1d008dbb7",
+          "field_data": "cb435cb175b433d7c392e71cbcc1b0fb9f542451198e5facba081c46cb353832",
+          "form_source": "f9c949cd9871b3546d7d82d37965d11812d32b2b4f3dd0b0764366f95d0431c2"
+        },
+        "boundary_value_error": 0.0,
+        "cell_type": "triangle",
+        "cells_per_axis": 8,
+        "degree": 1,
+        "dirichlet_dofs": 32,
+        "dirichlet_value": 0.0,
+        "files": {
+          "field": "level_n8/field.xdmf",
+          "field_data": "level_n8/field.h5",
+          "form_source": "level_n8/forms.ufl.txt"
+        },
+        "global_cells": 128,
+        "global_dofs": 81,
+        "h1_seminorm_convergence_rate": null,
+        "h1_seminorm_error": 0.43179828300642425,
+        "ksp_convergence_reason": 4,
+        "ksp_iterations": 1,
+        "l2_convergence_rate": null,
+        "l2_error": 0.02113277345842124,
+        "linear_residual": {
+          "absolute": 2.3953258746092616e-15,
+          "normalization": "rhs_l2_norm",
+          "relative": 1.9920336751528014e-15,
+          "rhs_norm": 1.2024525009224682
+        },
+        "nominal_h": 0.125
+      },
+      {
+        "artifact_sha256": {
+          "field": "bb874d36b566e06e14a2980ed8785e7a6df71548ea2bde77ba7c3967c8774046",
+          "field_data": "5d123d116b522dcb4f47451fcee3cdd60089b30566509218ca71d08b589b2a46",
+          "form_source": "257dea60062e249f71c687dec73373d0c3031a2f114bbe5de73d084a4fa83538"
+        },
+        "boundary_value_error": 0.0,
+        "cell_type": "triangle",
+        "cells_per_axis": 16,
+        "degree": 1,
+        "dirichlet_dofs": 64,
+        "dirichlet_value": 0.0,
+        "files": {
+          "field": "level_n16/field.xdmf",
+          "field_data": "level_n16/field.h5",
+          "form_source": "level_n16/forms.ufl.txt"
+        },
+        "global_cells": 512,
+        "global_dofs": 289,
+        "h1_seminorm_convergence_rate": 0.989101103835933,
+        "h1_seminorm_error": 0.2175363363595286,
+        "ksp_convergence_reason": 4,
+        "ksp_iterations": 1,
+        "l2_convergence_rate": 1.9744920296427475,
+        "l2_error": 0.005377435009948098,
+        "linear_residual": {
+          "absolute": 5.297112081855922e-15,
+          "normalization": "rhs_l2_norm",
+          "relative": 8.642676302396674e-15,
+          "rhs_norm": 0.6129018253740448
+        },
+        "nominal_h": 0.0625
+      },
+      {
+        "artifact_sha256": {
+          "field": "5c4349c410a7c1f7561e0de0aaafcea9c1c41e4fa6865111e40dab95593f8963",
+          "field_data": "9dc3ba0071b67ca2b5e7435d0b7d7fc1939c3137627f73ae540887af586e13c7",
+          "form_source": "acefa571f437f06dc4db100c872a017407d917bd9f8a87b7a3c23b012ea79e65"
+        },
+        "boundary_value_error": 0.0,
+        "cell_type": "triangle",
+        "cells_per_axis": 32,
+        "degree": 1,
+        "dirichlet_dofs": 128,
+        "dirichlet_value": 0.0,
+        "files": {
+          "field": "level_n32/field.xdmf",
+          "field_data": "level_n32/field.h5",
+          "form_source": "level_n32/forms.ufl.txt"
+        },
+        "global_cells": 2048,
+        "global_dofs": 1089,
+        "h1_seminorm_convergence_rate": 0.9972535922789292,
+        "h1_seminorm_error": 0.10897542351921931,
+        "ksp_convergence_reason": 4,
+        "ksp_iterations": 1,
+        "l2_convergence_rate": 1.9934926491266785,
+        "l2_error": 0.0013504362485536208,
+        "linear_residual": {
+          "absolute": 1.198373712239196e-14,
+          "normalization": "rhs_l2_norm",
+          "relative": 3.8917060164593486e-14,
+          "rhs_norm": 0.3079301743684816
+        },
+        "nominal_h": 0.03125
+      }
+    ],
+    "metrics": {
+      "h1_seminorm_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 0.10897542351921931
+      },
+      "l2_convergence_rate": {
+        "unit": "1",
+        "valid": true,
+        "value": 1.9934926491266785
+      },
+      "l2_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 0.0013504362485536208
+      },
+      "linear_residual_relative": {
+        "unit": "1",
+        "valid": true,
+        "value": 3.8917060164593486e-14
+      }
+    },
+    "numerical_rejection": "E-pde-reference-reject",
+    "preflight_rejection": "E-pde-input-reject",
+    "reaction_form_metrics": {
+      "h1_seminorm_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 0.108977770259689
+      },
+      "l2_convergence_rate": {
+        "unit": "1",
+        "valid": true,
+        "value": 1.995179229935955
+      },
+      "l2_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 0.0012072498142917196
+      },
+      "linear_residual_relative": {
+        "unit": "1",
+        "valid": true,
+        "value": 3.97341652163139e-14
+      }
+    },
+    "result_sha256": "5a1885e9fead35a1d3c03c9a362236ca99608c8bc28b327c4fc6235d9fad1aad",
+    "source": {
+      "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+      "core_dirty": false,
+      "core_source_sha256": "a9f9e28ac755ded2f1739159315a463da45a04c724fc1ade7840ddab92534e5f"
+    },
+    "status": "PASS",
+    "versions": {
+      "basix": "0.11.0",
+      "dolfinx": "0.11.0.post0",
+      "ffcx": "0.11.0",
+      "mpi4py": "3.1.5",
+      "numpy": "1.26.4",
+      "petsc": "3.19.6",
+      "petsc4py": "3.19.6",
+      "python": "3.12.3",
+      "ufl": "2026.1.0"
+    },
+    "weak_form": {
+      "dirichlet": "0.0",
+      "domain": "unit_square",
+      "reference": {
+        "solution": "sin(pi*x[0])*sin(pi*x[1])",
+        "source": "Analytical manufactured solution on the dimensionless unit square"
+      },
+      "weak_form": {
+        "diffusion": 1.0,
+        "reaction": 0.0,
+        "rhs": "2*pi**2*sin(pi*x[0])*sin(pi*x[1])"
+      }
+    }
+  },
+  "execution": "Primary Windows 11 / Ubuntu 24.04.4 WSL2",
+  "recorded_utc": "2026-09-30T02:05:12.722793+00:00",
+  "report_sha256": "b94c48153a682ae22d0d6d41e38c3b5b2c13b51386e80e3c066e8e32280a7528",
+  "retention": "Raw stores retained locally and ignored by Git; compact record committed; CI artifacts have 30-day retention.",
+  "store": "artifacts/local-20260930-pde",
+  "verified_experiments": [
+    {
+      "artifact_count": 3,
+      "cad_revision": null,
+      "experiment_id": "E-pde-input-reject",
+      "parent_experiment_id": null,
+      "result_sha256": "799e6529a7e06efa0798c1def59197b63dc420d707cb2bd1d6cb548986df5375",
+      "solver_status": "NOT_RUN",
+      "status": "REJECTED",
+      "thread_sha256": "a72a0f2089e35ab01de540426fd7007e2c01c97e542781e481bb6a5003398996",
+      "unknown": [
+        "physical_validation",
+        "model_qualification"
+      ]
+    },
+    {
+      "artifact_count": 19,
+      "cad_revision": null,
+      "experiment_id": "E-pde-poisson",
+      "parent_experiment_id": null,
+      "result_sha256": "5a1885e9fead35a1d3c03c9a362236ca99608c8bc28b327c4fc6235d9fad1aad",
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "e39f95d967c196b96b7ea750c2ef0c1fd2b4d15202b64ec9b43b8bb2f1261c11",
+      "unknown": [
+        "physical_validation",
+        "model_qualification"
+      ]
+    },
+    {
+      "artifact_count": 19,
+      "cad_revision": null,
+      "experiment_id": "E-pde-reaction",
+      "parent_experiment_id": null,
+      "result_sha256": "cac9b8c733f25eed7d3e917119a22e14b9125dcf8337049fb890e16bcd3b6713",
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "aba0954cfc726d5752198646cd50326376bc4112e385dc137e230f1cc87ba841",
+      "unknown": [
+        "physical_validation",
+        "model_qualification"
+      ]
+    },
+    {
+      "artifact_count": 19,
+      "cad_revision": null,
+      "experiment_id": "E-pde-reference-reject",
+      "parent_experiment_id": null,
+      "result_sha256": "451e45f03d173b2f689b08b27de6ab5f30b091f01a3b7ccb067636af544234d5",
+      "solver_status": "COMPLETED",
+      "status": "REJECTED",
+      "thread_sha256": "9b6c2d14bc16a350808baef23340f15b7b288797f179540976b1e94a1a237559",
+      "unknown": [
+        "physical_validation",
+        "model_qualification"
+      ]
+    }
+  ]
+}

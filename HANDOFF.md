@@ -14,14 +14,18 @@ handoff record, not a claim that the model retains every past chat forever.
 
 ## Verified checkpoint
 
-**Integrated continuation under verification:** bounded numerical optimization
-and a declared FEniCSx weak-form PDE now use the shared Core/API/CLI/MCP. Read
-ADRs 0005/0006 and the acceptance documents before extending them. Dirty-source
-drafts passed the finer 1.5 mm mesh and analytical PDE checks; they remain
-separate from the required final clean-source runs. Core/adapter/engine
-regressions and expanded MCP acceptance are being verified, then all three
-continuation scripts must execute in fresh stores at a committed source revision.
-No draft or solver success establishes engineering release.
+**Latest numerical code checkpoint:**
+`41a9858bad7ebeb72de0db0d75d1f910a4a50dc4`;
+[CI 36656020195](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36656020195)
+passed all six jobs. The primary local session passed 217 tests, expanded MCP
+and fresh clean-source finer/structural-optimization/PDE acceptance. Last-pair
+mesh change is 0.881709%; optimization evaluated 9 candidates/8 solver children
+with 23.3750% best observed volume reduction; Poisson L2 is 0.00135043625 with
+finest rate 1.99349. One-generation optimization is unconverged, and all results
+remain `NOT_RELEASED`. Read [NUMERICAL_CONTINUATION](docs/NUMERICAL_CONTINUATION.md),
+ADRs 0005/0006 and their records for exact settings/hashes/limits/review.
+Later evidence/documentation commits do not create new solver proof. Dirty
+drafts and older cloud records below remain historical evidence.
 
 **Primary local restoration:** the checkout now exists at
 `C:\SourceCodes\autonomous-cae-lab`; the current session directly completed
@@ -159,34 +163,42 @@ Open work: archive important raw evidence in a durable artifact store, with
 retention/provenance references. Do not silently embed potentially proprietary
 CAD/results in this currently public Git repository.
 
-## Next concrete work, in order
+## Completed continuation and next concrete work
 
-1. **Finer saddle-load verification:** extend the canonical benchmark with a
+1. **Completed — finer saddle-load verification:** extended the canonical benchmark with a
    1.5 mm mesh, retaining the same CAD revision, material, load patch, 100 N,
-   fixed-base definition and unchanged numerical limits. Record patch area,
+   fixed-base definition and unchanged numerical limits. Recorded patch area,
    lip fraction, max loaded-node response, signed reactions, artifact hashes
-   and reference/approximation limits. If it fails, diagnose rather than
+   and reference/approximation limits. On future reproduction failure, diagnose rather than
    relax the screen. Current piecewise linear surface integration is not an
    exact quadratic boundary rule or physical roller contact.
-2. **Actual numerical optimization:** define reproducible objective/constraint
+2. **Completed bounded slice — actual numerical optimization:** defined reproducible objective/constraint
    semantics, invalid-design/failure policy and restartable optimizer state;
-   run a bounded fixture acceptance through existing CAD/analysis Core.
+   executed a bounded fixture acceptance through existing CAD/analysis Core.
    Keep LLM research reasoning separate from numeric candidate generation.
-3. **General PDE slice:** select/test a canonical user weak form via a real
-   FEniCSx or evidence-supported adapter; verify analytical/reference error
+3. **Completed bounded slice — PDE:** tested a canonical user weak form via a real
+   FEniCSx adapter; verified analytical/reference error
    through the same common result/evidence contract.
 
-The three integrated scripts are `scripts.verify_finer_mesh`,
-`scripts.verify_optimization` and `scripts.verify_pde`. Run each with `--store`
-pointing to a fresh path after the source/tests/review checkpoint. Record clean
-commit, actual versions, complete results/ledger/artifact checks and exact CI
-run before replacing the pending continuation status above.
-4. In parallel where supported: live OpenScience MCP agent acceptance;
+The three scripts are `scripts.verify_finer_mesh`, `scripts.verify_optimization`
+and `scripts.verify_pde`; use `--store` with a new path for reproduction.
+Their latest local proof is in `benchmarks/records/20260930-local-{finer,optimization,pde}.json`;
+exact CI/raw archive references are in `20260930-numerical-ci.json`. Raw stores
+remain local/ignored; new CI archives expire on 2026-10-30 UTC.
+
+4. **Next independent acceptance work:** live OpenScience MCP agent acceptance;
    arbitrary GUI-edited FCStd refresh/index drift and registration transaction
    review; durable raw-artifact retention and corporate license/security review.
-5. Then Code_Aster nonlinear reference benchmarks, OpenRadioss explicit
+5. **Next physics benchmark:** Code_Aster elastic analytical/reference baseline,
+   then material/geometric nonlinearity and contact with canonical references.
+   Install only its required runtime, retain exact versions/native inputs/raw
+   MED/solver evidence and use common contracts. Continue OpenRadioss explicit
    preprocessing/impact and the advanced research/physical phases listed in
    PROJECT_SCOPE. Do not declare those phases complete from a research table.
+
+Wider fixture optimization (convergence/active constraints), arbitrary PDE
+domains/nonlinear/coupled equations and MPI/HPC need separate acceptance. Do
+not promote this single generation or scalar unit-square proof to those scopes.
 
 ## Blockers and unresolved assumptions
 

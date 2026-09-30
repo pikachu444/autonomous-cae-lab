@@ -70,8 +70,10 @@ under a declared 0.0065 mm displacement research screen. Existing 5% mesh-trend
 and 1% reaction limits remain unchanged. An invalid 28 mm candidate has no
 solver, interruption/replay preserves earlier results, and CAD volumes are
 checked against an analytical geometric formula. Final clean-source execution
-and exact CI evidence will be recorded in the acceptance record; preliminary
-unit tests alone do not prove this structural campaign.
+at `41a9858` and CI 36656020195 passed: 9 evaluations, 8 solver children, two
+replayed observations, 23.3750% best observed volume reduction and
+`MAX_GENERATIONS`/`converged=false`. See
+[the numerical acceptance record](../docs/NUMERICAL_CONTINUATION.md).
 
 ## Requirement and contract impact
 

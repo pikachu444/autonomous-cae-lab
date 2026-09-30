@@ -15,7 +15,7 @@ These new local results supersede the old cloud environment limitation below;
 the older verification history remains preserved. Release remains
 `NOT_RELEASED`, with strength/contact/material/physical requirements `UNKNOWN`.
 
-## Continuation implementation and preliminary execution
+## Continuation implemented and executed
 
 Root integrated the unchanged 1.5 mm saddle-load benchmark, a real public SciPy
 differential-evolution engine and bounded FEniCSx weak-form PDE operations.
@@ -44,16 +44,30 @@ all shared interfaces and integration. The expanded local MCP test completed
 CAD, DOE, nine real CAD optimizer evaluations and PDE preflight rejection;
 it is not a live OpenScience agent run.
 
-Final clean-source finer/real-structural-optimization/PDE acceptance and exact
-CI evidence are pending this verification checkpoint. Engineering decision
-remains `NOT_RELEASED`; unknown physical and strength requirements are retained.
+Final clean-source acceptance passed at `41a9858bad7ebeb72de0db0d75d1f910a4a50dc4`:
+finer 1.5 mm, actual structural optimization and the canonical/user-changed PDE.
+Optimization completed 9 unique evaluations and 8 solver children, retaining
+one CAD rejection and exactly replaying two completed evaluations. Best observed
+width `29.73246472164783` mm reduces volume by `23.3750447355%`, with displacement
+`0.005961796` mm under the declared research bound. It stopped at one generation
+(`converged=false`), so no optimum certificate is claimed. Finer and PDE values
+match the preliminary numbers above. All 25 new local experiment ledgers and
+artifacts were inspected. See [the continuation record](docs/NUMERICAL_CONTINUATION.md)
+and its linked machine-readable evidence.
 
 Verified implementation checks: the existing 32 regressions, 54 engine tests
 and 76 PDE-adapter tests passed together (162 total, 104 seconds). The expanded
 MCP test passed. Independent review closed with no remaining actionable finding
 at source hash `a9f9e28ac755ded2f1739159315a463da45a04c724fc1ade7840ddab92534e5f`.
-The separate 55 Core interruption/failure/tamper tests are still running; their
-final result must be recorded before claiming the integrated test gate passed.
+The separate 55 Core interruption/failure/tamper tests passed in 813.44 seconds,
+giving 217 local tests. Exact-source [CI 36656020195](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36656020195)
+passed all six jobs and the same 217 tests (43.44 seconds). Downloaded CI stores
+verified 37 experiments and 3 campaigns. Local/CI byte hashes differ only by
+checkout line endings; Git-object digests, optimizer candidates/feedback and
+numerical verdicts match. One raw reaction component differs by about 1e-12 N;
+whole-result byte identity is not claimed.
+This supersedes pending continuation status; older dirty drafts remain preserved.
+Engineering decision stays `NOT_RELEASED`, with release requirements `UNKNOWN`.
 
 ## Recovered decisions and sources
 
@@ -61,7 +75,11 @@ The Project discussions require an **OpenScience research control plane** over a
 
 Sources recovered: Project prompt and visible 2026-09-28/29 discussion; `fixture_plan.md` and `auto_fixture_design_verification(1).pdf` in the user's files; `pikachu444/auto-fixture-design` main at `3e48bf6138f495299f45b1af254bfb4aaff307b8` (pinned submodule). The prior GitHub Actions run [36582605853](https://github.com/pikachu444/auto-fixture-design/actions/runs/36582605853) completed successfully.
 
-## Actual fixture implementation and evidence
+## Historical upstream recovery and evidence
+
+This section records the earlier cloud recovery checkpoint. Its local timings,
+missing binaries and unconnected legacy FEA describe that environment, before
+the primary Windows/WSL restoration and Core adapters documented above.
 
 | Area | Existing code / observed result | Limit |
 | --- | --- | --- |
@@ -82,6 +100,11 @@ Refactor candidates in upstream: move `DESIGNS` away from a repository-global ru
 
 ## Historical verification progression and remaining limits
 
+The following entries preserve earlier checkpoints and their limits. Statements
+that native execution, finer meshes, PDE or optimizer integration were pending
+at those checkpoints are superseded by the executed continuation above. Live
+OpenScience, general native GUI refresh and engineering qualification remain open.
+
 - Live OpenScience agent/tool round trip; its exact product identity needs confirmation from the unavailable older transcript. Local MCP transport was tested; OpenScience CLI v2.0.145 could not load config in this container because its PID identity check saw an inconsistent `/proc` view.
 - Local native FreeCAD execution remains unavailable, but the Core-to-FreeCAD Part/Sketcher acceptance passed in GitHub Actions run 36632876593. The result artifact was inspected; details and the remaining Sketcher index-shift discovery and cross-file registration transaction limits are in `docs/NATIVE_ACCEPTANCE.md`. Physical machine interface, printed-part strength and load/fatigue tests remain unknown.
 - The Gmsh/CalculiX child-run adapter executed the exact verified CAD STEP in [CI run 36634609802](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36634609802). Three C3D10 meshes, raw DAT/FRD and hashed child evidence were retained; the historical 3→2 mm displacement difference was 3.999%. [Follow-up run 36635621706](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36635621706) checked fixed-base RF at every node; all three signed force balance checks passed, with worst relative imbalance `4.893e-9`. The old equal-force-per-node BC shifted the lip load share from 25.56% to 12.25% between the 3 and 2 mm meshes, so its historical 5% screen PASS cannot establish convergence under one fixed spatial load; see [ADR 0004](ADR/0004-saddle-load-discretization.md). The example load/material and fixed base are assumptions; static strength, physical evidence and release remain `UNKNOWN`/`NOT_RELEASED`. Code_Aster/SALOME-MECA nonlinear contact benchmark, OpenRadioss explicit preprocessing and converter coverage, FEniCSx PDE prototype and optimizer integration remain research candidates, not implemented adapters.
@@ -95,5 +118,5 @@ Refactor candidates in upstream: move `DESIGNS` away from a repository-global ru
 The full original scope is retained in `PROJECT_SCOPE.md` (all 52 section IDs), with startup instructions in `AGENTS.md` and a reproducible local/new-session checkpoint in `HANDOFF.md`. The committed area-load summary is `benchmarks/records/20260930-area-load.json`; raw CI artifact ZIPs have 30-day retention and are not included in a clone. Important raw-evidence archival remains open.
 
 1. The CadQuery vertical slice is executed here: discover actual source variables, register selected variables and bounds, regenerate 32→38 mm, reject invalid inputs before export, record hashes/evidence/validation, return a research summary.
-2. The sample Part/Sketcher Core bridge is now CI-executed. Verify imported, arbitrary FCStd models and edit/reorder Sketcher constraints in a GUI, then refresh registry without ambiguous discovery.
-3. The seeded DOE and revised saddle-load solver CI have passed, including artifact/journal inspection. Add a finer 1.5 mm mesh benchmark to check the surface-load approximation, then objective/constraint and failed-design policies for a true optimization engine, a canonical weak-form PDE benchmark, and representative contact/bolt/material evidence. Keep every unverified release requirement `UNKNOWN`.
+2. The sample Part/Sketcher Core bridge passed locally and in CI. Verify imported, arbitrary FCStd models and edit/reorder Sketcher constraints in a GUI, then refresh registry without ambiguous discovery.
+3. Finer 1.5 mm, actual numerical optimization and canonical weak-form PDE now passed locally and in exact-source CI; see the continuation record above. Continue Code_Aster reference benchmarks, GUI-edited native refresh/transactions, live OpenScience acceptance and durable evidence retention, then contact/bolt/material and broader phases. Keep every unverified release requirement `UNKNOWN`.

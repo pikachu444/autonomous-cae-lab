@@ -86,3 +86,11 @@ was retained. Import success is a prerequisite check, not PDE numerical proof.
 
 Official installation source:
 [DOLFINx installation](https://github.com/FEniCS/dolfinx#installation).
+
+The prerequisite subsequently passed actual canonical/reaction/rejection PDE
+acceptance at clean source `41a9858`, together with finer and real numerical
+optimization acceptance. The integrated local test count is now 217; exact
+source CI 36656020195 passed all six jobs. See
+[NUMERICAL_CONTINUATION](NUMERICAL_CONTINUATION.md) for execution evidence,
+independent review and remaining scope. The earlier restoration values above
+are historical checks at `16fba8c`, not overwritten by this continuation.

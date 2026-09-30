@@ -1,0 +1,263 @@
+{
+  "acceptance": {
+    "artifact_hashes": {
+      "parent_reference.json": "f21736cb57056bafe0caffc09b295b1b0c7b55730b6fca8b272e0c124a5ffd6a",
+      "proposal.json": "bd280d717cbd437256b020bd8a28c8cc0e970932cbe93cee5dc6dadb4ee7fb92",
+      "registry_snapshot.json": "27b91bd8340c48413d25db92896074438be102597368aec243d4fd6d7ba1a58e",
+      "simulation/input.step": "fc131292e9b47be8f5f72e39dfb2968b4227434161cbdf8a4194503517f0840c",
+      "simulation/result.json": "dcc20e3e9e905011ad830a801785c6c93b935fe30e6de065d1b66c0d767f3346",
+      "simulation/support_0/ccx.log": "db860ece7a1cb277647ac9f66c81703729ebcd0814137b0b9a2a7e87b4a5e47c",
+      "simulation/support_0/commands.json": "6eead2df733a941da92be120b2ad7ecaa9fe254ae467ab7c8b3b354f532563d5",
+      "simulation/support_0/gmsh.inp": "c7dbd8eb6c7d28f25927add1301fff48d8fb64560db6374a0538b947fc780c38",
+      "simulation/support_0/gmsh.log": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "simulation/support_0/saddle_load.json": "0dc7001c0ff853b36c977f471ea16d0458095868898567c9edbe945b5c4554e3",
+      "simulation/support_0/spooles.out": "bedddf5984cf0f318d2b23cf53cf6bdec6111fc8ab6e5d8e04f044785239d510",
+      "simulation/support_0/support_0.12d": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "simulation/support_0/support_0.cvg": "65086dedb4572132b815ace04b294909c7f6f337111f9704fc310b02320f67f7",
+      "simulation/support_0/support_0.dat": "997a32a3113597edbb1d747da8428b11f7c40789cf6bcfebf5315cbcd491b729",
+      "simulation/support_0/support_0.frd": "e9d0a593bcc1882fe76712065e04972550d5197a00986cfc32e64d556278cd54",
+      "simulation/support_0/support_0.inp": "02386d408a52696cde1cc3a91f29bf7611794fb3378f02932a9f5ba3d7135701",
+      "simulation/support_0/support_0.sta": "01e324ec0ea28f4d1fd7f5e2da1277af53812b873e218be1604c17a4c8e4990d",
+      "simulation/support_1/ccx.log": "7fa7f7c81d371ef3527c9c6e81620226fc904fdc907623f2399822eca91b5264",
+      "simulation/support_1/commands.json": "7b3ac899ad9d2cd7fa7412bb33d7db0ab547b1042e48423c9e9e04689f67017a",
+      "simulation/support_1/gmsh.inp": "30d7bcc93773f621e316f8ef345ee26af44246cc8c6b228d454ccdb97c06b0f0",
+      "simulation/support_1/gmsh.log": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "simulation/support_1/saddle_load.json": "2d49ea3856c9cdc5d3ff9916dc2e50a73c6784e0b4b834627fef5aad6b407d41",
+      "simulation/support_1/spooles.out": "bedddf5984cf0f318d2b23cf53cf6bdec6111fc8ab6e5d8e04f044785239d510",
+      "simulation/support_1/support_1.12d": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "simulation/support_1/support_1.cvg": "65086dedb4572132b815ace04b294909c7f6f337111f9704fc310b02320f67f7",
+      "simulation/support_1/support_1.dat": "e13b658c6ff711527249be6e3814ec2e045743ff93982a5abeff840111b16465",
+      "simulation/support_1/support_1.frd": "c1f421633cf90e7d29eab5422a56ab27a40bb120ece789745be154ba8b6270f5",
+      "simulation/support_1/support_1.inp": "d7fe1d9695c4650a5402c94b668b4be8837a8301400336bf7fa24446ce9ee667",
+      "simulation/support_1/support_1.sta": "01e324ec0ea28f4d1fd7f5e2da1277af53812b873e218be1604c17a4c8e4990d",
+      "simulation/support_2/ccx.log": "39c19a8d05c5540795412d43e3ffbc34cb9328ff90d8bff794c5e293643df7bb",
+      "simulation/support_2/commands.json": "9d5adb00df04521cd49207a7c48505ab9684549fa435f5f333694cc7be8381da",
+      "simulation/support_2/gmsh.inp": "f2bb89623c976c60f0a9acb90dd30f6e9ed38a731249a28c675c8b605f29a0ab",
+      "simulation/support_2/gmsh.log": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "simulation/support_2/saddle_load.json": "64684d1bf34b62442600357d4b8d617a18f931a95cf91d20700b66bd44decbdf",
+      "simulation/support_2/spooles.out": "bedddf5984cf0f318d2b23cf53cf6bdec6111fc8ab6e5d8e04f044785239d510",
+      "simulation/support_2/support_2.12d": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "simulation/support_2/support_2.cvg": "65086dedb4572132b815ace04b294909c7f6f337111f9704fc310b02320f67f7",
+      "simulation/support_2/support_2.dat": "b7e5568766ee7be926442050f9bf86798c43a614df0e833034a51c554df1b819",
+      "simulation/support_2/support_2.frd": "56d543c35716190137f033247dd8654b13e66dca8b1a2b1c1fd87a7011e16429",
+      "simulation/support_2/support_2.inp": "6e6ea3677494c25908151fb53fc9c62be55c42ff7ea8f64a648a15d5e288358d",
+      "simulation/support_2/support_2.sta": "01e324ec0ea28f4d1fd7f5e2da1277af53812b873e218be1604c17a4c8e4990d",
+      "simulation/support_3/ccx.log": "6a35b54b9f7a197c3ec98694d5d4e9195c490c7159be3f04c37c1cdd2ebe0f21",
+      "simulation/support_3/commands.json": "6531895983611ffa35eab978bc19a6a70af320716769c1d56e13b22de9516948",
+      "simulation/support_3/gmsh.inp": "882b221baacfa9040e4e0f14034ab8445919878f3905eaf9a0c7f59de3b85158",
+      "simulation/support_3/gmsh.log": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "simulation/support_3/saddle_load.json": "d3c52941ef04e9e338f652f7ecf99b96a00b457c21f8297f9c960d2bbb644a53",
+      "simulation/support_3/spooles.out": "bedddf5984cf0f318d2b23cf53cf6bdec6111fc8ab6e5d8e04f044785239d510",
+      "simulation/support_3/support_3.12d": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "simulation/support_3/support_3.cvg": "65086dedb4572132b815ace04b294909c7f6f337111f9704fc310b02320f67f7",
+      "simulation/support_3/support_3.dat": "9e158b379a03d894f6549458ce841fe13349833953000c2626e8f74c4206b186",
+      "simulation/support_3/support_3.frd": "abfcbd5fd559c3814d24958e3c7ca64b734e1b34c142e531de48ca13f92982af",
+      "simulation/support_3/support_3.inp": "5cc1af7d89f662532f43d6bfe750dbfc6a4f1058f7ac28205ed50a4581cdf3f3",
+      "simulation/support_3/support_3.sta": "01e324ec0ea28f4d1fd7f5e2da1277af53812b873e218be1604c17a4c8e4990d"
+    },
+    "cad_revision": "d7ae994052d029f7131fa1c2121fd7d5d6ebb2611ffba56fcb2c63571f207332",
+    "decision": "NOT_RELEASED",
+    "limitations": [
+      "Fixed bottom substitutes for actual fasteners and base.",
+      "Distributed nodal load substitutes for roller contact.",
+      "Tessellated surface-area loading approximates a uniform vertical traction, not measured roller contact.",
+      "Averaged nodal peak stress is diagnostic only.",
+      "Material allowables and physical evidence remain unknown."
+    ],
+    "limits": {
+      "displacement_last_pair": 0.05,
+      "reaction_balance": 0.01
+    },
+    "mesh_change_ratio": 0.008817093498804473,
+    "meshes": [
+      {
+        "analytical_patch_area_mm2": 312.9026282975434,
+        "elements_C3D10": 5319,
+        "lip_force_fraction": 0.13064517916110835,
+        "loaded_nodes": 123,
+        "max_loaded_node_displacement_mm": 0.005505997,
+        "mesh_max_mm": 4.0,
+        "mesh_volume_relative_error": 0.016190655072690685,
+        "nodes": 9155,
+        "outside_patch_force_fraction": 0.026177829974596764,
+        "patch_area_mm2": 304.86132923522035,
+        "patch_area_relative_error": 0.0256990460772879,
+        "signed_reactions": {
+          "applied_force_N": [
+            0.0,
+            0.0,
+            -100.0
+          ],
+          "fixed_node_count": 1273,
+          "reaction_force_N": [
+            -8.119800015595476e-09,
+            -2.7394100082725823e-08,
+            100.000001457073
+          ],
+          "relative_imbalance": 1.4573531101046888e-08,
+          "residual_force_N": [
+            -8.119800015595476e-09,
+            -2.7394100082725823e-08,
+            1.4570729973684138e-06
+          ]
+        },
+        "total_force_N": 99.99999999999999
+      },
+      {
+        "analytical_patch_area_mm2": 312.9026282975434,
+        "elements_C3D10": 9340,
+        "lip_force_fraction": 0.09475413028835639,
+        "loaded_nodes": 228,
+        "max_loaded_node_displacement_mm": 0.00557447,
+        "mesh_max_mm": 3.0,
+        "mesh_volume_relative_error": 0.009072548039053663,
+        "nodes": 15476,
+        "outside_patch_force_fraction": 0.024925700231919614,
+        "patch_area_mm2": 308.47255069134235,
+        "patch_area_relative_error": 0.014158007014208995,
+        "signed_reactions": {
+          "applied_force_N": [
+            0.0,
+            0.0,
+            -100.0
+          ],
+          "fixed_node_count": 1515,
+          "reaction_force_N": [
+            3.597200002487421e-08,
+            -4.0126800014969946e-08,
+            99.9999998769201
+          ],
+          "relative_imbalance": 1.343607333317321e-09,
+          "residual_force_N": [
+            3.597200002487421e-08,
+            -4.0126800014969946e-08,
+            -1.2307990004956082e-07
+          ]
+        },
+        "total_force_N": 100.00000000000017
+      },
+      {
+        "analytical_patch_area_mm2": 312.9026282975434,
+        "elements_C3D10": 23488,
+        "lip_force_fraction": 0.06594792533325107,
+        "loaded_nodes": 438,
+        "max_loaded_node_displacement_mm": 0.005707813,
+        "mesh_max_mm": 2.0,
+        "mesh_volume_relative_error": 0.0050077458351218684,
+        "nodes": 36665,
+        "outside_patch_force_fraction": 0.014071710978207481,
+        "patch_area_mm2": 310.8196591505448,
+        "patch_area_relative_error": 0.0066569244187296706,
+        "signed_reactions": {
+          "applied_force_N": [
+            0.0,
+            0.0,
+            -100.0
+          ],
+          "fixed_node_count": 2287,
+          "reaction_force_N": [
+            -8.195999988268676e-09,
+            -4.541629998000067e-08,
+            99.9999995281112
+          ],
+          "relative_imbalance": 4.741401174395752e-09,
+          "residual_force_N": [
+            -8.195999988268676e-09,
+            -4.541629998000067e-08,
+            -4.718887964827445e-07
+          ]
+        },
+        "total_force_N": 99.99999999999993
+      },
+      {
+        "analytical_patch_area_mm2": 312.9026282975434,
+        "elements_C3D10": 53927,
+        "lip_force_fraction": 0.050169826099822054,
+        "loaded_nodes": 725,
+        "max_loaded_node_displacement_mm": 0.005758587,
+        "mesh_max_mm": 1.5,
+        "mesh_volume_relative_error": 0.002815973338526234,
+        "nodes": 81070,
+        "outside_patch_force_fraction": 0.007079947668381144,
+        "patch_area_mm2": 311.616457932278,
+        "patch_area_relative_error": 0.004110449222696655,
+        "signed_reactions": {
+          "applied_force_N": [
+            0.0,
+            0.0,
+            -100.0
+          ],
+          "fixed_node_count": 3719,
+          "reaction_force_N": [
+            6.179739999186338e-08,
+            -3.246729999277981e-08,
+            99.9999999101369
+          ],
+          "relative_imbalance": 1.1379112308150225e-09,
+          "residual_force_N": [
+            6.179739999186338e-08,
+            -3.246729999277981e-08,
+            -8.986309296687978e-08
+          ]
+        },
+        "total_force_N": 99.9999999999998
+      }
+    ],
+    "parent_step_sha256": "fc131292e9b47be8f5f72e39dfb2968b4227434161cbdf8a4194503517f0840c",
+    "reference": "Analytical half-cylinder patch area; no exact structural solution claimed",
+    "result_sha256": "e9bd59ac82011a9f17826a99291e51e2edd575fe73952a840c16136b84936dd0",
+    "solver_versions": {
+      "ccx": "This is Version 2.21",
+      "gmsh": "4.12.1"
+    },
+    "source": {
+      "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+      "core_dirty": false,
+      "core_source_sha256": "a9f9e28ac755ded2f1739159315a463da45a04c724fc1ade7840ddab92534e5f",
+      "source_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8"
+    },
+    "status": "PASS"
+  },
+  "execution": "Primary Windows 11 / Ubuntu 24.04.4 WSL2",
+  "recorded_utc": "2026-09-30T02:04:43.668401+00:00",
+  "report_sha256": "d69f2832d836a3d7bb37385f48a8c0f6369e3596c31857255059a24393bc7762",
+  "retention": "Raw stores retained locally and ignored by Git; compact record committed; CI artifacts have 30-day retention.",
+  "store": "artifacts/local-20260930-finer",
+  "verified_experiments": [
+    {
+      "artifact_count": 12,
+      "cad_revision": "d7ae994052d029f7131fa1c2121fd7d5d6ebb2611ffba56fcb2c63571f207332",
+      "experiment_id": "E-finer-cad",
+      "parent_experiment_id": null,
+      "result_sha256": "21dae4573d91d19f350b116e6adc6a11d0dbb2c72d060bf9734e2e2102658479",
+      "solver_status": "NOT_RUN",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "cbe1c7f23280a2cee3ece10b83d0414aef6da350300177baa208070fac2f5cf8",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "artifact_count": 53,
+      "cad_revision": "d7ae994052d029f7131fa1c2121fd7d5d6ebb2611ffba56fcb2c63571f207332",
+      "experiment_id": "E-finer-solve",
+      "parent_experiment_id": "E-finer-cad",
+      "result_sha256": "e9bd59ac82011a9f17826a99291e51e2edd575fe73952a840c16136b84936dd0",
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "da654ba8f4469209583632560cb0fa55954deb800c0c6226dcede6d471fd732f",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability",
+        "joint_and_contact",
+        "material_qualification",
+        "stress_convergence"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,533 @@
+{
+  "acceptance": {
+    "algorithm": {
+      "atol": 1e-12,
+      "bounds": [
+        [
+          28.0,
+          42.0
+        ]
+      ],
+      "constraint_convention": "dimensionless_residual_le_zero",
+      "constraint_count": 1,
+      "engine": "scipy.differential_evolution",
+      "initial_population": [
+        {
+          "support_width": 28.0
+        },
+        {
+          "support_width": 29.73246472164783
+        },
+        {
+          "support_width": 33.02040866898759
+        },
+        {
+          "support_width": 38.96493184489878
+        },
+        {
+          "support_width": 35.59324826705749
+        }
+      ],
+      "initial_values": {
+        "support_width": 28.0
+      },
+      "initialization": {
+        "engine": "scipy.stats.qmc.LatinHypercube",
+        "optimization": null,
+        "rng": "numpy.random.default_rng",
+        "scramble": true,
+        "seed": 13,
+        "strength": 1
+      },
+      "internal_availability_constraint": true,
+      "max_generations": 1,
+      "memoization": "exact_float_hex",
+      "mutation": [
+        0.5,
+        1.0
+      ],
+      "numpy_version": "2.3.5",
+      "parameter_order": [
+        "support_width"
+      ],
+      "polish": false,
+      "population_size": 5,
+      "recombination": 0.7,
+      "rng": "numpy.random.default_rng",
+      "seed": 13,
+      "strategy": "best1bin",
+      "tol": 1e-08,
+      "updating": "deferred",
+      "vectorized": false,
+      "version": "1.17.0",
+      "workers": 1
+    },
+    "baseline": {
+      "displacement_mm": 0.005758587,
+      "volume_mm3": 36783.829878355966,
+      "width_mm": 38
+    },
+    "best": {
+      "analysis_experiment_id": "E-C-opt-0002-solve",
+      "cad_experiment_id": "E-C-opt-0002",
+      "displacement_mm": 0.005961796,
+      "values": {
+        "support_width": 29.73246472164783
+      },
+      "volume_mm3": 28185.593188869716
+    },
+    "campaign_id": "C-opt",
+    "constraints": [
+      {
+        "limit": 0.0065,
+        "metric": "max_displacement",
+        "operator": "<=",
+        "scale": 0.0065,
+        "source": "analysis",
+        "unit": "mm"
+      }
+    ],
+    "decision": "NOT_RELEASED",
+    "evaluations": 9,
+    "limitations": [
+      "One bounded generation does not establish a global or converged fixture optimum.",
+      "The displacement bound is a research screen, not a strength allowable.",
+      "Material/contact/fasteners/physical qualification remains UNKNOWN."
+    ],
+    "maximum_cad_volume_reference_error": 7.771561172376096e-16,
+    "objective": {
+      "direction": "minimize",
+      "metric": "cad_volume",
+      "source": "cad",
+      "unit": "mm^3"
+    },
+    "reference": "Analytical support volume; constrained quadratic engine regression has a known optimum",
+    "replayed_evaluations_without_rerun": 2,
+    "result_sha256": "2d471c3f22e77f15b984c8c04cd692252918daee1cbb1ce0dc6ecb60a3fe58a4",
+    "solver_children": 8,
+    "solver_versions": {
+      "ccx": "This is Version 2.21",
+      "gmsh": "4.12.1"
+    },
+    "source": {
+      "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+      "core_dirty": false,
+      "core_source_sha256": "a9f9e28ac755ded2f1739159315a463da45a04c724fc1ade7840ddab92534e5f",
+      "source_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8"
+    },
+    "status": "PASS",
+    "termination": {
+      "algorithm": {
+        "atol": 1e-12,
+        "bounds": [
+          [
+            28.0,
+            42.0
+          ]
+        ],
+        "constraint_convention": "dimensionless_residual_le_zero",
+        "constraint_count": 1,
+        "engine": "scipy.differential_evolution",
+        "initial_population": [
+          {
+            "support_width": 28.0
+          },
+          {
+            "support_width": 29.73246472164783
+          },
+          {
+            "support_width": 33.02040866898759
+          },
+          {
+            "support_width": 38.96493184489878
+          },
+          {
+            "support_width": 35.59324826705749
+          }
+        ],
+        "initial_values": {
+          "support_width": 28.0
+        },
+        "initialization": {
+          "engine": "scipy.stats.qmc.LatinHypercube",
+          "optimization": null,
+          "rng": "numpy.random.default_rng",
+          "scramble": true,
+          "seed": 13,
+          "strength": 1
+        },
+        "internal_availability_constraint": true,
+        "max_generations": 1,
+        "memoization": "exact_float_hex",
+        "mutation": [
+          0.5,
+          1.0
+        ],
+        "numpy_version": "2.3.5",
+        "parameter_order": [
+          "support_width"
+        ],
+        "polish": false,
+        "population_size": 5,
+        "recombination": 0.7,
+        "rng": "numpy.random.default_rng",
+        "seed": 13,
+        "strategy": "best1bin",
+        "tol": 1e-08,
+        "updating": "deferred",
+        "vectorized": false,
+        "version": "1.17.0",
+        "workers": 1
+      },
+      "candidate_values": {
+        "support_width": 29.73246472164783
+      },
+      "constraint_residuals": [
+        -0.08280061538461532
+      ],
+      "converged": false,
+      "evaluation_count": 9,
+      "generations": 1,
+      "objective": 28185.593188869716,
+      "termination_reason": "MAX_GENERATIONS"
+    }
+  },
+  "execution": "Primary Windows 11 / Ubuntu 24.04.4 WSL2",
+  "recorded_utc": "2026-09-30T02:05:11.761558+00:00",
+  "report_sha256": "c4a6e9144da6d0683b2a387bb7c354fb6ea209683ae197bc7ec58df5cd6fd004",
+  "retention": "Raw stores retained locally and ignored by Git; compact record committed; CI artifacts have 30-day retention.",
+  "store": "artifacts/local-20260930-optimization",
+  "verified_experiments": [
+    {
+      "artifact_count": 8,
+      "cad_revision": null,
+      "experiment_id": "E-C-opt-0001",
+      "parent_experiment_id": null,
+      "result_sha256": "d82cbbb41b04d513cf0ffa4c48fdc96f6a65ca3e428f748543281128b8f33c64",
+      "solver_status": "NOT_RUN",
+      "status": "REJECTED",
+      "thread_sha256": "7b8d97c78f8f16bbbec4faf5bd332d35b157f8f894bddb6daf36efe2c6a76dd8",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "artifact_count": 12,
+      "cad_revision": "b1f26bc63111274b4b754283aa0d98b2fee63c5aa50620be6947c58646609c8e",
+      "experiment_id": "E-C-opt-0002",
+      "parent_experiment_id": null,
+      "result_sha256": "3ea17c3d5fdb3456a037ffaa7e95b8795c945ca8a948cc3924efddb76bcc4486",
+      "solver_status": "NOT_RUN",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "34e22f5082d9008c7b4897da577f59bccc4ff9f41ebbf9a27d89969bfed423a1",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "artifact_count": 29,
+      "cad_revision": "b1f26bc63111274b4b754283aa0d98b2fee63c5aa50620be6947c58646609c8e",
+      "experiment_id": "E-C-opt-0002-solve",
+      "parent_experiment_id": "E-C-opt-0002",
+      "result_sha256": "c3a7d83480f9c82095463bc4f8a6533f9e5d7d36bcb93c2a739bb817e602ef3a",
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "cddc6f7a82e843b966479fcbda68e0a2125660dd5b0ff3a6a73deae4399c7472",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability",
+        "joint_and_contact",
+        "material_qualification",
+        "stress_convergence"
+      ]
+    },
+    {
+      "artifact_count": 12,
+      "cad_revision": "80a19f7eb6b68c950364495b8c94c0f552be1585c09334916ebc4263416eca9e",
+      "experiment_id": "E-C-opt-0003",
+      "parent_experiment_id": null,
+      "result_sha256": "654373a83691d6e818b4a25b7207914e47ed802995d192218eafb35cd80c0714",
+      "solver_status": "NOT_RUN",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "6c9b3877047f2c00284cc0b7d9004b97a232f769bbbdb4b4480547a4a9c4abe6",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "artifact_count": 29,
+      "cad_revision": "80a19f7eb6b68c950364495b8c94c0f552be1585c09334916ebc4263416eca9e",
+      "experiment_id": "E-C-opt-0003-solve",
+      "parent_experiment_id": "E-C-opt-0003",
+      "result_sha256": "f34b0f5b534f0a9a706f38698d3dd0782752dd64d387e17d9710988afb095395",
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "7e504e3c436db71b418961ea9e80d1b5eeb688137437ac427ed641dfccff8693",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability",
+        "joint_and_contact",
+        "material_qualification",
+        "stress_convergence"
+      ]
+    },
+    {
+      "artifact_count": 12,
+      "cad_revision": "e2e966bb91365f2b0489b486e1862242fd1bbde2dff7526cdc5818c610990a6d",
+      "experiment_id": "E-C-opt-0004",
+      "parent_experiment_id": null,
+      "result_sha256": "caf7df4d58c845cdbd9dbe18e57859df64c762bec36c3a42281616efafd221ce",
+      "solver_status": "NOT_RUN",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "a408c1ba7040d5bd59d5e5472753361c67ff7c289ad8296bd976fbdb04ba364f",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "artifact_count": 29,
+      "cad_revision": "e2e966bb91365f2b0489b486e1862242fd1bbde2dff7526cdc5818c610990a6d",
+      "experiment_id": "E-C-opt-0004-solve",
+      "parent_experiment_id": "E-C-opt-0004",
+      "result_sha256": "4928c0994ddadd81aa2e037f352722fbc400a649270a513bc4f47eb9179b88e3",
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "e7f794e224d7eb6494087e7526c68641b6233ef0e2ba0834a9c6c6bf6a6630c5",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability",
+        "joint_and_contact",
+        "material_qualification",
+        "stress_convergence"
+      ]
+    },
+    {
+      "artifact_count": 12,
+      "cad_revision": "5c78159c13bebc95b0cc85e013d2c934887aedd499634ef13bebd6f88e51d7f4",
+      "experiment_id": "E-C-opt-0005",
+      "parent_experiment_id": null,
+      "result_sha256": "8fb1708a0412644896204d9f5cf5bbe77f2e252d22c0e156ab2912905914517c",
+      "solver_status": "NOT_RUN",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "35670ffa42926e5c9ad9bb108e362a945a0c26c94ec856f8e1b10c0d55918182",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "artifact_count": 29,
+      "cad_revision": "5c78159c13bebc95b0cc85e013d2c934887aedd499634ef13bebd6f88e51d7f4",
+      "experiment_id": "E-C-opt-0005-solve",
+      "parent_experiment_id": "E-C-opt-0005",
+      "result_sha256": "4dbf3f346a8194461a15f863a569dde969b34fe0928640dc843460d35c8b38ed",
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "c8612f6ace07b02b3c3841f2cf5b1d5cea6292b03212d0b9532fc0686d5f2c8f",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability",
+        "joint_and_contact",
+        "material_qualification",
+        "stress_convergence"
+      ]
+    },
+    {
+      "artifact_count": 12,
+      "cad_revision": "14023b00084fe7665bc86e43e2d0d818236deeb5524281f0ff9ef1a845cded85",
+      "experiment_id": "E-C-opt-0006",
+      "parent_experiment_id": null,
+      "result_sha256": "4e5877ce8a4e2fdc2c284c1b0792779ccb598ce6f51804cf65ac86f779bb39cc",
+      "solver_status": "NOT_RUN",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "3daac9ba864d9111fd22dd90858cd3c506928473502230ca07a2c2ade09931dd",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "artifact_count": 29,
+      "cad_revision": "14023b00084fe7665bc86e43e2d0d818236deeb5524281f0ff9ef1a845cded85",
+      "experiment_id": "E-C-opt-0006-solve",
+      "parent_experiment_id": "E-C-opt-0006",
+      "result_sha256": "fe1378557f3b9651bb698a655413b0e4714f50403f9bf5678edc306f3f85a082",
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "e6ca3aae20864ea4c6c0e30f088e988200b1a89930e516021904150771f9b5f0",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability",
+        "joint_and_contact",
+        "material_qualification",
+        "stress_convergence"
+      ]
+    },
+    {
+      "artifact_count": 12,
+      "cad_revision": "c0c4cd829f80e3dbc786bf4ecbdd874ebfd271b73e81c54969d81901f819788b",
+      "experiment_id": "E-C-opt-0007",
+      "parent_experiment_id": null,
+      "result_sha256": "9d9f1366a766dac74d84dd517f9aeccdc945658e32f4dc1478042c1d56d33b31",
+      "solver_status": "NOT_RUN",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "ea4e277df05ffa2922a3d37b1acea1bb94e80ba9b5ed18c15577ef236720f615",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "artifact_count": 29,
+      "cad_revision": "c0c4cd829f80e3dbc786bf4ecbdd874ebfd271b73e81c54969d81901f819788b",
+      "experiment_id": "E-C-opt-0007-solve",
+      "parent_experiment_id": "E-C-opt-0007",
+      "result_sha256": "85bb591d2817f5733010e1b65f2f107a7c1ea50ae9dec87c5325836a67d954b5",
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "fcd684130a0ea8f3e25b9e3592e4f70ba33d14140a53c0645936c1858c2bfee0",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability",
+        "joint_and_contact",
+        "material_qualification",
+        "stress_convergence"
+      ]
+    },
+    {
+      "artifact_count": 12,
+      "cad_revision": "5f7f8c66361589b648a77c59a7d085ff8d48b807bfbd286f843599b9fce73a74",
+      "experiment_id": "E-C-opt-0008",
+      "parent_experiment_id": null,
+      "result_sha256": "3ecbf362984fb72243faf9e89f18068691137f8b54d07dcdc2a9228a84969089",
+      "solver_status": "NOT_RUN",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "11aee94dfd63f50241dc42eaf88407465d005c1a4326d387d3231b70d03717f9",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "artifact_count": 29,
+      "cad_revision": "5f7f8c66361589b648a77c59a7d085ff8d48b807bfbd286f843599b9fce73a74",
+      "experiment_id": "E-C-opt-0008-solve",
+      "parent_experiment_id": "E-C-opt-0008",
+      "result_sha256": "299cf40195366d58962959f78b5eb5149ee3730458b0765fb84e9b3c3090514f",
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "a7b7c231a3c93aaf5d8dfe0f4d5be7c24ab1cbbe8f8aba27d19fd433e05e8e3e",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability",
+        "joint_and_contact",
+        "material_qualification",
+        "stress_convergence"
+      ]
+    },
+    {
+      "artifact_count": 12,
+      "cad_revision": "adc9250cc2e9a359146f1408316c37d2dff92f06a6b714ff31c0996e5be25cf2",
+      "experiment_id": "E-C-opt-0009",
+      "parent_experiment_id": null,
+      "result_sha256": "c53e2628284f5bb4d560407c18d064873ce0a82af43462aefe092ee3e32ee67c",
+      "solver_status": "NOT_RUN",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "39d09d645b29a20fa8505e5a00591281f6ab84c2d0b0cfdcf4ccf21ab448a8c9",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "artifact_count": 29,
+      "cad_revision": "adc9250cc2e9a359146f1408316c37d2dff92f06a6b714ff31c0996e5be25cf2",
+      "experiment_id": "E-C-opt-0009-solve",
+      "parent_experiment_id": "E-C-opt-0009",
+      "result_sha256": "7f6b3add2adfe25cccf4c509bb75e89d68b47f7b3539825ca3f851afd98ff65a",
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "02c1751d4e7f438140b298576d2e64b4bc087653c6bb8361c73639d0380df39e",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability",
+        "joint_and_contact",
+        "material_qualification",
+        "stress_convergence"
+      ]
+    },
+    {
+      "artifact_count": 12,
+      "cad_revision": "02ab1dde3e7475b1909d089edfa4c104b1155d9aee60972852ce21e503410e7c",
+      "experiment_id": "E-opt-baseline-cad",
+      "parent_experiment_id": null,
+      "result_sha256": "971c5e9c9befbb764ebc4a9640658a68c2f39e20f3791516da2735eedb8c1591",
+      "solver_status": "NOT_RUN",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "7b32cfe67346158598d8d14f9697eda54d292038e8eafae31d40b8394e62dd2d",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "artifact_count": 29,
+      "cad_revision": "02ab1dde3e7475b1909d089edfa4c104b1155d9aee60972852ce21e503410e7c",
+      "experiment_id": "E-opt-baseline-solve",
+      "parent_experiment_id": "E-opt-baseline-cad",
+      "result_sha256": "a075516aa6f9202a69d868f180b3a8cf3f4ac6a2fe3e18fba3f91ad7ad71cceb",
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "thread_sha256": "5b83756ce77ab1aff2410a4a8b4e9a870e7df79cf2c2d65fea89f48300d2a92f",
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability",
+        "joint_and_contact",
+        "material_qualification",
+        "stress_convergence"
+      ]
+    }
+  ]
+}

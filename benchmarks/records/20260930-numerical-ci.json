@@ -1,0 +1,1377 @@
+{
+  "artifacts": [
+    {
+      "expired_when_inspected": false,
+      "expires_at": "2026-10-30T01:52:01Z",
+      "id": 11073260602,
+      "name": "optimization-cae-lab-41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+      "server_provided_archive_digest": "sha256:47fdcb31310874ce7470b67f4d4b7fe8c662fe9b072a5cd3181a04d1fe6f079c",
+      "size_bytes": 150148340
+    },
+    {
+      "expired_when_inspected": false,
+      "expires_at": "2026-10-30T01:43:42Z",
+      "id": 11072732511,
+      "name": "native-cae-lab-41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+      "server_provided_archive_digest": "sha256:1b283d76870ad3e5a267d3cc6204e6db79049b01764d5920b725a86b4a256889",
+      "size_bytes": 429376
+    },
+    {
+      "expired_when_inspected": false,
+      "expires_at": "2026-10-30T01:42:05Z",
+      "id": 11072497631,
+      "name": "structural-cae-lab-41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+      "server_provided_archive_digest": "sha256:ea3b42e0bbeee971a63329e7c0d680c66f215707422222a844300fc28f05a6c5",
+      "size_bytes": 30737918
+    },
+    {
+      "expired_when_inspected": false,
+      "expires_at": "2026-10-30T01:40:56Z",
+      "id": 11072053951,
+      "name": "pde-cae-lab-41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+      "server_provided_archive_digest": "sha256:d159b0802737f1dbc037ceb949a0690e1a60d89f9d1a1b2b88728aaa9a914d61",
+      "size_bytes": 125919
+    },
+    {
+      "expired_when_inspected": false,
+      "expires_at": "2026-10-30T01:41:42Z",
+      "id": 11071919872,
+      "name": "doe-cae-lab-41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+      "server_provided_archive_digest": "sha256:e5423db59f8e7bf2c65b7ac81efc0244a912de9e8abc327e52ff5f3fcae1c4a5",
+      "size_bytes": 21517035
+    }
+  ],
+  "conclusion": "success",
+  "decision": "NOT_RELEASED",
+  "downloaded_and_verified_stores": [
+    {
+      "campaigns": [
+        {
+          "campaign_id": "C-pitch",
+          "result_sha256": "e9ebac05af2ad54525656e1f0b25336ed4f057091d83009961356da08b96864a",
+          "samples": 2
+        },
+        {
+          "campaign_id": "C-width",
+          "result_sha256": "3f6aade199016fcc4308aa520825c83bc6ed51aea90380f079a85e3a26bb4253",
+          "samples": 2
+        }
+      ],
+      "experiments": [
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-C-pitch-001",
+          "result_sha256": "b8b7d8384b30ff86b938175c21d4ee66cb3ecf2ea612a3185f8759084d02a403",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "48ee8154f5f9263f15ed7d26711023708ba942d7739fc5cf8104aaebe85e960f"
+        },
+        {
+          "artifact_count": 29,
+          "experiment_id": "E-C-pitch-001-solve",
+          "result_sha256": "70c49fcf9f71ee5b42f1c9296025413c40e1ce7b59407849889c6fa06a92cf62",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "955e6dfee1540dfc07681ea3b8a11bc27cac67b53bd1a02bad2e367bf4c0a623"
+        },
+        {
+          "artifact_count": 8,
+          "experiment_id": "E-C-pitch-002",
+          "result_sha256": "9b3efdfa6b6b80371b0fba7185c949e54ca64c2d70feed834abcd789127734e7",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "REJECTED",
+          "thread_sha256": "e58809b91fcb07fe465da10c289a19defa29f2f0b433adccc2b5c08720c6aa70"
+        },
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-C-width-001",
+          "result_sha256": "e2a38f62b6e94d3c87481701967d2d3ad973330a78808e09d7b58dcda5dbfbb0",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "585e0cff7e286d7f1c1ad9ecb6cf4bf048fd41ff1d3674089145d21482b9807d"
+        },
+        {
+          "artifact_count": 29,
+          "experiment_id": "E-C-width-001-solve",
+          "result_sha256": "9820b88cbddbfed08b94b119953573b8ec2e6e68decd39e20824dd3bdd232792",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "56c83544ef93f8b284d6027e326538808153b7a05531796fb3f5778b63eac77b"
+        },
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-C-width-002",
+          "result_sha256": "7095a278df32c4e14bcb0fa4d4d6840908db550a91347e034794dbadcbf3fc45",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "36d09bb05df29ac9d5f5f405c070f5a65e515b40fe516d6116e884b86c62136c"
+        },
+        {
+          "artifact_count": 29,
+          "experiment_id": "E-C-width-002-solve",
+          "result_sha256": "44b477569c599f52ea5c29d24e59f259cd4d30e489b80cd85cf85502360b9a56",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "cfe5cf39737c98d7516890217742cbc8d61683be7ff05ec4b125921652b48715"
+        }
+      ],
+      "reports": {},
+      "store": "artifacts/ci-36656020195/doe-cae-lab-41a9858bad7ebeb72de0db0d75d1f910a4a50dc4"
+    },
+    {
+      "campaigns": [],
+      "experiments": [
+        {
+          "artifact_count": 6,
+          "experiment_id": "E-native-clearance",
+          "result_sha256": "31c95cef6a1f29485d8ce550c9b4d388a6b67eaf4f9053c35fb9f67b1234dd0f",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": true,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "REJECTED",
+          "thread_sha256": "9cf52c506f7bba2a687bd26e66fbb154b015fe69d69fd64ced28637bf36ed2d0"
+        },
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-native-sketch6",
+          "result_sha256": "7e96a5aad6369208567adf7b90b464503e34460ee5de2866da7fb4b68d536142",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": true,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "7905bf3d02c7dcd4df8e43f1a72667a2ecc8f8ee944604412b83cced343b5ffa"
+        },
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-native-width38",
+          "result_sha256": "12c393cfed58ce7c7c0edb7b3487864f733c6252bfcbd55c4816ea55dd6addbc",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": true,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "ea3877eba12702d4cd6429e8dccb13efb89d212dbe4e26deb78cc4f0fd76a104"
+        }
+      ],
+      "reports": {},
+      "store": "artifacts/ci-36656020195/native-cae-lab-41a9858bad7ebeb72de0db0d75d1f910a4a50dc4"
+    },
+    {
+      "campaigns": [
+        {
+          "campaign_id": "C-opt",
+          "evaluations": 9,
+          "result_sha256": "3ee826eaeb5b00e9f4d3b922f60c0677e66758f781e92e0aeb3d40036f7b418b"
+        }
+      ],
+      "experiments": [
+        {
+          "artifact_count": 8,
+          "experiment_id": "E-C-opt-0001",
+          "result_sha256": "baa858cdf27244e0c4cbc7bf81d033f8c8d18bc041cb3bb6cc70fdb369a1af1f",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "REJECTED",
+          "thread_sha256": "7b8d97c78f8f16bbbec4faf5bd332d35b157f8f894bddb6daf36efe2c6a76dd8"
+        },
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-C-opt-0002",
+          "result_sha256": "6da6d7dd8204c015769f4b813ff897faca438c670424cdadd5d903c92177a56f",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "34e22f5082d9008c7b4897da577f59bccc4ff9f41ebbf9a27d89969bfed423a1"
+        },
+        {
+          "artifact_count": 29,
+          "experiment_id": "E-C-opt-0002-solve",
+          "result_sha256": "49218d7bfa9ca2ea38404211cc0c1fd498531509a207f8fe8f75abbeb6611d5e",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "f9d5a8a6896e9955d7487ce9528db4ae244a26a6935c99628c60755844f69944"
+        },
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-C-opt-0003",
+          "result_sha256": "645e90a99ad8719f7edebaaf1760ed4b8e23a26a086728f271d003e67226aff2",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "6c9b3877047f2c00284cc0b7d9004b97a232f769bbbdb4b4480547a4a9c4abe6"
+        },
+        {
+          "artifact_count": 29,
+          "experiment_id": "E-C-opt-0003-solve",
+          "result_sha256": "4ea3e56a71bf04b039790f793f2c35ed85bcbdbe02723639d78296ade50d70a3",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "bb8de2ac52590f0acb76a91ec50472a33ed12528fb937484a4703fd18915628a"
+        },
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-C-opt-0004",
+          "result_sha256": "21e28b4963d13a5b712ea378987c910c5b14c8f265869d234da626a30a8defc9",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "a408c1ba7040d5bd59d5e5472753361c67ff7c289ad8296bd976fbdb04ba364f"
+        },
+        {
+          "artifact_count": 29,
+          "experiment_id": "E-C-opt-0004-solve",
+          "result_sha256": "3a1fe71c2b1081530101cde9918002a33b98428d1f60d452b187c113075c5263",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "5d036de5f06ee4e4c5e256bfd59d1ecfe7922d0c409600020b31ba87c84aa5d4"
+        },
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-C-opt-0005",
+          "result_sha256": "24b64197e6d58ed0d8ba96007fbaa4a94809ab24b9bd7b528b56dc888da54390",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "35670ffa42926e5c9ad9bb108e362a945a0c26c94ec856f8e1b10c0d55918182"
+        },
+        {
+          "artifact_count": 29,
+          "experiment_id": "E-C-opt-0005-solve",
+          "result_sha256": "020a8b20e4318eee38d5a20e41318c6dfa715ad1e455d2a3ef8891fd37f8f973",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "fc011ed0de9a86b5fa96480eed690ccfdce0d5ebb0e393d83aeb346d5dcd0cda"
+        },
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-C-opt-0006",
+          "result_sha256": "092bc10c52724ae1afeb2a7dd01902b8ce6ecefa3927ac78547c663e7f229a6d",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "3daac9ba864d9111fd22dd90858cd3c506928473502230ca07a2c2ade09931dd"
+        },
+        {
+          "artifact_count": 29,
+          "experiment_id": "E-C-opt-0006-solve",
+          "result_sha256": "ad0a249214caf9908578fc29438c3a8231b9335d837781cbd4aa021bf865fb40",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "cdbe33af21683bfdf2b2006bff42e337d6366ce8809980f533668d1f00a1b9ef"
+        },
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-C-opt-0007",
+          "result_sha256": "84ebb42f9080af44f3b43e77aca20efa7b321ccfec88c4c39669f31d4d1a149c",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "ea4e277df05ffa2922a3d37b1acea1bb94e80ba9b5ed18c15577ef236720f615"
+        },
+        {
+          "artifact_count": 29,
+          "experiment_id": "E-C-opt-0007-solve",
+          "result_sha256": "ba16f4ac657d6acbc5219a9550d77ca9f1603290a1932005e6a3f455c9535ce2",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "c0824a25ee451b22b89d5974f90490e3fc1eb984c43c951df5083dfe30dd02c0"
+        },
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-C-opt-0008",
+          "result_sha256": "ff7b7670c9faad31a1e52bc8ed8c360d6fb3368badbdff069c0d993f3d64fd06",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "11aee94dfd63f50241dc42eaf88407465d005c1a4326d387d3231b70d03717f9"
+        },
+        {
+          "artifact_count": 29,
+          "experiment_id": "E-C-opt-0008-solve",
+          "result_sha256": "04e3bff542c909f333a01731839dcbea932d74fb82ebbc4cac40848821c8667c",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "d0e47671859dc2d0fc4656be51c2c0545e1e53f8ffa63657e13bc78637eb900e"
+        },
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-C-opt-0009",
+          "result_sha256": "1c7284cc5c41e3fe35af7eaa4b64ebf812945d820bcaa6348677140c71ab2959",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "39d09d645b29a20fa8505e5a00591281f6ab84c2d0b0cfdcf4ccf21ab448a8c9"
+        },
+        {
+          "artifact_count": 29,
+          "experiment_id": "E-C-opt-0009-solve",
+          "result_sha256": "824ae465fef7d8068370c8b96ac82df2080fbd3f4fc69f4d8d8390da99933e89",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "5d179f1648fbdc4b9866a1527adb7f085bc7f5d3a7fa3c6b7dcb9c9cd5ef00b2"
+        },
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-opt-baseline-cad",
+          "result_sha256": "fdb9cade446463dce74d46eaaaee18f6046a98068617d49cb1c12dbc53f8b12e",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "7b32cfe67346158598d8d14f9697eda54d292038e8eafae31d40b8394e62dd2d"
+        },
+        {
+          "artifact_count": 29,
+          "experiment_id": "E-opt-baseline-solve",
+          "result_sha256": "ee6cbea60f7058af2962245b952486f024917d7a7daeacb4edd572674dcab2db",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "091631743beaeb9add44e7a8582b74a69256b6056a624ce3fb2c1887b5d21bcb"
+        }
+      ],
+      "reports": {
+        "optimization_acceptance.json": {
+          "algorithm": {
+            "atol": 1e-12,
+            "bounds": [
+              [
+                28.0,
+                42.0
+              ]
+            ],
+            "constraint_convention": "dimensionless_residual_le_zero",
+            "constraint_count": 1,
+            "engine": "scipy.differential_evolution",
+            "initial_population": [
+              {
+                "support_width": 28.0
+              },
+              {
+                "support_width": 29.73246472164783
+              },
+              {
+                "support_width": 33.02040866898759
+              },
+              {
+                "support_width": 38.96493184489878
+              },
+              {
+                "support_width": 35.59324826705749
+              }
+            ],
+            "initial_values": {
+              "support_width": 28.0
+            },
+            "initialization": {
+              "engine": "scipy.stats.qmc.LatinHypercube",
+              "optimization": null,
+              "rng": "numpy.random.default_rng",
+              "scramble": true,
+              "seed": 13,
+              "strength": 1
+            },
+            "internal_availability_constraint": true,
+            "max_generations": 1,
+            "memoization": "exact_float_hex",
+            "mutation": [
+              0.5,
+              1.0
+            ],
+            "numpy_version": "2.3.5",
+            "parameter_order": [
+              "support_width"
+            ],
+            "polish": false,
+            "population_size": 5,
+            "recombination": 0.7,
+            "rng": "numpy.random.default_rng",
+            "seed": 13,
+            "strategy": "best1bin",
+            "tol": 1e-08,
+            "updating": "deferred",
+            "vectorized": false,
+            "version": "1.17.0",
+            "workers": 1
+          },
+          "baseline": {
+            "displacement_mm": 0.005758587,
+            "volume_mm3": 36783.829878355966,
+            "width_mm": 38
+          },
+          "best": {
+            "analysis_experiment_id": "E-C-opt-0002-solve",
+            "cad_experiment_id": "E-C-opt-0002",
+            "displacement_mm": 0.005961796,
+            "values": {
+              "support_width": 29.73246472164783
+            },
+            "volume_mm3": 28185.593188869716
+          },
+          "campaign_id": "C-opt",
+          "constraints": [
+            {
+              "limit": 0.0065,
+              "metric": "max_displacement",
+              "operator": "<=",
+              "scale": 0.0065,
+              "source": "analysis",
+              "unit": "mm"
+            }
+          ],
+          "decision": "NOT_RELEASED",
+          "evaluations": 9,
+          "limitations": [
+            "One bounded generation does not establish a global or converged fixture optimum.",
+            "The displacement bound is a research screen, not a strength allowable.",
+            "Material/contact/fasteners/physical qualification remains UNKNOWN."
+          ],
+          "maximum_cad_volume_reference_error": 7.771561172376096e-16,
+          "objective": {
+            "direction": "minimize",
+            "metric": "cad_volume",
+            "source": "cad",
+            "unit": "mm^3"
+          },
+          "reference": "Analytical support volume; constrained quadratic engine regression has a known optimum",
+          "replayed_evaluations_without_rerun": 2,
+          "result_sha256": "3ee826eaeb5b00e9f4d3b922f60c0677e66758f781e92e0aeb3d40036f7b418b",
+          "solver_children": 8,
+          "solver_versions": {
+            "ccx": "This is Version 2.21",
+            "gmsh": "4.12.1"
+          },
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3",
+            "source_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8"
+          },
+          "status": "PASS",
+          "termination": {
+            "algorithm": {
+              "atol": 1e-12,
+              "bounds": [
+                [
+                  28.0,
+                  42.0
+                ]
+              ],
+              "constraint_convention": "dimensionless_residual_le_zero",
+              "constraint_count": 1,
+              "engine": "scipy.differential_evolution",
+              "initial_population": [
+                {
+                  "support_width": 28.0
+                },
+                {
+                  "support_width": 29.73246472164783
+                },
+                {
+                  "support_width": 33.02040866898759
+                },
+                {
+                  "support_width": 38.96493184489878
+                },
+                {
+                  "support_width": 35.59324826705749
+                }
+              ],
+              "initial_values": {
+                "support_width": 28.0
+              },
+              "initialization": {
+                "engine": "scipy.stats.qmc.LatinHypercube",
+                "optimization": null,
+                "rng": "numpy.random.default_rng",
+                "scramble": true,
+                "seed": 13,
+                "strength": 1
+              },
+              "internal_availability_constraint": true,
+              "max_generations": 1,
+              "memoization": "exact_float_hex",
+              "mutation": [
+                0.5,
+                1.0
+              ],
+              "numpy_version": "2.3.5",
+              "parameter_order": [
+                "support_width"
+              ],
+              "polish": false,
+              "population_size": 5,
+              "recombination": 0.7,
+              "rng": "numpy.random.default_rng",
+              "seed": 13,
+              "strategy": "best1bin",
+              "tol": 1e-08,
+              "updating": "deferred",
+              "vectorized": false,
+              "version": "1.17.0",
+              "workers": 1
+            },
+            "candidate_values": {
+              "support_width": 29.73246472164783
+            },
+            "constraint_residuals": [
+              -0.08280061538461532
+            ],
+            "converged": false,
+            "evaluation_count": 9,
+            "generations": 1,
+            "objective": 28185.593188869716,
+            "termination_reason": "MAX_GENERATIONS"
+          }
+        }
+      },
+      "store": "artifacts/ci-36656020195/optimization-cae-lab-41a9858bad7ebeb72de0db0d75d1f910a4a50dc4"
+    },
+    {
+      "campaigns": [],
+      "experiments": [
+        {
+          "artifact_count": 3,
+          "experiment_id": "E-pde-input-reject",
+          "result_sha256": "57ee490e428cebfac7b2c0ef0320d59632fc3beb5cbbe21c05fdf3be55c7600b",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "REJECTED",
+          "thread_sha256": "a72a0f2089e35ab01de540426fd7007e2c01c97e542781e481bb6a5003398996"
+        },
+        {
+          "artifact_count": 19,
+          "experiment_id": "E-pde-poisson",
+          "result_sha256": "39945ea550e3c7dd289737fd858187bcea715745f42e9e92093658e10509edbb",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "e39f95d967c196b96b7ea750c2ef0c1fd2b4d15202b64ec9b43b8bb2f1261c11"
+        },
+        {
+          "artifact_count": 19,
+          "experiment_id": "E-pde-reaction",
+          "result_sha256": "777068de308e318d1ad78992f224e5535bd57a9ab8a08e0189f69eeeb985701b",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "aba0954cfc726d5752198646cd50326376bc4112e385dc137e230f1cc87ba841"
+        },
+        {
+          "artifact_count": 19,
+          "experiment_id": "E-pde-reference-reject",
+          "result_sha256": "86801bbd198fb22324de6c50dca27a42e7d20bf0ed96bc5e6f12ff5eb1690b4f",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "REJECTED",
+          "thread_sha256": "9b6c2d14bc16a350808baef23340f15b7b288797f179540976b1e94a1a237559"
+        }
+      ],
+      "reports": {
+        "pde_acceptance.json": {
+          "artifact_hashes": {
+            "pde/command.json": "2644aaf3d56d816b967136b610f2e3203337c4ef8ccfd4a5240d8958370fb991",
+            "pde/input.json": "ce318803e2bb1ab9be889f941f53256e54b055d4a9d3015009e5f0916ce5f522",
+            "pde/level_n16/field.h5": "27bf6b139440c1c23971edfb0a8ac9f2539b773ef1187fcade59c4d64b452b02",
+            "pde/level_n16/field.xdmf": "bb874d36b566e06e14a2980ed8785e7a6df71548ea2bde77ba7c3967c8774046",
+            "pde/level_n16/forms.ufl.txt": "257dea60062e249f71c687dec73373d0c3031a2f114bbe5de73d084a4fa83538",
+            "pde/level_n32/field.h5": "42400d01338a9d16a4f664dfcdae5ee8b29686993977054960856fe2654801d3",
+            "pde/level_n32/field.xdmf": "5c4349c410a7c1f7561e0de0aaafcea9c1c41e4fa6865111e40dab95593f8963",
+            "pde/level_n32/forms.ufl.txt": "acefa571f437f06dc4db100c872a017407d917bd9f8a87b7a3c23b012ea79e65",
+            "pde/level_n8/field.h5": "b6189754b3c5b0b288b604cde333d7b8bbd77af2d805bd739640610d31e5b906",
+            "pde/level_n8/field.xdmf": "b4d85d86d7c26088771302759b43b6b341c13db40a9d70dde4f051c1d008dbb7",
+            "pde/level_n8/forms.ufl.txt": "f9c949cd9871b3546d7d82d37965d11812d32b2b4f3dd0b0764366f95d0431c2",
+            "pde/result.json": "1ecf8821df48da36ba7a38ec0d8c32691952099d8fe081994fca66c43bbd1164",
+            "pde/stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "pde/stdout.log": "b4ca7e31a99b73ecdf35bbb4a0a0c86d3187ba83586ca7a69825ba93f002c9eb",
+            "pde/weak_form.txt": "c514b0add768ad34665ba99a4cce33c525fb95ba04f2a188a1eb1c2700a503e2",
+            "pde/worker.py": "2e1cd29a71e4a216be6677e44b841205193ef72658d7a29d010dca7253d57301",
+            "pde/worker_result.json": "b408783d803c9cadf8890ea34c2c81db411cbb3a77630b1d8a3cb85fb0826b9d",
+            "proposal.json": "e8ebe00a0b8ad1675ab5f56fe8810e6c47b91479ef34f73bda4e25849f7e41aa",
+            "registry_snapshot.json": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245"
+          },
+          "canonical_experiment_id": "E-pde-poisson",
+          "decision": "NOT_RELEASED",
+          "limitations": [
+            "Bounded scalar linear elliptic forms on a dimensionless unit square only.",
+            "Serial execution does not establish MPI/HPC acceptance.",
+            "Analytical mathematical proof does not qualify a physical model."
+          ],
+          "limits": {
+            "max_l2_error": 0.003,
+            "max_residual_relative": 1e-10,
+            "min_l2_rate": 1.8
+          },
+          "mesh_studies": [
+            {
+              "artifact_sha256": {
+                "field": "b4d85d86d7c26088771302759b43b6b341c13db40a9d70dde4f051c1d008dbb7",
+                "field_data": "b6189754b3c5b0b288b604cde333d7b8bbd77af2d805bd739640610d31e5b906",
+                "form_source": "f9c949cd9871b3546d7d82d37965d11812d32b2b4f3dd0b0764366f95d0431c2"
+              },
+              "boundary_value_error": 0.0,
+              "cell_type": "triangle",
+              "cells_per_axis": 8,
+              "degree": 1,
+              "dirichlet_dofs": 32,
+              "dirichlet_value": 0.0,
+              "files": {
+                "field": "level_n8/field.xdmf",
+                "field_data": "level_n8/field.h5",
+                "form_source": "level_n8/forms.ufl.txt"
+              },
+              "global_cells": 128,
+              "global_dofs": 81,
+              "h1_seminorm_convergence_rate": null,
+              "h1_seminorm_error": 0.43179828300642425,
+              "ksp_convergence_reason": 4,
+              "ksp_iterations": 1,
+              "l2_convergence_rate": null,
+              "l2_error": 0.02113277345842124,
+              "linear_residual": {
+                "absolute": 2.3953258746092616e-15,
+                "normalization": "rhs_l2_norm",
+                "relative": 1.9920336751528014e-15,
+                "rhs_norm": 1.2024525009224682
+              },
+              "nominal_h": 0.125
+            },
+            {
+              "artifact_sha256": {
+                "field": "bb874d36b566e06e14a2980ed8785e7a6df71548ea2bde77ba7c3967c8774046",
+                "field_data": "27bf6b139440c1c23971edfb0a8ac9f2539b773ef1187fcade59c4d64b452b02",
+                "form_source": "257dea60062e249f71c687dec73373d0c3031a2f114bbe5de73d084a4fa83538"
+              },
+              "boundary_value_error": 0.0,
+              "cell_type": "triangle",
+              "cells_per_axis": 16,
+              "degree": 1,
+              "dirichlet_dofs": 64,
+              "dirichlet_value": 0.0,
+              "files": {
+                "field": "level_n16/field.xdmf",
+                "field_data": "level_n16/field.h5",
+                "form_source": "level_n16/forms.ufl.txt"
+              },
+              "global_cells": 512,
+              "global_dofs": 289,
+              "h1_seminorm_convergence_rate": 0.989101103835933,
+              "h1_seminorm_error": 0.2175363363595286,
+              "ksp_convergence_reason": 4,
+              "ksp_iterations": 1,
+              "l2_convergence_rate": 1.9744920296427475,
+              "l2_error": 0.005377435009948098,
+              "linear_residual": {
+                "absolute": 5.297112081855922e-15,
+                "normalization": "rhs_l2_norm",
+                "relative": 8.642676302396674e-15,
+                "rhs_norm": 0.6129018253740448
+              },
+              "nominal_h": 0.0625
+            },
+            {
+              "artifact_sha256": {
+                "field": "5c4349c410a7c1f7561e0de0aaafcea9c1c41e4fa6865111e40dab95593f8963",
+                "field_data": "42400d01338a9d16a4f664dfcdae5ee8b29686993977054960856fe2654801d3",
+                "form_source": "acefa571f437f06dc4db100c872a017407d917bd9f8a87b7a3c23b012ea79e65"
+              },
+              "boundary_value_error": 0.0,
+              "cell_type": "triangle",
+              "cells_per_axis": 32,
+              "degree": 1,
+              "dirichlet_dofs": 128,
+              "dirichlet_value": 0.0,
+              "files": {
+                "field": "level_n32/field.xdmf",
+                "field_data": "level_n32/field.h5",
+                "form_source": "level_n32/forms.ufl.txt"
+              },
+              "global_cells": 2048,
+              "global_dofs": 1089,
+              "h1_seminorm_convergence_rate": 0.9972535922789292,
+              "h1_seminorm_error": 0.10897542351921931,
+              "ksp_convergence_reason": 4,
+              "ksp_iterations": 1,
+              "l2_convergence_rate": 1.9934926491266785,
+              "l2_error": 0.0013504362485536208,
+              "linear_residual": {
+                "absolute": 1.198373712239196e-14,
+                "normalization": "rhs_l2_norm",
+                "relative": 3.8917060164593486e-14,
+                "rhs_norm": 0.3079301743684816
+              },
+              "nominal_h": 0.03125
+            }
+          ],
+          "metrics": {
+            "h1_seminorm_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 0.10897542351921931
+            },
+            "l2_convergence_rate": {
+              "unit": "1",
+              "valid": true,
+              "value": 1.9934926491266785
+            },
+            "l2_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 0.0013504362485536208
+            },
+            "linear_residual_relative": {
+              "unit": "1",
+              "valid": true,
+              "value": 3.8917060164593486e-14
+            }
+          },
+          "numerical_rejection": "E-pde-reference-reject",
+          "preflight_rejection": "E-pde-input-reject",
+          "reaction_form_metrics": {
+            "h1_seminorm_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 0.108977770259689
+            },
+            "l2_convergence_rate": {
+              "unit": "1",
+              "valid": true,
+              "value": 1.995179229935955
+            },
+            "l2_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 0.0012072498142917196
+            },
+            "linear_residual_relative": {
+              "unit": "1",
+              "valid": true,
+              "value": 3.97341652163139e-14
+            }
+          },
+          "result_sha256": "39945ea550e3c7dd289737fd858187bcea715745f42e9e92093658e10509edbb",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "PASS",
+          "versions": {
+            "basix": "0.11.0",
+            "dolfinx": "0.11.0.post0",
+            "ffcx": "0.11.0",
+            "mpi4py": "3.1.5",
+            "numpy": "1.26.4",
+            "petsc": "3.19.6",
+            "petsc4py": "3.19.6",
+            "python": "3.12.3",
+            "ufl": "2026.1.0"
+          },
+          "weak_form": {
+            "dirichlet": "0.0",
+            "domain": "unit_square",
+            "reference": {
+              "solution": "sin(pi*x[0])*sin(pi*x[1])",
+              "source": "Analytical manufactured solution on the dimensionless unit square"
+            },
+            "weak_form": {
+              "diffusion": 1.0,
+              "reaction": 0.0,
+              "rhs": "2*pi**2*sin(pi*x[0])*sin(pi*x[1])"
+            }
+          }
+        }
+      },
+      "store": "artifacts/ci-36656020195/pde-cae-lab-41a9858bad7ebeb72de0db0d75d1f910a4a50dc4"
+    },
+    {
+      "campaigns": [],
+      "experiments": [
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-finer-cad",
+          "result_sha256": "87175ea45a877378385b1019c2d3c2ce950be4ccdb20ed5c525249d5cdcc9def",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "cbe1c7f23280a2cee3ece10b83d0414aef6da350300177baa208070fac2f5cf8"
+        },
+        {
+          "artifact_count": 53,
+          "experiment_id": "E-finer-solve",
+          "result_sha256": "781d99b57f859da5c041e1d297aca56ffa378e0bb45a05620309ba0ac6a77df8",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "ba3be63527ea6a6cf3837d0177bc911d345baed857fbb6a3ee6f4d29d40834c3"
+        }
+      ],
+      "reports": {
+        "finer_acceptance.json": {
+          "artifact_hashes": {
+            "parent_reference.json": "4964e42f84992a056173dbc44c55fa5f53973a11e7cdee656ada62f6f0830a3e",
+            "proposal.json": "bd280d717cbd437256b020bd8a28c8cc0e970932cbe93cee5dc6dadb4ee7fb92",
+            "registry_snapshot.json": "27b91bd8340c48413d25db92896074438be102597368aec243d4fd6d7ba1a58e",
+            "simulation/input.step": "4bbb9375164dd22ca36904ad834fc99bfa82e5606d1336c6cd68ddea861c231c",
+            "simulation/result.json": "1f89bb97a981ef2dbf77f463462ebabd36695fc3be06f2f39d548ed2b482e273",
+            "simulation/support_0/ccx.log": "e1cdde3a1c8a247ce4089dcf41485b15aae4d45ebea1f3b5a5dd9d14dbf26ca0",
+            "simulation/support_0/commands.json": "8e96723a0ea364625ac63bfff400ad7342342868fe85a3cda270912d6c96e327",
+            "simulation/support_0/gmsh.inp": "4b5988b47ed4ea931abd1c7ba782ef4540b74cf8905803665ec434c7b7b774a8",
+            "simulation/support_0/gmsh.log": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+            "simulation/support_0/saddle_load.json": "0dc7001c0ff853b36c977f471ea16d0458095868898567c9edbe945b5c4554e3",
+            "simulation/support_0/spooles.out": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "simulation/support_0/support_0.12d": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "simulation/support_0/support_0.cvg": "65086dedb4572132b815ace04b294909c7f6f337111f9704fc310b02320f67f7",
+            "simulation/support_0/support_0.dat": "997a32a3113597edbb1d747da8428b11f7c40789cf6bcfebf5315cbcd491b729",
+            "simulation/support_0/support_0.frd": "7f2cdd90c4a1ad69cf8d74b95d3d7c73f7278056b91ba7efa86ed245bd2c4aec",
+            "simulation/support_0/support_0.inp": "02386d408a52696cde1cc3a91f29bf7611794fb3378f02932a9f5ba3d7135701",
+            "simulation/support_0/support_0.sta": "01e324ec0ea28f4d1fd7f5e2da1277af53812b873e218be1604c17a4c8e4990d",
+            "simulation/support_1/ccx.log": "4dd99ed21858813a35d374c4701fa35d6cb4796030a12b55c1e2acc21862cf83",
+            "simulation/support_1/commands.json": "d9877c948dc9a16bcb3a8b882aa49eb5fb6257ac4c377879add92e3b0276bad9",
+            "simulation/support_1/gmsh.inp": "b53062a84b8d4a4c6df180f475d50f9c78dd68485187e62cd81c14f4e380d71e",
+            "simulation/support_1/gmsh.log": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+            "simulation/support_1/saddle_load.json": "2d49ea3856c9cdc5d3ff9916dc2e50a73c6784e0b4b834627fef5aad6b407d41",
+            "simulation/support_1/spooles.out": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "simulation/support_1/support_1.12d": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "simulation/support_1/support_1.cvg": "65086dedb4572132b815ace04b294909c7f6f337111f9704fc310b02320f67f7",
+            "simulation/support_1/support_1.dat": "e13b658c6ff711527249be6e3814ec2e045743ff93982a5abeff840111b16465",
+            "simulation/support_1/support_1.frd": "439eed6274745c7de54813182456f76f23cfd461d1d5524bfd40ddd3be7e01df",
+            "simulation/support_1/support_1.inp": "d7fe1d9695c4650a5402c94b668b4be8837a8301400336bf7fa24446ce9ee667",
+            "simulation/support_1/support_1.sta": "01e324ec0ea28f4d1fd7f5e2da1277af53812b873e218be1604c17a4c8e4990d",
+            "simulation/support_2/ccx.log": "62e8a219334a802d12b9cfcea10a257d6cef532744a02796911214e11b40b20c",
+            "simulation/support_2/commands.json": "900637bc8e3f03c941adbb33c04a030ce0a2c6280395124bcfdd6cb23379972a",
+            "simulation/support_2/gmsh.inp": "77b0f57153f967c759a5f58b6eda62409d3a0105e248abf11487cd0a6ddb4c20",
+            "simulation/support_2/gmsh.log": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+            "simulation/support_2/saddle_load.json": "64684d1bf34b62442600357d4b8d617a18f931a95cf91d20700b66bd44decbdf",
+            "simulation/support_2/spooles.out": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "simulation/support_2/support_2.12d": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "simulation/support_2/support_2.cvg": "65086dedb4572132b815ace04b294909c7f6f337111f9704fc310b02320f67f7",
+            "simulation/support_2/support_2.dat": "b7e5568766ee7be926442050f9bf86798c43a614df0e833034a51c554df1b819",
+            "simulation/support_2/support_2.frd": "8b54922a910bb03ff2f3dc9d31a7906736873128c8720296cc04cd5cc7d78fde",
+            "simulation/support_2/support_2.inp": "6e6ea3677494c25908151fb53fc9c62be55c42ff7ea8f64a648a15d5e288358d",
+            "simulation/support_2/support_2.sta": "01e324ec0ea28f4d1fd7f5e2da1277af53812b873e218be1604c17a4c8e4990d",
+            "simulation/support_3/ccx.log": "3d5fd798d57a67f0f9278b0d4148e7401f05354b1300a5c7df2d2828a3eb7611",
+            "simulation/support_3/commands.json": "bc4514848a339d7f760284d24c8b2d2098e1e4b7e90567ea2e8bcfc27c4236fd",
+            "simulation/support_3/gmsh.inp": "52136de042cfd783cbf0b6d51727263229990d9e30021c265f581e989f301ceb",
+            "simulation/support_3/gmsh.log": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+            "simulation/support_3/saddle_load.json": "d3c52941ef04e9e338f652f7ecf99b96a00b457c21f8297f9c960d2bbb644a53",
+            "simulation/support_3/spooles.out": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "simulation/support_3/support_3.12d": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "simulation/support_3/support_3.cvg": "65086dedb4572132b815ace04b294909c7f6f337111f9704fc310b02320f67f7",
+            "simulation/support_3/support_3.dat": "9e158b379a03d894f6549458ce841fe13349833953000c2626e8f74c4206b186",
+            "simulation/support_3/support_3.frd": "7a67d613a2fd27736c68c74c6708355c8345c38950ee0c5c81f73ac569ef57c5",
+            "simulation/support_3/support_3.inp": "5cc1af7d89f662532f43d6bfe750dbfc6a4f1058f7ac28205ed50a4581cdf3f3",
+            "simulation/support_3/support_3.sta": "01e324ec0ea28f4d1fd7f5e2da1277af53812b873e218be1604c17a4c8e4990d"
+          },
+          "cad_revision": "d7ae994052d029f7131fa1c2121fd7d5d6ebb2611ffba56fcb2c63571f207332",
+          "decision": "NOT_RELEASED",
+          "limitations": [
+            "Fixed bottom substitutes for actual fasteners and base.",
+            "Distributed nodal load substitutes for roller contact.",
+            "Tessellated surface-area loading approximates a uniform vertical traction, not measured roller contact.",
+            "Averaged nodal peak stress is diagnostic only.",
+            "Material allowables and physical evidence remain unknown."
+          ],
+          "limits": {
+            "displacement_last_pair": 0.05,
+            "reaction_balance": 0.01
+          },
+          "mesh_change_ratio": 0.008817093498804473,
+          "meshes": [
+            {
+              "analytical_patch_area_mm2": 312.9026282975434,
+              "elements_C3D10": 5319,
+              "lip_force_fraction": 0.13064517916110835,
+              "loaded_nodes": 123,
+              "max_loaded_node_displacement_mm": 0.005505997,
+              "mesh_max_mm": 4.0,
+              "mesh_volume_relative_error": 0.016190655072690685,
+              "nodes": 9155,
+              "outside_patch_force_fraction": 0.026177829974596764,
+              "patch_area_mm2": 304.86132923522035,
+              "patch_area_relative_error": 0.0256990460772879,
+              "signed_reactions": {
+                "applied_force_N": [
+                  0.0,
+                  0.0,
+                  -100.0
+                ],
+                "fixed_node_count": 1273,
+                "reaction_force_N": [
+                  -8.119800015595476e-09,
+                  -2.7394100082725823e-08,
+                  100.000001457073
+                ],
+                "relative_imbalance": 1.4573531101046888e-08,
+                "residual_force_N": [
+                  -8.119800015595476e-09,
+                  -2.7394100082725823e-08,
+                  1.4570729973684138e-06
+                ]
+              },
+              "total_force_N": 99.99999999999999
+            },
+            {
+              "analytical_patch_area_mm2": 312.9026282975434,
+              "elements_C3D10": 9340,
+              "lip_force_fraction": 0.09475413028835639,
+              "loaded_nodes": 228,
+              "max_loaded_node_displacement_mm": 0.00557447,
+              "mesh_max_mm": 3.0,
+              "mesh_volume_relative_error": 0.009072548039053663,
+              "nodes": 15476,
+              "outside_patch_force_fraction": 0.024925700231919614,
+              "patch_area_mm2": 308.47255069134235,
+              "patch_area_relative_error": 0.014158007014208995,
+              "signed_reactions": {
+                "applied_force_N": [
+                  0.0,
+                  0.0,
+                  -100.0
+                ],
+                "fixed_node_count": 1515,
+                "reaction_force_N": [
+                  3.597200002487421e-08,
+                  -4.0126800014969946e-08,
+                  99.9999998769201
+                ],
+                "relative_imbalance": 1.343607333317321e-09,
+                "residual_force_N": [
+                  3.597200002487421e-08,
+                  -4.0126800014969946e-08,
+                  -1.2307990004956082e-07
+                ]
+              },
+              "total_force_N": 100.00000000000017
+            },
+            {
+              "analytical_patch_area_mm2": 312.9026282975434,
+              "elements_C3D10": 23488,
+              "lip_force_fraction": 0.06594792533325107,
+              "loaded_nodes": 438,
+              "max_loaded_node_displacement_mm": 0.005707813,
+              "mesh_max_mm": 2.0,
+              "mesh_volume_relative_error": 0.0050077458351218684,
+              "nodes": 36665,
+              "outside_patch_force_fraction": 0.014071710978207481,
+              "patch_area_mm2": 310.8196591505448,
+              "patch_area_relative_error": 0.0066569244187296706,
+              "signed_reactions": {
+                "applied_force_N": [
+                  0.0,
+                  0.0,
+                  -100.0
+                ],
+                "fixed_node_count": 2287,
+                "reaction_force_N": [
+                  -8.195999988268676e-09,
+                  -4.541629998000067e-08,
+                  99.9999995281112
+                ],
+                "relative_imbalance": 4.741401174395752e-09,
+                "residual_force_N": [
+                  -8.195999988268676e-09,
+                  -4.541629998000067e-08,
+                  -4.718887964827445e-07
+                ]
+              },
+              "total_force_N": 99.99999999999993
+            },
+            {
+              "analytical_patch_area_mm2": 312.9026282975434,
+              "elements_C3D10": 53927,
+              "lip_force_fraction": 0.050169826099822054,
+              "loaded_nodes": 725,
+              "max_loaded_node_displacement_mm": 0.005758587,
+              "mesh_max_mm": 1.5,
+              "mesh_volume_relative_error": 0.002815973338526234,
+              "nodes": 81070,
+              "outside_patch_force_fraction": 0.007079947668381144,
+              "patch_area_mm2": 311.616457932278,
+              "patch_area_relative_error": 0.004110449222696655,
+              "signed_reactions": {
+                "applied_force_N": [
+                  0.0,
+                  0.0,
+                  -100.0
+                ],
+                "fixed_node_count": 3719,
+                "reaction_force_N": [
+                  6.179739999186338e-08,
+                  -3.246729999277981e-08,
+                  99.9999999101369
+                ],
+                "relative_imbalance": 1.1379112308150225e-09,
+                "residual_force_N": [
+                  6.179739999186338e-08,
+                  -3.246729999277981e-08,
+                  -8.986309296687978e-08
+                ]
+              },
+              "total_force_N": 99.9999999999998
+            }
+          ],
+          "parent_step_sha256": "4bbb9375164dd22ca36904ad834fc99bfa82e5606d1336c6cd68ddea861c231c",
+          "reference": "Analytical half-cylinder patch area; no exact structural solution claimed",
+          "result_sha256": "781d99b57f859da5c041e1d297aca56ffa378e0bb45a05620309ba0ac6a77df8",
+          "solver_versions": {
+            "ccx": "This is Version 2.21",
+            "gmsh": "4.12.1"
+          },
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3",
+            "source_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8"
+          },
+          "status": "PASS"
+        }
+      },
+      "store": "artifacts/ci-36656020195/structural-cae-lab-41a9858bad7ebeb72de0db0d75d1f910a4a50dc4/finer-lab"
+    },
+    {
+      "campaigns": [],
+      "experiments": [
+        {
+          "artifact_count": 12,
+          "experiment_id": "E-linear-cad",
+          "result_sha256": "16a6d8f36a575b0425be4efb3aac6a4f67a41a58aa744b7c6cdeb51087af271c",
+          "solver_status": "NOT_RUN",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "da5ec1bd9ff3504b985e8182854bf63b109a448aa76a682a710c64ed63d2de80"
+        },
+        {
+          "artifact_count": 41,
+          "experiment_id": "E-linear-solve",
+          "result_sha256": "1dafc057f064efe8623c44ef4892538d8b145a0d85835ab64d4eb6b4915416df",
+          "solver_status": "COMPLETED",
+          "source": {
+            "core_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+            "core_dirty": false,
+            "core_source_sha256": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3"
+          },
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "thread_sha256": "89e39b89f3b60ecd70a0bb22f68cfd1e1d371a95051b728c4eaca447613abe1d"
+        }
+      ],
+      "reports": {},
+      "store": "artifacts/ci-36656020195/structural-cae-lab-41a9858bad7ebeb72de0db0d75d1f910a4a50dc4/linear-lab"
+    }
+  ],
+  "independent_document_review": {
+    "checks": [
+      "Local 25 result/thread hashes and embedded reports",
+      "CI 37 result/thread hashes, 3 campaign results, embedded reports and 6 job verdicts",
+      "Actual tests and numerical limits versus documentation",
+      "Preserved native CI dirty flags versus workflow chmod and Git mode",
+      "Server archive IDs, sizes, digests, expiry and expired flags",
+      "NOT_RELEASED, UNKNOWN and unconverged optimization limits"
+    ],
+    "material_actionable_findings": [],
+    "mode": "Final bounded read-only documentation/evidence audit; no files or experiments modified",
+    "requirements": "All 52 ordered IDs and original requirement texts unchanged from source 41a9858",
+    "root_document_check": {
+      "documents": 24,
+      "resolved_relative_links": 35
+    },
+    "status": "PASS"
+  },
+  "independent_numerical_review": {
+    "decision": "NOT_RELEASED",
+    "finer": {
+      "checks": [
+        "Raw INP CLOAD sum",
+        "DAT signed reactions and loaded displacements",
+        "Gmsh clipped-subtriangle area versus geometric reference",
+        "Exact parent STEP and unchanged numerical gates"
+      ],
+      "local_artifacts": 65,
+      "local_experiments": 2
+    },
+    "optimization": {
+      "artifacts_per_store": 377,
+      "checks": [
+        "Pure-memory exact numerical engine replay",
+        "Interruption checkpoint prefix",
+        "Analytical CAD volume",
+        "Metric units and constraint scale",
+        "Numerical gates and own-parent STEP identity"
+      ],
+      "ci_experiments": 19,
+      "local_ci_agreement": "Candidates, feedback, termination, parameters and decisions match exactly. One raw reaction component differs by approximately 1e-12 N under the 100 N load without verdict impact. Whole physical-result and separate STEP serialization byte identity are not claimed.",
+      "local_experiments": 19,
+      "solver_children": 8,
+      "unique_evaluations": 9
+    },
+    "pde": {
+      "checks": [
+        "Symbolic analytical errors and rates",
+        "Actual normalized A*x-b residual",
+        "Boundary/topology/KSP checks",
+        "Wrong-reference and unsafe-expression rejection",
+        "Runtime and artifact hashes"
+      ],
+      "local_experiments": 4
+    },
+    "review_mode": "Read-only integration reviewer; no files or experiments modified",
+    "source_review": "Final code reviewed after journal/checkpoint, malformed outcome/metric, legacy completion and source/version drift corrections; no remaining actionable finding",
+    "status": "PASS"
+  },
+  "jobs": [
+    {
+      "completedAt": "2026-09-30T01:39:14Z",
+      "conclusion": "success",
+      "name": "core",
+      "startedAt": "2026-09-30T01:37:48Z",
+      "status": "completed",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36656020195/job/109700433886"
+    },
+    {
+      "completedAt": "2026-09-30T01:40:58Z",
+      "conclusion": "success",
+      "name": "pde",
+      "startedAt": "2026-09-30T01:39:16Z",
+      "status": "completed",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36656020195/job/109700781378"
+    },
+    {
+      "completedAt": "2026-09-30T01:42:11Z",
+      "conclusion": "success",
+      "name": "structural",
+      "startedAt": "2026-09-30T01:39:16Z",
+      "status": "completed",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36656020195/job/109700781404"
+    },
+    {
+      "completedAt": "2026-09-30T01:52:28Z",
+      "conclusion": "success",
+      "name": "optimization",
+      "startedAt": "2026-09-30T01:39:16Z",
+      "status": "completed",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36656020195/job/109700781406"
+    },
+    {
+      "completedAt": "2026-09-30T01:43:45Z",
+      "conclusion": "success",
+      "name": "native",
+      "startedAt": "2026-09-30T01:39:16Z",
+      "status": "completed",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36656020195/job/109700781516"
+    },
+    {
+      "completedAt": "2026-09-30T01:41:48Z",
+      "conclusion": "success",
+      "name": "doe",
+      "startedAt": "2026-09-30T01:39:16Z",
+      "status": "completed",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36656020195/job/109700781570"
+    }
+  ],
+  "plugin_source_fingerprints": {
+    "ci": {
+      "commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+      "files_sha256": "bfeae3099777d37e0fad04c6d99c57ac67dcdfbee2b8b07211418ebfae5e83cf"
+    },
+    "local": {
+      "commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+      "files_sha256": "c8a11097d2831b7730d5e039e2cd0c05e7b3a40c8b963505a67db0ae8d4d00a9"
+    },
+    "note": "Independent review reconstructed CI fingerprints from Git blobs; differences in 21 Core files and 78 plugin files are CRLF versus LF. Same plugin commit; each campaign freezes actual bytes."
+  },
+  "recorded_utc": "2026-09-30T02:05:14.709975+00:00",
+  "retention": "CI archives expire on 2026-10-30 UTC; extracted copies are retained locally. Managed durable raw-artifact archival remains open.",
+  "run_id": 36656020195,
+  "source_commit": "41a9858bad7ebeb72de0db0d75d1f910a4a50dc4",
+  "source_hashes": {
+    "ci_and_git_blob_bytes": "2c7484c795466d3057b44dc4bd7d1fb856e8a682656f6cc90d55b8d03045d6a3",
+    "local_working_bytes": "a9f9e28ac755ded2f1739159315a463da45a04c724fc1ade7840ddab92534e5f",
+    "note": "Windows checkout line endings differ from Git LF objects. The Git-object source digest was recomputed locally and matches CI. Each run freezes its own actual byte digest."
+  },
+  "source_tree_observations": {
+    "native_ci_dirty_experiments": 3,
+    "native_ci_note": "Recorded core_dirty=true is preserved. The workflow chmods the tracked upstream FreeCAD wrapper, whose Git mode is 100644; Core byte digest matches the exact source. Native is not claimed a clean working-tree run.",
+    "other_ci_experiments_clean": 34,
+    "primary_local_continuation_experiments_clean": 25
+  },
+  "tests": {
+    "core_ci": {
+      "passed": 217,
+      "seconds": 43.44,
+      "warnings": 1
+    },
+    "mcp": "Actual local and CI stdio CAD/DOE/optimization/preflight PDE round trips; no live OpenScience agent claimed",
+    "pinned_upstream_local": {
+      "passed": 58,
+      "source_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8"
+    },
+    "primary_local": {
+      "batches": [
+        {
+          "passed": 162,
+          "seconds": 104.0
+        },
+        {
+          "passed": 55,
+          "seconds": 813.44
+        }
+      ],
+      "passed": 217
+    }
+  },
+  "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36656020195"
+}

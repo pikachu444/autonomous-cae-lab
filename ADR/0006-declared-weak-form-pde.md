@@ -61,9 +61,12 @@ Root installed the official FEniCS PPA's real package
 `1:0.11.0.post0-2~ppa1~noble1` in WSL and ran the draft benchmark: L2
 0.0013504362485536208, finest rate 1.9934926491266785 and relative residual
 3.8917060164593486e-14. Draft source was dirty and is retained separately;
-clean-source acceptance is still required for the final integrated revision.
-Adapter unit tests (76) and independent common-Core regression tests complement
-the actual mathematical benchmark.
+clean-source acceptance at `41a9858` subsequently passed all four cases and
+exact-source CI 36656020195. The numerical observations agreed. Adapter unit
+tests (76), independent common-Core regressions and independent raw error/
+residual inspection complement the actual mathematical benchmark. See
+[the executed record](../docs/NUMERICAL_CONTINUATION.md), including exact-build
+license inventory and the still-unknown corporate/physical approval gates.
 
 FEniCSx is adopted for this verified custom-form role. MOOSE's larger
 multiphysics/PDE optimization and GetDP/Gmsh's GUI formulation roles, plus the

@@ -59,5 +59,12 @@ working adaptive research loop, not a converged/global optimum or strength
 release. UQ, integer/discrete variables, inverse, multiobjective, surrogate and
 PDE-constrained engine integrations remain open.
 
-Final local clean-source evidence and exact CI references will be recorded
-after integration. All outcomes remain `NOT_RELEASED`.
+Final clean-source local and CI acceptance passed at `41a9858`/CI 36656020195:
+9 unique evaluations, 8 solver children, one invalid CAD point and two completed
+evaluations replayed without rerun. Best observed support width is
+29.73246472164783 mm, volume 28185.593188869716 mm³ (23.3750% below the 38 mm
+baseline), displacement 0.005961796 mm. Termination is `MAX_GENERATIONS` and
+`converged=false`. All outcomes remain `NOT_RELEASED`. Exact provenance,
+independent checks and limits are in
+[NUMERICAL_CONTINUATION](NUMERICAL_CONTINUATION.md) and
+[the local record](../benchmarks/records/20260930-local-optimization.json).

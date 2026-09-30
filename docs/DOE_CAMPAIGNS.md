@@ -1,5 +1,12 @@
 # Seeded DOE campaigns
 
+Latest source `41a9858` passed this DOE acceptance again in six-job CI. Adaptive
+numerical optimization is now a separate implemented operation with explicit
+objectives/constraints and exact replay; its bounded real-solver proof is in
+[NUMERICAL_CONTINUATION](NUMERICAL_CONTINUATION.md) and
+[OPTIMIZATION](OPTIMIZATION.md). These historical DOE records remain unchanged
+evidence of sampling and rejection, with no optimum or release claim.
+
 `Lab.plan_doe` / `caelab doe plan` / MCP `doe_plan` receives registered
 research IDs, sample count, seed and an engine name. The pinned SciPy 1.17.0
 Latin hypercube adapter currently supports continuous, free, bounds-checked

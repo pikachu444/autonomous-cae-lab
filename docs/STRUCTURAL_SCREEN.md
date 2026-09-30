@@ -1,5 +1,13 @@
 # First structural child experiment
 
+Latest continuation: the primary local session and exact-source CI `41a9858`
+passed the unchanged area-load/reaction screen through a 1.5 mm mesh. The
+2→1.5 mm displacement difference is 0.881709%, with a 0.411045% analytical
+patch-area difference. See [the continuation](NUMERICAL_CONTINUATION.md) and
+[local proof](../benchmarks/records/20260930-local-finer.json). The records below
+preserve the earlier progression, including superseded equal-node-force runs.
+Stress and physical/strength qualification remain `UNKNOWN`/`NOT_RELEASED`.
+
 `Lab.run_analysis` first verifies a finished CAD parent's result/artifact ledger.
 The `fixture.calculix` adapter selects that parent's unique STEP, verifies its
 SHA-256 and `cad_revision`, and copies those exact bytes to the child run.
