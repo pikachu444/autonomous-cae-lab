@@ -89,13 +89,16 @@ def registration(native="support_width_mm", identifier="support_width", lower=28
 
 
 @pytest.mark.parametrize("phase", ["before", "after"])
-def test_campaign_rechecks_payload_around_core_inspection(real_flow, monkeypatch, phase):
+def test_campaign_rechecks_payload_around_core_inspection(real_flow, monkeypatch, tmp_path, phase):
     client, service, _, _ = real_flow
     lab = service._selected().lab
-    folder = lab.store / "optimizations" / ("C-wire-" + phase)
+    folder = tmp_path / ("C-wire-" + phase)
     # Only the service wiring is synthetic. The referenced CAD experiment and
     # its original, hash-registered bytes came from the real Core fixture.
     save_json(folder / "plan.json", {"test_only": True, "cad_experiment_id": "E-valid"})
+    # Keep synthetic routing outside the shared real_flow store. The real
+    # campaign/overview tests must see only campaigns they actually planned.
+    monkeypatch.setattr(service, "_campaign", lambda selected, identifier: ("optimization", folder))
     target = lab.store / "experiments/E-valid/cad/assembly.step"
     original = target.read_bytes()
     calls = []
