@@ -38,11 +38,13 @@ def _records(alpha=1, *, l2=(.0256, .0064, .0016), h1=(.4, .2, .1)):
                            "initial_residual": 1.0, "final_residual": 1e-13, "relative_residual": 1e-13,
                            "relative_normalization": "initial_residual_norm", "history": history,
                            "native_options": {"snes_type": "newtonls", "snes_linesearch_type": "none",
+                                              "snes_linesearch_damping": 1.0,
                                               "snes_rtol": 1e-10, "snes_atol": 1e-10, "snes_stol": 0.0,
                                               "snes_max_it": 25, "ksp_type": "preonly", "pc_type": "lu",
                                               "ksp_error_if_not_converged": True},
                            "effective": {"snes_type": "newtonls", "rtol": 1e-10, "atol": 1e-10,
-                                         "stol": 0.0, "max_iterations": 25, "ksp_type": "preonly", "pc_type": "lu"}}}
+                                         "stol": 0.0, "max_iterations": 25, "ksp_type": "preonly", "pc_type": "lu",
+                                         "line_search_type": "none", "line_search_damping": 1.0}}}
         if alpha == 0:
             item["linear_comparison"] = {"max_dof_difference": 2e-15, "ksp_convergence_reason": 4,
                                          "ksp_iterations": 1}
@@ -215,19 +217,34 @@ def test_acceptance_requires_both_absolute_and_relative_even_if_snes_can_stop_on
     _invalid(result, expected)
 
 
-@pytest.mark.parametrize("changed_field,expected", [
-    ("independent_absolute", "pde_newton_absolute_residual"),
-    ("history_final", "pde_newton_absolute_residual"),
-])
-def test_roundoff_consistency_allowance_never_relaxes_actual_threshold_gate(changed_field, expected):
+def test_independent_residual_roundoff_allowance_never_relaxes_actual_threshold_gate():
     records = _records()
     _set_norm(records[0], 9.99e-11, rhs_norm=1)
-    if changed_field == "independent_absolute":
-        records[0]["nonlinear_residual"].update(absolute=1.0001e-10, relative=1.0001e-10)
-    else:
-        records[0]["newton"]["history"][-1]["residual_norm"] = 1.0001e-10
+    records[0]["nonlinear_residual"].update(absolute=1.0001e-10, relative=1.0001e-10)
     result = nonlinear.assess(_settings(), records)
-    _invalid(result, expected)
+    _invalid(result, "pde_newton_absolute_residual")
+
+
+@pytest.mark.parametrize("index,norm,label", [
+    (0, math.nextafter(1.0, math.inf), "initial"),
+    (-1, 9e-13, "final"),
+    (-1, math.nextafter(1e-13, math.inf), "final"),
+])
+def test_redundant_callback_summary_norms_must_match_exactly(index, norm, label):
+    records = _records()
+    records[0]["newton"]["history"][index]["residual_norm"] = norm
+    with pytest.raises(expressions.PDEInputError, match=f"Newton history {label} norm"):
+        nonlinear.assess(_settings(), records)
+
+
+def test_legitimate_independently_reassembled_residual_roundoff_is_retained_with_strict_gates():
+    records = _records()
+    records[0]["nonlinear_residual"].update(absolute=9e-13, relative=4.5e-13)
+    result = nonlinear.assess(_settings(), records)
+    assert all(item["status"] == "PASS" for item in result["checks"])
+    assert result["mesh_studies"][0]["newton"]["history"][-1]["residual_norm"] == 1e-13
+    assert result["mesh_studies"][0]["nonlinear_residual"]["absolute"] == 9e-13
+    assert result["metrics"]["newton_residual_absolute"]["value"] == 9e-13
 
 
 @pytest.mark.parametrize("section,field", [("nonlinear_residual", "relative"), ("newton", "relative_residual")])
@@ -243,7 +260,7 @@ def test_monitor_initial_norm_cannot_be_zero_without_explicit_zero_rhs_normaliza
     records = _records()
     _set_norm(records[0], 0.0, initial=1e-13)
     records[0]["newton"]["history"][0]["residual_norm"] = 0.0
-    with pytest.raises(expressions.PDEInputError, match="zero-initial normalization"):
+    with pytest.raises(expressions.PDEInputError, match="Newton history initial norm"):
         nonlinear.assess(_settings(), records)
 
 
@@ -283,6 +300,29 @@ def test_finest_errors_and_every_pair_rate_are_separate_finite_numerical_checks(
     _invalid(result, expected)
     assert result["metrics"]["l2_error"]["value"] == l2[-1]
     assert result["metrics"]["h1_seminorm_error"]["value"] == h1[-1]
+
+
+@pytest.mark.parametrize("error_field,rate_field,floor,code", [
+    ("l2_error", "l2_convergence_rate", 1.8, "pde_l2_convergence_rate"),
+    ("h1_seminorm_error", "h1_seminorm_convergence_rate", .9, "pde_h1_seminorm_convergence_rate"),
+])
+def test_rate_consistency_roundoff_cannot_promote_recomputed_pair_rate_below_floor(error_field, rate_field, floor, code):
+    records = _records()
+    records[-2][error_field] = records[-1][error_field] * 2**(floor - 5e-13)
+    for index in range(1, len(records)):
+        records[index][rate_field] = math.log2(records[index - 1][error_field]) - math.log2(records[index][error_field])
+    true_rate = records[-1][rate_field]
+    assert floor - 1e-12 < true_rate < floor
+    records[-1][rate_field] = floor
+    before = copy.deepcopy(records)
+    result = nonlinear.assess(_settings(), records)
+    _invalid(result, code)
+    assert _check(result, code)["observed"]["reported"][-1] == floor
+    assert _check(result, code)["observed"]["recomputed"][-1] == true_rate
+    assert result["metrics"][rate_field]["value"] == floor
+    assert result["mesh_studies"][-1][rate_field] == floor
+    assert result["mesh_studies"][-1][f"recomputed_{rate_field}"] == true_rate
+    assert records == before
 
 
 @pytest.mark.parametrize("field,value", [("max_dof_difference", 1.0001e-10), ("ksp_convergence_reason", -3)])
@@ -421,6 +461,74 @@ def test_native_effective_policy_is_checked_if_present_and_original_shape_remain
         record["newton"].pop("effective")
         record["newton"].pop("relative_normalization")
     assert all(item["status"] == "PASS" for item in nonlinear.assess(_settings(), records)["checks"])
+
+
+@pytest.mark.parametrize("section,key", [("native_options", "snes_linesearch_damping"),
+                                         ("effective", "line_search_type"),
+                                         ("effective", "line_search_damping")])
+def test_full_step_policy_requires_declared_and_measured_line_search_fields(section, key):
+    records = _records()
+    records[0]["newton"][section].pop(key)
+    with pytest.raises(expressions.PDEInputError, match="requires exactly"):
+        nonlinear.assess(_settings(), records)
+
+
+@pytest.mark.parametrize("section,key,value", [
+    ("native_options", "snes_linesearch_damping", .5),
+    ("native_options", "snes_linesearch_damping", True),
+    ("native_options", "snes_linesearch_damping", math.nan),
+    ("effective", "line_search_type", "bt"),
+    ("effective", "line_search_type", True),
+    ("effective", "line_search_damping", .5),
+    ("effective", "line_search_damping", True),
+    ("effective", "line_search_damping", math.inf),
+])
+def test_full_step_policy_rejects_altered_damping_or_measured_line_search_type(section, key, value):
+    records = _records()
+    records[0]["newton"][section][key] = value
+    with pytest.raises(expressions.PDEInputError, match="fixed Newton policy"):
+        nonlinear.assess(_settings(), records)
+
+
+@pytest.mark.parametrize("alias", ["none", "basic"])
+def test_measured_full_step_alias_is_preserved_before_and_after_solve(alias):
+    records = _records()
+    records[0]["newton"]["effective"]["line_search_type"] = alias
+    records[0]["newton"]["effective_after"] = copy.deepcopy(records[0]["newton"]["effective"])
+    before = copy.deepcopy(records)
+    result = nonlinear.assess(_settings(), records)
+    assert all(item["status"] == "PASS" for item in result["checks"])
+    assert result["mesh_studies"][0]["newton"]["effective"]["line_search_type"] == alias
+    assert result["mesh_studies"][0]["newton"]["effective_after"]["line_search_type"] == alias
+    assert result["mesh_studies"][0]["newton"]["native_options"]["snes_linesearch_type"] == "none"
+    assert records == before
+
+
+def test_requested_line_search_type_stays_exactly_none():
+    records = _records()
+    records[0]["newton"]["native_options"]["snes_linesearch_type"] = "basic"
+    with pytest.raises(expressions.PDEInputError, match="fixed Newton policy"):
+        nonlinear.assess(_settings(), records)
+
+
+@pytest.mark.parametrize("key,value", [("line_search_type", "bt"), ("line_search_type", True),
+                                      ("line_search_damping", .5), ("line_search_damping", True),
+                                      ("rtol", 1e-3), ("rtol", True),
+                                      ("max_iterations", 26), ("max_iterations", True)])
+def test_effective_policy_after_solve_rejects_changed_and_boolean_values(key, value):
+    records = _records()
+    records[0]["newton"]["effective_after"] = copy.deepcopy(records[0]["newton"]["effective"])
+    records[0]["newton"]["effective_after"][key] = value
+    with pytest.raises(expressions.PDEInputError, match="newton.effective_after.*fixed Newton policy"):
+        nonlinear.assess(_settings(), records)
+
+
+def test_effective_policy_after_solve_requires_complete_fields_if_supplied():
+    records = _records()
+    records[0]["newton"]["effective_after"] = copy.deepcopy(records[0]["newton"]["effective"])
+    records[0]["newton"]["effective_after"].pop("line_search_damping")
+    with pytest.raises(expressions.PDEInputError, match="newton.effective_after requires exactly"):
+        nonlinear.assess(_settings(), records)
 
 
 @pytest.mark.parametrize("mutation", [

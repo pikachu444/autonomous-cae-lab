@@ -9,6 +9,7 @@ from pathlib import Path
 from caelab import Lab
 from caelab.adapters.fenicsx_nonlinear import FenicsxNonlinearPDEAdapter
 from caelab.adapters.fenicsx_pde import FenicsxPDEAdapter
+from caelab.adapters.fenicsx_nonlinear_worker import NATIVE_OPTIONS
 from caelab.storage import load_json, save_json, utc_now
 from plugins.pde_nonlinear.reference import manufactured_settings, source_value
 
@@ -45,7 +46,9 @@ def run(store: Path) -> dict:
               "cases": {str(alpha): request for alpha, request in settings.items()},
               "independent_source_at_center": {str(alpha): source_value(alpha, .5, .5) for alpha in settings},
               "newton_policy": {"absolute": 1e-10, "relative": 1e-10, "max_iterations": 25,
-                                "verdict": "BOTH absolute and relative, plus independent constrained residual"},
+                                "verdict": "BOTH absolute and relative, plus independent constrained residual",
+                                "native_options": NATIVE_OPTIONS, "petsc_rc_disabled": True,
+                                "excluded_environment_options": ["PETSC_OPTIONS", "PETSC_OPTIONS_YAML"]},
               "linear_limit_max_dof_difference": 1e-10,
               "linear_backend_max_metric_difference": 1e-10,
               "limitations": ["alpha in[0,2], scalar unit square, P1, serial only",

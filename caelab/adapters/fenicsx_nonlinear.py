@@ -13,7 +13,7 @@ import subprocess
 from plugins.pde_nonlinear import reference as domain
 from . import fenicsx_pde as linear_adapter
 from . import fenicsx_worker as expression
-from .fenicsx_nonlinear_worker import NATIVE_OPTIONS
+from .fenicsx_nonlinear_worker import NATIVE_OPTIONS, PETSC_INIT_ARGUMENTS
 from ..storage import save_json
 
 
@@ -132,6 +132,14 @@ def _raw_result(output: Path, settings: dict, spec_sha256: str, manifest_sha256:
             any(not isinstance(versions[key], str) or not versions[key].strip()
                 for key in linear_adapter._VERSION_KEYS)):
         raise RuntimeError("Nonlinear PDE worker omitted actual numerical-library versions")
+    initialization = _finite_json(output / "petsc_initialization.json")
+    if (initialization != raw.get("petsc_initialization") or
+            _sha(output / "petsc_initialization.json") != raw.get("petsc_initialization_sha256") or
+            not isinstance(initialization, dict) or initialization.get("argv") != PETSC_INIT_ARGUMENTS or
+            initialization.get("options") != {"skip_petscrc": None} or
+            initialization.get("petsc_rc_disabled") is not True or
+            initialization.get("ambient_options_removed") != ["PETSC_OPTIONS", "PETSC_OPTIONS_YAML"]):
+        raise RuntimeError("Nonlinear PDE PETSc bootstrap isolation is missing/inconsistent")
     studies = raw.get("mesh_studies")
     if not isinstance(studies, list) or len(studies) != len(settings["mesh"]["cell_counts"]):
         raise RuntimeError("Nonlinear PDE native mesh history is incomplete")
@@ -162,9 +170,28 @@ def _raw_result(output: Path, settings: dict, spec_sha256: str, manifest_sha256:
         if not isinstance(newton, dict) or _finite_json(output / files["newton_history"]) != newton:
             raise RuntimeError("Saved nonlinear PDE Newton history differs from raw observations")
         expected_effective = {"snes_type": "newtonls", "atol": 1e-10, "rtol": 1e-10,
-                              "stol": 0.0, "max_iterations": 25, "ksp_type": "preonly", "pc_type": "lu"}
-        if newton.get("native_options") != NATIVE_OPTIONS or newton.get("effective") != expected_effective:
+                              "stol": 0.0, "max_iterations": 25, "ksp_type": "preonly", "pc_type": "lu",
+                              "line_search_type": "none", "line_search_damping": 1.0}
+        if newton.get("native_options") != NATIVE_OPTIONS:
             raise RuntimeError("Nonlinear PDE native solver policy differs from the frozen policy")
+        for label in ("effective", "effective_after"):
+            policy = newton.get(label)
+            if (not isinstance(policy, dict) or set(policy) != set(expected_effective) or
+                    policy.get("line_search_type") not in ("none", "basic")):
+                raise RuntimeError("Nonlinear PDE native solver policy differs from the frozen policy")
+            for key, expected in expected_effective.items():
+                if key == "line_search_type":
+                    continue
+                actual = policy[key]
+                if ((type(expected) in (str, int) and
+                     (type(actual) is not type(expected) or actual != expected)) or
+                        (type(expected) is float and (not expression.finite_number(actual) or actual != expected))):
+                    raise RuntimeError("Nonlinear PDE native solver policy differs from the frozen policy")
+        configuration = (output / files["solver_configuration"]).read_text(encoding="utf-8")
+        lines = configuration.split("SNESLineSearch Object:")
+        if (len(lines) != 2 or lines[1].split("KSP Object:")[0].count(
+                "type: " + newton["effective"]["line_search_type"]) != 1):
+            raise RuntimeError("Nonlinear PDE measured line-search type differs from the saved PETSc view")
         if any(type(newton.get(key)) is not int or newton[key] < 0
                for key in ("function_evaluations", "linear_solve_iterations")):
             raise RuntimeError("Nonlinear PDE native execution counters are missing/malformed")
@@ -241,7 +268,8 @@ class FenicsxNonlinearPDEAdapter:
         save_json(output / "command.json", {"argv": command, "timeout_seconds": WORKER_TIMEOUT,
                                            "python_isolated_mode": True, "fixed_solver_policy": NATIVE_OPTIONS})
         environment = os.environ.copy()
-        for name in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "PETSC_DIR"):
+        excluded = ["PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "PETSC_DIR", "PETSC_OPTIONS", "PETSC_OPTIONS_YAML"]
+        for name in excluded:
             environment.pop(name, None)
         try:
             process = subprocess.run(command, cwd=output.resolve(), capture_output=True, text=True,
@@ -274,8 +302,9 @@ class FenicsxNonlinearPDEAdapter:
         provenance.update({"spec_sha256": spec_sha256, "source_manifest_sha256": manifest_sha256,
                            "source_manifest": "pde/source_manifest.json", "versions": raw["versions"],
                            "interpreter": interpreter, "mpi_size": raw["mpi_size"], "scalar_type": raw["scalar_type"],
-                           "python_isolation": {"mode": "-I", "excluded_environment_variables":
-                                                ["PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "PETSC_DIR"]},
+                           "python_isolation": {"mode": "-I", "excluded_environment_variables": excluded},
+                           "petsc_initialization": raw["petsc_initialization"],
+                           "petsc_initialization_artifact": "pde/petsc_initialization.json",
                            "fixed_solver_policy": NATIVE_OPTIONS, "weak_form": {"source": mathematical_source,
                            "artifact": "pde/weak_form.txt", "ufl_source": ["pde/" + level["files"]["form_source"]
                                                                           for level in studies]},

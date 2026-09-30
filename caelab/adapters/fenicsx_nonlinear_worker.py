@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import platform
 import sys
@@ -31,9 +32,66 @@ else:
 
 
 NATIVE_OPTIONS = {"snes_type": "newtonls", "snes_linesearch_type": "none",
+                  "snes_linesearch_damping": 1.0,
                   "snes_rtol": 1e-10, "snes_atol": 1e-10, "snes_stol": 0.0,
                   "snes_max_it": 25, "ksp_type": "preonly", "pc_type": "lu",
                   "ksp_error_if_not_converged": True}
+PETSC_INIT_ARGUMENTS = ["caelab_nonlinear_worker", "-skip_petscrc"]
+EFFECTIVE_POLICY = {"snes_type": "newtonls", "atol": 1e-10, "rtol": 1e-10, "stol": 0.0,
+                    "max_iterations": 25, "ksp_type": "preonly", "pc_type": "lu",
+                    "line_search_type": "none", "line_search_damping": 1.0}
+
+
+def _require_policy(policy: dict) -> None:
+    if (policy.get("line_search_type") not in ("none", "basic") or
+            {**policy, "line_search_type": "none"} != EFFECTIVE_POLICY):
+        raise RuntimeError("Actual PETSc policy differs from the frozen full-step Newton policy")
+
+
+def _line_search_policy(PETSc, solver) -> dict:
+    """Use public C getters missing from the installed petsc4py3.19 API.
+
+    The loaded extension is the actual imported PETSc runtime, not a filename
+    or executable from research settings. This family requires real64, so
+    PetscReal is double; PetscErrorCode is the public integer error return.
+    """
+    import ctypes
+    import numpy as np
+
+    if np.dtype(PETSc.RealType) != np.dtype("float64"):
+        raise RuntimeError("Public PETSc damping getter requires this benchmark's real64 runtime")
+    library = ctypes.CDLL(PETSc.__file__)
+    get_search = library.SNESGetLineSearch
+    get_search.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)]
+    get_search.restype = ctypes.c_int
+    get_type = library.SNESLineSearchGetType
+    get_type.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_char_p)]
+    get_type.restype = ctypes.c_int
+    get_damping = library.SNESLineSearchGetDamping
+    get_damping.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_double)]
+    get_damping.restype = ctypes.c_int
+    search, kind, damping = ctypes.c_void_p(), ctypes.c_char_p(), ctypes.c_double()
+    for label, function, arguments in (
+            ("SNESGetLineSearch", get_search, (ctypes.c_void_p(solver.handle), ctypes.byref(search))),
+            ("SNESLineSearchGetType", get_type, (search, ctypes.byref(kind))),
+            ("SNESLineSearchGetDamping", get_damping, (search, ctypes.byref(damping)))):
+        code = function(*arguments)
+        if code != 0:
+            raise RuntimeError(f"Actual PETSc policy getter {label} failed with error {code}")
+        if label == "SNESGetLineSearch" and not search.value:
+            raise RuntimeError("Actual PETSc line-search handle is null")
+    if not kind.value or not math.isfinite(damping.value):
+        raise RuntimeError("Actual PETSc line-search policy is missing/nonfinite")
+    return {"line_search_type": kind.value.decode("ascii"), "line_search_damping": damping.value}
+
+
+def _effective_policy(PETSc, solver) -> dict:
+    # petsc4py3.19 returns rtol before atol, not the reverse.
+    rtol, atol, stol, max_iterations = solver.getTolerances()
+    return {"snes_type": solver.getType(), "atol": float(atol), "rtol": float(rtol),
+            "stol": float(stol), "max_iterations": int(max_iterations),
+            "ksp_type": solver.getKSP().getType(), "pc_type": solver.getKSP().getPC().getType(),
+            **_line_search_policy(PETSc, solver)}
 
 
 def _verify_copies(output: Path) -> str:
@@ -48,6 +106,25 @@ def _verify_copies(output: Path) -> str:
 
 
 def run_worker(input_path: Path) -> None:
+    output = input_path.parent
+    spec_sha256 = hashlib.sha256(input_path.read_bytes()).hexdigest()
+    source_sha256 = _verify_copies(output)
+    settings = validate_settings(json.loads(input_path.read_text(encoding="utf-8")))
+    # Bootstrap BEFORE dolfinx imports PETSc. No ambient environment, rc file
+    # or research arguments may supply additional solver options.
+    for name in ("PETSC_OPTIONS", "PETSC_OPTIONS_YAML"):
+        os.environ.pop(name, None)
+    import petsc4py
+    petsc4py.init(PETSC_INIT_ARGUMENTS)
+    from petsc4py import PETSc
+    initial_options = PETSc.Options().getAll()
+    if set(initial_options) != {"skip_petscrc"} or not PETSc.Options().getBool("skip_petscrc"):
+        raise RuntimeError("Ambient PETSc options survived the fixed isolated bootstrap")
+    initialization = {"argv": PETSC_INIT_ARGUMENTS, "options": initial_options,
+                      "petsc_rc_disabled": True, "ambient_options_removed": ["PETSC_OPTIONS", "PETSC_OPTIONS_YAML"],
+                      "policy_getter": "Public SNESGetLineSearch/SNESLineSearchGetType/SNESLineSearchGetDamping C API",
+                      "petsc_extension": PETSc.__file__}
+    _save_json(output / "petsc_initialization.json", initialization)
     import basix
     import dolfinx
     from dolfinx import fem, io, mesh
@@ -56,17 +133,12 @@ def run_worker(input_path: Path) -> None:
     import mpi4py
     from mpi4py import MPI
     import numpy as np
-    import petsc4py
-    from petsc4py import PETSc
     import ufl
 
-    output = input_path.parent
-    spec_sha256 = hashlib.sha256(input_path.read_bytes()).hexdigest()
-    source_sha256 = _verify_copies(output)
-    settings = validate_settings(json.loads(input_path.read_text(encoding="utf-8")))
     comm = MPI.COMM_WORLD
-    if comm.size != 1 or np.dtype(PETSc.ScalarType).kind != "f":
-        raise RuntimeError("This bounded nonlinear benchmark requires serial, real PETSc")
+    if (comm.size != 1 or np.dtype(PETSc.ScalarType) != np.dtype("float64") or
+            np.dtype(PETSc.RealType) != np.dtype("float64")):
+        raise RuntimeError("This bounded nonlinear benchmark requires serial, real64 PETSc")
     versions = {"python": platform.python_version(), "dolfinx": dolfinx.__version__,
                 "ufl": ufl.__version__, "basix": basix.__version__, "ffcx": ffcx.__version__,
                 "petsc4py": petsc4py.__version__, "petsc": ".".join(map(str, PETSc.Sys.getVersion())),
@@ -114,11 +186,8 @@ def run_worker(input_path: Path) -> None:
             print(json.dumps({"mesh_n": count, "newton": observation}, allow_nan=False), flush=True)
 
         problem.solver.setMonitor(monitor)
-        atol, rtol, stol, max_iterations = problem.solver.getTolerances()
-        effective = {"snes_type": problem.solver.getType(), "atol": float(atol),
-                     "rtol": float(rtol), "stol": float(stol), "max_iterations": int(max_iterations),
-                     "ksp_type": problem.solver.getKSP().getType(),
-                     "pc_type": problem.solver.getKSP().getPC().getType()}
+        effective = _effective_policy(PETSc, problem.solver)
+        _require_policy(effective)
         viewer = PETSc.Viewer().createASCII(str(level / "solver_configuration.txt"), comm=comm)
         try:
             problem.solver.view(viewer)
@@ -154,9 +223,11 @@ def run_worker(input_path: Path) -> None:
                   "relative_normalization": ("initial_residual_norm" if initial > 0 else
                                              "absolute_for_zero_initial"),
                   "history": history, "native_options": dict(NATIVE_OPTIONS), "effective": effective,
+                  "effective_after": _effective_policy(PETSc, problem.solver),
                   "function_evaluations": int(problem.solver.getFunctionEvaluations()),
                   "linear_solve_iterations": int(problem.solver.getLinearSolveIterations()),
                   "last_ksp_convergence_reason": int(problem.solver.getKSP().getConvergedReason())}
+        _require_policy(newton["effective_after"])
 
         difference = uh - reference
         error_dx = ufl.Measure("dx", domain=domain, metadata={"quadrature_degree": 8})
@@ -242,6 +313,8 @@ def run_worker(input_path: Path) -> None:
     result = {"schema_version": "1", "status": "COMPLETED", "versions": versions,
               "mpi_size": comm.size, "scalar_type": str(np.dtype(PETSc.ScalarType)),
               "spec_sha256": spec_sha256, "source_manifest_sha256": source_sha256,
+              "petsc_initialization": initialization,
+              "petsc_initialization_sha256": hashlib.sha256((output / "petsc_initialization.json").read_bytes()).hexdigest(),
               "mesh_studies": studies}
     _save_json(output / "worker_result.json", result)
     print(json.dumps({"status": "COMPLETED", "alpha": alpha, "mesh_levels": len(studies),

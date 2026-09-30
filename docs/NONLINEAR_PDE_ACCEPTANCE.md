@@ -41,7 +41,7 @@ and independently changed alpha2 with the same meshes `[8,16,32]` and limits:
 | Alpha0 versus existing linear adapter | all L2/H1 errors and pair-rate differences `<=1e-10` |
 
 The native solver is fixed `newtonls`, full steps, zero initial canonical field,
-`rtol=atol=1e-10`, `stol=0`, at most25 iterations, and direct LU. Actual getters,
+`rtol=atol=1e-10`, `stol=0`, at most25 iterations, unit damping, and direct LU. Actual getters,
 the PETSc configuration view, and every monitor iteration including iteration0
 are retained. The final nonlinear residual is independently recomputed with
 the actual constrained SNES function. `A*x-b` is not a nonlinear residual.
@@ -58,6 +58,18 @@ checked for drift before/after native execution. Each new mesh retains its
 XDMF/HDF5 field, complete scalar DOFs and triangle/boundary identities, UFL
 residual/Jacobian, complete actual Newton history and PETSc configuration.
 All native library versions are measured by the worker.
+
+PETSc is initialized with fixed `-skip_petscrc` arguments before any DOLFINx
+import, and both PETSc option environment variables are removed. Its initial
+options table is retained and checked for unlisted options. For installed
+petsc4py3.19, the Python line-search getter is absent. Public native C getters
+from the actual imported PETSc extension record line-search type and damping
+before/after solve, with an explicit real64 gate and checked error returns.
+The documented `none`/`basic` aliases are equivalent; actual labels are retained.
+This seals the predeclared full-step policy without changing numerical limits.
+Callback summary norms must equal the saved callbacks exactly; only the
+independently reassembled residual comparison has a1e-12 consistency allowance.
+Reported and recomputed error rates must each meet their unchanged floors.
 
 Missing, nonfinite, inconsistent or incomplete observations are execution
 failures with files/logs retained. A complete finite numerical failure is
@@ -77,3 +89,5 @@ independent review.
 - [Exact DOLFINx0.11.0.post0 NonlinearProblem and constrained residual source](https://github.com/FEniCS/dolfinx/blob/v0.11.0.post0/python/dolfinx/fem/petsc.py).
 - [Exact DOLFINx0.11.0.post0 nonlinear PETSc API](https://docs.fenicsproject.org/dolfinx/v0.11.0.post0/python/generated/dolfinx.fem.petsc.html).
 - [Developer nonlinear Poisson weak-form example](https://jsdokken.com/dolfinx-tutorial/chapter2/nonlinpoisson_code.html).
+- [PETSc3.19 options bootstrap](https://gitlab.com/petsc/petsc/-/raw/v3.19.6/src/sys/objects/options.c).
+- [PETSc3.19 public line-search getters and options](https://gitlab.com/petsc/petsc/-/raw/v3.19.6/src/snes/linesearch/interface/linesearch.c), [basic/none full-step implementation](https://gitlab.com/petsc/petsc/-/raw/v3.19.6/src/snes/linesearch/impls/basic/linesearchbasic.c).

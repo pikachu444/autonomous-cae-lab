@@ -6,6 +6,7 @@ import json
 import math
 from pathlib import Path
 import subprocess
+from types import SimpleNamespace
 
 import pytest
 
@@ -13,6 +14,7 @@ from caelab import Lab
 from caelab.adapters import fenicsx_nonlinear as adapter_module
 from caelab.adapters.fenicsx_nonlinear import FenicsxNonlinearPDEAdapter
 from caelab.adapters.fenicsx_nonlinear_worker import NATIVE_OPTIONS
+from caelab.adapters import fenicsx_nonlinear_worker as worker
 from caelab.adapters.fenicsx_worker import error_rate
 from caelab.storage import load_json, save_json
 from plugins.pde_nonlinear.reference import manufactured_settings
@@ -44,8 +46,10 @@ def _fixture(output: Path):
                   "history": [{"iteration": 0, "residual_norm": 2.}, {"iteration": 1, "residual_norm": .01},
                               {"iteration": 2, "residual_norm": 1e-13}],
                   "native_options": dict(NATIVE_OPTIONS), "effective": {"snes_type": "newtonls", "atol": 1e-10,
-                  "rtol": 1e-10, "stol": 0., "max_iterations": 25, "ksp_type": "preonly", "pc_type": "lu"},
+                  "rtol": 1e-10, "stol": 0., "max_iterations": 25, "ksp_type": "preonly", "pc_type": "lu",
+                  "line_search_type": "none", "line_search_damping": 1.0},
                   "function_evaluations": 3, "linear_solve_iterations": 2, "last_ksp_convergence_reason": 4}
+        newton["effective_after"] = deepcopy(newton["effective"])
         files = {"field": f"level_n{count}/field.xdmf", "field_data": f"level_n{count}/field.h5",
                  "form_source": f"level_n{count}/forms.ufl.txt", "dofs": f"level_n{count}/dofs.json",
                  "newton_history": f"level_n{count}/newton_history.json",
@@ -54,6 +58,9 @@ def _fixture(output: Path):
             (output / relative).write_text("MOCK: contract fixture, not a native field", encoding="utf-8")
         save_json(level / "dofs.json", dofs)
         save_json(level / "newton_history.json", newton)
+        (level / "solver_configuration.txt").write_text(
+            "MOCK PETSc configuration\nSNESLineSearch Object: (caelab_nonlinear_)1 MPI process\n  type: none\n",
+            encoding="utf-8")
         study = {"cells_per_axis": count, "nominal_h": 1 / count, "degree": 1, "cell_type": "triangle",
                  "global_cells": 2 * count ** 2, "global_dofs": (count + 1) ** 2,
                  "dirichlet_dofs": 4 * count, "dirichlet_value": 0., "boundary_value_error": 0.,
@@ -71,10 +78,16 @@ def _fixture(output: Path):
                                          ("max_dof_difference", "ksp_convergence_reason", "ksp_iterations")}
             files["linear_comparison"] = f"level_n{count}/linear_comparison.json"
         studies.append(study)
+    initialization = {"argv": worker.PETSC_INIT_ARGUMENTS, "options": {"skip_petscrc": None},
+                      "petsc_rc_disabled": True, "ambient_options_removed": ["PETSC_OPTIONS", "PETSC_OPTIONS_YAML"],
+                      "policy_getter": "MOCK, not a native call", "petsc_extension": "/MOCK/petsc.so"}
+    save_json(output / "petsc_initialization.json", initialization)
     raw = {"schema_version": "1", "status": "COMPLETED", "mpi_size": 1, "scalar_type": "float64",
            "spec_sha256": hashlib.sha256((output / "input.json").read_bytes()).hexdigest(),
            "source_manifest_sha256": hashlib.sha256((output / "source_manifest.json").read_bytes()).hexdigest(),
            "versions": {key: "MOCK-NOT-NATIVE" for key in adapter_module.linear_adapter._VERSION_KEYS},
+           "petsc_initialization": initialization,
+           "petsc_initialization_sha256": hashlib.sha256((output / "petsc_initialization.json").read_bytes()).hexdigest(),
            "mesh_studies": studies}
     _sync(raw, output)
     return raw
@@ -96,7 +109,7 @@ def mock_process(monkeypatch, mutate=None):
         cwd, capture_output, text, timeout, check, env = (kwargs[key] for key in
             ("cwd", "capture_output", "text", "timeout", "check", "env"))
         assert argv[1] == "-I" and timeout == 180 and capture_output and text and not check
-        assert not {"PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "PETSC_DIR"} & env.keys()
+        assert not {"PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "PETSC_DIR", "PETSC_OPTIONS", "PETSC_OPTIONS_YAML"} & env.keys()
         output = Path(cwd)
         assert argv[2:] == [str((output / "worker.py").resolve()), str((output / "input.json").resolve())]
         raw = _fixture(output)
@@ -110,7 +123,7 @@ def mock_process(monkeypatch, mutate=None):
 
 def test_complete_outcome_has_actual_history_source_identity_and_unknowns(tmp_path, monkeypatch):
     mock_process(monkeypatch)
-    for name in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "PETSC_DIR"):
+    for name in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "PETSC_DIR", "PETSC_OPTIONS", "PETSC_OPTIONS_YAML"):
         monkeypatch.setenv(name, "/unrelated/numerical/stack")
     monkeypatch.setenv("CAELAB_FENICSX_PYTHON", "/configured/system/python")
     request = manufactured_settings()
@@ -128,6 +141,8 @@ def test_complete_outcome_has_actual_history_source_identity_and_unknowns(tmp_pa
     manifest = load_json(tmp_path / "pde/source_manifest.json")
     assert details["source_sha256"] == {key: item["sha256"] for key, item in manifest["files"].items()}
     assert details["fixed_solver_policy"]["snes_max_it"] == 25
+    assert details["fixed_solver_policy"]["snes_linesearch_damping"] == 1.0
+    assert details["petsc_initialization"]["petsc_rc_disabled"] is True
     assert load_json(tmp_path / "pde/result.json") == outcome
 
 
@@ -229,6 +244,10 @@ def test_complete_finite_numerical_failures_reject_all_metrics(tmp_path, monkeyp
     lambda raw, out: raw["mesh_studies"][-1]["newton"].update(iterations=True),
     lambda raw, out: raw["mesh_studies"][-1]["newton"].update(relative_residual=0.),
     lambda raw, out: raw["mesh_studies"][-1]["newton"]["effective"].update(rtol=1e-5),
+    lambda raw, out: raw["mesh_studies"][-1]["newton"]["effective_after"].update(line_search_damping=.9),
+    lambda raw, out: raw["mesh_studies"][-1]["newton"]["effective_after"].update(line_search_damping=True),
+    lambda raw, out: raw["mesh_studies"][-1]["newton"].pop("effective_after"),
+    lambda raw, out: raw["petsc_initialization"].update(petsc_rc_disabled=False),
     lambda raw, out: raw["mesh_studies"][-1]["newton"]["native_options"].update(snes_max_it=100),
     lambda raw, out: raw["mesh_studies"][-1]["nonlinear_residual"].update(relative=0.),
     lambda raw, out: raw["mesh_studies"][-1].update(l2_convergence_rate=99.),
@@ -274,6 +293,89 @@ def test_alpha0_native_field_companion_and_fixed_comparison_limit(tmp_path, monk
     result = FenicsxNonlinearPDEAdapter().solve(tmp_path / "pde", manufactured_settings(0.))
     assert result["status"] == "COMPLETED"
     assert all(study["linear_comparison"]["max_dof_difference"] == 0 for study in result["mesh_studies"])
+
+
+def test_installed_getter_order_is_rtol_then_atol_without_native_solver(monkeypatch):
+    class PC:
+        def getType(self): return "lu"
+
+    class KSP:
+        def getType(self): return "preonly"
+        def getPC(self): return PC()
+
+    class SNES:
+        def getTolerances(self): return (1e-8, 1e-12, 0., 25)
+        def getType(self): return "newtonls"
+        def getKSP(self): return KSP()
+
+    monkeypatch.setattr(worker, "_line_search_policy", lambda *args: {"line_search_type": "none", "line_search_damping": 1.})
+    policy = worker._effective_policy(None, SNES())
+    assert policy["rtol"] == 1e-8 and policy["atol"] == 1e-12
+
+
+def test_runtime_policy_is_checked_before_solver_and_keeps_full_steps():
+    worker._require_policy(dict(worker.EFFECTIVE_POLICY))
+    worker._require_policy({**worker.EFFECTIVE_POLICY, "line_search_type": "basic"})
+    with pytest.raises(RuntimeError, match="frozen"):
+        worker._require_policy({**worker.EFFECTIVE_POLICY, "line_search_damping": .9})
+
+
+@pytest.mark.parametrize("failure", [None, "real32", "first_error", "second_error", "third_error", "null", "no_type", "nonfinite"])
+def test_public_c_policy_getter_fails_closed_without_loading_native_library(monkeypatch, failure):
+    import ctypes
+    import numpy as np
+
+    class Function:
+        def __init__(self, action): self.action = action
+        def __call__(self, *args): return self.action(*args)
+
+    def get_search(snes, output):
+        assert snes.value == 123
+        ctypes.cast(output, ctypes.POINTER(ctypes.c_void_p))[0] = None if failure == "null" else 456
+        return 1 if failure == "first_error" else 0
+
+    def get_type(search, output):
+        assert search.value == 456
+        ctypes.cast(output, ctypes.POINTER(ctypes.c_char_p))[0] = None if failure == "no_type" else b"none"
+        return 2 if failure == "second_error" else 0
+
+    def get_damping(search, output):
+        assert search.value == 456
+        ctypes.cast(output, ctypes.POINTER(ctypes.c_double))[0] = float("nan") if failure == "nonfinite" else 1.0
+        return 3 if failure == "third_error" else 0
+
+    library = SimpleNamespace(SNESGetLineSearch=Function(get_search), SNESLineSearchGetType=Function(get_type),
+                              SNESLineSearchGetDamping=Function(get_damping))
+
+    def load(path):
+        assert path == "/MOCK/petsc-extension.so" and failure != "real32"
+        return library
+
+    monkeypatch.setattr(ctypes, "CDLL", load)
+    petsc = SimpleNamespace(__file__="/MOCK/petsc-extension.so", RealType=np.float32 if failure == "real32" else np.float64)
+    if failure:
+        with pytest.raises(RuntimeError):
+            worker._line_search_policy(petsc, SimpleNamespace(handle=123))
+    else:
+        assert worker._line_search_policy(petsc, SimpleNamespace(handle=123)) == {
+            "line_search_type": "none", "line_search_damping": 1.0}
+        assert library.SNESGetLineSearch.restype is ctypes.c_int
+        assert library.SNESLineSearchGetDamping.argtypes[-1] == ctypes.POINTER(ctypes.c_double)
+
+
+def test_documented_basic_line_search_alias_keeps_measured_label(tmp_path, monkeypatch):
+    def mutate(raw, output):
+        for study in raw["mesh_studies"]:
+            for label in ("effective", "effective_after"):
+                study["newton"][label]["line_search_type"] = "basic"
+            configuration = output / study["files"]["solver_configuration"]
+            configuration.write_text(configuration.read_text().replace("type: none", "type: basic"), encoding="utf-8")
+        _sync(raw, output)
+
+    mock_process(monkeypatch, mutate)
+    result = FenicsxNonlinearPDEAdapter().solve(tmp_path / "pde", manufactured_settings())
+    assert result["status"] == "COMPLETED"
+    assert result["mesh_studies"][0]["newton"]["effective"]["line_search_type"] == "basic"
 
 
 def test_alpha0_complete_but_different_field_is_numerical_rejection(tmp_path, monkeypatch):

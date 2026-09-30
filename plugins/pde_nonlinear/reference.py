@@ -40,12 +40,14 @@ _RECORD_KEYS = {"cells_per_axis", "degree", "global_cells", "global_dofs", "diri
 _NEWTON_KEYS = {"convergence_reason", "iterations", "initial_residual", "final_residual",
                 "relative_residual", "history", "native_options"}
 _NATIVE_OPTIONS = {"snes_type": "newtonls", "snes_linesearch_type": "none",
+                   "snes_linesearch_damping": 1.0,
                    "snes_rtol": NEWTON_RTOL, "snes_atol": NEWTON_ATOL, "snes_stol": 0.0,
                    "snes_max_it": NEWTON_MAX_ITERATIONS, "ksp_type": "preonly", "pc_type": "lu",
                    "ksp_error_if_not_converged": True}
 _EFFECTIVE_OPTIONS = {"snes_type": "newtonls", "rtol": NEWTON_RTOL, "atol": NEWTON_ATOL,
                       "stol": 0.0, "max_iterations": NEWTON_MAX_ITERATIONS,
-                      "ksp_type": "preonly", "pc_type": "lu"}
+                      "ksp_type": "preonly", "pc_type": "lu",
+                      "line_search_type": "none", "line_search_damping": 1.0}
 _PENDING = ["model_qualification", "physical_validation"]
 _LIMITATIONS = [
     "Dimensionless unit square, real scalar P1 triangles and constant Dirichlet data on the entire boundary.",
@@ -180,7 +182,9 @@ def _policy(options: object, expected: dict, label: str) -> dict:
     _keys(options, set(expected), label)
     for key, wanted in expected.items():
         observed = options[key]
-        if type(wanted) in (str, bool, int):
+        if expected is _EFFECTIVE_OPTIONS and key == "line_search_type" and wanted == "none":
+            valid = type(observed) is str and observed in {"none", "basic"}
+        elif type(wanted) in (str, bool, int):
             valid = type(observed) is type(wanted) and observed == wanted
         else:
             valid = finite_number(observed) and observed == wanted
@@ -227,6 +231,8 @@ def _validated_record(raw: dict, count: int, alpha: float) -> dict:
     _policy(newton["native_options"], _NATIVE_OPTIONS, "newton.native_options")
     if "effective" in newton:
         _policy(newton["effective"], _EFFECTIVE_OPTIONS, "newton.effective")
+    if "effective_after" in newton:
+        _policy(newton["effective_after"], _EFFECTIVE_OPTIONS, "newton.effective_after")
     for key in ("initial_residual", "final_residual", "relative_residual"):
         result["newton"][key] = _number(newton[key], f"newton.{key}", nonnegative=True)
     initial, final = newton["initial_residual"], newton["final_residual"]
@@ -247,11 +253,13 @@ def _validated_record(raw: dict, count: int, alpha: float) -> dict:
         if _integer(item["iteration"], "Newton history iteration", nonnegative=True) != index:
             raise PDEInputError("Newton history iteration order is not sequential")
         _number(item["residual_norm"], "Newton history residual_norm", nonnegative=True)
-    _consistent(history[0]["residual_norm"], initial, "Newton history initial norm")
+    # These summaries are direct copies of the callback floats, not independent
+    # numerical calculations. Any difference is malformed redundant metadata.
+    if history[0]["residual_norm"] != initial:
+        raise PDEInputError("Inconsistent Newton history initial norm")
     monitor_initial = history[0]["residual_norm"]
-    if (monitor_initial == 0.0) != (initial == 0.0):
-        raise PDEInputError("Newton initial and monitor norms disagree on zero-initial normalization")
-    _consistent(history[-1]["residual_norm"], final, "Newton history final norm")
+    if history[-1]["residual_norm"] != final:
+        raise PDEInputError("Inconsistent Newton history final norm")
     _consistent(final, residual["absolute"], "monitor and independently recomputed nonlinear residual")
     recomputed_initial_relative = residual["absolute"] / initial if initial > 0.0 else residual["absolute"]
     _number(recomputed_initial_relative, "Independently recomputed initial-relative residual", nonnegative=True)
@@ -275,10 +283,11 @@ def _validated_record(raw: dict, count: int, alpha: float) -> dict:
 def assess(settings: dict, mesh_records: list[dict]) -> dict:
     """Validate complete observations and retain finite numerical FAIL responses.
 
-    Monitor/recomputed absolute norms allow at most 1e-12 roundoff. Relative
-    normalization uses the existing helper's strict 1e-12 relative consistency
-    without an absolute allowance. Every reported and recomputed norm must
-    independently satisfy its numerical threshold without either allowance.
+    Callback summaries must equal their callback norms exactly. Only the
+    independently reassembled absolute residual allows 1e-12 roundoff against
+    the monitor norm. Relative normalization uses the existing helper's strict
+    1e-12 relative consistency without an absolute allowance. Every reported
+    and recomputed norm must independently satisfy its numerical threshold.
     """
     normalized = validate_settings(settings)
     counts = normalized["mesh"]["cell_counts"]
@@ -294,10 +303,13 @@ def assess(settings: dict, mesh_records: list[dict]) -> dict:
             if (expected is None and observed is not None) or (expected is not None and (
                     not finite_number(observed) or abs(observed - expected) > _CONSISTENCY_ATOL)):
                 raise PDEInputError(f"Inconsistent {rate_field} at mesh level {study['cells_per_axis']}")
+            study[f"recomputed_{rate_field}"] = expected
     fine = studies[-1]
     thresholds = normalized["validation"]
     l2_rates = [study["l2_convergence_rate"] for study in studies[1:]]
     h1_rates = [study["h1_seminorm_convergence_rate"] for study in studies[1:]]
+    recomputed_l2_rates = [study["recomputed_l2_convergence_rate"] for study in studies[1:]]
+    recomputed_h1_rates = [study["recomputed_h1_seminorm_convergence_rate"] for study in studies[1:]]
     residual = max(max(study["nonlinear_residual"]["relative"], study["nonlinear_residual"]["recomputed_relative"])
                    for study in studies)
     newton_absolute = max(max(study["newton"]["final_residual"], study["nonlinear_residual"]["absolute"],
@@ -328,12 +340,14 @@ def assess(settings: dict, mesh_records: list[dict]) -> dict:
           residual, thresholds["max_residual_relative"])
     check("pde_analytical_l2_error", fine["l2_error"] <= thresholds["max_l2_error"],
           fine["l2_error"], thresholds["max_l2_error"])
-    check("pde_l2_convergence_rate", all(rate is not None and rate >= thresholds["min_l2_rate"] for rate in l2_rates),
-          l2_rates, thresholds["min_l2_rate"])
+    check("pde_l2_convergence_rate", all(rate is not None and rate >= thresholds["min_l2_rate"]
+                                        for rate in l2_rates + recomputed_l2_rates),
+          {"reported": l2_rates, "recomputed": recomputed_l2_rates}, thresholds["min_l2_rate"])
     check("pde_analytical_h1_seminorm_error", fine["h1_seminorm_error"] <= thresholds["max_h1_seminorm_error"],
           fine["h1_seminorm_error"], thresholds["max_h1_seminorm_error"])
-    check("pde_h1_seminorm_convergence_rate", all(rate is not None and rate >= thresholds["min_h1_rate"] for rate in h1_rates),
-          h1_rates, thresholds["min_h1_rate"])
+    check("pde_h1_seminorm_convergence_rate", all(rate is not None and rate >= thresholds["min_h1_rate"]
+                                                for rate in h1_rates + recomputed_h1_rates),
+          {"reported": h1_rates, "recomputed": recomputed_h1_rates}, thresholds["min_h1_rate"])
     if alpha == 0.0:
         comparison = max(study["linear_comparison"]["max_dof_difference"] for study in studies)
         check("pde_alpha_zero_linear_comparison", comparison <= LINEAR_COMPARISON_ATOL and
