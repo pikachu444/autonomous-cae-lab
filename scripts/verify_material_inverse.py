@@ -30,10 +30,20 @@ def freeze(store, *, require_clean=False):
     instance = MFrontInverseAdapter()
     packet = domain.frozen_packet()
     packet.update(source_identity=identity, model_declaration=instance.describe_model(packet["settings"]),
-                  runtime_identity=instance.input_runtime_identity(), verifier_sha256=sha256(__file__),
+                  runtime_profile=instance.runtime_profile_declaration(), verifier_sha256=sha256(__file__),
                   settings_sha256=canonical_hash(packet["settings"]),
                   status="CONTRACT_PREPARED_NOT_EXECUTED")
     store.mkdir(parents=True, exist_ok=False)
+    save_json(store / "runtime_profile_predeclaration.json", packet)
+    try:
+        packet["runtime_identity"] = instance.input_runtime_identity()
+    except BaseException as exc:
+        save_json(store / "runtime_admission_failure.json", {"status": "FAIL", "decision": "NOT_RELEASED",
+                  "failure": f"{type(exc).__name__}: {exc}", "source_identity": identity,
+                  "predeclared_profile": packet["runtime_profile"]})
+        raise
+    finally:
+        save_json(store / "runtime_admission.json", instance.runtime_admission_evidence())
     save_json(store / "frozen_inverse_acceptance.json", packet)
     return instance, packet
 
@@ -70,6 +80,11 @@ def run(store, *, prepare_only=False):
         assert plan["model_source_fingerprint"]["runtime"] == frozen["runtime_identity"]
         save_json(store / "frozen_algorithm.json", plan["algorithm"])
         report["plan_sha256"] = sha256(store / "optimizations" / CAMPAIGN / "plan.json")
+        save_json(store / "runtime_plan_predeclaration.json", {
+            "status": "PLAN_PREPARED_NOT_EXECUTED", "runtime_profile": frozen["runtime_profile"],
+            "runtime_identity": frozen["runtime_identity"], "plan_sha256": report["plan_sha256"],
+            "algorithm_sha256": canonical_hash(plan["algorithm"]),
+            "frozen_packet_sha256": sha256(store / "frozen_inverse_acceptance.json")})
         result = lab.run_optimization(CAMPAIGN)
         assert result["status"] == "COMPLETED_REVIEW_REQUIRED" and result["decision"] == "NOT_RELEASED"
         assert result["route"] == "model_analysis"

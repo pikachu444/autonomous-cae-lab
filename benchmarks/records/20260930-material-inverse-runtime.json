@@ -1,0 +1,147 @@
+{
+  "adapter_version": "2",
+  "ci_alternate_sif_native_inverse": "NOT_RUN",
+  "decision": "NOT_RELEASED",
+  "default_profile": "LOCAL_EXACT_SIF",
+  "exact_source_ci": "NOT_RUN",
+  "frozen_packet_sha256": "194127d770349b4585bc76169b4fae8213a7c4588fef49704389cd389d787abf",
+  "historical_proof_changed": false,
+  "historical_v1_evidence": "3f06289bbccedba18d40108899dbb953e3ebc9bb",
+  "historical_v1_retention": {
+    "doc_sha256": "0409ba40b30ff61bfdd5a9dd64a1167b35c46603b7ca31a0f8d5154cc2796c19",
+    "manifest_sha256": "47b554dbd7ae513292552452bc5a613d89082484394a8474d189fdee134f9d64",
+    "record_sha256": "a455f892409870bd9f46135db577f4bb9ebee45442550236d13cc22dbe7182ac",
+    "registered_artifact_manifest_sha256": "e31e0814c42d350fb8d2203de3804bf3810e0ce1c199266b33b60c80eb210dbf",
+    "registered_artifacts": 720,
+    "status": "PASS",
+    "total_files": 788
+  },
+  "historical_v1_source": "0457af3716a0abb5f3a5fcb87c81b99d0d9766df",
+  "historical_v1_store": "runs/material-inverse-native-01",
+  "independent_native_review": "PENDING",
+  "independent_static_review": {
+    "native_execution": "NOT_RUN",
+    "open_p1_p2_findings": 0,
+    "packet_sha256": "194127d770349b4585bc76169b4fae8213a7c4588fef49704389cd389d787abf",
+    "previous_p2": "CLOSED",
+    "reviewer": "independent read-only material_review",
+    "reviewer_executed_tests_probes_builds_solvers": false,
+    "status": "PASS"
+  },
+  "kind": "explicit_material_inverse_runtime_profile",
+  "native_override_policy": {
+    "rejected_prefixes": [
+      "SINGULARITY_",
+      "SINGULARITYENV_",
+      "APPTAINER_",
+      "APPTAINERENV_"
+    ],
+    "values_recorded": false
+  },
+  "observation_dataset_sha256": "7cee08a79e631f26a1957b787c437c8a26a9024f77c54b75fc041feeee428377",
+  "pending_validations": [
+    "model_qualification",
+    "material_qualification",
+    "physical_validation",
+    "static_strength",
+    "fatigue_durability",
+    "solver_coupling",
+    "corporate_license_approval",
+    "corporate_security_approval",
+    "identification_qualification"
+  ],
+  "planned_store": "runs/material-inverse-sealed-oci-native-01",
+  "prior_draft": {
+    "independent_static_review": "P2_MOUNT_OVERLAY_ENVIRONMENT_CONTROL_GAP",
+    "native_execution": "NOT_RUN",
+    "packet_sha256": "d5bcb6858977a221212537a94d729546de11b942ab17eaa5b6033a06ef4e5032",
+    "source_files": {
+      "caelab/adapters/mfront_inverse.py": "63122ad92c3d6964241e1070bf9392c9a098697069fb8d7ce4404b70848071ca",
+      "caelab/adapters/mfront_inverse_runtime_probe.py": "99ebb8ab554bdd79aa106fda1365ee802182d40788bbcb474acc264a18476613",
+      "caelab/adapters/mfront_material.py": "01b27ce119afd33e7404bac8960d65e5d17f8aa5648b79fcbdb20ca905187e0c",
+      "caelab/adapters/mfront_material_worker.py": "3d909f2e68a29807a6e9333817b6eed3308c51bca126a029465f347f61b71c99",
+      "plugins/material_point/inverse_reference.py": "672895563072afd482a9c38da8cd0756d19cbbef5e371faaa653c814377e29f6",
+      "plugins/material_point/reference.py": "fc06840f0d36c5a94db4c09123d53c9355bceb38027d6e4b5a5f908c07391762"
+    },
+    "tests": {
+      "command": "python -m pytest -q tests/test_material_inverse_runtime.py tests/test_material_inverse.py tests/test_model_parameters.py tests/test_model_optimization.py",
+      "count": 228,
+      "elapsed_seconds": 249.32,
+      "scope": "Pure admission contracts and shared search/records with TEST ONLY native substitutions; no native proof",
+      "status": "PASS"
+    }
+  },
+  "profile": "SEALED_OCI",
+  "runtime_profile": {
+    "adapter_version": "2",
+    "admission_limits": {
+      "address_space_bytes": 4294967296,
+      "cpu_seconds": 30,
+      "file_bytes": 65536,
+      "stderr_bytes": 32768,
+      "stdout_bytes": 32768,
+      "threads": 1,
+      "timeout_seconds": 45
+    },
+    "deployment_configuration": {
+      "CAELAB_CODEASTER_IMAGE": null,
+      "CAELAB_CODEASTER_IMAGE_SHA256": null,
+      "CAELAB_MFRONT_IMAGE": "/home/pikachu444/.local/share/autonomous-cae-lab/code_aster_17.4.0-oci.sif",
+      "CAELAB_MFRONT_IMAGE_SHA256": "f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64",
+      "CAELAB_MFRONT_INVERSE_RUNTIME_PROFILE": "SEALED_OCI",
+      "CAELAB_SINGULARITY_COMMAND": null
+    },
+    "expected_oci_manifest_sha256": "d8d19ea91989eac0d38195bc5795c54c69f530f7196f53d67697ffa57c9106d5",
+    "local_exact_sif_sha256": "f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64",
+    "probe_bootstrap": "source /opt/activate.sh; export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1; exec python3 -B -I /probe/mfront_inverse_runtime_probe.py",
+    "profile": "SEALED_OCI",
+    "profile_contract_version": "2",
+    "sealed_installed_native_binaries": {
+      "compiler": {
+        "sha256": "dd91977c184e327710578363ad93ebb175c3a457b6236b874fd3911b7c055c65"
+      },
+      "mfront": {
+        "sha256": "a2131b191d41dcf7bf8b71ecce4e35e61d43713062ead58affd4f1e30468713f"
+      },
+      "mgis_binding": {
+        "sha256": "60f70796a3d575a678891425d096d2fd5832ed1d4f9f5dcd9a7cd79d926aa8be"
+      },
+      "mtest": {
+        "sha256": "988522d0665c78104ac8ecc714ed158383999fd31b311e81db219328bdb042a6"
+      },
+      "mtest_binding": {
+        "sha256": "88ab5619cc5cbf8ec82ca0f97e0f71f0f6785000f3398c31f64d53028d8a0f21"
+      },
+      "tfel_config": {
+        "sha256": "9ed8dd6fcb9b958b4e376ea7c69d2fe2162bbbae46a2b7750f7ac6bcc5e7be9b"
+      }
+    },
+    "source_files": {
+      "caelab/adapters/mfront_inverse.py": "63122ad92c3d6964241e1070bf9392c9a098697069fb8d7ce4404b70848071ca",
+      "caelab/adapters/mfront_inverse_runtime_probe.py": "99ebb8ab554bdd79aa106fda1365ee802182d40788bbcb474acc264a18476613",
+      "caelab/adapters/mfront_material.py": "01b27ce119afd33e7404bac8960d65e5d17f8aa5648b79fcbdb20ca905187e0c",
+      "caelab/adapters/mfront_material_worker.py": "3d909f2e68a29807a6e9333817b6eed3308c51bca126a029465f347f61b71c99",
+      "plugins/material_point/inverse_reference.py": "672895563072afd482a9c38da8cd0756d19cbbef5e371faaa653c814377e29f6",
+      "plugins/material_point/reference.py": "fc06840f0d36c5a94db4c09123d53c9355bceb38027d6e4b5a5f908c07391762"
+    }
+  },
+  "schema_version": "1",
+  "settings_sha256": "0ef498a6830465225e46a532f2818a0cb582d4a15dec0e0d7c1159ace821ab9c",
+  "source_files": {
+    "caelab/adapters/mfront_inverse.py": "dfa90b9cde8f544e72deff5c2994e5d55fbac0bde1f4a1944e048c35091bedc0",
+    "caelab/adapters/mfront_inverse_runtime_probe.py": "99ebb8ab554bdd79aa106fda1365ee802182d40788bbcb474acc264a18476613",
+    "caelab/adapters/mfront_material.py": "01b27ce119afd33e7404bac8960d65e5d17f8aa5648b79fcbdb20ca905187e0c",
+    "caelab/adapters/mfront_material_worker.py": "3d909f2e68a29807a6e9333817b6eed3308c51bca126a029465f347f61b71c99",
+    "plugins/material_point/inverse_reference.py": "672895563072afd482a9c38da8cd0756d19cbbef5e371faaa653c814377e29f6",
+    "plugins/material_point/reference.py": "fc06840f0d36c5a94db4c09123d53c9355bceb38027d6e4b5a5f908c07391762"
+  },
+  "status": "STATIC_PASS_NATIVE_PENDING",
+  "unit_tests": {
+    "command": "python -m pytest -q tests/test_material_inverse_runtime.py tests/test_material_inverse.py",
+    "count": 120,
+    "elapsed_seconds": 45.78,
+    "scope": "Corrected current inverse runtime/unit contracts; TEST ONLY native substitutions",
+    "status": "PASS"
+  },
+  "verifier_sha256": "47fbff3b84dc1e5cd07b76ff2109590eb264f85921195c3fe4ec6881880f97ef"
+}

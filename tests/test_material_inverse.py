@@ -149,6 +149,11 @@ def test_exact_native_selector_rejects_wrong_or_missing_observations(mode):
 
 
 def fake_runtime(monkeypatch, tmp_path):
+    for key in adapter.CONFIG_KEYS:
+        monkeypatch.delenv(key, raising=False)
+    for key in list(adapter.os.environ):
+        if key.startswith(adapter.NATIVE_OVERRIDE_PREFIXES):
+            monkeypatch.delenv(key, raising=False)
     image, executable = tmp_path / "TEST_ONLY.sif", tmp_path / "TEST_ONLY_singularity"
     image.write_bytes(b"TEST ONLY; not native SIF acceptance")
     executable.write_bytes(b"TEST ONLY wrapper")
@@ -158,14 +163,15 @@ def fake_runtime(monkeypatch, tmp_path):
     return image, executable
 
 
-def test_actual_runtime_wrapper_image_and_all_five_source_hashes_frozen(monkeypatch, tmp_path):
+def test_actual_runtime_wrapper_image_and_all_six_source_hashes_frozen(monkeypatch, tmp_path):
     image, executable = fake_runtime(monkeypatch, tmp_path)
     runtime = adapter.MFrontInverseAdapter().input_runtime_identity()
     assert runtime["image_sha256"] == adapter.base.sha256(image)
     assert runtime["singularity"]["sha256"] == adapter.base.sha256(executable)
     assert set(runtime["source_files"]) == {"caelab/adapters/mfront_material.py",
         "caelab/adapters/mfront_material_worker.py", "plugins/material_point/reference.py",
-        "plugins/material_point/inverse_reference.py", "caelab/adapters/mfront_inverse.py"}
+        "plugins/material_point/inverse_reference.py", "caelab/adapters/mfront_inverse.py",
+        "caelab/adapters/mfront_inverse_runtime_probe.py"}
     image.write_bytes(b"CHANGED TEST ONLY image")
     monkeypatch.setattr(adapter.base, "_runtime_identity", lambda: (image, adapter.base.sha256(image), str(executable)))
     with pytest.raises(RuntimeError, match="exact already-verified SIF"):
@@ -304,7 +310,7 @@ def test_runtime_wrapper_drift_after_base_execution_blocks_feedback(monkeypatch,
     monkeypatch.setattr(adapter.base.MFrontMaterialAdapter, "solve", changed)
     result = adapter.MFrontInverseAdapter().solve(tmp_path / "simulation", domain.canonical_settings())
     assert result["solver_status"] == "FAILED_EXECUTION" and result["metrics"] == {}
-    assert "runtime wrapper changed" in load_json(tmp_path / "simulation/analysis_raw.json")["checks"][0]["observed"]
+    assert "identity changed" in load_json(tmp_path / "simulation/analysis_raw.json")["checks"][0]["observed"]
 
 
 def test_preflight_and_common_cadless_revision_unknown_integrity(monkeypatch, tmp_path):
