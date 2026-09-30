@@ -1,64 +1,298 @@
-# Actual local-provider -> OpenScience -> MCP -> Core acceptance. No direct Core
-# mutations are used as a substitute for an agent tool event. Raw stage output,
-# CLI outcome and verified store bytes are separate evidence.
+# Explicit actual-provider acceptance and separate launcher-only verification.
+# Readiness/mocks never substitute for actual model/tool/Core evidence.
 [CmdletBinding()]
 param(
     [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot),
-    [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$RunName = 'local-20260930-openscience-live-04',
-    [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$AttemptName = 'attempt-02',
-    [ValidateRange(30, 600)][int]$StageTimeoutSeconds = 180,
-    [ValidateRange(256, 2048)][int]$OutputTokens = 768,
-    [switch]$ConfigureOnly,
-    [switch]$Resume
+    [ValidatePattern('^[A-Za-z][A-Za-z0-9_-]{0,69}$')][string]$RunName = ('openscience-live-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmss')),
+    [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$AttemptName = 'attempt-01',
+    [string]$OwnerPath, [string]$StoreRoot, [string]$RuntimePrefix,
+    [ValidateRange(30,600)][int]$StageTimeoutSeconds = 300,
+    [switch]$ConfigureOnly, [switch]$Resume, [switch]$RuntimeChecksOnly
 )
+$taskVerifyOptions=@{
+    RepoRoot=$RepoRoot;RunName=$RunName;AttemptName=$AttemptName;OwnerPath=$OwnerPath;StoreRoot=$StoreRoot;RuntimePrefix=$RuntimePrefix
+    StageTimeoutSeconds=$StageTimeoutSeconds;ConfigureOnly=[bool]$ConfigureOnly;Resume=[bool]$Resume;RuntimeChecksOnly=[bool]$RuntimeChecksOnly
+}
+. (Join-Path $PSScriptRoot 'openscience-local.ps1') -Library
+$ErrorActionPreference='Stop'
+$RepoRoot=[IO.Path]::GetFullPath($taskVerifyOptions.RepoRoot)
+$RunName=$taskVerifyOptions.RunName; $AttemptName=$taskVerifyOptions.AttemptName
+$StageTimeoutSeconds=$taskVerifyOptions.StageTimeoutSeconds; $Resume=$taskVerifyOptions.Resume
 
-$ErrorActionPreference = 'Stop'
-$RepoRoot = [IO.Path]::GetFullPath($RepoRoot)
-$taskConfigScript = Join-Path $PSScriptRoot 'configure-openscience-local.ps1'
-$taskStore = Join-Path $RepoRoot "runs\$RunName"
-$taskArtifacts = Join-Path $RepoRoot "artifacts\$RunName\$AttemptName"
-$taskPriorRecordPath = Join-Path $taskArtifacts 'acceptance.json'
-if (-not $Resume -and (Test-Path -LiteralPath $taskStore) -and @(Get-ChildItem -LiteralPath $taskStore -Force).Count -gt 0) {
-    throw 'This acceptance requires a new empty store. Preserve the existing run and choose a new RunName.'
+function Assert-Task([bool]$Condition, [string]$Message) {
+    if (-not $Condition) { throw $Message }
 }
-if (-not $Resume -and (Test-Path -LiteralPath $taskPriorRecordPath)) {
-    throw 'An acceptance record already exists; choose a new RunName.'
+function Assert-OpenScienceSameProvenance($Original,$Current,[string]$Message='Resume provenance changed; historical traces cannot verify the current source.') {
+    Assert-Task ($null -ne $Original -and $null -ne $Current) $Message
+    $taskOriginalNode=[Text.Json.Nodes.JsonNode]::Parse(($Original | ConvertTo-Json -Depth 50 -Compress))
+    $taskCurrentNode=[Text.Json.Nodes.JsonNode]::Parse(($Current | ConvertTo-Json -Depth 50 -Compress))
+    Assert-Task ([Text.Json.Nodes.JsonNode]::DeepEquals($taskOriginalNode,$taskCurrentNode)) $Message
 }
-if ($Resume) {
-    if (-not (Test-Path -LiteralPath $taskPriorRecordPath)) { throw 'No owned acceptance checkpoint is available to resume.' }
-    $taskPriorRecord = Get-Content -LiteralPath $taskPriorRecordPath -Raw | ConvertFrom-Json -Depth 60
-    if ($taskPriorRecord.run_name -ne $RunName -or $taskPriorRecord.attempt_name -ne $AttemptName) { throw 'Resume checkpoint identity mismatch.' }
-    $taskArchive = Join-Path $taskArtifacts ("acceptance-before-resume-" + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffffff') + '.json')
-    Copy-Item -LiteralPath $taskPriorRecordPath -Destination $taskArchive
+function Get-OpenScienceAcceptanceModelIdentity($Context) {
+    $taskModelTags=Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/tags' -TimeoutSec 10
+    $taskActualModels=@($taskModelTags.models | Where-Object {$_.name -eq $Context.ModelId -or $_.model -eq $Context.ModelId -or $_.name -eq ($Context.ModelId+':latest') -or $_.model -eq ($Context.ModelId+':latest')})
+    Assert-Task ($taskActualModels.Count -eq 1 -and $taskActualModels[0].digest -match '^(sha256:)?[0-9a-f]{64}$') 'Exact configured local model digest is unavailable; model provenance remains UNKNOWN.'
+    return [ordered]@{model=$Context.ModelId;digest=$taskActualModels[0].digest;size=$taskActualModels[0].size}
 }
-$taskSetup = & $taskConfigScript -RepoRoot $RepoRoot -RunName $RunName -ProfileTag $AttemptName -OutputTokens $OutputTokens
+function Get-OpenScienceAcceptanceProvenance($Context,[int]$Timeout,$ModelIdentity) {
+    $taskTracked=[Collections.Generic.List[object]]::new()
+    $taskPaths=@(& git -C $Context.RepoRoot -c core.quotepath=false ls-files)
+    if($LASTEXITCODE -ne 0){throw 'Source tracked-file discovery failed.'}
+    foreach($taskRelative in $taskPaths){
+        $taskPath=Join-Path $Context.RepoRoot $taskRelative
+        if(Test-Path -LiteralPath $taskPath -PathType Leaf){
+            Assert-OpenScienceContainedPath $taskPath $Context.RepoRoot | Out-Null
+            $taskTracked.Add([ordered]@{path=$taskRelative;sha256=Get-OpenScienceHash $taskPath})
+        } elseif(Test-Path -LiteralPath $taskPath -PathType Container){
+            # A gitlink must pin actual nested source bytes, not only its HEAD.
+            $taskNestedHead=(& git -C $taskPath rev-parse HEAD).Trim()
+            if($LASTEXITCODE -ne 0){throw 'Pinned submodule source is unavailable.'}
+            $taskNestedPaths=@(& git -C $taskPath -c core.quotepath=false ls-files)
+            if($LASTEXITCODE -ne 0){throw 'Pinned submodule tracked-file discovery failed.'}
+            foreach($taskNestedRelative in $taskNestedPaths){
+                $taskNestedPath=Join-Path $taskPath $taskNestedRelative
+                if(Test-Path -LiteralPath $taskNestedPath -PathType Leaf){
+                    Assert-OpenScienceContainedPath $taskNestedPath $taskPath | Out-Null
+                    $taskTracked.Add([ordered]@{path="$taskRelative/$taskNestedRelative";submodule_head=$taskNestedHead;sha256=Get-OpenScienceHash $taskNestedPath})
+                } else { throw 'A tracked nested source file is unavailable.' }
+            }
+        } else { $taskTracked.Add([ordered]@{path=$taskRelative;missing=$true}) }
+    }
+    $taskTrackedBytes=[Text.Encoding]::UTF8.GetBytes(($taskTracked | ConvertTo-Json -Depth 10 -Compress))
+    $taskSourceHead=(& git -C $Context.RepoRoot rev-parse HEAD).Trim()
+    if($LASTEXITCODE -ne 0){throw 'Source commit discovery failed.'}
+    return [ordered]@{
+        source_commit=$taskSourceHead;source_tree_sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($taskTrackedBytes)).ToLowerInvariant()
+        source_dirty=@(& git -C $Context.RepoRoot status --short);config_sha256=Get-OpenScienceHash $Context.ConfigPath
+        model=$Context.Model;model_identity=$ModelIdentity;profile_root=$Context.ProfileRoot;store_root=$Context.StoreRoot
+        runtime_owner=$Context.OwnerPath;runtime_url=$Context.RuntimeURL;runtime_owner_sha256=Get-OpenScienceHash $Context.OwnerPath
+        runtime_intent_sha256=$Context.IntentSha256;openscience_source_commit=$Context.SourceCommit
+        launcher_sha256=Get-OpenScienceHash $Context.LauncherPath;native_binaries=$Context.NativeBinaries
+        allowed_tools=@($Context.AllowedTools);stage_timeout_seconds=$Timeout
+    }
+}
+
+function Test-OpenScienceLocalLauncher {
+    param([string]$RepoRoot,[string]$RunName,[string]$RuntimePrefix)
+    $taskContextArgs=@{RepoRoot=$RepoRoot;RunName=$RunName;ProfileTag='launcher-checks'}
+    if($RuntimePrefix){$taskContextArgs.RuntimePrefix=$RuntimePrefix}
+    $taskMockContext=New-OpenScienceLocalContext @taskContextArgs
+    $taskChecksRoot=Join-Path $taskMockContext.ArtifactRoot 'launcher-checks'
+    if(Test-Path -LiteralPath $taskChecksRoot){throw 'Preserve previous launcher checks; use a new RunName.'}
+    New-Item -ItemType Directory -Path $taskChecksRoot | Out-Null
+    $taskFakeLauncher=Join-Path $taskChecksRoot 'mock-launcher.mjs'
+    @'
+import fs from "node:fs";
+const argv=process.argv.slice(2);
+process.stdout.write(JSON.stringify({type:"user",argv})+"\n");
+setTimeout(()=>{
+  const path=argv[argv.indexOf("--log-path")+1];
+  const readable=fs.readFileSync(path,"utf8").includes('"type":"user"');
+  process.stdout.write(JSON.stringify({type:"mock_log_read",read_during_run:readable})+"\n");
+  if(argv.includes("--mock-timeout")) setInterval(()=>process.stdout.write(JSON.stringify({type:"mock_still_alive"})+"\n"),300);
+  else process.exit(readable?0:2);
+},350);
+'@ | Set-Content -LiteralPath $taskFakeLauncher -Encoding utf8
+    $taskMockContext.LauncherPath=$taskFakeLauncher
+    $taskMockContext | Add-Member -NotePropertyName OwnerPath -NotePropertyValue (Join-Path $taskChecksRoot 'mock-owner.json') -Force
+    $taskMockContext | Add-Member -NotePropertyName RuntimeURL -NotePropertyValue 'http://127.0.0.1:4098' -Force
+    $taskMockCalls=[Collections.Generic.List[object]]::new()
+    $taskMockOrder=[Collections.Generic.List[string]]::new()
+    $taskMockMissing=$false; $taskMockForeign=$false; $taskMockBusy=$false; $taskMockAbortConfirmed=$true; $taskMockRestoreFailure=$false
+    $taskMockModelDigest=('a'*64);$taskMockDuplicateModel=$false
+    $taskTests=[Collections.Generic.List[object]]::new()
+    # Scope-local interceptions; no real server/provider/MCP mutation/inference.
+    function Assert-OpenScienceContext {
+        param($Context)
+        if($Context.LauncherPath -ne $taskFakeLauncher -or $Context.RepoRoot -ne $RepoRoot){throw 'Mock context changed.'}
+    }
+    function Get-OpenScienceLocalRuntime {
+        param([string]$OwnerPath)
+        if($taskMockMissing){throw 'Mock current MCP is disconnected.'}
+        if($taskMockForeign){return [pscustomobject]@{RunName=$taskMockContext.RunName;RepoRoot='C:\foreign-owner'}}
+        return $taskMockContext
+    }
+    function Set-OpenScienceExpectedTools {
+        param($Context,[string]$RequiredTool,[switch]$NoTools)
+        if($taskMockRestoreFailure -and -not $RequiredTool -and -not $NoTools){throw 'Mock guard restoration failed.'}
+        $taskMockCalls.Add([ordered]@{kind='schema_guard';required=$RequiredTool;no_tools=[bool]$NoTools})
+    }
+    function Invoke-RestMethod {
+        param([string]$Uri,[string]$Method='Get',$Headers=@{},$Body,[string]$ContentType,[int]$TimeoutSec)
+        $taskMockCalls.Add([ordered]@{kind='http_mock';method=$Method;uri=$Uri;directory=$Headers['x-openscience-directory'];abort_source=$Headers['x-openscience-abort-source']})
+        if($Uri -eq 'http://127.0.0.1:11434/api/tags'){
+            $taskModels=@([pscustomobject]@{name=($taskMockContext.ModelId+':latest');digest=$taskMockModelDigest;size=1234},[pscustomobject]@{name='unrelated-mock-model';digest=('b'*64);size=5678})
+            if($taskMockDuplicateModel){$taskModels+=@($taskModels[0])}
+            return [pscustomobject]@{models=$taskModels}
+        }
+        if($Uri.EndsWith('/session') -and $Method -eq 'Post'){return [pscustomobject]@{id='ses_mock123';directory=$taskMockContext.RepoRoot}}
+        if($Uri.EndsWith('/session/status')){
+            if($taskMockBusy){return [pscustomobject]@{ses_other=@{type='busy'}}}
+            return [pscustomobject]@{}
+        }
+        if($Uri.EndsWith('/filesystem')){return [pscustomobject]@{workspace=@{mode='legacy'}}}
+        if($Uri.EndsWith('/abort')){return $true}
+        if($Uri.EndsWith('/session/ses_mock123')){return [pscustomobject]@{id='ses_mock123';directory=$taskMockContext.RepoRoot}}
+        throw 'Unexpected mock route.'
+    }
+    function Invoke-OpenScienceSessionAbort {
+        param($Context,[string]$SessionId)
+        $taskMockOrder.Add("abort:$SessionId")
+        $taskResponse=Invoke-RestMethod -Uri ($Context.RuntimeURL+'/session/'+$SessionId+'/abort') -Method Post -Headers @{'x-openscience-directory'=$Context.RepoRoot;'x-openscience-abort-source'='runner_timeout'}
+        return [pscustomobject]@{session_id=$SessionId;response=$taskResponse;Confirmed=$taskMockAbortConfirmed;StatusCode=200;SessionId=$SessionId}
+    }
+    function Stop-OpenScienceOwnedLauncher {
+        param($Context,$ProcessIdentity)
+        $taskNow=Get-OpenScienceProcessIdentity -ProcessId $ProcessIdentity.pid
+        if($taskNow.CommandLine -ne $ProcessIdentity.CommandLine -or $taskNow.CreationUtc -ne $ProcessIdentity.CreationUtc -or -not $taskNow.CommandLine.Contains($taskFakeLauncher)){throw 'Mock process ownership mismatch.'}
+        $taskMockOrder.Add("stop:$($ProcessIdentity.pid)")
+        Stop-Process -Id $ProcessIdentity.pid -ErrorAction Stop
+    }
+    function Assert-LauncherCheck([bool]$Condition,[string]$Name) {
+        if(-not $Condition){throw "Launcher check failed: $Name"}
+        $taskTests.Add([ordered]@{name=$Name;outcome='PASS'})
+    }
+    try {
+        $taskMultiline='First line "quotes" with 한글' + [Environment]::NewLine + 'Second line with C:\space path\ and literal $()'
+        $taskArgDir=Join-Path $taskChecksRoot '01-arguments'
+        $taskArgs=@('probe','--log-path',(Join-Path $taskArgDir 'stdout.jsonl'),'--',$taskMultiline)
+        $taskArgResult=Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments $taskArgs -LogDirectory $taskArgDir -TimeoutSeconds 5
+        $taskArgEvents=@([IO.File]::ReadLines($taskArgResult.stdout_path) | ForEach-Object { $_ | ConvertFrom-Json })
+        Assert-LauncherCheck ($taskArgResult.exit_code -eq 0 -and -not $taskArgResult.failure) 'launcher exits without inference'
+        Assert-LauncherCheck ([Text.Json.Nodes.JsonNode]::DeepEquals([Text.Json.Nodes.JsonNode]::Parse(($taskArgs | ConvertTo-Json -Compress)),[Text.Json.Nodes.JsonNode]::Parse(($taskArgEvents[0].argv | ConvertTo-Json -Compress)))) 'ArgumentList preserves complete multiline Unicode prompt'
+        Assert-LauncherCheck ([bool]$taskArgEvents[1].read_during_run) 'stdout is readable before child exits'
+        $taskTimeoutDir=Join-Path $taskChecksRoot '02-timeout'
+        $taskTimeoutResult=Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--log-path',(Join-Path $taskTimeoutDir 'stdout.jsonl'),'--mock-timeout','--','No actual provider request') -LogDirectory $taskTimeoutDir -TimeoutSeconds 1 -RequiredTool 'caelab_study_create'
+        Assert-LauncherCheck ($taskTimeoutResult.timed_out -and $taskTimeoutResult.session_id -eq 'ses_mock123') 'session identity is verified before launcher starts'
+        Assert-LauncherCheck ($taskTimeoutResult.cancellation_before_cli_stop -and -not $taskTimeoutResult.launcher_still_running -and $taskMockOrder[0] -eq 'abort:ses_mock123' -and $taskMockOrder[1].StartsWith('stop:')) 'exact session abort precedes verified CLI stop'
+        $taskAbortCall=@($taskMockCalls | Where-Object { $_.uri -like '*/abort' })
+        Assert-LauncherCheck ($taskAbortCall.Count -eq 1 -and $taskAbortCall[0].abort_source -eq 'runner_timeout' -and $taskAbortCall[0].directory -eq $RepoRoot) 'timeout uses official abort route and header'
+        Assert-LauncherCheck (@($taskMockCalls | Where-Object method -eq 'Delete').Count -eq 0) 'session and evidence are never deleted'
+        Assert-LauncherCheck ((Get-FileHash -LiteralPath $taskArgResult.stdout_path).Hash.ToLowerInvariant() -eq $taskArgResult.stdout_sha256) 'prior raw stdout bytes survive later attempts'
+        $taskStartProbe=New-OpenScienceLocalProcessInfo -Context $taskMockContext -Arguments @('--version')
+        Assert-LauncherCheck (@($taskStartProbe.Environment.Keys | Where-Object { $_ -match '(?i)(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|COOKIE|AUTH)' -and $_ -notin @($taskMockContext.Environment.Keys) }).Count -eq 0) 'inherited credential names are filtered without reading values'
+        Assert-LauncherCheck ($taskStartProbe.Environment['TEMP'] -eq $taskMockContext.Environment.TEMP -and $taskStartProbe.Environment['TMP'] -eq $taskMockContext.Environment.TMP -and $taskStartProbe.Environment['OPENSCIENCE_TEST_HOME'] -eq $taskMockContext.Environment.OPENSCIENCE_TEST_HOME) 'task home and shared temporary paths are explicit'
+        $taskMockAbortConfirmed=$false; $taskAbortRefusalDir=Join-Path $taskChecksRoot '03-unconfirmed-abort'
+        $taskAbortRefusal=Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--log-path',(Join-Path $taskAbortRefusalDir 'stdout.jsonl'),'--mock-timeout','--','No actual provider request') -LogDirectory $taskAbortRefusalDir -TimeoutSeconds 1 -RequiredTool 'caelab_study_create'
+        try {
+            Assert-LauncherCheck ($taskAbortRefusal.cleanup_refused_after_abort_failure -and -not $taskAbortRefusal.cancellation_before_cli_stop -and $taskAbortRefusal.launcher_still_running -and $null -eq $taskAbortRefusal.launcher_stop) 'unconfirmed abort refuses CLI termination and preserves exact PID/session'
+            $taskBefore=(Get-Item -LiteralPath $taskAbortRefusal.stdout_path).Length
+            Start-Sleep -Milliseconds 700
+            Assert-LauncherCheck ((Get-Item -LiteralPath $taskAbortRefusal.stdout_path).Length -gt $taskBefore -and $null -ne(Get-OpenScienceProcessIdentity -ProcessId $taskAbortRefusal.launcher_identity.Pid) -and
+                $taskAbortRefusal.log_relay_still_running -and -not $taskAbortRefusal.output_hashes_finalized) 'unconfirmed cancellation keeps independent live logs after launcher returns'
+            $taskPendingRejected=$false
+            try { Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--','No inference') -LogDirectory (Join-Path $taskChecksRoot '03-pending-command') | Out-Null } catch { $taskPendingRejected=$true }
+            Assert-LauncherCheck $taskPendingRejected 'pending live relay blocks a second model command'
+        } finally {
+            # Only this known no-provider mock child is cleaned up. The tested
+            # production branch refused termination after unconfirmed abort.
+            Stop-OpenScienceOwnedLauncher -Context $taskMockContext -ProcessIdentity $taskAbortRefusal.launcher_identity
+            $taskRelayWait=[Diagnostics.Stopwatch]::StartNew()
+            while(-not(Test-Path -LiteralPath (Join-Path $taskAbortRefusalDir 'relay-final.json')) -and $taskRelayWait.Elapsed.TotalSeconds -lt 5){Start-Sleep -Milliseconds 100}
+            if(-not(Test-Path -LiteralPath (Join-Path $taskAbortRefusalDir 'relay-final.json'))){throw 'Known no-provider mock relay failed to finalize after explicit test cleanup.'}
+        }
+        $taskMockAbortConfirmed=$true
+        $taskRejected=$false; $taskJoinedDir=Join-Path $taskChecksRoot '04-joined-session'
+        try { Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--session=ses_foreign','--','No inference') -LogDirectory $taskJoinedDir | Out-Null } catch { $taskRejected=$true }
+        Assert-LauncherCheck ($taskRejected -and -not(Test-Path -LiteralPath (Join-Path $taskJoinedDir 'stdout.jsonl'))) 'joined session override is rejected before inference'
+        $taskMockMissing=$true; $taskRejected=$false; $taskGateDir=Join-Path $taskChecksRoot '03-missing-mcp'
+        try { Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--','No inference') -LogDirectory $taskGateDir | Out-Null } catch { $taskRejected=$true }
+        Assert-LauncherCheck ($taskRejected -and -not(Test-Path -LiteralPath (Join-Path $taskGateDir 'stdout.jsonl')) -and (Test-Path -LiteralPath (Join-Path $taskGateDir 'preflight-failure.json'))) 'missing current MCP blocks launcher before inference'
+        $taskMockMissing=$false; $taskMockForeign=$true; $taskRejected=$false; $taskForeignDir=Join-Path $taskChecksRoot '04-foreign-owner'
+        try { Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--','No inference') -LogDirectory $taskForeignDir | Out-Null } catch { $taskRejected=$true }
+        Assert-LauncherCheck ($taskRejected -and -not(Test-Path -LiteralPath (Join-Path $taskForeignDir 'stdout.jsonl'))) 'foreign runtime is not used or stopped'
+        $taskMockForeign=$false
+        $taskNormalDir=Join-Path $taskChecksRoot '05-completed-bare'
+        $taskNormal=Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--bare','--log-path',(Join-Path $taskNormalDir 'stdout.jsonl'),'--','Mock-only interpretation') -LogDirectory $taskNormalDir -TimeoutSeconds 5 -NoTools
+        Assert-LauncherCheck ($taskNormal.exit_code -eq 0 -and $taskNormal.workspace_default_guard_restored -and -not $taskNormal.guard_restore_failure) 'completed no-tools CLI restores default Workspace guard'
+        $taskMockRestoreFailure=$true
+        $taskRestoreFailed=Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--bare','--log-path',(Join-Path $taskChecksRoot '05-restore-failure/stdout.jsonl'),'--','Mock-only interpretation') -LogDirectory (Join-Path $taskChecksRoot '05-restore-failure') -TimeoutSeconds 5 -NoTools
+        Assert-LauncherCheck ($taskRestoreFailed.exit_code -eq 0 -and $taskRestoreFailed.guard_restore_failure -and $taskRestoreFailed.failure -and -not $taskRestoreFailed.workspace_default_guard_restored) 'guard restoration failure makes normal CLI completion fail'
+        $taskMockRestoreFailure=$false
+        Assert-LauncherCheck (-not $taskTimeoutResult.workspace_default_guard_restored) 'timeout never restores the Workspace guard'
+        $taskMockBusy=$true; $taskRejected=$false; $taskBusyDir=Join-Path $taskChecksRoot '06-busy-session'
+        try { Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--','No inference') -LogDirectory $taskBusyDir | Out-Null } catch { $taskRejected=$true }
+        Assert-LauncherCheck ($taskRejected -and -not(Test-Path -LiteralPath (Join-Path $taskBusyDir 'stdout.jsonl')) -and -not(Test-Path -LiteralPath (Join-Path $taskBusyDir 'session-created.json'))) 'active session blocks another CLI model action before session creation'
+        $taskMockBusy=$false; $taskRejected=$false; $taskLockDir=Join-Path $taskChecksRoot '07-command-lock'
+        $taskHeldLock=[IO.FileStream]::new((Join-Path $taskMockContext.ProfileRoot 'runtime-command.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None,1)
+        try {
+            try { Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--','No inference') -LogDirectory $taskLockDir | Out-Null } catch { $taskRejected=$true }
+            Assert-LauncherCheck ($taskRejected -and -not(Test-Path -LiteralPath (Join-Path $taskLockDir 'stdout.jsonl'))) 'exclusive profile command lock rejects concurrent CLI'
+        } finally { $taskHeldLock.Dispose() }
+        $taskPinned=@{source_commit='source-A';source_tree_sha256='tree-A';config_sha256='config-A';model_identity='model-A';store_root='store-A';arguments=@('run','--','prompt-A')}
+        Assert-OpenScienceSameProvenance $taskPinned ($taskPinned | ConvertTo-Json | ConvertFrom-Json -AsHashtable)
+        Assert-LauncherCheck $true 'unchanged original provenance is reusable'
+        foreach($taskField in @('source_commit','source_tree_sha256','config_sha256','model_identity','store_root','arguments')){
+            $taskChanged=$taskPinned | ConvertTo-Json | ConvertFrom-Json -AsHashtable
+            $taskChanged[$taskField]=if($taskField -eq 'arguments'){@('run','--','changed-prompt')}else{'changed'}
+            $taskResumeRejected=$false;try{Assert-OpenScienceSameProvenance $taskPinned $taskChanged}catch{$taskResumeRejected=$true}
+            Assert-LauncherCheck $taskResumeRejected "changed resume $taskField is refused"
+        }
+        $taskModelPin=Get-OpenScienceAcceptanceModelIdentity $taskMockContext
+        Assert-LauncherCheck ($taskModelPin.model -eq $taskMockContext.ModelId -and $taskModelPin.digest -eq ('a'*64) -and $taskModelPin.size -eq 1234) 'model provenance uses only the exact configured alias digest'
+        $taskMockModelDigest='UNKNOWN';$taskModelRejected=$false
+        try{Get-OpenScienceAcceptanceModelIdentity $taskMockContext | Out-Null}catch{$taskModelRejected=$true}
+        Assert-LauncherCheck $taskModelRejected 'unknown local model digest rejects acceptance'
+        $taskMockModelDigest=('a'*64);$taskMockDuplicateModel=$true;$taskModelRejected=$false
+        try{Get-OpenScienceAcceptanceModelIdentity $taskMockContext | Out-Null}catch{$taskModelRejected=$true}
+        Assert-LauncherCheck $taskModelRejected 'ambiguous configured model identity rejects acceptance'
+        $taskCheckRecord=[ordered]@{outcome='PASS_LAUNCHER_MOCKS_ONLY';inference_performed=$false;mcp_mutations_performed=$false;tests=$taskTests;mock_http_receipts=$taskMockCalls;timeout_order=$taskMockOrder;completed_utc=[DateTime]::UtcNow.ToString('o')}
+        $taskCheckRecord | ConvertTo-Json -Depth 25 | Set-Content -LiteralPath (Join-Path $taskChecksRoot 'checks.json') -Encoding utf8
+        Write-Host "Launcher checks=$($taskTests.Count) PASS; no inference; evidence=$taskChecksRoot"
+    } catch {
+        [ordered]@{outcome='FAILED_LAUNCHER_MOCKS_ONLY';failure=$_.Exception.Message;inference_performed=$false;tests=$taskTests;mock_http_receipts=$taskMockCalls} | ConvertTo-Json -Depth 25 |
+            Set-Content -LiteralPath (Join-Path $taskChecksRoot 'checks.json') -Encoding utf8
+        throw
+    }
+}
+if($taskVerifyOptions.RuntimeChecksOnly){
+    Test-OpenScienceLocalLauncher -RepoRoot $RepoRoot -RunName $RunName -RuntimePrefix $taskVerifyOptions.RuntimePrefix
+    return
+}
+if($taskVerifyOptions.ConfigureOnly){
+    $taskContextArgs=@{RepoRoot=$RepoRoot;RunName=$RunName}
+    if($taskVerifyOptions.StoreRoot){$taskContextArgs.StoreRoot=$taskVerifyOptions.StoreRoot}
+    if($taskVerifyOptions.RuntimePrefix){$taskContextArgs.RuntimePrefix=$taskVerifyOptions.RuntimePrefix}
+    New-OpenScienceLocalContext @taskContextArgs | Select-Object RunName,ProfileRoot,ConfigPath,StoreRoot,Model
+    return
+}
+if(-not $taskVerifyOptions.OwnerPath){throw 'Actual acceptance requires -OwnerPath from the ready persistent controller. ConfigureOnly and RuntimeChecksOnly do not infer.'}
+$taskSetup=Get-OpenScienceLocalRuntime -OwnerPath $taskVerifyOptions.OwnerPath
+if($taskSetup.RunName -ne $RunName -or $taskSetup.RepoRoot -ne $RepoRoot){throw 'Runtime ownership must match this exact repository/run.'}
+$taskStore=$taskSetup.StoreRoot
+if($taskVerifyOptions.StoreRoot -and [IO.Path]::GetFullPath($taskVerifyOptions.StoreRoot) -ne $taskStore){throw 'StoreRoot differs from the connected MCP store.'}
+$taskArtifacts=Join-Path $taskSetup.ArtifactRoot $AttemptName
+$taskPriorRecordPath=Join-Path $taskArtifacts 'acceptance.json'
+if(-not $Resume -and (Test-Path -LiteralPath $taskStore) -and @(Get-ChildItem -LiteralPath $taskStore -Force).Count -gt 0){throw 'Actual acceptance requires a new empty store; preserve the old run.'}
+if(-not $Resume -and (Test-Path -LiteralPath $taskPriorRecordPath)){throw 'Acceptance exists; choose a fresh run/attempt.'}
+$taskModelIdentity=Get-OpenScienceAcceptanceModelIdentity $taskSetup
+$taskProvenance=Get-OpenScienceAcceptanceProvenance -Context $taskSetup -Timeout $StageTimeoutSeconds -ModelIdentity $taskModelIdentity
+if($Resume){
+    if(-not(Test-Path -LiteralPath $taskPriorRecordPath)){throw 'No owned acceptance checkpoint is available.'}
+    $taskPriorRecord=Get-Content -LiteralPath $taskPriorRecordPath -Raw | ConvertFrom-Json -Depth 60
+    if($taskPriorRecord.run_name -ne $RunName -or $taskPriorRecord.attempt_name -ne $AttemptName){throw 'Checkpoint identity mismatch.'}
+    Assert-OpenScienceSameProvenance $taskPriorRecord.provenance $taskProvenance
+    Copy-Item -LiteralPath $taskPriorRecordPath -Destination (Join-Path $taskArtifacts ('acceptance-before-resume-'+[DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffffff')+'.json'))
+}
 New-Item -ItemType Directory -Force -Path $taskArtifacts | Out-Null
-if ($ConfigureOnly) { $taskSetup | Select-Object RunName, ProfileRoot, ConfigPath, StoreRoot, Model; return }
-$taskStages = [Collections.Generic.List[object]]::new()
-$taskStudyId = 'S-open-live-04'
-$taskValidId = 'E-open-live-04-width38'
-$taskInvalidId = 'E-open-live-04-bolt30'
-$taskRecord = [ordered]@{
-    run_name = $RunName; attempt_name = $AttemptName; started_utc = [DateTime]::UtcNow.ToString('o'); outcome = 'IN_PROGRESS'
-    source_commit = (& git -C $RepoRoot rev-parse HEAD).Trim()
-    source_dirty = @(& git -C $RepoRoot status --short)
-    openscience_version = '2.0.146'; openscience_source_commit = $taskSetup.SourceCommit
-    provider = 'local Ollama'; model = $taskSetup.Model; account_required = $false
-    study_id = $taskStudyId; experiment_ids = @($taskValidId, $taskInvalidId)
-    profile_root = $taskSetup.ProfileRoot; store_root = $taskStore; stage_timeout_seconds = $StageTimeoutSeconds
-    limitations = @('Dirty integrated source: no clean-source CI claim.', 'Windows warn fallback is not OS containment.',
-        'Supplied fixed CAD cases are not optimization.', 'No strength, material, physical or durability release.')
-    stages = $taskStages
-    resumed = [bool]$Resume
+$taskStages=[Collections.Generic.List[object]]::new()
+$taskStudyId="S-$RunName"; $taskValidId="E-$RunName-width38"; $taskInvalidId="E-$RunName-bolt30"
+$taskRecord=[ordered]@{
+    run_name=$RunName;attempt_name=$AttemptName;started_utc=[DateTime]::UtcNow.ToString('o');outcome='IN_PROGRESS'
+    source_commit=(& git -C $RepoRoot rev-parse HEAD).Trim();source_dirty=@(& git -C $RepoRoot status --short)
+    openscience_version='2.0.146';openscience_source_commit=$taskSetup.SourceCommit;provider='local Ollama';model=$taskSetup.Model
+    account_gate_observed=$false;study_id=$taskStudyId;experiment_ids=@($taskValidId,$taskInvalidId)
+    profile_root=$taskSetup.ProfileRoot;store_root=$taskStore;runtime_owner=$taskSetup.OwnerPath;runtime_url=$taskSetup.RuntimeURL
+    stage_timeout_seconds=$StageTimeoutSeconds;stages=$taskStages;resumed=[bool]$Resume
+    provenance=$taskProvenance
+    limitations=@('Exact-source CI requires a separate verified record.','Windows warn fallback is not OS containment.','Fixed supplied CAD cases are not optimization.','No strength, material, physical or durability release.')
 }
+
 function Write-TaskJson([string]$Path, $Value) {
     $Value | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $Path -Encoding utf8
 }
 function Save-Checkpoint {
     Write-TaskJson (Join-Path $taskArtifacts 'acceptance.json') $taskRecord
-}
-function Assert-Task([bool]$Condition, [string]$Message) {
-    if (-not $Condition) { throw $Message }
 }
 function Read-StageEvents([string]$Path) {
     foreach ($taskLine in [IO.File]::ReadLines($Path)) {
@@ -77,124 +311,51 @@ function Convert-McpReceipt([string]$Output) {
         return ,$taskValues
     }
 }
-function Invoke-TaskCli([string]$Name, [string[]]$CliArguments, [string[]]$AllowedTools = @()) {
-    $taskStageDir = Join-Path $taskArtifacts $Name
-    $taskExistingStage = Join-Path $taskStageDir 'stage.json'
-    if ($Resume -and (Test-Path -LiteralPath $taskExistingStage)) {
-        $taskStoredStage = Get-Content -LiteralPath $taskExistingStage -Raw | ConvertFrom-Json -Depth 60
-        Assert-Task (($taskStoredStage.allowed_tools -join ',') -eq ($AllowedTools -join ',')) 'A resumed stage has a different tool allowlist.'
-        $taskStoredStdout = Join-Path $taskStageDir 'stdout.jsonl'
-        Assert-Task ((Get-FileHash -LiteralPath $taskStoredStdout).Hash.ToLowerInvariant() -eq $taskStoredStage.stdout_sha256) 'Resumed stdout evidence hash changed.'
-        $taskStoredEvents = @(Read-StageEvents $taskStoredStdout)
-        $taskStages.Add($taskStoredStage)
-        Save-Checkpoint
-        Write-Host "OpenScience stage $Name reuses its checked prior trace; no tool/provider invocation."
-        return [pscustomobject]@{ Stage = $taskStoredStage; Events = $taskStoredEvents; Tools = @($taskStoredEvents | Where-Object type -eq 'tool_use'); Directory = $taskStageDir }
-    }
-    $taskContext = & $taskConfigScript -RepoRoot $RepoRoot -RunName $RunName -ProfileTag $AttemptName -AllowedTools $AllowedTools -OutputTokens $OutputTokens
-    New-Item -ItemType Directory -Path $taskStageDir -ErrorAction Stop | Out-Null
-    Copy-Item -LiteralPath $taskContext.ConfigPath -Destination (Join-Path $taskStageDir 'openscience.json')
-    $taskStartInfo = [Diagnostics.ProcessStartInfo]::new()
-    $taskStartInfo.FileName = $taskContext.NodePath
-    $taskStartInfo.WorkingDirectory = $RepoRoot
-    $taskStartInfo.UseShellExecute = $false
-    $taskStartInfo.CreateNoWindow = $true
-    $taskStartInfo.RedirectStandardOutput = $true
-    $taskStartInfo.RedirectStandardError = $true
-    $taskStartInfo.ArgumentList.Add($taskContext.LauncherPath)
-    foreach ($taskArgument in $CliArguments) { $taskStartInfo.ArgumentList.Add($taskArgument) }
-    foreach ($taskKey in $taskContext.Environment.Keys) { $taskStartInfo.Environment[$taskKey] = $taskContext.Environment[$taskKey] }
-    foreach ($taskKey in $taskContext.RemoveEnvironment) { $taskStartInfo.Environment.Remove($taskKey) | Out-Null }
-    # Do not pass provider/account environment credentials to the local model.
-    foreach ($taskKey in @('OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GOOGLE_API_KEY', 'GEMINI_API_KEY',
-        'OPENROUTER_API_KEY', 'AZURE_OPENAI_API_KEY', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN')) {
-        $taskStartInfo.Environment.Remove($taskKey) | Out-Null
-    }
-    $taskStdoutPath = Join-Path $taskStageDir 'stdout.jsonl'
-    $taskStderrPath = Join-Path $taskStageDir 'stderr.txt'
-    $taskStdout = [IO.File]::Create($taskStdoutPath)
-    $taskStderr = [IO.File]::Create($taskStderrPath)
-    $taskProcess = [Diagnostics.Process]::new()
-    $taskProcess.StartInfo = $taskStartInfo
-    $taskWatch = [Diagnostics.Stopwatch]::StartNew()
-    $taskTimedOut = $false
-    $taskExit = $null
-    $taskOwned = [Collections.Generic.List[object]]::new()
-    Write-Host "OpenScience stage $Name started; tools=$($AllowedTools -join ',')"
-    try {
-        Assert-Task ($taskProcess.Start()) 'The task-owned launcher did not start.'
-        $taskCopyOut = $taskProcess.StandardOutput.BaseStream.CopyToAsync($taskStdout)
-        $taskCopyErr = $taskProcess.StandardError.BaseStream.CopyToAsync($taskStderr)
-        $taskPid = $taskProcess.Id
-        while (-not $taskProcess.WaitForExit(1000)) {
-            if ($taskWatch.Elapsed.TotalSeconds -ge $StageTimeoutSeconds) {
-                $taskTimedOut = $true
-                # Only kill this verified launcher and descendants of its actual
-                # process tree whose command references the pinned runtime or
-                # this explicit task store. Never terminate the Ollama service.
-                $taskSnapshot = @(Get-CimInstance Win32_Process)
-                $taskLauncherProcess = $taskSnapshot | Where-Object ProcessId -eq $taskPid
-                Assert-Task ($null -ne $taskLauncherProcess -and $taskLauncherProcess.CommandLine.Contains($taskContext.LauncherPath)) 'Cannot verify the timeout launcher ownership.'
-                $taskIds = [Collections.Generic.HashSet[uint32]]::new()
-                $taskIds.Add([uint32]$taskPid) | Out-Null
-                $taskChanged = $true
-                while ($taskChanged) {
-                    $taskChanged = $false
-                    foreach ($taskChild in $taskSnapshot) {
-                        if ($taskIds.Contains([uint32]$taskChild.ParentProcessId) -and -not $taskIds.Contains([uint32]$taskChild.ProcessId)) {
-                            $taskIds.Add([uint32]$taskChild.ProcessId) | Out-Null; $taskChanged = $true
-                        }
-                    }
-                }
-                $taskKill = @($taskSnapshot | Where-Object { $taskIds.Contains([uint32]$_.ProcessId) })
-                foreach ($taskChild in $taskKill) {
-                    $taskCommand = [string]$taskChild.CommandLine
-                    Assert-Task ($taskCommand.Contains('openscience-2.0.146') -or $taskCommand.Contains("runs/$RunName")) "Unverified child PID $($taskChild.ProcessId); abort refused."
-                    $taskOwned.Add([ordered]@{ pid = $taskChild.ProcessId; parent_pid = $taskChild.ParentProcessId; command_line = $taskCommand; created = $taskChild.CreationDate })
-                }
-                Write-TaskJson (Join-Path $taskStageDir 'timeout-owned-processes.json') $taskOwned
-                foreach ($taskChild in @($taskKill | Sort-Object { $_.ProcessId -eq $taskPid })) {
-                    $taskNow = Get-CimInstance Win32_Process -Filter "ProcessId=$($taskChild.ProcessId)"
-                    if ($taskNow -and $taskNow.CreationDate -eq $taskChild.CreationDate -and $taskNow.CommandLine -eq $taskChild.CommandLine) {
-                        Stop-Process -Id $taskChild.ProcessId -ErrorAction SilentlyContinue
-                    }
-                }
-                $taskProcess.WaitForExit(10000) | Out-Null
-                break
-            }
-            if ([int]$taskWatch.Elapsed.TotalSeconds % 30 -eq 0) {
-                Write-Host "OpenScience stage $Name waiting ($([int]$taskWatch.Elapsed.TotalSeconds)s)."
-            }
+
+function Invoke-TaskCli([string]$Name,[string[]]$CliArguments,[string[]]$AllowedTools=@()){
+    Assert-OpenScienceSameProvenance $taskProvenance (Get-OpenScienceAcceptanceProvenance -Context $taskSetup -Timeout $StageTimeoutSeconds -ModelIdentity (Get-OpenScienceAcceptanceModelIdentity $taskSetup)) 'Current source/config/runtime/model changed during acceptance; a new store/run is required.'
+    $taskStageDir=Join-Path $taskArtifacts $Name
+    $taskExistingStage=Join-Path $taskStageDir 'stage.json'
+    if($Resume -and(Test-Path -LiteralPath $taskExistingStage)){
+        $taskStoredStage=Get-Content -LiteralPath $taskExistingStage -Raw | ConvertFrom-Json -Depth 60
+        Assert-OpenScienceSameProvenance $taskStoredStage.provenance $taskProvenance
+        Assert-OpenScienceSameProvenance $taskStoredStage.requested_arguments $CliArguments 'Resumed stage prompt/CLI options differ from the original invocation.'
+        Assert-Task (($taskStoredStage.allowed_tools -join ',') -eq ($AllowedTools -join ',')) 'Resumed tool allowlist differs.'
+        foreach($taskItem in @(@('stdout.jsonl','stdout_sha256'),@('stderr.txt','stderr_sha256'),@('openscience.json','config_sha256'))){
+            Assert-Task ((Get-FileHash -LiteralPath (Join-Path $taskStageDir $taskItem[0])).Hash.ToLowerInvariant() -eq $taskStoredStage.($taskItem[1])) 'A resumed raw trace/config hash changed.'
         }
-        if ($taskProcess.HasExited) { $taskExit = $taskProcess.ExitCode }
-        [Threading.Tasks.Task]::WaitAll(@($taskCopyOut, $taskCopyErr), 10000) | Out-Null
-    } finally {
-        $taskStdout.Dispose(); $taskStderr.Dispose(); $taskProcess.Dispose(); $taskWatch.Stop()
+        $taskStoredEvents=@(Read-StageEvents (Join-Path $taskStageDir 'stdout.jsonl'))
+        $taskStages.Add($taskStoredStage); Save-Checkpoint
+        return [pscustomobject]@{Stage=$taskStoredStage;Events=$taskStoredEvents;Tools=@($taskStoredEvents | Where-Object type -eq 'tool_use');Directory=$taskStageDir}
     }
-    $taskEvents = @(Read-StageEvents $taskStdoutPath)
-    $taskToolEvents = @($taskEvents | Where-Object type -eq 'tool_use')
-    $taskDone = @($taskEvents | Where-Object type -eq 'done') | Select-Object -Last 1
-    $taskStage = [ordered]@{
-        name = $Name; elapsed_seconds = [math]::Round($taskWatch.Elapsed.TotalSeconds, 3)
-        exit_code = $taskExit; timed_out = $taskTimedOut; allowed_tools = $AllowedTools
-        arguments = $CliArguments; done = $taskDone; tool_event_count = $taskToolEvents.Count
-        tool_events = $taskToolEvents; stdout_sha256 = (Get-FileHash -LiteralPath $taskStdoutPath).Hash.ToLowerInvariant()
-        stderr_sha256 = (Get-FileHash -LiteralPath $taskStderrPath).Hash.ToLowerInvariant()
-        config_sha256 = (Get-FileHash -LiteralPath (Join-Path $taskStageDir 'openscience.json')).Hash.ToLowerInvariant()
+    $taskRequired=if($AllowedTools.Count -gt 0){$AllowedTools[0]}else{$null}
+    Write-Host "OpenScience stage $Name started; required=$taskRequired"
+    $taskCommand=Invoke-OpenScienceLocalCommand -Context $taskSetup -Arguments $CliArguments -LogDirectory $taskStageDir -TimeoutSeconds $StageTimeoutSeconds -RequiredTool $taskRequired -NoTools:($CliArguments -contains '--bare')
+    Copy-Item -LiteralPath $taskSetup.ConfigPath -Destination (Join-Path $taskStageDir 'openscience.json')
+    $taskEvents=@(Read-StageEvents $taskCommand.stdout_path); $taskTools=@($taskEvents | Where-Object type -eq 'tool_use')
+    $taskDone=@($taskEvents | Where-Object type -eq 'done') | Select-Object -Last 1
+    $taskStage=[ordered]@{
+        name=$Name;elapsed_seconds=$taskCommand.elapsed_seconds;exit_code=$taskCommand.exit_code;timed_out=$taskCommand.timed_out;failure=$taskCommand.failure
+        allowed_tools=$AllowedTools;arguments=$taskCommand.arguments;done=$taskDone;session_id=$taskCommand.session_id
+        cancellation_before_cli_stop=$taskCommand.cancellation_before_cli_stop;launcher_still_running=$taskCommand.launcher_still_running
+        guard_restore_failure=$taskCommand.guard_restore_failure;workspace_default_guard_restored=$taskCommand.workspace_default_guard_restored
+        provenance=$taskProvenance;requested_arguments=$CliArguments
+        tool_event_count=$taskTools.Count;tool_events=$taskTools;stdout_sha256=$taskCommand.stdout_sha256;stderr_sha256=$taskCommand.stderr_sha256
+        config_sha256=(Get-FileHash -LiteralPath (Join-Path $taskStageDir 'openscience.json')).Hash.ToLowerInvariant()
     }
-    $taskStages.Add($taskStage)
-    Write-TaskJson (Join-Path $taskStageDir 'stage.json') $taskStage
-    Save-Checkpoint
-    Write-Host "OpenScience stage $Name ended; exit=$taskExit timeout=$taskTimedOut tools=$($taskToolEvents.Count)."
-    return [pscustomobject]@{ Stage = $taskStage; Events = $taskEvents; Tools = $taskToolEvents; Directory = $taskStageDir }
+    $taskStages.Add($taskStage); Write-TaskJson $taskExistingStage $taskStage; Save-Checkpoint
+    Write-Host "OpenScience stage $Name ended; exit=$($taskStage.exit_code) timeout=$($taskStage.timed_out) tools=$($taskTools.Count)."
+    return [pscustomobject]@{Stage=$taskStage;Events=$taskEvents;Tools=$taskTools;Directory=$taskStageDir}
 }
+
 function Invoke-ResearchAction([string]$Name, [string]$Tool, $Arguments) {
     $taskArgumentsJson = $Arguments | ConvertTo-Json -Depth 20 -Compress
-    $taskPrompt = "Call the actual available tool $Tool exactly once with these arguments: $taskArgumentsJson . After its receipt, stop. Do not print a simulated tool call. /no_think"
+    $taskPrompt = "Call the actual available tool $Tool exactly once with these arguments: $taskArgumentsJson . After its receipt, stop. Do not print a simulated tool call."
     $taskRun = Invoke-TaskCli $Name @('run', '--format', 'json', '--workspace', 'project', '--agent', 'caelab-acceptance',
         '--delegation', 'off', '--model', $taskSetup.Model, '--auto-approve', '--autonomy', 'balanced',
         '--deadline', [string]($StageTimeoutSeconds - 10), '--title', $Name, '--', $taskPrompt) @($Tool)
     Assert-Task (-not $taskRun.Stage.timed_out) "Stage $Name exceeded its external timeout; persisted bytes remain."
+    Assert-Task (-not $taskRun.Stage.failure -and -not $taskRun.Stage.guard_restore_failure -and -not $taskRun.Stage.launcher_still_running) "Stage $Name did not complete launcher/guard cleanup."
     $taskReadOnly = $Tool -in @('caelab_study_inspect', 'caelab_parameters_discover', 'caelab_parameters_list', 'caelab_experiment_inspect', 'caelab_experiment_summary', 'caelab_experiment_compare')
     Assert-Task ($taskRun.Tools.Count -ge 1 -and $taskRun.Tools.Count -le $(if ($taskReadOnly) { 2 } else { 1 })) "Stage $Name did not make its bounded number of actual MCP calls."
     $taskExpectedInput = [Text.Json.Nodes.JsonNode]::Parse($taskArgumentsJson)
@@ -239,8 +400,9 @@ try {
     $taskModels = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/v1/models' -TimeoutSec 15
     Write-TaskJson (Join-Path $taskArtifacts 'ollama-models.json') $taskModels
     Assert-Task (@($taskModels.data | Where-Object { $_.id -eq 'openscience/qwen3-4b-ctx-16384' -or $_.id -eq 'openscience/qwen3-4b-ctx-16384:latest' }).Count -gt 0) 'The existing preserved-original 16k alias is unavailable.'
-    $taskMcp = Invoke-TaskCli '00-mcp' @('mcp', 'list') @('caelab_study_create')
-    Assert-Task ($taskMcp.Stage.exit_code -eq 0 -and (Get-Content -LiteralPath (Join-Path $taskMcp.Directory 'stdout.jsonl') -Raw) -match '\bconnected\b') 'The actual MCP bridge is not connected.'
+    $taskMcp=Get-OpenScienceLocalRuntime -OwnerPath $taskSetup.OwnerPath
+    Assert-Task ($taskMcp.ConnectorStatus -eq 'connected') 'The current persistent MCP bridge is not connected.'
+    Write-TaskJson (Join-Path $taskArtifacts '00-mcp-readiness.json') @{runtime_url=$taskMcp.RuntimeURL;owner=$taskMcp.OwnerPath;status=$taskMcp.ConnectorStatus;inference_performed=$false;verified_utc=[DateTime]::UtcNow.ToString('o')}
     $taskStudy = Invoke-ResearchAction '01-study-create' 'caelab_study_create' @{
         study_id = $taskStudyId; name = 'Live OpenScience CAD gates'; research_question = 'Do registered CAD changes preserve valid and rejected evidence?'
         hypothesis = 'Width38 is valid; X bolt pitch30 at default width32 is rejected.'; objective = 'Record both cases; retain UNKNOWN and NOT_RELEASED.'
@@ -283,23 +445,37 @@ try {
     Assert-Task (@($taskCompare).Count -eq 2 -and $taskCompare[0].status -eq 'COMPLETED_REVIEW_REQUIRED' -and $taskCompare[1].status -eq 'REJECTED') 'The actual comparison receipt does not preserve distinct outcomes.'
     $taskByteValid = Check-ExperimentBytes $taskValidId
     $taskByteInvalid = Check-ExperimentBytes $taskInvalidId
+    foreach($taskRawInspection in @(@('08-inspect-valid',$taskValidId),@('09-inspect-rejected',$taskInvalidId))){
+        $taskRawEvents=@(Read-StageEvents (Join-Path $taskArtifacts ($taskRawInspection[0]+'/stdout.jsonl')))
+        $taskRawTool=@($taskRawEvents | Where-Object type -eq 'tool_use') | Select-Object -First 1
+        $taskRawNode=[Text.Json.Nodes.JsonNode]::Parse($taskRawTool.part.state.output)
+        $taskStoredNode=[Text.Json.Nodes.JsonNode]::Parse([IO.File]::ReadAllText((Join-Path $taskStore ('experiments/'+$taskRawInspection[1]+'/result.json'))))
+        Assert-Task ([Text.Json.Nodes.JsonNode]::DeepEquals($taskRawNode,$taskStoredNode)) 'Actual raw inspection differs from persisted result JSON.'
+    }
+    $taskRecord.raw_inspections_equal_persisted_results=$true
     Assert-Task ($taskByteValid.metrics.cad_bounds.value[0] -eq 38 -and $taskByteValid.metrics.cad_bounds.valid) 'Actual valid CAD bounds differ from width38.'
     Assert-Task (@($taskByteValid.validations | Where-Object status -eq 'UNKNOWN').Count -ge 4) 'Required release validations did not stay UNKNOWN.'
     Assert-Task (@($taskByteInvalid.validations | Where-Object status -eq 'FAIL').Count -gt 0 -and $null -eq $taskByteInvalid.cad_revision) 'Rejected CAD lacks failed evidence or created a CAD revision.'
     Assert-Task (@(Get-ChildItem -LiteralPath (Join-Path $taskStore "experiments\$taskInvalidId") -Recurse -File | Where-Object Extension -in @('.step', '.stl', '.3mf', '.inp')).Count -eq 0) 'Rejected CAD unexpectedly exported geometry or a solver deck.'
-    $taskInterpretationPrompt = 'Interpret these actual checked MCP comparison receipts in at most 80 words. State both experiment IDs/outcomes, the rejected CAD failure/evidence IDs, at least two UNKNOWN validation names, and NOT_RELEASED. Do not propose new values or claim strength/solver validation. Receipts: ' + ($taskCompare | ConvertTo-Json -Depth 20 -Compress) + ' /no_think'
+    $taskInterpretationPrompt = 'Interpret only these actual checked receipts in at most 80 whitespace-separated words. State both experiment IDs/outcomes, the rejected failure type and evidence ID, literal UNKNOWN with machine_interface and static_strength, and NOT_RELEASED. Preserve canonical uppercase status tokens. Do not add self-counts, new values, or strength/solver approval. Receipts: ' + ($taskCompare | ConvertTo-Json -Depth 20 -Compress)
     $taskInterpretation = Invoke-TaskCli '14-interpretation' @('run', '--format', 'json', '--workspace', 'project', '--agent', 'caelab-acceptance',
         '--delegation', 'off', '--model', $taskSetup.Model, '--bare', '--deadline', [string]($StageTimeoutSeconds - 10),
         '--title', '14-interpretation', '--', $taskInterpretationPrompt)
     $taskText = (@($taskInterpretation.Events | Where-Object type -eq 'text' | ForEach-Object { $_.part.text }) -join "`n")
     $taskText | Set-Content -LiteralPath (Join-Path $taskInterpretation.Directory 'interpretation.txt') -Encoding utf8
-    Assert-Task ($taskInterpretation.Stage.exit_code -eq 0 -and -not $taskInterpretation.Stage.timed_out -and $taskInterpretation.Tools.Count -eq 0) 'The bounded interpretation did not finish.'
+    Assert-Task ($taskInterpretation.Stage.exit_code -eq 0 -and -not $taskInterpretation.Stage.failure -and -not $taskInterpretation.Stage.guard_restore_failure -and -not $taskInterpretation.Stage.launcher_still_running -and -not $taskInterpretation.Stage.timed_out -and $taskInterpretation.Tools.Count -eq 0 -and $taskInterpretation.Stage.done.status -eq 'completed') 'The bounded interpretation did not finish.'
+    $taskWordCount=@([regex]::Matches($taskText.Trim(), '\S+')).Count
+    Assert-Task ($taskWordCount -le 80) 'Interpretation exceeded 80 measured words; model self-counts are untrusted.'
+    $taskRecord.interpretation_word_count=$taskWordCount
     foreach ($taskRequired in @($taskValidId, $taskInvalidId, 'REJECTED', 'UNKNOWN', 'NOT_RELEASED', 'machine_interface', 'static_strength')) {
         Assert-Task ($taskText.Contains($taskRequired)) "The actual model interpretation omitted $taskRequired."
     }
     $taskRequiredEvidence = @($taskSummaryInvalid.failures | ForEach-Object evidence_ids | Select-Object -First 1)
     Assert-Task ($taskRequiredEvidence.Count -gt 0 -and $taskText.Contains($taskRequiredEvidence[0])) 'Model interpretation omitted the actual rejected evidence ID.'
+    $taskFailureTypes=@($taskSummaryInvalid.failures | ForEach-Object type)
+    Assert-Task ($taskFailureTypes.Count -gt 0 -and $taskText.Contains($taskFailureTypes[0])) 'Interpretation omitted the actual CAD failure type.'
     $taskRecord.store_checks = @{ valid = $taskSummaryValid; rejected = $taskSummaryInvalid; ledger_and_artifact_hashes = 'PASS'; byte_checked_utc = [DateTime]::UtcNow.ToString('o') }
+    Assert-OpenScienceSameProvenance $taskProvenance (Get-OpenScienceAcceptanceProvenance -Context $taskSetup -Timeout $StageTimeoutSeconds -ModelIdentity (Get-OpenScienceAcceptanceModelIdentity $taskSetup)) 'Source/config/runtime/model changed before the final acceptance gate.'
     $taskRecord.outcome = 'PASS_BOUNDED_RESEARCH_LOOP'
 } catch {
     $taskRecord.outcome = 'FAILED_OR_PARTIAL'; $taskRecord.failure = $_.Exception.Message
