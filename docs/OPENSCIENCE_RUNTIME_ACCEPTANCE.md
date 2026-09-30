@@ -1,5 +1,23 @@
 # OpenScience local runtime acceptance — 2026-09-30
 
+## Latest Main idle-source admission and fresh research progress, 2026-10-01
+
+Source4e21d18341cbc5a516aae2234c3eae3fd770aa4f is independently admitted,
+committed/pushed and exact remote confirmed; CI36756215416 all8PASS. Review
+70d7ff87 closes the timeout-idle P2 in source only. Changed launcher47 plus
+unchanged controller52 mocks remain separate from actual execution.
+
+Fresh run02 is IN_PROGRESS on clean4e21/fixture3e48. Boot0b6d2141/tree390a04e3,
+293 full source bodies, configured-MCP identity and real version/paths are
+retained. Actual study/discovery passed two Core tools/eight candidates;
+official GUI shows the same study ID/receipt. Registration is active. No full
+CAD/research/interpretation/cancellation/P1.1 verdict is established yet.
+See [the progress record](../benchmarks/records/20261001-openscience-research-progress.json).
+Earlier sections below retain their source/run/time scope and failed attempts.
+UNKNOWN/NOT_RELEASED and ignored/local-only raw retention remain in force.
+
+## Historical initial runtime unit
+
 Outcome: **PASS_READINESS_AND_OWNED_CLEANUP_ONLY**. This is a launcher/controller
 unit. It is not a new autonomous research, CAD, solver or release acceptance.
 

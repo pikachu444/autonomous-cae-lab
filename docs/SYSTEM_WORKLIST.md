@@ -42,11 +42,15 @@ Currently only **P1.1** is active. Later rows are queued, not running.
 - [x] Diagnose independent timeout-idle P2 from run01, implement exact-owned
   session metadata/bounded idle before CLI stop, and pass47 launcher mocks.
   Unchanged controller52 is separate (99 current mocks); no model/Core calls.
-- [ ] Independently admit/commit/push the idle correction, update the stopped
-  serving worktree, then execute NEW clean-source research profile/store with
-  predeclared provider500s/stage600s and unchanged model/tool/CAD/numerical cases.
-- [ ] Verify real model/tool receipts for study creation and actual parameter
-  discovery/registration; research IDs must map to discovered native paths.
+- [x] Independently admit/commit/push the idle correction4e21d18; confirm exact
+  remote HEAD and CI36756215416 all8PASS. Update the stopped serving worktree.
+- [x] Predeclare NEW run02/provider500s/stage600s with unchanged model/tool/CAD/
+  numerical cases; start clean4e21, retain293 source bodies and verify exact
+  configured-MCP identity/version/isolated paths. Full research is IN_PROGRESS.
+- [x] Verify actual run02 study/discovery receipts: two Core tools/eight candidates,
+  same study ID/receipt visible in official GUI. Record:research-progress.json.
+- [ ] Complete actual registration/effect receipts; research IDs must map to
+  the discovered native paths. Width registration is current, not yet PASS.
 - [ ] Verify width38 valid CAD and bolt30 rejected CAD in the fresh Core store:
   editable/native artifacts, result/thread/ledger/hash/size, retained rejection
   evidence, no export/solver after rejection, UNKNOWN and NOT_RELEASED intact.

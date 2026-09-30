@@ -14,6 +14,28 @@ retained52 requirements. Concrete tasks are in
 [SYSTEM_WORKLIST](docs/SYSTEM_WORKLIST.md). Earlier work is preserved/reused;
 later feature effects require a recorded bounded correction and revalidation.
 
+Latest source4e21d18341cbc5a516aae2234c3eae3fd770aa4f closes the timeout-idle
+source finding: independent review70d7ff87 passed, commit/push and exact remote
+HEAD are confirmed, and CI36756215416 passed all8 jobs. The changed launcher47
+and unchanged controller52 mocks remain separately attributed.
+
+Fresh actual run p1-openscience-research-4e21d18-20261001-02 is IN_PROGRESS on
+the clean pinned serving worktree. Boot0b6d2141/tree390a04e3 and all293 source
+bodies are retained; actual configured-MCP identity is clean4e21/fixture3e48.
+Version/isolated paths passed. Actual study creation and discovery passed two
+Core tools/eight candidates; official GUI shows the same study ID/receipt.
+Width registration is the current stage, not a completed CAD/research verdict.
+Provider500s/stage600s and unchanged model/tool/CAD/numerical conditions were
+predeclared. Do not checkout this LIVE serving worktree. Continue its existing
+supervisor73420; an observation timeout is not an execution failure/restart.
+Read benchmarks/records/20261001-openscience-research-progress.json. P1.1 stays
+OPEN for registry/CAD/results/interpretation/human inspection/cancellation and
+independent final evidence review. Raw retention is local only.
+
+### Historical clean-a1 and idle-correction candidate checkpoint
+
+The paragraphs in this subsection retain their pre-admission state; the current
+source/run above supersedes their pending correction and stopped-runtime queue.
 Latest source a1a323ad37e02a94de67e47540376e818233aa4a is independently admitted,
 committed/pushed and served from clean openscience-integrated. Exact
 CI36744346642 passed all8 jobs. Parent259 CI36740379901 ended seven PASS/one

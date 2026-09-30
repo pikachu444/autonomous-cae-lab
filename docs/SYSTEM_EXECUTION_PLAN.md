@@ -57,10 +57,10 @@ and verified work remains useful at its recorded source and scope.
 
 | Gate | Current evidence | Completion requirement |
 | --- | --- | --- |
-| Source admission | Main a1 reviewed/pushed/CI8PASS; timeout-idle P2 candidate passes47 launcher plus unchanged52 controller gates | Independently admit/commit idle correction before fresh execution; mocks have zero model/Core calls. |
-| Clean runtime | Clean a1 configured-MCP/readiness/version/isolated metadata/Stop independently passed;292 source/591 raw files verified | Preserve a1 proof; fresh corrected source must bind its own boot/runtime identity and metadata. |
-| Actual research | New clean-a1 run01 FAILED_OR_PARTIAL after one study tool/three files; historical live05 retained separately | Fresh model/MCP study, discovery, registration, width38 CAD, bolt30 rejection, inspect/summary/compare and evidence-based interpretation; verify artifacts/ledgers. |
-| Human inspection | Earlier official GUI and Lab checks have their own source/run IDs | Official Workspace shows the same new project/session/tool results; human-readable CAD/result artifacts match the Core experiment revision. |
+| Source admission | Main4e21 idle correction independently reviewed/pushed; CI36756215416 all8PASS;47 changed launcher plus unchanged52 controller mocks | Source finding closed. Mocks add no actual model/Core credit. |
+| Clean runtime | Fresh clean4e21 run02 boot0b6d2141/tree390a04e3,293 source bodies, configured-MCP identity/version/isolated paths verified; earlier a1 readiness/Stop independently passed | Bind finished research/cancellation to this fresh boot/runtime; independently review actual evidence. |
+| Actual research | Run02 IN_PROGRESS: actual study/discovery passed two tools/eight candidates; width registration active. Run01 failure retained. | Finish registration, width38 CAD, bolt30 rejection, inspect/summary/compare and grounded interpretation; verify artifacts/ledgers. |
+| Human inspection | Fresh official GUI shows exact run02 study ID/tool receipt; earlier GUI/Lab checks have separate source/run IDs | Inspect actual valid/rejected CAD and results from the same new project/sessions/Core experiment revisions. |
 | Cancellation | Run01 abort200/client_cancelled/natural CLI exit and later idle-before-server-Stop verified; missing explicit idle-before-live-CLI-stop P2 | Admit bounded idle gate, then actual in-flight cancellation with idle/final log/owned cleanup receipts. |
 | Checkpoint | Not complete | Independent actual-evidence review, precise acceptance/state/ledger updates, commit/push. CI and Windows runtime proof stay separately attributed. |
 

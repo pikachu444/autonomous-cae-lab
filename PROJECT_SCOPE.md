@@ -46,12 +46,13 @@ Current verified numerical baseline is `33ea11d` with all8 jobs successful in
 CI36722365195 and independently inspected native evidence. The current P1.1
 system unit and ordered remaining gates are in
 [SYSTEM_EXECUTION_PLAN](docs/SYSTEM_EXECUTION_PLAN.md); all52 requirements remain.
-OpenScience source a1a323a is reviewed/pushed/CI8PASS. Actual clean configured-MCP/
-readiness/metadata/Stop passed independent review. Fresh research run01 remained
-FAILED_OR_PARTIAL after one actual study tool/three files and timeout. Independent
-P2 requires explicit idle before live CLI termination; candidate47 launcher plus
-unchanged52 controller gates passed (99 mocks). Renewed source admission and
-clean full research/GUI/cancellation remain pending. No full phase is complete.
+OpenScience idle correction4e21d18 is independently admitted/pushed/CI8PASS;
+47 changed launcher plus52 unchanged controller mocks have separate attribution.
+Fresh clean run02 is IN_PROGRESS:293 source bodies/configured-MCP identity,
+version/paths and actual study/discovery passed (two tools/eight candidates).
+Official GUI shows its exact study receipt; registration is active. Earlier
+clean-a1 readiness/Stop and failed run01 are retained. Full CAD/research/GUI/
+cancellation and independent final review remain open. No full phase is complete.
 
 Historical exact remote source `88bbb72` passed all eight CI jobs, including actual
 declared-input numerical search. The preceding `0535e37` retained archive audit
@@ -89,7 +90,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R22 | Extensible repo and actual code-level Core/plugin/adapter/refactor/discard classification; no blind source copy. | Implemented current ownership/pinned submodule; future migration must keep provenance. |
 | R23 | Phase 0 architecture/Core/contracts first; only minimal mock for contract verification. | Partial foundation executed; typed CAD/analysis/DOE, broader protocol slots planned. |
 | R24 | ADR 0001 platform boundaries and cumulative ADRs for significant decisions. | Implemented ADR 0001–0009; ongoing obligation; new execution acceptance tracked separately. |
-| R25 | Phase 1 actual OpenScience request → discovery → registry → CAD change/regeneration → validation/artifacts/evidence → research result. | Partial: historical live05 retained at mixed sources. Main a1 reviewed/pushed/CI8PASS; clean configured-MCP/readiness/metadata/Stop independently passed. Fresh run01 failed after study creation; abort/natural exit retained. Explicit idle-before-live-CLI-stop P2 candidate passes99 current mocks; renewed admission and clean full research/GUI/cancellation next. Broader autonomous research open. |
+| R25 | Phase 1 actual OpenScience request → discovery → registry → CAD change/regeneration → validation/artifacts/evidence → research result. | Partial: historical live05 and failed a1 run01 retained. Idle correction4e21 independently admitted/pushed/CI8PASS. Fresh clean run02 actual study/discovery passed two tools/eight candidates; same receipt visible in official GUI. Registration active; full CAD/research/interpretation/cancellation and independent review remain open. Broader autonomous research open. |
 | R26 | Phase 2 simulation-driven fixture design: exact CAD → mesh → implicit solver → mechanical metrics/constraints/evidence. | Partial: exact STEP Gmsh/CalculiX linear screen; actual contact/bolts/material/stress qualification open. |
 | R27 | Phase 3 numerical DOE/optimization through gated CAD/FEA, trace every iteration including optimizer state. | Partial: actual adaptive structural campaign passed (9 evaluations/8 children), metric semantics/failure/replay verified; converged/global optimum and wider optimization remain open. |
 | R28 | Phase 4 real general PDE adapter with canonical benchmark and user-defined equation/weak form. | Partial: clean d363 adapter2 nonlinear/linear-limit/reference-rejection/HTTP and actual browser runs passed; explicit opt-in preserves legacy revisions. Exact CI36710166010 and independent changed-family raw review passed. Wider custom/coupled/MPI/physical PDE coverage open. |
@@ -245,7 +246,7 @@ authorization. Simulation alone cannot qualify every fixture requirement.
 | Phase | Executed scope | Required continuation |
 | --- | --- | --- |
 | 0 | Architecture/ADRs, schemas, registry, evidence/validation/artifact thread, Python/CLI/MCP | Extend contracts with independently verified backend features; corporate deployment review. |
-| 1 | CadQuery/native Part/Sketcher and historical staged loop; clean a1 runtime/metadata/Stop; run01 FAILED_OR_PARTIAL; idle candidate99 mocks | CURRENT SERIAL UNIT: admit explicit idle correction, then clean full research/GUI/cancellation; native edited-CAD transactions and general planning follow. |
+| 1 | CadQuery/native Part/Sketcher and historical loop; clean a1 readiness/Stop/run01 failure; reviewed4e21 idle correction; run02 actual study/discovery | CURRENT SERIAL UNIT: finish LIVE run02 registry/CAD/research/GUI/cancellation and independent review; native edited-CAD transactions and general planning follow. |
 | 2 | Exact STEP to Gmsh/CalculiX child run, 4/3/2/1.5 mm area-load screen/reactions | NEXT AFTER PHASE1: complete authoritative corrected NAFEMS LE10 definition/reference then native benchmark/cross-solver/mesh checks; materials/fasteners/contact/stress/physical qualification. |
 | 3 | Seeded LHS DOE/shared SciPy DE; actual CAD and declared-input native candidates, explicit constraints and exact replay | Converged fixture optimization, broader variable/engine/UQ/multiobjective coverage. |
 | 4 | Clean d363 declared scalar FEniCSx linear/nonlinear/linear-limit/reference-rejection proof, HTTP/browser and independently audited CI | Wider nonlinear/general domains, coupled PDE and MPI/HPC acceptance. |

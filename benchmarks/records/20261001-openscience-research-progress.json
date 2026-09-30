@@ -1,0 +1,124 @@
+{
+  "kind": "P1_1_IDLE_SOURCE_ADMITTED_AND_FRESH_ACTUAL_RESEARCH_IN_PROGRESS",
+  "recorded_utc": "2026-09-30T18:33:30.6674505Z",
+  "full_P1_1": "OPEN",
+  "engineering_decision": "NOT_RELEASED",
+  "unverified_qualification": "UNKNOWN",
+  "source_commit": "4e21d18341cbc5a516aae2234c3eae3fd770aa4f",
+  "confirmed_remote_main_commit": "4e21d18341cbc5a516aae2234c3eae3fd770aa4f",
+  "independent_source_review": {
+    "outcome": "PASS_NO_OPEN_P1_P2",
+    "path": "artifacts/openscience-idle-correction-independent-source-review-20261001-01.json",
+    "sha256": "70d7ff872e3fc4ee0c099205a5349863e6f2a71a96450df2b460d14f01449525"
+  },
+  "exact_source_ci": {
+    "run_id": 36756215416,
+    "new_raw_archive_audit": "NOT_PERFORMED",
+    "local_Windows_OpenScience_acceptance": false,
+    "receipt_sha256": "32e4c792a8b4cf2c3880bf8033614764503c37ca5ac8648a0c22d5664805df35",
+    "status": "COMPLETED_SUCCESS",
+    "successful_job_count": 8
+  },
+  "run_name": "p1-openscience-research-4e21d18-20261001-02",
+  "run_state": "IN_PROGRESS",
+  "active_stage_at_observation": "03-register-width",
+  "root_supervisor_tool_handle": 73420,
+  "supervisor_running_confirmed": true,
+  "boot_source_sha256": "0b6d21410c8acf837f4ea8ea05469b7e31e33ab35e8c6e96e8f3bf3cb84516fd",
+  "source_tree_sha256": "390a04e36a9a0e36d0f1e481ecc82b37f1099bc00e351cd45386c56f4c659fc4",
+  "full_working_source_file_count": 293,
+  "source_snapshot_manifest_sha256": "cb86f6bb5dda406274c8517682b88db136863e253231cd3956affe18abceb916",
+  "configured_identity_sha256": "5a860f723d1e3a54cccfaaad70d5d7e32a4fdf6db838cd2d123e2c71cfc390bb",
+  "predeclared_execution_sha256": "c2e652390611cb2b9a3ace3944fe88c030a5d1a1ece97060eb138c74ed5c5ead",
+  "provider_timeout_seconds": 500,
+  "stage_timeout_seconds": 600,
+  "model_output_steps_tools_CAD_and_numerical_conditions_unchanged": true,
+  "completed_stages": [
+    {
+      "name": "00-version",
+      "exit_code": 0,
+      "timed_out": false,
+      "tool_event_count": 0,
+      "elapsed_seconds": 4.732,
+      "session_id": null
+    },
+    {
+      "name": "00-paths",
+      "exit_code": 0,
+      "timed_out": false,
+      "tool_event_count": 0,
+      "elapsed_seconds": 4.817,
+      "session_id": null
+    },
+    {
+      "name": "01-study-create",
+      "exit_code": 0,
+      "timed_out": false,
+      "tool_event_count": 1,
+      "elapsed_seconds": 244.69,
+      "session_id": "ses_f0c73d5c7ffekZrv3HhvHdCmLU"
+    },
+    {
+      "name": "02-discovery",
+      "exit_code": 0,
+      "timed_out": false,
+      "tool_event_count": 1,
+      "elapsed_seconds": 287.039,
+      "session_id": "ses_f0c6fb199ffetWtV4stUSW4mbc"
+    }
+  ],
+  "actual_completed_Core_tool_count": 2,
+  "actual_discovery_candidate_count": 8,
+  "selected_discovered_candidates": [
+    {
+      "parameter_id": null,
+      "display_name": null,
+      "lower": 28,
+      "upper": 60,
+      "native": {
+        "backend": "fixture.cadquery",
+        "document": "roller_support.py",
+        "object": "roller_support",
+        "path": "support_width_mm"
+      }
+    },
+    {
+      "parameter_id": null,
+      "display_name": null,
+      "lower": 18,
+      "upper": 40,
+      "native": {
+        "backend": "fixture.cadquery",
+        "document": "roller_support.py",
+        "object": "roller_support",
+        "path": "bolt_pitch_x_mm"
+      }
+    }
+  ],
+  "study_receipt_sha256": "2b2c51525a6276b1e483ff7aa443510f1497d52d60743c825c588aa65cc5a5ff",
+  "discovery_receipt_sha256": "52c8e5c433c71fa588705dd1f2e5cb06b8903389dd9c21cd8a8e9f7c6867ce96",
+  "official_GUI": {
+    "same_actual_study_ID_and_receipt_visible": true,
+    "study_session_id": "ses_f0c73d5c7ffekZrv3HhvHdCmLU",
+    "project_id": "prj_c9dfdcc8b2e84b2e8fcfe7e4e17e33bc~4cmcf7",
+    "study_screenshot_sha256": "22ed138cf536b9e04930c2b6aef8ad7db8a47f6b8009c93e34abd6b6a3b07d03",
+    "study_screenshot_path": "artifacts/p1-openscience-research-4e21d18-20261001-02/official-ui-study-receipt.png"
+  },
+  "remaining_gates": [
+    "actual registry effect",
+    "width38 editable CAD",
+    "bolt30 rejected CAD with no export/solver",
+    "inspect/summary/compare",
+    "grounded model interpretation",
+    "same-record human CAD/results inspection",
+    "actual corrected idle cancellation and owned cleanup",
+    "independent full actual-evidence review"
+  ],
+  "limits": [
+    "Completed stages only; no full research/CAD/cancellation/phase pass.",
+    "Source/CI/runtime/model evidence have distinct attribution.",
+    "All ignored raw and screenshots remain local, not remote-durable.",
+    "Previous failed run01 and original/v2 manifests are unchanged."
+  ],
+  "source_of_record": "EVIDENCE_ONLY_MAIN_CHECKPOINT_NOT_NEW_NATIVE_OR_MODEL_EXECUTION"
+}

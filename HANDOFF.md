@@ -14,6 +14,28 @@ phase units. The owner's persistent project execution objective is ACTIVE.
 Preserve/reuse prior work; later effects on earlier gates become explicit bounded
 correction items and revalidation, followed by the existing queue.
 
+CURRENT Main source4e21d18341cbc5a516aae2234c3eae3fd770aa4f is independently
+admitted/committed/pushed with exact remote confirmation; CI36756215416 all8PASS.
+Source review70d7ff87 closes the idle P2 in source, with47 changed launcher plus
+52 separately attributed controller mocks. It does not close actual P1.1.
+
+Fresh research p1-openscience-research-4e21d18-20261001-02 is LIVE on clean4e21/
+fixture3e48 in openscience-integrated. Boot0b6d2141/tree390a04e3/all293 full source
+bodies and clean configured-MCP identity are retained. Actual version/paths,
+study creation and discovery passed; two Core tools/eight candidates. Official
+GUI shows that same study receipt. Width registration is currently executing.
+Continue supervisor73420 and its actual attempt-01 receipts; do not restart on
+observation timeout or checkout the live serving worktree. Budgets500/600 were
+predeclared; model/output4096/steps3/tools/CAD/numerical conditions are unchanged.
+Close registry/CAD/inspect/summary/compare/interpretation, same-record human view,
+actual corrected cancellation/owned cleanup and independent final review before
+P1.2. Read the research-progress record. All raw remains ignored/local only;
+P1.1 OPEN and UNKNOWN/NOT_RELEASED remain unchanged.
+
+### Historical clean-a1 and idle-correction candidate checkpoint
+
+This subsection's pending admission/stopped-runtime instructions are superseded
+by the current source/live run above; prior evidence and failures are retained.
 Latest Main a1a323ad37e02a94de67e47540376e818233aa4a admission/commit/push is
 confirmed; exact CI36744346642 passed all8 jobs. Parent259 CI36740379901 ended
 seven PASS/one PDE cancelled. The serving worktree is clean a1/fixture3e48bf6.
