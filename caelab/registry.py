@@ -14,7 +14,7 @@ def register_parameter(
     entries: list[dict[str, Any]], candidate: Candidate, *, parameter_id: str,
     display_name: str, lower: float, upper: float, mode: str = "free",
     kind: str = "continuous", dependencies: list[str] | None = None,
-    effect: dict[str, Any],
+    effect: dict[str, Any], effect_kind: str = "geometry",
 ) -> dict[str, Any]:
     if not ID.fullmatch(parameter_id) or not display_name.strip():
         raise ValueError("A unique parameter ID and display name are required")
@@ -37,17 +37,23 @@ def register_parameter(
     dependencies = dependencies or []
     if parameter_id in dependencies or any(d not in {p["parameter_id"] for p in entries} for d in dependencies):
         raise ValueError("Dependencies must reference previously registered parameters")
+    if effect_kind not in ("geometry", "model_input"):
+        raise ValueError("Unsupported parameter binding kind")
     if effect.get("status") != "PASS":
         raise ValueError("CAD dimension has no verified measurable effect on final geometry")
-    return {
+    entry = {
         "parameter_id": parameter_id, "display_name": display_name.strip(),
         "native": candidate.native, "unit": candidate.unit,
         "current_value": candidate.value, "default_value": candidate.value,
         "lower_bound": lower, "upper_bound": upper,
         "mode": mode, "kind": kind, "dependencies": dependencies,
-        "geometry_effect": effect, "source": "CAD discovery",
+        ("geometry_effect" if effect_kind == "geometry" else "input_effect"): effect,
+        "source": "CAD discovery" if effect_kind == "geometry" else "Declared model input discovery",
         "source_sha256": candidate.source_sha256,
     }
+    if effect_kind == "model_input":
+        entry["target"] = "model_analysis"
+    return entry
 
 
 def validate_assignments(entries: list[dict[str, Any]], values: dict[str, Any]) -> list[dict[str, Any]]:

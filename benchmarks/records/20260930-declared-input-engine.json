@@ -1,0 +1,37 @@
+{
+  "record_kind": "BOUNDED_IMPLEMENTATION_CHECKPOINT",
+  "date": "2026-09-30",
+  "parent_commit": "3a0b5583a48126a9fde804cabab90d1d1a3eee94",
+  "tested_core_sha256": "52651dad2e730aae64c7d9e2f5179a01bff922be0d748a3d430071ad86a9280a",
+  "scope": "Additive declared-model inputs using the existing numerical engine, common provenance and replay",
+  "regression": {
+    "status": "PASS",
+    "tests": 224,
+    "seconds": 634.04,
+    "suites": ["test_model_parameters", "test_model_optimization", "test_optimizer_engine", "test_optimization", "test_declared_model"],
+    "python": "3.12.3",
+    "scipy": "1.17.0"
+  },
+  "mcp": {
+    "status": "PASS_METADATA_ONLY_FOR_MODEL_ROUTE",
+    "tools": 26,
+    "existing_cad_search_evaluations": 9,
+    "existing_doe_samples": 2,
+    "model_native_search_executed": false,
+    "log": "artifacts/model-contract-mcp-20260930.log",
+    "log_sha256": "9dbadef682b6eaf578f1c8043be715776f895779fed66c24ff2cc002b60bcafc"
+  },
+  "native_model_acceptance": {
+    "status": "PENDING",
+    "script": "scripts/verify_model_optimization.py",
+    "backend": "structural.code_aster",
+    "input": "youngs_modulus_mpa",
+    "seed": 13,
+    "population": 5,
+    "generations": 1,
+    "max_unique_evaluations": 10,
+    "reference_scope": "200/E mm is an independent verification oracle; measured native metrics alone drive search"
+  },
+  "limitations": ["No converged/global optimum claim", "No qualified material choice", "No physical validation", "Remaining phases 1-7 stay open"],
+  "decision": "NOT_RELEASED"
+}

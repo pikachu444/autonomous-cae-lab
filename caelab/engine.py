@@ -95,6 +95,35 @@ class Lab:
     def discover_parameters(self, backend: str, model: str) -> list[dict[str, Any]]:
         return [deepcopy(candidate.__dict__) for candidate in self._adapter(backend).discover(model)]
 
+    def discover_model_parameters(self, backend: str, settings: dict) -> list[dict]:
+        from .model_parameters import describe
+        return [deepcopy(candidate.__dict__) for candidate in describe(self, backend, settings)["candidates"]]
+
+    def register_model_parameter(self, study_id: str, backend: str, settings: dict,
+                                 input_id: str, parameter_id: str, display_name: str,
+                                 lower: float, upper: float, mode: str = "free") -> dict:
+        from .model_parameters import describe, probe
+        self.inspect_study(study_id)
+        description = describe(self, backend, settings)
+        matches = [item for item in description["candidates"] if item.native["path"] == input_id]
+        if len(matches) != 1:
+            raise ValueError("Selected model input was not advertised")
+        candidate = matches[0]
+        effect = probe(description["adapter"], settings, input_id, lower, upper)
+        registry_path = self.store / "studies" / check_id(study_id) / "parameters.json"
+        with FileLock(str(registry_path) + ".lock", timeout=30):
+            registry = load_json(registry_path)
+            entry = register_parameter(registry["entries"], candidate, parameter_id=parameter_id,
+                                       display_name=display_name, lower=lower, upper=upper,
+                                       mode=mode, effect=effect, effect_kind="model_input")
+            entry["model_template_revision"] = description["revision"]
+            entry["input_descriptor_sha256"] = canonical_hash(description["descriptors"])
+            registry["entries"].append(entry)
+            registry["revision"] += 1
+            save_json(registry_path, registry)
+            save_json(registry_path.parent / "registry_history" / f"{registry['revision']:04d}.json", registry)
+            return entry
+
     def register_parameter(self, study_id: str, backend: str, model: str, native_path: str,
                            parameter_id: str, display_name: str, lower: float, upper: float,
                            mode: str = "free", kind: str = "continuous",
@@ -586,6 +615,21 @@ class Lab:
         from .optimization import run_optimization
         return run_optimization(self, campaign_id)
 
+    def plan_model_optimization(self, *, study_id: str, campaign_id: str, backend: str,
+                                settings: dict, parameter_ids: list[str], objective: dict,
+                                constraints: list[dict], seed: int,
+                                max_generations: int = 1, population_size: int = 5,
+                                initial_values: dict | None = None,
+                                required_validations: dict | None = None,
+                                engine: str = "scipy.differential_evolution") -> dict:
+        from .optimization import plan_model_optimization
+        return plan_model_optimization(self, study_id=study_id, campaign_id=campaign_id,
+                                       backend=backend, settings=settings, parameter_ids=parameter_ids,
+                                       objective=objective, constraints=constraints, seed=seed,
+                                       max_generations=max_generations, population_size=population_size,
+                                       initial_values=initial_values, required_validations=required_validations,
+                                       engine=engine)
+
     def inspect_optimization(self, campaign_id: str) -> dict:
         from .optimization import inspect_optimization
         return inspect_optimization(self, campaign_id)
@@ -597,9 +641,14 @@ class Lab:
                        backend=backend, settings=settings, hypothesis_id=hypothesis_id)
 
     def run_model_analysis(self, *, study_id: str, experiment_id: str, backend: str,
-                           settings: dict, hypothesis_id: str | None = None) -> dict:
+                           settings: dict, hypothesis_id: str | None = None,
+                           campaign_id: str | None = None, values: dict | None = None,
+                           objectives: list | None = None, constraints: list | None = None,
+                           binding: dict | None = None) -> dict:
         from .declared_model import run_declared_model
         return run_declared_model(self, study_id=study_id, experiment_id=experiment_id,
                                   backend=backend, settings=settings, hypothesis_id=hypothesis_id,
                                   adapters=self.model_analysis_adapters, namespace="model_analysis",
-                                  output_directory="simulation", description=True)
+                                  output_directory="simulation", description=True,
+                                  campaign_id=campaign_id, values=values,
+                                  objectives=objectives, constraints=constraints, binding=binding)
