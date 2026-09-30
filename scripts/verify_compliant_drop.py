@@ -32,6 +32,14 @@ def run(store):
              "E-compliant-stiffer": specification(stiffness=20000., time_step=5e-5)}
     plan = {"cases": cases, "source": source, "threshold_changes_allowed": False,
             "clock": "Actual FX/LX/IE/Z at TIME; incoming raw V at TIME-dt/2; centered momentum at TIME",
+            "native_observation_contract": {
+                "spring_ie": "Signed trapezoidal constitutive work, retained without clamping or replacement",
+                "spring_ie_update": "IE_n = IE_previous + (LX_n-LX_previous)*(FX_n+FX_previous)/2",
+                "global_ie": "Channel1 totalIE already includes channel10 spring category; no double counting",
+                "global_category_spring_ie_abs_j": 1e-7,
+                "force_acceleration_balance_abs_n": 1e-5,
+                "control_label": "SPRIN element2 remains after DTIX caps the actual independently checked timestep",
+                "energy_reference_error_abs_j": .01},
             "native_card": {"spring_type": 4, "h1": 8, "anchor_node": 10, "anchor_z_m": -1,
                 "rigid_main_node": 9, "moving_attachment_node": 11, "contact_center_z_m": .05, "absolute_rest_length_m": 1.05,
                 "spring_initial_length_m": 2, "local_force_sign": "upward on rigidly attached center11 = -FX",

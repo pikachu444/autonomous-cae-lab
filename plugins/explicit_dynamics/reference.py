@@ -1,7 +1,7 @@
 """Independent ballistic, ideal-stop and conservative compliant-stop mechanics.
 
 This pure domain module has no native cards, commands or backend imports.
-Mechanical energy is KE + m*g*z; impact dissipates the incident KE. It does
+Mechanical energy is KE + m*g*z; ideal impact dissipates the incident KE.
 The separate compliant case has a known linear unilateral law and restitution
 one. Neither reference qualifies surface contact, stress or physical material.
 """
@@ -171,7 +171,7 @@ def invalid_metrics(reason, *, compliant=False):
                                ("impact_time", "s"), ("ground_impulse", "N s"))}
     if compliant:
         result.update({name: {"value": None, "unit": unit, "valid": False, "reason": reason} for name, unit in
-            (("peak_contact_force", "N"), ("peak_spring_internal_energy", "J"), ("release_time", "s"), ("restitution", "1"))})
+            (("peak_contact_force", "N"), ("peak_spring_internal_energy", "J"), ("minimum_signed_spring_work", "J"), ("release_time", "s"), ("restitution", "1"))})
     return result
 
 
@@ -356,7 +356,7 @@ def assess_compliant(s, rows):
                 "acceleration_m_s2", "kinetic_energy_j", "internal_energy_j", "external_work_j",
                 "mass_kg", "moving_mass_kg", "fixed_mass_kg", "added_mass_kg", "time_step_s",
                 "ground_impulse_n_s", "ground_force_n", "spring_axial_force_n", "spring_length_change_m",
-                "spring_length_m", "spring_internal_energy_j", "spring_off"}
+                "spring_length_m", "spring_internal_energy_j", "spring_global_internal_energy_j", "spring_off"}
     if not isinstance(rows, list) or len(rows) < 10:
         raise ValueError("Native compliant history is missing or incomplete")
     if any(not isinstance(row, dict) or not required <= set(row) for row in rows):
@@ -396,6 +396,8 @@ def assess_compliant(s, rows):
     initial_ke = .5 * m * s["initial_velocity_m_s"] ** 2
     check("native_total_energy_work_balance", max(abs(row["kinetic_energy_j"] + row["internal_energy_j"] - initial_ke - row["external_work_j"]) for row in observed), lim["energy_abs_j"])
     check("native_global_spring_energy_consistency", max(abs(row["internal_energy_j"] - row["spring_internal_energy_j"]) for row in observed), 1e-7)
+    check("native_category_spring_energy_consistency", max(abs(row["spring_global_internal_energy_j"] - row["spring_internal_energy_j"]) for row in observed), 1e-7)
+    check("native_force_acceleration_balance", max(abs(m * (row["acceleration_m_s2"] + g) - row["ground_force_n"]) for row in observed), 1e-5)
     check("native_spring_force_sign", max(abs(row["ground_force_n"] + row["spring_axial_force_n"]) for row in observed), 1e-8)
     check("native_spring_constitutive_force", max(abs(row["ground_force_n"] - k * max(0, s["edge_m"] / 2 - row["z_m"])) for row in observed), 1e-3)
     check("native_spring_length", max(abs(row["spring_length_m"] - (row["z_m"] - ANCHOR_Z_M)) for row in observed), 1e-8)
@@ -428,10 +430,12 @@ def assess_compliant(s, rows):
               "final_kinetic_energy": (final["kinetic_energy_j"], "J"), "mechanical_energy_error": (energy_error, "J"),
               "ground_impulse": (final["ground_impulse_n_s"], "N s"), "impact_time": (hit_time, "s"),
               "release_time": (release_time, "s"), "restitution": (restitution, "1"), "peak_contact_force": (peak, "N"),
-              "peak_spring_internal_energy": (max(row["spring_internal_energy_j"] for row in observed), "J")}
+              "peak_spring_internal_energy": (max(row["spring_internal_energy_j"] for row in observed), "J"),
+              "minimum_signed_spring_work": (min(row["spring_internal_energy_j"] for row in observed), "J")}
     metrics = {key: {"value": value, "unit": unit, "valid": valid, **({} if valid else {"reason": "Native compliant dynamics failed predeclared gates"})} for key, (value, unit) in values.items()}
     return {"checks": checks, "metrics": metrics, "reference": refs[-1], "pending_validations": list(PENDING),
             "sample_count": len(rows), "limitations": ["Known conservative reduced unilateral spring; surface contact and physical constitutive qualification UNKNOWN",
             "Actual native spring force/IE/LX are retained and assessed at TIME; raw incoming velocity keeps its half-step clock",
+            "TYPE4 IE is integrated signed constitutive work; its raw release residue is retained and checked against the fixed independent energy-error budget",
             "Declared .002 kg spring adds .001 kg moving and .001 kg fixed mass; original cube remains 1 kg at the canonical density",
             "Numerical finite-force/restitution evidence does not qualify material, stress, fracture, durability or release"]}

@@ -1,7 +1,8 @@
 """Trusted cards, process admission and typed output regressions; no solver runs.
 
 The fixture stream is explicitly synthetic parser test data, not native proof.
-Actual native physics acceptance is exclusively scripts.verify_openradioss.
+Actual native physics acceptance uses scripts.verify_openradioss and
+scripts.verify_compliant_drop in fresh stores with frozen source.
 """
 
 from copy import deepcopy
@@ -45,7 +46,8 @@ def starter_text(s):
 def engine_text(s):
     count = round(s["end_time_s"] / s["time_step_s"])
     mass = s["mass_kg"] + s.get("spring_mass_kg", 0)
-    rows = [f"{i} {i*s['time_step_s']:.12g} {s['time_step_s']:.12g} FIXED 0 0.0% 0 0 0 0 0 {mass:.12g} 0"
+    control = "SPRIN 2" if s["case"]=="rigid_cube_compliant_stop" else "FIXED 0"
+    rows = [f"{i} {i*s['time_step_s']:.12g} {s['time_step_s']:.12g} {control} 0.0% 0 0 0 0 0 {mass:.12g} 0"
             for i in range(count + 1)]
     return "TEST ONLY: no native executable has run\n" + f"FINAL TIME {s['end_time_s']}\n" + "\n".join(rows) + f"\nNORMAL TERMINATION\nTOTAL NUMBER OF CYCLES : {count+2}\n"
 
@@ -94,7 +96,7 @@ def typed_stream(s, *, change=None, skip=None):
         glob=[0.0]*22;glob[1]=ref["kinetic_energy_j"];glob[4]=s["mass_kg"]*ref["velocity_m_s"]
         glob[5]=s["mass_kg"];glob[6]=dt;glob[8]=glob[1]-.5*s["mass_kg"]*s["initial_velocity_m_s"]**2
         if compliant:
-            glob[0]=ref["spring_internal_energy_j"];glob[4]=ref["moving_mass_kg"]*ref["velocity_m_s"]
+            glob[0]=ref["spring_internal_energy_j"];glob[9]=glob[0];glob[4]=ref["moving_mass_kg"]*ref["velocity_m_s"]
             glob[5]=ref["total_mass_kg"];glob[8]=glob[0]+glob[1]-.5*ref["moving_mass_kg"]*s["initial_velocity_m_s"]**2
         node=[ref["z_m"]-h,velocity,a,ref["z_m"]-s["edge_m"]/2,ref["z_m"]-h,velocity,a,ref["z_m"]]
         channels={1:node,2:[0,0,0,0],3:[-ref["ground_impulse_n_s"]]}
@@ -321,6 +323,87 @@ def test_compliant_typed_native_observations_keep_force_ie_mass_and_fixed_anchor
     assert all(check["status"]=="PASS" for check in assess(s,parsed["rows"])["checks"])
 
 
+@pytest.mark.parametrize("residue",[-1e-4,1e-4])
+def test_compliant_signed_work_residue_is_preserved_and_fixed_energy_gates_remain(tmp_path,residue):
+    """Synthetic signed integration residue exercises semantics, not native proof."""
+    s=small_compliant_settings()
+    release=reference(s,0)["release_time_s"]
+    def change(i,t,glob,ch):
+        if t >= release:
+            ch[4][8]=residue;glob[0]=residue;glob[9]=residue
+    native_fixture(tmp_path,s,change=change)
+    parsed=parse_history(tmp_path,s)
+    assert parsed["rows"][-1]["spring_internal_energy_j"] == residue
+    assert parsed["rows"][-1]["internal_energy_j"] == residue
+    assert parsed["rows"][-1]["spring_global_internal_energy_j"] == residue
+    from plugins.explicit_dynamics.reference import assess
+    result=assess(s,parsed["rows"])
+    assert all(check["status"]=="PASS" for check in result["checks"])
+    for code in ("compliant_full_spring_energy","compliant_full_mechanical_energy","native_total_energy_work_balance"):
+        check=next(check for check in result["checks"] if check["code"]==code)
+        assert check["limit"]==.01 and check["observed"]==pytest.approx(abs(residue),abs=1e-8)
+    assert result["metrics"]["minimum_signed_spring_work"]["value"] == min(0,residue)
+    assert all(value["valid"] for value in result["metrics"].values())
+
+
+@pytest.mark.parametrize("category",[0,9])
+def test_compliant_inconsistent_global_work_category_cannot_hide_behind_energy_budget(tmp_path,category):
+    s=small_compliant_settings()
+    def change(i,t,glob,ch):
+        if i==100:glob[category]+=.001
+    native_fixture(tmp_path,s,change=change)
+    with pytest.raises(ValueError,match="global/category spring energy"):
+        parse_history(tmp_path,s)
+
+
+def test_compliant_raw_force_acceleration_balance_detects_coordinated_clock_corruption(tmp_path):
+    s=small_compliant_settings()
+    def change(i,t,glob,ch):
+        if i==190:
+            # Preserve centered momentum and all rigid/half-step witnesses.
+            # The tiny incoming-V change alone stays below its 0.002 m/s gate.
+            for start in (0,4,12):
+                ch[1][start+2]+=.001
+                ch[1][start+1]-=.5*s["time_step_s"]*.001
+    native_fixture(tmp_path,s,change=change)
+    parsed=parse_history(tmp_path,s)
+    from plugins.explicit_dynamics.reference import assess
+    result=assess(s,parsed["rows"])
+    failed=[check for check in result["checks"] if check["status"]=="FAIL"]
+    assert [check["code"] for check in failed]==["native_force_acceleration_balance"]
+    assert failed[0]["limit"]==1e-5 and failed[0]["observed"]==pytest.approx(.001001,abs=1e-7)
+    assert not any(value["valid"] for value in result["metrics"].values())
+
+
+@pytest.mark.parametrize("bad_control",["FIXED 0","SPRIN 1","SPRIN 3"])
+def test_compliant_source_control_tag_does_not_replace_actual_dt_id_or_cycle_gates(tmp_path,bad_control):
+    s=small_compliant_settings();native_fixture(tmp_path,s)
+    path=tmp_path/"drop_0001.out"
+    path.write_text(path.read_text().replace("SPRIN 2",bad_control))
+    with pytest.raises(ValueError,match="cycle observation"):
+        parse_history(tmp_path,s)
+
+
+def test_compliant_engine_part_table_is_not_mistaken_for_cycle_output(tmp_path):
+    s=small_compliant_settings();native_fixture(tmp_path,s)
+    path=tmp_path/"drop_0001.out"
+    path.write_text("1 1.0000 0.002000 0.05000 100.0 0 0 0\n"+path.read_text())
+    parsed=parse_history(tmp_path,s)
+    assert len(parsed["native_cycle_observations"])==201
+    assert all(row["controlling_element_type"]=="SPRIN" and row["controlling_element_id"]==2
+               and row["time_step_s"]==s["time_step_s"] for row in parsed["native_cycle_observations"])
+
+
+@pytest.mark.parametrize("wall",[False,True])
+def test_original_rigid_cases_keep_their_zero_spring_category_gate(tmp_path,wall):
+    s=small_settings(wall)
+    def change(i,t,glob,ch):
+        if i==3:glob[9]=-.0001
+    native_fixture(tmp_path,s,change=change)
+    with pytest.raises(ValueError,match="contact-energy"):
+        parse_history(tmp_path,s)
+
+
 @pytest.mark.parametrize("damage",["anchor","attachment","torque","global_mass","negative_force","negative_ie","off","metadata","tail","interior"])
 def test_compliant_parser_rejects_wrong_native_layout_mass_fixed_state_or_coverage(tmp_path,damage):
     s=small_compliant_settings()
@@ -346,7 +429,7 @@ def test_complete_native_compliant_channels_do_not_get_replaced_by_reference(tmp
     def change(i,t,glob,ch):
         if i==100:
             if damage=="force":ch[4][1]-=.1
-            elif damage=="ie":ch[4][8]+=.02
+            elif damage=="ie":ch[4][8]+=.02;glob[0]+=.02;glob[9]+=.02
             else:ch[4][7]+=.001
     native_fixture(tmp_path,s,change=change)
     parsed=parse_history(tmp_path,s)
@@ -433,7 +516,8 @@ def test_compliant_core_exit0_with_corrupt_actual_ie_keeps_artifacts_and_invalid
     assert result["model_revision"]==canonical_hash({"settings":s,"declaration":adapter.describe_model(s)})
     assert result["cad_revision"] is None and "parent_experiment_id" not in result
     assert result["decision"]=="NOT_RELEASED" and "rotational_surface_contact" in lab.research_summary("E-corrupt")["unknown"]
-    assert {"simulation/dropT01","simulation/parsed_history.json","simulation/domain_reference.py"} <= {artifact["path"] for artifact in result["artifacts"]}
+    assert {"simulation/dropT01","simulation/domain_reference.py"} <= {artifact["path"] for artifact in result["artifacts"]}
+    assert any(v["type"]=="native_history_integrity" and v["status"]=="FAIL" for v in result["validations"])
     assert lab.inspect_experiment("E-corrupt")==result
 
 

@@ -79,12 +79,13 @@ def engine_progress(engine, settings):
     if re.search(r"^\s*(?:WARNING|ERROR\s+ID|FATAL|ABNORMAL|STOP DUE)\b", engine, re.MULTILINE | re.IGNORECASE):
         raise ValueError("Engine reported an invalid model/execution diagnostic")
     observations = []
+    control = ("SPRIN", "2") if settings["case"] == COMPLIANT_CASE else ("FIXED", "0")
     for line in engine.splitlines():
         values = line.split()
-        if len(values) < 4 or not values[0].isdigit() or values[3] != "FIXED":
+        if len(values) < 6 or not values[0].isdigit() or not values[5].endswith("%"):
             continue
         try:
-            if len(values) != 13 or values[4] != "0" or not values[5].endswith("%"):
+            if len(values) != 13 or tuple(values[3:5]) != control or not values[5].endswith("%"):
                 raise ValueError("Unexpected native cycle print layout")
             numbers = [float(values[1]), float(values[2]), float(values[5][:-1]),
                        *(float(value) for value in values[6:])]
@@ -95,7 +96,7 @@ def engine_progress(engine, settings):
         observations.append(dict(zip(("time_s", "time_step_s", "native_energy_error_percent",
                                       "internal_energy_j", "kinetic_energy_j", "rotational_energy_j",
                                       "total_external_work_j", "native_mass_error", "mass_kg", "added_mass_kg"), numbers),
-                                 cycle=int(values[0])))
+                                 cycle=int(values[0]), controlling_element_type=values[3], controlling_element_id=int(values[4])))
     if not observations or [row["cycle"] for row in observations] != list(range(len(observations))):
         raise ValueError("Every-cycle native print history is missing or has a cycle gap")
     dt, end = settings["time_step_s"], settings["end_time_s"]
@@ -307,9 +308,12 @@ def parse_history(output: Path, settings: dict) -> dict:
         centered_residual = centered - centered_expected
         if abs(centered_residual) > 1e-8 * max(1, abs(centered), abs(centered_expected)):
             raise ValueError("Native global momentum and TH main-node leapfrog clocks are inconsistent")
-        if max(abs(global_values[index]) for index in (2, 3, 7, 9, 10, 11, 12, 13, 14, 15, 18, 19, 20, 21)) > 1e-12:
+        zero_globals = (2, 3, 7, 10, 11, 12, 13, 14, 15, 18, 19, 20, 21)
+        if not compliant:
+            zero_globals = (*zero_globals, 9)
+        if max(abs(global_values[index]) for index in zero_globals) > 1e-12:
             raise ValueError("Native output violates reduced rigid/lateral/contact-energy/inlet/outlet assumptions")
-        if global_values[0] < -1e-12 or global_values[1] < -1e-12:
+        if (not compliant and global_values[0] < -1e-12) or global_values[1] < -1e-12:
             raise ValueError("Native internal/kinetic energy is negative")
         if (abs((z - settings["center_height_m"]) - dz) > 1e-8
                 or abs(z - z_bottom - settings["edge_m"] / 2) > 1e-8
@@ -345,8 +349,14 @@ def parse_history(output: Path, settings: dict) -> dict:
             if max(abs(value) for value in (fy, fz, mx, my, mz)) > 1e-12:
                 raise ValueError("Native spring has unexpected transverse force or torque")
             force = -fx
-            if force < -1e-8 or ie < -1e-8 or abs(off - 1) > 1e-12:
+            if force < -1e-8 or abs(off - 1) > 1e-12:
                 raise ValueError("Native spring force/energy/deletion violates the unilateral elastic law")
+            # REDEF3 integrates signed trapezoidal F*dL work; crossing the
+            # unilateral kink can leave either-sign numerical residue. Keep it
+            # unmodified and use the predeclared independent energy-error gates.
+            # HIST2 channel10 is the spring category, already in total IE1.
+            if max(abs(global_values[index] - ie) for index in (0, 9)) > 1e-7:
+                raise ValueError("Native global/category spring energy does not match actual TH spring IE")
             # Raw current-time spring force is integrated using its actual
             # sampled clock, never replaced with an analytical contact impulse.
             body_impulse = (rows[-1]["ground_impulse_n_s"] + .5 * (force + rows[-1]["ground_force_n"]) * force_interval) if rows else 0.0
@@ -354,7 +364,7 @@ def parse_history(output: Path, settings: dict) -> dict:
             spring_fields = {"moving_mass_kg": moving_mass, "fixed_mass_kg": admission["fixed_mass_kg"],
                 "ground_force_n": force, "spring_axial_force_n": fx, "spring_length_change_m": lx,
                 "spring_length_m": settings["center_height_m"] - ANCHOR_Z_M + lx,
-                "spring_internal_energy_j": ie, "spring_off": off,
+                "spring_internal_energy_j": ie, "spring_global_internal_energy_j": global_values[9], "spring_off": off,
                 "spring_transverse_force_n": [fy, fz], "spring_local_moment_n_m": [mx, my, mz],
                 "anchor_z_m": anchor_z, "anchor_velocity_m_s": anchor_v, "anchor_acceleration_m_s2": anchor_a, **auxiliary_fields}
         rows.append({"time_s": time_s, "velocity_time_s": max(0, time_s - .5 * dt), "z_m": z,
@@ -378,5 +388,6 @@ def parse_history(output: Path, settings: dict) -> dict:
             "units": "kg,m,s,N,J; raw cumulative RWALL impulse N s",
             "external_work_policy": "Compliant: actual gravity work and global KE+IE balance; wall: gravity plus constraint work",
             "force_policy": "Compliant: actual current-time local FX, upward force=-FX, trapezoidal native-force impulse; wall: delta(-FNZ)/deltaTIME",
+            "spring_energy_policy": "TYPE4 IE is signed native trapezoidal constitutive work; global10 is its category in totalIE1, never double-counted/clamped/replaced",
             "witness_policy": "Raw main/secondary V can differ at an impulse; V+DT12*A must agree. Original observations retained.",
             "clock_policy": "Raw TH/NODE V is at TIME-DT/2, except initial TIME=0; native global KE/momentum and Z are at TIME. No fitted curve shift."}

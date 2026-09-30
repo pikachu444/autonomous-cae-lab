@@ -29,11 +29,14 @@ execution: position/displacement 0.0002 m, incoming and centered velocity
 0.002 m/s, KE/spring IE/mechanical energy/gravity and total-work closure
 0.01 J, mass relative 1e-8, contact/release events 0.0002 s, integrated contact
 impulse/full momentum closure 0.005 N s, force/finite peak 2 N and restitution
-0.001. Native cross-checks require global IE versus actual spring IE within
-1e-7 J, force-law versus actual position within 0.001 N (covers propagated
+0.001. Native cross-checks require total global IE and global spring category
+versus actual spring IE within 1e-7 J, force-law versus actual position within 0.001 N (covers propagated
 9-significant-digit ASCII rounding at k<=20000), current/initial spring length
 versus actual nodal position within 1e-8 m, OFF=1 within 1e-12 and zero added
-mass within 1e-12 kg. Existing source-backed half-step/momentum, fixed anchor,
+mass within 1e-12 kg. Before the third fresh attempt, an additional actual
+force/acceleration check is fixed at |m*(AZ+g)-(-FX)|<=1e-5 N. This independently
+checks Newton's equation even when a corrupted incoming-V/A pair preserves the
+half-step momentum identity. Existing source-backed half-step/momentum, fixed anchor,
 rigid witness, zero rotation/lateral/inlet/outlet gates remain enforced.
 
 OMP2, thread stack64 MiB, address-space2 GiB, CPU60 s and wall90 s per process
@@ -85,6 +88,28 @@ length change from the native 2 m initial length, so actual absolute length is
 TIME observations; main raw V keeps TIME-dt/2 and global P/KE uses centered TIME.
 Actual spring IE and force are never substituted with an oracle estimate.
 
+Native TYPE4 IE is a signed work accumulator, not an exactly recomputed elastic
+state function. With this Ileng=0 card, the pinned code advances
+IE_n=IE_previous+(LX_n-LX_previous)*(FX_n+FX_previous)/2. This is a trapezoidal
+constitutive work increment; the same unmodified accumulator supplies TH IE and
+global spring REINT. Total global IE already includes this spring category, so
+channel10 must match TH IE and must not be added again to channel1. The raw IE
+may have either-sign quadrature residue after crossing the unilateral force-law
+kink. Inference from the recurrence: a free-to-compressed crossing contributes
++k*a*b/2 error and a compressed-to-free crossing contributes -k*a*b/2 error,
+where a/b are the two distances from the kink. The official code does not clamp
+the accumulator or recompute 0.5*k*compression^2. This source fact corrects the
+old semantic nonnegative-IE validator independently of whether an observed run
+passes. All actual signed values remain in raw/parsed records and the unchanged
+0.01 J analytical IE, mechanical energy, gravity work and total-work gates.
+
+The native /PRINT control label identifies the element that proposed the step
+before the later DTIX maximum cap. The pinned source preserves SPRIN element2
+while capping the actual step to the declared dt. Therefore this separate case
+admits SPRIN2 and independently enforces every printed cycle, actual dt/time,
+termination count and exact typed-history coverage. The earlier rigid cases
+continue to require FIXED0 and zero spring-category channels.
+
 Source-based card/clock/mass references:
 
 - [TYPE4](https://2022.help.altair.com/2022.2/hwsolvers/rad/topics/solvers/rad/prop_type4_spring_starter_r.htm),
@@ -100,6 +125,15 @@ Source-based card/clock/mass references:
   [output before time increment](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/engine/source/engine/resol.F#L8411).
 - [Virtual material0 mapping](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/starter/source/model/assembling/hm_read_part.F#L242),
     [internal associations/external tables](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/engine/source/output/th/hist1.F#L331).
+- [Previous/current LX](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/engine/source/elements/spring/r1def3.F#L135),
+  [Ileng=0 normalization](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/engine/source/elements/spring/r1def3.F#L205),
+  [previous force and signed trapezoidal IE update](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/engine/source/elements/spring/redef3.F90#L1149),
+  [spring total energy accumulation](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/engine/source/elements/spring/rbilan.F#L96),
+  [global REINT channel10](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/engine/source/output/th/hist2.F#L303).
+- [Controlling element capture](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/engine/source/engine/resol.F#L6085),
+  [later timestep cap](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/engine/source/engine/resol.F#L6311),
+  [cycle print labels](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/engine/source/output/ecrit.F#L129),
+  [official DTIX semantics](https://2024.help.altair.com/2024/hwsolvers/rad/topics/solvers/rad/dtix_engine_r.htm).
 
 The first clean source `083b38091607d015d24f276dfee260f9f8d90b4b` attempt
 `artifacts/compliant-20260930-native-v1` is retained. All three Starter runs
@@ -131,11 +165,33 @@ The parser verifies part/material/property tables and preserves every selected
 and global channel. An unexpected layout remains REJECTED pending a source-based
 correction and a fresh store; numerical thresholds stay fixed.
 
-## State before native acceptance
+The second clean source `170ff79a42732ab9695295a9e8fea29c130b8c47` attempt
+`artifacts/compliant-20260930-native-v2` is retained as REJECTED/NOT_RELEASED.
+All three Starters passed zero-warning/zero-error admission with the declared
+1.001/0.001/1.002 kg mass assembly, and all three Engines terminated normally.
+The old rigid-only parser rejected the SPRIN2 control label before accepting
+typed histories. All five Core results/ledgers and the aggregate failure report
+exist; acceptance.json SHA256 is
+`7cc6386572c048b3e34825dd8a6c089cee9b079f9311b352dfed2432fbf89768`.
+Read-only diagnosis found the source-based control/category/signed-work semantic
+gaps described above. It does not change or promote any stored result. Two
+invalid input cases were REJECTED/NOT_RUN before Starter. The third fresh attempt
+must use a newly frozen source and a new store with identical physical settings,
+the unchanged acceptance limits and the additional declared force-balance gate.
 
-Native coupled warnings, actual mass/history/energy and numerical pass/fail
-are UNKNOWN until frozen-source execution. The corresponding distinct benchmark
-record will identify source commit, run store, actual runtime versions, checks,
-artifact hashes, rejected attempts and measured resources. No raw binaries,
-company data or credentials are committed. Source tests are synthetic admission
-and analytical regressions, never native contact proof.
+## State before the third native attempt
+
+Contact acceptance remains UNKNOWN pending fresh frozen-source execution after
+the semantic correction. The distinct benchmark record will identify source
+commit, run store, actual runtime versions, checks, artifact hashes, rejected
+attempts and measured resources. No raw binaries, company data or credentials
+are committed. Source tests are synthetic admission and analytical regressions,
+never native contact proof.
+
+Before the third attempt, targeted source regressions passed **115 tests in
+17.69 seconds** using the existing WSL Python3.12 environment:
+`python -m pytest -q tests/test_explicit_dynamics.py tests/test_openradioss.py tests/test_declared_model.py`.
+These include signed-work retention under the unchanged energy gates, failure
+of inconsistent energy channels and coordinated V/A corruption, correct native
+control-ID admission, original rigid-case rules and all earlier preflight/history
+regressions. No solver was executed by these tests.
