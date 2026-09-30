@@ -29,6 +29,11 @@ experiments → evidence/validation → research interpretation and next campaig
 These labels describe project progress, not an engineering release. Overall
 fixture decision remains **`NOT_RELEASED`**. The verified code checkpoint is
 `dad581fea4fb8e20d26d329ed53592f2897dfd05`, CI [36641675306](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36641675306).
+The primary local session subsequently reproduced the existing CAD/native/
+structural/DOE acceptance at main `16fba8c`, with 32 Core and 58 upstream tests;
+see [the local execution record](benchmarks/records/20260930-local-environment.json).
+This restores execution and preserves all 52 requirements; it does not complete
+the finer mesh, optimizer, PDE or engineering release gates.
 
 ## Original section ledger
 

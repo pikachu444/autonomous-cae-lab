@@ -1,5 +1,24 @@
 # Current state — 2026-09-30 (Asia/Seoul)
 
+## Primary local session restored
+
+The primary checkout is now `C:\SourceCodes\autonomous-cae-lab` on Windows 11,
+with actual execution in the existing Ubuntu 24.04.4 WSL2 distribution and an
+isolated Python 3.12.3 runtime. Main `16fba8cbff0ab8619ea50c6591121992f07fd32c`
+and pinned upstream `3e48bf6` were cloned into an initially empty folder.
+Exact-source CI run 36644400011 succeeded. Local Core tests (32), upstream
+tests (58), MCP, CAD demo, native FreeCAD, structural and seeded DOE acceptance
+all passed; 14 experiment ledgers and both DOE journals were inspected.
+See [local setup and repairs](docs/LOCAL_EXECUTION.md) and
+[the executed evidence](benchmarks/records/20260930-local-environment.json).
+These new local results supersede the old cloud environment limitation below;
+the older verification history remains preserved. Release remains
+`NOT_RELEASED`, with strength/contact/material/physical requirements `UNKNOWN`.
+
+The next numerical gate is the unchanged 1.5 mm saddle-load continuation,
+then actual numerical optimization and a canonical weak-form PDE. Their
+implementation/execution must be recorded separately from environment setup.
+
 ## Recovered decisions and sources
 
 The Project discussions require an **OpenScience research control plane** over a solver-independent CAE-Lab, with human GUI inspection and headless automation sharing native artifacts. Numerical search belongs to a reproducible optimizer. Fixture design is the first real domain plugin. Earlier planning chose CadQuery Python source plus parameters as the generated CAD source and FreeCAD for editable native models and inspection; a STEP import does not reconstruct design intent. The exact OpenScience product identity in older turns was not retrievable from conversation history in this environment. The integration below targets Synthetic Sciences OpenScience provisionally and keeps a transport-independent JSON contract.

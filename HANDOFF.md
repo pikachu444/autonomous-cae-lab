@@ -14,6 +14,17 @@ handoff record, not a claim that the model retains every past chat forever.
 
 ## Verified checkpoint
 
+**Primary local restoration:** the checkout now exists at
+`C:\SourceCodes\autonomous-cae-lab`; the current session directly completed
+Core 32 tests, upstream 58 tests, MCP, CAD demo and native/structural/DOE
+acceptance on Ubuntu 24.04.4 WSL2 / Python 3.12.3. The restored source was
+`16fba8cbff0ab8619ea50c6591121992f07fd32c`, with exact-source CI 36644400011
+also successful. Versions, fresh store paths, repairs and artifact/ledger
+verification are in [LOCAL_EXECUTION](docs/LOCAL_EXECUTION.md) and
+[the environment record](benchmarks/records/20260930-local-environment.json).
+`scripts/local.ps1` starts the configured WSL environment from PowerShell.
+The following older checkpoint records the previous cloud execution.
+
 - Last fully verified **code** commit:
   `dad581fea4fb8e20d26d329ed53592f2897dfd05`.
 - [CI 36641675306](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36641675306):
@@ -170,8 +181,10 @@ CAD/results in this currently public Git repository.
   material allowables, stress convergence, fatigue or physical load tests.
 - Upstream root license is missing; corporate redistribution/linking and
   backend license/security reviews remain incomplete. Supplied repo is public.
-- Local dependencies/solvers/credentials must be established on the user's
-  computer. This cloud agent currently cannot manipulate that local computer.
+- Local dependencies/solvers and GitHub access were restored by the primary
+  Windows/WSL session; deployment on a different computer still needs its own
+  setup and acceptance. Native Windows and arbitrary GUI CAD execution remain
+  unverified.
 
 ## Prompt to start the new local session
 

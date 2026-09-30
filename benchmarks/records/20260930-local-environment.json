@@ -1,0 +1,387 @@
+{
+  "baseline_ci_run": 36644400011,
+  "baseline_source_commit": "16fba8cbff0ab8619ea50c6591121992f07fd32c",
+  "checks": {
+    "cad_demo": "PASS",
+    "core_pytest": {
+      "elapsed_seconds": 116.9,
+      "passed": 32
+    },
+    "doe": {
+      "algorithm": {
+        "engine": "scipy.latin_hypercube",
+        "numpy_version": "2.3.5",
+        "optimization": null,
+        "seed": 13,
+        "strength": 1,
+        "version": "1.17.0"
+      },
+      "decision": "NOT_RELEASED",
+      "numerical_rejections": [],
+      "rejected_before_solver": "E-C-pitch-002",
+      "samples": [
+        {
+          "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+          "cad_revision": "4a849415d2c98bc5bfae767cb71ea5939d956e4fc5d5a49b72810e04a534de00",
+          "campaign": "C-width",
+          "displacement_mm": 0.005840948,
+          "displacement_valid": true,
+          "mesh_change_ratio": 0.01866032705649841,
+          "reaction_balance_ratio": 4.371282480794738e-09,
+          "values": {
+            "support_width": 31.986170466921056
+          }
+        },
+        {
+          "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+          "cad_revision": "09877fd89bf62833cb4cc0a81f72f3206787c01c185ebcb18aaad49879f69b0d",
+          "campaign": "C-width",
+          "displacement_mm": 0.005713472,
+          "displacement_valid": true,
+          "mesh_change_ratio": 0.013669271504262186,
+          "reaction_balance_ratio": 9.508582266176936e-09,
+          "values": {
+            "support_width": 39.71242440353106
+          }
+        },
+        {
+          "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+          "cad_revision": "9a4a47ff0c3c99ca5a3102bfdc18c547a9d09c36a5a5d8b0cb8119eb1cd3f13c",
+          "campaign": "C-pitch",
+          "displacement_mm": 0.005875083,
+          "displacement_valid": true,
+          "mesh_change_ratio": 0.03845120145536665,
+          "reaction_balance_ratio": 4.507379636394086e-09,
+          "values": {
+            "bolt_pitch": 21.6413125226886
+          }
+        }
+      ],
+      "solver_runs": 3,
+      "status": "PASS"
+    },
+    "mcp_local_stdio": "PASS",
+    "native": {
+      "ineffective_dimension_blocked": true,
+      "model": "0eabeb343382439aa8eb11abae0bc086",
+      "rejected_validation": "bore_1_edge_land",
+      "release": "NOT_RELEASED",
+      "reopened_editable_parameters": [
+        "bore_radius",
+        "support_width"
+      ],
+      "sketch_bounds_mm": [
+        12.0,
+        12.0,
+        8.0
+      ],
+      "status": "PASS",
+      "valid_bounds_mm": [
+        38.0,
+        40.0,
+        26.00000000000001
+      ],
+      "valid_cad_revision": "5df3cac6aa7344b62b67fcc534172c08372f5c477f20a6105f02c7f537776a74"
+    },
+    "pip_check": "PASS",
+    "structural": {
+      "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+      "artifact_count": 41,
+      "cad_revision": "d7ae994052d029f7131fa1c2121fd7d5d6ebb2611ffba56fcb2c63571f207332",
+      "decision": "NOT_RELEASED",
+      "displacement_mm": 0.005707813,
+      "displacement_valid": true,
+      "mesh_change_ratio": 0.02336148714052128,
+      "parent_step_sha256": "1633fa51bab31f2b7e29738acc1d88427fe464a268f3474a2729ca34eff9ca5f",
+      "reaction_balance_ratio": 1.4573531101046888e-08,
+      "solver_status": "COMPLETED",
+      "status": "PASS"
+    },
+    "upstream_pytest": {
+      "elapsed_seconds": 20.26,
+      "passed": 58
+    }
+  },
+  "date_timezone": "2026-09-30 Asia/Seoul",
+  "decision": "NOT_RELEASED",
+  "execution": {
+    "calculix": "2.21",
+    "freecad": {
+      "appimage_sha256": "f6dc6ba676e5ac96a565ebc8d657232f94c6158e85b4352141bd1a46f6b43434",
+      "git_commit": "4fd3bf320d9566a27e60069fc8387448aaa3a094",
+      "version": "1.1.4"
+    },
+    "git": "2.43.0",
+    "gmsh": "4.12.1",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "os": "Ubuntu 24.04.4 LTS / WSL2",
+    "packages": {
+      "cadquery": "2.7.0",
+      "jsonschema": "4.26.0",
+      "mcp": "1.30.0",
+      "numpy": "2.3.5",
+      "pytest": "8.4.2",
+      "scipy": "1.17.0"
+    },
+    "python": "3.12.3",
+    "venv": "/home/pikachu444/.local/share/autonomous-cae-lab/venv-py312"
+  },
+  "host": {
+    "existing_python_preserved": [
+      "3.13.5",
+      "3.11.15",
+      "Anaconda39"
+    ],
+    "git": "2.38.0.windows.1",
+    "os": "Windows 11 Home Single Language",
+    "version": "10.0.26200"
+  },
+  "not_verified": [
+    "Live OpenScience agent loop",
+    "Native Windows CAD/solver execution",
+    "Arbitrary GUI-edited FCStd",
+    "Engineering strength/contact/material/physical/durability qualification"
+  ],
+  "recorded_utc": "2026-09-30T00:55:11.312812+00:00",
+  "repairs": [
+    "Installed missing python3.12-venv (ensurepip).",
+    "Kept tracked upstream files intact; copied an LF FreeCAD wrapper outside the checkout.",
+    "Used FreeCAD console App.Version after the --version GUI path waited without exiting.",
+    "Normalized Windows path separators at the PowerShell-to-WSL launcher boundary."
+  ],
+  "repository": "pikachu444/autonomous-cae-lab",
+  "retention": "Raw experiment stores remain on the local C: workspace, ignored by Git; managed durable archival remains open.",
+  "upstream_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "verified_stores": {
+    "cad_demo": {
+      "experiments": [
+        {
+          "artifact_count": 8,
+          "cad_revision": null,
+          "core_dirty": false,
+          "decision": "NOT_RELEASED",
+          "experiment_id": "E-demo-clearance-reject",
+          "ledger": {
+            "created_utc": "2026-09-30T00:39:54.923953+00:00",
+            "experiment_id": "E-demo-clearance-reject",
+            "result_sha256": "228ec3b228bc88dd48a3cccb5bb94ddf77aae6781a272245cd0f1458a32f9882",
+            "thread_sha256": "4784d415143477531e867c470d881a68d57dbaf4884ba2ca40dc77fdf9ff7848"
+          },
+          "source_commit": "16fba8cbff0ab8619ea50c6591121992f07fd32c",
+          "status": "REJECTED"
+        },
+        {
+          "artifact_count": 12,
+          "cad_revision": "9ffa1490620baed245c5bffdc8f88e319608b72d55cdcb6c628c51fc5d5962b2",
+          "core_dirty": false,
+          "decision": "NOT_RELEASED",
+          "experiment_id": "E-demo-width38",
+          "ledger": {
+            "created_utc": "2026-09-30T00:39:53.218776+00:00",
+            "experiment_id": "E-demo-width38",
+            "result_sha256": "f95f650b8f35dab827a8c5bde0739cc4b14e48ee45918ee8aea3ba2e29657f16",
+            "thread_sha256": "4f0792671aa886e92a90c069016f5e035dd21998780759a0ae1e31b0abded9e3"
+          },
+          "source_commit": "16fba8cbff0ab8619ea50c6591121992f07fd32c",
+          "status": "COMPLETED_REVIEW_REQUIRED"
+        }
+      ],
+      "store": "runs/local-20260930-demo"
+    },
+    "doe": {
+      "experiments": [
+        {
+          "artifact_count": 12,
+          "cad_revision": "9a4a47ff0c3c99ca5a3102bfdc18c547a9d09c36a5a5d8b0cb8119eb1cd3f13c",
+          "core_dirty": false,
+          "decision": "NOT_RELEASED",
+          "experiment_id": "E-C-pitch-001",
+          "ledger": {
+            "created_utc": "2026-09-30T00:43:13.279616+00:00",
+            "experiment_id": "E-C-pitch-001",
+            "result_sha256": "cb573f2eb95ece6ff9a92041e5af49fedce59e5ac6b2b89f078e2ee2d651d5ed",
+            "thread_sha256": "48ee8154f5f9263f15ed7d26711023708ba942d7739fc5cf8104aaebe85e960f"
+          },
+          "source_commit": "16fba8cbff0ab8619ea50c6591121992f07fd32c",
+          "status": "COMPLETED_REVIEW_REQUIRED"
+        },
+        {
+          "artifact_count": 29,
+          "cad_revision": "9a4a47ff0c3c99ca5a3102bfdc18c547a9d09c36a5a5d8b0cb8119eb1cd3f13c",
+          "core_dirty": false,
+          "decision": "NOT_RELEASED",
+          "experiment_id": "E-C-pitch-001-solve",
+          "ledger": {
+            "created_utc": "2026-09-30T00:44:05.041120+00:00",
+            "experiment_id": "E-C-pitch-001-solve",
+            "result_sha256": "d07b414fea9f7c068ea513a8d2ee7771506ab63206fda0836e609eb2923b271d",
+            "thread_sha256": "02dcf34c43e162ad177ab303e75517f831acc6d56fffd3a1c22fd38ef84658ed"
+          },
+          "source_commit": "16fba8cbff0ab8619ea50c6591121992f07fd32c",
+          "status": "COMPLETED_REVIEW_REQUIRED"
+        },
+        {
+          "artifact_count": 8,
+          "cad_revision": null,
+          "core_dirty": false,
+          "decision": "NOT_RELEASED",
+          "experiment_id": "E-C-pitch-002",
+          "ledger": {
+            "created_utc": "2026-09-30T00:44:12.514451+00:00",
+            "experiment_id": "E-C-pitch-002",
+            "result_sha256": "5ff5663b03f13a4f25f073c48cc562cb7b6cde6dcbce9321b53fa3170226d341",
+            "thread_sha256": "e58809b91fcb07fe465da10c289a19defa29f2f0b433adccc2b5c08720c6aa70"
+          },
+          "source_commit": "16fba8cbff0ab8619ea50c6591121992f07fd32c",
+          "status": "REJECTED"
+        },
+        {
+          "artifact_count": 12,
+          "cad_revision": "4a849415d2c98bc5bfae767cb71ea5939d956e4fc5d5a49b72810e04a534de00",
+          "core_dirty": false,
+          "decision": "NOT_RELEASED",
+          "experiment_id": "E-C-width-001",
+          "ledger": {
+            "created_utc": "2026-09-30T00:41:13.456236+00:00",
+            "experiment_id": "E-C-width-001",
+            "result_sha256": "1e4a080589cdc72547681d652f174f88117bd25f369d41656f40f1112ae8ab61",
+            "thread_sha256": "585e0cff7e286d7f1c1ad9ecb6cf4bf048fd41ff1d3674089145d21482b9807d"
+          },
+          "source_commit": "16fba8cbff0ab8619ea50c6591121992f07fd32c",
+          "status": "COMPLETED_REVIEW_REQUIRED"
+        },
+        {
+          "artifact_count": 29,
+          "cad_revision": "4a849415d2c98bc5bfae767cb71ea5939d956e4fc5d5a49b72810e04a534de00",
+          "core_dirty": false,
+          "decision": "NOT_RELEASED",
+          "experiment_id": "E-C-width-001-solve",
+          "ledger": {
+            "created_utc": "2026-09-30T00:41:52.445304+00:00",
+            "experiment_id": "E-C-width-001-solve",
+            "result_sha256": "c044767db75e645c637533ecad90acc189c6b537eea33ddd1e3b8c4410e87125",
+            "thread_sha256": "8ae62bfbe756ec6a58c162902d7e89a16449145aca7f480b6740f759e90a991b"
+          },
+          "source_commit": "16fba8cbff0ab8619ea50c6591121992f07fd32c",
+          "status": "COMPLETED_REVIEW_REQUIRED"
+        },
+        {
+          "artifact_count": 12,
+          "cad_revision": "09877fd89bf62833cb4cc0a81f72f3206787c01c185ebcb18aaad49879f69b0d",
+          "core_dirty": false,
+          "decision": "NOT_RELEASED",
+          "experiment_id": "E-C-width-002",
+          "ledger": {
+            "created_utc": "2026-09-30T00:41:58.593425+00:00",
+            "experiment_id": "E-C-width-002",
+            "result_sha256": "0bb721c6e683ac4a4a5f3bbc4edf35ca0e7d7a9bce6ee4cc71a511658f6eab3e",
+            "thread_sha256": "36d09bb05df29ac9d5f5f405c070f5a65e515b40fe516d6116e884b86c62136c"
+          },
+          "source_commit": "16fba8cbff0ab8619ea50c6591121992f07fd32c",
+          "status": "COMPLETED_REVIEW_REQUIRED"
+        },
+        {
+          "artifact_count": 29,
+          "cad_revision": "09877fd89bf62833cb4cc0a81f72f3206787c01c185ebcb18aaad49879f69b0d",
+          "core_dirty": false,
+          "decision": "NOT_RELEASED",
+          "experiment_id": "E-C-width-002-solve",
+          "ledger": {
+            "created_utc": "2026-09-30T00:43:04.131363+00:00",
+            "experiment_id": "E-C-width-002-solve",
+            "result_sha256": "12b596508ab3f8bb1e85ac84f9197f6d4c16c05276996fef3f5b9f8e84a4bd0e",
+            "thread_sha256": "41e69bbd7603172e6e6fff14b5822c50f798111f7741a5f5245df05002a51f55"
+          },
+          "source_commit": "16fba8cbff0ab8619ea50c6591121992f07fd32c",
+          "status": "COMPLETED_REVIEW_REQUIRED"
+        }
+      ],
+      "store": "artifacts/local-20260930-doe"
+    },
+    "native": {
+      "experiments": [
+        {
+          "artifact_count": 6,
+          "cad_revision": null,
+          "core_dirty": false,
+          "decision": "NOT_RELEASED",
+          "experiment_id": "E-native-clearance",
+          "ledger": {
+            "created_utc": "2026-09-30T00:47:51.892727+00:00",
+            "experiment_id": "E-native-clearance",
+            "result_sha256": "5ea5a0c95ebbac5520fc97d8b291ddf9a998e72c8ef9fedbc9c963c69d398d5a",
+            "thread_sha256": "9cf52c506f7bba2a687bd26e66fbb154b015fe69d69fd64ced28637bf36ed2d0"
+          },
+          "source_commit": "16fba8cbff0ab8619ea50c6591121992f07fd32c",
+          "status": "REJECTED"
+        },
+        {
+          "artifact_count": 12,
+          "cad_revision": "52430ce929a08f23d6caaf2f78e547d7731becd84d45fd9da7883b5d27ba6f9a",
+          "core_dirty": false,
+          "decision": "NOT_RELEASED",
+          "experiment_id": "E-native-sketch6",
+          "ledger": {
+            "created_utc": "2026-09-30T00:49:33.149439+00:00",
+            "experiment_id": "E-native-sketch6",
+            "result_sha256": "d4057728d3c1504cdd79e5241cc64ec9c48724435c89bbff6e907d9ddced4f6e",
+            "thread_sha256": "c4d19d86e618a9f27a3b4e6c0ce57febbcfae7342d5bf324637bf547ad85737f"
+          },
+          "source_commit": "16fba8cbff0ab8619ea50c6591121992f07fd32c",
+          "status": "COMPLETED_REVIEW_REQUIRED"
+        },
+        {
+          "artifact_count": 12,
+          "cad_revision": "5df3cac6aa7344b62b67fcc534172c08372f5c477f20a6105f02c7f537776a74",
+          "core_dirty": false,
+          "decision": "NOT_RELEASED",
+          "experiment_id": "E-native-width38",
+          "ledger": {
+            "created_utc": "2026-09-30T00:46:54.585749+00:00",
+            "experiment_id": "E-native-width38",
+            "result_sha256": "96332f22855ba59653d45632fb15ea1c83bc7dcfd0e84373fdc137e23f8323f0",
+            "thread_sha256": "c7730c63c37a970e89dd160b328225ca9a3f13ec3f587ab4e641ae1729e62e0b"
+          },
+          "source_commit": "16fba8cbff0ab8619ea50c6591121992f07fd32c",
+          "status": "COMPLETED_REVIEW_REQUIRED"
+        }
+      ],
+      "store": "artifacts/local-20260930-native"
+    },
+    "structural": {
+      "experiments": [
+        {
+          "artifact_count": 12,
+          "cad_revision": "d7ae994052d029f7131fa1c2121fd7d5d6ebb2611ffba56fcb2c63571f207332",
+          "core_dirty": false,
+          "decision": "NOT_RELEASED",
+          "experiment_id": "E-linear-cad",
+          "ledger": {
+            "created_utc": "2026-09-30T00:40:56.378975+00:00",
+            "experiment_id": "E-linear-cad",
+            "result_sha256": "ebd8ee56aca75a32f5f62ee9dcf08360446583560ce50be1a5a70580c0118f77",
+            "thread_sha256": "da5ec1bd9ff3504b985e8182854bf63b109a448aa76a682a710c64ed63d2de80"
+          },
+          "source_commit": "16fba8cbff0ab8619ea50c6591121992f07fd32c",
+          "status": "COMPLETED_REVIEW_REQUIRED"
+        },
+        {
+          "artifact_count": 41,
+          "cad_revision": "d7ae994052d029f7131fa1c2121fd7d5d6ebb2611ffba56fcb2c63571f207332",
+          "core_dirty": false,
+          "decision": "NOT_RELEASED",
+          "experiment_id": "E-linear-solve",
+          "ledger": {
+            "created_utc": "2026-09-30T00:41:52.233693+00:00",
+            "experiment_id": "E-linear-solve",
+            "result_sha256": "54b955ff9b13aeea75910bfa1bd785f6283aaf67eb42e959b00a5b959170b87d",
+            "thread_sha256": "356f69678857f9d41d6c9b61b3f3558bd84f01f3177e3648078acc453ca661ee"
+          },
+          "source_commit": "16fba8cbff0ab8619ea50c6591121992f07fd32c",
+          "status": "COMPLETED_REVIEW_REQUIRED"
+        }
+      ],
+      "store": "artifacts/local-20260930-linear"
+    }
+  }
+}
