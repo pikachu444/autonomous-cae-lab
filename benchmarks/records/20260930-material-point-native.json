@@ -1,11 +1,12 @@
 {
+  "adapter_default_registration": "NOT_INTEGRATED; native acceptance injects adapter through existing Lab constructor",
   "backend": "material.mfront",
   "cases": {
     "canonical": {
       "artifact_count": 74,
       "artifact_hashes": {
         "proposal.json": "98913a2eafcc55c6680130bd3c914d9a7a92f85dd61b4f54e705f60fe46aa579",
-        "result.json": "5d7fd977c95315ba7210bd190d46fcd366d952782f8b88cd2b906f816c0df31c",
+        "result.json": "c114fb88c852515d92724113c6b819633373ed53ab3586c50115a264481bd187",
         "simulation/analysis_raw.json": "853bc0f9231bb241537a910c27ff1fad4682b54f9d8cb34e3f6a25bb81b04ef7",
         "simulation/build_identity.json": "002fb6e6d6deabae30c560f01bab3ea8dc7ea9dc1924c69dce7412851b0dc2a5",
         "simulation/mgis.partial.json": "51405ee31deffe16074d5efd12c3acec517b2ff1940d833462e61e8fc22ae617",
@@ -162,7 +163,7 @@
           "size_bytes": 0
         },
         "simulation/library_dependencies.stdout.log": {
-          "sha256": "d7f42daca747ad8d78f525063868fc5bb87b0b4388184ac5c604a6309cca2755",
+          "sha256": "b4e79b7f4051e2dd41116199b5a734fb2f446652507ef715c8c352732a006e4e",
           "size_bytes": 460
         },
         "simulation/licenses/LICENCE-CECILL-A-EN": {
@@ -190,8 +191,8 @@
           "size_bytes": 297
         },
         "simulation/material_worker.command.json": {
-          "sha256": "a216713669ba9b7c9637f99da1699291d4b5bd65b9dce3f344dc9f272eb19506",
-          "size_bytes": 966
+          "sha256": "4bbb6b81df82c0580d4d4f7512962bba283c52f4be2a37a63e61c613dce14b2e",
+          "size_bytes": 984
         },
         "simulation/material_worker.stderr.log": {
           "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -246,8 +247,8 @@
           "size_bytes": 3954
         },
         "simulation/runtime_version.command.json": {
-          "sha256": "6e270137f5b99c7b1d5028240f5330f44a3a440b2b914992114bec3a83fe51df",
-          "size_bytes": 245
+          "sha256": "56d9ddbf78ec212a20af323a249b87070f692e5ed1cbaa4eaf1db2900be0b504",
+          "size_bytes": 251
         },
         "simulation/runtime_version.stderr.log": {
           "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -455,12 +456,14 @@
         "mgis_integrations": 407,
         "mtest_states": 12,
         "nominal_increments": 11,
+        "raw_byte_identical_to_draft07": true,
         "same_library_both_drivers": true
       },
       "parameters": {},
       "result_ref": "experiments/E-material-canonical/result.json",
       "solver_status": "COMPLETED",
       "status": "COMPLETED_REVIEW_REQUIRED",
+      "store": "runs/material-point-native-08-clean",
       "unknown": [
         "model_qualification",
         "material_qualification",
@@ -476,7 +479,7 @@
       "artifact_count": 74,
       "artifact_hashes": {
         "proposal.json": "867cefefbb4e091501ca2c20214c3e55317c52b811ae0f4bc488a44fb2ff0269",
-        "result.json": "e1b819b2e477cb6b65a4c3835a71104f6ba3a003691f0518e91aa138ee7fcbf5",
+        "result.json": "8e7c3917747f1b250d8d45687e9babe6a9bd88d5b565f387b2b20d329bb4a785",
         "simulation/analysis_raw.json": "b1f3e4cd14193547321d58be0f7a243e4ee7f04034cdc6e083964eeeda1dfbdf",
         "simulation/build_identity.json": "002fb6e6d6deabae30c560f01bab3ea8dc7ea9dc1924c69dce7412851b0dc2a5",
         "simulation/mgis.partial.json": "5d6ec1b88f70c2599859964fa7a81e9eb588625e753e609f46f13abad378edbd",
@@ -633,7 +636,7 @@
           "size_bytes": 0
         },
         "simulation/library_dependencies.stdout.log": {
-          "sha256": "e20215539237fadaccc8367243a6661b322ca7369795ede483140ddee1afc7a6",
+          "sha256": "e920abb83687b707ea10e3efd50fa13bb136e0101805b06672c9fc69cbd6a655",
           "size_bytes": 460
         },
         "simulation/licenses/LICENCE-CECILL-A-EN": {
@@ -661,8 +664,8 @@
           "size_bytes": 297
         },
         "simulation/material_worker.command.json": {
-          "sha256": "77c530cedaa92336e42c01fe4b99ec894e12120f81dcf1817e47558d3f9bdbff",
-          "size_bytes": 984
+          "sha256": "3b6c43f53e51d9aebe5aea2ef9f516e88f41bfb602ddd374326adb41d9d0baf3",
+          "size_bytes": 1002
         },
         "simulation/material_worker.stderr.log": {
           "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -717,8 +720,8 @@
           "size_bytes": 3954
         },
         "simulation/runtime_version.command.json": {
-          "sha256": "d080cb2b219e9c96a800fc9bb64d3455a33b743913e1cf09dd3100dc465cf97b",
-          "size_bytes": 251
+          "sha256": "3b2b85ad3f2a9d609cfe4c5aca9a1bb75e890646f346ee902718859db2efa0ce",
+          "size_bytes": 257
         },
         "simulation/runtime_version.stderr.log": {
           "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -926,12 +929,14 @@
         "mgis_integrations": 407,
         "mtest_states": 12,
         "nominal_increments": 11,
+        "raw_byte_identical_to_draft07": true,
         "same_library_both_drivers": true
       },
       "parameters": {},
       "result_ref": "experiments/E-material-changed-modulus/result.json",
       "solver_status": "COMPLETED",
       "status": "COMPLETED_REVIEW_REQUIRED",
+      "store": "runs/material-point-native-08-clean",
       "unknown": [
         "model_qualification",
         "material_qualification",
@@ -947,7 +952,7 @@
       "artifact_count": 2,
       "artifact_hashes": {
         "proposal.json": "8da59f07b5dc96a67ce4394687996b8248e33ca92dc4617edf3dca8685f9bf4c",
-        "result.json": "9d2fb8d4afc23d5ed1d967c9039dd6bcf33d33b8039039705c80985c4cd1eff4",
+        "result.json": "2ec7139fd379450de97f97b2520fc91dfb62031354cd56e5fe2b00ea3c03034a",
         "thread.json": "774e974f8b6cce2beeab2f7438a08cb2ecb51953d98a415af4b7ebcea9d81c83"
       },
       "artifact_manifest": {
@@ -991,11 +996,17 @@
       "result_ref": "experiments/E-material-input-reject/result.json",
       "solver_status": "NOT_RUN",
       "status": "REJECTED",
+      "store": "runs/material-point-native-08-clean",
       "unknown": [
         "model_qualification",
         "physical_validation"
       ]
     }
+  },
+  "clean_artifact_integrity": {
+    "mismatches": 0,
+    "public_core_inspection": "PASS for all three experiments",
+    "separate_manifest_hashes_checked": 150
   },
   "compiler_diagnostic": {
     "comparison": {
@@ -1119,6 +1130,10 @@
   "draft_acceptance_sha256": "7eb75b961a598011a665b0fb90efd74527c7d0c361a1429eb89ec3f740aa9fd6",
   "draft_frozen_acceptance_sha256": "a65911aa58265d0bc437fd625a518cbb4d2af7db49c3d64078ecbce99f335a09",
   "independent_review": {
+    "clean08_artifact_hashes_checked": 150,
+    "clean08_link_and_revision_checks": "PASS for all three model/proposal/thread/evidence/ledger chains",
+    "clean08_review": "PASS",
+    "clean08_source_commit": "c29d6af2a47578b5100ade7d52109d3772e71940",
     "historical_artifact_hashes_checked": 371,
     "mismatches": 0,
     "new_artifact_hashes_checked": 150,
@@ -1127,8 +1142,9 @@
       "changed_modulus"
     ],
     "recomputed_probes_per_case": 396,
+    "remaining_actionable_P1_P2": 0,
     "role": "Read-only independent material review",
-    "source": "Frozen draft native07 hashes",
+    "source": "Frozen native07 and byte-identical native08 clean raw",
     "tests_build_or_native_execution_by_reviewer": false
   },
   "limitations": [
@@ -1380,7 +1396,7 @@
     "native_sources_and_libraries_in_git": false,
     "remote_artifact_bundle": "NOT_CREATED",
     "status": "LOCAL_ONLY",
-    "stores": "runs/material-point-native-01 through material-point-native-07",
+    "stores": "runs/material-point-native-01 through material-point-native-07 plus material-point-native-08-clean",
     "worktree": "C:/Users/pikac/.codex/worktrees/material-point/autonomous-cae-lab"
   },
   "schema_version": 1,
@@ -1539,7 +1555,24 @@
   },
   "source_checkpoint": {
     "clean_commit_acceptance": {
-      "status": "NOT_RUN"
+      "acceptance_sha256": "f8ba3abb25e1b19911cdb2ee74ef7fb1e0cc842f3949e03efe8945521fdd3164",
+      "execution": "Existing WSL Lab Python3.12 venv with worktree PYTHONPATH and Windows Git bridge; python scripts/verify_material_point.py --store runs/material-point-native-08-clean",
+      "frozen_acceptance_sha256": "3f33631c08697e1f2446cca3f0a9ca214c434f969ead93560c4fd2bcdcad5075",
+      "frozen_files": {
+        "adapter_sha256": "01b27ce119afd33e7404bac8960d65e5d17f8aa5648b79fcbdb20ca905187e0c",
+        "plugin_sha256": "fc06840f0d36c5a94db4c09123d53c9355bceb38027d6e4b5a5f908c07391762",
+        "script_sha256": "846aacd1a967b1d85dca6cfc2010d6e6f1113b594d6ddc689a5f4ecf45b5b3ca",
+        "settings_sha256": "2ab9b0a89ca3aa4c64aadd584f834f7f2d68e8968486c122255171135ab71820",
+        "worker_sha256": "3d909f2e68a29807a6e9333817b6eed3308c51bca126a029465f347f61b71c99"
+      },
+      "source_identity": {
+        "core_commit": "c29d6af2a47578b5100ade7d52109d3772e71940",
+        "core_dirty": false,
+        "core_source_sha256": "fa5957c1f9b6977851c63de57a4774b42a1d2e05604a36ab90fa24a0f160265c"
+      },
+      "source_unchanged_during_run": true,
+      "status": "PASS",
+      "store": "runs/material-point-native-08-clean"
     },
     "draft_identity": {
       "core_commit": "03bfd7115ca3933cb18af17c55cc751839e91c98",
@@ -1559,9 +1592,11 @@
   "status": "PASS",
   "unit_regressions": {
     "command": "python -m pytest -q tests/test_material_point_reference.py tests/test_mfront_material_adapter.py tests/test_declared_model.py",
-    "duration_s": 18.59,
+    "core_dirty": false,
+    "duration_s": 15.07,
     "environment": "Existing WSL Lab venv, worktree PYTHONPATH, Windows Git bridge",
     "passed": 84,
-    "python": "3.12.3"
+    "python": "3.12.3",
+    "source_commit": "c29d6af2a47578b5100ade7d52109d3772e71940"
   }
 }
