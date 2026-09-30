@@ -184,7 +184,7 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     from scripts.verify_codeaster import specification as aster_spec
     client, service, _, _ = real_flow
     presets = client.request("/api/presets")
-    assert set(presets) == {"structural_linear", "pde_canonical", "codeaster_linear",
+    assert set(presets) == {"structural_linear", "pde_canonical", "pde_nonlinear", "codeaster_linear",
                             "codeaster_plasticity", "material_point", "material_inverse", "explicit_freefall", "explicit_ground_stop"}
     assert presets["pde_canonical"]["settings"] == pde_spec()
     assert presets["codeaster_linear"]["settings"] == aster_spec()
@@ -192,7 +192,7 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     assert presets["structural_linear"]["operation"] == "analysis_run"
     assert presets["pde_canonical"]["operation"] == "pde_run"
     assert all(preset["operation"] == "model_analysis_run" for key, preset in presets.items()
-               if key not in {"structural_linear", "pde_canonical"})
+               if preset["operation"] != "pde_run" and key != "structural_linear")
     assert presets["explicit_ground_stop"]["status"] == "REJECTED"
     plan = client.job("doe_plan", {"study_id": "S-http", "campaign_id": "D-http",
         "backend": "fixture.cadquery", "model": "roller_support", "parameter_ids": ["support_width"],

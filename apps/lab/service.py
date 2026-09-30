@@ -108,7 +108,7 @@ class LabService:
             "native_inspect": ("FreeCAD 원본 살펴보기", "fixture.freecad", "EXPERIMENTAL", "기존 native model ID로 조회"),
             "native_final": ("최종 형상 선택", "fixture.freecad", "EXPERIMENTAL", "원본의 기존 final-solid 선택"),
             "analysis_run": ("선형 구조 해석", "fixture.calculix", "EXPERIMENTAL", "검증된 CAD parent, 가정된 재료·하중; NOT_RELEASED"),
-            "pde_run": ("약형 PDE 실험", "pde.fenicsx", "EXPERIMENTAL", "제한된 scalar weak form와 해석해 비교; 물리 검증 UNKNOWN"),
+            "pde_run": ("약형 PDE 실험", ", ".join(sorted(self._selected().lab.pde_adapters)), "EXPERIMENTAL", "제한된 선형·비선형 scalar weak form와 해석해 비교; 물리 검증 UNKNOWN"),
             "model_analysis_run": ("모델·재료·동해석 실행", "Code_Aster / MFront / OpenRadioss", "EXPERIMENTAL", "선형·J2 소성·재료점·자유낙하 검증; 벽 접촉 실패, 물리·강도 검증 UNKNOWN"),
             "doe_plan": ("DOE 계획", "scipy.latin_hypercube", "IMPLEMENTED", "수치 엔진이 후보를 생성"),
             "doe_run": ("DOE 실행", "scipy.latin_hypercube", "IMPLEMENTED", "기존 Core의 개별 실험과 증거 재사용"),
@@ -289,6 +289,7 @@ class LabService:
 
     def presets(self) -> dict:
         from scripts.verify_pde import specification as pde_specification
+        from plugins.pde_nonlinear.reference import manufactured_settings as nonlinear_pde_specification
         from scripts.verify_codeaster import specification as codeaster_specification
         from scripts.verify_plasticity import specification as plasticity_specification
         from scripts.verify_openradioss import specification as explicit_specification
@@ -306,6 +307,9 @@ class LabService:
             "pde_canonical": {"operation": "pde_run", "backend": "pde.fenicsx", "label": "Canonical Poisson 약형 benchmark",
                 "status": "EXPERIMENTAL", "scope": "dimensionless unit square의 해석해·오차·수렴 검증; 물리 검증 UNKNOWN",
                 "settings": pde_specification()},
+            "pde_nonlinear": {"operation": "pde_run", "backend": "pde.fenicsx.nonlinear", "label": "비선형 확산 약형 benchmark",
+                "status": "EXPERIMENTAL", "scope": "단위 정사각형의 해석해·Newton 잔차·오차 수렴 비교; 일반 비선형·MPI·물리 자격 UNKNOWN",
+                "settings": nonlinear_pde_specification()},
             "codeaster_linear": {"operation": "model_analysis_run", "backend": "structural.code_aster", "label": "독립적인 선형 elasticity benchmark",
                 "status": "EXPERIMENTAL", "scope": "가정된 solid block의 affine analytical reference; 비선형·접촉 및 물리·강도 검증 UNKNOWN",
                 "settings": codeaster_specification()},

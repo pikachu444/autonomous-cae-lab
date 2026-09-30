@@ -1,0 +1,28 @@
+{
+  "record_kind": "REVIEWED_NATIVE_PDE_COMMON_ROUTE_INTEGRATION",
+  "date": "2026-09-30",
+  "backend": "pde.fenicsx.nonlinear",
+  "native_source": "8814873fc70ac0741c142bcc3969086776f7b806",
+  "evidence_checkpoint": "9689557655a9a26abd9d09fdffbeffb33562e777",
+  "independent_native_record_review": "PASS_NO_OPEN_P1_P2",
+  "acceptance_sha256": "c31133dbabdf70cce2c4fdf0b31203091f2550b8292b180ff4470c1739efff2d",
+  "reviewed_field_meshes": 15,
+  "registered_artifacts": 167,
+  "bounded_cases": ["alpha1", "alpha0", "alpha2", "fresh_existing_linear", "wrong_reference_REJECTED", "3_preflight_NOT_RUN"],
+  "integration": {
+    "default_registry": true,
+    "existing_cli_mcp_http_route": true,
+    "optional_pure_declaration_in_common_revision": true,
+    "legacy_settings_only_revision_preserved": true,
+    "legacy_reported_and_recomputed_rate_floor": "UNCHANGED_LIMIT_STRICT_ADMISSION",
+    "regressions": {"passed": 420, "warnings": 1, "seconds": 99.05, "log": "artifacts/nonlinear-integration-tests.log"},
+    "actual_native_ci_step_and_complete_store_upload": true,
+    "future_library_export_zip_bytes_retained": true,
+    "independent_integration_review": "PASS_RETAINED_ZIP_PAIR_COLLISION_CLOSED_NO_OPEN_P1_P2",
+    "zip_collision_regression": {"passed": 1, "seconds": 0.68, "log_sha256": "773d5ae9b1ba699af0b8aa56d30953f3f75b84e7c76c61a77a882ed1a595f171"},
+    "fresh_clean_integrated_native": "PENDING",
+    "exact_source_ci": "PENDING"
+  },
+  "limitations": ["Bounded scalar serial unit square", "No general coupled/MPI PDE", "No physical/model qualification", "No full phase completion"],
+  "decision": "NOT_RELEASED"
+}

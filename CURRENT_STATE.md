@@ -1,5 +1,32 @@
 # Current state — 2026-09-30 (Asia/Seoul)
 
+## Nonlinear PDE shared-route checkpoint
+
+Preceding inverse integration d406b54 passed all eight CI jobs36702834926;
+its native inverse proof remains local0457af3, not that remote workflow.
+
+The independently reviewed nonlinear source8814873 / evidence9689557 is wired
+to the default PDE registry and shared CLI/MCP/HTTP operation/preset. Optional
+pure mathematical declarations now enter the existing common proposal and
+revision boundary; legacy adapters retain settings-only identities. The Core
+contains no diffusion/Newton/UFL syntax. 420 focused tests passed in99.05s.
+An independently identified legacy linear rate-floor issue is corrected without
+changing limits: both reported and error-recomputed rates must pass. The sharp
+boundary regression retains the rounded observation but rejects a recomputed
+rate below the declared floor.
+
+CI has the actual nonlinear acceptance and store upload. Library HTTP exports
+are now saved as ZIP bytes with retained paths, repairing future archive
+retention; old missing ZIPs are not fabricated. Clean integrated-source native
+and exact-source CI checks remain separate next steps. Mathematical/physical
+qualification and complete Phase4/5 remain open.
+
+The88bbb72 changed Code_Aster-family archive audit completed with zero errors:
+nineteen experiments, 1,291 registered artifacts, nine model candidates and
+eighteen native mesh solves. Full Core952/1warning and26 MCP checks passed.
+Its replay witness is the actual verifier/log; no separate pre-interruption
+byte snapshot was uploaded. Raw audit and logs are preserved locally.
+
 ## Reviewed synthetic inverse connection
 
 The common default model registry now includes `material.mfront.inverse` and

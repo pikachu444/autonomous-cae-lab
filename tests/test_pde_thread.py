@@ -127,6 +127,29 @@ def test_pde_uses_common_schema_evidence_and_hashed_thread_without_a_cad_parent(
     jsonschema.validate(result, load_json(schemas / "result.schema.json"))
 
 
+def test_optional_pde_declaration_enters_the_common_revision_and_proposal(tmp_path):
+    from plugins.pde_nonlinear.reference import manufactured_settings, model_declaration
+
+    lab, adapter = _lab(tmp_path)
+    adapter.describe_model = model_declaration
+    settings = manufactured_settings()
+    declaration = model_declaration(settings)
+    result = _run(lab, settings=settings)
+    proposal = load_json(tmp_path / "experiments" / EXPERIMENT / "proposal.json")
+    thread = load_json(tmp_path / "experiments" / EXPERIMENT / "thread.json")
+    revision = canonical_hash({"settings": settings, "declaration": declaration})
+    assert proposal["model"] == declaration["model"]
+    assert proposal["boundary_conditions"] == declaration["boundary_conditions"]
+    assert proposal["loads"] == declaration["loads"]
+    assert proposal["outputs"]["fields"] == declaration["outputs"]["fields"]
+    assert result["extensions"]["pde"]["declaration"] == declaration
+    assert proposal["model_revision"] == result["model_revision"] == thread["model_revision"] == revision
+    assert result["cad_revision"] is None and "parent_experiment_id" not in result
+    assert result["decision"] == "NOT_RELEASED" and adapter.calls == 1
+    assert result["provenance"]["adapter_details"]["test_only"] is True
+    assert lab.inspect_experiment(EXPERIMENT) == result
+
+
 @pytest.mark.parametrize("mutate", [
     pytest.param(lambda outcome: outcome.update(status="UNKNOWN_STATUS"), id="malformed-status"),
     pytest.param(lambda outcome: outcome["checks"][0].update(status="FINISHED"), id="malformed-check"),

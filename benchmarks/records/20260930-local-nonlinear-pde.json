@@ -1,0 +1,4349 @@
+{
+  "acceptance_artifact": {
+    "path": "artifacts/local-20260930-nonlinear-pde-draft-01/nonlinear_pde_acceptance.json",
+    "sha256": "c31133dbabdf70cce2c4fdf0b31203091f2550b8292b180ff4470c1739efff2d",
+    "size_bytes": 45592
+  },
+  "accepted_experiments": [
+    "E-nonlinear-alpha1",
+    "E-nonlinear-alpha0",
+    "E-nonlinear-alpha2",
+    "E-linear-existing"
+  ],
+  "alpha1_alpha2_coarse_field_max_difference": 0.0036678397549199104,
+  "attempts": [
+    {
+      "explanation": "First actual nonlinear PDE acceptance attempt completed; intentional numerical/preflight rejections retained in this same fresh store",
+      "source_commit": "8814873fc70ac0741c142bcc3969086776f7b806",
+      "status": "PASS",
+      "store": "artifacts/local-20260930-nonlinear-pde-draft-01"
+    }
+  ],
+  "backend": "pde.fenicsx.nonlinear",
+  "backend_version": "1",
+  "captured_source_sha256": {
+    "adapter": "93e0e993f50e944ab94c430e1fcd2c7f5d0f52e4fbae1ad36a7ad6de0aa2520f",
+    "domain_reference": "ca6673adbc695a958f25e3607c5615d6416985171275ec96bd12351caf04695e",
+    "expression_parser": "7f99a46e0894022a72be740d5e81324d02085fc9bdcca8ee4ed0c5235caab7d4",
+    "linear_adapter_utilities": "f9424dc792e8357a8ebf3e82473f7a5e8d3a7cea725a6719eec180bbe09b5d45",
+    "worker": "31ab6a1667d7c2e0b80137c582f7a22bd8eb27fbb9dd0c6d9e928f24335d2cdd"
+  },
+  "cases": {
+    "E-linear-existing": {
+      "artifact_bytes": 158841,
+      "artifact_count": 19,
+      "artifact_files": [
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/command.json",
+          "sha256": "19496eb3b7ee140ea5eeaeff34cebbca266d577c50857130d6097866522bbf35",
+          "size_bytes": 456
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/input.json",
+          "sha256": "9fbee6b0a28e6b9d8913027f6c95b98dc0cf8858017752b57d886620ef7bfdfc",
+          "size_bytes": 584
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/level_n16/field.h5",
+          "sha256": "e922cdde46b6f6eb823370bcaff8b3b7ff403623e849a3d7c4bff28a15493081",
+          "size_bytes": 26784
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/level_n16/field.xdmf",
+          "sha256": "bb874d36b566e06e14a2980ed8785e7a6df71548ea2bde77ba7c3967c8774046",
+          "size_bytes": 1018
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/level_n16/forms.ufl.txt",
+          "sha256": "257dea60062e249f71c687dec73373d0c3031a2f114bbe5de73d084a4fa83538",
+          "size_bytes": 344
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/level_n32/field.h5",
+          "sha256": "0a74e660ef4a4070ee4eb138547f3c0cf9940764b96efd1ea9b38436ce4e7bfd",
+          "size_bytes": 82848
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/level_n32/field.xdmf",
+          "sha256": "5c4349c410a7c1f7561e0de0aaafcea9c1c41e4fa6865111e40dab95593f8963",
+          "size_bytes": 1022
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/level_n32/forms.ufl.txt",
+          "sha256": "acefa571f437f06dc4db100c872a017407d917bd9f8a87b7a3c23b012ea79e65",
+          "size_bytes": 344
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/level_n8/field.h5",
+          "sha256": "760dbcdcd56c29af87d5a0d70fb5509ec70db4f7cc2090dc39318d75edd6bc28",
+          "size_bytes": 11232
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/level_n8/field.xdmf",
+          "sha256": "b4d85d86d7c26088771302759b43b6b341c13db40a9d70dde4f051c1d008dbb7",
+          "size_bytes": 1016
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/level_n8/forms.ufl.txt",
+          "sha256": "f9c949cd9871b3546d7d82d37965d11812d32b2b4f3dd0b0764366f95d0431c2",
+          "size_bytes": 344
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/result.json",
+          "sha256": "9fff14d97c931711c2ab7203f0bde1f0de30b013981d73afabc7323c08ab9ca6",
+          "size_bytes": 9188
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/stdout.log",
+          "sha256": "b4ca7e31a99b73ecdf35bbb4a0a0c86d3187ba83586ca7a69825ba93f002c9eb",
+          "size_bytes": 238
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/weak_form.txt",
+          "sha256": "ed36f6a12e378a98958a369dbb7f9d2e86d3a97a7c1ec5bed7abd342d13138b2",
+          "size_bytes": 438
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/worker.py",
+          "sha256": "7f99a46e0894022a72be740d5e81324d02085fc9bdcca8ee4ed0c5235caab7d4",
+          "size_bytes": 17429
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/worker_result.json",
+          "sha256": "467e693cedb65fecc1b04b9c30a28959dc112767fa511ccbfbfd03b7480e0b50",
+          "size_bytes": 3962
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/proposal.json",
+          "sha256": "8907bec0fc49bd3046fdbe3228a8e38f635a0ac93c79c7ccf1d16d323d0fb331",
+          "size_bytes": 1557
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        }
+      ],
+      "cad_parent_present": false,
+      "cad_revision": null,
+      "checks": [
+        {
+          "code": "pde_preflight",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": "input.json",
+          "observed": "Bounded scalar weak-form specification",
+          "status": "PASS"
+        },
+        {
+          "code": "pde_solver_convergence",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": "Positive PETSc KSP reasons",
+          "observed": [
+            4,
+            4,
+            4
+          ],
+          "status": "PASS"
+        },
+        {
+          "code": "pde_boundary_and_mesh",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": {
+            "boundary_dofs": "4*n",
+            "cells": "2*n^2",
+            "dofs": "(n+1)^2",
+            "max_boundary_error": 1e-12
+          },
+          "observed": [
+            {
+              "boundary_error": 0.0,
+              "cells": 128,
+              "dirichlet_dofs": 32,
+              "dofs": 81,
+              "n": 8
+            },
+            {
+              "boundary_error": 0.0,
+              "cells": 512,
+              "dirichlet_dofs": 64,
+              "dofs": 289,
+              "n": 16
+            },
+            {
+              "boundary_error": 0.0,
+              "cells": 2048,
+              "dirichlet_dofs": 128,
+              "dofs": 1089,
+              "n": 32
+            }
+          ],
+          "status": "PASS"
+        },
+        {
+          "code": "pde_analytical_l2_error",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 0.003,
+          "observed": 0.0013504362485536208,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_l2_convergence_rate",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1.8,
+          "observed": {
+            "minimum": 1.9744920296427475,
+            "pair_rates": [
+              1.9744920296427475,
+              1.9934926491266785
+            ]
+          },
+          "status": "PASS"
+        },
+        {
+          "code": "pde_linear_residual",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1e-10,
+          "observed": 3.8917060164593486e-14,
+          "status": "PASS"
+        }
+      ],
+      "converged": true,
+      "decision": "NOT_RELEASED",
+      "ledger": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/ledger/E-linear-existing.json",
+        "sha256": "7cbe0fff4f2a4ad98e9d90a25f78779be0310be1bf9d4e5929641296b3065802",
+        "size_bytes": 270
+      },
+      "mesh_studies": [
+        {
+          "artifact_sha256": {
+            "field": "b4d85d86d7c26088771302759b43b6b341c13db40a9d70dde4f051c1d008dbb7",
+            "field_data": "760dbcdcd56c29af87d5a0d70fb5509ec70db4f7cc2090dc39318d75edd6bc28",
+            "form_source": "f9c949cd9871b3546d7d82d37965d11812d32b2b4f3dd0b0764366f95d0431c2"
+          },
+          "boundary_value_error": 0.0,
+          "cell_type": "triangle",
+          "cells_per_axis": 8,
+          "degree": 1,
+          "dirichlet_dofs": 32,
+          "dirichlet_value": 0.0,
+          "files": {
+            "field": "level_n8/field.xdmf",
+            "field_data": "level_n8/field.h5",
+            "form_source": "level_n8/forms.ufl.txt"
+          },
+          "global_cells": 128,
+          "global_dofs": 81,
+          "h1_seminorm_convergence_rate": null,
+          "h1_seminorm_error": 0.43179828300642425,
+          "ksp_convergence_reason": 4,
+          "ksp_iterations": 1,
+          "l2_convergence_rate": null,
+          "l2_error": 0.02113277345842124,
+          "linear_residual": {
+            "absolute": 2.3953258746092616e-15,
+            "normalization": "rhs_l2_norm",
+            "relative": 1.9920336751528014e-15,
+            "rhs_norm": 1.2024525009224682
+          },
+          "nominal_h": 0.125
+        },
+        {
+          "artifact_sha256": {
+            "field": "bb874d36b566e06e14a2980ed8785e7a6df71548ea2bde77ba7c3967c8774046",
+            "field_data": "e922cdde46b6f6eb823370bcaff8b3b7ff403623e849a3d7c4bff28a15493081",
+            "form_source": "257dea60062e249f71c687dec73373d0c3031a2f114bbe5de73d084a4fa83538"
+          },
+          "boundary_value_error": 0.0,
+          "cell_type": "triangle",
+          "cells_per_axis": 16,
+          "degree": 1,
+          "dirichlet_dofs": 64,
+          "dirichlet_value": 0.0,
+          "files": {
+            "field": "level_n16/field.xdmf",
+            "field_data": "level_n16/field.h5",
+            "form_source": "level_n16/forms.ufl.txt"
+          },
+          "global_cells": 512,
+          "global_dofs": 289,
+          "h1_seminorm_convergence_rate": 0.989101103835933,
+          "h1_seminorm_error": 0.2175363363595286,
+          "ksp_convergence_reason": 4,
+          "ksp_iterations": 1,
+          "l2_convergence_rate": 1.9744920296427475,
+          "l2_error": 0.005377435009948098,
+          "linear_residual": {
+            "absolute": 5.297112081855922e-15,
+            "normalization": "rhs_l2_norm",
+            "relative": 8.642676302396674e-15,
+            "rhs_norm": 0.6129018253740448
+          },
+          "nominal_h": 0.0625
+        },
+        {
+          "artifact_sha256": {
+            "field": "5c4349c410a7c1f7561e0de0aaafcea9c1c41e4fa6865111e40dab95593f8963",
+            "field_data": "0a74e660ef4a4070ee4eb138547f3c0cf9940764b96efd1ea9b38436ce4e7bfd",
+            "form_source": "acefa571f437f06dc4db100c872a017407d917bd9f8a87b7a3c23b012ea79e65"
+          },
+          "boundary_value_error": 0.0,
+          "cell_type": "triangle",
+          "cells_per_axis": 32,
+          "degree": 1,
+          "dirichlet_dofs": 128,
+          "dirichlet_value": 0.0,
+          "files": {
+            "field": "level_n32/field.xdmf",
+            "field_data": "level_n32/field.h5",
+            "form_source": "level_n32/forms.ufl.txt"
+          },
+          "global_cells": 2048,
+          "global_dofs": 1089,
+          "h1_seminorm_convergence_rate": 0.9972535922789292,
+          "h1_seminorm_error": 0.10897542351921931,
+          "ksp_convergence_reason": 4,
+          "ksp_iterations": 1,
+          "l2_convergence_rate": 1.9934926491266785,
+          "l2_error": 0.0013504362485536208,
+          "linear_residual": {
+            "absolute": 1.198373712239196e-14,
+            "normalization": "rhs_l2_norm",
+            "relative": 3.8917060164593486e-14,
+            "rhs_norm": 0.3079301743684816
+          },
+          "nominal_h": 0.03125
+        }
+      ],
+      "metric_validity_counts": {
+        "valid": 4
+      },
+      "metrics": {
+        "h1_seminorm_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.10897542351921931
+        },
+        "l2_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.9934926491266785
+        },
+        "l2_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0013504362485536208
+        },
+        "linear_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 3.8917060164593486e-14
+        }
+      },
+      "model_revision": "3ca6f44289afbffdc167b3a443187fee4c5838c027227465e0ed7584d7bce0fa",
+      "native_fields_present": true,
+      "pending_validations": [
+        "physical_validation",
+        "model_qualification"
+      ],
+      "raw_result": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/result.json",
+        "sha256": "9fff14d97c931711c2ab7203f0bde1f0de30b013981d73afabc7323c08ab9ca6",
+        "size_bytes": 9188
+      },
+      "records": {
+        "proposal": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/proposal.json",
+          "sha256": "8907bec0fc49bd3046fdbe3228a8e38f635a0ac93c79c7ccf1d16d323d0fb331",
+          "size_bytes": 1557
+        },
+        "registry": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        },
+        "result": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/result.json",
+          "sha256": "39f422bff3b5092770f840f92a1d89802fb90eff4161952d281406901b2cd4c7",
+          "size_bytes": 18336
+        },
+        "thread": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/thread.json",
+          "sha256": "5573678588ec6bef06cc5dc19eb2298834fd31213ee7af5e63c5b65cf64a98f4",
+          "size_bytes": 519
+        }
+      },
+      "settings": {
+        "mesh": {
+          "cell_counts": [
+            8,
+            16,
+            32
+          ],
+          "degree": 1
+        },
+        "problem": {
+          "dirichlet": "0.0",
+          "domain": "unit_square",
+          "reference": {
+            "solution": "sin(pi*x[0])*sin(pi*x[1])",
+            "source": "Analytical manufactured solution for -div((1+alpha*u^2)*grad(u)) on the dimensionless unit square"
+          },
+          "weak_form": {
+            "diffusion": 1.0,
+            "reaction": 0.0,
+            "rhs": "2*pi**2*sin(pi*x[0])*sin(pi*x[1])"
+          }
+        },
+        "validation": {
+          "max_l2_error": 0.003,
+          "max_residual_relative": 1e-10,
+          "min_l2_rate": 1.8
+        }
+      },
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "subprocess_command_present": true,
+      "validation_status_counts": {
+        "PASS": 6,
+        "UNKNOWN": 2
+      },
+      "validation_types": {
+        "model_qualification": "UNKNOWN",
+        "pde_analytical_l2_error": "PASS",
+        "pde_boundary_and_mesh": "PASS",
+        "pde_l2_convergence_rate": "PASS",
+        "pde_linear_residual": "PASS",
+        "pde_preflight": "PASS",
+        "pde_solver_convergence": "PASS",
+        "physical_validation": "UNKNOWN"
+      },
+      "versions": {
+        "basix": "0.11.0",
+        "dolfinx": "0.11.0.post0",
+        "ffcx": "0.11.0",
+        "mpi4py": "3.1.5",
+        "numpy": "1.26.4",
+        "petsc": "3.19.6",
+        "petsc4py": "3.19.6",
+        "python": "3.12.3",
+        "ufl": "2026.1.0"
+      },
+      "worker_result": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-linear-existing/pde/worker_result.json",
+        "sha256": "467e693cedb65fecc1b04b9c30a28959dc112767fa511ccbfbfd03b7480e0b50",
+        "size_bytes": 3962
+      }
+    },
+    "E-nonlinear-alpha0": {
+      "artifact_bytes": 544247,
+      "artifact_count": 37,
+      "artifact_files": [
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/command.json",
+          "sha256": "9c5c856741bb14407992d2884b9e3007b4f700784a272c25f350d98506d8de6f",
+          "size_bytes": 771
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/domain_reference.py",
+          "sha256": "ca6673adbc695a958f25e3607c5615d6416985171275ec96bd12351caf04695e",
+          "size_bytes": 24231
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/fenicsx_expression.py",
+          "sha256": "7f99a46e0894022a72be740d5e81324d02085fc9bdcca8ee4ed0c5235caab7d4",
+          "size_bytes": 17429
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/input.json",
+          "sha256": "1567486116cb45cf9b75f95c5fdffd48408a7dddf2594a1346e4b9af0af13689",
+          "size_bytes": 616
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n16/dofs.json",
+          "sha256": "08502eb0066d9df57453c2fba821bc269769e9b9dfd97c2ae9ec031d102c666f",
+          "size_bytes": 43120
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n16/field.h5",
+          "sha256": "aa5a8307ccda550099fb38d4a098dcf04fe93765a1870a8eb4fda555a067b9f0",
+          "size_bytes": 26784
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n16/field.xdmf",
+          "sha256": "bb874d36b566e06e14a2980ed8785e7a6df71548ea2bde77ba7c3967c8774046",
+          "size_bytes": 1018
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n16/forms.ufl.txt",
+          "sha256": "2b1cfddc2c62734d5a73263b66baeb635d24169ef0653fa4de3ca52dd533b6f9",
+          "size_bytes": 775
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n16/linear_comparison.json",
+          "sha256": "285c3418659978bcd3822c288897ac9ac850e975cededcf182423cccca8037cf",
+          "size_bytes": 8658
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n16/newton_history.json",
+          "sha256": "8dfea6daa2331a6cb8aec5cfe12fd84b2b5172fa98794077536be950f6370cfe",
+          "size_bytes": 1306
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n16/solver_configuration.txt",
+          "sha256": "e3785de425c1147f32c031a90d5999e127fff8367aeafb405b7d01ae3d331ec2",
+          "size_bytes": 1259
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n32/dofs.json",
+          "sha256": "9bbb1c730075c7e9f68827f4c1a3c5a520c088be4d4409c1da8ba2c0788e0d44",
+          "size_bytes": 172017
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n32/field.h5",
+          "sha256": "678b6a02dc0bf214c0dd04a5a0b3db22cb0244f70bf4a72a1c2bca932d9ae81f",
+          "size_bytes": 82848
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n32/field.xdmf",
+          "sha256": "5c4349c410a7c1f7561e0de0aaafcea9c1c41e4fa6865111e40dab95593f8963",
+          "size_bytes": 1022
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n32/forms.ufl.txt",
+          "sha256": "451580e66f0d85cd0707b753efdc8cf15d068bb14e6420cad232bba49c77ca85",
+          "size_bytes": 775
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n32/linear_comparison.json",
+          "sha256": "3e2f9a27d65e4b30a5ebbf4151a4f5edac13dc132aa4e61a3a7ed70cf39429ea",
+          "size_bytes": 34446
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n32/newton_history.json",
+          "sha256": "45a8c6b969d96634d40ccc0a9f4196ba11f74538d44e76ceb7b83a16617fbcd2",
+          "size_bytes": 1308
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n32/solver_configuration.txt",
+          "sha256": "7ab44e5a9c51d651ecaeb37bd5b4bc011dc4ba520699792186a072da142194b2",
+          "size_bytes": 1259
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n8/dofs.json",
+          "sha256": "1f13221ba129de827b7e4bc2fb263f3a702ec34ce1639ecb81b98d7fea1c8122",
+          "size_bytes": 10999
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n8/field.h5",
+          "sha256": "7ec1d9e992a0e09867716bb0ef4a922910f3b49ea3453f15f8ee0dfa7be86e73",
+          "size_bytes": 11232
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n8/field.xdmf",
+          "sha256": "b4d85d86d7c26088771302759b43b6b341c13db40a9d70dde4f051c1d008dbb7",
+          "size_bytes": 1016
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n8/forms.ufl.txt",
+          "sha256": "003a5c3a0cbc763ecf39ca76f6a4508e2aa56da579fd3517c56024d0cdde2a88",
+          "size_bytes": 775
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n8/linear_comparison.json",
+          "sha256": "1b4853d6900c4435fbf483d1bf11b1830a2bfe0b1e466c5e74380163b6c07463",
+          "size_bytes": 2232
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n8/newton_history.json",
+          "sha256": "a6c544bcd0c3e33395a542dc6b61c75aca3ff46581f96c959a110535218663c1",
+          "size_bytes": 1309
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/level_n8/solver_configuration.txt",
+          "sha256": "ab8c748863e758f68404e39d31d896c452001716783eb91e262421efee9136d9",
+          "size_bytes": 1255
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/petsc_initialization.json",
+          "sha256": "bc816923e33802964b2bad12c3097b48590e87eb62181d5317066baea2344a43",
+          "size_bytes": 443
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/result.json",
+          "sha256": "6dc513eb46e25a432109c2cdffb2f43784cda8b5aafba7b55847e82279c4f523",
+          "size_bytes": 21433
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/source_manifest.json",
+          "sha256": "58696393c6556d0ca3d4a1cf69924fb9f75c00dbb25d4432771dd06cfe3ccfb1",
+          "size_bytes": 1192
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/sources/fenicsx_nonlinear.py",
+          "sha256": "93e0e993f50e944ab94c430e1fcd2c7f5d0f52e4fbae1ad36a7ad6de0aa2520f",
+          "size_bytes": 22166
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/sources/fenicsx_pde.py",
+          "sha256": "f9424dc792e8357a8ebf3e82473f7a5e8d3a7cea725a6719eec180bbe09b5d45",
+          "size_bytes": 16824
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/stdout.log",
+          "sha256": "fc7bacda288e683b50974db50730c2fb6095ad7c162b41c83618569ab0fb8a50",
+          "size_bytes": 741
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/weak_form.txt",
+          "sha256": "4e270c5d0bbcef7407a5b5c8bdef8f2be46fe1bfd8a20131027507056da32f06",
+          "size_bytes": 607
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/worker.py",
+          "sha256": "31ab6a1667d7c2e0b80137c582f7a22bd8eb27fbb9dd0c6d9e928f24335d2cdd",
+          "size_bytes": 18897
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/worker_result.json",
+          "sha256": "d1b2e15dd5d7d78d38221a33196ed65590230bdce4d7473395c1c70e74f8b386",
+          "size_bytes": 11689
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/proposal.json",
+          "sha256": "31f5ef8583a22ad9807aa51c904b85705811a7f5ecc7af5545241986f32a215a",
+          "size_bytes": 1758
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        }
+      ],
+      "cad_parent_present": false,
+      "cad_revision": null,
+      "captured_source_sha256": {
+        "adapter": "93e0e993f50e944ab94c430e1fcd2c7f5d0f52e4fbae1ad36a7ad6de0aa2520f",
+        "domain_reference": "ca6673adbc695a958f25e3607c5615d6416985171275ec96bd12351caf04695e",
+        "expression_parser": "7f99a46e0894022a72be740d5e81324d02085fc9bdcca8ee4ed0c5235caab7d4",
+        "linear_adapter_utilities": "f9424dc792e8357a8ebf3e82473f7a5e8d3a7cea725a6719eec180bbe09b5d45",
+        "worker": "31ab6a1667d7c2e0b80137c582f7a22bd8eb27fbb9dd0c6d9e928f24335d2cdd"
+      },
+      "checks": [
+        {
+          "code": "pde_boundary_and_mesh",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": {
+            "boundary_dofs": "4*n",
+            "cells": "2*n^2",
+            "dofs": "(n+1)^2",
+            "max_boundary_value_error": 1e-12
+          },
+          "observed": [
+            {
+              "boundary_value_error": 0.0,
+              "cells": 128,
+              "dirichlet_dofs": 32,
+              "dofs": 81,
+              "n": 8
+            },
+            {
+              "boundary_value_error": 0.0,
+              "cells": 512,
+              "dirichlet_dofs": 64,
+              "dofs": 289,
+              "n": 16
+            },
+            {
+              "boundary_value_error": 0.0,
+              "cells": 2048,
+              "dirichlet_dofs": 128,
+              "dofs": 1089,
+              "n": 32
+            }
+          ],
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_convergence",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": "Positive native SNES convergence reason",
+          "observed": [
+            2,
+            2,
+            2
+          ],
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_iterations",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 25,
+          "observed": 1,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_absolute_residual",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1e-10,
+          "observed": 1.1949910321914767e-14,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_relative_residual",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1e-10,
+          "observed": 3.880720798610345e-14,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_nonlinear_residual",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1e-10,
+          "observed": 3.880720798610345e-14,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_analytical_l2_error",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 0.003,
+          "observed": 0.0013504362485536208,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_l2_convergence_rate",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1.8,
+          "observed": {
+            "recomputed": [
+              1.9744920296427475,
+              1.9934926491266785
+            ],
+            "reported": [
+              1.9744920296427475,
+              1.9934926491266785
+            ]
+          },
+          "status": "PASS"
+        },
+        {
+          "code": "pde_analytical_h1_seminorm_error",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 0.12,
+          "observed": 0.10897542351921931,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_h1_seminorm_convergence_rate",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 0.9,
+          "observed": {
+            "recomputed": [
+              0.989101103835933,
+              0.9972535922789292
+            ],
+            "reported": [
+              0.989101103835933,
+              0.9972535922789292
+            ]
+          },
+          "status": "PASS"
+        },
+        {
+          "code": "pde_alpha_zero_linear_comparison",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": {
+            "ksp_convergence_reason": "positive",
+            "max_dof_difference": 1e-10
+          },
+          "observed": {
+            "ksp_convergence_reasons": [
+              4,
+              4,
+              4
+            ],
+            "max_dof_difference": 0.0
+          },
+          "status": "PASS"
+        }
+      ],
+      "converged": true,
+      "decision": "NOT_RELEASED",
+      "ledger": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/ledger/E-nonlinear-alpha0.json",
+        "sha256": "7e3f60de4483a10642482e209830c10bbb0cb564febcc4e9b6fd3b819309ad05",
+        "size_bytes": 271
+      },
+      "mesh_studies": [
+        {
+          "artifact_sha256": {
+            "dofs": "1f13221ba129de827b7e4bc2fb263f3a702ec34ce1639ecb81b98d7fea1c8122",
+            "field": "b4d85d86d7c26088771302759b43b6b341c13db40a9d70dde4f051c1d008dbb7",
+            "field_data": "7ec1d9e992a0e09867716bb0ef4a922910f3b49ea3453f15f8ee0dfa7be86e73",
+            "form_source": "003a5c3a0cbc763ecf39ca76f6a4508e2aa56da579fd3517c56024d0cdde2a88",
+            "linear_comparison": "1b4853d6900c4435fbf483d1bf11b1830a2bfe0b1e466c5e74380163b6c07463",
+            "newton_history": "a6c544bcd0c3e33395a542dc6b61c75aca3ff46581f96c959a110535218663c1",
+            "solver_configuration": "ab8c748863e758f68404e39d31d896c452001716783eb91e262421efee9136d9"
+          },
+          "boundary_value_error": 0.0,
+          "cell_type": "triangle",
+          "cells_per_axis": 8,
+          "degree": 1,
+          "dirichlet_dofs": 32,
+          "dirichlet_value": 0.0,
+          "files": {
+            "dofs": "level_n8/dofs.json",
+            "field": "level_n8/field.xdmf",
+            "field_data": "level_n8/field.h5",
+            "form_source": "level_n8/forms.ufl.txt",
+            "linear_comparison": "level_n8/linear_comparison.json",
+            "newton_history": "level_n8/newton_history.json",
+            "solver_configuration": "level_n8/solver_configuration.txt"
+          },
+          "global_cells": 128,
+          "global_dofs": 81,
+          "h1_seminorm_convergence_rate": null,
+          "h1_seminorm_error": 0.43179828300642425,
+          "l2_convergence_rate": null,
+          "l2_error": 0.02113277345842124,
+          "linear_comparison": {
+            "ksp_convergence_reason": 4,
+            "ksp_iterations": 1,
+            "max_dof_difference": 0.0
+          },
+          "newton": {
+            "convergence_reason": 2,
+            "effective": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "effective_after": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "final_residual": 2.4216547114888327e-15,
+            "function_evaluations": 3,
+            "history": [
+              {
+                "iteration": 0,
+                "residual_norm": 1.2024525009224682
+              },
+              {
+                "iteration": 1,
+                "residual_norm": 2.4216547114888327e-15
+              }
+            ],
+            "initial_residual": 1.2024525009224682,
+            "iterations": 1,
+            "last_ksp_convergence_reason": 4,
+            "linear_solve_iterations": 1,
+            "native_options": {
+              "ksp_error_if_not_converged": true,
+              "ksp_type": "preonly",
+              "pc_type": "lu",
+              "snes_atol": 1e-10,
+              "snes_linesearch_damping": 1.0,
+              "snes_linesearch_type": "none",
+              "snes_max_it": 25,
+              "snes_rtol": 1e-10,
+              "snes_stol": 0.0,
+              "snes_type": "newtonls"
+            },
+            "relative_normalization": "initial_residual_norm",
+            "relative_residual": 2.0139296226928272e-15
+          },
+          "nominal_h": 0.125,
+          "nonlinear_residual": {
+            "absolute": 2.4216547114888327e-15,
+            "normalization": "free_dof_rhs_l2_norm",
+            "relative": 2.0139296226928272e-15,
+            "rhs_norm": 1.2024525009224682
+          }
+        },
+        {
+          "artifact_sha256": {
+            "dofs": "08502eb0066d9df57453c2fba821bc269769e9b9dfd97c2ae9ec031d102c666f",
+            "field": "bb874d36b566e06e14a2980ed8785e7a6df71548ea2bde77ba7c3967c8774046",
+            "field_data": "aa5a8307ccda550099fb38d4a098dcf04fe93765a1870a8eb4fda555a067b9f0",
+            "form_source": "2b1cfddc2c62734d5a73263b66baeb635d24169ef0653fa4de3ca52dd533b6f9",
+            "linear_comparison": "285c3418659978bcd3822c288897ac9ac850e975cededcf182423cccca8037cf",
+            "newton_history": "8dfea6daa2331a6cb8aec5cfe12fd84b2b5172fa98794077536be950f6370cfe",
+            "solver_configuration": "e3785de425c1147f32c031a90d5999e127fff8367aeafb405b7d01ae3d331ec2"
+          },
+          "boundary_value_error": 0.0,
+          "cell_type": "triangle",
+          "cells_per_axis": 16,
+          "degree": 1,
+          "dirichlet_dofs": 64,
+          "dirichlet_value": 0.0,
+          "files": {
+            "dofs": "level_n16/dofs.json",
+            "field": "level_n16/field.xdmf",
+            "field_data": "level_n16/field.h5",
+            "form_source": "level_n16/forms.ufl.txt",
+            "linear_comparison": "level_n16/linear_comparison.json",
+            "newton_history": "level_n16/newton_history.json",
+            "solver_configuration": "level_n16/solver_configuration.txt"
+          },
+          "global_cells": 512,
+          "global_dofs": 289,
+          "h1_seminorm_convergence_rate": 0.989101103835933,
+          "h1_seminorm_error": 0.2175363363595286,
+          "l2_convergence_rate": 1.9744920296427475,
+          "l2_error": 0.005377435009948098,
+          "linear_comparison": {
+            "ksp_convergence_reason": 4,
+            "ksp_iterations": 1,
+            "max_dof_difference": 0.0
+          },
+          "newton": {
+            "convergence_reason": 2,
+            "effective": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "effective_after": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "final_residual": 5.204625945984314e-15,
+            "function_evaluations": 3,
+            "history": [
+              {
+                "iteration": 0,
+                "residual_norm": 0.6129018253740448
+              },
+              {
+                "iteration": 1,
+                "residual_norm": 5.204625945984314e-15
+              }
+            ],
+            "initial_residual": 0.6129018253740448,
+            "iterations": 1,
+            "last_ksp_convergence_reason": 4,
+            "linear_solve_iterations": 1,
+            "native_options": {
+              "ksp_error_if_not_converged": true,
+              "ksp_type": "preonly",
+              "pc_type": "lu",
+              "snes_atol": 1e-10,
+              "snes_linesearch_damping": 1.0,
+              "snes_linesearch_type": "none",
+              "snes_max_it": 25,
+              "snes_rtol": 1e-10,
+              "snes_stol": 0.0,
+              "snes_type": "newtonls"
+            },
+            "relative_normalization": "initial_residual_norm",
+            "relative_residual": 8.491777525394069e-15
+          },
+          "nominal_h": 0.0625,
+          "nonlinear_residual": {
+            "absolute": 5.204625945984314e-15,
+            "normalization": "free_dof_rhs_l2_norm",
+            "relative": 8.491777525394069e-15,
+            "rhs_norm": 0.6129018253740448
+          }
+        },
+        {
+          "artifact_sha256": {
+            "dofs": "9bbb1c730075c7e9f68827f4c1a3c5a520c088be4d4409c1da8ba2c0788e0d44",
+            "field": "5c4349c410a7c1f7561e0de0aaafcea9c1c41e4fa6865111e40dab95593f8963",
+            "field_data": "678b6a02dc0bf214c0dd04a5a0b3db22cb0244f70bf4a72a1c2bca932d9ae81f",
+            "form_source": "451580e66f0d85cd0707b753efdc8cf15d068bb14e6420cad232bba49c77ca85",
+            "linear_comparison": "3e2f9a27d65e4b30a5ebbf4151a4f5edac13dc132aa4e61a3a7ed70cf39429ea",
+            "newton_history": "45a8c6b969d96634d40ccc0a9f4196ba11f74538d44e76ceb7b83a16617fbcd2",
+            "solver_configuration": "7ab44e5a9c51d651ecaeb37bd5b4bc011dc4ba520699792186a072da142194b2"
+          },
+          "boundary_value_error": 0.0,
+          "cell_type": "triangle",
+          "cells_per_axis": 32,
+          "degree": 1,
+          "dirichlet_dofs": 128,
+          "dirichlet_value": 0.0,
+          "files": {
+            "dofs": "level_n32/dofs.json",
+            "field": "level_n32/field.xdmf",
+            "field_data": "level_n32/field.h5",
+            "form_source": "level_n32/forms.ufl.txt",
+            "linear_comparison": "level_n32/linear_comparison.json",
+            "newton_history": "level_n32/newton_history.json",
+            "solver_configuration": "level_n32/solver_configuration.txt"
+          },
+          "global_cells": 2048,
+          "global_dofs": 1089,
+          "h1_seminorm_convergence_rate": 0.9972535922789292,
+          "h1_seminorm_error": 0.10897542351921931,
+          "l2_convergence_rate": 1.9934926491266785,
+          "l2_error": 0.0013504362485536208,
+          "linear_comparison": {
+            "ksp_convergence_reason": 4,
+            "ksp_iterations": 1,
+            "max_dof_difference": 0.0
+          },
+          "newton": {
+            "convergence_reason": 2,
+            "effective": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "effective_after": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "final_residual": 1.1949910321914767e-14,
+            "function_evaluations": 3,
+            "history": [
+              {
+                "iteration": 0,
+                "residual_norm": 0.3079301743684816
+              },
+              {
+                "iteration": 1,
+                "residual_norm": 1.1949910321914767e-14
+              }
+            ],
+            "initial_residual": 0.3079301743684816,
+            "iterations": 1,
+            "last_ksp_convergence_reason": 4,
+            "linear_solve_iterations": 1,
+            "native_options": {
+              "ksp_error_if_not_converged": true,
+              "ksp_type": "preonly",
+              "pc_type": "lu",
+              "snes_atol": 1e-10,
+              "snes_linesearch_damping": 1.0,
+              "snes_linesearch_type": "none",
+              "snes_max_it": 25,
+              "snes_rtol": 1e-10,
+              "snes_stol": 0.0,
+              "snes_type": "newtonls"
+            },
+            "relative_normalization": "initial_residual_norm",
+            "relative_residual": 3.880720798610345e-14
+          },
+          "nominal_h": 0.03125,
+          "nonlinear_residual": {
+            "absolute": 1.1949910321914767e-14,
+            "normalization": "free_dof_rhs_l2_norm",
+            "relative": 3.880720798610345e-14,
+            "rhs_norm": 0.3079301743684816
+          }
+        }
+      ],
+      "metric_validity_counts": {
+        "valid": 9
+      },
+      "metrics": {
+        "h1_seminorm_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.9972535922789292
+        },
+        "h1_seminorm_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.10897542351921931
+        },
+        "l2_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.9934926491266785
+        },
+        "l2_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0013504362485536208
+        },
+        "linear_comparison_max_dof_difference": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0
+        },
+        "newton_iterations": {
+          "unit": "1",
+          "valid": true,
+          "value": 1
+        },
+        "newton_residual_absolute": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.1949910321914767e-14
+        },
+        "newton_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 3.880720798610345e-14
+        },
+        "nonlinear_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 3.880720798610345e-14
+        }
+      },
+      "model_revision": "dd245a8e366dd0cfb3a6d15676a7d38e2acf91339351a2fd7701c71bbf85ef20",
+      "native_fields_present": true,
+      "pending_validations": [
+        "physical_validation",
+        "model_qualification"
+      ],
+      "petsc_initialization": {
+        "ambient_options_removed": [
+          "PETSC_OPTIONS",
+          "PETSC_OPTIONS_YAML"
+        ],
+        "argv": [
+          "caelab_nonlinear_worker",
+          "-skip_petscrc"
+        ],
+        "options": {
+          "skip_petscrc": null
+        },
+        "petsc_extension": "/usr/lib/petsc/lib/python3/dist-packages/petsc4py/lib/PETSc.cpython-312-x86_64-linux-gnu.so",
+        "petsc_rc_disabled": true,
+        "policy_getter": "Public SNESGetLineSearch/SNESLineSearchGetType/SNESLineSearchGetDamping C API"
+      },
+      "raw_result": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/result.json",
+        "sha256": "6dc513eb46e25a432109c2cdffb2f43784cda8b5aafba7b55847e82279c4f523",
+        "size_bytes": 21433
+      },
+      "records": {
+        "proposal": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/proposal.json",
+          "sha256": "31f5ef8583a22ad9807aa51c904b85705811a7f5ecc7af5545241986f32a215a",
+          "size_bytes": 1758
+        },
+        "registry": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        },
+        "result": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/result.json",
+          "sha256": "f4f0c5b4a134eed7e33ea55562a048dac67899fd0818f2bf01c2eec69747d371",
+          "size_bytes": 32130
+        },
+        "thread": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/thread.json",
+          "sha256": "419dc0db5b30da640ff699fd88ae6e0acf9bf4b4604240bf218d97bb35da34f5",
+          "size_bytes": 692
+        }
+      },
+      "settings": {
+        "mesh": {
+          "cell_counts": [
+            8,
+            16,
+            32
+          ],
+          "degree": 1
+        },
+        "problem": {
+          "dirichlet": "0.0",
+          "domain": "unit_square",
+          "reference": {
+            "solution": "sin(pi*x[0])*sin(pi*x[1])",
+            "source": "Analytical manufactured solution for -div((1+alpha*u^2)*grad(u)) on the dimensionless unit square"
+          },
+          "weak_form": {
+            "alpha": 0.0,
+            "rhs": "2*pi**2*sin(pi*x[0])*sin(pi*x[1])"
+          }
+        },
+        "validation": {
+          "max_h1_seminorm_error": 0.12,
+          "max_l2_error": 0.003,
+          "max_residual_relative": 1e-10,
+          "min_h1_rate": 0.9,
+          "min_l2_rate": 1.8
+        }
+      },
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "subprocess_command_present": true,
+      "validation_status_counts": {
+        "PASS": 11,
+        "UNKNOWN": 2
+      },
+      "validation_types": {
+        "model_qualification": "UNKNOWN",
+        "pde_alpha_zero_linear_comparison": "PASS",
+        "pde_analytical_h1_seminorm_error": "PASS",
+        "pde_analytical_l2_error": "PASS",
+        "pde_boundary_and_mesh": "PASS",
+        "pde_h1_seminorm_convergence_rate": "PASS",
+        "pde_l2_convergence_rate": "PASS",
+        "pde_newton_absolute_residual": "PASS",
+        "pde_newton_convergence": "PASS",
+        "pde_newton_iterations": "PASS",
+        "pde_newton_relative_residual": "PASS",
+        "pde_nonlinear_residual": "PASS",
+        "physical_validation": "UNKNOWN"
+      },
+      "versions": {
+        "basix": "0.11.0",
+        "dolfinx": "0.11.0.post0",
+        "ffcx": "0.11.0",
+        "mpi4py": "3.1.5",
+        "numpy": "1.26.4",
+        "petsc": "3.19.6",
+        "petsc4py": "3.19.6",
+        "python": "3.12.3",
+        "ufl": "2026.1.0"
+      },
+      "worker_result": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha0/pde/worker_result.json",
+        "sha256": "d1b2e15dd5d7d78d38221a33196ed65590230bdce4d7473395c1c70e74f8b386",
+        "size_bytes": 11689
+      }
+    },
+    "E-nonlinear-alpha1": {
+      "artifact_bytes": 502850,
+      "artifact_count": 34,
+      "artifact_files": [
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/command.json",
+          "sha256": "d73203ebc0cebd7ab91097387cc087cdf5d3d70f16d54f192bd3de9000da3ca4",
+          "size_bytes": 771
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/domain_reference.py",
+          "sha256": "ca6673adbc695a958f25e3607c5615d6416985171275ec96bd12351caf04695e",
+          "size_bytes": 24231
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/fenicsx_expression.py",
+          "sha256": "7f99a46e0894022a72be740d5e81324d02085fc9bdcca8ee4ed0c5235caab7d4",
+          "size_bytes": 17429
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/input.json",
+          "sha256": "1c2b0e76b3c732f4559e0367df5ccac61018d3109380506f2b10c8b68a6f89b2",
+          "size_bytes": 692
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n16/dofs.json",
+          "sha256": "a88b7875618057baae125717471d8dd72a3b7b0a358cf1f18269bba4585755b6",
+          "size_bytes": 43112
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n16/field.h5",
+          "sha256": "2a804fbf35e35c18fefe5321c629e58b7fb2dc773c0541925b622591f04b5109",
+          "size_bytes": 26784
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n16/field.xdmf",
+          "sha256": "bb874d36b566e06e14a2980ed8785e7a6df71548ea2bde77ba7c3967c8774046",
+          "size_bytes": 1018
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n16/forms.ufl.txt",
+          "sha256": "f5856756ef31c8e33c29bf349004ad56d12349d9cb1bcd1f5ff499bf6dab4073",
+          "size_bytes": 1309
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n16/newton_history.json",
+          "sha256": "f0a294c45c19b190b3eabcd71febb588f684e573ba4f39899b113f3361e41d11",
+          "size_bytes": 1616
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n16/solver_configuration.txt",
+          "sha256": "e3785de425c1147f32c031a90d5999e127fff8367aeafb405b7d01ae3d331ec2",
+          "size_bytes": 1259
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n32/dofs.json",
+          "sha256": "ce6411d2dff80b55d830c7273886e00473fc3e697f4968b3ce392d0c43edf280",
+          "size_bytes": 172005
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n32/field.h5",
+          "sha256": "95dfea24d99bba36069b7056d09d59cddab2a49b99087763a53f155fc5a7b68d",
+          "size_bytes": 82848
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n32/field.xdmf",
+          "sha256": "5c4349c410a7c1f7561e0de0aaafcea9c1c41e4fa6865111e40dab95593f8963",
+          "size_bytes": 1022
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n32/forms.ufl.txt",
+          "sha256": "e955e13569d45746834ab93fa841bf96674ded46800da0a193b7a526208d663e",
+          "size_bytes": 1309
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n32/newton_history.json",
+          "sha256": "7f0502bb55914dd6cfaa4a353fddb966232f1e1459226f27174c3182bc4e6d7f",
+          "size_bytes": 1623
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n32/solver_configuration.txt",
+          "sha256": "7ab44e5a9c51d651ecaeb37bd5b4bc011dc4ba520699792186a072da142194b2",
+          "size_bytes": 1259
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n8/dofs.json",
+          "sha256": "a618487ac4b4bb55a872c6b6570b071425b0d9faeae9d488c39b8f761d0e36f6",
+          "size_bytes": 11001
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n8/field.h5",
+          "sha256": "e8e7f6083df35ba8af9b2712ae04bc65e73732191650eb224de8ff2405f4b76f",
+          "size_bytes": 11232
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n8/field.xdmf",
+          "sha256": "b4d85d86d7c26088771302759b43b6b341c13db40a9d70dde4f051c1d008dbb7",
+          "size_bytes": 1016
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n8/forms.ufl.txt",
+          "sha256": "93520eac7ec357e18d05529cbaa5fe93e03b89262f3b84c0d1f6f8f0f723f0b6",
+          "size_bytes": 1309
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n8/newton_history.json",
+          "sha256": "e3dc00255affbf9dbc6db022d175d6b0e61d8cef1c0039bca18519a8efac1983",
+          "size_bytes": 1622
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/level_n8/solver_configuration.txt",
+          "sha256": "ab8c748863e758f68404e39d31d896c452001716783eb91e262421efee9136d9",
+          "size_bytes": 1255
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/petsc_initialization.json",
+          "sha256": "bc816923e33802964b2bad12c3097b48590e87eb62181d5317066baea2344a43",
+          "size_bytes": 443
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/result.json",
+          "sha256": "91ceb95249ccaa7bf00d32ba6a22029333ddb2c35c52bc9bd4fc23169641d30a",
+          "size_bytes": 21325
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/source_manifest.json",
+          "sha256": "58696393c6556d0ca3d4a1cf69924fb9f75c00dbb25d4432771dd06cfe3ccfb1",
+          "size_bytes": 1192
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/sources/fenicsx_nonlinear.py",
+          "sha256": "93e0e993f50e944ab94c430e1fcd2c7f5d0f52e4fbae1ad36a7ad6de0aa2520f",
+          "size_bytes": 22166
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/sources/fenicsx_pde.py",
+          "sha256": "f9424dc792e8357a8ebf3e82473f7a5e8d3a7cea725a6719eec180bbe09b5d45",
+          "size_bytes": 16824
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/stdout.log",
+          "sha256": "21e7213d6514fa563e35badbf29a1541842de884581ad7f9a72a237d6eca5e81",
+          "size_bytes": 1714
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/weak_form.txt",
+          "sha256": "c1d07afcd41518ec39ae5ef081cfb408d73f8a1ae15a5738fe9ac132a19c4b43",
+          "size_bytes": 683
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/worker.py",
+          "sha256": "31ab6a1667d7c2e0b80137c582f7a22bd8eb27fbb9dd0c6d9e928f24335d2cdd",
+          "size_bytes": 18897
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/worker_result.json",
+          "sha256": "e790c9cc22771a5fd5dc2428b81acd3181c0cb3db360207e74559f152d9d564a",
+          "size_bytes": 12013
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/proposal.json",
+          "sha256": "dc1d0244037b30961e578d7f909d2bd8c8bfd7df08506d828875822b670d1b9a",
+          "size_bytes": 1834
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        }
+      ],
+      "cad_parent_present": false,
+      "cad_revision": null,
+      "captured_source_sha256": {
+        "adapter": "93e0e993f50e944ab94c430e1fcd2c7f5d0f52e4fbae1ad36a7ad6de0aa2520f",
+        "domain_reference": "ca6673adbc695a958f25e3607c5615d6416985171275ec96bd12351caf04695e",
+        "expression_parser": "7f99a46e0894022a72be740d5e81324d02085fc9bdcca8ee4ed0c5235caab7d4",
+        "linear_adapter_utilities": "f9424dc792e8357a8ebf3e82473f7a5e8d3a7cea725a6719eec180bbe09b5d45",
+        "worker": "31ab6a1667d7c2e0b80137c582f7a22bd8eb27fbb9dd0c6d9e928f24335d2cdd"
+      },
+      "checks": [
+        {
+          "code": "pde_boundary_and_mesh",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": {
+            "boundary_dofs": "4*n",
+            "cells": "2*n^2",
+            "dofs": "(n+1)^2",
+            "max_boundary_value_error": 1e-12
+          },
+          "observed": [
+            {
+              "boundary_value_error": 0.0,
+              "cells": 128,
+              "dirichlet_dofs": 32,
+              "dofs": 81,
+              "n": 8
+            },
+            {
+              "boundary_value_error": 0.0,
+              "cells": 512,
+              "dirichlet_dofs": 64,
+              "dofs": 289,
+              "n": 16
+            },
+            {
+              "boundary_value_error": 0.0,
+              "cells": 2048,
+              "dirichlet_dofs": 128,
+              "dofs": 1089,
+              "n": 32
+            }
+          ],
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_convergence",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": "Positive native SNES convergence reason",
+          "observed": [
+            2,
+            2,
+            2
+          ],
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_iterations",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 25,
+          "observed": 5,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_absolute_residual",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1e-10,
+          "observed": 6.6707981904402e-13,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_relative_residual",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1e-10,
+          "observed": 1.5876998320539437e-12,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_nonlinear_residual",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1e-10,
+          "observed": 1.5876998320539437e-12,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_analytical_l2_error",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 0.003,
+          "observed": 0.0011659968739209919,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_l2_convergence_rate",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1.8,
+          "observed": {
+            "recomputed": [
+              1.9764488490770544,
+              1.9937690187033272
+            ],
+            "reported": [
+              1.9764488490770544,
+              1.9937690187033272
+            ]
+          },
+          "status": "PASS"
+        },
+        {
+          "code": "pde_analytical_h1_seminorm_error",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 0.12,
+          "observed": 0.10898591171628363,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_h1_seminorm_convergence_rate",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 0.9,
+          "observed": {
+            "recomputed": [
+              0.9906298320034288,
+              0.9976626015828587
+            ],
+            "reported": [
+              0.9906298320034288,
+              0.9976626015828587
+            ]
+          },
+          "status": "PASS"
+        }
+      ],
+      "converged": true,
+      "decision": "NOT_RELEASED",
+      "ledger": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/ledger/E-nonlinear-alpha1.json",
+        "sha256": "4a3e3241897f6c616b2275d9cd8ed7d456ac66b3f0ddf214476c2caf80917327",
+        "size_bytes": 271
+      },
+      "mesh_studies": [
+        {
+          "artifact_sha256": {
+            "dofs": "a618487ac4b4bb55a872c6b6570b071425b0d9faeae9d488c39b8f761d0e36f6",
+            "field": "b4d85d86d7c26088771302759b43b6b341c13db40a9d70dde4f051c1d008dbb7",
+            "field_data": "e8e7f6083df35ba8af9b2712ae04bc65e73732191650eb224de8ff2405f4b76f",
+            "form_source": "93520eac7ec357e18d05529cbaa5fe93e03b89262f3b84c0d1f6f8f0f723f0b6",
+            "newton_history": "e3dc00255affbf9dbc6db022d175d6b0e61d8cef1c0039bca18519a8efac1983",
+            "solver_configuration": "ab8c748863e758f68404e39d31d896c452001716783eb91e262421efee9136d9"
+          },
+          "boundary_value_error": 0.0,
+          "cell_type": "triangle",
+          "cells_per_axis": 8,
+          "degree": 1,
+          "dirichlet_dofs": 32,
+          "dirichlet_value": 0.0,
+          "files": {
+            "dofs": "level_n8/dofs.json",
+            "field": "level_n8/field.xdmf",
+            "field_data": "level_n8/field.h5",
+            "form_source": "level_n8/forms.ufl.txt",
+            "newton_history": "level_n8/newton_history.json",
+            "solver_configuration": "level_n8/solver_configuration.txt"
+          },
+          "global_cells": 128,
+          "global_dofs": 81,
+          "h1_seminorm_convergence_rate": null,
+          "h1_seminorm_error": 0.432420250747839,
+          "l2_convergence_rate": null,
+          "l2_error": 0.018274775630453103,
+          "newton": {
+            "convergence_reason": 2,
+            "effective": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "effective_after": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "final_residual": 2.208045696011011e-13,
+            "function_evaluations": 7,
+            "history": [
+              {
+                "iteration": 0,
+                "residual_norm": 1.5175614006041451
+              },
+              {
+                "iteration": 1,
+                "residual_norm": 1.3217179765124207
+              },
+              {
+                "iteration": 2,
+                "residual_norm": 0.18455667308020313
+              },
+              {
+                "iteration": 3,
+                "residual_norm": 0.004097058460612801
+              },
+              {
+                "iteration": 4,
+                "residual_norm": 1.7685715107867628e-06
+              },
+              {
+                "iteration": 5,
+                "residual_norm": 2.208045696011011e-13
+              }
+            ],
+            "initial_residual": 1.5175614006041451,
+            "iterations": 5,
+            "last_ksp_convergence_reason": 4,
+            "linear_solve_iterations": 5,
+            "native_options": {
+              "ksp_error_if_not_converged": true,
+              "ksp_type": "preonly",
+              "pc_type": "lu",
+              "snes_atol": 1e-10,
+              "snes_linesearch_damping": 1.0,
+              "snes_linesearch_type": "none",
+              "snes_max_it": 25,
+              "snes_rtol": 1e-10,
+              "snes_stol": 0.0,
+              "snes_type": "newtonls"
+            },
+            "relative_normalization": "initial_residual_norm",
+            "relative_residual": 1.4549959528042704e-13
+          },
+          "nominal_h": 0.125,
+          "nonlinear_residual": {
+            "absolute": 2.208045696011011e-13,
+            "normalization": "free_dof_rhs_l2_norm",
+            "relative": 1.4549959528042704e-13,
+            "rhs_norm": 1.5175614006041451
+          }
+        },
+        {
+          "artifact_sha256": {
+            "dofs": "a88b7875618057baae125717471d8dd72a3b7b0a358cf1f18269bba4585755b6",
+            "field": "bb874d36b566e06e14a2980ed8785e7a6df71548ea2bde77ba7c3967c8774046",
+            "field_data": "2a804fbf35e35c18fefe5321c629e58b7fb2dc773c0541925b622591f04b5109",
+            "form_source": "f5856756ef31c8e33c29bf349004ad56d12349d9cb1bcd1f5ff499bf6dab4073",
+            "newton_history": "f0a294c45c19b190b3eabcd71febb588f684e573ba4f39899b113f3361e41d11",
+            "solver_configuration": "e3785de425c1147f32c031a90d5999e127fff8367aeafb405b7d01ae3d331ec2"
+          },
+          "boundary_value_error": 0.0,
+          "cell_type": "triangle",
+          "cells_per_axis": 16,
+          "degree": 1,
+          "dirichlet_dofs": 64,
+          "dirichlet_value": 0.0,
+          "files": {
+            "dofs": "level_n16/dofs.json",
+            "field": "level_n16/field.xdmf",
+            "field_data": "level_n16/field.h5",
+            "form_source": "level_n16/forms.ufl.txt",
+            "newton_history": "level_n16/newton_history.json",
+            "solver_configuration": "level_n16/solver_configuration.txt"
+          },
+          "global_cells": 512,
+          "global_dofs": 289,
+          "h1_seminorm_convergence_rate": 0.9906298320034288,
+          "h1_seminorm_error": 0.2176189598834892,
+          "l2_convergence_rate": 1.9764488490770544,
+          "l2_error": 0.004643887231408513,
+          "newton": {
+            "convergence_reason": 2,
+            "effective": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "effective_after": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "final_residual": 6.6707981904402e-13,
+            "function_evaluations": 7,
+            "history": [
+              {
+                "iteration": 0,
+                "residual_norm": 0.7818822271832683
+              },
+              {
+                "iteration": 1,
+                "residual_norm": 0.7850530294252798
+              },
+              {
+                "iteration": 2,
+                "residual_norm": 0.12137277196020915
+              },
+              {
+                "iteration": 3,
+                "residual_norm": 0.003421531008977472
+              },
+              {
+                "iteration": 4,
+                "residual_norm": 2.188875884464664e-06
+              },
+              {
+                "iteration": 5,
+                "residual_norm": 6.6707981904402e-13
+              }
+            ],
+            "initial_residual": 0.7818822271832683,
+            "iterations": 5,
+            "last_ksp_convergence_reason": 4,
+            "linear_solve_iterations": 5,
+            "native_options": {
+              "ksp_error_if_not_converged": true,
+              "ksp_type": "preonly",
+              "pc_type": "lu",
+              "snes_atol": 1e-10,
+              "snes_linesearch_damping": 1.0,
+              "snes_linesearch_type": "none",
+              "snes_max_it": 25,
+              "snes_rtol": 1e-10,
+              "snes_stol": 0.0,
+              "snes_type": "newtonls"
+            },
+            "relative_normalization": "initial_residual_norm",
+            "relative_residual": 8.531717384690735e-13
+          },
+          "nominal_h": 0.0625,
+          "nonlinear_residual": {
+            "absolute": 6.6707981904402e-13,
+            "normalization": "free_dof_rhs_l2_norm",
+            "relative": 8.531717384690735e-13,
+            "rhs_norm": 0.7818822271832683
+          }
+        },
+        {
+          "artifact_sha256": {
+            "dofs": "ce6411d2dff80b55d830c7273886e00473fc3e697f4968b3ce392d0c43edf280",
+            "field": "5c4349c410a7c1f7561e0de0aaafcea9c1c41e4fa6865111e40dab95593f8963",
+            "field_data": "95dfea24d99bba36069b7056d09d59cddab2a49b99087763a53f155fc5a7b68d",
+            "form_source": "e955e13569d45746834ab93fa841bf96674ded46800da0a193b7a526208d663e",
+            "newton_history": "7f0502bb55914dd6cfaa4a353fddb966232f1e1459226f27174c3182bc4e6d7f",
+            "solver_configuration": "7ab44e5a9c51d651ecaeb37bd5b4bc011dc4ba520699792186a072da142194b2"
+          },
+          "boundary_value_error": 0.0,
+          "cell_type": "triangle",
+          "cells_per_axis": 32,
+          "degree": 1,
+          "dirichlet_dofs": 128,
+          "dirichlet_value": 0.0,
+          "files": {
+            "dofs": "level_n32/dofs.json",
+            "field": "level_n32/field.xdmf",
+            "field_data": "level_n32/field.h5",
+            "form_source": "level_n32/forms.ufl.txt",
+            "newton_history": "level_n32/newton_history.json",
+            "solver_configuration": "level_n32/solver_configuration.txt"
+          },
+          "global_cells": 2048,
+          "global_dofs": 1089,
+          "h1_seminorm_convergence_rate": 0.9976626015828587,
+          "h1_seminorm_error": 0.10898591171628363,
+          "l2_convergence_rate": 1.9937690187033272,
+          "l2_error": 0.0011659968739209919,
+          "newton": {
+            "convergence_reason": 2,
+            "effective": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "effective_after": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "final_residual": 6.255713592827086e-13,
+            "function_evaluations": 7,
+            "history": [
+              {
+                "iteration": 0,
+                "residual_norm": 0.3940111012504372
+              },
+              {
+                "iteration": 1,
+                "residual_norm": 0.41040020866832616
+              },
+              {
+                "iteration": 2,
+                "residual_norm": 0.06511428060196789
+              },
+              {
+                "iteration": 3,
+                "residual_norm": 0.001973217914895436
+              },
+              {
+                "iteration": 4,
+                "residual_norm": 1.4869106202383389e-06
+              },
+              {
+                "iteration": 5,
+                "residual_norm": 6.255713592827086e-13
+              }
+            ],
+            "initial_residual": 0.3940111012504372,
+            "iterations": 5,
+            "last_ksp_convergence_reason": 4,
+            "linear_solve_iterations": 5,
+            "native_options": {
+              "ksp_error_if_not_converged": true,
+              "ksp_type": "preonly",
+              "pc_type": "lu",
+              "snes_atol": 1e-10,
+              "snes_linesearch_damping": 1.0,
+              "snes_linesearch_type": "none",
+              "snes_max_it": 25,
+              "snes_rtol": 1e-10,
+              "snes_stol": 0.0,
+              "snes_type": "newtonls"
+            },
+            "relative_normalization": "initial_residual_norm",
+            "relative_residual": 1.5876998320539437e-12
+          },
+          "nominal_h": 0.03125,
+          "nonlinear_residual": {
+            "absolute": 6.255713592827086e-13,
+            "normalization": "free_dof_rhs_l2_norm",
+            "relative": 1.5876998320539437e-12,
+            "rhs_norm": 0.3940111012504372
+          }
+        }
+      ],
+      "metric_validity_counts": {
+        "valid": 8
+      },
+      "metrics": {
+        "h1_seminorm_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.9976626015828587
+        },
+        "h1_seminorm_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.10898591171628363
+        },
+        "l2_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.9937690187033272
+        },
+        "l2_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0011659968739209919
+        },
+        "newton_iterations": {
+          "unit": "1",
+          "valid": true,
+          "value": 5
+        },
+        "newton_residual_absolute": {
+          "unit": "1",
+          "valid": true,
+          "value": 6.6707981904402e-13
+        },
+        "newton_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.5876998320539437e-12
+        },
+        "nonlinear_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.5876998320539437e-12
+        }
+      },
+      "model_revision": "6a7f4d796ec78d1e2aedce4f3aba339c83ae4fd8dbb762af46b78ce9cbde06ed",
+      "native_fields_present": true,
+      "pending_validations": [
+        "physical_validation",
+        "model_qualification"
+      ],
+      "petsc_initialization": {
+        "ambient_options_removed": [
+          "PETSC_OPTIONS",
+          "PETSC_OPTIONS_YAML"
+        ],
+        "argv": [
+          "caelab_nonlinear_worker",
+          "-skip_petscrc"
+        ],
+        "options": {
+          "skip_petscrc": null
+        },
+        "petsc_extension": "/usr/lib/petsc/lib/python3/dist-packages/petsc4py/lib/PETSc.cpython-312-x86_64-linux-gnu.so",
+        "petsc_rc_disabled": true,
+        "policy_getter": "Public SNESGetLineSearch/SNESLineSearchGetType/SNESLineSearchGetDamping C API"
+      },
+      "raw_result": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/result.json",
+        "sha256": "91ceb95249ccaa7bf00d32ba6a22029333ddb2c35c52bc9bd4fc23169641d30a",
+        "size_bytes": 21325
+      },
+      "records": {
+        "proposal": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/proposal.json",
+          "sha256": "dc1d0244037b30961e578d7f909d2bd8c8bfd7df08506d828875822b670d1b9a",
+          "size_bytes": 1834
+        },
+        "registry": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        },
+        "result": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/result.json",
+          "sha256": "55d1efbecbc3043f7bfb33279c2141d07022a96f7600f404daafa4cb7a633dd9",
+          "size_bytes": 30010
+        },
+        "thread": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/thread.json",
+          "sha256": "6fa0770bd05143cf7ef4680625b6805204caa6cf1529d04b30ca5c8dbd9051ed",
+          "size_bytes": 659
+        }
+      },
+      "settings": {
+        "mesh": {
+          "cell_counts": [
+            8,
+            16,
+            32
+          ],
+          "degree": 1
+        },
+        "problem": {
+          "dirichlet": "0.0",
+          "domain": "unit_square",
+          "reference": {
+            "solution": "sin(pi*x[0])*sin(pi*x[1])",
+            "source": "Analytical manufactured solution for -div((1+alpha*u^2)*grad(u)) on the dimensionless unit square"
+          },
+          "weak_form": {
+            "alpha": 1.0,
+            "rhs": "2*pi**2*sin(pi*x[0])*sin(pi*x[1])*(1+1.0*(3*sin(pi*x[0])**2*sin(pi*x[1])**2-sin(pi*x[0])**2-sin(pi*x[1])**2))"
+          }
+        },
+        "validation": {
+          "max_h1_seminorm_error": 0.12,
+          "max_l2_error": 0.003,
+          "max_residual_relative": 1e-10,
+          "min_h1_rate": 0.9,
+          "min_l2_rate": 1.8
+        }
+      },
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "subprocess_command_present": true,
+      "validation_status_counts": {
+        "PASS": 10,
+        "UNKNOWN": 2
+      },
+      "validation_types": {
+        "model_qualification": "UNKNOWN",
+        "pde_analytical_h1_seminorm_error": "PASS",
+        "pde_analytical_l2_error": "PASS",
+        "pde_boundary_and_mesh": "PASS",
+        "pde_h1_seminorm_convergence_rate": "PASS",
+        "pde_l2_convergence_rate": "PASS",
+        "pde_newton_absolute_residual": "PASS",
+        "pde_newton_convergence": "PASS",
+        "pde_newton_iterations": "PASS",
+        "pde_newton_relative_residual": "PASS",
+        "pde_nonlinear_residual": "PASS",
+        "physical_validation": "UNKNOWN"
+      },
+      "versions": {
+        "basix": "0.11.0",
+        "dolfinx": "0.11.0.post0",
+        "ffcx": "0.11.0",
+        "mpi4py": "3.1.5",
+        "numpy": "1.26.4",
+        "petsc": "3.19.6",
+        "petsc4py": "3.19.6",
+        "python": "3.12.3",
+        "ufl": "2026.1.0"
+      },
+      "worker_result": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha1/pde/worker_result.json",
+        "sha256": "e790c9cc22771a5fd5dc2428b81acd3181c0cb3db360207e74559f152d9d564a",
+        "size_bytes": 12013
+      }
+    },
+    "E-nonlinear-alpha2": {
+      "artifact_bytes": 504025,
+      "artifact_count": 34,
+      "artifact_files": [
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/command.json",
+          "sha256": "5e14a5adab54fbccb8c02fc1cafe974d285d4dfeff4e91b341d96355ab02c8a9",
+          "size_bytes": 771
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/domain_reference.py",
+          "sha256": "ca6673adbc695a958f25e3607c5615d6416985171275ec96bd12351caf04695e",
+          "size_bytes": 24231
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/fenicsx_expression.py",
+          "sha256": "7f99a46e0894022a72be740d5e81324d02085fc9bdcca8ee4ed0c5235caab7d4",
+          "size_bytes": 17429
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/input.json",
+          "sha256": "25e5affb0afa0e80d35f7de6326f6f866ad68fecee1aaa205b8100be2fc31803",
+          "size_bytes": 692
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n16/dofs.json",
+          "sha256": "7f0b3a1dee32a37c7d7b23a95bd8642c6efa6190e7aed26bc092030146333f51",
+          "size_bytes": 43105
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n16/field.h5",
+          "sha256": "24d50ef21deaf8dca3eba7444c67e90a9266481ab7525fd62ed18febed0f7e44",
+          "size_bytes": 26784
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n16/field.xdmf",
+          "sha256": "bb874d36b566e06e14a2980ed8785e7a6df71548ea2bde77ba7c3967c8774046",
+          "size_bytes": 1018
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n16/forms.ufl.txt",
+          "sha256": "532f0d58eaea0465dfd0c797c35b5307f081d01ea8c8da119114eb5838bd43ae",
+          "size_bytes": 1345
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n16/newton_history.json",
+          "sha256": "44e5dc63d1d5259796b6fb7f1759da391ce452edc786dd2dfee2283df5b8a9df",
+          "size_bytes": 1697
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n16/solver_configuration.txt",
+          "sha256": "e3785de425c1147f32c031a90d5999e127fff8367aeafb405b7d01ae3d331ec2",
+          "size_bytes": 1259
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n32/dofs.json",
+          "sha256": "0bc6d3e2cb6c2aa385a9cce464579b84c4c75094bff3031a9f4add34a7973345",
+          "size_bytes": 171985
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n32/field.h5",
+          "sha256": "94f94959c6dcb5382ec75e8fce74046e20a1e6ba9fab432c3bde32a2df948311",
+          "size_bytes": 82848
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n32/field.xdmf",
+          "sha256": "5c4349c410a7c1f7561e0de0aaafcea9c1c41e4fa6865111e40dab95593f8963",
+          "size_bytes": 1022
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n32/forms.ufl.txt",
+          "sha256": "340a418720d46fdeb0709ad721db0c94bb21ed23fa22d7f640ed2c3216a7d246",
+          "size_bytes": 1345
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n32/newton_history.json",
+          "sha256": "ce4118061c85cd94bc37ee95db9c92fd9345d27b327e46efc7cb58b63da2c6a8",
+          "size_bytes": 1699
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n32/solver_configuration.txt",
+          "sha256": "7ab44e5a9c51d651ecaeb37bd5b4bc011dc4ba520699792186a072da142194b2",
+          "size_bytes": 1259
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n8/dofs.json",
+          "sha256": "cf5ee5050228ea85f366bea9bfabb387a3f83124deadbda73b70b451c0778f14",
+          "size_bytes": 11002
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n8/field.h5",
+          "sha256": "048f201d95b33a22c7ba2f4dd0873ce7071366b9fcd08b7188e06caa7756e50d",
+          "size_bytes": 11232
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n8/field.xdmf",
+          "sha256": "b4d85d86d7c26088771302759b43b6b341c13db40a9d70dde4f051c1d008dbb7",
+          "size_bytes": 1016
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n8/forms.ufl.txt",
+          "sha256": "dc7044682c2e053fa4fefe5d6f6a9cfbf24312abc8256d8815415e51f8ed3f40",
+          "size_bytes": 1345
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n8/newton_history.json",
+          "sha256": "c5830ebc3e4b61406c2ccde8411fbdb512981a795575818b8a0d8a9156aa3dff",
+          "size_bytes": 1698
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/level_n8/solver_configuration.txt",
+          "sha256": "ab8c748863e758f68404e39d31d896c452001716783eb91e262421efee9136d9",
+          "size_bytes": 1255
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/petsc_initialization.json",
+          "sha256": "bc816923e33802964b2bad12c3097b48590e87eb62181d5317066baea2344a43",
+          "size_bytes": 443
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/result.json",
+          "sha256": "b8998b08772cf8eb0c988be5ada924547cbb1b2f7e6e92dd7308d071c301b2d9",
+          "size_bytes": 21638
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/source_manifest.json",
+          "sha256": "58696393c6556d0ca3d4a1cf69924fb9f75c00dbb25d4432771dd06cfe3ccfb1",
+          "size_bytes": 1192
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/sources/fenicsx_nonlinear.py",
+          "sha256": "93e0e993f50e944ab94c430e1fcd2c7f5d0f52e4fbae1ad36a7ad6de0aa2520f",
+          "size_bytes": 22166
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/sources/fenicsx_pde.py",
+          "sha256": "f9424dc792e8357a8ebf3e82473f7a5e8d3a7cea725a6719eec180bbe09b5d45",
+          "size_bytes": 16824
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/stdout.log",
+          "sha256": "6973527e93e3fcd60ee0a4b1c64e0aa5bafbf7770d811be3159f44e80ff445cb",
+          "size_bytes": 1952
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/weak_form.txt",
+          "sha256": "13aa5fc19c40a0c284cd8c6ec159764918c61f9e6d92514dcdccc5aca000e799",
+          "size_bytes": 683
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/worker.py",
+          "sha256": "31ab6a1667d7c2e0b80137c582f7a22bd8eb27fbb9dd0c6d9e928f24335d2cdd",
+          "size_bytes": 18897
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/worker_result.json",
+          "sha256": "5d52ab8951f03df06dfe7b34c5e850a7ea801080a0ad643dccbf9821d5b3f5b5",
+          "size_bytes": 12322
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/proposal.json",
+          "sha256": "470434692b7618bc7611d2b1e9837b8c6d38b77173a0f8a35a21a064f5152863",
+          "size_bytes": 1834
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        }
+      ],
+      "cad_parent_present": false,
+      "cad_revision": null,
+      "captured_source_sha256": {
+        "adapter": "93e0e993f50e944ab94c430e1fcd2c7f5d0f52e4fbae1ad36a7ad6de0aa2520f",
+        "domain_reference": "ca6673adbc695a958f25e3607c5615d6416985171275ec96bd12351caf04695e",
+        "expression_parser": "7f99a46e0894022a72be740d5e81324d02085fc9bdcca8ee4ed0c5235caab7d4",
+        "linear_adapter_utilities": "f9424dc792e8357a8ebf3e82473f7a5e8d3a7cea725a6719eec180bbe09b5d45",
+        "worker": "31ab6a1667d7c2e0b80137c582f7a22bd8eb27fbb9dd0c6d9e928f24335d2cdd"
+      },
+      "checks": [
+        {
+          "code": "pde_boundary_and_mesh",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": {
+            "boundary_dofs": "4*n",
+            "cells": "2*n^2",
+            "dofs": "(n+1)^2",
+            "max_boundary_value_error": 1e-12
+          },
+          "observed": [
+            {
+              "boundary_value_error": 0.0,
+              "cells": 128,
+              "dirichlet_dofs": 32,
+              "dofs": 81,
+              "n": 8
+            },
+            {
+              "boundary_value_error": 0.0,
+              "cells": 512,
+              "dirichlet_dofs": 64,
+              "dofs": 289,
+              "n": 16
+            },
+            {
+              "boundary_value_error": 0.0,
+              "cells": 2048,
+              "dirichlet_dofs": 128,
+              "dofs": 1089,
+              "n": 32
+            }
+          ],
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_convergence",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": "Positive native SNES convergence reason",
+          "observed": [
+            2,
+            2,
+            2
+          ],
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_iterations",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 25,
+          "observed": 6,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_absolute_residual",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1e-10,
+          "observed": 1.6342857689492868e-14,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_relative_residual",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1e-10,
+          "observed": 3.1723225733346494e-14,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_nonlinear_residual",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1e-10,
+          "observed": 3.1723225733346494e-14,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_analytical_l2_error",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 0.003,
+          "observed": 0.0011008343876754186,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_l2_convergence_rate",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1.8,
+          "observed": {
+            "recomputed": [
+              1.972317344455317,
+              1.9924737637708079
+            ],
+            "reported": [
+              1.972317344455317,
+              1.9924737637708079
+            ]
+          },
+          "status": "PASS"
+        },
+        {
+          "code": "pde_analytical_h1_seminorm_error",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 0.12,
+          "observed": 0.10899918202157595,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_h1_seminorm_convergence_rate",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 0.9,
+          "observed": {
+            "recomputed": [
+              0.9925679843638258,
+              0.9981797942043196
+            ],
+            "reported": [
+              0.9925679843638258,
+              0.9981797942043196
+            ]
+          },
+          "status": "PASS"
+        }
+      ],
+      "converged": true,
+      "decision": "NOT_RELEASED",
+      "ledger": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/ledger/E-nonlinear-alpha2.json",
+        "sha256": "933f050bfee604eb0062349f6fe33fe22026a755abf83740e6e78bc0bd5178d3",
+        "size_bytes": 271
+      },
+      "mesh_studies": [
+        {
+          "artifact_sha256": {
+            "dofs": "cf5ee5050228ea85f366bea9bfabb387a3f83124deadbda73b70b451c0778f14",
+            "field": "b4d85d86d7c26088771302759b43b6b341c13db40a9d70dde4f051c1d008dbb7",
+            "field_data": "048f201d95b33a22c7ba2f4dd0873ce7071366b9fcd08b7188e06caa7756e50d",
+            "form_source": "dc7044682c2e053fa4fefe5d6f6a9cfbf24312abc8256d8815415e51f8ed3f40",
+            "newton_history": "c5830ebc3e4b61406c2ccde8411fbdb512981a795575818b8a0d8a9156aa3dff",
+            "solver_configuration": "ab8c748863e758f68404e39d31d896c452001716783eb91e262421efee9136d9"
+          },
+          "boundary_value_error": 0.0,
+          "cell_type": "triangle",
+          "cells_per_axis": 8,
+          "degree": 1,
+          "dirichlet_dofs": 32,
+          "dirichlet_value": 0.0,
+          "files": {
+            "dofs": "level_n8/dofs.json",
+            "field": "level_n8/field.xdmf",
+            "field_data": "level_n8/field.h5",
+            "form_source": "level_n8/forms.ufl.txt",
+            "newton_history": "level_n8/newton_history.json",
+            "solver_configuration": "level_n8/solver_configuration.txt"
+          },
+          "global_cells": 128,
+          "global_dofs": 81,
+          "h1_seminorm_convergence_rate": null,
+          "h1_seminorm_error": 0.43320956195819743,
+          "l2_convergence_rate": null,
+          "l2_error": 0.017188700232350758,
+          "newton": {
+            "convergence_reason": 2,
+            "effective": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "effective_after": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "final_residual": 3.342081079823203e-15,
+            "function_evaluations": 8,
+            "history": [
+              {
+                "iteration": 0,
+                "residual_norm": 1.9466578973071598
+              },
+              {
+                "iteration": 1,
+                "residual_norm": 5.377171614447116
+              },
+              {
+                "iteration": 2,
+                "residual_norm": 1.2543247924639243
+              },
+              {
+                "iteration": 3,
+                "residual_norm": 0.12911261272021837
+              },
+              {
+                "iteration": 4,
+                "residual_norm": 0.0016160524234986086
+              },
+              {
+                "iteration": 5,
+                "residual_norm": 1.959549016727991e-07
+              },
+              {
+                "iteration": 6,
+                "residual_norm": 3.342081079823203e-15
+              }
+            ],
+            "initial_residual": 1.9466578973071598,
+            "iterations": 6,
+            "last_ksp_convergence_reason": 4,
+            "linear_solve_iterations": 6,
+            "native_options": {
+              "ksp_error_if_not_converged": true,
+              "ksp_type": "preonly",
+              "pc_type": "lu",
+              "snes_atol": 1e-10,
+              "snes_linesearch_damping": 1.0,
+              "snes_linesearch_type": "none",
+              "snes_max_it": 25,
+              "snes_rtol": 1e-10,
+              "snes_stol": 0.0,
+              "snes_type": "newtonls"
+            },
+            "relative_normalization": "initial_residual_norm",
+            "relative_residual": 1.7168302065023098e-15
+          },
+          "nominal_h": 0.125,
+          "nonlinear_residual": {
+            "absolute": 3.342081079823203e-15,
+            "normalization": "free_dof_rhs_l2_norm",
+            "relative": 1.7168302065023098e-15,
+            "rhs_norm": 1.9466578973071598
+          }
+        },
+        {
+          "artifact_sha256": {
+            "dofs": "7f0b3a1dee32a37c7d7b23a95bd8642c6efa6190e7aed26bc092030146333f51",
+            "field": "bb874d36b566e06e14a2980ed8785e7a6df71548ea2bde77ba7c3967c8774046",
+            "field_data": "24d50ef21deaf8dca3eba7444c67e90a9266481ab7525fd62ed18febed0f7e44",
+            "form_source": "532f0d58eaea0465dfd0c797c35b5307f081d01ea8c8da119114eb5838bd43ae",
+            "newton_history": "44e5dc63d1d5259796b6fb7f1759da391ce452edc786dd2dfee2283df5b8a9df",
+            "solver_configuration": "e3785de425c1147f32c031a90d5999e127fff8367aeafb405b7d01ae3d331ec2"
+          },
+          "boundary_value_error": 0.0,
+          "cell_type": "triangle",
+          "cells_per_axis": 16,
+          "degree": 1,
+          "dirichlet_dofs": 64,
+          "dirichlet_value": 0.0,
+          "files": {
+            "dofs": "level_n16/dofs.json",
+            "field": "level_n16/field.xdmf",
+            "field_data": "level_n16/field.h5",
+            "form_source": "level_n16/forms.ufl.txt",
+            "newton_history": "level_n16/newton_history.json",
+            "solver_configuration": "level_n16/solver_configuration.txt"
+          },
+          "global_cells": 512,
+          "global_dofs": 289,
+          "h1_seminorm_convergence_rate": 0.9925679843638258,
+          "h1_seminorm_error": 0.2177234953681648,
+          "l2_convergence_rate": 1.972317344455317,
+          "l2_error": 0.004380426080063424,
+          "newton": {
+            "convergence_reason": 2,
+            "effective": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "effective_after": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "final_residual": 1.283092187967576e-14,
+            "function_evaluations": 8,
+            "history": [
+              {
+                "iteration": 0,
+                "residual_norm": 1.0181715588439857
+              },
+              {
+                "iteration": 1,
+                "residual_norm": 3.288005365973368
+              },
+              {
+                "iteration": 2,
+                "residual_norm": 0.8032177785746717
+              },
+              {
+                "iteration": 3,
+                "residual_norm": 0.09662191191188807
+              },
+              {
+                "iteration": 4,
+                "residual_norm": 0.0015919301056916322
+              },
+              {
+                "iteration": 5,
+                "residual_norm": 3.449384354676693e-07
+              },
+              {
+                "iteration": 6,
+                "residual_norm": 1.283092187967576e-14
+              }
+            ],
+            "initial_residual": 1.0181715588439857,
+            "iterations": 6,
+            "last_ksp_convergence_reason": 4,
+            "linear_solve_iterations": 6,
+            "native_options": {
+              "ksp_error_if_not_converged": true,
+              "ksp_type": "preonly",
+              "pc_type": "lu",
+              "snes_atol": 1e-10,
+              "snes_linesearch_damping": 1.0,
+              "snes_linesearch_type": "none",
+              "snes_max_it": 25,
+              "snes_rtol": 1e-10,
+              "snes_stol": 0.0,
+              "snes_type": "newtonls"
+            },
+            "relative_normalization": "initial_residual_norm",
+            "relative_residual": 1.260192525338634e-14
+          },
+          "nominal_h": 0.0625,
+          "nonlinear_residual": {
+            "absolute": 1.283092187967576e-14,
+            "normalization": "free_dof_rhs_l2_norm",
+            "relative": 1.260192525338634e-14,
+            "rhs_norm": 1.0181715588439857
+          }
+        },
+        {
+          "artifact_sha256": {
+            "dofs": "0bc6d3e2cb6c2aa385a9cce464579b84c4c75094bff3031a9f4add34a7973345",
+            "field": "5c4349c410a7c1f7561e0de0aaafcea9c1c41e4fa6865111e40dab95593f8963",
+            "field_data": "94f94959c6dcb5382ec75e8fce74046e20a1e6ba9fab432c3bde32a2df948311",
+            "form_source": "340a418720d46fdeb0709ad721db0c94bb21ed23fa22d7f640ed2c3216a7d246",
+            "newton_history": "ce4118061c85cd94bc37ee95db9c92fd9345d27b327e46efc7cb58b63da2c6a8",
+            "solver_configuration": "7ab44e5a9c51d651ecaeb37bd5b4bc011dc4ba520699792186a072da142194b2"
+          },
+          "boundary_value_error": 0.0,
+          "cell_type": "triangle",
+          "cells_per_axis": 32,
+          "degree": 1,
+          "dirichlet_dofs": 128,
+          "dirichlet_value": 0.0,
+          "files": {
+            "dofs": "level_n32/dofs.json",
+            "field": "level_n32/field.xdmf",
+            "field_data": "level_n32/field.h5",
+            "form_source": "level_n32/forms.ufl.txt",
+            "newton_history": "level_n32/newton_history.json",
+            "solver_configuration": "level_n32/solver_configuration.txt"
+          },
+          "global_cells": 2048,
+          "global_dofs": 1089,
+          "h1_seminorm_convergence_rate": 0.9981797942043196,
+          "h1_seminorm_error": 0.10899918202157595,
+          "l2_convergence_rate": 1.9924737637708079,
+          "l2_error": 0.0011008343876754186,
+          "newton": {
+            "convergence_reason": 2,
+            "effective": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "effective_after": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "final_residual": 1.6342857689492868e-14,
+            "function_evaluations": 8,
+            "history": [
+              {
+                "iteration": 0,
+                "residual_norm": 0.5151701099650075
+              },
+              {
+                "iteration": 1,
+                "residual_norm": 1.7332251924081465
+              },
+              {
+                "iteration": 2,
+                "residual_norm": 0.428251044025631
+              },
+              {
+                "iteration": 3,
+                "residual_norm": 0.05371938179173222
+              },
+              {
+                "iteration": 4,
+                "residual_norm": 0.0009869606305509654
+              },
+              {
+                "iteration": 5,
+                "residual_norm": 2.71049426161547e-07
+              },
+              {
+                "iteration": 6,
+                "residual_norm": 1.6342857689492868e-14
+              }
+            ],
+            "initial_residual": 0.5151701099650075,
+            "iterations": 6,
+            "last_ksp_convergence_reason": 4,
+            "linear_solve_iterations": 6,
+            "native_options": {
+              "ksp_error_if_not_converged": true,
+              "ksp_type": "preonly",
+              "pc_type": "lu",
+              "snes_atol": 1e-10,
+              "snes_linesearch_damping": 1.0,
+              "snes_linesearch_type": "none",
+              "snes_max_it": 25,
+              "snes_rtol": 1e-10,
+              "snes_stol": 0.0,
+              "snes_type": "newtonls"
+            },
+            "relative_normalization": "initial_residual_norm",
+            "relative_residual": 3.1723225733346494e-14
+          },
+          "nominal_h": 0.03125,
+          "nonlinear_residual": {
+            "absolute": 1.6342857689492868e-14,
+            "normalization": "free_dof_rhs_l2_norm",
+            "relative": 3.1723225733346494e-14,
+            "rhs_norm": 0.5151701099650075
+          }
+        }
+      ],
+      "metric_validity_counts": {
+        "valid": 8
+      },
+      "metrics": {
+        "h1_seminorm_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.9981797942043196
+        },
+        "h1_seminorm_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.10899918202157595
+        },
+        "l2_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.9924737637708079
+        },
+        "l2_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0011008343876754186
+        },
+        "newton_iterations": {
+          "unit": "1",
+          "valid": true,
+          "value": 6
+        },
+        "newton_residual_absolute": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.6342857689492868e-14
+        },
+        "newton_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 3.1723225733346494e-14
+        },
+        "nonlinear_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 3.1723225733346494e-14
+        }
+      },
+      "model_revision": "793a5bf16064e93f394c26f1aa1061385367798c3ce702c1085fcef71ca37778",
+      "native_fields_present": true,
+      "pending_validations": [
+        "physical_validation",
+        "model_qualification"
+      ],
+      "petsc_initialization": {
+        "ambient_options_removed": [
+          "PETSC_OPTIONS",
+          "PETSC_OPTIONS_YAML"
+        ],
+        "argv": [
+          "caelab_nonlinear_worker",
+          "-skip_petscrc"
+        ],
+        "options": {
+          "skip_petscrc": null
+        },
+        "petsc_extension": "/usr/lib/petsc/lib/python3/dist-packages/petsc4py/lib/PETSc.cpython-312-x86_64-linux-gnu.so",
+        "petsc_rc_disabled": true,
+        "policy_getter": "Public SNESGetLineSearch/SNESLineSearchGetType/SNESLineSearchGetDamping C API"
+      },
+      "raw_result": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/result.json",
+        "sha256": "b8998b08772cf8eb0c988be5ada924547cbb1b2f7e6e92dd7308d071c301b2d9",
+        "size_bytes": 21638
+      },
+      "records": {
+        "proposal": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/proposal.json",
+          "sha256": "470434692b7618bc7611d2b1e9837b8c6d38b77173a0f8a35a21a064f5152863",
+          "size_bytes": 1834
+        },
+        "registry": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        },
+        "result": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/result.json",
+          "sha256": "50e204d8212897ae0725790d67b54b42699ff5560217c9605e488d0d22aa0fa5",
+          "size_bytes": 30014
+        },
+        "thread": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/thread.json",
+          "sha256": "cc88d5f2f1a9711a87663ba8c8ea5693e6912ec6dbb7626613b2e233da7925aa",
+          "size_bytes": 659
+        }
+      },
+      "settings": {
+        "mesh": {
+          "cell_counts": [
+            8,
+            16,
+            32
+          ],
+          "degree": 1
+        },
+        "problem": {
+          "dirichlet": "0.0",
+          "domain": "unit_square",
+          "reference": {
+            "solution": "sin(pi*x[0])*sin(pi*x[1])",
+            "source": "Analytical manufactured solution for -div((1+alpha*u^2)*grad(u)) on the dimensionless unit square"
+          },
+          "weak_form": {
+            "alpha": 2.0,
+            "rhs": "2*pi**2*sin(pi*x[0])*sin(pi*x[1])*(1+2.0*(3*sin(pi*x[0])**2*sin(pi*x[1])**2-sin(pi*x[0])**2-sin(pi*x[1])**2))"
+          }
+        },
+        "validation": {
+          "max_h1_seminorm_error": 0.12,
+          "max_l2_error": 0.003,
+          "max_residual_relative": 1e-10,
+          "min_h1_rate": 0.9,
+          "min_l2_rate": 1.8
+        }
+      },
+      "solver_status": "COMPLETED",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "subprocess_command_present": true,
+      "validation_status_counts": {
+        "PASS": 10,
+        "UNKNOWN": 2
+      },
+      "validation_types": {
+        "model_qualification": "UNKNOWN",
+        "pde_analytical_h1_seminorm_error": "PASS",
+        "pde_analytical_l2_error": "PASS",
+        "pde_boundary_and_mesh": "PASS",
+        "pde_h1_seminorm_convergence_rate": "PASS",
+        "pde_l2_convergence_rate": "PASS",
+        "pde_newton_absolute_residual": "PASS",
+        "pde_newton_convergence": "PASS",
+        "pde_newton_iterations": "PASS",
+        "pde_newton_relative_residual": "PASS",
+        "pde_nonlinear_residual": "PASS",
+        "physical_validation": "UNKNOWN"
+      },
+      "versions": {
+        "basix": "0.11.0",
+        "dolfinx": "0.11.0.post0",
+        "ffcx": "0.11.0",
+        "mpi4py": "3.1.5",
+        "numpy": "1.26.4",
+        "petsc": "3.19.6",
+        "petsc4py": "3.19.6",
+        "python": "3.12.3",
+        "ufl": "2026.1.0"
+      },
+      "worker_result": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-alpha2/pde/worker_result.json",
+        "sha256": "5d52ab8951f03df06dfe7b34c5e850a7ea801080a0ad643dccbf9821d5b3f5b5",
+        "size_bytes": 12322
+      }
+    },
+    "E-nonlinear-invalid-boolean": {
+      "artifact_bytes": 2974,
+      "artifact_count": 3,
+      "artifact_files": [
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-boolean/pde/result.json",
+          "sha256": "35143016f76ce919b7d903b626b7d646c7829b5b6ce3775eb0c95acad59ce63f",
+          "size_bytes": 1093
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-boolean/proposal.json",
+          "sha256": "b03ca0d4d6de85f75289f06b21df8c0002853468f5c5c75faf36db81e6335bca",
+          "size_bytes": 1844
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-boolean/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        }
+      ],
+      "cad_parent_present": false,
+      "cad_revision": null,
+      "checks": [
+        {
+          "code": "nonlinear_pde_preflight",
+          "limit": "Bounded scalar q(u)=1+alpha*u^2, unit-square specification",
+          "observed": "alpha must be finite",
+          "status": "FAIL"
+        }
+      ],
+      "converged": null,
+      "decision": "NOT_RELEASED",
+      "ledger": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/ledger/E-nonlinear-invalid-boolean.json",
+        "sha256": "a88d8125cd904038c1c30efc73bbdec431641906412e725ce5eb24d5a90dcfc3",
+        "size_bytes": 280
+      },
+      "metric_validity_counts": {},
+      "metrics": {},
+      "model_revision": "b0b58d5cd93464322ca006332ecb7d440398816b905267d2aee732032af40213",
+      "native_fields_present": false,
+      "pending_validations": [
+        "physical_validation",
+        "model_qualification"
+      ],
+      "raw_result": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-boolean/pde/result.json",
+        "sha256": "35143016f76ce919b7d903b626b7d646c7829b5b6ce3775eb0c95acad59ce63f",
+        "size_bytes": 1093
+      },
+      "records": {
+        "proposal": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-boolean/proposal.json",
+          "sha256": "b03ca0d4d6de85f75289f06b21df8c0002853468f5c5c75faf36db81e6335bca",
+          "size_bytes": 1844
+        },
+        "registry": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-boolean/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        },
+        "result": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-boolean/result.json",
+          "sha256": "72f32d0ce7e21e2435a61976bf4371147a6528096e4fb6eb19aef0483a13df34",
+          "size_bytes": 5871
+        },
+        "thread": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-boolean/thread.json",
+          "sha256": "f24ab2c90e717f83d2ca1998d9c802b9f6ed328e549927aff23b0d824443f941",
+          "size_bytes": 389
+        }
+      },
+      "settings": {
+        "mesh": {
+          "cell_counts": [
+            8,
+            16,
+            32
+          ],
+          "degree": 1
+        },
+        "problem": {
+          "dirichlet": "0.0",
+          "domain": "unit_square",
+          "reference": {
+            "solution": "sin(pi*x[0])*sin(pi*x[1])",
+            "source": "Analytical manufactured solution for -div((1+alpha*u^2)*grad(u)) on the dimensionless unit square"
+          },
+          "weak_form": {
+            "alpha": true,
+            "rhs": "2*pi**2*sin(pi*x[0])*sin(pi*x[1])*(1+1.0*(3*sin(pi*x[0])**2*sin(pi*x[1])**2-sin(pi*x[0])**2-sin(pi*x[1])**2))"
+          }
+        },
+        "validation": {
+          "max_h1_seminorm_error": 0.12,
+          "max_l2_error": 0.003,
+          "max_residual_relative": 1e-10,
+          "min_h1_rate": 0.9,
+          "min_l2_rate": 1.8
+        }
+      },
+      "solver_status": "NOT_RUN",
+      "status": "REJECTED",
+      "subprocess_command_present": false,
+      "validation_status_counts": {
+        "FAIL": 1,
+        "UNKNOWN": 2
+      },
+      "validation_types": {
+        "model_qualification": "UNKNOWN",
+        "nonlinear_pde_preflight": "FAIL",
+        "physical_validation": "UNKNOWN"
+      }
+    },
+    "E-nonlinear-invalid-coefficient": {
+      "artifact_bytes": 2992,
+      "artifact_count": 3,
+      "artifact_files": [
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-coefficient/pde/result.json",
+          "sha256": "aa5b18502135b01d723e6bbcbda648da1b23b576ddb9e9d7781fced7b7335dd0",
+          "size_bytes": 1107
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-coefficient/proposal.json",
+          "sha256": "45901d11f8de0595e4c72cc71120e6770429286ac7e2e1fa1365a7791ef60ee2",
+          "size_bytes": 1848
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-coefficient/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        }
+      ],
+      "cad_parent_present": false,
+      "cad_revision": null,
+      "checks": [
+        {
+          "code": "nonlinear_pde_preflight",
+          "limit": "Bounded scalar q(u)=1+alpha*u^2, unit-square specification",
+          "observed": "alpha must satisfy 0 <= alpha <= 2",
+          "status": "FAIL"
+        }
+      ],
+      "converged": null,
+      "decision": "NOT_RELEASED",
+      "ledger": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/ledger/E-nonlinear-invalid-coefficient.json",
+        "sha256": "c29a16cd5e1b0e7faba4d5a1cb6bb2bcb42cff01d9e8048c619b979dc953f0bb",
+        "size_bytes": 284
+      },
+      "metric_validity_counts": {},
+      "metrics": {},
+      "model_revision": "86e3d5a3eb960dba56ad863f88746d76b6ae64700e24bafc400749919e5acc10",
+      "native_fields_present": false,
+      "pending_validations": [
+        "physical_validation",
+        "model_qualification"
+      ],
+      "raw_result": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-coefficient/pde/result.json",
+        "sha256": "aa5b18502135b01d723e6bbcbda648da1b23b576ddb9e9d7781fced7b7335dd0",
+        "size_bytes": 1107
+      },
+      "records": {
+        "proposal": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-coefficient/proposal.json",
+          "sha256": "45901d11f8de0595e4c72cc71120e6770429286ac7e2e1fa1365a7791ef60ee2",
+          "size_bytes": 1848
+        },
+        "registry": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-coefficient/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        },
+        "result": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-coefficient/result.json",
+          "sha256": "1be5db6567d7dbef1a4829228907c710d577495fa1448ac5122e92fdea273cfe",
+          "size_bytes": 5921
+        },
+        "thread": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-coefficient/thread.json",
+          "sha256": "079d1b40d07f8104737482207c42da1c853969d1571ebdad0ac8da0ae7eb4986",
+          "size_bytes": 401
+        }
+      },
+      "settings": {
+        "mesh": {
+          "cell_counts": [
+            8,
+            16,
+            32
+          ],
+          "degree": 1
+        },
+        "problem": {
+          "dirichlet": "0.0",
+          "domain": "unit_square",
+          "reference": {
+            "solution": "sin(pi*x[0])*sin(pi*x[1])",
+            "source": "Analytical manufactured solution for -div((1+alpha*u^2)*grad(u)) on the dimensionless unit square"
+          },
+          "weak_form": {
+            "alpha": -1.0,
+            "rhs": "2*pi**2*sin(pi*x[0])*sin(pi*x[1])*(1+1.0*(3*sin(pi*x[0])**2*sin(pi*x[1])**2-sin(pi*x[0])**2-sin(pi*x[1])**2))"
+          }
+        },
+        "validation": {
+          "max_h1_seminorm_error": 0.12,
+          "max_l2_error": 0.003,
+          "max_residual_relative": 1e-10,
+          "min_h1_rate": 0.9,
+          "min_l2_rate": 1.8
+        }
+      },
+      "solver_status": "NOT_RUN",
+      "status": "REJECTED",
+      "subprocess_command_present": false,
+      "validation_status_counts": {
+        "FAIL": 1,
+        "UNKNOWN": 2
+      },
+      "validation_types": {
+        "model_qualification": "UNKNOWN",
+        "nonlinear_pde_preflight": "FAIL",
+        "physical_validation": "UNKNOWN"
+      }
+    },
+    "E-nonlinear-invalid-expression": {
+      "artifact_bytes": 2926,
+      "artifact_count": 3,
+      "artifact_files": [
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-expression/pde/result.json",
+          "sha256": "a763e7622f53e7a724a9a6eb6c588d66c03b35a2fc8fb62775acf99854ddc544",
+          "size_bytes": 1127
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-expression/proposal.json",
+          "sha256": "b93dd865ecd803bfb16e516b5e8efbfaf285e06323412bc28a294206ad424659",
+          "size_bytes": 1762
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-expression/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        }
+      ],
+      "cad_parent_present": false,
+      "cad_revision": null,
+      "checks": [
+        {
+          "code": "nonlinear_pde_preflight",
+          "limit": "Bounded scalar q(u)=1+alpha*u^2, unit-square specification",
+          "observed": "Unsupported scalar syntax, function, attribute or call",
+          "status": "FAIL"
+        }
+      ],
+      "converged": null,
+      "decision": "NOT_RELEASED",
+      "ledger": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/ledger/E-nonlinear-invalid-expression.json",
+        "sha256": "8b46e17e719f05e055f4884bc376138d4ea872b5cc7238bc088dda3a53dbc274",
+        "size_bytes": 283
+      },
+      "metric_validity_counts": {},
+      "metrics": {},
+      "model_revision": "26fa89d1fa260909b7f1fc437bb776a525ba15f68bc94cede6a27d47fff2f64b",
+      "native_fields_present": false,
+      "pending_validations": [
+        "physical_validation",
+        "model_qualification"
+      ],
+      "raw_result": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-expression/pde/result.json",
+        "sha256": "a763e7622f53e7a724a9a6eb6c588d66c03b35a2fc8fb62775acf99854ddc544",
+        "size_bytes": 1127
+      },
+      "records": {
+        "proposal": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-expression/proposal.json",
+          "sha256": "b93dd865ecd803bfb16e516b5e8efbfaf285e06323412bc28a294206ad424659",
+          "size_bytes": 1762
+        },
+        "registry": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-expression/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        },
+        "result": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-expression/result.json",
+          "sha256": "106c649d72c5b08a6ed432db75a1bc22345aa194344cc12ceef7e341547e4740",
+          "size_bytes": 5847
+        },
+        "thread": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-invalid-expression/thread.json",
+          "sha256": "0b68b608fc5c3336f3ff64b8a72f36dc3a1ab2ee2e0dfb0a2e321c6abf5ed790",
+          "size_bytes": 398
+        }
+      },
+      "settings": {
+        "mesh": {
+          "cell_counts": [
+            8,
+            16,
+            32
+          ],
+          "degree": 1
+        },
+        "problem": {
+          "dirichlet": "0.0",
+          "domain": "unit_square",
+          "reference": {
+            "solution": "sin(pi*x[0])*sin(pi*x[1])",
+            "source": "Analytical manufactured solution for -div((1+alpha*u^2)*grad(u)) on the dimensionless unit square"
+          },
+          "weak_form": {
+            "alpha": 1.0,
+            "rhs": "__import__('os').getcwd()"
+          }
+        },
+        "validation": {
+          "max_h1_seminorm_error": 0.12,
+          "max_l2_error": 0.003,
+          "max_residual_relative": 1e-10,
+          "min_h1_rate": 0.9,
+          "min_l2_rate": 1.8
+        }
+      },
+      "solver_status": "NOT_RUN",
+      "status": "REJECTED",
+      "subprocess_command_present": false,
+      "validation_status_counts": {
+        "FAIL": 1,
+        "UNKNOWN": 2
+      },
+      "validation_types": {
+        "model_qualification": "UNKNOWN",
+        "nonlinear_pde_preflight": "FAIL",
+        "physical_validation": "UNKNOWN"
+      }
+    },
+    "E-nonlinear-reference-reject": {
+      "artifact_bytes": 504000,
+      "artifact_count": 34,
+      "artifact_files": [
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/command.json",
+          "sha256": "4e59e353e82612a51662a204042018c74e86d09d4b58ec7ccafcf2989c5f063a",
+          "size_bytes": 791
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/domain_reference.py",
+          "sha256": "ca6673adbc695a958f25e3607c5615d6416985171275ec96bd12351caf04695e",
+          "size_bytes": 24231
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/fenicsx_expression.py",
+          "sha256": "7f99a46e0894022a72be740d5e81324d02085fc9bdcca8ee4ed0c5235caab7d4",
+          "size_bytes": 17429
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/input.json",
+          "sha256": "b63e98fa2a98b4f1c3f2731ebd68132f022c451fc74eaa0022612457e1dd0bed",
+          "size_bytes": 648
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n16/dofs.json",
+          "sha256": "a88b7875618057baae125717471d8dd72a3b7b0a358cf1f18269bba4585755b6",
+          "size_bytes": 43112
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n16/field.h5",
+          "sha256": "31a0b9436e838b8eef6ab7465763eb7a2acfc837627df8324a4ebdf9f56ca155",
+          "size_bytes": 26784
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n16/field.xdmf",
+          "sha256": "bb874d36b566e06e14a2980ed8785e7a6df71548ea2bde77ba7c3967c8774046",
+          "size_bytes": 1018
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n16/forms.ufl.txt",
+          "sha256": "65e00dfd120af07f19d67c29a3e16b4abb4ec55a502f7c89931ae257f62b4614",
+          "size_bytes": 1251
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n16/newton_history.json",
+          "sha256": "f0a294c45c19b190b3eabcd71febb588f684e573ba4f39899b113f3361e41d11",
+          "size_bytes": 1616
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n16/solver_configuration.txt",
+          "sha256": "e3785de425c1147f32c031a90d5999e127fff8367aeafb405b7d01ae3d331ec2",
+          "size_bytes": 1259
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n32/dofs.json",
+          "sha256": "ce6411d2dff80b55d830c7273886e00473fc3e697f4968b3ce392d0c43edf280",
+          "size_bytes": 172005
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n32/field.h5",
+          "sha256": "f89da8659e3a125a327b260b596421ac61febd503b178bd88b2d9d859a7cedf7",
+          "size_bytes": 82848
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n32/field.xdmf",
+          "sha256": "5c4349c410a7c1f7561e0de0aaafcea9c1c41e4fa6865111e40dab95593f8963",
+          "size_bytes": 1022
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n32/forms.ufl.txt",
+          "sha256": "32c4b9129fba935e539c1b822c97efec0c0b51229f5635387823f50a79a05710",
+          "size_bytes": 1251
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n32/newton_history.json",
+          "sha256": "7f0502bb55914dd6cfaa4a353fddb966232f1e1459226f27174c3182bc4e6d7f",
+          "size_bytes": 1623
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n32/solver_configuration.txt",
+          "sha256": "7ab44e5a9c51d651ecaeb37bd5b4bc011dc4ba520699792186a072da142194b2",
+          "size_bytes": 1259
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n8/dofs.json",
+          "sha256": "a618487ac4b4bb55a872c6b6570b071425b0d9faeae9d488c39b8f761d0e36f6",
+          "size_bytes": 11001
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n8/field.h5",
+          "sha256": "dbf230ac6fed87191523af7f8c8e19bcb2716e78a6a4d00f882381ddd794327c",
+          "size_bytes": 11232
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n8/field.xdmf",
+          "sha256": "b4d85d86d7c26088771302759b43b6b341c13db40a9d70dde4f051c1d008dbb7",
+          "size_bytes": 1016
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n8/forms.ufl.txt",
+          "sha256": "29971d8641e6497ab980aaad64e5b1695f478c2116873eaa8d2efee668b67727",
+          "size_bytes": 1251
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n8/newton_history.json",
+          "sha256": "e3dc00255affbf9dbc6db022d175d6b0e61d8cef1c0039bca18519a8efac1983",
+          "size_bytes": 1622
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/level_n8/solver_configuration.txt",
+          "sha256": "ab8c748863e758f68404e39d31d896c452001716783eb91e262421efee9136d9",
+          "size_bytes": 1255
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/petsc_initialization.json",
+          "sha256": "bc816923e33802964b2bad12c3097b48590e87eb62181d5317066baea2344a43",
+          "size_bytes": 443
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/result.json",
+          "sha256": "4c469dd708f9251d78b7feaf938bc37f9d28a6f9f8c63a1e52e249ec699feafc",
+          "size_bytes": 22748
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/source_manifest.json",
+          "sha256": "58696393c6556d0ca3d4a1cf69924fb9f75c00dbb25d4432771dd06cfe3ccfb1",
+          "size_bytes": 1192
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/sources/fenicsx_nonlinear.py",
+          "sha256": "93e0e993f50e944ab94c430e1fcd2c7f5d0f52e4fbae1ad36a7ad6de0aa2520f",
+          "size_bytes": 22166
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/sources/fenicsx_pde.py",
+          "sha256": "f9424dc792e8357a8ebf3e82473f7a5e8d3a7cea725a6719eec180bbe09b5d45",
+          "size_bytes": 16824
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/stdout.log",
+          "sha256": "21e7213d6514fa563e35badbf29a1541842de884581ad7f9a72a237d6eca5e81",
+          "size_bytes": 1714
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/weak_form.txt",
+          "sha256": "62b8e0444a6b1e38a638c5ca51841bfe7740383d13d50a3f9708f34c45503468",
+          "size_bytes": 639
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/worker.py",
+          "sha256": "31ab6a1667d7c2e0b80137c582f7a22bd8eb27fbb9dd0c6d9e928f24335d2cdd",
+          "size_bytes": 18897
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/worker_result.json",
+          "sha256": "82772e414a53df0c42dc7815370c44c002c3537203e565a4e591378fa573ef9a",
+          "size_bytes": 12016
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/proposal.json",
+          "sha256": "9f24ad7ac2f96c894335d5c7d5f8f3c69101e2b86d78b4526d41f0400017fb38",
+          "size_bytes": 1800
+        },
+        {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        }
+      ],
+      "cad_parent_present": false,
+      "cad_revision": null,
+      "captured_source_sha256": {
+        "adapter": "93e0e993f50e944ab94c430e1fcd2c7f5d0f52e4fbae1ad36a7ad6de0aa2520f",
+        "domain_reference": "ca6673adbc695a958f25e3607c5615d6416985171275ec96bd12351caf04695e",
+        "expression_parser": "7f99a46e0894022a72be740d5e81324d02085fc9bdcca8ee4ed0c5235caab7d4",
+        "linear_adapter_utilities": "f9424dc792e8357a8ebf3e82473f7a5e8d3a7cea725a6719eec180bbe09b5d45",
+        "worker": "31ab6a1667d7c2e0b80137c582f7a22bd8eb27fbb9dd0c6d9e928f24335d2cdd"
+      },
+      "checks": [
+        {
+          "code": "pde_boundary_and_mesh",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": {
+            "boundary_dofs": "4*n",
+            "cells": "2*n^2",
+            "dofs": "(n+1)^2",
+            "max_boundary_value_error": 1e-12
+          },
+          "observed": [
+            {
+              "boundary_value_error": 0.0,
+              "cells": 128,
+              "dirichlet_dofs": 32,
+              "dofs": 81,
+              "n": 8
+            },
+            {
+              "boundary_value_error": 0.0,
+              "cells": 512,
+              "dirichlet_dofs": 64,
+              "dofs": 289,
+              "n": 16
+            },
+            {
+              "boundary_value_error": 0.0,
+              "cells": 2048,
+              "dirichlet_dofs": 128,
+              "dofs": 1089,
+              "n": 32
+            }
+          ],
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_convergence",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": "Positive native SNES convergence reason",
+          "observed": [
+            2,
+            2,
+            2
+          ],
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_iterations",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 25,
+          "observed": 5,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_absolute_residual",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1e-10,
+          "observed": 6.6707981904402e-13,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_newton_relative_residual",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1e-10,
+          "observed": 1.5876998320539437e-12,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_nonlinear_residual",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1e-10,
+          "observed": 1.5876998320539437e-12,
+          "status": "PASS"
+        },
+        {
+          "code": "pde_analytical_l2_error",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 0.003,
+          "observed": 0.499041340547418,
+          "status": "FAIL"
+        },
+        {
+          "code": "pde_l2_convergence_rate",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 1.8,
+          "observed": {
+            "recomputed": [
+              -0.03298415530213261,
+              -0.008292487221127187
+            ],
+            "reported": [
+              -0.03298415530213261,
+              -0.008292487221127187
+            ]
+          },
+          "status": "FAIL"
+        },
+        {
+          "code": "pde_analytical_h1_seminorm_error",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 0.12,
+          "observed": 2.219853205701037,
+          "status": "FAIL"
+        },
+        {
+          "code": "pde_h1_seminorm_convergence_rate",
+          "evidence_artifact": "pde/worker_result.json",
+          "limit": 0.9,
+          "observed": {
+            "recomputed": [
+              -0.012418341801897936,
+              -0.0030964529296353405
+            ],
+            "reported": [
+              -0.012418341801897936,
+              -0.0030964529296353405
+            ]
+          },
+          "status": "FAIL"
+        }
+      ],
+      "converged": true,
+      "decision": "NOT_RELEASED",
+      "ledger": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/ledger/E-nonlinear-reference-reject.json",
+        "sha256": "84492f41b5bd49d3901b321b3efba9f5b88339c7a111f23560f4a19f3b4028ed",
+        "size_bytes": 281
+      },
+      "mesh_studies": [
+        {
+          "artifact_sha256": {
+            "dofs": "a618487ac4b4bb55a872c6b6570b071425b0d9faeae9d488c39b8f761d0e36f6",
+            "field": "b4d85d86d7c26088771302759b43b6b341c13db40a9d70dde4f051c1d008dbb7",
+            "field_data": "dbf230ac6fed87191523af7f8c8e19bcb2716e78a6a4d00f882381ddd794327c",
+            "form_source": "29971d8641e6497ab980aaad64e5b1695f478c2116873eaa8d2efee668b67727",
+            "newton_history": "e3dc00255affbf9dbc6db022d175d6b0e61d8cef1c0039bca18519a8efac1983",
+            "solver_configuration": "ab8c748863e758f68404e39d31d896c452001716783eb91e262421efee9136d9"
+          },
+          "boundary_value_error": 0.0,
+          "cell_type": "triangle",
+          "cells_per_axis": 8,
+          "degree": 1,
+          "dirichlet_dofs": 32,
+          "dirichlet_value": 0.0,
+          "files": {
+            "dofs": "level_n8/dofs.json",
+            "field": "level_n8/field.xdmf",
+            "field_data": "level_n8/field.h5",
+            "form_source": "level_n8/forms.ufl.txt",
+            "newton_history": "level_n8/newton_history.json",
+            "solver_configuration": "level_n8/solver_configuration.txt"
+          },
+          "global_cells": 128,
+          "global_dofs": 81,
+          "h1_seminorm_convergence_rate": null,
+          "h1_seminorm_error": 2.196108727238801,
+          "l2_convergence_rate": null,
+          "l2_error": 0.4849656922081738,
+          "newton": {
+            "convergence_reason": 2,
+            "effective": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "effective_after": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "final_residual": 2.208045696011011e-13,
+            "function_evaluations": 7,
+            "history": [
+              {
+                "iteration": 0,
+                "residual_norm": 1.5175614006041451
+              },
+              {
+                "iteration": 1,
+                "residual_norm": 1.3217179765124207
+              },
+              {
+                "iteration": 2,
+                "residual_norm": 0.18455667308020313
+              },
+              {
+                "iteration": 3,
+                "residual_norm": 0.004097058460612801
+              },
+              {
+                "iteration": 4,
+                "residual_norm": 1.7685715107867628e-06
+              },
+              {
+                "iteration": 5,
+                "residual_norm": 2.208045696011011e-13
+              }
+            ],
+            "initial_residual": 1.5175614006041451,
+            "iterations": 5,
+            "last_ksp_convergence_reason": 4,
+            "linear_solve_iterations": 5,
+            "native_options": {
+              "ksp_error_if_not_converged": true,
+              "ksp_type": "preonly",
+              "pc_type": "lu",
+              "snes_atol": 1e-10,
+              "snes_linesearch_damping": 1.0,
+              "snes_linesearch_type": "none",
+              "snes_max_it": 25,
+              "snes_rtol": 1e-10,
+              "snes_stol": 0.0,
+              "snes_type": "newtonls"
+            },
+            "relative_normalization": "initial_residual_norm",
+            "relative_residual": 1.4549959528042704e-13
+          },
+          "nominal_h": 0.125,
+          "nonlinear_residual": {
+            "absolute": 2.208045696011011e-13,
+            "normalization": "free_dof_rhs_l2_norm",
+            "relative": 1.4549959528042704e-13,
+            "rhs_norm": 1.5175614006041451
+          }
+        },
+        {
+          "artifact_sha256": {
+            "dofs": "a88b7875618057baae125717471d8dd72a3b7b0a358cf1f18269bba4585755b6",
+            "field": "bb874d36b566e06e14a2980ed8785e7a6df71548ea2bde77ba7c3967c8774046",
+            "field_data": "31a0b9436e838b8eef6ab7465763eb7a2acfc837627df8324a4ebdf9f56ca155",
+            "form_source": "65e00dfd120af07f19d67c29a3e16b4abb4ec55a502f7c89931ae257f62b4614",
+            "newton_history": "f0a294c45c19b190b3eabcd71febb588f684e573ba4f39899b113f3361e41d11",
+            "solver_configuration": "e3785de425c1147f32c031a90d5999e127fff8367aeafb405b7d01ae3d331ec2"
+          },
+          "boundary_value_error": 0.0,
+          "cell_type": "triangle",
+          "cells_per_axis": 16,
+          "degree": 1,
+          "dirichlet_dofs": 64,
+          "dirichlet_value": 0.0,
+          "files": {
+            "dofs": "level_n16/dofs.json",
+            "field": "level_n16/field.xdmf",
+            "field_data": "level_n16/field.h5",
+            "form_source": "level_n16/forms.ufl.txt",
+            "newton_history": "level_n16/newton_history.json",
+            "solver_configuration": "level_n16/solver_configuration.txt"
+          },
+          "global_cells": 512,
+          "global_dofs": 289,
+          "h1_seminorm_convergence_rate": -0.012418341801897936,
+          "h1_seminorm_error": 2.2150938493781283,
+          "l2_convergence_rate": -0.03298415530213261,
+          "l2_error": 0.49618112179174967,
+          "newton": {
+            "convergence_reason": 2,
+            "effective": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "effective_after": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "final_residual": 6.6707981904402e-13,
+            "function_evaluations": 7,
+            "history": [
+              {
+                "iteration": 0,
+                "residual_norm": 0.7818822271832683
+              },
+              {
+                "iteration": 1,
+                "residual_norm": 0.7850530294252798
+              },
+              {
+                "iteration": 2,
+                "residual_norm": 0.12137277196020915
+              },
+              {
+                "iteration": 3,
+                "residual_norm": 0.003421531008977472
+              },
+              {
+                "iteration": 4,
+                "residual_norm": 2.188875884464664e-06
+              },
+              {
+                "iteration": 5,
+                "residual_norm": 6.6707981904402e-13
+              }
+            ],
+            "initial_residual": 0.7818822271832683,
+            "iterations": 5,
+            "last_ksp_convergence_reason": 4,
+            "linear_solve_iterations": 5,
+            "native_options": {
+              "ksp_error_if_not_converged": true,
+              "ksp_type": "preonly",
+              "pc_type": "lu",
+              "snes_atol": 1e-10,
+              "snes_linesearch_damping": 1.0,
+              "snes_linesearch_type": "none",
+              "snes_max_it": 25,
+              "snes_rtol": 1e-10,
+              "snes_stol": 0.0,
+              "snes_type": "newtonls"
+            },
+            "relative_normalization": "initial_residual_norm",
+            "relative_residual": 8.531717384690735e-13
+          },
+          "nominal_h": 0.0625,
+          "nonlinear_residual": {
+            "absolute": 6.6707981904402e-13,
+            "normalization": "free_dof_rhs_l2_norm",
+            "relative": 8.531717384690735e-13,
+            "rhs_norm": 0.7818822271832683
+          }
+        },
+        {
+          "artifact_sha256": {
+            "dofs": "ce6411d2dff80b55d830c7273886e00473fc3e697f4968b3ce392d0c43edf280",
+            "field": "5c4349c410a7c1f7561e0de0aaafcea9c1c41e4fa6865111e40dab95593f8963",
+            "field_data": "f89da8659e3a125a327b260b596421ac61febd503b178bd88b2d9d859a7cedf7",
+            "form_source": "32c4b9129fba935e539c1b822c97efec0c0b51229f5635387823f50a79a05710",
+            "newton_history": "7f0502bb55914dd6cfaa4a353fddb966232f1e1459226f27174c3182bc4e6d7f",
+            "solver_configuration": "7ab44e5a9c51d651ecaeb37bd5b4bc011dc4ba520699792186a072da142194b2"
+          },
+          "boundary_value_error": 0.0,
+          "cell_type": "triangle",
+          "cells_per_axis": 32,
+          "degree": 1,
+          "dirichlet_dofs": 128,
+          "dirichlet_value": 0.0,
+          "files": {
+            "dofs": "level_n32/dofs.json",
+            "field": "level_n32/field.xdmf",
+            "field_data": "level_n32/field.h5",
+            "form_source": "level_n32/forms.ufl.txt",
+            "newton_history": "level_n32/newton_history.json",
+            "solver_configuration": "level_n32/solver_configuration.txt"
+          },
+          "global_cells": 2048,
+          "global_dofs": 1089,
+          "h1_seminorm_convergence_rate": -0.0030964529296353405,
+          "h1_seminorm_error": 2.219853205701037,
+          "l2_convergence_rate": -0.008292487221127187,
+          "l2_error": 0.499041340547418,
+          "newton": {
+            "convergence_reason": 2,
+            "effective": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "effective_after": {
+              "atol": 1e-10,
+              "ksp_type": "preonly",
+              "line_search_damping": 1.0,
+              "line_search_type": "none",
+              "max_iterations": 25,
+              "pc_type": "lu",
+              "rtol": 1e-10,
+              "snes_type": "newtonls",
+              "stol": 0.0
+            },
+            "final_residual": 6.255713592827086e-13,
+            "function_evaluations": 7,
+            "history": [
+              {
+                "iteration": 0,
+                "residual_norm": 0.3940111012504372
+              },
+              {
+                "iteration": 1,
+                "residual_norm": 0.41040020866832616
+              },
+              {
+                "iteration": 2,
+                "residual_norm": 0.06511428060196789
+              },
+              {
+                "iteration": 3,
+                "residual_norm": 0.001973217914895436
+              },
+              {
+                "iteration": 4,
+                "residual_norm": 1.4869106202383389e-06
+              },
+              {
+                "iteration": 5,
+                "residual_norm": 6.255713592827086e-13
+              }
+            ],
+            "initial_residual": 0.3940111012504372,
+            "iterations": 5,
+            "last_ksp_convergence_reason": 4,
+            "linear_solve_iterations": 5,
+            "native_options": {
+              "ksp_error_if_not_converged": true,
+              "ksp_type": "preonly",
+              "pc_type": "lu",
+              "snes_atol": 1e-10,
+              "snes_linesearch_damping": 1.0,
+              "snes_linesearch_type": "none",
+              "snes_max_it": 25,
+              "snes_rtol": 1e-10,
+              "snes_stol": 0.0,
+              "snes_type": "newtonls"
+            },
+            "relative_normalization": "initial_residual_norm",
+            "relative_residual": 1.5876998320539437e-12
+          },
+          "nominal_h": 0.03125,
+          "nonlinear_residual": {
+            "absolute": 6.255713592827086e-13,
+            "normalization": "free_dof_rhs_l2_norm",
+            "relative": 1.5876998320539437e-12,
+            "rhs_norm": 0.3940111012504372
+          }
+        }
+      ],
+      "metric_validity_counts": {
+        "invalid": 8
+      },
+      "metrics": {
+        "h1_seminorm_convergence_rate": {
+          "reason": "Declared nonlinear PDE numerical validation failed: pde_analytical_l2_error, pde_l2_convergence_rate, pde_analytical_h1_seminorm_error, pde_h1_seminorm_convergence_rate",
+          "unit": "1",
+          "valid": false,
+          "value": -0.0030964529296353405
+        },
+        "h1_seminorm_error": {
+          "reason": "Declared nonlinear PDE numerical validation failed: pde_analytical_l2_error, pde_l2_convergence_rate, pde_analytical_h1_seminorm_error, pde_h1_seminorm_convergence_rate",
+          "unit": "1",
+          "valid": false,
+          "value": 2.219853205701037
+        },
+        "l2_convergence_rate": {
+          "reason": "Declared nonlinear PDE numerical validation failed: pde_analytical_l2_error, pde_l2_convergence_rate, pde_analytical_h1_seminorm_error, pde_h1_seminorm_convergence_rate",
+          "unit": "1",
+          "valid": false,
+          "value": -0.008292487221127187
+        },
+        "l2_error": {
+          "reason": "Declared nonlinear PDE numerical validation failed: pde_analytical_l2_error, pde_l2_convergence_rate, pde_analytical_h1_seminorm_error, pde_h1_seminorm_convergence_rate",
+          "unit": "1",
+          "valid": false,
+          "value": 0.499041340547418
+        },
+        "newton_iterations": {
+          "reason": "Declared nonlinear PDE numerical validation failed: pde_analytical_l2_error, pde_l2_convergence_rate, pde_analytical_h1_seminorm_error, pde_h1_seminorm_convergence_rate",
+          "unit": "1",
+          "valid": false,
+          "value": 5
+        },
+        "newton_residual_absolute": {
+          "reason": "Declared nonlinear PDE numerical validation failed: pde_analytical_l2_error, pde_l2_convergence_rate, pde_analytical_h1_seminorm_error, pde_h1_seminorm_convergence_rate",
+          "unit": "1",
+          "valid": false,
+          "value": 6.6707981904402e-13
+        },
+        "newton_residual_relative": {
+          "reason": "Declared nonlinear PDE numerical validation failed: pde_analytical_l2_error, pde_l2_convergence_rate, pde_analytical_h1_seminorm_error, pde_h1_seminorm_convergence_rate",
+          "unit": "1",
+          "valid": false,
+          "value": 1.5876998320539437e-12
+        },
+        "nonlinear_residual_relative": {
+          "reason": "Declared nonlinear PDE numerical validation failed: pde_analytical_l2_error, pde_l2_convergence_rate, pde_analytical_h1_seminorm_error, pde_h1_seminorm_convergence_rate",
+          "unit": "1",
+          "valid": false,
+          "value": 1.5876998320539437e-12
+        }
+      },
+      "model_revision": "cdbe6931601e19ba04cf457a40b8130eb27855339e2648352763f8cce7138da3",
+      "native_fields_present": true,
+      "pending_validations": [
+        "physical_validation",
+        "model_qualification"
+      ],
+      "petsc_initialization": {
+        "ambient_options_removed": [
+          "PETSC_OPTIONS",
+          "PETSC_OPTIONS_YAML"
+        ],
+        "argv": [
+          "caelab_nonlinear_worker",
+          "-skip_petscrc"
+        ],
+        "options": {
+          "skip_petscrc": null
+        },
+        "petsc_extension": "/usr/lib/petsc/lib/python3/dist-packages/petsc4py/lib/PETSc.cpython-312-x86_64-linux-gnu.so",
+        "petsc_rc_disabled": true,
+        "policy_getter": "Public SNESGetLineSearch/SNESLineSearchGetType/SNESLineSearchGetDamping C API"
+      },
+      "raw_result": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/result.json",
+        "sha256": "4c469dd708f9251d78b7feaf938bc37f9d28a6f9f8c63a1e52e249ec699feafc",
+        "size_bytes": 22748
+      },
+      "records": {
+        "proposal": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/proposal.json",
+          "sha256": "9f24ad7ac2f96c894335d5c7d5f8f3c69101e2b86d78b4526d41f0400017fb38",
+          "size_bytes": 1800
+        },
+        "registry": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/registry_snapshot.json",
+          "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+          "size_bytes": 37
+        },
+        "result": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/result.json",
+          "sha256": "37981741afbd10d25c8a35f45d232a07fb5221d3fad6624d7320f78b1faf82d0",
+          "size_bytes": 31864
+        },
+        "thread": {
+          "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/thread.json",
+          "sha256": "6b115b9c85c24f6a9d47443c37de89f38090022dd4068fdc855dd802ce3c6478",
+          "size_bytes": 779
+        }
+      },
+      "settings": {
+        "mesh": {
+          "cell_counts": [
+            8,
+            16,
+            32
+          ],
+          "degree": 1
+        },
+        "problem": {
+          "dirichlet": "0.0",
+          "domain": "unit_square",
+          "reference": {
+            "solution": "0.0",
+            "source": "Intentionally incorrect reference for finite numerical rejection acceptance"
+          },
+          "weak_form": {
+            "alpha": 1.0,
+            "rhs": "2*pi**2*sin(pi*x[0])*sin(pi*x[1])*(1+1.0*(3*sin(pi*x[0])**2*sin(pi*x[1])**2-sin(pi*x[0])**2-sin(pi*x[1])**2))"
+          }
+        },
+        "validation": {
+          "max_h1_seminorm_error": 0.12,
+          "max_l2_error": 0.003,
+          "max_residual_relative": 1e-10,
+          "min_h1_rate": 0.9,
+          "min_l2_rate": 1.8
+        }
+      },
+      "solver_status": "COMPLETED",
+      "status": "REJECTED",
+      "subprocess_command_present": true,
+      "validation_status_counts": {
+        "FAIL": 4,
+        "PASS": 6,
+        "UNKNOWN": 2
+      },
+      "validation_types": {
+        "model_qualification": "UNKNOWN",
+        "pde_analytical_h1_seminorm_error": "FAIL",
+        "pde_analytical_l2_error": "FAIL",
+        "pde_boundary_and_mesh": "PASS",
+        "pde_h1_seminorm_convergence_rate": "FAIL",
+        "pde_l2_convergence_rate": "FAIL",
+        "pde_newton_absolute_residual": "PASS",
+        "pde_newton_convergence": "PASS",
+        "pde_newton_iterations": "PASS",
+        "pde_newton_relative_residual": "PASS",
+        "pde_nonlinear_residual": "PASS",
+        "physical_validation": "UNKNOWN"
+      },
+      "versions": {
+        "basix": "0.11.0",
+        "dolfinx": "0.11.0.post0",
+        "ffcx": "0.11.0",
+        "mpi4py": "3.1.5",
+        "numpy": "1.26.4",
+        "petsc": "3.19.6",
+        "petsc4py": "3.19.6",
+        "python": "3.12.3",
+        "ufl": "2026.1.0"
+      },
+      "worker_result": {
+        "path": "artifacts/local-20260930-nonlinear-pde-draft-01/experiments/E-nonlinear-reference-reject/pde/worker_result.json",
+        "sha256": "82772e414a53df0c42dc7815370c44c002c3537203e565a4e591378fa573ef9a",
+        "size_bytes": 12016
+      }
+    }
+  },
+  "decision": "NOT_RELEASED",
+  "domain_plugin_version": "1",
+  "exact_source_ci": {
+    "explanation": "Independent exact-source query returned no runs; local unpushed worktree addition awaits Root integration",
+    "source_commit": "8814873fc70ac0741c142bcc3969086776f7b806",
+    "status": "NOT_RUN"
+  },
+  "existing_linear_comparison": [
+    {
+      "cells_per_axis": 8,
+      "metric_differences": {
+        "h1_seminorm_convergence_rate": null,
+        "h1_seminorm_error": 0.0,
+        "l2_convergence_rate": null,
+        "l2_error": 0.0
+      },
+      "same_dof_linear_max_difference": 0.0
+    },
+    {
+      "cells_per_axis": 16,
+      "metric_differences": {
+        "h1_seminorm_convergence_rate": 0.0,
+        "h1_seminorm_error": 0.0,
+        "l2_convergence_rate": 0.0,
+        "l2_error": 0.0
+      },
+      "same_dof_linear_max_difference": 0.0
+    },
+    {
+      "cells_per_axis": 32,
+      "metric_differences": {
+        "h1_seminorm_convergence_rate": 0.0,
+        "h1_seminorm_error": 0.0,
+        "l2_convergence_rate": 0.0,
+        "l2_error": 0.0
+      },
+      "same_dof_linear_max_difference": 0.0
+    }
+  ],
+  "existing_linear_mesh_solves": 3,
+  "experiment_artifact_bytes": 2222855,
+  "experiment_artifact_count": 167,
+  "focused_tests": {
+    "command": "python -m pytest -q tests/test_nonlinear_pde.py tests/test_nonlinear_pde_reference.py tests/test_pde_adapter.py",
+    "duration_seconds": 11.24,
+    "native_solver_executed_by_unit_tests": false,
+    "passed": 336
+  },
+  "frozen_plan": {
+    "cases": {
+      "0.0": {
+        "mesh": {
+          "cell_counts": [
+            8,
+            16,
+            32
+          ],
+          "degree": 1
+        },
+        "problem": {
+          "dirichlet": "0.0",
+          "domain": "unit_square",
+          "reference": {
+            "solution": "sin(pi*x[0])*sin(pi*x[1])",
+            "source": "Analytical manufactured solution for -div((1+alpha*u^2)*grad(u)) on the dimensionless unit square"
+          },
+          "weak_form": {
+            "alpha": 0.0,
+            "rhs": "2*pi**2*sin(pi*x[0])*sin(pi*x[1])"
+          }
+        },
+        "validation": {
+          "max_h1_seminorm_error": 0.12,
+          "max_l2_error": 0.003,
+          "max_residual_relative": 1e-10,
+          "min_h1_rate": 0.9,
+          "min_l2_rate": 1.8
+        }
+      },
+      "1.0": {
+        "mesh": {
+          "cell_counts": [
+            8,
+            16,
+            32
+          ],
+          "degree": 1
+        },
+        "problem": {
+          "dirichlet": "0.0",
+          "domain": "unit_square",
+          "reference": {
+            "solution": "sin(pi*x[0])*sin(pi*x[1])",
+            "source": "Analytical manufactured solution for -div((1+alpha*u^2)*grad(u)) on the dimensionless unit square"
+          },
+          "weak_form": {
+            "alpha": 1.0,
+            "rhs": "2*pi**2*sin(pi*x[0])*sin(pi*x[1])*(1+1.0*(3*sin(pi*x[0])**2*sin(pi*x[1])**2-sin(pi*x[0])**2-sin(pi*x[1])**2))"
+          }
+        },
+        "validation": {
+          "max_h1_seminorm_error": 0.12,
+          "max_l2_error": 0.003,
+          "max_residual_relative": 1e-10,
+          "min_h1_rate": 0.9,
+          "min_l2_rate": 1.8
+        }
+      },
+      "2.0": {
+        "mesh": {
+          "cell_counts": [
+            8,
+            16,
+            32
+          ],
+          "degree": 1
+        },
+        "problem": {
+          "dirichlet": "0.0",
+          "domain": "unit_square",
+          "reference": {
+            "solution": "sin(pi*x[0])*sin(pi*x[1])",
+            "source": "Analytical manufactured solution for -div((1+alpha*u^2)*grad(u)) on the dimensionless unit square"
+          },
+          "weak_form": {
+            "alpha": 2.0,
+            "rhs": "2*pi**2*sin(pi*x[0])*sin(pi*x[1])*(1+2.0*(3*sin(pi*x[0])**2*sin(pi*x[1])**2-sin(pi*x[0])**2-sin(pi*x[1])**2))"
+          }
+        },
+        "validation": {
+          "max_h1_seminorm_error": 0.12,
+          "max_l2_error": 0.003,
+          "max_residual_relative": 1e-10,
+          "min_h1_rate": 0.9,
+          "min_l2_rate": 1.8
+        }
+      }
+    },
+    "independent_source_at_center": {
+      "0.0": 19.739208802178716,
+      "1.0": 39.47841760435743,
+      "2.0": 59.21762640653615
+    },
+    "limitations": [
+      "alpha in[0,2], scalar unit square, P1, serial only",
+      "Mathematical manufactured proof is not model/physical qualification."
+    ],
+    "linear_backend_max_metric_difference": 1e-10,
+    "linear_limit_max_dof_difference": 1e-10,
+    "newton_policy": {
+      "absolute": 1e-10,
+      "excluded_environment_options": [
+        "PETSC_OPTIONS",
+        "PETSC_OPTIONS_YAML"
+      ],
+      "max_iterations": 25,
+      "native_options": {
+        "ksp_error_if_not_converged": true,
+        "ksp_type": "preonly",
+        "pc_type": "lu",
+        "snes_atol": 1e-10,
+        "snes_linesearch_damping": 1.0,
+        "snes_linesearch_type": "none",
+        "snes_max_it": 25,
+        "snes_rtol": 1e-10,
+        "snes_stol": 0.0,
+        "snes_type": "newtonls"
+      },
+      "petsc_rc_disabled": true,
+      "relative": 1e-10,
+      "verdict": "BOTH absolute and relative, plus independent constrained residual"
+    },
+    "recorded_utc": "2026-09-30T09:50:21.115318+00:00",
+    "schema_version": "1"
+  },
+  "frozen_plan_artifact": {
+    "path": "artifacts/local-20260930-nonlinear-pde-draft-01/frozen_plan.json",
+    "sha256": "5c569561909c9d107eab83f5f7666f6423c2000cb51458eda5466fc896c0e692",
+    "size_bytes": 3491
+  },
+  "implementation_checkpoint_commit": "8814873fc70ac0741c142bcc3969086776f7b806",
+  "implementation_commits": [
+    "1c283a23f96b5ebd056b2e2f1dd4c44f1e59fac3",
+    "8814873fc70ac0741c142bcc3969086776f7b806"
+  ],
+  "independent_review": {
+    "accepted_valid_metric_count": 29,
+    "alpha0_full_fields_exactly_equal_to_existing_linear": true,
+    "alpha0_full_fields_exactly_equal_to_same_dof_companion": true,
+    "artifact_bytes_verified": 2222855,
+    "artifact_hashes_verified": 167,
+    "completed_utc": "2026-09-30T10:13:57.291706+00:00",
+    "draft_machine_record_sha256_verified": "8117fcf62f70d6908f6337c062675f25c8c23be763011c563f47851168ade9ea",
+    "draft_machine_record_size_bytes_verified": 169039,
+    "hdf5_datasets_read": 45,
+    "json_hdf5_nodal_fields_exactly_equal": true,
+    "machine_record_hash_reference_occurrences_verified": 232,
+    "machine_record_status": "PASS",
+    "machine_record_unique_hash_paths_verified": 203,
+    "max_independent_analytical_error_difference": 2.07e-13,
+    "max_json_hdf5_coordinate_difference": 1.11e-16,
+    "monitor_rows_verified": 63,
+    "native_solver_executed_by_reviewer": false,
+    "native_status": "PASS",
+    "native_store_files_immutable_across_audits": 196,
+    "nonlinear_mesh_histories_verified": 12,
+    "preflight_not_run_cases_verified": 3,
+    "rejected_invalid_metric_count": 8,
+    "result_thread_ledger_records_verified": 8,
+    "reviewer": "Independent nonlinear PDE reviewer, read-only",
+    "reviewer_actions": "Read-only HDF5 reads and independent 12x12 Gauss/Duffy analytical integration; no tests, native solver, probes or writes",
+    "saved_field_meshes_verified": 15,
+    "scope": "Frozen source; all native fields, independent analytical integration, actual monitor histories/policy, source/artifact/result/thread/ledger identity and machine record",
+    "static_findings": "Three P2 findings closed: exact summary/callback identity, strict reported+recomputed rates, sealed full-step policy; tolerance label P3 fixed",
+    "static_source_commit": "8814873fc70ac0741c142bcc3969086776f7b806",
+    "static_status": "PASS",
+    "verdict": "Bounded PASS; no remaining actionable P1/P2",
+    "wrong_reference_full_fields_exactly_equal_to_alpha1": true
+  },
+  "limitations": [
+    "Physical validation/model/material/strength qualification UNKNOWN; all decisions NOT_RELEASED",
+    "Only q=1+alpha*u^2 with alpha[0,2], dimensionless unit square, all-boundary constant Dirichlet, P1 triangles, serial execution",
+    "General nonlinear PDE, multiphysics and MPI/HPC remain unverified; this does not complete Phase4 or Phase5",
+    "H1 error is gradient seminorm, not full H1 norm",
+    "Existing shared PDE runner freezes settings but does not yet consume describe_model geometry/metadata; Root integration pending",
+    "Native CI/default registry/shared UI routes for this addition are not verified by the local injected-adapter run",
+    "No thresholds changed after native execution; deliberate failed numerical reference remains REJECTED with all measured metrics invalid",
+    "All raw evidence remains local ignored artifacts and must be preserved through later worktree cleanup"
+  ],
+  "native_run_finished_utc": "2026-09-30T09:51:03.236738+00:00",
+  "native_run_source": {
+    "core_commit": "8814873fc70ac0741c142bcc3969086776f7b806",
+    "core_dirty": false,
+    "core_source_sha256": "5c678b3dfa19f82b881849a21be087f935dac692395199a7007867a53fb93ca0"
+  },
+  "native_run_started_utc": "2026-09-30T09:50:21.115318+00:00",
+  "native_worker_invocations": 5,
+  "nonlinear_mesh_solves": 12,
+  "numerical_rejection": "E-nonlinear-reference-reject",
+  "preflight_rejections": [
+    "E-nonlinear-invalid-coefficient",
+    "E-nonlinear-invalid-boolean",
+    "E-nonlinear-invalid-expression"
+  ],
+  "recorded_utc": "2026-09-30T09:57:55.074187+00:00",
+  "retention": "Ignored raw store retained locally; committing this record does not upload raw evidence",
+  "runtime": {
+    "excluded_environment_variables": [
+      "PYTHONPATH",
+      "PYTHONHOME",
+      "VIRTUAL_ENV",
+      "PETSC_DIR",
+      "PETSC_OPTIONS",
+      "PETSC_OPTIONS_YAML"
+    ],
+    "git_provenance": "Official Windows Git bridge used for the Windows-managed worktree; clean source identity measured",
+    "interpreter": "/usr/bin/python3",
+    "mpi_ranks": 1,
+    "petsc_rc_disabled": true,
+    "python_isolated_mode": true,
+    "scalar_type": "float64",
+    "worker_timeout_seconds": 180
+  },
+  "same_dof_linear_companion_solves": 3,
+  "schema_version": "1",
+  "scope": "Bounded scalar nonlinear manufactured weak form and its alpha=0 linear limit; not whole Phase4 qualification",
+  "source_files": {
+    "caelab/adapters/fenicsx_nonlinear.py": {
+      "path": "caelab/adapters/fenicsx_nonlinear.py",
+      "sha256": "93e0e993f50e944ab94c430e1fcd2c7f5d0f52e4fbae1ad36a7ad6de0aa2520f",
+      "size_bytes": 22166
+    },
+    "caelab/adapters/fenicsx_nonlinear_worker.py": {
+      "path": "caelab/adapters/fenicsx_nonlinear_worker.py",
+      "sha256": "31ab6a1667d7c2e0b80137c582f7a22bd8eb27fbb9dd0c6d9e928f24335d2cdd",
+      "size_bytes": 18897
+    },
+    "plugins/pde_nonlinear/__init__.py": {
+      "path": "plugins/pde_nonlinear/__init__.py",
+      "sha256": "f27ff6f4dd66fbb27d76fae67b07f5493a4509284bf637eaf9ad4ba256f4ca77",
+      "size_bytes": 514
+    },
+    "plugins/pde_nonlinear/reference.py": {
+      "path": "plugins/pde_nonlinear/reference.py",
+      "sha256": "ca6673adbc695a958f25e3607c5615d6416985171275ec96bd12351caf04695e",
+      "size_bytes": 24231
+    },
+    "scripts/verify_nonlinear_pde.py": {
+      "path": "scripts/verify_nonlinear_pde.py",
+      "sha256": "4526963051bf82689728b1e26665169b4c3886a3368ad599d31e510a576ae02a",
+      "size_bytes": 10081
+    },
+    "tests/test_nonlinear_pde.py": {
+      "path": "tests/test_nonlinear_pde.py",
+      "sha256": "a04058b5beb61ef615ddc28118710bee99bfb8bc7018b5e5a3a5dd56e1c170f2",
+      "size_bytes": 23152
+    },
+    "tests/test_nonlinear_pde_reference.py": {
+      "path": "tests/test_nonlinear_pde_reference.py",
+      "sha256": "a55e0145a16dc6582ea8009069230451af629939514240b5a27653917e049a62",
+      "size_bytes": 30244
+    }
+  },
+  "status": "PASS",
+  "store": "artifacts/local-20260930-nonlinear-pde-draft-01",
+  "study_records": [
+    {
+      "path": "artifacts/local-20260930-nonlinear-pde-draft-01/studies/S-nonlinear-pde/parameters.json",
+      "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+      "size_bytes": 37
+    },
+    {
+      "path": "artifacts/local-20260930-nonlinear-pde-draft-01/studies/S-nonlinear-pde/registry_history/0000.json",
+      "sha256": "9cd5a08b210f3259b4d4ae226dc4a6b5991c3f707aa2d3ba12fb79b897a7f245",
+      "size_bytes": 37
+    },
+    {
+      "path": "artifacts/local-20260930-nonlinear-pde-draft-01/studies/S-nonlinear-pde/study.json",
+      "sha256": "3fe3575858a76c5767d7b504b0cbdf3cf37f6449a75612213664f45819dad712",
+      "size_bytes": 514
+    }
+  ],
+  "submodule_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "versions": {
+    "basix": "0.11.0",
+    "dolfinx": "0.11.0.post0",
+    "ffcx": "0.11.0",
+    "mpi4py": "3.1.5",
+    "numpy": "1.26.4",
+    "petsc": "3.19.6",
+    "petsc4py": "3.19.6",
+    "python": "3.12.3",
+    "ufl": "2026.1.0"
+  },
+  "worktree": "C:/Users/pikac/.codex/worktrees/implicit-material/autonomous-cae-lab"
+}

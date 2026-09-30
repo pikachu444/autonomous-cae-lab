@@ -43,6 +43,12 @@ envelope, model-revision extension and checked evidence/artifact ledger. The
 first FEniCSx adapter owns its bounded AST-to-UFL translation and separate
 system-Python process. Canonical error and convergence evidence remain distinct
 from physical qualification. See ADR 0006 and `docs/PDE_ACCEPTANCE.md`.
+An optional pure PDE `describe_model` now uses the same declaration boundary
+as other independent models: settings plus declaration determine its revision,
+and common proposal fields record geometry, boundaries, sources and outputs.
+Adapters without that hook retain the historical settings-only revision.
+The nonlinear scalar plugin owns its scientific checks; native Newton policy
+and UFL remain in its adapter, with no new Core equation or solver logic.
 
 `ModelAnalysisAdapter.solve(output, settings)` extends the same declared-model
 Core to independent geometry/material/load models. Optional pure

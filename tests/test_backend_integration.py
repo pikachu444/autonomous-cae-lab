@@ -22,6 +22,10 @@ def test_default_model_registry_constructs_without_native_commands_and_preserves
     assert Lab(tmp_path / "empty", model_analysis_adapters={}).model_analysis_adapters == {}
     custom = {"test.only": object()}
     assert Lab(tmp_path / "custom", model_analysis_adapters=custom).model_analysis_adapters is custom
+    assert set(lab.pde_adapters) == {"pde.fenicsx", "pde.fenicsx.nonlinear"}
+    assert Lab(tmp_path / "empty-pde", pde_adapters={}).pde_adapters == {}
+    custom_pde = {"test.pde": object()}
+    assert Lab(tmp_path / "custom-pde", pde_adapters=custom_pde).pde_adapters is custom_pde
 
 
 @pytest.mark.parametrize("backend", sorted(BACKENDS))
@@ -46,3 +50,18 @@ def test_simulation_presets_share_generic_declared_operation_without_cad_parent(
     assert presets["explicit_ground_stop"]["status"] == "REJECTED"
     assert all(service._selected().lab.model_analysis_adapters[preset["backend"]].describe_model(preset["settings"])
                for preset in model_presets.values())
+    assert {preset["backend"] for preset in presets.values() if preset["operation"] == "pde_run"} == {
+        "pde.fenicsx", "pde.fenicsx.nonlinear"}
+
+
+@pytest.mark.parametrize("backend", ["pde.fenicsx", "pde.fenicsx.nonlinear"])
+def test_default_pde_invalid_input_is_retained_before_native_commands(tmp_path, backend):
+    lab = Lab(tmp_path)
+    lab.create_study("S-pde-admission", "PDE admission", "Does invalid input block native work?",
+                     "Invalid mathematics is rejected", "Keep common rejection and UNKNOWN records")
+    result = lab.run_pde(study_id="S-pde-admission", experiment_id="E-invalid", backend=backend, settings={})
+    assert result["status"] == "REJECTED" and result["solver_status"] == "NOT_RUN"
+    assert result["decision"] == "NOT_RELEASED" and result["cad_revision"] is None
+    assert "parent_experiment_id" not in result
+    assert not (tmp_path / "experiments/E-invalid/pde/command.json").exists()
+    assert lab.inspect_experiment("E-invalid") == result

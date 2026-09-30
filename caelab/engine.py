@@ -45,7 +45,9 @@ class Lab:
         self.optimization_adapters = optimization_adapters
         if pde_adapters is None:
             from .adapters.fenicsx_pde import FenicsxPDEAdapter
-            pde_adapters = {FenicsxPDEAdapter.backend: FenicsxPDEAdapter()}
+            from .adapters.fenicsx_nonlinear import FenicsxNonlinearPDEAdapter
+            pde_adapters = {adapter.backend: adapter() for adapter in
+                            (FenicsxPDEAdapter, FenicsxNonlinearPDEAdapter)}
         self.pde_adapters = pde_adapters
         if model_analysis_adapters is None:
             from .adapters.codeaster_elasticity import CodeAsterElasticityAdapter

@@ -1,5 +1,32 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Nonlinear PDE shared integration
+
+The preceding inverse integration d406b54 passed all eight exact-source CI
+jobs in run36702834926. Its inverse native proof remains the separate local
+0457af3 run; that workflow did not run inverse candidates.
+
+Reviewed source8814873 / evidence9689557 now uses the default PDE registry,
+existing CLI/MCP/HTTP `pde.run`, and an explicit nonlinear preset. Its optional
+pure declaration enters common geometry/boundary/source/output metadata and
+the hashed model revision; adapters without the hook retain their prior
+settings-only identity. 420 focused domain/adapter/Core/server tests passed.
+The legacy linear rate gate also checks independently recomputed pair rates:
+the 1e-12 observation-identity allowance never relaxes the 1.8 acceptance floor.
+
+CI now runs the actual nonlinear verifier and uploads its complete store. The
+HTTP verifier also retains the actual library ZIP it checks, closing future
+rejected-PDE export retention while leaving older archives unchanged. Fresh
+clean integrated-source native execution and exact-source CI are the next
+checks; the independent earlier native proof remains explicitly source8814873.
+
+Completed88bbb72 changed-family CI audit verified nineteen Code_Aster-family
+records, 1,291 registered artifacts and nine candidates/eighteen native meshes;
+952 tests and26 MCP tools passed. The CI interruption/replay assertion and logs
+passed, but the pre-interruption memory snapshot was not separately uploaded.
+See the updated model-input record. General nonlinear/MPI/physical qualification
+and all full phases remain open, UNKNOWN/NOT_RELEASED.
+
 ## Current material inverse integration
 
 The bounded synthetic-reference inverse packet is integrated through the

@@ -17,7 +17,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 import zipfile
 
-from caelab.storage import save_json, source_identity, utc_now
+from caelab.storage import check_id, save_json, source_identity, utc_now
 
 
 def application_source_sha256(repository):
@@ -82,6 +82,21 @@ def check_bundle(payload):
         assert any(name.endswith("report.html") for name in names)
         return {"sha256": hashlib.sha256(payload).hexdigest(), "size_bytes": len(payload),
                 "files": len(rows), "manifest": manifest}
+
+
+def retain_library_bundle(store, library_id, experiment_id, payload):
+    """Keep distinct library/experiment identities without replacing old bytes."""
+    check_id(library_id)
+    check_id(experiment_id)
+    checked = check_bundle(payload)
+    relative = Path("library_exports") / library_id / f"{experiment_id}-evidence.zip"
+    target = Path(store) / relative
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("xb") as output:
+        output.write(payload)
+    return {"store": library_id, "experiment_id": experiment_id,
+            "retained_zip": relative.as_posix(),
+            **{key: value for key, value in checked.items() if key != "manifest"}}
 
 
 def run(store, *, libraries=None, skip_pde=False):
@@ -183,9 +198,8 @@ def run(store, *, libraries=None, skip_pde=False):
                     client.request("/api/campaigns/" + row["id"])
                     campaigns.append(row["id"])
                 if verified:
-                    checked = check_bundle(client.request(f"/api/report/{verified[-1]}.zip", raw=True))
-                    evidence["bundles"].append({"store": library_id, "experiment_id": verified[-1],
-                        **{k:v for k,v in checked.items() if k != "manifest"}})
+                    bundle = client.request(f"/api/report/{verified[-1]}.zip", raw=True)
+                    evidence["bundles"].append(retain_library_bundle(store, library_id, verified[-1], bundle))
                 evidence["libraries"].append({"id": library_id, "verified_experiments": verified,
                                                "inspected_campaigns": campaigns, "mutation_denied": True})
             assert source_identity(repository)["core_source_sha256"] == before["core_source_sha256"], "Core changed during acceptance"

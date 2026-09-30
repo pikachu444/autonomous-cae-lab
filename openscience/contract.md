@@ -20,6 +20,14 @@ The Python API is `caelab.Lab`. The CLI maps the same operations to `python -m c
 
 `status=COMPLETED_REVIEW_REQUIRED` says the transaction ran and its numerical/CAD checks are recorded. `decision=NOT_RELEASED` is retained while any machine/strength/physical/durability requirements are unknown. `status=REJECTED` can be an intended invalid-design observation, not a process crash. `FAILED_EXECUTION` marks a backend error. The OpenScience agent must follow the result's evidence IDs rather than interpreting a tool exit code as engineering approval.
 
+The additive `pde.fenicsx.nonlinear` backend uses the same `pde.run` transport
+for its bounded scalar diffusion benchmark, full Newton histories and the
+alpha-zero linear limit. If a PDE adapter implements the existing pure
+`describe_model` hook, Core hashes settings plus that declaration and captures
+common geometry, boundaries, source loads and fields. Adapters without the
+hook retain their historical settings-only revision. Numerical gates remain
+domain-owned; mathematical acceptance does not qualify a physical model.
+
 `model_analysis.run(study_id, experiment_id, backend, settings, hypothesis_id?)`
 adds declared geometry/material/boundary/load analysis without a fictitious CAD
 parent. CLI `model-analysis`, API `run_model_analysis` and MCP

@@ -194,6 +194,8 @@ jobs:
             python3-dolfinx-real=1:0.11.0.post0-2~ppa1~noble1
       - name: Compare declared weak forms with analytical solutions and convergence rates
         run: python -m scripts.verify_pde --store artifacts/pde-lab
+      - name: Verify full Newton histories, nonlinear manufactured fields and the exact linear limit
+        run: python -m scripts.verify_nonlinear_pde --store artifacts/nonlinear-pde-lab
       - name: Connect actual PDE to the common local research/results surface
         run: python -m scripts.verify_lab_ui --store artifacts/http-pde-lab --library pde=artifacts/pde-lab
       - name: Preserve weak forms, field data, raw errors and common evidence
@@ -203,6 +205,7 @@ jobs:
           name: pde-cae-lab-${{ github.sha }}
           path: |
             artifacts/pde-lab/
+            artifacts/nonlinear-pde-lab/
             artifacts/http-pde-lab/
           include-hidden-files: true
           if-no-files-found: warn

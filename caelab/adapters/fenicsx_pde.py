@@ -207,6 +207,10 @@ class FenicsxPDEAdapter:
         fine = studies[-1]
         rates = [level["l2_convergence_rate"] for level in studies[1:]]
         rate_observed = min(rates) if all(rate is not None for rate in rates) else None
+        recomputed_rates = [error_rate(previous["l2_error"], current["l2_error"])
+                            for previous, current in zip(studies, studies[1:])]
+        recomputed_minimum = (min(recomputed_rates)
+                              if all(rate is not None for rate in recomputed_rates) else None)
         residual = max(level["linear_residual"]["relative"] for level in studies)
         values = [
             ("pde_preflight", True, "Bounded scalar weak-form specification", "input.json"),
@@ -219,8 +223,12 @@ class FenicsxPDEAdapter:
                                      "max_boundary_error": boundary_limit}),
             ("pde_analytical_l2_error", fine["l2_error"] <= thresholds["max_l2_error"],
              fine["l2_error"], thresholds["max_l2_error"]),
-            ("pde_l2_convergence_rate", rate_observed is not None and rate_observed >= thresholds["min_l2_rate"],
-             {"minimum": rate_observed, "pair_rates": rates}, thresholds["min_l2_rate"]),
+            ("pde_l2_convergence_rate", rate_observed is not None and
+             recomputed_minimum is not None and
+             min(rate_observed, recomputed_minimum) >= thresholds["min_l2_rate"],
+             {"minimum": rate_observed, "pair_rates": rates,
+              "recomputed_minimum": recomputed_minimum, "recomputed_pair_rates": recomputed_rates},
+             thresholds["min_l2_rate"]),
             ("pde_linear_residual", residual <= thresholds["max_residual_relative"],
              residual, thresholds["max_residual_relative"]),
         ]

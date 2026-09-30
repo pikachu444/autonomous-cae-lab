@@ -19,7 +19,7 @@
     "existing_cli_mcp_http_model_operations": true,
     "http_preset": "SINGLE_NATIVE_EVALUATION_WITH_SYNTHETIC_DATASET",
     "regressions": {"passed": 111, "warnings": 1, "seconds": 113.99, "log": "artifacts/inverse-integration-tests.log"},
-    "integrated_source_ci": "PENDING",
+    "integrated_source_ci": {"commit": "d406b5444c34f4893409bcc3c0b0dd22c76e0689", "run": 36702834926, "jobs": 8, "conclusion": "SUCCESS"},
     "native_inverse_ci": "NOT_RUN_EXACT_LOCAL_SIF_REQUIRED"
   },
   "runtime_contract": "Exact local SIF f4d9a7... plus sealed native binaries; independently generated CI SIF is not silently substituted",

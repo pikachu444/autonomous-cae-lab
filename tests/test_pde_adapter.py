@@ -208,6 +208,26 @@ def test_common_outcome_retains_provenance_fields_and_unknowns(tmp_path, monkeyp
     assert json.loads((output / "result.json").read_text()) == outcome
 
 
+def test_rate_identity_roundoff_does_not_relax_the_scientific_floor(tmp_path, monkeypatch):
+    floor = settings()["validation"]["min_l2_rate"]
+    actual_rate = floor - 5e-13
+    errors = tuple(.025 / 2 ** (index * actual_rate) for index in range(3))
+
+    def rounded_summary(raw, output):
+        for row in raw["mesh_studies"][1:]:
+            row["l2_convergence_rate"] = floor
+
+    mock_worker(monkeypatch, rounded_summary, errors=errors)
+    result = FenicsxPDEAdapter().solve(tmp_path / "pde", settings())
+    check = next(item for item in result["checks"] if item["code"] == "pde_l2_convergence_rate")
+    assert check["observed"]["minimum"] == floor
+    assert check["observed"]["recomputed_minimum"] < floor
+    assert check["status"] == "FAIL" and result["status"] == "REJECTED"
+    assert result["solver_status"] == "COMPLETED" and result["converged"] is True
+    assert result["metrics"]["l2_convergence_rate"]["value"] == floor
+    assert all(not metric["valid"] for metric in result["metrics"].values())
+
+
 @pytest.mark.parametrize("errors,residual", [
     ((.025, .0063, .004), 1e-14),
     ((.025, .0063, .0016), 1e-7),
