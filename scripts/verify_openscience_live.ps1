@@ -35,35 +35,16 @@ function Get-OpenScienceAcceptanceModelIdentity($Context) {
     return [ordered]@{model=$Context.ModelId;digest=$taskActualModels[0].digest;size=$taskActualModels[0].size}
 }
 function Get-OpenScienceAcceptanceProvenance($Context,[int]$Timeout,$ModelIdentity) {
-    $taskTracked=[Collections.Generic.List[object]]::new()
-    $taskPaths=@(& git -C $Context.RepoRoot -c core.quotepath=false ls-files)
-    if($LASTEXITCODE -ne 0){throw 'Source tracked-file discovery failed.'}
-    foreach($taskRelative in $taskPaths){
-        $taskPath=Join-Path $Context.RepoRoot $taskRelative
-        if(Test-Path -LiteralPath $taskPath -PathType Leaf){
-            Assert-OpenScienceContainedPath $taskPath $Context.RepoRoot | Out-Null
-            $taskTracked.Add([ordered]@{path=$taskRelative;sha256=Get-OpenScienceHash $taskPath})
-        } elseif(Test-Path -LiteralPath $taskPath -PathType Container){
-            # A gitlink must pin actual nested source bytes, not only its HEAD.
-            $taskNestedHead=(& git -C $taskPath rev-parse HEAD).Trim()
-            if($LASTEXITCODE -ne 0){throw 'Pinned submodule source is unavailable.'}
-            $taskNestedPaths=@(& git -C $taskPath -c core.quotepath=false ls-files)
-            if($LASTEXITCODE -ne 0){throw 'Pinned submodule tracked-file discovery failed.'}
-            foreach($taskNestedRelative in $taskNestedPaths){
-                $taskNestedPath=Join-Path $taskPath $taskNestedRelative
-                if(Test-Path -LiteralPath $taskNestedPath -PathType Leaf){
-                    Assert-OpenScienceContainedPath $taskNestedPath $taskPath | Out-Null
-                    $taskTracked.Add([ordered]@{path="$taskRelative/$taskNestedRelative";submodule_head=$taskNestedHead;sha256=Get-OpenScienceHash $taskNestedPath})
-                } else { throw 'A tracked nested source file is unavailable.' }
-            }
-        } else { $taskTracked.Add([ordered]@{path=$taskRelative;missing=$true}) }
-    }
-    $taskTrackedBytes=[Text.Encoding]::UTF8.GetBytes(($taskTracked | ConvertTo-Json -Depth 10 -Compress))
-    $taskSourceHead=(& git -C $Context.RepoRoot rev-parse HEAD).Trim()
-    if($LASTEXITCODE -ne 0){throw 'Source commit discovery failed.'}
+    # A newly started acceptance cannot establish its own source baseline:
+    # the persistent MCP imported Lab when the server booted, possibly earlier.
+    Assert-Task ($Context.BootSource -and $Context.BootSourceSha256) 'Server boot source is unavailable; a new owned runtime is required before acceptance.'
+    Assert-Task ((Get-OpenScienceSourcePinSha256 -SourcePin $Context.BootSource) -eq $Context.BootSourceSha256) 'Server boot source receipt hash changed.'
+    $taskCurrentSource=Get-OpenScienceRepositorySourcePin -RepoRoot $Context.RepoRoot
+    Assert-OpenScienceRepositorySourcePin -Expected $Context.BootSource -Current $taskCurrentSource
     return [ordered]@{
-        source_commit=$taskSourceHead;source_tree_sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($taskTrackedBytes)).ToLowerInvariant()
-        source_dirty=@(& git -C $Context.RepoRoot status --short);config_sha256=Get-OpenScienceHash $Context.ConfigPath
+        source_commit=$Context.BootSource.source_commit;source_tree_sha256=$Context.BootSource.source_tree_sha256
+        source_dirty=@($Context.BootSource.source_dirty);server_boot_source_sha256=$Context.BootSourceSha256
+        config_sha256=Get-OpenScienceHash $Context.ConfigPath
         model=$Context.Model;model_identity=$ModelIdentity;profile_root=$Context.ProfileRoot;store_root=$Context.StoreRoot
         runtime_owner=$Context.OwnerPath;runtime_url=$Context.RuntimeURL;runtime_owner_sha256=Get-OpenScienceHash $Context.OwnerPath
         runtime_intent_sha256=$Context.IntentSha256;openscience_source_commit=$Context.SourceCommit
@@ -91,7 +72,9 @@ setTimeout(()=>{
   process.stdout.write(JSON.stringify({type:"mock_log_read",read_during_run:readable})+"\n");
   if(argv.includes("--mock-timeout")) setInterval(()=>process.stdout.write(JSON.stringify({type:"mock_still_alive"})+"\n"),300);
   else process.exit(readable?0:2);
-},350);
+// Give the real Windows CIM ownership probe a live test process. This mock
+// intentionally tests readable live logs, not short-process expiry races.
+},1500);
 '@ | Set-Content -LiteralPath $taskFakeLauncher -Encoding utf8
     $taskMockContext.LauncherPath=$taskFakeLauncher
     $taskMockContext | Add-Member -NotePropertyName OwnerPath -NotePropertyValue (Join-Path $taskChecksRoot 'mock-owner.json') -Force
@@ -236,6 +219,41 @@ setTimeout(()=>{
         $taskMockModelDigest=('a'*64);$taskMockDuplicateModel=$true;$taskModelRejected=$false
         try{Get-OpenScienceAcceptanceModelIdentity $taskMockContext | Out-Null}catch{$taskModelRejected=$true}
         Assert-LauncherCheck $taskModelRejected 'ambiguous configured model identity rejects acceptance'
+        # Reproduce the reviewed gap with real tracked source bytes in an owned
+        # public fixture repo, before any Resume/stage baseline exists. No fake
+        # Core module is imported or executed and no provider is called.
+        $taskBootFixture=Join-Path $taskChecksRoot 'boot-source-fixture'
+        New-Item -ItemType Directory -Path (Join-Path $taskBootFixture 'caelab'),(Join-Path $taskBootFixture 'openscience') | Out-Null
+        $taskBootModule=Join-Path $taskBootFixture 'caelab/__init__.py'
+        [IO.File]::WriteAllText($taskBootModule,"# public test-only source A"+[Environment]::NewLine,[Text.UTF8Encoding]::new($false))
+        [IO.File]::WriteAllText((Join-Path $taskBootFixture 'openscience/mcp_server.py'),"# public test-only MCP import"+[Environment]::NewLine,[Text.UTF8Encoding]::new($false))
+        & git -C $taskBootFixture init --quiet
+        if($LASTEXITCODE -ne 0){throw 'Test fixture repository initialization failed.'}
+        & git -C $taskBootFixture add -- caelab/__init__.py openscience/mcp_server.py
+        if($LASTEXITCODE -ne 0){throw 'Test fixture tracking failed.'}
+        & git -C $taskBootFixture -c user.name='Runtime source fixture' -c user.email='runtime-fixture@invalid.example' -c core.hooksPath=disabled-test-hooks -c commit.gpgsign=false commit --quiet -m 'Public source fixture A'
+        if($LASTEXITCODE -ne 0){throw 'Test-only source fixture commit failed.'}
+        Write-OpenScienceJson $taskMockContext.OwnerPath @{kind='test-only-runtime-owner';no_provider_calls=$true} -CreateNew
+        $taskBootPin=Get-OpenScienceRepositorySourcePin -RepoRoot $taskBootFixture
+        $taskBootContext=[pscustomobject]($taskMockContext | ConvertTo-Json -Depth 35 | ConvertFrom-Json -AsHashtable)
+        $taskBootContext.RepoRoot=$taskBootFixture
+        $taskBootContext | Add-Member -NotePropertyName BootSource -NotePropertyValue $taskBootPin
+        $taskBootContext | Add-Member -NotePropertyName BootSourceSha256 -NotePropertyValue (Get-OpenScienceSourcePinSha256 -SourcePin $taskBootPin)
+        $taskBoundFirst=Get-OpenScienceAcceptanceProvenance -Context $taskBootContext -Timeout 300 -ModelIdentity $taskModelPin
+        Assert-LauncherCheck ($taskBoundFirst.source_commit -eq $taskBootPin.source_commit -and $taskBoundFirst.server_boot_source_sha256 -eq $taskBootContext.BootSourceSha256) 'first acceptance binds to the actual server boot source'
+        [IO.File]::WriteAllText($taskBootModule,"# public test-only source B"+[Environment]::NewLine,[Text.UTF8Encoding]::new($false))
+        $taskFirstDriftRejected=$false
+        try{Get-OpenScienceAcceptanceProvenance -Context $taskBootContext -Timeout 300 -ModelIdentity $taskModelPin | Out-Null}catch{$taskFirstDriftRejected=$true}
+        Assert-LauncherCheck $taskFirstDriftRejected 'Core edit after boot rejects first non-Resume acceptance instead of adopting current disk bytes'
+        & git -C $taskBootFixture add -- caelab/__init__.py
+        & git -C $taskBootFixture -c user.name='Runtime source fixture' -c user.email='runtime-fixture@invalid.example' -c core.hooksPath=disabled-test-hooks -c commit.gpgsign=false commit --quiet -m 'Public source fixture B'
+        if($LASTEXITCODE -ne 0){throw 'Second test-only source fixture commit failed.'}
+        $taskFirstCheckoutRejected=$false
+        try{Get-OpenScienceAcceptanceProvenance -Context $taskBootContext -Timeout 300 -ModelIdentity $taskModelPin | Out-Null}catch{$taskFirstCheckoutRejected=$true}
+        Assert-LauncherCheck $taskFirstCheckoutRejected 'checkout/source commit after boot rejects first acceptance'
+        $taskBootContext.BootSourceSha256='changed';$taskBootReceiptRejected=$false
+        try{Get-OpenScienceAcceptanceProvenance -Context $taskBootContext -Timeout 300 -ModelIdentity $taskModelPin | Out-Null}catch{$taskBootReceiptRejected=$true}
+        Assert-LauncherCheck $taskBootReceiptRejected 'changed boot snapshot receipt cannot establish a new baseline'
         $taskCheckRecord=[ordered]@{outcome='PASS_LAUNCHER_MOCKS_ONLY';inference_performed=$false;mcp_mutations_performed=$false;tests=$taskTests;mock_http_receipts=$taskMockCalls;timeout_order=$taskMockOrder;completed_utc=[DateTime]::UtcNow.ToString('o')}
         $taskCheckRecord | ConvertTo-Json -Depth 25 | Set-Content -LiteralPath (Join-Path $taskChecksRoot 'checks.json') -Encoding utf8
         Write-Host "Launcher checks=$($taskTests.Count) PASS; no inference; evidence=$taskChecksRoot"
@@ -279,7 +297,7 @@ $taskStages=[Collections.Generic.List[object]]::new()
 $taskStudyId="S-$RunName"; $taskValidId="E-$RunName-width38"; $taskInvalidId="E-$RunName-bolt30"
 $taskRecord=[ordered]@{
     run_name=$RunName;attempt_name=$AttemptName;started_utc=[DateTime]::UtcNow.ToString('o');outcome='IN_PROGRESS'
-    source_commit=(& git -C $RepoRoot rev-parse HEAD).Trim();source_dirty=@(& git -C $RepoRoot status --short)
+    source_commit=$taskProvenance.source_commit;source_dirty=$taskProvenance.source_dirty;server_boot_source_sha256=$taskProvenance.server_boot_source_sha256
     openscience_version='2.0.146';openscience_source_commit=$taskSetup.SourceCommit;provider='local Ollama';model=$taskSetup.Model
     account_gate_observed=$false;study_id=$taskStudyId;experiment_ids=@($taskValidId,$taskInvalidId)
     profile_root=$taskSetup.ProfileRoot;store_root=$taskStore;runtime_owner=$taskSetup.OwnerPath;runtime_url=$taskSetup.RuntimeURL

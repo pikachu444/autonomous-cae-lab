@@ -94,6 +94,161 @@ function Read-OpenScienceJson([string]$Path) {
     try { return ConvertFrom-OpenScienceJsonElement $document.RootElement } finally { $document.Dispose() }
 }
 
+function Get-OpenScienceRepositoryPinSource {
+    # Shared by the public snapshot helper and every proxy model POST. No
+    # shell, Git hooks/fsmonitor, repository code import or provider call.
+    @'
+import sourceFs from 'node:fs';
+import sourcePath from 'node:path';
+import sourceCrypto from 'node:crypto';
+import {execFileSync as sourceExec} from 'node:child_process';
+const sourceDigest = bytes => sourceCrypto.createHash('sha256').update(bytes).digest('hex');
+const sourceCanonical = value => JSON.stringify(value,(_,item)=>item&&typeof item==='object'&&!Array.isArray(item)
+  ? Object.fromEntries(Object.keys(item).sort().map(key=>[key,item[key]])):item);
+const sourcePinSha = pin => sourceDigest(sourceCanonical(pin));
+function captureRepositorySourcePin(repoRoot,gitPath) {
+  repoRoot=sourcePath.resolve(repoRoot);gitPath=sourcePath.resolve(gitPath);
+  const deadline=Date.now()+20000;
+  const gitEnvironment={...process.env};
+  for(const name of Object.keys(gitEnvironment))if(/^GIT_/i.test(name))delete gitEnvironment[name];
+  const git=(root,args)=>{
+    if(Date.now()>=deadline)throw new Error('Bounded source snapshot expired');
+    return sourceExec(gitPath,['-C',root,'-c','core.fsmonitor=false',...args],
+      {encoding:'utf8',timeout:Math.min(10000,deadline-Date.now()),maxBuffer:16*1024*1024,windowsHide:true,
+       stdio:['ignore','pipe','pipe'],env:gitEnvironment});
+  };
+  const samePath=(left,right)=>process.platform==='win32'
+    ? sourcePath.resolve(left).toLowerCase()===sourcePath.resolve(right).toLowerCase():sourcePath.resolve(left)===sourcePath.resolve(right);
+  const owned=(root,relative)=>{
+    if(sourcePath.isAbsolute(relative)||relative.split(/[\\/]/).includes('..'))throw new Error('Source path escapes repository');
+    const absolute=sourcePath.resolve(root,relative);
+    if(!samePath(absolute,root)&&!absolute.startsWith(root+sourcePath.sep))throw new Error('Source path escapes repository');
+    let current=root;
+    if(sourceFs.lstatSync(current).isSymbolicLink())throw new Error('Linked source is not pinned');
+    for(const part of relative.split(/[\\/]/).filter(Boolean)){
+      current=sourcePath.join(current,part);
+      if(sourceFs.lstatSync(current).isSymbolicLink())throw new Error('Linked source is not pinned');
+    }
+    return absolute;
+  };
+  const ignoredImport=relative=>{
+    const parts=relative.replaceAll('\\','/').split('/');
+    if(['artifacts','runs','.venv','venv','node_modules','.git','.pytest_cache','.mypy_cache','.ruff_cache'].includes(parts[0]))return true;
+    return parts.includes('__pycache__')&&relative.endsWith('.pyc');
+  };
+  const snapshot=()=>{
+    const files=[],submodules=[],dirty=[];
+    const visit=(root,prefix)=>{
+      if(!samePath(git(root,['rev-parse','--show-toplevel']).trim(),root))throw new Error('Submodule checkout is unavailable');
+      const head=git(root,['rev-parse','--verify','HEAD']).trim();
+      if(!/^[0-9a-f]{40,64}$/.test(head))throw new Error('Repository HEAD is unavailable');
+      const inventory=git(root,['ls-files','--stage','-z']);
+      const status=git(root,['status','--porcelain=v1','--untracked-files=all','-z']);
+      dirty.push(...status.split('\0').filter(Boolean).map(value=>prefix+value));
+      const untracked=[...git(root,['ls-files','--others','--exclude-standard','-z']).split('\0'),
+        ...git(root,['ls-files','--others','--ignored','--exclude-standard','-z','--','*.py','*.pyi','*.pyc','*.pyd','*.so','*.pth']).split('\0')];
+      for(const relative of untracked.filter(Boolean)){
+        if(!ignoredImport(relative)&&/\.(py|pyi|pyc|pyd|so|pth)$/i.test(relative))throw new Error('Untracked importable repository source is not pinned');
+      }
+      for(const entry of inventory.split('\0').filter(Boolean)){
+        const match=/^(\d{6}) ([0-9a-f]{40,64}) (\d)\t([\s\S]+)$/.exec(entry);
+        if(!match||match[3]!=='0')throw new Error('Unmerged source cannot be pinned');
+        const [ ,mode,indexObject,,relative]=match,absolute=owned(root,relative),name=prefix+relative.replaceAll('\\','/');
+        if(mode==='160000'){
+          if(!sourceFs.statSync(absolute).isDirectory())throw new Error('Submodule source is unavailable');
+          const nested=visit(absolute,name+'/');
+          submodules.push({path:name,head:nested,index_commit:indexObject});
+        }else{
+          if(!['100644','100755'].includes(mode)||!sourceFs.statSync(absolute).isFile())throw new Error('Tracked source is missing or unsupported');
+          files.push({path:name,sha256:sourceDigest(sourceFs.readFileSync(absolute)),index_object:indexObject,index_mode:mode});
+        }
+      }
+      if(head!==git(root,['rev-parse','--verify','HEAD']).trim()||inventory!==git(root,['ls-files','--stage','-z'])||
+        status!==git(root,['status','--porcelain=v1','--untracked-files=all','-z']))throw new Error('Repository changed during source capture');
+      return head;
+    };
+    const head=visit(repoRoot,'');
+    files.sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);submodules.sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);dirty.sort();
+    return {schema:1,kind:'autonomous-cae-lab.repository-source-pin',repo_root:repoRoot,git_path:gitPath,
+      git_sha256:sourceDigest(sourceFs.readFileSync(gitPath)),source_commit:head,
+      source_tree_sha256:sourceDigest(sourceCanonical({files,submodules})),source_dirty:dirty,files,submodules};
+  };
+  const first=snapshot(),second=snapshot();
+  if(sourceCanonical(first)!==sourceCanonical(second))throw new Error('Source bytes changed during capture');
+  return second;
+}
+function assertRepositorySourcePin(expected,current){
+  if(!expected||expected.schema!==1||expected.kind!=='autonomous-cae-lab.repository-source-pin'||
+    sourceCanonical(expected)!==sourceCanonical(current))throw new Error('Repository source differs from the owned startup snapshot');
+}
+'@
+}
+
+function Invoke-OpenScienceSourceNode([string]$Source, [string[]]$Arguments, [string]$WorkingDirectory, [string]$NodePath) {
+    if (-not $NodePath) { $NodePath = (Get-Command $(if ($IsWindows) { 'node.exe' } else { 'node' }) -ErrorAction Stop).Source }
+    $info = [Diagnostics.ProcessStartInfo]::new(); $info.FileName = $NodePath; $info.WorkingDirectory = $WorkingDirectory
+    $info.UseShellExecute = $false; $info.CreateNoWindow = $true; $info.RedirectStandardOutput = $true; $info.RedirectStandardError = $true
+    $info.StandardOutputEncoding = [Text.UTF8Encoding]::new($false); $info.StandardErrorEncoding = [Text.UTF8Encoding]::new($false)
+    foreach ($name in @(Get-OpenScienceRemovedEnvironment @($info.Environment.Keys))) { $info.Environment.Remove($name) | Out-Null }
+    foreach ($argument in @('--input-type=module', '--eval', $Source, '--') + $Arguments) { $info.ArgumentList.Add($argument) }
+    $process = [Diagnostics.Process]::new(); $process.StartInfo = $info
+    try {
+        Assert-OpenScienceCondition ($process.Start()) 'Local source snapshot reader could not start.'
+        $output = $process.StandardOutput.ReadToEndAsync(); $errors = $process.StandardError.ReadToEndAsync()
+        if (-not $process.WaitForExit(25000)) { $process.Kill(); throw 'Local source snapshot exceeded its bounded read time.' }
+        Assert-OpenScienceCondition ($process.ExitCode -eq 0) 'Local repository source snapshot was refused; source files, submodules or importable untracked files are unresolved.'
+        return $output.GetAwaiter().GetResult()
+    } finally { $process.Dispose() }
+}
+
+function Get-OpenScienceRepositorySourcePin {
+    [CmdletBinding(DefaultParameterSetName = 'Repository')]
+    param([Parameter(Mandatory, ParameterSetName = 'Repository')][string]$RepoRoot,
+        [Parameter(Mandatory, ParameterSetName = 'Context')]$Context, [string]$GitPath, [string]$GitSha256)
+    if ($PSCmdlet.ParameterSetName -eq 'Context') { $RepoRoot = $Context.RepoRoot }
+    $RepoRoot = [IO.Path]::GetFullPath($RepoRoot)
+    if (-not $GitPath -and $Context.BootSource) { $GitPath = $Context.BootSource.git_path; $GitSha256 = $Context.BootSource.git_sha256 }
+    $git = $(if ($GitPath) { [IO.Path]::GetFullPath($GitPath) } else { (Get-Command $(if ($IsWindows) { 'git.exe' } else { 'git' }) -ErrorAction Stop).Source })
+    if ($GitSha256) { Assert-OpenScienceCondition ((Get-OpenScienceHash $git) -ceq $GitSha256) 'Pinned source reader Git executable changed; invocation is refused.' }
+    $source = (Get-OpenScienceRepositoryPinSource) + "`ntry { process.stdout.write(JSON.stringify(captureRepositorySourcePin(process.argv[1],process.argv[2]))); } catch { process.exitCode=1; }"
+    $node = $(if ($Context) { $Context.NodePath } else { $null })
+    $content = Invoke-OpenScienceSourceNode $source @($RepoRoot, $git) $RepoRoot $node
+    $document = [Text.Json.JsonDocument]::Parse($content)
+    try { return ConvertFrom-OpenScienceJsonElement $document.RootElement } finally { $document.Dispose() }
+}
+
+function Get-OpenScienceSourcePinSha256 {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)]$SourcePin)
+    $document = [Text.Json.JsonDocument]::Parse(($SourcePin | ConvertTo-Json -Depth 40 -Compress))
+    function ConvertTo-SourceCanonical([Text.Json.JsonElement]$Element) {
+        if ($Element.ValueKind -eq 'Object') {
+            $value = [ordered]@{}
+            foreach ($property in @($Element.EnumerateObject() | Sort-Object Name -CaseSensitive)) { $value[$property.Name] = ConvertTo-SourceCanonical $property.Value }
+            return $value
+        }
+        if ($Element.ValueKind -eq 'Array') { return ,@($Element.EnumerateArray() | ForEach-Object { ConvertTo-SourceCanonical $_ }) }
+        return ConvertFrom-OpenScienceJsonElement $Element
+    }
+    try { $canonical = ConvertTo-SourceCanonical $document.RootElement | ConvertTo-Json -Depth 40 -Compress } finally { $document.Dispose() }
+    [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($canonical))).ToLowerInvariant()
+}
+
+function Assert-OpenScienceRepositorySourcePin {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)]$Expected, [Parameter(Mandatory)]$Current)
+    Assert-OpenScienceCondition ($Expected.schema -eq 1 -and $Expected.kind -ceq 'autonomous-cae-lab.repository-source-pin' -and
+        (Get-OpenScienceSourcePinSha256 $Expected) -ceq (Get-OpenScienceSourcePinSha256 $Current)) 'Repository source differs from this runtime startup snapshot; start a fresh owned runtime.'
+}
+
+function Assert-OpenScienceRuntimeBootSource($Owner, [switch]$LifecycleOnly) {
+    # Core/MCP/plugin/HEAD drift must not prevent exact session abort/Stop.
+    # Controller script/process ownership remains strict in the caller.
+    if ($LifecycleOnly) { return }
+    Assert-OpenScienceCondition ($Owner.boot_source -and $Owner.boot_source_sha256 -ceq (Get-OpenScienceSourcePinSha256 $Owner.boot_source)) 'Owned runtime has no verified startup source snapshot; inference is refused.'
+    Assert-OpenScienceRepositorySourcePin $Owner.boot_source (Get-OpenScienceRepositorySourcePin -Context $Owner.context -GitPath $Owner.boot_source.git_path -GitSha256 $Owner.boot_source.git_sha256)
+}
+
 function Assert-OpenScienceContainedPath([string]$Path, [string]$Root) {
     $absolute = [IO.Path]::GetFullPath($Path)
     $parent = [IO.Path]::GetFullPath($Root).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
@@ -177,7 +332,7 @@ function New-OpenScienceLocalContext {
     $profile = Join-Path $artifacts "profiles\$ProfileTag"
     Assert-OpenScienceContainedPath $profile $RepoRoot | Out-Null
     $markerPath = Assert-OpenScienceContainedPath (Join-Path $profile 'caelab-profile-owner.json') $profile
-    $intent = [ordered]@{ repo_root = $RepoRoot; run_name = $RunName; profile_tag = $ProfileTag; store_root = $StoreRoot
+    $intent = [ordered]@{ profile_schema = 2; repo_root = $RepoRoot; run_name = $RunName; profile_tag = $ProfileTag; store_root = $StoreRoot
         runtime_prefix = $RuntimePrefix; model = $ModelId; wsl_distro = $WslDistro; wsl_python = $WslPython
         allowed_tools = $AllowedTools; output_tokens = $OutputTokens; steps = $Steps; provider_timeout_seconds = $ProviderTimeoutSeconds }
     $intentBytes = [Text.Encoding]::UTF8.GetBytes(($intent | ConvertTo-Json -Depth 10 -Compress))
@@ -223,6 +378,7 @@ function New-OpenScienceLocalContext {
         RemoveEnvironment = @('OPENSCIENCE_CONFIG', 'OPENSCIENCE_CONFIG_CONTENT', 'OPENSCIENCE_AUTH_TOKEN', 'OPENSCIENCE_BIN_PATH', 'OPENSCIENCE_PERMISSION', 'NODE_OPTIONS', 'NODE_PATH', 'WSLENV')
         Model = "ollama/$ModelId"; ModelId = $ModelId; AllowedTools = $AllowedTools; OutputTokens = $OutputTokens; Steps = $Steps
         ProviderTimeoutSeconds = $ProviderTimeoutSeconds; SourceCommit = $script:OpenSciencePinnedSource
+        WslPythonCacheRoot = (Join-Path $profile 'wsl-pycache')
         IntentSha256 = $intentHash; OwnerPath = (Join-Path $profile 'runtime-owner.json'); GuardPath = (Join-Path $profile 'expected-tools.json')
         SandboxLimitation = 'Windows has no native OpenScience sandbox backend. warn fallback is explicit; application permissions are not OS containment.'
     }
@@ -247,7 +403,7 @@ function New-OpenScienceLocalContext {
                 cost = @{ input = 0; output = 0 }; limit = @{ context = 16384; output = $OutputTokens }; options = @{ reasoningEffort = 'low' } } } } }
         mcp = @{ caelab = @{ type = 'local'; enabled = $true; timeout = 120000; command = @(
             "$env:WINDIR\System32\wsl.exe", '-d', $WslDistro, '--cd', $wslRoot, '--', '/usr/bin/env',
-            "CAELAB_STORE=$wslStore", $WslPython, "$wslRoot/openscience/mcp_server.py") } }
+            "CAELAB_STORE=$wslStore", ('PYTHONPYCACHEPREFIX=' + (ConvertTo-OpenScienceWslPath $context.WslPythonCacheRoot)), $WslPython, "$wslRoot/openscience/mcp_server.py") } }
     }
     New-Item -ItemType Directory -Path $profile -ErrorAction Stop | Out-Null
     Write-OpenScienceJson $markerPath ([ordered]@{ kind = 'autonomous-cae-lab.openscience-profile'; schema = 1; run_name = $RunName
@@ -256,6 +412,7 @@ function New-OpenScienceLocalContext {
     foreach ($directory in @($environment.Values | Where-Object { $_ -is [string] -and $_.StartsWith($profile + '\') } | Sort-Object -Unique)) {
         New-Item -ItemType Directory -Path $directory -Force -ErrorAction Stop | Out-Null
     }
+    New-Item -ItemType Directory -Path $context.WslPythonCacheRoot -ErrorAction Stop | Out-Null
     Write-OpenScienceJson $context.ConfigPath $config -CreateNew
     Write-OpenScienceJson (Join-Path $profile 'context.json') $context -CreateNew
     Initialize-OpenScienceToolGuard -Context $context
@@ -377,6 +534,7 @@ function Get-OpenScienceLocalRuntime {
     param([Parameter(Mandatory)][string]$OwnerPath, [switch]$LifecycleOnly)
     $owner = Read-OpenScienceRuntimeOwner $OwnerPath
     Assert-OpenScienceCondition ($owner.state -eq 'ready' -or ($LifecycleOnly -and $owner.state -in @('stopping', 'guard_failed'))) "Owned runtime is not ready (state=$($owner.state))."
+    Assert-OpenScienceRuntimeBootSource $owner -LifecycleOnly:$LifecycleOnly
     $context = [pscustomobject]$owner.context
     Assert-OpenScienceProcessIdentity $owner.controller (Get-OpenScienceProcessIdentity -ProcessId $owner.controller.Pid)
     Assert-OpenScienceCondition ($owner.controller.CommandLine.Contains($owner.launch_token) -and $owner.controller.CommandLine.Contains($owner.context_path) -and
@@ -406,6 +564,7 @@ function Get-OpenScienceLocalRuntime {
         Assert-OpenScienceCondition ($proxyHealth.kind -eq 'autonomous-cae-lab.openscience-proxy' -and $proxyHealth.pid -eq $owner.proxy.Pid -and
             $proxyHealth.run_name -eq $context.RunName -and $proxyHealth.profile_root -eq $context.ProfileRoot -and
             $proxyHealth.guard_sha256 -eq (Get-OpenScienceHash $context.GuardPath)) 'Guard health belongs to a different profile or guard revision.'
+        Assert-OpenScienceCondition ($proxyHealth.boot_source_sha256 -ceq $owner.boot_source_sha256) 'Proxy startup source belongs to another runtime.'
         Assert-OpenScienceCondition (-not (Read-OpenScienceJson $context.GuardPath).stopping) 'This profile is stopping; new model actions are blocked.'
     }
     $healthResponse = Invoke-OpenScienceHttp "$($owner.runtime_url)/global/health"
@@ -418,10 +577,13 @@ function Get-OpenScienceLocalRuntime {
     }
     Assert-OpenScienceProcessIdentity $owner.native (Get-OpenScienceProcessIdentity -ProcessId $owner.native.Pid)
     if (-not $LifecycleOnly) { Assert-OpenScienceProcessIdentity $owner.proxy (Get-OpenScienceProcessIdentity -ProcessId $owner.proxy.Pid) }
+    Assert-OpenScienceRuntimeBootSource $owner -LifecycleOnly:$LifecycleOnly
     $context | Add-Member -NotePropertyName RuntimeURL -NotePropertyValue $owner.runtime_url -Force
     $context | Add-Member -NotePropertyName WorkspaceURL -NotePropertyValue $owner.workspace_url -Force
     $context | Add-Member -NotePropertyName ConnectorStatus -NotePropertyValue $(if ($LifecycleOnly) { 'not_checked_for_lifecycle' } else { 'connected' }) -Force
     $context | Add-Member -NotePropertyName RuntimeDirectory -NotePropertyValue $owner.runtime_directory -Force
+    $context | Add-Member -NotePropertyName BootSource -NotePropertyValue $owner.boot_source -Force
+    $context | Add-Member -NotePropertyName BootSourceSha256 -NotePropertyValue $owner.boot_source_sha256 -Force
     return $context
 }
 
@@ -625,7 +787,7 @@ function Stop-OpenScienceOwnedProxy($Context, $Owner) {
 }
 
 function Get-OpenScienceProxySource {
-@'
+    (Get-OpenScienceRepositoryPinSource) + "`n" + @'
 // Generated into one owned, ignored runtime directory. Production upstream is
 // fixed numeric loopback Ollama. --self-test exercises an in-memory mock only.
 import http from 'node:http';
@@ -657,6 +819,15 @@ function guardFor(settings) {
   assert.ok(!(guard.no_tools && guard.required));
   return {...guard, sha256:digest(bytes)};
 }
+function sourceFor(settings) {
+  const boot=settings.boot_source;
+  assert.equal(boot?.repo_root,settings.repo_root);
+  assert.equal(sourcePinSha(boot),settings.boot_source_sha256);
+  assert.ok(sourcePath.isAbsolute(boot.git_path));
+  assert.equal(sourceDigest(sourceFs.readFileSync(boot.git_path)),boot.git_sha256);
+  assertRepositorySourcePin(boot,captureRepositorySourcePin(settings.repo_root,boot.git_path));
+  return settings.boot_source_sha256;
+}
 function inspect(body, guard) {
   if (guard.stopping) return {rejection:'Owned runtime is stopping; model actions are blocked', offered:[]};
   let value;
@@ -680,7 +851,7 @@ function createGuardedServer(settings, upstreamRequest = http.request) {
     if (request.method === 'GET' && request.url === '/_caelab/health') {
       try { const guard = guardFor(settings); response.writeHead(200, {'content-type':'application/json'});
         response.end(JSON.stringify({kind:'autonomous-cae-lab.openscience-proxy',pid:process.pid,
-          run_name:settings.run_name,profile_root:settings.profile_root,guard_sha256:guard.sha256}));
+          run_name:settings.run_name,profile_root:settings.profile_root,guard_sha256:guard.sha256,boot_source_sha256:settings.boot_source_sha256}));
       } catch { response.writeHead(412); response.end('Owned guard is invalid'); }
       return;
     }
@@ -700,11 +871,17 @@ function createGuardedServer(settings, upstreamRequest = http.request) {
       try { guard = guardFor(settings); if (request.method === 'POST' && !rejection) inspected = inspect(body,guard); }
       catch { rejection = 'Owned guard is missing or invalid'; }
       rejection ||= inspected.rejection;
+      let sourceVerified=false;
+      if(request.method==='POST'&&!rejection){
+        try { sourceFor(settings);sourceVerified=true; }
+        catch { rejection='Core/MCP repository source differs from startup; a fresh owned runtime is required'; }
+      }
       if (rejection) {
         const bytes = Buffer.from(JSON.stringify({error:{message:rejection,type:'caelab_schema_guard'}}));
         writeNew(file('response')+'.bin',bytes);
         jsonNew(file('receipt')+'.json',{...base,completed_utc:new Date().toISOString(),status:412,rejection,
-          forwarded:false,offered_tools:inspected.offered,guard_sha256:guard?.sha256,response_sha256:digest(bytes),response_size_bytes:bytes.length});
+          forwarded:false,offered_tools:inspected.offered,guard_sha256:guard?.sha256,boot_source_sha256:settings.boot_source_sha256,
+          source_verified:sourceVerified,response_sha256:digest(bytes),response_size_bytes:bytes.length});
         response.writeHead(412,{'content-type':'application/json'}); response.end(bytes); return;
       }
       const output = fs.openSync(file('response')+'.bin','wx'), hash = crypto.createHash('sha256');
@@ -712,7 +889,8 @@ function createGuardedServer(settings, upstreamRequest = http.request) {
       const finish = error => {
         if (finished) return; finished = true; fs.fsyncSync(output); fs.closeSync(output);
         jsonNew(file('receipt')+'.json',{...base,completed_utc:new Date().toISOString(),status,error,
-          offered_tools:inspected.offered,guard_sha256:guard.sha256,forwarded:true,upstream:'http://127.0.0.1:11434',
+          offered_tools:inspected.offered,guard_sha256:guard.sha256,boot_source_sha256:settings.boot_source_sha256,
+          source_verified:sourceVerified,forwarded:true,upstream:'http://127.0.0.1:11434',
           forwarded_body_unchanged:true,response_sha256:hash.digest('hex'),response_size_bytes:received});
       };
       const retain = bytes => { hash.update(bytes); received += bytes.length; fs.writeFileSync(output,bytes); };
@@ -738,7 +916,15 @@ function createGuardedServer(settings, upstreamRequest = http.request) {
 }
 async function selfTest(directory) {
   fs.mkdirSync(directory,{recursive:true});
-  const settings = {repo_root:'mock-repo',run_name:'mock-run',profile_root:directory,model:'openscience/qwen3-4b-ctx-16384',
+  const gitPath=process.argv[4],repo=path.join(directory,'source-fixture');fs.mkdirSync(repo);
+  const fixtureGit=args=>sourceExec(gitPath,['-C',repo,'-c','core.hooksPath='+path.join(directory,'no-hooks'),...args],
+    {encoding:'utf8',windowsHide:true,stdio:['ignore','pipe','pipe']});
+  fixtureGit(['init','--quiet']);fs.mkdirSync(path.join(repo,'caelab'));
+  const sourceFile=path.join(repo,'caelab','__init__.py');fs.writeFileSync(sourceFile,'value = "source-A"\n');
+  fixtureGit(['add','.']);fixtureGit(['-c','user.name=Runtime Mock','-c','user.email=runtime-mock@example.invalid','commit','--quiet','-m','mock source A']);
+  const boot=captureRepositorySourcePin(repo,gitPath);
+  const settings = {repo_root:repo,run_name:'mock-run',profile_root:directory,model:'openscience/qwen3-4b-ctx-16384',
+    boot_source:boot,boot_source_sha256:sourcePinSha(boot),
     allowed:known,guardPath:path.join(directory,'guard.json'),receipts:directory,timeoutMs:1000};
   const guard = {schema:1,kind:'autonomous-cae-lab.openscience-tool-guard',repo_root:settings.repo_root,
     run_name:settings.run_name,profile_root:settings.profile_root,model:settings.model,allowed:known,required:known[0],no_tools:false};
@@ -775,9 +961,18 @@ async function selfTest(directory) {
     assert.equal(await post(absent),412);assert.equal(forwarded.length,count);
     guard.allowed=known;guard.stopping=true;fs.writeFileSync(settings.guardPath,JSON.stringify(guard));
     assert.equal(await post(absent),412);assert.equal(forwarded.length,count);
+    guard.stopping=false;fs.writeFileSync(settings.guardPath,JSON.stringify(guard));
+    fs.writeFileSync(sourceFile,'value = "source-B"\n');
+    assert.equal(await post(absent),412);assert.equal(forwarded.length,count);
+    const latestReceipt=fs.readdirSync(directory).filter(name=>/^receipt-\d+\.json$/.test(name)).sort().at(-1);
+    const driftReceipt=JSON.parse(fs.readFileSync(path.join(directory,latestReceipt)));
+    assert.equal(driftReceipt.forwarded,false);assert.equal(driftReceipt.source_verified,false);
+    assert.ok(driftReceipt.rejection.includes('repository source'));
+    assert.equal((await fetch(base+'/v1/models')).status,200);
     assert.equal((await fetch(base+'/v1/arbitrary')).status,403);
     console.log(JSON.stringify({status:'PASS',checks:['unchanged_multiline_body','request_response_sha256','credential_value_not_recorded',
-      'wrong_model_rejected','foreign_tool_rejected','required_schema_absence_rejected','no_tools_rejected','tampered_guard_rejected','stopping_blocks_new_model_forwards','endpoint_allowlist'],provider_calls:0}));
+      'wrong_model_rejected','foreign_tool_rejected','required_schema_absence_rejected','no_tools_rejected','tampered_guard_rejected','stopping_blocks_new_model_forwards',
+      'proxy_post_rejects_source_drift_without_provider_forward','metadata_models_remains_harmless_under_source_drift','endpoint_allowlist'],provider_calls:0}));
   } finally { await new Promise(resolve=>server.close(resolve)); }
 }
 if (process.argv[2] === '--self-test') {
@@ -790,6 +985,7 @@ if (process.argv[2] === '--self-test') {
   assert.equal(marker.kind,'autonomous-cae-lab.openscience-profile');
   for (const key of ['repo_root','run_name','profile_root']) assert.equal(marker[key],settings[key]);
   assert.equal(settings.model,'openscience/qwen3-4b-ctx-16384');guardFor(settings);
+  sourceFor(settings);
   const server = createGuardedServer(settings);
   server.listen(0,'127.0.0.1',()=>jsonNew(settings.readyPath,{kind:'autonomous-cae-lab.openscience-proxy',schema:1,pid:process.pid,
     url:`http://127.0.0.1:${server.address().port}/v1`,run_name:settings.run_name,profile_root:settings.profile_root,
@@ -857,10 +1053,13 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
         $spec.script_sha256 -eq (Get-OpenScienceHash $script:OpenScienceServerScriptPath)) 'Internal controller launch marker/source does not match.'
     $directory = Assert-OpenScienceContainedPath $spec.runtime_directory $context.ProfileRoot
     Assert-OpenScienceCondition ($spec.port -ge 0 -and $spec.port -le 65535 -and $spec.startup_timeout_seconds -ge 5 -and $spec.startup_timeout_seconds -le 180) 'Invalid internal startup bounds.'
+    Assert-OpenScienceCondition ($spec.boot_source_sha256 -ceq (Get-OpenScienceSourcePinSha256 $spec.boot_source)) 'Immutable startup source digest changed.'
+    Assert-OpenScienceRepositorySourcePin $spec.boot_source (Get-OpenScienceRepositorySourcePin -Context $context -GitPath $spec.boot_source.git_path -GitSha256 $spec.boot_source.git_sha256)
     $owner = [ordered]@{ kind = 'autonomous-cae-lab.openscience-runtime'; schema = 1; state = 'starting'
         repo_root = $context.RepoRoot; run_name = $context.RunName; profile_root = $context.ProfileRoot; context = $context
         context_path = $ContextPath; launch_token = $LaunchToken; runtime_directory = $directory
         script_path = $script:OpenScienceServerScriptPath; script_sha256 = $spec.script_sha256
+        boot_source = $spec.boot_source; boot_source_sha256 = $spec.boot_source_sha256
         controller = Get-OpenScienceProcessIdentity $PID; launcher = $null; native = $null; proxy = $null
         proxy_script = (Join-Path $directory 'ollama-guard.mjs'); started_utc = [DateTime]::UtcNow.ToString('o') }
     Save-OpenScienceRuntimeOwner $owner
@@ -872,6 +1071,7 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
         $proxyReadyPath = Join-Path $directory 'proxy-ready.json'; $proxySettingsPath = Join-Path $directory 'proxy-settings.json'
         Write-OpenScienceJson $proxySettingsPath @{ repo_root = $context.RepoRoot; run_name = $context.RunName; profile_root = $context.ProfileRoot
             model = $context.ModelId; allowed = @($context.AllowedTools); guardPath = $context.GuardPath
+            boot_source = $owner.boot_source; boot_source_sha256 = $owner.boot_source_sha256
             receipts = $receipts; readyPath = $proxyReadyPath; timeoutMs = ($context.ProviderTimeoutSeconds * 1000) } -CreateNew
         $proxyInfo = New-OpenScienceLocalProcessInfo $context @('--version')
         $proxyInfo.ArgumentList.Clear(); $proxyInfo.ArgumentList.Add($owner.proxy_script); $proxyInfo.ArgumentList.Add($proxySettingsPath)
@@ -895,6 +1095,7 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
         Write-OpenScienceJson (Join-Path $directory 'config-before-serve.json') $config -CreateNew
         Write-OpenScienceJson $context.ConfigPath $config
         $owner.config_sha256 = Get-OpenScienceHash $context.ConfigPath
+        Assert-OpenScienceRepositorySourcePin $owner.boot_source (Get-OpenScienceRepositorySourcePin -Context $context -GitPath $owner.boot_source.git_path -GitSha256 $owner.boot_source.git_sha256)
         $arguments = @('serve', '--port', [string]$spec.port, '--format', 'json')
         $serverLogged = Start-OpenScienceLoggedProcess (New-OpenScienceLocalProcessInfo $context $arguments) $directory 'server'
         $owner.launcher = $serverLogged.Identity; $owner.arguments = $arguments; Save-OpenScienceRuntimeOwner $owner
@@ -918,6 +1119,7 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
         $mcp = $mcpResponse.Content | ConvertFrom-Json -AsHashtable
         Write-OpenScienceJson (Join-Path $directory 'mcp-current.json') $mcp -CreateNew
         Assert-OpenScienceCondition ($mcpResponse.StatusCode -eq 200 -and $mcp.caelab.status -eq 'connected') 'Current owned MCP is not connected; startup remains failed.'
+        Assert-OpenScienceRepositorySourcePin $owner.boot_source (Get-OpenScienceRepositorySourcePin -Context $context -GitPath $owner.boot_source.git_path -GitSha256 $owner.boot_source.git_sha256)
         $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($context.RepoRoot)).TrimEnd('=').Replace('+', '-').Replace('/', '_')
         $owner.workspace_url = "$($ready.Url)/$encoded/session"
         $owner.state = 'ready'; $owner.ready_utc = [DateTime]::UtcNow.ToString('o'); Save-OpenScienceRuntimeOwner $owner
@@ -1003,12 +1205,19 @@ function Start-OpenScienceLocalServerLocked($Context, [int]$Port, [int]$StartupT
         Assert-OpenScienceCondition (@(Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue).Count -eq 0) 'Requested port is already in use; no existing server will be taken over.'
     }
     Reset-OpenScienceToolGuardForFreshStartup $Context
+    Assert-OpenScienceCondition ($Context.WslPythonCacheRoot) 'Fresh startup requires the source-pinned profile template; choose a new RunName.'
+    $cacheRoot = Assert-OpenScienceContainedPath $Context.WslPythonCacheRoot $Context.ProfileRoot
+    Assert-OpenScienceCondition (@(Get-ChildItem -LiteralPath $cacheRoot -Recurse -Force -ErrorAction Stop).Count -eq 0) 'Fresh startup requires an empty owned Python cache; choose a new RunName.'
+    Assert-OpenScienceCondition ((Read-OpenScienceJson $Context.ConfigPath).mcp.caelab.command -ccontains
+        ('PYTHONPYCACHEPREFIX=' + (ConvertTo-OpenScienceWslPath $cacheRoot))) 'MCP command does not bind the fresh owned Python cache.'
+    $bootSource = Get-OpenScienceRepositorySourcePin -Context $Context
     $directory = Join-Path $Context.ProfileRoot ('server-runs\' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff') + '-' + [Guid]::NewGuid().ToString('N'))
     Assert-OpenScienceContainedPath $directory $Context.ProfileRoot | Out-Null
     New-Item -ItemType Directory -Path $directory -ErrorAction Stop | Out-Null
     $specPath = Join-Path $directory 'launch-context.json'; $token = [Guid]::NewGuid().ToString('N')
     $spec = [ordered]@{ context = $Context; runtime_directory = $directory; launch_token = $token
         script_path = $script:OpenScienceServerScriptPath; script_sha256 = Get-OpenScienceHash $script:OpenScienceServerScriptPath
+        boot_source = $bootSource; boot_source_sha256 = Get-OpenScienceSourcePinSha256 $bootSource
         port = $Port; startup_timeout_seconds = $StartupTimeoutSeconds }
     Write-OpenScienceJson $specPath $spec -CreateNew
     $pwsh = (Get-Command pwsh.exe -ErrorAction Stop).Source
@@ -1092,6 +1301,73 @@ function Invoke-OpenScienceRuntimeSelfTest([string]$RepoRoot, [string]$RunName) 
         Assert-OpenScienceCondition $rejected 'Public/ambiguous readiness URL was accepted.'
     }
     $checks.Add('public_url_rejected')
+    $git = (Get-Command $(if ($IsWindows) { 'git.exe' } else { 'git' }) -ErrorAction Stop).Source
+    $fixtureSource = (Get-OpenScienceRepositoryPinSource) + "`n" + @'
+const base=sourcePath.resolve(process.argv[1]),git=sourcePath.resolve(process.argv[2]);
+const noHooks=sourcePath.join(base,'no-hooks');sourceFs.mkdirSync(noHooks);
+const run=(root,args)=>sourceExec(git,['-C',root,'-c','core.hooksPath='+noHooks,'-c','commit.gpgsign=false',
+  '-c','user.name=Runtime Mock','-c','user.email=runtime-mock@example.invalid',...args],
+  {encoding:'utf8',windowsHide:true,stdio:['ignore','pipe','pipe']});
+const make=(name,file)=>{const root=sourcePath.join(base,name);sourceFs.mkdirSync(root);run(root,['init','--quiet']);
+  sourceFs.mkdirSync(sourcePath.dirname(sourcePath.join(root,file)),{recursive:true});sourceFs.writeFileSync(sourcePath.join(root,file),'VALUE = "source-A"\n');
+  run(root,['add','.']);run(root,['commit','--quiet','-m','mock source A']);return root;};
+const kernel=make('kernel-source','kernel.py'),plugin=make('plugin-source','models/model.py'),repo=make('repository','caelab/__init__.py');
+run(plugin,['-c','protocol.file.allow=always','submodule','add','--quiet',kernel,'vendor/kernel']);
+run(plugin,['commit','--quiet','-am','mock nested plugin']);
+sourceFs.mkdirSync(sourcePath.join(repo,'openscience'));sourceFs.writeFileSync(sourcePath.join(repo,'openscience/mcp_server.py'),'VALUE = "source-A"\n');
+sourceFs.writeFileSync(sourcePath.join(repo,'.gitignore'),'artifacts/\n__pycache__/\n');
+run(repo,['-c','protocol.file.allow=always','submodule','add','--quiet',plugin,'plugins/fixture']);
+run(repo,['add','.']);run(repo,['commit','--quiet','-m','mock recursive fixture']);
+run(repo,['-c','protocol.file.allow=always','submodule','update','--init','--recursive','--quiet']);
+process.stdout.write(JSON.stringify({repo,core:sourcePath.join(repo,'caelab/__init__.py'),
+  nested:sourcePath.join(repo,'plugins/fixture/vendor/kernel/kernel.py'),plugin:sourcePath.join(repo,'plugins/fixture'),noHooks}));
+'@
+    $fixture = Invoke-OpenScienceSourceNode $fixtureSource @($root, $git) $root | ConvertFrom-Json -AsHashtable
+    $bootFixture = Get-OpenScienceRepositorySourcePin -RepoRoot $fixture.repo
+    Write-OpenScienceJson (Join-Path $root 'boot-source-A.json') $bootFixture -CreateNew
+    Assert-OpenScienceRepositorySourcePin $bootFixture (Get-OpenScienceRepositorySourcePin -RepoRoot $fixture.repo)
+    Assert-OpenScienceCondition ($bootFixture.submodules.Count -eq 2 -and
+        @($bootFixture.files | Where-Object path -eq 'plugins/fixture/vendor/kernel/kernel.py').Count -eq 1) 'Real snapshot omitted recursive pinned plugin source.'
+    $checks.Add('real_git_snapshot_pins_recursive_submodule_heads_and_files')
+    $checks.Add('unchanged_boot_source_reusable_before_first_acceptance')
+    $canonicalSource = (Get-OpenScienceRepositoryPinSource) + "`nprocess.stdout.write(sourcePinSha(JSON.parse(process.argv[1])));"
+    $nodePinHash = Invoke-OpenScienceSourceNode $canonicalSource @(($bootFixture | ConvertTo-Json -Depth 40 -Compress)) $fixture.repo
+    Assert-OpenScienceCondition ($nodePinHash -ceq (Get-OpenScienceSourcePinSha256 $bootFixture)) 'Public and proxy source-pin digests differ.'
+    $checks.Add('public_and_proxy_source_pin_canonical_hashes_match')
+    $fixtureOwner = @{ context = @{ RepoRoot = $fixture.repo }; boot_source = $bootFixture; boot_source_sha256 = Get-OpenScienceSourcePinSha256 $bootFixture }
+    Assert-OpenScienceRuntimeBootSource $fixtureOwner
+    [IO.File]::WriteAllText($fixture.core, "VALUE = `"source-B`"`n", [Text.UTF8Encoding]::new($false))
+    $rejected = $false; try { Assert-OpenScienceRuntimeBootSource $fixtureOwner } catch { $rejected = $true }
+    Assert-OpenScienceCondition $rejected 'A Core edit between boot and the first lookup was accepted.'
+    $checks.Add('boot_A_core_edit_B_before_first_lookup_rejected')
+    [IO.File]::WriteAllText($fixture.core, "VALUE = `"source-A`"`n", [Text.UTF8Encoding]::new($false))
+    $beforeHead = Get-OpenScienceRepositorySourcePin -RepoRoot $fixture.repo
+    $headSource = (Get-OpenScienceRepositoryPinSource) + "`n" + @'
+sourceExec(process.argv[2],['-C',process.argv[1],'-c','core.hooksPath='+process.argv[3],'-c','commit.gpgsign=false',
+  '-c','user.name=Runtime Mock','-c','user.email=runtime-mock@example.invalid','commit','--allow-empty','--quiet','-m','mock HEAD drift'],
+  {encoding:'utf8',windowsHide:true,stdio:['ignore','pipe','pipe']});
+process.stdout.write('{}');
+'@
+    Invoke-OpenScienceSourceNode $headSource @($fixture.repo, $git, $fixture.noHooks) $fixture.repo | Out-Null
+    $afterHead = Get-OpenScienceRepositorySourcePin -RepoRoot $fixture.repo
+    $rejected = $false; try { Assert-OpenScienceRuntimeBootSource $fixtureOwner } catch { $rejected = $true }
+    Assert-OpenScienceCondition ($rejected -and $beforeHead.source_tree_sha256 -ceq $afterHead.source_tree_sha256 -and
+        $beforeHead.source_commit -cne $afterHead.source_commit) 'HEAD drift with unchanged file bytes was accepted.'
+    $checks.Add('real_HEAD_only_drift_rejected_before_inference')
+    [IO.File]::WriteAllText($fixture.nested, "VALUE = `"nested-B`"`n", [Text.UTF8Encoding]::new($false))
+    $afterNested = Get-OpenScienceRepositorySourcePin -RepoRoot $fixture.repo
+    $rejected = $false; try { Assert-OpenScienceRepositorySourcePin $afterHead $afterNested } catch { $rejected = $true }
+    Assert-OpenScienceCondition ($rejected -and $afterNested.source_commit -ceq $afterHead.source_commit) 'Nested plugin byte drift was accepted.'
+    $checks.Add('real_recursive_submodule_byte_drift_rejected')
+    Invoke-OpenScienceSourceNode $headSource @($fixture.plugin, $git, $fixture.noHooks) $fixture.repo | Out-Null
+    $afterPluginHead = Get-OpenScienceRepositorySourcePin -RepoRoot $fixture.repo
+    $rejected = $false; try { Assert-OpenScienceRepositorySourcePin $afterNested $afterPluginHead } catch { $rejected = $true }
+    Assert-OpenScienceCondition $rejected 'Submodule HEAD drift was accepted.'
+    $checks.Add('real_submodule_HEAD_drift_rejected')
+    [IO.File]::WriteAllText((Join-Path $fixture.repo 'caelab/untracked_import.py'), "VALUE = 'untracked'`n", [Text.UTF8Encoding]::new($false))
+    $rejected = $false; try { Get-OpenScienceRepositorySourcePin -RepoRoot $fixture.repo | Out-Null } catch { $rejected = $true }
+    Assert-OpenScienceCondition $rejected 'Untracked importable source was accepted.'
+    $checks.Add('untracked_importable_source_rejected_without_import')
     # Dynamically scoped mocks exercise the actual readiness/abort/stop helpers
     # without invoking a provider, backend, native executable or OS termination.
     $mockNative = [pscustomobject]@{ Pid = 7002; ParentPid = 7001; CreationUtc = 'mock-native'; ExecutablePath = 'mock-native.exe'; CommandLine = 'mock-native.exe serve' }
@@ -1103,10 +1379,12 @@ function Invoke-OpenScienceRuntimeSelfTest([string]$RepoRoot, [string]$RunName) 
         Environment = @{ OPENSCIENCE_EXPERIMENTAL_OUTPUT_TOKEN_MAX = '4096' }; RemoveEnvironment = @('OPENSCIENCE_CONFIG', 'OPENSCIENCE_AUTH_TOKEN') }
     $trace = [Collections.Generic.List[string]]::new()
     $httpScenario = 'abort'; $mockHttpState = @{ Aborted = $false }
+    $mockSourceOwner = $fixtureOwner
     function Assert-OpenScienceContext($Context) { }
     function Assert-OpenScienceNativeIdentity($Context, $Identity) { Assert-OpenScienceCondition ($Identity.ExecutablePath -eq 'mock-native.exe') 'Mock native mismatch.' }
     function Get-OpenScienceLocalRuntime([string]$OwnerPath, [switch]$LifecycleOnly) {
         Assert-OpenScienceCondition $LifecycleOnly 'Mock MCP is disconnected; inference lookup is blocked.'
+        Assert-OpenScienceRuntimeBootSource $mockSourceOwner -LifecycleOnly:$LifecycleOnly
         return $mockContext
     }
     function Invoke-OpenScienceHttp([string]$Uri, [string]$Method = 'GET', [hashtable]$Headers, [int]$TimeoutSeconds) {
@@ -1225,6 +1503,7 @@ function Invoke-OpenScienceRuntimeSelfTest([string]$RepoRoot, [string]$RunName) 
     Assert-OpenScienceCondition (($trace -join ',') -ceq 'abort:ses_exact123,stop:7002,stop:7001' -and $stop.StoppedPids.Count -eq 2) 'Abort-before-owned-stop order changed.'
     $checks.Add('exact_session_abort_before_owned_stop_no_delete')
     $checks.Add('lifecycle_abort_with_disconnected_mcp')
+    $checks.Add('lifecycle_abort_and_owned_stop_under_Core_HEAD_plugin_drift')
     $httpScenario = 'stopgate'; $mockHttpState.Aborted = $false
     $idleGate = Confirm-OpenScienceSessionsIdleForStop $mockContext
     Assert-OpenScienceCondition ($idleGate.state -eq 'IDLE_CONFIRMED' -and $idleGate.cancelled_sessions.Count -eq 1 -and
@@ -1237,7 +1516,8 @@ function Invoke-OpenScienceRuntimeSelfTest([string]$RepoRoot, [string]$RunName) 
     $checks.Add('unconfirmed_stop_abort_refuses_termination')
     $proxyPath = Join-Path $root 'mock-guard.mjs'; [IO.File]::WriteAllText($proxyPath, (Get-OpenScienceProxySource), [Text.UTF8Encoding]::new($false))
     $nodeName = $(if ($IsWindows) { 'node.exe' } else { 'node' }); $node = (Get-Command $nodeName -ErrorAction Stop).Source
-    $nodeOutput = @(& $node $proxyPath --self-test (Join-Path $root 'proxy-mocks'))
+    $git = (Get-Command $(if ($IsWindows) { 'git.exe' } else { 'git' }) -ErrorAction Stop).Source
+    $nodeOutput = @(& $node $proxyPath --self-test (Join-Path $root 'proxy-mocks') $git)
     Assert-OpenScienceCondition ($LASTEXITCODE -eq 0) 'Embedded transparent schema-guard mock failed.'
     $proxyChecks = $nodeOutput[-1] | ConvertFrom-Json
     Assert-OpenScienceCondition ($proxyChecks.status -eq 'PASS' -and $proxyChecks.provider_calls -eq 0) 'Mock proxy did not confirm absence of provider calls.'

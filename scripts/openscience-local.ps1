@@ -187,7 +187,8 @@ function Invoke-OpenScienceLocalCommand {
         [IO.File]::WriteAllText($taskRelayPath,(Get-OpenScienceCommandRelaySource),[Text.UTF8Encoding]::new($false))
         Write-OpenScienceJson $taskRequestPath ([ordered]@{kind='autonomous-cae-lab.openscience-command';run_name=$Context.RunName
             repo_root=$Context.RepoRoot;log_directory=$LogDirectory;node_path=$Context.NodePath;launcher_path=$Context.LauncherPath
-            launcher_sha256=(Get-OpenScienceHash $Context.LauncherPath);arguments=$taskArgs;session_id=$taskSessionId}) -CreateNew
+            launcher_sha256=(Get-OpenScienceHash $Context.LauncherPath);arguments=$taskArgs;session_id=$taskSessionId
+            server_boot_source_sha256=$Context.BootSourceSha256;server_boot_source_commit=$Context.BootSource.source_commit}) -CreateNew
         $taskRequestHash=Get-OpenScienceHash $taskRequestPath
         if($taskArgs[0] -eq 'run'){
             Write-OpenScienceJson (Join-Path $Context.ProfileRoot 'runtime-command-pending.json') ([ordered]@{
@@ -280,6 +281,7 @@ function Invoke-OpenScienceLocalCommand {
         stdout_path=$taskOutPath; stderr_path=$taskErrPath
         stdout_sha256=$(if(Test-Path -LiteralPath $taskOutPath){Get-OpenScienceLiveHash $taskOutPath})
         stderr_sha256=$(if(Test-Path -LiteralPath $taskErrPath){Get-OpenScienceLiveHash $taskErrPath}); runtime_owner=$Context.OwnerPath
+        server_boot_source_sha256=$Context.BootSourceSha256;server_boot_source_commit=$Context.BootSource.source_commit
     }
     $taskRecord | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $LogDirectory 'command.json') -Encoding utf8
     return [pscustomobject]$taskRecord

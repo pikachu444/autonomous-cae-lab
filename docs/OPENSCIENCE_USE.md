@@ -56,6 +56,11 @@ $runtime.WorkspaceURL
 반환한 WorkspaceURL을 브라우저에서 열어 같은 프로젝트/프로필로 대화한다.
 OwnerPath는 서버의 실제 PID·생성 시각·명령·프로필·loopback socket·health·MCP 연결을
 확인하는 식별 파일이다. URL이나 임의 PID만으로 다른 서버를 인수하지 않는다.
+서버는 MCP가 Lab을 읽기 전에 소스 HEAD와 tracked/plugin/submodule 파일 bytes를 고정한다.
+연결 완료와 각 추론 직전에 같은 소스인지 확인한다. 시작 후 코드·체크아웃이 바뀌면 CLI와
+공식 Workspace의 새 추론을 차단하므로, 바뀐 소스로 실행하려면 기존 서버를 정상 종료하고
+새 RunName을 사용한다. 이전 대화·실험과 조회 기록은 보존한다. Core/MCP/plugin 소스 변화는
+소유한 세션의 취소·Stop을 막지 않으며, controller 자체의 변조에는 엄격한 소유 검사를 유지한다.
 한 프로필의 모델 요청은 순서대로 실행한다. CLI는 프로필 command lock과 활성 세션 상태를
 확인한다. CLI와 브라우저에서 동시에 연구를 시작하지 않는다. 정상 CLI 완료 후에는 일시적인
 interpretation 전용 guard를 기본 9개 도구 설정으로 복원한다.
@@ -95,6 +100,8 @@ CLI는 독립적인 task relay를 통해 로그 파일에 직접 쓰므로 호�
 실행기는 task profile 아래 HOME/USERPROFILE, OpenScience config/data, 모든 XDG,
 TEMP/TMP를 명시한다. 상속된 계정/제공자 credential 환경 이름을 필터링하고 값을 출력하지
 않는다. 이미 소유자가 있는 profile은 설정을 덮어쓰지 않는다.
+MCP에는 새 프로필의 PYTHONPYCACHEPREFIX를 지정하여 이전 저장소의 Python bytecode cache를
+재사용하지 않는다. 설치된 Python 환경과 모델 weights는 교체하지 않는다.
 Windows sandbox warn fallback은 도구 권한 검사이며 OS containment는 아니다.
 기업 배포의 license/security 승인은 별도 UNKNOWN이다.
 

@@ -189,3 +189,94 @@ with fresh task ownership, and verify the actual official served Workspace. A ne
 full model research acceptance must retain real tool events and immutable Core byte
 gates; readiness alone cannot satisfy it. Root owns HANDOFF/CURRENT_STATE/ledger
 updates and remote publication.
+
+## Follow-up correction: server boot source
+
+Independent review of frozen 1f6cb07d8f22bb282e76b3346e3b473b3964efb1 identified
+one P2 attribution gap: persistent MCP imported Lab at Start, while the first
+acceptance captured the later working tree. Start A then edit/checkout B could
+therefore run cached A while labeling the first non-Resume acceptance as B.
+The earlier fresh01/02/03 readiness-only evidence and 513-file manifest remain
+unchanged; they contained no agent/Core tool calls and are not upgraded here.
+
+The correction captures repository HEAD, exact tracked file bytes, plugin and
+recursive submodule HEAD/index/inventory before Start. It rejects untracked
+importable source, rechecks before launch and after actual health/MCP connection,
+and records boot_source plus its hash in the immutable launch spec/runtime owner.
+Normal runtime/CLI checks and the unchanged-body proxy's chat-forward gate compare
+against that boot source. First acceptance and later stages use the server's boot
+source rather than establishing a new disk baseline. MCP receives a new task-owned
+PYTHONPYCACHEPREFIX; existing environment, weights, permissions and tools are retained.
+
+Core/MCP/plugin/submodule/HEAD drift blocks inference while exact owned session
+abort and Stop remain available. Controller source tampering still fails its
+existing strict ownership check; this correction does not weaken that boundary.
+
+Correction verification:
+
+- Controller mock11: 46 PASS, provider/backend calls 0. The real Git fixture
+  covers recursive submodule bytes/HEAD, source A then edit/checkout B before
+  the first lookup, untracked importable source, public/proxy canonical hashes,
+  a source-drift POST refusal without forwarding, and exact owned abort/Stop
+  under Core/HEAD/plugin drift while controller bytes remain unchanged.
+- Launcher mock14: 35 PASS, inference and MCP mutations 0. A real tiny test-only
+  repository covers the first non-Resume acceptance binding to boot A and
+  refusing later Core bytes, HEAD and a corrupt boot receipt. Its Git commits
+  disable hooks/signing only for the disposable fixture invocation.
+- Launcher mock13 remains FAILED after 16 checks: a 350 ms mock process ended
+  while CIM was collecting its identity, before its final relay receipt existed.
+  The production path refused ownership. Mock14 lengthens only the test process's
+  lifetime to 1500 ms; production identity, cancellation and numerical gates are
+  unchanged. No provider was called in either attempt.
+
+Actual fresh04, openscience-runtime-readiness-20260930-04, reached official
+loopback4098 readiness with MCP connected and health run
+local-19508-d0b89523-7c96-47ad-b510-31ef39ac98e9. Official --version returned
+2.0.146 and debug paths showed the new task profile with dataManaged=false;
+both final command receipts bind to the server boot hash. The actual MCP command
+contains the fresh task-owned wsl-pycache prefix. Empty session status, zero chat
+requests and an absent lazy experiment store establish zero model/Core calls.
+
+The executed source was HEAD 1f6cb07d8f22bb282e76b3346e3b473b3964efb1 plus the
+frozen six-file correction before this final record update, with 245 tracked leaf
+files and fixture submodule 3e48bf6138f495299f45b1af254bfb4aaff307b8. Exact boot pin:
+9d4ac9020410eaba1f468609a91d51b94851bdb192dd753bfd0cbd5ee774c307; source tree:
+72c05b81c9507ac2dfdf82a8def4652c604b3cbb9b545ab9416f99456ddc5289.
+The immutable launch spec, frozen-source.json and owner retain the actual file
+hashes. The eventual correction commit and this later documentation update are
+not described as a clean-commit execution or a new model acceptance.
+
+Public Stop finalized state=stopped. Owned controller/launcher/native/proxy PIDs
+47056/93196/19508/74400 and all four metadata command/relay PIDs were absent;
+exact worktree WSL MCP pgrep returned 1 with no matches. No 8766 or 4096 operation
+was performed. Outcome: PASS_READINESS_AND_OWNED_CLEANUP_ONLY.
+
+The first ignored evidence collector wrongly required the uncreated store to
+exist, so its failure and script are retained unchanged. The actual HTTP receipts
+had already been saved and public Stop succeeded. A separate read-only collector
+verified those retained actual receipts, boot-bound metadata/output hashes and
+owned cleanup after Stop, treating the absent store as zero files. The final
+proof explicitly records this assembly time and the original collection failure;
+it does not claim a current-server probe after Stop or manufacture an empty store.
+
+| New retained relative file | SHA256 |
+| --- | --- |
+| artifacts/controller-mock-20260930-11/self-test.json | b0c22b326c29bcf14917269bab89b04b39f128bafb7089dd0b45e37e18139003 |
+| artifacts/launcher-mock-20260930-14/launcher-checks/checks.json | cd9b1bd7de9d8efecc2cb8c6c12c521675d891303cff5f0f271108808b79b1ab |
+| artifacts/launcher-mock-20260930-13/launcher-checks/checks.json | 5c88e1743ce17205e40944a772b340a5b9914b4dcff800c1a5a515ede066817a |
+| artifacts/openscience-runtime-readiness-20260930-04/readiness-proof-failure.json | 9dc2309da42962fda29d6fd3d77c313301f711df95de51e91970094018b4a048 |
+| artifacts/openscience-runtime-readiness-20260930-04/readiness-proof.json | 56c05b520012141d202552c6a3e58436ab745390dac4be3089768da53f91aa24 |
+| artifacts/openscience-runtime-readiness-20260930-04/final-readiness.json | 27bea7cd5cd4da0bafcb64a178be3a95caed1995183ed5a0269670df9aa2943c |
+
+New closed manifest: artifacts/openscience-runtime-correction-20260930/cold-files-correction.json,
+1428 files, SHA256 53f7859e2dbfadd7f9286c3d90d25687d1d6fb7a428917a21631f31b2acfa50c.
+All recorded sizes/hashes were reread, including hidden fixture Git metadata.
+All 513 files in the historical final manifest were reread unchanged. The new
+manifest includes failed mock13, the failed collector and fresh04, without
+replacing an old manifest, profile, model or receipt. Ignored bytes remain local.
+
+All three PowerShell files parse, the example JSON parses and diff checks pass.
+This local correction has not run remote CI. Root's next gate is renewed frozen
+independent review, integration and a fresh owned runtime on the chosen clean
+source. No new autonomous research, actual model cancellation, GUI interaction,
+CAD, solver, physical qualification or release is implied.

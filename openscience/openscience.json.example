@@ -178,6 +178,7 @@
         "--",
         "/usr/bin/env",
         "CAELAB_STORE=/mnt/c/absolute/path/to/new-store",
+        "PYTHONPYCACHEPREFIX=/mnt/c/absolute/path/to/new-task-profile/python-bytecache",
         "/absolute/path/to/venv/bin/python",
         "/mnt/c/absolute/path/to/autonomous-cae-lab/openscience/mcp_server.py"
       ]
