@@ -1,5 +1,28 @@
 # Current state — 2026-09-30 (Asia/Seoul)
 
+## Exact15f failure and explicit PDE declaration opt-in
+
+Exact main15f3025 CI36705097865 failed the legacy PDE compatibility regression:
+1 failed / 1,271 passed / 1 warning in73.85s. All dependent native jobs were
+skipped. Root's callable-only activation had incorrectly changed a legacy
+adapter's settings-only identity. The correction requires the adapter's
+explicit literal `pde_model_declaration = True` and a pure describe hook.
+Nonlinear adapter2 opts in; the original legacy test stays unchanged. Focused
+corrective regressions passed535 tests/1warning/160.89s, with the failed log preserved. The
+broader local suite was interrupted after565 passes/1warning/961.30s because
+Windows/WSL Git status dominated runtime; it is not a completed suite. New-source
+full CI remains a separate gate.
+
+Clean15f actual native PDE and HTTP verifiers separately passed in fresh
+stores: full alpha1/0/2 and linear-limit/legacy checks, native wrong-reference
+rejection and three invalid-input blocks; HTTP retained four actual checked
+ZIPs. Core5081a561 source closure and common integrity are checked. The HTTP
+application hash35170e4a was independently reconstructed exactly from Git15f
+bodies and the preserved mixed line endings (366CRLF/44LF in service.py).
+Audit5f2a0dc2 records this reconstruction, not an original full-source snapshot.
+These proofs stay attributed to15f; they do not turn its failed CI green or
+qualify adapter2. Fresh clean adapter2 acceptance follows the correction.
+
 ## Nonlinear PDE shared-route checkpoint
 
 Preceding inverse integration d406b54 passed all eight CI jobs36702834926;

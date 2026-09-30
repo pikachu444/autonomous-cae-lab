@@ -22,10 +22,11 @@ The Python API is `caelab.Lab`. The CLI maps the same operations to `python -m c
 
 The additive `pde.fenicsx.nonlinear` backend uses the same `pde.run` transport
 for its bounded scalar diffusion benchmark, full Newton histories and the
-alpha-zero linear limit. If a PDE adapter implements the existing pure
-`describe_model` hook, Core hashes settings plus that declaration and captures
-common geometry, boundaries, source loads and fields. Adapters without the
-hook retain their historical settings-only revision. Numerical gates remain
+alpha-zero linear limit. If a PDE adapter explicitly sets
+`pde_model_declaration = True` and implements the pure `describe_model` hook,
+Core hashes settings plus that declaration and captures common geometry,
+boundaries, source loads and fields. Other adapters retain their historical
+settings-only revision even if they already expose the shared hook. Numerical gates remain
 domain-owned; mathematical acceptance does not qualify a physical model.
 
 `model_analysis.run(study_id, experiment_id, backend, settings, hypothesis_id?)`

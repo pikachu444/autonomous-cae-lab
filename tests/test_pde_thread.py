@@ -132,6 +132,7 @@ def test_optional_pde_declaration_enters_the_common_revision_and_proposal(tmp_pa
 
     lab, adapter = _lab(tmp_path)
     adapter.describe_model = model_declaration
+    adapter.pde_model_declaration = True
     settings = manufactured_settings()
     declaration = model_declaration(settings)
     result = _run(lab, settings=settings)

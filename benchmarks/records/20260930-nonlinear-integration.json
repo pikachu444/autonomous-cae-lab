@@ -13,15 +13,62 @@
     "default_registry": true,
     "existing_cli_mcp_http_route": true,
     "optional_pure_declaration_in_common_revision": true,
-    "legacy_settings_only_revision_preserved": true,
+    "legacy_settings_only_revision_preserved": "FAILED_AT_15f_CALLABLE_ONLY_ACTIVATION",
     "legacy_reported_and_recomputed_rate_floor": "UNCHANGED_LIMIT_STRICT_ADMISSION",
     "regressions": {"passed": 420, "warnings": 1, "seconds": 99.05, "log": "artifacts/nonlinear-integration-tests.log"},
     "actual_native_ci_step_and_complete_store_upload": true,
     "future_library_export_zip_bytes_retained": true,
     "independent_integration_review": "PASS_RETAINED_ZIP_PAIR_COLLISION_CLOSED_NO_OPEN_P1_P2",
     "zip_collision_regression": {"passed": 1, "seconds": 0.68, "log_sha256": "773d5ae9b1ba699af0b8aa56d30953f3f75b84e7c76c61a77a882ed1a595f171"},
-    "fresh_clean_integrated_native": "PENDING",
-    "exact_source_ci": "PENDING"
+    "fresh_clean_integrated_native": {
+      "source": "15f30253aa1a422c9341d68c41dcf2c7b8cf0ab1",
+      "status": "PASS_BOUNDED_NATIVE_CASES",
+      "store": "artifacts/local-20260930-nonlinear-integrated-clean-01",
+      "report_sha256": "4f9cb0dc595fdf5737084aed545dc167c373d31da4a2f5f81860d7f332b204dc",
+      "core_source_sha256": "5081a5611fc38ba56314aeb4fdaf38da0cc8f87304718e6f083853ccd63addb5"
+    },
+    "fresh_http": {
+      "source": "15f30253aa1a422c9341d68c41dcf2c7b8cf0ab1",
+      "status": "PASS_ACTUAL_HTTP_AND_RETAINED_ZIP_INTEGRITY",
+      "store": "artifacts/local-20260930-http-nonlinear-clean-01",
+      "report_sha256": "17fb0c90f3f76ed23b40a338b4b6a8fe4ef8f46e39289381e608ba6e227f0744",
+      "retained_checked_zips": 4,
+      "rejected_reference_zip_sha256": "3281d91fcd22cfc2b7ac0e7e6125a016b13f857755a4e2c47f1398e2b924281d",
+      "application_working_byte_source_closure": "PASS_EXACT_GIT_BODIES_AND_PRESERVED_MIXED_EOL_RECONSTRUCTION",
+      "application_source_sha256": "35170e4aa01bbb68a35d1dc9aadb4ca4be83879e582f67a66684cd6837d9a8af",
+      "application_source_audit_sha256": "5f2a0dc2cfff9ac9122f1a6c973a8ec0a388110559eb14990f6f441de4cfceb0",
+      "original_complete_working_source_snapshot": "NOT_RETAINED"
+    },
+    "exact_source_ci": {
+      "source": "15f30253aa1a422c9341d68c41dcf2c7b8cf0ab1",
+      "run": "36705097865",
+      "conclusion": "FAILURE_LEGACY_PDE_COMPATIBILITY",
+      "core_tests": {"failed": 1, "passed": 1271, "warnings": 1, "seconds": 73.85},
+      "dependent_native_jobs": "SKIPPED",
+      "retained_core_log_sha256": "87fdea3e03eade345fffe8002741e2c51840e542fae298c5c353f91b42aa9f61"
+    },
+    "compatibility_correction": {
+      "activation": "EXPLICIT_LITERAL_PDE_ADAPTER_OPT_IN_AND_PURE_HOOK",
+      "new_nonlinear_adapter_version": "2",
+      "legacy_regression": "UNCHANGED",
+      "independent_static_correction_review": "PASS_NO_OPEN_P1_P2",
+      "focused_local_regressions": {
+        "passed": 535,
+        "warnings": 1,
+        "seconds": 160.89,
+        "scope": "LEGACY_DECLARED_PDE_NONLINEAR_AND_COMMON_HTTP_EXPLICIT_INTEGRATION",
+        "log_sha256": "b3baed18430dec3f0901aa5e2aa26470cf00696b580b809f5b6681b741a3d624"
+      },
+      "broader_local_suite": {
+        "status": "INTERRUPTED_NOT_A_COMPLETE_PASS",
+        "passed_before_interrupt": 565,
+        "warnings": 1,
+        "seconds": 961.30,
+        "reason": "WINDOWS_WSL_GIT_STATUS_RUNTIME_SWITCHED_TO_FOCUSED_GATE_AND_NEW_SOURCE_FULL_CI",
+        "log_sha256": "8bb14bffaf8b3177bb5f58a66f975af6089d269d8f28e6f34c71a04f3a597b25"
+      },
+      "new_clean_native": "PENDING"
+    }
   },
   "limitations": ["Bounded scalar serial unit square", "No general coupled/MPI PDE", "No physical/model qualification", "No full phase completion"],
   "decision": "NOT_RELEASED"

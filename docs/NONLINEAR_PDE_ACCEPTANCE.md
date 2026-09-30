@@ -195,6 +195,32 @@ forms, coupled physics, MPI/HPC and physical/model qualification remain unverifi
 Every result remains `NOT_RELEASED`; this bounded mathematical proof does not
 complete Phase 4/5.
 
+## Main integration and legacy declaration correction
+
+Main15f3025 actual nonlinear and HTTP acceptance passed in separate fresh
+stores. The nonlinear report SHA256 is
+`4f9cb0dc595fdf5737084aed545dc167c373d31da4a2f5f81860d7f332b204dc`;
+the HTTP report is
+`17fb0c90f3f76ed23b40a338b4b6a8fe4ef8f46e39289381e608ba6e227f0744`.
+Four actual checked ZIPs were retained, including the native wrong-reference
+rejection. Independent reconstruction of the HTTP application source hash
+`35170e4aa01bbb68a35d1dc9aadb4ca4be83879e582f67a66684cd6837d9a8af`
+passed using exact Git15f bodies and preserved mixed line endings. Audit SHA256:
+`5f2a0dc2cfff9ac9122f1a6c973a8ec0a388110559eb14990f6f441de4cfceb0`.
+It is reconstruction evidence, not an original full-source snapshot.
+
+Exact15f CI36705097865 nevertheless failed one legacy compatibility test
+(1,271 passed). Callable-only `describe_model` activation incorrectly changed
+a historical settings-only revision. New nonlinear adapter2 explicitly sets
+`pde_model_declaration = True`; all other PDE adapters keep their previous
+identity even when they expose the common hook. The unchanged legacy test
+guards this boundary. Adapter2 focused corrective regression passed535 tests
+(1warning,160.89s) including the unchanged legacy and new declaration paths.
+New clean-source native acceptance and full CI remain separate pending checks;
+the881 and15f native proofs
+retain their original source identities. Numerical policies/thresholds and
+physical UNKNOWN/NOT_RELEASED are unchanged.
+
 ## Primary API sources
 
 - [Exact DOLFINx0.11.0.post0 NonlinearProblem and constrained residual source](https://github.com/FEniCS/dolfinx/blob/v0.11.0.post0/python/dolfinx/fem/petsc.py).

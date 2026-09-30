@@ -1,5 +1,33 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## PDE compatibility correction after exact-source CI failure
+
+Main15f3025 was pushed, but exact CI36705097865 failed one legacy PDE test
+(1 failed / 1,271 passed / 1 warning in73.85s); dependent native jobs were
+skipped. Its callable-only declaration activation incorrectly changed an
+existing adapter's settings-only revision. The unchanged legacy regression is
+the acceptance for this correction. PDE declarations now require the explicit
+adapter opt-in `pde_model_declaration = True` plus a pure hook. Nonlinear
+adapter2 opts in; existing adapters retain their original identities.
+Focused corrective regression verification passed535 tests/1warning/160.89s,
+including the unchanged legacy test and the positive declaration path. The broader local
+suite was deliberately interrupted after565 passes/1warning/961.30s because
+Windows/WSL Git status dominated runtime; it is NOT a completed suite. Full
+verification remains a separate new-source CI gate. Keep the failed CI log at
+artifacts/github-ci-36705097865/core.log; no threshold or old result is changed.
+
+The actual clean15f nonlinear run passed in the fresh
+artifacts/local-20260930-nonlinear-integrated-clean-01 store (alpha1/0/2,
+fresh legacy linear, native wrong-reference rejection, three preflight blocks).
+The separate actual HTTP run retained all four checked ZIPs, including the
+rejected nonlinear library export. These are historical exact15f proofs;
+adapter2 needs a new clean-source run. Independent common integrity/ZIP checks
+pass, and the HTTP application source hash was independently reconstructed
+exactly from Git15f bodies plus preserved mixed line endings. The audit is
+artifacts/source-closure-15f/application-source-audit.json (5f2a0dc2...);
+this is reconstruction evidence, not an original full-source snapshot.
+No full phase or physical release is claimed.
+
 ## Nonlinear PDE shared integration
 
 The preceding inverse integration d406b54 passed all eight exact-source CI

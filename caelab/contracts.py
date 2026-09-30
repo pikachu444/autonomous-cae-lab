@@ -96,7 +96,12 @@ class ModelAnalysisAdapter(Protocol):
 
 
 class PDEAdapter(ModelAnalysisAdapter, Protocol):
-    """Compatible specialized name for declared mathematical PDE operations."""
+    """Compatible specialized name for declared mathematical PDE operations.
+
+    A pure describe_model hook affects PDE metadata/revisions only with the
+    explicit adapter attribute pde_model_declaration = True. Legacy adapters
+    keep settings-only revisions even when they expose the shared hook.
+    """
 
 
 class ParameterizedModelAdapter(ModelAnalysisAdapter, Protocol):

@@ -206,7 +206,8 @@ def _raw_result(output: Path, settings: dict, spec_sha256: str, manifest_sha256:
 
 class FenicsxNonlinearPDEAdapter:
     backend = "pde.fenicsx.nonlinear"
-    version = "1"
+    version = "2"
+    pde_model_declaration = True
     domain = "pde"
     physics_domain = "scalar_nonlinear_elliptic"
     analysis_type = "nonlinear_weak_form"
