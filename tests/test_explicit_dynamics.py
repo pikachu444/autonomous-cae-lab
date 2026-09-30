@@ -8,6 +8,7 @@ import pytest
 from plugins.explicit_dynamics.reference import (assess, invalid_metrics, model_declaration,
                                                 reference, validate_settings)
 from scripts.verify_openradioss import specification
+from scripts.verify_compliant_drop import specification as compliant_specification
 
 
 def ideal_rows(settings):
@@ -144,3 +145,54 @@ def test_incomplete_or_inconsistent_histories_cannot_produce_valid_metrics(damag
     else:
         with pytest.raises(ValueError): assess(s, rows)
     assert all(m["value"] is None and not m["valid"] for m in invalid_metrics("TEST ONLY malformed observation").values())
+
+
+@pytest.mark.parametrize("stiffness,release,peak_force,compression,impulse",[
+    (10000,.4719772653957596,441.87630939381313,.044187630939381314,8.956335178490738),
+    (20000,.46254375964229546,620.7610581314681,.031038052906573403,8.863699944357812)])
+def test_compliant_independent_event_force_energy_and_restitution_constants(stiffness,release,peak_force,compression,impulse):
+    s=compliant_specification(stiffness=stiffness)
+    final=reference(s,.5)
+    assert final["moving_mass_kg"] == pytest.approx(1.001)
+    assert final["fixed_mass_kg"] == .001 and final["total_mass_kg"] == pytest.approx(1.002)
+    assert final["impact_time_s"] == pytest.approx(.44009080705072745)
+    assert final["release_time_s"] == pytest.approx(release)
+    assert final["peak_force_n"] == pytest.approx(peak_force)
+    assert final["maximum_compression_m"] == pytest.approx(compression)
+    assert final["ground_impulse_n_s"] == pytest.approx(impulse)
+    peak=reference(s,(final["impact_time_s"]+final["release_time_s"])/2)
+    assert peak["velocity_m_s"] == pytest.approx(0,abs=1e-12)
+    assert peak["spring_internal_energy_j"] == pytest.approx(.5*stiffness*compression**2)
+    assert peak["acceleration_m_s2"] == pytest.approx(peak_force/1.001-9.81)
+    assert reference(s,release)["velocity_m_s"] == pytest.approx(final["incident_speed_m_s"])
+    assert reference(s,.2)["spring_force_n"] == 0 and final["spring_force_n"] == 0
+    assert all(reference(s,t)["mechanical_energy_j"] == pytest.approx(9.81981) for t in [0,.2,.45,release,.5])
+    assert final["fixed_anchor_potential_j"] == pytest.approx(-.00981)
+
+
+def test_compliant_reference_newton_equation_and_velocity_are_independent_derivatives():
+    s=compliant_specification();t=.455;delta=1e-6
+    before,here,after=[reference(s,v) for v in (t-delta,t,t+delta)]
+    assert (after["z_m"]-before["z_m"])/(2*delta) == pytest.approx(here["velocity_m_s"],abs=1e-7)
+    assert (after["velocity_m_s"]-before["velocity_m_s"])/(2*delta) == pytest.approx(here["acceleration_m_s2"],abs=1e-5)
+    assert here["moving_mass_kg"]*here["acceleration_m_s2"] == pytest.approx(here["spring_force_n"]-here["moving_mass_kg"]*9.81)
+    assert here["spring_length_m"] == pytest.approx(here["z_m"]+1)
+
+
+@pytest.mark.parametrize("key,value",[("spring_mass_kg",0),("spring_mass_kg",.004),
+    ("spring_stiffness_n_m",0),("spring_stiffness_n_m",True),("spring_stiffness_n_m",float("inf")),
+    ("end_time_s",.46),("history_interval_s",.001)])
+def test_compliant_invalid_mass_stiffness_rebound_or_history_admission(key,value):
+    s=compliant_specification();s[key]=value
+    with pytest.raises(ValueError):validate_settings(s)
+
+
+def test_compliant_declaration_explicitly_accounts_mass_law_boundary_and_unknowns():
+    s=compliant_specification();declaration=model_declaration(s)
+    contact=declaration["model"]["contact"][0]
+    assert contact["moving_mass_kg"] == pytest.approx(1.001)
+    assert contact["fixed_mass_kg"] == .001 and contact["restitution_reference"] == 1
+    assert declaration["model"]["materials"][0]["density"]["value"] == pytest.approx(1000)
+    assert declaration["boundary_conditions"][0]["location"] == [0,0,-1]
+    assert {item["quantity"] for item in declaration["outputs"]["history"]} >= {"spring_axial_force","spring_internal_energy"}
+    assert all(not m["valid"] and m["value"] is None for m in invalid_metrics("missing native channels",compliant=True).values())

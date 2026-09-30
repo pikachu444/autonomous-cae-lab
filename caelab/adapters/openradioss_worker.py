@@ -5,6 +5,8 @@ import math
 from pathlib import Path
 import re
 
+from plugins.explicit_dynamics.reference import ANCHOR_Z_M, COMPLIANT_CASE
+
 
 SOURCE_PATH = Path(__file__).resolve()
 SOURCE_BYTES = SOURCE_PATH.read_bytes()
@@ -148,8 +150,12 @@ def starter_admission(output: Path, settings: dict) -> dict:
         unit = re.search(label + r"[^\n]*\(\s*kg\s*,\s*m\s*,\s*s\s*\)\s+([0-9.E+-]+)\s+([0-9.E+-]+)\s+([0-9.E+-]+)", starter)
         if not unit or any(float(v) != 1 for v in unit.groups()):
             raise ValueError("Actual Starter units are not the declared unscaled SI system")
-    for label, expected in (("NUMNOD", 9), ("NUMELS", 1), ("NRBODY", 1),
-                            ("NRWALL", int(settings["case"] == "rigid_cube_ground_stop"))):
+    compliant = settings["case"] == COMPLIANT_CASE
+    counts = [("NUMNOD", 10 if compliant else 9), ("NUMELS", 1), ("NRBODY", 1),
+              ("NRWALL", int(settings["case"] == "rigid_cube_ground_stop"))]
+    if compliant:
+        counts.extend((("NPART", 2), ("NUMGEO", 2), ("NUMELR", 1), ("NUMBCS", 1)))
+    for label, expected in counts:
         count = re.search(r"^\s*" + label + r":[^\n]*?\s(\d+)\s*$", starter, re.MULTILINE)
         if not count or int(count[1]) != expected:
             raise ValueError("Starter model entity count differs from the declared bounded case")
@@ -160,13 +166,41 @@ def starter_admission(output: Path, settings: dict) -> dict:
             raise ValueError("Starter rigid-body node/constraint admission differs from the trusted template")
     if "NO TRUE INCOMPATIBLE KINEMATIC CONDITION" not in starter:
         raise ValueError("Starter did not rule out incompatible kinematic conditions")
-    return {"status": "PASS", "units": "unscaled kg,m,s", "errors": 0, "warnings": 0,
-            "primary_node": 9, "secondary_nodes_removed_from_wall": True}
+    admitted = {"status": "PASS", "units": "unscaled kg,m,s", "errors": 0, "warnings": 0,
+                "primary_node": 9, "secondary_nodes_removed_from_wall": True}
+    if compliant:
+        masses = re.findall(r"NEW MASS\s+([0-9.E+-]+)", starter)
+        if len(masses) != 1:
+            raise ValueError("Starter must record the actual single rigid-body assembled mass")
+        moving_mass = float(masses[0])
+        expected_moving = settings["mass_kg"] + settings["spring_mass_kg"] / 2
+        mass_section = starter.split("TOTAL MASS AND MASS CENTER")
+        if len(mass_section) != 2:
+            raise ValueError("Starter total-mass assembly record is missing")
+        total_mass = None
+        for line in mass_section[1].split("TOTAL INERTIA")[0].splitlines():
+            values = line.split()
+            if len(values) == 4:
+                try:
+                    numbers = [float(value) for value in values]
+                except ValueError:
+                    continue
+                if not all(math.isfinite(value) for value in numbers):
+                    raise ValueError("Nonfinite Starter mass assembly")
+                total_mass = numbers[0]
+                break
+        if total_mass is None or not math.isfinite(moving_mass):
+            raise ValueError("Starter actual mass assembly is incomplete")
+        expected_total = settings["mass_kg"] + settings["spring_mass_kg"]
+        if abs(moving_mass - expected_moving) > 1e-8 * expected_moving or abs(total_mass - expected_total) > 1e-8 * expected_total:
+            raise ValueError("Starter cube/spring mass assembly differs from declared moving/fixed masses")
+        admitted.update(moving_mass_kg=moving_mass, fixed_mass_kg=total_mass - moving_mass, total_mass_kg=total_mass)
+    return admitted
 
 
 def parse_history(output: Path, settings: dict) -> dict:
     output = Path(output)
-    starter_admission(output, settings)
+    admission = starter_admission(output, settings)
     engine = (output / "drop_0001.out").read_text(encoding="ascii")
     cycle_match = re.search(r"TOTAL NUMBER OF CYCLES\s*:\s*(\d+)", engine)
     if "NORMAL TERMINATION" not in engine or not cycle_match:
@@ -183,29 +217,41 @@ def parse_history(output: Path, settings: dict) -> dict:
     hierarchy = history.record([(6, "I")])
     n_part, n_mat, n_prop, n_subset, n_group, n_global = hierarchy
     wall = settings["case"] == "rigid_cube_ground_stop"
-    if hierarchy != [1, 2, 1, 1, 3 if wall else 2, 22]:
+    compliant = settings["case"] == COMPLIANT_CASE
+    expected_hierarchy = [2, 2, 2, 1, 3, 22] if compliant else [1, 2, 1, 1, 3 if wall else 2, 22]
+    if hierarchy != expected_hierarchy:
         raise ValueError("Native hierarchy does not cover the exact declared rigid-cube model/history")
     global_ids = history.record([(n_global, "I")])
     if global_ids != list(range(1, n_global + 1)):
         raise ValueError("Native global channel identities differ")
-    part = history.record([(1, "I"), (40, "C"), (4, "I")])
-    if int(part[:10]) != 1 or part[10:50].strip() != "RIGID_CUBE":
-        raise ValueError("Native part identity mismatch")
-    if [int(part[i:i + 5]) for i in range(50, 70, 5)] != [0, 1, 1, 0]:
-        raise ValueError("Native part material/property association mismatch")
-    for expected_id, expected_title in ((1, "RIGID_MASS_CARRIER_NOT_QUALIFIED"), (0, "no_title"),
-                                         (1, "RIGID_MASS_CARRIER")):
+    expected_parts = [(1, "RIGID_CUBE", [0, 1, 1, 0])]
+    if compliant:
+        # HIST1 part associations are internal material/property indices.
+        # TYPE4 material0 refers to the virtual external0/no_title slot2.
+        expected_parts.append((2, "STOP_SPRING", [0, 2, 2, 0]))
+    for expected_id, expected_title, association in expected_parts:
+        part = history.record([(1, "I"), (40, "C"), (4, "I")])
+        if int(part[:10]) != expected_id or part[10:50].strip() != expected_title:
+            raise ValueError("Native part identity mismatch")
+        if [int(part[i:i + 5]) for i in range(50, 70, 5)] != association:
+            raise ValueError("Native part material/property association mismatch")
+    expected_descriptions = [(1, "RIGID_MASS_CARRIER_NOT_QUALIFIED"), (0, "no_title"), (1, "RIGID_MASS_CARRIER")]
+    if compliant:
+        expected_descriptions.append((2, "STOP_SPRING_PROPERTY"))
+    for expected_id, expected_title in expected_descriptions:
         metadata = history.record([(1, "I"), (40, "C")])
         if int(metadata[:10]) != expected_id or metadata[10:].strip() != expected_title:
             raise ValueError("Native material/property identity mismatch")
     for _ in range(n_subset):
         info = _mixed_ints(history.record([(5, "I"), (40, "C")]), 5)
-        if info != [0, 0, 0, 1, 0] or history.record([(1, "I")]) != [1]:
+        if info != [0, 0, 0, n_part, 0] or history.record([(n_part, "I")]) != list(range(1, n_part + 1)):
             raise ValueError("Native global subset identity mismatch")
     groups = []
-    expected_groups = {1: (0, [1, 9], [3, 6, 9, 18]), 2: (103, [1], [3, 7, 8, 9])}
+    expected_groups = {1: (0, [1, 9, 10] if compliant else [1, 9], [3, 6, 9, 18]), 2: (103, [1], [3, 7, 8, 9])}
     if wall:
         expected_groups[3] = (102, [1], [3])
+    if compliant:
+        expected_groups[4] = (6, [2], [1, 2, 8, 14])
     seen = set()
     for group_index in range(n_group):
         raw = history.record([(5, "I"), (40, "C")])
@@ -236,14 +282,21 @@ def parse_history(output: Path, settings: dict) -> dict:
         global_values = history.record([(n_global, "R")])
         group_values = [history.record([(group["width"], "R")]) for group in groups]
         by_id = {group["id"]: values for group, values in zip(groups, group_values)}
-        dz_bottom, v_bottom, a_bottom, z_bottom, dz, velocity, acceleration, z = by_id[1]
+        dz_bottom, v_bottom, a_bottom, z_bottom, dz, velocity, acceleration, z = by_id[1][:8]
+        if compliant:
+            anchor_dz, anchor_v, anchor_a, anchor_z = by_id[1][8:]
+            if abs(anchor_z - ANCHOR_Z_M) > 1e-8 or max(abs(value) for value in (anchor_dz, anchor_v, anchor_a)) > 1e-8:
+                raise ValueError("Native spring anchor is not fixed at the declared position")
         dt = global_values[6]
         mass = global_values[5]
         if mass <= 0:
             raise ValueError("Native total mass must be positive")
         if abs(dt - settings["time_step_s"]) > 1e-10 * settings["time_step_s"]:
             raise ValueError("Native cycle step differs from the fixed-step clock/impulse contract")
-        centered = global_values[4] / mass
+        moving_mass = admission["moving_mass_kg"] if compliant else mass
+        if compliant and abs(mass - admission["total_mass_kg"]) > 1e-8 * mass:
+            raise ValueError("Native Engine total mass differs from actual Starter assembly")
+        centered = global_values[4] / moving_mass
         centered_expected = velocity if time_s == 0 else velocity + .5 * dt * acceleration
         centered_residual = centered - centered_expected
         if abs(centered_residual) > 1e-8 * max(1, abs(centered), abs(centered_expected)):
@@ -272,6 +325,21 @@ def parse_history(output: Path, settings: dict) -> dict:
             raise ValueError("Native wall-force interval has duplicate or decreasing time")
         average_force = ((body_impulse - rows[-1]["ground_impulse_n_s"]) / force_interval
                          if rows else None)
+        spring_fields = {}
+        if compliant:
+            off, fx, lx, ie = by_id[4]
+            force = -fx
+            if force < -1e-8 or ie < -1e-8 or abs(off - 1) > 1e-12:
+                raise ValueError("Native spring force/energy/deletion violates the unilateral elastic law")
+            # Raw current-time spring force is integrated using its actual
+            # sampled clock, never replaced with an analytical contact impulse.
+            body_impulse = (rows[-1]["ground_impulse_n_s"] + .5 * (force + rows[-1]["ground_force_n"]) * force_interval) if rows else 0.0
+            average_force = (body_impulse - rows[-1]["ground_impulse_n_s"]) / force_interval if rows else None
+            spring_fields = {"moving_mass_kg": moving_mass, "fixed_mass_kg": admission["fixed_mass_kg"],
+                "ground_force_n": force, "spring_axial_force_n": fx, "spring_length_change_m": lx,
+                "spring_length_m": settings["center_height_m"] - ANCHOR_Z_M + lx,
+                "spring_internal_energy_j": ie, "spring_off": off,
+                "anchor_z_m": anchor_z, "anchor_velocity_m_s": anchor_v, "anchor_acceleration_m_s2": anchor_a}
         rows.append({"time_s": time_s, "velocity_time_s": max(0, time_s - .5 * dt), "z_m": z,
                      "velocity_m_s": velocity, "acceleration_m_s2": acceleration,
                      "energy_velocity_m_s": centered, "centered_velocity_residual_m_s": centered_residual,
@@ -280,7 +348,7 @@ def parse_history(output: Path, settings: dict) -> dict:
                      "added_mass_kg": global_values[16], "ground_impulse_n_s": body_impulse,
                      "ground_force_interval_average_n": average_force, "ground_force_interval_s": force_interval,
                      "bottom_z_m": z_bottom, "bottom_velocity_m_s": v_bottom,
-                     "bottom_acceleration_m_s2": a_bottom, "rigid_advance_residual_m_s": witness_residual})
+                     "bottom_acceleration_m_s2": a_bottom, "rigid_advance_residual_m_s": witness_residual, **spring_fields})
         raw_samples.append({"time_s": time_s, "globals": global_values, "groups": group_values})
     expected_times = expected_history_times(settings)
     if len(rows) != len(expected_times) or any(abs(row["time_s"] - expected) > 1e-8 * max(1, abs(expected))
@@ -291,7 +359,7 @@ def parse_history(output: Path, settings: dict) -> dict:
             "native_end_time_s": float(end[1]), "native_cycle_count": int(cycle_match[1]),
             "native_cycle_observations": progress,
             "units": "kg,m,s,N,J; raw cumulative RWALL impulse N s",
-            "external_work_policy": "Native total external work includes gravity and rigidwall constraint work",
-            "force_policy": "Interval-average body force is delta(-native cumulative FNZ)/deltaTIME, not an instantaneous impact peak",
+            "external_work_policy": "Compliant: actual gravity work and global KE+IE balance; wall: gravity plus constraint work",
+            "force_policy": "Compliant: actual current-time local FX, upward force=-FX, trapezoidal native-force impulse; wall: delta(-FNZ)/deltaTIME",
             "witness_policy": "Raw main/secondary V can differ at an impulse; V+DT12*A must agree. Original observations retained.",
             "clock_policy": "Raw TH/NODE V is at TIME-DT/2, except initial TIME=0; native global KE/momentum and Z are at TIME. No fitted curve shift."}

@@ -18,6 +18,7 @@ from caelab.adapters.openradioss_worker import (expected_history_times, parse_hi
 from caelab.storage import canonical_hash, load_json
 from plugins.explicit_dynamics.reference import reference
 from scripts.verify_openradioss import specification
+from scripts.verify_compliant_drop import specification as compliant_specification
 
 
 def small_settings(wall=False):
@@ -28,17 +29,22 @@ def small_settings(wall=False):
 
 
 def starter_text(s):
+    compliant = s["case"] == "rigid_cube_compliant_stop"
+    extra = ["NPART: parts 2", "NUMGEO: properties 2", "NUMELR: springs 1", "NUMBCS: constraints 1",
+             f"NEW MASS {s['mass_kg'] + s['spring_mass_kg']/2}", "TOTAL MASS AND MASS CENTER",
+             "MASS X Y Z", f"{s['mass_kg'] + s['spring_mass_kg']} 0 0 1"] if compliant else []
     return "\n".join(["TEST ONLY: no native executable has run", "NO SYNTAX ERROR DETECTED", "NORMAL TERMINATION",
         "0 ERROR(S)", "0 WARNING(S)", "WORK UNIT SYSTEM ( kg , m , s ) 1 1 1",
-        "INPUT UNIT SYSTEM ( kg , m , s ) 1 1 1", "NUMNOD: nodes 9", "NUMELS: solids 1",
+        "INPUT UNIT SYSTEM ( kg , m , s ) 1 1 1", f"NUMNOD: nodes {10 if compliant else 9}", "NUMELS: solids 1",
         "NRBODY: bodies 1", f"NRWALL: walls {int(s['case']=='rigid_cube_ground_stop')}",
         "PRIMARY NODE 9", "REMOVE SECONDARY NODES FROM RIGID WALL(IF=0) 0", "CENTER OF MASS FLAG 3",
-        "NO TRUE INCOMPATIBLE KINEMATIC CONDITION"]) + "\n"
+        "NO TRUE INCOMPATIBLE KINEMATIC CONDITION", *extra]) + "\n"
 
 
 def engine_text(s):
     count = round(s["end_time_s"] / s["time_step_s"])
-    rows = [f"{i} {i*s['time_step_s']:.12g} {s['time_step_s']:.12g} FIXED 0 0.0% 0 0 0 0 0 {s['mass_kg']:.12g} 0"
+    mass = s["mass_kg"] + s.get("spring_mass_kg", 0)
+    rows = [f"{i} {i*s['time_step_s']:.12g} {s['time_step_s']:.12g} FIXED 0 0.0% 0 0 0 0 0 {mass:.12g} 0"
             for i in range(count + 1)]
     return "TEST ONLY: no native executable has run\n" + f"FINAL TIME {s['end_time_s']}\n" + "\n".join(rows) + f"\nNORMAL TERMINATION\nTOTAL NUMBER OF CYCLES : {count+2}\n"
 
@@ -56,15 +62,21 @@ def typed_stream(s, *, change=None, skip=None):
     record([(1,"I"),(72,"C")], f"{3040:5d}" + "TEST ONLY parser data".ljust(72))
     record([(80,"C")], "TEST ONLY parser data; no native execution".ljust(80))
     wall = s["case"] == "rigid_cube_ground_stop"
-    record([(6,"I")], [1,2,1,1,3 if wall else 2,22])
+    compliant = s["case"] == "rigid_cube_compliant_stop"
+    record([(6,"I")], [2,2,2,1,3,22] if compliant else [1,2,1,1,3 if wall else 2,22])
     record([(22,"I")], list(range(1,23)))
     record([(1,"I"),(40,"C"),(4,"I")], entity(1,"RIGID_CUBE") + "".join(f"{v:5}" for v in [0,1,1,0]))
-    for identifier,title in [(1,"RIGID_MASS_CARRIER_NOT_QUALIFIED"),(0,"no_title"),(1,"RIGID_MASS_CARRIER")]:
+    if compliant:
+        record([(1,"I"),(40,"C"),(4,"I")], entity(2,"STOP_SPRING") + "".join(f"{v:5}" for v in [0,2,2,0]))
+    descriptions = [(1,"RIGID_MASS_CARRIER_NOT_QUALIFIED"),(0,"no_title"),(1,"RIGID_MASS_CARRIER")]
+    if compliant: descriptions.append((2,"STOP_SPRING_PROPERTY"))
+    for identifier,title in descriptions:
         record([(1,"I"),(40,"C")],entity(identifier,title))
-    record([(5,"I"),(40,"C")],"".join(f"{v:10}" for v in [0,0,0,1,0])+"GLOBAL MODEL".ljust(40))
-    record([(1,"I")],[1])
+    record([(5,"I"),(40,"C")],"".join(f"{v:10}" for v in [0,0,0,2 if compliant else 1,0])+"GLOBAL MODEL".ljust(40))
+    record([(2 if compliant else 1,"I")],[1,2] if compliant else [1])
     groups = [(3,102,[1],[3],"WALL_NORMAL_IMPULSE")] if wall else []
-    groups += [(1,0,[1,9],[3,6,9,18],"NODAL_KINEMATICS"),(2,103,[1],[3,7,8,9],"BODY_IMPULSES_ROTATIONS")]
+    if compliant: groups.append((4,6,[2],[1,2,8,14],"STOP_CONSTITUTIVE_HISTORY"))
+    groups += [(1,0,[1,9,10] if compliant else [1,9],[3,6,9,18],"NODAL_KINEMATICS"),(2,103,[1],[3,7,8,9],"BODY_IMPULSES_ROTATIONS")]
     for identifier,kind,ids,variables,title in groups:
         record([(5,"I"),(40,"C")],"".join(f"{v:10}" for v in [identifier,kind,0,len(ids),len(variables)])+title.ljust(40))
         for i in ids:record([(1,"I"),(40,"C")],entity(i,"TEST ONLY entity"))
@@ -75,10 +87,19 @@ def typed_stream(s, *, change=None, skip=None):
         hit=wall and t>=ref["impact_time_s"]
         velocity=0 if hit else reference(s,max(0,t-dt/2))["velocity_m_s"]
         a=0 if hit else -s["gravity_m_s2"]
+        if compliant:
+            a=ref["acceleration_m_s2"]
+            velocity=ref["velocity_m_s"] if t==0 else ref["velocity_m_s"]-.5*dt*a
         glob=[0.0]*22;glob[1]=ref["kinetic_energy_j"];glob[4]=s["mass_kg"]*ref["velocity_m_s"]
         glob[5]=s["mass_kg"];glob[6]=dt;glob[8]=glob[1]-.5*s["mass_kg"]*s["initial_velocity_m_s"]**2
+        if compliant:
+            glob[0]=ref["spring_internal_energy_j"];glob[4]=ref["moving_mass_kg"]*ref["velocity_m_s"]
+            glob[5]=ref["total_mass_kg"];glob[8]=glob[0]+glob[1]-.5*ref["moving_mass_kg"]*s["initial_velocity_m_s"]**2
         node=[ref["z_m"]-h,velocity,a,ref["z_m"]-s["edge_m"]/2,ref["z_m"]-h,velocity,a,ref["z_m"]]
         channels={1:node,2:[0,0,0,0],3:[-ref["ground_impulse_n_s"]]}
+        if compliant:
+            channels[1] += [0,0,0,-1]
+            channels[4]=[1,-ref["spring_force_n"],ref["spring_length_change_m"],ref["spring_internal_energy_j"]]
         if change: change(index,t,glob,channels)
         record([(1,"R")],[t]);record([(22,"R")],glob)
         for identifier,_,ids,variables,_ in groups:record([(len(ids)*len(variables),"R")],channels[identifier])
@@ -256,3 +277,154 @@ def test_runtime_checks_archive_executables_and_reader_configs_before_any_proces
     executable.write_bytes(b"TEST ONLY executable")
     archive.write_bytes(b"changed")
     with pytest.raises(RuntimeError,match="published SHA256"):transport.runtime()
+
+
+def small_compliant_settings():
+    # Small synthetic parser case whose source-derived terminal clock includes
+    # the end record; canonical actual runs retain their prescribed .5 seconds.
+    s=compliant_specification(stiffness=100000);s.update(center_height_m=.05001,end_time_s=.02)
+    return s
+
+
+def test_compliant_trusted_cards_force_scale_mass_anchor_and_actual_channels():
+    starter,_=decks(compliant_specification())
+    assert "/RWALL" not in starter
+    assert "/BCS/1\nANCHOR_TRANSLATIONS_FIXED\n   111 000         0         3\n" in starter
+    assert "/PROP/SPRING/2\nSTOP_SPRING_PROPERTY\n" in starter
+    prop=starter.split("/PROP/SPRING/2\nSTOP_SPRING_PROPERTY\n")[1].splitlines()
+    assert float(prop[0][:20]) == .002 and prop[0][20:50] == " "*30
+    assert [float(prop[1][i:i+20]) for i in range(0,100,20)] == [10000,0,1,0,1]
+    assert [int(prop[2][i:i+10]) for i in range(0,50,10)] == [2,8,0,0,0]
+    assert "/TH/SPRING/4\nSTOP_CONSTITUTIVE_HISTORY\n       OFF        FX        LX        IE\n" in starter
+    stiff,_=decks(compliant_specification(stiffness=20000))
+    curve=stiff.split("/FUNCT/2\nFORCE_N_VS_ABSOLUTE_LENGTH_M\n")[1].splitlines()
+    assert [float(curve[0][i:i+20]) for i in (0,20)] == [0,-21000]
+
+
+def test_compliant_typed_native_observations_keep_force_ie_mass_and_fixed_anchor(tmp_path):
+    s=small_compliant_settings();native_fixture(tmp_path,s)
+    parsed=parse_history(tmp_path,s)
+    assert parsed["hierarchy"] == [2,2,2,1,3,22]
+    assert len(parsed["rows"]) == 201
+    assert next(group for group in parsed["groups"] if group["id"]==4)["variables"] == [1,2,8,14]
+    peak=max(parsed["rows"],key=lambda row:row["ground_force_n"])
+    assert peak["spring_axial_force_n"] < 0 and peak["spring_internal_energy_j"] > 0
+    assert peak["moving_mass_kg"] == pytest.approx(1.001)
+    assert peak["fixed_mass_kg"] == pytest.approx(.001)
+    assert peak["mass_kg"] == pytest.approx(1.002)
+    assert peak["spring_length_m"] == pytest.approx(peak["z_m"]+1)
+    assert all(row["anchor_z_m"]==-1 and row["anchor_velocity_m_s"]==0 for row in parsed["rows"])
+    from plugins.explicit_dynamics.reference import assess
+    assert all(check["status"]=="PASS" for check in assess(s,parsed["rows"])["checks"])
+
+
+@pytest.mark.parametrize("damage",["anchor","global_mass","negative_force","negative_ie","off","metadata","tail","interior"])
+def test_compliant_parser_rejects_wrong_native_layout_mass_fixed_state_or_coverage(tmp_path,damage):
+    s=small_compliant_settings()
+    def change(i,t,glob,ch):
+        if i==20:
+            if damage=="anchor":ch[1][9]=.01
+            elif damage=="global_mass":glob[5]=1
+            elif damage=="negative_force":ch[4][1]=.1
+            elif damage=="negative_ie":ch[4][3]=-.1
+            elif damage=="off":ch[4][0]=0
+    skip=len(expected_history_times(s))-1 if damage=="tail" else 100 if damage=="interior" else None
+    native_fixture(tmp_path,s,change=change,skip=skip)
+    if damage=="metadata":
+        p=tmp_path/"dropT01";p.write_text(p.read_text().replace("1 2 8 14","1 2 8 13"))
+    with pytest.raises(ValueError):parse_history(tmp_path,s)
+
+
+@pytest.mark.parametrize("damage",["force","ie","length"])
+def test_complete_native_compliant_channels_do_not_get_replaced_by_reference(tmp_path,damage):
+    s=small_compliant_settings()
+    def change(i,t,glob,ch):
+        if i==100:
+            if damage=="force":ch[4][1]-=.1
+            elif damage=="ie":ch[4][3]+=.02
+            else:ch[4][2]+=.001
+    native_fixture(tmp_path,s,change=change)
+    parsed=parse_history(tmp_path,s)
+    from plugins.explicit_dynamics.reference import assess
+    result=assess(s,parsed["rows"])
+    assert any(check["status"]=="FAIL" for check in result["checks"])
+    assert not any(value["valid"] for value in result["metrics"].values())
+
+
+@pytest.mark.parametrize("damage",["moving_mass","total_mass","total_nonfinite","warning"])
+def test_compliant_actual_starter_mass_and_warning_admission_blocks_engine(tmp_path,monkeypatch,damage):
+    s=small_compliant_settings();calls=[]
+    monkeypatch.setattr(transport,"runtime",lambda:(tmp_path,{}, {"test_only":True}))
+    def fake_process(command,output,name,env):
+        calls.append(name)
+        if name=="starter":
+            text=starter_text(s)
+            replacements={"moving_mass":("NEW MASS 1.001","NEW MASS 1"), "total_mass":("1.002 0 0 1","1 0 0 1"),
+                          "total_nonfinite":("1.002 0 0 1","nan 0 0 1"), "warning":("0 WARNING(S)","1 WARNING(S)")}
+            a,b=replacements[damage];text=text.replace(a,b)
+            (output/"drop_0000.out").write_text(text)
+        if name=="engine":pytest.fail("Engine cannot follow bad actual Starter assembly")
+        return "TEST ONLY version"
+    monkeypatch.setattr(transport,"process",fake_process)
+    result=OpenRadiossAdapter().solve(tmp_path/"simulation",s)
+    assert result["status"]=="REJECTED" and result["solver_status"]=="NOT_RUN"
+    assert calls==["starter_version","engine_version","starter"]
+    assert "peak_contact_force" in result["metrics"] and not any(value["valid"] for value in result["metrics"].values())
+
+
+@pytest.mark.parametrize("key,value",[("spring_stiffness_n_m",0),("spring_stiffness_n_m",float("nan")),("mass_kg",-1)])
+def test_compliant_real_core_invalid_inputs_do_not_read_runtime_or_execute(tmp_path,monkeypatch,key,value):
+    adapter=OpenRadiossAdapter()
+    monkeypatch.setattr(transport,"runtime",lambda:pytest.fail("Invalid model cannot read runtime"))
+    lab=Lab(tmp_path,adapters={},analysis_adapters={},doe_adapters={},optimization_adapters={},pde_adapters={},model_analysis_adapters={adapter.backend:adapter})
+    lab.create_study("S-compliant","TEST ONLY","Invalid input?","Blocked","No solver")
+    s=compliant_specification();s[key]=value
+    if isinstance(value,float) and value != value:
+        with pytest.raises(ValueError,match="JSON compliant"):
+            lab.run_model_analysis(study_id="S-compliant",experiment_id="E-invalid",backend=adapter.backend,settings=s)
+        assert not (tmp_path/"experiments/E-invalid").exists()
+        return
+    result=lab.run_model_analysis(study_id="S-compliant",experiment_id="E-invalid",backend=adapter.backend,settings=s)
+    assert result["status"]=="REJECTED" and result["solver_status"]=="NOT_RUN"
+    assert not (tmp_path/"experiments/E-invalid/simulation").exists()
+    assert lab.inspect_experiment("E-invalid")==result
+
+
+def test_compliant_full_rebound_velocity_error_is_not_hidden_by_correct_last_sample(tmp_path):
+    s=small_compliant_settings()
+    def change(i,t,glob,ch):
+        if i==190:
+            ch[1][1]+=.01;ch[1][5]+=.01
+            glob[4]+=1.001*.01
+            glob[1]=.5*1.001*(glob[4]/1.001)**2;glob[8]=glob[1]+glob[0]
+    native_fixture(tmp_path,s,change=change)
+    parsed=parse_history(tmp_path,s)
+    from plugins.explicit_dynamics.reference import assess
+    result=assess(s,parsed["rows"])
+    assert {"compliant_full_raw_velocity","compliant_full_centered_velocity"} <= {check["code"] for check in result["checks"] if check["status"]=="FAIL"}
+    assert parsed["rows"][-1]["energy_velocity_m_s"] == pytest.approx(reference(s,.02)["velocity_m_s"])
+    assert not any(value["valid"] for value in result["metrics"].values())
+
+
+def test_compliant_core_exit0_with_corrupt_actual_ie_keeps_artifacts_and_invalid_metrics(tmp_path,monkeypatch):
+    s=small_compliant_settings();adapter=OpenRadiossAdapter()
+    monkeypatch.setattr(transport,"runtime",lambda:(tmp_path,{}, {"test_only":True}))
+    def fake_process(command,output,name,env):
+        if name=="starter":(output/"drop_0000.out").write_text(starter_text(s))
+        elif name=="engine":
+            (output/"drop_0001.out").write_text(engine_text(s))
+            def corrupt(i,t,glob,ch):
+                if i==100:ch[4][3]+=.02
+            (output/"dropT01").write_text(typed_stream(s,change=corrupt))
+        return "NORMAL TERMINATION TEST ONLY"
+    monkeypatch.setattr(transport,"process",fake_process)
+    lab=Lab(tmp_path/"store",adapters={},analysis_adapters={},doe_adapters={},optimization_adapters={},pde_adapters={},model_analysis_adapters={adapter.backend:adapter})
+    lab.create_study("S-compliant","TEST ONLY corruption","Can analytical IE replace a corrupt actual channel?","No","No solver")
+    result=lab.run_model_analysis(study_id="S-compliant",experiment_id="E-corrupt",backend=adapter.backend,settings=s)
+    assert result["status"]=="REJECTED" and result["solver_status"]=="COMPLETED"
+    assert not any(value["valid"] for value in result["metrics"].values())
+    assert result["model_revision"]==canonical_hash({"settings":s,"declaration":adapter.describe_model(s)})
+    assert result["cad_revision"] is None and "parent_experiment_id" not in result
+    assert result["decision"]=="NOT_RELEASED" and "rotational_surface_contact" in lab.research_summary("E-corrupt")["unknown"]
+    assert {"simulation/dropT01","simulation/parsed_history.json","simulation/domain_reference.py"} <= {artifact["path"] for artifact in result["artifacts"]}
+    assert lab.inspect_experiment("E-corrupt")==result
