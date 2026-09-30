@@ -13,6 +13,7 @@
     "decision": {"enum": ["NOT_RELEASED", "RELEASED"]},
     "solver_status": {"type": "string"}, "converged": {"type": ["boolean", "null"]},
     "cad_revision": {"type": ["string", "null"]}, "proposal_revision": {"type": "string"},
+    "model_revision": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
     "registry_revision": {"type": "integer"}, "input_parameters": {"type": "object"},
     "metrics": {"type": "object", "additionalProperties": {"type": "object", "required": ["value", "unit", "valid"], "properties": {"value": {}, "unit": {"type": "string"}, "valid": {"type": "boolean"}, "reason": {"type": "string"}}}},
     "validations": {"type": "array", "items": {"type": "object", "required": ["type", "validator", "status", "blocking", "evidence_ids", "timestamp"], "properties": {"status": {"enum": ["PASS", "FAIL", "UNKNOWN", "WARNING"]}, "evidence_ids": {"type": "array", "items": {"type": "string"}}}}},

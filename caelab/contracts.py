@@ -78,8 +78,12 @@ class OptimizationAdapter(Protocol):
             constraint_count: int) -> dict: ...
 
 
-class PDEAdapter(Protocol):
-    """A mathematical model can produce common evidence without a CAD parent."""
+class ModelAnalysisAdapter(Protocol):
+    """Declared geometry, mathematics or material models need no CAD parent.
+
+    An optional pure describe_model(settings) supplies solver-independent model,
+    boundary/load and output metadata. Numerical syntax stays in the adapter.
+    """
 
     backend: str
     version: str
@@ -89,6 +93,10 @@ class PDEAdapter(Protocol):
     default_metrics: list[str]
 
     def solve(self, output: Path, settings: dict[str, Any]) -> dict[str, Any]: ...
+
+
+class PDEAdapter(ModelAnalysisAdapter, Protocol):
+    """Compatible specialized name for declared mathematical PDE operations."""
 
 
 class CapabilityUnavailable(RuntimeError):

@@ -191,5 +191,13 @@ def pde_run(study_id: str, experiment_id: str, backend: str, settings: dict,
                            settings=settings, hypothesis_id=hypothesis_id)
 
 
+@mcp.tool()
+def model_analysis_run(study_id: str, experiment_id: str, backend: str, settings: dict,
+                       hypothesis_id: str | None = None) -> dict:
+    """Analyze a declared research model without a CAD parent and retain checked numerical evidence."""
+    return _lab().run_model_analysis(study_id=study_id, experiment_id=experiment_id,
+                                     backend=backend, settings=settings, hypothesis_id=hypothesis_id)
+
+
 if __name__ == "__main__":
     mcp.run(transport="stdio")

@@ -14,6 +14,32 @@ handoff record, not a claim that the model retains every past chat forever.
 
 ## Verified checkpoint
 
+**Primary work continues across all 52 requirements.** The checkpoint below
+is not a stopping condition. Root resumed actual OpenScience and independent
+Code_Aster/model-Core work after correcting an earlier premature stop. Read
+[CONNECTED_CONTINUATION](docs/CONNECTED_CONTINUATION.md) and ADR 0007 for the
+runtime, failed drafts, tested contracts and next actual gates. Installation,
+transport and exit codes alone do not establish a new research/numerical proof.
+
+**Current primary priority:** after the user's challenge about Code_Aster
+over-concentration, connect the existing research/CAD/solver/numerical/PDE
+operations in `apps/lab/` and verify common reports/bundles. Read ADR 0008 and
+`apps/lab/CONTRACT.md` for bounded ownership and actual HTTP/browser gates.
+Native semantic-guard static review passed; only one revised actual acceptance
+was run and passed as dirty draft-05. No OpenRadioss/material/HPC/full-physics completion
+is implied. Root freezes Core/adapter source before adaptive campaign tests.
+
+Read [CONNECTED_ACCEPTANCE](docs/CONNECTED_ACCEPTANCE.md) for the actual new
+HTTP CAD/PDE/library/export proof, analytical model proof and narrow report-path
+correction. These draft runs do not replace the older clean-source checkpoint
+until the new commit's CI and clean reproduction pass. The bounded Lab browser
+flow passed separately; official OpenScience GUI remains unverified.
+Live OpenScience04 is partial: actual study/discovery succeeded,
+registration made no tool call, registry revision0 and no experiments. Do not
+repeat model/install loops or label CLI completion as research acceptance.
+The user's OpenScience usage question did not request a UI redesign. Read
+[OPENSCIENCE_USE](docs/OPENSCIENCE_USE.md) before explaining the Lab screen.
+
 **Latest numerical code checkpoint:**
 `41a9858bad7ebeb72de0db0d75d1f910a4a50dc4`;
 [CI 36656020195](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36656020195)

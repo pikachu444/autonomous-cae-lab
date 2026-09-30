@@ -10,7 +10,7 @@ from filelock import FileLock
 from .adapters.fixture_cadquery import FixtureCadQueryAdapter
 from .adapters.fixture_freecad import FixtureFreeCADAdapter
 from .contracts import (AnalysisAdapter, CADAdapter, DOEAdapter, OptimizationAdapter,
-                        PDEAdapter, CapabilityUnavailable)
+                        PDEAdapter, ModelAnalysisAdapter, CapabilityUnavailable)
 from .registry import register_parameter, validate_assignments
 from .outcomes import validate_outcome
 from .schema import validate as validate_schema
@@ -24,7 +24,8 @@ class Lab:
                  analysis_adapters: dict[str, AnalysisAdapter] | None = None,
                  doe_adapters: dict[str, DOEAdapter] | None = None,
                  optimization_adapters: dict[str, OptimizationAdapter] | None = None,
-                 pde_adapters: dict[str, PDEAdapter] | None = None):
+                 pde_adapters: dict[str, PDEAdapter] | None = None,
+                 model_analysis_adapters: dict[str, ModelAnalysisAdapter] | None = None):
         self.store = Path(store).resolve()
         self.adapters = adapters if adapters is not None else {
             FixtureCadQueryAdapter.backend: FixtureCadQueryAdapter(),
@@ -46,6 +47,10 @@ class Lab:
             from .adapters.fenicsx_pde import FenicsxPDEAdapter
             pde_adapters = {FenicsxPDEAdapter.backend: FenicsxPDEAdapter()}
         self.pde_adapters = pde_adapters
+        if model_analysis_adapters is None:
+            from .adapters.codeaster_elasticity import CodeAsterElasticityAdapter
+            model_analysis_adapters = {CodeAsterElasticityAdapter.backend: CodeAsterElasticityAdapter()}
+        self.model_analysis_adapters = model_analysis_adapters
 
     def create_native_model(self, *, template: str = "roller_support") -> dict[str, Any]:
         return self._adapter("fixture.freecad").create_sample(template)
@@ -503,6 +508,12 @@ class Lab:
             corrupt = check_artifacts(folder, result["artifacts"])
             if corrupt:
                 raise ValueError("Artifact hash mismatch: " + ", ".join(corrupt))
+            if result.get("model_revision") is not None:
+                proposal = load_json(folder / "proposal.json")
+                thread = load_json(folder / "thread.json")
+                if (proposal.get("model_revision") != result["model_revision"] or
+                        thread.get("model_revision") != result["model_revision"]):
+                    raise ValueError("Declared model revision mismatch")
             parent_id = result.get("parent_experiment_id")
             if parent_id:
                 if parent_id == experiment_id:
@@ -528,6 +539,7 @@ class Lab:
                              for v in result["validations"] if v["status"] == "FAIL"],
                 "unknown": [v["type"] for v in result["validations"] if v["status"] == "UNKNOWN"],
                 "artifact_count": len(result["artifacts"]), "cad_revision": result["cad_revision"],
+                "model_revision": result.get("model_revision"),
                 "result_ref": f"experiments/{experiment_id}/result.json"}
 
     def compare(self, experiment_ids: list[str]) -> list[dict[str, Any]]:
@@ -583,3 +595,11 @@ class Lab:
         from .pde import run_pde
         return run_pde(self, study_id=study_id, experiment_id=experiment_id,
                        backend=backend, settings=settings, hypothesis_id=hypothesis_id)
+
+    def run_model_analysis(self, *, study_id: str, experiment_id: str, backend: str,
+                           settings: dict, hypothesis_id: str | None = None) -> dict:
+        from .declared_model import run_declared_model
+        return run_declared_model(self, study_id=study_id, experiment_id=experiment_id,
+                                  backend=backend, settings=settings, hypothesis_id=hypothesis_id,
+                                  adapters=self.model_analysis_adapters, namespace="model_analysis",
+                                  output_directory="simulation", description=True)

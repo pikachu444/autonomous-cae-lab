@@ -20,4 +20,19 @@ The Python API is `caelab.Lab`. The CLI maps the same operations to `python -m c
 
 `status=COMPLETED_REVIEW_REQUIRED` says the transaction ran and its numerical/CAD checks are recorded. `decision=NOT_RELEASED` is retained while any machine/strength/physical/durability requirements are unknown. `status=REJECTED` can be an intended invalid-design observation, not a process crash. `FAILED_EXECUTION` marks a backend error. The OpenScience agent must follow the result's evidence IDs rather than interpreting a tool exit code as engineering approval.
 
-No live OpenScience call was performed in the current environment. The product identified from official sources is provisionally [Synthetic Sciences OpenScience](https://github.com/synthetic-sciences/openscience). It supports local stdio MCP project connectors, but its CLI failed to load project configuration in this container because of a process identity check against `/proc`. Live acceptance requires connecting this MCP server, reading a tool trace and verifying both valid and invalid runs in the CAE-Lab store.
+`model_analysis.run(study_id, experiment_id, backend, settings, hypothesis_id?)`
+adds declared geometry/material/boundary/load analysis without a fictitious CAD
+parent. CLI `model-analysis`, API `run_model_analysis` and MCP
+`model_analysis_run` use the shared declared-model Core also used by PDE.
+Solver-independent metadata and common model_revision are frozen; native syntax
+remains in the adapter. The first independent Code_Aster elasticity case is
+bounded by ADR 0007 and retains strength/physical UNKNOWN and NOT_RELEASED.
+
+The earlier cloud process-identity failure remains historical. The primary
+Windows session installed pinned Synthetic Sciences OpenScience 2.0.146 with
+an isolated profile/local provider and connected this MCP server. A failed live
+attempt returned exit0 without tools and is explicitly not acceptance. A later
+bounded live study_create call actually persisted a study through MCP; registry,
+valid/invalid CAD and returned-evidence interpretation are still in progress.
+See [connected continuation](../docs/CONNECTED_CONTINUATION.md). A real tool
+trace plus checked store records, not merely transport/CLI completion, are required.

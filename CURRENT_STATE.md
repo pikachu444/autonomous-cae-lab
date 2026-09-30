@@ -1,5 +1,43 @@
 # Current state — 2026-09-30 (Asia/Seoul)
 
+## Whole-project continuation remains active
+
+The numerical checkpoint did not complete the 52 requirements. Root stopped
+the earlier turn by an incorrect scope judgment, not an authentication/runtime/
+GitHub blocker. After the user's correction, actual OpenScience and independent
+Code_Aster/model-Core work resumed. Probes/contracts passed; actual native and
+live-agent failures are retained and being corrected. See
+[CONNECTED_CONTINUATION](docs/CONNECTED_CONTINUATION.md) and ADR 0007. Environment
+restoration, documentation, exit codes and one family are not project completion.
+
+The user then challenged concentration on Code_Aster. Root now prioritizes the
+connected local research/design/simulation/explore/results surface and portable
+verified reports over repeated native-example debugging. ADR 0008 records
+disjoint UI/server/report ownership and the pending actual integration checks.
+Other backend gaps stay visible. The Code_Aster semantic import repair passed
+independent bounded review; one fresh actual revised native acceptance passed
+in draft-05 with unchanged analytical limits (dirty source, NOT_RELEASED).
+The 210 common/PDE/elasticity/adapter tests passed on frozen source in 65.83 s;
+the two earlier optimizer source-drift failures subsequently passed with frozen
+source. The final adapter metadata tests passed 95 cases.
+
+Actual common HTTP CAD-valid/rejected and FEniCSx PDE execution, nine verified
+portable bundles and all 37 historical library experiments passed in HTTP
+draft-01. Server tests passed 43 cases. A portable ZIP case-only alias finding
+was corrected; 17 new plus 13 relevant existing reporter tests and independent
+review passed. Bounded actual browser study/registry/CAD valid+reject/comparison/
+PDE/download/native-preview/two-sample DOE actions passed separately. Exact-source
+CI and fresh clean-source stores are pending; the previous clean checkpoint
+below remains the verification authority. See
+[CONNECTED_ACCEPTANCE](docs/CONNECTED_ACCEPTANCE.md).
+
+Live OpenScience04 actually created a study and discovered eight candidates;
+registration invoked no tool and the bounded run remained FAILED_OR_PARTIAL.
+The user's question about using OpenScience was informational, not a UI redesign
+instruction. The Lab screen has no AI conversation connection and is not the
+official OpenScience workspace. Official usage and current execution limits
+are in [OPENSCIENCE_USE](docs/OPENSCIENCE_USE.md). All 52 requirements remain.
+
 ## Primary local session restored
 
 The primary checkout is now `C:\SourceCodes\autonomous-cae-lab` on Windows 11,

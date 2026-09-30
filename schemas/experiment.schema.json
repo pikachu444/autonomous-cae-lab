@@ -11,6 +11,7 @@
     "parent_experiment_id": {"type": "string"},
     "campaign_id": {"type": "string"},
     "hypothesis_id": {"type": "string"},
+    "model_revision": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
     "domain": {"type": "string"},
     "physics": {
       "type": "object",

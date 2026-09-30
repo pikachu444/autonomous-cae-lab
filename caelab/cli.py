@@ -118,6 +118,11 @@ def parser():
     pde.add_argument("--experiment", required=True)
     pde.add_argument("--backend", default="pde.fenicsx")
     pde.add_argument("--settings", required=True, help="JSON mathematical model, mesh and benchmark limits")
+    independent = sub.add_parser("model-analysis")
+    independent.add_argument("--study", required=True)
+    independent.add_argument("--experiment", required=True)
+    independent.add_argument("--backend", default="structural.code_aster")
+    independent.add_argument("--settings", required=True, help="JSON declared model, material, load, mesh and numerical limits")
     for future in ("mesh",):
         sub.add_parser(future)
     sub.add_parser("demo")
@@ -201,7 +206,10 @@ def main(argv=None):
                 _json(lab.inspect_optimization(args.campaign))
         elif args.command == "pde":
             _json(lab.run_pde(study_id=args.study, experiment_id=args.experiment,
-                              backend=args.backend, settings=json.loads(args.settings)))
+                           backend=args.backend, settings=json.loads(args.settings)))
+        elif args.command == "model-analysis":
+            _json(lab.run_model_analysis(study_id=args.study, experiment_id=args.experiment,
+                                         backend=args.backend, settings=json.loads(args.settings)))
         elif args.command == "demo":
             lab.create_study("S-demo", "3-point bending fixture", "Does a wider roller support remain CAD-valid?",
                              "Widening the support from 32 to 38 mm retains hole clearance.",

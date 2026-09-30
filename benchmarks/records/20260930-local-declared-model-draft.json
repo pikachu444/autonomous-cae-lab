@@ -1,0 +1,1013 @@
+{
+  "canonical": {
+    "artifact_count": 71,
+    "cad_revision": null,
+    "decision": "NOT_RELEASED",
+    "experiment_id": "E-aster-affine",
+    "failures": [],
+    "metrics": {
+      "axial_tip_displacement": {
+        "unit": "mm",
+        "valid": true,
+        "value": 0.0009523809523809244
+      },
+      "displacement_relative_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 3.3355479836516544e-14
+      },
+      "max_component_displacement_error": {
+        "unit": "mm",
+        "valid": true,
+        "value": 3.176712365382528e-17
+      },
+      "max_component_stress_error": {
+        "unit": "MPa",
+        "valid": true,
+        "value": 8.562039965909207e-13
+      },
+      "mesh_agreement_relative": {
+        "unit": "1",
+        "valid": true,
+        "value": 4.1779730716728913e-14
+      },
+      "mesh_axial_displacement_difference": {
+        "unit": "mm",
+        "valid": true,
+        "value": 3.979021973021801e-17
+      },
+      "reaction_absolute_error": {
+        "unit": "N",
+        "valid": true,
+        "value": 2.3163693185779266e-12
+      },
+      "reaction_relative_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 2.8954616482224084e-14
+      },
+      "reaction_x": {
+        "unit": "N",
+        "valid": true,
+        "value": -79.9999999999982
+      },
+      "stress_relative_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 8.562039965909208e-14
+      }
+    },
+    "model_revision": "2aee6a662bdcf00aae3afc44d543da3cc4397958a4e5c720f33e60533f90eac0",
+    "parameters": {},
+    "result_ref": "experiments/E-aster-affine/result.json",
+    "status": "COMPLETED_REVIEW_REQUIRED",
+    "study": {
+      "hypothesis": "Quadratic tetrahedra represent this constant-strain solution on both meshes.",
+      "hypothesis_id": "S-elasticity-H1",
+      "id": "S-elasticity"
+    },
+    "unknown": [
+      "static_strength",
+      "material_qualification",
+      "physical_validation",
+      "fatigue_durability",
+      "model_qualification"
+    ]
+  },
+  "changed": {
+    "artifact_count": 71,
+    "cad_revision": null,
+    "decision": "NOT_RELEASED",
+    "experiment_id": "E-aster-altered",
+    "failures": [],
+    "metrics": {
+      "axial_tip_displacement": {
+        "unit": "mm",
+        "valid": true,
+        "value": 0.019999999999999928
+      },
+      "displacement_relative_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 8.673617379884035e-15
+      },
+      "max_component_displacement_error": {
+        "unit": "mm",
+        "valid": true,
+        "value": 1.734723475976807e-16
+      },
+      "max_component_stress_error": {
+        "unit": "MPa",
+        "valid": true,
+        "value": 7.815970093361102e-14
+      },
+      "mesh_agreement_relative": {
+        "unit": "1",
+        "valid": true,
+        "value": 8.673617379884035e-15
+      },
+      "mesh_axial_displacement_difference": {
+        "unit": "mm",
+        "valid": true,
+        "value": 1.734723475976807e-16
+      },
+      "reaction_absolute_error": {
+        "unit": "N",
+        "valid": true,
+        "value": 1.0658141036401503e-13
+      },
+      "reaction_relative_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 6.661338147750939e-15
+      },
+      "reaction_x": {
+        "unit": "N",
+        "valid": true,
+        "value": -15.999999999999975
+      },
+      "stress_relative_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 3.907985046680551e-14
+      }
+    },
+    "model_revision": "55893912c07e5074382595895351fb23ea8e11ddac906d525afa3734f2b5a38c",
+    "parameters": {},
+    "result_ref": "experiments/E-aster-altered/result.json",
+    "status": "COMPLETED_REVIEW_REQUIRED",
+    "study": {
+      "hypothesis": "Quadratic tetrahedra represent this constant-strain solution on both meshes.",
+      "hypothesis_id": "S-elasticity-H1",
+      "id": "S-elasticity"
+    },
+    "unknown": [
+      "static_strength",
+      "material_qualification",
+      "physical_validation",
+      "fatigue_durability",
+      "model_qualification"
+    ]
+  },
+  "decision": "NOT_RELEASED",
+  "limitations": [
+    "Affine patch test, no estimated mesh convergence rate",
+    "No assembled matrix residual measured",
+    "Assumed material and load; no physical or strength qualification"
+  ],
+  "provenance": {
+    "adapter": "structural.code_aster",
+    "adapter_details": {
+      "adapter": "structural.code_aster",
+      "adapter_version": "1",
+      "assumptions": [
+        "Uniaxial affine constant-strain patch test; this is not a fixture strength or nonlinear benchmark.",
+        "DX=0 on x=0, DY=0 on y=0, DZ=0 on z=0 preserve the exact Poisson contraction.",
+        "Load/support face intersections are legitimate; reactions use one deduplicated support union.",
+        "Only straight-edged quadratic tetrahedra and the declared rectangular block are supported.",
+        "Pinned 17.4 GMSH importer matches all element tags; physical IDs must not collide with nonphysical tags of the same dimension.",
+        "The pinned solver-only vendor image includes an MPI rank compatibility patch; it is not pristine upstream.",
+        "No assembled linear residual is measured; raw native fields are compared against the analytical reference."
+      ],
+      "code_aster_runtime": {
+        "branch": "v17.4.0",
+        "parentid": "spack-local",
+        "uncommitted": [
+          "built with Spack"
+        ],
+        "version": "17.4.0"
+      },
+      "container_isolation": {
+        "cleanenv": true,
+        "containall": true,
+        "home_content": "Fresh experiment-local preferences only",
+        "no_home": true,
+        "scratch_retention": "Verified extraction scratch removed; execution-failure scratch retained",
+        "tmp_content": "Fresh per-level disk scratch bound explicitly at /tmp",
+        "tmp_repair": "Explicit disk bind replaces containall private 64 MiB tmpfs observed during failed fresh-02 execution"
+      },
+      "distribution": "Solver-only vendor OCI, with MPI rank compatibility patch",
+      "domain_plugin": {
+        "module": "plugins.elasticity.reference",
+        "source_artifact": "simulation/domain_reference.py",
+        "source_sha256": "08782d6977d8655a9b9df6dd02aed3a1118ab7e3390950e7cd80f727484f6bfc",
+        "source_version": "08782d6977d8655a9b9df6dd02aed3a1118ab7e3390950e7cd80f727484f6bfc",
+        "version": null,
+        "version_status": "UNKNOWN"
+      },
+      "image_path": "/home/pikachu444/.local/share/autonomous-cae-lab/code_aster_17.4.0-oci.sif",
+      "image_sha256": "f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64",
+      "input_sha256": "135ca0482f3db1621d4d9f94ac7d88ace6ebd26dad4147e3f8b4be0e3a98b751",
+      "mesh": [
+        "simulation/level_0/mesh.msh",
+        "simulation/level_1/mesh.msh"
+      ],
+      "mesh_response": {
+        "agreement_statistic": "max_minus_min_across_all_meshes",
+        "component": "DX",
+        "location": "x=L",
+        "normalization": "analytical_axial_tip_displacement",
+        "statistic": "arithmetic_mean"
+      },
+      "mesh_workload": {
+        "admitted": true,
+        "maximum_axis_cells": 256,
+        "maximum_elements": 500000,
+        "maximum_nodes": 200000,
+        "policy": "4x quadratic structured-grid nodes; 2x six-tetrahedra cells; actual mesh caps remain mandatory",
+        "studies": [
+          {
+            "axis_cell_estimates": [
+              10,
+              2,
+              1
+            ],
+            "estimated_nodes": 1260,
+            "estimated_volume_elements": 240,
+            "mesh_size_mm": 2.0
+          },
+          {
+            "axis_cell_estimates": [
+              20,
+              4,
+              2
+            ],
+            "estimated_nodes": 7380,
+            "estimated_volume_elements": 1920,
+            "mesh_size_mm": 1.0
+          }
+        ]
+      },
+      "native_fields": [
+        "simulation/level_0/results.med",
+        "simulation/level_1/results.med"
+      ],
+      "native_import_policy": {
+        "code_aster": "17.4.0",
+        "format": "GMSH2.2",
+        "gate": "Coordinate bijection, groups and corner/midside topology verified before MECA_STATIQUE",
+        "nonphysical_tags": "Disjoint from same-dimension physical IDs",
+        "physical_ids": {
+          "BODY": 1001,
+          "X0": 1002,
+          "XL": 1003,
+          "Y0": 1004,
+          "Z0": 1005
+        }
+      },
+      "native_mesh_guard": [
+        "simulation/level_0/native_mesh_checks.json",
+        "simulation/level_1/native_mesh_checks.json"
+      ],
+      "numerical_libraries": [
+        {
+          "hash": "ecm2bfgr5obydotnlte6xilvggppqnap",
+          "name": "code-aster",
+          "version": "17.4.0"
+        },
+        {
+          "hash": "q6bjeisoizce3k3fofplrleonp5ng72b",
+          "name": "gettext",
+          "version": "0.23.1"
+        },
+        {
+          "hash": "mdsssexlp22oy3olx63a2rr5mw5xl5u4",
+          "name": "bzip2",
+          "version": "1.0.8"
+        },
+        {
+          "hash": "dioyrijxsehyuerhuyhoobduwxjym7b3",
+          "name": "compiler-wrapper",
+          "version": "1.0"
+        },
+        {
+          "hash": "5gdgqd2r6rvh4texu2soez62erikghsi",
+          "name": "diffutils",
+          "version": "3.12"
+        },
+        {
+          "hash": "2piry453r4ujwneqffiwxpflvkz6bsro",
+          "name": "gcc",
+          "version": "12.2.0"
+        },
+        {
+          "hash": "o2jefya35s63yens266zh453cdnsnl52",
+          "name": "gcc-runtime",
+          "version": "12.2.0"
+        },
+        {
+          "hash": "2dxfl3zus4n6g2gz4iarmmuluwuxaqmn",
+          "name": "glibc",
+          "version": "2.36"
+        },
+        {
+          "hash": "gg4o3dzqfvtkkpulwbmao3gyc4xj5bgt",
+          "name": "gmake",
+          "version": "4.4.1"
+        },
+        {
+          "hash": "mqhheyauudwebx7micnwh2xnnjdmre3f",
+          "name": "libiconv",
+          "version": "1.18"
+        },
+        {
+          "hash": "lphrgf3ogfanct2poo6my547jevf3ak3",
+          "name": "libxml2",
+          "version": "2.13.5"
+        },
+        {
+          "hash": "uoxvuh3drsvssmhhoihox7nct6assxbr",
+          "name": "pkgconf",
+          "version": "2.5.1"
+        },
+        {
+          "hash": "36ce5dibldwsz74iek5evcfijfb35jrp",
+          "name": "xz",
+          "version": "5.6.3"
+        },
+        {
+          "hash": "yzimrc3svizunfxbbb4ljorxwxmpkadp",
+          "name": "zlib-ng",
+          "version": "2.2.4"
+        },
+        {
+          "hash": "hwhk2y5aulzgorypancq6ass4zrruxuk",
+          "name": "ncurses",
+          "version": "6.5-20250705"
+        },
+        {
+          "hash": "uxiz4mvobq5tzlr6grp4nzg2aiw6ng4a",
+          "name": "tar",
+          "version": "1.35"
+        },
+        {
+          "hash": "xxcmmj5orxcpgg4etadqcduj3xklvtax",
+          "name": "pigz",
+          "version": "2.8"
+        },
+        {
+          "hash": "5xstfoskfiega2bf5jflotyx3r6snxuy",
+          "name": "zstd",
+          "version": "1.5.7"
+        },
+        {
+          "hash": "gud5hpnlafhpu56rbqjdjyobz3wm2ubv",
+          "name": "med",
+          "version": "4.2.0"
+        },
+        {
+          "hash": "pxnp6e4xwgtpqhyi3czknipi37q5sztf",
+          "name": "hdf5",
+          "version": "1.10.7"
+        },
+        {
+          "hash": "kp3g3sie7z6usfp73btsxi7m5jcmck4x",
+          "name": "cmake",
+          "version": "3.31.9"
+        },
+        {
+          "hash": "fhxoudzfyry3havy4dzbohvdr7slrey3",
+          "name": "curl",
+          "version": "8.15.0"
+        },
+        {
+          "hash": "ie3rjpdj2rezodpnmwweo3n3yzy23eoy",
+          "name": "nghttp2",
+          "version": "1.67.1"
+        },
+        {
+          "hash": "yjtmbaov5rvujcp3k4jufsalpaeumveo",
+          "name": "openssl",
+          "version": "3.6.0"
+        },
+        {
+          "hash": "q4mrrikd3k5acphuzwkyk63oi2kgkshz",
+          "name": "ca-certificates-mozilla",
+          "version": "2025-08-12"
+        },
+        {
+          "hash": "4ynfy3chra6so46u3em5mcbll6rtdwup",
+          "name": "perl",
+          "version": "5.42.0"
+        },
+        {
+          "hash": "jlfkiepqoukxkab52vijzcmki5f43g46",
+          "name": "berkeley-db",
+          "version": "18.1.40"
+        },
+        {
+          "hash": "reutyuivteo4hhkep4xadklbf5jtmwyh",
+          "name": "gdbm",
+          "version": "1.25"
+        },
+        {
+          "hash": "3ro2bwvqld5sopavq7iy5qrs2mtura6j",
+          "name": "readline",
+          "version": "8.3"
+        },
+        {
+          "hash": "ndlk7egkiuwl7ngqnpkbprhti2wndtpq",
+          "name": "openmpi",
+          "version": "5.0.8"
+        },
+        {
+          "hash": "ecioyljbhuyiahaxlvwxnspehm2uwjek",
+          "name": "autoconf",
+          "version": "2.72"
+        },
+        {
+          "hash": "c7qm4shgy6lhwbm7drsat2bhmeeyhrio",
+          "name": "m4",
+          "version": "1.4.20"
+        },
+        {
+          "hash": "rcu63ssq6onoqqpja6bxjqorf4e2sgli",
+          "name": "libsigsegv",
+          "version": "2.14"
+        },
+        {
+          "hash": "ymr33txb2nq5p5n65vegiw2bxf3ccopn",
+          "name": "automake",
+          "version": "1.16.5"
+        },
+        {
+          "hash": "m4zew4jhgd7uumczdflmxez7xvxjzywi",
+          "name": "hwloc",
+          "version": "2.12.2"
+        },
+        {
+          "hash": "k5oat7pc2sz4b4ursl6jy5x5o4iwtrq2",
+          "name": "libpciaccess",
+          "version": "0.17"
+        },
+        {
+          "hash": "fvntu5vq7ctdkdafxrzoujoayts2iuo5",
+          "name": "util-macros",
+          "version": "1.20.1"
+        },
+        {
+          "hash": "e2abevh5pum5cysfma7brwsba6hevdnv",
+          "name": "libevent",
+          "version": "2.1.12"
+        },
+        {
+          "hash": "kjnk4blwoiepawq45vliwnvb5diwfkyy",
+          "name": "libtool",
+          "version": "2.4.7"
+        },
+        {
+          "hash": "65lsxt5p4evv6pqgbizxt2x3ewx5rbte",
+          "name": "findutils",
+          "version": "4.10.0"
+        },
+        {
+          "hash": "t2qsyaqdgyplgn5y6w2ru6jyrlyudkdo",
+          "name": "numactl",
+          "version": "2.0.18"
+        },
+        {
+          "hash": "q73fejyf6xleaioaqxxgqrajdrjvvaeu",
+          "name": "openssh",
+          "version": "9.9p1"
+        },
+        {
+          "hash": "2kwz3o7b2z52trjlusbvavp4tplty522",
+          "name": "krb5",
+          "version": "1.21.3"
+        },
+        {
+          "hash": "gclcgg43jdn4asiz4kv4bah3nyht5hzg",
+          "name": "bison",
+          "version": "3.8.2"
+        },
+        {
+          "hash": "yrgrr44g7tlijxexymvsujvrttdccy6j",
+          "name": "libedit",
+          "version": "3.1-20240808"
+        },
+        {
+          "hash": "ma6txa2h46pt4rqjjij7kb43sn46z4nn",
+          "name": "libxcrypt",
+          "version": "4.4.38"
+        },
+        {
+          "hash": "szvickxu6iq6wxxo2ii4ozcfk6oqxqze",
+          "name": "pmix",
+          "version": "6.0.0"
+        },
+        {
+          "hash": "l4of75x3qjjl2ktq3whkxnuee6ftq3ba",
+          "name": "prrte",
+          "version": "4.0.0"
+        },
+        {
+          "hash": "yp3uebdt5qxgvryv3xxa2bmmqpwfjmvc",
+          "name": "flex",
+          "version": "2.6.4"
+        },
+        {
+          "hash": "rob7ooltc2fuxqbqc2k7zm5l3gtv56ot",
+          "name": "help2man",
+          "version": "1.49.3"
+        },
+        {
+          "hash": "xqcxafhsblln64mn6mu6qhogpurwl7fe",
+          "name": "medcoupling",
+          "version": "9.15.0"
+        },
+        {
+          "hash": "bqtv2gs7dmgufkzvdwjtkg5oja6se4oz",
+          "name": "boost",
+          "version": "1.88.0"
+        },
+        {
+          "hash": "lajm2ljmbottp3545oezwfcmjbez7la4",
+          "name": "py-numpy",
+          "version": "1.26.4"
+        },
+        {
+          "hash": "etjksuirzucru4o56chqec6bc3k3vio3",
+          "name": "openblas",
+          "version": "0.3.30"
+        },
+        {
+          "hash": "x7bpa76awm2b4z5u7lx25tjfnad3xp7s",
+          "name": "py-cython",
+          "version": "3.1.3"
+        },
+        {
+          "hash": "4jdvzz5e25otyqh5xjxpvkok4mnbl3tx",
+          "name": "py-pip",
+          "version": "25.1.1"
+        },
+        {
+          "hash": "crxgllx4ijrk74sukxvebk3ulzuavesl",
+          "name": "python",
+          "version": "3.11.14"
+        },
+        {
+          "hash": "tofhhfm23onmptrznz3ca6j7fu74m3lq",
+          "name": "expat",
+          "version": "2.7.3"
+        },
+        {
+          "hash": "xezu5ao75gf4xqgqqj6i7k7z5k3kt7jo",
+          "name": "libbsd",
+          "version": "0.12.2"
+        },
+        {
+          "hash": "xeshwhww7db7kt5zu5uyawxyokpglmok",
+          "name": "libmd",
+          "version": "1.1.0"
+        },
+        {
+          "hash": "j6sh4dfl5o5iseon6m4xg7sbk2gbbhln",
+          "name": "libffi",
+          "version": "3.5.2"
+        },
+        {
+          "hash": "nrz36taha2du6w5lwddtv6yso423n64z",
+          "name": "sqlite",
+          "version": "3.50.4"
+        },
+        {
+          "hash": "rmgcdbuk3m6cls4hhu4tbhwhog4cgkt6",
+          "name": "util-linux-uuid",
+          "version": "2.41"
+        },
+        {
+          "hash": "cg6m3x2hae7zt4hc4gdakfk2m7k36v4g",
+          "name": "python-venv",
+          "version": "1.0"
+        },
+        {
+          "hash": "qnn5jvlxnjkvtuxsitljird772iby63m",
+          "name": "py-setuptools",
+          "version": "80.9.0"
+        },
+        {
+          "hash": "rvwmhpmhx6bspo3attynq2zkenfeyaxk",
+          "name": "py-wheel",
+          "version": "0.45.1"
+        },
+        {
+          "hash": "zj4hwsd7uzzmw5cwis4vyfu7xbi3abqi",
+          "name": "py-meson-python",
+          "version": "0.16.0"
+        },
+        {
+          "hash": "jr3te3eeyhaydldnqitvl2aatnxs2ycr",
+          "name": "meson",
+          "version": "1.8.5"
+        },
+        {
+          "hash": "6tp3bldmwp2hkqlrn6vew65fm6ffnx2o",
+          "name": "ninja",
+          "version": "1.13.0"
+        },
+        {
+          "hash": "kljxszslmrolixri6eqgp5pz5zmfusl5",
+          "name": "re2c",
+          "version": "3.1"
+        },
+        {
+          "hash": "shhfcnkbjd6bjjoht5walvltbwpfwpfr",
+          "name": "py-packaging",
+          "version": "25.0"
+        },
+        {
+          "hash": "y332zcefpyjlygedo6qooeqnum22rldr",
+          "name": "py-flit-core",
+          "version": "3.12.0"
+        },
+        {
+          "hash": "w54pabkuzip2djp2nyxntnxo7d3guesk",
+          "name": "py-pyproject-metadata",
+          "version": "0.9.1"
+        },
+        {
+          "hash": "nja77jxz4g7gbnmeyazg4f5ov4khhnbn",
+          "name": "parmetis",
+          "version": "4.0.3"
+        },
+        {
+          "hash": "urshxc5k3ppurvlqwr5bgapfb7aer3ga",
+          "name": "metis",
+          "version": "5.1.0"
+        },
+        {
+          "hash": "lkfzdpvfi7jum3mvywkmakcc5ooyomxy",
+          "name": "scotch",
+          "version": "7.0.10"
+        },
+        {
+          "hash": "3bzv7rxmjvm5ylhldumz7sse5zqijqee",
+          "name": "swig",
+          "version": "4.1.1"
+        },
+        {
+          "hash": "3qgkgosvnqelu45jzwbcegxzhgdr45ye",
+          "name": "pcre2",
+          "version": "10.44"
+        },
+        {
+          "hash": "dfpytmkwj5iza5npkbvk5hils7heaxad",
+          "name": "mgis",
+          "version": "3.0"
+        },
+        {
+          "hash": "flantzxx3vcxkf4qlpwnl7midzoe33ma",
+          "name": "tfel",
+          "version": "5.0.0"
+        },
+        {
+          "hash": "5ry65zf4lbtivv3h2tsbxtlrxdvl4ic4",
+          "name": "mumps",
+          "version": "5.6.2"
+        },
+        {
+          "hash": "ouj5c3kihkejm4rxfa62dw5mfwumlt2s",
+          "name": "netlib-scalapack",
+          "version": "2.2.2"
+        },
+        {
+          "hash": "z36ayrrlpqkju3ybup7sajr3p45ztxbh",
+          "name": "petsc",
+          "version": "3.24.0"
+        },
+        {
+          "hash": "gpy3gswflggphjq4lofih5xn66vnuyek",
+          "name": "superlu-dist",
+          "version": "9.1.0"
+        },
+        {
+          "hash": "gduopsr6ark4ahavgrx6kua6aiidfd3v",
+          "name": "py-mpi4py",
+          "version": "3.1.5"
+        },
+        {
+          "hash": "rqclbhf47jdqrzptauyo2ijnniucxabm",
+          "name": "py-cython",
+          "version": "0.29.36"
+        },
+        {
+          "hash": "xgd4xn4tdt3iqu3ly3riwzqzj7tad6mq",
+          "name": "py-petsc4py",
+          "version": "3.24.1"
+        },
+        {
+          "hash": "htvtifkxrygtw4c5ed72jp6i3eplo725",
+          "name": "py-scipy",
+          "version": "1.15.2"
+        },
+        {
+          "hash": "v3qmab4jz2ps5uyic5q4rkrot4xvvvjw",
+          "name": "py-pybind11",
+          "version": "3.0.1"
+        },
+        {
+          "hash": "k5b3tdeqkjmry4aizest6xhjyaygw4d7",
+          "name": "py-scikit-build-core",
+          "version": "0.11.5"
+        },
+        {
+          "hash": "7onnkvuvfqa4rjr6nhl5tnhdldp6i4bk",
+          "name": "py-hatch-vcs",
+          "version": "0.5.0"
+        },
+        {
+          "hash": "ziw6dgplgcqtd3led4jqipkg2r7i7y5l",
+          "name": "py-hatchling",
+          "version": "1.27.0"
+        },
+        {
+          "hash": "u6bd3csk2vq25v6kqa4ju3oilytfc3fp",
+          "name": "py-pathspec",
+          "version": "0.12.1"
+        },
+        {
+          "hash": "wokucplcjwqfop4j77wwbmvgbcbzu652",
+          "name": "py-pluggy",
+          "version": "1.6.0"
+        },
+        {
+          "hash": "eef377x2jzkfqge3riyz7ysd26ew6eun",
+          "name": "py-setuptools-scm",
+          "version": "8.2.1"
+        },
+        {
+          "hash": "srmeu64fmymncsimu6kmxmzmsr24o6mf",
+          "name": "git",
+          "version": "2.48.1"
+        },
+        {
+          "hash": "i63xl5uvryjqzc4dqerasptkvtn3owwf",
+          "name": "libidn2",
+          "version": "2.3.7"
+        },
+        {
+          "hash": "kjhirj443sxy2b67a72uqy4bbixtpys2",
+          "name": "libunistring",
+          "version": "1.2"
+        },
+        {
+          "hash": "uq4nba6f2llekr5tr776ipmgq526u6xc",
+          "name": "py-trove-classifiers",
+          "version": "2025.9.11.17"
+        },
+        {
+          "hash": "2t3iyy5gy4kj2qmst7ycf3xc2cof7gu3",
+          "name": "py-calver",
+          "version": "2025.4.17"
+        },
+        {
+          "hash": "vhujjeai4qj33avc7crc5q2g3jsscadr",
+          "name": "py-pythran",
+          "version": "0.18.0"
+        },
+        {
+          "hash": "wptfkhqrw6344kgksjz2qntwcztzczwt",
+          "name": "py-beniget",
+          "version": "0.4.2.post1"
+        },
+        {
+          "hash": "n6auv77cjpbe6rsnkx4vq57s5da5wfor",
+          "name": "py-gast",
+          "version": "0.6.0"
+        },
+        {
+          "hash": "t3fjemovbx3b6sttwycgecyzfr3ywrrt",
+          "name": "py-ply",
+          "version": "3.11"
+        },
+        {
+          "hash": "yjlgfumr2rpgk6rtpjqfuygo5wv7v4cf",
+          "name": "py-pandas",
+          "version": "2.3.3"
+        },
+        {
+          "hash": "suhwrccjwujimzcngc2i5jr6z64ez2wi",
+          "name": "py-python-dateutil",
+          "version": "2.8.2"
+        },
+        {
+          "hash": "4tknvuwewqq6mcqedkt6g5pysgqj46ei",
+          "name": "py-six",
+          "version": "1.17.0"
+        },
+        {
+          "hash": "scsunh34zkhasy6z4wydmfezkroc6pau",
+          "name": "py-pytz",
+          "version": "2025.2"
+        },
+        {
+          "hash": "fi7ze5gsym7z4mfo3jeu6nsx2j53tstc",
+          "name": "py-tzdata",
+          "version": "2025.2"
+        },
+        {
+          "hash": "e6ihzdlqrzievxclmiiypxdes3d3r7fu",
+          "name": "py-versioneer",
+          "version": "0.29"
+        },
+        {
+          "hash": "zk7fcesniybvg445zgg7azurm2enyv3h",
+          "name": "py-matplotlib",
+          "version": "3.10.7"
+        },
+        {
+          "hash": "mnxfxgptu2fqeox3jkttsz3cbkd5hohx",
+          "name": "freetype",
+          "version": "2.14.1"
+        },
+        {
+          "hash": "unawfimpyc5vw2wotg4wc36d3ashlqke",
+          "name": "libpng",
+          "version": "1.6.47"
+        },
+        {
+          "hash": "k7is22jgzbxb2xvvxjn7wwbrdsj2g27h",
+          "name": "py-contourpy",
+          "version": "1.3.3"
+        },
+        {
+          "hash": "u6w5dmwjq5jtrog45pohvujrvmzgy7d3",
+          "name": "py-cycler",
+          "version": "0.12.1"
+        },
+        {
+          "hash": "qvt5k5cck7lgljr6twjbmdek7gj56awp",
+          "name": "py-fonttools",
+          "version": "4.39.4"
+        },
+        {
+          "hash": "ovxzheezztwgzybyshpixr5k3hmtgoer",
+          "name": "py-kiwisolver",
+          "version": "1.4.8"
+        },
+        {
+          "hash": "3j737jnzf52xicmegldowh2ibufcgnwm",
+          "name": "py-cppy",
+          "version": "1.3.1"
+        },
+        {
+          "hash": "noumfzp64hsochdzaat6dm6smdbk7bmm",
+          "name": "py-pillow",
+          "version": "12.0.0"
+        },
+        {
+          "hash": "htzo7ub6e7dug2pha4y4whaq6avvet6z",
+          "name": "libjpeg-turbo",
+          "version": "3.0.4"
+        },
+        {
+          "hash": "2wenoodq4kpok6ewzfvflyavcmjs5pu5",
+          "name": "nasm",
+          "version": "2.16.03"
+        },
+        {
+          "hash": "y6agfwhx47ojx4mkktb2i2ub54p4rnvo",
+          "name": "py-pyparsing",
+          "version": "3.2.5"
+        },
+        {
+          "hash": "nvvef5dbrpjrnam34yykcjrypaymu75z",
+          "name": "qhull",
+          "version": "2020.2"
+        }
+      ],
+      "oci_manifest_sha256": "d8d19ea91989eac0d38195bc5795c54c69f530f7196f53d67697ffa57c9106d5",
+      "process_budgets": {
+        "gmsh_address_space_bytes": 2147483648,
+        "gmsh_cpu_seconds": 120,
+        "singularity_address_space_limit": null,
+        "solver_memory_mb": 1024,
+        "solver_time_seconds": 120,
+        "subprocess_timeout_seconds": 180
+      },
+      "solver": {
+        "linear_method": "MUMPS",
+        "measured_linear_residual": null,
+        "residual_status": "UNKNOWN: assembled matrix/vector not exported"
+      },
+      "solver_deck": [
+        "simulation/level_0/model.comm",
+        "simulation/level_1/model.comm"
+      ],
+      "stress_quadrature": "TETRA10 RIGI=FPG5",
+      "versions": {
+        "code_aster": "17.4.0",
+        "gmsh": "4.12.1",
+        "mpi4py": "3.1.5",
+        "numpy": "1.26.4",
+        "petsc": "3.24.0",
+        "petsc4py": "3.24.1",
+        "python": "3.11.14",
+        "scipy": "1.15.2",
+        "singularity": "singularity-ce version 4.1.1"
+      },
+      "worker_sha256": "856219f47b0410c68d3163d8e1206f3cf1627d421accfefb14eada5b57b627dc"
+    },
+    "adapter_version": "1",
+    "core_commit": "6138005109a808e6a5bcf052823fb928406374d0",
+    "core_dirty": true,
+    "core_source_sha256": "73c977bdab4d277518762cc2f1787714ed4c5a9b2a2407f53b8e58d04f5118e3",
+    "created_utc": "2026-09-30T05:29:13.527636+00:00",
+    "execution_settings": {
+      "case": "uniaxial_block",
+      "dimensions_mm": [
+        20.0,
+        4.0,
+        2.0
+      ],
+      "limits": {
+        "displacement_absolute_mm": 1e-12,
+        "displacement_relative": 1e-08,
+        "mesh_agreement_relative": 1e-08,
+        "reaction_relative": 1e-08,
+        "stress_relative": 1e-08
+      },
+      "material": {
+        "poisson_ratio": 0.3,
+        "youngs_modulus_mpa": 210000.0
+      },
+      "mesh_sizes_mm": [
+        2.0,
+        1.0
+      ],
+      "traction_mpa": 10.0
+    },
+    "proposal_sha256": "d6c22965d043a81b5cfa611d98fa99bbfb46c311448508043fd4872213113192",
+    "python": "3.12.3",
+    "registry_sha256": "5b31205c26480a4aa906dbaf7e1b2790651383422e2e5c1324d26e25f9d0c5c4",
+    "solver": {
+      "backend": "structural.code_aster",
+      "status": "COMPLETED",
+      "versions": {
+        "code_aster": "17.4.0",
+        "gmsh": "4.12.1",
+        "mpi4py": "3.1.5",
+        "numpy": "1.26.4",
+        "petsc": "3.24.0",
+        "petsc4py": "3.24.1",
+        "python": "3.11.14",
+        "scipy": "1.15.2",
+        "singularity": "singularity-ce version 4.1.1"
+      }
+    },
+    "source_commit": "6138005109a808e6a5bcf052823fb928406374d0"
+  },
+  "rejected": {
+    "artifact_count": 2,
+    "cad_revision": null,
+    "decision": "NOT_RELEASED",
+    "experiment_id": "E-aster-input-reject",
+    "failures": [
+      {
+        "evidence_ids": [
+          "EV-E-aster-input-reject-001"
+        ],
+        "type": "model_declaration"
+      }
+    ],
+    "metrics": {},
+    "model_revision": "583b64caa6400197f601729f27747eb0d6bf5bdce8606918e8253debd6c06e3e",
+    "parameters": {},
+    "result_ref": "experiments/E-aster-input-reject/result.json",
+    "status": "REJECTED",
+    "study": {
+      "hypothesis": "Quadratic tetrahedra represent this constant-strain solution on both meshes.",
+      "hypothesis_id": "S-elasticity-H1",
+      "id": "S-elasticity"
+    },
+    "unknown": [
+      "model_qualification",
+      "physical_validation"
+    ]
+  },
+  "settings": {
+    "case": "uniaxial_block",
+    "dimensions_mm": [
+      20.0,
+      4.0,
+      2.0
+    ],
+    "limits": {
+      "displacement_absolute_mm": 1e-12,
+      "displacement_relative": 1e-08,
+      "mesh_agreement_relative": 1e-08,
+      "reaction_relative": 1e-08,
+      "stress_relative": 1e-08
+    },
+    "material": {
+      "poisson_ratio": 0.3,
+      "youngs_modulus_mpa": 210000.0
+    },
+    "mesh_sizes_mm": [
+      2.0,
+      1.0
+    ],
+    "traction_mpa": 10.0
+  },
+  "status": "PASS"
+}

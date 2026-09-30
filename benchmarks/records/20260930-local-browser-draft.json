@@ -1,0 +1,348 @@
+{
+  "browser_actions": [
+    "CuA: study_create / discover actual eight CAD candidates / register width and bolt",
+    "CuA: run width38 valid CAD and width32/bolt30 rejected CAD",
+    "CuA: compare actual records with missing rejected metrics and UNKNOWN retained",
+    "CuA: select canonical PDE preset, run actual FEniCSx and open verified result",
+    "CuA: download observed PDE evidence ZIP link to Downloads",
+    "CuA: read-only native library, original revision and verified PNG preview",
+    "CuA: plan/execute seeded DOE with two actual CAD samples in Explore",
+    "CuA: both completed candidates preserve four UNKNOWN validations"
+  ],
+  "campaign": {
+    "algorithm": {
+      "engine": "scipy.latin_hypercube",
+      "numpy_version": "2.3.5",
+      "optimization": null,
+      "seed": 13,
+      "strength": 1,
+      "version": "1.17.0"
+    },
+    "campaign_id": "C-browser-doe",
+    "completed_utc": "2026-09-30T06:01:08.286880+00:00",
+    "decision": "NOT_RELEASED",
+    "plan_sha256": "c0c40995fd3cd86d81cf79a10dde9ae684128b0b0791f792a3df846efb62ec52",
+    "provenance": {
+      "core_commit": "6138005109a808e6a5bcf052823fb928406374d0",
+      "core_dirty": true,
+      "core_source_sha256": "73c977bdab4d277518762cc2f1787714ed4c5a9b2a2407f53b8e58d04f5118e3",
+      "journal_sha256": {
+        "001.json": "4b167503c65d75c25ebe0b172626274c9a92f70c6467161a97705d470577d4c8",
+        "002.json": "63648f8a67e6ec63f7970c3a4bb2287bad3ca73e89f6fd48630fe33640edab1d"
+      }
+    },
+    "registry_sha256": "07c37bfc09bd771ddeb7523f3230a33451e07ce27a48e6955b750d4d50e07d84",
+    "samples": [
+      {
+        "analysis_experiment_id": null,
+        "analysis_result_sha256": null,
+        "analysis_status": "NOT_REQUESTED",
+        "cad_experiment_id": "E-C-browser-doe-001",
+        "cad_result_sha256": "db41d7f6b093524d38d3b8cb357cd15d7c9494f31ab8a35a631947b2f1f4515d",
+        "cad_status": "COMPLETED_REVIEW_REQUIRED",
+        "decision": "NOT_RELEASED",
+        "failures": [],
+        "index": 1,
+        "metrics": {
+          "cad_bounds": {
+            "unit": "mm",
+            "valid": true,
+            "value": [
+              33.29645457845615,
+              40.0,
+              26.0
+            ]
+          },
+          "cad_volume": {
+            "unit": "mm^3",
+            "valid": true,
+            "value": 31892.14263995036
+          }
+        },
+        "unknown": [
+          "machine_interface",
+          "static_strength",
+          "physical_load_test",
+          "fatigue_durability"
+        ],
+        "values": {
+          "support_width": 33.29645457845615
+        }
+      },
+      {
+        "analysis_experiment_id": null,
+        "analysis_result_sha256": null,
+        "analysis_status": "NOT_REQUESTED",
+        "cad_experiment_id": "E-C-browser-doe-002",
+        "cad_result_sha256": "f833d3b988d396021db4e39d2a2e046952f26d370067324d791d19e6e36f1ba6",
+        "cad_status": "COMPLETED_REVIEW_REQUIRED",
+        "decision": "NOT_RELEASED",
+        "failures": [],
+        "index": 2,
+        "metrics": {
+          "cad_bounds": {
+            "unit": "mm",
+            "valid": true,
+            "value": [
+              53.899798409416164,
+              40.0,
+              26.0
+            ]
+          },
+          "cad_volume": {
+            "unit": "mm^3",
+            "valid": true,
+            "value": 53319.62022414878
+          }
+        },
+        "unknown": [
+          "machine_interface",
+          "static_strength",
+          "physical_load_test",
+          "fatigue_durability"
+        ],
+        "values": {
+          "support_width": 53.899798409416164
+        }
+      }
+    ],
+    "schema_version": "1.0",
+    "status": "COMPLETED_REVIEW_REQUIRED",
+    "study_id": "S-browser"
+  },
+  "completed_utc": "2026-09-30T06:04:21.333354+00:00",
+  "download": {
+    "files": 25,
+    "sha256": "e6559f135710638fcc45971692575fd245ae5aad92239117755c303b40e55db8",
+    "size_bytes": 55251
+  },
+  "download_name": "E-browser-poisson-evidence.zip",
+  "experiments": {
+    "E-C-browser-doe-001": {
+      "artifact_count": 12,
+      "cad_revision": "abbb275cf3fab4564e1dd06b39ead77b460a932044618013db6d40b8052146a7",
+      "campaign_id": "C-browser-doe",
+      "decision": "NOT_RELEASED",
+      "experiment_id": "E-C-browser-doe-001",
+      "failures": [],
+      "metrics": {
+        "cad_bounds": {
+          "unit": "mm",
+          "valid": true,
+          "value": [
+            33.29645457845615,
+            40.0,
+            26.0
+          ]
+        },
+        "cad_volume": {
+          "unit": "mm^3",
+          "valid": true,
+          "value": 31892.14263995036
+        }
+      },
+      "model_revision": null,
+      "parameters": {
+        "support_width": 33.29645457845615
+      },
+      "result_ref": "experiments/E-C-browser-doe-001/result.json",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "study": {
+        "hypothesis": "폭 38 mm는 형상이 유효하고 볼트 간격 30 mm는 거부된다.",
+        "hypothesis_id": "S-browser-H1",
+        "id": "S-browser"
+      },
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    "E-C-browser-doe-002": {
+      "artifact_count": 12,
+      "cad_revision": "ef659e4dbe2012210bd5a95bd449164beed3ba5498a4b4bc6e655ab5982f0f51",
+      "campaign_id": "C-browser-doe",
+      "decision": "NOT_RELEASED",
+      "experiment_id": "E-C-browser-doe-002",
+      "failures": [],
+      "metrics": {
+        "cad_bounds": {
+          "unit": "mm",
+          "valid": true,
+          "value": [
+            53.899798409416164,
+            40.0,
+            26.0
+          ]
+        },
+        "cad_volume": {
+          "unit": "mm^3",
+          "valid": true,
+          "value": 53319.62022414878
+        }
+      },
+      "model_revision": null,
+      "parameters": {
+        "support_width": 53.899798409416164
+      },
+      "result_ref": "experiments/E-C-browser-doe-002/result.json",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "study": {
+        "hypothesis": "폭 38 mm는 형상이 유효하고 볼트 간격 30 mm는 거부된다.",
+        "hypothesis_id": "S-browser-H1",
+        "id": "S-browser"
+      },
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    "E-browser-bolt30-reject": {
+      "artifact_count": 8,
+      "cad_revision": null,
+      "decision": "NOT_RELEASED",
+      "experiment_id": "E-browser-bolt30-reject",
+      "failures": [
+        {
+          "evidence_ids": [
+            "EV-E-browser-bolt30-reject-011"
+          ],
+          "type": "cad_source_relation"
+        }
+      ],
+      "metrics": {},
+      "model_revision": null,
+      "parameters": {
+        "bolt_pitch_x": 30,
+        "support_width": 32
+      },
+      "result_ref": "experiments/E-browser-bolt30-reject/result.json",
+      "status": "REJECTED",
+      "study": {
+        "hypothesis": "폭 38 mm는 형상이 유효하고 볼트 간격 30 mm는 거부된다.",
+        "hypothesis_id": "S-browser-H1",
+        "id": "S-browser"
+      },
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    "E-browser-poisson": {
+      "artifact_count": 19,
+      "cad_revision": null,
+      "decision": "NOT_RELEASED",
+      "experiment_id": "E-browser-poisson",
+      "failures": [],
+      "metrics": {
+        "h1_seminorm_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.10897542351921931
+        },
+        "l2_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.9934926491266785
+        },
+        "l2_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0013504362485536208
+        },
+        "linear_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 3.8917060164593486e-14
+        }
+      },
+      "model_revision": "bb278bcfaa5ea90e812047dc7ede1bac891094b36920adc3a8308136c05dca4a",
+      "parameters": {},
+      "result_ref": "experiments/E-browser-poisson/result.json",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "study": {
+        "hypothesis": "폭 38 mm는 형상이 유효하고 볼트 간격 30 mm는 거부된다.",
+        "hypothesis_id": "S-browser-H1",
+        "id": "S-browser"
+      },
+      "unknown": [
+        "physical_validation",
+        "model_qualification"
+      ]
+    },
+    "E-browser-width38": {
+      "artifact_count": 12,
+      "cad_revision": "a789ab84550725d04dc5a762411198a7f3c6751a86e4159fff00ccd2dcdac9c3",
+      "decision": "NOT_RELEASED",
+      "experiment_id": "E-browser-width38",
+      "failures": [],
+      "metrics": {
+        "cad_bounds": {
+          "unit": "mm",
+          "valid": true,
+          "value": [
+            38.0,
+            40.0,
+            26.0
+          ]
+        },
+        "cad_volume": {
+          "unit": "mm^3",
+          "valid": true,
+          "value": 36783.829878355966
+        }
+      },
+      "model_revision": null,
+      "parameters": {
+        "bolt_pitch_x": 20,
+        "support_width": 38
+      },
+      "result_ref": "experiments/E-browser-width38/result.json",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "study": {
+        "hypothesis": "폭 38 mm는 형상이 유효하고 볼트 간격 30 mm는 거부된다.",
+        "hypothesis_id": "S-browser-H1",
+        "id": "S-browser"
+      },
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    }
+  },
+  "limitations": [
+    "The official OpenScience GUI and live-agent completion are not tested by this record.",
+    "This verifies bytes and downloaded ZIP separately from CuA UI observations.",
+    "Dirty-source browser draft is separate from later clean-source/CI acceptance.",
+    "Report correction occurred before result export; static UI/Core remained unchanged.",
+    "No field animation, nonlinear/explicit/material/HPC or physical release acceptance."
+  ],
+  "observed_utc": "2026-09-30T05:54:17.223995+00:00",
+  "screenshots": [
+    {
+      "path": "artifacts/local-20260930-browser-proof/native-preview-loaded.jpg",
+      "sha256": "5704d476b216f1c7320a3419002b9a8f9a432c679aaa1b5fa36a96d854987566",
+      "size_bytes": 61777
+    },
+    {
+      "path": "artifacts/local-20260930-browser-proof/native-preview.jpg",
+      "sha256": "85e2e0dfcbdb4961bc553589141bfdffd4c2a5c1ac9139c74b0545e5605f23de",
+      "size_bytes": 58404
+    }
+  ],
+  "source": {
+    "application_source_sha256": "0d033514140201c1b9cb16d777faa55429774081596e3b1a4334bb0684db80b8",
+    "core_commit": "6138005109a808e6a5bcf052823fb928406374d0",
+    "core_dirty": true,
+    "core_source_sha256": "73c977bdab4d277518762cc2f1787714ed4c5a9b2a2407f53b8e58d04f5118e3"
+  },
+  "status": "PASS_BOUNDED_LAB_BROWSER_AND_VERIFIED_BYTES",
+  "store": "runs/local-20260930-lab-browser-draft"
+}

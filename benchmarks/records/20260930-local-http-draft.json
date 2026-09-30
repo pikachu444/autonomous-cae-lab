@@ -1,0 +1,202 @@
+{
+  "browser_rendering": "NOT_CHECKED",
+  "bundles": [
+    {
+      "experiment_id": "E-http-width38",
+      "files": 18,
+      "sha256": "bf511d843b4d4591c97c3991f9fa11986e44ee26c30e31eaf4ffef8945bd5577",
+      "size_bytes": 161798
+    },
+    {
+      "experiment_id": "E-http-clearance-reject",
+      "files": 14,
+      "sha256": "ff90b555c1aaa23effc418be935f734280349f6d3e930febedac2210b1b45a28",
+      "size_bytes": 24864
+    },
+    {
+      "experiment_id": "E-http-poisson",
+      "files": 25,
+      "sha256": "419071dc5e22043b2f64d1ee81869ff34bbfd6a3462152bb628c416fe58e2e00",
+      "size_bytes": 55062
+    },
+    {
+      "experiment_id": "E-native-width38",
+      "files": 18,
+      "sha256": "7451e2681bcf01ffdfbc727aa4c9d0194b539c3793fdd3a57d70bc3031cf6300",
+      "size_bytes": 200741,
+      "store": "native"
+    },
+    {
+      "experiment_id": "E-linear-solve",
+      "files": 62,
+      "sha256": "b24cedee95bbbde4a9d59f27a16e25a8b5d6e6fdeeeac17b5eb599ab0a5d2b24",
+      "size_bytes": 9251471,
+      "store": "linear"
+    },
+    {
+      "experiment_id": "E-C-width-002-solve",
+      "files": 50,
+      "sha256": "db8875d0356aa4cc71562779592b57b2ed107947f54e1591077dfe49c3b1c201",
+      "size_bytes": 8436318,
+      "store": "doe"
+    },
+    {
+      "experiment_id": "E-finer-solve",
+      "files": 74,
+      "sha256": "cc8a90b6e928d129d57e16c61f1c935bea41be5ba78bfd72b15cd2461676f53c",
+      "size_bytes": 22084455,
+      "store": "finer"
+    },
+    {
+      "experiment_id": "E-opt-baseline-solve",
+      "files": 50,
+      "sha256": "e0a4375934f9d82b42f8eaf06e8ed10002b88d92a542cc68f49e7deb9dd952a5",
+      "size_bytes": 18571741,
+      "store": "optimization"
+    },
+    {
+      "experiment_id": "E-pde-reference-reject",
+      "files": 25,
+      "sha256": "f206c75c1d42d5cad589298427a438e96ccceed5cb1352372b6583e3c5396d0c",
+      "size_bytes": 54179,
+      "store": "pde"
+    }
+  ],
+  "decision": "NOT_RELEASED",
+  "finished_utc": "2026-09-30T05:26:26.134992+00:00",
+  "libraries": [
+    {
+      "id": "native",
+      "inspected_campaigns": [],
+      "mutation_denied": true,
+      "verified_experiments": [
+        "E-native-clearance",
+        "E-native-sketch6",
+        "E-native-width38"
+      ]
+    },
+    {
+      "id": "linear",
+      "inspected_campaigns": [],
+      "mutation_denied": true,
+      "verified_experiments": [
+        "E-linear-cad",
+        "E-linear-solve"
+      ]
+    },
+    {
+      "id": "doe",
+      "inspected_campaigns": [
+        "C-pitch",
+        "C-width"
+      ],
+      "mutation_denied": true,
+      "verified_experiments": [
+        "E-C-pitch-001",
+        "E-C-pitch-001-solve",
+        "E-C-pitch-002",
+        "E-C-width-001",
+        "E-C-width-001-solve",
+        "E-C-width-002",
+        "E-C-width-002-solve"
+      ]
+    },
+    {
+      "id": "finer",
+      "inspected_campaigns": [],
+      "mutation_denied": true,
+      "verified_experiments": [
+        "E-finer-cad",
+        "E-finer-solve"
+      ]
+    },
+    {
+      "id": "optimization",
+      "inspected_campaigns": [
+        "C-opt"
+      ],
+      "mutation_denied": true,
+      "verified_experiments": [
+        "E-C-opt-0001",
+        "E-C-opt-0002",
+        "E-C-opt-0002-solve",
+        "E-C-opt-0003",
+        "E-C-opt-0003-solve",
+        "E-C-opt-0004",
+        "E-C-opt-0004-solve",
+        "E-C-opt-0005",
+        "E-C-opt-0005-solve",
+        "E-C-opt-0006",
+        "E-C-opt-0006-solve",
+        "E-C-opt-0007",
+        "E-C-opt-0007-solve",
+        "E-C-opt-0008",
+        "E-C-opt-0008-solve",
+        "E-C-opt-0009",
+        "E-C-opt-0009-solve",
+        "E-opt-baseline-cad",
+        "E-opt-baseline-solve"
+      ]
+    },
+    {
+      "id": "pde",
+      "inspected_campaigns": [],
+      "mutation_denied": true,
+      "verified_experiments": [
+        "E-pde-input-reject",
+        "E-pde-poisson",
+        "E-pde-reaction",
+        "E-pde-reference-reject"
+      ]
+    }
+  ],
+  "limitations": [
+    "HTTP integration is separate from browser rendering and live OpenScience agent acceptance.",
+    "Local ZIP export does not establish remote durability, a signature or engineering release.",
+    "Existing library numerical results retain their own original source/run identities."
+  ],
+  "source": {
+    "application_source_sha256": "344c701a07b98b28bf5deec8646ca0c25efee2f188daa8f75b8fa57581475527",
+    "core_commit": "6138005109a808e6a5bcf052823fb928406374d0",
+    "core_dirty": true,
+    "core_source_sha256": "73c977bdab4d277518762cc2f1787714ed4c5a9b2a2407f53b8e58d04f5118e3"
+  },
+  "stages": [
+    {
+      "experiment_ids": [
+        "E-http-width38",
+        "E-http-clearance-reject"
+      ],
+      "stage": "study_registry_cad_rejection",
+      "status": "PASS"
+    },
+    {
+      "metrics": {
+        "h1_seminorm_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.10897542351921931
+        },
+        "l2_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.9934926491266785
+        },
+        "l2_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0013504362485536208
+        },
+        "linear_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 3.8917060164593486e-14
+        }
+      },
+      "stage": "canonical_pde",
+      "status": "PASS"
+    }
+  ],
+  "started_utc": "2026-09-30T05:13:32.636415+00:00",
+  "status": "PASS"
+}

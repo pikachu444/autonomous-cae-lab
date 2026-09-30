@@ -1,0 +1,85 @@
+{
+  "status": "FAILED_OR_PARTIAL",
+  "run_name": "local-20260930-openscience-live-04",
+  "attempt": "attempt-02",
+  "source_commit": "6138005109a808e6a5bcf052823fb928406374d0",
+  "source_dirty": true,
+  "openscience_version": "2.0.146",
+  "openscience_source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+  "provider": "local Ollama",
+  "model": "ollama/openscience/qwen3-4b-ctx-16384",
+  "study_id": "S-open-live-04",
+  "registry_revision": 0,
+  "experiment_count": 0,
+  "decision": "NOT_RELEASED",
+  "official_gui": "NOT_CHECKED",
+  "stages": [
+    {
+      "name": "00-version",
+      "elapsed_seconds": 3.359,
+      "exit_code": 0,
+      "timed_out": false,
+      "tool_event_count": 0,
+      "stdout_sha256": "a9c1251e8d3cd19a678eeeb153ed5d52cabc38782af4650d3144818cac3ea59b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "config_sha256": "640e8252d75f94ecc9b2444f334d5e3bde1155798abc0cd3db366c8123009f43"
+    },
+    {
+      "name": "00-paths",
+      "elapsed_seconds": 3.546,
+      "exit_code": 0,
+      "timed_out": false,
+      "tool_event_count": 0,
+      "stdout_sha256": "74b322d39a6cb59129aaebc6ebdfffd1ddf5c1522817f66afef21afb232a5f4e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "config_sha256": "640e8252d75f94ecc9b2444f334d5e3bde1155798abc0cd3db366c8123009f43"
+    },
+    {
+      "name": "00-mcp",
+      "elapsed_seconds": 7.337,
+      "exit_code": 0,
+      "timed_out": false,
+      "tool_event_count": 0,
+      "stdout_sha256": "c7b24cbe4cb788efb69c8214e7059f190abb8ea7f91633e74669427e11500378",
+      "stderr_sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "config_sha256": "05ee53debefc9098a88f9128b52e0d41c030a786b795469c93af11cd0b1721e3"
+    },
+    {
+      "name": "01-study-create",
+      "elapsed_seconds": 59.764,
+      "exit_code": 0,
+      "timed_out": false,
+      "tool_event_count": 1,
+      "stdout_sha256": "6a0bfd9ad682188ae6903df97404ef5e60f14f39580e7a8c809c55669b5b68b9",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "config_sha256": "05ee53debefc9098a88f9128b52e0d41c030a786b795469c93af11cd0b1721e3"
+    },
+    {
+      "name": "02-discovery",
+      "elapsed_seconds": 93.741,
+      "exit_code": 0,
+      "timed_out": false,
+      "tool_event_count": 2,
+      "stdout_sha256": "01e4669e276da73d1fadcb499a34b61dd0d87f9a36d0f36d1f541a4696c8d662",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "config_sha256": "3945c2aa11769df3729424e17c48661d6eeacebd1124cea36dcffc4c13a0d416"
+    },
+    {
+      "name": "03-register-width",
+      "elapsed_seconds": 102.984,
+      "exit_code": 0,
+      "timed_out": false,
+      "tool_event_count": 0,
+      "stdout_sha256": "51aabba948e2acf33b78f340bbcd62b15c5af54cca8fe7cb8c62bfc5518539d9",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "config_sha256": "e83ff05842e4002ff7f68cc7df6269a9581980b9037c8880e919fb8c11cda5c7"
+    }
+  ],
+  "limitations": [
+    "No tool call for width registration despite CLI completed/exit0.",
+    "Identical repeated read-only discovery was retained explicitly.",
+    "No actual CAD or evidence interpretation in this attempt.",
+    "Windows application permissions are not OS containment.",
+    "Raw local artifacts are retained outside Git; no remote archival proof."
+  ]
+}

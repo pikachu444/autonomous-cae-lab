@@ -24,5 +24,7 @@ if ($LASTEXITCODE -ne 0) { throw "Project Python environment is missing: $python
     MPLBACKEND=Agg OMP_NUM_THREADS=2 QT_QPA_PLATFORM=offscreen `
     "FREECAD_APPIMAGE=$RuntimeRoot/FreeCAD_1.1.4-Linux-x86_64-py311.AppImage" `
     "FREECAD_CMD=$RuntimeRoot/freecad_cmd.sh" `
+    "CAELAB_CODEASTER_IMAGE=$RuntimeRoot/code_aster_17.4.0-oci.sif" `
+    CAELAB_CODEASTER_IMAGE_SHA256=f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64 `
     CAELAB_FENICSX_PYTHON=/usr/bin/python3 $pythonPath @PythonArgs
 exit $LASTEXITCODE

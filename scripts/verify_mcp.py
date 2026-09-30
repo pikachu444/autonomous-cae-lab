@@ -13,6 +13,8 @@ from mcp.client.stdio import stdio_client
 
 async def main():
     root = Path(__file__).resolve().parents[1]
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
     with tempfile.TemporaryDirectory() as directory:
         server = StdioServerParameters(
             command=sys.executable, args=[str(root / "openscience/mcp_server.py")],
@@ -26,7 +28,8 @@ async def main():
                         "experiment_run", "experiment_summary", "model_native_new",
                         "model_native_import", "model_native_inspect", "model_native_select_final",
                         "analysis_run", "doe_plan", "doe_run", "doe_inspect",
-                        "optimization_plan", "optimization_run", "optimization_inspect", "pde_run"} <= names
+                        "optimization_plan", "optimization_run", "optimization_inspect", "pde_run",
+                        "model_analysis_run"} <= names
 
                 async def call(name, arguments):
                     response = await session.call_tool(name, arguments)
@@ -79,10 +82,22 @@ async def main():
                 pde = rejected.structuredContent or json.loads(rejected.content[0].text)
                 assert pde["status"] == "REJECTED" and pde["solver_status"] == "NOT_RUN"
                 assert pde["decision"] == "NOT_RELEASED" and pde["cad_revision"] is None
+                # A declared material/input rejection must also use common records
+                # without invoking Code_Aster or inventing a CAD parent.
+                from scripts.verify_codeaster import specification
+                invalid_model = specification()
+                invalid_model["material"]["poisson_ratio"] = .5
+                rejected_model = await call("model_analysis_run", {
+                    "study_id": "S-MCP", "experiment_id": "E-MCP-model-reject",
+                    "backend": "structural.code_aster", "settings": invalid_model})
+                independent = rejected_model.structuredContent or json.loads(rejected_model.content[0].text)
+                assert independent["status"] == "REJECTED" and independent["solver_status"] == "NOT_RUN"
+                assert independent["decision"] == "NOT_RELEASED" and independent["cad_revision"] is None
                 print(json.dumps({"mcp_tools": sorted(names), "result": content,
                                   "doe_samples": len(progress["samples"]),
                                   "optimization_evaluations": len(search["evaluations"]),
-                                  "pde_preflight": pde["status"]}, ensure_ascii=False))
+                                  "pde_preflight": pde["status"],
+                                  "model_preflight": independent["status"]}, ensure_ascii=False))
 
 
 if __name__ == "__main__":
