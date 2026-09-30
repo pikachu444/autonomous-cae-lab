@@ -145,3 +145,62 @@ Verified numerical scope, source commit, native acceptance store/hash and
 remaining contact limitations are recorded after fresh frozen-source execution
 in the accompanying benchmark record. Physical/material/strength/fatigue/failure
 and finite impact-peak requirements remain UNKNOWN; every decision is NOT_RELEASED.
+
+## Actual frozen-source checkpoint, 2026-09-30
+
+Source proof is `7e2ee26cf56e87fcd254cf8a52863718fe0909e7`, clean at execution,
+Core source SHA256 `c9d4109b4d38aedb3daf5c2da9b150cdad72e098dd310d34279137d201c464d0`.
+The fresh local store is `artifacts/explicit-20260930-native-v1` in the isolated
+`explicit-drop` worktree. Its acceptance SHA256 is
+`4f667a493b4f89de6d3bfab87d35ebb7aac94b41fe973852ea0099f5cb7403be`.
+The [benchmark record](OPENRADIOSS_BENCHMARK_20260930.json) records every result,
+thread/ledger hash, native/source artifact hash, model revision, actual runtime
+version, all gates and observed resources. These hashes do not imply that raw
+artifacts have been uploaded. Preserve/copy the ignored stores before archiving
+this worktree. Historical probes and failed results remain untouched.
+
+`python -m pytest -q tests/test_explicit_dynamics.py tests/test_openradioss.py
+tests/test_declared_model.py` passed **66 tests in 12.93 seconds**. The fresh
+native script reports **PARTIAL: freeflight/sensitivities PASS, ideal ground
+stop REJECTED, NOT_RELEASED** and returns a nonzero CLI status. No exact-source
+remote CI is available for this isolated, unpushed commit. The base commit's CI
+is not new explicit-dynamics verification.
+
+Five actual freeflight cases each passed all 13 gates. Baseline last native
+history TIME=0.1991 s, raw velocity clock=0.19905 s, displacement=−0.194438173 m,
+raw velocity=−1.9526805 m/s, KE=1.90743848 J and maximum mechanical-energy
+error=4.53e−9 J. Engine completed the declared 0.2 s interval with 2,002 native
+cycles; T01 correctly contains 200 source-scheduled samples rather than an
+invented terminal sample. Mass=2 kg gives identical translation and twice KE;
+half gravity gives half displacement/velocity; v0=−0.5 m/s changes both; the
+0.0002 s history interval gives 1,000 native samples ending at 0.1999 s.
+Invalid mass is REJECTED/NOT_RUN before Starter and has no simulation folder.
+
+| Full post-impact error | dt=0.0001 s | dt=0.00005 s | Unchanged limit |
+| --- | ---: | ---: | ---: |
+| Support impulse | 0.0858375 N·s | 0.05812425 N·s | 0.005 N·s |
+| Raw velocity | 0.085347 m/s | 0.057879 m/s | 0.002 m/s |
+| Centered velocity | 0.0858375 m/s | 0.05812425 m/s | 0.002 m/s |
+| Position | 0.0003917057 m, FAIL | within limit | 0.0002 m |
+
+Both Engine runs completed, with 5,001/10,001 exact T01 samples and
+5,002/10,002 native cycles, but **both contact experiments are REJECTED** and
+every response metric is marked invalid. Refinement reduces several errors;
+it does not establish passing contact convergence. Event times 0.44/0.44005 s
+and final rest can pass their individual gates while earlier re-fall and delayed
+support fail the full history. Native reported energy percentage spans
+−99.9 to 0%; the absolute total-work closure is separately checked.
+Observed interval-average force peaks approximately 43,168.905/86,342.715 N
+demonstrate timestep dependence; peak qualification remains UNKNOWN.
+
+The actual runtime reports Starter Linux64/GNU, build Jul 28 2026 15:23:30,
+CommitID `User Build`, Reader `20260710_d899773e`, and Engine `linux64_gf`,
+build Jul 28 2026 15:25:07. Engine reported 36–37 MB and 1.04–5.44 seconds
+for these cases, within the predeclared OMP2/process limits. The cube is a
+corner-lumped rigid mass carrier (native diagonal inertia 0.005 kg·m² at
+1 kg); continuum rotational inertia and rotating contact remain unvalidated.
+
+The next contact packet needs a declared compliant law with independently
+solvable force/restitution/energy histories, and fixed limits and resource
+budget before execution. This checkpoint completes bounded native freeflight
+and sensitivity prerequisites; it does not complete impact/drop or Phase6.
