@@ -239,7 +239,30 @@
     },
     "threshold_changes_allowed": false
   },
-  "independent_review": "UNKNOWN: pending bounded read-only source/evidence review",
+  "independent_review": {
+    "aggregate_acceptance_and_plan_hashes_match": true,
+    "edits_or_installations": false,
+    "experiment_records_verified": 15,
+    "manifest_artifacts_verified": 507,
+    "mode": "READ_ONLY",
+    "native_runs_executed": false,
+    "original_ideal_wall_acceptance_hash_unchanged": true,
+    "remaining_actionable_p1_p2": 0,
+    "reviewed_evidence_commit": "7ff763538ebc6101453480b3c61c9d4cd9c01c68",
+    "reviewer": "/root/explicit_review",
+    "scope": "Bounded reduced compliant-stop implementation and retained evidence integrity; no surface/physical/material/failure/release approval",
+    "source_captures_verified": 9,
+    "source_commit": "c29b14c35090ba8da98520b8c43e8254d960e163",
+    "source_semantics": [
+      "TYPE4 H8 force/length law",
+      "signed native trapezoidal IE work",
+      "global spring category already included in totalIE",
+      "incoming and centered leapfrog clocks",
+      "SPRIN control identity before DTIX cap"
+    ],
+    "status": "PASS",
+    "tests_executed": false
+  },
   "limitations": [
     "Only a reduced nonrotating known conservative unilateral spring law with independently solved flight/contact/rebound is numerically verified",
     "TH signed work residue is retained; native FX/LX/IE are mandatory and never replaced by oracle estimates",
