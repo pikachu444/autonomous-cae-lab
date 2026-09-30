@@ -12,7 +12,8 @@ The cube remains edge 0.1 m, density 1000 kg/m3, mass 1 kg, center z=1 m,
 gravity 9.81 m/s2, initial velocity zero. TYPE4 spring mass is explicitly
 0.002 kg. The native half-mass split gives moving mass 1.001 kg, fixed anchor
 mass 0.001 kg and native total mass 1.002 kg. Main node9 connects to fixed
-node10=(0,0,-1). Contact starts at center z=0.05 m, absolute length 1.05 m;
+node10=(0,0,-1) through a colocated rigid secondary node11=(0,0,1); main node9
+is isolated from elements. Contact starts at center z=0.05 m, absolute length 1.05 m;
 initial spring length is 2 m. Anchor translations alone are fixed, and anchor
 mass is excluded from the moving-node gravity/initial-velocity group.
 
@@ -77,7 +78,8 @@ reused without installation changes. TYPE4 H1=8 takes force versus current
 absolute length. Its curve is (0,-k*1.05), (1.05,0), (3,0), with A1=Ascale1=1,
 no damping or velocity curve, Ileng=0 and OFF=1. K1=k is initial stiffness; H8
 does not multiply the force curve by K1. Body upward force is -local FX.
-TH/SPRING4 requests actual OFF/FX/LX/IE (type6, entity2, IDs1/2/8/14). LX is
+TH/SPRING4 requests actual OFF/FX/FY/FZ/MX/MY/MZ/LX/IE (type6, entity2,
+IDs1/2/3/4/5/6/7/8/14), including zero transverse-force/moment witnesses. LX is
 length change from the native 2 m initial length, so actual absolute length is
 2+LX; it is cross-checked against measured center z+1. FX/LX/IE are current
 TIME observations; main raw V keeps TIME-dt/2 and global P/KE uses centered TIME.
@@ -97,7 +99,31 @@ Source-based card/clock/mass references:
   [TH buffer extraction](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/engine/source/output/th/thres.F#L139),
   [output before time increment](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/engine/source/engine/resol.F#L8411).
 - [Virtual material0 mapping](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/starter/source/model/assembling/hm_read_part.F#L242),
-  [internal associations/external tables](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/engine/source/output/th/hist1.F#L331).
+    [internal associations/external tables](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/engine/source/output/th/hist1.F#L331).
+
+The first clean source `083b38091607d015d24f276dfee260f9f8d90b4b` attempt
+`artifacts/compliant-20260930-native-v1` is retained. All three Starter runs
+recorded moving/total masses 1.001/1.002 kg but warnings 100214 (unsupported
+appended TH/SPRING entity title) and 448 (main node connected to a spring).
+Every Engine was blocked. All five Core results/ledgers exist; a reporting
+assertion incorrectly required a material UNKNOWN record from invalid input
+preflight and prevented that attempt's aggregate acceptance.json. The corrected
+script preserves aggregate failures and checks only actual available UNKNOWN
+types. Neither the failed source nor its stores is promoted to contact proof.
+
+The repair uses an ID-only TH/SPRING entity row. A new colocated secondary11
+receives the spring half mass and forces; eight original corners plus11 belong
+to the existing rigid body. Main9 remains element-free, and anchor10 stays
+outside that body. Both physical law and all limits are unchanged.
+[Warning448 and internal spring deletion rule](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/starter/source/constraints/general/rbody/hm_read_rbody.F#L450),
+[official isolated main-node guidance](https://2022.help.altair.com/2022/hwsolvers/rad/topics/solvers/rad/faq_rad_kinematic_conditions_r.htm#main-node-of-rigid-body)
+and [secondary force/moment aggregation](https://github.com/OpenRadioss/OpenRadioss/blob/a62b27e6baa555d222a580d6218867d0be4d70b5/engine/source/constraints/general/rbody/rgbodfp.F#L122)
+support this repair. The moment arm is zero; native spring moments/transverse
+forces must stay below 1e-12, rotations remain zero, and node11/main9 position
+and next-advance V+DT12*A are independently checked within 1e-8. Native THNODE
+now records 1/9/10/11; Starter must verify 11 nodes, nine secondaries, unchanged
+initial center and assembled masses before Engine. A revised clean source and
+new store are required for the next actual attempt.
 
 The planned native TH hierarchy is [2,2,2,1,3,22]. TYPE4 material0 is an
 internal virtual slot2/external0/no_title, not a new physical material law.

@@ -55,6 +55,9 @@ def decks(settings):
     nodes.append(_int(9) + _real(0, 0, height))
     if compliant:
         nodes.append(_int(10) + _real(0, 0, domain.ANCHOR_Z_M))
+        nodes.append(_int(11) + _real(0, 0, height))
+    rigid_nodes = [*range(1, 9), *([11] if compliant else [])]
+    moving_nodes = [*range(1, 10), *([11] if compliant else [])]
     starter = ["#RADIOSS STARTER", "/BEGIN", "drop", _int(2022, 0),
                "                  kg                   m                   s",
                "                  kg                   m                   s",
@@ -62,8 +65,8 @@ def decks(settings):
                _real(1e5, .3), "/PROP/SOLID/1", "RIGID_MASS_CARRIER", _int(1, 4, 0, 0, 0, 0, 0, 0) + _real(0),
                _real(0, 0, 0, 0, 0), _real(0, 0, 0, 0, 0), _int(0, 0, 0, 0),
                "/PART/1", "RIGID_CUBE", _int(1, 1, 0), "/NODE", *nodes, "/BRICK/1", _int(1, 1, 2, 3, 4, 5, 6, 7, 8),
-               "/GRNOD/NODE/1", "CUBE_CORNERS", _int(*range(1, 9)),
-               "/GRNOD/NODE/2", "ALL_CUBE_NODES", _int(*range(1, 10)),
+               "/GRNOD/NODE/1", "CUBE_CORNERS", _int(*rigid_nodes),
+               "/GRNOD/NODE/2", "ALL_CUBE_NODES", _int(*moving_nodes),
                "/RBODY/1", "RIGID_CENTER9", _int(9, 0, 0, 2) + _real(0) + _int(1, 0, 3, 0),
                _real(0, 0, 0), _real(0, 0, 0), _int(0, 0, 0),
                "/FUNCT/1", "CONSTANT_GRAVITY", _real(0, -s["gravity_m_s2"]),
@@ -82,7 +85,7 @@ def decks(settings):
                         _real(1, 0, 1, 1), "/FUNCT/2", "FORCE_N_VS_ABSOLUTE_LENGTH_M",
                         _real(0, -k * rest), _real(rest, 0), _real(3, 0),
                         "/PART/2", "STOP_SPRING", _int(2, 0), "/SPRING/2",
-                        _int(2, 10, 9, 0, 0, 0, 0) + " " * 20 + _int(0)])
+                        _int(2, 10, 11, 0, 0, 0, 0) + " " * 20 + _int(0)])
     if s["case"] == "rigid_cube_ground_stop":
         # Official FAQ: put the RBODY main node in RWALL; secondary constraints
         # conflict. For this nonrotating cube, center>=edge/2 iff bottom>=0.
@@ -93,13 +96,14 @@ def decks(settings):
                     _int(9, 0) + "CENTER9", _int(1, 0) + "BOTTOM1"])
     if compliant:
         starter.append(_int(10, 0) + "FIXED_ANCHOR10")
+        starter.append(_int(11, 0) + "CENTER_ATTACHMENT11")
     starter.extend(["/TH/RBODY/2", "BODY_IMPULSES_ROTATIONS",
                     "".join(f"{v:>10}" for v in ("FZ", "RX", "RY", "RZ")), _int(1)])
     if s["case"] == "rigid_cube_ground_stop":
         starter.extend(["/TH/RWALL/3", "WALL_NORMAL_IMPULSE", f"{'FNZ':>10}", _int(1)])
     if compliant:
         starter.extend(["/TH/SPRING/4", "STOP_CONSTITUTIVE_HISTORY",
-                        "".join(f"{v:>10}" for v in ("OFF", "FX", "LX", "IE")), _int(2) + "STOP_SPRING"])
+                        "".join(f"{v:>10}" for v in ("OFF", "FX", "FY", "FZ", "MX", "MY", "MZ", "LX", "IE")), _int(2)])
     starter.append("/END")
     engine = ["/RUN/drop/1", _real(s["end_time_s"]), "/VERS/100", "/DT", _real(.9, 0),
               "/DTIX", _real(s["time_step_s"], s["time_step_s"]), "/TFILE/3", _real(s["history_interval_s"]),

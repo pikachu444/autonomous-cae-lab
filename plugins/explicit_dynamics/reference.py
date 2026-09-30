@@ -156,6 +156,7 @@ def model_declaration(settings):
             "spring_mass": {"value": s["spring_mass_kg"], "unit": "kg"},
             "moving_mass_kg": s["mass_kg"] + s["spring_mass_kg"] / 2,
             "fixed_mass_kg": s["spring_mass_kg"] / 2, "restitution_reference": 1,
+            "force_application": "Colocated rigid secondary at the center; isolated rigid main point, zero moment arm",
             "scope": "Reduced nonrotating constitutive stop; compliant compression is not surface-contact penetration qualification"}]
         declaration["boundary_conditions"] = [{"type": "fixed_translation", "location": [0, 0, ANCHOR_Z_M], "unit": "m"}]
         declaration["outputs"]["history"].extend({"quantity": key, "unit": unit} for key, unit in

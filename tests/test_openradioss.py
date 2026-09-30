@@ -31,11 +31,12 @@ def small_settings(wall=False):
 def starter_text(s):
     compliant = s["case"] == "rigid_cube_compliant_stop"
     extra = ["NPART: parts 2", "NUMGEO: properties 2", "NUMELR: springs 1", "NUMBCS: constraints 1",
+             "NUMBER OF NODES 9", f"NEW X,Y,Z 0 0 {s['center_height_m']}",
              f"NEW MASS {s['mass_kg'] + s['spring_mass_kg']/2}", "TOTAL MASS AND MASS CENTER",
              "MASS X Y Z", f"{s['mass_kg'] + s['spring_mass_kg']} 0 0 1"] if compliant else []
     return "\n".join(["TEST ONLY: no native executable has run", "NO SYNTAX ERROR DETECTED", "NORMAL TERMINATION",
         "0 ERROR(S)", "0 WARNING(S)", "WORK UNIT SYSTEM ( kg , m , s ) 1 1 1",
-        "INPUT UNIT SYSTEM ( kg , m , s ) 1 1 1", f"NUMNOD: nodes {10 if compliant else 9}", "NUMELS: solids 1",
+        "INPUT UNIT SYSTEM ( kg , m , s ) 1 1 1", f"NUMNOD: nodes {11 if compliant else 9}", "NUMELS: solids 1",
         "NRBODY: bodies 1", f"NRWALL: walls {int(s['case']=='rigid_cube_ground_stop')}",
         "PRIMARY NODE 9", "REMOVE SECONDARY NODES FROM RIGID WALL(IF=0) 0", "CENTER OF MASS FLAG 3",
         "NO TRUE INCOMPATIBLE KINEMATIC CONDITION", *extra]) + "\n"
@@ -75,8 +76,8 @@ def typed_stream(s, *, change=None, skip=None):
     record([(5,"I"),(40,"C")],"".join(f"{v:10}" for v in [0,0,0,2 if compliant else 1,0])+"GLOBAL MODEL".ljust(40))
     record([(2 if compliant else 1,"I")],[1,2] if compliant else [1])
     groups = [(3,102,[1],[3],"WALL_NORMAL_IMPULSE")] if wall else []
-    if compliant: groups.append((4,6,[2],[1,2,8,14],"STOP_CONSTITUTIVE_HISTORY"))
-    groups += [(1,0,[1,9,10] if compliant else [1,9],[3,6,9,18],"NODAL_KINEMATICS"),(2,103,[1],[3,7,8,9],"BODY_IMPULSES_ROTATIONS")]
+    if compliant: groups.append((4,6,[2],[1,2,3,4,5,6,7,8,14],"STOP_CONSTITUTIVE_HISTORY"))
+    groups += [(1,0,[1,9,10,11] if compliant else [1,9],[3,6,9,18],"NODAL_KINEMATICS"),(2,103,[1],[3,7,8,9],"BODY_IMPULSES_ROTATIONS")]
     for identifier,kind,ids,variables,title in groups:
         record([(5,"I"),(40,"C")],"".join(f"{v:10}" for v in [identifier,kind,0,len(ids),len(variables)])+title.ljust(40))
         for i in ids:record([(1,"I"),(40,"C")],entity(i,"TEST ONLY entity"))
@@ -99,7 +100,8 @@ def typed_stream(s, *, change=None, skip=None):
         channels={1:node,2:[0,0,0,0],3:[-ref["ground_impulse_n_s"]]}
         if compliant:
             channels[1] += [0,0,0,-1]
-            channels[4]=[1,-ref["spring_force_n"],ref["spring_length_change_m"],ref["spring_internal_energy_j"]]
+            channels[1] += [ref["z_m"]-h,velocity,a,ref["z_m"]]
+            channels[4]=[1,-ref["spring_force_n"],0,0,0,0,0,ref["spring_length_change_m"],ref["spring_internal_energy_j"]]
         if change: change(index,t,glob,channels)
         record([(1,"R")],[t]);record([(22,"R")],glob)
         for identifier,_,ids,variables,_ in groups:record([(len(ids)*len(variables),"R")],channels[identifier])
@@ -295,7 +297,8 @@ def test_compliant_trusted_cards_force_scale_mass_anchor_and_actual_channels():
     assert float(prop[0][:20]) == .002 and prop[0][20:50] == " "*30
     assert [float(prop[1][i:i+20]) for i in range(0,100,20)] == [10000,0,1,0,1]
     assert [int(prop[2][i:i+10]) for i in range(0,50,10)] == [2,8,0,0,0]
-    assert "/TH/SPRING/4\nSTOP_CONSTITUTIVE_HISTORY\n       OFF        FX        LX        IE\n" in starter
+    assert "/TH/SPRING/4\nSTOP_CONSTITUTIVE_HISTORY\n       OFF        FX        FY        FZ        MX        MY        MZ        LX        IE\n         2\n" in starter
+    assert "/SPRING/2\n         2        10        11" in starter
     stiff,_=decks(compliant_specification(stiffness=20000))
     curve=stiff.split("/FUNCT/2\nFORCE_N_VS_ABSOLUTE_LENGTH_M\n")[1].splitlines()
     assert [float(curve[0][i:i+20]) for i in (0,20)] == [0,-21000]
@@ -306,7 +309,7 @@ def test_compliant_typed_native_observations_keep_force_ie_mass_and_fixed_anchor
     parsed=parse_history(tmp_path,s)
     assert parsed["hierarchy"] == [2,2,2,1,3,22]
     assert len(parsed["rows"]) == 201
-    assert next(group for group in parsed["groups"] if group["id"]==4)["variables"] == [1,2,8,14]
+    assert next(group for group in parsed["groups"] if group["id"]==4)["variables"] == [1,2,3,4,5,6,7,8,14]
     peak=max(parsed["rows"],key=lambda row:row["ground_force_n"])
     assert peak["spring_axial_force_n"] < 0 and peak["spring_internal_energy_j"] > 0
     assert peak["moving_mass_kg"] == pytest.approx(1.001)
@@ -318,20 +321,22 @@ def test_compliant_typed_native_observations_keep_force_ie_mass_and_fixed_anchor
     assert all(check["status"]=="PASS" for check in assess(s,parsed["rows"])["checks"])
 
 
-@pytest.mark.parametrize("damage",["anchor","global_mass","negative_force","negative_ie","off","metadata","tail","interior"])
+@pytest.mark.parametrize("damage",["anchor","attachment","torque","global_mass","negative_force","negative_ie","off","metadata","tail","interior"])
 def test_compliant_parser_rejects_wrong_native_layout_mass_fixed_state_or_coverage(tmp_path,damage):
     s=small_compliant_settings()
     def change(i,t,glob,ch):
         if i==20:
             if damage=="anchor":ch[1][9]=.01
+            elif damage=="attachment":ch[1][13]=.01
+            elif damage=="torque":ch[4][4]=.01
             elif damage=="global_mass":glob[5]=1
             elif damage=="negative_force":ch[4][1]=.1
-            elif damage=="negative_ie":ch[4][3]=-.1
+            elif damage=="negative_ie":ch[4][8]=-.1
             elif damage=="off":ch[4][0]=0
     skip=len(expected_history_times(s))-1 if damage=="tail" else 100 if damage=="interior" else None
     native_fixture(tmp_path,s,change=change,skip=skip)
     if damage=="metadata":
-        p=tmp_path/"dropT01";p.write_text(p.read_text().replace("1 2 8 14","1 2 8 13"))
+        p=tmp_path/"dropT01";p.write_text(p.read_text().replace("1 2 3 4 5 6 7 8 14","1 2 3 4 5 6 7 8 13"))
     with pytest.raises(ValueError):parse_history(tmp_path,s)
 
 
@@ -341,8 +346,8 @@ def test_complete_native_compliant_channels_do_not_get_replaced_by_reference(tmp
     def change(i,t,glob,ch):
         if i==100:
             if damage=="force":ch[4][1]-=.1
-            elif damage=="ie":ch[4][3]+=.02
-            else:ch[4][2]+=.001
+            elif damage=="ie":ch[4][8]+=.02
+            else:ch[4][7]+=.001
     native_fixture(tmp_path,s,change=change)
     parsed=parse_history(tmp_path,s)
     from plugins.explicit_dynamics.reference import assess
@@ -351,7 +356,7 @@ def test_complete_native_compliant_channels_do_not_get_replaced_by_reference(tmp
     assert not any(value["valid"] for value in result["metrics"].values())
 
 
-@pytest.mark.parametrize("damage",["moving_mass","total_mass","total_nonfinite","warning"])
+@pytest.mark.parametrize("damage",["moving_mass","total_mass","total_nonfinite","center","secondary_count","warning"])
 def test_compliant_actual_starter_mass_and_warning_admission_blocks_engine(tmp_path,monkeypatch,damage):
     s=small_compliant_settings();calls=[]
     monkeypatch.setattr(transport,"runtime",lambda:(tmp_path,{}, {"test_only":True}))
@@ -360,7 +365,8 @@ def test_compliant_actual_starter_mass_and_warning_admission_blocks_engine(tmp_p
         if name=="starter":
             text=starter_text(s)
             replacements={"moving_mass":("NEW MASS 1.001","NEW MASS 1"), "total_mass":("1.002 0 0 1","1 0 0 1"),
-                          "total_nonfinite":("1.002 0 0 1","nan 0 0 1"), "warning":("0 WARNING(S)","1 WARNING(S)")}
+                          "total_nonfinite":("1.002 0 0 1","nan 0 0 1"), "center":("NEW X,Y,Z 0 0","NEW X,Y,Z .01 0"),
+                          "secondary_count":("NUMBER OF NODES 9","NUMBER OF NODES 8"), "warning":("0 WARNING(S)","1 WARNING(S)")}
             a,b=replacements[damage];text=text.replace(a,b)
             (output/"drop_0000.out").write_text(text)
         if name=="engine":pytest.fail("Engine cannot follow bad actual Starter assembly")
@@ -395,6 +401,7 @@ def test_compliant_full_rebound_velocity_error_is_not_hidden_by_correct_last_sam
     def change(i,t,glob,ch):
         if i==190:
             ch[1][1]+=.01;ch[1][5]+=.01
+            ch[1][13]+=.01
             glob[4]+=1.001*.01
             glob[1]=.5*1.001*(glob[4]/1.001)**2;glob[8]=glob[1]+glob[0]
     native_fixture(tmp_path,s,change=change)
@@ -414,7 +421,7 @@ def test_compliant_core_exit0_with_corrupt_actual_ie_keeps_artifacts_and_invalid
         elif name=="engine":
             (output/"drop_0001.out").write_text(engine_text(s))
             def corrupt(i,t,glob,ch):
-                if i==100:ch[4][3]+=.02
+                if i==100:ch[4][8]+=.02
             (output/"dropT01").write_text(typed_stream(s,change=corrupt))
         return "NORMAL TERMINATION TEST ONLY"
     monkeypatch.setattr(transport,"process",fake_process)
@@ -428,3 +435,23 @@ def test_compliant_core_exit0_with_corrupt_actual_ie_keeps_artifacts_and_invalid
     assert result["decision"]=="NOT_RELEASED" and "rotational_surface_contact" in lab.research_summary("E-corrupt")["unknown"]
     assert {"simulation/dropT01","simulation/parsed_history.json","simulation/domain_reference.py"} <= {artifact["path"] for artifact in result["artifacts"]}
     assert lab.inspect_experiment("E-corrupt")==result
+
+
+def test_compliant_script_retains_aggregate_failed_admission_and_invalid_input_without_invented_unknowns(tmp_path,monkeypatch):
+    from scripts import verify_compliant_drop as benchmark
+    monkeypatch.setattr(benchmark,"runtime",lambda:None)
+    monkeypatch.setattr(benchmark,"source_identity",lambda path:{"core_dirty":False,"test_only":True})
+    monkeypatch.setattr(transport,"runtime",lambda:(tmp_path,{}, {"test_only":True}))
+    def fake_process(command,output,name,env):
+        if name=="starter":
+            (output/"drop_0000.out").write_text(starter_text(compliant_specification()).replace("0 WARNING(S)","1 WARNING(S)"))
+        if name=="engine":pytest.fail("Engine cannot run after a Starter warning")
+        return "TEST ONLY version"
+    monkeypatch.setattr(transport,"process",fake_process)
+    store=tmp_path/"store";report=benchmark.run(store)
+    assert report["status"]=="REJECTED" and report["invalid_input_admission"]=="PASS"
+    assert len(report["experiments"])==5 and load_json(store/"acceptance.json")==report
+    assert all(entry["history"] is None for entry in report["native"].values())
+    for name in ["E-invalid-mass","E-invalid-stiffness"]:
+        assert not (store/"experiments"/name/"simulation").exists()
+    with pytest.raises(ValueError,match="fresh store"):benchmark.run(store)

@@ -151,7 +151,7 @@ def starter_admission(output: Path, settings: dict) -> dict:
         if not unit or any(float(v) != 1 for v in unit.groups()):
             raise ValueError("Actual Starter units are not the declared unscaled SI system")
     compliant = settings["case"] == COMPLIANT_CASE
-    counts = [("NUMNOD", 10 if compliant else 9), ("NUMELS", 1), ("NRBODY", 1),
+    counts = [("NUMNOD", 11 if compliant else 9), ("NUMELS", 1), ("NRBODY", 1),
               ("NRWALL", int(settings["case"] == "rigid_cube_ground_stop"))]
     if compliant:
         counts.extend((("NPART", 2), ("NUMGEO", 2), ("NUMELR", 1), ("NUMBCS", 1)))
@@ -194,6 +194,12 @@ def starter_admission(output: Path, settings: dict) -> dict:
         expected_total = settings["mass_kg"] + settings["spring_mass_kg"]
         if abs(moving_mass - expected_moving) > 1e-8 * expected_moving or abs(total_mass - expected_total) > 1e-8 * expected_total:
             raise ValueError("Starter cube/spring mass assembly differs from declared moving/fixed masses")
+        centers = re.findall(r"NEW X,Y,Z\s+([0-9.E+-]+)\s+([0-9.E+-]+)\s+([0-9.E+-]+)", starter)
+        if len(centers) != 1 or any(abs(float(value) - expected) > 1e-8 for value, expected in zip(centers[0], (0, 0, settings["center_height_m"]))):
+            raise ValueError("Starter actual rigid-body center differs from the declared initial center")
+        secondary = re.search(r"NUMBER OF NODES\s+(\d+)", starter)
+        if not secondary or int(secondary[1]) != 9:
+            raise ValueError("Starter must assemble eight cube corners and the colocated secondary attachment")
         admitted.update(moving_mass_kg=moving_mass, fixed_mass_kg=total_mass - moving_mass, total_mass_kg=total_mass)
     return admitted
 
@@ -247,11 +253,11 @@ def parse_history(output: Path, settings: dict) -> dict:
         if info != [0, 0, 0, n_part, 0] or history.record([(n_part, "I")]) != list(range(1, n_part + 1)):
             raise ValueError("Native global subset identity mismatch")
     groups = []
-    expected_groups = {1: (0, [1, 9, 10] if compliant else [1, 9], [3, 6, 9, 18]), 2: (103, [1], [3, 7, 8, 9])}
+    expected_groups = {1: (0, [1, 9, 10, 11] if compliant else [1, 9], [3, 6, 9, 18]), 2: (103, [1], [3, 7, 8, 9])}
     if wall:
         expected_groups[3] = (102, [1], [3])
     if compliant:
-        expected_groups[4] = (6, [2], [1, 2, 8, 14])
+        expected_groups[4] = (6, [2], [1, 2, 3, 4, 5, 6, 7, 8, 14])
     seen = set()
     for group_index in range(n_group):
         raw = history.record([(5, "I"), (40, "C")])
@@ -284,7 +290,7 @@ def parse_history(output: Path, settings: dict) -> dict:
         by_id = {group["id"]: values for group, values in zip(groups, group_values)}
         dz_bottom, v_bottom, a_bottom, z_bottom, dz, velocity, acceleration, z = by_id[1][:8]
         if compliant:
-            anchor_dz, anchor_v, anchor_a, anchor_z = by_id[1][8:]
+            anchor_dz, anchor_v, anchor_a, anchor_z = by_id[1][8:12]
             if abs(anchor_z - ANCHOR_Z_M) > 1e-8 or max(abs(value) for value in (anchor_dz, anchor_v, anchor_a)) > 1e-8:
                 raise ValueError("Native spring anchor is not fixed at the declared position")
         dt = global_values[6]
@@ -316,6 +322,14 @@ def parse_history(output: Path, settings: dict) -> dict:
         witness_residual = (velocity + dt12 * acceleration) - (v_bottom + dt12 * a_bottom)
         if abs(witness_residual) > 1e-8:
             raise ValueError("Native main/secondary next-advance velocity relation is inconsistent")
+        auxiliary_fields = {}
+        if compliant:
+            auxiliary_dz, auxiliary_v, auxiliary_a, auxiliary_z = by_id[1][12:]
+            auxiliary_residual = (velocity + dt12 * acceleration) - (auxiliary_v + dt12 * auxiliary_a)
+            if abs(auxiliary_z - z) > 1e-8 or abs(auxiliary_dz - dz) > 1e-8 or abs(auxiliary_residual) > 1e-8:
+                raise ValueError("Native center attachment is not rigidly colocated with main node")
+            auxiliary_fields = {"attachment_z_m": auxiliary_z, "attachment_velocity_m_s": auxiliary_v,
+                "attachment_acceleration_m_s2": auxiliary_a, "attachment_rigid_advance_residual_m_s": auxiliary_residual}
         if max(abs(v) for v in by_id[2][1:]) > 1e-9:
             raise ValueError("Native rigid body unexpectedly rotates")
         # FNZ is already a cumulative wall impulse, not a force or per-row impulse.
@@ -327,7 +341,9 @@ def parse_history(output: Path, settings: dict) -> dict:
                          if rows else None)
         spring_fields = {}
         if compliant:
-            off, fx, lx, ie = by_id[4]
+            off, fx, fy, fz, mx, my, mz, lx, ie = by_id[4]
+            if max(abs(value) for value in (fy, fz, mx, my, mz)) > 1e-12:
+                raise ValueError("Native spring has unexpected transverse force or torque")
             force = -fx
             if force < -1e-8 or ie < -1e-8 or abs(off - 1) > 1e-12:
                 raise ValueError("Native spring force/energy/deletion violates the unilateral elastic law")
@@ -339,7 +355,8 @@ def parse_history(output: Path, settings: dict) -> dict:
                 "ground_force_n": force, "spring_axial_force_n": fx, "spring_length_change_m": lx,
                 "spring_length_m": settings["center_height_m"] - ANCHOR_Z_M + lx,
                 "spring_internal_energy_j": ie, "spring_off": off,
-                "anchor_z_m": anchor_z, "anchor_velocity_m_s": anchor_v, "anchor_acceleration_m_s2": anchor_a}
+                "spring_transverse_force_n": [fy, fz], "spring_local_moment_n_m": [mx, my, mz],
+                "anchor_z_m": anchor_z, "anchor_velocity_m_s": anchor_v, "anchor_acceleration_m_s2": anchor_a, **auxiliary_fields}
         rows.append({"time_s": time_s, "velocity_time_s": max(0, time_s - .5 * dt), "z_m": z,
                      "velocity_m_s": velocity, "acceleration_m_s2": acceleration,
                      "energy_velocity_m_s": centered, "centered_velocity_residual_m_s": centered_residual,

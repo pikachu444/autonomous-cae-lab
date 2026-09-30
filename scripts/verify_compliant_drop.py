@@ -33,8 +33,8 @@ def run(store):
     plan = {"cases": cases, "source": source, "threshold_changes_allowed": False,
             "clock": "Actual FX/LX/IE/Z at TIME; incoming raw V at TIME-dt/2; centered momentum at TIME",
             "native_card": {"spring_type": 4, "h1": 8, "anchor_node": 10, "anchor_z_m": -1,
-                "moving_node": 9, "contact_center_z_m": .05, "absolute_rest_length_m": 1.05,
-                "spring_initial_length_m": 2, "local_force_sign": "upward on main9 = -FX",
+                "rigid_main_node": 9, "moving_attachment_node": 11, "contact_center_z_m": .05, "absolute_rest_length_m": 1.05,
+                "spring_initial_length_m": 2, "local_force_sign": "upward on rigidly attached center11 = -FX",
                 "mass": {"cube_kg": 1, "spring_kg": .002, "moving_kg": 1.001, "fixed_kg": .001, "total_kg": 1.002}},
             "resources": {"omp_threads": 2, "address_space_bytes": 2 * 1024 ** 3,
                 "cpu_seconds": 60, "process_wall_seconds": 90, "max_requested_cycles": 200000,
@@ -78,7 +78,10 @@ def run(store):
         retained[identifier] = (store / "experiments" / identifier / "result.json").read_bytes()
     for identifier, original in retained.items():
         assert (store / "experiments" / identifier / "result.json").read_bytes() == original
-        assert {"physical_validation", "material_qualification"} <= set(lab.research_summary(identifier)["unknown"])
+        unknown = set(lab.research_summary(identifier)["unknown"])
+        assert {"physical_validation", "model_qualification"} <= unknown
+        if identifier in cases:
+            assert "material_qualification" in unknown
     passed = all(results[key]["status"] == "COMPLETED_REVIEW_REQUIRED" and
                  results[key]["solver_status"] == "COMPLETED" and
                  all(value["valid"] for value in results[key]["metrics"].values()) for key in cases)
