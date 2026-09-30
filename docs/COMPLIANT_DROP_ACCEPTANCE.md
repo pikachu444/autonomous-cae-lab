@@ -179,14 +179,64 @@ invalid input cases were REJECTED/NOT_RUN before Starter. The third fresh attemp
 must use a newly frozen source and a new store with identical physical settings,
 the unchanged acceptance limits and the additional declared force-balance gate.
 
-## State before the third native attempt
+## Verified reduced-contact checkpoint
 
-Contact acceptance remains UNKNOWN pending fresh frozen-source execution after
-the semantic correction. The distinct benchmark record will identify source
-commit, run store, actual runtime versions, checks, artifact hashes, rejected
-attempts and measured resources. No raw binaries, company data or credentials
-are committed. Source tests are synthetic admission and analytical regressions,
-never native contact proof.
+Frozen source `c29b14c35090ba8da98520b8c43e8254d960e163` was clean before the
+fresh `artifacts/compliant-20260930-native-v3` execution. Core source SHA256 was
+`79963cc936d45f11a4a6ac1a0c18b65daefed65970557f0d2dd96301e511dc07`.
+The actual script completed with **PASS / NOT_RELEASED**. Its acceptance.json
+SHA256 is `b903b0304ef7f0ba69546da05dc90254aedf78f4082b617cac48eb24183c559f`.
+All three actual Starters passed zero-warning/zero-error SI/entity/mass/center
+admission and all three Engines terminated normally. Each complete native
+flight/contact/rebound history passed all **28** fixed analytical and native
+cross-channel checks. There was no time shift, force/IE substitution, negative
+IE clamp, threshold relaxation or promotion of an earlier result.
+
+| Actual observation | k10000 dt1e-4 | k10000 dt5e-5 | k20000 dt5e-5 |
+| --- | ---: | ---: | ---: |
+| Native cycles / T01 samples | 5002 / 5001 | 10002 / 10001 | 10002 / 10001 |
+| Peak upward spring force N | 441.877411 | 441.876297 | 620.760765 |
+| Maximum compression m | 0.04418774114 | 0.04418762972 | 0.0310380382 |
+| Contact impulse N s | 8.95635390062 | 8.95634013358 | 8.86369515191 |
+| Restitution | 1.00000464234 | 1.00000122240 | 0.999998999345 |
+| Maximum mechanical-energy error J | 0.000232984075 | 0.0000582488564 | 0.000116491462 |
+| Maximum full-history force error N | 0.00584795280 | 0.00145360423 | 0.00406363474 |
+| Maximum centered-velocity error m/s | 0.0000294116907 | 0.00000838287744 | 0.0000166474792 |
+| Minimum raw signed spring work J | -0.0000866195325 | -0.0000228235183 | 0 |
+| Engine elapsed s / native memory MB | 2.93 / 37 | 5.01 / 36 | 5.19 / 36 |
+
+Every T01 ends at actual TIME=0.5 s; the final raw V clocks are
+0.49995/0.499975/0.499975 s. Actual hit is 0.4401 s in all cases; release is
+0.472/0.472/0.46255 s. Maximum force/acceleration residual is below
+9.65e-7 N versus the predeclared 1e-5 N cross-check. Native total/global-category
+IE equals actual TH spring IE without double counting. Refinement reduces
+position, velocity, force and energy errors. Changing stiffness changes the
+actual peak force, maximum compression, release time and impulse consistently
+with the independent reference. This is bounded numerical constitutive evidence,
+not a general surface-contact or physical restitution qualification.
+
+Both actual invalid-input cases were REJECTED/NOT_RUN before Starter and have
+no simulation folder. Every result has null CAD revision, no parent experiment,
+the canonical declared model revision and NOT_RELEASED. Surface contact,
+model/material/physical qualification, strength, fracture/failure, fatigue and
+physical contact peak qualification remain UNKNOWN. The native mass carrier's
+rotational inertia and rotating contact are outside this nonrotating benchmark.
+The prior ideal-wall failures remain REJECTED and unchanged.
+
+`docs/COMPLIANT_DROP_BENCHMARK_20260930.json` records frozen plan, actual runtime
+versions/hashes, checks, metrics, model revisions, resources and every manifest
+hash for the fresh and two rejected attempts. Implementer inspection verified
+all **15 result/thread/ledger records**, **507 manifest artifacts** and the
+fresh runs' **nine captured adapter/parser/domain source files**. All three
+ignored raw stores are retained locally and are not committed or remotely
+durable. No binary runtime, company data or credentials are committed.
+
+Independent read-only review is pending. This isolated source is unpushed and
+has no exact-source remote CI run; base CI36676495776 does not verify these new
+files. A later evidence-only documentation commit is not a new solver run.
+Root owns common registration, launcher/preset/CI integration, durable retention
+and publication. Surface-contact acceptance and the remaining Phase6/52-section
+scope continue beyond this reduced conservative-stop checkpoint.
 
 Before the third attempt, targeted source regressions passed **115 tests in
 17.69 seconds** using the existing WSL Python3.12 environment:
