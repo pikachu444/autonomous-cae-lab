@@ -2,6 +2,18 @@
 
 ## Current serial work: Phase1 persistent OpenScience
 
+Owner steering now requires explicit model choice and official ChatGPT OAuth;
+Root's silent Qwen selection was not an upstream recommendation. Automatic
+Qwen defaults are removed. Auth-only official2.0.146 connection and read-only
+resident-MCP source resource are implemented (ADR0012):19 auth checks,
+52 controller/47 launcher mocks and8 resource tests passed separately, zero
+inference/CAD/Core mutations. Both actual signin attempts ended NOT_COMPLETED with
+exit0/no auth file; preauth catalog also returned exit0/provider error. Neither
+is a connection PASS. Tokens stay outside Git; native OAuth research transport,
+actual connected-MCP resource read, model inference and P1.1 remain OPEN.
+Do not repeat Qwen or silently choose a replacement. Resume the explicit
+ChatGPT path while continuing independent work in this same P1.1 unit.
+
 Current execution order is authoritative in
 [SYSTEM_EXECUTION_PLAN](docs/SYSTEM_EXECUTION_PLAN.md), recorded2026-10-01 after
 the owner's correction. P1.1 is the only active acceptance. It requires actual
@@ -19,18 +31,31 @@ source finding: independent review70d7ff87 passed, commit/push and exact remote
 HEAD are confirmed, and CI36756215416 passed all8 jobs. The changed launcher47
 and unchanged controller52 mocks remain separately attributed.
 
-Fresh actual run p1-openscience-research-4e21d18-20261001-02 is IN_PROGRESS on
-the clean pinned serving worktree. Boot0b6d2141/tree390a04e3 and all293 source
-bodies are retained; actual configured-MCP identity is clean4e21/fixture3e48.
-Version/isolated paths passed. Actual study creation and discovery passed two
-Core tools/eight candidates; official GUI shows the same study ID/receipt.
-Width registration is the current stage, not a completed CAD/research verdict.
-Provider500s/stage600s and unchanged model/tool/CAD/numerical conditions were
-predeclared. Do not checkout this LIVE serving worktree. Continue its existing
-supervisor73420; an observation timeout is not an execution failure/restart.
-Read benchmarks/records/20261001-openscience-research-progress.json. P1.1 stays
-OPEN for registry/CAD/results/interpretation/human inspection/cancellation and
-independent final evidence review. Raw retention is local only.
+Actual run p1-openscience-research-4e21d18-20261001-02 ended FAILED_OR_PARTIAL.
+Five model stages completed: study/discovery/two registrations/registry. Six
+actual Core tool receipts include width38 CAD, with12 artifact hashes and the
+result/thread/ledger checked. Its decision remains NOT_RELEASED and solver NOT_RUN.
+The subsequent model response timed out; rejected CAD/results/interpretation
+were not executed. Elapsed8238.489s exceeds the declared600s; cause UNKNOWN.
+
+The CAD record has core_commit=unavailable/core_dirty=null and fixture commit
+unknown, despite matching Core bytes. The earlier configured-identity probe
+reproduced argv in Root's ordinary environment, not the actual resident MCP
+environment. Later isolated/import read-only comparisons did not reproduce the
+fault. Do not promote these diagnostics or the external boot pin into a common
+provenance PASS or rewrite historical results.
+
+Actual abort200/true and explicit idle were recorded, but the CLI had already
+exited naturally; full in-flight cancellation remains open. On recovery all
+owned4098 processes/listeners were absent, without a controlled Stop receipt;
+termination cause UNKNOWN. Lab8766/8767 are also absent; Root did not kill8766.
+Ollama11434 retains its original PID. New terminal copy preserves2,013files/
+47,157,809bytes with matching original-before/after/copy hashes, locally only.
+Read the run02-failure record; the progress record is an earlier as-at snapshot.
+Main checkpoint1b02796 is remotely confirmed and CI36760156488 all8PASS; this
+is separate from local research failure. P1.1 stays OPEN. Diagnose/fix the actual
+MCP provenance/response bottleneck before a NEW clean-source profile/store;
+do not restart supervisor73420 or merely extend waiting time.
 
 ### Historical clean-a1 and idle-correction candidate checkpoint
 

@@ -5,13 +5,13 @@ param(
     [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot),
     [ValidatePattern('^[A-Za-z][A-Za-z0-9_-]{0,69}$')][string]$RunName = ('openscience-live-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmss')),
     [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$AttemptName = 'attempt-01',
-    [string]$OwnerPath, [string]$StoreRoot, [string]$RuntimePrefix,
+    [string]$OwnerPath, [string]$StoreRoot, [string]$RuntimePrefix, [string]$ModelId,
     [ValidateRange(30,600)][int]$StageTimeoutSeconds = 300,
     [switch]$ConfigureOnly, [switch]$Resume, [switch]$RuntimeChecksOnly
 )
 $taskVerifyOptions=@{
     RepoRoot=$RepoRoot;RunName=$RunName;AttemptName=$AttemptName;OwnerPath=$OwnerPath;StoreRoot=$StoreRoot;RuntimePrefix=$RuntimePrefix
-    StageTimeoutSeconds=$StageTimeoutSeconds;ConfigureOnly=[bool]$ConfigureOnly;Resume=[bool]$Resume;RuntimeChecksOnly=[bool]$RuntimeChecksOnly
+    StageTimeoutSeconds=$StageTimeoutSeconds;ModelId=$ModelId;ConfigureOnly=[bool]$ConfigureOnly;Resume=[bool]$Resume;RuntimeChecksOnly=[bool]$RuntimeChecksOnly
 }
 . (Join-Path $PSScriptRoot 'openscience-local.ps1') -Library
 $ErrorActionPreference='Stop'
@@ -110,7 +110,8 @@ function Complete-OpenScienceAcceptanceRecord {
 
 function Test-OpenScienceLocalLauncher {
     param([string]$RepoRoot,[string]$RunName,[string]$RuntimePrefix)
-    $taskContextArgs=@{RepoRoot=$RepoRoot;RunName=$RunName;ProfileTag='launcher-checks'}
+    # This is a no-provider historical transport fixture, not a research selection.
+    $taskContextArgs=@{RepoRoot=$RepoRoot;RunName=$RunName;ProfileTag='launcher-checks';ModelId='openscience/qwen3-4b-ctx-16384'}
     if($RuntimePrefix){$taskContextArgs.RuntimePrefix=$RuntimePrefix}
     $taskMockContext=New-OpenScienceLocalContext @taskContextArgs
     $taskChecksRoot=Join-Path $taskMockContext.ArtifactRoot 'launcher-checks'
@@ -445,6 +446,7 @@ if($taskVerifyOptions.ConfigureOnly){
     $taskContextArgs=@{RepoRoot=$RepoRoot;RunName=$RunName}
     if($taskVerifyOptions.StoreRoot){$taskContextArgs.StoreRoot=$taskVerifyOptions.StoreRoot}
     if($taskVerifyOptions.RuntimePrefix){$taskContextArgs.RuntimePrefix=$taskVerifyOptions.RuntimePrefix}
+    if($taskVerifyOptions.ModelId){$taskContextArgs.ModelId=$taskVerifyOptions.ModelId}
     New-OpenScienceLocalContext @taskContextArgs | Select-Object RunName,ProfileRoot,ConfigPath,StoreRoot,Model
     return
 }

@@ -2,6 +2,18 @@
 
 ## Authoritative serial queue from the project owner
 
+Latest owner steering: use explicit model selection and prepare official
+ChatGPT OAuth; no more silent Qwen/replacement-model runs. Read ADR0012 and
+the ChatGPT connection preparation record. New auth-only adapter uses the
+existing official2.0.146 and an external marked data directory; no credential
+copy/API-key fallback.19 auth checks,52 controller/47 launcher mocks and8 MCP
+resource tests passed, zero inference/CAD/Core mutations. Both actual logins
+returned0 but NOT_COMPLETED/no auth file; preauth catalog returned0 with
+provider error. Authenticated inference/native OAuth research transport are
+still OPEN. Root must complete login/model/access and actual connected-resource
+verification before a new clean-source research store. Human participates only
+in account authentication/consent. Keep failures/UNKNOWN/NOT_RELEASED intact.
+
 The owner reasserted the complete connected-system objective on2026-10-01.
 Follow [SYSTEM_EXECUTION_PLAN](docs/SYSTEM_EXECUTION_PLAN.md): one active P1.1
 unit, explicit source/runtime/research/GUI/cancellation gates, then the ordered
@@ -19,18 +31,26 @@ admitted/committed/pushed with exact remote confirmation; CI36756215416 all8PASS
 Source review70d7ff87 closes the idle P2 in source, with47 changed launcher plus
 52 separately attributed controller mocks. It does not close actual P1.1.
 
-Fresh research p1-openscience-research-4e21d18-20261001-02 is LIVE on clean4e21/
-fixture3e48 in openscience-integrated. Boot0b6d2141/tree390a04e3/all293 full source
-bodies and clean configured-MCP identity are retained. Actual version/paths,
-study creation and discovery passed; two Core tools/eight candidates. Official
-GUI shows that same study receipt. Width registration is currently executing.
-Continue supervisor73420 and its actual attempt-01 receipts; do not restart on
-observation timeout or checkout the live serving worktree. Budgets500/600 were
-predeclared; model/output4096/steps3/tools/CAD/numerical conditions are unchanged.
-Close registry/CAD/inspect/summary/compare/interpretation, same-record human view,
-actual corrected cancellation/owned cleanup and independent final review before
-P1.2. Read the research-progress record. All raw remains ignored/local only;
-P1.1 OPEN and UNKNOWN/NOT_RELEASED remain unchanged.
+Research p1-openscience-research-4e21d18-20261001-02 is FAILED_OR_PARTIAL, not LIVE.
+Five model stages/six actual Core tools include both registered geometry effects
+and width38 CAD. All12 artifacts/result/thread/ledger bytes were checked. The
+post-CAD model response timed out, while common Git provenance is unavailable/
+unknown. Root's earlier argv identity probe was not an actual resident MCP probe.
+Elapsed8238.489s exceeds the declared600s; both timing and Git cause remain UNKNOWN.
+
+Official abort200/true and explicit idle passed after natural CLI exit; no forced
+CLI termination or full in-flight cancellation is claimed. Owned4098 processes/
+listeners and both Lab listeners are now absent; controlled server Stop was not
+observed, cause UNKNOWN. Preserve the owner receipt and all failures. The terminal
+local copy contains2,013files/47,157,809bytes with matching hashes; raw is not remote.
+Main1b02796 is remotely confirmed and CI36760156488 all8PASS, separate from this
+failed local research. Read the run02-failure record; progress is historical.
+
+CURRENT P1.1: correct the actual MCP provenance/response bottleneck, then use a
+NEW clean-source profile/store. Do not restart terminal supervisor73420 or reuse
+the failed profile; do not solve this by extending waiting time alone. Close
+valid/rejected CAD/results/interpretation/same-record GUI/cancellation and
+independent review before P1.2. UNKNOWN/NOT_RELEASED remain unchanged.
 
 ### Historical clean-a1 and idle-correction candidate checkpoint
 

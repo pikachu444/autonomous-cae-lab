@@ -12,6 +12,16 @@ Currently only **P1.1** is active. Later rows are queued, not running.
 
 ## P1.1 — integrated OpenScience CAD research (ACTIVE)
 
+- [x] Remove silent Qwen defaults and implement official ChatGPT auth-only
+  connection (ADR0012); auth19/controller52/launcher47 checks pass, no inference.
+- [x] Add diagnostic resident-MCP source resource;8 tests including actual
+  stdio pass with no store/CAD/model. Historical unavailable provenance remains.
+- [ ] Complete human ChatGPT authentication and verify explicitly selected
+  model with actual completed inference; first signin/provider catalog failed.
+- [ ] Integrate/review native OAuth transport and read source resource through
+  the actual OpenScience connection before Core mutation. Logical plugin hooks
+  cannot be claimed as final offered-tool/every-HTTP/wire-receipt verification.
+
 - [x] Recover ledger, handoff, state, architecture/ADRs and contract; preserve
   Main33ea11d, pinned fixture3e48bf6 and previous acceptance stores.
 - [x] Import the reviewed six-file a60b854 transport without changing Core or
@@ -46,11 +56,17 @@ Currently only **P1.1** is active. Later rows are queued, not running.
   remote HEAD and CI36756215416 all8PASS. Update the stopped serving worktree.
 - [x] Predeclare NEW run02/provider500s/stage600s with unchanged model/tool/CAD/
   numerical cases; start clean4e21, retain293 source bodies and verify exact
-  configured-MCP identity/version/isolated paths. Full research is IN_PROGRESS.
+  configured argv identity/version/isolated paths. This probe did not establish
+  actual resident MCP Git identity; run02 subsequently failed.
 - [x] Verify actual run02 study/discovery receipts: two Core tools/eight candidates,
   same study ID/receipt visible in official GUI. Record:research-progress.json.
-- [ ] Complete actual registration/effect receipts; research IDs must map to
-  the discovered native paths. Width registration is current, not yet PASS.
+- [x] Verify actual run02 registration/effect receipts: registry revision2,
+  support_width→support_width_mm and bolt_pitch→bolt_pitch_x_mm, both effects PASS.
+- [x] Retain terminal run02 failure and2,013raw files/47,157,809bytes; all original/
+  copied hashes match. Six tools include valid CAD, but its common Git provenance
+  is unavailable/unknown and the follow-up model response timed out.
+- [ ] Close actual MCP source-identity and model-response bottlenecks before a
+  NEW clean-source profile/store. Do not extend timeouts alone or rewrite run02.
 - [ ] Verify width38 valid CAD and bolt30 rejected CAD in the fresh Core store:
   editable/native artifacts, result/thread/ledger/hash/size, retained rejection
   evidence, no export/solver after rejection, UNKNOWN and NOT_RELEASED intact.
@@ -59,8 +75,8 @@ Currently only **P1.1** is active. Later rows are queued, not running.
 - [ ] Inspect the official Workspace in the browser and save its same-session
   tool/results view; verify displayed experiment IDs match the Core store.
 - [ ] Complete actual in-flight cancellation with the corrected idle gate.
-  Run01 confirmed abort200/client_cancelled/natural CLI exit and later idle-before-
-  server-Stop only; missing idle-before-live-CLI-stop P2 retained. Closed failed
+  Run02 confirmed abort200/explicit idle after natural CLI exit; no forced stop or
+  controlled server Stop. Run01's missing-idle P2 remains historical. Closed failed
   raw/store copy:1,633files/40,454,753bytes; original bytes=null manifest retained.
 - [ ] Freeze finished source/output inventory; obtain independent actual-evidence
   review. Update the acceptance record, state, handoff and ledger; commit/push

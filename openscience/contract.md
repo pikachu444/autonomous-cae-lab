@@ -66,7 +66,20 @@ No tool/model settings select a profile or trigger a fallback. Feedback still
 requires the original native numerical gates; qualification stays UNKNOWN and
 decision NOT_RELEASED. See ADR0010 and MATERIAL_INVERSE_RUNTIME_ACCEPTANCE.
 
-The local persistent transport uses the installed pinned official OpenScience
+Read-only MCP resource `caelab://runtime/source-identity` returns the resident
+MCP process/import paths, bounded Git commit/dirty diagnostics and existing
+Core/fixture disk-hash observations. It creates no Lab/store, CAD or model
+request. Failures stay UNKNOWN; disk hashes do not prove cached Python bytecode
+identity or repair experiment provenance. Resource fields are diagnostic data,
+not a new validation/release verdict. See ADR0012.
+
+Research models must be selected explicitly. Official ChatGPT authentication
+uses the installed OpenScience `openai-codex` provider and external owned data
+directory. Auth-only setup has no selected model or tools; login/catalog/exit0
+do not close actual inference/research. Native OAuth transport acceptance remains
+OPEN and cannot claim the legacy proxy's unproved per-HTTP/offered-tool evidence.
+
+The historical local persistent transport uses the installed pinned official OpenScience
 2.0.146 and existing local model. Its attached CLI and official workspace share
 an isolated profile/project/store and exact session IDs. The server pins tracked
 Core/plugin/recursive submodule source before MCP imports Lab; every later

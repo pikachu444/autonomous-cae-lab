@@ -1,0 +1,122 @@
+{
+  "kind": "EXPLICIT_MODEL_AND_CHATGPT_AUTH_PREPARATION",
+  "date_kst": "2026-10-01",
+  "outcome": "PASS_BOUNDED_SOURCE_AND_DIAGNOSTIC_TESTS_ONLY",
+  "source_base_commit": "1b02796eedcf902973df21c6d848c3718dbd1d01",
+  "execution_source": "Main working-tree candidate; source hashes below, not a clean-commit research run",
+  "openscience_version": "2.0.146",
+  "openscience_source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+  "provider": "openai-codex",
+  "selected_research_model": null,
+  "silent_qwen_defaults_removed": true,
+  "fallback_provider_or_api_key": "NONE",
+  "credential_location": "Task-owned external LOCALAPPDATA profile; not copied to Git or from Codex user credentials",
+  "auth_adapter": {
+    "run_name": "chatgpt-connection-check-20261001-05",
+    "checks": 19,
+    "outcome": "PASS",
+    "authentication_attempts": 0,
+    "inference_calls": 0,
+    "core_mutations": 0,
+    "evidence_path": "artifacts/chatgpt-connection-check-20261001-05/connection-checks.json",
+    "evidence_sha256": "5989270ea56aeca45d694bf603bebdb3792e4a2ec662b1ac01ffcb04dc947634",
+    "earlier_checkpoints": [
+      "run01:11 checks",
+      "run02/run03:14 checks",
+      "run04:18 checks"
+    ],
+    "review_findings_closed": [
+      "P1: descendant config/data junctions could redirect credentials; all paths and launch context now revalidated",
+      "P2: native/Node pin and unscoped shadow candidate; native/package/Node bytes pinned and child OPENSCIENCE_BIN_PATH explicitly bound"
+    ]
+  },
+  "legacy_regressions": {
+    "controller_checks": 52,
+    "controller_evidence_sha256": "5080364ffe87394fff2f966054878668d1ca0f6fbf1a6028d07328939875a0fd",
+    "launcher_checks": 47,
+    "launcher_evidence_sha256": "8f60c3ad2b3bbe0f6047aaf1532eae03bb53ae2ec967ac3172612609cab4ffd6",
+    "provider_calls": 0,
+    "core_mutations": 0
+  },
+  "mcp_resource": {
+    "uri": "caelab://runtime/source-identity",
+    "actual_stdio_tests": 8,
+    "final_test_outcome": "8 passed in 16.65s after no-optional-locks/fsmonitor correction",
+    "first_attempt": "7 passed / 1 failed; incorrect dirty-availability test assumption corrected independently of HEAD",
+    "git_timeout_seconds_per_command": 3,
+    "git_commands": 5,
+    "store_created": false,
+    "cad_or_model_calls": 0,
+    "scope": "Resident standalone stdio MCP; on-disk source fingerprints, not cached-bytecode or a repaired provenance verdict",
+    "actual_openscience_connected_resource_read": "OPEN",
+    "git_optional_index_writes": "DISABLED",
+    "configured_fsmonitor_execution": "DISABLED"
+  },
+  "actual_auth_attempts": [
+    {
+      "profile_tag": "chatgpt-cae-20261001-01",
+      "started_utc": "2026-09-30T21:52:07.7142893Z",
+      "completed_utc": "2026-09-30T22:02:16.0677838Z",
+      "official_cli_exit_code": 0,
+      "terminal_message": "Sign-in wasn't completed",
+      "auth_file_exists": false,
+      "outcome": "NOT_COMPLETED",
+      "cause": "UNKNOWN; CLI reported declined, timed out or cancelled",
+      "initial_profile_schema": 1,
+      "schema2_reuse": "REFUSED; retained unchanged"
+    },
+    {
+      "profile_tag": "chatgpt-cae-20261001-02",
+      "profile_schema": 2,
+      "outcome_at_checkpoint": "NOT_COMPLETED",
+      "exec_session_handle": 61179,
+      "credentials_or_device_code_in_this_record": false,
+      "inference_calls": 0,
+      "official_cli_exit_code": 0,
+      "wrapper_exit_code": 1,
+      "auth_file_exists": false,
+      "cause": "UNKNOWN; CLI reported declined, timed out or cancelled"
+    }
+  ],
+  "preauth_catalog_attempt": {
+    "official_cli_exit_code": 0,
+    "error": "Provider not found: openai-codex",
+    "outcome": "FAILED_NOT_AUTHENTICATED",
+    "current_adapter": "Rejects missing authentication before catalog CLI; validates nonempty exact provider IDs/error output instead of trusting exit zero",
+    "catalog_is_inference_entitlement": false
+  },
+  "source_hashes": {
+    "scripts/openscience-chatgpt.ps1": "ce50d78ffa2522494a2b7e650e25b13c74b7b6b772daa5eefe315c94380be3e1",
+    "scripts/verify_openscience_chatgpt.ps1": "5aa169803c159482113267d08fd13ab78b471d2b372a9e042d110b7a9e10bc43",
+    "openscience/mcp_server.py": "5587f058563cfeb898f685eb8573ecd121cddf3f3e85bc61274a38b1c5e9e3c8",
+    "tests/test_mcp_runtime_identity.py": "4d05ac678eb10e1d9354d2d9340c18055981fc32b6b494cc0cf2674e0d7647b1"
+  },
+  "independent_review": {
+    "outcome": "PASS_BOUNDED_SOURCE_CORRECTION",
+    "open_material_findings": [],
+    "scope": "Auth adapter, explicit-model defaults, read-only diagnostic resource and relevant tests; no actual OAuth/research acceptance"
+  },
+  "native_oauth_transport": "OPEN; current legacy Ollama proxy is not a Codex OAuth transport",
+  "oauth_equivalent_offered_tools_every_http_source_pin_and_wire_receipts": "UNKNOWN",
+  "authenticated_inference": "UNVERIFIED",
+  "phase1_full_acceptance": "OPEN",
+  "numerical_and_engineering_thresholds_changed": false,
+  "validation_unknowns_and_not_released_preserved": true,
+  "raw_retention": "Local ignored artifacts only; screenshots/credentials/device codes not committed",
+  "next": [
+    "Complete human ChatGPT authentication; confirm provider/model and actual inference access without silent selection",
+    "Implement/review native OAuth research transport with honestly scoped source/tool/ownership gates",
+    "Read diagnostics through the actual OpenScience MCP connection before mutation",
+    "Run unchanged CAD/research/GUI/cancellation cases in a new clean-source store, then resume the sequential queue"
+  ],
+  "git_lock_checkpoint": {
+    "observed_lock": "old zero-byte .git/index.lock",
+    "last_write_utc": "2026-09-30T22:05:13Z",
+    "windows_git_processes": 0,
+    "wsl_pgrep_git_exit_code": 1,
+    "original_preserved": true,
+    "removed_after_inactivity_check": true,
+    "cause": "UNKNOWN",
+    "resource_git_optional_locking_now_disabled": true
+  }
+}

@@ -4,8 +4,13 @@ Install requirements-mcp.txt in the selected Python environment. The SDK owns
 the protocol; this file only forwards typed research operations to CAE-Lab.
 """
 
+from datetime import datetime, timezone
+import hashlib
+import json
 import os
 from pathlib import Path
+import re
+import subprocess
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -13,9 +18,123 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from mcp.server.fastmcp import FastMCP
 
 from caelab import Lab
+from caelab.adapters import fixture_cadquery
 
 
 mcp = FastMCP("Autonomous CAE Lab")
+
+
+_GIT_TIMEOUT_SECONDS = 3
+_SOURCE_IDENTITY_URI = "caelab://runtime/source-identity"
+
+
+def _diagnostic_error(error: OSError) -> str:
+    if isinstance(error, FileNotFoundError):
+        return "NOT_FOUND"
+    if isinstance(error, PermissionError):
+        return "ACCESS_DENIED"
+    return "IO_ERROR"
+
+
+def _diagnostic_git(root: Path, args: list[str]) -> tuple[str | None, dict]:
+    """Fixed read-only Git probes; never return stderr, argv or environment."""
+    try:
+        # Git status may otherwise write/lock its index even for a diagnostic.
+        # Disable optional index writes and configured fsmonitor execution.
+        result = subprocess.run(["git", "--no-optional-locks", "-c", "core.fsmonitor=false", *args], cwd=root, text=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                timeout=_GIT_TIMEOUT_SECONDS, check=False)
+    except subprocess.TimeoutExpired:
+        return None, {"status": "UNKNOWN", "error": "TIMEOUT"}
+    except OSError as error:
+        return None, {"status": "UNKNOWN", "error": _diagnostic_error(error)}
+    except UnicodeError:
+        return None, {"status": "UNKNOWN", "error": "INVALID_OUTPUT"}
+    if result.returncode != 0:
+        return None, {"status": "UNKNOWN", "error": "NONZERO_EXIT",
+                      "return_code": result.returncode}
+    return result.stdout, {"status": "KNOWN", "error": None, "return_code": 0}
+
+
+def _diagnostic_git_identity(root: Path) -> dict:
+    commit, commit_probe = _diagnostic_git(root, ["rev-parse", "HEAD"])
+    if commit is not None:
+        commit = commit.strip()
+        if not re.fullmatch(r"[0-9a-f]{40}(?:[0-9a-f]{24})?", commit):
+            commit, commit_probe = None, {"status": "UNKNOWN", "error": "INVALID_OUTPUT"}
+    dirty, dirty_probe = _diagnostic_git(
+        root, ["status", "--porcelain", "--untracked-files=normal"])
+    return {"commit": commit or "UNKNOWN", "dirty": None if dirty is None else bool(dirty.strip()),
+            "probes": {"commit": commit_probe, "dirty": dirty_probe}}
+
+
+def _diagnostic_source_hash(root: Path, names: list[str], *, missing_marker: bool = False) -> dict:
+    """Existing Core/fixture path+file-digest semantics, without unbounded Git."""
+    digest = hashlib.sha256()
+    try:
+        if not root.is_dir() or not names:
+            return {"status": "UNKNOWN", "error": "NOT_FOUND", "sha256": None}
+        for name in names:
+            source = root / name
+            if not source.resolve().is_relative_to(root.resolve()):
+                return {"status": "UNKNOWN", "error": "OUTSIDE_SOURCE_ROOT", "sha256": None}
+            digest.update(name.encode())
+            digest.update(hashlib.sha256(source.read_bytes()).digest()
+                          if not missing_marker or source.is_file() else b"MISSING")
+    except OSError as error:
+        return {"status": "UNKNOWN", "error": _diagnostic_error(error), "sha256": None}
+    except (UnicodeError, RuntimeError):
+        return {"status": "UNKNOWN", "error": "INVALID_SOURCE_PATH", "sha256": None}
+    return {"status": "KNOWN", "error": None, "sha256": digest.hexdigest()}
+
+
+@mcp.resource(_SOURCE_IDENTITY_URI, name="resident_mcp_source_identity",
+              mime_type="application/json")
+def runtime_source_identity() -> str:
+    """Read resident MCP import paths and bounded Git/disk source diagnostics.
+
+    This creates no Lab/store, imports no CAD model and supplies no provenance
+    verdict. On-disk fingerprints are not a hash of cached Python bytecode.
+    """
+    core_module = sys.modules[Lab.__module__]
+    core_path = Path(core_module.__file__).resolve()
+    core_root = core_path.parents[1]
+    fixture_root = fixture_cadquery.UPSTREAM.resolve()
+    try:
+        core_files = [*sorted((core_root / "caelab").rglob("*.py")),
+                      *sorted((core_root / "schemas").glob("*.json"))]
+        core_hash = _diagnostic_source_hash(
+            core_root, [path.relative_to(core_root).as_posix() for path in core_files])
+    except OSError as error:
+        core_hash = {"status": "UNKNOWN", "error": _diagnostic_error(error), "sha256": None}
+    fixture_names, fixture_files_probe = _diagnostic_git(
+        fixture_root, ["ls-files", "--cached", "--others", "--exclude-standard", "-z"])
+    fixture_hash = (_diagnostic_source_hash(
+        fixture_root, sorted(set(name for name in fixture_names.split("\0") if name)),
+        missing_marker=True) if fixture_names is not None else
+        {"status": "UNKNOWN", "error": fixture_files_probe["error"], "sha256": None})
+    imported_fixture = {
+        name: str(Path(module.__file__).resolve())
+        for name, module in list(sys.modules.items())
+        if (name == "fixturelab" or name.startswith("fixturelab."))
+        and getattr(module, "__file__", None)
+    }
+    return json.dumps({
+        "schema_version": 1, "resource": _SOURCE_IDENTITY_URI, "diagnostic_only": True,
+        "observed_at": datetime.now(timezone.utc).isoformat(),
+        "fingerprint_observation": "on-disk source; not cached imported Python bytecode",
+        "process": {"pid": os.getpid(), "python_executable": sys.executable,
+                    "mcp_server_path": str(Path(__file__).resolve())},
+        "core": {"module_path": str(core_path), "repo_path": str(core_root),
+                 "git": _diagnostic_git_identity(core_root),
+                 "fingerprint": {**core_hash, "semantics": "caelab.storage.source_identity"}},
+        "fixture": {"adapter_module_path": str(Path(fixture_cadquery.__file__).resolve()),
+                    "repo_path": str(fixture_root), "imported_module_paths": imported_fixture,
+                    "git": _diagnostic_git_identity(fixture_root),
+                    "files_probe": fixture_files_probe,
+                    "fingerprint": {**fixture_hash,
+                                    "semantics": "FixtureCadQueryAdapter.source_fingerprint"}},
+    }, sort_keys=True, allow_nan=False)
 
 
 def _lab() -> Lab:

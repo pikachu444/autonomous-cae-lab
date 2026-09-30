@@ -1,0 +1,126 @@
+{
+  "kind": "ACTUAL_OPENSCIENCE_RESEARCH_FAILURE_CHECKPOINT",
+  "date_kst": "2026-10-01",
+  "run_name": "p1-openscience-research-4e21d18-20261001-02",
+  "outcome": "FAILED_OR_PARTIAL",
+  "source_commit": "4e21d18341cbc5a516aae2234c3eae3fd770aa4f",
+  "source_dirty": [],
+  "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "boot_source_sha256": "0b6d21410c8acf837f4ea8ea05469b7e31e33ab35e8c6e96e8f3bf3cb84516fd",
+  "source_tree_sha256": "390a04e36a9a0e36d0f1e481ecc82b37f1099bc00e351cd45386c56f4c659fc4",
+  "retained_source_bodies": 293,
+  "openscience_version": "2.0.146",
+  "openscience_source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+  "model": "ollama/openscience/qwen3-4b-ctx-16384",
+  "model_digest": "a522615430db239a0ca6bdf03113a8bfa2a2788a91b47fae317b76354802fa44",
+  "predeclared_provider_timeout_seconds": 500,
+  "predeclared_stage_timeout_seconds": 600,
+  "output_tokens": 4096,
+  "steps": 3,
+  "completed_model_stages": [
+    "01-study-create",
+    "02-discovery",
+    "03-register-width",
+    "04-register-bolt",
+    "05-registry"
+  ],
+  "actual_core_tool_receipts": 6,
+  "study_id": "S-p1-openscience-research-4e21d18-20261001-02",
+  "discovered_candidates": 8,
+  "registry": {
+    "revision": 2,
+    "entries": [
+      {"research_id": "support_width", "native_path": "support_width_mm", "geometry_effect": "PASS"},
+      {"research_id": "bolt_pitch", "native_path": "bolt_pitch_x_mm", "geometry_effect": "PASS"}
+    ]
+  },
+  "valid_cad": {
+    "experiment_id": "E-p1-openscience-research-4e21d18-20261001-02-width38",
+    "status": "COMPLETED_REVIEW_REQUIRED",
+    "decision": "NOT_RELEASED",
+    "solver": "NOT_RUN",
+    "cad_revision": "fbd9c71fcd6748171cfc9cac1f7ddea804937477c84e6f1dc6536aaeeaa158af",
+    "bounds_mm": [38, 40, 26],
+    "registered_artifacts": 12,
+    "root_verified_result_thread_ledger_and_artifact_bytes": true,
+    "result_sha256": "b600cea8d6874b0946f91ce3717c9074244e87eea86aac5dbbbaabd9bffc30cd",
+    "thread_sha256": "e383823a506c39be8b3d780811abc85d9868dab212a9aa622e69f40ea11561b1",
+    "common_provenance": {
+      "core_commit": "unavailable",
+      "core_dirty": null,
+      "fixture_source_commit": "unknown",
+      "core_source_sha256": "d1e39d12a6ad143c9ab4c810440a7bf655dd7e6fb96b7304fde2dfa9b6bfc89c"
+    },
+    "full_source_provenance_gate": "OPEN",
+    "unknown_validations": ["machine_interface", "static_strength", "physical_load_test", "fatigue_durability"]
+  },
+  "failure": {
+    "stage": "06-valid-cad",
+    "message": "Stage 06-valid-cad exceeded its external timeout; persisted bytes remain.",
+    "exit_code": 1,
+    "timed_out": true,
+    "elapsed_seconds": 8238.489,
+    "elapsed_exceeds_declared_budget_cause": "UNKNOWN",
+    "first_provider_response_seconds": 97.635,
+    "followup_request_size_bytes": 38377,
+    "followup_tool_content_characters": 26069,
+    "followup_started_utc": "2026-09-30T18:46:02.473Z",
+    "followup_client_cancelled_utc": "2026-09-30T18:52:50.429Z",
+    "followup_stream_done_observed": false,
+    "model_latency_cause": "UNKNOWN",
+    "git_failure_cause": "UNKNOWN"
+  },
+  "cancellation": {
+    "session_id": "ses_f0c5ef68bffez3HlE2IOPHZKkx",
+    "cli_natural_exit_utc": "2026-09-30T21:00:39.926Z",
+    "official_abort_http_status": 200,
+    "official_abort_confirmed": true,
+    "official_abort_completed_utc": "2026-09-30T21:00:46.1441449Z",
+    "idle_confirmed": true,
+    "idle_observed_utc": "2026-09-30T21:00:53.2950808Z",
+    "idle_status_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "launcher_stop_already_exited": true,
+    "forced_cli_stop_observed": false,
+    "abort_caused_earlier_provider_cancellation": "NOT_ESTABLISHED",
+    "full_in_flight_cancellation_acceptance": "OPEN"
+  },
+  "terminal_retention": {
+    "original_owner_state_rewritten": false,
+    "original_owned_windows_pids_now_absent": true,
+    "ports_4098_8767_now_absent": true,
+    "controlled_server_stop": "NOT_OBSERVED",
+    "termination_cause": "UNKNOWN",
+    "prior_lab8766_now_absent": true,
+    "root_stopped_prior_lab": false,
+    "ollama11434_original_pid_retained": true,
+    "store_files": 21,
+    "local_raw_copy_files": 2013,
+    "local_raw_copy_bytes": 47157809,
+    "original_before_after_and_copy_hashes_match": true,
+    "manifest_sha256": "32c60aff5069cf7ab4775d5d53008254961f10e1afc0c6e61a39e5fb6695265e",
+    "manifest_path": "artifacts/p1-openscience-research-4e21d18-20261001-02/terminal-runtime-copy-manifest.json",
+    "raw_remote_retention": "NOT_ESTABLISHED"
+  },
+  "diagnosis_limits": [
+    "The original configured-identity probe used the configured WSL argv in Root's ordinary environment; it was not an actual resident MCP process probe.",
+    "Later read-only isolated-environment and FastMCP/CAD import comparisons reported correct Git identity but did not reproduce the actual OpenScience subprocess environment.",
+    "Byte integrity and an external boot source pin do not repair the stored unavailable/unknown Git provenance.",
+    "The 1b02796 progress record remains an earlier as-at snapshot; it is not a terminal PASS."
+  ],
+  "exact_ci": [
+    {"source_commit": "4e21d18341cbc5a516aae2234c3eae3fd770aa4f", "run_id": 36756215416, "jobs_passed": 8},
+    {"source_commit": "1b02796eedcf902973df21c6d848c3718dbd1d01", "run_id": 36760156488, "jobs_passed": 8, "saved_receipt_sha256": "0f0bb92569850505deb576242858237a61373e2cf4e6c79d4ed987b32582528e"}
+  ],
+  "unexecuted_run02_gates": [
+    "bolt30 rejected CAD",
+    "actual inspect/summary/compare",
+    "grounded final interpretation",
+    "same-revision valid/rejected CAD GUI inspection",
+    "full in-flight cancellation and controlled server Stop",
+    "independent final actual-evidence review"
+  ],
+  "next_serial_gate": "Close the actual MCP provenance/response bottleneck using a bounded correction, then a new clean-source profile/store; do not repeat this failed profile or simply extend timeouts.",
+  "p1_1": "OPEN",
+  "complete_phase_claim": false,
+  "complete_project_claim": false
+}

@@ -58,14 +58,14 @@ and verified work remains useful at its recorded source and scope.
 | Gate | Current evidence | Completion requirement |
 | --- | --- | --- |
 | Source admission | Main4e21 idle correction independently reviewed/pushed; CI36756215416 all8PASS;47 changed launcher plus unchanged52 controller mocks | Source finding closed. Mocks add no actual model/Core credit. |
-| Clean runtime | Fresh clean4e21 run02 boot0b6d2141/tree390a04e3,293 source bodies, configured-MCP identity/version/isolated paths verified; earlier a1 readiness/Stop independently passed | Bind finished research/cancellation to this fresh boot/runtime; independently review actual evidence. |
-| Actual research | Run02 IN_PROGRESS: actual study/discovery passed two tools/eight candidates; width registration active. Run01 failure retained. | Finish registration, width38 CAD, bolt30 rejection, inspect/summary/compare and grounded interpretation; verify artifacts/ledgers. |
+| Clean runtime | Clean4e21 run02 retains boot0b6d2141/tree390a04e3/293 source bodies. Actual CAD Git provenance is unavailable/unknown; ordinary argv probe did not prove resident MCP identity. Runtime now absent without controlled Stop evidence. | Correct and verify actual MCP source identity in a new runtime before mutation; independently review actual evidence. |
+| Actual research | Run02 FAILED_OR_PARTIAL after five completed model stages/six Core receipts including registry and valid CAD; post-CAD response timeout. Run01 failure retained. | Fix provenance/response bottleneck, then a new clean-source store for valid/rejected CAD, inspect/summary/compare and interpretation; preserve all old bytes. |
 | Human inspection | Fresh official GUI shows exact run02 study ID/tool receipt; earlier GUI/Lab checks have separate source/run IDs | Inspect actual valid/rejected CAD and results from the same new project/sessions/Core experiment revisions. |
-| Cancellation | Run01 abort200/client_cancelled/natural CLI exit and later idle-before-server-Stop verified; missing explicit idle-before-live-CLI-stop P2 | Admit bounded idle gate, then actual in-flight cancellation with idle/final log/owned cleanup receipts. |
+| Cancellation | Run02 abort200/explicit idle after natural CLI exit; no forced CLI stop. Original run01 missing-idle finding retained and source corrected. | Actual in-flight cancellation with idle/final log/controlled owned cleanup receipts remains open. |
 | Checkpoint | Not complete | Independent actual-evidence review, precise acceptance/state/ledger updates, commit/push. CI and Windows runtime proof stay separately attributed. |
 
-Do not move/checkout a live serving worktree. Keep Lab8766 pinned to d36387b
-while Main advances. Use a distinct clean pinned worktree/profile/new store
+Do not move/checkout a live serving worktree. The prior d36387b Lab8766 is now
+absent; do not assume it survives another session. Use a clean pinned profile/new store
 for P1.1. Preserve all old sessions, stores, raw bytes and failed attempts.
 
 P1.1 bounded deployment correction: native WSL Git cannot follow a Windows
@@ -85,6 +85,13 @@ provider500s/stage600s from observed181.471s provider plus about95s tool latency
 output4096/steps3 and all CAD/validation cases stay unchanged.
 
 ## Remaining phase queue
+
+Current P1.1 model correction follows ADR0012: no implicit Qwen or replacement
+selection. Complete official ChatGPT account authentication, explicit model/
+actual inference access, native transport integration and connected-MCP source
+diagnostics, then the existing CAD/research/GUI/cancellation gates. Auth14 and
+MCP resource8 checks add no solver or full-phase acceptance credit. Native
+OAuth must not inherit unproved proxy-equivalent request evidence.
 
 Each row is ordered work within its phase, executed one bounded unit at a time.
 Complete earlier independent software/integration gates before opening the

@@ -1,18 +1,53 @@
 # OpenScience local runtime acceptance — 2026-09-30
 
-## Latest Main idle-source admission and fresh research progress, 2026-10-01
+## Explicit model and ChatGPT connection preparation, 2026-10-01
+
+ADR0012 removes silent Qwen defaults and adds the official auth-only ChatGPT
+adapter plus a read-only resident-MCP resource.19 auth checks,52 controller/
+47 launcher mocks and8 actual-stdio/resource tests passed, separately scoped;
+zero inference/CAD/Core mutations. First resource test7PASS/1FAIL assumed dirty
+availability from HEAD; correction preserves UNKNOWN and the3s Git timeout.
+
+Actual installed `keys signin` started21:52:07UTC and ended22:02:16UTC with
+`Sign-in wasn't completed`, exit0 and no auth file. Preauth model catalog also
+returned exit0 with `Provider not found`; the adapter now rejects these false
+success cases. Account authentication remains necessary. No model was selected
+or inferred. Credentials remain outside the public repository.
+
+Native OAuth research transport and actual OpenScience-connected resource read
+are OPEN. Public plugin hooks are narrower than the legacy Ollama proxy's
+offered-tool/wire/source-before-every-HTTP checks; no equivalent claim or P1.1
+promotion is made. See the ChatGPT connection preparation record. Old model/
+source/run evidence below stays historical; UNKNOWN/NOT_RELEASED are unchanged.
+
+## Latest run02 failure and retained actual progress, 2026-10-01
 
 Source4e21d18341cbc5a516aae2234c3eae3fd770aa4f is independently admitted,
 committed/pushed and exact remote confirmed; CI36756215416 all8PASS. Review
 70d7ff87 closes the timeout-idle P2 in source only. Changed launcher47 plus
 unchanged controller52 mocks remain separate from actual execution.
 
-Fresh run02 is IN_PROGRESS on clean4e21/fixture3e48. Boot0b6d2141/tree390a04e3,
-293 full source bodies, configured-MCP identity and real version/paths are
-retained. Actual study/discovery passed two Core tools/eight candidates;
-official GUI shows the same study ID/receipt. Registration is active. No full
-CAD/research/interpretation/cancellation/P1.1 verdict is established yet.
-See [the progress record](../benchmarks/records/20261001-openscience-research-progress.json).
+Run02 ended FAILED_OR_PARTIAL. Five model stages completed; six actual Core
+receipts include both geometry-effect registrations and width38 CAD. Twelve
+artifacts and result/thread/ledger hashes match, with editable source retained.
+The post-CAD response timed out; elapsed8238.489s exceeds the declared600s,
+cause UNKNOWN. Rejected CAD/results/final interpretation were not executed.
+
+Common CAD Git provenance is unavailable/unknown, although its Core bytes match.
+Root's ordinary configured-argv probe is narrower than the actual resident MCP
+environment; isolated/import comparisons did not reproduce the fault. None
+repairs the stored result or closes provenance. Actual abort/idle were recorded
+after natural CLI exit; forced termination/full in-flight cancellation remain
+unverified. On recovery owned4098 and both Lab listeners were absent, without
+controlled server Stop evidence. Termination cause UNKNOWN; Root did not kill8766.
+
+All2,013 raw/store files/47,157,809bytes are copied unchanged locally. The original
+owner and failed receipts are preserved. Source checkpoint1b02796 is remote and
+CI36760156488 all8PASS, separately attributed. Correct the actual MCP/response
+bottleneck before a new source/profile/store; P1.1 remains OPEN. See
+[the failure record](../benchmarks/records/20261001-openscience-research-run02-failure.json).
+The [progress record](../benchmarks/records/20261001-openscience-research-progress.json)
+remains an earlier as-at snapshot.
 Earlier sections below retain their source/run/time scope and failed attempts.
 UNKNOWN/NOT_RELEASED and ignored/local-only raw retention remain in force.
 

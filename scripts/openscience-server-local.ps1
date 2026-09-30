@@ -9,7 +9,7 @@ param(
     [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ProfileTag = 'runtime',
     [string]$StoreRoot,
     [string]$RuntimePrefix,
-    [string]$ModelId = 'openscience/qwen3-4b-ctx-16384',
+    [string]$ModelId,
     [string]$WslDistro = 'Ubuntu',
     [string]$WslPython = '/home/pikachu444/.local/share/autonomous-cae-lab/venv-py312/bin/python',
     [string[]]$AllowedTools = @('caelab_study_create', 'caelab_study_inspect', 'caelab_parameters_discover',
@@ -334,7 +334,7 @@ function New-OpenScienceLocalContext {
         [Parameter(Mandatory)][ValidatePattern('^[A-Za-z0-9_-]+$')][string]$RunName,
         [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ProfileTag = 'runtime',
         [string]$StoreRoot, [string]$RuntimePrefix,
-        [string]$ModelId = 'openscience/qwen3-4b-ctx-16384',
+        [string]$ModelId,
         [string]$WslDistro = 'Ubuntu',
         [string]$WslPython = '/home/pikachu444/.local/share/autonomous-cae-lab/venv-py312/bin/python',
         [AllowEmptyCollection()][string[]]$AllowedTools = $script:OpenScienceBoundedTools,
@@ -350,7 +350,8 @@ function New-OpenScienceLocalContext {
     $wslStore = ConvertTo-OpenScienceWslPath $StoreRoot
     if (-not $RuntimePrefix) { $RuntimePrefix = Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\runtimes\openscience-2.0.146' }
     $RuntimePrefix = [IO.Path]::GetFullPath($RuntimePrefix)
-    Assert-OpenScienceCondition ($ModelId -eq 'openscience/qwen3-4b-ctx-16384') 'This verified profile uses the existing preserved-original 16384-token alias.'
+    Assert-OpenScienceCondition (-not [string]::IsNullOrWhiteSpace($ModelId)) 'Choose a provider/model explicitly. No research model is selected automatically; the legacy Ollama transport does not support ChatGPT OAuth.'
+    Assert-OpenScienceCondition ($ModelId -eq 'openscience/qwen3-4b-ctx-16384') 'This legacy Ollama transport only accepts its explicitly selected historical alias. Use the official ChatGPT connection for OAuth; no fallback is permitted.'
     Assert-OpenScienceCondition ($WslDistro -match '^[A-Za-z0-9_.-]+$' -and $WslPython -match '^/[^\r\n]+$') 'Invalid existing WSL runtime reference.'
     $AllowedTools = @($AllowedTools)
     Assert-OpenScienceCondition (@($AllowedTools | Sort-Object -Unique).Count -eq $AllowedTools.Count) 'Duplicate allowed tools are not permitted.'

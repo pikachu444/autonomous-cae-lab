@@ -5,7 +5,7 @@ param(
     [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot),
     [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$RunName = ('openscience-local-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmss')),
     [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ProfileTag = 'runtime',
-    [string]$StoreRoot, [string]$RuntimePrefix, [string]$OwnerPath, [string]$RequiredTool,
+    [string]$StoreRoot, [string]$RuntimePrefix, [string]$OwnerPath, [string]$RequiredTool, [string]$ModelId,
     [ValidateRange(30, 600)][int]$TimeoutSeconds = 300,
     [string[]]$OpenScienceArgs = @('--version')
 )
@@ -13,7 +13,7 @@ param(
 $taskFacade = @{
     Library=[bool]$Library; Install=[bool]$Install; ConfigureOnly=[bool]$ConfigureOnly
     RepoRoot=$RepoRoot; RunName=$RunName; ProfileTag=$ProfileTag; StoreRoot=$StoreRoot; RuntimePrefix=$RuntimePrefix
-    OwnerPath=$OwnerPath; RequiredTool=$RequiredTool; TimeoutSeconds=$TimeoutSeconds; Arguments=$OpenScienceArgs
+    OwnerPath=$OwnerPath; RequiredTool=$RequiredTool; ModelId=$ModelId; TimeoutSeconds=$TimeoutSeconds; Arguments=$OpenScienceArgs
 }
 . (Join-Path $PSScriptRoot 'openscience-server-local.ps1') -Library
 
@@ -345,6 +345,7 @@ $taskContext=if($taskFacade.OwnerPath){Get-OpenScienceLocalRuntime -OwnerPath $t
     $taskContextArgs=@{RepoRoot=$taskFacade.RepoRoot;RunName=$taskFacade.RunName;ProfileTag=$taskFacade.ProfileTag}
     if($taskFacade.StoreRoot){$taskContextArgs.StoreRoot=$taskFacade.StoreRoot}
     if($taskFacade.RuntimePrefix){$taskContextArgs.RuntimePrefix=$taskFacade.RuntimePrefix}
+    if($taskFacade.ModelId){$taskContextArgs.ModelId=$taskFacade.ModelId}
     New-OpenScienceLocalContext @taskContextArgs
 }
 if($taskFacade.ConfigureOnly){$taskContext | Select-Object RunName,ProfileRoot,ConfigPath,StoreRoot,Model;return}

@@ -10,12 +10,13 @@ param(
     [ValidateRange(256, 2048)][int]$OutputTokens = 768,
     [ValidateRange(2, 4)][int]$Steps = 2,
     [ValidateRange(30, 600)][int]$ProviderTimeoutSeconds = 150,
-    [string]$ModelId = 'openscience/qwen3-4b-ctx-16384',
+    [string]$ModelId,
     [string]$WslDistro = 'Ubuntu',
     [string]$WslPython = '/home/pikachu444/.local/share/autonomous-cae-lab/venv-py312/bin/python'
 )
 
 $ErrorActionPreference = 'Stop'
+if ([string]::IsNullOrWhiteSpace($ModelId)) { throw 'Select a model explicitly. This legacy Ollama configuration does not connect ChatGPT OAuth and will not choose a fallback model.' }
 if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'PowerShell 7 is required for native ArgumentList handling.' }
 $RepoRoot = [IO.Path]::GetFullPath($RepoRoot)
 if ($RepoRoot -notmatch '^([A-Za-z]):[\\/](.+)$') { throw 'The WSL bridge requires an absolute Windows drive path.' }

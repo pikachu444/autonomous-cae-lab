@@ -2,6 +2,14 @@
 
 2026-09-30. 사용법 설명을 화면 재설계 지시로 해석하지 않는다.
 
+2026-10-01 현재 연결: Qwen 자동 선택을 제거했다. 공식 OpenScience2.0.146은
+ChatGPT 로그인(`keys signin`, provider `openai-codex`)을 지원하며,
+`scripts/openscience-chatgpt.ps1`이 저장소 밖의 별도 인증 프로필을 준비한다.
+사용자는 본인 계정 로그인·동의만 수행한다. 주 세션이 설정·실행·검증을 담당한다.
+첫 로그인은 완료되지 않았고 실제 모델 응답과 연구 transport는 아직 검증 전이다.
+로그인 성공이나 모델 목록을 연구 완료로 취급하지 않는다. 모델은 명시적으로 선택하며
+다른 모델이나 유료 API로 자동 전환하지 않는다. 아래 Ollama 실행 예는 과거 경로다.
+
 ## 어떤 화면을 쓰는가
 
 Autonomous CAE Lab의 로컬 화면(현재 127.0.0.1:8766)은 사람이 연구·CAD·해석·결과
@@ -44,12 +52,13 @@ parameters_discover/register/list, experiment_run/inspect/summary/compare다.
 배포판은 -WslDistro로 지정한다.
 기존 -Install 인자는 호환을 위해 남겨 둔 버전 확인이며 설치하지 않는다는 경고를 출력한다.
 
-아래는 새 run/profile/store를 사용하는 예다. 포트가 이미 사용 중이면 기존 서버를
+아래는 모델을 명시한 과거 Ollama 경로의 새 run/profile/store 예다. 현재 ChatGPT
+연결 지시의 대체 실행으로 사용하지 않는다. 포트가 이미 사용 중이면 기존 서버를
 인수하지 않고 실패한다. 다른 실행의 4096 또는 Lab 8766 프로세스를 종료하지 않는다.
 
 ~~~powershell
 $run = 'openscience-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmss')
-$runtime = & .\scripts\openscience-server-local.ps1 -Mode Start -RunName $run -Port 4098
+$runtime = & .\scripts\openscience-server-local.ps1 -Mode Start -RunName $run -Port 4098 -ModelId 'openscience/qwen3-4b-ctx-16384'
 $runtime.WorkspaceURL
 ~~~
 
