@@ -28,6 +28,27 @@ Solver-independent metadata and common model_revision are frozen; native syntax
 remains in the adapter. The first independent Code_Aster elasticity case is
 bounded by ADR 0007 and retains strength/physical UNKNOWN and NOT_RELEASED.
 
+`model_parameters.discover(backend, settings)` returns actual named scalar
+inputs for adapters that implement checked bindings.
+`model_parameters.register(study_id, backend, settings, input_id, parameter_id,
+display_name, lower, upper, mode?)` maps a selected input to a research ID.
+Its `input_effect` checks declaration round-trip only, not CAD or physical
+qualification. Core freezes all other model settings and metadata.
+
+`model_optimization.plan(study_id, campaign_id, backend, settings, parameter_ids,
+objective, constraints, seed, max_generations?, population_size?, initial_values?,
+required_validations?, engine?)` uses the existing deterministic numerical
+engine. Metric source is `model`; run/inspect reuse `optimization.run/inspect`.
+Each candidate is one real declared-model experiment with no CAD parent,
+frozen runtime/source identity and an independent model revision. Only valid
+measured scalars feed the numerical engine. Domain rejection retains
+REJECTED/NOT_RUN; malformed binding contracts stop execution. Frozen metadata
+cannot change at a later describe or inspection. See ADR 0009.
+
+CLI additions are `model-inputs discover/register` and `optimize plan-model`.
+MCP names are `model_parameters_discover`, `model_parameters_register` and
+`model_optimization_plan`; the existing `optimization_run/inspect` apply.
+
 The earlier cloud process-identity failure remains historical. The primary
 Windows session installed pinned Synthetic Sciences OpenScience 2.0.146 with
 an isolated profile/local provider and connected this MCP server. A failed live

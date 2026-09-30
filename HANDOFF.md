@@ -1,5 +1,16 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Declared-input route continuation
+
+The verified additive model-input implementation is ready for a clean-source
+native campaign. Run `scripts.verify_model_optimization` in a fresh store:
+Code_Aster E in 100000–300000 MPa, measured axial displacement objective,
+unchanged numerical gates, seed13/population5/one generation/at most10 unique
+evaluations. The script preserves an interrupted first two candidates, resumes
+without rerunning them, and verifies completed reuse with no live adapters.
+The 224 regression tests and 26-tool MCP checks passed; native optimization is
+PENDING and cannot be inferred from metadata tests. Root owns integration.
+
 ## Start here
 
 Repository: [pikachu444/autonomous-cae-lab](https://github.com/pikachu444/autonomous-cae-lab).

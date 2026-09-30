@@ -1,5 +1,68 @@
 # Current state — 2026-09-30 (Asia/Seoul)
 
+## Declared-input numerical engine checkpoint
+
+Core now supports an additive declared-model input route through the existing
+SciPy DE engine, journal, gates and replay. Typed input bindings independently
+preserve every unselected setting and declaration; runtime/source drift and
+forged completed records fail closed. CAD optimization keeps its existing route.
+ADR 0009 and the OpenScience contract record the boundary.
+The final frozen-source parameter/model/optimizer/CAD/declared-model suites
+passed 224 tests in 634.04 seconds. Actual MCP verification exposed 26 tools,
+ran the existing CAD/DOE/search checks and passed model discover/register/plan
+metadata checks; it did not execute a native model candidate.
+Fresh clean-source native modulus search is the next acceptance gate.
+See [the unit record](benchmarks/records/20260930-declared-input-engine.json).
+All phases remain partial; physical qualification remains UNKNOWN/NOT_RELEASED.
+
+## Active implementation checkpoint
+
+Source `03bfd7115ca3933cb18af17c55cc751839e91c98` was pushed. Its exact-source
+[CI 36676495776](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36676495776)
+passed seven jobs and 506 tests. Fresh local clean Code_Aster acceptance passed
+three experiments. Independent archive inspection passed 43/45 CI experiments
+and three campaigns; two Code_Aster archives omitted a registered hidden
+Matplotlib cache file. This checkpoint fixes upload scope to retain hidden
+files inside the seven explicit benchmark output roots; new archive proof is pending.
+
+Fresh HTTP clean-01 retained valid/rejected CAD, PDE, historical library and
+bundle proof, but optimization campaign inspection timed out at 180 seconds.
+The failure is preserved. This checkpoint removes duplicate campaign summary
+work and repeated solver artifact checks within a single Core inspection, with
+payload integrity checks before and after aggregation. Reporter/server tests
+passed 105 cases plus two added service mutation cases; the real DE regression
+passed, with its parent integrity recursion retained. Fresh HTTP reproduction
+is pending. See [the checkpoint record](benchmarks/records/20260930-connected-inspection-repair.json).
+
+Correction source `d0473e4` CI 36683183680 failed one test (512 passed): the two
+new synthetic service campaigns leaked into a shared test fixture's overview.
+They now use per-test temporary routing outside that store. Native jobs were
+skipped; neither this CI nor the upload repair has new numerical proof yet.
+
+Actual MFront material-point, Code_Aster plasticity and OpenRadioss execution
+continue in isolated worktrees with independent review. Their new native
+acceptance remains open; observed runtime/parser/contact failures are retained.
+Root is connecting declared-model inputs to the existing numerical engine.
+All phases 1–7 and all 52 requirements remain active, not complete.
+
+## Isolated material-point verified checkpoint
+
+The earlier active checkpoint above predates the completed material-point
+acceptance. Source `c29d6af2a47578b5100ade7d52109d3772e71940` passed fresh
+`runs/material-point-native-08-clean`: canonical and changed modulus native
+MGIS/MTest/Hooke/FD comparisons passed all frozen gates, with 150 retained
+artifacts independently checked. The invalid Poisson input was rejected before
+native execution. Evidence-only commit
+`84f702fb3d0ab741fe747b651ec94aaa60eba1aa` records independent bounded PASS;
+it is not a new solver run. Exact-source CI remains NOT_RUN. Eight qualification
+and deployment requirements remain UNKNOWN and every result is NOT_RELEASED.
+See [the material-point acceptance](docs/MATERIAL_POINT_ACCEPTANCE.md).
+
+The isolated follow-on inverse prerequisite freezes a synthetic-reference
+observation and only advertises Young modulus. Its implementation and pure
+contract tests are in progress; no inverse native campaign has run. The shared
+declared-input feature is being integrated from Root source
+`933005556d7522dd8f8dbb6c29cc2334f96b3398` without modifying the primary checkout.
 ## Whole-project continuation remains active
 
 The numerical checkpoint did not complete the 52 requirements. Root stopped

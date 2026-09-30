@@ -8,6 +8,7 @@ It never imports the fixture mesher or assumes loaded/support nodes disjoint.
 from __future__ import annotations
 
 import hashlib
+from copy import deepcopy
 import json
 import math
 import os
@@ -402,6 +403,43 @@ class CodeAsterElasticityAdapter:
                        "max_component_stress_error", "stress_relative_error", "reaction_x",
                        "reaction_absolute_error", "reaction_relative_error",
                        "mesh_axial_displacement_difference", "mesh_agreement_relative"]
+    input_source_files = (Path(__file__).resolve(), WORKER, _DOMAIN_SOURCE)
+
+    def describe_inputs(self, settings: dict) -> list[dict]:
+        normalized = validate_settings(settings)
+        return [{"id": "youngs_modulus_mpa", "label": "Young's modulus", "unit": "MPa",
+                 "value": normalized["material"]["youngs_modulus_mpa"],
+                 "lower": 1.0, "upper": 1e7,
+                 "settings_path": ["material", "youngs_modulus_mpa"],
+                 "declaration_paths": [["model", "materials", 0, "youngs_modulus", "value"]]}]
+
+    def bind_inputs(self, settings: dict, values: dict) -> dict:
+        if set(values) != {"youngs_modulus_mpa"}:
+            raise ValueError("Only the advertised modulus is supported by this binding")
+        bound = deepcopy(settings)
+        bound["material"]["youngs_modulus_mpa"] = values["youngs_modulus_mpa"]
+        return bound
+
+    def input_runtime_identity(self) -> dict:
+        image_name = os.environ.get("CAELAB_CODEASTER_IMAGE")
+        expected = os.environ.get("CAELAB_CODEASTER_IMAGE_SHA256")
+        if not image_name or not expected or not re.fullmatch(r"[0-9a-f]{64}", expected):
+            raise ValueError("Model campaigns require a configured Code_Aster image and digest")
+        image = Path(image_name).resolve()
+        if not image.is_file() or _sha256(image) != expected:
+            raise ValueError("Configured model runtime image does not match its digest")
+        binaries = {}
+        for name, command in (("gmsh", "gmsh"),
+                              ("singularity", os.environ.get("CAELAB_SINGULARITY_COMMAND", "singularity")),
+                              ("prlimit", "prlimit")):
+            location = shutil.which(command)
+            if location is None:
+                raise ValueError(f"Model runtime requires {name}")
+            path = Path(location).resolve()
+            binaries[name] = {"path": str(path), "sha256": _sha256(path)}
+        return {"image_sha256": expected, "image_bytes": image.stat().st_size,
+                "oci_manifest_sha256": OCI_MANIFEST_SHA256, "binaries": binaries,
+                "omp_num_threads": os.environ.get("OMP_NUM_THREADS", "2")}
 
     def describe_model(self, settings: dict) -> dict:
         declaration = model_declaration(settings)

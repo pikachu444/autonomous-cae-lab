@@ -99,5 +99,26 @@ class PDEAdapter(ModelAnalysisAdapter, Protocol):
     """Compatible specialized name for declared mathematical PDE operations."""
 
 
+class ParameterizedModelAdapter(ModelAnalysisAdapter, Protocol):
+    """Optional pure, named scalar bindings for declared-model campaigns.
+
+    Input descriptors contain id, label, unit, value, lower, upper and trusted
+    settings_path/declaration_paths lists of typed keys to existing scalar
+    leaves. Core independently applies these locations and freezes all other
+    context. Users select names, never supply native paths or code. Source
+    files and the nonempty runtime identity are frozen before evaluations.
+    """
+
+    input_source_files: tuple[Path, ...]
+
+    def describe_model(self, settings: dict) -> dict: ...
+
+    def describe_inputs(self, settings: dict) -> list[dict]: ...
+
+    def bind_inputs(self, settings: dict, values: dict[str, float]) -> dict: ...
+
+    def input_runtime_identity(self) -> dict: ...
+
+
 class CapabilityUnavailable(RuntimeError):
     """A backend has no executable adapter in this installation."""

@@ -29,7 +29,8 @@ async def main():
                         "model_native_import", "model_native_inspect", "model_native_select_final",
                         "analysis_run", "doe_plan", "doe_run", "doe_inspect",
                         "optimization_plan", "optimization_run", "optimization_inspect", "pde_run",
-                        "model_analysis_run"} <= names
+                        "model_analysis_run", "model_parameters_discover", "model_parameters_register",
+                        "model_optimization_plan"} <= names
 
                 async def call(name, arguments):
                     response = await session.call_tool(name, arguments)
@@ -93,11 +94,38 @@ async def main():
                 independent = rejected_model.structuredContent or json.loads(rejected_model.content[0].text)
                 assert independent["status"] == "REJECTED" and independent["solver_status"] == "NOT_RUN"
                 assert independent["decision"] == "NOT_RELEASED" and independent["cad_revision"] is None
+                # Invalid declared templates are refused by the same planning
+                # API before creating a campaign or invoking a native runtime.
+                rejected_plan = await session.call_tool("model_optimization_plan", {
+                    "study_id": "S-MCP", "campaign_id": "C-MCP-model-invalid",
+                    "backend": "structural.code_aster", "settings": {}, "parameter_ids": ["modulus"],
+                    "objective": {"source": "model", "metric": "axial_tip_displacement", "unit": "mm",
+                                  "direction": "maximize"}, "constraints": [], "seed": 13})
+                assert rejected_plan.isError and not (Path(directory) / "optimizations/C-MCP-model-invalid").exists()
+                # When the real image is configured, exercise actual metadata
+                # discovery, integer bounds registration and frozen planning
+                # over MCP. Native optimization is verified by its own script.
+                model_plan_status = "NOT_RUN_RUNTIME_UNCONFIGURED"
+                if os.environ.get("CAELAB_CODEASTER_IMAGE"):
+                    model_settings = specification()
+                    await call("model_parameters_discover", {"backend": "structural.code_aster", "settings": model_settings})
+                    await call("model_parameters_register", {"study_id": "S-MCP", "backend": "structural.code_aster",
+                        "settings": model_settings, "input_id": "youngs_modulus_mpa", "parameter_id": "modulus",
+                        "display_name": "Declared modulus", "lower": 100000, "upper": 300000})
+                    planned = await call("model_optimization_plan", {"study_id": "S-MCP", "campaign_id": "C-MCP-model",
+                        "backend": "structural.code_aster", "settings": model_settings, "parameter_ids": ["modulus"],
+                        "objective": {"source": "model", "metric": "axial_tip_displacement", "unit": "mm",
+                                      "direction": "maximize"}, "constraints": [], "seed": 13})
+                    model_plan = planned.structuredContent or json.loads(planned.content[0].text)
+                    assert model_plan["route"] == "model_analysis" and model_plan["variables"][0]["target"] == "model_analysis"
+                    assert not (Path(directory) / "experiments/E-C-MCP-model-0001").exists()
+                    model_plan_status = "PASS_METADATA_ONLY"
                 print(json.dumps({"mcp_tools": sorted(names), "result": content,
                                   "doe_samples": len(progress["samples"]),
                                   "optimization_evaluations": len(search["evaluations"]),
                                   "pde_preflight": pde["status"],
-                                  "model_preflight": independent["status"]}, ensure_ascii=False))
+                                  "model_preflight": independent["status"],
+                                  "declared_model_plan": model_plan_status}, ensure_ascii=False))
 
 
 if __name__ == "__main__":

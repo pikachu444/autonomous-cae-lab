@@ -234,3 +234,8 @@ authorization. Simulation alone cannot qualify every fixture requirement.
 
 This table is a planning map, not an instruction to install every candidate
 before testing the research loop. `HANDOFF.md` records the next concrete task.
+
+Phase3 additive checkpoint: declared-model input bindings now reuse the shared
+numerical engine and replay, with 224 frozen-source regressions and actual MCP
+metadata checks. Its actual native campaign is pending. This does not complete
+Phase3 or replace the remaining requirements above.
