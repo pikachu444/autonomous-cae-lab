@@ -28,8 +28,14 @@ Its `frozen_acceptance.json` records the exact settings and these SHA256 hashes:
 | Native worker | `3d909f2e68a29807a6e9333817b6eed3308c51bca126a029465f347f61b71c99` |
 | Acceptance script | `846aacd1a967b1d85dca6cfc2010d6e6f1113b594d6ddc689a5f4ecf45b5b3ca` |
 
-A clean-commit rerun is the next checkpoint. Exact-source CI for this new
-implementation has not run; the base commit's CI is not new material evidence.
+The clean-commit rerun `runs/material-point-native-08-clean` passed at exact
+source **`c29d6af2a47578b5100ade7d52109d3772e71940`**, `core_dirty=false`, with
+the same frozen hashes. Both native raw files are byte-identical to the
+independently audited draft. Its acceptance SHA256 is
+`f8ba3abb25e1b19911cdb2ee74ef7fb1e0cc842f3949e03efe8945521fdd3164`.
+This document's later evidence-only commit is not a new native verification.
+Exact-source CI for this new implementation has not run; the base commit's
+CI is not new material evidence.
 The machine-readable record is
 [20260930-material-point-native.json](../benchmarks/records/20260930-material-point-native.json).
 All native outputs, binaries, diagnostic attempts and failures are currently
@@ -117,7 +123,8 @@ reported tangent and the independent Hooke tangent at every increment and h.
 Fixed component stress bound: `1e-10 + 1e-8*max(1, reference history magnitude)`
 MPa. Fixed normalized maximum component error for analytical and every FD
 tangent comparison: **1e-8**. The physical reference stress-history scale is
-used for all stress comparisons, including Kelvin components. Numerical failures retain the observed
+used for all stress comparisons, including Kelvin components. Numerical
+failures retain the observed
 finite metrics with `valid=false` and a reason. Missing/nonfinite/malformed
 arrays are execution failures, not numerical substitutes.
 
@@ -139,7 +146,7 @@ nonlinear history-variable qualification is claimed.
 
 ## Actual native results
 
-`material-point-native-07/acceptance.json` is **PASS / NOT_RELEASED**. Both
+`material-point-native-08-clean/acceptance.json` is **PASS / NOT_RELEASED**. Both
 positive experiments are `COMPLETED_REVIEW_REQUIRED` with 74 tracked artifacts
 each and eight UNKNOWN qualifications. Invalid nu=0.5 is `REJECTED/NOT_RUN`,
 with no simulation directory. Existing Core preflight emits only its common
@@ -163,13 +170,19 @@ for both native drivers and both cases is
 `da2be94e6ce95c76bb9ca20efb118efba4bd67043a72ddaa54b86e890de9c35f`.
 The independent read-only reviewer recalculated all 396 probes per case,
 state chains, tensor mappings, reported/FD/reference tangent and full MTest
-history without launching tests or native execution. It also checked all
-150 new artifact hashes and 371 historical failed-run hashes with no mismatch.
+history from the byte-identical draft raw files without launching tests or
+native execution. It also checked all 150 draft artifact hashes and 371
+historical failed-run hashes with no mismatch. The implementation owner and
+independent reviewer each verified all 150 clean-run artifact hashes. The
+reviewer also verified the three clean model/proposal/thread/evidence/ledger
+connections and commit/source fingerprints: bounded **PASS**, with no
+remaining actionable P1/P2 findings. The clean-source public Core ledger
+inspection passed for every experiment.
 
 Focused material tests plus existing declared-model regressions passed:
 `python -m pytest -q tests/test_material_point_reference.py tests/test_mfront_material_adapter.py tests/test_declared_model.py`
-— **84 passed in 18.59 s**, using the existing WSL Python 3.12 Lab venv and
-worktree PYTHONPATH. These include independent known-number Hooke/energy
+— **84 passed in 15.07 s at exact c29d6af**, using the existing WSL Python 3.12
+Lab venv and worktree PYTHONPATH. These include independent known-number Hooke/energy
 checks, wrong scaling/permutation/tangent, unreliable integrations, frozen
 probe state, invalid/missing/corrupt outputs, preflight execution blocking,
 runtime/source/library drift, immutable Core results and tamper refusal.
@@ -219,6 +232,7 @@ All earlier fresh stores remain unchanged:
 | native-05 | FAILED_EXECUTION at MTest math-vector conversion; same bad native tangent retained. |
 | native-06 | FAILED_EXECUTION due descriptor spelling in parser; raw numerical gates passed, but its authoritative result stays failed. |
 | native-07 | Complete frozen-file draft PASS; successful actual reported tangent and full MTest history. |
+| native-08-clean | Complete PASS at exact clean source c29d6af; canonical, changed E, preflight and ledger/artifact gates. |
 
 The native-02 getter issue is source-grounded: the pinned MGIS3
 [NumPy wrapper](https://raw.githubusercontent.com/thelfer/MFrontGenericInterfaceSupport/a5ee75d44cb8b09952ec94759fb8f7050aa70683/bindings/python/src/NumPySupport.cxx)
