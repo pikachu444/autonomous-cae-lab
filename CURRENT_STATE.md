@@ -1,5 +1,38 @@
 # Current state — 2026-09-30 (Asia/Seoul)
 
+## Reviewed synthetic inverse connection
+
+The common default model registry now includes `material.mfront.inverse` and
+the HTTP surface offers its explicitly synthetic evaluation preset. This
+reuses the existing registered E input and shared SciPy engine; no numerical
+search or solver syntax is added to Core. Implementation `0457af3` / evidence
+`3f06289` passed independent static/native/final-record review: nine actual
+native candidates, 720 artifacts / 26,754,344 bytes and immutable 788-file
+store. Actual stress drives the residual after all thirteen original MFront
+checks and the observation contract. The best initial-population point reduced
+residual 28.1748%; one generation is unconverged, with no later adaptive
+improvement or physical identification claim. See the inverse acceptance doc.
+
+Main `88bbb72` has eight successful exact-source CI jobs (36697090031), including
+the actual nine-candidate/eighteen-mesh model-input search. Changed-family raw
+archive review is underway. Completed `0535e37` raw audit verified twelve stores,
+sixty experiments, three campaigns, 1,833 artifacts and five retained portable
+ZIPs. The HTTP rejected-PDE export ZIP was not retained by that workflow; its
+job check and original experiment artifacts exist. Native `9330055` independent
+review passed and 707 original/copied files match; its exact source is pushed
+to acceptance/model-input-20260930.
+
+Lab8766 is now served from a clean pinned88bbb72 checkout, sharing the primary
+store by absolute path. Three browser-triggered records retain exact clean88
+provenance: MFront/flight numerical passes and ideal-wall numerical rejection.
+Solver completion, hash verification and release are distinct. The original
+OpenScience4096 listener is currently unavailable, with termination cause
+UNKNOWN; historical actual live05/GUI proof is retained. Isolated persistent
+launcher repair/readiness work continues without new model inference.
+
+Nonlinear PDE and compliant-stop native proofs passed independent review;
+their main integration remains the next work. Whole phases remain partial.
+
 ## Latest integration checkpoint
 
 Main `0535e37189bfa32e26dc2644e3c43dff49f72bea` is pushed and its exact

@@ -8,7 +8,8 @@ from apps.lab.service import LabService
 from caelab import Lab
 
 
-BACKENDS = {"structural.code_aster", "structural.code_aster.plasticity", "material.mfront", "explicit.openradioss"}
+BACKENDS = {"structural.code_aster", "structural.code_aster.plasticity", "material.mfront",
+            "material.mfront.inverse", "explicit.openradioss"}
 
 
 def test_default_model_registry_constructs_without_native_commands_and_preserves_explicit_mapping(tmp_path, monkeypatch):

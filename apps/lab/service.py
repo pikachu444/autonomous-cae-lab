@@ -293,6 +293,7 @@ class LabService:
         from scripts.verify_plasticity import specification as plasticity_specification
         from scripts.verify_openradioss import specification as explicit_specification
         from plugins.material_point.reference import canonical_settings as material_specification
+        from plugins.material_point.inverse_reference import canonical_settings as inverse_specification
         material_path = (Path(__file__).resolve().parents[2] /
                          "plugins/fixture_design/upstream/examples/printed_material_ASSUMED.json")
         # Exact existing acceptance inputs; material remains explicitly assumed.
@@ -314,6 +315,9 @@ class LabService:
             "material_point": {"operation": "model_analysis_run", "backend": "material.mfront", "label": "재료점의 응력·접선 benchmark",
                 "status": "EXPERIMENTAL", "scope": "실제 MGIS·MTest 응력 및 유한차분 접선 검증; 솔버 결합·물리적 재료 자격 UNKNOWN",
                 "settings": material_specification()},
+            "material_inverse": {"operation": "model_analysis_run", "backend": "material.mfront.inverse", "label": "합성 기준값의 재료 역추정 평가",
+                "status": "EXPERIMENTAL", "scope": "합성 응력 기준값과 실제 MGIS 응력을 비교하는 평가; 수치 탐색은 공통 engine, 측정 재료·역추정 자격 UNKNOWN",
+                "settings": inverse_specification()},
             "explicit_freefall": {"operation": "model_analysis_run", "backend": "explicit.openradioss", "label": "강체 자유낙하 benchmark",
                 "status": "EXPERIMENTAL", "scope": "질량·중력·초기 속도·시간 간격에 대한 실제 자유낙하 검증; 충격·파손 자격 UNKNOWN",
                 "settings": explicit_specification(case="rigid_cube_freefall")},

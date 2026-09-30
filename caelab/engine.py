@@ -51,11 +51,12 @@ class Lab:
             from .adapters.codeaster_elasticity import CodeAsterElasticityAdapter
             from .adapters.codeaster_plasticity import CodeAsterPlasticityAdapter
             from .adapters.mfront_material import MFrontMaterialAdapter
+            from .adapters.mfront_inverse import MFrontInverseAdapter
             from .adapters.openradioss import OpenRadiossAdapter
             model_analysis_adapters = {
                 adapter.backend: adapter() for adapter in (
                     CodeAsterElasticityAdapter, CodeAsterPlasticityAdapter,
-                    MFrontMaterialAdapter, OpenRadiossAdapter)
+                    MFrontMaterialAdapter, MFrontInverseAdapter, OpenRadiossAdapter)
             }
         self.model_analysis_adapters = model_analysis_adapters
 

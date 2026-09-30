@@ -1,0 +1,28 @@
+{
+  "record_kind": "REVIEWED_NATIVE_PACKET_COMMON_ROUTE_INTEGRATION",
+  "date": "2026-09-30",
+  "backend": "material.mfront.inverse",
+  "implementation_source": "0457af3716a0abb5f3a5fcb87c81b99d0d9766df",
+  "evidence_checkpoint": "3f06289bbccedba18d40108899dbb953e3ebc9bb",
+  "independent_static_native_record_review": "PASS_NO_OPEN_P1_P2",
+  "native_acceptance_sha256": "06b9d72838448974d65af8fac6a064d0d134e1d2af1205592bc7ebc448e3119a",
+  "candidate_count": 9,
+  "artifact_count": 720,
+  "artifact_bytes": 26754344,
+  "source_kind": "SYNTHETIC_REFERENCE",
+  "best_residual_reduction_percent_from_initial": 28.174794619,
+  "best_origin": "INITIAL_POPULATION_NO_LATER_ADAPTIVE_IMPROVEMENT",
+  "converged": false,
+  "integration": {
+    "default_registry": true,
+    "existing_model_input_numerical_engine": true,
+    "existing_cli_mcp_http_model_operations": true,
+    "http_preset": "SINGLE_NATIVE_EVALUATION_WITH_SYNTHETIC_DATASET",
+    "regressions": {"passed": 111, "warnings": 1, "seconds": 113.99, "log": "artifacts/inverse-integration-tests.log"},
+    "integrated_source_ci": "PENDING",
+    "native_inverse_ci": "NOT_RUN_EXACT_LOCAL_SIF_REQUIRED"
+  },
+  "runtime_contract": "Exact local SIF f4d9a7... plus sealed native binaries; independently generated CI SIF is not silently substituted",
+  "limitations": ["No measured material fit", "No converged identification", "No qualified inverse solution", "All nine pending qualifications remain UNKNOWN", "Phase7 remains partial"],
+  "decision": "NOT_RELEASED"
+}

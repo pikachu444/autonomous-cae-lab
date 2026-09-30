@@ -1,5 +1,37 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Current material inverse integration
+
+The bounded synthetic-reference inverse packet is integrated through the
+existing model-input numerical engine and default `material.mfront.inverse`
+adapter, with a common HTTP evaluation preset. Native source `0457af3` and
+evidence checkpoint `3f06289` passed independent review: nine actual candidates,
+720 artifact hashes, all experiment/journal/checkpoint/ledger links. Residual
+improved 28.1748% from the initial candidate; the best was in the initial
+population, with no later adaptive improvement or convergence claim. Read
+docs/MATERIAL_INVERSE_ACCEPTANCE.md. No physical measured-material fit is claimed.
+
+Main `88bbb72` passed all eight jobs in CI 36697090031. Its changed Code_Aster
+archive is being independently inspected. The prior exact `0535e37` archive
+audit passed all twelve retained stores / sixty experiments / three campaigns /
+1,833 registered artifacts. Five actual retained portable ZIPs passed; the
+rejected-PDE HTTP export has a job hash but its ZIP was not uploaded. Keep that
+retention limitation explicit. Native `9330055` model-input review is now PASS;
+its exact source is pushed as `acceptance/model-input-20260930` and all 707
+retained files are copied unchanged to artifacts/integrated-20260930-model-optimization.
+
+The served Lab on port8766 is pinned to clean `88bbb72` in the completed
+model-campaign worktree while main advances. It uses absolute paths to the
+primary store/libraries. Browser-triggered actual MFront and flight calculations
+passed, while the actual ideal-wall calculation remains REJECTED. Preserve the
+old store and all three new records. Historical OpenScience live05/GUI evidence
+remains valid, but its old4096 listener was subsequently unavailable; cause
+UNKNOWN. The generalized persistent launcher is being tested in isolation.
+
+Continue the independently reviewed nonlinear PDE and compliant-stop packets,
+shared declaration/default/HTTP/CI integration, then remaining phase gates.
+All phases remain partial, qualification UNKNOWN and every decision NOT_RELEASED.
+
 ## Declared-input route continuation
 
 The additive model-input implementation passed a fresh clean-source native

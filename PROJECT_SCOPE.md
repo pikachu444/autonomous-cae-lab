@@ -42,14 +42,15 @@ Broader physics and engineering release gates remain open.
 
 ## Original section ledger
 
-Latest exact remote source `7c66006` passed seven CI jobs/513 tests; its three
-Code_Aster experiments and 144 artifacts now fully verify, including hidden
-cache files. Fresh HTTP repair passed at d0473e4. Independently verified
-material-point, bounded J2 histories and explicit flight adapters are integrated
-with 69 local shared-path tests; new integrated-source CI remains pending.
-Explicit wall histories remain REJECTED. Actual staged OpenScience/MCP and
-official served-GUI interpretation passed separately with mixed source records.
-These slices do not close any phase or remove a requirement.
+Latest exact remote source `88bbb72` passed all eight CI jobs, including actual
+declared-input numerical search. The preceding `0535e37` retained archive audit
+verified sixty experiments/three campaigns/1,833 artifacts; its missing rejected
+PDE export ZIP remains disclosed. The independent local synthetic inverse proof
+is now connected to common default/HTTP model operations. Nonlinear PDE and
+compliant-stop native proofs passed isolated review and await shared integration.
+Explicit ideal-wall histories remain REJECTED. Actual staged OpenScience/MCP and
+served-GUI interpretation passed separately; historical runtime availability is
+not assumed. These slices do not close any phase or remove a requirement.
 
 | ID | Requirement retained from original section | Status / evidence / remaining gate |
 | --- | --- | --- |
@@ -76,14 +77,14 @@ These slices do not close any phase or remove a requirement.
 | R21 | Stable CLI and Python API call the same Core for study/model/parameters/validate/mesh/solve/PDE/inspect/compare/DOE/optimize/report. | Partial: CAD/analysis/DOE/optimization/PDE/declared models + MCP and thin common HTTP reports/bundles; exact-source new CI pending, generic mesh/full campaign report and unsupported domains remain gaps. |
 | R22 | Extensible repo and actual code-level Core/plugin/adapter/refactor/discard classification; no blind source copy. | Implemented current ownership/pinned submodule; future migration must keep provenance. |
 | R23 | Phase 0 architecture/Core/contracts first; only minimal mock for contract verification. | Partial foundation executed; typed CAD/analysis/DOE, broader protocol slots planned. |
-| R24 | ADR 0001 platform boundaries and cumulative ADRs for significant decisions. | Implemented ADR 0001–0008; ongoing obligation; new execution acceptance tracked separately. |
+| R24 | ADR 0001 platform boundaries and cumulative ADRs for significant decisions. | Implemented ADR 0001–0009; ongoing obligation; new execution acceptance tracked separately. |
 | R25 | Phase 1 actual OpenScience request → discovery → registry → CAD change/regeneration → validation/artifacts/evidence → research result. | Partial: live05 actual thirteen-tool study/discovery/registry/valid+invalid CAD/inspect/summary/compare and corrected AI interpretation passed; official served GUI inspected. Staged prompts/mixed source identities, broader autonomous research remains open. |
 | R26 | Phase 2 simulation-driven fixture design: exact CAD → mesh → implicit solver → mechanical metrics/constraints/evidence. | Partial: exact STEP Gmsh/CalculiX linear screen; actual contact/bolts/material/stress qualification open. |
 | R27 | Phase 3 numerical DOE/optimization through gated CAD/FEA, trace every iteration including optimizer state. | Partial: actual adaptive structural campaign passed (9 evaluations/8 children), metric semantics/failure/replay verified; converged/global optimum and wider optimization remain open. |
 | R28 | Phase 4 real general PDE adapter with canonical benchmark and user-defined equation/weak form. | Partial: scalar linear elliptic family and clean analytical/reaction/rejection proof passed; wider custom PDE coverage open. |
 | R29 | Phase 5 implicit benchmarks: linear, geometric nonlinearity, plasticity, contact, hyperelasticity, viscoelasticity with trusted references. | Partial: affine elasticity and J2 full-field loading/unloading at two meshes/two materials passed; retained zero-force relative residual failure remains. Geometric nonlinearity/contact/hyperelasticity/viscoelasticity/native energy open. |
 | R30 | Phase 6 actual OpenRadioss impact/drop with IC/gravity/contact/rigid/energy/forces/acceleration/timestep/failure validation. | Partial: actual flight mass/gravity/IC/sampling/energy/clock gates passed; wall contact rejected on unchanged velocity/impulse histories. Separate compliant finite-force reference underway; physical/failure/rotating surface contact open. |
-| R31 | Phase 7 MFront/MOOSE/multiphysics/inverse/UQ/sensitivity/surrogate/multiobjective/HPC/SSH/Slurm/PBS/physical integration. | Partial: actual MFront material-point and sensitivity verification; synthetic-reference native inverse prerequisite underway. MOOSE/coupling/UQ/surrogate/multiobjective/HPC/physical integrations remain open. |
+| R31 | Phase 7 MFront/MOOSE/multiphysics/inverse/UQ/sensitivity/surrogate/multiobjective/HPC/SSH/Slurm/PBS/physical integration. | Partial: actual MFront material-point/sensitivity and nine-candidate synthetic native inverse proof, shared engine/default/HTTP evaluation connected; no measured fit or convergence. MOOSE/coupling/UQ/surrogate/multiobjective/HPC/physical integrations remain open. |
 | R32 | Physical test architecture: fabrication/calibration/machine/measurement/durability evidence with digital-twin calibration loop. | Partial extensible evidence envelope; equipment control/physical acceptance not implemented. |
 | R33 | UI Design/Simulation/Explore/Results/Research areas after Core slice; reuse original browser UI. | Partial: original fixture GUI/native viewer retained; common Lab HTTP plus actual bounded study/registry/CAD/PDE/results/native-preview/DOE browser flow passed, ADR 0008/CONTRACT. No AI chat in Lab; full UI/official OpenScience GUI acceptance separate. User usage question did not request redesign. |
 | R34 | Automated canonical/regression verification for CAD/rejection/linear/nonlinear/contact/explicit/PDE/DOE/optimization; physical validity separate from execution. | Partial: 217 regressions and CAD/native/linear/finer/DOE/optimization/analytical PDE acceptance; nonlinear/contact/explicit references open. |

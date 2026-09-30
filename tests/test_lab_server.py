@@ -185,7 +185,7 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     client, service, _, _ = real_flow
     presets = client.request("/api/presets")
     assert set(presets) == {"structural_linear", "pde_canonical", "codeaster_linear",
-                            "codeaster_plasticity", "material_point", "explicit_freefall", "explicit_ground_stop"}
+                            "codeaster_plasticity", "material_point", "material_inverse", "explicit_freefall", "explicit_ground_stop"}
     assert presets["pde_canonical"]["settings"] == pde_spec()
     assert presets["codeaster_linear"]["settings"] == aster_spec()
     assert presets["structural_linear"]["settings"]["material"]["qualification"] == "ASSUMED_NOT_MEASURED"
