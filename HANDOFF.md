@@ -14,18 +14,28 @@ phase units. The owner's persistent project execution objective is ACTIVE.
 Preserve/reuse prior work; later effects on earlier gates become explicit bounded
 correction items and revalidation, followed by the existing queue.
 
-Before source admission, renew review of the bounded Main finalizer correction:
-packet02 found P2 when a first failure left the lazy store absent. Launcher39
-checks now pass, including actual-finalizer absent/partial/hash/write failure
-cases; unchanged controller46 remains valid (85 current gates, zero provider/
-Core calls). Preserve packet02, original verifier and parser failure diagnostic.
-Latest mock record: artifacts/openscience-launcher-finalizer-20261001-01/
-launcher-checks/checks.json (bb3901d6...). Actual new P1.1 research is still next.
+Source admission is completed at Main259649ddcd38ed774d83a712cf19b45401fe660e:
+packet03 independent review passed with no open P1/P2; staged diff checked,
+commit/push and exact remote HEAD confirmed. Its source proof is controller46
+plus launcher39 (85 mock gates), with zero provider/Core calls. Preserve the
+earlier P2, original verifier and parser diagnostic. Exact CI36740379901 was
+still running at the deployment probe; five jobs passed, three remained running.
+
+CURRENT bounded correction before the fresh runtime: a real WSL Git probe on
+managed a60 recorded rc128/Core commit unavailable. Reuse local.ps1's scoped
+Windows Git bridge through a tracked LF-only wrapper for managed worktrees.
+The candidate controller52 gates passed; unchanged launcher39 gives91 current
+mock gates. A separate actual read-only diagnostic returned clean Core259649d/
+fixture3e48bf6 via this wrapper, with no model/Core mutations. Source admission
+of this correction and fresh actual configured-MCP identity remain next.
+See benchmarks/records/20261001-openscience-wsl-git-correction.json and ADR0011.
+The new openscience-integrated worktree is clean259 with exact submodule
+initialized; do not start until the reviewed correction is committed there.
 
 Do one acceptance unit at a time. Finish verification, integration, meaningful
 commit and confirmed push before opening the next unit. First close Phase1
-local OpenScience: review this imported a60b854/ADR0011 Main delta, commit it,
-then use a clean pinned serving worktree for actual startup/boot metadata/Stop,
+local OpenScience: admit the bounded Git transport correction, then use a
+clean pinned serving worktree for actual startup/boot metadata/Stop,
 official GUI and real model/tool/Core research/cancellation. Main81 mock checks
 passed but add no real research claim. Preserve old profiles/stores and Lab8766's
 clean pinned d363 server; do not checkout a live serving worktree.

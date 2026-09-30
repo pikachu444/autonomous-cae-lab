@@ -300,6 +300,33 @@ function Assert-OpenScienceContext($Context) {
     Assert-OpenSciencePinnedRuntime $Context
 }
 
+function New-OpenScienceMcpGitTransport {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$RepoRoot, [string]$HostGitPath, [string]$OriginalWslPath)
+    $pointer = Join-Path $RepoRoot '.git'
+    if (-not ((Test-Path -LiteralPath $pointer -PathType Leaf) -and
+        ((Get-Content -LiteralPath $pointer -TotalCount 1) -match '^gitdir: [A-Za-z]:'))) {
+        return [pscustomobject]@{ Mode = 'NATIVE_WSL_GIT'; Environment = @() }
+    }
+    # The local.ps1 bridge pattern is reused, but its executable source is
+    # tracked here so every model POST's repository pin also checks these bytes.
+    $bridge = Join-Path $RepoRoot 'scripts/wsl-windows-git/git'
+    Assert-OpenScienceCondition (Test-Path -LiteralPath $bridge -PathType Leaf) 'Tracked MCP Git bridge is missing.'
+    $expected = '#!/bin/sh' + [char]10 + 'exec "$CAELAB_HOST_GIT" "$@"' + [char]10
+    $expectedHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData(
+        [Text.UTF8Encoding]::new($false).GetBytes($expected))).ToLowerInvariant()
+    Assert-OpenScienceCondition ((Get-OpenScienceHash $bridge) -ceq $expectedHash) 'MCP Git bridge must retain its exact LF-only source.'
+    Assert-OpenScienceCondition ($HostGitPath -and (Test-Path -LiteralPath $HostGitPath -PathType Leaf)) 'Existing host Git is required for this managed worktree.'
+    Assert-OpenScienceCondition ($OriginalWslPath -and $OriginalWslPath -notmatch '[\r\n]') 'Existing WSL PATH is missing or multiline.'
+    $bridgeDirectory = ConvertTo-OpenScienceWslPath (Split-Path -Parent $bridge)
+    $hostGitWslPath = ConvertTo-OpenScienceWslPath $HostGitPath
+    return [pscustomobject]@{
+        Mode = 'WINDOWS_MANAGED_WORKTREE_GIT'; BridgePath = $bridge; BridgeSha256 = $expectedHash
+        HostGitPath = $HostGitPath; HostGitSha256 = Get-OpenScienceHash $HostGitPath
+        Environment = @(('PATH=' + $bridgeDirectory + ':' + $OriginalWslPath), "CAELAB_HOST_GIT=$hostGitWslPath")
+    }
+}
+
 function New-OpenScienceLocalContext {
     [CmdletBinding()]
     param(
@@ -332,9 +359,19 @@ function New-OpenScienceLocalContext {
     $profile = Join-Path $artifacts "profiles\$ProfileTag"
     Assert-OpenScienceContainedPath $profile $RepoRoot | Out-Null
     $markerPath = Assert-OpenScienceContainedPath (Join-Path $profile 'caelab-profile-owner.json') $profile
-    $intent = [ordered]@{ profile_schema = 2; repo_root = $RepoRoot; run_name = $RunName; profile_tag = $ProfileTag; store_root = $StoreRoot
+    $gitPointer = Join-Path $RepoRoot '.git'
+    $hostGit = $null; $originalWslPath = $null
+    if ((Test-Path -LiteralPath $gitPointer -PathType Leaf) -and
+        ((Get-Content -LiteralPath $gitPointer -TotalCount 1) -match '^gitdir: [A-Za-z]:')) {
+        $hostGit = (Get-Command git.exe -ErrorAction Stop).Source
+        $originalWslPath = & wsl.exe -d $WslDistro -- /usr/bin/printenv PATH
+        Assert-OpenScienceCondition ($LASTEXITCODE -eq 0 -and @($originalWslPath).Count -eq 1) 'Could not read the existing WSL command path.'
+    }
+    $mcpGit = New-OpenScienceMcpGitTransport -RepoRoot $RepoRoot -HostGitPath $hostGit -OriginalWslPath $originalWslPath
+    $intent = [ordered]@{ profile_schema = 3; repo_root = $RepoRoot; run_name = $RunName; profile_tag = $ProfileTag; store_root = $StoreRoot
         runtime_prefix = $RuntimePrefix; model = $ModelId; wsl_distro = $WslDistro; wsl_python = $WslPython
-        allowed_tools = $AllowedTools; output_tokens = $OutputTokens; steps = $Steps; provider_timeout_seconds = $ProviderTimeoutSeconds }
+        allowed_tools = $AllowedTools; output_tokens = $OutputTokens; steps = $Steps; provider_timeout_seconds = $ProviderTimeoutSeconds
+        mcp_git_transport = $mcpGit }
     $intentBytes = [Text.Encoding]::UTF8.GetBytes(($intent | ConvertTo-Json -Depth 10 -Compress))
     $intentHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($intentBytes)).ToLowerInvariant()
     if (Test-Path -LiteralPath $profile) {
@@ -379,6 +416,7 @@ function New-OpenScienceLocalContext {
         Model = "ollama/$ModelId"; ModelId = $ModelId; AllowedTools = $AllowedTools; OutputTokens = $OutputTokens; Steps = $Steps
         ProviderTimeoutSeconds = $ProviderTimeoutSeconds; SourceCommit = $script:OpenSciencePinnedSource
         WslPythonCacheRoot = (Join-Path $profile 'wsl-pycache')
+        McpGitTransport = $mcpGit
         IntentSha256 = $intentHash; OwnerPath = (Join-Path $profile 'runtime-owner.json'); GuardPath = (Join-Path $profile 'expected-tools.json')
         SandboxLimitation = 'Windows has no native OpenScience sandbox backend. warn fallback is explicit; application permissions are not OS containment.'
     }
@@ -403,7 +441,8 @@ function New-OpenScienceLocalContext {
                 cost = @{ input = 0; output = 0 }; limit = @{ context = 16384; output = $OutputTokens }; options = @{ reasoningEffort = 'low' } } } } }
         mcp = @{ caelab = @{ type = 'local'; enabled = $true; timeout = 120000; command = @(
             "$env:WINDIR\System32\wsl.exe", '-d', $WslDistro, '--cd', $wslRoot, '--', '/usr/bin/env',
-            "CAELAB_STORE=$wslStore", ('PYTHONPYCACHEPREFIX=' + (ConvertTo-OpenScienceWslPath $context.WslPythonCacheRoot)), $WslPython, "$wslRoot/openscience/mcp_server.py") } }
+            "CAELAB_STORE=$wslStore", ('PYTHONPYCACHEPREFIX=' + (ConvertTo-OpenScienceWslPath $context.WslPythonCacheRoot))) +
+            @($mcpGit.Environment) + @($WslPython, "$wslRoot/openscience/mcp_server.py") } }
     }
     New-Item -ItemType Directory -Path $profile -ErrorAction Stop | Out-Null
     Write-OpenScienceJson $markerPath ([ordered]@{ kind = 'autonomous-cae-lab.openscience-profile'; schema = 1; run_name = $RunName
@@ -1211,6 +1250,12 @@ function Start-OpenScienceLocalServerLocked($Context, [int]$Port, [int]$StartupT
     Assert-OpenScienceCondition ((Read-OpenScienceJson $Context.ConfigPath).mcp.caelab.command -ccontains
         ('PYTHONPYCACHEPREFIX=' + (ConvertTo-OpenScienceWslPath $cacheRoot))) 'MCP command does not bind the fresh owned Python cache.'
     $bootSource = Get-OpenScienceRepositorySourcePin -Context $Context
+    if ($Context.McpGitTransport.Mode -eq 'WINDOWS_MANAGED_WORKTREE_GIT') {
+        $bridgePin = @($bootSource.files | Where-Object path -eq 'scripts/wsl-windows-git/git')
+        Assert-OpenScienceCondition ($bridgePin.Count -eq 1 -and $bridgePin[0].sha256 -ceq $Context.McpGitTransport.BridgeSha256 -and
+            $bootSource.git_path -ceq $Context.McpGitTransport.HostGitPath -and
+            $bootSource.git_sha256 -ceq $Context.McpGitTransport.HostGitSha256) 'MCP bridge and host Git must belong to the tracked boot source identity.'
+    }
     $directory = Join-Path $Context.ProfileRoot ('server-runs\' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff') + '-' + [Guid]::NewGuid().ToString('N'))
     Assert-OpenScienceContainedPath $directory $Context.ProfileRoot | Out-Null
     New-Item -ItemType Directory -Path $directory -ErrorAction Stop | Out-Null
@@ -1302,6 +1347,41 @@ function Invoke-OpenScienceRuntimeSelfTest([string]$RepoRoot, [string]$RunName) 
     }
     $checks.Add('public_url_rejected')
     $git = (Get-Command $(if ($IsWindows) { 'git.exe' } else { 'git' }) -ErrorAction Stop).Source
+    $nativeGitFixture = Join-Path $root 'native-git-fixture'
+    New-Item -ItemType Directory -Path (Join-Path $nativeGitFixture '.git') -ErrorAction Stop | Out-Null
+    $nativeTransport = New-OpenScienceMcpGitTransport -RepoRoot $nativeGitFixture
+    Assert-OpenScienceCondition ($nativeTransport.Mode -eq 'NATIVE_WSL_GIT' -and $nativeTransport.Environment.Count -eq 0) 'Native Git checkout gained a Windows bridge.'
+    $checks.Add('native_git_checkout_keeps_original_mcp_environment')
+    $managedGitFixture = Join-Path $root 'managed git fixture'
+    New-Item -ItemType Directory -Path $managedGitFixture -ErrorAction Stop | Out-Null
+    [IO.File]::WriteAllText((Join-Path $managedGitFixture '.git'), ('gitdir: C:/mock/.git/worktrees/example' + [char]10), [Text.UTF8Encoding]::new($false))
+    $rejected = $false
+    try { New-OpenScienceMcpGitTransport -RepoRoot $managedGitFixture -HostGitPath $git -OriginalWslPath '/usr/local/bin:/usr/bin:/bin' | Out-Null }
+    catch { $rejected = $true }
+    Assert-OpenScienceCondition $rejected 'Managed worktree without tracked bridge was accepted.'
+    $checks.Add('missing_managed_git_bridge_rejected')
+    $managedBridge = Join-Path $managedGitFixture 'scripts/wsl-windows-git/git'
+    New-Item -ItemType Directory -Path (Split-Path -Parent $managedBridge) -ErrorAction Stop | Out-Null
+    $bridgeBytes = [IO.File]::ReadAllBytes((Join-Path $RepoRoot 'scripts/wsl-windows-git/git'))
+    [IO.File]::WriteAllBytes($managedBridge, $bridgeBytes)
+    $managedTransport = New-OpenScienceMcpGitTransport -RepoRoot $managedGitFixture -HostGitPath $git -OriginalWslPath '/usr/local/bin:/usr/bin:/bin'
+    Assert-OpenScienceCondition ($managedTransport.Environment.Count -eq 2 -and
+        $managedTransport.Environment[0] -ceq ('PATH=' + (ConvertTo-OpenScienceWslPath (Split-Path -Parent $managedBridge)) + ':/usr/local/bin:/usr/bin:/bin') -and
+        $managedTransport.Environment[1] -ceq ('CAELAB_HOST_GIT=' + (ConvertTo-OpenScienceWslPath $git)) -and
+        $managedTransport.HostGitSha256 -ceq (Get-OpenScienceHash $git)) 'MCP Git bridge changed spaces, WSL PATH or host Git identity.'
+    $checks.Add('managed_git_bridge_preserves_spaces_original_path_and_pinned_host_git')
+    [IO.File]::WriteAllText($managedBridge, ([Text.Encoding]::UTF8.GetString($bridgeBytes) -replace '\n', ([string][char]13 + [char]10)), [Text.UTF8Encoding]::new($false))
+    $rejected = $false
+    try { New-OpenScienceMcpGitTransport -RepoRoot $managedGitFixture -HostGitPath $git -OriginalWslPath '/usr/bin:/bin' | Out-Null }
+    catch { $rejected = $true }
+    Assert-OpenScienceCondition $rejected 'CRLF Git shell bridge was accepted.'
+    $checks.Add('crlf_managed_git_bridge_rejected')
+    [IO.File]::WriteAllBytes($managedBridge, $bridgeBytes)
+    $rejected = $false
+    try { New-OpenScienceMcpGitTransport -RepoRoot $managedGitFixture -HostGitPath $git -OriginalWslPath ('/usr/bin' + [char]10 + '/bin') | Out-Null }
+    catch { $rejected = $true }
+    Assert-OpenScienceCondition $rejected 'Multiline WSL PATH was accepted.'
+    $checks.Add('multiline_wsl_path_rejected')
     $fixtureSource = (Get-OpenScienceRepositoryPinSource) + "`n" + @'
 const base=sourcePath.resolve(process.argv[1]),git=sourcePath.resolve(process.argv[2]);
 const noHooks=sourcePath.join(base,'no-hooks');sourceFs.mkdirSync(noHooks);
@@ -1315,6 +1395,8 @@ const kernel=make('kernel-source','kernel.py'),plugin=make('plugin-source','mode
 run(plugin,['-c','protocol.file.allow=always','submodule','add','--quiet',kernel,'vendor/kernel']);
 run(plugin,['commit','--quiet','-am','mock nested plugin']);
 sourceFs.mkdirSync(sourcePath.join(repo,'openscience'));sourceFs.writeFileSync(sourcePath.join(repo,'openscience/mcp_server.py'),'VALUE = "source-A"\n');
+sourceFs.mkdirSync(sourcePath.join(repo,'scripts/wsl-windows-git'),{recursive:true});
+sourceFs.copyFileSync(process.argv[3],sourcePath.join(repo,'scripts/wsl-windows-git/git'));
 sourceFs.writeFileSync(sourcePath.join(repo,'.gitignore'),'artifacts/\n__pycache__/\n');
 run(repo,['-c','protocol.file.allow=always','submodule','add','--quiet',plugin,'plugins/fixture']);
 run(repo,['add','.']);run(repo,['commit','--quiet','-m','mock recursive fixture']);
@@ -1322,7 +1404,7 @@ run(repo,['-c','protocol.file.allow=always','submodule','update','--init','--rec
 process.stdout.write(JSON.stringify({repo,core:sourcePath.join(repo,'caelab/__init__.py'),
   nested:sourcePath.join(repo,'plugins/fixture/vendor/kernel/kernel.py'),plugin:sourcePath.join(repo,'plugins/fixture'),noHooks}));
 '@
-    $fixture = Invoke-OpenScienceSourceNode $fixtureSource @($root, $git) $root | ConvertFrom-Json -AsHashtable
+    $fixture = Invoke-OpenScienceSourceNode $fixtureSource @($root, $git, (Join-Path $RepoRoot 'scripts/wsl-windows-git/git')) $root | ConvertFrom-Json -AsHashtable
     $bootFixture = Get-OpenScienceRepositorySourcePin -RepoRoot $fixture.repo
     Write-OpenScienceJson (Join-Path $root 'boot-source-A.json') $bootFixture -CreateNew
     Assert-OpenScienceRepositorySourcePin $bootFixture (Get-OpenScienceRepositorySourcePin -RepoRoot $fixture.repo)
@@ -1336,6 +1418,13 @@ process.stdout.write(JSON.stringify({repo,core:sourcePath.join(repo,'caelab/__in
     $checks.Add('public_and_proxy_source_pin_canonical_hashes_match')
     $fixtureOwner = @{ context = @{ RepoRoot = $fixture.repo }; boot_source = $bootFixture; boot_source_sha256 = Get-OpenScienceSourcePinSha256 $bootFixture }
     Assert-OpenScienceRuntimeBootSource $fixtureOwner
+    $pinnedBridge = Join-Path $fixture.repo 'scripts/wsl-windows-git/git'
+    try {
+        [IO.File]::WriteAllText($pinnedBridge, ('# changed bridge' + [char]10), [Text.UTF8Encoding]::new($false))
+        $rejected = $false; try { Assert-OpenScienceRuntimeBootSource $fixtureOwner } catch { $rejected = $true }
+        Assert-OpenScienceCondition $rejected 'Tracked Git bridge drift was accepted after boot.'
+        $checks.Add('tracked_git_bridge_drift_rejected_before_inference')
+    } finally { [IO.File]::WriteAllBytes($pinnedBridge, $bridgeBytes) }
     [IO.File]::WriteAllText($fixture.core, "VALUE = `"source-B`"`n", [Text.UTF8Encoding]::new($false))
     $rejected = $false; try { Assert-OpenScienceRuntimeBootSource $fixtureOwner } catch { $rejected = $true }
     Assert-OpenScienceCondition $rejected 'A Core edit between boot and the first lookup was accepted.'

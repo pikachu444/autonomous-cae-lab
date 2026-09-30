@@ -14,15 +14,24 @@ retained52 requirements. Concrete tasks are in
 [SYSTEM_WORKLIST](docs/SYSTEM_WORKLIST.md). Earlier work is preserved/reused;
 later feature effects require a recorded bounded correction and revalidation.
 
-Main packet02 independent review found one P2: a failed first request left no
-lazy Core store, causing final inventory collection to skip saving the final
-FAILED_OR_PARTIAL checkpoint. Root corrected the finalizer only; absent stores
-stay absent, original failures/logs stay intact, and inventory/hash/write errors
-force failure with a guaranteed checkpoint attempt. Latest launcher39 checks
-passed with zero actual provider/Core calls; controller46 source/checks are
-unchanged (85 current mock gates). Renewed independent review/source commit
-and all actual P1.1 execution gates remain pending. Packet02 and the initial
-correction-parser diagnostic are retained; old81 checks keep their old source.
+Main259649ddcd38ed774d83a712cf19b45401fe660e source admission is committed/pushed
+and exact remote HEAD confirmed. Packet03 independent review closed the sole
+packet02 P2 finalizer finding; controller46 plus launcher39 passed85 mock gates
+with no actual provider/Core calls. Earlier failure/parser/raw bytes are retained.
+Exact259 CI36740379901 had five completed successful jobs and three running
+at the subsequent deployment probe; it is not a new local OpenScience proof.
+
+An actual read-only probe found managed-worktree native WSL Git rc128 and
+Core commit unavailable/dirty unknown at a60. Root's bounded P1.1 correction
+reuses local.ps1's scoped host-Git bridge via a tracked LF-only wrapper,
+preserves existing WSL PATH and requires boot-pinned bridge/host Git identity.
+Controller52 candidate checks passed (six new checks); unchanged launcher39
+remains valid, giving91 current mock gates. A separate actual diagnostic using
+this wrapper against clean259 Core returned exact259/dirty=false and
+fixture3e48bf6. Its wrapper belongs to the new frozen Main correction, not to
+the clean259 checkout. No OpenScience/model/store mutation occurred.
+Correction admission and clean new-config MCP/runtime/research/GUI/cancellation
+remain next; see ADR0011 and the openscience-wsl-git-correction record.
 
 The owner explicitly requires one acceptance at a time, closing execution,
 verification, integration, commit and push before the next phase unit. New

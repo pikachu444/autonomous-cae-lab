@@ -61,3 +61,33 @@ startup, official GUI, actual research and cancellation are distinct gates.
 Advances R03,R10–R13,R20–R21,R25,R33,R43,R45,R51–R52 while preserving all52
 requirements. Numerical/physical/strength/release qualification is unaffected;
 all unverified requirements stay UNKNOWN and decisions remain NOT_RELEASED.
+
+## Managed Windows worktree Git correction, 2026-10-01
+
+After Main source259649d was pushed, a read-only deployment probe found that
+native WSL Git cannot follow the managed worktree's Windows absolute .git
+pointer. Core therefore recorded unavailable commit/unknown dirty state, while
+the relative fixture submodule pointer remained readable. No research was run.
+
+Reuse the invocation-scoped host Git bridge design already in scripts/local.ps1.
+For Windows-managed worktrees only, prepend the tracked LF-only
+scripts/wsl-windows-git directory to the existing WSL PATH and pass the exact
+host Git path to its two-line wrapper. Other checkouts retain native WSL Git.
+The wrapper is in the repository boot pin; startup requires its tracked hash
+and host Git executable to match the transport intent. Later bridge/source drift
+is refused by the existing inference gate. Profile intent version3 requires a
+new profile; no existing pointer, profile, global PATH or Git config is changed.
+
+Running on Main alone would avoid this deployment defect but would not provide
+a separate stable research runtime while integration continues. Rewriting old
+worktree pointers or setting global Git/PATH would affect unrelated checkouts.
+Those alternatives are rejected. Core schemas, tool permissions, numerical
+thresholds and OpenScience research arguments are unchanged.
+
+Controller52 mock gates passed, including six bridge/deployment checks;
+unchanged launcher39 remains separately attributed. An actual read-only
+diagnostic used the new frozen wrapper against clean Core259649d and reported
+the exact commit, dirty=false and fixture3e48bf6. This diagnostic did not start
+OpenScience or call a model/Core mutation. Clean new-config runtime/research/
+GUI/cancellation and bounded independent source admission remain separate gates.
+See the openscience-wsl-git-correction record. Advances R11/R21/R25/R43/R51/R52.

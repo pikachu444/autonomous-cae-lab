@@ -21,9 +21,17 @@ Currently only **P1.1** is active. Later rows are queued, not running.
 - [x] Correct the independently found first-failure finalizer gap and run39
   launcher checks, including absent-store/partial-store/hash/write failure
   finalization. Preserve original failure/log bytes and the initial parser
-  diagnostic. Updated source still requires renewed independent admission.
-- [ ] Independently review the frozen Main transport/ADR/contract/state/roadmap
-  delta; fix any blocker within this unit, check staged diff, commit and push.
+  diagnostic. Renewed independent admission closed at Main259649d.
+- [x] Independently review the frozen Main transport/ADR/contract/state/roadmap
+  delta; close the finalizer P2, check staged diff, commit/push Main259649d and
+  confirm exact remote HEAD. Packet03 PASS_NO_OPEN_P1_P2; actual P1.1 still open.
+- [x] Diagnose managed-worktree native WSL Git rc128/Core unavailable and
+  implement the bounded invocation-scoped bridge correction. Controller52
+  mocks passed; actual diagnostic returned clean259/fixture3e48 via frozen
+  candidate wrapper. Zero provider/Core mutations; launcher39 unchanged.
+- [ ] Independently admit/commit/push this bounded correction; update the
+  unused serving worktree to that clean commit and verify actual source
+  identity through its exact configured MCP environment before any model call.
 - [ ] Obtain a clean pinned serving worktree at that exact integrated commit;
   initialize the exact fixture submodule and verify existing runtime paths.
 - [ ] Start a new isolated profile/store; record version, HEAD/working-byte

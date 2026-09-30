@@ -1,0 +1,2 @@
+#!/bin/sh
+exec "$CAELAB_HOST_GIT" "$@"

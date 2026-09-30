@@ -57,7 +57,7 @@ and verified work remains useful at its recorded source and scope.
 
 | Gate | Current evidence | Completion requirement |
 | --- | --- | --- |
-| Source admission | Imported a60b854 transport; original81 checks passed. Independent P2 failure-finalization gap corrected; controller46 plus latest launcher39 checks passed | Renewed independent Main source/contract/plan review, commit and confirmed push. Mocks made zero provider/Core calls. |
+| Source admission | Main259649d reviewed, committed/pushed; original finalizer85 mocks passed. Managed-Windows-worktree Git correction now passes52 controller plus unchanged39 launcher gates | Admit bounded correction independently, commit/push; no provider/Core mutations. |
 | Clean runtime | Old fresh04 readiness belongs to HEAD1f6cb07 plus frozen correction | Fresh clean integrated serving source; actual version, boot pin, isolated profile, MCP connection and exact owned Stop receipts. |
 | Actual research | Historical live05 used explicitly mixed source identities | New actual model/MCP calls: study, real discovery, registration, width38 CAD, bolt30 rejection, inspect/summary/compare and evidence-based AI interpretation. Verify Core artifacts/ledgers; no invented tool calls. |
 | Human inspection | Earlier official GUI and Lab checks have their own source/run IDs | Official Workspace shows the same new project/session/tool results; human-readable CAD/result artifacts match the Core experiment revision. |
@@ -67,6 +67,14 @@ and verified work remains useful at its recorded source and scope.
 Do not move/checkout a live serving worktree. Keep Lab8766 pinned to d36387b
 while Main advances. Use a distinct clean pinned worktree/profile/new store
 for P1.1. Preserve all old sessions, stores, raw bytes and failed attempts.
+
+P1.1 bounded deployment correction: native WSL Git cannot follow a Windows
+managed-worktree absolute .git pointer, so the new MCP transport must reuse
+the existing invocation-scoped host-Git bridge. Freeze its tracked LF wrapper
+and host Git identity; verify actual Core commit/dirty and fixture identity
+through the exact configured environment before model execution. The read-only
+diagnostic passed against clean259 with the candidate Main wrapper; it is not
+a new configured-MCP or research proof. No global Git/PATH change is authorized.
 
 ## Remaining phase queue
 
@@ -122,7 +130,9 @@ HTTP checks; its changed native archive and separate clean local inverse run
 passed independent review. This is an implemented baseline, not whole-project
 completion. The OpenScience import had81 Main mock checks; a bounded P2
 finalizer correction passed39 launcher checks, retaining the unchanged46
-controller gate (85 current checks). It has no new actual
+controller gate (85 checks at source259). The bounded managed-worktree Git
+correction passes52 controller plus39 unchanged launcher gates (91 current
+mocks), with a separately attributed read-only diagnostic. It has no new actual
 research proof. Fixture269d8bf reports23 evaluations with later refinement;
 final independent native/metadata review and Main integration wait for P3.1.
 Unverified viscoelastic implementation remains preserved and deferred to Phase5.
