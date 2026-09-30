@@ -224,6 +224,36 @@ def _recheck(store, records):
             _read(boundary, path, expected=entry["sha256"], size=entry["size_bytes"])
 
 
+def preflight_records(lab, experiment_ids):
+    """Verify one deduplicated set for an aggregate Core inspection.
+
+    Aggregate views need paths, ledgers and payload identity, without rendering
+    an unused research summary for every experiment and its parents. This set
+    belongs to one call; callers recheck it after Core finishes the inspection.
+    """
+    store = Path(lab.store).resolve(strict=True)
+    records = {}
+    for requested in experiment_ids:
+        identifier = check_id(requested)
+        seen = set()
+        while identifier:
+            if identifier in seen or len(seen) >= 64:
+                raise ValueError("Cyclic or excessively deep experiment parent chain")
+            seen.add(identifier)
+            if identifier not in records:
+                records[identifier] = _preflight(store, identifier)
+            parent = records[identifier]["result"].get("parent_experiment_id")
+            identifier = check_id(parent) if parent is not None else None
+    result = list(records.values())
+    _recheck(store, result)
+    return result
+
+
+def recheck_records(lab, records):
+    """Keep exact expected hashes, containment and race checks after inspection."""
+    _recheck(Path(lab.store).resolve(strict=True), records)
+
+
 def verified_record(lab, experiment_id):
     """Preflight the entire parent chain before Core reads any manifest path."""
     store = Path(lab.store).resolve(strict=True)

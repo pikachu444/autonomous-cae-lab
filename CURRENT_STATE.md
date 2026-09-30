@@ -1,5 +1,30 @@
 # Current state — 2026-09-30 (Asia/Seoul)
 
+## Active implementation checkpoint
+
+Source `03bfd7115ca3933cb18af17c55cc751839e91c98` was pushed. Its exact-source
+[CI 36676495776](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36676495776)
+passed seven jobs and 506 tests. Fresh local clean Code_Aster acceptance passed
+three experiments. Independent archive inspection passed 43/45 CI experiments
+and three campaigns; two Code_Aster archives omitted a registered hidden
+Matplotlib cache file. This checkpoint fixes upload scope to retain hidden
+files inside the seven explicit benchmark output roots; new archive proof is pending.
+
+Fresh HTTP clean-01 retained valid/rejected CAD, PDE, historical library and
+bundle proof, but optimization campaign inspection timed out at 180 seconds.
+The failure is preserved. This checkpoint removes duplicate campaign summary
+work and repeated solver artifact checks within a single Core inspection, with
+payload integrity checks before and after aggregation. Reporter/server tests
+passed 105 cases plus two added service mutation cases; the real DE regression
+passed, with its parent integrity recursion retained. Fresh HTTP reproduction
+is pending. See [the checkpoint record](benchmarks/records/20260930-connected-inspection-repair.json).
+
+Actual MFront material-point, Code_Aster plasticity and OpenRadioss execution
+continue in isolated worktrees with independent review. Their new native
+acceptance remains open; observed runtime/parser/contact failures are retained.
+Root is connecting declared-model inputs to the existing numerical engine.
+All phases 1–7 and all 52 requirements remain active, not complete.
+
 ## Whole-project continuation remains active
 
 The numerical checkpoint did not complete the 52 requirements. Root stopped

@@ -1,6 +1,7 @@
 """Real SciPy/CAD search gates; counting analysis is explicitly test-only."""
 
 from copy import deepcopy
+from collections import Counter
 from dataclasses import replace
 import hashlib
 from pathlib import Path
@@ -172,7 +173,25 @@ def test_real_de_invalid_cad_skips_analysis_and_completed_replay_is_immutable(tm
     # A completed record can still be inspected/replayed after this installation changes.
     monkeypatch.setattr(lab.adapters[CAD], "version", "changed-after-completion")
     monkeypatch.setattr(analysis, "crash", True)
+    inspected = []
+    inspect_experiment = lab.inspect_experiment
+
+    def count_inspections(identifier, **options):
+        inspected.append(identifier)
+        return inspect_experiment(identifier, **options)
+
+    monkeypatch.setattr(lab, "inspect_experiment", count_inspections)
     assert lab.inspect_optimization(CAMPAIGN) == result
+    expected_ids = {row["cad_experiment_id"] for row in rows} | {
+        row["analysis_experiment_id"] for row in rows if row["analysis_experiment_id"]}
+    assert set(inspected) == expected_ids
+    expected_counts = Counter({identifier: 1 for identifier in expected_ids})
+    # Core's child inspection also verifies its CAD parent; that check is kept.
+    expected_counts.update(row["cad_experiment_id"] for row in rows if row["analysis_experiment_id"])
+    assert Counter(inspected) == expected_counts
+    inspected.clear()
+    assert lab.inspect_optimization(CAMPAIGN) == result
+    assert Counter(inspected) == expected_counts
     assert lab.run_optimization(CAMPAIGN) == result
     assert analysis.calls == old_calls
     replay_files = _files(lab.store / "optimizations" / CAMPAIGN)

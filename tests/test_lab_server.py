@@ -18,6 +18,7 @@ from apps.lab.service import LabService, OPERATIONS
 from caelab import Lab
 from caelab.adapters.fixture_cadquery import FixtureCadQueryAdapter
 from caelab.contracts import Outcome
+from caelab.storage import save_json
 
 
 class Client:
@@ -85,6 +86,34 @@ def registration(native="support_width_mm", identifier="support_width", lower=28
     return {"study_id": "S-http", "backend": "fixture.cadquery", "model": "roller_support",
             "native_path": native, "parameter_id": identifier, "display_name": identifier,
             "lower": lower, "upper": upper}
+
+
+@pytest.mark.parametrize("phase", ["before", "after"])
+def test_campaign_rechecks_payload_around_core_inspection(real_flow, monkeypatch, phase):
+    client, service, _, _ = real_flow
+    lab = service._selected().lab
+    folder = lab.store / "optimizations" / ("C-wire-" + phase)
+    # Only the service wiring is synthetic. The referenced CAD experiment and
+    # its original, hash-registered bytes came from the real Core fixture.
+    save_json(folder / "plan.json", {"test_only": True, "cad_experiment_id": "E-valid"})
+    target = lab.store / "experiments/E-valid/cad/assembly.step"
+    original = target.read_bytes()
+    calls = []
+
+    def inspect(identifier):
+        calls.append(identifier)
+        if phase == "after":
+            target.write_bytes(original + b"TEST ONLY: changed during aggregate inspection")
+        return {"test_only": True}
+
+    monkeypatch.setattr(lab, "inspect_optimization", inspect)
+    try:
+        if phase == "before":
+            target.write_bytes(original + b"TEST ONLY: changed before aggregate inspection")
+        client.request("/api/campaigns/" + folder.name, expected=400)
+        assert calls == ([] if phase == "before" else [folder.name])
+    finally:
+        target.write_bytes(original)
 
 
 @pytest.fixture

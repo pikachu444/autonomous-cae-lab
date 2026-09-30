@@ -1,0 +1,62 @@
+{
+  "record_kind": "BOUNDED_IMPLEMENTATION_CHECKPOINT",
+  "date": "2026-09-30",
+  "previous_source_commit": "03bfd7115ca3933cb18af17c55cc751839e91c98",
+  "previous_exact_source_ci": {
+    "run_id": 36676495776,
+    "jobs": 7,
+    "conclusion": "SUCCESS",
+    "tests_passed": 506,
+    "raw_zip_count": 7,
+    "raw_zip_github_sha256_checks": "PASS",
+    "intact_experiments": 43,
+    "total_experiments": 45,
+    "intact_campaigns": 3,
+    "archive_verdict": "PARTIAL",
+    "missing_registered_path": "simulation/preferences/.cache/matplotlib/fontlist-v390.json",
+    "affected_family": "codeaster",
+    "independent_audit_path": "artifacts/github-ci-36676495776/independent-audit.json",
+    "independent_audit_sha256": "051a3c3c5ffa5a41769ac393e5372fa312d48846b9cbd93ca205556c88dd486f"
+  },
+  "clean_local_declared_model": {
+    "store": "artifacts/local-20260930-codeaster-clean-01",
+    "experiments": 3,
+    "verdict": "PASS",
+    "core_dirty": false,
+    "source_commit": "03bfd7115ca3933cb18af17c55cc751839e91c98"
+  },
+  "failed_http": {
+    "store": "artifacts/local-20260930-http-clean-01",
+    "verdict": "FAILED",
+    "failed_operation": "GET /api/campaigns/C-opt",
+    "timeout_seconds": 180,
+    "cad_and_pde": "PASS",
+    "optimization_experiments_inspected": 19,
+    "optimization_campaign_http_and_bundle": "UNVERIFIED",
+    "record_sha256": "4aee1568e0acbc9c16251273422db65eb474161f135958bb0c01e5c2a592ec79",
+    "core_profile": {"wall_seconds": 19.042, "experiment_inspections": 41, "distinct_experiments": 17, "file_reads": 941, "bytes_read": 790769117},
+    "old_http_preflight_extra_reads": "Source/manifest inference, not a measured HTTP profile"
+  },
+  "changes": [
+    "Per-operation optimization verification reuse; parent recursion and fresh verification on each subsequent operation remain",
+    "Unique campaign record/parent preflight without repeated research summary construction, payload recheck after Core aggregation",
+    "Hidden files included only in seven explicit CI benchmark upload roots",
+    "Invocation-scoped host Git bridge for Windows-managed worktrees executed in WSL"
+  ],
+  "focused_verification": {
+    "reporter_and_server_tests": 105,
+    "additional_service_payload_mutation_tests": 2,
+    "real_de_and_fresh_inspection_regression": 1,
+    "related_declared_model_and_engine_tests": 72,
+    "powershell_parser": "PASS",
+    "managed_worktree_source_identity": "PASS",
+    "independent_bounded_review": "PASS",
+    "earlier_test_failure": "Inspection-count expectation omitted retained child-to-parent recursion; corrected to verify actual recursion without changing it"
+  },
+  "next_acceptance": ["New exact-source CI and complete raw archive inspection", "Fresh HTTP reproduction with unchanged 180-second request limit", "Actual material/plasticity/explicit native gates", "Declared-model numerical optimization"],
+  "new_native_integrations": "IN_PROGRESS_NOT_ACCEPTED",
+  "physical_validation": "UNKNOWN",
+  "decision": "NOT_RELEASED",
+  "whole_project_complete": false,
+  "raw_evidence_committed": false
+}

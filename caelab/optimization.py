@@ -154,12 +154,16 @@ def _key(plan, values):
     return [float(values[name]).hex() for name in names]
 
 
-def _experiment(lab, plan, item, analysis, allow_run):
+def _experiment(lab, plan, item, analysis, allow_run, verified=None):
     identifier = item["cad_experiment_id"] + "-solve" if analysis else item["cad_experiment_id"]
     folder = lab.store / "experiments" / identifier
     expected_execution = plan["analysis"]["settings"] if analysis else {"random_seed": plan["algorithm"]["seed"]}
     if folder.exists():
-        result = lab.inspect_experiment(identifier)
+        result = verified.get(identifier) if verified is not None else None
+        if result is None:
+            result = lab.inspect_experiment(identifier)
+            if verified is not None:
+                verified[identifier] = result
         proposal = load_json(folder / "proposal.json")
         adapter_version = plan["analysis_adapter_version"] if analysis else plan["cad_adapter_version"]
         expected_backend = plan["analysis"]["backend"] if analysis else plan["backend"]
@@ -255,22 +259,22 @@ def _record(lab, plan, item, cad, analysis):
             "decision": "NOT_RELEASED"}
 
 
-def _checked_row(lab, plan, row):
+def _checked_row(lab, plan, row, verified=None):
     item = {k: deepcopy(row[k]) for k in ("index", "values", "key", "cad_experiment_id")}
     if (item["key"] != _key(plan, item["values"]) or
             item["cad_experiment_id"] != f"E-{plan['campaign_id']}-{item['index']:04d}"):
         raise ValueError("Optimization journal candidate identity mismatch")
-    cad = _experiment(lab, plan, item, analysis=False, allow_run=False)
+    cad = _experiment(lab, plan, item, analysis=False, allow_run=False, verified=verified)
     expected_child = bool(plan["analysis"] and cad["status"] == "COMPLETED_REVIEW_REQUIRED")
     if expected_child != bool(row["analysis_experiment_id"]):
         raise ValueError("Optimization journal omitted or invented a solver child")
-    analysis = _experiment(lab, plan, item, analysis=True, allow_run=False) if expected_child else None
+    analysis = _experiment(lab, plan, item, analysis=True, allow_run=False, verified=verified) if expected_child else None
     if row != _record(lab, plan, item, cad, analysis):
         raise ValueError("Optimization journal differs from its verified experiments")
     return row
 
 
-def _rows(lab, plan, folder):
+def _rows(lab, plan, folder, verified=None):
     rows = []
     for index, path in enumerate(sorted((folder / "journal").glob("*.json")), 1):
         if path.name != f"{index:04d}.json":
@@ -281,7 +285,7 @@ def _rows(lab, plan, folder):
         candidate = folder / "candidates" / f"{index:04d}.json"
         if load_json(candidate) != {k: row[k] for k in ("index", "values", "key", "cad_experiment_id")}:
             raise ValueError("Optimization candidate differs from its journal")
-        rows.append(_checked_row(lab, plan, row))
+        rows.append(_checked_row(lab, plan, row, verified=verified))
     return rows
 
 
@@ -311,10 +315,15 @@ def _checkpoint(folder, plan_hash, rows):
     save_json(folder / "state.json", state)
 
 
-def _versions(lab, row, previous):
+def _versions(lab, row, previous, verified=None):
     if not row["analysis_experiment_id"]:
         return previous
-    result = lab.inspect_experiment(row["analysis_experiment_id"])
+    identifier = row["analysis_experiment_id"]
+    result = verified.get(identifier) if verified is not None else None
+    if result is None:
+        result = lab.inspect_experiment(identifier)
+        if verified is not None:
+            verified[identifier] = result
     versions = result["provenance"]["solver"]["versions"]
     if result["solver_status"] in ("COMPLETED", "CONVERGED") and versions is not None:
         if previous is not None and previous != versions:
@@ -339,14 +348,19 @@ def run_optimization(lab, identifier):
                        ("seed", "max_generations", "population_size", "initial_values", "constraint_count")}
             if engine.describe(plan["variables"], **options) != plan["algorithm"]:
                 raise ValueError("Optimization algorithm/runtime changed since planning")
-            rows = _rows(lab, plan, folder)
+            # This dictionary lives for this one operation only. Every existing
+            # direct result retrieval receives a full ledger/artifact inspection;
+            # Core also retains its normal child-to-parent integrity checks.
+            # Version metadata need not hash the same solver files again.
+            verified = {}
+            rows = _rows(lab, plan, folder, verified=verified)
             if any(row["failed_execution"] for row in rows):
                 raise RuntimeError("Optimization retains a failed execution; preserve it and plan a new campaign after repair")
             prior_count = len(rows)
             cursor = 0
             versions = None
             for row in rows:
-                versions = _versions(lab, row, versions)
+                versions = _versions(lab, row, versions, verified=verified)
                 _checkpoint(folder, ledger["plan_sha256"], rows[:row["index"]])
 
             def evaluate(values):
@@ -367,11 +381,11 @@ def run_optimization(lab, identifier):
                             raise ValueError("Pending optimization candidate differs from deterministic replay")
                     else:
                         save_json(candidate, item)
-                    cad = _experiment(lab, plan, item, analysis=False, allow_run=True)
-                    analysis = (_experiment(lab, plan, item, analysis=True, allow_run=True)
+                    cad = _experiment(lab, plan, item, analysis=False, allow_run=True, verified=verified)
+                    analysis = (_experiment(lab, plan, item, analysis=True, allow_run=True, verified=verified)
                                 if plan["analysis"] and cad["status"] == "COMPLETED_REVIEW_REQUIRED" else None)
                     row = _record(lab, plan, item, cad, analysis)
-                    versions = _versions(lab, row, versions)
+                    versions = _versions(lab, row, versions, verified=verified)
                     save_json(folder / "journal" / f"{index:04d}.json", row)
                     rows.append(row)
                     _checkpoint(folder, ledger["plan_sha256"], rows)
@@ -406,12 +420,13 @@ def run_optimization(lab, identifier):
 
 def inspect_optimization(lab, identifier):
     plan, folder, _, ledger, _ = _plan(lab, identifier)
-    rows = _rows(lab, plan, folder)
+    verified = {}
+    rows = _rows(lab, plan, folder, verified=verified)
     versions = None
     checkpoint_pending = []
     completed = (folder / "result.json").exists()
     for row in rows:
-        versions = _versions(lab, row, versions)
+        versions = _versions(lab, row, versions, verified=verified)
         candidate = folder / "candidates" / f"{row['index']:04d}.json"
         if load_json(candidate) != {k: row[k] for k in ("index", "values", "key", "cad_experiment_id")}:
             raise ValueError("Optimization candidate differs from its journal")
