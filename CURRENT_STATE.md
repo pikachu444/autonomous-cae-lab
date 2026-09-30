@@ -2,6 +2,25 @@
 
 ## Current serial work: Phase1 persistent OpenScience
 
+Native7f4e5e8 run `p1-native-7f4e5e8-20261001-01` loaded its actual public
+plugin and connected the resident MCP. The zero-model connected resource
+returned HTTP200, but Core/fixture Git probes failed128 and provenance stayed
+UNKNOWN. A safe Windows interop child exposed the OpenScience-injected NUL
+global-config path; the tracked Windows Git bridge cannot read it through WSL.
+The bounded correction gives only this managed-worktree MCP child a tracked,
+hash-bound inert config, retaining NOSYSTEM1/PROMPT0. Four fresh child probes
+now return clean7f/fixture3e48; controller56/native28 and independent review
+pass. This is not a corrected resident observation. Preserve the failed resource
+and use NEW source/profile/store for actual research. The chosen model/auth
+remain unchanged. Record:20261001-openscience-mcp-git-config.json.
+
+Actual selected5.6 Sol no-tools inference completed on native7f: session
+ses_f0b45eb0effeiZlNL5vd3AteKg returned `CAE_CHATGPT_OK`, official done=completed,
+exit0, launcher30.229s,868input/8output tokens. No Core/CAD calls or fallback.
+This proves selected-model access, not common provenance or research PASS.
+The official GUI's empty Home/direct-route redirect remains unresolved; no
+same-record GUI acceptance is claimed for this native run.
+
 Official ChatGPT login actually completed on2026-10-01; the owner explicitly
 selected `openai-codex/gpt-5.6-sol`. Its auth file stays in the external marked
 profile; values were not inspected/copied/committed. Earlier two failed signins
@@ -16,7 +35,8 @@ CAD or Core calls. Source review closed native-executable/static-context integri
 and lifecycle-drift/no-proxy cleanup findings. Earlier test-only wrong receipt
 directory failures remain in their original profiles; the bounded path fix passed.
 The separate controller evidence and exact source hashes are in the native record.
-Actual native loading/connected-resource read/inference/research are next and OPEN.
+Native loading/connected-resource transport were observed at7f; its Git evidence
+failed. Selected-model no-tools inference passed; full research remains OPEN.
 No automatic replacement or Qwen run is authorized. Wire/final schemas/every HTTP
 retry remain UNKNOWN; no numerical/engineering verdict is upgraded.
 

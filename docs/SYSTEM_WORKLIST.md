@@ -24,6 +24,13 @@ Currently only **P1.1** is active. Later rows are queued, not running.
 - [ ] Start clean native source/profile and read the resource through the actual
   OpenScience MCP connection before Core mutation; verify selected-model completed
   inference. Final offered schemas/every-HTTP/wire evidence remains UNKNOWN.
+- [x] Observe native7f actual plugin loading/MCP connection and retain the
+  failed resident Git128 resource. Diagnose Windows NUL config through interop;
+  scoped tracked-config correction passes controller56/native28 and independent
+  review. Four child Git probes pass; corrected resident research remains OPEN.
+- [x] Complete actual selected5.6 Sol no-tools response on native7f:
+  CAE_CHATGPT_OK/official completed/exit0,30.229s, no Core/CAD/fallback. This
+  establishes model access without upgrading failed provenance/full acceptance.
 
 - [x] Recover ledger, handoff, state, architecture/ADRs and contract; preserve
   Main33ea11d, pinned fixture3e48bf6 and previous acceptance stores.

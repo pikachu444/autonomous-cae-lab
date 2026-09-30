@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.openscience-mcp-git-config",
+  "source_parent": "7f4e5e858b988c9b97267ede68ebc1ba2aa301fe",
+  "source_version": "Commit carrying this record; reviewed as-run worktree hashes",
+  "phase": "P1.1",
+  "outcome": "PASS_BOUNDED_SOURCE_AND_CHILD_REPRODUCTION",
+  "research_acceptance": "OPEN",
+  "actual_prior_runtime": {
+    "run_id": "p1-native-7f4e5e8-20261001-01",
+    "source_commit": "7f4e5e858b988c9b97267ede68ebc1ba2aa301fe",
+    "openscience_version": "2.0.146",
+    "openscience_source": "4082a2ecb73e166d4503963798228ba700f3840f",
+    "native_pid": 44988,
+    "resident_mcp_pid": 289,
+    "plugin_loaded_receipt": "OBSERVED",
+    "connector": "CONNECTED",
+    "resident_resource_http_status": 200,
+    "resident_core_git": "UNKNOWN: both probes NONZERO_EXIT 128",
+    "resident_fixture_git": "UNKNOWN: commit, dirty and tracked-files probes NONZERO_EXIT 128",
+    "resident_core_disk_sha256": "d1e39d12a6ad143c9ab4c810440a7bf655dd7e6fb96b7304fde2dfa9b6bfc89c",
+    "resource_read_model_calls": 0,
+    "resource_read_core_mutations": 0,
+    "common_provenance_gate": "REJECTED"
+  },
+  "diagnosis": {
+    "safe_selected_resident_environment_reproduction": "fatal: unable to access Windows NUL device config: Invalid argument",
+    "windows_interop_child_config": "GIT_CONFIG_GLOBAL=Windows NUL device; GIT_CONFIG_NOSYSTEM=1",
+    "linux_git_environment_names": [],
+    "official_source": "openscience/index.ts subprocessSnapshot1651-1653 injects os.devNull; mcp/index.ts localEnv560-569 merges MCP.environment last; group-launcher.ts56-63 passes process.env",
+    "historical_results_rewritten": false
+  },
+  "correction": {
+    "scope": "Only managed Windows worktree's MCP subprocess environment",
+    "tracked_inert_config": "scripts/wsl-windows-git/empty.config",
+    "config_sha256": "1d476dcadf5208eb8485ff928b1a6283c597cef6c8d4c28662ac1f3290bfc519",
+    "config_contents": "One fixed LF comment, no Git settings",
+    "no_system_config": true,
+    "terminal_prompt": false,
+    "bridge_bytes_changed": false,
+    "user_global_config_changed": false,
+    "credentials_changed": false,
+    "intent_and_boot_source_hash_bound": true,
+    "native_wsl_checkout_environment_changed": false
+  },
+  "child_reproduction": {
+    "scope": "Fresh Windows MCP-style child -> WSL -> existing tracked bridge -> existing Windows Git; not a new resident resource observation",
+    "core_commit": "7f4e5e858b988c9b97267ede68ebc1ba2aa301fe",
+    "core_dirty": false,
+    "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "fixture_dirty": false,
+    "four_git_probes_return_code": 0,
+    "parent_git_config_unchanged": true,
+    "linux_git_config_variable_names": []
+  },
+  "checks": {
+    "controller": {"count": 56, "result": "PASS", "run_id": "p1-mcp-git-config-20261001-02", "source_sha256": "218dfa58b60e1122241be9ad211b400bc0d88e7bd69877a91c5ea5df5b3b8b07", "provider_calls": 0, "backend_calls": 0},
+    "native": {"count": 28, "result": "PASS", "run_id": "p1-native-git-config-20261001-01", "provider_calls": 0, "core_mutations": 0},
+    "independent_review": "PASS_NO_OPEN_P1_P2",
+    "native_provider_sha256": "c9150817081e2e4cfd7228b11edea53f03e0ade7cd61d6aa0553a60fa3377fcc"
+  },
+  "actual_selected_model_smoke": {
+    "source_commit": "7f4e5e858b988c9b97267ede68ebc1ba2aa301fe",
+    "run_id": "p1-native-7f4e5e8-20261001-01",
+    "session_id": "ses_f0b45eb0effeiZlNL5vd3AteKg",
+    "selected_model": "openai-codex/gpt-5.6-sol",
+    "response": "CAE_CHATGPT_OK",
+    "official_done_status": "completed",
+    "exit_code": 0,
+    "launcher_elapsed_seconds": 30.229,
+    "tokens": {"input": 868, "output": 8},
+    "actual_core_tools": 0,
+    "cad_calls": 0,
+    "no_model_fallback": true,
+    "stdout_sha256": "6b8c7f109f0137445b8a7b487186581e3fa52539c97ab9dce3e12c3301423ab1",
+    "scope": "Completed authenticated no-tools inference; not corrected resident Git or full research acceptance"
+  },
+  "retention": {
+    "raw": "Local ignored artifacts/p1-native-7f4e5e8-20261001-01 and owned external runtime/auth profiles; credentials excluded",
+    "raw_remote": false,
+    "append_only": true,
+    "historical_failed_resource_and_diagnostics_retained": true
+  },
+  "next_gate": "Clean committed source, NEW profile/store, actual OpenScience-connected resident resource PASS, selected-model inference, unchanged valid/rejected CAD/results/interpretation/same-record GUI/cancellation",
+  "decision": "NOT_RELEASED",
+  "engineering_unknowns": "Machine/material/strength/physical/durability remain UNKNOWN"
+}

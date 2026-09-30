@@ -21,6 +21,14 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Status vocabulary
 
+2026-10-01 managed MCP correction: actual native7f loaded/connected but resident
+Git provenance stayed UNKNOWN. The scoped inert-config correction and four
+fresh child Git probes pass; actual corrected resident/full research is OPEN.
+Evidence: `benchmarks/records/20261001-openscience-mcp-git-config.json`.
+All52 ledger rows and engineering UNKNOWN/NOT_RELEASED remain unchanged.
+Actual selected5.6 Sol no-tools inference completed on7f;
+CAE_CHATGPT_OK/official completed/exit0. Full research and GUI remain OPEN.
+
 2026-10-01 native-provider checkpoint: the owner completed official ChatGPT
 authentication and chose `openai-codex/gpt-5.6-sol`. Native transport source and
 its bounded checks/review are implemented; actual new-source provider/MCP/CAD

@@ -1,5 +1,11 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+The managed Windows worktree transport scopes `mcp.environment.GIT_CONFIG_GLOBAL`
+to a tracked, hash-bound inert config instead of OpenScience's Windows NUL
+device path. System config and terminal prompting stay disabled. This deployment
+correction changes no research operation or engineering verdict; actual resident
+Git failures remain UNKNOWN until a new connected run verifies them. See ADR0012.
+
 OpenScience owns the research request and interpretation. The CAE-Lab process owns execution and evidence. A request names a `study_id`, `experiment_id`, generic `model` reference and **registered research IDs** in `values`; it never passes FreeCAD property syntax or a solver deck. The current adapter supports `fixture.cadquery` and trusted registered model `roller_support` or another source model in the pinned fixture plugin.
 
 1. `study.create(id, name, research_question, hypothesis, objective)` → persisted study.

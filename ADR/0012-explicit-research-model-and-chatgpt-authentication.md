@@ -66,6 +66,18 @@ cases in a new clean-source store. P1.1 and Phases2–7 remain open.
 
 ## Verification and requirement impact
 
+Actual native7f loading/MCP connection passed, but its zero-model resident
+resource exposed Git128/UNKNOWN. Official subprocessSnapshot replaces global
+Git config with os.devNull on Windows; that path fails in Windows Git launched
+through WSL. Use the official MCP.environment last-merge seam to replace only
+that child's config path with tracked/hash-bound inert source, preserving
+NOSYSTEM1/PROMPT0. Changing user/global config, upgrading Git/OpenScience,
+editing the pinned native binary or widening safe.directory is unnecessary.
+The bridge bytes, Core/fixture implementations and numerical gates are preserved.
+Four child probes/controller56/native28 and independent review pass; a fresh
+actual resident resource and research run are still required. Preserve prior
+UNKNOWN results. See the20261001-openscience-mcp-git-config record.
+
 Auth adapter19 checks, legacy controller52/launcher47 mocks and resource8 tests
 passed separately, with no inference/CAD/Core mutations. Actual stdio resource
 execution created no store. The first resource test assumption about commit/

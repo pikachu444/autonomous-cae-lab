@@ -309,7 +309,7 @@ function New-OpenScienceMcpGitTransport {
     $pointer = Join-Path $RepoRoot '.git'
     if (-not ((Test-Path -LiteralPath $pointer -PathType Leaf) -and
         ((Get-Content -LiteralPath $pointer -TotalCount 1) -match '^gitdir: [A-Za-z]:'))) {
-        return [pscustomobject]@{ Mode = 'NATIVE_WSL_GIT'; Environment = @() }
+        return [pscustomobject]@{ Mode = 'NATIVE_WSL_GIT'; Environment = @(); SubprocessEnvironment = @{} }
     }
     # The local.ps1 bridge pattern is reused, but its executable source is
     # tracked here so every model POST's repository pin also checks these bytes.
@@ -319,6 +319,16 @@ function New-OpenScienceMcpGitTransport {
     $expectedHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData(
         [Text.UTF8Encoding]::new($false).GetBytes($expected))).ToLowerInvariant()
     Assert-OpenScienceCondition ((Get-OpenScienceHash $bridge) -ceq $expectedHash) 'MCP Git bridge must retain its exact LF-only source.'
+    # OpenScience injects os.devNull as GIT_CONFIG_GLOBAL into Windows MCP
+    # children. Git for Windows cannot read that device path through WSL
+    # interop. Override only this MCP child's global-config path with pinned
+    # inert source; retain its no-system-config and no-prompt isolation.
+    $gitConfig = Join-Path $RepoRoot 'scripts/wsl-windows-git/empty.config'
+    $gitConfigText = '# CAE provenance probes use no global Git settings.' + [char]10
+    $gitConfigHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData(
+        [Text.UTF8Encoding]::new($false).GetBytes($gitConfigText))).ToLowerInvariant()
+    Assert-OpenScienceCondition ((Test-Path -LiteralPath $gitConfig -PathType Leaf) -and
+        (Get-OpenScienceHash $gitConfig) -ceq $gitConfigHash) 'MCP Git config must retain its exact inert LF-only source.'
     Assert-OpenScienceCondition ($HostGitPath -and (Test-Path -LiteralPath $HostGitPath -PathType Leaf)) 'Existing host Git is required for this managed worktree.'
     Assert-OpenScienceCondition ($OriginalWslPath -and $OriginalWslPath -notmatch '[\r\n]') 'Existing WSL PATH is missing or multiline.'
     $bridgeDirectory = ConvertTo-OpenScienceWslPath (Split-Path -Parent $bridge)
@@ -327,6 +337,8 @@ function New-OpenScienceMcpGitTransport {
         Mode = 'WINDOWS_MANAGED_WORKTREE_GIT'; BridgePath = $bridge; BridgeSha256 = $expectedHash
         HostGitPath = $HostGitPath; HostGitSha256 = Get-OpenScienceHash $HostGitPath
         Environment = @(('PATH=' + $bridgeDirectory + ':' + $OriginalWslPath), "CAELAB_HOST_GIT=$hostGitWslPath")
+        ConfigPath = $gitConfig; ConfigSha256 = $gitConfigHash
+        SubprocessEnvironment = @{ GIT_CONFIG_GLOBAL = $gitConfig; GIT_CONFIG_NOSYSTEM = '1'; GIT_TERMINAL_PROMPT = '0' }
     }
 }
 
@@ -449,7 +461,7 @@ function New-OpenScienceLocalContext {
                 timeout = ($ProviderTimeoutSeconds * 1000); connectTimeout = ($ProviderTimeoutSeconds * 1000); idleTimeout = 60000 }
             models = @{ $ModelId = @{ name = $ModelId; tool_call = $true; reasoning = $true; temperature = $true
                 cost = @{ input = 0; output = 0 }; limit = @{ context = 16384; output = $OutputTokens }; options = @{ reasoningEffort = 'low' } } } } }
-        mcp = @{ caelab = @{ type = 'local'; enabled = $true; timeout = 120000; command = @(
+        mcp = @{ caelab = @{ type = 'local'; enabled = $true; timeout = 120000; environment = $mcpGit.SubprocessEnvironment; command = @(
             "$env:WINDIR\System32\wsl.exe", '-d', $WslDistro, '--cd', $wslRoot, '--', '/usr/bin/env',
             "CAELAB_STORE=$wslStore", ('PYTHONPYCACHEPREFIX=' + (ConvertTo-OpenScienceWslPath $context.WslPythonCacheRoot))) +
             @($mcpGit.Environment) + @($WslPython, "$wslRoot/openscience/mcp_server.py") } }
@@ -1282,9 +1294,15 @@ function Start-OpenScienceLocalServerLocked($Context, [int]$Port, [int]$StartupT
     $bootSource = Get-OpenScienceRepositorySourcePin -Context $Context
     if ($Context.McpGitTransport.Mode -eq 'WINDOWS_MANAGED_WORKTREE_GIT') {
         $bridgePin = @($bootSource.files | Where-Object path -eq 'scripts/wsl-windows-git/git')
+        $configPin = @($bootSource.files | Where-Object path -eq 'scripts/wsl-windows-git/empty.config')
         Assert-OpenScienceCondition ($bridgePin.Count -eq 1 -and $bridgePin[0].sha256 -ceq $Context.McpGitTransport.BridgeSha256 -and
+            $configPin.Count -eq 1 -and $configPin[0].sha256 -ceq $Context.McpGitTransport.ConfigSha256 -and
+            $Context.McpGitTransport.ConfigPath -ceq (Join-Path $Context.RepoRoot 'scripts/wsl-windows-git/empty.config') -and
+            $Context.McpGitTransport.SubprocessEnvironment.GIT_CONFIG_GLOBAL -ceq $Context.McpGitTransport.ConfigPath -and
+            $Context.McpGitTransport.SubprocessEnvironment.GIT_CONFIG_NOSYSTEM -ceq '1' -and
+            $Context.McpGitTransport.SubprocessEnvironment.GIT_TERMINAL_PROMPT -ceq '0' -and
             $bootSource.git_path -ceq $Context.McpGitTransport.HostGitPath -and
-            $bootSource.git_sha256 -ceq $Context.McpGitTransport.HostGitSha256) 'MCP bridge and host Git must belong to the tracked boot source identity.'
+            $bootSource.git_sha256 -ceq $Context.McpGitTransport.HostGitSha256) 'MCP bridge, inert config and host Git must belong to the tracked boot source identity.'
     }
     $directory = Join-Path $Context.ProfileRoot ('server-runs\' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff') + '-' + [Guid]::NewGuid().ToString('N'))
     Assert-OpenScienceContainedPath $directory $Context.ProfileRoot | Out-Null
@@ -1380,7 +1398,8 @@ function Invoke-OpenScienceRuntimeSelfTest([string]$RepoRoot, [string]$RunName) 
     $nativeGitFixture = Join-Path $root 'native-git-fixture'
     New-Item -ItemType Directory -Path (Join-Path $nativeGitFixture '.git') -ErrorAction Stop | Out-Null
     $nativeTransport = New-OpenScienceMcpGitTransport -RepoRoot $nativeGitFixture
-    Assert-OpenScienceCondition ($nativeTransport.Mode -eq 'NATIVE_WSL_GIT' -and $nativeTransport.Environment.Count -eq 0) 'Native Git checkout gained a Windows bridge.'
+    Assert-OpenScienceCondition ($nativeTransport.Mode -eq 'NATIVE_WSL_GIT' -and $nativeTransport.Environment.Count -eq 0 -and
+        $nativeTransport.SubprocessEnvironment.Count -eq 0) 'Native Git checkout gained a Windows bridge.'
     $checks.Add('native_git_checkout_keeps_original_mcp_environment')
     $managedGitFixture = Join-Path $root 'managed git fixture'
     New-Item -ItemType Directory -Path $managedGitFixture -ErrorAction Stop | Out-Null
@@ -1394,12 +1413,33 @@ function Invoke-OpenScienceRuntimeSelfTest([string]$RepoRoot, [string]$RunName) 
     New-Item -ItemType Directory -Path (Split-Path -Parent $managedBridge) -ErrorAction Stop | Out-Null
     $bridgeBytes = [IO.File]::ReadAllBytes((Join-Path $RepoRoot 'scripts/wsl-windows-git/git'))
     [IO.File]::WriteAllBytes($managedBridge, $bridgeBytes)
+    $rejected = $false
+    try { New-OpenScienceMcpGitTransport -RepoRoot $managedGitFixture -HostGitPath $git -OriginalWslPath '/usr/bin:/bin' | Out-Null }
+    catch { $rejected = $true }
+    Assert-OpenScienceCondition $rejected 'Managed MCP Git without its inert config was accepted.'
+    $checks.Add('missing_managed_git_config_rejected')
+    $managedGitConfig = Join-Path $managedGitFixture 'scripts/wsl-windows-git/empty.config'
+    $gitConfigBytes = [IO.File]::ReadAllBytes((Join-Path $RepoRoot 'scripts/wsl-windows-git/empty.config'))
+    [IO.File]::WriteAllBytes($managedGitConfig, $gitConfigBytes)
     $managedTransport = New-OpenScienceMcpGitTransport -RepoRoot $managedGitFixture -HostGitPath $git -OriginalWslPath '/usr/local/bin:/usr/bin:/bin'
     Assert-OpenScienceCondition ($managedTransport.Environment.Count -eq 2 -and
         $managedTransport.Environment[0] -ceq ('PATH=' + (ConvertTo-OpenScienceWslPath (Split-Path -Parent $managedBridge)) + ':/usr/local/bin:/usr/bin:/bin') -and
         $managedTransport.Environment[1] -ceq ('CAELAB_HOST_GIT=' + (ConvertTo-OpenScienceWslPath $git)) -and
         $managedTransport.HostGitSha256 -ceq (Get-OpenScienceHash $git)) 'MCP Git bridge changed spaces, WSL PATH or host Git identity.'
     $checks.Add('managed_git_bridge_preserves_spaces_original_path_and_pinned_host_git')
+    Assert-OpenScienceCondition ($managedTransport.SubprocessEnvironment.Count -eq 3 -and
+        $managedTransport.SubprocessEnvironment.GIT_CONFIG_GLOBAL -ceq $managedGitConfig -and
+        $managedTransport.SubprocessEnvironment.GIT_CONFIG_NOSYSTEM -ceq '1' -and
+        $managedTransport.SubprocessEnvironment.GIT_TERMINAL_PROMPT -ceq '0' -and
+        $managedTransport.ConfigSha256 -ceq (Get-OpenScienceHash $managedGitConfig)) 'Managed MCP global Git isolation changed.'
+    $checks.Add('managed_git_child_uses_pinned_config_without_global_settings_or_prompt')
+    [IO.File]::WriteAllText($managedGitConfig, ('[core]' + [char]10 + 'fsmonitor = true' + [char]10), [Text.UTF8Encoding]::new($false))
+    $rejected = $false
+    try { New-OpenScienceMcpGitTransport -RepoRoot $managedGitFixture -HostGitPath $git -OriginalWslPath '/usr/bin:/bin' | Out-Null }
+    catch { $rejected = $true }
+    Assert-OpenScienceCondition $rejected 'Changed MCP Git config was accepted.'
+    $checks.Add('changed_managed_git_config_rejected')
+    [IO.File]::WriteAllBytes($managedGitConfig, $gitConfigBytes)
     [IO.File]::WriteAllText($managedBridge, ([Text.Encoding]::UTF8.GetString($bridgeBytes) -replace '\n', ([string][char]13 + [char]10)), [Text.UTF8Encoding]::new($false))
     $rejected = $false
     try { New-OpenScienceMcpGitTransport -RepoRoot $managedGitFixture -HostGitPath $git -OriginalWslPath '/usr/bin:/bin' | Out-Null }
@@ -1427,6 +1467,7 @@ run(plugin,['commit','--quiet','-am','mock nested plugin']);
 sourceFs.mkdirSync(sourcePath.join(repo,'openscience'));sourceFs.writeFileSync(sourcePath.join(repo,'openscience/mcp_server.py'),'VALUE = "source-A"\n');
 sourceFs.mkdirSync(sourcePath.join(repo,'scripts/wsl-windows-git'),{recursive:true});
 sourceFs.copyFileSync(process.argv[3],sourcePath.join(repo,'scripts/wsl-windows-git/git'));
+sourceFs.copyFileSync(process.argv[4],sourcePath.join(repo,'scripts/wsl-windows-git/empty.config'));
 sourceFs.writeFileSync(sourcePath.join(repo,'.gitignore'),'artifacts/\n__pycache__/\n');
 run(repo,['-c','protocol.file.allow=always','submodule','add','--quiet',plugin,'plugins/fixture']);
 run(repo,['add','.']);run(repo,['commit','--quiet','-m','mock recursive fixture']);
@@ -1434,7 +1475,7 @@ run(repo,['-c','protocol.file.allow=always','submodule','update','--init','--rec
 process.stdout.write(JSON.stringify({repo,core:sourcePath.join(repo,'caelab/__init__.py'),
   nested:sourcePath.join(repo,'plugins/fixture/vendor/kernel/kernel.py'),plugin:sourcePath.join(repo,'plugins/fixture'),noHooks}));
 '@
-    $fixture = Invoke-OpenScienceSourceNode $fixtureSource @($root, $git, (Join-Path $RepoRoot 'scripts/wsl-windows-git/git')) $root | ConvertFrom-Json -AsHashtable
+    $fixture = Invoke-OpenScienceSourceNode $fixtureSource @($root, $git, (Join-Path $RepoRoot 'scripts/wsl-windows-git/git'), (Join-Path $RepoRoot 'scripts/wsl-windows-git/empty.config')) $root | ConvertFrom-Json -AsHashtable
     $bootFixture = Get-OpenScienceRepositorySourcePin -RepoRoot $fixture.repo
     Write-OpenScienceJson (Join-Path $root 'boot-source-A.json') $bootFixture -CreateNew
     Assert-OpenScienceRepositorySourcePin $bootFixture (Get-OpenScienceRepositorySourcePin -RepoRoot $fixture.repo)
@@ -1455,6 +1496,13 @@ process.stdout.write(JSON.stringify({repo,core:sourcePath.join(repo,'caelab/__in
         Assert-OpenScienceCondition $rejected 'Tracked Git bridge drift was accepted after boot.'
         $checks.Add('tracked_git_bridge_drift_rejected_before_inference')
     } finally { [IO.File]::WriteAllBytes($pinnedBridge, $bridgeBytes) }
+    $pinnedGitConfig = Join-Path $fixture.repo 'scripts/wsl-windows-git/empty.config'
+    try {
+        [IO.File]::WriteAllText($pinnedGitConfig, ('# changed config' + [char]10), [Text.UTF8Encoding]::new($false))
+        $rejected = $false; try { Assert-OpenScienceRuntimeBootSource $fixtureOwner } catch { $rejected = $true }
+        Assert-OpenScienceCondition $rejected 'Tracked MCP Git config drift was accepted after boot.'
+        $checks.Add('tracked_git_config_drift_rejected_before_inference')
+    } finally { [IO.File]::WriteAllBytes($pinnedGitConfig, $gitConfigBytes) }
     [IO.File]::WriteAllText($fixture.core, "VALUE = `"source-B`"`n", [Text.UTF8Encoding]::new($false))
     $rejected = $false; try { Assert-OpenScienceRuntimeBootSource $fixtureOwner } catch { $rejected = $true }
     Assert-OpenScienceCondition $rejected 'A Core edit between boot and the first lookup was accepted.'

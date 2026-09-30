@@ -2,6 +2,25 @@
 
 ## Authoritative serial queue from the project owner
 
+CURRENT bounded correction: native7f4e5e8 actually loaded/connected, but the
+resident source resource's Core/fixture Git probes failed128. OpenScience's
+Windows NUL global-config injection crossed WSL interop and caused the failure.
+The managed MCP child now uses tracked/hash-bound inert `empty.config` through
+the official `mcp.environment` seam; user/global Git settings are untouched.
+Controller56/native28 and independent review pass; four fresh child probes
+return clean7f/fixture3e48. They are not actual resident revalidation. Preserve
+run p1-native-7f4e5e8-20261001-01 and its failed resource. Stop its owned idle
+runtime, update the serving checkout to the committed correction, then use NEW
+profile/store and the same already-authorized5.6 Sol/auth data. See the
+20261001-openscience-mcp-git-config record. P1.1 remains OPEN.
+
+Actual selected-model access now PASSED on7f: no-tools session
+ses_f0b45eb0effeiZlNL5vd3AteKg responded CAE_CHATGPT_OK, official completed/exit0,
+launcher30.229s,868input/8output tokens; no fallback/Core/CAD. No new model choice
+or login is needed. Official GUI Home is empty for the external legacy project;
+direct session route also redirects, cause unresolved. Verify the same actual
+session/record on screen before claiming GUI acceptance.
+
 The owner completed official ChatGPT login on2026-10-01 and explicitly chose
 **openai-codex/gpt-5.6-sol**. Reuse external auth profile
 `%LOCALAPPDATA%/AutonomousCAELab/profiles/chatgpt-cae-20261001-02`; no new login,

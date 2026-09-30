@@ -145,7 +145,7 @@ function New-OpenScienceNativeContext {
         agent = @{ title = @{ disable = $true }; research = $agent; 'caelab-acceptance' = $agent }
         provider = @{ 'openai-codex' = @{ options = @{ timeout = ($ProviderTimeoutSeconds * 1000)
             connectTimeout = ($ProviderTimeoutSeconds * 1000); idleTimeout = 60000 } } }
-        mcp = @{ caelab = @{ type = 'local'; enabled = $true; timeout = 120000; command = @(
+        mcp = @{ caelab = @{ type = 'local'; enabled = $true; timeout = 120000; environment = $mcpGit.SubprocessEnvironment; command = @(
             "$env:WINDIR/System32/wsl.exe", '-d', $WslDistro, '--cd', (ConvertTo-OpenScienceWslPath $RepoRoot), '--', '/usr/bin/env',
             ('CAELAB_STORE=' + (ConvertTo-OpenScienceWslPath $StoreRoot)), ('PYTHONPYCACHEPREFIX=' + (ConvertTo-OpenScienceWslPath $context.WslPythonCacheRoot))) +
             @($mcpGit.Environment) + @($WslPython, ((ConvertTo-OpenScienceWslPath $RepoRoot) + '/openscience/mcp_server.py')) } } }
