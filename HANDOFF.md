@@ -1,5 +1,32 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Reduced compliant-stop integration checkpoint
+
+PDE compatibility correction d87ba15 is committed and pushed after535 focused
+tests passed. Its exact-source full CI is separate from the prior15f failure.
+Reviewed compliant sourcec29b14c / evidence5a88d60 is now integrated through
+the existing `explicit.openradioss` model route and a clearly scoped HTTP preset.
+Independent Root delta review passed. CI executes the actual three native
+cases plus two preflight rejections and always retains both old explicit and
+new compliant stores. Source/record refs are pushed; a clean integrated-source
+native rerun and exact-source CI remain the next gates.
+
+The isolated native proof passed28 unchanged full-history gates per case,
+including native force/acceleration, mass, all clocks, impulse, signed spring
+work, mechanical energy and rebound. Maximum energy error was0.000233J. It is
+a known conservative one-DOF device; surface contact/material/physical/failure
+qualification remains UNKNOWN. Original ideal-wall/v1/v2 failures stay rejected.
+No complete Phase6 or RELEASED decision is claimed.
+
+Five proof stores were copied unchanged into
+artifacts/integrated-20260930-continuation-evidence:1,550files/164,286,281bytes;
+32experiments/1campaign/1,394artifacts pass independent common integrity checks.
+The actual three browser records also pass198artifact/ledger checks; all91old
+files remain unchanged. Their historical full working-source snapshot is not
+available (UNKNOWN direct byte closure). Read the compact continuation-retention
+and compliant-integration records. Raw originals/copies remain local; keep all
+worktrees until required evidence has separate durable retention.
+
 ## PDE compatibility correction after exact-source CI failure
 
 Main15f3025 was pushed, but exact CI36705097865 failed one legacy PDE test

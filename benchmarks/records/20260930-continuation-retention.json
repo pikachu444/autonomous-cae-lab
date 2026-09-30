@@ -1,0 +1,52 @@
+{
+  "record_kind": "APPEND_ONLY_PROOF_RETENTION_AND_COMMON_INTEGRITY",
+  "date": "2026-09-30",
+  "status": "PASS_BOUNDED_RETENTION_WITH_HISTORICAL_SOURCE_BYTE_LIMITATION",
+  "source_refs": {
+    "model_input": "acceptance/model-input-20260930",
+    "material_inverse": "acceptance/material-inverse-20260930",
+    "nonlinear_pde": "acceptance/nonlinear-pde-20260930",
+    "compliant_drop": "acceptance/compliant-drop-20260930"
+  },
+  "retention": {
+    "destination": "artifacts/integrated-20260930-continuation-evidence",
+    "stores": 5,
+    "files": 1550,
+    "bytes": 164286281,
+    "symlinks": 0,
+    "source_before_after_copy_hash_size_inventory": "PASS_ALL_FIVE_STORES",
+    "manifest_sha256": "3781ae6a5a80aadca93d978c0a3d4447f138c256b1671f5273922189f3ffef12"
+  },
+  "independent_common_integrity": {
+    "experiments": 32,
+    "completed": 16,
+    "rejected": 16,
+    "campaigns": 1,
+    "registered_artifacts": 1394,
+    "status": "PASS_PRESERVED_ORIGINAL_SOURCE_IDENTITIES",
+    "audit": "artifacts/continuation-retention-audit.json",
+    "audit_sha256": "aae37beaa01cd6263195211d0c846e799e64c7107a94a22e7eef92e175f109d2"
+  },
+  "actual_browser_jobs": {
+    "recorded_source": "88bbb72a56eaee834992d3245c0e3d02ef58b621",
+    "core_dirty": false,
+    "recorded_core_working_sha256": "7bd44a27e482a474784190fe6a3a01c08860a8f40ee3c194ae7e5c0219f9576a",
+    "experiments": ["E-ui-88-material", "E-ui-88-flight", "E-ui-88-wall-reject"],
+    "registered_artifacts": 198,
+    "common_integrity": "PASS",
+    "old_files_unchanged": "91_OF_91",
+    "historical_full_source_byte_closure": "UNKNOWN_NO_DIRECT_FULL_SOURCE_SNAPSHOT",
+    "pinned_runtime": "SEPARATE_88_WORKTREE_CHECKOUT_NOT_WORKING_BYTE_EQUIVALENT",
+    "material_screenshot_sha256": "0d30fb4b5924a391fbe9aeb087822fad6261af93d1f7c5bc77494a9acbc7beaf",
+    "flight_screenshot_sha256": "c44f109a43bb34245d3780b3de9e769b396949e93ffd9b5ea3cbd8674fefc769",
+    "wall_rejected_screenshot_sha256": "95d98db4ebfc94b89de313ed1a24c07edee5d3060e8b6212ae7745d1060ab53b"
+  },
+  "limits": [
+    "Source refs and compact evidence records pushed; ignored raw stores copied locally only",
+    "Raw stores are not permanent remote archives",
+    "No worktree or prior failed experiment removed",
+    "No new native execution or test performed by retention reviewer",
+    "UNKNOWN physical/strength qualifications and NOT_RELEASED preserved"
+  ],
+  "decision": "NOT_RELEASED"
+}

@@ -1,5 +1,28 @@
 # Current state — 2026-09-30 (Asia/Seoul)
 
+## Reduced finite-force drop/rebound integration
+
+Compatibility correction d87ba15 is pushed;535 focused common/PDE/explicit/HTTP
+tests pass (1warning,160.89s). Reviewed compliant sourcec29b14c and evidence
+5a88d60 are integrated with the existing model operation/default backend,
+EXPERIMENTAL HTTP preset and an actual native CI step/store upload. Root delta
+review passed without remaining P1/P2. Fresh clean integrated-source native
+and exact-source CI are pending, distinct from the isolated proof.
+
+Three isolated native cases passed28 unchanged full-history gates each,
+with two invalid-input rejections before Starter. Signed raw IE is preserved;
+the source-backed trapezoidal recurrence does not clamp it. Force, mass,
+clock, energy, impulse and restitution checks do not qualify arbitrary surface
+contact/material/failure/physical behavior. Original wall/v1/v2 failures remain
+retained; all decisions remain NOT_RELEASED and full Phase6 remains open.
+
+Independent retention copied five original proof stores unchanged:1,550files,
+164,286,281bytes,32experiments/1campaign/1,394artifacts. Original source identities
+and failed attempts are preserved. Three actual browser records separately
+passed198artifact/ledger checks with91of91old files unchanged. Their direct full
+historical working-source byte closure remains UNKNOWN. Compact committed
+records name hashes; ignored raw stores are local, not permanent remote archives.
+
 ## Exact15f failure and explicit PDE declaration opt-in
 
 Exact main15f3025 CI36705097865 failed the legacy PDE compatibility regression:

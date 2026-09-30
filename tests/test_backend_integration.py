@@ -48,6 +48,8 @@ def test_simulation_presets_share_generic_declared_operation_without_cad_parent(
     model_presets = {key: preset for key, preset in presets.items() if preset["operation"] == "model_analysis_run"}
     assert {preset["backend"] for preset in model_presets.values()} == BACKENDS
     assert presets["explicit_ground_stop"]["status"] == "REJECTED"
+    assert presets["explicit_compliant_stop"]["settings"]["case"] == "rigid_cube_compliant_stop"
+    assert "표면 접촉" in presets["explicit_compliant_stop"]["scope"]
     assert all(service._selected().lab.model_analysis_adapters[preset["backend"]].describe_model(preset["settings"])
                for preset in model_presets.values())
     assert {preset["backend"] for preset in presets.values() if preset["operation"] == "pde_run"} == {

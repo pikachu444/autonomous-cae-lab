@@ -293,6 +293,7 @@ class LabService:
         from scripts.verify_codeaster import specification as codeaster_specification
         from scripts.verify_plasticity import specification as plasticity_specification
         from scripts.verify_openradioss import specification as explicit_specification
+        from scripts.verify_compliant_drop import specification as compliant_specification
         from plugins.material_point.reference import canonical_settings as material_specification
         from plugins.material_point.inverse_reference import canonical_settings as inverse_specification
         material_path = (Path(__file__).resolve().parents[2] /
@@ -328,6 +329,9 @@ class LabService:
             "explicit_ground_stop": {"operation": "model_analysis_run", "backend": "explicit.openradioss", "label": "벽 접촉 실패 재현",
                 "status": "REJECTED", "scope": "기존 벽 접촉은 충돌 후 속도·충격량 이력 기준 실패; 접촉 단계 미완료, NOT_RELEASED",
                 "settings": explicit_specification(case="rigid_cube_ground_stop")},
+            "explicit_compliant_stop": {"operation": "model_analysis_run", "backend": "explicit.openradioss", "label": "탄성 정지 장치의 낙하·반발 평가",
+                "status": "EXPERIMENTAL", "scope": "알려진 힘 법칙의 축약 장치에서 전체 이력·에너지·반발 검증; 실제 표면 접촉·재료·파손 자격 UNKNOWN",
+                "settings": compliant_specification()},
         }
 
     def submit(self, operation: str, arguments: dict) -> dict:

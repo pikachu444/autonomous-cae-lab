@@ -317,12 +317,16 @@ jobs:
               assert any(lab.inspect_experiment(identifier)['status'] == 'REJECTED'
                          for identifier in ('E-ground-stop', 'E-ground-stop-finer'))
           PY
+      - name: Verify actual finite-force compliant-stop histories, energy and rebound
+        run: python -m scripts.verify_compliant_drop --store artifacts/compliant-drop-lab
       - name: Preserve native flight, contact failures and all common evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: explicit-cae-lab-${{ github.sha }}
-          path: artifacts/explicit-lab/
+          path: |
+            artifacts/explicit-lab/
+            artifacts/compliant-drop-lab/
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30

@@ -1,0 +1,56 @@
+{
+  "record_kind": "REVIEWED_NATIVE_COMPLIANT_STOP_COMMON_ROUTE_INTEGRATION",
+  "date": "2026-09-30",
+  "backend": "explicit.openradioss",
+  "case": "rigid_cube_compliant_stop",
+  "source_commit": "c29b14c35090ba8da98520b8c43e8254d960e163",
+  "evidence_checkpoint": "5a88d6060aa54d22633d525a4e0a34b356898959",
+  "published_source_ref": "acceptance/compliant-drop-20260930",
+  "independent_source_and_native_review": "PASS_NO_OPEN_P1_P2",
+  "native_proof": {
+    "cases": 3,
+    "full_history_gates_each": 28,
+    "invalid_inputs_blocked_before_starter": 2,
+    "acceptance_sha256": "b903b0304ef7f0ba69546da05dc90254aedf78f4082b617cac48eb24183c559f",
+    "peak_force_n": [441.877411, 441.876297, 620.760765],
+    "maximum_mechanical_energy_error_j": [0.000232984075, 0.0000582488564, 0.000116491462],
+    "restitution": [1.00000464234, 1.00000122240, 0.999998999345],
+    "minimum_signed_native_ie_j": [-0.0000866195325, -0.0000228235183, 0.0],
+    "clamping_or_threshold_relaxation": false,
+    "signed_work_semantics": "PINNED_TYPE4_NATIVE_TRAPEZOIDAL_RECURRENCE",
+    "moving_mass_kg": 1.001,
+    "total_mass_kg": 1.002
+  },
+  "original_owner_tests": {"passed": 115, "seconds": 17.69, "native_executed": false},
+  "integration": {
+    "default_registry_and_generic_model_route": "REUSED",
+    "http_preset": "EXPLICIT_REDUCED_FINITE_FORCE_SCOPE",
+    "old_ideal_wall_rejection": "PRESERVED",
+    "actual_native_ci_step": true,
+    "ci_retains_both_old_explicit_and_new_compliant_stores": true,
+    "root_independent_delta_review": "PASS_NO_OPEN_P1_P2",
+    "root_focused_local_regressions": {
+      "passed": 535,
+      "warnings": 1,
+      "seconds": 160.89,
+      "scope": "OWNED_EXPLICIT_COMMON_DECLARED_HTTP_AND_PDE_COMPATIBILITY",
+      "log_sha256": "b3baed18430dec3f0901aa5e2aa26470cf00696b580b809f5b6681b741a3d624"
+    },
+    "fresh_clean_integrated_native": "PENDING",
+    "exact_source_ci": "PENDING"
+  },
+  "retained_failures": {
+    "v1": "STARTER_ADMISSION_REJECTED_NO_ENGINE",
+    "v2": "ENGINE_COMPLETED_NATIVE_PARSER_SEMANTICS_REJECTED",
+    "v3": "THREE_NUMERICAL_CASES_PASS_TWO_PREFLIGHT_REJECTIONS",
+    "all_raw_stores": "PRESERVED_ORIGINALS_AND_VERIFIED_MAIN_LOCAL_COPIES"
+  },
+  "limitations": [
+    "Known conservative nonrotating one-DOF constitutive stop",
+    "No arbitrary surface-contact qualification",
+    "Material/physical/strength/failure/rotation/contact-law qualification UNKNOWN",
+    "Full Phase6 remains open",
+    "Ignored raw stores retained locally; source/evidence metadata refs pushed separately"
+  ],
+  "decision": "NOT_RELEASED"
+}

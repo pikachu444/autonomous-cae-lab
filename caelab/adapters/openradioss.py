@@ -47,11 +47,17 @@ def _real(*values):
 def decks(settings):
     """Only trusted card templates are accepted; settings are domain-validated."""
     s = domain.validate_settings(settings)
+    compliant = s["case"] == domain.COMPLIANT_CASE
     half, height = s["edge_m"] / 2, s["center_height_m"]
     corners = [(-half, -half, -half), (half, -half, -half), (half, half, -half), (-half, half, -half),
                (-half, -half, half), (half, -half, half), (half, half, half), (-half, half, half)]
     nodes = [_int(i) + _real(x, y, height + z) for i, (x, y, z) in enumerate(corners, 1)]
     nodes.append(_int(9) + _real(0, 0, height))
+    if compliant:
+        nodes.append(_int(10) + _real(0, 0, domain.ANCHOR_Z_M))
+        nodes.append(_int(11) + _real(0, 0, height))
+    rigid_nodes = [*range(1, 9), *([11] if compliant else [])]
+    moving_nodes = [*range(1, 10), *([11] if compliant else [])]
     starter = ["#RADIOSS STARTER", "/BEGIN", "drop", _int(2022, 0),
                "                  kg                   m                   s",
                "                  kg                   m                   s",
@@ -59,14 +65,27 @@ def decks(settings):
                _real(1e5, .3), "/PROP/SOLID/1", "RIGID_MASS_CARRIER", _int(1, 4, 0, 0, 0, 0, 0, 0) + _real(0),
                _real(0, 0, 0, 0, 0), _real(0, 0, 0, 0, 0), _int(0, 0, 0, 0),
                "/PART/1", "RIGID_CUBE", _int(1, 1, 0), "/NODE", *nodes, "/BRICK/1", _int(1, 1, 2, 3, 4, 5, 6, 7, 8),
-               "/GRNOD/NODE/1", "CUBE_CORNERS", _int(*range(1, 9)),
-               "/GRNOD/NODE/2", "ALL_CUBE_NODES", _int(*range(1, 10)),
+               "/GRNOD/NODE/1", "CUBE_CORNERS", _int(*rigid_nodes),
+               "/GRNOD/NODE/2", "ALL_CUBE_NODES", _int(*moving_nodes),
                "/RBODY/1", "RIGID_CENTER9", _int(9, 0, 0, 2) + _real(0) + _int(1, 0, 3, 0),
                _real(0, 0, 0), _real(0, 0, 0), _int(0, 0, 0),
                "/FUNCT/1", "CONSTANT_GRAVITY", _real(0, -s["gravity_m_s2"]),
                _real(s["end_time_s"] + s["time_step_s"], -s["gravity_m_s2"]),
                "/GRAV/1", "GRAVITY_ALL_NODES", _int(1) + "         Z" + _int(0, 0, 2) + " " * 10 + _real(1, 1),
                "/INIVEL/TRA/1", "DECLARED_INITIAL_VELOCITY", _real(0, 0, s["initial_velocity_m_s"]) + _int(2, 0)]
+    if compliant:
+        # Official TYPE4 H1=8 uses absolute length, A1=Ascale1=1. K1 is
+        # the initial stiffness, not a multiplier for the curve force ordinate.
+        k, rest = s["spring_stiffness_n_m"], half - domain.ANCHOR_Z_M
+        starter.extend(["/GRNOD/NODE/3", "FIXED_ANCHOR10", _int(10),
+                        "/BCS/1", "ANCHOR_TRANSLATIONS_FIXED", "   111 000" + _int(0, 3),
+                        "/PROP/SPRING/2", "STOP_SPRING_PROPERTY",
+                        _real(s["spring_mass_kg"]) + " " * 30 + _int(0, 0, 0),
+                        _real(k, 0, 1, 0, 1), _int(2, 8, 0, 0, 0) + " " * 10 + _real(-1e30, 1e30),
+                        _real(1, 0, 1, 1), "/FUNCT/2", "FORCE_N_VS_ABSOLUTE_LENGTH_M",
+                        _real(0, -k * rest), _real(rest, 0), _real(3, 0),
+                        "/PART/2", "STOP_SPRING", _int(2, 0), "/SPRING/2",
+                        _int(2, 10, 11, 0, 0, 0, 0) + " " * 20 + _int(0)])
     if s["case"] == "rigid_cube_ground_stop":
         # Official FAQ: put the RBODY main node in RWALL; secondary constraints
         # conflict. For this nonrotating cube, center>=edge/2 iff bottom>=0.
@@ -74,10 +93,17 @@ def decks(settings):
                         "/RWALL/PLANE/1", "GROUND_EFFECTIVE_CENTER_PLANE", _int(0, 0, 3, 0),
                         _real(0, 0, 0, 0) + _int(0), _real(0, 0, half), _real(0, 0, half + 1)])
     starter.extend(["/TH/NODE/1", "NODAL_KINEMATICS", "".join(f"{v:>10}" for v in ("Z", "DZ", "VZ", "AZ")),
-                    _int(9, 0) + "CENTER9", _int(1, 0) + "BOTTOM1", "/TH/RBODY/2", "BODY_IMPULSES_ROTATIONS",
+                    _int(9, 0) + "CENTER9", _int(1, 0) + "BOTTOM1"])
+    if compliant:
+        starter.append(_int(10, 0) + "FIXED_ANCHOR10")
+        starter.append(_int(11, 0) + "CENTER_ATTACHMENT11")
+    starter.extend(["/TH/RBODY/2", "BODY_IMPULSES_ROTATIONS",
                     "".join(f"{v:>10}" for v in ("FZ", "RX", "RY", "RZ")), _int(1)])
     if s["case"] == "rigid_cube_ground_stop":
         starter.extend(["/TH/RWALL/3", "WALL_NORMAL_IMPULSE", f"{'FNZ':>10}", _int(1)])
+    if compliant:
+        starter.extend(["/TH/SPRING/4", "STOP_CONSTITUTIVE_HISTORY",
+                        "".join(f"{v:>10}" for v in ("OFF", "FX", "FY", "FZ", "MX", "MY", "MZ", "LX", "IE")), _int(2)])
     starter.append("/END")
     engine = ["/RUN/drop/1", _real(s["end_time_s"]), "/VERS/100", "/DT", _real(.9, 0),
               "/DTIX", _real(s["time_step_s"], s["time_step_s"]), "/TFILE/3", _real(s["history_interval_s"]),
@@ -143,7 +169,7 @@ def process(command, output, name, env):
 
 class OpenRadiossAdapter:
     backend = "explicit.openradioss"
-    version = "1"
+    version = "1.1"
     domain = "explicit_dynamics"
     physics_domain = "structural"
     analysis_type = "explicit_drop"
@@ -186,7 +212,7 @@ class OpenRadiossAdapter:
         except (ValueError, OSError) as exc:
             outcome = {"status": "REJECTED", "solver_status": "NOT_RUN", "converged": None,
                        "checks": [{"code": "native_starter_admission", "status": "FAIL", "observed": str(exc)}],
-                       "metrics": domain.invalid_metrics(str(exc)), "pending_validations": list(domain.PENDING),
+                       "metrics": domain.invalid_metrics(str(exc), compliant=s["case"] == domain.COMPLIANT_CASE), "pending_validations": list(domain.PENDING),
                        "provenance": {**identity, "starter_status": "COMPLETED", "engine_status": "NOT_RUN"},
                        "raw_result": "simulation/analysis_raw.json"}
             save_json(output / "analysis_raw.json", outcome)
@@ -207,7 +233,7 @@ class OpenRadiossAdapter:
             assessment = domain.assess(s, native["rows"])
         except (ValueError, OSError) as exc:
             assessment = {"checks": [{"code": "native_history_integrity", "status": "FAIL", "observed": str(exc)}],
-                          "metrics": domain.invalid_metrics(str(exc)), "pending_validations": domain.PENDING,
+                          "metrics": domain.invalid_metrics(str(exc), compliant=s["case"] == domain.COMPLIANT_CASE), "pending_validations": domain.PENDING,
                           "limitations": ["Native history failed completeness/consistency; no response is usable"]}
         checks = assessment["checks"]
         outcome = {"status": "COMPLETED" if all(item["status"] == "PASS" for item in checks) else "REJECTED",
