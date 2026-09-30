@@ -12,7 +12,38 @@ Git. The running cloud shell, in-memory Python state, live agent tasks and
 installed binaries are not transferred by cloning. This file is a durable
 handoff record, not a claim that the model retains every past chat forever.
 
-## Verified checkpoint
+## Current continuation
+
+Latest exact remote proof is main `7c66006`,
+[CI 36686065707](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36686065707),
+seven successful jobs / 513 tests. Its Code_Aster archive fully verifies three
+experiments / 144 artifacts with hidden cache files. Fresh clean HTTP repair
+also passed at d0473e4, including the 71.001909-second optimizer inspection and
+six full evidence ZIPs. Older failed/incomplete attempts remain preserved.
+
+New material-point, J2 plasticity and explicit adapters are integrated after
+independent native/source reviews. Defaults, CLI/MCP common model operation,
+HTTP presets and launcher are connected; 69 integration regressions plus four
+actual HTTP backend admission tests pass.
+Their new integrated-source CI is pending. Explicit flight passes; both ideal
+wall histories remain REJECTED. Never promote PARTIAL contact to Phase6 success.
+Review docs/MATERIAL_POINT_ACCEPTANCE.md, PLASTICITY_ACCEPTANCE.md and
+EXPLICIT_DYNAMICS_ACCEPTANCE.md for exact native source identities and limits.
+
+Continue Root's declared-input numerical campaign, nonlinear manufactured PDE,
+separate compliant-stop reference and synthetic-reference material inverse
+benchmark. Keep common interfaces Root-owned and source frozen during campaign
+tests/native acceptance. Sixteen worker raw stores are retained in
+`artifacts/integrated-20260930-worker-evidence/`; all 2,268 payload files and the
+15 final common experiment records passed inspection. Originals remain untouched.
+
+Official OpenScience live05 and its served GUI now show actual MCP execution and
+AI interpretation. The local Lab is a direct execution UI; it has no AI chat.
+Live05 used a supported persistent server/attached CLI and the unchanged local
+model; its staged workflow and mixed-source identities are explicitly recorded.
+Physical, material, strength, durability, full contact and HPC gates stay open.
+
+## Earlier verified checkpoint (historical)
 
 **Latest source and active work:** main `03bfd7115ca3933cb18af17c55cc751839e91c98`
 passed [CI 36676495776](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36676495776)

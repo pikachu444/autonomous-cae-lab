@@ -344,6 +344,7 @@ function renderPresets(data) {
 }
 function simulationOperation() {
   const preset = state.presets[$("simulationPreset").value];
+  if (["analysis_run", "pde_run", "model_analysis_run"].includes(preset?.operation)) return preset.operation;
   if (preset?.backend === "pde.fenicsx") return "pde_run";
   if (preset?.backend === "structural.code_aster") return "model_analysis_run";
   return "analysis_run";

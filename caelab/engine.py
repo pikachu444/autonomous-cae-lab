@@ -49,7 +49,14 @@ class Lab:
         self.pde_adapters = pde_adapters
         if model_analysis_adapters is None:
             from .adapters.codeaster_elasticity import CodeAsterElasticityAdapter
-            model_analysis_adapters = {CodeAsterElasticityAdapter.backend: CodeAsterElasticityAdapter()}
+            from .adapters.codeaster_plasticity import CodeAsterPlasticityAdapter
+            from .adapters.mfront_material import MFrontMaterialAdapter
+            from .adapters.openradioss import OpenRadiossAdapter
+            model_analysis_adapters = {
+                adapter.backend: adapter() for adapter in (
+                    CodeAsterElasticityAdapter, CodeAsterPlasticityAdapter,
+                    MFrontMaterialAdapter, OpenRadiossAdapter)
+            }
         self.model_analysis_adapters = model_analysis_adapters
 
     def create_native_model(self, *, template: str = "roller_support") -> dict[str, Any]:

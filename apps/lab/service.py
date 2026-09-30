@@ -106,7 +106,7 @@ class LabService:
             "native_final": ("최종 형상 선택", "fixture.freecad", "EXPERIMENTAL", "원본의 기존 final-solid 선택"),
             "analysis_run": ("선형 구조 해석", "fixture.calculix", "EXPERIMENTAL", "검증된 CAD parent, 가정된 재료·하중; NOT_RELEASED"),
             "pde_run": ("약형 PDE 실험", "pde.fenicsx", "EXPERIMENTAL", "제한된 scalar weak form와 해석해 비교; 물리 검증 UNKNOWN"),
-            "model_analysis_run": ("선언 모델 구조 해석", "structural.code_aster", "EXPERIMENTAL", "독립적인 선형 block benchmark; 비선형·접촉 미구현"),
+            "model_analysis_run": ("모델·재료·동해석 실행", "Code_Aster / MFront / OpenRadioss", "EXPERIMENTAL", "선형·J2 소성·재료점·자유낙하 검증; 벽 접촉 실패, 물리·강도 검증 UNKNOWN"),
             "doe_plan": ("DOE 계획", "scipy.latin_hypercube", "IMPLEMENTED", "수치 엔진이 후보를 생성"),
             "doe_run": ("DOE 실행", "scipy.latin_hypercube", "IMPLEMENTED", "기존 Core의 개별 실험과 증거 재사용"),
             "optimization_plan": ("최적화 계획", "scipy.differential_evolution", "IMPLEMENTED", "수치 엔진의 목적 함수·제약·seed"),
@@ -119,8 +119,6 @@ class LabService:
                 for operation, (label, backend, status, scope) in descriptions.items()]
         for operation, label, backend, scope in (
             ("nonlinear_contact", "비선형·접촉", "Code_Aster / CalculiX", "다음 독립 reference benchmark 필요"),
-            ("explicit_dynamics", "충격·낙하 동해석", "OpenRadioss", "Starter/Engine adapter와 접촉·에너지 benchmark 미구현"),
-            ("material_point", "재료 모델·접선 검증", "MFront / MTest", "라이브러리 설치와 별개로 material-point adapter 및 독립 benchmark 필요"),
             ("physical_validation", "실물·내구 시험", None, "측정·시험 근거가 필요하며 UNKNOWN 유지"),
             ("uncertainty_inverse", "역문제·불확실성", None, "추가 numerical engine 및 관측 자료 연결 필요"),
             ("hpc", "원격·병렬 계산", "MPI / SSH / Slurm / PBS", "실제 환경과 작업·증거 추적 검증 필요"),
@@ -286,21 +284,36 @@ class LabService:
     def presets(self) -> dict:
         from scripts.verify_pde import specification as pde_specification
         from scripts.verify_codeaster import specification as codeaster_specification
+        from scripts.verify_plasticity import specification as plasticity_specification
+        from scripts.verify_openradioss import specification as explicit_specification
+        from plugins.material_point.reference import canonical_settings as material_specification
         material_path = (Path(__file__).resolve().parents[2] /
                          "plugins/fixture_design/upstream/examples/printed_material_ASSUMED.json")
         # Exact existing acceptance inputs; material remains explicitly assumed.
         return {
-            "structural_linear": {"backend": "fixture.calculix", "label": "가정된 재료·하중의 선형 구조 screen",
+            "structural_linear": {"operation": "analysis_run", "backend": "fixture.calculix", "label": "가정된 재료·하중의 선형 구조 screen",
                 "status": "EXPERIMENTAL", "scope": "100 N/support 및 미측정 orthotropic 재료; peak stress와 강도·물리 검증 UNKNOWN, NOT_RELEASED",
                 "settings": {"load": {"force_per_support_N": 100.0,
                     "source": "Illustrative 100 N screen per support; unqualified, not measured"},
                     "material": load_json(material_path), "mesh": {"max_sizes_mm": [4.0, 3.0, 2.0]}}},
-            "pde_canonical": {"backend": "pde.fenicsx", "label": "Canonical Poisson 약형 benchmark",
+            "pde_canonical": {"operation": "pde_run", "backend": "pde.fenicsx", "label": "Canonical Poisson 약형 benchmark",
                 "status": "EXPERIMENTAL", "scope": "dimensionless unit square의 해석해·오차·수렴 검증; 물리 검증 UNKNOWN",
                 "settings": pde_specification()},
-            "codeaster_linear": {"backend": "structural.code_aster", "label": "독립적인 선형 elasticity benchmark",
+            "codeaster_linear": {"operation": "model_analysis_run", "backend": "structural.code_aster", "label": "독립적인 선형 elasticity benchmark",
                 "status": "EXPERIMENTAL", "scope": "가정된 solid block의 affine analytical reference; 비선형·접촉 및 물리·강도 검증 UNKNOWN",
                 "settings": codeaster_specification()},
+            "codeaster_plasticity": {"operation": "model_analysis_run", "backend": "structural.code_aster.plasticity", "label": "소성 재료의 하중·제하 benchmark",
+                "status": "EXPERIMENTAL", "scope": "J2 small-strain 전체 이력·해석해 검증; 접촉·기하 비선형·재료 자격 UNKNOWN",
+                "settings": plasticity_specification()},
+            "material_point": {"operation": "model_analysis_run", "backend": "material.mfront", "label": "재료점의 응력·접선 benchmark",
+                "status": "EXPERIMENTAL", "scope": "실제 MGIS·MTest 응력 및 유한차분 접선 검증; 솔버 결합·물리적 재료 자격 UNKNOWN",
+                "settings": material_specification()},
+            "explicit_freefall": {"operation": "model_analysis_run", "backend": "explicit.openradioss", "label": "강체 자유낙하 benchmark",
+                "status": "EXPERIMENTAL", "scope": "질량·중력·초기 속도·시간 간격에 대한 실제 자유낙하 검증; 충격·파손 자격 UNKNOWN",
+                "settings": explicit_specification(case="rigid_cube_freefall")},
+            "explicit_ground_stop": {"operation": "model_analysis_run", "backend": "explicit.openradioss", "label": "벽 접촉 실패 재현",
+                "status": "REJECTED", "scope": "기존 벽 접촉은 충돌 후 속도·충격량 이력 기준 실패; 접촉 단계 미완료, NOT_RELEASED",
+                "settings": explicit_specification(case="rigid_cube_ground_stop")},
         }
 
     def submit(self, operation: str, arguments: dict) -> dict:

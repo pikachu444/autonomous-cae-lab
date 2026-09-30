@@ -1,0 +1,50 @@
+{
+  "record_kind": "BOUNDED_IMPLEMENTATION_CHECKPOINT",
+  "date": "2026-09-30",
+  "parent_commit": "0e7209afe2ae385bcebdfe57b71c598133000071",
+  "tested_core_sha256": "0750fc60f273524b329adda64d13f620b716dab3159bcb8e42411a83fa77730b",
+  "scope": "Default Core registry, generic HTTP presets, local runtime and native CI wiring for independently reviewed adapters",
+  "local_verification": {
+    "integration_server_declared_model_tests": {"passed": 69, "seconds": 56.63},
+    "additional_real_http_admission_tests": {"passed": 4, "seconds": 11.19},
+    "javascript_syntax": "PASS",
+    "powershell_parser": "PASS",
+    "workflow_yaml": "PASS_8_JOBS",
+    "independent_wiring_review": "PASS_NO_P1_P2",
+    "integrated_source_native_ci": "PENDING"
+  },
+  "previous_exact_source_ci": {
+    "source_commit": "7c6600601969611a43299d2037486547f53c6946",
+    "run_id": 36686065707,
+    "conclusion": "SUCCESS",
+    "jobs": 7,
+    "tests_passed": 513,
+    "codeaster_archive": {"experiments": 3, "registered_artifacts": 144, "integrity": "PASS"}
+  },
+  "native_proofs": {
+    "material_point": {"source_commit": "c29d6af", "source_dirty": false, "experiments": 3, "verdict": "PASS"},
+    "plasticity": {"source_commit": "03bfd7115ca3933cb18af17c55cc751839e91c98", "source_dirty": true, "later_equal_adapter_blobs_commit": "2e2c6a7", "completed_experiments": 2, "native_mesh_histories": 4, "input_rejections": 2, "verdict": "PASS_BOUNDED_J2"},
+    "explicit": {"source_commit": "7e2ee26", "source_dirty": false, "flight_passes": 5, "wall_numerical_rejections": 2, "input_rejections": 1, "verdict": "PARTIAL"}
+  },
+  "retention": {
+    "root": "artifacts/integrated-20260930-worker-evidence",
+    "stores": 16,
+    "files": 2268,
+    "bytes": 673830029,
+    "hidden_files": 5,
+    "unchanged_original_and_copy_payloads": "PASS",
+    "final_common_records": 15,
+    "common_integrity": "PASS",
+    "audit_sha256": "75db95822c0acdaf0b3dfa8cc0ff4e8a8aa088a4342f73de02c5e98a05d37be5",
+    "payload_tree_sha256": "ef648d5e328a60a679101ee849fbf0b91f8660b8a468a2024e6502eb917034ce"
+  },
+  "official_openscience_gui": {
+    "scope": "Read actual retained MCP rejection trace and model interpretation; no new GUI inference",
+    "screenshot": "artifacts/local-20260930-openscience-live-05/official-gui-interpretation.png",
+    "screenshot_sha256": "b4a06c698b11c3a96c9bdc5a295551a4820d0fe638a9ca768b5dce245b0cdfcf",
+    "prior_live_flow": "PASS_BOUNDED_RESEARCH_LOOP_13_MCP_CALLS"
+  },
+  "remaining": ["Clean-source declared-model numerical campaign", "Nonlinear PDE", "Compliant-stop reference", "Synthetic material inverse", "Remaining phases 1-7 and physical qualification"],
+  "qualification": "UNKNOWN",
+  "decision": "NOT_RELEASED"
+}

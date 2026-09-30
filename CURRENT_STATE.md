@@ -1,6 +1,46 @@
 # Current state — 2026-09-30 (Asia/Seoul)
 
-## Active implementation checkpoint
+## Latest integration checkpoint
+
+Exact main `7c6600601969611a43299d2037486547f53c6946` passed
+[CI 36686065707](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36686065707):
+all seven jobs, 513 tests. Independent Code_Aster archive inspection verified
+all three experiments and 144 registered artifacts, including both previously
+omitted hidden cache files. Historical incomplete archives remain unchanged.
+Fresh HTTP clean-02 at clean `d0473e4` passed the unchanged 180-second limit:
+9-evaluation campaign inspection took 71.001909 seconds; six captured ZIPs and
+150 manifest files verified. Raw proofs remain under `artifacts/` locally.
+
+Three independently reviewed native adapters are now integrated into main:
+material.mfront (clean c29d6af, canonical/changed modulus plus input rejection),
+structural.code_aster.plasticity (03bfd71 dirty draft03, two materials/two meshes
+each plus two input rejections; later source blobs match 2e2c6a7), and
+explicit.openradioss (clean 7e2ee26, five flight passes, two correctly rejected
+wall histories and one preflight rejection). See their acceptance documents.
+Core defaults, generic HTTP/preset dispatch and local runtime configuration
+connect them without a CAD parent. Integration tests passed 69 cases in
+56.63 seconds, followed by four actual HTTP backend admission tests in 11.19
+seconds; independent wiring/CI review found no remaining P1/P2.
+New integrated-source native CI remains pending until the next push completes.
+The 16 original worker stores were copied without alteration: 2,268 files /
+673,830,029 bytes, including five hidden files. All payload hashes and the
+15 final common experiment records passed independent retention inspection.
+See [the integration record](benchmarks/records/20260930-native-backend-integration.json).
+
+Actual OpenScience live05 completed thirteen MCP calls, checked CAD valid and
+invalid results, summaries, comparison and corrected interpretation. The
+official served GUI was read through the actual stored tool trace and AI
+interpretation. This was a staged local-model workflow, not autonomous planning
+or physical approval; source records explicitly span 03bfd71/d0473e4. The Lab
+screen remains a direct execution surface with no AI chat.
+
+Root's declared-model input optimization is in a separate worktree, with
+contract/replay/context tests and a predeclared actual-solver acceptance gate.
+Nonlinear PDE, a separate compliant-stop reference, and native material inverse
+research continue in isolated ownership. All phases 1–7 remain partial; no
+solver/CI success changes UNKNOWN qualification or NOT_RELEASED.
+
+## Prior implementation checkpoint (historical)
 
 Source `03bfd7115ca3933cb18af17c55cc751839e91c98` was pushed. Its exact-source
 [CI 36676495776](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36676495776)

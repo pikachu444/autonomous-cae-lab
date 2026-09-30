@@ -144,6 +144,20 @@ def real_flow(tmp_path_factory):
         yield client, service, accepted, rejected
 
 
+@pytest.mark.parametrize("backend", ["structural.code_aster", "structural.code_aster.plasticity",
+                                    "material.mfront", "explicit.openradioss"])
+def test_declared_backend_http_dispatch_retains_preflight_rejection_without_cad_parent(client, backend):
+    client.job("study_create", study_arguments())
+    result = client.job("model_analysis_run", {"study_id": "S-http", "experiment_id": "E-model-invalid",
+                                              "backend": backend, "settings": {}})["result"]
+    assert result["status"] == "REJECTED" and result["solver_status"] == "NOT_RUN"
+    assert result["cad_revision"] is None and "parent_experiment_id" not in result
+    assert result["decision"] == "NOT_RELEASED"
+    retained = client.request("/api/experiments/E-model-invalid")
+    assert retained["result"] == result
+    assert {"model_qualification", "physical_validation"} <= set(retained["summary"]["unknown"])
+
+
 def test_allowlisted_operations_change_actual_core_and_retain_verdicts(real_flow):
     client, service, accepted, rejected = real_flow
     assert accepted["status"] == "COMPLETED_REVIEW_REQUIRED"
@@ -170,10 +184,16 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     from scripts.verify_codeaster import specification as aster_spec
     client, service, _, _ = real_flow
     presets = client.request("/api/presets")
-    assert set(presets) == {"structural_linear", "pde_canonical", "codeaster_linear"}
+    assert set(presets) == {"structural_linear", "pde_canonical", "codeaster_linear",
+                            "codeaster_plasticity", "material_point", "explicit_freefall", "explicit_ground_stop"}
     assert presets["pde_canonical"]["settings"] == pde_spec()
     assert presets["codeaster_linear"]["settings"] == aster_spec()
     assert presets["structural_linear"]["settings"]["material"]["qualification"] == "ASSUMED_NOT_MEASURED"
+    assert presets["structural_linear"]["operation"] == "analysis_run"
+    assert presets["pde_canonical"]["operation"] == "pde_run"
+    assert all(preset["operation"] == "model_analysis_run" for key, preset in presets.items()
+               if key not in {"structural_linear", "pde_canonical"})
+    assert presets["explicit_ground_stop"]["status"] == "REJECTED"
     plan = client.job("doe_plan", {"study_id": "S-http", "campaign_id": "D-http",
         "backend": "fixture.cadquery", "model": "roller_support", "parameter_ids": ["support_width"],
         "sample_count": 2, "seed": 10})["result"]
