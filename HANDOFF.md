@@ -2,7 +2,16 @@
 
 ## Authoritative serial queue from the project owner
 
-CURRENT bounded correction: native7f4e5e8 actually loaded/connected, but the
+CURRENT: native08dfec6 startup failed because OpenScience encrypted the
+MCP.environment values in place; config hash changed and plugin correctly
+refused. No model/Core calls. Original config and failed profile are retained.
+Replace that map with invocation-local WSLENV path translation in the tracked
+Git bridge; preserve immutable file/source gates, NOSYSTEM1/PROMPT0 and explicit
+5.6 Sol/auth. Four NUL-parent/WSL/bridge Git probes return clean08df/fixture3e48.
+Use NEW committed-source profile/store; verify actual resident identity, then
+continue CAD research. See20261001-openscience-wslenv-git-config.json.
+
+Historical08dfec6 correction: native7f4e5e8 actually loaded/connected, but the
 resident source resource's Core/fixture Git probes failed128. OpenScience's
 Windows NUL global-config injection crossed WSL interop and caused the failure.
 The managed MCP child now uses tracked/hash-bound inert `empty.config` through

@@ -2,6 +2,19 @@
 
 ## Current serial work: Phase1 persistent OpenScience
 
+Native08dfec6 actual startup FAILED before model/Core calls: OpenScience encrypted
+the MCP.environment values at rest, changing config8b86→d38b and correctly
+triggering CONFIG_CHANGED. Preserve its failed profile/original config. The
+current correction removes that environment map; the tracked Git bridge exports
+only its child config through WSLENV/p with NOSYSTEM1/PROMPT0. Fixed config/path/
+source hashes and missing-config125 remain enforced. A Windows NUL-parent/WSL/
+bridge reproduction now returns clean08df/fixture3e48 in four probes. Use a NEW
+profile/store after this correction; actual resident/research is still OPEN.
+Record:20261001-openscience-wslenv-git-config.json. The earlier5.6 Sol actual
+response remains valid; no further login or model choice is required.
+
+Historical08dfec6 source/7f model checkpoint follows:
+
 Native7f4e5e8 run `p1-native-7f4e5e8-20261001-01` loaded its actual public
 plugin and connected the resident MCP. The zero-model connected resource
 returned HTTP200, but Core/fixture Git probes failed128 and provenance stayed

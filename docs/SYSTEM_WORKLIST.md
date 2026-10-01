@@ -31,6 +31,9 @@ Currently only **P1.1** is active. Later rows are queued, not running.
 - [x] Complete actual selected5.6 Sol no-tools response on native7f:
   CAE_CHATGPT_OK/official completed/exit0,30.229s, no Core/CAD/fallback. This
   establishes model access without upgrading failed provenance/full acceptance.
+- [x] Retain actual08df startup/config-encryption failure with zero model/Core
+  calls; replace MCP.environment with tracked bridge WSLENV child scope.
+  Four NUL-parent/WSL/host-Git probes pass; new resident/research gate stays open.
 
 - [x] Recover ledger, handoff, state, architecture/ADRs and contract; preserve
   Main33ea11d, pinned fixture3e48bf6 and previous acceptance stores.

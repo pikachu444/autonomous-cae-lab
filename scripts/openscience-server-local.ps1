@@ -315,14 +315,19 @@ function New-OpenScienceMcpGitTransport {
     # tracked here so every model POST's repository pin also checks these bytes.
     $bridge = Join-Path $RepoRoot 'scripts/wsl-windows-git/git'
     Assert-OpenScienceCondition (Test-Path -LiteralPath $bridge -PathType Leaf) 'Tracked MCP Git bridge is missing.'
-    $expected = '#!/bin/sh' + [char]10 + 'exec "$CAELAB_HOST_GIT" "$@"' + [char]10
+    $expected = (@('#!/bin/sh', '[ -n "$CAELAB_GIT_CONFIG" ] && [ -f "$CAELAB_GIT_CONFIG" ] || exit 125',
+        'GIT_CONFIG_GLOBAL="$CAELAB_GIT_CONFIG"', 'GIT_CONFIG_NOSYSTEM=1', 'GIT_TERMINAL_PROMPT=0',
+        'WSLENV=GIT_CONFIG_GLOBAL/p:GIT_CONFIG_NOSYSTEM:GIT_TERMINAL_PROMPT',
+        'export GIT_CONFIG_GLOBAL GIT_CONFIG_NOSYSTEM GIT_TERMINAL_PROMPT WSLENV',
+        'exec "$CAELAB_HOST_GIT" "$@"') -join [char]10) + [char]10
     $expectedHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData(
         [Text.UTF8Encoding]::new($false).GetBytes($expected))).ToLowerInvariant()
     Assert-OpenScienceCondition ((Get-OpenScienceHash $bridge) -ceq $expectedHash) 'MCP Git bridge must retain its exact LF-only source.'
     # OpenScience injects os.devNull as GIT_CONFIG_GLOBAL into Windows MCP
     # children. Git for Windows cannot read that device path through WSL
-    # interop. Override only this MCP child's global-config path with pinned
-    # inert source; retain its no-system-config and no-prompt isolation.
+    # interop. The tracked bridge exports a pinned inert config via WSLENV
+    # only for host Git. MCP.environment is deliberately unused: OpenScience
+    # encrypts its values in place and changes the immutable config bytes.
     $gitConfig = Join-Path $RepoRoot 'scripts/wsl-windows-git/empty.config'
     $gitConfigText = '# CAE provenance probes use no global Git settings.' + [char]10
     $gitConfigHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData(
@@ -336,9 +341,10 @@ function New-OpenScienceMcpGitTransport {
     return [pscustomobject]@{
         Mode = 'WINDOWS_MANAGED_WORKTREE_GIT'; BridgePath = $bridge; BridgeSha256 = $expectedHash
         HostGitPath = $HostGitPath; HostGitSha256 = Get-OpenScienceHash $HostGitPath
-        Environment = @(('PATH=' + $bridgeDirectory + ':' + $OriginalWslPath), "CAELAB_HOST_GIT=$hostGitWslPath")
+        Environment = @(('PATH=' + $bridgeDirectory + ':' + $OriginalWslPath), "CAELAB_HOST_GIT=$hostGitWslPath",
+            ('CAELAB_GIT_CONFIG=' + (ConvertTo-OpenScienceWslPath $gitConfig)))
         ConfigPath = $gitConfig; ConfigSha256 = $gitConfigHash
-        SubprocessEnvironment = @{ GIT_CONFIG_GLOBAL = $gitConfig; GIT_CONFIG_NOSYSTEM = '1'; GIT_TERMINAL_PROMPT = '0' }
+        SubprocessEnvironment = @{}
     }
 }
 
@@ -461,7 +467,7 @@ function New-OpenScienceLocalContext {
                 timeout = ($ProviderTimeoutSeconds * 1000); connectTimeout = ($ProviderTimeoutSeconds * 1000); idleTimeout = 60000 }
             models = @{ $ModelId = @{ name = $ModelId; tool_call = $true; reasoning = $true; temperature = $true
                 cost = @{ input = 0; output = 0 }; limit = @{ context = 16384; output = $OutputTokens }; options = @{ reasoningEffort = 'low' } } } } }
-        mcp = @{ caelab = @{ type = 'local'; enabled = $true; timeout = 120000; environment = $mcpGit.SubprocessEnvironment; command = @(
+        mcp = @{ caelab = @{ type = 'local'; enabled = $true; timeout = 120000; command = @(
             "$env:WINDIR\System32\wsl.exe", '-d', $WslDistro, '--cd', $wslRoot, '--', '/usr/bin/env',
             "CAELAB_STORE=$wslStore", ('PYTHONPYCACHEPREFIX=' + (ConvertTo-OpenScienceWslPath $context.WslPythonCacheRoot))) +
             @($mcpGit.Environment) + @($WslPython, "$wslRoot/openscience/mcp_server.py") } }
@@ -1298,9 +1304,8 @@ function Start-OpenScienceLocalServerLocked($Context, [int]$Port, [int]$StartupT
         Assert-OpenScienceCondition ($bridgePin.Count -eq 1 -and $bridgePin[0].sha256 -ceq $Context.McpGitTransport.BridgeSha256 -and
             $configPin.Count -eq 1 -and $configPin[0].sha256 -ceq $Context.McpGitTransport.ConfigSha256 -and
             $Context.McpGitTransport.ConfigPath -ceq (Join-Path $Context.RepoRoot 'scripts/wsl-windows-git/empty.config') -and
-            $Context.McpGitTransport.SubprocessEnvironment.GIT_CONFIG_GLOBAL -ceq $Context.McpGitTransport.ConfigPath -and
-            $Context.McpGitTransport.SubprocessEnvironment.GIT_CONFIG_NOSYSTEM -ceq '1' -and
-            $Context.McpGitTransport.SubprocessEnvironment.GIT_TERMINAL_PROMPT -ceq '0' -and
+            $Context.McpGitTransport.SubprocessEnvironment.Count -eq 0 -and
+            $Context.McpGitTransport.Environment[2] -ceq ('CAELAB_GIT_CONFIG=' + (ConvertTo-OpenScienceWslPath $Context.McpGitTransport.ConfigPath)) -and
             $bootSource.git_path -ceq $Context.McpGitTransport.HostGitPath -and
             $bootSource.git_sha256 -ceq $Context.McpGitTransport.HostGitSha256) 'MCP bridge, inert config and host Git must belong to the tracked boot source identity.'
     }
@@ -1422,17 +1427,15 @@ function Invoke-OpenScienceRuntimeSelfTest([string]$RepoRoot, [string]$RunName) 
     $gitConfigBytes = [IO.File]::ReadAllBytes((Join-Path $RepoRoot 'scripts/wsl-windows-git/empty.config'))
     [IO.File]::WriteAllBytes($managedGitConfig, $gitConfigBytes)
     $managedTransport = New-OpenScienceMcpGitTransport -RepoRoot $managedGitFixture -HostGitPath $git -OriginalWslPath '/usr/local/bin:/usr/bin:/bin'
-    Assert-OpenScienceCondition ($managedTransport.Environment.Count -eq 2 -and
+    Assert-OpenScienceCondition ($managedTransport.Environment.Count -eq 3 -and
         $managedTransport.Environment[0] -ceq ('PATH=' + (ConvertTo-OpenScienceWslPath (Split-Path -Parent $managedBridge)) + ':/usr/local/bin:/usr/bin:/bin') -and
         $managedTransport.Environment[1] -ceq ('CAELAB_HOST_GIT=' + (ConvertTo-OpenScienceWslPath $git)) -and
+        $managedTransport.Environment[2] -ceq ('CAELAB_GIT_CONFIG=' + (ConvertTo-OpenScienceWslPath $managedGitConfig)) -and
         $managedTransport.HostGitSha256 -ceq (Get-OpenScienceHash $git)) 'MCP Git bridge changed spaces, WSL PATH or host Git identity.'
     $checks.Add('managed_git_bridge_preserves_spaces_original_path_and_pinned_host_git')
-    Assert-OpenScienceCondition ($managedTransport.SubprocessEnvironment.Count -eq 3 -and
-        $managedTransport.SubprocessEnvironment.GIT_CONFIG_GLOBAL -ceq $managedGitConfig -and
-        $managedTransport.SubprocessEnvironment.GIT_CONFIG_NOSYSTEM -ceq '1' -and
-        $managedTransport.SubprocessEnvironment.GIT_TERMINAL_PROMPT -ceq '0' -and
+    Assert-OpenScienceCondition ($managedTransport.SubprocessEnvironment.Count -eq 0 -and
         $managedTransport.ConfigSha256 -ceq (Get-OpenScienceHash $managedGitConfig)) 'Managed MCP global Git isolation changed.'
-    $checks.Add('managed_git_child_uses_pinned_config_without_global_settings_or_prompt')
+    $checks.Add('managed_git_bridge_pins_config_without_encrypted_mcp_environment')
     [IO.File]::WriteAllText($managedGitConfig, ('[core]' + [char]10 + 'fsmonitor = true' + [char]10), [Text.UTF8Encoding]::new($false))
     $rejected = $false
     try { New-OpenScienceMcpGitTransport -RepoRoot $managedGitFixture -HostGitPath $git -OriginalWslPath '/usr/bin:/bin' | Out-Null }

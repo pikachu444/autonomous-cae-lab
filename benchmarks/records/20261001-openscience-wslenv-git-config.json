@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.openscience-wslenv-git-config",
+  "source_parent": "08dfec67fec5c7df056a6660c1f6e60329aa9646",
+  "source_version": "Commit carrying this record; reviewed as-run source hashes",
+  "phase": "P1.1",
+  "outcome": "PASS_BOUNDED_CORRECTION_CHECKS",
+  "failed_actual_run": {
+    "run_id": "p1-native-08dfec6-20261001-01",
+    "native_pid": 64232,
+    "state": "failed",
+    "model_calls": 0,
+    "core_mutations": 0,
+    "failure": "Actual OpenScience encrypts MCP.environment values at rest; immutable config changes before plugin loading; CONFIG_CHANGED refusal prevents MCP connection",
+    "original_config_sha256": "8b86fb62c3ca028dc5dcc5ea5a12d4de1e663927f14fc995133d72713b5a99e5",
+    "changed_config_sha256": "d38b8dd1448ddd58a8f1b9e8f6c0e5b357495c56153ca2b408fab1f767bcba3d",
+    "plugin_config_gate_loosened": false,
+    "closed_utc": "2026-09-30T23:58:34.6916019Z",
+    "raw_original_and_mutated_config_retained_locally": true,
+    "encrypted_values_published": false
+  },
+  "correction": {
+    "scope": "Tracked Git shell bridge's own child environment only",
+    "mcp_environment_used": false,
+    "linux_config_path": "Fixed CAELAB_GIT_CONFIG argument supplied by the owned MCP command",
+    "windows_path_translation": "WSLENV GIT_CONFIG_GLOBAL/p",
+    "system_config_disabled": true,
+    "terminal_prompt_disabled": true,
+    "missing_config_exit": 125,
+    "user_global_config_or_environment_changed": false,
+    "credentials_changed": false,
+    "config_hash_and_source_gates_preserved": true,
+    "native_wsl_checkout_environment_unchanged": true,
+    "source_hashes": {
+      "controller": "69235013795341255bf6d3c16f4b0c5d8b1e66bdd940dc7ef3f5cfaa72def248",
+      "native_provider": "7d0ee7db4da9c0b1c895e67201ce43b19d0be301b81cfd5adc67c2e6d0dbad5a",
+      "bridge": "00238bb2ff18c79063aaf567462c899e17d756bac71d0fb3ea442186e388b448",
+      "inert_config": "1d476dcadf5208eb8485ff928b1a6283c597cef6c8d4c28662ac1f3290bfc519"
+    }
+  },
+  "reproduction": {
+    "scope": "Windows MCP-style parent retains NUL config; fresh WSL/Python calls tracked bridge; not actual resident source resource",
+    "core_commit": "08dfec67fec5c7df056a6660c1f6e60329aa9646",
+    "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "core_and_fixture_dirty": false,
+    "four_git_probes_return_code": 0,
+    "parent_git_config_unchanged": true
+  },
+  "checks": {
+    "controller": {"count": 56, "result": "PASS", "run_id": "p1-wslenv-git-config-20261001-01", "provider_calls": 0, "backend_calls": 0},
+    "native": {"count": 28, "result": "PASS", "run_id": "p1-native-wslenv-config-20261001-01", "provider_calls": 0, "core_mutations": 0},
+    "independent_review": "PASS_NO_OPEN_P1_P2"
+  },
+  "actual_model_access": "Earlier7f no-tools5.6 Sol inference PASSED; same authorized model/auth retained, no fallback",
+  "official_reference": "https://learn.microsoft.com/en-us/windows/wsl/filesystems#share-environment-variables-between-windows-and-wsl-with-wslenv",
+  "retention": "Local ignored diagnostic artifacts and marked external runtime profiles; raw not remote; append-only; credentials/ciphertext values excluded",
+  "next_gate": "Clean source, NEW profile/store, actual plugin/config unchanged and connected resident Git/fingerprint PASS, then unchanged actual CAD research cases",
+  "research_acceptance": "OPEN",
+  "decision": "NOT_RELEASED",
+  "engineering_unknowns": "Machine/material/strength/physical/durability remain UNKNOWN"
+}

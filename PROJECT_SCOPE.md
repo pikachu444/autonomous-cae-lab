@@ -21,6 +21,11 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Status vocabulary
 
+2026-10-01 follow-up: actual08df native startup correctly refused upstream's
+in-place MCP environment encryption/config drift. The bridge now scopes path
+translation to host Git through WSLENV; fresh actual resident/research remains
+OPEN. Earlier5.6 Sol response stands. See the wslenv-git-config record.
+
 2026-10-01 managed MCP correction: actual native7f loaded/connected but resident
 Git provenance stayed UNKNOWN. The scoped inert-config correction and four
 fresh child Git probes pass; actual corrected resident/full research is OPEN.

@@ -66,6 +66,15 @@ cases in a new clean-source store. P1.1 and Phases2–7 remain open.
 
 ## Verification and requirement impact
 
+The initial08df MCP.environment seam failed in actual startup: upstream encrypts
+those values in place, so strict config byte identity correctly blocked plugin
+loading. Preserve that failure and retain the strict hash gate. Export the fixed
+inert-config path from the tracked Git bridge through WSLENV/p to its host Git
+child instead; avoid the mutable environment map. NOSYSTEM1/PROMPT0 and a missing
+config125 exit are fixed in the pinned LF source. Microsoft documents the path
+translation flag. This does not alter system/user Git settings or Core/adapter
+behavior. See the wslenv-git-config record; fresh actual research remains required.
+
 Actual native7f loading/MCP connection passed, but its zero-model resident
 resource exposed Git128/UNKNOWN. Official subprocessSnapshot replaces global
 Git config with os.devNull on Windows; that path fails in Windows Git launched
