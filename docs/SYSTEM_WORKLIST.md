@@ -8,9 +8,34 @@ Project execution objective is ACTIVE: complete the retained52 requirements
 through the connected OpenScience-led system. This queue is not a completion
 claim. Existing accepted work is reused. Check a box only with a linked actual
 receipt/review/commit; planning, readiness and prose cannot replace execution.
-Currently only **P1.1** is active. Later rows are queued, not running.
+Currently only **P1.2a** is active. Later rows are queued, not running.
 
-## P1.1 — integrated OpenScience CAD research (ACTIVE)
+## P1.1 — integrated OpenScience CAD research (PASS bounded unit)
+
+Managed run03/source f52dd1b06e69cb901776f18524a41146258d421a now closes
+the bounded P1.1 research/GUI/cancellation/owned-Stop unit. Official2.0.146,
+owner-selected5.6 Sol, same auth/project/source grant and clean fixture3e48:
+16stages/14AI stages/27observed model step_finish usage/13actual tools; valid
+width38 CAD and rejected bolt30;32store files/20artifact hashes/revisions match.
+Official final session and actual CAD tool receipt are visible in retained GUI
+proof. Actual BUSY91 precedes both timeout intent04:23:44.6422045Z and HTTP abort
+start04:23:51.4207596Z; abort200/true, idle, partial step_start output and unchanged
+store verified. Owned Stop04:26:33.9737184Z:3Windows PIDs absent/4098 closed.
+937files/10,458,888bytes retained; independent P2 found missing abort raw triplet,
+closed by a separate7file/2,006byte lifecycle supplement with all original/copy
+hashes/sizes verified. Independent actual research and GUI/lifecycle/retention
+reviews have no open P1/P2. Exact f52 CI36812737980 all8PASS is separately scoped.
+Full Phase1/Phases1–7 and all52 scope remain OPEN;4blocking engineering UNKNOWNs,
+NOT_RELEASED and solver NOT_RUN are unchanged. Runtime is STOPPED after acceptance;
+cached GUI is not a live-server claim. NEXT ACTIVE P1.2a: imported/edited Part and
+named Sketcher dimensions, stale-map block/refresh and insertion/reorder discovery.
+Record: benchmarks/records/20261001-openscience-managed-research-f52dd1b.json.
+Source correction is already committed/pushed f52; this subsequent evidence/docs
+checkpoint is not another solver run. Historical entries below retain their
+original failures and old next instructions; the current queue above overrides them.
+
+The detailed checklist below preserves historical attempts; each previously open
+P1.1 gate is closed by the new exact f52/run03 record, not by rewriting old runs.
 
 - [x] Reproduce the managed run02 source failure with the SAME installed binary:
   Bun1.3.14 Windows idle spawnSync clock expires a10s timeout in8ms. Preserve
@@ -18,7 +43,7 @@ Currently only **P1.1** is active. Later rows are queued, not running.
 - [x] Independently admit the pinned-Node async reader/source/post-await gates:
   guard67/nativePS34/realGit8 PASS; same-installed-binary async idle proof is
   separate. Close final-await HEAD/index P2 with final FS-only Git fingerprint.
-- [ ] Commit/push source unit, then NEW run03 resident/research/GUI/busy cancel/Stop.
+- [x] Commit/push source unit, then NEW run03 resident/research/GUI/busy cancel/Stop.
 
 - [x] Preserve/replay official managed metadata, verify exact source grant/root,
   and Stop historical5365 through its owned controller. Retain initial MSIX/UUID
@@ -29,7 +54,7 @@ Currently only **P1.1** is active. Later rows are queued, not running.
 - [x] Implement official managed identity/external source ownership across
   server/CLI/GUI hooks/abort/idle/Stop; ADR0013/source checks/independent review.
   This is source acceptance, not a live GUI or full P1.1 gate.
-- [ ] Run a NEW committed managed profile/store: resident source identity,
+- [x] Run a NEW committed managed profile/store: resident source identity,
   complete native cases, same official GUI session, observed-busy cancellation
   with output/store preservation, and controlled owned Stop.
 
@@ -42,7 +67,7 @@ Currently only **P1.1** is active. Later rows are queued, not running.
 - [x] Implement/review native OAuth source; native28/Node20/shared-auth19 and
   launcher47 checks pass without provider/Core/CAD. Bind native/static context
   and preserve exact lifecycle cancellation under inference-file drift.
-- [ ] Start clean native source/profile and read the resource through the actual
+- [x] Start clean native source/profile and read the resource through the actual
   OpenScience MCP connection before Core mutation; verify selected-model completed
   inference. Final offered schemas/every-HTTP/wire evidence remains UNKNOWN.
 - [x] Observe native7f actual plugin loading/MCP connection and retain the
@@ -99,7 +124,7 @@ Currently only **P1.1** is active. Later rows are queued, not running.
 - [x] Retain terminal run02 failure and2,013raw files/47,157,809bytes; all original/
   copied hashes match. Six tools include valid CAD, but its common Git provenance
   is unavailable/unknown and the follow-up model response timed out.
-- [ ] Close actual MCP source-identity and model-response bottlenecks before a
+- [x] Close actual MCP source-identity and model-response bottlenecks before a
   NEW clean-source profile/store. Do not extend timeouts alone or rewrite run02.
   Actual5365 resident/source and14-stage native research now passed; retain
   16 source-check refusals/retries and correct nonretryable policy diagnostics.
@@ -112,26 +137,27 @@ Currently only **P1.1** is active. Later rows are queued, not running.
   in those exact receipts; do not accept a response that merely claims execution.
   Actual5365:13 real tools and completed5.6 Sol interpretation, both exact IDs,
   rejected relation/evidence011 and UNKNOWN/NOT_RELEASED preserved.
-- [ ] Inspect the official Workspace in the browser and save its same-session
+- [x] Inspect the official Workspace in the browser and save its same-session
   tool/results view; verify displayed experiment IDs match the Core store.
   Actual5365 Lab result view shares the store; official GUI remains open.
   Use official managed project + source folder/default working root, with
   project identity bound separately from source RepoRoot in all lifecycle paths.
-- [ ] Complete actual in-flight cancellation with the corrected idle gate.
+- [x] Complete actual in-flight cancellation with the corrected idle gate.
   Run02 confirmed abort200/explicit idle after natural CLI exit; no forced stop or
   controlled server Stop. Run01's missing-idle P2 remains historical. Closed failed
   raw/store copy:1,633files/40,454,753bytes; original bytes=null manifest retained.
-- [ ] Freeze finished source/output inventory; obtain independent actual-evidence
+- [x] Freeze finished source/output inventory; obtain independent actual-evidence
   review. Update the acceptance record, state, handoff and ledger; commit/push
   exact checkpoints and inspect applicable exact-source CI.
 
-Outcome remains OPEN until all applicable P1.1 gates pass. An intermediate
-source commit is useful and does not unlock P1.2. Preserve failed attempts in
-new directories; repair and re-run this unit with a new source/run when needed.
+Outcome is PASS for this bounded P1.1 unit at f52/run03 after independent actual
+evidence review. Preserve all failed attempts and narrow wire/engineering limits.
+An intermediate source commit alone did not unlock P1.2; the completed composite
+actual gates above now allow P1.2a. The whole phase/project remains OPEN.
 
-## Phase1 remaining units (QUEUED)
+## Phase1 remaining units (P1.2a ACTIVE; other units QUEUED)
 
-- [ ] P1.2a: execute imported/edited FreeCAD Part and named Sketcher-dimension
+- [ ] P1.2a (ACTIVE): execute imported/edited FreeCAD Part and named Sketcher-dimension
   revisions; prove stale mappings block execution until refresh, and newly
   inserted/reordered dimensions are discovered without ambiguous registration.
 - [ ] P1.2b: inject a native-file/Core-registry write failure; retain recoverable

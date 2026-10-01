@@ -1,5 +1,34 @@
 # OpenScience local runtime acceptance — 2026-09-30
 
+## Actual managed f52 research, GUI, busy cancellation and Stop, 2026-10-01
+
+Managed run03/source f52dd1b06e69cb901776f18524a41146258d421a now closes
+the bounded P1.1 research/GUI/cancellation/owned-Stop unit. Official2.0.146,
+owner-selected5.6 Sol, same auth/project/source grant and clean fixture3e48:
+16stages/14AI stages/27observed model step_finish usage/13actual tools; valid
+width38 CAD and rejected bolt30;32store files/20artifact hashes/revisions match.
+Official final session and actual CAD tool receipt are visible in retained GUI
+proof. Actual BUSY91 precedes both timeout intent04:23:44.6422045Z and HTTP abort
+start04:23:51.4207596Z; abort200/true, idle, partial step_start output and unchanged
+store verified. Owned Stop04:26:33.9737184Z:3Windows PIDs absent/4098 closed.
+937files/10,458,888bytes retained; independent P2 found missing abort raw triplet,
+closed by a separate7file/2,006byte lifecycle supplement with all original/copy
+hashes/sizes verified. Independent actual research and GUI/lifecycle/retention
+reviews have no open P1/P2. Exact f52 CI36812737980 all8PASS is separately scoped.
+Full Phase1/Phases1–7 and all52 scope remain OPEN;4blocking engineering UNKNOWNs,
+NOT_RELEASED and solver NOT_RUN are unchanged. Runtime is STOPPED after acceptance;
+cached GUI is not a live-server claim. NEXT ACTIVE P1.2a: imported/edited Part and
+named Sketcher dimensions, stale-map block/refresh and insertion/reorder discovery.
+Record: benchmarks/records/20261001-openscience-managed-research-f52dd1b.json.
+Source correction is already committed/pushed f52; this subsequent evidence/docs
+checkpoint is not another solver run. Historical entries below retain their
+original failures and old next instructions; the current queue above overrides them.
+
+The earlier idle-source correction record is source admission. This new record
+closes its actual managed-run gates without attributing f52 success to prior
+failed runs. Internal HTTP retries/final offered schemas/cloud weight digest
+stay UNKNOWN. This bounded acceptance does not claim general autonomous planning.
+
 ## Same-installed-binary Windows idle timeout diagnosis, 2026-10-01
 
 Managed run02/c4 first chat was refused before model/Core/store. Public hook

@@ -1,0 +1,311 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.openscience-managed-research",
+  "phase": "P1.1",
+  "run_name": "p1-managed-20261001-03",
+  "source_commit": "f52dd1b06e69cb901776f18524a41146258d421a",
+  "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "source_and_fixture_dirty": false,
+  "openscience_version": "2.0.146",
+  "openscience_source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+  "provider": "OpenScience builtin ChatGPT OAuth",
+  "model": "openai-codex/gpt-5.6-sol",
+  "model_fallback": false,
+  "outcome": "PASS_BOUNDED_MANAGED_RESEARCH_GUI_CANCELLATION_STOP",
+  "full_p1_1": "PASS_BOUNDED_UNIT",
+  "full_phase1": "OPEN",
+  "full_project": "OPEN",
+  "engineering_decision": "NOT_RELEASED",
+  "boot_source_sha256": "fbaa0df73b7e7f8a697770e4b8ec9ed86dd4b302644ebb61c8295d51e691de52",
+  "boot_tracked_files": 322,
+  "startup": {
+    "outcome": "PASS_ACTUAL_MANAGED_NATIVE_STARTUP",
+    "receipt_sha256": "f9dcc46711fbf5d10c26ecc783b9ab95c8cd9ef823c3162b7e43df59faccca22"
+  },
+  "resident": {
+    "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "native_model": "openai-codex/gpt-5.6-sol",
+    "response_sha256": "e452c40fd69df72fc4821b2e653661c2f5f958cfaaab35ebd2fb629c3033744d",
+    "source_scope": "Resident import paths and on-disk bytes; not cached Python bytecode",
+    "source_commit": "f52dd1b06e69cb901776f18524a41146258d421a",
+    "model_inference_calls": 0,
+    "core_mutations": 0,
+    "store_created": false,
+    "completed_utc": "2026-10-01T03:59:24.0667058Z",
+    "identity_sha256": "d6c64f10b896cb8c5bd01a583b768e59bb37afea3fb15bfdbbba4ca904bc277e",
+    "session_id": "ses_f0a622764ffeOxctCdMQXTSESS",
+    "status": "PASS_ACTUAL_CONNECTED_RESOURCE"
+  },
+  "research": {
+    "outcome": "PASS_BOUNDED_RESEARCH_LOOP",
+    "attempt": "attempt-01",
+    "started_utc": "2026-10-01T04:00:21.4113681Z",
+    "completed_utc": "2026-10-01T04:20:13.1675189Z",
+    "study_id": "S-p1-managed-20261001-03",
+    "stages": 16,
+    "ai_stages": 14,
+    "observed_model_step_finish_usage": 27,
+    "actual_completed_tool_calls": 13,
+    "model_count_scope": "Observed logical step_finish usage records; not a count of internal HTTP retries or cloud requests.",
+    "acceptance_sha256": "7a2525c259584b0f30c1dfe8353042bcc3ea1acc85336f00f68b0a76fe1d28e6",
+    "driver_sha256": "df2c82c177fea3a89035c54deb2768bf9d8c019a2cfbec18aeba10718c5a5357",
+    "checked_in_acceptance_sha256": "d3f9e336a37f8343bf5a8a72399035cc8e5a44024708259adb2a036f0bb1449d",
+    "reuse": "Checked-in acceptance functions and entire case/assertion block; only provider metadata observations adapted",
+    "store_files": 32,
+    "store_bytes": 347363,
+    "store_inventory_sha256": "19727de3598c6ac6feed07f3653fb11d0d2751c85f15af1de382f81406be77e5",
+    "artifact_count": 20,
+    "research_hook_receipts": 41,
+    "hook_inventory_sha256": "03fdb93e2cf12461e6e093ab536379c683c534183761a3a3478d568e1407e694",
+    "valid": {
+      "experiment_id": "E-p1-managed-20261001-03-width38",
+      "study": {
+        "hypothesis": "Width38 is valid; X bolt pitch30 at default width32 is rejected.",
+        "hypothesis_id": "S-p1-managed-20261001-03-H1",
+        "id": "S-p1-managed-20261001-03"
+      },
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "decision": "NOT_RELEASED",
+      "parameters": {
+        "bolt_pitch": 20,
+        "support_width": 38
+      },
+      "metrics": {
+        "cad_bounds": {
+          "unit": "mm",
+          "valid": true,
+          "value": [
+            38,
+            40,
+            26
+          ]
+        },
+        "cad_volume": {
+          "unit": "mm^3",
+          "valid": true,
+          "value": 36783.829878355966
+        }
+      },
+      "failures": [],
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ],
+      "artifact_count": 12,
+      "cad_revision": "fbd9c71fcd6748171cfc9cac1f7ddea804937477c84e6f1dc6536aaeeaa158af",
+      "model_revision": null,
+      "result_ref": "experiments/E-p1-managed-20261001-03-width38/result.json",
+      "solver_status": "NOT_RUN"
+    },
+    "rejected": {
+      "experiment_id": "E-p1-managed-20261001-03-bolt30",
+      "study": {
+        "hypothesis": "Width38 is valid; X bolt pitch30 at default width32 is rejected.",
+        "hypothesis_id": "S-p1-managed-20261001-03-H1",
+        "id": "S-p1-managed-20261001-03"
+      },
+      "status": "REJECTED",
+      "decision": "NOT_RELEASED",
+      "parameters": {
+        "bolt_pitch": 30,
+        "support_width": 32
+      },
+      "metrics": {},
+      "failures": [
+        {
+          "type": "cad_source_relation",
+          "evidence_ids": [
+            "EV-E-p1-managed-20261001-03-bolt30-011"
+          ]
+        }
+      ],
+      "unknown": [
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ],
+      "artifact_count": 8,
+      "cad_revision": null,
+      "model_revision": null,
+      "result_ref": "experiments/E-p1-managed-20261001-03-bolt30/result.json",
+      "solver_status": "NOT_RUN",
+      "step_stl_3mf_inp_export_absent": true
+    },
+    "raw_inspections_equal_persisted_results": true,
+    "interpretation_session": "ses_f0a4fbd6cffeVyWuiLHwWbjdm2",
+    "interpretation_word_count": 16,
+    "interpretation": "Both exact experiment IDs/statuses, cad_source_relation/evidence011, UNKNOWN machine_interface/static_strength and NOT_RELEASED. All four blocking UNKNOWNs are retained in both stored results."
+  },
+  "native_source_guard": {
+    "outcome": "PASS_ACTUAL_STARTUP_AND_AFTER_IDLE_RESEARCH",
+    "first_post_idle_chat_capture_ms": 4544,
+    "first_post_idle_chat_final_bytes_ms": 872,
+    "first_post_idle_chat_utc": "2026-10-01T04:01:55.367Z",
+    "scope": "Actual managed source capture after about287s idle; identity/session/filesystem PASS and no source refusal in this research. Historical5365 failures remain UNKNOWN."
+  },
+  "official_gui": {
+    "outcome": "PASS_SAME_ACTUAL_NATIVE_SESSIONS_VISIBLE",
+    "final_session": "ses_f0a4fbd6cffeVyWuiLHwWbjdm2",
+    "valid_cad_session": "ses_f0a5908f1ffeYYWyAXVITrn0wF",
+    "final_route": "http://127.0.0.1:4098/prj_8e672ff2d300416189536cb29aad15a4/session/ses_f0a4fbd6cffeVyWuiLHwWbjdm2",
+    "final_dom_sha256": "fcdbdbdcb7c70d0ef2a39289ba31a249b86d780e3d3c3e39b53e280d99036307",
+    "final_png_sha256": "3c53ec076215405bde576058c671c60d46a04ec97e8aa2e97380f64bcc3dd81c",
+    "valid_cad_tool_png_sha256": "fd583fb1bf19f6978f656be418d39fcb19daef33449a50030cf24ef65cacf57b",
+    "initial_study_png_sha256": "dfc973f9fbe102dfd6dbcbf125f921012f7403c429fac0c1d10979f53a6082fe",
+    "observed": "Official GUI shows5.6 Sol, autonomous-cae-lab working-folder label, exact final IDs/verdicts/rejection evidence and expanded actual CAD tool receipt. Full source path is verified in metadata/binding, not inferred from the abbreviated screenshot.",
+    "runtime_now": "STOPPED; screenshots/DOM retained. Cached page after Stop is not a live-server claim."
+  },
+  "cancellation": {
+    "outcome": "PASS_ACTUAL_MANAGED_INFLIGHT_CANCELLATION",
+    "session_id": "ses_f0a4c42aaffeAY4vNd0FpZXjCY",
+    "check_sha256": "7a842ab43c57e896963f139ae1247069d2bc0c6c1a353f0a6adf4f8ded1dd502",
+    "monitor_started_before_child": true,
+    "status_samples": 132,
+    "metadata_sha256": "25dd5e97a21120dc2aa6666e3852329d2eb40549c798856f7654276f84e3abfe",
+    "busy_sample_sequence": 91,
+    "busy_observed_utc": "2026-10-01T04:23:37.6526831Z",
+    "busy_raw_sha256": "74fe9bd8b4d84dc93ef4f71a8566f698ae9a860eea95937e51315774fb5468ed",
+    "runner_timeout_intent_utc": "2026-10-01T04:23:44.642Z",
+    "runner_timeout_intent_original": "2026-10-01T04:23:44.6422045+00:00",
+    "actual_abort_http_requested_utc": "2026-10-01T04:23:51.4207596Z",
+    "actual_abort_http_completed_utc": "2026-10-01T04:23:51.4862924Z",
+    "actual_abort_request_sha256": "b06c7a1640034a1a1aac32c15bda2aa179d7e74171cd86da38e0d2dda270730b",
+    "actual_abort_receipt_sha256": "c40ea9f79f28641412c592d856058d6fc193253ff82360639e3d5768df65a006",
+    "actual_abort_response_sha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+    "abort_http_200_true": true,
+    "relay_exited_utc": "2026-10-01T04:23:51.597Z",
+    "idle_observed_utc": "2026-10-01T04:23:58.2798712Z",
+    "partial_output": "Actual step_start event before timeout intent/HTTP abort; retained partial event, not a completed text response.",
+    "partial_stdout_sha256": "cc70c0c4bfb9dfc43218ee04826e9add4ee64d8dd353ed53918a33d22a469676",
+    "observed_tool_events": 0,
+    "gates": {
+      "monitor_before_child": "PASS",
+      "session_metadata": "PASS",
+      "busy_before_abort": "PASS",
+      "abort_http_200_true": "PASS",
+      "idle": "PASS",
+      "partial_output": "PASS",
+      "closed_output_hashes": "PASS",
+      "default_guard": "PASS",
+      "store_preservation": "PASS"
+    },
+    "store_before_sha256": "83e6a9f9389f1fccba5af1aee0ac1a92d46d55ed7b81a84c8b01bd33ca8f7476",
+    "store_after_sha256": "83e6a9f9389f1fccba5af1aee0ac1a92d46d55ed7b81a84c8b01bd33ca8f7476",
+    "store_after_scope": "AFTER_CHILD_EXIT",
+    "completed_utc": "2026-10-01T04:24:03.1975808Z",
+    "unverified_process_kill": false,
+    "native_server_stop_during_case": false
+  },
+  "owned_stop": {
+    "outcome": "PASS_OWNED_STOP",
+    "receipt_sha256": "2e06a7ea40d92b3ae47cea78094f3bc2346132a22bbaaaca444f6e74e8685b29",
+    "closed_utc": "2026-10-01T04:26:33.9737184Z",
+    "owned_windows_pids": [
+      92088,
+      2024,
+      60804
+    ],
+    "owned_windows_pids_absent": true,
+    "port4098_listener_count": 0,
+    "scope": "Exact native/controller/launcher Windows PIDs. This is not a new independent WSL child-PID assertion."
+  },
+  "retention": {
+    "outcome": "PASS_CLOSED_LOCAL_RETENTION_WITH_REVIEWED_LIFECYCLE_SUPPLEMENT",
+    "primary_manifest": "artifacts/p1-managed-20261001-03/retained-01/manifest.json",
+    "primary_manifest_sha256": "1a2f42e86df48c3775d621fb80b827b51d8cdf19218fe7c6c2603e6e1bfcc5c6",
+    "primary_files": 937,
+    "primary_bytes": 10458888,
+    "lifecycle_manifest": "artifacts/p1-managed-20261001-03/retained-lifecycle-01/manifest.json",
+    "lifecycle_manifest_sha256": "98572d9db40877c25247ef5899e78ddf292d93fe29feb4c2ba83aaa728549adc",
+    "lifecycle_files": 7,
+    "lifecycle_bytes": 2006,
+    "total_copied_files": 944,
+    "total_copied_bytes": 10460894,
+    "original_and_copy_hashes_and_sizes_match": true,
+    "scope": "Closed run/store/source322/runtime descriptors/hooks/server receipts/Main GUI+CI proof, supplemented actual abort triplet and Stop-preflight4. Manifest files are not included in copied counts.",
+    "auth_cache_binaries_copied": false,
+    "raw_remote_retention": "NOT_CLAIMED",
+    "review_correction": "Initial937-file allowlist omitted actual HTTP abort triplet. Independent P2 closed with a new7-file supplement; original manifest was preserved."
+  },
+  "independent_reviews": {
+    "research": {
+      "reviewer": "/root/mcp_provenance_diagnosis",
+      "outcome": "PASS_NO_OPEN_P1_P2",
+      "scope": "16stage bytes,14AI/27usage/13actual tools,20artifact/32store/41hook bytes, ledger/revision/evidence/raw/persisted/summary/compare/interpretation; four blocking UNKNOWN and NOT_RELEASED."
+    },
+    "lifecycle_gui_retention": {
+      "reviewer": "/root/managed_project_checks",
+      "outcome": "PASS_NO_OPEN_P1_P2_AFTER_RETENTION_SUPPLEMENT",
+      "scope": "Actual observed BUSY before timeout intent and HTTP POST, abort200/true, idle, finalized partial output/store preservation, owned Stop, GUI/raw-session equality and all937+7 retained originals/copies/sizes. GUI screenshot label distinguished from full-path metadata."
+    },
+    "integration_owner": "/root",
+    "source_reviews": "Source guard/helper/nativePS separately admitted before actual run; see native-idle-source-correction record."
+  },
+  "exact_source_ci": {
+    "run_id": 36812737980,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36812737980",
+    "head_sha": "f52dd1b06e69cb901776f18524a41146258d421a",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "name": "core",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "explicit",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "structural",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "pde",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "optimization",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "native",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "codeaster",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "doe",
+        "status": "completed"
+      }
+    ],
+    "receipt_sha256": "e7a81b1a29ed46ef0f2054d95b70916f54682e88b4410174d442c32f454fa8ea",
+    "scope": "Exactf52 source all8 jobs; a later documentation commit is not a new native solver acceptance."
+  },
+  "limitations": [
+    "Cloud weight digest/final offered schemas/every HTTP retry UNKNOWN.",
+    "Exact-source CI separately verified.",
+    "Windows warn fallback is not OS containment.",
+    "Fixed CAD cases are not optimization.",
+    "Engineering UNKNOWN and NOT_RELEASED preserved.",
+    "Bounded staged CAD/research route closes P1.1 only. General planning, imported/edited FCStd Part/Sketcher and transactions remain P1.2/P1.3.",
+    "Resident source identifies import paths/on-disk bytes, not cached Python bytecode.",
+    "Raw acceptance.json reports its narrower bounded-harness scope. Root closes external GUI/cancellation/Stop/retention gates here without rewriting that original receipt.",
+    "No solver was requested in this CAD research; no strength, physical or release acceptance."
+  ],
+  "next": "P1.2a only: imported/edited native Part and named Sketcher dimensions, stale mapping refusal/refresh and inserted/reordered discovery. Reuse pinned upstream; preserve new revisions/stores.",
+  "updated_utc": "2026-10-01T04:42:54.515Z"
+}

@@ -219,5 +219,12 @@
     "cloud_weight_digest_final_schemas_every_http_retry": "UNKNOWN",
     "engineering_decision": "NOT_RELEASED"
   },
-  "next": "Commit/push admitted source, update stopped Serving, NEW run03/profile/store, connected resident, unchanged full cases, official final session, busy cancellation and owned Stop"
+  "next": "Commit/push admitted source, update stopped Serving, NEW run03/profile/store, connected resident, unchanged full cases, official final session, busy cancellation and owned Stop",
+  "subsequent_actual_run": {
+    "source_commit": "f52dd1b06e69cb901776f18524a41146258d421a",
+    "run_name": "p1-managed-20261001-03",
+    "record": "20261001-openscience-managed-research-f52dd1b.json",
+    "outcome": "PASS_BOUNDED_MANAGED_RESEARCH_GUI_CANCELLATION_STOP",
+    "scope": "Later actual managed execution, not a retroactive change to this source-admission or historical failed-run evidence."
+  }
 }

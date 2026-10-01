@@ -31,8 +31,10 @@ experiment artifacts; cloning Git alone does not restore their local bytes.
 
 ## Execution rule and current unit
 
-**One active acceptance unit: P1.1, integrated persistent OpenScience and actual
-CAD research.** Other implementation and native campaigns remain deferred.
+**One active acceptance unit: P1.2a, imported/edited native Part and named
+Sketcher dimensions.** P1.1 passed its bounded managed research/GUI/cancellation/
+owned-Stop gates at exact f52/run03; general planning remains P1.3. Other
+implementation and native campaigns remain deferred.
 One independent reviewer may examine this unit; this does not authorize parallel
 feature development. Root owns shared interfaces, integration and decisions.
 
@@ -53,20 +55,28 @@ requirement/interface, necessary patch and regression/acceptance before changing
 it; finish that bounded correction and resume the queue. Existing implemented
 and verified work remains useful at its recorded source and scope.
 
-### P1.1 gates, in order
+### Closed P1.1 gates, in order
 
-| Gate | Current evidence | Completion requirement |
+| Gate | Current evidence | Status/limit |
 | --- | --- | --- |
-| Source admission | Main4e21 idle correction independently reviewed/pushed; CI36756215416 all8PASS;47 changed launcher plus unchanged52 controller mocks | Source finding closed. Mocks add no actual model/Core credit. |
-| Clean runtime | Clean4e21 run02 retains boot0b6d2141/tree390a04e3/293 source bodies. Actual CAD Git provenance is unavailable/unknown; ordinary argv probe did not prove resident MCP identity. Runtime now absent without controlled Stop evidence. | Correct and verify actual MCP source identity in a new runtime before mutation; independently review actual evidence. |
-| Actual research | Run02 FAILED_OR_PARTIAL after five completed model stages/six Core receipts including registry and valid CAD; post-CAD response timeout. Run01 failure retained. | Fix provenance/response bottleneck, then a new clean-source store for valid/rejected CAD, inspect/summary/compare and interpretation; preserve all old bytes. |
-| Human inspection | Fresh official GUI shows exact run02 study ID/tool receipt; earlier GUI/Lab checks have separate source/run IDs | Inspect actual valid/rejected CAD and results from the same new project/sessions/Core experiment revisions. |
-| Cancellation | Run02 abort200/explicit idle after natural CLI exit; no forced CLI stop. Original run01 missing-idle finding retained and source corrected. | Actual in-flight cancellation with idle/final log/controlled owned cleanup receipts remains open. |
-| Checkpoint | Not complete | Independent actual-evidence review, precise acceptance/state/ledger updates, commit/push. CI and Windows runtime proof stay separately attributed. |
+| Source admission | f52 pinned-Node async reader/guard67/nativePS34/realGit8 independently reviewed; exact CI36812737980 all8PASS | PASS source scope; numerical gates unchanged. |
+| Clean runtime | run03 official2.0.146/5.6Sol, clean f52/fixture3e48, actual resident identity,322boot bytes | PASS resident/on-disk scope; cached bytecode UNKNOWN. |
+| Actual research | 16stages/14AI stages/27model usage records/13actual tools, valid/rejected CAD, inspect/summary/compare/interpretation,20artifacts/32store files | PASS bounded fixed cases; general planning P1.3. |
+| Human inspection | Official same final and CAD tool sessions; GUI PNG/DOM match exact IDs/revisions/evidence | PASS; Lab8766 is a separate interface. |
+| Cancellation/Stop | BUSY91 before actual POST, abort200/true, idle/partial output/store preserved, exact owned Stop/3PIDs absent/4098 closed | PASS Windows-owned scope; no foreign process kill. |
+| Checkpoint | Independent research and GUI/lifecycle reviews;937+7retained files/hash/size checks; initial omitted abort triplet P2 closed with supplement | PASS actual unit. Source f52 already pushed; evidence/docs commit follows, not a new solver run. |
 
-Do not move/checkout a live serving worktree. The prior d36387b Lab8766 is now
-absent; do not assume it survives another session. Use a clean pinned profile/new store
-for P1.1. Preserve all old sessions, stores, raw bytes and failed attempts.
+See [actual f52/run03 record](../benchmarks/records/20261001-openscience-managed-research-f52dd1b.json).
+P1.2a is next; full Phase1 and engineering qualification remain open.
+
+Do not move/checkout a live serving worktree. Run03's exact owned runtime is
+STOPPED; its three Windows PIDs are absent and4098 is closed. Keep the separate
+Lab interface/process distinct and query it before making any current claim.
+For the next native unit, preserve all old sessions/stores/raw bytes and use a
+new store/revision rather than update an old experiment.
+
+The following bounded corrections describe historical P1.1 implementation;
+their old pending instructions are superseded by the closed gates above.
 
 P1.1 bounded deployment correction: native WSL Git cannot follow a Windows
 managed-worktree absolute .git pointer, so the new MCP transport must reuse
@@ -86,10 +96,10 @@ output4096/steps3 and all CAD/validation cases stay unchanged.
 
 ## Remaining phase queue
 
-Current P1.1 model correction follows ADR0012: no implicit Qwen or replacement
-selection. Complete official ChatGPT account authentication, explicit model/
-actual inference access, native transport integration and connected-MCP source
-diagnostics, then the existing CAD/research/GUI/cancellation gates. Auth14 and
+Completed P1.1 model correction follows ADR0012: no implicit Qwen or replacement
+selection. Official ChatGPT authentication, explicitly selected5.6 Sol inference,
+native transport, connected-MCP source and actual CAD/GUI/cancellation gates
+passed at f52/run03. Preserve those exact records; no reauthentication is needed. Auth14 and
 MCP resource8 checks add no solver or full-phase acceptance credit. Native
 OAuth must not inherit unproved proxy-equivalent request evidence.
 
