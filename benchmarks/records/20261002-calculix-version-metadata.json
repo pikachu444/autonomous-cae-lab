@@ -1,0 +1,89 @@
+{
+  "record_kind": "SCOPED_CALCULIX_VERSION_METADATA_CORRECTION",
+  "created_utc": "2026-10-01T16:33:17.267353+00:00",
+  "failed_source_commit": "b7b64503105c11bfc2047156773cafa50ccf1125",
+  "failed_run_id": "p2-family-native-20261002-01",
+  "failed_core_status": "FAILED_EXECUTION",
+  "native_solver_jobs": 0,
+  "actual_model_provider_calls": 0,
+  "observed_version_query": {
+    "argv": [
+      "/usr/bin/ccx",
+      "-v"
+    ],
+    "exit_code": 201,
+    "stdout_stripped": "This is Version 2.21",
+    "stderr_bytes": 0,
+    "actual_binary_sha256": "6adaabf5bf0382fc2bfd692b984320ed375dba777f7dc8297562f818043faa1b",
+    "build_source_identity": "UNKNOWN"
+  },
+  "preserved_failed_run": {
+    "file_count": 37,
+    "bytes": 1311700,
+    "manifest": {
+      "path": "artifacts/p2-family-calculix-metadata-fix-20261002-01/failed-run-manifest.json",
+      "bytes": 9356,
+      "sha256": "efd57a486346e41741b5b26689f0bfd85c05f73a11303213fb25a248713ba656"
+    },
+    "retention": "LOCAL_IGNORED; original failed store remains intact and is never overwritten"
+  },
+  "correction": "Admit201 only for ccx_version with exactly two argv ending -v, exact pinned2.21 stdout banner and semantically empty stderr; all solver jobs still require zero",
+  "corrected_source_files": [
+    {
+      "path": "caelab/adapters/structural_family_calculix.py",
+      "bytes": 40700,
+      "sha256": "085d33d3e170893f0132eb6e057dd89a0b2b0734fd41a4c80c8f857edb66f3b5"
+    },
+    {
+      "path": "tests/test_structural_family_calculix.py",
+      "bytes": 26805,
+      "sha256": "a2746c49b86a618b2dad26849ef9506997f6375e66debfe8fb37dcc922fdd2a0"
+    }
+  ],
+  "source_checks": {
+    "passed": 77,
+    "seconds": 11.45,
+    "exit_code": 0,
+    "evidence": {
+      "path": "artifacts/p2-family-calculix-metadata-fix-20261002-01/pytest.log",
+      "bytes": 183,
+      "sha256": "63e10fd5b8ec54bbf3a0eb82da0ec43a724f9a67fe248639206c3d4f9545fc6c"
+    }
+  },
+  "actual_metadata_only_probe": {
+    "path": "artifacts/p2-family-calculix-metadata-fix-20261002-01/actual-metadata-probe/receipt.json",
+    "bytes": 462,
+    "sha256": "0fafdbc429cefb32c9675afbdbaace5edafee20b4169c7d8b88ddf0a6c054f01"
+  },
+  "independent_review": {
+    "path": "artifacts/p2-family-calculix-metadata-fix-20261002-01/independent-review.json",
+    "bytes": 6682,
+    "sha256": "b36df7c907bb04ddc48ab33654f39fe6c747f410ac50e2275c0e059c3339a4ca"
+  },
+  "unchanged": {
+    "definition_sha256": "4ebca41ae97498cba18fe876a72ef128e0b671c3f7f6f809853514c94d5e12e0",
+    "domain_sha256": "a4ea9a48f70241931f2819eb7f45e97e7cedfc34ec9e8ac542df224de998d314",
+    "mesh_sha256": "5ef0a2c81f2344bc7cbdc39639c711f3f7c08b4b9948780b4b490d2c8eea19a9",
+    "numerical_references_and_limits": "UNCHANGED",
+    "all52_and_phase_order": "UNCHANGED"
+  },
+  "outcome": {
+    "scoped_source_and_metadata": "PASS",
+    "new_native_numerical": "NOT_RUN",
+    "cross_solver": "NOT_RUN",
+    "new_openscience_research": "NOT_RUN",
+    "human_gui": "NOT_RUN",
+    "release": "NOT_RELEASED",
+    "engineering_validation": "UNKNOWN"
+  },
+  "next": "Commit/push corrected source; fresh native02 exact clean commit/store, then connected OpenScience question/condition/comparison/interpretation and same-record GUI",
+  "CI": {
+    "failed_source_run": 36891134421,
+    "source": "b7b64503105c11bfc2047156773cafa50ccf1125",
+    "observed_core": "SUCCESS",
+    "observed_doe": "SUCCESS",
+    "observed_explicit": "FAILURE",
+    "explicit_cause": "NOT_VERIFIED_FOR_THIS_RUN",
+    "remaining_jobs": "IN_PROGRESS_AT_CHECK; no final verdict inferred"
+  }
+}

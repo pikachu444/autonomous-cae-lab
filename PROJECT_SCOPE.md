@@ -21,6 +21,12 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+Source b7b6450 is pushed; fresh native01 failed at ccx version metadata before
+any solver job. A narrow exact-query201 correction passes77 source tests,
+actual metadata-only probe and independent review; new native02 follows its
+clean commit. Record20261002-calculix-version-metadata. No reference/threshold
+change, numerical PASS, engineering release or requirement completion is implied.
+
 Bounded structural-family source admission now covers independently defined
 beam Fx/Fy/Fz, Lamé cylinder and curved roof derivatives. Frozen references,
 native adapters and six-tool StructuralFamilies Research admission reuse

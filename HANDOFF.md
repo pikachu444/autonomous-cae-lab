@@ -1,5 +1,20 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Latest runtime correction: first native attempt retained; fresh retry next
+
+Source b7b64503105c11bfc2047156773cafa50ccf1125 is committed/pushed to main.
+Fresh native01 stopped before its first solver job: actual `/usr/bin/ccx -v`
+prints exact2.21 but exits201. The failed Core record/native inputs/logs are
+preserved. Record `20261002-calculix-version-metadata.json` scopes a correction
+to exact metadata-query201/banner/argv/stderr only; solver jobs remain zero-only.
+Corrected77 source regressions, actual metadata-only probe and independent
+correction review PASS. No numerical threshold/reference changed. Native family
+acceptance is still FAILED_OR_PARTIAL/NOT_RUN, not a numerical or release success.
+NEXT: commit/push this correction, then new native02 store on its clean exact
+commit; continue actual OpenScience/GUI gate after the native results. New
+research-driver source is being reviewed in ignored staging, never substituted
+for an actual model call. All52/remaining phases and UNKNOWN remain active.
+
 ## Current queue: bounded family source admission; actual connected gate next
 
 P2.1b admits three independently defined solid derivatives with five loads:

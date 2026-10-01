@@ -1,5 +1,16 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
+## Latest native attempt: metadata failure corrected without solver admission
+
+Reviewed source b7b6450 is pushed to main. Native01 creates one retained
+FAILED_EXECUTION record before the first solver: actual pinned-path ccx2.21
+version query returns201. The narrow correction admits that exact query/banner
+only and retains zero-only solver exits, source/runtime identity and all fixed
+numerical gates.77 source tests, actual metadata-only probe and independent
+review PASS; new native02 acceptance follows a clean correction commit.
+Record:20261002-calculix-version-metadata. Native numerical/cross-solver and
+new-family OpenScience/GUI proof remain NOT_RUN. Failed attempt bytes are retained.
+
 ## Latest source checkpoint: several families connected to existing operations
 
 Whole MIDAS survey is preserved; native execution of all157 original cases is

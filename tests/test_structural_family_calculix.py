@@ -434,6 +434,32 @@ def test_process_timeout_kills_group_and_preserves_partial_files(tmp_path, monke
     assert json.loads((tmp_path / "solver.exit.json").read_text())["timed_out"] is True
 
 
+@pytest.mark.parametrize("code,argv,label,banner,stderr,accepted", [
+    (201, ["TEST_ONLY", "-v"], "ccx_version", b"\nThis is Version 2.21\n\n", b"", True),
+    (201, ["TEST_ONLY", "-v"], "solver", b"This is Version 2.21", b"", False),
+    (201, ["TEST_ONLY", "-i", "family"], "ccx_version", b"This is Version 2.21", b"", False),
+    (201, ["TEST_ONLY", "-v"], "ccx_version", b"This is Version 2.22", b"", False),
+    (201, ["TEST_ONLY", "-v"], "ccx_version", b"This is Version 2.21", b"error", False),
+    (202, ["TEST_ONLY", "-v"], "ccx_version", b"This is Version 2.21", b"", False),
+    (0, ["TEST_ONLY", "-v"], "ccx_version", b"This is Version 2.21", b"", True),
+])
+def test_metadata_exit201_is_scoped_to_exact_pinned_version_query(tmp_path, monkeypatch, code, argv, label, banner, stderr, accepted):
+    class Process:
+        returncode = code
+        def wait(self, timeout=None): pass
+    def popen(command, **kwargs):
+        kwargs["stdout"].write(banner)
+        kwargs["stderr"].write(stderr)
+        return Process()
+    monkeypatch.setattr(adapter.subprocess, "Popen", popen)
+    if accepted:
+        assert "Version 2.21" in adapter._process(argv, tmp_path, label)
+    else:
+        with pytest.raises(RuntimeError, match="exited"):
+            adapter._process(argv, tmp_path, label)
+    assert json.loads((tmp_path / f"{label}.exit.json").read_text())["returncode"] == code
+
+
 def test_output_never_overwrites_historical_evidence(tmp_path, monkeypatch):
     output = tmp_path / "simulation"
     output.mkdir()

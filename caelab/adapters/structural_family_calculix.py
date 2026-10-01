@@ -136,7 +136,13 @@ def _process(command: list[str], output: Path, label: str, *, timeout: int = _TI
             save_json(output / f"{label}.exit.json", {"returncode": process.returncode, "timed_out": True})
             raise RuntimeError("CalculiX process timed out; partial native evidence retained") from exc
     save_json(output / f"{label}.exit.json", {"returncode": process.returncode, "timed_out": False})
-    if process.returncode != 0:
+    # The actual Ubuntu 2.21 executable returns201 for its metadata-only -v
+    # query. Admit only that exact banner/query; solver jobs remain zero-only.
+    version_query_exit = (process.returncode == 201 and label == "ccx_version"
+                          and len(command) == 2 and command[1] == "-v"
+                          and _read(output / f"{label}.stdout.log").strip() == "This is Version 2.21"
+                          and not _read(output / f"{label}.stderr.log").strip())
+    if process.returncode != 0 and not version_query_exit:
         raise RuntimeError(f"CalculiX {label} exited {process.returncode}; native logs retained")
     return "\n".join(_read(output / f"{label}.{stream}.log") for stream in ("stdout", "stderr"))
 
