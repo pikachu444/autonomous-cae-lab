@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 
 from .fixture_cadquery import UPSTREAM
@@ -18,19 +19,39 @@ sys.path.insert(0, str(UPSTREAM))
 from fixturelab import native_cad
 
 
-def _parameter_run(request):
+def _parameter_run(request, *, evidence=None, timeout=150, runtime_inputs=None):
     """The pinned transport hardcodes its worker; keep this worker path trusted."""
     command = os.environ.get("FREECAD_CMD") or shutil.which("freecadcmd") or shutil.which("FreeCADCmd")
     if not command:
         raise RuntimeError("FreeCADCmd is required; set FREECAD_CMD to its executable")
     worker = Path(__file__).resolve().with_name("freecad_parameter_worker.py")
+    if evidence is not None:
+        directory = Path(evidence)
+        directory.mkdir(parents=True, exist_ok=False)
+        return _parameter_run_in(request, command, worker, directory, timeout, runtime_inputs)
     with tempfile.TemporaryDirectory() as directory:
-        source, result = Path(directory) / "request.json", Path(directory) / "result.json"
-        source.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
-        env = {**os.environ, "FIXTURE_FREECAD_REQUEST": str(source), "FIXTURE_FREECAD_RESULT": str(result),
-               "CAELAB_FREECAD_PARAMETER_WORKER": str(worker)}
+        return _parameter_run_in(request, command, worker, Path(directory), timeout, runtime_inputs)
+
+
+def _parameter_run_in(request, command, worker, directory, timeout, runtime_inputs):
+    """Retain a private stage's native worker inputs and outputs on failure."""
+    source, result = directory / "request.json", directory / "result.json"
+    source.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+    if runtime_inputs is not None:
+        (directory / "runtime-inputs.json").write_text(json.dumps(runtime_inputs, allow_nan=False), encoding="utf-8")
+    env = {**os.environ, "FIXTURE_FREECAD_REQUEST": str(source), "FIXTURE_FREECAD_RESULT": str(result),
+           "CAELAB_FREECAD_PARAMETER_WORKER": str(worker)}
+
+    def save_output(stdout, stderr):
+        for name, value in (("stdout.log", stdout), ("stderr.log", stderr)):
+            if isinstance(value, bytes):
+                value = value.decode("utf-8", errors="replace")
+            (directory / name).write_text(value or "", encoding="utf-8")
+
+    try:
         run = subprocess.run([command, str(worker)], cwd=UPSTREAM, env=env,
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=150)
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout)
+        save_output(run.stdout, run.stderr)
         if not result.is_file():
             raise RuntimeError("FreeCADCmd produced no result: " + (run.stderr or run.stdout)[-1000:])
         answer = json.loads(result.read_text(encoding="utf-8"))
@@ -43,6 +64,143 @@ def _parameter_run(request):
         if not isinstance(answer.get("result"), dict):
             raise RuntimeError("FreeCADCmd produced an invalid native CAD result")
         return answer["result"]
+    except subprocess.TimeoutExpired as error:
+        save_output(error.stdout, error.stderr)
+        (directory / "failure.json").write_text('{"status":"FAILED","code":"NATIVE_WORKER_TIMEOUT"}', encoding="utf-8")
+        raise
+    except Exception:
+        (directory / "failure.json").write_text('{"status":"FAILED","code":"NATIVE_WORKER_FAILED"}', encoding="utf-8")
+        raise
+
+
+def _stage_parameter_run(request, evidence, started):
+    """All preparation workers share one deadline below the outer 180 s bound."""
+    deadline = started + 150
+    phase_started = time.monotonic()
+    remaining = max(0, min(150, deadline - phase_started))
+    inputs = {"schema": 1, "phase": evidence.name, "budget_seconds": 150,
+              "stage_start_monotonic_seconds": started, "phase_start_monotonic_seconds": phase_started,
+              "elapsed_seconds": max(0, phase_started - started), "remaining_seconds": remaining}
+
+    def finish(status, worker_attempted):
+        now = time.monotonic()
+        if status == "COMPLETED" and now >= deadline:
+            status = "EXPIRED_AFTER_RETURN"
+        result = {"schema": 1, "status": status, "worker_attempted": worker_attempted,
+                  "elapsed_seconds": max(0, now - started), "phase_elapsed_seconds": max(0, now - phase_started),
+                  "remaining_seconds": max(0, min(150, deadline - now))}
+        (evidence / "runtime-result.json").write_text(json.dumps(result, allow_nan=False), encoding="utf-8")
+        return now
+
+    def refuse():
+        (evidence / "stage-failure.json").write_text('{"status":"FAILED","code":"NATIVE_STAGE_TIMEOUT"}', encoding="utf-8")
+        raise ValueError("NATIVE_STAGE_TIMEOUT: Native CAD preparation exhausted its worker budget") from None
+
+    if remaining <= 0:
+        evidence.mkdir(parents=True, exist_ok=False)
+        (evidence / "request.json").write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+        (evidence / "runtime-inputs.json").write_text(json.dumps(inputs, allow_nan=False), encoding="utf-8")
+        finish("REFUSED_BEFORE_START", False)
+        refuse()
+    try:
+        answer = _parameter_run(request, evidence=evidence, timeout=remaining, runtime_inputs=inputs)
+    except subprocess.TimeoutExpired:
+        finish("TIMED_OUT", True)
+        refuse()
+    except FileExistsError:
+        raise  # Existing phase evidence belongs to its earlier attempt.
+    except Exception:
+        if evidence.is_dir():
+            finish("FAILED", True)
+        raise
+    if finish("COMPLETED", True) >= deadline:
+        refuse()
+    return answer
+
+
+def _stage_inspect(document, evidence, started):
+    info = _stage_parameter_run({"action": "inspect", "document": str(document)}, evidence, started)
+    if info["source_sha256"] != hashlib.sha256(document.read_bytes()).hexdigest():
+        raise ValueError("NATIVE_SOURCE_CHANGED: Prepared CAD changed after inspection")
+    unique_paths([*info["parameters"], *info["candidates"]])
+    names, identities = set(), set()
+    for entry in info["parameters"]:
+        name = entry.get("name")
+        identity = (entry.get("object"), entry.get("kind"),
+                    entry.get("property") if entry.get("kind") == "property" else entry.get("constraint"))
+        if not isinstance(name, str) or not name or name in names:
+            raise ValueError("NATIVE_DUPLICATE_PARAMETER_NAME: Invalid prepared CAD parameter names")
+        if entry.get("kind") not in ("property", "constraint") or not all(isinstance(part, str) and part for part in identity):
+            raise ValueError("NATIVE_REGISTERED_UNSUPPORTED: Invalid prepared CAD dimension identity")
+        if identity in identities:
+            raise ValueError("NATIVE_DUPLICATE_IDENTITY: Duplicate prepared CAD dimension identity")
+        names.add(name)
+        identities.add(identity)
+    return info
+
+
+def _prepare_bind(request):
+    """Prepare verified native bytes; Core alone publishes the returned revision."""
+    started = time.monotonic()
+    source = native_cad._path(request["model"]).resolve()
+    payload = source.read_bytes()
+    before_sha256 = hashlib.sha256(payload).hexdigest()
+    if request.get("source_sha256") != before_sha256:
+        raise ValueError("NATIVE_SELECTOR_STALE: Native CAD source changed; rediscover the document")
+    output = Path(request["output"]).resolve()
+    prepared = output / "editable.FCStd"
+    if prepared == source:
+        raise ValueError("NATIVE_STAGE_PATH_INVALID: Preparation requires a private native file")
+    output.mkdir(parents=True, exist_ok=True)
+    with prepared.open("xb") as stream:
+        stream.write(payload)
+    try:
+        before = _stage_inspect(prepared, output / "inspect-before", started)
+        if before["source_sha256"] != before_sha256:
+            raise ValueError("NATIVE_SOURCE_CHANGED: Prepared CAD differs from its captured source")
+        registered = [p for p in before["parameters"] if p["key"] == request["target"]]
+        if registered:
+            entry = registered[0]
+            if not entry["min"] <= request["lower"] <= request["upper"] <= entry["max"]:
+                raise ValueError("Requested bounds exceed the existing FCStd parameter definition")
+        else:
+            matches = [p for p in before["candidates"] if p["key"] == request["target"]]
+            if len(matches) != 1:
+                raise ValueError("NATIVE_SELECTOR_REDISCOVERY_REQUIRED: Select a current advertised CAD dimension")
+            selected = matches[0]
+            _stage_parameter_run({"action": "register", "document": str(prepared),
+                                  "target": request["target"], "name": request["parameter_id"],
+                                  "min": request["lower"], "max": request["upper"], "label": request["display_name"],
+                                  "source_sha256": before_sha256}, output / "register", started)
+        # The previous process has closed the document. Read the persisted file
+        # in a fresh worker rather than trusting registration's in-memory result.
+        after = _stage_inspect(prepared, output / "inspect-after", started)
+        previous = before["parameters"]
+        entries = after["parameters"]
+        expected_count = len(previous) + (0 if registered else 1)
+        if (after["final"] != before["final"] or len(entries) != expected_count or
+                entries[:len(previous)] != previous):
+            raise ValueError("NATIVE_STAGE_DEFINITION_MISMATCH: Persisted CAD definitions changed")
+        if not registered:
+            expected = {"key": request["target"], "name": request["parameter_id"], "label": request["display_name"],
+                        "min": request["lower"], "max": request["upper"], "unit": "mm",
+                        "object": selected["object"], "kind": selected["kind"], "value": selected["value"]}
+            datum = "property" if selected["kind"] == "property" else "constraint"
+            expected[datum] = selected["dimension"] if datum == "property" else request["parameter_id"]
+            if any(entries[-1].get(key) != value for key, value in expected.items()):
+                raise ValueError("NATIVE_STAGE_DEFINITION_MISMATCH: Requested CAD definition did not persist")
+        after_sha256 = after["source_sha256"]
+        if (registered and after_sha256 != before_sha256) or (not registered and after_sha256 == before_sha256):
+            raise ValueError("NATIVE_STAGE_SAVE_MISMATCH: Prepared native save did not match the requested binding")
+        return {"target": str(source), "prepared": str(prepared),
+                "before_sha256": before_sha256, "after_sha256": after_sha256}
+    finally:
+        try:
+            current_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
+        except OSError:
+            current_sha256 = None
+        if current_sha256 != before_sha256:
+            raise ValueError("NATIVE_SOURCE_CHANGED: Live CAD changed during preparation; preserve the external revision")
 
 
 def _inspect(model):
@@ -167,6 +325,8 @@ def main():
                             "min": request["lower"], "max": request["upper"], "label": request["display_name"],
                             "source_sha256": request.get("source_sha256")})
         answer = {"bound": True}
+    elif action == "prepare_bind":
+        answer = _prepare_bind(request)
     elif action == "regenerate":
         inspect = _inspect(request["model"])
         mapping = {p["key"]: p["name"] for p in inspect["parameters"]}
@@ -178,7 +338,7 @@ def main():
         answer = native_cad.execute(request["model"], values, Path(request["output"]))
     else:
         raise ValueError("Unknown native bridge action")
-    if action != "regenerate":
+    if action not in ("regenerate", "prepare_bind"):
         design = answer["design"] if action in ("new", "import") else request["model"]
         source = native_cad._path(design)
         source_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()

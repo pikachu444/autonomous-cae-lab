@@ -32,6 +32,14 @@ experiment artifacts; cloning Git alone does not restore their local bytes.
 ## Execution rule and current unit
 
 **One active acceptance unit: P1.2b, native/Core registration failure recovery.**
+Actual742 red split and original-byte retention are reviewed. ADR0015 source
+corrections pass23 Core/103 native tests and actual stdio recovery. Source was
+frozen after5 broad-run source-drift refusals;142-case rerun passed1085.17s with
+46runtime files unchanged. The source record is20261001-native-registration-source.
+Verifier/isolated CI commit and new clean-source native write-failure/process-exit/
+recovery remain required. No
+Phase2 work starts from source checks alone; P1.3 follows the actual P1.2b gate.
+
 Clean Main4bb363835208665377341f5072a9adde16494c7a / fixture3e48:
 actual p1-native-edits-20261001-02 PASSED the bounded P1.2a unit.
 6positive native/Core/STEP analytical cases and18expected precondition refusals;

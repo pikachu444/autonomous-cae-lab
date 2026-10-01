@@ -2,6 +2,26 @@
 
 ## Current serial work: P1.2b registration failure recovery
 
+Actual clean7421714 red case now reproduces the cross-file defect: native Width
+was saved but the injected Core write left Length/revision1 unchanged. Stale
+execution blocked; old14 experiment files and earlier211-file P1.2a store were
+preserved. Red receipt b75560fe29c373cfb5b1511c82259f88c1b63e0af025b80a9fff41fdf108760d;
+39-file retention manifest f802e397d78bbe7bfb58e5d5a50d600a23c1fc02418105de8bd304e9b7484af8.
+Independent red/retention review PASS does not establish corrected recovery.
+ADR0015 introduces private native preparation and Core before/after journals,
+pending consumer gates and study-scoped recovery. Offline23 recovery and103
+native stage/existing checks passed; independent review closed3 P2s. Actual
+stdio MCP recovery/no-op and existing CAD/DOE/optimization checks passed with
+temporary verification outputs, not retained native acceptance. Broad regression
+attempt01:132PASS/5FAIL in1093.48s; all5 intentionally strict Core-source guards
+fired because Root/adapter source was edited during the run. Root corrected the
+work order: runtime source frozen,142-case attempt02 passed1085.17s with all46
+runtime file hashes and sizes unchanged. No guard was loosened. Public source
+record: benchmarks/records/20261001-native-registration-source.json, with its
+container commit/push confirmed separately through Git. The reviewed verifier/
+isolated CI commit and actual corrected native write-failure/process-exit/
+recovery gate remain OPEN. This is source admission, not P1.2b completion.
+
 Clean Main4bb363835208665377341f5072a9adde16494c7a / fixture3e48:
 actual p1-native-edits-20261001-02 PASSED the bounded P1.2a unit.
 6positive native/Core/STEP analytical cases and18expected precondition refusals;

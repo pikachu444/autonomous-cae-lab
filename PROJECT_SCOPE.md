@@ -21,6 +21,14 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+P1.2b is ACTIVE. Actual7421714 native/Core write-failure red reproduction and
+39-file preservation are independently reviewed; corrected recovery is OPEN.
+ADR0015/source checks23+103, actual stdio recovery and142-case frozen regression
+passed. Source record:20261001-native-registration-source. Verifier/isolated CI
+commit and clean actual native acceptance remain pending.
+The failed132PASS/5FAIL source-drift regression is preserved, with all5 source
+guard refusals unchanged. No requirement text or full-phase status is removed.
+
 Clean Main4bb363835208665377341f5072a9adde16494c7a / fixture3e48:
 actual p1-native-edits-20261001-02 PASSED the bounded P1.2a unit.
 6positive native/Core/STEP analytical cases and18expected precondition refusals;
@@ -201,8 +209,8 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R03 | OpenScience owns hypothesis/campaign/reasoning; deterministic engines own numerical search. | Implemented separation for seeded DOE/shared CAD and model-input SciPy search; actual staged local research loop passed, general autonomous planning remains open. |
 | R04 | Read and reuse auto-fixture-design discovery, native/CadQuery edits, effect checks, validation/export/artifacts/examples/tests/CI. | Partial: pinned source and acceptance reused; recovered history in CURRENT_STATE. Earlier full chats unavailable. |
 | R05 | Separate generic Core from Fixture/Material/Drop/Structure/PDE/Constitutive domain plugins. | Partial: Fixture, elasticity, plasticity, material-point, explicit and PDE plugins/adapters share Core records; actual bounded native proofs passed or preserve rejection. Wider domain coverage remains open. |
-| R06 | Design Parameter Registry maps research IDs to native CAD, including full metadata below. | Partial: registry/effect evidence implemented; P1.2a owned selector/identity correction is in source admission after actual clean671 imported-edit red case. New-source reorder acceptance pending; broader types/dependency execution open. |
-| R07 | Generic CAD load/discover/select/name/unit/bounds/type/fixed/dependency/register workflow; detect ineffective parameters. | Partial: CadQuery/native Part/Sketcher executed; fresh clean671 baseline and actual imported-edit discovery failure retained. ADR0014 correction source admitted separately from pending new-source native acceptance; arbitrary FCStd/future CAD remain open. |
+| R06 | Design Parameter Registry maps research IDs to native CAD, including full metadata below. | Partial: actual4bb/run02 named mappings, inserted/reordered discovery and source refresh passed bounded P1.2a. P1.2b private preparation/Core recovery source checks pass; corrected native recovery and broader types/dependency execution remain open. |
+| R07 | Generic CAD load/discover/select/name/unit/bounds/type/fixed/dependency/register workflow; detect ineffective parameters. | Partial: actual imported/edited Part and named Sketcher revisions plus18precondition refusals passed4bb/run02. Failed671/c141 evidence retained. P1.2b native recovery is active; arbitrary FCStd/future CAD remain open. |
 | R08 | Stage validation before export/solver; stop unnecessary work at invalid gates. | Partial: parameter/CAD/export/solver preflight and numerical gates executed; full manufacturing/interface/physics validators open. |
 | R09 | Independent validation states with full metadata; unknown checks never become PASS; unreleased designs preserved. | Implemented model and CAD/analysis usage; future validators retain same semantics. |
 | R10 | Evidence distinct from validation: geometry, interference, mesh, convergence, fields/curves, energy, benchmark, measurement/calibration/photo/report. | Partial: CAD/linear evidence implemented; other sources planned. |

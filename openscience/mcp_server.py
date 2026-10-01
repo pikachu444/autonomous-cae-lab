@@ -203,6 +203,12 @@ def model_native_import(file_name: str) -> dict:
 
 
 @mcp.tool()
+def parameters_recover(study_id: str) -> dict:
+    """Restore uncommitted CAD registration revisions; preserve and refuse foreign or corrupt bytes."""
+    return _lab().recover_registration(study_id)
+
+
+@mcp.tool()
 def parameters_register(study_id: str, backend: str, model: str, native_path: str,
                         parameter_id: str, display_name: str, lower: float, upper: float,
                         mode: str = "free", kind: str = "continuous") -> dict:

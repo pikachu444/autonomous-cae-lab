@@ -49,6 +49,8 @@ def parser():
     discover.add_argument("--model", required=True)
     listing = params_sub.add_parser("list")
     listing.add_argument("--study", required=True)
+    recovery = params_sub.add_parser("recover")
+    recovery.add_argument("--study", required=True)
     refresh = params_sub.add_parser("refresh")
     refresh.add_argument("--study", required=True)
     refresh.add_argument("--backend", default="fixture.cadquery")
@@ -165,6 +167,8 @@ def main(argv=None):
                 _json(lab.registry(args.study))
             elif args.action == "refresh":
                 _json(lab.refresh_registry(args.study, args.backend, args.model))
+            elif args.action == "recover":
+                _json(lab.recover_registration(args.study))
             else:
                 _json(lab.register_parameter(args.study, args.backend, args.model,
                                              args.native_path, args.id, args.name,

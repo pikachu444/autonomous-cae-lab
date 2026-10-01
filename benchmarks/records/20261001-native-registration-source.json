@@ -1,0 +1,315 @@
+{
+  "schema": 1,
+  "phase": "P1.2b",
+  "scope": "Source integration and actual pre-fix red evidence; corrected native gate OPEN",
+  "source_baseline_commit": "74217146bd7152236fbd21e252042198b6db9ecb",
+  "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "source_admission": "Frozen working delta, committed/pushed container is confirmed separately through Git",
+  "frozen_working_source_files": [
+    {
+      "path": "caelab/contracts.py",
+      "sha256": "dc69bce4a921e9f5bc001bd045a53dd7b777b68aa581541831c3aaac0f335989",
+      "size_bytes": 4428
+    },
+    {
+      "path": "caelab/registration_transaction.py",
+      "sha256": "73ab28ca1919df492b72304d22d54dc1769cc34ca2e1a52195dc684e6da7be8e",
+      "size_bytes": 12387
+    },
+    {
+      "path": "caelab/engine.py",
+      "sha256": "26c628ead9f07794314879ddfd6f08310bece57cbe08496c57d4743d98590d3c",
+      "size_bytes": 46341
+    },
+    {
+      "path": "caelab/cli.py",
+      "sha256": "d3d52d1e6b2ef71c812c6b4d03e650bcedc96e68d3013b487a7024a4fb9cf4f7",
+      "size_bytes": 16636
+    },
+    {
+      "path": "caelab/adapters/fixture_freecad.py",
+      "sha256": "1a6b1915d47851511370d7ee4c6ff336b22b9cad744570a07f94a71bbeac3d13",
+      "size_bytes": 5767
+    },
+    {
+      "path": "caelab/adapters/native_bridge.py",
+      "sha256": "d58eb726d6d40b3c67f9d4832078f1bece71b8a074ef68c16b3aba56873ab064",
+      "size_bytes": 19381
+    },
+    {
+      "path": "openscience/mcp_server.py",
+      "sha256": "f8582f707e9ddd0ca9d3b6381bf1b77f81511355001fda8f2cbf8b97158a275d",
+      "size_bytes": 17159
+    },
+    {
+      "path": "scripts/verify_mcp.py",
+      "sha256": "b0056ebd3b85287d126d25fe85cb039964245ad556e329453e2f5c2bbf398ee4",
+      "size_bytes": 11748
+    },
+    {
+      "path": "tests/test_registration_recovery.py",
+      "sha256": "4032da4cfd9fa6ef9f254f4b409292b00b2f71536674a631c156f153c7b1e434",
+      "size_bytes": 16042
+    },
+    {
+      "path": "tests/test_native_binding_stage.py",
+      "sha256": "87d712b287b6f6c0d80f85f81893849b157c026391d790976e9f92a1419a78aa",
+      "size_bytes": 29280
+    },
+    {
+      "path": "ADR/0015-cad-registration-recovery.md",
+      "sha256": "ef6562809aec6459e4b4a120cf985683cd1f16439b23710fa8d33d6624f49c72",
+      "size_bytes": 6997
+    },
+    {
+      "path": "openscience/contract.md",
+      "sha256": "c82943979b5323a5a4b43733e674d8dbf5ed6aeb020dcbed2307b67f690e7a26",
+      "size_bytes": 17328
+    }
+  ],
+  "actual_red": {
+    "receipt": {
+      "path": "runs/p1-native-registration-red-20261001-01/native_registration_red.json",
+      "sha256": "b75560fe29c373cfb5b1511c82259f88c1b63e0af025b80a9fff41fdf108760d",
+      "size_bytes": 3376
+    },
+    "result": {
+      "schema": 1,
+      "phase": "P1.2b",
+      "started_utc": "2026-10-01T07:03:45.575830+00:00",
+      "source_commit": "74217146bd7152236fbd21e252042198b6db9ecb",
+      "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+      "outcome": "FAILURE_REPRODUCED_NATIVE_COMMITTED_CORE_UNCHANGED_AND_STALE_EXECUTION_BLOCKED",
+      "scope": "Actual native FreeCAD operations; injection affects one Core registry write only",
+      "model": "2c579b13948c4599a00a1ab1c970790c",
+      "before_native_sha256": "0dbafe6d04fc65fdecdd4ce2b2d70c3d4971a1a05745d4047abf8e2f0af8e216",
+      "before_registry_sha256": "40a6e39f0a0dd6f141a973526eeff89e246054ded1708d2a2aabc35684648d4c",
+      "observed_failure": "P1_2B_INJECTED_CORE_REGISTRY_WRITE_FAILURE",
+      "blocked_reason": "CAD source or backend changed; refresh registry: length",
+      "injections": [
+        {
+          "at": "2026-10-01T07:06:11.366727+00:00",
+          "path": "studies/S-p1-register-red/parameters.json"
+        }
+      ],
+      "after_native_sha256": "47595b6b894dfdb02f25c451cfef507d7e6cc6a16b57e76793095e983207cd73",
+      "after_registry_sha256": "40a6e39f0a0dd6f141a973526eeff89e246054ded1708d2a2aabc35684648d4c",
+      "native_parameters": [
+        {
+          "key": "ImportedBox|property|Length",
+          "kind": "property",
+          "label": "Box length",
+          "max": 24.0,
+          "min": 10.0,
+          "name": "length",
+          "object": "ImportedBox",
+          "property": "Length",
+          "unit": "mm",
+          "value": 12.0
+        },
+        {
+          "key": "ImportedBox|property|Width",
+          "kind": "property",
+          "label": "Box width",
+          "max": 15.0,
+          "min": 8.0,
+          "name": "width",
+          "object": "ImportedBox",
+          "property": "Width",
+          "unit": "mm",
+          "value": 10.0
+        }
+      ],
+      "core_registry": {
+        "entries": [
+          {
+            "current_value": 12.0,
+            "default_value": 12.0,
+            "dependencies": [],
+            "display_name": "Box length",
+            "geometry_effect": {
+              "method": "upstream FreeCAD final-solid perturbation",
+              "source_sha256": "7ab8a9d194150317d644c0312713d5e85b4878140f35a919b6753fd03a3ee415",
+              "status": "PASS"
+            },
+            "kind": "continuous",
+            "lower_bound": 10,
+            "mode": "free",
+            "native": {
+              "backend": "fixture.freecad",
+              "document": "2c579b13948c4599a00a1ab1c970790c",
+              "object": "ImportedBox",
+              "path": "ImportedBox|property|Length"
+            },
+            "parameter_id": "length",
+            "source": "CAD discovery",
+            "source_sha256": "0dbafe6d04fc65fdecdd4ce2b2d70c3d4971a1a05745d4047abf8e2f0af8e216",
+            "unit": "mm",
+            "upper_bound": 24
+          }
+        ],
+        "revision": 1
+      },
+      "original_experiment_files_preserved": 14,
+      "old_p1_2a_store_files_preserved": 211,
+      "old_input_sha256_unchanged": "7ab8a9d194150317d644c0312713d5e85b4878140f35a919b6753fd03a3ee415",
+      "original_registry_history_preserved": true,
+      "false_success": false,
+      "recovery": "NOT_RUN; retain this failed partial state as red evidence",
+      "engineering_decision": "NOT_RELEASED",
+      "solver_status": "NOT_RUN",
+      "engineering_unknowns": [
+        "domain_clearance",
+        "manufacturability",
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ],
+      "source_commit_after": "74217146bd7152236fbd21e252042198b6db9ecb",
+      "source_dirty_after": false,
+      "completed_utc": "2026-10-01T07:06:33.771952+00:00"
+    },
+    "retention": {
+      "path": "artifacts/native-registration-red-20261001-01/retained-01/manifest.json",
+      "sha256": "f802e397d78bbe7bfb58e5d5a50d600a23c1fc02418105de8bd304e9b7484af8",
+      "size_bytes": 14426
+    },
+    "retained_files": 39,
+    "retained_bytes": 8022230
+  },
+  "source_tests": {
+    "core_recovery": {
+      "passed": 23,
+      "seconds": 10.81,
+      "log": {
+        "path": "artifacts/native-registration-red-20261001-01/recovery-correction-03.log",
+        "sha256": "2b34690f05f4ac96c4ba2bdf42b9af0d696b02d395e2f83f1619d4ff2632165b",
+        "size_bytes": 102
+      },
+      "native_proof": false,
+      "method": "explicit byte stand-in plus real child process exits"
+    },
+    "native_stage": {
+      "passed": 103,
+      "seconds": 39.98,
+      "stage_cases": 55,
+      "unchanged_existing_native_cases": 48,
+      "log": {
+        "path": "artifacts/p1-native-binding-stage-source-00e32e068f284743a25bbdac19f987a9/attempt02/pytest.log",
+        "sha256": "7164cb890aaec4b3a4b24767287910d0ada297e32af771dde6f9a72e3df08b2f",
+        "size_bytes": 184
+      },
+      "verification": {
+        "path": "artifacts/p1-native-binding-stage-source-00e32e068f284743a25bbdac19f987a9/attempt02/verification.json",
+        "sha256": "a7e3417f53155473bce577a5869efd5d1f7eb48c82a881e790a7f6c2e47256c6",
+        "size_bytes": 195848
+      },
+      "native_proof": false,
+      "earlier_95_test_manifest": {
+        "path": "artifacts/p1-native-binding-stage-source-00e32e068f284743a25bbdac19f987a9/verification.json",
+        "sha256": "ef5c22caf501a52508fd5f382a3aae50c0627883b0e71ef85366ed3708bb298b",
+        "size_bytes": 130697
+      }
+    },
+    "failed_broad_attempt": {
+      "passed": 132,
+      "failed": 5,
+      "seconds": 1093.48,
+      "log": {
+        "path": "artifacts/native-registration-red-20261001-01/core-regression-01.log",
+        "sha256": "53b2e645c7995d945940adedea76f753b892257a2ffafb6803c9b79cfce24901",
+        "size_bytes": 24366
+      },
+      "cause": "Root and adapter writer edited runtime source during execution; all5 Core source hash refusals",
+      "correction": "Freeze runtime source throughout new142-case attempt; guards unchanged"
+    },
+    "frozen_broad_attempt": {
+      "passed": 142,
+      "seconds": 1085.17,
+      "log": {
+        "path": "artifacts/native-registration-red-20261001-01/core-regression-02.log",
+        "sha256": "438dc79e0a4d7c21ad6bdc7e99b5782bf7e307ffc15f0f1f22e6e08d9c4e5fea",
+        "size_bytes": 18746
+      },
+      "before_source_inventory": {
+        "path": "artifacts/native-registration-red-20261001-01/core-regression-02-before.json",
+        "sha256": "3927943eecbfc970a60ac9df575f0bfc789baf5b570e349acab6ee3952b42af6",
+        "size_bytes": 10021
+      },
+      "after_source_inventory": {
+        "path": "artifacts/native-registration-red-20261001-01/core-regression-02-after.json",
+        "sha256": "4b208a81328fa5dc10acf8a63a45a663bae7db4daae5f95bea0280b528ec277d",
+        "size_bytes": 10037
+      },
+      "all_runtime_source_files_hashes_sizes_unchanged": true,
+      "overlap": "Contains the23 Core recovery cases; do not double-count earlier23 run"
+    }
+  },
+  "actual_stdio": {
+    "log": {
+      "path": "artifacts/native-registration-red-20261001-01/mcp-recovery-01.log",
+      "sha256": "e2ad45418a99ce561cbc142dbd4dac775c477dd8ca0cedde4247a6f304de7567",
+      "size_bytes": 2365
+    },
+    "exit_code": 0,
+    "scope": "MCP pending refusal/recovery/no-op, actual CadQuery CAD/DOE/optimization and declared metadata",
+    "doe_samples": 2,
+    "optimization_evaluations": 9,
+    "temporary_native_outputs_retained": false,
+    "live_openscience_model_call": false
+  },
+  "independent_reviews": [
+    {
+      "reviewer": "/root/integration_review",
+      "scope": "Actual742 pre-fix red output",
+      "result": "PASS_NO_OPEN_P1_P2",
+      "limitations": "Recovery NOT_RUN in red store; not corrected acceptance"
+    },
+    {
+      "reviewer": "/root/managed_project_checks",
+      "scope": "39 original/copy bytes and exact742 archive Git blob comparison",
+      "result": "PASS_NO_OPEN_P1_P2"
+    },
+    {
+      "reviewer": "/root/official_project_workflow",
+      "scope": "Core acknowledgement/bootstrap P2 closure",
+      "result": "PASS_NO_OPEN_P1_P2",
+      "transaction_sha256": "73ab28ca1919df492b72304d22d54dc1769cc34ca2e1a52195dc684e6da7be8e",
+      "test_sha256": "4032da4cfd9fa6ef9f254f4b409292b00b2f71536674a631c156f153c7b1e434"
+    },
+    {
+      "reviewer": "/root/mcp_provenance_diagnosis",
+      "scope": "Native150s total worker deadline P2 closure",
+      "result": "PASS_NO_OPEN_P1_P2",
+      "bridge_sha256": "d58eb726d6d40b3c67f9d4832078f1bece71b8a074ef68c16b3aba56873ab064"
+    }
+  ],
+  "exact_baseline_ci": {
+    "commit": "74217146bd7152236fbd21e252042198b6db9ecb",
+    "run_id": 36828153898,
+    "conclusion": "SUCCESS",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36828153898",
+    "scope": "Historical Main742 P1.2a/docs CI, not this dirty source or new recovery acceptance"
+  },
+  "research_runtime": "STOPPED / servingf52; approved5.6Sol/auth unchanged; no model/provider/OpenScience call",
+  "engineering_decision": "NOT_RELEASED",
+  "solver_status": "NOT_RUN",
+  "unknowns": [
+    "domain_clearance",
+    "manufacturability",
+    "machine_interface",
+    "static_strength",
+    "physical_load_test",
+    "fatigue_durability"
+  ],
+  "full_phase1_and_52_scope": "OPEN",
+  "corrected_native_acceptance": "NOT_RUN; source commit/push, clean fresh native store and independent output review required",
+  "next": "Finish/review/commit native verifier and isolated CI job, then clean-source actual P1.2b; P1.3 thenPhase2",
+  "limits": [
+    "No power-loss/disk-loss qualification or exclusion of noncooperating GUI race.",
+    "Generic model-input persistence/native import orphan recovery remain separate gates.",
+    "Native first/second-save I/O failure not injected by this source/transport record.",
+    "Local ignored raw retention is checked; no permanent remote raw-byte durability claim."
+  ]
+}

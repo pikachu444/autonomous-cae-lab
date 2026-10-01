@@ -10,7 +10,12 @@ require rediscovery after a source revision. Core research IDs and operation
 schemas stay unchanged. Source tests alone do not establish edited-native
 acceptance; actual4bb/run02 analytical/native/STEP/refresh and18refusal proofs
 pass as a bounded unit (20261001-native-edits-4bb3638 record). Cross-file failure
-recovery P1.2b is active; no transaction operation schema is claimed yet.
+recovery P1.2b follows ADR0015: the adapter prepares native bytes privately;
+Core publishes verified native/registry/history revisions with a recovery journal.
+The additive parameters_recover(study_id) operation is available in the Core,
+CLI and MCP source. Actual corrected native acceptance remains OPEN. This does
+not expand the historical P1.1 native model/tool allowlist or establish a live
+OpenScience recovery call; supported research capability admission is P1.3.
 
 New native guard schema3 pins the existing Node executable and one generated
 profile-owned source reader. The reader uses the unchanged common two-snapshot
@@ -69,6 +74,12 @@ OpenScience owns the research request and interpretation. The CAE-Lab process ow
 3. `parameters.register(study_id, backend, model, native_path, parameter_id, display_name, lower, upper, mode, kind)` → mapping plus geometry-effect probe. Native path appears only at the registration boundary, not in subsequent experiments.
    `parameters.list(study_id)` returns the versioned mapping.
    `parameters.refresh(study_id, backend, model)` rechecks existing mappings after a native CAD source revision and writes new registry history.
+   `parameters.recover(study_id)` restores interrupted CAD registration/refresh
+   revisions from checked Core before/after images. CLI parameters recover and
+   MCP parameters_recover accept only the study ID. Pending revisions block new
+   CAD/registry execution; foreign bytes or invalid recovery images stay blocked
+   and preserved. Repeated completed recovery returns NO_PENDING_TRANSACTION.
+   This is a persistence operation, not geometry or engineering validation.
 4. `experiment.run(study_id, experiment_id, backend, model, values, hypothesis_id?, settings?)` → persisted result. Duplicate IDs are refused, and `FAIL` prevents later work.
 5. `experiment.inspect(experiment_id)` → full schema including artifact hashes. `experiment.summary(experiment_id)` → concise outcome, metric values, failed and unknown validation types and result reference. `experiment.compare(ids)` → summaries.
 6. `analysis.run(parent_experiment_id, experiment_id, backend, settings)` → a new append-only solver experiment after verifying its CAD parent's hash and revision. The initial `fixture.calculix` adapter requires explicit material provenance, per-support load in N with a source and mesh sizes in mm. The adapter owns mesh/deck/result syntax. The parent CAD result is never rewritten. `experiment.inspect` and `experiment.summary` work for both records and preserve `NOT_RELEASED` until independent engineering evidence exists.

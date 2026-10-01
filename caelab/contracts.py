@@ -16,6 +16,16 @@ class Candidate:
     source_sha256: str
 
 
+@dataclass(frozen=True)
+class FileRevision:
+    """Adapter-prepared bytes; Core owns publication and recovery, not native syntax."""
+
+    target: Path
+    prepared: Path
+    before_sha256: str
+    after_sha256: str
+
+
 @dataclass
 class Outcome:
     decision: str

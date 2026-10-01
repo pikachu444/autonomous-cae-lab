@@ -1,5 +1,26 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## P1.2b integration in progress (source admission; actual gate OPEN)
+
+Main7421714 / fixture3e48 reproduced a real native/Core split in fresh
+p1-native-registration-red-20261001-01. Native Width persisted, Core stayed at
+Length/revision1, stale execution refused, original14 experiment files and
+earlier211-file P1.2a store stayed unchanged. The separately retained39-file
+snapshot and red receipt are independently reviewed. Recovery was NOT_RUN there.
+ADR0015 records private native preparation, Core publication/recovery and the
+study-scoped CLI/MCP recovery operation. Current source checks:23 recovery tests
+PASS10.81s and103 native stage/existing tests PASS39.98s. Independent reviews
+closed acknowledgement/bootstrap/deadline P2s. Actual stdio MCP recovery, repeated
+no-op, existing CAD/DOE/optimization and declared-model metadata checks passed.
+The first broad regression was contaminated by source edits during execution:
+132PASS/5FAIL, all5 source-hash refusals; preserve that failed log. Source is now
+frozen for a142-case rerun, now142PASS/1085.17s with all46runtime file hashes and
+sizes unchanged. Source record: benchmarks/records/20261001-native-registration-source.json.
+Its container commit/push is confirmed separately through Git. Next: finish the
+reviewed native verifier/isolated CI job, commit/push, then clean-source actual
+native write-failure/process-exit/recovery/analytical verification. P1.2b stays
+ACTIVE; P1.3 and Phase2 follow. Runtime/model/auth are unchanged and STOPPED.
+
 ## Authoritative serial queue from the project owner
 
 Clean Main4bb363835208665377341f5072a9adde16494c7a / fixture3e48:

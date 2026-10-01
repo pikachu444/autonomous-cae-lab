@@ -1,5 +1,26 @@
 # Native FreeCAD Core acceptance
 
+## P1.2b source integration (actual corrected acceptance OPEN)
+
+Actual clean7421714 red run p1-native-registration-red-20261001-01 saved Width
+in FCStd, then failed the Core registry write. Core remained Length/revision1;
+new execution blocked and original14 experiment files/earlier211-file store
+were unchanged. Red receipt b75560fe29c373cfb5b1511c82259f88c1b63e0af025b80a9fff41fdf108760d;
+39-file/8,022,230-byte retention f802e397d78bbe7bfb58e5d5a50d600a23c1fc02418105de8bd304e9b7484af8.
+Independent red semantic/retention reviews PASS; recovery NOT_RUN in that store.
+ADR0015 prepares native bindings privately and publishes recoverable Core
+before/after revisions. Offline23 Core recovery and103 native stage/existing
+checks pass; independent acknowledgement/bootstrap/deadline findings closed.
+Actual stdio recovery/no-op passes. These source/transport checks do not qualify
+native recovery. A first broad run had132PASS/5source-drift failures because
+source changed during execution; the frozen142-case rerun passed1085.17s with
+all46runtime file hashes/sizes unchanged. Source record:
+benchmarks/records/20261001-native-registration-source.json.
+The reviewed verifier/isolated CI commit, clean-source native failure/recovery/
+analytical run, exact-source CI and
+immutable output review remain required. Six engineering UNKNOWNs, NOT_RELEASED
+and solver NOT_RUN remain. Historical P1.2a/failed stores below are preserved.
+
 Clean Main4bb363835208665377341f5072a9adde16494c7a / fixture3e48:
 actual p1-native-edits-20261001-02 PASSED the bounded P1.2a unit.
 6positive native/Core/STEP analytical cases and18expected precondition refusals;

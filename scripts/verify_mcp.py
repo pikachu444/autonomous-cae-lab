@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 from pathlib import Path
+import hashlib
 import sys
 import tempfile
 
@@ -24,7 +25,7 @@ async def main():
             async with ClientSession(reader, writer) as session:
                 await session.initialize()
                 names = {tool.name for tool in (await session.list_tools()).tools}
-                assert {"study_create", "parameters_discover", "parameters_register",
+                assert {"study_create", "parameters_discover", "parameters_register", "parameters_recover",
                         "experiment_run", "experiment_summary", "model_native_new",
                         "model_native_import", "model_native_inspect", "model_native_select_final",
                         "analysis_run", "doe_plan", "doe_run", "doe_inspect",
@@ -55,6 +56,31 @@ async def main():
                 assert content["status"] == "COMPLETED_REVIEW_REQUIRED", content
                 assert content["decision"] == "NOT_RELEASED"
                 assert content["metrics"]["cad_bounds"]["value"][0] == 38
+                # Use real filesystem bytes to exercise a pending Core revision.
+                # This is transport/recovery proof, not native FreeCAD acceptance.
+                from caelab import registration_transaction as registration
+                common_store = Path(directory)
+                registry_path = common_store / "studies/S-MCP/parameters.json"
+                original_registry = registry_path.read_bytes()
+                interrupted = registration.RegistrationTransaction(common_store, "S-MCP")
+                advanced = json.loads(original_registry)
+                advanced["revision"] += 1
+                prepared = interrupted.work / "parameters.json"
+                prepared.write_bytes(registration.json_bytes(advanced))
+                prepared_hash = hashlib.sha256(prepared.read_bytes()).hexdigest()
+                history_path = registry_path.parent / "registry_history" / f"{advanced['revision']:04d}.json"
+                interrupted.add(history_path, prepared, None, prepared_hash)
+                interrupted.add(registry_path, prepared, hashlib.sha256(original_registry).hexdigest(), prepared_hash)
+                interrupted.prepare()
+                registration._atomic_bytes(history_path, prepared.read_bytes())
+                refused = await session.call_tool("parameters_list", {"study_id": "S-MCP"})
+                assert refused.isError and "REGISTRATION_RECOVERY_REQUIRED" in str(refused.content)
+                recovered = await call("parameters_recover", {"study_id": "S-MCP"})
+                recovered_data = recovered.structuredContent or json.loads(recovered.content[0].text)
+                assert recovered_data["status"] == "RECOVERED"
+                assert registry_path.read_bytes() == original_registry and not history_path.exists()
+                repeat = await call("parameters_recover", {"study_id": "S-MCP"})
+                assert (repeat.structuredContent or json.loads(repeat.content[0].text))["status"] == "NO_PENDING_TRANSACTION"
                 await call("doe_plan", {"study_id": "S-MCP", "campaign_id": "C-MCP",
                            "backend": "fixture.cadquery", "model": "roller_support",
                            "parameter_ids": ["support_width"], "sample_count": 2, "seed": 13})

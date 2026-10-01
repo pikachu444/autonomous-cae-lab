@@ -8,14 +8,14 @@ import subprocess
 import sys
 from typing import Any
 
-from ..contracts import Candidate, Outcome, CapabilityUnavailable
+from ..contracts import Candidate, FileRevision, Outcome, CapabilityUnavailable
 from .fixture_cadquery import FixtureCadQueryAdapter
 from .freecad_parameters import unique_paths
 
 
 class FixtureFreeCADAdapter:
     backend = "fixture.freecad"
-    version = "2"
+    version = "3"
     domain = "fixture_design"
     physics_domain = "structural"
     analysis_type = "cad_preflight"
@@ -73,6 +73,15 @@ class FixtureFreeCADAdapter:
                           source_sha256=candidate.source_sha256,
                           parameter_id=parameter_id, display_name=display_name,
                           lower=lower, upper=upper)["source_sha256"]
+
+    def prepare_bind(self, model: str, candidate: Candidate, parameter_id: str, display_name: str,
+                     lower: float, upper: float, output: Path) -> FileRevision:
+        result = self._call("prepare_bind", model=model, target=candidate.native["path"],
+                            source_sha256=candidate.source_sha256,
+                            parameter_id=parameter_id, display_name=display_name,
+                            lower=lower, upper=upper, output=str(output.resolve()))
+        return FileRevision(target=Path(result["target"]), prepared=Path(result["prepared"]),
+                            before_sha256=result["before_sha256"], after_sha256=result["after_sha256"])
 
     def preflight_effects(self, model: str, native_values: dict[str, float]) -> list[dict[str, Any]]:
         return self._call("preflight", model=model, values=native_values)["checks"]

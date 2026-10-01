@@ -1,7 +1,9 @@
 """One Core API shared by CLI and OpenScience transport."""
 
 from copy import deepcopy
+from functools import wraps
 from pathlib import Path
+import json
 import platform
 from typing import Any
 import zipfile
@@ -10,13 +12,24 @@ from filelock import FileLock
 from .adapters.fixture_cadquery import FixtureCadQueryAdapter
 from .adapters.fixture_freecad import FixtureFreeCADAdapter
 from .contracts import (AnalysisAdapter, CADAdapter, DOEAdapter, OptimizationAdapter,
-                        PDEAdapter, ModelAnalysisAdapter, CapabilityUnavailable)
+                        PDEAdapter, ModelAnalysisAdapter, CapabilityUnavailable, FileRevision)
+from . import registration_transaction as registration
 from .registry import register_parameter, validate_assignments
 from .outcomes import validate_outcome
 from .schema import validate as validate_schema
 from .storage import (artifact_manifest, canonical_hash, check_artifacts, check_id,
                       load_json, save_json, source_identity, utc_now)
 import hashlib
+
+
+def _registration_guard(method):
+    @wraps(method)
+    def guarded(self, *args, **kwargs):
+        self.store.mkdir(parents=True, exist_ok=True)
+        with self._registration_file_lock:
+            registration.assert_no_pending(self.store)
+            return method(self, *args, **kwargs)
+    return guarded
 
 
 class Lab:
@@ -27,6 +40,7 @@ class Lab:
                  pde_adapters: dict[str, PDEAdapter] | None = None,
                  model_analysis_adapters: dict[str, ModelAnalysisAdapter] | None = None):
         self.store = Path(store).resolve()
+        self._registration_file_lock = FileLock(str(self.store / ".registration.lock"), timeout=30)
         self.adapters = adapters if adapters is not None else {
             FixtureCadQueryAdapter.backend: FixtureCadQueryAdapter(),
             FixtureFreeCADAdapter.backend: FixtureFreeCADAdapter(self.store),
@@ -62,15 +76,19 @@ class Lab:
             }
         self.model_analysis_adapters = model_analysis_adapters
 
+    @_registration_guard
     def create_native_model(self, *, template: str = "roller_support") -> dict[str, Any]:
         return self._adapter("fixture.freecad").create_sample(template)
 
+    @_registration_guard
     def import_native_model(self, source: str | Path) -> dict[str, Any]:
         return self._adapter("fixture.freecad").import_document(Path(source))
 
+    @_registration_guard
     def inspect_native_model(self, model: str) -> dict[str, Any]:
         return self._adapter("fixture.freecad").inspect_model(model)
 
+    @_registration_guard
     def select_native_final(self, model: str, final: str) -> dict[str, Any]:
         return self._adapter("fixture.freecad").select_final(model, final)
 
@@ -99,9 +117,11 @@ class Lab:
     def inspect_study(self, study_id: str) -> dict[str, Any]:
         return load_json(self.store / "studies" / check_id(study_id) / "study.json")
 
+    @_registration_guard
     def registry(self, study_id: str) -> dict[str, Any]:
         return load_json(self.store / "studies" / check_id(study_id) / "parameters.json")
 
+    @_registration_guard
     def discover_parameters(self, backend: str, model: str) -> list[dict[str, Any]]:
         return [deepcopy(candidate.__dict__) for candidate in self._adapter(backend).discover(model)]
 
@@ -121,7 +141,8 @@ class Lab:
         candidate = matches[0]
         effect = probe(description["adapter"], settings, input_id, lower, upper)
         registry_path = self.store / "studies" / check_id(study_id) / "parameters.json"
-        with FileLock(str(registry_path) + ".lock", timeout=30):
+        with FileLock(str(registry_path) + ".lock", timeout=30), self._registration_file_lock:
+            registration.assert_no_pending(self.store)
             registry = load_json(registry_path)
             entry = register_parameter(registry["entries"], candidate, parameter_id=parameter_id,
                                        display_name=display_name, lower=lower, upper=upper,
@@ -139,8 +160,11 @@ class Lab:
                            mode: str = "free", kind: str = "continuous",
                            dependencies: list[str] | None = None) -> dict[str, Any]:
         registry_path = self.store / "studies" / check_id(study_id) / "parameters.json"
-        with FileLock(str(registry_path) + ".lock", timeout=30):
-            registry = load_json(registry_path)
+        # Preserve the existing campaign lock order: study lock, then store lock.
+        with FileLock(str(registry_path) + ".lock", timeout=30), self._registration_file_lock:
+            registration.assert_no_pending(self.store)
+            original = registry_path.read_bytes()
+            registry = json.loads(original)
             adapter = self._adapter(backend)
             discovered = adapter.discover(model)
             current = {tuple(sorted(c.native.items())): c for c in discovered}
@@ -159,24 +183,53 @@ class Lab:
                                        display_name=display_name, lower=lower, upper=upper,
                                        mode=mode, kind=kind, dependencies=dependencies,
                                        effect=effect)
-            bind = getattr(adapter, "bind", None)
-            if bind:
-                new_source_hash = bind(model, candidate, parameter_id, display_name, lower, upper)
-                entry["source_sha256"] = new_source_hash
-                for existing in registry["entries"]:
-                    if existing["native"]["document"] == candidate.native["document"]:
-                        existing["source_sha256"] = new_source_hash
-            registry["entries"].append(entry)
-            registry["revision"] += 1
-            save_json(registry_path, registry)
-            save_json(registry_path.parent / "registry_history" / f"{registry['revision']:04d}.json", registry)
+            prepare_bind = getattr(adapter, "prepare_bind", None)
+            if getattr(adapter, "bind", None) and not prepare_bind:
+                raise CapabilityUnavailable("Native registration requires private prepare_bind revisions")
+            transaction = registration.RegistrationTransaction(self.store, study_id)
+            try:
+                if prepare_bind:
+                    revision = prepare_bind(model, candidate, parameter_id, display_name, lower, upper,
+                                            transaction.work / "native")
+                    if not isinstance(revision, FileRevision) or revision.before_sha256 != candidate.source_sha256:
+                        raise ValueError("REGISTRATION_IMAGE_INVALID: adapter revision does not match discovered source")
+                    transaction.add(revision.target, revision.prepared, revision.before_sha256, revision.after_sha256)
+                    entry["source_sha256"] = revision.after_sha256
+                    for existing in prior:
+                        existing["source_sha256"] = revision.after_sha256
+                registry["entries"].append(entry)
+                registry["revision"] += 1
+                self._publish_registry(transaction, registry_path, registry, registration.digest(original))
+            except BaseException as error:
+                transaction.abort_preparation(type(error).__name__)
+                raise
             return entry
+
+    def _publish_registry(self, transaction, path: Path, value: dict, original_sha: str) -> None:
+        prepared = transaction.work / "parameters.json"
+        prepared.write_bytes(registration.json_bytes(value))
+        after_sha = registration.file_hash(prepared)
+        history = path.parent / "registry_history" / f"{value['revision']:04d}.json"
+        transaction.add(history, prepared, None, after_sha)
+        transaction.add(path, prepared, original_sha, after_sha)
+        transaction.prepare()
+        transaction.commit()
+
+    def recover_registration(self, study_id: str) -> dict[str, Any]:
+        """Restore pending uncommitted CAD registry revisions; conflicts stay blocked."""
+        self.inspect_study(study_id)
+        path = self.store / "studies" / check_id(study_id) / "parameters.json"
+        with FileLock(str(path) + ".lock", timeout=30), self._registration_file_lock:
+            recovered = registration.recover(self.store, study_id)
+        return {"study_id": study_id, "transactions": recovered, "status": "RECOVERED" if recovered else "NO_PENDING_TRANSACTION"}
 
     def refresh_registry(self, study_id: str, backend: str, model: str) -> dict[str, Any]:
         """Rebase existing mappings after an engineer edits the native CAD source."""
         registry_path = self.store / "studies" / check_id(study_id) / "parameters.json"
-        with FileLock(str(registry_path) + ".lock", timeout=30):
-            registry = load_json(registry_path)
+        with FileLock(str(registry_path) + ".lock", timeout=30), self._registration_file_lock:
+            registration.assert_no_pending(self.store)
+            original = registry_path.read_bytes()
+            registry = json.loads(original)
             adapter = self._adapter(backend)
             candidates = {tuple(sorted(c.native.items())): c for c in adapter.discover(model)}
             refreshed = deepcopy(registry)
@@ -199,10 +252,15 @@ class Lab:
             if not touched:
                 raise ValueError("No registry entries map to this model")
             refreshed["revision"] += 1
-            save_json(registry_path, refreshed)
-            save_json(registry_path.parent / "registry_history" / f"{refreshed['revision']:04d}.json", refreshed)
+            transaction = registration.RegistrationTransaction(self.store, study_id)
+            try:
+                self._publish_registry(transaction, registry_path, refreshed, registration.digest(original))
+            except BaseException as error:
+                transaction.abort_preparation(type(error).__name__)
+                raise
             return refreshed
 
+    @_registration_guard
     def run_experiment(self, *, study_id: str, experiment_id: str, backend: str,
                        model: str, values: dict[str, Any],
                        hypothesis_id: str | None = None,

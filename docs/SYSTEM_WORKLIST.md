@@ -195,6 +195,17 @@ This evidence/docs checkpoint is not another solver run.
 - [x] P1.2a (PASS at4bb/run02): execute imported/edited FreeCAD Part and named Sketcher-dimension
   revisions; prove stale mappings block execution until refresh, and newly
   inserted/reordered dimensions are discovered without ambiguous registration.
+- [x] P1.2b red: actual742/fixture3e48 Core-write fault saves native Width but
+  leaves Core Length/revision1; stale execution blocks and originals preserved.
+  Separate39-file retention and independent red/retention reviews pass.
+- [x] P1.2b source: private native staging/Core journal/gates/recovery perADR0015;
+  23 Core and103 native offline checks plus actual stdio recovery/no-op pass.
+  Independent acknowledgement/bootstrap/deadline corrections are closed.
+- [x] P1.2b frozen regression: preserve132PASS/5source-drift failed attempt;
+  142-case rerun PASS1085.17s with46runtime source files unchanged. Source record:
+  20261001-native-registration-source; its container commit/push checked separately.
+- [ ] P1.2b verifier/isolated CI: finish/read-only review/commit the native
+  write-failure/process-exit/recovery verifier, then a NEW clean-source store.
 - [ ] P1.2b (ACTIVE): inject a native-file/Core-registry write failure; retain recoverable
   original revisions and prove transactional recovery without false success.
   Review the pinned worker before any upstream change; keep its tested behavior.
