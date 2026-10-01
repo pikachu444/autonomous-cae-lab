@@ -348,8 +348,8 @@ Can this selected research profile run transient incompressible CFD/Navier-Stoke
         $taskQuestions[-1].response -match '(?i)(CFD|Navier.Stokes)') 'Unsupported request lacks an explicit capability refusal.'
     $fixtureDefinition=[ordered]@{study_id=$taskFixtureStudy;backend='fixture.cadquery';model='roller_support';parameter_id='support_width';
         display_name='Support width';unit='mm';bounds=@(28,42);baseline=@{cad_experiment_id=$taskCad38;analysis_experiment_id=$taskSolve38;width_mm=38};
-        comparison=@{cad_experiment_id=$taskCad40;analysis_experiment_id=$taskSolve40;width_mm=40};analysis_backend='fixture.calculix';analysis_settings=$taskAnalysis}
-    $null=Invoke-ResearchQuestion '03-fixture-baseline' 'fixture-research' ("Under this explicitly hypothetical material and 100 N per-support load, how does support width affect CAD volume and the preliminary displacement screen? Establish the width38 baseline first, map the discovered width dimension to the supplied research variable, and inspect the stored CAD and solver records. Keep the width40 comparison for the follow-up after baseline retention. Choose the appropriate available tools and order. Treat peak stress as diagnostic, preserve UNKNOWN and NOT_RELEASED, and describe the assumptions. Experiment definition: " + ($fixtureDefinition | ConvertTo-Json -Depth 30 -Compress))
+        analysis_backend='fixture.calculix';analysis_settings=$taskAnalysis}
+    $null=Invoke-ResearchQuestion '03-fixture-baseline' 'fixture-research' ("Under this explicitly hypothetical material and 100 N per-support load, establish the width38 CAD volume and preliminary displacement baseline. Map the discovered width dimension to the supplied research variable, and inspect the stored CAD and solver records. This question requests only the baseline; a changed condition will be supplied in a later question after retaining these records. Choose the appropriate available tools and order. Treat peak stress as diagnostic, preserve UNKNOWN and NOT_RELEASED, and describe the assumptions. Experiment definition: " + ($fixtureDefinition | ConvertTo-Json -Depth 30 -Compress))
     $discovery=@($taskReceipts | Where-Object tool -CEQ 'caelab_parameters_discover')
     Assert-Task (@($discovery | Where-Object {$_.input.backend -ceq 'fixture.cadquery' -and $_.input.model -ceq 'roller_support' -and
         @($_.receipt | Where-Object {$_.native.path -ceq 'support_width_mm' -and $_.source_sha256 -ceq $taskCadSourceSha}).Count -eq 1}).Count -gt 0) 'No actual width discovery from the pinned model.'
@@ -364,6 +364,9 @@ Can this selected research profile run transient incompressible CFD/Navier-Stoke
     Assert-ReceiptRecord 'caelab_analysis_run' 'experiment_id' $taskSolve38 $solve38
     Assert-ReceiptRecord 'caelab_experiment_inspect' 'experiment_id' $taskSolve38 $solve38
     $null=Freeze-Experiment $taskCad38; $null=Freeze-Experiment $taskSolve38
+    Assert-Task (-not(Test-Path -LiteralPath (Join-Path $taskStore "experiments/$taskCad40")) -and
+        -not(Test-Path -LiteralPath (Join-Path $taskStore "experiments/$taskSolve40"))) 'The changed condition executed before its follow-up question.'
+    $fixtureDefinition.comparison=@{cad_experiment_id=$taskCad40;analysis_experiment_id=$taskSolve40;width_mm=40}
     $null=Invoke-ResearchQuestion '04-fixture-comparison' 'fixture-research' ("The retained width38 records are $taskCad38 and $taskSolve38. Now investigate width40 with the same declared material/load/mesh, inspect the new records and compare both CAD volumes and solver displacements using the recorded experiment IDs. Explain the trend and remaining qualification gaps. Choose the appropriate tools; preserve the earlier experiments. Definition: " + ($fixtureDefinition | ConvertTo-Json -Depth 30 -Compress))
     $cad40=Assert-Cad $taskCad40 40; $solve40=Assert-Analysis $taskSolve40 $taskCad40
     Assert-ReceiptRecord 'caelab_analysis_run' 'experiment_id' $taskSolve40 $solve40

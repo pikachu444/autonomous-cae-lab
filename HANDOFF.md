@@ -2,6 +2,20 @@
 
 ## ACTIVE P1.3; P1.2b actual bounded unit PASS
 
+Latest actual1047/run02 is FAILED_OR_PARTIAL at question sequencing, not solver
+execution: selected5.6Sol created both width38/40 CAD/CalculiX records in the
+baseline question because both conditions were disclosed. Follow-up retried the
+existing width40 ID; Core refused without overwrite. Actual missing/unsupported
+responses and both numerical results are retained; optimizer/PDE remain NOT_RUN.
+Owned Stop/3PIDs absent/4098 closed;221files/113495526bytes exact local retention.
+Root correction supplies the follow-up only after freezing baseline and checks
+that no follow-up experiment has executed early. AST packet check PASS, not
+actual model proof. Record:20261001-openscience-research-question-sequence.json.
+NEXT: reviewed source commit/push, fresh source/profile/store/resident, actual
+baseline -> changed width -> seeded SciPy campaign -> reaction0/3 PDE -> review.
+Reuse same5.6Sol/auth/project/runtimes; no further native recovery/setup scope.
+Exact1047 CI36848099418:8SUCCESS; explicit original pinned download404 before solve.
+
 bbd87f8 is pushed; actual new Research startup/resident source PASS. Run01
 driver refused pre-import (Assert-Task used before import), with0model/Core/
 solver calls and no store. Exact AST import correction (10helpers/missing

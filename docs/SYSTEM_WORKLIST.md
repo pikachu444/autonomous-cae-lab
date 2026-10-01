@@ -14,6 +14,11 @@ question -> conditions -> solver -> comparison -> numerical next conditions.
 No further CAD recovery features are scheduled. Later phases remain sequential.
 
 P1.3 Research-purpose source and actual driver are implemented (ADR0016).
+Actual1047/run02 produced both38/40 CAD/CalculiX results, then strict acceptance
+stopped at a duplicate-ID refusal caused by early follow-up disclosure. Actual
+optimizer/PDE are NOT_RUN. Corrected question packets/source smoke PASS; fresh
+actual sequence is next. Failed evidence/221-file retention are preserved in
+20261001-openscience-research-question-sequence.json; no new recovery scope.
 Native45/Node guard-Git89/launcher47 checks PASS separately; independent source
 review/clean commit and actual natural research remain required. The next
 execution uses the same5.6Sol/auth/project and a new store, with width38/40

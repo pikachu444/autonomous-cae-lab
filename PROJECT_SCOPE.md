@@ -21,6 +21,15 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+Actual1047/run02 reaches selected5.6Sol CAD/CalculiX width38/40 comparison,
+but whole P1.3 is FAILED_OR_PARTIAL: baseline disclosed follow-up conditions,
+then repeated width40 ID was refused with records preserved. Missing/unsupported
+responses pass; optimizer/PDE NOT_RUN.221files retained, owned Stop confirmed.
+Question-packet correction source check PASS; fresh actual sequence is next.
+Exact-source CI8SUCCESS/explicit download404. All52 IDs/text and UNKNOWN remain.
+Record:20261001-openscience-research-question-sequence.json. Earlier checkpoint
+instructions below are historical; the next work is this corrected P1.3 sequence.
+
 P1.3 sourcebbd87f8 is pushed. Actual Research startup/resident source PASS;
 pre-import driver refusal has0model/Core/solver/store. One-line bootstrap fix
 passes actual AST import and independent review; actual natural research remains

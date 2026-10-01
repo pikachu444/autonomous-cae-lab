@@ -2,6 +2,20 @@
 
 ## Current work: P1.3 research-purpose integration
 
+Actual clean1047/run02 connected the selected5.6Sol to CAD/CalculiX and
+produced width38/40 records: volumes36783.8299/38863.8299 mm^3 and
+displacements0.005758587/0.005720666 mm under hypothetical100N/material.
+Missing-input and unsupported-CFD responses pass without execution. The first
+question disclosed follow-up conditions, so the agent ran both widths early;
+the next question retried width40 and Core refused its existing ID. The strict
+driver stopped FAILED_OR_PARTIAL before optimizer/PDE, preserving all records.
+Owned Stop confirmed3PIDs absent/4098 closed;221files/113495526bytes retained.
+Correction separates question packets and checks ordering; actual AST smoke
+passes without provider/Core calls. Fresh corrected-source execution remains
+required. Record:20261001-openscience-research-question-sequence.json.
+Exact1047 CI36848099418:8jobsSUCCESS; explicit original-download404 before solve.
+No numerical threshold, model/auth, adapter or engineering decision changes.
+
 Research source bbd87f8 is committed/pushed. Its actual Research server and
 connected resident source identity PASS; the driver then failed before any
 model/Core/store because it called Assert-Task before importing that helper.
