@@ -2,6 +2,20 @@
 
 ## Authoritative serial queue from the project owner
 
+ACTIVE P1.2a: clean671/fixture3e48 locally re-executed the unchanged native
+baseline and reproduced a new imported/edited Sketcher discovery failure.
+Old radius key0 survives by name at1; inserted center_x0 is missing. Old run
+and originals are preserved, with105files/9,092,209bytes retention. ADR0014
+adds owned current-identity checks and opaque new sketch selectors, no upstream
+pin/Core changes. Source checks and actual read-only installed FreeCADCmd probe
+pass (48checks); independent review closes the inspected/input SHA import race
+and3verifier gaps. Archive bytes match commits with Windows CRLF text conversion,
+not literal Git-normalized blobs; old incorrect manifest label is retained and
+corrected in20261001-native-edits-source.json. NEXT commit/push then
+new clean-source `verify_native_edits` store and output/retention review, not
+another OpenScience setup/login. Full P1.2a acceptance NOT_RUN; transactional
+P1.2b and general planning P1.3 follow. Engineering UNKNOWN/NOT_RELEASED remain.
+
 Managed run03/source f52dd1b06e69cb901776f18524a41146258d421a now closes
 the bounded P1.1 research/GUI/cancellation/owned-Stop unit. Official2.0.146,
 owner-selected5.6 Sol, same auth/project/source grant and clean fixture3e48:

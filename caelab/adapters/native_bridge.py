@@ -2,20 +2,61 @@
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 import uuid
 
 from .fixture_cadquery import UPSTREAM
 from .fixture_cadquery import _shape_difference
+from .freecad_parameters import unique_paths
 
 sys.path.insert(0, str(UPSTREAM))
 from fixturelab import native_cad
 
 
-def _preflight(model, native_values):
+def _parameter_run(request):
+    """The pinned transport hardcodes its worker; keep this worker path trusted."""
+    command = os.environ.get("FREECAD_CMD") or shutil.which("freecadcmd") or shutil.which("FreeCADCmd")
+    if not command:
+        raise RuntimeError("FreeCADCmd is required; set FREECAD_CMD to its executable")
+    worker = Path(__file__).resolve().with_name("freecad_parameter_worker.py")
+    with tempfile.TemporaryDirectory() as directory:
+        source, result = Path(directory) / "request.json", Path(directory) / "result.json"
+        source.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+        env = {**os.environ, "FIXTURE_FREECAD_REQUEST": str(source), "FIXTURE_FREECAD_RESULT": str(result),
+               "CAELAB_FREECAD_PARAMETER_WORKER": str(worker)}
+        run = subprocess.run([command, str(worker)], cwd=UPSTREAM, env=env,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=150)
+        if not result.is_file():
+            raise RuntimeError("FreeCADCmd produced no result: " + (run.stderr or run.stdout)[-1000:])
+        answer = json.loads(result.read_text(encoding="utf-8"))
+        if not isinstance(answer, dict) or not isinstance(answer.get("ok"), bool):
+            raise RuntimeError("FreeCADCmd produced an invalid worker result")
+        if not answer["ok"]:
+            raise ValueError("FreeCAD: " + str(answer.get("error", "Worker refused the document")))
+        if run.returncode:
+            raise RuntimeError("FreeCADCmd returned an error")
+        if not isinstance(answer.get("result"), dict):
+            raise RuntimeError("FreeCADCmd produced an invalid native CAD result")
+        return answer["result"]
+
+
+def _inspect(model):
+    source = native_cad._path(model)
+    info = _parameter_run({"action": "inspect", "document": str(source)})
+    if info["source_sha256"] != hashlib.sha256(source.read_bytes()).hexdigest():
+        raise ValueError("Native CAD source changed after inspection; rediscover the document")
+    unique_paths([*info["parameters"], *info["candidates"]])
+    return {"design": model, **info, "preview": f"/designs/{model}/preview.png",
+            "surface": f"/designs/{model}/surface.json" if (source.parent / "surface.json").exists() else None,
+            "editable": f"/designs/{model}/editable.FCStd"}
+
+
+def _preflight(model, native_values, info=None):
     """Compare each changed native value with its own counterfactual BREP.
 
     Temporary STEP exports are discarded; a failed check prevents the real
@@ -23,7 +64,8 @@ def _preflight(model, native_values):
     """
     import cadquery as cq
 
-    info = native_cad.inspect(model)
+    info = info if info is not None else native_cad.inspect(model)
+    unique_paths(info["parameters"])
     parameters = {p["key"]: p for p in info["parameters"]}
     if set(native_values) - set(parameters):
         raise ValueError("CAD dimension is not registered in the editable FCStd")
@@ -71,15 +113,26 @@ def main():
     action = request["action"]
     if action == "new":
         answer = native_cad.create_sample(request["template"])
+        answer = _inspect(answer["design"])
     elif action == "import":
-        answer = native_cad.import_document(Path(request["path"]).read_bytes())
+        # Validate current registered identities before the reused importer
+        # generates a baseline from the supplied native document.
+        inspected = _parameter_run({"action": "inspect", "document": request["path"]})
+        payload = Path(request["path"]).read_bytes()
+        if hashlib.sha256(payload).hexdigest() != inspected["source_sha256"]:
+            raise ValueError("NATIVE_SOURCE_CHANGED: Native CAD input changed after inspection")
+        answer = native_cad.import_document(payload)
+        answer = _inspect(answer["design"])
     elif action == "discover":
-        answer = native_cad.inspect(request["model"])
+        answer = _inspect(request["model"])
     elif action == "select_final":
+        _inspect(request["model"])
         answer = native_cad.select_final(request["model"], request["final"])
+        answer = _inspect(request["model"])
     elif action == "probe":
         source = native_cad._path(request["model"])
-        registered = {p["key"]: p for p in native_cad.inspect(request["model"])["parameters"]}
+        inspect = _inspect(request["model"])
+        registered = {p["key"]: p for p in inspect["parameters"]}
         if request["target"] in registered:
             p = registered[request["target"]]
             step = max(.05, abs(p["value"]) * .02)
@@ -87,7 +140,7 @@ def main():
                      else p["value"] - step)
             if probe < request["lower"] or abs(probe - p["value"]) < 1e-9:
                 raise ValueError("No room to test this CAD dimension")
-            checks = _preflight(request["model"], {p["key"]: probe})
+            checks = _preflight(request["model"], {p["key"]: probe}, inspect)
             if not checks or checks[0]["status"] != "PASS":
                 raise ValueError("Registered CAD dimension has no verified measurable effect")
             answer = {"status": "PASS", "method": "named FreeCAD dimension; final-solid counterfactual"}
@@ -95,25 +148,27 @@ def main():
             with tempfile.TemporaryDirectory() as directory:
                 copied = Path(directory) / "probe.FCStd"
                 shutil.copy2(source, copied)
-                native_cad._run({"action": "register", "document": str(copied),
+                _parameter_run({"action": "register", "document": str(copied),
                                  "target": request["target"], "name": "caelab_probe_" + uuid.uuid4().hex[:12],
                                  "min": request["lower"], "max": request["upper"],
-                                 "label": "CAE-Lab geometry probe"})
+                                 "label": "CAE-Lab geometry probe", "source_sha256": request.get("source_sha256")})
             answer = {"status": "PASS", "method": "upstream FreeCAD final-solid perturbation"}
     elif action == "preflight":
-        answer = {"checks": _preflight(request["model"], request["values"])}
+        answer = {"checks": _preflight(request["model"], request["values"], _inspect(request["model"]))}
     elif action == "bind":
-        inspect = native_cad.inspect(request["model"])
+        inspect = _inspect(request["model"])
         matches = [p for p in inspect["parameters"] if p["key"] == request["target"]]
         if matches:
             if not matches[0]["min"] <= request["lower"] <= request["upper"] <= matches[0]["max"]:
                 raise ValueError("Requested bounds exceed the existing FCStd parameter definition")
         else:
-            native_cad.register(request["model"], request["target"], request["parameter_id"],
-                                request["lower"], request["upper"], request["display_name"])
+            _parameter_run({"action": "register", "document": str(native_cad._path(request["model"])),
+                            "target": request["target"], "name": request["parameter_id"],
+                            "min": request["lower"], "max": request["upper"], "label": request["display_name"],
+                            "source_sha256": request.get("source_sha256")})
         answer = {"bound": True}
     elif action == "regenerate":
-        inspect = native_cad.inspect(request["model"])
+        inspect = _inspect(request["model"])
         mapping = {p["key"]: p["name"] for p in inspect["parameters"]}
         values = {}
         for native_key, value in request["values"].items():
@@ -126,7 +181,10 @@ def main():
     if action != "regenerate":
         design = answer["design"] if action in ("new", "import") else request["model"]
         source = native_cad._path(design)
-        answer["source_sha256"] = hashlib.sha256(source.read_bytes()).hexdigest()
+        source_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
+        if "source_sha256" in answer and answer["source_sha256"] != source_sha256:
+            raise ValueError("Native CAD source changed before the adapter result")
+        answer["source_sha256"] = source_sha256
     print(json.dumps(answer, ensure_ascii=False))
 
 

@@ -10,11 +10,12 @@ from typing import Any
 
 from ..contracts import Candidate, Outcome, CapabilityUnavailable
 from .fixture_cadquery import FixtureCadQueryAdapter
+from .freecad_parameters import unique_paths
 
 
 class FixtureFreeCADAdapter:
     backend = "fixture.freecad"
-    version = "1"
+    version = "2"
     domain = "fixture_design"
     physics_domain = "structural"
     analysis_type = "cad_preflight"
@@ -51,30 +52,25 @@ class FixtureFreeCADAdapter:
 
     def discover(self, model: str) -> list[Candidate]:
         info = self._call("discover", model=model)
+        unique_paths([*info["parameters"], *info["candidates"]])
         registered = {p["key"]: p for p in info["parameters"]}
-        # An engineer can reorder Sketcher constraints in the GUI. The
-        # registered dimension is resolved by its stable constraint name in
-        # FreeCAD; do not rediscover it at a new positional index.
-        named = {(p["object"], p["constraint"]) for p in info["parameters"]
-                 if p["kind"] == "constraint" and "constraint" in p}
-        candidates = [p for p in info["candidates"]
-                      if (p["object"], p["dimension"]) not in named]
-        candidates += info["parameters"]
+        candidates = [*info["candidates"], *info["parameters"]]
         return [Candidate(
             native={"backend": self.backend, "document": model,
                     "object": p["object"], "path": p["key"]},
-            label=p.get("label") or p.get("dimension") or p["key"], unit="mm",
+            label=p.get("label") or p.get("dimension") or p["key"], unit=p.get("unit", "mm"),
             value=p["value"], lower=registered[p["key"]]["min"] if p["key"] in registered else None,
             upper=registered[p["key"]]["max"] if p["key"] in registered else None,
             source_sha256=info["source_sha256"]) for p in candidates]
 
     def probe_effect(self, model: str, candidate: Candidate, lower: float, upper: float) -> dict[str, Any]:
         return self._call("probe", model=model, target=candidate.native["path"],
-                          lower=lower, upper=upper)
+                          source_sha256=candidate.source_sha256, lower=lower, upper=upper)
 
     def bind(self, model: str, candidate: Candidate, parameter_id: str, display_name: str,
              lower: float, upper: float) -> str:
         return self._call("bind", model=model, target=candidate.native["path"],
+                          source_sha256=candidate.source_sha256,
                           parameter_id=parameter_id, display_name=display_name,
                           lower=lower, upper=upper)["source_sha256"]
 

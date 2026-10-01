@@ -10,22 +10,24 @@ from caelab.adapters import native_bridge
 
 def test_registered_sketch_dimension_is_not_rediscovered_after_index_shift(tmp_path, monkeypatch):
     adapter = FixtureFreeCADAdapter(tmp_path)
+    source_sha256 = "d" * 64
+    current_selector = "Sketch|caelab-constraint-v1|" + source_sha256 + "|0"
     info = {
-        "source_sha256": "native-revision", "parameters": [
+        "source_sha256": source_sha256, "parameters": [
             {"key": "Sketch|constraint|0", "object": "Sketch", "dimension": "locator_radius",
              "constraint": "locator_radius", "kind": "constraint", "value": 4.0,
              "min": 2.0, "max": 10.0}],
         "candidates": [
-            {"key": "Sketch|constraint|1", "object": "Sketch", "dimension": "locator_radius",
-             "kind": "constraint", "value": 4.0},
-            {"key": "Sketch|constraint|2", "object": "Sketch", "dimension": "new_dimension",
+            {"key": current_selector, "object": "Sketch", "dimension": "new_dimension",
              "kind": "constraint", "value": 7.0}],
     }
     monkeypatch.setattr(adapter, "_call", lambda action, **kwargs: info)
     candidates = adapter.discover("design")
     assert [c.native["path"] for c in candidates] == [
-        "Sketch|constraint|2", "Sketch|constraint|0"]
+        current_selector, "Sketch|constraint|0"]
     assert candidates[-1].value == 4.0  # The registered name still resolves its value.
+    assert candidates[0].lower is None and candidates[0].upper is None
+    assert (candidates[-1].lower, candidates[-1].upper) == (2.0, 10.0)
 
 
 def test_native_preflight_isolates_each_changed_value(tmp_path, monkeypatch):

@@ -1,0 +1,279 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.native-edits-source-admission",
+  "phase": "P1.2a",
+  "created_utc": "2026-10-01T05:43:59.875606+00:00",
+  "outcome": "OLD_CLEAN_BASELINE_PASS; ACTUAL_RED_GAP_REPRODUCED; CORRECTION_SOURCE_ADMITTED; NEW_CLEAN_SOURCE_NATIVE_ACCEPTANCE_NOT_RUN",
+  "base_commit": "671b81817ca5c0babf0c3f0aa2c2f2e6b18519c2",
+  "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "source_scope": "Frozen authorised working-copy hashes on dirty671 base; committed clean-source execution is a separate next checkpoint.",
+  "requirements": [
+    "R06",
+    "R07",
+    "R13",
+    "R25",
+    "R50"
+  ],
+  "decision": "ADR/0014-native-sketch-discovery-selectors.md",
+  "existing_native_baseline": {
+    "schema": 1,
+    "run_name": "p1-native-edit-baseline-20261001-01",
+    "status": "PASS_EXISTING_NATIVE_BASELINE",
+    "source_commit": "671b81817ca5c0babf0c3f0aa2c2f2e6b18519c2",
+    "source_dirty_before": false,
+    "source_dirty_after": false,
+    "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "started_utc": "2026-10-01T04:50:50.2394443Z",
+    "completed_utc": "2026-10-01T04:56:57.9274470Z",
+    "exit_code": 0,
+    "store": "runs/p1-native-edit-baseline-20261001-01",
+    "log_sha256": "3e12aaa1c52420acc95b1bb735094a962299eeacab2076ab5fa04e40a6c8c71a",
+    "scope": "Existing unchanged public Lab Part/Sketcher/editable/rejection/effect acceptance on clean671b818. P1.2a insertion/reorder/imported edit is not established by this baseline.",
+    "receipt_sha256": "d6142cfbac1cf18df340ba85c7aff2a2eab263676def598ee9896592b506c34e"
+  },
+  "actual_retained_red_case": {
+    "schema": 1,
+    "outcome": "FAIL_NEW_DRIVING_DIMENSION_DISCOVERY_GAP_REPRODUCED",
+    "phase": "P1.2a",
+    "source_commit": "671b81817ca5c0babf0c3f0aa2c2f2e6b18519c2",
+    "source_dirty": false,
+    "started_utc": "2026-10-01T04:59:19.629658+00:00",
+    "completed_utc": "2026-10-01T05:01:14.869373+00:00",
+    "store": "runs/p1-native-edits-red-20261001-01",
+    "imported_source_sha256": "02e53a7749b50771f3ac9d4d8579191b4c7932ff79d8807ca880685457d54dc4",
+    "original_result_sha256": "8a7db980ed2a2f4ca187b39f2b891d9ebe5c6da7c59027eb2d00ce9a20298f70",
+    "model": "f6212aac0d544bdc85366227aaa06b52",
+    "native_edit": {
+      "freecad_version": [
+        "1",
+        "1",
+        "4",
+        "20260928 (Git shallow)",
+        "Unknown",
+        "2026/09/28 13:46:34",
+        "(HEAD detached at 4fd3bf320)",
+        "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+      ],
+      "constraints": [
+        {
+          "index": 0,
+          "name": "center_x",
+          "type": "DistanceX",
+          "value": 2.0,
+          "driving": true
+        },
+        {
+          "index": 1,
+          "name": "locator_radius",
+          "type": "Radius",
+          "value": 6.0,
+          "driving": true
+        }
+      ],
+      "final_center_x_mm": -2.0000000000000013,
+      "final_bounds_mm": [
+        12.0,
+        12.0,
+        8.0
+      ]
+    },
+    "stale_execution_blocked": true,
+    "stale_message": "CAD source or backend changed; refresh registry: radius",
+    "expected_new_dimension": {
+      "object": "LocatorProfile",
+      "current_index": 0,
+      "name": "center_x",
+      "value_mm": 2.0
+    },
+    "actual_new_dimension_count": 0,
+    "registered_radius_name_survives_at_index": 1,
+    "before_native_sha256": "02e53a7749b50771f3ac9d4d8579191b4c7932ff79d8807ca880685457d54dc4",
+    "after_native_sha256": "d144d43b593cb6a1989594225198902b81524610ab1d5c026d91da1cf9a4e01c",
+    "discovery_sha256": "88d7657e3d8f6535b863b4b14c7eeacf5e5575aa3c0003a2437fcbf2d64fdedf",
+    "old_source_and_result_preserved": true,
+    "engineering_decision": "NOT_RELEASED",
+    "solver_status": "NOT_RUN",
+    "scope": "Actual clean671 imported editable native file, upstream/adapter omission of inserted current0 after registered named radius moves to1. This is a retained failed P1.2a case, not corrected acceptance.",
+    "receipt_sha256": "8e1869ea1fd03129b9f335bd2534d29bcfb4b89194ad61919e09c8bad6b94eba"
+  },
+  "old_baseline_and_red_retention": {
+    "manifest": "artifacts/native-edits-source-20261001-01/retained-01/manifest.json",
+    "manifest_sha256": "0521e17cd0fa31619e1ccf0f00cd06eb4f80b7a97b3af06eeeefaefd5e7b0de7",
+    "file_count": 105,
+    "size_bytes": 9092209,
+    "original_copy_hashes_and_sizes_match": true,
+    "original_manifest_source_archive_scope": "Exact Git normalized tracked bytes at671; not a claim that every original working-copy CRLF byte was captured.",
+    "corrected_source_archive_scope": "Actual Git archive at exact commits with Windows core.autocrlf text-to-CRLF conversion; not literal Git-normalized blob bytes or all original working-copy bytes.",
+    "independent_binary_archive_comparison": {
+      "core_members": 230,
+      "core_blob_exact": 2,
+      "core_CRLF_only": 228,
+      "fixture_members": 93,
+      "fixture_blob_exact": 15,
+      "fixture_CRLF_only": 78,
+      "fixture_NUL_binary_exact": 13,
+      "missing_or_added_files": 0,
+      "non_EOL_difference_files": 0,
+      "PAX_commit_and_gitlink_exact": true
+    },
+    "source_archives": [
+      {
+        "source": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\native-edits-source-20261001-01\\source-671b818.tar",
+        "relative": "source/source-671b818.tar",
+        "sha256": "8f4ece13944555c5a39e572d3bdb6ba616d58a21a8bf0678a3204ae66adcf0b5",
+        "size_bytes": 4464640
+      },
+      {
+        "source": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\native-edits-source-20261001-01\\fixture-3e48bf6.tar",
+        "relative": "source/fixture-3e48bf6.tar",
+        "sha256": "0135e351a9d4689e58173d47ff4939a97b75d17a734c44d60ec83ef2a03655dc",
+        "size_bytes": 3389440
+      }
+    ],
+    "credential_runtime_cache_executables_copied": false,
+    "binary_native_cad_artifacts_retained": true,
+    "scope_note": "Historical manifest field auth_runtime_cache_binaries_copied means runtime executables/cache, not all binary native CAD artifacts."
+  },
+  "frozen_source_admission": {
+    "verification": "artifacts/p1-native-selector-source-a0b5d287ada94b488e57297ca0ec2255/attempt04-import-payload/verification.json",
+    "verification_sha256": "4ef2d67c494ca180434c715a5f4025de6aba7975100fe936a0479c8b5dd4c053",
+    "owned_files": [
+      {
+        "path": "caelab/adapters/fixture_freecad.py",
+        "bytes": 5056,
+        "sha256": "eee1e81ce4ad1ccfcf6d7805f92e3d547fb67a1d9b3179a1c327d62cda6757d1"
+      },
+      {
+        "path": "caelab/adapters/native_bridge.py",
+        "bytes": 10285,
+        "sha256": "19719410c14c5556bfa524f4a484eb31b191c8e4234eb45deaeed329a536189c"
+      },
+      {
+        "path": "caelab/adapters/freecad_parameter_worker.py",
+        "bytes": 6625,
+        "sha256": "afb98c8aa56978a8fe23fea66659111c04728a5328a310f38649b0cfe23664cb"
+      },
+      {
+        "path": "caelab/adapters/freecad_parameters.py",
+        "bytes": 7588,
+        "sha256": "e4efd586d1244eec1d991031ffa1cf68cf0c3c28b0b6627ef474fb1a151b78b6"
+      },
+      {
+        "path": "tests/test_native_contract.py",
+        "bytes": 2687,
+        "sha256": "a42007b70b42303a58807f07b186853200af115dcab800244a649e5eb30141ea"
+      },
+      {
+        "path": "tests/test_native_selectors.py",
+        "bytes": 23802,
+        "sha256": "b129f422c7e13bb53a0554eb260a133397d914a02c3a3f9903badcb174a1a1c6"
+      }
+    ],
+    "tests": {
+      "exit_code": 0,
+      "tests": 48,
+      "passed": 48,
+      "failed": 0,
+      "duration_seconds": 7.39,
+      "new_scope_attempts": 1
+    },
+    "test_log": {
+      "path": "pytest.log",
+      "bytes": 101,
+      "sha256": "5aa7f6c3adeb453f8f978ec50f65834a7dcad994ae7ba19cf14a673c3f447a82"
+    },
+    "preceding_verification": "artifacts/p1-native-selector-source-a0b5d287ada94b488e57297ca0ec2255/verification.json",
+    "preceding_verification_sha256": "2bceb128335c9a3b516ab21e64e9c88b5e306676924f7939f43169ba1c3ea1de",
+    "preceding_source_tests": {
+      "tests": 46,
+      "passed": 46,
+      "failed": 0,
+      "duration_seconds": 7.4,
+      "log": "attempt03-console-and-collision/pytest.log",
+      "log_bytes": 101,
+      "log_sha256": "85a8ab847d91f07c9524e2064f4af866f3f02a8391d068eccf21a5e1be8efc4c"
+    },
+    "prior_attempts": [
+      {
+        "scope": "Initial offline fixture failure",
+        "tests": 34,
+        "passed": 10,
+        "failed": 24,
+        "duration_seconds": 11.92,
+        "reason": "Two simulated non-Sketcher objects omitted their TypeId. No native FreeCAD process was invoked.",
+        "initial_tool_output": "Truncated by the tool; a full same-input reproduction is retained separately.",
+        "retained_source_directory": "attempt01-fixture-TypeId-failure",
+        "full_reproduction_log": "attempt01-fixture-TypeId-failure/failure-reproduction.log",
+        "reproduction_duration_seconds": 10.78,
+        "log_bytes": 78421,
+        "log_sha256": "d0010d4c664b1f271c48675d5ec6106b6014ba6ebe3db55a7774f741d11a9968"
+      },
+      {
+        "scope": "TypeId fixture correction before console/collision additions",
+        "tests": 34,
+        "passed": 34,
+        "failed": 0,
+        "duration_seconds": 6.39,
+        "source_directory": "attempt02",
+        "log": "attempt02/pytest.log",
+        "log_bytes": 101,
+        "log_sha256": "5f4a3e3cc75bfbd2213d12eb388da3d94a24de5a77c230d883085bdd900eb09e"
+      }
+    ],
+    "original_preflight_test_unchanged": true,
+    "root_py_compile_and_diff_check": "PASS; no numerical threshold or old native gate removed",
+    "root_acceptance_files": [
+      {
+        "path": "scripts/native_edit_fixture_worker.py",
+        "sha256": "0929cdd8ccb9e8317bdf8ef6987b831bb3b380da2ae4c54e3aedf94fb41dd4cc"
+      },
+      {
+        "path": "scripts/verify_native_edits.py",
+        "sha256": "98ca848ff2b74608cb3470d8103aaaa1a1938cbb66ad14e55d6b423486b64e87"
+      },
+      {
+        "path": "scripts/verify_native.py",
+        "sha256": "820a80a393614f7b85dcb98050c0f3901e0cf0e76e1b5b0f8d83b2b02e1660ae"
+      }
+    ]
+  },
+  "actual_read_only_compatibility": {
+    "receipt": "artifacts/native-edits-source-20261001-01/actual-compatibility-probe-02.json",
+    "receipt_sha256": "d077c37139099481dd890cd4e6b27103199541fe09f48257093f885eb7dbd527",
+    "status": "PASS_ACTUAL_READ_ONLY_CONSOLE_WORKER_AND_DATUM_PROXY",
+    "scope": "Actual installed FreeCADCmd read-only inspect transport of frozen dirty source; full clean-source P1.2a acceptance is separate.",
+    "started_utc": "2026-10-01T05:41:03.491327+00:00",
+    "completed_utc": "2026-10-01T05:41:08.128647+00:00",
+    "registered_key": "LocatorProfile|constraint|0",
+    "registered_name": "locator_radius",
+    "value_mm": 6,
+    "input_sha256_before": "02e53a7749b50771f3ac9d4d8579191b4c7932ff79d8807ca880685457d54dc4",
+    "input_sha256_after": "02e53a7749b50771f3ac9d4d8579191b4c7932ff79d8807ca880685457d54dc4",
+    "owned_source_before_after_equal": true,
+    "initial_root_launcher_failure": "ModuleNotFoundError before FreeCAD; ignored launcher added cwd to sys.path. Original error retained; production source unchanged."
+  },
+  "independent_review": {
+    "verifier": "PASS; 3 P2 closed: native/STEP geometry, whole experiment inventory retention, start/end exact source/pin",
+    "verifier_sha256": "98ca848ff2b74608cb3470d8103aaaa1a1938cbb66ad14e55d6b423486b64e87",
+    "source_implementation": "PASS; import input SHA P2 closed, frozen six file hashes verified; no open scoped P1/P2",
+    "old_retention": "PASS 105 original/copy file hashes/sizes; original archive scope wording corrected in this record, original manifest preserved"
+  },
+  "base_exact_ci": {
+    "id": 36816928988,
+    "source_commit": "671b81817ca5c0babf0c3f0aa2c2f2e6b18519c2",
+    "conclusion": "success",
+    "jobs_successful": 8,
+    "scope": "Old671 baseline; not verification of this changed source or a new solver run"
+  },
+  "new_clean_source_native_acceptance": "NOT_RUN",
+  "new_source_exact_ci": "NOT_RUN",
+  "engineering_decision": "NOT_RELEASED",
+  "solver_status": "NOT_RUN",
+  "limitations": [
+    "Representative actual editor API revisions are not a human GUI click proof.",
+    "Named dimension deletion/recreation with new semantic meaning is UNKNOWN.",
+    "Concurrent native writes/cross-file recovery are P1.2b.",
+    "P1.3 general planning, all Phase1 completion and full52/Phase1-7 completion remain OPEN."
+  ],
+  "next": "Commit/push independently admitted source; freeze it and execute verify_native_edits in a new clean-source store; inspect actual outputs and retain/review before closing P1.2a."
+}

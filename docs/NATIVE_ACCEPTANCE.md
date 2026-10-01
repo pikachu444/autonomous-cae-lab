@@ -1,5 +1,29 @@
 # Native FreeCAD Core acceptance
 
+## Current P1.2a source checkpoint (actual new-source acceptance pending)
+
+Clean Main671b818/fixture3e48 locally re-executed the existing public Lab native
+acceptance in a fresh store: Part width38, radius6, editable reopen, invalid
+bore rejection and ineffective-height refusal. The new imported/edited red
+case then reproduced a real discovery gap: inserted driving center_x at0 was
+omitted when registered named radius moved to1. Stale execution correctly
+blocked; the failed case and original CAD/result bytes remain preserved.
+
+ADR0014 keeps the upstream pin/geometry algorithms and adds an adapter-owned
+worker for current identity checks and opaque new sketch selectors. Legacy
+registered keys stay stable. 48 offline checks pass; an actual read-only
+installed FreeCADCmd console probe passes and preserves the old FCStd hash.
+This is source/transport admission, not full corrected P1.2a acceptance.
+The new `scripts.verify_native_edits` checks native/Core/STEP analytical
+bounds, volume and signed centroid, insertion/deletion/reordering, refresh,
+invalid identities and all historical experiment file hashes/sizes.
+Exact new clean-source run/CI and independent output review remain required.
+See `benchmarks/records/20261001-native-edits-source.json`. Engineering
+UNKNOWN/NOT_RELEASED and solver NOT_RUN remain. P1.2b transactional recovery
+and P1.3 general research planning stay queued.
+
+## Earlier native acceptance and discovery limitation (historical source)
+
 The pinned fixture repository's earlier FreeCAD CI tested its worker directly.
 The new workflow `.github/workflows/caelab-ci.yml` invokes
 `python -m scripts.verify_native` through **CAE-Lab's public `Lab` API**. It
@@ -42,9 +66,9 @@ logic without claiming native FreeCAD execution.
 Registered Sketcher values are resolved by the FreeCAD constraint name, which
 survives ordinary index shifts. The adapter filters a renamed registered
 dimension from new discovery candidates even if its positional index changes.
-The pinned upstream worker can still suppress a different, newly inserted
+At this earlier source, the pinned upstream worker could suppress a newly inserted
 dimension at the old index. This discovery limitation requires an upstream
-worker change and a GUI reorder benchmark before arbitrary sketch edit/reimport
+worker change or adapter correction and a reorder benchmark before arbitrary sketch edit/reimport
 is treated as fully round-trip-safe. A Core registry refresh rechecks the named
 registered dimension, and an altered FCStd source is blocked until refresh.
 

@@ -157,6 +157,15 @@ actual gates above now allow P1.2a. The whole phase/project remains OPEN.
 
 ## Phase1 remaining units (P1.2a ACTIVE; other units QUEUED)
 
+- [x] P1.2a baseline/red: new clean671 local native acceptance PASS; actual
+  imported FCStd insertion reproduces discovery gap. Preserve old CAD/results
+  and105files/9,092,209bytes;20261001-native-edits-source record/ADR0014.
+- [x] Admit owned selector/identity source and inspected immutable import bytes:
+  48offline tests, actual read-only wrapper probe and independent source/verifier
+  review; import SHA P2 and3verifier gaps closed. Full corrected run NOT_RUN.
+- [ ] Commit/push admitted source, then actual new clean Part/Sketcher edit/
+  reorder/refresh/refusal run and immutable output review.
+
 - [ ] P1.2a (ACTIVE): execute imported/edited FreeCAD Part and named Sketcher-dimension
   revisions; prove stale mappings block execution until refresh, and newly
   inserted/reordered dimensions are discovered without ambiguous registration.

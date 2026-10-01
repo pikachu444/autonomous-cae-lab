@@ -2,6 +2,22 @@
 
 ## Current serial work: P1.2a imported/edited native CAD
 
+Clean671/fixture3e48 actual existing native baseline passed in new store
+`p1-native-edit-baseline-20261001-01`. New imported FCStd edit case
+`p1-native-edits-red-20261001-01` reproduced omitted inserted center_x0 after
+named registered radius shifted to1; stale execution blocked and old CAD/result
+preserved. 105files/9,092,209bytes retained with exact source archives; the
+Git archives export text as CRLF under core.autocrlf: core230/fixture93 members
+match exact commits apart from EOL (13fixture binary members exact). Independent
+review corrected the old manifest's normalized-bytes label; original retained.
+ADR0014 implements adapter-owned opaque unregistered selectors/current identity
+checks without changing Core or fixture pin. 48offline checks and actual read-only
+installed FreeCADCmd probe pass; independent source/verifier review closes the
+pre-import inspected/payload SHA race and3verification gaps. Full corrected clean-source
+P1.2a acceptance is NOT_RUN. Record:20261001-native-edits-source.json. NEXT
+source commit/push then fresh `verify_native_edits` store, actual outputs,
+independent retention/review; P1.2b and P1.3 stay queued. No new login/model switch.
+
 Managed run03/source f52dd1b06e69cb901776f18524a41146258d421a now closes
 the bounded P1.1 research/GUI/cancellation/owned-Stop unit. Official2.0.146,
 owner-selected5.6 Sol, same auth/project/source grant and clean fixture3e48:

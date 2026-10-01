@@ -66,9 +66,10 @@ def run(store: Path):
     assert lab.research_summary("E-native-clearance")["failures"]
 
     sketch = lab.create_native_model(template="sketch_locator")["design"]
-    assert "LocatorProfile|constraint|0" in {
-        item["native"]["path"] for item in lab.discover_parameters(BACKEND, sketch)}
-    lab.register_parameter("S-native", BACKEND, sketch, "LocatorProfile|constraint|0",
+    sketch_candidates = [item for item in lab.discover_parameters(BACKEND, sketch)
+                         if item["native"]["object"] == "LocatorProfile"]
+    assert len(sketch_candidates) == 1 and sketch_candidates[0]["value"] == 4
+    lab.register_parameter("S-native", BACKEND, sketch, sketch_candidates[0]["native"]["path"],
                            "locator_radius", "Locator radius", 2, 10)
     sketch_result = lab.run_experiment(study_id="S-native", experiment_id="E-native-sketch6",
                                        backend=BACKEND, model=sketch, values={"locator_radius": 6})

@@ -35,6 +35,11 @@ experiment artifacts; cloning Git alone does not restore their local bytes.
 Sketcher dimensions.** P1.1 passed its bounded managed research/GUI/cancellation/
 owned-Stop gates at exact f52/run03; general planning remains P1.3. Other
 implementation and native campaigns remain deferred.
+P1.2a actual clean671 baseline passed; a fresh imported/edited native red case
+reproduced the inserted-dimension discovery gap. ADR0014 correction source and
+actual read-only installed worker probe are separately admitted; corrected full
+clean-source edit/reorder acceptance remains required before P1.2b. See
+`20261001-native-edits-source.json`; no fullPhase1/engineering completion claim.
 One independent reviewer may examine this unit; this does not authorize parallel
 feature development. Root owns shared interfaces, integration and decisions.
 

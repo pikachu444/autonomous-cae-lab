@@ -83,12 +83,16 @@ jobs:
           echo "FREECAD_CMD=/tmp/fixture-freecad-cmd.sh" >> "$GITHUB_ENV"
       - name: Core to native Part and Sketcher acceptance
         run: python -m scripts.verify_native --store artifacts/native-lab
+      - name: Imported native Part and reordered named Sketcher acceptance
+        run: python -m scripts.verify_native_edits --store artifacts/native-edits-lab
       - name: Preserve CAD revisions and evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: native-cae-lab-${{ github.sha }}
-          path: artifacts/native-lab/
+          path: |
+            artifacts/native-lab/
+            artifacts/native-edits-lab/
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30

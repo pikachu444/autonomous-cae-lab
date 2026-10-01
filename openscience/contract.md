@@ -1,5 +1,15 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+P1.1 bounded managed f52/run03 research, official GUI, observed-busy cancellation,
+owned Stop and closed retention are verified in the actual managed-research record.
+This is not general planning, solver qualification or a new wire-level guarantee.
+The next P1.2a implementation follows ADR0014: native paths are opaque discovery/
+registration values. Existing registered Sketcher aliases remain bound by their
+unique driving names; unregistered constraints use current-source selectors and
+require rediscovery after a source revision. Core research IDs and operation
+schemas stay unchanged. Source tests alone do not establish edited-native
+acceptance; actual analytical/native/STEP/refresh and refusal proof is separate.
+
 New native guard schema3 pins the existing Node executable and one generated
 profile-owned source reader. The reader uses the unchanged common two-snapshot
 Git/file algorithm; its asynchronous outer execution has20s/16MiB bounds,
