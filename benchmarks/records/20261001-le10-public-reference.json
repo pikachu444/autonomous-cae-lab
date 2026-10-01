@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "unit": "P2.1",
+  "case": "le10_public_vendor_rev3_cited",
+  "status": "PASS_PUBLIC_VENDOR_DEFINITION_AND_SOURCE_TOPOLOGY_DISPOSITION",
+  "source_base_commit": "a8684fc442e63be5ce2f847c1f6c12979240e7e3",
+  "specification": "benchmarks/specifications/le10-public-vendor.json",
+  "specification_local_bytes_sha256": "bc664e1226a28aa7f494c8f1e1e8c1278e7a15aa41033ec9c32c8eca3876130e",
+  "local_reference_run": "p2-reference-20261001-01",
+  "actual_native_solver_calls": 0,
+  "definition": {
+    "geometry_mm": {"outer_semiaxes": [3250, 2750], "inner_semiaxes": [2000, 1000], "thickness": 600},
+    "material": {"youngs_modulus_mpa": 210000, "poisson_ratio": 0.3},
+    "pressure_mpa": 1,
+    "bc": "AB x=0 DX0; DC y=0 DY0; full outer side DX/DY0; ONLY outer curve at z300 DZ0",
+    "response": {"point_mm": [2000, 0, 600], "component": "global nodal sigma_yy", "signed_reference_mpa": -5.38},
+    "signed_reference_evidence": "COMSOL6.4 explicitly -5.38 at topD; Abaqus2025 prose prints+5.38 but Standard table negative; original P18 sign text UNKNOWN",
+    "scope": "Complete public primary-vendor benchmark construction, not NAFEMS certification or original P18 full-sheet acquisition"
+  },
+  "source_topology": {
+    "raw_coarse": {"elements": 12, "source_nodes": 465, "active_nodes": 121, "shared_edge_midpoint_conflicts": 10,
+      "verdict": "EXPECTED_PREFLIGHT_REJECTED", "solver_status": "NOT_RUN"},
+    "finding": "Official nle10fkc.inp line131 seed edge(2,3) midpoint105 conflicts with205 on the same edge5-405; defect propagates under ELGEN, including edge2005-2405",
+    "official_current_asset_reproduces_defect": true,
+    "explicit_correction": {"stage": "normalized seed before ELGEN; original source bytes unchanged", "one_based_slot": 10, "old_node": 105, "new_node": 205},
+    "corrected_coarse": {"mesh_id": "source_coarse_topology_corrected", "elements": 12, "active_nodes": 111,
+      "shared_edge_midpoint_conflicts": 0, "fine_source_2x2x1_lattice_coarsening": "EXACT",
+      "fine_source_coordinate_sections": "IDENTICAL", "published_coarse_table_reproduction": "NOT_CLAIMED"},
+    "fine": {"elements": 48, "source_nodes": 465, "active_nodes": 349, "shared_edge_midpoint_conflicts": 0},
+    "limits": "All error limits and target remain unchanged; defect was found before solving. Corrected topology has its own normalized mesh hash."
+  },
+  "predeclared_acceptance": {
+    "mesh_ids": ["source_coarse_topology_corrected", "vendor_fine", "fine_refined2", "fine_refined4"],
+    "elements": [12, 48, 384, 3072],
+    "refinement": "Same fine quadratic geometry, factor2/4 in all3 natural directions, including thickness",
+    "finest_signed_target_relative_error_max": 0.05,
+    "last_two_mesh_target_relative_change_max": 0.02,
+    "same_mesh_cross_solver_relative_difference_max": 0.02,
+    "signed_reaction_equilibrium_relative_max": 0.000001,
+    "reaction_norm": "max(abs(Rx),abs(Ry),abs(Rz-p*A_loaded))/(p*A_loaded)",
+    "jacobian_sampling": "27 volume Gauss points plus27 corners/edge-midpoints/face-centers/center;54 evaluations with center checked twice; not proof everywhere",
+    "changed_condition": {"pressure_mpa": 0.5, "signed_reference_mpa": -2.69},
+    "full_sequence": "Partial prefixes can execute but cannot pass the full four-level acceptance",
+    "invalid_source_or_inputs": "Refuse before native solver invocation; append records and preserve old stores"
+  },
+  "midas_nfx_materials": {
+    "full_original_text_mirror": "https://www.scribd.com/document/111575083/benchmarkmanual",
+    "mirror_pages_reported": 337,
+    "introduction_inventory": {"total": 139, "nafems": 75, "journal": 21, "books_other": 43},
+    "coverage": ["linear_static", "free_vibration", "buckling", "steady_heat", "transient_heat", "linear_dynamic", "prestress", "geometric_nonlinear", "material_nonlinear", "contact", "explicit_dynamic"],
+    "le10_chapter_url": "https://cdl.hanyang.ac.kr/wp-content/uploads/2018/VehicleStructure/nfx/Thick%20plate%20under%20uniform%20pressure.pdf",
+    "le10_chapter_sha256": "70df6b5c0394350fb7029fc437e218534b5324dca768025b1838dc12b6bdb9b6",
+    "le10_chapter_bytes": 116258,
+    "section": "2.8; printed2-18..2-19; Linearstatic08.nfxa",
+    "nafems_citation": "The Standard NAFEMS Benchmarks Rev3 Glasgow1990; printed2-51 [2-3] in full mirror",
+    "caveats": ["Hanyang-hosted copy, not verified current official product edition", "Outer-y denominator printed3.25 conflicts with2.75 dimension chain", "Table+5.38 has no signed convention", "Starred stresses are extracted from added upper-face surface elements", "Native Linearstatic08.nfxa asset availability UNKNOWN"],
+    "official_support_index": "https://gtc.midasuser.com/helpdesk/KB/View/32637163-midas-nfx-manuals-and-tutorials",
+    "officially_linked_cfd_manual": "https://www.dropbox.com/s/wlsa705ck97iuic/CFD%20Verification%20Manual.pdf?dl=1",
+    "cfd_scope": "55PDF pages/18 fluid and heat cases, separately inspected; not the structural139-case manual",
+    "current_official_structural_full_distribution": "UNKNOWN",
+    "midas_meshfree_report": "https://www.midasmts.com/hubfs/MTS_KO/data/NAFEM.pdf?hsLang=en",
+    "meshfree_scope": "14pages/8cases; a different product/evaluation, not NFX Benchmark Series"
+  },
+  "independent_review": {
+    "reference_and_source_auditor": "integration_review",
+    "initial_verdict": "NEEDS_CORRECTION: nonconforming raw coarse and ambiguous reaction norm",
+    "closed_by": "Explicit quarantined original/corrected derivative identity; independent fine coarsening equivalence; exact reaction norm/analytic A,V; exact54 sampling and pressure scaling before solve",
+    "midas_document_researcher": "official_project_workflow",
+    "midas_review": "Full-mirror contents and original2-page PDF diagram/table visually inspected; edition/official model availability retained UNKNOWN",
+    "final_specification_freeze": "PASS_NO_OPEN_P1_P2; exact specificationSHA unchanged before/after independent read-only review; no native solver calls"
+  },
+  "retention": {
+    "path": "artifacts/p2-reference-20261001-01",
+    "receipts": ["vendor-downloads.json", "document-downloads.json", "midas-download.json"],
+    "scope": "Original native inputs, three official HTML snapshots and publicly readable MIDAS chapter bytes retained locally; not redistributed in Git",
+    "public_repository_contains": "Original specification plus factual source URLs/hashes/decisions; no vendor books/native input assets or credentials"
+  },
+  "next": "P2.2 same Core run_model_analysis/shared checked mesh through CalculiX2.21 and pinned Code_Aster17.4; compare complete raw fields/reactions/reference/mesh errors and changed pressure via OpenScience",
+  "engineering": {"decision": "NOT_RELEASED", "unknowns": ["static_strength", "material_qualification", "physical_validation", "fatigue_durability", "model_qualification"]},
+  "whole_project": "ACTIVE; original52 requirements/Phases1-7 remain open outside verified bounded gates"
+}

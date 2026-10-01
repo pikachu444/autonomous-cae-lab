@@ -1,5 +1,32 @@
 # Current state — 2026-10-01 (Asia/Seoul)
 
+## Latest source-definition checkpoint: P2.1 LE10; P2.2 ACTIVE
+
+Complete public primary-vendor LE10 geometry/material/BC/load/topD signed
+reference and fixed numerical gates are captured in
+benchmarks/specifications/le10-public-vendor.json. Independent read-only
+review found a real official coarse input defect before any native solve:
+seed edge midpoint105 conflicts with205. Original bytes/SHA remain preserved
+and quarantined (12/121active,465source); explicit105->205 normalized seed
+correction gives12/111, zero shared-edge conflicts, exact fine-coordinate
+catalogue and2x2x1 fine-lattice coarsening. Fine48/349 is unmodified.
+54per-element Jacobian evaluations,27volume/9face quadrature, exact reaction
+residual norm and analytic A/V, pressure scaling and source/output completeness
+are frozen before execution. Published coarse outputs are not project proof.
+Original full P18 revision/amendment/sign text remains UNKNOWN.
+MIDAS NFX Benchmark Series materials were independently located and inspected:
+139cases/75NAFEMS full-text mirror; original LE10 §2.8 printed2-18..2-19
+chapter retained at SHA70df6b5c... . Its outer-y formula conflicts with dimensions;
+signed convention/extraction differs and current official edition/model assets
+are UNKNOWN. Use as corroborating material and future scope inventory, keeping
+COMSOL/Abaqus signed target/geometry. Record:20261001-le10-public-reference.json.
+P2.2 adapter/shared-mesh implementation is ACTIVE. No native LE10 execution,
+cross-solver agreement or OpenScience LE10 interpretation is claimed yet.
+The latest actual connected proof stays04ff/run03/P1.3, checkpointa868 pushed;
+selected5.6Sol/auth/project/pinned runtime/fixture and old stores are reused.
+52 requirements/Phases1-7 and engineering UNKNOWN/NOT_RELEASED remain open.
+The reference checkpoint does not upgrade the documented04ff explicit CI404.
+
 ## Latest actual checkpoint: connected research loop at04ff/run03
 
 P1.3 actual bounded workflow PASS:8 selected5.6Sol stages,41 successful tool

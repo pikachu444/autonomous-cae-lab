@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "case": "le10_public_vendor_rev3_cited",
+  "definition_status": "PUBLIC_PRIMARY_VENDOR_DEFINITION",
+  "scope": "Abaqus 2025 cites TNSB Rev.3 October1990; COMSOL6.4 independently specifies the signed top-D target. Original P18 benchmark sheet and amendment details were not acquired.",
+  "original_p18_revision_details": "UNKNOWN",
+  "geometry": {
+    "type": "positive_xy_quarter_elliptical_plate_with_elliptical_hole",
+    "outer_semiaxes_mm": [3250.0, 2750.0],
+    "inner_semiaxes_mm": [2000.0, 1000.0],
+    "bottom_z_mm": 0.0,
+    "thickness_mm": 600.0,
+    "outer_vertical_support_z_mm": 300.0
+  },
+  "canonical_material": {"model": "isotropic_linear_elastic", "youngs_modulus_mpa": 210000.0, "poisson_ratio": 0.3},
+  "canonical_load": {"type": "uniform_surface_traction", "surface": "z=600 mm", "vector_mpa": [0.0, 0.0, -1.0]},
+  "boundary_conditions": [
+    {"selection": "x=0 symmetry plane", "component": "x", "value_mm": 0.0},
+    {"selection": "y=0 symmetry plane", "component": "y", "value_mm": 0.0},
+    {"selection": "entire outer elliptical side surface", "components": ["x", "y"], "value_mm": 0.0},
+    {"selection": "outer elliptical side curve at z=300 mm ONLY", "component": "z", "value_mm": 0.0}
+  ],
+  "free_surfaces": ["inner hole side", "bottom z=0", "unconstrained components on symmetry/outer surfaces"],
+  "target": {
+    "point_name": "D",
+    "coordinates_mm": [2000.0, 0.0, 600.0],
+    "component": "global_cauchy_stress_yy",
+    "reference_mpa": -5.38,
+    "extraction": "Extrapolated and averaged nodal stress at the exact D corner node; preserve all raw nodal components and integration-point stresses. No nearest-Gauss-point, magnitude, von-Mises or global-maximum substitution.",
+    "sign_note": "Abaqus reference prose prints +5.38; its Standard tables are negative. COMSOL explicitly gives -5.38 at (2,0,0.6)m. Use the signed value; original P18 sign text remains UNKNOWN."
+  },
+  "static_scope": {"inertia": false, "gravity": false, "density": "Not used; vendor densities differ and are irrelevant to this static zero-body-force case."},
+  "units": {"length": "mm", "force": "N", "stress": "MPa", "energy": "N mm", "source_coordinate_scale": 1000.0, "source_stress_scale": 0.000001},
+  "mesh_sequence": [
+    {"id": "source_coarse_topology_corrected", "source": "nle10fkc.inp", "element_type": "HEXA20", "elements": 12, "shape": [3, 2, 2], "rule": "Explicit seed edge(2,3) midpoint105->205 correction before ELGEN. Keep original raw asset unchanged and quarantined; verify corrected shared edges and coordinates against fine-source coarsening."},
+    {"id": "vendor_fine", "source": "nle10fkf.inp", "element_type": "HEXA20", "elements": 48, "shape": [6, 4, 2]},
+    {"id": "fine_refined2", "source": "nle10fkf.inp", "element_type": "HEXA20", "elements": 384, "shape": [12, 8, 4], "rule": "Uniform factor2 subdivision in all3 natural directions of each vendor fine HEXA20; interpolate its geometry, share matching nodes and preserve exact D/support planes."},
+    {"id": "fine_refined4", "source": "nle10fkf.inp", "element_type": "HEXA20", "elements": 3072, "shape": [24, 16, 8], "rule": "Uniform factor4 subdivision in all3 natural directions of each vendor fine HEXA20; same geometry/reference and no threshold change."}
+  ],
+  "limits_frozen_before_solver": {
+    "finest_signed_target_relative_error_max": 0.05,
+    "last_two_mesh_target_relative_change_max": 0.02,
+    "same_mesh_cross_solver_target_relative_difference_max": 0.02,
+    "reaction_equilibrium_relative_max": 0.000001,
+    "loaded_area_relative_error_max": 0.01,
+    "volume_relative_error_max": 0.01,
+    "target_coordinate_tolerance_mm": 0.000000001,
+    "source_rounded_boundary_relative_tolerance": 0.0002,
+    "minimum_sampled_jacobian": 0.0
+  },
+  "metric_conventions": {
+    "reference_error": "abs(sigma_yy_D - reference_mpa)/abs(reference_mpa)",
+    "mesh_change": "abs(last_sigma_yy_D - previous_sigma_yy_D)/abs(last_sigma_yy_D)",
+    "cross_solver_difference": "abs(sigma_yy_D_A - sigma_yy_D_B)/abs(reference_mpa) on each identical finest shared mesh",
+    "reaction": "Recover support reaction components, correcting RF for applied loads when necessary; deduplicate constrained node/component pairs. Exact equilibrium error = max(abs(Rx),abs(Ry),abs(Rz-pressure_mpa*A_loaded_mm2))/(pressure_mpa*A_loaded_mm2). Preserve each signed resultant and actual curved-face integrated area separately from analytical-area comparison.",
+    "analytic_geometry": "A = pi*(3250*2750-2000*1000)/4 mm^2; V = 600*A mm^3. Area and volume errors are abs(actual-analytic)/abs(analytic).",
+    "coarse_scope": "Keep all raw source defects and numerical errors. Abaqus published C3D20 coarse error25%/fine4.83% are vendor results, not reproduced project results. Original public coarse input is nonconforming and must be refused before solving. Its explicit corrected derivative is a new mesh identity; only the predeclared finest result is subject to the final5% gate. Do not claim monotonic error improvement from arbitrary nodal averaging.",
+    "jacobian_scope": "Check quadrature and declared additional sampling locations on curved HEXA20; a sampled positive minimum is not a proof of global positivity everywhere.",
+    "geometry_scope": "Vendor rounded quadratic mesh geometry; all-direction refinements subdivide that same represented geometry. This is not an exact analytic-ellipse CAD-parent fixture analysis."
+  },
+  "source_topology_disposition": {
+    "raw_coarse": "EXPECTED_PREFLIGHT_REJECTED_NONCONFORMING_SHARED_EDGE",
+    "finding": "Official nle10fkc.inp seed slot10 uses105 for edge5-405; adjacent generated element uses205. Coordinates differ. The defect propagates under ELGEN, including a lower/upper interface. Raw expansion has12elements121active/465source nodes, rather than conforming111 active nodes.",
+    "correction": {"stage": "Normalized seed connectivity before ELGEN only", "one_based_slot": 10, "old_node": 105, "new_node": 205},
+    "requirements": "Original downloaded bytes/SHA256 are never edited. Retain raw rejected topology/check evidence and the correction manifest, compare all corrected nodes to the fine-source catalogue, verify every shared edge and full geometry before solving. Record a distinct normalized mesh hash; no claim of reproducing the published original coarse output.",
+    "fine": "Public fine input is conforming:48elements349active/465source nodes. All-direction refinements interpolate this unmodified fine geometry."
+  },
+  "quality_sampling": {
+    "volume_rule": "Tensor-product 3-point Gauss-Legendre integration: each natural coordinate in [-sqrt(3/5),0,sqrt(3/5)] with weights [5/9,8/9,5/9], all27 points.",
+    "additional_jacobian_rule": "All27 tensor-product locations with each natural coordinate in [-1,0,1] (8 corners,12 edge midpoints,6 face centers and center). Evaluate both27-point lists; the center is checked twice,54 evaluations per element.",
+    "loaded_face_rule": "Top natural face zeta=+1, tensor-product 3-point Gauss-Legendre quadrature,9 points per loaded Q8 face. Preserve the vector area normal, not just corner polygon area.",
+    "limitations": "Sampled Jacobian positivity is an admission check, not proof of positivity at every location. All refinements interpolate and integrate the same quadratic vendor geometry."
+  },
+  "allowed_research_conditions": {
+    "pressure_mpa": {"lower_exclusive": 0.0, "upper_inclusive": 2.0},
+    "reference_scaling": "For admitted pressure p, signed_reference_mpa=-5.38*(p/1 MPa), from linearity at identical canonical material/zero prescribed displacement BCs and geometry. The fixed source reference remains -5.38 MPa at1 MPa; reference override is refused.",
+    "material": "Canonical E=210000 MPa and nu=0.3 are fixed for this published stress reference.",
+    "mesh_levels": "Ordered prefixes of2..4 frozen levels are executable; full four-level acceptance requires all4. Partial studies retain their values and fail the full-sequence gate."
+  },
+  "bounded_changed_condition": {"pressure_mpa": 0.5, "signed_reference_mpa": -2.69, "reason": "Linearity with identical zero-displacement BCs/material/geometry; no physical material qualification."},
+  "expected_preflight_refusals": ["nonfinite or nonpositive material/load", "nu>=0.5 or nu<=-1", "unsupported case", "unrecognized/modified source asset bytes", "changed target location/component/reference/limits", "missing target or boundary group", "unbounded mesh request"],
+  "runtime_budget": {"mesh_levels_max": 4, "volume_elements_max": 10000, "nodes_max": 50000, "per_level_process_seconds_max": 240, "command_seconds_max": 3600},
+  "planned_backends": ["structural.le10_calculix", "structural.le10_code_aster"],
+  "planned_core_operation": "run_model_analysis",
+  "source_assets": [
+    {"file": "nle10fkc.inp", "url": "https://docs.software.vt.edu/abaqusv2025/English/SIMAINPRefResources/nle10fkc.inp", "bytes": 5364, "sha256": "a125d5883b8385d60b1c4e3b0abc991b6745540aca737f4d384379cb96bec96c"},
+    {"file": "nle10fkf.inp", "url": "https://docs.software.vt.edu/abaqusv2025/English/SIMAINPRefResources/nle10fkf.inp", "bytes": 5363, "sha256": "1965effb1ad2f7bcde2318280dd2371978251a7fc55d6c26923a0876e87d7653"}
+  ],
+  "primary_documents": [
+    {"url": "https://www.nafems.org/publications/resource_center/p18/", "local_snapshot": "artifacts/p2-reference-20261001-01/nafems-p18-catalog.html", "sha256": "e91709115e822b9aeed92c5eb7ebe43b0d2b36a1863c81d18c54b42d62bb0bbb", "scope": "Catalog confirms LE10 magnitude/location amendment and later revision; not the original full sheet."},
+    {"url": "https://docs.software.vt.edu/abaqusv2025/English/SIMACAEBMKRefMap/simabmk-c-le10.htm", "local_snapshot": "artifacts/p2-reference-20261001-01/abaqus2025-le10.html", "sha256": "0bac0f6ce09577ecbc95ed5e28fff593747a1dd564c3c8a9871d16090554b595", "scope": "Rev3-cited definition, native inputs and nonmonotonic nodal-average effects; published output is not this project's solver result."},
+    {"url": "https://doc.comsol.com/6.4/doc/com.comsol.help.models.sme.thick_plate/thick_plate.html", "local_snapshot": "artifacts/p2-reference-20261001-01/comsol64-thick-plate.html", "sha256": "3712d6070adf51e22b6573a09f5bbc2d3953dee84e0357d01bee4e645f3b879d", "scope": "Complete construction/BCs/signed top-D target and singular support limitation; public PDF retrieval was intermittently unavailable."},
+    {"url": "https://www.dhondt.de/ccx_2.21.pdf", "scope": "Installed-version native output semantics: RF is external force, FRD stresses are extrapolated/averaged; no new solver version adopted."},
+    {"url": "https://cdl.hanyang.ac.kr/wp-content/uploads/2018/VehicleStructure/nfx/Thick%20plate%20under%20uniform%20pressure.pdf", "source_author": "MIDAS NFX Benchmark Series", "host_status": "HANYANG_PUBLIC_VENDOR_DOCUMENT_COPY", "local_snapshot": "artifacts/p2-reference-20261001-01/midas-nfx-le10-chapter.pdf", "bytes": 116258, "sha256": "70df6b5c0394350fb7029fc437e218534b5324dca768025b1838dc12b6bdb9b6", "scope": "Section2.8 printed2-18..2-19, modelLinearstatic08.nfxa. Outer-y equation conflicts with dimension chain; table prints+5.38 without signed convention, and starred stresses use added upper-face surface elements. Corroboration only; do not replace the complete COMSOL/Abaqus geometry/signed target. Current official edition/model availability UNKNOWN."}
+  ],
+  "retention": "Raw publicly retrieved HTML/native data remains local under artifacts/p2-reference-20261001-01. Only facts, hashes and this original specification are committed; original books and vendor input assets are not redistributed through Git.",
+  "validation_state": "PREDECLARED_NOT_RUN",
+  "engineering_unknowns": ["static_strength", "material_qualification", "physical_validation", "fatigue_durability", "model_qualification"],
+  "decision": "NOT_RELEASED"
+}

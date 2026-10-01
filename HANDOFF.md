@@ -1,5 +1,33 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Current queue: P2.1 public reference frozen; P2.2 implementation ACTIVE
+
+P1.3 actual04ff/run03 and pushed a868 evidence remain the latest connected
+solver/research proof. P2.1 now has a complete public COMSOL/Abaqus LE10
+definition: topD(2000,0,600)mm/global nodal sigma_yy=-5.38MPa at1MPa,
+outer3250x2750/inner2000x1000/t600mm and ONLY outer midplane curve DZ0.
+Original full P18/amendment/sign text remains UNKNOWN; no certification claim.
+Independent source audit found official raw coarse105-vs205 shared-edge
+defect (12elements121active/465source nodes). Preserve/refuse that raw source.
+Explicit seed slot10 105->205 before ELGEN creates a separately identified
+12/111 corrected mesh, independently equal to2x2x1 fine-lattice coarsening.
+Fine48/349 and its factor2/4 all-direction subdivisions retain the same
+quadratic geometry. Fixed5% reference/2% mesh/2% cross-solver/1e-6 reaction
+gates, exact signed target/norm/area-volume formulas and54Jacobian samples
+are predeclared; no native LE10 solver has run. Numerical values cannot be
+invented from vendor result tables. Record:20261001-le10-public-reference.json.
+Owner-requested MIDAS NFX materials found:139cases/75NAFEMS in the full
+original-text mirror; public2page LE10 §2.8 retained. The chapter has an outer-y
+equation typo,+5.38 sign ambiguity and added-surface-element extraction notes;
+current official full structural edition/model availability remains UNKNOWN.
+NEXT SERIAL P2.2: finish/review/commit source, then NEW clean store/runtime
+CalculiX2.21+Code_Aster17.4 same-mesh raw stress/reaction/reference checks and
+pressure1->0.5 comparison through existing Core/OpenScience. Reuse model5.6Sol,
+auth/profile/project/engines/fixture pin. No further CAD recovery scope.
+Engineering UNKNOWN/NOT_RELEASED and original52/Phases1-7 remain ACTIVE.
+This reference checkpoint is not a new solver or connected-research acceptance.
+Older queue sections below are historical.
+
 ## Current queue: P1.3 actual bounded loop PASS; next P2.1
 
 Clean source04ff148fd629d1df3563fb56bff82f9a3eccece7 / fixture3e48:

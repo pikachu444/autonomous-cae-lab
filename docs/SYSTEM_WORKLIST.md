@@ -16,8 +16,12 @@ requests execute nothing.1 generation/MAX_GENERATIONS/converged=false remains;
 UNKNOWN/NOT_RELEASED and full product/all52 qualification remain OPEN.
 788 files retained/owned Stop confirmed; independent output/supplement and
 exact retention review PASS with no open P1/P2. Record:20261001-openscience-research-04ff148.json.
-NEXT SERIAL UNIT **P2.1 authoritative external structural reference**, followed
-by P2.2 frozen mesh/cross-solver execution. No further CAD recovery/setup scope.
+P2.1 bounded public-vendor LE10 definition/source-topology disposition is frozen:
+20261001-le10-public-reference.json. Original P18 full sheet remains UNKNOWN;
+raw coarse shared-edge defect is quarantined and explicit corrected derivative
+is separately identified. MIDAS NFX materials139/75NAFEMS were located with
+edition/sign/equation/extraction gaps retained. NEXT SERIAL UNIT **P2.2 shared
+mesh/cross-solver implementation and actual execution**. No further CAD recovery/setup scope.
 Earlier failed runs and original-context limits are preserved in their records;
 historical sections below cannot override this queue.
 
@@ -237,9 +241,12 @@ This evidence/docs checkpoint is not another solver run.
 
 ## Phase2 — connected structural analysis (NEXT SERIAL)
 
-- [ ] P2.1: obtain the full authoritative benchmark definition; for LE10 retain
-  corrected revision/target location/value. Freeze geometry/material/BC/load,
-  metric/units, mesh sequence, error limits and reference before any solver run.
+- [x] P2.1 bounded public-primary-vendor definition: retain Rev3-cited context/
+  topD signed target; freeze geometry/material/BC/load/metric/units/mesh/limits
+  before solving. Original P18 full-sheet/amendment details remain UNKNOWN.
+  Rawcoarse defect is refused; explicit correction/fine-coarsening identity is
+  predeclared. MIDAS NFX chapter/whole-mirror inventory and source gaps retained.
+  Record:20261001-le10-public-reference.json; native LE10 solver calls0.
 - [ ] P2.2: implement the benchmark through an adapter/common Core operation;
   execute fresh mesh and cross-solver cases, recompute errors/reactions from raw
   fields and expose them in shared results/reports and OpenScience interpretation.

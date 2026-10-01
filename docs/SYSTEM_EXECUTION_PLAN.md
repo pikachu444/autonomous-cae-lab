@@ -31,7 +31,17 @@ experiment artifacts; cloning Git alone does not restore their local bytes.
 
 ## Execution rule and current unit
 
-**Next serial unit: P2.1, authoritative external structural reference.**
+**Next serial unit: P2.2, shared-mesh structural implementation/execution.**
+
+P2.1's public COMSOL/Abaqus LE10 definition, signed topD target and fixed gates
+are frozen in20261001-le10-public-reference.json. Original P18 sheet/amendments
+remain UNKNOWN. Public coarse topology is defective and refused; its explicit
+corrected derivative is independently equal to fine-source coarsening and has
+a distinct mesh identity. Owner-requested MIDAS NFX benchmark resources are
+captured with equation/sign/extraction/edition caveats; published outputs are
+reference material, not this project's execution. Native LE10 calls remain0.
+Finish reviewed source/commit, then clean fresh-store two-solver/changed-load
+execution through common Core/OpenScience. Later phases stay in the same order.
 Actual clean04ff/run03 completed the bounded P1.3 question -> conditions ->
 solver -> comparison -> engine-generated next candidates -> interpretation
 loop with8 selected5.6Sol stages/41 receipts/23 experiments. Missing/unsupported

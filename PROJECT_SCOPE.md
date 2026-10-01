@@ -21,6 +21,15 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+P2.1 public-vendor LE10 definition/source-topology disposition is predeclared
+and independently reviewed. Original P18 full sheet remains UNKNOWN. Original
+coarse nonconforming source is quarantined; corrected derivative has a separate
+identity/fine-coarsening proof. Owner-requested MIDAS NFX139/75NAFEMS materials
+and their sign/equation/extraction/edition gaps are captured. P2.2 is ACTIVE,
+native LE10 solver/cross-solver/research acceptance NOT_RUN. Record:
+20261001-le10-public-reference.json. This does not close later phases/all52.
+The actual connected checkpoint below remains the latest numerical workflow proof.
+
 Actual clean04ff/run03 closes the bounded P1.3 connected workflow:8 selected
 5.6Sol stages/41 successful receipts/23 experiments; missing/unsupported
 requests without execution, sequential38/40 CAD+CalculiX, engine-generated
