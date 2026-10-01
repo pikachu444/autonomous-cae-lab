@@ -2,6 +2,29 @@
 
 ## Current serial work: Phase1 persistent OpenScience
 
+Current verified execution is clean5365ae8 / fixture3e48bf6, run
+`p1-native-5365ae8-20261001-01`. Actual connected resident Git/fingerprints PASS.
+Chosen5.6 Sol completed14 AI stages/13 actual MCP tools: study, discovery,
+registration, valid width38 CAD, rejected bolt30 CAD, inspect/summary/compare
+and receipt-grounded interpretation. Independent review verified32 store files,
+20 artifacts and58 original hook receipts. Exact-source CI36794589419 all8PASS.
+See20261001-openscience-native-research.json; a later commit is not a rerun.
+
+Full P1.1 remains OPEN:16 source-check refusals preceded accepted retries;
+initial capture failure cause UNKNOWN. Official retry.ts interprets the guard's
+"unavailable" wording as provider overload. Keep refusal, correct retry
+classification and add sanitized diagnostics. Official Home/legacy session
+route does not show this research. Existing Lab8766 is a separate real-results
+interface, not official OpenScience. Official documented managed-project/source-
+folder/working-root workflow requires separately bound project identity and
+Core source roots in launcher/idle/Stop. Two timeout cases confirm abort200/idle/
+final output/unchanged store, but pre-abort busy was not captured; gate stays OPEN.
+337 closed files/1,562,068bytes retained locally with matching copies; failed
+retention attempts and null aggregation/v2 correction remain. No raw remote claim.
+
+Historical pre-5365 startup correction follows; its pending resident/run instructions
+are superseded by the actual current run above.
+
 Native08dfec6 actual startup FAILED before model/Core calls: OpenScience encrypted
 the MCP.environment values at rest, changing config8b86→d38b and correctly
 triggering CONFIG_CHANGED. Preserve its failed profile/original config. The

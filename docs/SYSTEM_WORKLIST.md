@@ -80,13 +80,22 @@ Currently only **P1.1** is active. Later rows are queued, not running.
   is unavailable/unknown and the follow-up model response timed out.
 - [ ] Close actual MCP source-identity and model-response bottlenecks before a
   NEW clean-source profile/store. Do not extend timeouts alone or rewrite run02.
-- [ ] Verify width38 valid CAD and bolt30 rejected CAD in the fresh Core store:
+  Actual5365 resident/source and14-stage native research now passed; retain
+  16 source-check refusals/retries and correct nonretryable policy diagnostics.
+- [x] Verify width38 valid CAD and bolt30 rejected CAD in the fresh Core store:
   editable/native artifacts, result/thread/ledger/hash/size, retained rejection
   evidence, no export/solver after rejection, UNKNOWN and NOT_RELEASED intact.
-- [ ] Verify actual inspect/summary/compare and model interpretation grounded
+  Actual5365 native run:32 store files/20 artifacts independently checked;
+  source/revision/ledger match. Native FCStd editing remains P1.2 scope.
+- [x] Verify actual inspect/summary/compare and model interpretation grounded
   in those exact receipts; do not accept a response that merely claims execution.
+  Actual5365:13 real tools and completed5.6 Sol interpretation, both exact IDs,
+  rejected relation/evidence011 and UNKNOWN/NOT_RELEASED preserved.
 - [ ] Inspect the official Workspace in the browser and save its same-session
   tool/results view; verify displayed experiment IDs match the Core store.
+  Actual5365 Lab result view shares the store; official GUI remains open.
+  Use official managed project + source folder/default working root, with
+  project identity bound separately from source RepoRoot in all lifecycle paths.
 - [ ] Complete actual in-flight cancellation with the corrected idle gate.
   Run02 confirmed abort200/explicit idle after natural CLI exit; no forced stop or
   controlled server Stop. Run01's missing-idle P2 remains historical. Closed failed

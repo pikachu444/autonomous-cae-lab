@@ -21,6 +21,16 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Status vocabulary
 
+2026-10-01 actual native research checkpoint: clean5365ae8/fixture3e48,
+connected resident provenance PASS, selected5.6 Sol14 AI stages/13 MCP calls
+and valid/rejected CAD/results/interpretation independently passed.32 store
+files/20 artifacts checked; exact-source CI36794589419 all8PASS. Native guard
+had16 refusals followed by accepted retries; initial cause UNKNOWN and retry
+classification correction pending. Official managed-project GUI/ownership and
+full in-flight cancellation remain OPEN. Lab8766 is a separate real-results
+interface, not official OpenScience. All52 rows/engineering unknowns retained.
+Record: benchmarks/records/20261001-openscience-native-research.json.
+
 2026-10-01 follow-up: actual08df native startup correctly refused upstream's
 in-place MCP environment encryption/config drift. The bridge now scopes path
 translation to host Git through WSLENV; fresh actual resident/research remains

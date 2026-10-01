@@ -2,6 +2,28 @@
 
 ## Authoritative serial queue from the project owner
 
+CURRENT: actual5365ae8 native5.6 Sol bounded CAD research PASSED. Resident
+MCP source identity is known clean5365/fixture3e48,14 AI stages/13 tools,
+32 store files/20 artifacts. Independent evidence review PASS; exact CI
+36794589419 all8PASS. Source/run/evidence/retention are in
+benchmarks/records/20261001-openscience-native-research.json. Solver NOT_RUN,
+four engineering UNKNOWNs and NOT_RELEASED stay. This does not close P1.1.
+
+NEXT, sequentially: remove unintended provider retries of native source guard
+denials while retaining refusal and sanitized diagnosis; initial source-capture
+failure cause stays UNKNOWN. Then implement the official managed-project/source-
+folder workflow with separate immutable project identity directory and Core
+RepoRoot/toolDirectory across CLI/GUI/abort/idle/Stop. Existing Lab8766 displays
+real records but is not official OpenScience. Do not rewrite current live owner,
+copy the repository into managed data, or weaken ownership/source gates.
+Actual timeout abort200/idle/final logs/store preservation passed twice, but
+pre-abort busy sampling did not capture the window; full in-flight gate OPEN.
+Retain live clean5365 serving checkout until owned stop; current controller/native
+PIDs78516/77748 and official port4098. Login/model selection are already complete.
+
+Historical pre-5365 instructions below retain failed evidence; use the current
+queue above, not their pending restart instructions.
+
 CURRENT: native08dfec6 startup failed because OpenScience encrypted the
 MCP.environment values in place; config hash changed and plugin correctly
 refused. No model/Core calls. Original config and failed profile are retained.
