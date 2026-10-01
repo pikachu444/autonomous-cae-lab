@@ -5,7 +5,7 @@ param(
     [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot),
     [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$RunName = ('openscience-local-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmss')),
     [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ProfileTag = 'runtime',
-    [string]$StoreRoot, [string]$RuntimePrefix, [string]$OwnerPath, [string]$RequiredTool, [string]$ModelId,
+    [string]$StoreRoot, [string]$RuntimePrefix, [string]$OwnerPath, [string]$RequiredTool, [string]$ModelId, [string]$ProjectBindingPath,
     [ValidateSet('Ollama', 'ChatGPT')][string]$Transport = 'Ollama', [string]$AuthProfileRoot,
     [ValidateRange(30, 600)][int]$TimeoutSeconds = 300,
     [string[]]$OpenScienceArgs = @('--version')
@@ -14,7 +14,7 @@ param(
 $taskFacade = @{
     Library=[bool]$Library; Install=[bool]$Install; ConfigureOnly=[bool]$ConfigureOnly
     RepoRoot=$RepoRoot; RunName=$RunName; ProfileTag=$ProfileTag; StoreRoot=$StoreRoot; RuntimePrefix=$RuntimePrefix
-    OwnerPath=$OwnerPath; RequiredTool=$RequiredTool; ModelId=$ModelId; Transport=$Transport; AuthProfileRoot=$AuthProfileRoot; TimeoutSeconds=$TimeoutSeconds; Arguments=$OpenScienceArgs
+    OwnerPath=$OwnerPath; RequiredTool=$RequiredTool; ModelId=$ModelId; Transport=$Transport; AuthProfileRoot=$AuthProfileRoot; ProjectBindingPath=$ProjectBindingPath; TimeoutSeconds=$TimeoutSeconds; Arguments=$OpenScienceArgs
 }
 . (Join-Path $PSScriptRoot 'openscience-server-local.ps1') -Library
 
@@ -44,7 +44,7 @@ const write=(name,value)=>{
 const out=fs.openSync(path.join(directory,'stdout.jsonl'),'wx');
 const err=fs.openSync(path.join(directory,'stderr.txt'),'wx');
 const child=spawn(request.node_path,[request.launcher_path,...request.arguments],{
-  cwd:request.repo_root,shell:false,windowsHide:true,stdio:['ignore',out,err]
+  cwd:request.project_directory??request.repo_root,shell:false,windowsHide:true,stdio:['ignore',out,err]
 });
 const common={request_sha256:digest(requestBytes),supervisor_pid:process.pid,launcher_pid:child.pid||null,
   run_name:request.run_name,session_id:request.session_id||null,log_directory:directory};
@@ -107,7 +107,7 @@ function Get-OpenScienceLiveHash {
 
 function New-OpenScienceOwnedSession {
     param([Parameter(Mandatory)]$Context, [Parameter(Mandatory)][string]$LogDirectory, [string]$SessionId)
-    $taskHeaders=@{'x-openscience-directory'=$Context.RepoRoot}
+    $taskHeaders=Get-OpenScienceProjectHeaders $Context
     if (-not $SessionId) {
         $taskCreate=@{title=(Split-Path -Leaf $LogDirectory); workspace='project'}
         $taskCreated=Invoke-RestMethod -Uri ($Context.RuntimeURL+'/session') -Method Post -Headers $taskHeaders -ContentType 'application/json' -Body ($taskCreate | ConvertTo-Json -Compress) -TimeoutSec 20
@@ -116,9 +116,9 @@ function New-OpenScienceOwnedSession {
     }
     if ($SessionId -notmatch '^ses_[A-Za-z0-9]+$') { throw 'The official server did not identify an exact session; no model request is allowed.' }
     $taskSession=Invoke-RestMethod -Uri ($Context.RuntimeURL+'/session/'+$SessionId) -Headers $taskHeaders -TimeoutSec 20
-    if ([IO.Path]::GetFullPath($taskSession.directory) -ne $Context.RepoRoot) { throw 'Session project does not match the owned task runtime.' }
+    Assert-OpenScienceOwnedSessionMetadata $Context $taskSession $SessionId
     $taskFs=Invoke-RestMethod -Uri ($Context.RuntimeURL+'/session/'+$SessionId+'/filesystem') -Headers $taskHeaders -TimeoutSec 20
-    if ($taskFs.workspace.mode -ne 'legacy') { throw 'Project workspace was not honored. The retained session is not deleted or used for inference.' }
+    Assert-OpenScienceSessionWorkspace $Context $taskFs $SessionId
     [ordered]@{session_id=$SessionId;directory=$taskSession.directory;workspace_mode=$taskFs.workspace.mode;verified_utc=[DateTime]::UtcNow.ToString('o')} |
         ConvertTo-Json | Set-Content -LiteralPath (Join-Path $LogDirectory 'session-verified.json') -Encoding utf8
     return $SessionId
@@ -136,11 +136,11 @@ function Confirm-OpenScienceCancelledSessionIdle {
         $taskCurrent=Get-OpenScienceLocalRuntime -OwnerPath $Context.OwnerPath -LifecycleOnly
         Assert-OpenScienceCondition ($taskCurrent.RunName -ceq $Context.RunName -and $taskCurrent.RepoRoot -ceq $Context.RepoRoot -and
             $taskCurrent.RuntimeURL -ceq $Context.RuntimeURL) 'Cancellation idle context is not the exact owned runtime.'
-        $taskMetadataResponse=Invoke-OpenScienceHttp ($taskCurrent.RuntimeURL+'/session/'+$SessionId) -Headers @{'x-openscience-directory'=$taskCurrent.RepoRoot} -TimeoutSeconds 15
+        $taskMetadataResponse=Invoke-OpenScienceHttp ($taskCurrent.RuntimeURL+'/session/'+$SessionId) -Headers (Get-OpenScienceProjectHeaders $taskCurrent) -TimeoutSeconds 15
         Write-OpenScienceJson (Join-Path $LogDirectory 'timeout-session-idle-metadata.json') @{status_code=$taskMetadataResponse.StatusCode;body=$taskMetadataResponse.Content} -CreateNew
         $taskMetadata=$taskMetadataResponse.Content | ConvertFrom-Json -AsHashtable -ErrorAction Stop
-        Assert-OpenScienceCondition ($taskMetadataResponse.StatusCode -eq 200 -and $taskMetadata.id -ceq $SessionId -and
-            [IO.Path]::GetFullPath($taskMetadata.directory) -eq $taskCurrent.RepoRoot) 'Cancelled session metadata is not the exact owned project; CLI termination refused.'
+        Assert-OpenScienceCondition ($taskMetadataResponse.StatusCode -eq 200) 'Cancelled session metadata failed; CLI termination refused.'
+        Assert-OpenScienceOwnedSessionMetadata $taskCurrent $taskMetadata $SessionId
         $taskIdleWatch=[Diagnostics.Stopwatch]::StartNew(); $taskSequence=0
         do {
             $taskStatusPath=Join-Path $LogDirectory ('timeout-session-idle-status-'+(++$taskSequence).ToString('000')+'.json')
@@ -183,7 +183,7 @@ function Invoke-OpenScienceLocalCommand {
         try { $taskCommandLock=[IO.FileStream]::new((Join-Path $Context.ProfileRoot 'runtime-command.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None,1) }
         catch { throw 'Another CLI command owns this profile; concurrent stage guard changes are refused.' }
         Assert-OpenScienceNoPendingCommand -Context $taskCurrent
-        $taskStatuses=Invoke-RestMethod -Uri ($taskCurrent.RuntimeURL+'/session/status') -Headers @{'x-openscience-directory'=$taskCurrent.RepoRoot} -TimeoutSec 20
+        $taskStatuses=Invoke-RestMethod -Uri ($taskCurrent.RuntimeURL+'/session/status') -Headers (Get-OpenScienceProjectHeaders $taskCurrent) -TimeoutSec 20
         $taskStatuses | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath (Join-Path $LogDirectory 'session-status-preflight.json') -Encoding utf8
         if(@($taskStatuses.PSObject.Properties | Where-Object { $_.Value.type -ne 'idle' }).Count -gt 0){throw 'An owned server session is active; preserve it and wait for idle or cancel its exact session before another model request.'}
         if ($taskArgs -contains '--attach' -or $taskArgs -contains '--continue' -or $taskArgs -contains '-c') { throw 'Use an explicit owned session; attachment and continuation guessing cannot override this launcher.' }
@@ -227,6 +227,7 @@ function Invoke-OpenScienceLocalCommand {
         [IO.File]::WriteAllText($taskRelayPath,(Get-OpenScienceCommandRelaySource),[Text.UTF8Encoding]::new($false))
         Write-OpenScienceJson $taskRequestPath ([ordered]@{kind='autonomous-cae-lab.openscience-command';run_name=$Context.RunName
             repo_root=$Context.RepoRoot;log_directory=$LogDirectory;node_path=$Context.NodePath;launcher_path=$Context.LauncherPath
+            project_directory=(Get-OpenScienceProjectDirectory $Context);project_id=$(if($Context.ProjectBinding){$Context.ProjectBinding.project_id}else{$null})
             launcher_sha256=(Get-OpenScienceHash $Context.LauncherPath);arguments=$taskArgs;session_id=$taskSessionId
             server_boot_source_sha256=$Context.BootSourceSha256;server_boot_source_commit=$Context.BootSource.source_commit}) -CreateNew
         $taskRequestHash=Get-OpenScienceHash $taskRequestPath
@@ -349,6 +350,7 @@ $taskContext=if($taskFacade.OwnerPath){Get-OpenScienceLocalRuntime -OwnerPath $t
     if($taskFacade.ModelId){$taskContextArgs.ModelId=$taskFacade.ModelId}
     $taskContextArgs.Transport=$taskFacade.Transport
     if($taskFacade.AuthProfileRoot){$taskContextArgs.AuthProfileRoot=$taskFacade.AuthProfileRoot}
+    if($taskFacade.ProjectBindingPath){$taskContextArgs.ProjectBinding=Read-OpenScienceJson $taskFacade.ProjectBindingPath}
     New-OpenScienceLocalContext @taskContextArgs
 }
 if($taskFacade.ConfigureOnly){$taskContext | Select-Object RunName,ProfileRoot,ConfigPath,StoreRoot,Model;return}

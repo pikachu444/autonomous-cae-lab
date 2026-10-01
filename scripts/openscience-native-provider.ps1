@@ -68,7 +68,7 @@ function New-OpenScienceNativeContext {
     param([Parameter(Mandatory)][string]$RepoRoot, [Parameter(Mandatory)][string]$RunName,
         [string]$ProfileTag, [string]$StoreRoot, [string]$RuntimePrefix, [string]$ModelId, [string]$AuthProfileRoot,
         [string]$WslDistro, [string]$WslPython, [AllowEmptyCollection()][string[]]$AllowedTools,
-        [int]$OutputTokens, [int]$Steps, [int]$ProviderTimeoutSeconds)
+        [int]$OutputTokens, [int]$Steps, [int]$ProviderTimeoutSeconds, [Collections.IDictionary]$ProjectBinding)
     Assert-OpenScienceCondition ($ModelId -cmatch '^openai-codex/[A-Za-z0-9._-]+$') 'Select a full official ChatGPT model ID explicitly. No default or fallback model is permitted.'
     Assert-OpenScienceCondition (-not [string]::IsNullOrWhiteSpace($AuthProfileRoot)) 'The separately authenticated external profile is required.'
     $authRoot = [IO.Path]::GetFullPath($AuthProfileRoot)
@@ -78,6 +78,7 @@ function New-OpenScienceNativeContext {
     $auth = New-OpenScienceChatGptContext -ProfileRoot $authRoot -RuntimePrefix $RuntimePrefix
     $authPin = (Read-OpenScienceJson (Join-Path $authRoot 'caelab-profile-owner.json')).runtime_pin
     $RepoRoot = [IO.Path]::GetFullPath($RepoRoot)
+    if ($ProjectBinding) { $ProjectBinding = ConvertTo-OpenScienceProjectBinding $ProjectBinding $RepoRoot $auth.DataRoot }
     if (-not $StoreRoot) { $StoreRoot = Join-Path $RepoRoot "runs/$RunName" }
     $StoreRoot = [IO.Path]::GetFullPath($StoreRoot)
     Assert-OpenScienceContainedPath $StoreRoot $RepoRoot | Out-Null
@@ -101,6 +102,7 @@ function New-OpenScienceNativeContext {
         store_root = $StoreRoot; auth_profile_root = $authRoot; runtime_prefix = $auth.RuntimePrefix; model = $ModelId
         wsl_distro = $WslDistro; wsl_python = $WslPython; allowed_tools = @($AllowedTools); output_tokens = $OutputTokens
         steps = $Steps; provider_timeout_seconds = $ProviderTimeoutSeconds; mcp_git_transport = $mcpGit; plugin_sha256 = $pluginHash }
+    if ($ProjectBinding) { $intent.project_binding = $ProjectBinding }
     $intentHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($intent | ConvertTo-Json -Depth 12 -Compress)))).ToLowerInvariant()
     $markerPath = Assert-OpenScienceContainedPath (Join-Path $profile 'caelab-profile-owner.json') $profile
     $contextPath = Assert-OpenScienceContainedPath (Join-Path $profile 'context.json') $profile
@@ -132,6 +134,7 @@ function New-OpenScienceNativeContext {
         WslPythonCacheRoot = (Join-Path $profile 'wsl-pycache'); IntentSha256 = $intentHash
         OwnerPath = (Join-Path $profile 'runtime-owner.json'); GuardPath = (Join-Path $profile 'expected-tools.json')
         SandboxLimitation = 'Windows has no native OpenScience sandbox backend. warn fallback is explicit; application permissions are not OS containment.' }
+    if ($ProjectBinding) { $context | Add-Member -NotePropertyName ProjectBinding -NotePropertyValue $ProjectBinding }
     $permission = [ordered]@{ '*' = 'deny' }; $mcpPermission = [ordered]@{ '*' = 'deny' }
     foreach ($tool in $AllowedTools) { $permission[$tool] = 'allow'; $mcpPermission[$tool] = 'allow' }
     $permission['mcp'] = $mcpPermission
@@ -166,11 +169,13 @@ function New-OpenScienceNativeContext {
 }
 
 function Initialize-OpenScienceNativeGuard($Context, $Owner) {
-    Write-OpenScienceJson $Context.PluginSettingsPath @{ schema = 1; kind = 'autonomous-cae-lab.openscience-native-guard'
+    $settings = [ordered]@{ schema = 1; kind = 'autonomous-cae-lab.openscience-native-guard'
         repo_root = $Context.RepoRoot; run_name = $Context.RunName; profile_root = $Context.ProfileRoot; model = $Context.Model
         allowed = @($Context.AllowedTools); guardPath = $Context.GuardPath; configPath = $Context.ConfigPath; config_sha256 = $Context.ConfigSha256
         pluginPath = $Context.PluginPath; plugin_sha256 = $Context.PluginSha256; receipts = $Context.HookReceiptsPath
-        boot_source = $Owner.boot_source; boot_source_sha256 = $Owner.boot_source_sha256 } -CreateNew
+        boot_source = $Owner.boot_source; boot_source_sha256 = $Owner.boot_source_sha256 }
+    if ($Context.ProjectBinding) { $settings.schema=2; $settings.project_binding=$Context.ProjectBinding }
+    Write-OpenScienceJson $Context.PluginSettingsPath $settings -CreateNew
     $Owner.plugin_settings_sha256 = Get-OpenScienceHash $Context.PluginSettingsPath
 }
 

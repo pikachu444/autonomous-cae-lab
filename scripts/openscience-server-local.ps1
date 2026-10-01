@@ -12,6 +12,7 @@ param(
     [string]$ModelId,
     [ValidateSet('Ollama', 'ChatGPT')][string]$Transport = 'Ollama',
     [string]$AuthProfileRoot,
+    [string]$ProjectBindingPath,
     [string]$WslDistro = 'Ubuntu',
     [string]$WslPython = '/home/pikachu444/.local/share/autonomous-cae-lab/venv-py312/bin/python',
     [string[]]$AllowedTools = @('caelab_study_create', 'caelab_study_inspect', 'caelab_parameters_discover',
@@ -357,6 +358,7 @@ function New-OpenScienceLocalContext {
         [string]$StoreRoot, [string]$RuntimePrefix,
         [string]$ModelId,
         [ValidateSet('Ollama', 'ChatGPT')][string]$Transport = 'Ollama', [string]$AuthProfileRoot,
+        [Collections.IDictionary]$ProjectBinding,
         [string]$WslDistro = 'Ubuntu',
         [string]$WslPython = '/home/pikachu444/.local/share/autonomous-cae-lab/venv-py312/bin/python',
         [AllowEmptyCollection()][string[]]$AllowedTools = $script:OpenScienceBoundedTools,
@@ -368,8 +370,9 @@ function New-OpenScienceLocalContext {
     if ($Transport -ceq 'ChatGPT') {
         return New-OpenScienceNativeContext -RepoRoot $RepoRoot -RunName $RunName -ProfileTag $ProfileTag -StoreRoot $StoreRoot -RuntimePrefix $RuntimePrefix `
             -ModelId $ModelId -AuthProfileRoot $AuthProfileRoot -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools `
-            -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds
+            -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds -ProjectBinding $ProjectBinding
     }
+    Assert-OpenScienceCondition (-not $ProjectBinding) 'Managed project bindings currently require the explicitly selected native ChatGPT transport.'
     $RepoRoot = [IO.Path]::GetFullPath($RepoRoot)
     $wslRoot = ConvertTo-OpenScienceWslPath $RepoRoot
     if (-not $StoreRoot) { $StoreRoot = Join-Path $RepoRoot "runs\$RunName" }
@@ -501,7 +504,7 @@ function New-OpenScienceLocalProcessInfo {
             $Arguments[$attachAt + 1] -eq $verified.RuntimeURL -and $Context.RuntimeURL -eq $verified.RuntimeURL) 'Model action must attach to this current owned runtime.'
     }
     $info = [Diagnostics.ProcessStartInfo]::new()
-    $info.FileName = $Context.NodePath; $info.WorkingDirectory = $Context.RepoRoot
+    $info.FileName = $Context.NodePath; $info.WorkingDirectory = Get-OpenScienceProjectDirectory $Context
     $info.UseShellExecute = $false; $info.CreateNoWindow = $true
     $info.RedirectStandardOutput = $true; $info.RedirectStandardError = $true
     $info.ArgumentList.Add($Context.LauncherPath)
@@ -651,7 +654,8 @@ function Get-OpenScienceLocalRuntime {
     $health = $healthResponse.Content | ConvertFrom-Json -AsHashtable
     Assert-OpenScienceReadiness $context $owner.runtime_url $owner.native.Pid $native $connections $health $owner.health_run_id
     if (-not $LifecycleOnly) {
-        $mcpResponse = Invoke-OpenScienceHttp "$($owner.runtime_url)/mcp" -Headers @{ 'x-openscience-directory' = $context.RepoRoot } -TimeoutSeconds 60
+        if ($context.ProjectBinding) { Assert-OpenScienceManagedWorkspace $context $owner.runtime_url }
+        $mcpResponse = Invoke-OpenScienceHttp "$($owner.runtime_url)/mcp" -Headers (Get-OpenScienceProjectHeaders $context) -TimeoutSeconds 60
         Assert-OpenScienceCondition ($mcpResponse.StatusCode -eq 200 -and ($mcpResponse.Content | ConvertFrom-Json).caelab.status -eq 'connected') 'Current GET /mcp is not connected; model action blocked.'
     }
     Assert-OpenScienceProcessIdentity $owner.native (Get-OpenScienceProcessIdentity -ProcessId $owner.native.Pid)
@@ -748,7 +752,9 @@ function Invoke-OpenScienceSessionAbort {
     $request = [ordered]@{ method = 'POST'; uri = $uri; session_id = $SessionId; abort_source = 'runner_timeout'; requested_utc = [DateTime]::UtcNow.ToString('o') }
     Write-OpenScienceJson (Join-Path $directory 'request.json') $request -CreateNew
     try {
-        $response = Invoke-OpenScienceHttp $uri -Method POST -Headers @{ 'x-openscience-directory' = $current.RepoRoot; 'x-openscience-abort-source' = 'runner_timeout' } -TimeoutSeconds 20
+        $headers = Get-OpenScienceProjectHeaders $current
+        $headers['x-openscience-abort-source'] = 'runner_timeout'
+        $response = Invoke-OpenScienceHttp $uri -Method POST -Headers $headers -TimeoutSeconds 20
         [IO.File]::WriteAllText((Join-Path $directory 'response.txt'), [string]$response.Content, [Text.UTF8Encoding]::new($false))
         $receipt = [ordered]@{ session_id = $SessionId; method = 'POST'; uri = $uri; status_code = [int]$response.StatusCode
             Confirmed = ($response.StatusCode -eq 200 -and ([string]$response.Content).Trim() -eq 'true'); StatusCode = [int]$response.StatusCode; SessionId = $SessionId
@@ -763,7 +769,7 @@ function Invoke-OpenScienceSessionAbort {
 }
 
 function Get-OpenScienceOwnedSessionStatus($Context, [string]$ReceiptPath) {
-    $response = Invoke-OpenScienceHttp "$($Context.RuntimeURL)/session/status" -Headers @{ 'x-openscience-directory' = $Context.RepoRoot } -TimeoutSeconds 15
+    $response = Invoke-OpenScienceHttp "$($Context.RuntimeURL)/session/status" -Headers (Get-OpenScienceProjectHeaders $Context) -TimeoutSeconds 15
     $stream = Open-OpenScienceLiveLog $ReceiptPath
     try { $stream.Write([Text.Encoding]::UTF8.GetBytes([string]$response.Content)); $stream.Flush($true) } finally { $stream.Dispose() }
     Assert-OpenScienceCondition ($response.StatusCode -eq 200) 'Current owned session status is unavailable; termination refused.'
@@ -804,11 +810,11 @@ function Confirm-OpenScienceSessionsIdleForStop($Context) {
         $paused = $true
         $before = Get-OpenScienceOwnedSessionStatus $current (Join-Path $directory 'session-status-before.json')
         foreach ($sessionId in @(Get-OpenScienceNonIdleSessionIds $before)) {
-            $sessionResponse = Invoke-OpenScienceHttp "$($current.RuntimeURL)/session/$sessionId" -Headers @{ 'x-openscience-directory' = $current.RepoRoot } -TimeoutSeconds 15
+            $sessionResponse = Invoke-OpenScienceHttp "$($current.RuntimeURL)/session/$sessionId" -Headers (Get-OpenScienceProjectHeaders $current) -TimeoutSeconds 15
             Write-OpenScienceJson (Join-Path $directory "$sessionId-metadata.json") ($sessionResponse.Content | ConvertFrom-Json -AsHashtable -ErrorAction Stop) -CreateNew
             $session = $sessionResponse.Content | ConvertFrom-Json -AsHashtable -ErrorAction Stop
-            Assert-OpenScienceCondition ($sessionResponse.StatusCode -eq 200 -and $session.id -ceq $sessionId -and
-                [IO.Path]::GetFullPath($session.directory) -eq $current.RepoRoot) 'Active session is not the exact owned project session; termination refused.'
+            Assert-OpenScienceCondition ($sessionResponse.StatusCode -eq 200) 'Active session metadata failed; termination refused.'
+            Assert-OpenScienceOwnedSessionMetadata $current $session $sessionId
             $receipt = Invoke-OpenScienceSessionAbort $current $sessionId
             Assert-OpenScienceCondition ($receipt.Confirmed -and $receipt.StatusCode -eq 200 -and $receipt.SessionId -ceq $sessionId) 'Cancellation was not confirmed; termination refused.'
             $receipts.Add($receipt)
@@ -1201,14 +1207,14 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
         Write-OpenScienceJson (Join-Path $directory 'global-health.json') $health -CreateNew
         $remaining = [int][Math]::Floor($spec.startup_timeout_seconds - $watch.Elapsed.TotalSeconds)
         Assert-OpenScienceCondition ($remaining -gt 0) 'No startup time remains for MCP readiness.'
-        $mcpResponse = Invoke-OpenScienceHttp "$($ready.Url)/mcp" -Headers @{ 'x-openscience-directory' = $context.RepoRoot } -TimeoutSeconds ([Math]::Min(60, $remaining))
+        if ($context.ProjectBinding) { Assert-OpenScienceManagedWorkspace $context $ready.Url }
+        $mcpResponse = Invoke-OpenScienceHttp "$($ready.Url)/mcp" -Headers (Get-OpenScienceProjectHeaders $context) -TimeoutSeconds ([Math]::Min(60, $remaining))
         $mcp = $mcpResponse.Content | ConvertFrom-Json -AsHashtable
         Write-OpenScienceJson (Join-Path $directory 'mcp-current.json') $mcp -CreateNew
         Assert-OpenScienceCondition ($mcpResponse.StatusCode -eq 200 -and $mcp.caelab.status -eq 'connected') 'Current owned MCP is not connected; startup remains failed.'
         if ($context.Transport -ceq 'ChatGPT') { Assert-OpenScienceNativeGuardLoaded $context $owner }
         Assert-OpenScienceRepositorySourcePin $owner.boot_source (Get-OpenScienceRepositorySourcePin -Context $context -GitPath $owner.boot_source.git_path -GitSha256 $owner.boot_source.git_sha256)
-        $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($context.RepoRoot)).TrimEnd('=').Replace('+', '-').Replace('/', '_')
-        $owner.workspace_url = "$($ready.Url)/$encoded/session"
+        $owner.workspace_url = Get-OpenScienceProjectWorkspaceUrl $context $ready.Url
         $owner.state = 'ready'; $owner.ready_utc = [DateTime]::UtcNow.ToString('o'); Save-OpenScienceRuntimeOwner $owner
         Write-Output ("Owned OpenScience ready at " + $owner.runtime_url)
         $handledStopRequests = [Collections.Generic.HashSet[string]]::new()
@@ -1700,6 +1706,7 @@ process.stdout.write('{}');
 
 . (Join-Path $PSScriptRoot 'openscience-chatgpt-functions.ps1')
 . (Join-Path $PSScriptRoot 'openscience-native-provider.ps1')
+. (Join-Path $PSScriptRoot 'openscience-project.ps1')
 if ($Library) { return }
 $ErrorActionPreference = 'Stop'
 if ($Mode -eq 'ServeInternal') { Invoke-OpenScienceServeInternal $ContextPath $LaunchToken; return }
@@ -1713,7 +1720,8 @@ switch ($Mode) {
     'Stop' { Stop-OpenScienceLocalServer -OwnerPath $OwnerPath }
     'Start' {
         $context = New-OpenScienceLocalContext -RepoRoot $RepoRoot -RunName $RunName -ProfileTag $ProfileTag -StoreRoot $StoreRoot -RuntimePrefix $RuntimePrefix `
-            -ModelId $ModelId -Transport $Transport -AuthProfileRoot $AuthProfileRoot -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds
+            -ModelId $ModelId -Transport $Transport -AuthProfileRoot $AuthProfileRoot -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds `
+            -ProjectBinding $(if ($ProjectBindingPath) { Read-OpenScienceJson $ProjectBindingPath } else { $null })
         Start-OpenScienceLocalServer $context $Port $StartupTimeoutSeconds
     }
 }

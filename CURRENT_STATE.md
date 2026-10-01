@@ -2,15 +2,18 @@
 
 ## Current serial work: Phase1 persistent OpenScience
 
-Source correction checkpoint: native policy denials now retain their exact code
-without upstream provider-transient message signals; source receipts distinguish
-capture from exact-pin comparison with sanitized fixed classes/bounded timing.
-Node25/native28 source checks PASS, no provider/Core/CAD calls. Actual new-source
-execution is NOT_RUN;5365 research remains separately attributed. The actual
-research checkpoint is pushed as6c8c0dc28efe86f3fff9b18d4378a16346dbea9d.
-Next: immutable managed project identity/source-root ownership across official
-GUI/CLI/abort/idle/Stop, then fresh-source acceptance. Do not edit the live5365
-serving checkout. See20261001-openscience-native-guard-correction.json.
+Managed project/source-root implementation is independently reviewed. Native
+schema2 binds official project/session/grant/workingRoot; server and relay cwd
+use managed identity, while MCP/source pin/Core store stay external. Source
+checks are separately attributed in20261001-openscience-managed-project-source.json.
+No actual managed model/Core/CAD execution is claimed. Original native error
+correction is pushed asf45052dae21ab60658d186b1a141f42c838c9b73,
+exact CI36800651394 all8PASS.5365 actual research remains separately attributed.
+Next: pause old5365 through its exact controller library, create official managed
+project metadata with the new stateless helper, owned Stop, update serving to
+the new committed source and use a NEW profile/store with the same chosen5.6
+Sol/auth. Verify resident source, full cases, official same-session GUI,
+observed-busy cancellation and controlled Stop. Do not retrofit the old owner.
 
 Current verified execution is clean5365ae8 / fixture3e48bf6, run
 `p1-native-5365ae8-20261001-01`. Actual connected resident Git/fingerprints PASS.
@@ -21,9 +24,9 @@ and receipt-grounded interpretation. Independent review verified32 store files,
 See20261001-openscience-native-research.json; a later commit is not a rerun.
 
 Full P1.1 remains OPEN:16 source-check refusals preceded accepted retries;
-initial capture failure cause UNKNOWN. Official retry.ts interprets the guard's
-"unavailable" wording as provider overload. Keep refusal, correct retry
-classification and add sanitized diagnostics. Official Home/legacy session
+initial capture failure cause UNKNOWN. The source correction keeps refusal and
+avoids unavailable/provider-overload classification with sanitized diagnostics;
+actual new-source verification remains required. Official Home/legacy session
 route does not show this research. Existing Lab8766 is a separate real-results
 interface, not official OpenScience. Official documented managed-project/source-
 folder/working-root workflow requires separately bound project identity and

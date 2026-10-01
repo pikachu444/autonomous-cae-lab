@@ -12,6 +12,15 @@ Currently only **P1.1** is active. Later rows are queued, not running.
 
 ## P1.1 — integrated OpenScience CAD research (ACTIVE)
 
+- [x] Correct native policy-denial provider retries without weakening source
+  gates; f45052d/source record/independent review/CI36800651394 all8PASS.
+- [x] Implement official managed identity/external source ownership across
+  server/CLI/GUI hooks/abort/idle/Stop; ADR0013/source checks/independent review.
+  This is source acceptance, not a live GUI or full P1.1 gate.
+- [ ] Run a NEW committed managed profile/store: resident source identity,
+  complete native cases, same official GUI session, observed-busy cancellation
+  with output/store preservation, and controlled owned Stop.
+
 - [x] Remove silent Qwen defaults and implement official ChatGPT auth-only
   connection (ADR0012); auth19/controller52/launcher47 checks pass, no inference.
 - [x] Add diagnostic resident-MCP source resource;8 tests including actual

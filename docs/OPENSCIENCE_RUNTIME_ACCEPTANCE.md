@@ -1,5 +1,16 @@
 # OpenScience local runtime acceptance — 2026-09-30
 
+## Managed project/source-root source unit, 2026-10-01
+
+Independent bounded source review PASS after closing the acceptance harness
+source-root/boot-byte mismatch and async session-ID drift. Checks are attributed
+by their own run/hash. Legacy contexts remain supported. Project metadata creation
+requires paused exact native owner and supported endpoints; use a NEW immutable
+profile rather than rewrite the old runtime. No actual managed provider/Core/CAD
+run occurred in source verification. Managed GUI/full-case/in-flight acceptance
+is NOT_RUN. See [source record](../benchmarks/records/20261001-openscience-managed-project-source.json)
+and ADR0013. Original retry correction f45052d CI36800651394 all8PASS is separate.
+
 ## Native guard retry correction, 2026-10-01
 
 Node25/native28 checks PASS for fixed non-transient policy-denial text and

@@ -87,6 +87,49 @@ function fixture(t, selected = tools) {
     .sort((a, b) => a.sequence - b.sequence);
   return { base, profile, repo, settings, settingsPath, guard, boot, statePath, counts, dependencies, hooks, writeGuard, receipts };
 }
+function managedFixture(t) {
+  const f = fixture(t);
+  const identity = path.join(f.base, 'managed-identity');
+  fs.mkdirSync(identity);
+  const binding = {
+    schema: 1, kind: 'autonomous-cae-lab.openscience-project-binding', project_id: 'prj_fixture01',
+    project_directory: identity, source_directory: f.repo, grant_id: 'fsg_fixture01', working_root: f.repo, access: 'write',
+  };
+  f.settings.schema = 2;
+  f.settings.project_binding = binding;
+  json(f.settingsPath, f.settings);
+  const sessionID = 'ses_fixture01';
+  const state = {
+    session: { id: sessionID, projectID: binding.project_id, directory: identity, workspace: { mode: 'isolated' } },
+    filesystem: { version: 1, revision: 1, sessionID, projectID: binding.project_id, directory: identity,
+      toolDirectory: f.repo, workingRoot: f.repo, workspace: { mode: 'isolated' }, enforcement: {},
+      grants: [{ id: binding.grant_id, path: f.repo, access: 'write', scope: 'project', source: 'fixture', time: { created: 1 } }] },
+  };
+  f.counts.session = 0; f.counts.filesystem = 0;
+  const pluginInput = {
+    project: { id: binding.project_id, worktree: identity }, directory: identity, worktree: identity,
+    serverUrl: new URL('http://127.0.0.1:4098/'),
+    client: { session: { get: async options => {
+      f.counts.session++;
+      assert.deepEqual(options.path, { id: sessionID });
+      assert.equal(options.throwOnError, true);
+      assert.ok(options.signal instanceof AbortSignal);
+      if (state.sessionError) throw state.sessionError;
+      return state.sessionEnvelope ?? { data: structuredClone(state.session) };
+    } } },
+  };
+  f.dependencies.pluginInput = pluginInput;
+  f.dependencies.loadFilesystem = async (id, signal) => {
+    f.counts.filesystem++;
+    assert.equal(id, sessionID);
+    assert.ok(signal instanceof AbortSignal);
+    if (state.filesystemError) throw state.filesystemError;
+    return structuredClone(state.filesystem);
+  };
+  return { ...f, binding, identity, sessionID, state, pluginInput,
+    request: () => ({ ...input(), sessionID }),
+  };
+}
 const input = () => ({ sessionID: 'ses_synthetic-01', agent: 'research', model: { providerID: 'openai-codex', id: 'test-explicit-model' } });
 const refusal = code => error => error.name === 'CaeLabNativeGuardRefusal' && error.code === code && !error.message.includes('synthetic snapshot');
 // Pinned official 4082a2ecb73e166d4503963798228ba700f3840f:
@@ -461,4 +504,335 @@ test('receipt metadata rejects arbitrary session strings and never records messa
   assert.equal(JSON.stringify(receipt).includes('SECRET'), false);
   assert.ok(Buffer.byteLength(JSON.stringify(receipt)) < 2048);
   assert.equal(Object.hasOwn(receipt, 'http_request_verified'), false);
+});
+
+test('schema2 public plugin startup binds managed identity without session or HTTP reads', async t => {
+  const f = managedFixture(t);
+  const exports = await import(pathToFileURL(f.settings.pluginPath));
+  assert.deepEqual(Object.keys(exports), ['CaeLabNativeGuard']);
+  const hooks = await exports.CaeLabNativeGuard(f.pluginInput);
+  assert.deepEqual(Object.keys(hooks), ['chat.params', 'tool.execute.before']);
+  assert.equal(f.counts.session, 0); assert.equal(f.counts.filesystem, 0);
+  const receipt = f.receipts()[0];
+  assert.equal(receipt.accepted, true);
+  assert.deepEqual(receipt.project_check, { identity: 'PASS', session: 'NOT_RUN', filesystem: 'NOT_RUN' });
+  assert.equal(receipt.session_id, null);
+});
+
+test('managed hooks verify exact session and project grant while allowing isolated GUI workspace', async t => {
+  const f = managedFixture(t), hooks = f.hooks();
+  f.state.filesystem.workspace.directory = 'SECRET ISOLATED WORKSPACE SENTINEL';
+  const request = immutable(f.request()), output = immutable({ args: { private: 'SECRET ARGUMENT SENTINEL' } });
+  const before = JSON.stringify({ request, output });
+  await hooks['chat.params'](request, output);
+  await hooks['tool.execute.before']({ tool: tools[0], sessionID: f.sessionID }, output);
+  assert.equal(JSON.stringify({ request, output }), before);
+  assert.equal(f.counts.capture, 3); assert.equal(f.counts.session, 2); assert.equal(f.counts.filesystem, 2);
+  for (const receipt of f.receipts().slice(1)) {
+    assert.equal(receipt.accepted, true); assert.equal(receipt.session_id, f.sessionID);
+    assert.deepEqual(receipt.project_check, { identity: 'PASS', session: 'PASS', filesystem: 'PASS' });
+    assert.equal(receipt.guard_sha256, sha(fs.readFileSync(f.settings.guardPath)));
+  }
+  assert.equal(JSON.stringify(f.receipts()).includes('SECRET'), false);
+  assert.equal(JSON.stringify(f.receipts()).includes(f.base), false);
+});
+
+test('managed binding schema and exact immutable source fields fail closed', t => {
+  const f = managedFixture(t), original = structuredClone(f.binding);
+  for (const patch of [{ schema: 2 }, { kind: 'foreign' }, { project_id: 'foreign' }, { grant_id: 'foreign' },
+    { source_directory: f.profile }, { working_root: f.profile }, { access: 'read' }, { extra: true },
+    { project_directory: '.' }]) {
+    f.settings.project_binding = { ...original, ...patch };
+    json(f.settingsPath, f.settings);
+    assert.throws(f.hooks, error => error.name === 'CaeLabNativeGuardRefusal' && officialStatuslessRetry(error) === undefined);
+  }
+  f.settings.project_binding = original;
+  f.settings.schema = 1;
+  json(f.settingsPath, f.settings);
+  assert.throws(f.hooks, refusal('SETTINGS_INVALID'));
+  f.settings.schema = 2;
+  delete f.settings.project_binding;
+  json(f.settingsPath, f.settings);
+  assert.throws(f.hooks, refusal('SETTINGS_INVALID'));
+  assert.equal(f.counts.capture, 0); assert.equal(f.counts.session, 0); assert.equal(f.counts.filesystem, 0);
+});
+
+test('foreign initial project identity, client shape and non-loopback server are refused before capture', t => {
+  const patches = [
+    [f => { f.pluginInput.project.id = 'prj_foreign01'; }, 'PROJECT_INPUT_CHANGED'],
+    [f => { f.pluginInput.directory = f.repo; }, 'PROJECT_INPUT_CHANGED'],
+    [f => { f.pluginInput.worktree = f.repo; }, 'PROJECT_INPUT_CHANGED'],
+    [f => { f.pluginInput.project.worktree = f.repo; }, 'PROJECT_INPUT_CHANGED'],
+    [f => { f.pluginInput.client = {}; }, 'PROJECT_CLIENT_INVALID'],
+    [f => { f.pluginInput.client.session.get = null; }, 'PROJECT_CLIENT_INVALID'],
+    [f => { f.pluginInput.serverUrl = 'https://127.0.0.1:4098/'; }, 'PROJECT_SERVER_INVALID'],
+    [f => { f.pluginInput.serverUrl = 'http://127.0.0.1.example:4098/'; }, 'PROJECT_SERVER_INVALID'],
+    [f => { f.pluginInput.serverUrl = 'http://SECRET:SECRET@127.0.0.1:4098/'; }, 'PROJECT_SERVER_INVALID'],
+    [f => { f.pluginInput.serverUrl = 'http://127.0.0.1:4098/SECRET'; }, 'PROJECT_SERVER_INVALID'],
+  ];
+  for (const [patch, code] of patches) {
+    const f = managedFixture(t);
+    patch(f);
+    assert.throws(f.hooks, refusal(code));
+    assert.equal(f.counts.capture, 0); assert.equal(f.counts.session, 0); assert.equal(f.counts.filesystem, 0);
+    const receipt = f.receipts().at(-1);
+    assert.equal(receipt.accepted, false); assert.equal(receipt.project_check.identity, 'FAIL');
+    assert.equal(JSON.stringify(receipt).includes('SECRET'), false);
+  }
+});
+
+test('managed session IDs use the official strict prefix and never reach APIs when malformed', async t => {
+  const f = managedFixture(t), hooks = f.hooks();
+  for (const sessionID of [undefined, null, 'ses_', 'ses_SECRET VALUE', 'ses_synthetic-01', 'foreign', `ses_${'x'.repeat(125)}`]) {
+    for (const hook of ['chat.params', 'tool.execute.before']) {
+      await assert.rejects(hooks[hook]({ ...f.request(), tool: tools[0], sessionID }, {}), refusal('PROJECT_SESSION_ID_INVALID'));
+      const receipt = f.receipts().at(-1);
+      assert.equal(receipt.session_id, null); assert.equal(receipt.source_check, null);
+      assert.deepEqual(receipt.project_check, { identity: 'PASS', session: 'NOT_RUN', filesystem: 'NOT_RUN' });
+    }
+  }
+  assert.equal(f.counts.capture, 1); assert.equal(f.counts.session, 0); assert.equal(f.counts.filesystem, 0);
+});
+
+test('SDK session ownership and error responses block both hooks before filesystem or source', async t => {
+  const f = managedFixture(t), hooks = f.hooks(), original = structuredClone(f.state.session);
+  const cases = [
+    [{ ...original, id: 'ses_foreign01' }, 'PROJECT_SESSION_CHANGED'],
+    [{ ...original, projectID: 'prj_foreign01' }, 'PROJECT_SESSION_CHANGED'],
+    [{ ...original, directory: f.repo }, 'PROJECT_SESSION_CHANGED'],
+    [{ ...original, directory: 'SECRET DIRECTORY SENTINEL' }, 'PROJECT_SESSION_CHANGED'],
+    [null, 'PROJECT_SESSION_READ_FAILED'],
+  ];
+  for (const [session, code] of cases) {
+    f.state.session = session;
+    for (const hook of ['chat.params', 'tool.execute.before'])
+      await assert.rejects(hooks[hook]({ ...f.request(), tool: tools[0] }, {}), refusal(code));
+  }
+  f.state.session = original;
+  f.state.sessionEnvelope = { data: original, error: { message: 'SECRET SDK HTTP ERROR SENTINEL' } };
+  await assert.rejects(hooks['chat.params'](f.request(), {}), refusal('PROJECT_SESSION_READ_FAILED'));
+  delete f.state.sessionEnvelope;
+  f.state.sessionError = new Error('SECRET SDK HTTP ERROR unavailable SENTINEL');
+  await assert.rejects(hooks['tool.execute.before']({ tool: tools[0], sessionID: f.sessionID }, {}), error => {
+    assert.equal(officialStatuslessRetry(error), undefined);
+    return refusal('PROJECT_SESSION_READ_FAILED')(error);
+  });
+  assert.equal(f.counts.filesystem, 0); assert.equal(f.counts.capture, 1);
+  assert.equal(JSON.stringify(f.receipts()).includes('SECRET'), false);
+});
+
+test('a foreign bound client cannot substitute another managed project session', async t => {
+  const f = managedFixture(t), foreign = managedFixture(t);
+  f.pluginInput.client = foreign.pluginInput.client;
+  const hooks = f.hooks();
+  await assert.rejects(hooks['chat.params'](f.request(), {}), refusal('PROJECT_SESSION_CHANGED'));
+  assert.equal(foreign.counts.session, 1);
+  assert.equal(f.counts.filesystem, 0); assert.equal(f.counts.capture, 1);
+});
+
+test('filesystem session, identity and working roots are checked before either hook captures source', async t => {
+  const f = managedFixture(t), hooks = f.hooks(), original = structuredClone(f.state.filesystem);
+  for (const patch of [{ version: 2 }, { sessionID: 'ses_foreign01' }, { projectID: 'prj_foreign01' },
+    { directory: f.repo }, { toolDirectory: f.identity }, { workingRoot: f.profile },
+    { workingRoot: undefined }, { grants: null }]) {
+    f.state.filesystem = { ...original, ...patch };
+    for (const hook of ['chat.params', 'tool.execute.before']) {
+      await assert.rejects(hooks[hook]({ ...f.request(), tool: tools[0] }, {}), refusal('PROJECT_FILESYSTEM_CHANGED'));
+      assert.equal(f.receipts().at(-1).source_check, null);
+      assert.deepEqual(f.receipts().at(-1).project_check, { identity: 'PASS', session: 'PASS', filesystem: 'FAIL' });
+    }
+  }
+  assert.equal(f.counts.capture, 1);
+});
+
+test('matching write grant must be unique, project-scoped and active', async t => {
+  const f = managedFixture(t), hooks = f.hooks(), original = structuredClone(f.state.filesystem.grants[0]);
+  const grants = [[], [{ ...original, id: 'fsg_foreign01' }], [{ ...original, path: f.profile }],
+    [{ ...original, access: 'read' }], [{ ...original, scope: 'session' }],
+    [{ ...original, time: { created: 1, revoked: 0 } }], [{ ...original, time: { created: 1, revoked: null } }],
+    [{ ...original, time: null }], [{ ...original, time: { created: NaN } }], [original, structuredClone(original)]];
+  for (const value of grants) {
+    f.state.filesystem.grants = value;
+    for (const hook of ['chat.params', 'tool.execute.before'])
+      await assert.rejects(hooks[hook]({ ...f.request(), tool: tools[0] }, {}), refusal('PROJECT_GRANT_CHANGED'));
+  }
+  assert.equal(f.counts.capture, 1);
+});
+
+test('production filesystem read uses exact Instance headers, bounded signal and redirect refusal', async t => {
+  const f = managedFixture(t);
+  delete f.dependencies.loadFilesystem;
+  f.dependencies.fetch = async (url, options) => {
+    f.counts.filesystem++;
+    assert.equal(url, `http://127.0.0.1:4098/session/${f.sessionID}/filesystem`);
+    assert.equal(options.method, 'GET'); assert.equal(options.redirect, 'error');
+    assert.ok(options.signal instanceof AbortSignal);
+    assert.deepEqual(options.headers, { 'x-openscience-project': f.binding.project_id,
+      'x-openscience-directory': f.identity });
+    assert.equal(Object.hasOwn(options, 'body'), false);
+    return new Response(JSON.stringify(f.state.filesystem), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  const hooks = f.hooks();
+  assert.equal(f.counts.filesystem, 0);
+  await hooks['tool.execute.before']({ tool: tools[0], sessionID: f.sessionID }, {});
+  assert.equal(f.counts.filesystem, 1); assert.equal(f.counts.capture, 2);
+  assert.equal(f.receipts().at(-1).accepted, true);
+});
+
+test('HTTP errors, redirects, malformed JSON and bounded body failures retain fixed refusals only', async t => {
+  const f = managedFixture(t);
+  delete f.dependencies.loadFilesystem;
+  let respond;
+  f.dependencies.fetch = async () => respond();
+  const hooks = f.hooks();
+  const redirected = () => {
+    const response = new Response(JSON.stringify(f.state.filesystem));
+    Object.defineProperty(response, 'redirected', { value: true });
+    return response;
+  };
+  for (const response of [
+    () => { throw Object.assign(new Error('SECRET HTTP ERROR unavailable SENTINEL'), { stdout: 'SECRET OUTPUT SENTINEL' }); },
+    () => new Response('SECRET SERVER ERROR SENTINEL', { status: 500 }),
+    () => new Response('SECRET REDIRECT SENTINEL', { status: 302 }), redirected,
+    () => new Response('SECRET MALFORMED JSON SENTINEL'),
+    () => new Response(' '.repeat(128 * 1024 + 1)),
+    () => new Response('{}', { headers: { 'content-length': String(128 * 1024 + 1) } }),
+    () => new Response('{}', { headers: { 'content-length': 'SECRET' } }),
+    () => new Response(null),
+  ]) {
+    respond = response;
+    for (const hook of ['chat.params', 'tool.execute.before']) {
+      await assert.rejects(hooks[hook]({ ...f.request(), tool: tools[0] }, {}), error => {
+        assert.equal(officialStatuslessRetry(error), undefined);
+        return refusal('PROJECT_FILESYSTEM_READ_FAILED')(error);
+      });
+      const receipt = f.receipts().at(-1);
+      assert.equal(receipt.accepted, false); assert.equal(receipt.source_check, null);
+    }
+  }
+  assert.equal(f.counts.capture, 1);
+  assert.equal(JSON.stringify(f.receipts()).includes('SECRET'), false);
+  assert.equal(JSON.stringify(f.receipts()).includes(f.base), false);
+});
+
+test('managed public input and client drift are rejected before later metadata reads', async t => {
+  for (const [patch, code] of [
+    [f => { f.pluginInput.project.id = 'prj_foreign01'; }, 'PROJECT_INPUT_CHANGED'],
+    [f => { f.pluginInput.directory = f.repo; }, 'PROJECT_INPUT_CHANGED'],
+    [f => { f.pluginInput.client = { session: { get: async () => ({}) } }; }, 'PROJECT_CLIENT_CHANGED'],
+    [f => { f.pluginInput.client.session.get = async () => ({}); }, 'PROJECT_CLIENT_CHANGED'],
+    [f => { f.pluginInput.serverUrl = new URL('http://127.0.0.1:4099/'); }, 'PROJECT_SERVER_CHANGED'],
+  ]) {
+    const f = managedFixture(t), hooks = f.hooks();
+    patch(f);
+    await assert.rejects(hooks['chat.params'](f.request(), {}), refusal(code));
+    assert.equal(f.counts.capture, 1); assert.equal(f.counts.session, 0); assert.equal(f.counts.filesystem, 0);
+  }
+});
+
+test('metadata await cannot admit configuration, stage, stopping or public identity drift', async t => {
+  for (const [patch, code] of [
+    [f => fs.appendFileSync(f.settings.configPath, '\n'), 'CONFIG_CHANGED'],
+    [f => fs.appendFileSync(f.settingsPath, '\n'), 'SETTINGS_CHANGED'],
+    [f => f.writeGuard({ required: tools[1] }), 'GUARD_CHANGED_DURING_CHECK'],
+    [f => f.writeGuard({ stopping: true }), 'RUNTIME_STOPPING'],
+    [f => { f.pluginInput.project.id = 'prj_foreign01'; }, 'PROJECT_INPUT_CHANGED'],
+  ]) {
+    const f = managedFixture(t), load = f.dependencies.loadFilesystem;
+    f.dependencies.loadFilesystem = async (...args) => {
+      const data = await load(...args);
+      patch(f);
+      return data;
+    };
+    const hooks = f.hooks();
+    await assert.rejects(hooks['tool.execute.before']({ tool: tools[0], sessionID: f.sessionID }, {}), refusal(code));
+    assert.equal(f.counts.capture, 1); assert.equal(f.receipts().at(-1).accepted, false);
+  }
+});
+
+test('managed hook session identity cannot change during metadata reads or source capture', async t => {
+  for (const hook of ['chat.params', 'tool.execute.before']) {
+    for (const phase of ['metadata', 'capture']) {
+      const f = managedFixture(t), request = { ...f.request(), tool: tools[0] };
+      let active = false;
+      if (phase === 'metadata') {
+        const load = f.dependencies.loadFilesystem;
+        f.dependencies.loadFilesystem = async (...args) => {
+          const data = await load(...args);
+          request.sessionID = 'ses_foreign01';
+          return data;
+        };
+      } else {
+        const capture = f.dependencies.capture;
+        f.dependencies.capture = (...args) => {
+          const current = capture(...args);
+          if (active) request.sessionID = 'ses_foreign01';
+          return current;
+        };
+      }
+      const hooks = f.hooks(); active = true;
+      await assert.rejects(hooks[hook](request, {}), refusal('PROJECT_SESSION_CHANGED'));
+      assert.equal(f.counts.capture, phase === 'metadata' ? 1 : 2);
+      const receipt = f.receipts().at(-1);
+      assert.equal(receipt.accepted, false); assert.equal(receipt.project_check.session, 'FAIL');
+      assert.equal(receipt.session_id, f.sessionID);
+    }
+  }
+});
+
+test('late stopping, required-tool and no-tools policies after source capture use the last guard hash', async t => {
+  for (const [patch, code] of [[{ stopping: true }, 'RUNTIME_STOPPING'], [{ required: tools[1] }, 'REQUIRED_TOOL_MISMATCH'],
+    [{ no_tools: true }, 'NO_TOOLS_STAGE'], [{ updated_utc: '2026-10-01T00:00:01.000Z' }, null]]) {
+    const f = managedFixture(t), capture = f.dependencies.capture;
+    let active = false;
+    f.dependencies.capture = (...args) => {
+      const current = capture(...args);
+      if (active) f.writeGuard(patch);
+      return current;
+    };
+    const hooks = f.hooks();
+    active = true;
+    const request = hooks['tool.execute.before']({ tool: tools[0], sessionID: f.sessionID }, {});
+    if (code) await assert.rejects(request, refusal(code));
+    else await request;
+    assert.equal(f.counts.capture, 2);
+    const receipt = f.receipts().at(-1);
+    assert.equal(receipt.accepted, code === null);
+    assert.equal(receipt.guard_sha256, sha(fs.readFileSync(f.settings.guardPath)));
+    assert.deepEqual([receipt.source_check.capture.status, receipt.source_check.compare.status], ['PASS', 'PASS']);
+  }
+});
+
+test('late configuration drift and legacy stopping after source capture cannot admit an operation', async t => {
+  for (const [managed, patch, code] of [
+    [true, f => fs.appendFileSync(f.settings.configPath, '\n'), 'CONFIG_CHANGED'],
+    [true, f => fs.appendFileSync(f.settings.pluginPath, '\n'), 'PLUGIN_CHANGED'],
+    [false, f => f.writeGuard({ stopping: true }), 'RUNTIME_STOPPING'],
+  ]) {
+    const f = managed ? managedFixture(t) : fixture(t), capture = f.dependencies.capture;
+    let active = false;
+    f.dependencies.capture = (...args) => { const current = capture(...args); if (active) patch(f); return current; };
+    const hooks = f.hooks(); active = true;
+    await assert.rejects(hooks['chat.params'](managed ? f.request() : input(), {}), refusal(code));
+    assert.equal(f.counts.capture, 2); assert.equal(f.receipts().at(-1).accepted, false);
+  }
+});
+
+test('stopping managed hooks skip every metadata read and further source capture', async t => {
+  const f = managedFixture(t), hooks = f.hooks();
+  f.writeGuard({ stopping: true });
+  await assert.rejects(hooks['chat.params'](f.request(), {}), refusal('RUNTIME_STOPPING'));
+  await assert.rejects(hooks['tool.execute.before']({ tool: tools[0], sessionID: f.sessionID }, {}), refusal('RUNTIME_STOPPING'));
+  assert.equal(f.counts.session, 0); assert.equal(f.counts.filesystem, 0); assert.equal(f.counts.capture, 1);
+});
+
+test('a metadata getter that ignores abort is still bounded and never reaches source or tools', async t => {
+  const f = managedFixture(t);
+  f.dependencies.loadSession = () => new Promise(() => {});
+  const keepAlive = setTimeout(() => {}, 6000);
+  t.after(() => clearTimeout(keepAlive));
+  const hooks = f.hooks();
+  await assert.rejects(hooks['chat.params'](f.request(), {}), refusal('PROJECT_SESSION_READ_FAILED'));
+  assert.equal(f.counts.capture, 1); assert.equal(f.counts.filesystem, 0);
+  assert.equal(f.receipts().at(-1).accepted, false);
 });

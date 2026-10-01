@@ -21,6 +21,12 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Status vocabulary
 
+2026-10-01 managed project/source-root source checkpoint: official identity,
+external source write grant/default root, GUI session ownership and lifecycle
+selection are implemented with independently reviewed bounded source checks.
+Actual managed research/GUI/in-flight acceptance is NOT_RUN; no full Phase1
+promotion. ADR0013/source record preserves all52 rows and UNKNOWN/NOT_RELEASED.
+
 2026-10-01 native denial correction: exact refusal codes remain, thrown text
 avoids provider-overload retry signals, sanitized source capture/compare
 diagnostics added. Node25/native28 source checks PASS with no provider/Core/CAD

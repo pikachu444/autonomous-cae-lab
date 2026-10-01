@@ -16,6 +16,13 @@ const nativeSettingsKeys = Object.freeze([
   'guardPath', 'configPath', 'config_sha256', 'pluginPath', 'plugin_sha256',
   'receipts', 'boot_source', 'boot_source_sha256',
 ]);
+const nativeProjectBindingKeys = Object.freeze([
+  'schema', 'kind', 'project_id', 'project_directory', 'source_directory',
+  'grant_id', 'working_root', 'access',
+]);
+const nativeProjectReadTimeoutMs = 5000;
+const nativeProjectResponseBound = 128 * 1024;
+const nativeSessionId = value => typeof value === 'string' && /^ses_[A-Za-z0-9]{1,124}$/.test(value);
 const nativeGuardKeys = Object.freeze([
   'schema', 'kind', 'repo_root', 'run_name', 'profile_root', 'model', 'allowed',
   'required', 'no_tools', 'stopping', 'updated_utc',
@@ -72,6 +79,9 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
   const pinSha = dependencies.pinSha ?? sourcePinSha;
   const settingsPath = dependencies.settingsPath;
   const loadedPluginPath = dependencies.pluginPath ?? suppliedSettings?.pluginPath;
+  const pluginInput = dependencies.pluginInput;
+  const fetchMetadata = dependencies.fetch ?? globalThis.fetch;
+  let sessionClient, sessionApi, sessionGetter, metadataOrigin;
   let settings;
   let settingsSha;
   let sequence = 0;
@@ -122,8 +132,8 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
     catch { nativeRefuse(code); }
   };
   const validateSettings = () => {
-    exactKeys(settings, nativeSettingsKeys, 'SETTINGS_INVALID');
-    if (settings.schema !== 1 || settings.kind !== 'autonomous-cae-lab.openscience-native-guard' ||
+    exactKeys(settings, settings?.schema === 2 ? [...nativeSettingsKeys, 'project_binding'] : nativeSettingsKeys, 'SETTINGS_INVALID');
+    if (![1, 2].includes(settings.schema) || settings.kind !== 'autonomous-cae-lab.openscience-native-guard' ||
         typeof settings.run_name !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(settings.run_name) ||
         typeof settings.model !== 'string' || !/^openai-codex\/[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/.test(settings.model) ||
         !Array.isArray(settings.allowed) || !settings.allowed.length || new Set(settings.allowed).size !== settings.allowed.length ||
@@ -131,6 +141,16 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
         !nativeSha(settings.config_sha256) || !nativeSha(settings.plugin_sha256) || !nativeSha(settings.boot_source_sha256)) nativeRefuse('SETTINGS_INVALID');
     noLinks(settings.profile_root, 'directory');
     noLinks(settings.repo_root, 'directory');
+    if (settings.schema === 2) {
+      const binding = settings.project_binding;
+      exactKeys(binding, nativeProjectBindingKeys, 'PROJECT_BINDING_INVALID');
+      if (binding.schema !== 1 || binding.kind !== 'autonomous-cae-lab.openscience-project-binding' ||
+          typeof binding.project_id !== 'string' || !/^prj_[A-Za-z0-9]{1,124}$/.test(binding.project_id) ||
+          typeof binding.grant_id !== 'string' || !/^fsg_[A-Za-z0-9]{1,124}$/.test(binding.grant_id) ||
+          binding.source_directory !== settings.repo_root || binding.working_root !== binding.source_directory ||
+          binding.access !== 'write') nativeRefuse('PROJECT_BINDING_INVALID');
+      noLinks(binding.project_directory, 'directory');
+    }
     for (const file of [settingsPath, settings.guardPath, settings.configPath, settings.pluginPath]) owned(file, 'file');
     owned(settings.receipts, 'directory');
     if (loadedPluginPath !== settings.pluginPath ||
@@ -161,6 +181,109 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
         (guard.no_tools && guard.required !== null) || typeof guard.updated_utc !== 'string' ||
         guard.updated_utc.length > 64 || !Number.isFinite(Date.parse(guard.updated_utc))) nativeRefuse('GUARD_INVALID');
     return { guard, sha256: parsed.sha256 };
+  };
+  const sameDirectory = (value, expected) => {
+    if (typeof value !== 'string' || value.length > 32768 || !paths.isAbsolute(value)) return false;
+    const canonical = paths.resolve(value);
+    return process.platform === 'win32' ? canonical.toLowerCase() === expected.toLowerCase() : canonical === expected;
+  };
+  const projectInputFor = () => {
+    const binding = settings.project_binding;
+    if (!nativeRecord(pluginInput) || !nativeRecord(pluginInput.project) ||
+        pluginInput.project.id !== binding.project_id ||
+        !sameDirectory(pluginInput.directory, binding.project_directory) ||
+        !sameDirectory(pluginInput.worktree, binding.project_directory) ||
+        !sameDirectory(pluginInput.project.worktree, binding.project_directory)) nativeRefuse('PROJECT_INPUT_CHANGED');
+    const client = pluginInput.client, api = client?.session, getter = api?.get;
+    if (!nativeRecord(client) || !nativeRecord(api) || typeof getter !== 'function') nativeRefuse('PROJECT_CLIENT_INVALID');
+    if (sessionGetter && (client !== sessionClient || api !== sessionApi || getter !== sessionGetter)) nativeRefuse('PROJECT_CLIENT_CHANGED');
+    let server;
+    try {
+      if (!(typeof pluginInput.serverUrl === 'string' || pluginInput.serverUrl instanceof URL)) nativeRefuse('PROJECT_SERVER_INVALID');
+      server = new URL(pluginInput.serverUrl);
+    } catch { nativeRefuse('PROJECT_SERVER_INVALID'); }
+    if (server.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(server.hostname) ||
+        server.username || server.password || server.pathname !== '/' || server.search || server.hash) nativeRefuse('PROJECT_SERVER_INVALID');
+    if (metadataOrigin && server.origin !== metadataOrigin) nativeRefuse('PROJECT_SERVER_CHANGED');
+    sessionClient = client; sessionApi = api; sessionGetter = getter; metadataOrigin = server.origin;
+  };
+  const boundedProjectRead = async (operation, code) => {
+    const signal = AbortSignal.timeout(nativeProjectReadTimeoutMs);
+    let abort;
+    const stopped = new Promise((_, reject) => {
+      abort = () => reject(new NativeGuardRefusal(code));
+      signal.addEventListener('abort', abort, { once: true });
+    });
+    try { return await Promise.race([Promise.resolve().then(() => operation(signal)), stopped]); }
+    catch { nativeRefuse(code); }
+    finally { signal.removeEventListener('abort', abort); }
+  };
+  const loadSession = dependencies.loadSession ?? (async (sessionID, signal) => {
+    // Public v1 client supplied by the official loader is already bound to
+    // this Instance's project/directory and its internal fetch implementation.
+    const response = await sessionGetter.call(sessionApi, { path: { id: sessionID }, throwOnError: true, signal });
+    if (!nativeRecord(response) || response.error !== undefined || !nativeRecord(response.data)) nativeRefuse('PROJECT_SESSION_READ_FAILED');
+    return response.data;
+  });
+  const loadFilesystem = dependencies.loadFilesystem ?? (async (sessionID, signal) => {
+    // Pinned v1 SDK has no filesystem getter. Use the official read-only route
+    // with exact Instance headers; redirects and oversized bodies are refused.
+    const response = await fetchMetadata(`${metadataOrigin}/session/${sessionID}/filesystem`, {
+      method: 'GET', redirect: 'error', signal,
+      headers: { 'x-openscience-project': settings.project_binding.project_id,
+        'x-openscience-directory': settings.project_binding.project_directory },
+    });
+    if (response?.status !== 200 || response.ok !== true || response.redirected !== false) nativeRefuse('PROJECT_FILESYSTEM_READ_FAILED');
+    const declaredSize = response.headers.get('content-length');
+    if (declaredSize !== null && (!/^\d+$/.test(declaredSize) || Number(declaredSize) > nativeProjectResponseBound)) nativeRefuse('PROJECT_FILESYSTEM_READ_FAILED');
+    const reader = response.body?.getReader();
+    if (!reader) nativeRefuse('PROJECT_FILESYSTEM_READ_FAILED');
+    const chunks = [];
+    let size = 0;
+    try {
+      for (;;) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        size += chunk.value.byteLength;
+        if (size > nativeProjectResponseBound) nativeRefuse('PROJECT_FILESYSTEM_READ_FAILED');
+        chunks.push(Buffer.from(chunk.value));
+      }
+      return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    } finally { try { await reader.cancel(); } catch {} }
+  });
+  const projectFor = async (sessionID, hashes) => {
+    const check = hashes.projectCheck = { identity: 'FAIL', session: 'NOT_RUN', filesystem: 'NOT_RUN' };
+    projectInputFor();
+    check.identity = 'PASS';
+    if (!nativeSessionId(sessionID)) nativeRefuse('PROJECT_SESSION_ID_INVALID');
+    const binding = settings.project_binding;
+    check.session = 'FAIL';
+    const session = await boundedProjectRead(signal => loadSession(sessionID, signal), 'PROJECT_SESSION_READ_FAILED');
+    if (!nativeRecord(session) || session.id !== sessionID || session.projectID !== binding.project_id ||
+        !sameDirectory(session.directory, binding.project_directory)) nativeRefuse('PROJECT_SESSION_CHANGED');
+    check.session = 'PASS';
+    check.filesystem = 'FAIL';
+    const filesystem = await boundedProjectRead(signal => loadFilesystem(sessionID, signal), 'PROJECT_FILESYSTEM_READ_FAILED');
+    if (!nativeRecord(filesystem) || filesystem.version !== 1 || filesystem.sessionID !== sessionID ||
+        filesystem.projectID !== binding.project_id || !sameDirectory(filesystem.directory, binding.project_directory) ||
+        !sameDirectory(filesystem.toolDirectory, binding.source_directory) ||
+        !sameDirectory(filesystem.workingRoot, binding.working_root) || !Array.isArray(filesystem.grants)) nativeRefuse('PROJECT_FILESYSTEM_CHANGED');
+    const matching = filesystem.grants.filter(grant => nativeRecord(grant) && grant.id === binding.grant_id);
+    const grant = matching[0];
+    if (matching.length !== 1 || !sameDirectory(grant.path, binding.source_directory) ||
+        grant.access !== 'write' || grant.scope !== 'project' || !nativeRecord(grant.time) ||
+        !Number.isFinite(grant.time.created) || grant.time.created < 0 ||
+        Object.hasOwn(grant.time, 'revoked')) nativeRefuse('PROJECT_GRANT_CHANGED');
+    check.filesystem = 'PASS';
+    check.identity = 'FAIL';
+    projectInputFor();
+    check.identity = 'PASS';
+  };
+  const stableSession = (input, sessionID, hashes) => {
+    if (input?.sessionID !== sessionID) {
+      hashes.projectCheck.session = 'FAIL';
+      nativeRefuse('PROJECT_SESSION_CHANGED');
+    }
   };
   const sourceFor = hashes => {
     const boot = settings.boot_source;
@@ -199,12 +322,13 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
     const value = {
       schema: 1, kind: 'autonomous-cae-lab.openscience-native-guard-receipt',
       pid: process.pid, sequence, timestamp_utc: new Date().toISOString(), hook,
-      session_id: metadataId(input?.sessionID),
+      session_id: settings.schema === 2 ? (nativeSessionId(hashes.sessionID) ? hashes.sessionID : null) : metadataId(input?.sessionID),
       tool: nativeKnownTools.includes(input?.tool) ? input.tool : null,
       status, accepted: status === 'accepted', code, boot_source_sha256: hashes.source ?? null,
       guard_sha256: hashes.guard ?? null, settings_sha256: settingsSha,
       config_sha256: settings.config_sha256, plugin_sha256: settings.plugin_sha256,
       source_check: hashes.sourceCheck ?? null,
+      project_check: hashes.projectCheck ?? null,
     };
     const name = `native-hook-${process.pid}-${String(sequence).padStart(6, '0')}-${nativeCrypto.randomUUID()}.json`;
     const file = paths.join(settings.receipts, name);
@@ -218,11 +342,33 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
   const evaluate = async (hook, input) => {
     const hashes = {};
     try {
+      if (settings.schema === 2) hashes.sessionID = input?.sessionID;
       stableFiles();
-      const parsed = guardFor();
+      let parsed = guardFor();
       hashes.guard = parsed.sha256;
       if (parsed.guard.stopping) nativeRefuse('RUNTIME_STOPPING');
+      if (settings.schema === 2) {
+        await projectFor(hashes.sessionID, hashes);
+        // Asynchronous metadata reads must not admit a stale stage/config.
+        stableSession(input, hashes.sessionID, hashes);
+        stableFiles();
+        const currentGuard = guardFor();
+        if (currentGuard.guard.stopping) nativeRefuse('RUNTIME_STOPPING');
+        if (currentGuard.sha256 !== parsed.sha256) nativeRefuse('GUARD_CHANGED_DURING_CHECK');
+      }
       hashes.source = sourceFor(hashes);
+      // The synchronous source probe can outlast an external stage/Stop write.
+      // Apply the latest valid policy and record the hash actually used.
+      stableFiles();
+      if (settings.schema === 2) {
+        stableSession(input, hashes.sessionID, hashes);
+        hashes.projectCheck.identity = 'FAIL';
+        projectInputFor();
+        hashes.projectCheck.identity = 'PASS';
+      }
+      parsed = guardFor();
+      hashes.guard = parsed.sha256;
+      if (parsed.guard.stopping) nativeRefuse('RUNTIME_STOPPING');
       if (hook === 'chat.params') {
         const model = input?.model;
         if (!nativeRecord(model) || model.providerID !== 'openai-codex' ||
@@ -252,7 +398,14 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
   stableFiles();
   const initialGuard = guardFor();
   const initialHashes = { guard: initialGuard.sha256 };
-  try { initialHashes.source = sourceFor(initialHashes); }
+  try {
+    if (settings.schema === 2) {
+      initialHashes.projectCheck = { identity: 'FAIL', session: 'NOT_RUN', filesystem: 'NOT_RUN' };
+      projectInputFor();
+      initialHashes.projectCheck.identity = 'PASS';
+    }
+    initialHashes.source = sourceFor(initialHashes);
+  }
   catch (error) {
     const code = error instanceof NativeGuardRefusal ? error.code : 'CHECK_FAILED';
     try { receipt('plugin.loaded', null, 'rejected', code, initialHashes); }
@@ -266,7 +419,7 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
   };
 }
 
-export async function CaeLabNativeGuard(_input) {
+export async function CaeLabNativeGuard(pluginInput) {
   const pluginPath = nativeFileURLToPath(import.meta.url);
   const settingsPath = nativePath.join(nativePath.dirname(pluginPath), 'native-guard-settings.json');
   // Check ancestors before reading even the settings that define ownership.
@@ -285,5 +438,5 @@ export async function CaeLabNativeGuard(_input) {
     if (error instanceof NativeGuardRefusal) throw error;
     nativeRefuse('SETTINGS_INVALID');
   }
-  return createNativeHooks(settings, { settingsPath, pluginPath });
+  return createNativeHooks(settings, { settingsPath, pluginPath, pluginInput });
 }

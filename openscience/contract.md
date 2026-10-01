@@ -1,5 +1,15 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+Managed native research distinguishes immutable OpenScience project identity
+from external RepoRoot. Server/relay and explicit APIs bind project ID/identity
+directory; MCP/import/source pin/store remain fixed to RepoRoot. Public hooks
+read exact session/filesystem metadata before admitting a stream/tool: working
+root and active write grant must match. GUI isolated mode is supported. Mutable
+admission drift blocks new inference while exact owned abort/idle/Stop remains
+available. The tracked native live harness checks source root and boot-pinned
+bootstrap/body bytes before importing cases. No research operation schema changes.
+See ADR0013; source tests/review do not prove actual managed GUI/research.
+
 Actual native clean5365ae8 research passed the bounded CAD/results/interpretation
 loop with the explicitly selected5.6 Sol; full P1.1 remains OPEN. Native policy
 denials keep exact receipt/Error.code but use non-transient thrown text, so

@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.openscience-managed-project-source",
+  "phase": "P1.1",
+  "source_parent": "f45052dae21ab60658d186b1a141f42c838c9b73",
+  "implementation_commit": "Commit introducing this record; source checks are not a live managed research run",
+  "openscience_source_pin": "4082a2ecb73e166d4503963798228ba700f3840f",
+  "outcome": "PASS_BOUNDED_SOURCE_CHECKS_AND_INDEPENDENT_REVIEW",
+  "hash_basis": "As-run working bytes before Git checkout CRLF normalization",
+  "source_files": {
+    "openscience/native_guard.mjs": "6cf77e059591f4747aaec293ec04cd8d43ffc416b652db0aa205e985f7c8d854",
+    "openscience/tests/native_guard.test.mjs": "e0e998111935034c7270576ea8fb0f3b9b6b9bdb0bc22785b332037c9eccf69d",
+    "scripts/openscience-local.ps1": "537441c69370118bcf23c5c82defc07511569d0e6aff3029b55941545ddf3036",
+    "scripts/openscience-native-provider.ps1": "fc59c884bb717f09141212b0b59041c471febcf422deaf841f88945de923d291",
+    "scripts/openscience-server-local.ps1": "856adcc88bb08937a8813650d11f34d2748bda33254bf0c43bac2c3d9f156f4d",
+    "scripts/openscience-project.ps1": "fe17501ec1e604cc9393f7e06d17dda4c623b281c5e2aece90cf697e7b9e61c1",
+    "scripts/verify_openscience_project.ps1": "65ca79fed3639d1c75ffa5997b94f38040d929a4a2be7b5faf49fb53dc49636f",
+    "scripts/verify_openscience_native_live.ps1": "e365eaed622bbf48ca2fd15c0dba42e6024d35616eeffd29a7496dd9f539cb1a"
+  },
+  "checks": [
+    {
+      "name": "native guard",
+      "run": "native-guard-managed-project-20261001-736964e9f03641fcad21369aa4e1e3b0",
+      "pass": 43,
+      "fail": 0,
+      "legacy": 25,
+      "added": 18,
+      "duration_ms": 12616.6159,
+      "verification_sha256": "b0984a2ea55789c3a13b159c565ee301e49221b224ad3cdcb59cf709c849a0e6",
+      "output_sha256": "3786a7b81258681857379b835e313175bd40474bee92c669a91655147d7fcb66",
+      "scope": "Mocked public v1 session API/filesystem HTTP and synthetic source capture; no provider/Core/MCP/CAD"
+    },
+    {
+      "name": "managed project",
+      "run": "managed-project-final-20261001-02",
+      "pass": 100,
+      "fail": 0,
+      "receipt_sha256": "e80fcac299740ac0d30e1d1435e1778630092c27b63aae5659947129e34f0ea7",
+      "source_snapshot_status": "STABLE",
+      "concurrent_source_changes": [],
+      "scope": "Synthetic auth, mocked metadata/HTTP/lifecycle, read-only installed package hashes and Node version; no native/server/model/Core starts"
+    },
+    {
+      "name": "native transport",
+      "run": "managed-project-native-20261001-02",
+      "pass": 28,
+      "fail": 0,
+      "receipt_sha256": "d0fb7734dae00c3aff610436cda39735c6e312cec0d273da2acf1fc5fbdc7b45",
+      "scope": "Synthetic configuration/lifecycle admission; actual native loading/authentication NOT_RUN"
+    },
+    {
+      "name": "owned runtime controller",
+      "run": "managed-project-controller-20261001-01",
+      "pass": 56,
+      "fail": 0,
+      "receipt_sha256": "4f650e63208579332ce16c7d2a37f4d51cf847bd7e4ece01cdb4dd45ad9fdc17",
+      "scope": "Mock runtime/process/HTTP; no provider/backend calls"
+    },
+    {
+      "name": "command launcher",
+      "run": "managed-project-launcher-20261001-01",
+      "pass": 47,
+      "fail": 0,
+      "receipt_sha256": "b359d04a37395c82c52877696101c570f1e43581dfb7aa368d24b28a42847b18",
+      "scope": "Launcher mocks only; no inference or MCP mutation"
+    }
+  ],
+  "independent_reviews": {
+    "integration_review": "PASS_READ_ONLY; exact controller/project/native harness hashes; no open P1/P2 after source-root/bootstrap-byte correction",
+    "chatgpt_connection_review": "PASS_READ_ONLY; final exact two guard hashes and pinned official loader/v1 SDK contract; no open P1/P2 after asynchronous session-ID correction",
+    "harness_source_assertions": "Three synthetic structural assertions reported PASS in local tool output; no separately retained receipt"
+  },
+  "retention": {
+    "raw": "Ignored artifacts/<run> folders, local only; no credentials committed",
+    "prior_snapshots": "Earlier 42-test guard and 79/96/100-check project snapshots retained with their own as-run bytes; not substituted for final scope"
+  },
+  "baseline_ci": {
+    "source_commit": "f45052dae21ab60658d186b1a141f42c838c9b73",
+    "run_id": 36800651394,
+    "jobs_pass": 8,
+    "conclusion": "success",
+    "scope": "Parent retry correction only; not CI for this source unit or new solver proof"
+  },
+  "scope": {
+    "actual_managed_project": "NOT_RUN",
+    "actual_native_loading": "NOT_RUN",
+    "actual_model_research": "NOT_RUN",
+    "official_gui": "NOT_RUN",
+    "observed_busy_cancellation": "NOT_RUN",
+    "full_p1_1": "OPEN",
+    "historical_5365_initial_source_failure_cause": "UNKNOWN",
+    "core_schema_changed": false,
+    "fixture_implementation_changed": false,
+    "numerical_thresholds_changed": false,
+    "engineering_decision": "NOT_RELEASED"
+  },
+  "next": "Pause exact old controller, create supported managed project metadata, owned Stop, update serving checkout, then use a NEW immutable profile/store with the authorized 5.6 Sol/auth and verify resident source/full cases/official same-session GUI/busy cancellation/Stop",
+  "decision": "ADR/0013-managed-research-project-and-external-source-root.md"
+}

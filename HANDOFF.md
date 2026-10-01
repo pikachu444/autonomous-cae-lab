@@ -2,15 +2,17 @@
 
 ## Authoritative serial queue from the project owner
 
-The native denial retry correction is now implemented and passes Node25/native28
-source checks, without provider/Core/CAD execution. Codes/refusal stay; only safe
-thrown text and fixed capture/compare diagnostics change. Initial5365 source
-failure cause stays UNKNOWN; actual corrected-source runtime is NOT_RUN.
-The reviewed5365 research record is pushed as6c8c0dc28efe86f3fff9b18d4378a16346dbea9d.
-NEXT: managed-project/source-root ownership implementation and fresh acceptance;
-full P1.1, official same-session GUI and in-flight busy cancellation remain OPEN.
-See20261001-openscience-native-guard-correction.json. Current live5365 owner is
-preserved; use owned Stop before updating that serving checkout.
+Managed-project/source-root ownership implementation and independent source
+review are complete. Source checks have distinct run/byte scope; no actual
+managed research yet. See ADR0013 and20261001-openscience-managed-project-source.json.
+Prior retry correction is pushed asf45052d, exact CI36800651394 all8PASS.
+NEXT: load exact old serving controller library plus new stateless project helper,
+pause native forwards, create official project metadata, then owned Stop. Update
+the stopped serving checkout to the new source, use a NEW profile/store and the
+same authorized5.6 Sol/auth. Never relax old script-path/hash ownership or rewrite
+its context. Verify resident source, unchanged full cases via the tracked native
+live harness, official same-session GUI, observed-busy cancellation and owned Stop.
+P1.1 stays OPEN; historical5365 research and its initial UNKNOWN cause stand.
 
 CURRENT: actual5365ae8 native5.6 Sol bounded CAD research PASSED. Resident
 MCP source identity is known clean5365/fixture3e48,14 AI stages/13 tools,
