@@ -4,6 +4,7 @@
 import nativeFs from 'node:fs';
 import nativePath from 'node:path';
 import nativeCrypto from 'node:crypto';
+import { execFile as nativeExecFile } from 'node:child_process';
 import { fileURLToPath as nativeFileURLToPath } from 'node:url';
 
 const nativeKnownTools = Object.freeze([
@@ -22,6 +23,13 @@ const nativeProjectBindingKeys = Object.freeze([
 ]);
 const nativeProjectReadTimeoutMs = 5000;
 const nativeProjectResponseBound = 128 * 1024;
+const nativeSourceReaderKeys = Object.freeze(['node_path', 'node_sha256', 'worker_path', 'worker_sha256']);
+const nativeSourceReadTimeoutMs = 20_000;
+const nativeSourceResponseBound = 16 * 1024 * 1024;
+const nativeSourceEnvironmentKeys = Object.freeze(['SystemRoot', 'WINDIR', 'COMSPEC', 'PATH', 'PATHEXT', 'TEMP', 'TMP']);
+// Same top-level import exclusions as the shared repository capture, applied
+// independently at each repository/submodule root by the final byte gate.
+const nativeIgnoredSourceRoots = Object.freeze(['artifacts', 'runs', '.venv', 'venv', 'node_modules', '.git', '.pytest_cache', '.mypy_cache', '.ruff_cache']);
 const nativeSessionId = value => typeof value === 'string' && /^ses_[A-Za-z0-9]{1,124}$/.test(value);
 // Official project grants use crypto.randomUUID() (v4); retain bounded legacy IDs.
 const nativeGrantId = value => typeof value === 'string' &&
@@ -69,21 +77,38 @@ const nativeSourceErrorKind = error => {
 };
 const nativeElapsedMs = started => Math.min(2_147_483_647,
   Number((process.hrtime.bigint() - started) / 1_000_000n));
+const nativeReaderFailure = error => {
+  // Node execFile uses numeric exit codes and fixed killed/signal data for its
+  // timeout. Normalize only these own-data markers into the existing classes.
+  try {
+    const code = Object.getOwnPropertyDescriptor(error, 'code')?.value;
+    if (code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') return { code: 'ENOBUFS' };
+    if (Number.isInteger(code)) return { status: code };
+    if ((code === null || code === undefined) &&
+        Object.getOwnPropertyDescriptor(error, 'killed')?.value === true &&
+        Object.getOwnPropertyDescriptor(error, 'signal')?.value === 'SIGTERM') return { code: 'ETIMEDOUT' };
+  } catch { return {}; }
+  return error;
+};
 
 // Internal factory: test code may append an export to its temporary module.
 // Production exports only the actual plugin, so the upstream loader cannot
 // mistakenly invoke a second exported function as another plugin.
-function createNativeHooks(suppliedSettings, dependencies = {}) {
+async function createNativeHooks(suppliedSettings, dependencies = {}) {
   const io = dependencies.fs ?? nativeFs;
   const paths = dependencies.path ?? nativePath;
   const digest = dependencies.digest ?? (bytes => nativeCrypto.createHash('sha256').update(bytes).digest('hex'));
   const capture = dependencies.capture ?? captureRepositorySourcePin;
   const assertPin = dependencies.assertPin ?? assertRepositorySourcePin;
+  const assertGitState = dependencies.assertGitState ?? ((...args) => assertNativeGitState(...args));
   const pinSha = dependencies.pinSha ?? sourcePinSha;
   const settingsPath = dependencies.settingsPath;
   const loadedPluginPath = dependencies.pluginPath ?? suppliedSettings?.pluginPath;
   const pluginInput = dependencies.pluginInput;
   const fetchMetadata = dependencies.fetch ?? globalThis.fetch;
+  const execFile = dependencies.execFile ?? nativeExecFile;
+  const sourceEnvironment = dependencies.environment ?? process.env;
+  const sourceClock = dependencies.monotonic ?? (() => process.hrtime.bigint());
   let sessionClient, sessionApi, sessionGetter, metadataOrigin;
   let settings;
   let settingsSha;
@@ -135,8 +160,11 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
     catch { nativeRefuse(code); }
   };
   const validateSettings = () => {
-    exactKeys(settings, settings?.schema === 2 ? [...nativeSettingsKeys, 'project_binding'] : nativeSettingsKeys, 'SETTINGS_INVALID');
-    if (![1, 2].includes(settings.schema) || settings.kind !== 'autonomous-cae-lab.openscience-native-guard' ||
+    const keys = [...nativeSettingsKeys];
+    if (settings?.schema === 3) keys.push('source_reader');
+    if (settings?.schema === 2 || (settings?.schema === 3 && Object.hasOwn(settings, 'project_binding'))) keys.push('project_binding');
+    exactKeys(settings, keys, 'SETTINGS_INVALID');
+    if (![1, 2, 3].includes(settings.schema) || settings.kind !== 'autonomous-cae-lab.openscience-native-guard' ||
         typeof settings.run_name !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(settings.run_name) ||
         typeof settings.model !== 'string' || !/^openai-codex\/[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/.test(settings.model) ||
         !Array.isArray(settings.allowed) || !settings.allowed.length || new Set(settings.allowed).size !== settings.allowed.length ||
@@ -144,7 +172,7 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
         !nativeSha(settings.config_sha256) || !nativeSha(settings.plugin_sha256) || !nativeSha(settings.boot_source_sha256)) nativeRefuse('SETTINGS_INVALID');
     noLinks(settings.profile_root, 'directory');
     noLinks(settings.repo_root, 'directory');
-    if (settings.schema === 2) {
+    if (managed()) {
       const binding = settings.project_binding;
       exactKeys(binding, nativeProjectBindingKeys, 'PROJECT_BINDING_INVALID');
       if (binding.schema !== 1 || binding.kind !== 'autonomous-cae-lab.openscience-project-binding' ||
@@ -153,6 +181,14 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
           binding.source_directory !== settings.repo_root || binding.working_root !== binding.source_directory ||
           binding.access !== 'write') nativeRefuse('PROJECT_BINDING_INVALID');
       noLinks(binding.project_directory, 'directory');
+    }
+    if (settings.schema === 3) {
+      const reader = settings.source_reader;
+      exactKeys(reader, nativeSourceReaderKeys, 'SOURCE_READER_INVALID');
+      if (!nativeSha(reader.node_sha256) || !nativeSha(reader.worker_sha256) ||
+          reader.worker_path !== paths.join(settings.profile_root, 'source-reader.mjs')) nativeRefuse('SOURCE_READER_INVALID');
+      noLinks(reader.node_path, 'file');
+      owned(reader.worker_path, 'file');
     }
     for (const file of [settingsPath, settings.guardPath, settings.configPath, settings.pluginPath]) owned(file, 'file');
     owned(settings.receipts, 'directory');
@@ -171,7 +207,12 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
     if (digest(read(settingsPath, 16 * 1024 * 1024)) !== settingsSha) nativeRefuse('SETTINGS_CHANGED');
     if (digest(read(settings.configPath, 1024 * 1024)) !== settings.config_sha256) nativeRefuse('CONFIG_CHANGED');
     if (digest(read(settings.pluginPath, 1024 * 1024)) !== settings.plugin_sha256) nativeRefuse('PLUGIN_CHANGED');
+    if (settings.schema === 3) {
+      if (digest(read(settings.source_reader.node_path, 128 * 1024 * 1024)) !== settings.source_reader.node_sha256) nativeRefuse('NODE_EXECUTABLE_CHANGED');
+      if (digest(read(settings.source_reader.worker_path, 1024 * 1024)) !== settings.source_reader.worker_sha256) nativeRefuse('SOURCE_READER_CHANGED');
+    }
   };
+  const managed = () => settings.schema === 2 || (settings.schema === 3 && Object.hasOwn(settings, 'project_binding'));
   const guardFor = () => {
     const parsed = readJson(settings.guardPath, 128 * 1024, 'GUARD_INVALID');
     const guard = parsed.value;
@@ -288,17 +329,49 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
       nativeRefuse('PROJECT_SESSION_CHANGED');
     }
   };
-  const sourceFor = hashes => {
+  const captureWithReader = () => new Promise((resolve, reject) => {
+    const reader = settings.source_reader, env = Object.create(null);
+    // Read only the permitted OS values; no Node/Git/provider environment is
+    // inherited by the child, and no environment value enters a receipt.
+    for (const key of Object.keys(sourceEnvironment)) {
+      const allowed = nativeSourceEnvironmentKeys.find(item => item.toUpperCase() === key.toUpperCase());
+      if (allowed && !Object.hasOwn(env, allowed)) env[allowed] = sourceEnvironment[key];
+    }
+    const child = execFile(reader.node_path, [reader.worker_path, settings.repo_root, settings.boot_source.git_path, settingsPath], {
+      cwd: settings.repo_root, env, timeout: nativeSourceReadTimeoutMs,
+      maxBuffer: nativeSourceResponseBound, windowsHide: true, shell: false, encoding: 'utf8',
+    }, (error, stdout, _stderr) => {
+      if (error) { reject(nativeReaderFailure(error)); return; }
+      try {
+        if (typeof stdout !== 'string' || Buffer.byteLength(stdout) > nativeSourceResponseBound) throw new Error();
+        const result = JSON.parse(stdout);
+        exactKeys(result, ['schema', 'kind', 'pin', 'git_state'], 'SOURCE_READER_RESULT_INVALID');
+        if (result.schema !== 1 || result.kind !== 'autonomous-cae-lab.source-reader-result' ||
+            !nativeRecord(result.pin) || !nativeRecord(result.git_state)) throw new Error();
+        resolve(result);
+      } catch { reject({}); }
+    });
+    // execFile always pipes stdin. Close it immediately without writing any
+    // input; its supported API has no stdio-ignore option.
+    child.stdin?.end();
+    child.stdin?.destroy();
+  });
+  const sourceFor = async hashes => {
     const boot = settings.boot_source;
     if (digest(read(boot.git_path, 128 * 1024 * 1024)) !== boot.git_sha256) nativeRefuse('GIT_EXECUTABLE_CHANGED');
     const check = hashes.sourceCheck = {
       capture: { status: 'NOT_RUN', elapsed_ms: null, error_kind: null },
       compare: { status: 'NOT_RUN', elapsed_ms: null, error_kind: null },
     };
+    if (settings.schema === 3) check.final_bytes = { status: 'NOT_RUN', elapsed_ms: null, error_kind: null };
     let current;
     const captureStarted = process.hrtime.bigint();
     try {
-      current = capture(settings.repo_root, boot.git_path);
+      if (settings.schema === 3) {
+        const result = await captureWithReader();
+        current = result.pin;
+        hashes.sourceGitState = result.git_state;
+      } else current = await capture(settings.repo_root, boot.git_path);
       check.capture.status = 'PASS';
     } catch (error) {
       check.capture.status = 'FAIL';
@@ -316,6 +389,87 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
     } finally { check.compare.elapsed_ms = nativeElapsedMs(compareStarted); }
     return settings.boot_source_sha256;
   };
+  const finalSourceBytes = hashes => {
+    const check = hashes.sourceCheck.final_bytes;
+    const started = process.hrtime.bigint();
+    const deadlineStarted = sourceClock();
+    const deadline = () => {
+      if (sourceClock() - deadlineStarted >= BigInt(nativeSourceReadTimeoutMs) * 1_000_000n) nativeRefuse('SOURCE_BYTES_CHECK_TIMEOUT');
+    };
+    const key = value => process.platform === 'win32' ? value.toLowerCase() : value;
+    const sourcePath = relative => {
+      if (typeof relative !== 'string' || !relative.length || relative.length > 32768 ||
+          relative.includes('\\') || paths.parse(relative).root ||
+          relative.split('/').some(part => !part || part === '.' || part === '..')) nativeRefuse('BOOT_SOURCE_INVALID');
+      const absolute = paths.resolve(settings.repo_root, relative);
+      const local = paths.relative(settings.repo_root, absolute);
+      if (!local || paths.isAbsolute(local) || local === '..' || local.startsWith(`..${paths.sep}`)) nativeRefuse('BOOT_SOURCE_INVALID');
+      return absolute;
+    };
+    const fixedFiles = () => {
+      deadline(); stableFiles(); deadline();
+      if (digest(read(settings.boot_source.git_path, 128 * 1024 * 1024)) !== settings.boot_source.git_sha256) nativeRefuse('GIT_EXECUTABLE_CHANGED');
+      deadline();
+    };
+    try {
+      fixedFiles();
+      const files = new Set(), repositories = new Set([key(settings.repo_root)]);
+      for (const file of settings.boot_source.files) {
+        deadline();
+        if (!nativeRecord(file) || !nativeSha(file.sha256)) nativeRefuse('BOOT_SOURCE_INVALID');
+        const absolute = sourcePath(file.path);
+        if (files.has(key(absolute))) nativeRefuse('BOOT_SOURCE_INVALID');
+        files.add(key(absolute));
+        if (digest(read(absolute, 128 * 1024 * 1024)) !== file.sha256) nativeRefuse('SOURCE_BYTES_CHANGED');
+        deadline();
+      }
+      for (const submodule of settings.boot_source.submodules) {
+        deadline();
+        if (!nativeRecord(submodule)) nativeRefuse('BOOT_SOURCE_INVALID');
+        const absolute = sourcePath(submodule.path);
+        noLinks(absolute, 'directory'); repositories.add(key(absolute));
+      }
+      const walk = (directory, repository) => {
+        deadline();
+        noLinks(directory, 'directory');
+        if (repositories.has(key(directory))) repository = directory;
+        const entries = io.opendirSync(directory);
+        try {
+          for (let entry; (entry = entries.readSync()) !== null;) {
+            deadline();
+            const absolute = paths.join(directory, entry.name);
+            const relative = paths.relative(repository, absolute).split(paths.sep).join('/');
+            const parts = relative.split('/');
+            if (nativeIgnoredSourceRoots.includes(parts[0])) continue;
+            // Never follow a link into an unpinned import tree.
+            const stat = io.lstatSync(absolute);
+            if (stat.isSymbolicLink()) nativeRefuse('PATH_LINKED');
+            if (stat.isDirectory()) walk(absolute, repository);
+            else if (/\.(py|pyi|pyc|pyd|so|pth)$/i.test(entry.name) &&
+                !(parts.includes('__pycache__') && relative.endsWith('.pyc')) &&
+                !files.has(key(absolute))) nativeRefuse('SOURCE_IMPORTABLE_CHANGED');
+          }
+        } finally { entries.closeSync(); }
+      };
+      walk(settings.repo_root, settings.repo_root);
+      // Final bytes/imports and fixed Git metadata use files only. This does
+      // not repeat the reader's full Git/source capture after the last await.
+      fixedFiles();
+      try { assertGitState(settings.repo_root, settings.boot_source.submodules, hashes.sourceGitState, deadline); }
+      catch (error) {
+        if (error instanceof NativeGuardRefusal) throw error;
+        nativeRefuse('GIT_STATE_CHANGED');
+      }
+      deadline();
+      check.status = 'PASS';
+    } catch (error) {
+      check.status = 'FAIL';
+      check.error_kind = error instanceof NativeGuardRefusal && error.code === 'SOURCE_BYTES_CHECK_TIMEOUT'
+        ? 'TIMEOUT' : nativeSourceErrorKind(error);
+      if (error instanceof NativeGuardRefusal) throw error;
+      nativeRefuse('SOURCE_BYTES_CHECK_FAILED');
+    } finally { check.elapsed_ms = nativeElapsedMs(started); }
+  };
   const metadataId = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(value) ? value : null;
   const receipt = (hook, input, status, code, hashes) => {
     if (++sequence > 999999) nativeRefuse('RECEIPT_LIMIT');
@@ -325,7 +479,7 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
     const value = {
       schema: 1, kind: 'autonomous-cae-lab.openscience-native-guard-receipt',
       pid: process.pid, sequence, timestamp_utc: new Date().toISOString(), hook,
-      session_id: settings.schema === 2 ? (nativeSessionId(hashes.sessionID) ? hashes.sessionID : null) : metadataId(input?.sessionID),
+      session_id: managed() ? (nativeSessionId(hashes.sessionID) ? hashes.sessionID : null) : metadataId(input?.sessionID),
       tool: nativeKnownTools.includes(input?.tool) ? input.tool : null,
       status, accepted: status === 'accepted', code, boot_source_sha256: hashes.source ?? null,
       guard_sha256: hashes.guard ?? null, settings_sha256: settingsSha,
@@ -345,12 +499,12 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
   const evaluate = async (hook, input) => {
     const hashes = {};
     try {
-      if (settings.schema === 2) hashes.sessionID = input?.sessionID;
+      if (managed()) hashes.sessionID = input?.sessionID;
       stableFiles();
       let parsed = guardFor();
       hashes.guard = parsed.sha256;
       if (parsed.guard.stopping) nativeRefuse('RUNTIME_STOPPING');
-      if (settings.schema === 2) {
+      if (managed()) {
         await projectFor(hashes.sessionID, hashes);
         // Asynchronous metadata reads must not admit a stale stage/config.
         stableSession(input, hashes.sessionID, hashes);
@@ -359,11 +513,16 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
         if (currentGuard.guard.stopping) nativeRefuse('RUNTIME_STOPPING');
         if (currentGuard.sha256 !== parsed.sha256) nativeRefuse('GUARD_CHANGED_DURING_CHECK');
       }
-      hashes.source = sourceFor(hashes);
-      // The synchronous source probe can outlast an external stage/Stop write.
-      // Apply the latest valid policy and record the hash actually used.
-      stableFiles();
-      if (settings.schema === 2) {
+      hashes.source = await sourceFor(hashes);
+      // A Node reader permits the native event loop to process grant/session
+      // changes. Refresh ownership, then apply policy after the last await.
+      if (settings.schema === 3 && managed()) await projectFor(hashes.sessionID, hashes);
+      if (settings.schema === 3) finalSourceBytes(hashes);
+      else {
+        stableFiles();
+        if (digest(read(settings.boot_source.git_path, 128 * 1024 * 1024)) !== settings.boot_source.git_sha256) nativeRefuse('GIT_EXECUTABLE_CHANGED');
+      }
+      if (managed()) {
         stableSession(input, hashes.sessionID, hashes);
         hashes.projectCheck.identity = 'FAIL';
         projectInputFor();
@@ -402,12 +561,25 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
   const initialGuard = guardFor();
   const initialHashes = { guard: initialGuard.sha256 };
   try {
-    if (settings.schema === 2) {
+    if (managed()) {
       initialHashes.projectCheck = { identity: 'FAIL', session: 'NOT_RUN', filesystem: 'NOT_RUN' };
       projectInputFor();
       initialHashes.projectCheck.identity = 'PASS';
     }
-    initialHashes.source = sourceFor(initialHashes);
+    initialHashes.source = await sourceFor(initialHashes);
+    if (settings.schema === 3) finalSourceBytes(initialHashes);
+    else {
+      stableFiles();
+      if (digest(read(settings.boot_source.git_path, 128 * 1024 * 1024)) !== settings.boot_source.git_sha256) nativeRefuse('GIT_EXECUTABLE_CHANGED');
+    }
+    if (managed()) {
+      initialHashes.projectCheck.identity = 'FAIL';
+      projectInputFor();
+      initialHashes.projectCheck.identity = 'PASS';
+    }
+    const currentGuard = guardFor();
+    initialHashes.guard = currentGuard.sha256;
+    if (currentGuard.guard.stopping) nativeRefuse('RUNTIME_STOPPING');
   }
   catch (error) {
     const code = error instanceof NativeGuardRefusal ? error.code : 'CHECK_FAILED';

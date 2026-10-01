@@ -1,7 +1,32 @@
 # Native official ChatGPT provider transport. No token copy or provider fallback.
 # Loaded after the common lifecycle and authentication helpers; no entrypoint.
 function Get-OpenScienceNativePluginSource {
-    (Get-OpenScienceRepositoryPinSource) + "`n" + [IO.File]::ReadAllText((Join-Path (Split-Path -Parent $PSScriptRoot) 'openscience/native_guard.mjs'))
+    (Get-OpenScienceRepositoryPinSource) + "`n" +
+        [IO.File]::ReadAllText((Join-Path (Split-Path -Parent $PSScriptRoot) 'openscience/native_git_state.mjs')) + "`n" +
+        [IO.File]::ReadAllText((Join-Path (Split-Path -Parent $PSScriptRoot) 'openscience/native_guard.mjs'))
+}
+
+function Get-OpenScienceNativeSourceReaderSource {
+    # Keep the exact shared two-snapshot algorithm in the pinned Node process.
+    # Bun's Windows synchronous child loop can expire immediately after idle.
+    (Get-OpenScienceRepositoryPinSource) + "`n" +
+        [IO.File]::ReadAllText((Join-Path (Split-Path -Parent $PSScriptRoot) 'openscience/native_git_state.mjs')) + "`n" + @'
+try {
+  if (process.argv.length !== 5) throw new Error('Source reader arguments refused');
+  const repoRoot=process.argv[2],gitPath=process.argv[3];
+  const settings=JSON.parse(sourceFs.readFileSync(process.argv[4],'utf8'));
+  if(settings.schema!==3||settings.repo_root!==repoRoot||settings.boot_source?.repo_root!==repoRoot||
+      settings.boot_source?.git_path!==gitPath)throw new Error('Source reader settings refused');
+  const before=captureNativeGitState(repoRoot,settings.boot_source.submodules,gitPath);
+  const pin=captureRepositorySourcePin(repoRoot,gitPath);
+  const after=captureNativeGitState(repoRoot,settings.boot_source.submodules,gitPath);
+  if(gitStateCanonical(before)!==gitStateCanonical(after))throw new Error('Source reader Git state changed');
+  process.stdout.write(JSON.stringify({schema:1,kind:'autonomous-cae-lab.source-reader-result',pin,git_state:after})+'\n');
+} catch {
+  process.stderr.write('SOURCE_READER_REFUSED\n');
+  process.exitCode=1;
+}
+'@
 }
 
 function Get-OpenScienceNativeContextSha256($Context) {
@@ -21,6 +46,10 @@ function Assert-OpenScienceNativeContext($Context, [switch]$LifecycleOnly) {
     Assert-OpenScienceContainedPath $Context.ProfileRoot $externalRoot | Out-Null
     foreach ($key in @('PluginPath', 'PluginSettingsPath', 'HookReceiptsPath', 'WslPythonCacheRoot')) {
         Assert-OpenScienceContainedPath $Context.$key $Context.ProfileRoot | Out-Null
+    }
+    if ($Context.SourceReaderPath) {
+        Assert-OpenScienceContainedPath $Context.SourceReaderPath $Context.ProfileRoot | Out-Null
+        Assert-OpenScienceCondition ($Context.SourceReaderPath -ceq (Join-Path $Context.ProfileRoot 'source-reader.mjs')) 'Native source reader path changed.'
     }
     Assert-OpenScienceContainedPath $Context.AuthProfileRoot $externalRoot | Out-Null
     $authMarkerPath = Assert-OpenScienceContainedPath (Join-Path $Context.AuthProfileRoot 'caelab-profile-owner.json') $Context.AuthProfileRoot
@@ -55,6 +84,9 @@ function Assert-OpenScienceNativeContext($Context, [switch]$LifecycleOnly) {
     # Source/config/plugin drift rejects new inference, but exact owned HTTP
     # cancellation and process cleanup retain independent identity checks.
     if ($LifecycleOnly) { return }
+    if ($Context.SourceReaderPath) {
+        Assert-OpenScienceCondition ((Get-OpenScienceHash $Context.SourceReaderPath) -ceq $Context.SourceReaderSha256) 'Pinned native source reader changed; research refused.'
+    }
     Assert-OpenScienceCondition ((Get-OpenScienceHash $Context.PluginPath) -ceq $Context.PluginSha256 -and
         (Get-OpenScienceHash $Context.ConfigPath) -ceq $Context.ConfigSha256) 'Owned native plugin/configuration changed; launch refused.'
     $config = Read-OpenScienceJson $Context.ConfigPath
@@ -98,10 +130,13 @@ function New-OpenScienceNativeContext {
     $mcpGit = New-OpenScienceMcpGitTransport -RepoRoot $RepoRoot -HostGitPath $hostGit -OriginalWslPath $originalWslPath
     $pluginSource = Get-OpenScienceNativePluginSource
     $pluginHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.UTF8Encoding]::new($false).GetBytes($pluginSource))).ToLowerInvariant()
+    $sourceReader = Get-OpenScienceNativeSourceReaderSource
+    $sourceReaderHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.UTF8Encoding]::new($false).GetBytes($sourceReader))).ToLowerInvariant()
     $intent = [ordered]@{ transport = 'ChatGPT'; repo_root = $RepoRoot; run_name = $RunName; profile_tag = $ProfileTag
         store_root = $StoreRoot; auth_profile_root = $authRoot; runtime_prefix = $auth.RuntimePrefix; model = $ModelId
         wsl_distro = $WslDistro; wsl_python = $WslPython; allowed_tools = @($AllowedTools); output_tokens = $OutputTokens
-        steps = $Steps; provider_timeout_seconds = $ProviderTimeoutSeconds; mcp_git_transport = $mcpGit; plugin_sha256 = $pluginHash }
+        steps = $Steps; provider_timeout_seconds = $ProviderTimeoutSeconds; mcp_git_transport = $mcpGit; plugin_sha256 = $pluginHash
+        source_reader_sha256 = $sourceReaderHash }
     if ($ProjectBinding) { $intent.project_binding = $ProjectBinding }
     $intentHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($intent | ConvertTo-Json -Depth 12 -Compress)))).ToLowerInvariant()
     $markerPath = Assert-OpenScienceContainedPath (Join-Path $profile 'caelab-profile-owner.json') $profile
@@ -126,6 +161,7 @@ function New-OpenScienceNativeContext {
         ProfileTag = $ProfileTag; ProfileRoot = $profile; ArtifactRoot = (Join-Path $RepoRoot "artifacts/$RunName"); StoreRoot = $StoreRoot
         ConfigPath = (Join-Path $profile 'config/openscience.json'); PluginPath = (Join-Path $profile 'native-guard.mjs')
         PluginSettingsPath = (Join-Path $profile 'native-guard-settings.json'); HookReceiptsPath = (Join-Path $profile 'hook-receipts')
+        SourceReaderPath = (Join-Path $profile 'source-reader.mjs'); SourceReaderSha256 = $sourceReaderHash
         PluginSha256 = $pluginHash; NodePath = $auth.NodePath; NodeSha256 = $authPin.NodeSha256; LauncherPath = $auth.LauncherPath
         LauncherSha256 = $authPin.LauncherSha256; RuntimePrefix = $auth.RuntimePrefix; NativePath = $auth.NativePath
         NativeBinaries = $authPin.NativeBinaries; Environment = $environment; RemoveEnvironment = @()
@@ -158,6 +194,7 @@ function New-OpenScienceNativeContext {
         New-Item -ItemType Directory -Path $directory -Force -ErrorAction Stop | Out-Null
     }
     [IO.File]::WriteAllText($context.PluginPath, $pluginSource, [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText($context.SourceReaderPath, $sourceReader, [Text.UTF8Encoding]::new($false))
     Write-OpenScienceJson $context.ConfigPath $config -CreateNew
     $context | Add-Member -NotePropertyName ConfigSha256 -NotePropertyValue (Get-OpenScienceHash $context.ConfigPath)
     Write-OpenScienceJson $contextPath $context -CreateNew
@@ -169,12 +206,15 @@ function New-OpenScienceNativeContext {
 }
 
 function Initialize-OpenScienceNativeGuard($Context, $Owner) {
-    $settings = [ordered]@{ schema = 1; kind = 'autonomous-cae-lab.openscience-native-guard'
+    Assert-OpenScienceCondition ($Context.SourceReaderPath -and $Context.SourceReaderSha256) 'New native research requires its pinned Node source reader.'
+    $settings = [ordered]@{ schema = 3; kind = 'autonomous-cae-lab.openscience-native-guard'
         repo_root = $Context.RepoRoot; run_name = $Context.RunName; profile_root = $Context.ProfileRoot; model = $Context.Model
         allowed = @($Context.AllowedTools); guardPath = $Context.GuardPath; configPath = $Context.ConfigPath; config_sha256 = $Context.ConfigSha256
         pluginPath = $Context.PluginPath; plugin_sha256 = $Context.PluginSha256; receipts = $Context.HookReceiptsPath
-        boot_source = $Owner.boot_source; boot_source_sha256 = $Owner.boot_source_sha256 }
-    if ($Context.ProjectBinding) { $settings.schema=2; $settings.project_binding=$Context.ProjectBinding }
+        boot_source = $Owner.boot_source; boot_source_sha256 = $Owner.boot_source_sha256
+        source_reader = @{ node_path=$Context.NodePath; node_sha256=$Context.NodeSha256
+            worker_path=$Context.SourceReaderPath; worker_sha256=$Context.SourceReaderSha256 } }
+    if ($Context.ProjectBinding) { $settings.project_binding=$Context.ProjectBinding }
     Write-OpenScienceJson $Context.PluginSettingsPath $settings -CreateNew
     $Owner.plugin_settings_sha256 = Get-OpenScienceHash $Context.PluginSettingsPath
 }

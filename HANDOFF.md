@@ -2,6 +2,25 @@
 
 ## Authoritative serial queue from the project owner
 
+Latest managed run02/c4c7ac1 first chat failed before model/Core/store. Identity,
+session and filesystem all PASS; source capture TIMEOUT11ms. SAME installed
+OpenScience/Bun1.3.14 binary independently reproduces the Windows idle spawnSync
+timer bug (Bun PR33935). Do not retry/widen timeouts or change auth/model/runtime.
+Owned run02 is STOPPED03:06:52.278351Z/all3PIDs absent/4098 closed;386 files/
+8,525,838bytes retained with source/copy hashes. Original manifest's null byte
+sum remains with corrected v2 verification. Source correction uses the existing
+pinned Node plus owned/hash-bound shared source reader asynchronously; source
+and post-await project/file gates remain required. Source admission PASSED:
+guard67/nativePS34/realGit8; independent reviews close the final-await HEAD/index
+gap with a private Git fingerprint and final synchronous file assertion. Actual
+Node/full source envelope passed5050ms; initial async same-binary idle proof is
+a separately retained scope. NEXT meaningful commit/push, update ONLY stopped Serving, new
+run03/profile/store, connected resident, unchanged full research, official final
+session, observed-busy cancellation, owned Stop. c4 exact CI36807231992 all8PASS;
+this is not managed research success. All52/Phase1–7 scope persists, onlyP1.1
+active. See20261001-openscience-native-idle-source-correction.json. The following
+entries preserve historical checkpoints and are superseded by this queue.
+
 Latest actual managed6391106 startup/resident/project GUI setup PASS; NOT research.
 Tracked harness refused its CRLF/LF seam before body/LLM/Core/store. Narrow source
 fix +LF/CRLF/changed-seam4 regressions and independent review PASS. Run01/attempt

@@ -21,6 +21,15 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Status vocabulary
 
+2026-10-01 managed run02/c4c7ac1 resident PASS, first chat denied before provider/
+Core/store. All managed checks PASS; installed Bun1.3.14 idle synchronous timeout
+defect reproduced with the SAME OpenScience binary. Owned Stop and386-file local
+retention verified. Pinned-Node async reader source admission PASS
+(guard67/nativePS34/realGit8 and independent reviews; final-await Git drift closed).
+Source checks preserve all existing model/tool/engineering gates; fullP1.1/new
+managed research/finalGUI/busy cancellation remain OPEN. All52 rows are retained;
+no numerical or engineering status is promoted. Exact c4 CI36807231992 all8PASS.
+
 2026-10-01 managed6391106 native startup/resident source/official project setup PASS;
 research preparation refused CRLF/LF seam before any model/Core/store. Bounded
 source correction does not promote fullP1.1. Fresh run02 case/GUI/busy gates remain.

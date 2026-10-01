@@ -1,5 +1,19 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+New native guard schema3 pins the existing Node executable and one generated
+profile-owned source reader. The reader uses the unchanged common two-snapshot
+Git/file algorithm; its asynchronous outer execution has20s/16MiB bounds,
+closed stdin, fixed argv/cwd and a minimal OS environment. Node/reader paths and
+hashes are checked before/after; source/config/stage/model refusals remain.
+Managed session/filesystem grants and workingRoot are refreshed after capture;
+all final file/session/stage gates run after the last await. Historical schema1/2
+remain separate; schema3 additionally checks tracked source bytes and late
+Python-importable files synchronously after the last metadata read, with one
+bounded local pass. This final byte gate is distinct from the complete Git pin.
+No reader is inferred for historical settings. This avoids the SAME installed Bun's
+Windows stale synchronous timer, preserving runtime/auth/model selection and
+Core operation schemas. Source tests alone do not close new actual research.
+
 The official Windows data root uses fs.realpath of the explicit auth data folder.
 Managed directory checks resolve read-only OS handles and recheck logical/physical
 ancestors and the unchanged projects root; common containment stays strict.
@@ -116,6 +130,13 @@ existing boundary. Public plugin hooks admit logical streams and pre-tool calls
 against boot source/model/stage/stopping; actual HTTP retries/final offered schemas
 remain UNKNOWN. Immutable context/runtime identity still applies to exact owned
 abort/idle/Stop; mutable inference-file drift cannot disable those lifecycle gates.
+
+Native schema3 runs the unchanged full source snapshot in the pinned Node
+reader, surrounded by matching root/submodule Git administration fingerprints.
+After the final managed metadata await, synchronous file checks cover tracked
+bytes, late importable source and own HEAD/index/reference/configuration state.
+Git runs only in the Node reader. Its exact private envelope adds no Core or
+research operation field; same-byte version/mode drift still rejects inference.
 Native OAuth acceptance remains OPEN; source checks do not prove actual loading.
 
 The historical local persistent transport uses the installed pinned official OpenScience

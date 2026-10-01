@@ -12,6 +12,14 @@ Currently only **P1.1** is active. Later rows are queued, not running.
 
 ## P1.1 — integrated OpenScience CAD research (ACTIVE)
 
+- [x] Reproduce the managed run02 source failure with the SAME installed binary:
+  Bun1.3.14 Windows idle spawnSync clock expires a10s timeout in8ms. Preserve
+  failed case/official GUI evidence and close exact owned runtime; source record.
+- [x] Independently admit the pinned-Node async reader/source/post-await gates:
+  guard67/nativePS34/realGit8 PASS; same-installed-binary async idle proof is
+  separate. Close final-await HEAD/index P2 with final FS-only Git fingerprint.
+- [ ] Commit/push source unit, then NEW run03 resident/research/GUI/busy cancel/Stop.
+
 - [x] Preserve/replay official managed metadata, verify exact source grant/root,
   and Stop historical5365 through its owned controller. Retain initial MSIX/UUID
   failures; narrow correction/actual migration record is separate from research.

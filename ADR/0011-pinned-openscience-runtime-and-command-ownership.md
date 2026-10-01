@@ -120,3 +120,46 @@ same output4096/steps3/model/tools/CAD inputs/numerical criteria. The old respon
 took181.471s and first tool about95s; exact latency cause remains UNKNOWN.
 This changes waiting time, not numerical acceptance. Preserve original failure,
 both raw copies/manifests and all UNKNOWN/NOT_RELEASED qualification.
+
+## Windows native idle source-reader correction, 2026-10-01
+
+Managed run02/c4c7ac1 source capture failed11ms with TIMEOUT after managed
+identity/session/filesystem passed. An independent bounded diagnostic reproduced
+the defect in the SAME installed OpenScience2.0.146 executable/Bun1.3.14:
+Git version read79ms PASS,11,019ms idle,identical10s read TIMEOUT8ms, immediate
+read62ms PASS. [Bun PR33935](https://github.com/oven-sh/bun/pull/33935) explains
+the stale cached synchronous Windows libuv clock. Historical5365 initial errors
+are not reclassified without their own child evidence.
+
+Use the already pinned Node executable asynchronously for one generated,
+profile-owned/hash-bound source reader containing the exact existing two-
+snapshot algorithm. Outer20s/16MiB, inner Git10s/overall20s, fixed argv/cwd,
+closed stdin and minimal OS environment remain bounded. Schema3 pins both
+executable and reader through intent/context/settings; old schema1/2 remain
+historical contracts. New inference checks hashes before/after, refreshes managed
+session/filesystem after capture and rechecks stage/Stop/model/files after the
+last await. Exact owned cleanup remains available under mutable reader drift.
+An additional synchronous bounded local pass checks all boot-pinned tracked
+bytes/links and rejects late importable source, using the same repository-relative
+exclusions. It closes the new metadata-await byte gap; it is not a second full
+Git snapshot or an atomic operating-system transaction.
+
+Independent review found that a same-byte HEAD/index/mode change during the
+last metadata await also needed rejection. The Node reader now surrounds the
+unchanged full snapshot with identical Git administration fingerprints for
+the exact root/submodule checkouts. After the last await the native hook checks
+those files synchronously, without spawning Git in Bun: own HEAD/index, Git
+pointer/commondir, configuration/exclusion files, split-index backing and own
+symbolic HEAD references. Packed references check only the owned ref value;
+unrelated Main commits do not invalidate a detached Serving checkout. Missing,
+linked, malformed or drifting metadata refuses inference. The reader envelope
+is exact and private; receipts contain only bounded phase status/timing.
+
+Increasing timeouts cannot repair an idle-clock timeout that fires in8ms.
+Unbounded warmup, accepting a failed probe, retrying it, weakening source pins,
+changing auth/model, or replacing the pinned official runtime are rejected.
+Core/plugin/adapters, numerical search and engineering thresholds are unchanged.
+Root owns shared context/settings integration; one bounded agent owns guard/tests,
+another reproduced the installed runtime and a read-only reviewer checked async
+grant/root races. Source checks and NEW actual run03 are separate acceptance.
+Impact: R11/R13/R21/R25/R43/R45/R51/R52; OpenScience operation schemas unchanged.

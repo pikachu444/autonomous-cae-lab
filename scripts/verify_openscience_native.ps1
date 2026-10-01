@@ -58,8 +58,17 @@ $taskNativePluginBytes = [IO.File]::ReadAllBytes($taskNativeContext.PluginPath)
 [IO.File]::AppendAllText($taskNativeContext.PluginPath, "`n// synthetic tamper")
 Assert-NativeRefused { New-OpenScienceLocalProcessInfo $taskNativeContext @('--version') } 'tampered_native_plugin_blocks_launch'
 [IO.File]::WriteAllBytes($taskNativeContext.PluginPath, $taskNativePluginBytes)
+Assert-NativeCheck ((Get-OpenScienceHash $taskNativeContext.SourceReaderPath) -ceq $taskNativeContext.SourceReaderSha256 -and
+    [IO.File]::ReadAllText($taskNativeContext.SourceReaderPath).StartsWith((Get-OpenScienceRepositoryPinSource))) 'generated_native_reader_retains_the_shared_two_snapshot_algorithm'
+$taskNativeReaderBytes = [IO.File]::ReadAllBytes($taskNativeContext.SourceReaderPath)
+[IO.File]::AppendAllText($taskNativeContext.SourceReaderPath, "`n// synthetic reader drift")
+Assert-NativeRefused { New-OpenScienceLocalProcessInfo $taskNativeContext @('--version') } 'tampered_native_source_reader_blocks_launch'
+Assert-OpenScienceContext $taskNativeContext -LifecycleOnly
+$taskNativeChecks.Add('owned_lifecycle_admission_survives_mutable_source_reader_drift')
+[IO.File]::WriteAllBytes($taskNativeContext.SourceReaderPath, $taskNativeReaderBytes)
 foreach ($taskDrift in @(@('NativePath', (Join-Path $env:WINDIR 'System32/notepad.exe')), @('StoreRoot', (Join-Path $taskNativeContext.RepoRoot 'runs/other-store')),
-    @('NodeSha256', ('0' * 64)), @('Steps', 1))) {
+    @('NodeSha256', ('0' * 64)), @('Steps', 1), @('SourceReaderPath', (Join-Path $taskNativeContext.ProfileRoot 'different-reader.mjs')),
+    @('SourceReaderSha256', ('0' * 64)))) {
     $taskDriftContext = [pscustomobject](Read-OpenScienceJson (Join-Path $taskNativeContext.ProfileRoot 'context.json'))
     $taskDriftContext.($taskDrift[0]) = $taskDrift[1]
     Assert-NativeRefused { New-OpenScienceLocalProcessInfo $taskDriftContext @('--version') } ('saved_context_' + $taskDrift[0] + '_drift_refused_before_launch')
@@ -84,6 +93,11 @@ Set-OpenScienceExpectedTools -Context $taskNativeContext -RequiredTool 'caelab_s
 Assert-NativeCheck ((Read-OpenScienceJson $taskNativeContext.GuardPath).required -ceq 'caelab_study_create') 'native_transport_reuses_existing_stage_guard'
 $taskNativeOwner = @{ boot_source = @{ schema = 1; test_only = $true }; boot_source_sha256 = ('a' * 64); native = @{ Pid = 12345 } }
 Initialize-OpenScienceNativeGuard $taskNativeContext $taskNativeOwner
+$taskNativeSettings = Read-OpenScienceJson $taskNativeContext.PluginSettingsPath
+Assert-NativeCheck ($taskNativeSettings.schema -eq 3 -and $taskNativeSettings.source_reader.node_path -ceq $taskNativeContext.NodePath -and
+    $taskNativeSettings.source_reader.node_sha256 -ceq $taskNativeContext.NodeSha256 -and
+    $taskNativeSettings.source_reader.worker_path -ceq $taskNativeContext.SourceReaderPath -and
+    $taskNativeSettings.source_reader.worker_sha256 -ceq $taskNativeContext.SourceReaderSha256) 'new_native_settings_pin_the_exact_existing_node_and_owned_reader'
 Assert-NativeRefused { Assert-OpenScienceNativeGuardLoaded $taskNativeContext $taskNativeOwner } 'settings_file_alone_is_not_actual_loaded_guard_proof'
 Write-OpenScienceJson (Join-Path $taskNativeContext.HookReceiptsPath 'synthetic-foreign-loaded.json') @{ hook = 'plugin.loaded'; pid = 54321
     accepted = $true; boot_source_sha256 = $taskNativeOwner.boot_source_sha256 } -CreateNew

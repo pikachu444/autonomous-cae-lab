@@ -2,6 +2,24 @@
 
 ## Current serial work: Phase1 persistent OpenScience
 
+Latest actual managed run02/source c4c7ac1 started and its connected resident
+source passed. First chat.params denied before provider/Core/store: all three
+managed checks PASS, source capture FAIL11ms/TIMEOUT, compare NOT_RUN. Same exact
+installed OpenScience2.0.146/Bun1.3.14 binary reproduces cold Git79ms PASS,
+11,019ms idle then ETIMEDOUT8ms, immediate follow-up62ms PASS (Bun PR33935).
+This identifies the idle synchronous timer defect; historical5365 initial
+errors remain UNKNOWN. Run02 owned Stop03:06:52.278351Z/all3PIDs absent/4098
+closed.386 closed files/8,525,838bytes copied and reverified; original null byte
+aggregation is retained beside the corrected v2 receipt. Exact c4 CI36807231992
+all8PASS is separate from failed actual research. New pinned-Node async reader
+source admission PASSED: guard67/nativePS34/realGit8; independent reviews close
+the final-await HEAD/index gap without native Git calls. Exact hashes and the
+same-installed-binary async idle proof are retained in the correction record.
+NEXT commit/push/new run03/store, full unchanged
+cases, official final session, observed-busy cancellation, owned Stop. P1.1 OPEN.
+See20261001-openscience-native-idle-source-correction.json. Earlier entries below
+are historical checkpoints, not pending instructions for the current runtime.
+
 Managed6391106 startup/resident source and official project/5.6 Sol/folder view PASS.
 Research body was NOT_RUN: CRLF/LF provider seam mismatch refused before all model/
 tool hooks and store creation. Two-line normalization +4 bounded regressions and

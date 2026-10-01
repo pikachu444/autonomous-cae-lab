@@ -1,5 +1,23 @@
 # OpenScience local runtime acceptance — 2026-09-30
 
+## Same-installed-binary Windows idle timeout diagnosis, 2026-10-01
+
+Managed run02/c4 first chat was refused before model/Core/store. Public hook
+receipt records identity/session/filesystem PASS, capture TIMEOUT11ms. SAME
+installed executable SHA0337ab2d.../Bun1.3.14 was run in official BUN_BE_BUN mode
+in an isolated diagnostic directory: cold Git79ms PASS,11,019ms idle,8ms timeout,
+immediate62ms PASS. This reproduces [Bun PR33935](https://github.com/oven-sh/bun/pull/33935),
+not a real10s exhaustion. No runtime/auth/model replacement, warmup or retry.
+Run02 owned Stop and386 closed files/8,525,838bytes local retention verified;
+null initial byte aggregate is preserved beside a reverified v2 receipt. c4
+CI36807231992 all8PASS does not promote the failed managed research. Source
+correction source admission PASS: guard67/nativePS34/realGit8 and independent
+reviews; final metadata-await HEAD/index gap closed with FS-only Git assertion.
+Same installed binary initial async cold/21,014ms idle/post-idle captures PASS
+(3751/3604ms), before that later Git correction. New run03 actual gates remain
+OPEN; historical5365 initial
+capture causes stay UNKNOWN. See the native-idle-source-correction record.
+
 ## Actual managed startup and harness preparation correction, 2026-10-01
 
 Run p1-managed-20261001-01/source6391106 verified real schema2 loading, connected

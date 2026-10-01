@@ -1,0 +1,223 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.openscience-native-idle-source-correction",
+  "phase": "P1.1",
+  "actual_failed_source_commit": "c4c7ac1eff066caec68b7d633b5d07918d3e2e71",
+  "run_name": "p1-managed-20261001-02",
+  "attempt_name": "attempt-01",
+  "outcome": "ACTUAL_MANAGED_CHAT_REFUSED; SAME_INSTALLED_BINARY_IDLE_DEFECT_REPRODUCED; SOURCE_CORRECTION_ADMITTED; NEW_MANAGED_RESEARCH_PENDING",
+  "actual_managed_run": {
+    "startup": "PASS_ACTUAL_MANAGED_NATIVE_STARTUP",
+    "resident": "PASS_ACTUAL_CONNECTED_RESOURCE; clean c4c7ac1/fixture3e48bf6; on-disk source scope",
+    "boot_source_sha256": "cd2ec5aa8abf7971d56fb93a016b2a8c0d789f534cb6dbf3a4313f08fc413c13",
+    "resident_receipt_sha256": "63ca4d4c689cc8c4de9175f324dcf23292fecdb254656168163837a119df6b1b",
+    "resident_response_sha256": "f77934e4738cffe4adea288847061505e6f24e4c9b569be157bed5bc15fca078",
+    "acceptance_sha256": "2c04a04c6055cc99e8ef9bfa14101f5255efd64ee95a7a23387f44bff0918051",
+    "started_utc": "2026-10-01T02:49:03.4214511Z",
+    "first_stage": "01-study-create",
+    "session_id": "ses_f0aa1777bffemeOhj1m3yuFKrk",
+    "stage_elapsed_seconds": 22.865,
+    "exit_code": 1,
+    "stage_timeout": false,
+    "tool_events": 0,
+    "done_tokens": 0,
+    "core_calls": 0,
+    "store_created": false,
+    "stdout_sha256": "7ebdf43f47b012a6f71e39bd642cd335068404ccbcd6759f8f1120efa9c05812",
+    "hook_receipt_sha256": "eaf136c6a9b181c88566128adc4ece0cd67975b7334d6316c679dafea493788a",
+    "hook_code": "SOURCE_CHANGED_OR_UNAVAILABLE",
+    "managed_checks": {
+      "identity": "PASS",
+      "session": "PASS",
+      "filesystem": "PASS"
+    },
+    "source_capture": {
+      "status": "FAIL",
+      "elapsed_ms": 11,
+      "error_kind": "TIMEOUT"
+    },
+    "source_compare": "NOT_RUN",
+    "startup_capture_elapsed_ms": 4467,
+    "official_gui": "PASS_SAME_FAILED_SESSION_VISIBLE; not research success",
+    "official_gui_screenshot_sha256": "fefdc049045dadc60c0df5fc6e6c48f7c8c2209a280d9a85a421eb909ecc2af6"
+  },
+  "same_installed_binary_reproduction": {
+    "mode": "Official BUN_BE_BUN=1; bundled app entrypoint skipped; no provider/auth/Core",
+    "openscience_version": "2.0.146",
+    "openscience_source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+    "native_binary_sha256": "0337ab2d24ad2a9a9c8ba4c622074cca95b6daa086553010a2c5332acdab9c02",
+    "binary_and_git_unchanged": true,
+    "bun_version": "1.3.14",
+    "bun_revision": "0d9b296af33f2b851fcbf4df3e9ec89751734ba4",
+    "command": "execFileSync git --version; timeout10000ms; windowsHide; ignore/pipe/pipe;16MiB",
+    "cold": {
+      "status": "PASS",
+      "elapsed_ms": 79
+    },
+    "idle_elapsed_ms": 11019,
+    "after_idle": {
+      "status": "FAIL",
+      "elapsed_ms": 8,
+      "code": "ETIMEDOUT",
+      "signal": "SIGTERM",
+      "stdout_bytes": 0,
+      "stderr_bytes": 0
+    },
+    "immediate_followup": {
+      "status": "PASS",
+      "elapsed_ms": 62
+    },
+    "total_elapsed_ms": 11168,
+    "outer_timeout_ms": 30000,
+    "outer_timed_out": false,
+    "manifest_sha256": "a74cda496944842d823a70bd89b15da6353c85e5f727b8a123b024b4e55135ba",
+    "stdout_sha256": "c16add4164fdf532c7e2eacd3b8cbdedfd65a92003e474cf2767a8da8007a70b",
+    "script_sha256": "669c6ff7cfd2b236ccf754f13ce743c7514efb941327cdf37de230b576dd8d86",
+    "upstream_cause": "Windows cached spawnSync isolated libuv clock is stale after idle; timer immediately expires",
+    "primary_reference": "https://github.com/oven-sh/bun/pull/33935",
+    "same_binary_scope": "Exact executable observed in running native processes, not a separately installed Bun",
+    "historical_5365_initial_failure_attribution": "UNKNOWN; not upgraded from this new reproduction"
+  },
+  "owned_stop": {
+    "status": "PASS_OWNED_STOP",
+    "closed_utc": "2026-10-01T03:06:52.278351Z",
+    "owned_pids": [
+      82580,
+      49800,
+      77276
+    ],
+    "owned_pids_absent": true,
+    "port4098_listener_count": 0,
+    "receipt_sha256": "ca9958cbeaa411954021b9337de8dbb48b1e0134307d0b6850e1bb43c163e410"
+  },
+  "closed_local_retention": {
+    "file_count": 386,
+    "size_bytes": 8525838,
+    "original_and_copy_hashes_reverified": true,
+    "original_manifest_sha256": "c276d13cf421c2eab9f4be6d78751ee8ab99153acb8b30a6e442e5456f096e75",
+    "v2_verification_receipt_sha256": "56ca75247803fe42af7fab6be76420c40c8754537bea8f200bec428bf712e20b",
+    "initial_aggregate": "NULL due to Hashtable Measure-Object keys; original preserved; explicit per-row v2 sum and sizes/hashes verified",
+    "scope": "Run artifacts, allowlisted closed runtime descriptors/hooks/server receipts, boot-pinned tracked source; no auth data/environment caches",
+    "location": "Ignored Main artifacts/p1-managed-20261001-02/retained-01 and immutable stopped profile; separate same-binary diagnostics retained",
+    "remote_raw_retention": "NOT_CLAIMED"
+  },
+  "source_correction": {
+    "status": "PASS_SOURCE_ADMISSION",
+    "strategy": "Asynchronous execFile of existing pinned Node and owned/hash-bound shared two-snapshot source reader",
+    "guard_schema": 3,
+    "outer_timeout_ms": 20000,
+    "output_bound_bytes": 16777216,
+    "inner_git_timeout_ms": 10000,
+    "inner_snapshot_deadline_ms": 20000,
+    "managed_metadata": "Refreshed after capture; final admission after the last await",
+    "final_local_source_gate": "After last metadata await: synchronous bounded tracked bytes/links/import walk AND exact private root/submodule Git metadata fingerprint; no native Bun Git spawn",
+    "scope": "Native adapter/ownership guard and source reader only; Core and engineering thresholds unchanged",
+    "runtime_model_auth": "Preserved OpenScience2.0.146 and selected openai-codex/gpt-5.6-sol/existing auth; no fallback",
+    "initial_async_source_checks": {
+      "pass": 34,
+      "fail": 0,
+      "receipt_sha256": "647d0255d2f37eba4b6149495b52b4aa41a2f2544ed665eab36d86592c7e9f16",
+      "provider_source_sha256": "7843126fc083b0e660f411e5f98725c416f6000df465cf302e8a06f6dda937ee",
+      "verification_script_sha256": "c14157e3a72c3593f59eac010fc3068401a6b6811a79b9196273d36fcdb94fb8",
+      "generated_reader_sha256": "430460a3cb35315033ce7f47585066ee9628ec1914a6980b1008d265cdcea265",
+      "independent_review": "PASS_READ_ONLY frozen PS bytes; no open P1/P2; JS and actual provider execution excluded",
+      "scope": "Synthetic auth configuration/context/ownership/lifecycle source checks; zero provider/Core/CAD"
+    },
+    "initial_async_guard_checks": {
+      "first_attempt": "60PASS/2fixtureFAIL; raw log retained; fixture awaits only corrected",
+      "pass": 62,
+      "fail": 0,
+      "independent_review": "OPEN_P2: same-byte HEAD/index drift after final metadata await; not admitted",
+      "guard_sha256": "f46d286f477a12577465070b0f4b49de41bcec8da2b3094c66f8aac5aedda984",
+      "tests_sha256": "0a3c1ada270477bbef636f94a31c0580792b5a38a5bf30f8d9b73b4f18299ec8",
+      "receipt_sha256": "83c87016f148e6a74989de87368b704650997fbeab8d4d13224ac6ab54d58443"
+    },
+    "same_installed_binary_initial_async_probe": {
+      "idle_ms": 21014,
+      "timed_out": false,
+      "after_idle_final_bytes_ms": 762,
+      "outer_timeout_ms": 60000,
+      "after_idle_capture_ms": 3604,
+      "cold_capture_ms": 3751,
+      "total_ms": 31869,
+      "outcome": "PASS_OFFLINE_SAME_BINARY_ASYNC_COMPATIBILITY",
+      "retained_file_count": 15,
+      "scope": "Firstf46/430 before Git-metadata P2 correction; no provider/auth/Core/HTTP",
+      "bun_version": "1.3.14",
+      "probe_receipt_sha256": "a9e4f15d668cbcd9506a7392e5235feaf41f2c45ec5ca288bb8bf6176029e451",
+      "native_binary_sha256": "0337ab2d24ad2a9a9c8ba4c622074cca95b6daa086553010a2c5332acdab9c02",
+      "cold_final_bytes_ms": 817,
+      "outer_manifest_sha256": "291340520595bd1a0c46f5a0ed732104009977367c2aa4f510a5a583d8327cf6"
+    },
+    "git_metadata_correction": {
+      "strategy": "Same Node reader fingerprints exact root/submodule Git administration before/after unchanged full capture; final FS-only assertion under existing byte-gate deadline",
+      "actual_node_reader": {
+        "source_commit": "c4c7ac1eff066caec68b7d633b5d07918d3e2e71",
+        "outcome": "PASS_ACTUAL_PINNED_NODE_READER",
+        "scope": "Full unchanged clean Serving c4 source pin + Git envelope/minimal OS env/20s bound; no provider/Core",
+        "stdout_sha256": "f65b952de0989633cef91bbb1ae8235ec58d91b866298ba767b7b010fba625f1",
+        "elapsed_ms": 5050,
+        "repositories": 2,
+        "worker_sha256": "ef8157f22460dbbc7cc2fc01c3c459d84955a5a39fd22aeb3904fdfa8a425f85",
+        "receipt_sha256": "878e3793562537d3f7fbd95b53bc48edbb2698f1458c0c74d955356d980d9642"
+      },
+      "status": "PASS_SOURCE_ADMISSION_NO_OPEN_P1_P2",
+      "real_git_tests": {
+        "fail": 0,
+        "pass": 8,
+        "duration_ms": 12822.7508,
+        "scope": "Actual local normal/worktree/submodule/index-mode/symbolic/packed/splitindex/strict-path/deadline; no provider/Core",
+        "tests_sha256": "872a8ac8e409bc9ef2599cca595c749df6b4f07a7a49d04d129fde45517ee2fc"
+      },
+      "helper_sha256": "967fa10d6ac94301549bbbc4735921eb810fde0996415562a4cd225b23f3e73b",
+      "native_powershell_checks": {
+        "fail": 0,
+        "verification_sha256": "c14157e3a72c3593f59eac010fc3068401a6b6811a79b9196273d36fcdb94fb8",
+        "pass": 34,
+        "provider_sha256": "49d983c917317b70208e084f38fcc605157849117900df6c8e3327ba45ce421d",
+        "receipt_sha256": "9f4519c66ab630f341aee7b9090c6a5fab3f1d662d3312f7490b6ffed54053a6"
+      },
+      "helper_review": "PASS_READ_ONLY_NO_OPEN_P1_P2",
+      "guard_tests": {
+        "duration_ms": 53796.3691,
+        "fail": 0,
+        "guard_sha256": "a72caf5ce94ed130a75e9ac2140444faf9d94f47bb5795f6a49d35593cfa06ab",
+        "pass": 67,
+        "scope": "Old62 preserved with envelope fixtures plus5 final-Git-gate regressions; first new-scope attempt PASS",
+        "cancelled": 0,
+        "skipped": 0,
+        "tests_sha256": "dba6ab9735131d44311f516660702c49f3d11dee683a9e417b73ec5da20fae52",
+        "receipt_sha256": "47b1c476ce0e962ea8eda6120004279be8320cd6fc73c6d0810c89c36b6cee19",
+        "log_sha256": "bf2d0be84bfd7c8d7335913e951c9ce4daf47140d0475047aeee62b028287fc1"
+      },
+      "gap": "Own HEAD/index/mode state may change during final managed metadata await with identical tracked bytes",
+      "independent_guard_review": "PASS_READ_ONLY; prior final-await HEAD/index P2 explicitly CLOSED; frozen guard/helper/test hashes identical; live provider/Core excluded",
+      "independent_root_integration_review": "PASS_READ_ONLY; fixed worker envelope reconstructed SHAef8157 matches actual worker; all5 root-owned source/test/CI hashes stable; guard excluded"
+    }
+  },
+  "exact_failed_source_ci": {
+    "source_commit": "c4c7ac1eff066caec68b7d633b5d07918d3e2e71",
+    "run_id": 36807231992,
+    "conclusion": "SUCCESS",
+    "jobs": {
+      "core": "SUCCESS",
+      "native": "SUCCESS",
+      "structural": "SUCCESS",
+      "doe": "SUCCESS",
+      "optimization": "SUCCESS",
+      "pde": "SUCCESS",
+      "codeaster": "SUCCESS",
+      "explicit": "SUCCESS"
+    },
+    "scope": "Exact c4 source CI; not this correction or actual managed research"
+  },
+  "limitations": {
+    "new_corrected_managed_research": "NOT_RUN",
+    "same_final_research_gui": "NOT_RUN",
+    "observed_busy_cancellation": "OPEN",
+    "full_p1_1": "OPEN",
+    "cloud_weight_digest_final_schemas_every_http_retry": "UNKNOWN",
+    "engineering_decision": "NOT_RELEASED"
+  },
+  "next": "Commit/push admitted source, update stopped Serving, NEW run03/profile/store, connected resident, unchanged full cases, official final session, busy cancellation and owned Stop"
+}
