@@ -21,6 +21,12 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+P1.3 sourcebbd87f8 is pushed. Actual Research startup/resident source PASS;
+pre-import driver refusal has0model/Core/solver/store. One-line bootstrap fix
+passes actual AST import and independent review; actual natural research remains
+OPEN pending a fresh corrected-source run. See20261001-openscience-research-bootstrap-correction.
+All52 requirement IDs/text, numerical limits and engineering UNKNOWN are retained.
+
 P1.2b PASS bounded at clean30068/pin3e48, new native-registration run01:
 8 actual cases, fixed analytical1440/1728 mm^3, write/process interruption
 rollback/no-op and original-store preservation. Independent output/472-file

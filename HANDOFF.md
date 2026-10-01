@@ -2,6 +2,14 @@
 
 ## ACTIVE P1.3; P1.2b actual bounded unit PASS
 
+bbd87f8 is pushed; actual new Research startup/resident source PASS. Run01
+driver refused pre-import (Assert-Task used before import), with0model/Core/
+solver calls and no store. Exact AST import correction (10helpers/missing
+refusal) and independent review PASS. Record:20261001-openscience-research-bootstrap-correction.
+Own Stop run01, commit/push one-line correction, and run fresh corrected source/
+profile/store/resident before actual questions. Do not overwrite run01 or
+rebuild anything; fixed numerical references and fourteen-tool admission stay.
+
 Clean30068e05330e6e31c6d071bf294828a8412c9373 / fixture3e48:
 p1-native-registration-20261001-01 completed8 actual cases. Native/history/current
 write-fault publication, real process exit91 and fresh-process rollback/no-op

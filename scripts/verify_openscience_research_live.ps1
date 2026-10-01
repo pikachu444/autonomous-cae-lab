@@ -45,7 +45,7 @@ foreach ($name in @('Assert-Task','Assert-OpenScienceSameProvenance','Get-OpenSc
     'Convert-McpReceipt','Invoke-TaskCli','Check-ExperimentBytes')) {
     $definition=@($taskResearchAst.EndBlock.Statements | Where-Object {
         $_ -is [Management.Automation.Language.FunctionDefinitionAst] -and $_.Name -ceq $name })
-    Assert-Task ($definition.Count -eq 1) "Missing exact acceptance helper: $name"
+    if ($definition.Count -ne 1) { throw "Missing exact acceptance helper: $name" }
     . ([scriptblock]::Create($definition[0].Extent.Text))
 }
 function Get-OpenScienceAcceptanceModelIdentity($Context) {

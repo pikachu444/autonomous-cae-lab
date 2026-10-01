@@ -2,6 +2,14 @@
 
 ## Current work: P1.3 research-purpose integration
 
+Research source bbd87f8 is committed/pushed. Its actual Research server and
+connected resident source identity PASS; the driver then failed before any
+model/Core/store because it called Assert-Task before importing that helper.
+One-line if/throw correction passes exact AST import (10helpers/missing refusal)
+and independent read-only review; references/admission are unchanged. Record:
+20261001-openscience-research-bootstrap-correction.json. Preserve run01; owned
+Stop and a fresh corrected-source run are next. Actual natural research stays OPEN.
+
 P1.2b actual bounded unit passed at clean30068/pin3e48:8 native cases, analytical
 1440/1728 mm^3 Core/native/STEP comparisons, three write faults, actual exit91,
 fresh-process rollback/no-op and abort after successful real prepare. Independent
