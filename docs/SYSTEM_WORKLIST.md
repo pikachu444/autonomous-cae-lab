@@ -26,35 +26,38 @@ do not resume its implementation from the old work order. NEXT SERIAL UNIT
 independently frozen three-family/five-load definition and source admission.
 Original torsion and additional families remain open, explicitly outside this
 bounded derivative packet. Combined429/CCX70/Node96/nativePS63 source checks
-PASS; new-family native/OpenScience/GUI is NOT_RUN. Record20261002-structural-family-source,
+PASS; source admission alone does not establish actual native/OpenScience/GUI acceptance. Record20261002-structural-family-source,
 ADR0017. No further CAD recovery/setup scope.
 Earlier failed runs and original-context limits are preserved in their records;
 historical sections below cannot override this queue.
 
-Latest P2.2 actual progress: native03/b598f42 executed three beamFx meshes,
-then Core REJECTED fixed1e-7 force balance (max2.663401471566829e-7).
-Retained raw fields/invalid values:20261002-structural-family-native03.
-Connected OpenScience driver is published,51 cold checks/independent review
-PASS_SOURCE_ONLY; actual approved-model/three-family/GUI proof still NOT_RUN.
-Next resolve native reaction evidence, then fresh native and actual research;
-no later phase or additional setup is opened. STRUCTURAL_FAMILIES_ACCEPTANCE.
+Latest P2.2 execution: clean pushed d29/native05 completes five Core records
+and Fx/Fy complete-field cross-solver checks. Fz Aster fine fails native
+solution-error estimate3.32295e-6>1e-6. Four isolated numerical-method probes
+also fail; none is adopted. Native05 remains FAILED_OR_PARTIAL, all515 original
+files unchanged. Exact d29 CI8SUCCESS/2FAIL, same Aster error/explicit ZIP404.
+Actual research01 connects then stops at a driver-only nonexistent Python
+context alias before inference/store. Owned Stop and19-file retention pass.
+Correction60 cold/18 independent saved-response replay checks PASS, actual
+new-model loop still NOT_RUN. Records20261002-structural-family-native05 and
+20261002-structural-research-python-correction. Historical native01–04 verdicts
+and corrective-source records are preserved in STRUCTURAL_FAMILIES_ACCEPTANCE.
 
-Latest correction: same measured native U/RF is now read from strict DOUBLE
-output, corroborated against rounded DAT without changing any numerical gate.
-Actual one-job format probe and byte-identical raw fixture are separate from
-Core acceptance.152 staged,30 integration and1 actual-fixture checks PASS;
-independent bounded review has no open P1/P2. See20261002-calculix-double-evidence.
-Native03 is preserved REJECTED. NEXT commit/push correction and fresh native04,
-then actual OpenScience condition/execution/comparison/interpretation and GUI.
+Next tasks within the same P2.2 unit, in order:
 
-Latest actual native04/af9: CCX beamFx three levels PASS with independent raw
-U/RF/all11826 stress observations. Aster aborts before MECA at name guard/exit6;
-135 original files unchanged. Same-mesh import-only probe and official fixed8
-source establish a canonical[:8] bijection correction, exact group/cell checks
-retained.98 staged/128 Root tests and independent bounded review PASS; record
-20261002-codeaster-fixed-width-groups. Native04 remains FAILED_OR_PARTIAL.
-NEXT clean corrected commit/push and fresh native05, then actual approved5.6
-research/GUI/Stop/retention. No later phase or additional setup is opened.
+- [x] Preserve/audit native05 and four failed method probes with original limits.
+- [x] Diagnose actual research01 pre-inference failure; verify the narrow saved-
+  config Python correction and original-response replay without changing Core.
+- [ ] Commit/push the reviewed correction; new clean-source owned research run
+  using approved5.6Sol/auth/project, actual question/tool/result/failure interpretation.
+- [ ] Verify same-record GUI/ownedStop/retention. Keep research control-plane
+  evidence separate from unresolved native numerical acceptance.
+- [ ] Resolve Fz accuracy and complete cylinder/roof/changed-load/refusal numerical
+  gates; independently audit measured raw fields. No failed probe is a shortcut.
+
+P2.2 stays OPEN until all required gates pass; later phases stay ordered. A
+known solver failure does not authorize spending this unit only on solver options
+or treating actual research/error interpretation as a numerical PASS.
 
 ## P1.1 — integrated OpenScience CAD research (PASS bounded unit)
 

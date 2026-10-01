@@ -1,0 +1,1081 @@
+{
+  "actual_common_experiments": [
+    {
+      "artifact_count": 74,
+      "cad_revision": null,
+      "decision": "NOT_RELEASED",
+      "experiment_id": "E-ansys_vmd1_regular-Fx-ccx",
+      "failures": [],
+      "metrics": {
+        "applied_force_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.168072143128024e-13
+        },
+        "applied_moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.1767204107398288e-15
+        },
+        "mesh_response_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.001336230673280369
+        },
+        "moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 7.335863086613798e-14
+        },
+        "primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 0.0007607606670837002
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.318372615772074e-12
+        },
+        "reference_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.001626421149999701
+        },
+        "signed_primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 0.0007607606670837002
+        }
+      },
+      "model_revision": "194ba6fcb40e67637cb06be43f98e629951ded3bf213a443a64c7c6ce543bae5",
+      "parameters": {},
+      "result_ref": "experiments/E-ansys_vmd1_regular-Fx-ccx/result.json",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "study": {
+        "hypothesis": "Linear force/pressure/gravity responses scale with load; complete fields agree at identical positions.",
+        "hypothesis_id": "S-structural-families-H1",
+        "id": "S-structural-families"
+      },
+      "unknown": [
+        "static_strength",
+        "material_qualification",
+        "physical_validation",
+        "fatigue_durability",
+        "model_qualification",
+        "original_midas_replication"
+      ]
+    },
+    {
+      "artifact_count": 93,
+      "cad_revision": null,
+      "decision": "NOT_RELEASED",
+      "experiment_id": "E-ansys_vmd1_regular-Fx-aster",
+      "failures": [],
+      "metrics": {
+        "applied_force_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0
+        },
+        "applied_moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.9296371611572397e-18
+        },
+        "mesh_response_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.00133623067295895
+        },
+        "moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.4572679068507204e-13
+        },
+        "primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 0.0007607606670853754
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 6.016248475956526e-12
+        },
+        "reference_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.001626421147801275
+        },
+        "signed_primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 0.0007607606670853754
+        }
+      },
+      "model_revision": "194ba6fcb40e67637cb06be43f98e629951ded3bf213a443a64c7c6ce543bae5",
+      "parameters": {},
+      "result_ref": "experiments/E-ansys_vmd1_regular-Fx-aster/result.json",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "study": {
+        "hypothesis": "Linear force/pressure/gravity responses scale with load; complete fields agree at identical positions.",
+        "hypothesis_id": "S-structural-families-H1",
+        "id": "S-structural-families"
+      },
+      "unknown": [
+        "static_strength",
+        "material_qualification",
+        "physical_validation",
+        "fatigue_durability",
+        "model_qualification",
+        "original_midas_replication"
+      ]
+    },
+    {
+      "artifact_count": 74,
+      "cad_revision": null,
+      "decision": "NOT_RELEASED",
+      "experiment_id": "E-ansys_vmd1_regular-Fy-ccx",
+      "failures": [],
+      "metrics": {
+        "applied_force_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.168072143128024e-13
+        },
+        "applied_moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.1655710576753866e-13
+        },
+        "mesh_response_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.005765284021925918
+        },
+        "moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.115550511288681e-09
+        },
+        "primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 2.7325101570036283
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 3.5953188484406942e-09
+        },
+        "reference_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.004818316008206077
+        },
+        "signed_primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 2.7325101570036283
+        }
+      },
+      "model_revision": "022c815db758101decdb227ae9330d5d0ef8dee722e30dc2f7196572e09e34c1",
+      "parameters": {},
+      "result_ref": "experiments/E-ansys_vmd1_regular-Fy-ccx/result.json",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "study": {
+        "hypothesis": "Linear force/pressure/gravity responses scale with load; complete fields agree at identical positions.",
+        "hypothesis_id": "S-structural-families-H1",
+        "id": "S-structural-families"
+      },
+      "unknown": [
+        "static_strength",
+        "material_qualification",
+        "physical_validation",
+        "fatigue_durability",
+        "model_qualification",
+        "original_midas_replication"
+      ]
+    },
+    {
+      "artifact_count": 93,
+      "cad_revision": null,
+      "decision": "NOT_RELEASED",
+      "experiment_id": "E-ansys_vmd1_regular-Fy-aster",
+      "failures": [],
+      "metrics": {
+        "applied_force_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0
+        },
+        "applied_moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.6770733453639293e-16
+        },
+        "mesh_response_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.005765276598401917
+        },
+        "moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 4.9350298732403205e-09
+        },
+        "primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 2.7325101398481157
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 5.432628377433791e-09
+        },
+        "reference_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.004818322256253076
+        },
+        "signed_primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 2.7325101398481157
+        }
+      },
+      "model_revision": "022c815db758101decdb227ae9330d5d0ef8dee722e30dc2f7196572e09e34c1",
+      "parameters": {},
+      "result_ref": "experiments/E-ansys_vmd1_regular-Fy-aster/result.json",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "study": {
+        "hypothesis": "Linear force/pressure/gravity responses scale with load; complete fields agree at identical positions.",
+        "hypothesis_id": "S-structural-families-H1",
+        "id": "S-structural-families"
+      },
+      "unknown": [
+        "static_strength",
+        "material_qualification",
+        "physical_validation",
+        "fatigue_durability",
+        "model_qualification",
+        "original_midas_replication"
+      ]
+    },
+    {
+      "artifact_count": 74,
+      "cad_revision": null,
+      "decision": "NOT_RELEASED",
+      "experiment_id": "E-ansys_vmd1_regular-Fz-ccx",
+      "failures": [],
+      "metrics": {
+        "applied_force_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.168072143128024e-13
+        },
+        "applied_moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.165693002979477e-13
+        },
+        "mesh_response_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.007059343863741319
+        },
+        "moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 4.5027143085271005e-08
+        },
+        "primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 10.912506701403661
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 7.73461840347529e-08
+        },
+        "reference_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.005724952356495402
+        },
+        "signed_primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 10.912506701403661
+        }
+      },
+      "model_revision": "844d83634ef39e7806b22f231494a17b5d2a8b1334ab4bb48fa1bc4af55eb285",
+      "parameters": {},
+      "result_ref": "experiments/E-ansys_vmd1_regular-Fz-ccx/result.json",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "study": {
+        "hypothesis": "Linear force/pressure/gravity responses scale with load; complete fields agree at identical positions.",
+        "hypothesis_id": "S-structural-families-H1",
+        "id": "S-structural-families"
+      },
+      "unknown": [
+        "static_strength",
+        "material_qualification",
+        "physical_validation",
+        "fatigue_durability",
+        "model_qualification",
+        "original_midas_replication"
+      ]
+    },
+    {
+      "artifact_count": 85,
+      "cad_revision": null,
+      "decision": "NOT_RELEASED",
+      "experiment_id": "E-ansys_vmd1_regular-Fz-aster",
+      "failures": [
+        {
+          "evidence_ids": [
+            "EV-E-ansys_vmd1_regular-Fz-aster-001"
+          ],
+          "type": "model_analysis_execution"
+        }
+      ],
+      "metrics": {},
+      "model_revision": "844d83634ef39e7806b22f231494a17b5d2a8b1334ab4bb48fa1bc4af55eb285",
+      "parameters": {},
+      "result_ref": "experiments/E-ansys_vmd1_regular-Fz-aster/result.json",
+      "status": "FAILED_EXECUTION",
+      "study": {
+        "hypothesis": "Linear force/pressure/gravity responses scale with load; complete fields agree at identical positions.",
+        "hypothesis_id": "S-structural-families-H1",
+        "id": "S-structural-families"
+      },
+      "unknown": [
+        "model_qualification",
+        "physical_validation"
+      ]
+    }
+  ],
+  "actual_cross_solver": [
+    {
+      "case": "ansys_vmd1_regular",
+      "checks": {
+        "displacement_fields": true,
+        "response": true,
+        "stress_fields": true
+      },
+      "levels": [
+        {
+          "cells": [
+            6,
+            1,
+            1
+          ],
+          "displacement_field_relative_error": 3.341862558693846e-11,
+          "matched_stress_points": 162,
+          "node_count": 80,
+          "point_matching_tolerance_mm": 1.524e-08,
+          "response_relative_error": 9.619804315189627e-13,
+          "stress_field_relative_error": 1.3633400908180548e-07,
+          "stress_scale_mpa": 0.3655255
+        },
+        {
+          "cells": [
+            12,
+            2,
+            2
+          ],
+          "displacement_field_relative_error": 1.0652975892849878e-10,
+          "matched_stress_points": 1296,
+          "node_count": 381,
+          "point_matching_tolerance_mm": 1.524e-08,
+          "response_relative_error": 2.5198452066559428e-12,
+          "stress_field_relative_error": 1.3361305829032707e-07,
+          "stress_scale_mpa": 0.3723297
+        },
+        {
+          "cells": [
+            24,
+            4,
+            4
+          ],
+          "displacement_field_relative_error": 4.864003246853863e-11,
+          "matched_stress_points": 10368,
+          "node_count": 2225,
+          "point_matching_tolerance_mm": 1.524e-08,
+          "response_relative_error": 2.198426216151382e-12,
+          "stress_field_relative_error": 1.2926365237772634e-07,
+          "stress_scale_mpa": 0.3866715
+        }
+      ],
+      "limits": {
+        "cross_solver_field_relative": 1e-05,
+        "cross_solver_response_relative": 1e-05,
+        "mesh_volume_relative": 0.001,
+        "moment_relative": 1e-07,
+        "reaction_relative": 1e-07
+      },
+      "load_case": "Fx",
+      "normalization": {
+        "applied_load_reference": "Independently compare force and moment to analytic continuous case integrals, normalized by analytic force norm and force norm*characteristic length, with mesh_volume_relative1e-3 bound. Native equilibrium still uses actual immutable catalogue loads and original1e-7 limits.",
+        "characteristic_length_mm": {
+          "ansys_vmd1_regular": 152.4,
+          "lame_cylinder_plane_strain": 200.0,
+          "scordelis_lo_solid": 7620.0
+        },
+        "cross_solver_displacement_field": "max absolute Cartesian component difference across catalogue-matched nodes divided by response_reference_scale",
+        "cross_solver_point_matching": "same external element catalogue ID; unique physical-coordinate bijection with L-infinity tolerance1e-10*case_characteristic_length_mm; refuse missing/extra/duplicate/ambiguous match. Native POINT numbers are not interchangeable.",
+        "cross_solver_response": "absolute primary response difference on identical case/settings/catalogue divided by response_reference_scale",
+        "cross_solver_stress_field": "max absolute Cartesian component difference across identical elements and bijectively matched physical Gauss positions divided by max(max absolute component of both actual fields,1e-12MPa)",
+        "cylinder_displacement_field": "max absolute Cartesian component error across every node / response_reference_scale",
+        "cylinder_stress_field": "max absolute Cartesian component error across every Gauss point / max(abs(analytic hoop stress at inner surface),1e-12MPa)",
+        "force_balance": "Euclidean norm(restrained-DOF reaction + applied catalogue resultant) / max(Euclidean norm(applied catalogue resultant),1e-12N)",
+        "gate_levels": "Reference and cylinder pointwise displacement/stress on finest requested grid; signed force and moment balance, native completeness and geometry checks on every grid; retain all grid observations/errors and use finest/penultimate for mesh agreement.",
+        "mesh_agreement": "abs(primary finest - primary penultimate)/response_reference_scale",
+        "moment_balance": "Euclidean norm(restrained-DOF reaction moment + applied catalogue moment about origin) / max(force_scale*case_characteristic_length_mm,1e-12Nmm)",
+        "origin_mm": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "reference_error": "abs(measured primary response - declared signed/absolute reference)/response_reference_scale on finest mesh",
+        "response_reference_scale": "max(abs(case primary reference at requested load_factor),1e-12mm); never divide by a zero Cartesian component",
+        "zero_and_invalid_policy": "Explicit global positive scales/floors above handle zero reference components. Reject nonfinite/unrepresentable references or missing observations; retain failed measured metrics unchanged. No assembled residual or energy check is inferred."
+      },
+      "status": "PASS"
+    },
+    {
+      "case": "ansys_vmd1_regular",
+      "checks": {
+        "displacement_fields": true,
+        "response": true,
+        "stress_fields": true
+      },
+      "levels": [
+        {
+          "cells": [
+            6,
+            1,
+            1
+          ],
+          "displacement_field_relative_error": 8.356523486733139e-10,
+          "matched_stress_points": 162,
+          "node_count": 80,
+          "point_matching_tolerance_mm": 1.524e-08,
+          "response_relative_error": 3.790982175514288e-11,
+          "stress_field_relative_error": 9.899766019904931e-08,
+          "stress_scale_mpa": 50.3311
+        },
+        {
+          "cells": [
+            12,
+            2,
+            2
+          ],
+          "displacement_field_relative_error": 1.1790847195286005e-09,
+          "matched_stress_points": 1296,
+          "node_count": 381,
+          "point_matching_tolerance_mm": 1.524e-08,
+          "response_relative_error": 1.175477002150074e-09,
+          "stress_field_relative_error": 8.345992792545995e-08,
+          "stress_scale_mpa": 59.23007
+        },
+        {
+          "cells": [
+            24,
+            4,
+            4
+          ],
+          "displacement_field_relative_error": 6.248054600320666e-09,
+          "matched_stress_points": 10368,
+          "node_count": 2225,
+          "point_matching_tolerance_mm": 1.524e-08,
+          "response_relative_error": 6.2480469986566835e-09,
+          "stress_field_relative_error": 8.482686819048283e-08,
+          "stress_scale_mpa": 63.7773
+        }
+      ],
+      "limits": {
+        "cross_solver_field_relative": 1e-05,
+        "cross_solver_response_relative": 1e-05,
+        "mesh_volume_relative": 0.001,
+        "moment_relative": 1e-07,
+        "reaction_relative": 1e-07
+      },
+      "load_case": "Fy",
+      "normalization": {
+        "applied_load_reference": "Independently compare force and moment to analytic continuous case integrals, normalized by analytic force norm and force norm*characteristic length, with mesh_volume_relative1e-3 bound. Native equilibrium still uses actual immutable catalogue loads and original1e-7 limits.",
+        "characteristic_length_mm": {
+          "ansys_vmd1_regular": 152.4,
+          "lame_cylinder_plane_strain": 200.0,
+          "scordelis_lo_solid": 7620.0
+        },
+        "cross_solver_displacement_field": "max absolute Cartesian component difference across catalogue-matched nodes divided by response_reference_scale",
+        "cross_solver_point_matching": "same external element catalogue ID; unique physical-coordinate bijection with L-infinity tolerance1e-10*case_characteristic_length_mm; refuse missing/extra/duplicate/ambiguous match. Native POINT numbers are not interchangeable.",
+        "cross_solver_response": "absolute primary response difference on identical case/settings/catalogue divided by response_reference_scale",
+        "cross_solver_stress_field": "max absolute Cartesian component difference across identical elements and bijectively matched physical Gauss positions divided by max(max absolute component of both actual fields,1e-12MPa)",
+        "cylinder_displacement_field": "max absolute Cartesian component error across every node / response_reference_scale",
+        "cylinder_stress_field": "max absolute Cartesian component error across every Gauss point / max(abs(analytic hoop stress at inner surface),1e-12MPa)",
+        "force_balance": "Euclidean norm(restrained-DOF reaction + applied catalogue resultant) / max(Euclidean norm(applied catalogue resultant),1e-12N)",
+        "gate_levels": "Reference and cylinder pointwise displacement/stress on finest requested grid; signed force and moment balance, native completeness and geometry checks on every grid; retain all grid observations/errors and use finest/penultimate for mesh agreement.",
+        "mesh_agreement": "abs(primary finest - primary penultimate)/response_reference_scale",
+        "moment_balance": "Euclidean norm(restrained-DOF reaction moment + applied catalogue moment about origin) / max(force_scale*case_characteristic_length_mm,1e-12Nmm)",
+        "origin_mm": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "reference_error": "abs(measured primary response - declared signed/absolute reference)/response_reference_scale on finest mesh",
+        "response_reference_scale": "max(abs(case primary reference at requested load_factor),1e-12mm); never divide by a zero Cartesian component",
+        "zero_and_invalid_policy": "Explicit global positive scales/floors above handle zero reference components. Reject nonfinite/unrepresentable references or missing observations; retain failed measured metrics unchanged. No assembled residual or energy check is inferred."
+      },
+      "status": "PASS"
+    }
+  ],
+  "actual_failure": {
+    "Core_status": "FAILED_EXECUTION",
+    "assembled_A_u_b_residual": "UNKNOWN: not independently exported/computed",
+    "cells": [
+      24,
+      4,
+      4
+    ],
+    "code": "FACTOR_57",
+    "error_estimate_is_not_independently_assembled_residual": true,
+    "experiment_id": "E-ansys_vmd1_regular-Fz-aster",
+    "level": 2,
+    "metrics": {},
+    "native_diagnostic": "<S>_ERROR",
+    "native_solution_error_limit": 1e-06,
+    "process_exit": 1,
+    "reported_solution_error_estimate": 3.32295e-06,
+    "stage": "native MECA_STATIQUE/MUMPS accuracy check after complete mesh/support/load guard"
+  },
+  "decision": "NOT_RELEASED",
+  "evidence": [
+    {
+      "bytes": 130006,
+      "path": "artifacts/p2-family-native-20261002-05/acceptance.json",
+      "sha256": "93ccbd990fef467e43fa6ab1b3f52fd46171716d64b46dda26f3f258e147673d"
+    },
+    {
+      "bytes": 1279,
+      "path": "artifacts/p2-family-native-control-20261002-05/native.log",
+      "sha256": "7ec9c6500b08ce67c85b192b5e33438140cac244a174aa42b97d6492e29f58af"
+    },
+    {
+      "bytes": 63951,
+      "path": "artifacts/p2-family-native-review-20261002-05/terminal-actual-evidence-audit.json",
+      "sha256": "9fd2112bacd2816ea9a57b0e048739c6092380d112d6ea117da0933445423204"
+    },
+    {
+      "bytes": 73862,
+      "path": "artifacts/p2-family-codeaster-native-review-20261002-05/actual-fx-warning-api-review.json",
+      "sha256": "af6eb27461a6784222ace8b1e1e4b7c34062dc93138d5eebdb04d21faf1f52e7"
+    },
+    {
+      "bytes": 3200,
+      "path": "artifacts/p2-family-mumps-probe-20261002-01/probe-intent.json",
+      "sha256": "7a5979a25bf361c63d5a23563dec1ace24278be29cbb6048f4cbe7466bc259e8"
+    },
+    {
+      "bytes": 2337,
+      "path": "artifacts/p2-family-mumps-probe-20261002-01/probe-receipt.json",
+      "sha256": "6af2d5c5f22183ad01f9eeb148c63ec77aa9c108a3de6cc23b6846259231dd27"
+    },
+    {
+      "bytes": 96819,
+      "path": "artifacts/p2-family-mumps-probe-20261002-01/original-native05-before.json",
+      "sha256": "1dab0a161e062c338fd78bce9c5f6556daa24f61cbe075beb0fb52d585b2f773"
+    },
+    {
+      "bytes": 96819,
+      "path": "artifacts/p2-family-mumps-probe-20261002-01/original-native05-after.json",
+      "sha256": "1dab0a161e062c338fd78bce9c5f6556daa24f61cbe075beb0fb52d585b2f773"
+    },
+    {
+      "bytes": 23640,
+      "path": "artifacts/p2-family-native-control-20261002-05/ci-d29b340-final.json",
+      "sha256": "eab194d22b8167b7d4efa19e6aafda35ab0fa74c568a5e6ae517e16234dd9f4f"
+    },
+    {
+      "path": "artifacts/p2-family-mumps-probe-review-20261002-02/failed-probes-02-03-04-audit.json",
+      "bytes": 32411,
+      "sha256": "ad3899b0c537f175bcd9cb556dd91f8e0bf7f17a86680c9f57aede022aadb601"
+    },
+    {
+      "path": "artifacts/p2-family-ci-d29b340-20261002-01/exact-ci-failure-audit.json",
+      "bytes": 62192,
+      "sha256": "2b1b55a411b14c50b223c98c1042e39fe4debb041f0a5c941ee60f519b6865ed"
+    }
+  ],
+  "exact_source_CI": {
+    "artifact_diagnosis": "AUDIT_COMPLETE_EXACT_CI_FAILURE_CONFIRMED",
+    "conclusion": "failure",
+    "head_sha": "d29b340b5e3516ffed73b121cf624c8107c8c84f",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "name": "research-driver-source",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36910059796/job/110530580119"
+      },
+      {
+        "conclusion": "success",
+        "name": "core",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36910059796/job/110530580733"
+      },
+      {
+        "conclusion": "success",
+        "name": "native-registration",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36910059796/job/110532020532"
+      },
+      {
+        "conclusion": "success",
+        "name": "native",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36910059796/job/110532020571"
+      },
+      {
+        "conclusion": "success",
+        "name": "structural",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36910059796/job/110532020765"
+      },
+      {
+        "conclusion": "success",
+        "name": "pde",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36910059796/job/110532020783"
+      },
+      {
+        "conclusion": "success",
+        "name": "doe",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36910059796/job/110532020836"
+      },
+      {
+        "conclusion": "success",
+        "name": "optimization",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36910059796/job/110532020846"
+      },
+      {
+        "conclusion": "failure",
+        "name": "explicit",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36910059796/job/110532020854"
+      },
+      {
+        "conclusion": "failure",
+        "name": "codeaster",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36910059796/job/110532020916"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36910059796",
+    "independent_audit": {
+      "path": "artifacts/p2-family-ci-d29b340-20261002-01/exact-ci-failure-audit.json",
+      "bytes": 62192,
+      "sha256": "2b1b55a411b14c50b223c98c1042e39fe4debb041f0a5c941ee60f519b6865ed"
+    },
+    "codeaster_failure": "Same Fz level2 native FACTOR_57, 3.32295e-6 above RESI_RELA1e-6; not a later parser assertion.",
+    "explicit_failure": "Pinned OpenRadioss latest-20260728 release ZIP returns HTTP404/curl22 before solver; solver steps skipped.",
+    "artifact_retention": {
+      "artifact_id": 11186731938,
+      "artifact_name": "codeaster-cae-lab-d29b340b5e3516ffed73b121cf624c8107c8c84f",
+      "run_head_sha": "d29b340b5e3516ffed73b121cf624c8107c8c84f",
+      "created_at": "2026-10-01T19:05:32Z",
+      "expires_at": "2026-10-31T19:05:28Z",
+      "expired_at_download": false,
+      "workflow_retention_days": 30,
+      "zip": {
+        "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-family-ci-d29b340-20261002-01\\codeaster-artifact.zip",
+        "sha256": "bd2c8052b2b5f20fc1f11085130bc3e2a4f8abfae953370c5707cbc08db78003",
+        "size_bytes": 27148908
+      },
+      "remote_sha256_digest": "sha256:bd2c8052b2b5f20fc1f11085130bc3e2a4f8abfae953370c5707cbc08db78003",
+      "binary_size_digest_exact": true,
+      "extraction_index": {
+        "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-family-ci-d29b340-20261002-01\\extraction-index.json",
+        "sha256": "d8eaa7441c49a9d19d9bce7178120140a5856226acdf8d2b249dbc2edb4bc131",
+        "size_bytes": 176490
+      },
+      "regular_files": 672,
+      "bytes": 166200976,
+      "all_file_hash_size_paths": "PASS",
+      "payload_extensions": {
+        ".json": 378,
+        ".py": 34,
+        ".pyc": 11,
+        ".log": 78,
+        ".mess": 13,
+        ".resu": 13,
+        ".msh": 13,
+        ".comm": 13,
+        ".export": 13,
+        ".geo": 4,
+        ".med": 12,
+        ".vtk": 18,
+        ".12d": 9,
+        ".cvg": 9,
+        ".dat": 9,
+        ".frd": 9,
+        ".inp": 9,
+        ".sta": 9,
+        ".inc": 9,
+        ".out": 9
+      },
+      "cache_and_runtime_scope": "ZIP retains native inputs/results, source copies and11Python bytecode cache files. No standalone SIF, exe/dll/so or runtime ZIP and no auth/token/secret-named members. This is a path-scope observation, not a credential-content audit. No auth file inspected.",
+      "durability": "Ignored local ZIP/extraction/rawlogs/metadata are preserved beyond remote artifact expiry on this machine. They are not committed and do not constitute independent remote backup."
+    },
+    "compiled_vendor_build_identity": "UNKNOWN"
+  },
+  "independent_audit": {
+    "evidence": {
+      "bytes": 63951,
+      "path": "artifacts/p2-family-native-review-20261002-05/terminal-actual-evidence-audit.json",
+      "sha256": "9fd2112bacd2816ea9a57b0e048739c6092380d112d6ea117da0933445423204"
+    },
+    "scope": [
+      "Five complete Core records and six common immutable records are audited; native sequence fails at Fz Aster.",
+      "Fx/Fy complete all-field numerical comparison meets frozen1e-5. Fz only CCX is complete; partial Aster levels do not substitute for missing fine result.",
+      "CCX reaction subtraction is recomputed from actual serialized loads and restrained DOFs; these beam cases have no nonzero constrained-node loads.",
+      "MODELISA8_14/CATAMESS_41 and native ALARM diagnostics are preserved. SOLID-only AFFE_MODELE excludes POI1 stiffness; no unsupported new alarm is ignored.",
+      "Cylinder, roof, half loads, invalid request gates, OpenScience/GUI and whole family acceptance NOT_RUN in this store.",
+      "Original MIDAS replication and physical/material/model/strength/fatigue qualification UNKNOWN. Every common decision NOT_RELEASED.",
+      "No native/Core/Domain/Lab/model/provider operation or shared/source/store modification; only raw byte parsing and independent math.",
+      "Initial reviewer Fx parser confused native index with source ID in a duplicate check; fixed in reviewer-only parser before its zero-exit report, not an implementation defect."
+    ],
+    "status": "PASS_READ_ONLY_AUDIT_OF_FAILED_OR_PARTIAL_NATIVE05"
+  },
+  "limitations": [
+    "Solver completion/cross agreement is not material/strength/physical/fatigue/model qualification or RELEASED",
+    "The three independent bounded derivatives do not establish whole157 MIDAS case replication",
+    "Original native05 and the failed separate method probe are never relabeled PASS",
+    "Compiled vendor Fortran source-build identity remains UNKNOWN; installed catalogue equals pinned official17.4 bytes",
+    "Native completion of coarse/intermediate levels is distinct from scientific acceptance. Both CINE intermediate signed-force balance measurements exceed the unchanged1e-7 requirement.",
+    "All full sequences remain failed/partial; no Core/Domain/cross verdict was generated or inferred.",
+    "Independent assembled A/u/b residual is UNKNOWN. Native scaled residual and upper-bound error retain their distinct meanings.",
+    "Local raw stores/probes/audits are ignored preserved files; this committed record is an index/summary, not independent remote raw-byte backup."
+  ],
+  "next": [
+    "Commit reviewed research-driver Python binding correction and run a new clean-source owned profile with approved5.6Sol/auth/project.",
+    "Verify actual research request/tool/evidence/failure interpretation and same-record GUI/ownedStop/retention without rewriting native05 or accepting failed numerical candidates.",
+    "P2.2 native Fz accuracy and cylinder/roof/changed-load/refusal gates remain OPEN; later phases stay ordered."
+  ],
+  "not_run": [
+    "cylinder pressure",
+    "roof gravity",
+    "all half-load checks",
+    "all six invalid request gates",
+    "StructuralFamilies model/tool/solver/GUI acceptance: separate research01 stopped before inference at driver context alias defect; no successful research proof inferred."
+  ],
+  "original_preservation": {
+    "bytes": 139030149,
+    "files": 515,
+    "image_unchanged": true,
+    "original_store_unchanged": true,
+    "source_unchanged": true,
+    "scope": "During native05 and all four isolated method probes; subsequent research-driver-only correction is a separate checkpoint."
+  },
+  "record_id": "P2-structural-family-native05-20261002",
+  "runner": {
+    "bytes": 17833,
+    "path": "scripts/verify_structural_families.py",
+    "sha256": "c49ee4570ef61413ebcddd421269dd1857836b2a5e921708969508f7501a5212"
+  },
+  "schema_version": "1",
+  "scientific_definition": {
+    "bytes": 11676,
+    "path": "benchmarks/specifications/structural-families-v1.json",
+    "sha256": "4ebca41ae97498cba18fe876a72ef128e0b671c3f7f6f809853514c94d5e12e0"
+  },
+  "source_commit": "d29b340b5e3516ffed73b121cf624c8107c8c84f",
+  "started_utc": "2026-10-01T18:52:53.861063+00:00",
+  "status": "FAILED_OR_PARTIAL",
+  "stopped_utc": "2026-10-01T18:59:20.142942+00:00",
+  "unchanged": [
+    "all52 requirement descriptions",
+    "Domain scientific definitions/references/thresholds",
+    "Core/MCP/OpenScience operations",
+    "selected5.6Sol/auth/project",
+    "fixture pin"
+  ],
+  "unit": "P2.2",
+  "record_kind": "ACTUAL_PARTIAL_NATIVE_FAMILIES_AND_FAILED_METHOD_PROBES",
+  "local_native_processes": 18,
+  "separate_method_probes": [
+    {
+      "Core_operations": 0,
+      "adopted": false,
+      "candidate_is_uncommitted_copy": true,
+      "completed_levels": [
+        0,
+        1
+      ],
+      "evidence": {
+        "bytes": 2337,
+        "path": "artifacts/p2-family-mumps-probe-20261002-01/probe-receipt.json",
+        "sha256": "6af2d5c5f22183ad01f9eeb148c63ec77aa9c108a3de6cc23b6846259231dd27"
+      },
+      "failed_level": 2,
+      "model_calls": 0,
+      "native_solution_error_estimate": 3.57605e-06,
+      "native_solution_error_limit": 1e-06,
+      "options": {
+        "INFO": 2,
+        "METHODE": "MUMPS",
+        "POSTTRAITEMENTS": "FORCE",
+        "PRETRAITEMENTS": "AUTO",
+        "RESI_RELA": 1e-06
+      },
+      "source_and_original_preserved": true,
+      "status": "FAILED_OR_PARTIAL",
+      "probe": "01",
+      "native_processes": 3,
+      "independent_audit": {
+        "path": "artifacts/p2-family-mumps-probe-review-20261002-01/failed-force-probe-audit.json",
+        "bytes": 61207,
+        "sha256": "ed2999f265299bea0c4d1669ef2cd0df786a4ab09a867b6a04b45156a425b2d1"
+      }
+    },
+    {
+      "probe": "02",
+      "status": "FAILED_OR_PARTIAL",
+      "adopted": false,
+      "candidate_worker_sha256": "f4e8511ee6db3a65cfbdf52ecb6a82a49c389ecade7115cf8cf75579a8d51470",
+      "evidence": {
+        "path": "artifacts/p2-family-mumps-probe-20261002-02/probe-receipt.json",
+        "bytes": 715,
+        "sha256": "17a408eb5a07cee6ce7f03a397b621907ee17c8a9d05f92dd1abc7af1823892a"
+      },
+      "intent": {
+        "path": "artifacts/p2-family-mumps-probe-20261002-02/probe-intent.json",
+        "bytes": 3268,
+        "sha256": "21f23bef1860a506fcd64c2e14740c73b77ad02c7dc7b9dd54a15f2843399a78"
+      },
+      "native_processes": 1,
+      "completed_native_levels": 0,
+      "Core_operations": 0,
+      "model_calls": 0,
+      "levels": [
+        {
+          "level": 0,
+          "native_exit_code": 1,
+          "native_mesh_guard": "PASS before MECA_STATIQUE",
+          "completed_native_fields": false,
+          "independently_assembled_A_u_b_residual": "UNKNOWN"
+        }
+      ],
+      "preparation_failure": null,
+      "new_Core_or_cross_verdict": false,
+      "source_and_original_preserved_during_probe": true
+    },
+    {
+      "probe": "03",
+      "status": "FAILED_OR_PARTIAL",
+      "adopted": false,
+      "candidate_worker_sha256": "b9ecf9906bf6c07a0c11adafe10d756207496ff9e406925dd4c4c7625dc67c54",
+      "evidence": {
+        "path": "artifacts/p2-family-mumps-probe-20261002-03/probe-receipt.json",
+        "bytes": 2337,
+        "sha256": "fcc83c2aeaf342e51c3bbb6fb951f7e15fa6403c9e089f7aae2f09091cbf8fa8"
+      },
+      "intent": {
+        "path": "artifacts/p2-family-mumps-probe-20261002-03/probe-intent.json",
+        "bytes": 3581,
+        "sha256": "eeb07f9429b50a21a88dfbc4f7f998d78b098b5d1026bf25e18a5ee2d0ce78cc"
+      },
+      "native_processes": 3,
+      "completed_native_levels": 2,
+      "Core_operations": 0,
+      "model_calls": 0,
+      "levels": [
+        {
+          "level": 0,
+          "native_exit_code": 0,
+          "native_mesh_guard": "PASS before MECA_STATIQUE",
+          "completed_native_fields": true,
+          "raw_support_displacement_mm": 0.0,
+          "signed_force_balance_relative_L2": 2.7101066615382635e-08,
+          "force_balance_limit": 1e-07,
+          "force_balance_observation": "PASS",
+          "native_MUMPS_statistics": {
+            "condition_number_1_rounded": 551000000.0,
+            "iterative_refinement_steps": 0,
+            "scaled_residual_max_norm": 4.5e-17,
+            "upper_bound_error_rounded": 1.08e-07
+          },
+          "native_diagnostic": "<A>_ALARM",
+          "independently_assembled_A_u_b_residual": "UNKNOWN"
+        },
+        {
+          "level": 1,
+          "native_exit_code": 0,
+          "native_mesh_guard": "PASS before MECA_STATIQUE",
+          "completed_native_fields": true,
+          "raw_support_displacement_mm": 0.0,
+          "signed_force_balance_relative_L2": 1.0314350923267998e-07,
+          "force_balance_limit": 1e-07,
+          "force_balance_observation": "FAIL_MEASURED_THRESHOLD_EXCEEDED",
+          "native_MUMPS_statistics": {
+            "condition_number_1_rounded": 2280000000.0,
+            "iterative_refinement_steps": 0,
+            "scaled_residual_max_norm": 5.36e-17,
+            "upper_bound_error_rounded": 4.98e-07
+          },
+          "native_diagnostic": "<A>_ALARM",
+          "independently_assembled_A_u_b_residual": "UNKNOWN"
+        },
+        {
+          "level": 2,
+          "native_exit_code": 1,
+          "native_mesh_guard": "PASS before MECA_STATIQUE",
+          "unchanged_RESI_RELA": 1e-06,
+          "native_MUMPS_statistics": {
+            "condition_number_1_rounded": 9200000000.0,
+            "iterative_refinement_steps": 0,
+            "scaled_residual_max_norm": 1.41e-16,
+            "upper_bound_error_rounded": 3.08e-06
+          },
+          "independently_assembled_A_u_b_residual": "UNKNOWN"
+        }
+      ],
+      "preparation_failure": {
+        "basis": "runpy _get_code_from_file SyntaxError; module never executes before parse succeeds",
+        "line": 58,
+        "log_sha256": "caa5584afdfc7ec3e97b682d09952a935c18ba58f7f577c25bf1805e3b831ccf",
+        "message": "unterminated string literal (detected at line 58)",
+        "native_processes": 0,
+        "source_sha256": "af9a852b4cf7726c8eaf163a4fc77cefd74875d3ccc5c9915fae634dc96b9177",
+        "status": "PRE_NATIVE_PYTHON_PARSE_FAILURE"
+      },
+      "new_Core_or_cross_verdict": false,
+      "source_and_original_preserved_during_probe": true
+    },
+    {
+      "probe": "04",
+      "status": "FAILED_OR_PARTIAL",
+      "adopted": false,
+      "candidate_worker_sha256": "fa5354e341927dea6887ffb3fd15c5971776760c1e17c0f631cfcddb9a273d3b",
+      "evidence": {
+        "path": "artifacts/p2-family-mumps-probe-20261002-04/probe-receipt.json",
+        "bytes": 2337,
+        "sha256": "7ac6311cd3c7adaf553664cfcf57adab8c93a9734dd89aac4e9f8e2ae34ce5a4"
+      },
+      "intent": {
+        "path": "artifacts/p2-family-mumps-probe-20261002-04/probe-intent.json",
+        "bytes": 3807,
+        "sha256": "f7e5242745b4edf143a08f22eadbc746048ee8b6a3b2548bd6f2f5427fbd370a"
+      },
+      "native_processes": 3,
+      "completed_native_levels": 2,
+      "Core_operations": 0,
+      "model_calls": 0,
+      "levels": [
+        {
+          "level": 0,
+          "native_exit_code": 0,
+          "native_mesh_guard": "PASS before MECA_STATIQUE",
+          "completed_native_fields": true,
+          "raw_support_displacement_mm": 0.0,
+          "signed_force_balance_relative_L2": 2.8890101306510898e-08,
+          "force_balance_limit": 1e-07,
+          "force_balance_observation": "PASS",
+          "native_MUMPS_statistics": {
+            "condition_number_1_rounded": 551000000.0,
+            "iterative_refinement_steps": 0,
+            "scaled_residual_max_norm": 4.91e-17,
+            "upper_bound_error_rounded": 1.2e-07
+          },
+          "native_diagnostic": "<A>_ALARM",
+          "independently_assembled_A_u_b_residual": "UNKNOWN"
+        },
+        {
+          "level": 1,
+          "native_exit_code": 0,
+          "native_mesh_guard": "PASS before MECA_STATIQUE",
+          "completed_native_fields": true,
+          "raw_support_displacement_mm": 0.0,
+          "signed_force_balance_relative_L2": 1.0862570106802734e-07,
+          "force_balance_limit": 1e-07,
+          "force_balance_observation": "FAIL_MEASURED_THRESHOLD_EXCEEDED",
+          "native_MUMPS_statistics": {
+            "condition_number_1_rounded": 2280000000.0,
+            "iterative_refinement_steps": 0,
+            "scaled_residual_max_norm": 6.33e-17,
+            "upper_bound_error_rounded": 6.26e-07
+          },
+          "native_diagnostic": "<A>_ALARM",
+          "independently_assembled_A_u_b_residual": "UNKNOWN"
+        },
+        {
+          "level": 2,
+          "native_exit_code": 1,
+          "native_mesh_guard": "PASS before MECA_STATIQUE",
+          "unchanged_RESI_RELA": 1e-06,
+          "native_MUMPS_statistics": {
+            "condition_number_1_rounded": 9200000000.0,
+            "iterative_refinement_steps": 0,
+            "scaled_residual_max_norm": 1.56e-16,
+            "upper_bound_error_rounded": 3.26e-06
+          },
+          "independently_assembled_A_u_b_residual": "UNKNOWN"
+        }
+      ],
+      "preparation_failure": null,
+      "new_Core_or_cross_verdict": false,
+      "source_and_original_preserved_during_probe": true
+    }
+  ],
+  "method_probe_review": {
+    "status": "PASS_READ_ONLY_AUDIT_OF_FAILED_PROBES_02_03_04",
+    "evidence": {
+      "path": "artifacts/p2-family-mumps-probe-review-20261002-02/failed-probes-02-03-04-audit.json",
+      "bytes": 32411,
+      "sha256": "ad3899b0c537f175bcd9cb556dd91f8e0bf7f17a86680c9f57aede022aadb601"
+    }
+  },
+  "direct_probe_native_processes": 10,
+  "probe_candidates_adopted": 0,
+  "probe_fine_failures": {
+    "01": "FACTOR_57:3.57605e-6>1e-6",
+    "02": "FERMETUR_4:installed PETSc has no SuperLU support at coarse level",
+    "03": "FACTOR_57:3.07939e-6>1e-6",
+    "04": "FACTOR_57:3.25841e-6>1e-6"
+  },
+  "numerical_accuracy_semantics": "Native MUMPS relative solution-error upper-bound estimate; not an independently exported/assembled A-u-b residual. Small native scaled residual does not override this failed check.",
+  "primary_source": {
+    "official_code_aster_commit": "50ebc13c70ee9df62faf93ddcb746a3757b3042a",
+    "installed_c_solveur_equals_pinned_official_bytes": true,
+    "reports": [
+      {
+        "path": "artifacts/p2-family-mumps-diagnosis-20261002-01/official-mumps-refinement-diagnosis.json",
+        "bytes": 13314,
+        "sha256": "73ff8ac5f7759de9f02e9718620197877914e8f1b819c996970eceb3bb964145"
+      },
+      {
+        "path": "artifacts/p2-family-mumps-diagnosis-20261002-01/official-elimination-diagnosis.json",
+        "bytes": 14020,
+        "sha256": "1b5c032ebcd1116904902c2692bad9ec370b7d82093a669481bd0f9df47b9957"
+      },
+      {
+        "path": "artifacts/p2-family-mumps-diagnosis-20261002-01/official-kinematic-diagnosis.json",
+        "bytes": 15925,
+        "sha256": "d910dc6437551799d10d73f9d60e9a485576fc989d699bee4f0aa7ba98d9f469"
+      },
+      {
+        "path": "artifacts/p2-family-mumps-diagnosis-20261002-01/official-symdef-diagnosis.json",
+        "bytes": 13344,
+        "sha256": "55353ff14f6ee989a1ac5a9d3741781e52727b44bf843910804e2181f824f97d"
+      }
+    ]
+  }
+}

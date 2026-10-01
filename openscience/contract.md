@@ -8,7 +8,12 @@ load/mesh budgets and six runtime variables are checked before tool execution.
 Profile spelling is canonical. Historical Acceptance9/FixtureScalar14 remain
 unchanged. The approved5.6Sol/auth/project/source/lifecycle gates are reused.
 Source/capability admission is distinct from native and connected research proof;
-new-family actual research/GUI acceptance is NOT_RUN at this source checkpoint.
+Actual d29/research01 connects and observes the correct clean resident source,
+but its driver stops before inference at an absent Context.WslPython alias.
+The source-only correction reads the interpreter from the unchanged hash-bound
+MCP config argv;60 cold/18 independent saved-response replay checks pass. No
+Core/wire/native-context schema changes. New actual research/GUI acceptance
+remains OPEN; see20261002-structural-research-python-correction.
 Research selects conditions and interprets evidence; native adapters perform
 analysis and numerical engines generate search candidates. Engineering UNKNOWN
 and NOT_RELEASED are preserved through existing Core result operations.

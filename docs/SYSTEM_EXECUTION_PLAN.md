@@ -40,6 +40,13 @@ independent review are recorded in20261002-structural-family-source. Execute a
 fresh clean-commit native/cross-solver/half-load/refusal store, then actual approved
 OpenScience question/solver/condition/comparison/interpretation and same-record
 human results. Neither this source gate nor solver-only proof closes P2.2.
+Actual d29/native05 now passes beamFx/Fy cross-fields but retains the Fz Aster
+accuracy failure. Four bounded method probes are all failed/unadopted. The next
+same-unit action is the actual OpenScience control-plane run after its narrow
+config-bound Python correction, including retained failure interpretation and
+human records. This establishes research behavior, not a numerical shortcut:
+native accuracy and remaining cylinder/roof/half-load/refusal gates stay OPEN.
+See20261002-structural-family-native05 and20261002-structural-research-python-correction.
 Torsion, original MIDAS models/conflicts, additional plate/shell/modal/buckling/
 prestress coverage remain named open items; original52 and later phases persist.
 

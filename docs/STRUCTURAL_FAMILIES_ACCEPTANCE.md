@@ -65,6 +65,33 @@ case compatibility and roof automatic singleton node groups were not exercised
 by this beam probe. NEXT clean corrected source and fresh native05, then the
 actual connected gate below. P2.2/full requirements remain OPEN.
 
+## Native05 and isolated method probes
+
+Clean pushed d29b340b5e3516ffed73b121cf624c8107c8c84f/native05 executes18 native
+jobs and stores six common records/five complete. Fx/Fy on both solvers and
+Fz CCX pass unchanged independent all-field gates; Fx/Fy cross-field maximum
+U6.24805e-9/S1.36334e-7 meets1e-5. Fz Aster finest grid [24,4,4] fails native
+FACTOR_57, relative solution-error upper-bound estimate3.32295e-6>1e-6. No fine
+MED/U/RF/S or valid common metric exists. This native estimate is not an exported
+or independently assembled A/u/b residual. Original515files139030149B are unchanged.
+MODELISA8_14/CATAMESS_41/native ALARM are retained and independently audited;
+exact SOLID-only model excludes POI1 stiffness. Installed c_solveur matches the
+pinned official17.4 bytes, not proof of the compiled vendor Fortran source.
+
+Four isolated same-mesh/physics/accuracy probes use only copied workers:
+POSTTRAITEMENTS=FORCE fine3.57605e-6; ELIM_LAGR=OUI coarse FERMETUR_4 due
+unavailable compiled PETSc/SuperLU; AFFE_CHAR_CINE fine3.07939e-6; CINE/SYMDEF
+fine3.25841e-6. Ten actual native processes, zero Core/model calls, no adoption.
+The latter two middle-grid force errors1.031435e-7/1.086257e-7 exceed fixed1e-7;
+native exit0 and exact-zero supports do not establish numerical acceptance.
+Preparation03 SyntaxError is retained as a pre-native failure, then repaired
+before its single actual sequence. No source, threshold, mesh, response or
+material change is adopted. Record20261002-structural-family-native05 retains
+primary-source diagnosis, exact failed probes, independent audits and all hashes.
+Exact d29 CI36910059796 is8SUCCESS/2FAIL: same Fz FACTOR_57, explicit ZIP404
+before solver. Downloaded remote artifact digest/extraction are independently
+verified; local ignored raw data is not independent remote backup.
+
 ## Reviewed connected research driver
 
 `scripts/verify_structural_research_live.ps1` reuses the pinned official
@@ -73,6 +100,14 @@ existing helpers and six existing Core/MCP tools. There is no model fallback.
 The companion source checker has51 cold checks and independent source review;
 record20261002-structural-research-driver. These checks execute no actual
 HTTP/model/Core/solver call. Publication is readiness, not research completion.
+Actual research01/d29 connects and reads the correct clean source, then fails
+the fresh diagnostic because the driver expected nonexistent Context.WslPython.
+The historical cold fixture invented that property. Model/Core/solver0/no store;
+19files62035B retained exactly and owned Stop confirms3PIDs absent/4098 closed.
+The correction uses the existing hash-bound saved MCP argv interpreter and
+entrypoint, with exact observed executable comparison.60 cold and18 independent
+saved-response replay checks pass. Record20261002-structural-research-python-correction
+does not label that failed original run or a future actual model loop PASS.
 
 The actual acceptance requires a clean owned runtime, fresh store/attempt and
 fresh current-session source resource observation before inference. It binds
@@ -93,14 +128,14 @@ interpretation stage. UNKNOWN and NOT_RELEASED persist.
 
 ## Next gates
 
-1. Commit/push the reviewed fixed-width-name correction and use a fresh native05
-   store; retain Native01–04 and all original failures without rewriting verdicts.
-2. Complete native reference/mesh/all-field/cross-solver and changed-load gates
-   using measured native reaction evidence and unchanged numerical limits.
-3. Run the reviewed actual OpenScience driver with approved model/auth/project;
-   independently audit its raw fields and show the same records in human GUI.
-4. Verify owned idle/Stop and artifact retention; record exact-source CI with
-   failures separate from local evidence. Then continue the sequential worklist.
+1. Commit/push the reviewed config-bound interpreter correction; retain original
+   native01–05, method probes and research01 as their actual failed/partial verdicts.
+2. New clean-source owned OpenScience run with approved model/auth/project:
+   verify actual questions/tools/results/failure interpretation and human records.
+3. Verify owned idle/Stop/retention and exact-source CI separately. A partial
+   research execution does not close the required nine-stage acceptance above.
+4. Resolve native Fz accuracy and complete cylinder/roof/all-field/cross-solver/
+   changed-load/refusal gates with original numerical limits, then close P2.2.
 
 Original MIDAS replication, torsion/shell rotations and additional structural
 families remain open. Static strength, material, physical, fatigue and model

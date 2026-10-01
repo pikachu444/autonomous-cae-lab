@@ -1,0 +1,104 @@
+{
+  "schema_version": "1",
+  "record_kind": "ACTUAL_PRE_INFERENCE_FAILURE_AND_BOUNDED_DRIVER_CORRECTION",
+  "created_utc": "2026-10-01T20:20:47.305493+00:00",
+  "base_source_commit": "d29b340b5e3516ffed73b121cf624c8107c8c84f",
+  "unit": "P2.2",
+  "run_id": "p2-research-20261002-01",
+  "attempt": "attempt-01",
+  "actual_original_outcome": "FAILED_OR_PARTIAL",
+  "actual_original_failure": "Actual resident import/disk/Git fingerprint is unresolved or differs.",
+  "actual_model_calls": 0,
+  "actual_core_calls": 0,
+  "actual_solver_calls": 0,
+  "actual_store_created": false,
+  "model": "openai-codex/gpt-5.6-sol",
+  "openscience_version": "2.0.146",
+  "openscience_source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+  "cause": "The driver and first synthetic fixture assumed a WslPython context alias absent from the native factory. The canonical expected interpreter is config.mcp.caelab.command[-2].",
+  "correction": "Read declared absolute Python and exact source entrypoint from unchanged hash-bound local/enabled MCP argv; compare actual resource executable exactly. Remove nonexistent context alias and mock alias. No fallback.",
+  "scripts": [
+    {
+      "path": "scripts/verify_structural_research_live.ps1",
+      "bytes": 50137,
+      "sha256": "5a185019ecf0f36cbc4cedb781a71deec0e47879185fa440ddd9874adfabab0b"
+    },
+    {
+      "path": "scripts/verify_structural_research_source.ps1",
+      "bytes": 30999,
+      "sha256": "13230c612b1cf57090db1e02c645cde7ec469ccd0d1944b977b9ffa031f2b9ad"
+    }
+  ],
+  "source_checks": {
+    "status": "PASS_SOURCE_ONLY",
+    "checks": 60,
+    "evidence": {
+      "path": "artifacts/p2-structural-research-control-20261002-01/python-correction-source.json",
+      "bytes": 45402,
+      "sha256": "eca7b8caf1b2637896e5a2ce76dfa213748fa467572a15d944af20a51f0a4570"
+    },
+    "model_core_solver_runtime_calls": 0
+  },
+  "independent_review": {
+    "status": "PASS_BOUNDED_SAVED_IDENTITY_REPLAY",
+    "checks": 18,
+    "evidence": {
+      "path": "artifacts/p2-structural-research-python-review-20261002-01/independent-review.json",
+      "bytes": 9102,
+      "sha256": "0254f191170141425e413a373e2c1d47cbaa92444daca7e1a1c3cff6ac024044"
+    },
+    "actual_http_model_core_solver_runtime_calls": 0,
+    "actionable_p1_p2": []
+  },
+  "actual_original_evidence": {
+    "path": "artifacts/p2-structural-research-retained-20261002-01/attempt-01/acceptance.json",
+    "bytes": 25813,
+    "sha256": "52a6adc7bfa4739efcfc54964e8aab727e046b0c9e9cbcb7750bd5ebe0b0a046"
+  },
+  "local_retention": {
+    "status": "PASS_BYTE_IDENTICAL_LOCAL_RETENTION_OF_FAILED_RESEARCH",
+    "files": 19,
+    "bytes": 62035,
+    "evidence": {
+      "path": "artifacts/p2-structural-research-control-20261002-01/retention.json",
+      "bytes": 3830,
+      "sha256": "613dd50e7caced8309172fd202ba767e9f7cf8af0aa22f7dc8bdede4bfcbba7c"
+    },
+    "remote_raw_backup": "UNKNOWN_NOT_UPLOADED"
+  },
+  "owned_stop": {
+    "status": "STOPPED_VERIFIED",
+    "original_pids": [
+      79336,
+      102052,
+      6300
+    ],
+    "original_pids_absent": true,
+    "port4098_closed": true,
+    "evidence": {
+      "path": "artifacts/p2-structural-research-control-20261002-01/stop.log",
+      "bytes": 267,
+      "sha256": "45cc19c8e2548c3d9cd1c19a7090542df09a6bf958775a6014dd13d66aef946c"
+    },
+    "actual_OS_observation": {
+      "path": "artifacts/p2-structural-research-control-20261002-01/owned-stop-verification.json",
+      "bytes": 442,
+      "sha256": "a40619542bc01f66201d0b1b184b77099541012fe149f7344af8aa944865a3cc"
+    }
+  },
+  "contract_impact": "No native context schema/hash/marker, Core operation, guard, lifecycle, provider/model/auth/project or numerical gate changes.",
+  "new_actual_research": "NOT_RUN_PENDING_CLEAN_CORRECTED_COMMIT",
+  "new_exact_source_CI": "NOT_RUN",
+  "decision": "NOT_RELEASED",
+  "limitations": [
+    "Store is current owned context/config declaration, not a resource environment observation.",
+    "Cached imported bytecode identity remains UNKNOWN.",
+    "Core schemas, native context marker/hash contract, lifecycle/guard, provider/model/UI and numerical thresholds are unchanged.",
+    "Saved-response replay is no fresh current resident, model or solver proof. Original actual failed research is never relabeled PASS.",
+    "Native05 Fz MUMPS accuracy and remaining P2.2 numerical families/changed-load/refusal gates remain OPEN."
+  ],
+  "next": [
+    "Commit/push corrected reviewed driver, then new clean owned profile/store and actual approved model research requests.",
+    "Check retained failed calculation interpretation, same-record GUI/ownedStop/retention separately from full nine-stage numerical research acceptance."
+  ]
+}

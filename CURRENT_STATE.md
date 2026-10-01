@@ -1,22 +1,37 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
-## Latest actual checkpoint: CCX fields pass; native name import corrected
+## Latest actual checkpoint: native05 partial; research01 pre-inference failure
 
-Clean af9/native04 is FAILED_OR_PARTIAL. CCX beamFx passes three grids with
-independently audited full native U/RF/11826 Gauss observations. Final response
-0.0007607606670837013mm, reference error0.0016264211499982784, mesh trend
-0.001336230673280938 and maximum signed F/M errors2.317369317600696e-12/
-7.334461322061934e-14 pass unchanged limits. Aster aborts pre-MECA on group
-names/exit6; original actual name list is UNKNOWN and no stress/response exists.
-Same-mesh follow-up import-only observation and pinned official pregms source
-confirm eight-character names. Exact canonical[:8] alias bijection now supports
-native getters without changing source mesh/catalogue or any physical condition;
-collisions/map/name/count/dimension/tag/cell/group drift remain blocked. The
-135-file failed store, raw probe and all scientific sources remain preserved.
-Staged98, Root-published128 and independent bounded source review PASS. Record:
-20261002-codeaster-fixed-width-groups. Native05/cross-solver/changed-load/new
-research/GUI remain NOT_RUN and next after clean commit. P1 actual04ff research
-proof is retained separately. All52/ordered phases and UNKNOWN/NOT_RELEASED remain.
+Pushed clean d29b340/native05 creates six Core records, five complete. BeamFx/Fy
+on both solvers and beamFz CCX pass independent actual-field gates. Fx/Fy
+cross-field maximum U6.24805e-9/S1.36334e-7 meets fixed1e-5. Fz Aster fine
+grid fails native MUMPS FACTOR_57 (upper-bound solution-error3.32295e-6>1e-6),
+not a parser/source guard; no fine result/valid metric is invented.515 raw
+files139030149B are preserved. Installed c_solveur exactly matches official
+17.4 pin50ebc13; compiled vendor Fortran identity and assembled A/u/b remain
+UNKNOWN. Native alarms/full-table and exact-source CI audits are retained.
+CI36910059796 completes8SUCCESS/2FAIL: Aster repeats the same failure; explicit
+ZIP404 precedes its solver. Record20261002-structural-family-native05.
+
+Four isolated same-physics method probes all fail without source adoption or
+threshold changes. FORCE, CINE and CINE/SYMDEF fine bounds respectively3.57605e-6,
+3.07939e-6,3.25841e-6 exceed1e-6; OUI needs unavailable compiled PETSc/SuperLU.
+CINE middle-grid signed-force errors1.031435e-7/1.086257e-7 exceed fixed1e-7
+despite native exit0/exact-zero supports. Ten native processes/zero Core/model
+calls, unchanged original bytes, independent audits. Do not reuse these as PASS.
+
+Actual approved5.6/auth/project research01 establishes clean connected resident
+paths/hashes but its driver reads a nonexistent Context.WslPython property;
+cold fixtures wrongly invented this alias. It stops before model/Core/solver
+calls/store creation.19files62035B retained exactly; original3PIDs absent/4098
+closed after owned Stop. The narrow correction reads expected Python from the
+unchanged saved-config hash/MCP argv, preserves exact executable/source checks
+and removes the mock alias.60 source and18 independent actual-response replay
+checks PASS with no open P1/P2; replay does not substitute for new inference.
+Record20261002-structural-research-python-correction. NEXT new clean-source actual
+research/questions/tools/failure interpretation, same-record GUI/Stop/retention.
+P2.2 native accuracy/remaining-family gates and all52 stay OPEN; historic P1
+actual04ff research is unchanged and separate.
 
 ## Latest source correction: actual native DOUBLE U/RF evidence
 

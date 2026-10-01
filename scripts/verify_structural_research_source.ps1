@@ -153,12 +153,13 @@ function Invoke-WebRequest {
     if ($taskMockMode -ceq 'stale') { $observed=$observed.AddMinutes(-30) }
     $probes=@{commit=@{status='KNOWN';return_code=0;error=$null};dirty=@{status='KNOWN';return_code=0;error=$null}}
     $identity=@{schema_version=1;resource='caelab://runtime/source-identity';diagnostic_only=$true;observed_at=$observed.ToString('o');
-        process=@{pid=5000;python_executable=$taskMockCurrent.WslPython;mcp_server_path="$wsl/openscience/mcp_server.py"};
+        process=@{pid=5000;python_executable='/mock/python';mcp_server_path="$wsl/openscience/mcp_server.py"};
         core=@{repo_path=$wsl;git=@{commit=$taskMockCurrent.BootSource.source_commit;dirty=$false;probes=$probes};
             fingerprint=@{status='KNOWN';sha256=$taskCoreSha}};
         fixture=@{repo_path="$wsl/plugins/fixture_design/upstream";git=@{commit=$taskFixturePin[0].head;dirty=$false;probes=$probes};
             fingerprint=@{status='KNOWN';sha256=$taskPluginSha}}}
     if ($taskMockMode -ceq 'foreign-import') { $identity.process.mcp_server_path='/foreign/openscience/mcp_server.py' }
+    if ($taskMockMode -ceq 'foreign-python') { $identity.process.python_executable='/foreign/python' }
     if ($taskMockMode -ceq 'git-unresolved') { $identity.core.git.probes.commit.return_code=128; $identity.core.git.probes.commit.status='UNKNOWN' }
     $session=$taskMockSession
     if ($taskMockMode -ceq 'foreign-session') { $session='ses_foreign' }
@@ -174,11 +175,18 @@ function New-SourceResidentFixture([string]$Name,[string]$Mode) {
     $profile=Join-Path $taskArtifacts 'mock-profile'; New-Item -ItemType Directory -Path $profile | Out-Null
     $script:taskStore=Join-Path $taskArtifacts 'absent-store'
     $script:taskStructuralOwner=Join-Path $profile 'runtime-owner.json'
-    $config=Join-Path $profile 'config.json'; Write-OpenScienceJson $config @{synthetic='PUBLIC NO MODEL OR RUNTIME';model='openai-codex/gpt-5.6-sol'} -CreateNew
+    $wsl=ConvertTo-OpenScienceWslPath $taskSourceRoot
+    $config=Join-Path $profile 'config.json'
+    $configFixture=@{synthetic='PUBLIC NO MODEL OR RUNTIME';model='openai-codex/gpt-5.6-sol';
+        mcp=@{caelab=@{type='local';enabled=$true;command=@('wsl.exe','--','/mock/python',"$wsl/openscience/mcp_server.py")}}}
+    if ($Mode -ceq 'invalid-mcp-python') { $configFixture.mcp.caelab.command[-2]='python' }
+    if ($Mode -ceq 'foreign-mcp-entrypoint') { $configFixture.mcp.caelab.command[-1]='/foreign/openscience/mcp_server.py' }
+    if ($Mode -ceq 'missing-mcp-command') { $configFixture.mcp.caelab.command=@() }
+    Write-OpenScienceJson $config $configFixture -CreateNew
     $script:taskSetup=[pscustomobject]@{RepoRoot=$taskSourceRoot;RunName="source-$Name";ProfileRoot=$profile;
         StoreRoot=$taskStore;OwnerPath=$taskStructuralOwner;RuntimeURL='http://127.0.0.1:4098';RuntimeDirectory=(Join-Path $profile 'runtime');
         ConfigPath=$config;ConfigSha256=Get-OpenScienceHash $config;IntentSha256=('8'*64);ResearchDefinitionSha256=('7'*64);
-        Model='openai-codex/gpt-5.6-sol';SourceCommit='4082a2ecb73e166d4503963798228ba700f3840f';WslPython='/mock/python';
+        Model='openai-codex/gpt-5.6-sol';SourceCommit='4082a2ecb73e166d4503963798228ba700f3840f';
         BootSource=@{source_commit=('a'*40);source_tree_sha256=('e'*64);source_dirty=@()};BootSourceSha256=('f'*64);
         ProjectBinding=@{schema=1;kind='autonomous-cae-lab.openscience-project-binding';project_id='prj_mock';
             project_directory=(Join-Path $profile 'managed');source_directory=$taskSourceRoot;working_root=$taskSourceRoot;grant_id='grant_mock';access='write'}}
@@ -213,6 +221,7 @@ function New-SourceResidentFixture([string]$Name,[string]$Mode) {
     $script:taskMockMode=$Mode; $script:taskMockRuntimeReads=0; $script:taskMockSession=$null
 }
 New-SourceResidentFixture 'fresh' 'valid'
+Assert-SourceCheck (-not $taskSetup.PSObject.Properties['WslPython']) 'native context has no synthetic WslPython alias; expected interpreter comes from saved MCP config'
 Assert-StructuralResidentProof
 $receipt=Read-OpenScienceJson $taskRecord.resident.receipt_path
 Assert-SourceCheck ($receipt.fresh_current_owned_diagnostic -and $receipt.session_id -cne 'ses_historical' -and
@@ -234,10 +243,15 @@ $reasons=@{'foreign-store'='Fresh resident query belongs to a different initial 
     'stale'='Current query returned a stale or future resident observation';
     'drift-after'='Fresh resident response crossed an owner/context/store/project change';
     'foreign-import'='Actual resident import/disk/Git fingerprint is unresolved or differs';
+    'foreign-python'='Actual resident import/disk/Git fingerprint is unresolved or differs';
+    'invalid-mcp-python'='Owned MCP command lacks the declared absolute Python interpreter and source entrypoint';
+    'foreign-mcp-entrypoint'='Owned MCP command lacks the declared absolute Python interpreter and source entrypoint';
+    'missing-mcp-command'='Owned MCP command lacks the declared absolute Python interpreter and source entrypoint';
     'git-unresolved'='Resident Git diagnostic probe failed';
     'foreign-session'='Fresh resource expansion belongs to another session/provider';
     'http-failure'='Fresh current resource expansion failed'}
-foreach ($mode in @('foreign-store','foreign-context','foreign-owner','stale','drift-after','foreign-import','git-unresolved','foreign-session','http-failure')) {
+foreach ($mode in @('foreign-store','foreign-context','foreign-owner','stale','drift-after','foreign-import','foreign-python',
+    'invalid-mcp-python','foreign-mcp-entrypoint','missing-mcp-command','git-unresolved','foreign-session','http-failure')) {
     New-SourceResidentFixture $mode $mode
     Assert-SourceRefusalMessage { Assert-StructuralResidentProof } ("fresh resident diagnostic refuses "+$mode+" with same source and model") $reasons[$mode]
     if ($mode -cin @('foreign-store','foreign-context','foreign-owner')) {

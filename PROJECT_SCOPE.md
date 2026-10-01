@@ -21,12 +21,22 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
-Actual af9/native04 passes CCX beamFx's three grids with independent raw-field
-audit; Aster fails pre-MECA at physical-name import. Exact failed store is kept.
-Same-mesh import-only probe/official fixed8 source supports a strict bijective
-name-map correction:98 staged/128 Root checks and independent review PASS.
-Record20261002-codeaster-fixed-width-groups. Numerical limits and all52 descriptions
-are unchanged. Fresh native05/connected research/GUI are next, P2.2 still OPEN.
+Actual pushed d29/native05 completes five Core records: beamFx/Fy both solvers
+and Fz CCX. Independently checked full fields/Fx/Fy cross-fields pass fixed
+gates; Fz Aster fine fails native solution-error estimate3.32295e-6>1e-6.
+Four separate same-physics probes all fail and are not adopted. Native05 and
+515 original files remain FAILED_OR_PARTIAL/unchanged. Exact-source CI is
+8SUCCESS/2FAIL, including the same numerical failure and explicit download404.
+Record20261002-structural-family-native05. P2.2/full52 remain OPEN.
+
+Actual StructuralFamilies research01 connects but stops before model/Core/solver
+at nonexistent Context.WslPython in its driver. Owned Stop/19-file exact local
+retention pass. A narrow config-bound interpreter correction passes60 cold
+and18 independent saved-response replay checks with no open P1/P2; record
+20261002-structural-research-python-correction. NEXT new approved5.6Sol actual
+research and same-record GUI/Stop/retention; native accuracy/cylinder/roof/
+half-load/refusal gates remain OPEN. All52 IDs/descriptions and fixed numerical/
+engineering UNKNOWN/NOT_RELEASED are unchanged.
 
 Strict actual DOUBLE-U/RF evidence correction is reviewed: staged152 tests,
 Root integration30 and real-byte fixture1 PASS. Root's direct one-job format
@@ -337,7 +347,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R11 | Reproducible digital thread from hypothesis/study through CAD, mesh, deck, run, evidence and decision. | Partial: CAD/analysis/DOE/optimizer/PDE source+state thread executed; physical/HPC thread planned. |
 | R12 | Register raw/native and processed artifacts, not only final numbers; engineer can open any iteration. | Partial: CAD, solver raw/deck/log/metrics/evidence retained; more formats/animations/archive policy open. |
 | R13 | Equal importance for engineer GUI and autonomous headless workflows sharing underlying models/artifacts. | Partial: original native CAD and reports retained; bounded P1.1/P1.2a/P1.2b and04ff/run03 P1.3 research pass. Official GUI observed the same optimized experiment IDs/revision/metrics as headless records. This unit did not separately test manually entered GUI questions; wider product/native interaction remains OPEN. |
-| R14 | Evaluate Code_Aster/SALOME-MECA as main nonlinear implicit, CalculiX/PrePoMax secondary; benchmark materials/contact/convergence and automation/license. | Partial: actual CalculiX linear screen and fresh independent Code_Aster affine elasticity draft passed; preserved failed native import was corrected/reviewed. Nonlinear/contact/material and clean-source new benchmark gates remain open. |
+| R14 | Evaluate Code_Aster/SALOME-MECA as main nonlinear implicit, CalculiX/PrePoMax secondary; benchmark materials/contact/convergence and automation/license. | Partial: d29/native05 completes beamFx/Fy on both solvers with independent raw/cross-field checks; Fz Aster fine fails native accuracy, four separate method probes fail/unadopted. Original partial records preserved; record20261002-structural-family-native05. Nonlinear/contact/material/remaining families and qualifications stay open. |
 | R15 | OpenRadioss primarily explicit; investigate preprocessing gap, conversion and full explicit cards/controls. | Partial: pinned native flight and three reduced conservative-stop/rebound cases passed; common route/HTTP/native CI connected, integrated-source rerun pending. Original wall contact rejected; general surface contact/converter/full explicit scope open. |
 | R16 | Compare FEniCSx/UFL, FreeFEM, GetDP/Gmsh, GetFEM, MOOSE for user equations/weak form, nonlinear/multiphysics/AD/PETSc/HPC. | Partial: real bounded scalar FEniCSx form and clean analytical/reaction benchmark passed; general nonlinear/multiphysics/HPC coverage open. |
 | R17 | MFront/TFEL for material definition, material-point tests, tangents, finite strain, codegen, solver interfaces and identification. | Partial: actual compiled behavior, MGIS/MTest stress histories and full FD/native tangent gates passed at clean c29d6af. Solver coupling, finite strain and physical qualification open; synthetic-reference inverse slice underway. |
@@ -357,7 +367,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R31 | Phase 7 MFront/MOOSE/multiphysics/inverse/UQ/sensitivity/surrogate/multiobjective/HPC/SSH/Slurm/PBS/physical integration. | Partial: MFront stress/tangent/sensitivity and synthetic nine-candidate inverse connected to shared engine/default/HTTP. Exact33 local default proof and sealed CI36722365195 native/raw independent audits passed; no measured fit/convergence. Viscoelastic extension deferred under serial phase order; MOOSE/coupling/UQ/surrogate/multiobjective/HPC/physical integrations remain open. |
 | R32 | Physical test architecture: fabrication/calibration/machine/measurement/durability evidence with digital-twin calibration loop. | Partial extensible evidence envelope; equipment control/physical acceptance not implemented. |
 | R33 | UI Design/Simulation/Explore/Results/Research areas after Core slice; reuse original browser UI. | Partial: original fixture GUI/native viewer and common Lab HTTP retained. Actual official OpenScience f52/run03 GUI shows same CAD/result/evidence sessions; Lab8766 remains separate with no AI chat. Wider UI/native edit/planning acceptance remains open. |
-| R34 | Automated canonical/regression verification for CAD/rejection/linear/nonlinear/contact/explicit/PDE/DOE/optimization; physical validity separate from execution. | Partial: exact33 1,387 regressions plus actual analytical/manufactured/FD/native and raw evidence audits. Full MIDAS139+CFD18 source/coverage survey recorded; source-definition gaps stay UNKNOWN and all surveyed project case executions NOT_RUN. Prior single-case work is deferred; complete representative family conditions/reference/gates must precede Phase2 execution. No NAFEMS pass or physical qualification claimed. |
+| R34 | Automated canonical/regression verification for CAD/rejection/linear/nonlinear/contact/explicit/PDE/DOE/optimization; physical validity separate from execution. | Partial: exact33 1,387 regressions plus actual analytical/manufactured/FD/native/raw audits. d29/native05 independently audits two beam cross-solver loads, retains Fz Aster failure and failed method probes; exact CI8SUCCESS/2FAIL. Full MIDAS139+CFD18 survey is separate, original project replications remain NOT_RUN/UNKNOWN. Prior single-case work deferred; remaining family/phase gates open. No NAFEMS pass or physical qualification claimed. |
 | R35 | Dependency license/commercial/internal/redistribution/linking + Windows/Linux/WSL/container/HPC; OpenScience sandbox/telemetry/trace/endpoints/data protection. | Partial inventory/research; corporate licensing/security and platform deployment approval incomplete. |
 | R36 | GitHub private-repo attempt or local fallback; determine relationship to old fixture repo. | Supplied repo populated on main; pinned fixture submodule. Repo currently public; private/corporate choice open. |
 | R37 | Purposeful sub-agent parallel work and independent verification under one Root architecture owner. | Ongoing; relevant findings/reviews in ADR/docs; do not delegate boundaries blindly. |
@@ -366,7 +376,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R40 | Independent optimizer comparison by problem role, not a generic ranking. | Partial research and first seeded engine; wider engine acceptance planned. |
 | R41 | Source audit of fixture code/tests/CI/debt and independent architecture review. | Partial completed recovered source audit; native/transaction debt remains. |
 | R42 | Separate research/implementation/verification roles when useful; Root integrates. | Ongoing; retained implemented-load independent verification. |
-| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; saddle-load 9-mesh independent review recorded; new features need review. |
+| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; native05 complete-field/alarm/CI and four failed-probe audits retained; research interpreter correction60 cold/18 independent saved-response replay checks pass with no open P1/P2. New actual research remains a separate gate. |
 | R44 | Do not concurrently modify shared schemas/Core/registry/artifact migrations or same source file. | Ongoing ownership rule in AGENTS. |
 | R45 | Root checks architecture, OpenScience-first, conflicting evidence, actual feasibility, GUI/headless, license/security/benchmarks/requirements before integration. | Ongoing; accepted/rejected decisions recorded in ADR/docs. |
 | R46 | Strong Root reasoning for architecture/numerics/conflicts, appropriate agents for bounded work; verification above model choice. | Ongoing, subject to available models/tools and current session instructions. |

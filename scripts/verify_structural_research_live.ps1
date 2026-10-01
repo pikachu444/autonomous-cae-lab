@@ -200,10 +200,20 @@ function Get-StructuralResidentBinding($Context,$Owner) {
 
 function Assert-StructuralResidentIdentity($Identity,$Context,[string]$CoreSha,[string]$FixtureSha,[string]$FixtureCommit) {
     $wsl=ConvertTo-OpenScienceWslPath $Context.RepoRoot
+    # The native context binds the saved config hash; it has no WslPython
+    # property. Read the actual admitted interpreter from the MCP argv.
+    Assert-Task ((Get-OpenScienceHash $Context.ConfigPath) -ceq $Context.ConfigSha256) 'Owned MCP configuration changed before resident identity verification.'
+    $config=Read-OpenScienceJson $Context.ConfigPath
+    $command=@($config.mcp.caelab.command)
+    Assert-Task ($config.mcp.caelab.type -ceq 'local' -and $config.mcp.caelab.enabled -is [bool] -and
+        $config.mcp.caelab.enabled -and $command.Count -ge 2 -and
+        $command[-1] -ceq "$wsl/openscience/mcp_server.py" -and
+        $command[-2] -is [string] -and $command[-2] -cmatch '^/[^\r\n]+$') 'Owned MCP command lacks the declared absolute Python interpreter and source entrypoint.'
+    $python=$command[-2]
     Assert-Task ($Identity.schema_version -eq 1 -and $Identity.resource -ceq 'caelab://runtime/source-identity' -and
         $Identity.diagnostic_only -is [bool] -and $Identity.diagnostic_only -and $Identity.process.pid -gt 0 -and
         $Identity.process.mcp_server_path -ceq "$wsl/openscience/mcp_server.py" -and
-        $Identity.process.python_executable -ceq $Context.WslPython -and $Identity.core.repo_path -ceq $wsl -and
+        $Identity.process.python_executable -ceq $python -and $Identity.core.repo_path -ceq $wsl -and
         $Identity.core.git.commit -ceq $Context.BootSource.source_commit -and $Identity.core.git.dirty -is [bool] -and
         -not $Identity.core.git.dirty -and $Identity.fixture.repo_path -ceq "$wsl/plugins/fixture_design/upstream" -and
         $Identity.fixture.git.commit -ceq $FixtureCommit -and $Identity.fixture.git.dirty -is [bool] -and -not $Identity.fixture.git.dirty -and

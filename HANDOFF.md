@@ -1,21 +1,36 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
-## Latest native04 partial and fixed-width physical-name correction
+## Latest actual checkpoint: native05 partial; research interpreter binding
 
-Pushed af9bd45 native04 passes all three CCX beamFx levels; independently
-checked native U/RF/all11826 stress points and signed force/moment meet fixed
-limits. Aster fails before MECA at its group-name guard/exit6, with metrics{};
-original names were not recorded. Store135files/24,105,998B remains unchanged.
-A separate same-mesh/pinned-image import-only probe observes ALL_NODES→ALL_NODE.
-Official17.4 pregms stores eight characters. Correction explicitly proves the
-canonical[:8] map bijective before native commands and retains complete exact
-cell/type/order/membership/node-set checks, original Gmsh and scientific model.
-Staged98 and Root-published128 checks PASS; independent bounded source review
-has no open P1/P2. Raw5 fixtures require -text and staged byte parity. Record:
-20261002-codeaster-fixed-width-groups. Import proof is not a numerical verdict.
-NEXT commit/push corrected source and fresh native05, then actual approved5.6
-StructuralFamilies research and same-record GUI/Stop/retention. Exact af9 CI
-cold51 research-source job PASS; other failed/pending jobs remain separate.
+Clean pushed d29b340/native05 completes five Core records: beamFx/Fy on both
+solvers and Fz on CCX. Independent all-U/RF/27-point-stress and Fx/Fy cross-field
+checks meet the frozen limits. Fz Aster's finest grid fails native FACTOR_57:
+relative solution-error upper-bound estimate3.32295e-6 exceeds native1e-6.
+This is not an independently assembled A/u/b residual. Metrics{} remain;
+native05 stays FAILED_OR_PARTIAL. All515 files/139030149B are unchanged.
+Four isolated official-source-informed probes (10 native processes) all fail;
+none is adopted. CINE probes also exceed fixed1e-7 force balance at the middle
+grid. No accuracy threshold, response or physical input changes. Record:
+20261002-structural-family-native05. Exact d29 CI36910059796 is8SUCCESS/2FAIL:
+same Aster numerical failure; explicit release ZIP404 before any solver.
+
+Actual approved5.6Sol StructuralFamilies research01 starts/connects and reads
+the exact clean resident source, but its tracked driver stops before inference:
+it compares Python against nonexistent Context.WslPython. Model/Core/solver0;
+no store,19 files/62035B retained exactly. Owned Stop confirms original PIDs
+79336/102052/6300 absent and4098 closed. The correction reads the interpreter
+from the unchanged hash-bound local MCP argv, retains exact source/entrypoint
+and executable checks, and removes the imaginary cold-fixture alias.60 cold
+checks and18 independent saved-response replay checks PASS with no open P1/P2.
+Record20261002-structural-research-python-correction. This is no model-loop PASS.
+
+NEXT publish the reviewed correction, start a NEW clean-source owned research
+profile/store with the same approved model/auth/project, and verify actual
+questions/tools/retained failures/interpretation and same-record GUI/Stop.
+The MUMPS accuracy blocker and cylinder/roof/half-load/refusal numerical gates
+remain OPEN; stay within P2.2 instead of more unsupported option probes or
+opening later phases. All52/UNKNOWN/NOT_RELEASED remain active. Historical next
+instructions below are superseded by this checkpoint; original records remain.
 
 ## Latest unrounded native evidence correction; native04 next
 
