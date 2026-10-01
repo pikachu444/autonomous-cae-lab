@@ -1,5 +1,26 @@
 # Native FreeCAD Core acceptance
 
+## P1.2b actual bounded acceptance PASS at30068
+
+New runs/p1-native-registration-20261001-01 completed8 actual cases with clean
+30068e0/pin3e48 and unchanged runtime/source/declared reference. Native/history/
+current-publication faults and real child exit91 recover exact original images
+in fresh processes;16 pending consumer calls refuse before E/ledger creation.
+An injected error AFTER successful actual private prepare leaves public bytes
+unchanged/ABORTED. Ordinary Width publication and duplicate refusal pass.
+Independent STEP/Core/native comparisons:18x10x8/1440 and18x12x8/1728 mm^3,
+fixed1e-5 tolerance, same immutable records.28experiment files/24artifacts/
+19evidence links and prior211+34files preserved. Independent actual output and
+472-file/1,000,483-byte exact-copy retention reviews PASS with no blockingP1/P2.
+Record:20261001-native-registration-30068e0.json; receipt606b594303451965e35766bb11db7ac3d27d548f688047cc313fc2c354538129;
+manifest6fed8fc0afb07a9c330b281d44b8afa8c4ab07a9f0622b128196caa479ddf37c.
+Exact CI36839251459 native-registration/native/Core and5other jobsSUCCESS;
+explicit download404 occurred before its solver/store, so fullCI is FAILED.
+No actual FreeCAD first/second-save fault, power/disk loss, foreign GUI writer,
+company CAD, human GUI edit, solver/strength/release qualification is established
+by this unit. Six UNKNOWNs, NOT_RELEASED and solver NOT_RUN persist.
+NEXT ACTIVE P1.3 research integration; historical entries below remain evidence.
+
 ## Current source correction and verifier admission
 
 Exact481e9cf CI36835554422:1518 PASS/1 FAIL, caused by an added lock file inside

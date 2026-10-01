@@ -1,5 +1,30 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## ACTIVE P1.3; P1.2b actual bounded unit PASS
+
+Clean30068e05330e6e31c6d071bf294828a8412c9373 / fixture3e48:
+p1-native-registration-20261001-01 completed8 actual cases. Native/history/current
+write-fault publication, real process exit91 and fresh-process rollback/no-op
+preserve exact original bytes; successful-private-prepare abort stays private.
+Core/native/STEP analytical volumes1440/1728 mm^3 match the fixed1e-5 tolerance.
+Independent output and472-file/1,000,483-byte retention reviews PASS; prior211
+and34-file stores unchanged. Receipt606b594303451965e35766bb11db7ac3d27d548f688047cc313fc2c354538129;
+manifest6fed8fc0afb07a9c330b281d44b8afa8c4ab07a9f0622b128196caa479ddf37c.
+Exact30068 CI36839251459:8jobsSUCCESS including native-registration; explicit
+FAILED at original OpenRadioss download404, before solver/store. Same pinned ZIP
+is preserved locally with expected598ed7b2... SHA; no replacement/newversion.
+Record: benchmarks/records/20261001-native-registration-30068e0.json.
+NEXT ACTIVE P1.3: implement a declared Research purpose with existing14-tool
+subset, multi-tool question/conditions/comparison/numerical-campaign prompt,
+intent-bound runtime environment/budgets and the existing owned launcher.
+First actual routes are exact-STEP Gmsh/CalculiX+SciPy, then scalar FEniCSx;
+missing inputs/unsupported requests must not imply executable capability.
+Reuse owner-selected5.6Sol/auth, Core stores/engines/adapters; do not recreate
+optimizers or add CAD recovery scope. Runtime is STOPPED at servingf52 until
+the reviewed research source is ready. FullPhase1/all52 remain OPEN; six native
+engineering UNKNOWNs/NOT_RELEASED/solver NOT_RUN and documented limits persist.
+Historical checkpoints below retain earlier status/next instructions.
+
 ## Current checkpoint and owner priority
 
 Main481e9cf is pushed, but exact CI36835554422 FAILED:1518 tests passed,

@@ -8,8 +8,8 @@ Project execution objective is ACTIVE: complete the retained52 requirements
 through the connected OpenScience-led system. This queue is not a completion
 claim. Existing accepted work is reused. Check a box only with a linked actual
 receipt/review/commit; planning, readiness and prose cannot replace execution.
-Currently **P1.2b** is closing the already prepared correction and actual batch.
-The owner prioritizes **P1.3 functional research integration** immediately next:
+P1.2b actual30068/run01 output and retention reviews PASS; exactCI8jobsSUCCESS,
+explicit download404 before execution. Currently **P1.3 functional research integration** is active:
 question -> conditions -> solver -> comparison -> numerical next conditions.
 No further CAD recovery features are scheduled. Later phases remain sequential.
 
@@ -207,16 +207,16 @@ This evidence/docs checkpoint is not another solver run.
 - [x] P1.2b frozen regression: preserve132PASS/5source-drift failed attempt;
   142-case rerun PASS1085.17s with46runtime source files unchanged. Source record:
   20261001-native-registration-source; its container commit/push checked separately.
-- [ ] P1.2b verifier/isolated CI: finish/read-only review/commit the native
-  write-failure/process-exit/recovery verifier, then a NEW clean-source store.
+- [x] P1.2b verifier/isolated CI: reviewed/pushed30068; new actualrun01 and
+  exact-source native-registration CI pass. Record:20261001-native-registration-30068e0.
 - [x] Native verifier/isolated CI source review and Python3.12 compile-only PASS.
   Exact481 CI failed immutable-library preservation (1518PASS/1FAIL); external
   lock/overlap correction passes80 related and final27 checks, independent review
   PASS. Record:20261001-registration-read-only-and-verifier-source.json.
-- [ ] P1.2b (ACTIVE): inject a native-file/Core-registry write failure; retain recoverable
-  original revisions and prove transactional recovery without false success.
-  Review the pinned worker before any upstream change; keep its tested behavior.
-- [ ] P1.3: exercise supported research planning, unsupported-operation response
+- [x] P1.2b PASS bounded: actual8cases write/process faults/recovery/abort/normal
+  registration and fixed analytical1440/1728 responses; independent output and
+  472file retention PASS, old211+34files preserved. Stated limits/UNKNOWN remain.
+- [ ] P1.3 (ACTIVE): exercise supported research planning, unsupported-operation response
   and repeatable human/AI inspection against declared capabilities and the same
   study/model/experiment IDs. Record limitations of staged vs general planning.
 - [ ] P1.3 implementation priority: replace CAD-only exact-call admission with

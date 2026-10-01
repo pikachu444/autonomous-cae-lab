@@ -31,7 +31,15 @@ experiment artifacts; cloning Git alone does not restore their local bytes.
 
 ## Execution rule and current unit
 
-**One active acceptance unit: P1.2b, native/Core registration failure recovery.**
+**One active acceptance unit: P1.3, functional research-purpose integration.**
+P1.2b is PASS bounded at clean30068/run01:8actual cases, analytical1440/1728,
+write/process rollback/no-op, independent output/472-file retention reviews.
+Exact CI36839251459:8jobsSUCCESS; explicit download404 before solver/store.
+Record:20261001-native-registration-30068e0.json. No additional recovery scope.
+Connect existing question/capability/conditions/execution/comparison/numerical
+campaign paths using CalculiX/SciPy and FEniCSx, then the later phases in order.
+The earlier work-order notes below describe historical source admission.
+
 Owner priority update: finish the already prepared bounded correction/verifier
 and actual batch; add no recovery scope. P1.3 functional research integration
 follows immediately, connecting existing capabilities, conditions, solver

@@ -1,5 +1,13 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+P1.2b actual30068/run01 now passes the bounded native publication/process
+recovery gate with original records preserved; source/transport checks are
+separate. See20261001-native-registration-30068e0. This does not establish an
+OpenScience recovery call or expand the historical9-tool CAD allowlist.
+P1.3 research-purpose integration is ACTIVE, with one root interface owner.
+Intent-bound capability/runtime/budget metadata is distinct from actual adapter
+execution provenance; the latter remains the basis for validation and reports.
+
 Current481 source CI failed immutable-library preservation; the shared lock is
 now external to the store, with cache/store overlap refused before writes.
 No operation schema changes. Reviewed native verifier/isolated CI and27 final

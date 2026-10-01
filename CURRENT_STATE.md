@@ -1,5 +1,28 @@
 # Current state — 2026-10-01 (Asia/Seoul)
 
+## Current work: P1.3 research-purpose integration
+
+P1.2b actual bounded unit passed at clean30068/pin3e48:8 native cases, analytical
+1440/1728 mm^3 Core/native/STEP comparisons, three write faults, actual exit91,
+fresh-process rollback/no-op and abort after successful real prepare. Independent
+output/retention reviews PASS;472files/1,000,483bytes exact retained copies;
+prior211+34files unchanged. Exact-source CI36839251459 completed8jobsSUCCESS;
+explicit failed download404 before solver/store, not numerical rejection.
+The original OpenRadioss ZIP remains locally preserved with exact expected
+598ed7b2905a7bacc8d1781470c250ac79d7558c39ba962768edf3644644fe33 SHA.
+Record:20261001-native-registration-30068e0.json. Receipt606b5943...;
+retention6fed8fc0.... This docs checkpoint is not a new solver verification.
+P1.3 is ACTIVE: root owns common native/context/admission/runtime interfaces;
+an acceptance driver draft is isolated in ignored artifacts. Implement the
+research-purpose14-tool subset and natural multi-operation planning/conditions/
+comparison/numerical-engine loop using existing CalculiX/SciPy and FEniCSx.
+Runtime environment is an intent descriptor, not a new provenance/version API:
+actual adapters already retain execution provenance. LabService.capabilities()
+means implemented/callable operations, not installed solver evidence.
+No new auth/model choice/setup is needed; selected5.6Sol is unchanged.
+OpenScience STOPPED; Phase1/full52 and engineering UNKNOWN/NOT_RELEASED remain.
+All earlier checkpoints below are historical and keep their original evidence.
+
 ## Latest correction and research priority
 
 Pushed481e9cf exact CI36835554422 failed one immutable-library test, with1518
