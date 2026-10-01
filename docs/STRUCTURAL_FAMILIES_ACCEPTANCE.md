@@ -27,9 +27,19 @@ Deterministic numerical engines own numerical search in the subsequent Phase3.
   Moment/reference/mesh checks are not substituted for the failed force check.
   See20261002-structural-family-native03 for raw values, exact source and retention.
 
-Numerical output precision versus actual solve error is under investigation.
-No threshold, sign, response or reference has changed. Other loads/families,
-two-solver field comparison and new connected research/GUI remain NOT_RUN.
+The rounded DAT RF cannot establish the exact unrounded native balance. Root
+ran one direct output-format probe on clean ab188cd, changing only both FILE
+cards to DOUBLE. Installed executable/original store/source stay unchanged;
+the DAT is byte-identical. Strict correction requires supported observed ABI
+and complete native DOUBLE U/RF at the same nodes, corroborating every component
+against DAT printing precision. Actual restrained RF minus CLOAD supplies signed
+reactions/moments; nothing is projected to balance. Native DAT stress points and
+all references/thresholds remain unchanged. Historical ASCII record/metadata
+equality is checked.152 staged/30 integration/1 actual-fixture tests and bounded
+independent source review PASS. Record20261002-calculix-double-evidence retains
+actual probe/raw hashes and earlier failed source attempts. This format proof
+does not revise Native03 or establish a new Core verdict. Fresh native04,
+other loads/families/cross-solver and connected research/GUI remain NOT_RUN.
 
 ## Reviewed connected research driver
 

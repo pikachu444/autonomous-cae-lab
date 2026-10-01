@@ -39,6 +39,14 @@ PASS_SOURCE_ONLY; actual approved-model/three-family/GUI proof still NOT_RUN.
 Next resolve native reaction evidence, then fresh native and actual research;
 no later phase or additional setup is opened. STRUCTURAL_FAMILIES_ACCEPTANCE.
 
+Latest correction: same measured native U/RF is now read from strict DOUBLE
+output, corroborated against rounded DAT without changing any numerical gate.
+Actual one-job format probe and byte-identical raw fixture are separate from
+Core acceptance.152 staged,30 integration and1 actual-fixture checks PASS;
+independent bounded review has no open P1/P2. See20261002-calculix-double-evidence.
+Native03 is preserved REJECTED. NEXT commit/push correction and fresh native04,
+then actual OpenScience condition/execution/comparison/interpretation and GUI.
+
 ## P1.1 — integrated OpenScience CAD research (PASS bounded unit)
 
 Managed run03/source f52dd1b06e69cb901776f18524a41146258d421a now closes

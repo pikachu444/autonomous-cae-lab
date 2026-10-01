@@ -74,3 +74,21 @@ loads. CI applies the same runner and retains failures. Separate connected
 OpenScience/GUI receipts and exact-source CI are required. Material, strength,
 physical validation, fatigue, model qualification and original MIDAS replication
 remain UNKNOWN and NOT_RELEASED. Later phases and general product scope remain open.
+
+## Native precision evidence correction — 2026-10-02
+
+Native03 rejected signed force balance at the fixed1e-7 threshold. Rounded DAT
+RF loses precision; source tests alone cannot distinguish printing from solve
+error. An actual direct native output-format probe observes DOUBLE U/RF with
+identical DAT and unchanged original inputs/executable/store. Adapters now
+request DOUBLE on both FILE cards and require the observed supported binary ABI,
+complete native topology/fields and per-component DAT corroboration. Primary
+response and reactions use the same physical native measurements; constrained
+RF subtracts actual CLOAD once. Native27-point DAT stress is unchanged.
+This adapter evidence correction introduces no Core/wire/schema/Domain reference
+or threshold change. Alternatives such as relaxing balance or constructing RF
+from declared loads would hide the failure and are rejected. Historical ASCII
+parsing remains compatible; fresh execution refuses precision downgrade.
+Record20261002-calculix-double-evidence separates source/probe review from the
+required fresh Core/cross-solver/OpenScience/GUI gates. Requirements and release
+limits above remain active.

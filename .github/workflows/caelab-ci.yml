@@ -14,6 +14,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  research-driver-source:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Check structural research source and refusal gates without runtime calls
+        shell: pwsh
+        run: |
+          $taskReceiptPath = Join-Path $env:GITHUB_WORKSPACE 'artifacts/p2-structural-research-driver-20261002-01/ci-source-checks.json'
+          $null = & ./scripts/verify_structural_research_source.ps1 -RepoRoot $env:GITHUB_WORKSPACE -OutputPath $taskReceiptPath
+          $taskReceipt = Get-Content -LiteralPath $taskReceiptPath -Raw | ConvertFrom-Json -Depth 60
+          if ($taskReceipt.status -cne 'PASS_SOURCE_ONLY' -or @($taskReceipt.checks).Count -ne 51 -or
+              @($taskReceipt.checks | Where-Object status -CNE 'PASS').Count -ne 0 -or
+              $taskReceipt.model_calls -ne 0 -or $taskReceipt.native_solver_calls -ne 0 -or
+              $taskReceipt.actual_runtime_calls -ne 0 -or $taskReceipt.core_calls -ne 0) {
+            throw 'Cold research source gate did not produce the expected bounded evidence.'
+          }
+          Write-Host '51 cold checks PASS; actual model/runtime/Core/solver calls0.'
+      - name: Preserve source-only checks and public synthetic refusal fixtures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: research-driver-source-${{ github.sha }}
+          path: artifacts/p2-structural-research-driver-20261002-01/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 30
+
   core:
     runs-on: ubuntu-24.04
     timeout-minutes: 45

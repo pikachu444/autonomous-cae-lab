@@ -1,0 +1,303 @@
+{
+  "record_kind": "UNROUNDED_NATIVE_U_RF_EVIDENCE_CORRECTION",
+  "created_utc": "2026-10-01T18:05:59.325492+00:00",
+  "base_source_commit": "ab188cd973c8612d27c052f7eaf40e03686c5f14",
+  "retained_failure": {
+    "run": "p2-family-native-20261002-03",
+    "source_commit": "b598f42325ea438918f5865fb2ea6c857e0ea339",
+    "status": "REJECTED",
+    "reaction_relative_error": 2.663401471566829e-07,
+    "unchanged_limit": 1e-07,
+    "original_store": "PRESERVED"
+  },
+  "diagnosis": {
+    "path": "artifacts/p2-family-calculix-reaction-diagnosis-20261002-01/research.json",
+    "bytes": 28205,
+    "sha256": "d89299e9ced5b7b8dcf191619431ce23ac00978556cd4de1c594381f0baf463a"
+  },
+  "correction": {
+    "native_syntax": "DOUBLE on both NODE FILE and EL FILE; later FILE card cannot downgrade the format",
+    "primary_fields": "Unrounded native DOUBLE DISP and FORC at identical nodes and same physical components; DAT U/RF corroborates every component at its E13.6 precision",
+    "reaction": "Measured native RF minus actual serialized CLOAD once on each restrained component; signed force/moment not constructed from equilibrium",
+    "stress": "All27 native DAT S/COORD unchanged; nodal averaged S/ERROR remain distinct diagnostics",
+    "ABI": "Observed ELF64 little-endian x86-64/SysV Cint32 and IEEE754binary64; unsupported ABI/encoding refused",
+    "fresh_execution": "Actual DOUBLE required; no ASCII/float32 downgrade; historical strict ASCII parsing preserved"
+  },
+  "actual_format_probe": {
+    "receipt": {
+      "path": "artifacts/p2-family-calculix-double-probe-20261002-01/probe-receipt.json",
+      "bytes": 2753,
+      "sha256": "a6468d3d2c6fe27bf04de2a39092f0b3f439d6953674740e249b5b349f875441"
+    },
+    "intent": {
+      "path": "artifacts/p2-family-calculix-double-probe-20261002-01/probe-intent.json",
+      "bytes": 750,
+      "sha256": "f17ec9baf9f1f406105e0ef3fb1d933e93021a7a9ef20043169045df5a63e9c9"
+    },
+    "native_jobs": 1,
+    "solver_exit": {
+      "returncode": 0,
+      "timed_out": false
+    },
+    "core_operations": 0,
+    "model_calls": 0,
+    "source_commit": "ab188cd973c8612d27c052f7eaf40e03686c5f14",
+    "probe_scope": "Direct output-format job, not Core acceptance or Domain qualification",
+    "executable_sha256": "6adaabf5bf0382fc2bfd692b984320ed375dba777f7dc8297562f818043faa1b",
+    "input_changes": "Only DOUBLE on both FILE cards; identical coarse beamFx inputs",
+    "original_native03_level_and_binary_and_source": "UNCHANGED"
+  },
+  "source_checks": {
+    "staged_source": {
+      "passed": 152,
+      "seconds": 52.86,
+      "exit_code": 0,
+      "evidence": {
+        "path": "artifacts/p2-family-calculix-double-20261002-01/attempt03/receipt.json",
+        "bytes": 2124,
+        "sha256": "048a85df4ea6385da0701385129ec89a2ac65aef5f8cf240825fb53b273adf22"
+      },
+      "log": {
+        "path": "artifacts/p2-family-calculix-double-20261002-01/attempt03/pytest.log",
+        "bytes": 261,
+        "sha256": "ec215911f5a788deb202071ca8c382a7f3e1f6f4dff4c397ca804ee15b6b245c"
+      }
+    },
+    "root_common_integration": {
+      "passed": 30,
+      "seconds": 24.74,
+      "exit_code": 0,
+      "log": {
+        "path": "artifacts/p2-family-calculix-double-20261002-01/root-integration.log",
+        "bytes": 102,
+        "sha256": "7bea3d23763340764e3a02ee12df84f0bf2dd6cdc4f51062176b4dcda46e6063"
+      }
+    },
+    "root_actual_fixture": {
+      "passed": 1,
+      "exit_code": 0,
+      "log": {
+        "path": "artifacts/p2-family-calculix-double-20261002-01/root-actual-fixture.log",
+        "bytes": 100,
+        "sha256": "b7468a56449be725026f6528c73eb7447d146b68f4fae0b6012f55e02ab7e9ec"
+      }
+    },
+    "prior_attempts": {
+      "attempt01": "142 PASS / 10 FAIL; shared1PSTEP off-by-one; preserved frozen inputs/log",
+      "attempt02": "4 passed, 148 deselected in 1.81s"
+    },
+    "historical_ascii_controls": {
+      "baseline_sha256": "6845af8fb891e81a39b54757c6a7c0d1137270ef933262163776b9a3292b1900",
+      "historical_metadata_canonical_sha256": "e5364436c7d8cacbbe406c4d63125653ae9780b9fb492d6e5c63433d9c5e116c",
+      "historical_metadata_equal": true,
+      "historical_record_canonical_sha256": "de86a7130eafa0b1fc2d4a187ec521bf5c3f15d6b34c32d7c4d1c79f5ca843fb",
+      "historical_record_equal": true
+    }
+  },
+  "independent_review": {
+    "path": "artifacts/p2-family-calculix-double-20261002-01/independent-review.json",
+    "bytes": 13927,
+    "sha256": "edfb850927c6a638f26198fbc67eb5484f9aec92d36f553598f8a34d688da8d8"
+  },
+  "freeze": {
+    "path": "artifacts/p2-family-calculix-double-20261002-01/freeze.json",
+    "bytes": 7211,
+    "sha256": "351d443365361073307febc66922dfcfbb5a20a0700e78bc84bc38f106ac6b08"
+  },
+  "source_files": [
+    {
+      "path": "caelab/adapters/structural_family_calculix.py",
+      "bytes": 53496,
+      "sha256": "b434752a11aaf50c5c802321c80b69c0782d805fcf25c5ba56f489f1bfccc1fe"
+    },
+    {
+      "path": "tests/test_structural_family_calculix.py",
+      "bytes": 46194,
+      "sha256": "6246885579fceb1e71cfd5f5ddc7221ab2f4a36f79a71f37788c83809d491058"
+    },
+    {
+      "path": ".gitattributes",
+      "bytes": 888,
+      "sha256": "eb0e7cbadc42d03783185c6b4cda544c1e810e0bafe32532354e64d96e52d42c"
+    },
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "bytes": 20237,
+      "sha256": "cc4e980063b2eccf8d93ef3d968baadadef4a8a01333c22bb48c1200ce969941"
+    }
+  ],
+  "raw_fixture_copies": [
+    {
+      "original": {
+        "path": "artifacts/p2-family-calculix-double-probe-20261002-01/family.dat",
+        "bytes": 34155,
+        "sha256": "956b4b2d92463aeced6d76c11df485a2db945aef837f1d982abedc18d2556bd2"
+      },
+      "fixture": {
+        "path": "tests/fixtures/calculix_221_structural_family_double/family.dat",
+        "bytes": 34155,
+        "sha256": "956b4b2d92463aeced6d76c11df485a2db945aef837f1d982abedc18d2556bd2"
+      },
+      "status": "EXACT_RAW_BYTE_MATCH"
+    },
+    {
+      "original": {
+        "path": "artifacts/p2-family-calculix-double-probe-20261002-01/family.frd",
+        "bytes": 14513,
+        "sha256": "75ed2f83f97e6c86310f1b0e439b13359d979341993e6a56306afa13974d3c8d"
+      },
+      "fixture": {
+        "path": "tests/fixtures/calculix_221_structural_family_double/family.frd",
+        "bytes": 14513,
+        "sha256": "75ed2f83f97e6c86310f1b0e439b13359d979341993e6a56306afa13974d3c8d"
+      },
+      "status": "EXACT_RAW_BYTE_MATCH"
+    },
+    {
+      "original": {
+        "path": "artifacts/p2-family-calculix-double-probe-20261002-01/mesh.inc",
+        "bytes": 2456,
+        "sha256": "29dcc0ec9cac1010d3f57eaa4b4d859d18242b58ead4ac259b109325e149e33d"
+      },
+      "fixture": {
+        "path": "tests/fixtures/calculix_221_structural_family_double/mesh.inc",
+        "bytes": 2456,
+        "sha256": "29dcc0ec9cac1010d3f57eaa4b4d859d18242b58ead4ac259b109325e149e33d"
+      },
+      "status": "EXACT_RAW_BYTE_MATCH"
+    },
+    {
+      "original": {
+        "path": "artifacts/p2-family-calculix-double-probe-20261002-01/mesh.json",
+        "bytes": 22029,
+        "sha256": "1ac7f4d7ef46c4e5e190828515ae6e328e25be76a7fe5dbed712e2666c4b42f4"
+      },
+      "fixture": {
+        "path": "tests/fixtures/calculix_221_structural_family_double/mesh.json",
+        "bytes": 22029,
+        "sha256": "1ac7f4d7ef46c4e5e190828515ae6e328e25be76a7fe5dbed712e2666c4b42f4"
+      },
+      "status": "EXACT_RAW_BYTE_MATCH"
+    },
+    {
+      "original": {
+        "path": "artifacts/p2-family-calculix-double-probe-20261002-01/serialized_loads_n.json",
+        "bytes": 6562,
+        "sha256": "d024a35f0606723ed58e3aab5eb9be2337b7e47f806db4c1555e3bafe53d6bbb"
+      },
+      "fixture": {
+        "path": "tests/fixtures/calculix_221_structural_family_double/serialized_loads_n.json",
+        "bytes": 6562,
+        "sha256": "d024a35f0606723ed58e3aab5eb9be2337b7e47f806db4c1555e3bafe53d6bbb"
+      },
+      "status": "EXACT_RAW_BYTE_MATCH"
+    }
+  ],
+  "retention": {
+    "raw_fixture_text_conversion": "DISABLED -text",
+    "staged_blob_parity": [
+      {
+        "path": "tests/fixtures/calculix_221_structural_family_double/family.dat",
+        "bytes": 34155,
+        "sha256": "956b4b2d92463aeced6d76c11df485a2db945aef837f1d982abedc18d2556bd2",
+        "status": "STAGED_BLOB_EQUALS_ACTUAL_NATIVE_BYTES"
+      },
+      {
+        "path": "tests/fixtures/calculix_221_structural_family_double/family.frd",
+        "bytes": 14513,
+        "sha256": "75ed2f83f97e6c86310f1b0e439b13359d979341993e6a56306afa13974d3c8d",
+        "status": "STAGED_BLOB_EQUALS_ACTUAL_NATIVE_BYTES"
+      },
+      {
+        "path": "tests/fixtures/calculix_221_structural_family_double/mesh.inc",
+        "bytes": 2456,
+        "sha256": "29dcc0ec9cac1010d3f57eaa4b4d859d18242b58ead4ac259b109325e149e33d",
+        "status": "STAGED_BLOB_EQUALS_ACTUAL_NATIVE_BYTES"
+      },
+      {
+        "path": "tests/fixtures/calculix_221_structural_family_double/mesh.json",
+        "bytes": 22029,
+        "sha256": "1ac7f4d7ef46c4e5e190828515ae6e328e25be76a7fe5dbed712e2666c4b42f4",
+        "status": "STAGED_BLOB_EQUALS_ACTUAL_NATIVE_BYTES"
+      },
+      {
+        "path": "tests/fixtures/calculix_221_structural_family_double/serialized_loads_n.json",
+        "bytes": 6562,
+        "sha256": "d024a35f0606723ed58e3aab5eb9be2337b7e47f806db4c1555e3bafe53d6bbb",
+        "status": "STAGED_BLOB_EQUALS_ACTUAL_NATIVE_BYTES"
+      }
+    ],
+    "old_ascii_fixture": "UNCHANGED",
+    "earlier_failure_and_format_probe": "PRESERVED"
+  },
+  "CI": {
+    "new_windows_source_job": "Prepared for exact-source51 cold research-driver checks; no actual model/runtime/Core/solver calls",
+    "exact_new_source": "PENDING",
+    "historical_fa0b1a8": {
+      "run": 36892910651,
+      "conclusion": "CANCELLED",
+      "passed_jobs": [
+        "core",
+        "optimization",
+        "native-registration",
+        "structural",
+        "native",
+        "pde",
+        "doe"
+      ],
+      "codeaster": "CANCELLED",
+      "explicit": "FAILED_AT_DIGEST_PINNED_RUNTIME_DOWNLOAD_HTTP404; solver not reached",
+      "snapshot": {
+        "path": "artifacts/p2-family-calculix-format-fix-20261002-01/ci-fa0b1a8.json",
+        "bytes": 22266,
+        "sha256": "eebb5b3f0176f7610062e20427fa7e9befdb432957468b42c369bb39e6e5f92a"
+      },
+      "failed_log": {
+        "path": "artifacts/p2-family-calculix-format-fix-20261002-01/ci-fa0b1a8-failed.log",
+        "bytes": 4950,
+        "sha256": "349fe9bcfe893969eae6cc1be48b65707b5340e0b0c0fbdf8b53522a29f9e3c9"
+      }
+    },
+    "historical_ab188cd": {
+      "run": 36897719838,
+      "conclusion": "failure",
+      "jobs": {
+        "core": "success",
+        "codeaster": "failure",
+        "native-registration": "success",
+        "native": "success",
+        "pde": "success",
+        "doe": "success",
+        "explicit": "failure",
+        "optimization": "success",
+        "structural": "success"
+      },
+      "snapshot": {
+        "path": "artifacts/p2-family-calculix-double-20261002-01/ci-ab188cd.json",
+        "bytes": 22237,
+        "sha256": "2fdd49ca2143b8a3f02c32cde7f495a05b701c2ca99e022ed1668684f8b23bd3"
+      },
+      "failed_log": {
+        "path": "artifacts/p2-family-calculix-double-20261002-01/ci-ab188cd-failed.log",
+        "bytes": 11052,
+        "sha256": "69511a4059088b10b387455cf490cc2b186177cf2eb7b45094f7d37ce772ee2d"
+      },
+      "codeaster": "Actual family numerical rejection, original failure retained",
+      "explicit": "Pinned runtime-download HTTP404, solver not reached"
+    }
+  },
+  "unchanged": {
+    "domain_reference_and_thresholds_and_shared_mesh": "UNCHANGED",
+    "definition_sha256": "4ebca41ae97498cba18fe876a72ef128e0b671c3f7f6f809853514c94d5e12e0",
+    "Core_and_OpenScience_wire_operations_and_original52": "UNCHANGED"
+  },
+  "outcome": {
+    "fresh_core_native04": "NOT_RUN",
+    "cross_solver": "NOT_RUN",
+    "new_openscience_research": "NOT_RUN",
+    "human_gui": "NOT_RUN",
+    "build_source_and_engineering_and_original_midas": "UNKNOWN",
+    "release": "NOT_RELEASED"
+  },
+  "next": "Exact reviewed clean source commit/push, fresh native04 reference/mesh/cross-solver/load-change/refusal, then actual approved5.6 research and same-record GUI/Stop/retention"
+}

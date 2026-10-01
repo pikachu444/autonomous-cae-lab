@@ -1,5 +1,22 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Latest unrounded native evidence correction; native04 next
+
+Native03 remains REJECTED and unchanged. A direct one-job format probe on
+clean ab188cd observes the same native U/RF in DOUBLE binary output; the DAT
+bytes are identical to the earlier rounded output. Strict source correction
+requires DOUBLE on both FILE cards, observed supported ABI, complete native
+fields and DAT corroboration. Reactions remain measured restrained RF minus
+actual CLOAD, never a manufactured equilibrium. All27 native stress points,
+Domain references, thresholds and Core/OpenScience operations stay unchanged.
+Staged152 tests, Root common-integration30 and actual-byte fixture1 PASS;
+independent bounded source review has no open P1/P2. Record:
+20261002-calculix-double-evidence. These establish parsing, not numerical PASS.
+NEXT clean reviewed correction commit/push, fresh native04 cross-solver/load/
+refusal store, then actual approved5.6 research and same-record GUI/Stop/retention.
+Exact ab188cd CI has7 successful jobs, codeaster family numerical failure and
+explicit runtime-download404; it is not all-pass. New-source CI is pending.
+
 ## Latest native03 rejection and connected driver publication
 
 Source b598f42325ea438918f5865fb2ea6c857e0ea339 is pushed. Native03 ran all

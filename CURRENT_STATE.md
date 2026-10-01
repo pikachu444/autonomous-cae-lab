@@ -1,5 +1,23 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
+## Latest source correction: actual native DOUBLE U/RF evidence
+
+Rejected Native03 is retained, including rounded values and invalid metrics.
+Root's one-job clean-ab188cd output-format probe changes only both FILE cards
+to DOUBLE; unchanged installed ccx and identical DAT bytes are verified. The
+correction reads unrounded measured native U/RF at the same nodes, uses actual
+restrained RF minus CLOAD and corroborates every component against DAT precision.
+Strict observed ABI/count/topology/field/time gates refuse unsupported encoding
+or fresh ASCII/float32 downgrade. Historical ASCII results are byte-equivalent.
+All27 native DAT stress points, Domain references/limits, mesh and Core remain.
+Staged152, Root integration30 and actual-fixture1 checks PASS; independent source
+review PASS with no open P1/P2. Record20261002-calculix-double-evidence retains
+probe/raw copies/hashes/failures/audit. No fresh Core numerical/research/GUI PASS
+is implied. NEXT clean source commit and native04, then connected research.
+Exact ab188cd CI completed with7 jobs PASS, family-numerical codeaster FAIL and
+explicit download404 before solver; new-source CI remains pending. All52/ordered
+phases stay active, qualifications UNKNOWN and NOT_RELEASED.
+
 ## Latest native03 numerical rejection; research driver ready for actual use
 
 Pushed b598f42 ran three beamFx meshes and parsed complete U/RF/GP stress.

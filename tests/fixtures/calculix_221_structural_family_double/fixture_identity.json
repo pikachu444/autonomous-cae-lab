@@ -1,0 +1,30 @@
+{
+  "files": {
+    "family.dat": {
+      "bytes": 34155,
+      "sha256": "956b4b2d92463aeced6d76c11df485a2db945aef837f1d982abedc18d2556bd2"
+    },
+    "family.frd": {
+      "bytes": 14513,
+      "sha256": "75ed2f83f97e6c86310f1b0e439b13359d979341993e6a56306afa13974d3c8d"
+    },
+    "mesh.inc": {
+      "bytes": 2456,
+      "sha256": "29dcc0ec9cac1010d3f57eaa4b4d859d18242b58ead4ac259b109325e149e33d"
+    },
+    "mesh.json": {
+      "bytes": 22029,
+      "sha256": "1ac7f4d7ef46c4e5e190828515ae6e328e25be76a7fe5dbed712e2666c4b42f4"
+    },
+    "serialized_loads_n.json": {
+      "bytes": 6562,
+      "sha256": "d024a35f0606723ed58e3aab5eb9be2337b7e47f806db4c1555e3bafe53d6bbb"
+    }
+  },
+  "kind": "autonomous-cae-lab.actual-native-format-fixture",
+  "origin": "artifacts/p2-family-calculix-double-probe-20261002-01",
+  "probe_receipt_sha256": "a6468d3d2c6fe27bf04de2a39092f0b3f439d6953674740e249b5b349f875441",
+  "schema": 1,
+  "scope": "Root-owned direct native-format probe, not Core numerical acceptance; no solver execution by staging author",
+  "source_commit": "ab188cd973c8612d27c052f7eaf40e03686c5f14"
+}

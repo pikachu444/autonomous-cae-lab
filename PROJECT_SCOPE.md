@@ -21,6 +21,13 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+Strict actual DOUBLE-U/RF evidence correction is reviewed: staged152 tests,
+Root integration30 and real-byte fixture1 PASS. Root's direct one-job format
+probe is separate from Core numerical acceptance; Native03 remains REJECTED.
+No reference/limit/response/Core/52 description changes. Record:
+20261002-calculix-double-evidence. Fresh native04/connected research/GUI are
+NOT_RUN and next, P2.2 still OPEN. Engineering UNKNOWN/NOT_RELEASED persists.
+
 Native03/b598f42 completed all three beamFx native jobs and complete parsing,
 but Core REJECTED fixed1e-7 reaction balance (max2.663401471566829e-7).
 Record20261002-structural-family-native03 preserves invalid values/failed store.

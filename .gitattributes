@@ -7,3 +7,8 @@ tests/fixtures/calculix_221_structural_family/mesh.json -text
 tests/fixtures/calculix_221_structural_family/serialized_loads_n.json -text
 scripts/verify_structural_research_live.ps1 text eol=lf
 scripts/verify_structural_research_source.ps1 text eol=lf
+tests/fixtures/calculix_221_structural_family_double/family.dat -text
+tests/fixtures/calculix_221_structural_family_double/family.frd -text
+tests/fixtures/calculix_221_structural_family_double/mesh.inc -text
+tests/fixtures/calculix_221_structural_family_double/mesh.json -text
+tests/fixtures/calculix_221_structural_family_double/serialized_loads_n.json -text

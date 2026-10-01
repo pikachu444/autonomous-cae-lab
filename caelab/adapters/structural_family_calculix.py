@@ -15,10 +15,13 @@ import json
 import math
 import os
 from pathlib import Path
+import platform
 import re
 import shutil
 import signal
+import struct
 import subprocess
+import sys
 
 from plugins.structural_families import reference as _domain
 from . import structural_family_mesh as _mesh
@@ -59,6 +62,20 @@ _RULES = {
     "frd_format": "frd.c / frdvector.c / frdselect.c E12.5: six significant digits with native float casts",
     "precision_policy": "Format-rounding and float-cast allowances verify native identity only; domain numerical limits are unchanged",
 }
+_FRD_ABI = {"format": "ELF64_SYSV_X86_64", "byte_order": "little",
+            "id_bytes": 4, "real_bytes": 8, "real_format": "IEEE754_binary64"}
+_DOUBLE_RULES = {**_RULES,
+    "frd_format": "frd.c / frdvector.c / frdselect.c dbi: native C int32 IDs and IEEE754 binary64 mesh/U/RF/nodal S/optional ERROR, without float casts",
+    "primary_displacement_basis": "Measured native DOUBLE-FRD DISP at the same catalogue nodes; DAT U corroborates seven-significant-digit rounding",
+    "force_basis": "Measured native DOUBLE-FRD FORC internal fn; reaction = RF - serialized CLOAD on restrained DOFs only; DAT RF corroborates seven-significant-digit rounding",
+    "binary_abi_basis": "Observed executable ELF64 little-endian EM_X86_64 and Linux host ABI; SysV AMD64 scalar C int32/double64. Unsupported ABIs are refused, not guessed",
+}
+_FRD_LABELS = {
+    "DISP": ["D1 1 2 1 0", "D2 1 2 2 0", "D3 1 2 3 0", "ALL 1 2 0 0 1ALL"],
+    "FORC": ["F1 1 2 1 0", "F2 1 2 2 0", "F3 1 2 3 0", "ALL 1 2 0 0 1ALL"],
+    "STRESS": ["SXX 1 4 1 1", "SYY 1 4 2 2", "SZZ 1 4 3 3", "SXY 1 4 1 2", "SYZ 1 4 2 3", "SZX 1 4 3 1"],
+    "ERROR": ["STR(%) 1 1 0 0"],
+}
 
 
 def _sha(path: Path) -> str:
@@ -92,6 +109,22 @@ def _assert_sources(output: Path) -> None:
             raise RuntimeError("Structural source/snapshot drift; retained evidence cannot be mixed")
 
 
+def _observed_frd_abi(executable: Path) -> dict:
+    """Admit one observed native ABI; FRD does not carry an endian marker."""
+    with executable.open("rb") as stream:
+        header = stream.read(64)
+    if (len(header) != 64 or header[:7] != b"\x7fELF\x02\x01\x01" or header[7] not in (0, 3)
+            or int.from_bytes(header[16:18], "little") not in (2, 3)
+            or int.from_bytes(header[18:20], "little") != 62
+            or int.from_bytes(header[20:24], "little") != 1
+            or int.from_bytes(header[52:54], "little") != 64
+            or sys.platform != "linux" or platform.machine().lower() != "x86_64"
+            or sys.byteorder != "little" or struct.calcsize("@i") != 4 or struct.calcsize("@d") != 8
+            or sys.float_info.mant_dig != 53 or sys.float_info.max_exp != 1024):
+        raise RuntimeError("DOUBLE-FRD requires the observed Linux ELF64 little-endian x86-64 int32/double64 ABI")
+    return deepcopy(_FRD_ABI)
+
+
 def _runtime_identity() -> dict:
     command = shutil.which("ccx")
     if not command:
@@ -100,6 +133,7 @@ def _runtime_identity() -> dict:
     if not executable.is_file():
         raise RuntimeError("CalculiX command does not resolve to a regular executable")
     return {"executable": str(executable), "sha256": _sha(executable),
+            "frd_abi": _observed_frd_abi(executable),
             "required_version": "2.21", "expected_binary_sha256": None,
             "binary_admission": "Actual PATH executable hash frozen for this run; no preconfigured expected binary SHA",
             "native_binary_build_source_identity": "UNKNOWN"}
@@ -316,7 +350,7 @@ def _deck(mesh: dict, declaration: dict, path: Path) -> dict[int, list[float]]:
         lines += [f"{node},{axis},{token}" for axis, token in enumerate(tokens, 1) if serialized[node][axis - 1] != 0]
     lines += ["*NODE PRINT,NSET=ALL_NODES,GLOBAL=YES", "U,RF",
               "*EL PRINT,ELSET=SOLID,GLOBAL=YES", "S,COORD",
-              "*NODE FILE,NSET=ALL_NODES,GLOBAL=YES", "U,RF", "*EL FILE,GLOBAL=YES",
+              "*NODE FILE,NSET=ALL_NODES,GLOBAL=YES,DOUBLE", "U,RF", "*EL FILE,GLOBAL=YES,DOUBLE",
               "S", "*END STEP"]
     with path.open("x", encoding="ascii", newline="\n") as stream:
         stream.write("\n".join(lines) + "\n")
@@ -404,7 +438,7 @@ def _frd_row(line: str, components: int) -> tuple[int, list[float]]:
     return identifier, [_number(line[13 + 12 * i:25 + 12 * i].strip()) for i in range(components)]
 
 
-def parse_frd(path: Path, mesh: dict, native_nodes: dict, dat: dict) -> dict:
+def _parse_ascii_frd(path: Path, mesh: dict, native_nodes: dict, dat: dict) -> dict:
     """Check ASCII FRD topology and complete nodal fields, preserving raw FRD."""
     nodes, elements, _, _ = _catalogue(mesh)
     lines = _read(path).splitlines()
@@ -477,12 +511,7 @@ def parse_frd(path: Path, mesh: dict, native_nodes: dict, dat: dict) -> dict:
                 raise ValueError("FRD result time/coverage/increment/encoding differs from the input")
             header = True
         elif parts[0] == "-4":
-            labels = {
-                "DISP": ["D1 1 2 1 0", "D2 1 2 2 0", "D3 1 2 3 0", "ALL 1 2 0 0 1ALL"],
-                "FORC": ["F1 1 2 1 0", "F2 1 2 2 0", "F3 1 2 3 0", "ALL 1 2 0 0 1ALL"],
-                "STRESS": ["SXX 1 4 1 1", "SYY 1 4 2 2", "SZZ 1 4 3 3", "SXY 1 4 1 2", "SYZ 1 4 2 3", "SZX 1 4 3 1"],
-                "ERROR": ["STR(%) 1 1 0 0"],
-            }
+            labels = _FRD_LABELS
             if (len(parts) != 4 or not header or parts[1] not in labels or parts[1] in fields or
                     parts[2] != str(len(labels[parts[1]])) or parts[3] != "1"):
                 raise ValueError("Unexpected or duplicate FRD field")
@@ -526,6 +555,164 @@ def parse_frd(path: Path, mesh: dict, native_nodes: dict, dat: dict) -> dict:
             "native_error_scope": "Optional native extrapolation estimator; not measured reference error or linear residual"}
 
 
+class _BinaryFRDReader:
+    """ASCII headers occur only at known boundaries, never within binary rows."""
+
+    def __init__(self, data: bytes):
+        self.data, self.offset = data, 0
+
+    def line(self) -> str:
+        end = self.data.find(b"\n", self.offset, self.offset + 257)
+        if end < 0:
+            raise ValueError("Missing, truncated or unbounded native FRD header")
+        row = self.data[self.offset:end]
+        if any(byte < 32 or byte > 126 for byte in row):
+            raise ValueError("Non-ASCII native FRD header at a binary boundary")
+        self.offset = end + 1
+        return row.decode("ascii")
+
+    def row(self, pattern: struct.Struct) -> tuple:
+        if self.offset + pattern.size > len(self.data):
+            raise ValueError("Truncated native DOUBLE-FRD payload")
+        values = pattern.unpack_from(self.data, self.offset)
+        self.offset += pattern.size
+        return values
+
+
+def _frd_bytes(path: Path) -> bytes:
+    if not path.is_file() or path.is_symlink() or path.stat().st_size > _MAX_FILE_BYTES:
+        raise ValueError("Native artifact is missing, linked, or exceeds the bounded parser size")
+    with path.open("rb") as stream:
+        data = stream.read(_MAX_FILE_BYTES + 1)
+    if len(data) > _MAX_FILE_BYTES:
+        raise ValueError("Native artifact exceeds the bounded parser size")
+    return data
+
+
+def _binary_mesh_header(line: str, name: str, count: int, encoding: str) -> None:
+    if (len(line) != 74 or line[:6] != "    " + name or line[6:24].strip()
+            or _identifier(line[24:36].strip()) != count or line[36:].strip() != encoding):
+        raise ValueError("Native DOUBLE-FRD mesh count/encoding differs from the checked catalogue")
+
+
+def _binary_node_rows(reader: _BinaryFRDReader, nodes: dict, components: int) -> dict:
+    pattern = struct.Struct("<i" + "d" * components)
+    values = {}
+    for _ in range(len(nodes)):
+        node, *row = reader.row(pattern)
+        if node not in nodes or node in values:
+            raise ValueError("Duplicate or foreign native DOUBLE-FRD node ID")
+        if not all(math.isfinite(value) for value in row):
+            raise ValueError("Nonfinite native DOUBLE-FRD component")
+        values[node] = row
+    if values.keys() != nodes.keys():
+        raise ValueError("Incomplete native DOUBLE-FRD field")
+    return values
+
+
+def _parse_double_frd(data: bytes, mesh: dict, native_nodes: dict, dat: dict, native_abi: dict | None) -> dict:
+    if native_abi != _FRD_ABI:
+        raise ValueError("Native DOUBLE-FRD requires the observed supported ABI; byte order is never guessed")
+    nodes, elements, _, _ = _catalogue(mesh)
+    if native_nodes.keys() != nodes.keys():
+        raise ValueError("Native DOUBLE-FRD input node identities are incomplete")
+    reader = _BinaryFRDReader(data)
+    if reader.line().strip() != "1C":
+        raise ValueError("Native DOUBLE-FRD requires the computational header")
+    metadata = []
+    # Exact 2.21 frd.c preamble for one declared material. These are retained
+    # metadata, not a claim that the installed binary was built from that source.
+    for tag in ("USER", "DATE", "TIME", "HOST", "PGM", "VERSION", "COMPILETIME", "DIR", "DBN", "MAT"):
+        line = reader.line()
+        prefix = "    1U" + tag
+        if not line.startswith(prefix) or (len(line) > len(prefix) and line[len(prefix)] != " "):
+            raise ValueError("Unexpected, duplicate or missing native DOUBLE-FRD metadata")
+        value = line[len(prefix):].strip()
+        if ((tag == "VERSION" and value != "Version 2.21")
+                or (tag == "PGM" and value != "CalculiX")
+                or (tag == "MAT" and not re.fullmatch(r"1\s*DECLARED", value))):
+            raise ValueError("Native DOUBLE-FRD version/program/material metadata is foreign")
+        metadata.append(line)
+    _binary_mesh_header(reader.line(), "2C", len(nodes), "3")
+    coordinates = _binary_node_rows(reader, nodes, 3)
+    if any(not math.isfinite(expected) or abs(value - expected) > 32 * math.ulp(max(abs(value), abs(expected)))
+           for node, xyz in coordinates.items() for value, expected in zip(xyz, native_nodes[node])):
+        raise ValueError("Native DOUBLE-FRD coordinates differ from the actual input mesh")
+    _binary_mesh_header(reader.line(), "3C", len(elements), "2")
+    topology = {}
+    pattern = struct.Struct("<24i")
+    for _ in range(len(elements)):
+        element, kind, group, material, *connectivity = reader.row(pattern)
+        if element not in elements or element in topology or (kind, group, material) != (4, 0, 1):
+            raise ValueError("Native DOUBLE-FRD requires unique checked HEX20 type4/material1 elements")
+        canonical = [None] * 20
+        for native, slot in zip(connectivity, FRD_FROM_C3D20):
+            canonical[slot] = native
+        topology[element] = canonical
+    if topology != elements:
+        raise ValueError("Native DOUBLE-FRD topology differs from the checked C3D20 catalogue")
+    fields = {}
+    while True:
+        step = reader.line()
+        if step.strip() == "9999":
+            if reader.offset != len(data):
+                raise ValueError("Extra bytes after native DOUBLE-FRD end marker")
+            break
+        if (len(step) != 70 or step[:10] != "    1PSTEP" or step[10:24].strip() or step[60:].strip()
+                or [_identifier(step[a:b].strip()) for a, b in ((24, 36), (36, 48), (48, 60))]
+                != [len(fields) + 1, 1, 1]):
+            raise ValueError("Native DOUBLE-FRD step differs from the single linear increment")
+        header = reader.line()
+        if (len(header) != 75 or header[:7] != "  100CL" or header[7:12].strip() != "101"
+                or _number(header[12:24].strip()) != 1.0 or _identifier(header[24:36].strip()) != len(nodes)
+                or header[36:56].strip() or header[56:58].strip() != "0"
+                or header[58:63].strip() != "1" or header[63:74].strip() or header[74] != "3"):
+            raise ValueError("Native DOUBLE-FRD time/coverage/linear kind/encoding differs from the input")
+        parts = reader.line().split()
+        if (len(parts) != 4 or parts[0] != "-4" or parts[1] not in _FRD_LABELS or parts[1] in fields
+                or parts[2] != str(len(_FRD_LABELS[parts[1]])) or parts[3] != "1"
+                or len(fields) >= 4 or parts[1] != ("DISP", "STRESS", "FORC", "ERROR")[len(fields)]):
+            raise ValueError("Unexpected, duplicate or reordered native DOUBLE-FRD field")
+        name = parts[1]
+        for label in _FRD_LABELS[name]:
+            if reader.line().split() != ["-5", *label.split()]:
+                raise ValueError("Native DOUBLE-FRD component order differs from the documented field")
+        fields[name] = _binary_node_rows(reader, nodes, 6 if name == "STRESS" else 1 if name == "ERROR" else 3)
+    if set(fields) not in ({"DISP", "STRESS", "FORC"}, {"DISP", "STRESS", "FORC", "ERROR"}):
+        raise ValueError("Native DOUBLE-FRD requires complete U/RF/nodal stress fields")
+    for name, native in (("DISP", "U"), ("FORC", "RF")):
+        if any(not _printed_close(printed, actual, 7)
+               for node, row in fields[name].items() for actual, printed in zip(row, dat[native][node])):
+            raise ValueError("Native DOUBLE-FRD field exceeds matching DAT E13.6 rounding")
+    return {"coordinates_mm": coordinates, "elements_c3d20": topology,
+            "nodal_averaged_stress_native_order": fields["STRESS"],
+            "nodal_averaged_stress_components": ["xx", "yy", "zz", "xy", "yz", "zx"],
+            "native_stress_error_estimate_percent": fields.get("ERROR"),
+            "native_error_scope": "Optional native extrapolation estimator; not measured reference error or linear residual",
+            "native_displacements_mm": fields["DISP"], "native_internal_forces_n": fields["FORC"],
+            "encoding": {"name": "CalculiX2.21_DOUBLE_FRD", "abi": deepcopy(native_abi),
+                         "coordinate_code": 3, "topology_code": 2, "result_code": 3,
+                         "nodal_precision": "binary64 without native float cast",
+                         "DAT_corroboration": "Every U/RF component within E13.6 rounding; DAT is not the primary U/RF basis"},
+            "computational_metadata": metadata}
+
+
+def parse_frd(path: Path, mesh: dict, native_nodes: dict, dat: dict, *,
+              native_abi: dict | None = None, require_double: bool = False) -> dict:
+    """Retain strict historical ASCII replay; new decks explicitly require dbi."""
+    data = _frd_bytes(path)
+    prefix = _BinaryFRDReader(data)
+    for _ in range(32):
+        parts = prefix.line().split()
+        if parts and parts[0] == "2C":
+            if len(parts) == 3 and parts[2] == "3":
+                return _parse_double_frd(data, mesh, native_nodes, dat, native_abi)
+            if require_double or parts != ["2C", str(len(_catalogue(mesh)[0])), "1"]:
+                raise ValueError("Fresh native output requires DOUBLE-FRD, not ASCII/float32 or foreign encoding")
+            return _parse_ascii_frd(path, mesh, native_nodes, dat)
+    raise ValueError("Native FRD lacks the bounded mesh preamble")
+
+
 def _cross(x: list[float], force: list[float]) -> list[float]:
     return [x[1] * force[2] - x[2] * force[1], x[2] * force[0] - x[0] * force[2],
             x[0] * force[1] - x[1] * force[0]]
@@ -535,7 +722,8 @@ def _resultant(rows: list[list[float]]) -> list[float]:
     return [math.fsum(row[axis] for row in rows) for axis in range(3)]
 
 
-def parse_fields(folder: Path, mesh: dict, serialized_loads: dict, native_nodes: dict) -> tuple[dict, dict]:
+def parse_fields(folder: Path, mesh: dict, serialized_loads: dict, native_nodes: dict, *,
+                 native_abi: dict | None = None, require_double: bool = False) -> tuple[dict, dict]:
     nodes, elements, masks, declared_loads = _catalogue(mesh)
     if serialized_loads.keys() != nodes.keys() or native_nodes.keys() != nodes.keys():
         raise ValueError("Native input identities are incomplete")
@@ -548,7 +736,13 @@ def parse_fields(folder: Path, mesh: dict, serialized_loads: dict, native_nodes:
     dat = parse_dat(folder / "family.dat", mesh)
     if any(dat["U"][node][axis - 1] != 0 for node, axes in masks.items() for axis in axes):
         raise ValueError("Native displacement violates the declared zero restrained component")
-    frd = parse_frd(folder / "family.frd", mesh, native_nodes, dat)
+    frd = parse_frd(folder / "family.frd", mesh, native_nodes, dat,
+                    native_abi=native_abi, require_double=require_double)
+    double = "encoding" in frd
+    u = frd["native_displacements_mm"] if double else dat["U"]
+    rf = frd["native_internal_forces_n"] if double else dat["RF"]
+    if any(u[node][axis - 1] != 0 for node, axes in masks.items() for axis in axes):
+        raise ValueError("Native displacement violates the declared zero restrained component")
     stresses = []
     for element in sorted(elements):
         coordinates = [native_nodes[node] for node in elements[element]]
@@ -562,7 +756,7 @@ def parse_fields(folder: Path, mesh: dict, serialized_loads: dict, native_nodes:
                              "components_mpa": dat["S"][(element, point)]})
         if len(set(positions)) != 27:
             raise ValueError("Native integration-point coordinates are duplicated")
-    reaction = {node: [dat["RF"][node][axis] - loads[node][axis] if axis + 1 in masks.get(node, set()) else 0.0
+    reaction = {node: [rf[node][axis] - loads[node][axis] if axis + 1 in masks.get(node, set()) else 0.0
                        for axis in range(3)] for node in sorted(nodes)}
     applied_force = _resultant(list(loads.values()))
     applied_moment = _resultant([_cross(native_nodes[node], loads[node]) for node in nodes])
@@ -570,21 +764,25 @@ def parse_fields(folder: Path, mesh: dict, serialized_loads: dict, native_nodes:
     reaction_moment = _resultant([_cross(native_nodes[node], reaction[node]) for node in nodes])
     order = sorted(nodes)
     record = {"cells": list(mesh["cells"]), "node_ids": order,
-              "coordinates_mm": [nodes[node] for node in order], "displacements_mm": [dat["U"][node] for node in order],
+              "coordinates_mm": [nodes[node] for node in order], "displacements_mm": [u[node] for node in order],
               "reaction_n": reaction_force, "reaction_moment_n_mm": reaction_moment,
               "applied_force_n": applied_force, "applied_moment_n_mm": applied_moment,
               "stress_points": stresses, "element_count": len(elements),
               "field_completeness": {"displacement": True, "stress": True, "reaction": True, "native_mesh": True},
               "native_fields_artifact": "simulation/" + folder.name + "/family.frd"}
-    metadata = {"rules": deepcopy(_RULES), "node_ids": order,
+    metadata = {"rules": deepcopy(_DOUBLE_RULES if double else _RULES), "node_ids": order,
                 "native_input_coordinates_mm": [native_nodes[node] for node in order],
-                "raw_internal_forces_n": [dat["RF"][node] for node in order],
+                "raw_internal_forces_n": [rf[node] for node in order],
                 "serialized_cload_n": [loads[node] for node in order],
                 "restrained_component_masks": [[axis + 1 in masks.get(node, set()) for axis in range(3)] for node in order],
                 "reaction_by_node_n": [reaction[node] for node in order],
                 "native_mesh_and_nodal_stress": frd,
                 "native_coordinated_stress_points": [{"element_id": eid, "point_id": point,
                     "coordinates_mm": dat["COORD"][(eid, point)]} for eid, point in sorted(dat["COORD"])]}
+    if double:
+        metadata["DAT_displacements_mm"] = [dat["U"][node] for node in order]
+        metadata["DAT_internal_forces_n"] = [dat["RF"][node] for node in order]
+        metadata["primary_field_encoding"] = deepcopy(frd["encoding"])
     return record, metadata
 
 
@@ -628,7 +826,7 @@ class StructuralFamilyCalculiXAdapter:
             raise ValueError("Analysis output must be new or empty; original evidence cannot be overwritten")
         output.mkdir(parents=True, exist_ok=True)
         provenance = {"adapter": self.backend, "adapter_version": self.version,
-                      "input_sources": _capture_sources(output), "native_rules": deepcopy(_RULES)}
+                      "input_sources": _capture_sources(output), "native_rules": deepcopy(_DOUBLE_RULES)}
         save_json(output / "source_identity.json", provenance["input_sources"])
 
         def reject(code: str, error: ValueError) -> dict:
@@ -696,7 +894,8 @@ class StructuralFamilyCalculiXAdapter:
             if re.search(r"\*ERROR|\b(?:nan|infinity)\b", text, re.IGNORECASE) or "Job finished" not in text:
                 raise RuntimeError("CalculiX did not report finite native linear termination; logs retained")
             result_hashes = {level / name: _sha(level / name) for name in ("family.dat", "family.frd")}
-            record, metadata = parse_fields(level, mesh, serialized, native_nodes)
+            record, metadata = parse_fields(level, mesh, serialized, native_nodes,
+                                            native_abi=runtime.get("frd_abi"), require_double=True)
             if any(_sha(path) != expected for path, expected in result_hashes.items()):
                 raise RuntimeError("Native results changed during extraction; evidence retained")
             save_json(level / "parsed_fields.json", record)
