@@ -1,5 +1,23 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
+## Latest actual checkpoint: CCX fields pass; native name import corrected
+
+Clean af9/native04 is FAILED_OR_PARTIAL. CCX beamFx passes three grids with
+independently audited full native U/RF/11826 Gauss observations. Final response
+0.0007607606670837013mm, reference error0.0016264211499982784, mesh trend
+0.001336230673280938 and maximum signed F/M errors2.317369317600696e-12/
+7.334461322061934e-14 pass unchanged limits. Aster aborts pre-MECA on group
+names/exit6; original actual name list is UNKNOWN and no stress/response exists.
+Same-mesh follow-up import-only observation and pinned official pregms source
+confirm eight-character names. Exact canonical[:8] alias bijection now supports
+native getters without changing source mesh/catalogue or any physical condition;
+collisions/map/name/count/dimension/tag/cell/group drift remain blocked. The
+135-file failed store, raw probe and all scientific sources remain preserved.
+Staged98, Root-published128 and independent bounded source review PASS. Record:
+20261002-codeaster-fixed-width-groups. Native05/cross-solver/changed-load/new
+research/GUI remain NOT_RUN and next after clean commit. P1 actual04ff research
+proof is retained separately. All52/ordered phases and UNKNOWN/NOT_RELEASED remain.
+
 ## Latest source correction: actual native DOUBLE U/RF evidence
 
 Rejected Native03 is retained, including rounded values and invalid metrics.

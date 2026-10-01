@@ -1,0 +1,14 @@
+{
+  "Core_operations": 0,
+  "completed_utc": "2026-10-01T18:15:12.696760+00:00",
+  "error": null,
+  "image_sha256": "f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64",
+  "mechanical_solves": 0,
+  "model_calls": 0,
+  "observation_sha256": "2f0db39c065f4c582a3f979293e68d04ccd40218b72bf15059e6a8a84da14caa",
+  "original_file_count": 135,
+  "original_native04": "UNCHANGED",
+  "source": "UNCHANGED_CLEAN",
+  "source_commit": "af9bd45ef2e5c6f66a6c9b46caa44d4ebb213d96",
+  "status": "PASS_IMPORT_OBSERVATION_ONLY"
+}

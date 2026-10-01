@@ -47,6 +47,15 @@ independent bounded review has no open P1/P2. See20261002-calculix-double-eviden
 Native03 is preserved REJECTED. NEXT commit/push correction and fresh native04,
 then actual OpenScience condition/execution/comparison/interpretation and GUI.
 
+Latest actual native04/af9: CCX beamFx three levels PASS with independent raw
+U/RF/all11826 stress observations. Aster aborts before MECA at name guard/exit6;
+135 original files unchanged. Same-mesh import-only probe and official fixed8
+source establish a canonical[:8] bijection correction, exact group/cell checks
+retained.98 staged/128 Root tests and independent bounded review PASS; record
+20261002-codeaster-fixed-width-groups. Native04 remains FAILED_OR_PARTIAL.
+NEXT clean corrected commit/push and fresh native05, then actual approved5.6
+research/GUI/Stop/retention. No later phase or additional setup is opened.
+
 ## P1.1 — integrated OpenScience CAD research (PASS bounded unit)
 
 Managed run03/source f52dd1b06e69cb901776f18524a41146258d421a now closes

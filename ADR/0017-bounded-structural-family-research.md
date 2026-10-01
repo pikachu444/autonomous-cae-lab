@@ -92,3 +92,22 @@ parsing remains compatible; fresh execution refuses precision downgrade.
 Record20261002-calculix-double-evidence separates source/probe review from the
 required fresh Core/cross-solver/OpenScience/GUI gates. Requirements and release
 limits above remain active.
+
+## Native physical group names — 2026-10-02
+
+Native04 passes CCX beamFx but Aster refuses import before MECA: the canonical
+ALL_NODES name differs from the reader's eight-character ALL_NODE. A separate
+same-mesh import-only probe and pinned pregms/gmeelt source establish the
+fixed-width mapping and complete80-node/102-cell identity. Model the native
+canonical[:8] transformation as an exact bijection, rejecting prefix collisions
+before any native command. Keep emitted Gmsh and the shared scientific catalogue
+unchanged. Native getters use exact aliases; membership/type/ordered topology
+and node sets are checked under canonical names. Preserve both name lists/map,
+exact dimensions/tags and map provenance before field normalization. Do not
+replace exact validation with subsets, GM exemptions or wildcard matching.
+This adapter-only correction changes no Core/contract operation, physical input,
+reference or limit. Import-only/raw regression and source review do not establish
+numerical completion; actual native05 and OpenScience/GUI remain separate gates.
+Arbitrary-case reader behavior and roof singleton auto-GROUP_NO are not observed
+by the uppercase beam probe; existing singleton support/load gates remain.
+Record20261002-codeaster-fixed-width-groups preserves Native04 as partial.

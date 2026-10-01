@@ -12,3 +12,8 @@ tests/fixtures/calculix_221_structural_family_double/family.frd -text
 tests/fixtures/calculix_221_structural_family_double/mesh.inc -text
 tests/fixtures/calculix_221_structural_family_double/mesh.json -text
 tests/fixtures/calculix_221_structural_family_double/serialized_loads_n.json -text
+tests/fixtures/codeaster_174_structural_import/mesh.msh -text
+tests/fixtures/codeaster_174_structural_import/expected_mesh.json -text
+tests/fixtures/codeaster_174_structural_import/import-observations.json -text
+tests/fixtures/codeaster_174_structural_import/probe-intent.json -text
+tests/fixtures/codeaster_174_structural_import/probe-receipt.json -text

@@ -21,6 +21,13 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+Actual af9/native04 passes CCX beamFx's three grids with independent raw-field
+audit; Aster fails pre-MECA at physical-name import. Exact failed store is kept.
+Same-mesh import-only probe/official fixed8 source supports a strict bijective
+name-map correction:98 staged/128 Root checks and independent review PASS.
+Record20261002-codeaster-fixed-width-groups. Numerical limits and all52 descriptions
+are unchanged. Fresh native05/connected research/GUI are next, P2.2 still OPEN.
+
 Strict actual DOUBLE-U/RF evidence correction is reviewed: staged152 tests,
 Root integration30 and real-byte fixture1 PASS. Root's direct one-job format
 probe is separate from Core numerical acceptance; Native03 remains REJECTED.

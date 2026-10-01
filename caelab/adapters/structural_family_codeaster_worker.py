@@ -34,6 +34,7 @@ ASTER_GAUSS27 = tuple(itertools.product((-_G, 0.0, _G), repeat=3))
 CANONICAL_GAUSS27 = tuple((x, y, z) for z in (-_G, 0.0, _G)
                          for y in (-_G, 0.0, _G) for x in (-_G, 0.0, _G))
 _SOURCE_FILES = ("structural_family_codeaster_worker.py", "codeaster_worker.py", "structural_family_mesh.py")
+_PHYSICAL_NAME_POLICY = "Code_Aster17.4-GMSH-character8-case-preserved"
 
 
 def _digest(path: Path) -> str:
@@ -107,9 +108,46 @@ def validate_catalogue(mesh: dict) -> tuple[dict[int, list[float]], dict[int, li
     return nodes, elements
 
 
+def _physical_groups(mesh: dict) -> dict:
+    return {"SOLID": {"dimension": 3, "tag": 1},
+            **{name: {"dimension": 0, "tag": index + 2}
+               for index, name in enumerate(sorted(mesh["groups"]))}}
+
+
+def _native_group_name_map(physical_groups: dict) -> dict:
+    """Model pinned pregms.F90 character(len=8); never rename source groups."""
+    if not isinstance(physical_groups, dict) or not physical_groups:
+        raise ValueError("Missing canonical physical groups for the native name map")
+    mapping = {}
+    for name, descriptor in physical_groups.items():
+        if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,23}", name):
+            raise ValueError("Malformed canonical physical group name")
+        if not isinstance(descriptor, dict) or set(descriptor) != {"dimension", "tag"} or type(descriptor["dimension"]) is not int or type(descriptor["tag"]) is not int or descriptor["dimension"] not in (0, 3) or descriptor["tag"] < 1:
+            raise ValueError("Malformed canonical physical group dimension/tag")
+        mapping[name] = name[:8]
+    if len(set(mapping.values())) != len(mapping):
+        raise ValueError("Pinned eight-character native physical group names collide")
+    return mapping
+
+
+def _checked_native_group_name_map(expected: dict) -> dict:
+    imported = expected.get("native_import")
+    if not isinstance(imported, dict) or imported.get("schema_version") != "1":
+        raise ValueError("Missing checked native import contract")
+    physical_groups = _physical_groups(expected)
+    mapping = _native_group_name_map(physical_groups)
+    if imported.get("physical_groups") != physical_groups or imported.get("physical_name_policy") != _PHYSICAL_NAME_POLICY or imported.get("canonical_to_native_group_names") != mapping or imported.get("native_physical_group_names") != sorted(mapping.values()):
+        raise ValueError("Native physical group name map differs from the checked source")
+    # Validate metadata value types as well as equality (True is not a tag).
+    _native_group_name_map(imported["physical_groups"])
+    return mapping
+
+
 def gmsh_import_contract(mesh: dict, path: Path) -> dict:
     """Verify emitted ASCII MSH against the catalogue, preserving every POI1."""
     nodes, elements = validate_catalogue(mesh)
+    physical_groups = _physical_groups(mesh)
+    native_names = _native_group_name_map(physical_groups)
     if not path.is_file() or path.stat().st_size > 128 * 1024 * 1024:
         raise ValueError("Missing or oversized shared Gmsh source")
     lines = [line.strip() for line in path.read_text(encoding="utf-8").splitlines()]
@@ -134,6 +172,8 @@ def gmsh_import_contract(mesh: dict, path: Path) -> dict:
     expected_names = {"SOLID": 3, **{name: 0 for name in mesh["groups"]}}
     if not physical or int(physical[0]) != len(tags) or len({name for _, name in tags.values()}) != len(tags) or {name: dim for dim, name in tags.values()} != expected_names:
         raise ValueError("Gmsh groups differ from the shared catalogue")
+    if {name: {"dimension": dim, "tag": tag} for tag, (dim, name) in tags.items()} != physical_groups:
+        raise ValueError("Gmsh physical group dimensions/tags differ from the exact shared writer")
     raw_nodes = section("Nodes")
     observed = {}
     for row in raw_nodes[1:]:
@@ -180,15 +220,17 @@ def gmsh_import_contract(mesh: dict, path: Path) -> dict:
     if any(len(ids) != len(set(ids)) or set(ids) != set(mesh["groups"][name]) for name, ids in group_nodes.items()):
         raise ValueError("Gmsh POI1 groups differ from exact catalogue node selections")
     return {"schema_version": "1", "format": "GMSH2.2", "total_cell_count": len(cells),
-            "cells": cells, "physical_groups": {name: {"dimension": dim, "tag": tag} for tag, (dim, name) in tags.items()}}
+            "cells": cells, "physical_groups": physical_groups,
+            "physical_name_policy": _PHYSICAL_NAME_POLICY,
+            "canonical_to_native_group_names": native_names,
+            "native_physical_group_names": sorted(native_names.values())}
 
 
 def validate_native_mesh(mesh: Any, expected: dict) -> dict:
     """Prove complete coordinate, cell-role and physical-group bijections."""
     nodes, elements = validate_catalogue(expected)
+    native_names = _checked_native_group_name_map(expected)
     imported = expected.get("native_import")
-    if not isinstance(imported, dict) or imported.get("schema_version") != "1":
-        raise ValueError("Missing checked native import contract")
     coordinates = mesh.getCoordinates().toNumpy().tolist()
     indexes = list(mesh.getNodes())
     if mesh.getNumberOfNodes() != len(nodes) or len(coordinates) != len(nodes) or len(indexes) != len(nodes) or any(type(index) is not int for index in indexes) or set(indexes) != set(range(len(nodes))):
@@ -204,11 +246,12 @@ def validate_native_mesh(mesh: Any, expected: dict) -> dict:
     if count != imported.get("total_cell_count") or len(connectivity) != count:
         raise ValueError("Native total cell count differs from the complete source")
     names = set(imported["physical_groups"])
-    if set(mesh.getGroupsOfCells()) != names:
+    actual_names = list(mesh.getGroupsOfCells())
+    if len(actual_names) != len(set(actual_names)) or set(actual_names) != set(native_names.values()):
         raise ValueError("Native physical group names differ from the checked source")
     native_groups, memberships = {}, {index: [] for index in range(count)}
     for name in names:
-        cells = list(mesh.getCells(name))
+        cells = list(mesh.getCells(native_names[name]))
         if not cells or len(cells) != len(set(cells)) or any(type(index) is not int or not 0 <= index < count for index in cells):
             raise ValueError("Malformed native physical group cell indices")
         native_groups[name] = cells
@@ -239,7 +282,7 @@ def validate_native_mesh(mesh: Any, expected: dict) -> dict:
         raise ValueError("Native cell catalogue is not bijective")
     normalized_groups = {}
     for name, identifiers in expected["groups"].items():
-        actual = list(mesh.getNodesFromCells(name))
+        actual = list(mesh.getNodesFromCells(native_names[name]))
         if len(actual) != len(set(actual)) or any(type(node) is not int or not 0 <= node < len(nodes) for node in actual) or {external_by_native[node] for node in actual} != set(identifiers):
             raise ValueError("Native node group differs from the catalogue")
         normalized_groups[name] = actual
@@ -248,6 +291,10 @@ def validate_native_mesh(mesh: Any, expected: dict) -> dict:
             "native_node_index_by_source_id": {str(node): index for node, index in native_by_external.items()},
             "source_element_mapping": volume_mapping, "source_cell_mapping": native_cells,
             "native_group_node_indices": normalized_groups,
+            "physical_name_policy": _PHYSICAL_NAME_POLICY,
+            "canonical_to_native_group_names": native_names,
+            "canonical_physical_group_names": sorted(names),
+            "actual_native_physical_group_names": sorted(actual_names),
             "coordinate_tolerances": {"relative": 1e-12, "absolute": 1e-12},
             "topology": "Complete HEXA20/POI1 cell, exact node/group bijection; canonical bottom/top/vertical converted to Aster bottom/vertical/top",
             "solver_gate": "Verified before MECA_STATIQUE"}
@@ -275,6 +322,9 @@ def parse_field_tables(raw: dict, expected: dict) -> dict:
     guard = raw.get("native_mesh_checks")
     if not isinstance(guard, dict) or guard.get("status") != "PASS" or guard.get("support_and_load_groups_verified") is not True:
         raise ValueError("Missing native pre-MECA gate")
+    native_names = _checked_native_group_name_map(expected)
+    if guard.get("physical_name_policy") != _PHYSICAL_NAME_POLICY or guard.get("canonical_to_native_group_names") != native_names or guard.get("canonical_physical_group_names") != sorted(native_names) or guard.get("actual_native_physical_group_names") != sorted(native_names.values()):
+        raise ValueError("Native field guard physical name map drifted from the checked source")
     by_native = guard.get("source_node_ids_by_native_index")
     mapping = guard.get("source_element_mapping")
     if not isinstance(by_native, list) or len(by_native) != len(nodes) or len(set(by_native)) != len(nodes) or set(by_native) != set(nodes) or not isinstance(mapping, list):
@@ -385,6 +435,18 @@ def solve_level(input_path: str) -> None:
     input_sha = _digest(input_file)
     config = json.loads(input_file.read_text(encoding="utf-8"))
     output = input_file.parent
+    # Refuse collisions or drift before the first native command, independently
+    # of the host's source/catalogue preflight. Raw source names stay unchanged.
+    try:
+        expected_file = output / "expected_mesh.json"
+        if _digest(expected_file) != config.get("expected_mesh_sha256") or _digest(input_file) != input_sha:
+            raise ValueError("Input or source catalogue drifted before native commands")
+        expected = json.loads(expected_file.read_text(encoding="utf-8"))
+        validate_catalogue(expected)
+        _checked_native_group_name_map(expected)
+    except (ValueError, OSError, TypeError, KeyError) as exc:
+        _save(output / "native_mesh_checks.json", {"status": "FAIL", "solver_status": "NOT_RUN", "error": str(exc)})
+        raise RuntimeError(f"Native family pre-command name guard rejected the source: {exc}") from exc
     DEBUT()  # Initializes run_aster's deferred unit-20 link.
     if not Path("fort.20").is_file() or _digest(Path("fort.20")) != config.get("mesh_sha256"):
         raise RuntimeError("Native unit20 differs from the checked shared Gmsh source")

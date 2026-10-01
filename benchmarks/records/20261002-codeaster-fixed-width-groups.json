@@ -1,0 +1,307 @@
+{
+  "record_kind": "PINNED_NATIVE_PHYSICAL_GROUP_NAME_EVIDENCE_CORRECTION",
+  "created_utc": "2026-10-01T18:48:51.450215+00:00",
+  "base_source_commit": "af9bd45ef2e5c6f66a6c9b46caa44d4ebb213d96",
+  "native04": {
+    "store": "artifacts/p2-family-native-20261002-04",
+    "acceptance": {
+      "path": "artifacts/p2-family-native-20261002-04/acceptance.json",
+      "bytes": 51806,
+      "sha256": "4744fe3a54ec95740df110df84d77cabc723c8c64640b2cf6fd1aae454906b50"
+    },
+    "status": "FAILED_OR_PARTIAL",
+    "completed_CCX_beam_Fx_levels": 3,
+    "CCX_metrics": {
+      "applied_force_relative_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 1.168072143128024e-13
+      },
+      "applied_moment_relative_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 2.1767204107398288e-15
+      },
+      "mesh_response_relative": {
+        "unit": "1",
+        "valid": true,
+        "value": 0.001336230673280938
+      },
+      "moment_relative_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 7.334461322061934e-14
+      },
+      "primary_response": {
+        "unit": "mm",
+        "valid": true,
+        "value": 0.0007607606670837013
+      },
+      "reaction_relative_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 2.317369317600696e-12
+      },
+      "reference_relative_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 0.0016264211499982784
+      },
+      "signed_primary_response": {
+        "unit": "mm",
+        "valid": true,
+        "value": 0.0007607606670837013
+      }
+    },
+    "Aster": "FAILED_EXECUTION; exit6 at LIRE_MAILLAGE physical-group-name gate before MECA_STATIQUE; metrics{}",
+    "original_Aster_actual_name_list": "UNKNOWN; not retained by original worker",
+    "cross_solver_and_changed_load_and_other_families": "NOT_RUN",
+    "actual_field_audit": {
+      "path": "artifacts/p2-family-native-review-20261002-04/actual-evidence-audit.json",
+      "bytes": 13055,
+      "sha256": "159acfbdfe35d5a3214328a027e007416c852aba1ee04ff5fe277ed97b35b9b7"
+    },
+    "source_and_135_file_retention_audit": {
+      "path": "artifacts/p2-family-native-review-20261002-04/source-preservation-proof.json",
+      "bytes": 7029,
+      "sha256": "042f436a2da52a002aa0310cd463ea491d4a1e08ce36fa97f905d92885731103"
+    }
+  },
+  "fresh_import_only_probe": {
+    "intent": {
+      "path": "artifacts/p2-family-codeaster-import-probe-20261002-01/probe-intent.json",
+      "bytes": 1187,
+      "sha256": "06d6f4c80afe99ded2f6a4cad882415562d39aa6d602a993066334513259308e"
+    },
+    "receipt": {
+      "path": "artifacts/p2-family-codeaster-import-probe-20261002-01/probe-receipt.json",
+      "bytes": 527,
+      "sha256": "aef5833424e814b9e166deae8216c556daf7d33cfe3ac3733b785f776a1140f9"
+    },
+    "observations": {
+      "path": "artifacts/p2-family-codeaster-import-probe-20261002-01/probe/level_0/import-observations.json",
+      "bytes": 11930,
+      "sha256": "2f0db39c065f4c582a3f979293e68d04ccd40218b72bf15059e6a8a84da14caa"
+    },
+    "native_import_processes": 1,
+    "mechanical_solves": 0,
+    "Core_operations": 0,
+    "model_calls": 0,
+    "observed": "80 nodes/102 cells; native cell groups SOLID/ALL_NODE/ROOT/TIP; exact original unit20 mesh bytes",
+    "original04_and_image_and_source": "UNCHANGED",
+    "scope": "Separate follow-up import observation, not a rewrite of the failed experiment or new numerical acceptance"
+  },
+  "official_source_diagnosis": {
+    "path": "artifacts/p2-family-codeaster-import-review-20261002-01/official-source-diagnosis.json",
+    "bytes": 17045,
+    "sha256": "117348b92fed6f0a0aff730fede17194f54fe4ebef0edaa2e39eb2085950a766"
+  },
+  "correction": {
+    "policy": "Pinned17.4 pregms character(len=8): canonical_name[:8]; exact bijection, collision refused before native command",
+    "source_names": "Emitted Gmsh/canonical catalogue unchanged; native getters use exact mapped names; all cell/type/ordered-connectivity/membership checks retain canonical meaning",
+    "metadata": "Preserve canonical and actual native names/map; repeat map provenance checks before field normalization",
+    "rejections": "Exact dimensions/tags/name/counts, collision/malformed/missing/extra/drift maps/groups are refused; no GM/wildcard/subset exemption",
+    "scope": "Fixed uppercase families; arbitrary-case compatibility not claimed; generated singleton support/load guards unchanged; no blanket-zero nodal-group gate"
+  },
+  "source_checks": {
+    "staged": {
+      "passed": 98,
+      "seconds": 11.33,
+      "exit_code": 0,
+      "evidence": {
+        "path": "artifacts/p2-family-codeaster-name-fix-20261002-01/source-check-attempt-02.json",
+        "bytes": 2091,
+        "sha256": "ef51a38b56bd632972632741f3709b6de7f38bb02e1853c785eede2917b9096d"
+      },
+      "log": {
+        "path": "artifacts/p2-family-codeaster-name-fix-20261002-01/source-check-attempt-02.log",
+        "bytes": 180,
+        "sha256": "a7db7f3781fe611a3a0aef48c948463b3de678775f1179da875c830858de92e2"
+      }
+    },
+    "root_published_integration": {
+      "scope": "Corrected adapter/worker actual import replay plus common acceptance/backend integration",
+      "log": {
+        "path": "artifacts/p2-family-codeaster-name-fix-20261002-01/root-published-integration.log",
+        "bytes": 184,
+        "sha256": "d5666b34970307ec081969a5d134eecbb298fa0f59a007318199ecd3b8db0f48"
+      },
+      "passed": 128,
+      "seconds": 38.68,
+      "exit_code": 0
+    },
+    "earlier_attempts": [
+      {
+        "attempt": 1,
+        "cause": "Catalogue hash now refuses before first native command; old test expected later pre-MECA message",
+        "correction": "Phase-specific exact refusal text plus zero-command assertion; no production or numerical-gate relaxation",
+        "failed": 1,
+        "passed": 97,
+        "seconds": 11.07,
+        "source_snapshot": "attempt-source-01; test snapshot reconstructed from the single expectation edit and matches recorded SHA exactly"
+      }
+    ],
+    "freeze": {
+      "path": "artifacts/p2-family-codeaster-name-fix-20261002-01/freeze-receipt.json",
+      "bytes": 5758,
+      "sha256": "762ecb91437652d2bfde10e3f11296200fc25d20abcd8f5a3010ceb5dd1232d6"
+    }
+  },
+  "independent_source_review": {
+    "path": "artifacts/p2-family-codeaster-name-fix-20261002-01/independent-review.json",
+    "bytes": 20927,
+    "sha256": "a4db3e83f4e9b64bde336636ff50cb9c66cf7d441897f2c488a49576be52a3a7"
+  },
+  "source_files": [
+    {
+      "path": "caelab/adapters/structural_family_codeaster_worker.py",
+      "bytes": 35014,
+      "sha256": "09fd3ddc4dbb4f90fb0be27c411d545905d29d61e1c791b514c65be0e40d48e0"
+    },
+    {
+      "path": "tests/test_structural_family_codeaster.py",
+      "bytes": 36358,
+      "sha256": "0a1ddef23159568f6f3aadfa842c928751fe729dc9200f0ce1742aa438e38725"
+    }
+  ],
+  "raw_fixture_copies": [
+    {
+      "original": {
+        "path": "artifacts/p2-family-codeaster-import-probe-20261002-01/probe/level_0/mesh.msh",
+        "bytes": 4680,
+        "sha256": "23a5d261f6f53aff05c7c8bd34e94a338a5f9795479e778805757f3221756892"
+      },
+      "fixture": {
+        "path": "tests/fixtures/codeaster_174_structural_import/mesh.msh",
+        "bytes": 4680,
+        "sha256": "23a5d261f6f53aff05c7c8bd34e94a338a5f9795479e778805757f3221756892"
+      },
+      "status": "EXACT_RAW_BYTE_MATCH"
+    },
+    {
+      "original": {
+        "path": "artifacts/p2-family-codeaster-import-probe-20261002-01/probe/level_0/expected_mesh.json",
+        "bytes": 38815,
+        "sha256": "dbf19de6e4af36d36f58f0cf430892afdcb098e7e4169dbfc2b6936573b788f5"
+      },
+      "fixture": {
+        "path": "tests/fixtures/codeaster_174_structural_import/expected_mesh.json",
+        "bytes": 38815,
+        "sha256": "dbf19de6e4af36d36f58f0cf430892afdcb098e7e4169dbfc2b6936573b788f5"
+      },
+      "status": "EXACT_RAW_BYTE_MATCH"
+    },
+    {
+      "original": {
+        "path": "artifacts/p2-family-codeaster-import-probe-20261002-01/probe/level_0/import-observations.json",
+        "bytes": 11930,
+        "sha256": "2f0db39c065f4c582a3f979293e68d04ccd40218b72bf15059e6a8a84da14caa"
+      },
+      "fixture": {
+        "path": "tests/fixtures/codeaster_174_structural_import/import-observations.json",
+        "bytes": 11930,
+        "sha256": "2f0db39c065f4c582a3f979293e68d04ccd40218b72bf15059e6a8a84da14caa"
+      },
+      "status": "EXACT_RAW_BYTE_MATCH"
+    },
+    {
+      "original": {
+        "path": "artifacts/p2-family-codeaster-import-probe-20261002-01/probe-intent.json",
+        "bytes": 1187,
+        "sha256": "06d6f4c80afe99ded2f6a4cad882415562d39aa6d602a993066334513259308e"
+      },
+      "fixture": {
+        "path": "tests/fixtures/codeaster_174_structural_import/probe-intent.json",
+        "bytes": 1187,
+        "sha256": "06d6f4c80afe99ded2f6a4cad882415562d39aa6d602a993066334513259308e"
+      },
+      "status": "EXACT_RAW_BYTE_MATCH"
+    },
+    {
+      "original": {
+        "path": "artifacts/p2-family-codeaster-import-probe-20261002-01/probe-receipt.json",
+        "bytes": 527,
+        "sha256": "aef5833424e814b9e166deae8216c556daf7d33cfe3ac3733b785f776a1140f9"
+      },
+      "fixture": {
+        "path": "tests/fixtures/codeaster_174_structural_import/probe-receipt.json",
+        "bytes": 527,
+        "sha256": "aef5833424e814b9e166deae8216c556daf7d33cfe3ac3733b785f776a1140f9"
+      },
+      "status": "EXACT_RAW_BYTE_MATCH"
+    }
+  ],
+  "retention": {
+    "raw5_text_conversion": "DISABLED -text",
+    "staged_blob_parity": [
+      {
+        "path": "tests/fixtures/codeaster_174_structural_import/mesh.msh",
+        "bytes": 4680,
+        "sha256": "23a5d261f6f53aff05c7c8bd34e94a338a5f9795479e778805757f3221756892",
+        "status": "STAGED_BLOB_EQUALS_ACTUAL_IMPORT_BYTES"
+      },
+      {
+        "path": "tests/fixtures/codeaster_174_structural_import/expected_mesh.json",
+        "bytes": 38815,
+        "sha256": "dbf19de6e4af36d36f58f0cf430892afdcb098e7e4169dbfc2b6936573b788f5",
+        "status": "STAGED_BLOB_EQUALS_ACTUAL_IMPORT_BYTES"
+      },
+      {
+        "path": "tests/fixtures/codeaster_174_structural_import/import-observations.json",
+        "bytes": 11930,
+        "sha256": "2f0db39c065f4c582a3f979293e68d04ccd40218b72bf15059e6a8a84da14caa",
+        "status": "STAGED_BLOB_EQUALS_ACTUAL_IMPORT_BYTES"
+      },
+      {
+        "path": "tests/fixtures/codeaster_174_structural_import/probe-intent.json",
+        "bytes": 1187,
+        "sha256": "06d6f4c80afe99ded2f6a4cad882415562d39aa6d602a993066334513259308e",
+        "status": "STAGED_BLOB_EQUALS_ACTUAL_IMPORT_BYTES"
+      },
+      {
+        "path": "tests/fixtures/codeaster_174_structural_import/probe-receipt.json",
+        "bytes": 527,
+        "sha256": "aef5833424e814b9e166deae8216c556daf7d33cfe3ac3733b785f776a1140f9",
+        "status": "STAGED_BLOB_EQUALS_ACTUAL_IMPORT_BYTES"
+      }
+    ],
+    "native01_to04_and_probe": "PRESERVED"
+  },
+  "unchanged": [
+    "Core/Domain/shared mesh/numerical references and thresholds/OpenScience operations/approved5.6-auth-project/original52 descriptions"
+  ],
+  "CI": {
+    "exact_af9bd45": {
+      "run": 36904668514,
+      "status": "in_progress",
+      "conclusion": "",
+      "jobs": {
+        "core": "success",
+        "research-driver-source": "success",
+        "structural": "success",
+        "native": "success",
+        "explicit": "failure",
+        "codeaster": "failure",
+        "native-registration": "success",
+        "optimization": "",
+        "doe": "success",
+        "pde": "success"
+      },
+      "snapshot": {
+        "path": "artifacts/p2-family-native-control-20261002-04/ci-af9bd45.json",
+        "bytes": 23448,
+        "sha256": "7e2e6241b7fd81a9121a0fcce7bf542f4d44db8bcd6e488d2246a3db00f4dd2c"
+      },
+      "cold_research_source_job": "SUCCESS;51 checks,0actualmodel/runtime/Core/solver calls"
+    },
+    "new_corrected_source": "PENDING"
+  },
+  "next": "Commit/push corrected clean source, new native05; then actual approved-model StructuralFamilies questions/comparison/changed loads/interpretation and GUI/Stop/retention",
+  "outcome": {
+    "native05": "NOT_RUN",
+    "connected_research": "NOT_RUN",
+    "human_GUI": "NOT_RUN",
+    "engineering_qualification": "UNKNOWN",
+    "release": "NOT_RELEASED"
+  }
+}

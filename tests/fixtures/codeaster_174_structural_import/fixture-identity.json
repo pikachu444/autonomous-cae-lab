@@ -1,0 +1,19 @@
+{
+  "kind": "actual-code-aster-17.4-import-only-regression",
+  "source_commit": "af9bd45ef2e5c6f66a6c9b46caa44d4ebb213d96",
+  "source": "artifacts/p2-family-codeaster-import-probe-20261002-01",
+  "copy_method": "byte-identical Copy-Item; no reserialization or EOL conversion",
+  "mechanical_solves": 0,
+  "Core_operations": 0,
+  "model_calls": 0,
+  "native_processes_in_original_probe": 1,
+  "image_sha256": "f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64",
+  "hashes": {
+    "expected_mesh.json": "dbf19de6e4af36d36f58f0cf430892afdcb098e7e4169dbfc2b6936573b788f5",
+    "import-observations.json": "2f0db39c065f4c582a3f979293e68d04ccd40218b72bf15059e6a8a84da14caa",
+    "mesh.msh": "23a5d261f6f53aff05c7c8bd34e94a338a5f9795479e778805757f3221756892",
+    "probe-intent.json": "06d6f4c80afe99ded2f6a4cad882415562d39aa6d602a993066334513259308e",
+    "probe-receipt.json": "aef5833424e814b9e166deae8216c556daf7d33cfe3ac3733b785f776a1140f9"
+  },
+  "limitations": "Observed native import identity only. No displacement, reaction, stress, numerical acceptance or release evidence. Replay executes no native process."
+}

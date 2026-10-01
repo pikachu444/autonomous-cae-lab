@@ -64,7 +64,9 @@ class NativeMesh:
         self.index_by_id = {node: index for index, node in enumerate(self.ids)}
         self.cells = list(reversed(deepcopy(expected["native_import"]["cells"])))
         self.connectivity = [[self.index_by_id[node] for node in cell["node_ids"]] for cell in self.cells]
-        self.cell_groups = {name: [index for index, cell in enumerate(self.cells) if cell["group"] == name]
+        # Pinned pregms.F90 stores physical names in character(len=8).
+        # Derive the mock import independently of the recorded adapter map.
+        self.cell_groups = {name[:8]: [index for index, cell in enumerate(self.cells) if cell["group"] == name]
                             for name in expected["native_import"]["physical_groups"]}
         self.node_groups = {}
     def getCoordinates(self): return Array(self.coordinates)
@@ -121,6 +123,9 @@ def test_gmsh_and_native_all_cell_bijection_keeps_external_ids_and_grouped_point
     assert guard["source_node_ids_by_native_index"] == mesh.ids
     assert guard["source_element_mapping"][0]["native_cell_index"] != 0
     assert len(guard["source_cell_mapping"]) == mesh.getNumberOfCells()
+    assert "ALL_NODES" not in mesh.getGroupsOfCells() and "ALL_NODE" in mesh.getGroupsOfCells()
+    assert guard["canonical_to_native_group_names"]["ALL_NODES"] == "ALL_NODE"
+    assert "ALL_NODES" in guard["native_group_node_indices"]
 
 
 def test_gmsh_duplicate_named_physical_group_cannot_hide_an_extra_tag(tmp_path):
@@ -133,6 +138,62 @@ def test_gmsh_duplicate_named_physical_group_cannot_hide_an_extra_tag(tmp_path):
     lines.insert(end, '0 99 "ROOT"')
     path.write_text("\n".join(lines) + "\n")
     with pytest.raises(ValueError, match="groups differ"):
+        worker.gmsh_import_contract(expected, path)
+
+
+def test_eight_character_alias_collision_blocks_source_contract_before_native_work(tmp_path):
+    mesh = catalogue()
+    mesh["groups"]["ALL_NODEX"] = list(mesh["groups"]["ALL_NODES"])
+    with pytest.raises(ValueError, match="collide"):
+        worker.gmsh_import_contract(mesh, tmp_path / "NOT_CREATED.msh")
+
+
+@pytest.mark.parametrize("name,alias", [("ALL_NODES", "ALL_NODE"), ("X_SYMMETRY", "X_SYMMET"),
+    ("Y_SYMMETRY", "Y_SYMMET"), ("DIAPHRAGM", "DIAPHRAG"),
+    ("LONGITUDINAL_SYMMETRY", "LONGITUD"), ("POINT_B", "POINT_B"), ("MixedCase", "MixedCas")])
+def test_pinned_name_map_is_exact_prefix_and_preserves_case(name, alias):
+    # Source-level policy only; actual probe covers uppercase beam groups.
+    assert worker._native_group_name_map({name: {"dimension": 0, "tag": 2}}) == {name: alias}
+
+
+@pytest.mark.parametrize("failure", ["missing_map", "missing_key", "extra_key", "wrong_alias", "malformed_map", "policy", "dimension", "tag", "boolean_tag", "extra_physical_group"])
+def test_native_name_metadata_drift_is_rejected_before_any_native_getter(tmp_path, failure):
+    expected = expected_mesh(tmp_path)
+    contract = expected["native_import"]
+    if failure == "missing_map": del contract["canonical_to_native_group_names"]
+    elif failure == "missing_key": del contract["canonical_to_native_group_names"]["ALL_NODES"]
+    elif failure == "extra_key": contract["canonical_to_native_group_names"]["EXTRA"] = "EXTRA"
+    elif failure == "wrong_alias": contract["canonical_to_native_group_names"]["ALL_NODES"] = "ALL_NODES"
+    elif failure == "malformed_map": contract["canonical_to_native_group_names"] = []
+    elif failure == "policy": contract["physical_name_policy"] = "CASEFOLD"
+    elif failure == "dimension": contract["physical_groups"]["ROOT"]["dimension"] = 3
+    elif failure == "tag": contract["physical_groups"]["ROOT"]["tag"] = 99
+    elif failure == "boolean_tag": contract["physical_groups"]["SOLID"]["tag"] = True
+    elif failure == "extra_physical_group": contract["physical_groups"]["EXTRA"] = {"dimension": 0, "tag": 99}
+    unavailable = types.SimpleNamespace(getCoordinates=lambda: pytest.fail("Map rejection precedes native getters"))
+    with pytest.raises(ValueError): worker.validate_native_mesh(unavailable, expected)
+
+
+@pytest.mark.parametrize("failure", ["missing", "extra", "untruncated", "case_drift", "duplicate"])
+def test_native_physical_names_require_exact_bijective_aliases(tmp_path, failure):
+    expected = expected_mesh(tmp_path); mesh = NativeMesh(expected)
+    if failure == "missing": del mesh.cell_groups["ALL_NODE"]
+    elif failure == "extra": mesh.cell_groups["EXTRA"] = [0]
+    elif failure == "untruncated": mesh.cell_groups["ALL_NODES"] = mesh.cell_groups.pop("ALL_NODE")
+    elif failure == "case_drift": mesh.cell_groups["all_node"] = mesh.cell_groups.pop("ALL_NODE")
+    elif failure == "duplicate": mesh.getGroupsOfCells = lambda: [*mesh.cell_groups, "ALL_NODE"]
+    with pytest.raises(ValueError, match="physical group names"):
+        worker.validate_native_mesh(mesh, expected)
+
+
+def test_source_physical_tag_drift_is_rejected_even_without_native_work(tmp_path):
+    expected = expected_mesh(tmp_path)
+    path = tmp_path / "mesh.msh"
+    lines = path.read_text().splitlines()
+    row = lines.index('3 1 "SOLID"')
+    lines[row] = '3 99 "SOLID"'
+    path.write_text("\n".join(lines) + "\n")
+    with pytest.raises(ValueError, match="dimensions/tags"):
         worker.gmsh_import_contract(expected, path)
 
 
@@ -200,6 +261,19 @@ def test_point_number_or_exit_success_cannot_replace_checked_source_coordinate_i
     elif failure == "source_mapping": raw["native_mesh_checks"]["source_node_ids_by_native_index"][0] = 1
     elif failure == "native_guard": raw["native_mesh_checks"]["support_and_load_groups_verified"] = False
     with pytest.raises(ValueError): worker.parse_field_tables(raw, expected)
+
+
+@pytest.mark.parametrize("failure", ["map", "missing_map", "canonical_names", "actual_names", "policy"])
+def test_raw_field_guard_cannot_drift_physical_name_metadata(tmp_path, failure):
+    expected = expected_mesh(tmp_path); raw = native_raw(expected)
+    guard = raw["native_mesh_checks"]
+    if failure == "map": guard["canonical_to_native_group_names"]["ALL_NODES"] = "ALL_NODX"
+    elif failure == "missing_map": del guard["canonical_to_native_group_names"]
+    elif failure == "canonical_names": guard["canonical_physical_group_names"].remove("ALL_NODES")
+    elif failure == "actual_names": guard["actual_native_physical_group_names"].append("EXTRA")
+    elif failure == "policy": guard["physical_name_policy"] = "UNKNOWN"
+    with pytest.raises(ValueError, match="physical name map"):
+        worker.parse_field_tables(raw, expected)
 
 
 def prepare_worker_input(tmp_path, expected):
@@ -275,6 +349,25 @@ def test_native_command_contract_compiles_exact_nodal_forces_and_supported_dofs(
     assert (level / "worker_result.json").is_file() and (level / "sief_elga.table.json").is_file()
 
 
+@pytest.mark.parametrize("failure", ["collision", "missing_map", "alias", "tag"])
+def test_name_refusal_precedes_first_native_command_and_preserves_not_run(tmp_path, monkeypatch, failure):
+    expected = expected_mesh(tmp_path); level = prepare_worker_input(tmp_path, expected); mesh = NativeMesh(expected)
+    calls = mock_native_commands(monkeypatch, level, expected, mesh)
+    if failure == "collision": expected["groups"]["ALL_NODEX"] = list(expected["groups"]["ALL_NODES"])
+    elif failure == "missing_map": del expected["native_import"]["canonical_to_native_group_names"]
+    elif failure == "alias": expected["native_import"]["canonical_to_native_group_names"]["ALL_NODES"] = "ALL_NODX"
+    elif failure == "tag": expected["native_import"]["physical_groups"]["TIP"]["tag"] = 99
+    save(level / "expected_mesh.json", expected)
+    config = json.loads((level / "input.json").read_text())
+    config["expected_mesh_sha256"] = digest(level / "expected_mesh.json")
+    save(level / "input.json", config)
+    monkeypatch.chdir(level)
+    with pytest.raises(RuntimeError, match="pre-command name guard"):
+        worker.solve_level(str(level / "input.json"))
+    assert calls == []
+    assert json.loads((level / "native_mesh_checks.json").read_text())["solver_status"] == "NOT_RUN"
+
+
 @pytest.mark.parametrize("failure", ["coordinate", "source_hash", "catalogue_hash", "singleton"])
 def test_native_pre_meca_failures_block_solver_and_preserve_rejection_artifact(tmp_path, monkeypatch, failure):
     expected = expected_mesh(tmp_path); level = prepare_worker_input(tmp_path, expected); mesh = NativeMesh(expected)
@@ -283,7 +376,9 @@ def test_native_pre_meca_failures_block_solver_and_preserve_rejection_artifact(t
     elif failure == "source_hash": (tmp_path / adapter_module._HELPER.name).write_text("CHANGED SYNTHETIC COPY")
     elif failure == "catalogue_hash": (level / "expected_mesh.json").write_text("CHANGED SYNTHETIC COPY")
     monkeypatch.chdir(level)
-    with pytest.raises(RuntimeError, match="pre-MECA guard rejected"): worker.solve_level(str(level / "input.json"))
+    phase = "pre-command name guard rejected" if failure == "catalogue_hash" else "pre-MECA guard rejected"
+    with pytest.raises(RuntimeError, match=phase): worker.solve_level(str(level / "input.json"))
+    if failure == "catalogue_hash": assert calls == []
     assert not any(name == "MECA_STATIQUE" for name, _ in calls)
     assert json.loads((level / "native_mesh_checks.json").read_text())["solver_status"] == "NOT_RUN"
     assert not (level / "worker_result.json").exists()
@@ -382,3 +477,80 @@ def test_runtime_override_names_block_admission_without_exposing_values(tmp_path
     monkeypatch.setattr(adapter_module, "_image_identity", lambda _: pytest.fail("Overrides must block image/runtime access"))
     with pytest.raises(RuntimeError, match="Inherited container overrides") as caught: adapter_module._admitted_runtime(tmp_path)
     assert "PRIVATE SYNTHETIC" not in str(caught.value)
+
+
+_IMPORT_FIXTURE = Path(__file__).with_name("fixtures") / "codeaster_174_structural_import"
+_IMPORT_FIXTURE_HASHES = {
+    "expected_mesh.json": "dbf19de6e4af36d36f58f0cf430892afdcb098e7e4169dbfc2b6936573b788f5",
+    "import-observations.json": "2f0db39c065f4c582a3f979293e68d04ccd40218b72bf15059e6a8a84da14caa",
+    "mesh.msh": "23a5d261f6f53aff05c7c8bd34e94a338a5f9795479e778805757f3221756892",
+    "probe-intent.json": "06d6f4c80afe99ded2f6a4cad882415562d39aa6d602a993066334513259308e",
+    "probe-receipt.json": "aef5833424e814b9e166deae8216c556daf7d33cfe3ac3733b785f776a1140f9",
+}
+
+
+class ObservedImportMesh:
+    """Read-only exact native import snapshot; it contains no solved fields."""
+    def __init__(self, observation): self.observation = deepcopy(observation)
+    def getCoordinates(self): return Array(self.observation["coordinates"])
+    def getNodes(self, group=None):
+        return list(range(self.getNumberOfNodes())) if group is None else list(self.observation["node_groups"][group])
+    def getNumberOfNodes(self): return self.observation["node_count"]
+    def getNumberOfCells(self): return self.observation["cell_count"]
+    def getConnectivity(self): return deepcopy(self.observation["connectivity"])
+    def getGroupsOfCells(self): return list(self.observation["group_cell_names"])
+    def getCells(self, group): return list(self.observation["cell_groups"][group])
+    def getCellTypeName(self, index): return self.observation["cell_type_names"][index]
+    def getNodesFromCells(self, group): return list(self.observation["group_nodes_from_cells"][group])
+
+
+def observed_import_fixture():
+    for name, expected_hash in _IMPORT_FIXTURE_HASHES.items():
+        assert digest(_IMPORT_FIXTURE / name) == expected_hash
+    expected = json.loads((_IMPORT_FIXTURE / "expected_mesh.json").read_text())
+    original_contract = expected["native_import"]
+    corrected_contract = worker.gmsh_import_contract(expected, _IMPORT_FIXTURE / "mesh.msh")
+    # Original bytes and every old source cell/name/dimension/tag remain exact;
+    # only fresh in-memory adapter import metadata acquires the explicit map.
+    assert all(corrected_contract[key] == value for key, value in original_contract.items())
+    expected["native_import"] = corrected_contract
+    observation = json.loads((_IMPORT_FIXTURE / "import-observations.json").read_text())
+    return expected, observation
+
+
+def test_actual_pinned_import_snapshot_replays_all80nodes102cells_without_solving():
+    expected, observation = observed_import_fixture()
+    intent = json.loads((_IMPORT_FIXTURE / "probe-intent.json").read_text())
+    receipt = json.loads((_IMPORT_FIXTURE / "probe-receipt.json").read_text())
+    assert intent["source_commit"] == receipt["source_commit"] == "af9bd45ef2e5c6f66a6c9b46caa44d4ebb213d96"
+    assert intent["image_sha256"] == receipt["image_sha256"] == "f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64"
+    assert all(intent[key] == receipt[key] == 0 for key in ("mechanical_solves", "Core_operations", "model_calls"))
+    assert intent["native_processes"] == 1 and receipt["status"] == "PASS_IMPORT_OBSERVATION_ONLY"
+    assert observation["mechanical_solves"] == 0 and observation["status"] == "OBSERVED_NATIVE_IMPORT_ONLY"
+    assert observation["version"]["version"] == "17.4.0"
+    assert observation["source_unit20_sha256"] == _IMPORT_FIXTURE_HASHES["mesh.msh"]
+    assert receipt["observation_sha256"] == _IMPORT_FIXTURE_HASHES["import-observations.json"]
+    assert receipt["original_native04"] == "UNCHANGED"
+    guard = worker.validate_native_mesh(ObservedImportMesh(observation), expected)
+    assert guard["node_count"] == 80 and guard["total_cell_count"] == 102 and guard["volume_element_count"] == 6
+    assert len(guard["source_cell_mapping"]) == 102 and len(guard["source_element_mapping"]) == 6
+    assert guard["canonical_to_native_group_names"] == {"SOLID": "SOLID", "ALL_NODES": "ALL_NODE", "ROOT": "ROOT", "TIP": "TIP"}
+    assert guard["canonical_physical_group_names"] == ["ALL_NODES", "ROOT", "SOLID", "TIP"]
+    assert guard["actual_native_physical_group_names"] == ["ALL_NODE", "ROOT", "SOLID", "TIP"]
+    assert guard["native_group_node_indices"]["ALL_NODES"] == observation["group_nodes_from_cells"]["ALL_NODE"]
+    # This native snapshot proves import identity only, never U/RF/GP stress.
+    assert "tables" not in observation and "support_and_load_groups_verified" not in guard
+    assert all(digest(_IMPORT_FIXTURE / name) == value for name, value in _IMPORT_FIXTURE_HASHES.items())
+
+
+@pytest.mark.parametrize("failure", ["coordinate", "topology", "missing_group", "extra_group", "native_name_drift", "group_nodes"])
+def test_actual_import_snapshot_drift_is_rejected_without_altering_raw_bytes(failure):
+    expected, observation = observed_import_fixture()
+    if failure == "coordinate": observation["coordinates"][0][0] += 1.0
+    elif failure == "topology": observation["connectivity"][96][0], observation["connectivity"][96][1] = observation["connectivity"][96][1], observation["connectivity"][96][0]
+    elif failure == "missing_group": observation["group_cell_names"].remove("ALL_NODE")
+    elif failure == "extra_group": observation["group_cell_names"].append("EXTRA")
+    elif failure == "native_name_drift": observation["group_cell_names"][1] = "ALL_NODX"
+    elif failure == "group_nodes": observation["group_nodes_from_cells"]["ROOT"] = observation["group_nodes_from_cells"]["TIP"]
+    with pytest.raises(ValueError): worker.validate_native_mesh(ObservedImportMesh(observation), expected)
+    assert all(digest(_IMPORT_FIXTURE / name) == value for name, value in _IMPORT_FIXTURE_HASHES.items())

@@ -1,5 +1,22 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Latest native04 partial and fixed-width physical-name correction
+
+Pushed af9bd45 native04 passes all three CCX beamFx levels; independently
+checked native U/RF/all11826 stress points and signed force/moment meet fixed
+limits. Aster fails before MECA at its group-name guard/exit6, with metrics{};
+original names were not recorded. Store135files/24,105,998B remains unchanged.
+A separate same-mesh/pinned-image import-only probe observes ALL_NODES→ALL_NODE.
+Official17.4 pregms stores eight characters. Correction explicitly proves the
+canonical[:8] map bijective before native commands and retains complete exact
+cell/type/order/membership/node-set checks, original Gmsh and scientific model.
+Staged98 and Root-published128 checks PASS; independent bounded source review
+has no open P1/P2. Raw5 fixtures require -text and staged byte parity. Record:
+20261002-codeaster-fixed-width-groups. Import proof is not a numerical verdict.
+NEXT commit/push corrected source and fresh native05, then actual approved5.6
+StructuralFamilies research and same-record GUI/Stop/retention. Exact af9 CI
+cold51 research-source job PASS; other failed/pending jobs remain separate.
+
 ## Latest unrounded native evidence correction; native04 next
 
 Native03 remains REJECTED and unchanged. A direct one-job format probe on

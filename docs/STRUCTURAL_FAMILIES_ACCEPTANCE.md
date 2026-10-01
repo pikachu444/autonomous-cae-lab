@@ -41,6 +41,30 @@ actual probe/raw hashes and earlier failed source attempts. This format proof
 does not revise Native03 or establish a new Core verdict. Fresh native04,
 other loads/families/cross-solver and connected research/GUI remain NOT_RUN.
 
+Native04/clean af9bd45ef2e5c6f66a6c9b46caa44d4ebb213d96 then passes CCX beamFx
+on all three grids. An independent raw audit confirms all node U/RF and11826
+six-component stress/coordinate observations, signed RF-CLOAD resultants and
+fixed numerical checks. Final response0.0007607606670837013mm/reference error
+0.0016264211499982784/mesh trend0.001336230673280938; maxF/M errors
+2.317369317600696e-12/7.334461322061934e-14. Aster's initial import aborts before
+MECA at physical names (exit6); metrics{} and its original actual name list
+UNKNOWN are retained. Thus native04 remains FAILED_OR_PARTIAL, two-solver and
+other-family gates NOT_RUN. All135 original files24,105,998B are unchanged.
+
+A separate import-only process uses the same raw mesh and pinned17.4 image:
+80nodes/102cells, SOLID/ALL_NODE/ROOT/TIP. Official pregms stores eight characters.
+The worker now derives canonical_name[:8] as a bijection before native commands,
+retains exact physical dimensions/tags, actual/canonical names and all-cell
+type/ordered-connectivity/membership/node-set checks. Native getters use mapped
+names while original catalogue/Gmsh names, scientific model and thresholds stay
+unchanged. Prefix collisions, missing/extra groups or map drift are refused.
+98 staged and128 Root common/source checks and independent bounded review PASS;
+record20261002-codeaster-fixed-width-groups. Raw fixture5 files are exact probe
+copies, including a pure replay, not solved-field or release evidence. Arbitrary
+case compatibility and roof automatic singleton node groups were not exercised
+by this beam probe. NEXT clean corrected source and fresh native05, then the
+actual connected gate below. P2.2/full requirements remain OPEN.
+
 ## Reviewed connected research driver
 
 `scripts/verify_structural_research_live.ps1` reuses the pinned official
@@ -69,9 +93,10 @@ interpretation stage. UNKNOWN and NOT_RELEASED persist.
 
 ## Next gates
 
-1. Resolve native reaction evidence without manufactured balance or relaxed
-   limits; retain the rejected Native03 and use a fresh clean-source native store.
-2. Complete native reference/mesh/all-field/cross-solver and changed-load gates.
+1. Commit/push the reviewed fixed-width-name correction and use a fresh native05
+   store; retain Native01–04 and all original failures without rewriting verdicts.
+2. Complete native reference/mesh/all-field/cross-solver and changed-load gates
+   using measured native reaction evidence and unchanged numerical limits.
 3. Run the reviewed actual OpenScience driver with approved model/auth/project;
    independently audit its raw fields and show the same records in human GUI.
 4. Verify owned idle/Stop and artifact retention; record exact-source CI with
