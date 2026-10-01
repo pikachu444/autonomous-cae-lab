@@ -93,6 +93,14 @@ function Assert-OpenScienceNativeContext($Context, [switch]$LifecycleOnly) {
     Assert-OpenScienceCondition ($config.model -ceq $Context.Model -and $config.small_model -ceq $Context.Model -and
         @($config.enabled_providers).Count -eq 1 -and $config.enabled_providers[0] -ceq 'openai-codex' -and
         @($config.plugin).Count -eq 1 -and $config.plugin[0] -ceq ([Uri]$Context.PluginPath).AbsoluteUri) 'Native config model/provider/plugin differs from its declared context.'
+    if ($Context.Purpose -ceq 'Research') {
+        Assert-OpenScienceResearchDefinition $Context.ResearchDefinition
+        Assert-OpenScienceCondition ($Context.ResearchDefinitionSha256 -ceq
+            (Get-OpenScienceSourcePinSha256 $Context.ResearchDefinition) -and
+            $config.default_agent -ceq 'research' -and $config.agent.research.prompt -ceq
+            (Get-OpenScienceResearchPrompt $Context.ResearchDefinition) -and
+            $config.mcp.caelab.timeout -eq ($Context.ResearchDefinition.budgets.mcp_timeout_seconds * 1000)) 'Research purpose/definition/agent/budget differs from the declared context.'
+    }
 }
 
 function New-OpenScienceNativeContext {
@@ -100,7 +108,8 @@ function New-OpenScienceNativeContext {
     param([Parameter(Mandatory)][string]$RepoRoot, [Parameter(Mandatory)][string]$RunName,
         [string]$ProfileTag, [string]$StoreRoot, [string]$RuntimePrefix, [string]$ModelId, [string]$AuthProfileRoot,
         [string]$WslDistro, [string]$WslPython, [AllowEmptyCollection()][string[]]$AllowedTools,
-        [int]$OutputTokens, [int]$Steps, [int]$ProviderTimeoutSeconds, [Collections.IDictionary]$ProjectBinding)
+        [int]$OutputTokens, [int]$Steps, [int]$ProviderTimeoutSeconds, [Collections.IDictionary]$ProjectBinding,
+        [ValidateSet('Acceptance', 'Research')][string]$Purpose = 'Acceptance')
     Assert-OpenScienceCondition ($ModelId -cmatch '^openai-codex/[A-Za-z0-9._-]+$') 'Select a full official ChatGPT model ID explicitly. No default or fallback model is permitted.'
     Assert-OpenScienceCondition (-not [string]::IsNullOrWhiteSpace($AuthProfileRoot)) 'The separately authenticated external profile is required.'
     $authRoot = [IO.Path]::GetFullPath($AuthProfileRoot)
@@ -119,7 +128,10 @@ function New-OpenScienceNativeContext {
     Assert-OpenScienceCondition ($profile -cne $authRoot) 'Research configuration must not overwrite the authentication profile.'
     Assert-OpenScienceCondition ($WslDistro -match '^[A-Za-z0-9_.-]+$' -and $WslPython -match '^/[^\r\n]+$') 'Invalid existing WSL runtime reference.'
     Assert-OpenScienceCondition (@($AllowedTools | Sort-Object -Unique).Count -eq @($AllowedTools).Count) 'Duplicate tools are not permitted.'
-    foreach ($tool in $AllowedTools) { Assert-OpenScienceCondition ($tool -cin $script:OpenScienceBoundedTools) 'Tool is outside the nine-tool research acceptance.' }
+    $researchDefinition = if ($Purpose -ceq 'Research') { New-OpenScienceResearchDefinition } else { $null }
+    $admittedTools = Get-OpenSciencePurposeTools ([pscustomobject]@{ Purpose = $Purpose })
+    Assert-OpenScienceCondition ($Steps -ge 1 -and $Steps -le $(if ($researchDefinition) { 24 } else { 3 })) 'Step budget is outside the declared purpose.'
+    foreach ($tool in $AllowedTools) { Assert-OpenScienceCondition ($tool -cin $admittedTools) 'Tool is outside the declared purpose.' }
     $hostGit = $null; $originalWslPath = $null
     $gitPointer = Join-Path $RepoRoot '.git'
     if ((Test-Path -LiteralPath $gitPointer -PathType Leaf) -and ((Get-Content -LiteralPath $gitPointer -TotalCount 1) -match '^gitdir: [A-Za-z]:')) {
@@ -137,6 +149,10 @@ function New-OpenScienceNativeContext {
         wsl_distro = $WslDistro; wsl_python = $WslPython; allowed_tools = @($AllowedTools); output_tokens = $OutputTokens
         steps = $Steps; provider_timeout_seconds = $ProviderTimeoutSeconds; mcp_git_transport = $mcpGit; plugin_sha256 = $pluginHash
         source_reader_sha256 = $sourceReaderHash }
+    if ($researchDefinition) {
+        $intent.purpose = 'Research'; $intent.research_definition = $researchDefinition
+        $intent.research_definition_sha256 = Get-OpenScienceSourcePinSha256 $researchDefinition
+    }
     if ($ProjectBinding) { $intent.project_binding = $ProjectBinding }
     $intentHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($intent | ConvertTo-Json -Depth 12 -Compress)))).ToLowerInvariant()
     $markerPath = Assert-OpenScienceContainedPath (Join-Path $profile 'caelab-profile-owner.json') $profile
@@ -170,24 +186,37 @@ function New-OpenScienceNativeContext {
         WslPythonCacheRoot = (Join-Path $profile 'wsl-pycache'); IntentSha256 = $intentHash
         OwnerPath = (Join-Path $profile 'runtime-owner.json'); GuardPath = (Join-Path $profile 'expected-tools.json')
         SandboxLimitation = 'Windows has no native OpenScience sandbox backend. warn fallback is explicit; application permissions are not OS containment.' }
+    if ($researchDefinition) {
+        $context | Add-Member -NotePropertyName Purpose -NotePropertyValue 'Research'
+        $context | Add-Member -NotePropertyName ResearchDefinition -NotePropertyValue $researchDefinition
+        $context | Add-Member -NotePropertyName ResearchDefinitionSha256 -NotePropertyValue $intent.research_definition_sha256
+    }
     if ($ProjectBinding) { $context | Add-Member -NotePropertyName ProjectBinding -NotePropertyValue $ProjectBinding }
     $permission = [ordered]@{ '*' = 'deny' }; $mcpPermission = [ordered]@{ '*' = 'deny' }
     foreach ($tool in $AllowedTools) { $permission[$tool] = 'allow'; $mcpPermission[$tool] = 'allow' }
     $permission['mcp'] = $mcpPermission
-    $agent = [ordered]@{ mode = 'primary'; model = $ModelId; steps = $Steps; skills = @(); options = @{ reasoningEffort = 'low' }
+    $acceptanceAgent = [ordered]@{ mode = 'primary'; model = $ModelId; steps = $(if ($researchDefinition) { 3 } else { $Steps }); skills = @(); options = @{ reasoningEffort = 'low' }
         permission = $permission; prompt = 'Use the requested CAE Lab function once with the exact supplied JSON arguments. Then briefly report its receipt. For interpretation, use only supplied actual receipts. Preserve UNKNOWN and NOT_RELEASED.' }
+    $agent = if ($researchDefinition) {
+        [ordered]@{ mode = 'primary'; model = $ModelId; steps = $Steps; skills = @(); options = @{ reasoningEffort = 'low' }
+            permission = $permission; prompt = (Get-OpenScienceResearchPrompt $researchDefinition) }
+    } else { $acceptanceAgent }
+    $mcpRuntimeEnvironment = if ($researchDefinition) {
+        @($researchDefinition.runtime_environment.GetEnumerator() | ForEach-Object { $_.Key + '=' + $_.Value })
+    } else { @() }
+    $mcpTimeout = if ($researchDefinition) { $researchDefinition.budgets.mcp_timeout_seconds * 1000 } else { 120000 }
     $config = [ordered]@{ enabled_providers = @('openai-codex'); model = $ModelId; small_model = $ModelId; default_agent = 'research'
         plugin = @(([Uri]$context.PluginPath).AbsoluteUri); snapshot = $false; billing = @{ llm = 'byok' }
         compaction = @{ auto = $false; prune = $false }; permission = $permission; sandbox = @{ enabled = $true; onUnavailable = 'warn' }
         harness = @{ 'headless-policy' = $false; redirect = $false; deliverables = $false; acceptance = $false; unattended = $false
             review = $false; budget = $false; cost = $false; 'durable-jobs' = $false; workers = $false }
-        agent = @{ title = @{ disable = $true }; research = $agent; 'caelab-acceptance' = $agent }
+        agent = @{ title = @{ disable = $true }; research = $agent; 'caelab-acceptance' = $acceptanceAgent }
         provider = @{ 'openai-codex' = @{ options = @{ timeout = ($ProviderTimeoutSeconds * 1000)
             connectTimeout = ($ProviderTimeoutSeconds * 1000); idleTimeout = 60000 } } }
-        mcp = @{ caelab = @{ type = 'local'; enabled = $true; timeout = 120000; command = @(
+        mcp = @{ caelab = @{ type = 'local'; enabled = $true; timeout = $mcpTimeout; command = @(
             "$env:WINDIR/System32/wsl.exe", '-d', $WslDistro, '--cd', (ConvertTo-OpenScienceWslPath $RepoRoot), '--', '/usr/bin/env',
             ('CAELAB_STORE=' + (ConvertTo-OpenScienceWslPath $StoreRoot)), ('PYTHONPYCACHEPREFIX=' + (ConvertTo-OpenScienceWslPath $context.WslPythonCacheRoot))) +
-            @($mcpGit.Environment) + @($WslPython, ((ConvertTo-OpenScienceWslPath $RepoRoot) + '/openscience/mcp_server.py')) } } }
+            @($mcpGit.Environment) + @($mcpRuntimeEnvironment) + @($WslPython, ((ConvertTo-OpenScienceWslPath $RepoRoot) + '/openscience/mcp_server.py')) } } }
     New-Item -ItemType Directory -Path $profile -ErrorAction Stop | Out-Null
     foreach ($directory in @($environment.Values | Where-Object { $_.StartsWith($profile + '\') -or $_.StartsWith($profile + '/') } | Sort-Object -Unique) +
         @($context.HookReceiptsPath, $context.WslPythonCacheRoot)) {
@@ -215,6 +244,7 @@ function Initialize-OpenScienceNativeGuard($Context, $Owner) {
         source_reader = @{ node_path=$Context.NodePath; node_sha256=$Context.NodeSha256
             worker_path=$Context.SourceReaderPath; worker_sha256=$Context.SourceReaderSha256 } }
     if ($Context.ProjectBinding) { $settings.project_binding=$Context.ProjectBinding }
+    if ($Context.Purpose -ceq 'Research') { $settings.research = $Context.ResearchDefinition }
     Write-OpenScienceJson $Context.PluginSettingsPath $settings -CreateNew
     $Owner.plugin_settings_sha256 = Get-OpenScienceHash $Context.PluginSettingsPath
 }

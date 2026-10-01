@@ -7,7 +7,7 @@ param(
     [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ProfileTag = 'runtime',
     [string]$StoreRoot, [string]$RuntimePrefix, [string]$OwnerPath, [string]$RequiredTool, [string]$ModelId, [string]$ProjectBindingPath,
     [ValidateSet('Ollama', 'ChatGPT')][string]$Transport = 'Ollama', [string]$AuthProfileRoot,
-    [ValidateRange(30, 600)][int]$TimeoutSeconds = 300,
+    [ValidateRange(30, 3600)][int]$TimeoutSeconds = 300,
     [string[]]$OpenScienceArgs = @('--version')
 )
 # A dot-sourced script's parameters occupy the caller scope.
@@ -167,9 +167,11 @@ function Invoke-OpenScienceLocalCommand {
     param(
         [Parameter(Mandatory)]$Context, [Parameter(Mandatory)][string[]]$Arguments,
         [Parameter(Mandatory)][string]$LogDirectory,
-        [ValidateRange(1,600)][int]$TimeoutSeconds=300, [string]$RequiredTool, [switch]$NoTools
+        [ValidateRange(1,3600)][int]$TimeoutSeconds=300, [string]$RequiredTool, [switch]$NoTools
     )
     $ErrorActionPreference='Stop'
+    $taskCommandBudget = if ($Context.Purpose -ceq 'Research') { $Context.ResearchDefinition.budgets.command_timeout_seconds } else { 600 }
+    Assert-OpenScienceCondition ($TimeoutSeconds -le $taskCommandBudget) 'Command exceeds the owned purpose budget.'
     if (Test-Path -LiteralPath $LogDirectory) { throw 'Command logs exist; choose a new directory and preserve prior evidence.' }
     New-Item -ItemType Directory -Path $LogDirectory -ErrorAction Stop | Out-Null
     $taskArgs=@($Arguments); $taskSessionId=$null; $taskAbort=$null; $taskFailure=$null; $taskAbortAttempted=$false; $taskAbortConfirmed=$false
@@ -188,8 +190,9 @@ function Invoke-OpenScienceLocalCommand {
         if(@($taskStatuses.PSObject.Properties | Where-Object { $_.Value.type -ne 'idle' }).Count -gt 0){throw 'An owned server session is active; preserve it and wait for idle or cancel its exact session before another model request.'}
         if ($taskArgs -contains '--attach' -or $taskArgs -contains '--continue' -or $taskArgs -contains '-c') { throw 'Use an explicit owned session; attachment and continuation guessing cannot override this launcher.' }
         if ($taskArgs -contains '-m' -or @($taskArgs | Where-Object { $_ -match '^--(attach|continue|session|workspace|model|agent|delegation|format)=' -or $_ -match '^-[scm].+' }).Count -gt 0) { throw 'Pass controlled options as separate argument values, never joined or abbreviated overrides.' }
+        $taskAgent = if ($taskCurrent.Purpose -ceq 'Research') { 'research' } else { 'caelab-acceptance' }
         foreach ($taskOption in @(
-            @('--workspace','project'), @('--agent','caelab-acceptance'), @('--model',$Context.Model),
+            @('--workspace','project'), @('--agent',$taskAgent), @('--model',$Context.Model),
             @('--delegation','off'), @('--format','json')
         )) {
             $taskIndex=[array]::IndexOf($taskArgs,$taskOption[0])

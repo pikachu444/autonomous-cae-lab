@@ -1,5 +1,15 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+ADR0016 adds an explicit native Research purpose over unchanged Core/MCP
+operations. It pins a14-tool universe/subset, 24steps, 3600s MCP/command bounds,
+bounded CAD/CalculiX/SciPy/scalar-FEniCSx capabilities and four runtime variables.
+Natural turns may choose multiple tools; missing/unsupported requests must not
+fabricate an execution. Numerical engines generate search candidates. Historical
+Acceptance9-tool/3-step behavior and all source/model/project/lifecycle gates
+remain. Native before-hooks reject unsupported backend/work-budget arguments.
+Native45/Node89/launcher47 source checks PASS; actual new-purpose research is
+NOT_RUN. Capability declarations are not installation or numerical proof.
+
 P1.2b actual30068/run01 now passes the bounded native publication/process
 recovery gate with original records preserved; source/transport checks are
 separate. See20261001-native-registration-30068e0. This does not establish an

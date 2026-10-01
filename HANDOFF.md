@@ -14,9 +14,16 @@ Exact30068 CI36839251459:8jobsSUCCESS including native-registration; explicit
 FAILED at original OpenRadioss download404, before solver/store. Same pinned ZIP
 is preserved locally with expected598ed7b2... SHA; no replacement/newversion.
 Record: benchmarks/records/20261001-native-registration-30068e0.json.
-NEXT ACTIVE P1.3: implement a declared Research purpose with existing14-tool
-subset, multi-tool question/conditions/comparison/numerical-campaign prompt,
-intent-bound runtime environment/budgets and the existing owned launcher.
+NEXT ACTIVE P1.3: the declared Research purpose and actual driver are implemented
+(ADR0016); native45, Node guard/Git89 and launcher47 source checks PASS separately.
+Finish independent source review/commit/push, update only the STOPPED serving
+checkout, then boot a fresh Research profile/store and execute the natural
+missing/unsupported, width38/40+SciPy and reaction0/3 PDE questions. Source
+admission is not actual execution; do not stop at this implementation checkpoint.
+The14-tool subset, prompt and runtime/budgets are bound to the owned launcher.
+Source record:20261001-openscience-research-purpose-source.json. Use
+scripts/verify_openscience_research_live.ps1 only with a fresh actual connected
+resident resource receipt for that same clean source/model/project/runtime.
 First actual routes are exact-STEP Gmsh/CalculiX+SciPy, then scalar FEniCSx;
 missing inputs/unsupported requests must not imply executable capability.
 Reuse owner-selected5.6Sol/auth, Core stores/engines/adapters; do not recreate

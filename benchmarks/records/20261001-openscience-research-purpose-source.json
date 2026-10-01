@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.source-admission",
+  "unit": "P1.3 OpenScience Research purpose",
+  "created_utc": "2026-10-01T10:00:09.5026735Z",
+  "baseline_commit": "c884c5343a88ba401b77a3e70a15684a4514abf6",
+  "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "source_hash_scope": "Frozen Windows working-tree bytes; Git/CI LF blobs and actual boot inventory recorded separately",
+  "source_files": [
+    {
+      "path": "openscience/native_guard.mjs",
+      "sha256": "72076820632046a881ced0b746f22dc1e97c3f937399870dc1a70bfc3689caa4",
+      "bytes": 39008
+    },
+    {
+      "path": "openscience/tests/native_guard.test.mjs",
+      "sha256": "f3b7599d4c439e17796e2a7dc90fd243aa72b3286969a6cfe6e781b626d7e984",
+      "bytes": 84354
+    },
+    {
+      "path": "scripts/openscience-local.ps1",
+      "sha256": "89d1931eb99d51b39ccd02c85022212a75ae6ce901554711f6e36ad53b4d6176",
+      "bytes": 29395
+    },
+    {
+      "path": "scripts/openscience-native-provider.ps1",
+      "sha256": "51cd5fdb552442d4d754ef589f717f535d1fdeed60051dde97d1614fcdba4759",
+      "bytes": 23428
+    },
+    {
+      "path": "scripts/openscience-server-local.ps1",
+      "sha256": "2b67b3a4fba63314db7205b7ee71b656c19f2145c6d774e62e053b94e3e1ef85",
+      "bytes": 142896
+    },
+    {
+      "path": "scripts/verify_openscience_native.ps1",
+      "sha256": "decc69b5f12902eafaacea043bb71333c1cbfbe700f068003a8f421a80b22733",
+      "bytes": 14604
+    },
+    {
+      "path": "scripts/openscience-research.ps1",
+      "sha256": "12b53827448fa2174617a40e2a86ef7ce7188dbc6d488c225bf3ab28153f5d4a",
+      "bytes": 5835
+    },
+    {
+      "path": "scripts/verify_openscience_research_live.ps1",
+      "sha256": "ae2cff56bbb782cde5460296a396e1d29cd804909cd9d293f2997011fd961f80",
+      "bytes": 49199
+    }
+  ],
+  "decision": "NOT_RELEASED",
+  "actual_new_research": "NOT_RUN",
+  "runtime": "STOPPED historical serving f52dd1b",
+  "model": "openai-codex/gpt-5.6-sol",
+  "fallback": "NONE",
+  "core_schema_changes": "NONE",
+  "checks": [
+    {
+      "name": "Native context/profile/guard",
+      "status": "PASS",
+      "count": 45,
+      "provider_calls": 0,
+      "core_mutations": 0,
+      "log": "artifacts/p1-research-integration-draft/native-purpose-checks-01.log",
+      "receipt": "artifacts/p1-research-native-checks-20261001-01/native-checks.json"
+    },
+    {
+      "name": "Node guard and real Git state",
+      "status": "PASS",
+      "count": 89,
+      "failed": 0,
+      "duration_ms": 64662.8668,
+      "provider_calls": 0,
+      "log": "artifacts/p1-research-integration-draft/native-guard-research-01.log"
+    },
+    {
+      "name": "Existing owned launcher/cancellation mocks",
+      "status": "PASS",
+      "count": 47,
+      "provider_calls": 0,
+      "log": "artifacts/p1-research-integration-draft/launcher-checks-01.log",
+      "receipt": "artifacts/p1-research-launcher-20261001-01/launcher-checks/checks.json"
+    },
+    {
+      "name": "Published driver and common PowerShell syntax",
+      "status": "PASS",
+      "scope": "AST parse only; driver not invoked"
+    }
+  ],
+  "independent_reviews": {
+    "common_source": {
+      "reviewer": "official_project_workflow",
+      "status": "PASS_BOUNDED_NO_OPEN_P1_P2",
+      "scope": "Read-only common profile/admission/lifecycle, exact frozen hashes",
+      "official_sdk": "https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/tooling/plugin/src/index.ts#L191",
+      "official_call_boundary": "https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/backend/cli/src/session/prompt.ts#L2407"
+    },
+    "driver_source": {
+      "reviewer": "integration_review",
+      "status": "PASS_BOUNDED_NO_OPEN_P1_P2",
+      "scope": "Read-only actual API/reference/receipt review; published body byte-identical after three comments",
+      "published_sha256": "ae2cff56bbb782cde5460296a396e1d29cd804909cd9d293f2997011fd961f80"
+    }
+  },
+  "adr": "ADR/0016-openscience-research-purpose.md",
+  "next_gate": "Clean source commit/push; fresh same-auth/project Research store; actual natural questions, Calc/SciPy and FEniCSx; independent output and retention",
+  "limitations": [
+    "Source checks do not establish model inference, solver execution or a full phase.",
+    "The known exact30068 explicit CI download404 remains unresolved; cached original ZIP preserved.",
+    "One numerical generation is bounded research, not global convergence.",
+    "Assumed loads/material and strength/physical/release requirements remain UNKNOWN.",
+    "CFD, arbitrary domains, PDE input optimization, MPI/HPC and solver cancellation are not admitted/proved.",
+    "Local ignored logs are not restored by a repository clone; actual retention follows the new execution."
+  ],
+  "engineering_unknowns": "PRESERVED",
+  "all_52_requirements": "RETAINED"
+}

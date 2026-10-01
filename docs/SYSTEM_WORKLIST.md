@@ -13,6 +13,13 @@ explicit download404 before execution. Currently **P1.3 functional research inte
 question -> conditions -> solver -> comparison -> numerical next conditions.
 No further CAD recovery features are scheduled. Later phases remain sequential.
 
+P1.3 Research-purpose source and actual driver are implemented (ADR0016).
+Native45/Node guard-Git89/launcher47 checks PASS separately; independent source
+review/clean commit and actual natural research remain required. The next
+execution uses the same5.6Sol/auth/project and a new store, with width38/40
+CalculiX comparisons, seeded SciPy next candidates and reaction0/3 FEniCSx.
+Do not restart completed native units or count these source checks as research.
+
 ## P1.1 — integrated OpenScience CAD research (PASS bounded unit)
 
 Managed run03/source f52dd1b06e69cb901776f18524a41146258d421a now closes
@@ -219,7 +226,9 @@ This evidence/docs checkpoint is not another solver run.
 - [ ] P1.3 (ACTIVE): exercise supported research planning, unsupported-operation response
   and repeatable human/AI inspection against declared capabilities and the same
   study/model/experiment IDs. Record limitations of staged vs general planning.
-- [ ] P1.3 implementation priority: replace CAD-only exact-call admission with
+- [ ] P1.3 implementation admission: Research-purpose source/driver are implemented;
+  native45/Node89/launcher47 PASS, independent review and source commit pending.
+  Replace CAD-only exact-call admission with
   a declared research-purpose capability subset and existing solver runtime
   propagation; use existing engines for conditions/search. Prove a real changed-
   condition/comparison loop, missing inputs and unsupported requests. Preserve

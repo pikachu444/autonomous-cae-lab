@@ -11,6 +11,7 @@ param(
     [string]$RuntimePrefix,
     [string]$ModelId,
     [ValidateSet('Ollama', 'ChatGPT')][string]$Transport = 'Ollama',
+    [ValidateSet('Acceptance', 'Research')][string]$Purpose = 'Acceptance',
     [string]$AuthProfileRoot,
     [string]$ProjectBindingPath,
     [string]$WslDistro = 'Ubuntu',
@@ -19,7 +20,7 @@ param(
         'caelab_parameters_register', 'caelab_parameters_list', 'caelab_experiment_run',
         'caelab_experiment_inspect', 'caelab_experiment_summary', 'caelab_experiment_compare'),
     [ValidateRange(256, 4096)][int]$OutputTokens = 4096,
-    [ValidateRange(1, 3)][int]$Steps = 3,
+    [ValidateRange(1, 24)][int]$Steps = 3,
     [ValidateRange(30, 600)][int]$ProviderTimeoutSeconds = 260,
     [ValidateRange(0, 65535)][int]$Port = 4098,
     [ValidateRange(5, 180)][int]$StartupTimeoutSeconds = 120,
@@ -35,6 +36,11 @@ $script:OpenSciencePinnedSource = '4082a2ecb73e166d4503963798228ba700f3840f'
 $script:OpenScienceBoundedTools = @('caelab_study_create', 'caelab_study_inspect', 'caelab_parameters_discover',
     'caelab_parameters_register', 'caelab_parameters_list', 'caelab_experiment_run',
     'caelab_experiment_inspect', 'caelab_experiment_summary', 'caelab_experiment_compare')
+. (Join-Path $PSScriptRoot 'openscience-research.ps1')
+if ($Purpose -ceq 'Research') {
+    if (-not $PSBoundParameters.ContainsKey('Steps')) { $Steps = 24 }
+    if (-not $PSBoundParameters.ContainsKey('AllowedTools')) { $AllowedTools = @($script:OpenScienceResearchTools) }
+}
 
 function Assert-OpenScienceCondition($Condition, [string]$Message) {
     if (-not $Condition) { throw $Message }
@@ -358,19 +364,27 @@ function New-OpenScienceLocalContext {
         [string]$StoreRoot, [string]$RuntimePrefix,
         [string]$ModelId,
         [ValidateSet('Ollama', 'ChatGPT')][string]$Transport = 'Ollama', [string]$AuthProfileRoot,
+        [ValidateSet('Acceptance', 'Research')][string]$Purpose = 'Acceptance',
         [Collections.IDictionary]$ProjectBinding,
         [string]$WslDistro = 'Ubuntu',
         [string]$WslPython = '/home/pikachu444/.local/share/autonomous-cae-lab/venv-py312/bin/python',
         [AllowEmptyCollection()][string[]]$AllowedTools = $script:OpenScienceBoundedTools,
         [ValidateRange(256, 4096)][int]$OutputTokens = 4096,
-        [ValidateRange(1, 3)][int]$Steps = 3,
+        [ValidateRange(1, 24)][int]$Steps = 3,
         [ValidateRange(30, 600)][int]$ProviderTimeoutSeconds = 260
     )
     Assert-OpenScienceCondition ($PSVersionTable.PSVersion.Major -ge 7) 'PowerShell 7 is required for native ArgumentList handling.'
+    if ($Purpose -ceq 'Research') {
+        Assert-OpenScienceCondition ($Transport -ceq 'ChatGPT') 'Research purpose requires the explicitly selected native ChatGPT transport.'
+        if (-not $PSBoundParameters.ContainsKey('Steps')) { $Steps = 24 }
+        if (-not $PSBoundParameters.ContainsKey('AllowedTools')) { $AllowedTools = @($script:OpenScienceResearchTools) }
+    } else {
+        Assert-OpenScienceCondition ($Steps -le 3) 'The historical acceptance purpose retains its three-step budget.'
+    }
     if ($Transport -ceq 'ChatGPT') {
         return New-OpenScienceNativeContext -RepoRoot $RepoRoot -RunName $RunName -ProfileTag $ProfileTag -StoreRoot $StoreRoot -RuntimePrefix $RuntimePrefix `
             -ModelId $ModelId -AuthProfileRoot $AuthProfileRoot -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools `
-            -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds -ProjectBinding $ProjectBinding
+            -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds -ProjectBinding $ProjectBinding -Purpose $Purpose
     }
     Assert-OpenScienceCondition (-not $ProjectBinding) 'Managed project bindings currently require the explicitly selected native ChatGPT transport.'
     $RepoRoot = [IO.Path]::GetFullPath($RepoRoot)
@@ -681,9 +695,10 @@ function Assert-OpenScienceToolGuard($Context, $Guard) {
         $Guard.run_name -ceq $Context.RunName -and $Guard.repo_root -ceq $Context.RepoRoot -and
         $Guard.profile_root -ceq $Context.ProfileRoot -and $Guard.model -ceq $Context.ModelId) 'Tool guard ownership or model changed; mutation refused.'
     $allowed = @($Context.AllowedTools)
+    $admittedTools = Get-OpenSciencePurposeTools $Context
     Assert-OpenScienceCondition ($Guard.allowed -is [array] -and $Guard.allowed.Count -eq $allowed.Count) 'Tool guard allowed schema changed; mutation refused.'
     for ($index = 0; $index -lt $allowed.Count; $index++) {
-        Assert-OpenScienceCondition ($Guard.allowed[$index] -ceq $allowed[$index] -and $allowed[$index] -cin $script:OpenScienceBoundedTools) 'Tool guard allowed schema changed; mutation refused.'
+        Assert-OpenScienceCondition ($Guard.allowed[$index] -ceq $allowed[$index] -and $allowed[$index] -cin $admittedTools) 'Tool guard allowed schema changed; mutation refused.'
     }
     Assert-OpenScienceCondition ($Guard.no_tools -is [bool] -and $Guard.stopping -is [bool] -and
         ($null -eq $Guard.required -or ($Guard.required -is [string] -and $Guard.required -cin $allowed)) -and
@@ -1720,7 +1735,7 @@ switch ($Mode) {
     'Stop' { Stop-OpenScienceLocalServer -OwnerPath $OwnerPath }
     'Start' {
         $context = New-OpenScienceLocalContext -RepoRoot $RepoRoot -RunName $RunName -ProfileTag $ProfileTag -StoreRoot $StoreRoot -RuntimePrefix $RuntimePrefix `
-            -ModelId $ModelId -Transport $Transport -AuthProfileRoot $AuthProfileRoot -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds `
+            -ModelId $ModelId -Transport $Transport -AuthProfileRoot $AuthProfileRoot -Purpose $Purpose -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds `
             -ProjectBinding $(if ($ProjectBindingPath) { Read-OpenScienceJson $ProjectBindingPath } else { $null })
         Start-OpenScienceLocalServer $context $Port $StartupTimeoutSeconds
     }

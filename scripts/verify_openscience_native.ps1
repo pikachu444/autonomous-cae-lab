@@ -49,6 +49,30 @@ Assert-NativeRefused { New-OpenScienceLocalProcessInfo $taskNativeContext @('run
 $taskNativeReload = New-OpenScienceLocalContext @taskNativeArgs
 Assert-NativeCheck ($taskNativeReload.IntentSha256 -ceq $taskNativeContext.IntentSha256 -and
     (Get-OpenScienceHash $taskNativeAuthFile) -ceq $taskAuthBytesHash) 'matching_external_profile_reuse_preserves_authentication_bytes'
+$taskResearchArgs = $taskNativeArgs.Clone(); $taskResearchArgs.RunName += '-loop'; $taskResearchArgs.Purpose = 'Research'
+$taskResearchArgs.Remove('AllowedTools')
+$taskResearchContext = New-OpenScienceLocalContext @taskResearchArgs
+$taskResearchConfig = Read-OpenScienceJson $taskResearchContext.ConfigPath
+Assert-NativeCheck ($taskResearchContext.Purpose -ceq 'Research' -and $taskResearchContext.Steps -eq 24 -and
+    $taskResearchContext.AllowedTools.Count -eq 14 -and $taskResearchConfig.agent.research.steps -eq 24 -and
+    $taskResearchConfig.agent.'caelab-acceptance'.steps -eq 3 -and $taskResearchConfig.mcp.caelab.timeout -eq 3600000) 'research_purpose_uses_its_declared_multi_tool_budget_and_preserves_acceptance_agent'
+Assert-NativeCheck ($taskResearchConfig.agent.research.prompt -notmatch 'requested CAE Lab function once' -and
+    $taskResearchConfig.agent.research.prompt -match 'numerical engine generates candidates' -and
+    $taskResearchConfig.agent.research.prompt -match 'NOT_RELEASED') 'research_prompt_connects_question_execution_numerical_search_and_qualification_limits'
+foreach ($taskRuntimeKey in $taskResearchContext.ResearchDefinition.runtime_environment.Keys) {
+    Assert-NativeCheck ($taskResearchConfig.mcp.caelab.command -ccontains ($taskRuntimeKey + '=' + $taskResearchContext.ResearchDefinition.runtime_environment[$taskRuntimeKey])) ('research_mcp_uses_explicit_runtime_' + $taskRuntimeKey)
+}
+Assert-NativeCheck ($taskResearchContext.ResearchDefinitionSha256 -ceq (Get-OpenScienceSourcePinSha256 $taskResearchContext.ResearchDefinition) -and
+    (Get-OpenScienceHash $taskNativeAuthFile) -ceq $taskAuthBytesHash -and -not (Test-Path -LiteralPath $taskResearchContext.StoreRoot)) 'research_definition_is_intent_bound_and_preserves_auth_without_running_Core'
+Set-OpenScienceExpectedTools -Context $taskResearchContext -RequiredTool 'caelab_optimization_plan'
+Assert-NativeCheck ((Read-OpenScienceJson $taskResearchContext.GuardPath).required -ceq 'caelab_optimization_plan') 'research_guard_recognizes_new_solver_campaign_subset'
+$taskLegacyExpanded = $taskNativeArgs.Clone(); $taskLegacyExpanded.AllowedTools = @($script:OpenScienceResearchTools)
+Assert-NativeRefused { New-OpenScienceLocalContext @taskLegacyExpanded } 'legacy_acceptance_does_not_silently_admit_solver_tools'
+$taskLegacySteps = $taskNativeArgs.Clone(); $taskLegacySteps.Steps = 24
+Assert-NativeRefused { New-OpenScienceLocalContext @taskLegacySteps } 'legacy_acceptance_keeps_original_step_budget'
+$taskResearchDrift = [pscustomobject](Read-OpenScienceJson (Join-Path $taskResearchContext.ProfileRoot 'context.json'))
+$taskResearchDrift.ResearchDefinition.runtime_environment.CAELAB_FENICSX_PYTHON = '/unknown/interpreter'
+Assert-NativeRefused { Assert-OpenScienceContext $taskResearchDrift } 'research_runtime_descriptor_drift_refuses_launch_before_provider_call'
 $taskNativeConfigBytes = [IO.File]::ReadAllBytes($taskNativeContext.ConfigPath)
 $taskNativeChangedConfig = $taskNativeConfig.Clone(); $taskNativeChangedConfig.model = 'openai-codex/other'
 Write-OpenScienceJson $taskNativeContext.ConfigPath $taskNativeChangedConfig

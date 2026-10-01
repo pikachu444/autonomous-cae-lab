@@ -11,7 +11,12 @@ const nativeKnownTools = Object.freeze([
   'caelab_study_create', 'caelab_study_inspect', 'caelab_parameters_discover',
   'caelab_parameters_register', 'caelab_parameters_list', 'caelab_experiment_run',
   'caelab_experiment_inspect', 'caelab_experiment_summary', 'caelab_experiment_compare',
+  'caelab_analysis_run', 'caelab_optimization_plan', 'caelab_optimization_run',
+  'caelab_optimization_inspect', 'caelab_pde_run',
 ]);
+const nativeAcceptanceTools = Object.freeze(nativeKnownTools.slice(0, 9));
+const nativeResearchKeys = Object.freeze(['schema', 'kind', 'agent', 'allowed_tools',
+  'runtime_environment', 'budgets', 'capabilities', 'limitations']);
 const nativeSettingsKeys = Object.freeze([
   'schema', 'kind', 'repo_root', 'run_name', 'profile_root', 'model', 'allowed',
   'guardPath', 'configPath', 'config_sha256', 'pluginPath', 'plugin_sha256',
@@ -162,14 +167,30 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
   const validateSettings = () => {
     const keys = [...nativeSettingsKeys];
     if (settings?.schema === 3) keys.push('source_reader');
+    if (settings?.schema === 3 && Object.hasOwn(settings, 'research')) keys.push('research');
     if (settings?.schema === 2 || (settings?.schema === 3 && Object.hasOwn(settings, 'project_binding'))) keys.push('project_binding');
     exactKeys(settings, keys, 'SETTINGS_INVALID');
     if (![1, 2, 3].includes(settings.schema) || settings.kind !== 'autonomous-cae-lab.openscience-native-guard' ||
         typeof settings.run_name !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(settings.run_name) ||
         typeof settings.model !== 'string' || !/^openai-codex\/[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/.test(settings.model) ||
         !Array.isArray(settings.allowed) || !settings.allowed.length || new Set(settings.allowed).size !== settings.allowed.length ||
-        settings.allowed.some(tool => !nativeKnownTools.includes(tool)) ||
+        settings.allowed.some(tool => !(Object.hasOwn(settings, 'research') ? nativeKnownTools : nativeAcceptanceTools).includes(tool)) ||
         !nativeSha(settings.config_sha256) || !nativeSha(settings.plugin_sha256) || !nativeSha(settings.boot_source_sha256)) nativeRefuse('SETTINGS_INVALID');
+    if (Object.hasOwn(settings, 'research')) {
+      const research = settings.research;
+      exactKeys(research, nativeResearchKeys, 'RESEARCH_DEFINITION_INVALID');
+      if (research.schema !== 1 || research.kind !== 'autonomous-cae-lab.openscience-research-definition' ||
+          research.agent !== 'research' || nativeCanonical(research.allowed_tools) !== nativeCanonical(nativeKnownTools) ||
+          nativeCanonical(research.runtime_environment) !== nativeCanonical({MPLBACKEND:'Agg', OMP_NUM_THREADS:'2',
+            QT_QPA_PLATFORM:'offscreen', CAELAB_FENICSX_PYTHON:'/usr/bin/python3'}) ||
+          nativeCanonical(research.budgets) !== nativeCanonical({steps:24, mcp_timeout_seconds:3600, command_timeout_seconds:3600,
+            optimization:{max_generations:1, population_size:5}, analysis:{max_mesh_levels:2},
+            pde:{max_cell_count:32, max_mesh_levels:3}}) ||
+          !Array.isArray(research.capabilities) || research.capabilities.length !== 3 ||
+          nativeCanonical(research.capabilities.map(value => value?.backend)) !==
+            nativeCanonical(['fixture.cadquery','fixture.calculix','pde.fenicsx']) ||
+          !Array.isArray(research.limitations)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
+    }
     noLinks(settings.profile_root, 'directory');
     noLinks(settings.repo_root, 'directory');
     if (managed()) {
@@ -496,7 +517,40 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
     } catch { nativeRefuse('RECEIPT_UNAVAILABLE'); }
     finally { if (handle !== undefined) io.closeSync(handle); }
   };
-  const evaluate = async (hook, input) => {
+  const researchArguments = (tool, args) => {
+    if (!Object.hasOwn(settings, 'research')) return;
+    if (!nativeRecord(args)) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+    const budget = settings.research.budgets;
+    if (['caelab_parameters_discover','caelab_parameters_register','caelab_experiment_run','caelab_optimization_plan'].includes(tool) &&
+        (args.backend !== 'fixture.cadquery' || args.model !== 'roller_support')) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+    const analysisMesh = value => {
+      if (!Array.isArray(value?.mesh?.max_sizes_mm) || !value.mesh.max_sizes_mm.length ||
+          value.mesh.max_sizes_mm.length > budget.analysis.max_mesh_levels) nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+    };
+    if (tool === 'caelab_analysis_run') {
+      if (args.backend !== 'fixture.calculix') nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      analysisMesh(args.settings);
+    }
+    if (tool === 'caelab_optimization_plan') {
+      const generations = args.max_generations ?? 1, population = args.population_size ?? 5;
+      if (!Number.isInteger(generations) || generations < 1 || generations > budget.optimization.max_generations ||
+          !Number.isInteger(population) || population !== budget.optimization.population_size)
+        nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+      if ((args.engine ?? 'scipy.differential_evolution') !== 'scipy.differential_evolution') nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      if (args.analysis_backend != null) {
+        if (args.analysis_backend !== 'fixture.calculix') nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+        analysisMesh(args.analysis_settings);
+      }
+    }
+    if (tool === 'caelab_pde_run') {
+      if (args.backend !== 'pde.fenicsx' || args.settings?.problem?.domain !== 'unit_square') nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      const mesh = args.settings?.mesh;
+      if (!Array.isArray(mesh?.cell_counts) || !mesh.cell_counts.length || mesh.cell_counts.length > budget.pde.max_mesh_levels ||
+          mesh.cell_counts.some(value => !Number.isInteger(value) || value < 1 || value > budget.pde.max_cell_count) ||
+          mesh.degree !== 1) nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+    }
+  };
+  const evaluate = async (hook, input, output) => {
     const hashes = {};
     try {
       if (managed()) hashes.sessionID = input?.sessionID;
@@ -536,11 +590,12 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
         if (!nativeRecord(model) || model.providerID !== 'openai-codex' ||
             `${model.providerID}/${model.id}` !== settings.model) nativeRefuse('MODEL_CHANGED');
         const agent = typeof input?.agent === 'string' ? input.agent : input?.agent?.name;
-        if (!['research', 'caelab-acceptance'].includes(agent)) nativeRefuse('AGENT_NOT_ALLOWED');
+        if (!(Object.hasOwn(settings, 'research') ? ['research'] : ['research', 'caelab-acceptance']).includes(agent)) nativeRefuse('AGENT_NOT_ALLOWED');
       } else {
         if (parsed.guard.no_tools) nativeRefuse('NO_TOOLS_STAGE');
         if (!settings.allowed.includes(input?.tool)) nativeRefuse('TOOL_NOT_ALLOWED');
         if (parsed.guard.required !== null && input.tool !== parsed.guard.required) nativeRefuse('REQUIRED_TOOL_MISMATCH');
+        researchArguments(input.tool, output?.args);
       }
       receipt(hook, input, 'accepted', 'CHECKS_PASSED', hashes);
     } catch (error) {
@@ -589,8 +644,8 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
   }
   receipt('plugin.loaded', null, 'accepted', 'PLUGIN_LOADED', initialHashes);
   return {
-    'chat.params': async (input, _output) => evaluate('chat.params', input),
-    'tool.execute.before': async (input, _output) => evaluate('tool.execute.before', input),
+    'chat.params': async (input, output) => evaluate('chat.params', input, output),
+    'tool.execute.before': async (input, output) => evaluate('tool.execute.before', input, output),
   };
 }
 

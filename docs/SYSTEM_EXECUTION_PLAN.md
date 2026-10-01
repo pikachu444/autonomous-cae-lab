@@ -38,6 +38,10 @@ Exact CI36839251459:8jobsSUCCESS; explicit download404 before solver/store.
 Record:20261001-native-registration-30068e0.json. No additional recovery scope.
 Connect existing question/capability/conditions/execution/comparison/numerical
 campaign paths using CalculiX/SciPy and FEniCSx, then the later phases in order.
+ADR0016 Research-purpose source and the actual driver are implemented; native45,
+Node guard/Git89 and launcher47 checks PASS separately. Actual new-purpose
+research remains NOT_RUN. Commit reviewed source and execute the driver against
+a new clean-source profile/store; source record:20261001-openscience-research-purpose-source.
 The earlier work-order notes below describe historical source admission.
 
 Owner priority update: finish the already prepared bounded correction/verifier

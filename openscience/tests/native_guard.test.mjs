@@ -205,6 +205,22 @@ function pinFixtureFile(f, relative, content = 'PINNED SYNTHETIC SOURCE\n') {
   return absolute;
 }
 const input = () => ({ sessionID: 'ses_synthetic-01', agent: 'research', model: { providerID: 'openai-codex', id: 'test-explicit-model' } });
+function researchFixture(t) {
+  const f = readerFixture(t, { managed: true });
+  const selected = [...tools, 'caelab_analysis_run', 'caelab_optimization_plan',
+    'caelab_optimization_run', 'caelab_optimization_inspect', 'caelab_pde_run'];
+  f.settings.allowed = [...selected]; f.guard.allowed = [...selected];
+  f.settings.research = {
+    schema: 1, kind: 'autonomous-cae-lab.openscience-research-definition', agent: 'research', allowed_tools: [...selected],
+    runtime_environment: { MPLBACKEND:'Agg', OMP_NUM_THREADS:'2', QT_QPA_PLATFORM:'offscreen', CAELAB_FENICSX_PYTHON:'/usr/bin/python3' },
+    budgets: {steps:24, mcp_timeout_seconds:3600, command_timeout_seconds:3600,
+      optimization:{max_generations:1, population_size:5}, analysis:{max_mesh_levels:2}, pde:{max_cell_count:32, max_mesh_levels:3}},
+    capabilities: ['fixture.cadquery','fixture.calculix','pde.fenicsx'].map(backend => ({backend, verification:'IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF'})),
+    limitations: ['Synthetic admission test; no solver or provider executed.'],
+  };
+  json(f.settingsPath, f.settings); f.writeGuard({});
+  return f;
+}
 const refusal = code => error => error.name === 'CaeLabNativeGuardRefusal' && error.code === code && !error.message.includes('synthetic snapshot');
 // Pinned official 4082a2ecb73e166d4503963798228ba700f3840f:
 // backend/cli/src/session/message-v2.ts general Error -> UnknownError branch
@@ -1358,4 +1374,71 @@ test('the real final Git-state helper obeys the same bounded byte-gate deadline'
   assert.deepEqual(Object.values(receipt.source_check).map(check => check.status), ['PASS', 'PASS', 'FAIL']);
   assert.equal(receipt.source_check.final_bytes.error_kind, 'TIMEOUT');
   assert.equal(receipt.accepted, false); boundedSourceCheck(receipt.source_check);
+});
+
+test('research purpose admits multiple existing categories without mutating supplied arguments', async t => {
+  const f = researchFixture(t), hooks = await f.hooks();
+  await hooks['chat.params'](f.request(), {});
+  for (const [tool,args] of [
+    ['caelab_analysis_run',{backend:'fixture.calculix',settings:{mesh:{max_sizes_mm:[2,1.5]}}}],
+    ['caelab_optimization_plan',{backend:'fixture.cadquery',model:'roller_support',seed:13,
+      max_generations:1,population_size:5,analysis_backend:'fixture.calculix',analysis_settings:{mesh:{max_sizes_mm:[2,1.5]}}}],
+    ['caelab_pde_run',{backend:'pde.fenicsx',settings:{problem:{domain:'unit_square'},mesh:{cell_counts:[8,16,32],degree:1}}}],
+    ['caelab_optimization_run',{campaign_id:'C-numerical'}],
+    ['caelab_optimization_inspect',{campaign_id:'C-numerical'}],
+  ]) {
+    const output = {args}, original = structuredClone(output);
+    await hooks['tool.execute.before']({tool,sessionID:f.sessionID},output);
+    assert.deepEqual(output, original); assert.equal(f.receipts().at(-1).tool,tool);
+    assert.equal(f.receipts().at(-1).accepted,true);
+  }
+  await assert.rejects(hooks['chat.params']({...f.request(),agent:'caelab-acceptance'},{}),refusal('AGENT_NOT_ALLOWED'));
+});
+
+test('legacy native settings cannot admit newly connected solver tools without research purpose', async t => {
+  const f = readerFixture(t);
+  f.settings.allowed = [...tools,'caelab_analysis_run']; f.guard.allowed = f.settings.allowed;
+  json(f.settingsPath,f.settings); f.writeGuard({});
+  await assert.rejects(f.hooks(),refusal('SETTINGS_INVALID'));
+});
+
+for (const [label,tool,args,code] of [
+  ['unknown solver','caelab_analysis_run',{backend:'cfd.unknown',settings:{mesh:{max_sizes_mm:[2,1.5]}}},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['unadmitted CAD','caelab_experiment_run',{backend:'fixture.freecad',model:'roller_support'},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['larger search','caelab_optimization_plan',{backend:'fixture.cadquery',model:'roller_support',max_generations:2,population_size:5},'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['larger population','caelab_optimization_plan',{backend:'fixture.cadquery',model:'roller_support',max_generations:1,population_size:6},'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['different engine','caelab_optimization_plan',{backend:'fixture.cadquery',model:'roller_support',engine:'llm.optimizer'},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['more analysis meshes','caelab_analysis_run',{backend:'fixture.calculix',settings:{mesh:{max_sizes_mm:[3,2,1.5]}}},'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['missing analysis mesh','caelab_analysis_run',{backend:'fixture.calculix',settings:{}},'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['different PDE domain','caelab_pde_run',{backend:'pde.fenicsx',settings:{problem:{domain:'arbitrary'},mesh:{cell_counts:[8,16,32],degree:1}}},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['larger PDE mesh','caelab_pde_run',{backend:'pde.fenicsx',settings:{problem:{domain:'unit_square'},mesh:{cell_counts:[8,16,64],degree:1}}},'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['missing arguments','caelab_pde_run',undefined,'RESEARCH_ARGUMENTS_REQUIRED'],
+]) test(`research purpose refuses ${label} before any admitted tool execution`,async t => {
+  const f = researchFixture(t), hooks = await f.hooks(), output = {args}, original = structuredClone(output);
+  await assert.rejects(hooks['tool.execute.before']({tool,sessionID:f.sessionID},output),refusal(code));
+  assert.deepEqual(output,original); assert.equal(f.receipts().at(-1).accepted,false);
+  assert.equal(f.receipts().at(-1).code,code);
+});
+
+test('research purpose retains late source/grant/stopping gates for new solver tools',async t => {
+  for (const drift of ['source','grant','stopping']) {
+    const f = researchFixture(t), hooks = await f.hooks();
+    if (drift === 'source') json(f.statePath,{...f.boot,source_commit:'f'.repeat(40)});
+    if (drift === 'grant') f.state.filesystem.grants[0].access = 'read';
+    if (drift === 'stopping') f.writeGuard({stopping:true});
+    await assert.rejects(hooks['tool.execute.before']({tool:'caelab_analysis_run',sessionID:f.sessionID},
+      {args:{backend:'fixture.calculix',settings:{mesh:{max_sizes_mm:[2,1.5]}}}}));
+    assert.equal(f.receipts().at(-1).accepted,false);
+  }
+});
+
+test('research budget/runtime descriptor tampering fails before loading tools',async t => {
+  for (const slot of ['budget','runtime','scope']) {
+    const f = researchFixture(t);
+    if (slot === 'budget') f.settings.research.budgets.optimization.max_generations = 2;
+    if (slot === 'runtime') f.settings.research.runtime_environment.OPENAI_API_KEY = 'SYNTHETIC_MUST_BE_REFUSED';
+    if (slot === 'scope') f.settings.research.allowed_tools.push('caelab_unknown');
+    json(f.settingsPath,f.settings);
+    await assert.rejects(f.hooks(),refusal('RESEARCH_DEFINITION_INVALID'));
+  }
 });

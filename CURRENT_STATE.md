@@ -12,10 +12,14 @@ The original OpenRadioss ZIP remains locally preserved with exact expected
 598ed7b2905a7bacc8d1781470c250ac79d7558c39ba962768edf3644644fe33 SHA.
 Record:20261001-native-registration-30068e0.json. Receipt606b5943...;
 retention6fed8fc0.... This docs checkpoint is not a new solver verification.
-P1.3 is ACTIVE: root owns common native/context/admission/runtime interfaces;
-an acceptance driver draft is isolated in ignored artifacts. Implement the
-research-purpose14-tool subset and natural multi-operation planning/conditions/
-comparison/numerical-engine loop using existing CalculiX/SciPy and FEniCSx.
+P1.3 is ACTIVE: root owns common native/context/admission/runtime interfaces.
+The declared Research purpose and actual acceptance driver are implemented;
+native45, Node guard/Git89 and existing launcher47 source checks PASS separately.
+ADR0016 preserves historical Acceptance and reuses existing CalculiX/SciPy and
+FEniCSx for natural multi-operation planning/conditions/comparison/search.
+New-source actual research remains NOT_RUN pending clean source/runtime admission.
+Source record:20261001-openscience-research-purpose-source.json; actual output,
+exact-source CI and retention must be recorded separately after execution.
 Runtime environment is an intent descriptor, not a new provenance/version API:
 actual adapters already retain execution provenance. LabService.capabilities()
 means implemented/callable operations, not installed solver evidence.
