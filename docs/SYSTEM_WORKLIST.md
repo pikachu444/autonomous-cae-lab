@@ -157,6 +157,13 @@ actual gates above now allow P1.2a. The whole phase/project remains OPEN.
 
 ## Phase1 remaining units (P1.2a ACTIVE; other units QUEUED)
 
+- [x] Commit/push source c141; first actual run01 and exact CI retain nativeFAIL
+  at unconstrainedY=-3 vs0 after deletion,4positive/4refusal casesPASS.
+- [x] Preserve161files/5,172,603bytes; independently investigate official1.1.4
+  API and actualcopy probe to set declared origin without changing references.
+- [ ] Commit tiny acceptance-input correction; NEW clean run02, exactCI,
+  analytical outputs/whole history retention and independent review.
+
 - [x] P1.2a baseline/red: new clean671 local native acceptance PASS; actual
   imported FCStd insertion reproduces discovery gap. Preserve old CAD/results
   and105files/9,092,209bytes;20261001-native-edits-source record/ADR0014.

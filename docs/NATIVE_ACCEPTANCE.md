@@ -1,5 +1,17 @@
 # Native FreeCAD Core acceptance
 
+## Latest actual P1.2a failure and fixture correction
+
+Source c141ae0/run01 passes imported Part and named radius/new X selection,
+then fails the unchanged centroidY=0 reference after temporary Y deletion:
+the actual free coordinate remains-3. Exact CI36821642536 also nativeFAIL,
+other7jobsPASS. Preserve failed metrics/result and161files/5,172,603bytes.
+Independent official investigation and a copy-only actual moveGeometry probe
+confirm the needed explicit origin input setup. Production adapters and every
+reference/tolerance remain unchanged; unsupported legacy movePoint probe stays
+failed. New clean-source run02 remains required. See coordinate-correction
+record and ADR0014; engineering UNKNOWN/NOT_RELEASED remain.
+
 ## Current P1.2a source checkpoint (actual new-source acceptance pending)
 
 Clean Main671b818/fixture3e48 locally re-executed the existing public Lab native

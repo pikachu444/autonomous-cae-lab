@@ -43,6 +43,9 @@ def describe(doc, worker):
 def layout(sketch, descriptors):
     for i in range(len(sketch.Constraints) - 1, -1, -1):
         sketch.delConstraint(i)
+    # Free coordinates retain the last solved position after dimension deletion.
+    # This synthetic input declares origin before adding the named dimensions.
+    sketch.moveGeometry(0, 3, App.Vector(0, 0, 0), False)
     for item in descriptors:
         # Distance from circle center to the origin: origin minus center.
         if item['type'] in ('DistanceX', 'DistanceY'):

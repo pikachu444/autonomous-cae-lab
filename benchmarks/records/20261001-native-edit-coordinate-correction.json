@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.native-edit-coordinate-input-correction",
+  "phase": "P1.2a",
+  "created_utc": "2026-10-01T06:17:58.068563+00:00",
+  "outcome": "ACTUAL_C141_NATIVE_EDITS_FAIL_RETAINED; CANONICAL_INPUT_ORIGIN_GAP_CONFIRMED; ACTUAL_COPY_MOVE_GEOMETRY_PROBE_PASS; NEW_CLEAN_SOURCE_FULL_RUN_PENDING",
+  "actual_source_commit": "c141ae06fcce5ba48d50a0f8de9d8ae33ac3ec24",
+  "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "actual_run_id": "p1-native-edits-20261001-01",
+  "started_utc": "2026-10-01T05:49:39.4339010Z",
+  "completed_utc": "2026-10-01T05:58:58.9825323Z",
+  "source_before_after_same_and_clean": true,
+  "actual_run_receipt_sha256": "8b57abc7fb313a090173b354be037bed7ab84bf044a599a0084ac61f6ec18047",
+  "actual_verifier_receipt_sha256": "ecc6ba14d66b1387ad753c514ba44065d1b7e801ea925e085e20b2e565d71222",
+  "log_sha256": "b6a843d679c98e7e1b728ce34fdc68a937eb8f1d860db464d0f9892881a7c06c",
+  "completed_positive_cases": [
+    "part-before",
+    "part-after",
+    "sketch-before",
+    "sketch-offset"
+  ],
+  "completed_expected_refusals": [
+    "part-stale",
+    "sketch-stale",
+    "unregistered-positional-fallback",
+    "deleted-unregistered-stale"
+  ],
+  "failed_comparison": {
+    "case": "sketch-after-delete",
+    "actual_center_mm": [
+      -5.000000000000002,
+      -3.0000000000000004,
+      4.000000000000001
+    ],
+    "expected_center_mm": [
+      -5,
+      0,
+      4
+    ],
+    "invalid_centroid_y_mm": -3.0000000000000004,
+    "absolute_tolerance_mm_unchanged": 1e-05,
+    "observed_error": "(-3.0000000000000004, 0, 1e-05)",
+    "cad_bounds_mm": [
+      12.0,
+      12.0,
+      8.0
+    ],
+    "cad_volume_mm3": 904.7786842338603,
+    "scope": "Bounds/volume and selected radius/X are correct; canonical free Y is wrong. Generated Core result is retained, not overwritten or relabelled as analytical PASS."
+  },
+  "diagnosis": "Deleting temporary DistanceY=3 leaves the last solved circle centerY=-3. Fixture assumed an implicit origin reset. Official investigation and actual op09/op10/op11 confirm current named identities and correct registered dimensions.",
+  "correction": {
+    "ownership": "acceptance-only scripts/native_edit_fixture_worker.py layout; production adapters/Core/upstream unchanged",
+    "action": "After delConstraint, explicitly move the same circle center to declared origin before readding the same descriptors",
+    "native_api": "moveGeometry(0,3,App.Vector(0,0,0),False)",
+    "fixture_working_copy_sha256": "ad63d6c3d11f4c28ff3a41707f7347c57c0d57371ed2f81371fbc3b5ac386785",
+    "verifier_reference_thresholds_and_geometry_comparisons_unchanged": true,
+    "verifier_sha256": "98ca848ff2b74608cb3470d8103aaaa1a1938cbb66ad14e55d6b423486b64e87",
+    "predeclared_reference_sha256": "b0f6aa34ca8eb91c621b924d3b641d40564647f2edd400150b58bf1a3c7e3454"
+  },
+  "actual_copy_input_probe": {
+    "receipt": "artifacts/native-edit-coordinate-correction-20261001-02/actual-move-geometry-probe.json",
+    "receipt_sha256": "6ae9db54e2659e91a4efa43b4b8282024b9cff46265b16a963299e169b77befe",
+    "scope": "Actual FreeCAD moveGeometry API input correction probe on COPY of closed failed native source; not full new acceptance.",
+    "started_utc": "2026-10-01T06:07:46.243139+00:00",
+    "original_sha256_before": "236fbbbf9ce21e7c17858a928c16e0113871798e5456f7a524b8230ca713a888",
+    "exit_code": 0,
+    "original_sha256_after": "236fbbbf9ce21e7c17858a928c16e0113871798e5456f7a524b8230ca713a888",
+    "copied_sha256_after": "dad3484923f37770e8719d9a5c56c846315690e8b9a6252b05ec73edfa0d35d8",
+    "completed_utc": "2026-10-01T06:07:49.465007+00:00",
+    "actual": {
+      "freecad_version": [
+        "1",
+        "1",
+        "4",
+        "20260928 (Git shallow)",
+        "Unknown",
+        "2026/09/28 13:46:34",
+        "(HEAD detached at 4fd3bf320)",
+        "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+      ],
+      "before_center": [
+        -2.0,
+        -3.0,
+        0.0
+      ],
+      "constraints_before": [
+        {
+          "index": 0,
+          "name": "locator_radius",
+          "value": 4.0
+        },
+        {
+          "index": 1,
+          "name": "center_offset",
+          "value": 2.0
+        }
+      ],
+      "after_center": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "move_return": null,
+      "constraints_after": 0,
+      "valid": true
+    },
+    "status": "PASS_ACTUAL_EXPLICIT_ORIGIN_MOVE_INPUT_PROBE"
+  },
+  "unsupported_legacy_api_probe": {
+    "outcome": "FAIL",
+    "error": "Sketcher.SketchObject has no movePoint in installed1.1.4",
+    "receipt_sha256": "32944fdcc52db3af84ae0c677d9a1912ec56f291958eba3931b6b5f8f4fdd82f",
+    "original_unchanged": true,
+    "scope": "Copy-only API attempt; wrapperexit0/noresult is not native success"
+  },
+  "closed_failed_run_retention": {
+    "manifest": "artifacts/p1-native-edits-20261001-01/retained-failure-01/manifest.json",
+    "sha256": "ac00073e3f5e4869d5b63adf52848c1db06935d2f49ad8b6df0d7a50c22b8b21",
+    "file_count": 161,
+    "size_bytes": 5172603,
+    "original_copy_hashes_sizes_equal": true,
+    "native_cad_binary_artifacts_retained": true,
+    "credentials_runtime_cache_executables_copied": false,
+    "source_archive_scope": "237 archived core files exactly match committed Git blob bytes; PAXc141 and fixture gitlink3e48 verified. No original-working-copy-byte claim.",
+    "source_archive_sha256": "06945c636ada3b7c49831d67ba3d9ebb8601f393cd4c8611e0235c428f8f14fd",
+    "independent_review": "PASS /root/managed_project_checks;161original/copy/hash/size and237Gitblob bytes, original56positive experiment files unchanged; actual run01 remainsFAIL"
+  },
+  "independent_official_source_investigation": {
+    "reviewer": "/root/official_project_workflow",
+    "outcome": "CONFIRMED_FIXTURE_FREE_COORDINATE_RETENTION; NAMED_SELECTOR_CORRECT_IN_CLOSED_CASES",
+    "source_commit": "4fd3bf320d9566a27e60069fc8387448aaa3a094",
+    "links": [
+      "https://github.com/FreeCAD/FreeCAD/blob/4fd3bf320d9566a27e60069fc8387448aaa3a094/src/Mod/Sketcher/App/SketchObject.cpp#L2384",
+      "https://github.com/FreeCAD/FreeCAD/blob/4fd3bf320d9566a27e60069fc8387448aaa3a094/src/Mod/Sketcher/App/SketchObject.pyi#L592",
+      "https://github.com/FreeCAD/FreeCAD/blob/4fd3bf320d9566a27e60069fc8387448aaa3a094/src/Mod/Sketcher/App/GeoEnum.h#L77",
+      "https://github.com/FreeCAD/FreeCAD/blob/4fd3bf320d9566a27e60069fc8387448aaa3a094/src/Mod/Sketcher/App/Sketch.cpp#L5328"
+    ]
+  },
+  "actual_runtime": {
+    "FreeCAD_AppImage_sha256": "f6dc6ba676e5ac96a565ebc8d657232f94c6158e85b4352141bd1a46f6b43434",
+    "existing_wrapper_sha256": "1cb172de7eacb59b8c8cbb7f22192d903bb72b5c0649ce94a9643edd96629276",
+    "FreeCAD_version": [
+      "1",
+      "1",
+      "4",
+      "20260928 (Git shallow)",
+      "Unknown",
+      "2026/09/28 13:46:34",
+      "(HEAD detached at 4fd3bf320)",
+      "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+    ]
+  },
+  "exact_c141_ci": {
+    "id": 36821642536,
+    "source_commit": "c141ae06fcce5ba48d50a0f8de9d8ae33ac3ec24",
+    "conclusion": "failure",
+    "native": "failure",
+    "other_successful_jobs": 7,
+    "scope": "Native benchmark failure; solver CI successes do not qualify engineering release",
+    "native_failed_log_sha256": "f258f18fd382550bb969e18e73f24af7db36832835694b9c4aeb1946a15d42d7",
+    "same_failed_comparison": "sketch-after-delete centroidY -3 vs0 at unchanged1e-5; actual CI failed log inspected"
+  },
+  "new_full_clean_source_run": "NOT_RUN",
+  "new_exact_source_ci": "NOT_RUN",
+  "engineering_decision": "NOT_RELEASED",
+  "solver_status": "NOT_RUN",
+  "remaining": "Commit/push fixture input correction; fresh run02 with every original reference/tolerance, immutable history checks, exactCI and independent actual-output/retention review before P1.2a closure. P1.2b/P1.3/fullPhase1 remainOPEN."
+}

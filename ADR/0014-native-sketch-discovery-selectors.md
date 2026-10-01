@@ -96,3 +96,24 @@ cross-file registry write recovery require separate P1.2b work. Engineering
 UNKNOWN, NOT_RELEASED and solver NOT_RUN remain; numerical optimization is
 unaffected. The OpenScience contract continues to treat native selectors as
 opaque values only at discovery/registration boundaries.
+
+### Retained first actual corrected-source failure
+
+Clean c141ae0 / run p1-native-edits-20261001-01 passes both imported Part cases
+and the named radius/new X selection. After removing the temporary Y dimension,
+its free coordinate remains-3 rather than the fixture's declared0. The numerical
+comparison fails and original result/raw native metrics are retained; this is
+not interpreted as a selector failure or full native acceptance.
+
+Correct only the acceptance input: after deleting constraints explicitly move
+the existing circle center to the declared origin before adding the same named
+dimensions. Use FreeCAD1.1.4 `moveGeometry(0,3,Vector(0,0,0),False)`;
+`movePoint` is absent in this installed version. A copy-only actual API probe
+confirms center[-2,-3,0] to[0,0,0] without altering the failed original. Keep
+all earlier analytical responses, signed coordinates and tolerances unchanged.
+No production adapter resets an engineer's geometry. Full corrected rerun uses
+a new clean-source store and remains a separate acceptance gate.
+The installed-commit [API declaration](https://github.com/FreeCAD/FreeCAD/blob/4fd3bf320d9566a27e60069fc8387448aaa3a094/src/Mod/Sketcher/App/SketchObject.pyi#L592)
+and [absolute circle movement](https://github.com/FreeCAD/FreeCAD/blob/4fd3bf320d9566a27e60069fc8387448aaa3a094/src/Mod/Sketcher/App/Sketch.cpp#L5328)
+support this input setup. The [deletion implementation](https://github.com/FreeCAD/FreeCAD/blob/4fd3bf320d9566a27e60069fc8387448aaa3a094/src/Mod/Sketcher/App/SketchObject.cpp#L2384)
+removes the constraint without a canonical-origin reset.

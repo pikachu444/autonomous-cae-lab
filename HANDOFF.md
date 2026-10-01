@@ -2,6 +2,18 @@
 
 ## Authoritative serial queue from the project owner
 
+CURRENT actual c141ae0 run01 FAILED after4positive native comparisons and4
+expected refusals: deleting temporaryY retains-3 rather than declared0. Exact
+CI36821642536 also nativeFAIL/other7PASS. Retain original failure,5generated
+experiments and161files/5,172,603bytes; never reinterpret as fullP1.2a PASS.
+Official installed-commit moveGeometry API and copy-only probe confirm explicit
+origin input setup; old unsupported movePoint probe is retained. Fix only
+synthetic fixture setup, no reference/tolerance/production adapter change.
+NEXT commit/push tiny fixture correction, NEW clean-source run02 store, actual
+outputs/retention/review before closingP1.2a. Record20261001-native-edit-coordinate-correction.json.
+Native OpenScience remains STOPPED with approved5.6 Sol/auth; no reinstall/login.
+Earlier next instructions below are superseded by this current queue.
+
 ACTIVE P1.2a: clean671/fixture3e48 locally re-executed the unchanged native
 baseline and reproduced a new imported/edited Sketcher discovery failure.
 Old radius key0 survives by name at1; inserted center_x0 is missing. Old run

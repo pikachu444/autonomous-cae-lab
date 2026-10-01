@@ -21,6 +21,14 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+Actual c141ae0 native edit run01 FAILED at freeY=-3 vs canonical0 after deleting
+temporary dimension, with4positive comparisons/4expected refusals already PASS.
+Exact CI36821642536:7PASS/nativeFAIL. Failure and161-file retention are separate
+from a copy-only actual moveGeometry input correction probe PASS. Only fixture
+origin setup changes; all expected responses/tolerances/Core/adapters/52requirements
+stay unchanged. NEW clean-source run02 and actual review required; fullP1.2a,
+P1.2b/P1.3/Phase1 remain open. See20261001-native-edit-coordinate-correction.json.
+
 P1.2a now has actual clean671 existing native baseline PASS and a retained
 imported/edited Sketcher red case (inserted center_x omitted after named radius
 index shift). ADR0014 owned selector/identity correction is in source admission;

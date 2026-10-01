@@ -40,6 +40,10 @@ reproduced the inserted-dimension discovery gap. ADR0014 correction source and
 actual read-only installed worker probe are separately admitted; corrected full
 clean-source edit/reorder acceptance remains required before P1.2b. See
 `20261001-native-edits-source.json`; no fullPhase1/engineering completion claim.
+First clean c141 actual run01/CI failed at retained freeY=-3 vs declared0 after
+temporary dimension deletion. Correct only acceptance origin input through the
+official actual-probed moveGeometry API. Unchanged references/tolerances require
+a NEW clean-source run02; failed old metrics/161-file retention remain distinct.
 One independent reviewer may examine this unit; this does not authorize parallel
 feature development. Root owns shared interfaces, integration and decisions.
 

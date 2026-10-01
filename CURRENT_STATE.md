@@ -2,6 +2,21 @@
 
 ## Current serial work: P1.2a imported/edited native CAD
 
+Latest actual source c141ae06fcce5ba48d50a0f8de9d8ae33ac3ec24 is committed/pushed.
+Run p1-native-edits-20261001-01 FAIL:4positive analytical cases/4expected
+precondition refusals pass, then deletion leaves free Y=-3 where synthetic
+input declares0. Native metrics/result/failed comparison remain unchanged.
+161files/5,172,603bytes retained with original/copy hashes and c141 source
+archive (`core.autocrlf=false`; exact blob scope independently checked).
+Exact CI36821642536 has7PASS/nativeFAIL; no fullP1.2a claim. Independent official
+source investigation confirms coordinate retention. Correct only acceptance
+input via moveGeometry origin before readding dimensions; actual COPY probe
+PASS/failed original hash unchanged. Legacy movePoint probe FAILED (API absent)
+and is retained. All references/tolerances/production adapters/52 rows unchanged.
+NEXT commit this small fixture correction and run NEW clean-source store02,
+then actual outputs/retention/independent review. See20261001-native-edit-coordinate-correction.json.
+Prior next instructions below are historical; P1.2b/P1.3 remain queued.
+
 Clean671/fixture3e48 actual existing native baseline passed in new store
 `p1-native-edit-baseline-20261001-01`. New imported FCStd edit case
 `p1-native-edits-red-20261001-01` reproduced omitted inserted center_x0 after
