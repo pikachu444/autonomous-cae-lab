@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.openscience-managed-directory-correction",
+  "phase": "P1.1",
+  "source_parent": "0069ce9c2f08c29febb0af0f98dac7f6b5070d46",
+  "implementation_commit": "Commit introducing this record; actual metadata helper bytes are separately attributed",
+  "openscience_source_pin": "4082a2ecb73e166d4503963798228ba700f3840f",
+  "outcome": "PASS_SOURCE_CHECKS_AND_ACTUAL_METADATA_OLD_OWNED_STOP",
+  "hash_basis": "As-run working bytes; later Git checkout normalization is distinct",
+  "source_files": {
+    "scripts/openscience-project.ps1": "80fcfd5438ca5c60930a25aad4b768bc6ed929c2e82e7f93591d03d5d86614a8",
+    "scripts/verify_openscience_project.ps1": "3edeb1658ed48dd3ef1f9d853855a02b54a150d86b69be5c1b99e2706ffb5f9c",
+    "openscience/native_guard.mjs": "befc2220b802ab7c357bd9974bdb8bd0f4b26ccd40bbb1372683c0737a922b0a",
+    "openscience/tests/native_guard.test.mjs": "640e094ee7e7d19977f90beb4eae24db025b916678f83c2257573ed1bb70fea0"
+  },
+  "checks": {
+    "project_run": "managed-directory-final-20261001-01",
+    "project_pass": 130,
+    "project_fail": 0,
+    "project_receipt_sha256": "f4b3ea6eef74c4dd77a806ece571d24d8b623ea6a24f0e21babda339e4127983",
+    "project_source_snapshot": "STABLE",
+    "project_scope": "Synthetic auth and HTTP/runtime, actual read-only OS path/junction fixtures; zero server/native/provider/model/Core starts",
+    "node_run": "native-guard-grant-uuid-correction-20261001-fcab5addc7774a57b223795c0b460edc",
+    "node_pass": 45,
+    "node_fail": 0,
+    "node_duration_ms": 12965.6688,
+    "node_output_sha256": "90d78d99618b81142f8dd1ed782862b12bea2c81d3efc36a6c2f589a427fd278",
+    "node_verification_sha256": "e8dad19f9d2eed7351178abd61e66eaaff03e1a6754555edc4ce9f191c2f3c22",
+    "node_scope": "Mocked session/filesystem and synthetic source capture; zero provider/Core/MCP/CAD",
+    "independent_guard_review": "PASS_READ_ONLY_EXACT_HASHES; no open P1/P2",
+    "independent_path_review": "PASS_READ_ONLY path implementation at c1ce91ef45742df1edf825ba0d3666275df5bf7be9bdbdadade60e0e2d7e492d after logical-chain postcheck/root repeat; final grant syntax follows separately reviewed native contract and Root final-byte 130-check suite"
+  },
+  "actual_metadata": {
+    "old_server_source_commit": "5365ae8ac6dd6961766358bc0a6b1cfd769a473a",
+    "operation_id": "01723327-6a01-4cb7-8db9-1c112880aec8",
+    "project_id": "prj_8e672ff2d300416189536cb29aad15a4",
+    "grant_id": "fsg_7af276cb-370a-468e-9c54-39ba96612dfd",
+    "project_leaf": "a09d398ff578ab7ceaea5ecc124c995da3b0f530aecbcc0727f061eada2e4d78",
+    "project_leaf_matches_official_operation_digest": true,
+    "attempts": [
+      {
+        "attempt": 1,
+        "create_status": 201,
+        "working_root_put": "NOT_RUN",
+        "outcome": "REFUSED_LOGICAL_VS_PHYSICAL_MSIX_DATA_ROOT",
+        "failure_sha256": "d20d268f7a8af2d8287f371d36f840ae3f5435ba914193e1c26bdbc92d978914",
+        "create_response_sha256": "9884bdedd0f428753e8625a570725aa7c2a98838471f1c71fbbdf4dc3357d7ed"
+      },
+      {
+        "attempt": 2,
+        "create_status": 200,
+        "working_root_put_status": 200,
+        "filesystem_status": 200,
+        "outcome": "REFUSED_ALPHANUMERIC_ONLY_GRANT_ID_CHECK",
+        "failure_sha256": "b481756d2ef6aa3c1f0127c32bd426a5d50a9a61882c457b75604bbb062e805c"
+      },
+      {
+        "attempt": 3,
+        "create_status": 200,
+        "working_root_put_status": 200,
+        "filesystem_status": 200,
+        "outcome": "PASS_EXACT_PROJECT_WRITE_GRANT_WORKING_ROOT_AND_OLD_OWNED_STOP",
+        "as_run_helper_sha256": "650a82424422d90b42c96f2951225d59b7abbb7e09e52e511a6b79847a456eba",
+        "as_run_helper_scope": "Before final v4/variant/full-string syntax tightening; observed actual v4 ID also passes the final source checks",
+        "as_run_helper_full_bytes": "NOT_RETAINED separately; API snapshots/driver/receipts retained",
+        "driver_sha256": "51b866fde278f12be2b7ebb2a607ffc099656d246fb6ea6dc1728a5ce41f2e98",
+        "receipt_sha256": "c01e51a0a9fb88897e716c2f9ff8aa51d6f3635798870a18260e3d765d1bb42a",
+        "binding_sha256": "358286248bb036e04be7f5badae977917f30d43ee1f8172ad6fa0479fc73036c"
+      }
+    ],
+    "os_alias_final_path_probe_sha256": "b13ac4b3bb0f41d6b01d520b1419e6075f510efbde3dc694faf9d322e9a13e25",
+    "independent_same_directory_id_observation": "Logical and physical projects roots both 0x0000000000000000000d00000022200d",
+    "old_owner_state": "stopped",
+    "old_closed_utc": "2026-10-01T02:15:28.7437894Z",
+    "owned_native_controller_launcher_absent": true,
+    "port4098_listener_count_after_stop": 0,
+    "provider_calls": 0,
+    "model_calls": 0,
+    "core_calls": 0,
+    "cad_calls": 0,
+    "auth_or_old_immutable_context_rewritten": false
+  },
+  "baseline_ci": {
+    "source_commit": "0069ce9c2f08c29febb0af0f98dac7f6b5070d46",
+    "run_id": 36803910807,
+    "jobs_pass": 8,
+    "conclusion": "success",
+    "scope": "Parent managed source unit only; not this correction or fresh native/solver proof"
+  },
+  "retention": "Ignored Main artifacts/p1-managed-0069ce9-20261001-01 plus Serving historical-run managed-project-metadata-20261001-01/02/03 and old profile lifecycle receipts; no failed attempts or old research overwritten",
+  "limitations": {
+    "fresh_managed_native_loading": "NOT_RUN",
+    "fresh_model_research": "NOT_RUN",
+    "official_same_session_gui": "NOT_RUN",
+    "observed_busy_cancellation": "OPEN",
+    "historical_5365_initial_source_failure_cause": "UNKNOWN",
+    "full_p1_1": "OPEN",
+    "engineering_decision": "NOT_RELEASED"
+  },
+  "next": "Commit corrected source, update stopped serving checkout, launch NEW immutable native profile/store with existing authorized 5.6 Sol/auth, verify resident/full cases/official same-session GUI/busy cancellation/owned Stop",
+  "decision": "ADR/0013-managed-research-project-and-external-source-root.md"
+}

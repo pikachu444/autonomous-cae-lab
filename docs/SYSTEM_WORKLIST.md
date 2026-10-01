@@ -12,6 +12,10 @@ Currently only **P1.1** is active. Later rows are queued, not running.
 
 ## P1.1 — integrated OpenScience CAD research (ACTIVE)
 
+- [x] Preserve/replay official managed metadata, verify exact source grant/root,
+  and Stop historical5365 through its owned controller. Retain initial MSIX/UUID
+  failures; narrow correction/actual migration record is separate from research.
+
 - [x] Correct native policy-denial provider retries without weakening source
   gates; f45052d/source record/independent review/CI36800651394 all8PASS.
 - [x] Implement official managed identity/external source ownership across

@@ -1,5 +1,12 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+The official Windows data root uses fs.realpath of the explicit auth data folder.
+Managed directory checks resolve read-only OS handles and recheck logical/physical
+ancestors and the unchanged projects root; common containment stays strict.
+Connected project grants use exact fsg_ UUID v4 IDs; the binding/receipt equality
+remains literal. Syntax compatibility is not an ownership verdict. ADR0013 records
+actual metadata migration separately from fresh model/GUI acceptance.
+
 Managed native research distinguishes immutable OpenScience project identity
 from external RepoRoot. Server/relay and explicit APIs bind project ID/identity
 directory; MCP/import/source pin/store remain fixed to RepoRoot. Public hooks

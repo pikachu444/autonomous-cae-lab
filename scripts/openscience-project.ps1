@@ -1,18 +1,82 @@
 # Official managed-project identity is distinct from the external CAE source.
 # Loaded by the existing controller; no independent server/model entrypoint.
+function Get-OpenScienceDirectoryHandlePath([string]$Path) {
+        if (-not ('CaeLab.OpenScience.ManagedDirectoryPathV1' -as [type])) {
+            Add-Type -TypeDefinition @'
+using System;
+using System.Text;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
+namespace CaeLab.OpenScience {
+ public static class ManagedDirectoryPathV1 {
+  [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+  static extern SafeFileHandle CreateFileW(string name,uint access,uint share,IntPtr security,uint disposition,uint flags,IntPtr template);
+  [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+  static extern uint GetFinalPathNameByHandleW(SafeFileHandle file,StringBuilder path,uint size,uint flags);
+  public static string Resolve(string path) {
+   using(var handle=CreateFileW(path,0,7,IntPtr.Zero,3,0x02000000,IntPtr.Zero)) {
+    if(handle.IsInvalid) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+    var buffer=new StringBuilder(32768);
+    var count=GetFinalPathNameByHandleW(handle,buffer,(uint)buffer.Capacity,0);
+    if(count==0 || count>=buffer.Capacity) throw new InvalidOperationException("Directory final path cannot be resolved.");
+    return buffer.ToString();
+   }
+  }
+ }
+}
+'@ -ErrorAction Stop
+        }
+        $resolved = [CaeLab.OpenScience.ManagedDirectoryPathV1]::Resolve($Path)
+        Assert-OpenScienceCondition ($resolved -cmatch '^\\\\\?\\[A-Za-z]:\\') 'Managed directory final path must be a local drive.'
+        return [IO.Path]::GetFullPath($resolved.Substring(4))
+}
+
+function Assert-OpenScienceDirectoryAncestors([string]$Path) {
+    $candidate = $Path
+    while ($candidate) {
+        Assert-OpenScienceCondition (-not ((Get-Item -LiteralPath $candidate -Force -ErrorAction Stop).Attributes -band
+            [IO.FileAttributes]::ReparsePoint)) 'Managed directory must not traverse links or junctions.'
+        $next = Split-Path -Parent $candidate
+        if ($next -ceq $candidate) { break }
+        $candidate = $next
+    }
+}
+
+function Get-OpenScienceFinalDirectoryPath([string]$Path) {
+    $absolute = [IO.Path]::GetFullPath($Path)
+    Assert-OpenScienceCondition (Test-Path -LiteralPath $absolute -PathType Container) 'Managed directory must already exist.'
+    # MSIX can expose one directory through logical AppData and its private
+    # physical path. Resolve directory handles, never infer a Packages prefix.
+    Assert-OpenScienceDirectoryAncestors $absolute
+    $resolved = $(if ($IsWindows) { Get-OpenScienceDirectoryHandlePath $absolute } else { $absolute })
+    # Recheck both names: a changed logical alias must not hide behind a clean
+    # physical path returned from the handle opened after the first check.
+    Assert-OpenScienceDirectoryAncestors $absolute
+    Assert-OpenScienceDirectoryAncestors $resolved
+    return $resolved
+}
+
+function Assert-OpenScienceManagedProjectDirectory([string]$ProjectDirectory, [string]$DataRoot) {
+    $projects = Get-OpenScienceFinalDirectoryPath (Join-Path $DataRoot 'projects')
+    $project = Get-OpenScienceFinalDirectoryPath $ProjectDirectory
+    Assert-OpenScienceCondition ($projects -ceq (Get-OpenScienceFinalDirectoryPath (Join-Path $DataRoot 'projects'))) 'Managed projects root changed during directory validation.'
+    Assert-OpenScienceContainedPath $project $projects | Out-Null
+}
+
 function ConvertTo-OpenScienceProjectBinding {
     param([Parameter(Mandatory)][Collections.IDictionary]$Binding,
         [Parameter(Mandatory)][string]$RepoRoot, [Parameter(Mandatory)][string]$DataRoot)
     $keys = @('schema','kind','project_id','project_directory','source_directory','grant_id','working_root','access')
     Assert-OpenScienceCondition ($Binding.Count -eq $keys.Count -and @($keys | Where-Object { -not $Binding.Contains($_) }).Count -eq 0) 'Managed project binding has an unknown shape.'
     Assert-OpenScienceCondition ($Binding.schema -eq 1 -and $Binding.kind -ceq 'autonomous-cae-lab.openscience-project-binding' -and
-        $Binding.project_id -cmatch '^prj_[A-Za-z0-9]+$' -and $Binding.grant_id -cmatch '^fsg_[A-Za-z0-9]+$' -and
+        $Binding.project_id -cmatch '^prj_[A-Za-z0-9]+$' -and
+        $Binding.grant_id -cmatch '^fsg_(?:[A-Za-z0-9]{1,124}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})\z' -and
         $Binding.access -ceq 'write') 'Managed project identity/grant is invalid.'
     foreach ($key in @('project_directory','source_directory','working_root')) {
         Assert-OpenScienceCondition ($Binding[$key] -is [string] -and [IO.Path]::IsPathRooted($Binding[$key]) -and
             [IO.Path]::GetFullPath($Binding[$key]) -ceq $Binding[$key]) 'Managed project paths must be exact absolute paths.'
     }
-    Assert-OpenScienceContainedPath $Binding.project_directory (Join-Path $DataRoot 'projects') | Out-Null
+    Assert-OpenScienceManagedProjectDirectory $Binding.project_directory $DataRoot
     Assert-OpenScienceCondition ($Binding.source_directory -ceq [IO.Path]::GetFullPath($RepoRoot) -and
         $Binding.working_root -ceq $Binding.source_directory -and $Binding.project_directory -cne $Binding.source_directory) 'Managed working root must be the exact external CAE source.'
     $result = [ordered]@{}
@@ -102,7 +166,7 @@ function New-OpenScienceManagedProjectBinding {
     Assert-OpenScienceCondition ($project.id -cmatch '^prj_[A-Za-z0-9]+$' -and $project.worktree -is [string] -and
         [IO.Path]::IsPathRooted($project.worktree)) 'Official create response has no exact managed identity.'
     $projectDirectory = [IO.Path]::GetFullPath($project.worktree)
-    Assert-OpenScienceContainedPath $projectDirectory (Join-Path $current.Environment.OPENSCIENCE_DATA_DIR 'projects') | Out-Null
+    Assert-OpenScienceManagedProjectDirectory $projectDirectory $current.Environment.OPENSCIENCE_DATA_DIR
     $headers = @{'x-openscience-project'=$project.id;'x-openscience-directory'=$projectDirectory}
     $rootResponse = Invoke-WebRequest -Uri "$($current.RuntimeURL)/project/current/working-root" -Method PUT -Headers $headers -ContentType 'application/json' `
         -Body (@{workingRoot=$current.RepoRoot} | ConvertTo-Json -Compress) -TimeoutSec 20 -MaximumRedirection 0 -SkipHttpErrorCheck -ErrorAction Stop

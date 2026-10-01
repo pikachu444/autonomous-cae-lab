@@ -557,6 +557,42 @@ test('managed binding schema and exact immutable source fields fail closed', t =
   assert.equal(f.counts.capture, 0); assert.equal(f.counts.session, 0); assert.equal(f.counts.filesystem, 0);
 });
 
+test('official v4 UUID grant IDs admit only the exact bound project grant', async t => {
+  // Exact official 4082 filesystem.ts:402-408 generator: fsg_${crypto.randomUUID()}.
+  const observed = 'fsg_7af276cb-370a-468e-9c54-39ba96612dfd';
+  for (const grantID of [observed, observed.toUpperCase().replace('FSG_', 'fsg_')]) {
+    const f = managedFixture(t);
+    f.binding.grant_id = grantID;
+    f.state.filesystem.grants[0].id = grantID;
+    f.state.filesystem.grants[0].source = 'api';
+    json(f.settingsPath, f.settings);
+    const hooks = f.hooks();
+    for (const hook of ['chat.params', 'tool.execute.before'])
+      await hooks[hook]({ ...f.request(), tool: tools[0] }, {});
+    assert.equal(f.counts.capture, 3);
+    assert.ok(f.receipts().every(receipt => receipt.accepted));
+    f.state.filesystem.grants[0].id = 'fsg_5af276cb-370a-468e-9c54-39ba96612dfd';
+    for (const hook of ['chat.params', 'tool.execute.before']) {
+      await assert.rejects(hooks[hook]({ ...f.request(), tool: tools[0] }, {}), refusal('PROJECT_GRANT_CHANGED'));
+      assert.equal(f.receipts().at(-1).project_check.filesystem, 'FAIL');
+    }
+    assert.equal(f.counts.capture, 3);
+  }
+});
+
+test('malformed or non-v4 grant IDs are refused before metadata or source capture', t => {
+  const f = managedFixture(t), observed = 'fsg_7af276cb-370a-468e-9c54-39ba96612dfd';
+  for (const grantID of [null, '', 'fsg_', 'foreign', 'fsg_fixture-01', `fsg_${'a'.repeat(125)}`,
+    observed.replace('7af276cb', '7gf276cb'), observed.replace('-370a-', '-370-'),
+    observed.replace('-468e-', '-368e-'), observed.replace('-9c54-', '-7c54-'),
+    observed.replaceAll('-', '_'), `${observed}-extra`, `${observed}\n`, 'fsg_fixture01\n']) {
+    f.binding.grant_id = grantID;
+    json(f.settingsPath, f.settings);
+    assert.throws(f.hooks, refusal('PROJECT_BINDING_INVALID'));
+  }
+  assert.equal(f.counts.capture, 0); assert.equal(f.counts.session, 0); assert.equal(f.counts.filesystem, 0);
+});
+
 test('foreign initial project identity, client shape and non-loopback server are refused before capture', t => {
   const patches = [
     [f => { f.pluginInput.project.id = 'prj_foreign01'; }, 'PROJECT_INPUT_CHANGED'],

@@ -68,6 +68,197 @@ Invoke-ProjectCheck 'exact_eight_key_binding_round_trips' {
     Assert-OpenScienceCondition ($result.Count -eq 8 -and (Get-OpenScienceSourcePinSha256 $result) -ceq
         (Get-OpenScienceSourcePinSha256 $taskProjectBinding)) 'The validated binding changed.'
 }
+Invoke-ProjectCheck 'official_uuid_shaped_grant_id_preserves_exact_binding' {
+    $binding=Copy-ProjectValue $taskProjectBinding; $binding.grant_id='fsg_7af276cb-370a-468e-9c54-39ba96612dfd'
+    $converted=ConvertTo-OpenScienceProjectBinding $binding $taskProjectRepo $taskProjectAuth.DataRoot
+    Assert-OpenScienceCondition ($converted.Count -eq 8 -and $converted.grant_id -ceq $binding.grant_id -and
+        (Get-OpenScienceSourcePinSha256 $converted) -ceq (Get-OpenScienceSourcePinSha256 $binding)) 'Official UUID grant ID was refused or normalized into another identity.'
+}
+Invoke-ProjectCheck 'official_uppercase_hex_v4_grant_id_preserves_exact_binding' {
+    $binding=Copy-ProjectValue $taskProjectBinding; $binding.grant_id='fsg_7AF276CB-370A-468E-9C54-39BA96612DFD'
+    $converted=ConvertTo-OpenScienceProjectBinding $binding $taskProjectRepo $taskProjectAuth.DataRoot
+    Assert-OpenScienceCondition ($converted.grant_id -ceq $binding.grant_id -and
+        (Get-OpenScienceSourcePinSha256 $converted) -ceq (Get-OpenScienceSourcePinSha256 $binding)) 'Valid uppercase RFC4122 v4 hex changed literal grant identity.'
+}
+foreach($taskInvalidV4Grant in @('fsg_7af276cb-370a-568e-9c54-39ba96612dfd',
+    'fsg_7af276cb-370a-468e-7c54-39ba96612dfd')) {
+    Invoke-ProjectCheck ('wrong_rfc4122_version_or_variant_grant_' + $taskProjectChecks.Count + '_refused') {
+        $binding=Copy-ProjectValue $taskProjectBinding; $binding.grant_id=$taskInvalidV4Grant
+        Assert-ProjectRefused { ConvertTo-OpenScienceProjectBinding $binding $taskProjectRepo $taskProjectAuth.DataRoot }
+    }
+}
+foreach($taskInvalidGrant in @('fsg_7af276cb-370a-468e-9c54-39ba96612df',
+    'fsg_7gf276cb-370a-468e-9c54-39ba96612dfd','grant_7af276cb-370a-468e-9c54-39ba96612dfd')) {
+    Invoke-ProjectCheck ('malformed_or_foreign_uuid_grant_' + $taskProjectChecks.Count + '_refused') {
+        $binding=Copy-ProjectValue $taskProjectBinding; $binding.grant_id=$taskInvalidGrant
+        Assert-ProjectRefused { ConvertTo-OpenScienceProjectBinding $binding $taskProjectRepo $taskProjectAuth.DataRoot }
+    }
+}
+foreach($taskTrailingNewlineGrant in @("fsg_7af276cb-370a-468e-9c54-39ba96612dfd`n","fsg_fixture456`n")) {
+    Invoke-ProjectCheck ('grant_final_newline_' + $taskProjectChecks.Count + '_refused_as_non_exact_identity') {
+        $binding=Copy-ProjectValue $taskProjectBinding; $binding.grant_id=$taskTrailingNewlineGrant
+        Assert-ProjectRefused { ConvertTo-OpenScienceProjectBinding $binding $taskProjectRepo $taskProjectAuth.DataRoot }
+    }
+}
+
+# Resolve only fresh synthetic directories. Keep every fixture, including
+# junctions, for inspection; never infer an MSIX/LocalCache prefix or delete it.
+$taskProjectDirectoryFixture = [ordered]@{root=(Join-Path $taskProjectRoot 'directory-resolution-fixture');
+    observed_auth_projects_alias=$null;logical_auth_projects=(Join-Path $taskProjectAuth.DataRoot 'projects');
+    resolved_auth_projects=$null;resolver_alias_scope='synthetic resolver mapping, not an actual MSIX execution'}
+function Invoke-ProjectDirectoryFixture {
+    $fixtureRoot=$taskProjectDirectoryFixture.root
+    $data=Join-Path $fixtureRoot 'data'
+    $projects=Join-Path $data 'projects'
+    $owned=Join-Path $projects 'owned-project'
+    $foreign=Join-Path $fixtureRoot 'foreign-project'
+    $sibling=Join-Path $data 'projects-sibling/project'
+    $nonDirectory=Join-Path $projects 'ordinary-file.txt'
+    $logicalData=Join-Path $fixtureRoot 'logical-data'
+    $logicalProjects=Join-Path $logicalData 'projects'
+    $physicalData=Join-Path $fixtureRoot 'physical-data'
+    $physicalProjects=Join-Path $physicalData 'projects'
+    $physicalProject=Join-Path $physicalProjects 'alias-project'
+    $foreignData=Join-Path $fixtureRoot 'foreign-data'
+    foreach($directory in @($owned,$foreign,$sibling,$logicalProjects,$physicalProject,(Join-Path $foreign 'child'),
+        (Join-Path $foreignData 'projects/foreign-child'))) {
+        New-Item -ItemType Directory -Path $directory -Force -ErrorAction Stop | Out-Null
+    }
+    [IO.File]::WriteAllText($nonDirectory,'synthetic ordinary file; not a directory')
+    Invoke-ProjectCheck 'existing_normal_directory_final_path_is_normalized' {
+        $resolved=Get-OpenScienceFinalDirectoryPath $owned
+        Assert-OpenScienceCondition ([IO.Path]::IsPathRooted($resolved) -and [IO.Path]::GetFullPath($resolved) -ceq $resolved -and
+            $resolved.TrimEnd([IO.Path]::DirectorySeparatorChar) -ieq [IO.Path]::GetFullPath($owned)) 'The normal existing directory was not resolved to a normalized final path.'
+    }
+    Invoke-ProjectCheck 'existing_owned_project_final_containment_accepted' { Assert-OpenScienceManagedProjectDirectory $owned $data }
+    Invoke-ProjectCheck 'os_resolved_project_binding_preserves_exact_literal_identity' {
+        $finalProjects=Get-OpenScienceFinalDirectoryPath $taskProjectDirectoryFixture.logical_auth_projects
+        $finalProject=Get-OpenScienceFinalDirectoryPath $taskProjectIdentity
+        $taskProjectDirectoryFixture.resolved_auth_projects=$finalProjects
+        $taskProjectDirectoryFixture.observed_auth_projects_alias=($finalProjects -cne $taskProjectDirectoryFixture.logical_auth_projects)
+        $binding=Copy-ProjectValue $taskProjectBinding; $binding.project_directory=$finalProject
+        $converted=ConvertTo-OpenScienceProjectBinding $binding $taskProjectRepo $taskProjectAuth.DataRoot
+        Assert-OpenScienceCondition ((Get-OpenScienceSourcePinSha256 $converted) -ceq (Get-OpenScienceSourcePinSha256 $binding)) 'OS final path validation changed the literal eight-key identity.'
+    }
+    Invoke-ProjectCheck 'missing_directory_final_path_refused' {
+        Assert-ProjectRefused { Get-OpenScienceFinalDirectoryPath (Join-Path $projects 'missing-project') }
+    }
+    Invoke-ProjectCheck 'ordinary_file_final_directory_path_refused' { Assert-ProjectRefused { Get-OpenScienceFinalDirectoryPath $nonDirectory } }
+    Invoke-ProjectCheck 'missing_owned_project_directory_refused' {
+        Assert-ProjectRefused { Assert-OpenScienceManagedProjectDirectory (Join-Path $projects 'missing-project') $data }
+    }
+    Invoke-ProjectCheck 'ordinary_file_cannot_be_managed_project_directory' {
+        Assert-ProjectRefused { Assert-OpenScienceManagedProjectDirectory $nonDirectory $data }
+    }
+    Invoke-ProjectCheck 'missing_owned_data_projects_directory_refused' {
+        Assert-ProjectRefused { Assert-OpenScienceManagedProjectDirectory $owned (Join-Path $fixtureRoot 'missing-data') }
+    }
+    Invoke-ProjectCheck 'foreign_existing_project_directory_refused' { Assert-ProjectRefused { Assert-OpenScienceManagedProjectDirectory $foreign $data } }
+    Invoke-ProjectCheck 'sibling_directory_prefix_is_not_project_containment' { Assert-ProjectRefused { Assert-OpenScienceManagedProjectDirectory $sibling $data } }
+    Invoke-ProjectCheck 'owned_projects_root_is_not_a_project_child' { Assert-ProjectRefused { Assert-OpenScienceManagedProjectDirectory $projects $data } }
+
+    # A scoped resolver fixture reproduces different logical/final path strings
+    # even on an unpackaged PowerShell host. All final directories are real,
+    # existing directories; only the OS alias observation is mocked here.
+    $actualResolver=(Get-Command Get-OpenScienceFinalDirectoryPath -CommandType Function).ScriptBlock
+    function Invoke-ProjectAliasFixture {
+        function Get-OpenScienceFinalDirectoryPath([string]$Path) {
+            $absolute=[IO.Path]::GetFullPath($Path)
+            if($absolute -ceq [IO.Path]::GetFullPath($logicalProjects)) { return & $actualResolver $physicalProjects }
+            return & $actualResolver $absolute
+        }
+        $binding=Copy-ProjectValue $taskProjectBinding; $binding.project_directory=[IO.Path]::GetFullPath($physicalProject)
+        Invoke-ProjectCheck 'distinct_logical_and_final_directory_alias_preserves_exact_binding' {
+            Assert-OpenScienceCondition ($logicalProjects -cne $physicalProjects -and
+                (Get-OpenScienceFinalDirectoryPath $logicalProjects) -ceq (Get-OpenScienceFinalDirectoryPath $physicalProjects)) 'Synthetic alias fixture did not resolve different paths to one final directory.'
+            $converted=ConvertTo-OpenScienceProjectBinding $binding $taskProjectRepo $logicalData
+            Assert-OpenScienceCondition ($converted.Count -eq 8 -and (Get-OpenScienceSourcePinSha256 $converted) -ceq
+                (Get-OpenScienceSourcePinSha256 $binding)) 'Accepted physical alias changed literal binding identity.'
+        }
+        Invoke-ProjectCheck 'logical_alias_resolution_still_refuses_foreign_existing_project' {
+            $binding.project_directory=[IO.Path]::GetFullPath($foreign)
+            Assert-ProjectRefused { ConvertTo-OpenScienceProjectBinding $binding $taskProjectRepo $logicalData }
+        }
+    }
+    Invoke-ProjectAliasFixture
+    function Invoke-ProjectRootDriftFixture {
+        $driftData=Join-Path $fixtureRoot 'drift-logical-data'
+        $driftLogicalProjects=Join-Path $driftData 'projects'
+        $firstRoot=Join-Path $fixtureRoot 'drift-physical-a/projects'
+        $secondRoot=Join-Path $fixtureRoot 'drift-physical-b/projects'
+        $project=Join-Path $firstRoot 'project'
+        foreach($directory in @($driftLogicalProjects,$project,$secondRoot)) {
+            New-Item -ItemType Directory -Path $directory -Force -ErrorAction Stop | Out-Null
+        }
+        $state=@{root_reads=0;project_reads=0}
+        function Get-OpenScienceFinalDirectoryPath([string]$Path) {
+            $absolute=[IO.Path]::GetFullPath($Path)
+            if($absolute -ceq [IO.Path]::GetFullPath($driftLogicalProjects)) {
+                $state.root_reads++
+                return & $actualResolver $(if($state.root_reads -eq 1){$firstRoot}else{$secondRoot})
+            }
+            if($absolute -ceq [IO.Path]::GetFullPath($project)){$state.project_reads++}
+            return & $actualResolver $absolute
+        }
+        Invoke-ProjectCheck 'trusted_projects_final_root_drift_after_project_resolution_refused' {
+            Assert-ProjectRefused { Assert-OpenScienceManagedProjectDirectory $project $driftData }
+            Assert-OpenScienceCondition ($state.root_reads -eq 2 -and $state.project_reads -eq 1) 'Trusted root was not re-resolved after the candidate project.'
+        }
+    }
+    Invoke-ProjectRootDriftFixture
+    if($IsWindows) {
+        $junction=Join-Path $projects 'junction-escape'
+        $dataJunction=Join-Path $fixtureRoot 'data-junction'
+        Invoke-ProjectCheck 'synthetic_junction_fixture_created_and_retained' {
+            New-Item -ItemType Junction -Path $junction -Target $foreign -ErrorAction Stop | Out-Null
+            New-Item -ItemType Junction -Path $dataJunction -Target $foreignData -ErrorAction Stop | Out-Null
+            Assert-OpenScienceCondition ((Get-Item -LiteralPath $junction -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) 'Fixture did not create a real directory reparse point.'
+        }
+        Invoke-ProjectCheck 'final_directory_handle_refuses_direct_junction_escape' { Assert-ProjectRefused { Get-OpenScienceFinalDirectoryPath $junction } }
+        Invoke-ProjectCheck 'final_directory_handle_refuses_junction_in_existing_ancestor' {
+            Assert-ProjectRefused { Get-OpenScienceFinalDirectoryPath (Join-Path $junction 'child') }
+        }
+        Invoke-ProjectCheck 'managed_project_refuses_direct_junction_escape' { Assert-ProjectRefused { Assert-OpenScienceManagedProjectDirectory $junction $data } }
+        Invoke-ProjectCheck 'managed_project_refuses_junction_in_existing_ancestor' {
+            Assert-ProjectRefused { Assert-OpenScienceManagedProjectDirectory (Join-Path $junction 'child') $data }
+        }
+        Invoke-ProjectCheck 'managed_data_root_refuses_junction_ancestor_even_with_matching_final_project' {
+            Assert-ProjectRefused { Assert-OpenScienceManagedProjectDirectory (Join-Path $foreignData 'projects/foreign-child') $dataJunction }
+        }
+        function Invoke-ProjectAncestorRaceFixture {
+            $raceLogicalProjects=Join-Path $fixtureRoot 'race-logical-data/projects'
+            $raceLogicalProject=Join-Path $raceLogicalProjects 'project'
+            $racePhysicalProjects=Join-Path $fixtureRoot 'race-physical-data/projects'
+            $racePhysicalProject=Join-Path $racePhysicalProjects 'project'
+            $racePreservedProjects=Join-Path $fixtureRoot 'race-original-projects-preserved'
+            foreach($directory in @($raceLogicalProject,$racePhysicalProject)) {
+                New-Item -ItemType Directory -Path $directory -Force -ErrorAction Stop | Out-Null
+            }
+            $actualHandle=(Get-Command Get-OpenScienceDirectoryHandlePath -CommandType Function).ScriptBlock
+            $state=@{injected=$false}
+            function Get-OpenScienceDirectoryHandlePath([string]$Path) {
+                Assert-OpenScienceCondition ($Path -ceq [IO.Path]::GetFullPath($raceLogicalProject) -and -not $state.injected) 'Synthetic race wrapper received an unexpected directory.'
+                # Both move endpoints are checked against the unique fixture
+                # before the native PowerShell move. The original directory and
+                # new junction remain available; no recursive deletion occurs.
+                Assert-OpenScienceContainedPath $raceLogicalProjects $fixtureRoot | Out-Null
+                Assert-OpenScienceContainedPath $racePreservedProjects $fixtureRoot | Out-Null
+                Move-Item -LiteralPath $raceLogicalProjects -Destination $racePreservedProjects -ErrorAction Stop
+                New-Item -ItemType Junction -Path $raceLogicalProjects -Target $racePhysicalProjects -ErrorAction Stop | Out-Null
+                $state.injected=$true
+                return & $actualHandle $racePhysicalProject
+            }
+            Invoke-ProjectCheck 'logical_ancestor_junction_inserted_after_precheck_is_refused' {
+                Assert-ProjectRefused { Get-OpenScienceFinalDirectoryPath $raceLogicalProject }
+                Assert-OpenScienceCondition ($state.injected -and
+                    (Test-Path -LiteralPath $racePreservedProjects -PathType Container) -and
+                    ((Get-Item -LiteralPath $raceLogicalProjects -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) 'The real ancestor race fixture was not inserted/preserved.'
+            }
+        }
+        Invoke-ProjectAncestorRaceFixture
+    }
+}
+Invoke-ProjectDirectoryFixture
 foreach ($taskInvalid in @(
     @('schema',2), @('kind','foreign-project-binding'), @('project_id','project_fixture'), @('grant_id','grant_fixture'),
     @('access','read'), @('project_directory',$taskProjectRepo),
@@ -433,6 +624,7 @@ $taskProjectRecord=[ordered]@{status=$(if($taskProjectFailures.Count){'FAIL_SYNT
     source_hashes_after=$taskProjectHashesAfter;concurrent_source_changes=$taskProjectChanged;
     source_snapshot_status=$(if($taskProjectChanged.Count){'CHANGED_DURING_EXECUTION'}else{'STABLE'});
     runtime_verification='read-only existing package/executable hashes and Node --version; native executable not launched';
+    directory_resolution_fixture=$taskProjectDirectoryFixture;
     generated_plugin_sha256=$taskProjectContext.PluginSha256;generated_settings_sha256=(Get-OpenScienceHash $taskProjectContext.PluginSettingsPath);
     profile_root=$taskProjectContext.ProfileRoot;binding=$taskProjectBinding;started_utc=$taskProjectStartedUtc;created_utc=[DateTime]::UtcNow.ToString('o')}
 Write-OpenScienceJson (Join-Path $taskProjectRoot 'synthetic-http-trace.json') @($taskProjectTrace) -CreateNew

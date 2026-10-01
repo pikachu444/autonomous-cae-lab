@@ -61,3 +61,24 @@ Official source pin4082a2ecb73e166d4503963798228ba700f3840f:
 [server selection](https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/backend/cli/src/server/server.ts#L378),
 [filesystem contract](https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/backend/cli/src/session/filesystem.ts#L98),
 [plugin input/client](https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/backend/cli/src/plugin/index.ts#L56).
+
+## Windows actual metadata correction
+
+The official explicit data root resolves fs.realpath(requested). Windows MSIX
+AppData virtualization can return a physical private LocalCache path for the
+same authorized logical directory. Read-only OS directory handles verify that
+alias; do not infer a Packages path, change auth/environment/owner, or broaden
+common lexical containment. Check existing logical ancestors before and after
+resolution, physical ancestors after resolution, and unchanged projects root
+across the returned-project read. Links, missing paths and foreign roots refuse.
+
+The official connected project grant generator emits fsg_ + crypto.randomUUID().
+Accept the current RFC4122 v4/variant/hex syntax and legacy bounded alphanumeric
+fixtures with complete-string matching. Exact grant identity/path/access/root
+comparison remains. This is narrower than the upstream prefix-only grant schema.
+Actual metadata/old owned Stop acceptance does not establish managed research.
+
+[official data root](https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/backend/cli/src/global/data-root.ts#L68),
+[official connected grant](https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/backend/cli/src/session/filesystem.ts#L402),
+[Microsoft AppData virtualization](https://learn.microsoft.com/en-us/windows/msix/desktop/desktop-to-uwp-behind-the-scenes#appdata-operations-on-windows-10-version-1903-and-later),
+[directory final path API](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew).

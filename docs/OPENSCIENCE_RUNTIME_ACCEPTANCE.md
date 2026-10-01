@@ -1,5 +1,16 @@
 # OpenScience local runtime acceptance — 2026-09-30
 
+## Actual managed metadata migration and narrow corrections, 2026-10-01
+
+First attempt201 created the official project; lexical containment refused its
+MSIX physical data directory before PUT. Same-operation replay200 selected the
+working root200, but the alphanumeric-only grant check refused the official UUID.
+Third replay passed the exact project/source grant/root and old owned Stop;
+native/controller/launcher absent and4098 closed. No model/Core/CAD calls. Preserve
+both failures and all old research. New source checks/independent reviews and
+actual migration have separate byte scope in20261001-openscience-managed-directory-correction.json.
+Fresh managed loading/research/GUI/busy cancellation remain OPEN.
+
 ## Managed project/source-root source unit, 2026-10-01
 
 Independent bounded source review PASS after closing the acceptance harness

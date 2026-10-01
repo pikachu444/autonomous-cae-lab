@@ -2,11 +2,18 @@
 
 ## Authoritative serial queue from the project owner
 
+Managed metadata migration is verified; old5365 owner is STOPPED with all owned
+PIDs absent and4098 released. Same operation replay preserved project/source grant.
+Failures01/02 are retained: official physical MSIX data root and hyphenated v4
+grant shape required narrow source corrections. NEXT is corrected-source commit,
+new immutable native profile/store and actual resident/full cases/GUI/busy cancel.
+Do not repeat creation with a new operation ID or rewrite old owner/auth.
+
 Managed-project/source-root ownership implementation and independent source
 review are complete. Source checks have distinct run/byte scope; no actual
 managed research yet. See ADR0013 and20261001-openscience-managed-project-source.json.
 Prior retry correction is pushed asf45052d, exact CI36800651394 all8PASS.
-NEXT: load exact old serving controller library plus new stateless project helper,
+COMPLETED migration sequence: load exact old serving controller library plus new stateless project helper,
 pause native forwards, create official project metadata, then owned Stop. Update
 the stopped serving checkout to the new source, use a NEW profile/store and the
 same authorized5.6 Sol/auth. Never relax old script-path/hash ownership or rewrite

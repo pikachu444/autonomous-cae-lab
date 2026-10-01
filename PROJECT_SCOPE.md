@@ -21,6 +21,11 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Status vocabulary
 
+2026-10-01 managed metadata migration: same official project/source grant/default
+root verified and historical5365 runtime owned Stop confirmed. Physical MSIX root
+and v4 grant-ID source corrections do not promote fullP1.1 or engineering status.
+All52 rows retained; fresh actual managed research/GUI/busy cancellation remain OPEN.
+
 2026-10-01 managed project/source-root source checkpoint: official identity,
 external source write grant/default root, GUI session ownership and lifecycle
 selection are implemented with independently reviewed bounded source checks.

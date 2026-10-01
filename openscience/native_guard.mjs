@@ -23,6 +23,9 @@ const nativeProjectBindingKeys = Object.freeze([
 const nativeProjectReadTimeoutMs = 5000;
 const nativeProjectResponseBound = 128 * 1024;
 const nativeSessionId = value => typeof value === 'string' && /^ses_[A-Za-z0-9]{1,124}$/.test(value);
+// Official project grants use crypto.randomUUID() (v4); retain bounded legacy IDs.
+const nativeGrantId = value => typeof value === 'string' &&
+  /^fsg_(?:[A-Za-z0-9]{1,124}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$/.exec(value)?.[0] === value;
 const nativeGuardKeys = Object.freeze([
   'schema', 'kind', 'repo_root', 'run_name', 'profile_root', 'model', 'allowed',
   'required', 'no_tools', 'stopping', 'updated_utc',
@@ -146,7 +149,7 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
       exactKeys(binding, nativeProjectBindingKeys, 'PROJECT_BINDING_INVALID');
       if (binding.schema !== 1 || binding.kind !== 'autonomous-cae-lab.openscience-project-binding' ||
           typeof binding.project_id !== 'string' || !/^prj_[A-Za-z0-9]{1,124}$/.test(binding.project_id) ||
-          typeof binding.grant_id !== 'string' || !/^fsg_[A-Za-z0-9]{1,124}$/.test(binding.grant_id) ||
+          !nativeGrantId(binding.grant_id) ||
           binding.source_directory !== settings.repo_root || binding.working_root !== binding.source_directory ||
           binding.access !== 'write') nativeRefuse('PROJECT_BINDING_INVALID');
       noLinks(binding.project_directory, 'directory');

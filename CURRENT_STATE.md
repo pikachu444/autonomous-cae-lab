@@ -2,6 +2,14 @@
 
 ## Current serial work: Phase1 persistent OpenScience
 
+Actual managed metadata is created/replayed with the same operation/project ID,
+source write grant and workingRoot. Old5365 owned runtime is now STOPPED;
+native/controller/launcher absence and closed4098 verified. No model/Core ran
+during migration. Two retained failures exposed official MSIX physical data-root
+aliasing and UUID-shaped grant IDs; bounded corrections preserve exact ownership
+and reject path drift/reparse/foreign grants. See the managed-directory correction
+record. NEXT: corrected committed source/new profile/store actual run.
+
 Managed project/source-root implementation is independently reviewed. Native
 schema2 binds official project/session/grant/workingRoot; server and relay cwd
 use managed identity, while MCP/source pin/Core store stay external. Source
