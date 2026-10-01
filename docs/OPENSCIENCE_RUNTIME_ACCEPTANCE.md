@@ -1,5 +1,23 @@
 # OpenScience local runtime acceptance — 2026-09-30
 
+## Native guard retry correction, 2026-10-01
+
+Node25/native28 checks PASS for fixed non-transient policy-denial text and
+sanitized source capture/compare diagnostics. Refusal, exact codes, source/file/
+model/tool/stopping gates and lifecycle checks remain; no larger timeout/retry
+budget. Failed initial source capture yields only a rejected loaded receipt.
+No provider/Core/CAD execution occurred in these source checks. Actual corrected
+runtime/research is NOT_RUN; initial5365 capture failure cause remains UNKNOWN.
+See [the source record](../benchmarks/records/20261001-openscience-native-guard-correction.json).
+
+Separately, clean5365ae8/fixture3e48 actual selected5.6 Sol research completed
+fourteen model stages/thirteen real tools, valid and rejected CAD, results and
+interpretation. Independent review matched32 store files/20 artifacts and the
+closed retention copies. Full P1.1 remains OPEN: official managed GUI/ownership,
+pre-abort busy observation and narrower OAuth wire limitations are unresolved.
+See [the actual run record](../benchmarks/records/20261001-openscience-native-research.json).
+Historical login/run/source sections below retain their original scope.
+
 ## Native ChatGPT provider source and completed login, 2026-10-01
 
 The third actual official signin completed; the wrapper returned0 with an

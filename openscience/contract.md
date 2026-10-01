@@ -1,5 +1,14 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+Actual native clean5365ae8 research passed the bounded CAD/results/interpretation
+loop with the explicitly selected5.6 Sol; full P1.1 remains OPEN. Native policy
+denials keep exact receipt/Error.code but use non-transient thrown text, so
+OpenScience does not misclassify them as provider overload. Source diagnostics
+contain fixed capture/compare status/error classes and bounded timing only;
+raw errors, child output, paths and environment are excluded. Source failures
+still block inference/tools. Corrected-source actual execution remains NOT_RUN.
+See ADR0012 and the native-guard correction record. No operation schema changes.
+
 The managed Windows worktree transport passes a tracked, hash-bound inert config
 to its Git bridge. The bridge scopes WSLENV path translation, disabled system
 config and no prompting to host Git's child process. The earlier MCP.environment

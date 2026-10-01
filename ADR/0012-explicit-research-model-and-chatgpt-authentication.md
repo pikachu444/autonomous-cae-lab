@@ -66,6 +66,24 @@ cases in a new clean-source store. P1.1 and Phases2–7 remain open.
 
 ## Verification and requirement impact
 
+Actual clean5365ae8 research completed fourteen selected5.6 Sol stages and
+thirteen real MCP calls, including valid/rejected CAD, results and interpretation.
+The resident source resource,32 store files and20 artifacts were independently
+verified. See20261001-openscience-native-research.json. Full P1.1 remains OPEN.
+
+The same run retained sixteen source-check refusals followed by accepted checks.
+Their initial cause is UNKNOWN. Pinned upstream retry.ts treats ordinary Error
+text containing "unavailable" as provider overload, causing unintended retries
+of a policy denial. Keep the fail-closed source check and detailed Error.code/
+receipt code; use fixed non-transient thrown text. Add sanitized capture/compare
+status, bounded monotonic elapsed_ms and fixed error classes to receipts, without
+raw child output, exception messages, paths or environment. A failed initial
+capture retains a rejected plugin.loaded receipt and returns no hooks; only an
+accepted exact-process/boot receipt admits loading. Increasing timeout/retry
+budgets or accepting a cached boot pin are rejected. Node25 and native28 source
+checks pass; actual corrected-source research remains NOT_RUN. This adds no
+research operation, numerical threshold, optimizer or engineering approval.
+
 The initial08df MCP.environment seam failed in actual startup: upstream encrypts
 those values in place, so strict config byte identity correctly blocked plugin
 loading. Preserve that failure and retain the strict hash gate. Export the fixed

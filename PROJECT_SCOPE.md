@@ -21,6 +21,13 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Status vocabulary
 
+2026-10-01 native denial correction: exact refusal codes remain, thrown text
+avoids provider-overload retry signals, sanitized source capture/compare
+diagnostics added. Node25/native28 source checks PASS with no provider/Core/CAD
+calls; actual corrected-source research NOT_RUN. Managed project/source-root
+ownership is next. All52 requirements and engineering UNKNOWNs remain unchanged.
+Evidence: benchmarks/records/20261001-openscience-native-guard-correction.json.
+
 2026-10-01 actual native research checkpoint: clean5365ae8/fixture3e48,
 connected resident provenance PASS, selected5.6 Sol14 AI stages/13 MCP calls
 and valid/rejected CAD/results/interpretation independently passed.32 store

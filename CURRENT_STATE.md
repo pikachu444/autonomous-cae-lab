@@ -2,6 +2,16 @@
 
 ## Current serial work: Phase1 persistent OpenScience
 
+Source correction checkpoint: native policy denials now retain their exact code
+without upstream provider-transient message signals; source receipts distinguish
+capture from exact-pin comparison with sanitized fixed classes/bounded timing.
+Node25/native28 source checks PASS, no provider/Core/CAD calls. Actual new-source
+execution is NOT_RUN;5365 research remains separately attributed. The actual
+research checkpoint is pushed as6c8c0dc28efe86f3fff9b18d4378a16346dbea9d.
+Next: immutable managed project identity/source-root ownership across official
+GUI/CLI/abort/idle/Stop, then fresh-source acceptance. Do not edit the live5365
+serving checkout. See20261001-openscience-native-guard-correction.json.
+
 Current verified execution is clean5365ae8 / fixture3e48bf6, run
 `p1-native-5365ae8-20261001-01`. Actual connected resident Git/fingerprints PASS.
 Chosen5.6 Sol completed14 AI stages/13 actual MCP tools: study, discovery,

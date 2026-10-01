@@ -29,8 +29,8 @@ function assertRepositorySourcePin(expected,current) {
   if (sourceCanonical(expected) !== sourceCanonical(current)) throw new Error('synthetic snapshot differs');
 }
 `;
-const temporarySource = `${prefix}\n${source}\nexport { createNativeHooks };\n`;
-const { createNativeHooks } = await import(`data:text/javascript;base64,${Buffer.from(temporarySource).toString('base64')}`);
+const temporarySource = `${prefix}\n${source}\nexport { createNativeHooks, NativeGuardRefusal };\n`;
+const { createNativeHooks, NativeGuardRefusal } = await import(`data:text/javascript;base64,${Buffer.from(temporarySource).toString('base64')}`);
 const tools = [
   'caelab_study_create', 'caelab_study_inspect', 'caelab_parameters_discover',
   'caelab_parameters_register', 'caelab_parameters_list', 'caelab_experiment_run',
@@ -89,6 +89,31 @@ function fixture(t, selected = tools) {
 }
 const input = () => ({ sessionID: 'ses_synthetic-01', agent: 'research', model: { providerID: 'openai-codex', id: 'test-explicit-model' } });
 const refusal = code => error => error.name === 'CaeLabNativeGuardRefusal' && error.code === code && !error.message.includes('synthetic snapshot');
+// Pinned official 4082a2ecb73e166d4503963798228ba700f3840f:
+// backend/cli/src/session/message-v2.ts general Error -> UnknownError branch
+// retains e.toString(), not e.code; retry.ts:329-349 then checks this text.
+// This reproduces those positive signals for a statusless, non-JSON Error.
+// No upstream runtime, provider or network is invoked by the regression.
+const officialStatuslessRetry = error => {
+  const signal = error.toString().toLowerCase();
+  if (signal.includes('too many requests')) return 'Too Many Requests';
+  if (signal.includes('rate_limit') || signal.includes('rate limit')) return 'Rate Limited';
+  if (['resource_exhausted', 'resource exhausted', 'unavailable', 'overloaded'].some(value => signal.includes(value)))
+    return 'Provider is overloaded';
+  if (signal.includes('no_kv_space')) return 'Provider Server Error';
+  return undefined;
+};
+const boundedSourceCheck = check => {
+  assert.deepEqual(Object.keys(check).sort(), ['capture', 'compare']);
+  for (const phase of Object.values(check)) {
+    assert.deepEqual(Object.keys(phase).sort(), ['elapsed_ms', 'error_kind', 'status']);
+    assert.ok(['PASS', 'FAIL', 'NOT_RUN'].includes(phase.status));
+    if (phase.status === 'NOT_RUN') assert.equal(phase.elapsed_ms, null);
+    else assert.ok(Number.isSafeInteger(phase.elapsed_ms) && phase.elapsed_ms >= 0 && phase.elapsed_ms <= 2_147_483_647);
+    if (phase.status !== 'FAIL') assert.equal(phase.error_kind, null);
+    else assert.ok(['TIMEOUT', 'OUTPUT_LIMIT', 'NOT_FOUND', 'ACCESS_DENIED', 'IO_FAILURE', 'CHILD_EXIT', 'CHECK_EXCEPTION'].includes(phase.error_kind));
+  }
+};
 const immutable = value => {
   if (value && typeof value === 'object') { for (const item of Object.values(value)) immutable(item); Object.freeze(value); }
   return value;
@@ -191,6 +216,145 @@ test('source and Git executable drift fail before actual tool execution', async 
   await assert.rejects(hooks['chat.params'](input(), {}), refusal('GIT_EXECUTABLE_CHANGED'));
   assert.equal(f.counts.capture, count);
   assert.equal(f.receipts().at(-1).boot_source_sha256, null);
+});
+
+test('guard denials preserve detailed codes without official provider retry signals', () => {
+  assert.equal(officialStatuslessRetry(new Error('CAE native guard refused: SOURCE_CHANGED_OR_UNAVAILABLE')),
+    'Provider is overloaded');
+  for (const code of ['SOURCE_CHANGED_OR_UNAVAILABLE', 'PATH_UNAVAILABLE', 'FILE_UNAVAILABLE',
+    'RECEIPT_UNAVAILABLE', 'CONFIG_CHANGED', 'TOOL_NOT_ALLOWED', 'RUNTIME_STOPPING']) {
+    const error = new NativeGuardRefusal(code);
+    assert.equal(error.name, 'CaeLabNativeGuardRefusal');
+    assert.equal(error.code, code);
+    assert.equal(error.message, 'CAE native guard denied this operation.');
+    assert.equal(officialStatuslessRetry(error), undefined);
+    assert.doesNotMatch(error.toString(), /unavailable|overloaded|rate[ _-]?limit|temporar/i);
+  }
+});
+
+test('capture failure and exact pin mismatch have distinct bounded source receipts', async t => {
+  const f = fixture(t), capture = f.dependencies.capture;
+  let failCapture = false, comparisons = 0;
+  f.dependencies.capture = (...args) => {
+    if (failCapture) throw Object.assign(new Error('SECRET SOURCE CAPTURE SENTINEL'), {
+      code: 'ETIMEDOUT', stdout: 'SECRET STDOUT SENTINEL', stderr: 'SECRET STDERR SENTINEL',
+      path: 'SECRET PATH SENTINEL', env: { TOKEN: 'SECRET ENV SENTINEL' },
+    });
+    return capture(...args);
+  };
+  const assertPin = f.dependencies.assertPin;
+  f.dependencies.assertPin = (...args) => { comparisons++; return assertPin(...args); };
+  const hooks = f.hooks();
+  failCapture = true;
+  await assert.rejects(hooks['chat.params'](input(), {}), error => {
+    assert.equal(officialStatuslessRetry(error), undefined);
+    return refusal('SOURCE_CHANGED_OR_UNAVAILABLE')(error);
+  });
+  assert.equal(comparisons, 1);
+  const captureReceipt = f.receipts().at(-1);
+  assert.equal(captureReceipt.accepted, false);
+  assert.equal(captureReceipt.code, 'SOURCE_CHANGED_OR_UNAVAILABLE');
+  assert.equal(captureReceipt.boot_source_sha256, null);
+  assert.equal(captureReceipt.source_check.capture.status, 'FAIL');
+  assert.equal(captureReceipt.source_check.capture.error_kind, 'TIMEOUT');
+  assert.equal(captureReceipt.source_check.compare.status, 'NOT_RUN');
+  boundedSourceCheck(captureReceipt.source_check);
+  failCapture = false;
+  json(f.statePath, { ...f.boot, source_commit: 'c'.repeat(40), source_dirty: ['SECRET PIN COMPARISON SENTINEL'] });
+  await assert.rejects(hooks['tool.execute.before']({ tool: tools[0] }, {}), refusal('SOURCE_CHANGED_OR_UNAVAILABLE'));
+  assert.equal(comparisons, 2);
+  const mismatchReceipt = f.receipts().at(-1);
+  assert.equal(mismatchReceipt.accepted, false);
+  assert.equal(mismatchReceipt.code, 'SOURCE_CHANGED_OR_UNAVAILABLE');
+  assert.equal(mismatchReceipt.boot_source_sha256, null);
+  assert.equal(mismatchReceipt.source_check.capture.status, 'PASS');
+  assert.equal(mismatchReceipt.source_check.compare.status, 'FAIL');
+  assert.equal(mismatchReceipt.source_check.compare.error_kind, 'CHECK_EXCEPTION');
+  boundedSourceCheck(mismatchReceipt.source_check);
+  assert.equal(JSON.stringify(f.receipts()).includes('SECRET'), false);
+  assert.equal(JSON.stringify(f.receipts()).includes(f.base), false);
+  json(f.statePath, f.boot);
+  await hooks['chat.params'](input(), {});
+  const accepted = f.receipts().at(-1);
+  assert.equal(accepted.accepted, true);
+  assert.equal(accepted.boot_source_sha256, f.settings.boot_source_sha256);
+  assert.deepEqual([accepted.source_check.capture.status, accepted.source_check.compare.status], ['PASS', 'PASS']);
+  boundedSourceCheck(accepted.source_check);
+  assert.equal(comparisons, 3);
+});
+
+test('probe errors use fixed classifications without reading raw fields or getters', async t => {
+  const f = fixture(t), capture = f.dependencies.capture;
+  let failure;
+  f.dependencies.capture = (...args) => { if (failure) throw failure; return capture(...args); };
+  const hooks = f.hooks();
+  const cases = [
+    ['ETIMEDOUT', 'TIMEOUT'], ['ENOBUFS', 'OUTPUT_LIMIT'], ['ENOENT', 'NOT_FOUND'],
+    ['EACCES', 'ACCESS_DENIED'], ['EPERM', 'ACCESS_DENIED'], ['EIO', 'IO_FAILURE'],
+    ['SECRET ERROR CODE SENTINEL', 'CHECK_EXCEPTION'],
+  ].map(([code, expected]) => ({ error: Object.assign(new Error('SECRET PROBE ERROR SENTINEL'), {
+    code, stdout: 'SECRET STDOUT SENTINEL', stderr: 'SECRET STDERR SENTINEL',
+  }), expected }));
+  cases.push({ error: Object.assign(new Error('SECRET CHILD EXIT SENTINEL'), { status: 128 }), expected: 'CHILD_EXIT' });
+  let getterReads = 0;
+  const hostile = new Error('SECRET HOSTILE SENTINEL');
+  for (const key of ['code', 'status', 'message', 'stdout', 'stderr', 'path', 'env'])
+    Object.defineProperty(hostile, key, { get() { getterReads++; throw new Error('SECRET GETTER SENTINEL'); } });
+  cases.push({ error: hostile, expected: 'CHECK_EXCEPTION' });
+  cases.push({ error: new Proxy({}, { getOwnPropertyDescriptor() { throw new Error('SECRET PROXY SENTINEL'); } }),
+    expected: 'CHECK_EXCEPTION' });
+  for (const item of cases) {
+    failure = item.error;
+    await assert.rejects(hooks['chat.params'](input(), {}), refusal('SOURCE_CHANGED_OR_UNAVAILABLE'));
+    const receipt = f.receipts().at(-1);
+    assert.equal(receipt.accepted, false);
+    assert.equal(receipt.source_check.capture.error_kind, item.expected);
+    assert.equal(receipt.source_check.compare.status, 'NOT_RUN');
+    boundedSourceCheck(receipt.source_check);
+    assert.ok(Buffer.byteLength(JSON.stringify(receipt)) < 2048);
+  }
+  assert.equal(getterReads, 0);
+  assert.equal(JSON.stringify(f.receipts()).includes('SECRET'), false);
+});
+
+test('failed initial source capture retains a sanitized load refusal and yields no hooks', t => {
+  const f = fixture(t);
+  f.dependencies.capture = () => { throw Object.assign(new Error('SECRET INITIAL CAPTURE SENTINEL'), {
+    code: 'ETIMEDOUT', stdout: 'SECRET INITIAL STDOUT SENTINEL', stderr: 'SECRET INITIAL STDERR SENTINEL',
+  }); };
+  assert.throws(f.hooks, error => {
+    assert.equal(officialStatuslessRetry(error), undefined);
+    return refusal('SOURCE_CHANGED_OR_UNAVAILABLE')(error);
+  });
+  const receipts = f.receipts();
+  assert.equal(receipts.length, 1);
+  assert.equal(receipts[0].hook, 'plugin.loaded');
+  assert.equal(receipts[0].accepted, false);
+  assert.equal(receipts[0].code, 'SOURCE_CHANGED_OR_UNAVAILABLE');
+  assert.equal(receipts[0].boot_source_sha256, null);
+  assert.equal(receipts[0].source_check.capture.status, 'FAIL');
+  assert.equal(receipts[0].source_check.compare.status, 'NOT_RUN');
+  boundedSourceCheck(receipts[0].source_check);
+  assert.equal(JSON.stringify(receipts).includes('SECRET'), false);
+});
+
+test('comparison exceptions refuse a matching captured pin instead of accepting boot cache', async t => {
+  const f = fixture(t), assertPin = f.dependencies.assertPin;
+  let failCompare = false;
+  f.dependencies.assertPin = (...args) => {
+    if (failCompare) throw new Error('SECRET COMPARISON SENTINEL');
+    return assertPin(...args);
+  };
+  const hooks = f.hooks();
+  failCompare = true;
+  await assert.rejects(hooks['tool.execute.before']({ tool: tools[0] }, {}), refusal('SOURCE_CHANGED_OR_UNAVAILABLE'));
+  assert.equal(f.counts.capture, 2);
+  const receipt = f.receipts().at(-1);
+  assert.equal(receipt.accepted, false);
+  assert.equal(receipt.boot_source_sha256, null);
+  assert.deepEqual([receipt.source_check.capture.status, receipt.source_check.compare.status], ['PASS', 'FAIL']);
+  boundedSourceCheck(receipt.source_check);
+  assert.equal(JSON.stringify(receipt).includes('SECRET'), false);
 });
 
 for (const [field, code] of [['configPath', 'CONFIG_CHANGED'], ['pluginPath', 'PLUGIN_CHANGED'], ['settingsPath', 'SETTINGS_CHANGED']]) {

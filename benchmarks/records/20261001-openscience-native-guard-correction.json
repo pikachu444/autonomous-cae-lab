@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.openscience-native-guard-correction",
+  "phase": "P1.1",
+  "source_parent": "6c8c0dc28efe86f3fff9b18d4378a16346dbea9d",
+  "implementation_commit": "Commit introducing this record; actual5365 research is separately attributed",
+  "openscience_source_pin": "4082a2ecb73e166d4503963798228ba700f3840f",
+  "outcome": "PASS_SOURCE_CHECKS",
+  "source_files": {
+    "openscience/native_guard.mjs": "d123cc0953a9fd3a9c95a75987d1af5d0bc9ad53ae4ebfa10b8b53b98f76dcc7",
+    "openscience/tests/native_guard.test.mjs": "5e02cda15f53f45195d8930d92cf75b572db405540e0e885346cc56b3c7b2a8d"
+  },
+  "checks": {
+    "node_version": "24.18.0",
+    "node_tests": 25,
+    "node_pass": 25,
+    "node_fail": 0,
+    "node_duration_ms": 2526.1103,
+    "native_transport_checks": 28,
+    "native_transport_outcome": "PASS_SYNTHETIC_NO_PROVIDER",
+    "native_run": "native-guard-correction-20261001-01",
+    "native_receipt_sha256": "9a7a73ce91c872aa7cba522934c5969259cbbb4d8a6855276402762ffb4484dd",
+    "worker_verification_sha256": "bf324c7b77aa6c7fd7c95b89cb6b7f676292fedd8e891105bcc7b52d704356a1",
+    "independent_review": "PASS_READ_ONLY_EXACT_TWO_FILE_HASHES_NO_P1_P2; pinned official Error conversion/retry independently checked"
+  },
+  "changes": [
+    "Fixed non-transient thrown policy text; exact Error.code and receipt code retained",
+    "Distinct capture and exact-pin comparison receipt phases with bounded monotonic timing",
+    "Fixed error classes only; no raw message/stdout/stderr/path/environment or arbitrary getters",
+    "Rejected startup capture receipt yields no hooks and cannot admit native loading"
+  ],
+  "scope": {
+    "provider_calls": 0,
+    "core_calls": 0,
+    "cad_calls": 0,
+    "live_serving_checkout_changed": false,
+    "original5365_source_failure_cause": "UNKNOWN",
+    "new_actual_native_acceptance": "NOT_RUN",
+    "full_p1_1": "OPEN",
+    "numerical_thresholds_changed": false,
+    "engineering_decision": "NOT_RELEASED"
+  },
+  "raw_retention": "Ignored Main artifacts/native-guard-nonretryable-20261001-927aa8508d9a4493b41ffbf0670421aa and artifacts/native-guard-correction-20261001-01; local only",
+  "next": "Immutable managed project identity/source folder binding across official GUI/CLI/abort/idle/Stop, then fresh-source research and observed-busy cancellation",
+  "official_references": [
+    "https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/backend/cli/src/session/retry.ts#L329",
+    "https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/backend/cli/src/session/message-v2.ts"
+  ]
+}

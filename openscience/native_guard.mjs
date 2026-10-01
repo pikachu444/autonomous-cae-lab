@@ -33,12 +33,32 @@ const nativeFreeze = value => {
 };
 class NativeGuardRefusal extends Error {
   constructor(code) {
-    super(`CAE native guard refused: ${code}`);
+    // Upstream classifies statusless Error text as a provider failure. Keep
+    // detailed policy codes in the explicit field and receipts, not this text.
+    super('CAE native guard denied this operation.');
     this.name = 'CaeLabNativeGuardRefusal';
     this.code = code;
   }
 }
 const nativeRefuse = code => { throw new NativeGuardRefusal(code); };
+const nativeSourceErrorKind = error => {
+  // Only own data properties are inspected. No message, output, path or
+  // arbitrary property getter can enter the diagnostic classification.
+  try {
+    const code = Object.getOwnPropertyDescriptor(error, 'code')?.value;
+    switch (code) {
+      case 'ETIMEDOUT': return 'TIMEOUT';
+      case 'ENOBUFS': return 'OUTPUT_LIMIT';
+      case 'ENOENT': return 'NOT_FOUND';
+      case 'EACCES': case 'EPERM': return 'ACCESS_DENIED';
+      case 'EIO': return 'IO_FAILURE';
+    }
+    if (Number.isInteger(Object.getOwnPropertyDescriptor(error, 'status')?.value)) return 'CHILD_EXIT';
+  } catch {}
+  return 'CHECK_EXCEPTION';
+};
+const nativeElapsedMs = started => Math.min(2_147_483_647,
+  Number((process.hrtime.bigint() - started) / 1_000_000n));
 
 // Internal factory: test code may append an export to its temporary module.
 // Production exports only the actual plugin, so the upstream loader cannot
@@ -142,11 +162,32 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
         guard.updated_utc.length > 64 || !Number.isFinite(Date.parse(guard.updated_utc))) nativeRefuse('GUARD_INVALID');
     return { guard, sha256: parsed.sha256 };
   };
-  const sourceFor = () => {
+  const sourceFor = hashes => {
     const boot = settings.boot_source;
     if (digest(read(boot.git_path, 128 * 1024 * 1024)) !== boot.git_sha256) nativeRefuse('GIT_EXECUTABLE_CHANGED');
-    try { assertPin(boot, capture(settings.repo_root, boot.git_path)); }
-    catch { nativeRefuse('SOURCE_CHANGED_OR_UNAVAILABLE'); }
+    const check = hashes.sourceCheck = {
+      capture: { status: 'NOT_RUN', elapsed_ms: null, error_kind: null },
+      compare: { status: 'NOT_RUN', elapsed_ms: null, error_kind: null },
+    };
+    let current;
+    const captureStarted = process.hrtime.bigint();
+    try {
+      current = capture(settings.repo_root, boot.git_path);
+      check.capture.status = 'PASS';
+    } catch (error) {
+      check.capture.status = 'FAIL';
+      check.capture.error_kind = nativeSourceErrorKind(error);
+      nativeRefuse('SOURCE_CHANGED_OR_UNAVAILABLE');
+    } finally { check.capture.elapsed_ms = nativeElapsedMs(captureStarted); }
+    const compareStarted = process.hrtime.bigint();
+    try {
+      assertPin(boot, current);
+      check.compare.status = 'PASS';
+    } catch (error) {
+      check.compare.status = 'FAIL';
+      check.compare.error_kind = nativeSourceErrorKind(error);
+      nativeRefuse('SOURCE_CHANGED_OR_UNAVAILABLE');
+    } finally { check.compare.elapsed_ms = nativeElapsedMs(compareStarted); }
     return settings.boot_source_sha256;
   };
   const metadataId = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(value) ? value : null;
@@ -163,6 +204,7 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
       status, accepted: status === 'accepted', code, boot_source_sha256: hashes.source ?? null,
       guard_sha256: hashes.guard ?? null, settings_sha256: settingsSha,
       config_sha256: settings.config_sha256, plugin_sha256: settings.plugin_sha256,
+      source_check: hashes.sourceCheck ?? null,
     };
     const name = `native-hook-${process.pid}-${String(sequence).padStart(6, '0')}-${nativeCrypto.randomUUID()}.json`;
     const file = paths.join(settings.receipts, name);
@@ -180,7 +222,7 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
       const parsed = guardFor();
       hashes.guard = parsed.sha256;
       if (parsed.guard.stopping) nativeRefuse('RUNTIME_STOPPING');
-      hashes.source = sourceFor();
+      hashes.source = sourceFor(hashes);
       if (hook === 'chat.params') {
         const model = input?.model;
         if (!nativeRecord(model) || model.providerID !== 'openai-codex' ||
@@ -209,7 +251,15 @@ function createNativeHooks(suppliedSettings, dependencies = {}) {
   settingsSha = parsedSettings.sha256;
   stableFiles();
   const initialGuard = guardFor();
-  receipt('plugin.loaded', null, 'accepted', 'PLUGIN_LOADED', { source: sourceFor(), guard: initialGuard.sha256 });
+  const initialHashes = { guard: initialGuard.sha256 };
+  try { initialHashes.source = sourceFor(initialHashes); }
+  catch (error) {
+    const code = error instanceof NativeGuardRefusal ? error.code : 'CHECK_FAILED';
+    try { receipt('plugin.loaded', null, 'rejected', code, initialHashes); }
+    catch { nativeRefuse('RECEIPT_UNAVAILABLE'); }
+    nativeRefuse(code);
+  }
+  receipt('plugin.loaded', null, 'accepted', 'PLUGIN_LOADED', initialHashes);
   return {
     'chat.params': async (input, _output) => evaluate('chat.params', input),
     'tool.execute.before': async (input, _output) => evaluate('tool.execute.before', input),
