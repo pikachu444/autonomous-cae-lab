@@ -1,5 +1,18 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+ADR0017 adds explicit `ResearchProfile=StructuralFamilies` admission through the
+same native Research runtime. Its schema-2 definition pins six existing tools
+(study create/inspect, model analysis, experiment inspect/summary/compare), two
+native backends and three bounded structural families. Exact four-key settings,
+load/mesh budgets and six runtime variables are checked before tool execution.
+Profile spelling is canonical. Historical Acceptance9/FixtureScalar14 remain
+unchanged. The approved5.6Sol/auth/project/source/lifecycle gates are reused.
+Source/capability admission is distinct from native and connected research proof;
+new-family actual research/GUI acceptance is NOT_RUN at this source checkpoint.
+Research selects conditions and interprets evidence; native adapters perform
+analysis and numerical engines generate search candidates. Engineering UNKNOWN
+and NOT_RELEASED are preserved through existing Core result operations.
+
 ADR0016 adds an explicit native Research purpose over unchanged Core/MCP
 operations. It pins a14-tool universe/subset, 24steps, 3600s MCP/command bounds,
 bounded CAD/CalculiX/SciPy/scalar-FEniCSx capabilities and four runtime variables.

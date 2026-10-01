@@ -1,6 +1,6 @@
 # Autonomous CAE Lab — sequential system execution plan
 
-Date: 2026-10-01 (Asia/Seoul). Owner: the primary local session.
+Date: 2026-10-02 (Asia/Seoul). Owner: the primary local session.
 Authority: the owner's full [52-section ledger](../PROJECT_SCOPE.md), accepted
 ADRs and explicit instruction to finish work sequentially. This plan orders
 remaining work; it does not replace requirements or restart implemented slices.
@@ -31,7 +31,17 @@ experiment artifacts; cloning Git alone does not restore their local bytes.
 
 ## Execution rule and current unit
 
-**Next serial unit: P2.1b, representative structural-family definition admission.**
+**Next serial unit: P2.2 bounded family native and connected research acceptance.**
+
+P2.1b-a freezes independent regular beam Fx/Fy/Fz, plane-strain pressure cylinder
+and curved roof solid derivatives; accepted source reuses existing Core evidence
+and explicit StructuralFamilies Research admission (ADR0017). Source checks and
+independent review are recorded in20261002-structural-family-source. Execute a
+fresh clean-commit native/cross-solver/half-load/refusal store, then actual approved
+OpenScience question/solver/condition/comparison/interpretation and same-record
+human results. Neither this source gate nor solver-only proof closes P2.2.
+Torsion, original MIDAS models/conflicts, additional plate/shell/modal/buckling/
+prestress coverage remain named open items; original52 and later phases persist.
 
 The owner explicitly corrected the focus: inspect the whole MIDAS benchmark
 manual rather than implement the same example again. The139 structural/thermal/

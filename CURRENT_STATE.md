@@ -1,4 +1,35 @@
-# Current state — 2026-10-01 (Asia/Seoul)
+# Current state — 2026-10-02 (Asia/Seoul)
+
+## Latest source checkpoint: several families connected to existing operations
+
+Whole MIDAS survey is preserved; native execution of all157 original cases is
+not claimed. Three complete independent solid derivatives and five loads are
+frozen in `benchmarks/specifications/structural-families-v1.json` (raw SHA256
+4ebca41ae97498cba18fe876a72ef128e0b671c3f7f6f809853514c94d5e12e0;
+semantic SHA2563f198843b47b6f93c8ad81e4dfc86ce75c547ced983492f01d2210d386459038).
+ANSYS regular beam, MIT Lamé and NASA/COMSOL roof sources are independently
+reviewed. Original MIDAS replication, torsion and documented source conflicts
+remain UNKNOWN; GP stress is not a surface/nodal maximum. ADR0017 records scope.
+
+Domain reference/check semantics, deterministic shared HEXA20 mesh and bounded
+CalculiX/Code_Aster adapters reuse Core declared-model execution and provenance.
+Existing HTTP presets/results and explicit six-tool StructuralFamilies Research
+profile expose the same records. Approved5.6Sol/auth/project and historical
+Acceptance9/FixtureScalar14 stay unchanged. Root combined429 source checks,
+CCX70, Node96 and corrected nativePS63 PASS are separate from numerical evidence.
+Independent audits found and closed runner source-drift/half-load verification
+gaps and profile-case fallback without changing numerical limits. Record:
+`benchmarks/records/20261002-structural-family-source.json`.
+
+No new native solver or family-research acceptance has run at this checkpoint.
+Next is a fresh exact-commit native cross-solver/load/refusal store, followed by
+actual OpenScience question/condition/execution/comparison/interpretation and
+same-record human result inspection. Numerical engines remain search owners;
+source tests/presets/solver exits do not qualify engineering or complete Phase2.
+Deferred16-file draft originals/snapshot were hash-verified before being
+separated from active source (receipt retained in p2-family-definition run).
+Original52 descriptions and all later phases remain active; NOT_RELEASED.
+Historical checkpoints below retain their original evidence and work order.
 
 ## Latest scope checkpoint: all MIDAS benchmark families reviewed
 

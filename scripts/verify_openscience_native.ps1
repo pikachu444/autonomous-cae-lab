@@ -73,6 +73,41 @@ Assert-NativeRefused { New-OpenScienceLocalContext @taskLegacySteps } 'legacy_ac
 $taskResearchDrift = [pscustomobject](Read-OpenScienceJson (Join-Path $taskResearchContext.ProfileRoot 'context.json'))
 $taskResearchDrift.ResearchDefinition.runtime_environment.CAELAB_FENICSX_PYTHON = '/unknown/interpreter'
 Assert-NativeRefused { Assert-OpenScienceContext $taskResearchDrift } 'research_runtime_descriptor_drift_refuses_launch_before_provider_call'
+$taskStructuralArgs = $taskNativeArgs.Clone(); $taskStructuralArgs.RunName += '-families'
+$taskStructuralArgs.Purpose = 'Research'; $taskStructuralArgs.ResearchProfile = 'StructuralFamilies'
+$taskStructuralArgs.Remove('AllowedTools')
+$taskStructuralContext = New-OpenScienceLocalContext @taskStructuralArgs
+$taskStructuralConfig = Read-OpenScienceJson $taskStructuralContext.ConfigPath
+Assert-NativeCheck ($taskStructuralContext.ResearchDefinition.schema -eq 2 -and
+    $taskStructuralContext.ResearchDefinition.profile -ceq 'structural-families-v1' -and
+    $taskStructuralContext.AllowedTools.Count -eq 6 -and
+    $taskStructuralContext.AllowedTools -ccontains 'caelab_model_analysis_run' -and
+    $taskStructuralContext.AllowedTools -cnotcontains 'caelab_optimization_run' -and
+    $taskResearchContext.AllowedTools.Count -eq 14 -and
+    $taskResearchContext.AllowedTools -cnotcontains 'caelab_model_analysis_run') 'structural_profile_is_explicit_and_preserves_historical_fourteen_tool_research'
+foreach ($taskRuntimeKey in $taskStructuralContext.ResearchDefinition.runtime_environment.Keys) {
+    Assert-NativeCheck ($taskStructuralConfig.mcp.caelab.command -ccontains ($taskRuntimeKey + '=' +
+        $taskStructuralContext.ResearchDefinition.runtime_environment[$taskRuntimeKey])) ('structural_mcp_uses_explicit_runtime_' + $taskRuntimeKey)
+}
+Assert-NativeCheck ((Get-OpenScienceHash $taskNativeAuthFile) -ceq $taskAuthBytesHash -and
+    -not (Test-Path -LiteralPath $taskStructuralContext.StoreRoot) -and
+    $taskStructuralContext.ResearchDefinitionSha256 -ceq (Get-OpenScienceSourcePinSha256 $taskStructuralContext.ResearchDefinition)) 'structural_definition_is_intent_bound_without_auth_mutation_or_Core_execution'
+$taskStructuralLegacy = $taskResearchArgs.Clone(); $taskStructuralLegacy.RunName += '-wrong-tools'
+$taskStructuralLegacy.AllowedTools = @('caelab_model_analysis_run')
+Assert-NativeRefused { New-OpenScienceLocalContext @taskStructuralLegacy } 'legacy_research_refuses_structural_tool_before_configuration'
+$taskStructuralAcceptance = $taskNativeArgs.Clone(); $taskStructuralAcceptance.ResearchProfile = 'StructuralFamilies'
+Assert-NativeRefused { New-OpenScienceLocalContext @taskStructuralAcceptance } 'structural_profile_requires_research_purpose'
+foreach ($taskNoncanonicalProfile in @('structuralfamilies', 'STRUCTURALFAMILIES', 'sTructuralFamilies')) {
+    Assert-NativeRefused { New-OpenScienceResearchDefinition -Profile $taskNoncanonicalProfile } ('research_definition_refuses_noncanonical_profile_' + $taskNoncanonicalProfile)
+    $taskNoncanonicalArgs = $taskStructuralArgs.Clone(); $taskNoncanonicalArgs.RunName += '-wrong-case'
+    $taskNoncanonicalArgs.ResearchProfile = $taskNoncanonicalProfile
+    Assert-NativeRefused { New-OpenScienceLocalContext @taskNoncanonicalArgs } ('research_launcher_refuses_noncanonical_profile_' + $taskNoncanonicalProfile)
+}
+Set-OpenScienceExpectedTools -Context $taskStructuralContext -RequiredTool 'caelab_model_analysis_run'
+Assert-NativeCheck ((Read-OpenScienceJson $taskStructuralContext.GuardPath).required -ceq 'caelab_model_analysis_run') 'structural_stage_recognizes_declared_model_operation'
+$taskStructuralDrift = [pscustomobject](Read-OpenScienceJson (Join-Path $taskStructuralContext.ProfileRoot 'context.json'))
+$taskStructuralDrift.ResearchDefinition.runtime_environment.CAELAB_CODEASTER_IMAGE_SHA256 = ('0' * 64)
+Assert-NativeRefused { Assert-OpenScienceContext $taskStructuralDrift } 'structural_image_descriptor_drift_blocks_provider_launch'
 $taskNativeConfigBytes = [IO.File]::ReadAllBytes($taskNativeContext.ConfigPath)
 $taskNativeChangedConfig = $taskNativeConfig.Clone(); $taskNativeChangedConfig.model = 'openai-codex/other'
 Write-OpenScienceJson $taskNativeContext.ConfigPath $taskNativeChangedConfig

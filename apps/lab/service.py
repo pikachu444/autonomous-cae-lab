@@ -109,7 +109,7 @@ class LabService:
             "native_final": ("최종 형상 선택", "fixture.freecad", "EXPERIMENTAL", "원본의 기존 final-solid 선택"),
             "analysis_run": ("선형 구조 해석", "fixture.calculix", "EXPERIMENTAL", "검증된 CAD parent, 가정된 재료·하중; NOT_RELEASED"),
             "pde_run": ("약형 PDE 실험", ", ".join(sorted(self._selected().lab.pde_adapters)), "EXPERIMENTAL", "제한된 선형·비선형 scalar weak form와 해석해 비교; 물리 검증 UNKNOWN"),
-            "model_analysis_run": ("모델·재료·동해석 실행", "Code_Aster / MFront / OpenRadioss", "EXPERIMENTAL", "선형·J2 소성·재료점·자유낙하 검증; 벽 접촉 실패, 물리·강도 검증 UNKNOWN"),
+            "model_analysis_run": ("모델·재료·동해석 실행", "CalculiX / Code_Aster / MFront / OpenRadioss", "EXPERIMENTAL", "보·압력용기·곡면 지붕의 제한된 선형 모델과 기존 재료·동해석; 실행 기록별 검증 확인, 물리·강도 UNKNOWN"),
             "doe_plan": ("DOE 계획", "scipy.latin_hypercube", "IMPLEMENTED", "수치 엔진이 후보를 생성"),
             "doe_run": ("DOE 실행", "scipy.latin_hypercube", "IMPLEMENTED", "기존 Core의 개별 실험과 증거 재사용"),
             "optimization_plan": ("최적화 계획", "scipy.differential_evolution", "IMPLEMENTED", "수치 엔진의 목적 함수·제약·seed"),
@@ -296,10 +296,11 @@ class LabService:
         from scripts.verify_compliant_drop import specification as compliant_specification
         from plugins.material_point.reference import canonical_settings as material_specification
         from plugins.material_point.inverse_reference import canonical_settings as inverse_specification
+        from plugins.structural_families.reference import specification as family_specification
         material_path = (Path(__file__).resolve().parents[2] /
                          "plugins/fixture_design/upstream/examples/printed_material_ASSUMED.json")
         # Exact existing acceptance inputs; material remains explicitly assumed.
-        return {
+        presets = {
             "structural_linear": {"operation": "analysis_run", "backend": "fixture.calculix", "label": "가정된 재료·하중의 선형 구조 screen",
                 "status": "EXPERIMENTAL", "scope": "100 N/support 및 미측정 orthotropic 재료; peak stress와 강도·물리 검증 UNKNOWN, NOT_RELEASED",
                 "settings": {"load": {"force_per_support_N": 100.0,
@@ -333,6 +334,21 @@ class LabService:
                 "status": "EXPERIMENTAL", "scope": "알려진 힘 법칙의 축약 장치에서 전체 이력·에너지·반발 검증; 실제 표면 접촉·재료·파손 자격 UNKNOWN",
                 "settings": compliant_specification()},
         }
+        for solver, backend in (("CalculiX", "structural.families.calculix"), ("Code_Aster", "structural.families.code_aster")):
+            for case, load_case, label in (
+                ("ansys_vmd1_regular", "Fx", "보의 인장"),
+                ("ansys_vmd1_regular", "Fy", "보의 Y 방향 굽힘"),
+                ("ansys_vmd1_regular", "Fz", "보의 Z 방향 굽힘"),
+                ("lame_cylinder_plane_strain", "pressure", "두꺼운 원통의 내압"),
+                ("scordelis_lo_solid", "gravity", "곡면 지붕의 자중"),
+            ):
+                presets[f"family_{case}_{load_case}_{solver.lower()}"] = {
+                    "operation": "model_analysis_run", "backend": backend,
+                    "label": f"{label} · {solver}", "status": "EXPERIMENTAL",
+                    "scope": "고정된 공개 입력·참조의 제한된 solid 모델; 원 NFX 재현·강도·물리 검증 UNKNOWN. 실제 결과 기록에서 수치 판정 확인.",
+                    "settings": family_specification(case, load_case),
+                }
+        return presets
 
     def submit(self, operation: str, arguments: dict) -> dict:
         with self._lock:

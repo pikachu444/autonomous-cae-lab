@@ -221,6 +221,28 @@ function researchFixture(t) {
   json(f.settingsPath, f.settings); f.writeGuard({});
   return f;
 }
+function structuralResearchFixture(t) {
+  const f = readerFixture(t, {managed:true});
+  const selected = ['caelab_study_create','caelab_study_inspect','caelab_model_analysis_run',
+    'caelab_experiment_inspect','caelab_experiment_summary','caelab_experiment_compare'];
+  f.settings.allowed = [...selected]; f.guard.allowed = [...selected];
+  f.settings.research = {
+    schema:2, kind:'autonomous-cae-lab.openscience-research-definition', agent:'research', profile:'structural-families-v1',
+    benchmark_definition:{id:'P2-family-v1-20261002',path:'benchmarks/specifications/structural-families-v1.json'},
+    allowed_tools:[...selected],
+    runtime_environment:{MPLBACKEND:'Agg',OMP_NUM_THREADS:'2',QT_QPA_PLATFORM:'offscreen',
+      CAELAB_CODEASTER_IMAGE:'/home/pikachu444/.local/share/autonomous-cae-lab/code_aster_17.4.0-oci.sif',
+      CAELAB_CODEASTER_IMAGE_SHA256:'f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64',
+      CAELAB_SINGULARITY_COMMAND:'/usr/bin/singularity'},
+    budgets:{steps:24,mcp_timeout_seconds:3600,command_timeout_seconds:3600,
+      model_analysis:{max_mesh_levels:3,max_axis_cells:48,max_elements_per_level:1024,max_nodes_per_level:10000,max_load_factor:2}},
+    capabilities:['structural.families.calculix','structural.families.code_aster'].map(backend => ({backend,
+      cases:['ansys_vmd1_regular','lame_cylinder_plane_strain','scordelis_lo_solid'],operations:['model_analysis_run']})),
+    limitations:['Synthetic source admission; no model, solver or Core calls.'],
+  };
+  json(f.settingsPath,f.settings); f.writeGuard({});
+  return f;
+}
 const refusal = code => error => error.name === 'CaeLabNativeGuardRefusal' && error.code === code && !error.message.includes('synthetic snapshot');
 // Pinned official 4082a2ecb73e166d4503963798228ba700f3840f:
 // backend/cli/src/session/message-v2.ts general Error -> UnknownError branch
@@ -1440,5 +1462,66 @@ test('research budget/runtime descriptor tampering fails before loading tools',a
     if (slot === 'scope') f.settings.research.allowed_tools.push('caelab_unknown');
     json(f.settingsPath,f.settings);
     await assert.rejects(f.hooks(),refusal('RESEARCH_DEFINITION_INVALID'));
+  }
+});
+
+const structuralRequest = () => ({backend:'structural.families.calculix',settings:{
+  case:'ansys_vmd1_regular',load_case:'Fz',load_factor:1,mesh_cells:[[6,1,1],[12,2,2],[24,4,4]]}});
+test('explicit structural profile admits both solvers and changed loads without rewriting arguments',async t => {
+  const f = structuralResearchFixture(t), hooks = await f.hooks();
+  await hooks['chat.params'](f.request(),{});
+  for (const backend of ['structural.families.calculix','structural.families.code_aster']) {
+    for (const [caseId,load,grid] of [['ansys_vmd1_regular','Fx',[[6,1,1],[12,2,2]]],
+      ['lame_cylinder_plane_strain','pressure',[[2,4,1],[4,8,1],[8,16,2]]],
+      ['scordelis_lo_solid','gravity',[[4,4,1],[8,8,1],[16,16,2]]]]) {
+      const output = {args:{backend,settings:{case:caseId,load_case:load,load_factor:.5,mesh_cells:grid}}};
+      const original = structuredClone(output);
+      await hooks['tool.execute.before']({tool:'caelab_model_analysis_run',sessionID:f.sessionID},output);
+      assert.deepEqual(output,original); assert.equal(f.receipts().at(-1).accepted,true);
+    }
+  }
+});
+test('historical fourteen-tool research cannot silently admit model_analysis',async t => {
+  const f = researchFixture(t);
+  f.settings.allowed.push('caelab_model_analysis_run'); f.guard.allowed = [...f.settings.allowed];
+  json(f.settingsPath,f.settings); f.writeGuard({});
+  await assert.rejects(f.hooks(),refusal('SETTINGS_INVALID'));
+});
+for (const [label,mutate,code] of [
+  ['unadmitted solver',a => a.backend='structural.code_aster.plasticity','RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['unresolved torsion',a => a.settings.load_case='Mx','RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['arbitrary family',a => a.settings.case='unknown_case','RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['numeric booleans',a => a.settings.load_factor=true,'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['zero load',a => a.settings.load_factor=0,'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['larger load',a => a.settings.load_factor=2.1,'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['one mesh',a => a.settings.mesh_cells=[[6,1,1]],'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['unbounded cells',a => a.settings.mesh_cells=[[48,48,1],[48,48,2]],'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['repeated mesh',a => a.settings.mesh_cells=[[6,1,1],[6,1,1]],'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['decreasing axis',a => a.settings.mesh_cells=[[6,2,1],[12,1,2]],'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['caller tolerance',a => a.settings.limits={reference_relative:1},'RESEARCH_ARGUMENTS_REQUIRED'],
+]) test(`structural admission refuses ${label} before tool execution`,async t => {
+  const f = structuralResearchFixture(t), hooks = await f.hooks(), args = structuralRequest();
+  mutate(args); const output = {args}, original = structuredClone(output);
+  await assert.rejects(hooks['tool.execute.before']({tool:'caelab_model_analysis_run',sessionID:f.sessionID},output),refusal(code));
+  assert.deepEqual(output,original); assert.equal(f.receipts().at(-1).accepted,false);
+});
+test('structural definition cannot broaden its image, cases or tools',async t => {
+  for (const change of [f => f.settings.research.runtime_environment.CAELAB_CODEASTER_IMAGE_SHA256='0'.repeat(64),
+    f => f.settings.research.capabilities[0].cases.push('unknown'),
+    f => f.settings.research.allowed_tools.push('caelab_optimization_run'),
+    f => f.settings.research.benchmark_definition.path='../outside.json']) {
+    const f = structuralResearchFixture(t); change(f); json(f.settingsPath,f.settings);
+    await assert.rejects(f.hooks(),refusal('RESEARCH_DEFINITION_INVALID'));
+  }
+});
+test('structural tools preserve source, ownership and Stop refusals',async t => {
+  for (const drift of ['source','grant','stopping']) {
+    const f = structuralResearchFixture(t), hooks = await f.hooks();
+    if (drift === 'source') json(f.statePath,{...f.boot,source_commit:'f'.repeat(40)});
+    if (drift === 'grant') f.state.filesystem.grants[0].access='read';
+    if (drift === 'stopping') f.writeGuard({stopping:true});
+    await assert.rejects(hooks['tool.execute.before']({tool:'caelab_model_analysis_run',sessionID:f.sessionID},
+      {args:structuralRequest()}));
+    assert.equal(f.receipts().at(-1).accepted,false);
   }
 });

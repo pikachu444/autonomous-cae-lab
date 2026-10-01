@@ -72,12 +72,15 @@ class Lab:
         if model_analysis_adapters is None:
             from .adapters.codeaster_elasticity import CodeAsterElasticityAdapter
             from .adapters.codeaster_plasticity import CodeAsterPlasticityAdapter
+            from .adapters.structural_family_calculix import StructuralFamilyCalculiXAdapter
+            from .adapters.structural_family_codeaster import StructuralFamilyCodeAsterAdapter
             from .adapters.mfront_material import MFrontMaterialAdapter
             from .adapters.mfront_inverse import MFrontInverseAdapter
             from .adapters.openradioss import OpenRadiossAdapter
             model_analysis_adapters = {
                 adapter.backend: adapter() for adapter in (
                     CodeAsterElasticityAdapter, CodeAsterPlasticityAdapter,
+                    StructuralFamilyCalculiXAdapter, StructuralFamilyCodeAsterAdapter,
                     MFrontMaterialAdapter, MFrontInverseAdapter, OpenRadiossAdapter)
             }
         self.model_analysis_adapters = model_analysis_adapters

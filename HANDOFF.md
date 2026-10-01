@@ -1,5 +1,39 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Current queue: bounded family source admission; actual connected gate next
+
+P2.1b admits three independently defined solid derivatives with five loads:
+regular beam Fx/Fy/Fz, Lamé plane-strain cylinder pressure and Scordelis–Lo
+roof gravity. Definition `structural-families-v1.json` is frozen before execution;
+original MIDAS models/editions, beam torsion, cylinder printed-E/reference conflict
+and wider plate/shell/modal/buckling/prestress coverage remain named UNKNOWN/gaps.
+Record: `20261002-structural-family-source.json`; decision ADR0017.
+
+P2.2 source reuses common declared-model Core/MCP/HTTP operations, two bounded
+native adapters, checked shared HEXA20 catalogue and existing evidence/reports.
+Explicit StructuralFamilies Research admission keeps legacy Acceptance9 and
+FixtureScalar14 unchanged; approved5.6Sol/auth/project/runtime are reused.
+Root combined429 source tests, final CCX70, Node96 and corrected nativePS63
+pass. These are source/transport checks, not native benchmark or new research proof.
+Independent source reviews and exact file hashes are retained in the record.
+
+NEXT: commit/push this verified source unit, then fresh `verify_structural_families`
+store on its exact clean source commit: five loads/two solvers/three grids,
+half-load changes, all-field cross-solver comparison, invalid requests and
+unchanged source/old-result checks. Preserve any failed/partial native attempt.
+Then execute actual OpenScience questions, solver selection, changed loads,
+comparison/interpretation and same-record human results. Source presets or a
+solver exit are not this connected gate. Numerical thresholds remain fixed.
+Native/new-family research/GUI are NOT_RUN at this source checkpoint.
+
+The deferred single-case draft is no longer in active source: all16 originals
+were verified against the survey snapshot before restoring8 tracked files and
+moving8 untracked originals to ignored `deferred-original-working-files`.
+Separation receipt and original snapshot hashes are preserved; nothing was lost.
+All52/Phases1–7 remain ACTIVE. P2 fixture, P3 campaigns and subsequent phases
+retain their order, with engineering UNKNOWN/NOT_RELEASED. Older queue sections
+below are historical and cannot override this current unit.
+
 ## Current queue: full MIDAS survey; next family reference admission
 
 The owner corrected the narrowed work order: read the whole MIDAS benchmark

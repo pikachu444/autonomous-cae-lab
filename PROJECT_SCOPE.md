@@ -21,6 +21,18 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+Bounded structural-family source admission now covers independently defined
+beam Fx/Fy/Fz, Lamé cylinder and curved roof derivatives. Frozen references,
+native adapters and six-tool StructuralFamilies Research admission reuse
+existing Core/MCP/HTTP/evidence operations and approved5.6Sol. Combined429,
+CCX70, Node96 and corrected nativePS63 source checks PASS; independent source
+reviews are recorded in `20261002-structural-family-source.json`/ADR0017.
+New-family native/cross-solver/OpenScience/GUI acceptance is NOT_RUN and is next
+on the exact clean committed source in fresh stores. All original MIDAS cases
+retain survey execution status; derivatives are separately identified. Torsion,
+unresolved references, wider families and engineering qualification remain
+UNKNOWN/open. The retained52 IDs/descriptions and sequential phases are unchanged.
+
 Owner-directed full MIDAS survey is recorded in
 `20261001-midas-full-survey.json` and `docs/MIDAS_BENCHMARK_REVIEW.md`:
 all139 structural/thermal/dynamic case IDs/body-text references and the separate

@@ -186,7 +186,11 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     presets = client.request("/api/presets")
     assert set(presets) == {"structural_linear", "pde_canonical", "pde_nonlinear", "codeaster_linear",
                             "codeaster_plasticity", "material_point", "material_inverse", "explicit_freefall",
-                            "explicit_ground_stop", "explicit_compliant_stop"}
+                            "explicit_ground_stop", "explicit_compliant_stop"} | {
+        f"family_{case}_{load}_{solver}" for case, load in (
+            ("ansys_vmd1_regular", "Fx"), ("ansys_vmd1_regular", "Fy"), ("ansys_vmd1_regular", "Fz"),
+            ("lame_cylinder_plane_strain", "pressure"), ("scordelis_lo_solid", "gravity"))
+        for solver in ("calculix", "code_aster")}
     assert presets["pde_canonical"]["settings"] == pde_spec()
     assert presets["codeaster_linear"]["settings"] == aster_spec()
     assert presets["structural_linear"]["settings"]["material"]["qualification"] == "ASSUMED_NOT_MEASURED"

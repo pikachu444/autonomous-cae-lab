@@ -7,13 +7,26 @@ import nativeCrypto from 'node:crypto';
 import { execFile as nativeExecFile } from 'node:child_process';
 import { fileURLToPath as nativeFileURLToPath } from 'node:url';
 
-const nativeKnownTools = Object.freeze([
+const nativeLegacyResearchTools = Object.freeze([
   'caelab_study_create', 'caelab_study_inspect', 'caelab_parameters_discover',
   'caelab_parameters_register', 'caelab_parameters_list', 'caelab_experiment_run',
   'caelab_experiment_inspect', 'caelab_experiment_summary', 'caelab_experiment_compare',
   'caelab_analysis_run', 'caelab_optimization_plan', 'caelab_optimization_run',
   'caelab_optimization_inspect', 'caelab_pde_run',
 ]);
+const nativeKnownTools = Object.freeze([...nativeLegacyResearchTools, 'caelab_model_analysis_run']);
+const nativeStructuralResearchTools = Object.freeze(['caelab_study_create', 'caelab_study_inspect',
+  'caelab_model_analysis_run', 'caelab_experiment_inspect', 'caelab_experiment_summary', 'caelab_experiment_compare']);
+const nativeStructuralBackends = Object.freeze(['structural.families.calculix', 'structural.families.code_aster']);
+const nativeStructuralCases = Object.freeze({ansys_vmd1_regular:['Fx','Fy','Fz'],
+  lame_cylinder_plane_strain:['pressure'], scordelis_lo_solid:['gravity']});
+const nativeStructuralRuntime = Object.freeze({MPLBACKEND:'Agg', OMP_NUM_THREADS:'2', QT_QPA_PLATFORM:'offscreen',
+  CAELAB_CODEASTER_IMAGE:'/home/pikachu444/.local/share/autonomous-cae-lab/code_aster_17.4.0-oci.sif',
+  CAELAB_CODEASTER_IMAGE_SHA256:'f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64',
+  CAELAB_SINGULARITY_COMMAND:'/usr/bin/singularity'});
+const nativeStructuralBudgets = Object.freeze({steps:24, mcp_timeout_seconds:3600, command_timeout_seconds:3600,
+  model_analysis:{max_mesh_levels:3, max_axis_cells:48, max_elements_per_level:1024,
+    max_nodes_per_level:10000, max_load_factor:2}});
 const nativeAcceptanceTools = Object.freeze(nativeKnownTools.slice(0, 9));
 const nativeResearchKeys = Object.freeze(['schema', 'kind', 'agent', 'allowed_tools',
   'runtime_environment', 'budgets', 'capabilities', 'limitations']);
@@ -174,13 +187,28 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
         typeof settings.run_name !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(settings.run_name) ||
         typeof settings.model !== 'string' || !/^openai-codex\/[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/.test(settings.model) ||
         !Array.isArray(settings.allowed) || !settings.allowed.length || new Set(settings.allowed).size !== settings.allowed.length ||
-        settings.allowed.some(tool => !(Object.hasOwn(settings, 'research') ? nativeKnownTools : nativeAcceptanceTools).includes(tool)) ||
+        settings.allowed.some(tool => !(Object.hasOwn(settings, 'research')
+          ? (Array.isArray(settings.research?.allowed_tools) ? settings.research.allowed_tools : []) : nativeAcceptanceTools).includes(tool)) ||
         !nativeSha(settings.config_sha256) || !nativeSha(settings.plugin_sha256) || !nativeSha(settings.boot_source_sha256)) nativeRefuse('SETTINGS_INVALID');
     if (Object.hasOwn(settings, 'research')) {
       const research = settings.research;
-      exactKeys(research, nativeResearchKeys, 'RESEARCH_DEFINITION_INVALID');
-      if (research.schema !== 1 || research.kind !== 'autonomous-cae-lab.openscience-research-definition' ||
-          research.agent !== 'research' || nativeCanonical(research.allowed_tools) !== nativeCanonical(nativeKnownTools) ||
+      exactKeys(research, research.schema === 2 ? [...nativeResearchKeys, 'profile', 'benchmark_definition'] : nativeResearchKeys,
+        'RESEARCH_DEFINITION_INVALID');
+      if (research.schema === 2) {
+        if (research.kind !== 'autonomous-cae-lab.openscience-research-definition' || research.agent !== 'research' ||
+            research.profile !== 'structural-families-v1' ||
+            nativeCanonical(research.benchmark_definition) !== nativeCanonical({id:'P2-family-v1-20261002',
+              path:'benchmarks/specifications/structural-families-v1.json'}) ||
+            nativeCanonical(research.allowed_tools) !== nativeCanonical(nativeStructuralResearchTools) ||
+            nativeCanonical(research.runtime_environment) !== nativeCanonical(nativeStructuralRuntime) ||
+            nativeCanonical(research.budgets) !== nativeCanonical(nativeStructuralBudgets) ||
+            !Array.isArray(research.capabilities) || research.capabilities.length !== 2 ||
+            nativeCanonical(research.capabilities.map(value => value?.backend)) !== nativeCanonical(nativeStructuralBackends) ||
+            research.capabilities.some(value => nativeCanonical(value?.cases) !== nativeCanonical(Object.keys(nativeStructuralCases)) ||
+              nativeCanonical(value?.operations) !== nativeCanonical(['model_analysis_run'])) ||
+            !Array.isArray(research.limitations)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
+      } else if (research.schema !== 1 || research.kind !== 'autonomous-cae-lab.openscience-research-definition' ||
+          research.agent !== 'research' || nativeCanonical(research.allowed_tools) !== nativeCanonical(nativeLegacyResearchTools) ||
           nativeCanonical(research.runtime_environment) !== nativeCanonical({MPLBACKEND:'Agg', OMP_NUM_THREADS:'2',
             QT_QPA_PLATFORM:'offscreen', CAELAB_FENICSX_PYTHON:'/usr/bin/python3'}) ||
           nativeCanonical(research.budgets) !== nativeCanonical({steps:24, mcp_timeout_seconds:3600, command_timeout_seconds:3600,
@@ -521,6 +549,32 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
     if (!Object.hasOwn(settings, 'research')) return;
     if (!nativeRecord(args)) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
     const budget = settings.research.budgets;
+    if (settings.research.schema === 2) {
+      if (!nativeStructuralResearchTools.includes(tool)) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      if (tool !== 'caelab_model_analysis_run') return;
+      if (!nativeStructuralBackends.includes(args.backend) || !nativeRecord(args.settings)) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      const request = args.settings;
+      exactKeys(request, ['case','load_case','load_factor','mesh_cells'], 'RESEARCH_ARGUMENTS_REQUIRED');
+      if (!Object.hasOwn(nativeStructuralCases, request.case) || !nativeStructuralCases[request.case].includes(request.load_case))
+        nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      const bound = budget.model_analysis;
+      if (typeof request.load_factor !== 'number' || !Number.isFinite(request.load_factor) || request.load_factor <= 0 ||
+          request.load_factor > bound.max_load_factor || !Array.isArray(request.mesh_cells) ||
+          request.mesh_cells.length < 2 || request.mesh_cells.length > bound.max_mesh_levels) nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+      let previous;
+      for (const grid of request.mesh_cells) {
+        if (!Array.isArray(grid) || grid.length !== 3 || grid.some(value => !Number.isInteger(value) || value < 1 || value > bound.max_axis_cells))
+          nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+        const [x,y,z] = grid;
+        const elements = x*y*z;
+        const nodes = (x+1)*(y+1)*(z+1) + x*(y+1)*(z+1) + (x+1)*y*(z+1) + (x+1)*(y+1)*z;
+        if (elements > bound.max_elements_per_level || nodes > bound.max_nodes_per_level ||
+            (previous && (grid.some((value,axis) => value < previous[axis]) || grid.every((value,axis) => value === previous[axis]))))
+          nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+        previous = grid;
+      }
+      return;
+    }
     if (['caelab_parameters_discover','caelab_parameters_register','caelab_experiment_run','caelab_optimization_plan'].includes(tool) &&
         (args.backend !== 'fixture.cadquery' || args.model !== 'roller_support')) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
     const analysisMesh = value => {

@@ -283,7 +283,7 @@ jobs:
       - name: Install the external pinned solver runtime without replacing Lab Python
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y singularity-container=4.1.1+ds2-1ubuntu0.3 gmsh
+          sudo apt-get install -y singularity-container=4.1.1+ds2-1ubuntu0.3 gmsh calculix-ccx
           singularity version
           singularity pull --disable-cache /tmp/caelab-codeaster.sif \
             docker://simvia/code_aster@sha256:d8d19ea91989eac0d38195bc5795c54c69f530f7196f53d67697ffa57c9106d5
@@ -291,6 +291,8 @@ jobs:
           echo "CAELAB_CODEASTER_IMAGE_SHA256=$(sha256sum /tmp/caelab-codeaster.sif | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
       - name: Compare independent declared elasticity with analytical fields and signed reactions
         run: python -m scripts.verify_codeaster --store artifacts/codeaster-lab
+      - name: Compare complete beam, pressure cylinder and curved roof fields across two native solvers
+        run: python -m scripts.verify_structural_families --store artifacts/structural-family-lab --source-commit "${GITHUB_SHA}"
       - name: Verify complete native J2 load and unload histories on two meshes
         run: python -m scripts.verify_plasticity --store artifacts/plasticity-lab
       - name: Verify real MGIS and MTest stress histories and consistent tangents
@@ -308,6 +310,7 @@ jobs:
           name: codeaster-cae-lab-${{ github.sha }}
           path: |
             artifacts/codeaster-lab/
+            artifacts/structural-family-lab/
             artifacts/plasticity-lab/
             artifacts/material-point-lab/
             artifacts/model-optimization-lab/

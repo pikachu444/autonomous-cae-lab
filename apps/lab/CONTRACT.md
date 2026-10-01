@@ -114,3 +114,10 @@ Root will run a fresh actual HTTP CAD valid/rejected flow and PDE, inspect old
 CAD/structural/optimization/PDE libraries, download/check report bundles, and
 inspect the browser UI. Numerical optimizer candidates stay in the existing
 SciPy engine; a UI test does not replace a numerical acceptance.
+
+ADR0017 adds ten bounded structural-family presets (five load definitions on
+two native solvers) using the existing model-analysis dispatch and result/artifact
+inspection. They declare scope and UNKNOWN qualification; preset presence is
+not numerical or human-GUI proof. Native FRD/MED remain retained artifacts.
+Integrated field postprocessing is still PLANNED. Actual new-source native,
+connected OpenScience and same-record GUI checks are separate acceptance gates.

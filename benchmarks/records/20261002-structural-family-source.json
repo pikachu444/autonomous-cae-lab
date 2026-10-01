@@ -1,0 +1,342 @@
+{
+  "record_kind": "BOUNDED_STRUCTURAL_FAMILY_DEFINITION_AND_CONNECTED_SOURCE_ADMISSION",
+  "created_utc": "2026-10-01T16:18:57.785565+00:00",
+  "definition_id": "P2-family-v1-20261002",
+  "source_baseline_commit": "b41ac44a056c62cf9f15d2bae4e230fb220fbf36",
+  "tested_source": "Reviewed working source bytes listed below; not a numerical verification of the baseline documentation commit",
+  "source_commit_policy": "Commit this verified source unit, then require its exact clean HEAD for fresh native acceptance; publication/CI receipts are separate",
+  "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "scope": {
+    "families": [
+      "ansys_vmd1_regular",
+      "lame_cylinder_plane_strain",
+      "scordelis_lo_solid"
+    ],
+    "loads": [
+      "Fx",
+      "Fy",
+      "Fz",
+      "pressure",
+      "gravity"
+    ],
+    "native_backends": [
+      "structural.families.calculix",
+      "structural.families.code_aster"
+    ],
+    "original_midas_case_replication": "UNKNOWN",
+    "whole_157_case_execution": "NOT_CLAIMED",
+    "requirement_ids_and_descriptions": "ALL52_UNCHANGED",
+    "phases_1_through_7": "ACTIVE"
+  },
+  "outcome": {
+    "bounded_definition_review": "PASS",
+    "source_checks": "PASS",
+    "independent_source_review": "PASS_BOUNDED_SOURCE",
+    "new_native_acceptance": "NOT_RUN",
+    "new_openscience_research": "NOT_RUN",
+    "new_human_gui": "NOT_RUN",
+    "engineering_validation": "UNKNOWN",
+    "release": "NOT_RELEASED",
+    "whole_project_complete": false
+  },
+  "source_checks": [
+    {
+      "name": "combined Core/HTTP/reporting/declared-model/Domain/mesh/Code_Aster/runner regressions",
+      "passed": 429,
+      "seconds": 441.38,
+      "warnings": 1,
+      "exit_code": 0,
+      "evidence": {
+        "path": "artifacts/p2-family-integration-source-20261002-01/pytest.log",
+        "bytes": 1083,
+        "sha256": "d4b4701364afe858dcccf1b7d1ff0a398b73a502a322bf8c32356b816c951eac",
+        "retention": "LOCAL_IGNORED_EVIDENCE; cloning Git does not restore these bytes"
+      }
+    },
+    {
+      "name": "final bounded CalculiX parsing/runtime/retention mocks",
+      "passed": 70,
+      "seconds": 61.44,
+      "exit_code": 0,
+      "evidence": {
+        "path": "artifacts/p2-family-calculix-source-20261002-01/attempt03/pytest.log",
+        "bytes": 112,
+        "sha256": "dbef5f5938280fed49974d8946e1b954da38785298e39d03e8be2e7f5024cfcf",
+        "retention": "LOCAL_IGNORED_EVIDENCE; cloning Git does not restore these bytes"
+      }
+    },
+    {
+      "name": "final runner source/half-load and sibling-ledger retention regressions",
+      "passed": 19,
+      "seconds": 1.05,
+      "exit_code": 0,
+      "evidence": {
+        "path": "artifacts/p2-family-integration-source-20261002-01/runner-final.log",
+        "bytes": 101,
+        "sha256": "ec1144e645fc94e5ecec0373012e7b7ccb3ffa53c23410b9453727b1e4194a73",
+        "retention": "LOCAL_IGNORED_EVIDENCE; cloning Git does not restore these bytes"
+      }
+    },
+    {
+      "name": "native JS source/tool guards",
+      "passed": 96,
+      "seconds": 121.2861968,
+      "exit_code": 0,
+      "evidence": {
+        "path": "artifacts/p2-family-definition-20261001-01/node-guard-source-01.log",
+        "bytes": 9309,
+        "sha256": "89d7f0c88f4a54d1be7d9c78921e16f0b6bc81ecf7ba012e5949f6282a6ab81a",
+        "retention": "LOCAL_IGNORED_EVIDENCE; cloning Git does not restore these bytes"
+      }
+    },
+    {
+      "name": "corrected native PS profile/admission mocks",
+      "passed": 63,
+      "exit_code": 0,
+      "evidence": {
+        "path": "artifacts/p2-structural-native-source-20261002-02/native-checks.json",
+        "bytes": 4583,
+        "sha256": "fd5b5a47d7a38e8d1399b51e573d322cac159b811bb7a7a0b4335950be7cd71b",
+        "retention": "LOCAL_IGNORED_EVIDENCE; cloning Git does not restore these bytes"
+      }
+    },
+    {
+      "name": "actual stdio MCP existing common operations",
+      "tool_count": 27,
+      "exit_code": 0,
+      "scope": "Temporary Core/CadQuery/DOE/optimization transport and invalid preflight; not actual OpenScience or new-family solver proof",
+      "evidence": {
+        "path": "artifacts/p2-family-integration-source-20261002-01/mcp.log",
+        "bytes": 2365,
+        "sha256": "e2ad45418a99ce561cbc142dbd4dac775c477dd8ca0cedde4247a6f304de7567",
+        "retention": "LOCAL_IGNORED_EVIDENCE; cloning Git does not restore these bytes"
+      }
+    }
+  ],
+  "independent_reviews": [
+    {
+      "path": "artifacts/p2-family-definition-20261001-01/independent-definition-review.json",
+      "bytes": 17073,
+      "sha256": "4d263c437831fe02d355b5cec7b6ceb44f5b18ee72bd768c76d4a289aec69080",
+      "retention": "LOCAL_IGNORED_EVIDENCE; cloning Git does not restore these bytes",
+      "verdict": "PASS_BOUNDED_DEFINITION_REVIEW"
+    },
+    {
+      "path": "artifacts/p2-family-definition-20261001-01/independent-domain-mesh-review.json",
+      "bytes": 24317,
+      "sha256": "e7d630e82dc2a4566fc63f679bb6751478d34cd984dd3257477759743570f69d",
+      "retention": "LOCAL_IGNORED_EVIDENCE; cloning Git does not restore these bytes",
+      "verdict": "No open actionable P1/P2 in the bounded Domain/mesh/final corrected runner source packet. Both independently reported runner P2 findings are closed; Root's additional ledger-preservation correction is also closed by narrow review. Native and whole-project gates remain separate."
+    },
+    {
+      "path": "artifacts/p2-family-definition-20261001-01/independent-codeaster-source-review.json",
+      "bytes": 20453,
+      "sha256": "50441ea11a52e90f8353aab6b3e2cb24b837ad6bd04d3f144d82e0bfa0495040",
+      "retention": "LOCAL_IGNORED_EVIDENCE; cloning Git does not restore these bytes",
+      "verdict": "PASS_SOURCE_REVIEW"
+    },
+    {
+      "path": "artifacts/p2-family-definition-20261001-01/independent-calculix-source-review.json",
+      "bytes": 9358,
+      "sha256": "4b646a1186b7dce561da799733e20ea781057cb77021baae672a0881a2594648",
+      "retention": "LOCAL_IGNORED_EVIDENCE; cloning Git does not restore these bytes",
+      "verdict": "PASS_BOUNDED_SOURCE"
+    },
+    {
+      "path": "artifacts/p2-family-definition-20261001-01/independent-research-admission-review.json",
+      "bytes": 23198,
+      "sha256": "9982762e2b833cd80e4292c25f26425b3e12b4feba0f269bfb7ad7e7af0e50d5",
+      "retention": "LOCAL_IGNORED_EVIDENCE; cloning Git does not restore these bytes",
+      "verdict": {
+        "result": "BOUNDED_SOURCE_REVIEW_PASS_AFTER_P2_CORRECTION",
+        "open_P1": 0,
+        "open_P2": 0,
+        "closed_P2": 1,
+        "meaning": "The corrected six-file admission implementation has no remaining actionable P1/P2 finding in this bounded review. This is not an actual provider, native solver, numerical benchmark or research-loop PASS.",
+        "corrected_PowerShell_test_run": "NOT_PRESENT_AT_FINAL_EVIDENCE_READ; Root reported a 63-check rerun planned"
+      }
+    }
+  ],
+  "source_files": [
+    {
+      "path": "benchmarks/specifications/structural-families-v1.json",
+      "bytes": 11676,
+      "sha256": "4ebca41ae97498cba18fe876a72ef128e0b671c3f7f6f809853514c94d5e12e0",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "plugins/structural_families/__init__.py",
+      "bytes": 278,
+      "sha256": "b7638e1daae31ee563157e3ffade107adc5ade779fb641ce4e5bc3a6687bc15e",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "plugins/structural_families/reference.py",
+      "bytes": 30676,
+      "sha256": "a4ea9a48f70241931f2819eb7f45e97e7cedfc34ec9e8ac542df224de998d314",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "caelab/adapters/structural_family_mesh.py",
+      "bytes": 27670,
+      "sha256": "5ef0a2c81f2344bc7cbdc39639c711f3f7c08b4b9948780b4b490d2c8eea19a9",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "caelab/adapters/structural_family_calculix.py",
+      "bytes": 40185,
+      "sha256": "deaa98c0b23ef4e649fd7df6cfd62b51e8467a7c8a35c747256d080bf74396f6",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "caelab/adapters/structural_family_codeaster.py",
+      "bytes": 18727,
+      "sha256": "06f5efd24d743a9363c13d49cbddfd214f711a278ee05b77bb0ef77b694fac67",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "caelab/adapters/structural_family_codeaster_worker.py",
+      "bytes": 30774,
+      "sha256": "0b9de5018ab8c6b25f311c03027d5bc087359064b93b31941b4a7c5534b3b8d3",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "caelab/engine.py",
+      "bytes": 47291,
+      "sha256": "a54b8ce7f65cde1e3436db51dea300d9c1ffb4ef137ae5ed491b464c4c25f075",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "apps/lab/service.py",
+      "bytes": 27955,
+      "sha256": "3a9228a7b0621d040aa068810e1656209efad9fb7a5da8f0bf835ed0e3c66ec2",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "openscience/native_guard.mjs",
+      "bytes": 44190,
+      "sha256": "8f36839fc712cdf8fa46c9bbe249ed5dfbf3b5f27d0a341f2b92383a22bce7e6",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "openscience/tests/native_guard.test.mjs",
+      "bytes": 91612,
+      "sha256": "13975db17522bd4f369e422b733480e26bdae21436baf07300e402e32397672d",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "scripts/openscience-research.ps1",
+      "bytes": 9846,
+      "sha256": "e530298e2fc176a82f6cf5b996273a76df153ad540ace08b718a9080db60772c",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "scripts/openscience-native-provider.ps1",
+      "bytes": 24037,
+      "sha256": "9afb7fa373a571c642d58d87128f6ba31595a7b5de0a9d9e04970a71172d0d98",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "scripts/openscience-server-local.ps1",
+      "bytes": 143427,
+      "sha256": "e1040c41d532efaa14dec6a09f55947e266b6c74bf602efd2fa00be764852e1b",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "scripts/verify_openscience_native.ps1",
+      "bytes": 18272,
+      "sha256": "0bbbaf34bd6750c7b4fedbf5c68450a2cbde9cadd8b77ef18fbf3e4c1bec2403",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "scripts/verify_structural_families.py",
+      "bytes": 17833,
+      "sha256": "c49ee4570ef61413ebcddd421269dd1857836b2a5e921708969508f7501a5212",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "tests/test_backend_integration.py",
+      "bytes": 4463,
+      "sha256": "f53dd72e8e08edfabed74ce6a3a554dc64086a2cc1f70db7ba30a9b63a299588",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "tests/test_lab_server.py",
+      "bytes": 26195,
+      "sha256": "44bf288d268fe0ec1120f495d1a533c9673af82588e2c453c32a9ed3be43117e",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "tests/test_structural_family_acceptance.py",
+      "bytes": 5200,
+      "sha256": "1d1ed7721d832a8a355d12fc22d941029fc60d70ecf54147cb1c889a82e3f47a",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "tests/test_structural_families_reference.py",
+      "bytes": 24680,
+      "sha256": "b1a69cf4819329248b2c58b0a719ad428fa61bc6dc025341756c95fdd7a804f7",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "tests/test_structural_family_mesh.py",
+      "bytes": 24019,
+      "sha256": "e67dd7acdb9c5d489aadd08531d84686cea28256106f70537d19eff294889982",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "tests/test_structural_family_calculix.py",
+      "bytes": 25410,
+      "sha256": "a28ff488d32f048c6622f437c0212fbdee3e69199baa4299d2f8c96a2dee64e6",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": "tests/test_structural_family_codeaster.py",
+      "bytes": 24556,
+      "sha256": "08ff7fe80baed53346871ac04d02519a27677f8ecce9d6a5e45ea40dd11d7a58",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    },
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "bytes": 18866,
+      "sha256": "6b839dcafcf15e3b451f8a3d9c88c31695d3035d015187096a1eb3c7fdb17e03",
+      "retention": "SOURCE_INCLUDED_WITH_THIS_RECORD; exact Git source commit comes from committed native acceptance"
+    }
+  ],
+  "corrections": [
+    "Definition normalization/zero-scale and NASA printed-density-unit conflict disclosed before native execution.",
+    "PS profile casing cannot silently select legacy metadata; four strict seams and six refusal regressions.",
+    "Native acceptance pins source/HEAD/full tracked bytes/fixture at every result and completion.",
+    "Changed-load cases use the same valid primary/raw assessment/qualification gates as baseline.",
+    "Original-byte snapshots include sibling Core ledger records as well as every experiment file.",
+    "CCX later levels cannot alter retained earlier native/parsed/VTK bytes."
+  ],
+  "failed_or_intermediate_attempts": [
+    "Mesh author's early actual-Domain probe failed during ongoing Domain edits; subsequent frozen actual-Domain119 PASS.",
+    "Code_Aster authored early41FAIL/14PASS was a source test-fixture native ID mismatch; corrected fixture55 then hardened58 PASS, no numerical limit changes.",
+    "CCX source59 then68 then70 PASS logs remain separately retained; no native run occurred.",
+    "PS pre-correction57 PASS remains distinct from corrected63 PASS."
+  ],
+  "deferred_source_preservation": {
+    "path": "artifacts/p2-family-definition-20261001-01/deferred-draft-separation.json",
+    "bytes": 520,
+    "sha256": "8285a5dbae0799ab8e663b23c899783ed381c686f83067c74e18eae2a8c826ad",
+    "retention": "LOCAL_IGNORED_EVIDENCE; cloning Git does not restore these bytes"
+  },
+  "next_serial_gates": [
+    "Commit/push reviewed source; inspect exact-source CI separately.",
+    "Fresh clean-commit native store: five loads/two solvers/three levels, all-fields cross comparison, half loads, invalid requests and byte preservation.",
+    "Actual approved5.6Sol OpenScience solver/condition selection, changed-load records, inspection/comparison/interpretation and same-record GUI.",
+    "P2 fixture integration then ordered P3 numerical campaigns and Phases4-7."
+  ],
+  "limitations": [
+    "Bounded independent solid derivatives; original MIDAS inputs/models/edition and torsion remain UNKNOWN.",
+    "Cylinder printed E/reference conflict, distinct roof references/density-unit typo and GP-vs-surface extraction are explicitly retained.",
+    "54 sampled positive Jacobians are not whole-element positivity proof.",
+    "Installed runtime/preset/source-test success does not establish numerical or engineering approval.",
+    "CCX actual resolved binary is pinned per run; build-source identity/expected binary digest is UNKNOWN.",
+    "Native FRD/MED retention is distinct from the still-PLANNED integrated field viewer.",
+    "Historical exact04ff CI explicit download404 remains unresolved; new family CI is not run by this local source checkpoint."
+  ],
+  "adr": "ADR/0017-bounded-structural-family-research.md"
+}

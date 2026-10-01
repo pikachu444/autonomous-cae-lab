@@ -12,6 +12,7 @@ param(
     [string]$ModelId,
     [ValidateSet('Ollama', 'ChatGPT')][string]$Transport = 'Ollama',
     [ValidateSet('Acceptance', 'Research')][string]$Purpose = 'Acceptance',
+    [ValidateSet('FixtureScalar', 'StructuralFamilies', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar',
     [string]$AuthProfileRoot,
     [string]$ProjectBindingPath,
     [string]$WslDistro = 'Ubuntu',
@@ -39,7 +40,7 @@ $script:OpenScienceBoundedTools = @('caelab_study_create', 'caelab_study_inspect
 . (Join-Path $PSScriptRoot 'openscience-research.ps1')
 if ($Purpose -ceq 'Research') {
     if (-not $PSBoundParameters.ContainsKey('Steps')) { $Steps = 24 }
-    if (-not $PSBoundParameters.ContainsKey('AllowedTools')) { $AllowedTools = @($script:OpenScienceResearchTools) }
+    if (-not $PSBoundParameters.ContainsKey('AllowedTools')) { $AllowedTools = @((New-OpenScienceResearchDefinition -Profile $ResearchProfile).allowed_tools) }
 }
 
 function Assert-OpenScienceCondition($Condition, [string]$Message) {
@@ -365,6 +366,7 @@ function New-OpenScienceLocalContext {
         [string]$ModelId,
         [ValidateSet('Ollama', 'ChatGPT')][string]$Transport = 'Ollama', [string]$AuthProfileRoot,
         [ValidateSet('Acceptance', 'Research')][string]$Purpose = 'Acceptance',
+        [ValidateSet('FixtureScalar', 'StructuralFamilies', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar',
         [Collections.IDictionary]$ProjectBinding,
         [string]$WslDistro = 'Ubuntu',
         [string]$WslPython = '/home/pikachu444/.local/share/autonomous-cae-lab/venv-py312/bin/python',
@@ -377,14 +379,15 @@ function New-OpenScienceLocalContext {
     if ($Purpose -ceq 'Research') {
         Assert-OpenScienceCondition ($Transport -ceq 'ChatGPT') 'Research purpose requires the explicitly selected native ChatGPT transport.'
         if (-not $PSBoundParameters.ContainsKey('Steps')) { $Steps = 24 }
-        if (-not $PSBoundParameters.ContainsKey('AllowedTools')) { $AllowedTools = @($script:OpenScienceResearchTools) }
+        if (-not $PSBoundParameters.ContainsKey('AllowedTools')) { $AllowedTools = @((New-OpenScienceResearchDefinition -Profile $ResearchProfile).allowed_tools) }
     } else {
+        Assert-OpenScienceCondition ($ResearchProfile -ceq 'FixtureScalar') 'A structural research profile requires Purpose Research.'
         Assert-OpenScienceCondition ($Steps -le 3) 'The historical acceptance purpose retains its three-step budget.'
     }
     if ($Transport -ceq 'ChatGPT') {
         return New-OpenScienceNativeContext -RepoRoot $RepoRoot -RunName $RunName -ProfileTag $ProfileTag -StoreRoot $StoreRoot -RuntimePrefix $RuntimePrefix `
             -ModelId $ModelId -AuthProfileRoot $AuthProfileRoot -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools `
-            -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds -ProjectBinding $ProjectBinding -Purpose $Purpose
+            -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds -ProjectBinding $ProjectBinding -Purpose $Purpose -ResearchProfile $ResearchProfile
     }
     Assert-OpenScienceCondition (-not $ProjectBinding) 'Managed project bindings currently require the explicitly selected native ChatGPT transport.'
     $RepoRoot = [IO.Path]::GetFullPath($RepoRoot)
@@ -1735,7 +1738,7 @@ switch ($Mode) {
     'Stop' { Stop-OpenScienceLocalServer -OwnerPath $OwnerPath }
     'Start' {
         $context = New-OpenScienceLocalContext -RepoRoot $RepoRoot -RunName $RunName -ProfileTag $ProfileTag -StoreRoot $StoreRoot -RuntimePrefix $RuntimePrefix `
-            -ModelId $ModelId -Transport $Transport -AuthProfileRoot $AuthProfileRoot -Purpose $Purpose -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds `
+            -ModelId $ModelId -Transport $Transport -AuthProfileRoot $AuthProfileRoot -Purpose $Purpose -ResearchProfile $ResearchProfile -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds `
             -ProjectBinding $(if ($ProjectBindingPath) { Read-OpenScienceJson $ProjectBindingPath } else { $null })
         Start-OpenScienceLocalServer $context $Port $StartupTimeoutSeconds
     }

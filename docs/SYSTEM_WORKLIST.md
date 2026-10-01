@@ -1,6 +1,6 @@
 # Sequential system worklist
 
-Updated: 2026-10-01 (Asia/Seoul). Roadmap:
+Updated: 2026-10-02 (Asia/Seoul). Roadmap:
 [SYSTEM_EXECUTION_PLAN](SYSTEM_EXECUTION_PLAN.md). Full scope:
 [PROJECT_SCOPE](../PROJECT_SCOPE.md). Root owns this queue and integration.
 
@@ -22,8 +22,12 @@ phase mapping are in MIDAS_BENCHMARK_REVIEW/full catalog/20261001-midas-full-sur
 All157 project case executions are NOT_RUN; source conflicts remain UNKNOWN.
 Prior single-case draft is DEFERRED_BY_OWNER with16 source files preserved;
 do not resume its implementation from the old work order. NEXT SERIAL UNIT
-**P2.1b representative structural-family reference admission**, then P2.2
-connected native/cross-solver execution. No further CAD recovery/setup scope.
+**P2.2 bounded native/cross-solver and actual research execution** follows the
+independently frozen three-family/five-load definition and source admission.
+Original torsion and additional families remain open, explicitly outside this
+bounded derivative packet. Combined429/CCX70/Node96/nativePS63 source checks
+PASS; new-family native/OpenScience/GUI is NOT_RUN. Record20261002-structural-family-source,
+ADR0017. No further CAD recovery/setup scope.
 Earlier failed runs and original-context limits are preserved in their records;
 historical sections below cannot override this queue.
 
@@ -248,7 +252,12 @@ This evidence/docs checkpoint is not another solver run.
   and figure/edition/model gaps, compare existing capabilities and map later
   families to the ordered phases. Project numerical case execution NOT_RUN.
   Record:20261001-midas-full-survey; full MIDAS_BENCHMARK_REVIEW/catalog.
-- [ ] P2.1b: admit complete beam axial/bending/torsion (§2.3), pressure-cylinder
+- [x] P2.1b-a bounded reference/source admission: independently defined beam
+  Fx/Fy/Fz, cylinder pressure and curved roof gravity; exact extraction/signs/
+  units/DOFs/element/quadrature/mesh/limits frozen before execution. Source
+  review/checks and explicit same-Core research profile in20261002-structural-family-source.
+  Native execution and original MIDAS replication are not this checkbox.
+- [ ] P2.1b remaining full family coverage: beam torsion (§2.3), pressure-cylinder
   (§2.12), and plate/shell (§2.15 etc.) family definitions against existing code.
   Freeze one bounded packet's inputs/DOFs/output/reference/units/element/mesh
   gates before implementation. Resolve selected case's figure/source conflicts;

@@ -9,7 +9,8 @@ from caelab import Lab
 
 
 BACKENDS = {"structural.code_aster", "structural.code_aster.plasticity", "material.mfront",
-            "material.mfront.inverse", "explicit.openradioss"}
+            "material.mfront.inverse", "explicit.openradioss", "structural.families.calculix",
+            "structural.families.code_aster"}
 
 
 def test_default_model_registry_constructs_without_native_commands_and_preserves_explicit_mapping(tmp_path, monkeypatch):
@@ -52,6 +53,12 @@ def test_simulation_presets_share_generic_declared_operation_without_cad_parent(
     assert "표면 접촉" in presets["explicit_compliant_stop"]["scope"]
     assert all(service._selected().lab.model_analysis_adapters[preset["backend"]].describe_model(preset["settings"])
                for preset in model_presets.values())
+    family_presets = [preset for key, preset in presets.items() if key.startswith("family_")]
+    assert len(family_presets) == 10
+    assert {preset["settings"]["case"] for preset in family_presets} == {
+        "ansys_vmd1_regular", "lame_cylinder_plane_strain", "scordelis_lo_solid"}
+    assert all(preset["status"] == "EXPERIMENTAL" and "UNKNOWN" in preset["scope"]
+               for preset in family_presets)
     assert {preset["backend"] for preset in presets.values() if preset["operation"] == "pde_run"} == {
         "pde.fenicsx", "pde.fenicsx.nonlinear"}
 
