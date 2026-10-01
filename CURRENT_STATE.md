@@ -1,5 +1,17 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
+## Latest native03 numerical rejection; research driver ready for actual use
+
+Pushed b598f42 ran three beamFx meshes and parsed complete U/RF/GP stress.
+Core REJECTED signed reaction balance (2.663401471566829e-7 > fixed1e-7);
+finest reference error0.00162638 and mesh difference0.00133622 are retained
+invalid metrics. Store/thresholds unchanged; output precision versus solve
+error under investigation. Other loads/families/cross-solver NOT_RUN.
+Reviewed actual StructuralFamilies research driver reuses existing Core,
+approved5.6/auth/project and fresh-current-resident gates;51 cold checks and
+independent review PASS_SOURCE_ONLY. Records20261002-structural-family-native03
+and20261002-structural-research-driver. Actual research/GUI remains NOT_RUN.
+
 ## Latest native02: actual output format retained and parsed after correction
 
 Pushed fa0b1a8 passed metadata admission and ran one coarse ccx job/exit0.

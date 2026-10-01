@@ -1,0 +1,194 @@
+{
+  "record_kind": "ACTUAL_STRUCTURAL_FAMILY_NUMERICAL_REJECTION",
+  "created_utc": "2026-10-01T17:11:58.497186+00:00",
+  "source_commit": "b598f42325ea438918f5865fb2ea6c857e0ea339",
+  "run_id": "p2-family-native-20261002-03",
+  "status": "FAILED_OR_PARTIAL",
+  "experiment_id": "E-ansys_vmd1_regular-Fx-ccx",
+  "result_status": "REJECTED",
+  "solver_status": "COMPLETED",
+  "levels": [
+    {
+      "cells": [
+        6,
+        1,
+        1
+      ],
+      "nodes": 80,
+      "elements": 6,
+      "integration_points": 162,
+      "reaction_n": [
+        -4.4482228,
+        4.500084e-12,
+        -1.8683274e-11
+      ],
+      "applied_force_n": [
+        4.4482216152600005,
+        0.0,
+        0.0
+      ],
+      "reaction_relative_error": 2.663401471566829e-07,
+      "solver_exit": {
+        "returncode": 0,
+        "timed_out": false
+      },
+      "complete_fields": {
+        "displacement": true,
+        "native_mesh": true,
+        "reaction": true,
+        "stress": true
+      }
+    },
+    {
+      "cells": [
+        12,
+        2,
+        2
+      ],
+      "nodes": 381,
+      "elements": 48,
+      "integration_points": 1296,
+      "reaction_n": [
+        -4.44822188,
+        2.162928e-13,
+        -7.871343000000001e-13
+      ],
+      "applied_force_n": [
+        4.44822161526036,
+        0.0,
+        0.0
+      ],
+      "reaction_relative_error": 5.951583866257714e-08,
+      "solver_exit": {
+        "returncode": 0,
+        "timed_out": false
+      },
+      "complete_fields": {
+        "displacement": true,
+        "native_mesh": true,
+        "reaction": true,
+        "stress": true
+      }
+    },
+    {
+      "cells": [
+        24,
+        4,
+        4
+      ],
+      "nodes": 2225,
+      "elements": 384,
+      "integration_points": 10368,
+      "reaction_n": [
+        -4.448221606,
+        -8.572297e-14,
+        3.8897606e-12
+      ],
+      "applied_force_n": [
+        4.44822161525998,
+        0.0,
+        0.0
+      ],
+      "reaction_relative_error": 2.081726576677526e-09,
+      "solver_exit": {
+        "returncode": 0,
+        "timed_out": false
+      },
+      "complete_fields": {
+        "displacement": true,
+        "native_mesh": true,
+        "reaction": true,
+        "stress": true
+      }
+    }
+  ],
+  "metrics": {
+    "applied_force_relative_error": {
+      "reason": "Structural-family numerical checks failed: signed_reaction_balance",
+      "unit": "1",
+      "valid": false,
+      "value": 1.168072143128024e-13
+    },
+    "applied_moment_relative_error": {
+      "reason": "Structural-family numerical checks failed: signed_reaction_balance",
+      "unit": "1",
+      "valid": false,
+      "value": 2.1767204107398288e-15
+    },
+    "mesh_response_relative": {
+      "reason": "Structural-family numerical checks failed: signed_reaction_balance",
+      "unit": "1",
+      "valid": false,
+      "value": 0.0013362204724408691
+    },
+    "moment_relative_error": {
+      "reason": "Structural-family numerical checks failed: signed_reaction_balance",
+      "unit": "1",
+      "valid": false,
+      "value": 4.96295561857081e-09
+    },
+    "primary_response": {
+      "reason": "Structural-family numerical checks failed: signed_reaction_balance",
+      "unit": "mm",
+      "valid": false,
+      "value": 0.0007607607
+    },
+    "reaction_relative_error": {
+      "reason": "Structural-family numerical checks failed: signed_reaction_balance",
+      "unit": "1",
+      "valid": false,
+      "value": 2.663401471566829e-07
+    },
+    "reference_relative_error": {
+      "reason": "Structural-family numerical checks failed: signed_reaction_balance",
+      "unit": "1",
+      "valid": false,
+      "value": 0.0016263779527558879
+    },
+    "signed_primary_response": {
+      "reason": "Structural-family numerical checks failed: signed_reaction_balance",
+      "unit": "mm",
+      "valid": false,
+      "value": 0.0007607607
+    }
+  },
+  "failures": [
+    {
+      "evidence_ids": [
+        "EV-E-ansys_vmd1_regular-Fx-ccx-003"
+      ],
+      "type": "signed_reaction_balance"
+    }
+  ],
+  "reaction_relative_limit_unchanged": 1e-07,
+  "result": {
+    "path": "artifacts/p2-family-native-20261002-03/experiments/E-ansys_vmd1_regular-Fx-ccx/result.json",
+    "bytes": 45643,
+    "sha256": "1d900d5dfbfd354c0d8eb6635416ed082182333bedebb4076d8d4394072d7cda"
+  },
+  "acceptance": {
+    "path": "artifacts/p2-family-native-20261002-03/acceptance.json",
+    "bytes": 36705,
+    "sha256": "473928cdcc1175d76f60edca6994fa257c5bab00d29704e621fa90127cfa599a"
+  },
+  "retention": {
+    "manifest": {
+      "path": "artifacts/p2-structural-research-driver-20261002-01/native03-retained-files.json",
+      "bytes": 20386,
+      "sha256": "8e5f4288ee2a1f969e896441a4acb941e6ebc739026345bfc97b780114f10608"
+    },
+    "files": 81,
+    "bytes": 19844845,
+    "status": "ORIGINAL_STORE_PRESERVED"
+  },
+  "cause": "UNDER_INVESTIGATION: native output digit precision versus actual solve error; no threshold change or synthetic balancing",
+  "outcome": {
+    "cross_solver": "NOT_RUN",
+    "other_families": "NOT_RUN",
+    "new_openscience_research": "NOT_RUN",
+    "human_gui": "NOT_RUN",
+    "engineering_qualification": "UNKNOWN",
+    "release": "NOT_RELEASED"
+  },
+  "next": "Resolve native reaction evidence precision using actual fields, preserve this rejection, then fresh native store before connected research"
+}

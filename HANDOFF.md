@@ -1,5 +1,20 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Latest native03 rejection and connected driver publication
+
+Source b598f42325ea438918f5865fb2ea6c857e0ea339 is pushed. Native03 ran all
+three beamFx meshes with complete parsed fields but retained Core REJECTED at
+the fixed1e-7 signed reaction check (max2.663401471566829e-7). Reference/mesh/
+moment values do not override this failure; all result metrics stay invalid.
+Raw store is unchanged; record20261002-structural-family-native03 retains hashes.
+Investigate printed precision versus actual solve error; no manufactured balance
+or relaxed threshold. NEXT corrected reviewed source and fresh native store,
+then actual research and same-record GUI. Two-solvers/other families NOT_RUN.
+Reviewed actual OpenScience StructuralFamilies driver is now published with
+51 cold source checks/independent review, exact approved5.6Sol/auth/project and
+fresh-current-resident proof before inference. Record20261002-structural-research-driver;
+source readiness does not close actual research. See STRUCTURAL_FAMILIES_ACCEPTANCE.
+
 ## Latest native02 format correction; native03 next
 
 Native02 on pushed fa0b1a8 completed one coarse CalculiX job (exit0), then

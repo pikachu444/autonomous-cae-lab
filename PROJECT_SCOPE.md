@@ -21,6 +21,13 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+Native03/b598f42 completed all three beamFx native jobs and complete parsing,
+but Core REJECTED fixed1e-7 reaction balance (max2.663401471566829e-7).
+Record20261002-structural-family-native03 preserves invalid values/failed store.
+Reviewed actual connected research driver passes51 cold source checks only;
+record20261002-structural-research-driver. Research/GUI/other families NOT_RUN;
+P2.2 remains OPEN. No numerical limit or original52 description is changed.
+
 Native02/fa0b1a8 ran one coarse ccx job but retains Core FAILED_EXECUTION due
 to output format. Strict real-output parser/fixture correction passes88 tests,
 retained raw replay and independent review; source record20261002-calculix-native-format.

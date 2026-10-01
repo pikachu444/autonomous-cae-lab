@@ -1,0 +1,68 @@
+{
+  "record_kind": "SOURCE_ONLY_CONNECTED_STRUCTURAL_RESEARCH_DRIVER",
+  "created_utc": "2026-10-01T17:11:58.511255+00:00",
+  "base_source_commit": "b598f42325ea438918f5865fb2ea6c857e0ea339",
+  "purpose": "Actual OpenScience questions, solver/condition choices, comparisons, half-load follow-ups and interpretation through existing common Core",
+  "scripts": [
+    {
+      "path": "scripts/verify_structural_research_live.ps1",
+      "bytes": 49324,
+      "sha256": "fe966930acdf8dfc12a69492afc0f668b2ddf409cfa8413080d4047688f3a9a9"
+    },
+    {
+      "path": "scripts/verify_structural_research_source.ps1",
+      "bytes": 29712,
+      "sha256": "175c3664026be89fe8e70b360086aeee7a10a57a6b004f70a8c0f875bfe3db2d"
+    }
+  ],
+  "independent_review": {
+    "path": "artifacts/p2-structural-research-driver-20261002-01/independent-review.json",
+    "bytes": 18756,
+    "sha256": "99acbd1769ff2e69e6afb9e0e3a31bd7510fdcd6c3bc6dbb74406a8454623d99"
+  },
+  "source_checks": {
+    "status": "PASS_SOURCE_ONLY",
+    "passed": 51,
+    "evidence": {
+      "path": "artifacts/p2-structural-research-driver-20261002-01/source-checks-published.json",
+      "bytes": 33767,
+      "sha256": "5b833f498d9d32c68061e00b05340ff450d84f12034a709e5e6a3e551b704592"
+    },
+    "actual_runtime_model_solver_core_calls": 0
+  },
+  "scope": {
+    "model": "openai-codex/gpt-5.6-sol",
+    "model_fallback": false,
+    "auth_and_project": "REUSE_APPROVED",
+    "families": [
+      "ansys_vmd1_regular/Fz",
+      "lame_cylinder_plane_strain/pressure",
+      "scordelis_lo_solid/gravity"
+    ],
+    "research_stages": 9,
+    "native_experiments": 9,
+    "mesh_levels_per_experiment": 3,
+    "final_interpretation": "All nine complete records frozen in actual prompt before bare no-tools inference"
+  },
+  "gates": {
+    "resident": "Fresh owned-session noReply source diagnostic before inference; binding and diagnostic bytes checked around every stage",
+    "numerical": "Unchanged frozen Domain gates and invalid-metric retention; not an optimizer",
+    "source": "Exact clean boot and recursive fixture/source identity",
+    "preservation": "Append new revisions/experiments, retain old result/thread/ledger/artifact bytes",
+    "refusal": "Missing inputs and unresolved torsion create no experiments"
+  },
+  "current_blocker": "Native03 rejected at fixed1e-7 signed reaction gate; connected actual run follows correction and fresh native acceptance",
+  "outcome": {
+    "new_actual_research": "NOT_RUN",
+    "native_raw_cross_solver_audit": "PENDING_ROOT_RAW_AUDIT",
+    "human_gui": "NOT_RUN",
+    "numerical_optimization": "NOT_RUN_PHASE3_SEPARATE",
+    "original_midas_replication": "UNKNOWN",
+    "release": "NOT_RELEASED"
+  },
+  "source_review_limits": [
+    "Store proof is current owned context/config declaration, not resident CAELAB_STORE environment observation",
+    "On-disk source/import paths do not prove cached Python bytecode identity",
+    "Cold synthetic checks and source review are not actual model/tool/native/GUI execution"
+  ]
+}

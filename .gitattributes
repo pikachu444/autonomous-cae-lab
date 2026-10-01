@@ -5,3 +5,5 @@ tests/fixtures/calculix_221_structural_family/family.frd -text
 tests/fixtures/calculix_221_structural_family/mesh.inc -text
 tests/fixtures/calculix_221_structural_family/mesh.json -text
 tests/fixtures/calculix_221_structural_family/serialized_loads_n.json -text
+scripts/verify_structural_research_live.ps1 text eol=lf
+scripts/verify_structural_research_source.ps1 text eol=lf

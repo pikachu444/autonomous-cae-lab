@@ -31,6 +31,14 @@ ADR0017. No further CAD recovery/setup scope.
 Earlier failed runs and original-context limits are preserved in their records;
 historical sections below cannot override this queue.
 
+Latest P2.2 actual progress: native03/b598f42 executed three beamFx meshes,
+then Core REJECTED fixed1e-7 force balance (max2.663401471566829e-7).
+Retained raw fields/invalid values:20261002-structural-family-native03.
+Connected OpenScience driver is published,51 cold checks/independent review
+PASS_SOURCE_ONLY; actual approved-model/three-family/GUI proof still NOT_RUN.
+Next resolve native reaction evidence, then fresh native and actual research;
+no later phase or additional setup is opened. STRUCTURAL_FAMILIES_ACCEPTANCE.
+
 ## P1.1 — integrated OpenScience CAD research (PASS bounded unit)
 
 Managed run03/source f52dd1b06e69cb901776f18524a41146258d421a now closes
