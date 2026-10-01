@@ -1,5 +1,22 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
+## Actual04 active; exact035 CI receipt path failure preserved
+
+Pushed035a4c7 starts a new clean owned research04 with the approved5.6Sol,
+existing project/auth and new append-only store. Actual resident resource
+confirms clean035/Core3565/fixture3e48; first missing-conditions reply finishes
+without execution. Research04 remains IN_PROGRESS; no final acceptance claim.
+Serving source stays035 while Root corrects only CI paths in Main.
+
+Exact035 CI36932859891's source job fails writing the final JSON to an absent
+old output parent; checker fixtures live under the new failure-flow root.
+Upload old path finds no artifact, so CI89 evidence is unavailable. Aligning
+OutputPath/upload with the new root passes a fresh no-artifacts Git archive
+checkout:89 checks/460 fixture hashes+contained paths/calls0. Record
+20261002-research-ci-path-correction separates this proof from pending new CI
+and actual04. No driver/checker/Core/adapter/guard/threshold/model change.
+Original failures and all52/UNKNOWN/NOT_RELEASED remain.
+
 ## Current actual checkpoint: research03 runs and interprets both solver records
 
 Source183cc0225f8358e441c63624af771e4dba19275d is pushed. New owned research03

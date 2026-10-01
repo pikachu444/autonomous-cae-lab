@@ -22,7 +22,7 @@ jobs:
       - name: Check structural research source and refusal gates without runtime calls
         shell: pwsh
         run: |
-          $taskReceiptPath = Join-Path $env:GITHUB_WORKSPACE 'artifacts/p2-structural-research-driver-20261002-01/ci-source-checks.json'
+          $taskReceiptPath = Join-Path $env:GITHUB_WORKSPACE 'artifacts/p2-structural-research-failure-flow-20261002-01/ci-source-checks.json'
           $null = & ./scripts/verify_structural_research_source.ps1 -RepoRoot $env:GITHUB_WORKSPACE -OutputPath $taskReceiptPath
           $taskReceipt = Get-Content -LiteralPath $taskReceiptPath -Raw | ConvertFrom-Json -Depth 60
           if ($taskReceipt.status -cne 'PASS_SOURCE_ONLY' -or @($taskReceipt.checks).Count -ne 89 -or
@@ -37,7 +37,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: research-driver-source-${{ github.sha }}
-          path: artifacts/p2-structural-research-driver-20261002-01/
+          path: artifacts/p2-structural-research-failure-flow-20261002-01/
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30

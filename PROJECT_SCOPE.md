@@ -21,6 +21,14 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+Reviewed collector is pushed035a4c7; actual research04 is IN_PROGRESS on clean
+managed035, approved5.6Sol/same project/auth/new store. Actual resident diagnostic
+and first missing-condition reply pass, not full acceptance. Exact035 CI source
+job fails at stale receipt/upload path; sourceartifact0/CI89 evidence unavailable.
+Workflow-only path alignment passes fresh no-artifacts checkout89/460file hash
+and upload containment checks. Record20261002-research-ci-path-correction;
+new CI pending and live04 stays exact035. All52 descriptions/status gates remain.
+
 Actual clean pushed183cc02/research03: three questions/nine completed tools/
 nine model step-finish records/two experiments/six native jobs. OpenScience
 creates a study, runs exact4-key solver requests, inspects/summarizes/compares

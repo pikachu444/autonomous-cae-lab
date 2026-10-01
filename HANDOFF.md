@@ -1,5 +1,22 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Live checkpoint: actual04 on clean035; CI path correction
+
+Reviewed collector is pushed035a4c7715bb1d2e8653314705df374986743a29. Owned
+research04 uses clean managed035, approved5.6Sol/same auth/project/new store;
+actual initial resident resource PASS/Core3565/fixture3e48 and the first missing-
+conditions model reply complete with no tool execution. Actual04 is IN_PROGRESS,
+not a completed acceptance. Keep serving035 fixed until its owned Stop.
+
+Exact035 CI36932859891 source job fails at final report write: checker creates
+the new failure-flow folder while CI still targets old driver output/upload
+folder. Its source artifact count0; actual CI89 receipt unavailable. Record
+20261002-research-ci-path-correction retains the error and aligns both workflow
+paths. A fresh Git035 archive checkout with no artifacts folder then passes
+the exact89 source wrapper and all460 fixture hashes/containment. This changes
+only CI paths, no research/Core/science/model code. New CI pending publication;
+local proof is not CI_PASS. Continue actual04 separately; P2.2/full52 remain OPEN.
+
 ## Current actual checkpoint: research03 control trace; numerical failure retained
 
 Pushed main/managed source183cc0225f8358e441c63624af771e4dba19275d,

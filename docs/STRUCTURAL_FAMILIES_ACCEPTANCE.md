@@ -13,6 +13,14 @@ Deterministic numerical engines own numerical search in the subsequent Phase3.
 
 ## Actual execution and preserved failures
 
+Actual04 starts on clean pushed035a4c7 in a new approved5.6Sol profile/store:
+resident identity PASS and first missing-conditions model reply with no tools.
+It is IN_PROGRESS; no numerical/final control-trace verdict yet. Exact035 CI
+source job fails final JSON write/upload at old parent path, sourceartifact0;
+actual89 CI proof unavailable. Workflow-only OutputPath/upload alignment passes
+fresh no-artifacts checkout89 and460 exact fixture/containment checks. Record
+20261002-research-ci-path-correction; new CI is separate from the ongoing035 run.
+
 The bounded failure collector source correction passes89 cold checks (original
 60+29), independent actual03 saved-record replay and12 negative controls with
 no openP1/P2. Authentic failed records continue; provenance/receipt/unsafe input

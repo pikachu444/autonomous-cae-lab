@@ -1,0 +1,44 @@
+{
+  "schema_version": "1",
+  "record_kind": "CI_SOURCE_RECEIPT_UPLOAD_PATH_CORRECTION",
+  "base_commit": "035a4c7715bb1d2e8653314705df374986743a29",
+  "actual_failed_ci": {
+    "run": 36932859891,
+    "job": 110606160579,
+    "status": "SOURCE_JOB_FAILED",
+    "evidence": {
+      "path": "artifacts/p2-research-ci-035a4c7-20261002-01/new-source-job-failure-receipt.json",
+      "bytes": 7373,
+      "sha256": "c49ed716a954c5bb8bc003032f6661f322c6d4b859369f53d2d409564e8e237e"
+    },
+    "cause": "Checker creates failure-flow evidence directory; stale workflow OutputPath/upload still point to the old structural-research-driver directory. Final report write fails because that parent is absent; artifact count0. Actual CI89 receipt unavailable."
+  },
+  "correction": "Point both CI report output and artifact upload to the same failure-flow root created by the checker.",
+  "workflow": {
+    "path": ".github/workflows/caelab-ci.yml",
+    "bytes": 20699,
+    "sha256": "af9a29a715e42207914a15aed01e635e738a6568e1ef57e1f39dafa348ac3aa9"
+  },
+  "fresh_local_proof": {
+    "status": "PASS_FRESH_FOLDER_EXACT_89_WRAPPER",
+    "basis": "Fresh Git035 archive checkout had no artifacts folder; unchanged checker created the new evidence parent and wrote the requested CI receipt.",
+    "receipt": {
+      "path": "artifacts/p2-research-ci-path-correction-20261002-01/checkout/artifacts/p2-structural-research-failure-flow-20261002-01/ci-source-checks.json",
+      "bytes": 111127,
+      "sha256": "5a4bdc6e098bb897aebe1aa14f197321d0464ac2646f931ddade781e957d6ce5"
+    },
+    "checks": 89,
+    "fixture_files": 460,
+    "all_fixture_hashes_checked_and_under_upload_root": true,
+    "calls": {
+      "model": 0,
+      "runtime": 0,
+      "Core": 0,
+      "native": 0
+    }
+  },
+  "unchanged": "Driver/checker/guard/Core/adapters/scientific conditions/thresholds/approved model remain unchanged; count89/status/four zero-call gates unchanged.",
+  "actual04": "Root-owned research04 continues on exact clean035 serving source; a workflow-only correction is not a different numerical run.",
+  "new_CI": "PENDING_AFTER_PUBLICATION",
+  "decision": "NOT_RELEASED"
+}
