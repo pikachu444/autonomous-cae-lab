@@ -1,21 +1,42 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
-## Actual04 active; exact035 CI receipt path failure preserved
+## Actual04 closed partial: changed-load research and cylinder fields
 
-Pushed035a4c7 starts a new clean owned research04 with the approved5.6Sol,
-existing project/auth and new append-only store. Actual resident resource
-confirms clean035/Core3565/fixture3e48; first missing-conditions reply finishes
-without execution. Research04 remains IN_PROGRESS; no final acceptance claim.
-Serving source stays035 while Root corrects only CI paths in Main.
+Clean035a4c7/research04 completes five Root-supplied questions/25 native tool
+events/19 model step-finish records, five Core records/15 native levels. The
+approved5.6Sol chooses tool order, creates/inspects studies, runs backends,
+creates a new half-load experiment, compares/summarizes and interprets records.
+Missing/unsupported requests execute nothing. Four records complete with review
+required; beam Aster fine retains FACTOR_57/3.32295e-6>native1e-6/metrics{}.
+Independent raw audit verifies beam CCX full/half scaling4.0858e-14<=1e-7 and
+both cylinder E220 analytical/all-node/all27x6 stress gates. Physical-coordinate
+cylinder cross-fields maxU9.2143e-14/S3.1755e-7<=1e-5. Numerical PASS does not
+establish engineering approval or general autonomous campaign planning.
 
-Exact035 CI36932859891's source job fails writing the final JSON to an absent
-old output parent; checker fixtures live under the new failure-flow root.
-Upload old path finds no artifact, so CI89 evidence is unavailable. Aligning
-OutputPath/upload with the new root passes a fresh no-artifacts Git archive
-checkout:89 checks/460 fixture hashes+contained paths/calls0. Record
-20261002-research-ci-path-correction separates this proof from pending new CI
-and actual04. No driver/checker/Core/adapter/guard/threshold/model change.
-Original failures and all52/UNKNOWN/NOT_RELEASED remain.
+The fifth CLI/model turn closes, but the collector stops parsing two official
+truncated JSON previews.23 original complete outputs/2 truncated/19 admitted
+prefix receipts are distinct counts. Official full pointers contain two valid
+63877B JSON files, equal the entire Core result;24 independent cause checks
+PASS. Original FAILED_OR_PARTIAL and nested stale IN_PROGRESS remain unchanged.
+Cylinder half/roof/final NOT_RUN. Base589files90755572B and separate127754B
+full-output supplement retained exactly; raw remote backup UNKNOWN_NOT_UPLOADED.
+Owned Stop3 original PIDs absent/native4098 closed; actual same-session GUI text
+observed without screenshot/native CAD GUI proof. Record:
+20261002-openscience-structural-research04; independent recorded-outcome/source/
+receipt/retention reviews have no additional actionable P1/P2.
+
+Exactedf CI36934138875 is8SUCCESS/2FAIL, source89PASS. Its workflow/docs correction
+preserves035's Core/adapters/research driver; actual04 remains exact035. Download404/22 and
+Aster Fz outer assertion are retained; CI internal native diagnostic UNKNOWN.
+Verifier-only full-output resolution now passes127 cold checks (89 preserved+
+38 new) and independent118 focused controls/two actual04 saved-byte replays.
+Protected31files unchanged, actual calls0; four local mock CLI calls are separate.
+Legacy nine-key behavior, original questions/model/source/numerical gates and
+scientific limits stay unchanged. Public04 also passes56 reconciliation checks/
+27 exact file refs. Record20261002-structural-research-full-output; CI wrapper127
+is not new CI/native acceptance. NEXT publish this unit, then NEW clean05 in
+the same P2.2 sequence. P2.2/full52/UNKNOWN/NOT_RELEASED remain OPEN.
+Older next instructions below are historical.
 
 ## Current actual checkpoint: research03 runs and interprets both solver records
 

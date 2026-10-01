@@ -21,13 +21,23 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
-Reviewed collector is pushed035a4c7; actual research04 is IN_PROGRESS on clean
-managed035, approved5.6Sol/same project/auth/new store. Actual resident diagnostic
-and first missing-condition reply pass, not full acceptance. Exact035 CI source
-job fails at stale receipt/upload path; sourceartifact0/CI89 evidence unavailable.
-Workflow-only path alignment passes fresh no-artifacts checkout89/460file hash
-and upload containment checks. Record20261002-research-ci-path-correction;
-new CI pending and live04 stays exact035. All52 descriptions/status gates remain.
+Actual clean035/research04 is CLOSED FAILED_OR_PARTIAL: five declared questions,
+25 tool events/19 model step-finish records/five experiments/15 native levels.
+Beam CCX full/half and both cylinder records complete; independent analytical/
+all-field/cylinder cross-solver and beam-half gates PASS. Beam Aster fine fails
+unchanged. OpenScience executes and interprets a Root-supplied bounded sequence;
+general autonomous planning is not established. Two official truncated JSON
+previews stop the collector after the fifth model turn. Valid native full files
+equal Core records and are separately retained; original partial outcome stays.
+Same-session GUI/owned Stop/base589file exact retention verified. Record:
+20261002-openscience-structural-research04. Cylinder half/roof/final NOT_RUN.
+Exactedf CI8SUCCESS/2FAIL/source89PASS is a separate workflow/documentation descendant;
+CI internal Aster diagnostic UNKNOWN. Strict verifier full-output reader now
+passes127 cold/independent118 focused controls and both saved04 output replays;
+31protected files unchanged/actual calls0. Legacy/questions/model/scientific
+gates unchanged. Public04 passes56 reconciliation/27 file refs. Source record:
+20261002-structural-research-full-output. NEXT publish/new clean05 original order;
+candidate127 CI/fresh05 are separate. Full52/P2.2/UNKNOWN/NOT_RELEASED remain OPEN.
 
 Actual clean pushed183cc02/research03: three questions/nine completed tools/
 nine model step-finish records/two experiments/six native jobs. OpenScience
@@ -407,7 +417,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R40 | Independent optimizer comparison by problem role, not a generic ranking. | Partial research and first seeded engine; wider engine acceptance planned. |
 | R41 | Source audit of fixture code/tests/CI/debt and independent architecture review. | Partial completed recovered source audit; native/transaction debt remains. |
 | R42 | Separate research/implementation/verification roles when useful; Root integrates. | Ongoing; retained implemented-load independent verification. |
-| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; actual183/research03 raw U/RF/27x6 stress, source/receipts/tool inputs and AI failure interpretation independently audited. Nine tools/two experiments and numerical Aster failure stay partial; exact183 source CI60PASS and final8SUCCESS/2FAIL are separately audited. Earlier native/probe/interpreter/prompt reviews retained. Failure-aware collector/new04 and remaining numerical gates OPEN. |
+| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; actual035/research04 full native fields, E220 cylinder analytical/cross-solver, beam half, source/25 tools/19 model steps and589-file retention independently audited. Native beam failure/truncated receipts remain partial. Official full-pointer cause24PASS; exactedf source CI89PASS/final8SUCCESS2FAIL separately audited. Reader127 cold/independent118 controls/two saved-byte replays PASS; public04 reconciliation56/27 refs PASS. Earlier reviews retained; fresh05 and remaining numerical gates OPEN. |
 | R44 | Do not concurrently modify shared schemas/Core/registry/artifact migrations or same source file. | Ongoing ownership rule in AGENTS. |
 | R45 | Root checks architecture, OpenScience-first, conflicting evidence, actual feasibility, GUI/headless, license/security/benchmarks/requirements before integration. | Ongoing; accepted/rejected decisions recorded in ADR/docs. |
 | R46 | Strong Root reasoning for architecture/numerics/conflicts, appropriate agents for bounded work; verification above model choice. | Ongoing, subject to available models/tools and current session instructions. |

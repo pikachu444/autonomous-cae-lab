@@ -1,21 +1,43 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
-## Live checkpoint: actual04 on clean035; CI path correction
+## Current checkpoint: actual04 retained; verified receipt reader for new05
 
-Reviewed collector is pushed035a4c7715bb1d2e8653314705df374986743a29. Owned
-research04 uses clean managed035, approved5.6Sol/same auth/project/new store;
-actual initial resident resource PASS/Core3565/fixture3e48 and the first missing-
-conditions model reply complete with no tool execution. Actual04 is IN_PROGRESS,
-not a completed acceptance. Keep serving035 fixed until its owned Stop.
+Owned research04/clean035a4c7715bb1d2e8653314705df374986743a29 is CLOSED
+FAILED_OR_PARTIAL. Approved5.6Sol/same auth/project/new store completes five
+questions/25 tools/19 provider step-finish records, five experiments/15 native
+levels. Missing/unsupported requests execute nothing. Beam CCX full/half and
+both cylinder solvers complete; beam Aster fine retains FACTOR_57/metrics{}.
+Independent all-U/RF/27x6 stress/source/receipt audit passes recorded outcomes:
+cylinder E220 analytical and cross-field gates PASS; beam half4.0858e-14<=1e-7.
+This is a bounded Root-supplied question sequence, not general autonomous
+campaign design or engineering release. Full52/P2.2/UNKNOWN/NOT_RELEASED remain.
 
-Exact035 CI36932859891 source job fails at final report write: checker creates
-the new failure-flow folder while CI still targets old driver output/upload
-folder. Its source artifact count0; actual CI89 receipt unavailable. Record
-20261002-research-ci-path-correction retains the error and aligns both workflow
-paths. A fresh Git035 archive checkout with no artifacts folder then passes
-the exact89 source wrapper and all460 fixture hashes/containment. This changes
-only CI paths, no research/Core/science/model code. New CI pending publication;
-local proof is not CI_PASS. Continue actual04 separately; P2.2/full52 remain OPEN.
+The fifth model turn finishes, but the verifier stops parsing two Aster JSON
+previews truncated by official OpenScience at50KiB. Full original files are
+valid and equal the entire stored result;24 independent cause checks PASS.
+Base589files/90755572B and separate two full-output files/127754B are retained
+exactly. Original malformed previews/global partial verdict stay unchanged;
+the nested control_trace still says IN_PROGRESS and is not a completion claim.
+Owned Stop confirms95956/92720/56920 absent/native4098 closed. Same actual beam/
+cylinder GUI text observed; no screenshot/native CAD GUI proof. Record:
+20261002-openscience-structural-research04. Cylinder half/roof/final NOT_RUN.
+
+Exactedf7915 CI36934138875 (workflow/documentation descendant, not actual04 source) is
+8SUCCESS/2FAIL: source89PASS, explicit pinned download404/22 and Aster Fz
+outer assertion. CI internal code/level/estimate UNKNOWN from scoped job logs;
+do not substitute the local FACTOR_57 diagnostic. Earlier035 receipt-path
+failure remains preserved in20261002-research-ci-path-correction.
+The verifier-only contained full-output reader is now independently reviewed:
+127 cold checks (89 preserved+38 new),118 focused independent controls and both
+saved actual04 full outputs PASS. Protected31files unchanged; actual provider/
+model/Core/native/runtime/auth calls0; four independent local mock CLI calls.
+Strict JSON/source/numerical gates, legacy nine-key behavior, original questions,
+approved model and scientific limits remain unchanged. General16MiB text bound;
+unsupported official formats fail closed. Record20261002-structural-research-full-output.
+Public actual04 record also passes56 reconciliation checks/27 exact file refs.
+CI wrapper now expects127; this source checkpoint is not new CI/native proof.
+NEXT publish this verified unit, then NEW clean research05 in the original order.
+Do not overwrite04 or open later phases. Full52/P2.2/NOT_RELEASED remain OPEN.
 
 ## Current actual checkpoint: research03 control trace; numerical failure retained
 

@@ -40,6 +40,7 @@ function Get-StructuralHelperContract {
         'scripts/verify_openscience_research_live.ps1'=@('Get-OpenScienceAcceptanceModelIdentity',
             'Get-PinnedFileSha','Get-PinnedSourceDigest','Assert-FrozenExperiments','Freeze-Experiment',
             'Invoke-ResearchQuestion','Assert-SessionHooks','Assert-ReceiptRecord','Assert-Metric','Assert-Unknown','Assert-Comparison')
+        'scripts/openscience-project.ps1'=@('Get-OpenScienceDirectoryHandlePath','Assert-OpenScienceDirectoryAncestors','Get-OpenScienceFinalDirectoryPath')
     }
 }
 
@@ -332,8 +333,123 @@ function Assert-StructuralResidentProof {
     Save-Checkpoint
 }
 
+function Get-StructuralTruncatedPreview([string]$Full,[string]$Pointer) {
+    # Official4082 tool/truncation.ts default head path, not JSON repair. MCP
+    # passes sessionID only; this owned CLI always has --delegation off.
+    $utf8=[Text.UTF8Encoding]::new($false,$true)
+    $lines=$(if ($Full.EndsWith("`n")) {$Full.Substring(0,$Full.Length-1)} else {$Full}).Split([string[]]@("`n"),[StringSplitOptions]::None)
+    $totalBytes=$utf8.GetByteCount($Full)
+    Assert-Task ($lines.Count -gt 2000 -or $totalBytes -gt 51200) 'Saved output does not meet the official truncation condition.'
+    $head=[Collections.Generic.List[string]]::new(); $bytes=0; $hitBytes=$false; $index=0
+    for (; $index -lt $lines.Count -and $index -lt 2000; $index++) {
+        $size=$utf8.GetByteCount($lines[$index])+$(if ($index -gt 0) {1} else {0})
+        if ($bytes+$size -gt 51200) {$hitBytes=$true;break}
+        $head.Add($lines[$index]); $bytes+=$size
+    }
+    $removed=$(if ($hitBytes) {$totalBytes-$bytes} else {$lines.Count-$head.Count})
+    $unit=$(if ($hitBytes) {'bytes'} else {'lines'})
+    $tail=[Collections.Generic.List[string]]::new(); $tailBytes=0
+    for ($last=$lines.Count-1; $last -ge $index -and $tail.Count -lt 40; $last--) {
+        $size=$utf8.GetByteCount($lines[$last])+$(if ($tail.Count -gt 0) {1} else {0})
+        if ($tailBytes+$size -gt 4096) {break}
+        $tail.Insert(0,$lines[$last]); $tailBytes+=$size
+    }
+    $guidance="The tool call succeeded but the output was truncated. Full output saved to: $Pointer`nRead that exact path with Read (offset/limit) for the sections you need; the saved output is readable only by its exact path, and its directory cannot be listed or searched with Grep."
+    $content=($head -join "`n")+"`n`n...$removed $unit truncated...`n`n"+$guidance
+    $ending=$tail -join "`n"
+    if ($ending.Trim()) {$content+="`n`nThe output ends with:`n"+$ending.TrimEnd([char]10)}
+    return $content
+}
+
+function Resolve-StructuralMcpReceipt($Tool,$Run) {
+    Assert-Task ($Tool.part.tool -cin $taskResearchTools -and $Tool.part.state.status -ceq 'completed' -and
+        $Tool.part.state.output -is [string]) 'Full-output resolution requires a completed approved structural tool.'
+    $metadata=$Tool.part.state.metadata
+    Assert-Task ($null -eq $metadata -or $metadata -is [Collections.IDictionary] -or $metadata -is [pscustomobject]) 'Truncation metadata must be a JSON object.'
+    $hasFlag=$null -ne $metadata -and $(if ($metadata -is [Collections.IDictionary]) {$metadata.Contains('truncated')} else {$null -ne $metadata.PSObject.Properties['truncated']})
+    if ($hasFlag) {Assert-Task ($metadata.truncated -is [bool]) 'Truncation metadata must use an explicit boolean.'}
+    if (-not $hasFlag -or -not $metadata.truncated) {
+        Assert-Task ($null -eq $metadata.outputPath) 'Untruncated output cannot authorize a full-output pointer.'
+        # Malformed direct JSON fails here; it never causes a file fallback.
+        return @{receipt=(Convert-McpReceipt $Tool.part.state.output);evidence=@{status='DIRECT_OUTPUT';full_output_read=$false}}
+    }
+    Assert-Task ($metadata.outputPath -is [string] -and [IO.Path]::IsPathFullyQualified($metadata.outputPath)) 'Full-output pointer must be an absolute path.'
+    $pointer=$metadata.outputPath; $absolute=[IO.Path]::GetFullPath($pointer)
+    Assert-Task ($pointer -ceq $absolute -and $pointer -cnotmatch '(^|[\\/])\.\.?([\\/]|$)' -and
+        $(if ($IsWindows) {$pointer.Substring(2).IndexOf(':') -lt 0} else {$pointer.IndexOf(':') -lt 0})) 'Full-output pointer is noncanonical or contains traversal/alternate streams.'
+    $basename=[IO.Path]::GetFileName($absolute)
+    Assert-Task ($basename -cmatch '^tool_[0-9a-f]{12}[0-9A-Za-z]{14}$') 'Full-output basename differs from the official ascending-tool generator.'
+    $declared=Join-Path $taskSetup.Environment.OPENSCIENCE_DATA_DIR 'tool-output'
+    $owned=Get-OpenScienceFinalDirectoryPath $declared
+    $parent=Get-OpenScienceFinalDirectoryPath ([IO.Path]::GetDirectoryName($absolute))
+    Assert-Task ($parent -ceq $owned) 'Full-output pointer is outside the exact boot-bound tool-output directory.'
+    $null=Assert-OpenScienceContainedPath (Join-Path $parent $basename) $owned
+    $file=Get-Item -LiteralPath $absolute -Force
+    Assert-Task (-not $file.PSIsContainer -and -not ($file.Attributes -band [IO.FileAttributes]::ReparsePoint)) 'Full-output pointer is not a regular unlinked file.'
+    # General transport bound, independent of family/case/scientific limits.
+    $maximum=16*1024*1024
+    Assert-Task ($file.Length -gt 0 -and $file.Length -le $maximum) 'Full-output file exceeds the declared16MiB transport bound.'
+    $archiveRoot=Join-Path $Run.Directory 'full-tool-receipts'
+    $null=Assert-OpenScienceContainedPath $archiveRoot $Run.Directory
+    if (-not (Test-Path -LiteralPath $archiveRoot)) {New-Item -ItemType Directory -Path $archiveRoot | Out-Null}
+    $archiveRoot=Get-OpenScienceFinalDirectoryPath $archiveRoot
+    $archive=Join-Path $archiveRoot $basename
+    $null=Assert-OpenScienceContainedPath $archive $archiveRoot
+    $stream=[IO.File]::Open($absolute,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+    try {
+        Assert-Task ($stream.Length -eq $file.Length -and $stream.Length -le $maximum) 'Full-output size changed before capture.'
+        $bytes=[byte[]]::new([int]$stream.Length); $offset=0
+        while ($offset -lt $bytes.Length) {
+            $read=$stream.Read($bytes,$offset,$bytes.Length-$offset)
+            Assert-Task ($read -gt 0) 'Full-output file ended during capture.'
+            $offset+=$read
+        }
+        $hash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
+        $full=[Text.UTF8Encoding]::new($false,$true).GetString($bytes)
+        Assert-Task ((Get-StructuralTruncatedPreview $full $pointer) -ceq $Tool.part.state.output) 'Full output does not reproduce the exact official preview/count/hint/tail.'
+        $destination=[IO.File]::Open($archive,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+        try {$destination.Write($bytes,0,$bytes.Length);$destination.Flush($true)} finally {$destination.Dispose()}
+        $stream.Position=0; $digest=[Security.Cryptography.SHA256]::Create()
+        try {$after=[Convert]::ToHexString($digest.ComputeHash($stream)).ToLowerInvariant()} finally {$digest.Dispose()}
+        Assert-Task ($after -ceq $hash -and $stream.Length -eq $bytes.Length -and (Get-OpenScienceHash $archive) -ceq $hash -and
+            (Get-OpenScienceHash $absolute) -ceq $hash -and
+            (Get-Item -LiteralPath $absolute -Force).Length -eq $bytes.Length -and
+            -not ((Get-Item -LiteralPath $absolute -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) -and
+            (Get-OpenScienceFinalDirectoryPath $declared) -ceq $owned -and
+            (Get-OpenScienceFinalDirectoryPath ([IO.Path]::GetDirectoryName($absolute))) -ceq $owned) 'Full-output source/archive/directory identity changed during capture.'
+        $evidence=[ordered]@{schema=1;kind='autonomous-cae-lab.structural-full-tool-output';status='VERIFIED_TRANSPORT_BYTES';
+            tool=$Tool.part.tool;session_id=$Run.Stage.session_id;source_pointer=$pointer;declared_parent=$declared;resolved_parent=$owned;
+            archive_path=$archive;sha256=$hash;size_bytes=$bytes.Length;max_size_bytes=$maximum;
+            preview_sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($Tool.part.state.output))).ToLowerInvariant();
+            metadata=$metadata;official_source='4082a2ecb73e166d4503963798228ba700f3840f';
+            scope='Exact full transport text/archive and preview linkage only; Core/provenance/numerical checks still required'}
+        $evidencePath=$archive+'.receipt.json'
+        Write-OpenScienceJson $evidencePath $evidence -CreateNew
+        $evidence.archive_receipt_path=$evidencePath; $evidence.archive_receipt_sha256=Get-OpenScienceHash $evidencePath
+        return @{receipt=(Convert-McpReceipt $full);evidence=$evidence}
+    } finally {$stream.Dispose()}
+}
+
+function Assert-StructuralReceiptArchives {
+    foreach ($entry in @($taskReceipts | Where-Object {$_.receipt_resolution.status -ceq 'VERIFIED_TRANSPORT_BYTES'})) {
+        $proof=$entry.receipt_resolution
+        $directory=Join-Path (Split-Path -Parent $entry.raw_trace) 'full-tool-receipts'
+        foreach ($path in @($proof.archive_path,$proof.archive_receipt_path)) {
+            $null=Assert-OpenScienceContainedPath $path $directory
+            Assert-Task (-not (Get-Item -LiteralPath $path -Force).PSIsContainer) 'Full-output archive is not a regular file.'
+        }
+        Assert-Task ((Get-OpenScienceHash $proof.archive_path) -ceq $proof.sha256 -and
+            (Get-Item -LiteralPath $proof.archive_path).Length -eq $proof.size_bytes -and
+            (Get-OpenScienceHash $proof.archive_receipt_path) -ceq $proof.archive_receipt_sha256 -and
+            $entry.raw_metadata.truncated -is [bool] -and $entry.raw_metadata.truncated -and
+            $entry.raw_metadata.outputPath -ceq $proof.source_pointer -and
+            [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($entry.raw_output))).ToLowerInvariant() -ceq $proof.preview_sha256) 'Earlier full-output archive/metadata/preview bytes changed.'
+    }
+}
+
 function Invoke-StructuralQuestion([string]$Name,[string]$Scenario,[string]$Prompt,$Context,[switch]$Bare,[switch]$AllowErrors) {
     Assert-StructuralResidentFiles
+    Assert-StructuralReceiptArchives
     # Persist the complete actual question/context BEFORE inference, including
     # the final nine verified records. No P1 interpretation-context omission.
     foreach ($entry in $taskStageEvidence) {
@@ -347,8 +463,9 @@ function Invoke-StructuralQuestion([string]$Name,[string]$Scenario,[string]$Prom
     $taskStageEvidence.Add(@{stage=$Name;scenario=$Scenario;prompt_path=$promptPath;prompt_sha256=Get-OpenScienceHash $promptPath;
         context_path=$contextPath;context_sha256=Get-OpenScienceHash $contextPath;bare=[bool]$Bare;allow_errors=[bool]$AllowErrors})
     Save-Checkpoint
-    $run=Invoke-ResearchQuestion $Name $Scenario $Prompt -Bare:$Bare -AllowErrors:$AllowErrors
+    $run=Invoke-ResearchQuestion $Name $Scenario $Prompt -Bare:$Bare -AllowErrors:$AllowErrors -ReceiptResolver ${function:Resolve-StructuralMcpReceipt}
     Assert-StructuralResidentFiles
+    Assert-StructuralReceiptArchives
     $hooks=Join-Path $run.Directory 'native-hooks'; New-Item -ItemType Directory -Path $hooks | Out-Null
     foreach ($file in @(Get-ChildItem -LiteralPath $taskSetup.HookReceiptsPath -File)) {
         $hook=Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json -Depth 40
@@ -685,6 +802,7 @@ try {
     Assert-Task ((Get-PinnedFileSha $taskSpecRelative) -ceq $taskSpecSha -and
         (Get-OpenScienceHash (Join-Path $taskArtifacts 'predeclared-reference.json')) -ceq $taskRecord.reference_sha256) 'Predeclared native reference changed.'
     Assert-OpenScienceSameProvenance $taskProvenance (Get-OpenScienceAcceptanceProvenance -Context $taskSetup -Timeout $StageTimeoutSeconds -ModelIdentity (Get-OpenScienceAcceptanceModelIdentity $taskSetup)) 'Source/config/project/model/runtime changed before acceptance.'
+    Assert-StructuralReceiptArchives
     $verdict=Get-StructuralCollectionVerdict @($taskResults.Values) @($taskNumerical) @($taskScaling) $taskStages.Count $taskQuestions.Count $taskFrozen.Count
     $taskRecord.same_record_inspections='PASS'; $taskRecord.original_experiment_bytes='PASS'; $taskRecord.retained_experiments=9;
     $taskRecord.completed_experiments=@($taskNumerical | Where-Object status -CEQ 'PASS').Count;

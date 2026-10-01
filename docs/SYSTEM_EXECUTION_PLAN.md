@@ -33,6 +33,21 @@ experiment artifacts; cloning Git alone does not restore their local bytes.
 
 **Next serial unit: P2.2 bounded family native and connected research acceptance.**
 
+Latest actual035/research04 closes five declared question turns,25 tool events,
+19 model step-finish records and five experiments/15 native levels. Beam half
+and both cylinder analytical/all-field/cross-solver gates independently PASS;
+beam Aster fine fails unchanged. The collector stops on two official truncated
+JSON previews after the fifth model turn; original outcome FAILED_OR_PARTIAL.
+Full native pointers are retained separately and equal stored records. Same-
+session GUI/owned Stop/base589-file retention verified. Record:
+20261002-openscience-structural-research04. Strict verifier-only full-output
+reader now passes127 cold/independent118 focused controls and both saved04
+replays;31protected files unchanged/actual calls0. Public04 reconciliation56/
+27refs PASS. Record20261002-structural-research-full-output. NEXT publish verified
+unit and run NEW clean05 in the original sequence; source proof is not new actual/CI.
+Cylinder half/roof/final and Fz accuracy remain OPEN. Exactedf source89 CI PASS
+is separate; whole CI8SUCCESS/2FAIL. Do not open later phases or relabel04.
+
 P2.1b-a freezes independent regular beam Fx/Fy/Fz, plane-strain pressure cylinder
 and curved roof solid derivatives; accepted source reuses existing Core evidence
 and explicit StructuralFamilies Research admission (ADR0017). Source checks and

@@ -1,5 +1,21 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+Actual035/research04 now demonstrates sequential study/solver/changed-load/
+comparison/interpretation over the existing operations: five Root-supplied
+questions,25 completed tool events,19 provider step-finish records and five Core
+experiments. Independent cylinder analytical/full-field/cross-solver and beam
+half-load gates PASS; beam Aster numerical failure stays. Two official truncated
+JSON previews stop the strict collector after the fifth model turn, so the run
+remains FAILED_OR_PARTIAL, later stages NOT_RUN and all NOT_RELEASED. Native
+full pointers are equal the entire Core result and retained separately; model
+full-receipt visibility is UNKNOWN. Record20261002-openscience-structural-research04.
+The reviewed correction is confined to verifier transport: retain and decode
+official full output with the same JSON/source/numerical checks.127 cold checks,
+118 independent focused controls/two saved04 replays PASS,31protected files
+unchanged/actual calls0. Legacy caller/model/questions/science remain unchanged.
+Record20261002-structural-research-full-output; fresh05/CI are separate. No Core/
+wire/tool/model/scientific contract change or new optimizer is introduced.
+
 Actual183/research03 closes the four-setting input fault: three questions,
 nine completed tools/two common experiments/six native jobs. OpenScience
 creates/inspects the study, runs both native backends, inspects/summarizes/

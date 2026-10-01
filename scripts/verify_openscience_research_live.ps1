@@ -180,7 +180,8 @@ function Freeze-Experiment([string]$Id) {
     Save-Checkpoint
     return $result
 }
-function Invoke-ResearchQuestion([string]$Name,[string]$Scenario,[string]$Prompt,[switch]$Bare,[switch]$AllowErrors) {
+function Invoke-ResearchQuestion([string]$Name,[string]$Scenario,[string]$Prompt,[switch]$Bare,[switch]$AllowErrors,
+    [scriptblock]$ReceiptResolver) {
     Assert-FrozenExperiments
     $commandArgs=@('run','--format','json','--workspace','project','--agent','research','--delegation','off','--model',$taskSetup.Model,
         '--auto-approve','--autonomy','balanced','--deadline',[string]($StageTimeoutSeconds-10),'--title',$Name)
@@ -194,11 +195,20 @@ function Invoke-ResearchQuestion([string]$Name,[string]$Scenario,[string]$Prompt
         $run.Stage.workspace_default_guard_restored) "Research stage $Name did not finish owned lifecycle cleanup."
     foreach($tool in $run.Tools){
         Assert-Task ($tool.part.tool -cin $taskResearchTools -and -not $Bare) 'A research stage used an unapproved tool.'
-        $decoded=$null; $decodeError=$null
-        if($tool.part.state.status -ceq 'completed'){try{$decoded=Convert-McpReceipt $tool.part.state.output}catch{$decodeError=$_.Exception.Message}}
+        $decoded=$null; $decodeError=$null; $resolution=$null
+        if($tool.part.state.status -ceq 'completed'){
+            if($ReceiptResolver){
+                # This is a source-authored structural verifier seam. Resolver
+                # refusals stay fatal even in the unsupported-tool error stage.
+                $resolution=& $ReceiptResolver $tool $run
+                $decoded=$resolution.receipt
+            }else{try{$decoded=Convert-McpReceipt $tool.part.state.output}catch{$decodeError=$_.Exception.Message}}
+        }
         Assert-Task ($AllowErrors -or ($tool.part.state.status -ceq 'completed' -and -not $decodeError)) "Research tool $($tool.part.tool) has no completed JSON receipt."
-        $taskReceipts.Add([ordered]@{stage=$Name;scenario=$Scenario;session_id=$run.Stage.session_id;tool=$tool.part.tool;
-            input=$tool.part.state.input;status=$tool.part.state.status;receipt=$decoded;decode_error=$decodeError;raw_trace=(Join-Path $run.Directory 'stdout.jsonl')})
+        $entry=[ordered]@{stage=$Name;scenario=$Scenario;session_id=$run.Stage.session_id;tool=$tool.part.tool;
+            input=$tool.part.state.input;status=$tool.part.state.status;receipt=$decoded;decode_error=$decodeError;raw_trace=(Join-Path $run.Directory 'stdout.jsonl')}
+        if($ReceiptResolver){$entry.raw_output=$tool.part.state.output;$entry.raw_metadata=$tool.part.state.metadata;$entry.receipt_resolution=$resolution.evidence}
+        $taskReceipts.Add($entry)
     }
     $text=(@($run.Events | Where-Object type -EQ 'text' | ForEach-Object {$_.part.text}) -join "`n")
     Assert-Task (-not [string]::IsNullOrWhiteSpace($text)) 'Research stage has no actual model response.'

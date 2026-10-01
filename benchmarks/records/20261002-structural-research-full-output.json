@@ -1,0 +1,306 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.structural-research-full-output-source-admission",
+  "record_id": "20261002-structural-research-full-output",
+  "status": "PASS_SOURCE_ONLY",
+  "base_commit": "edf79155f348cf00e9c48d50d3ef6b0d1ec955d5",
+  "source_commit": "The Git commit containing this record; inspect its three source blobs. A later documentation commit is not a new native verification.",
+  "problem": "Official OpenScience stores complete large MCP text but returns truncated non-JSON previews. Research04 finished its fifth model question, then the strict verifier rejected two previews and stopped later questions.",
+  "correction": "The structural verifier captures an explicitly authorized official full-output file, reproduces its entire original preview, decodes the complete JSON and applies unchanged source/Core/record/settings/numerical checks.",
+  "owned_files": [
+    {
+      "path": "scripts/verify_structural_research_live.ps1",
+      "sha256": "7b4d860e178abb198d607d72e0dcf4b6813fb777bdc724f0e94f473a45cc8302",
+      "size_bytes": 74873,
+      "frozen_copy": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-source-20261002-01\\attempt04\\verify_structural_research_live.ps1"
+    },
+    {
+      "path": "scripts/verify_structural_research_source.ps1",
+      "sha256": "917f37009855518e09ebb158fef30dc19a6ffde70ee688024c92be1b499d75e9",
+      "size_bytes": 60725,
+      "frozen_copy": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-source-20261002-01\\attempt04\\verify_structural_research_source.ps1"
+    },
+    {
+      "path": "scripts/verify_openscience_research_live.ps1",
+      "sha256": "7ed12439dd695922e44863863660bed41bb43c18c9ee83ca0bee79465661f8e0",
+      "size_bytes": 50521,
+      "frozen_copy": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-source-20261002-01\\attempt04\\verify_openscience_research_live.ps1"
+    }
+  ],
+  "official_reference": {
+    "source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+    "truncation": "https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/backend/cli/src/tool/truncation.ts",
+    "prompt": "https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/backend/cli/src/session/prompt.ts",
+    "cause_checks": 24,
+    "diagnosis": {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-research-receipt-truncation-diagnosis-20261002-01\\diagnosis.json",
+      "sha256": "3968519d146efaee9849032e3ac1a3c52b94f4c783d8f08f73eb3d327327a919",
+      "size_bytes": 17334
+    },
+    "source_scope": "Pinned official source and exact saved actual04 outputs, not a new provider/model/solver run."
+  },
+  "transport_gates": {
+    "completed_allowed_tool": true,
+    "explicit_boolean_truncated": true,
+    "canonical_absolute_direct_official_tool_basename": true,
+    "parent_binding": "Resolve declared OPENSCIENCE_DATA_DIR/tool-output and pointer parent through the existing read-only directory handle API; exact same final directory and repeated ancestor/reparse checks. No guessed MSIX alias or arbitrary profile/auth read.",
+    "maximum_bytes": 16777216,
+    "maximum_scope": "General text transport bound; no scientific response or numerical tolerance change.",
+    "strict_UTF8": true,
+    "complete_official_preview_linkage": "Pinned default head, 50KiB or2000-line cap, removed count/unit, exact pointer guidance and40-line/4KiB tail; delegation off. Other formats fail closed.",
+    "archive": "Exclusive CreateNew byte archive and receipt; source/locked-stream/by-path/archive hashes and directory identity checked after capture. Archive/metadata/preview immutability checked before/after later questions and final verdict.",
+    "untruncated_malformed_output": "Fatal; never used to authorize a file fallback or JSON repair.",
+    "whole_JSON_and_existing_provenance": "Unchanged mandatory Core record/source/settings/scientific comparisons after transport capture."
+  },
+  "source_checks": {
+    "count": 127,
+    "preserved_named_checks": 89,
+    "new_checks": 38,
+    "status": "PASS_SOURCE_ONLY",
+    "freeze": {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-source-20261002-01\\attempt04\\freeze.json",
+      "sha256": "cffe547f4ec9997b2849e70d8afd6fde8bd148fdb7a302c0341d95d5faf75ec7",
+      "size_bytes": 4540
+    },
+    "receipt": {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-source-20261002-01\\attempt04\\checks.json",
+      "sha256": "2bc37d7054cd1af677c48f6d8e2855985277f1057f4280915277ac2834ca1d96",
+      "size_bytes": 123529
+    },
+    "exit": {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-source-20261002-01\\attempt04\\exit.json",
+      "sha256": "6ab2f0e1f12f329917d8eb5e87e193a8e48f878fa6bd3ac3ed0a97cf0652a62d",
+      "size_bytes": 348
+    },
+    "diff": {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-source-20261002-01\\attempt04\\source.diff",
+      "sha256": "dedd3671eccc05cbf6cb8461e66780d927e32592fd998257b3840f7127a7efe0",
+      "size_bytes": 35315
+    },
+    "earlier_attempts": [
+      {
+        "exit_code": 1,
+        "attempt": "attempt01",
+        "logs_retained": true,
+        "reason": "Synthetic fixture PSCustomObject Environment property missing; fixed with Add-Member",
+        "initial_failure_source_hash": "NOT_CAPTURED"
+      }
+    ],
+    "earlier_passed_attempts": [
+      "attempt02:126",
+      "attempt03:127",
+      "attempt04:127"
+    ],
+    "scope": "Cold source/seam/refusal/legacy checks only; no actual numerical or engineering acceptance."
+  },
+  "independent_review": {
+    "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\source-independent-review.json",
+    "sha256": "0177081e8e1c225ef86be0d60eac0982a077a4dee432675d9e185d1433e85123",
+    "size_bytes": 12972
+  },
+  "independent_review_evidence": [
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\input-state-before.json",
+      "sha256": "db68ba77bceb5176d5948c7b6ace3c3ce7d7d2befa6d616b767f2a9ba55c68f1",
+      "size_bytes": 17045
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\input-state-after.json",
+      "sha256": "2ab557f522c2a22498b9fac6fbe2193e1476738791d99157793d6f56efd07e52",
+      "size_bytes": 8602
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\focused-checks.json",
+      "sha256": "17e7e4af6c01135b61d1c808c7b0d4e902822e96702c9a2acf168e089d28a2a3",
+      "size_bytes": 24547
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\focused03-stdout.log",
+      "sha256": "9261966bd99b1c2a7c44aa7c40918d0a2e7de4c35ff8ee381b63c2b9429d2f59",
+      "size_bytes": 110
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\focused03-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\focused03-exit.json",
+      "sha256": "51804e0d4cbd5d822dd170fef11322d112971a80243880586f603a1e73c52373",
+      "size_bytes": 74
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\focused-review.ps1",
+      "sha256": "0b53611b76c2678ffd7f832435881a358b8b7a8c1d19b9f73fb8fb64f665e6b7",
+      "size_bytes": 15940
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\prepare-review.py",
+      "sha256": "1cd2fcd38ffc4fe94c4d8f1e1ff49527248509757c2b1e74786124ab50f7a161",
+      "size_bytes": 5801
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\finalize-review.py",
+      "sha256": "3639607e1f5c610f0353787a457caba854c67cecb62336b0cac104ab1b1f11df",
+      "size_bytes": 9390
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\focused-review-attempt01.ps1",
+      "sha256": "51dd68c6d59275f5d856c675b9563be9af60026f747217f158b27a5ffc422bc5",
+      "size_bytes": 15841
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\focused-review-attempt02.ps1",
+      "sha256": "785bff7a7c2a2357fcc4fa7dc38f6ec10db50ad3217d99d0d876ea75ed0ca685",
+      "size_bytes": 15863
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\focused-stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\focused-stderr.log",
+      "sha256": "9856714eb414e64859376577a7e0806daf2ae5830412bb814e644d3ee0a4cfa0",
+      "size_bytes": 379
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\focused-exit.json",
+      "sha256": "dee8bfbbd0083dbaaf63066b9f1fa7232eb372db0ba1eeb9f4f1a16be26cb64c",
+      "size_bytes": 74
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\focused02-stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\focused02-stderr.log",
+      "sha256": "74f14f411b45a44b6fa5e339866e32b85cabbf2a1ecf0919ef9428c8000cbe13",
+      "size_bytes": 434
+    },
+    {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-review-20261002-01\\focused02-exit.json",
+      "sha256": "a907ead3a7acc7d0fb0ff650845c0e9f5b292df7eff6be1929d78c05fa7b9d0a",
+      "size_bytes": 74
+    }
+  ],
+  "independent_local_mock_CLI_calls": 4,
+  "actual04_public_record_reconciliation": {
+    "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-research-actual-review-20261002-04\\public-record-check.json",
+    "sha256": "6919c48891d8b6c89a3e6cc7c4e7c5c6eb2735da665549ce5d3215a18b43d792",
+    "size_bytes": 16162
+  },
+  "saved_actual04_replay": {
+    "status": "PASS_READ_ONLY_SAVED_ACTUAL04_REPLAY",
+    "cases": [
+      {
+        "source_sha256": "7950a890af68fa39d8c3338cc6030526c07667c9db30fdd7e8a7b44fd12207f9",
+        "part_id": "prt_0f9925034001hjnqZQOGm0Bdlg",
+        "status": "PASS_SAVED_OUTPUT_REPLAY",
+        "decision": "NOT_RELEASED",
+        "entire_stored_core_equal": true,
+        "experiment_id": "E-p2-research-20261002-04-cylinder-aster-full",
+        "core_status": "COMPLETED_REVIEW_REQUIRED",
+        "tool": "caelab_model_analysis_run",
+        "size_bytes": 63877,
+        "model_revision": "6ccfdcab6ab5ea6fb5b158cac7842c9a85d00d149c9f3afb6338d7a8b1d7c330",
+        "archive_path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-source-20261002-01\\actual04-replay02\\caelab_model_analysis_run\\full-tool-receipts\\tool_0f993ce95001lgpvXnZMO7hSAT"
+      },
+      {
+        "source_sha256": "3f7bf9d0278b68a4027508e83d3835eabce45370ad14509d8d9f7237597a15c3",
+        "part_id": "prt_0f993ffb5001Nm6UCyI67gRWmG",
+        "status": "PASS_SAVED_OUTPUT_REPLAY",
+        "decision": "NOT_RELEASED",
+        "entire_stored_core_equal": true,
+        "experiment_id": "E-p2-research-20261002-04-cylinder-aster-full",
+        "core_status": "COMPLETED_REVIEW_REQUIRED",
+        "tool": "caelab_experiment_inspect",
+        "size_bytes": 63877,
+        "model_revision": "6ccfdcab6ab5ea6fb5b158cac7842c9a85d00d149c9f3afb6338d7a8b1d7c330",
+        "archive_path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-source-20261002-01\\actual04-replay02\\caelab_experiment_inspect\\full-tool-receipts\\tool_0f99428f4001rZgwNpy9eyUKCz"
+      }
+    ],
+    "receipt": {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-source-20261002-01\\actual04-replay02\\receipt.json",
+      "sha256": "290db845657d3f6faa69b35bf2d1528690817b787a5a4015a181af308439c80d",
+      "size_bytes": 4865
+    },
+    "archives": [
+      {
+        "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-source-20261002-01\\actual04-replay02\\caelab_model_analysis_run\\full-tool-receipts\\tool_0f993ce95001lgpvXnZMO7hSAT",
+        "sha256": "7950a890af68fa39d8c3338cc6030526c07667c9db30fdd7e8a7b44fd12207f9",
+        "size_bytes": 63877
+      },
+      {
+        "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-source-20261002-01\\actual04-replay02\\caelab_experiment_inspect\\full-tool-receipts\\tool_0f99428f4001rZgwNpy9eyUKCz",
+        "sha256": "3f7bf9d0278b68a4027508e83d3835eabce45370ad14509d8d9f7237597a15c3",
+        "size_bytes": 63877
+      }
+    ],
+    "archive_receipts": [
+      {
+        "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-source-20261002-01\\actual04-replay02\\caelab_model_analysis_run\\full-tool-receipts\\tool_0f993ce95001lgpvXnZMO7hSAT.receipt.json",
+        "sha256": "fc521bd9d5961181d8c57b28827df4e4496ed950e38e2f0e5ddc3ea39add2353",
+        "size_bytes": 1648
+      },
+      {
+        "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-receipt-full-output-source-20261002-01\\actual04-replay02\\caelab_experiment_inspect\\full-tool-receipts\\tool_0f99428f4001rZgwNpy9eyUKCz.receipt.json",
+        "sha256": "471959b2d51b3b3ef5619cb9bfb55848a4812e5f50d35e5cbbd78541fa36395a",
+        "size_bytes": 1648
+      }
+    ],
+    "original_changes": 0,
+    "scope": "Both saved actual completed-tool parts and their exact63,877-byte full outputs only. Complete decoded receipt equals entire stored Core result. Original actual04 failure remains unchanged; model full-receipt visibility UNKNOWN."
+  },
+  "legacy": {
+    "no_resolver_receipt_keys": 9,
+    "CLI_arguments_model_delegation_deadline": "UNCHANGED",
+    "parser_and_error_semantics": "UNCHANGED",
+    "fixture_research_caller": "UNCHANGED"
+  },
+  "architecture_impact": {
+    "Core_Domain_adapter_native_guard_wire_tools": "UNCHANGED",
+    "OpenScience_contract": "Verifier transport implementation only; research control-plane role, allowed operations and source/engineering gates unchanged.",
+    "ADR": "No new platform decision; remains within ADR0016/0017.",
+    "questions_scientific_inputs_responses_thresholds_stage_order_model": "UNCHANGED"
+  },
+  "CI": {
+    "wrapper_expected_checks": 127,
+    "output_upload_paths_and_four_zero_call_gates": "UNCHANGED",
+    "this_candidate_exact_commit_CI": "NOT_RUN_AT_SOURCE_CHECKPOINT",
+    "previous_exact_commit": "edf79155f348cf00e9c48d50d3ef6b0d1ec955d5",
+    "previous_run": 36934138875,
+    "previous_status": "8SUCCESS_2FAIL_SOURCE89PASS",
+    "scope": "Local127 source tests are not CI or fresh native acceptance."
+  },
+  "side_effect_counts": {
+    "model_calls": 0,
+    "provider_calls": 0,
+    "core_calls": 0,
+    "native_solver_calls": 0,
+    "actual_runtime_calls": 0,
+    "auth_calls": 0
+  },
+  "actual04": {
+    "source_commit": "035a4c7715bb1d2e8653314705df374986743a29",
+    "outcome": "FAILED_OR_PARTIAL_UNCHANGED",
+    "record": "20261002-openscience-structural-research04"
+  },
+  "next_actual05": "NOT_RUN_AT_SOURCE_CHECKPOINT",
+  "next": "Commit/push the reviewed unit, update the existing clean managed checkout and run new research05 with the same approved5.6Sol/project/auth, new store and original nine-question order. Retain original04/known native failures.",
+  "decision": "NOT_RELEASED",
+  "full_52_requirements": "OPEN",
+  "limitations": [
+    "Supports exact official4082 default head/byte-or-line truncation with delegation off; other formats fail closed.",
+    "Full transport capture is distinct from model receipt visibility, numerical/engineering qualification and independent raw all-field audit.",
+    "Metadata/path/preview is not a signed archive; existing exact Core record/ledger/source/receipt checks remain required.",
+    "No Core/guard/adapters/runtime/auth/source-store/scientific/model changes; Root owns publication and fresh actual acceptance.",
+    "Source readiness and saved actual04 transport bytes only; candidate127 CI and fresh actual05 research NOT_RUN by this auditor.",
+    "Actual04 remains FAILED_OR_PARTIAL. Recovered completed record remains COMPLETED_REVIEW_REQUIRED and NOT_RELEASED; numerical/physical qualification and raw native cross-solver audit are separate.",
+    "Reviewed locally retained primary official4082 source snapshots and their hashes; no new HTTP download of upstream source in this review.",
+    "Resolver accepts the pinned official default head/delegation-off format only; unsupported formats fail closed. Metadata/byte archives are not signed evidence; downstream exact Core/source/settings/numeric/immutability gates remain mandatory.",
+    "Focused production AST checks and saved-byte replay were executed; full writer127 suite was not redundantly re-run. Existing field validation functions were proven exact to EDF base, not newly exercised with a solver.",
+    "No general Phase or 52-requirement completion claim; all52OPEN/NOT_RELEASED remains."
+  ]
+}

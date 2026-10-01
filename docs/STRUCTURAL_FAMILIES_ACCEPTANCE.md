@@ -13,13 +13,37 @@ Deterministic numerical engines own numerical search in the subsequent Phase3.
 
 ## Actual execution and preserved failures
 
-Actual04 starts on clean pushed035a4c7 in a new approved5.6Sol profile/store:
-resident identity PASS and first missing-conditions model reply with no tools.
-It is IN_PROGRESS; no numerical/final control-trace verdict yet. Exact035 CI
-source job fails final JSON write/upload at old parent path, sourceartifact0;
-actual89 CI proof unavailable. Workflow-only OutputPath/upload alignment passes
-fresh no-artifacts checkout89 and460 exact fixture/containment checks. Record
-20261002-research-ci-path-correction; new CI is separate from the ongoing035 run.
+Actual04/clean035 is CLOSED FAILED_OR_PARTIAL. Five questions/25 completed tool
+events/19 provider step-finish records create five records/15 native levels,
+14 complete field levels. Beam CCX full/half and both cylinder records complete;
+beam Aster fine retains FACTOR_57/3.32295e-6>1e-6/metrics{}. Independent complete
+U/RF/27x6 stress/coordinates/equilibrium/reference audit verifies cylinder E220
+fields and cross-solver maxU9.2143e-14/S3.17549523e-7<=1e-5; beam half error
+4.0858217e-14<=1e-7. Original/copy589files90755572B and source/ledger/tool
+evidence close. Root observes same official beam/cylinder GUI text and owned
+Stop; screenshot/native CAD GUI proof unavailable. All remain NOT_RELEASED.
+
+The fifth model turn finishes; strict collector rejects two truncated Aster
+JSON previews. Official native full pointers are valid63877B JSON each and
+equal the entire stored result;24 independent cause checks PASS. This127754B
+supplement is separate from base retention.23 original complete JSON outputs,
+2 truncated and19 admitted prefix receipts are not conflated. Original outcome
+and stale nested IN_PROGRESS stay unchanged. Cylinder half/roof/final NOT_RUN.
+Record20261002-openscience-structural-research04. Its public checkpoint passes
+56 independent reconciliation checks/27 exact referenced-file hashes.
+Strict contained full-output reader now passes127 cold checks (89 preserved+38),
+independent118 focused controls and both genuine saved04 full-output replays.
+31protected files unchanged/actual calls0; four mock CLI calls separate. Original
+questions/model/source/scientific/legacy gates unchanged;16MiB general transport
+bound, unsupported formats fail closed. Record20261002-structural-research-full-output.
+NEXT publish verified unit then NEW clean05. Source proof is not new actual/CI
+acceptance; no JSON repair/threshold change or relabeling of original04.
+
+Exactedf CI36934138875 is8SUCCESS/2FAIL/source89PASS, a workflow/documentation
+descendant preserving actual035 Core/adapters/research driver. Download404/22 and Fz assertion remain.
+CI native internal code/level/estimate UNKNOWN from logs; local diagnostics
+are separate. Earlier035 stale-path failure is retained in
+20261002-research-ci-path-correction. P2.2/full52 remain OPEN.
 
 The bounded failure collector source correction passes89 cold checks (original
 60+29), independent actual03 saved-record replay and12 negative controls with

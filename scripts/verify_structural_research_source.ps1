@@ -40,18 +40,19 @@ function Assert-SourceRefusalMessage([scriptblock]$Action,[string]$Name,[string]
 }
 $taskSourceAst=Read-SourceAst $taskSourceDriver
 $taskLiveAst=Read-SourceAst (Join-Path $taskSourceRoot 'scripts/verify_openscience_live.ps1')
-foreach ($name in @('Assert-Task','Assert-OpenScienceSameProvenance','Write-TaskJson','Check-ExperimentBytes')) {
+foreach ($name in @('Assert-Task','Assert-OpenScienceSameProvenance','Write-TaskJson','Check-ExperimentBytes','Convert-McpReceipt')) {
     . (Import-SourceFunction $taskLiveAst $name)
 }
 foreach ($name in @('Assert-StructuralBootstrap','Get-StructuralHelperContract','Get-StructuralSummary',
     'Assert-StructuralScaling','Assert-StructuralNoExecution','Assert-StructuralResult','Assert-StructuralArtifact',
     'Assert-StructuralFailedSources','Assert-StructuralExecutionFailure','Get-StructuralNumericalEvidence',
     'Add-StructuralRecord','Get-StructuralComparisonEvidence','Get-StructuralScalingEvidence','Get-StructuralCollectionVerdict','Get-StructuralResidentBinding',
-    'Assert-StructuralResidentIdentity','Assert-StructuralResidentFiles','Assert-StructuralResidentProof')) {
+    'Assert-StructuralResidentIdentity','Assert-StructuralResidentFiles','Assert-StructuralResidentProof',
+    'Get-StructuralTruncatedPreview','Resolve-StructuralMcpReceipt','Assert-StructuralReceiptArchives')) {
     . (Import-SourceFunction $taskSourceAst $name)
 }
 $taskResearchAst=Read-SourceAst (Join-Path $taskSourceRoot 'scripts/verify_openscience_research_live.ps1')
-foreach ($name in @('Assert-ReceiptRecord','Assert-Metric','Assert-Unknown','Freeze-Experiment','Assert-FrozenExperiments')) {
+foreach ($name in @('Assert-ReceiptRecord','Assert-Metric','Assert-Unknown','Freeze-Experiment','Assert-FrozenExperiments','Invoke-ResearchQuestion')) {
     . (Import-SourceFunction $taskResearchAst $name)
 }
 function Save-Checkpoint { } # Source-only fixture; no actual acceptance record.
@@ -62,13 +63,16 @@ function Get-OpenScienceHash([string]$Path) {
 # imported, and both network-facing runtime/session functions are mocked below.
 $taskServerAst=Read-SourceAst (Join-Path $taskSourceRoot 'scripts/openscience-server-local.ps1')
 foreach ($name in @('Assert-OpenScienceCondition','Write-OpenScienceJson','Read-OpenScienceJson',
-    'ConvertFrom-OpenScienceJsonElement','Get-OpenScienceSourcePinSha256','ConvertTo-OpenScienceWslPath')) {
+    'ConvertFrom-OpenScienceJsonElement','Get-OpenScienceSourcePinSha256','ConvertTo-OpenScienceWslPath','Assert-OpenScienceContainedPath')) {
     . (Import-SourceFunction $taskServerAst $name)
 }
 $taskNativeAst=Read-SourceAst (Join-Path $taskSourceRoot 'scripts/openscience-native-provider.ps1')
 . (Import-SourceFunction $taskNativeAst 'Get-OpenScienceNativeContextSha256')
 $taskProjectAst=Read-SourceAst (Join-Path $taskSourceRoot 'scripts/openscience-project.ps1')
 . (Import-SourceFunction $taskProjectAst 'Get-OpenScienceProjectHeaders')
+foreach ($name in @('Get-OpenScienceDirectoryHandlePath','Assert-OpenScienceDirectoryAncestors','Get-OpenScienceFinalDirectoryPath')) {
+    . (Import-SourceFunction $taskProjectAst $name)
+}
 foreach ($pair in (Get-StructuralHelperContract).GetEnumerator()) {
     $ast=Read-SourceAst (Join-Path $taskSourceRoot $pair.Key)
     foreach ($name in $pair.Value) { $null=Import-SourceFunction $ast $name }
@@ -513,6 +517,151 @@ $scaleFailed=Get-StructuralCollectionVerdict @(0..8 | ForEach-Object {$full}) $v
 Assert-SourceCheck ($scaleFailed.outcome -ceq 'FAILED_OR_PARTIAL' -and $scaleFailed.non_pass_scaling.Count -eq 1) 'failed scientific scaling gate prevents bounded numerical PASS'
 $incomplete=Get-StructuralCollectionVerdict @($taskResults.Values) @($taskNumerical) $scaling 8 8 9
 Assert-SourceCheck ($incomplete.outcome -ceq 'FAILED_OR_PARTIAL' -and $incomplete.control_trace.status -ceq 'PARTIAL') 'missing declared final stage cannot claim completed control trace'
+
+# Public transport fixtures: official04-shaped cuts, not native/scientific proof.
+# A deliberately oversized single JSON property has an independently known
+# whole-line cut: exact kept prefix, omitted UTF8 byte count and final brace.
+$taskTransportRoot=Join-Path $taskSourceEvidence 'full-output-fixtures'
+$taskTransportData=Join-Path $taskTransportRoot 'boot-data'
+$taskTransportDirectory=Join-Path $taskTransportData 'tool-output'
+New-Item -ItemType Directory -Path $taskTransportDirectory -Force | Out-Null
+$taskSetup | Add-Member -NotePropertyName Environment -NotePropertyValue @{OPENSCIENCE_DATA_DIR=$taskTransportData} -Force
+$taskResearchTools=@('caelab_study_create','caelab_study_inspect','caelab_model_analysis_run',
+    'caelab_experiment_inspect','caelab_experiment_summary','caelab_experiment_compare')
+$taskTransportCounter=0
+function New-SourceFullOutputFixture([string]$Name,[string]$Mutation='none') {
+    $script:taskTransportCounter++
+    $basename='tool_'+$taskTransportCounter.ToString('x12')+'Ab0123456789Zz'
+    $directory=Join-Path $taskTransportRoot $Name; New-Item -ItemType Directory -Path $directory | Out-Null
+    $pointer=Join-Path $taskTransportDirectory $basename
+    $head=@('{','  "experiment_id": "E-public-cylinder-aster-full",','  "status": "COMPLETED_REVIEW_REQUIRED",',
+        '  "solver_status": "COMPLETED",','  "decision": "NOT_RELEASED",','  "source": "PUBLIC SYNTHETIC μ TRANSPORT ONLY",',
+        '  "metrics": {"primary_response":{"valid":true,"value":8.0,"unit":"mm"}},') -join "`n"
+    $full=$head+"`n"+'  "padding": "'+('x'*60000)+'"'+"`n"+'}'
+    if ($Mutation -ceq 'invalid-json') {$full=$full.Substring(0,$full.Length-1)+']'}
+    $bytes=[Text.UTF8Encoding]::new($false,$true).GetBytes($full)
+    [IO.File]::WriteAllBytes($pointer,$bytes)
+    $removed=$bytes.Length-[Text.Encoding]::UTF8.GetByteCount($head)
+    $ending=if ($Mutation -ceq 'invalid-json') {']'} else {'}'}
+    $hint="The tool call succeeded but the output was truncated. Full output saved to: $pointer`nRead that exact path with Read (offset/limit) for the sections you need; the saved output is readable only by its exact path, and its directory cannot be listed or searched with Grep."
+    $preview=$head+"`n`n...$removed bytes truncated...`n`n"+$hint+"`n`nThe output ends with:`n"+$ending
+    $tool=@{part=@{tool='caelab_model_analysis_run';state=@{status='completed';input=@{experiment_id='E-public-cylinder-aster-full'};
+        metadata=@{truncated=$true;outputPath=$pointer};output=$preview}}}
+    $run=@{Directory=$directory;Stage=@{session_id='ses_publictransport'}}
+    return @{tool=$tool;run=$run;full=$full;pointer=$pointer;bytes=$bytes}
+}
+$transport=New-SourceFullOutputFixture 'valid-full'
+$resolved=Resolve-StructuralMcpReceipt $transport.tool $transport.run
+Assert-SourceCheck ($resolved.receipt.experiment_id -ceq 'E-public-cylinder-aster-full' -and $resolved.receipt.metrics.primary_response.value -eq 8.0 -and
+    $resolved.evidence.size_bytes -eq $transport.bytes.Length -and $resolved.evidence.max_size_bytes -eq 16777216 -and
+    (Get-OpenScienceHash $resolved.evidence.archive_path) -ceq (Get-OpenScienceHash $transport.pointer)) 'official04-shaped full output parses and archives exact UTF8 bytes without changing metrics'
+Assert-SourceCheck ($resolved.evidence.preview_sha256 -ceq [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($transport.tool.part.state.output))).ToLowerInvariant() -and
+    (Get-Content $resolved.evidence.archive_receipt_path -Raw | ConvertFrom-Json -Depth 40).metadata.outputPath -ceq $transport.pointer) 'raw truncated preview metadata pointer and archive SHA remain linked'
+$lineFixture=New-SourceFullOutputFixture 'official-line-limit'
+$lineFull="[`n"+((@('0,')*2100) -join "`n")+"`n0`n]`n"
+[IO.File]::WriteAllText($lineFixture.pointer,$lineFull,[Text.UTF8Encoding]::new($false))
+$lineHead="[`n"+((@('0,')*1999) -join "`n")
+$lineTail=((@('0,')*38) -join "`n")+"`n0`n]"
+$lineFixture.tool.part.tool='caelab_experiment_compare'
+$lineFixture.tool.part.state.output=$lineHead+"`n`n...103 lines truncated...`n`nThe tool call succeeded but the output was truncated. Full output saved to: $($lineFixture.pointer)`nRead that exact path with Read (offset/limit) for the sections you need; the saved output is readable only by its exact path, and its directory cannot be listed or searched with Grep.`n`nThe output ends with:`n"+$lineTail
+$lineResolved=Resolve-StructuralMcpReceipt $lineFixture.tool $lineFixture.run
+Assert-SourceCheck ($lineResolved.receipt.Count -eq 2101 -and $lineResolved.evidence.size_bytes -lt 51200) 'official2000-line cut preserves exact preview removed-count tail and trailing-newline full bytes'
+Assert-SourceRefusal {Resolve-StructuralMcpReceipt $transport.tool $transport.run} 'full-output archive is exclusive and cannot overwrite an earlier capture'
+foreach ($mutation in @('missing-path','relative-path','dot-dot','extension','ads','wrong-hint','wrong-head','wrong-tail','wrong-count',
+    'string-flag','null-flag','metadata-array','not-completed','foreign-tool','small-file','oversized-file','invalid-utf8','outside-root','directory-file','file-substitution')) {
+    $fixture=New-SourceFullOutputFixture $mutation
+    switch ($mutation) {
+        'missing-path' {$fixture.tool.part.state.metadata.Remove('outputPath')}
+        'relative-path' {$fixture.tool.part.state.metadata.outputPath=Split-Path -Leaf $fixture.pointer}
+        'dot-dot' {$fixture.tool.part.state.metadata.outputPath=Join-Path $taskTransportDirectory ('../tool-output/'+(Split-Path -Leaf $fixture.pointer))}
+        'extension' {$fixture.tool.part.state.metadata.outputPath=$fixture.pointer+'.json'}
+        'ads' {$fixture.tool.part.state.metadata.outputPath=$fixture.pointer+':stream'}
+        'wrong-hint' {$fixture.tool.part.state.output=$fixture.tool.part.state.output.Replace($fixture.pointer,$transport.pointer)}
+        'wrong-head' {$fixture.tool.part.state.output='FOREIGN'+$fixture.tool.part.state.output}
+        'wrong-tail' {$fixture.tool.part.state.output=$fixture.tool.part.state.output+'FOREIGN'}
+        'wrong-count' {$fixture.tool.part.state.output=$fixture.tool.part.state.output.Replace(' bytes truncated...',' lines truncated...')}
+        'string-flag' {$fixture.tool.part.state.metadata.truncated='true'}
+        'null-flag' {$fixture.tool.part.state.metadata.truncated=$null}
+        'metadata-array' {$fixture.tool.part.state.metadata=@('truncated','outputPath')}
+        'not-completed' {$fixture.tool.part.state.status='error'}
+        'foreign-tool' {$fixture.tool.part.tool='read'}
+        'small-file' {[IO.File]::WriteAllText($fixture.pointer,'{"foreign":true}',[Text.UTF8Encoding]::new($false))}
+        'oversized-file' {$oversized=[IO.File]::Open($fixture.pointer,[IO.FileMode]::Open,[IO.FileAccess]::Write);try {$oversized.SetLength(16777217)} finally {$oversized.Dispose()}}
+        'invalid-utf8' {$invalid=[byte[]]$fixture.bytes.Clone();$invalid[0]=255;[IO.File]::WriteAllBytes($fixture.pointer,$invalid)}
+        'outside-root' {$foreign=Join-Path $taskTransportRoot 'foreign-data';New-Item -ItemType Directory -Path $foreign | Out-Null;
+            $fixture.tool.part.state.metadata.outputPath=Join-Path $foreign (Split-Path -Leaf $fixture.pointer)}
+        'directory-file' {$fake=Join-Path $taskTransportDirectory ('tool_'+('f'*12)+'Ab0123456789Zz');New-Item -ItemType Directory -Path $fake | Out-Null;
+            $fixture.tool.part.state.metadata.outputPath=$fake}
+        'file-substitution' {$fixture.tool.part.state.metadata.outputPath=$transport.pointer}
+    }
+    Assert-SourceRefusal {Resolve-StructuralMcpReceipt $fixture.tool $fixture.run} ("full-output resolution refuses "+$mutation)
+}
+$fixture=New-SourceFullOutputFixture 'invalid-json' 'invalid-json'
+Assert-SourceRefusal {Resolve-StructuralMcpReceipt $fixture.tool $fixture.run} 'valid transport envelope cannot repair invalid full JSON or use a result-file fallback'
+Assert-SourceCheck ((Test-Path (Join-Path $fixture.run.Directory ('full-tool-receipts/'+(Split-Path -Leaf $fixture.pointer)))) -and
+    (Get-OpenScienceHash $fixture.pointer) -ceq (Get-OpenScienceHash (Join-Path $fixture.run.Directory ('full-tool-receipts/'+(Split-Path -Leaf $fixture.pointer))))) 'invalid full JSON keeps its exact captured bytes as failed transport evidence'
+$direct=@{part=@{tool='caelab_study_inspect';state=@{status='completed';metadata=@{truncated=$false};output='{"id":"S-public-direct"}'}}}
+$directResult=Resolve-StructuralMcpReceipt $direct $transport.run
+Assert-SourceCheck ($directResult.receipt.id -ceq 'S-public-direct' -and -not $directResult.evidence.full_output_read) 'untruncated complete JSON uses its original output without any file read'
+$direct.part.state.output='{incomplete'
+Assert-SourceRefusal {Resolve-StructuralMcpReceipt $direct $transport.run} 'untruncated malformed JSON has no full-output fallback'
+$direct.part.state.metadata.outputPath=$transport.pointer
+Assert-SourceRefusal {Resolve-StructuralMcpReceipt $direct $transport.run} 'metadata pointer without explicit true cannot read an arbitrary saved file'
+
+# A junction/symlink ancestor must be refused by the reused actual path helper.
+$link=Join-Path $taskTransportRoot 'linked-output'
+New-Item -ItemType $(if ($IsWindows) {'Junction'} else {'SymbolicLink'}) -Path $link -Target $taskTransportDirectory | Out-Null
+$fixture=New-SourceFullOutputFixture 'linked-ancestor'
+$fixture.tool.part.state.metadata.outputPath=Join-Path $link (Split-Path -Leaf $fixture.pointer)
+Assert-SourceRefusal {Resolve-StructuralMcpReceipt $fixture.tool $fixture.run} 'reparse ancestor cannot substitute a tool-output directory even when it targets the same files'
+$taskReceipts=[Collections.Generic.List[object]]::new()
+$taskReceipts.Add(@{receipt_resolution=$resolved.evidence;raw_metadata=$transport.tool.part.state.metadata;
+    raw_output=$transport.tool.part.state.output;raw_trace=(Join-Path $transport.run.Directory 'stdout.jsonl')})
+Assert-StructuralReceiptArchives
+[IO.File]::AppendAllText($resolved.evidence.archive_path,'TAMPERED')
+Assert-SourceRefusal {Assert-StructuralReceiptArchives} 'full-output archive tampering remains fatal before a later stage'
+
+# Execute the shared helper with source-only stage/hook stubs. The no-resolver
+# path must retain its historical receipt shape, parser and error semantics.
+$taskTransportCli=[Collections.Generic.List[object]]::new(); $taskTransportHookCount=0
+function Invoke-TaskCli([string]$Name,[string[]]$CliArguments) {
+    $taskTransportCli.Add(@($CliArguments)); return $taskTransportMockRun
+}
+function Assert-FrozenExperiments { } # Only this public no-runtime fixture.
+function Assert-SessionHooks($Run) {$script:taskTransportHookCount++}
+$taskSetup | Add-Member -NotePropertyName Model -NotePropertyValue 'openai-codex/gpt-5.6-sol' -Force
+$StageTimeoutSeconds=3600
+$taskQuestions=[Collections.Generic.List[object]]::new();$taskReceipts=[Collections.Generic.List[object]]::new()
+$legacyDirectory=Join-Path $taskTransportRoot 'legacy-direct';New-Item -ItemType Directory -Path $legacyDirectory | Out-Null
+$taskTransportMockRun=@{Directory=$legacyDirectory;Stage=@{exit_code=0;done=@{status='completed'};timed_out=$false;failure=$null;
+    guard_restore_failure=$null;launcher_still_running=$false;workspace_default_guard_restored=$true;session_id='ses_publiclegacy'};
+    Events=@(@{type='text';part=@{text='PUBLIC SYNTHETIC INTERPRETATION UNKNOWN NOT_RELEASED'}});
+    Tools=@(@{part=@{tool='caelab_study_inspect';state=@{status='completed';input=@{study_id='S-public'};output='{"id":"S-public"}';
+        metadata=@{truncated=$true;outputPath='FOREIGN POINTER MUST NOT BE READ WITHOUT RESOLVER'}}}})}
+$null=Invoke-ResearchQuestion 'legacy-direct' 'source-only' 'PUBLIC SOURCE PROMPT'
+$entry=$taskReceipts[0]
+Assert-OpenScienceSameProvenance @('stage','scenario','session_id','tool','input','status','receipt','decode_error','raw_trace') @($entry.Keys) 'No-resolver receipt shape differs from its historical nine keys.'
+Assert-SourceCheck ($entry.receipt.id -ceq 'S-public' -and $null -eq $entry.decode_error -and $taskQuestions.Count -eq 1 -and
+    $taskTransportHookCount -eq 1 -and -not(Test-Path (Join-Path $legacyDirectory 'full-tool-receipts'))) 'legacy no-resolver ignores outputPath and keeps receipt question hook and file behavior unchanged'
+Assert-OpenScienceSameProvenance @('run','--format','json','--workspace','project','--agent','research','--delegation','off','--model','openai-codex/gpt-5.6-sol',
+    '--auto-approve','--autonomy','balanced','--deadline','3590','--title','legacy-direct','--','PUBLIC SOURCE PROMPT') @($taskTransportCli[0]) 'Legacy no-resolver CLI arguments changed.'
+Assert-SourceCheck $true 'legacy selected model CLI tool autonomy deadline and delegation arguments are unchanged'
+$taskTransportMockRun.Tools[0].part.state.output='{malformed'
+Assert-SourceRefusal {Invoke-ResearchQuestion 'legacy-malformed' 'source-only' 'PUBLIC'} 'legacy malformed completed JSON remains strict without resolver'
+$taskTransportMockRun.Tools[0].part.state.status='error'
+$null=Invoke-ResearchQuestion 'legacy-allowed-error' 'unsupported' 'PUBLIC' -AllowErrors
+Assert-SourceCheck ($taskReceipts[-1].status -ceq 'error' -and $null -eq $taskReceipts[-1].receipt -and
+    @($taskReceipts[-1].Keys).Count -eq 9) 'legacy explicitly allowed tool error retains original null receipt and nine-key shape'
+$fixture=New-SourceFullOutputFixture 'shared-resolver'
+$taskTransportMockRun.Directory=$fixture.run.Directory;$taskTransportMockRun.Tools=@($fixture.tool)
+$null=Invoke-ResearchQuestion 'structural-resolver' 'source-only' 'PUBLIC' -ReceiptResolver ${function:Resolve-StructuralMcpReceipt}
+$entry=$taskReceipts[-1]
+Assert-SourceCheck ($entry.receipt.experiment_id -ceq 'E-public-cylinder-aster-full' -and $entry.raw_output -ceq $fixture.tool.part.state.output -and
+    $entry.raw_metadata.outputPath -ceq $fixture.pointer -and $entry.receipt_resolution.status -ceq 'VERIFIED_TRANSPORT_BYTES') 'shared optional resolver records full JSON and original truncated output metadata separately'
+Assert-StructuralReceiptArchives
+$fixture=New-SourceFullOutputFixture 'shared-corruption'
+$fixture.tool.part.state.output+='CORRUPTED';$taskTransportMockRun.Directory=$fixture.run.Directory;$taskTransportMockRun.Tools=@($fixture.tool)
+Assert-SourceRefusal {Invoke-ResearchQuestion 'structural-corruption' 'unsupported' 'PUBLIC' -AllowErrors -ReceiptResolver ${function:Resolve-StructuralMcpReceipt}} 'resolver provenance refusal cannot be swallowed by AllowErrors'
 $inventory=@(Get-ChildItem -LiteralPath $taskSourceEvidence -Recurse -File | ForEach-Object {
     @{path=([IO.Path]::GetRelativePath($taskSourceEvidence,$_.FullName)-replace '\\','/');size_bytes=$_.Length;sha256=Get-OpenScienceHash $_.FullName}})
 $report=[ordered]@{status='PASS_SOURCE_ONLY';driver_sha256=Get-OpenScienceHash $taskSourceDriver;source_checker_sha256=Get-OpenScienceHash $PSCommandPath;

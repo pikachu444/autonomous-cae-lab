@@ -69,9 +69,20 @@ Next tasks within the same P2.2 unit, in order:
 - [x] Review/source-check failure-aware collector:89 cold checks/independent
   actual03 replay/12 negative controls PASS, no openP1/P2. Record:
   20261002-structural-research-failure-flow. Source proof, not new actual execution.
-- [ ] Publish failure-aware collector and run NEW clean04; preserve fatal
-  identity/receipt checks and numerical failures while gathering original
-  independent family stages in order; never relabel03 as PASS.
+- [x] Publish collector035 and run NEW clean04: five declared questions/25 tools/
+  five records, beam half and cylinder analytical/cross-field PASS; beam Aster
+  failure retained. Two official truncated receipts stop later stages.
+  Record20261002-openscience-structural-research04; overall FAILED_OR_PARTIAL.
+- [x] Verify actual04 same-session GUI text/owned Stop/base589-file exact
+  retention and independent full-field/source/receipt audit. Preserve two native
+  full outputs as a separate127754B supplement,24 cause checks PASS.
+- [x] Review/verify contained full-output reader:127 cold/independent118 focused
+  controls/two saved04 replays PASS,31protected files unchanged/actual calls0.
+  Original source/numerical/questions/model/legacy gates unchanged. Public04
+  reconciliation56/27refs PASS. Record20261002-structural-research-full-output.
+- [ ] Publish reviewed unit/run NEW clean05 in the original order, then same-
+  session GUI/owned Stop/retention/independent raw evidence audit. Source/CI
+  readiness is not fresh actual proof; do not rewrite04's partial outcome.
 - [ ] Resolve Fz accuracy and complete cylinder/roof/changed-load/refusal numerical
   gates; independently audit measured raw fields. No failed probe is a shortcut.
 
