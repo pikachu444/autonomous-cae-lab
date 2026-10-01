@@ -63,7 +63,15 @@ the final pending unlink. No fallible filesystem action follows that unlink.
 This bounds process interruption and injected I/O failures; power-loss
 durability of the final acknowledgement remains unqualified.
 
-Cooperating Lab writers share a cached reentrant store lock. Writers retain
+Cooperating Lab writers share a cached reentrant lock keyed by the resolved
+store path in the OS user's cache outside the store. Readers use the same lock
+without creating control files inside immutable library data. Store/cache
+overlap is refused before creating any cache directory. The key folds
+path case: aliases on case-insensitive filesystems coordinate; distinct Linux
+stores differing only by case conservatively serialize. Existing in-store
+lock files are preserved, not removed. The cache lock coordinates one OS user
+and runtime; cross-OS/foreign-user writers or external lock deletion are not
+qualified. Writers retain
 the existing study-lock-then-store-lock order used by campaigns. Pending
 transactions block native operations, discovery, registry reads, registration
 and new CAD experiments. Immutable old experiment inspection remains readable.

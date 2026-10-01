@@ -21,6 +21,16 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+Exact pushed481e9cf CI36835554422 failed one read-only-library regression
+(1518 PASS). External shared locking and pre-write cache/store overlap refusal
+correct it:80 related tests PASS, then final27 cases PASS; independent review
+closed the finding. Native verifier/isolated CI are reviewed and compile-only
+PASS; actual corrected native recovery remains NOT_RUN.
+Record:20261001-registration-read-only-and-verifier-source.json. Owner priority:
+finish this prepared bounded batch, then P1.3 functional question/conditions/
+solver/comparison/numerical-campaign integration with existing components.
+Do not add recovery scope or replace the retained52 requirements/phase order.
+
 P1.2b is ACTIVE. Actual7421714 native/Core write-failure red reproduction and
 39-file preservation are independently reviewed; corrected recovery is OPEN.
 ADR0015/source checks23+103, actual stdio recovery and142-case frozen regression

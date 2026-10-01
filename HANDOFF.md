@@ -1,5 +1,25 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Current checkpoint and owner priority
+
+Main481e9cf is pushed, but exact CI36835554422 FAILED:1518 tests passed,
+one immutable-library test found the new in-store registration lock file.
+The correction uses a shared external user-cache lock and refuses cache/store
+overlap before writing. Local library/server/recovery/vertical-slice80 tests
+passed92.79s; after the overlap correction,26 recovery cases and that exact HTTP
+case passed13.46s. Independent bounded review closed the overlap finding.
+The actual native registration verifier and isolated CI job are independently
+reviewed; compile-only is PASS, actual corrected native acceptance is NOT_RUN.
+Record: benchmarks/records/20261001-registration-read-only-and-verifier-source.json.
+Next: commit/push this correction/verifier, run one fresh clean-source native
+batch preserving earlier stores, then P1.3 functional research integration.
+The owner explicitly prioritizes question -> declared capabilities -> conditions
+-> solver -> comparison -> numerical next conditions. Add no further CAD recovery
+scope. Reuse existing27 MCP tools, numerical engines, installed solvers and the
+selected5.6Sol/auth. Current native CAD-only admission/prompt and missing solver
+environment propagation must be addressed; a tool allowlist alone is insufficient.
+P1.2b/fullPhase1/all52 remain OPEN; runtime STOPPED, engineering UNKNOWN/NOT_RELEASED.
+
 ## P1.2b integration in progress (source admission; actual gate OPEN)
 
 Main7421714 / fixture3e48 reproduced a real native/Core split in fresh

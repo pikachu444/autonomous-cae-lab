@@ -1,5 +1,20 @@
 # Native FreeCAD Core acceptance
 
+## Current source correction and verifier admission
+
+Exact481e9cf CI36835554422:1518 PASS/1 FAIL, caused by an added lock file inside
+the immutable library. External shared locking restores store preservation;
+cache/store overlap is refused before writes.80 related checks passed92.79s;
+final26 recovery cases plus the exact HTTP regression passed13.46s. Independent
+bounded review closes that correction. The actual native verifier and isolated
+CI job are independently reviewed; compile-only PASS is not native execution.
+Source record:20261001-registration-read-only-and-verifier-source.json.
+Next is a NEW clean-source native batch with exact analytical1440/1728 mm^3
+responses, write/process fault recovery and preserved old stores. Actual status
+NOT_RUN; solver NOT_RUN, six engineering UNKNOWNs and NOT_RELEASED remain.
+After this prepared batch, P1.3 research integration is the owner priority;
+no additional CAD recovery scope is scheduled.
+
 ## P1.2b source integration (actual corrected acceptance OPEN)
 
 Actual clean7421714 red run p1-native-registration-red-20261001-01 saved Width

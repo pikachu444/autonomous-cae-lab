@@ -1,5 +1,24 @@
 # Current state — 2026-10-01 (Asia/Seoul)
 
+## Latest correction and research priority
+
+Pushed481e9cf exact CI36835554422 failed one immutable-library test, with1518
+passing; creating .registration.lock in the read-only store was the cause.
+The external shared cache lock restores byte/path preservation; cache/store
+overlap is refused before mkdir.80 related tests passed92.79s; the final overlap
+correction passed26 recovery plus the exact HTTP regression (27/13.46s).
+Independent bounded source review PASS; native verifier/isolated CI review PASS
+and Python3.12 compile PASS. Corrected actual native acceptance remains NOT_RUN.
+Record:20261001-registration-read-only-and-verifier-source.json. Prior245 checks
+belong to the481 source unit, not this changed engine. Preserve the failed CI log.
+Finish the prepared bounded native batch, then prioritize P1.3 general research
+planning/execution using existing Core27 tools/numerical engines/solver adapters.
+The native profile currently admits9 CAD-oriented tools and one exact call per
+stage; solver environment is not propagated. Expanding names alone cannot close
+the question -> changed conditions -> execution -> comparison -> next campaign
+loop. No additional CAD recovery features are scheduled.52 requirements/all
+phases persist; OpenScience STOPPED/selected5.6Sol auth reused; UNKNOWN/NOT_RELEASED.
+
 ## Current serial work: P1.2b registration failure recovery
 
 Actual clean7421714 red case now reproduces the cross-file defect: native Width

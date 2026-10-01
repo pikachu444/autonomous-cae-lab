@@ -32,6 +32,17 @@ experiment artifacts; cloning Git alone does not restore their local bytes.
 ## Execution rule and current unit
 
 **One active acceptance unit: P1.2b, native/Core registration failure recovery.**
+Owner priority update: finish the already prepared bounded correction/verifier
+and actual batch; add no recovery scope. P1.3 functional research integration
+follows immediately, connecting existing capabilities, conditions, solver
+execution, comparisons and deterministic numerical next conditions. Current
+native9-tool/exact-call CAD profile and absent solver environment propagation
+are the integration gap, not a need to recreate27 Core/MCP tools or optimizers.
+Exact481 CI36835554422 failed one read-only-library regression (1518PASS).
+External lock/overlap correction passes80 related and final27 tests with
+independent review; actual corrected native batch remains NOT_RUN.
+Record:20261001-registration-read-only-and-verifier-source.json.
+
 Actual742 red split and original-byte retention are reviewed. ADR0015 source
 corrections pass23 Core/103 native tests and actual stdio recovery. Source was
 frozen after5 broad-run source-drift refusals;142-case rerun passed1085.17s with

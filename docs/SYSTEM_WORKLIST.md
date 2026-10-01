@@ -8,7 +8,10 @@ Project execution objective is ACTIVE: complete the retained52 requirements
 through the connected OpenScience-led system. This queue is not a completion
 claim. Existing accepted work is reused. Check a box only with a linked actual
 receipt/review/commit; planning, readiness and prose cannot replace execution.
-Currently only **P1.2b** is active. Later rows are queued, not running.
+Currently **P1.2b** is closing the already prepared correction and actual batch.
+The owner prioritizes **P1.3 functional research integration** immediately next:
+question -> conditions -> solver -> comparison -> numerical next conditions.
+No further CAD recovery features are scheduled. Later phases remain sequential.
 
 ## P1.1 — integrated OpenScience CAD research (PASS bounded unit)
 
@@ -206,12 +209,21 @@ This evidence/docs checkpoint is not another solver run.
   20261001-native-registration-source; its container commit/push checked separately.
 - [ ] P1.2b verifier/isolated CI: finish/read-only review/commit the native
   write-failure/process-exit/recovery verifier, then a NEW clean-source store.
+- [x] Native verifier/isolated CI source review and Python3.12 compile-only PASS.
+  Exact481 CI failed immutable-library preservation (1518PASS/1FAIL); external
+  lock/overlap correction passes80 related and final27 checks, independent review
+  PASS. Record:20261001-registration-read-only-and-verifier-source.json.
 - [ ] P1.2b (ACTIVE): inject a native-file/Core-registry write failure; retain recoverable
   original revisions and prove transactional recovery without false success.
   Review the pinned worker before any upstream change; keep its tested behavior.
 - [ ] P1.3: exercise supported research planning, unsupported-operation response
   and repeatable human/AI inspection against declared capabilities and the same
   study/model/experiment IDs. Record limitations of staged vs general planning.
+- [ ] P1.3 implementation priority: replace CAD-only exact-call admission with
+  a declared research-purpose capability subset and existing solver runtime
+  propagation; use existing engines for conditions/search. Prove a real changed-
+  condition/comparison loop, missing inputs and unsupported requests. Preserve
+  historical P1.1 profile and the owner's5.6Sol/auth; no model fallback.
 
 ## Phase2 — connected structural analysis (QUEUED)
 

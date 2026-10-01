@@ -1,5 +1,14 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+Current481 source CI failed immutable-library preservation; the shared lock is
+now external to the store, with cache/store overlap refused before writes.
+No operation schema changes. Reviewed native verifier/isolated CI and27 final
+source regressions do not establish actual recovery or broaden native research.
+The owner's next priority is P1.3: declared research capabilities, propagation
+of existing solver runtime descriptors, multi-operation planning and common
+condition/result/campaign inspection. Historical P1.1 admission remains a
+bounded CAD proof; existing27 MCP tools alone are not a general research loop.
+
 P1.1 bounded managed f52/run03 research, official GUI, observed-busy cancellation,
 owned Stop and closed retention are verified in the actual managed-research record.
 This is not general planning, solver qualification or a new wire-level guarantee.

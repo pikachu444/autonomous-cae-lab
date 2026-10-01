@@ -25,7 +25,6 @@ import hashlib
 def _registration_guard(method):
     @wraps(method)
     def guarded(self, *args, **kwargs):
-        self.store.mkdir(parents=True, exist_ok=True)
         with self._registration_file_lock:
             registration.assert_no_pending(self.store)
             return method(self, *args, **kwargs)
@@ -40,7 +39,14 @@ class Lab:
                  pde_adapters: dict[str, PDEAdapter] | None = None,
                  model_analysis_adapters: dict[str, ModelAnalysisAdapter] | None = None):
         self.store = Path(store).resolve()
-        self._registration_file_lock = FileLock(str(self.store / ".registration.lock"), timeout=30)
+        # Readers must not create control files inside immutable library stores.
+        # Every cooperating Lab instance uses the same external lock identity.
+        lock_root = (Path.home() / ".cache" / "autonomous-cae-lab" / "registration-locks").resolve()
+        if lock_root.is_relative_to(self.store) or self.store.is_relative_to(lock_root):
+            raise ValueError("REGISTRATION_LOCK_PATH_CONFLICT: store and external lock cache must not overlap")
+        lock_root.mkdir(parents=True, mode=0o700, exist_ok=True)
+        lock_key = hashlib.sha256(self.store.as_posix().casefold().encode("utf-8")).hexdigest()
+        self._registration_file_lock = FileLock(str(lock_root / (lock_key + ".lock")), timeout=30)
         self.adapters = adapters if adapters is not None else {
             FixtureCadQueryAdapter.backend: FixtureCadQueryAdapter(),
             FixtureFreeCADAdapter.backend: FixtureFreeCADAdapter(self.store),

@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "outcome": "SOURCE_ADMISSION_PASS_ACTUAL_NATIVE_NOT_RUN",
+  "based_on_source_commit": "481e9cf836587ebb4a44871b9fc4bad8498ee68e",
+  "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "source_container_commit": "Resolve the commit introducing this record through Git; not a solver verification",
+  "failed_exact_source_ci": {
+    "run_id": 36835554422,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36835554422",
+    "outcome": "FAIL",
+    "tests_passed": 1518,
+    "tests_failed": 1,
+    "failed_test": "tests/test_lab_server.py::test_configured_library_is_read_only_and_path_selection_is_rejected",
+    "cause": "Read operations created .registration.lock inside immutable library",
+    "raw_log": {
+      "path": "artifacts/native-registration-red-20261001-01/ci-481e9cf-failed.log",
+      "bytes": 12967,
+      "sha256": "8e64f0d3e7c0d39d9761f0e11d9e3570c6587e323a4328be8ba392ab34d52d67"
+    }
+  },
+  "correction": "Shared resolved/case-folded store lock in external OS-user cache; refuse both cache/store containment directions before mkdir; preserve old in-store locks",
+  "tests": [
+    {
+      "source_scope": "External-lock correction before final overlap guard",
+      "cases": 80,
+      "outcome": "PASS",
+      "seconds": 92.79,
+      "log": {
+        "path": "artifacts/native-registration-red-20261001-01/read-only-lock-correction-01.log",
+        "bytes": 141426,
+        "sha256": "b97463c056efaf6ac573fce62b8e09eb53b15bd1cf2742a13cfe65a0a26460e2"
+      }
+    },
+    {
+      "source_scope": "Final external-lock and overlap correction",
+      "cases": 27,
+      "outcome": "PASS",
+      "seconds": 13.46,
+      "includes": "26 recovery cases plus exact immutable-library HTTP regression",
+      "log": {
+        "path": "artifacts/native-registration-red-20261001-01/read-only-lock-correction-02.log",
+        "bytes": 672,
+        "sha256": "acc68d767c3c88eda5e3fc047680a322534716d94d63d7c0e6030b3e5255c230"
+      }
+    }
+  ],
+  "independent_reviews": [
+    {
+      "reviewer": "official_project_workflow",
+      "scope": "External shared lock and pre-write overlap refusal closure",
+      "outcome": "PASS_NO_OPEN_P1_P2"
+    },
+    {
+      "reviewer": "integration_review",
+      "scope": "Frozen actual native verifier and isolated CI source",
+      "outcome": "PASS_NO_OPEN_P1_P2"
+    }
+  ],
+  "verifier_compile": {
+    "python": "3.12.3",
+    "outcome": "PASS_COMPILE_ONLY_NOT_IMPORTED_OR_EXECUTED",
+    "receipt": {
+      "path": "artifacts/native-registration-verifier-source-024f1707d719433992eabe56d757a9a6/verification.json",
+      "bytes": 1285,
+      "sha256": "bbf3a78ed212f5133531f8f741e9db951da05dcc8ffaa5247fbd5cd64b48a6a5"
+    }
+  },
+  "candidate_files": [
+    {
+      "path": "caelab/engine.py",
+      "bytes": 46909,
+      "sha256": "f6750989dc20c1eb5cb64feae1ed745a1c20b553af4eecfca0ea34ab90424dd8"
+    },
+    {
+      "path": "tests/test_registration_recovery.py",
+      "bytes": 17766,
+      "sha256": "14bc21a0b525c4b8d7f0b74a36fc9fdd51c4dfa0cc98f76e0fe39f41ae9e9748"
+    },
+    {
+      "path": "ADR/0015-cad-registration-recovery.md",
+      "bytes": 7553,
+      "sha256": "9c197192b023ea096e4937e7925abfa2dadc00c826be09d0b5a7e171adf3d1ea"
+    },
+    {
+      "path": "scripts/verify_native_registration.py",
+      "bytes": 42014,
+      "sha256": "3b7ab5473bb569847111cff55dd2f7e3bcc5f1d4b31af28887d23486def87d40"
+    },
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "bytes": 18575,
+      "sha256": "660c1d466825ff5f49dface3e15567ecd3e177bea9998dc0fe5d864e9a9f3eaf"
+    }
+  ],
+  "ci_addition": {
+    "job": "native-registration",
+    "timeout_minutes": 45,
+    "freecad": "1.1.4",
+    "appimage_sha256": "f6dc6ba676e5ac96a565ebc8d657232f94c6158e85b4352141bd1a46f6b43434",
+    "artifact_retention_days": 30,
+    "new_exact_source_status": "NOT_RUN"
+  },
+  "actual_native": {
+    "status": "NOT_RUN",
+    "planned_fresh_store": "runs/p1-native-registration-20261001-01",
+    "preserve_stores": [
+      "runs/p1-native-edits-20261001-02",
+      "runs/p1-native-registration-red-20261001-01"
+    ],
+    "fixed_analytical_volumes_mm3": [
+      1440,
+      1728
+    ],
+    "tolerance_mm3": 1E-05,
+    "prior_red_record": "20261001-native-registration-source.json"
+  },
+  "limitations": [
+    "Prior245 source checks belong to481, not this changed engine",
+    "No native CAD/solver/LLM execution in this source admission",
+    "One OS user/runtime lock coordination; cross-OS/users/external deletion unqualified",
+    "Power-loss and noncooperating GUI races unqualified",
+    "Actual adapter-error case is after successful prepare; neither FreeCAD save is fault-injected",
+    "Full52/Phase1-7 remain OPEN; engineering UNKNOWN and NOT_RELEASED"
+  ],
+  "owner_priority": "Finish the prepared bounded batch without added CAD recovery scope, then P1.3 question/declared capabilities/conditions/solver/comparison/numerical next conditions using existing27 MCP tools and engines; selected5.6Sol/auth preserved"
+}

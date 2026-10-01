@@ -77,6 +77,34 @@ def test_success_freezes_matching_native_registry_and_history(lab):
     assert lab.recover_registration("S-recovery")["status"] == "NO_PENDING_TRANSACTION"
 
 
+def test_readers_do_not_create_files_in_study_store_and_share_writer_lock(lab):
+    before = {path.relative_to(lab.store): path.read_bytes()
+              for path in lab.store.rglob("*") if path.is_file()}
+    fresh = Lab(lab.store, adapters=lab.adapters)
+    assert fresh._registration_file_lock.lock_file == lab._registration_file_lock.lock_file
+    assert not Path(fresh._registration_file_lock.lock_file).is_relative_to(lab.store)
+    assert fresh.registry("S-recovery") == {"revision": 0, "entries": []}
+    assert len(fresh.discover_parameters("test.prepared", "model")) == 1
+    assert {path.relative_to(lab.store): path.read_bytes()
+            for path in lab.store.rglob("*") if path.is_file()} == before
+
+
+@pytest.mark.parametrize("relative", [".cache/autonomous-cae-lab",
+                                     ".cache/autonomous-cae-lab/registration-locks/nested-store"])
+def test_store_overlapping_user_lock_cache_is_refused_without_writing(tmp_path, monkeypatch, relative):
+    home = tmp_path / "user-home"
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
+    store = home / relative
+    store.mkdir(parents=True)
+    (store / "historical.json").write_bytes(b"PRESERVE EXACT ORIGINAL BYTES")
+    before = {path.relative_to(store): path.read_bytes() for path in store.rglob("*") if path.is_file()}
+    paths_before = sorted(path.relative_to(store) for path in store.rglob("*"))
+    with pytest.raises(ValueError, match="REGISTRATION_LOCK_PATH_CONFLICT"):
+        Lab(store, adapters={})
+    assert {path.relative_to(store): path.read_bytes() for path in store.rglob("*") if path.is_file()} == before
+    assert sorted(path.relative_to(store) for path in store.rglob("*")) == paths_before
+
+
 @pytest.mark.parametrize("point", ["native", "history", "registry", "commit-marker", "marker-after-write"])
 def test_write_failure_blocks_reads_and_execution_until_exact_recovery(lab, monkeypatch, point):
     before = public_before(lab)
