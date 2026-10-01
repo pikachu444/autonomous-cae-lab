@@ -1,5 +1,34 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Current queue: P1.3 actual bounded loop PASS; next P2.1
+
+Clean source04ff148fd629d1df3563fb56bff82f9a3eccece7 / fixture3e48:
+p1-research-20261001-03/attempt-01 completed all8 actual stages with the same
+owner-selected5.6Sol/auth/project: missing/unsupported refusal without tools,
+sequential width38 then40 CAD/CalculiX comparison, SciPy-generated9-candidate
+search, reaction0/3 FEniCSx analytical verification and interpretation.
+41 successful JSON tool receipts /23 experiments /571 store files; old bytes,
+source/config/parent STEP and fixed references PASS. Best observed width29.7325:
+volume28185.5932 mm^3 (-23.375%); displacement0.005961796 mm <=0.0065.
+One generation/MAX_GENERATIONS/converged=false; no global-optimum claim.
+Width28 REJECTED before export/solver. Stress invalid,7 engineering UNKNOWNs,
+PDE physical/model UNKNOWN and NOT_RELEASED remain. No general CFD/PDE search.
+Original08 input omitted some known context; its conservative UNKNOWN is kept.
+Separate actual no-tools context supplement supplies known CAD/PDE evidence,
+with all571 store files/original receipt unchanged. No recalculation.
+Owned Stop12:00:41.508208Z:3PIDs absent/4098 closed;788files/512000376bytes
+retained, manifest8defc0053902bfadff6696135aecc7acec5a35caec934fa2dbbb466277143844.
+Independent closed-stage/supplement/retention reviews PASS; no open P1/P2.
+Exact04ff CI36851768650:8jobsSUCCESS; explicit original pinned download404
+before solver. Official GUI shows the same results; runtime is now STOPPED.
+Record: benchmarks/records/20261001-openscience-research-04ff148.json.
+NEXT SERIAL UNIT P2.1: obtain complete authoritative corrected structural
+benchmark definition/target and predeclare geometry/material/BC/load/metric,
+units/meshes/error limits BEFORE P2.2 solver runs. Reuse installed adapters/
+engines and previous stores. No more CAD recovery/model/auth setup scope.
+Bounded P1 workflow gates do not close full Phase1/product/all52 qualification.
+The older checkpoints and their next instructions below are historical.
+
 ## ACTIVE P1.3; P1.2b actual bounded unit PASS
 
 Latest actual1047/run02 is FAILED_OR_PARTIAL at question sequencing, not solver

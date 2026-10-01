@@ -1,5 +1,30 @@
 # OpenScience local runtime acceptance — 2026-09-30
 
+## Actual Research-purpose04ff loop, 2026-10-01
+
+Source04ff148fd629d1df3563fb56bff82f9a3eccece7 / fixture3e48, fresh
+p1-research-20261001-03:8 actual selected5.6Sol stages/41 successful JSON
+receipts/23 experiments. Declared14-tool/24-step/3600s purpose reuses existing
+Core/adapters/engines. Missing/unsupported responses use0 tools; sequential
+width38 then40 CAD/CalculiX and source/old-byte/STEP gates pass. SciPy generates
+9 candidates, rejects width28 before export/solver and retains the best observed
+feasible candidate;1 generation/MAX_GENERATIONS/converged=false is explicit.
+Scalar FEniCSx reaction0/3 weak forms pass unchanged manufactured references.
+Original isolated final input omitted known CAD/PDE context; conservative
+UNKNOWN is preserved. Separate same-model no-tools interpretation supplements
+that context while all571 store files/original acceptance remain unchanged.
+Official GUI observes the same stored IDs/revision/metrics. Direct manual GUI
+question execution is not separately verified by this unit. Owned Stop
+12:00:41.508208Z leaves3PIDs absent/4098 closed;788files/512000376bytes retained,
+manifest8defc0053902bfadff6696135aecc7acec5a35caec934fa2dbbb466277143844.
+Independent output/supplement/retention reviews PASS. Exact04ff CI36851768650 has8SUCCESS,
+explicit original OpenRadioss download404 before solver; not all-green CI.
+Bounded workflow PASS is not full product/general planning/physical approval.
+Stress invalid,7 fixture and2 PDE UNKNOWNs/NOT_RELEASED persist. Next P2.1
+authoritative structural reference; no new CAD recovery/model/auth setup scope.
+Record: [actual04ff/run03](../benchmarks/records/20261001-openscience-research-04ff148.json).
+Earlier sections retain their exact historical sources and limits.
+
 ## Actual managed f52 research, GUI, busy cancellation and Stop, 2026-10-01
 
 Managed run03/source f52dd1b06e69cb901776f18524a41146258d421a now closes

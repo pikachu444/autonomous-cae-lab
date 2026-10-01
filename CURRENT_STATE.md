@@ -1,5 +1,33 @@
 # Current state — 2026-10-01 (Asia/Seoul)
 
+## Latest actual checkpoint: connected research loop at04ff/run03
+
+P1.3 actual bounded workflow PASS:8 selected5.6Sol stages,41 successful tool
+receipts,23 Core experiments and571 immutable store files. Source04ff148/
+fixture3e48 and model/auth/project/runtime remained pinned; missing inputs and
+unsupported CFD requests did not execute. Follow-up width40 was supplied only
+after width38 freeze; both CAD/CalculiX records and same-record comparison pass.
+SciPy1.17/numpy2.3.5 generated9 candidates,1 generation/seed13/population5.
+Width28 invalid CAD suppressed export/solver. Best observed feasible width
+29.73246472164783 reduced volume23.375% to28185.593188869716 mm^3, with
+displacement0.005961796 mm <=0.0065. MAX_GENERATIONS/converged=false remains.
+Reaction0/3 scalar FEniCSx weak forms retain the analytical sin(pi*x)sin(pi*y)
+solution and revised RHS;8/16/32 meshes pass fixed L2/rate/H1/residual gates.
+These are synthetic numerical/workflow checks, not engineering approval.
+Stress invalid and7 fixture UNKNOWNs,2 PDE UNKNOWNs, NOT_RELEASED persist.
+Original final prompt omitted known rejection/PDE context; conservative answer
+is preserved. Actual same-model no-tools supplement supplies original context
+without changes to571 files or the original acceptance fb80ede3... receipt.
+Owned Stop12:00:41.508208Z /3PIDs absent/4098 closed.788files/512000376bytes
+locally retained; independent exact original/copy SHA/size review PASS. Exact04ff CI36851768650 has8SUCCESS, explicit download404
+before execution. Official GUI observations share exact Core records; after
+Stop the cached GUI is not live-server proof. Record:
+benchmarks/records/20261001-openscience-research-04ff148.json.
+NEXT P2.1 authoritative external structural reference, then P2.2 fresh mesh/
+cross-solver verification; later phases remain sequential. All52 descriptions
+and prior failures are retained. Historical checkpoints below cannot replace
+this queue. This evidence/docs checkpoint is not a new solver source or run.
+
 ## Current work: P1.3 research-purpose integration
 
 Actual clean1047/run02 connected the selected5.6Sol to CAD/CalculiX and

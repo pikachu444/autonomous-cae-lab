@@ -1,0 +1,667 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.actual-bounded-connected-research",
+  "unit": "P1.3",
+  "outcome": "PASS_BOUNDED_RESEARCH_LOOP",
+  "actual_source_commit": "04ff148fd629d1df3563fb56bff82f9a3eccece7",
+  "source_dirty": [],
+  "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "actual_run": "p1-research-20261001-03/attempt-01",
+  "started_utc": "2026-10-01T10:57:02.0370736Z",
+  "completed_utc": "2026-10-01T11:44:19.4467779Z",
+  "model": "openai-codex/gpt-5.6-sol",
+  "model_identity": {
+    "model": "openai-codex/gpt-5.6-sol",
+    "provider": "openai-codex",
+    "cloud_weight_digest": "UNKNOWN",
+    "scope": "Explicit selected provider/model; no cloud weight inference"
+  },
+  "openscience": {
+    "project_id": "prj_8e672ff2d300416189536cb29aad15a4",
+    "source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+    "version": "2.0.146",
+    "auth_profile_scope": "Same owner-authorized ChatGPT auth-only profile; no credentials read/copied; no fallback"
+  },
+  "stages": [
+    {
+      "name": "01-missing-input",
+      "session_id": "ses_f08e34b34ffeDGaZy0cxP2bAlc",
+      "elapsed_seconds": 42.405,
+      "exit_code": 0,
+      "tools": 0,
+      "workspace_default_guard_restored": true
+    },
+    {
+      "name": "02-unsupported-physics",
+      "session_id": "ses_f08e22ffbffeo9CfeG1Qpw8wFk",
+      "elapsed_seconds": 36.536,
+      "exit_code": 0,
+      "tools": 0,
+      "workspace_default_guard_restored": true
+    },
+    {
+      "name": "03-fixture-baseline",
+      "session_id": "ses_f08e1294bffeLUXMxQhhoHyMMn",
+      "elapsed_seconds": 391.061,
+      "exit_code": 0,
+      "tools": 10,
+      "workspace_default_guard_restored": true
+    },
+    {
+      "name": "04-fixture-comparison",
+      "session_id": "ses_f08dab920ffeeNghJ8CXZWehTY",
+      "elapsed_seconds": 327.897,
+      "exit_code": 0,
+      "tools": 10,
+      "workspace_default_guard_restored": true
+    },
+    {
+      "name": "05-fixture-optimization",
+      "session_id": "ses_f08d53b44ffeKrVXgypzGSGRmP",
+      "elapsed_seconds": 1412.707,
+      "exit_code": 0,
+      "tools": 11,
+      "workspace_default_guard_restored": true
+    },
+    {
+      "name": "06-pde-poisson",
+      "session_id": "ses_f08bec436ffeJIHqTKdXxkSFpV",
+      "elapsed_seconds": 110.618,
+      "exit_code": 0,
+      "tools": 3,
+      "workspace_default_guard_restored": true
+    },
+    {
+      "name": "07-pde-reaction",
+      "session_id": "ses_f08bc769bffe94D8S6vbBdzVw8",
+      "elapsed_seconds": 149.874,
+      "exit_code": 0,
+      "tools": 7,
+      "workspace_default_guard_restored": true
+    },
+    {
+      "name": "08-final-interpretation",
+      "session_id": "ses_f08b990c0ffeT8gik54wYQ0IqX",
+      "elapsed_seconds": 55.793,
+      "exit_code": 0,
+      "tools": 0,
+      "workspace_default_guard_restored": true
+    }
+  ],
+  "counts": {
+    "actual_model_stages": 8,
+    "successful_json_tool_receipts": 41,
+    "experiments": 23,
+    "store_files": 571
+  },
+  "source_proof": {
+    "raw_acceptance_sha256": "fb80ede3ffef1843055946d0349d007ac22d8ff3d503488c02183f815d4728b7",
+    "actual_resident_receipt_sha256": "8fad0232abcc5dd1493ab57051d0b270c1b732336a26cd715824772fae44929b",
+    "core_source_sha256": "16c6522eca85c01939f40638c618ff2302beb38fc612e6786c2083d8c02a88be",
+    "helper_crlf_sha256": "d3f9e336a37f8343bf5a8a72399035cc8e5a44024708259adb2a036f0bb1449d",
+    "driver_crlf_sha256": "5b833ffb1a8dd243cdaaf8c85f0a19bb9277bd28a9e1c7b3a05378e079e6eb4a",
+    "config_sha256": "548e7c950c732f9852684413eace2c34d1a8d805fa83d0c9b3bafc408355f7cd",
+    "boot_source_sha256": "7c961a41390b91d004bb0b835578b5379e84bf43f9532069c93bb12098f72a38",
+    "source_tree_sha256": "24fce5fdbe60980af8952a980920710a245795a91802108dd352b891f87d3497",
+    "reference_sha256": "33c4f66fa46a3797770dd030b1373d84c638d2eb7b0a41cd3dae56fcda06c728"
+  },
+  "missing_and_unsupported": {
+    "unsupported_cfd": "PASS actual completed response, 0 tools, no CFD/PDE optimization claim",
+    "missing_inputs": "PASS actual completed response, 0 tools, no execution; no invented loads/material/strength"
+  },
+  "sequential_questions": {
+    "changed_width": 40,
+    "same_record_inspection": "PASS",
+    "old_record_bytes": "PASS",
+    "source_and_config_before_after": "PASS",
+    "new_ids_after_baseline_freeze": "PASS",
+    "baseline_only_width": 38,
+    "followup_not_disclosed_before_baseline_freeze": "PASS"
+  },
+  "fixture_comparison": {
+    "width38": {
+      "mesh_change_ratio": 0.008817093498804473,
+      "cad": "E-p1-research-20261001-03-width38",
+      "analysis": "E-p1-research-20261001-03-width38-solve",
+      "reaction_imbalance": 4.741401174395752E-09,
+      "displacement_mm": 0.005758587,
+      "volume_mm3": 36783.829878355966,
+      "cad_revision": "f142c3882d7ec2a61e2d1274a78d99e0935f3345e5ba103d1cbbff97510f4d76"
+    },
+    "width40": {
+      "mesh_change_ratio": 0.007086412665937851,
+      "cad": "E-p1-research-20261001-03-width40",
+      "analysis": "E-p1-research-20261001-03-width40-solve",
+      "reaction_imbalance": 3.726695571009062E-09,
+      "displacement_mm": 0.005720666,
+      "volume_mm3": 38863.82987835597,
+      "cad_revision": "71a25685baadcebc5156a4c022c0b106e9d0677df64263b99b73a4de5ee1a2f8"
+    },
+    "limits": "The 0.659% displacement change is comparable to mesh-level changes 0.882%/0.709%; no robust strength or monotonic-design conclusion."
+  },
+  "fixture_settings": {
+    "peak_stress": {
+      "reason": "Averaged nodal diagnostic; no stress convergence or material allowable",
+      "unit": "MPa",
+      "valid": false,
+      "value": 0.6235857940555012
+    },
+    "mesh_sizes_mm": [
+      2.0,
+      1.5
+    ],
+    "stress_valid": false,
+    "load": "Illustrative unmeasured 100 N per support",
+    "material": "Hypothetical orthotropic E1/E2=1800,E3=900,G12=650,G13/G23=320 MPa, nu=0.3; ASSUMED_NOT_MEASURED",
+    "boundary": "Fixed bottom; distributed clipped saddle area load",
+    "versions": {
+      "ccx": "This is Version 2.21",
+      "gmsh": "4.12.1"
+    },
+    "parent_step_identity": "PASS exact bytes/hash from CAD to solver"
+  },
+  "optimization": {
+    "converged": false,
+    "scope": "Engine generated candidates; best observed feasible in bounded nine-evaluation screen, not converged/global optimum or engineering release.",
+    "seed": 13,
+    "result_sha256": "4855f6f36fd9cba95dd851874aa364b722b064062282beb57e23da3d9e620579",
+    "engine": "scipy.differential_evolution",
+    "required_gates": [
+      "displacement_mesh_trend",
+      "mesh_0_reaction_balance",
+      "mesh_1_reaction_balance"
+    ],
+    "width28": {
+      "experiment": "E-C-p1-research-20261001-03-opt-0001",
+      "cad_revision": null,
+      "metrics": {},
+      "reason": "X hole edge land violated: enlarge support or reduce pitch/hole",
+      "solver_child": "ABSENT",
+      "export_or_solver_artifacts": "NONE",
+      "status": "REJECTED",
+      "solver_status": "NOT_RUN"
+    },
+    "evaluations": 9,
+    "population": 5,
+    "volume_reduction_percent": 23.375044735473704,
+    "actual_generations": 1,
+    "incumbent": {
+      "analysis_experiment_id": "E-C-p1-research-20261001-03-opt-0002-solve",
+      "analysis_result_sha256": "0e42bb003065d98377d1c3e420a0c0751fa9ba904336e60ee3c348bb5efe24e7",
+      "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+      "cad_experiment_id": "E-C-p1-research-20261001-03-opt-0002",
+      "cad_result_sha256": "49f8f6b1330c4943ba806edfc60a9b4954ce9c15e74b7fc2d9f513d29a1042e1",
+      "cad_status": "COMPLETED_REVIEW_REQUIRED",
+      "constraints": [
+        {
+          "experiment_id": "E-C-p1-research-20261001-03-opt-0002-solve",
+          "limit": 0.0065,
+          "metric": "max_displacement",
+          "operator": "<=",
+          "reason": null,
+          "residual": -0.08280061538461532,
+          "satisfied": true,
+          "scale": 0.0065,
+          "source": "analysis",
+          "unit": "mm",
+          "valid": true,
+          "value": 0.005961796
+        }
+      ],
+      "decision": "NOT_RELEASED",
+      "failed_execution": false,
+      "failures": [],
+      "feedback": {
+        "constraint_residuals": [
+          -0.08280061538461532
+        ],
+        "objective": 28185.593188869716
+      },
+      "index": 2,
+      "key": [
+        "0x1.dbb82ced8f380p+4"
+      ],
+      "numerically_feasible": true,
+      "objective": {
+        "experiment_id": "E-C-p1-research-20261001-03-opt-0002",
+        "metric": "cad_volume",
+        "reason": null,
+        "source": "cad",
+        "unit": "mm^3",
+        "valid": true,
+        "value": 28185.593188869716
+      },
+      "unknown": [
+        "fatigue_durability",
+        "joint_and_contact",
+        "machine_interface",
+        "material_qualification",
+        "physical_load_test",
+        "static_strength",
+        "stress_convergence"
+      ],
+      "usable": true,
+      "values": {
+        "support_width": 29.73246472164783
+      }
+    },
+    "max_generations": 1,
+    "termination": "MAX_GENERATIONS",
+    "versions": {
+      "scipy": "1.17.0",
+      "numpy": "2.3.5"
+    },
+    "campaign_id": "C-p1-research-20261001-03-opt",
+    "plan_sha256": "ab7f713a62b6ba6296673eb51472188b645232f68f3ea9c5b42cbe34875fa055"
+  },
+  "pde": {
+    "worker_sha256": "7f99a46e0894022a72be740d5e81324d02085fc9bdcca8ee4ed0c5235caab7d4",
+    "scope": "Manufactured analytical verification of two scalar linear elliptic forms; not CFD, physical validation or arbitrary PDE optimization.",
+    "reaction0": {
+      "h1_seminorm_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 0.10897542351921931
+      },
+      "l2_convergence_rate": {
+        "unit": "1",
+        "valid": true,
+        "value": 1.9934926491266785
+      },
+      "l2_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 0.0013504362485536208
+      },
+      "linear_residual_relative": {
+        "unit": "1",
+        "valid": true,
+        "value": 3.8917060164593486E-14
+      }
+    },
+    "analytical_solution": "sin(pi*x[0])*sin(pi*x[1])",
+    "backend": "pde.fenicsx",
+    "reaction3": {
+      "h1_seminorm_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 0.108977770259689
+      },
+      "l2_convergence_rate": {
+        "unit": "1",
+        "valid": true,
+        "value": 1.995179229935955
+      },
+      "l2_error": {
+        "unit": "1",
+        "valid": true,
+        "value": 0.0012072498142917196
+      },
+      "linear_residual_relative": {
+        "unit": "1",
+        "valid": true,
+        "value": 3.97341652163139E-14
+      }
+    },
+    "reaction3_rhs": "(2*pi*pi+3)*sin(pi*x[0])*sin(pi*x[1])",
+    "degree": 1,
+    "reaction3_revision": "3b9f06abef0805e320db3dac94261c76064cfdb8ff871dd959ba0ac03bac731c",
+    "fixed_gates": {
+      "h1_rate_min": 0.9,
+      "l2_error_max": 0.003,
+      "l2_rate_min": 1.8,
+      "relative_residual_max": 1E-10
+    },
+    "weak_form": "integral(grad(u).grad(v) + c*u*v) = integral(f*v)",
+    "domain": "Dimensionless unit square",
+    "mesh_counts": [
+      8,
+      16,
+      32
+    ],
+    "versions": {
+      "basix": "0.11.0",
+      "dolfinx": "0.11.0.post0",
+      "ffcx": "0.11.0",
+      "mpi4py": "3.1.5",
+      "numpy": "1.26.4",
+      "petsc": "3.19.6",
+      "petsc4py": "3.19.6",
+      "python": "3.12.3",
+      "ufl": "2026.1.0"
+    },
+    "reaction0_rhs": "2*pi*pi*sin(pi*x[0])*sin(pi*x[1])",
+    "dirichlet": 0,
+    "reaction0_revision": "bb278bcfaa5ea90e812047dc7ede1bac891094b36920adc3a8308136c05dca4a"
+  },
+  "interpretation_context_supplement": {
+    "outcome": "PASS_ACTUAL_EVIDENCE_CONTEXT_SUPPLEMENT",
+    "response_sha256": "0a1b32c986de2cd5d0b0ca75bc1911ad136dcb8c7a9e6c8dc77d6e37aa8ee335",
+    "model": "openai-codex/gpt-5.6-sol",
+    "store_files_unchanged": 571,
+    "session_id": "ses_f08b1a9fcffeXvMe0JIsuj251S",
+    "original_final_context_limit": "Rejected-candidate detail and weak-form definitions were omitted from the isolated stage08 prompt; its conservative UNKNOWN is retained, not reclassified as nonexistent Core evidence.",
+    "original_acceptance_sha256": "fb80ede3ffef1843055946d0349d007ac22d8ff3d503488c02183f815d4728b7",
+    "exit_code": 0,
+    "source_commit": "04ff148fd629d1df3563fb56bff82f9a3eccece7",
+    "input_sha256": "4bcde2f37f4264f6ac473a1f19f0fe42e72e7868f615c7246b321b65a4f84c2b",
+    "tools": 0
+  },
+  "experiments": [
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0001",
+      "status": "REJECTED",
+      "solver_status": "NOT_RUN",
+      "decision": "NOT_RELEASED",
+      "cad_revision": null,
+      "parent": null,
+      "result_sha256": "4e0e923a77f887d8da1e1c64a3952f4a20b38255dc346c4d6f2dcb45da695705",
+      "artifact_count": 8
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0002",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "NOT_RUN",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "60435898e171074fe61ed11c9c3a63f13666e224b32cd4d14bdfc2745c99fe6d",
+      "parent": null,
+      "result_sha256": "49f8f6b1330c4943ba806edfc60a9b4954ce9c15e74b7fc2d9f513d29a1042e1",
+      "artifact_count": 12
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0002-solve",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "60435898e171074fe61ed11c9c3a63f13666e224b32cd4d14bdfc2745c99fe6d",
+      "parent": "E-C-p1-research-20261001-03-opt-0002",
+      "result_sha256": "0e42bb003065d98377d1c3e420a0c0751fa9ba904336e60ee3c348bb5efe24e7",
+      "artifact_count": 29
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0003",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "NOT_RUN",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "5e6bed899ba549f30e9bc571d3ef3c6dc3970cd364b2cb6ebb26b77ac5eb3f04",
+      "parent": null,
+      "result_sha256": "825ea67ea293bdf0bc9c0d45a940a94613e3577ad1ba14cb229f66354912d881",
+      "artifact_count": 12
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0003-solve",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "5e6bed899ba549f30e9bc571d3ef3c6dc3970cd364b2cb6ebb26b77ac5eb3f04",
+      "parent": "E-C-p1-research-20261001-03-opt-0003",
+      "result_sha256": "d12ea8d54c97fd853aced0886250be319f5913c02c64943ea6a2bee309917147",
+      "artifact_count": 29
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0004",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "NOT_RUN",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "33d66bbcf85757239dbfc9d993d5752362986271f3bd19401a40cc175950564e",
+      "parent": null,
+      "result_sha256": "64436b1f8462a19d2c9b52c4fd5c63a3ec1a12c7dce9bd766143188dbc932d73",
+      "artifact_count": 12
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0004-solve",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "33d66bbcf85757239dbfc9d993d5752362986271f3bd19401a40cc175950564e",
+      "parent": "E-C-p1-research-20261001-03-opt-0004",
+      "result_sha256": "321368852ab3f64e95e16a013c3374ca01f10c5ae0c8287a8b7f3d26fa8c01a7",
+      "artifact_count": 29
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0005",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "NOT_RUN",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "565293eea2b72040ad20a11acedf5b945ca2691cd99c405f155fa9e4d8ba5d02",
+      "parent": null,
+      "result_sha256": "ddc947eb3df01cbd83765882bb2a859c02d951f8164f6d5b42c84279ca9e17cd",
+      "artifact_count": 12
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0005-solve",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "565293eea2b72040ad20a11acedf5b945ca2691cd99c405f155fa9e4d8ba5d02",
+      "parent": "E-C-p1-research-20261001-03-opt-0005",
+      "result_sha256": "6a23b9a31c5786cbe0ea0d4c2028e0c424cf6396d44126f252849916aa0c2123",
+      "artifact_count": 29
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0006",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "NOT_RUN",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "4c906a2dbda2002851c3d90d838fe3e9a4eccdd8973bcd750c68ad9e571f42b7",
+      "parent": null,
+      "result_sha256": "9cb6d795a8a466fe5eab79f3ceee033f1edc5bfa498a2aff55bf402e11ac2357",
+      "artifact_count": 12
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0006-solve",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "4c906a2dbda2002851c3d90d838fe3e9a4eccdd8973bcd750c68ad9e571f42b7",
+      "parent": "E-C-p1-research-20261001-03-opt-0006",
+      "result_sha256": "292a5f2ff6b29fea2fd069d655c831b9f466658d35886f1583389bcecfa7754b",
+      "artifact_count": 29
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0007",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "NOT_RUN",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "6e7cac8a4452750658c31ee3f6ca1958932efce4f64d802dfc3c600c3d322ca3",
+      "parent": null,
+      "result_sha256": "5ad98c8b6d843963b350d7221780bdeaf8cdff32fd9121f8d61b1478721b4d9f",
+      "artifact_count": 12
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0007-solve",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "6e7cac8a4452750658c31ee3f6ca1958932efce4f64d802dfc3c600c3d322ca3",
+      "parent": "E-C-p1-research-20261001-03-opt-0007",
+      "result_sha256": "eea088828a706b139ca2d1a8f805de3deddc88ad02384c1414c719c7bec7d0ed",
+      "artifact_count": 29
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0008",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "NOT_RUN",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "7140f09e9e5f7308eb2018ca355199c05243a65a4fbdb0133d5780e57307c2d7",
+      "parent": null,
+      "result_sha256": "0ebb167a3101f85b123c84a6de9b2a95d56ce3252a4d502c9283ab6a4f89da67",
+      "artifact_count": 12
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0008-solve",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "7140f09e9e5f7308eb2018ca355199c05243a65a4fbdb0133d5780e57307c2d7",
+      "parent": "E-C-p1-research-20261001-03-opt-0008",
+      "result_sha256": "d69b165db6bbb01c3950d38c9d416da4b52035fa973ca827bb29aac228123470",
+      "artifact_count": 29
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0009",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "NOT_RUN",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "b7c06b27608847ef7d684d9655a35725fff92e1c0c212085960ba1e60df1c57b",
+      "parent": null,
+      "result_sha256": "be0887a557aeec23d97211a6e0616427f145ca7964015ed7a81e5c7b6b76239a",
+      "artifact_count": 12
+    },
+    {
+      "id": "E-C-p1-research-20261001-03-opt-0009-solve",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "b7c06b27608847ef7d684d9655a35725fff92e1c0c212085960ba1e60df1c57b",
+      "parent": "E-C-p1-research-20261001-03-opt-0009",
+      "result_sha256": "6da15254d2020d8c58c66a049b33bea5f40d428d1d30683090d2d89187038b7c",
+      "artifact_count": 29
+    },
+    {
+      "id": "E-p1-research-20261001-03-poisson",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "cad_revision": null,
+      "parent": null,
+      "result_sha256": "f57499487600c19292f77a0dc66f702d9594fe64d5c4e55de67188d19f4a6fcd",
+      "artifact_count": 19
+    },
+    {
+      "id": "E-p1-research-20261001-03-reaction3",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "cad_revision": null,
+      "parent": null,
+      "result_sha256": "feae4be69169480411495c91ccf52fdc8eaf28768203c88f7ad14c1e56fc6835",
+      "artifact_count": 19
+    },
+    {
+      "id": "E-p1-research-20261001-03-width38",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "NOT_RUN",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "f142c3882d7ec2a61e2d1274a78d99e0935f3345e5ba103d1cbbff97510f4d76",
+      "parent": null,
+      "result_sha256": "30fcbd0be667c273888729c82d862b4a2ebab0cba9f0259a107cd0a7051282fd",
+      "artifact_count": 12
+    },
+    {
+      "id": "E-p1-research-20261001-03-width38-solve",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "f142c3882d7ec2a61e2d1274a78d99e0935f3345e5ba103d1cbbff97510f4d76",
+      "parent": "E-p1-research-20261001-03-width38",
+      "result_sha256": "bd4d09db7fd3c1aaf64d6c340498cf2cacaef06e1a5565605360e5616e72b508",
+      "artifact_count": 29
+    },
+    {
+      "id": "E-p1-research-20261001-03-width40",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "NOT_RUN",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "71a25685baadcebc5156a4c022c0b106e9d0677df64263b99b73a4de5ee1a2f8",
+      "parent": null,
+      "result_sha256": "cd5cc679e0a34eb0eb2c8eced1ec29f01fe8eee81e3c0ee410d86660c76a9a30",
+      "artifact_count": 12
+    },
+    {
+      "id": "E-p1-research-20261001-03-width40-solve",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "cad_revision": "71a25685baadcebc5156a4c022c0b106e9d0677df64263b99b73a4de5ee1a2f8",
+      "parent": "E-p1-research-20261001-03-width40",
+      "result_sha256": "1d73aa8f5d63f645264fc6410a87a648e5194a976e94da83e0d13425cb619695",
+      "artifact_count": 29
+    }
+  ],
+  "independent_review": "PASS_NO_OPEN_P1_P2: actual stages01-08 source/exit/stdout/native hooks, all tool payloads/comparisons, optimizer candidates/journals/checkpoints/17 result-ledger chains/336 artifact hashes, PDE38 artifacts/2 ledgers/reference/revision/mesh/error gates, original-context limits, no-tools supplement input/response and 571-file preservation,788 original/copy SHA/size retention.",
+  "retention": {
+    "manifest": "artifacts/p1-research-20261001-03/retained-01/manifest.json",
+    "scope": "Exact local raw synthetic store, research/controller/native-hook/lifecycle evidence and Git-blob source archives; these ignored raw files are not restored by cloning Git.",
+    "bytes": 512000376.0,
+    "outcome": "PASS_EXACT_BOUNDED_RESEARCH_RETENTION",
+    "manifest_sha256": "8defc0053902bfadff6696135aecc7acec5a35caec934fa2dbbb466277143844",
+    "files": 788,
+    "independent_scope_counts": {
+      "lifecycle": 1,
+      "research": 126,
+      "store": 571,
+      "native-hooks": 72,
+      "control": 18
+    },
+    "independent_integrity": "PASS each original and copy SHA/size; no unlisted file, casefold collision, reparse file/directory or credential-like manifest path"
+  },
+  "owned_stop": {
+    "outcome": "PASS_OWNED_STOP",
+    "source_commit": "04ff148fd629d1df3563fb56bff82f9a3eccece7",
+    "owner_path": "C:/Users/pikac/AppData/Local/AutonomousCAELab/profiles/p1-research-20261001-03-research-research/runtime-owner.json",
+    "state": "stopped",
+    "stopped_utc": "2026-10-01T12:00:41.508208Z",
+    "checked_utc": "2026-10-01T12:01:25.9346851Z",
+    "windows_pids": [
+      {
+        "alive": false,
+        "pid": 80884
+      },
+      {
+        "alive": false,
+        "pid": 50824
+      },
+      {
+        "alive": false,
+        "pid": 76032
+      }
+    ],
+    "port_4098_listening": false
+  },
+  "gui": {
+    "live_runtime": "STOPPED after acceptance; cached GUI is not current live-server proof",
+    "outcome": "PASS observed official research session with same stored experiment IDs/revision/metrics",
+    "limits": "This unit used CLI questions against the official server and observed the same sessions in GUI; direct manual GUI prompt execution was not separately tested.",
+    "screenshot": "artifacts/p1-research-20261001-03/official-optimization-table.png",
+    "sha256": "9cbd41f21a3dd3402b96b62535b8a7c5f4a8ec320d2693a46d49d68b2a655ef8"
+  },
+  "exact_source_ci": {
+    "successful_jobs": [
+      "core",
+      "optimization",
+      "pde",
+      "structural",
+      "native",
+      "codeaster",
+      "native-registration",
+      "doe"
+    ],
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36851768650",
+    "explicit": "FAILED before solver at original pinned OpenRadioss download HTTP404",
+    "run": 36851768650,
+    "failed_log": "artifacts/p1-research-20261001-03/ci-04ff-explicit-failed.log",
+    "failed_log_sha256": "708e437b960f94e23d7b100e7bc287af57087aac3e76098fc35a6b48d0cd1b5d"
+  },
+  "engineering_unknowns": [
+    "machine_interface",
+    "static_strength",
+    "physical_load_test",
+    "fatigue_durability",
+    "joint_and_contact",
+    "material_qualification",
+    "stress_convergence"
+  ],
+  "pde_unknowns": [
+    "model_qualification",
+    "physical_validation"
+  ],
+  "decision": "NOT_RELEASED",
+  "historical_attempts": {
+    "run02": "1047 baseline disclosed width40 early; follow-up duplicate ID refused without overwrite; retained221 files; source04ff correction",
+    "run03_final": "Original stage08 omitted known rejection detail/weak forms from its isolated input; conservative UNKNOWN preserved; separate actual NoTools context supplement reinterprets original bytes without recalculation.",
+    "run01": "bbd bootstrap helper used before import; zero model/Core/store; retained source1047 correction"
+  },
+  "full_phase_and_52_requirements": "OPEN; bounded P1.1/P1.2a/P1.2b/P1.3 workflow gates complete at their exact recorded sources, not full product/engineering qualification.",
+  "next": "P2.1 authoritative corrected structural benchmark definition and target; freeze geometry/material/BC/load/metric/units/mesh/error limits before P2.2 actual mesh/cross-solver runs. Reuse existing adapters, stores and numerical engines; then remaining phases sequentially."
+}

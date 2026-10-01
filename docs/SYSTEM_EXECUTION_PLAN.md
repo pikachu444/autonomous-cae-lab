@@ -31,7 +31,21 @@ experiment artifacts; cloning Git alone does not restore their local bytes.
 
 ## Execution rule and current unit
 
-**One active acceptance unit: P1.3, functional research-purpose integration.**
+**Next serial unit: P2.1, authoritative external structural reference.**
+Actual clean04ff/run03 completed the bounded P1.3 question -> conditions ->
+solver -> comparison -> engine-generated next candidates -> interpretation
+loop with8 selected5.6Sol stages/41 receipts/23 experiments. Missing/unsupported
+requests did not execute. SciPy9 candidates/1 generation stops atMAX_GENERATIONS,
+converged=false; reaction0/3 PDE passes predeclared analytical gates. Original
+bytes/source/config/STEP remain unchanged;788 files retained and owned Stop
+confirmed. Independent output/supplement/retention reviews PASS.
+Record:20261001-openscience-research-04ff148.json. Full product/all52 and
+engineering UNKNOWN/NOT_RELEASED remain OPEN. Phase2 begins with reference
+admission, then frozen P2.2 mesh/cross-solver runs. Do not add native recovery,
+reauthentication or another numerical engine. The notes below are historical.
+
+### Historical P1.3 source admission
+
 P1.2b is PASS bounded at clean30068/run01:8actual cases, analytical1440/1728,
 write/process rollback/no-op, independent output/472-file retention reviews.
 Exact CI36839251459:8jobsSUCCESS; explicit download404 before solver/store.

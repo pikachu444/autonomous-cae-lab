@@ -28,7 +28,7 @@
   "source_correction": "Provide only the requested baseline in stage03; add the changed condition only after baseline retention; explicitly check that follow-up records do not already exist. Keep natural multi-tool choice and every numerical reference/admission limit.",
   "corrected_driver_sha256": "8d4f91913f65129395fdcc871725f5486da1e6e215504fb07b8f129f7b2cfaed",
   "source_check": "PASS actual AST question-packet statements, two questions, unchanged analysis settings, zero provider/Core/solver calls",
-  "independent_review": "Early negatives/width38 CAD and minimal correction source PASS_NO_OPEN_P1_P2; full retained structural review pending",
+  "independent_review": "PASS_NO_OPEN_P1_P2 for the preserved partial run: negatives, four actual CAD/solver records/artifact-ledger chains and all221 original/copy SHA/size retention; minimal source correction independently passed. Historical FAILED_OR_PARTIAL is unchanged; corrected fresh actual04ff/run03 is separate.",
   "exact_source_ci": {"run": 36848099418, "successful_jobs": ["core", "optimization", "native-registration", "pde", "codeaster", "structural", "doe", "native"], "explicit": "FAILED before solver at original pinned OpenRadioss download HTTP404; raw exact job log retained"},
   "decision": "NOT_RELEASED",
   "engineering_unknowns": ["machine_interface", "static_strength", "physical_load_test", "fatigue_durability", "joint_and_contact", "material_qualification", "stress_convergence"],

@@ -8,22 +8,18 @@ Project execution objective is ACTIVE: complete the retained52 requirements
 through the connected OpenScience-led system. This queue is not a completion
 claim. Existing accepted work is reused. Check a box only with a linked actual
 receipt/review/commit; planning, readiness and prose cannot replace execution.
-P1.2b actual30068/run01 output and retention reviews PASS; exactCI8jobsSUCCESS,
-explicit download404 before execution. Currently **P1.3 functional research integration** is active:
-question -> conditions -> solver -> comparison -> numerical next conditions.
-No further CAD recovery features are scheduled. Later phases remain sequential.
-
-P1.3 Research-purpose source and actual driver are implemented (ADR0016).
-Actual1047/run02 produced both38/40 CAD/CalculiX results, then strict acceptance
-stopped at a duplicate-ID refusal caused by early follow-up disclosure. Actual
-optimizer/PDE are NOT_RUN. Corrected question packets/source smoke PASS; fresh
-actual sequence is next. Failed evidence/221-file retention are preserved in
-20261001-openscience-research-question-sequence.json; no new recovery scope.
-Native45/Node guard-Git89/launcher47 checks PASS separately; independent source
-review/clean commit and actual natural research remain required. The next
-execution uses the same5.6Sol/auth/project and a new store, with width38/40
-CalculiX comparisons, seeded SciPy next candidates and reaction0/3 FEniCSx.
-Do not restart completed native units or count these source checks as research.
+P1.1/P1.2a/P1.2b bounded actual gates are retained. P1.3 actual04ff/run03
+PASS_BOUNDED_RESEARCH_LOOP:8 selected5.6Sol stages/41 receipts/23 experiments,
+sequential38/40 CAD/CalculiX, SciPy-generated9 candidates and reaction0/3 PDE.
+Old bytes/source/config/STEP/fixed reference gates PASS; missing/unsupported
+requests execute nothing.1 generation/MAX_GENERATIONS/converged=false remains;
+UNKNOWN/NOT_RELEASED and full product/all52 qualification remain OPEN.
+788 files retained/owned Stop confirmed; independent output/supplement and
+exact retention review PASS with no open P1/P2. Record:20261001-openscience-research-04ff148.json.
+NEXT SERIAL UNIT **P2.1 authoritative external structural reference**, followed
+by P2.2 frozen mesh/cross-solver execution. No further CAD recovery/setup scope.
+Earlier failed runs and original-context limits are preserved in their records;
+historical sections below cannot override this queue.
 
 ## P1.1 — integrated OpenScience CAD research (PASS bounded unit)
 
@@ -228,18 +224,18 @@ This evidence/docs checkpoint is not another solver run.
 - [x] P1.2b PASS bounded: actual8cases write/process faults/recovery/abort/normal
   registration and fixed analytical1440/1728 responses; independent output and
   472file retention PASS, old211+34files preserved. Stated limits/UNKNOWN remain.
-- [ ] P1.3 (ACTIVE): exercise supported research planning, unsupported-operation response
-  and repeatable human/AI inspection against declared capabilities and the same
-  study/model/experiment IDs. Record limitations of staged vs general planning.
-- [ ] P1.3 implementation admission: Research-purpose source/driver are implemented;
-  native45/Node89/launcher47 PASS, independent review and source commit pending.
-  Replace CAD-only exact-call admission with
-  a declared research-purpose capability subset and existing solver runtime
-  propagation; use existing engines for conditions/search. Prove a real changed-
-  condition/comparison loop, missing inputs and unsupported requests. Preserve
-  historical P1.1 profile and the owner's5.6Sol/auth; no model fallback.
+- [x] P1.3 bounded actual planning/execution/inspection: clean04ff/run03,
+  selected5.6Sol8 stages/41 receipts/23 experiments; missing/unsupported refusal,
+  sequential38/40 CAD/CalculiX comparison, SciPy9 candidates and reaction0/3 PDE.
+  Same-record official GUI observed; original final-context gap separately
+  supplemented without recalculation. General/manual GUI/product scope remains
+  OPEN. Record20261001-openscience-research-04ff148; independent retention review PASS.
+- [x] P1.3 implementation admission: ADR0016/bbd87f8 plus1047/04ff bounded
+  bootstrap/question-packet corrections are reviewed/pushed; native45/Node89/
+  launcher47 source checks separately PASS. Historical Acceptance profile,
+  selected5.6Sol/auth, references and engineering UNKNOWN are retained.
 
-## Phase2 — connected structural analysis (QUEUED)
+## Phase2 — connected structural analysis (NEXT SERIAL)
 
 - [ ] P2.1: obtain the full authoritative benchmark definition; for LE10 retain
   corrected revision/target location/value. Freeze geometry/material/BC/load,
