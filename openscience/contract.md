@@ -1,5 +1,17 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+Actual5484/research02 passes resident/Python binding and model responses, creates/
+inspects a study, but both analysis requests add benchmark identity/hash to
+settings and are correctly refused before Core; no experiment/native job exists.
+The common StructuralFamilies prompt/inputs now distinguish exactly case,
+load_case, load_factor, mesh_cells from research metadata. Domain owns scientific
+definitions/references; adapters own native translation/execution. Definition/
+intent/config prompt hashes change, requiring a new clean-source profile/store.
+No Core/wire/native-context schema, guard, tools, scientific limit or model/auth
+change. Legacy FixtureScalar14/Acceptance9 remain intact. Nine-stage acceptance
+stays FAILED_OR_PARTIAL; record20261002-structural-research-arguments. UNKNOWN/
+NOT_RELEASED persist. The CI expected-count correction is source-only.
+
 ADR0017 adds explicit `ResearchProfile=StructuralFamilies` admission through the
 same native Research runtime. Its schema-2 definition pins six existing tools
 (study create/inspect, model analysis, experiment inspect/summary/compare), two

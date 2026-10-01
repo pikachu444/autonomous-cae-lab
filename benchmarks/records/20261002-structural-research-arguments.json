@@ -1,0 +1,276 @@
+{
+  "schema_version": "1",
+  "record_kind": "ACTUAL_RESEARCH_ARGUMENT_REFUSAL_AND_COMMON_PROFILE_CORRECTION",
+  "created_utc": "2026-10-01T20:59:26.420340+00:00",
+  "unit": "P2.2",
+  "base_source_commit": "5484eb830cd92b77daf9a0a2ec2e6a897a9d7b5c",
+  "run_id": "p2-research-20261002-02",
+  "attempt": "attempt-01",
+  "actual_original_outcome": "FAILED_OR_PARTIAL",
+  "actual_original_failure": "Research tool caelab_model_analysis_run has no completed JSON receipt.",
+  "model": "openai-codex/gpt-5.6-sol",
+  "openscience_version": "2.0.146",
+  "openscience_source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+  "actual_resident_identity": {
+    "initial_and_fresh_current": "PASS",
+    "core_disk_sha256": "3565b01d0875a280a348625f6df9e8610fac518f951b9a00f6879bf23372ee16",
+    "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "scope": "Actual resident import paths/on-disk/Git; cached bytecode remains UNKNOWN."
+  },
+  "actual_question_stages": [
+    {
+      "name": "01-missing-input",
+      "session_id": "ses_f06d75b54ffebJH8INA9xcbPVo",
+      "tool_attempts": 0,
+      "observed_provider_steps": 1,
+      "raw_stdout": {
+        "path": "artifacts/p2-structural-research-retained-20261002-02/artifacts/attempt-01/01-missing-input/stdout.jsonl",
+        "bytes": 3342,
+        "sha256": "f21b72e85a20a6fe06ea6c4c9a210e9bc5c3dbc8d3b5c488c3c982952610a2f0"
+      },
+      "final_text": "No. A beam’s name alone cannot establish structural safety, and no experiment or study record will be created.\n\nRequired conditions include:\n\n- **Frozen analysis case:** precise configuration and governing standard/code.\n- **Geometry:** span, cross-section and dimensions, orientation, holes/notches, connections, tolerances, and imperfections.\n- **Material:** grade, elastic/plastic properties, allowable stresses, density, toughness, temperature dependence, and certification basis.\n- **Loads:** type, direction, magnitude, location/distribution, combinations, dynamic/impact/fatigue effects, and safety factors.\n- **Restraints:** supports, fixity, contact, connection stiffness, lateral bracing, and imposed displacements.\n- **Environment and service life:** temperature, corrosion, fire, degradation, cycles, and duration.\n- **Failure modes:** yielding, rupture, local/global/lateral-torsional buckling, shear, bearing, connection failure, fatigue, fracture, and serviceability.\n- **Acceptance requirements:** applicable code, limit states, allowable utilization, deflection/vibration limits, buckling criteria, fatigue life, and required margins.\n- **Validation basis:** calculation method, mesh/convergence requirements if using FEA, independent checks, uncertainties, and required evidence.\n\nThe declared CAE profile also supports only three named frozen structural-family cases, not an arbitrary beam model. Until the missing inputs are supplied and a supported case is established, structural safety remains **UNKNOWN** and the design is **NOT_RELEASED**."
+    },
+    {
+      "name": "02-unsupported-torsion",
+      "session_id": "ses_f06d63c78ffeEHty11IlSg9x4q",
+      "tool_attempts": 0,
+      "observed_provider_steps": 1,
+      "raw_stdout": {
+        "path": "artifacts/p2-structural-research-retained-20261002-02/artifacts/attempt-01/02-unsupported-torsion/stdout.jsonl",
+        "bytes": 2561,
+        "sha256": "b64c9f161d980602ee2ae7149d27c790e43425f9b362baf63f0100dfb281ca28"
+      },
+      "final_text": "No.\n\nFor `ansys_vmd1_regular`, the selected `structural-families-v1` profile supports only the case’s frozen, explicitly declared load definitions. **Torsional moment `Mx` is unsupported and unresolved** in this profile.\n\nMissing capability/input:\n- A validated `Mx` torsion load definition and adapter implementation\n- Equivalent nodal loading for that torsional moment\n- Appropriate torsional boundary conditions/constraints\n- A declared torsion response and independent verification/reference\n- Current execution evidence establishing the implementation\n\nThe profile explicitly lists **unresolved torsion as `UNKNOWN`**. Therefore, no solver experiment should be created or run, no force load (`Fx/Fy/Fz`) may substitute for `Mx`, no torsion result can be reported, and no release claim is justified. Status remains **UNKNOWN / NOT_RELEASED**."
+    },
+    {
+      "name": "03-beam-baseline",
+      "session_id": "ses_f06d51cbbffeHrsHbW9od6HYGO",
+      "tool_attempts": 4,
+      "observed_provider_steps": 3,
+      "raw_stdout": {
+        "path": "artifacts/p2-structural-research-retained-20261002-02/artifacts/attempt-01/03-beam-baseline/stdout.jsonl",
+        "bytes": 22724,
+        "sha256": "c00616c98e48345b43a56cce1fad4f2a3ae4afd6ef2f77043bcaabf6d2ffc723"
+      },
+      "final_text": "## Outcome\n\nStudy **`S-p2-research-20261002-02-beam`** was created and successfully inspected with:\n\n- **Variable:** native solver backend\n- **Fixed conditions:** `ansys_vmd1_regular`, `Fz`, load factor `1.0`\n- **Frozen meshes:** `[6,1,1]`, `[12,2,2]`, `[24,4,4]`\n- **Declared limits:** 2% reference-relative and 1% last-two-mesh response-relative\n\nBoth requested native executions were attempted:\n\n- `E-p2-research-20261002-02-beam-ccx-full`\n- `E-p2-research-20261002-02-beam-aster-full`\n\nHowever, Core returned **“CAE native guard denied this operation”** for both. Therefore:\n\n- No experiment records were created.\n- No actual metrics, native evidence, artifact hashes, or validation receipts exist to inspect.\n- Summaries and a cross-solver comparison cannot validly be obtained.\n- The hypothesis remains **UNKNOWN**.\n- Reference agreement, mesh convergence, and cross-solver consistency remain **UNKNOWN**.\n- Engineering status remains **NOT_RELEASED**.\n\nI did not retry the denied native operation, fabricate results, relax thresholds, introduce alternate conditions, or substitute another solver/model."
+    }
+  ],
+  "observed_provider_step_finish_records": 5,
+  "actual_core_operations": [
+    "study_create",
+    "study_inspect"
+  ],
+  "actual_core_mutations": 1,
+  "analysis_tool_attempts": [
+    {
+      "input": {
+        "study_id": "S-p2-research-20261002-02-beam",
+        "experiment_id": "E-p2-research-20261002-02-beam-ccx-full",
+        "backend": "structural.families.calculix",
+        "settings": {
+          "benchmark_definition_id": "P2-family-v1-20261002",
+          "benchmark_definition_sha256": "765bcd98a5b8d63361293beb67fa87a8c89f05af7887fa601b7a6d816ddb62a9",
+          "case": "ansys_vmd1_regular",
+          "load_case": "Fz",
+          "load_factor": 1,
+          "mesh_cells": [
+            [
+              6,
+              1,
+              1
+            ],
+            [
+              12,
+              2,
+              2
+            ],
+            [
+              24,
+              4,
+              4
+            ]
+          ]
+        }
+      },
+      "status": "error",
+      "error": "CAE native guard denied this operation."
+    },
+    {
+      "input": {
+        "study_id": "S-p2-research-20261002-02-beam",
+        "experiment_id": "E-p2-research-20261002-02-beam-aster-full",
+        "backend": "structural.families.code_aster",
+        "settings": {
+          "benchmark_definition_id": "P2-family-v1-20261002",
+          "benchmark_definition_sha256": "765bcd98a5b8d63361293beb67fa87a8c89f05af7887fa601b7a6d816ddb62a9",
+          "case": "ansys_vmd1_regular",
+          "load_case": "Fz",
+          "load_factor": 1,
+          "mesh_cells": [
+            [
+              6,
+              1,
+              1
+            ],
+            [
+              12,
+              2,
+              2
+            ],
+            [
+              24,
+              4,
+              4
+            ]
+          ]
+        }
+      },
+      "status": "error",
+      "error": "CAE native guard denied this operation."
+    }
+  ],
+  "native_guard_refusals": [
+    {
+      "path": "artifacts/p2-structural-research-retained-20261002-02/artifacts/attempt-01/native-hook-receipts/native-hook-85036-000008-7b27fbd6-1a80-4210-b242-69475bff0454.json",
+      "bytes": 1232,
+      "sha256": "f0e1d14b38cb2f54157ead6733d574df35718828bd0a1ef8385939f19a869cf1"
+    },
+    {
+      "path": "artifacts/p2-structural-research-retained-20261002-02/artifacts/attempt-01/native-hook-receipts/native-hook-85036-000009-84166a6d-2391-49f5-a10c-8fdd07cf3f0b.json",
+      "bytes": 1232,
+      "sha256": "1c2051b3e71f02051ff81e0b072427cbff1a4973946ebac693a0d890b8206a65"
+    }
+  ],
+  "actual_experiment_records": 0,
+  "actual_native_solver_jobs": 0,
+  "strict_driver_completed_question_entries": 2,
+  "raw_acceptance": {
+    "path": "artifacts/p2-structural-research-retained-20261002-02/artifacts/attempt-01/acceptance.json",
+    "bytes": 76863,
+    "sha256": "16a6774cf2e6c4117fdc4b76160cbeebffe24304a7ab7655885e80615978afdf"
+  },
+  "cause": "Profile descriptions omitted the exact four settings keys; the model copied research benchmark identity/hash into settings. Native before-hooks correctly refused before Core.",
+  "correction": "StructuralFamilies-only common prompt/inputs name exact four keys, separate metadata, clarify six admitted tools and Domain/native-adapter ownership. No forced tool order or argument rewriting.",
+  "sources": [
+    {
+      "path": "scripts/openscience-research.ps1",
+      "bytes": 12551,
+      "sha256": "aa7998c19d619709e4683c6cb2753067e544f8b923c49d082adae5aab19c17ad"
+    },
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "bytes": 20691,
+      "sha256": "88e825c7326c85aa417d9900fcc626bd7ee8fa416a5f4e85f838fdb28568de41"
+    }
+  ],
+  "verification": {
+    "node_guards_and_git": {
+      "tests": 104,
+      "pass": 104,
+      "fail": 0,
+      "evidence": {
+        "path": "artifacts/p2-structural-research-control-20261002-02/node-regressions.log",
+        "bytes": 10089,
+        "sha256": "072f025ae5abe403667b3583ee9e3ab32c57ab6973fabaf6eb23839ce2fb67bf"
+      }
+    },
+    "native_controller_configuration": {
+      "checks": 63,
+      "status": "PASS",
+      "scope": "Final Domain wording tested as LF; independent parity covers equivalent CRLF. Synthetic auth; no provider/Core invocation.",
+      "evidence": {
+        "path": "artifacts/p2-structural-prompt-native-20261002-03/native-checks.json",
+        "bytes": 4583,
+        "sha256": "b891654a9295a3a8ecb9f1158f16b9a023c4aa4dd38c415809d6abd15ecde84c"
+      }
+    },
+    "driver_cold": {
+      "checks": 60,
+      "status": "PASS_SOURCE_ONLY",
+      "evidence": {
+        "path": "artifacts/p2-structural-research-control-20261002-02/source-checks.json",
+        "bytes": 45402,
+        "sha256": "c636ebbe072fdd25febc236da844df82d4f55003eff3bc3868d535750d4c85a3"
+      }
+    },
+    "independent_prompt_definition_parity": {
+      "checks": 15,
+      "pass": 15,
+      "evidence": {
+        "path": "artifacts/p2-structural-research-arguments-review-20261002-02/parity-checks.json",
+        "bytes": 2312,
+        "sha256": "e8eea8e7bb6a49ba45f77b172eac51c88157d255f17a3efc963d97164dde4cb9"
+      },
+      "provider_core_native_auth_calls": 0
+    }
+  },
+  "independent_final_review": {
+    "status": "PASS_BOUNDED_PROMPT_CORRECTION_REVIEW",
+    "open_P1_P2": [],
+    "scope": "Final prompt source, unchanged protected interfaces, LF/CRLF legacy parity and actual raw failure/retention. No new provider/Core/native/lifecycle calls.",
+    "evidence": {
+      "path": "artifacts/p2-structural-research-arguments-review-20261002-02/independent-review.json",
+      "bytes": 14171,
+      "sha256": "c3b089324100e2977f9efb039675dacebe7b7c9b44b7ee8c1dc35d0a8bca5f97"
+    }
+  },
+  "exact_base_CI": {
+    "run_id": 36921150800,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36921150800",
+    "observed_status": "IN_PROGRESS",
+    "observed_jobs": "6SUCCESS/3FAIL/PDE_PENDING",
+    "new_failure": "Actual cold receipt60 PASS/calls0; stale workflow expected-count51 rejects it.",
+    "existing_failures": [
+      "Aster Fz fine FACTOR_57 estimate3.32295e-6>1e-6/native exit1",
+      "Pinned OpenRadioss release ZIP HTTP404/curl22 before solver"
+    ],
+    "independent_audit": {
+      "path": "artifacts/p2-research-ci-5484eb8-20261002-01/exact-source-ci-failure-audit.json",
+      "bytes": 39379,
+      "sha256": "d3baa041623b03d5ea856a9a2de50e86fca4505533374722861cf518530b9180"
+    },
+    "audit_checks": 40,
+    "scope": "Exact5484 only; later correction CI/late PDE result unverified."
+  },
+  "CI_correction": "Expected-count/display51 updated to60; status/all-PASS/four zero-call assertions unchanged.",
+  "local_retention": {
+    "status": "PASS_BYTE_IDENTICAL_LOCAL_RETENTION_OF_PARTIAL_RESEARCH",
+    "files": 80,
+    "bytes": 292437,
+    "evidence": {
+      "path": "artifacts/p2-structural-research-control-20261002-02/retention.json",
+      "bytes": 17236,
+      "sha256": "293837354424948f0f0efa3c55249c700fc24535a8abe93d210c91ae102840c2"
+    },
+    "remote_raw_backup": "UNKNOWN_NOT_UPLOADED"
+  },
+  "owned_stop": {
+    "status": "PASS_ACTUAL_OWNED_STOP",
+    "original_pids": [
+      2948,
+      29172,
+      85036
+    ],
+    "original_pids_absent": true,
+    "port4098_closed": true,
+    "evidence": {
+      "path": "artifacts/p2-structural-research-control-20261002-02/owned-stop-verification.json",
+      "bytes": 443,
+      "sha256": "dc07664d31d482115b7021e9e95999566d106df63948473d7e868f8c74a6aa0e"
+    }
+  },
+  "contract_impact": "Research definition/intent/config prompt hashes change. New clean profile/store required. Core/wire/native-context schema/guard/tools/scientific gates/provider/model/auth/project unchanged; FixtureScalar14 prompt identical in same LF and CRLF.",
+  "new_actual_corrected_research": "NOT_RUN_PENDING_CLEAN_REVIEWED_COMMIT",
+  "decision": "NOT_RELEASED",
+  "limitations": [
+    "The beam AI text calls the refusal a Core return; actual receipts prove native before-hook rejection before Core analysis.",
+    "Raw five step-finish events identify the selected provider/model; hidden provider retry/weights are UNKNOWN.",
+    "This study/refusal proof does not close nine-stage research or native numerical acceptance.",
+    "Fz accuracy, cylinder/roof/half-load/refusal numerical and same-record GUI gates remain OPEN.",
+    "Original52, MIDAS original-case replication and engineering/physical/strength qualification remain OPEN/UNKNOWN."
+  ],
+  "next": [
+    "Commit/push reviewed common-profile and CI wrapper correction.",
+    "NEW clean-source actual research03 on approved model/auth/project, preserve actual receipts/failures and verify same-record GUI/ownedStop/retention."
+  ]
+}

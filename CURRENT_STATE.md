@@ -1,5 +1,25 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
+## Latest actual checkpoint: research02 study operations; analysis refused
+
+Clean pushed5484eb8/research02 passes both actual resident/Python binding reads
+and selected5.6Sol missing/unsupported answers. Actual beam study create/inspect
+complete. Both analysis requests incorrectly add benchmark identity/hash to
+settings and are refused before Core; no experiments/native jobs/metrics.
+Three questions/five observed provider step-finish records, AI failure
+interpretation, exact80-file292437B retention and owned Stop are preserved.
+The strict acceptance records two completed questions and then fails at the
+beam receipts; outcome remains FAILED_OR_PARTIAL. This closes the interpreter
+binding fault, not P2.2. Record20261002-structural-research-arguments.
+
+Common-profile prompt/inputs clarify four settings keys and research metadata;
+guard/Core/scientific limits/model stay unchanged. Existing104 Node/63 native/
+60 cold checks pass; independent legacy-prompt parity covers LF and CRLF.
+Exact5484 CI cold checks pass60 but stale expected51 wrapper fails; its narrow
+correction expects60. Aster FACTOR_57/explicit404 remain separate. NEXT reviewed
+commit/push and new clean-source research03, actual receipts/interpretation and
+same-record GUI/Stop/retention. All52 and physical UNKNOWN/NOT_RELEASED persist.
+
 ## Latest actual checkpoint: native05 partial; research01 pre-inference failure
 
 Pushed clean d29b340/native05 creates six Core records, five complete. BeamFx/Fy

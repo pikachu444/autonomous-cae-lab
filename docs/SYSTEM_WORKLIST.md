@@ -36,11 +36,14 @@ and Fx/Fy complete-field cross-solver checks. Fz Aster fine fails native
 solution-error estimate3.32295e-6>1e-6. Four isolated numerical-method probes
 also fail; none is adopted. Native05 remains FAILED_OR_PARTIAL, all515 original
 files unchanged. Exact d29 CI8SUCCESS/2FAIL, same Aster error/explicit ZIP404.
-Actual research01 connects then stops at a driver-only nonexistent Python
-context alias before inference/store. Owned Stop and19-file retention pass.
-Correction60 cold/18 independent saved-response replay checks PASS, actual
-new-model loop still NOT_RUN. Records20261002-structural-family-native05 and
-20261002-structural-research-python-correction. Historical native01–04 verdicts
+Research01's Python correction is pushed5484eb8. Research02 passes both resident
+reads, actual missing/unsupported responses and study create/inspect. Analysis
+requests incorrectly add research metadata to settings and are refused before
+Core/native jobs. AI failure interpretation,80-file retention and owned Stop
+pass. Common-profile prompt clarification passes104 Node/63 native/60 cold;
+CI expected51 changes to actual60. NEW clean-source research03 is next. Records
+20261002-structural-family-native05,20261002-structural-research-python-correction
+and20261002-structural-research-arguments. Historical native01–04 verdicts
 and corrective-source records are preserved in STRUCTURAL_FAMILIES_ACCEPTANCE.
 
 Next tasks within the same P2.2 unit, in order:
@@ -48,8 +51,11 @@ Next tasks within the same P2.2 unit, in order:
 - [x] Preserve/audit native05 and four failed method probes with original limits.
 - [x] Diagnose actual research01 pre-inference failure; verify the narrow saved-
   config Python correction and original-response replay without changing Core.
-- [ ] Commit/push the reviewed correction; new clean-source owned research run
-  using approved5.6Sol/auth/project, actual question/tool/result/failure interpretation.
+- [x] Push interpreter correction5484eb8; run actual owned research02 and
+  preserve its study operations, pre-Core argument refusals and owned Stop.
+- [ ] Push reviewed common-profile clarification and stale CI-count correction;
+  NEW clean-source research03 with approved5.6Sol/auth/project, actual native
+  receipts and failure interpretation. Keep scientific limits unchanged.
 - [ ] Verify same-record GUI/ownedStop/retention. Keep research control-plane
   evidence separate from unresolved native numerical acceptance.
 - [ ] Resolve Fz accuracy and complete cylinder/roof/changed-load/refusal numerical

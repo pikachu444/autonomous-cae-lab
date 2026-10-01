@@ -21,6 +21,15 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+Actual clean5484eb8/research02 passes resident/Python binding, selected-model
+responses and study create/inspect. Both analysis requests mix benchmark
+metadata into settings and are correctly refused before Core; zero experiments/
+native jobs. AI failure interpretation,80-file retention and owned Stop pass.
+The narrow common-profile input clarification passes104 Node/63 native/60 cold
+checks; CI expected51 changes to actual60. Guard/Core/numerical limits and all52
+IDs/descriptions stay unchanged. Record20261002-structural-research-arguments.
+Fresh clean-source research03 is next; P2.2/full52 remain OPEN/NOT_RELEASED.
+
 Actual pushed d29/native05 completes five Core records: beamFx/Fy both solvers
 and Fz CCX. Independently checked full fields/Fx/Fy cross-fields pass fixed
 gates; Fz Aster fine fails native solution-error estimate3.32295e-6>1e-6.
@@ -376,7 +385,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R40 | Independent optimizer comparison by problem role, not a generic ranking. | Partial research and first seeded engine; wider engine acceptance planned. |
 | R41 | Source audit of fixture code/tests/CI/debt and independent architecture review. | Partial completed recovered source audit; native/transaction debt remains. |
 | R42 | Separate research/implementation/verification roles when useful; Root integrates. | Ongoing; retained implemented-load independent verification. |
-| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; native05 complete-field/alarm/CI and four failed-probe audits retained; research interpreter correction60 cold/18 independent saved-response replay checks pass with no open P1/P2. New actual research remains a separate gate. |
+| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; native05/probe and interpreter audits retained. Research02 study/refusal evidence preserves failed acceptance; common-profile correction has15 independent LF/CRLF legacy-prompt/definition checks and exact5484 CI audit40 checks. New corrected actual research and remaining numerical gates stay OPEN. |
 | R44 | Do not concurrently modify shared schemas/Core/registry/artifact migrations or same source file. | Ongoing ownership rule in AGENTS. |
 | R45 | Root checks architecture, OpenScience-first, conflicting evidence, actual feasibility, GUI/headless, license/security/benchmarks/requirements before integration. | Ongoing; accepted/rejected decisions recorded in ADR/docs. |
 | R46 | Strong Root reasoning for architecture/numerics/conflicts, appropriate agents for bounded work; verification above model choice. | Ongoing, subject to available models/tools and current session instructions. |

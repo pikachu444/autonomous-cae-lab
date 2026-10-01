@@ -13,6 +13,18 @@ Deterministic numerical engines own numerical search in the subsequent Phase3.
 
 ## Actual execution and preserved failures
 
+- Research02/clean5484eb830cd92b77daf9a0a2ec2e6a897a9d7b5c passes initial/fresh
+  resident/Python binding. Actual5.6Sol missing/unsupported replies execute
+  nothing; beam study create/inspect complete. Both analysis requests add
+  benchmark identity/hash to settings and are correctly refused by native
+  before-hooks RESEARCH_ARGUMENTS_REQUIRED. No experiments/native jobs exist;
+  AI reports failure without invented results. Nine-stage acceptance remains
+  FAILED_OR_PARTIAL. Raw three-question/five-step evidence,80files292437B and
+  owned Stop are retained. Common-profile prompt/inputs clarification passes
+  104 Node/63 native/60 cold checks with unchanged guard/Core/scientific limits.
+  CI cold60 pass but stale wrapper51 fails; wrapper now expects60. Record
+  20261002-structural-research-arguments. Fresh research03 follows reviewed source;
+  native Fz accuracy and remaining numerical gates stay OPEN.
 - Native01/b7b6450 stopped before a solver at the installed ccx metadata query.
   The narrow exact-query correction is recorded in20261002-calculix-version-metadata.
 - Native02/fa0b1a8 ran one coarse beamFx job/exit0, then Core FAILED_EXECUTION

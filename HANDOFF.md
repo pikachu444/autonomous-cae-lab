@@ -1,5 +1,27 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Latest actual checkpoint: research02 argument refusal; research03 next
+
+Clean pushed5484eb8/research02 passes both actual resident/Python binding reads.
+Approved5.6Sol answers missing/unsupported requests without execution, creates
+and inspects a beam study, then puts benchmark identity/hash into both analysis
+settings. Native before-hooks correctly refuse RESEARCH_ARGUMENTS_REQUIRED;
+zero experiments/native jobs. AI reports the failure with UNKNOWN/NOT_RELEASED.
+Strict nine-stage acceptance stays FAILED_OR_PARTIAL. Exact80files292437B are
+retained; owned Stop verifies2948/29172/85036 absent and4098 closed.
+
+The narrow common StructuralFamilies prompt/inputs now explain four-key
+settings, metadata separation, six tools and Domain/adapter ownership. Guard,
+Core, numerical gates and approved model stay unchanged; FixtureScalar14 is
+preserved. Existing104 Node/63 native/60 cold checks pass. Exact5484 CI's cold
+checks60 pass but stale expected-count51 wrapper fails; wrapper now expects60.
+Aster accuracy/explicit ZIP404 remain separate. See record
+20261002-structural-research-arguments. NEXT reviewed commit/push, NEW clean
+research03/profile/store with unchanged approved model/auth/project, actual
+receipts/failure interpretation and same-record GUI/Stop/retention. P2.2 Fz
+accuracy/cylinder/roof/half-load/refusal gates and all52 remain OPEN. Older next
+instructions below are historical.
+
 ## Latest actual checkpoint: native05 partial; research interpreter binding
 
 Clean pushed d29b340/native05 completes five Core records: beamFx/Fy on both

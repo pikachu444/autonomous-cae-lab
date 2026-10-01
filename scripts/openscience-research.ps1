@@ -27,13 +27,13 @@ function New-OpenScienceResearchDefinition {
             capabilities = @(
                 [ordered]@{ backend = 'structural.families.calculix'; operations = @('model_analysis_run')
                     cases = @('ansys_vmd1_regular', 'lame_cylinder_plane_strain', 'scordelis_lo_solid')
-                    inputs = 'Named frozen geometry/material/boundary/response definition, explicit load_case, load_factor and bounded mesh_cells.'
+                    inputs = 'settings contains exactly case, load_case, load_factor and bounded mesh_cells. Domain supplies the frozen geometry/material/boundary/response definitions and references; adapters own native translation and execution. Benchmark identity, hash and case_definition are research context outside settings.'
                     runtime = 'Existing ccx2.21; shared checked HEXA20 catalogue and equivalent nodal loads.'
                     evidence = 'Complete native displacement/reaction/integration-point stress, FRD/raw tables and immutable Core records.'
                     verification = 'IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF' },
                 [ordered]@{ backend = 'structural.families.code_aster'; operations = @('model_analysis_run')
                     cases = @('ansys_vmd1_regular', 'lame_cylinder_plane_strain', 'scordelis_lo_solid')
-                    inputs = 'Same frozen definitions/catalogue/loads; backend syntax remains adapter-owned.'
+                    inputs = 'settings contains exactly case, load_case, load_factor and bounded mesh_cells. Domain supplies the same frozen definitions/catalogue/loads and references; adapters own native translation and execution. Benchmark identity, hash and case_definition are research context outside settings.'
                     runtime = 'Existing exact17.4 SIF and SHA, Singularity containment; no runtime or model fallback.'
                     evidence = 'Complete native tables/MED, checked catalogue bijection, source/image/version identities and independent references.'
                     verification = 'IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF' }
@@ -100,6 +100,16 @@ function Assert-OpenScienceResearchDefinition($Definition) {
 function Get-OpenScienceResearchPrompt($Definition) {
     Assert-OpenScienceResearchDefinition $Definition
     $scope = $Definition | ConvertTo-Json -Depth 12 -Compress
+    if ($Definition.schema -eq 2 -and $Definition.profile -ceq 'structural-families-v1') {
+        return @"
+You are the research control plane for Autonomous CAE Lab. Follow the human's research question through the declared Core capabilities below. Select the appropriate admitted backend, explain the plan, execute new experiment IDs, compare actual receipts, and interpret the numerical evidence. Use multiple admitted tools as needed; do not fabricate results or run another provider/model.
+This StructuralFamilies profile admits only the six tools in allowed_tools. Variable registration and numerical optimization are not provided in this profile; do not request unlisted tools or act as a substitute numerical optimizer. Respect the declared capability and work budgets.
+For caelab_model_analysis_run, pass study_id, experiment_id, backend and settings, with hypothesis_id only when supplied. The settings object must contain exactly four keys: case, load_case, load_factor, mesh_cells. Use the explicit settings supplied in the research context without adding fields. benchmark_definition_id, benchmark_definition_sha256, benchmark_definition, case_definition, references, tolerances and other research metadata describe the frozen problem and its evidence; they are not settings or additional tool arguments. Domain supplies the frozen scientific definitions and references; adapters own native translation and execution. Do not rewrite an invalid request by silently deleting or substituting conditions.
+If required case, load, mesh or other engineering inputs are missing, ask a concrete question before solver execution. Identify unsupported requests explicitly and do not claim an available implementation or installation from metadata alone.
+Inspection, summaries and comparisons must use the same study/model/experiment IDs returned by Core. Append new experiments for changed conditions. Invalid inputs suppress downstream solver execution. Preserve failed attempts, all UNKNOWN validation states, invalid metrics, reference failures, engineering assumptions and NOT_RELEASED. Solver exit success is not a strength or release verdict. Do not relax a reference, threshold or response to obtain PASS.
+Declared profile: $scope
+"@
+    }
     @"
 You are the research control plane for Autonomous CAE Lab. Follow the human's research question through the declared Core capabilities below. Select the appropriate backend, explain the plan, register research variables, execute new experiment IDs, compare actual receipts, and interpret the numerical evidence. Use multiple admitted tools as needed; do not fabricate results or run another provider/model.
 If required material, load, boundary conditions, equation, objective or other engineering inputs are missing, ask a concrete question before solver execution. Identify unsupported requests explicitly and do not claim an available implementation or installation from metadata alone. Respect the declared capability and work budgets.

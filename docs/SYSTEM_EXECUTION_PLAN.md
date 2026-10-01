@@ -41,12 +41,17 @@ fresh clean-commit native/cross-solver/half-load/refusal store, then actual appr
 OpenScience question/solver/condition/comparison/interpretation and same-record
 human results. Neither this source gate nor solver-only proof closes P2.2.
 Actual d29/native05 now passes beamFx/Fy cross-fields but retains the Fz Aster
-accuracy failure. Four bounded method probes are all failed/unadopted. The next
-same-unit action is the actual OpenScience control-plane run after its narrow
-config-bound Python correction, including retained failure interpretation and
-human records. This establishes research behavior, not a numerical shortcut:
+accuracy failure. Four bounded method probes are all failed/unadopted. Pushed
+5484's Python correction is verified by actual research02 resident reads. Its
+model answers missing/unsupported questions and creates/inspects a study, but
+mixes research metadata into settings; both analyses are refused before Core.
+Failure interpretation,80-file retention and owned Stop remain separate proof.
+The next same-unit action is new clean-source research03 after common-profile
+input clarification and stale CI-count correction. This establishes research
+behavior, not a numerical shortcut:
 native accuracy and remaining cylinder/roof/half-load/refusal gates stay OPEN.
-See20261002-structural-family-native05 and20261002-structural-research-python-correction.
+See20261002-structural-family-native05,20261002-structural-research-python-correction
+and20261002-structural-research-arguments.
 Torsion, original MIDAS models/conflicts, additional plate/shell/modal/buckling/
 prestress coverage remain named open items; original52 and later phases persist.
 
