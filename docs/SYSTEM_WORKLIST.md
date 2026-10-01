@@ -8,7 +8,7 @@ Project execution objective is ACTIVE: complete the retained52 requirements
 through the connected OpenScience-led system. This queue is not a completion
 claim. Existing accepted work is reused. Check a box only with a linked actual
 receipt/review/commit; planning, readiness and prose cannot replace execution.
-Currently only **P1.2a** is active. Later rows are queued, not running.
+Currently only **P1.2b** is active. Later rows are queued, not running.
 
 ## P1.1 — integrated OpenScience CAD research (PASS bounded unit)
 
@@ -155,13 +155,32 @@ evidence review. Preserve all failed attempts and narrow wire/engineering limits
 An intermediate source commit alone did not unlock P1.2; the completed composite
 actual gates above now allow P1.2a. The whole phase/project remains OPEN.
 
-## Phase1 remaining units (P1.2a ACTIVE; other units QUEUED)
+## Phase1 remaining units (P1.2a PASS bounded; P1.2b ACTIVE; P1.3 QUEUED)
+
+Clean Main4bb363835208665377341f5072a9adde16494c7a / fixture3e48:
+actual p1-native-edits-20261001-02 PASSED the bounded P1.2a unit.
+6positive native/Core/STEP analytical cases and18expected precondition refusals;
+Part volumes1440/1600 mm^3, circle288*pi, signed centers0/-5/-7 as predeclared.
+All84original experiment files retain path/size/hash;72common artifacts and60
+evidence links independently reviewed. Exact4bb CI36824203726 all8SUCCESS;
+downloaded native output uses the same unchanged reference and24case outcomes.
+524files/10,823,268bytes retained; source archives independently match exact Git
+blob bytes with core.autocrlf=false. Actual output and retention independent
+reviews have no openP1/P2. Failed c141 run/CI and both API probes remain historical.
+Record: benchmarks/records/20261001-native-edits-4bb3638.json.
+Engineering6UNKNOWN, NOT_RELEASED and solver NOT_RUN remain. Object API edit
+proof is not a human GUI click; semantic same-name recreation remains UNKNOWN.
+FullPhase1/all52 are OPEN. NEXT ACTIVE P1.2b: inject native-file/Core-registry write
+failures and prove original preservation, blocked ambiguous execution and recovery.
+P1.3 thenPhase2 remain queued. OpenScience runtime stays STOPPED at servingf52;
+approved5.6Sol/auth are reused when P1.3 requires research, with no new setup.
+This evidence/docs checkpoint is not another solver run.
 
 - [x] Commit/push source c141; first actual run01 and exact CI retain nativeFAIL
   at unconstrainedY=-3 vs0 after deletion,4positive/4refusal casesPASS.
 - [x] Preserve161files/5,172,603bytes; independently investigate official1.1.4
   API and actualcopy probe to set declared origin without changing references.
-- [ ] Commit tiny acceptance-input correction; NEW clean run02, exactCI,
+- [x] Commit tiny acceptance-input correction; NEW clean run02, exactCI,
   analytical outputs/whole history retention and independent review.
 
 - [x] P1.2a baseline/red: new clean671 local native acceptance PASS; actual
@@ -169,14 +188,14 @@ actual gates above now allow P1.2a. The whole phase/project remains OPEN.
   and105files/9,092,209bytes;20261001-native-edits-source record/ADR0014.
 - [x] Admit owned selector/identity source and inspected immutable import bytes:
   48offline tests, actual read-only wrapper probe and independent source/verifier
-  review; import SHA P2 and3verifier gaps closed. Full corrected run NOT_RUN.
-- [ ] Commit/push admitted source, then actual new clean Part/Sketcher edit/
+  review; import SHA P2 and3verifier gaps closed. Full corrected run passed at4bb/run02.
+- [x] Commit/push admitted source, then actual new clean Part/Sketcher edit/
   reorder/refresh/refusal run and immutable output review.
 
-- [ ] P1.2a (ACTIVE): execute imported/edited FreeCAD Part and named Sketcher-dimension
+- [x] P1.2a (PASS at4bb/run02): execute imported/edited FreeCAD Part and named Sketcher-dimension
   revisions; prove stale mappings block execution until refresh, and newly
   inserted/reordered dimensions are discovered without ambiguous registration.
-- [ ] P1.2b: inject a native-file/Core-registry write failure; retain recoverable
+- [ ] P1.2b (ACTIVE): inject a native-file/Core-registry write failure; retain recoverable
   original revisions and prove transactional recovery without false success.
   Review the pinned worker before any upstream change; keep its tested behavior.
 - [ ] P1.3: exercise supported research planning, unsupported-operation response

@@ -1,0 +1,594 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.native-edited-imported-cad-acceptance",
+  "phase": "P1.2a",
+  "created_utc": "2026-10-01T06:54:45.903963+00:00",
+  "outcome": "PASS_BOUNDED_IMPORTED_EDITED_PART_NAMED_SKETCHER_REVISIONS",
+  "source_commit": "4bb363835208665377341f5072a9adde16494c7a",
+  "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "source_before_after_same_and_clean": true,
+  "run_id": "p1-native-edits-20261001-02",
+  "started_utc": "2026-10-01T06:20:12.8315850Z",
+  "completed_utc": "2026-10-01T06:34:23.7759673Z",
+  "store": "runs/p1-native-edits-20261001-02",
+  "positive_cases": 6,
+  "expected_refusals": 18,
+  "control_receipt_sha256": "7a20eeb71f1cfc642c918fb0bb305b4cf5a9e41502e157ec65b989fee63a44d2",
+  "native_acceptance_sha256": "1e2f3f45c368cd0c5d264f6900ea1a88a80629b828fed60e3d27923bfe39229e",
+  "control_log_sha256": "a4958020edc6d25f15368c017452f25efb6be5168c56f9100df37301f33d7e76",
+  "references": {
+    "part_original": {
+      "bounds_mm": [
+        12,
+        10,
+        8
+      ],
+      "volume_mm3": 960
+    },
+    "part_before_edit": {
+      "bounds_mm": [
+        18,
+        10,
+        8
+      ],
+      "volume_mm3": 1440
+    },
+    "part_after_edit": {
+      "bounds_mm": [
+        20,
+        10,
+        8
+      ],
+      "volume_mm3": 1600
+    },
+    "sketch_radius6": {
+      "bounds_mm": [
+        12,
+        12,
+        8
+      ],
+      "volume_mm3": 904.7786842338604
+    },
+    "sketch_center_to_origin_x5": {
+      "center_mm": [
+        -5,
+        0,
+        4
+      ]
+    },
+    "sketch_center_to_origin_x5_y7": {
+      "center_mm": [
+        -5,
+        -7,
+        4
+      ]
+    },
+    "length_absolute_tolerance_mm": 1e-05,
+    "volume_absolute_tolerance_mm3": 1e-05,
+    "distance_definition": "DistanceX/Y(circle center, origin, positive value): origin minus center; signed centroid is negative."
+  },
+  "predeclared_reference_sha256": "b0f6aa34ca8eb91c621b924d3b641d40564647f2edd400150b58bf1a3c7e3454",
+  "reference_thresholds_and_responses_unchanged_from_failed_c141": true,
+  "cases": [
+    {
+      "case": "part-before",
+      "outcome": "PASS_ANALYTICAL_NATIVE_AND_STEP",
+      "experiment_id": "E-p1-native-edits-20261001-02-part-before",
+      "cad_revision": "bd3c2f5bd00fa1037bfc59285f3e2ce6ea1f46701f5afaa0f47f6836deb0ffeb",
+      "native_bounds_mm": [
+        18.0,
+        10.0,
+        8.0
+      ],
+      "native_volume_mm3": 1440.0,
+      "native_center_mm": [
+        9.0,
+        5.0,
+        4.0
+      ],
+      "core_metrics": {
+        "cad_bounds": {
+          "value": [
+            18.0,
+            10.0,
+            8.0
+          ],
+          "unit": "mm",
+          "valid": true
+        },
+        "cad_volume": {
+          "value": 1440.0,
+          "unit": "mm^3",
+          "valid": true
+        }
+      },
+      "artifacts": 12,
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "decision": "NOT_RELEASED",
+      "engineering_unknowns": [
+        "domain_clearance",
+        "manufacturability",
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "case": "part-stale",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "part-after",
+      "outcome": "PASS_ANALYTICAL_NATIVE_AND_STEP",
+      "experiment_id": "E-p1-native-edits-20261001-02-part-after",
+      "cad_revision": "9540f3485aeb4f40877c5daa52b3e2601cbe7152b18a219002cd1719e55d88a7",
+      "native_bounds_mm": [
+        20.0,
+        10.0,
+        8.0
+      ],
+      "native_volume_mm3": 1599.9999999999995,
+      "native_center_mm": [
+        10.0,
+        5.0,
+        4.000000000000001
+      ],
+      "core_metrics": {
+        "cad_bounds": {
+          "value": [
+            20.0,
+            10.0,
+            8.0
+          ],
+          "unit": "mm",
+          "valid": true
+        },
+        "cad_volume": {
+          "value": 1599.9999999999995,
+          "unit": "mm^3",
+          "valid": true
+        }
+      },
+      "artifacts": 12,
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "decision": "NOT_RELEASED",
+      "engineering_unknowns": [
+        "domain_clearance",
+        "manufacturability",
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "case": "sketch-before",
+      "outcome": "PASS_ANALYTICAL_NATIVE_AND_STEP",
+      "experiment_id": "E-p1-native-edits-20261001-02-sketch-before",
+      "cad_revision": "eca8ed49214ac6cf73c6774be2d3c4ae0f47925fb9bfa01a8538a70bbcadae10",
+      "native_bounds_mm": [
+        12.0,
+        12.0,
+        8.0
+      ],
+      "native_volume_mm3": 904.7786842338603,
+      "native_center_mm": [
+        -1.539231401399628e-15,
+        -4.1247869317670766e-17,
+        4.0
+      ],
+      "core_metrics": {
+        "cad_bounds": {
+          "value": [
+            12.0,
+            12.0,
+            8.0
+          ],
+          "unit": "mm",
+          "valid": true
+        },
+        "cad_volume": {
+          "value": 904.7786842338603,
+          "unit": "mm^3",
+          "valid": true
+        }
+      },
+      "artifacts": 12,
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "decision": "NOT_RELEASED",
+      "engineering_unknowns": [
+        "domain_clearance",
+        "manufacturability",
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "case": "sketch-stale",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "unregistered-positional-fallback",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "sketch-offset",
+      "outcome": "PASS_ANALYTICAL_NATIVE_AND_STEP",
+      "experiment_id": "E-p1-native-edits-20261001-02-sketch-offset",
+      "cad_revision": "a5890f391ebd8b9441f838a149595d5b5b27513ad7cfc7f780d8a17e5bc32253",
+      "native_bounds_mm": [
+        12.0,
+        12.0,
+        8.0
+      ],
+      "native_volume_mm3": 904.7786842338603,
+      "native_center_mm": [
+        -5.000000000000002,
+        -1.0292692624129053e-16,
+        4.000000000000001
+      ],
+      "core_metrics": {
+        "cad_bounds": {
+          "value": [
+            12.0,
+            12.0,
+            8.0
+          ],
+          "unit": "mm",
+          "valid": true
+        },
+        "cad_volume": {
+          "value": 904.7786842338603,
+          "unit": "mm^3",
+          "valid": true
+        }
+      },
+      "artifacts": 12,
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "decision": "NOT_RELEASED",
+      "engineering_unknowns": [
+        "domain_clearance",
+        "manufacturability",
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "case": "deleted-unregistered-stale",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "sketch-after-delete",
+      "outcome": "PASS_ANALYTICAL_NATIVE_AND_STEP",
+      "experiment_id": "E-p1-native-edits-20261001-02-sketch-after-delete",
+      "cad_revision": "64d80b8672e27de6a64423a4a7c9fa75287325e5442e4031c7bf6dd536c482b8",
+      "native_bounds_mm": [
+        12.0,
+        12.0,
+        8.0
+      ],
+      "native_volume_mm3": 904.7786842338603,
+      "native_center_mm": [
+        -5.000000000000002,
+        -1.0292692624129053e-16,
+        4.000000000000001
+      ],
+      "core_metrics": {
+        "cad_bounds": {
+          "value": [
+            12.0,
+            12.0,
+            8.0
+          ],
+          "unit": "mm",
+          "valid": true
+        },
+        "cad_volume": {
+          "value": 904.7786842338603,
+          "unit": "mm^3",
+          "valid": true
+        }
+      },
+      "artifacts": 12,
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "decision": "NOT_RELEASED",
+      "engineering_unknowns": [
+        "domain_clearance",
+        "manufacturability",
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "case": "opaque-reorder-stale",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "old-unregistered-selector",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "sketch-reordered",
+      "outcome": "PASS_ANALYTICAL_NATIVE_AND_STEP",
+      "experiment_id": "E-p1-native-edits-20261001-02-sketch-reordered",
+      "cad_revision": "7caae7404d7bb31481c0b2254413db99331e215e5a9a6b3137b305308ee5c740",
+      "native_bounds_mm": [
+        12.0,
+        12.0,
+        8.0
+      ],
+      "native_volume_mm3": 904.7786842338603,
+      "native_center_mm": [
+        -5.000000000000001,
+        -7.000000000000001,
+        4.000000000000001
+      ],
+      "core_metrics": {
+        "cad_bounds": {
+          "value": [
+            12.0,
+            12.0,
+            8.0
+          ],
+          "unit": "mm",
+          "valid": true
+        },
+        "cad_volume": {
+          "value": 904.7786842338603,
+          "unit": "mm^3",
+          "valid": true
+        }
+      },
+      "artifacts": 12,
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "decision": "NOT_RELEASED",
+      "engineering_unknowns": [
+        "domain_clearance",
+        "manufacturability",
+        "machine_interface",
+        "static_strength",
+        "physical_load_test",
+        "fatigue_durability"
+      ]
+    },
+    {
+      "case": "rename_registered",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "blocked-rename_registered",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "delete_registered",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "blocked-delete_registered",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "reference_registered",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "blocked-reference_registered",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "duplicate_key",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "blocked-duplicate_key",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "import-duplicate_key",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "duplicate_identity",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "blocked-duplicate_identity",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    },
+    {
+      "case": "import-duplicate_identity",
+      "outcome": "PASS_EXPECTED_PRECONDITION_REFUSAL"
+    }
+  ],
+  "registry_revision": 8,
+  "registered_native_paths": {
+    "length": "ImportedBox|property|Length",
+    "radius": "LocatorProfile|constraint|0",
+    "center_offset": "LocatorProfile|caelab-constraint-v1|e53112b537c69f5cffdc169665ec4f2773b0376f7bff2660b2a1d3d35d1cb0ea|0",
+    "vertical_offset": "LocatorProfile|caelab-constraint-v1|0ba3fd5106f3c0c8ba89ad5246cb9f66a2e6e1e55bb0e2c578b2926c1e368d82|0"
+  },
+  "historical_experiment_files_preserved": 84,
+  "original_experiment_inventory_sha256": "7525a9ec34a6095c6e84bc754aa5fe208f321b2dcb49f362d815b4b68e2bef85",
+  "whole_experiment_hashes_and_sizes_unchanged": true,
+  "runtime": {
+    "freecad_version": [
+      "1",
+      "1",
+      "4",
+      "20260928 (Git shallow)",
+      "Unknown",
+      "2026/09/28 13:46:34",
+      "(HEAD detached at 4fd3bf320)",
+      "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+    ],
+    "core_python": "3.12.3",
+    "core_os": "WSL Ubuntu 24.04.4",
+    "freecad_appimage_sha256": "f6dc6ba676e5ac96a565ebc8d657232f94c6158e85b4352141bd1a46f6b43434",
+    "freecad_wrapper_sha256": "1cb172de7eacb59b8c8cbb7f22192d903bb72b5c0649ce94a9643edd96629276",
+    "research_runtime": "STOPPED; serving worktree f52dd1b; no model/OpenScience/auth invocation in this run"
+  },
+  "exact_source_ci": {
+    "run_id": 36824203726,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36824203726",
+    "source_commit": "4bb363835208665377341f5072a9adde16494c7a",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "core",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36824203726/job/110246127775"
+      },
+      {
+        "name": "pde",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36824203726/job/110246973446"
+      },
+      {
+        "name": "structural",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36824203726/job/110246973464"
+      },
+      {
+        "name": "optimization",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36824203726/job/110246973483"
+      },
+      {
+        "name": "explicit",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36824203726/job/110246973487"
+      },
+      {
+        "name": "native",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36824203726/job/110246973492"
+      },
+      {
+        "name": "codeaster",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36824203726/job/110246973557"
+      },
+      {
+        "name": "doe",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36824203726/job/110246973597"
+      }
+    ],
+    "native_acceptance_sha256": "846c49318d17630bc1f448f0a62e6171a6abb8168d5dcc19384927aa59002f7d",
+    "ci_metadata_sha256": "73ae91d2581aafcdb1659a893b33338465a44b5cd7dfea0d4b891b615bcedd2e",
+    "local_ci_comparison_sha256": "ec7e881db5eb28f8457625611eaa732c82fb6851ac5ff36183c23e9b8575e82a",
+    "scope": "Actual downloaded native cases/reference/immutable inventory reviewed; other seven job outcomes are exact-source CI outcomes only, not a new local solver qualification.",
+    "remote_artifact_retention_days": 30
+  },
+  "retention": {
+    "manifest": "artifacts/p1-native-edits-20261001-02/retained-01/manifest.json",
+    "manifest_sha256": "e632d350fee35d6c25f5f433bdc746c61f7e659b3c552438eb695d7a03246c84",
+    "files": 524,
+    "bytes": 10823268,
+    "original_copy_hashes_and_sizes_match": true,
+    "source_archives": [
+      {
+        "source": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p1-native-edits-20261001-02\\core-4bb3638.tar",
+        "relative": "source/core-4bb3638.tar",
+        "sha256": "3e51dbc9bc4128d234cc2f2b796dd6da828f3a6a2354e29cc0317a7c5dea800b",
+        "size_bytes": 4495360
+      },
+      {
+        "source": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p1-native-edits-20261001-02\\fixture-3e48bf6.tar",
+        "relative": "source/fixture-3e48bf6.tar",
+        "sha256": "14efd7b20d0b5b9908777bba7fb394fcc7df8a2458ffb2c194f60df347f5e700",
+        "size_bytes": 3368960
+      }
+    ],
+    "source_archive_scope": "core.autocrlf=false archives independently compared with exact Git blob bytes; no original-working-copy-byte claim",
+    "native_cad_binary_artifacts_retained": true,
+    "credentials_runtime_cache_executables_copied": false,
+    "location_scope": "Local ignored immutable copies. This public summary is prepared for a separate evidence checkpoint; its commit/push is confirmed separately through Git. No permanent remote raw-file durability claim."
+  },
+  "independent_reviews": {
+    "schema": 1,
+    "outcome": "PASS_NO_OPEN_P1_P2",
+    "scope": "Root transcribed independent read-only agent reports; no new CAD/solver/model execution",
+    "actual_output_review": {
+      "reviewer": "/root/integration_review",
+      "outcome": "PASS_BOUNDED_P1_2A",
+      "positive_cases": 6,
+      "expected_refusals": 18,
+      "store_files_before_after_identical": 211,
+      "historical_experiment_files": 84,
+      "artifact_links": 72,
+      "evidence_links": 60,
+      "ledger_thread_and_revision_checks": 6,
+      "independent_step_import": "All six bounds/volume/signed centroids match analytical and raw native/Core metrics under unchanged 1e-5 mm/mm^3 thresholds",
+      "native_metadata": "FCStd XML/datums, unique driving named identities, legacy radius and two historical opaque keys preserved at revision8; new driving dimensions did not borrow registered bounds",
+      "source": "4bb363835208665377341f5072a9adde16494c7a",
+      "fixture": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+      "receipt_sha256": "7a20eeb71f1cfc642c918fb0bb305b4cf5a9e41502e157ec65b989fee63a44d2",
+      "report_sha256": "1e2f3f45c368cd0c5d264f6900ea1a88a80629b828fed60e3d27923bfe39229e",
+      "reference_sha256": "b0f6aa34ca8eb91c621b924d3b641d40564647f2edd400150b58bf1a3c7e3454",
+      "failed_c141_reference_byte_identical": true,
+      "limits": "Malformed import pre/post unchanged is runtime assertion plus final three models/no rejected experiment folders; separate before/after inventory files were not retained. Human GUI clicks, same-name recreation semantics, transactions, solver/strength/release not reviewed.",
+      "engineering": "Six UNKNOWN; NOT_RELEASED; NOT_RUN"
+    },
+    "retention_review": {
+      "reviewer": "/root/managed_project_checks",
+      "outcome": "PASS_BOUNDED_BYTE_AND_PATH_RETENTION",
+      "files": 524,
+      "bytes": 10823268,
+      "disk_files_including_manifest": 525,
+      "manifest_sha256": "e632d350fee35d6c25f5f433bdc746c61f7e659b3c552438eb695d7a03246c84",
+      "all_original_copy_hashes_and_sizes_match": true,
+      "core_git_blob_exact_members": 238,
+      "fixture_git_blob_exact_members": 93,
+      "pax_commit_and_gitlink_match": true,
+      "archive_missing_extra_duplicate_or_different_members": 0,
+      "core_archive_sha256": "3e51dbc9bc4128d234cc2f2b796dd6da828f3a6a2354e29cc0317a7c5dea800b",
+      "fixture_archive_sha256": "14efd7b20d0b5b9908777bba7fb394fcc7df8a2458ffb2c194f60df347f5e700",
+      "old_failed_manifest_sha256": "ac00073e3f5e4869d5b63adf52848c1db06935d2f49ad8b6df0d7a50c22b8b21",
+      "old_failed_original_copy_files_verified": 161,
+      "old_failure_and_originals_preserved": true,
+      "older_0521_crlf_archive_verdict_unchanged": true,
+      "scope": "Specified synthetic fixture/CI/source roots; no path escape/reparse point/auth/runtime/compiled cache/executable file found. Native CAD binary intentionally retained.",
+      "limits": "No geometry/CI verdict or content-level company confidentiality classification in this separate byte/path review."
+    }
+  },
+  "historical_attempts": {
+    "671_baseline_and_red": "20261001-native-edits-source.json",
+    "c141_failure_and_api_probes": "20261001-native-edit-coordinate-correction.json",
+    "c141_outcome": "FAIL_CANONICAL_FREE_Y_RETAINED; CI36821642536 nativeFAIL/other7PASS",
+    "failed_run_and_originals_unchanged": true,
+    "old_movePoint_probe": "FAIL_API_ABSENT_RETAINED",
+    "copy_only_moveGeometry_probe": "PASS_INPUT_SETUP_ONLY; not this full acceptance"
+  },
+  "engineering_decision": "NOT_RELEASED",
+  "solver_status": "NOT_RUN",
+  "full_phase1_and_52_scope": "OPEN",
+  "limitations": [
+    "Representative editor revisions use actual FreeCAD objects/API; no human GUI click or OS containment claim.",
+    "Name deletion/recreation with a different semantic dimension cannot be proven identical from name-only legacy metadata.",
+    "Cross-file write failure and transactional recovery are P1.2b, not this acceptance.",
+    "No solver/strength/physical/release acceptance. Generic-domain checks stay UNKNOWN.",
+    "Native revisions used actual FreeCAD object API/files; no human GUI-click proof.",
+    "Same-name deleted/recreated semantic dimension identity remains UNKNOWN.",
+    "Concurrent native writes and cross-file registration crash/recovery are the next distinct P1.2b gate.",
+    "No strength, physical, fatigue, material, engineering release or complete Phase1 claim.",
+    "Independent review summaries are retained in this public record; they are a later checkpoint outside the earlier 524-file manifest snapshot."
+  ],
+  "next_serial_unit": "P1.2b native-file/Core-registry write failure and recoverable transaction acceptance; then P1.3; Phase2 remains queued"
+}

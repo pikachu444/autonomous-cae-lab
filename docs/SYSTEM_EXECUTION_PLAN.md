@@ -31,21 +31,28 @@ experiment artifacts; cloning Git alone does not restore their local bytes.
 
 ## Execution rule and current unit
 
-**One active acceptance unit: P1.2a, imported/edited native Part and named
-Sketcher dimensions.** P1.1 passed its bounded managed research/GUI/cancellation/
-owned-Stop gates at exact f52/run03; general planning remains P1.3. Other
-implementation and native campaigns remain deferred.
-P1.2a actual clean671 baseline passed; a fresh imported/edited native red case
-reproduced the inserted-dimension discovery gap. ADR0014 correction source and
-actual read-only installed worker probe are separately admitted; corrected full
-clean-source edit/reorder acceptance remains required before P1.2b. See
-`20261001-native-edits-source.json`; no fullPhase1/engineering completion claim.
-First clean c141 actual run01/CI failed at retained freeY=-3 vs declared0 after
-temporary dimension deletion. Correct only acceptance origin input through the
-official actual-probed moveGeometry API. Unchanged references/tolerances require
-a NEW clean-source run02; failed old metrics/161-file retention remain distinct.
-One independent reviewer may examine this unit; this does not authorize parallel
-feature development. Root owns shared interfaces, integration and decisions.
+**One active acceptance unit: P1.2b, native/Core registration failure recovery.**
+Clean Main4bb363835208665377341f5072a9adde16494c7a / fixture3e48:
+actual p1-native-edits-20261001-02 PASSED the bounded P1.2a unit.
+6positive native/Core/STEP analytical cases and18expected precondition refusals;
+Part volumes1440/1600 mm^3, circle288*pi, signed centers0/-5/-7 as predeclared.
+All84original experiment files retain path/size/hash;72common artifacts and60
+evidence links independently reviewed. Exact4bb CI36824203726 all8SUCCESS;
+downloaded native output uses the same unchanged reference and24case outcomes.
+524files/10,823,268bytes retained; source archives independently match exact Git
+blob bytes with core.autocrlf=false. Actual output and retention independent
+reviews have no openP1/P2. Failed c141 run/CI and both API probes remain historical.
+Record: benchmarks/records/20261001-native-edits-4bb3638.json.
+Engineering6UNKNOWN, NOT_RELEASED and solver NOT_RUN remain. Object API edit
+proof is not a human GUI click; semantic same-name recreation remains UNKNOWN.
+FullPhase1/all52 are OPEN. NEXT ACTIVE P1.2b: inject native-file/Core-registry write
+failures and prove original preservation, blocked ambiguous execution and recovery.
+P1.3 thenPhase2 remain queued. OpenScience runtime stays STOPPED at servingf52;
+approved5.6Sol/auth are reused when P1.3 requires research, with no new setup.
+This evidence/docs checkpoint is not another solver run.
+
+Root owns shared interfaces, integration and decisions. Independent investigation
+and review are bounded to this unit; no parallel feature implementation.
 
 For each unit: declare inputs/reference/limits/budget and expected failures;
 reuse existing code; implement only its gaps; freeze source; execute in a new

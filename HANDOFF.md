@@ -2,6 +2,27 @@
 
 ## Authoritative serial queue from the project owner
 
+Clean Main4bb363835208665377341f5072a9adde16494c7a / fixture3e48:
+actual p1-native-edits-20261001-02 PASSED the bounded P1.2a unit.
+6positive native/Core/STEP analytical cases and18expected precondition refusals;
+Part volumes1440/1600 mm^3, circle288*pi, signed centers0/-5/-7 as predeclared.
+All84original experiment files retain path/size/hash;72common artifacts and60
+evidence links independently reviewed. Exact4bb CI36824203726 all8SUCCESS;
+downloaded native output uses the same unchanged reference and24case outcomes.
+524files/10,823,268bytes retained; source archives independently match exact Git
+blob bytes with core.autocrlf=false. Actual output and retention independent
+reviews have no openP1/P2. Failed c141 run/CI and both API probes remain historical.
+Record: benchmarks/records/20261001-native-edits-4bb3638.json.
+Engineering6UNKNOWN, NOT_RELEASED and solver NOT_RUN remain. Object API edit
+proof is not a human GUI click; semantic same-name recreation remains UNKNOWN.
+FullPhase1/all52 are OPEN. NEXT ACTIVE P1.2b: inject native-file/Core-registry write
+failures and prove original preservation, blocked ambiguous execution and recovery.
+P1.3 thenPhase2 remain queued. OpenScience runtime stays STOPPED at servingf52;
+approved5.6Sol/auth are reused when P1.3 requires research, with no new setup.
+This evidence/docs checkpoint is not another solver run.
+
+## Historical P1.2a checkpoints
+
 CURRENT actual c141ae0 run01 FAILED after4positive native comparisons and4
 expected refusals: deleting temporaryY retains-3 rather than declared0. Exact
 CI36821642536 also nativeFAIL/other7PASS. Retain original failure,5generated

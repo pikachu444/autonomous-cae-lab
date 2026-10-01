@@ -117,3 +117,19 @@ The installed-commit [API declaration](https://github.com/FreeCAD/FreeCAD/blob/4
 and [absolute circle movement](https://github.com/FreeCAD/FreeCAD/blob/4fd3bf320d9566a27e60069fc8387448aaa3a094/src/Mod/Sketcher/App/Sketch.cpp#L5328)
 support this input setup. The [deletion implementation](https://github.com/FreeCAD/FreeCAD/blob/4fd3bf320d9566a27e60069fc8387448aaa3a094/src/Mod/Sketcher/App/SketchObject.cpp#L2384)
 removes the constraint without a canonical-origin reset.
+
+### Actual bounded P1.2a acceptance at4bb/run02
+
+The new clean source4bb3638/fixture3e48 actual store passed6native/Core/STEP
+analytical cases and18precondition refusals. References and signed-coordinate
+tolerances are unchanged from the retained c141 failure. All84experiment files,
+72artifacts/60evidence links and independent STEP import comparisons passed.
+Exact-source CI36824203726 all8SUCCESS includes the same24native case outcomes.
+524closed files/10,823,268bytes and exact Git-blob source archives are retained
+and independently reviewed. See20261001-native-edits-4bb3638 record.
+
+This closes only the representative edit/discovery/refresh P1.2a unit. Six
+engineering UNKNOWNs, NOT_RELEASED and solver NOT_RUN remain. Human GUI-click
+proof and semantic same-name recreation are not inferred. P1.2b cross-file
+registration failure/recovery is the next active unit; the current operation
+schemas and production source are unchanged by this evidence checkpoint.

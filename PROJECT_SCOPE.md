@@ -21,6 +21,27 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+Clean Main4bb363835208665377341f5072a9adde16494c7a / fixture3e48:
+actual p1-native-edits-20261001-02 PASSED the bounded P1.2a unit.
+6positive native/Core/STEP analytical cases and18expected precondition refusals;
+Part volumes1440/1600 mm^3, circle288*pi, signed centers0/-5/-7 as predeclared.
+All84original experiment files retain path/size/hash;72common artifacts and60
+evidence links independently reviewed. Exact4bb CI36824203726 all8SUCCESS;
+downloaded native output uses the same unchanged reference and24case outcomes.
+524files/10,823,268bytes retained; source archives independently match exact Git
+blob bytes with core.autocrlf=false. Actual output and retention independent
+reviews have no openP1/P2. Failed c141 run/CI and both API probes remain historical.
+Record: benchmarks/records/20261001-native-edits-4bb3638.json.
+Engineering6UNKNOWN, NOT_RELEASED and solver NOT_RUN remain. Object API edit
+proof is not a human GUI click; semantic same-name recreation remains UNKNOWN.
+FullPhase1/all52 are OPEN. NEXT ACTIVE P1.2b: inject native-file/Core-registry write
+failures and prove original preservation, blocked ambiguous execution and recovery.
+P1.3 thenPhase2 remain queued. OpenScience runtime stays STOPPED at servingf52;
+approved5.6Sol/auth are reused when P1.3 requires research, with no new setup.
+This evidence/docs checkpoint is not another solver run.
+
+## Historical native checkpoints
+
 Actual c141ae0 native edit run01 FAILED at freeY=-3 vs canonical0 after deleting
 temporary dimension, with4positive comparisons/4expected refusals already PASS.
 Exact CI36821642536:7PASS/nativeFAIL. Failure and161-file retention are separate
@@ -187,7 +208,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R10 | Evidence distinct from validation: geometry, interference, mesh, convergence, fields/curves, energy, benchmark, measurement/calibration/photo/report. | Partial: CAD/linear evidence implemented; other sources planned. |
 | R11 | Reproducible digital thread from hypothesis/study through CAD, mesh, deck, run, evidence and decision. | Partial: CAD/analysis/DOE/optimizer/PDE source+state thread executed; physical/HPC thread planned. |
 | R12 | Register raw/native and processed artifacts, not only final numbers; engineer can open any iteration. | Partial: CAD, solver raw/deck/log/metrics/evidence retained; more formats/animations/archive policy open. |
-| R13 | Equal importance for engineer GUI and autonomous headless workflows sharing underlying models/artifacts. | Partial: original GUI/native CAD retained; common Lab reports and actual official OpenScience f52/run03 CAD/result sessions share exact records. Imported/edited FCStd/reorder/transaction and wider domain GUI remain P1.2+. |
+| R13 | Equal importance for engineer GUI and autonomous headless workflows sharing underlying models/artifacts. | Partial: original GUI/native CAD retained; common Lab reports and actual official OpenScience f52/run03 CAD/result sessions share exact records. Imported/edited FCStd/reorder/refresh boundedP1.2a passed at4bb/run02; transactions P1.2b and wider domain GUI remain open. |
 | R14 | Evaluate Code_Aster/SALOME-MECA as main nonlinear implicit, CalculiX/PrePoMax secondary; benchmark materials/contact/convergence and automation/license. | Partial: actual CalculiX linear screen and fresh independent Code_Aster affine elasticity draft passed; preserved failed native import was corrected/reviewed. Nonlinear/contact/material and clean-source new benchmark gates remain open. |
 | R15 | OpenRadioss primarily explicit; investigate preprocessing gap, conversion and full explicit cards/controls. | Partial: pinned native flight and three reduced conservative-stop/rebound cases passed; common route/HTTP/native CI connected, integrated-source rerun pending. Original wall contact rejected; general surface contact/converter/full explicit scope open. |
 | R16 | Compare FEniCSx/UFL, FreeFEM, GetDP/Gmsh, GetFEM, MOOSE for user equations/weak form, nonlinear/multiphysics/AD/PETSc/HPC. | Partial: real bounded scalar FEniCSx form and clean analytical/reaction benchmark passed; general nonlinear/multiphysics/HPC coverage open. |
@@ -195,11 +216,11 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R18 | Evaluate DAKOTA/OpenMDAO/pymoo/SciPy/NLopt/TAO/MOOSE by problem type; DOE/search/UQ/sensitivity/surrogate/multiobjective numerical engines. | Partial: SciPy LHS and adaptive continuous single-objective DE with analytical engine regression; other engine roles remain open. |
 | R19 | Common experiment schema for study/physics/model/parameters/BC-load/output/objectives/constraints/validation/campaign/environment/provenance with adapter extensions. | Partial: v1 envelope/campaign plus additive declared model revision/material/BC/load metadata, ADR 0007; per-backend semantics not all executed. |
 | R20 | Common result/metrics with validity, units, solver quality and raw/evidence refs; LLM consumes summary rather than GB raw results. | Partial: common result and CAD/linear summaries; advanced fields/quality metrics planned. |
-| R21 | Stable CLI and Python API call the same Core for study/model/parameters/validate/mesh/solve/PDE/inspect/compare/DOE/optimize/report. | Partial: CAD/analysis/DOE/optimization/PDE/declared models + MCP and thin common HTTP reports/bundles; exact-source new CI pending, generic mesh/full campaign report and unsupported domains remain gaps. |
+| R21 | Stable CLI and Python API call the same Core for study/model/parameters/validate/mesh/solve/PDE/inspect/compare/DOE/optimize/report. | Partial: CAD/analysis/DOE/optimization/PDE/declared models + MCP and thin common HTTP reports/bundles; exact4bb source CI36824203726 all8PASS, generic mesh/full campaign report and unsupported domains remain gaps. |
 | R22 | Extensible repo and actual code-level Core/plugin/adapter/refactor/discard classification; no blind source copy. | Implemented current ownership/pinned submodule; future migration must keep provenance. |
 | R23 | Phase 0 architecture/Core/contracts first; only minimal mock for contract verification. | Partial foundation executed; typed CAD/analysis/DOE, broader protocol slots planned. |
 | R24 | ADR 0001 platform boundaries and cumulative ADRs for significant decisions. | Implemented ADR 0001–0009; ongoing obligation; new execution acceptance tracked separately. |
-| R25 | Phase 1 actual OpenScience request → discovery → registry → CAD change/regeneration → validation/artifacts/evidence → research result. | Partial Phase1: bounded P1.1 f52/run03 actual selected5.6 Sol study/discovery/registry/valid+rejected CAD/results/interpretation, official GUI, observed BUSY cancellation/owned Stop and independent evidence review passed. Native imported/edited/reorder/refresh/transaction P1.2 and general planning P1.3 remain open; historical failures retained. |
+| R25 | Phase 1 actual OpenScience request → discovery → registry → CAD change/regeneration → validation/artifacts/evidence → research result. | Partial Phase1: bounded P1.1 f52/run03 actual selected5.6 Sol study/discovery/registry/valid+rejected CAD/results/interpretation, official GUI, observed BUSY cancellation/owned Stop and independent evidence review passed. Imported/edited/reorder/refresh P1.2a4bb/run02 passed; transactional recovery P1.2b and general planning P1.3 remain open; historical failures retained. |
 | R26 | Phase 2 simulation-driven fixture design: exact CAD → mesh → implicit solver → mechanical metrics/constraints/evidence. | Partial: exact STEP Gmsh/CalculiX linear screen; actual contact/bolts/material/stress qualification open. |
 | R27 | Phase 3 numerical DOE/optimization through gated CAD/FEA, trace every iteration including optimizer state. | Partial: actual adaptive structural campaign passed (9 evaluations/8 children), metric semantics/failure/replay verified; converged/global optimum and wider optimization remain open. |
 | R28 | Phase 4 real general PDE adapter with canonical benchmark and user-defined equation/weak form. | Partial: clean d363 adapter2 nonlinear/linear-limit/reference-rejection/HTTP and actual browser runs passed; explicit opt-in preserves legacy revisions. Exact CI36710166010 and independent changed-family raw review passed. Wider custom/coupled/MPI/physical PDE coverage open. |
@@ -243,8 +264,9 @@ the adapter/registration boundary. Core must not execute arbitrary CAD formulas.
 Acceptance covers existing CadQuery source, FreeCAD Part, FreeCAD Sketcher,
 future CAD backends, real geometry change, ineffective parameter rejection,
 bound enforcement, dependency awareness and refresh after native edits.
-Arbitrary imported FCStd, constraint reorder/index drift and atomic cross-file
-registry transactions are open gates, not implied by template acceptance.
+Representative imported Part/named Sketcher constraint reorder/index drift and
+refresh passed at4bb/run02 with analytical/raw output review. Arbitrary semantic
+identity and cross-file registry transactions remain open gates; P1.2b is active.
 
 ### Validation, evidence, artifacts and provenance
 
@@ -355,7 +377,7 @@ authorization. Simulation alone cannot qualify every fixture requirement.
 | Phase | Executed scope | Required continuation |
 | --- | --- | --- |
 | 0 | Architecture/ADRs, schemas, registry, evidence/validation/artifact thread, Python/CLI/MCP | Extend contracts with independently verified backend features; corporate deployment review. |
-| 1 | Existing CadQuery/native Part/Sketcher reused; f52/run03 actual managed5.6 Sol research/GUI/observed-busy cancellation/owned Stop/937+7file retention and independent review PASS (bounded P1.1) | CURRENT SERIAL UNIT P1.2a: imported/edited Part/Sketcher, stale-map refresh and inserted/reordered discovery; transactional recovery P1.2b and general planning P1.3 follow. Full Phase1 OPEN. |
+| 1 | Existing CadQuery/native Part/Sketcher reused; f52/run03 actual managed5.6 Sol research/GUI/observed-busy cancellation/owned Stop/937+7file retention and independent review PASS (bounded P1.1) | Bounded P1.2a4bb/run02 imported/edited Part/Sketcher, stale-map refresh and inserted/reordered discovery PASS. CURRENT SERIAL UNIT P1.2b transactional recovery; P1.3 follows. Full Phase1 OPEN. |
 | 2 | Exact STEP to Gmsh/CalculiX child run, 4/3/2/1.5 mm area-load screen/reactions | NEXT AFTER PHASE1: complete authoritative corrected NAFEMS LE10 definition/reference then native benchmark/cross-solver/mesh checks; materials/fasteners/contact/stress/physical qualification. |
 | 3 | Seeded LHS DOE/shared SciPy DE; actual CAD and declared-input native candidates, explicit constraints and exact replay | Converged fixture optimization, broader variable/engine/UQ/multiobjective coverage. |
 | 4 | Clean d363 declared scalar FEniCSx linear/nonlinear/linear-limit/reference-rejection proof, HTTP/browser and independently audited CI | Wider nonlinear/general domains, coupled PDE and MPI/HPC acceptance. |
