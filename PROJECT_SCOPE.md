@@ -21,6 +21,20 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+Owner-directed full MIDAS survey is recorded in
+`20261001-midas-full-survey.json` and `docs/MIDAS_BENCHMARK_REVIEW.md`:
+all139 structural/thermal/dynamic case IDs/body-text references and the separate
+official55-page CFD18 cases reviewed. Catalog coverage is distinct from
+numerical acceptance; all157 project case executions are NOT_RUN. Source/figure/
+edition/model gaps and conflicting conditions stay UNKNOWN. Previous single-case
+implementation is DEFERRED_BY_OWNER, with uncommitted source/evidence preserved.
+Next serial P2.1b admits complete representative family definitions, then
+P2.2 connected execution; later Phases3–7 stay ordered. All52 IDs/descriptions,
+actual04ff/run03 proof and engineering UNKNOWN/NOT_RELEASED remain unchanged.
+This survey does not complete Phase2 or certify any NAFEMS family.
+
+### Historical reference checkpoint and superseded work order
+
 P2.1 public-vendor LE10 definition/source-topology disposition is predeclared
 and independently reviewed. Original P18 full sheet remains UNKNOWN. Original
 coarse nonconforming source is quarantined; corrected derivative has a separate
@@ -299,12 +313,12 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R31 | Phase 7 MFront/MOOSE/multiphysics/inverse/UQ/sensitivity/surrogate/multiobjective/HPC/SSH/Slurm/PBS/physical integration. | Partial: MFront stress/tangent/sensitivity and synthetic nine-candidate inverse connected to shared engine/default/HTTP. Exact33 local default proof and sealed CI36722365195 native/raw independent audits passed; no measured fit/convergence. Viscoelastic extension deferred under serial phase order; MOOSE/coupling/UQ/surrogate/multiobjective/HPC/physical integrations remain open. |
 | R32 | Physical test architecture: fabrication/calibration/machine/measurement/durability evidence with digital-twin calibration loop. | Partial extensible evidence envelope; equipment control/physical acceptance not implemented. |
 | R33 | UI Design/Simulation/Explore/Results/Research areas after Core slice; reuse original browser UI. | Partial: original fixture GUI/native viewer and common Lab HTTP retained. Actual official OpenScience f52/run03 GUI shows same CAD/result/evidence sessions; Lab8766 remains separate with no AI chat. Wider UI/native edit/planning acceptance remains open. |
-| R34 | Automated canonical/regression verification for CAD/rejection/linear/nonlinear/contact/explicit/PDE/DOE/optimization; physical validity separate from execution. | Partial: exact33 1,387 regressions plus actual analytical/manufactured/FD/native and raw evidence audits. NAFEMS external benchmark family adopted; complete corrected LE10 conditions/targets must be obtained and predeclared before Phase2 execution, later material/contact families follow. No NAFEMS pass or physical qualification claimed. |
+| R34 | Automated canonical/regression verification for CAD/rejection/linear/nonlinear/contact/explicit/PDE/DOE/optimization; physical validity separate from execution. | Partial: exact33 1,387 regressions plus actual analytical/manufactured/FD/native and raw evidence audits. Full MIDAS139+CFD18 source/coverage survey recorded; source-definition gaps stay UNKNOWN and all surveyed project case executions NOT_RUN. Prior single-case work is deferred; complete representative family conditions/reference/gates must precede Phase2 execution. No NAFEMS pass or physical qualification claimed. |
 | R35 | Dependency license/commercial/internal/redistribution/linking + Windows/Linux/WSL/container/HPC; OpenScience sandbox/telemetry/trace/endpoints/data protection. | Partial inventory/research; corporate licensing/security and platform deployment approval incomplete. |
 | R36 | GitHub private-repo attempt or local fallback; determine relationship to old fixture repo. | Supplied repo populated on main; pinned fixture submodule. Repo currently public; private/corporate choice open. |
 | R37 | Purposeful sub-agent parallel work and independent verification under one Root architecture owner. | Ongoing; relevant findings/reviews in ADR/docs; do not delegate boundaries blindly. |
 | R38 | Root owns full goal, schemas/public interfaces/registry/evidence/architecture/integration/final acceptance and major decisions. | Ongoing; one owner for shared contracts. |
-| R39 | Independent official-source solver/PDE/MFront investigations including limits/API/I-O/GUI/HPC/license/benchmarks and adapter needs. | Partial research notes in BACKEND_EVALUATION; execution verification required before adoption. |
+| R39 | Independent official-source solver/PDE/MFront investigations including limits/API/I-O/GUI/HPC/license/benchmarks and adapter needs. | Partial research notes in BACKEND_EVALUATION; three bounded full MIDAS139+CFD18 reviews distinguish vendor-authored mirror text, official linked PDF, reference/definition gaps and missing adapters. Execution verification remains required before adoption. |
 | R40 | Independent optimizer comparison by problem role, not a generic ranking. | Partial research and first seeded engine; wider engine acceptance planned. |
 | R41 | Source audit of fixture code/tests/CI/debt and independent architecture review. | Partial completed recovered source audit; native/transaction debt remains. |
 | R42 | Separate research/implementation/verification roles when useful; Root integrates. | Ongoing; retained implemented-load independent verification. |
@@ -312,7 +326,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R44 | Do not concurrently modify shared schemas/Core/registry/artifact migrations or same source file. | Ongoing ownership rule in AGENTS. |
 | R45 | Root checks architecture, OpenScience-first, conflicting evidence, actual feasibility, GUI/headless, license/security/benchmarks/requirements before integration. | Ongoing; accepted/rejected decisions recorded in ADR/docs. |
 | R46 | Strong Root reasoning for architecture/numerics/conflicts, appropriate agents for bounded work; verification above model choice. | Ongoing, subject to available models/tools and current session instructions. |
-| R47 | Persist sub-agent questions/findings/sources/implementation/verification/adopted/rejected alternatives in repo. | Partial ADR/backend/acceptance notes; continue recording each important task. |
+| R47 | Persist sub-agent questions/findings/sources/implementation/verification/adopted/rejected alternatives in repo. | Partial ADR/backend/acceptance notes plus full MIDAS catalog/review/source record and owner-directed sequential work-order correction; continue recording each important task. |
 | R48 | Actually create/install/run/test/fix/retry/compare, maintaining the whole research loop; avoid installation traps. | Ongoing; actual failed CLOAD attempt and correction preserved. |
 | R49 | Recover prior state before implementation; CURRENT_STATE, ARCHITECTURE and initial ADR with all required contents. | Partial recovery, docs exist; unretrievable prior chat/product identity remains disclosed. |
 | R50 | First actual research-request-to-CAD/evidence vertical slice before FEA/optimizer; not documentation only. | Implemented bounded first slice f52/run03 and subsequent04ff/run03 connected research/solver/engine/PDE loop. General autonomous product/domain planning remains OPEN; engineering UNKNOWN/NOT_RELEASED retained. |
@@ -448,7 +462,7 @@ authorization. Simulation alone cannot qualify every fixture requirement.
 | --- | --- | --- |
 | 0 | Architecture/ADRs, schemas, registry, evidence/validation/artifact thread, Python/CLI/MCP | Extend contracts with independently verified backend features; corporate deployment review. |
 | 1 | Existing CadQuery/native Part/Sketcher reused; bounded P1.1/P1.2a/P1.2b actual gates retained | Actual04ff/run03 bounded P1.3 connected conditions/solver/comparison/engine search/scalar PDE PASS;788-file retention. Full product/Phase1 qualification remains OPEN with declared limitations. |
-| 2 | Exact STEP to Gmsh/CalculiX child run, 4/3/2/1.5 mm area-load screen/reactions; actual04ff research shares the same records | NEXT SERIAL P2.1: authoritative corrected NAFEMS LE10 or fully accessible authoritative definition/reference, frozen before P2.2 mesh/cross-solver runs; materials/fasteners/contact/stress/physical qualification OPEN. |
+| 2 | Exact STEP to Gmsh/CalculiX child run, 4/3/2/1.5 mm area-load screen/reactions; actual04ff research shares the same records; MIDAS139+CFD18 source/coverage survey | NEXT SERIAL P2.1b: complete representative structural-family definitions/reference, frozen before P2.2 mesh/cross-solver/research execution. Prior single-case implementation deferred; materials/fasteners/contact/stress/physical qualification OPEN. |
 | 3 | Seeded LHS DOE/shared SciPy DE; actual CAD and declared-input native candidates, explicit constraints and exact replay | Converged fixture optimization, broader variable/engine/UQ/multiobjective coverage. |
 | 4 | Clean d363 declared scalar FEniCSx linear/nonlinear/linear-limit/reference-rejection proof, HTTP/browser and independently audited CI | Wider nonlinear/general domains, coupled PDE and MPI/HPC acceptance. |
 | 5 | Actual affine elasticity and small-strain J2 full load/unload fields on two meshes/materials | Geometric nonlinearity/contact/hyperelasticity/viscoelasticity/native energy/physical qualification. |

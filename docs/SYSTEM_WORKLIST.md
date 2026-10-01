@@ -16,12 +16,14 @@ requests execute nothing.1 generation/MAX_GENERATIONS/converged=false remains;
 UNKNOWN/NOT_RELEASED and full product/all52 qualification remain OPEN.
 788 files retained/owned Stop confirmed; independent output/supplement and
 exact retention review PASS with no open P1/P2. Record:20261001-openscience-research-04ff148.json.
-P2.1 bounded public-vendor LE10 definition/source-topology disposition is frozen:
-20261001-le10-public-reference.json. Original P18 full sheet remains UNKNOWN;
-raw coarse shared-edge defect is quarantined and explicit corrected derivative
-is separately identified. MIDAS NFX materials139/75NAFEMS were located with
-edition/sign/equation/extraction gaps retained. NEXT SERIAL UNIT **P2.2 shared
-mesh/cross-solver implementation and actual execution**. No further CAD recovery/setup scope.
+Owner-directed whole MIDAS scope survey covers139 structural/thermal/dynamic
+cases plus18 official CFD cases. Case definitions/references/outputs/gaps and
+phase mapping are in MIDAS_BENCHMARK_REVIEW/full catalog/20261001-midas-full-survey.
+All157 project case executions are NOT_RUN; source conflicts remain UNKNOWN.
+Prior single-case draft is DEFERRED_BY_OWNER with16 source files preserved;
+do not resume its implementation from the old work order. NEXT SERIAL UNIT
+**P2.1b representative structural-family reference admission**, then P2.2
+connected native/cross-solver execution. No further CAD recovery/setup scope.
 Earlier failed runs and original-context limits are preserved in their records;
 historical sections below cannot override this queue.
 
@@ -241,13 +243,24 @@ This evidence/docs checkpoint is not another solver run.
 
 ## Phase2 — connected structural analysis (NEXT SERIAL)
 
+- [x] P2.S whole MIDAS source/coverage survey: all139 IDs in chapters2–12 plus
+  separate CFD18. Read body definitions/responses/references, preserve source
+  and figure/edition/model gaps, compare existing capabilities and map later
+  families to the ordered phases. Project numerical case execution NOT_RUN.
+  Record:20261001-midas-full-survey; full MIDAS_BENCHMARK_REVIEW/catalog.
+- [ ] P2.1b: admit complete beam axial/bending/torsion (§2.3), pressure-cylinder
+  (§2.12), and plate/shell (§2.15 etc.) family definitions against existing code.
+  Freeze one bounded packet's inputs/DOFs/output/reference/units/element/mesh
+  gates before implementation. Resolve selected case's figure/source conflicts;
+  preserve all other cases as NOT_RUN. Modal/buckling/prestress remain named gaps.
 - [x] P2.1 bounded public-primary-vendor definition: retain Rev3-cited context/
   topD signed target; freeze geometry/material/BC/load/metric/units/mesh/limits
   before solving. Original P18 full-sheet/amendment details remain UNKNOWN.
   Rawcoarse defect is refused; explicit correction/fine-coarsening identity is
   predeclared. MIDAS NFX chapter/whole-mirror inventory and source gaps retained.
   Record:20261001-le10-public-reference.json; native LE10 solver calls0.
-- [ ] P2.2: implement the benchmark through an adapter/common Core operation;
+  Historical single-case reference work; implementation DEFERRED_BY_OWNER.
+- [ ] P2.2: implement the admitted family packet through an adapter/common Core operation;
   execute fresh mesh and cross-solver cases, recompute errors/reactions from raw
   fields and expose them in shared results/reports and OpenScience interpretation.
 - [ ] P2.3: expose the verified exact-CAD fixture analysis through an explicit
@@ -274,6 +287,8 @@ This evidence/docs checkpoint is not another solver run.
 - [ ] P4.1: specify and execute new domain/boundary/equation families with
   analytical/published fields, residual and convergence references; reuse
   existing scalar linear/nonlinear and wrong-reference rejection acceptance.
+  MIDAS §§5–6/CFD §14/17/18 guide heat/transport/time-domain coverage;
+  unsupported vector/fluid/coupled models must not inherit scalar PDE PASS.
 - [ ] P4.2: execute time-dependent/vector/coupled forms with full declared
   mathematical metadata and raw fields; verify common research/UI/report paths.
 - [ ] P4.3: verify serial/parallel equivalence and rejected unsafe declarations
@@ -283,6 +298,7 @@ This evidence/docs checkpoint is not another solver run.
 
 - [ ] P5.1: freeze and execute a geometric-nonlinearity reference, full loads/
   displacement/stress/reactions/energy and genuine convergence histories.
+  Whole MIDAS §9 inventory guides branching/large-rotation/path-control coverage.
 - [ ] P5.2a: review the preserved hyperelastic proposal, then implement/run its
   declared reference and independent tangent/energy checks within one packet.
 - [ ] P5.2b: review preserved viscoelastic working files before implementation
@@ -291,6 +307,8 @@ This evidence/docs checkpoint is not another solver run.
 - [ ] P5.3: obtain full published material/contact definitions (NAFEMS candidate
   families R0026/R0081), freeze cases and execute cross-solver/mesh/reference
   checks; connect common human/AI results, then close P2.4's recorded dependency.
+  Use MIDAS §§10–11 for cyclic/hardening/hyperelastic/patch/Hertz/sliding families;
+  existing J2/material-point proof is not their automatic acceptance.
 
 ## Phase6 — connected explicit impact/drop (QUEUED)
 
@@ -298,6 +316,8 @@ This evidence/docs checkpoint is not another solver run.
   coverage; retain native input/output completeness and the old wall rejection.
 - [ ] P6.2: run impact/drop/material/failure cases with IC/gravity/timestep,
   synchronized force/acceleration/impulse/energy and independent references.
+  MIDAS §12 covers13 explicit cases, including wave, rotating friction and joints;
+  each required native feature needs a bounded deck/result/conservation gate.
 - [ ] P6.3: verify native-revision human views/animation and campaign/research
   interpretation. Flight/compliant-stop success cannot qualify general contact.
 
@@ -307,7 +327,9 @@ This evidence/docs checkpoint is not another solver run.
   synthetic-only inverse scope with actual measured-data provenance/uncertainty.
 - [ ] P7.2: specify and verify sensitivity/UQ/surrogate/multiobjective/MDO
   engines by their problem roles; preserve numerical generation and common records.
-- [ ] P7.3: benchmark MOOSE/multiphysics and its research/adapter integration.
+- [ ] P7.3: benchmark MOOSE/multiphysics and its research/adapter integration;
+  the separate MIDAS CFD18 inventory guides future fluid/free-surface/conjugate
+  heat/transport families. Candidate fluid solvers are not connected capabilities.
 - [ ] P7.4: implement verified SSH/job submission/status/cancellation/retrieval
   on an actually available HPC environment; compare serial/reference outputs.
 - [ ] P7.5: connect fabrication/calibration/measurement processing and model

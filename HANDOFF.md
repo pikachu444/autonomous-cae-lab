@@ -1,6 +1,38 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
-## Current queue: P2.1 public reference frozen; P2.2 implementation ACTIVE
+## Current queue: full MIDAS survey; next family reference admission
+
+The owner corrected the narrowed work order: read the whole MIDAS benchmark
+manual, rather than continue one example. Survey `p2-midas-survey-20261001-01`
+covers all139 structural/thermal/dynamic case IDs and the separate official
+CFD18-case PDF. See [the full review](docs/MIDAS_BENCHMARK_REVIEW.md),
+[case catalog](benchmarks/catalogs/midas-nfx-survey.json) and
+[survey record](benchmarks/records/20261001-midas-full-survey.json).
+The survey is source/coverage review, not numerical acceptance; all157 project
+case executions are NOT_RUN. Structural review uses public vendor-authored text
+on a mirror, not an obtained full337-page PDF/current official edition. CFD
+original55pages/609258bytes/SHA bb91f063... is retained locally; selected figures
+were visually inspected. Source conflicts/gaps remain UNKNOWN until resolved.
+
+The previous single-case implementation is DEFERRED_BY_OWNER. Its16 changed/new
+source files are copied and hashed in ignored artifacts under this survey run;
+current draft code is still uncommitted/unpushed, with0native solver calls.
+Do not resume that draft or infer backend/AI admission from its source tests.
+Existing04ff/run03 remains the actual connected research/solver proof;
+the same approved5.6Sol/auth/project/fixture and accepted architecture are reused.
+
+NEXT SERIAL P2.1b: admit complete input/reference definitions for representative
+beam axial/bending/torsion, pressurized-cylinder and plate/shell families,
+comparing missing adapters/outputs with existing code. Freeze one bounded
+implementation packet before P2.2 native/cross-solver/research execution.
+Then P2 fixture integration, P3 campaigns, P4 PDE/thermal, P5 nonlinear/contact,
+P6 explicit and P7 advanced/coupled/physical work remain in the existing order.
+Full-case review does not require pretending all cases have run or adding
+simultaneous later-phase implementations. All52/whole project remain ACTIVE;
+engineering UNKNOWN/NOT_RELEASED and exact04ff explicit CI404 remain unchanged.
+This current queue supersedes earlier next-work instructions below.
+
+## Historical reference checkpoint: previous P2.1/P2.2 work order
 
 P1.3 actual04ff/run03 and pushed a868 evidence remain the latest connected
 solver/research proof. P2.1 now has a complete public COMSOL/Abaqus LE10

@@ -1,6 +1,36 @@
 # Current state — 2026-10-01 (Asia/Seoul)
 
-## Latest source-definition checkpoint: P2.1 LE10; P2.2 ACTIVE
+## Latest scope checkpoint: all MIDAS benchmark families reviewed
+
+Owner correction: review all MIDAS benchmark examples; stop narrowing the task
+to a single case. Three bounded independent investigations read structural
+chapters2–8 (77cases), chapters9–12 (62cases), and the separate official
+CFD55-page manual (18cases). Root owns the139+18 inventory, existing capability
+mapping, phase order and integration. The full139 structural IDs/counts match
+the TOC; case references/outputs/checks/gaps are preserved in the
+[catalog](benchmarks/catalogs/midas-nfx-survey.json). See
+[review/phase mapping](docs/MIDAS_BENCHMARK_REVIEW.md) and
+[source record](benchmarks/records/20261001-midas-full-survey.json).
+
+Coverage review does not equal full numerical/engineering validation. Public
+structural text was reviewed; full original PDF/latest official edition/model
+assets and all figures remain unverified. The direct HTTP200 response is a
+browser challenge, not the manual. Official CFD bytes/hash/55pages are verified;
+selected figure/table conflicts were visually checked and remain unresolved.
+Publisher introduction75NAFEMS/21papers/43other is reported separately from
+case bibliography classification; differences are not silently normalized.
+All157 cases have project execution NOT_RUN in this survey.
+
+Single-case development is DEFERRED_BY_OWNER, preserved as16 files/398355bytes
+with a new local snapshot/manifest, not committed or pushed. Source tests are
+not native proof. No additional solver/model/runtime execution occurred during
+this survey. Existing04ff/run03 remains the latest connected actual checkpoint.
+Next P2.1b defines representative structural families completely, then P2.2
+implements/runs a bounded packet through existing Core/OpenScience/human results.
+Later Phases3–7 retain their order. All52 remain active, UNKNOWN/NOT_RELEASED
+unchanged; this text supersedes the historical work-order sections below.
+
+## Historical source-definition checkpoint: previous P2.1/P2.2
 
 Complete public primary-vendor LE10 geometry/material/BC/load/topD signed
 reference and fixed numerical gates are captured in

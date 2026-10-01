@@ -31,17 +31,26 @@ experiment artifacts; cloning Git alone does not restore their local bytes.
 
 ## Execution rule and current unit
 
-**Next serial unit: P2.2, shared-mesh structural implementation/execution.**
+**Next serial unit: P2.1b, representative structural-family definition admission.**
 
-P2.1's public COMSOL/Abaqus LE10 definition, signed topD target and fixed gates
-are frozen in20261001-le10-public-reference.json. Original P18 sheet/amendments
-remain UNKNOWN. Public coarse topology is defective and refused; its explicit
-corrected derivative is independently equal to fine-source coarsening and has
-a distinct mesh identity. Owner-requested MIDAS NFX benchmark resources are
-captured with equation/sign/extraction/edition caveats; published outputs are
-reference material, not this project's execution. Native LE10 calls remain0.
-Finish reviewed source/commit, then clean fresh-store two-solver/changed-load
-execution through common Core/OpenScience. Later phases stay in the same order.
+The owner explicitly corrected the focus: inspect the whole MIDAS benchmark
+manual rather than implement the same example again. The139 structural/thermal/
+dynamic cases and separate18 CFD cases are covered by
+[MIDAS_BENCHMARK_REVIEW](MIDAS_BENCHMARK_REVIEW.md) and its full catalog/source
+record. All surveyed project numerical executions remain NOT_RUN. Previous
+single-case code/evidence is preserved and DEFERRED_BY_OWNER, not discarded or
+claimed as a complete solver capability. No native call occurred in that draft.
+
+Use the full inventory to admit complete beam axial/bending/torsion, pressure
+cylinder and plate/shell family definitions against existing implementation.
+Select/freeze a bounded packet's geometry/material/BC/load/output/reference/gates
+before P2.2 adapter/common Core/cross-solver/OpenScience/human-result execution.
+Unknown source figures/edition/model assets and conflicting conditions must be
+resolved for the selected case; do not change output/thresholds to fit a table.
+The139+18 review maps later heat/PDE, nonlinear/material/contact, explicit and
+CFD/coupled work to the existing phases; it does not open them in parallel.
+Modal/buckling/prestress remain explicit structural capability gaps. CFD is not
+Phase6 explicit structural proof. Later phases remain in the same order.
 Actual clean04ff/run03 completed the bounded P1.3 question -> conditions ->
 solver -> comparison -> engine-generated next candidates -> interpretation
 loop with8 selected5.6Sol stages/41 receipts/23 experiments. Missing/unsupported
@@ -50,8 +59,8 @@ converged=false; reaction0/3 PDE passes predeclared analytical gates. Original
 bytes/source/config/STEP remain unchanged;788 files retained and owned Stop
 confirmed. Independent output/supplement/retention reviews PASS.
 Record:20261001-openscience-research-04ff148.json. Full product/all52 and
-engineering UNKNOWN/NOT_RELEASED remain OPEN. Phase2 begins with reference
-admission, then frozen P2.2 mesh/cross-solver runs. Do not add native recovery,
+engineering UNKNOWN/NOT_RELEASED remain OPEN. Phase2 proceeds with family
+reference admission, then frozen P2.2 mesh/cross-solver runs. Do not add native recovery,
 reauthentication or another numerical engine. The notes below are historical.
 
 ### Historical P1.3 source admission
@@ -208,13 +217,13 @@ All52 ledger requirements, including process R37–R52, remain active.
 | Connected system | Actual model/tool/Core receipts, matching GUI/headless revisions, failed-input gates, inspection/report hashes and restart/cancellation evidence | A research loop from server readiness or prose saying a tool ran |
 | Engineering/physical | Measured material, interfaces, loads, fabrication, calibration, strength and durability evidence | RELEASED while blocking checks remain UNKNOWN |
 
-NAFEMS is the preferred external structural benchmark family. P2.1 first
-obtains a complete authoritative specification; candidate LE10 requires the
-corrected publication revision and exact target location/value. Freeze geometry,
-material, loads, BCs, measured quantity and tolerances before solving. Public
-catalog metadata alone is insufficient. If the full candidate specification is
-unavailable, record that gap and select a fully accessible authoritative case
-before execution; never guess data or call another case an LE10 pass.
+NAFEMS and the full MIDAS benchmark inventory inform external structural
+verification. P2.1b first admits complete authoritative representative-family
+specifications and correction/revision details. Freeze geometry, material, loads,
+BCs, measured quantity and tolerances before solving. Public catalog metadata
+alone is insufficient. If a complete candidate specification is unavailable,
+record that gap and select an accessible authoritative case before execution;
+never guess data or generalize a different response into a family PASS.
 R0026 material and R0081 contact are later candidate families. Existing
 analytical/manufactured/FD proofs retain their own scope; no NAFEMS acceptance
 has been executed. See HANDOFF for official catalog links and current evidence.
