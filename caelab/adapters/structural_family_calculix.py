@@ -335,11 +335,24 @@ _DAT_HEADER = re.compile(r"^\s*(.*?)\s+for set\s+(\S+)\s+and time\s+(\S+)\s*$")
 def parse_dat(path: Path, mesh: dict) -> dict:
     nodes, elements, _, _ = _catalogue(mesh)
     tables, current = {}, None
+    preamble = 0
     for line in _read(path).splitlines():
         if not line.strip():
             continue
+        if re.fullmatch(r"\s*S\s+T\s+E\s+P\s+1\s*", line):
+            if preamble or current is not None or tables:
+                raise ValueError("Duplicate or misplaced native DAT step")
+            preamble = 1
+            continue
+        if re.fullmatch(r"\s*INCREMENT\s+1\s*", line):
+            if preamble != 1 or current is not None or tables:
+                raise ValueError("Duplicate or misplaced native DAT increment")
+            preamble = 2
+            continue
         header = _DAT_HEADER.fullmatch(line)
         if header:
+            if preamble == 1:
+                raise ValueError("Incomplete native DAT step/increment metadata")
             descriptor, group, time = header.groups()
             if descriptor not in _DAT_HEADERS:
                 raise ValueError("Unexpected native DAT table/component order")
@@ -468,6 +481,7 @@ def parse_frd(path: Path, mesh: dict, native_nodes: dict, dat: dict) -> dict:
                 "DISP": ["D1 1 2 1 0", "D2 1 2 2 0", "D3 1 2 3 0", "ALL 1 2 0 0 1ALL"],
                 "FORC": ["F1 1 2 1 0", "F2 1 2 2 0", "F3 1 2 3 0", "ALL 1 2 0 0 1ALL"],
                 "STRESS": ["SXX 1 4 1 1", "SYY 1 4 2 2", "SZZ 1 4 3 3", "SXY 1 4 1 2", "SYZ 1 4 2 3", "SZX 1 4 3 1"],
+                "ERROR": ["STR(%) 1 1 0 0"],
             }
             if (len(parts) != 4 or not header or parts[1] not in labels or parts[1] in fields or
                     parts[2] != str(len(labels[parts[1]])) or parts[3] != "1"):
@@ -479,7 +493,7 @@ def parse_frd(path: Path, mesh: dict, native_nodes: dict, dat: dict) -> dict:
                 index += 1
             values = {}
             while index < len(lines) and lines[index].strip() != "-3":
-                node, value = _frd_row(lines[index], 6 if name == "STRESS" else 3)
+                node, value = _frd_row(lines[index], 6 if name == "STRESS" else 1 if name == "ERROR" else 3)
                 if node in values:
                     raise ValueError("Duplicate FRD field node")
                 values[node] = value
@@ -496,7 +510,7 @@ def parse_frd(path: Path, mesh: dict, native_nodes: dict, dat: dict) -> dict:
         elif coordinates or line[:3] in (" -1", " -2", " -3", " -5"):
             raise ValueError("Unexpected native FRD content")
         # Before 2C, official 1C/1U metadata is retained but not a field proof.
-    if not ended or set(fields) != {"DISP", "FORC", "STRESS"}:
+    if not ended or set(fields) not in ({"DISP", "FORC", "STRESS"}, {"DISP", "FORC", "STRESS", "ERROR"}):
         raise ValueError("Native FRD requires complete displacement/force/nodal-stress fields and end marker")
     if any(not _printed_close(value, expected, 6, float32=True) for node, xyz in coordinates.items()
            for value, expected in zip(xyz, native_nodes[node])):
@@ -507,7 +521,9 @@ def parse_frd(path: Path, mesh: dict, native_nodes: dict, dat: dict) -> dict:
             raise ValueError("FRD native field differs from the matching DAT observation")
     return {"coordinates_mm": coordinates, "elements_c3d20": topology,
             "nodal_averaged_stress_native_order": fields["STRESS"],
-            "nodal_averaged_stress_components": ["xx", "yy", "zz", "xy", "yz", "zx"]}
+            "nodal_averaged_stress_components": ["xx", "yy", "zz", "xy", "yz", "zx"],
+            "native_stress_error_estimate_percent": fields.get("ERROR"),
+            "native_error_scope": "Optional native extrapolation estimator; not measured reference error or linear residual"}
 
 
 def _cross(x: list[float], force: list[float]) -> list[float]:

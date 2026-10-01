@@ -1,0 +1,177 @@
+{
+  "record_kind": "ACTUAL_CALCULIX_DAT_FRD_FORMAT_CORRECTION",
+  "created_utc": "2026-10-01T17:02:36.471228+00:00",
+  "failed_source_commit": "fa0b1a8e6cee992300bb4264f34baec28e0b46fc",
+  "failed_run_id": "p2-family-native-20261002-02",
+  "actual_native_jobs": 1,
+  "actual_native_job_exit_code": 0,
+  "core_outcome_retained": "FAILED_EXECUTION",
+  "correction": {
+    "DAT": "Ordered unique initial STEP1/INCREMENT1 pair if present; foreign/duplicate/misplaced/incomplete metadata refused; fixed table time/set/component/completeness unchanged",
+    "FRD": "Only optional complete finite scalar ERROR/STR(%) same catalogue/time; mandatory DISP/FORC/STRESS unchanged; diagnostic estimator never substitutes for reference errors or residual"
+  },
+  "actual_retained_output_replay": {
+    "nodes": 80,
+    "elements": 6,
+    "integration_points": 162,
+    "error_estimator_nodes": 80,
+    "status": "PASS_OUTPUT_PARSING_ONLY",
+    "scope": "Posthoc read-only parser replay; no new solver and no rewritten original result"
+  },
+  "source_checks": {
+    "passed": 88,
+    "seconds": 10.83,
+    "exit_code": 0,
+    "evidence": {
+      "path": "artifacts/p2-family-calculix-format-fix-20261002-01/pytest.log",
+      "bytes": 183,
+      "sha256": "60e881d8b0dbb491c798b5a34a957a720dbf09b6ebcddf9508e65eca139d0623"
+    }
+  },
+  "independent_review": {
+    "path": "artifacts/p2-family-calculix-format-fix-20261002-01/independent-review.json",
+    "bytes": 9705,
+    "sha256": "1381458a32ae1f55dac7681f9d94171b5c4a81160810610a2ddbc65bbbe935ac"
+  },
+  "corrected_source_files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 414,
+      "sha256": "828223ae5df738443527e20812964ff95f95eb1dadc5def3f5265dc2be219df8"
+    },
+    {
+      "path": "caelab/adapters/structural_family_calculix.py",
+      "bytes": 41624,
+      "sha256": "6845af8fb891e81a39b54757c6a7c0d1137270ef933262163776b9a3292b1900"
+    },
+    {
+      "path": "tests/test_structural_family_calculix.py",
+      "bytes": 29656,
+      "sha256": "9a6052e85ef6472daf35213886a165ee009b6fcedb617f4c374dd763dc421f59"
+    }
+  ],
+  "real_output_fixtures": [
+    {
+      "original": {
+        "path": "artifacts/p2-family-native-20261002-02/experiments/E-ansys_vmd1_regular-Fx-ccx/simulation/level_0/mesh.json",
+        "bytes": 22029,
+        "sha256": "1ac7f4d7ef46c4e5e190828515ae6e328e25be76a7fe5dbed712e2666c4b42f4"
+      },
+      "fixture": {
+        "path": "tests/fixtures/calculix_221_structural_family/mesh.json",
+        "bytes": 22029,
+        "sha256": "1ac7f4d7ef46c4e5e190828515ae6e328e25be76a7fe5dbed712e2666c4b42f4"
+      },
+      "status": "EXACT_RAW_BYTE_MATCH"
+    },
+    {
+      "original": {
+        "path": "artifacts/p2-family-native-20261002-02/experiments/E-ansys_vmd1_regular-Fx-ccx/simulation/level_0/mesh.inc",
+        "bytes": 2456,
+        "sha256": "29dcc0ec9cac1010d3f57eaa4b4d859d18242b58ead4ac259b109325e149e33d"
+      },
+      "fixture": {
+        "path": "tests/fixtures/calculix_221_structural_family/mesh.inc",
+        "bytes": 2456,
+        "sha256": "29dcc0ec9cac1010d3f57eaa4b4d859d18242b58ead4ac259b109325e149e33d"
+      },
+      "status": "EXACT_RAW_BYTE_MATCH"
+    },
+    {
+      "original": {
+        "path": "artifacts/p2-family-native-20261002-02/experiments/E-ansys_vmd1_regular-Fx-ccx/simulation/level_0/serialized_loads_n.json",
+        "bytes": 6562,
+        "sha256": "d024a35f0606723ed58e3aab5eb9be2337b7e47f806db4c1555e3bafe53d6bbb"
+      },
+      "fixture": {
+        "path": "tests/fixtures/calculix_221_structural_family/serialized_loads_n.json",
+        "bytes": 6562,
+        "sha256": "d024a35f0606723ed58e3aab5eb9be2337b7e47f806db4c1555e3bafe53d6bbb"
+      },
+      "status": "EXACT_RAW_BYTE_MATCH"
+    },
+    {
+      "original": {
+        "path": "artifacts/p2-family-native-20261002-02/experiments/E-ansys_vmd1_regular-Fx-ccx/simulation/level_0/family.dat",
+        "bytes": 34155,
+        "sha256": "956b4b2d92463aeced6d76c11df485a2db945aef837f1d982abedc18d2556bd2"
+      },
+      "fixture": {
+        "path": "tests/fixtures/calculix_221_structural_family/family.dat",
+        "bytes": 34155,
+        "sha256": "956b4b2d92463aeced6d76c11df485a2db945aef837f1d982abedc18d2556bd2"
+      },
+      "status": "EXACT_RAW_BYTE_MATCH"
+    },
+    {
+      "original": {
+        "path": "artifacts/p2-family-native-20261002-02/experiments/E-ansys_vmd1_regular-Fx-ccx/simulation/level_0/family.frd",
+        "bytes": 24503,
+        "sha256": "4119db3e80d7b0955709ffca527d7342a2b0c64693d19815c5d9887f06192b40"
+      },
+      "fixture": {
+        "path": "tests/fixtures/calculix_221_structural_family/family.frd",
+        "bytes": 24503,
+        "sha256": "4119db3e80d7b0955709ffca527d7342a2b0c64693d19815c5d9887f06192b40"
+      },
+      "status": "EXACT_RAW_BYTE_MATCH"
+    }
+  ],
+  "retention": {
+    "manifest": {
+      "path": "artifacts/p2-family-calculix-format-fix-20261002-01/failed-run-manifest.json",
+      "bytes": 11738,
+      "sha256": "961dca259b04800802d94bfed470ac4c86257a112b6a67bb566e296b2c17dfc0"
+    },
+    "files": 47,
+    "bytes": 1377013,
+    "status": "FAILED_NATIVE02_STORE_PRESERVED; raw fixtures -text; five staged blobs exact native bytes",
+    "staged_raw_parity": [
+      {
+        "path": "tests/fixtures/calculix_221_structural_family/mesh.json",
+        "bytes": 22029,
+        "sha256": "1ac7f4d7ef46c4e5e190828515ae6e328e25be76a7fe5dbed712e2666c4b42f4",
+        "status": "STAGED_BLOB_EXACT_NATIVE02_BYTES"
+      },
+      {
+        "path": "tests/fixtures/calculix_221_structural_family/mesh.inc",
+        "bytes": 2456,
+        "sha256": "29dcc0ec9cac1010d3f57eaa4b4d859d18242b58ead4ac259b109325e149e33d",
+        "status": "STAGED_BLOB_EXACT_NATIVE02_BYTES"
+      },
+      {
+        "path": "tests/fixtures/calculix_221_structural_family/serialized_loads_n.json",
+        "bytes": 6562,
+        "sha256": "d024a35f0606723ed58e3aab5eb9be2337b7e47f806db4c1555e3bafe53d6bbb",
+        "status": "STAGED_BLOB_EXACT_NATIVE02_BYTES"
+      },
+      {
+        "path": "tests/fixtures/calculix_221_structural_family/family.dat",
+        "bytes": 34155,
+        "sha256": "956b4b2d92463aeced6d76c11df485a2db945aef837f1d982abedc18d2556bd2",
+        "status": "STAGED_BLOB_EXACT_NATIVE02_BYTES"
+      },
+      {
+        "path": "tests/fixtures/calculix_221_structural_family/family.frd",
+        "bytes": 24503,
+        "sha256": "4119db3e80d7b0955709ffca527d7342a2b0c64693d19815c5d9887f06192b40",
+        "status": "STAGED_BLOB_EXACT_NATIVE02_BYTES"
+      }
+    ],
+    "intentional_native_whitespace": "git diff --check reports only fixed-width trailing spaces in the exact native family.frd fixture; those bytes are preserved intentionally. Other staged source/docs pass whitespace check."
+  },
+  "unchanged": {
+    "definition_sha256": "4ebca41ae97498cba18fe876a72ef128e0b671c3f7f6f809853514c94d5e12e0",
+    "domain_and_mesh_and_numerical_limits": "UNCHANGED",
+    "all52_and_phase_order": "UNCHANGED"
+  },
+  "outcome": {
+    "new_native_numerical": "NOT_RUN",
+    "cross_solver": "NOT_RUN",
+    "new_openscience_research": "NOT_RUN",
+    "human_gui": "NOT_RUN",
+    "release": "NOT_RELEASED",
+    "engineering_validation": "UNKNOWN"
+  },
+  "next": "Reviewed clean source commit/push then new native03 store; actual OpenScience research/GUI remains the connected acceptance gate"
+}

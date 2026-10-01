@@ -1,2 +1,7 @@
 scripts/wsl-windows-git/git text eol=lf
 scripts/wsl-windows-git/empty.config text eol=lf
+tests/fixtures/calculix_221_structural_family/family.dat -text
+tests/fixtures/calculix_221_structural_family/family.frd -text
+tests/fixtures/calculix_221_structural_family/mesh.inc -text
+tests/fixtures/calculix_221_structural_family/mesh.json -text
+tests/fixtures/calculix_221_structural_family/serialized_loads_n.json -text

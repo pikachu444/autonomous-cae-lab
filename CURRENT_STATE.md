@@ -1,5 +1,15 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
+## Latest native02: actual output format retained and parsed after correction
+
+Pushed fa0b1a8 passed metadata admission and ran one coarse ccx job/exit0.
+Its Core failure is retained: parser omitted native1/1 DAT preamble and optional
+FRD stress extrapolation estimator. Strict correction/real-byte fixtures,
+88 tests and independent review establish output parsing, not numerical or
+engineering qualification. Raw fixture EOL conversion is disabled. Source
+record20261002-calculix-native-format; next fresh clean-commit native03.
+All numerical limits, Domain/source references, UNKNOWN and NOT_RELEASED persist.
+
 ## Latest native attempt: metadata failure corrected without solver admission
 
 Reviewed source b7b6450 is pushed to main. Native01 creates one retained

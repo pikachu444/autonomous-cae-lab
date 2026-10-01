@@ -11,6 +11,8 @@ import pytest
 from caelab.adapters import structural_family_calculix as adapter
 from caelab.outcomes import validate_outcome
 
+_ACTUAL_NATIVE = Path(__file__).parent / "fixtures/calculix_221_structural_family"
+
 
 _CORNERS = ((-1, -1, -1), (1, -1, -1), (1, 1, -1), (-1, 1, -1),
             (-1, -1, 1), (1, -1, 1), (1, 1, 1), (-1, 1, 1))
@@ -31,6 +33,49 @@ def catalogue():
             "elements": [{"id": 1, "node_ids": list(range(1, 21))}],
             "groups": {"ALL_NODES": list(range(1, 21)), "ROOT": [1]},
             "supports": [{"node_id": 1, "components": [1, 2]}], "nodal_loads_n": loads}
+
+
+def test_actual_native221_fields_preserve_complete_step_and_extrapolation_metadata():
+    mesh = json.loads((_ACTUAL_NATIVE / "mesh.json").read_text())
+    nodes = adapter.parse_input_mesh(_ACTUAL_NATIVE / "mesh.inc", mesh)
+    loads = {row["node_id"]: row["value"] for row in json.loads((_ACTUAL_NATIVE / "serialized_loads_n.json").read_text())}
+    record, metadata = adapter.parse_fields(_ACTUAL_NATIVE, mesh, loads, nodes)
+    assert len(record["node_ids"]) == 80 and len(record["stress_points"]) == 162
+    assert record["field_completeness"] == {"displacement": True, "reaction": True, "stress": True, "native_mesh": True}
+    frd = adapter.parse_frd(_ACTUAL_NATIVE / "family.frd", mesh, nodes, adapter.parse_dat(_ACTUAL_NATIVE / "family.dat", mesh))
+    assert len(frd["native_stress_error_estimate_percent"]) == 80
+    assert "not measured reference error" in frd["native_error_scope"]
+
+
+@pytest.mark.parametrize("preamble", ["S T E P 2\nINCREMENT 1", "S T E P 1\nINCREMENT 2",
+    "S T E P 1\nS T E P 1\nINCREMENT 1", "INCREMENT 1\nS T E P 1",
+    "S T E P 1", "S T E P 1\nINCREMENT 1\nINCREMENT 1"])
+def test_native_dat_foreign_duplicate_or_incomplete_step_is_refused(tmp_path, preamble):
+    source = (_ACTUAL_NATIVE / "family.dat").read_text()
+    header = source.index(" displacements")
+    changed = tmp_path / "changed.dat"
+    changed.write_text(preamble + "\n" + source[header:])
+    mesh = json.loads((_ACTUAL_NATIVE / "mesh.json").read_text())
+    with pytest.raises(ValueError): adapter.parse_dat(changed, mesh)
+
+
+@pytest.mark.parametrize("change", ["label", "missing_row", "nonfinite", "unknown_field"])
+def test_native_optional_error_field_is_strict_diagnostic_metadata(tmp_path, change):
+    source = (_ACTUAL_NATIVE / "family.frd").read_text()
+    if change == "label": source = source.replace("STR(%)", "WRONG ")
+    if change == "unknown_field": source = source.replace(" -4  ERROR", " -4  OTHER")
+    error_start = source.index(" -4  ERROR") if change != "unknown_field" else 0
+    if change in ("missing_row", "nonfinite"):
+        row_start = source.index(" -1", error_start)
+        row_end = source.index("\n", row_start)
+        if change == "missing_row": source = source[:row_start] + source[row_end+1:]
+        else: source = source[:row_start+13] + "         NaN" + source[row_end:]
+    changed = tmp_path / "changed.frd"
+    changed.write_text(source)
+    mesh = json.loads((_ACTUAL_NATIVE / "mesh.json").read_text())
+    nodes = adapter.parse_input_mesh(_ACTUAL_NATIVE / "mesh.inc", mesh)
+    dat = adapter.parse_dat(_ACTUAL_NATIVE / "family.dat", mesh)
+    with pytest.raises(ValueError): adapter.parse_frd(changed, mesh, nodes, dat)
 
 
 def _native_values(mesh, loads):
@@ -60,7 +105,7 @@ def native_files(folder, mesh, loads, *, affine=True):
             # helper. Admission tests use the actual shared preflight catalogue.
             position = [1 + local[0], 4 + local[1], 8 + local[2]] if affine else adapter._mesh.hexa20_point_coordinates(coordinates, local)
             points[element["id"], point] = position
-    dat = []
+    dat = ["                        S T E P       1", "                                INCREMENT     1"]
     for descriptor, values in (("displacements (vx,vy,vz)", u), ("forces (fx,fy,fz)", rf)):
         dat += [f"\n {descriptor} for set ALL_NODES and time 0.1000000E+01\n"]
         dat += [f"{node:10d}" + "".join(f" {value:13.6E}" for value in row) for node, row in sorted(values.items())]

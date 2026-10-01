@@ -21,6 +21,11 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+Native02/fa0b1a8 ran one coarse ccx job but retains Core FAILED_EXECUTION due
+to output format. Strict real-output parser/fixture correction passes88 tests,
+retained raw replay and independent review; source record20261002-calculix-native-format.
+This is not a new numerical/cross-solver/OpenScience PASS; native03 is next.
+
 Source b7b6450 is pushed; fresh native01 failed at ccx version metadata before
 any solver job. A narrow exact-query201 correction passes77 source tests,
 actual metadata-only probe and independent review; new native02 follows its

@@ -1,5 +1,18 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Latest native02 format correction; native03 next
+
+Native02 on pushed fa0b1a8 completed one coarse CalculiX job (exit0), then
+Core retained FAILED_EXECUTION because native DAT step/increment and the
+additional FRD ERROR/STR(%) estimator were unsupported. Actual80-node/6-element/
+162-point files are preserved and copied byte-identically to a regression fixture;
+raw fixture paths disable text conversion. Strict complete/finite optional
+estimator parsing does not replace reference/residual gates.88 tests and actual
+retained-output replay PASS; independent narrow review recorded in
+20261002-calculix-native-format. Numerical/cross-solver acceptance is still
+NOT_RUN; do not rewrite native02 as successful. NEXT clean format-correction
+commit/push and fresh native03, then actual research/GUI from reviewed driver.
+
 ## Latest runtime correction: first native attempt retained; fresh retry next
 
 Source b7b64503105c11bfc2047156773cafa50ccf1125 is committed/pushed to main.
