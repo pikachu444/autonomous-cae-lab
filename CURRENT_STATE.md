@@ -2,6 +2,13 @@
 
 ## Current serial work: Phase1 persistent OpenScience
 
+Managed6391106 startup/resident source and official project/5.6 Sol/folder view PASS.
+Research body was NOT_RUN: CRLF/LF provider seam mismatch refused before all model/
+tool hooks and store creation. Two-line normalization +4 bounded regressions and
+independent review PASS; cases/assertions unchanged. Run01/empty attempt preserved,
+owned Stop confirmed. NEXT: new committed-source profile/store run02, then full
+cases/official final session/busy cancellation. See managed-runtime-preparation record.
+
 Actual managed metadata is created/replayed with the same operation/project ID,
 source write grant and workingRoot. Old5365 owned runtime is now STOPPED;
 native/controller/launcher absence and closed4098 verified. No model/Core ran

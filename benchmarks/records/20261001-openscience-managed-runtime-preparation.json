@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.openscience-managed-runtime-preparation",
+  "phase": "P1.1",
+  "actual_source_commit": "6391106bcbccd1ad02d1b016d2b8d4dde5be464f",
+  "run_name": "p1-managed-20261001-01",
+  "boot_source_sha256": "0b5eb8c901b9621119e027545abb2178455710a943c98e1b1c288a6ea53d780c",
+  "outcome": "PASS_MANAGED_STARTUP_RESIDENT_SOURCE_GUI_SETUP; RESEARCH_PREPARATION_REFUSED",
+  "startup_receipt_sha256": "482ade2b09a2741f6f018cb92194332bd8e1413bbea0374c96e65504fade93c2",
+  "config_sha256": "934e16e9d871bbc8026f12c34969a592954167c6a966daac5b248900351432b5",
+  "generated_plugin_sha256": "fb011d67677ea790f80c6a4931e129576a2f205f0e6a1bfc221f972a3b3a3bf9",
+  "actual_loaded_plugin": "PASS schema2 in owned PID79312; source capture and project identity accepted",
+  "resident": {
+    "status": "PASS_ACTUAL_CONNECTED_RESOURCE",
+    "session_id": "ses_f0ab21c8bffelIhLvOqgPma1Ht",
+    "receipt_sha256": "9cc7e0de3699c492d606dba6c7238b2f5e1561fbeda95b12026ab103edf21da2",
+    "core_commit": "6391106bcbccd1ad02d1b016d2b8d4dde5be464f",
+    "core_dirty": false,
+    "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "fixture_dirty": false,
+    "core_disk_sha256": "d1e39d12a6ad143c9ab4c810440a7bf655dd7e6fb96b7304fde2dfa9b6bfc89c",
+    "fixture_disk_sha256": "c8a11097d2831b7730d5e039e2cd0c05e7b3a40c8b963505a67db0ae8d4d00a9",
+    "scope": "Actual connected resident imports/on-disk source; not cached bytecode or solver approval"
+  },
+  "official_gui": {
+    "status": "PASS_PROJECT_AND_SETUP_ONLY",
+    "project_id": "prj_8e672ff2d300416189536cb29aad15a4",
+    "route": "/prj_8e672ff2d300416189536cb29aad15a4/session/ses_f0ab21c8bffelIhLvOqgPma1Ht",
+    "displayed_model": "5.6 Sol",
+    "displayed_working_folder": "autonomous-cae-lab",
+    "screenshot_sha256": "59a290741fdd080e1da7a2aeda6c7ea9c7df8102ff037de6d5ae6ba70e4ef8d7",
+    "scope": "Official project/setup view, not same final research interpretation"
+  },
+  "preparation_failure": {
+    "observed_command_session": 29659,
+    "exit_code": 1,
+    "message": "Provider observation seam changed; preserve the source and stop.",
+    "cause": "Git Windows checkout uses CRLF native harness here-string literals; original acceptance AST text had been normalized to LF",
+    "attempt_path_preserved": "attempt-01 (empty)",
+    "model_hook_count": 0,
+    "tool_hook_count": 0,
+    "store_created": false,
+    "old_owned_stop": "PASS; native/controller/launcher absent",
+    "closed_utc": "2026-10-01T02:41:38.9465936Z"
+  },
+  "correction_source_checks": {
+    "native_harness_sha256": "520c731f61571febd48b2e3c58ea8882edd71e3d8f6423215a39ee85c041ad04",
+    "regression_script_sha256": "af0edef3250b93ad65c960124da117d4d04cb223e7ddc60715f1b1985f095894",
+    "regression_receipt_sha256": "4cebdf96bfadd912fa60cc4a69fd7c6fc575d4fa4769be60f1e32cc8dd165615",
+    "pass": 4,
+    "fail": 0,
+    "scope": "LF/CRLF exact case preparation and changed-seam refusal; actual research body never executed",
+    "independent_review": "PASS_READ_ONLY exact two hashes; no open P1/P2; original case/assertions/source gates unchanged"
+  },
+  "retention": "Ignored Main/Serving artifacts/p1-managed-20261001-01 and immutable stopped profile; no auth contents committed",
+  "limitations": {
+    "fresh_managed_model_research": "NOT_RUN",
+    "same_final_research_gui": "NOT_RUN",
+    "observed_busy_cancellation": "OPEN",
+    "full_p1_1": "OPEN",
+    "engineering_decision": "NOT_RELEASED"
+  },
+  "next": "New committed-source profile/store p1-managed-20261001-02; repeat resident source, unchanged full CAD cases, same official final session, busy cancellation and owned Stop"
+}

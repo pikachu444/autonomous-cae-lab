@@ -96,6 +96,8 @@ $taskNativeLocalCatalog = @'
 $taskNativeLocalAfter = @'
     try { Write-TaskJson (Join-Path $taskArtifacts 'ollama-active-after.json') (Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/ps' -TimeoutSec 10) } catch { $taskRecord.provider_observation_error = $_.Exception.Message }
 '@
+$taskNativeLocalCatalog = $taskNativeLocalCatalog.Replace("`r`n", "`n")
+$taskNativeLocalAfter = $taskNativeLocalAfter.Replace("`r`n", "`n")
 Assert-Task ($taskNativeCases.Contains($taskNativeLocalCatalog) -and $taskNativeCases.Contains($taskNativeLocalAfter)) 'Provider observation seam changed; preserve the source and stop.'
 $taskNativeCases = $taskNativeCases.Replace($taskNativeLocalCatalog, '    Write-TaskJson (Join-Path $taskArtifacts ''selected-native-model.json'') $taskModelIdentity')
 $taskNativeCases = $taskNativeCases.Replace($taskNativeLocalAfter, @'

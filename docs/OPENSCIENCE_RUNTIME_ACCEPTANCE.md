@@ -1,5 +1,14 @@
 # OpenScience local runtime acceptance — 2026-09-30
 
+## Actual managed startup and harness preparation correction, 2026-10-01
+
+Run p1-managed-20261001-01/source6391106 verified real schema2 loading, connected
+resident clean6391106/fixture3e48 source and official project/5.6 Sol/folder view.
+The research harness stopped before any model/Core/store because normalized LF
+case text differed from CRLF provider-observation literals. Preserve empty attempt.
+Normalize only those literals;4 LF/CRLF/changed-seam checks and independent review
+PASS without executing the case. Old owned Stop verified. Run02/new source/store
+is next. See20261001-openscience-managed-runtime-preparation.json; fullP1.1 stays OPEN.
 ## Actual managed metadata migration and narrow corrections, 2026-10-01
 
 First attempt201 created the official project; lexical containment refused its

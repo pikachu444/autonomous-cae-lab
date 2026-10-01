@@ -21,6 +21,10 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Status vocabulary
 
+2026-10-01 managed6391106 native startup/resident source/official project setup PASS;
+research preparation refused CRLF/LF seam before any model/Core/store. Bounded
+source correction does not promote fullP1.1. Fresh run02 case/GUI/busy gates remain.
+
 2026-10-01 managed metadata migration: same official project/source grant/default
 root verified and historical5365 runtime owned Stop confirmed. Physical MSIX root
 and v4 grant-ID source corrections do not promote fullP1.1 or engineering status.

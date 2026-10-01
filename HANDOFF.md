@@ -2,6 +2,12 @@
 
 ## Authoritative serial queue from the project owner
 
+Latest actual managed6391106 startup/resident/project GUI setup PASS; NOT research.
+Tracked harness refused its CRLF/LF seam before body/LLM/Core/store. Narrow source
+fix +LF/CRLF/changed-seam4 regressions and independent review PASS. Run01/attempt
+preserved, owner STOPPED/all3PIDs absent. NEXT new committed run02 profile/store,
+resident/full unchanged cases/official final session/busy cancellation/owned Stop.
+
 Managed metadata migration is verified; old5365 owner is STOPPED with all owned
 PIDs absent and4098 released. Same operation replay preserved project/source grant.
 Failures01/02 are retained: official physical MSIX data root and hyphenated v4
