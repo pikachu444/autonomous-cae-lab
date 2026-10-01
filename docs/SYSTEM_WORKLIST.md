@@ -41,9 +41,17 @@ reads, actual missing/unsupported responses and study create/inspect. Analysis
 requests incorrectly add research metadata to settings and are refused before
 Core/native jobs. AI failure interpretation,80-file retention and owned Stop
 pass. Common-profile prompt clarification passes104 Node/63 native/60 cold;
-CI expected51 changes to actual60. NEW clean-source research03 is next. Records
+CI expected51 changes to actual60. Pushed183/research03 now completes three
+questions/nine tools/two records/six native jobs and accurate AI failure
+interpretation. CCX numerical gates pass, Aster fine fails unchanged. Independent
+raw/input/receipt/source audit, same-session GUI, owned Stop and271-file exact
+local retention pass. Exact183 CI8SUCCESS/2FAIL/source60PASS; its Aster internal
+diagnostic UNKNOWN in scoped logs. Strict successful-status driver assertion
+halts independent stages, overall FAILED_OR_PARTIAL. Review bounded failure-aware
+collector, then NEW clean04 original order without relaxed criteria. Records
 20261002-structural-family-native05,20261002-structural-research-python-correction
-and20261002-structural-research-arguments. Historical native01–04 verdicts
+and20261002-structural-research-arguments,20261002-openscience-structural-research03.
+Historical native01–04 verdicts
 and corrective-source records are preserved in STRUCTURAL_FAMILIES_ACCEPTANCE.
 
 Next tasks within the same P2.2 unit, in order:
@@ -53,11 +61,17 @@ Next tasks within the same P2.2 unit, in order:
   config Python correction and original-response replay without changing Core.
 - [x] Push interpreter correction5484eb8; run actual owned research02 and
   preserve its study operations, pre-Core argument refusals and owned Stop.
-- [ ] Push reviewed common-profile clarification and stale CI-count correction;
-  NEW clean-source research03 with approved5.6Sol/auth/project, actual native
-  receipts and failure interpretation. Keep scientific limits unchanged.
-- [ ] Verify same-record GUI/ownedStop/retention. Keep research control-plane
-  evidence separate from unresolved native numerical acceptance.
+- [x] Push common-profile/CI-count correction183cc02; actual research03 with
+  approved5.6Sol/auth/project, nine tools/two native records and failure
+  interpretation. Fixed science/thresholds retained; numerical Aster FAIL.
+- [x] Verify actual03 same-session GUI text/ownedStop/271-file exact retention.
+  This is control-trace proof; all-family numerical acceptance remains OPEN.
+- [x] Review/source-check failure-aware collector:89 cold checks/independent
+  actual03 replay/12 negative controls PASS, no openP1/P2. Record:
+  20261002-structural-research-failure-flow. Source proof, not new actual execution.
+- [ ] Publish failure-aware collector and run NEW clean04; preserve fatal
+  identity/receipt checks and numerical failures while gathering original
+  independent family stages in order; never relabel03 as PASS.
 - [ ] Resolve Fz accuracy and complete cylinder/roof/changed-load/refusal numerical
   gates; independently audit measured raw fields. No failed probe is a shortcut.
 

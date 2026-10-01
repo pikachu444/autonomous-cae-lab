@@ -13,6 +13,39 @@ Deterministic numerical engines own numerical search in the subsequent Phase3.
 
 ## Actual execution and preserved failures
 
+The bounded failure collector source correction passes89 cold checks (original
+60+29), independent actual03 saved-record replay and12 negative controls with
+no openP1/P2. Authentic failed records continue; provenance/receipt/unsafe input
+and unclassified execution failures remain fatal. Null/unavailable metric inputs
+cannot establish scaling/comparison, and any non-PASS keeps global partial.
+Original9 question literals/physics/limits/model and failed records are unchanged.
+Record20261002-structural-research-failure-flow. This source/code checkpoint is
+not a fresh numerical verification; new clean04/GUI/CI remain separate gates.
+
+- Research03/clean183cc0225f8358e441c63624af771e4dba19275d completes three
+  questions/nine observed provider step-finish records/nine actual tools.
+  Missing/unsupported turns execute nothing; beam study create/inspect,
+  both exact four-setting native analyses, both inspect/summary calls and
+  comparison/AI interpretation finish. Two records/six native jobs exist.
+  CCX all grids meet unchanged gates:10.912506701403661mm/reference error
+  0.005724952356495402/force error7.73461840347529e-8. Independent complete
+  raw U/RF/27x6 stress/coordinates/signed reactions and tool/source audit PASS.
+  Aster fine retains FACTOR_57 upper-bound3.32295e-6>native1e-6/exit1,
+  FAILED_EXECUTION/metrics{}. Its failed generic Core record has two actual
+  UNKNOWN qualification rows/four absent rows and adapter_details{}; no complete
+  final runtime/qualification metadata is asserted. AI accurately states failed
+  two-solver hypothesis/UNKNOWN/NOT_RELEASED. Driver's compound successful-
+  status/identity assertion produces a generic identity message; actual source/
+  model identities match. Remaining cylinder/roof/half/final NOT_RUN, overall
+  FAILED_OR_PARTIAL. Actual same-session GUI text observed, owned Stop confirmed,
+  271files29000305B copied exactly/original unchanged; raw remote backup UNKNOWN.
+  Exact183 CI36925985238 final8SUCCESS/2FAIL: source60PASS; explicit download404;
+  Aster Fz wrapper failure with CI internal code/level/value UNKNOWN from the
+  scoped job logs. Do not use local03 diagnostic as CI native evidence. Record
+  20261002-openscience-structural-research03. Next same-unit failure-aware
+  collection retains native/numerical failure while continuing independent
+  original stages, with provenance/receipt corruption fatal; reviewed new04
+  source/store must not relabel03 or relax a limit.
 - Research02/clean5484eb830cd92b77daf9a0a2ec2e6a897a9d7b5c passes initial/fresh
   resident/Python binding. Actual5.6Sol missing/unsupported replies execute
   nothing; beam study create/inspect complete. Both analysis requests add

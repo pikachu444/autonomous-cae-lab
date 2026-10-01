@@ -46,12 +46,17 @@ accuracy failure. Four bounded method probes are all failed/unadopted. Pushed
 model answers missing/unsupported questions and creates/inspects a study, but
 mixes research metadata into settings; both analyses are refused before Core.
 Failure interpretation,80-file retention and owned Stop remain separate proof.
-The next same-unit action is new clean-source research03 after common-profile
-input clarification and stale CI-count correction. This establishes research
-behavior, not a numerical shortcut:
-native accuracy and remaining cylinder/roof/half-load/refusal gates stay OPEN.
+Reviewed clarification is pushed183cc02. Actual research03 completes three
+questions/nine tools/two experiments/six jobs, including both solver requests,
+inspection/summary/comparison and accurate AI failure interpretation. CCX gates
+pass; Aster fine numerical failure remains. Same-session GUI/owned Stop and
+271-file local retention are confirmed. Driver's successful-status assertion
+stops independent later stages; overall FAILED_OR_PARTIAL. Next same-unit action:
+review a bounded failure-aware collector preserving fatal provenance/receipt
+checks and global numerical failure, then new clean04 in the original stage
+order. Native accuracy/cylinder/roof/half-load/refusal gates stay OPEN.
 See20261002-structural-family-native05,20261002-structural-research-python-correction
-and20261002-structural-research-arguments.
+and20261002-structural-research-arguments,20261002-openscience-structural-research03.
 Torsion, original MIDAS models/conflicts, additional plate/shell/modal/buckling/
 prestress coverage remain named open items; original52 and later phases persist.
 

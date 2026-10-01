@@ -140,6 +140,7 @@ $taskProvenance=Get-OpenScienceAcceptanceProvenance -Context $taskSetup -Timeout
 $taskStages=[Collections.Generic.List[object]]::new(); $taskReceipts=[Collections.Generic.List[object]]::new()
 $taskFrozen=[ordered]@{}; $taskQuestions=[Collections.Generic.List[object]]::new(); $taskResults=[ordered]@{}
 $taskStageEvidence=[Collections.Generic.List[object]]::new()
+$taskNumerical=[Collections.Generic.List[object]]::new(); $taskComparisons=[Collections.Generic.List[object]]::new()
 $taskReference=[ordered]@{schema=1;kind='autonomous-cae-lab.structural-research-reference';definition_id=$taskSpec.definition_id;
     definition_path=$taskSpecRelative;definition_sha256=$taskSpecSha;families=$taskPlan;core_source_sha256=$taskCoreSha;
     fixture_commit=$taskFixturePin[0].head;expected_experiments=9;expected_native_levels=27;load_scaling_relative_limit=1e-7;
@@ -154,6 +155,8 @@ $taskRecord=[ordered]@{run_name=$RunName;attempt_name=$AttemptName;started_utc=[
     profile_root=$taskSetup.ProfileRoot;store_root=$taskStore;project_binding=$taskSetup.ProjectBinding;runtime_intent_sha256=$taskSetup.IntentSha256;
     stage_timeout_seconds=$StageTimeoutSeconds;stages=$taskStages;questions=$taskQuestions;stage_input_evidence=$taskStageEvidence;
     receipts=$taskReceipts;frozen_experiments=$taskFrozen;families=$taskPlan;decision='NOT_RELEASED';
+    numerical_records=$taskNumerical;canonical_comparisons=$taskComparisons;
+    control_trace=@{status='IN_PROGRESS';scope='Nine declared questions, exact receipts and immutable records; numerical acceptance is separate'};
     native_field_cross_solver_audit='PENDING_ROOT_RAW_AUDIT';gui='NOT_RUN';numerical_optimization='NOT_RUN_PHASE3_SEPARATE';
     original_midas_replication='UNKNOWN';resumed=$false;
     limitations=@('Actual selected model/tool/Core loop is distinct from independent raw all-field native/cross-solver numerical audit.',
@@ -387,19 +390,105 @@ function Get-StructuralSummary($Result) {
         result_ref="experiments/$($Result.experiment_id)/result.json"}
 }
 
+function Assert-StructuralArtifact($Result,[string]$Relative) {
+    $entries=@($Result.artifacts | Where-Object path -CEQ $Relative)
+    Assert-Task ($entries.Count -eq 1 -and $entries[0].size_bytes -gt 0) "Missing/duplicate retained structural artifact: $Relative"
+    # Check-ExperimentBytes already checks containment, length and SHA for every
+    # artifact before this function is used. Never read an unlisted side file.
+    return (Join-Path $taskStore "experiments/$($Result.experiment_id)/$Relative")
+}
+
+function Assert-StructuralFailedSources($Result,[string]$Backend) {
+    $sources=if ($Backend -ceq 'structural.families.code_aster') {
+        [ordered]@{'adapter_source.py'='caelab/adapters/structural_family_codeaster.py';
+            'structural_family_codeaster_worker.py'='caelab/adapters/structural_family_codeaster_worker.py';
+            'codeaster_worker.py'='caelab/adapters/codeaster_worker.py';'runtime_helper.py'='caelab/adapters/codeaster_elasticity.py';
+            'structural_family_mesh.py'='caelab/adapters/structural_family_mesh.py';
+            'domain_reference.py'='plugins/structural_families/reference.py';'structural-families-v1.json'=$taskSpecRelative}
+    } else {
+        [ordered]@{'caelab/adapters/structural_family_calculix.py'='caelab/adapters/structural_family_calculix.py';
+            'caelab/adapters/structural_family_mesh.py'='caelab/adapters/structural_family_mesh.py';
+            'plugins/structural_families/reference.py'='plugins/structural_families/reference.py';
+            'caelab/storage.py'='caelab/storage.py';$taskSpecRelative=$taskSpecRelative}
+    }
+    $manifest=$null
+    if ($Backend -ceq 'structural.families.code_aster') {
+        $manifest=Get-Content -LiteralPath (Assert-StructuralArtifact $Result 'simulation/source_identity.json') -Raw | ConvertFrom-Json -AsHashtable -Depth 30
+        Assert-OpenScienceSameProvenance @($sources.Keys | Sort-Object) @($manifest.Keys | Sort-Object) 'Failed native source manifest has foreign/missing entries.'
+    }
+    foreach ($pair in $sources.GetEnumerator()) {
+        $pin=@($taskSetup.BootSource.files | Where-Object path -CEQ $pair.Value)
+        Assert-Task ($pin.Count -eq 1 -and $pin[0].sha256 -cmatch '^[0-9a-f]{64}$') 'Failed native source lacks its exact boot pin.'
+        $relative=if ($Backend -ceq 'structural.families.code_aster') { "simulation/$($pair.Key)" } else { "simulation/source_snapshot/$($pair.Key)" }
+        $path=Assert-StructuralArtifact $Result $relative
+        Assert-Task ((Get-OpenScienceHash $path) -ceq $pin[0].sha256) 'Failed native source snapshot differs from boot bytes.'
+        if ($manifest) {
+            $expectedPath=(ConvertTo-OpenScienceWslPath $RepoRoot).TrimEnd('/')+'/'+$pair.Value
+            Assert-Task ($manifest[$pair.Key].sha256 -ceq $pin[0].sha256 -and $manifest[$pair.Key].path -ceq $expectedPath -and
+                $manifest[$pair.Key].size_bytes -eq (Get-Item -LiteralPath $path).Length) 'Failed native source manifest identity differs.'
+        }
+    }
+}
+
+function Assert-StructuralExecutionFailure($Result,[string]$Backend) {
+    $failed=@($Result.validations | Where-Object {$_.type -ceq 'model_analysis_execution' -and $_.status -ceq 'FAIL'})
+    Assert-Task ($failed.Count -eq 1 -and @($failed[0].evidence_ids).Count -eq 1) 'Failed execution lacks exact Core FAIL evidence.'
+    $evidence=@($Result.evidence | Where-Object id -CEQ $failed[0].evidence_ids[0])
+    Assert-Task ($evidence.Count -eq 1 -and $evidence[0].source -ceq $Backend -and $evidence[0].method -ceq 'model_analysis_execution' -and
+        $evidence[0].observation.code -ceq 'model_analysis_execution' -and $evidence[0].observation.status -ceq 'FAIL') 'Failed execution evidence identity differs.'
+    # Core catches all adapter exceptions. Admit only an explicit native solver
+    # exit/timeout here; source/runtime/field identity exceptions remain fatal.
+    $observed=$evidence[0].observation.observed
+    $nativeFailure=if ($Backend -ceq 'structural.families.code_aster') {
+        $observed -cmatch '^RuntimeError: solver (?:failed \(exit -?[0-9]+\); captured logs are retained:|timed out; captured logs are retained$)'
+    } else {
+        $observed -cmatch '^RuntimeError: CalculiX (?:solver exited -?[0-9]+; native logs retained$|process timed out; partial native evidence retained$)'
+    }
+    Assert-Task $nativeFailure 'Unclassified execution failure is fatal; provenance/identity exceptions cannot be treated as numerical evidence.'
+    Assert-StructuralFailedSources $Result $Backend
+    $attempted=0
+    foreach ($index in 0..2) {
+        $command=@($Result.artifacts | Where-Object path -CEQ "simulation/level_$index/solver.command.json")
+        if (-not $command.Count) { continue }
+        $path=Assert-StructuralArtifact $Result "simulation/level_$index/solver.command.json"
+        $native=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -Depth 20
+        # Empty stdout/stderr are valid; both ledger-bound artifacts must exist.
+        foreach ($stream in @('stdout','stderr')) {
+            Assert-Task (@($Result.artifacts | Where-Object path -CEQ "simulation/level_$index/solver.$stream.log").Count -eq 1) 'Native failure has no retained output artifact.'
+        }
+        if ($Backend -ceq 'structural.families.code_aster') {
+            Assert-Task ($native.argv[0] -ceq $taskDefinition.runtime_environment.CAELAB_SINGULARITY_COMMAND -and
+                @($native.argv | Where-Object {$_ -ceq $taskDefinition.runtime_environment.CAELAB_CODEASTER_IMAGE}).Count -eq 1 -and
+                $native.argv[-1] -ceq "/work/level_$index/model.export" -and $native.timeout_seconds -eq 180) 'Failed native command differs from the pinned Aster runtime.'
+        } else {
+            $runtime=Get-Content -LiteralPath (Assert-StructuralArtifact $Result 'simulation/runtime_identity.json') -Raw | ConvertFrom-Json -Depth 20
+            Assert-Task ($runtime.required_version -ceq '2.21' -and $runtime.sha256 -cmatch '^[0-9a-f]{64}$' -and
+                $native.argv.Count -eq 3 -and $native.argv[0] -ceq $runtime.executable -and $native.argv[1] -ceq '-i' -and
+                $native.argv[2] -ceq 'family' -and $native.timeout_seconds -eq 240) 'Failed native command/runtime identity differs.'
+        }
+        $attempted++
+    }
+    Assert-Task ($attempted -gt 0) 'Execution failure lacks a retained native solver attempt.'
+}
+
 function Assert-StructuralResult([string]$Id,[string]$Study,[string]$Backend,$Settings,[string]$Scenario) {
     $result=Check-ExperimentBytes $Id
-    Assert-Task ($result.experiment_id -ceq $Id -and $result.study.id -ceq $Study -and $result.status -ceq 'COMPLETED_REVIEW_REQUIRED' -and
-        $result.solver_status -ceq 'COMPLETED' -and $result.converged -is [bool] -and $result.converged -and $null -eq $result.cad_revision -and
+    Assert-Task ($result.experiment_id -ceq $Id -and $result.study.id -ceq $Study -and $null -eq $result.cad_revision -and
         $result.decision -ceq 'NOT_RELEASED' -and $result.model_revision -cmatch '^[0-9a-f]{64}$' -and
         $result.extensions.model_analysis.model_revision -ceq $result.model_revision -and
         $result.provenance.core_commit -ceq $taskSetup.BootSource.source_commit -and $result.provenance.source_commit -ceq $taskSetup.BootSource.source_commit -and
         $result.provenance.core_dirty -is [bool] -and -not $result.provenance.core_dirty -and $result.provenance.core_source_sha256 -ceq $taskCoreSha -and
-        $result.provenance.adapter -ceq $Backend -and $result.provenance.adapter_version -ceq '1' -and
-        $result.provenance.adapter_details.adapter -ceq $Backend -and $result.provenance.adapter_details.adapter_version -ceq '1') 'Structural source/adapter/model/result identity differs.'
+        $result.provenance.adapter -ceq $Backend -and $result.provenance.adapter_version -ceq '1') 'Structural source/adapter/model/result identity differs.'
+    $completed=$result.solver_status -ceq 'COMPLETED' -and $result.converged -is [bool] -and $result.converged
+    Assert-Task (($result.status -ceq 'COMPLETED_REVIEW_REQUIRED' -and $completed) -or
+        ($result.status -ceq 'REJECTED' -and ($completed -or ($result.solver_status -ceq 'NOT_RUN' -and $null -eq $result.converged))) -or
+        ($result.status -ceq 'FAILED_EXECUTION' -and $result.solver_status -ceq 'FAILED_EXECUTION' -and $null -eq $result.converged)) 'Structural Core verdict/solver combination is malformed.'
+    if ($result.status -cne 'COMPLETED_REVIEW_REQUIRED') {
+        Assert-Task (@($result.validations | Where-Object status -CEQ 'FAIL').Count -gt 0) 'Non-PASS Core verdict lacks genuine failed validation evidence.'
+    }
     Assert-OpenScienceSameProvenance $Settings $result.provenance.execution_settings 'Structural settings differ from the predeclared question.'
-    Assert-Unknown $result @('static_strength','material_qualification','physical_validation','fatigue_durability','model_qualification','original_midas_replication')
-    $null=Assert-Metric $result 'primary_response' 'mm'
+    if ($result.status -ceq 'FAILED_EXECUTION') { Assert-Unknown $result @('physical_validation','model_qualification') }
+    else { Assert-Unknown $result @('static_strength','material_qualification','physical_validation','fatigue_durability','model_qualification','original_midas_replication') }
     Assert-ReceiptRecord 'caelab_model_analysis_run' 'experiment_id' $Id $result
     Assert-ReceiptRecord 'caelab_experiment_inspect' 'experiment_id' $Id $result
     $calls=@($taskReceipts | Where-Object {$_.scenario -ceq $Scenario -and $_.tool -ceq 'caelab_model_analysis_run' -and $_.input.experiment_id -ceq $Id})
@@ -409,23 +498,107 @@ function Assert-StructuralResult([string]$Id,[string]$Study,[string]$Backend,$Se
     $summaries=@($taskReceipts | Where-Object {$_.scenario -ceq $Scenario -and $_.tool -ceq 'caelab_experiment_summary' -and $_.status -ceq 'completed' -and $_.input.experiment_id -ceq $Id})
     Assert-Task ($summaries.Count -gt 0) 'Missing actual same-record research summary.'
     foreach ($call in $summaries) { Assert-OpenScienceSameProvenance $summary $call.receipt 'Actual summary differs from the stored record.' }
-    $input=Get-Content -LiteralPath (Join-Path $taskStore "experiments/$Id/simulation/input.json") -Raw | ConvertFrom-Json -Depth 40
+    $input=Get-Content -LiteralPath (Assert-StructuralArtifact $result 'simulation/input.json') -Raw | ConvertFrom-Json -Depth 40
     Assert-OpenScienceSameProvenance $Settings $input 'Stored native input differs from actual question settings.'
-    $suffix=if ($Backend -ceq 'structural.families.calculix') { 'family.frd' } else { 'results.med' }
-    foreach ($index in 0..2) {
-        $fields=@($result.artifacts | Where-Object path -CEQ "simulation/level_$index/$suffix")
-        $parsed=@($result.artifacts | Where-Object path -CEQ "simulation/level_$index/parsed_fields.json")
-        Assert-Task ($fields.Count -eq 1 -and $fields[0].size_bytes -gt 0 -and $parsed.Count -eq 1) 'Completed record lacks a retained native field/parsed table for every requested level.'
+    if ($result.status -ceq 'FAILED_EXECUTION') {
+        Assert-Task (@($result.metrics.PSObject.Properties).Count -eq 0 -and @($result.provenance.adapter_details.PSObject.Properties).Count -eq 0) 'Fallback failed Core record contains unexpected successful metrics/adapter details.'
+        Assert-StructuralExecutionFailure $result $Backend
+        return $result
     }
+    Assert-Task ($result.provenance.adapter_details.adapter -ceq $Backend -and $result.provenance.adapter_details.adapter_version -ceq '1') 'Structural adapter details identity differs.'
     if ($Backend -ceq 'structural.families.code_aster') {
-        Assert-Task ($result.provenance.adapter_details.definition_sha256 -ceq $taskSpecSha -and
-            $result.provenance.adapter_details.image_sha256 -ceq $taskDefinition.runtime_environment.CAELAB_CODEASTER_IMAGE_SHA256) 'Native definition/image pin differs.'
+        Assert-Task ($result.provenance.adapter_details.definition_sha256 -ceq $taskSpecSha) 'Native definition pin differs.'
+        if ($result.solver_status -cne 'NOT_RUN') {
+            Assert-Task ($result.provenance.adapter_details.image_sha256 -ceq $taskDefinition.runtime_environment.CAELAB_CODEASTER_IMAGE_SHA256) 'Native image pin differs.'
+        }
     } else {
-        Assert-Task ($result.provenance.adapter_details.input_sources.$taskSpecRelative.sha256 -ceq $taskSpecSha -and
-            $result.provenance.adapter_details.runtime.required_version -ceq '2.21' -and
-            $result.provenance.adapter_details.runtime.sha256 -cmatch '^[0-9a-f]{64}$') 'Native definition/CalculiX runtime identity is missing.'
+        Assert-Task ($result.provenance.adapter_details.input_sources.$taskSpecRelative.sha256 -ceq $taskSpecSha) 'Native definition pin differs.'
+        if ($result.solver_status -cne 'NOT_RUN') {
+            Assert-Task ($result.provenance.adapter_details.runtime.required_version -ceq '2.21' -and
+                $result.provenance.adapter_details.runtime.sha256 -cmatch '^[0-9a-f]{64}$') 'Native CalculiX runtime identity is missing.'
+        }
     }
     return $result
+}
+
+function Get-StructuralNumericalEvidence($Result) {
+    $failed=@($Result.validations | Where-Object status -CEQ 'FAIL')
+    $unknown=@($Result.validations | Where-Object status -CEQ 'UNKNOWN' | ForEach-Object type)
+    $qualification=@('static_strength','material_qualification','physical_validation','fatigue_durability','model_qualification','original_midas_replication')
+    $suffix=if ($Result.provenance.adapter -ceq 'structural.families.calculix') { 'family.frd' } else { 'results.med' }
+    $levels=@(foreach ($index in 0..2) {
+        $fields=@($Result.artifacts | Where-Object path -CEQ "simulation/level_$index/$suffix")
+        $parsed=@($Result.artifacts | Where-Object path -CEQ "simulation/level_$index/parsed_fields.json")
+        if ($fields.Count -eq 1 -and $fields[0].size_bytes -gt 0 -and $parsed.Count -eq 1 -and $parsed[0].size_bytes -gt 0) { $index }
+    })
+    $metric=$Result.metrics.primary_response
+    $numeric=$null -ne $metric -and ($metric.value -is [double] -or $metric.value -is [single] -or
+        $metric.value -is [decimal] -or $metric.value -is [int] -or $metric.value -is [long])
+    $validMetric=$numeric -and $metric.valid -is [bool] -and $metric.valid -and $metric.unit -ceq 'mm' -and [double]::IsFinite([double]$metric.value)
+    $complete=$Result.status -ceq 'COMPLETED_REVIEW_REQUIRED' -and $Result.solver_status -ceq 'COMPLETED' -and
+        $Result.converged -is [bool] -and $Result.converged -and $failed.Count -eq 0 -and $levels.Count -eq 3 -and $validMetric
+    # Partial/invalid metrics are retained in the exact Core JSON, but never
+    # returned as a numerical input, even if a failed record carries a value.
+    return [ordered]@{experiment_id=$Result.experiment_id;result_ref="experiments/$($Result.experiment_id)/result.json";
+        core_status=$Result.status;solver_status=$Result.solver_status;converged=$Result.converged;
+        status=$(if ($complete) {'PASS'} else {'FAILED_OR_UNAVAILABLE'});usable_for_comparison=[bool]$complete;
+        primary_response_mm=$(if ($complete) {[double]$metric.value} else {$null});
+        metric_gate=$(if ($validMetric -and $complete) {'PASS'} else {'UNKNOWN_UNAVAILABLE'});
+        native_field_gate=$(if ($levels.Count -eq 3 -and $complete) {'PASS'} else {'UNKNOWN_PARTIAL_OR_UNVERIFIED'});
+        retained_native_levels=$levels;complete_native_levels=$levels.Count;
+        failed_validations=@($failed | ForEach-Object { @{type=$_.type;evidence_ids=$_.evidence_ids;threshold=$_.threshold} });
+        failed_evidence=@($Result.evidence | Where-Object {$_.id -cin @($failed.evidence_ids | ForEach-Object {$_})});
+        actual_unknown_validations=$unknown;
+        unrecorded_qualifications=@($qualification | Where-Object {$_ -cnotin $unknown});
+        unrecorded_qualification_status='UNKNOWN_NOT_RECORDED_BY_CORE';
+        complete_adapter_runtime=$(if ($Result.status -ceq 'FAILED_EXECUTION' -or $Result.solver_status -ceq 'NOT_RUN') {'UNKNOWN_UNAVAILABLE'} else {'PIN_CHECKED'});
+        scope='Exact retained Core verdict/evidence; field filenames do not substitute for independent raw all-field audit';decision=$Result.decision}
+}
+
+function Add-StructuralRecord($Result,[string]$Scenario) {
+    Assert-Task (-not $taskResults.Contains($Result.experiment_id)) 'Structural experiment was already collected.'
+    $taskResults[$Result.experiment_id]=$Result
+    $entry=Get-StructuralNumericalEvidence $Result
+    $entry.scenario=$Scenario
+    $taskNumerical.Add($entry)
+    $null=Freeze-Experiment $Result.experiment_id
+    Save-Checkpoint
+}
+
+function Get-StructuralComparisonEvidence($Left,$Right) {
+    $first=Get-StructuralNumericalEvidence $Left; $second=Get-StructuralNumericalEvidence $Right
+    return [ordered]@{experiment_ids=@($Left.experiment_id,$Right.experiment_id);receipt_comparison='PASS_EXACT_STORED_RECORDS';
+        numerical_comparison=$(if ($first.usable_for_comparison -and $second.usable_for_comparison) {'PENDING_ROOT_RAW_AUDIT'} else {'UNKNOWN_UNAVAILABLE'});
+        numerical_agreement='UNKNOWN_NOT_ASSERTED_BY_CONTROL_TRACE';core_statuses=@($Left.status,$Right.status);
+        unavailable_ids=@(@($first,$second) | Where-Object {-not $_.usable_for_comparison} | ForEach-Object experiment_id)}
+}
+
+function Get-StructuralScalingEvidence($Full,$Half) {
+    $original=Get-StructuralNumericalEvidence $Full; $changed=Get-StructuralNumericalEvidence $Half
+    $entry=[ordered]@{case=$Full.provenance.execution_settings.case;original_id=$Full.experiment_id;changed_id=$Half.experiment_id;
+        original_revision=$Full.model_revision;changed_revision=$Half.model_revision;
+        core_statuses=@($Full.status,$Half.status);relative_error=$null;fixed_limit=1e-7;status='UNKNOWN_UNAVAILABLE';
+        metric_inputs_used=$false;unavailable_ids=@(@($original,$changed) | Where-Object {-not $_.usable_for_comparison} | ForEach-Object experiment_id)}
+    if (-not $original.usable_for_comparison -or -not $changed.usable_for_comparison) { return $entry }
+    if ($original.primary_response_mm -eq 0) { $entry.status='FAIL_ZERO_ORIGINAL_RESPONSE'; return $entry }
+    $entry.metric_inputs_used=$true
+    $entry.relative_error=[Math]::Abs($changed.primary_response_mm-0.5*$original.primary_response_mm)/[Math]::Max([Math]::Abs($original.primary_response_mm),1e-12)
+    $entry.status=if ([double]::IsFinite($entry.relative_error) -and $entry.relative_error -le 1e-7) {'PASS'} else {'FAIL'}
+    return $entry
+}
+
+function Get-StructuralCollectionVerdict($Records,$Numerical,$Scaling,[int]$StageCount,[int]$QuestionCount,[int]$FrozenCount) {
+    $complete=@($Records).Count -eq 9 -and @($Numerical).Count -eq 9 -and @($Scaling).Count -eq 3 -and
+        $StageCount -eq 9 -and $QuestionCount -eq 9 -and $FrozenCount -eq 9
+    $numericalPass=$complete -and @($Numerical | Where-Object {$_.status -cne 'PASS' -or -not $_.usable_for_comparison}).Count -eq 0 -and
+        @($Scaling | Where-Object status -CNE 'PASS').Count -eq 0
+    return [ordered]@{outcome=$(if ($numericalPass) {'PASS_BOUNDED_RESEARCH_LOOP'} else {'FAILED_OR_PARTIAL'});
+        control_trace=@{status=$(if ($complete) {'COMPLETED'} else {'PARTIAL'});requested_stages=$StageCount;interpreted_stages=$QuestionCount;
+            retained_records=@($Records).Count;immutable_records=$FrozenCount;
+            scope='Declared question/receipt/immutable-record collection only; no numerical/engineering qualification inferred'};
+        numerical_gate=$(if ($numericalPass) {'PASS_BOUNDED_RECORD_AND_SCALING_CHECKS'} else {'FAILED_OR_UNAVAILABLE'});
+        non_pass_record_ids=@($Numerical | Where-Object status -CNE 'PASS' | ForEach-Object experiment_id);
+        non_pass_scaling=@($Scaling | Where-Object status -CNE 'PASS');decision='NOT_RELEASED'}
 }
 
 function Assert-StructuralScaling([double]$Full,[double]$Half) {
@@ -462,30 +635,33 @@ try {
         Assert-ReceiptRecord 'caelab_study_create' 'study_id' $family.study_id $study
         Assert-ReceiptRecord 'caelab_study_inspect' 'study_id' $family.study_id $study
         $ccx=Assert-StructuralResult $family.calculix_id $family.study_id 'structural.families.calculix' $family.settings $scenario
+        Add-StructuralRecord $ccx $scenario
         $aster=Assert-StructuralResult $family.aster_id $family.study_id 'structural.families.code_aster' $family.settings $scenario
+        Add-StructuralRecord $aster $scenario
         Assert-Task ($ccx.model_revision -ceq $aster.model_revision) 'Canonical solvers did not use the same model revision.'
         Assert-Comparison @($family.calculix_id,$family.aster_id)
-        foreach ($result in @($ccx,$aster)) { $taskResults[$result.experiment_id]=$result; $null=Freeze-Experiment $result.experiment_id }
+        $taskComparisons.Add((Get-StructuralComparisonEvidence $ccx $aster))
         Assert-Task (-not(Test-Path -LiteralPath (Join-Path $taskStore "experiments/$($family.half_id)"))) 'Changed load executed before its follow-up question.'
         Assert-Task ($taskQuestions[-1].response.Contains('UNKNOWN') -and $taskQuestions[-1].response.Contains('NOT_RELEASED')) 'Family interpretation lost qualification limitations.'
         $index++
         $scenario="$($family.tag)-half-load"
         $context=[ordered]@{study_id=$family.study_id;backend='structural.families.calculix';experiment_id=$family.half_id;
             settings=$family.half_settings;original_records=@((Get-StructuralSummary $ccx),(Get-StructuralSummary $aster));
+            numerical_evidence=@((Get-StructuralNumericalEvidence $ccx),(Get-StructuralNumericalEvidence $aster));
             source_limitations=$family.case_definition.limitations;fixed_scaling_relative_limit=1e-7;decision='NOT_RELEASED'}
         $prompt="The two canonical records have been retained. How does reducing only the declared load_factor to0.5 affect this linear family's response? Use CalculiX only for the new experiment in the same study and the same three meshes; inspect and summarize the new record, compare it with the unchanged full-load CalculiX record, and interpret the observed scaling and remaining UNKNOWN. Preserve both earlier records, use a new model revision, keep NOT_RELEASED and do not rerun the original condition or Code_Aster. Follow-up definition: " + ($context | ConvertTo-Json -Depth 45 -Compress)
         $null=Invoke-StructuralQuestion (('{0:D2}-{1}-half-load' -f $index,$family.tag)) $scenario $prompt $context
         $half=Assert-StructuralResult $family.half_id $family.study_id 'structural.families.calculix' $family.half_settings $scenario
+        Add-StructuralRecord $half $scenario
         Assert-Task ($half.model_revision -cne $ccx.model_revision) 'Changed load did not create a distinct model revision.'
         Assert-Comparison @($family.calculix_id,$family.half_id)
-        $error=Assert-StructuralScaling (Assert-Metric $ccx 'primary_response' 'mm') (Assert-Metric $half 'primary_response' 'mm')
-        $taskScaling.Add(@{case=$family.case;original_id=$ccx.experiment_id;changed_id=$half.experiment_id;
-            original_revision=$ccx.model_revision;changed_revision=$half.model_revision;relative_error=$error;fixed_limit=1e-7;status='PASS'})
-        $taskResults[$half.experiment_id]=$half; $null=Freeze-Experiment $half.experiment_id
+        $taskScaling.Add((Get-StructuralScalingEvidence $ccx $half))
         Assert-Task ($taskQuestions[-1].response.Contains('UNKNOWN') -and $taskQuestions[-1].response.Contains('NOT_RELEASED')) 'Changed-load interpretation lost qualification limitations.'
         $index++; $taskRecord.changed_load=$taskScaling; Save-Checkpoint
     }
     $context=[ordered]@{checked_records=@($taskResults.Values);changed_load=$taskScaling;
+        numerical_records=@($taskNumerical);canonical_comparisons=@($taskComparisons);
+        numerical_scope='Non-PASS/partial records are retained as failures; unavailable values cannot prove scaling or cross-solver agreement';
         no_execution=@{missing_input=$taskRecord.'no_execution_missing-input';unsupported_torsion=$taskRecord.'no_execution_unsupported-torsion'};
         native_field_cross_solver_audit='PENDING_ROOT_RAW_AUDIT';gui='NOT_RUN';numerical_optimization='NOT_RUN_PHASE3_SEPARATE';
         original_midas_replication='UNKNOWN';decision='NOT_RELEASED';limitations=$taskRecord.limitations}
@@ -509,9 +685,14 @@ try {
     Assert-Task ((Get-PinnedFileSha $taskSpecRelative) -ceq $taskSpecSha -and
         (Get-OpenScienceHash (Join-Path $taskArtifacts 'predeclared-reference.json')) -ceq $taskRecord.reference_sha256) 'Predeclared native reference changed.'
     Assert-OpenScienceSameProvenance $taskProvenance (Get-OpenScienceAcceptanceProvenance -Context $taskSetup -Timeout $StageTimeoutSeconds -ModelIdentity (Get-OpenScienceAcceptanceModelIdentity $taskSetup)) 'Source/config/project/model/runtime changed before acceptance.'
-    $taskRecord.same_record_inspections='PASS'; $taskRecord.original_experiment_bytes='PASS'; $taskRecord.completed_experiments=9;
-    $taskRecord.native_levels=27; $taskRecord.native_level_scope='Three retained native field/parsed table pairs per completed Core record; independent all-field audit remains PENDING.'
-    $taskRecord.outcome='PASS_BOUNDED_RESEARCH_LOOP'
+    $verdict=Get-StructuralCollectionVerdict @($taskResults.Values) @($taskNumerical) @($taskScaling) $taskStages.Count $taskQuestions.Count $taskFrozen.Count
+    $taskRecord.same_record_inspections='PASS'; $taskRecord.original_experiment_bytes='PASS'; $taskRecord.retained_experiments=9;
+    $taskRecord.completed_experiments=@($taskNumerical | Where-Object status -CEQ 'PASS').Count;
+    $taskRecord.requested_native_levels=27; $taskRecord.native_levels=$(if ($verdict.outcome -ceq 'PASS_BOUNDED_RESEARCH_LOOP') {27} else {$null});
+    $taskRecord.retained_native_field_pairs=($taskNumerical.complete_native_levels | Measure-Object -Sum).Sum;
+    $taskRecord.native_level_scope='Retained field/parsed pairs are counted separately from numerical eligibility; independent all-field audit remains PENDING.'
+    $taskRecord.control_trace=$verdict.control_trace; $taskRecord.numerical_verdict=$verdict; $taskRecord.outcome=$verdict.outcome
+    if ($taskRecord.outcome -ceq 'FAILED_OR_PARTIAL') { $taskRecord.failure='Declared control trace collected; one or more numerical records/scaling gates failed or are unavailable.' }
 } catch {
     $taskRecord.outcome='FAILED_OR_PARTIAL'; $taskRecord.failure=$_.Exception.Message
     $taskRecord.failure_detail=($_ | Out-String); $taskRecord.script_stack_trace=$_.ScriptStackTrace

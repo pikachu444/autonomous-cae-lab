@@ -1,0 +1,116 @@
+{
+  "schema_version": "1",
+  "record_kind": "BOUNDED_RESEARCH_FAILURE_COLLECTION_SOURCE_CORRECTION",
+  "created_utc": "2026-10-01T21:47:03.572899+00:00",
+  "unit": "P2.2",
+  "base_commit": "183cc0225f8358e441c63624af771e4dba19275d",
+  "reviewed_source": [
+    {
+      "path": "scripts/verify_structural_research_live.ps1",
+      "frozen_copy": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-research-failure-flow-20261002-01\\attempt01\\verify_structural_research_live.ps1",
+      "size_bytes": 65129,
+      "sha256": "7e09a0b45604fde318324174fc76229738e26fd87a020499fc09d8c8e256c855"
+    },
+    {
+      "path": "scripts/verify_structural_research_source.ps1",
+      "frozen_copy": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-research-failure-flow-20261002-01\\attempt01\\verify_structural_research_source.ps1",
+      "size_bytes": 45751,
+      "sha256": "24d9598e98817b6e481f78302d53da0c305b6ec3510fbc33a52fdb0ad6ef078e"
+    }
+  ],
+  "problem": "Actual183/research03 retained a genuine failed native experiment and correct AI interpretation, but the driver combined a successful solver verdict with source identity and stopped independent later stages.",
+  "behavior": [
+    "Retain exact experiment/run/inspect/summary receipts and unchanged settings/boot-pinned copied sources.",
+    "Only recognized native solver exit/timeout failures may continue; source/receipt/provenance/unsafe-input and unclassified execution exceptions remain fatal.",
+    "Numerically rejected and partial records retain original invalid/missing metrics; comparison/scaling inputs are null when ineligible.",
+    "Continue original independent family/half-load sequence and final AI interpretation without changing question literals or science.",
+    "Record completed control collection separately; any failed/unavailable numerical record or scaling gate keeps FAILED_OR_PARTIAL and NOT_RELEASED.",
+    "Missing failed-Core qualification/runtime metadata remains UNKNOWN/unavailable; no validation row or final image identity is fabricated."
+  ],
+  "source_checks": {
+    "status": "PASS_SOURCE_ONLY",
+    "checks": 89,
+    "preserved_checks": 60,
+    "new_checks": 29,
+    "actual_calls": {
+      "model": 0,
+      "runtime": 0,
+      "Core": 0,
+      "native_solver": 0
+    },
+    "checks_receipt": {
+      "path": "artifacts/p2-structural-research-failure-flow-20261002-01/attempt01/checks.json",
+      "bytes": 111062,
+      "sha256": "88f261a2268ec6ebf9827fa4b5f95cf779bdf9146199c98a8f81495f543a7e05"
+    },
+    "freeze": {
+      "path": "artifacts/p2-structural-research-failure-flow-20261002-01/attempt01/freeze.json",
+      "bytes": 2625,
+      "sha256": "dd033b6f382677d25836d5da1893cd54e06c46e4f43c370074c78a7f31c5b2ee"
+    },
+    "scope": "Pure synthetic refusal/failed record/corruption/scaling/continuation helpers. Not a new actual OpenScience or native execution."
+  },
+  "ci_wrapper": {
+    "expected_checks": 89,
+    "source": {
+      "path": ".github/workflows/caelab-ci.yml",
+      "bytes": 20689,
+      "sha256": "3b9b567bdbf006dd98898bf74d841c609eec0e6c63d551e691dbaed4890321c8"
+    },
+    "scope": "Expected count changes only; status/non-PASS/four zero-call gates remain unchanged. New commit CI pending."
+  },
+  "unchanged": [
+    "All52 requirement IDs/descriptions",
+    "Core/schema/MCP/guard/adapters/Domain references",
+    "Scientific model/input/response/thresholds",
+    "Approved openai-codex/gpt-5.6-sol/auth/project",
+    "Nine original question literals",
+    "Original research01/02/03 and native failures"
+  ],
+  "actual_previous": {
+    "source": "183cc0225f8358e441c63624af771e4dba19275d",
+    "run": "p2-research-20261002-03",
+    "outcome": "FAILED_OR_PARTIAL",
+    "record": {
+      "path": "benchmarks/records/20261002-openscience-structural-research03.json",
+      "bytes": 18762,
+      "sha256": "506951b4ba4f8abf81d271477316d367f6ac702ede7c6afdf12e3575c231b69c"
+    }
+  },
+  "independent_review": {
+    "status": "PASS_BOUNDED_SOURCE_AND_SAVED_RECORD_REPLAY",
+    "checks": 20,
+    "open_P1": 0,
+    "open_P2": 0,
+    "actual03_saved_record_replay": "PASS_PURE_PRODUCTION_FUNCTION_REPLAY_NOT_NEW_NATIVE_RUN",
+    "actual_shaped_negative_controls": 12,
+    "review": {
+      "path": "artifacts/p2-structural-research-failure-flow-review-20261002-01/independent-review.json",
+      "bytes": 15609,
+      "sha256": "3b7f414ad69a47639ec295a4ce980a01bb8cb9418b36ef1c407bc36c9b88012f"
+    },
+    "replay": {
+      "path": "artifacts/p2-structural-research-failure-flow-review-20261002-01/actual03-pure-replay.json",
+      "bytes": 34362,
+      "sha256": "26c53f007909ea1559b5514d9429d300a0012634a3915132f0dbaeac2ac9e516"
+    },
+    "negative_controls": {
+      "path": "artifacts/p2-structural-research-failure-flow-review-20261002-01/actual03-negative-controls.json",
+      "bytes": 2950,
+      "sha256": "ff713f7742714352409a71237709fa4f9166a94704209244ead5a4ccb98a19c5"
+    },
+    "source_invariants": {
+      "path": "artifacts/p2-structural-research-failure-flow-review-20261002-01/source-invariants.json",
+      "bytes": 2761,
+      "sha256": "96effdad726a5e01100120dd2783431d5c55c4de7f42068791564e103b2e74ba"
+    }
+  },
+  "new_actual04": "NOT_RUN",
+  "decision": "NOT_RELEASED",
+  "limits": [
+    "Full P2.2/numerical gates and all52 remain OPEN.",
+    "This code/checkpoint commit is not another solver verification.",
+    "Actual all-field cross-solver audit, runtime completeness, human GUI and physical qualification remain distinct gates."
+  ],
+  "next": "After independent review and clean committed/pushed source, run a fresh owned04 with unchanged selected model, cases, settings and limits."
+}

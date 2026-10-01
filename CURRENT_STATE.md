@@ -1,5 +1,47 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
+## Current actual checkpoint: research03 runs and interprets both solver records
+
+Source183cc0225f8358e441c63624af771e4dba19275d is pushed. New owned research03
+uses the approved5.6Sol and same official project/auth, clean resident source
+and exact four-setting inputs. Three actual questions/nine observed model
+step-finish records/nine completed tools include study create/inspect, both
+native analyses, both inspect/summary calls and comparison. Six native jobs
+and two common records exist. Research02's argument fault is closed.
+
+CCX's three grids pass the fixed numerical gates; independently parsed complete
+native fields confirm10.912506701403661mm/reference error0.005724952356495402/
+force balance7.73461840347529e-8. Aster fine has actual FACTOR_57/exit1:
+solution-error upper-bound3.32295e-6>native1e-6, not an assembled A/u/b residual.
+Its FAILED_EXECUTION/metrics{} remain. Failed Core wrapper has only actual
+model_qualification/physical_validation UNKNOWN, four other qualification rows
+absent, and adapter_details{}; full runtime/qualification completeness is
+UNKNOWN, not fabricated. AI distinguishes failure, missing comparison and
+NOT_RELEASED. Driver's compound successful-status/identity assertion stops the
+remaining stages with a generic message; matching actual identities show no
+established source drift. Overall FAILED_OR_PARTIAL; cylinder/roof/half/final
+are NOT_RUN in this store.
+
+Independent raw/tool/input/source audit passes. Root observes same official
+session/records/AI text, scoped without retained screenshot/native CAD GUI
+proof. Owned Stop66824/65904/46160 absent and native netstat4098 closed;
+271files29000305B retained byte-identically/original unchanged. Remote raw
+backup UNKNOWN_NOT_UPLOADED. Exact183 CI36925985238 final8SUCCESS/2FAIL:
+source wrapper60PASS, explicit download404/22, Aster Fz wrapper failure.
+CI internal code/mesh/value remain UNKNOWN without native artifacts; local03
+diagnostic is not substituted. Record20261002-openscience-structural-research03.
+
+The verifier correction passes89 cold checks (60 preserved+29), independent
+actual03 saved-record replay and12 negative controls with no openP1/P2; actual
+provider/Core/solver/runtime calls0. Record20261002-structural-research-failure-flow
+keeps source readiness distinct from new04. CI wrapper expects89; other gates
+remain unchanged. The correction stays in the research verifier: classify genuine retained native
+failure separately from fatal identity/receipt corruption, collect remaining
+independent stages sequentially, keep numerical failures/UNKNOWN and global
+FAILED_OR_PARTIAL. Review/source-check/commit before new clean research04.
+No Core/schema/adapter/threshold/model change; publish reviewed source and new
+clean04 next. P2.2/full52 remain OPEN.
+
 ## Latest actual checkpoint: research02 study operations; analysis refused
 
 Clean pushed5484eb8/research02 passes both actual resident/Python binding reads

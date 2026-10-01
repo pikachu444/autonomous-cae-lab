@@ -1,5 +1,23 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+Actual183/research03 closes the four-setting input fault: three questions,
+nine completed tools/two common experiments/six native jobs. OpenScience
+creates/inspects the study, runs both native backends, inspects/summarizes/
+compares and interprets actual records. CCX is complete; Aster's genuine fine
+numerical failure remains FAILED_EXECUTION/metrics{}. AI explains unmet
+agreement/UNKNOWN/NOT_RELEASED. Overall FAILED_OR_PARTIAL: driver successful-
+status assertion stops independent later stages, without established source
+drift. Failed generic Core record has two UNKNOWN qualification rows/four absent
+rows and empty adapter_details; unavailable metadata stays UNKNOWN. Record
+20261002-openscience-structural-research03 includes raw audit/GUI/Stop/retention
+and exact CI scope. Next bounded verifier correction separates numerical failure
+from fatal provenance/receipt corruption and collects original stages in order;
+global numerical failure remains partial. The source correction passes89 cold
+checks and independent actual03 pure replay/12 negative controls; actual new04
+is a separate gate. Record20261002-structural-research-failure-flow.
+No Core/wire/schema/guard/tool/model/
+scientific threshold change. New clean04 execution is a separate gate.
+
 Actual5484/research02 passes resident/Python binding and model responses, creates/
 inspects a study, but both analysis requests add benchmark identity/hash to
 settings and are correctly refused before Core; no experiment/native job exists.

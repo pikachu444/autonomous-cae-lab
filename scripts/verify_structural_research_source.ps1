@@ -7,7 +7,7 @@ $ErrorActionPreference='Stop'
 $taskSourceRoot=[IO.Path]::GetFullPath($RepoRoot)
 if (-not $DriverPath) { $DriverPath=Join-Path $taskSourceRoot 'scripts/verify_structural_research_live.ps1' }
 $taskSourceDriver=[IO.Path]::GetFullPath($DriverPath)
-$taskSourceEvidence=Join-Path $taskSourceRoot ('artifacts/p2-structural-research-driver-20261002-01/source-checks-'+[Guid]::NewGuid().ToString('N'))
+$taskSourceEvidence=Join-Path $taskSourceRoot ('artifacts/p2-structural-research-failure-flow-20261002-01/source-checks-'+[Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $taskSourceEvidence | Out-Null
 $taskSourceChecks=[Collections.Generic.List[object]]::new()
 
@@ -44,7 +44,9 @@ foreach ($name in @('Assert-Task','Assert-OpenScienceSameProvenance','Write-Task
     . (Import-SourceFunction $taskLiveAst $name)
 }
 foreach ($name in @('Assert-StructuralBootstrap','Get-StructuralHelperContract','Get-StructuralSummary',
-    'Assert-StructuralScaling','Assert-StructuralNoExecution','Assert-StructuralResult','Get-StructuralResidentBinding',
+    'Assert-StructuralScaling','Assert-StructuralNoExecution','Assert-StructuralResult','Assert-StructuralArtifact',
+    'Assert-StructuralFailedSources','Assert-StructuralExecutionFailure','Get-StructuralNumericalEvidence',
+    'Add-StructuralRecord','Get-StructuralComparisonEvidence','Get-StructuralScalingEvidence','Get-StructuralCollectionVerdict','Get-StructuralResidentBinding',
     'Assert-StructuralResidentIdentity','Assert-StructuralResidentFiles','Assert-StructuralResidentProof')) {
     . (Import-SourceFunction $taskSourceAst $name)
 }
@@ -343,11 +345,174 @@ $taskReceipts[0].input.backend=$backend
 $taskReceipts[2].receipt.model_revision='0'*64
 Assert-SourceRefusal { Assert-StructuralResult $id $study $backend $settings $scenario } 'summary with different model revision refused'
 $taskReceipts[2].receipt=Get-StructuralSummary $stored
+$taskSourceValidTemplate=$result | ConvertTo-Json -Depth 45 | ConvertFrom-Json -AsHashtable -Depth 45
 $null=Freeze-Experiment $id
 $original=Get-OpenScienceHash (Join-Path $folder 'thread.json')
 [IO.File]::AppendAllText((Join-Path $folder 'thread.json'),'tampered')
 Assert-SourceRefusal { Assert-FrozenExperiments } 'original thread bytes immutable across stages'
 Assert-SourceCheck ((Get-OpenScienceHash (Join-Path $folder 'thread.json')) -cne $original) 'failed tamper fixture retained without hiding failure'
+
+# Source-only failure fixtures exercise the actual collector functions. Their
+# public logs/field files are synthetic and cannot establish native correctness.
+$taskStore=Join-Path $taskSourceEvidence 'failure-flow-store'
+$taskRecord=[ordered]@{}; $taskFrozen=[ordered]@{}; $taskResults=[ordered]@{}
+$taskNumerical=[Collections.Generic.List[object]]::new(); $taskReceipts=[Collections.Generic.List[object]]::new()
+$RepoRoot=Join-Path $taskSourceEvidence 'failure-flow-source'
+$taskSourceAsterSources=[ordered]@{'adapter_source.py'='caelab/adapters/structural_family_codeaster.py';
+    'structural_family_codeaster_worker.py'='caelab/adapters/structural_family_codeaster_worker.py';
+    'codeaster_worker.py'='caelab/adapters/codeaster_worker.py';'runtime_helper.py'='caelab/adapters/codeaster_elasticity.py';
+    'structural_family_mesh.py'='caelab/adapters/structural_family_mesh.py';
+    'domain_reference.py'='plugins/structural_families/reference.py';'structural-families-v1.json'=$taskSpecRelative}
+$taskSetup.BootSource.files=@()
+foreach ($pair in $taskSourceAsterSources.GetEnumerator()) {
+    $path=Join-Path $RepoRoot $pair.Value
+    New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null
+    [IO.File]::WriteAllText($path,"PUBLIC SYNTHETIC BOOT SOURCE: $($pair.Value)",[Text.UTF8Encoding]::new($false))
+    $taskSetup.BootSource.files+=@{path=$pair.Value;sha256=Get-OpenScienceHash $path}
+}
+$taskDefinition.runtime_environment.CAELAB_SINGULARITY_COMMAND='/usr/bin/singularity'
+$taskDefinition.runtime_environment.CAELAB_CODEASTER_IMAGE='/public/mock-codeaster.sif'
+
+function New-SourceStructuralRecord([string]$Id,[string]$Verdict='COMPLETED_REVIEW_REQUIRED',[double]$Value=8.0,
+    [string]$Mutation='none') {
+    $item=$taskSourceValidTemplate | ConvertTo-Json -Depth 45 | ConvertFrom-Json -AsHashtable -Depth 45
+    $item.experiment_id=$Id; $item.status=$Verdict; $item.artifacts=@(); $item.metrics.primary_response.value=$Value
+    $item.evidence=@()
+    if ($Verdict -ceq 'FAILED_EXECUTION') {
+        $item.solver_status='FAILED_EXECUTION'; $item.converged=$null; $item.metrics=@{}
+        $item.provenance.adapter='structural.families.code_aster'; $item.provenance.adapter_details=@{}
+        $item.validations=@(@{type='model_analysis_execution';status='FAIL';evidence_ids=@("EV-$Id-001")},
+            @{type='physical_validation';status='UNKNOWN';evidence_ids=@()},@{type='model_qualification';status='UNKNOWN';evidence_ids=@()})
+        $observation=if ($Mutation -ceq 'unclassified') {'RuntimeError: native input/source identity drifted'} else {'RuntimeError: solver failed (exit 1); captured logs are retained: '}
+        $item.evidence=@(@{id="EV-$Id-001";source=$item.provenance.adapter;method='model_analysis_execution';
+            observation=@{code='model_analysis_execution';status='FAIL';observed=$observation};artifact='proposal.json'})
+    } elseif ($Verdict -ceq 'REJECTED') {
+        $item.validations+=@{type='signed_reaction_balance';status='FAIL';threshold=1e-7;evidence_ids=@("EV-$Id-001")}
+        $item.evidence=@(@{id="EV-$Id-001";source=$item.provenance.adapter;method='signed_reaction_balance';
+            observation=@{code='signed_reaction_balance';status='FAIL';observed=2e-7;limit=1e-7}})
+    }
+    if ($Mutation -ceq 'foreign-core') { $item.provenance.core_source_sha256='0'*64 }
+    if ($Mutation -ceq 'foreign-model') { $item.extensions.model_analysis.model_revision='0'*64 }
+    if ($Mutation -ceq 'wrong-settings') { $item.provenance.execution_settings.load_factor=2.0 }
+    if ($Mutation -ceq 'missing-fail') { $item.validations=@($item.validations | Where-Object status -CNE 'FAIL') }
+    if ($Mutation -ceq 'foreign-evidence') { $item.evidence[0].source='structural.families.calculix' }
+    if ($Mutation -ceq 'missing-metric') { $item.metrics=@{} }
+    if ($Mutation -ceq 'invalid-metric') { $item.metrics.primary_response.valid=$false }
+    $directory=Join-Path $taskStore "experiments/$Id"
+    New-Item -ItemType Directory -Path (Join-Path $directory 'simulation'),(Join-Path $taskStore 'ledger') -Force | Out-Null
+    Write-TaskJson (Join-Path $directory 'simulation/input.json') $settings
+    $levels=if ($Verdict -ceq 'FAILED_EXECUTION' -or $Mutation -ceq 'partial-fields') {0..1} else {0..2}
+    foreach ($level in $levels) {
+        $path=Join-Path $directory "simulation/level_$level"; New-Item -ItemType Directory -Path $path | Out-Null
+        $suffix=if ($Verdict -ceq 'FAILED_EXECUTION') {'results.med'} else {'family.frd'}
+        foreach ($name in @($suffix,'parsed_fields.json')) {
+            [IO.File]::WriteAllText((Join-Path $path $name),'PUBLIC SYNTHETIC FIELDS; NO SOLVER',[Text.UTF8Encoding]::new($false))
+        }
+    }
+    if ($Verdict -ceq 'FAILED_EXECUTION') {
+        $manifest=[ordered]@{}
+        foreach ($pair in $taskSourceAsterSources.GetEnumerator()) {
+            $copy=Join-Path $directory "simulation/$($pair.Key)"
+            [IO.File]::Copy((Join-Path $RepoRoot $pair.Value),$copy,$false)
+            if ($Mutation -ceq 'foreign-source' -and $pair.Key -ceq 'adapter_source.py') { [IO.File]::AppendAllText($copy,'FOREIGN') }
+            $manifest[$pair.Key]=@{path=(ConvertTo-OpenScienceWslPath $RepoRoot).TrimEnd('/')+'/'+$pair.Value;
+                sha256=Get-OpenScienceHash $copy;size_bytes=(Get-Item -LiteralPath $copy).Length}
+        }
+        Write-TaskJson (Join-Path $directory 'simulation/source_identity.json') $manifest
+        $path=Join-Path $directory 'simulation/level_2'; New-Item -ItemType Directory -Path $path | Out-Null
+        Write-TaskJson (Join-Path $path 'solver.command.json') @{argv=@('/usr/bin/singularity','exec','--cleanenv',
+            $taskDefinition.runtime_environment.CAELAB_CODEASTER_IMAGE,'/work/level_2/model.export');timeout_seconds=180}
+        [IO.File]::WriteAllText((Join-Path $path 'solver.stdout.log'),'PUBLIC SYNTHETIC NATIVE FAILURE',[Text.UTF8Encoding]::new($false))
+        [IO.File]::WriteAllText((Join-Path $path 'solver.stderr.log'),'',[Text.UTF8Encoding]::new($false))
+    }
+    $item.artifacts=@(Get-ChildItem -LiteralPath (Join-Path $directory 'simulation') -Recurse -File | ForEach-Object {
+        @{path=([IO.Path]::GetRelativePath($directory,$_.FullName)-replace '\\','/');sha256=Get-OpenScienceHash $_.FullName;size_bytes=$_.Length}})
+    Write-TaskJson (Join-Path $directory 'result.json') $item
+    Write-TaskJson (Join-Path $directory 'thread.json') @{synthetic=$true;experiment=$Id;model_revision=$item.model_revision}
+    Write-TaskJson (Join-Path $taskStore "ledger/$Id.json") @{result_sha256=Get-OpenScienceHash (Join-Path $directory 'result.json');
+        thread_sha256=Get-OpenScienceHash (Join-Path $directory 'thread.json')}
+    $record=Check-ExperimentBytes $Id
+    $taskReceipts.Add(@{scenario=$Id;tool='caelab_model_analysis_run';status='completed';
+        input=@{study_id=$study;experiment_id=$Id;backend=$item.provenance.adapter;settings=$settings};receipt=$record})
+    $taskReceipts.Add(@{scenario=$Id;tool='caelab_experiment_inspect';status='completed';input=@{experiment_id=$Id};receipt=$record})
+    $taskReceipts.Add(@{scenario=$Id;tool='caelab_experiment_summary';status='completed';input=@{experiment_id=$Id};receipt=(Get-StructuralSummary $record)})
+    return $record
+}
+
+$failure=New-SourceStructuralRecord 'E-failure' 'FAILED_EXECUTION'
+$accepted=Assert-StructuralResult $failure.experiment_id $study $failure.provenance.adapter $settings $failure.experiment_id
+Assert-SourceCheck ($accepted.status -ceq 'FAILED_EXECUTION' -and @($accepted.metrics.PSObject.Properties).Count -eq 0) 'genuine failed Core JSON retained without successful metrics'
+Add-StructuralRecord $accepted 'beam-baseline'
+$failureHash=Get-OpenScienceHash (Join-Path $taskStore 'experiments/E-failure/result.json')
+$failureEvidence=$taskNumerical[0]
+Assert-SourceCheck (-not $failureEvidence.usable_for_comparison -and $null -eq $failureEvidence.primary_response_mm -and
+    $failureEvidence.complete_native_levels -eq 2 -and $failureEvidence.failed_evidence.Count -eq 1) 'failed partial native fields never provide aggregate numerical inputs'
+Assert-SourceCheck ($failureEvidence.actual_unknown_validations.Count -eq 2 -and $failureEvidence.unrecorded_qualifications.Count -eq 4 -and
+    $failureEvidence.complete_adapter_runtime -ceq 'UNKNOWN_UNAVAILABLE') 'failed metadata keeps actual two UNKNOWN rows and exposes unrecorded qualifications/runtime as unavailable'
+foreach ($mutation in @('foreign-core','foreign-model','wrong-settings','missing-fail','foreign-evidence','foreign-source','unclassified')) {
+    $record=New-SourceStructuralRecord "E-$mutation" 'FAILED_EXECUTION' -Mutation $mutation
+    Assert-SourceRefusal { Assert-StructuralResult $record.experiment_id $study $record.provenance.adapter $settings $record.experiment_id } ("failed record cannot waive fatal "+$mutation)
+}
+$receipt=@($taskReceipts | Where-Object {$_.scenario -ceq 'E-failure' -and $_.tool -ceq 'caelab_experiment_inspect'})[0]
+$receipt.receipt=$receipt.receipt | ConvertTo-Json -Depth 45 | ConvertFrom-Json -Depth 45
+$receipt.receipt.model_revision='0'*64
+Assert-SourceRefusal { Assert-StructuralResult 'E-failure' $study $failure.provenance.adapter $settings 'E-failure' } 'failed record inspect identity mismatch remains fatal'
+$receipt.receipt=$failure
+
+$full=New-SourceStructuralRecord 'E-full'; $half=New-SourceStructuralRecord 'E-half' -Value 4.0
+$validScaling=Get-StructuralScalingEvidence $full $half
+Assert-SourceCheck ($validScaling.status -ceq 'PASS' -and $validScaling.relative_error -eq 0 -and $validScaling.metric_inputs_used) 'all-valid new collection preserves strict half-load scaling'
+$wrong=New-SourceStructuralRecord 'E-wrong-half' -Value 5.0
+$wrongScaling=Get-StructuralScalingEvidence $full $wrong
+Assert-SourceCheck ($wrongScaling.status -ceq 'FAIL' -and $wrongScaling.fixed_limit -eq 1e-7 -and $wrongScaling.relative_error -eq 0.125) 'wrong measured scaling retained as FAIL at unchanged1e-7'
+foreach ($mutation in @('missing-metric','invalid-metric','partial-fields')) {
+    $record=New-SourceStructuralRecord "E-$mutation" -Mutation $mutation
+    $record=Assert-StructuralResult $record.experiment_id $study $record.provenance.adapter $settings $record.experiment_id
+    $gate=Get-StructuralScalingEvidence $record $half
+    Assert-SourceCheck ($gate.status -ceq 'UNKNOWN_UNAVAILABLE' -and -not $gate.metric_inputs_used -and $null -eq $gate.relative_error) ("retained "+$mutation+" never used in scaling")
+}
+$rejected=New-SourceStructuralRecord 'E-numerical-rejection' 'REJECTED'
+$rejected=Assert-StructuralResult $rejected.experiment_id $study $rejected.provenance.adapter $settings $rejected.experiment_id
+$gate=Get-StructuralScalingEvidence $rejected $half
+Assert-SourceCheck ($gate.status -ceq 'UNKNOWN_UNAVAILABLE' -and -not $gate.metric_inputs_used) 'numerically rejected complete native result does not provide a scaling ratio'
+$comparison=Get-StructuralComparisonEvidence $full $failure
+Assert-SourceCheck ($comparison.numerical_comparison -ceq 'UNKNOWN_UNAVAILABLE' -and $comparison.numerical_agreement -ceq 'UNKNOWN_NOT_ASSERTED_BY_CONTROL_TRACE') 'exact comparison receipts are distinct from unavailable failed-record agreement'
+foreach ($value in @('8.0',$true,[double]::NaN,[double]::PositiveInfinity)) {
+    $copy=$full | ConvertTo-Json -Depth 45 | ConvertFrom-Json -AsHashtable -Depth 45
+    $copy.metrics.primary_response.value=$value
+    $gate=Get-StructuralScalingEvidence $copy $half
+    Assert-SourceCheck (-not $gate.metric_inputs_used -and $null -eq $gate.relative_error) ("non-numerical/nonfinite metric not coerced into scaling: "+$value)
+}
+$copy=$full | ConvertTo-Json -Depth 45 | ConvertFrom-Json -AsHashtable -Depth 45
+$copy.metrics.primary_response.unit='m'
+Assert-SourceCheck (-not (Get-StructuralNumericalEvidence $copy).usable_for_comparison) 'wrong metric unit is unavailable rather than silently converted'
+
+# The same production collection/freezing helpers run every remaining declared
+# record in order after a valid failure. No question/provider/native tool runs.
+$continuation=@($full,$half)
+foreach ($familyName in @('cylinder','roof')) {
+    foreach ($condition in @('ccx-full','aster-full','ccx-half')) {
+        $continuation+=New-SourceStructuralRecord "E-$familyName-$condition"
+    }
+}
+foreach ($record in $continuation) {
+    $record=Assert-StructuralResult $record.experiment_id $study $record.provenance.adapter $settings $record.experiment_id
+    Add-StructuralRecord $record 'synthetic-declared-continuation'
+}
+$scaling=@($validScaling,$validScaling,$validScaling)
+$verdict=Get-StructuralCollectionVerdict @($taskResults.Values) @($taskNumerical) $scaling 9 9 $taskFrozen.Count
+Assert-SourceCheck ($taskResults.Count -eq 9 -and $taskFrozen.Count -eq 9 -and @($taskResults.Keys)[-1] -ceq 'E-roof-ccx-half') 'valid failed record does not stop subsequent declared family/changed-load collection'
+Assert-FrozenExperiments
+Assert-SourceCheck ((Get-OpenScienceHash (Join-Path $taskStore 'experiments/E-failure/result.json')) -ceq $failureHash) 'original failed result and every frozen artifact remain immutable across continuation'
+Assert-SourceCheck ($verdict.outcome -ceq 'FAILED_OR_PARTIAL' -and $verdict.control_trace.status -ceq 'COMPLETED' -and
+    $verdict.numerical_gate -ceq 'FAILED_OR_UNAVAILABLE' -and $verdict.non_pass_record_ids[0] -ceq 'E-failure') 'completed control trace with a failed numerical record remains overall partial'
+$valid=@(0..8 | ForEach-Object {Get-StructuralNumericalEvidence $full})
+$allValid=Get-StructuralCollectionVerdict @(0..8 | ForEach-Object {$full}) $valid $scaling 9 9 9
+Assert-SourceCheck ($allValid.outcome -ceq 'PASS_BOUNDED_RESEARCH_LOOP') 'existing all-valid outcome remains bounded PASS'
+$scaleFailed=Get-StructuralCollectionVerdict @(0..8 | ForEach-Object {$full}) $valid @($validScaling,$wrongScaling,$validScaling) 9 9 9
+Assert-SourceCheck ($scaleFailed.outcome -ceq 'FAILED_OR_PARTIAL' -and $scaleFailed.non_pass_scaling.Count -eq 1) 'failed scientific scaling gate prevents bounded numerical PASS'
+$incomplete=Get-StructuralCollectionVerdict @($taskResults.Values) @($taskNumerical) $scaling 8 8 9
+Assert-SourceCheck ($incomplete.outcome -ceq 'FAILED_OR_PARTIAL' -and $incomplete.control_trace.status -ceq 'PARTIAL') 'missing declared final stage cannot claim completed control trace'
 $inventory=@(Get-ChildItem -LiteralPath $taskSourceEvidence -Recurse -File | ForEach-Object {
     @{path=([IO.Path]::GetRelativePath($taskSourceEvidence,$_.FullName)-replace '\\','/');size_bytes=$_.Length;sha256=Get-OpenScienceHash $_.FullName}})
 $report=[ordered]@{status='PASS_SOURCE_ONLY';driver_sha256=Get-OpenScienceHash $taskSourceDriver;source_checker_sha256=Get-OpenScienceHash $PSCommandPath;

@@ -1,5 +1,47 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Current actual checkpoint: research03 control trace; numerical failure retained
+
+Pushed main/managed source183cc0225f8358e441c63624af771e4dba19275d,
+research03/attempt-01: approved5.6Sol completes three questions, nine observed
+provider step-finish records and nine actual tools. Missing/unsupported requests
+execute nothing. The beam turn creates/inspects a study, runs both solvers with
+exact four-key settings, inspects/summarizes both records and compares/interprets
+them. This closes research02's argument fault. Two Core experiments/six native
+jobs are real; only three of nine planned question stages ran.
+
+CCX completes all three grids: response10.912506701403661mm, reference error
+0.005724952356495402 and force-balance error7.73461840347529e-8 meet unchanged
+limits. Independent raw U/RF/all27x6 stress/coordinates/reaction/moment audit
+passes. Aster fine fails actual native FACTOR_57, solution-error upper-bound
+3.32295e-6>native1e-6/exit1; metrics{} and FAILED_EXECUTION stay unchanged.
+Its generic Core failure record has two actual UNKNOWN qualification rows,
+four absent rows and empty adapter_details; no missing metadata is invented.
+AI accurately reports failed cross-solver agreement and NOT_RELEASED. The
+driver's generic identity assertion rejects the failure status; actual source/
+model identities match. Overall FAILED_OR_PARTIAL, remaining families NOT_RUN.
+
+Actual same-session GUI text shows those records/interpretation; no screenshot
+or native CAD GUI acceptance is claimed. Owned Stop:66824/65904/46160 absent,
+native netstat4098 closed. All271files/29000305B copied and original unchanged;
+raw remote backup UNKNOWN_NOT_UPLOADED. Exact183 CI36925985238 is8SUCCESS/2FAIL;
+source wrapper60PASS, explicit pinned download404/22, Aster Fz wrapper failure.
+CI logs omit its internal diagnostic; CI native code/level/value remain UNKNOWN,
+separate from the actual local03 diagnostic. See record
+20261002-openscience-structural-research03 and STRUCTURAL_FAMILIES_ACCEPTANCE.
+
+The bounded failure-aware driver correction now passes89 cold checks (original
+60 plus29) and independent actual03 pure replay/12 negative controls; no open
+P1/P2. Questions/conditions/limits and Core/adapter/guard remain unchanged.
+Record20261002-structural-research-failure-flow separates this source admission
+from actual03 and future04. CI wrapper expects89 with its original zero-call
+gates. NEXT same P2.2: publish the reviewed correction and retain
+failed solver/numerical verdicts while collecting independent stages in original
+order, keep provenance/receipt corruption fatal. Publish verified correction,
+then NEW clean-source research04/profile/store with unchanged approved model,
+conditions and thresholds. Do not relabel03 or open later phases. P2.2/full52
+remain OPEN/UNKNOWN/NOT_RELEASED. Older next instructions below are historical.
+
 ## Latest actual checkpoint: research02 argument refusal; research03 next
 
 Clean pushed5484eb8/research02 passes both actual resident/Python binding reads.
