@@ -1,5 +1,17 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+Latest947/roof refinement research closes3 Root-predeclared questions/16 direct
+tools/3 Core records, with original full question reused and only half+bare new.
+Exact source/typed integer1 revision/whole official questions/native raw fields/
+retention/owned Stop are audited. Overall FAILED_OR_PARTIAL: Asterfine CPU120
+failure leaves metrics unavailable and formal comparison UNKNOWN; AI bare03
+incorrectly explains the scaling denominator (OPEN_P2). Original explanation
+is retained, numerical Core formula is unchanged, and one explicit-definition
+bare correction is next. No schema/tool/model/optimizer/native physics change.
+Current GUI/general planning/physical qualification are UNKNOWN/NOT_RELEASED.
+Record: benchmarks/records/20261002-openscience-roof-refinement-research.json.
+
+
 Actual947/research06 completes the entire declared nine-question control trace:
 44 admitted tools/34 observed provider steps/nine immutable Core experiments,
 including final whole-input interpretation. Source-owned stdin delivery and the

@@ -1,0 +1,882 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.actual-openscience-roof-refinement-research",
+  "status": "FAILED_OR_PARTIAL",
+  "observed_utc": "2026-10-02T06:07:20.873042+00:00",
+  "source": {
+    "commit": "94773a35d73773faf5dc2714ea7d9071c812f357",
+    "source_tree_sha256": "f396d100182c8f162d0983328d04dc97938255385cb9924cb3ae38cc35b93bde",
+    "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "main_documentation_base": "3e018b085dba15934b4de349782d2a9eefe05e37",
+    "tracked_code_changes_this_unit": 0,
+    "canonical_driver_changes": 0
+  },
+  "OpenScience": {
+    "version": "2.0.146",
+    "official_source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+    "approved_model": "openai-codex/gpt-5.6-sol",
+    "fallback_models_used": 0,
+    "project_id": "prj_8e672ff2d300416189536cb29aad15a4",
+    "research_profile": "StructuralFamilies",
+    "question_strategy": "THREE_ROOT_PREDECLARED_QUESTIONS_GENERAL_AUTONOMOUS_PLANNING_UNKNOWN",
+    "same_project_runtime_not_single_conversation": true
+  },
+  "run": {
+    "name": "p2-roof-refine-research-20261002-01",
+    "store_root": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\runs\\p2-roof-refine-research-20261002-01",
+    "study_id": "S-roof-refine-research-20261002-01",
+    "source_commit": "94773a35d73773faf5dc2714ea7d9071c812f357",
+    "control_status": "COMPLETED",
+    "numerical_status": "FAILED_OR_UNAVAILABLE",
+    "overall_status": "FAILED_OR_PARTIAL",
+    "control_trace": {
+      "closed_questions": 3,
+      "immutable_records": 3,
+      "reused_original_closed_questions": 1,
+      "new_closed_questions": 2,
+      "scope": "Original full question plus this two-question continuation only",
+      "status": "COMPLETED"
+    },
+    "original_wrapper_exit_code": 1,
+    "continuation_wrapper_exit_code": 1,
+    "actual_new_questions_in_continuation": 2,
+    "full_experiments_reexecuted": 0,
+    "original_attempt_failure": "Private verifier UTC-string versus stock DateTime representation mismatch, raw study create/inspect exactly matched persisted UTC JSON.",
+    "original_attempt_unchanged": true,
+    "new_schema_or_tools": 0
+  },
+  "request": {
+    "case": "scordelis_lo_solid",
+    "load_case": "gravity",
+    "mesh_cells": [
+      [
+        8,
+        8,
+        2
+      ],
+      [
+        16,
+        16,
+        2
+      ],
+      [
+        22,
+        22,
+        2
+      ]
+    ],
+    "full_actual_raw_load_factor": {
+      "value": 1,
+      "json_type": "integer",
+      "model_revision": "eacf71f75d71126ae145616b559c1d878fa5cd5a0fed3f58ec3bc22e24266a07"
+    },
+    "native_direct_float1_revision_is_distinct": "5aad64469c7d1850a8a84b8cb9f53547af06a78da95a321e1e857a3f741dbc4f",
+    "half_actual_load_factor": {
+      "value": 0.5,
+      "json_type": "float",
+      "model_revision": "a71a680101c992724b92034647528a8662691f50a53948b17edc28d4adcabaed"
+    },
+    "physics_response_reference_material_constraints_and_limits": "UNCHANGED_FROZEN_REQUEST",
+    "CPU_seconds_per_level": 120,
+    "subprocess_wall_seconds_per_level": 180,
+    "request_file": {
+      "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-preparation-20261002-03\\request.json",
+      "size_bytes": 7767,
+      "sha256": "68302f4bdd206c250e73d70b0e18a402e4d4f8f2367a52691343a2b84dced524",
+      "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+    },
+    "limitations": [
+      "In-plane nz2 refinement only; not a radial/asymptotic study.",
+      "Solid inner-surface signed pointB; not an independent shell element or original MIDAS replication."
+    ]
+  },
+  "stages": [
+    {
+      "name": "01-roof-refined-full",
+      "session_id": "ses_f050e10d7ffecUqOby0Evx1hXZ",
+      "scope": "REUSED_CLOSED_ORIGINAL_NOT_REEXECUTED",
+      "CLI_exit_code": 0,
+      "done": {
+        "status": "completed",
+        "exitCode": 0,
+        "sessionID": "ses_f050e10d7ffecUqOby0Evx1hXZ"
+      },
+      "timeout": false,
+      "completed_tool_events": 9,
+      "provider_step_finish_events": 6,
+      "default_guard_restored": true,
+      "launcher_still_running": false,
+      "raw_trace": {
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-20261002-01\\attempt-01\\01-roof-refined-full\\stdout.jsonl",
+        "size_bytes": 216024,
+        "sha256": "f658b3096ef98374ee4a429695bc7945cad533261c68b0ed259d4e2346cf438a",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      },
+      "actual_interpretation": {
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-20261002-01\\attempt-01\\01-roof-refined-full\\interpretation.txt",
+        "size_bytes": 2777,
+        "sha256": "a2f51316fd550a09c56d8af3a3838ed6a7aa8ff87757a14114e48ed84bf087f1",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      },
+      "stage_receipt": {
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-20261002-01\\attempt-01\\01-roof-refined-full\\stage.json",
+        "size_bytes": 211691,
+        "sha256": "d364d12aa18ecd5da6e5b877c1c2a8db885a5292f8ef12f354ae3cde056b1a23",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      }
+    },
+    {
+      "name": "02-roof-refined-half",
+      "session_id": "ses_f04e3bda6ffecHUaE2riDxHBFw",
+      "scope": "NEW_ACTUAL_QUESTION",
+      "CLI_exit_code": 0,
+      "done": {
+        "status": "completed",
+        "exitCode": 0,
+        "sessionID": "ses_f04e3bda6ffecHUaE2riDxHBFw"
+      },
+      "timeout": false,
+      "completed_tool_events": 7,
+      "provider_step_finish_events": 4,
+      "default_guard_restored": true,
+      "launcher_still_running": false,
+      "raw_trace": {
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-20261002-01\\attempt-02\\02-roof-refined-half\\stdout.jsonl",
+        "size_bytes": 252334,
+        "sha256": "db86a0393d46d2829cdb757d44e9d5e9a6896a1315a5c02a40bcfc707384e592",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      },
+      "actual_interpretation": {
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-20261002-01\\attempt-02\\02-roof-refined-half\\interpretation.txt",
+        "size_bytes": 2102,
+        "sha256": "81ebe2a5992c6bb713cda627d3aabe037135c736ef7c988ce9e212e45ebad45f",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      },
+      "stage_receipt": {
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-20261002-01\\attempt-02\\02-roof-refined-half\\stage.json",
+        "size_bytes": 317022,
+        "sha256": "d8cd4fa672ef8858d00179d91db6cc35ef28f56cce21d0fe0748d96f2b5b8117",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      }
+    },
+    {
+      "name": "03-roof-refined-interpretation",
+      "session_id": "ses_f04df781effeE0IsWsUdReWrQX",
+      "scope": "NEW_ACTUAL_QUESTION",
+      "CLI_exit_code": 0,
+      "done": {
+        "status": "completed",
+        "exitCode": 0,
+        "sessionID": "ses_f04df781effeE0IsWsUdReWrQX"
+      },
+      "timeout": false,
+      "completed_tool_events": 0,
+      "provider_step_finish_events": 1,
+      "default_guard_restored": true,
+      "launcher_still_running": false,
+      "raw_trace": {
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-20261002-01\\attempt-02\\03-roof-refined-interpretation\\stdout.jsonl",
+        "size_bytes": 144419,
+        "sha256": "e6747aafe50c965e95238cd80cbf07b7a884b40b215731e3f63f30d5c6841625",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      },
+      "actual_interpretation": {
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-20261002-01\\attempt-02\\03-roof-refined-interpretation\\interpretation.txt",
+        "size_bytes": 11212,
+        "sha256": "9067499cc4516b7681acf4303e4ac6de9a1aacbcb8208d47a9a66266ff9cf35c",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      },
+      "stage_receipt": {
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-20261002-01\\attempt-02\\03-roof-refined-interpretation\\stage.json",
+        "size_bytes": 260561,
+        "sha256": "46427c0801bf357e8f2e94dcedf53a3397c66007c1385ef50d54b1cafe288ebd",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      }
+    }
+  ],
+  "completed_tool_event_count": 16,
+  "provider_step_finish_event_count": 11,
+  "experiments": [
+    {
+      "experiment_id": "E-roof-refine-research-20261002-01-ccx-full",
+      "study_id": "S-roof-refine-research-20261002-01",
+      "Core_status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "converged": true,
+      "model_revision": "eacf71f75d71126ae145616b559c1d878fa5cd5a0fed3f58ec3bc22e24266a07",
+      "decision": "NOT_RELEASED",
+      "metrics": {
+        "applied_force_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.2079532432174028e-07
+        },
+        "applied_moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 8.564042643010799e-08
+        },
+        "mesh_response_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0010522106263700045
+        },
+        "moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.262048210752533e-09
+        },
+        "primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": -91.02406001906105
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.2923998244213838e-09
+        },
+        "reference_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.012449181492709975
+        },
+        "signed_primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": -91.02406001906105
+        }
+      },
+      "settings": {
+        "case": "scordelis_lo_solid",
+        "load_case": "gravity",
+        "load_factor": 1,
+        "mesh_cells": [
+          [
+            8,
+            8,
+            2
+          ],
+          [
+            16,
+            16,
+            2
+          ],
+          [
+            22,
+            22,
+            2
+          ]
+        ]
+      },
+      "Core_result": {
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\runs\\p2-roof-refine-research-20261002-01\\experiments\\E-roof-refine-research-20261002-01-ccx-full\\result.json",
+        "size_bytes": 45479,
+        "sha256": "4913c4b542bf66410e0553955745a51e343f82b912d9aad9e9b9147c9d8f5d4a",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      },
+      "proposal": {
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\runs\\p2-roof-refine-research-20261002-01\\experiments\\E-roof-refine-research-20261002-01-ccx-full\\proposal.json",
+        "size_bytes": 8659,
+        "sha256": "b2e67fd9cb1d0f67de63f6a9805d30b4dff6ee7a51970dfe65f57d20bd1400f0",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      },
+      "complete_and_partial_native_fields": "CCX_THREE_COMPLETE_LEVELS_INDEPENDENT_ALL_FIELD_AUDIT_PASS",
+      "unknown_or_failed_validations": [
+        {
+          "blocking": true,
+          "cad_revision": null,
+          "evidence_ids": [],
+          "experiment_id": "E-roof-refine-research-20261002-01-ccx-full",
+          "notes": "Numerical benchmark does not qualify a physical model",
+          "solver_run_id": "E-roof-refine-research-20261002-01-ccx-full",
+          "status": "UNKNOWN",
+          "threshold": null,
+          "timestamp": "2026-10-02T04:52:33.116615+00:00",
+          "type": "static_strength",
+          "validator": "not_executed"
+        },
+        {
+          "blocking": true,
+          "cad_revision": null,
+          "evidence_ids": [],
+          "experiment_id": "E-roof-refine-research-20261002-01-ccx-full",
+          "notes": "Numerical benchmark does not qualify a physical model",
+          "solver_run_id": "E-roof-refine-research-20261002-01-ccx-full",
+          "status": "UNKNOWN",
+          "threshold": null,
+          "timestamp": "2026-10-02T04:52:33.116623+00:00",
+          "type": "material_qualification",
+          "validator": "not_executed"
+        },
+        {
+          "blocking": true,
+          "cad_revision": null,
+          "evidence_ids": [],
+          "experiment_id": "E-roof-refine-research-20261002-01-ccx-full",
+          "notes": "Numerical benchmark does not qualify a physical model",
+          "solver_run_id": "E-roof-refine-research-20261002-01-ccx-full",
+          "status": "UNKNOWN",
+          "threshold": null,
+          "timestamp": "2026-10-02T04:52:33.116627+00:00",
+          "type": "physical_validation",
+          "validator": "not_executed"
+        },
+        {
+          "blocking": true,
+          "cad_revision": null,
+          "evidence_ids": [],
+          "experiment_id": "E-roof-refine-research-20261002-01-ccx-full",
+          "notes": "Numerical benchmark does not qualify a physical model",
+          "solver_run_id": "E-roof-refine-research-20261002-01-ccx-full",
+          "status": "UNKNOWN",
+          "threshold": null,
+          "timestamp": "2026-10-02T04:52:33.116632+00:00",
+          "type": "fatigue_durability",
+          "validator": "not_executed"
+        },
+        {
+          "blocking": true,
+          "cad_revision": null,
+          "evidence_ids": [],
+          "experiment_id": "E-roof-refine-research-20261002-01-ccx-full",
+          "notes": "Numerical benchmark does not qualify a physical model",
+          "solver_run_id": "E-roof-refine-research-20261002-01-ccx-full",
+          "status": "UNKNOWN",
+          "threshold": null,
+          "timestamp": "2026-10-02T04:52:33.116637+00:00",
+          "type": "model_qualification",
+          "validator": "not_executed"
+        },
+        {
+          "blocking": true,
+          "cad_revision": null,
+          "evidence_ids": [],
+          "experiment_id": "E-roof-refine-research-20261002-01-ccx-full",
+          "notes": "Numerical benchmark does not qualify a physical model",
+          "solver_run_id": "E-roof-refine-research-20261002-01-ccx-full",
+          "status": "UNKNOWN",
+          "threshold": null,
+          "timestamp": "2026-10-02T04:52:33.116642+00:00",
+          "type": "original_midas_replication",
+          "validator": "not_executed"
+        }
+      ]
+    },
+    {
+      "experiment_id": "E-roof-refine-research-20261002-01-aster-full",
+      "study_id": "S-roof-refine-research-20261002-01",
+      "Core_status": "FAILED_EXECUTION",
+      "solver_status": "FAILED_EXECUTION",
+      "converged": null,
+      "model_revision": "eacf71f75d71126ae145616b559c1d878fa5cd5a0fed3f58ec3bc22e24266a07",
+      "decision": "NOT_RELEASED",
+      "metrics": {},
+      "settings": {
+        "case": "scordelis_lo_solid",
+        "load_case": "gravity",
+        "load_factor": 1,
+        "mesh_cells": [
+          [
+            8,
+            8,
+            2
+          ],
+          [
+            16,
+            16,
+            2
+          ],
+          [
+            22,
+            22,
+            2
+          ]
+        ]
+      },
+      "Core_result": {
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\runs\\p2-roof-refine-research-20261002-01\\experiments\\E-roof-refine-research-20261002-01-aster-full\\result.json",
+        "size_bytes": 36476,
+        "sha256": "c3364cf79bf0d69dcf4d2033bc3fa4a324409a890e4a66bd773950af14748d34",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      },
+      "proposal": {
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\runs\\p2-roof-refine-research-20261002-01\\experiments\\E-roof-refine-research-20261002-01-aster-full\\proposal.json",
+        "size_bytes": 8663,
+        "sha256": "82f386e7bc0813aa3647db44cc220a62fddad7263b3101bb3c2d8ff15ec663f4",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      },
+      "complete_and_partial_native_fields": "ASTER_TWO_COMPLETE_PARTIAL_LEVELS_CHECKED_FINE_CPU_LIMIT_UNADMITTED",
+      "unknown_or_failed_validations": [
+        {
+          "blocking": true,
+          "cad_revision": null,
+          "evidence_ids": [
+            "EV-E-roof-refine-research-20261002-01-aster-full-001"
+          ],
+          "expected_range": null,
+          "experiment_id": "E-roof-refine-research-20261002-01-aster-full",
+          "solver_run_id": "E-roof-refine-research-20261002-01-aster-full",
+          "status": "FAIL",
+          "threshold": null,
+          "timestamp": "2026-10-02T04:56:08.002169+00:00",
+          "type": "model_analysis_execution",
+          "validator": "structural.families.code_aster"
+        },
+        {
+          "blocking": true,
+          "cad_revision": null,
+          "evidence_ids": [],
+          "experiment_id": "E-roof-refine-research-20261002-01-aster-full",
+          "notes": "Numerical benchmark does not qualify a physical model",
+          "solver_run_id": "E-roof-refine-research-20261002-01-aster-full",
+          "status": "UNKNOWN",
+          "threshold": null,
+          "timestamp": "2026-10-02T04:56:08.002185+00:00",
+          "type": "model_qualification",
+          "validator": "not_executed"
+        },
+        {
+          "blocking": true,
+          "cad_revision": null,
+          "evidence_ids": [],
+          "experiment_id": "E-roof-refine-research-20261002-01-aster-full",
+          "notes": "Numerical benchmark does not qualify a physical model",
+          "solver_run_id": "E-roof-refine-research-20261002-01-aster-full",
+          "status": "UNKNOWN",
+          "threshold": null,
+          "timestamp": "2026-10-02T04:56:08.002191+00:00",
+          "type": "physical_validation",
+          "validator": "not_executed"
+        }
+      ]
+    },
+    {
+      "experiment_id": "E-roof-refine-research-20261002-01-ccx-half",
+      "study_id": "S-roof-refine-research-20261002-01",
+      "Core_status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "converged": true,
+      "model_revision": "a71a680101c992724b92034647528a8662691f50a53948b17edc28d4adcabaed",
+      "decision": "NOT_RELEASED",
+      "metrics": {
+        "applied_force_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.2079532981990552e-07
+        },
+        "applied_moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 8.564042937625049e-08
+        },
+        "mesh_response_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0010522106263484196
+        },
+        "moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.2620905941175937e-09
+        },
+        "primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": -45.512030009523386
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.2924335736978853e-09
+        },
+        "reference_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.012449181492864924
+        },
+        "signed_primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": -45.512030009523386
+        }
+      },
+      "settings": {
+        "case": "scordelis_lo_solid",
+        "load_case": "gravity",
+        "load_factor": 0.5,
+        "mesh_cells": [
+          [
+            8,
+            8,
+            2
+          ],
+          [
+            16,
+            16,
+            2
+          ],
+          [
+            22,
+            22,
+            2
+          ]
+        ]
+      },
+      "Core_result": {
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\runs\\p2-roof-refine-research-20261002-01\\experiments\\E-roof-refine-research-20261002-01-ccx-half\\result.json",
+        "size_bytes": 45485,
+        "sha256": "a32272eea75cce236028dad8395839bbd9b4353457db57711c69f07459b911e4",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      },
+      "proposal": {
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\runs\\p2-roof-refine-research-20261002-01\\experiments\\E-roof-refine-research-20261002-01-ccx-half\\proposal.json",
+        "size_bytes": 8661,
+        "sha256": "6bcb754bf66aa34e99805fd7dd9e591abb7358ca23c0066eae3caf8050aa81e2",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      },
+      "complete_and_partial_native_fields": "CCX_THREE_COMPLETE_LEVELS_INDEPENDENT_ALL_FIELD_AUDIT_PASS",
+      "unknown_or_failed_validations": [
+        {
+          "blocking": true,
+          "cad_revision": null,
+          "evidence_ids": [],
+          "experiment_id": "E-roof-refine-research-20261002-01-ccx-half",
+          "notes": "Numerical benchmark does not qualify a physical model",
+          "solver_run_id": "E-roof-refine-research-20261002-01-ccx-half",
+          "status": "UNKNOWN",
+          "threshold": null,
+          "timestamp": "2026-10-02T05:37:47.436700+00:00",
+          "type": "static_strength",
+          "validator": "not_executed"
+        },
+        {
+          "blocking": true,
+          "cad_revision": null,
+          "evidence_ids": [],
+          "experiment_id": "E-roof-refine-research-20261002-01-ccx-half",
+          "notes": "Numerical benchmark does not qualify a physical model",
+          "solver_run_id": "E-roof-refine-research-20261002-01-ccx-half",
+          "status": "UNKNOWN",
+          "threshold": null,
+          "timestamp": "2026-10-02T05:37:47.436706+00:00",
+          "type": "material_qualification",
+          "validator": "not_executed"
+        },
+        {
+          "blocking": true,
+          "cad_revision": null,
+          "evidence_ids": [],
+          "experiment_id": "E-roof-refine-research-20261002-01-ccx-half",
+          "notes": "Numerical benchmark does not qualify a physical model",
+          "solver_run_id": "E-roof-refine-research-20261002-01-ccx-half",
+          "status": "UNKNOWN",
+          "threshold": null,
+          "timestamp": "2026-10-02T05:37:47.436711+00:00",
+          "type": "physical_validation",
+          "validator": "not_executed"
+        },
+        {
+          "blocking": true,
+          "cad_revision": null,
+          "evidence_ids": [],
+          "experiment_id": "E-roof-refine-research-20261002-01-ccx-half",
+          "notes": "Numerical benchmark does not qualify a physical model",
+          "solver_run_id": "E-roof-refine-research-20261002-01-ccx-half",
+          "status": "UNKNOWN",
+          "threshold": null,
+          "timestamp": "2026-10-02T05:37:47.436715+00:00",
+          "type": "fatigue_durability",
+          "validator": "not_executed"
+        },
+        {
+          "blocking": true,
+          "cad_revision": null,
+          "evidence_ids": [],
+          "experiment_id": "E-roof-refine-research-20261002-01-ccx-half",
+          "notes": "Numerical benchmark does not qualify a physical model",
+          "solver_run_id": "E-roof-refine-research-20261002-01-ccx-half",
+          "status": "UNKNOWN",
+          "threshold": null,
+          "timestamp": "2026-10-02T05:37:47.436720+00:00",
+          "type": "model_qualification",
+          "validator": "not_executed"
+        },
+        {
+          "blocking": true,
+          "cad_revision": null,
+          "evidence_ids": [],
+          "experiment_id": "E-roof-refine-research-20261002-01-ccx-half",
+          "notes": "Numerical benchmark does not qualify a physical model",
+          "solver_run_id": "E-roof-refine-research-20261002-01-ccx-half",
+          "status": "UNKNOWN",
+          "threshold": null,
+          "timestamp": "2026-10-02T05:37:47.436724+00:00",
+          "type": "original_midas_replication",
+          "validator": "not_executed"
+        }
+      ]
+    }
+  ],
+  "formal_scaling": {
+    "case": "scordelis_lo_solid",
+    "original_id": "E-roof-refine-research-20261002-01-ccx-full",
+    "changed_id": "E-roof-refine-research-20261002-01-ccx-half",
+    "original_revision": "eacf71f75d71126ae145616b559c1d878fa5cd5a0fed3f58ec3bc22e24266a07",
+    "changed_revision": "a71a680101c992724b92034647528a8662691f50a53948b17edc28d4adcabaed",
+    "core_statuses": [
+      "COMPLETED_REVIEW_REQUIRED",
+      "COMPLETED_REVIEW_REQUIRED"
+    ],
+    "relative_error": 7.845128521946442e-14,
+    "fixed_limit": 1e-07,
+    "status": "PASS",
+    "metric_inputs_used": true,
+    "unavailable_ids": [],
+    "expression": "abs(half-0.5*full)/max(abs(full),1e-12 mm)",
+    "full_mm": -91.02406001906105,
+    "half_mm": -45.512030009523386,
+    "AI_bare_explanation_is_NOT_the_formal_gate": true
+  },
+  "Code_Aster_failure": {
+    "Core_status": "FAILED_EXECUTION",
+    "metrics": {},
+    "converged": null,
+    "native_stop": "SUPERVIS_63_CPU_LIMIT_TimeLimitError_UNCHANGED_CPU120",
+    "complete_native_levels": [
+      0,
+      1
+    ],
+    "fine_partial_files_exist": true,
+    "fine_worker_result_and_parsed_fields_absent": true,
+    "formal_full_cross_solver_comparison": "UNKNOWN_UNAVAILABLE",
+    "do_not_admit_partial_fine_fields_as_Core_metrics": true
+  },
+  "AI_interpretation": {
+    "status": "PARTIAL_WITH_OPEN_P2",
+    "original_bytes_preserved": true,
+    "finding": "Bare03 section5 invents the symmetric full-versus-doubled-half denominator and rejects the declared full-response denominator.",
+    "half02_formula_explanation": "CORRECT",
+    "Root_disposition": {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-control-20261002-01\\ai-interpretation-disposition.json",
+      "size_bytes": 1400,
+      "sha256": "84f9cb23a5828c2530235d706a369952a9ab48f66a46e83018bec13f97d32207",
+      "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+    },
+    "model_prose_is_not_a_numerical_or_release_verdict": true,
+    "correction": "EXPLICIT_FORMAL_EXPRESSION_DENOMINATOR_UNITS_IN_NEXT_INTERPRETATION_CONTEXT_AND_ACTUAL_RESPONSE_CHECK_PENDING"
+  },
+  "resident": {
+    "current_owner_binding": "PASS_EXACT_UNCHANGED",
+    "fresh_resource_calls": 0,
+    "original_receipt_sha256": "69ce4b0cdb56e01de332eea2ed4eacd0a559a63e8f74ca46c156aa0a63cf44eb",
+    "basis": "REUSED_UNCHANGED_OWNED_RUNTIME_ORIGINAL_RESIDENT_PROOF",
+    "original_receipt": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-20261002-01\\attempt-01\\00-resident-current\\receipt.json"
+  },
+  "preservation": {
+    "original_file_count": 237,
+    "original_bytes": 137296299,
+    "status": "PASS_ALL_ORIGINAL_SHA_SIZE_AND_MEMBERSHIP",
+    "new_store_files": 77,
+    "allowed_additions": "ONLY_CCX_HALF_EXPERIMENT_AND_ITS_LEDGER",
+    "Root_proof": {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-control-20261002-01\\post-continuation-preservation.json",
+      "size_bytes": 8682,
+      "sha256": "ba866d9b14d52ea12775c05dbba935a998b50584cd65d8d7c36f63b6231e3652",
+      "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+    }
+  },
+  "GUI": {
+    "status": "UNKNOWN_CURRENT_RESEARCH_GUI_NOT_VERIFIED",
+    "same_IAB2_tab9_AX_and_DOM_observation_blocker": "CDP_Emulation.setFocusEmulationEnabled_TIMEOUT",
+    "Root_proof": {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-control-20261002-01\\gui-observation.json",
+      "size_bytes": 975,
+      "sha256": "8d55c8ab4622ed207f8638eb4a4fbaa87fc2ca4450b3c784a7cfec1391942e48",
+      "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+    },
+    "prior_research06_GUI_evidence_is_not_new_GUI_acceptance": true
+  },
+  "owned_stop": {
+    "status": "PASS_ORIGINAL_OWNED_PIDS_ABSENT_AND_LOCAL_4098_NOT_LISTENING",
+    "stopped_original_pids": [
+      80672,
+      55500,
+      87772
+    ],
+    "Root_proof": {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-control-20261002-01\\stop-verification.json",
+      "size_bytes": 514,
+      "sha256": "0ff0c23dbc8cadf108b6b0b9600bb9edfe90aa15c58eba7472b0317e2c998d65",
+      "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+    },
+    "stop_completion": {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-control-20261002-01\\stop-completion.json",
+      "size_bytes": 278,
+      "sha256": "e8bbc3912cacdef0cd0f23c9b89084a6c5d20b4324da0ad32a20025ec5f29a8c",
+      "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+    },
+    "new_PIDs_or_profiles_not_created_by_stop": true
+  },
+  "retention": {
+    "status": "PASS_SELECTED_ORIGINAL_COPY_CURRENT_BYTE_IDENTITY",
+    "selected_regular_files": 462,
+    "total_bytes": 218036259,
+    "manifest": {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-retained-20261002-01\\retention.json",
+      "size_bytes": 280205,
+      "sha256": "1ea2823a6c699412a2d1db596477afbd6114891efc9ac347d51c633f0a3222ef",
+      "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+    },
+    "scratch_preferences_pycache_links": "EXCLUDED_NOT_CLAIMED",
+    "auth_profile_and_credential_contents_copied": false,
+    "raw_remote_backup": "UNKNOWN_NOT_UPLOADED",
+    "independent_report": {
+      "status": "PASS_SEPARATE_REVIEW_ORIGINAL_COPY_CURRENT_IDENTITY",
+      "supplement_files": 23,
+      "supplement_bytes": 1057340,
+      "manifest": {
+        "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-retained-20261002-01-supplement-01\\retention.json",
+        "size_bytes": 8129,
+        "sha256": "f63126eb7cca66d88fac8ff2da1650b1dcbfb2e714442a1e539366e0780d0957",
+        "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+      },
+      "original462_manifest_unchanged": true
+    }
+  },
+  "independent_actual_review": {
+    "status": "COMPLETED_READ_ONLY_ACTUAL_AUDIT_WITH_ONE_OPEN_AI_INTERPRETATION_P2",
+    "checks": 35,
+    "evidence_checks_PASS": 35,
+    "open_P1": 0,
+    "open_P2": 1,
+    "finding_ids": [
+      "P2-AI-SCALING-DENOMINATOR"
+    ],
+    "protected_unique_input_files": 945,
+    "before_after_inputs_unchanged": true,
+    "side_effect_counts": {
+      "provider": 0,
+      "model": 0,
+      "HTTP": 0,
+      "runtime": 0,
+      "auth": 0,
+      "Core": 0,
+      "native_solver": 0,
+      "Stop": 0,
+      "process_or_port_probes": 0,
+      "production_imports": 0,
+      "source_store_original_mutations": 0,
+      "read_only_git_queries": 3
+    },
+    "report": {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-review-20261002-01\\actual-review.json",
+      "size_bytes": 47053,
+      "sha256": "8c9098b7e548f37a455e1b22b082d87317732f2e108e176f397262600af4feca",
+      "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+    }
+  },
+  "source_admission": {
+    "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-preparation-review-20261002-02\\independent-review.json",
+    "size_bytes": 16761,
+    "sha256": "5920510cca3c0b93ccc98eb6fe497129f25785373ffa5a682cabad3dfe1d56a4",
+    "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+  },
+  "actual_acceptance": {
+    "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-20261002-01\\attempt-02\\acceptance.json",
+    "size_bytes": 1634710,
+    "sha256": "316431f5a27222670f0f82b941237a13284b7b9d263234d5f818a5a1c1899c04",
+    "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+  },
+  "original_failed_acceptance": {
+    "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-20261002-01\\attempt-01\\acceptance.json",
+    "size_bytes": 634947,
+    "sha256": "eda02454521f70af54b556015bcdb889b9ea15e2bcbca3b43b54a4e4ca50b082",
+    "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+  },
+  "Root_terminal": {
+    "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-roof-refine-research-control-20261002-01\\continuation-completion.json",
+    "size_bytes": 274,
+    "sha256": "b55efc61c363ba8b6dfffe7c29758ef72af6a043d625a84abe1f1b173d0901c7",
+    "availability": "PRIVATE_LOCAL_SELECTED_RETENTION_NOT_COMMITTED_RAW"
+  },
+  "source_CI": {
+    "exact_commit": "94773a35d73773faf5dc2714ea7d9071c812f357",
+    "run_id": 36950198263,
+    "last_verified_outcome": "8_SUCCESS_2_FAIL",
+    "source127_tests": "PASS_PREVIOUSLY_RECORDED",
+    "new_CI_or_test_execution_this_unit": false,
+    "later_documentation_commit_is_not_new_solver_verification": true
+  },
+  "qualifications": {
+    "static_strength": "UNKNOWN",
+    "material_qualification": "UNKNOWN",
+    "physical_validation": "UNKNOWN",
+    "fatigue_durability": "UNKNOWN",
+    "model_qualification": "UNKNOWN",
+    "original_MIDAS_replication": "UNKNOWN",
+    "general_autonomous_campaign_planning": "UNKNOWN",
+    "beam_native_accuracy": "OPEN",
+    "P2.2": "OPEN",
+    "full_52": "OPEN",
+    "decision": "NOT_RELEASED"
+  },
+  "next_serial_work": [
+    "Correct formal-scaling context and verify actual AI interpretation; preserve erroneous03.",
+    "Predeclare a bounded adapter-owned CPU/wall execution-budget correction for the same roof and rerun in a new store; leave physics/numerical limits untouched.",
+    "Use existing primary evidence to address beam native accuracy without another blind method guess; preserve matrix residual limits.",
+    "Close remainingP2 connected-system gates before queued later phases; retain full MIDAS157 inventory separately."
+  ],
+  "official_whole_question_proofs": [
+    {
+      "stage": "01-roof-refined-full",
+      "session_id": "ses_f050e10d7ffecUqOby0Evx1hXZ",
+      "tools": 9,
+      "input_bytes": 4057,
+      "wire_bytes": 4058,
+      "stdout_bytes": 216024,
+      "saved_interpretation_bytes": 2777,
+      "stdout_sha256": "f658b3096ef98374ee4a429695bc7945cad533261c68b0ed259d4e2346cf438a",
+      "saved_interpretation_file_sha256": "a2f51316fd550a09c56d8af3a3838ed6a7aa8ff87757a14114e48ed84bf087f1",
+      "raw_CLI_interpretation_utf8_sha256": "a2789b34baff9f43dc878488a09501ab3205a4ce7314e4698c8ce728557760fb",
+      "saved_text_file_serialization": "exact raw CLI text plus CRLF; response_sha256 binds saved file",
+      "model": "openai-codex/gpt-5.6-sol",
+      "original_reused": true,
+      "default_guard_restored": true
+    },
+    {
+      "stage": "02-roof-refined-half",
+      "session_id": "ses_f04e3bda6ffecHUaE2riDxHBFw",
+      "tools": 7,
+      "input_bytes": 67990,
+      "wire_bytes": 67991,
+      "stdout_bytes": 252334,
+      "saved_interpretation_bytes": 2102,
+      "stdout_sha256": "db86a0393d46d2829cdb757d44e9d5e9a6896a1315a5c02a40bcfc707384e592",
+      "saved_interpretation_file_sha256": "81ebe2a5992c6bb713cda627d3aabe037135c736ef7c988ce9e212e45ebad45f",
+      "raw_CLI_interpretation_utf8_sha256": "a810b315db6ccaf895e2bc7d53d18b32d7af35fb69327edc0b741c4a5de348a9",
+      "saved_text_file_serialization": "exact raw CLI text plus CRLF; response_sha256 binds saved file",
+      "model": "openai-codex/gpt-5.6-sol",
+      "original_reused": false,
+      "default_guard_restored": true
+    },
+    {
+      "stage": "03-roof-refined-interpretation",
+      "session_id": "ses_f04df781effeE0IsWsUdReWrQX",
+      "tools": 0,
+      "input_bytes": 118918,
+      "wire_bytes": 118919,
+      "stdout_bytes": 144419,
+      "saved_interpretation_bytes": 11212,
+      "stdout_sha256": "e6747aafe50c965e95238cd80cbf07b7a884b40b215731e3f63f30d5c6841625",
+      "saved_interpretation_file_sha256": "9067499cc4516b7681acf4303e4ac6de9a1aacbcb8208d47a9a66266ff9cf35c",
+      "raw_CLI_interpretation_utf8_sha256": "5feae8a643fd17cebe2f2792e5e076af1decc3c2cf9f9e7c0be5d1a5243b7fff",
+      "saved_text_file_serialization": "exact raw CLI text plus CRLF; response_sha256 binds saved file",
+      "model": "openai-codex/gpt-5.6-sol",
+      "original_reused": false,
+      "default_guard_restored": true
+    }
+  ],
+  "published_at_utc": "2026-10-02T06:24:27.748942+00:00",
+  "bookkeeping_note": "Root review supplement completed before an optional metadata-print list/dict shape error; preservation succeeded. No solver/model/old evidence rerun."
+}

@@ -1,6 +1,40 @@
 # Autonomous CAE Lab — project scope and requirement ledger
 
-## Latest P2.2 checkpoint: native roof refinement audited; research continuation pending
+## Latest P2.2 checkpoint: three roof research questions closed; AI denominator error retained
+
+Clean947/approved5.6Sol roof research closes all3 Root-declared questions on
+nz2 grids8/16/22:9 reused original direct tool receipts +7 new half-load tools,
+bare interpretation0;11 provider step finishes. First full question/full2
+experiments are not rerun after the private UTC/DateTime reconciliation fix.
+All3 CLI commands complete/default guards restore; control is COMPLETED.
+CCXfull/half each retain8 valid metrics, signed responses
+-91.02406001906105/-45.512030009523386mm. Original2% reference/1% mesh gates pass;
+formal half scaling7.845128521946442e-14<1e-7 uses
+abs(half-.5full)/max(abs(full),1e-12mm). Actual full raw int1 revisioneacf71f...,
+not the earlier direct native float1 revision5aad...; normalized physics matches.
+Asterfine retains CPU120/SUPERVIS_63/TimeLimitError, metrics{}, partial fields
+unadmitted; formal full cross-solver comparison UNKNOWN. Overall FAILED_OR_PARTIAL.
+
+Independent35 evidence checks verify raw CCX6/Asterpartial2,16 direct receipts,
+whole official questions(LF+4057/67990/118918B), typed records, original237 files,
+only77 new half/ledger files,462-file/218036259B local retention and owned Stop.
+945 protected inputs are unchanged; review has0 openP1 and1 openP2: original
+bare03 invents a symmetric scaling denominator. Its original prose remains
+erroneous; Core's formal numerical gate is correct. Review23-file/1057340B
+supplement is separate. Current GUI AX/DOM access times out; new GUI and raw
+remote backup remain UNKNOWN. Historical947 CI is not a new solver verification.
+Record: `benchmarks/records/20261002-openscience-roof-refinement-research.json`.
+
+NEXT SERIAL: explicitly provide formal expression/denominator/units and verify
+one new bare advisory correction, without rerunning any numerical experiment.
+Then predeclare an adapter-owned CPU/wall-budget correction for this same roof
+and execute a new store with unchanged physics/reference/numerical thresholds.
+Beam accuracy/matrix representation limits, P2.2/full52, general autonomous
+planning and all engineering qualifications stay OPEN/UNKNOWN/NOT_RELEASED.
+Previous native/matrix/research evidence is preserved; later phases stay queued.
+
+
+## Historical checkpoint: native roof refinement audited; research continuation was pending
 
 New clean947/native roof store closes all3 Core experiments on nz2 grids8/16/22.
 CalculiX full and half retain8 valid metrics each: signed pointB responses
@@ -518,7 +552,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R31 | Phase 7 MFront/MOOSE/multiphysics/inverse/UQ/sensitivity/surrogate/multiobjective/HPC/SSH/Slurm/PBS/physical integration. | Partial: MFront stress/tangent/sensitivity and synthetic nine-candidate inverse connected to shared engine/default/HTTP. Exact33 local default proof and sealed CI36722365195 native/raw independent audits passed; no measured fit/convergence. Viscoelastic extension deferred under serial phase order; MOOSE/coupling/UQ/surrogate/multiobjective/HPC/physical integrations remain open. |
 | R32 | Physical test architecture: fabrication/calibration/machine/measurement/durability evidence with digital-twin calibration loop. | Partial extensible evidence envelope; equipment control/physical acceptance not implemented. |
 | R33 | UI Design/Simulation/Explore/Results/Research areas after Core slice; reuse original browser UI. | Partial: original fixture GUI/native viewer and common Lab HTTP retained. Actual official OpenScience f52/run03 GUI shows same CAD/result/evidence sessions; Lab8766 remains separate with no AI chat. Wider UI/native edit/planning acceptance remains open. |
-| R34 | Automated canonical/regression verification for CAD/rejection/linear/nonlinear/contact/explicit/PDE/DOE/optimization; physical validity separate from execution. | Partial: exact33 1,387 regressions plus actual analytical/manufactured/FD/native/raw audits. d29/native05 independently audits two beam cross-solver loads, retains Fz Aster failure and failed method probes; exact CI8SUCCESS/2FAIL. Full MIDAS139+CFD18 survey is separate, original project replications remain NOT_RUN/UNKNOWN. Prior single-case work deferred; remaining family/phase gates open. No NAFEMS pass or physical qualification claimed. Two native matrix observations/independent49-item reporting correction retained; algebraic-u/beam accuracy UNKNOWN. Roof native3/independent44-item audit closes CCXfull+half reference/mesh/scaling, Asterfine CPU120/formal comparison UNKNOWN,304 files retained. Separate5.6Sol first question/nine tools closes; verifier timestamp correction/half/final pending; P2.2/full52 OPEN. |
+| R34 | Automated canonical/regression verification for CAD/rejection/linear/nonlinear/contact/explicit/PDE/DOE/optimization; physical validity separate from execution. | Partial: exact33 1,387 regressions plus actual analytical/manufactured/FD/native/raw audits. d29/native05 independently audits two beam cross-solver loads, retains Fz Aster failure and failed method probes; exact CI8SUCCESS/2FAIL. Full MIDAS139+CFD18 survey is separate, original project replications remain NOT_RUN/UNKNOWN. Prior single-case work deferred; remaining family/phase gates open. No NAFEMS pass or physical qualification claimed. Two native matrix observations/independent49-item reporting correction retained; algebraic-u/beam accuracy UNKNOWN. Roof native3/independent44-item audit closes CCXfull+half reference/mesh/scaling, Asterfine CPU120/formal comparison UNKNOWN,304 files retained. Separate5.6Sol first question/nine tools closes; verifier timestamp correction/half/final pending; P2.2/full52 OPEN. Separate roof research3/16tools closes control; CCX full/half reference/mesh/formal scaling pass, Aster CPU120 comparison UNKNOWN. Independent35 evidence checks/462-file retention pass but AI denominator P2 remains OPEN; new GUI UNKNOWN. Explicit formula correction next; full52/P2.2 NOT_RELEASED. |
 | R35 | Dependency license/commercial/internal/redistribution/linking + Windows/Linux/WSL/container/HPC; OpenScience sandbox/telemetry/trace/endpoints/data protection. | Partial inventory/research; corporate licensing/security and platform deployment approval incomplete. |
 | R36 | GitHub private-repo attempt or local fallback; determine relationship to old fixture repo. | Supplied repo populated on main; pinned fixture submodule. Repo currently public; private/corporate choice open. |
 | R37 | Purposeful sub-agent parallel work and independent verification under one Root architecture owner. | Ongoing; relevant findings/reviews in ADR/docs; do not delegate boundaries blindly. |
@@ -527,7 +561,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R40 | Independent optimizer comparison by problem role, not a generic ranking. | Partial research and first seeded engine; wider engine acceptance planned. |
 | R41 | Source audit of fixture code/tests/CI/debt and independent architecture review. | Partial completed recovered source audit; native/transaction debt remains. |
 | R42 | Separate research/implementation/verification roles when useful; Root integrates. | Ongoing; retained implemented-load independent verification. |
-| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; fresh clean947/research06 independent raw/source/44-receipt/1094-file audit PASS. All9 control questions/final whole-input stored text/GUI AX/owned Stop verified; numerical Fz failure/roof invalidity, general autonomous planning/full52 OPEN. Exact947 CI source127PASS/final8SUCCESS2FAIL; native CI internal diagnostic UNKNOWN. Previous source/05 evidence and UNKNOWN/NOT_RELEASED preserved. Two native matrix observations/independent49-item reporting correction retained; algebraic-u/beam accuracy UNKNOWN. Roof native3/independent44-item audit closes CCXfull+half reference/mesh/scaling, Asterfine CPU120/formal comparison UNKNOWN,304 files retained. Separate5.6Sol first question/nine tools closes; verifier timestamp correction/half/final pending; P2.2/full52 OPEN. |
+| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; fresh clean947/research06 independent raw/source/44-receipt/1094-file audit PASS. All9 control questions/final whole-input stored text/GUI AX/owned Stop verified; numerical Fz failure/roof invalidity, general autonomous planning/full52 OPEN. Exact947 CI source127PASS/final8SUCCESS2FAIL; native CI internal diagnostic UNKNOWN. Previous source/05 evidence and UNKNOWN/NOT_RELEASED preserved. Two native matrix observations/independent49-item reporting correction retained; algebraic-u/beam accuracy UNKNOWN. Roof native3/independent44-item audit closes CCXfull+half reference/mesh/scaling, Asterfine CPU120/formal comparison UNKNOWN,304 files retained. Separate5.6Sol first question/nine tools closes; verifier timestamp correction/half/final pending; P2.2/full52 OPEN. Separate roof research3/16tools closes control; CCX full/half reference/mesh/formal scaling pass, Aster CPU120 comparison UNKNOWN. Independent35 evidence checks/462-file retention pass but AI denominator P2 remains OPEN; new GUI UNKNOWN. Explicit formula correction next; full52/P2.2 NOT_RELEASED. |
 | R44 | Do not concurrently modify shared schemas/Core/registry/artifact migrations or same source file. | Ongoing ownership rule in AGENTS. |
 | R45 | Root checks architecture, OpenScience-first, conflicting evidence, actual feasibility, GUI/headless, license/security/benchmarks/requirements before integration. | Ongoing; accepted/rejected decisions recorded in ADR/docs. |
 | R46 | Strong Root reasoning for architecture/numerics/conflicts, appropriate agents for bounded work; verification above model choice. | Ongoing, subject to available models/tools and current session instructions. |

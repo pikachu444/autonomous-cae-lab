@@ -1,6 +1,40 @@
 # Sequential system worklist
 
-## Latest P2.2 checkpoint: native roof refinement audited; research continuation pending
+## Latest P2.2 checkpoint: three roof research questions closed; AI denominator error retained
+
+Clean947/approved5.6Sol roof research closes all3 Root-declared questions on
+nz2 grids8/16/22:9 reused original direct tool receipts +7 new half-load tools,
+bare interpretation0;11 provider step finishes. First full question/full2
+experiments are not rerun after the private UTC/DateTime reconciliation fix.
+All3 CLI commands complete/default guards restore; control is COMPLETED.
+CCXfull/half each retain8 valid metrics, signed responses
+-91.02406001906105/-45.512030009523386mm. Original2% reference/1% mesh gates pass;
+formal half scaling7.845128521946442e-14<1e-7 uses
+abs(half-.5full)/max(abs(full),1e-12mm). Actual full raw int1 revisioneacf71f...,
+not the earlier direct native float1 revision5aad...; normalized physics matches.
+Asterfine retains CPU120/SUPERVIS_63/TimeLimitError, metrics{}, partial fields
+unadmitted; formal full cross-solver comparison UNKNOWN. Overall FAILED_OR_PARTIAL.
+
+Independent35 evidence checks verify raw CCX6/Asterpartial2,16 direct receipts,
+whole official questions(LF+4057/67990/118918B), typed records, original237 files,
+only77 new half/ledger files,462-file/218036259B local retention and owned Stop.
+945 protected inputs are unchanged; review has0 openP1 and1 openP2: original
+bare03 invents a symmetric scaling denominator. Its original prose remains
+erroneous; Core's formal numerical gate is correct. Review23-file/1057340B
+supplement is separate. Current GUI AX/DOM access times out; new GUI and raw
+remote backup remain UNKNOWN. Historical947 CI is not a new solver verification.
+Record: `benchmarks/records/20261002-openscience-roof-refinement-research.json`.
+
+NEXT SERIAL: explicitly provide formal expression/denominator/units and verify
+one new bare advisory correction, without rerunning any numerical experiment.
+Then predeclare an adapter-owned CPU/wall-budget correction for this same roof
+and execute a new store with unchanged physics/reference/numerical thresholds.
+Beam accuracy/matrix representation limits, P2.2/full52, general autonomous
+planning and all engineering qualifications stay OPEN/UNKNOWN/NOT_RELEASED.
+Previous native/matrix/research evidence is preserved; later phases stay queued.
+
+
+## Historical checkpoint: native roof refinement audited; research continuation was pending
 
 New clean947/native roof store closes all3 Core experiments on nz2 grids8/16/22.
 CalculiX full and half retain8 valid metrics each: signed pointB responses
