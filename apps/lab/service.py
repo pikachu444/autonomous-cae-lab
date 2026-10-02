@@ -297,6 +297,7 @@ class LabService:
     def presets(self) -> dict:
         from scripts.verify_pde import specification as pde_specification
         from plugins.pde_nonlinear.reference import manufactured_settings as nonlinear_pde_specification
+        from plugins.pde_elliptic.reference import manufactured_settings as rectangle_pde_specification
         from scripts.verify_codeaster import specification as codeaster_specification
         from scripts.verify_plasticity import specification as plasticity_specification
         from scripts.verify_openradioss import specification as explicit_specification
@@ -319,6 +320,9 @@ class LabService:
             "pde_nonlinear": {"operation": "pde_run", "backend": "pde.fenicsx.nonlinear", "label": "비선형 확산 약형 benchmark",
                 "status": "EXPERIMENTAL", "scope": "단위 정사각형의 해석해·Newton 잔차·오차 수렴 비교; 일반 비선형·MPI·물리 자격 UNKNOWN",
                 "settings": nonlinear_pde_specification()},
+            "pde_rectangle": {"operation": "pde_run", "backend": "pde.fenicsx.rectangle", "label": "직사각형·혼합 경계 약형 benchmark",
+                "status": "EXPERIMENTAL", "scope": "영역 크기와 변별 고정값·바깥 유량을 지정하는 scalar PDE; 해석해·수렴·경계 필드 확인, 물리 자격 UNKNOWN",
+                "settings": rectangle_pde_specification()},
             "codeaster_linear": {"operation": "model_analysis_run", "backend": "structural.code_aster", "label": "독립적인 선형 elasticity benchmark",
                 "status": "EXPERIMENTAL", "scope": "가정된 solid block의 affine analytical reference; 비선형·접촉 및 물리·강도 검증 UNKNOWN",
                 "settings": codeaster_specification()},

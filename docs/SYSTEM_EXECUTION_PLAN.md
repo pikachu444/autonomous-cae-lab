@@ -16,7 +16,7 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 | D0 source integrated | Resident submit/inspect/cancel, configurable budgets/live logs, owned cleanup/normal shutdown; focused checks and review | Native lifecycle/cancellation/profile admission; no new solver proof yet |
 | D1 source integrated | Fixture load/material/mesh form and six-component diagnostic stress artifacts/table; reuse CAD/child analysis | Existing beam accuracy, roof Aster completion, mesh/reaction/stress/reference checks |
 | D2 source integrated | Declared-model inputs/optimization in Explore; reuse269d8bf stopping/constraints/replay;27 focused checks and actual plan UI | Numerical convergence, active constraints, interruption/replay |
-| D3 Phase4 next | Extend declared domains/boundaries/time/vector/coupled forms | Manufactured/reference solutions and cross-backend/parallel checks |
+| D3 Phase4 active | D3.1 declared rectangle/named mixed boundaries; then transient, vector/coupled and domain import | Manufactured/reference solutions, admission/GUI and cross-backend/parallel checks |
 | D4 Phase5 | Geometric/material/contact implementations and fixture coupling | Nonlinear convergence, histories, energy, canonical comparisons |
 | D5 Phase6 | Explicit preprocessing/contact/material/fields and campaign integration | Impact/drop force/energy/timestep/reference checks |
 | D6 Phase7 | Measured inverse interfaces, UQ/surrogate/multiobjective/MDO, MOOSE/HPC | Engine/coupling/HPC and actual measured-data acceptance |
@@ -24,6 +24,15 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 
 State stays implementation-qualified, UNKNOWN or NOT_RELEASED as applicable;
 this schedule is not a declaration that any whole phase is complete.
+
+The ordered Phase4 implementation checklist is D3.1 rectangle/named mixed
+scalar boundaries; D3.2 transient scalar weak form with explicit time history;
+D3.3 vector weak form and reference fields; D3.4 coupled systems/material
+interfaces; D3.5 imported domain/named physical boundaries; D3.6 bounded
+research-profile admission and grouped clean native/OpenScience/same-record
+GUI verification. This extends accepted linear/nonlinear modules in place at
+their existing boundaries. Completed source units and qualified numerical/
+research gates remain separate; larger arbitrary-form/MPI scope stays open.
 
 ## Historical P2.2 checkpoint: three roof research questions closed; AI denominator error retained
 

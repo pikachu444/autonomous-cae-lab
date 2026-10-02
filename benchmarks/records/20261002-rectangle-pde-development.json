@@ -1,0 +1,282 @@
+{
+  "schema_version": "1.0",
+  "status": "PASS_SOFTWARE_INTEGRATION_BOUNDED",
+  "created_utc": "2026-10-02T12:41:14.559549+00:00",
+  "source_base_commit": "a72506d6f91aef5662677baf92409c80a6e85304",
+  "source_publication": "Exact implementation commit and exact-source CI belong to the following publication receipt; this record does not claim native solver success.",
+  "scope": "D3.1 Phase4: declared scalar rectangle and named mixed boundary integration through existing pde.run/Core/HTTP/CLI/MCP; whole Phase4 remains open.",
+  "source_files": [
+    {
+      "path": "caelab/engine.py",
+      "sha256": "2b7228c3cbaedb51d263897bf29ac96e96e05f6482bf8ea68475539e81ab397d",
+      "size_bytes": 46672
+    },
+    {
+      "path": "caelab/execution_control.py",
+      "sha256": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede",
+      "size_bytes": 6546
+    },
+    {
+      "path": "apps/lab/service.py",
+      "sha256": "0e5cafb826908d9967ede2fc6453da8d5eb415836b584094be04cbf088f3f51f",
+      "size_bytes": 35961
+    },
+    {
+      "path": "caelab/adapters/fenicsx_rectangle.py",
+      "sha256": "b0f614db04ee05b107373049f4e09f8c80f3809f456117add5f60b1d9040b756",
+      "size_bytes": 15458
+    },
+    {
+      "path": "caelab/adapters/fenicsx_rectangle_worker.py",
+      "sha256": "9b5e1a7e7ab9ffb90073785985c2e546ffca4c62012dffb370bb74e8b3422617",
+      "size_bytes": 17019
+    },
+    {
+      "path": "plugins/pde_elliptic/__init__.py",
+      "sha256": "281f4ea25533ccac72c60d76cdb54454e8d71f28e39fc2c5bb99316b5c35565a",
+      "size_bytes": 82
+    },
+    {
+      "path": "plugins/pde_elliptic/reference.py",
+      "sha256": "72d82766634a48a562594198615f8daaa4e2d1f57dddea7106137b48ca8c9521",
+      "size_bytes": 23859
+    },
+    {
+      "path": "scripts/verify_rectangle_pde.py",
+      "sha256": "94e4ddc71709a887d0883476661364bffebf1b26a73cbad287e146bc32e09678",
+      "size_bytes": 14373
+    },
+    {
+      "path": "tests/test_execution_control.py",
+      "sha256": "100f2584af3b5210ef65a534a05fe4c0439837e336c8f6132219071214fca616",
+      "size_bytes": 9728
+    },
+    {
+      "path": "tests/test_pde_thread.py",
+      "sha256": "e45106df6109f2faec03da9d838d2f2639c9449e03e98abb705a6cdb59dc46a7",
+      "size_bytes": 14244
+    },
+    {
+      "path": "tests/test_lab_server.py",
+      "sha256": "123b885670d9fe8f9f4c266947096e14f2b9e94f9fc6a67fb549d42a96e929cf",
+      "size_bytes": 34394
+    },
+    {
+      "path": "tests/test_pde_rectangle.py",
+      "sha256": "365a3ed1b9b9ef094b8fd2e8b0b5d3c73eac588e59ec06b96575745049840ef2",
+      "size_bytes": 19919
+    },
+    {
+      "path": "tests/test_pde_rectangle_reference.py",
+      "sha256": "9a49112e0e9b2786014efd1c64eccb2dca85fcec7885d908e305a008e274a048",
+      "size_bytes": 11966
+    },
+    {
+      "path": "tests/test_rectangle_pde_runner.py",
+      "sha256": "19c7313b6282221405845be04bf14b70e54f0d06a2f07792e7d873951312839a",
+      "size_bytes": 3354
+    },
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "sha256": "11f2cf62059a7d5bd41dd4b7d6d0b8ce28a0e356f2ba777fc8e01f38bfeaa917",
+      "size_bytes": 20649
+    }
+  ],
+  "packet": {
+    "sha256": "9db475ede85dcd0a4c3f9cab2e84e91b54472b0d0443c94631146ef5eae3f559",
+    "addendum_sha256": "e504e10739e437d7d7eb93f8df0f1b827cd014c648dc441199f0cb2c730fb571"
+  },
+  "changes": [
+    "Domain-owned rectangle geometry, safe expressions, named spatial Dirichlet/outward Neumann values, manufactured references and validation",
+    "Adapter-owned isolated real DOLFINx worker, preserved source copies, native DOF/topology/boundary fields and L2/gradient-H1/residual evidence",
+    "Existing common declared revision and Simulation/Results/preset integration; no common schema, wire operation, optimizer or provider change",
+    "No new default solver wall budget; existing owned cancellation, retained cleanup and live process state",
+    "D0 dependency fix: a reaped leader permits only an absence probe, never termination of a possibly reused group",
+    "Fresh clean-source acceptance runner freezes source and all cases before execution; source/retained provenance/native copy checks between calls",
+    "Numeric zero-source UFL form preserves rank1; two quadratic harmonic regression cases retain the original predeclared numerical criteria"
+  ],
+  "checks": {
+    "domain_adapter": {
+      "status": "PASS",
+      "distinct_tests": 70,
+      "seconds": 17.77,
+      "command": "python -B -m pytest tests/test_pde_rectangle_reference.py tests/test_pde_rectangle.py -q --tb=short",
+      "actor": "bounded implementation writer; WSL Python3.12",
+      "scope": "Pure/mocked observations plus tiny owned processes and one actual isolated FEniCSx form-compilation check; no LinearProblem/solve"
+    },
+    "core_http": {
+      "status": "PASS",
+      "distinct_tests": 35,
+      "deselected": 70,
+      "seconds": 90.15,
+      "command": "python -B -m pytest tests/test_pde_thread.py tests/test_declared_model.py tests/test_lab_server.py tests/test_rectangle_pde_runner.py -q -p no:cacheprovider -k 'pde or rectangle or existing_presets' --tb=short",
+      "actor": "Root",
+      "scope": "Real Core/declaration/HTTP and explicitly test-only solver observations; historical linear settings-only revisions preserved"
+    },
+    "execution_control": {
+      "status": "PASS",
+      "distinct_tests": 31,
+      "seconds": 3.97,
+      "command": "python -B -m pytest tests/test_execution_control.py tests/test_codeaster_execution.py -q -p no:cacheprovider --tb=short",
+      "actor": "Root",
+      "scope": "Ownership fault checks and tiny local child/group cancellation/budget supervision, not native solver execution",
+      "junit_sha256": "d52a047535e0d58e451936b6e88147892be797381095cb7ab8ca02f4ab793a76"
+    },
+    "runner_final_recheck": {
+      "status": "PASS",
+      "tests": 7,
+      "seconds": 1.08,
+      "already_in_core_http_count": true,
+      "junit_sha256": "4bb4f6c710bc2f38598c2300cebf1b11e92bd6ea86120070425427e4d9d6fd00"
+    },
+    "distinct_total": 136,
+    "syntax_files": 14,
+    "syntax": "PASS",
+    "independent_packet_review": "PASS; no open P1/P2",
+    "independent_source_review": {
+      "status": "PASS_SOURCE_ONLY",
+      "reviewer": "official_project_workflow",
+      "open_P1": 0,
+      "open_P2": 0,
+      "native_solver_runs": 0,
+      "provider_calls": 0,
+      "reviewed_key_sources": {
+        "caelab/adapters/fenicsx_rectangle_worker.py": "9b5e1a7e7ab9ffb90073785985c2e546ffca4c62012dffb370bb74e8b3422617",
+        "scripts/verify_rectangle_pde.py": "94e4ddc71709a887d0883476661364bffebf1b26a73cbad287e146bc32e09678",
+        "caelab/execution_control.py": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede",
+        "caelab/engine.py": "2b7228c3cbaedb51d263897bf29ac96e96e05f6482bf8ea68475539e81ab397d"
+      }
+    }
+  },
+  "review_corrections": [
+    {
+      "priority": "P2",
+      "finding": "Acceptance campaign could mix sources between native calls",
+      "correction": "Freeze clean Core identity and exact source set; check before/after every call and retained provenance/copied manifest",
+      "regression": "Seven source/provenance/native-copy drift checks, preserving old result bytes"
+    },
+    {
+      "priority": "P2",
+      "finding": "Native child could survive a failed RUNNING-state publication",
+      "correction": "Protect the post-Popen publication inside owned cleanup handling",
+      "regression": "Actual tiny child interrupted on publication failure is stopped/reaped and partial state retained"
+    },
+    {
+      "priority": "P2",
+      "finding": "Legal numeric/simplified zero RHS loses UFL linear form rank",
+      "correction": "Native Constant for numeric and UFL scalar literal/Zero coefficients",
+      "regression": "Actual system DOLFINx/UFL form compilation for0.0,0*x[0],sin(0.0),2.5,spatial value; no solve"
+    }
+  ],
+  "preserved_sources": {
+    "caelab/adapters/fenicsx_pde.py": {
+      "sha256": "2ca87fc2e5f83e5cacbee2780437bcac38aec6a9ad481019f5baf1e4ff9dc893",
+      "size_bytes": 17072
+    },
+    "caelab/adapters/fenicsx_worker.py": {
+      "sha256": "2e1cd29a71e4a216be6677e44b841205193ef72658d7a29d010dca7253d57301",
+      "size_bytes": 17091
+    },
+    "caelab/adapters/fenicsx_nonlinear.py": {
+      "sha256": "705036578d1c5ab8ac2af426aca513c14d42860ee9eaabdab1b9c9bd07eade75",
+      "size_bytes": 22520
+    },
+    "caelab/adapters/fenicsx_nonlinear_worker.py": {
+      "sha256": "025a2a41a5a4ee3a87bc7b1016d74ad355d2bc1428f56182aa66c67193eae1f4",
+      "size_bytes": 19224
+    },
+    "plugins/pde_nonlinear/reference.py": {
+      "sha256": "79b77541982dcf3c42f75f4bea6ade145c106484a167abf416518f12e7f11505",
+      "size_bytes": 24611
+    },
+    "caelab/pde.py": {
+      "sha256": "1676badd13201d4055ba2cc69ff1fa47316127362139b7284f049d2d7bf05058",
+      "size_bytes": 945
+    },
+    "caelab/declared_model.py": {
+      "sha256": "7b4442af93e6aabd50f21baeb205449a3492cd4c0579d9a7b1488123cd945b01",
+      "size_bytes": 13942
+    },
+    "schemas/experiment.schema.json": {
+      "sha256": "34468e2bf70768df889f959909683a5bb45ea7ca0cfcda50fba0a21b1931405b",
+      "size_bytes": 2321
+    },
+    "schemas/result.schema.json": {
+      "sha256": "ad67db58b09e8419a7517e9804e53e42fbe810939d94a2b74174b2267e30bc2d",
+      "size_bytes": 2132
+    },
+    "scripts/verify_pde.py": {
+      "sha256": "23a48071fe0b6960d055580f8e48181861716111ee15da0935a456b176275563",
+      "size_bytes": 5555
+    },
+    "scripts/verify_nonlinear_pde.py": {
+      "sha256": "324b2d2771914496447c3f45a49a4e0acb7f255f2892d2ba2b93e3a2643bda3e",
+      "size_bytes": 10226
+    }
+  },
+  "preserved_source_status": "All11 raw file hashes unchanged",
+  "fixture_submodule": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "actual_runtime_prerequisite": {
+    "python": "3.12.3",
+    "dolfinx": "0.11.0.post0",
+    "petsc4py": "3.19.6",
+    "petsc": [
+      3,
+      19,
+      6
+    ],
+    "observation_scope": "actual isolated /usr/bin/python3 import; no solve"
+  },
+  "native_acceptance": {
+    "status": "NOT_RUN",
+    "solver_runs": 0,
+    "form_compilation_only": true,
+    "predeclared_success_cases": 6,
+    "predeclared_numerical_rejections": 2,
+    "predeclared_no_native_rejections": 3,
+    "criteria": {
+      "max_l2_error": 0.03,
+      "min_l2_rate": 1.8,
+      "max_h1_seminorm_error": 0.5,
+      "min_h1_rate": 0.9,
+      "max_residual_relative": 1e-10
+    },
+    "limits_changed_after_output": false,
+    "runner": "scripts/verify_rectangle_pde.py"
+  },
+  "official_openscience": {
+    "status": "NOT_ADMITTED",
+    "new_research_runs": 0,
+    "provider_calls": 0,
+    "model_preference_unchanged": "openai-codex/gpt-5.6-sol only; no fallback",
+    "reason": "Historical guarded Research profile admits only its bounded unit-square route; new rectangle capability requires a separate admission/evidence gate"
+  },
+  "same_record_gui": "NOT_RUN",
+  "previous_exact_source_ci": {
+    "source": "cedf144d5e41446c6c6331770b8e2149c81595e9",
+    "run_id": 37002601408,
+    "status": "completed",
+    "conclusion": "failure",
+    "success_jobs": 8,
+    "failure_jobs": [
+      "codeaster",
+      "explicit"
+    ],
+    "failure_observations": [
+      "Native numerical checks failed: E-ansys_vmd1_regular-Fz-aster; raw numerical cause UNKNOWN",
+      "Pinned official OpenRadioss latest-20260728 download HTTP404 before solver execution"
+    ]
+  },
+  "decision": "NOT_RELEASED",
+  "physical_validation": "UNKNOWN",
+  "model_qualification": "UNKNOWN",
+  "limitations": [
+    "No actual new-source rectangle solver/reference/cross-solver or same-record GUI acceptance at this source checkpoint",
+    "Prescribed input flux integrals are input binding, not computed solution flux accuracy or full equilibrium",
+    "Native symbolic interior L2/gradient-H1 quadrature is not a newly independent interior integration gate",
+    "No pure Neumann/nullspace, Robin, imported/general domain, transient/vector/coupled/nonlinear rectangle or MPI support in this unit",
+    "Full52/P2.2 and engineering/deployment qualification remain OPEN"
+  ],
+  "next_development": "D3.2 transient scalar form and explicit time history; other Phase4 and later phases follow the ordered worklist; full native/reference/research/GUI verification stays separate",
+  "canonical_source_note": "Root-owned engine/workflow newlines aligned with Git LF; all other14-code/test raw bytes already match filtered Git bytes. No protected legacy file was normalized."
+}

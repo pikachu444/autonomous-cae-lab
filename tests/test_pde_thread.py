@@ -127,8 +127,11 @@ def test_pde_uses_common_schema_evidence_and_hashed_thread_without_a_cad_parent(
     jsonschema.validate(result, load_json(schemas / "result.schema.json"))
 
 
-def test_optional_pde_declaration_enters_the_common_revision_and_proposal(tmp_path):
-    from plugins.pde_nonlinear.reference import manufactured_settings, model_declaration
+@pytest.mark.parametrize("plugin", ["pde_nonlinear", "pde_elliptic"])
+def test_optional_pde_declaration_enters_the_common_revision_and_proposal(tmp_path, plugin):
+    from importlib import import_module
+    reference = import_module("plugins." + plugin + ".reference")
+    manufactured_settings, model_declaration = reference.manufactured_settings, reference.model_declaration
 
     lab, adapter = _lab(tmp_path)
     adapter.describe_model = model_declaration

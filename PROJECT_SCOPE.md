@@ -1,6 +1,25 @@
 # Autonomous CAE Lab — project scope and requirement ledger
 
-## Current D2 checkpoint: declared-model optimization connected to Explore
+## Current D3.1 checkpoint: rectangle and mixed PDE source checks
+
+`pde.fenicsx.rectangle` extends the existing declared PDE operation through
+Domain/adapter boundaries and common Simulation/Results. Spatial Dirichlet and
+named outward Neumann conditions enter the model revision; native source/field/
+boundary retention and a clean-source acceptance runner are implemented.
+136 distinct focused checks PASS (70 Domain/adapter,35 Core/HTTP,31 execution);
+the additional7 runner rechecks are not counted twice. Actual FEniCSx form
+compilation closes zero-RHS rank loss without a solver run. Independent final
+source review is closed with no open P1/P2. Record: `benchmarks/records/20261002-rectangle-pde-development.json`.
+Fresh native solver/OpenScience/same-record GUI acceptance is NOT_RUN; guarded
+Research rectangle is NOT_ADMITTED. All11 protected legacy PDE/schema files and
+fixture pin are unchanged; the common reaped-process cleanup dependency is
+covered separately. D2 exact CI37002601408 completed8SUCCESS/2FAIL: Code_Aster
+Fz numerical completion fails (raw cause UNKNOWN), OpenRadioss download404.
+Next source development is D3.2 transient/time history; Phase4/all52/P2.2 remain
+OPEN with UNKNOWN qualification and NOT_RELEASED. Publication is recorded only
+after the source commit/push is confirmed.
+
+## Historical D2 checkpoint: declared-model optimization connected to Explore
 
 Pushed source `cedf144d5e41446c6c6331770b8e2149c81595e9`; exact-source CI37002601408 is IN_PROGRESS at publication, not PASS.
 Publication receipt: `benchmarks/records/20261002-model-campaign-ui-publication.json`. Following documentation is not new native verification.

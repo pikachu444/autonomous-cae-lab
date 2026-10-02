@@ -276,6 +276,8 @@ jobs:
         run: python -m scripts.verify_pde --store artifacts/pde-lab
       - name: Verify full Newton histories, nonlinear manufactured fields and the exact linear limit
         run: python -m scripts.verify_nonlinear_pde --store artifacts/nonlinear-pde-lab
+      - name: Verify declared rectangles, mixed named fluxes, changed domains and numerical refusals
+        run: python -m scripts.verify_rectangle_pde --store artifacts/rectangle-pde-lab
       - name: Connect actual PDE to the common local research/results surface
         run: python -m scripts.verify_lab_ui --store artifacts/http-pde-lab --library pde=artifacts/pde-lab
       - name: Preserve weak forms, field data, raw errors and common evidence
@@ -286,6 +288,7 @@ jobs:
           path: |
             artifacts/pde-lab/
             artifacts/nonlinear-pde-lab/
+            artifacts/rectangle-pde-lab/
             artifacts/http-pde-lab/
           include-hidden-files: true
           if-no-files-found: warn

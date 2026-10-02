@@ -138,10 +138,22 @@ def stop_owned_process(process: subprocess.Popen, *, isolated_group: bool,
     """Reap only this Popen child and its explicitly isolated POSIX group."""
     try:
         if isolated_group and os.name == "posix":
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
+            if process.returncode is not None:
+                # A wait interrupted by KeyboardInterrupt may have reaped the
+                # leader already. Its released PID no longer proves ownership
+                # of a group that now has the same number. Absence is safe;
+                # presence remains UNKNOWN and must never authorize SIGKILL.
+                try:
+                    os.killpg(process.pid, 0)
+                except ProcessLookupError:
+                    pass
+                else:
+                    raise RuntimeError("Reaped leader cannot authorize termination of an existing group")
+            else:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
         elif process.poll() is None:
             process.kill()
         # This is a stop-confirmation budget after termination was requested,

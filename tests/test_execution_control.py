@@ -126,6 +126,39 @@ def test_reaped_leader_never_authorizes_killing_a_reused_group(monkeypatch):
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX process group ownership")
+@pytest.mark.parametrize("group_present", [False, True])
+def test_direct_cleanup_after_reaping_never_kills_an_unowned_group(monkeypatch, group_present):
+    from caelab import execution_control as control
+
+    class Reaped:
+        pid, returncode = 314159, 0
+        waits = 0
+        def wait(self, timeout):
+            self.waits += 1
+            return self.returncode
+
+    signals = []
+    def probe(pid, sig):
+        signals.append((pid, sig))
+        if not group_present:
+            raise ProcessLookupError("TEST ONLY: no group remains")
+
+    process = Reaped()
+    token = CancellationToken()
+    monkeypatch.setattr(control.os, "killpg", probe)
+    with cancellation_scope(token):
+        if group_present:
+            with pytest.raises(ExecutionCleanupFailed, match="UNKNOWN"):
+                stop_owned_process(process, isolated_group=True)
+            assert token.cleanup_pending and process.waits == 0
+            assert token.cleanup_owners == [{"pid": 314159, "isolated_group": True, "leader_reaped": True}]
+        else:
+            stop_owned_process(process, isolated_group=True)
+            assert not token.cleanup_pending and process.waits == 1
+    assert signals == [(314159, 0)]
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process group ownership")
 def test_concurrent_cleanup_retries_serialize_owner_check_signal_and_reap(monkeypatch):
     from caelab import execution_control as control
     class Owned:

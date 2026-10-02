@@ -52,6 +52,13 @@ legacy adapters that already expose a shared `describe_model` method.
 The nonlinear scalar plugin owns its scientific checks; native Newton policy
 and UFL remain in its adapter, with no new Core equation or solver logic.
 
+ADR0019 adds `pde.fenicsx.rectangle` through the same operation and explicit
+declaration opt-in. The elliptic Domain plugin owns declared rectangle/named
+Dirichlet-Neumann conditions and reference verdicts; the adapter retains actual
+native topology/boundary fields and reuses the accepted AST helper and owned
+process cancellation. Legacy PDE sources/revisions remain. General/time/vector/
+coupled/MPI and guarded OpenScience rectangle admission stay open.
+
 `ModelAnalysisAdapter.solve(output, settings)` extends the same declared-model
 Core to independent geometry/material/load models. Optional pure
 `describe_model` supplies common geometry, materials, boundaries, loads and

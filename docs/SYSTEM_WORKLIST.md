@@ -1,6 +1,19 @@
 # Sequential system worklist
 
-## Current D2 checkpoint: declared-model optimization connected to Explore
+## Current D3.1 checkpoint: rectangle and mixed PDE source checks
+
+Declared rectangle/named mixed boundaries are integrated through the existing
+PDE/Core/preset/Results route.136 distinct focused checks PASS; one actual
+FEniCSx form-compilation regression is included, with no native solver run.
+Final independent source review is closed with no open P1/P2. Record:
+`../benchmarks/records/20261002-rectangle-pde-development.json`.
+Native/reference/OpenScience/same-record GUI verification remains separate;
+guarded rectangle Research is NOT_ADMITTED. D2 exact CI37002601408 completed
+8SUCCESS/2FAIL (Code_Aster Fz completion, OpenRadioss pinned download404).
+Next ordered source unit is D3.2 transient scalar form/time history. Full52,
+P2.2 and whole Phase4 remain OPEN/UNKNOWN/NOT_RELEASED.
+
+## Historical D2 checkpoint: declared-model optimization connected to Explore
 
 Pushed source `cedf144d5e41446c6c6331770b8e2149c81595e9`; exact-source CI37002601408 is IN_PROGRESS at publication, not PASS.
 Publication receipt: `../benchmarks/records/20261002-model-campaign-ui-publication.json`. Following documentation is not new native verification.
@@ -74,7 +87,7 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 | D0 integrated | Resident submit/inspect/cancel, configurable Code_Aster budgets/live logs, owned cleanup and normal shutdown; focused checks/review pass | Actual native cancellation/guard admission, unwired adapter controls, restart/multiprocess |
 | D1 source integrated | Typed material/load/mesh, exact campaign condition copy, complete diagnostic stress artifacts/table; reuse CAD and child analysis | New native/field GUI and existing beam/roof/mesh/reaction/stress/reference qualification; rotated axes/joints remain open |
 | D2 Phase3 source integrated | Expose existing declared-model discovery/registration and model optimization in Explore; reuse269d8bf stopping/constraints/replay | Numerical convergence, active constraints, interruption/replay and actual research/native linkage |
-| D3 Phase4 next | Extend declared domains/boundaries/time/vector/coupled forms | Manufactured/reference solutions and cross-backend/parallel checks |
+| D3 Phase4 active | D3.1 rectangle/named mixed boundaries source checks pass; D3.2 transient/time history next, then vector/coupled/domain import | New native manufactured/reference solutions, bounded research admission/GUI, cross-backend/parallel checks |
 | D4 Phase5 | Geometric/material/contact implementations and fixture coupling | Nonlinear convergence, histories, energy, canonical comparisons |
 | D5 Phase6 | Explicit preprocessing/contact/material/fields and campaign integration | Impact/drop force/energy/timestep/reference checks |
 | D6 Phase7 | Measured inverse interfaces, UQ/surrogate/multiobjective/MDO, MOOSE/HPC | Engine/coupling/HPC and actual measured-data acceptance |

@@ -158,6 +158,59 @@ def test_declared_backend_http_dispatch_retains_preflight_rejection_without_cad_
     assert {"model_qualification", "physical_validation"} <= set(retained["summary"]["unknown"])
 
 
+def test_rectangle_pde_http_uses_declared_geometry_and_blocks_conflicting_boundaries(client, monkeypatch):
+    """Actual HTTP/Core metadata; the solve below is explicitly a test stand-in."""
+    from copy import deepcopy
+    from caelab.adapters.fenicsx_rectangle import FenicsxRectanglePDEAdapter
+    from plugins.pde_elliptic.reference import manufactured_settings
+    from caelab.storage import canonical_hash
+
+    calls = []
+
+    def solve(self, output, settings):
+        calls.append(deepcopy(settings))
+        output.mkdir()
+        save_json(output / "test_only.json", {"test_only": True, "settings": settings})
+        return {"status": "COMPLETED", "solver_status": "COMPLETED", "converged": True,
+            "checks": [{"code": "test_transport", "status": "PASS", "observed": "TEST ONLY: no native solve"}],
+            "metrics": {"test_observation": {"value": 1.0, "unit": "1", "valid": True}},
+            "pending_validations": ["model_qualification", "physical_validation"],
+            "provenance": {"test_only": True}, "raw_result": "pde/test_only.json"}
+
+    monkeypatch.setattr(FenicsxRectanglePDEAdapter, "solve", solve)
+    client.job("study_create", study_arguments())
+    preset = client.request("/api/presets")["pde_rectangle"]
+    assert preset["operation"] == "pde_run" and preset["declared_inputs"] is False
+    first_bytes = None
+    revisions = []
+    for suffix, settings in (("first", preset["settings"]),
+                              ("changed", manufactured_settings(lengths=(1.5, .75), diffusion=2.0))):
+        experiment = "E-http-rectangle-" + suffix
+        result = client.job("pde_run", {"study_id": "S-http", "experiment_id": experiment,
+            "backend": preset["backend"], "settings": settings})["result"]
+        declaration = FenicsxRectanglePDEAdapter().describe_model(settings)
+        assert result["model_revision"] == canonical_hash({"settings": settings, "declaration": declaration})
+        assert result["extensions"]["pde"]["declaration"] == declaration
+        assert result["cad_revision"] is None and "parent_experiment_id" not in result
+        assert result["decision"] == "NOT_RELEASED"
+        inspected = client.request("/api/experiments/" + experiment)
+        assert inspected["integrity"] == "VERIFIED" and inspected["result"] == result
+        assert {"model_qualification", "physical_validation"} <= set(inspected["summary"]["unknown"])
+        payload, _ = client.request("/api/artifacts/" + experiment + "?path=pde%2Ftest_only.json", raw=True)
+        if suffix == "first":
+            first_bytes = payload
+        revisions.append(result["model_revision"])
+    assert len(calls) == 2 and len(set(revisions)) == 2
+    invalid = deepcopy(preset["settings"])
+    invalid["problem"]["boundaries"]["xmin"]["value"] = "2*x[1]+2"
+    blocked = client.job("pde_run", {"study_id": "S-http", "experiment_id": "E-http-rectangle-blocked",
+        "backend": preset["backend"], "settings": invalid})["result"]
+    assert blocked["status"] == "REJECTED" and blocked["solver_status"] == "NOT_RUN" and len(calls) == 2
+    assert blocked["metrics"] == {} and blocked["decision"] == "NOT_RELEASED"
+    payload, _ = client.request("/api/artifacts/E-http-rectangle-first?path=pde%2Ftest_only.json", raw=True)
+    assert payload == first_bytes
+
+
 def test_allowlisted_operations_change_actual_core_and_retain_verdicts(real_flow):
     client, service, accepted, rejected = real_flow
     assert accepted["status"] == "COMPLETED_REVIEW_REQUIRED"
@@ -184,7 +237,7 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     from scripts.verify_codeaster import specification as aster_spec
     client, service, _, _ = real_flow
     presets = client.request("/api/presets")
-    assert set(presets) == {"structural_linear", "pde_canonical", "pde_nonlinear", "codeaster_linear",
+    assert set(presets) == {"structural_linear", "pde_canonical", "pde_nonlinear", "pde_rectangle", "codeaster_linear",
                             "codeaster_plasticity", "material_point", "material_inverse", "explicit_freefall",
                             "explicit_ground_stop", "explicit_compliant_stop"} | {
         f"family_{case}_{load}_{solver}" for case, load in (
@@ -196,6 +249,10 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     assert presets["structural_linear"]["settings"]["material"]["qualification"] == "ASSUMED_NOT_MEASURED"
     assert presets["structural_linear"]["operation"] == "analysis_run"
     assert presets["pde_canonical"]["operation"] == "pde_run"
+    from plugins.pde_elliptic.reference import manufactured_settings
+    assert presets["pde_rectangle"]["settings"] == manufactured_settings()
+    assert presets["pde_rectangle"]["operation"] == "pde_run"
+    assert presets["pde_rectangle"]["declared_inputs"] is False
     assert all(preset["operation"] == "model_analysis_run" for key, preset in presets.items()
                if preset["operation"] != "pde_run" and key != "structural_linear")
     assert presets["explicit_ground_stop"]["status"] == "REJECTED"

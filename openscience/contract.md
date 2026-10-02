@@ -261,6 +261,20 @@ Custom Lab form verification does not admit new tools into guarded OpenScience.
 
 `status=COMPLETED_REVIEW_REQUIRED` says the transaction ran and its numerical/CAD checks are recorded. `decision=NOT_RELEASED` is retained while any machine/strength/physical/durability requirements are unknown. `status=REJECTED` can be an intended invalid-design observation, not a process crash. `FAILED_EXECUTION` marks a backend error. The OpenScience agent must follow the result's evidence IDs rather than interpreting a tool exit code as engineering approval.
 
+ADR0019 adds `pde.fenicsx.rectangle` through the unchanged `pde.run`/CLI/API/MCP
+transport and human Simulation/Results. Settings declare rectangle lengths,
+scalar coefficients/RHS/reference and four whole sides xmin/xmax/ymin/ymax.
+Each side has a safe scalar Dirichlet expression or outward flux
+`diffusion*grad(u).n`; at least one side is Dirichlet. Corner conflicts and
+unsafe/unsupported forms block native execution. Geometry and named conditions
+enter the new backend's declared-model revision. Full native fields/topology,
+boundary binding, symbolic errors, every rate and actual residual are retained.
+Finite numerical failures preserve invalid metrics and fields; process/output
+failures stay FAILED_EXECUTION. UNKNOWN/NOT_RELEASED remain. The historical
+guarded native Research profile does not yet admit rectangle; source transport
+support does not establish new official OpenScience execution or GUI acceptance.
+Pure Neumann/Robin/imported/time/vector/coupled/MPI remain unsupported.
+
 The additive `pde.fenicsx.nonlinear` backend uses the same `pde.run` transport
 for its bounded scalar diffusion benchmark, full Newton histories and the
 alpha-zero linear limit. If a PDE adapter explicitly sets

@@ -43,6 +43,15 @@ run arbitrary commands, import arbitrary code or accept server filesystem paths.
 
 ## HTTP API
 
+Simulation advertises additive `pde_rectangle` preset through the existing
+`pde_run` operation. Its settings declare domain lengths and four named mixed
+Dirichlet/Neumann sides with safe expressions. The same common declared model
+revision, no-CAD-parent result, artifact inspection/download and numerical
+rejection semantics apply. There are no new HTTP endpoints or hard-coded UI
+equations. `declared_inputs=false` means this preset does not advertise scalar
+optimization bindings. Local UI/source support is distinct from native
+mathematical acceptance and guarded official OpenScience admission.
+
 Explore reuses existing declared-model discovery/registration and
 `model_optimization_plan`, then the same `optimization_run`/inspector as CAD.
 Preset `declared_inputs` advertises the complete adapter binding interface

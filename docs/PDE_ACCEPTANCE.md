@@ -1,5 +1,45 @@
 # Declared weak-form PDE acceptance
 
+## Declared rectangle and mixed boundaries — ADR0019
+
+New `pde.fenicsx.rectangle` reuses `pde.run` and the existing Simulation/Results
+surface. `problem.domain` is `{type:"rectangle",lengths:[Lx,Ly]}` with
+dimensionless `[0,Lx] x [0,Ly]`, finite lengths0.001..1000. `problem.boundaries`
+contains exactly xmin/xmax/ymin/ymax, each `{type:"dirichlet"|"neumann",
+value:"bounded mathematical expression"}`. At least one whole Dirichlet side
+is required; its expression may vary spatially and adjacent D corner values
+must agree. Neumann means outward `diffusion*grad(u).n` and enters RHS with
+positive `g*v*ds`. Existing AST syntax, P1/doubling meshes and the declared
+weak_form/reference structure are reused. No arbitrary Python/native paths.
+
+`plugins.pde_elliptic.reference.manufactured_settings()` gives a fresh full
+example: u=x²y²+x+2y+1 on2x1, nonconstant xmin/ymin D and different nonzero
+xmax/ymax N. New-case fixed limits are L2 .03/rate1.8, gradient H1 .5/rate.9,
+relative residual1e-10. Existing unit-square `.003` and nonlinear thresholds
+are unchanged. Prescribed N integrals7/3 and28/3 check input binding, not
+solution-flux accuracy or global equilibrium (D-side analytical flux adds-5).
+
+Run `python -m scripts.verify_rectangle_pde --store artifacts/new-rectangle-store`
+only on a fresh path. The runner freezes all cases/limits before execution and
+checks reaction3, changed domain/diffusion, all-D corner union, wrong finite
+reference/flux rejection and three no-native preflight refusals. Two quadratic
+harmonic references also check zero RHS with all D or mixed D/zero N, using the
+same fixed criteria. Complete DOF
+fields/triangles, named exterior edges, native measures/normals, source copies,
+XDMF/H5/forms/logs and all errors/rates/residuals are retained. This runner's
+existence/source tests are not a native PASS. New-source native/CI/OpenScience/
+same-record GUI evidence is recorded separately; full Phase4 remains open.
+
+Worker system Python is isolated and PETSc rc/environment options are removed.
+Optional local positive integer CAELAB_FENICSX_WALL_TIMEOUT_SECONDS controls a
+wall budget; absent means none. Owned cancellation/cleanup keeps partial logs
+and admission until confirmed. The previous two PDE lifecycle policies remain.
+Pure Neumann, Robin, imported/general geometry, time/vector/coupled/nonlinear
+rectangle and MPI remain unaccepted. Guarded Research rectangle is NOT_ADMITTED;
+model/physical qualification stays UNKNOWN and all decisions NOT_RELEASED.
+
+## Preserved canonical unit-square path
+
 `pde.fenicsx` solves the scalar form
 
 ```text
