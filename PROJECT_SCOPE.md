@@ -21,6 +21,26 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+NEW clean managed94773a3/research06 is IN_PROGRESS on the approved5.6Sol,
+same authorized project/auth and fresh profile/store. The immutable live capture
+records4 closed questions/16 admitted receipts/5 terminal Core records;
+ongoing stream snapshots are separate, bounded non-atomic progress observations.
+AI creates/inspects studies, calls both solvers and compares/changes load in the
+original Root-declared question sequence. Beam Aster failure is retained; no
+engineering approval or general autonomous planning is claimed. Actual resident
+source/resource binding and same-session AX/model/results are observed. Record:
+benchmarks/records/20261002-openscience-structural-research06-start.json.
+Keep managed947 frozen; finish original sequence and verify final complete-prompt
+stdin interpretation, then GUI/owned Stop/new full retention/independent review.
+Stop/closed retention/new06 raw audit are NOT_RUN; full52/P2.2 remain OPEN.
+Exact947 CI36950198263 closes8SUCCESS/2FAIL/source127PASS/four actual counters0;
+launcher80 CI execution NOT_ESTABLISHED. Explicit404/curl22 and Fz outer assertion
+remain, CI internal native diagnostic UNKNOWN. Later documentation is not new
+solver/source acceptance. Prior checkpoint instructions below are historical.
+
+### Previous checkpoint (retained)
+
+
 Actual clean managed9d62273/research05 is CLOSED FAILED_OR_PARTIAL. Eight
 of nine Root-declared questions close, with45 completed tool events/34 observed
 provider step-finish records, nine experiments/27 native levels and26 complete
@@ -458,7 +478,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R40 | Independent optimizer comparison by problem role, not a generic ranking. | Partial research and first seeded engine; wider engine acceptance planned. |
 | R41 | Source audit of fixture code/tests/CI/debt and independent architecture review. | Partial completed recovered source audit; native/transaction debt remains. |
 | R42 | Separate research/implementation/verification roles when useful; Root integrates. | Ongoing; retained implemented-load independent verification. |
-| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; actual9d/research05 raw/source/45 receipts/34 observed model steps/full9 results/1071-file retention independently audited. Cylinder analytical/cross-fields and accepted beam/cylinder half-load PASS; beam Aster FAIL, three roof invalid REJECTED and final09 incomplete remain partial. Public05 exact reconciliation reviewed. Official stdin correction launcher80/source127/native63 and independent source review PASS with19 protected originals unchanged/actual calls0; new exact CI/research06 NOT_RUN at source admission. Full52/P2.2/NOT_RELEASED remain OPEN. |
+| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; independent source947 stdin80/source127/native63 and actual05 public reconciliation PASS. Exact947 CI source127/final8SUCCESS2FAIL audited; CI native internal diagnostic UNKNOWN. NEW clean947/research06 IN_PROGRESS (4 closed questions/16 receipts/5 terminal records at live snapshot); new06 raw audit/Stop/closed retention and numerical gates OPEN. Prior05 partial/raw/source/1071-file audit and all UNKNOWN/NOT_RELEASED preserved. |
 | R44 | Do not concurrently modify shared schemas/Core/registry/artifact migrations or same source file. | Ongoing ownership rule in AGENTS. |
 | R45 | Root checks architecture, OpenScience-first, conflicting evidence, actual feasibility, GUI/headless, license/security/benchmarks/requirements before integration. | Ongoing; accepted/rejected decisions recorded in ADR/docs. |
 | R46 | Strong Root reasoning for architecture/numerics/conflicts, appropriate agents for bounded work; verification above model choice. | Ongoing, subject to available models/tools and current session instructions. |
@@ -598,7 +618,7 @@ authorization. Simulation alone cannot qualify every fixture requirement.
 | --- | --- | --- |
 | 0 | Architecture/ADRs, schemas, registry, evidence/validation/artifact thread, Python/CLI/MCP | Extend contracts with independently verified backend features; corporate deployment review. |
 | 1 | Existing CadQuery/native Part/Sketcher reused; bounded P1.1/P1.2a/P1.2b actual gates retained | Actual04ff/run03 bounded P1.3 connected conditions/solver/comparison/engine search/scalar PDE PASS;788-file retention. Full product/Phase1 qualification remains OPEN with declared limitations. |
-| 2 | Exact STEP to Gmsh/CalculiX child run, 4/3/2/1.5 mm area-load screen/reactions; actual04ff research shares the same records; MIDAS139+CFD18 source/coverage survey | NEXT SERIAL P2.1b: complete representative structural-family definitions/reference, frozen before P2.2 mesh/cross-solver/research execution. Prior single-case implementation deferred; materials/fasteners/contact/stress/physical qualification OPEN. |
+| 2 | Exact STEP to Gmsh/CalculiX child run, 4/3/2/1.5 mm area-load screen/reactions; actual04ff research shares the same records; MIDAS139+CFD18 source/coverage survey | ACTIVE P2.2: frozen representative-family source admitted and actual research05 independently retained/audited as PARTIAL. NEW clean947 research06 is IN_PROGRESS in the same original sequence; exact947 CI source127PASS/final8SUCCESS2FAIL. Final interpretation/closed06 audit and Fz accuracy/roof mesh convergence OPEN. Prior single-case implementation deferred; materials/fasteners/contact/stress/physical qualification OPEN. |
 | 3 | Seeded LHS DOE/shared SciPy DE; actual CAD and declared-input native candidates, explicit constraints and exact replay | Converged fixture optimization, broader variable/engine/UQ/multiobjective coverage. |
 | 4 | Clean d363 declared scalar FEniCSx linear/nonlinear/linear-limit/reference-rejection proof, HTTP/browser and independently audited CI | Wider nonlinear/general domains, coupled PDE and MPI/HPC acceptance. |
 | 5 | Actual affine elasticity and small-strain J2 full load/unload fields on two meshes/materials | Geometric nonlinearity/contact/hyperelasticity/viscoelasticity/native energy/physical qualification. |

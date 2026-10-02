@@ -33,6 +33,26 @@ experiment artifacts; cloning Git alone does not restore their local bytes.
 
 **Next serial unit: P2.2 bounded family native and connected research acceptance.**
 
+NEW clean managed94773a3/research06 is IN_PROGRESS on the approved5.6Sol,
+same authorized project/auth and fresh profile/store. The immutable live capture
+records4 closed questions/16 admitted receipts/5 terminal Core records;
+ongoing stream snapshots are separate, bounded non-atomic progress observations.
+AI creates/inspects studies, calls both solvers and compares/changes load in the
+original Root-declared question sequence. Beam Aster failure is retained; no
+engineering approval or general autonomous planning is claimed. Actual resident
+source/resource binding and same-session AX/model/results are observed. Record:
+benchmarks/records/20261002-openscience-structural-research06-start.json.
+Keep managed947 frozen; finish original sequence and verify final complete-prompt
+stdin interpretation, then GUI/owned Stop/new full retention/independent review.
+Stop/closed retention/new06 raw audit are NOT_RUN; full52/P2.2 remain OPEN.
+Exact947 CI36950198263 closes8SUCCESS/2FAIL/source127PASS/four actual counters0;
+launcher80 CI execution NOT_ESTABLISHED. Explicit404/curl22 and Fz outer assertion
+remain, CI internal native diagnostic UNKNOWN. Later documentation is not new
+solver/source acceptance. Prior checkpoint instructions below are historical.
+
+### Previous checkpoint (retained)
+
+
 Actual clean managed9d62273/research05 is CLOSED FAILED_OR_PARTIAL. Eight
 of nine Root-declared questions close, with45 completed tool events/34 observed
 provider step-finish records, nine experiments/27 native levels and26 complete

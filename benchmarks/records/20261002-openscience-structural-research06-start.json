@@ -1,0 +1,178 @@
+{
+  "record_kind": "LIVE_ACTUAL_RESEARCH_PROGRESS_NOT_CLOSED_ACCEPTANCE",
+  "capture_started_utc": "2026-10-02T01:39:21.786759+00:00",
+  "capture_ended_utc": "2026-10-02T01:39:22.303354+00:00",
+  "source_commit": "94773a35d73773faf5dc2714ea7d9071c812f357",
+  "source_dirty": [],
+  "run_id": "p2-research-20261002-06",
+  "model": "openai-codex/gpt-5.6-sol",
+  "status": "IN_PROGRESS_NOT_ACCEPTANCE",
+  "acceptance_snapshot": {
+    "path": "artifacts/p2-structural-research-control-20261002-06/live-start/acceptance.json",
+    "bytes": 1243895,
+    "sha256": "2f2a5641ffc71d8813af2dd02c5c00510599f189da88a6ab8dfb5f91dff059b8"
+  },
+  "closed_questions_in_acceptance_snapshot": 4,
+  "admitted_receipts_in_acceptance_snapshot": 16,
+  "stream_snapshots": [
+    {
+      "stage": "01-missing-input",
+      "raw_snapshot": {
+        "path": "artifacts/p2-structural-research-control-20261002-06/live-start/streams/01-missing-input.jsonl",
+        "bytes": 3459,
+        "sha256": "4382f15c668eb8673d19b955a7b8a9ec03df95cd42b6da643a026397736b4201"
+      },
+      "completed_tool_events": 0,
+      "provider_step_finish_events": 1,
+      "done_events": 1,
+      "incomplete_tail_retained": false
+    },
+    {
+      "stage": "02-unsupported-torsion",
+      "raw_snapshot": {
+        "path": "artifacts/p2-structural-research-control-20261002-06/live-start/streams/02-unsupported-torsion.jsonl",
+        "bytes": 2378,
+        "sha256": "dabe3f063e8c1e0faefa70c0ea8fac24f7589a4a72016332ecda0128fcc11a43"
+      },
+      "completed_tool_events": 0,
+      "provider_step_finish_events": 1,
+      "done_events": 1,
+      "incomplete_tail_retained": false
+    },
+    {
+      "stage": "03-beam-baseline",
+      "raw_snapshot": {
+        "path": "artifacts/p2-structural-research-control-20261002-06/live-start/streams/03-beam-baseline.jsonl",
+        "bytes": 209920,
+        "sha256": "fcba07a1925273d3e532fd029afc1177aab3af64c22530697cf6bf7f16b0772c"
+      },
+      "completed_tool_events": 9,
+      "provider_step_finish_events": 5,
+      "done_events": 1,
+      "incomplete_tail_retained": false
+    },
+    {
+      "stage": "04-beam-half-load",
+      "raw_snapshot": {
+        "path": "artifacts/p2-structural-research-control-20261002-06/live-start/streams/04-beam-half-load.jsonl",
+        "bytes": 190392,
+        "sha256": "d1e38c9c2a89f01e2d28c0c2fa0c3a3cc4276fc037bb8494b8e71bf1bdcbeb60"
+      },
+      "completed_tool_events": 7,
+      "provider_step_finish_events": 4,
+      "done_events": 1,
+      "incomplete_tail_retained": false
+    },
+    {
+      "stage": "05-cylinder-baseline",
+      "raw_snapshot": {
+        "path": "artifacts/p2-structural-research-control-20261002-06/live-start/streams/05-cylinder-baseline.jsonl",
+        "bytes": 129095,
+        "sha256": "1a6266f19466c7570b5c34545885a97154035cbe2a52110f9e62cc8d864f386a"
+      },
+      "completed_tool_events": 4,
+      "provider_step_finish_events": 3,
+      "done_events": 0,
+      "incomplete_tail_retained": false
+    }
+  ],
+  "terminal_Core_records_in_capture_window": [
+    {
+      "id": "E-p2-research-20261002-06-beam-aster-full",
+      "status": "FAILED_EXECUTION",
+      "decision": "NOT_RELEASED",
+      "result": {
+        "path": "artifacts/p2-structural-research-control-20261002-06/live-start/store/experiments/E-p2-research-20261002-06-beam-aster-full/result.json",
+        "bytes": 35042,
+        "sha256": "c3e0eefcc3f5dcd0d1ac7a4981dc2df65783c4db340fe83a478c090ffd7398e8"
+      }
+    },
+    {
+      "id": "E-p2-research-20261002-06-beam-ccx-full",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "decision": "NOT_RELEASED",
+      "result": {
+        "path": "artifacts/p2-structural-research-control-20261002-06/live-start/store/experiments/E-p2-research-20261002-06-beam-ccx-full/result.json",
+        "bytes": 46307,
+        "sha256": "7f6a743eaa260f73fa61e8f48a28e8dd7d266373ea51242b98762e5c4e700ee6"
+      }
+    },
+    {
+      "id": "E-p2-research-20261002-06-beam-ccx-half",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "decision": "NOT_RELEASED",
+      "result": {
+        "path": "artifacts/p2-structural-research-control-20261002-06/live-start/store/experiments/E-p2-research-20261002-06-beam-ccx-half/result.json",
+        "bytes": 46316,
+        "sha256": "884151a69a9474972f4bce597a035cafa6e53e95d63f44d562a74f87a41d64ad"
+      }
+    },
+    {
+      "id": "E-p2-research-20261002-06-cylinder-aster-full",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "decision": "NOT_RELEASED",
+      "result": {
+        "path": "artifacts/p2-structural-research-control-20261002-06/live-start/store/experiments/E-p2-research-20261002-06-cylinder-aster-full/result.json",
+        "bytes": 63851,
+        "sha256": "1998b53350f952b54fb227f98fc8dd925143c3a21db094aa8e6aa1db0a88dd38"
+      }
+    },
+    {
+      "id": "E-p2-research-20261002-06-cylinder-ccx-full",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "decision": "NOT_RELEASED",
+      "result": {
+        "path": "artifacts/p2-structural-research-control-20261002-06/live-start/store/experiments/E-p2-research-20261002-06-cylinder-ccx-full/result.json",
+        "bytes": 48728,
+        "sha256": "398e209528023664ded3531c486ffef5fdf15bb0105cc6ce59eca9b5dc228c8c"
+      }
+    }
+  ],
+  "connected_resource": {
+    "path": "artifacts/p2-structural-research-control-20261002-06/live-start/connected-resource-receipt.json",
+    "bytes": 682,
+    "sha256": "c63c47fb2980b4c2d6b08a296a37f4687e533f45d523d1b5b967ee2f225de44d"
+  },
+  "frozen_specification": {
+    "path": "artifacts/p2-structural-research-control-20261002-06/live-start/predeclared-reference.json",
+    "bytes": 15623,
+    "sha256": "92bfa9bd35cdf2a924521e5834d29a54b96039982c1003acac57b167669dd0b0"
+  },
+  "GUI": {
+    "start": {
+      "path": "artifacts/p2-structural-research-control-20261002-06/gui-observation-start.json",
+      "bytes": 960,
+      "sha256": "7f2379392cc9aa3866aed167a883d4b5890ebdf697b06597c17242c1184cdc6c"
+    },
+    "scope": "Root actual01 AX/model/session observed; later beam AX has both actual06 IDs, completion/failure statuses and comparison/NOT_RELEASED. No screenshot/fullAX/native CAD GUI proof."
+  },
+  "exact_source_CI": {
+    "run_id": 36950198263,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36950198263",
+    "jobs": {
+      "success": 8,
+      "failure": 2
+    },
+    "source_checks": 127,
+    "final_receipt": {
+      "path": "artifacts/p2-research-ci-94773a3-20261002-01/final-ci-metadata-joblogs-receipt.json",
+      "bytes": 9778,
+      "sha256": "3632b938ed81c781a0d6cd2fa0b99066fea702a546ed172bc40c4b4ef3d1f725"
+    },
+    "source_receipt": {
+      "path": "artifacts/p2-research-ci-94773a3-20261002-01/research-source-ci-pass-receipt.json",
+      "bytes": 33780,
+      "sha256": "98e4ace50d6be65a6452be3e8269f247b23f01588cd27692d0f3c9e1336156b4"
+    },
+    "scope": "Source127 PASS/four actual counters0; launcher80 CI execution NOT_ESTABLISHED. OverallCI failure: explicit404/curl22 and Aster Fz outer assertion; internal CI native code/level/value/limit UNKNOWN."
+  },
+  "scope": "Non-atomic bounded live capture window. Root predeclares original9 questions; AI chooses tools/order and interprets outcomes. No general autonomous planning or closed numerical acceptance. Snapshot counts are historical values at capture, not continuing live totals.",
+  "owned_stop": "NOT_RUN",
+  "closed_full_retention": "NOT_RUN",
+  "independent_new06_raw_review": "NOT_RUN",
+  "final_complete_prompt_stdin_interpretation": "NOT_RUN_AT_SNAPSHOT",
+  "decision": "NOT_RELEASED",
+  "full52": "OPEN",
+  "P2.2": "OPEN",
+  "next": "Finish original sequence on frozen managed947; verify complete final stdin delivery/owned lifecycle/AI interpretation, same-record GUI, owned Stop, new exact full retention and independent raw review. Preserve original numerical failures, invalid metrics and UNKNOWN."
+}

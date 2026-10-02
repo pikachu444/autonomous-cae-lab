@@ -56,6 +56,26 @@ and corrective-source records are preserved in STRUCTURAL_FAMILIES_ACCEPTANCE.
 
 Next tasks within the same P2.2 unit, in order:
 
+NEW clean managed94773a3/research06 is IN_PROGRESS on the approved5.6Sol,
+same authorized project/auth and fresh profile/store. The immutable live capture
+records4 closed questions/16 admitted receipts/5 terminal Core records;
+ongoing stream snapshots are separate, bounded non-atomic progress observations.
+AI creates/inspects studies, calls both solvers and compares/changes load in the
+original Root-declared question sequence. Beam Aster failure is retained; no
+engineering approval or general autonomous planning is claimed. Actual resident
+source/resource binding and same-session AX/model/results are observed. Record:
+benchmarks/records/20261002-openscience-structural-research06-start.json.
+Keep managed947 frozen; finish original sequence and verify final complete-prompt
+stdin interpretation, then GUI/owned Stop/new full retention/independent review.
+Stop/closed retention/new06 raw audit are NOT_RUN; full52/P2.2 remain OPEN.
+Exact947 CI36950198263 closes8SUCCESS/2FAIL/source127PASS/four actual counters0;
+launcher80 CI execution NOT_ESTABLISHED. Explicit404/curl22 and Fz outer assertion
+remain, CI internal native diagnostic UNKNOWN. Later documentation is not new
+solver/source acceptance. Prior checkpoint instructions below are historical.
+
+### Previous checkpoint (retained)
+
+
 Actual clean managed9d62273/research05 is CLOSED FAILED_OR_PARTIAL. Eight
 of nine Root-declared questions close, with45 completed tool events/34 observed
 provider step-finish records, nine experiments/27 native levels and26 complete
@@ -131,10 +151,12 @@ historical; frozen05 start snapshot and all earlier partial records are preserve
 - [x] Diagnose final09 oversized Windows argv; review/verify whole-prompt official
   stdin correction:80 launcher/source127/native63, independent bounded review,
   protected19 originals unchanged/actual calls0. Source proof only.
-- [ ] Commit/push transport correction and check exact new-source CI. Start NEW
-  clean-source research06/profile/store, same approved model/project/original
-  questions; verify final whole-input interpretation, GUI, owned Stop, exact
-  retention and independent actual review. Keep failed/invalid outcomes.
+- [x] Commit/push reviewed transport94773a3 and audit its exact CI36950198263:
+  source127PASS/four actual counters0; whole CI8SUCCESS/2FAIL. Start NEW clean947
+  research06/profile/store with approved model/project/original question order.
+- [ ] Finish research06 original sequence and final whole-input interpretation;
+  verify GUI, owned Stop, exact full retention and independent actual review.
+  Current live snapshot is not closed acceptance; keep failed/invalid outcomes.
 - [ ] Resolve Fz accuracy and complete cylinder/roof/changed-load/refusal numerical
   gates; independently audit measured raw fields. No failed probe is a shortcut.
 
