@@ -1,5 +1,28 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
+## Current checkpoint: fixture conditions and diagnostic tensor integration
+
+The Lab form now edits explicit load/material/mesh settings and copies the same
+conditions into existing DOE/optimization plans. Invalid raw JSON locks the form
+until repaired; no stale value or unsupported key is silently overwritten.
+Fixture CalculiX version3 retains a complete six-component averaged nodal tensor
+per mesh, verified positions and exact FRD hash. The UI admits a manifest-linked
+diagnostic table; peak stress stays invalid and strength remains UNKNOWN.
+75 fixture checks +51 HTTP checks +10 Node checks =136 distinct PASS; canonical
+source recheck76PASS. Independent review closed one JSON-preservation P2.
+Actual browser form edit/copy/refusal/recovery was checked; new native solver,
+provider, official OpenScience and solver-field GUI acceptance were not run.
+Record: `benchmarks/records/20261002-fixture-conditions-and-fields-development.json`.
+
+Preceding cancellation source9363ff5759a37eb586fc0e2c18746ce94c58a97f is pushed
+to main; exact CI36993418778 completed8SUCCESS/2FAIL. Beam Fz Aster completion
+gate fails (raw numerical cause UNKNOWN here); pinned OpenRadioss download404.
+Next D2: expose existing declared-model parameter discovery/registration and
+optimization in Explore; reuse269d8bf/SciPy/constraints/replay rather than rebuild
+the numerical engine. Native/reference qualification, rotated axes/joints,
+fixture process controls and guarded runtime admission stay separately OPEN.
+Original52/P2.2 and whole phases remain OPEN; all NOT_RELEASED.
+
 ## Current checkpoint: cooperative cancellation and owned cleanup
 
 LabService/MCP/HTTP/UI now share cooperative cancel/cleanup state. Three

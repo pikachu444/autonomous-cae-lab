@@ -32,6 +32,9 @@ SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _PENDING = ["machine_interface", "static_strength", "physical_load_test",
             "fatigue_durability", "joint_and_contact", "material_qualification",
             "reaction_balance", "stress_convergence"]
+_STRESS_LABELS = ("SXX 1 4 1 1", "SYY 1 4 2 2", "SZZ 1 4 3 3",
+                  "SXY 1 4 1 2", "SYZ 1 4 2 3", "SZX 1 4 3 1")
+_STRESS_NUMBER = re.compile(r"[-+]?\d+\.\d+E[-+]\d+")
 
 
 def _screen():
@@ -210,9 +213,119 @@ def _base_reactions(dat: Path, fixed: set[int], applied_force_N: float) -> dict:
             "fixed_node_count": len(records)}
 
 
+def _extract_stress_field(frd: Path, nodes: dict, screen: Any) -> tuple[dict, dict]:
+    """Retain the complete nodal tensor alongside the pinned diagnostic.
+
+    The existing single linear step writes one averaged nodal STRESS block.
+    CalculiX 2.21's frd.c/frdselect.c specify the six labels below, a ten-column
+    node ID and six E12.5 values. Mesh coordinates come from the already checked
+    Gmsh mesh, without substituting the lower-precision FRD coordinates.
+    """
+    if not isinstance(nodes, dict) or not nodes:
+        raise RuntimeError("Stress field requires a nonempty verified mesh")
+    for node, position in nodes.items():
+        if type(node) is not int or node <= 0:
+            raise RuntimeError("Invalid stress-field mesh node ID")
+        if (not isinstance(position, (tuple, list)) or len(position) != 3 or
+                any(type(value) not in (int, float) or not math.isfinite(value)
+                    for value in position)):
+            raise RuntimeError(f"Invalid or nonfinite stress-field mesh position: {node}")
+
+    source = frd.read_bytes()
+    try:
+        lines = source.decode("ascii").splitlines()
+    except UnicodeDecodeError as exc:
+        raise RuntimeError("CalculiX stress field requires ASCII FRD") from exc
+    starts = [index for index, line in enumerate(lines)
+              if " -4  STRESS" in line]
+    if len(starts) != 1:
+        raise RuntimeError("Expected one CalculiX nodal STRESS block")
+    index = starts[0]
+    if lines[index].split() != ["-4", "STRESS", "6", "1"]:
+        raise RuntimeError("Malformed six-component nodal STRESS header")
+    if (not lines or lines[-1].strip() != "9999" or
+            sum(line.strip() == "9999" for line in lines) != 1):
+        raise RuntimeError("Incomplete CalculiX ASCII FRD end marker")
+    index += 1
+    for label in _STRESS_LABELS:
+        if index >= len(lines) or lines[index].split() != ["-5", *label.split()]:
+            raise RuntimeError("Incomplete or reordered nodal stress components")
+        index += 1
+
+    records = {}
+    while index < len(lines) and lines[index].strip() != "-3":
+        line = lines[index]
+        if line[:3] != " -1" or len(line) < 85 or line[85:].strip():
+            raise RuntimeError("Malformed six-component nodal stress record")
+        label = line[3:13].strip()
+        if not re.fullmatch(r"[1-9]\d*", label):
+            raise RuntimeError("Malformed nodal stress ID")
+        node = int(label)
+        if node in records or node not in nodes:
+            raise RuntimeError(f"Duplicate or unexpected nodal stress ID: {node}")
+        tensor = []
+        for component in range(6):
+            token = line[13 + 12 * component:25 + 12 * component].strip()
+            try:
+                value = float(token)
+            except ValueError as exc:
+                raise RuntimeError(f"Malformed nodal stress component: {node}") from exc
+            if not math.isfinite(value):
+                raise RuntimeError(f"Nonfinite nodal stress component: {node}")
+            if not _STRESS_NUMBER.fullmatch(token):
+                raise RuntimeError(f"Malformed ASCII nodal stress component: {node}")
+            tensor.append(value)
+        sxx, syy, szz, sxy, syz, szx = tensor
+        try:
+            vm = math.sqrt(((sxx - syy)**2 + (syy - szz)**2 + (szz - sxx)**2) / 2 +
+                           3 * (sxy * sxy + syz * syz + szx * szx))
+        except ArithmeticError as exc:
+            raise RuntimeError(f"Nonfinite computed von Mises stress: {node}") from exc
+        if not math.isfinite(vm):
+            raise RuntimeError(f"Nonfinite computed von Mises stress: {node}")
+        records[node] = {"node_id": node, "position_mm": list(nodes[node]),
+                         "stress_MPa": tensor, "von_mises_MPa": vm}
+        index += 1
+    if index == len(lines) or set(records) != set(nodes):
+        raise RuntimeError(f"Incomplete nodal stress field: {len(records)}/{len(nodes)}")
+
+    diagnostic = screen.extract_stress_diagnostic(frd, nodes)
+    peak = max(records, key=lambda node: records[node]["von_mises_MPa"])
+    values = sorted(row["von_mises_MPa"] for row in records.values())
+    percentile_index = .95 * (len(values) - 1)
+    lower = math.floor(percentile_index)
+    upper = math.ceil(percentile_index)
+    p95 = values[lower] + (percentile_index - lower) * (values[upper] - values[lower])
+    expected = {"max_averaged_nodal_von_mises_MPa": records[peak]["von_mises_MPa"],
+                "p95_averaged_nodal_von_mises_MPa": p95}
+    if (not isinstance(diagnostic, dict) or
+            set(diagnostic) != {*expected, "maximum_node_id", "maximum_node_xyz_mm", "node_count"} or
+            type(diagnostic["node_count"]) is not int or diagnostic["node_count"] != len(nodes) or
+            type(diagnostic["maximum_node_id"]) is not int or diagnostic["maximum_node_id"] != peak or
+            diagnostic["maximum_node_xyz_mm"] != nodes[peak]):
+        raise RuntimeError("Nodal stress field differs from pinned stress diagnostic")
+    for name, value in expected.items():
+        actual = diagnostic[name]
+        # Independent percentile interpolation may differ by floating-point
+        # roundoff; this is not an engineering acceptance tolerance.
+        if (type(actual) not in (int, float) or not math.isfinite(actual) or
+                abs(actual - value) > 64 * math.ulp(max(abs(actual), abs(value)))):
+            raise RuntimeError("Nodal stress field differs from pinned stress diagnostic")
+    if frd.read_bytes() != source:
+        raise RuntimeError("CalculiX FRD changed during stress-field extraction")
+    field = {"schema_version": "1.0", "field": "stress", "representation": "AVERAGED_NODAL",
+             "unit": "MPa", "coordinate_frame": "SOLVER_GLOBAL_CARTESIAN",
+             "component_order": [label.split()[0] for label in _STRESS_LABELS],
+             "tensor_shear_components": True, "engineering_valid": False,
+             "qualification": "UNKNOWN",
+             "source_frd": {"path": frd.name, "sha256": hashlib.sha256(source).hexdigest()},
+             "nodes": [records[node] for node in sorted(records)], "node_count": len(records)}
+    return field, diagnostic
+
+
 class FixtureCalculiXAdapter:
     backend = "fixture.calculix"
-    version = "2"
+    version = "3"
     analysis_type = "linear_static"
     default_metrics = ["max_displacement", "peak_stress", "displacement_mesh_change_ratio",
                        "applied_force_per_support", "reaction_force", "reaction_balance_ratio"]
@@ -440,7 +553,8 @@ class FixtureCalculiXAdapter:
             checks.append({"code": f"mesh_{index}_reaction_balance",
                            "status": "PASS" if reactions["relative_imbalance"] <= .01 else "FAIL",
                            "observed": reactions, "limit": .01})
-            stress = screen.extract_stress_diagnostic(frd, nodes)
+            stress_field, stress = _extract_stress_field(frd, nodes, screen)
+            save_json(folder / "stress_field.json", stress_field)
             studies.append({"mesh_size_max_mm": size, "nodes": len(nodes),
                             "elements_C3D10": len(elements),
                             "minimum_quadratic_jacobian_mm3": jac,
@@ -452,6 +566,7 @@ class FixtureCalculiXAdapter:
                                       "commands": f"{job}/commands.json",
                                       "gmsh_log": f"{job}/gmsh.log", "ccx_log": f"{job}/ccx.log",
                                       "field_results": f"{job}/{job}.frd",
+                                      "stress_field": f"{job}/stress_field.json",
                                       "displacement_table": f"{job}/{job}.dat"}})
         coarse, fine = studies[-2:]
         numerator = abs(coarse["displacement"]["max_abs_vertical_displacement_mm"] -

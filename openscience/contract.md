@@ -243,6 +243,15 @@ OpenScience owns the research request and interpretation. The CAE-Lab process ow
 
 The Python API is `caelab.Lab`. The CLI maps the same operations to `python -m caelab`. JSON schemas under `schemas/` define the common envelopes. `openscience/mcp_server.py` is a thin local stdio transport using the official MCP Python SDK; it does not implement engineering logic. The server store is selected by `CAELAB_STORE`, not an argument that a model can point at an arbitrary filesystem path. The native import tool accepts only a basename under `CAELAB_IMPORT_ROOT`, with resolved symlinks checked against that root. The `openscience.json.example` shows project configuration; its absolute paths and OpenScience identity need confirmation in a real installation.
 
+Fixture adapter3 retains complete six-component averaged nodal stress in a
+per-mesh manifest artifact with the original FRD hash and verified mesh positions.
+`analysis.run` settings and Core schemas are unchanged; the human Lab form uses
+the same explicit load/material/mesh input and can copy it into existing plans.
+Invalid raw JSON is preserved and blocks stale form overwrite. These diagnostic
+fields have `engineering_valid=false` and `qualification=UNKNOWN`; peak stress
+remains invalid until independent stress/material/strength evidence exists.
+Custom Lab form verification does not admit new tools into guarded OpenScience.
+
 `status=COMPLETED_REVIEW_REQUIRED` says the transaction ran and its numerical/CAD checks are recorded. `decision=NOT_RELEASED` is retained while any machine/strength/physical/durability requirements are unknown. `status=REJECTED` can be an intended invalid-design observation, not a process crash. `FAILED_EXECUTION` marks a backend error. The OpenScience agent must follow the result's evidence IDs rather than interpreting a tool exit code as engineering approval.
 
 The additive `pde.fenicsx.nonlinear` backend uses the same `pde.run` transport

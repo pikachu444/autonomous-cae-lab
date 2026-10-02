@@ -62,6 +62,8 @@ jobs:
             plugins/fixture_design/upstream/requirements-dev.txt
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m pytest -q
+      - name: Check fixture form settings and diagnostic stress field admission
+        run: node --test tests/test_fixture_controls.js
       - run: python scripts/verify_mcp.py
       - name: Verify native OpenScience source and tool guards without model calls
         run: |

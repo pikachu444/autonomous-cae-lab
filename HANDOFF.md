@@ -1,5 +1,26 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Current checkpoint: D1 fixture inputs/diagnostic fields integrated
+
+Typed load/material/mesh inputs copy exact settings into existing campaigns.
+Raw invalid JSON disables stale form overwrite. Fixture adapter3 appends complete
+six-component AVERAGED_NODAL stress fields with source FRD hashes, preserving the
+pinned diagnostic and invalid peak-stress/UNKNOWN/NOT_RELEASED verdicts.
+136 distinct focused checks PASS; canonical changed-source recheck76PASS and
+one source-review P2 closed. The custom Lab form was actually checked in browser
+at8767/new development store; new native/provider/official OpenScience/field-GUI
+acceptance remains NOT_RUN. Record:
+`benchmarks/records/20261002-fixture-conditions-and-fields-development.json`.
+Cancellation source9363ff5759a37eb586fc0e2c18746ce94c58a97f is durably on main;
+its exact CI36993418778 has8SUCCESS/2FAIL (beam Fz completion, pinned asset404).
+
+Next ordered source unit: connect existing declared-model parameter discovery/
+registration and model_optimization_plan to Explore and model result links.
+Existing269d8bf/SciPy stopping/constraints/replay are already implemented: reuse
+them. Root owns the shared UI/integration. Separate full native/reference/GUI
+queue retains old failures; do not rerun them unchanged. Rotated axes, joints,
+fixture native controls, guarded runtime admission and all52 remain OPEN.
+
 ## Current checkpoint: cancellation source unit complete
 
 Cooperative MCP/HTTP/UI cancel and normal shutdown reuse LabService. Failed

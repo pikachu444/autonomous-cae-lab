@@ -43,6 +43,16 @@ run arbitrary commands, import arbitrary code or accept server filesystem paths.
 
 ## HTTP API
 
+Fixture conditions use the existing `analysis_run` settings without new HTTP or
+Core operations. Typed load/material/mesh controls and advanced JSON synchronize;
+invalid JSON disables form edits until repaired so stale fields cannot overwrite
+it. The same settings can be copied into an existing campaign's analysis plan.
+Adapter3 field artifacts retain six averaged nodal stress components, mesh
+positions and FRD hash. The diagnostic table requires manifested source identity,
+finite complete nodes, `engineering_valid=false` and `qualification=UNKNOWN`.
+It displays50 rows per page; the full field stays outside the common result.
+This human interface is separate from official OpenScience research admission.
+
 - `GET /api/overview`: `{token, active_store, stores, studies, experiments,
   campaigns, capabilities, jobs}`. Stores contain `{id,label,writable}`.
   Studies retain the Core study fields. Experiment list rows contain

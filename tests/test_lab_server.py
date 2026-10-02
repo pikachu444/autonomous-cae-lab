@@ -456,6 +456,17 @@ def test_compare_limits_static_paths_and_pinned_viewer(client):
     assert headers["Content-Type"].startswith("text/javascript")
 
 
+def test_fixture_conditions_script_and_form_are_served_from_the_same_source(client):
+    page, _ = client.request("/", raw=True)
+    controls, headers = client.request("/static/fixture-controls.js", raw=True)
+    static = Path(__file__).resolve().parents[1] / "apps/lab/static"
+    assert controls == (static / "fixture-controls.js").read_bytes()
+    assert headers["Content-Type"].startswith("text/javascript")
+    assert page.index(b'/static/fixture-controls.js') < page.index(b'/static/app.js')
+    assert b'data-fixture-field="force_N"' in page
+    assert b'data-fixture-field="provenance"' in page
+
+
 def test_writable_and_readonly_store_overlap_is_rejected(tmp_path):
     library = tmp_path / "store/history"
     library.mkdir(parents=True)

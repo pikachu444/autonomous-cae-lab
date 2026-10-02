@@ -1,5 +1,17 @@
 # Autonomous CAE Lab — project scope and requirement ledger
 
+## Current D1 source checkpoint
+
+Fixture load/material/mesh form and per-mesh six-component diagnostic stress
+artifacts are integrated through existing APIs. Exact raw JSON is preserved;
+136 distinct checks PASS, canonical source recheck76PASS, source review closed.
+Actual custom Lab form was checked; fresh native/provider/official OpenScience
+and field-GUI qualification remain NOT_RUN. Record:
+`benchmarks/records/20261002-fixture-conditions-and-fields-development.json`.
+The preceding9363ff cancellation source is pushed; exact CI36993418778 is8PASS/
+2FAIL. Next D2 connects existing declared-model optimization to the human UI.
+All original52 IDs/descriptions/requirements, P2.2, UNKNOWN and NOT_RELEASED stay.
+
 ## Current execution development checkpoint
 
 Cooperative job cancel/owned cleanup and normal resident shutdown are implemented

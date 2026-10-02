@@ -1,5 +1,18 @@
 # First structural child experiment
 
+## Source continuation2026-10-02: conditions and complete diagnostic fields
+
+Fixture adapter3 appends `support_N/stress_field.json` for each mesh: complete
+SXX/SYY/SZZ/SXY/SYZ/SZX in MPa, verified mesh coordinates in mm and exact original
+FRD hash. The pinned max/p95 diagnostic is reused and checked for agreement.
+The Lab form edits the same explicit load/material/mesh input and copies it into
+existing campaigns. Invalid JSON cannot silently drop keys or overwrite values.
+136 distinct source/HTTP/field checks PASS, final canonical recheck76PASS; the
+form was actually checked in a new local development store. No new support
+solver or field-GUI/reference acceptance is claimed. `peak_stress.valid=false`,
+`engineering_valid=false`, stress/material/strength UNKNOWN and NOT_RELEASED stay.
+See `../benchmarks/records/20261002-fixture-conditions-and-fields-development.json`.
+
 Latest continuation: the primary local session and exact-source CI `41a9858`
 passed the unchanged area-load/reaction screen through a 1.5 mm mesh. The
 2→1.5 mm displacement difference is 0.881709%, with a 0.411045% analytical

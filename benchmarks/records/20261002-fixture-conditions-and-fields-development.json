@@ -1,0 +1,172 @@
+{
+  "schema_version": "1.0",
+  "unit": "fixture-conditions-and-diagnostic-fields-development-20261002-01",
+  "status": "PASS_BOUNDED_SOURCE_AND_FORM_INTEGRATION",
+  "base_commit": "9363ff5759a37eb586fc0e2c18746ce94c58a97f",
+  "source_identity": "Final canonical source hashes below; this is not clean-source native solver acceptance.",
+  "source_files": [
+    {
+      "path": "apps/lab/static/app.js",
+      "bytes": 64265,
+      "sha256": "92bce83826a4d7526470a31277769efc6784f5e7b88dd73ac115b61e2113474b"
+    },
+    {
+      "path": "apps/lab/static/fixture-controls.js",
+      "bytes": 6686,
+      "sha256": "7c0f11880857f812e445a169138424de62c71276d01f2908afcaf6d1be0718d6"
+    },
+    {
+      "path": "apps/lab/static/index.html",
+      "bytes": 25429,
+      "sha256": "61c8ce06d174ebc07715dbd996ee1f15577f96c2ab7f152d46db0a8e43b7d8ee"
+    },
+    {
+      "path": "caelab/adapters/fixture_calculix.py",
+      "bytes": 35942,
+      "sha256": "c08a1d0a462ef6791ae36cab127418a637b08252a75b6ebb0c0ca6103842bf03"
+    },
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "bytes": 20387,
+      "sha256": "bee863d151c2c20b4c3d9e8cf24eb6dfd74e318dec9d1f9f615f228d807db340"
+    },
+    {
+      "path": "tests/test_fixture_controls.js",
+      "bytes": 5777,
+      "sha256": "319d65667f4637a0bb5cfa6751114c38188745ec07760b92b48faa70fa4d756f"
+    },
+    {
+      "path": "tests/test_fixture_stress_field.py",
+      "bytes": 16926,
+      "sha256": "06558d5f4764926ee5c104747add931a860ca76c9c45d6ef365810ab80541219"
+    },
+    {
+      "path": "tests/test_lab_server.py",
+      "bytes": 26364,
+      "sha256": "efcff783a4847e9b87ae9b4c017cbf8da4dfdf5a27671357fb89fabf22309a48"
+    }
+  ],
+  "upstream": {
+    "commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "screen_sha256": "b15833214dee277b8a6bd0a46984918b8862a9b44ffe39ac9e7ea52d78a4eeea",
+    "modified": false
+  },
+  "implementation": {
+    "fixture_adapter_version": "3",
+    "settings_contract": "Unchanged load/material/mesh through existing analysis.run and DOE/optimization plans",
+    "form": "Explicit isotropic/orthotropic constants, per-support load/source, material provenance/status and descending mesh sizes; raw invalid JSON locks form and refuses stale overwrite",
+    "stress": "Per-mesh six-component complete AVERAGED_NODAL tensor artifact with mesh positions and exact source FRD hash; preserved pinned diagnostic",
+    "display": "Manifest-linked diagnostic table with 50-row pages and node search; no full field embedded in common result",
+    "architecture": "Existing ADR0002 child-run and ADR0004 load definition reused; no common schema, Core API, numerical threshold or solver deck change"
+  },
+  "checks": {
+    "fixture_python": {
+      "passed": 75,
+      "seconds": 12.23,
+      "scope": "57 new field checks plus18 existing fixture/pinned helper checks; synthetic I/O and recorded native ASCII format"
+    },
+    "http_python": {
+      "passed": 51,
+      "seconds": 44.03,
+      "scope": "Existing actual Core/CAD HTTP tests plus one form/script source integration check"
+    },
+    "node": {
+      "passed": 10,
+      "scope": "Settings/provenance preservation, two invalid-JSON regressions, field metadata/source/finite completeness"
+    },
+    "distinct": 136,
+    "canonical_source_recheck": {
+      "passed": 76,
+      "scope": "Repeat75 fixture cases plus one HTTP static/form case; repeats not added to distinct136"
+    },
+    "node_syntax": "PASS",
+    "diff_check": "PASS",
+    "warnings": "Existing CadQuery ast.NameConstant deprecation",
+    "failed_attempt": "Initial expanded fixture test collection lacked pinned upstream PYTHONPATH; no tests/native processes ran, corrected invocation passed"
+  },
+  "manual_browser": {
+    "url": "http://127.0.0.1:8767/#simulation",
+    "store": "artifacts/development-fixture-ui-20261002-01",
+    "status": "PASS_BOUNDED_FORM_SYNCHRONIZATION",
+    "observations": [
+      "125 N and4/3/2/1.5 mm copied into campaign settings with assumed material status unchanged",
+      "0 N refused submit/copy",
+      "Raw150 N with invalid G retained150 N while stale form and copy were disabled",
+      "After JSON repair, form reenabled and copied exact150 N/4/3/2/1.5 mm settings"
+    ],
+    "new_native_solver_calls": 0,
+    "new_provider_calls": 0,
+    "stress_table_browser_acceptance": "NOT_RUN; helper checks only",
+    "official_openscience_acceptance": "NOT_RUN; this is the custom Lab human interface"
+  },
+  "review": {
+    "status": "PASS_SOURCE_REVIEW",
+    "open_p1": 0,
+    "open_p2": 0,
+    "closed_p2": "Invalid JSON/stale form could silently drop nested keys or replace150 N by previous form value; raw validation and lock now block it",
+    "native_provider_calls": 0
+  },
+  "source_normalization": {
+    "reason": "Canonical Git index LF for three owned files only; Git configuration unchanged",
+    "files": [
+      {
+        "path": "caelab/adapters/fixture_calculix.py",
+        "before_sha256": "3797b11f4594db945cb42081bc45a06050e30917919c792574a691c477b8e2f5",
+        "after_sha256": "c08a1d0a462ef6791ae36cab127418a637b08252a75b6ebb0c0ca6103842bf03",
+        "text_lines_unchanged": true,
+        "ast_unchanged": true
+      },
+      {
+        "path": ".github/workflows/caelab-ci.yml",
+        "before_sha256": "457eddf979732c000e9fafcfeaeca5b05ca3e390022431706dfd43ebe461c793",
+        "after_sha256": "bee863d151c2c20b4c3d9e8cf24eb6dfd74e318dec9d1f9f615f228d807db340",
+        "text_lines_unchanged": true,
+        "ast_unchanged": null
+      },
+      {
+        "path": "tests/test_lab_server.py",
+        "before_sha256": "e8a3f5d29447aff3bdfa36f9adf8b0459485fc010812ecf80a810cc5de7cf2b7",
+        "after_sha256": "efcff783a4847e9b87ae9b4c017cbf8da4dfdf5a27671357fb89fabf22309a48",
+        "text_lines_unchanged": true,
+        "ast_unchanged": true
+      }
+    ]
+  },
+  "preceding_source_publication": {
+    "source_commit": "9363ff5759a37eb586fc0e2c18746ce94c58a97f",
+    "main_push_confirmed": true,
+    "ci_run_id": 36993418778,
+    "ci_status": "COMPLETED",
+    "ci_conclusion": "FAILURE",
+    "jobs_success": 8,
+    "jobs_failed": 2,
+    "failures": [
+      {
+        "job_id": 110795624114,
+        "observed": "Native numerical checks failed: E-ansys_vmd1_regular-Fz-aster",
+        "raw_numerical_cause": "UNKNOWN from inspected completion-gate log"
+      },
+      {
+        "job_id": 110795624129,
+        "observed": "Pinned official OpenRadioss asset download HTTP404 / curl22 before solver"
+      }
+    ]
+  },
+  "new_source_ci": "TO_CHECK_AFTER_PUBLICATION; prior source CI is not this unit's numerical verification",
+  "retention": {
+    "production_tests_record": "Public source commit",
+    "local_receipts": "artifacts/development-fixture-conditions-20261002-01",
+    "historical_experiments": "UNCHANGED",
+    "historical_raw_remote_backup": "UNKNOWN"
+  },
+  "limits": [
+    "Stress convergence/material allowables/strength/physical requirements stay UNKNOWN; peak_stress.valid=false and engineering_valid=false",
+    "Fixed base, central24 mm negativeZ saddle patch and unrotated material axes remain; joint/contact/rotated axes not implemented here",
+    "Fixture native process cancellation/budget modernization remains queued; existing180/300 second adapter caps unchanged",
+    "Guarded OpenScience job-profile admission and managed runtime update not verified",
+    "New native support solve, same-revision solver-field GUI/reference/mesh qualification remain separate gates",
+    "Original52 requirements/P2.2/whole phases stay OPEN and all NOT_RELEASED"
+  ],
+  "next_development": "D2: connect existing declared-model parameter discovery/registration and model optimization to Explore; reuse269d8bf/SciPy stopping/constraints/replay; consolidated native/reference verification separately",
+  "observed_utc": "2026-10-02T10:49:40.945629+00:00"
+}

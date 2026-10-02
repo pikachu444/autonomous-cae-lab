@@ -6,7 +6,7 @@ const state = {
   overview: null, presets: {}, studyId: "", study: null, registry: { entries: [] },
   discovery: [], job: null, submitting: false, pollTimer: null, handlers: new Map(),
   selectedExperiment: null, selectedCampaign: null, comparison: new Set(), studyRequest: 0,
-  experimentRequest: 0, campaignRequest: 0, viewer: null,
+  experimentRequest: 0, campaignRequest: 0, viewer: null, fixtureConditionError: null,
 };
 const operationNames = {
   study_create: "연구 만들기", parameter_discover: "CAD 변수 발견", parameter_register: "연구 변수 등록",
@@ -184,6 +184,8 @@ function updateControls() {
   if (!$("nativePath").value || !state.studyId) document.querySelector('[data-operation="parameter_register"]').disabled = true;
   if (!$("nativeFinal").value || !$("nativeModelId").value.trim()) document.querySelector('[data-operation="native_final"]').disabled = true;
   if (!state.presets[$("simulationPreset").value] || ($("simulationPreset").value === "structural_linear" && !$("analysisParent").value)) $("simulationRunBtn").disabled = true;
+  if (!$("fixtureConditionFields").hidden && state.fixtureConditionError) $("simulationRunBtn").disabled = true;
+  $("fixtureUseInCampaign").disabled = !writable() || busy() || Boolean(state.fixtureConditionError);
   if (!document.querySelector("[data-campaign-variable]:checked")) $("campaignPlanBtn").disabled = true;
   $("compareBtn").disabled = state.comparison.size < 2;
   $("compareCount").textContent = `${state.comparison.size}개 선택 · 최대 12개`;
@@ -361,7 +363,46 @@ function selectPreset() {
   const operation = simulationOperation(); $("parentField").hidden = operation !== "analysis_run";
   $("simulationRunBtn").dataset.operation = operation;
   $("simulationId").value = makeId(operation === "pde_run" ? "E-pde" : operation === "model_analysis_run" ? "E-model" : "E-solve");
+  $("fixtureConditionFields").hidden = preset?.backend !== "fixture.calculix";
+  if (!$("fixtureConditionFields").hidden) loadFixtureConditions();
+  else fixtureConditionError(null);
   updateControls();
+}
+function fixtureConditionError(message) {
+  state.fixtureConditionError = message;
+  $("fixtureConditionError").textContent = message ?? "";
+  $("fixtureConditionError").hidden = !message;
+}
+function fixtureMaterialFields() {
+  const isotropic = $("fixtureMaterialModel").value === "isotropic";
+  $("fixtureIsotropicFields").hidden = !isotropic;
+  $("fixtureOrthotropicFields").hidden = isotropic;
+}
+function loadFixtureConditions() {
+  if ($("fixtureConditionFields").hidden) return;
+  try {
+    const fields = window.fixtureControls.toFields(parseField("simulationSettings", "object"));
+    document.querySelectorAll("[data-fixture-field]").forEach((input) => { input.value = fields[input.dataset.fixtureField] ?? ""; input.disabled = false; });
+    fixtureMaterialFields(); fixtureConditionError(null);
+  } catch (error) {
+    document.querySelectorAll("[data-fixture-field]").forEach((input) => { input.disabled = true; });
+    fixtureConditionError(`해석 설정 JSON을 먼저 수정하세요. ${error.message}`);
+  }
+}
+function changeFixtureConditions() {
+  const fields = {};
+  document.querySelectorAll("[data-fixture-field]").forEach((input) => { fields[input.dataset.fixtureField] = input.value; });
+  fixtureMaterialFields();
+  try {
+    const settings = window.fixtureControls.fromFields(fields, parseField("simulationSettings", "object"));
+    $("simulationSettings").value = pretty(settings); fixtureConditionError(null);
+  } catch (error) { fixtureConditionError(error.message); }
+  updateControls();
+}
+function fixtureSimulationSettings() {
+  if (!$("fixtureConditionFields").hidden && state.fixtureConditionError) throw new Error(state.fixtureConditionError);
+  const settings = parseField("simulationSettings", "object");
+  return $("fixtureConditionFields").hidden ? settings : window.fixtureControls.validate(settings);
 }
 function campaignMode() {
   const optimization = $("campaignType").value === "optimization";
@@ -501,8 +542,9 @@ function renderExperimentDetail(data) {
   } else visual.append(el("p", "이 실험에 manifest로 등록된 이미지가 없습니다. 아래의 원본 CAD·메시·field 파일을 내려받아 확인하세요.", "empty-state"));
   const surface = list(result.artifacts).find((item) => /(?:^|\/)surface\.json$/.test(item.path));
   if (surface) visual.append(action("원본 FreeCAD surface viewer 열기", () => openSurface(visual, identifier, surface.path)));
-  visual.append(el("p", "네이티브 3D surface는 검증된 surface.json이 있을 때 기존 viewer로 엽니다. 통합 솔버 field·응력 뷰어는 아직 제공하지 않습니다.", "hint separated"));
+  visual.append(el("p", "네이티브 3D surface는 같은 실험의 검증된 파일로 엽니다. 치구의 진단용 응력 성분은 아래 원본 연결 표에서 확인합니다.", "hint separated"));
   evidenceGrid.append(evidence, visual); container.append(evidenceGrid);
+  renderFixtureStressFields(container, result);
   const artifacts = panel("원본과 처리한 산출물", "ARTIFACTS · VERIFIED BY HASH"); artifacts.classList.add("detail-wide");
   artifacts.append(table(["파일", "크기", "SHA-256", "개정"], list(result.artifacts).map((item) => {
     const digest = el("div", item.sha256, "mono"); return [link(item.path, artifactUrl(identifier, item.path), "artifact-path", true), `${number(item.size_bytes)} bytes`, digest, el("span", item.revision, "mono")];
@@ -516,6 +558,54 @@ function renderExperimentDetail(data) {
   $("selectedSource").title = text(commit);
   if (result.status === "COMPLETED_REVIEW_REQUIRED" && result.cad_revision && result.solver_status === "NOT_RUN") $("analysisParent").value = identifier;
   updateControls();
+}
+function renderFixtureStressFields(container, result) {
+  const artifacts = list(result.artifacts);
+  const fields = artifacts.filter((item) => /(?:^|\/)stress_field\.json$/.test(item.path));
+  if (!fields.length) return;
+  const card = panel("원본과 연결한 응력 성분", "DIAGNOSTIC STRESS · MPa");
+  card.classList.add("detail-wide");
+  card.append(badge("UNKNOWN", "강도·응력 수렴 미검증"), el("p", "평균 절점 응력의 6개 성분과 von Mises 값을 확인합니다. 좌표는 mm, 성분은 전체 CAD 축 기준 MPa입니다. 전단 성분은 응력 텐서 성분입니다. 이 표로 강도나 사용을 승인하지 않습니다.", "hint separated"));
+  const choices = el("div", undefined, "button-row separated");
+  const detail = el("div", undefined, "separated");
+  let request = 0;
+  fields.forEach((artifact) => choices.append(action(artifact.path.replace(/^simulation\//, ""), async () => {
+    const sequence = ++request, store = activeStore();
+    clear(detail).append(el("p", "산출물과 원본 FRD 해시를 확인하고 있습니다…", "hint"));
+    try {
+      const raw = await api(artifactUrl(result.experiment_id, artifact.path));
+      if (sequence !== request || store !== activeStore() || state.selectedExperiment?.result?.experiment_id !== result.experiment_id) return;
+      const field = window.fixtureControls.verifyStressField(raw, artifacts, artifact.path);
+      renderStressNodes(detail, field, result.experiment_id, artifact.path);
+    } catch (error) {
+      if (sequence === request && store === activeStore()) clear(detail).append(el("p", error.message, "metric-reason"));
+    }
+  }, "button secondary compact")));
+  card.append(choices, detail); container.append(card);
+}
+function renderStressNodes(container, field, identifier, path) {
+  clear(container);
+  const sourcePath = path.slice(0, path.lastIndexOf("/") + 1) + field.source_frd.path;
+  const sources = el("div", undefined, "button-row");
+  sources.append(link("검증된 원본 FRD", artifactUrl(identifier, sourcePath), "text-link", true), link("6성분 전체 JSON", artifactUrl(identifier, path), "text-link", true));
+  container.append(el("p", `${number(field.node_count)}개 절점 · AVERAGED_NODAL · engineering_valid=false`, "hint"), sources);
+  const filter = el("label", "절점 ID로 찾기");
+  const input = el("input"); input.type = "number"; input.min = "1"; input.step = "1"; input.placeholder = "빈칸이면 전체 절점";
+  filter.append(input); container.append(filter);
+  const rows = el("div"), controls = el("div", undefined, "button-row separated"), caption = el("p", undefined, "hint");
+  let page = 0, selected = field.nodes;
+  const previous = action("이전 50개", () => { page--; draw(); }, "button subtle compact");
+  const next = action("다음 50개", () => { page++; draw(); }, "button subtle compact");
+  controls.append(previous, next); container.append(rows, caption, controls);
+  function draw() {
+    clear(rows);
+    const start = page * 50, visible = selected.slice(start, start + 50);
+    rows.append(table(["절점", "X / Y / Z (mm)", ...field.component_order, "von Mises"], visible.map((node) => [String(node.node_id), node.position_mm.map(number).join(" / "), ...node.stress_MPa.map(number), number(node.von_mises_MPa)])));
+    caption.textContent = selected.length ? `${start + 1}–${start + visible.length} / ${number(selected.length)}개 표시` : "해당 절점이 없습니다.";
+    previous.disabled = page === 0; next.disabled = start + 50 >= selected.length;
+  }
+  input.addEventListener("input", () => { selected = input.value.trim() ? field.nodes.filter((node) => node.node_id === Number(input.value)) : field.nodes; page = 0; draw(); });
+  draw();
 }
 let viewerScript;
 async function openSurface(container, identifier, path) {
@@ -642,7 +732,7 @@ bindForm("nativeInspectForm", "native_inspect", () => ({ model: $("nativeModelId
 bindForm("nativeFinalForm", "native_final", () => ({ model: $("nativeModelId").value.trim(), final: $("nativeFinal").value }), renderNative);
 bindForm("simulationForm", simulationOperation, () => {
   const preset = state.presets[$("simulationPreset").value], operation = simulationOperation();
-  const args = { experiment_id: $("simulationId").value.trim(), backend: preset.backend, settings: parseField("simulationSettings", "object") };
+  const args = { experiment_id: $("simulationId").value.trim(), backend: preset.backend, settings: fixtureSimulationSettings() };
   if (operation === "analysis_run") args.parent_experiment_id = $("analysisParent").value;
   else args.study_id = state.studyId;
   return args;
@@ -671,11 +761,22 @@ $("useLocalBtn").addEventListener("click", () => switchStore("local").catch((err
 $("refreshBtn").addEventListener("click", () => loadOverview().catch((error) => notify(error.message)));
 $("dismissNotice").addEventListener("click", () => { $("notice").hidden = true; });
 $("simulationPreset").addEventListener("change", selectPreset); $("analysisParent").addEventListener("change", updateControls);
+document.querySelectorAll("[data-fixture-field]").forEach((input) => { input.addEventListener(input.tagName === "SELECT" ? "change" : "input", changeFixtureConditions); });
+$("simulationSettings").addEventListener("input", () => { loadFixtureConditions(); updateControls(); });
+$("fixtureUseInCampaign").addEventListener("click", () => {
+  try {
+    const settings = fixtureSimulationSettings();
+    $("campaignAnalysisSettings").value = pretty(settings); $("campaignAnalysis").value = "structural_linear";
+    $("campaignAnalysis").dispatchEvent(new Event("change"));
+    notify("같은 재료·하중·메시를 새 탐색 계획의 후속 해석 설정에 넣었습니다. 계획을 검토한 뒤 저장하세요.", true);
+  } catch (error) { notify(error.message); }
+});
 $("campaignType").addEventListener("change", campaignMode);
 $("campaignAnalysis").addEventListener("change", () => {
   const analysis = Boolean($("campaignAnalysis").value); $("campaignAnalysisDetails").hidden = !analysis;
   const defaultConstraints = pretty([{ source: "analysis", metric: "max_displacement", unit: "mm", operator: "<=", limit: 0.0065, scale: 0.0065 }]);
-  const sizes = state.presets.structural_linear?.settings?.mesh?.max_sizes_mm ?? [];
+  let sizes = state.presets.structural_linear?.settings?.mesh?.max_sizes_mm ?? [];
+  try { sizes = parseField("campaignAnalysisSettings", "object").mesh?.max_sizes_mm ?? sizes; } catch { /* Submission reports malformed JSON. */ }
   const defaultRequirements = pretty({ cad: [], analysis: ["displacement_mesh_trend", ...sizes.map((_size, index) => `mesh_${index}_reaction_balance`)] });
   if (analysis && $("optimizationConstraints").value.trim() === "[]") $("optimizationConstraints").value = defaultConstraints;
   if (analysis && $("optimizationRequired").value.includes('"analysis": []')) $("optimizationRequired").value = defaultRequirements;

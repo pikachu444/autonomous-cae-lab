@@ -1,5 +1,17 @@
 # Sequential system worklist
 
+## Current D1 source checkpoint: input and field integration
+
+Fixture material/load/mesh forms now feed existing child-analysis/campaign APIs;
+complete six-component diagnostic tensors retain exact FRD links and invalid
+strength qualification.136 distinct checks PASS, canonical recheck76PASS and
+one JSON-preservation P2 closed. Actual form synchronization checked; no new
+native/provider/official OpenScience/solver-field GUI acceptance. Record:
+`../benchmarks/records/20261002-fixture-conditions-and-fields-development.json`.
+9363ff cancellation source is pushed; CI36993418778 completed8SUCCESS/2FAIL.
+Next D2 uses existing declared-model optimization/discovery APIs in Explore.
+269d8bf stopping/constraints/replay already exist; do not rebuild them.
+
 ## Current source checkpoint: cooperative cancellation/normal shutdown
 
 MCP/HTTP/UI cancel uses existing LabService and common adapter/candidate tokens.
@@ -41,8 +53,8 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 | Development sequence | Implementation work | Verification queue |
 | --- | --- | --- |
 | D0 integrated | Resident submit/inspect/cancel, configurable Code_Aster budgets/live logs, owned cleanup and normal shutdown; focused checks/review pass | Actual native cancellation/guard admission, unwired adapter controls, restart/multiprocess |
-| D1 Phase2 | Fixture material/load/interfaces/stress outputs; reuse CAD and child analysis | Existing beam accuracy, roof Aster completion, mesh/reaction/stress/reference checks |
-| D2 Phase3 | Integrate preserved269d8bf campaign; stopping/constraints and wider variables | Numerical convergence, active constraints, interruption/replay |
+| D1 source integrated | Typed material/load/mesh, exact campaign condition copy, complete diagnostic stress artifacts/table; reuse CAD and child analysis | New native/field GUI and existing beam/roof/mesh/reaction/stress/reference qualification; rotated axes/joints remain open |
+| D2 Phase3 next | Expose existing declared-model discovery/registration and model optimization in Explore; reuse269d8bf stopping/constraints/replay | Numerical convergence, active constraints, interruption/replay and actual research/native linkage |
 | D3 Phase4 | Extend declared domains/boundaries/time/vector/coupled forms | Manufactured/reference solutions and cross-backend/parallel checks |
 | D4 Phase5 | Geometric/material/contact implementations and fixture coupling | Nonlinear convergence, histories, energy, canonical comparisons |
 | D5 Phase6 | Explicit preprocessing/contact/material/fields and campaign integration | Impact/drop force/energy/timestep/reference checks |
