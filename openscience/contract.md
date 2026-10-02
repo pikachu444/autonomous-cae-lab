@@ -1,5 +1,22 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+Coupled PDE source integration2026-10-03 adds experimental pde.fenicsx.coupled
+through existing pde_run/declaration/Results. Domain owns component-row cross-
+diffusion/reaction/region/side scientific checks; adapter owns tagged native
+forms, shared interface fields/two input traces and isolated retained artifacts.
+105 focused checks and169 separate legacy regressions do not admit this backend
+into the official Research guard. No new tool/schema/provider/model/profile/auth
+or numerical optimizer. OpenScience still chooses questions/hypotheses/campaigns
+and interpretation; numerical engines generate candidates. Coupled native
+acceptance/Research/fieldGUI remain NOT_RUN/NOT_ADMITTED/NOT_RUN. UNKNOWN and
+NOT_RELEASED remain (ADR0022). Exact6c vector CI actually retains numerical
+REJECTED at the first-pair L2 gate; transient508 native872-step proof is separate.
+Neither changes the guarded tool/model universe. Development continues D3.5;
+D3.6 owns grouped clean qualification/admission/same-record field inspection.
+
+Historical source-publication observations below predate terminal vector CI.
+The current records are coupled-pde-development and vector-pde-native-failure.
+
 Vector PDE integration2026-10-03 adds an experimental `pde.fenicsx.vector`
 backend through existing pde_run/declaration/results. Domain owns mathematics
 and verdicts; adapter owns UFL/directed native fields.84 focused source checks

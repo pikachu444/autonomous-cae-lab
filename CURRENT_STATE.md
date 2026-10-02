@@ -1,6 +1,46 @@
 # Current state — 2026-10-03 (Asia/Seoul)
 
-## Current D3.3 source integration and D3.2 native checkpoint
+## Current D3.4 source checkpoint — next D3.5 imported domains
+
+`pde.fenicsx.coupled` integrates two scalar fields with region-specific SPD
+cross-diffusion and PSD reaction across a conforming material interface through
+existing pde.run/Core/declaration/Results. Complete region/cell/interface/split
+side and two-trace input bindings are retained; numerical engines and the
+OpenScience research control plane keep their existing roles. No provider,
+model, profile, auth, shared schema or wire operation changes.
+105 distinct focused source checks PASS (60 writer +45 Root); the intentional
+geometry-only helper extraction separately passes169 legacy rectangle/
+transient/vector checks.14 Python AST/UTF8-LF checks PASS. Independent17-file
+final source review PASS,0 P1/P2; exact source publication is recorded separately.
+Record: `benchmarks/records/20261003-coupled-pde-development.json`.
+Coupled native acceptance NOT_RUN, official Research NOT_ADMITTED, native-field
+GUI NOT_RUN. Frozen PDE_COUPLED_PACKET/ADR0022 preserves .04/.8 vector error,
+EVERY component/vector pair rates1.8/.9 and actual residual1e-10. Planned
+six accepted/three numerical-negative/eight preflight controls,9 processes/
+27 levels are not observations. Native execution uses a fresh clean-source
+store; no artificial interface flux-jump=0 gate or engineering approval.
+
+Exact vector6c8b2ba CI37028286238 completed7SUCCESS/3FAIL; Core2366PASS/
+3optional form-runtime skips. Actual E-vector-mixed solved on8/16/32, but the
+8-to16 aggregate L2 rate1.7950984 and u0 rate1.7796221 are below fixed1.8.
+Independent complete-field integration matches all three original norm/rate
+sets and source/ledger/native fields; REJECTED/all9 invalid metrics remain.
+Remaining13 planned cases NOT_RUN, acceptance.json absent. No demonstrated
+source/parser/runtime defect, deeper numerical cause UNKNOWN; original criteria,
+responses/meshes/vector runner unchanged, no manual rerun. Record:
+`benchmarks/records/20261003-vector-pde-native-failure.json`.
+Original6056 files/81636858B are unchanged; raw archive expires2026-11-01T15:46:02Z.
+Local ignored archives and public compact hashes do not guarantee durable raw
+remote retention. Aster Fz and explicit failures also remain; no whole-CI PASS.
+
+Transient exact508988b native CI and independent872-step reference/field audit
+remain distinct actual evidence. Next ordered development is D3.5 imported
+domains/named physical boundaries; D3.6 grouped native/reference/guarded Research/
+same-record field GUI follows. Phase4/all52/P2.2 and physical/deployment
+qualification remain OPEN/UNKNOWN/NOT_RELEASED. Old modules and fixture pin
+remain; the reviewed geometry helper alone intentionally receives a new hash.
+
+## Historical D3.3 source integration and D3.2 native checkpoint
 
 `pde.fenicsx.vector` is integrated through the existing PDE/Core/Results route:
 two components, Lamé-type form, directed D/traction, blocked DOFs, component

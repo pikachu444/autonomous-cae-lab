@@ -238,7 +238,7 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     client, service, _, _ = real_flow
     presets = client.request("/api/presets")
     assert set(presets) == {"structural_linear", "pde_canonical", "pde_nonlinear", "pde_rectangle",
-                            "pde_transient_mesh", "pde_transient_time", "pde_vector_lame", "pde_vector_harmonic", "codeaster_linear",
+                            "pde_transient_mesh", "pde_transient_time", "pde_vector_lame", "pde_vector_harmonic", "pde_coupled_interface", "pde_coupled_harmonic", "codeaster_linear",
                             "codeaster_plasticity", "material_point", "material_inverse", "explicit_freefall",
                             "explicit_ground_stop", "explicit_compliant_stop"} | {
         f"family_{case}_{load}_{solver}" for case, load in (
@@ -266,6 +266,12 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     assert all(presets[key]["operation"] == "pde_run" and presets[key]["backend"] == "pde.fenicsx.vector"
                and presets[key]["declared_inputs"] is False and "UNKNOWN" in presets[key]["scope"]
                for key in ("pde_vector_lame", "pde_vector_harmonic"))
+    from plugins.pde_coupled.reference import manufactured_settings as coupled_spec
+    assert presets["pde_coupled_interface"]["settings"] == coupled_spec()
+    assert presets["pde_coupled_harmonic"]["settings"] == coupled_spec(case="harmonic")
+    assert all(presets[key]["operation"] == "pde_run" and presets[key]["backend"] == "pde.fenicsx.coupled"
+               and presets[key]["declared_inputs"] is False and "UNKNOWN" in presets[key]["scope"]
+               for key in ("pde_coupled_interface", "pde_coupled_harmonic"))
     assert all(preset["operation"] == "model_analysis_run" for key, preset in presets.items()
                if preset["operation"] != "pde_run" and key != "structural_linear")
     assert presets["explicit_ground_stop"]["status"] == "REJECTED"

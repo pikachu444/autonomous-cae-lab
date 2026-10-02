@@ -64,8 +64,19 @@ component plus aggregate reference checks. Both reuse the same explicit model
 declaration/Core/Results/artifact ledger. Domain owns scientific meaning and
 verdicts; adapters own native forms/fields/residuals. Vector source is integrated;
 transient exact-source CI and independent field audit supply bounded mathematical
-evidence. Coupled/imported/MPI, guarded Research admission and native-field GUI
-remain open; physical UNKNOWN/NOT_RELEASED is unchanged.
+evidence. Vector6c actual native solve retains numerical REJECTED because the
+fixed first-pair L2 rate fails; source integration does not qualify that case.
+ADR0022 adds two scalar coupled fields/material interfaces through the same
+operation: SPD diffusion acts on component rows, common PSD reaction and
+conforming regional dx/split exterior ds retain both interface input traces.
+The adapter owns native cell/segment tags, actual internal left/right adjacency,
+blocked fields, Constants, solved-vector residual and isolated source transport.
+Domain owns coefficients/declared boundaries/reference/verdicts. Root's narrow
+geometry-only _mesh_topology extraction is independently reviewed and passes
+169 legacy checks; actual scalar responses/side checks remain. No artificial
+interface load or zero pointwise P1 flux-jump acceptance is added. Imported/MPI,
+coupled native qualification, guarded Research and native-field GUI stay open;
+physical UNKNOWN/NOT_RELEASED is unchanged.
 
 `ModelAnalysisAdapter.solve(output, settings)` extends the same declared-model
 Core to independent geometry/material/load models. Optional pure

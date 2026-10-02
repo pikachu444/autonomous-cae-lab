@@ -164,20 +164,17 @@ def _ids(value, label, *, size=None):
     return set(value)
 
 
-def _field_check(settings, study, field):
-    _keys(field, _FIELD_KEYS, "native DOF field")
-    if (field["schema_version"] != "1" or field["coordinates_unit"] != "1" or field["field_unit"] != "1"):
-        raise PDEInputError("Native DOF field units/schema differ from the declaration")
+def _mesh_topology(settings, study, field):
+    """Check retained grid/triangles only; no response, boundary or norm verdict."""
     count, lengths = study["cells_per_axis"], settings["problem"]["domain"]["lengths"]
     size = (count + 1)**2
     ids = field["node_ids"]
     if _ids(ids, "native node IDs", size=size) != set(range(size)):
         raise PDEInputError("Native node coverage differs from the complete rectangle grid")
-    coordinates, values = field["coordinates"], field["values"]
-    if (not isinstance(coordinates, list) or len(coordinates) != size or not isinstance(values, list) or len(values) != size or
-            any(not finite_number(value) for value in values)):
-        raise PDEInputError("Incomplete/nonfinite native coordinates/values")
-    grid, by_id, xyz = {}, dict(zip(ids, values)), dict(zip(ids, coordinates))
+    coordinates = field["coordinates"]
+    if not isinstance(coordinates, list) or len(coordinates) != size:
+        raise PDEInputError("Incomplete native coordinates")
+    grid, xyz = {}, dict(zip(ids, coordinates))
     for node, point in zip(ids, coordinates):
         if not isinstance(point, list) or len(point) != 2 or any(not finite_number(value) for value in point):
             raise PDEInputError("Malformed native rectangle coordinates")
@@ -218,6 +215,20 @@ def _field_check(settings, study, field):
     if any(multiplicity not in (1, 2) for multiplicity in edges.values()):
         raise PDEInputError("Nonmanifold native triangle edges")
     exterior = {edge for edge, multiplicity in edges.items() if multiplicity == 1}
+    return count, lengths, size, grid, xyz, exterior
+
+
+def _field_check(settings, study, field):
+    _keys(field, _FIELD_KEYS, "native DOF field")
+    if (field["schema_version"] != "1" or field["coordinates_unit"] != "1" or field["field_unit"] != "1"):
+        raise PDEInputError("Native DOF field units/schema differ from the declaration")
+    values = field["values"]
+    expected_size = (study["cells_per_axis"] + 1)**2
+    if (not isinstance(values, list) or len(values) != expected_size or
+            any(not finite_number(value) for value in values)):
+        raise PDEInputError("Incomplete/nonfinite native coordinates/values")
+    count, lengths, size, grid, xyz, exterior = _mesh_topology(settings, study, field)
+    by_id, cells = dict(zip(field["node_ids"], values)), field["cell_node_ids"]
     boundaries = _keys(field["boundaries"], SIDES, "native named boundaries")
     prescribed, selected, facets_seen, boundary_edges = {}, set(), set(), set()
     error, pointwise_passed = 0., True

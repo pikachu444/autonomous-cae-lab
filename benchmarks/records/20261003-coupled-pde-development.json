@@ -1,0 +1,270 @@
+{
+  "schema_version": "1.0",
+  "status": "PASS_SOFTWARE_INTEGRATION_BOUNDED",
+  "created_utc": "2026-10-02T16:49:03.015344+00:00",
+  "source_base_commit": "a0057f50c1b90411757475ca391f7c4b362f664f",
+  "source_publication": "Pre-commit candidate; exact implementation commit/main push/CI is recorded separately after publication. No coupled native acceptance claim.",
+  "scope": "D3.4 two dimensionless real scalar fields, region-specific SPD component-row cross diffusion/common PSD reaction on one conforming serial P1 rectangle; existing pde.run/Core/declaration/Results.",
+  "source_hash_scope": "Exact frozen UTF8/LF source bytes; staged Git blobs must match.",
+  "source_files": [
+    {
+      "path": "caelab/engine.py",
+      "sha256": "6348a3d94d487df3647161de8c4a505e4db653862b420a2948dbf712e2370171",
+      "size_bytes": 47007
+    },
+    {
+      "path": "apps/lab/service.py",
+      "sha256": "6bb2774dbdcc17feea0ae3ab20c4c4ba3a886da7240521b748065dd7c36a9a1c",
+      "size_bytes": 38729
+    },
+    {
+      "path": "tests/test_backend_integration.py",
+      "sha256": "503c31529f5d9bdf7cee1dd96a6e1833d68573ba855d9df7e2e61fa6481c7132",
+      "size_bytes": 4529
+    },
+    {
+      "path": "tests/test_pde_thread.py",
+      "sha256": "5d9922c1471621c4911e0d45eace8da9097dd46f8fb19f590ae3cb1ff3b30338",
+      "size_bytes": 14490
+    },
+    {
+      "path": "tests/test_lab_server.py",
+      "sha256": "85b428a0d579c170b63a1f450095266ba6622cb0d4141762a2ffb827c8cdcda6",
+      "size_bytes": 36150
+    },
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "sha256": "d17c96d0f1084f238bd6c424c14aeab8b73ba9b5e998411547e0c7fa2cf2528c",
+      "size_bytes": 21412
+    },
+    {
+      "path": "scripts/verify_coupled_pde.py",
+      "sha256": "5bc22b47f9a1f29bbcf9605fca21bba60ff8bde65aafff47d94d1049a8a650e1",
+      "size_bytes": 26517
+    },
+    {
+      "path": "tests/test_verify_coupled_pde.py",
+      "sha256": "c82c968e40dfc473073b8619b9d3f77fcdabd53aa38d7d78eeb7c7af3c800ea9",
+      "size_bytes": 11581
+    },
+    {
+      "path": "plugins/pde_elliptic/reference.py",
+      "sha256": "bbae44e8088902f014d110e5b7eebcb95433959577f4550cde8cf33ccabfb405",
+      "size_bytes": 24311
+    },
+    {
+      "path": "docs/PDE_COUPLED_PACKET.md",
+      "sha256": "d086329d4a55a82992c328a550c7c2a22b05a466b326d7ba6ae0777737a2d6fa",
+      "size_bytes": 12611
+    },
+    {
+      "path": "ADR/0022-coupled-fields-material-interfaces.md",
+      "sha256": "1a85ab33e98b34bd02cde36b8f11cd7c0d64e334c254144dbe229b01411fac64",
+      "size_bytes": 2762
+    },
+    {
+      "path": "plugins/pde_coupled/__init__.py",
+      "sha256": "e7b126bf7415132819868006b2f49bcf43270d1f4f2bc3fb518707abf7a1e763",
+      "size_bytes": 72
+    },
+    {
+      "path": "plugins/pde_coupled/reference.py",
+      "sha256": "6d256cef1289af21645393df5e294f367ca756d5097769c6711115afea457f65",
+      "size_bytes": 32478
+    },
+    {
+      "path": "caelab/adapters/fenicsx_coupled.py",
+      "sha256": "dce656187439dfe42c7d24e29f492b78161c2e4c69f66b8b7b656c0652a31b7f",
+      "size_bytes": 11596
+    },
+    {
+      "path": "caelab/adapters/fenicsx_coupled_worker.py",
+      "sha256": "b11fdbb7298ac2b1fc1ef563d7f53688c77bfe25d316a77a8e332740dbc9d161",
+      "size_bytes": 26064
+    },
+    {
+      "path": "tests/test_pde_coupled.py",
+      "sha256": "c5a59428af0bb4e793539e7922a416245ea1ed3964f724f18d263e293b74f70d",
+      "size_bytes": 20311
+    },
+    {
+      "path": "tests/test_pde_coupled_reference.py",
+      "sha256": "b4b3825e1501d607a9a55725728791f1e031ab4a4a3574b46c7611a4db6603ee",
+      "size_bytes": 15307
+    }
+  ],
+  "changes": [
+    "Pure geometry helper extracted with old scalar response/side/verdict checks retained",
+    "New Domain scientific input/reference/verdict, native adapter/worker/tags/fields/two traces and immutable sources",
+    "Common default registry and two explicitly experimental opt-in presets",
+    "Independent direct polynomial/interface/segment integrals and original-field5x5 Duffy acceptance runner",
+    "New coupled CI runs when runtime install success and not cancelled even after vector numerical failure; old failed step/job/workflow still fails"
+  ],
+  "checks": {
+    "focused_distinct": 105,
+    "writer": {
+      "passed": 60,
+      "seconds": 7.93,
+      "skip": 0,
+      "receipt_path": "artifacts/development-pde-coupled-20261003-01/writer-source-01/freeze-receipt.json",
+      "receipt_sha256": "7f4ac2101050f2a7a54ee399870cdfdf274a9e853387c735788b1f625768689f",
+      "retained_attempts": "Initial57PASS/2FAIL: overlong generated R*u source expression and exact-float area test assumption; equivalent bounded formula and source-test tolerance corrected. Subsequent59PASS/LF59PASS and off-segment Dirichlet regression lead to final60PASS. Earlier checks are not counted twice."
+    },
+    "root": {
+      "passed": 45,
+      "seconds": 108.45,
+      "warnings": 1,
+      "receipt_path": "artifacts/development-pde-coupled-20261003-01/root-source-01/freeze-receipt.json",
+      "receipt_sha256": "4fc11f1a4ac31158babfb5108158be41be0b940b7c61c9e2eba1df6c465dffad"
+    },
+    "separate_legacy_regressions": {
+      "passed": 169,
+      "seconds": 57.35,
+      "receipt_path": "artifacts/development-pde-coupled-20261003-01/root-helper-01/receipt.json",
+      "receipt_sha256": "ba5c44920dd1443a096b8f672970fab3893847c160dc47a5ca42393ca91eddfa",
+      "scope": "Six existing rectangle/transient/vector test files; not new coupled mathematics."
+    },
+    "python_ast_files": 14,
+    "UTF8_LF_source_packet_files": 17,
+    "independent_review": {
+      "files": 17,
+      "status": "PASS",
+      "open_P1": 0,
+      "open_P2": 0,
+      "receipt_path": "artifacts/development-pde-coupled-20261003-01/independent-source-review.json",
+      "receipt_sha256": "ff38c7a519e47642c344983a1dfe5b473a013741b877ba95ccd45ebb78a830f9"
+    },
+    "preimplementation_packet_helper_review_sha256": "8b08d157d298c573a7005a1ed5762d7556af4e706939ec9b23b0777414ed4437",
+    "actual_optional_form_controls": "PASS_NO_LINEARPROBLEM_OR_SOLVE: native Constants, component-axis versus wrong spatial-axis energy, region dx/6segment ds, actual interface/shared nodes/layout/BC, zero-RHS rank and off-segment expression evaluation.",
+    "coupled_native_solves": 0,
+    "provider_calls": 0,
+    "runtime_profile_auth_changes": 0
+  },
+  "preserved16_sources": [
+    {
+      "path": "caelab/adapters/fenicsx_pde.py",
+      "sha256": "2ca87fc2e5f83e5cacbee2780437bcac38aec6a9ad481019f5baf1e4ff9dc893",
+      "size_bytes": 17072
+    },
+    {
+      "path": "caelab/adapters/fenicsx_worker.py",
+      "sha256": "2e1cd29a71e4a216be6677e44b841205193ef72658d7a29d010dca7253d57301",
+      "size_bytes": 17091
+    },
+    {
+      "path": "caelab/adapters/fenicsx_nonlinear.py",
+      "sha256": "705036578d1c5ab8ac2af426aca513c14d42860ee9eaabdab1b9c9bd07eade75",
+      "size_bytes": 22520
+    },
+    {
+      "path": "caelab/adapters/fenicsx_nonlinear_worker.py",
+      "sha256": "025a2a41a5a4ee3a87bc7b1016d74ad355d2bc1428f56182aa66c67193eae1f4",
+      "size_bytes": 19224
+    },
+    {
+      "path": "plugins/pde_nonlinear/reference.py",
+      "sha256": "79b77541982dcf3c42f75f4bea6ade145c106484a167abf416518f12e7f11505",
+      "size_bytes": 24611
+    },
+    {
+      "path": "caelab/pde.py",
+      "sha256": "1676badd13201d4055ba2cc69ff1fa47316127362139b7284f049d2d7bf05058",
+      "size_bytes": 945
+    },
+    {
+      "path": "caelab/declared_model.py",
+      "sha256": "7b4442af93e6aabd50f21baeb205449a3492cd4c0579d9a7b1488123cd945b01",
+      "size_bytes": 13942
+    },
+    {
+      "path": "schemas/experiment.schema.json",
+      "sha256": "34468e2bf70768df889f959909683a5bb45ea7ca0cfcda50fba0a21b1931405b",
+      "size_bytes": 2321
+    },
+    {
+      "path": "schemas/result.schema.json",
+      "sha256": "ad67db58b09e8419a7517e9804e53e42fbe810939d94a2b74174b2267e30bc2d",
+      "size_bytes": 2132
+    },
+    {
+      "path": "scripts/verify_pde.py",
+      "sha256": "23a48071fe0b6960d055580f8e48181861716111ee15da0935a456b176275563",
+      "size_bytes": 5555
+    },
+    {
+      "path": "scripts/verify_nonlinear_pde.py",
+      "sha256": "324b2d2771914496447c3f45a49a4e0acb7f255f2892d2ba2b93e3a2643bda3e",
+      "size_bytes": 10226
+    },
+    {
+      "path": "caelab/adapters/fenicsx_rectangle.py",
+      "sha256": "b0f614db04ee05b107373049f4e09f8c80f3809f456117add5f60b1d9040b756",
+      "size_bytes": 15458
+    },
+    {
+      "path": "caelab/adapters/fenicsx_rectangle_worker.py",
+      "sha256": "9b5e1a7e7ab9ffb90073785985c2e546ffca4c62012dffb370bb74e8b3422617",
+      "size_bytes": 17019
+    },
+    {
+      "path": "caelab/execution_control.py",
+      "sha256": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede",
+      "size_bytes": 6546
+    },
+    {
+      "path": "openscience/native_guard.mjs",
+      "sha256": "8f36839fc712cdf8fa46c9bbe249ed5dfbf3b5f27d0a341f2b92383a22bce7e6",
+      "size_bytes": 44190
+    },
+    {
+      "path": "openscience/native_git_state.mjs",
+      "sha256": "967fa10d6ac94301549bbbc4735921eb810fde0996415562a4cd225b23f3e73b",
+      "size_bytes": 11087
+    }
+  ],
+  "additional7_transient_vector_sources_unchanged": [
+    "caelab/adapters/fenicsx_transient.py",
+    "caelab/adapters/fenicsx_transient_worker.py",
+    "plugins/pde_transient/reference.py",
+    "caelab/adapters/fenicsx_vector.py",
+    "caelab/adapters/fenicsx_vector_worker.py",
+    "plugins/pde_vector/reference.py",
+    "scripts/verify_vector_pde.py"
+  ],
+  "intentional_geometry_seam": {
+    "path": "plugins/pde_elliptic/reference.py",
+    "before_sha256": "72d82766634a48a562594198615f8daaa4e2d1f57dddea7106137b48ca8c9521",
+    "after_sha256": "bbae44e8088902f014d110e5b7eebcb95433959577f4550cde8cf33ccabfb405",
+    "decision": "Reviewed geometry-only extraction,169 legacy regressions PASS; historical source pins/results unchanged."
+  },
+  "fixture_submodule": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "mathematical_controls_frozen_before_output": {
+    "packet_sha256": "d086329d4a55a82992c328a550c7c2a22b05a466b326d7ba6ae0777737a2d6fa",
+    "adr_sha256": "1a85ab33e98b34bd02cde36b8f11cd7c0d64e334c254144dbe229b01411fac64",
+    "planned_accepted": 6,
+    "planned_numerical_rejected": 3,
+    "planned_preflight_refused": 8,
+    "planned_native_processes": 9,
+    "planned_mesh_levels": 27,
+    "cell_counts": [
+      8,
+      16,
+      32
+    ],
+    "limits": {
+      "max_l2_error": 0.04,
+      "max_h1_seminorm_error": 0.8,
+      "min_each_component_and_vector_L2_rate": 1.8,
+      "min_each_component_and_vector_gradient_H1_rate": 0.9,
+      "max_residual_relative": 1e-10
+    }
+  },
+  "actual_coupled_native_acceptance": "NOT_RUN",
+  "official_research_admission": "NOT_ADMITTED",
+  "native_field_GUI": "NOT_RUN",
+  "exact_candidate_source_CI": "NOT_CREATED_BEFORE_SOURCE_COMMIT",
+  "previous_exact_vector_CI": "20261003-vector-pde-native-failure.json;6c source/CI37028286238 actual three-level REJECTED and13NOT_RUN; no manual rerun/tuning.",
+  "next_ordered_source_unit": "D3.5 imported domain/named physical boundaries; D3.6 grouped qualification then Phases5-7.",
+  "retention": "Full source-only stdout/failed attempts/hash receipts kept in fresh ignored development folder. Public compact record does not back up raw fields/CI ZIPs. Previous vector archive expiry2026-11-01T15:46:02Z explicit.",
+  "remaining": "All52/wholePhase4/P2.2 OPEN; coupled native/math, guard admission/same-record field GUI/general forms/import/MPI/physical/material/deployment remain OPEN/UNKNOWN/NOT_RELEASED."
+}

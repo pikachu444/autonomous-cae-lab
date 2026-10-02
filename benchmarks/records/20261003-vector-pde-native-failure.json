@@ -1,0 +1,321 @@
+{
+  "schema_version": "1.0",
+  "status": "FAILED_OR_PARTIAL_VECTOR_NATIVE_ACCEPTANCE",
+  "created_utc": "2026-10-02T16:43:17.713790+00:00",
+  "source_commit": "6c8b2ba98bc97e3bfc5956869cd4ac4f07aadcdb",
+  "source": {
+    "all9_git_source_hashes_and8native_copies_match": true,
+    "core": {
+      "core_commit": "6c8b2ba98bc97e3bfc5956869cd4ac4f07aadcdb",
+      "core_dirty": false,
+      "core_source_sha256": "d8ee75380f8c349e89c50ecab27a7a53a2056c3a127fbcc255f980ae12d6aff5"
+    },
+    "model_revision_and_common_ledger_and_artifacts_match": true,
+    "recorded_core_python": "3.12.14",
+    "runtime_versions": {
+      "basix": "0.11.0",
+      "dolfinx": "0.11.0.post0",
+      "ffcx": "0.11.0",
+      "mpi4py": "3.1.5",
+      "numpy": "1.26.4",
+      "petsc": "3.19.6",
+      "petsc4py": "3.19.6",
+      "python": "3.12.3",
+      "ufl": "2026.1.0"
+    }
+  },
+  "ci": {
+    "run_id": 37028286238,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37028286238",
+    "overall": "FAILURE_7_SUCCESS_3_FAILURE",
+    "pde_job_id": 110910423278,
+    "jobs": {
+      "research-driver-source": "SUCCESS",
+      "core": "SUCCESS",
+      "native-registration": "SUCCESS",
+      "native": "SUCCESS",
+      "optimization": "SUCCESS",
+      "doe": "SUCCESS",
+      "codeaster": "FAILURE",
+      "pde": "FAILURE",
+      "explicit": "FAILURE",
+      "structural": "SUCCESS"
+    },
+    "core": {
+      "passed": 2366,
+      "optional_form_runtime_skips": 3,
+      "warnings": 1,
+      "duration_seconds": 217.09
+    }
+  },
+  "actual_vector_store": {
+    "acceptance_json": "ABSENT",
+    "acceptance_progress": "FAILED_OR_PARTIAL",
+    "acceptance_progress_cases": 0,
+    "actual_complete_mesh_levels": 3,
+    "actual_experiments": 1,
+    "actual_native_processes": 1,
+    "bytes": 875584,
+    "files": 47,
+    "plan_sha256": "6a6d2803d39b1f6345880619728f034208779f69b24b3304b945d698d1d749d6",
+    "remaining13cases": "NOT_RUN"
+  },
+  "actual_case": {
+    "common_status": "REJECTED",
+    "converged": true,
+    "decision": "NOT_RELEASED",
+    "execution": {
+      "cancelled": false,
+      "cleanup_pending": false,
+      "isolated_process_group": true,
+      "pid": 7573,
+      "reason": null,
+      "return_code": 0,
+      "status": "COMPLETED",
+      "stderr": "stderr.log",
+      "stdout": "stdout.log",
+      "timeout_seconds": null,
+      "updated_at": "2026-10-02T15:46:01.354852+00:00"
+    },
+    "failed_validations": [
+      "pde_l2_convergence_rate"
+    ],
+    "id": "E-vector-mixed",
+    "metrics": {
+      "component_0_h1_seminorm_error": {
+        "reason": "Vector numerical validation failed: pde_l2_convergence_rate",
+        "unit": "1",
+        "valid": false,
+        "value": 0.15040944563661135
+      },
+      "component_0_l2_error": {
+        "reason": "Vector numerical validation failed: pde_l2_convergence_rate",
+        "unit": "1",
+        "valid": false,
+        "value": 0.0038130960579950265
+      },
+      "component_1_h1_seminorm_error": {
+        "reason": "Vector numerical validation failed: pde_l2_convergence_rate",
+        "unit": "1",
+        "valid": false,
+        "value": 0.2888002438461882
+      },
+      "component_1_l2_error": {
+        "reason": "Vector numerical validation failed: pde_l2_convergence_rate",
+        "unit": "1",
+        "valid": false,
+        "value": 0.005958969738944542
+      },
+      "h1_seminorm_convergence_rate": {
+        "reason": "Vector numerical validation failed: pde_l2_convergence_rate",
+        "unit": "1",
+        "valid": false,
+        "value": 1.0161017063574418
+      },
+      "h1_seminorm_error": {
+        "reason": "Vector numerical validation failed: pde_l2_convergence_rate",
+        "unit": "1",
+        "valid": false,
+        "value": 0.3256203037009979
+      },
+      "l2_convergence_rate": {
+        "reason": "Vector numerical validation failed: pde_l2_convergence_rate",
+        "unit": "1",
+        "valid": false,
+        "value": 1.9114360941548467
+      },
+      "l2_error": {
+        "reason": "Vector numerical validation failed: pde_l2_convergence_rate",
+        "unit": "1",
+        "valid": false,
+        "value": 0.007074533334231585
+      },
+      "linear_residual_relative": {
+        "reason": "Vector numerical validation failed: pde_l2_convergence_rate",
+        "unit": "1",
+        "valid": false,
+        "value": 3.7150586133802945e-15
+      }
+    },
+    "model_revision": "a110c9fbc81be1267cda9f6e88ce67da41aea3baac230f560f896e7dcfa32002",
+    "result_sha256": "9d0175ae441e2b0c4332790e3ed0798c20e8d63dc0fa141ae92152fede26745f",
+    "solver_status": "COMPLETED",
+    "stderr_bytes": 0,
+    "thresholds": {
+      "max_h1_seminorm_error": 0.8,
+      "max_l2_error": 0.04,
+      "max_residual_relative": 1e-10,
+      "min_h1_rate": 0.9,
+      "min_l2_rate": 1.8
+    },
+    "worker_result_sha256": "d5fb462277818275a90b8d8d50cced342bf7c43360d74923908ff05a01ce5b28"
+  },
+  "independent_math": {
+    "max_absolute_differences": {
+      "L2": 2.5673907444456745e-16,
+      "L2_rate": 3.3306690738754696e-15,
+      "full_gradient_H1": 1.7763568394002505e-15
+    },
+    "method": "Direct polynomial derivatives and5x5 Gauss-Duffy on complete saved P1 two-component triangles; no production imports",
+    "rows": [
+      {
+        "component_gradient_h1": [
+          0.6684207972773918,
+          1.1388285620489331
+        ],
+        "component_l2": [
+          0.04884196158200025,
+          0.07838696384752653
+        ],
+        "ksp_reason": 4,
+        "n": 8,
+        "reported_vector_gradient_h1": 1.3204987148692666,
+        "reported_vector_l2": 0.09235828772996496,
+        "residual": {
+          "absolute": 5.6816336153919234e-14,
+          "normalization": "rhs_l2_norm",
+          "relative": 1.3250186086499104e-15,
+          "rhs_norm": 42.87965148792183
+        },
+        "vector_gradient_h1": 1.3204987148692666,
+        "vector_l2": 0.09235828772996509
+      },
+      {
+        "component_gradient_h1": [
+          0.3161551918965976,
+          0.577696830560634
+        ],
+        "component_l2": [
+          0.014225693583563603,
+          0.02249206594478647
+        ],
+        "ksp_reason": 4,
+        "l2_rates": {
+          "components": [
+            1.7796221489007413,
+            1.8011975648802694
+          ],
+          "each_pass": [
+            false,
+            false,
+            true
+          ],
+          "frozen_minimum": 1.8,
+          "vector": 1.7950984424561123
+        },
+        "n": 16,
+        "reported_vector_gradient_h1": 0.6585497197653161,
+        "reported_vector_l2": 0.026613218302153293,
+        "residual": {
+          "absolute": 1.2369361684184694e-13,
+          "normalization": "rhs_l2_norm",
+          "relative": 2.2046709892674498e-15,
+          "rhs_norm": 56.10524991892185
+        },
+        "vector_gradient_h1": 0.6585497197653161,
+        "vector_l2": 0.026613218302153272
+      },
+      {
+        "component_gradient_h1": [
+          0.15040944563661293,
+          0.2888002438461875
+        ],
+        "component_l2": [
+          0.0038130960579950504,
+          0.005958969738944531
+        ],
+        "ksp_reason": 4,
+        "l2_rates": {
+          "components": [
+            1.899464213412113,
+            1.916281355617584
+          ],
+          "each_pass": [
+            true,
+            true,
+            true
+          ],
+          "frozen_minimum": 1.8,
+          "vector": 1.9114360941548434
+        },
+        "n": 32,
+        "reported_vector_gradient_h1": 0.3256203037009979,
+        "reported_vector_l2": 0.007074533334231585,
+        "residual": {
+          "absolute": 2.8984090823002615e-13,
+          "normalization": "rhs_l2_norm",
+          "relative": 3.7150586133802945e-15,
+          "rhs_norm": 78.01785608068855
+        },
+        "vector_gradient_h1": 0.32562030370099865,
+        "vector_l2": 0.007074533334231597
+      }
+    ]
+  },
+  "failure": {
+    "actual_cause": "The frozen required all-pair aggregate and component L2 convergence-rate gate1.8 fails at8-to16; native solve and complete fields are validly retained but numerical metrics are invalid.",
+    "bounded_suggestion": "Preserve Domain thresholds and actual REJECTED. Improve verifier failure text with experiment ID, failed validation, observed rates and limits. If later authorized, failure-aware collection can continue other frozen cases while ending FAILED_OR_PARTIAL; do not relabel this case or silently relax criteria.",
+    "deeper_cause": "UNKNOWN; the exact pre-asymptotic field errors are established, but a general regularity/solver assembly fault is not established by these artifacts.",
+    "numerical_acceptance_blocked": true,
+    "source_defects_demonstrated": []
+  },
+  "independent_review": {
+    "status": "PASS_BOUNDED_ACTUAL_CI_FAILURE_DIAGNOSIS_NOT_VECTOR_ACCEPTANCE",
+    "path": "artifacts/review-vector-pde-ci-20261003-01/independent-failure-diagnosis.json",
+    "sha256": "302ebd81f2f511d33e72da073e24cec79f838809ddfca2a16bacf0f78066b58a",
+    "final_seal_sha256": "4ab671cd987b1a230d5f79df72c7e561082cdff8cd955a85c935e03d43fce4ed",
+    "proofs": {
+      "inventory_after": {
+        "path": "inventory-after.json",
+        "sha256": "4d0dd9f75518b110bb9664d6f4c8059416921de86ccf0e01447a5bc13f64dcdc",
+        "size_bytes": 1277659
+      },
+      "inventory_before": {
+        "path": "inventory-before.json",
+        "sha256": "4d0dd9f75518b110bb9664d6f4c8059416921de86ccf0e01447a5bc13f64dcdc",
+        "size_bytes": 1277659
+      },
+      "numerical": {
+        "path": "three-mesh-independent-fields.json",
+        "sha256": "ddc357de05d49251e7133ef0bdb03643dff58743aca425ff318a80928188c3da",
+        "size_bytes": 2840
+      },
+      "original_job_log": {
+        "path": "original-pde-job.log",
+        "sha256": "2a472e6708e250506112e32e541f8a0c6ca5f58734f42fb56c8b442079f092d6"
+      }
+    },
+    "side_effect_counters": {
+      "Core": 0,
+      "auth_reads": 0,
+      "provider": 0,
+      "runtime_HTTP": 0,
+      "solver": 0,
+      "source_edits": 0,
+      "tests": 0
+    }
+  },
+  "archive": {
+    "archive_bytes": 17399476,
+    "archive_sha256": "4d542a94186cfed8bbc772c68069b6118a66785eb93450c0cf75758c9a82755c",
+    "expires_at": "2026-11-01T15:46:02Z",
+    "files": 6056,
+    "github_digest_verified": true,
+    "id": 11235934641,
+    "name": "pde-cae-lab-6c8b2ba98bc97e3bfc5956869cd4ac4f07aadcdb",
+    "uncompressed_bytes": 81636858
+  },
+  "retention": "All6056 original archive files/81636858B unchanged. Raw CI archive expires2026-11-01T15:46:02Z. Local ignored archive/receipts and public compact hashes do not establish indefinite remote raw retention.",
+  "interpretation": "Source integration is implemented. The only actual vector experiment solved successfully but numerical all-pair L2 convergence failed; all9 metric invalid flags remain. Remaining13 planned cases NOT_RUN. No source/parser/runtime defect is established, deeper cause UNKNOWN. Thresholds/responses/meshes and original vector runner are unchanged; no manual rerun.",
+  "official_research_admission": "NOT_ADMITTED",
+  "native_field_gui": "NOT_RUN",
+  "physical_validation": "UNKNOWN",
+  "model_qualification": "UNKNOWN",
+  "decision": "NOT_RELEASED",
+  "limitations": [
+    "No native reexecution, mathematical threshold/response change or downstream acceptance is claimed.",
+    "Only the sole actual vector case's3 fields were independently integrated; unrelated archived transient/legacy fields were not re-audited.",
+    "Native constrained residual normalization and KSP observations were verified; independent matrix assembly was not performed.",
+    "Model/physical qualification stays UNKNOWN and engineering release NOT_RELEASED."
+  ]
+}

@@ -1,6 +1,33 @@
 # Sequential system worklist
 
-## Current D3.3 checkpoint — next D3.4
+## Current D3.4 source checkpoint — next D3.5
+
+Coupled/material-interface source passes105 focused checks plus169 separate
+legacy regressions; final17-file independent source review PASS,0 P1/P2. Native
+coupled acceptance NOT_RUN; official Research/field GUI NOT_ADMITTED/NOT_RUN.
+Actual vector6c CI first-pair L2 rateFAIL/REJECTED and13 NOT_RUN are retained,
+with complete independent three-field/native/source/ledger review. No manual
+rerun or threshold/response/mesh change. Development continues in phase order.
+Records: `../benchmarks/records/20261003-coupled-pde-development.json` and
+`../benchmarks/records/20261003-vector-pde-native-failure.json`.
+
+- [x] D3.4 source: regional component diffusion/reaction, complete interface
+  topology and split boundary/two-trace bindings, common registry/presets/runner.
+- [x] D3.4 essential checks:105 focused,169 legacy,14 syntax/LF; no native solve.
+- [ ] D3.4 final source review and meaningful commit/main push confirmation.
+- [ ] D3.5 freeze imported-mesh/named-boundary source and artifact contract.
+- [ ] D3.5 implement via Domain/adapter and existing PDE/Core/Results; preserve
+  mesh identities, physical groups, input validity and reference verdicts.
+- [ ] D3.5 essential source regressions/independent review/commit/main push.
+- [ ] D3.6 grouped fresh native/reference campaigns; diagnose retained failures
+  without changing frozen old criteria or using exit success as approval.
+- [ ] D3.6 official guarded Research admission and same-record native field GUI.
+- [ ] Continue Phase5 geometric/material/contact, Phase6 explicit, Phase7
+  measured inverse/UQ/surrogate/multiobjective/MDO/HPC with separate qualification.
+
+All52/P2.2/whole Phase4 and physical/deployment gates OPEN/UNKNOWN/NOT_RELEASED.
+
+## Historical D3.3 checkpoint — next D3.4
 
 Vector source integration closes84 distinct focused checks and independent
 16-file review0 P1/P2; vector actual native acceptance remains NOT_RUN.

@@ -266,6 +266,7 @@ jobs:
             plugins/fixture_design/upstream/requirements.txt
       - run: python -m pip install -r requirements-dev.txt
       - name: Install pinned real-valued FEniCSx in the separate system Python
+        id: pde_runtime
         run: |
           sudo add-apt-repository --yes ppa:fenics-packages/fenics
           sudo apt-get update -qq
@@ -282,6 +283,9 @@ jobs:
         run: python -m scripts.verify_transient_pde --store artifacts/transient-pde-lab
       - name: Verify coupled vector directions, blocked DOFs and independent full-field error integration
         run: python -m scripts.verify_vector_pde --store artifacts/vector-pde-lab
+      - name: Verify two coupled scalar fields across a conforming material interface
+        if: ${{ !cancelled() && steps.pde_runtime.outcome == 'success' }}
+        run: python -m scripts.verify_coupled_pde --store artifacts/coupled-pde-lab
       - name: Connect actual PDE to the common local research/results surface
         run: python -m scripts.verify_lab_ui --store artifacts/http-pde-lab --library pde=artifacts/pde-lab
       - name: Preserve weak forms, field data, raw errors and common evidence
@@ -295,6 +299,7 @@ jobs:
             artifacts/rectangle-pde-lab/
             artifacts/transient-pde-lab/
             artifacts/vector-pde-lab/
+            artifacts/coupled-pde-lab/
             artifacts/http-pde-lab/
           include-hidden-files: true
           if-no-files-found: warn

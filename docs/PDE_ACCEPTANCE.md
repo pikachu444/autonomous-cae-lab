@@ -1,5 +1,37 @@
 # Declared weak-form PDE acceptance
 
+## Coupled/material-interface source integration — ADR0022
+
+`pde.fenicsx.coupled` preserves full two-component regional source/reference,
+native coefficients, conforming interface topology and split boundary inputs
+through existing Core.105 focused source checks PASS, plus169 separate legacy
+geometry-helper regressions;14 Python AST files PASS. Independent17-file final
+source review PASS,0 P1/P2. Actual form/tag/layout/BC/component-axis/zero-RHS and
+off-segment singularity tests perform no LinearProblem/solve.
+[development record](../benchmarks/records/20261003-coupled-pde-development.json)
+and [frozen packet](PDE_COUPLED_PACKET.md) retain exact inputs and fixed criteria.
+Native6/3/8 and9processes/27levels are PLANNED, NOT_RUN. Official Research
+NOT_ADMITTED, native-field GUI NOT_RUN, model/physical UNKNOWN/NOT_RELEASED.
+
+## Exact vector6c native CI numerical failure — retained without tuning
+
+CI37028286238 completed7SUCCESS/3FAIL; Core2366PASS/3optional form-runtime skips.
+Only E-vector-mixed actually ran: native process exit0, three meshes8/16/32,
+full retained fields/progress/binding/ledger. Fixed EVERY-pair minimum1.8 fails
+at8-to16: vector L2 rate1.7950984424561094 and u0 rate1.7796221489007413.
+Finest errors and later rates do not erase the earlier failure. Common status
+REJECTED, all9 metrics invalid, remaining13 planned cases NOT_RUN and no
+acceptance.json. Independent complete-field5x5 Duffy L2/full-gradient H1/rates
+match (max norm differences2.57e-16/1.78e-15); native XDMF/H5/global-node/source/
+ledger hashes agree. No demonstrated source/runtime defect; deeper cause UNKNOWN.
+[actual failure/reference record](../benchmarks/records/20261003-vector-pde-native-failure.json).
+Original6056files/81636858B retained unchanged; archive expires2026-11-01T15:46:02Z.
+No manual rerun, threshold/response/mesh or original vector runner modification.
+The new coupled CI step can run independently after runtime install success and
+when not cancelled; it does not mask the vector step/job/workflow failure.
+Source integration, mathematical acceptance and engineering qualification remain
+distinct. Prior vector source-publication NOT_RUN text below is historical.
+
 ## Vector Lamé form — ADR0021 source checkpoint
 
 `pde.fenicsx.vector` adds bounded real two-component stationary rectangle P1

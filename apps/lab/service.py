@@ -300,6 +300,7 @@ class LabService:
         from plugins.pde_elliptic.reference import manufactured_settings as rectangle_pde_specification
         from plugins.pde_transient.reference import manufactured_settings as transient_pde_specification
         from plugins.pde_vector.reference import manufactured_settings as vector_pde_specification
+        from plugins.pde_coupled.reference import manufactured_settings as coupled_pde_specification
         from scripts.verify_codeaster import specification as codeaster_specification
         from scripts.verify_plasticity import specification as plasticity_specification
         from scripts.verify_openradioss import specification as explicit_specification
@@ -337,6 +338,12 @@ class LabService:
             "pde_vector_harmonic": {"operation": "pde_run", "backend": "pde.fenicsx.vector", "label": "두 성분 벡터 약형 — 원항 없는 기준식",
                 "status": "EXPERIMENTAL", "scope": "원항이 없는 기준식으로 벡터 방향·전체 필드·수렴을 확인; 실제 연구 연결과 물리 자격 UNKNOWN",
                 "settings": vector_pde_specification(case="harmonic")},
+            "pde_coupled_interface": {"operation": "pde_run", "backend": "pde.fenicsx.coupled", "label": "두 영역의 결합 방정식 — 재료 경계",
+                "status": "EXPERIMENTAL", "scope": "두 변수의 결합과 재료 경계 양쪽의 필드·하중을 보존; 실제 연구 연결과 물리 자격 UNKNOWN",
+                "settings": coupled_pde_specification()},
+            "pde_coupled_harmonic": {"operation": "pde_run", "backend": "pde.fenicsx.coupled", "label": "두 영역의 결합 방정식 — 원항 없는 기준식",
+                "status": "EXPERIMENTAL", "scope": "원항 없는 기준식으로 재료 경계와 전체 필드·수렴을 확인; 실제 연구 연결과 물리 자격 UNKNOWN",
+                "settings": coupled_pde_specification(case="harmonic")},
             "codeaster_linear": {"operation": "model_analysis_run", "backend": "structural.code_aster", "label": "독립적인 선형 elasticity benchmark",
                 "status": "EXPERIMENTAL", "scope": "가정된 solid block의 affine analytical reference; 비선형·접촉 및 물리·강도 검증 UNKNOWN",
                 "settings": codeaster_specification()},
