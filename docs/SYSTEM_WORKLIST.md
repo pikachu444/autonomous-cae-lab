@@ -1,5 +1,14 @@
 # Sequential system worklist
 
+## Current D3.1 CI expectation correction
+
+Exact dd8 CI37008460574 reports2237PASS/2FAIL/1SKIP and skips8 downstream
+native jobs. Corrected the two stale expected-backend lists;12 focused checks
+PASS, product/native sources unchanged. Local original-dd8 runner completes
+6 accepted/2 numerical rejects/3 no-native refusals, raw review pending.
+Record: `../benchmarks/records/20261002-rectangle-backend-ci-correction.json`.
+Next D3.2 transient/time history; all52/P2.2 and qualification stay open.
+
 ## Current D3.1 checkpoint: rectangle and mixed PDE source checks
 
 Declared rectangle/named mixed boundaries are integrated through the existing

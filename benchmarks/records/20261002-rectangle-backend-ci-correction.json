@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0",
+  "status": "PASS_TEST_CORRECTION_BOUNDED",
+  "created_utc": "2026-10-02T12:54:45.418748+00:00",
+  "source_base_commit": "dd8f499d28184e0b74b1e1c98ff2a2a46bb86b40",
+  "source_publication": "Exact correction commit/CI will be recorded in the following publication receipt.",
+  "problem": "The two existing backend-integration expected sets omitted the newly registered rectangle backend.",
+  "change": "Explicit expected PDE_BACKENDS includes all three names; registry/preset assertions preserve exact membership and invalid-input refusal is parameterized for rectangle as well.",
+  "product_or_native_source_changed": false,
+  "changed_test": {
+    "path": "tests/test_backend_integration.py",
+    "sha256": "c0ed8095aa80389eded08222be73508dbc686eff070d38e853cc70e2e8984682"
+  },
+  "local_checks": {
+    "status": "PASS",
+    "distinct_tests": 12,
+    "seconds": 30.69,
+    "command": "python -B -m pytest tests/test_backend_integration.py -q -p no:cacheprovider --tb=short",
+    "junit_sha256": "a50239b3c158871a557cb5851f5a3b7dda70a5fbadebdf0882aa1c260b0d56e0",
+    "native_solver_runs": 0,
+    "provider_calls": 0
+  },
+  "failed_exact_source_ci": {
+    "source_commit": "dd8f499d28184e0b74b1e1c98ff2a2a46bb86b40",
+    "run_id": 37008460574,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37008460574",
+    "status": "COMPLETED_FAILURE",
+    "jobs": {
+      "research-driver-source": "SUCCESS",
+      "core": "FAILURE",
+      "all_other_eight": "SKIPPED"
+    },
+    "pytest": {
+      "passed": 2237,
+      "failed": 2,
+      "skipped": 1,
+      "seconds": 120.31
+    },
+    "failure_tests": [
+      "tests/test_backend_integration.py::test_default_model_registry_constructs_without_native_commands_and_preserves_explicit_mapping",
+      "tests/test_backend_integration.py::test_simulation_presets_share_generic_declared_operation_without_cad_parent"
+    ],
+    "log_sha256": "e122870d29d61349eaac4ab52d5a5a9f2d2ee3eeaf5fc554a5fc8163fa81d65e"
+  },
+  "independent_correction_review": "PENDING",
+  "native_proof_reference": {
+    "source": "dd8f499d28184e0b74b1e1c98ff2a2a46bb86b40",
+    "store": "artifacts/integrated-20261002-rectangle-pde-01",
+    "runner_status": "PASS_BOUNDED_MATHEMATICAL",
+    "cases": {
+      "accepted": 6,
+      "numerically_rejected": 2,
+      "preflight_not_run": 3
+    },
+    "independent_native_audit": "PENDING",
+    "not_reexecuted_by_this_test_correction": true
+  },
+  "decision": "NOT_RELEASED",
+  "qualification": "UNKNOWN",
+  "full52": "OPEN",
+  "next_development": "D3.2 transient scalar weak form and time history after the D3.1 bounded checkpoint"
+}

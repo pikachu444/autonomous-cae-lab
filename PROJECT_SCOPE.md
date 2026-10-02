@@ -1,5 +1,17 @@
 # Autonomous CAE Lab — project scope and requirement ledger
 
+## Current D3.1 CI expectation correction
+
+Source dd8f499 is pushed. Its local fresh-store runner closes6 accepted,
+2 numerical rejections and3 no-native refusals; independent raw/mathematical
+review is pending. Exact CI37008460574 has2237PASS/2FAIL/1SKIP: two existing
+backend expected sets omitted rectangle, so eight native jobs were skipped.
+Root corrects only tests, preserving product/native sources;12 focused checks
+PASS. Record: `benchmarks/records/20261002-rectangle-backend-ci-correction.json`.
+The correction's exact commit/CI is recorded after publication. Native source
+remains dd8f499; this test correction is not a solver reexecution. Next D3.2
+transient/time history; whole Phase4/all52/P2.2 remain OPEN/UNKNOWN/NOT_RELEASED.
+
 ## Current D3.1 checkpoint: rectangle and mixed PDE source checks
 
 `pde.fenicsx.rectangle` extends the existing declared PDE operation through

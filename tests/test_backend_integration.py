@@ -11,6 +11,7 @@ from caelab import Lab
 BACKENDS = {"structural.code_aster", "structural.code_aster.plasticity", "material.mfront",
             "material.mfront.inverse", "explicit.openradioss", "structural.families.calculix",
             "structural.families.code_aster"}
+PDE_BACKENDS = {"pde.fenicsx", "pde.fenicsx.nonlinear", "pde.fenicsx.rectangle"}
 
 
 def test_default_model_registry_constructs_without_native_commands_and_preserves_explicit_mapping(tmp_path, monkeypatch):
@@ -23,7 +24,7 @@ def test_default_model_registry_constructs_without_native_commands_and_preserves
     assert Lab(tmp_path / "empty", model_analysis_adapters={}).model_analysis_adapters == {}
     custom = {"test.only": object()}
     assert Lab(tmp_path / "custom", model_analysis_adapters=custom).model_analysis_adapters is custom
-    assert set(lab.pde_adapters) == {"pde.fenicsx", "pde.fenicsx.nonlinear"}
+    assert set(lab.pde_adapters) == PDE_BACKENDS
     assert Lab(tmp_path / "empty-pde", pde_adapters={}).pde_adapters == {}
     custom_pde = {"test.pde": object()}
     assert Lab(tmp_path / "custom-pde", pde_adapters=custom_pde).pde_adapters is custom_pde
@@ -59,11 +60,10 @@ def test_simulation_presets_share_generic_declared_operation_without_cad_parent(
         "ansys_vmd1_regular", "lame_cylinder_plane_strain", "scordelis_lo_solid"}
     assert all(preset["status"] == "EXPERIMENTAL" and "UNKNOWN" in preset["scope"]
                for preset in family_presets)
-    assert {preset["backend"] for preset in presets.values() if preset["operation"] == "pde_run"} == {
-        "pde.fenicsx", "pde.fenicsx.nonlinear"}
+    assert {preset["backend"] for preset in presets.values() if preset["operation"] == "pde_run"} == PDE_BACKENDS
 
 
-@pytest.mark.parametrize("backend", ["pde.fenicsx", "pde.fenicsx.nonlinear"])
+@pytest.mark.parametrize("backend", sorted(PDE_BACKENDS))
 def test_default_pde_invalid_input_is_retained_before_native_commands(tmp_path, backend):
     lab = Lab(tmp_path)
     lab.create_study("S-pde-admission", "PDE admission", "Does invalid input block native work?",
