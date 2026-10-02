@@ -110,7 +110,7 @@ function New-OpenScienceNativeContext {
         [string]$WslDistro, [string]$WslPython, [AllowEmptyCollection()][string[]]$AllowedTools,
         [int]$OutputTokens, [int]$Steps, [int]$ProviderTimeoutSeconds, [Collections.IDictionary]$ProjectBinding,
         [ValidateSet('Acceptance', 'Research')][string]$Purpose = 'Acceptance',
-        [ValidateSet('FixtureScalar', 'StructuralFamilies', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar')
+        [ValidateSet('FixtureScalar', 'StructuralFamilies', 'PDEFields', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar')
     Assert-OpenScienceCondition ($ModelId -cmatch '^openai-codex/[A-Za-z0-9._-]+$') 'Select a full official ChatGPT model ID explicitly. No default or fallback model is permitted.'
     Assert-OpenScienceCondition (-not [string]::IsNullOrWhiteSpace($AuthProfileRoot)) 'The separately authenticated external profile is required.'
     $authRoot = [IO.Path]::GetFullPath($AuthProfileRoot)
@@ -129,7 +129,7 @@ function New-OpenScienceNativeContext {
     Assert-OpenScienceCondition ($profile -cne $authRoot) 'Research configuration must not overwrite the authentication profile.'
     Assert-OpenScienceCondition ($WslDistro -match '^[A-Za-z0-9_.-]+$' -and $WslPython -match '^/[^\r\n]+$') 'Invalid existing WSL runtime reference.'
     Assert-OpenScienceCondition (@($AllowedTools | Sort-Object -Unique).Count -eq @($AllowedTools).Count) 'Duplicate tools are not permitted.'
-    Assert-OpenScienceCondition ($Purpose -ceq 'Research' -or $ResearchProfile -ceq 'FixtureScalar') 'A structural research profile requires Purpose Research.'
+    Assert-OpenScienceCondition ($Purpose -ceq 'Research' -or $ResearchProfile -ceq 'FixtureScalar') 'A non-default research scope requires Purpose Research.'
     $researchDefinition = if ($Purpose -ceq 'Research') { New-OpenScienceResearchDefinition -Profile $ResearchProfile } else { $null }
     $admittedTools = Get-OpenSciencePurposeTools ([pscustomobject]@{ Purpose = $Purpose; ResearchDefinition = $researchDefinition })
     Assert-OpenScienceCondition ($Steps -ge 1 -and $Steps -le $(if ($researchDefinition) { 24 } else { 3 })) 'Step budget is outside the declared purpose.'

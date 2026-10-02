@@ -108,6 +108,41 @@ Assert-NativeCheck ((Read-OpenScienceJson $taskStructuralContext.GuardPath).requ
 $taskStructuralDrift = [pscustomobject](Read-OpenScienceJson (Join-Path $taskStructuralContext.ProfileRoot 'context.json'))
 $taskStructuralDrift.ResearchDefinition.runtime_environment.CAELAB_CODEASTER_IMAGE_SHA256 = ('0' * 64)
 Assert-NativeRefused { Assert-OpenScienceContext $taskStructuralDrift } 'structural_image_descriptor_drift_blocks_provider_launch'
+$taskPdeArgs = $taskNativeArgs.Clone(); $taskPdeArgs.RunName += '-pde'
+$taskPdeArgs.Purpose = 'Research'; $taskPdeArgs.ResearchProfile = 'PDEFields'; $taskPdeArgs.Remove('AllowedTools')
+$taskPdeContext = New-OpenScienceLocalContext @taskPdeArgs
+$taskPdeConfig = Read-OpenScienceJson $taskPdeContext.ConfigPath
+Assert-NativeCheck ($taskPdeContext.ResearchDefinition.schema -eq 3 -and
+    $taskPdeContext.ResearchDefinition.profile -ceq 'pde-fields-v1' -and
+    $taskPdeContext.AllowedTools.Count -eq 6 -and $taskPdeContext.AllowedTools -ccontains 'caelab_pde_run' -and
+    $taskPdeContext.AllowedTools -cnotcontains 'caelab_optimization_run' -and
+    $taskPdeContext.AllowedTools -cnotcontains 'caelab_model_analysis_run') 'pde_scope_is_explicit_and_keeps_six_existing_pde_tools'
+Assert-NativeCheck ($taskPdeConfig.agent.research.steps -eq 24 -and $taskPdeConfig.mcp.caelab.timeout -eq 3600000 -and
+    $taskPdeConfig.model -ceq $taskNativeArgs.ModelId -and $taskPdeConfig.small_model -ceq $taskNativeArgs.ModelId -and
+    $taskPdeConfig.default_agent -ceq 'research') 'pde_scope_binds_existing_model_and_research_budget_without_execution'
+Assert-NativeCheck ((Get-OpenScienceHash $taskNativeAuthFile) -ceq $taskAuthBytesHash -and
+    -not (Test-Path -LiteralPath $taskPdeContext.StoreRoot) -and
+    $taskPdeContext.ResearchDefinitionSha256 -ceq (Get-OpenScienceSourcePinSha256 $taskPdeContext.ResearchDefinition)) 'pde_scope_preserves_authentication_and_creates_no_Core_store'
+foreach ($taskPdeRuntimeKey in $taskPdeContext.ResearchDefinition.runtime_environment.Keys) {
+    Assert-NativeCheck ($taskPdeConfig.mcp.caelab.command -ccontains ($taskPdeRuntimeKey + '=' +
+        $taskPdeContext.ResearchDefinition.runtime_environment[$taskPdeRuntimeKey])) ('pde_mcp_uses_existing_runtime_' + $taskPdeRuntimeKey)
+}
+foreach ($taskPdeBudgetKey in $taskPdeContext.ResearchDefinition.budgets.pde.Keys) {
+    $taskPdeDrift = [pscustomobject](Read-OpenScienceJson (Join-Path $taskPdeContext.ProfileRoot 'context.json'))
+    $taskPdeDrift.ResearchDefinition.budgets.pde[$taskPdeBudgetKey] += 1
+    Assert-NativeRefused { Assert-OpenScienceContext $taskPdeDrift } ('pde_definition_budget_drift_refused_' + $taskPdeBudgetKey)
+}
+$taskPdeAcceptance = $taskNativeArgs.Clone(); $taskPdeAcceptance.ResearchProfile = 'PDEFields'
+Assert-NativeRefused { New-OpenScienceLocalContext @taskPdeAcceptance } 'pde_scope_requires_research_purpose'
+$taskPdeOtherTool = $taskPdeArgs.Clone(); $taskPdeOtherTool.RunName += '-other-tool'; $taskPdeOtherTool.AllowedTools = @('caelab_optimization_run')
+Assert-NativeRefused { New-OpenScienceLocalContext @taskPdeOtherTool } 'pde_scope_refuses_numerical_campaign_tool_before_configuration'
+foreach ($taskPdeWrongCase in @('pdefields', 'PDEFIELDS')) {
+    Assert-NativeRefused { New-OpenScienceResearchDefinition -Profile $taskPdeWrongCase } ('pde_definition_requires_canonical_case_' + $taskPdeWrongCase)
+    $taskPdeBadCase = $taskPdeArgs.Clone(); $taskPdeBadCase.RunName += '-wrong-case'; $taskPdeBadCase.ResearchProfile = $taskPdeWrongCase
+    Assert-NativeRefused { New-OpenScienceLocalContext @taskPdeBadCase } ('pde_launcher_requires_canonical_case_' + $taskPdeWrongCase)
+}
+Set-OpenScienceExpectedTools -Context $taskPdeContext -RequiredTool $null
+Assert-NativeCheck ($null -eq (Read-OpenScienceJson $taskPdeContext.GuardPath).required) 'pde_research_does_not_force_a_specific_tool'
 $taskNativeConfigBytes = [IO.File]::ReadAllBytes($taskNativeContext.ConfigPath)
 $taskNativeChangedConfig = $taskNativeConfig.Clone(); $taskNativeChangedConfig.model = 'openai-codex/other'
 Write-OpenScienceJson $taskNativeContext.ConfigPath $taskNativeChangedConfig

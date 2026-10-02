@@ -1525,3 +1525,326 @@ test('structural tools preserve source, ownership and Stop refusals',async t => 
     assert.equal(f.receipts().at(-1).accepted,false);
   }
 });
+
+
+// PDEFields transport/policy fixtures are deliberately UNSOLVED. The mock
+// source reader and project metadata make no provider, Core or native calls.
+// The separate external PS descriptor test below is the actual definition pin;
+// these small synthetic declarations are not reported as PS parity/evidence.
+const pdeTools = ['caelab_study_create', 'caelab_study_inspect', 'caelab_pde_run',
+  'caelab_experiment_inspect', 'caelab_experiment_summary', 'caelab_experiment_compare'];
+const pdeBackends = ['pde.fenicsx', 'pde.fenicsx.rectangle', 'pde.fenicsx.transient',
+  'pde.fenicsx.coupled', 'pde.fenicsx.imported'];
+function syntheticPdeDefinition() {
+  return {schema:3,kind:'autonomous-cae-lab.openscience-research-definition',agent:'research',profile:'pde-fields-v1',
+    allowed_tools:[...pdeTools], runtime_environment:{MPLBACKEND:'Agg',OMP_NUM_THREADS:'2',QT_QPA_PLATFORM:'offscreen',
+      CAELAB_FENICSX_PYTHON:'/usr/bin/python3'},
+    budgets:{steps:24,mcp_timeout_seconds:3600,command_timeout_seconds:3600,pde:{max_cell_count:32,
+      max_mesh_levels:3,min_mesh_levels:3,degree:1,max_time_steps:128,max_snapshot_node_values:200000,
+      max_imported_bytes:98304,max_request_bytes:131072}},
+    capabilities:pdeBackends.map(backend => ({backend,operations:['pde_run'],
+      verification:'SYNTHETIC_UNSOLVED_POLICY_TEST_ONLY'})),
+    limitations:['Synthetic transport; no mathematics, provider, Core or native solve verified.']};
+}
+function pdeResearchFixture(t, definition = syntheticPdeDefinition()) {
+  const f = readerFixture(t, {managed:true});
+  f.settings.research = structuredClone(definition);
+  f.settings.allowed = [...definition.allowed_tools]; f.guard.allowed = [...definition.allowed_tools];
+  json(f.settingsPath,f.settings); f.writeGuard({});
+  return f;
+}
+function pdeRequest(backend = 'pde.fenicsx.rectangle') {
+  const linear = backend === 'pde.fenicsx', coupled = backend === 'pde.fenicsx.coupled';
+  const problem = {domain:linear ? 'unit_square' : {type:'rectangle',lengths:[2,1]},
+    weak_form:{diffusion:1,reaction:0,rhs:'1.0'},
+    reference:{solution:'x[0]+2.0*x[1]',source:'SYNTHETIC UNSOLVED policy fixture'}};
+  if (linear) problem.dirichlet = '0.0';
+  else problem.boundaries = Object.fromEntries(['xmin','xmax','ymin','ymax'].map(name =>
+    [name,{type:'dirichlet',value:'0.0'}]));
+  const settings = {problem,mesh:{cell_counts:[8,16,32],degree:1},
+    validation:{max_l2_error:.02,min_l2_rate:1.8,max_residual_relative:1e-10,
+      ...(!linear ? {max_h1_seminorm_error:.3,min_h1_rate:.9} : {})}};
+  if (backend === 'pde.fenicsx.transient') {
+    problem.initial = {value:'x[0]+2.0*x[1]'};
+    settings.time = {start:0,end:.5,step_counts:[16],scheme:'backward_euler',unit:'1'};
+    settings.refinement_axis = 'mesh';
+  }
+  if (coupled) {
+    problem.domain.interface = {axis:0,fraction:.5};
+    problem.weak_form = {family:'coupled_diffusion',diffusion:{left:[[2,.1],[.1,1]],right:[[3,.2],[.2,2]]},
+      reaction:[[0,0],[0,0]],rhs:{left:['1.0','2.0'],right:['3.0','4.0']}};
+    problem.reference.solution = {left:['x[0]','x[1]'],right:['x[0]','x[1]']};
+    for (const name of ['xmin','xmax','ymin','ymax']) problem.boundaries[name].value = Object.fromEntries(
+      (name === 'xmin' ? ['left'] : name === 'xmax' ? ['right'] : ['left','right']).map(region => [region,['0.0','0.0']]));
+  }
+  if (backend === 'pde.fenicsx.imported') {
+    problem.domain = {type:'imported_mesh',body:'DOMAIN'};
+    problem.boundaries = {west:{type:'dirichlet',value:'0.0'},'named top':{type:'neumann',value:'1.0'}};
+    settings.mesh = {degree:1,levels:[0,1,2].map(i => {
+      const data = `SYNTHETIC ASCII SOURCE SHAPE ONLY ${i}\n`;
+      return {format:'gmsh_msh2_ascii',data,sha256:sha(Buffer.from(data,'ascii')),source:`unsolved-level-${i}.msh`};
+    })};
+  }
+  return {study_id:'S-pde-policy',experiment_id:'E-pde-policy',backend,settings};
+}
+const pdeBefore = (hooks,f,output) => hooks['tool.execute.before']({tool:'caelab_pde_run',sessionID:f.sessionID},output);
+
+test('PDEFields actual exported PowerShell definition has its frozen canonical pin and is admitted unchanged',
+  {skip:!process.env.CAELAB_PDE_RESEARCH_DEFINITION_PATH && 'External PS definition fixture was not supplied.'}, async t => {
+    const bytes = fs.readFileSync(process.env.CAELAB_PDE_RESEARCH_DEFINITION_PATH);
+    const definition = JSON.parse(bytes.toString('utf8'));
+    assert.equal(sha(canonical(definition)), '4d30008657b8d887e05617b1d1933609374ea40b275b6a64fbba3210b5f50c31');
+    const f = pdeResearchFixture(t,definition), hooks = await f.hooks();
+    await hooks['chat.params'](immutable(f.request()),immutable({options:{reasoningEffort:'low'}}));
+    for (const backend of pdeBackends) {
+      const output = immutable({args:pdeRequest(backend)}), before = canonical(output);
+      await pdeBefore(hooks,f,output);
+      assert.equal(canonical(output),before); assert.equal(f.receipts().at(-1).accepted,true);
+    }
+    assert.equal(canonical(f.settings.research),canonical(definition));
+    assert.equal(f.guard.required,null); assert.equal(f.reader.calls,7);
+  });
+
+test('PDEFields admits only the six supplied tools, all five families and both transient axes without mutation',async t => {
+  const f = pdeResearchFixture(t), hooks = await f.hooks();
+  const request = immutable(f.request()), output = immutable({options:{prompt:'PRIVATE PDE INPUT',reasoningEffort:'low'}});
+  const before = canonical({request,output});
+  await hooks['chat.params'](request,output); assert.equal(canonical({request,output}),before);
+  for (const tool of pdeTools.filter(value => value !== 'caelab_pde_run')) {
+    const result = immutable({args:{study_id:'S-pde-policy',experiment_id:'E-pde-policy'}}), saved = canonical(result);
+    await hooks['tool.execute.before']({tool,sessionID:f.sessionID},result);
+    assert.equal(canonical(result),saved); assert.equal(f.receipts().at(-1).accepted,true);
+  }
+  const requests = pdeBackends.map(pdeRequest), time = pdeRequest('pde.fenicsx.transient');
+  time.settings.refinement_axis = 'time'; time.settings.mesh.cell_counts = [28]; time.settings.time.step_counts = [32,64,128];
+  // 29^2 * (33+65+129) =190907; accepted independently of the native backend's larger cap.
+  requests.push(time);
+  for (const args of requests) {
+    const result = immutable({args}), saved = canonical(result);
+    await pdeBefore(hooks,f,result); assert.equal(canonical(result),saved);
+    assert.equal(f.receipts().at(-1).accepted,true); assert.equal(f.receipts().at(-1).tool,'caelab_pde_run');
+  }
+  assert.equal(f.guard.required,null);
+  const receipts = JSON.stringify(f.receipts());
+  for (const privateText of ['PRIVATE PDE INPUT','S-pde-policy','SYNTHETIC ASCII','weak_form','reference'])
+    assert.equal(receipts.includes(privateText),false);
+});
+
+test('PDEFields leaves finite scientific failures and unsafe AST strings to unchanged Domain/adapter preflight',async t => {
+  const f = pdeResearchFixture(t), hooks = await f.hooks();
+  const wrong = pdeRequest(); wrong.settings.problem.reference.solution = '999.0';
+  wrong.settings.problem.boundaries.xmax = {type:'neumann',value:'-777.0'};
+  const unsafe = pdeRequest('pde.fenicsx.transient');
+  unsafe.settings.problem.weak_form.rhs = '__import__("os").system("UNSAFE TEST STRING NEVER EXECUTED")';
+  unsafe.settings.problem.initial.value = 'unknown_call(t)';
+  const nonSpd = pdeRequest('pde.fenicsx.coupled');
+  nonSpd.settings.problem.weak_form.diffusion.left = [[-1,2],[3,0]];
+  nonSpd.settings.problem.weak_form.reaction = [[-4,5],[6,-7]];
+  const wrongLimits = pdeRequest(); wrongLimits.settings.validation.max_l2_error = -1;
+  wrongLimits.settings.problem.weak_form.diffusion = -2;
+  for (const args of [wrong,unsafe,nonSpd,wrongLimits]) {
+    const result = immutable({args}), saved = canonical(result);
+    await pdeBefore(hooks,f,result); assert.equal(canonical(result),saved);
+    assert.equal(f.receipts().at(-1).accepted,true);
+  }
+  assert.equal(f.reader.seen.every(call => call.file === f.nodePath),true);
+});
+
+test('PDEFields cannot broaden or confuse its research schema with the native context schema',async t => {
+  const patches = [
+    r => r.schema=1, r => r.schema=2, r => r.profile='PDE-FIELDS-v1',
+    r => r.agent='caelab-acceptance', r => r.kind='other-research-kind',
+    r => r.allowed_tools.reverse(), r => r.allowed_tools.push('caelab_optimization_run'),
+    r => r.runtime_environment.CAELAB_FENICSX_PYTHON='/tmp/other-python',
+    r => r.runtime_environment.OMP_NUM_THREADS=2, r => r.runtime_environment.NEW_VARIABLE='synthetic',
+    r => r.budgets.pde.max_snapshot_node_values=2000000, r => r.budgets.pde.max_request_bytes++,
+    r => r.budgets.command_timeout_seconds=3601, r => r.capabilities.reverse(),
+    r => r.capabilities[0].operations.push('job_run'), r => r.capabilities[0].backend='pde.fenicsx.vector',
+    r => r.capabilities.push({backend:'pde.fenicsx.nonlinear',operations:['pde_run']}),
+    r => r.benchmark_definition={path:'benchmarks/specifications/other.json'},
+  ];
+  for (const patch of patches) {
+    const f = pdeResearchFixture(t); patch(f.settings.research); json(f.settingsPath,f.settings);
+    await assert.rejects(f.hooks(),refusal('RESEARCH_DEFINITION_INVALID'));
+    assert.equal(f.reader.calls,0); assert.equal(f.counts.session,0);
+  }
+  const f = pdeResearchFixture(t); f.settings.schema = 1; delete f.settings.source_reader;
+  json(f.settingsPath,f.settings); await assert.rejects(f.hooks(),refusal('SETTINGS_INVALID'));
+});
+
+test('PDEFields refuses unsupported backends and execution categories before dispatch',async t => {
+  const f = pdeResearchFixture(t), hooks = await f.hooks();
+  for (const backend of ['pde.fenicsx.vector','pde.fenicsx.nonlinear','structural.families.calculix','cfd.openfoam']) {
+    const args = pdeRequest(); args.backend = backend;
+    await assert.rejects(pdeBefore(hooks,f,{args}),refusal('RESEARCH_CAPABILITY_NOT_ADMITTED'));
+  }
+  for (const tool of ['caelab_model_analysis_run','caelab_analysis_run','caelab_experiment_run',
+    'caelab_optimization_plan','caelab_parameters_register','caelab_job_run','shell']) {
+    await assert.rejects(hooks['tool.execute.before']({tool,sessionID:f.sessionID},{args:pdeRequest()}),refusal('TOOL_NOT_ALLOWED'));
+  }
+  await assert.rejects(hooks['chat.params']({...f.request(),agent:'caelab-acceptance'},{}),refusal('AGENT_NOT_ALLOWED'));
+  assert.equal(f.receipts().at(-1).accepted,false);
+});
+
+test('PDEFields closes argument/settings/side/form shape and rejects malformed or nonfinite JSON values',async t => {
+  const f = pdeResearchFixture(t), hooks = await f.hooks();
+  const invalid = [
+    a => delete a.study_id, a => a.experiment_id=' ', a => a.extra_metadata='not admitted',
+    a => a.model='fixture.cadquery', a => a.settings.native_path='C:/arbitrary.msh',
+    a => a.settings.problem.reference.extra='unexpected',
+    a => a.settings.problem.weak_form.callback='not admitted',
+    a => delete a.settings.problem.boundaries.ymax,
+    a => a.settings.problem.boundaries.extra={type:'dirichlet',value:'0.0'},
+    a => a.settings.problem.boundaries.xmin.extra='unrecognized',
+    a => a.settings.problem.weak_form.diffusion=true,
+    a => a.settings.problem.weak_form.reaction=NaN,
+    a => a.settings.problem.weak_form.rhs=1,
+    a => a.settings.validation.min_l2_rate=Infinity,
+    a => a.settings.problem.domain.lengths=[2,undefined],
+    a => a.settings.problem.domain.lengths=new Array(2),
+    a => a.hypothesis_id=17,
+  ];
+  for (const patch of invalid) {
+    const args = pdeRequest(); patch(args); const result = {args}, saved = structuredClone(result);
+    await assert.rejects(pdeBefore(hooks,f,result),refusal('RESEARCH_ARGUMENTS_REQUIRED'));
+    assert.deepEqual(result,saved); assert.equal(f.receipts().at(-1).accepted,false);
+  }
+  for (const args of [undefined,null,[],42])
+    await assert.rejects(pdeBefore(hooks,f,{args}),refusal('RESEARCH_ARGUMENTS_REQUIRED'));
+  const coupled = pdeRequest('pde.fenicsx.coupled'); coupled.settings.problem.weak_form.rhs.left = new Array(2);
+  await assert.rejects(pdeBefore(hooks,f,{args:coupled}),refusal('RESEARCH_ARGUMENTS_REQUIRED'));
+  coupled.settings.problem.weak_form.rhs.left=['0.0','0.0']; coupled.settings.problem.weak_form.diffusion.right=[[1,0],[0]];
+  await assert.rejects(pdeBefore(hooks,f,{args:coupled}),refusal('RESEARCH_ARGUMENTS_REQUIRED'));
+  coupled.settings.problem.weak_form.diffusion.right=[[1,0],new Array(2)];
+  await assert.rejects(pdeBefore(hooks,f,{args:coupled}),refusal('RESEARCH_ARGUMENTS_REQUIRED'));
+  const optional = immutable({args:{...pdeRequest(),hypothesis_id:null}}); await pdeBefore(hooks,f,optional);
+});
+
+test('PDEFields stationary meshes require exactly three positive doubling bounded P1 counts',async t => {
+  const f = pdeResearchFixture(t), hooks = await f.hooks();
+  for (const counts of [[8],[8,16],[4,8,16,32],[8,16,64],[8,12,24],[8,8,16],[-1,2,4],
+    [0,0,0],[true,2,4],[4.5,9,18],new Array(3)]) {
+    const args = pdeRequest(); args.settings.mesh.cell_counts = counts;
+    await assert.rejects(pdeBefore(hooks,f,{args}),refusal('RESEARCH_WORK_BUDGET_EXCEEDED'));
+  }
+  const degree = pdeRequest(); degree.settings.mesh.degree = 2;
+  await assert.rejects(pdeBefore(hooks,f,{args:degree}),refusal('RESEARCH_WORK_BUDGET_EXCEEDED'));
+  degree.settings.mesh.degree = true;
+  await assert.rejects(pdeBefore(hooks,f,{args:degree}),refusal('RESEARCH_WORK_BUDGET_EXCEEDED'));
+  const shape = pdeRequest(); shape.settings.mesh.extra='unexpected';
+  await assert.rejects(pdeBefore(hooks,f,{args:shape}),refusal('RESEARCH_ARGUMENTS_REQUIRED'));
+});
+
+test('PDEFields transient axis, scheme, time, step counts and exact retained values budget are enforced',async t => {
+  const f = pdeResearchFixture(t), hooks = await f.hooks();
+  const changes = [
+    a => a.settings.time.step_counts=[8,16,32],
+    a => a.settings.refinement_axis='time',
+    a => a.settings.time.scheme='crank_nicolson', a => a.settings.time.unit='s',
+    a => a.settings.time.start=-.01, a => a.settings.time.start=false,
+    a => a.settings.time.end=.0009, a => a.settings.time.end=1001,
+    a => a.settings.time.end=NaN, a => a.settings.time.step_counts=[129],
+    a => a.settings.time.step_counts=[true],
+    a => {a.settings.refinement_axis='time';a.settings.mesh.cell_counts=[16];a.settings.time.step_counts=[32,64,256];},
+    a => {a.settings.refinement_axis='time';a.settings.mesh.cell_counts=[32];a.settings.time.step_counts=[32,64,128];},
+  ];
+  for (const change of changes) {
+    const args = pdeRequest('pde.fenicsx.transient'); change(args);
+    const result = {args}, saved = structuredClone(result);
+    await assert.rejects(pdeBefore(hooks,f,result),refusal('RESEARCH_WORK_BUDGET_EXCEEDED'));
+    assert.deepEqual(result,saved);
+  }
+  const axis = pdeRequest('pde.fenicsx.transient'); axis.settings.refinement_axis='both';
+  await assert.rejects(pdeBefore(hooks,f,{args:axis}),refusal('RESEARCH_CAPABILITY_NOT_ADMITTED'));
+  const extra = pdeRequest('pde.fenicsx.transient'); extra.settings.time.extra=0;
+  await assert.rejects(pdeBefore(hooks,f,{args:extra}),refusal('RESEARCH_ARGUMENTS_REQUIRED'));
+  for (const end of [.001,1000]) {
+    const args = pdeRequest('pde.fenicsx.transient'); args.settings.time.end=end;
+    await pdeBefore(hooks,f,immutable({args}));
+  }
+});
+
+test('PDEFields imported original ASCII identity, named sides, labels and total byte budget remain immutable',async t => {
+  const f = pdeResearchFixture(t), hooks = await f.hooks();
+  const invalid = [
+    a => a.settings.mesh.levels[0].path='C:/arbitrary.msh',
+    a => a.settings.mesh.levels[0].format='gmsh_binary',
+    a => a.settings.mesh.levels[0].data='nonASCII 한글',
+    a => a.settings.mesh.levels[0].sha256='a'.repeat(64),
+    a => a.settings.mesh.levels[0].sha256=a.settings.mesh.levels[0].sha256.toUpperCase(),
+    a => a.settings.mesh.levels[0].source=' ',
+    a => a.settings.mesh.levels[0].source='a'.repeat(257),
+    a => a.settings.problem.boundaries={},
+  ];
+  for (const patch of invalid) {
+    const args = pdeRequest('pde.fenicsx.imported'); patch(args);
+    const result = {args}, saved = structuredClone(result);
+    await assert.rejects(pdeBefore(hooks,f,result),refusal('RESEARCH_ARGUMENTS_REQUIRED')); assert.deepEqual(result,saved);
+  }
+  for (const levels of [1,2,4]) {
+    const args = pdeRequest('pde.fenicsx.imported');
+    args.settings.mesh.levels=Array.from({length:levels},()=>structuredClone(args.settings.mesh.levels[0]));
+    await assert.rejects(pdeBefore(hooks,f,{args}),refusal('RESEARCH_WORK_BUDGET_EXCEEDED'));
+  }
+  const exact = pdeRequest('pde.fenicsx.imported');
+  exact.settings.mesh.levels.forEach((level,i) => {
+    level.data=String(i).repeat(32768);level.sha256=sha(Buffer.from(level.data,'ascii'));level.source='한'.repeat(256);
+  });
+  const output = immutable({args:exact}), saved = canonical(output);
+  await pdeBefore(hooks,f,output); assert.equal(canonical(output),saved);
+  const larger = structuredClone(exact); larger.settings.mesh.levels[2].data+='3';
+  larger.settings.mesh.levels[2].sha256=sha(Buffer.from(larger.settings.mesh.levels[2].data,'ascii'));
+  await assert.rejects(pdeBefore(hooks,f,{args:larger}),refusal('RESEARCH_WORK_BUDGET_EXCEEDED'));
+});
+
+test('PDEFields bounds parsed JSON UTF8 bytes exactly without claiming original MCP wire size',async t => {
+  const f = pdeResearchFixture(t), hooks = await f.hooks();
+  const exact = pdeRequest(), base = Buffer.byteLength(JSON.stringify(exact),'utf8');
+  exact.settings.problem.reference.source += 'a'.repeat(131072-base);
+  assert.equal(Buffer.byteLength(JSON.stringify(exact),'utf8'),131072);
+  await pdeBefore(hooks,f,immutable({args:exact}));
+  const tooLarge = structuredClone(exact); tooLarge.settings.problem.reference.source+='a';
+  await assert.rejects(pdeBefore(hooks,f,{args:tooLarge}),refusal('RESEARCH_WORK_BUDGET_EXCEEDED'));
+  const unicode = pdeRequest(); unicode.settings.problem.reference.source='한'.repeat(45000);
+  assert.ok(JSON.stringify(unicode).length < 131072); assert.ok(Buffer.byteLength(JSON.stringify(unicode),'utf8') > 131072);
+  await assert.rejects(pdeBefore(hooks,f,{args:unicode}),refusal('RESEARCH_WORK_BUDGET_EXCEEDED'));
+  assert.equal(Object.hasOwn(f.receipts().at(-1),'wire_bytes'),false);
+});
+
+test('PDEFields uses existing final async source/config/settings/grant/Stop and stage gates',async t => {
+  for (const [drift,code] of [['source','SOURCE_CHANGED_OR_UNAVAILABLE'],['grant','PROJECT_GRANT_CHANGED'],
+    ['config','CONFIG_CHANGED'],['settings','SETTINGS_CHANGED'],['stopping','RUNTIME_STOPPING'],
+    ['no_tools','NO_TOOLS_STAGE'],['required','REQUIRED_TOOL_MISMATCH']]) {
+    const f = pdeResearchFixture(t), load = f.dependencies.loadFilesystem;
+    f.dependencies.loadFilesystem = async (...args) => {
+      const data = await load(...args);
+      if (f.counts.filesystem === 2) {
+        await Promise.resolve();
+        if (drift === 'source') fs.writeFileSync(path.join(f.repo,'new_import.py'),'SECRET UNPINNED IMPORT');
+        if (drift === 'grant') {f.state.filesystem.grants[0].access='read';data.grants[0].access='read';}
+        if (drift === 'config') fs.appendFileSync(f.settings.configPath,' ');
+        if (drift === 'settings') fs.appendFileSync(f.settingsPath,' ');
+        if (drift === 'stopping') f.writeGuard({stopping:true});
+        if (drift === 'no_tools') f.writeGuard({no_tools:true});
+        if (drift === 'required') f.writeGuard({required:'caelab_study_inspect'});
+      }
+      return data;
+    };
+    const hooks = await f.hooks(), result = immutable({args:pdeRequest()});
+    await assert.rejects(pdeBefore(hooks,f,result),refusal(drift === 'source' ? 'SOURCE_IMPORTABLE_CHANGED' : code));
+    assert.equal(f.reader.calls,2); assert.equal(f.receipts().at(-1).accepted,false);
+    assert.equal(JSON.stringify(f.receipts()).includes('SECRET'),false);
+  }
+});
+
+test('PDEFields late model and provider changes cannot pass the logical stream gate',async t => {
+  for (const patch of [request => request.model.id='other-model',request => request.model.providerID='other-provider']) {
+    const f = pdeResearchFixture(t), load = f.dependencies.loadFilesystem, request = f.request();
+    f.dependencies.loadFilesystem = async (...args) => {
+      const data = await load(...args); if (f.counts.filesystem===2) {await Promise.resolve();patch(request);} return data;
+    };
+    const hooks = await f.hooks();
+    await assert.rejects(hooks['chat.params'](request,immutable({options:{reasoningEffort:'low'}})),refusal('MODEL_CHANGED'));
+    assert.equal(f.reader.calls,2); assert.equal(f.receipts().at(-1).accepted,false);
+  }
+});

@@ -8,9 +8,54 @@ $script:OpenScienceResearchTools = @('caelab_study_create', 'caelab_study_inspec
 $script:OpenScienceStructuralResearchTools = @('caelab_study_create', 'caelab_study_inspect',
     'caelab_model_analysis_run', 'caelab_experiment_inspect', 'caelab_experiment_summary',
     'caelab_experiment_compare')
+$script:OpenSciencePdeResearchTools = @('caelab_study_create', 'caelab_study_inspect',
+    'caelab_pde_run', 'caelab_experiment_inspect', 'caelab_experiment_summary',
+    'caelab_experiment_compare')
 
 function New-OpenScienceResearchDefinition {
-    param([ValidateSet('FixtureScalar', 'StructuralFamilies', IgnoreCase=$false)][string]$Profile = 'FixtureScalar')
+    param([ValidateSet('FixtureScalar', 'StructuralFamilies', 'PDEFields', IgnoreCase=$false)][string]$Profile = 'FixtureScalar')
+    if ($Profile -ceq 'PDEFields') {
+        return [ordered]@{
+            schema = 3; kind = 'autonomous-cae-lab.openscience-research-definition'
+            profile = 'pde-fields-v1'; agent = 'research'
+            allowed_tools = @($script:OpenSciencePdeResearchTools)
+            runtime_environment = [ordered]@{ MPLBACKEND = 'Agg'; OMP_NUM_THREADS = '2'
+                QT_QPA_PLATFORM = 'offscreen'; CAELAB_FENICSX_PYTHON = '/usr/bin/python3' }
+            budgets = [ordered]@{ steps = 24; mcp_timeout_seconds = 3600; command_timeout_seconds = 3600
+                pde = @{ max_cell_count = 32; max_mesh_levels = 3; min_mesh_levels = 3; degree = 1
+                    max_time_steps = 128; max_snapshot_node_values = 200000
+                    max_imported_bytes = 98304; max_request_bytes = 131072 } }
+            capabilities = @(
+                [ordered]@{ backend = 'pde.fenicsx'; operations = @('pde_run')
+                    inputs = 'Dimensionless scalar linear elliptic unit square, constant diffusion/reaction and whole-boundary Dirichlet value, safe expression/reference and three doubling P1 meshes.'
+                    evidence = 'Immutable native XDMF/H5, actual residual, reference errors/rates and source/runtime identities. Legacy scalar has no native DOF JSON and is download-only in the field inspector.'
+                    verification = 'IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF' },
+                [ordered]@{ backend = 'pde.fenicsx.rectangle'; operations = @('pde_run')
+                    inputs = 'Declared dimensionless rectangle, constant scalar diffusion/reaction, named whole-side Dirichlet/outward Neumann expressions, reference and three doubling P1 meshes.'
+                    evidence = 'Same-record scalar native nodes/triangles, named-side binding, XDMF/H5, symbolic errors/rates and actual residual.'
+                    verification = 'IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF' },
+                [ordered]@{ backend = 'pde.fenicsx.transient'; operations = @('pde_run')
+                    inputs = 'Dimensionless scalar unit-capacity backward Euler rectangle, initial/side/source/reference expressions and exactly one mesh or time refinement axis, with explicit step and retained node-value budgets.'
+                    evidence = 'Complete N+1 native histories and current/previous state identities; initial interpolation is NOT_RUN, not a native solve.'
+                    verification = 'IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF' },
+                [ordered]@{ backend = 'pde.fenicsx.coupled'; operations = @('pde_run')
+                    inputs = 'Two scalar fields with regional SPD cross-diffusion/common PSD reaction, a conforming straight midpoint interface on a rectangle, regional expressions and directed named-side data.'
+                    evidence = 'Blocked native u0/u1 fields, regional cells, interface adjacency/two traces, split sides, XDMF/H5, reference errors/rates and actual residual.'
+                    verification = 'IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF' },
+                [ordered]@{ backend = 'pde.fenicsx.imported'; operations = @('pde_run')
+                    inputs = 'Exactly three immutable bounded ASCII MSH2.2 original data/label/SHA levels, scalar P1, named physical Dirichlet/outward Neumann expressions and declared reference. Original data is frozen model context, never a path or optimization variable.'
+                    evidence = 'Original/dense mesh hashes and native mapping/boundary files, scalar DOFs/XDMF/H5, measured-h reference rates and actual residual. Imported activation requires its separate independent native audit.'
+                    verification = 'IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF' }
+            )
+            limitations = @('This scope is not current native execution proof, physical model qualification or engineering release.',
+                'Only the five listed bounded real64 serial P1 families are admitted; vector, nonlinear expansion, CFD, MPI/HPC and arbitrary research code are outside this scope.',
+                'Research work budgets bound mesh/time/retention and parsed-hook JSON, not numerical accuracy. Original MCP wire byte size is not observable at the tool hook; whole HTTP body limits are separate.',
+                'No generic job, variable registration or numerical optimizer tools are provided. Numerical engines own search candidates.',
+                'A finite wrong reference or flux remains an actual numerical REJECTED result; scientific and unsafe-expression preflight belongs to Domain/adapters.',
+                'Missing/partial field representations remain explicit or download-only; displayed retained failed fields do not become valid metrics.',
+                'Strength, material, physical and durability qualification remain UNKNOWN; all results remain NOT_RELEASED.')
+        }
+    }
     if ($Profile -ceq 'StructuralFamilies') {
         return [ordered]@{
             schema = 2; kind = 'autonomous-cae-lab.openscience-research-definition'
@@ -92,6 +137,8 @@ function Get-OpenSciencePurposeTools($Context) {
 function Assert-OpenScienceResearchDefinition($Definition) {
     $profile = if ($Definition.schema -eq 2 -and $Definition.profile -ceq 'structural-families-v1') {
         'StructuralFamilies'
+    } elseif ($Definition.schema -eq 3 -and $Definition.profile -ceq 'pde-fields-v1') {
+        'PDEFields'
     } else { 'FixtureScalar' }
     Assert-OpenScienceCondition ((Get-OpenScienceSourcePinSha256 $Definition) -ceq
         (Get-OpenScienceSourcePinSha256 (New-OpenScienceResearchDefinition -Profile $profile))) 'Research scope/runtime/budget differs from the supported definition.'
@@ -100,6 +147,16 @@ function Assert-OpenScienceResearchDefinition($Definition) {
 function Get-OpenScienceResearchPrompt($Definition) {
     Assert-OpenScienceResearchDefinition $Definition
     $scope = $Definition | ConvertTo-Json -Depth 12 -Compress
+    if ($Definition.schema -eq 3 -and $Definition.profile -ceq 'pde-fields-v1') {
+        return @"
+You are the research control plane for Autonomous CAE Lab. Follow the human's supplied mathematical question through the declared PDE families below. Explain the plan, choose an admitted backend, execute new experiment IDs, inspect and compare actual receipts, and interpret their evidence. Use only the six listed tools and the selected provider/model. Capability metadata is not current execution or qualification proof.
+For caelab_pde_run pass exactly study_id, experiment_id, backend and settings, with hypothesis_id only when supplied. Use the original settings shape of the selected family; benchmark identities, reference evidence, publication records and capability metadata are context, not additional tool arguments. Never silently delete, substitute or relax a requested condition, reference, threshold or response to get a PASS.
+If required equation, geometry, boundary, initial, reference or refinement conditions are missing, ask a concrete question before execution. Identify unsupported families explicitly. Respect the declared mesh/time/retained-node/byte work budgets; they are resource limits, not solver accuracy or engineering verdicts. Time histories refine only one axis with the other fixed. Imported original bytes/hash/order are immutable data, not filesystem paths or search variables.
+This PDEFields scope does not provide numerical optimization or job tools. Numerical engines generate search candidates; do not act as a substitute numerical optimizer. Append a new experiment for changed conditions and use the same returned study/experiment/model revision in inspection, summaries and comparisons.
+Invalid inputs block native execution. Finite incorrect reference/flux may yield an actual retained REJECTED result. Preserve failed attempts, invalid values/reasons, independent UNKNOWN checks and NOT_RELEASED. Initial interpolation is not a native solve; successful execution/visualization is not strength, physics or release approval. Missing/partial native fields are unavailable or download-only, never fabricated.
+Declared profile: $scope
+"@
+    }
     if ($Definition.schema -eq 2 -and $Definition.profile -ceq 'structural-families-v1') {
         return @"
 You are the research control plane for Autonomous CAE Lab. Follow the human's research question through the declared Core capabilities below. Select the appropriate admitted backend, explain the plan, execute new experiment IDs, compare actual receipts, and interpret the numerical evidence. Use multiple admitted tools as needed; do not fabricate results or run another provider/model.

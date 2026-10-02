@@ -690,6 +690,7 @@ function renderExperimentDetail(data) {
   visual.append(el("p", "네이티브 3D surface는 같은 실험의 검증된 파일로 엽니다. 치구의 진단용 응력 성분은 아래 원본 연결 표에서 확인합니다.", "hint separated"));
   evidenceGrid.append(evidence, visual); container.append(evidenceGrid);
   renderFixtureStressFields(container, result);
+  renderPdeFields(container, data);
   const artifacts = panel("원본과 처리한 산출물", "ARTIFACTS · VERIFIED BY HASH"); artifacts.classList.add("detail-wide");
   artifacts.append(table(["파일", "크기", "SHA-256", "개정"], list(result.artifacts).map((item) => {
     const digest = el("div", item.sha256, "mono"); return [link(item.path, artifactUrl(identifier, item.path), "artifact-path", true), `${number(item.size_bytes)} bytes`, digest, el("span", item.revision, "mono")];
@@ -703,6 +704,117 @@ function renderExperimentDetail(data) {
   $("selectedSource").title = text(commit);
   if (result.status === "COMPLETED_REVIEW_REQUIRED" && result.cad_revision && result.solver_status === "NOT_RUN") $("analysisParent").value = identifier;
   updateControls();
+}
+function renderPdeFields(container, inspection) {
+  const result = inspection.result;
+  if (!String(result.provenance?.adapter ?? "").startsWith("pde.")) return;
+  const card = panel("같은 실험의 PDE 필드", "NATIVE FIELD · SAME RECORD");
+  card.classList.add("detail-wide", "pde-field-card");
+  card.append(badge(result.status), badge(result.decision),
+    el("p", "원본 절점 값과 2D 메시를 확인합니다. 좌표와 필드의 단위는 1(무차원)입니다. 수치 검증 상태와 물리·모델 미검증 항목은 위의 원래 판정을 따릅니다.", "hint separated"));
+  const controls = el("div", undefined, "button-row separated"), detail = el("div", undefined, "separated");
+  card.append(controls, detail); container.append(card);
+  const request = state.experimentRequest, store = activeStore();
+  const current = () => request === state.experimentRequest && store === activeStore() && state.selectedExperiment === inspection;
+  let fieldRequest = 0;
+  async function fetchBytes(relative) {
+    if (!current()) throw new Error("선택한 실험이 바뀌었습니다.");
+    const response = await fetch(artifactUrl(result.experiment_id, relative), { cache: "no-store", headers: { Accept: "application/octet-stream" } });
+    if (!current()) throw new Error("선택한 실험이 바뀌었습니다.");
+    if (!response.ok) throw new Error(`원본 산출물을 검증해 읽을 수 없습니다 (${response.status}).`);
+    const size = Number(response.headers.get("Content-Length"));
+    if (Number.isFinite(size) && size > 32 * 1024 * 1024) throw new Error("화면에서 읽을 수 있는 파일 크기를 넘습니다. 원본을 내려받아 확인하세요.");
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (!current()) throw new Error("선택한 실험이 바뀌었습니다.");
+    return bytes;
+  }
+  clear(detail).append(el("p", "같은 기록의 입력·소스·필드 해시를 확인하고 있습니다…", "hint"));
+  Promise.resolve().then(async () => {
+    if (!window.pdeFieldInspector) throw new Error("PDE 필드 검사를 불러올 수 없습니다. 원본 산출물 목록을 확인하세요.");
+    const catalog = await window.pdeFieldInspector.loadCatalog(inspection, fetchBytes, current);
+    if (!current()) return;
+    clear(detail);
+    if (!["available", "partial"].includes(catalog.status) || !catalog.entries.length) {
+      detail.append(el("p", catalog.reason ?? "이 기록은 원본 다운로드로 확인할 수 있습니다.", "empty-state"));
+      return;
+    }
+    if (catalog.reason) controls.append(el("p", catalog.reason, "hint"));
+    const label = el("label", "메시 / 시간 단계"), select = el("select"); label.append(select); controls.append(label);
+    catalog.entries.forEach((entry, index) => {
+      const mesh = entry.cellsPerAxis === null ? `메시 레벨 ${entry.level}` : `축당 ${entry.cellsPerAxis}개`;
+      const time = entry.stepIndex === null ? "" : ` · 단계 ${entry.stepIndex} · t=${number(entry.time)}${entry.solverStatus === "NOT_RUN" ? " · 초기조건" : ""}`;
+      option(select, String(index), `${mesh}${time}`);
+    });
+    select.value = String(catalog.entries.length - 1);
+    async function selectField() {
+      const sequence = ++fieldRequest;
+      const entry = catalog.entries[Number(select.value)];
+      const selected = () => current() && sequence === fieldRequest;
+      clear(detail).append(el("p", "선택한 원본 필드와 연결 파일을 검증하고 있습니다…", "hint"));
+      try {
+        const field = await window.pdeFieldInspector.loadField(catalog, entry, fetchBytes, selected);
+        if (!selected()) return;
+        clear(detail);
+        if (field.status !== "available") {
+          detail.append(el("p", field.reason ?? "이 단계의 신뢰할 수 있는 필드가 없습니다. 원본 산출물을 확인하세요.", "metric-reason"));
+          return;
+        }
+        renderPdeNodes(detail, field, result.experiment_id);
+      } catch (error) { if (selected()) clear(detail).append(el("p", error.message, "metric-reason")); }
+    }
+    select.addEventListener("change", () => { void selectField(); });
+    await selectField();
+  }).catch(error => { if (current()) clear(detail).append(el("p", error.message, "metric-reason")); });
+}
+function renderPdeNodes(container, field, identifier) {
+  const selection = field.selection;
+  container.append(el("p", `${number(field.nodes.length)}개 절점 · ${number(field.cells.length)}개 삼각형 · ${selection.solverStatus}${selection.time === null ? "" : ` · t=${number(selection.time)}`} · 원본 모델 ${text(field.metadata.modelRevision)}`, "hint"));
+  const links = el("div", undefined, "button-row separated");
+  field.downloads.forEach(item => links.append(link(item.path, artifactUrl(identifier, item.path), "text-link artifact-path", true)));
+  container.append(links);
+  const label = el("label", "필드 성분"), component = el("select");
+  field.components.forEach((name, index) => option(component, String(index), name));
+  label.append(component); container.append(label);
+  const canvas = el("canvas"); canvas.width = 900; canvas.height = 520; canvas.className = "pde-field-canvas";
+  canvas.setAttribute("role", "img"); canvas.setAttribute("aria-label", `${identifier}의 원본 PDE 메시와 선택한 성분의 셀 평균 색상`);
+  const legend = el("p", undefined, "hint pde-field-legend");
+  container.append(canvas, legend, el("p", "색상은 삼각형의 세 원본 절점 값 평균입니다. 보간한 연속장이나 수치 오차 판정을 대신하지 않습니다. 아래 표는 원본 절점 값입니다.", "hint"));
+  const filter = el("label", "원본 native 절점 ID로 찾기"), input = el("input");
+  input.type = "number"; input.min = "0"; input.step = "1"; input.placeholder = "빈칸이면 전체 절점"; filter.append(input); container.append(filter);
+  const rows = el("div"), caption = el("p", undefined, "hint"), pagination = el("div", undefined, "button-row separated");
+  let page = 0, nodes = field.nodes;
+  const previous = action("이전 50개", () => { page--; drawRows(); }), next = action("다음 50개", () => { page++; drawRows(); });
+  pagination.append(previous, next); container.append(rows, caption, pagination);
+  function drawRows() {
+    const start = page * 50, visible = nodes.slice(start, start + 50);
+    clear(rows).append(table(["Native 절점", "원본 MSH 절점", "X / Y (1)", ...field.components.map(name => `${name} (1)`)], visible.map(node => [String(node.id), node.sourceId, node.coordinates.map(number).join(" / "), ...node.values.map(number)])));
+    caption.textContent = nodes.length ? `${start + 1}–${start + visible.length} / ${number(nodes.length)}개 표시` : "해당 절점이 없습니다.";
+    previous.disabled = page === 0; next.disabled = start + 50 >= nodes.length;
+  }
+  function drawMesh() {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) { legend.textContent = "브라우저가 2D 표면을 표시하지 못합니다. 원본 절점 표와 다운로드를 확인하세요."; return; }
+    const axis = Number(component.value), positions = new Map(field.nodes.map(node => [node.id, node]));
+    let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity, minimum = Infinity, maximum = -Infinity;
+    field.nodes.forEach(node => { xmin = Math.min(xmin, node.coordinates[0]); xmax = Math.max(xmax, node.coordinates[0]); ymin = Math.min(ymin, node.coordinates[1]); ymax = Math.max(ymax, node.coordinates[1]); minimum = Math.min(minimum, node.values[axis]); maximum = Math.max(maximum, node.values[axis]); });
+    const spanx = xmax - xmin, spany = ymax - ymin, span = maximum - minimum;
+    if (!(spanx > 0 && spany > 0) || ![spanx, spany, minimum, maximum, span].every(Number.isFinite)) { ctx.clearRect(0, 0, canvas.width, canvas.height); legend.textContent = "화면 좌표 범위를 표시할 수 없습니다. 원본 절점 표를 확인하세요."; return; }
+    const scale = Math.min((canvas.width - 60) / spanx, (canvas.height - 60) / spany);
+    const left = (canvas.width - scale * spanx) / 2, top = (canvas.height - scale * spany) / 2;
+    ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.lineWidth = .35; ctx.strokeStyle = "#354a5960";
+    field.cells.forEach(cell => {
+      const triangle = cell.nodeIds.map(id => positions.get(id));
+      const value = triangle.reduce((sum, node) => sum + node.values[axis] / 3, 0);
+      const fraction = span === 0 ? .5 : Math.max(0, Math.min(1, (value - minimum) / span));
+      ctx.fillStyle = `hsl(${230 * (1 - fraction)} 65% 54%)`; ctx.beginPath();
+      triangle.forEach((node, index) => { const x = left + (node.coordinates[0] - xmin) * scale, y = top + (ymax - node.coordinates[1]) * scale; if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    });
+    legend.textContent = `${field.components[axis]} · 원본 절점 최솟값 ${number(minimum)} / 최댓값 ${number(maximum)} (1) · 파랑 → 빨강`;
+  }
+  input.addEventListener("input", () => { nodes = input.value.trim() ? field.nodes.filter(node => node.id === Number(input.value)) : field.nodes; page = 0; drawRows(); });
+  component.addEventListener("change", drawMesh); drawRows(); drawMesh();
+  container.append(rawDetail("원본 경계 · 연성 영역/인터페이스 · 메시 매핑", { boundaries: field.boundaries, interface: field.interface, mapping: field.mapping, binding: field.binding, cells: field.cells }));
 }
 function renderFixtureStressFields(container, result) {
   const artifacts = list(result.artifacts);

@@ -1,5 +1,16 @@
 # Architecture
 
+## Explicit PDE research and retained native field views (ADR0024)
+
+OpenScience gets an optional PDEFields scope with six existing operations,
+case-sensitive descriptor and explicit resource limits. Old scopes/model/auth
+remain. The human Results view reads same-record manifested native fields
+through the existing verified artifact API; it does not evaluate scientific
+acceptance. Domain/Core verdicts, numerical engines and adapter/native syntax
+retain their owners. Reviewed source and old-native consumption are separate
+from clean-source actual Research/GUI and engineering qualification. See
+ADR/0024-bounded-pde-research-field-inspection.md and the D3.6 record.
+
 ## Control flow
 
 ```mermaid

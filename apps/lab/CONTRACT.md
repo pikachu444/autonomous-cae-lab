@@ -1,5 +1,14 @@
 # Local Lab application contract
 
+D3.6 now adds explicit PDEFields/schema3 research scope and a read-only native
+field inspector through existing operations/artifact API; Core/wire/Domain/
+adapters and old scope definitions remain. Source/identity/staleness/refusal
+checks and independent review pass,0openP1/P2. Current reader preserves original
+04e21 fields/17 Core records,427files unchanged; no new solver or GUI proof.
+Record: benchmarks/records/20261003-pde-research-fields-development.json.
+Clean-source official5.6Sol Research/GUI/owned Stop/retention is the next gate;
+NOT_RUN/NOT_ADMITTED/UNKNOWN/NOT_RELEASED and whole52 OPEN remain.
+
 Imported04e local17-case/21-field independent mathematical audit now passes,
 with fixed scientific criteria, original427files unchanged and UNKNOWN/
 NOT_RELEASED. Exact04e CI7SUCCESS/3FAIL/Core2571PASS is separate; imported native

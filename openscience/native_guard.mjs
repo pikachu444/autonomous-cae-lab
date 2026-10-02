@@ -27,6 +27,15 @@ const nativeStructuralRuntime = Object.freeze({MPLBACKEND:'Agg', OMP_NUM_THREADS
 const nativeStructuralBudgets = Object.freeze({steps:24, mcp_timeout_seconds:3600, command_timeout_seconds:3600,
   model_analysis:{max_mesh_levels:3, max_axis_cells:48, max_elements_per_level:1024,
     max_nodes_per_level:10000, max_load_factor:2}});
+const nativePdeResearchTools = Object.freeze(['caelab_study_create', 'caelab_study_inspect',
+  'caelab_pde_run', 'caelab_experiment_inspect', 'caelab_experiment_summary', 'caelab_experiment_compare']);
+const nativePdeBackends = Object.freeze(['pde.fenicsx', 'pde.fenicsx.rectangle', 'pde.fenicsx.transient',
+  'pde.fenicsx.coupled', 'pde.fenicsx.imported']);
+const nativePdeRuntime = Object.freeze({MPLBACKEND:'Agg', OMP_NUM_THREADS:'2', QT_QPA_PLATFORM:'offscreen',
+  CAELAB_FENICSX_PYTHON:'/usr/bin/python3'});
+const nativePdeBudgets = Object.freeze({steps:24, mcp_timeout_seconds:3600, command_timeout_seconds:3600,
+  pde:{max_cell_count:32, max_mesh_levels:3, min_mesh_levels:3, degree:1, max_time_steps:128,
+    max_snapshot_node_values:200000, max_imported_bytes:98304, max_request_bytes:131072}});
 const nativeAcceptanceTools = Object.freeze(nativeKnownTools.slice(0, 9));
 const nativeResearchKeys = Object.freeze(['schema', 'kind', 'agent', 'allowed_tools',
   'runtime_environment', 'budgets', 'capabilities', 'limitations']);
@@ -192,9 +201,21 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
         !nativeSha(settings.config_sha256) || !nativeSha(settings.plugin_sha256) || !nativeSha(settings.boot_source_sha256)) nativeRefuse('SETTINGS_INVALID');
     if (Object.hasOwn(settings, 'research')) {
       const research = settings.research;
-      exactKeys(research, research.schema === 2 ? [...nativeResearchKeys, 'profile', 'benchmark_definition'] : nativeResearchKeys,
+      exactKeys(research, research.schema === 3 ? [...nativeResearchKeys, 'profile'] :
+        research.schema === 2 ? [...nativeResearchKeys, 'profile', 'benchmark_definition'] : nativeResearchKeys,
         'RESEARCH_DEFINITION_INVALID');
-      if (research.schema === 2) {
+      if (research.schema === 3) {
+        if (research.kind !== 'autonomous-cae-lab.openscience-research-definition' || research.agent !== 'research' ||
+            research.profile !== 'pde-fields-v1' ||
+            nativeCanonical(research.allowed_tools) !== nativeCanonical(nativePdeResearchTools) ||
+            nativeCanonical(research.runtime_environment) !== nativeCanonical(nativePdeRuntime) ||
+            nativeCanonical(research.budgets) !== nativeCanonical(nativePdeBudgets) ||
+            !Array.isArray(research.capabilities) || research.capabilities.length !== nativePdeBackends.length ||
+            nativeCanonical(research.capabilities.map(value => value?.backend)) !== nativeCanonical(nativePdeBackends) ||
+            research.capabilities.some(value => !nativeRecord(value) ||
+              nativeCanonical(value.operations) !== nativeCanonical(['pde_run'])) ||
+            !Array.isArray(research.limitations)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
+      } else if (research.schema === 2) {
         if (research.kind !== 'autonomous-cae-lab.openscience-research-definition' || research.agent !== 'research' ||
             research.profile !== 'structural-families-v1' ||
             nativeCanonical(research.benchmark_definition) !== nativeCanonical({id:'P2-family-v1-20261002',
@@ -545,10 +566,138 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
     } catch { nativeRefuse('RECEIPT_UNAVAILABLE'); }
     finally { if (handle !== undefined) io.closeSync(handle); }
   };
+  // This research schema is independent of the native-context schema.
+  // Check parsed JSON shape/resource admission only; Domain/adapters own AST,
+  // coefficient definiteness, references, fluxes and numerical verdicts.
+  const pdeArguments = args => {
+    const bound = settings.research.budgets.pde;
+    exactKeys(args, ['study_id', 'experiment_id', 'backend', 'settings',
+      ...(Object.hasOwn(args, 'hypothesis_id') ? ['hypothesis_id'] : [])], 'RESEARCH_ARGUMENTS_REQUIRED');
+    if (!nativePdeBackends.includes(args.backend)) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+    if (typeof args.study_id !== 'string' || !args.study_id.trim() || typeof args.experiment_id !== 'string' ||
+        !args.experiment_id.trim() || (Object.hasOwn(args, 'hypothesis_id') && args.hypothesis_id !== null &&
+          typeof args.hypothesis_id !== 'string')) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+    const transient = args.backend === 'pde.fenicsx.transient';
+    const coupled = args.backend === 'pde.fenicsx.coupled';
+    const imported = args.backend === 'pde.fenicsx.imported';
+    const linear = args.backend === 'pde.fenicsx';
+    const request = args.settings;
+    exactKeys(request, transient ? ['problem', 'mesh', 'time', 'refinement_axis', 'validation'] :
+      ['problem', 'mesh', 'validation'], 'RESEARCH_ARGUMENTS_REQUIRED');
+    const problem = request.problem;
+    exactKeys(problem, linear ? ['domain', 'weak_form', 'dirichlet', 'reference'] :
+      ['domain', 'weak_form', 'boundaries', 'reference', ...(transient ? ['initial'] : [])], 'RESEARCH_ARGUMENTS_REQUIRED');
+    const string = value => { if (typeof value !== 'string') nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED'); };
+    const number = value => { if (typeof value !== 'number' || !Number.isFinite(value)) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED'); };
+    const vector = value => {
+      if (!Array.isArray(value) || value.length !== 2) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+      for (const component of value) string(component);
+    };
+    const matrix = value => {
+      if (!Array.isArray(value) || value.length !== 2) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+      for (const row of value) {
+        if (!Array.isArray(row) || row.length !== 2) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+        for (const component of row) number(component);
+      }
+    };
+    if (linear) {
+      if (problem.domain !== 'unit_square') nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      string(problem.dirichlet);
+    } else {
+      exactKeys(problem.domain, imported ? ['type', 'body'] :
+        ['type', 'lengths', ...(coupled ? ['interface'] : [])], 'RESEARCH_ARGUMENTS_REQUIRED');
+      if (problem.domain.type !== (imported ? 'imported_mesh' : 'rectangle')) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      if (imported) string(problem.domain.body);
+      else {
+        if (!Array.isArray(problem.domain.lengths) || problem.domain.lengths.length !== 2) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+        for (const length of problem.domain.lengths) number(length);
+      }
+      if (coupled) {
+        exactKeys(problem.domain.interface, ['axis', 'fraction'], 'RESEARCH_ARGUMENTS_REQUIRED');
+        if (problem.domain.interface.axis !== 0 || problem.domain.interface.fraction !== .5) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      }
+      const names = imported ? Object.keys(nativeRecord(problem.boundaries) ? problem.boundaries : {}) : ['xmin', 'xmax', 'ymin', 'ymax'];
+      if (!names.length) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+      exactKeys(problem.boundaries, names, 'RESEARCH_ARGUMENTS_REQUIRED');
+      for (const name of names) {
+        const boundary = problem.boundaries[name];
+        exactKeys(boundary, ['type', 'value'], 'RESEARCH_ARGUMENTS_REQUIRED');
+        if (!['dirichlet', 'neumann'].includes(boundary.type)) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+        if (coupled) {
+          const regions = name === 'xmin' ? ['left'] : name === 'xmax' ? ['right'] : ['left', 'right'];
+          exactKeys(boundary.value, regions, 'RESEARCH_ARGUMENTS_REQUIRED');
+          regions.forEach(region => vector(boundary.value[region]));
+        } else string(boundary.value);
+      }
+    }
+    const weak = problem.weak_form;
+    exactKeys(weak, ['diffusion', 'reaction', 'rhs', ...(coupled ? ['family'] : [])], 'RESEARCH_ARGUMENTS_REQUIRED');
+    if (coupled) {
+      if (weak.family !== 'coupled_diffusion') nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      exactKeys(weak.diffusion, ['left', 'right'], 'RESEARCH_ARGUMENTS_REQUIRED');
+      exactKeys(weak.rhs, ['left', 'right'], 'RESEARCH_ARGUMENTS_REQUIRED');
+      for (const region of ['left', 'right']) { matrix(weak.diffusion[region]); vector(weak.rhs[region]); }
+      matrix(weak.reaction);
+    } else { number(weak.diffusion); number(weak.reaction); string(weak.rhs); }
+    exactKeys(problem.reference, ['solution', 'source'], 'RESEARCH_ARGUMENTS_REQUIRED');
+    string(problem.reference.source);
+    if (coupled) {
+      exactKeys(problem.reference.solution, ['left', 'right'], 'RESEARCH_ARGUMENTS_REQUIRED');
+      ['left', 'right'].forEach(region => vector(problem.reference.solution[region]));
+    } else string(problem.reference.solution);
+    if (transient) { exactKeys(problem.initial, ['value'], 'RESEARCH_ARGUMENTS_REQUIRED'); string(problem.initial.value); }
+    const validations = ['max_l2_error', 'min_l2_rate', 'max_residual_relative',
+      ...(!linear ? ['max_h1_seminorm_error', 'min_h1_rate'] : [])];
+    exactKeys(request.validation, validations, 'RESEARCH_ARGUMENTS_REQUIRED');
+    validations.forEach(key => number(request.validation[key]));
+    const mesh = request.mesh;
+    exactKeys(mesh, imported ? ['degree', 'levels'] : ['degree', 'cell_counts'], 'RESEARCH_ARGUMENTS_REQUIRED');
+    if (mesh.degree !== bound.degree) nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+    const counts = (values, changing, maximum) => {
+      const expected = changing ? bound.max_mesh_levels : 1;
+      if (!Array.isArray(values) || values.length !== expected || Array.from(values).some((value, i) =>
+          !Number.isInteger(value) || value < 1 || value > maximum || (changing && i > 0 && value !== 2*values[i-1])))
+        nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+    };
+    if (imported) {
+      if (!Array.isArray(mesh.levels) || mesh.levels.length !== bound.max_mesh_levels) nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+      let bytes = 0;
+      for (const level of mesh.levels) {
+        exactKeys(level, ['format', 'data', 'sha256', 'source'], 'RESEARCH_ARGUMENTS_REQUIRED');
+        if (level.format !== 'gmsh_msh2_ascii' || typeof level.data !== 'string' || !level.data.length ||
+            /[^\x00-\x7f]/.test(level.data) || typeof level.source !== 'string' || !level.source.trim() ||
+            [...level.source].length > 256 || !nativeSha(level.sha256)) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+        bytes += Buffer.byteLength(level.data, 'ascii');
+        if (bytes > bound.max_imported_bytes) nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+        if (digest(Buffer.from(level.data, 'ascii')) !== level.sha256) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+      }
+    } else if (transient) {
+      if (!['mesh', 'time'].includes(request.refinement_axis)) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      exactKeys(request.time, ['start', 'end', 'step_counts', 'scheme', 'unit'], 'RESEARCH_ARGUMENTS_REQUIRED');
+      const time = request.time;
+      if (typeof time.start !== 'number' || time.start !== 0 || typeof time.end !== 'number' ||
+          !Number.isFinite(time.end) || time.end < .001 || time.end > 1000 || time.scheme !== 'backward_euler' || time.unit !== '1')
+        nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+      counts(mesh.cell_counts, request.refinement_axis === 'mesh', bound.max_cell_count);
+      counts(time.step_counts, request.refinement_axis === 'time', bound.max_time_steps);
+      let retained = 0;
+      for (const cells of mesh.cell_counts) for (const steps of time.step_counts) retained += (steps+1)*(cells+1)**2;
+      if (retained > bound.max_snapshot_node_values) nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+    } else counts(mesh.cell_counts, true, bound.max_cell_count);
+    // Public hooks expose parsed arguments only, not original MCP/wire bytes.
+    let encoded;
+    try { encoded = JSON.stringify(args); } catch { nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED'); }
+    if (Buffer.byteLength(encoded, 'utf8') > bound.max_request_bytes) nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+  };
   const researchArguments = (tool, args) => {
     if (!Object.hasOwn(settings, 'research')) return;
     if (!nativeRecord(args)) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
     const budget = settings.research.budgets;
+    if (settings.research.schema === 3) {
+      if (!nativePdeResearchTools.includes(tool)) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      if (tool === 'caelab_pde_run') pdeArguments(args);
+      return;
+    }
     if (settings.research.schema === 2) {
       if (!nativeStructuralResearchTools.includes(tool)) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
       if (tool !== 'caelab_model_analysis_run') return;

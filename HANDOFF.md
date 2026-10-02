@@ -1,5 +1,38 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Current D3.6 reviewed source and retained native reader checkpoint
+
+Explicit PDEFields research scope and the same-record native field view are
+implemented and independently reviewed, open P1/P2=0. Six existing tools/five
+backends use the original Core/artifact API, selected5.6Sol/auth and fixed
+scientific thresholds. FixtureScalar/StructuralFamilies definitions are exact
+canonical matches; vector remains unadmitted diagnostic-only and legacy scalar/
+nonlinear fields without DOF JSON remain download-only. ADR0024 and the frozen
+PDE_RESEARCH_FIELDS_PACKET define the scope; Core/Domain/adapters are unchanged.
+
+258 distinct framework tests PASS (Node108 guard +130 fields/legacy controls,
+Python20 HTTP), plus216 PS source checks (85 synthetic configuration,127
+legacy structural cold,4 actual descriptor parity). Rechecks are not additive.
+Independent review corrected a real native-relative source-path defect masked
+by a synthetic fixture; previous92/97/98 reader checks are superseded by107.
+A caller-metadata freeze issue and trailing CSS blank line were also corrected.
+Retained attempts and the six PS EOL-only differences are recorded explicitly.
+
+Current reader consumed all21 original04e fields across7 processes, preserving
+actual node values/coordinates/triangles/native cell IDs and Core verdicts/
+invalid metrics. All17 records verified;10 no-native records have no preview.
+Original427files/12098227B remain unchanged. This is read-only consumption of
+previous native evidence, not a new solve, mathematical audit or GUI proof.
+Imported native qualification remains source04e, published by4f16b1a.
+Record: `benchmarks/records/20261003-pde-research-fields-development.json`.
+
+NEXT: commit reviewed source/main push, exact-source CI, then fresh clean-source
+owned official5.6Sol PDEFields research, same-record GUI, Stop and retention.
+Official Research NOT_RUN/NOT_ADMITTED and field GUI NOT_RUN remain distinct.
+Continue ordered Phase5-7 source development with separate qualification queue;
+whole Phase4/P2.2/all52 OPEN, physical/model/deployment UNKNOWN, NOT_RELEASED.
+Earlier current snapshots below are retained history at their exact checkpoints.
+
 ## Current imported native qualification — D3.6 integration active
 
 Exact main source04e5e79dafab86475218f52797bca0a84efcc649 is pushed.

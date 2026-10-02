@@ -1,5 +1,38 @@
 # Autonomous CAE Lab — project scope and requirement ledger
 
+## Current D3.6 reviewed source and retained native reader checkpoint
+
+Explicit PDEFields research scope and the same-record native field view are
+implemented and independently reviewed, open P1/P2=0. Six existing tools/five
+backends use the original Core/artifact API, selected5.6Sol/auth and fixed
+scientific thresholds. FixtureScalar/StructuralFamilies definitions are exact
+canonical matches; vector remains unadmitted diagnostic-only and legacy scalar/
+nonlinear fields without DOF JSON remain download-only. ADR0024 and the frozen
+PDE_RESEARCH_FIELDS_PACKET define the scope; Core/Domain/adapters are unchanged.
+
+258 distinct framework tests PASS (Node108 guard +130 fields/legacy controls,
+Python20 HTTP), plus216 PS source checks (85 synthetic configuration,127
+legacy structural cold,4 actual descriptor parity). Rechecks are not additive.
+Independent review corrected a real native-relative source-path defect masked
+by a synthetic fixture; previous92/97/98 reader checks are superseded by107.
+A caller-metadata freeze issue and trailing CSS blank line were also corrected.
+Retained attempts and the six PS EOL-only differences are recorded explicitly.
+
+Current reader consumed all21 original04e fields across7 processes, preserving
+actual node values/coordinates/triangles/native cell IDs and Core verdicts/
+invalid metrics. All17 records verified;10 no-native records have no preview.
+Original427files/12098227B remain unchanged. This is read-only consumption of
+previous native evidence, not a new solve, mathematical audit or GUI proof.
+Imported native qualification remains source04e, published by4f16b1a.
+Record: `benchmarks/records/20261003-pde-research-fields-development.json`.
+
+NEXT: commit reviewed source/main push, exact-source CI, then fresh clean-source
+owned official5.6Sol PDEFields research, same-record GUI, Stop and retention.
+Official Research NOT_RUN/NOT_ADMITTED and field GUI NOT_RUN remain distinct.
+Continue ordered Phase5-7 source development with separate qualification queue;
+whole Phase4/P2.2/all52 OPEN, physical/model/deployment UNKNOWN, NOT_RELEASED.
+Earlier current snapshots below are retained history at their exact checkpoints.
+
 ## Current imported native qualification — D3.6 integration active
 
 Exact main source04e5e79dafab86475218f52797bca0a84efcc649 is pushed.
@@ -866,7 +899,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R13 | Equal importance for engineer GUI and autonomous headless workflows sharing underlying models/artifacts. | Partial: original native CAD and reports retained; bounded P1.1/P1.2a/P1.2b and04ff/run03 P1.3 research pass. Official GUI observed the same optimized experiment IDs/revision/metrics as headless records. This unit did not separately test manually entered GUI questions; wider product/native interaction remains OPEN. |
 | R14 | Evaluate Code_Aster/SALOME-MECA as main nonlinear implicit, CalculiX/PrePoMax secondary; benchmark materials/contact/convergence and automation/license. | Partial: d29/native05 completes beamFx/Fy on both solvers with independent raw/cross-field checks; Fz Aster fine fails native accuracy, four separate method probes fail/unadopted. Original partial records preserved; record20261002-structural-family-native05. Nonlinear/contact/material/remaining families and qualifications stay open. |
 | R15 | OpenRadioss primarily explicit; investigate preprocessing gap, conversion and full explicit cards/controls. | Partial: pinned native flight and three reduced conservative-stop/rebound cases passed; common route/HTTP/native CI connected, integrated-source rerun pending. Original wall contact rejected; general surface contact/converter/full explicit scope open. |
-| R16 | Compare FEniCSx/UFL, FreeFEM, GetDP/Gmsh, GetFEM, MOOSE for user equations/weak form, nonlinear/multiphysics/AD/PETSc/HPC. | Partial: scalar/nonlinear/rectangle and transient508 native proofs retained; vector6c fixed coarse-pair rateFAIL/REJECTED remains. Coupled c94117/27 and imported04e local17/21 cases/fields independently mathematically qualified; imported5accepted/2numericREJECTED/10preflight,427 original files unchanged, fixed criteria. Exact04e CI7SUCCESS/3FAIL/Core2571PASS is separate. D3.6 guarded PDE research/same-record field source integration ACTIVE; actual official ResearchNOT_ADMITTED/fieldGUINOT_RUN. Broader/MPI/backend and physical/model/deployment qualifications remain OPEN/UNKNOWN/NOT_RELEASED; record20261003-imported-pde-native-local. |
+| R16 | Compare FEniCSx/UFL, FreeFEM, GetDP/Gmsh, GetFEM, MOOSE for user equations/weak form, nonlinear/multiphysics/AD/PETSc/HPC. | Partial: prior scalar/nonlinear/rectangle/transient mathematics retained; vector6c fixed coarse-pair rateFAIL/REJECTED remains. Coupled c94117/27 and imported04e17/21 independently mathematically qualified. D3.6 explicit PDEFields scope/same-record field source integration reviewed0P1/P2,258 framework tests +216 PS checks; current reader consumes original21 fields/17 records,427files unchanged. Actual official ResearchNOT_RUN_NOT_ADMITTED/fieldGUINOT_RUN and broader/MPI/backend/physical/model/deployment qualifications remain OPEN/UNKNOWN/NOT_RELEASED. Record20261003-pde-research-fields-development; native producer04e remains distinct. |
 | R17 | MFront/TFEL for material definition, material-point tests, tangents, finite strain, codegen, solver interfaces and identification. | Partial: actual compiled behavior, MGIS/MTest stress histories and full FD/native tangent gates passed at clean c29d6af. Solver coupling, finite strain and physical qualification open; synthetic-reference inverse slice underway. |
 | R18 | Evaluate DAKOTA/OpenMDAO/pymoo/SciPy/NLopt/TAO/MOOSE by problem type; DOE/search/UQ/sensitivity/surrogate/multiobjective numerical engines. | Partial: SciPy LHS and adaptive continuous single-objective DE with analytical engine regression; other engine roles remain open. |
 | R19 | Common experiment schema for study/physics/model/parameters/BC-load/output/objectives/constraints/validation/campaign/environment/provenance with adapter extensions. | Partial: v1 envelope/campaign plus additive declared model revision/material/BC/load metadata, ADR 0007; per-backend semantics not all executed. |
@@ -878,7 +911,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R25 | Phase 1 actual OpenScience request → discovery → registry → CAD change/regeneration → validation/artifacts/evidence → research result. | Bounded workflow gates P1.1/P1.2a/P1.2b/P1.3 actual PASS at their exact sources;04ff/run03 adds changed-condition comparison/engine search/PDE interpretation. Full product/general planning/engineering qualification remains OPEN; historical failures and context limits retained. |
 | R26 | Phase 2 simulation-driven fixture design: exact CAD → mesh → implicit solver → mechanical metrics/constraints/evidence. | Partial: exact STEP Gmsh/CalculiX linear screen; actual contact/bolts/material/stress qualification open. |
 | R27 | Phase 3 numerical DOE/optimization through gated CAD/FEA, trace every iteration including optimizer state. | Partial: actual adaptive structural campaign passed (9 evaluations/8 children), metric semantics/failure/replay verified; converged/global optimum and wider optimization remain open. |
-| R28 | Phase 4 real general PDE adapter with canonical benchmark and user-defined equation/weak form. | Partial: scalar/nonlinear/rectangle and transient508 native proofs retained; vector6c fixed coarse-pair rateFAIL/REJECTED remains. Coupled c94117/27 and imported04e local17/21 cases/fields independently mathematically qualified; imported5accepted/2numericREJECTED/10preflight,427 original files unchanged, fixed criteria. Exact04e CI7SUCCESS/3FAIL/Core2571PASS is separate. D3.6 guarded PDE research/same-record field source integration ACTIVE; actual official ResearchNOT_ADMITTED/fieldGUINOT_RUN. Broader/MPI/backend and physical/model/deployment qualifications remain OPEN/UNKNOWN/NOT_RELEASED; record20261003-imported-pde-native-local. |
+| R28 | Phase 4 real general PDE adapter with canonical benchmark and user-defined equation/weak form. | Partial: prior scalar/nonlinear/rectangle/transient mathematics retained; vector6c fixed coarse-pair rateFAIL/REJECTED remains. Coupled c94117/27 and imported04e17/21 independently mathematically qualified. D3.6 explicit PDEFields scope/same-record field source integration reviewed0P1/P2,258 framework tests +216 PS checks; current reader consumes original21 fields/17 records,427files unchanged. Actual official ResearchNOT_RUN_NOT_ADMITTED/fieldGUINOT_RUN and broader/MPI/backend/physical/model/deployment qualifications remain OPEN/UNKNOWN/NOT_RELEASED. Record20261003-pde-research-fields-development; native producer04e remains distinct. |
 | R29 | Phase 5 implicit benchmarks: linear, geometric nonlinearity, plasticity, contact, hyperelasticity, viscoelasticity with trusted references. | Partial: affine elasticity and J2 full-field loading/unloading at two meshes/two materials passed; retained zero-force relative residual failure remains. Geometric nonlinearity/contact/hyperelasticity/viscoelasticity/native energy open. |
 | R30 | Phase 6 actual OpenRadioss impact/drop with IC/gravity/contact/rigid/energy/forces/acceleration/timestep/failure validation. | Partial: clean d363 three reduced compliant cases passed28 full-history gates each plus two preflight blocks; native browser run, all8 CI jobs and independent raw archive review passed. Wall contact remains rejected; general surface/material/physical/failure/rotating contact open. |
 | R31 | Phase 7 MFront/MOOSE/multiphysics/inverse/UQ/sensitivity/surrogate/multiobjective/HPC/SSH/Slurm/PBS/physical integration. | Partial: MFront stress/tangent/sensitivity and synthetic nine-candidate inverse connected to shared engine/default/HTTP. Exact33 local default proof and sealed CI36722365195 native/raw independent audits passed; no measured fit/convergence. Viscoelastic extension deferred under serial phase order; MOOSE/coupling/UQ/surrogate/multiobjective/HPC/physical integrations remain open. |

@@ -12,7 +12,7 @@ param(
     [string]$ModelId,
     [ValidateSet('Ollama', 'ChatGPT')][string]$Transport = 'Ollama',
     [ValidateSet('Acceptance', 'Research')][string]$Purpose = 'Acceptance',
-    [ValidateSet('FixtureScalar', 'StructuralFamilies', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar',
+    [ValidateSet('FixtureScalar', 'StructuralFamilies', 'PDEFields', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar',
     [string]$AuthProfileRoot,
     [string]$ProjectBindingPath,
     [string]$WslDistro = 'Ubuntu',
@@ -366,7 +366,7 @@ function New-OpenScienceLocalContext {
         [string]$ModelId,
         [ValidateSet('Ollama', 'ChatGPT')][string]$Transport = 'Ollama', [string]$AuthProfileRoot,
         [ValidateSet('Acceptance', 'Research')][string]$Purpose = 'Acceptance',
-        [ValidateSet('FixtureScalar', 'StructuralFamilies', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar',
+        [ValidateSet('FixtureScalar', 'StructuralFamilies', 'PDEFields', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar',
         [Collections.IDictionary]$ProjectBinding,
         [string]$WslDistro = 'Ubuntu',
         [string]$WslPython = '/home/pikachu444/.local/share/autonomous-cae-lab/venv-py312/bin/python',
@@ -381,7 +381,7 @@ function New-OpenScienceLocalContext {
         if (-not $PSBoundParameters.ContainsKey('Steps')) { $Steps = 24 }
         if (-not $PSBoundParameters.ContainsKey('AllowedTools')) { $AllowedTools = @((New-OpenScienceResearchDefinition -Profile $ResearchProfile).allowed_tools) }
     } else {
-        Assert-OpenScienceCondition ($ResearchProfile -ceq 'FixtureScalar') 'A structural research profile requires Purpose Research.'
+        Assert-OpenScienceCondition ($ResearchProfile -ceq 'FixtureScalar') 'A non-default research scope requires Purpose Research.'
         Assert-OpenScienceCondition ($Steps -le 3) 'The historical acceptance purpose retains its three-step budget.'
     }
     if ($Transport -ceq 'ChatGPT') {

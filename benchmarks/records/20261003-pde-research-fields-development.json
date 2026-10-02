@@ -1,0 +1,379 @@
+{
+  "definition": {
+    "agent": "research",
+    "allowed_tools": [
+      "caelab_study_create",
+      "caelab_study_inspect",
+      "caelab_pde_run",
+      "caelab_experiment_inspect",
+      "caelab_experiment_summary",
+      "caelab_experiment_compare"
+    ],
+    "budgets": {
+      "command_timeout_seconds": 3600,
+      "mcp_timeout_seconds": 3600,
+      "pde": {
+        "degree": 1,
+        "max_cell_count": 32,
+        "max_imported_bytes": 98304,
+        "max_mesh_levels": 3,
+        "max_request_bytes": 131072,
+        "max_snapshot_node_values": 200000,
+        "max_time_steps": 128,
+        "min_mesh_levels": 3
+      },
+      "steps": 24
+    },
+    "capabilities": [
+      {
+        "backend": "pde.fenicsx",
+        "evidence": "Immutable native XDMF/H5, actual residual, reference errors/rates and source/runtime identities. Legacy scalar has no native DOF JSON and is download-only in the field inspector.",
+        "inputs": "Dimensionless scalar linear elliptic unit square, constant diffusion/reaction and whole-boundary Dirichlet value, safe expression/reference and three doubling P1 meshes.",
+        "operations": [
+          "pde_run"
+        ],
+        "verification": "IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF"
+      },
+      {
+        "backend": "pde.fenicsx.rectangle",
+        "evidence": "Same-record scalar native nodes/triangles, named-side binding, XDMF/H5, symbolic errors/rates and actual residual.",
+        "inputs": "Declared dimensionless rectangle, constant scalar diffusion/reaction, named whole-side Dirichlet/outward Neumann expressions, reference and three doubling P1 meshes.",
+        "operations": [
+          "pde_run"
+        ],
+        "verification": "IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF"
+      },
+      {
+        "backend": "pde.fenicsx.transient",
+        "evidence": "Complete N+1 native histories and current/previous state identities; initial interpolation is NOT_RUN, not a native solve.",
+        "inputs": "Dimensionless scalar unit-capacity backward Euler rectangle, initial/side/source/reference expressions and exactly one mesh or time refinement axis, with explicit step and retained node-value budgets.",
+        "operations": [
+          "pde_run"
+        ],
+        "verification": "IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF"
+      },
+      {
+        "backend": "pde.fenicsx.coupled",
+        "evidence": "Blocked native u0/u1 fields, regional cells, interface adjacency/two traces, split sides, XDMF/H5, reference errors/rates and actual residual.",
+        "inputs": "Two scalar fields with regional SPD cross-diffusion/common PSD reaction, a conforming straight midpoint interface on a rectangle, regional expressions and directed named-side data.",
+        "operations": [
+          "pde_run"
+        ],
+        "verification": "IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF"
+      },
+      {
+        "backend": "pde.fenicsx.imported",
+        "evidence": "Original/dense mesh hashes and native mapping/boundary files, scalar DOFs/XDMF/H5, measured-h reference rates and actual residual. Imported activation requires its separate independent native audit.",
+        "inputs": "Exactly three immutable bounded ASCII MSH2.2 original data/label/SHA levels, scalar P1, named physical Dirichlet/outward Neumann expressions and declared reference. Original data is frozen model context, never a path or optimization variable.",
+        "operations": [
+          "pde_run"
+        ],
+        "verification": "IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF"
+      }
+    ],
+    "kind": "autonomous-cae-lab.openscience-research-definition",
+    "limitations": [
+      "This scope is not current native execution proof, physical model qualification or engineering release.",
+      "Only the five listed bounded real64 serial P1 families are admitted; vector, nonlinear expansion, CFD, MPI/HPC and arbitrary research code are outside this scope.",
+      "Research work budgets bound mesh/time/retention and parsed-hook JSON, not numerical accuracy. Original MCP wire byte size is not observable at the tool hook; whole HTTP body limits are separate.",
+      "No generic job, variable registration or numerical optimizer tools are provided. Numerical engines own search candidates.",
+      "A finite wrong reference or flux remains an actual numerical REJECTED result; scientific and unsafe-expression preflight belongs to Domain/adapters.",
+      "Missing/partial field representations remain explicit or download-only; displayed retained failed fields do not become valid metrics.",
+      "Strength, material, physical and durability qualification remain UNKNOWN; all results remain NOT_RELEASED."
+    ],
+    "profile": "pde-fields-v1",
+    "runtime_environment": {
+      "CAELAB_FENICSX_PYTHON": "/usr/bin/python3",
+      "MPLBACKEND": "Agg",
+      "OMP_NUM_THREADS": "2",
+      "QT_QPA_PLATFORM": "offscreen"
+    },
+    "schema": 3
+  },
+  "definition_canonical_sha256": "4d30008657b8d887e05617b1d1933609374ea40b275b6a64fbba3210b5f50c31",
+  "distinct_framework_tests": 258,
+  "distinct_powershell_source_checks": 216,
+  "evidence": [
+    {
+      "path": "artifacts/development-pde-research-20261003-01/source-review-01/independent-review.json",
+      "sha256": "d495b5a0c40d132053c5143dd29dd0cd8c61b000c57f7ddc4adf16399f72614a",
+      "size_bytes": 24448
+    },
+    {
+      "path": "artifacts/development-pde-research-20261003-01/field-ui-review-01/independent-review-final.json",
+      "sha256": "4333fd684e75032fbaf9aa7c69f0a5494c0ad3812791c1693bc9a87ed9221642",
+      "size_bytes": 16027
+    },
+    {
+      "path": "artifacts/development-pde-research-20261003-01/root-source-01/parity-01/receipt.json",
+      "sha256": "bd0f4771e8f685e46a03dd5d56ece1abbc7e4d29ce6c844cc4c4d8aeb7e35731",
+      "size_bytes": 961
+    },
+    {
+      "path": "artifacts/pde-fields-native-source-20261003-01/native-checks.json",
+      "sha256": "cf869026172c2b776c6377503f42becb7e11fd7219b0a178b693d2adeea94070",
+      "size_bytes": 5880
+    },
+    {
+      "path": "artifacts/development-pde-research-20261003-01/root-source-01/structural-cold.json",
+      "sha256": "b57fad6bacaef998ea9f2a51a6154b588dab2d503a3aa2ae988d43a37381b395",
+      "size_bytes": 123529
+    },
+    {
+      "path": "artifacts/development-pde-research-20261003-01/root-source-01/actual-imported-01/closure.json",
+      "sha256": "fa7924134e4a14ff8a34df45c2dff0e39f276d58c878a29542ac8db9795c9c4b",
+      "size_bytes": 573
+    },
+    {
+      "path": "artifacts/development-pde-research-20261003-01/root-source-01/actual-imported-01/node-consumer.json",
+      "sha256": "a0e322b42debe771f7dbd81b7c6a6939031e314a1d35bc39dda2a3a63a71f88f",
+      "size_bytes": 13883
+    },
+    {
+      "path": "artifacts/development-pde-research-20261003-01/packet-review-01/independent-review-02.json",
+      "sha256": "cb5b3e4bd79ae671ad95787e738cce43831dbe2292176173ed8c81a23b22e8b8",
+      "size_bytes": 21780
+    },
+    {
+      "path": "artifacts/development-pde-research-20261003-01/guard-source-01/writer-source-receipt.json",
+      "sha256": "4a5de4825bbbbb668bad3f2a32dea6a3496d92410dbf3c82e5b125690f665ddd",
+      "size_bytes": 4001
+    },
+    {
+      "path": "artifacts/development-pde-research-20261003-01/field-reader-source-01/freeze-receipt-correction01.json",
+      "sha256": "c726fcd70da9cf48aaba730c245376b7169ca740bb9235715f4362578b0a8f89",
+      "size_bytes": 5734
+    },
+    {
+      "path": "artifacts/development-pde-research-20261003-01/root-source-01/parity-01/native-guard.log",
+      "sha256": "e90adf682b9440f54bf6da9954edc5a4e25a614c541fd85e1520aa0d70cb35ca",
+      "size_bytes": 10652
+    },
+    {
+      "path": "artifacts/development-pde-research-20261003-01/root-source-01/http-source.log",
+      "sha256": "87024d52b199d844c0904bbe1e1d919ed2f9be98b78be22a0470df405c9a94a7",
+      "size_bytes": 686
+    },
+    {
+      "path": "artifacts/development-pde-research-20261003-01/root-source-01/field-controls.log",
+      "sha256": "99876ab943f7289c1d25e915986f0fb644315bb194daf7401343265c2c3de3aa",
+      "size_bytes": 9809
+    },
+    {
+      "path": "artifacts/development-pde-research-20261003-01/root-source-01/actual-imported-01/inspection-receipt.json",
+      "sha256": "497cab2fd6d00e04c71b338f36285acc6d26df1065f1f0c30e7d0a30f653642a",
+      "size_bytes": 6849
+    },
+    {
+      "path": "artifacts/development-pde-research-20261003-01/root-source-01/failed-source-check-01.json",
+      "sha256": "4dfd90354acfe39caaf934e6a93daada3d83f2db594b61bb557681b0f65eaba4",
+      "size_bytes": 563
+    }
+  ],
+  "framework_checks": {
+    "node_fields_and_legacy_controls": {
+      "duration_ms": 1992.5725,
+      "failed": 0,
+      "passed": 130,
+      "skipped": 0
+    },
+    "node_guard": {
+      "failed": 0,
+      "passed": 108,
+      "skipped": 0
+    },
+    "python_http": {
+      "deselected": 37,
+      "passed": 20,
+      "seconds": 32.55,
+      "warnings": 1
+    }
+  },
+  "independent_reviews": {
+    "reader_and_UI": {
+      "checks": 16,
+      "files": 7,
+      "historical_P1": "PDE-FIELD-001 native-relative source path mismatch: CLOSED",
+      "open_P1": 0,
+      "open_P2": 0
+    },
+    "scope_and_guard": {
+      "checks": 28,
+      "files": 7,
+      "open_P1": 0,
+      "open_P2": 0
+    }
+  },
+  "next": [
+    "Commit reviewed source and confirm main push; observe exact-source CI.",
+    "Fresh clean-source official selected5.6Sol PDEFields research and same-record field GUI, owned Stop/retention.",
+    "Ordered Phase5-7 source development; full native/reference/physical queue stays separate."
+  ],
+  "powershell_source_checks": {
+    "actual_descriptor_parity": 4,
+    "legacy_structural_cold": 127,
+    "native_synthetic_configuration": 85
+  },
+  "preservation": {
+    "Core_Domain_adapter_native_source_unchanged": true,
+    "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "legacy_definition_canonical_sha256": {
+      "FixtureScalar": "d56cde7c28ae7227c1ace0f86fa25c4675eeb20dac5b505cc0c512de79143f97",
+      "StructuralFamilies": "8c92d73eeebc76bb38a87da05ab6973658525e2687aae2354fa31d3317d09483"
+    },
+    "legacy_research_PS_difference": "Six old line endings are LF instead of CRLF; normalized old body is exact; no functional legacy change.",
+    "native_threshold_changes": 0,
+    "protected_original_tracked_files": 397,
+    "provider_model_fallback": false
+  },
+  "prior_native_mathematical_qualification": {
+    "new_qualification": false,
+    "published_record_commit": "4f16b1a8f7eed08bc2af9aceac5a5f096cf4f69f",
+    "record": "benchmarks/records/20261003-imported-pde-native-local.json",
+    "source": "04e5e79dafab86475218f52797bca0a84efcc649"
+  },
+  "qualification": {
+    "decision": "NOT_RELEASED",
+    "deployment": "UNKNOWN",
+    "exact_new_source_CI": "NOT_YET_RUN_AT_CAPTURE",
+    "model": "UNKNOWN",
+    "official_PDEFields_Research": "NOT_RUN_NOT_ADMITTED",
+    "physical": "UNKNOWN",
+    "same_record_GUI": "NOT_RUN",
+    "vector_Research": "NOT_ADMITTED_NUMERICAL_REJECTED_DIAGNOSTIC_ONLY",
+    "whole_Phase4_and_all52": "OPEN"
+  },
+  "recheck_counting": "Reader92/97/98 are superseded by107. Root130 contains107+23legacy. Guard focused12 and Root108 are rechecks of the same108 distinct tests.",
+  "resolved_source_findings": [
+    {
+      "correction": "Invalid catalog returns no untrusted metadata/downloads; named regression retained.",
+      "issue": "Unowned catalog could freeze caller metadata"
+    },
+    {
+      "correction": "Fixed validated native-relative path receives one pde/ prefix; actual fixtures and refusals corrected. Original21 fields now read.",
+      "issue": "Synthetic copied_path included pde prefix whereas all five real workers use native-relative paths"
+    },
+    {
+      "correction": "Newline-only correction; final diff check PASS. Initial attempt retained.",
+      "issue": "CSS blank line at EOF failed initial diff check"
+    }
+  ],
+  "retained_native_consumer": {
+    "Core_mutating_calls": 0,
+    "Core_status_decision_metrics_validations_unchanged": true,
+    "Core_verified_record_read_calls": 17,
+    "complete_native_fields": 21,
+    "consumer_source_working_tree": "UNCOMMITTED_REVIEWED_CANDIDATE",
+    "native_producer_commit": "04e5e79dafab86475218f52797bca0a84efcc649",
+    "new_native_solver_calls": 0,
+    "no_native_records_cleared": 10,
+    "nodal_values_coordinates_connectivity_and_explicit_cell_IDs_match_original": true,
+    "not_a_new_native_or_GUI_proof": true,
+    "original_bytes": 12098227,
+    "original_core_records": 17,
+    "original_files": 427,
+    "original_unchanged": true,
+    "provider_model_calls": 0
+  },
+  "retention": {
+    "durable_remote_raw_backup": "NOT_PROVEN",
+    "local_ignored_evidence": "artifacts/development-pde-research-20261003-01",
+    "public_compact_record": "Published with reviewed source; does not establish raw remote backup."
+  },
+  "schema_version": "1.0",
+  "source": {
+    "base_commit": "4f16b1a8f7eed08bc2af9aceac5a5f096cf4f69f",
+    "files": [
+      {
+        "path": ".github/workflows/caelab-ci.yml",
+        "sha256": "2d713cf9eefd5058284cfa64b4d6bf0abedc712d09793016b8d1716f3585ba4f",
+        "size_bytes": 22768
+      },
+      {
+        "path": "ADR/0024-bounded-pde-research-field-inspection.md",
+        "sha256": "f48f0e0b8612e3c3a22935db81a0e33987fc48ee3c93a8ec39ad557aa9832747",
+        "size_bytes": 3299
+      },
+      {
+        "path": "apps/lab/static/app.js",
+        "sha256": "fce3bcc6ea21235537f113d81b743b3df7b4c981ab21cd4ee84ec30685ce90ab",
+        "size_bytes": 86731
+      },
+      {
+        "path": "apps/lab/static/index.html",
+        "sha256": "b30a713d6003e1068f581f5a9344de65dbaef8c88321e197004cdddd3039598c",
+        "size_bytes": 29020
+      },
+      {
+        "path": "apps/lab/static/style.css",
+        "sha256": "f0a3cbb11d7f874f04ba845b1b284f4eaf22ea887a652a20c5f8e81c283c54aa",
+        "size_bytes": 20937
+      },
+      {
+        "path": "apps/lab/static/pde-field-inspector.js",
+        "sha256": "f7ae52aafdcfbfb3bc99d8378c6dae53976a27a6e61f696b925194bba0278f60",
+        "size_bytes": 38351
+      },
+      {
+        "path": "docs/PDE_RESEARCH_FIELDS_PACKET.md",
+        "sha256": "057a6fce0d64088bdae29f45c91171faf53c9ad8ded6283f70d4e970fa1b1f2f",
+        "size_bytes": 11066
+      },
+      {
+        "path": "openscience/native_guard.mjs",
+        "sha256": "5e1add449800cfe816c7f73ce46a9ffadb7f915228e21aad40100eb2ca3171dc",
+        "size_bytes": 54868
+      },
+      {
+        "path": "openscience/tests/native_guard.test.mjs",
+        "sha256": "f3d213a0a82e5ea32fff2198a56ed1335d381949d5fe78aeb3bcfb3be9dac9ed",
+        "size_bytes": 112246
+      },
+      {
+        "path": "scripts/openscience-native-provider.ps1",
+        "sha256": "fa700100eee86976e2a6bf1f73f824985499be4bc70f220e46812072a17a836c",
+        "size_bytes": 24049
+      },
+      {
+        "path": "scripts/openscience-research.ps1",
+        "sha256": "f5532f601cb7485a7faa749ae1b4aba87b38711fde7468751648c79f6a68f5c9",
+        "size_bytes": 19911
+      },
+      {
+        "path": "scripts/openscience-server-local.ps1",
+        "sha256": "19e4a1078c73019311bf501764c90854d227a7e25cc97f47d8bfe7e6283b30d9",
+        "size_bytes": 143452
+      },
+      {
+        "path": "scripts/verify_openscience_native.ps1",
+        "sha256": "b2f794280e9b93f67a89a3eac01e783c9acd7b64eeb049a2cef46877f04d18cf",
+        "size_bytes": 21675
+      },
+      {
+        "path": "scripts/verify_pde_research_source.ps1",
+        "sha256": "93b71c339f953ace9a8dfa933d895ea3f1f373f275163b08e05536580be60097",
+        "size_bytes": 4198
+      },
+      {
+        "path": "tests/test_lab_server.py",
+        "sha256": "d9913e13c0e9bd0f171a2fc5dcc9bcfd28c84c10443605d0ab78e7cf64564f9d",
+        "size_bytes": 37917
+      },
+      {
+        "path": "tests/test_pde_field_inspector.js",
+        "sha256": "71f3092d9acd9860f21909f82b866fd6f9c41962e5aa431d497c5c15dc06430b",
+        "size_bytes": 35655
+      }
+    ],
+    "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "protected_original_tracked_files": 397,
+    "status": "FROZEN_REVIEWED_SOURCE_FILES"
+  },
+  "source_freeze": {
+    "path": "artifacts/development-pde-research-20261003-01/root-final-source-02/source-freeze.json",
+    "sha256": "913996bd975fbf26dc9a8de835baf25379c706673a64253194fdeb9d767c6172",
+    "size_bytes": 3016
+  },
+  "status": "PASS_BOUNDED_SOURCE_AND_RETAINED_NATIVE_FIELD_READER",
+  "unit": "D3.6 guarded PDE research scope and same-record field inspection"
+}
