@@ -1,6 +1,25 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
-## Current D3.1 bounded native/reference checkpoint
+## Current D3.2 source integration checkpoint
+
+`pde.fenicsx.transient` is implemented through the existing PDE/Core/Results
+route: bounded time expressions, initial conditions, fixed backward Euler,
+complete N+1 histories, native time/source/side binding, residual/KSP and
+partial-progress retention. Mesh and time refinement have separate presets.
+76 distinct focused checks PASS (46 Domain/adapter +30 Root); the46-test
+LF recheck is not counted twice. Independent17-file source review closes with
+no open P1/P2. Actual FEniCSx time/form/state checks perform no solve.
+Record: `benchmarks/records/20261002-transient-pde-development.json`.
+Candidate source is based on pushed a9374ab; exact source commit/push/CI is
+recorded after publication. Fresh transient native qualification is NOT_RUN;
+official Research admission is NOT_ADMITTED and field GUI is NOT_RUN.
+Old PDE/schema/execution/guard implementations and fixture pin are unchanged.
+Next ordered development is D3.3 vector, then coupled/material and imported
+domains; grouped native/reference/Research/GUI qualification stays queued.
+Phase4/all52/P2.2 remain OPEN/UNKNOWN/NOT_RELEASED. This source checkpoint does
+not replace D3.1's original native evidence or repair prior CI failures.
+
+## Historical D3.1 bounded native/reference checkpoint
 
 Implementation dd8f499 and test-only correction4457af6 are pushed to main.
 Fresh original-dd8 store `artifacts/integrated-20261002-rectangle-pde-01`

@@ -1,5 +1,29 @@
 # Declared weak-form PDE acceptance
 
+## Transient scalar rectangles — ADR0020 source checkpoint
+
+`pde.fenicsx.transient` implements fixed backward Euler on a dimensionless
+rectangle, safe t-bound scalar source/reference/side expressions, nodal initial
+conditions and complete N+1 native histories. Each step retains full DOFs/
+geometry/XDMF/H5/time binding, observations, prior-value identity, symbolic
+L2/gradient-H1 and actual solved-step KSP/constrained residual. Initial t0 is
+NOT_RUN. Partial histories survive; incomplete/malformed fields cannot pass.
+Mesh and time refinements are separate axes and experimental Lab presets.
+Existing pde.run/Core/declaration/Results and process ownership are reused.
+
+76 distinct focused checks PASS (46 Domain/adapter +30 Root); the46-test LF
+recheck is not counted twice. Actual native mutable-time/form/state compilation
+performs no solve. Independent17-file source review has0 open P1/P2; old PDE/
+schema/execution/guard implementations and fixture pin are unchanged.
+Record: [source integration](../benchmarks/records/20261002-transient-pde-development.json).
+The frozen [packet](PDE_TRANSIENT_PACKET.md) defines all numerical criteria
+before output. The clean-source runner `python -m scripts.verify_transient_pde
+--store artifacts/new-transient-store` plans5 accepted/3 numerical negatives/
+5 no-native refusals and24 studies/872 snapshots/848 solves. These are planned,
+not observed counts. Local native transient acceptance is NOT_RUN; official
+Research admission NOT_ADMITTED and native field GUI NOT_RUN. Exact-source CI
+is tracked after publication. UNKNOWN/NOT_RELEASED and whole Phase4 remain open.
+
 ## Declared rectangle and mixed boundaries — ADR0019
 
 Clean source dd8f499 fresh store `artifacts/integrated-20261002-rectangle-pde-01`

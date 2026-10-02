@@ -237,7 +237,8 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     from scripts.verify_codeaster import specification as aster_spec
     client, service, _, _ = real_flow
     presets = client.request("/api/presets")
-    assert set(presets) == {"structural_linear", "pde_canonical", "pde_nonlinear", "pde_rectangle", "codeaster_linear",
+    assert set(presets) == {"structural_linear", "pde_canonical", "pde_nonlinear", "pde_rectangle",
+                            "pde_transient_mesh", "pde_transient_time", "codeaster_linear",
                             "codeaster_plasticity", "material_point", "material_inverse", "explicit_freefall",
                             "explicit_ground_stop", "explicit_compliant_stop"} | {
         f"family_{case}_{load}_{solver}" for case, load in (
@@ -253,6 +254,12 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     assert presets["pde_rectangle"]["settings"] == manufactured_settings()
     assert presets["pde_rectangle"]["operation"] == "pde_run"
     assert presets["pde_rectangle"]["declared_inputs"] is False
+    from plugins.pde_transient.reference import manufactured_settings as transient_settings
+    assert presets["pde_transient_mesh"]["settings"] == transient_settings()
+    assert presets["pde_transient_time"]["settings"] == transient_settings(axis="time", case="temporal")
+    assert all(presets[key]["operation"] == "pde_run" and presets[key]["backend"] == "pde.fenicsx.transient"
+               and presets[key]["declared_inputs"] is False and "UNKNOWN" in presets[key]["scope"]
+               for key in ("pde_transient_mesh", "pde_transient_time"))
     assert all(preset["operation"] == "model_analysis_run" for key, preset in presets.items()
                if preset["operation"] != "pde_run" and key != "structural_linear")
     assert presets["explicit_ground_stop"]["status"] == "REJECTED"

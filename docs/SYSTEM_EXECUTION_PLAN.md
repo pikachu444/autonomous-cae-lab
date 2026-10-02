@@ -16,7 +16,7 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 | D0 source integrated | Resident submit/inspect/cancel, configurable budgets/live logs, owned cleanup/normal shutdown; focused checks and review | Native lifecycle/cancellation/profile admission; no new solver proof yet |
 | D1 source integrated | Fixture load/material/mesh form and six-component diagnostic stress artifacts/table; reuse CAD/child analysis | Existing beam accuracy, roof Aster completion, mesh/reaction/stress/reference checks |
 | D2 source integrated | Declared-model inputs/optimization in Explore; reuse269d8bf stopping/constraints/replay;27 focused checks and actual plan UI | Numerical convergence, active constraints, interruption/replay |
-| D3 Phase4 active | D3.1 rectangle/named mixed boundaries source/native/reference close; next D3.2 transient, then vector/coupled/domain import | Native field GUI, bounded research admission and wider/cross-backend/parallel checks |
+| D3 Phase4 active | D3.1 rectangle/mixed source/native/reference close; D3.2 transient/complete history source closed with76 focused checks; next D3.3 vector, then coupled/domain import | Transient native/reference, native field GUI, bounded research admission and wider/cross-backend/parallel checks |
 | D4 Phase5 | Geometric/material/contact implementations and fixture coupling | Nonlinear convergence, histories, energy, canonical comparisons |
 | D5 Phase6 | Explicit preprocessing/contact/material/fields and campaign integration | Impact/drop force/energy/timestep/reference checks |
 | D6 Phase7 | Measured inverse interfaces, UQ/surrogate/multiobjective/MDO, MOOSE/HPC | Engine/coupling/HPC and actual measured-data acceptance |
@@ -33,6 +33,12 @@ research-profile admission and grouped clean native/OpenScience/same-record
 GUI verification. This extends accepted linear/nonlinear modules in place at
 their existing boundaries. Completed source units and qualified numerical/
 research gates remain separate; larger arbitrary-form/MPI scope stays open.
+
+D3.2 source checkpoint: complete time histories and separate mesh/time studies
+are implemented and independently reviewed (76 distinct focused checks,0 open
+P1/P2). Record: `../benchmarks/records/20261002-transient-pde-development.json`.
+Native transient qualification remains NOT_RUN; official Research admission
+NOT_ADMITTED. D3.3 is the next source unit, without claiming whole Phase4 done.
 
 ## Historical P2.2 checkpoint: three roof research questions closed; AI denominator error retained
 

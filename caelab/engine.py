@@ -67,8 +67,10 @@ class Lab:
             from .adapters.fenicsx_pde import FenicsxPDEAdapter
             from .adapters.fenicsx_nonlinear import FenicsxNonlinearPDEAdapter
             from .adapters.fenicsx_rectangle import FenicsxRectanglePDEAdapter
+            from .adapters.fenicsx_transient import FenicsxTransientPDEAdapter
             pde_adapters = {adapter.backend: adapter() for adapter in
-                            (FenicsxPDEAdapter, FenicsxNonlinearPDEAdapter, FenicsxRectanglePDEAdapter)}
+                            (FenicsxPDEAdapter, FenicsxNonlinearPDEAdapter, FenicsxRectanglePDEAdapter,
+                             FenicsxTransientPDEAdapter)}
         self.pde_adapters = pde_adapters
         if model_analysis_adapters is None:
             from .adapters.codeaster_elasticity import CodeAsterElasticityAdapter

@@ -1,5 +1,14 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+Transient PDE integration2026-10-02 adds an experimental backend through the
+existing pde_run operation and common declaration/result extension. Safe time
+expressions, initial conditions and complete history belong to Domain/adapter;
+OpenScience still chooses questions/conditions and interprets retained evidence.
+76 focused source checks and independent review do not admit transient into
+the official Research guard. No tool/schema/provider/profile/optimizer change;
+actual transient native/Research/field-GUI qualification stays NOT_RUN/
+NOT_ADMITTED and physical decisions UNKNOWN/NOT_RELEASED (ADR0020).
+
 Human Explore integration2026-10-02 reuses existing model input discovery,
 registration, planning and common optimization run/inspection. The numerical
 engine still generates candidates; OpenScience chooses research semantics and

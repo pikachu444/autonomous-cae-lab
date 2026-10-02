@@ -1,8 +1,14 @@
-# D3.2 next implementation — transient scalar weak form
+# D3.2 transient scalar weak form — implementation and qualification
 
-Status: intake/design proposal, not implemented or numerically accepted.
+Status: source implemented;76 distinct focused checks PASS and independent
+17-file source review closes with0 P1/P2. Native qualification is NOT_RUN.
 Source checkpoint: rectangle implementation dd8f499 and test correction4457af6.
 Root owns the final packet, integration and acceptance decisions.
+
+The frozen implementation packet is now [PDE_TRANSIENT_PACKET](PDE_TRANSIENT_PACKET.md)
+with ADR0020 at clean/pushed base a9374ab. Source checkpoint record is
+`../benchmarks/records/20261002-transient-pde-development.json`. The intake
+below remains historical design context, not a native qualification claim.
 
 The next bounded backend is `pde.fenicsx.transient`: dimensionless rectangle,
 constant positive diffusion/nonnegative reaction, unit capacity, named spatial

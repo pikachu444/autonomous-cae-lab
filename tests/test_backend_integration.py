@@ -11,7 +11,7 @@ from caelab import Lab
 BACKENDS = {"structural.code_aster", "structural.code_aster.plasticity", "material.mfront",
             "material.mfront.inverse", "explicit.openradioss", "structural.families.calculix",
             "structural.families.code_aster"}
-PDE_BACKENDS = {"pde.fenicsx", "pde.fenicsx.nonlinear", "pde.fenicsx.rectangle"}
+PDE_BACKENDS = {"pde.fenicsx", "pde.fenicsx.nonlinear", "pde.fenicsx.rectangle", "pde.fenicsx.transient"}
 
 
 def test_default_model_registry_constructs_without_native_commands_and_preserves_explicit_mapping(tmp_path, monkeypatch):

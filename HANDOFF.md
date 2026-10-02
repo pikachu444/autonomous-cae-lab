@@ -1,6 +1,29 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
-## Current D3.1 bounded native/reference checkpoint
+## Current D3.2 source integration checkpoint
+
+The transient scalar rectangle backend, time expressions, initial conditions
+and complete N+1 step history are implemented and source-reviewed. The existing
+Core declaration preserves initial_conditions/outputs.history and common
+Results; two experimental presets separate mesh/time refinement. No new schema,
+wire operation, optimizer, model/provider/profile/auth or old PDE change.
+76 distinct focused checks PASS (46 writer +30 Root),14 Python AST checks PASS,
+independent17-file review PASS with0 P1/P2. Actual form/time/state compilation
+does not invoke a transient solve. Source base is pushed a9374ab; publication
+receipt records the resulting exact commit, confirmed push and exact-source CI.
+Record: `benchmarks/records/20261002-transient-pde-development.json`.
+Next source unit is D3.3 vector weak form/reference fields, then D3.4 coupled/
+material interfaces and D3.5 imported domains. Keep full verification separate:
+fresh clean-source transient runner `python -m scripts.verify_transient_pde
+--store artifacts/new-transient-store` is NOT_RUN locally and must use a new
+path. Its5 accepted/3 numerical negatives/5 preflight cases and24 studies/
+872 snapshots/848 solves are planned counts, not actual results. Criteria in
+PDE_TRANSIENT_PACKET/ADR0020 were frozen before any output; never tune them.
+Official transient Research admission and native-field GUI remain open.
+All52/P2.2/whole Phase4 and UNKNOWN/NOT_RELEASED remain open; previous CI Aster
+Fz numerical failure and explicit asset404 are retained, not rerun manually.
+
+## Historical D3.1 bounded native/reference checkpoint
 
 Implementation dd8f499 and test-only correction4457af6 are pushed to main.
 Fresh original-dd8 store `artifacts/integrated-20261002-rectangle-pde-01`

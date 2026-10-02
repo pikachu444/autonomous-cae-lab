@@ -127,7 +127,7 @@ def test_pde_uses_common_schema_evidence_and_hashed_thread_without_a_cad_parent(
     jsonschema.validate(result, load_json(schemas / "result.schema.json"))
 
 
-@pytest.mark.parametrize("plugin", ["pde_nonlinear", "pde_elliptic"])
+@pytest.mark.parametrize("plugin", ["pde_nonlinear", "pde_elliptic", "pde_transient"])
 def test_optional_pde_declaration_enters_the_common_revision_and_proposal(tmp_path, plugin):
     from importlib import import_module
     reference = import_module("plugins." + plugin + ".reference")
@@ -146,6 +146,9 @@ def test_optional_pde_declaration_enters_the_common_revision_and_proposal(tmp_pa
     assert proposal["boundary_conditions"] == declaration["boundary_conditions"]
     assert proposal["loads"] == declaration["loads"]
     assert proposal["outputs"]["fields"] == declaration["outputs"]["fields"]
+    if plugin == "pde_transient":
+        assert proposal["initial_conditions"] == declaration["initial_conditions"]
+        assert proposal["outputs"]["history"] == declaration["outputs"]["history"]
     assert result["extensions"]["pde"]["declaration"] == declaration
     assert proposal["model_revision"] == result["model_revision"] == thread["model_revision"] == revision
     assert result["cad_revision"] is None and "parent_experiment_id" not in result

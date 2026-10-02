@@ -1,0 +1,504 @@
+{
+  "schema_version": "1.0",
+  "status": "PASS_SOFTWARE_INTEGRATION_BOUNDED",
+  "created_utc": "2026-10-02T14:27:25.893851+00:00",
+  "source_base_commit": "a9374abbf867f789c5c436cfae038d4c077f73f8",
+  "source_publication": "This pre-commit record pins candidate source bytes. Exact implementation commit, confirmed main push and exact-source CI are recorded separately after publication; this is not a native solver PASS.",
+  "scope": "D3.2 Phase4: transient scalar rectangle diffusion/reaction, initial and complete time history, through existing pde.run/Core and common Simulation/Results. Whole Phase4/all52 remain open.",
+  "source_hash_scope": "SHA256 of exact UTF8/LF candidate files; stage must preserve these bytes. Raw local receipts are hashed separately and are not repository records.",
+  "source_files": [
+    {
+      "path": "plugins/pde_transient/__init__.py",
+      "sha256": "f5db0311263f1a9c38b193261a730f447bc5caed24bb534bddf78e5c544ae508",
+      "size_bytes": 76
+    },
+    {
+      "path": "plugins/pde_transient/reference.py",
+      "sha256": "5e35589b9bc1378b72a9f89ed28e04ab9176ce8b34341b8083a79bed347c87dd",
+      "size_bytes": 19890
+    },
+    {
+      "path": "caelab/adapters/fenicsx_time_expression.py",
+      "sha256": "dbe77423dd516b3001efff3102c68324f16c35ae578abef54579ceb6c2118623",
+      "size_bytes": 2823
+    },
+    {
+      "path": "caelab/adapters/fenicsx_transient.py",
+      "sha256": "9b949135f3791e88972fff448b7a0160e739b8d10e63abad008dcdb43eb218b9",
+      "size_bytes": 12472
+    },
+    {
+      "path": "caelab/adapters/fenicsx_transient_worker.py",
+      "sha256": "4932e2f8e39f3d7f2a25db510d2703fbc76baa95984270fda4a66787ad6de3bf",
+      "size_bytes": 18604
+    },
+    {
+      "path": "tests/test_pde_transient.py",
+      "sha256": "247c6dd21cc552ecc84063c30456659a1a6a427fb87fd34608e92a605232fffa",
+      "size_bytes": 10760
+    },
+    {
+      "path": "tests/test_pde_transient_reference.py",
+      "sha256": "dd92b3cbe1ac78396b91e96e8e3d74913c869b3f8dd2580816e67eaa27b5bf3c",
+      "size_bytes": 10332
+    },
+    {
+      "path": "caelab/engine.py",
+      "sha256": "cb3da6749d4b993ade85d426848ba5aeac26399070e61e84b096730fd6af7c4a",
+      "size_bytes": 46808
+    },
+    {
+      "path": "apps/lab/service.py",
+      "sha256": "ecff203926d135d0a03e6136c14982178a0d0ad1940f69c9aab02987a0365b09",
+      "size_bytes": 36917
+    },
+    {
+      "path": "tests/test_backend_integration.py",
+      "sha256": "b7fbf93fe667b33e094d5eaa7f9d9569fb868f8c30e8bdd84094d28244671e00",
+      "size_bytes": 4484
+    },
+    {
+      "path": "tests/test_lab_server.py",
+      "sha256": "cbece9612c0142a97ba84982554117c40a026296ff1cfa3d7a12cf193372454b",
+      "size_bytes": 35020
+    },
+    {
+      "path": "tests/test_pde_thread.py",
+      "sha256": "0d61d60408379e12008c6bf34637edb40f33458f1ede20501ab29c52630041ea",
+      "size_bytes": 14461
+    },
+    {
+      "path": "scripts/verify_transient_pde.py",
+      "sha256": "56fb9817d4f926e8ae92de09c73e16eeada3f02081c01f0843ad0cb9684a1901",
+      "size_bytes": 18561
+    },
+    {
+      "path": "tests/test_verify_transient_pde.py",
+      "sha256": "196db87b389481fb3f663ed26ab2d787f2bcef07da06849b74c9b602d283fa78",
+      "size_bytes": 6266
+    },
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "sha256": "7bc9d36e7039445115f3407c86301947bdb523b4b297a844dfa6216a98d23358",
+      "size_bytes": 20879
+    },
+    {
+      "path": "docs/PDE_TRANSIENT_PACKET.md",
+      "sha256": "9f481994fa429e52575bb66124e51e9a6d6cae37ab06974149fb968244e068d5",
+      "size_bytes": 13286
+    },
+    {
+      "path": "ADR/0020-transient-scalar-pde-history.md",
+      "sha256": "5b284f5ad05c3f856d7f31c09b62520a96baa75654e371bbbbca4e623f2cc718",
+      "size_bytes": 3299
+    }
+  ],
+  "changes": [
+    "New Domain-owned bounded time expressions, initial/boundary compatibility, one mesh-or-time refinement axis, full-history assessment and manufactured controls",
+    "New adapter-owned fixed backward Euler worker with mutable time, nonaliasing state, full DOFs/XDMF/H5/time binding/observation/progress and KSP/constrained residual",
+    "Common backend registry and two experimental Lab presets; initial_conditions and outputs.history preserved in existing declared-model revision",
+    "Fresh committed-source runner freezes5 accepted/3 numerical negative/5 preflight cases before execution, verifies source copies, complete history and independent mathematics",
+    "CI retains original jobs and adds the new transient acceptance step/artifacts; no schema/wire/optimizer/provider/profile/auth changes"
+  ],
+  "checks": {
+    "writer": {
+      "status": "PASS_SOURCE_ONLY",
+      "distinct_tests": 46,
+      "first_seconds": 23.08,
+      "lf_recheck_seconds": 20.97,
+      "recheck_counted_twice": false,
+      "native_form_only": "Mutable time integral, rank2/rank1 and distinct Function storage compiled/checked in actual system FEniCSx; LinearProblem/solve0",
+      "receipt": {
+        "path": "artifacts/development-pde-transient-20261002-01/writer-source-01/receipt.json",
+        "sha256": "663f49379a6944a5d42ead258bda054749d9e3a930d2c36281b3d05662474133",
+        "size_bytes": 2062
+      },
+      "lf_recheck_receipt": {
+        "path": "artifacts/development-pde-transient-20261002-01/writer-source-01/lf-recheck-receipt.json",
+        "sha256": "7579976b405361abc2d4f32b13d0ec2b245bc8cc20292ac04acfb89e49489976",
+        "size_bytes": 717
+      },
+      "lf_recheck_log": {
+        "path": "artifacts/development-pde-transient-20261002-01/writer-source-01/lf-recheck.log",
+        "sha256": "8291cd23f6cb52c893afa4dc4ea7ae936dc32830d56cd9e6c352588d0734ae01",
+        "size_bytes": 102
+      }
+    },
+    "root": {
+      "schema_version": "1",
+      "kind": "D3.2 Root focused source checks",
+      "created_utc": "2026-10-02T14:27:25.893851+00:00",
+      "source_base_commit": "a9374abbf867f789c5c436cfae038d4c077f73f8",
+      "status": "PASS_SOURCE_ONLY",
+      "capture_scope": "Persisted from completed exec tool output for session40672; this compact receipt is not a saved original full stdout/stderr log. No rerun is represented.",
+      "command": "./scripts/local.ps1 -PythonArgs @('-B','-m','pytest','-q','tests/test_verify_transient_pde.py','tests/test_backend_integration.py','tests/test_pde_thread.py','tests/test_lab_server.py','-k','verify_transient or backend_integration or optional_pde_declaration or existing_presets_and_core_campaign_inspection')",
+      "exec_session_id": 40672,
+      "exit_code": 0,
+      "distinct_tests": 30,
+      "deselected": 77,
+      "warnings": 1,
+      "seconds": 134.96,
+      "observed_summary": "30 passed, 77 deselected, 1 warning in 134.96s",
+      "warning_scope": "CadQuery deprecation warning",
+      "scope": "13 runner controls,13 backend controls,3 common declared-model cases,1 existing HTTP preset/campaign fixture. No actual transient solve or official Research admission.",
+      "transient_native_solve_count": 0,
+      "provider_calls": 0,
+      "source_files": [
+        {
+          "path": "caelab/engine.py",
+          "sha256": "cb3da6749d4b993ade85d426848ba5aeac26399070e61e84b096730fd6af7c4a",
+          "size_bytes": 46808
+        },
+        {
+          "path": "apps/lab/service.py",
+          "sha256": "ecff203926d135d0a03e6136c14982178a0d0ad1940f69c9aab02987a0365b09",
+          "size_bytes": 36917
+        },
+        {
+          "path": "tests/test_backend_integration.py",
+          "sha256": "b7fbf93fe667b33e094d5eaa7f9d9569fb868f8c30e8bdd84094d28244671e00",
+          "size_bytes": 4484
+        },
+        {
+          "path": "tests/test_lab_server.py",
+          "sha256": "cbece9612c0142a97ba84982554117c40a026296ff1cfa3d7a12cf193372454b",
+          "size_bytes": 35020
+        },
+        {
+          "path": "tests/test_pde_thread.py",
+          "sha256": "0d61d60408379e12008c6bf34637edb40f33458f1ede20501ab29c52630041ea",
+          "size_bytes": 14461
+        },
+        {
+          "path": "scripts/verify_transient_pde.py",
+          "sha256": "56fb9817d4f926e8ae92de09c73e16eeada3f02081c01f0843ad0cb9684a1901",
+          "size_bytes": 18561
+        },
+        {
+          "path": "tests/test_verify_transient_pde.py",
+          "sha256": "196db87b389481fb3f663ed26ab2d787f2bcef07da06849b74c9b602d283fa78",
+          "size_bytes": 6266
+        },
+        {
+          "path": ".github/workflows/caelab-ci.yml",
+          "sha256": "7bc9d36e7039445115f3407c86301947bdb523b4b297a844dfa6216a98d23358",
+          "size_bytes": 20879
+        }
+      ]
+    },
+    "distinct_total": 76,
+    "syntax": {
+      "status": "PASS",
+      "files": 14
+    },
+    "git_diff_check": "PASS before staging",
+    "independent_packet_review": {
+      "status": "PASS",
+      "open_P1": 0,
+      "open_P2": 0,
+      "closed_finding": "Made ordered value SHA object and JSON number-type preservation explicit before source closure"
+    },
+    "independent_source_review": {
+      "schema_version": "1",
+      "kind": "D3.2 independent read-only source review",
+      "created_utc": "2026-10-02T14:27:25.893851+00:00",
+      "status": "PASS_SOURCE_ONLY",
+      "reviewer": "/root/official_project_workflow",
+      "capture_scope": "Root preserves the independent reviewer final collaboration message; reviewer wrote no files and ran no tests/native/provider/Core/runtime calls.",
+      "reviewed_file_count": 17,
+      "open_P1": 0,
+      "open_P2": 0,
+      "reviewed_files": [
+        {
+          "path": "plugins/pde_transient/__init__.py",
+          "sha256": "f5db0311263f1a9c38b193261a730f447bc5caed24bb534bddf78e5c544ae508",
+          "size_bytes": 76
+        },
+        {
+          "path": "plugins/pde_transient/reference.py",
+          "sha256": "5e35589b9bc1378b72a9f89ed28e04ab9176ce8b34341b8083a79bed347c87dd",
+          "size_bytes": 19890
+        },
+        {
+          "path": "caelab/adapters/fenicsx_time_expression.py",
+          "sha256": "dbe77423dd516b3001efff3102c68324f16c35ae578abef54579ceb6c2118623",
+          "size_bytes": 2823
+        },
+        {
+          "path": "caelab/adapters/fenicsx_transient.py",
+          "sha256": "9b949135f3791e88972fff448b7a0160e739b8d10e63abad008dcdb43eb218b9",
+          "size_bytes": 12472
+        },
+        {
+          "path": "caelab/adapters/fenicsx_transient_worker.py",
+          "sha256": "4932e2f8e39f3d7f2a25db510d2703fbc76baa95984270fda4a66787ad6de3bf",
+          "size_bytes": 18604
+        },
+        {
+          "path": "tests/test_pde_transient.py",
+          "sha256": "247c6dd21cc552ecc84063c30456659a1a6a427fb87fd34608e92a605232fffa",
+          "size_bytes": 10760
+        },
+        {
+          "path": "tests/test_pde_transient_reference.py",
+          "sha256": "dd92b3cbe1ac78396b91e96e8e3d74913c869b3f8dd2580816e67eaa27b5bf3c",
+          "size_bytes": 10332
+        },
+        {
+          "path": "caelab/engine.py",
+          "sha256": "cb3da6749d4b993ade85d426848ba5aeac26399070e61e84b096730fd6af7c4a",
+          "size_bytes": 46808
+        },
+        {
+          "path": "apps/lab/service.py",
+          "sha256": "ecff203926d135d0a03e6136c14982178a0d0ad1940f69c9aab02987a0365b09",
+          "size_bytes": 36917
+        },
+        {
+          "path": "tests/test_backend_integration.py",
+          "sha256": "b7fbf93fe667b33e094d5eaa7f9d9569fb868f8c30e8bdd84094d28244671e00",
+          "size_bytes": 4484
+        },
+        {
+          "path": "tests/test_lab_server.py",
+          "sha256": "cbece9612c0142a97ba84982554117c40a026296ff1cfa3d7a12cf193372454b",
+          "size_bytes": 35020
+        },
+        {
+          "path": "tests/test_pde_thread.py",
+          "sha256": "0d61d60408379e12008c6bf34637edb40f33458f1ede20501ab29c52630041ea",
+          "size_bytes": 14461
+        },
+        {
+          "path": "scripts/verify_transient_pde.py",
+          "sha256": "56fb9817d4f926e8ae92de09c73e16eeada3f02081c01f0843ad0cb9684a1901",
+          "size_bytes": 18561
+        },
+        {
+          "path": "tests/test_verify_transient_pde.py",
+          "sha256": "196db87b389481fb3f663ed26ab2d787f2bcef07da06849b74c9b602d283fa78",
+          "size_bytes": 6266
+        },
+        {
+          "path": ".github/workflows/caelab-ci.yml",
+          "sha256": "7bc9d36e7039445115f3407c86301947bdb523b4b297a844dfa6216a98d23358",
+          "size_bytes": 20879
+        },
+        {
+          "path": "docs/PDE_TRANSIENT_PACKET.md",
+          "sha256": "9f481994fa429e52575bb66124e51e9a6d6cae37ab06974149fb968244e068d5",
+          "size_bytes": 13286
+        },
+        {
+          "path": "ADR/0020-transient-scalar-pde-history.md",
+          "sha256": "5b284f5ad05c3f856d7f31c09b62520a96baa75654e371bbbbca4e623f2cc718",
+          "size_bytes": 3299
+        }
+      ],
+      "explicit_final_pins": {
+        "plugins/pde_transient/reference.py": "5e35589b9bc1378b72a9f89ed28e04ab9176ce8b34341b8083a79bed347c87dd",
+        "caelab/adapters/fenicsx_time_expression.py": "dbe77423dd516b3001efff3102c68324f16c35ae578abef54579ceb6c2118623",
+        "caelab/adapters/fenicsx_transient.py": "9b949135f3791e88972fff448b7a0160e739b8d10e63abad008dcdb43eb218b9",
+        "caelab/adapters/fenicsx_transient_worker.py": "4932e2f8e39f3d7f2a25db510d2703fbc76baa95984270fda4a66787ad6de3bf",
+        "scripts/verify_transient_pde.py": "56fb9817d4f926e8ae92de09c73e16eeada3f02081c01f0843ad0cb9684a1901",
+        "tests/test_pde_transient.py": "247c6dd21cc552ecc84063c30456659a1a6a427fb87fd34608e92a605232fffa",
+        "tests/test_pde_transient_reference.py": "dd92b3cbe1ac78396b91e96e8e3d74913c869b3f8dd2580816e67eaa27b5bf3c",
+        "tests/test_verify_transient_pde.py": "196db87b389481fb3f663ed26ab2d787f2bcef07da06849b74c9b602d283fa78"
+      },
+      "findings": [
+        "Mutable native time binds source/side/reference values; previous/current storage does not alias",
+        "N+1 history, typed value hashes, static geometry and prior-state links match the packet",
+        "Complete observations/progress precede previous-state update",
+        "Nine source copies and isolated PETSc bootstrap are retained",
+        "Malformed execution and finite numerical rejection are distinct",
+        "Root runner freezes clean source/plan and independently checks initial/binding fields"
+      ],
+      "limits": [
+        "Source only; actual transient native qualification NOT_RUN",
+        "Official transient Research admission NOT_ADMITTED",
+        "No physical approval; UNKNOWN/NOT_RELEASED"
+      ],
+      "legacy_pde_and_native_helpers": "No implementation diff"
+    }
+  },
+  "mathematical_controls_frozen_before_output": {
+    "temporal": {
+      "reference": "exp(-t)*(x+2*y+1)",
+      "domain": [
+        2,
+        1
+      ],
+      "k": 1,
+      "c": 0,
+      "end": 1,
+      "fixed_cells": 8,
+      "steps": [
+        16,
+        32,
+        64
+      ],
+      "finest_L2_max": 0.04,
+      "finest_gradient_H1_max": 0.2,
+      "all_pair_L2_rate_min": 0.8,
+      "all_pair_gradient_H1_rate_min": 0.8,
+      "all_solved_step_residual_max": 1e-10,
+      "pre_output_bound": "Poincare/BE energy estimates give finest L2<.012 and gradient H1<.020; rates are measured expectations, not guaranteed by these bounds"
+    },
+    "spatial": {
+      "reference": "(1+t)*(x*x*y*y+x+2*y+1)",
+      "end": 1,
+      "fixed_steps": 32,
+      "cells": [
+        8,
+        16,
+        32
+      ],
+      "finest_L2_max": 0.06,
+      "finest_gradient_H1_max": 1.0,
+      "all_pair_L2_rate_min": 1.8,
+      "all_pair_gradient_H1_rate_min": 0.9,
+      "all_solved_step_residual_max": 1e-10,
+      "scope": "Final-amplitude scaled prior rectangle limits are not rigorous bounds. Analytical affine-time BE consistency is zero; FE time error need not be zero."
+    },
+    "planned_native_counts": {
+      "solver_processes": 8,
+      "studies": 24,
+      "snapshots": 872,
+      "solved_steps": 848
+    },
+    "planned_counts_are_observations": false
+  },
+  "preserved_sources": [
+    {
+      "path": "caelab/adapters/fenicsx_pde.py",
+      "sha256": "2ca87fc2e5f83e5cacbee2780437bcac38aec6a9ad481019f5baf1e4ff9dc893",
+      "size_bytes": 17072
+    },
+    {
+      "path": "caelab/adapters/fenicsx_worker.py",
+      "sha256": "2e1cd29a71e4a216be6677e44b841205193ef72658d7a29d010dca7253d57301",
+      "size_bytes": 17091
+    },
+    {
+      "path": "caelab/adapters/fenicsx_nonlinear.py",
+      "sha256": "705036578d1c5ab8ac2af426aca513c14d42860ee9eaabdab1b9c9bd07eade75",
+      "size_bytes": 22520
+    },
+    {
+      "path": "caelab/adapters/fenicsx_nonlinear_worker.py",
+      "sha256": "025a2a41a5a4ee3a87bc7b1016d74ad355d2bc1428f56182aa66c67193eae1f4",
+      "size_bytes": 19224
+    },
+    {
+      "path": "plugins/pde_nonlinear/reference.py",
+      "sha256": "79b77541982dcf3c42f75f4bea6ade145c106484a167abf416518f12e7f11505",
+      "size_bytes": 24611
+    },
+    {
+      "path": "caelab/pde.py",
+      "sha256": "1676badd13201d4055ba2cc69ff1fa47316127362139b7284f049d2d7bf05058",
+      "size_bytes": 945
+    },
+    {
+      "path": "caelab/declared_model.py",
+      "sha256": "7b4442af93e6aabd50f21baeb205449a3492cd4c0579d9a7b1488123cd945b01",
+      "size_bytes": 13942
+    },
+    {
+      "path": "schemas/experiment.schema.json",
+      "sha256": "34468e2bf70768df889f959909683a5bb45ea7ca0cfcda50fba0a21b1931405b",
+      "size_bytes": 2321
+    },
+    {
+      "path": "schemas/result.schema.json",
+      "sha256": "ad67db58b09e8419a7517e9804e53e42fbe810939d94a2b74174b2267e30bc2d",
+      "size_bytes": 2132
+    },
+    {
+      "path": "scripts/verify_pde.py",
+      "sha256": "23a48071fe0b6960d055580f8e48181861716111ee15da0935a456b176275563",
+      "size_bytes": 5555
+    },
+    {
+      "path": "scripts/verify_nonlinear_pde.py",
+      "sha256": "324b2d2771914496447c3f45a49a4e0acb7f255f2892d2ba2b93e3a2643bda3e",
+      "size_bytes": 10226
+    },
+    {
+      "path": "caelab/adapters/fenicsx_rectangle.py",
+      "sha256": "b0f614db04ee05b107373049f4e09f8c80f3809f456117add5f60b1d9040b756",
+      "size_bytes": 15458
+    },
+    {
+      "path": "caelab/adapters/fenicsx_rectangle_worker.py",
+      "sha256": "9b5e1a7e7ab9ffb90073785985c2e546ffca4c62012dffb370bb74e8b3422617",
+      "size_bytes": 17019
+    },
+    {
+      "path": "plugins/pde_elliptic/reference.py",
+      "sha256": "72d82766634a48a562594198615f8daaa4e2d1f57dddea7106137b48ca8c9521",
+      "size_bytes": 23859
+    },
+    {
+      "path": "caelab/execution_control.py",
+      "sha256": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede",
+      "size_bytes": 6546
+    },
+    {
+      "path": "openscience/native_guard.mjs",
+      "sha256": "8f36839fc712cdf8fa46c9bbe249ed5dfbf3b5f27d0a341f2b92383a22bce7e6",
+      "size_bytes": 44190
+    },
+    {
+      "path": "openscience/native_git_state.mjs",
+      "sha256": "967fa10d6ac94301549bbbc4735921eb810fde0996415562a4cd225b23f3e73b",
+      "size_bytes": 11087
+    }
+  ],
+  "preserved_source_status": "17 legacy/schema/execution/guard files have an empty implementation diff at checkpoint",
+  "fixture_submodule": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "actual_transient_native_acceptance": {
+    "status": "NOT_RUN",
+    "new_transient_solver_runs": 0,
+    "fresh_store": null,
+    "physical_qualification": "UNKNOWN",
+    "engineering_release": "NOT_RELEASED"
+  },
+  "official_research_admission": "NOT_ADMITTED",
+  "new_transient_native_field_GUI": "NOT_RUN",
+  "exact_candidate_source_CI": "NOT_RUN_BEFORE_PUBLICATION",
+  "known_previous_exact_CI": {
+    "commit": "4457af69f89092ca1e21c99dad74683b3612ee3b",
+    "run_id": 37010014698,
+    "status": "COMPLETED_FAILURE",
+    "success_jobs": 8,
+    "failed_jobs": 2,
+    "core": "2240PASS/1optional skip/1warning",
+    "pde": "SUCCESS; rectangle6accepted/2rejected/3preflight",
+    "codeaster": "Fz native numerical checks failed; internal cause UNKNOWN from scoped log",
+    "explicit": "Pinned asset download HTTP404/curl22 before solver",
+    "not_candidate_source_verification": true
+  },
+  "next_ordered_source_unit": "D3.3 vector weak form and reference fields, then D3.4 coupled/material interfaces and D3.5 imported domains",
+  "verification_queue": "D3.2 clean native time/mesh/reference and partial-history qualification; D3.6 bounded official Research admission and same-record native-field GUI; broader phase/reference/cross-backend tests remain open",
+  "retention": "All local receipts are ignored artifacts, not remotely backed up by this commit. Public record has candidate sources, scope, observations and hashes only; no credentials/company data.",
+  "remaining": "Whole Phase4/all52/P2.2, general autonomous research planning, physical/deployment qualification remain OPEN/UNKNOWN/NOT_RELEASED.",
+  "checkpoint_audit_correction": {
+    "status": "READER_CORRECTED_SOURCE_UNCHANGED",
+    "initial_failure": {
+      "schema_version": "1",
+      "created_utc": "2026-10-02T14:31:50.326377+00:00",
+      "status": "FAILED_AUDIT_READER_ASSUMPTION",
+      "capture_scope": "Compact receipt of exec tool output; original full stdout/stderr was not saved",
+      "observed_error": "AssertionError: | R1 |",
+      "cause": "Initial requirement-preservation reader expected R1 rather than the original zero-padded R01. Original ledger uses R01..R09 then R10..R52.",
+      "correction": "Read numeric IDs with optional leading zero, require exactly all52 unique unchanged requirement texts; change audit reader only.",
+      "product_or_criteria_changed": false,
+      "tests_repeated": false
+    },
+    "retained_receipt": {
+      "path": "artifacts/development-pde-transient-20261002-01/staged-audit-reader-failed-01.json",
+      "sha256": "e813554de71492ef2255c33a86d7508cb906b3a976d67981700ef762d492382f"
+    }
+  }
+}
