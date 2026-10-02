@@ -56,13 +56,46 @@ and corrective-source records are preserved in STRUCTURAL_FAMILIES_ACCEPTANCE.
 
 Next tasks within the same P2.2 unit, in order:
 
-Active checkpoint: published9d62273/NEW clean research05 is IN_PROGRESS with
-approved5.6Sol/same project/new profile/store. Immutable00:09Z live snapshot
-records four closed questions/17 completed tools/three records; no closed
-acceptance. Exact9d CI36942484187 is8SUCCESS/2FAIL/source127PASS/zero actual calls;
-explicit404 and Fz outer assertion remain, CI native diagnostic UNKNOWN.
-Record20261002-openscience-structural-research05-start. Keep managed9d frozen
-while collecting original nine questions; numerical/engineering/full52 stay OPEN.
+Actual clean managed9d62273/research05 is CLOSED FAILED_OR_PARTIAL. Eight
+of nine Root-declared questions close, with45 completed tool events/34 observed
+provider step-finish records, nine experiments/27 native levels and26 complete
+field levels. Five records complete with review required, three roof records
+are REJECTED with every metric invalid, and beam Aster fine is FAILED_EXECUTION
+with metrics{}. Approved5.6Sol chooses tools and interprets this bounded ordered
+sequence; general autonomous campaign planning is not established.
+
+Independent raw/source/receipt audit confirms cylinder analytical/full-field/
+cross-solver gates and accepted beam/cylinder half-load scaling. Roof reference
+error is below2%, but last-two-mesh change about1.4011% exceeds1%; rejection is
+retained. Beam Aster FACTOR_57/3.32295e-6>1e-6 remains a native failure. Four
+official truncated outputs are restored from exact complete transport bytes;
+model reading of the complete originals is UNKNOWN. Final09 session is created
+but has empty output/null exit/unconfirmed CLI cleanup: no final inference or
+interpretation is claimed. The nested IN_PROGRESS trace is stale inside the
+terminal partial result. Same-session GUI AX text, owned Stop/process absence/
+native4098 closure and1071-file/217871995B exact local retention are verified.
+Remote raw backup remains UNKNOWN_NOT_UPLOADED. Record:
+benchmarks/records/20261002-openscience-structural-research05.json.
+
+The final prompt has361324 original bytes; the unquoted Windows command-line
+lower bound361752 exceeds32767. Native errno remains UNKNOWN. A bounded official
+stdin correction preserves the entire prompt and all nine records; pinned
+OpenScience4082 adds LF before stdin, so original and expected native text have
+separate hashes. Only unambiguous supported large run forms are admitted, with
+16KiB argv/16MiB text bounds. Legacy and ownership/source/model/session/tool/
+cancel/idle/default-guard gates remain. Frozen launcher80 (47 preserved+33 new),
+structural source127/native cold63 and independent source review PASS;19 originals
+unchanged/actual calls0. These source checks are not new official research or CI.
+Record: benchmarks/records/20261002-research-prompt-transport.json.
+
+Exact9d CI36942484187 remains8SUCCESS/2FAIL/source127PASS. Explicit download404/
+curl22 and Aster Fz outer assertion remain; internal CI native diagnostic UNKNOWN.
+NEXT publish the reviewed transport unit and start NEW clean research06 on that
+exact published source, same approved model/project and original question order.
+Verify complete final interpretation/GUI/owned Stop/new retention/independent
+review; then resolve Fz accuracy and roof convergence without relaxing limits.
+Full52/P2.2/UNKNOWN/NOT_RELEASED remain OPEN. Older next instructions below are
+historical; frozen05 start snapshot and all earlier partial records are preserved.
 
 - [x] Preserve/audit native05 and four failed method probes with original limits.
 - [x] Diagnose actual research01 pre-inference failure; verify the narrow saved-
@@ -91,9 +124,17 @@ while collecting original nine questions; numerical/engineering/full52 stay OPEN
 - [x] Publish reviewed unit9d62273 and start NEW clean05 in original order,
   with actual connected-source binding and same-session GUI text. Exact9d
   source CI127PASS; whole CI8SUCCESS/2FAIL. Live start is not closed acceptance.
-- [ ] Finish research05 original sequence, then same-session results/owned Stop/
-  new retention/independent raw evidence audit. Source/CI readiness is not
-  fresh complete acceptance; do not rewrite04's partial outcome.
+- [x] Close research05 as FAILED_OR_PARTIAL after eight questions/45 tools/nine
+  records; verify same-session GUI AX, owned Stop and1071-file exact retention,
+  independent full-field/source/receipt review and public-record reconciliation.
+  Final09 remains incomplete; numerical failures and original05 bytes preserved.
+- [x] Diagnose final09 oversized Windows argv; review/verify whole-prompt official
+  stdin correction:80 launcher/source127/native63, independent bounded review,
+  protected19 originals unchanged/actual calls0. Source proof only.
+- [ ] Commit/push transport correction and check exact new-source CI. Start NEW
+  clean-source research06/profile/store, same approved model/project/original
+  questions; verify final whole-input interpretation, GUI, owned Stop, exact
+  retention and independent actual review. Keep failed/invalid outcomes.
 - [ ] Resolve Fz accuracy and complete cylinder/roof/changed-load/refusal numerical
   gates; independently audit measured raw fields. No failed probe is a shortcut.
 

@@ -1,23 +1,47 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
-## Active research05 and exact9d CI
+## Actual05 retained partial; complete-prompt source correction
 
-Reader correction9d62273fe19eb9929ab970e5fc9eac6de39c1c7a is pushed.
-Exact CI36942484187 finishes8SUCCESS/2FAIL: source127PASS/zero actual calls,
-explicit pinned URL404/curl22, Aster Fz outer assertion/exit1. Internal CI native
-diagnostic/level/estimate/limit are UNKNOWN in scoped logs. Source proof and
-whole CI verdict remain separate; no numerical threshold was changed.
+Actual clean managed9d62273/research05 is CLOSED FAILED_OR_PARTIAL. Eight
+of nine Root-declared questions close, with45 completed tool events/34 observed
+provider step-finish records, nine experiments/27 native levels and26 complete
+field levels. Five records complete with review required, three roof records
+are REJECTED with every metric invalid, and beam Aster fine is FAILED_EXECUTION
+with metrics{}. Approved5.6Sol chooses tools and interprets this bounded ordered
+sequence; general autonomous campaign planning is not established.
 
-NEW research05/attempt-01 runs on clean managed9d, approved5.6Sol and the same
-authenticated project, with fresh profile/store. The immutable00:09Z checkpoint
-has four closed questions/17 completed tools/three Core records. Actual source
-binding and same-session GUI text are observed. This is live IN_PROGRESS,
-not closed acceptance: Stop/retention/independent raw audit remain NOT_RUN.
-Root declares the nine questions; AI chooses allowed tools/order and interprets
-results. General autonomous campaign planning is not established. Record:
-20261002-openscience-structural-research05-start. Keep managed source frozen9d;
-finish the declared sequence, retain failures, then close/audit the new store.
-Full52/P2.2/UNKNOWN/NOT_RELEASED remain OPEN. Older next instructions are historical.
+Independent raw/source/receipt audit confirms cylinder analytical/full-field/
+cross-solver gates and accepted beam/cylinder half-load scaling. Roof reference
+error is below2%, but last-two-mesh change about1.4011% exceeds1%; rejection is
+retained. Beam Aster FACTOR_57/3.32295e-6>1e-6 remains a native failure. Four
+official truncated outputs are restored from exact complete transport bytes;
+model reading of the complete originals is UNKNOWN. Final09 session is created
+but has empty output/null exit/unconfirmed CLI cleanup: no final inference or
+interpretation is claimed. The nested IN_PROGRESS trace is stale inside the
+terminal partial result. Same-session GUI AX text, owned Stop/process absence/
+native4098 closure and1071-file/217871995B exact local retention are verified.
+Remote raw backup remains UNKNOWN_NOT_UPLOADED. Record:
+benchmarks/records/20261002-openscience-structural-research05.json.
+
+The final prompt has361324 original bytes; the unquoted Windows command-line
+lower bound361752 exceeds32767. Native errno remains UNKNOWN. A bounded official
+stdin correction preserves the entire prompt and all nine records; pinned
+OpenScience4082 adds LF before stdin, so original and expected native text have
+separate hashes. Only unambiguous supported large run forms are admitted, with
+16KiB argv/16MiB text bounds. Legacy and ownership/source/model/session/tool/
+cancel/idle/default-guard gates remain. Frozen launcher80 (47 preserved+33 new),
+structural source127/native cold63 and independent source review PASS;19 originals
+unchanged/actual calls0. These source checks are not new official research or CI.
+Record: benchmarks/records/20261002-research-prompt-transport.json.
+
+Exact9d CI36942484187 remains8SUCCESS/2FAIL/source127PASS. Explicit download404/
+curl22 and Aster Fz outer assertion remain; internal CI native diagnostic UNKNOWN.
+NEXT publish the reviewed transport unit and start NEW clean research06 on that
+exact published source, same approved model/project and original question order.
+Verify complete final interpretation/GUI/owned Stop/new retention/independent
+review; then resolve Fz accuracy and roof convergence without relaxing limits.
+Full52/P2.2/UNKNOWN/NOT_RELEASED remain OPEN. Older next instructions below are
+historical; frozen05 start snapshot and all earlier partial records are preserved.
 
 ## Actual04 closed partial: changed-load research and cylinder fields
 

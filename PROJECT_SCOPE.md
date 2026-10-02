@@ -21,18 +21,46 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
-Published9d62273 reader correction is independently reviewed. Exact9d CI
-36942484187 closes8SUCCESS/2FAIL with source127PASS/zero actual calls; explicit
-download404/curl22 and Aster Fz outer assertion remain failures, with internal
-CI diagnostic UNKNOWN from scoped logs. NEW clean managed9d/research05 is
-IN_PROGRESS, approved5.6Sol/same project/new profile/store. Its immutable00:09Z
-snapshot records four closed questions/17 completed tools/three Core records;
-this is live progress, not closed numerical acceptance. Root predeclares the
-nine questions; AI chooses tools/order and interprets results. Stop/closed
-retention/independent raw audit remain NOT_RUN. Record:
-20261002-openscience-structural-research05-start. Finish original sequence while
-managed9d stays frozen. Full52/P2.2/UNKNOWN/NOT_RELEASED remain OPEN.
-Older next instructions below describe historical checkpoints.
+Actual clean managed9d62273/research05 is CLOSED FAILED_OR_PARTIAL. Eight
+of nine Root-declared questions close, with45 completed tool events/34 observed
+provider step-finish records, nine experiments/27 native levels and26 complete
+field levels. Five records complete with review required, three roof records
+are REJECTED with every metric invalid, and beam Aster fine is FAILED_EXECUTION
+with metrics{}. Approved5.6Sol chooses tools and interprets this bounded ordered
+sequence; general autonomous campaign planning is not established.
+
+Independent raw/source/receipt audit confirms cylinder analytical/full-field/
+cross-solver gates and accepted beam/cylinder half-load scaling. Roof reference
+error is below2%, but last-two-mesh change about1.4011% exceeds1%; rejection is
+retained. Beam Aster FACTOR_57/3.32295e-6>1e-6 remains a native failure. Four
+official truncated outputs are restored from exact complete transport bytes;
+model reading of the complete originals is UNKNOWN. Final09 session is created
+but has empty output/null exit/unconfirmed CLI cleanup: no final inference or
+interpretation is claimed. The nested IN_PROGRESS trace is stale inside the
+terminal partial result. Same-session GUI AX text, owned Stop/process absence/
+native4098 closure and1071-file/217871995B exact local retention are verified.
+Remote raw backup remains UNKNOWN_NOT_UPLOADED. Record:
+benchmarks/records/20261002-openscience-structural-research05.json.
+
+The final prompt has361324 original bytes; the unquoted Windows command-line
+lower bound361752 exceeds32767. Native errno remains UNKNOWN. A bounded official
+stdin correction preserves the entire prompt and all nine records; pinned
+OpenScience4082 adds LF before stdin, so original and expected native text have
+separate hashes. Only unambiguous supported large run forms are admitted, with
+16KiB argv/16MiB text bounds. Legacy and ownership/source/model/session/tool/
+cancel/idle/default-guard gates remain. Frozen launcher80 (47 preserved+33 new),
+structural source127/native cold63 and independent source review PASS;19 originals
+unchanged/actual calls0. These source checks are not new official research or CI.
+Record: benchmarks/records/20261002-research-prompt-transport.json.
+
+Exact9d CI36942484187 remains8SUCCESS/2FAIL/source127PASS. Explicit download404/
+curl22 and Aster Fz outer assertion remain; internal CI native diagnostic UNKNOWN.
+NEXT publish the reviewed transport unit and start NEW clean research06 on that
+exact published source, same approved model/project and original question order.
+Verify complete final interpretation/GUI/owned Stop/new retention/independent
+review; then resolve Fz accuracy and roof convergence without relaxing limits.
+Full52/P2.2/UNKNOWN/NOT_RELEASED remain OPEN. Older next instructions below are
+historical; frozen05 start snapshot and all earlier partial records are preserved.
 
 Actual clean035/research04 is CLOSED FAILED_OR_PARTIAL: five declared questions,
 25 tool events/19 model step-finish records/five experiments/15 native levels.
@@ -430,7 +458,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R40 | Independent optimizer comparison by problem role, not a generic ranking. | Partial research and first seeded engine; wider engine acceptance planned. |
 | R41 | Source audit of fixture code/tests/CI/debt and independent architecture review. | Partial completed recovered source audit; native/transaction debt remains. |
 | R42 | Separate research/implementation/verification roles when useful; Root integrates. | Ongoing; retained implemented-load independent verification. |
-| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; actual035/research04 full native fields, E220 cylinder analytical/cross-solver, beam half, source/25 tools/19 model steps and589-file retention independently audited. Native beam failure/truncated receipts remain partial. Official full-pointer cause24PASS; historical exactedf source CI89PASS/final8SUCCESS2FAIL retained. Reader127 cold/independent118 controls/two saved-byte replays PASS; public04 reconciliation56/27 refs PASS. Published9d exact source CI127PASS/final8SUCCESS2FAIL separately audited. New clean05 IN_PROGRESS; closed raw audit and remaining numerical gates OPEN. |
+| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; actual9d/research05 raw/source/45 receipts/34 observed model steps/full9 results/1071-file retention independently audited. Cylinder analytical/cross-fields and accepted beam/cylinder half-load PASS; beam Aster FAIL, three roof invalid REJECTED and final09 incomplete remain partial. Public05 exact reconciliation reviewed. Official stdin correction launcher80/source127/native63 and independent source review PASS with19 protected originals unchanged/actual calls0; new exact CI/research06 NOT_RUN at source admission. Full52/P2.2/NOT_RELEASED remain OPEN. |
 | R44 | Do not concurrently modify shared schemas/Core/registry/artifact migrations or same source file. | Ongoing ownership rule in AGENTS. |
 | R45 | Root checks architecture, OpenScience-first, conflicting evidence, actual feasibility, GUI/headless, license/security/benchmarks/requirements before integration. | Ongoing; accepted/rejected decisions recorded in ADR/docs. |
 | R46 | Strong Root reasoning for architecture/numerics/conflicts, appropriate agents for bounded work; verification above model choice. | Ongoing, subject to available models/tools and current session instructions. |

@@ -253,6 +253,17 @@ Git runs only in the Node reader. Its exact private envelope adds no Core or
 research operation field; same-byte version/mode drift still rejects inference.
 Native OAuth acceptance remains OPEN; source checks do not prove actual loading.
 
+For supported large attached `run` invocations, the local transport retains
+the entire requested argv but transfers only the final unambiguous prompt through
+the official inherited stdin. The exact UTF8 input and pinned OpenScience's
+expected LF-plus-input text have separate size/hash records; expected text is
+not a provider wire observation. The general16KiB argv/16MiB input limits and
+strict contained immutable-input checks fail closed on ambiguous or changed
+inputs. Existing model/project/source/session/tool/default-guard and owned
+cancellation/idle gates still apply. This changes no Core operation or research
+setting; actual new-run interpretation is a separate acceptance gate. See
+[prompt transport source record](../benchmarks/records/20261002-research-prompt-transport.json).
+
 The historical local persistent transport uses the installed pinned official OpenScience
 2.0.146 and existing local model. Its attached CLI and official workspace share
 an isolated profile/project/store and exact session IDs. The server pins tracked

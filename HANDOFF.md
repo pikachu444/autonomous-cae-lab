@@ -1,29 +1,47 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
-## Active checkpoint: research05 on published9d; exact CI remains partial
+## Active checkpoint: research05 retained; complete-prompt transport ready
 
-The verified reader unit is committed and pushed as
-9d62273fe19eb9929ab970e5fc9eac6de39c1c7a. Exact CI36942484187 closes
-8SUCCESS/2FAIL: research-source127PASS with zero actual-call counters, explicit
-OpenRadioss download404/curl22 and Aster Fz outer numerical assertion/exit1.
-The CI internal native code/level/error estimate/limit remain UNKNOWN from the
-scoped logs. Do not substitute a local diagnostic or claim whole CI PASS.
+Actual clean managed9d62273/research05 is CLOSED FAILED_OR_PARTIAL. Eight
+of nine Root-declared questions close, with45 completed tool events/34 observed
+provider step-finish records, nine experiments/27 native levels and26 complete
+field levels. Five records complete with review required, three roof records
+are REJECTED with every metric invalid, and beam Aster fine is FAILED_EXECUTION
+with metrics{}. Approved5.6Sol chooses tools and interprets this bounded ordered
+sequence; general autonomous campaign planning is not established.
 
-NEW owned research05/attempt-01 is IN_PROGRESS on clean managed9d, approved
-openai-codex/gpt-5.6-sol, unchanged auth/project/fixture and a new profile/store.
-The immutable 2026-10-02T00:09Z live snapshot records four closed questions,
-17 completed tools and three Core records. Counts describe that instant, not
-closed acceptance. Model/tool choice and interpretation follow the original
-nine Root-declared questions; general autonomous planning is not established.
-Connected-resource/source binding and actual same-session GUI text are checked;
-Stop, closed retention and independent raw audit are NOT_RUN. Record:
-benchmarks/records/20261002-openscience-structural-research05-start.json.
+Independent raw/source/receipt audit confirms cylinder analytical/full-field/
+cross-solver gates and accepted beam/cylinder half-load scaling. Roof reference
+error is below2%, but last-two-mesh change about1.4011% exceeds1%; rejection is
+retained. Beam Aster FACTOR_57/3.32295e-6>1e-6 remains a native failure. Four
+official truncated outputs are restored from exact complete transport bytes;
+model reading of the complete originals is UNKNOWN. Final09 session is created
+but has empty output/null exit/unconfirmed CLI cleanup: no final inference or
+interpretation is claimed. The nested IN_PROGRESS trace is stale inside the
+terminal partial result. Same-session GUI AX text, owned Stop/process absence/
+native4098 closure and1071-file/217871995B exact local retention are verified.
+Remote raw backup remains UNKNOWN_NOT_UPLOADED. Record:
+benchmarks/records/20261002-openscience-structural-research05.json.
 
-NEXT finish the original question sequence, then verify same-session results,
-owned Stop, new exact retention and independent closed raw evidence. Keep managed
-source9d frozen during this run even if main receives documentation checkpoints.
-Preserve all failed/UNKNOWN records and limits; P2.2/full52/NOT_RELEASED stay OPEN.
-Earlier next instructions below are historical.
+The final prompt has361324 original bytes; the unquoted Windows command-line
+lower bound361752 exceeds32767. Native errno remains UNKNOWN. A bounded official
+stdin correction preserves the entire prompt and all nine records; pinned
+OpenScience4082 adds LF before stdin, so original and expected native text have
+separate hashes. Only unambiguous supported large run forms are admitted, with
+16KiB argv/16MiB text bounds. Legacy and ownership/source/model/session/tool/
+cancel/idle/default-guard gates remain. Frozen launcher80 (47 preserved+33 new),
+structural source127/native cold63 and independent source review PASS;19 originals
+unchanged/actual calls0. These source checks are not new official research or CI.
+Record: benchmarks/records/20261002-research-prompt-transport.json.
+
+Exact9d CI36942484187 remains8SUCCESS/2FAIL/source127PASS. Explicit download404/
+curl22 and Aster Fz outer assertion remain; internal CI native diagnostic UNKNOWN.
+NEXT publish the reviewed transport unit and start NEW clean research06 on that
+exact published source, same approved model/project and original question order.
+Verify complete final interpretation/GUI/owned Stop/new retention/independent
+review; then resolve Fz accuracy and roof convergence without relaxing limits.
+Full52/P2.2/UNKNOWN/NOT_RELEASED remain OPEN. Older next instructions below are
+historical; frozen05 start snapshot and all earlier partial records are preserved.
 
 ## Current checkpoint: actual04 retained; verified receipt reader for new05
 

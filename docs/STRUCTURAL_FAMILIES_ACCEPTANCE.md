@@ -13,21 +13,46 @@ Deterministic numerical engines own numerical search in the subsequent Phase3.
 
 ## Actual execution and preserved failures
 
-Published9d62273 reader correction is now the frozen source of NEW owned
-research05/attempt-01, approved5.6Sol/same project and fresh profile/store.
-The immutable00:09Z live checkpoint records four closed questions/17 completed
-tools/three Core records, actual connected-source binding and same-session GUI
-text. Overall IN_PROGRESS; Stop/closed retention/independent raw audit NOT_RUN.
-Root supplies original nine-question order; AI selects allowed tools/order and
-interprets results. No general autonomous campaign completion is established.
-Record20261002-openscience-structural-research05-start. Finish original sequence
-on managed9d without overwriting04 or changing numerical gates.
+Actual clean managed9d62273/research05 is CLOSED FAILED_OR_PARTIAL. Eight
+of nine Root-declared questions close, with45 completed tool events/34 observed
+provider step-finish records, nine experiments/27 native levels and26 complete
+field levels. Five records complete with review required, three roof records
+are REJECTED with every metric invalid, and beam Aster fine is FAILED_EXECUTION
+with metrics{}. Approved5.6Sol chooses tools and interprets this bounded ordered
+sequence; general autonomous campaign planning is not established.
 
-Exact9d CI36942484187 closes8SUCCESS/2FAIL/source127PASS/zero actual calls.
-Explicit URL404/curl22 and Aster Fz outer assertion/exit1 remain failures.
-Internal CI native diagnostic/level/estimate/limit UNKNOWN from scoped logs.
-Neither source CI nor this live checkpoint establishes fresh full-family
-acceptance, strength approval or RELEASED. Full52/P2.2 remain OPEN.
+Independent raw/source/receipt audit confirms cylinder analytical/full-field/
+cross-solver gates and accepted beam/cylinder half-load scaling. Roof reference
+error is below2%, but last-two-mesh change about1.4011% exceeds1%; rejection is
+retained. Beam Aster FACTOR_57/3.32295e-6>1e-6 remains a native failure. Four
+official truncated outputs are restored from exact complete transport bytes;
+model reading of the complete originals is UNKNOWN. Final09 session is created
+but has empty output/null exit/unconfirmed CLI cleanup: no final inference or
+interpretation is claimed. The nested IN_PROGRESS trace is stale inside the
+terminal partial result. Same-session GUI AX text, owned Stop/process absence/
+native4098 closure and1071-file/217871995B exact local retention are verified.
+Remote raw backup remains UNKNOWN_NOT_UPLOADED. Record:
+benchmarks/records/20261002-openscience-structural-research05.json.
+
+The final prompt has361324 original bytes; the unquoted Windows command-line
+lower bound361752 exceeds32767. Native errno remains UNKNOWN. A bounded official
+stdin correction preserves the entire prompt and all nine records; pinned
+OpenScience4082 adds LF before stdin, so original and expected native text have
+separate hashes. Only unambiguous supported large run forms are admitted, with
+16KiB argv/16MiB text bounds. Legacy and ownership/source/model/session/tool/
+cancel/idle/default-guard gates remain. Frozen launcher80 (47 preserved+33 new),
+structural source127/native cold63 and independent source review PASS;19 originals
+unchanged/actual calls0. These source checks are not new official research or CI.
+Record: benchmarks/records/20261002-research-prompt-transport.json.
+
+Exact9d CI36942484187 remains8SUCCESS/2FAIL/source127PASS. Explicit download404/
+curl22 and Aster Fz outer assertion remain; internal CI native diagnostic UNKNOWN.
+NEXT publish the reviewed transport unit and start NEW clean research06 on that
+exact published source, same approved model/project and original question order.
+Verify complete final interpretation/GUI/owned Stop/new retention/independent
+review; then resolve Fz accuracy and roof convergence without relaxing limits.
+Full52/P2.2/UNKNOWN/NOT_RELEASED remain OPEN. Older next instructions below are
+historical; frozen05 start snapshot and all earlier partial records are preserved.
 
 Actual04/clean035 is CLOSED FAILED_OR_PARTIAL. Five questions/25 completed tool
 events/19 provider step-finish records create five records/15 native levels,

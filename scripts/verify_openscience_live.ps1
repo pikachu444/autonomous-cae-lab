@@ -6,12 +6,13 @@ param(
     [ValidatePattern('^[A-Za-z][A-Za-z0-9_-]{0,69}$')][string]$RunName = ('openscience-live-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmss')),
     [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$AttemptName = 'attempt-01',
     [string]$OwnerPath, [string]$StoreRoot, [string]$RuntimePrefix, [string]$ModelId,
+    [string]$PromptFixturePath,
     [ValidateRange(30,600)][int]$StageTimeoutSeconds = 300,
     [switch]$ConfigureOnly, [switch]$Resume, [switch]$RuntimeChecksOnly
 )
 $taskVerifyOptions=@{
     RepoRoot=$RepoRoot;RunName=$RunName;AttemptName=$AttemptName;OwnerPath=$OwnerPath;StoreRoot=$StoreRoot;RuntimePrefix=$RuntimePrefix
-    StageTimeoutSeconds=$StageTimeoutSeconds;ModelId=$ModelId;ConfigureOnly=[bool]$ConfigureOnly;Resume=[bool]$Resume;RuntimeChecksOnly=[bool]$RuntimeChecksOnly
+    StageTimeoutSeconds=$StageTimeoutSeconds;ModelId=$ModelId;PromptFixturePath=$PromptFixturePath;ConfigureOnly=[bool]$ConfigureOnly;Resume=[bool]$Resume;RuntimeChecksOnly=[bool]$RuntimeChecksOnly
 }
 . (Join-Path $PSScriptRoot 'openscience-local.ps1') -Library
 $ErrorActionPreference='Stop'
@@ -109,19 +110,27 @@ function Complete-OpenScienceAcceptanceRecord {
 }
 
 function Test-OpenScienceLocalLauncher {
-    param([string]$RepoRoot,[string]$RunName,[string]$RuntimePrefix)
+    param([string]$RepoRoot,[string]$RunName,[string]$RuntimePrefix,[string]$PromptFixturePath,
+        [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$CheckName='launcher-checks')
     # This is a no-provider historical transport fixture, not a research selection.
     $taskContextArgs=@{RepoRoot=$RepoRoot;RunName=$RunName;ProfileTag='launcher-checks';ModelId='openscience/qwen3-4b-ctx-16384'}
     if($RuntimePrefix){$taskContextArgs.RuntimePrefix=$RuntimePrefix}
     $taskMockContext=New-OpenScienceLocalContext @taskContextArgs
-    $taskChecksRoot=Join-Path $taskMockContext.ArtifactRoot 'launcher-checks'
+    $taskChecksRoot=Join-Path $taskMockContext.ArtifactRoot $CheckName
     if(Test-Path -LiteralPath $taskChecksRoot){throw 'Preserve previous launcher checks; use a new RunName.'}
     New-Item -ItemType Directory -Path $taskChecksRoot | Out-Null
     $taskFakeLauncher=Join-Path $taskChecksRoot 'mock-launcher.mjs'
     @'
 import fs from "node:fs";
+import {spawnSync} from "node:child_process";
+import {fileURLToPath} from "node:url";
 const argv=process.argv.slice(2);
 process.stdout.write(JSON.stringify({type:"user",argv})+"\n");
+if(argv[0]==="run"&&argv.at(-1)==="--"&&!argv.includes("--log-path")){
+  // Model the installed launcher's inherited FD0, not a provider/native solve.
+  const child=spawnSync(process.execPath,[fileURLToPath(new URL("mock-stdin-child.mjs",import.meta.url)),...argv],{stdio:"inherit",timeout:8000});
+  process.exit(child.status??3);
+}
 setTimeout(()=>{
   const path=argv[argv.indexOf("--log-path")+1];
   const readable=fs.readFileSync(path,"utf8").includes('"type":"user"');
@@ -132,6 +141,20 @@ setTimeout(()=>{
 // intentionally tests readable live logs, not short-process expiry races.
 },1500);
 '@ | Set-Content -LiteralPath $taskFakeLauncher -Encoding utf8
+    @'
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
+const argv=process.argv.slice(2);
+const directory=argv[argv.indexOf("--title")+1];
+const original=fs.readFileSync(0); // Returns only after FD0 EOF.
+const native=Buffer.concat([Buffer.from("\n"),original]); // Official4082 empty-typed semantics.
+const digest=value=>crypto.createHash("sha256").update(value).digest("hex");
+fs.writeFileSync(path.join(directory,"mock-received-stdin.bin"),original,{flag:"wx"});
+fs.writeFileSync(path.join(directory,"mock-expected-native-text.bin"),native,{flag:"wx"});
+process.stdout.write(JSON.stringify({type:"mock_stdin",eof:true,original_bytes:original.length,original_sha256:digest(original),expected_native_bytes:native.length,expected_native_sha256:digest(native),argv})+"\n");
+setTimeout(()=>process.exit(0),1500); // Keep the inherited-launcher CIM identity observable.
+'@ | Set-Content -LiteralPath (Join-Path $taskChecksRoot 'mock-stdin-child.mjs') -Encoding utf8
     $taskMockContext.LauncherPath=$taskFakeLauncher
     $taskMockContext | Add-Member -NotePropertyName OwnerPath -NotePropertyValue (Join-Path $taskChecksRoot 'mock-owner.json') -Force
     $taskMockContext | Add-Member -NotePropertyName RuntimeURL -NotePropertyValue 'http://127.0.0.1:4098' -Force
@@ -429,7 +452,126 @@ setTimeout(()=>{
             $taskWriteFailureSaved.completed_utc -and $taskWriteFailureSaved.store_inventory_write_error -and
             $taskWriteFailureSaved.store_inventory_status -eq 'WRITE_FAILED' -and $null -eq $taskWriteFailureSaved.store_file_count -and
             (Get-OpenScienceHash $taskLockedInventory) -eq $taskInventoryBefore) 'actual finalizer saves failure even when the inventory destination is locked and preserves prior bytes'
-        $taskCheckRecord=[ordered]@{outcome='PASS_LAUNCHER_MOCKS_ONLY';inference_performed=$false;mcp_mutations_performed=$false;tests=$taskTests;mock_http_receipts=$taskMockCalls;timeout_order=$taskMockOrder;completed_utc=[DateTime]::UtcNow.ToString('o')}
+        # Cold research-purpose transport uses only this synthetic/mock context.
+        # No auth, actual server, model, Core or solver is read/launched here.
+        $taskLegacyMock=$taskMockContext
+        $taskMockContext=[pscustomobject]($taskLegacyMock | ConvertTo-Json -Depth 35 | ConvertFrom-Json -AsHashtable)
+        $taskMockContext | Add-Member -NotePropertyName Purpose -NotePropertyValue 'Research' -Force
+        $taskMockContext | Add-Member -NotePropertyName ResearchDefinition -NotePropertyValue @{budgets=@{command_timeout_seconds=3600}} -Force
+        $taskMockContext.Model='openai-codex/synthetic-stdin-fixture'
+        $taskUtf8=[Text.UTF8Encoding]::new($false,$true)
+        $taskOriginalPrompt=if($PromptFixturePath){$taskUtf8.GetString([IO.File]::ReadAllBytes($PromptFixturePath))}else{'Synthetic public prompt '+('x'*361300)}
+        $taskPromptHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($taskUtf8.GetBytes($taskOriginalPrompt))).ToLowerInvariant()
+        $taskPromptFixture=[ordered]@{kind=$(if($PromptFixturePath){'explicit-read-only-fixture'}else{'synthetic-public-prompt'});path=$PromptFixturePath
+            bytes=$taskUtf8.GetByteCount($taskOriginalPrompt);sha256=$taskPromptHash}
+        if($taskPromptHash -ceq 'f90dc51dc51f3da7670063b4ed3cca99f5bfe9e28b7fb958984f2ab86b114987'){$taskPromptFixture.kind='retained-research05-original'}
+        $taskLargeDir=Join-Path $taskChecksRoot '08-large-stdin'
+        $taskLarge=Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--auto-approve','--autonomy','balanced','--deadline','3590','--title',$taskLargeDir,'--bare','--',$taskOriginalPrompt) -LogDirectory $taskLargeDir -TimeoutSeconds 8 -NoTools
+        $taskLargeRequest=Read-OpenScienceJson (Join-Path $taskLargeDir 'command-request.json')
+        $taskNativeMock=@([IO.File]::ReadLines($taskLarge.stdout_path) | ForEach-Object {$_ | ConvertFrom-Json -AsHashtable} | Where-Object type -eq 'mock_stdin')[0]
+        Assert-LauncherCheck ($taskLarge.exit_code -eq 0 -and -not $taskLarge.failure -and $taskLarge.workspace_default_guard_restored) 'large research stdin completes with normal guard restoration'
+        Assert-LauncherCheck ($taskLargeRequest.requested_arguments[-1] -ceq $taskOriginalPrompt -and $taskLarge.arguments[-1] -ceq $taskOriginalPrompt -and
+            $taskLargeRequest.arguments[-1] -ceq '--' -and $taskLarge.actual_arguments[-1] -ceq '--' -and
+            $taskLargeRequest.arguments.Count -eq $taskLargeRequest.requested_arguments.Count-1 -and
+            [Text.Json.Nodes.JsonNode]::DeepEquals([Text.Json.Nodes.JsonNode]::Parse(($taskLargeRequest.arguments|ConvertTo-Json -Compress)),[Text.Json.Nodes.JsonNode]::Parse(($taskNativeMock.argv|ConvertTo-Json -Compress)))) 'only final positional prompt leaves actual argv while requested argv stays exact'
+        Assert-LauncherCheck ((Get-OpenScienceHash $taskLarge.stdin.path) -ceq $taskPromptHash -and $taskLarge.stdin.bytes -eq $taskUtf8.GetByteCount($taskOriginalPrompt) -and
+            (Get-OpenScienceHash (Join-Path $taskLargeDir 'mock-received-stdin.bin')) -ceq $taskPromptHash -and $taskNativeMock.original_sha256 -ceq $taskPromptHash) 'entire original prompt byte identity reaches inherited mock child FD0'
+        Assert-LauncherCheck ($taskNativeMock.expected_native_sha256 -ceq $taskLarge.stdin.expected_native_sha256 -and
+            $taskNativeMock.expected_native_bytes -eq $taskLarge.stdin.bytes+1 -and $taskLarge.stdin.expected_native_prefix -ceq 'LF' -and
+            (Get-OpenScienceHash (Join-Path $taskLargeDir 'mock-expected-native-text.bin')) -ceq $taskLarge.stdin.expected_native_sha256 -and
+            $taskLarge.stdin.sha256 -cne $taskLarge.stdin.expected_native_sha256) 'official empty-typed LF plus original has separately bound expected native hash'
+        Assert-LauncherCheck ($taskNativeMock.eof -eq $true -and $taskLarge.log_relay_final.stdin_delivery_complete -eq $true -and
+            $taskLarge.log_relay_final.stdin_bytes -eq $taskLarge.stdin.bytes -and $taskLarge.log_relay_final.request_sha256 -ceq (Get-OpenScienceHash (Join-Path $taskLargeDir 'command-request.json'))) 'stdin EOF and immutable request linkage are confirmed before normal exit'
+        $taskUnicodePrompt=('한글🙂 "quotes" C:\space path\ literal $()'+"`r`n"+"Second line`n")*220
+        $taskUnicodeDir=Join-Path $taskChecksRoot '08-unicode-stdin'
+        $taskUnicode=Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--title',$taskUnicodeDir,'--bare','--',$taskUnicodePrompt) -LogDirectory $taskUnicodeDir -TimeoutSeconds 8 -NoTools
+        Assert-LauncherCheck ($taskUnicode.exit_code -eq 0 -and -not $taskUnicode.failure -and
+            [Convert]::ToHexString([IO.File]::ReadAllBytes((Join-Path $taskUnicodeDir 'mock-received-stdin.bin'))) -ceq [Convert]::ToHexString($taskUtf8.GetBytes($taskUnicodePrompt))) 'stdin preserves Unicode surrogate pairs quotes backslashes CRLF and LF bytes'
+        $taskArgRequest=Read-OpenScienceJson (Join-Path $taskArgDir 'command-request.json')
+        $taskNormalRequest=Read-OpenScienceJson (Join-Path $taskNormalDir 'command-request.json')
+        $taskArgSaved=Read-OpenScienceJson (Join-Path $taskArgDir 'command.json')
+        Assert-LauncherCheck (-not $taskArgRequest.Contains('stdin') -and -not $taskArgRequest.Contains('requested_arguments') -and
+            -not $taskNormalRequest.Contains('stdin') -and -not $taskArgSaved.Contains('actual_arguments') -and
+            -not $taskArgSaved.Contains('stdin') -and -not (Test-Path -LiteralPath (Join-Path $taskArgDir 'stdin-prompt.txt'))) 'short non-run and short run retain legacy request and command shapes with no stdin file'
+        foreach($taskLongCase in @('non-run','no-separator','multiple-prompts','earlier-positional','unknown-option','joined-option','remaining-argv')){
+            $taskLongDir=Join-Path $taskChecksRoot ('08-refuse-'+$taskLongCase)
+            $taskBadArgs=switch($taskLongCase){
+                'non-run' {@('probe','--',$taskOriginalPrompt)}
+                'no-separator' {@('run',$taskOriginalPrompt)}
+                'multiple-prompts' {@('run','--',$taskOriginalPrompt,'extra')}
+                'earlier-positional' {@('run','earlier','--',$taskOriginalPrompt)}
+                'unknown-option' {@('run','--file','foreign.txt','--',$taskOriginalPrompt)}
+                'joined-option' {@('run','--title=joined','--',$taskOriginalPrompt)}
+                'remaining-argv' {@('run','--title',('t'*17000),'--',$taskOriginalPrompt)}
+            }
+            $taskBad=Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments $taskBadArgs -LogDirectory $taskLongDir -TimeoutSeconds 8 -NoTools
+            Assert-LauncherCheck ($taskBad.failure -and -not (Test-Path -LiteralPath (Join-Path $taskLongDir 'relay-ready.json')) -and
+                -not (Test-Path -LiteralPath (Join-Path $taskLongDir 'stdin-prompt.txt')) -and -not $taskBad.workspace_default_guard_restored) "large $taskLongCase refuses instead of guessing transport"
+        }
+        $taskRelayValidationCount=0
+        function Invoke-StdinRelayRefusal([string]$Case){
+            $taskCaseDir=Join-Path $taskChecksRoot ('08-relay-'+$Case)
+            New-Item -ItemType Directory -Path $taskCaseDir | Out-Null
+            $taskCaseArgs=@('run','--title',$taskCaseDir,'--bare','--',$taskOriginalPrompt)
+            $taskCaseTransport=New-OpenScienceCommandTransport -Context $taskMockContext -Arguments $taskCaseArgs -LogDirectory $taskCaseDir
+            $taskCaseInput=$taskCaseTransport.Stdin
+            $taskCaseRequest=[ordered]@{kind='autonomous-cae-lab.openscience-command';log_directory=$taskCaseDir;repo_root=$RepoRoot
+                node_path=$taskMockContext.NodePath;launcher_path=$taskFakeLauncher;launcher_sha256=(Get-OpenScienceHash $taskFakeLauncher)
+                run_name=$RunName;session_id='ses_mock123';arguments=$taskCaseTransport.Arguments;requested_arguments=$taskCaseArgs;stdin=$taskCaseInput}
+            switch($Case){
+                'tampered-bytes' {[IO.File]::AppendAllText($taskCaseInput.path,'changed',$taskUtf8)}
+                'missing-file' {Move-Item -LiteralPath $taskCaseInput.path -Destination (Join-Path $taskCaseDir 'preserved-input.txt')}
+                'foreign-file' {$taskCaseInput.path=$taskLarge.stdin.path}
+                'traversal' {$taskCaseInput.path=Join-Path $taskCaseDir '../08-large-stdin/stdin-prompt.txt'}
+                'alternate-name' {$taskCaseInput.path=Join-Path $taskCaseDir 'other.txt'}
+                'relative-path' {$taskCaseInput.path='stdin-prompt.txt'}
+                'alternate-stream' {$taskCaseInput.path+=':other'}
+                'directory-reparse' {
+                    Move-Item -LiteralPath $taskCaseInput.path -Destination (Join-Path $taskCaseDir 'preserved-input.txt')
+                    New-Item -ItemType Junction -Path $taskCaseInput.path -Target $taskLargeDir | Out-Null
+                }
+                'hardlinked-file' {New-Item -ItemType HardLink -Path (Join-Path $taskCaseDir 'extra-link.txt') -Target $taskCaseInput.path | Out-Null}
+                'wrong-sha' {$taskCaseInput.sha256='0'*64}
+                'wrong-size' {$taskCaseInput.bytes++}
+                'wrong-wire-sha' {$taskCaseInput.expected_native_sha256='0'*64}
+                'wrong-wire-prefix' {$taskCaseInput.expected_native_prefix='NONE'}
+                'malformed-stdin' {$taskCaseRequest.stdin=$null}
+                'missing-stdin-field' {$taskCaseInput.Remove('sha256')}
+                'unknown-stdin-field' {$taskCaseInput['other']='untrusted'}
+                'invalid-utf8' {
+                    $taskInvalidBytes=[byte[]](0xff,0xfe,0xfd)
+                    [IO.File]::WriteAllBytes($taskCaseInput.path,$taskInvalidBytes)
+                    $taskCaseInput.bytes=$taskInvalidBytes.Length
+                    $taskCaseInput.sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($taskInvalidBytes)).ToLowerInvariant()
+                }
+                'foreign-requested-prompt' {$taskCaseRequest.requested_arguments=@($taskCaseArgs[0..($taskCaseArgs.Count-2)])+@('foreign prompt')}
+                'synchronous-spawn-error' {$taskCaseRequest.node_path='invalid'+[char]0+'node'}
+            }
+            Write-OpenScienceJson (Join-Path $taskCaseDir 'command-request.json') $taskCaseRequest -CreateNew
+            [IO.File]::WriteAllText((Join-Path $taskCaseDir 'command-relay.mjs'),(Get-OpenScienceCommandRelaySource),$taskUtf8)
+            $taskCaseInfo=New-OpenScienceLocalProcessInfo -Context $taskMockContext -Arguments @('--version')
+            $taskCaseInfo.ArgumentList.Clear();$taskCaseInfo.ArgumentList.Add((Join-Path $taskCaseDir 'command-relay.mjs'));$taskCaseInfo.ArgumentList.Add((Join-Path $taskCaseDir 'command-request.json'))
+            $taskCaseProcess=[Diagnostics.Process]::new();$taskCaseProcess.StartInfo=$taskCaseInfo
+            try{
+                if(-not $taskCaseProcess.Start()){throw 'Known no-provider relay fixture did not start.'}
+                if(-not $taskCaseProcess.WaitForExit(5000)){throw 'Known no-provider validation relay exceeded test bound.'}
+                $taskCaseFailure=Read-OpenScienceJson (Join-Path $taskCaseDir 'relay-final.json')
+                $taskExpectedRelayError=if($Case -eq 'synchronous-spawn-error'){'COMMAND_SPAWN_REFUSED'}else{'COMMAND_STDIN_REFUSED'}
+                Assert-LauncherCheck ($taskCaseProcess.ExitCode -ne 0 -and $taskCaseFailure.error -ceq $taskExpectedRelayError -and
+                    $null -eq $taskCaseFailure.launcher_pid -and -not (Test-Path -LiteralPath (Join-Path $taskCaseDir 'relay-ready.json')) -and
+                    (Get-Item -LiteralPath (Join-Path $taskCaseDir 'stdout.jsonl')).Length -eq 0 -and
+                    $taskCaseFailure.request_sha256 -ceq (Get-OpenScienceHash (Join-Path $taskCaseDir 'command-request.json'))) "relay rejects $Case before launcher and retains hash-bound failure"
+            }finally{$taskCaseProcess.Dispose()}
+        }
+        foreach($taskRelayCase in @('tampered-bytes','missing-file','foreign-file','traversal','alternate-name','relative-path','alternate-stream','directory-reparse','hardlinked-file','wrong-sha','wrong-size','wrong-wire-sha','wrong-wire-prefix','malformed-stdin','missing-stdin-field','unknown-stdin-field','invalid-utf8','foreign-requested-prompt','synchronous-spawn-error')){
+            Invoke-StdinRelayRefusal $taskRelayCase
+            $taskRelayValidationCount++
+        }
+        $taskMockContext=$taskLegacyMock
+        $taskCheckRecord=[ordered]@{outcome='PASS_LAUNCHER_MOCKS_ONLY';inference_performed=$false;mcp_mutations_performed=$false;tests=$taskTests;mock_http_receipts=$taskMockCalls;timeout_order=$taskMockOrder
+            prompt_fixture=$taskPromptFixture;local_mock_launcher_processes=@(Get-ChildItem -LiteralPath $taskChecksRoot -Recurse -Filter 'relay-ready.json' -File).Count
+            local_mock_inherited_stdin_children=2;local_validation_relay_processes=$taskRelayValidationCount
+            provider_calls=0;model_calls=0;core_calls=0;solver_calls=0;actual_http_calls=0;actual_auth_reads_or_changes=0;completed_utc=[DateTime]::UtcNow.ToString('o')}
         $taskCheckRecord | ConvertTo-Json -Depth 25 | Set-Content -LiteralPath (Join-Path $taskChecksRoot 'checks.json') -Encoding utf8
         Write-Host "Launcher checks=$($taskTests.Count) PASS; no inference; evidence=$taskChecksRoot"
     } catch {
@@ -439,7 +581,7 @@ setTimeout(()=>{
     }
 }
 if($taskVerifyOptions.RuntimeChecksOnly){
-    Test-OpenScienceLocalLauncher -RepoRoot $RepoRoot -RunName $RunName -RuntimePrefix $taskVerifyOptions.RuntimePrefix
+    Test-OpenScienceLocalLauncher -RepoRoot $RepoRoot -RunName $RunName -RuntimePrefix $taskVerifyOptions.RuntimePrefix -PromptFixturePath $taskVerifyOptions.PromptFixturePath
     return
 }
 if($taskVerifyOptions.ConfigureOnly){

@@ -18,6 +18,61 @@ $taskFacade = @{
 }
 . (Join-Path $PSScriptRoot 'openscience-server-local.ps1') -Library
 
+function Measure-OpenScienceCommandTransport {
+    param([string[]]$Arguments)
+    $taskUtf8=[Text.UTF8Encoding]::new($false,$true)
+    [long]$taskBound=0
+    foreach($taskArgument in $Arguments){
+        # Conservative quoting/escaping and UTF16/UTF8 bounds, including spaces
+        # and terminators. 16KiB is a general transport budget, not a run limit.
+        $taskBound += [Math]::Max(2L*$taskUtf8.GetByteCount($taskArgument)+3,4L*$taskArgument.Length+6)
+    }
+    return $taskBound
+}
+
+function New-OpenScienceCommandTransport {
+    param($Context,[string[]]$Arguments,[string]$LogDirectory)
+    $taskTransport=[pscustomobject]@{Arguments=@($Arguments);Stdin=$null}
+    $taskInvocation=@($Context.NodePath,$Context.LauncherPath)+@($Arguments)
+    if((Measure-OpenScienceCommandTransport $taskInvocation) -le 16384){return $taskTransport}
+    $taskSeparator=[array]::IndexOf($Arguments,'--')
+    Assert-OpenScienceCondition ($Arguments[0] -ceq 'run' -and $taskSeparator -eq $Arguments.Count-2 -and
+        @($Arguments | Where-Object {$_ -ceq '--'}).Count -eq 1) 'Large commands require one final run prompt after a single separator.'
+    # Only source-supported option arities are accepted. An earlier positional
+    # message, file/command input, joined option or unknown option is ambiguous.
+    $taskValues=@('--attach','--session','-s','--workspace','--agent','--model','--delegation','--format','--autonomy','--deadline','--title')
+    $taskFlags=@('--bare','--auto-approve','--deny-prompts')
+    $taskSeen=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    for($taskAt=1;$taskAt -lt $taskSeparator;$taskAt++){
+        $taskOption=$Arguments[$taskAt]
+        Assert-OpenScienceCondition ($taskSeen.Add($taskOption)) 'Large run options must be unique.'
+        if($taskOption -cin $taskValues){
+            $taskAt++
+            Assert-OpenScienceCondition ($taskAt -lt $taskSeparator -and -not [string]::IsNullOrEmpty($Arguments[$taskAt])) 'Large run option requires a separate value.'
+        } else { Assert-OpenScienceCondition ($taskOption -cin $taskFlags) 'Large run has an unsupported or positional input before its prompt.' }
+    }
+    $taskActual=@($Arguments | Select-Object -First ($Arguments.Count-1))
+    Assert-OpenScienceCondition ((Measure-OpenScienceCommandTransport (@($Context.NodePath,$Context.LauncherPath)+$taskActual)) -le 16384) 'Remaining command arguments exceed the general transport budget.'
+    $taskPrompt=$Arguments[-1]
+    Assert-OpenScienceCondition (-not $taskPrompt.Contains([char]0)) 'Large prompt contains an invalid transport character.'
+    $taskBytes=[Text.UTF8Encoding]::new($false,$true).GetBytes($taskPrompt)
+    Assert-OpenScienceCondition ($taskBytes.Length -gt 0 -and $taskBytes.Length -le 16777216) 'Large prompt exceeds the general16MiB text transport bound.'
+    $taskDirectory=Assert-OpenScienceContainedPath $LogDirectory $Context.ArtifactRoot
+    Assert-OpenScienceCondition ($taskDirectory -ceq $LogDirectory) 'Command transport directory must be canonical.'
+    $taskPath=Assert-OpenScienceContainedPath (Join-Path $taskDirectory 'stdin-prompt.txt') $taskDirectory
+    $taskStream=[IO.FileStream]::new($taskPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::Read)
+    try{$taskStream.Write($taskBytes);$taskStream.Flush($true)}finally{$taskStream.Dispose()}
+    $taskSha=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($taskBytes)).ToLowerInvariant()
+    # Official4082 run.ts834-836 prepends LF when its typed message is empty.
+    # This is expected native text, not an observed provider/wire receipt.
+    $taskWire=[byte[]]::new($taskBytes.Length+1);$taskWire[0]=10;[array]::Copy($taskBytes,0,$taskWire,1,$taskBytes.Length)
+    $taskTransport.Arguments=$taskActual
+    $taskTransport.Stdin=[ordered]@{schema=1;kind='autonomous-cae-lab.openscience-command-stdin';path=$taskPath
+        bytes=$taskBytes.Length;sha256=$taskSha;expected_native_prefix='LF';expected_native_bytes=$taskWire.Length
+        expected_native_sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($taskWire)).ToLowerInvariant()}
+    return $taskTransport
+}
+
 function Get-OpenScienceCommandRelaySource {
     # The official CLI owns real file descriptors, not pipes in the caller.
     # An unconfirmed abort may return without closing a live CLI's output.
@@ -43,22 +98,61 @@ const write=(name,value)=>{
 };
 const out=fs.openSync(path.join(directory,'stdout.jsonl'),'wx');
 const err=fs.openSync(path.join(directory,'stderr.txt'),'wx');
-const child=spawn(request.node_path,[request.launcher_path,...request.arguments],{
-  cwd:request.project_directory??request.repo_root,shell:false,windowsHide:true,stdio:['ignore',out,err]
-});
-const common={request_sha256:digest(requestBytes),supervisor_pid:process.pid,launcher_pid:child.pid||null,
+const common={request_sha256:digest(requestBytes),supervisor_pid:process.pid,launcher_pid:null,
   run_name:request.run_name,session_id:request.session_id||null,log_directory:directory};
-let finished=false;
-child.once('spawn',()=>write('relay-ready.json',{...common,state:'started',created_utc:new Date().toISOString()}));
+let finished=false,stdinBytes=null,stdinDelivered=false,stdinError=null;
 const finish=(code,signal,error)=>{
   if(finished)return;finished=true;
+  if(stdinBytes!==null){
+    if(!error&&code===0&&(!stdinDelivered||stdinError)){code=null;error='COMMAND_STDIN_DELIVERY_REFUSED';}
+    common.stdin_sha256=digest(stdinBytes);common.stdin_bytes=stdinBytes.length;common.stdin_delivery_complete=stdinDelivered&&!stdinError;
+  }
   fs.fsyncSync(out);fs.fsyncSync(err);fs.closeSync(out);fs.closeSync(err);
   write('relay-final.json',{...common,state:'exited',exit_code:code,signal:signal||null,error:error||null,
     stdout_sha256:digest(fs.readFileSync(path.join(directory,'stdout.jsonl'))),
     stderr_sha256:digest(fs.readFileSync(path.join(directory,'stderr.txt'))),completed_utc:new Date().toISOString()});
 };
-child.once('error',error=>finish(null,null,error.message));
-child.once('exit',(code,signal)=>finish(code,signal,null));
+const noLinks=target=>{
+  for(let at=target;;at=path.dirname(at)){
+    assert.ok(!fs.lstatSync(at).isSymbolicLink());
+    if(path.dirname(at)===at)break;
+  }
+};
+if(Object.hasOwn(request,'stdin')){
+  try{
+    const input=request.stdin;
+    assert.ok(input&&typeof input==='object'&&!Array.isArray(input));
+    assert.deepEqual(Object.keys(input).sort(),['schema','kind','path','bytes','sha256','expected_native_prefix','expected_native_bytes','expected_native_sha256'].sort());
+    assert.equal(input.schema,1);assert.equal(input.kind,'autonomous-cae-lab.openscience-command-stdin');
+    assert.equal(input.path,path.join(directory,'stdin-prompt.txt'));assert.ok(path.isAbsolute(input.path));
+    noLinks(input.path);
+    const info=fs.lstatSync(input.path);assert.ok(info.isFile()&&info.nlink===1);
+    assert.ok(Number.isSafeInteger(input.bytes)&&input.bytes>0&&input.bytes<=16777216);assert.equal(info.size,input.bytes);
+    assert.match(input.sha256,/^[0-9a-f]{64}$/);assert.equal(input.expected_native_prefix,'LF');
+    const fd=fs.openSync(input.path,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW);
+    try{const opened=fs.fstatSync(fd);assert.ok(opened.isFile()&&opened.nlink===1&&opened.size===input.bytes);stdinBytes=fs.readFileSync(fd);}finally{fs.closeSync(fd);}
+    assert.equal(stdinBytes.length,input.bytes);assert.equal(digest(stdinBytes),input.sha256);
+    const text=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(stdinBytes);assert.ok(!text.includes('\0'));
+    assert.equal(request.arguments[0],'run');assert.equal(request.arguments.at(-1),'--');
+    assert.deepEqual(request.requested_arguments,[...request.arguments,text]);
+    assert.equal(input.expected_native_bytes,input.bytes+1);assert.equal(input.expected_native_sha256,digest(Buffer.concat([Buffer.from('\n'),stdinBytes])));
+  }catch{finish(null,null,'COMMAND_STDIN_REFUSED');process.exit(1);}
+}
+try{
+  const child=spawn(request.node_path,[request.launcher_path,...request.arguments],{
+    cwd:request.project_directory??request.repo_root,shell:false,windowsHide:true,stdio:[stdinBytes===null?'ignore':'pipe',out,err]
+  });
+  common.launcher_pid=child.pid||null;
+  child.once('spawn',()=>write('relay-ready.json',{...common,state:'started',created_utc:new Date().toISOString()}));
+  child.once('error',()=>finish(null,null,'COMMAND_SPAWN_REFUSED'));
+  child.once('exit',(code,signal)=>finish(code,signal,null));
+  if(stdinBytes!==null){
+    // Deliver the verified snapshot once. The official launcher inherits FD0;
+    // end closes it cleanly, including Unicode and embedded newlines unchanged.
+    child.stdin.once('error',()=>{stdinError='COMMAND_STDIN_DELIVERY_REFUSED';});
+    child.stdin.end(stdinBytes,()=>{stdinDelivered=true;});
+  }
+}catch{finish(null,null,'COMMAND_SPAWN_REFUSED');process.exit(1);}
 '@
 }
 
@@ -221,18 +315,22 @@ function Invoke-OpenScienceLocalCommand {
     }
     $taskOutPath=Join-Path $LogDirectory 'stdout.jsonl'; $taskErrPath=Join-Path $LogDirectory 'stderr.txt'
     $taskProcess=$null; $taskRelayIdentity=$null; $taskRelayFinal=$null; $taskRelayReady=$null
+    $taskTransport=$null
     $taskRelayPath=Join-Path $LogDirectory 'command-relay.mjs'; $taskRequestPath=Join-Path $LogDirectory 'command-request.json'
     $taskRelayReadyPath=Join-Path $LogDirectory 'relay-ready.json'; $taskRelayFinalPath=Join-Path $LogDirectory 'relay-final.json'
     $taskWatch=[Diagnostics.Stopwatch]::StartNew(); $taskTimedOut=$false; $taskIdentity=$null; $taskExit=$null; $taskStop=$null
     try {
         # Validate the complete official invocation before preparing its relay.
         $taskStart=New-OpenScienceLocalProcessInfo -Context $Context -Arguments $taskArgs
+        $taskTransport=New-OpenScienceCommandTransport -Context $Context -Arguments $taskArgs -LogDirectory $LogDirectory
         [IO.File]::WriteAllText($taskRelayPath,(Get-OpenScienceCommandRelaySource),[Text.UTF8Encoding]::new($false))
-        Write-OpenScienceJson $taskRequestPath ([ordered]@{kind='autonomous-cae-lab.openscience-command';run_name=$Context.RunName
+        $taskRequest=[ordered]@{kind='autonomous-cae-lab.openscience-command';run_name=$Context.RunName
             repo_root=$Context.RepoRoot;log_directory=$LogDirectory;node_path=$Context.NodePath;launcher_path=$Context.LauncherPath
             project_directory=(Get-OpenScienceProjectDirectory $Context);project_id=$(if($Context.ProjectBinding){$Context.ProjectBinding.project_id}else{$null})
-            launcher_sha256=(Get-OpenScienceHash $Context.LauncherPath);arguments=$taskArgs;session_id=$taskSessionId
-            server_boot_source_sha256=$Context.BootSourceSha256;server_boot_source_commit=$Context.BootSource.source_commit}) -CreateNew
+            launcher_sha256=(Get-OpenScienceHash $Context.LauncherPath);arguments=$taskTransport.Arguments;session_id=$taskSessionId
+            server_boot_source_sha256=$Context.BootSourceSha256;server_boot_source_commit=$Context.BootSource.source_commit}
+        if($taskTransport.Stdin){$taskRequest['stdin']=$taskTransport.Stdin;$taskRequest['requested_arguments']=$taskArgs}
+        Write-OpenScienceJson $taskRequestPath $taskRequest -CreateNew
         $taskRequestHash=Get-OpenScienceHash $taskRequestPath
         if($taskArgs[0] -eq 'run'){
             Write-OpenScienceJson (Join-Path $Context.ProfileRoot 'runtime-command-pending.json') ([ordered]@{
@@ -297,6 +395,15 @@ function Invoke-OpenScienceLocalCommand {
             foreach($taskLog in @(@('stdout.jsonl','stdout_sha256'),@('stderr.txt','stderr_sha256'))){
                 Assert-OpenScienceCondition ((Get-OpenScienceHash (Join-Path $LogDirectory $taskLog[0])) -eq $taskRelayFinal.($taskLog[1])) 'Final output bytes changed.'
             }
+            if($taskTransport.Stdin){
+                Assert-OpenScienceContainedPath $taskTransport.Stdin.path $LogDirectory | Out-Null
+                Assert-OpenScienceCondition ((Get-Item -LiteralPath $taskTransport.Stdin.path).Length -eq $taskTransport.Stdin.bytes -and
+                    (Get-OpenScienceHash $taskTransport.Stdin.path) -ceq $taskTransport.Stdin.sha256) 'Retained command stdin bytes changed.'
+                if(-not $taskRelayFinal.error){
+                    Assert-OpenScienceCondition ($taskRelayFinal.stdin_delivery_complete -eq $true -and
+                        $taskRelayFinal.stdin_bytes -eq $taskTransport.Stdin.bytes -and $taskRelayFinal.stdin_sha256 -ceq $taskTransport.Stdin.sha256) 'Command stdin delivery is not confirmed.'
+                }
+            }
             $taskExit=$taskRelayFinal.exit_code
             if($taskRelayFinal.error){throw $taskRelayFinal.error}
             if(-not $taskTimedOut -and $null -eq $taskExit){throw 'CLI did not report a normal exit code.'}
@@ -332,6 +439,7 @@ function Invoke-OpenScienceLocalCommand {
         stderr_sha256=$(if(Test-Path -LiteralPath $taskErrPath){Get-OpenScienceLiveHash $taskErrPath}); runtime_owner=$Context.OwnerPath
         server_boot_source_sha256=$Context.BootSourceSha256;server_boot_source_commit=$Context.BootSource.source_commit
     }
+    if($taskTransport -and $taskTransport.Stdin){$taskRecord['actual_arguments']=$taskTransport.Arguments;$taskRecord['stdin']=$taskTransport.Stdin}
     $taskRecord | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $LogDirectory 'command.json') -Encoding utf8
     return [pscustomobject]$taskRecord
 }

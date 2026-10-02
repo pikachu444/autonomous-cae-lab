@@ -1,0 +1,121 @@
+{
+  "schema_version": "1",
+  "record_kind": "BOUNDED_COMPLETE_RESEARCH_PROMPT_TRANSPORT_SOURCE_ADMISSION",
+  "created_utc": "2026-10-02T01:15:33.709879+00:00",
+  "unit": "P2.2",
+  "source_base_commit": "f247526d0c59f624040ee0575393ad8ed0057145",
+  "source_admission": "PASS_SOURCE_ONLY",
+  "reviewed_changed_files": [
+    {
+      "path": "scripts/openscience-local.ps1",
+      "bytes": 37494,
+      "sha256": "a8d8e6988f4bc4b57f789f3b6d245d020fa3228e0b3a063182721717ddb729c1"
+    },
+    {
+      "path": "scripts/verify_openscience_live.ps1",
+      "bytes": 80969,
+      "sha256": "9c3a53f3cebfab34c965f4ee7ce6a451f0767010b5ad6646250f2b978d0aa545"
+    }
+  ],
+  "problem": "Actual research05 final interpretation requests 361324 original prompt bytes in one Windows argv argument. The unquoted command-line lower bound is 361752 characters, exceeding32767. No native errno or final model response was captured; original run remains FAILED_OR_PARTIAL.",
+  "preserved_actual05": {
+    "path": "benchmarks/records/20261002-openscience-structural-research05.json",
+    "bytes": 57900,
+    "sha256": "69844ff77177c2218d1667cc1c258586f2fa663a60012f42a83d318088a5f8b4"
+  },
+  "official_diagnosis": {
+    "path": "artifacts/p2-research-final-prompt-diagnosis-20261002-01/diagnosis.json",
+    "bytes": 28448,
+    "sha256": "240b94329fb207573f8d4f0f4b502594a9a2da4fc748699d27271045b89dfc59"
+  },
+  "transport": {
+    "route": "Only supported unambiguous run options followed by one final prompt after --; prompt alone moves from actual argv to official inherited FD0.",
+    "requested_arguments": "Complete original argv retained in immutable request; no record, question, setting, threshold or prompt content removed.",
+    "argv_budget": 16384,
+    "text_byte_bound": 16777216,
+    "buffer": "Exclusive UTF8 prompt file; contained regular single-link input, exact size/hash and immutable-request binding; verified snapshot Buffer delivered once with EOF. Unsupported/ambiguous large commands fail closed.",
+    "official_text_semantics": "Pinned4082 empty typed message adds LF before stdin. Original input and expected LF+input have separate sizes/hashes. Expected native text is not an observed provider wire receipt.",
+    "original_saved_prompt_bytes": 361324,
+    "original_saved_prompt_sha256": "f90dc51dc51f3da7670063b4ed3cca99f5bfe9e28b7fb958984f2ab86b114987",
+    "expected_native_bytes": 361325,
+    "expected_native_sha256": "0b129e70032c5f5dac5c007a1bbaba5ef8cafb619d06d799f11c02178c79fb27",
+    "errors": "Synchronous/asynchronous spawn and stdin delivery errors retain bounded immutable-request-linked final output receipts; no automatic retry or model fallback.",
+    "unchanged": "Small/non-run legacy keys/stdio and model/project/source/session/tool budgets/delegation/bare/timeout/cancel-before-stop/idle/pending/default-guard/output-hash gates."
+  },
+  "source_proof": {
+    "launcher_checks": 80,
+    "preserved_launcher_checks": 47,
+    "new_launcher_checks": 33,
+    "structural_source_checks": 127,
+    "native_cold_checks": 63,
+    "protected_original_files": 19,
+    "protected_original_files_unchanged": true,
+    "proof": {
+      "path": "artifacts/p2-research-prompt-transport-source-20261002-01/frozen/cold-proof.json",
+      "bytes": 3364,
+      "sha256": "1929591fa6becf5bfcb49933618bd4987f7211dbba5989aa9ec0fc4210173dd6"
+    },
+    "launcher": {
+      "path": "artifacts/p2-research-prompt-transport-source-20261002-01/launcher-checks-final/checks.json",
+      "bytes": 28282,
+      "sha256": "52cb7d705888f5a4b5dcfe70614f165e0e1ddefabc217fc3e6a1b78ecd4fc164"
+    },
+    "structural_source": {
+      "path": "artifacts/p2-research-prompt-transport-source-20261002-01/frozen/source127.json",
+      "bytes": 123529,
+      "sha256": "78ab87c5746df63645327125c8fef915f81184e381bf5c7228415ed72c676d0e"
+    },
+    "native_cold": {
+      "path": "artifacts/p2-research-prompt-transport-source-20261002-01/frozen/native63.json",
+      "bytes": 4577,
+      "sha256": "32e8262cfbf696c267d5fb123c4d9784c694d887d3ac58d62c5565044cc9953c"
+    },
+    "diff": {
+      "path": "artifacts/p2-research-prompt-transport-source-20261002-01/frozen/source.diff",
+      "bytes": 33375,
+      "sha256": "feb19d14f068a18e0b1861562222f64d8f4e7302c6ce9fa22768de2e33916c9a"
+    },
+    "evidence_manifest": {
+      "path": "artifacts/p2-research-prompt-transport-source-20261002-01/frozen/evidence-hashes.json",
+      "bytes": 2775,
+      "sha256": "59bb07d98b9b53d396648d6c4dab0dd7bdee30a7537b1d23de1a319a76ba00f2"
+    },
+    "actual_calls": {
+      "http": 0,
+      "model": 0,
+      "solver": 0,
+      "actual_auth": 0,
+      "provider": 0,
+      "core": 0
+    },
+    "local_mock_counts_final_run": {
+      "local_mock_launcher_processes": 8,
+      "local_mock_inherited_stdin_children": 2,
+      "local_validation_relay_processes": 19
+    },
+    "history": "Attempt01 74PASS retained; final attempt02 80PASS on frozen bytes. These are source/mock checks, not official native runtime or solver acceptance."
+  },
+  "independent_source_review": {
+    "status": "PASS_READ_ONLY_SOURCE_REVIEW",
+    "evidence": {
+      "path": "artifacts/p2-research-prompt-transport-review-20261002-01/independent-review.json",
+      "bytes": 12994,
+      "sha256": "99171eb10957f90a540d5fddf7576561e78e7b2c2efb5689f62f6ecafb4c0399"
+    }
+  },
+  "independent_public_actual05_reconciliation": {
+    "status": "PASS_BOUNDED_PUBLIC_ACTUAL05_RECORD_RECONCILIATION",
+    "evidence": {
+      "path": "artifacts/p2-structural-research-actual-review-20261002-05/public-record-review.json",
+      "bytes": 33575,
+      "sha256": "972d5aee9cf4bf784b82bb042884e6f35bb166a94dcfecec714d7fb5fa938756"
+    }
+  },
+  "new_source_exact_CI": "NOT_RUN_AT_THIS_SOURCE_ADMISSION",
+  "new_actual_research06": "NOT_RUN_AT_THIS_SOURCE_ADMISSION",
+  "scientific_scope": "No Core/domain/adapter/specification/schema/fixture/ADR/numerical threshold change. Failed beam and rejected roof records are unchanged. All unknown engineering qualifications prevent release.",
+  "decision": "NOT_RELEASED",
+  "full_52_requirements": "OPEN",
+  "P2.2": "OPEN",
+  "next": "Commit/push reviewed transport unit; advance clean managed source to exact published commit. Start fresh research06 profile/store, approved5.6Sol/same project and original nine-question order; audit final complete stdin lifecycle and interpretation separately from numerical outcomes. Preserve all failed/invalid metrics, close Stop/retention/review, then resolve original numerical gates sequentially."
+}
