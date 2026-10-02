@@ -2,6 +2,11 @@
 
 ## Current D3.3 source and D3.2 mathematical qualification checkpoint
 
+Exact vector source `6c8b2ba98bc97e3bfc5956869cd4ac4f07aadcdb` is confirmed
+on main; exact CI37028286238 IN_PROGRESS. Receipt:
+`benchmarks/records/20261002-vector-pde-publication.json`. Following publication
+documentation does not create a new solver verification.
+
 D3.3 vector/directed boundary/reference fields integrate through existing Core
 with84 distinct focused PASS and independent16-file source review0 P1/P2.
 Record: `benchmarks/records/20261002-vector-pde-development.json`.

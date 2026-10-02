@@ -6,8 +6,10 @@ Vector backend `pde.fenicsx.vector`, Domain reference/verdict, worker/native
 bindings, common registry/experimental presets and independent full-field
 acceptance runner are implemented.84 distinct focused checks PASS (53+31),
 13 Python syntax files PASS; independent16-file source review0 P1/P2. Record:
-`benchmarks/records/20261002-vector-pde-development.json`. Source base af6f818;
-publication record supplies the resulting exact source/main push/CI.
+`benchmarks/records/20261002-vector-pde-development.json`. Exact source `6c8b2ba98bc97e3bfc5956869cd4ac4f07aadcdb` is confirmed on main;
+CI37028286238 is IN_PROGRESS, not a native PASS. Receipt:
+`benchmarks/records/20261002-vector-pde-publication.json`. Following documentation
+is not new source/native verification.
 No vector native solver execution yet. Frozen PDE_VECTOR_PACKET/ADR0021 keep
 criteria .04 vector L2/.8 gradient-H1, all vector/component rates1.8/.9 and
 actual constrained residual1e-10. Runner's6 accepted/3 numerical negatives/

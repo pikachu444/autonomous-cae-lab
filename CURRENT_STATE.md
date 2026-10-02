@@ -8,8 +8,10 @@ and aggregate verdicts, complete native fields/binding/partial progress and
 actual constrained residual source.84 distinct focused checks PASS (53 writer
 +31 Root); independent16-file source review closes with0 P1/P2. Actual native
 form/layout/BC/XDMF metadata checks perform no solve. Record:
-`benchmarks/records/20261002-vector-pde-development.json`. Source base af6f818;
-exact source commit, confirmed main push and CI are recorded after publication.
+`benchmarks/records/20261002-vector-pde-development.json`. Exact source `6c8b2ba98bc97e3bfc5956869cd4ac4f07aadcdb` is confirmed pushed
+to main. Exact CI37028286238 is IN_PROGRESS at observation, not a native PASS.
+Receipt: `benchmarks/records/20261002-vector-pde-publication.json`. Following
+publication documentation is not a new source/native verification.
 Vector native acceptance NOT_RUN; official Research NOT_ADMITTED; field GUI
 NOT_RUN. Model/physical qualification UNKNOWN and NOT_RELEASED remain.
 

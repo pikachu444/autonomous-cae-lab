@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0",
+  "kind": "D3.3 vector PDE exact source publication",
+  "created_utc": "2026-10-02T15:41:16.298659+00:00",
+  "source_commit": "6c8b2ba98bc97e3bfc5956869cd4ac4f07aadcdb",
+  "confirmed_source_remote_main": "6c8b2ba98bc97e3bfc5956869cd4ac4f07aadcdb",
+  "source_push": "CONFIRMED",
+  "source_working_tree_after_push": "CLEAN",
+  "source_commit_subject": "feat: integrate vector weak forms and directed field checks",
+  "source_ci": [
+    {
+      "conclusion": "",
+      "createdAt": "2026-10-02T15:37:27Z",
+      "databaseId": 37028286238,
+      "headSha": "6c8b2ba98bc97e3bfc5956869cd4ac4f07aadcdb",
+      "status": "in_progress",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37028286238",
+      "workflowName": "CAE Lab verification"
+    }
+  ],
+  "ci_scope": "Exact implementation source CI IN_PROGRESS at observation; no new actual vector native qualification yet. Following publication-only documentation is not a new solver verification.",
+  "source_checks": {
+    "distinct_passed": 84,
+    "writer_passed": 53,
+    "root_passed": 31,
+    "independent_source_review_open_P1": 0,
+    "independent_source_review_open_P2": 0,
+    "reviewed_LF_files_match_staged_blobs": 16,
+    "original_requirement_texts_preserved": 52,
+    "protected_legacy_sources_unchanged": 17,
+    "source_commit_file_count": 27
+  },
+  "source_records_git_LF_sha256": {
+    "benchmarks/records/20261002-vector-pde-development.json": "1ea89775bb45bb234c0a5fc140036470d1db37b0fa784b37d692fcd6df58c84c",
+    "benchmarks/records/20261002-transient-pde-native-ci.json": "df8af1d9127be5bbc45df29503081b64cc6bec48768fc72668fb8c52541024d7",
+    "benchmarks/records/20261002-transient-pde-ci-completed.json": "4b12e845c1f225709bd68c0a68074ebd39d12844621257ccca892403377addf7"
+  },
+  "retained_local_proofs": [
+    {
+      "path": "artifacts/development-pde-vector-20261002-01/staged-checkpoint.json",
+      "sha256": "3ca29ab6a22040446c50fb6b3e203e25940568918c534cb1328f36f68d881a3b",
+      "size_bytes": 2163
+    },
+    {
+      "path": "artifacts/development-pde-vector-20261002-01/source-ci-publication-observation.json",
+      "sha256": "1aa14a762d5df90c71ec9207f7941568e6a3ae8cfe3bbf71d2c65982d1323bcb",
+      "size_bytes": 974
+    },
+    {
+      "path": "artifacts/development-pde-vector-20261002-01/independent-source-review.json",
+      "sha256": "efa8247ab8b77612281a0d00b24e7d63aa87cb94312be07e1d300640e3b5e0bc",
+      "size_bytes": 4054
+    }
+  ],
+  "fixture_submodule": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "vector_native": "NOT_RUN_AT_OBSERVATION",
+  "official_vector_research": "NOT_ADMITTED",
+  "vector_field_GUI": "NOT_RUN",
+  "physical": "UNKNOWN",
+  "decision": "NOT_RELEASED",
+  "previous_verified_transient_native": "Exact508988b CI37020551603 and independent872-step saved-field quadrature/retention audit are separately recorded; this publication is not a transient rerun.",
+  "next": "D3.4 coupled/material interfaces, then D3.5 import; D3.6 grouped native/reference/Research/field-GUI qualification remains queued. Whole Phase4/all52/P2.2 OPEN."
+}
