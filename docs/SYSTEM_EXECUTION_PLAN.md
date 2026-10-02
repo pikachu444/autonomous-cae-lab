@@ -1,6 +1,30 @@
 # Autonomous CAE Lab — sequential system execution plan
 
-## Latest P2.2 checkpoint: two private observations; roof refinement running
+## Latest P2.2 checkpoint: native roof refinement audited; research continuation pending
+
+New clean947/native roof store closes all3 Core experiments on nz2 grids8/16/22.
+CalculiX full and half retain8 valid metrics each: signed pointB responses
+-91.02406001906064/-45.51203000952334mm; reference1.244918%<2%, last-two-mesh
+0.105221%<1%, half-load relative error7.665588267215364e-14<1e-7. Independent
+DAT/DOUBLE-FRD/27GP/restrained-reaction audit checks six CCX levels and original
+Core/provenance/history. Read-only44-item review has no open P1/P2;304 selected
+files/213085357B plus a separately hashed review supplement are retained locally.
+Aster fine fails unchanged CPU120 during final output (SUPERVIS_63/TimeLimitError),
+with no worker_result/parsed_fields or admitted Core metrics. Formal full
+cross-solver comparison stays UNKNOWN; native unit remains FAILED_OR_PARTIAL.
+Record: `benchmarks/records/20261002-roof-refinement-native.json`.
+
+Separate same-condition approved5.6Sol OpenScience research actually closes its
+first question/nine admitted tools/two full records and failure interpretation.
+The private verifier stops on UTC-string versus local-DateTime equality, while
+raw study-create/inspect JSON exactly matches the persisted study. Original
+attempt/source/full records are frozen; only the unrun half question and bare
+whole interpretation may continue after bounded correction and source review.
+This is not completed three-question, new GUI or general autonomous-planning
+acceptance. Canonical source/CI unchanged; beam accuracy/P2.2/full52 remain OPEN,
+all NOT_RELEASED. Existing matrix observations and historical failures retained.
+
+## Historical checkpoint: two private observations; roof refinement was running
 
 Clean managed94773a3 executes both original private matrix observations. Fine
 retains FACTOR_57/3.32295e-6>unchanged1e-6 and u UNAVAILABLE. Middle returned DEPL

@@ -1,6 +1,30 @@
 # Autonomous CAE Lab — project scope and requirement ledger
 
-## Latest P2.2 checkpoint: two private observations; roof refinement running
+## Latest P2.2 checkpoint: native roof refinement audited; research continuation pending
+
+New clean947/native roof store closes all3 Core experiments on nz2 grids8/16/22.
+CalculiX full and half retain8 valid metrics each: signed pointB responses
+-91.02406001906064/-45.51203000952334mm; reference1.244918%<2%, last-two-mesh
+0.105221%<1%, half-load relative error7.665588267215364e-14<1e-7. Independent
+DAT/DOUBLE-FRD/27GP/restrained-reaction audit checks six CCX levels and original
+Core/provenance/history. Read-only44-item review has no open P1/P2;304 selected
+files/213085357B plus a separately hashed review supplement are retained locally.
+Aster fine fails unchanged CPU120 during final output (SUPERVIS_63/TimeLimitError),
+with no worker_result/parsed_fields or admitted Core metrics. Formal full
+cross-solver comparison stays UNKNOWN; native unit remains FAILED_OR_PARTIAL.
+Record: `benchmarks/records/20261002-roof-refinement-native.json`.
+
+Separate same-condition approved5.6Sol OpenScience research actually closes its
+first question/nine admitted tools/two full records and failure interpretation.
+The private verifier stops on UTC-string versus local-DateTime equality, while
+raw study-create/inspect JSON exactly matches the persisted study. Original
+attempt/source/full records are frozen; only the unrun half question and bare
+whole interpretation may continue after bounded correction and source review.
+This is not completed three-question, new GUI or general autonomous-planning
+acceptance. Canonical source/CI unchanged; beam accuracy/P2.2/full52 remain OPEN,
+all NOT_RELEASED. Existing matrix observations and historical failures retained.
+
+## Historical checkpoint: two private observations; roof refinement was running
 
 Clean managed94773a3 executes both original private matrix observations. Fine
 retains FACTOR_57/3.32295e-6>unchanged1e-6 and u UNAVAILABLE. Middle returned DEPL
@@ -494,7 +518,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R31 | Phase 7 MFront/MOOSE/multiphysics/inverse/UQ/sensitivity/surrogate/multiobjective/HPC/SSH/Slurm/PBS/physical integration. | Partial: MFront stress/tangent/sensitivity and synthetic nine-candidate inverse connected to shared engine/default/HTTP. Exact33 local default proof and sealed CI36722365195 native/raw independent audits passed; no measured fit/convergence. Viscoelastic extension deferred under serial phase order; MOOSE/coupling/UQ/surrogate/multiobjective/HPC/physical integrations remain open. |
 | R32 | Physical test architecture: fabrication/calibration/machine/measurement/durability evidence with digital-twin calibration loop. | Partial extensible evidence envelope; equipment control/physical acceptance not implemented. |
 | R33 | UI Design/Simulation/Explore/Results/Research areas after Core slice; reuse original browser UI. | Partial: original fixture GUI/native viewer and common Lab HTTP retained. Actual official OpenScience f52/run03 GUI shows same CAD/result/evidence sessions; Lab8766 remains separate with no AI chat. Wider UI/native edit/planning acceptance remains open. |
-| R34 | Automated canonical/regression verification for CAD/rejection/linear/nonlinear/contact/explicit/PDE/DOE/optimization; physical validity separate from execution. | Partial: exact33 1,387 regressions plus actual analytical/manufactured/FD/native/raw audits. d29/native05 independently audits two beam cross-solver loads, retains Fz Aster failure and failed method probes; exact CI8SUCCESS/2FAIL. Full MIDAS139+CFD18 survey is separate, original project replications remain NOT_RUN/UNKNOWN. Prior single-case work deferred; remaining family/phase gates open. No NAFEMS pass or physical qualification claimed. Two original native matrix observations and independent49-check reporting correction are retained; algebraic-u/beam accuracy UNKNOWN and roof refinement still in progress. |
+| R34 | Automated canonical/regression verification for CAD/rejection/linear/nonlinear/contact/explicit/PDE/DOE/optimization; physical validity separate from execution. | Partial: exact33 1,387 regressions plus actual analytical/manufactured/FD/native/raw audits. d29/native05 independently audits two beam cross-solver loads, retains Fz Aster failure and failed method probes; exact CI8SUCCESS/2FAIL. Full MIDAS139+CFD18 survey is separate, original project replications remain NOT_RUN/UNKNOWN. Prior single-case work deferred; remaining family/phase gates open. No NAFEMS pass or physical qualification claimed. Two native matrix observations/independent49-item reporting correction retained; algebraic-u/beam accuracy UNKNOWN. Roof native3/independent44-item audit closes CCXfull+half reference/mesh/scaling, Asterfine CPU120/formal comparison UNKNOWN,304 files retained. Separate5.6Sol first question/nine tools closes; verifier timestamp correction/half/final pending; P2.2/full52 OPEN. |
 | R35 | Dependency license/commercial/internal/redistribution/linking + Windows/Linux/WSL/container/HPC; OpenScience sandbox/telemetry/trace/endpoints/data protection. | Partial inventory/research; corporate licensing/security and platform deployment approval incomplete. |
 | R36 | GitHub private-repo attempt or local fallback; determine relationship to old fixture repo. | Supplied repo populated on main; pinned fixture submodule. Repo currently public; private/corporate choice open. |
 | R37 | Purposeful sub-agent parallel work and independent verification under one Root architecture owner. | Ongoing; relevant findings/reviews in ADR/docs; do not delegate boundaries blindly. |
@@ -503,7 +527,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R40 | Independent optimizer comparison by problem role, not a generic ranking. | Partial research and first seeded engine; wider engine acceptance planned. |
 | R41 | Source audit of fixture code/tests/CI/debt and independent architecture review. | Partial completed recovered source audit; native/transaction debt remains. |
 | R42 | Separate research/implementation/verification roles when useful; Root integrates. | Ongoing; retained implemented-load independent verification. |
-| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; fresh clean947/research06 independent raw/source/44-receipt/1094-file audit PASS. All9 control questions/final whole-input stored text/GUI AX/owned Stop verified; numerical Fz failure/roof invalidity, general autonomous planning/full52 OPEN. Exact947 CI source127PASS/final8SUCCESS2FAIL; native CI internal diagnostic UNKNOWN. Previous source/05 evidence and UNKNOWN/NOT_RELEASED preserved. Two original native matrix observations and independent49-check reporting correction are retained; algebraic-u/beam accuracy UNKNOWN and roof refinement still in progress. |
+| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; fresh clean947/research06 independent raw/source/44-receipt/1094-file audit PASS. All9 control questions/final whole-input stored text/GUI AX/owned Stop verified; numerical Fz failure/roof invalidity, general autonomous planning/full52 OPEN. Exact947 CI source127PASS/final8SUCCESS2FAIL; native CI internal diagnostic UNKNOWN. Previous source/05 evidence and UNKNOWN/NOT_RELEASED preserved. Two native matrix observations/independent49-item reporting correction retained; algebraic-u/beam accuracy UNKNOWN. Roof native3/independent44-item audit closes CCXfull+half reference/mesh/scaling, Asterfine CPU120/formal comparison UNKNOWN,304 files retained. Separate5.6Sol first question/nine tools closes; verifier timestamp correction/half/final pending; P2.2/full52 OPEN. |
 | R44 | Do not concurrently modify shared schemas/Core/registry/artifact migrations or same source file. | Ongoing ownership rule in AGENTS. |
 | R45 | Root checks architecture, OpenScience-first, conflicting evidence, actual feasibility, GUI/headless, license/security/benchmarks/requirements before integration. | Ongoing; accepted/rejected decisions recorded in ADR/docs. |
 | R46 | Strong Root reasoning for architecture/numerics/conflicts, appropriate agents for bounded work; verification above model choice. | Ongoing, subject to available models/tools and current session instructions. |

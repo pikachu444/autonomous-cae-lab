@@ -1,0 +1,596 @@
+{
+  "schema_version": "1",
+  "record_kind": "BOUNDED_ROOF_NATIVE_REFINEMENT_WITH_RETAINED_FAILURE",
+  "created_utc": "2026-10-02T05:16:17.901734+00:00",
+  "unit": "P2.2",
+  "source_commit": "94773a35d73773faf5dc2714ea7d9071c812f357",
+  "source_dirty": false,
+  "main_documentation_commit_before_this_record": "1b77b54eefc8be9473ecf2c42da38914babc70d7",
+  "fixture_submodule_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "run_id": "p2-roof-refine-native-20261002-01",
+  "study_id": "S-roof-refine-native-20261002-01",
+  "scope": "Existing Core CLI native3 unit. Physics/reference/signed pointB and all numerical thresholds unchanged. New grids/revisions/store retain old rejected records. OpenScience/model/GUI not qualified by this native-only record.",
+  "outcome": "FAILED_OR_PARTIAL",
+  "decision": "NOT_RELEASED",
+  "Core_experiment_count": 3,
+  "native_level_command_receipts": 9,
+  "independently_checked_CCX_complete_levels": 6,
+  "Aster_completed_partial_levels": 2,
+  "model_calls_this_native_unit": 0,
+  "records": [
+    {
+      "experiment_id": "E-roof-refine-native-20261002-01-ccx-full",
+      "backend": "structural.families.calculix",
+      "Core_status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "usable_for_comparison": true,
+      "decision": "NOT_RELEASED",
+      "actual_typed_settings": {
+        "case": "scordelis_lo_solid",
+        "load_case": "gravity",
+        "load_factor": 1.0,
+        "mesh_cells": [
+          [
+            8,
+            8,
+            2
+          ],
+          [
+            16,
+            16,
+            2
+          ],
+          [
+            22,
+            22,
+            2
+          ]
+        ]
+      },
+      "actual_model_revision": "5aad64469c7d1850a8a84b8cb9f53547af06a78da95a321e1e857a3f741dbc4f",
+      "metrics": {
+        "applied_force_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.2079532432174028e-07
+        },
+        "applied_moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 8.564042643010799e-08
+        },
+        "mesh_response_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0010522106263652251
+        },
+        "moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.262048210752533e-09
+        },
+        "primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": -91.02406001906064
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.2923998244213838e-09
+        },
+        "reference_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.012449181492714448
+        },
+        "signed_primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": -91.02406001906064
+        }
+      },
+      "qualifications_unknown": [
+        "static_strength",
+        "material_qualification",
+        "physical_validation",
+        "fatigue_durability",
+        "model_qualification",
+        "original_midas_replication"
+      ],
+      "result": {
+        "workspace": "managed_source947",
+        "path": "runs/p2-roof-refine-native-20261002-01/experiments/E-roof-refine-native-20261002-01-ccx-full/result.json",
+        "bytes": 45215,
+        "sha256": "fccc49812cd97bd91bc960969dd5446bce49ab31324120d22e5dc32979af8a80"
+      },
+      "ledger": {
+        "workspace": "managed_source947",
+        "path": "runs/p2-roof-refine-native-20261002-01/ledger/E-roof-refine-native-20261002-01-ccx-full.json",
+        "bytes": 294,
+        "sha256": "e1b67a4a47579e6058e8d75ca2d64bb51c03fb77fbfc1538ea7bdb2c8a588e4d"
+      },
+      "native_commands": [
+        {
+          "workspace": "managed_source947",
+          "path": "runs/p2-roof-refine-native-20261002-01/experiments/E-roof-refine-native-20261002-01-ccx-full/simulation/level_0/solver.command.json",
+          "bytes": 291,
+          "sha256": "e7a5e2ffada285c9bca3c10a3f094895e0732d54ea172176b51a6c34cbaec2be"
+        },
+        {
+          "workspace": "managed_source947",
+          "path": "runs/p2-roof-refine-native-20261002-01/experiments/E-roof-refine-native-20261002-01-ccx-full/simulation/level_1/solver.command.json",
+          "bytes": 291,
+          "sha256": "a6b9f9c1921f68b0d7f2967ded0ff4043819644a7111f5dfb808cce8a0d0928a"
+        },
+        {
+          "workspace": "managed_source947",
+          "path": "runs/p2-roof-refine-native-20261002-01/experiments/E-roof-refine-native-20261002-01-ccx-full/simulation/level_2/solver.command.json",
+          "bytes": 291,
+          "sha256": "e1418ee9aeade6764d71feb61f1e53161c68279ed0fbedfe6067b3a7572f783a"
+        }
+      ]
+    },
+    {
+      "experiment_id": "E-roof-refine-native-20261002-01-aster-full",
+      "backend": "structural.families.code_aster",
+      "Core_status": "FAILED_EXECUTION",
+      "solver_status": "FAILED_EXECUTION",
+      "usable_for_comparison": false,
+      "decision": "NOT_RELEASED",
+      "actual_typed_settings": {
+        "case": "scordelis_lo_solid",
+        "load_case": "gravity",
+        "load_factor": 1.0,
+        "mesh_cells": [
+          [
+            8,
+            8,
+            2
+          ],
+          [
+            16,
+            16,
+            2
+          ],
+          [
+            22,
+            22,
+            2
+          ]
+        ]
+      },
+      "actual_model_revision": "5aad64469c7d1850a8a84b8cb9f53547af06a78da95a321e1e857a3f741dbc4f",
+      "metrics": {},
+      "qualifications_unknown": [
+        "model_qualification",
+        "physical_validation"
+      ],
+      "result": {
+        "workspace": "managed_source947",
+        "path": "runs/p2-roof-refine-native-20261002-01/experiments/E-roof-refine-native-20261002-01-aster-full/result.json",
+        "bytes": 36268,
+        "sha256": "958de1b77f754e6c4ee2a8a17ca971b8fc98669fefc812e2bc248419e50951a0"
+      },
+      "ledger": {
+        "workspace": "managed_source947",
+        "path": "runs/p2-roof-refine-native-20261002-01/ledger/E-roof-refine-native-20261002-01-aster-full.json",
+        "bytes": 296,
+        "sha256": "44993958c61b3e1e2cb05917cc5f7f98497e87ed09018393ec13b1c1e7e4413e"
+      },
+      "native_commands": [
+        {
+          "workspace": "managed_source947",
+          "path": "runs/p2-roof-refine-native-20261002-01/experiments/E-roof-refine-native-20261002-01-aster-full/simulation/level_0/solver.command.json",
+          "bytes": 1138,
+          "sha256": "4e6f3996f3a00f01c3e3bcad729bb3237d62853be9711b7a5161b1436f5c8495"
+        },
+        {
+          "workspace": "managed_source947",
+          "path": "runs/p2-roof-refine-native-20261002-01/experiments/E-roof-refine-native-20261002-01-aster-full/simulation/level_1/solver.command.json",
+          "bytes": 1138,
+          "sha256": "5fca85c2e36e4118e97c568bba9123d7bb2103bb3e9529119367f33cfd685499"
+        },
+        {
+          "workspace": "managed_source947",
+          "path": "runs/p2-roof-refine-native-20261002-01/experiments/E-roof-refine-native-20261002-01-aster-full/simulation/level_2/solver.command.json",
+          "bytes": 1138,
+          "sha256": "d0ad829230cb28ded87eb204ef506d2e0a4157bb8fee269a6db167a096077002"
+        }
+      ]
+    },
+    {
+      "experiment_id": "E-roof-refine-native-20261002-01-ccx-half",
+      "backend": "structural.families.calculix",
+      "Core_status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "usable_for_comparison": true,
+      "decision": "NOT_RELEASED",
+      "actual_typed_settings": {
+        "case": "scordelis_lo_solid",
+        "load_case": "gravity",
+        "load_factor": 0.5,
+        "mesh_cells": [
+          [
+            8,
+            8,
+            2
+          ],
+          [
+            16,
+            16,
+            2
+          ],
+          [
+            22,
+            22,
+            2
+          ]
+        ]
+      },
+      "actual_model_revision": "a71a680101c992724b92034647528a8662691f50a53948b17edc28d4adcabaed",
+      "metrics": {
+        "applied_force_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.2079532981990552e-07
+        },
+        "applied_moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 8.564042937625049e-08
+        },
+        "mesh_response_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0010522106263485737
+        },
+        "moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.2621005070027293e-09
+        },
+        "primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": -45.51203000952334
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.2924504861503084e-09
+        },
+        "reference_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.01244918149286585
+        },
+        "signed_primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": -45.51203000952334
+        }
+      },
+      "qualifications_unknown": [
+        "static_strength",
+        "material_qualification",
+        "physical_validation",
+        "fatigue_durability",
+        "model_qualification",
+        "original_midas_replication"
+      ],
+      "result": {
+        "workspace": "managed_source947",
+        "path": "runs/p2-roof-refine-native-20261002-01/experiments/E-roof-refine-native-20261002-01-ccx-half/result.json",
+        "bytes": 45215,
+        "sha256": "79c6c0c9f7cd81058c0c4f432279fc92f296eb6fc0a4bfae22b9490d835ff919"
+      },
+      "ledger": {
+        "workspace": "managed_source947",
+        "path": "runs/p2-roof-refine-native-20261002-01/ledger/E-roof-refine-native-20261002-01-ccx-half.json",
+        "bytes": 294,
+        "sha256": "a88c7f6eab8f98d68cae8e1a8a27b834bb147e2f1273deb20a5f5db912755146"
+      },
+      "native_commands": [
+        {
+          "workspace": "managed_source947",
+          "path": "runs/p2-roof-refine-native-20261002-01/experiments/E-roof-refine-native-20261002-01-ccx-half/simulation/level_0/solver.command.json",
+          "bytes": 291,
+          "sha256": "cb89d68e49346b60fc00d7ce67dfc5505b5fb36a2d8cf003dca0bdcfb57c546c"
+        },
+        {
+          "workspace": "managed_source947",
+          "path": "runs/p2-roof-refine-native-20261002-01/experiments/E-roof-refine-native-20261002-01-ccx-half/simulation/level_1/solver.command.json",
+          "bytes": 291,
+          "sha256": "97a8c60a7f1d9456d9d4df94087877d87ac70207ab6ab5367621e192e7bbb35a"
+        },
+        {
+          "workspace": "managed_source947",
+          "path": "runs/p2-roof-refine-native-20261002-01/experiments/E-roof-refine-native-20261002-01-ccx-half/simulation/level_2/solver.command.json",
+          "bytes": 291,
+          "sha256": "a5fdcd70aa582420f0b31ae865c7856e4fa423517699424d4a6934721db766b8"
+        }
+      ]
+    }
+  ],
+  "predeclared_request": {
+    "workspace": "main",
+    "path": "artifacts/p2-roof-refinement-preparation-20261002-01/predeclared-request.json",
+    "bytes": 7767,
+    "sha256": "68302f4bdd206c250e73d70b0e18a402e4d4f8f2367a52691343a2b84dced524"
+  },
+  "request_admission": {
+    "workspace": "main",
+    "path": "artifacts/p2-roof-refinement-preparation-review-20261002-01/independent-review.json",
+    "bytes": 45505,
+    "sha256": "aaa0e29da3c28e7b610bf5d5275a93403d44f5e26e8ed04fbccb30981b132709"
+  },
+  "orchestration_packet": {
+    "workspace": "main",
+    "path": "artifacts/p2-roof-refinement-orchestration-source-20261002-01/orchestration-packet.json",
+    "bytes": 51405,
+    "sha256": "2bdc6ba87c348b663d1eac7c22f3bccef167171df1d580715c233297448f0126"
+  },
+  "offline_collection": {
+    "workspace": "managed_source947",
+    "path": "artifacts/p2-roof-refine-native-preparation-20261002-01/collection.json",
+    "bytes": 154752,
+    "sha256": "d1745cb892467fc920b3d3613add140ee8e370034a84fca48e90792b4379caa9"
+  },
+  "collector_source_gate": {
+    "workspace": "main",
+    "path": "artifacts/p2-roof-refine-native-review-20261002-01/source-review.json",
+    "bytes": 7112,
+    "sha256": "29b18890a218b3b0841a455ee1a015809a04529d28089cdabf3a8e0a2dc4d24b"
+  },
+  "independent_actual_review": {
+    "workspace": "main",
+    "path": "artifacts/p2-roof-refine-native-review-20261002-01/actual-review.json",
+    "bytes": 30952,
+    "sha256": "f999efa79f193017d9cd5d8ea2dbb7f65b7bf0f4e3791c1511868171e0dbc849"
+  },
+  "independent_actual_review_status": "PASS_READ_ONLY_ACTUAL_AUDIT_OF_FAILED_OR_PARTIAL_ROOF_GATE",
+  "independent_review_item_count": 44,
+  "independent_open_P1_P2": 0,
+  "independent_protected_regular_files_unchanged": 928,
+  "independent_CCX_raw_fields": {
+    "levels": 6,
+    "node_U_RF_pairs": 19190,
+    "Gauss_points": 86832,
+    "stress_components_per_point": 6,
+    "basis": "Native DAT and binary64 DOUBLE-FRD; restrained RF minus actual CLOAD, independent closed HEXA20 physical Gauss positions and topology/coordinates. Nodal averaged stress is not Gauss stress.",
+    "maximum_Core_metric_difference": 6.316115576416464e-17
+  },
+  "half_scaling": {
+    "status": "PASS",
+    "eligible": true,
+    "relative_error": 7.665588267215364e-14,
+    "limit": 1e-07,
+    "formula": "abs(half-.5full)/max(abs(full),1e-12mm)",
+    "full_response_mm": -91.02406001906064,
+    "half_response_mm": -45.51203000952334
+  },
+  "formal_full_cross_solver": {
+    "status": "UNKNOWN_INVALID_CORE_METRICS",
+    "eligible": false
+  },
+  "Aster_fine": {
+    "adapter_details": {},
+    "metrics": {},
+    "native_failure": "TimeLimitError/SUPERVIS_63 CPU120",
+    "native_u": "NOT_ADMITTED_PARTIAL_NATIVE_TABLES_ONLY",
+    "outer_timeout_seconds": 180,
+    "qualified_fields": "UNAVAILABLE_FOR_FORMAL_FULL_COMPARISON",
+    "native_exit_code": 1,
+    "failure_kind": "TimeLimitError/SUPERVIS_63 CPU120 during final output; distinct from beam FACTOR_57",
+    "model_export": {
+      "workspace": "managed_source947",
+      "path": "runs/p2-roof-refine-native-20261002-01/experiments/E-roof-refine-native-20261002-01-aster-full/simulation/level_2/model.export",
+      "bytes": 263,
+      "sha256": "1d87aed6a9797e21afffdfd1d9827b2d30c630c34b7b35c8262379f87e37eba5"
+    },
+    "native_message": {
+      "workspace": "managed_source947",
+      "path": "runs/p2-roof-refine-native-20261002-01/experiments/E-roof-refine-native-20261002-01-aster-full/simulation/level_2/aster.mess",
+      "bytes": 705928,
+      "sha256": "4a6d39fe2cf5ac60ecc568227d63e5a326b4ce3dc3ae10ddda571e172850bbea"
+    },
+    "solver_stdout": {
+      "workspace": "managed_source947",
+      "path": "runs/p2-roof-refine-native-20261002-01/experiments/E-roof-refine-native-20261002-01-aster-full/simulation/level_2/solver.stdout.log",
+      "bytes": 708591,
+      "sha256": "9f90c3f0ad7f4915ddb38791f878d470cd6192a12a325ad7411c3a7ccda12c66"
+    }
+  },
+  "full_record_preservation": {
+    "before_half": {
+      "workspace": "main",
+      "path": "artifacts/p2-roof-refine-native-control-20261002-01/full-records-before-half.json",
+      "bytes": 29542,
+      "sha256": "6e0b420b91fcca3a0bf9e6ac678310ef08862581177e4da69651e6321b7c9417"
+    },
+    "after_half": {
+      "workspace": "main",
+      "path": "artifacts/p2-roof-refine-native-control-20261002-01/full-records-after-half-verification.json",
+      "bytes": 686,
+      "sha256": "8787d9502a868b43433c803fd905de03b1b380bb2370cb1805d59dc9342d90db"
+    },
+    "regular_files": 167,
+    "ledgers": 2,
+    "mismatch": 0,
+    "limit": "No pre-Aster full-tree CCX snapshot. Original CLI result/Core artifact inventory retained; before-half snapshot proves its stated interval only."
+  },
+  "terminal_controls": [
+    {
+      "stage": "00-study",
+      "command_exit_code": 0,
+      "completion": {
+        "workspace": "main",
+        "path": "artifacts/p2-roof-refine-native-control-20261002-01/00-study/completion.json",
+        "bytes": 761,
+        "sha256": "c46113be89f9ea00610769e8a47b00b64348bfcaa06b29d756c19914441b25ae"
+      },
+      "intent": {
+        "workspace": "main",
+        "path": "artifacts/p2-roof-refine-native-control-20261002-01/00-study/intent.json",
+        "bytes": 105053,
+        "sha256": "1eba5e20c2011eb34cadf996696e6157ad8dc7851525c7714ddcbcf82fa710ff"
+      }
+    },
+    {
+      "stage": "01-ccx-full",
+      "command_exit_code": 2,
+      "completion": {
+        "workspace": "main",
+        "path": "artifacts/p2-roof-refine-native-control-20261002-01/01-ccx-full/completion.json",
+        "bytes": 770,
+        "sha256": "64f85773cd7f2e2f3d39bc593c73e406b2f3a24a8a50ac20814d7cafeb35cd5e"
+      },
+      "intent": {
+        "workspace": "main",
+        "path": "artifacts/p2-roof-refine-native-control-20261002-01/01-ccx-full/intent.json",
+        "bytes": 104970,
+        "sha256": "5904ddcada7e9c63ad35944297553c16bdfb57eaee6cfb6ed2c3f21a5c335f87"
+      }
+    },
+    {
+      "stage": "01b-ccx-full",
+      "command_exit_code": 0,
+      "completion": {
+        "workspace": "main",
+        "path": "artifacts/p2-roof-refine-native-control-20261002-01/01b-ccx-full/completion.json",
+        "bytes": 775,
+        "sha256": "ca72a5d066dfeee3c105987cf7914860c0b6ad34e3ea083bf2675c6df2f321a5"
+      },
+      "intent": {
+        "workspace": "main",
+        "path": "artifacts/p2-roof-refine-native-control-20261002-01/01b-ccx-full/intent.json",
+        "bytes": 105453,
+        "sha256": "f21171abb264219c0bad3785d486bc98c7dc46ca63761ede320859a4f9e219f3"
+      }
+    },
+    {
+      "stage": "02-aster-full",
+      "command_exit_code": 0,
+      "completion": {
+        "workspace": "main",
+        "path": "artifacts/p2-roof-refine-native-control-20261002-01/02-aster-full/completion.json",
+        "bytes": 778,
+        "sha256": "8df2d1ac1876b751f1097ba20dda4a989035ff25f099511ab30461dae2536256"
+      },
+      "intent": {
+        "workspace": "main",
+        "path": "artifacts/p2-roof-refine-native-control-20261002-01/02-aster-full/intent.json",
+        "bytes": 105457,
+        "sha256": "3b71e184d46dc7660c553682b0eb9e322d72b59e9374d3967fc038132f1d1cf0"
+      }
+    },
+    {
+      "stage": "03-ccx-half",
+      "command_exit_code": 0,
+      "completion": {
+        "workspace": "main",
+        "path": "artifacts/p2-roof-refine-native-control-20261002-01/03-ccx-half/completion.json",
+        "bytes": 772,
+        "sha256": "965f3365cd930e2d6a3661f459206bdf5f523e49cd06c05cdd9b8bdbc7d5eaf8"
+      },
+      "intent": {
+        "workspace": "main",
+        "path": "artifacts/p2-roof-refine-native-control-20261002-01/03-ccx-half/intent.json",
+        "bytes": 105453,
+        "sha256": "e1521a66eccfaeeeaf4d8c771b38f637b10636e6d6f4a12dfdd2f2085b73d0bb"
+      }
+    },
+    {
+      "stage": "04-offline-collection",
+      "command_exit_code": 1,
+      "completion": {
+        "workspace": "main",
+        "path": "artifacts/p2-roof-refine-native-control-20261002-01/04-offline-collection/completion.json",
+        "bytes": 140,
+        "sha256": "ebe1856d837afb0c66de4cc653db3188f0d41ed6887eabf335421e5f991af6c8"
+      },
+      "intent": {
+        "workspace": "main",
+        "path": "artifacts/p2-roof-refine-native-control-20261002-01/04-offline-collection/intent.json",
+        "bytes": 5891,
+        "sha256": "5bd3e52f1522e1771c3f8202f288cae512070dc0cfcdc9d7aa8e7ca4bc21af2b"
+      }
+    },
+    {
+      "stage": "04b-offline-collection",
+      "command_exit_code": 0,
+      "completion": {
+        "workspace": "main",
+        "path": "artifacts/p2-roof-refine-native-control-20261002-01/04b-offline-collection/completion.json",
+        "bytes": 139,
+        "sha256": "9d48008909ba7bd454ec799abce15a8e3e220c4edff2808b5ad51b8402dd5ed7"
+      },
+      "intent": {
+        "workspace": "main",
+        "path": "artifacts/p2-roof-refine-native-control-20261002-01/04b-offline-collection/intent.json",
+        "bytes": 6630,
+        "sha256": "06ddeb44b7693af58f0fef237c68a69192067f2df0d57f68ce9c66010c77d37b"
+      }
+    }
+  ],
+  "failed_attempts": [
+    {
+      "stage": "01-ccx-full",
+      "exit_code": 2,
+      "experiment_created": false,
+      "native_calls": 0,
+      "cause": "Shell split JSON before original CLI parsing. Corrected01b delivers exact existing argv through stdin; original logs preserved."
+    },
+    {
+      "stage": "04-offline-collection",
+      "exit_code": 1,
+      "native_calls": 0,
+      "cause": "Readonly git-C Linux path reached WindowsGit. Unchanged collector04b uses process-local two-exact-path normalization and original inert bridge; tracked source unchanged."
+    }
+  ],
+  "retention": {
+    "original": {
+      "workspace": "main",
+      "path": "artifacts/p2-roof-refine-native-retained-20261002-01/retention.json",
+      "bytes": 80198,
+      "sha256": "3b0d9e2845033a79b8c4d5d617832f899cf6e882413e820adbd7a4e3383b45e9"
+    },
+    "original_files": 304,
+    "original_bytes": 213085357,
+    "supplement": {
+      "workspace": "main",
+      "path": "artifacts/p2-roof-refine-native-retained-20261002-01-supplement-01/retention.json",
+      "bytes": 2055,
+      "sha256": "f4cc49ec636db3bd36db2f8f47c952bbbcd9b5ffffa131d141d367db7174ed2d"
+    },
+    "supplement_files": 6,
+    "supplement_bytes": 79595,
+    "original_copy_current_hashes_equal": true,
+    "raw_remote": "UNKNOWN_NOT_UPLOADED",
+    "exclusions": "scratch/preferences/__pycache__/linked trees EXCLUDED_NOT_CLAIMED"
+  },
+  "exact_source_CI": {
+    "run_id": 36950198263,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36950198263",
+    "source_commit": "94773a35d73773faf5dc2714ea7d9071c812f357",
+    "overall": "FAILURE",
+    "source_checks": 127,
+    "jobs_success": 8,
+    "jobs_failure": 2,
+    "limit": "Previously inspected exact-source CI; this later native evidence/docs is not a rerun. Inner CI native diagnostic UNKNOWN."
+  },
+  "limitations": [
+    "This integrity/field audit does not promote overall native roof to PASS: Asterfine CPU120 failure is retained, empty Core metrics are ineligible, full cross-solver is UNKNOWN and collection FAILED_OR_PARTIAL despite process exit0.",
+    "Both CCX reference/lastmesh validations apply to the predeclared finest and finest/penultimate levels. The coarse level reference error remains2.7446949%, greater than2%; it is retained and not asserted to pass the finest-only reference gate.",
+    "Independent metric differences up to6.316e-17 are analytic moment floating-point evaluation differences; six original numerical limits remain unchanged.",
+    "Independent CCX reading uses raw binary64 DOUBLE-FRD U/RF and native DAT27GP six-stress/COORD. Nodal FRD averaged stress yz/zx order is retained separately from DAT Gauss xz/yz and is never substituted as Gauss stress.",
+    "Aster levels0/1 have complete saved native tables and parsed fields, audited by native-node/cell maps and physical27-point bijection. Their raw values do not supply failedfine or validate the full experiment. Fine partial DEPL/RF/S/MED existence is not a completed worker result.",
+    "Same nz2 grids establish in-plane refinement evidence only; radial convergence and asymptotic order, compiled native build/source equivalence and machine/material/strength/physical/durability remain UNKNOWN.",
+    "No actual OpenScience/model/GUI execution is certified by this native-only audit, and all52/fullP2.2 remain OPEN and NOT_RELEASED. New research in other stores was not read.",
+    "The two initial log inspection snippets failed due Windows cp949 decoding/printing before switching to explicitUTF8 and JSON-escaped output (tool7b9057/523b64). Originals were unchanged; these were reader harness failures rather than native/source failures.",
+    "A clone does not restore local raw evidence or installed runtimes.",
+    "Beam Fz accuracy, Aster roof/full comparison, P2.2/all52/later phases remain OPEN.",
+    "Separate approved5.6Sol first question/nine tools/two Core records closed; private verifier stopped on UTC-string/local-DateTime comparison. Half and bare interpretation pending at this checkpoint."
+  ]
+}
