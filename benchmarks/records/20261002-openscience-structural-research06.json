@@ -1,0 +1,1808 @@
+{
+  "schema_version": "1",
+  "record_kind": "ACTUAL_COMPLETE_ORDERED_RESEARCH_WITH_RETAINED_NUMERICAL_FAILURES",
+  "created_utc": "2026-10-02T02:40:46.932990+00:00",
+  "unit": "P2.2",
+  "source_commit": "94773a35d73773faf5dc2714ea7d9071c812f357",
+  "source_dirty": [],
+  "run_id": "p2-research-20261002-06",
+  "attempt": "attempt-01",
+  "actual_overall_outcome": "FAILED_OR_PARTIAL",
+  "actual_driver_failure": "Declared control trace collected; one or more numerical records/scaling gates failed or are unavailable.",
+  "actual_control_trace_field": {
+    "status": "COMPLETED",
+    "scope": "Declared question/receipt/immutable-record collection only; no numerical/engineering qualification inferred",
+    "immutable_records": 9,
+    "requested_stages": 9,
+    "interpreted_stages": 9,
+    "retained_records": 9
+  },
+  "control_trace_scope": "All nine declared CLI questions complete, including final interpretation; global numerical outcome remains FAILED_OR_PARTIAL. Control completion is not numerical or engineering approval.",
+  "openscience_version": "2.0.146",
+  "openscience_source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+  "model": "openai-codex/gpt-5.6-sol",
+  "cloud_weight_identity": "UNKNOWN",
+  "actual_resident_identity_scope": "Clean source/resource and imported-path diagnostics checked; cached bytecode identity UNKNOWN.",
+  "control_plane_scope": "Root supplies original nine questions. Approved AI chooses allowed tools/order, creates/inspects studies, runs two backends, changes loads in new revisions, compares/summarizes and interprets records. General autonomous campaign planning is not established.",
+  "interpretation_limitation": {
+    "kind": "NONBLOCKING_AI_PROSE_COUNT_DISCREPANCY",
+    "original_claim": "Native fields were retained for all three levels in seven completed records and two levels in the failed beam Code_Aster record.",
+    "raw_corrected_counts": {
+      "solver_completed_records": 8,
+      "completed_field_levels": 26,
+      "calculation": "8*3 + failed-beam2 = 26"
+    },
+    "disposition": "Retain original AI text unchanged. Its preceding eight-solver claim and nine-record table agree with Core; independent raw/source proof supplies authoritative counts. No Core or numerical acceptance is inferred from prose."
+  },
+  "independently_observed_AI_prose_discrepancies": [
+    {
+      "AI_nearby_correct_text": "Eight solver runs reached solver completion; the beam Code_Aster run was FAILED_EXECUTION.",
+      "disposition": "Preserve original AI text. Use actual raw count8/26 in publication. No Core, model, threshold or solver-byte change.",
+      "kind": "NONBLOCKING_AI_PROSE_COUNT_DISCREPANCY",
+      "original_text": "Native fields were retained for all three levels in seven completed records and two levels in the failed beam Code_Aster record.",
+      "recorded_actual": "Eight solver-completed records have three field levels each; failed beam Aster has two completed field levels. Total26.",
+      "source": {
+        "bytes": 14030,
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-research-20261002-06\\attempt-01\\09-final-interpretation\\interpretation.txt",
+        "sha256": "af15402f788103e32591d1758fe5d0bfac66943f07b3eb643a7d21d7eef8fcbd"
+      },
+      "stage": "09-final-interpretation"
+    },
+    {
+      "AI_approximate_relative_value": 8.2e-14,
+      "Core_or_accepted_gate_change": false,
+      "alternative_half_denominator_formula": "abs(u_half - 0.5*u_full)/max(abs(0.5*u_full),1e-12mm)",
+      "frozen_formula": "abs(u_half - 0.5*u_full)/max(abs(u_full),1e-12mm)",
+      "frozen_formula_actual": 4.085821698804655e-14,
+      "frozen_primary_limit": 1e-07,
+      "half_denominator_actual": 8.17164339760931e-14,
+      "independent_registered_status": "PASS",
+      "kind": "AI_PROSE_NORMALIZATION_DIFFERENCE_DIAGNOSTIC_ONLY",
+      "original_text_excerpt": "Thus the relative scaling discrepancy is approximately \\(8.2\\times10^{-14}\\)",
+      "scope": "The half-response denominator gives approximately twice the declared full-response-normalized error. Additional secondary/all-field comparisons are descriptive only. Roof rejected raw values cannot provide a formal scaling PASS.",
+      "source": {
+        "bytes": 2814,
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-research-20261002-06\\attempt-01\\04-beam-half-load\\interpretation.txt",
+        "sha256": "1aa3f93a842885b83f7ba533b16983196c2b166c7890c41884338f6164dc2bfc"
+      },
+      "stage": "04-beam-half-load"
+    },
+    {
+      "AI_approximate_relative_value": 2.8e-14,
+      "Core_or_accepted_gate_change": false,
+      "alternative_half_denominator_formula": "abs(u_half - 0.5*u_full)/max(abs(0.5*u_full),1e-12mm)",
+      "frozen_formula": "abs(u_half - 0.5*u_full)/max(abs(u_full),1e-12mm)",
+      "frozen_formula_actual": 1.3830623869791459e-14,
+      "frozen_primary_limit": 1e-07,
+      "half_denominator_actual": 2.7661247739582918e-14,
+      "independent_registered_status": "PASS",
+      "kind": "AI_PROSE_NORMALIZATION_DIFFERENCE_DIAGNOSTIC_ONLY",
+      "original_text_excerpt": "The primary and secondary displacement scaling residual is about `2.8×10⁻14`",
+      "scope": "The half-response denominator gives approximately twice the declared full-response-normalized error. Additional secondary/all-field comparisons are descriptive only. Roof rejected raw values cannot provide a formal scaling PASS.",
+      "source": {
+        "bytes": 2948,
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-research-20261002-06\\attempt-01\\06-cylinder-half-load\\interpretation.txt",
+        "sha256": "e796c22e5299011a766ead97b4d5ae4190b189f3bd8ccbd06e9d36adb8b75443"
+      },
+      "stage": "06-cylinder-half-load"
+    },
+    {
+      "AI_approximate_relative_value": 1.35e-13,
+      "Core_or_accepted_gate_change": false,
+      "alternative_half_denominator_formula": "abs(u_half - 0.5*u_full)/max(abs(0.5*u_full),1e-12mm)",
+      "frozen_formula": "abs(u_half - 0.5*u_full)/max(abs(u_full),1e-12mm)",
+      "frozen_formula_actual": 6.759476850532392e-14,
+      "frozen_primary_limit": 1e-07,
+      "half_denominator_actual": 1.3518953701064783e-13,
+      "independent_registered_status": "UNKNOWN_INVALID_CORE_METRICS",
+      "kind": "AI_PROSE_NORMALIZATION_DIFFERENCE_DIAGNOSTIC_ONLY",
+      "original_text_excerpt": "\\frac{|u_{0.5}-0.5u_{1.0}|}{|0.5u_{1.0}|}",
+      "scope": "The half-response denominator gives approximately twice the declared full-response-normalized error. Additional secondary/all-field comparisons are descriptive only. Roof rejected raw values cannot provide a formal scaling PASS.",
+      "source": {
+        "bytes": 2751,
+        "path": "C:\\Users\\pikac\\.codex\\worktrees\\openscience-integrated\\autonomous-cae-lab\\artifacts\\p2-research-20261002-06\\attempt-01\\08-roof-half-load\\interpretation.txt",
+        "sha256": "a813f090b5396e72deae3fbcb674754ed9f94224f6645e649c09a78673a92635"
+      },
+      "stage": "08-roof-half-load"
+    }
+  ],
+  "questions": [
+    {
+      "name": "01-missing-input",
+      "session_id": "ses_f05c9585dffeO8StAWzJ0TmhQZ",
+      "CLI_question_closed": true,
+      "exit_code": 0,
+      "failure": null,
+      "native_completed_tools": [],
+      "observed_provider_step_finish_records": 1,
+      "workspace_default_guard_restored": true,
+      "raw_events": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/01-missing-input/stdout.jsonl",
+        "bytes": 3459,
+        "sha256": "4382f15c668eb8673d19b955a7b8a9ec03df95cd42b6da643a026397736b4201"
+      },
+      "stage_record": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/01-missing-input/stage.json",
+        "bytes": 5499,
+        "sha256": "6b597ad16662c1714faab2ce705652706537cb002a6b647d17772d3d8d8366a0"
+      },
+      "model_text": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/01-missing-input/interpretation.txt",
+        "bytes": 1683,
+        "sha256": "f66bcd45c305ad87d8357802b3e39b8c12f256eb39ff6176f8a984d8834ba1a7"
+      }
+    },
+    {
+      "name": "02-unsupported-torsion",
+      "session_id": "ses_f05c82e29ffejzOkHT3YnJpqeR",
+      "CLI_question_closed": true,
+      "exit_code": 0,
+      "failure": null,
+      "native_completed_tools": [],
+      "observed_provider_step_finish_records": 1,
+      "workspace_default_guard_restored": true,
+      "raw_events": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/02-unsupported-torsion/stdout.jsonl",
+        "bytes": 2378,
+        "sha256": "dabe3f063e8c1e0faefa70c0ea8fac24f7589a4a72016332ecda0128fcc11a43"
+      },
+      "stage_record": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/02-unsupported-torsion/stage.json",
+        "bytes": 5397,
+        "sha256": "2d5003bbf4ad565d18257be3339e01dcc89ab6aa57b66e3f7b6e3d1b4bfa8c69"
+      },
+      "model_text": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/02-unsupported-torsion/interpretation.txt",
+        "bytes": 669,
+        "sha256": "aa4a50e828e58a6542f40726cd9ea3a46c615d0ee1676864ec87be54297922ab"
+      }
+    },
+    {
+      "name": "03-beam-baseline",
+      "session_id": "ses_f05c71070ffeAYPdxxsmHEDHQl",
+      "CLI_question_closed": true,
+      "exit_code": 0,
+      "failure": null,
+      "native_completed_tools": [
+        "caelab_study_create",
+        "caelab_study_inspect",
+        "caelab_model_analysis_run",
+        "caelab_model_analysis_run",
+        "caelab_experiment_inspect",
+        "caelab_experiment_inspect",
+        "caelab_experiment_summary",
+        "caelab_experiment_summary",
+        "caelab_experiment_compare"
+      ],
+      "observed_provider_step_finish_records": 5,
+      "workspace_default_guard_restored": true,
+      "raw_events": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/03-beam-baseline/stdout.jsonl",
+        "bytes": 209920,
+        "sha256": "fcba07a1925273d3e532fd029afc1177aab3af64c22530697cf6bf7f16b0772c"
+      },
+      "stage_record": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/03-beam-baseline/stage.json",
+        "bytes": 208014,
+        "sha256": "4f6a639d611df7046ce4340f9b77d286142ad809624389663c24da7705d43f5c"
+      },
+      "model_text": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/03-beam-baseline/interpretation.txt",
+        "bytes": 3077,
+        "sha256": "a8f3f2e01912b2df9066942745b6871feb4b4507593e6d230f12071623ce74b7"
+      }
+    },
+    {
+      "name": "04-beam-half-load",
+      "session_id": "ses_f05c1b0abffePD515vQpfXgdaz",
+      "CLI_question_closed": true,
+      "exit_code": 0,
+      "failure": null,
+      "native_completed_tools": [
+        "caelab_study_inspect",
+        "caelab_experiment_inspect",
+        "caelab_experiment_summary",
+        "caelab_model_analysis_run",
+        "caelab_experiment_inspect",
+        "caelab_experiment_compare",
+        "caelab_experiment_summary"
+      ],
+      "observed_provider_step_finish_records": 4,
+      "workspace_default_guard_restored": true,
+      "raw_events": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/04-beam-half-load/stdout.jsonl",
+        "bytes": 190392,
+        "sha256": "d1e38c9c2a89f01e2d28c0c2fa0c3a3cc4276fc037bb8494b8e71bf1bdcbeb60"
+      },
+      "stage_record": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/04-beam-half-load/stage.json",
+        "bytes": 186900,
+        "sha256": "9692b0502f7448a5fb1bcef7cb417163bd811132925db5802923d3a11c8ff1b3"
+      },
+      "model_text": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/04-beam-half-load/interpretation.txt",
+        "bytes": 2814,
+        "sha256": "1aa3f93a842885b83f7ba533b16983196c2b166c7890c41884338f6164dc2bfc"
+      }
+    },
+    {
+      "name": "05-cylinder-baseline",
+      "session_id": "ses_f05bed25affe04aYDFbhGuIkfp",
+      "CLI_question_closed": true,
+      "exit_code": 0,
+      "failure": null,
+      "native_completed_tools": [
+        "caelab_study_create",
+        "caelab_study_inspect",
+        "caelab_model_analysis_run",
+        "caelab_model_analysis_run",
+        "caelab_experiment_inspect",
+        "caelab_experiment_inspect",
+        "caelab_experiment_summary",
+        "caelab_experiment_summary",
+        "caelab_experiment_compare"
+      ],
+      "observed_provider_step_finish_records": 7,
+      "workspace_default_guard_restored": true,
+      "raw_events": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/05-cylinder-baseline/stdout.jsonl",
+        "bytes": 266741,
+        "sha256": "2e19c29e2f6be2c20348952326fe2fb5d4628f48047b64ab962d6d0977874b63"
+      },
+      "stage_record": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/05-cylinder-baseline/stage.json",
+        "bytes": 259851,
+        "sha256": "55d6262b742f1622c91160dd45428f1cd89a6e52f2e1e5429b5fbe199a454294"
+      },
+      "model_text": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/05-cylinder-baseline/interpretation.txt",
+        "bytes": 3150,
+        "sha256": "7f398153f810efd2d5e3bc1fce7ca8365b49790da85148517836edda71a7c186"
+      }
+    },
+    {
+      "name": "06-cylinder-half-load",
+      "session_id": "ses_f05b9e8a8ffe29w5UFQmxGTlyy",
+      "CLI_question_closed": true,
+      "exit_code": 0,
+      "failure": null,
+      "native_completed_tools": [
+        "caelab_study_inspect",
+        "caelab_model_analysis_run",
+        "caelab_experiment_inspect",
+        "caelab_experiment_summary",
+        "caelab_experiment_compare"
+      ],
+      "observed_provider_step_finish_records": 4,
+      "workspace_default_guard_restored": true,
+      "raw_events": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/06-cylinder-half-load/stdout.jsonl",
+        "bytes": 145324,
+        "sha256": "7533b77feef996f85d5f7f1c57c0fdabab050ad8437612a64ceb45519dd3f761"
+      },
+      "stage_record": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/06-cylinder-half-load/stage.json",
+        "bytes": 141867,
+        "sha256": "b663cecbf9c891d894606b4dcb782cc77e542710252ed4e50e5bac75c2d67b2d"
+      },
+      "model_text": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/06-cylinder-half-load/interpretation.txt",
+        "bytes": 2948,
+        "sha256": "e796c22e5299011a766ead97b4d5ae4190b189f3bd8ccbd06e9d36adb8b75443"
+      }
+    },
+    {
+      "name": "07-roof-baseline",
+      "session_id": "ses_f05b70d30ffeQAzJwLovY02VDG",
+      "CLI_question_closed": true,
+      "exit_code": 0,
+      "failure": null,
+      "native_completed_tools": [
+        "caelab_study_create",
+        "caelab_study_inspect",
+        "caelab_model_analysis_run",
+        "caelab_model_analysis_run",
+        "caelab_experiment_inspect",
+        "caelab_experiment_inspect",
+        "caelab_experiment_summary",
+        "caelab_experiment_summary",
+        "caelab_experiment_compare"
+      ],
+      "observed_provider_step_finish_records": 7,
+      "workspace_default_guard_restored": true,
+      "raw_events": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/07-roof-baseline/stdout.jsonl",
+        "bytes": 261985,
+        "sha256": "2a145f0d0739d01d058b3bdc1399513d0ea1b8f652a1c06c93c21529d536a22e"
+      },
+      "stage_record": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/07-roof-baseline/stage.json",
+        "bytes": 254935,
+        "sha256": "a31dd9253170ea93c109636c3deb95178d3765777088057dfe8a2e0b4bd96fb2"
+      },
+      "model_text": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/07-roof-baseline/interpretation.txt",
+        "bytes": 3645,
+        "sha256": "f197a428fcde6a05d596219f753255a022cf505e5ac7ea49fcdd3cafb827d7ea"
+      }
+    },
+    {
+      "name": "08-roof-half-load",
+      "session_id": "ses_f05b1251cffevfO7QahgSYyzsH",
+      "CLI_question_closed": true,
+      "exit_code": 0,
+      "failure": null,
+      "native_completed_tools": [
+        "caelab_study_inspect",
+        "caelab_model_analysis_run",
+        "caelab_experiment_inspect",
+        "caelab_experiment_summary",
+        "caelab_experiment_compare"
+      ],
+      "observed_provider_step_finish_records": 4,
+      "workspace_default_guard_restored": true,
+      "raw_events": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/08-roof-half-load/stdout.jsonl",
+        "bytes": 139564,
+        "sha256": "1ea6e218cdad85fa28deade1f4cd530933d6589374c219f98e9a8bc7b4ad0768"
+      },
+      "stage_record": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/08-roof-half-load/stage.json",
+        "bytes": 139894,
+        "sha256": "954c8b17b53ceafc240a66efecd86dd20cc4f9253a762bc2628fd4fefb04f45b"
+      },
+      "model_text": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/08-roof-half-load/interpretation.txt",
+        "bytes": 2751,
+        "sha256": "a813f090b5396e72deae3fbcb674754ed9f94224f6645e649c09a78673a92635"
+      }
+    },
+    {
+      "name": "09-final-interpretation",
+      "session_id": "ses_f05ae3e50ffeFYztX4876gZ3K8",
+      "CLI_question_closed": true,
+      "exit_code": 0,
+      "failure": null,
+      "native_completed_tools": [],
+      "observed_provider_step_finish_records": 1,
+      "workspace_default_guard_restored": true,
+      "raw_events": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/09-final-interpretation/stdout.jsonl",
+        "bytes": 408216,
+        "sha256": "dd5ffba4a514538ff512eacd4e929d147113e649fcf0f7685837e961e8881327"
+      },
+      "stage_record": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/09-final-interpretation/stage.json",
+        "bytes": 782290,
+        "sha256": "2e90d5a0df7ea747270553a6478a6f912724ad5e9d73c2faca559d943d12b7d9"
+      },
+      "model_text": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/09-final-interpretation/interpretation.txt",
+        "bytes": 14030,
+        "sha256": "af15402f788103e32591d1758fe5d0bfac66943f07b3eb643a7d21d7eef8fcbd"
+      }
+    }
+  ],
+  "closed_question_count": 9,
+  "native_completed_tool_calls": 44,
+  "observed_provider_step_finish_records": 34,
+  "actual_analysis_inputs": [
+    {
+      "study_id": "S-p2-research-20261002-06-beam",
+      "experiment_id": "E-p2-research-20261002-06-beam-aster-full",
+      "backend": "structural.families.code_aster",
+      "settings": {
+        "case": "ansys_vmd1_regular",
+        "load_case": "Fz",
+        "load_factor": 1,
+        "mesh_cells": [
+          [
+            6,
+            1,
+            1
+          ],
+          [
+            12,
+            2,
+            2
+          ],
+          [
+            24,
+            4,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "study_id": "S-p2-research-20261002-06-beam",
+      "experiment_id": "E-p2-research-20261002-06-beam-ccx-full",
+      "backend": "structural.families.calculix",
+      "settings": {
+        "case": "ansys_vmd1_regular",
+        "load_case": "Fz",
+        "load_factor": 1,
+        "mesh_cells": [
+          [
+            6,
+            1,
+            1
+          ],
+          [
+            12,
+            2,
+            2
+          ],
+          [
+            24,
+            4,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "study_id": "S-p2-research-20261002-06-beam",
+      "experiment_id": "E-p2-research-20261002-06-beam-ccx-half",
+      "backend": "structural.families.calculix",
+      "settings": {
+        "case": "ansys_vmd1_regular",
+        "load_case": "Fz",
+        "load_factor": 0.5,
+        "mesh_cells": [
+          [
+            6,
+            1,
+            1
+          ],
+          [
+            12,
+            2,
+            2
+          ],
+          [
+            24,
+            4,
+            4
+          ]
+        ]
+      },
+      "hypothesis_id": "S-p2-research-20261002-06-beam-H1"
+    },
+    {
+      "study_id": "S-p2-research-20261002-06-cylinder",
+      "experiment_id": "E-p2-research-20261002-06-cylinder-ccx-full",
+      "backend": "structural.families.calculix",
+      "settings": {
+        "case": "lame_cylinder_plane_strain",
+        "load_case": "pressure",
+        "load_factor": 1,
+        "mesh_cells": [
+          [
+            2,
+            4,
+            1
+          ],
+          [
+            4,
+            8,
+            1
+          ],
+          [
+            8,
+            16,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "study_id": "S-p2-research-20261002-06-cylinder",
+      "experiment_id": "E-p2-research-20261002-06-cylinder-aster-full",
+      "backend": "structural.families.code_aster",
+      "settings": {
+        "case": "lame_cylinder_plane_strain",
+        "load_case": "pressure",
+        "load_factor": 1,
+        "mesh_cells": [
+          [
+            2,
+            4,
+            1
+          ],
+          [
+            4,
+            8,
+            1
+          ],
+          [
+            8,
+            16,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "study_id": "S-p2-research-20261002-06-cylinder",
+      "experiment_id": "E-p2-research-20261002-06-cylinder-ccx-half",
+      "backend": "structural.families.calculix",
+      "settings": {
+        "case": "lame_cylinder_plane_strain",
+        "load_case": "pressure",
+        "load_factor": 0.5,
+        "mesh_cells": [
+          [
+            2,
+            4,
+            1
+          ],
+          [
+            4,
+            8,
+            1
+          ],
+          [
+            8,
+            16,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "study_id": "S-p2-research-20261002-06-roof",
+      "experiment_id": "E-p2-research-20261002-06-roof-ccx-full",
+      "backend": "structural.families.calculix",
+      "settings": {
+        "case": "scordelis_lo_solid",
+        "load_case": "gravity",
+        "load_factor": 1,
+        "mesh_cells": [
+          [
+            4,
+            4,
+            1
+          ],
+          [
+            8,
+            8,
+            1
+          ],
+          [
+            16,
+            16,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "study_id": "S-p2-research-20261002-06-roof",
+      "experiment_id": "E-p2-research-20261002-06-roof-aster-full",
+      "backend": "structural.families.code_aster",
+      "settings": {
+        "case": "scordelis_lo_solid",
+        "load_case": "gravity",
+        "load_factor": 1,
+        "mesh_cells": [
+          [
+            4,
+            4,
+            1
+          ],
+          [
+            8,
+            8,
+            1
+          ],
+          [
+            16,
+            16,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "study_id": "S-p2-research-20261002-06-roof",
+      "experiment_id": "E-p2-research-20261002-06-roof-ccx-half",
+      "backend": "structural.families.calculix",
+      "settings": {
+        "case": "scordelis_lo_solid",
+        "load_case": "gravity",
+        "load_factor": 0.5,
+        "mesh_cells": [
+          [
+            4,
+            4,
+            1
+          ],
+          [
+            8,
+            8,
+            1
+          ],
+          [
+            16,
+            16,
+            2
+          ]
+        ]
+      },
+      "hypothesis_id": "S-p2-research-20261002-06-roof-H1"
+    }
+  ],
+  "actual_experiment_records": 9,
+  "native_level_directories": 27,
+  "complete_native_field_levels": 26,
+  "solver_completed_experiments": 8,
+  "experiments": [
+    {
+      "experiment_id": "E-p2-research-20261002-06-beam-aster-full",
+      "status": "FAILED_EXECUTION",
+      "study_id": "S-p2-research-20261002-06-beam",
+      "model_revision": "2f62dce7e6885f758120140811b16069fa8b05122d164458fb818ec767a6922e",
+      "metrics": {},
+      "actual_validation_statuses": {
+        "model_analysis_execution": "FAIL",
+        "model_qualification": "UNKNOWN",
+        "physical_validation": "UNKNOWN"
+      },
+      "missing_qualification_rows": [
+        "static_strength",
+        "material_qualification",
+        "fatigue_durability",
+        "original_midas_replication"
+      ],
+      "missing_rows_scope": "Missing rows are unavailable; no synthetic validation row is inserted.",
+      "result": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/store/experiments/E-p2-research-20261002-06-beam-aster-full/result.json",
+        "bytes": 35042,
+        "sha256": "c3e0eefcc3f5dcd0d1ac7a4981dc2df65783c4db340fe83a478c090ffd7398e8"
+      }
+    },
+    {
+      "experiment_id": "E-p2-research-20261002-06-beam-ccx-full",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "study_id": "S-p2-research-20261002-06-beam",
+      "model_revision": "2f62dce7e6885f758120140811b16069fa8b05122d164458fb818ec767a6922e",
+      "metrics": {
+        "applied_force_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.168072143128024e-13
+        },
+        "applied_moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.165693002979477e-13
+        },
+        "mesh_response_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.007059343863720926
+        },
+        "moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 4.5027143085271005e-08
+        },
+        "primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 10.912506701403661
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 7.73461840347529e-08
+        },
+        "reference_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.005724952356495402
+        },
+        "signed_primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 10.912506701403661
+        }
+      },
+      "actual_validation_statuses": {
+        "reference_response": "PASS",
+        "last_two_mesh_response": "PASS",
+        "signed_reaction_balance": "PASS",
+        "signed_moment_balance": "PASS",
+        "applied_force_reference": "PASS",
+        "applied_moment_reference": "PASS",
+        "positive_load_response_sign": "PASS",
+        "static_strength": "UNKNOWN",
+        "material_qualification": "UNKNOWN",
+        "physical_validation": "UNKNOWN",
+        "fatigue_durability": "UNKNOWN",
+        "model_qualification": "UNKNOWN",
+        "original_midas_replication": "UNKNOWN"
+      },
+      "missing_qualification_rows": [],
+      "missing_rows_scope": "Missing rows are unavailable; no synthetic validation row is inserted.",
+      "result": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/store/experiments/E-p2-research-20261002-06-beam-ccx-full/result.json",
+        "bytes": 46307,
+        "sha256": "7f6a743eaa260f73fa61e8f48a28e8dd7d266373ea51242b98762e5c4e700ee6"
+      }
+    },
+    {
+      "experiment_id": "E-p2-research-20261002-06-beam-ccx-half",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "study_id": "S-p2-research-20261002-06-beam",
+      "model_revision": "31d42d8ffcc7b20cc92093432521a66cfa6d9a1fd7a3f8c0070381dd2d5db0eb",
+      "metrics": {
+        "applied_force_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.391703049162791e-13
+        },
+        "applied_moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.3904452115365364e-13
+        },
+        "mesh_response_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0070593438639297125
+        },
+        "moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 4.502715965185232e-08
+        },
+        "primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 5.456253350702276
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 7.734631419291687e-08
+        },
+        "reference_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0057249523564141536
+        },
+        "signed_primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 5.456253350702276
+        }
+      },
+      "actual_validation_statuses": {
+        "reference_response": "PASS",
+        "last_two_mesh_response": "PASS",
+        "signed_reaction_balance": "PASS",
+        "signed_moment_balance": "PASS",
+        "applied_force_reference": "PASS",
+        "applied_moment_reference": "PASS",
+        "positive_load_response_sign": "PASS",
+        "static_strength": "UNKNOWN",
+        "material_qualification": "UNKNOWN",
+        "physical_validation": "UNKNOWN",
+        "fatigue_durability": "UNKNOWN",
+        "model_qualification": "UNKNOWN",
+        "original_midas_replication": "UNKNOWN"
+      },
+      "missing_qualification_rows": [],
+      "missing_rows_scope": "Missing rows are unavailable; no synthetic validation row is inserted.",
+      "result": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/store/experiments/E-p2-research-20261002-06-beam-ccx-half/result.json",
+        "bytes": 46316,
+        "sha256": "884151a69a9474972f4bce597a035cafa6e53e95d63f44d562a74f87a41d64ad"
+      }
+    },
+    {
+      "experiment_id": "E-p2-research-20261002-06-cylinder-aster-full",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "study_id": "S-p2-research-20261002-06-cylinder",
+      "model_revision": "6ccfdcab6ab5ea6fb5b158cac7842c9a85d00d149c9f3afb6338d7a8b1d7c330",
+      "metrics": {
+        "applied_force_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.6477659515578892e-16
+        },
+        "applied_moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 5.1590240187101984e-17
+        },
+        "max_component_displacement_error_mm": {
+          "unit": "mm",
+          "valid": true,
+          "value": 2.0853425984623808e-07
+        },
+        "max_component_stress_error_mpa": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 0.4096158464866164
+        },
+        "mesh_response_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.2022744164995613e-05
+        },
+        "moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 6.935478998153248e-15
+        },
+        "pointwise_displacement_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.752652229970343e-06
+        },
+        "pointwise_stress_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0024576950789196987
+        },
+        "primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 0.07575746324636244
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.3164859624016907e-14
+        },
+        "reference_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.4851480156174993e-06
+        },
+        "secondary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 0.06060598635000472
+        },
+        "signed_primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 0.07575746324636244
+        }
+      },
+      "actual_validation_statuses": {
+        "mesh_preflight_0": "PASS",
+        "mesh_preflight_1": "PASS",
+        "mesh_preflight_2": "PASS",
+        "reference_response": "PASS",
+        "last_two_mesh_response": "PASS",
+        "signed_reaction_balance": "PASS",
+        "signed_moment_balance": "PASS",
+        "applied_force_reference": "PASS",
+        "applied_moment_reference": "PASS",
+        "analytical_displacement": "PASS",
+        "analytical_stress": "PASS",
+        "static_strength": "UNKNOWN",
+        "material_qualification": "UNKNOWN",
+        "physical_validation": "UNKNOWN",
+        "fatigue_durability": "UNKNOWN",
+        "model_qualification": "UNKNOWN",
+        "original_midas_replication": "UNKNOWN"
+      },
+      "missing_qualification_rows": [],
+      "missing_rows_scope": "Missing rows are unavailable; no synthetic validation row is inserted.",
+      "result": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/store/experiments/E-p2-research-20261002-06-cylinder-aster-full/result.json",
+        "bytes": 63851,
+        "sha256": "1998b53350f952b54fb227f98fc8dd925143c3a21db094aa8e6aa1db0a88dd38"
+      }
+    },
+    {
+      "experiment_id": "E-p2-research-20261002-06-cylinder-ccx-full",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "study_id": "S-p2-research-20261002-06-cylinder",
+      "model_revision": "6ccfdcab6ab5ea6fb5b158cac7842c9a85d00d149c9f3afb6338d7a8b1d7c330",
+      "metrics": {
+        "applied_force_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.3830012547753826e-14
+        },
+        "applied_moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.377775434118158e-15
+        },
+        "max_component_displacement_error_mm": {
+          "unit": "mm",
+          "valid": true,
+          "value": 2.0853425410083393e-07
+        },
+        "max_component_stress_error_mpa": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 0.4096113164553117
+        },
+        "mesh_response_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.202274414173089e-05
+        },
+        "moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.4532897756274814e-15
+        },
+        "pointwise_displacement_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.7526521541310083e-06
+        },
+        "pointwise_stress_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0024576678987318704
+        },
+        "primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 0.07575746324636258
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.4931853452971726e-14
+        },
+        "reference_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.4851480137856313e-06
+        },
+        "secondary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 0.06060598635000506
+        },
+        "signed_primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 0.07575746324636258
+        }
+      },
+      "actual_validation_statuses": {
+        "reference_response": "PASS",
+        "last_two_mesh_response": "PASS",
+        "signed_reaction_balance": "PASS",
+        "signed_moment_balance": "PASS",
+        "applied_force_reference": "PASS",
+        "applied_moment_reference": "PASS",
+        "analytical_displacement": "PASS",
+        "analytical_stress": "PASS",
+        "static_strength": "UNKNOWN",
+        "material_qualification": "UNKNOWN",
+        "physical_validation": "UNKNOWN",
+        "fatigue_durability": "UNKNOWN",
+        "model_qualification": "UNKNOWN",
+        "original_midas_replication": "UNKNOWN"
+      },
+      "missing_qualification_rows": [],
+      "missing_rows_scope": "Missing rows are unavailable; no synthetic validation row is inserted.",
+      "result": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/store/experiments/E-p2-research-20261002-06-cylinder-ccx-full/result.json",
+        "bytes": 48728,
+        "sha256": "398e209528023664ded3531c486ffef5fdf15bb0105cc6ce59eca9b5dc228c8c"
+      }
+    },
+    {
+      "experiment_id": "E-p2-research-20261002-06-cylinder-ccx-half",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "study_id": "S-p2-research-20261002-06-cylinder",
+      "model_revision": "111e4d6687c7cfddab117f8f4d2fc1fdd11008c86bac5eea35f19b803ba85db4",
+      "metrics": {
+        "applied_force_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 9.997168750485935e-14
+        },
+        "applied_moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 5.023334626422679e-15
+        },
+        "max_component_displacement_error_mm": {
+          "unit": "mm",
+          "valid": true,
+          "value": 1.0426712661326665e-07
+        },
+        "max_component_stress_error_mpa": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 0.20481065822765743
+        },
+        "mesh_response_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.2022744082561554e-05
+        },
+        "moment_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.535832440977446e-15
+        },
+        "pointwise_displacement_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.75265214259024e-06
+        },
+        "pointwise_stress_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.002457727898731889
+        },
+        "primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 0.03787873162318234
+        },
+        "reaction_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.5326559042958573e-14
+        },
+        "reference_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.4851479861244245e-06
+        },
+        "secondary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 0.030302993175003366
+        },
+        "signed_primary_response": {
+          "unit": "mm",
+          "valid": true,
+          "value": 0.03787873162318234
+        }
+      },
+      "actual_validation_statuses": {
+        "reference_response": "PASS",
+        "last_two_mesh_response": "PASS",
+        "signed_reaction_balance": "PASS",
+        "signed_moment_balance": "PASS",
+        "applied_force_reference": "PASS",
+        "applied_moment_reference": "PASS",
+        "analytical_displacement": "PASS",
+        "analytical_stress": "PASS",
+        "static_strength": "UNKNOWN",
+        "material_qualification": "UNKNOWN",
+        "physical_validation": "UNKNOWN",
+        "fatigue_durability": "UNKNOWN",
+        "model_qualification": "UNKNOWN",
+        "original_midas_replication": "UNKNOWN"
+      },
+      "missing_qualification_rows": [],
+      "missing_rows_scope": "Missing rows are unavailable; no synthetic validation row is inserted.",
+      "result": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/store/experiments/E-p2-research-20261002-06-cylinder-ccx-half/result.json",
+        "bytes": 48722,
+        "sha256": "fb1a447e11d97c982ba46e7d17c356c2a0447431b5d4829c1640f6a3470c5538"
+      }
+    },
+    {
+      "experiment_id": "E-p2-research-20261002-06-roof-aster-full",
+      "status": "REJECTED",
+      "study_id": "S-p2-research-20261002-06-roof",
+      "model_revision": "7f9415fe0baab30996065569f6fbb96611421e7a1f4d65cfa56efb6717b1dcf6",
+      "metrics": {
+        "applied_force_relative_error": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 1.931410112488329e-06
+        },
+        "applied_moment_relative_error": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 1.3691274386538387e-06
+        },
+        "mesh_response_relative": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 0.014010940572715243
+        },
+        "moment_relative_error": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 6.113650807452416e-10
+        },
+        "primary_response": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "mm",
+          "valid": false,
+          "value": -90.9270759137368
+        },
+        "reaction_relative_error": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 5.729952791018442e-10
+        },
+        "reference_relative_error": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 0.013501394858880494
+        },
+        "signed_primary_response": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "mm",
+          "valid": false,
+          "value": -90.9270759137368
+        }
+      },
+      "actual_validation_statuses": {
+        "mesh_preflight_0": "PASS",
+        "mesh_preflight_1": "PASS",
+        "mesh_preflight_2": "PASS",
+        "reference_response": "PASS",
+        "last_two_mesh_response": "FAIL",
+        "signed_reaction_balance": "PASS",
+        "signed_moment_balance": "PASS",
+        "applied_force_reference": "PASS",
+        "applied_moment_reference": "PASS",
+        "static_strength": "UNKNOWN",
+        "material_qualification": "UNKNOWN",
+        "physical_validation": "UNKNOWN",
+        "fatigue_durability": "UNKNOWN",
+        "model_qualification": "UNKNOWN",
+        "original_midas_replication": "UNKNOWN"
+      },
+      "missing_qualification_rows": [],
+      "missing_rows_scope": "Missing rows are unavailable; no synthetic validation row is inserted.",
+      "result": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/store/experiments/E-p2-research-20261002-06-roof-aster-full/result.json",
+        "bytes": 60360,
+        "sha256": "0e594bcacbda6f6eec192b2d5987e9f751138651e125fe6bea40946b250af718"
+      }
+    },
+    {
+      "experiment_id": "E-p2-research-20261002-06-roof-ccx-full",
+      "status": "REJECTED",
+      "study_id": "S-p2-research-20261002-06-roof",
+      "model_revision": "7f9415fe0baab30996065569f6fbb96611421e7a1f4d65cfa56efb6717b1dcf6",
+      "metrics": {
+        "applied_force_relative_error": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 1.9314101036579423e-06
+        },
+        "applied_moment_relative_error": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 1.3691274271787818e-06
+        },
+        "mesh_response_relative": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 0.014010943405061786
+        },
+        "moment_relative_error": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 3.4095259218507886e-10
+        },
+        "primary_response": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "mm",
+          "valid": false,
+          "value": -90.92707616626838
+        },
+        "reaction_relative_error": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 3.156456276684661e-10
+        },
+        "reference_relative_error": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 0.013501392119079981
+        },
+        "signed_primary_response": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "mm",
+          "valid": false,
+          "value": -90.92707616626838
+        }
+      },
+      "actual_validation_statuses": {
+        "reference_response": "PASS",
+        "last_two_mesh_response": "FAIL",
+        "signed_reaction_balance": "PASS",
+        "signed_moment_balance": "PASS",
+        "applied_force_reference": "PASS",
+        "applied_moment_reference": "PASS",
+        "static_strength": "UNKNOWN",
+        "material_qualification": "UNKNOWN",
+        "physical_validation": "UNKNOWN",
+        "fatigue_durability": "UNKNOWN",
+        "model_qualification": "UNKNOWN",
+        "original_midas_replication": "UNKNOWN"
+      },
+      "missing_qualification_rows": [],
+      "missing_rows_scope": "Missing rows are unavailable; no synthetic validation row is inserted.",
+      "result": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/store/experiments/E-p2-research-20261002-06-roof-ccx-full/result.json",
+        "bytes": 46016,
+        "sha256": "acaa3305cd08cb7bd3b6d71a0cb288832a37b1924bdea0f3e21232e2ad81fe74"
+      }
+    },
+    {
+      "experiment_id": "E-p2-research-20261002-06-roof-ccx-half",
+      "status": "REJECTED",
+      "study_id": "S-p2-research-20261002-06-roof",
+      "model_revision": "0155edeca3ee0009f19c55b192c6063819f515eba3f04b239a2f53ef5671c849",
+      "metrics": {
+        "applied_force_relative_error": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 1.9314100991594435e-06
+        },
+        "applied_moment_relative_error": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 1.3691274286468288e-06
+        },
+        "mesh_response_relative": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 0.014010943404809089
+        },
+        "moment_relative_error": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 3.4092862100646703e-10
+        },
+        "primary_response": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "mm",
+          "valid": false,
+          "value": -45.46353808312804
+        },
+        "reaction_relative_error": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 3.157016428977988e-10
+        },
+        "reference_relative_error": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "1",
+          "valid": false,
+          "value": 0.013501392119213345
+        },
+        "signed_primary_response": {
+          "reason": "Structural-family numerical checks failed: last_two_mesh_response",
+          "unit": "mm",
+          "valid": false,
+          "value": -45.46353808312804
+        }
+      },
+      "actual_validation_statuses": {
+        "reference_response": "PASS",
+        "last_two_mesh_response": "FAIL",
+        "signed_reaction_balance": "PASS",
+        "signed_moment_balance": "PASS",
+        "applied_force_reference": "PASS",
+        "applied_moment_reference": "PASS",
+        "static_strength": "UNKNOWN",
+        "material_qualification": "UNKNOWN",
+        "physical_validation": "UNKNOWN",
+        "fatigue_durability": "UNKNOWN",
+        "model_qualification": "UNKNOWN",
+        "original_midas_replication": "UNKNOWN"
+      },
+      "missing_qualification_rows": [],
+      "missing_rows_scope": "Missing rows are unavailable; no synthetic validation row is inserted.",
+      "result": {
+        "path": "artifacts/p2-structural-research-retained-20261002-06/store/experiments/E-p2-research-20261002-06-roof-ccx-half/result.json",
+        "bytes": 46018,
+        "sha256": "627c6ffb13c10dd7300431137a2997e1aba0f59f05a1bee4fbca29f87bd19b18"
+      }
+    }
+  ],
+  "full_output_transport": {
+    "original_official_truncated_outputs": 4,
+    "strictly_restored_archives": 4,
+    "direct_receipts": 40,
+    "admitted_receipts": 44,
+    "scope": "Complete original transport bytes, exact preview and stored Core linkage are independently audited; original previews remain. Whole stored final prompt is verified separately. This does not establish all-token model cognition or complete-original visibility in earlier stages."
+  },
+  "numerical_observations": {
+    "canonical_comparisons": [
+      {
+        "case": "ansys_vmd1_regular",
+        "cause": "Missing completed native fields; no synthesized agreement",
+        "ids": [
+          "E-p2-research-20261002-06-beam-ccx-full",
+          "E-p2-research-20261002-06-beam-aster-full"
+        ],
+        "status": "UNKNOWN_UNAVAILABLE"
+      },
+      {
+        "case": "lame_cylinder_plane_strain",
+        "ids": [
+          "E-p2-research-20261002-06-cylinder-ccx-full",
+          "E-p2-research-20261002-06-cylinder-aster-full"
+        ],
+        "levels": [
+          {
+            "displacement_field_relative_error": 8.866241074656502e-14,
+            "level": 0,
+            "matched_stress_points": 216,
+            "point_matching_tolerance_mm": 2e-08,
+            "response_relative_error": 3.1141755840735646e-15,
+            "stress_field_relative_error": 3.175495229711044e-07,
+            "stress_scale_mpa": 152.5935083378847
+          },
+          {
+            "displacement_field_relative_error": 8.664735595687036e-14,
+            "level": 1,
+            "matched_stress_points": 864,
+            "point_matching_tolerance_mm": 2e-08,
+            "response_relative_error": 2.5096591471651668e-14,
+            "stress_field_relative_error": 3.101509645463536e-07,
+            "stress_scale_mpa": 159.3850018528205
+          },
+          {
+            "displacement_field_relative_error": 9.214295992876488e-14,
+            "level": 2,
+            "matched_stress_points": 6912,
+            "point_matching_tolerance_mm": 2e-08,
+            "response_relative_error": 1.8318679906315087e-15,
+            "stress_field_relative_error": 3.0648377191360486e-07,
+            "stress_scale_mpa": 162.9640044386969
+          }
+        ],
+        "limit": {
+          "cross_solver_field_relative": 1e-05,
+          "cross_solver_response_relative": 1e-05,
+          "mesh_volume_relative": 0.001,
+          "moment_relative": 1e-07,
+          "reaction_relative": 1e-07
+        },
+        "qualification": "Declared raw numerical comparison only; UNKNOWN/NOT_RELEASED remains",
+        "raw_field_difference_gates": "PASS",
+        "status": "PASS"
+      },
+      {
+        "case": "scordelis_lo_solid",
+        "ids": [
+          "E-p2-research-20261002-06-roof-ccx-full",
+          "E-p2-research-20261002-06-roof-aster-full"
+        ],
+        "levels": [
+          {
+            "displacement_field_relative_error": 1.4290477050827712e-10,
+            "level": 0,
+            "matched_stress_points": 432,
+            "point_matching_tolerance_mm": 7.620000000000001e-07,
+            "response_relative_error": 1.6147717404920378e-11,
+            "stress_field_relative_error": 3.8626037610670133e-07,
+            "stress_scale_mpa": 12.60481
+          },
+          {
+            "displacement_field_relative_error": 1.4431511714796919e-10,
+            "level": 1,
+            "matched_stress_points": 1728,
+            "point_matching_tolerance_mm": 7.620000000000001e-07,
+            "response_relative_error": 9.254602913529199e-11,
+            "stress_field_relative_error": 3.226921071836254e-07,
+            "stress_scale_mpa": 15.33738
+          },
+          {
+            "displacement_field_relative_error": 2.7972928572754456e-09,
+            "level": 2,
+            "matched_stress_points": 13824,
+            "point_matching_tolerance_mm": 7.620000000000001e-07,
+            "response_relative_error": 2.739800513989523e-09,
+            "stress_field_relative_error": 3.0453976789706226e-07,
+            "stress_scale_mpa": 16.4558448851
+          }
+        ],
+        "limit": {
+          "cross_solver_field_relative": 1e-05,
+          "cross_solver_response_relative": 1e-05,
+          "mesh_volume_relative": 0.001,
+          "moment_relative": 1e-07,
+          "reaction_relative": 1e-07
+        },
+        "qualification": "Declared raw numerical comparison only; UNKNOWN/NOT_RELEASED remains",
+        "raw_field_difference_gates": "PASS",
+        "status": "UNKNOWN_INVALID_CORE_METRICS"
+      }
+    ],
+    "original_control_trace_canonical_comparisons": [
+      {
+        "experiment_ids": [
+          "E-p2-research-20261002-06-beam-ccx-full",
+          "E-p2-research-20261002-06-beam-aster-full"
+        ],
+        "receipt_comparison": "PASS_EXACT_STORED_RECORDS",
+        "numerical_comparison": "UNKNOWN_UNAVAILABLE",
+        "numerical_agreement": "UNKNOWN_NOT_ASSERTED_BY_CONTROL_TRACE",
+        "core_statuses": [
+          "COMPLETED_REVIEW_REQUIRED",
+          "FAILED_EXECUTION"
+        ],
+        "unavailable_ids": [
+          "E-p2-research-20261002-06-beam-aster-full"
+        ]
+      },
+      {
+        "experiment_ids": [
+          "E-p2-research-20261002-06-cylinder-ccx-full",
+          "E-p2-research-20261002-06-cylinder-aster-full"
+        ],
+        "receipt_comparison": "PASS_EXACT_STORED_RECORDS",
+        "numerical_comparison": "PENDING_ROOT_RAW_AUDIT",
+        "numerical_agreement": "UNKNOWN_NOT_ASSERTED_BY_CONTROL_TRACE",
+        "core_statuses": [
+          "COMPLETED_REVIEW_REQUIRED",
+          "COMPLETED_REVIEW_REQUIRED"
+        ],
+        "unavailable_ids": []
+      },
+      {
+        "experiment_ids": [
+          "E-p2-research-20261002-06-roof-ccx-full",
+          "E-p2-research-20261002-06-roof-aster-full"
+        ],
+        "receipt_comparison": "PASS_EXACT_STORED_RECORDS",
+        "numerical_comparison": "UNKNOWN_UNAVAILABLE",
+        "numerical_agreement": "UNKNOWN_NOT_ASSERTED_BY_CONTROL_TRACE",
+        "core_statuses": [
+          "REJECTED",
+          "REJECTED"
+        ],
+        "unavailable_ids": [
+          "E-p2-research-20261002-06-roof-ccx-full",
+          "E-p2-research-20261002-06-roof-aster-full"
+        ]
+      }
+    ],
+    "changed_load_core_verdicts": [
+      {
+        "case": "ansys_vmd1_regular",
+        "original_id": "E-p2-research-20261002-06-beam-ccx-full",
+        "changed_id": "E-p2-research-20261002-06-beam-ccx-half",
+        "original_revision": "2f62dce7e6885f758120140811b16069fa8b05122d164458fb818ec767a6922e",
+        "changed_revision": "31d42d8ffcc7b20cc92093432521a66cfa6d9a1fd7a3f8c0070381dd2d5db0eb",
+        "core_statuses": [
+          "COMPLETED_REVIEW_REQUIRED",
+          "COMPLETED_REVIEW_REQUIRED"
+        ],
+        "relative_error": 4.085821698804655e-14,
+        "fixed_limit": 1e-07,
+        "status": "PASS",
+        "metric_inputs_used": true,
+        "unavailable_ids": []
+      },
+      {
+        "case": "lame_cylinder_plane_strain",
+        "original_id": "E-p2-research-20261002-06-cylinder-ccx-full",
+        "changed_id": "E-p2-research-20261002-06-cylinder-ccx-half",
+        "original_revision": "6ccfdcab6ab5ea6fb5b158cac7842c9a85d00d149c9f3afb6338d7a8b1d7c330",
+        "changed_revision": "111e4d6687c7cfddab117f8f4d2fc1fdd11008c86bac5eea35f19b803ba85db4",
+        "core_statuses": [
+          "COMPLETED_REVIEW_REQUIRED",
+          "COMPLETED_REVIEW_REQUIRED"
+        ],
+        "relative_error": 1.3830623869791459e-14,
+        "fixed_limit": 1e-07,
+        "status": "PASS",
+        "metric_inputs_used": true,
+        "unavailable_ids": []
+      },
+      {
+        "case": "scordelis_lo_solid",
+        "original_id": "E-p2-research-20261002-06-roof-ccx-full",
+        "changed_id": "E-p2-research-20261002-06-roof-ccx-half",
+        "original_revision": "7f9415fe0baab30996065569f6fbb96611421e7a1f4d65cfa56efb6717b1dcf6",
+        "changed_revision": "0155edeca3ee0009f19c55b192c6063819f515eba3f04b239a2f53ef5671c849",
+        "core_statuses": [
+          "REJECTED",
+          "REJECTED"
+        ],
+        "relative_error": null,
+        "fixed_limit": 1e-07,
+        "status": "UNKNOWN_UNAVAILABLE",
+        "metric_inputs_used": false,
+        "unavailable_ids": [
+          "E-p2-research-20261002-06-roof-ccx-full",
+          "E-p2-research-20261002-06-roof-ccx-half"
+        ]
+      }
+    ],
+    "independent_changed_load": [
+      {
+        "case": "ansys_vmd1_regular",
+        "descriptive_all_field_scaling": [
+          {
+            "additional_field_gate": "NOT_DECLARED_DESCRIPTIVE_ONLY",
+            "level": 0,
+            "maximum_displacement_component_scaling_relative_error": 1.1877274407674483e-13,
+            "maximum_stress_component_scaling_relative_error": 1.9802784079698554e-07
+          },
+          {
+            "additional_field_gate": "NOT_DECLARED_DESCRIPTIVE_ONLY",
+            "level": 1,
+            "maximum_displacement_component_scaling_relative_error": 6.508618884176679e-14,
+            "maximum_stress_component_scaling_relative_error": 1.6591231865155466e-07
+          },
+          {
+            "additional_field_gate": "NOT_DECLARED_DESCRIPTIVE_ONLY",
+            "level": 2,
+            "maximum_displacement_component_scaling_relative_error": 4.126510758134246e-14,
+            "maximum_stress_component_scaling_relative_error": 1.5597789174314086e-07
+          }
+        ],
+        "fixed_limit": 1e-07,
+        "ids": [
+          "E-p2-research-20261002-06-beam-ccx-full",
+          "E-p2-research-20261002-06-beam-ccx-half"
+        ],
+        "normalization": "abs(half-.5full)/max(abs(full measured primary),1e-12mm)",
+        "primary_scaling_relative_error": 4.085821698804655e-14,
+        "status": "PASS"
+      },
+      {
+        "case": "lame_cylinder_plane_strain",
+        "descriptive_all_field_scaling": [
+          {
+            "additional_field_gate": "NOT_DECLARED_DESCRIPTIVE_ONLY",
+            "level": 0,
+            "maximum_displacement_component_scaling_relative_error": 8.703077656085945e-14,
+            "maximum_stress_component_scaling_relative_error": 1.310671818022935e-07
+          },
+          {
+            "additional_field_gate": "NOT_DECLARED_DESCRIPTIVE_ONLY",
+            "level": 1,
+            "maximum_displacement_component_scaling_relative_error": 5.3766037703416813e-14,
+            "maximum_stress_component_scaling_relative_error": 1.2548232271762258e-07
+          },
+          {
+            "additional_field_gate": "NOT_DECLARED_DESCRIPTIVE_ONLY",
+            "level": 2,
+            "maximum_displacement_component_scaling_relative_error": 4.066750060458207e-14,
+            "maximum_stress_component_scaling_relative_error": 1.2272649177946218e-07
+          }
+        ],
+        "fixed_limit": 1e-07,
+        "ids": [
+          "E-p2-research-20261002-06-cylinder-ccx-full",
+          "E-p2-research-20261002-06-cylinder-ccx-half"
+        ],
+        "normalization": "abs(half-.5full)/max(abs(full measured primary),1e-12mm)",
+        "primary_scaling_relative_error": 1.3830623869791459e-14,
+        "status": "PASS"
+      },
+      {
+        "case": "scordelis_lo_solid",
+        "descriptive_all_field_scaling": [
+          {
+            "additional_field_gate": "NOT_DECLARED_DESCRIPTIVE_ONLY",
+            "level": 0,
+            "maximum_displacement_component_scaling_relative_error": 1.2343865545118296e-14,
+            "maximum_stress_component_scaling_relative_error": 1.5866958726704772e-07
+          },
+          {
+            "additional_field_gate": "NOT_DECLARED_DESCRIPTIVE_ONLY",
+            "level": 1,
+            "maximum_displacement_component_scaling_relative_error": 6.122829527524345e-14,
+            "maximum_stress_component_scaling_relative_error": 1.3040036826886704e-07
+          },
+          {
+            "additional_field_gate": "NOT_DECLARED_DESCRIPTIVE_ONLY",
+            "level": 2,
+            "maximum_displacement_component_scaling_relative_error": 6.751074738602318e-14,
+            "maximum_stress_component_scaling_relative_error": 1.215373995055589e-07
+          }
+        ],
+        "fixed_limit": 1e-07,
+        "ids": [
+          "E-p2-research-20261002-06-roof-ccx-full",
+          "E-p2-research-20261002-06-roof-ccx-half"
+        ],
+        "normalization": "abs(half-.5full)/max(abs(full measured primary),1e-12mm)",
+        "primary_scaling_relative_error": 6.759476850532392e-14,
+        "status": "UNKNOWN_INVALID_CORE_METRICS"
+      }
+    ],
+    "scope": "Independent fresh06 cylinder and accepted beam/cylinder primary scaling outcomes are separate from original driver pending-audit fields. Roof raw differences/scaling are descriptive; invalid Core metrics cannot establish accepted cross-solver or scaling qualification."
+  },
+  "final_complete_prompt_interpretation": {
+    "status": "PASS_ACTUAL_OFFICIAL_STORED_FULL_PROMPT_AND_COMPLETED_FINAL_RESPONSE",
+    "stage": "09-final-interpretation",
+    "session_id": "ses_f05ae3e50ffeFYztX4876gZ3K8",
+    "original_bytes": 360998,
+    "original_sha256": "21756e12b40f259c21705bbe97d769151253a0f9c5696aa3b2cf89e49aa8dff8",
+    "expected_native_prefix": "LF",
+    "expected_native_bytes": 360999,
+    "expected_native_sha256": "0dd461bee9292a8ffb9cafd31d5eefc2af9ca91b16178916dc4b4e37586d247c",
+    "observed_native_bytes": 360999,
+    "observed_native_sha256": "0dd461bee9292a8ffb9cafd31d5eefc2af9ca91b16178916dc4b4e37586d247c",
+    "owned_stdin_relay": {
+      "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/09-final-interpretation/relay-final.json",
+      "bytes": 785,
+      "sha256": "9f21851c2bc0e2f301f27ea759834ab47fe9bda44344e8a91dedf39a2edae422"
+    },
+    "immutable_request": {
+      "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/09-final-interpretation/command-request.json",
+      "bytes": 391443,
+      "sha256": "426c5a8448e5a128b5b74c8030507ae691c58614a4bb41df48ce9cebbc2e5cc8"
+    },
+    "whole_input": {
+      "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/09-final-interpretation/stdin-prompt.txt",
+      "bytes": 360998,
+      "sha256": "21756e12b40f259c21705bbe97d769151253a0f9c5696aa3b2cf89e49aa8dff8"
+    },
+    "official_message_response": {
+      "path": "artifacts/p2-structural-research-retained-20261002-06/supplements/final-message-read/response.json",
+      "bytes": 409289,
+      "sha256": "e57741d3e830244aab9ac3294a4dbeeae1ba81d8834573e5843c7a17362085d2"
+    },
+    "root_readonly_reconciliation": {
+      "path": "artifacts/p2-structural-research-control-20261002-06/final-message-read-02/receipt.json",
+      "bytes": 4940,
+      "sha256": "648cc63153b6691b24d71c3332a6ed6a3a05b519078d9c9be0e6df3512f0432a"
+    },
+    "pinned_official_message_contract": {
+      "path": "artifacts/p2-structural-research-retained-20261002-06/message-primary-source/source-contract.json",
+      "bytes": 10047,
+      "sha256": "57b82d62f5713d687028f10cd68b00b8897decd920c9fcb99bb47e635e870a44"
+    },
+    "pinned_message_filter_erratum": {
+      "path": "artifacts/p2-structural-research-control-20261002-06/final-message-read-02/source-contract-erratum.json",
+      "bytes": 3027,
+      "sha256": "1db1ec72a0ab73355585efc4319ab8e3cfd025069b9b61c1fcfeecadea0a1585"
+    },
+    "separate_erratum_retention": {
+      "path": "artifacts/p2-structural-research-control-20261002-06/supplement-retention.json",
+      "bytes": 742,
+      "sha256": "9a94639e12b37850d32c35729cc893d95f8a24b577d5162074648a7440c84d0c"
+    },
+    "message_filter_disposition": "Frozen primary interpretation incorrectly required internal absent. Official durable original prompts can carry internal.type=prompt/epoch=original ID; exclude continuations instead. Root read02 did not apply the incorrect condition. Erratum retained separately without rewriting the original contract or1094-file manifest.",
+    "model_interpretation": {
+      "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/09-final-interpretation/interpretation.txt",
+      "bytes": 14030,
+      "sha256": "af15402f788103e32591d1758fe5d0bfac66943f07b3eb643a7d21d7eef8fcbd"
+    },
+    "reader_attempts": "First Root reader assumed only one text part; synthetic ignored empty part caused a harness refusal. Original response preserved and correctly reconciled offline; no production failure or extra model calls.",
+    "scope": "Whole final input and actual native response/cleanup are observed. Provider wire/token cognition/cloud weights remain UNKNOWN. AI prose is not a numerical validator."
+  },
+  "GUI": {
+    "start": {
+      "path": "artifacts/p2-structural-research-control-20261002-06/gui-observation-start.json",
+      "bytes": 960,
+      "sha256": "7f2379392cc9aa3866aed167a883d4b5890ebdf697b06597c17242c1184cdc6c"
+    },
+    "final": {
+      "path": "artifacts/p2-structural-research-control-20261002-06/gui-observation-final.json",
+      "bytes": 1471,
+      "sha256": "8755b1746817ee44807b5095db9d7e75c75671de42ab416c9773180d4b3a6aaf"
+    },
+    "scope": "Root same exact actual sessions, approved model/results/final interpretation observed through AX. Full AX export/screenshot NOT_CAPTURED; native CAD/result GUI NOT_VERIFIED. Original driver GUI=NOT_RUN remains unchanged."
+  },
+  "owned_stop": {
+    "evidence": {
+      "path": "artifacts/p2-structural-research-control-20261002-06/owned-stop-verification.json",
+      "bytes": 528,
+      "sha256": "a3699dcaa59229aef5cf7fee13af5a0d48b1feb05e1c280178eda5545b78de39"
+    },
+    "original_pids": [
+      10220,
+      52484,
+      82176
+    ],
+    "status": "PASS_ACTUAL_OWNED_STOP"
+  },
+  "local_retention": {
+    "evidence": {
+      "path": "artifacts/p2-structural-research-control-20261002-06/retention.json",
+      "bytes": 257246,
+      "sha256": "ecfc34e3a66e16f44713431ab96c23ce9b6133176e86ae7869caafd3ce753683"
+    },
+    "files": 1094,
+    "bytes": 219707442,
+    "groups": {
+      "artifacts": {
+        "files_count": 327,
+        "bytes": 11270770
+      },
+      "store": {
+        "files_count": 751,
+        "bytes": 207138374
+      },
+      "message-primary-source": {
+        "files_count": 10,
+        "bytes": 880629
+      },
+      "supplements": {
+        "files_count": 6,
+        "bytes": 417669
+      }
+    },
+    "original_and_copy_unchanged": "PASS",
+    "remote_raw_backup": "UNKNOWN_NOT_UPLOADED"
+  },
+  "independent_review": {
+    "evidence": {
+      "path": "artifacts/p2-structural-research-actual-review-20261002-06/independent-actual-review.json",
+      "bytes": 153461,
+      "sha256": "8523e107a96879d55c292171b2d540ad83012f3db64fdec76c5586d22afbdfc4"
+    },
+    "status": "PASS_BOUNDED_READ_ONLY_AUDIT_OF_RECORDED_PARTIAL_RESEARCH06",
+    "raw_numerical_evidence": {
+      "path": "artifacts/p2-structural-research-actual-review-20261002-06/closed-closed-numerical-audit.json",
+      "bytes": 176984,
+      "sha256": "713fa8e310f1e6fb6b843a6de6337bb5991ba68d7c4c127e0daabd949a511e7e"
+    },
+    "source_receipt_retention_evidence": {
+      "path": "artifacts/p2-structural-research-actual-review-20261002-06/v6-source-receipt-retention-closure.json",
+      "bytes": 630659,
+      "sha256": "b953d6cbfc14b11c14ef78db211ba02e87a8108a4b3cf7df2667d8ae9b2b845e"
+    },
+    "scope": "Independent audit of fresh06 original outcomes, exact source/receipts/whole stored final input and local retention. Not full product or engineering approval."
+  },
+  "exact_source_CI": {
+    "source_commit": "94773a35d73773faf5dc2714ea7d9071c812f357",
+    "run_id": 36950198263,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36950198263",
+    "success_jobs": 8,
+    "failure_jobs": 2,
+    "source_checks": 127,
+    "source_receipt": {
+      "path": "artifacts/p2-research-ci-94773a3-20261002-01/research-source-ci-pass-receipt.json",
+      "bytes": 33780,
+      "sha256": "98e4ace50d6be65a6452be3e8269f247b23f01588cd27692d0f3c9e1336156b4"
+    },
+    "final_receipt": {
+      "path": "artifacts/p2-research-ci-94773a3-20261002-01/final-ci-metadata-joblogs-receipt.json",
+      "bytes": 9778,
+      "sha256": "3632b938ed81c781a0d6cd2fa0b99066fea702a546ed172bc40c4b4ef3d1f725"
+    },
+    "scope": "Exact947 CI source127PASS/four actual counters0; launcher80 CI execution NOT_ESTABLISHED. Whole CI failed: explicit ZIP404/curl22 and Aster Fz outer assertion retained, internal CI native diagnostic UNKNOWN. Later docs are not new source/solver proof."
+  },
+  "acceptance": {
+    "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/acceptance.json",
+    "bytes": 4483579,
+    "sha256": "e1b8228ec311555b1d517d582cbe029918277c2f279943f810001d2a6c0a9003"
+  },
+  "source_specification": {
+    "path": "artifacts/p2-structural-research-retained-20261002-06/artifacts/attempt-01/predeclared-reference.json",
+    "bytes": 15623,
+    "sha256": "92bfa9bd35cdf2a924521e5834d29a54b96039982c1003acac57b167669dd0b0"
+  },
+  "decision": "NOT_RELEASED",
+  "full_52_requirements": "OPEN",
+  "P2.2": "OPEN",
+  "next": "Same P2.2: resolve native Fz accuracy and roof mesh convergence using primary numerical evidence, new requests/revisions/stores, fixed physics/response/thresholds and independent comparison. General autonomous campaign planning, original MIDAS cases and later Phases remain open."
+}

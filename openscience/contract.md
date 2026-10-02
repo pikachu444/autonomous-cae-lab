@@ -1,5 +1,18 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+Actual947/research06 completes the entire declared nine-question control trace:
+44 admitted tools/34 observed provider steps/nine immutable Core experiments,
+including final whole-input interpretation. Source-owned stdin delivery and the
+official stored original message equal LF+all360998 original bytes, with separate
+native360999B hash. Fresh independent source/raw-field/receipt/retention audit,
+same-session final AX and owned Stop pass. Numerical Fz and roof failures remain
+FAILED_OR_PARTIAL/invalid/NOT_RELEASED; general autonomous campaign planning and
+all-token model cognition remain unverified. Original AI count discrepancy and
+driver pending-audit/GUI fields are preserved. See
+20261002-openscience-structural-research06. This is actual evidence for existing
+operations/transport, without a new schema/tool/model/optimizer or loosened gate.
+Earlier dated observations below are historical and remain unchanged.
+
 Actual035/research04 now demonstrates sequential study/solver/changed-load/
 comparison/interpretation over the existing operations: five Root-supplied
 questions,25 completed tool events,19 provider step-finish records and five Core

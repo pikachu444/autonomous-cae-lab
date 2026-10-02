@@ -1,23 +1,60 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
-## Active checkpoint: research06 on published947; actual05 partial retained
+## Active checkpoint: complete research06 control trace; numerical gates open
 
-NEW clean managed94773a3/research06 is IN_PROGRESS on the approved5.6Sol,
-same authorized project/auth and fresh profile/store. The immutable live capture
-records4 closed questions/16 admitted receipts/5 terminal Core records;
-ongoing stream snapshots are separate, bounded non-atomic progress observations.
-AI creates/inspects studies, calls both solvers and compares/changes load in the
-original Root-declared question sequence. Beam Aster failure is retained; no
-engineering approval or general autonomous planning is claimed. Actual resident
-source/resource binding and same-session AX/model/results are observed. Record:
-benchmarks/records/20261002-openscience-structural-research06-start.json.
-Keep managed947 frozen; finish original sequence and verify final complete-prompt
-stdin interpretation, then GUI/owned Stop/new full retention/independent review.
-Stop/closed retention/new06 raw audit are NOT_RUN; full52/P2.2 remain OPEN.
-Exact947 CI36950198263 closes8SUCCESS/2FAIL/source127PASS/four actual counters0;
+Actual clean managed94773a3/research06 is CLOSED FAILED_OR_PARTIAL.
+All nine Root-declared questions complete, with44 admitted native tool receipts/
+34 provider step-finish records, nine Core experiments/27 native levels and26
+complete field levels. The declared control trace is COMPLETED; numerical and
+engineering acceptance are separate. Approved5.6Sol chooses tools and interprets
+this bounded sequence; general autonomous campaign planning remains unverified.
+Final09 delivers the whole360998B input through official stdin and completes its
+actual response/default-guard cleanup. The official stored original text equals
+LF+entire input360999B, hash0dd461be..., independently reconciled; no all-token
+model cognition, provider wire or cloud-weight observation is claimed.
+Fresh independent source/receipt/raw-field/retention review PASS. Cylinder
+analytical/full-field/cross-solver and accepted beam/cylinder half-load gates
+PASS. Beam Aster fine FACTOR_57/3.32295e-6>1e-6 remains FAILED_EXECUTION/metrics{}.
+Three roof records retain the1.4011%>1% mesh failure and invalid metrics; raw
+similarity/scaling cannot establish accepted comparisons. All NOT_RELEASED.
+Same-session final GUI AX/model/results, owned Stop/original PID absence/native
+4098 closure and1094-file/219707442B exact local retention PASS. Screenshot/full
+AX/native CAD GUI are not verified; raw remote backup UNKNOWN_NOT_UPLOADED.
+Record: benchmarks/records/20261002-openscience-structural-research06.json.
+Frozen06 start/05 partial records and original pending-audit/GUI fields remain.
+Exact947 CI36950198263 is8SUCCESS/2FAIL/source127PASS/four actual counters0;
 launcher80 CI execution NOT_ESTABLISHED. Explicit404/curl22 and Fz outer assertion
-remain, CI internal native diagnostic UNKNOWN. Later documentation is not new
-solver/source acceptance. Prior checkpoint instructions below are historical.
+remain, CI internal native diagnostic UNKNOWN. Later docs are not solver proof.
+NEXT in SAME P2.2: use primary numerical evidence to diagnose Fz accuracy and
+refine roof meshes in new requests/revisions/stores with unchanged physics,
+response/references/limits. Full52/P2.2, qualifications and later phases OPEN.
+Prior checkpoint instructions below are historical.
+
+### Next numerical packet preparation (not new execution)
+
+Primary-source support is frozen at
+`artifacts/p2-structural-numerical-source-20261002-01/source-support.json`
+(SHA25634e19f3503af3783ba1f6dc9bdd3b2dc91a09f3b34bbd1da033b1bf4447b46e7).
+Four failed methods remain unadopted. Prepare at most two private middle/fine
+diagnostic runs observing the actual unchanged MECA_STATIQUE matrix/RHS return
+objects, before its unchanged default MUMPS solve. A separately assembled macro
+is not proven equivalent. Do not change installed bytes/physics/native1e-6;
+fine native_u is UNAVAILABLE if the solver never returns it. Independent x_ref
+cannot substitute for native fields or a PASS. Private observer preparation is
+ongoing under `artifacts/p2-structural-matrix-diagnostic-preparation-20261002-01`;
+source/pure review and Root approval of the concrete packet precede execution.
+
+The subsequent roof request is frozen at
+`artifacts/p2-roof-refinement-preparation-20261002-01/predeclared-request.json`
+(SHA25668302f4bdd206c250e73d70b0e18a402e4d4f8f2367a52691343a2b84dced524).
+Independent preparation review98 pure checks PASS, hashaaa0e29da3c28e7b610bf5d5275a93403d44f5e26e8ed04fbccb30981b132709
+under `artifacts/p2-roof-refinement-preparation-review-20261002-01`.
+Use existing operations with grids[8,8,2]/[16,16,2]/[22,22,2] and unchanged
+geometry/material/load/reference/limits; maximum968elements5681nodes. This is
+NOT_RUN. Bind actual normalized settings to the exact nz2 intent and compute
+actual revision from actual proposal/execution types; prepared revision or
+general budget admission cannot replace that identity. No convergence order,
+radial convergence, general autonomous planning or engineering approval follows.
 
 ### Previous checkpoint (retained)
 

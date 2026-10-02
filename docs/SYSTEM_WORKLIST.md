@@ -56,22 +56,33 @@ and corrective-source records are preserved in STRUCTURAL_FAMILIES_ACCEPTANCE.
 
 Next tasks within the same P2.2 unit, in order:
 
-NEW clean managed94773a3/research06 is IN_PROGRESS on the approved5.6Sol,
-same authorized project/auth and fresh profile/store. The immutable live capture
-records4 closed questions/16 admitted receipts/5 terminal Core records;
-ongoing stream snapshots are separate, bounded non-atomic progress observations.
-AI creates/inspects studies, calls both solvers and compares/changes load in the
-original Root-declared question sequence. Beam Aster failure is retained; no
-engineering approval or general autonomous planning is claimed. Actual resident
-source/resource binding and same-session AX/model/results are observed. Record:
-benchmarks/records/20261002-openscience-structural-research06-start.json.
-Keep managed947 frozen; finish original sequence and verify final complete-prompt
-stdin interpretation, then GUI/owned Stop/new full retention/independent review.
-Stop/closed retention/new06 raw audit are NOT_RUN; full52/P2.2 remain OPEN.
-Exact947 CI36950198263 closes8SUCCESS/2FAIL/source127PASS/four actual counters0;
+Actual clean managed94773a3/research06 is CLOSED FAILED_OR_PARTIAL.
+All nine Root-declared questions complete, with44 admitted native tool receipts/
+34 provider step-finish records, nine Core experiments/27 native levels and26
+complete field levels. The declared control trace is COMPLETED; numerical and
+engineering acceptance are separate. Approved5.6Sol chooses tools and interprets
+this bounded sequence; general autonomous campaign planning remains unverified.
+Final09 delivers the whole360998B input through official stdin and completes its
+actual response/default-guard cleanup. The official stored original text equals
+LF+entire input360999B, hash0dd461be..., independently reconciled; no all-token
+model cognition, provider wire or cloud-weight observation is claimed.
+Fresh independent source/receipt/raw-field/retention review PASS. Cylinder
+analytical/full-field/cross-solver and accepted beam/cylinder half-load gates
+PASS. Beam Aster fine FACTOR_57/3.32295e-6>1e-6 remains FAILED_EXECUTION/metrics{}.
+Three roof records retain the1.4011%>1% mesh failure and invalid metrics; raw
+similarity/scaling cannot establish accepted comparisons. All NOT_RELEASED.
+Same-session final GUI AX/model/results, owned Stop/original PID absence/native
+4098 closure and1094-file/219707442B exact local retention PASS. Screenshot/full
+AX/native CAD GUI are not verified; raw remote backup UNKNOWN_NOT_UPLOADED.
+Record: benchmarks/records/20261002-openscience-structural-research06.json.
+Frozen06 start/05 partial records and original pending-audit/GUI fields remain.
+Exact947 CI36950198263 is8SUCCESS/2FAIL/source127PASS/four actual counters0;
 launcher80 CI execution NOT_ESTABLISHED. Explicit404/curl22 and Fz outer assertion
-remain, CI internal native diagnostic UNKNOWN. Later documentation is not new
-solver/source acceptance. Prior checkpoint instructions below are historical.
+remain, CI internal native diagnostic UNKNOWN. Later docs are not solver proof.
+NEXT in SAME P2.2: use primary numerical evidence to diagnose Fz accuracy and
+refine roof meshes in new requests/revisions/stores with unchanged physics,
+response/references/limits. Full52/P2.2, qualifications and later phases OPEN.
+Prior checkpoint instructions below are historical.
 
 ### Previous checkpoint (retained)
 
@@ -154,9 +165,19 @@ historical; frozen05 start snapshot and all earlier partial records are preserve
 - [x] Commit/push reviewed transport94773a3 and audit its exact CI36950198263:
   source127PASS/four actual counters0; whole CI8SUCCESS/2FAIL. Start NEW clean947
   research06/profile/store with approved model/project/original question order.
-- [ ] Finish research06 original sequence and final whole-input interpretation;
-  verify GUI, owned Stop, exact full retention and independent actual review.
-  Current live snapshot is not closed acceptance; keep failed/invalid outcomes.
+- [x] Finish research06 original sequence/final whole-input interpretation:
+ 9/9 questions44 tools34 provider steps, official storedLF+whole prompt exact;
+ same-session GUI AX, owned Stop,1094-file exact retention and fresh independent
+ raw/source/receipt audit PASS. Numerical failures/invalid metrics retained.
+ Record20261002-openscience-structural-research06; overall FAILED_OR_PARTIAL.
+- [ ] Same P2.2 first: review and execute at most two private actual-matrix/RHS
+  observations for the unchanged middle/fine beam/MUMPS/native1e-6 problem.
+  Preserve errors; no independent solution replaces missing native_u. Source
+  support34e19f35 and private observer preparation are recorded in HANDOFF.
+- [ ] Then execute the independently reviewed roof request[8,8,2]/[16,16,2]/
+  [22,22,2] through existing native and same-request OpenScience operations in
+  fresh stores/revisions. Prepared98-check admission is not actual execution,
+  expected revision, convergence or release; fixed physics/references/gates stay.
 - [ ] Resolve Fz accuracy and complete cylinder/roof/changed-load/refusal numerical
   gates; independently audit measured raw fields. No failed probe is a shortcut.
 
