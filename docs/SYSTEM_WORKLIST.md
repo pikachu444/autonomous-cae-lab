@@ -1,22 +1,22 @@
 # Sequential system worklist
 
-## Current reader correction and D3.5 sequence
+## Current reader corrections and D3.5 sequence
 
-- [x] Root reader defect identified from exact197 CI37036684653; original
-  first coupled process/three fields preserved, whole suite FAILED_OR_PARTIAL.
-- [x] Both reader consumers corrected;42 focused checks PASS40.83s;
-  independent three-file review0 P1/P2. Native/control/criteria unchanged.
-- [x] Freeze reviewed D3.5 packet/ADR0023 before imported implementation;
-  source-grid n clarification P2 closed. Packet is preparation, not qualification.
-- [ ] Commit/push confirmed correction and record its exact source CI separately.
-- [ ] D3.5 implement imported mesh/physical groups at adapter/Domain boundaries
-  with common Core/Results and bounded browser selection.
-- [ ] D3.5 essential regressions, independent review and meaningful publication.
-- [ ] D3.6 grouped native/reference/guarded Research/same-record native-field GUI.
-- [ ] Continue Phases5-7 using existing code; whole52/physical/deployment stay open.
+- [x] Original197 first coupled case independently audited on all3 fields;
+  unchanged raw/native/source/ledger proof, remaining16NOT_RUN/whole suitePARTIAL.
+- [x] Adapter-artifact reader2620275 committed/main push confirmed, exact CI separate.
+- [x] Existing geometry tolerance applied after actual ULP false-crossing;
+  44 source controls PASS39.13s, independent two-file0 P1/P2, corrected consumer
+  reads all3 original197 fields; raw/control/criteria unchanged, no solver rerun.
+- [x] Freeze independent reviewed D3.5 packet/ADR0023 before implementation.
+- [ ] Confirm second correction+frozen packet publication, then D3.5 writer.
+- [ ] D3.5 imported mesh/physical groups in adapter/Domain, common Core/Results,
+  bounded browser file selection and source regressions/review/commit/push.
+- [ ] D3.6 grouped fresh native/reference/guarded Research/same-record fieldGUI.
+- [ ] Continue Phases5-7; whole52/physical/deployment remain OPEN/UNKNOWN.
 
-Record: `../benchmarks/records/20261003-pde-reader-correction.json`.
-Original197 independent full-field audit pending; no whole native PASS.
+Records: `../benchmarks/records/20261003-coupled-pde-native-first-case.json`
+and `../benchmarks/records/20261003-pde-reader-geometry-correction.json`.
 
 ## Historical D3.4 source checkpoint — next D3.5
 

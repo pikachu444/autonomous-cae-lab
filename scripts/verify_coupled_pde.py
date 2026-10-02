@@ -133,7 +133,12 @@ def _integrate_field(experiment, settings, field):
     interface = settings["problem"]["domain"]["lengths"][0]/2
     for cell in field["cell_node_ids"]:
         points, nodal = [coordinates[node] for node in cell], [values[node] for node in cell]
-        _require(not (min(p[0] for p in points)<interface<max(p[0] for p in points)), "Saved cell crosses coupled interface")
+        lower, upper = min(p[0] for p in points), max(p[0] for p in points)
+        # Native interface coordinates retain floating-point representation;
+        # use the existing geometric comparison tolerance without rewriting them.
+        crosses = (lower < interface and not math.isclose(lower, interface, rel_tol=1e-12, abs_tol=1e-12) and
+                   upper > interface and not math.isclose(upper, interface, rel_tol=1e-12, abs_tol=1e-12))
+        _require(not crosses, "Saved cell crosses coupled interface")
         region = "left" if sum(p[0] for p in points)/3<interface else "right"
         (x0,y0),(x1,y1),(x2,y2) = points
         det = (x1-x0)*(y2-y0)-(x2-x0)*(y1-y0)

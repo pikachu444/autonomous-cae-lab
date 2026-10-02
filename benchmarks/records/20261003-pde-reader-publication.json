@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "created_utc": "2026-10-02T17:39:38.356367+00:00",
+  "status": "SOURCE_COMMITTED_AND_MAIN_PUSH_CONFIRMED",
+  "source_commit": "262027572bdc8357b4755780fe3a03af9bf0c8e8",
+  "remote_main_at_observation": "262027572bdc8357b4755780fe3a03af9bf0c8e8",
+  "source_subject": "fix: read retained PDE adapter studies in acceptance verifiers",
+  "local_worktree_at_observation": "ONLY_TWO_REVIEWED_D3.5_PACKET_ADR_UNTRACKED_PRESERVED",
+  "correction_record": {
+    "path": "benchmarks/records/20261003-pde-reader-correction.json",
+    "git_LF_sha256": "88e93193711bf7265e3471a563c54c0b405a9a744589137b64bb34f4ce3da6a0"
+  },
+  "source_ci": {
+    "conclusion": "",
+    "databaseId": 37042070061,
+    "headSha": "262027572bdc8357b4755780fe3a03af9bf0c8e8",
+    "status": "in_progress",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37042070061"
+  },
+  "claim_scope": "42 source regression checks and independent3file review0 P1/P2; new exact CI at observation IN_PROGRESS, not a whole-coupled/native qualification. Producer197 artifacts remain unchanged.",
+  "D3.5_frozen_preimplementation_packet": {
+    "path": "docs/PDE_IMPORTED_PACKET.md",
+    "sha256": "b2a0b76c6cd77631a1a9575cf535c7798961fbb864cc92460d0afe3510b60d26",
+    "ADR_path": "ADR/0023-imported-mesh-named-pde-boundaries.md",
+    "ADR_sha256": "79cb689a5a24645f073e262a574af4f32e9905dff129d2b99033ac39792caf92",
+    "review": "PASS_0_P1_P2",
+    "reviewer": "/root/official_project_workflow",
+    "source_grid_n_clarification": "n intervals per unit; initial P2 closed before implementation",
+    "API_receipt_sha256": "119045e6eda3343c0811f17b1fe92d5b0ae0111ec13ab665af651a62ca45f964",
+    "implementation": "NOT_STARTED_AT_PACKET_CHECKPOINT",
+    "native_solve": "NOT_RUN",
+    "physical": "UNKNOWN",
+    "decision": "NOT_RELEASED"
+  },
+  "next": "Implement D3.5 via its frozen ownership packet; D3.6 separate grouped native/reference/guarded Research/same-record GUI remains open.",
+  "remaining": {
+    "whole_phase4": "OPEN",
+    "all52": "OPEN",
+    "physical": "UNKNOWN",
+    "decision": "NOT_RELEASED"
+  }
+}

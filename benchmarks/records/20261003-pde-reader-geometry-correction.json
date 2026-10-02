@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0",
+  "created_utc": "2026-10-02T17:47:13.996692+00:00",
+  "status": "PASS_ROOT_GEOMETRY_READER_CORRECTION_SOURCE_AND_ORIGINAL_ARTIFACT_CONSUMPTION",
+  "source_base_commit": "262027572bdc8357b4755780fe3a03af9bf0c8e8",
+  "source_publication": "Precommit candidate; exact final commit/main push/CI recorded separately after publication.",
+  "cause": "Original197 right cells retained x=0.9999999999999999 at interface1. Strict crossing incorrectly rejected one cell at each8/16/32 level.",
+  "correction": "Reader min/max guard uses existing Domain geometry ATOL=1e-12 abs/rel; ORIGINAL coordinates/quadrature and all scientific gates unchanged.",
+  "source_files": [
+    {
+      "path": "scripts/verify_coupled_pde.py",
+      "sha256": "04d89e703713c3e925b2b19401c3b582f302a391710c09a0ffd52bd8c2be0ac6",
+      "size_bytes": 26978
+    },
+    {
+      "path": "tests/test_verify_coupled_pde.py",
+      "sha256": "1d4339c6e5c163c0fb6d9fa1b9e50b3072411cc8c8be63d6c7e9b9dc92f9949d",
+      "size_bytes": 12259
+    },
+    {
+      "path": "scripts/verify_vector_pde.py",
+      "sha256": "77c8189bd36cb49aeb7cb3260a80f934955a83ff4783946c876db77a58913d24",
+      "size_bytes": 22397
+    }
+  ],
+  "source_tests": {
+    "passed": 44,
+    "seconds": 39.13,
+    "exit_code": 0,
+    "log": "focused.log",
+    "log_sha256": "98eddbd46fa281571bb5c0851f312dcc71917feea1bb2a736d6eb5dab0aced32",
+    "scope": "42 prior envelope/vector/coupled controls plus2nextafter closed-integral source controls. Re-run count44, not summed with42; no Native qualification."
+  },
+  "source_receipt_sha256": "6dea7af11a8e1052e61a76d5a0448d9591cbe65b45777440588d9375a7c965fc",
+  "independent_source_review": {
+    "status": "PASS_0_P1_P2",
+    "sha256": "98f2ddb2fb1347135808f4e2fa67840ad825ef6a6d9fe9520c4e31af90f017ba",
+    "reviewer": "/root/official_project_workflow"
+  },
+  "producer_native_evidence": {
+    "path": "benchmarks/records/20261003-coupled-pde-native-first-case.json",
+    "sha256": "fc7c40757fae682c50b837f92f8668a53c7a4134f1c384e6ed87da496f60584c",
+    "producer_commit": "197c39b323ae590f860ed98c9cce3e920a88d87d",
+    "actual_native_processes": 1,
+    "actual_levels": 3,
+    "remaining16": "NOT_RUN"
+  },
+  "corrected_consumer_attempt02": {
+    "status": "PASS_THREE_ORIGINAL_FIELDS",
+    "receipt_sha256": "f8819df3cd36e24fcb1a8ce264fe6d17bde1e3211c3af01e431d46f743344d2c",
+    "coupled_consumer_sha256": "04d89e703713c3e925b2b19401c3b582f302a391710c09a0ffd52bd8c2be0ac6",
+    "vector_consumer_sha256": "77c8189bd36cb49aeb7cb3260a80f934955a83ff4783946c876db77a58913d24",
+    "producer_commit": "197c39b323ae590f860ed98c9cce3e920a88d87d",
+    "original_archive_files": 6104,
+    "original_archive_bytes": 82797143,
+    "all_original_inventory_sha256": "7cacc11cf0627c5f438c95fe3dc68fea7335281194f279cdead6bb4bd58d18ca",
+    "source_edits_Core_provider_solver_calls": 0,
+    "historical_failed_consumer": "Preserved unchanged separately, not erased by success."
+  },
+  "preservation": {
+    "native_worker_Domain_mesh_settings_criteria_controls": "UNCHANGED",
+    "raw_coordinates_files_progress_results": "UNCHANGED",
+    "OpenScience_guard_profile_provider_model_auth": "UNCHANGED",
+    "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8"
+  },
+  "D3.5_preparation": {
+    "packet_path": "docs/PDE_IMPORTED_PACKET.md",
+    "packet_sha256": "b2a0b76c6cd77631a1a9575cf535c7798961fbb864cc92460d0afe3510b60d26",
+    "ADR_path": "ADR/0023-imported-mesh-named-pde-boundaries.md",
+    "ADR_sha256": "79cb689a5a24645f073e262a574af4f32e9905dff129d2b99033ac39792caf92",
+    "status": "FROZEN_INDEPENDENT_REVIEW_0_P1_P2_BEFORE_IMPLEMENTATION"
+  },
+  "remaining": {
+    "whole17case_coupled_suite": "FAILED_OR_PARTIAL_ROOT_READER_ORIGINAL_EVIDENCE_NOT_REWRITTEN",
+    "corrected_fresh_native_suite": "NOT_RUN_AT_CORRECTION_CHECKPOINT",
+    "official_research": "NOT_ADMITTED",
+    "native_field_gui": "NOT_RUN",
+    "whole_phase4": "OPEN",
+    "all52": "OPEN",
+    "physical": "UNKNOWN",
+    "decision": "NOT_RELEASED"
+  },
+  "next": "Implement D3.5 sequentially; D3.6 grouped qualification keeps old vector gate failure and wider native/Research/GUI gaps."
+}

@@ -16,7 +16,7 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 | D0 source integrated | Resident submit/inspect/cancel, configurable budgets/live logs, owned cleanup/normal shutdown; focused checks and review | Native lifecycle/cancellation/profile admission; no new solver proof yet |
 | D1 source integrated | Fixture load/material/mesh form and six-component diagnostic stress artifacts/table; reuse CAD/child analysis | Existing beam accuracy, roof Aster completion, mesh/reaction/stress/reference checks |
 | D2 source integrated | Declared-model inputs/optimization in Explore; reuse269d8bf stopping/constraints/replay;27 focused checks and actual plan UI | Numerical convergence, active constraints, interruption/replay |
-| D3 Phase4 active | D3.1 rectangle native/reference and D3.2 transient872-step evidence; D3.3 vector source implemented with actual coarse-pair numerical FAIL retained; D3.4 coupled/material source105 focused checks plus169 legacy regressions, independent review0 P1/P2; next D3.5 import | Coupled197 first-case three native levels retained, Root reader corrected42PASS; full suite/reference, remaining vector controls, guarded Research/native-field GUI, wider/cross-backend/parallel and physical checks open |
+| D3 Phase4 active | D3.1 rectangle native/reference and D3.2 transient872-step evidence; D3.3 vector source implemented with actual coarse-pair numerical FAIL retained; D3.4 coupled/material source105 focused checks plus169 legacy regressions, independent review0 P1/P2; next D3.5 import | Coupled197 first-case three native levels independently audited PASS, reader44PASS and original-field consumption PASS; full suite/reference, remaining vector controls, guarded Research/native-field GUI, wider/cross-backend/parallel and physical checks open |
 | D4 Phase5 | Geometric/material/contact implementations and fixture coupling | Nonlinear convergence, histories, energy, canonical comparisons |
 | D5 Phase6 | Explicit preprocessing/contact/material/fields and campaign integration | Impact/drop force/energy/timestep/reference checks |
 | D6 Phase7 | Measured inverse interfaces, UQ/surrogate/multiobjective/MDO, MOOSE/HPC | Engine/coupling/HPC and actual measured-data acceptance |
@@ -55,7 +55,7 @@ Records: `../benchmarks/records/20261002-vector-pde-development.json` and
 Next D3.4 coupled/material interfaces, then D3.5 imported domains; official
 Research admission and native-field GUI remain queued in D3.6. Whole Phase4 OPEN.
 
-Current Root reader correction: exact197 CI completed7SUCCESS/3FAIL, Core2450PASS/
+Historical first Root reader correction (before ULP diagnosis): exact197 CI completed7SUCCESS/3FAIL, Core2450PASS/
 4optional skips. Coupled first process/three levels retained, suite stopped on
 incorrect Core-extension artifact lookup. Consumer-only correction42PASS,
 independent0 P1/P2; native equations/criteria/control preserved. D3.5 packet/ADR
@@ -63,6 +63,15 @@ reviewed and frozen; implement it next. Record:
 `../benchmarks/records/20261003-pde-reader-correction.json`.
 Original first-case independent field audit pending; full qualified suite,
 Research/fieldGUI and Phases5-7 remain open. No manual unchanged solver rerun.
+
+Current first-case audit/second Root reader correction: original197 one coupled
+process/three native fields pass independent complete-field/reference/source/
+ledger/native-export checks. Suite PARTIAL/other16NOT_RUN remain. Consumer-only
+geometry correction44PASS/independent0 P1/P2 and all3 saved-field readsPASS,
+original bytes/numerical gates unchanged. Frozen D3.5 packet/ADR0023 implement
+next; D3.6 full grouped qualification remains separate. Records:
+`../benchmarks/records/20261003-coupled-pde-native-first-case.json` and
+`../benchmarks/records/20261003-pde-reader-geometry-correction.json`.
 
 ## Historical P2.2 checkpoint: three roof research questions closed; AI denominator error retained
 

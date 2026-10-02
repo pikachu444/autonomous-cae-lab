@@ -1,0 +1,344 @@
+{
+  "schema_version": "1.0",
+  "created_utc": "2026-10-02T17:47:13.992697+00:00",
+  "status": "PASS_BOUNDED_EXACT_CI_COUPLED_EVIDENCE_REVIEW_NOT_FULL_ACCEPTANCE",
+  "producer_source_commit": "197c39b323ae590f860ed98c9cce3e920a88d87d",
+  "producer_source_identity": {
+    "core_commit": "197c39b323ae590f860ed98c9cce3e920a88d87d",
+    "core_dirty": false,
+    "core_source_sha256": "a7b48f64c6015aa151bdd96e930682174b810255bed9081642088a148f0ac781"
+  },
+  "exact_ci_run": 37036684653,
+  "exact_ci_url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37036684653",
+  "whole_ci": "COMPLETED_FAILURE_7_SUCCESS_3_FAILURE",
+  "actual_scope": {
+    "P1_scalar_dofs": [
+      162,
+      578,
+      2178
+    ],
+    "acceptance_json": "ABSENT",
+    "acceptance_progress": {
+      "cases": [],
+      "decision": "NOT_RELEASED",
+      "error": "KeyError: 'mesh_studies'",
+      "source": {
+        "core": {
+          "core_commit": "197c39b323ae590f860ed98c9cce3e920a88d87d",
+          "core_dirty": false,
+          "core_source_sha256": "a7b48f64c6015aa151bdd96e930682174b810255bed9081642088a148f0ac781"
+        },
+        "files": {
+          "caelab/adapters/fenicsx_coupled.py": "dce656187439dfe42c7d24e29f492b78161c2e4c69f66b8b7b656c0652a31b7f",
+          "caelab/adapters/fenicsx_coupled_worker.py": "b11fdbb7298ac2b1fc1ef563d7f53688c77bfe25d316a77a8e332740dbc9d161",
+          "caelab/adapters/fenicsx_rectangle.py": "b0f614db04ee05b107373049f4e09f8c80f3809f456117add5f60b1d9040b756",
+          "caelab/adapters/fenicsx_rectangle_worker.py": "9b5e1a7e7ab9ffb90073785985c2e546ffca4c62012dffb370bb74e8b3422617",
+          "caelab/adapters/fenicsx_vector_worker.py": "d3e9ac0ba486e792ba8c1832e3411284a44393d813c63814efd2104f2112ab31",
+          "caelab/adapters/fenicsx_worker.py": "2e1cd29a71e4a216be6677e44b841205193ef72658d7a29d010dca7253d57301",
+          "caelab/execution_control.py": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede",
+          "plugins/pde_coupled/reference.py": "6d256cef1289af21645393df5e294f367ca756d5097769c6711115afea457f65",
+          "plugins/pde_elliptic/reference.py": "bbae44e8088902f014d110e5b7eebcb95433959577f4550cde8cf33ccabfb405",
+          "scripts/verify_coupled_pde.py": "5bc22b47f9a1f29bbcf9605fca21bba60ff8bde65aafff47d94d1049a8a650e1",
+          "scripts/verify_vector_pde.py": "acbaca57923cd363e4521b2dacc5a64704efd647f9c88e2b5a738c0225d9b521"
+        }
+      },
+      "status": "FAILED_OR_PARTIAL"
+    },
+    "actual_experiments": 1,
+    "case_id": "E-coupled-mixed",
+    "complete_mesh_levels": 3,
+    "native_processes": 1,
+    "nodes": [
+      81,
+      289,
+      1089
+    ],
+    "plan_sha256": "ca6101f310c97b5c132905aaa6ee96a6ec9259d5dadef809a1f439dc368c449b",
+    "remaining16": "NOT_RUN",
+    "store_bytes": 1152601,
+    "store_files": 48,
+    "triangles": [
+      128,
+      512,
+      2048
+    ]
+  },
+  "case": {
+    "cad_parent": null,
+    "common_status": "COMPLETED_REVIEW_REQUIRED",
+    "converged": true,
+    "decision": "NOT_RELEASED",
+    "metrics_valid": true,
+    "model_revision": "f5d53389d0502ce52eb6d3dd1cc5fcc47b105006a84284af809e3835a3cbbcae",
+    "proposal_revision": "c09df716c903ab898d4a9779004873d1e5fa2e502e2271c6d84031fe9bf2dc56",
+    "result_sha256": "2b3ba0a0c3eeb2e65eb59b9819891b24334d8face50469c37389c4db4b107384",
+    "solver_status": "COMPLETED",
+    "stderr_bytes": 0,
+    "validations": "9PASS_2UNKNOWN",
+    "worker_result_sha256": "4979452b73944607ee50e6d9c90d84ec0ac18f4ab83e131086893ca21a4415ef"
+  },
+  "native_versions": {
+    "basix": "0.11.0",
+    "dolfinx": "0.11.0.post0",
+    "ffcx": "0.11.0",
+    "mpi4py": "3.1.5",
+    "numpy": "1.26.4",
+    "petsc": "3.19.6",
+    "petsc4py": "3.19.6",
+    "python": "3.12.3",
+    "ufl": "2026.1.0"
+  },
+  "native_execution": {
+    "cancelled": false,
+    "cleanup_pending": false,
+    "isolated_process_group": true,
+    "pid": 7689,
+    "reason": null,
+    "return_code": 0,
+    "status": "COMPLETED",
+    "stderr": "stderr.log",
+    "stdout": "stdout.log",
+    "timeout_seconds": null,
+    "updated_at": "2026-10-02T17:00:49.354184+00:00"
+  },
+  "numerical": {
+    "all_fixed_actual_first_case_math_gates_pass": true,
+    "fixed_validation": {
+      "max_h1_seminorm_error": 0.8,
+      "max_l2_error": 0.04,
+      "max_residual_relative": 1e-10,
+      "min_h1_rate": 0.9,
+      "min_l2_rate": 1.8
+    },
+    "geometry": [
+      {
+        "boundary_facets": 32,
+        "cells": 128,
+        "each_region_cells": 64,
+        "interface_facets": 8,
+        "interface_nodes": 9,
+        "n": 8,
+        "native_XDMF_HDF_full_bijection": true,
+        "nodes": 81,
+        "scalar_dofs": 162,
+        "source_rhs_and_BC_all_nodes_checked": true
+      },
+      {
+        "boundary_facets": 64,
+        "cells": 512,
+        "each_region_cells": 256,
+        "interface_facets": 16,
+        "interface_nodes": 17,
+        "n": 16,
+        "native_XDMF_HDF_full_bijection": true,
+        "nodes": 289,
+        "scalar_dofs": 578,
+        "source_rhs_and_BC_all_nodes_checked": true
+      },
+      {
+        "boundary_facets": 128,
+        "cells": 2048,
+        "each_region_cells": 1024,
+        "interface_facets": 32,
+        "interface_nodes": 33,
+        "n": 32,
+        "native_XDMF_HDF_full_bijection": true,
+        "nodes": 1089,
+        "scalar_dofs": 2178,
+        "source_rhs_and_BC_all_nodes_checked": true
+      }
+    ],
+    "max_absolute_difference": {
+      "L2": 6.245004513516506e-17,
+      "full_gradient_H1": 2.7755575615628914e-16,
+      "rates": 8.659739592076221e-15
+    },
+    "method": "Independent direct polynomial derivatives; complete saved P1 block-2 triangles integrated with5x5 Gauss-Duffy; no Core/Domain/parser imports.",
+    "rows": [
+      {
+        "aggregate_full_gradient_H1": 0.5108597399080274,
+        "aggregate_l2": 0.023122746471249407,
+        "component_full_gradient_H1": [
+          0.22846083714121512,
+          0.45692813412136546
+        ],
+        "component_l2": [
+          0.010390527283317378,
+          0.020656678027899698
+        ],
+        "ksp_reason": 4,
+        "n": 8,
+        "reported_H1": 0.5108597399080274,
+        "reported_l2": 0.023122746471249466,
+        "residual": {
+          "absolute": 3.825036962076284e-14,
+          "normalization": "rhs_l2_norm",
+          "relative": 1.373624799849028e-15,
+          "rhs_norm": 27.84630098769828
+        }
+      },
+      {
+        "H1_rates_aggregate_then_components": [
+          0.9601977661861377,
+          0.9601869368791698,
+          0.9602004734617321
+        ],
+        "L2_rates_aggregate_then_components": [
+          1.9559397614991305,
+          1.9562920048020052,
+          1.9558506642889573
+        ],
+        "aggregate_full_gradient_H1": 0.2625749845125479,
+        "aggregate_l2": 0.005959953611429724,
+        "component_full_gradient_H1": [
+          0.11742665623927356,
+          0.23485442916033805
+        ],
+        "component_l2": [
+          0.002677534117242081,
+          0.005324646288853268
+        ],
+        "ksp_reason": 4,
+        "n": 16,
+        "reported_H1": 0.2625749845125481,
+        "reported_l2": 0.005959953611429746,
+        "residual": {
+          "absolute": 9.309182066117691e-14,
+          "normalization": "rhs_l2_norm",
+          "relative": 2.3575014733251078e-15,
+          "rhs_norm": 39.487492039560316
+        }
+      },
+      {
+        "H1_rates_aggregate_then_components": [
+          0.9862711652993384,
+          0.9862674396212318,
+          0.9862720967130142
+        ],
+        "L2_rates_aggregate_then_components": [
+          1.990566022527126,
+          1.9906244377306774,
+          1.9905512521234938
+        ],
+        "aggregate_full_gradient_H1": 0.13254280091404497,
+        "aggregate_l2": 0.0014997635637188091,
+        "component_full_gradient_H1": [
+          0.05927487015629575,
+          0.11854992130783741
+        ],
+        "component_l2": [
+          0.0006737477804362605,
+          0.0013399084578491754
+        ],
+        "ksp_reason": 4,
+        "n": 32,
+        "reported_H1": 0.13254280091404488,
+        "reported_l2": 0.001499763563718808,
+        "residual": {
+          "absolute": 1.8962711279427028e-13,
+          "normalization": "rhs_l2_norm",
+          "relative": 3.388158494878221e-15,
+          "rhs_norm": 55.9676039597687
+        }
+      }
+    ]
+  },
+  "independent_review": {
+    "reviewer": "/root/integration_review",
+    "receipt_sha256": "6dbe91aa126d2abbd910dc1e58d7acc6475335fdbb3611130a3631add8dbda10",
+    "all_original_inventory_sha256": "7cacc11cf0627c5f438c95fe3dc68fea7335281194f279cdead6bb4bd58d18ca",
+    "checks": {
+      "Git_LF_Core_byte_closure": 1,
+      "actual_external_side_nodes": 18,
+      "actual_geometric_piecewise_cells": 3,
+      "actual_native_KSP_and_fixed_residual_gate": 3,
+      "actual_native_block_and_sync": 3,
+      "actual_native_process_complete": 1,
+      "actual_opposite_region_adjacency": 56,
+      "all_original_extracted_bytes_unchanged": 1,
+      "canonical_model_revision": 1,
+      "canonical_proposal_revision": 1,
+      "common_artifact_bytes": 40,
+      "common_ledger_bytes": 1,
+      "common_metrics_exact_native_final_values": 1,
+      "common_namespace_is_declaration_only": 1,
+      "complete_disjoint_exterior_and_support_union": 3,
+      "complete_interface_geometry": 3,
+      "complete_native_coordinate_bijection": 3,
+      "complete_native_progress": 1,
+      "complete_native_vector_DOFs": 3,
+      "complete_unique_triangles": 3,
+      "conforming_edge_adjacency": 3,
+      "correct_split_side_region": 12,
+      "directed_binding_shape": 3,
+      "eleven_exact_Git_source_files": 11,
+      "evidence_unique": 1,
+      "exact_CI_job_scope": 1,
+      "exact_github_archive": 1,
+      "exact_manufactured_operator_domain": 1,
+      "exact_native_exported_triangle_topology": 3,
+      "exact_native_padded_vector_field": 3,
+      "exact_recorded_clean_source": 1,
+      "exact_split_segment_regions": 12,
+      "five_native_level_artifacts": 15,
+      "floating_roundoff_agreement": 215,
+      "fresh_output": 3,
+      "frozen_17_case_plan": 1,
+      "honest_common_result": 1,
+      "honest_qualification_unknown": 1,
+      "immutable_actual_request": 1,
+      "native_XDMF_local_file_link": 9,
+      "native_XDMF_three_arrays": 3,
+      "native_input_source_hashes": 1,
+      "native_level_observation_bytes": 3,
+      "native_region_counts": 3,
+      "native_source_byte_identity": 9,
+      "nine_native_source_copies": 1,
+      "no_archive_links": 14354,
+      "no_interface_crossing_triangle": 6,
+      "nondegenerate_native_triangles": 3,
+      "original_job_log": 1,
+      "partial_collection_not_numeric_failure": 1,
+      "raw_measurements_not_rewritten": 1,
+      "retained_actual_UFL_tags_and_axis": 3,
+      "shared_interface_node_identity": 3,
+      "sole_actual_case_other16_not_run": 1,
+      "three_actual_native_levels": 1,
+      "unchanged_all_pair_scientific_rate_gates": 2,
+      "unchanged_finest_scientific_error_gates": 1,
+      "unique_complete_segment_facets": 18,
+      "valid_bounded_math_metrics": 1,
+      "validation_retained_evidence_link": 9,
+      "whole_regional_binding_ids": 6,
+      "zip_exact_member_bytes": 6104,
+      "zip_inventory": 1
+    },
+    "source_edits_Core_provider_solver_calls": 0
+  },
+  "raw_retention": {
+    "API_digest_verified": true,
+    "all_regular_members": 6104,
+    "archive_bytes": 17632834,
+    "archive_sha256": "3c049260e41d4a047f9c73c6367ccd9b1b1bf43d13443db99bded9250f04d596",
+    "expires_at": "2026-11-01T17:00:51Z",
+    "id": 11241411810,
+    "name": "pde-cae-lab-197c39b323ae590f860ed98c9cce3e920a88d87d",
+    "uncompressed_bytes": 82797143
+  },
+  "reader_corrections": "Original197 KeyError then262 reader ULP false-crossing are separate Root consumer bugs. Later read-only consumer evidence is separately hashed; original producer/raw partial records are unchanged.",
+  "limits": [
+    "A bounded first manufactured case passes frozen mathematical gates; the17-case collection is still FAILED_OR_PARTIAL after a reader crash.",
+    "The remaining16 cases did not execute; other archived PDE/transient/vector field collections were byte-inventoried only, not numerically re-audited.",
+    "Retained native residual normalization/KSP and actual UFL tag/axis syntax were checked. Independent global matrix reassembly was not performed.",
+    "Facet IDs and edge/region/native source associations were cross-checked; HDF exports carry triangles/nodes, not a separate facet-ID array.",
+    "The mathematical component-axis operator is dimensionless; physical/model qualification remains UNKNOWN and engineering decision NOT_RELEASED.",
+    "ZIP/local audit copies are verified, not a claim of permanent remote raw-artifact durability or later-source CI verification."
+  ],
+  "physical": "UNKNOWN",
+  "decision": "NOT_RELEASED",
+  "independent_final_seal02": {
+    "sha256": "690b01d5fe7e531611f7c6617bcd4b21356f8fe50f2a84b1578a42cd91fae33f",
+    "size_bytes": 6121,
+    "verdict": "PASS_BOUNDED_FIRST_CASE_AND_CORRECTED_CONSUMER_0_P1_P2"
+  }
+}

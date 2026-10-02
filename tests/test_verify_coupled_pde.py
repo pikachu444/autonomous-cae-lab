@@ -119,6 +119,19 @@ def test_duffy_uses_original_global_ids_and_triangle_orientation():
         assert actual[name] == pytest.approx(expected[name], rel=1e-12)
 
 
+@pytest.mark.parametrize("coordinate", [math.nextafter(1., 0.), math.nextafter(1., math.inf)])
+def test_native_interface_ulp_representation_preserves_original_field_and_closed_integrals(coordinate):
+    field = source_field()
+    for point in field["coordinates"]:
+        if point[0] == 1.:
+            point[0] = coordinate
+    original = deepcopy(field)
+    result = runner._integrate_field("E-coupled-mixed", runner.specification(), field)
+    assert result["component_l2"] == pytest.approx([math.sqrt(67/525), math.sqrt(268/525)], rel=1e-12)
+    assert result["component_h1"] == pytest.approx([math.sqrt(22/15), math.sqrt(88/15)], rel=1e-12)
+    assert field == original
+
+
 def test_crossing_cell_is_refused_and_component_errors_cannot_be_replaced_by_magnitude():
     original, swapped = source_field(), source_field()
     swapped["values"] = [row[::-1] for row in swapped["values"]]

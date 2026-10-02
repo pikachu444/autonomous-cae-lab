@@ -1,33 +1,42 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
-## Current D3.4 reader correction — ordered D3.5 preparation
+## Current D3.4 first native case and reader corrections — next D3.5
 
-Exact source197 CI37036684653 completed7SUCCESS/3FAIL; Core2450PASS/
-4optional form-runtime skips,230.25s. Scalar/nonlinear/rectangle/transient PDE
-steps succeeded, vector coarse-pair rateFAIL remains. Coupled E-coupled-mixed
-actually solved three meshes8/16/32, solverCOMPLETED/convergedtrue and common
-COMPLETED_REVIEW_REQUIRED, but the suite stopped in Root's verification reader:
-KeyError:mesh_studies. Assessed observations live in adapter pde/result.json;
-Core's pde extension retains declaration/revision. This is a reader defect,
-not evidence of numerical coupled failure or a whole-suite native PASS.
+Exact197 CI37036684653 completed7SUCCESS/3FAIL; Core2450PASS/4optional skips.
+Only E-coupled-mixed actually solved on8/16/32, with clean original197 identity,
+9 copied sources, full region/interface/split-boundary fields and common
+COMPLETED_REVIEW_REQUIRED/9valid metrics/2UNKNOWN/NOT_RELEASED. Independent
+complete original triangle/component/aggregate L2/full-gradient-H1/rate,
+source/input/tag/interface/native XDMF-H5/ledger audit PASS for that case.
+Maximum norm/rate differences6.25e-17/2.78e-16/8.66e-15; all original frozen
+first-case scientific gates pass. Whole17case suite remains FAILED_OR_PARTIAL:
+Root reader KeyError:mesh_studies after first case; acceptance.json absent,
+other16 NOT_RUN. Record: `benchmarks/records/20261003-coupled-pde-native-first-case.json`.
+Original6104files/82797143B inventory unchanged; archive expiry2026-11-01T17:00:51Z,
+verified local ZIPs/hashes do not establish permanent raw remote retention.
 
-Both vector/coupled readers now use the retained adapter artifact and strictly
-match execution/metrics with Core before comparing original worker studies.
-42 focused source regressions PASS40.83s (7 real-Core envelope/mismatch controls
-plus35 existing reader controls); independent three-file review0 P1/P2. Initial
-new-fixture setup errors35PASS/7ERROR are retained separately, not double counted.
-No solver rerun, native/Domain/control/criteria changes. Record:
-`benchmarks/records/20261003-pde-reader-correction.json`. Exact correction
-publication is recorded separately after commit/push. Original197 first-case
-full-field audit is pending; acceptance.json absent, remaining cases NOT_RUN.
+First consumer fix2620275 is committed/main push confirmed; exact CI37042070061
+was IN_PROGRESS at publication. It reads assessed adapter pde/result.json,
+matching execution/metrics with Core. Actual saved fields then exposed strict
+interface crossing falsely rejecting x=0.9999999999999999 near interface1.
+Second reader-only correction applies existing abs/rel1e-12 geometry tolerance;
+ORIGINAL coordinates/integration and all numerical gates stay unchanged.
+44 focused source controls PASS39.13s, independent two-file review0 P1/P2.
+Corrected read-only consumer04d89e70.../vector77c8189... returns all3 ORIGINAL197
+field closures; original/failed attempt bytes remain unchanged. No solver rerun.
+Records: `benchmarks/records/20261003-pde-reader-correction.json`,
+`benchmarks/records/20261003-pde-reader-geometry-correction.json`.
+Second correction publication is recorded separately after commit/push.
 
-The reviewed D3.5 imported-mesh/named-boundary packet and ADR0023 are frozen;
-implementation follows this bounded correction. Source-grid n means intervals
-per unit (initial ambiguous-n P2 corrected before implementation). Full native/
-reference/OpenScience/same-record GUI qualification remains queued in D3.6.
-Whole Phase4/all52 OPEN; physical UNKNOWN/NOT_RELEASED. Provider/model/profile/
-auth and fixture pin are preserved. Earlier NOT_RUN/CI-in-progress statements
-below are historical observations, not current completion claims.
+Reviewed D3.5 packet/ADR0023 is frozen before implementation (source-grid n P2
+clarified as intervals per unit). Implement imported domains/named physical
+boundaries next through existing adapter/Domain/Core/Results; then D3.6 grouped
+native/reference/guarded Research/same-record field GUI. The old vector6c coarse-
+pair numerical FAIL/REJECTED remains without threshold/response/mesh changes.
+Whole Phase4/all52 OPEN; official Research NOT_ADMITTED, field GUI NOT_RUN,
+physical/model/deployment UNKNOWN/NOT_RELEASED. Provider/model/profile/auth and
+fixture pin remain. Following documentation is not new solver verification.
+Earlier NOT_RUN/CI-in-progress statements below are historical observations.
 
 ## Historical D3.4 source checkpoint — next D3.5 imported domains
 
