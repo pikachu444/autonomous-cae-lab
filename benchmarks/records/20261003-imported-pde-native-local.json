@@ -1,0 +1,397 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-02T19:48:49.681778+00:00",
+  "status": "PASS_BOUNDED_INDEPENDENT_IMPORTED_MATHEMATICAL",
+  "source_commit": "04e5e79dafab86475218f52797bca0a84efcc649",
+  "source_publication": {
+    "commit": "04e5e79dafab86475218f52797bca0a84efcc649",
+    "main_push": "CONFIRMED_IN_SOURCE_PUBLICATION_RECEIPT",
+    "receipt_path": "artifacts/development-pde-imported-20261003-01/root-publication-01/receipt.json",
+    "receipt_sha256": "00c893cbc14c5c7282760e33f5bce3cf4ba9145aa24cfb15acb0bf0dbe42196d"
+  },
+  "local_run": {
+    "store": "artifacts/integrated-20261003-imported-pde-01",
+    "status": "PASS_BOUNDED_MATHEMATICAL",
+    "created_utc": "2026-10-02T19:09:06.949142+00:00",
+    "plan_sha256": "52492105a85287c8730ad9e7c71a510f33e0e5219130d789cecf042265789cd4",
+    "acceptance_sha256": "88aed4ddd9ab52829256e8107f70beaf0574b5aa777f0dcce73bba63f0bb2e04",
+    "counts": {
+      "Core_experiments": 17,
+      "accepted": 5,
+      "completed_native_levels": 21,
+      "frozen_plan_sources": 12,
+      "native_copied_sources_verified": 70,
+      "native_processes": 7,
+      "numerical_rejected": 2,
+      "original_bytes": 12098227,
+      "original_files": 427,
+      "preflight_NOT_RUN": 10
+    },
+    "case_observations": [
+      {
+        "L2_finest": 0.002365351839111622,
+        "category": "accepted",
+        "experiment_id": "E-imported-all-dirichlet",
+        "full_gradient_H1_finest": 0.0883883476483185,
+        "independent_gates": {
+          "pde_analytical_h1_seminorm_error": true,
+          "pde_analytical_l2_error": true,
+          "pde_h1_seminorm_convergence_rate": true,
+          "pde_l2_convergence_rate": true,
+          "pde_linear_residual": true
+        },
+        "maximum_actual_native_relative_residual": 9.783364286177592e-16,
+        "minimum_all_pair_H1_rate": 0.9999999999999993,
+        "minimum_all_pair_L2_rate": 2.000000000000845
+      },
+      {
+        "L2_finest": 0.000713180413418191,
+        "category": "accepted",
+        "experiment_id": "E-imported-harmonic",
+        "full_gradient_H1_finest": 0.08838834764831849,
+        "independent_gates": {
+          "pde_analytical_h1_seminorm_error": true,
+          "pde_analytical_l2_error": true,
+          "pde_h1_seminorm_convergence_rate": true,
+          "pde_l2_convergence_rate": true,
+          "pde_linear_residual": true
+        },
+        "maximum_actual_native_relative_residual": 2.2155385779248564e-15,
+        "minimum_all_pair_H1_rate": 0.9999999999999997,
+        "minimum_all_pair_L2_rate": 1.999999999999979
+      },
+      {
+        "L2_finest": 0.0021025851239650736,
+        "category": "accepted",
+        "experiment_id": "E-imported-mixed",
+        "full_gradient_H1_finest": 0.08832851216145428,
+        "independent_gates": {
+          "pde_analytical_h1_seminorm_error": true,
+          "pde_analytical_l2_error": true,
+          "pde_h1_seminorm_convergence_rate": true,
+          "pde_l2_convergence_rate": true,
+          "pde_linear_residual": true
+        },
+        "maximum_actual_native_relative_residual": 2.3029841757483117e-15,
+        "minimum_all_pair_H1_rate": 0.9927561097135764,
+        "minimum_all_pair_L2_rate": 1.992279400519296
+      },
+      {
+        "L2_finest": 0.001906899323013185,
+        "category": "accepted",
+        "experiment_id": "E-imported-reaction",
+        "full_gradient_H1_finest": 0.08832985751871641,
+        "independent_gates": {
+          "pde_analytical_h1_seminorm_error": true,
+          "pde_analytical_l2_error": true,
+          "pde_h1_seminorm_convergence_rate": true,
+          "pde_l2_convergence_rate": true,
+          "pde_linear_residual": true
+        },
+        "maximum_actual_native_relative_residual": 3.655769103784038e-15,
+        "minimum_all_pair_H1_rate": 0.9930101141457534,
+        "minimum_all_pair_L2_rate": 1.995768928908259
+      },
+      {
+        "L2_finest": 0.0019313016893390564,
+        "category": "accepted",
+        "experiment_id": "E-imported-rectangle",
+        "full_gradient_H1_finest": 0.07216878364870326,
+        "independent_gates": {
+          "pde_analytical_h1_seminorm_error": true,
+          "pde_analytical_l2_error": true,
+          "pde_h1_seminorm_convergence_rate": true,
+          "pde_l2_convergence_rate": true,
+          "pde_linear_residual": true
+        },
+        "maximum_actual_native_relative_residual": 8.865930759626918e-16,
+        "minimum_all_pair_H1_rate": 0.9999999999999997,
+        "minimum_all_pair_L2_rate": 2.0000000000007825
+      },
+      {
+        "L2_finest": 9.642063139960639,
+        "category": "numerical_rejections",
+        "experiment_id": "E-imported-flux-reject",
+        "full_gradient_H1_finest": 18.45300520493362,
+        "independent_gates": {
+          "pde_analytical_h1_seminorm_error": false,
+          "pde_analytical_l2_error": false,
+          "pde_h1_seminorm_convergence_rate": false,
+          "pde_l2_convergence_rate": false,
+          "pde_linear_residual": true
+        },
+        "maximum_actual_native_relative_residual": 7.292598579266768e-16,
+        "minimum_all_pair_H1_rate": -0.012594804534368035,
+        "minimum_all_pair_L2_rate": -0.010069063716274088
+      },
+      {
+        "L2_finest": 10.250144166122839,
+        "category": "numerical_rejections",
+        "experiment_id": "E-imported-reference-reject",
+        "full_gradient_H1_finest": 8.304750844238853,
+        "independent_gates": {
+          "pde_analytical_h1_seminorm_error": false,
+          "pde_analytical_l2_error": false,
+          "pde_h1_seminorm_convergence_rate": false,
+          "pde_l2_convergence_rate": false,
+          "pde_linear_residual": true
+        },
+        "maximum_actual_native_relative_residual": 2.3029841757483117e-15,
+        "minimum_all_pair_H1_rate": -0.0038569153675082207,
+        "minimum_all_pair_L2_rate": 0.0006590892344563292
+      }
+    ],
+    "preflight_experiment_ids": [
+      "E-imported-invalid-expression",
+      "E-imported-invalid-hash",
+      "E-imported-invalid-missing-name",
+      "E-imported-invalid-duplicate-name",
+      "E-imported-invalid-entity-tags",
+      "E-imported-invalid-missing-line",
+      "E-imported-invalid-duplicate-cell",
+      "E-imported-invalid-corner",
+      "E-imported-invalid-pure-neumann",
+      "E-imported-invalid-polygon"
+    ],
+    "native_runtime": {
+      "basix": "0.11.0",
+      "dolfinx": "0.11.0.post0",
+      "ffcx": "0.11.0",
+      "gmsh": "4.12.1",
+      "mpi4py": "3.1.5",
+      "numpy": "1.26.4",
+      "petsc": "3.19.6",
+      "petsc4py": "3.19.6",
+      "python": "3.12.3",
+      "ufl": "2026.1.0"
+    },
+    "source": {
+      "core": {
+        "core_commit": "04e5e79dafab86475218f52797bca0a84efcc649",
+        "core_dirty": false,
+        "core_source_sha256": "434c3f96612c945bb030022f99a2338f4e9ae76b57a1eb1c6579fa7f8d439714"
+      },
+      "files": {
+        "caelab/adapters/fenicsx_gmsh.py": "7e92393db542d2422e76622061c573859ea1541732e56269c04f6c15db2f15e6",
+        "caelab/adapters/fenicsx_imported.py": "720b04a9c408f25721711f3d8514302a0eaa9437a1092bb4a619b9d98180336c",
+        "caelab/adapters/fenicsx_imported_worker.py": "a94d93bcd6f2e3c84225f60ee01ae1c530725e7d7685650bf9d748d9380e8ad0",
+        "caelab/adapters/fenicsx_rectangle.py": "b0f614db04ee05b107373049f4e09f8c80f3809f456117add5f60b1d9040b756",
+        "caelab/adapters/fenicsx_rectangle_worker.py": "9b5e1a7e7ab9ffb90073785985c2e546ffca4c62012dffb370bb74e8b3422617",
+        "caelab/adapters/fenicsx_vector_worker.py": "d3e9ac0ba486e792ba8c1832e3411284a44393d813c63814efd2104f2112ab31",
+        "caelab/adapters/fenicsx_worker.py": "2e1cd29a71e4a216be6677e44b841205193ef72658d7a29d010dca7253d57301",
+        "caelab/execution_control.py": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede",
+        "plugins/pde_elliptic/reference.py": "bbae44e8088902f014d110e5b7eebcb95433959577f4550cde8cf33ccabfb405",
+        "plugins/pde_imported/reference.py": "9cea0f9bf14206d52828de5dfe2e7cfbcc5429fd429c48954f3a2ad65174cd6b",
+        "scripts/verify_imported_pde.py": "077dae2c062231870e6067a083db8d57f5ba76a7a7b3d3b2c581f722cff64814",
+        "scripts/verify_vector_pde.py": "77c8189bd36cb49aeb7cb3260a80f934955a83ff4783946c876db77a58913d24"
+      }
+    },
+    "scientific_limits_unchanged": true,
+    "fixed_limits": {
+      "max_l2_error": 0.02,
+      "max_h1_seminorm_error": 0.3,
+      "min_every_pair_l2_rate": 1.8,
+      "min_every_pair_h1_rate": 0.9,
+      "max_actual_relative_residual": 1e-10
+    },
+    "source_grid": "n4/8/16 intervals per unit; actual maximum-edge h used for all rates"
+  },
+  "independent_review": {
+    "status": "PASS_BOUNDED_IMPORTED_17_CASE_LOCAL_RAW_EVIDENCE_REVIEW",
+    "open_P1": 0,
+    "open_P2": 0,
+    "complete_fields": 21,
+    "adjacent_pairs": 14,
+    "rates": 28,
+    "maximum_differences": {
+      "H1_absolute_difference": 7.815970093361102e-14,
+      "l2_absolute_difference": 1.4210854715202004e-14,
+      "rate_absolute_difference": 8.970602038971265e-14
+    },
+    "scope": [
+      "Original/native P1 triangle/nodal full-field independent polynomial5x5 Duffy L2 and full-gradient H1 integration",
+      "Every adjacent measured-h rate; original fixed positive/negative verdicts",
+      "Original/dense source MSH, original/geometry/vertex/DOF/importer-cell/facet bijections, named outward boundaries and bindings",
+      "Actual XDMF/HDF body topology/geometry/node values and retained native facet/mapping identity",
+      "Ten copied sources per native process, frozen12-source plan, input/progress/Core ledger/provenance/invalid metrics/UNKNOWN",
+      "Source-bound actual A*x-b/KSP/synchronization observations and normalization; no independent matrix reassembly"
+    ],
+    "working_Core_byte_closure": {
+      "GitLF_digest": "2bb3c45d768434008a2cafba1480506b90df69bd64780504c471967605d7314a",
+      "after_run_baseline_sha256": "05db4bb60cbd928ee078d7561619ce347c02e2f04acb7ffc380946ae505de2d7",
+      "derived_cache": {
+        "bytes": 1290615,
+        "path": "producer-working-byte-reconstruction.json",
+        "sha256": "31e6b542666800656069c4fe515a1da46e08181bc4672c9eb31e84d65f84d1ed"
+      },
+      "hash": "434c3f96612c945bb030022f99a2338f4e9ae76b57a1eb1c6579fa7f8d439714",
+      "method": "Reconstruction from exact producer Git bodies plus presently preserved semantically unchanged working byte bodies, independently bound to the after-run clean Root baseline file hashes. This is a reviewer-derived byte cache, not a retained full original pre-run working snapshot."
+    },
+    "report": {
+      "path": "artifacts/review-imported-pde-local-20261003-01/independent-actual-review.json",
+      "size_bytes": 4648,
+      "sha256": "7a0c767d3ee3540d8bc18134905dd14185aefe38416c9043e751e0bc98c13dd1"
+    },
+    "seal": {
+      "path": "artifacts/review-imported-pde-local-20261003-01/review-seal.json",
+      "size_bytes": 7399,
+      "sha256": "2a108c0cf259d7b263b744d257ea475ba775dc953632a7df7236b232d2562066",
+      "verified_sealed_files": 41
+    },
+    "relay": {
+      "path": "artifacts/review-imported-pde-local-20261003-01/final-output-relay.json",
+      "size_bytes": 9065,
+      "sha256": "51cb2ca5e3294dd9c42e0e3bc51e5b7bc04dba9d8e9e041bcc6d580bb0cf50cd"
+    }
+  },
+  "retention": {
+    "original_files": 427,
+    "original_bytes": 12098227,
+    "all_original_files_size_sha256_unchanged": true,
+    "before": {
+      "path": "original-before.json",
+      "sha256": "1e6bfdd499d5553d80c3d471bbe96340cc3d1f580d749d9b22c72f7847e9df08"
+    },
+    "after": {
+      "bytes": 77096,
+      "path": "original-after.json",
+      "sha256": "873866ce89c996e20a96850217ad7a2ece944aafb7bf0cca41f4df604d9917ee"
+    },
+    "raw_local_store_ignored": true,
+    "durable_remote_raw_backup": "NOT_PROVEN",
+    "CI_raw_campaign_not_downloaded_or_audited_for_this_record": true
+  },
+  "exact_source_CI": {
+    "run_id": 37051599036,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37051599036",
+    "head_sha": "04e5e79dafab86475218f52797bca0a84efcc649",
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": [
+      {
+        "name": "core",
+        "id": 110986066771,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "research-driver-source",
+        "id": 110986067112,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "native",
+        "id": 110987925443,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "doe",
+        "id": 110987925454,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "structural",
+        "id": 110987925597,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "optimization",
+        "id": 110987925601,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "native-registration",
+        "id": 110987925614,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "codeaster",
+        "id": 110987925615,
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      {
+        "name": "explicit",
+        "id": 110987925637,
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      {
+        "name": "pde",
+        "id": 110987925661,
+        "status": "completed",
+        "conclusion": "failure"
+      }
+    ],
+    "successful_jobs": 7,
+    "failed_jobs": 3,
+    "core": {
+      "passed": 2571,
+      "skipped": 5,
+      "warnings": 1,
+      "seconds": 199.4
+    },
+    "pde_job": "FAILURE_AT_SEPARATE_VECTOR_STEP",
+    "imported_native_step": "SUCCESS",
+    "coupled_step": "SUCCESS",
+    "research_results_step": "SKIPPED",
+    "terminal_snapshot_sha256": "4763e76cf469be610a61a0d4a411da731b6b463468c5462783c8a4c58b1a51a8",
+    "core_log_sha256": "aa6a78d13a1f79d90007788965731bf012d3593fd0ec7d8d84e1bf15128246c9",
+    "local_native_raw_audit_is_separate": true
+  },
+  "failed_attempts": [
+    {
+      "classification": "AUDIT_HARNESS_ASSUMPTION_NOT_PRODUCER_FAILURE",
+      "error": "AssertionError: producer_GitLF_Core_byte_closure: 2bb3c45d768434008a2cafba1480506b90df69bd64780504c471967605d7314a",
+      "proof": {
+        "bytes": 2354,
+        "path": "failed-attempt-01.json",
+        "sha256": "b456c64be649a54938dd6c7f241578d8b0f9b9e59413d7e867c9a774bad3ba40"
+      }
+    },
+    {
+      "classification": "AUDIT_HARNESS_ASSUMPTION_NOT_PRODUCER_FAILURE",
+      "error": "AssertionError: seven_completed_isolated_native_processes: E-imported-all-dirichlet",
+      "proof": {
+        "bytes": 2723,
+        "path": "failed-attempt-02.json",
+        "sha256": "942d08371913ae1d9ba89767459a6af2576643195718a27175da6bc0628b5138"
+      }
+    },
+    {
+      "classification": "AUDIT_HARNESS_ASSUMPTION_NOT_PRODUCER_FAILURE",
+      "error": "ValueError: Both input arrays must be (arrays of) 3-dimensional vectors, but they are 2 and 2 dimensional instead.",
+      "proof": {
+        "bytes": 2286,
+        "path": "failed-attempt-03.json",
+        "sha256": "238184fdc0fcbf6cddb5f48f3e02a98e63b0c9dd4da0d8ed46646a886d86d7ed"
+      }
+    }
+  ],
+  "retained_native_warning": "All seven completed native stderr files contain the actual DOLFINx geometry.dofmap deprecation warning. Preserved and distinct from numerical/solver failure.",
+  "official_research_admission": "NOT_ADMITTED",
+  "same_record_field_GUI": "NOT_RUN",
+  "model_qualification": "UNKNOWN",
+  "physical_validation": "UNKNOWN",
+  "deployment_qualification": "UNKNOWN",
+  "decision": "NOT_RELEASED",
+  "remaining": [
+    "D3.6 explicit reviewed PDEFields guard/source integration and same-record reader",
+    "New clean published-source official selected5.6Sol Research/GUI/Stop/retention acceptance",
+    "Vector fixed-rate REJECTED, Code_Aster numerical/native gap and OpenRadioss install failure remain",
+    "Broader Phase4/MPI/backend/physical qualification and ordered Phase5-7/all52 scope"
+  ],
+  "limitations": [
+    "Local producer04e proof, not whole CI or complete Phase/PDE engineering approval; current moving Main working bytes were not substituted for producer Git objects.",
+    "Actual native A*x-b/sync/KSP observations are source-bound and internally consistent. A, x and b matrices/vectors were not independently reassembled or retained in a separate audit; no second matrix assembly or independent residual claim.",
+    "HDF contains body nodes/triangles/values; facet-source identity is closed through complete saved native facet fields/mappings plus independently derived exterior edges and normals, not an additional HDF facet dataset.",
+    "All21 fields are actual solved native records. Synthetic source input meshes and earlier unsolved source-test fixtures are distinct; no test fixture was counted as an actual positive.",
+    "Raw local evidence remote durability, official OpenScience admission and human GUI/physical qualification are not proven here."
+  ]
+}

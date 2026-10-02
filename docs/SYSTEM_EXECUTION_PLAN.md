@@ -1,5 +1,35 @@
 # Autonomous CAE Lab — sequential system execution plan
 
+## Current imported native qualification — D3.6 integration active
+
+Exact main source04e5e79dafab86475218f52797bca0a84efcc649 is pushed.
+Fresh local integrated-20261003-imported-pde-01 completed17 cases:
+5 accepted,2 numerical REJECTED,10 preflight/no-native;7 processes/21 fields.
+Independent complete original P1 L2/full-gradient-H1/every-pair measured-h,
+MSH/native mappings, named boundaries, XDMF/HDF/source/Core-ledger audit PASS,
+open P1/P2=0. Maximum norm/rate differences1.42e-14/7.82e-14/8.97e-14;
+all427 original files/12098227B unchanged. Limits.02/.3,1.8/.9 and1e-10 remain.
+Actual residual is a source-bound observation, not independent matrix assembly.
+Working Core434c3f96 is reproduced separately from Git-LF2bb3c45d; the derived
+review cache is not an original full pre-run working snapshot. Native warning
+and three audit-harness assumptions/failed attempts remain retained.
+Record: `benchmarks/records/20261003-imported-pde-native-local.json`.
+
+Exact CI37051599036 is completed7SUCCESS/3FAIL: Core2571PASS/5skips/1warning
+199.40s; imported/coupled native steps SUCCESS, separate vector rateFAIL,
+Code_Aster and explicit failures remain. PDE job FAILURE, research-results step
+SKIPPED; local full raw audit is distinct from CI step status. Local raw hashes
+and compact public records do not establish durable remote raw backup.
+
+Next D3.6 source integration is ACTIVE in the primary working tree: explicit
+PDEFields research scope and same-record native-field reader, with existing
+FixtureScalar/StructuralFamilies scopes, selected5.6Sol/auth and Core boundaries
+preserved. This checkpoint qualifies imported bounded mathematics only; official
+Research NOT_ADMITTED, field GUI NOT_RUN, physical/model/deployment UNKNOWN and
+NOT_RELEASED. Clean published-source Research/GUI/owned Stop/retention is a
+separate gate. Continue ordered Phase5-7 development; all52/whole Phase4/P2.2 OPEN.
+Earlier NOT_RUN/in-progress observations below are retained history.
+
 ## Current scheduling rule — owner instruction2026-10-02
 
 Development/integration proceeds in phase order, reusing existing modules.

@@ -1,5 +1,16 @@
 # Local Lab application contract
 
+Imported04e local17-case/21-field independent mathematical audit now passes,
+with fixed scientific criteria, original427files unchanged and UNKNOWN/
+NOT_RELEASED. Exact04e CI7SUCCESS/3FAIL/Core2571PASS is separate; imported native
+step SUCCESS, overall PDE failure/vector rejection remains. Record:
+benchmarks/records/20261003-imported-pde-native-local.json. Official Research
+NOT_ADMITTED and same-record field GUI NOT_RUN remain distinct. D3.6 source
+scope/reader integration is active in the primary working tree, using existing
+operations/artifact API and approved5.6Sol/auth. This native checkpoint does not
+change the wire contract or activate a research scope. Older observations below
+are historical; broader/physical/deployment/all52 qualification stays OPEN.
+
 This is a thin human interface to the existing `caelab.Lab` API. It does not
 implement engineering rules or choose numerical candidates. OpenScience remains
 the research agent; the browser lets an engineer define and inspect the same
