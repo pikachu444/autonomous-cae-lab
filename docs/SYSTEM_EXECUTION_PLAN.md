@@ -1,5 +1,27 @@
 # Autonomous CAE Lab — sequential system execution plan
 
+## Current connected PDEFields research — source8fe, D4.1 active
+
+Actual run `pde-r-20261003-02` completes the bounded D3.6 connected gate on
+clean source `8fe8d24b7211a4622dad85fdc92baa93865a7107`: current resident identity,
+one official approved `openai-codex/gpt-5.6-sol` question,9 completed tools,
+2 rectangle PDE experiments/6 meshes, stored comparison and interpretation.
+Both cases have8 numerical PASS checks; physical/model UNKNOWN and
+NOT_RELEASED remain. Independent199-check evidence/interpretation review
+has0P1/P2. Actual same-record field GUI verifies c0 mesh32-to8/node2 and
+separate c3 mesh32/node2 against original DOF values/revisions/units.
+Exact owned Stop completes; all67 original files/1028885B remain unchanged.
+Exact8fe CI37074397939:7SUCCESS/3FAIL, Core2578PASS/5skips/1warning.
+Vector numerical classification, Code_Aster Fz family numerical failure and
+OpenRadioss runtime download404 remain OPEN. This local question did not manually
+rerun those failed cases; exact-source CI failures are separate observations.
+Record: `benchmarks/records/20261003-connected-pde-fields-research.json`.
+D4.1/P5.1 now develops the bounded finite-rotation beam in
+`docs/GEOMETRIC_NONLINEARITY_PACKET.md` / ADR0025. Native beam qualification,
+new Research admission/field GUI, wider Phase4/P2.2/Phase5-7/all52 and
+physical/deployment qualification remain separate OPEN/UNKNOWN gates.
+Older sections below retain their exact historical checkpoints.
+
 ## Current primary Git transport correction and exact662 CI
 
 Main662274c is push-confirmed. Exact CI37069526302:7 jobs SUCCESS/3FAIL;
@@ -137,8 +159,8 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 | D0 source integrated | Resident submit/inspect/cancel, configurable budgets/live logs, owned cleanup/normal shutdown; focused checks and review | Native lifecycle/cancellation/profile admission; no new solver proof yet |
 | D1 source integrated | Fixture load/material/mesh form and six-component diagnostic stress artifacts/table; reuse CAD/child analysis | Existing beam accuracy, roof Aster completion, mesh/reaction/stress/reference checks |
 | D2 source integrated | Declared-model inputs/optimization in Explore; reuse269d8bf stopping/constraints/replay;27 focused checks and actual plan UI | Numerical convergence, active constraints, interruption/replay |
-| D3 Phase4 source integrated; live gate active | Rectangle/transient/coupled/imported bounded mathematical evidence; imported17cases/21fields independently audited; vector rateFAIL retained; D3.6 six-tool PDEFields/native reader mainff1 and original field GUI PASS | Fresh connected c0/c3 Research/same-record GUI/Stop/retention after minimal startup correction; vector/broader/MPI/latency/physical qualification OPEN |
-| D4 Phase5 | Geometric/material/contact implementations and fixture coupling | Nonlinear convergence, histories, energy, canonical comparisons |
+| D3 Phase4 bounded connected gate closed | Rectangle/transient/coupled/imported bounded mathematical evidence; source8fe/run02 actual c0/c3 Research, independent199-check review, same-record field GUI/Stop/67-file retention PASS; vector rateFAIL retained | Wider/MPI/backend/latency/physical and whole Phase4 qualification OPEN |
+| D4 Phase5 source ACTIVE | P5.1 finite-rotation beam Domain/native packet and official source study frozen; disjoint source implementation active | Focused shared routing/source review, then fresh native/Research/field qualification; material/contact/fixture coupling follows |
 | D5 Phase6 | Explicit preprocessing/contact/material/fields and campaign integration | Impact/drop force/energy/timestep/reference checks |
 | D6 Phase7 | Measured inverse interfaces, UQ/surrogate/multiobjective/MDO, MOOSE/HPC | Engine/coupling/HPC and actual measured-data acceptance |
 | Throughout | Common reporting, same-record human inspection and physical/deployment interfaces | Actual GUI, durable raw backup, corporate approval and physical evidence |

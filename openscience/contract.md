@@ -1,5 +1,19 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+Source8fe actual PDEFields research now completes one approved5.6Sol question,
+9 calls/2 experiments/6 meshes, original-result comparison and interpretation,
+independent199-check review, same-record field GUI, exact owned Stop and67-file
+retention. Physical/model UNKNOWN, NOT_RELEASED, whole52 OPEN remain. Record:
+`benchmarks/records/20261003-connected-pde-fields-research.json`. Earlier NOT_RUN
+observations below are historical. This is bounded actual control-plane proof,
+not general PDE/optimizer/backend or physical qualification.
+
+D4.1/P5.1 develops structural.code_aster.geometric_nonlinearity through existing
+ModelAnalysisAdapter/Core operations and pure Domain criteria (ADR0025/packet).
+No wire/schema/optimizer/provider/auth change; existing research profiles are
+unchanged. Native beam qualification, explicit guarded Research admission and
+same-record new field GUI remain NOT_RUN/NOT_ADMITTED until their own evidence.
+
 Primary Windows Git transport now reuses the exact tracked inert bridge and
 boot/host pins already used for managed worktrees. Actual Resident01 refused
 UNKNOWN before any inference; owned Stop and absent store confirmed. Core/wire/

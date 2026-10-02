@@ -3,6 +3,14 @@
 Date2026-10-03. Accepted implementation direction; actual admission/research/
 GUI qualification is separate. Packet: docs/PDE_RESEARCH_FIELDS_PACKET.md.
 
+Observed checkpoint2026-10-03: clean source8fe connected PDEFields run02 closes
+one official approved5.6Sol question/9 tools/2 scalar rectangle cases/6 meshes,
+original-result interpretation, independent199 checks0P1/P2, same-record native
+field GUI, exact owned Stop and unchanged67-file retention. Record:
+`benchmarks/records/20261003-connected-pde-fields-research.json`. This closes
+only that bounded actual flow; wider PDE/backend/physical/model/full52
+qualification and NOT_RELEASED remain. Earlier NOT_RUN statements are history.
+
 ## Decision and reason
 
 Connect implemented qualified PDE families to the OpenScience control plane

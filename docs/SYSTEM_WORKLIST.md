@@ -1,5 +1,36 @@
 # Sequential system worklist
 
+## Current connected PDEFields research — source8fe, D4.1 active
+
+Actual run `pde-r-20261003-02` completes the bounded D3.6 connected gate on
+clean source `8fe8d24b7211a4622dad85fdc92baa93865a7107`: current resident identity,
+one official approved `openai-codex/gpt-5.6-sol` question,9 completed tools,
+2 rectangle PDE experiments/6 meshes, stored comparison and interpretation.
+Both cases have8 numerical PASS checks; physical/model UNKNOWN and
+NOT_RELEASED remain. Independent199-check evidence/interpretation review
+has0P1/P2. Actual same-record field GUI verifies c0 mesh32-to8/node2 and
+separate c3 mesh32/node2 against original DOF values/revisions/units.
+Exact owned Stop completes; all67 original files/1028885B remain unchanged.
+Exact8fe CI37074397939:7SUCCESS/3FAIL, Core2578PASS/5skips/1warning.
+Vector numerical classification, Code_Aster Fz family numerical failure and
+OpenRadioss runtime download404 remain OPEN. This local question did not manually
+rerun those failed cases; exact-source CI failures are separate observations.
+Record: `benchmarks/records/20261003-connected-pde-fields-research.json`.
+D4.1/P5.1 now develops the bounded finite-rotation beam in
+`docs/GEOMETRIC_NONLINEARITY_PACKET.md` / ADR0025. Native beam qualification,
+new Research admission/field GUI, wider Phase4/P2.2/Phase5-7/all52 and
+physical/deployment qualification remain separate OPEN/UNKNOWN gates.
+Older sections below retain their exact historical checkpoints.
+
+- [x] D3.6 current source8fe resident identity and approved one-question research.
+- [x] D3.6 original-result/AI comparison, independent review, same-record GUI.
+- [x] D3.6 exact owned Stop and all67-file immutable retention.
+- [x] D4.1/P5.1 official native source study and frozen Domain/adapter packet.
+- [ ] D4.1/P5.1 Domain/native source, shared routing and independent review.
+- [ ] D4.1/P5.1 fresh native mathematical/field/Newton qualification.
+- [ ] D4.1/P5.1 explicit guarded Research admission and same-record field GUI.
+- [ ] Wider Phase4/P2.2 and retained native/CI failures; complete Phase5-7/52.
+
 ## Current primary Git transport correction and exact662 CI
 
 Main662274c is push-confirmed. Exact CI37069526302:7 jobs SUCCESS/3FAIL;
@@ -345,8 +376,8 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 | D0 integrated | Resident submit/inspect/cancel, configurable Code_Aster budgets/live logs, owned cleanup and normal shutdown; focused checks/review pass | Actual native cancellation/guard admission, unwired adapter controls, restart/multiprocess |
 | D1 source integrated | Typed material/load/mesh, exact campaign condition copy, complete diagnostic stress artifacts/table; reuse CAD and child analysis | New native/field GUI and existing beam/roof/mesh/reaction/stress/reference qualification; rotated axes/joints remain open |
 | D2 Phase3 source integrated | Expose existing declared-model discovery/registration and model optimization in Explore; reuse269d8bf stopping/constraints/replay | Numerical convergence, active constraints, interruption/replay and actual research/native linkage |
-| D3 Phase4 source integrated; live gate active | Rectangle/transient/coupled/imported bounded native/reference evidence; vector source/rate failure retained; D3.6 six-tool PDEFields and native field reader mainff1, original field GUI PASS; startup correction reviewed | Fresh connected PDEFields c0/c3 Research/same-record GUI/Stop/retention; vector, wider/parallel, latency and physical qualification OPEN |
-| D4 Phase5 | Geometric/material/contact implementations and fixture coupling | Nonlinear convergence, histories, energy, canonical comparisons |
+| D3 Phase4 bounded connected gate closed | Rectangle/transient/coupled/imported bounded native/reference evidence; source8fe/run02 actual c0/c3 Research, independent199-check review, same-record field GUI/Stop/67-file retention PASS; vector rateFAIL retained | Wider/parallel/backend/latency/physical and whole Phase4 qualification OPEN |
+| D4 Phase5 source ACTIVE | P5.1 finite-rotation beam Domain/native packet and official source study frozen; disjoint source implementation active | Focused shared routing/source review, then fresh native/Research/field qualification; material/contact/fixture coupling follows |
 | D5 Phase6 | Explicit preprocessing/contact/material/fields and campaign integration | Impact/drop force/energy/timestep/reference checks |
 | D6 Phase7 | Measured inverse interfaces, UQ/surrogate/multiobjective/MDO, MOOSE/HPC | Engine/coupling/HPC and actual measured-data acceptance |
 | Throughout | Common reporting, same-record human inspection and physical/deployment interfaces | Actual GUI, durable raw backup, corporate approval and physical evidence |
@@ -888,7 +919,7 @@ This evidence/docs checkpoint is not another solver run.
 - [ ] P4.3: verify serial/parallel equivalence and rejected unsafe declarations
   before advertising wider parallel capability.
 
-## Phase5 — connected nonlinear implicit/material/contact (QUEUED)
+## Phase5 — connected nonlinear implicit/material/contact (P5.1 SOURCE ACTIVE)
 
 - [ ] P5.1: freeze and execute a geometric-nonlinearity reference, full loads/
   displacement/stress/reactions/energy and genuine convergence histories.

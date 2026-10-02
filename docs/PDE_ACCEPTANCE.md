@@ -1,5 +1,27 @@
 # Declared weak-form PDE acceptance
 
+## Current connected PDEFields research — source8fe, D4.1 active
+
+Actual run `pde-r-20261003-02` completes the bounded D3.6 connected gate on
+clean source `8fe8d24b7211a4622dad85fdc92baa93865a7107`: current resident identity,
+one official approved `openai-codex/gpt-5.6-sol` question,9 completed tools,
+2 rectangle PDE experiments/6 meshes, stored comparison and interpretation.
+Both cases have8 numerical PASS checks; physical/model UNKNOWN and
+NOT_RELEASED remain. Independent199-check evidence/interpretation review
+has0P1/P2. Actual same-record field GUI verifies c0 mesh32-to8/node2 and
+separate c3 mesh32/node2 against original DOF values/revisions/units.
+Exact owned Stop completes; all67 original files/1028885B remain unchanged.
+Exact8fe CI37074397939:7SUCCESS/3FAIL, Core2578PASS/5skips/1warning.
+Vector numerical classification, Code_Aster Fz family numerical failure and
+OpenRadioss runtime download404 remain OPEN. This local question did not manually
+rerun those failed cases; exact-source CI failures are separate observations.
+Record: `benchmarks/records/20261003-connected-pde-fields-research.json`.
+D4.1/P5.1 now develops the bounded finite-rotation beam in
+`docs/GEOMETRIC_NONLINEARITY_PACKET.md` / ADR0025. Native beam qualification,
+new Research admission/field GUI, wider Phase4/P2.2/Phase5-7/all52 and
+physical/deployment qualification remain separate OPEN/UNKNOWN gates.
+Older sections below retain their exact historical checkpoints.
+
 ## Current primary Git transport correction and exact662 CI
 
 Main662274c is push-confirmed. Exact CI37069526302:7 jobs SUCCESS/3FAIL;

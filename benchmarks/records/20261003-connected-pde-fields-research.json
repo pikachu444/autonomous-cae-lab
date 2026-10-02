@@ -1,0 +1,586 @@
+{
+  "schema": 1,
+  "kind": "connected_pde_fields_research_checkpoint",
+  "recorded_utc": "2026-10-02T23:45:13.760461+00:00",
+  "status": "PASS_BOUNDED_CONNECTED_RESEARCH_GUI_STOP_RETENTION",
+  "producer_source_commit": "8fe8d24b7211a4622dad85fdc92baa93865a7107",
+  "publication_scope": "Compact public record of retained local evidence; publication is not a new solver verification or remote raw-artifact backup.",
+  "runtime": {
+    "product": "OpenScience",
+    "version": "2.0.146",
+    "source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+    "bridge_mode": "WINDOWS_PRIMARY_CHECKOUT_GIT",
+    "approved_model": "openai-codex/gpt-5.6-sol",
+    "reasoning": "high",
+    "research_delegation": false,
+    "model_fallback": false,
+    "project_id": "prj_85f9acd80890404bbf8daaad94b76559",
+    "session_id": "ses_f012aa33affeFbtVCfhCyY44YM"
+  },
+  "source_identity": {
+    "working_core_sha256": "434c3f96612c945bb030022f99a2338f4e9ae76b57a1eb1c6579fa7f8d439714",
+    "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "fixture_sha256": "c8a11097d2831b7730d5e039e2cd0c05e7b3a40c8b963505a67db0ae8d4d00a9",
+    "boot_source_sha256": "eec5c0bbc0fc0b8bce93758f142e3aaa36bba3a733403081b04aed89e84a8331",
+    "cached_imported_bytecode": "UNKNOWN",
+    "basis": "Actual fresh on-disk connected resource, immutable startup file digests, clean commit/pin metadata and actual copied worker/Domain source bytes versus exact producer Git objects. No cloud weights or cached-bytecode equivalence claim."
+  },
+  "actual_scope": {
+    "questions": 1,
+    "automatic_retries": 0,
+    "completed_tool_calls": 9,
+    "unique_tools": 6,
+    "actual_tool_order": [
+      "caelab_study_create",
+      "caelab_study_inspect",
+      "caelab_pde_run",
+      "caelab_pde_run",
+      "caelab_experiment_inspect",
+      "caelab_experiment_summary",
+      "caelab_experiment_summary",
+      "caelab_experiment_inspect",
+      "caelab_experiment_compare"
+    ],
+    "core_experiments": 2,
+    "native_mesh_levels": 6,
+    "visible_planning_and_interpretation": 2,
+    "guard_receipts": {
+      "chat.params": 7,
+      "tool.execute.before": 9
+    },
+    "store_files": 67,
+    "store_bytes": 1028885
+  },
+  "historical_operator_capture": {
+    "status": "PASS_BOUNDED_RESEARCH_TOOL_LOOP_PENDING_INTERPRETATION_STOP_GUI_AUDIT",
+    "pending_items_closed_by": [
+      "independent-review.json",
+      "close-receipt.json"
+    ],
+    "original_capture_rewritten": false
+  },
+  "research": {
+    "study_id": "S-pde-r-20261003-02",
+    "store": "runs/pde-r-20261003-02",
+    "backend": "pde.fenicsx.rectangle",
+    "mesh_counts": [
+      8,
+      16,
+      32
+    ],
+    "reactions": [
+      0,
+      3
+    ],
+    "units": "dimensionless",
+    "manufactured_solution": "u=x^2*y^2+x+2*y+1",
+    "rectangle_lengths": [
+      2,
+      1
+    ],
+    "diffusion": 1,
+    "rhs": "-2*(x^2+y^2)+c*u",
+    "frozen_limits": {
+      "max_l2_error": 0.03,
+      "max_h1_seminorm_error": 0.5,
+      "min_l2_rate": 1.8,
+      "min_h1_rate": 0.9,
+      "max_residual_relative": 1e-10
+    },
+    "automatic_question_retries": 0,
+    "inference_elapsed_seconds": 296.892,
+    "native_guards": {
+      "accepted": 16,
+      "refusals": 0,
+      "hooks": [
+        "chat.params",
+        "tool.execute.before"
+      ]
+    }
+  },
+  "results": [
+    {
+      "experiment_id": "E-pde-r-20261003-02-c0",
+      "result": {
+        "path": "runs/pde-r-20261003-02/experiments/E-pde-r-20261003-02-c0/result.json",
+        "size_bytes": 29065,
+        "sha256": "e5fbb4ed70ca8e4e5c4585771554affc77cf94ab6c8ec467a9b86c238a14282d"
+      },
+      "ledger": {
+        "path": "runs/pde-r-20261003-02/ledger/E-pde-r-20261003-02-c0.json",
+        "size_bytes": 275,
+        "sha256": "a1525d476cdc414b75a9699e1d74a76ccb22953e27bf30825e12c45c7ec9fc52"
+      },
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "decision": "NOT_RELEASED",
+      "model_revision": "ee855b06c1da9b9db0025d9f0ee7a806a5deb6fdb733fef2560d2ecc752421a0",
+      "metrics": {
+        "h1_seminorm_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.9892994730123119
+        },
+        "h1_seminorm_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.14334873610435256
+        },
+        "l2_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.9962232459733649
+        },
+        "l2_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0014538075814079887
+        },
+        "linear_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 4.5118395153797194e-15
+        }
+      },
+      "all_mesh_pair_rates": [
+        {
+          "l2_convergence_rate": 1.9705684718837448,
+          "h1_seminorm_convergence_rate": 0.968597849005733
+        },
+        {
+          "l2_convergence_rate": 1.9962232459733646,
+          "h1_seminorm_convergence_rate": 0.9892994730123119
+        }
+      ],
+      "mesh_levels": [
+        {
+          "cells_per_axis": 8,
+          "global_cells": 128,
+          "global_dofs": 81,
+          "l2_error": 0.022731611390955943,
+          "h1_seminorm_error": 0.5569031706780587,
+          "linear_residual": {
+            "absolute": 2.450638641863616e-14,
+            "normalization": "rhs_l2_norm",
+            "relative": 1.6332527578078265e-15,
+            "rhs_norm": 15.00465026094856
+          }
+        },
+        {
+          "cells_per_axis": 16,
+          "global_cells": 512,
+          "global_dofs": 289,
+          "l2_error": 0.0058000268546868905,
+          "h1_seminorm_error": 0.28457889206661924,
+          "linear_residual": {
+            "absolute": 5.6035165778015147e-14,
+            "normalization": "rhs_l2_norm",
+            "relative": 2.678795805045133e-15,
+            "rhs_norm": 20.91804297755015
+          }
+        },
+        {
+          "cells_per_axis": 32,
+          "global_cells": 2048,
+          "global_dofs": 1089,
+          "l2_error": 0.0014538075814079887,
+          "h1_seminorm_error": 0.14334873610435256,
+          "linear_residual": {
+            "absolute": 1.3296726750544376e-13,
+            "normalization": "rhs_l2_norm",
+            "relative": 4.5118395153797194e-15,
+            "rhs_norm": 29.470744039585625
+          }
+        }
+      ],
+      "versions": {
+        "basix": "0.11.0",
+        "dolfinx": "0.11.0.post0",
+        "ffcx": "0.11.0",
+        "mpi4py": "3.1.5",
+        "numpy": "1.26.4",
+        "petsc": "3.19.6",
+        "petsc4py": "3.19.6",
+        "python": "3.12.3",
+        "ufl": "2026.1.0"
+      },
+      "artifact_count": 29
+    },
+    {
+      "experiment_id": "E-pde-r-20261003-02-c3",
+      "result": {
+        "path": "runs/pde-r-20261003-02/experiments/E-pde-r-20261003-02-c3/result.json",
+        "size_bytes": 29061,
+        "sha256": "47135ed9f69731ceb782fb18c28e26be7d8e37c817cb2bf958cb9ccd09af3b5a"
+      },
+      "ledger": {
+        "path": "runs/pde-r-20261003-02/ledger/E-pde-r-20261003-02-c3.json",
+        "size_bytes": 275,
+        "sha256": "8dfd621df9ca379a64baec8ffedd3503df8b3b364ff07e17bcea391a39391bc5"
+      },
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "decision": "NOT_RELEASED",
+      "model_revision": "483dcb02b0c044e064b6ea988248e5c73c118ee7196599cbc4ed843a2975abe3",
+      "metrics": {
+        "h1_seminorm_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.989364397978892
+        },
+        "h1_seminorm_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.14335085558839317
+        },
+        "l2_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.9966441327745335
+        },
+        "l2_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0012747519334085858
+        },
+        "linear_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 4.259464670898521e-15
+        }
+      },
+      "all_mesh_pair_rates": [
+        {
+          "l2_convergence_rate": 1.971294514084326,
+          "h1_seminorm_convergence_rate": 0.9688591372912688
+        },
+        {
+          "l2_convergence_rate": 1.9966441327745335,
+          "h1_seminorm_convergence_rate": 0.9893643979788922
+        }
+      ],
+      "mesh_levels": [
+        {
+          "cells_per_axis": 8,
+          "global_cells": 128,
+          "global_dofs": 81,
+          "l2_error": 0.01994776452860392,
+          "h1_seminorm_error": 0.5570373443645036,
+          "linear_residual": {
+            "absolute": 2.064716357183457e-14,
+            "normalization": "rhs_l2_norm",
+            "relative": 1.312715924407655e-15,
+            "rhs_norm": 15.72858467543259
+          }
+        },
+        {
+          "cells_per_axis": 16,
+          "global_cells": 512,
+          "global_dofs": 289,
+          "l2_error": 0.005087160665369322,
+          "h1_seminorm_error": 0.28459590696590964,
+          "linear_residual": {
+            "absolute": 6.019350662300629e-14,
+            "normalization": "rhs_l2_norm",
+            "relative": 2.8480771324869393e-15,
+            "rhs_norm": 21.134788077331795
+          }
+        },
+        {
+          "cells_per_axis": 32,
+          "global_cells": 2048,
+          "global_dofs": 1089,
+          "l2_error": 0.0012747519334085858,
+          "h1_seminorm_error": 0.14335085558839317,
+          "linear_residual": {
+            "absolute": 1.2581780346174802e-13,
+            "normalization": "rhs_l2_norm",
+            "relative": 4.259464670898521e-15,
+            "rhs_norm": 29.53840756594587
+          }
+        }
+      ],
+      "versions": {
+        "basix": "0.11.0",
+        "dolfinx": "0.11.0.post0",
+        "ffcx": "0.11.0",
+        "mpi4py": "3.1.5",
+        "numpy": "1.26.4",
+        "petsc": "3.19.6",
+        "petsc4py": "3.19.6",
+        "python": "3.12.3",
+        "ufl": "2026.1.0"
+      },
+      "artifact_count": 29
+    }
+  ],
+  "interpretation": {
+    "status": "PASS_ACTUAL_PROSE_AND_ORIGINAL_RESULT_COMPARISON",
+    "deltas_c3_minus_c0": {
+      "h1_seminorm_convergence_rate": 6.492496658005997e-05,
+      "h1_seminorm_error": 2.1194840406080218e-06,
+      "l2_convergence_rate": 0.0004208868011685851,
+      "l2_error": -0.00017905564799940285,
+      "linear_residual_relative": -2.5237484448119824e-16
+    },
+    "relative_changes": {
+      "l2_reduction_percent": 12.316323720501607,
+      "h1_increase_percent": 0.0014785509089282212
+    },
+    "limits": "Same manufactured exact solution; changes concern discretization/linear algebra, not physical strength."
+  },
+  "independent_review": {
+    "status": "PASS_BOUNDED_ONE_QUESTION_RESEARCH_EVIDENCE_AND_INTERPRETATION_REVIEW",
+    "checks": 199,
+    "P1": 0,
+    "P2": 0,
+    "max_rate_recomputation_difference": 4.440892098500626e-16,
+    "scope": "Actual one-question inputs, nine receipts, source/provenance, all result metrics/units/rates and original AI interpretation. GUI/Stop audited separately by Root."
+  },
+  "gui": {
+    "status": "PASS_ACTUAL_SAME_RECORD_FIELD_VIEW",
+    "url": "http://127.0.0.1:8771/#results",
+    "read_only_library": "research=runs/pde-r-20261003-02",
+    "views": [
+      {
+        "experiment_id": "E-pde-r-20261003-02-c0",
+        "mesh_index": 0,
+        "n": 8,
+        "node_count": 81,
+        "triangle_count": 128,
+        "node_id": 2,
+        "coordinates": [
+          2.0,
+          0.125
+        ],
+        "native_value": 3.3208462623962247,
+        "displayed_value": "3.320846262",
+        "display_scope": "10-significant-digit UI representation, not a numerical acceptance tolerance",
+        "model_revision": "ee855b06c1da9b9db0025d9f0ee7a806a5deb6fdb733fef2560d2ecc752421a0",
+        "dofs": {
+          "path": "runs/pde-r-20261003-02/experiments/E-pde-r-20261003-02-c0/pde/level_n8/dofs.json",
+          "size_bytes": 15049,
+          "sha256": "f13fba66f858a19df7add6f2b50d1839fadfcd7976da0647cd4b3bb1c965f526"
+        },
+        "observation": {
+          "path": "artifacts/pde-r-20261003-02/root-gui-01/c0-observation.json",
+          "size_bytes": 1396,
+          "sha256": "54046b14332bbd22073beea84fecaf3564e3ec80feff90d8d6ee22e3b92cbbb5"
+        },
+        "decision": "NOT_RELEASED"
+      },
+      {
+        "experiment_id": "E-pde-r-20261003-02-c3",
+        "mesh_index": 2,
+        "n": 32,
+        "node_count": 1089,
+        "triangle_count": 2048,
+        "node_id": 2,
+        "coordinates": [
+          2.0,
+          0.03125
+        ],
+        "native_value": 3.0666767490899995,
+        "displayed_value": "3.066676749",
+        "display_scope": "10-significant-digit UI representation, not a numerical acceptance tolerance",
+        "model_revision": "483dcb02b0c044e064b6ea988248e5c73c118ee7196599cbc4ed843a2975abe3",
+        "dofs": {
+          "path": "runs/pde-r-20261003-02/experiments/E-pde-r-20261003-02-c3/pde/level_n32/dofs.json",
+          "size_bytes": 184040,
+          "sha256": "0f0edcdc5e99aff74c524d3813b6eb885a5147b024b77920fa38a21696e8f514"
+        },
+        "observation": {
+          "path": "artifacts/pde-r-20261003-02/root-gui-01/c3-observation.json",
+          "size_bytes": 1409,
+          "sha256": "31b00fa00f6892979fd7a51c8831cddfd4aecdc32f1e5d53e3f0c42e78a5fab9"
+        },
+        "decision": "NOT_RELEASED"
+      }
+    ],
+    "renderer": [
+      {
+        "height": "520",
+        "label": "E-pde-r-20261003-02-c3의 원본 PDE 메시와 선택한 성분의 셀 평균 색상",
+        "tag": "CANVAS",
+        "width": "900"
+      }
+    ],
+    "screenshots": [
+      {
+        "path": "artifacts/pde-r-20261003-02/root-gui-01/c0-level0-node2.png",
+        "size_bytes": 53906,
+        "sha256": "b0472f606f019b26581b3105c58a73d47a751ab0ef56746a363034e2b3d72e16"
+      },
+      {
+        "path": "artifacts/pde-r-20261003-02/root-gui-01/c3-field-context.png",
+        "size_bytes": 52907,
+        "sha256": "5dcc0e4d6eec81078c8cb3f9d0f92cc4b73d5c25d75108afcbede71bf79e54cf"
+      },
+      {
+        "path": "artifacts/pde-r-20261003-02/root-gui-01/c3-field-visible.png",
+        "size_bytes": 60633,
+        "sha256": "28ae745455da2004729e8907c4548e2b82004d94d25f9b7090be65c9bd41d004"
+      },
+      {
+        "path": "artifacts/pde-r-20261003-02/root-gui-01/c3-level2-node2.png",
+        "size_bytes": 58299,
+        "sha256": "707d305ff7a15cbdd0f3cc8ea17226c5d29681a15d60c319d554edb16dcc6f9a"
+      },
+      {
+        "path": "artifacts/pde-r-20261003-02/root-gui-01/official-research-final.png",
+        "size_bytes": 84535,
+        "sha256": "ad303be267fc30d2b18c298e8404542c79de7ed77ec6f7da5b0c62482b525b22"
+      }
+    ],
+    "representation": "10-significant-digit displayed values; rounding check is not scientific acceptance."
+  },
+  "stop_retention": {
+    "status": "PASS_BOUNDED_GUI_STOP_IMMUTABLE_RETENTION",
+    "owned_stop_closed_utc": "2026-10-02T23:12:43.8651442Z",
+    "store_files": 67,
+    "store_bytes": 1028885,
+    "basis": "Duplicate-free relative-path/size/SHA256 maps equal after research, independent review, exact owned Stop, actual GUI and publication.",
+    "solver_or_question_reruns": 0,
+    "historical_runs_overwritten": false,
+    "raw_remote_durability": "UNKNOWN"
+  },
+  "exact_producer_ci": {
+    "run_id": 37074397939,
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": {
+      "core": "success",
+      "research-driver-source": "success",
+      "structural": "success",
+      "pde": "failure",
+      "explicit": "failure",
+      "codeaster": "failure",
+      "optimization": "success",
+      "native": "success",
+      "native-registration": "success",
+      "doe": "success"
+    },
+    "core_tests": "2578passed/5skips/1warning303.83s",
+    "source": {
+      "path": "artifacts/pde-r-20261003-02/ci-8fe-01/run.json",
+      "size_bytes": 25353,
+      "sha256": "e60341d4fc304d24455b06384c3218eebbcbeb39eb2b8f321a8143f01b31a476"
+    },
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37074397939",
+    "source_commit": "8fe8d24b7211a4622dad85fdc92baa93865a7107",
+    "failures": {
+      "pde": "Wrong vector numerical classification",
+      "explicit": "Pinned OpenRadioss runtime download HTTP404; solver NOT_RUN",
+      "codeaster": "AssertionError: Native numerical checks failed: E-ansys_vmd1_regular-Fz-aster; no successful cross-solver comparison is inferred"
+    }
+  },
+  "retained_receipts": [
+    {
+      "path": "artifacts/pde-r-20261003-02/resident-01/resident-receipt.json",
+      "size_bytes": 14601,
+      "sha256": "b1a4dc4b835517e0de3805340ded95d427cfd543d8f847f326c3c163048f4744"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/resident-01/resident-source-identity.json",
+      "size_bytes": 1668,
+      "sha256": "c4e27f0248d0d95a63edd8bd913a02bc3b24cc95899dfc63d7ec746b0dc44b7f"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/research-01/acceptance.json",
+      "size_bytes": 14430,
+      "sha256": "db49b5371d2989302d1a41dcb289ccd19f64c514ee4a75a2fcdf427adf212c2d"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/research-01/actual-tool-receipts.json",
+      "size_bytes": 146461,
+      "sha256": "2cec27e1027d2a66b9fecf58e552b2908d7b95bbe865001fb5633133c47cc2c6"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/research-01/stored-question-proof.json",
+      "size_bytes": 223,
+      "sha256": "0aa3e7aa04248efb0b1b45b4a67a7948acf18ebd82aa2a6117cded8901103e55"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/research-01/store-files.json",
+      "size_bytes": 12712,
+      "sha256": "729b9c1b0cb6af2f5dcaa5a20130c517b6691e2ff2aedce168db46961e468724"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/research-01/planning.txt",
+      "size_bytes": 938,
+      "sha256": "b1575620cd3acfcf2766371a6a340ab51a089128ad8a521eb61b880f66894b61"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/research-01/interpretation.txt",
+      "size_bytes": 2815,
+      "sha256": "9cf7f7196a22d34238b8b7718f37992b5092d4a64dfcf5ef977b3ff68d95c8f2"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/research-01/question-01/stdout.jsonl",
+      "size_bytes": 169566,
+      "sha256": "a0a73c5e9e1c7daa587065be70ee99a67b200c95c5f0df58fb9c23cf68408064"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/research-01/question-01/stderr.txt",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/independent-research-review-01/independent-review.json",
+      "size_bytes": 45161,
+      "sha256": "ad543b6c43c1661924ec554c6a6fd4485393a291306188080ed978e367920927"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/independent-research-review-01/review-seal.json",
+      "size_bytes": 2268,
+      "sha256": "49e5969f8e5f2cdf039abe23eb915de3cbb0fa406409e8043649d2e21b0f8d6b"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/root-retention-01/owned-stop.json",
+      "size_bytes": 678,
+      "sha256": "fab06644cec96cf2dc4510549968eea2b0c7198fdc4f5e9ccc6cef915306bba1"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/root-retention-01/close-receipt.json",
+      "size_bytes": 5345,
+      "sha256": "c7ad63fdbc511a7408e2b3cf3b2033e03a05dc4840e2bb00f6d2f505cd8cf080"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/root-retention-01/inventory-order-attempt01.json",
+      "size_bytes": 472,
+      "sha256": "3959628bd4a6177e6b126f1083e414f3c44d7b7863d900553b9ddca6217f593b"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/root-retention-01/close-audit-attempt01.json",
+      "size_bytes": 396,
+      "sha256": "35367105956c25830ac4c103075fffeb2fcc6215df44e23d5dd6b17d6e7f5005"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/ci-8fe-01/run.json",
+      "size_bytes": 25353,
+      "sha256": "e60341d4fc304d24455b06384c3218eebbcbeb39eb2b8f321a8143f01b31a476"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/ci-8fe-01/core.log",
+      "size_bytes": 324458,
+      "sha256": "fb4aa6e9f5e7cb47385f61998bfbddcf0dc4572a662ef088952e1882de9a9bdf"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-02/ci-8fe-01/failed.log",
+      "size_bytes": 17004,
+      "sha256": "88299385c0b9894c29c784bee165d230a8d5e276d0eab571ab8cfe15dae5c9a2"
+    }
+  ],
+  "limitations": [
+    "Two bounded manufactured scalar rectangle cases, not all PDE scopes or the whole52-requirement system.",
+    "All eight numerical checks PASS in both cases; physical_validation and model_qualification remain blocking UNKNOWN, decision NOT_RELEASED.",
+    "No numerical optimizer, generic autonomous research, NAFEMS/MIDAS, physical strength or release qualification is established by this question.",
+    "Actual native runtime/installed source equivalence and cached imported bytecode coverage are not inferred.",
+    "CI overall failure, vector numerical rejection, Code_Aster family failure and explicit runtime download are retained separate gates.",
+    "Retained sorted-inventory, Canvas-not-SVG and number-input locator audit assumptions were corrected without changing native results or accuracy limits."
+  ],
+  "next_ordered_work": [
+    "D4.1/P5.1 frozen finite-rotation beam Domain/native implementation and source review",
+    "Separate fresh native mathematical/field/Newton qualification",
+    "Separate guarded OpenScience Research admission and same-record field GUI",
+    "Remaining Phase5, Phase6, Phase7 and whole-system/physical/deployment gates"
+  ]
+}
