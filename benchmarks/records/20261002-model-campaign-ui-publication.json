@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "created_utc": "2026-10-02T11:46:27.229463+00:00",
+  "source_commit": "cedf144d5e41446c6c6331770b8e2149c81595e9",
+  "remote_main_confirmed_at_source_publication": "cedf144d5e41446c6c6331770b8e2149c81595e9",
+  "development_record": "benchmarks/records/20261002-model-campaign-ui-development.json",
+  "development_record_sha256": "8c2d39859abd426b49a2628c21aa3ac93f8cd6ce77f59982bd3e3e4fe3ee423b",
+  "exact_source_ci": {
+    "conclusion": "",
+    "databaseId": 37002601408,
+    "headSha": "cedf144d5e41446c6c6331770b8e2149c81595e9",
+    "status": "in_progress",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37002601408"
+  },
+  "ci_verdict": "PENDING; in-progress is not PASS; later documentation publication is not native verification",
+  "checks": "27 distinct focused checks PASS; independent review0 open P1/P2; actual metadata/plan GUI and historical result links checked",
+  "new_native_solver_runs": 0,
+  "provider_calls": 0,
+  "official_openscience_runs": 0,
+  "goal_status": "ACTIVE; all52/P2.2/full phases and physical qualification OPEN/UNKNOWN/NOT_RELEASED",
+  "next": "D3 Phase4 existing weak-form domain/boundary/time/vector/coupled integration in bounded sequence; full native/reference verification separately"
+}

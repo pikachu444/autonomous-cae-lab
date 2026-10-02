@@ -13,10 +13,10 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 
 | Development sequence | Implementation work | Verification queue |
 | --- | --- | --- |
-| D0 current | Long jobs: existing service reuse, MCP submit/inspect, configurable execution budgets and live logs | Native lifecycle/cancellation/profile admission; no new solver proof yet |
-| D1 Phase2 | Fixture material/load/interfaces/stress outputs; reuse CAD and child analysis | Existing beam accuracy, roof Aster completion, mesh/reaction/stress/reference checks |
-| D2 Phase3 | Integrate preserved269d8bf campaign; stopping/constraints and wider variables | Numerical convergence, active constraints, interruption/replay |
-| D3 Phase4 | Extend declared domains/boundaries/time/vector/coupled forms | Manufactured/reference solutions and cross-backend/parallel checks |
+| D0 source integrated | Resident submit/inspect/cancel, configurable budgets/live logs, owned cleanup/normal shutdown; focused checks and review | Native lifecycle/cancellation/profile admission; no new solver proof yet |
+| D1 source integrated | Fixture load/material/mesh form and six-component diagnostic stress artifacts/table; reuse CAD/child analysis | Existing beam accuracy, roof Aster completion, mesh/reaction/stress/reference checks |
+| D2 source integrated | Declared-model inputs/optimization in Explore; reuse269d8bf stopping/constraints/replay;27 focused checks and actual plan UI | Numerical convergence, active constraints, interruption/replay |
+| D3 Phase4 next | Extend declared domains/boundaries/time/vector/coupled forms | Manufactured/reference solutions and cross-backend/parallel checks |
 | D4 Phase5 | Geometric/material/contact implementations and fixture coupling | Nonlinear convergence, histories, energy, canonical comparisons |
 | D5 Phase6 | Explicit preprocessing/contact/material/fields and campaign integration | Impact/drop force/energy/timestep/reference checks |
 | D6 Phase7 | Measured inverse interfaces, UQ/surrogate/multiobjective/MDO, MOOSE/HPC | Engine/coupling/HPC and actual measured-data acceptance |

@@ -2,6 +2,9 @@
 
 ## Current D2 checkpoint: declared-model optimization connected to Explore
 
+Pushed source `cedf144d5e41446c6c6331770b8e2149c81595e9`; exact-source CI37002601408 is IN_PROGRESS at publication, not PASS.
+Publication receipt: `../benchmarks/records/20261002-model-campaign-ui-publication.json`. Following documentation is not new native verification.
+
 Existing model input discovery/registration and model_optimization_plan now
 feed the common SciPy engine/run/inspector; no second optimizer or Core/adapter
 rewrite. Template/source-bound variables, settings/backend/study/store
