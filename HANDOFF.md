@@ -2,6 +2,10 @@
 
 ## Current checkpoint: D1 fixture inputs/diagnostic fields integrated
 
+Verified pushed source: `dd61b946c66103ae98fee2c83c81c16271f784a0`.
+Exact-source CI36997910602 is dispatched, not yet a PASS. Publication receipt:
+`benchmarks/records/20261002-fixture-conditions-publication.json`.
+
 Typed load/material/mesh inputs copy exact settings into existing campaigns.
 Raw invalid JSON disables stale form overwrite. Fixture adapter3 appends complete
 six-component AVERAGED_NODAL stress fields with source FRD hashes, preserving the

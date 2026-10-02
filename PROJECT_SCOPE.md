@@ -2,6 +2,9 @@
 
 ## Current D1 source checkpoint
 
+Pushed source `dd61b946c66103ae98fee2c83c81c16271f784a0`, source CI36997910602
+dispatched; the following publication-only checkpoint is not new physics.
+
 Fixture load/material/mesh form and per-mesh six-component diagnostic stress
 artifacts are integrated through existing APIs. Exact raw JSON is preserved;
 136 distinct checks PASS, canonical source recheck76PASS, source review closed.

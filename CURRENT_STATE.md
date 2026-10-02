@@ -2,6 +2,10 @@
 
 ## Current checkpoint: fixture conditions and diagnostic tensor integration
 
+Source `dd61b946c66103ae98fee2c83c81c16271f784a0` is pushed to main;
+exact-source CI36997910602 was QUEUED at dispatch. Publication receipt:
+`benchmarks/records/20261002-fixture-conditions-publication.json`.
+
 The Lab form now edits explicit load/material/mesh settings and copies the same
 conditions into existing DOE/optimization plans. Invalid raw JSON locks the form
 until repaired; no stale value or unsupported key is silently overwritten.
