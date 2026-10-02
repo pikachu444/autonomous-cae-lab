@@ -14,7 +14,8 @@ Records: `../benchmarks/records/20261003-coupled-pde-development.json` and
 - [x] D3.4 source: regional component diffusion/reaction, complete interface
   topology and split boundary/two-trace bindings, common registry/presets/runner.
 - [x] D3.4 essential checks:105 focused,169 legacy,14 syntax/LF; no native solve.
-- [ ] D3.4 final source review and meaningful commit/main push confirmation.
+- [x] D3.4 final17-file review0 P1/P2; source197c39b committed/main push
+  confirmed. Exact CI37036684653 is tracked separately; no native PASS claim.
 - [ ] D3.5 freeze imported-mesh/named-boundary source and artifact contract.
 - [ ] D3.5 implement via Domain/adapter and existing PDE/Core/Results; preserve
   mesh identities, physical groups, input validity and reference verdicts.

@@ -2,6 +2,11 @@
 
 ## Current D3.4 source checkpoint — next D3.5 imported domains
 
+Exact coupled source `197c39b323ae590f860ed98c9cce3e920a88d87d` is confirmed on main.
+Exact CI37036684653 is IN_PROGRESS at observation; this is not
+a native qualification. Receipt: `benchmarks/records/20261003-coupled-pde-publication.json`.
+Following publication documentation does not create a new solver verification.
+
 `pde.fenicsx.coupled` integrates two scalar fields with region-specific SPD
 cross-diffusion and PSD reaction across a conforming material interface through
 existing pde.run/Core/declaration/Results. Complete region/cell/interface/split

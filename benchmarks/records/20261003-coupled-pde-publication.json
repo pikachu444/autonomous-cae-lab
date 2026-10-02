@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "created_utc": "2026-10-02T16:55:27.972767+00:00",
+  "status": "SOURCE_COMMITTED_AND_MAIN_PUSH_CONFIRMED",
+  "source_commit": "197c39b323ae590f860ed98c9cce3e920a88d87d",
+  "remote_main_at_observation": "197c39b323ae590f860ed98c9cce3e920a88d87d",
+  "source_subject": "feat: integrate coupled PDE fields and material interfaces",
+  "working_tree_at_observation": "CLEAN",
+  "source_development_record": {
+    "path": "benchmarks/records/20261003-coupled-pde-development.json",
+    "git_LF_sha256": "9576e1f66954ff3171943218cbe8d5381532996021c997147e9436e06a71bd8d"
+  },
+  "previous_vector_native_failure_record": {
+    "path": "benchmarks/records/20261003-vector-pde-native-failure.json",
+    "git_LF_sha256": "bcd5ccfd29dedff735845aef14454c6138bb9d60a96ebccd66c09f5c5aa260e4"
+  },
+  "staged_receipt_sha256": "e078cf2eed181b4b3bcabc4462f4216f3ae5e4a95e1477eb862d120d85611b22",
+  "exact_source_ci": {
+    "run_id": 37036684653,
+    "source_commit": "197c39b323ae590f860ed98c9cce3e920a88d87d",
+    "status": "IN_PROGRESS",
+    "conclusion": "NOT_TERMINAL",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37036684653",
+    "jobs": {
+      "research-driver-source": {
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      },
+      "core": {
+        "status": "IN_PROGRESS",
+        "conclusion": "NOT_TERMINAL"
+      }
+    }
+  },
+  "claim_scope": "105distinct focused+169separate legacy PASS;17source review0P1/P2. Publication is software integration; exact CI at observation is not a coupled native PASS.",
+  "remaining": {
+    "coupled_native_acceptance": "NOT_RUN_AT_SOURCE_CHECKPOINT_CI_PENDING",
+    "official_research": "NOT_ADMITTED",
+    "native_field_gui": "NOT_RUN",
+    "whole_phase4": "OPEN",
+    "all52": "OPEN",
+    "physical": "UNKNOWN",
+    "decision": "NOT_RELEASED"
+  },
+  "next": "D3.5 imported domains/named physical boundaries; D3.6 grouped qualification and then Phases5-7."
+}
