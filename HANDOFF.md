@@ -1,5 +1,30 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Active checkpoint: research05 on published9d; exact CI remains partial
+
+The verified reader unit is committed and pushed as
+9d62273fe19eb9929ab970e5fc9eac6de39c1c7a. Exact CI36942484187 closes
+8SUCCESS/2FAIL: research-source127PASS with zero actual-call counters, explicit
+OpenRadioss download404/curl22 and Aster Fz outer numerical assertion/exit1.
+The CI internal native code/level/error estimate/limit remain UNKNOWN from the
+scoped logs. Do not substitute a local diagnostic or claim whole CI PASS.
+
+NEW owned research05/attempt-01 is IN_PROGRESS on clean managed9d, approved
+openai-codex/gpt-5.6-sol, unchanged auth/project/fixture and a new profile/store.
+The immutable 2026-10-02T00:09Z live snapshot records four closed questions,
+17 completed tools and three Core records. Counts describe that instant, not
+closed acceptance. Model/tool choice and interpretation follow the original
+nine Root-declared questions; general autonomous planning is not established.
+Connected-resource/source binding and actual same-session GUI text are checked;
+Stop, closed retention and independent raw audit are NOT_RUN. Record:
+benchmarks/records/20261002-openscience-structural-research05-start.json.
+
+NEXT finish the original question sequence, then verify same-session results,
+owned Stop, new exact retention and independent closed raw evidence. Keep managed
+source9d frozen during this run even if main receives documentation checkpoints.
+Preserve all failed/UNKNOWN records and limits; P2.2/full52/NOT_RELEASED stay OPEN.
+Earlier next instructions below are historical.
+
 ## Current checkpoint: actual04 retained; verified receipt reader for new05
 
 Owned research04/clean035a4c7715bb1d2e8653314705df374986743a29 is CLOSED

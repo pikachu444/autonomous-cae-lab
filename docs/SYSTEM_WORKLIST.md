@@ -56,6 +56,14 @@ and corrective-source records are preserved in STRUCTURAL_FAMILIES_ACCEPTANCE.
 
 Next tasks within the same P2.2 unit, in order:
 
+Active checkpoint: published9d62273/NEW clean research05 is IN_PROGRESS with
+approved5.6Sol/same project/new profile/store. Immutable00:09Z live snapshot
+records four closed questions/17 completed tools/three records; no closed
+acceptance. Exact9d CI36942484187 is8SUCCESS/2FAIL/source127PASS/zero actual calls;
+explicit404 and Fz outer assertion remain, CI native diagnostic UNKNOWN.
+Record20261002-openscience-structural-research05-start. Keep managed9d frozen
+while collecting original nine questions; numerical/engineering/full52 stay OPEN.
+
 - [x] Preserve/audit native05 and four failed method probes with original limits.
 - [x] Diagnose actual research01 pre-inference failure; verify the narrow saved-
   config Python correction and original-response replay without changing Core.
@@ -80,9 +88,12 @@ Next tasks within the same P2.2 unit, in order:
   controls/two saved04 replays PASS,31protected files unchanged/actual calls0.
   Original source/numerical/questions/model/legacy gates unchanged. Public04
   reconciliation56/27refs PASS. Record20261002-structural-research-full-output.
-- [ ] Publish reviewed unit/run NEW clean05 in the original order, then same-
-  session GUI/owned Stop/retention/independent raw evidence audit. Source/CI
-  readiness is not fresh actual proof; do not rewrite04's partial outcome.
+- [x] Publish reviewed unit9d62273 and start NEW clean05 in original order,
+  with actual connected-source binding and same-session GUI text. Exact9d
+  source CI127PASS; whole CI8SUCCESS/2FAIL. Live start is not closed acceptance.
+- [ ] Finish research05 original sequence, then same-session results/owned Stop/
+  new retention/independent raw evidence audit. Source/CI readiness is not
+  fresh complete acceptance; do not rewrite04's partial outcome.
 - [ ] Resolve Fz accuracy and complete cylinder/roof/changed-load/refusal numerical
   gates; independently audit measured raw fields. No failed probe is a shortcut.
 

@@ -1,5 +1,24 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
+## Active research05 and exact9d CI
+
+Reader correction9d62273fe19eb9929ab970e5fc9eac6de39c1c7a is pushed.
+Exact CI36942484187 finishes8SUCCESS/2FAIL: source127PASS/zero actual calls,
+explicit pinned URL404/curl22, Aster Fz outer assertion/exit1. Internal CI native
+diagnostic/level/estimate/limit are UNKNOWN in scoped logs. Source proof and
+whole CI verdict remain separate; no numerical threshold was changed.
+
+NEW research05/attempt-01 runs on clean managed9d, approved5.6Sol and the same
+authenticated project, with fresh profile/store. The immutable00:09Z checkpoint
+has four closed questions/17 completed tools/three Core records. Actual source
+binding and same-session GUI text are observed. This is live IN_PROGRESS,
+not closed acceptance: Stop/retention/independent raw audit remain NOT_RUN.
+Root declares the nine questions; AI chooses allowed tools/order and interprets
+results. General autonomous campaign planning is not established. Record:
+20261002-openscience-structural-research05-start. Keep managed source frozen9d;
+finish the declared sequence, retain failures, then close/audit the new store.
+Full52/P2.2/UNKNOWN/NOT_RELEASED remain OPEN. Older next instructions are historical.
+
 ## Actual04 closed partial: changed-load research and cylinder fields
 
 Clean035a4c7/research04 completes five Root-supplied questions/25 native tool

@@ -21,6 +21,19 @@ experiments → evidence/validation → research interpretation and next campaig
 
 ## Current verified checkpoint
 
+Published9d62273 reader correction is independently reviewed. Exact9d CI
+36942484187 closes8SUCCESS/2FAIL with source127PASS/zero actual calls; explicit
+download404/curl22 and Aster Fz outer assertion remain failures, with internal
+CI diagnostic UNKNOWN from scoped logs. NEW clean managed9d/research05 is
+IN_PROGRESS, approved5.6Sol/same project/new profile/store. Its immutable00:09Z
+snapshot records four closed questions/17 completed tools/three Core records;
+this is live progress, not closed numerical acceptance. Root predeclares the
+nine questions; AI chooses tools/order and interprets results. Stop/closed
+retention/independent raw audit remain NOT_RUN. Record:
+20261002-openscience-structural-research05-start. Finish original sequence while
+managed9d stays frozen. Full52/P2.2/UNKNOWN/NOT_RELEASED remain OPEN.
+Older next instructions below describe historical checkpoints.
+
 Actual clean035/research04 is CLOSED FAILED_OR_PARTIAL: five declared questions,
 25 tool events/19 model step-finish records/five experiments/15 native levels.
 Beam CCX full/half and both cylinder records complete; independent analytical/
@@ -417,7 +430,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R40 | Independent optimizer comparison by problem role, not a generic ranking. | Partial research and first seeded engine; wider engine acceptance planned. |
 | R41 | Source audit of fixture code/tests/CI/debt and independent architecture review. | Partial completed recovered source audit; native/transaction debt remains. |
 | R42 | Separate research/implementation/verification roles when useful; Root integrates. | Ongoing; retained implemented-load independent verification. |
-| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; actual035/research04 full native fields, E220 cylinder analytical/cross-solver, beam half, source/25 tools/19 model steps and589-file retention independently audited. Native beam failure/truncated receipts remain partial. Official full-pointer cause24PASS; exactedf source CI89PASS/final8SUCCESS2FAIL separately audited. Reader127 cold/independent118 controls/two saved-byte replays PASS; public04 reconciliation56/27 refs PASS. Earlier reviews retained; fresh05 and remaining numerical gates OPEN. |
+| R43 | Independent review of important adapters/schema/API/optimizer/parser/validation/OpenScience contract. | Ongoing; actual035/research04 full native fields, E220 cylinder analytical/cross-solver, beam half, source/25 tools/19 model steps and589-file retention independently audited. Native beam failure/truncated receipts remain partial. Official full-pointer cause24PASS; historical exactedf source CI89PASS/final8SUCCESS2FAIL retained. Reader127 cold/independent118 controls/two saved-byte replays PASS; public04 reconciliation56/27 refs PASS. Published9d exact source CI127PASS/final8SUCCESS2FAIL separately audited. New clean05 IN_PROGRESS; closed raw audit and remaining numerical gates OPEN. |
 | R44 | Do not concurrently modify shared schemas/Core/registry/artifact migrations or same source file. | Ongoing ownership rule in AGENTS. |
 | R45 | Root checks architecture, OpenScience-first, conflicting evidence, actual feasibility, GUI/headless, license/security/benchmarks/requirements before integration. | Ongoing; accepted/rejected decisions recorded in ADR/docs. |
 | R46 | Strong Root reasoning for architecture/numerics/conflicts, appropriate agents for bounded work; verification above model choice. | Ongoing, subject to available models/tools and current session instructions. |

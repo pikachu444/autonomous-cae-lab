@@ -33,6 +33,18 @@ experiment artifacts; cloning Git alone does not restore their local bytes.
 
 **Next serial unit: P2.2 bounded family native and connected research acceptance.**
 
+Active research05/attempt-01 runs on published clean managed9d62273 with the
+approved5.6Sol/same project/new profile/store and original nine-question order.
+Immutable00:09Z snapshot: four closed questions/17 completed tools/three records,
+IN_PROGRESS; Stop/closed retention/independent raw audit NOT_RUN. Root declares
+questions; AI chooses allowed tools/order and interprets results. Record:
+20261002-openscience-structural-research05-start. Finish this sequence and close
+its evidence before later phases; keep managed9d frozen during execution.
+Exact9d CI36942484187 is8SUCCESS/2FAIL/source127PASS/zero actual calls; download404
+and Fz outer assertion remain, CI internal diagnostic UNKNOWN. Documentation
+checkpoints do not change the actual solver source or establish new acceptance.
+Historical next instructions below do not override this active unit.
+
 Latest actual035/research04 closes five declared question turns,25 tool events,
 19 model step-finish records and five experiments/15 native levels. Beam half
 and both cylinder analytical/all-field/cross-solver gates independently PASS;

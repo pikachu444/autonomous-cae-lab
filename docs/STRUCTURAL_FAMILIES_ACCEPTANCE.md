@@ -13,6 +13,22 @@ Deterministic numerical engines own numerical search in the subsequent Phase3.
 
 ## Actual execution and preserved failures
 
+Published9d62273 reader correction is now the frozen source of NEW owned
+research05/attempt-01, approved5.6Sol/same project and fresh profile/store.
+The immutable00:09Z live checkpoint records four closed questions/17 completed
+tools/three Core records, actual connected-source binding and same-session GUI
+text. Overall IN_PROGRESS; Stop/closed retention/independent raw audit NOT_RUN.
+Root supplies original nine-question order; AI selects allowed tools/order and
+interprets results. No general autonomous campaign completion is established.
+Record20261002-openscience-structural-research05-start. Finish original sequence
+on managed9d without overwriting04 or changing numerical gates.
+
+Exact9d CI36942484187 closes8SUCCESS/2FAIL/source127PASS/zero actual calls.
+Explicit URL404/curl22 and Aster Fz outer assertion/exit1 remain failures.
+Internal CI native diagnostic/level/estimate/limit UNKNOWN from scoped logs.
+Neither source CI nor this live checkpoint establishes fresh full-family
+acceptance, strength approval or RELEASED. Full52/P2.2 remain OPEN.
+
 Actual04/clean035 is CLOSED FAILED_OR_PARTIAL. Five questions/25 completed tool
 events/19 provider step-finish records create five records/15 native levels,
 14 complete field levels. Beam CCX full/half and both cylinder records complete;

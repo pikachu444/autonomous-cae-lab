@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.structural-research05-live-checkpoint",
+  "recorded_utc": "2026-10-02T00:09:00.014442+00:00",
+  "status": "IN_PROGRESS_NOT_ACCEPTANCE",
+  "source_commit": "9d62273fe19eb9929ab970e5fc9eac6de39c1c7a",
+  "run": "p2-research-20261002-05",
+  "attempt": "attempt-01",
+  "model": "openai-codex/gpt-5.6-sol",
+  "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "source_and_live_binding": {
+    "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-research-control-20261002-05\\source-and-live-binding.json",
+    "sha256": "bfc0a1f7b7c9864db4c41cca231a8043f0a8fa3a03acf8a259c853641b35716c",
+    "size_bytes": 3211
+  },
+  "progress_snapshot": {
+    "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-structural-research-control-20261002-05\\progress-checkpoint01.json",
+    "sha256": "500894b34c7dcd8a823806c98dd8d3645000dbeaa215a485d17401f6b5f1e4d1",
+    "size_bytes": 4212
+  },
+  "closed_question_count_at_snapshot": 4,
+  "completed_tool_events_at_snapshot": 17,
+  "stored_record_count_at_snapshot": 3,
+  "control_plane_scope": "Root predeclares original nine-question order; approved AI chooses allowed tool order and interprets results. No general autonomous campaign completion claim.",
+  "CI": {
+    "source_commit": "9d62273fe19eb9929ab970e5fc9eac6de39c1c7a",
+    "run_id": 36942484187,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/36942484187",
+    "status": "COMPLETED_FAILURE",
+    "success_jobs": 8,
+    "failed_jobs": 2,
+    "source_checks": 127,
+    "source_job": 110636958193,
+    "source_status": "SUCCESS",
+    "source_receipt": {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-research-ci-9d62273-20261002-01\\research-source-ci-pass-receipt.json",
+      "sha256": "7f98d817869eec61193ea8da1938ae5580764711ec103f3f4f9daa2ecc5b2c41",
+      "size_bytes": 33781
+    },
+    "final_receipt": {
+      "path": "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\p2-research-ci-9d62273-20261002-01\\final-ci-metadata-joblogs-receipt.json",
+      "sha256": "47e9f8d88ca4fc96350db4024b1774761e517951bc43349b1c7154f89b99b372",
+      "size_bytes": 9393
+    },
+    "failed_gates": {
+      "explicit": "Exact current pinned OpenRadioss URL HTTP404/curl22.",
+      "code_aster": "Exact current Fz outer numerical assertion/exit1; native internal code/level/error estimate/limit UNKNOWN from scoped logs."
+    },
+    "scope": "Exact9d CI, not fresh research05 acceptance. Later documentation changes do not verify a new solver source."
+  },
+  "lifecycle": {
+    "research": "RUNNING",
+    "owned_Stop": "NOT_RUN",
+    "closed_retention": "NOT_RUN",
+    "closed_independent_raw_audit": "NOT_RUN"
+  },
+  "GUI": {
+    "tab": 4,
+    "actual_session": "ses_f0618c4ecffeIVTlDrKodrJtYp",
+    "url": "http://127.0.0.1:4098/prj_8e672ff2d300416189536cb29aad15a4/session/ses_f0618c4ecffeIVTlDrKodrJtYp",
+    "observed": "Actual research05 IDs, running tool trace and selected5.6Sol; browser visibility enabled.",
+    "scope": "Root AX only; full AX/screenshot/native CAD GUI proof NOT_CAPTURED."
+  },
+  "decision": "NOT_RELEASED",
+  "full_52_requirements": "OPEN",
+  "next": "Finish original nine questions on frozen clean managed9d. Keep every failure; then same-session GUI/owned Stop/new retention/independent closed raw evidence audit. Do not update managed source during this run.",
+  "limits": [
+    "Live progress observer tolerates an incomplete final JSONL line; this is not a strict closed acceptance parser.",
+    "Counts and stored records describe one captured instant; open calls may finish afterwards.",
+    "Full-output correction fresh actual gate, numerical/strength/physical qualification and complete52 requirements remain OPEN.",
+    "Root post-start preflight state-name assumption failure is retained; corrected before source Probe without source/runtime/solver/model changes."
+  ]
+}

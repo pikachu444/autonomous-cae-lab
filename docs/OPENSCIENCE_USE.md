@@ -34,6 +34,13 @@ AI는 연구 질문5개에 도구25건을 사용했다. 빔의 두 솔버 결과
 근거: [실제 연구04](../benchmarks/records/20261002-openscience-structural-research04.json),
 [P2 연결 상태](STRUCTURAL_FAMILIES_ACCEPTANCE.md).
 수정 근거: [전체 결과 전달 검사](../benchmarks/records/20261002-structural-research-full-output.json).
+수정본9d62273은 main에 커밋·push했다. 같은 소스의 CI는 소스 검사127개를
+통과했고 전체는8개 성공·2개 실패다. OpenRadioss 다운로드와 Aster Fz 검증의
+실패는 남아 있다. 새 연구05는 승인 모델·같은 프로젝트·새 실험 저장소로
+진행 중이다.00:09Z에 보존한 시작 기록은 질문4개 종료·도구17건·결과3건이며,
+전체 연구의 종료·원본 보존·독립 검토는 아직 끝나지 않았다. 이 수치는 해당
+시점의 기록이다. 실행 소스는9d로 고정해 질문 순서를 끝낸 뒤 검토한다.
+근거: [새 연구05 시작 기록](../benchmarks/records/20261002-openscience-structural-research05-start.json).
 연구04의 같은 대화와 실제 결과를 공식 화면에서 확인했고 소유 서버를 종료했다.
 종료 전 열린4098 화면은 현재 실행 증거가 아니다.
 
