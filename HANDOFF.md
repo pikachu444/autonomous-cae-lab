@@ -26,7 +26,9 @@ Corrected read-only consumer04d89e70.../vector77c8189... returns all3 ORIGINAL19
 field closures; original/failed attempt bytes remain unchanged. No solver rerun.
 Records: `benchmarks/records/20261003-pde-reader-correction.json`,
 `benchmarks/records/20261003-pde-reader-geometry-correction.json`.
-Second correction publication is recorded separately after commit/push.
+Second correction/frozen packet sourcec941dabc8dc2d0b6c6399d977081a5be94945d93
+is committed/main push confirmed; exact CI37043230271 IN_PROGRESS at observation.
+Receipt: `benchmarks/records/20261003-pde-reader-geometry-publication.json`.
 
 Reviewed D3.5 packet/ADR0023 is frozen before implementation (source-grid n P2
 clarified as intervals per unit). Implement imported domains/named physical

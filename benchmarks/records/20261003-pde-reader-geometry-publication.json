@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "created_utc": "2026-10-02T17:51:26.142248+00:00",
+  "status": "SOURCE_COMMITTED_AND_MAIN_PUSH_CONFIRMED",
+  "source_commit": "c941dabc8dc2d0b6c6399d977081a5be94945d93",
+  "remote_main_at_observation": "c941dabc8dc2d0b6c6399d977081a5be94945d93",
+  "working_tree_at_push_observation": "CLEAN_BEFORE_D3.5_IMPLEMENTATION_START",
+  "source_ci": {
+    "conclusion": "",
+    "databaseId": 37043230271,
+    "headSha": "c941dabc8dc2d0b6c6399d977081a5be94945d93",
+    "status": "in_progress",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37043230271"
+  },
+  "source_record": {
+    "path": "benchmarks/records/20261003-pde-reader-geometry-correction.json",
+    "git_LF_sha256": "f0697f56f4635dce6b774fec18b2ffe4a0521cc90e14ab2833360be56ed92f94"
+  },
+  "producer_original_native_evidence": {
+    "source": "197c39b323ae590f860ed98c9cce3e920a88d87d",
+    "path": "benchmarks/records/20261003-coupled-pde-native-first-case.json",
+    "sha256": "fc7c40757fae682c50b837f92f8668a53c7a4134f1c384e6ed87da496f60584c",
+    "scope": "ONE_CASE_THREE_LEVELS_INDEPENDENTLY_AUDITED_PASS_OTHER16_NOT_RUN"
+  },
+  "claim_scope": "44focused source PASS/independent0P1P2/corrected read-only consumer all3original197fields PASS; exact new CI at observation not terminal, not full native acceptance. Packet/ADR is frozen preimplementation preparation.",
+  "D3.5_implementation": "STARTED_AFTER_C941_PUBLICATION; writer owns8newfiles, Root common/browser/runner/integration, no shared concurrent writes.",
+  "remaining": {
+    "whole_coupled_suite": "NOT_QUALIFIED",
+    "official_research": "NOT_ADMITTED",
+    "field_gui": "NOT_RUN",
+    "all52": "OPEN",
+    "physical": "UNKNOWN",
+    "decision": "NOT_RELEASED"
+  }
+}

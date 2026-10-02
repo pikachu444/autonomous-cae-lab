@@ -9,7 +9,9 @@
   44 source controls PASS39.13s, independent two-file0 P1/P2, corrected consumer
   reads all3 original197 fields; raw/control/criteria unchanged, no solver rerun.
 - [x] Freeze independent reviewed D3.5 packet/ADR0023 before implementation.
-- [ ] Confirm second correction+frozen packet publication, then D3.5 writer.
+- [x] Sourcec941dab+frozen packet committed/main push confirmed; exact CI separate.
+- [ ] D3.5 implementation ACTIVE: one writer owns8new adapter/Domain/test files;
+  Root owns common registry/presets/browser/independent runner/integration.
 - [ ] D3.5 imported mesh/physical groups in adapter/Domain, common Core/Results,
   bounded browser file selection and source regressions/review/commit/push.
 - [ ] D3.6 grouped fresh native/reference/guarded Research/same-record fieldGUI.
