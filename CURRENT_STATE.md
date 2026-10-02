@@ -2,6 +2,12 @@
 
 ## Current D3.2 source integration checkpoint
 
+Exact source `508988bd7e9fb6328b7b92ebabb789495f80c0ad` is committed and
+confirmed pushed to main. Exact CI37020551603 is IN_PROGRESS at observation;
+Core/research-driver-source succeed, explicit fails, native/PDE jobs continue.
+Receipt: `benchmarks/records/20261002-transient-pde-publication.json`.
+This following documentation is not a new source/native verification.
+
 `pde.fenicsx.transient` is implemented through the existing PDE/Core/Results
 route: bounded time expressions, initial conditions, fixed backward Euler,
 complete N+1 histories, native time/source/side binding, residual/KSP and

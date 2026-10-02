@@ -2,6 +2,12 @@
 
 ## Current D3.2 source integration checkpoint
 
+Verified pushed source: `508988bd7e9fb6328b7b92ebabb789495f80c0ad`.
+Exact CI37020551603 is IN_PROGRESS; Core/research-driver-source succeed,
+explicit fails and native/PDE jobs continue. Receipt:
+`benchmarks/records/20261002-transient-pde-publication.json`.
+Following documentation changes are not new source/native verification.
+
 The transient scalar rectangle backend, time expressions, initial conditions
 and complete N+1 step history are implemented and source-reviewed. The existing
 Core declaration preserves initial_conditions/outputs.history and common

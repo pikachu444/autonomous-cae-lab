@@ -1,0 +1,189 @@
+{
+  "schema_version": "1.0",
+  "kind": "D3.2 exact source publication",
+  "created_utc": "2026-10-02T14:38:23.136752+00:00",
+  "status": "SOURCE_PUBLISHED_NATIVE_NOT_PROVEN",
+  "source_commit": "508988bd7e9fb6328b7b92ebabb789495f80c0ad",
+  "source_url": "https://github.com/pikachu444/autonomous-cae-lab/commit/508988bd7e9fb6328b7b92ebabb789495f80c0ad",
+  "base_commit": "a9374abbf867f789c5c436cfae038d4c077f73f8",
+  "branch": "main",
+  "remote_confirmation": {
+    "status": "CONFIRMED",
+    "ref": "refs/heads/main",
+    "commit": "508988bd7e9fb6328b7b92ebabb789495f80c0ad",
+    "observed_line": "508988bd7e9fb6328b7b92ebabb789495f80c0ad\trefs/heads/main"
+  },
+  "repository_record_hash_scope": "SHA256 of source-commit UTF8/LF Git blob, not a CRLF working copy",
+  "development_record": {
+    "path": "benchmarks/records/20261002-transient-pde-development.json",
+    "sha256": "1ce96b8c51ab4c704452c23233f2bb547eff46679039cc4b7bfb7dd8f06c272f"
+  },
+  "source_files": [
+    {
+      "path": "plugins/pde_transient/__init__.py",
+      "source_commit_sha256": "f5db0311263f1a9c38b193261a730f447bc5caed24bb534bddf78e5c544ae508",
+      "size_bytes": 76
+    },
+    {
+      "path": "plugins/pde_transient/reference.py",
+      "source_commit_sha256": "5e35589b9bc1378b72a9f89ed28e04ab9176ce8b34341b8083a79bed347c87dd",
+      "size_bytes": 19890
+    },
+    {
+      "path": "caelab/adapters/fenicsx_time_expression.py",
+      "source_commit_sha256": "dbe77423dd516b3001efff3102c68324f16c35ae578abef54579ceb6c2118623",
+      "size_bytes": 2823
+    },
+    {
+      "path": "caelab/adapters/fenicsx_transient.py",
+      "source_commit_sha256": "9b949135f3791e88972fff448b7a0160e739b8d10e63abad008dcdb43eb218b9",
+      "size_bytes": 12472
+    },
+    {
+      "path": "caelab/adapters/fenicsx_transient_worker.py",
+      "source_commit_sha256": "4932e2f8e39f3d7f2a25db510d2703fbc76baa95984270fda4a66787ad6de3bf",
+      "size_bytes": 18604
+    },
+    {
+      "path": "tests/test_pde_transient.py",
+      "source_commit_sha256": "247c6dd21cc552ecc84063c30456659a1a6a427fb87fd34608e92a605232fffa",
+      "size_bytes": 10760
+    },
+    {
+      "path": "tests/test_pde_transient_reference.py",
+      "source_commit_sha256": "dd92b3cbe1ac78396b91e96e8e3d74913c869b3f8dd2580816e67eaa27b5bf3c",
+      "size_bytes": 10332
+    },
+    {
+      "path": "caelab/engine.py",
+      "source_commit_sha256": "cb3da6749d4b993ade85d426848ba5aeac26399070e61e84b096730fd6af7c4a",
+      "size_bytes": 46808
+    },
+    {
+      "path": "apps/lab/service.py",
+      "source_commit_sha256": "ecff203926d135d0a03e6136c14982178a0d0ad1940f69c9aab02987a0365b09",
+      "size_bytes": 36917
+    },
+    {
+      "path": "tests/test_backend_integration.py",
+      "source_commit_sha256": "b7fbf93fe667b33e094d5eaa7f9d9569fb868f8c30e8bdd84094d28244671e00",
+      "size_bytes": 4484
+    },
+    {
+      "path": "tests/test_lab_server.py",
+      "source_commit_sha256": "cbece9612c0142a97ba84982554117c40a026296ff1cfa3d7a12cf193372454b",
+      "size_bytes": 35020
+    },
+    {
+      "path": "tests/test_pde_thread.py",
+      "source_commit_sha256": "0d61d60408379e12008c6bf34637edb40f33458f1ede20501ab29c52630041ea",
+      "size_bytes": 14461
+    },
+    {
+      "path": "scripts/verify_transient_pde.py",
+      "source_commit_sha256": "56fb9817d4f926e8ae92de09c73e16eeada3f02081c01f0843ad0cb9684a1901",
+      "size_bytes": 18561
+    },
+    {
+      "path": "tests/test_verify_transient_pde.py",
+      "source_commit_sha256": "196db87b389481fb3f663ed26ab2d787f2bcef07da06849b74c9b602d283fa78",
+      "size_bytes": 6266
+    },
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "source_commit_sha256": "7bc9d36e7039445115f3407c86301947bdb523b4b297a844dfa6216a98d23358",
+      "size_bytes": 20879
+    },
+    {
+      "path": "docs/PDE_TRANSIENT_PACKET.md",
+      "source_commit_sha256": "9f481994fa429e52575bb66124e51e9a6d6cae37ab06974149fb968244e068d5",
+      "size_bytes": 13286
+    },
+    {
+      "path": "ADR/0020-transient-scalar-pde-history.md",
+      "source_commit_sha256": "5b284f5ad05c3f856d7f31c09b62520a96baa75654e371bbbbca4e623f2cc718",
+      "size_bytes": 3299
+    }
+  ],
+  "source_checkpoint": {
+    "distinct_tests": 76,
+    "independent_source_review": "PASS_SOURCE_ONLY",
+    "open_P1": 0,
+    "open_P2": 0,
+    "staged_source_byte_checks": 17,
+    "requirements_preserved": 52
+  },
+  "exact_source_CI": {
+    "run_id": 37020551603,
+    "head_sha": "508988bd7e9fb6328b7b92ebabb789495f80c0ad",
+    "status": "IN_PROGRESS",
+    "conclusion": null,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37020551603",
+    "observed_utc": "2026-10-02T14:38:23.136752+00:00",
+    "jobs": [
+      {
+        "name": "research-driver-source",
+        "status": "COMPLETED",
+        "conclusion": "success"
+      },
+      {
+        "name": "core",
+        "status": "COMPLETED",
+        "conclusion": "success"
+      },
+      {
+        "name": "codeaster",
+        "status": "IN_PROGRESS",
+        "conclusion": null
+      },
+      {
+        "name": "pde",
+        "status": "IN_PROGRESS",
+        "conclusion": null
+      },
+      {
+        "name": "native-registration",
+        "status": "IN_PROGRESS",
+        "conclusion": null
+      },
+      {
+        "name": "native",
+        "status": "IN_PROGRESS",
+        "conclusion": null
+      },
+      {
+        "name": "doe",
+        "status": "IN_PROGRESS",
+        "conclusion": null
+      },
+      {
+        "name": "optimization",
+        "status": "IN_PROGRESS",
+        "conclusion": null
+      },
+      {
+        "name": "explicit",
+        "status": "COMPLETED",
+        "conclusion": "failure"
+      },
+      {
+        "name": "structural",
+        "status": "IN_PROGRESS",
+        "conclusion": null
+      }
+    ]
+  },
+  "ci_raw_observation": {
+    "path": "artifacts/development-pde-transient-20261002-01/source-ci-publication-observation.json",
+    "sha256": "76481649d5bbd2f812d9008d8309d07c780ab7ab066812c6427bb0337def6984"
+  },
+  "CI_completion_claim": false,
+  "local_transient_native_acceptance": "NOT_RUN",
+  "official_research_admission": "NOT_ADMITTED",
+  "transient_native_field_GUI": "NOT_RUN",
+  "physical_qualification": "UNKNOWN",
+  "engineering_release": "NOT_RELEASED",
+  "retention": "Local ignored receipts/logs are not uploaded by the Git commit. Existing rectangle original277files/4217783B remain their own source/run evidence; this publication is not a rerun.",
+  "next_ordered_development": "D3.3 vector weak form/reference fields; coupled/material and imported domains follow. Clean native/official Research/GUI qualification remains a separate queue.",
+  "remaining": "Whole Phase4/all52/P2.2 remain OPEN; prior Aster/explicit CI failures remain unresolved. Following documentation commits do not create solver verification."
+}

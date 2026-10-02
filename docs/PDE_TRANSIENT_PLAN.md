@@ -2,6 +2,9 @@
 
 Status: source implemented;76 distinct focused checks PASS and independent
 17-file source review closes with0 P1/P2. Native qualification is NOT_RUN.
+Published source508988b, exact CI37020551603 IN_PROGRESS at observation;
+local native acceptance remains NOT_RUN. Receipt:
+`../benchmarks/records/20261002-transient-pde-publication.json`.
 Source checkpoint: rectangle implementation dd8f499 and test correction4457af6.
 Root owns the final packet, integration and acceptance decisions.
 

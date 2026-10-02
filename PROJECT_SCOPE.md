@@ -2,6 +2,12 @@
 
 ## Current D3.2 source integration checkpoint
 
+Source `508988bd7e9fb6328b7b92ebabb789495f80c0ad` is confirmed on GitHub main.
+Exact CI37020551603 is IN_PROGRESS (Core/research-driver-source SUCCESS,
+explicit FAILURE; remaining native/PDE jobs running), not whole CI PASS.
+Receipt: `benchmarks/records/20261002-transient-pde-publication.json`.
+This publication documentation does not create a new solver verification.
+
 D3.2 implements transient scalar rectangle diffusion/reaction through existing
 Core/PDE/Results, initial conditions, complete time histories and separate mesh/
 time refinement.76 distinct focused checks and independent17-file source review
