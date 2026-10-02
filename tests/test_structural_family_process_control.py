@@ -23,8 +23,42 @@ def _wait_for(path, seconds=5):
 
 
 def _stopped(pid):
-    status = Path(f"/proc/{pid}/stat")
-    return not status.exists() or status.read_text().split()[2] == "Z"
+    try:
+        status = Path(f"/proc/{pid}/stat").read_text()
+    except FileNotFoundError:
+        # A killed child can be reaped between any existence check and read.
+        return True
+    return status.split()[2] == "Z"
+
+
+@pytest.mark.parametrize("observation,expected", [
+    (FileNotFoundError, True),
+    ("7014 (python) Z 1 1 1", True),
+    ("7014 (python) S 1 1 1", False),
+    ("7014 (python) R 1 1 1", False),
+    (PermissionError, PermissionError),
+    ("malformed", IndexError),
+])
+def test_stopped_proc_read_preserves_absence_zombie_live_and_error_states(monkeypatch, observation, expected):
+    class Status:
+        def exists(self):
+            pytest.fail("A separate existence check races with child reaping")
+
+        def read_text(self):
+            if isinstance(observation, type):
+                raise observation("SYNTHETIC PROC READ ONLY")
+            return observation
+
+    def status_path(path):
+        assert path == "/proc/7014/stat"
+        return Status()
+
+    monkeypatch.setattr(sys.modules[__name__], "Path", status_path)
+    if isinstance(expected, type):
+        with pytest.raises(expected):
+            _stopped(7014)
+    else:
+        assert _stopped(7014) is expected
 
 
 def test_prelaunch_user_cancel_records_refusal_without_a_process(tmp_path, monkeypatch):

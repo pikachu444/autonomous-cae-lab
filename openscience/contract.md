@@ -1,5 +1,17 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+D3.6 source ff1 is main-pushed; exact CI37063689992 fails one /proc test
+observation race (2571PASS/5skips), not a new scientific verdict. Original
+imported field GUI now passes mesh/node and stale-field-clear checks with
+427original files unchanged; no new native solve or Research-produced GUI.
+The minimal source-pin query correction preserves gates/budgets, strengthening
+early ignored-uppercase refusal already enforced by the final guard. Fresh
+approved5.6Sol PDEFields Research remains NOT_RUN pending clean corrective
+publication/current owned managed binding/resident proof/question/Stop/retention.
+Record: benchmarks/records/20261003-pde-research-startup-correction.json.
+Earlier checkpoints below retain their historical observations; wire/Core/Domain
+contracts and physical UNKNOWN/NOT_RELEASED/whole52 OPEN remain.
+
 D3.6 now adds explicit PDEFields/schema3 research scope and a read-only native
 field inspector through existing operations/artifact API; Core/wire/Domain/
 adapters and old scope definitions remain. Source/identity/staleness/refusal

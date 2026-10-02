@@ -1,0 +1,204 @@
+{
+  "schema_version": "1",
+  "status": "PASS_BOUNDED_STARTUP_AND_TEST_CORRECTION_SOURCE",
+  "created_utc": "2026-10-02T21:51:50.844202+00:00",
+  "base_source_commit": "ff1d58d0e48db20e779ac72c2775c3401199895d",
+  "base_publication": {
+    "path": "artifacts/development-pde-research-20261003-01/root-publication-01/receipt.json",
+    "size_bytes": 986,
+    "sha256": "5c986983cba5512b124134ed57305641067cf335feca02f16185c581c04a4c54"
+  },
+  "correction_at_capture": "Reviewed working changes; final commit/main push recorded in separate post-publication receipt",
+  "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "sources": [
+    {
+      "path": "scripts/openscience-server-local.ps1",
+      "size_bytes": 144179,
+      "sha256": "b9201e2def875a55037f16af99986e30e978ac26a8e358a827ad6d91a24806d3"
+    },
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "size_bytes": 22806,
+      "sha256": "bd5d6856c3e4f118463ca8a66d5a8807b579edce087e62a8eef925ae89e3be3a"
+    },
+    {
+      "path": "tests/test_structural_family_process_control.py",
+      "size_bytes": 16070,
+      "sha256": "d757cd921fdd78779167fbb3482011992ff9f109fc8e764044579602e89300ab"
+    },
+    {
+      "path": "openscience/tests/source_pin.test.mjs",
+      "size_bytes": 20183,
+      "sha256": "63673e932c8ff337fa4c7a4958b73f7a0aeaa9a8ae77e3f78da5a84e4c14727a"
+    }
+  ],
+  "changes": [
+    "Ignore-discovery enumerates sorted literal positive top entries, excluding only the same nine existing top roots before Git traversal; no empty-list whole-root fallback.",
+    "Recheck root names after real Git returns; retain two full snapshots, working-byte/index/HEAD/submodule/link gates and20s/10s/16MiB bounds.",
+    "Case-insensitive ignored-import suffix detection strengthens early uppercase refusal already present in the final native guard; no final admission weakening.",
+    "CI includes the real extracted source-pin cold fixtures; no native threshold/budget/production execution-control changes.",
+    "One process observation test helper reads /proc stat once and catches only FileNotFoundError; original nine tests/58assertions and _wait_for remain exact. Six observation regressions added."
+  ],
+  "startup_failure": {
+    "run": "pde-fields-bootstrap-20261003-01",
+    "status": "REFUSED_BEFORE_RUNTIME",
+    "cause": "Bounded source snapshot expired at unchanged20s;9153already-exempt artifact/run paths were traversed before postfilter",
+    "diagnostic": {
+      "path": "artifacts/development-pde-research-20261003-01/source-pin-diagnostic-01/source-pin-diagnosis.json",
+      "size_bytes": 23403,
+      "sha256": "5599214022806412a3d7df66fb85b11b7aa7a5a1a884bde73d53b8a41eac8327"
+    },
+    "literal_current_tree_comparison": {
+      "path": "artifacts/development-pde-research-20261003-01/source-pin-diagnostic-01/literal-entry-query-comparison.json",
+      "size_bytes": 4473,
+      "sha256": "f1b6b98f7f375b7467e7da55ebb7c81cd122f433c9a08dc006b55e57b5fbcc83"
+    },
+    "runtime_started": false,
+    "model_inference_calls": 0,
+    "new_native_solver_calls": 0
+  },
+  "source_capture": {
+    "status": "PASS_CURRENT_WORKING_SOURCE_PIN",
+    "source_commit": "ff1d58d0e48db20e779ac72c2775c3401199895d",
+    "source_dirty": [
+      " M scripts/openscience-server-local.ps1",
+      " M tests/test_structural_family_process_control.py"
+    ],
+    "elapsed_seconds": 7.1567602,
+    "files": 517,
+    "submodules": [
+      {
+        "path": "plugins/fixture_design/upstream",
+        "head": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+        "index_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8"
+      }
+    ],
+    "native_runtime_started": false,
+    "model_inference_calls": 0,
+    "native_solver_calls": 0,
+    "fixed_deadline_seconds": 20,
+    "fixed_subprocess_max_seconds": 10,
+    "fixed_max_buffer_bytes": 16777216,
+    "pin_sha256": "4ef41a8e220b820845dbee80517edb5234330f24e97f645592f44c56c7779990",
+    "helper_sha256": "b9201e2def875a55037f16af99986e30e978ac26a8e358a827ad6d91a24806d3"
+  },
+  "checks": {
+    "source_pin_node": {
+      "pass": 13,
+      "fail": 0,
+      "skip": 1,
+      "duration_ms": 100992.1684,
+      "platform": "Windows",
+      "historical_comparison_enabled": true,
+      "default_invocation_counts_not_executed_here": "Windows12PASS/2SKIP; Linux13PASS/1historicalSKIP expected, not a CI observation",
+      "writer_receipt": {
+        "path": "artifacts/development-source-pin-query-20261003-01/writer-source-01/writer-source-receipt.json",
+        "size_bytes": 7472,
+        "sha256": "9fe0f37d5d1df5e3ae273980f593ea35be3106a040f51b1f9b76922c967d638b"
+      }
+    },
+    "process_tests": {
+      "pass": 55,
+      "seconds": 10.09,
+      "receipt": {
+        "path": "artifacts/development-pde-research-20261003-01/process-stat-correction-01/receipt.json",
+        "size_bytes": 4956,
+        "sha256": "3902a9dd8a5567283625c698415823f3552132bf7b5cbab8c980ee32d45dcd4a"
+      }
+    },
+    "legacy_structural_cold": {
+      "status": "PASS_SOURCE_ONLY",
+      "checks": 127,
+      "outer_process_exit_code": 0,
+      "wrapper_native_last_exit_code": null,
+      "report": {
+        "path": "artifacts/development-pde-research-20261003-01/root-source-pin-fix-01/structural-cold.json",
+        "size_bytes": 123529,
+        "sha256": "9f54d42c7ba5f55b1d4d29e32df11de6c7850bf6080bf20162c4db583fefee33"
+      },
+      "wrapper_receipt": {
+        "path": "artifacts/development-pde-research-20261003-01/root-source-pin-fix-01/structural-cold.log.exit.json",
+        "size_bytes": 78,
+        "sha256": "cef476c4d00583ba70433257738ddd495116e1b6c96cb5c30da9efeb47d057d8"
+      }
+    },
+    "rechecks_not_additive": true
+  },
+  "independent_reviews": {
+    "open_P1": 0,
+    "open_P2": 0,
+    "receipts": [
+      {
+        "path": "artifacts/development-pde-research-20261003-01/source-pin-review-01/independent-review.json",
+        "size_bytes": 14591,
+        "sha256": "7c34035ba0a6dbdfd88fc92495592004a9bc075920ac8ac1146ae8e1ab5cbbe1"
+      },
+      {
+        "path": "artifacts/development-source-pin-query-20261003-01/source-pin-tests-review-01/receipt.json",
+        "size_bytes": 8735,
+        "sha256": "c4ef3e7bde5c22e6217a261188b2fe68b9f1709c9b86137fa2c88463026501a7"
+      },
+      {
+        "path": "artifacts/development-pde-research-20261003-01/process-stat-review-01/independent-review.json",
+        "size_bytes": 4170,
+        "sha256": "ff0c3a4fffce1826fd520e65ca9c078e99c2c155ccb874892de40ea6c9ce9834"
+      }
+    ]
+  },
+  "base_exact_source_ci": {
+    "source_commit": "ff1d58d0e48db20e779ac72c2775c3401199895d",
+    "run_id": 37063689992,
+    "status": "COMPLETED",
+    "conclusion": "FAILURE",
+    "research_driver_source": "SUCCESS",
+    "core": {
+      "failed": 1,
+      "passed": 2571,
+      "skipped": 5,
+      "warnings": 1,
+      "seconds": 305.75
+    },
+    "other_jobs": "8SKIPPED",
+    "failure": "test_failed_group_kill_retains_actual_owner_until_explicit_cleanup_retry: FileNotFoundError in exists/read /proc stat test observation",
+    "failed_log": {
+      "path": "artifacts/development-pde-research-20261003-01/root-ci-source-01/failed.log",
+      "size_bytes": 17805,
+      "sha256": "b1dfe982f580bbef01f5cc154c87e0b3b3bfdd7333d3c7b1958f55e594fc8686"
+    },
+    "later_corrective_exact_source_ci": "NOT_RUN_AT_CAPTURE"
+  },
+  "original_native_field_gui": {
+    "status": "PASS_BOUNDED_ORIGINAL_IMPORTED_FIELD_GUI",
+    "native_producer_commit": "04e5e79dafab86475218f52797bca0a84efcc649",
+    "consumer_frontend_source_commit": "ff1d58d0e48db20e779ac72c2775c3401199895d",
+    "checks": [
+      "same-model mesh2-to0 switch",
+      "original native-node0 lookup",
+      "preflight rejection clears previous native field",
+      "UNKNOWN/NOT_RELEASED preserved"
+    ],
+    "original_files": 427,
+    "original_bytes": 12098227,
+    "original_unchanged": true,
+    "receipt": {
+      "path": "artifacts/development-pde-research-20261003-01/root-gui-01/gui-receipt.json",
+      "size_bytes": 3026,
+      "sha256": "95865e45d35ffd7a56331e04f0b960088e2552b08d5eb10bab0094b40e1e1168"
+    },
+    "limitation": "Verified artifact reads observed about13-15seconds each; performance follow-up remains. No new solver or Research-produced GUI proof."
+  },
+  "retention": "Failed bootstrap, fixture attempts1/2 and null metadata receipt kept; local ignored raw evidence is not proof of durable remote raw backup",
+  "official_connected_research": "NOT_RUN",
+  "new_math_qualification": "NOT_RUN",
+  "model": "openai-codex/gpt-5.6-sol",
+  "model_provider_auth_changed": false,
+  "physical_model_deployment": "UNKNOWN",
+  "decision": "NOT_RELEASED",
+  "all52": "OPEN",
+  "next": [
+    "Publish minimal corrective unit/main push and inspect exact-source CI",
+    "Fresh bootstrap02/primary managed project binding/current noReply resident proof",
+    "One actual PDEFields c0/c3 question with original receipts/comparison/interpretation; same-record GUI/owned Stop/retention",
+    "Ordered D4.1/P5.1 geometric-nonlinearity source development; separate native/reference qualification queue"
+  ]
+}

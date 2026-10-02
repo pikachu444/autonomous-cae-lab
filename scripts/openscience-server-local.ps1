@@ -141,10 +141,22 @@ function captureRepositorySourcePin(repoRoot,gitPath) {
     }
     return absolute;
   };
+  const excludedImportRoots=['artifacts','runs','.venv','venv','node_modules','.git','.pytest_cache','.mypy_cache','.ruff_cache'];
   const ignoredImport=relative=>{
     const parts=relative.replaceAll('\\','/').split('/');
-    if(['artifacts','runs','.venv','venv','node_modules','.git','.pytest_cache','.mypy_cache','.ruff_cache'].includes(parts[0]))return true;
+    if(excludedImportRoots.includes(parts[0]))return true;
     return parts.includes('__pycache__')&&relative.endsWith('.pyc');
+  };
+  const ignoredImports=root=>{
+    // A root-wide extension wildcard makes Git walk retained experiments before
+    // ignoredImport discards them. Literal positive roots preserve that policy
+    // without traversing the already exempt trees, including special filenames.
+    const entries=()=>sourceFs.readdirSync(root).filter(name=>!excludedImportRoots.includes(name)).sort();
+    const before=entries();
+    const candidates=before.length?git(root,['ls-files','--others','--ignored','--exclude-standard','-z','--',
+      ...before.map(name=>':(top,literal)'+name)]).split('\0'):[];
+    if(sourceCanonical(before)!==sourceCanonical(entries()))throw new Error('Repository changed during source capture');
+    return candidates.filter(relative=>/\.(py|pyi|pyc|pyd|so|pth)$/i.test(relative));
   };
   const snapshot=()=>{
     const files=[],submodules=[],dirty=[];
@@ -156,7 +168,7 @@ function captureRepositorySourcePin(repoRoot,gitPath) {
       const status=git(root,['status','--porcelain=v1','--untracked-files=all','-z']);
       dirty.push(...status.split('\0').filter(Boolean).map(value=>prefix+value));
       const untracked=[...git(root,['ls-files','--others','--exclude-standard','-z']).split('\0'),
-        ...git(root,['ls-files','--others','--ignored','--exclude-standard','-z','--','*.py','*.pyi','*.pyc','*.pyd','*.so','*.pth']).split('\0')];
+        ...ignoredImports(root)];
       for(const relative of untracked.filter(Boolean)){
         if(!ignoredImport(relative)&&/\.(py|pyi|pyc|pyd|so|pth)$/i.test(relative))throw new Error('Untracked importable repository source is not pinned');
       }

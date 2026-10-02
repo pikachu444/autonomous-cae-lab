@@ -81,7 +81,7 @@ jobs:
       - name: Verify native OpenScience source and tool guards without model calls
         run: |
           node --version
-          node --test openscience/tests/native_guard.test.mjs
+          node --test openscience/tests/native_guard.test.mjs openscience/tests/source_pin.test.mjs
           node --test openscience/tests/native_git_state.test.mjs
       - name: Connect the local HTTP research, CAD gates and verified evidence exports
         run: python -m scripts.verify_lab_ui --store artifacts/http-core-lab --skip-pde

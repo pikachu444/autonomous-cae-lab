@@ -1,5 +1,41 @@
 # Autonomous CAE Lab — sequential system execution plan
 
+## Current D3.6 publication, original field GUI and startup correction
+
+D3.6 source ff1d58d0e48db20e779ac72c2775c3401199895d is committed and
+main push confirmed. Exact CI37063689992 completed FAILURE: research-driver
+source SUCCESS, Core1FAIL/2571PASS/5skips/1warning305.75s, eight downstream
+jobs SKIPPED. The failure is a test-only /proc existence/read race; production
+execution control and adapters are unchanged. Its single-read correction keeps
+all original ownership/cleanup/partial/no-result assertions;55 focused PASS.
+
+Actual read-only imported field GUI PASS: original native producer04e, accepted
+mesh2-to0 switch/native-node lookup and preflight rejection clears the old field.
+All427original files/12098227B remain unchanged. Artifact fetches observed at
+about13-15s each are a performance limitation, not a new native solve or proof
+of a connected Research-produced field. Physical/model UNKNOWN, NOT_RELEASED.
+
+Fresh primary-root bootstrap01 was refused BEFORE runtime/model/solver launch:
+the20s source snapshot expired while Git scanned9153 already-exempt artifact/run
+imports. The bounded literal top-entry query avoids those exempt trees, keeps
+two complete snapshots/source/index/HEAD/submodule/link/race checks and the same
+20s/10s/16MiB limits. Case-insensitive suffix discovery strengthens early ignored
+uppercase refusal; the final native guard already refused these imports.
+Actual dirty-working-source capture PASS7.1567602s;13 Node PASS/1Windows POSIX
+filename SKIP (historical comparison enabled),55 focused process tests and127
+legacy PS cold rechecks PASS. Rechecks are not additive and full CI remains a
+separate gate. Independent source/test reviews close with0openP1/P2.
+Record: `benchmarks/records/20261003-pde-research-startup-correction.json`.
+
+NEXT: publish this minimal correction; fresh owned bootstrap02/official primary
+managed binding/current noReply resident proof; one approved5.6Sol PDEFields
+c=0/c=3 question, original result comparison, same-record GUI, owned Stop and
+retention. Fresh connected Research remains NOT_RUN at this checkpoint.
+Then ordered D4.1/P5.1 geometric-nonlinearity source development with separate
+qualification; whole Phase4/P2.2/52 and physical/deployment remain OPEN/UNKNOWN.
+Following snapshots retain their earlier observed facts and are historical.
+
+
 ## Current D3.6 reviewed source and retained native reader checkpoint
 
 Explicit PDEFields research scope and the same-record native field view are
@@ -79,7 +115,7 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 | D0 source integrated | Resident submit/inspect/cancel, configurable budgets/live logs, owned cleanup/normal shutdown; focused checks and review | Native lifecycle/cancellation/profile admission; no new solver proof yet |
 | D1 source integrated | Fixture load/material/mesh form and six-component diagnostic stress artifacts/table; reuse CAD/child analysis | Existing beam accuracy, roof Aster completion, mesh/reaction/stress/reference checks |
 | D2 source integrated | Declared-model inputs/optimization in Explore; reuse269d8bf stopping/constraints/replay;27 focused checks and actual plan UI | Numerical convergence, active constraints, interruption/replay |
-| D3 Phase4 active | D3.1 rectangle/D3.2 transient/D3.4 coupled bounded mathematical evidence; vector source with rateFAIL retained; D3.5 imported source134Python/23Node/independent20-file0P1P2, existing Core/Results/browser | Imported fresh native17-case/21-level execution; D3.6 guarded Research/same-record field GUI; broader/MPI/backend and physical qualification OPEN |
+| D3 Phase4 source integrated; live gate active | Rectangle/transient/coupled/imported bounded mathematical evidence; imported17cases/21fields independently audited; vector rateFAIL retained; D3.6 six-tool PDEFields/native reader mainff1 and original field GUI PASS | Fresh connected c0/c3 Research/same-record GUI/Stop/retention after minimal startup correction; vector/broader/MPI/latency/physical qualification OPEN |
 | D4 Phase5 | Geometric/material/contact implementations and fixture coupling | Nonlinear convergence, histories, energy, canonical comparisons |
 | D5 Phase6 | Explicit preprocessing/contact/material/fields and campaign integration | Impact/drop force/energy/timestep/reference checks |
 | D6 Phase7 | Measured inverse interfaces, UQ/surrogate/multiobjective/MDO, MOOSE/HPC | Engine/coupling/HPC and actual measured-data acceptance |

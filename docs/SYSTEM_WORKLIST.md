@@ -1,5 +1,41 @@
 # Sequential system worklist
 
+## Current D3.6 publication, original field GUI and startup correction
+
+D3.6 source ff1d58d0e48db20e779ac72c2775c3401199895d is committed and
+main push confirmed. Exact CI37063689992 completed FAILURE: research-driver
+source SUCCESS, Core1FAIL/2571PASS/5skips/1warning305.75s, eight downstream
+jobs SKIPPED. The failure is a test-only /proc existence/read race; production
+execution control and adapters are unchanged. Its single-read correction keeps
+all original ownership/cleanup/partial/no-result assertions;55 focused PASS.
+
+Actual read-only imported field GUI PASS: original native producer04e, accepted
+mesh2-to0 switch/native-node lookup and preflight rejection clears the old field.
+All427original files/12098227B remain unchanged. Artifact fetches observed at
+about13-15s each are a performance limitation, not a new native solve or proof
+of a connected Research-produced field. Physical/model UNKNOWN, NOT_RELEASED.
+
+Fresh primary-root bootstrap01 was refused BEFORE runtime/model/solver launch:
+the20s source snapshot expired while Git scanned9153 already-exempt artifact/run
+imports. The bounded literal top-entry query avoids those exempt trees, keeps
+two complete snapshots/source/index/HEAD/submodule/link/race checks and the same
+20s/10s/16MiB limits. Case-insensitive suffix discovery strengthens early ignored
+uppercase refusal; the final native guard already refused these imports.
+Actual dirty-working-source capture PASS7.1567602s;13 Node PASS/1Windows POSIX
+filename SKIP (historical comparison enabled),55 focused process tests and127
+legacy PS cold rechecks PASS. Rechecks are not additive and full CI remains a
+separate gate. Independent source/test reviews close with0openP1/P2.
+Record: `benchmarks/records/20261003-pde-research-startup-correction.json`.
+
+NEXT: publish this minimal correction; fresh owned bootstrap02/official primary
+managed binding/current noReply resident proof; one approved5.6Sol PDEFields
+c=0/c=3 question, original result comparison, same-record GUI, owned Stop and
+retention. Fresh connected Research remains NOT_RUN at this checkpoint.
+Then ordered D4.1/P5.1 geometric-nonlinearity source development with separate
+qualification; whole Phase4/P2.2/52 and physical/deployment remain OPEN/UNKNOWN.
+Following snapshots retain their earlier observed facts and are historical.
+
+
 ## Current D3.6 reviewed source and retained native reader checkpoint
 
 Explicit PDEFields research scope and the same-record native field view are
@@ -287,7 +323,7 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 | D0 integrated | Resident submit/inspect/cancel, configurable Code_Aster budgets/live logs, owned cleanup and normal shutdown; focused checks/review pass | Actual native cancellation/guard admission, unwired adapter controls, restart/multiprocess |
 | D1 source integrated | Typed material/load/mesh, exact campaign condition copy, complete diagnostic stress artifacts/table; reuse CAD and child analysis | New native/field GUI and existing beam/roof/mesh/reaction/stress/reference qualification; rotated axes/joints remain open |
 | D2 Phase3 source integrated | Expose existing declared-model discovery/registration and model optimization in Explore; reuse269d8bf stopping/constraints/replay | Numerical convergence, active constraints, interruption/replay and actual research/native linkage |
-| D3 Phase4 active | D3.1 rectangle/mixed native/reference close; D3.2 transient native CI and independent872-step review close; D3.3 vector source closed with84 focused checks; next D3.4 coupled/material, then D3.5 import | Vector native/reference, guarded Research admission/native field GUI, wider/cross-backend/parallel and physical checks open |
+| D3 Phase4 source integrated; live gate active | Rectangle/transient/coupled/imported bounded native/reference evidence; vector source/rate failure retained; D3.6 six-tool PDEFields and native field reader mainff1, original field GUI PASS; startup correction reviewed | Fresh connected PDEFields c0/c3 Research/same-record GUI/Stop/retention; vector, wider/parallel, latency and physical qualification OPEN |
 | D4 Phase5 | Geometric/material/contact implementations and fixture coupling | Nonlinear convergence, histories, energy, canonical comparisons |
 | D5 Phase6 | Explicit preprocessing/contact/material/fields and campaign integration | Impact/drop force/energy/timestep/reference checks |
 | D6 Phase7 | Measured inverse interfaces, UQ/surrogate/multiobjective/MDO, MOOSE/HPC | Engine/coupling/HPC and actual measured-data acceptance |
