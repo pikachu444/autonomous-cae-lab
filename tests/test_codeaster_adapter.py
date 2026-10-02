@@ -9,7 +9,6 @@ import hashlib
 import itertools
 import json
 from pathlib import Path
-import subprocess
 import sys
 import types
 
@@ -71,8 +70,7 @@ def test_lab_model_proposal_keeps_real_adapter_declaration_and_revision_without_
     monkeypatch.setattr(adapter, "solve", metadata_only)
     monkeypatch.setattr("caelab.declared_model.source_identity", lambda _: {
         "core_commit": "TEST-ONLY-METADATA", "core_dirty": False, "core_source_sha256": "0" * 64})
-    monkeypatch.setattr("caelab.adapters.codeaster_elasticity.subprocess.run",
-                        lambda *a, **kw: pytest.fail("Metadata regression must execute no external command"))
+    forbid_external_processes(monkeypatch, "Metadata regression must execute no external command")
     lab = Lab(tmp_path / "store", adapters={}, analysis_adapters={}, doe_adapters={},
               optimization_adapters={}, pde_adapters={}, model_analysis_adapters={adapter.backend: adapter})
     lab.create_study("S-metadata", "Test-only metadata", "Does the real adapter publish the common model?",
@@ -588,7 +586,16 @@ def test_native_import_guard_blocks_solver_commands_and_preserves_failure_eviden
     assert not (tmp_path / "worker_result.json").exists()
 
 
+def forbid_external_processes(monkeypatch, message):
+    monkeypatch.setattr(adapter_module, "_process", lambda *a, **kw: pytest.fail(message))
+    monkeypatch.setattr(adapter_module.subprocess, "Popen", lambda *a, **kw: pytest.fail(message))
+
+
 def configure_runtime(tmp_path, monkeypatch):
+    monkeypatch.delenv("CAELAB_CODEASTER_TIME_LIMIT_SECONDS", raising=False)
+    monkeypatch.delenv("CAELAB_CODEASTER_WALL_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.setattr(adapter_module.subprocess, "Popen",
+                        lambda *a, **kw: pytest.fail("Synthetic adapter fixtures must start no actual process"))
     image = tmp_path / "vendor.sif"
     image.write_bytes(b"MOCK container identity, not a real image")
     monkeypatch.setenv("CAELAB_CODEASTER_IMAGE", str(image))
@@ -601,22 +608,27 @@ def configure_runtime(tmp_path, monkeypatch):
 def mock_processes(monkeypatch, mutate=None, *, mesh_text=None):
     calls = []
 
-    def process(command, *, cwd, capture_output, text, timeout, check):
+    def process(command, folder, label, *, timeout=adapter_module.PROCESS_TIMEOUT):
         calls.append(command)
-        assert capture_output and text and not check and timeout <= 180
-        level = Path(cwd)
+        level = Path(folder)
+        assert timeout is None if label == "solver" else timeout == (10 if label in ("gmsh_version", "container_version") else 180)
+        (level / f"{label}.command.json").write_text(json.dumps({"argv": command, "timeout_seconds": timeout,
+                                                               "test_only": True, "actual_processes": 0}))
+        stdout, stderr = "MOCK successful process contract\n", ""
         if command[1] == "-version":
-            return subprocess.CompletedProcess(command, 0, "", "4.12.1\n")
-        if command[1] == "--version":
-            return subprocess.CompletedProcess(command, 0, "singularity-ce version 4.1.1\n", "")
-        if command[0] == "/mock/prlimit":
+            assert label == "gmsh_version"
+            stdout, stderr = "", "4.12.1\n"
+        elif command[1] == "--version":
+            assert label == "container_version"
+            stdout = "singularity-ce version 4.1.1\n"
+        elif command[0] == "/mock/prlimit":
             assert command[1:5] == ["--as=2147483648", "--cpu=120", "--", "/mock/gmsh"]
             (level / "mesh.msh").write_text(mesh_text or brick_msh())
         else:
             assert command[1] == "exec" and "--cleanenv" in command and "--containall" in command
             assert "--no-home" in command and CONTAINER_SCRIPT in command
             assert command[-1] == f"/work/{level.name}/model.export"
-            assert "P time_limit 120" in (level / "model.export").read_text()
+            assert "P time_limit 86400" in (level / "model.export").read_text()
             assert "P memory_limit 1024" in (level / "model.export").read_text()
             binds = [command[index + 1] for index, value in enumerate(command) if value == "--bind"]
             scratch = (level.parent / "scratch" / level.name).resolve()
@@ -639,9 +651,11 @@ def mock_processes(monkeypatch, mutate=None, *, mesh_text=None):
                 mutate(raw, level)
             (level / "worker_result.json").write_text(json.dumps(raw))
             (level / "results.med").write_bytes(b"MOCK native MED artifact; not solver evidence")
-        return subprocess.CompletedProcess(command, 0, "MOCK successful process contract\n", "")
+        (level / f"{label}.stdout.log").write_text(stdout)
+        (level / f"{label}.stderr.log").write_text(stderr)
+        return stdout.strip() or stderr.strip()
 
-    monkeypatch.setattr("caelab.adapters.codeaster_elasticity.subprocess.run", process)
+    monkeypatch.setattr(adapter_module, "_process", process)
     return calls
 
 
@@ -652,8 +666,7 @@ def mock_processes(monkeypatch, mutate=None, *, mesh_text=None):
     (("mesh_sizes_mm",), [3., 5.]), (("limits", "stress_relative"), 0.),
 ])
 def test_input_preflight_blocks_every_external_command(tmp_path, monkeypatch, path, value):
-    monkeypatch.setattr("caelab.adapters.codeaster_elasticity.subprocess.run",
-                        lambda *a, **kw: pytest.fail("Invalid settings must block process execution"))
+    forbid_external_processes(monkeypatch, "Invalid settings must block process execution")
     request = settings()
     target = request
     for key in path[:-1]:
@@ -666,8 +679,7 @@ def test_input_preflight_blocks_every_external_command(tmp_path, monkeypatch, pa
 
 
 def test_unknown_settings_cannot_control_backend_command(tmp_path, monkeypatch):
-    monkeypatch.setattr("caelab.adapters.codeaster_elasticity.subprocess.run",
-                        lambda *a, **kw: pytest.fail("Unknown settings must block processes"))
+    forbid_external_processes(monkeypatch, "Unknown settings must block processes")
     request = settings()
     request["script"] = "arbitrary shell"
     result = CodeAsterElasticityAdapter().solve(tmp_path / "simulation", request)
@@ -676,8 +688,7 @@ def test_unknown_settings_cannot_control_backend_command(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("sizes", [[1e-299, 1e-300], [.8, .5], [.25, .2]])
 def test_mesh_workload_budget_blocks_mesher_before_any_external_command(tmp_path, monkeypatch, sizes):
-    monkeypatch.setattr("caelab.adapters.codeaster_elasticity.subprocess.run",
-                        lambda *a, **kw: pytest.fail("Unbounded mesh workload must block every external command"))
+    forbid_external_processes(monkeypatch, "Unbounded mesh workload must block every external command")
     request = settings()
     request["mesh_sizes_mm"] = sizes
     original = deepcopy(request)
@@ -760,8 +771,7 @@ def test_missing_or_drifted_runtime_does_not_become_numerical_success(tmp_path, 
         image.write_bytes(b"drifted container")
     else:
         monkeypatch.setattr("caelab.adapters.codeaster_elasticity.shutil.which", lambda _: None)
-    monkeypatch.setattr("caelab.adapters.codeaster_elasticity.subprocess.run",
-                        lambda *a, **kw: pytest.fail("Runtime preflight must block processes"))
+    forbid_external_processes(monkeypatch, "Runtime preflight must block processes")
     output = tmp_path / "simulation"
     with pytest.raises(RuntimeError):
         CodeAsterElasticityAdapter().solve(output, settings())
@@ -883,18 +893,28 @@ def test_worker_execution_and_partial_fields_fail_without_numerical_outcome(tmp_
             input_file.write_text(input_file.read_text() + "\n")
 
     mock_processes(monkeypatch, mutation)
-    original = subprocess.run
+    original = adapter_module._process
+    if failure == "timeout":
+        monkeypatch.setenv("CAELAB_CODEASTER_WALL_TIMEOUT_SECONDS", "3")
 
-    def failure_process(command, **kwargs):
+    def failure_process(command, folder, label, *, timeout=adapter_module.PROCESS_TIMEOUT):
         if command[1] == "exec" and failure in ("nonzero", "timeout"):
-            scratch = Path(kwargs["cwd"]).parent / "scratch" / Path(kwargs["cwd"]).name
+            assert label == "solver" and timeout == (3 if failure == "timeout" else None)
+            level = Path(folder)
+            scratch = level.parent / "scratch" / level.name
             (scratch / "glob.1").write_bytes(b"MOCK incomplete native database retained on failure")
+            (level / "solver.command.json").write_text(json.dumps({"argv": command, "timeout_seconds": timeout,
+                                                                   "test_only": True, "actual_processes": 0}))
             if failure == "timeout":
-                raise subprocess.TimeoutExpired(command, 180, output=b"solver started\n", stderr=b"partial log\n")
-            return subprocess.CompletedProcess(command, 4, "raw stdout\n", "runtime failure\n")
-        return original(command, **kwargs)
+                (level / "solver.stdout.log").write_text("solver started\n")
+                (level / "solver.stderr.log").write_text("partial log\n")
+                raise RuntimeError("MOCK solver exceeded explicit three-second user wall budget; no process executed")
+            (level / "solver.stdout.log").write_text("raw stdout\n")
+            (level / "solver.stderr.log").write_text("runtime failure\n")
+            raise RuntimeError("MOCK solver exited 4; no process executed")
+        return original(command, folder, label, timeout=timeout)
 
-    monkeypatch.setattr("caelab.adapters.codeaster_elasticity.subprocess.run", failure_process)
+    monkeypatch.setattr(adapter_module, "_process", failure_process)
     output = tmp_path / "simulation"
     with pytest.raises(RuntimeError):
         CodeAsterElasticityAdapter().solve(output, settings())
@@ -904,6 +924,9 @@ def test_worker_execution_and_partial_fields_fail_without_numerical_outcome(tmp_
     assert (output / "level_0/model.comm").is_file() and (output / "level_0/model.export").is_file()
     assert (output / "scratch/level_0").is_dir()
     assert any((output / "scratch/level_0").rglob("glob.1"))
+    if failure in ("nonzero", "timeout"):
+        assert (output / "level_0/solver.stdout.log").read_text() == ("solver started\n" if failure == "timeout" else "raw stdout\n")
+        assert (output / "level_0/solver.stderr.log").read_text() == ("partial log\n" if failure == "timeout" else "runtime failure\n")
     if failure == "malformed_field":
         assert json.loads((output / "level_0/worker_result.json").read_text())["tables"]["SIEF_ELGA"]["SIXY"][0] is None
 

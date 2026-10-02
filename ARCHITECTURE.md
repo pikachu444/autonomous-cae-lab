@@ -100,6 +100,15 @@ calibration, fabrication and machine evidence stay `UNKNOWN` until measured.
 
 ## OpenScience transport
 
+ADR0018 adds resident asynchronous job submission/inspection through the
+existing LabService. Synchronous MCP writers share its admission lock; no
+optimizer or engineering rules move into transport. Code_Aster adapters
+resolve local execution budgets outside physical settings and retain live
+process state/logs. Job completion is distinct from numerical qualification.
+Cancellation, restart recovery, cross-process coordination and guarded native
+Research admission/lifecycle for background jobs remain open. Local stdio
+source acceptance does not establish a live OpenScience or solver benchmark.
+
 `openscience/contract.md` fixes operation names, JSON input/output and failure
 semantics. The actual stdio MCP bridge uses the same Core. Task-owned local
 OpenScience 2.0.146 has made the retained staged live05 study/discovery/registry,

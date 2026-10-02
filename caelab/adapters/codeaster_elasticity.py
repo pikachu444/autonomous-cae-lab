@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import signal
 import subprocess
 from typing import Any
 
@@ -22,7 +23,8 @@ from plugins.elasticity import reference as _reference_domain
 from plugins.elasticity.reference import (analytical_reference, assess, model_declaration,
                                          validate_settings)
 from .codeaster_worker import coordinate_bijection, parse_field_tables
-from ..storage import save_json
+from ..storage import save_json, utc_now
+from .codeaster_execution import process_budgets
 
 
 WORKER = Path(__file__).with_name("codeaster_worker.py")
@@ -303,25 +305,62 @@ def _text(value: str | bytes | None) -> str:
     return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else value or ""
 
 
-def _process(command: list[str], folder: Path, label: str, *, timeout: int = PROCESS_TIMEOUT) -> str:
+def _process(command: list[str], folder: Path, label: str, *, timeout: int | None = PROCESS_TIMEOUT) -> str:
     save_json(folder / f"{label}.command.json", {"argv": command, "timeout_seconds": timeout})
+    state = {"status": "STARTING", "started_utc": utc_now(), "pid": None,
+             "timeout_seconds": timeout, "return_code": None,
+             "stdout": f"{label}.stdout.log", "stderr": f"{label}.stderr.log"}
+    state_path = folder / f"{label}.execution.json"
+    save_json(state_path, state)
+
+    def finish(status: str, **details):
+        state.update(status=status, finished_utc=utc_now(), **details)
+        save_json(state_path, state)
+
+    def stop_owned(process):
+        # Native execution is Linux/WSL. An isolated process group owns its
+        # runner and solver children; a wall budget must not leave them running.
+        if os.name == "posix":
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        elif process.poll() is None:
+            process.kill()
+        process.wait()
+
     try:
-        process = subprocess.run(command, cwd=folder.resolve(), capture_output=True, text=True,
-                                 timeout=timeout, check=False)
-    except subprocess.TimeoutExpired as exc:
-        (folder / f"{label}.stdout.log").write_text(_text(exc.stdout), encoding="utf-8")
-        (folder / f"{label}.stderr.log").write_text(_text(exc.stderr) + "\nProcess timed out\n", encoding="utf-8")
-        raise RuntimeError(f"{label} timed out; captured logs are retained") from exc
+        with (folder / f"{label}.stdout.log").open("wb") as stdout, (folder / f"{label}.stderr.log").open("wb") as stderr:
+            process = subprocess.Popen(command, cwd=folder.resolve(), stdout=stdout, stderr=stderr,
+                                       start_new_session=os.name == "posix")
+            try:
+                state.update(status="RUNNING", pid=process.pid)
+                save_json(state_path, state)
+                process.wait(timeout=timeout)
+            except subprocess.TimeoutExpired as exc:
+                stop_owned(process)
+                stderr.write(b"\nUser wall-time budget exhausted; numerical verdict remains unknown\n")
+                stderr.flush()
+                finish("BUDGET_EXHAUSTED", return_code=process.returncode, reason="WALL_TIME_BUDGET")
+                raise RuntimeError(f"{label} wall-time budget exhausted; partial logs/results are retained; numerical verdict UNKNOWN") from exc
+            except BaseException:
+                stop_owned(process)
+                finish("INTERRUPTED", return_code=process.returncode)
+                raise
     except OSError as exc:
-        (folder / f"{label}.stdout.log").write_text("", encoding="utf-8")
         (folder / f"{label}.stderr.log").write_text(f"{type(exc).__name__}: {exc}\n", encoding="utf-8")
+        finish("FAILED_EXECUTION", reason="PROCESS_START_ERROR")
         raise RuntimeError(f"Cannot start {label}; captured logs are retained") from exc
-    (folder / f"{label}.stdout.log").write_text(_text(process.stdout), encoding="utf-8")
-    (folder / f"{label}.stderr.log").write_text(_text(process.stderr), encoding="utf-8")
+    output = (folder / f"{label}.stdout.log").read_text(encoding="utf-8", errors="replace")
+    error = (folder / f"{label}.stderr.log").read_text(encoding="utf-8", errors="replace")
     if process.returncode != 0:
+        cpu_budget = "<S>_CPU_LIMIT" in output + error or "TimeLimitError" in output + error
+        finish("BUDGET_EXHAUSTED" if cpu_budget else "FAILED_EXECUTION", return_code=process.returncode,
+               reason="NATIVE_CPU_BUDGET" if cpu_budget else "NONZERO_EXIT")
         raise RuntimeError(f"{label} failed (exit {process.returncode}); captured logs are retained: "
-                           + _text(process.stderr).strip()[-1000:])
-    return (_text(process.stdout) + "\n" + _text(process.stderr)).strip()
+                           + error.strip()[-1000:])
+    finish("COMPLETED", return_code=process.returncode)
+    return (output + "\n" + error).strip()
 
 
 def _image_identity(output: Path) -> tuple[Path, str, str, str, str]:
@@ -398,12 +437,13 @@ class CodeAsterElasticityAdapter:
     domain = "elasticity"
     physics_domain = "structural"
     analysis_type = "linear_static"
-    version = "1"
+    version = "1.1"
     default_metrics = ["axial_tip_displacement", "max_component_displacement_error", "displacement_relative_error",
                        "max_component_stress_error", "stress_relative_error", "reaction_x",
                        "reaction_absolute_error", "reaction_relative_error",
                        "mesh_axial_displacement_difference", "mesh_agreement_relative"]
-    input_source_files = (Path(__file__).resolve(), WORKER, _DOMAIN_SOURCE)
+    input_source_files = (Path(__file__).resolve(), WORKER, _DOMAIN_SOURCE,
+                          Path(__file__).with_name("codeaster_execution.py"))
 
     def describe_inputs(self, settings: dict) -> list[dict]:
         normalized = validate_settings(settings)
@@ -439,6 +479,7 @@ class CodeAsterElasticityAdapter:
             binaries[name] = {"path": str(path), "sha256": _sha256(path)}
         return {"image_sha256": expected, "image_bytes": image.stat().st_size,
                 "oci_manifest_sha256": OCI_MANIFEST_SHA256, "binaries": binaries,
+                "process_budgets": process_budgets(),
                 "omp_num_threads": os.environ.get("OMP_NUM_THREADS", "2")}
 
     def describe_model(self, settings: dict) -> dict:
@@ -451,6 +492,7 @@ class CodeAsterElasticityAdapter:
         if output.is_symlink() or (output.exists() and (not output.is_dir() or any(output.iterdir()))):
             raise ValueError("Analysis output must be new or empty; old evidence cannot be overwritten")
         output.mkdir(parents=True, exist_ok=True)
+        budgets = process_budgets()
         provenance = {"adapter": self.backend, "adapter_version": self.version,
                       "worker_sha256": _sha256(WORKER), "oci_manifest_sha256": OCI_MANIFEST_SHA256,
                       "distribution": "Solver-only vendor OCI, with MPI rank compatibility patch",
@@ -504,6 +546,7 @@ class CodeAsterElasticityAdapter:
         except RuntimeError as exc:
             (output / "runtime_preflight.stderr.log").write_text(str(exc) + "\n", encoding="utf-8")
             raise
+        save_json(output / "process_budgets.json", budgets)
         gmsh_version = _process([gmsh, "-version"], output, "gmsh_version", timeout=10)
         runtime_version = _process([runtime, "--version"], output, "container_version", timeout=10)
         if not gmsh_version or not runtime_version:
@@ -551,7 +594,7 @@ class CodeAsterElasticityAdapter:
                 "import sys\nsys.path.insert(0, '/work')\nfrom codeaster_worker import solve_level\n"
                 f"solve_level('/work/{level.name}/input.json')\n", encoding="utf-8")
             export = (
-                "P actions make_etude\nP memory_limit 1024\nP time_limit 120\nP mpi_nbcpu 1\nP ncpus 1\n"
+                f"P actions make_etude\nP memory_limit {budgets['solver_memory_mb']}\nP time_limit {budgets['solver_time_seconds']}\nP mpi_nbcpu 1\nP ncpus 1\n"
                 f"F comm /work/{level.name}/model.comm D 1\n"
                 f"F mmed /work/{level.name}/mesh.msh D 20\n"
                 f"F rmed /work/{level.name}/results.med R 80\n"
@@ -570,7 +613,7 @@ class CodeAsterElasticityAdapter:
                        str(scratch.resolve()) + ":/tmp:rw", "--pwd", "/work", str(image),
                        "/bin/bash", "--noprofile", "--norc", "-c", CONTAINER_SCRIPT,
                        "caelab-codeaster", f"/work/{level.name}/model.export"]
-            _process(command, level, "solver")
+            _process(command, level, "solver", timeout=budgets["subprocess_timeout_seconds"])
             raw, record = _checked_worker(level, mesh, size, input_sha)
             save_json(level / "parsed_fields.json", record)
             _assert_domain_source(output)
@@ -612,8 +655,7 @@ class CodeAsterElasticityAdapter:
                                                    "tmp_repair": "Explicit disk bind replaces containall private 64 MiB tmpfs observed during failed fresh-02 execution"},
                            "process_budgets": {"gmsh_address_space_bytes": _GMSH_MEMORY_BYTES,
                                                "gmsh_cpu_seconds": _GMSH_CPU_SECONDS,
-                                               "solver_memory_mb": 1024, "solver_time_seconds": 120,
-                                               "subprocess_timeout_seconds": PROCESS_TIMEOUT,
+                                               **budgets,
                                                "singularity_address_space_limit": None},
                            "solver": {"linear_method": "MUMPS", "measured_linear_residual": None,
                                       "residual_status": "UNKNOWN: assembled matrix/vector not exported"}})

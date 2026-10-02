@@ -406,7 +406,7 @@ def test_existing_or_linked_output_is_preserved_before_any_native_work(tmp_path)
     assert retained.read_bytes() == b"ORIGINAL" and list(original.iterdir()) == [retained]
 
 
-def mock_adapter_execution(tmp_path, monkeypatch, mutate=None):
+def mock_adapter_execution(tmp_path, monkeypatch, mutate=None, process_limits=None):
     image = tmp_path / "SYNTHETIC.sif"; image.write_bytes(b"NOT AN IMAGE; NO NATIVE EXECUTION")
     identity = {"image_sha256": digest(image), "binaries": {"singularity": "SYNTHETIC"}}
     monkeypatch.setattr(adapter_module, "_admitted_runtime", lambda _: ((image, digest(image), "SYNTHETIC_RUNTIME", "SYNTHETIC_GMSH", "SYNTHETIC_PRLIMIT"), identity))
@@ -414,6 +414,8 @@ def mock_adapter_execution(tmp_path, monkeypatch, mutate=None):
     calls = []
     def process(command, level, label, **kwargs):
         calls.append((label, command))
+        if process_limits is not None:
+            process_limits.append({"label": label, "timeout": kwargs.get("timeout")})
         if label != "solver": return "SYNTHETIC VERSION; NO EXECUTABLE CALL"
         expected = json.loads((level / "expected_mesh.json").read_text()); raw = native_raw(expected)
         config = json.loads((level / "input.json").read_text())
@@ -430,7 +432,8 @@ def mock_adapter_execution(tmp_path, monkeypatch, mutate=None):
 
 
 def test_mocked_adapter_reuses_fixed_domain_verdict_and_keeps_all_native_fields(tmp_path, monkeypatch):
-    calls = mock_adapter_execution(tmp_path, monkeypatch)
+    process_limits = []
+    calls = mock_adapter_execution(tmp_path, monkeypatch, process_limits=process_limits)
     result = StructuralFamilyCodeAsterAdapter().solve(tmp_path / "simulation", settings())
     # Synthetic zero displacement does not satisfy the fixed reference. The
     # process contract is retained without fabricating numerical success.
@@ -438,15 +441,43 @@ def test_mocked_adapter_reuses_fixed_domain_verdict_and_keeps_all_native_fields(
     assert result["metrics"]["primary_response"]["valid"] is False
     assert "original_midas_replication" in result["pending_validations"]
     assert result["provenance"]["solver"]["measured_linear_residual"] is None
+    budgets = {"solver_memory_mb": 1024, "solver_time_seconds": 86400,
+               "subprocess_timeout_seconds": None,
+               "solver_time_source": "PINNED_RUN_ASTER_DEFAULT",
+               "wall_time_source": "NO_WALL_TIME_LIMIT", "qualification": "UNKNOWN"}
+    assert result["provenance"]["process_budgets"] == budgets
+    assert json.loads((tmp_path / "simulation/process_budgets.json").read_text()) == budgets
+    assert [row["timeout"] for row in process_limits if row["label"] == "solver"] == [None, None]
     records = json.loads((tmp_path / "simulation/mesh_records.json").read_text())
     assert len(records) == 2 and all(len(record["stress_points"]) == record["element_count"] * 27 for record in records)
     for index in range(2):
         level = tmp_path / "simulation" / f"level_{index}"
         assert (level / "results.med").is_file() and (level / "parsed_fields.json").is_file()
+        assert "P time_limit 86400\n" in (level / "model.export").read_text()
+        assert "P memory_limit 1024\n" in (level / "model.export").read_text()
         assert not (tmp_path / "simulation/scratch" / level.name).exists()
     command = next(command for label, command in calls if label == "solver")
     assert all(value in command for value in ("--cleanenv", "--containall", "--no-home", "--noprofile", "--norc", "OMP_NUM_THREADS=2"))
     assert command[-1] == "/work/level_0/model.export"
+
+
+def test_failed_solver_keeps_predeclared_budget_and_no_completed_verdict(tmp_path, monkeypatch):
+    process_limits = []
+    def stop_before_complete_fields(raw, level):
+        raise RuntimeError("SYNTHETIC native timeout; no actual process executed")
+    mock_adapter_execution(tmp_path, monkeypatch, stop_before_complete_fields, process_limits)
+    output = tmp_path / "simulation"
+    with pytest.raises(RuntimeError, match="SYNTHETIC native timeout"):
+        StructuralFamilyCodeAsterAdapter().solve(output, settings())
+    assert json.loads((output / "process_budgets.json").read_text()) == {
+        "solver_memory_mb": 1024, "solver_time_seconds": 86400,
+        "subprocess_timeout_seconds": None,
+        "solver_time_source": "PINNED_RUN_ASTER_DEFAULT",
+        "wall_time_source": "NO_WALL_TIME_LIMIT", "qualification": "UNKNOWN"}
+    assert [row["timeout"] for row in process_limits if row["label"] == "solver"] == [None]
+    assert "P time_limit 86400\n" in (output / "level_0/model.export").read_text()
+    assert not (output / "analysis_raw.json").exists()
+    assert not (output / "mesh_records.json").exists()
 
 
 @pytest.mark.parametrize("failure", ["missing_component", "wrong_version", "input_hash", "source_copy", "point_coordinate", "expected_mesh_file"])

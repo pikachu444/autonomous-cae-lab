@@ -8,6 +8,13 @@ are displayed as gaps. `UNKNOWN`, invalid metrics and `NOT_RELEASED` are retaine
 
 ## Ownership and runtime
 
+ADR0018 reuses this service's public submit/job/overview from the stdio MCP
+resident. No second worker manager is implemented. Each transport process still
+has its own resident; this is not cross-process locking or persistence. New
+MCP job outputs declare cancellation unsupported and completion distinct from
+numerical PASS. Native background-job shutdown/guard admission is a separate
+open integration gate; the HTTP cancellation/persistence scope remains open.
+
 Root owns this contract, launch/acceptance scripts, documentation and integration.
 The server owner changes `apps/lab/server.py`, `apps/lab/service.py`, package entry
 points and `tests/test_lab_server.py` only. The UI owner changes `apps/lab/static/`

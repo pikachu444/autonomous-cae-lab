@@ -26,6 +26,7 @@ _SOURCES = {
     "codeaster_worker.py": Path(mesh_worker.__file__).resolve(),
     "codeaster_plasticity_worker.py": Path(worker.__file__).resolve(),
     "plasticity_adapter.py": Path(__file__).resolve(),
+    "codeaster_execution.py": Path(__file__).with_name("codeaster_execution.py"),
 }
 _SOURCE_BYTES = {name: path.read_bytes() for name, path in _SOURCES.items()}
 _SOURCE_SHA = {name: hashlib.sha256(data).hexdigest() for name, data in _SOURCE_BYTES.items()}
@@ -230,7 +231,7 @@ class CodeAsterPlasticityAdapter:
     domain = "elasticity"
     physics_domain = "structural"
     analysis_type = "nonlinear_static"
-    version = "1"
+    version = "1.1"
     default_metrics = ["peak_stress", "final_stress", "peak_eq_plastic_strain", "unload_residual_strain",
                        "plastic_work_density", "hardening_energy_density", "plastic_dissipation_density",
                        "max_component_displacement_error", "max_component_stress_error",
@@ -246,6 +247,7 @@ class CodeAsterPlasticityAdapter:
         if output.is_symlink() or (output.exists() and (not output.is_dir() or any(output.iterdir()))):
             raise ValueError("Analysis output must be new or empty; preserved evidence cannot be overwritten")
         output.mkdir(parents=True, exist_ok=True)
+        budgets = elastic.process_budgets()
         for name, data in _SOURCE_BYTES.items():
             (output / name).write_bytes(data)
         _assert_sources(output)
@@ -289,6 +291,7 @@ class CodeAsterPlasticityAdapter:
         except RuntimeError as exc:
             (output / "runtime_preflight.stderr.log").write_text(str(exc) + "\n", encoding="utf-8")
             raise
+        save_json(output / "process_budgets.json", budgets)
         gmsh_version = elastic._process([gmsh, "-version"], output, "gmsh_version", timeout=10)
         singularity_version = elastic._process([runtime, "--version"], output, "container_version", timeout=10)
         if not gmsh_version or not singularity_version:
@@ -332,7 +335,7 @@ class CodeAsterPlasticityAdapter:
                 "from codeaster_plasticity_worker import solve_level\n"
                 f"solve_level('/work/{level.name}/input.json')\n", encoding="utf-8")
             (level / "model.export").write_text(
-                "P actions make_etude\nP memory_limit 1024\nP time_limit 120\nP mpi_nbcpu 1\nP ncpus 2\n"
+                f"P actions make_etude\nP memory_limit {budgets['solver_memory_mb']}\nP time_limit {budgets['solver_time_seconds']}\nP mpi_nbcpu 1\nP ncpus 2\n"
                 f"F comm /work/{level.name}/model.comm D 1\nF mmed /work/{level.name}/mesh.msh D 20\n"
                 f"F rmed /work/{level.name}/results.med R 80\nF mess /work/{level.name}/aster.mess R 6\n"
                 f"F resu /work/{level.name}/aster.resu R 8\nF resu /work/{level.name}/convergence.measure R 81\n", encoding="utf-8")
@@ -346,7 +349,7 @@ class CodeAsterPlasticityAdapter:
                 "--bind", str(scratch.resolve()) + ":/tmp:rw", "--pwd", "/work", str(image),
                 "/bin/bash", "--noprofile", "--norc", "-c", elastic.CONTAINER_SCRIPT,
                 "caelab-codeaster-plasticity", f"/work/{level.name}/model.export"]
-            elastic._process(command, level, "solver")
+            elastic._process(command, level, "solver", timeout=budgets["subprocess_timeout_seconds"])
             raw, record = _checked_worker(level, mesh, size, input_sha, settings)
             save_json(level / "parsed_history.json", record)
             checks.append({"code": f"native_nonlinear_convergence_{len(records)}",
@@ -385,8 +388,7 @@ class CodeAsterPlasticityAdapter:
             "container_isolation": {"cleanenv": True, "containall": True, "no_home": True,
                 "preferences": "Fresh experiment-only home content", "tmp": "Fresh per-level disk scratch",
                 "omp_threads": 2, "mpi_ranks": 1},
-            "process_budgets": {"solver_memory_mb": 1024, "solver_time_seconds": 120,
-                "subprocess_timeout_seconds": elastic.PROCESS_TIMEOUT, "gmsh_address_space_bytes": elastic._GMSH_MEMORY_BYTES},
+            "process_budgets": {**budgets, "gmsh_address_space_bytes": elastic._GMSH_MEMORY_BYTES},
             "reaction_method": records[0]["reaction_method"], "measured_linear_residual": None})
         outcome = {"status": "COMPLETED" if completed else "REJECTED", "solver_status": "COMPLETED", "converged": True,
             "checks": checks, "metrics": assessment["metrics"], "pending_validations": assessment["pending_validations"],

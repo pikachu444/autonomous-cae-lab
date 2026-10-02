@@ -1,5 +1,22 @@
 # Connected structural family acceptance
 
+## Long-running operations: implemented, focused verification passed
+
+ADR0018 reuses LabService for three MCP job operations, sharing writer admission
+with17 existing synchronous tools. All three Code_Aster adapters now use
+configurable native time_limit(default86400, not unlimited) and optional wall
+budget(defaultNone); live PID/logs/execution state and partial files are retained.
+301 focused checks PASS, including actual local stdio metadata and tiny process
+supervision; independent source review finds no required P1/P2 corrections.
+Record: `../benchmarks/records/20261002-long-running-jobs-development.json`.
+No new native solver/provider or guarded OpenScience acceptance. Cancel/restart/
+shutdown/native-profile admission remain OPEN. A broad supplemental model suite
+is explicitly INCOMPLETE:84 partial passes, then Root-scoped interruption;
+unfinished checks are queued separately, not reported as a full PASS.
+Next development: owned cancellation/shutdown linkage, then fixture conditions/
+stress and subsequent phase integrations. Do not rerun unchanged failed physics.
+All52/P2.2/physical qualification stay OPEN/UNKNOWN/NOT_RELEASED.
+
 ## Advisory correction only; numerical verification remains open
 
 The new clean947 one-Bare correction copies13 supplied typed facts exactly:

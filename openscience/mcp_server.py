@@ -5,6 +5,7 @@ the protocol; this file only forwards typed research operations to CAE-Lab.
 """
 
 from datetime import datetime, timezone
+from functools import wraps
 import hashlib
 import json
 import os
@@ -22,6 +23,15 @@ from caelab.adapters import fixture_cadquery
 
 
 mcp = FastMCP("Autonomous CAE Lab")
+
+
+def _single_writer(function):
+    @wraps(function)
+    def execute(*args, **kwargs):
+        from openscience.jobs import synchronous_writer
+        with synchronous_writer():
+            return function(*args, **kwargs)
+    return execute
 
 
 _GIT_TIMEOUT_SECONDS = 3
@@ -142,6 +152,33 @@ def _lab() -> Lab:
 
 
 @mcp.tool()
+def research_job_start(operation: str, arguments: dict) -> dict:
+    """Submit an allowlisted Core operation and return RUNNING without waiting for a long solver.
+
+    Poll research_job_inspect for this resident process. Existing Lab operation
+    names/arguments apply; completion is not numerical approval. Cancellation
+    and restart recovery are not yet supported by this transport.
+    """
+    from openscience.jobs import start
+    return start(operation, arguments)
+
+
+@mcp.tool()
+def research_job_inspect(job_id: str) -> dict:
+    """Read RUNNING/COMPLETED/FAILED and the actual Core result/error, without rerunning the job."""
+    from openscience.jobs import inspect
+    return inspect(job_id)
+
+
+@mcp.tool()
+def research_jobs_list() -> dict:
+    """List process-resident jobs; missing restart history is not proof of completion."""
+    from openscience.jobs import list_jobs
+    return list_jobs()
+
+
+@mcp.tool()
+@_single_writer
 def study_create(study_id: str, name: str, research_question: str,
                  hypothesis: str, objective: str) -> dict:
     """Create a persistent research study with a question, hypothesis and objective."""
@@ -167,6 +204,7 @@ def parameters_list(study_id: str) -> dict:
 
 
 @mcp.tool()
+@_single_writer
 def parameters_refresh(study_id: str, backend: str, model: str) -> dict:
     """Reverify mapped CAD dimensions after an engineer changes native source; retain registry history."""
     return _lab().refresh_registry(study_id, backend, model)
@@ -179,18 +217,21 @@ def model_native_inspect(model: str) -> dict:
 
 
 @mcp.tool()
+@_single_writer
 def model_native_select_final(model: str, final: str) -> dict:
     """Select an existing FreeCAD final solid after importing a document."""
     return _lab().select_native_final(model, final)
 
 
 @mcp.tool()
+@_single_writer
 def model_native_new(template: str = "roller_support") -> dict:
     """Create a trusted editable fixture template when FreeCADCmd is installed."""
     return _lab().create_native_model(template=template)
 
 
 @mcp.tool()
+@_single_writer
 def model_native_import(file_name: str) -> dict:
     """Import an existing FCStd from the configured CAELAB_IMPORT_ROOT folder."""
     root = os.environ.get("CAELAB_IMPORT_ROOT")
@@ -203,12 +244,14 @@ def model_native_import(file_name: str) -> dict:
 
 
 @mcp.tool()
+@_single_writer
 def parameters_recover(study_id: str) -> dict:
     """Restore uncommitted CAD registration revisions; preserve and refuse foreign or corrupt bytes."""
     return _lab().recover_registration(study_id)
 
 
 @mcp.tool()
+@_single_writer
 def parameters_register(study_id: str, backend: str, model: str, native_path: str,
                         parameter_id: str, display_name: str, lower: float, upper: float,
                         mode: str = "free", kind: str = "continuous") -> dict:
@@ -218,6 +261,7 @@ def parameters_register(study_id: str, backend: str, model: str, native_path: st
 
 
 @mcp.tool()
+@_single_writer
 def experiment_run(study_id: str, experiment_id: str, backend: str, model: str,
                    values: dict[str, float], hypothesis_id: str | None = None,
                    settings: dict | None = None) -> dict:
@@ -246,6 +290,7 @@ def experiment_compare(experiment_ids: list[str]) -> list[dict]:
 
 
 @mcp.tool()
+@_single_writer
 def analysis_run(parent_experiment_id: str, experiment_id: str, backend: str,
                  settings: dict) -> dict:
     """Analyze a verified CAD revision as a new child experiment with explicit load/material/mesh."""
@@ -255,6 +300,7 @@ def analysis_run(parent_experiment_id: str, experiment_id: str, backend: str,
 
 
 @mcp.tool()
+@_single_writer
 def doe_plan(study_id: str, campaign_id: str, backend: str, model: str,
              parameter_ids: list[str], sample_count: int, seed: int,
              analysis_backend: str | None = None,
@@ -269,6 +315,7 @@ def doe_plan(study_id: str, campaign_id: str, backend: str, model: str,
 
 
 @mcp.tool()
+@_single_writer
 def doe_run(campaign_id: str) -> dict:
     """Execute a persisted DOE; invalid CAD points never reach the solver."""
     return _lab().run_doe(campaign_id)
@@ -281,6 +328,7 @@ def doe_inspect(campaign_id: str) -> dict:
 
 
 @mcp.tool()
+@_single_writer
 def optimization_plan(study_id: str, campaign_id: str, backend: str, model: str,
                       parameter_ids: list[str], objective: dict, constraints: list[dict],
                       seed: int, max_generations: int = 1, population_size: int = 5,
@@ -297,6 +345,7 @@ def optimization_plan(study_id: str, campaign_id: str, backend: str, model: str,
 
 
 @mcp.tool()
+@_single_writer
 def optimization_run(campaign_id: str) -> dict:
     """Run or exactly replay adaptive numerical evaluations; preserve invalid evidence and stop backend failures."""
     return _lab().run_optimization(campaign_id)
@@ -309,6 +358,7 @@ def optimization_inspect(campaign_id: str) -> dict:
 
 
 @mcp.tool()
+@_single_writer
 def pde_run(study_id: str, experiment_id: str, backend: str, settings: dict,
             hypothesis_id: str | None = None) -> dict:
     """Run a declared weak-form PDE and record analytical error/field evidence through the common Core."""
@@ -317,6 +367,7 @@ def pde_run(study_id: str, experiment_id: str, backend: str, settings: dict,
 
 
 @mcp.tool()
+@_single_writer
 def model_analysis_run(study_id: str, experiment_id: str, backend: str, settings: dict,
                        hypothesis_id: str | None = None) -> dict:
     """Analyze a declared research model without a CAD parent and retain checked numerical evidence."""
@@ -331,6 +382,7 @@ def model_parameters_discover(backend: str, settings: dict) -> list[dict]:
 
 
 @mcp.tool()
+@_single_writer
 def model_parameters_register(study_id: str, backend: str, settings: dict, input_id: str,
                               parameter_id: str, display_name: str, lower: float, upper: float,
                               mode: str = "free") -> dict:
@@ -340,6 +392,7 @@ def model_parameters_register(study_id: str, backend: str, settings: dict, input
 
 
 @mcp.tool()
+@_single_writer
 def model_optimization_plan(study_id: str, campaign_id: str, backend: str, settings: dict,
                             parameter_ids: list[str], objective: dict, constraints: list[dict],
                             seed: int, max_generations: int = 1, population_size: int = 5,

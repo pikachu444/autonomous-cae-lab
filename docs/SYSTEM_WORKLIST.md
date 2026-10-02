@@ -1,5 +1,22 @@
 # Sequential system worklist
 
+## Long-running operations: implemented, focused verification passed
+
+ADR0018 reuses LabService for three MCP job operations, sharing writer admission
+with17 existing synchronous tools. All three Code_Aster adapters now use
+configurable native time_limit(default86400, not unlimited) and optional wall
+budget(defaultNone); live PID/logs/execution state and partial files are retained.
+301 focused checks PASS, including actual local stdio metadata and tiny process
+supervision; independent source review finds no required P1/P2 corrections.
+Record: `../benchmarks/records/20261002-long-running-jobs-development.json`.
+No new native solver/provider or guarded OpenScience acceptance. Cancel/restart/
+shutdown/native-profile admission remain OPEN. A broad supplemental model suite
+is explicitly INCOMPLETE:84 partial passes, then Root-scoped interruption;
+unfinished checks are queued separately, not reported as a full PASS.
+Next development: owned cancellation/shutdown linkage, then fixture conditions/
+stress and subsequent phase integrations. Do not rerun unchanged failed physics.
+All52/P2.2/physical qualification stay OPEN/UNKNOWN/NOT_RELEASED.
+
 ## Current scheduling rule — owner instruction2026-10-02
 
 Development/integration proceeds in phase order, reusing existing modules.
@@ -13,7 +30,7 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 
 | Development sequence | Implementation work | Verification queue |
 | --- | --- | --- |
-| D0 current | Long jobs: existing service reuse, MCP submit/inspect, configurable execution budgets and live logs | Native lifecycle/cancellation/profile admission; no new solver proof yet |
+| D0 current | Source implemented/focused checks301PASS: service reuse, MCP submit/inspect, configurable budgets/live logs; next owned cancellation/shutdown | Native lifecycle/cancellation/profile admission; no new solver proof yet |
 | D1 Phase2 | Fixture material/load/interfaces/stress outputs; reuse CAD and child analysis | Existing beam accuracy, roof Aster completion, mesh/reaction/stress/reference checks |
 | D2 Phase3 | Integrate preserved269d8bf campaign; stopping/constraints and wider variables | Numerical convergence, active constraints, interruption/replay |
 | D3 Phase4 | Extend declared domains/boundaries/time/vector/coupled forms | Manufactured/reference solutions and cross-backend/parallel checks |

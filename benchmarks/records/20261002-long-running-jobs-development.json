@@ -1,0 +1,166 @@
+{
+  "schema_version": "1.0",
+  "unit": "long-running-research-jobs-development-20261002-01",
+  "status": "PASS_IMPLEMENTATION_FOCUSED_LOCAL_VERIFICATION",
+  "scope": "Development/source/local stdio only; no new native numerical or live guarded OpenScience acceptance",
+  "base_commit": "6e5cfda3262c06f116c01a6b4d87203b410dd3ea",
+  "preceding_documentation_commit": "5787f85a56ae0024e93d1fa1d89a2fbc7ba74c5b",
+  "source_identity": "Exact precommit source bytes below, confirmed unchanged after completed focused tests",
+  "source_files": [
+    {
+      "path": "caelab/adapters/codeaster_execution.py",
+      "sha256": "04bf82ca3ea258a9218f9de33c14aefda1319abfa199fa246c36d5d1cefc2fad",
+      "bytes": 1347
+    },
+    {
+      "path": "caelab/adapters/codeaster_elasticity.py",
+      "sha256": "9848881b365f192bc15e4f198d426a906dcc45d963ade65f2ff74e2acfc809d2",
+      "bytes": 40525
+    },
+    {
+      "path": "caelab/adapters/codeaster_plasticity.py",
+      "sha256": "6736060701815584a27335a52ae0dabcb416759bdd02f3a9219bf02131263b41",
+      "bytes": 27106
+    },
+    {
+      "path": "caelab/adapters/structural_family_codeaster.py",
+      "sha256": "56d0179f52435fe6c5e96fbe4fc9d4ee6a0f76c0c4e95dcf1e3ceb7afe948505",
+      "bytes": 19131
+    },
+    {
+      "path": "openscience/jobs.py",
+      "sha256": "36aaceab3507728e5f1ac31a73d1b6e12452c705491199fccb603b7dbbefebb4",
+      "bytes": 3004
+    },
+    {
+      "path": "openscience/mcp_server.py",
+      "sha256": "a62dd7583ca93f66841e1cb430c70abc61a3732487a5f6990da4cec31d011060",
+      "bytes": 18402
+    },
+    {
+      "path": "tests/test_codeaster_execution.py",
+      "sha256": "294d1765b92ca1da13aa531951516ce4fed328af2695676b6444b16171b89da1",
+      "bytes": 5099
+    },
+    {
+      "path": "tests/test_codeaster_adapter.py",
+      "sha256": "b78efd10d5709ab819a01f7f24ba4b10f7816d0dcda171b3f4a7372653666ee8",
+      "bytes": 50802
+    },
+    {
+      "path": "tests/test_structural_family_codeaster.py",
+      "sha256": "515a0dd853fb3dee69aedc6f79da3630fcea389a62217adeb7cd50bc949ececf",
+      "bytes": 38372
+    },
+    {
+      "path": "tests/test_openscience_jobs.py",
+      "sha256": "79cdc82bf5a334f852e5b41cbb81e799a00a89d6b58a6b7f771817d302a48961",
+      "bytes": 10849
+    },
+    {
+      "path": "tests/test_mcp_jobs.py",
+      "sha256": "b9da337a35b2ac6b0d9c6409d7bb27f4e54219f70008952f8c89449e7a6241bc",
+      "bytes": 2806
+    }
+  ],
+  "implementation": {
+    "MCP_additions": [
+      "research_job_start",
+      "research_job_inspect",
+      "research_jobs_list"
+    ],
+    "reused_manager": "apps.lab.service.LabService",
+    "existing_synchronous_writers_guarded": 17,
+    "Core_physics_settings_or_schema_changed": false,
+    "numerical_thresholds_changed": false,
+    "solver_default_time_seconds": 86400,
+    "solver_wall_default_seconds": null,
+    "default_is_unlimited": false,
+    "zero_is_unlimited": false,
+    "budget_configuration": [
+      "CAELAB_CODEASTER_TIME_LIMIT_SECONDS",
+      "CAELAB_CODEASTER_WALL_TIMEOUT_SECONDS"
+    ],
+    "live_execution_artifacts": [
+      "process_budgets.json",
+      "solver.execution.json",
+      "solver.stdout.log",
+      "solver.stderr.log"
+    ],
+    "owned_native_process_group": "Linux/WSL isolated session; termination on explicit wall budget or Python interruption"
+  },
+  "verification": {
+    "python": "WSL Python3.12.3",
+    "checks": [
+      {
+        "files": [
+          "tests/test_codeaster_execution.py",
+          "tests/test_structural_family_codeaster.py",
+          "tests/test_codeaster_plasticity.py",
+          "tests/test_openscience_jobs.py"
+        ],
+        "passed": 197,
+        "seconds": 36.52,
+        "exit_code": 0
+      },
+      {
+        "files": [
+          "tests/test_codeaster_adapter.py",
+          "tests/test_mcp_runtime_identity.py"
+        ],
+        "passed": 103,
+        "seconds": 20.3,
+        "exit_code": 0
+      },
+      {
+        "files": [
+          "tests/test_mcp_jobs.py"
+        ],
+        "passed": 1,
+        "seconds": 8.17,
+        "exit_code": 0
+      }
+    ],
+    "total_completed_focused_tests": 301,
+    "native_solver_calls": 0,
+    "provider_calls": 0,
+    "actual_stdio": "One metadata study job round trip; same Core study via legacy read; list and unknown-operation refusal; no experiments created",
+    "primitive_process_tests": "Tiny local Python processes; live PID/log state, explicit wall budget, Linux child-group stop, CPU/error-marker distinction",
+    "synthetic_fields": "Existing elasticity/structural/plasticity numerical/preflight/unknown assertions preserved; no native acceptance inferred"
+  },
+  "independent_source_review": {
+    "agent": "/root/official_project_workflow",
+    "status": "PASS_NO_REQUIRED_P1_P2_CORRECTIONS",
+    "actual_calls": 0,
+    "limits": "Read-only bounded review; no repeat historical raw audit"
+  },
+  "supplemental_verification": {
+    "files": [
+      "tests/test_model_parameters.py",
+      "tests/test_model_optimization.py"
+    ],
+    "status": "DEFERRED_INCOMPLETE",
+    "partial_passed": 84,
+    "elapsed_seconds": 526.44,
+    "wrapper_exit_code": 1,
+    "interruption": "Root SIGINT to exact PID30279/start_ticks100042580 after identity recheck; scoped scheduling change, not solver/numerical failure",
+    "remaining": "Unfinished broad suite belongs to consolidated verification; no full-suite PASS claim"
+  },
+  "rejected_prior_proposal": {
+    "fixed_CPU300_wall420": "NOT_RUN_NOT_ADOPTED",
+    "retained_patch": "artifacts/p2-roof-execution-budget-preparation-20261002-01/rejected-fixed-cap.patch"
+  },
+  "open_limits": [
+    "User cancellation",
+    "Resident restart recovery/durability",
+    "Cross-process job coordination",
+    "Native guarded Research profile admission and shutdown ownership for asynchronous jobs",
+    "Native new-policy/reference/cross-solver benchmarks",
+    "Same-record GUI of new source",
+    "Physical/deployment qualification"
+  ],
+  "exact_new_source_CI": "PENDING_AFTER_SOURCE_PUBLICATION",
+  "decision": "NOT_RELEASED",
+  "all52": "OPEN_RETAINED",
+  "next_development": "Finish owned cancellation/shutdown linkage, then fixture condition/stress integration in phase order; numerical queue remains separate"
+}

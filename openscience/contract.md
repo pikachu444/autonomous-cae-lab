@@ -1,5 +1,35 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+## Additive long-running job operations (ADR0018)
+
+`research_job_start(operation, arguments)` reuses the existing LabService
+operation allowlist and returns a RUNNING job immediately. `research_job_inspect(job_id)` reads its actual RUNNING/COMPLETED/FAILED state and Core result/error;
+`research_jobs_list()` lists resident jobs. Job metadata explicitly states
+PROCESS_RESIDENT, cancel_supported=false and completion_is_numerical_pass=false.
+No arbitrary command/path, extra keyword or concurrent writer is admitted.
+Existing synchronous writer tools share admission; existing readers remain.
+CAELAB_STORE is fixed for the resident lifetime; drift requires a new resident.
+
+These operations passed focused source and actual local-stdio metadata checks.
+Historical native Research profile tool universes/lifecycle have not been
+expanded. New live guarded OpenScience acceptance, cancellation, shutdown with
+busy background jobs, restart recovery and multi-process coordination remain
+OPEN. Keep the resident alive while a background job runs. No new numerical/
+physical result follows from submission or transport completion.
+
+Code_Aster's short fixed solver/wall limits are replaced by local policy:
+positive CAELAB_CODEASTER_TIME_LIMIT_SECONDS(default86400, not unlimited) and
+optional positive CAELAB_CODEASTER_WALL_TIMEOUT_SECONDS(absent=None). Zero is
+refused. Policy/live logs/process state are artifacts; unknown metrics and
+NOT_RELEASED remain. Model declarations, settings, thresholds and existing
+numerical-engine ownership are unchanged.
+
+The separate one-Bare advisory correction is recorded in
+20261002-openscience-roof-interpretation-correction.json. It copies supplied
+facts only; original03 error and Aster/engineering failures remain. The
+formal scaling computation belongs to the stock verifier, not Core.compare.
+Earlier pending-correction statements below are historical.
+
 Latest947/roof refinement research closes3 Root-predeclared questions/16 direct
 tools/3 Core records, with original full question reused and only half+bare new.
 Exact source/typed integer1 revision/whole official questions/native raw fields/

@@ -16,9 +16,10 @@ import shutil
 from typing import Any
 
 from .codeaster_elasticity import (CodeAsterElasticityAdapter, CONTAINER_SCRIPT,
-    OCI_MANIFEST_SHA256, PROCESS_TIMEOUT, _cleanup_scratch, _image_identity, _process, _sha256)
+    OCI_MANIFEST_SHA256, _cleanup_scratch, _image_identity, _process, _sha256)
 from .structural_family_codeaster_worker import gmsh_import_contract, parse_field_tables
 from ..storage import save_json
+from .codeaster_execution import process_budgets
 
 _ROOT = Path(__file__).resolve().parents[2]
 WORKER = Path(__file__).with_name("structural_family_codeaster_worker.py")
@@ -30,7 +31,8 @@ _RUNTIME = Path(__file__).with_name("codeaster_elasticity.py")
 _SOURCE_PATHS = {"adapter_source.py": Path(__file__).resolve(), "structural_family_codeaster_worker.py": WORKER,
                  "domain_reference.py": _DOMAIN, "structural-families-v1.json": _SPEC,
                  "structural_family_mesh.py": _MESH, "codeaster_worker.py": _HELPER,
-                 "runtime_helper.py": _RUNTIME}
+                 "runtime_helper.py": _RUNTIME,
+                 "codeaster_execution.py": Path(__file__).with_name("codeaster_execution.py")}
 _PENDING = ["static_strength", "material_qualification", "physical_validation", "fatigue_durability", "model_qualification", "original_midas_replication"]
 _LIMITATIONS = [
     "The three fixed solid derivatives do not establish original MIDAS reproduction, torsion or independent shell rotations.",
@@ -145,7 +147,7 @@ class StructuralFamilyCodeAsterAdapter:
     domain = "structural_families"
     physics_domain = "structural"
     analysis_type = "linear_static"
-    version = "1"
+    version = "1.1"
     default_metrics = ["primary_response"]
     input_source_files = tuple(_SOURCE_PATHS.values())
 
@@ -159,11 +161,13 @@ class StructuralFamilyCodeAsterAdapter:
             raise ValueError("Analysis output must be new/empty; old evidence cannot be overwritten")
         output.mkdir(parents=True, exist_ok=True)
         sources = _snapshot(output)
+        budgets = process_budgets()
         provenance = {"adapter": self.backend, "adapter_version": self.version,
                       "source_identity": sources, "oci_manifest_sha256": OCI_MANIFEST_SHA256,
                       "domain_plugin": {"module": "plugins.structural_families.reference", "source_sha256": sources["domain_reference.py"]["sha256"], "source_artifact": "simulation/domain_reference.py"},
                       "definition_sha256": sources["structural-families-v1.json"]["sha256"],
                       "distribution": "Pinned solver-only vendor OCI with MPI rank compatibility patch",
+                      "process_budgets": dict(budgets),
                       "assumptions": list(_LIMITATIONS)}
         checks = []
 
@@ -208,6 +212,9 @@ class StructuralFamilyCodeAsterAdapter:
                            "evidence_artifact": f"simulation/{level.name}/mesh_checks.json"})
             meshes.append((level, expected))
         _assert_sources(output, sources)
+        # Preserve declared budgets before the first external process, so a
+        # failed solver still has its actual execution policy among artifacts.
+        save_json(output / "process_budgets.json", budgets)
         try:
             (image, image_sha, runtime, gmsh, _prlimit), runtime_identity = _admitted_runtime(output)
         except (RuntimeError, ValueError) as exc:
@@ -233,7 +240,7 @@ class StructuralFamilyCodeAsterAdapter:
             input_sha = _sha256(level / "input.json")
             (level / "model.comm").write_text("import sys\nsys.path.insert(0, '/work')\nfrom structural_family_codeaster_worker import solve_level\n"
                                             f"solve_level('/work/{level.name}/input.json')\n", encoding="utf-8")
-            (level / "model.export").write_text("P actions make_etude\nP memory_limit 1024\nP time_limit 120\nP mpi_nbcpu 1\nP ncpus 1\n"
+            (level / "model.export").write_text(f"P actions make_etude\nP memory_limit {budgets['solver_memory_mb']}\nP time_limit {budgets['solver_time_seconds']}\nP mpi_nbcpu 1\nP ncpus 1\n"
                 f"F comm /work/{level.name}/model.comm D 1\nF mmed /work/{level.name}/mesh.msh D 20\n"
                 f"F rmed /work/{level.name}/results.med R 80\nF mess /work/{level.name}/aster.mess R 6\n"
                 f"F resu /work/{level.name}/aster.resu R 8\n", encoding="utf-8")
@@ -245,7 +252,7 @@ class StructuralFamilyCodeAsterAdapter:
                        "--bind", str(output.resolve()) + ":/work:rw", "--bind", str(preferences.resolve()) + ":" + str(Path.home()) + ":rw",
                        "--bind", str(scratch.resolve()) + ":/tmp:rw", "--pwd", "/work", str(image),
                        "/bin/bash", "--noprofile", "--norc", "-c", CONTAINER_SCRIPT, "caelab-codeaster", f"/work/{level.name}/model.export"]
-            _process(command, level, "solver")
+            _process(command, level, "solver", timeout=budgets["subprocess_timeout_seconds"])
             raw, record = _checked_worker(level, expected, input_sha, sources)
             save_json(level / "parsed_fields.json", record)
             _assert_sources(output, sources)
@@ -270,7 +277,6 @@ class StructuralFamilyCodeAsterAdapter:
             "native_fields": [f"simulation/{level.name}/results.med" for level, _ in meshes],
             "mesh_response": assessment["mesh_response"], "container_isolation": {"cleanenv": True, "containall": True, "no_home": True,
             "home_content": "Fresh experiment-local preferences", "tmp_content": "Fresh per-level disk scratch", "scratch_retention": "Preserve on failure; remove only after valid extraction"},
-            "process_budgets": {"solver_memory_mb": 1024, "solver_time_seconds": 120, "subprocess_timeout_seconds": PROCESS_TIMEOUT},
             "solver": {"linear_method": "MUMPS", "measured_linear_residual": None, "residual_status": "UNKNOWN: assembled A/u/b not exported"}})
         result = {"status": "COMPLETED" if all(row["status"] == "PASS" for row in checks) else "REJECTED",
                   "solver_status": "COMPLETED", "converged": True, "checks": checks, "metrics": assessment["metrics"],
