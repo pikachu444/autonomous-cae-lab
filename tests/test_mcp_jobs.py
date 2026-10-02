@@ -22,7 +22,7 @@ def test_actual_stdio_submits_inspects_and_lists_without_native_execution(tmp_pa
             async with ClientSession(reader, writer) as session:
                 await session.initialize()
                 names = {tool.name for tool in (await session.list_tools()).tools}
-                assert {"research_job_start", "research_job_inspect", "research_jobs_list"} <= names
+                assert {"research_job_start", "research_job_inspect", "research_jobs_list", "research_job_cancel"} <= names
 
                 async def call(name, arguments):
                     response = await session.call_tool(name, arguments)
@@ -40,12 +40,17 @@ def test_actual_stdio_submits_inspects_and_lists_without_native_execution(tmp_pa
                         break
                     await asyncio.sleep(.02)
                 assert job["status"] == "COMPLETED" and job["result"]["id"] == "S-stdio-job"
-                assert job["job_control"]["cancel_supported"] is False
+                assert job["job_control"]["cancel_supported"] is True
+                assert job["job_control"]["immediate_stop_guaranteed"] is False
                 assert job["job_control"]["completion_is_numerical_pass"] is False
                 study = await call("study_inspect", {"study_id": "S-stdio-job"})
                 assert study == job["result"]
                 listed = await call("research_jobs_list", {})
                 assert listed["jobs"][0]["id"] == created["id"]
+                late = await call("research_job_cancel", {"job_id": created["id"]})
+                assert late["status"] == "COMPLETED" and late["result"] == job["result"]
+                unknown = await session.call_tool("research_job_cancel", {"job_id": "J-foreign"})
+                assert unknown.isError
                 denied = await session.call_tool("research_job_start", {
                     "operation": "shell", "arguments": {"command": "arbitrary command"}})
                 assert denied.isError

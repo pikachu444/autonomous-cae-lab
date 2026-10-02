@@ -105,9 +105,15 @@ existing LabService. Synchronous MCP writers share its admission lock; no
 optimizer or engineering rules move into transport. Code_Aster adapters
 resolve local execution budgets outside physical settings and retain live
 process state/logs. Job completion is distinct from numerical qualification.
-Cancellation, restart recovery, cross-process coordination and guarded native
-Research admission/lifecycle for background jobs remain open. Local stdio
-source acceptance does not establish a live OpenScience or solver benchmark.
+Common process-local cancellation tokens span existing LabService workers and
+numerical candidate checkpoints. Adapters own native process isolation and
+syntax; Code_Aster and structural-family CalculiX stop their owned groups on
+observed cancellation. Failed cleanup retains handles and admission in
+CLEANUP_PENDING; retries serialize ownership checks/signals/reaping. Normal
+resident shutdown waits cooperatively. Unwired adapters, restart recovery,
+cross-process coordination and actual guarded native Research lifecycle remain
+open. Local source/stdio acceptance does not establish a live OpenScience or
+solver benchmark.
 
 `openscience/contract.md` fixes operation names, JSON input/output and failure
 semantics. The actual stdio MCP bridge uses the same Core. Task-owned local

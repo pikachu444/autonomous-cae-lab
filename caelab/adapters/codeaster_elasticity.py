@@ -15,7 +15,6 @@ import os
 from pathlib import Path
 import re
 import shutil
-import signal
 import subprocess
 from typing import Any
 
@@ -24,6 +23,8 @@ from plugins.elasticity.reference import (analytical_reference, assess, model_de
                                          validate_settings)
 from .codeaster_worker import coordinate_bijection, parse_field_tables
 from ..storage import save_json, utc_now
+from ..execution_control import (ExecutionCancelled, ExecutionCleanupFailed,
+                                check_cancelled, wait_for_process, stop_owned_process)
 from .codeaster_execution import process_budgets
 
 
@@ -317,17 +318,21 @@ def _process(command: list[str], folder: Path, label: str, *, timeout: int | Non
         state.update(status=status, finished_utc=utc_now(), **details)
         save_json(state_path, state)
 
-    def stop_owned(process):
-        # Native execution is Linux/WSL. An isolated process group owns its
-        # runner and solver children; a wall budget must not leave them running.
-        if os.name == "posix":
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-        elif process.poll() is None:
-            process.kill()
-        process.wait()
+    def stop_checked(process, reason):
+        try:
+            stop_owned_process(process, isolated_group=os.name == "posix")
+        except ExecutionCleanupFailed:
+            state.update(status="CLEANUP_PENDING", return_code=process.returncode,
+                         reason="GROUP_CLEANUP_UNCONFIRMED", termination_reason=reason,
+                         cleanup_observed_utc=utc_now())
+            save_json(state_path, state)
+            raise
+
+    try:
+        check_cancelled()
+    except ExecutionCancelled:
+        finish("CANCELLED", reason="USER_REQUEST")
+        raise
 
     try:
         with (folder / f"{label}.stdout.log").open("wb") as stdout, (folder / f"{label}.stderr.log").open("wb") as stderr:
@@ -336,15 +341,21 @@ def _process(command: list[str], folder: Path, label: str, *, timeout: int | Non
             try:
                 state.update(status="RUNNING", pid=process.pid)
                 save_json(state_path, state)
-                process.wait(timeout=timeout)
+                wait_for_process(process, timeout=timeout)
+            except ExecutionCancelled:
+                stop_checked(process, "USER_REQUEST")
+                stderr.write(b"\nUser cancellation observed; numerical verdict remains unknown\n")
+                stderr.flush()
+                finish("CANCELLED", return_code=process.returncode, reason="USER_REQUEST")
+                raise
             except subprocess.TimeoutExpired as exc:
-                stop_owned(process)
+                stop_checked(process, "WALL_TIME_BUDGET")
                 stderr.write(b"\nUser wall-time budget exhausted; numerical verdict remains unknown\n")
                 stderr.flush()
                 finish("BUDGET_EXHAUSTED", return_code=process.returncode, reason="WALL_TIME_BUDGET")
                 raise RuntimeError(f"{label} wall-time budget exhausted; partial logs/results are retained; numerical verdict UNKNOWN") from exc
             except BaseException:
-                stop_owned(process)
+                stop_checked(process, "INTERRUPTED")
                 finish("INTERRUPTED", return_code=process.returncode)
                 raise
     except OSError as exc:
@@ -437,13 +448,14 @@ class CodeAsterElasticityAdapter:
     domain = "elasticity"
     physics_domain = "structural"
     analysis_type = "linear_static"
-    version = "1.1"
+    version = "1.2"
     default_metrics = ["axial_tip_displacement", "max_component_displacement_error", "displacement_relative_error",
                        "max_component_stress_error", "stress_relative_error", "reaction_x",
                        "reaction_absolute_error", "reaction_relative_error",
                        "mesh_axial_displacement_difference", "mesh_agreement_relative"]
     input_source_files = (Path(__file__).resolve(), WORKER, _DOMAIN_SOURCE,
-                          Path(__file__).with_name("codeaster_execution.py"))
+                          Path(__file__).with_name("codeaster_execution.py"),
+                          Path(__file__).resolve().parents[1] / "execution_control.py")
 
     def describe_inputs(self, settings: dict) -> list[dict]:
         normalized = validate_settings(settings)

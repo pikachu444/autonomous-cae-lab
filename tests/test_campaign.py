@@ -46,6 +46,29 @@ def _plan(lab):
                         analysis_settings={"load": {"force_N": 100}})
 
 
+def test_user_cancel_preserves_first_journal_and_blocks_the_next_candidate(tmp_path):
+    from caelab.execution_control import CancellationToken, ExecutionCancelled, cancellation_scope
+    token = CancellationToken()
+
+    class RequestAfterAnalysis(CountingAnalysis):
+        def solve(self, *args, **kwargs):
+            result = super().solve(*args, **kwargs)
+            token.request()
+            return result
+
+    adapter = RequestAfterAnalysis()
+    lab = _lab(tmp_path, adapter)
+    _plan(lab)
+    with cancellation_scope(token), pytest.raises(ExecutionCancelled):
+        lab.run_doe("C-pitch")
+    assert adapter.calls == 1 and token.observed
+    journal = tmp_path / "campaigns/C-pitch/journal/001.json"
+    assert journal.is_file()
+    assert lab.inspect_doe("C-pitch")["completed_samples"] == 1
+    assert not (tmp_path / "experiments/E-C-pitch-002").exists()
+    assert not (tmp_path / "campaigns/C-pitch/result.json").exists()
+
+
 def test_seeded_plan_invalid_cad_skips_solver_and_replay_is_verified(tmp_path):
     adapter = CountingAnalysis()
     lab = _lab(tmp_path, adapter)

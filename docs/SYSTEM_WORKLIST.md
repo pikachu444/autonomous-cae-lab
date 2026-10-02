@@ -1,6 +1,16 @@
 # Sequential system worklist
 
-## Long-running operations: implemented, focused verification passed
+## Current source checkpoint: cooperative cancellation/normal shutdown
+
+MCP/HTTP/UI cancel uses existing LabService and common adapter/candidate tokens.
+Cleanup failures retain ownership and writer/store admission; concurrent retry
+P2 corrected with serialized checks/reaping. 511 distinct focused checks covered
+this unit, final changed paths52PASS, independent source review closed.
+Record: `../benchmarks/records/20261002-research-job-cancellation-development.json`.
+Continue ordered fixture/later-phase development; keep native/profile/GUI/full
+benchmarks and retained failures in the independent verification queue.
+
+## Historical checkpoint: long-running operations and301 focused checks
 
 ADR0018 reuses LabService for three MCP job operations, sharing writer admission
 with17 existing synchronous tools. All three Code_Aster adapters now use
@@ -30,7 +40,7 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 
 | Development sequence | Implementation work | Verification queue |
 | --- | --- | --- |
-| D0 current | Source implemented/focused checks301PASS: service reuse, MCP submit/inspect, configurable budgets/live logs; next owned cancellation/shutdown | Native lifecycle/cancellation/profile admission; no new solver proof yet |
+| D0 integrated | Resident submit/inspect/cancel, configurable Code_Aster budgets/live logs, owned cleanup and normal shutdown; focused checks/review pass | Actual native cancellation/guard admission, unwired adapter controls, restart/multiprocess |
 | D1 Phase2 | Fixture material/load/interfaces/stress outputs; reuse CAD and child analysis | Existing beam accuracy, roof Aster completion, mesh/reaction/stress/reference checks |
 | D2 Phase3 | Integrate preserved269d8bf campaign; stopping/constraints and wider variables | Numerical convergence, active constraints, interruption/replay |
 | D3 Phase4 | Extend declared domains/boundaries/time/vector/coupled forms | Manufactured/reference solutions and cross-backend/parallel checks |

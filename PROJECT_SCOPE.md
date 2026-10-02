@@ -1,6 +1,18 @@
 # Autonomous CAE Lab — project scope and requirement ledger
 
-## Long-running operations: implemented, focused verification passed
+## Current execution development checkpoint
+
+Cooperative job cancel/owned cleanup and normal resident shutdown are implemented
+and locally checked; two source-review P2 findings are closed. 511 distinct
+focused checks covered the unit, final changed paths52PASS. No new native,
+provider, official GUI, engineering qualification or whole-phase PASS.
+Record: `benchmarks/records/20261002-research-job-cancellation-development.json`.
+Next ordered development is fixture conditions/stress and existing later-phase
+modules. All original52 requirements/descriptions and UNKNOWN/NOT_RELEASED stay.
+Actual native lifecycle/guard admission and full numerical verification remain
+separate open gates. Exact prior b492 CI has8SUCCESS/2FAIL; failures are retained.
+
+## Historical checkpoint: long-running operations and301 focused checks
 
 ADR0018 reuses LabService for three MCP job operations, sharing writer admission
 with17 existing synchronous tools. All three Code_Aster adapters now use

@@ -41,7 +41,8 @@ def _service() -> LabService:
 
 
 def _control_metadata() -> dict:
-    return {"scope": "PROCESS_RESIDENT", "cancel_supported": False,
+    return {"scope": "PROCESS_RESIDENT", "cancel_supported": True,
+            "cancel_mode": "COOPERATIVE_CHECKPOINTS", "immediate_stop_guaranteed": False,
             "completion_is_numerical_pass": False}
 
 
@@ -71,6 +72,20 @@ def list_jobs() -> dict:
                 "job_control": _control_metadata()}
 
 
+def cancel(job_id: str) -> dict:
+    """Request cancellation of this resident's job; keep reading until terminal."""
+    with _lock:
+        return {**_service().cancel(job_id), "job_control": _control_metadata()}
+
+
+def shutdown(timeout: float = 5.0) -> dict:
+    """Close admission and request owned jobs to stop; report any pending work."""
+    with _lock:
+        if _resident is None:
+            return {"accepting_jobs": False, "pending": [], "joined": True}
+        return _resident.shutdown(timeout=timeout)
+
+
 @contextmanager
 def synchronous_writer() -> Iterator[None]:
     """Prevent synchronous MCP writes from overlapping resident async jobs."""
@@ -78,7 +93,11 @@ def synchronous_writer() -> Iterator[None]:
     from apps.lab.service import ServiceError
 
     with _lock:
-        if any(job["status"] == "RUNNING" for job in _service().overview()["jobs"]):
+        overview = _service().overview()
+        if not overview.get("accepting_jobs", True):
+            raise ServiceError(503, "The resident is shutting down; synchronous writing is blocked")
+        if any(job["status"] in {"RUNNING", "CANCEL_REQUESTED", "CLEANUP_PENDING"}
+               for job in overview["jobs"]):
             raise ServiceError(409, "An asynchronous job is running; synchronous writing is blocked")
         _synchronous_depth += 1
         try:

@@ -10,6 +10,7 @@ from typing import Any
 from filelock import FileLock
 
 from .contracts import CapabilityUnavailable
+from .execution_control import check_cancelled
 from .schema import validate as validate_schema
 from .storage import canonical_hash, check_id, load_json, save_json, source_identity, utc_now
 
@@ -169,9 +170,11 @@ def _existing_or_run(lab, plan: dict, item: dict, *, analysis: bool,
 
 
 def _sample_record(lab, plan: dict, item: dict) -> dict:
+    check_cancelled()
     cad = _existing_or_run(lab, plan, item, analysis=False)
     analysis = None
     if plan["analysis"] and cad["status"] == "COMPLETED_REVIEW_REQUIRED":
+        check_cancelled()
         analysis = _existing_or_run(lab, plan, item, analysis=True)
     return _record(lab, plan, item, cad, analysis)
 
@@ -234,6 +237,7 @@ def run_doe(lab, campaign_id: str) -> dict:
             journal = folder / "journal"
             journal.mkdir(exist_ok=True)
             for item in plan["samples"]:
+                check_cancelled()
                 _verify_current_model(lab, plan, snapshot)
                 row = _sample_record(lab, plan, item)
                 if row["analysis_experiment_id"]:

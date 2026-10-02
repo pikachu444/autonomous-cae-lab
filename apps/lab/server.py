@@ -8,6 +8,7 @@ import mimetypes
 from pathlib import Path
 import re
 import secrets
+import sys
 from urllib.parse import parse_qs, unquote, urlsplit
 
 from .service import LabService, ServiceError, contained
@@ -133,6 +134,13 @@ class LabHandler(BaseHTTPRequestHandler):
                     if set(body) != {"operation", "arguments"}:
                         raise ServiceError(400, "Job requires operation and arguments")
                     return self._json(202, self.server.service.submit(body["operation"], body["arguments"]))
+                cancellation = re.fullmatch(r"/api/jobs/([^/]+)/cancel", path)
+                if cancellation:
+                    if body:
+                        raise ServiceError(400, "Cancellation requires an empty JSON object")
+                    job = self.server.service.cancel(cancellation.group(1))
+                    return self._json(202 if job["status"] in {"CANCEL_REQUESTED", "CLEANUP_PENDING"}
+                                      else 200, job)
                 raise ServiceError(404, "Unknown POST route")
             return self._get(path, query)
         except ServiceError as exc:
@@ -222,7 +230,23 @@ def main(argv=None):
     except KeyboardInterrupt:
         pass
     finally:
-        server.server_close()
+        try:
+            announced = False
+            while True:
+                try:
+                    shutdown = server.service.shutdown(timeout=1.0)
+                except KeyboardInterrupt:
+                    # Another cooperative interruption is not proof that a
+                    # daemon worker or its owned native children have stopped.
+                    continue
+                if shutdown["joined"] and not shutdown["pending"]:
+                    break
+                if not announced:
+                    print("Waiting for cooperative Lab worker shutdown; new jobs are closed. "
+                          "Native termination is not yet confirmed.", file=sys.stderr, flush=True)
+                    announced = True
+        finally:
+            server.server_close()
 
 
 if __name__ == "__main__":

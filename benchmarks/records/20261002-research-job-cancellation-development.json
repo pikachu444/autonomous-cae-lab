@@ -1,0 +1,213 @@
+{
+  "schema_version": "1.0",
+  "unit": "research-job-cancellation-development-20261002-01",
+  "status": "PASS_BOUNDED_SOURCE_AND_LOCAL_PROCESS_CONTROL",
+  "base_commit": "b492ca9349d9fc59755937c3469bdff09db8157c",
+  "source_identity": "Final precommit file bytes below; commit/index identity verified at publication. This is not a clean-source native solver acceptance.",
+  "source_files": [
+    {
+      "path": "caelab/execution_control.py",
+      "bytes": 5893,
+      "sha256": "3cc000582bbbf914478c5ce165dd3c1f3502a5f4b3672cef68572e53a9836418"
+    },
+    {
+      "path": "caelab/adapters/codeaster_elasticity.py",
+      "bytes": 41300,
+      "sha256": "956e84044d0b35780a23648577771236b708fefeb8d69492b6d85cdf4a25165a"
+    },
+    {
+      "path": "caelab/adapters/codeaster_plasticity.py",
+      "bytes": 27196,
+      "sha256": "28343597c519d05253f6bb9524759bb31b767c4b9b5c2946f0098524723d45c2"
+    },
+    {
+      "path": "caelab/adapters/structural_family_codeaster.py",
+      "bytes": 19234,
+      "sha256": "abb632cc5e459deac175209d7bde1ba0f8f84b3b5b7652c9c3f0252fe966c1c9"
+    },
+    {
+      "path": "caelab/adapters/structural_family_calculix.py",
+      "bytes": 55239,
+      "sha256": "d3120ffa4c927c478f9706127b973a8089d3857f4e8edfddace169d735bdf1ab"
+    },
+    {
+      "path": "caelab/campaign.py",
+      "bytes": 19650,
+      "sha256": "4160797b4006459a1aea872fd591200e30a918530aad6f463a3727f65554283c"
+    },
+    {
+      "path": "caelab/optimization.py",
+      "bytes": 40012,
+      "sha256": "0c32c85fc30111eb0d7f38d90c766465e75b981f3edb334f867fec44f80315a9"
+    },
+    {
+      "path": "apps/lab/service.py",
+      "bytes": 34707,
+      "sha256": "9062b302cdd7f179fdc81357b82f53783c758317acf8ec443ff2272235e8f5a4"
+    },
+    {
+      "path": "apps/lab/server.py",
+      "bytes": 12352,
+      "sha256": "f9e46d65552e276cfd5677855a3a5334800ad1bbba25a965f1ffb9fa9aa556ea"
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "bytes": 57308,
+      "sha256": "b35b4f051485d03d6b83794b1dd875611ebe54da57a5bcd4466fc9d1d4ff3419"
+    },
+    {
+      "path": "apps/lab/static/index.html",
+      "bytes": 22055,
+      "sha256": "5948d3bff1c36ca89ddbef4144d369535e8c417c1e67ac2fb7d17182bcdee5a5"
+    },
+    {
+      "path": "openscience/jobs.py",
+      "bytes": 3849,
+      "sha256": "fb5432f3047290f1d8f272159e65351fc17446d75e51649225fc710432572485"
+    },
+    {
+      "path": "openscience/mcp_server.py",
+      "bytes": 19084,
+      "sha256": "0b75721b9186c01cf27fbaca5996e2676b1de4aab9c456ab3c31ea497d6e56da"
+    }
+  ],
+  "implemented": [
+    "Common process-local cancellation token; original owned Popen retained on cleanup failure",
+    "MCP research_job_cancel plus HTTP cancellation and UI polling/cancel/retry",
+    "CANCEL_REQUESTED and CLEANUP_PENDING retain single-writer/store admission",
+    "Three Code_Aster adapters and structural-family CalculiX stop owned POSIX groups and preserve partial logs",
+    "DOE and SciPy candidate checkpoints retain prior journals and stop later candidates",
+    "Normal HTTP/stdio shutdown closes admission and cooperatively waits for owned jobs/resources",
+    "Cleanup retry serializes ownership check, signal, reap and removal; potentially reused reaped group IDs are never killed"
+  ],
+  "test_environment": {
+    "os": "Windows host / Ubuntu WSL",
+    "python": "3.12.3",
+    "native_cae_solver_calls": 0,
+    "provider_calls": 0,
+    "official_gui_acceptance": "NOT_RUN"
+  },
+  "checks": {
+    "distinct_passed": 511,
+    "repeated_passes_not_added": true,
+    "initial_failure": "One Root test incorrectly expected409 for closed-service admission;503 is the implemented unavailable status, expectation corrected and rechecked",
+    "batches": [
+      {
+        "id": "local-process-and-ccx-regression",
+        "command": "pytest tests/test_execution_control.py tests/test_codeaster_execution.py tests/test_structural_family_process_control.py tests/test_structural_family_calculix.py -q -p no:cacheprovider",
+        "passed": 198,
+        "seconds": 19.98,
+        "stage": "Before final cleanup mutex correction; existing native field inputs are synthetic"
+      },
+      {
+        "id": "transport-codeaster-and-candidates",
+        "command": "pytest tests/test_openscience_jobs.py tests/test_mcp_jobs.py tests/test_lab_cancellation.py tests/test_codeaster_adapter.py tests/test_codeaster_plasticity.py tests/test_structural_family_codeaster.py tests/test_mcp_runtime_identity.py tests/test_campaign.py::test_user_cancel_preserves_first_journal_and_blocks_the_next_candidate tests/test_optimization.py::test_user_cancel_preserves_first_evaluation_and_stops_numerical_candidates -q -p no:cacheprovider",
+        "passed": 310,
+        "seconds": 94.91,
+        "stage": "Before final cleanup mutex correction and two final service failure-path cases"
+      },
+      {
+        "id": "final-service-owner-checks",
+        "passed": 27,
+        "seconds": 5.77,
+        "scope": "Final service test file;25 overlap the310 batch and2 add critical cleanup/owner cases"
+      },
+      {
+        "id": "final-control-after-mutex-correction",
+        "command": "pytest tests/test_execution_control.py tests/test_lab_cancellation.py tests/test_openscience_jobs.py tests/test_mcp_jobs.py -q -p no:cacheprovider",
+        "passed": 52,
+        "seconds": 13.94,
+        "scope": "Final changed control paths; one added concurrency regression, all other cases overlap prior batches"
+      },
+      {
+        "id": "human-ui-syntax",
+        "command": "node --check apps/lab/static/app.js",
+        "status": "PASS"
+      }
+    ]
+  },
+  "review": {
+    "status": "PASS_READ_ONLY_SOURCE",
+    "reviewer": "official_project_workflow",
+    "native_calls": 0,
+    "closed_findings": [
+      "Cleanup signal failure previously released writer with native ownership unconfirmed; now CLEANUP_PENDING retains original handle and admission",
+      "Concurrent cleanup retries could race with leader reaping; owner-check/signal/reap/removal now share one RLock"
+    ],
+    "remaining_p1": 0,
+    "remaining_p2": 0,
+    "scope": "Source execution/adapter/service/MCP/UI/candidate boundaries; not native physics or full project",
+    "canonicalization_after_review": "Only three owned files CRLF to LF; AST equality checked, affected45 checks reexecuted. Common helper/retry fix bytes match independent review."
+  },
+  "retention": {
+    "production_and_tests": "Committed source and tests with this public record",
+    "local_receipt": "artifacts/development-cancellation-20261002-01",
+    "prior_native_stores": "UNCHANGED; no new native experiment store",
+    "raw_remote_backup": "UNKNOWN; public source push does not retain private historical raw evidence"
+  },
+  "preceding_exact_ci": {
+    "source_commit": "b492ca9349d9fc59755937c3469bdff09db8157c",
+    "run_id": 36984895065,
+    "status": "COMPLETED",
+    "conclusion": "FAILURE",
+    "jobs_success": 8,
+    "failures": [
+      {
+        "job_id": 110768560617,
+        "name": "codeaster",
+        "failure_stage": 7,
+        "installed_and_elasticity_passed": true,
+        "observed": "Native numerical checks failed: E-ansys_vmd1_regular-Fz-aster",
+        "raw_numerical_cause": "UNKNOWN; inspected log does not identify FACTOR_57 or timeout"
+      },
+      {
+        "job_id": 110768560744,
+        "name": "explicit",
+        "failure_stage": 5,
+        "observed": "Pinned OpenRadioss asset download HTTP404 / curl22 before checksum and solver execution",
+        "pin_preserved": "latest-20260728 / source a62b27e6baa555d222a580d6218867d0be4d70b5 / ZIP598ed7b2905a7bacc8d1781470c250ac79d7558c39ba962768edf3644644fe33",
+        "replacement_official_asset": "UNKNOWN"
+      }
+    ]
+  },
+  "new_source_ci": "TO_CHECK_AFTER_SOURCE_PUBLICATION",
+  "limits": [
+    "Unwired native adapters only observe cooperative operation/candidate checkpoints; immediate stop not guaranteed",
+    "Actual native busy cancellation, guarded OpenScience profile admission and same-revision GUI acceptance remain open",
+    "Forced process death, restart persistence, multiprocess ownership and HPC cancellation unqualified",
+    "Existing CCX240 and other adapter budgets remain separate development/verification queue; no physics thresholds changed",
+    "Two candidate tests use actual CAD/SciPy with test-only counting analysis, not native numerical optimization acceptance",
+    "Original52 requirements and P2.2 remain OPEN; all engineering qualification remains UNKNOWN/NOT_RELEASED"
+  ],
+  "next_development": "Reuse existing fixture CAD/STEP/Gmsh/CCX for conditions/stress integration, then existing later-phase modules; consolidated native/reference validation separately",
+  "source_normalization": {
+    "reason": "Three owned files had Windows CRLF; canonical Git index is LF. Preserve Git configuration, normalize only these owned source files and recheck affected control/candidate paths.",
+    "files": [
+      {
+        "path": "caelab/campaign.py",
+        "before_sha256": "aba64d3af8459c76b7d9a7fecd09ac500edfc7d74eae3bb64d94207006db3118",
+        "after_sha256": "4160797b4006459a1aea872fd591200e30a918530aad6f463a3727f65554283c",
+        "ast_unchanged": true
+      },
+      {
+        "path": "caelab/optimization.py",
+        "before_sha256": "02e4e6211160056469ca6a367f8746c1f8dbcc08e344c25ef38be28d56157b29",
+        "after_sha256": "0c32c85fc30111eb0d7f38d90c766465e75b981f3edb334f867fec44f80315a9",
+        "ast_unchanged": true
+      },
+      {
+        "path": "apps/lab/service.py",
+        "before_sha256": "96ad4fc1421324453c4d01737d4156176bd17d027e404c9ecedbe77dcc9058a9",
+        "after_sha256": "9062b302cdd7f179fdc81357b82f53783c758317acf8ec443ff2272235e8f5a4",
+        "ast_unchanged": true
+      }
+    ],
+    "affected_recheck": {
+      "status": "PASS",
+      "passed": 45,
+      "seconds": 53.55,
+      "warning": "Existing CadQuery ast.NameConstant deprecation",
+      "scope": "Final canonical LF service/transport and DOE/SciPy candidate paths; repeated cases not added to distinct511"
+    }
+  }
+}

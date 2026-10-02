@@ -3,18 +3,26 @@
 ## Additive long-running job operations (ADR0018)
 
 `research_job_start(operation, arguments)` reuses the existing LabService
-operation allowlist and returns a RUNNING job immediately. `research_job_inspect(job_id)` reads its actual RUNNING/COMPLETED/FAILED state and Core result/error;
-`research_jobs_list()` lists resident jobs. Job metadata explicitly states
-PROCESS_RESIDENT, cancel_supported=false and completion_is_numerical_pass=false.
+operation allowlist and returns a RUNNING job immediately. `research_job_inspect(job_id)` reads execution state and Core result/error;
+`research_jobs_list()` lists resident jobs. `research_job_cancel(job_id)` requests
+cooperative cancellation. Metadata declares PROCESS_RESIDENT,
+cancel_supported=true, COOPERATIVE_CHECKPOINTS, immediate_stop_guaranteed=false
+and completion_is_numerical_pass=false. Cancellation requests remain active;
+only observed requests with confirmed owned cleanup become CANCELLED. Failed
+cleanup stays CLEANUP_PENDING and blocks writers/store switching. Retained
+unreaped handles support bounded cleanup retries; owner checks/signals/reaping
+are serialized. Potentially reused reaped group IDs are never killed.
 No arbitrary command/path, extra keyword or concurrent writer is admitted.
 Existing synchronous writer tools share admission; existing readers remain.
 CAELAB_STORE is fixed for the resident lifetime; drift requires a new resident.
 
 These operations passed focused source and actual local-stdio metadata checks.
 Historical native Research profile tool universes/lifecycle have not been
-expanded. New live guarded OpenScience acceptance, cancellation, shutdown with
-busy background jobs, restart recovery and multi-process coordination remain
-OPEN. Keep the resident alive while a background job runs. No new numerical/
+expanded. Local cancellation/normal shutdown and tiny-process checks are
+implemented; actual native busy cancellation, guarded lifecycle admission,
+restart recovery and multi-process coordination remain OPEN. Normal stdio/HTTP
+shutdown keeps the resident alive until its owned jobs/resources are terminal.
+Unwired native stages can finish without observing a request. No new numerical/
 physical result follows from submission or transport completion.
 
 Code_Aster's short fixed solver/wall limits are replaced by local policy:

@@ -12,9 +12,9 @@ an uncommitted CPU300/wall420 replacement is preserved as a rejected proposal.
 Neither increasing that short fixed cap nor repeating the same solve is the
 current development task. Preserve the original failures and all thresholds.
 
-Reuse apps.lab.service.LabService for three additive MCP operations:
+Reuse apps.lab.service.LabService for four additive MCP operations:
 research_job_start(operation, arguments), research_job_inspect(job_id), and
-research_jobs_list(). The existing allowlist, argument checks, selected store,
+research_jobs_list(), and cooperative research_job_cancel(job_id). The existing allowlist, argument checks, selected store,
 single writer, result and error retention apply. One lazy resident binds the
 exact configured store for its lifetime. Existing synchronous MCP writers share
 admission with asynchronous submission; readers remain available. No second
@@ -39,10 +39,18 @@ resource exhaustion is not a strength/physical verdict or a numerical PASS.
 ## Alternatives and boundaries
 
 A new job engine would duplicate the existing local service. Daemon-thread
-termination is not safe solver cancellation. Cancellation, restart recovery,
-cross-process coordination, native Research profile admission and lifecycle
-ownership for background jobs therefore remain explicitly unsupported/open.
-Keep the resident alive while its jobs run; a job ID is not restart durability.
+termination is not safe solver cancellation. Common cancellation tokens are
+observed at process/candidate checkpoints; a request alone is not termination.
+Only confirmed owned cleanup and worker exit release a deferred terminal state.
+Cleanup failure retains the original Popen, partial evidence and writer/store
+admission in CLEANUP_PENDING. Retries serialize owner checks/signals/reaping;
+already reaped group IDs are probed for absence, never blindly signalled.
+The one-second stop-confirmation budget applies after termination is requested,
+not to solver research duration; exhaustion preserves pending ownership.
+Normal HTTP/stdio shutdown closes admission and cooperatively joins until
+terminal. Unwired adapters, forced process death, restart recovery,
+cross-process coordination and guarded native lifecycle remain explicitly open.
+A job ID is not restart durability.
 The new tools are source/local-stdio capabilities, not a live native OpenScience
 acceptance. Do not broaden historical guarded profiles merely from this ADR.
 
@@ -59,8 +67,11 @@ Focused local Python3.12 checks:197 execution/structural/plasticity/job checks,
 are synthetic. No new native solver/provider calls or benchmark qualification.
 A supplemental broad model suite was deferred after84 passes and an explicit
 Root-scoped interruption; its unfinished cases remain queued, not PASS.
-The source review found no required P1/P2 corrections; cancellation/lifecycle
-limits above remain. Exact new-source CI is reported separately after publication.
+This301-check checkpoint is historical. The next cancellation unit adds local
+process/HTTP/MCP/candidate checks and two bounded review corrections: failed
+cleanup must retain ownership; concurrent retries must not race with reaping.
+Record: benchmarks/records/20261002-research-job-cancellation-development.json.
+Exact new-source CI and native lifecycle qualification remain separate.
 
 R02/R08/R09/R11/R21/R25/R43/R45/R51/R52 advance through reusable execution and
 transport controls. All52 descriptions, Domain/Core/adapter boundaries, pinned

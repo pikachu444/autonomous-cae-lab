@@ -157,7 +157,8 @@ def research_job_start(operation: str, arguments: dict) -> dict:
 
     Poll research_job_inspect for this resident process. Existing Lab operation
     names/arguments apply; completion is not numerical approval. Cancellation
-    and restart recovery are not yet supported by this transport.
+    is cooperative; unwired native stages may finish before observing a request.
+    Restart recovery is not yet supported by this transport.
     """
     from openscience.jobs import start
     return start(operation, arguments)
@@ -165,7 +166,7 @@ def research_job_start(operation: str, arguments: dict) -> dict:
 
 @mcp.tool()
 def research_job_inspect(job_id: str) -> dict:
-    """Read RUNNING/COMPLETED/FAILED and the actual Core result/error, without rerunning the job."""
+    """Read execution/cancellation state and the actual Core result/error, without rerunning."""
     from openscience.jobs import inspect
     return inspect(job_id)
 
@@ -175,6 +176,13 @@ def research_jobs_list() -> dict:
     """List process-resident jobs; missing restart history is not proof of completion."""
     from openscience.jobs import list_jobs
     return list_jobs()
+
+
+@mcp.tool()
+def research_job_cancel(job_id: str) -> dict:
+    """Request cooperative cancellation; CANCEL_REQUESTED is still running, not a verdict."""
+    from openscience.jobs import cancel
+    return cancel(job_id)
 
 
 @mcp.tool()
@@ -406,4 +414,13 @@ def model_optimization_plan(study_id: str, campaign_id: str, backend: str, setti
 
 
 if __name__ == "__main__":
-    mcp.run(transport="stdio")
+    try:
+        mcp.run(transport="stdio")
+    finally:
+        from openscience.jobs import shutdown
+        closing = shutdown()
+        if closing["pending"]:
+            print("CAE Lab is closing: waiting for owned jobs to observe cancellation; partial evidence is retained.",
+                  file=sys.stderr, flush=True)
+        while closing["pending"] or not closing["joined"]:
+            closing = shutdown()

@@ -25,6 +25,7 @@ import sys
 
 from plugins.structural_families import reference as _domain
 from . import structural_family_mesh as _mesh
+from .. import execution_control as _execution
 from ..storage import save_json
 
 
@@ -32,7 +33,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 _SOURCE_FILES = (Path(__file__).resolve(), Path(_domain.__file__).resolve(),
                  Path(_mesh.__file__).resolve(),
                  _ROOT / "benchmarks/specifications/structural-families-v1.json",
-                 _ROOT / "caelab/storage.py")
+                 _ROOT / "caelab/storage.py", Path(_execution.__file__).resolve())
 _SOURCE_BYTES = {path: path.read_bytes() for path in _SOURCE_FILES}
 _SOURCE_HASHES = {path: hashlib.sha256(data).hexdigest() for path, data in _SOURCE_BYTES.items()}
 _PENDING = ["static_strength", "material_qualification", "physical_validation",
@@ -140,7 +141,7 @@ def _runtime_identity() -> dict:
 
 
 def _process(command: list[str], output: Path, label: str, *, timeout: int = _TIMEOUT) -> str:
-    """Retain file-backed logs and terminate the native process group on timeout."""
+    """Retain partial logs and stop only this owned group on cancel/interruption."""
     if type(timeout) is not int or not 0 < timeout <= _TIMEOUT:
         raise ValueError("Native process exceeds the fixed timeout budget")
     save_json(output / f"{label}.command.json", {"argv": command,
@@ -148,28 +149,54 @@ def _process(command: list[str], output: Path, label: str, *, timeout: int = _TI
     with (output / f"{label}.stdout.log").open("wb") as stdout, \
             (output / f"{label}.stderr.log").open("wb") as stderr:
         try:
+            _execution.check_cancelled()
+        except _execution.ExecutionCancelled:
+            save_json(output / f"{label}.exit.json", {"returncode": None, "timed_out": False,
+                      "cancelled": True, "reason": "USER_REQUEST"})
+            raise
+        try:
             process = subprocess.Popen(command, cwd=output.resolve(), stdin=subprocess.DEVNULL,
                                        stdout=stdout, stderr=stderr,
                                        start_new_session=os.name == "posix")
         except OSError as exc:
             stderr.write(f"{type(exc).__name__}: {exc}\n".encode("utf-8"))
             save_json(output / f"{label}.exit.json", {"returncode": None, "timed_out": False,
-                      "start_error": type(exc).__name__})
+                      "cancelled": False, "start_error": type(exc).__name__})
             raise RuntimeError("CalculiX process could not start; native logs retained") from exc
+
+        def stop_owned(reason: str, *, timed_out: bool, exception_type: str | None = None) -> None:
+            try:
+                _execution.stop_owned_process(process, isolated_group=os.name == "posix")
+            except _execution.ExecutionCleanupFailed:
+                state = {"returncode": process.returncode, "timed_out": timed_out,
+                         "cancelled": False, "cleanup_pending": True,
+                         "reason": "GROUP_CLEANUP_UNCONFIRMED", "original_reason": reason,
+                         "termination": "UNKNOWN"}
+                if exception_type is not None:
+                    state["exception_type"] = exception_type
+                save_json(output / f"{label}.exit.json", state)
+                raise
+
         try:
-            process.wait(timeout=timeout)
+            _execution.wait_for_process(process, timeout=timeout)
+        except _execution.ExecutionCancelled:
+            stop_owned("USER_REQUEST", timed_out=False)
+            save_json(output / f"{label}.exit.json", {"returncode": process.returncode,
+                      "timed_out": False, "cancelled": True, "reason": "USER_REQUEST"})
+            raise
         except subprocess.TimeoutExpired as exc:
-            if os.name == "posix":
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-            else:
-                process.kill()
-            process.wait()
-            save_json(output / f"{label}.exit.json", {"returncode": process.returncode, "timed_out": True})
+            stop_owned("WALL_TIME_BUDGET", timed_out=True)
+            save_json(output / f"{label}.exit.json", {"returncode": process.returncode,
+                      "timed_out": True, "cancelled": False, "reason": "WALL_TIME_BUDGET"})
             raise RuntimeError("CalculiX process timed out; partial native evidence retained") from exc
-    save_json(output / f"{label}.exit.json", {"returncode": process.returncode, "timed_out": False})
+        except BaseException as exc:
+            stop_owned("INTERRUPTED", timed_out=False, exception_type=type(exc).__name__)
+            save_json(output / f"{label}.exit.json", {"returncode": process.returncode,
+                      "timed_out": False, "cancelled": False, "reason": "INTERRUPTED",
+                      "exception_type": type(exc).__name__})
+            raise
+    save_json(output / f"{label}.exit.json", {"returncode": process.returncode, "timed_out": False,
+              "cancelled": False})
     # The actual Ubuntu 2.21 executable returns201 for its metadata-only -v
     # query. Admit only that exact banner/query; solver jobs remain zero-only.
     version_query_exit = (process.returncode == 201 and label == "ccx_version"

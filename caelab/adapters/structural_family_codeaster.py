@@ -32,7 +32,8 @@ _SOURCE_PATHS = {"adapter_source.py": Path(__file__).resolve(), "structural_fami
                  "domain_reference.py": _DOMAIN, "structural-families-v1.json": _SPEC,
                  "structural_family_mesh.py": _MESH, "codeaster_worker.py": _HELPER,
                  "runtime_helper.py": _RUNTIME,
-                 "codeaster_execution.py": Path(__file__).with_name("codeaster_execution.py")}
+                 "codeaster_execution.py": Path(__file__).with_name("codeaster_execution.py"),
+                 "execution_control.py": Path(__file__).resolve().parents[1] / "execution_control.py"}
 _PENDING = ["static_strength", "material_qualification", "physical_validation", "fatigue_durability", "model_qualification", "original_midas_replication"]
 _LIMITATIONS = [
     "The three fixed solid derivatives do not establish original MIDAS reproduction, torsion or independent shell rotations.",
@@ -147,7 +148,7 @@ class StructuralFamilyCodeAsterAdapter:
     domain = "structural_families"
     physics_domain = "structural"
     analysis_type = "linear_static"
-    version = "1.1"
+    version = "1.2"
     default_metrics = ["primary_response"]
     input_source_files = tuple(_SOURCE_PATHS.values())
 

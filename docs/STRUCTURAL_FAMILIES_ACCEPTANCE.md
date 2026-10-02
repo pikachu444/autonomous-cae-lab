@@ -1,6 +1,17 @@
 # Connected structural family acceptance
 
-## Long-running operations: implemented, focused verification passed
+## Current source-control checkpoint: cancellation is not numerical acceptance
+
+Code_Aster/structural-family CCX use common observed cancellation and owned-group
+cleanup. Failed cleanup retains ownership/CLEANUP_PENDING and blocks subsequent
+writers; retries serialize checks/signals/reaping. Focused source/local-process
+checks and independent review pass. No new native family/reference/cross-solver
+run: original beam/roof failures and all numerical thresholds remain unchanged.
+Record: `../benchmarks/records/20261002-research-job-cancellation-development.json`.
+Prior exact b492 CI beam Fz completion gate fails; its raw numerical cause is
+UNKNOWN from the inspected log. Further numerical validation is separately queued.
+
+## Historical checkpoint: long-running operations and301 focused checks
 
 ADR0018 reuses LabService for three MCP job operations, sharing writer admission
 with17 existing synchronous tools. All three Code_Aster adapters now use

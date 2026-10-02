@@ -27,6 +27,7 @@ _SOURCES = {
     "codeaster_plasticity_worker.py": Path(worker.__file__).resolve(),
     "plasticity_adapter.py": Path(__file__).resolve(),
     "codeaster_execution.py": Path(__file__).with_name("codeaster_execution.py"),
+    "execution_control.py": Path(__file__).resolve().parents[1] / "execution_control.py",
 }
 _SOURCE_BYTES = {name: path.read_bytes() for name, path in _SOURCES.items()}
 _SOURCE_SHA = {name: hashlib.sha256(data).hexdigest() for name, data in _SOURCE_BYTES.items()}
@@ -231,7 +232,7 @@ class CodeAsterPlasticityAdapter:
     domain = "elasticity"
     physics_domain = "structural"
     analysis_type = "nonlinear_static"
-    version = "1.1"
+    version = "1.2"
     default_metrics = ["peak_stress", "final_stress", "peak_eq_plastic_strain", "unload_residual_strain",
                        "plastic_work_density", "hardening_energy_density", "plastic_dissipation_density",
                        "max_component_displacement_error", "max_component_stress_error",

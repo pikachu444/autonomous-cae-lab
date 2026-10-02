@@ -1,6 +1,34 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
-## Long-running operations: implemented, focused verification passed
+## Current checkpoint: cooperative cancellation and owned cleanup
+
+LabService/MCP/HTTP/UI now share cooperative cancel/cleanup state. Three
+Code_Aster adapters and structural-family CalculiX retain partial logs and stop
+owned groups; DOE/SciPy candidate checkpoints preserve prior journals and block
+new candidates. CANCEL_REQUESTED/CLEANUP_PENDING keep writer/store admission
+closed. Cleanup failures retain original handles; concurrent retries serialize
+owner checks/signals/reaping. Normal resident shutdown closes admission and
+waits for owned jobs/resources. Unobserved late requests preserve their result.
+
+511 distinct focused checks covered this unit; final changed control paths
+passed52 checks after the last mutex correction. Independent review closes both
+P2 findings; no remaining P1/P2 in its source scope. Native field tests are
+synthetic; two tests use actual CAD/SciPy with counting analysis. No new native
+solver/provider/official GUI acceptance. Record:
+`benchmarks/records/20261002-research-job-cancellation-development.json`.
+
+Exact preceding b492 CI36984895065 completed:8 jobs SUCCESS; Code_Aster family
+beam Fz numerical completion gate FAILED (raw numerical cause UNKNOWN here),
+OpenRadioss installation FAILED HTTP404 before checksum/solver execution.
+Do not repeat unchanged failures or drop gates to obtain green CI.
+
+Next development: existing fixture conditions/stress integration, then the
+preserved optimization/PDE/nonlinear/explicit/advanced modules in phase order.
+Separate queue: actual native busy cancellation/guard admission, unwired adapter
+controls, same-revision GUI, full numerical/reference and retained failures.
+Original52/P2.2/physical qualification remain OPEN/UNKNOWN/NOT_RELEASED.
+
+## Historical checkpoint: long-running operations and301 focused checks
 
 ADR0018 reuses LabService for three MCP job operations, sharing writer admission
 with17 existing synchronous tools. All three Code_Aster adapters now use

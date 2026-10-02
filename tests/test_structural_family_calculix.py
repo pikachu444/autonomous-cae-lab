@@ -516,7 +516,8 @@ def test_process_timeout_kills_group_and_preserves_partial_files(tmp_path, monke
     class Process:
         pid, returncode = 91, None
         def wait(self, timeout=None):
-            if timeout is not None: raise subprocess.TimeoutExpired(["TEST_ONLY"], timeout)
+            if timeout == adapter._TIMEOUT: raise subprocess.TimeoutExpired(["TEST_ONLY"], timeout)
+            assert timeout == 1.0
             self.returncode = -9
         def kill(self): killed.append("process")
     def popen(argv, **kwargs):

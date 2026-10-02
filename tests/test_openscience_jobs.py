@@ -35,7 +35,7 @@ def finish(identifier):
     deadline = time.monotonic() + 5
     while True:
         job = jobs.inspect(identifier)
-        if job["status"] != "RUNNING":
+        if job["status"] not in {"RUNNING", "CANCEL_REQUESTED", "CLEANUP_PENDING"}:
             return job
         assert time.monotonic() < deadline, job
         time.sleep(.01)
@@ -65,7 +65,8 @@ def test_lazy_singleton_and_real_core_study_metadata(resident):
     assert completed["result"] == service.study("S-job")["study"]
     assert completed["result"]["research_question"] == "Is metadata retained?"
     assert completed["job_control"] == {
-        "scope": "PROCESS_RESIDENT", "cancel_supported": False,
+        "scope": "PROCESS_RESIDENT", "cancel_supported": True,
+        "cancel_mode": "COOPERATIVE_CHECKPOINTS", "immediate_stop_guaranteed": False,
         "completion_is_numerical_pass": False}
     listed = jobs.list_jobs()
     assert listed["jobs"] == [service.job(started["id"])]
@@ -181,6 +182,53 @@ def test_sync_context_blocks_other_thread_start_until_released(resident):
     thread.join(timeout=5)
     assert not thread.is_alive() and returned.is_set() and errors == []
     assert finish(results[0]["id"])["status"] == "COMPLETED"
+
+
+def test_cancel_pending_keeps_writer_blocked_and_late_completion_is_truthful(resident, monkeypatch):
+    jobs.list_jobs()
+    lab = jobs._resident._selected().lab
+    original = lab.create_study
+    entered, release = threading.Event(), threading.Event()
+
+    def uninterruptible_metadata(**arguments):
+        entered.set()
+        assert release.wait(5)
+        return original(**arguments)
+
+    monkeypatch.setattr(lab, "create_study", uninterruptible_metadata)
+    started = jobs.start("study_create", study_arguments())
+    try:
+        assert entered.wait(5)
+        requested = jobs.cancel(started["id"])
+        assert requested["status"] == "CANCEL_REQUESTED"
+        assert requested["cancel_requested"] and not requested["cancel_observed"]
+        with pytest.raises(ServiceError) as failure:
+            with jobs.synchronous_writer():
+                pytest.fail("Cancellation request released the running writer")
+        assert failure.value.status == 409
+        with pytest.raises(ServiceError):
+            jobs.start("study_create", study_arguments("S-overlap"))
+    finally:
+        release.set()
+    completed = finish(started["id"])
+    assert completed["status"] == "COMPLETED"
+    assert completed["cancel_requested"] and not completed["cancel_observed"]
+    assert (resident / "studies/S-job/study.json").exists()
+    assert jobs.cancel(started["id"]) == completed
+
+
+def test_shutdown_closes_owned_service_and_preserves_job_history(resident):
+    completed = finish(jobs.start("study_create", study_arguments())["id"])
+    closing = jobs.shutdown(timeout=0)
+    assert not closing["accepting_jobs"] and closing["pending"] == []
+    assert jobs.inspect(completed["id"]) == completed
+    with pytest.raises(ServiceError) as failure:
+        jobs.start("study_create", study_arguments("S-after-shutdown"))
+    assert failure.value.status == 503
+    with pytest.raises(ServiceError) as failure:
+        with jobs.synchronous_writer():
+            pytest.fail("A closed resident admitted a synchronous writer")
+    assert failure.value.status == 503
 
 
 def test_reentrant_sync_context_cannot_start_async_and_unlocks_after_error(resident):

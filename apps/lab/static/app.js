@@ -21,7 +21,9 @@ const labels = {
   PASS: "PASS · 통과", FAIL: "FAIL · 실패", UNKNOWN: "UNKNOWN · 미검증", WARNING: "WARNING · 검토",
   NOT_RELEASED: "NOT_RELEASED · 승인 없음", RELEASED: "RELEASED", VERIFIED: "VERIFIED · 해시 확인",
   NOT_CHECKED: "NOT_CHECKED · 미확인", IMPLEMENTED: "구현됨", EXPERIMENTAL: "실험 범위", PLANNED: "계획됨",
-  RUNNING: "실행 중", COMPLETED: "실행 완료", FAILED: "작업 실패", REJECTED: "검증 거절",
+  RUNNING: "실행 중", CANCEL_REQUESTED: "취소 처리 중", CANCELLED: "취소 완료",
+  CLEANUP_PENDING: "종료 확인 중",
+  COMPLETED: "실행 완료", FAILED: "작업 실패", REJECTED: "검증 거절",
   FAILED_EXECUTION: "실행 실패", COMPLETED_REVIEW_REQUIRED: "완료 · 검토 필요", NO_FEASIBLE_DESIGN: "유효한 후보 없음",
   CONVERGED: "수치 수렴", MAX_GENERATIONS: "세대 예산 종료", NOT_RUN: "실행 안 함",
 };
@@ -55,7 +57,7 @@ function badge(status, override) {
   const kind = ["PASS", "VERIFIED", "RELEASED"].includes(code) ? "pass"
     : ["FAIL", "FAILED", "REJECTED", "FAILED_EXECUTION", "NO_FEASIBLE_DESIGN"].includes(code) ? "fail"
       : ["UNKNOWN", "WARNING", "NOT_RELEASED"].includes(code) ? "unknown"
-        : ["RUNNING", "PLANNED"].includes(code) ? "pending" : code === "EXPERIMENTAL" ? "experimental" : "neutral";
+        : ["RUNNING", "CANCEL_REQUESTED", "CLEANUP_PENDING", "PLANNED"].includes(code) ? "pending" : code === "EXPERIMENTAL" ? "experimental" : "neutral";
   return el("span", override ?? labels[code] ?? code, `badge ${kind}`);
 }
 function action(label, handler, className = "button subtle compact") {
@@ -115,7 +117,8 @@ function writable() {
   return list(state.overview.stores).find((store) => store.id === active)?.writable === true;
 }
 function activeStore() { return typeof state.overview?.active_store === "object" ? state.overview.active_store.id : state.overview?.active_store; }
-function busy() { return state.submitting || state.job?.status === "RUNNING"; }
+function activeJob(job) { return ["RUNNING", "CANCEL_REQUESTED", "CLEANUP_PENDING"].includes(job?.status); }
+function busy() { return state.submitting || activeJob(state.job); }
 function available(operation) {
   const matching = list(state.overview?.capabilities).filter((item) => item.operation === operation);
   return !matching.length || matching.some((item) => item.callable === true);
@@ -204,7 +207,7 @@ function renderOverview() {
   select.value = state.studyId;
   const stats = clear("overviewStats");
   [["연구", studies.length, "기록한 질문과 가설"], ["실험", list(overview.experiments).length, "CAD · 구조 · PDE"],
-    ["탐색 계획", list(overview.campaigns).length, "DOE · 수치 최적화"], ["실행 중", list(overview.jobs).filter((job) => job.status === "RUNNING").length, "동시에 한 작업"]].forEach(([label, value, caption]) => {
+    ["탐색 계획", list(overview.campaigns).length, "DOE · 수치 최적화"], ["실행 중", list(overview.jobs).filter(activeJob).length, "동시에 한 작업"]].forEach(([label, value, caption]) => {
     const card = el("div", undefined, "stat-card"); card.append(el("span", label, "stat-label"), el("span", value, "stat-value"), el("span", caption, "stat-caption")); stats.append(card);
   });
   const capabilities = clear("capabilities");
@@ -230,7 +233,7 @@ async function loadOverview({ followJobs = true } = {}) {
     renderOverview();
     if (state.studyId) await loadStudy(state.studyId); else renderStudy();
     if (followJobs) {
-      const running = list(state.overview.jobs).find((job) => job.status === "RUNNING");
+      const running = list(state.overview.jobs).find(activeJob);
       if (running) { state.job = running; renderJob(); schedulePoll(); }
     }
   } catch (error) {
@@ -544,26 +547,33 @@ function renderJob() {
   $("jobTitle").textContent = operationNames[job.operation] ?? job.operation;
   const marker = badge(job.status); $("jobStatus").className = marker.className; $("jobStatus").textContent = marker.textContent;
   $("jobMessage").textContent = job.status === "RUNNING" ? "서버에서 실행 중입니다. 하나의 작업만 실행하며, 완료 또는 실패 상태를 계속 확인합니다."
+    : job.status === "CANCEL_REQUESTED" ? "취소를 요청했습니다. 실행 중인 단계가 중단 요청을 처리하는 동안 상태를 계속 확인합니다."
+    : job.status === "CLEANUP_PENDING" ? "솔버 종료가 확인되지 않았습니다. 다음 작업은 차단됩니다. 취소 버튼으로 같은 작업의 종료를 다시 요청할 수 있습니다."
+    : job.status === "CANCELLED" ? "작업이 중단 요청을 처리했습니다. 부분 로그와 실험 기록은 결과 목록에 보존됩니다. 수치 검증은 결과 기록에서 확인하세요."
     : job.status === "FAILED" ? `실행 실패: ${text(job.error)} · 부분 기록이 있으면 결과 목록에서 확인하세요.` : "작업이 끝났습니다. 실제 결과의 수치·CAD 검증과 미검증 항목은 기록에서 확인하세요.";
+  $("jobCancelBtn").hidden = !activeJob(job);
+  $("jobCancelBtn").disabled = job.status === "CANCEL_REQUESTED";
+  $("jobCancelBtn").textContent = job.status === "CLEANUP_PENDING" ? "종료 재시도" : "작업 취소";
   $("jobJson").textContent = pretty(job); updateControls();
 }
 function schedulePoll(delay = 1200) {
   clearTimeout(state.pollTimer);
-  if (state.job?.status === "RUNNING") state.pollTimer = setTimeout(pollJob, delay);
+  if (activeJob(state.job)) state.pollTimer = setTimeout(pollJob, delay);
 }
 async function pollJob() {
-  const identifier = state.job?.id; if (!identifier || state.job.status !== "RUNNING") return;
+  const identifier = state.job?.id; if (!identifier || !activeJob(state.job)) return;
   try {
     const job = await api(`/api/jobs/${idPath(identifier)}`);
     if (identifier !== state.job?.id) return;
     state.job = job; renderJob();
-    if (job.status === "RUNNING") { schedulePoll(); return; }
+    if (activeJob(job)) { schedulePoll(); return; }
     await loadOverview({ followJobs: false });
     const handler = state.handlers.get(identifier); state.handlers.delete(identifier);
     if (job.status === "COMPLETED" && handler) await handler(job.result);
     if (job.status === "FAILED") notify(`작업이 실패했습니다: ${text(job.error)}`);
+    if (job.status === "CANCELLED") notify("작업 취소가 완료됐습니다. 부분 기록은 보존됩니다.", true);
   } catch (error) {
-    if (state.job?.status === "RUNNING") {
+    if (activeJob(state.job)) {
       $("jobMessage").textContent = `상태 연결을 확인할 수 없습니다: ${error.message} · 실행 실패로 단정하지 않고 다시 확인합니다.`; schedulePoll(4000);
     } else notify(`작업 상태는 ${labels[state.job?.status] ?? state.job?.status}입니다. 후속 기록 읽기 실패: ${error.message}`);
   }
@@ -576,7 +586,7 @@ async function runJob(operation, arguments_, handler) {
   try {
     const job = await api("/api/jobs", { method: "POST", body: JSON.stringify({ operation, arguments: arguments_ }) });
     state.job = job; if (handler) state.handlers.set(job.id, handler); renderJob();
-    if (job.status === "RUNNING") schedulePoll();
+    if (activeJob(job)) schedulePoll();
     else {
       await loadOverview({ followJobs: false });
       if (job.status === "COMPLETED" && handler) { state.handlers.delete(job.id); await handler(job.result); }
@@ -584,6 +594,21 @@ async function runJob(operation, arguments_, handler) {
     }
   } finally { state.submitting = false; updateControls(); }
 }
+$("jobCancelBtn").addEventListener("click", async () => {
+  const identifier = state.job?.id;
+  if (!identifier || !activeJob(state.job) || state.job.status === "CANCEL_REQUESTED") return;
+  $("jobCancelBtn").disabled = true;
+  try {
+    const job = await api(`/api/jobs/${idPath(identifier)}/cancel`, { method: "POST", body: "{}" });
+    if (identifier !== state.job?.id) return;
+    state.job = job; renderJob();
+    if (activeJob(job)) schedulePoll();
+    else await loadOverview({ followJobs: false });
+  } catch (error) {
+    notify(`취소 요청을 확인할 수 없습니다: ${error.message}`);
+    renderJob(); schedulePoll();
+  }
+});
 function bindForm(id, operation, build, handler) {
   $(id).addEventListener("submit", async (event) => {
     event.preventDefault(); if (!event.currentTarget.reportValidity()) return;

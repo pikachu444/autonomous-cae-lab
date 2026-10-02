@@ -99,6 +99,29 @@ class InterruptedEvaluation(RuntimeError):
     pass
 
 
+def test_user_cancel_preserves_first_evaluation_and_stops_numerical_candidates(tmp_path):
+    from caelab.execution_control import CancellationToken, ExecutionCancelled, cancellation_scope
+    token = CancellationToken()
+
+    class RequestAfterAnalysis(CountingAnalysis):
+        def solve(self, *args, **kwargs):
+            result = super().solve(*args, **kwargs)
+            token.request()
+            return result
+
+    adapter = RequestAfterAnalysis()
+    lab, _ = _lab(tmp_path, adapter)
+    _plan(lab)
+    with cancellation_scope(token), pytest.raises(ExecutionCancelled):
+        lab.run_optimization(CAMPAIGN)
+    partial = lab.inspect_optimization(CAMPAIGN)
+    assert partial["status"] == "RUNNING" and partial["completed_evaluations"] == 1
+    assert adapter.calls == 1 and token.observed
+    assert (tmp_path / "optimizations" / CAMPAIGN / "journal/0001.json").is_file()
+    assert not (tmp_path / "experiments" / f"E-{CAMPAIGN}-0002").exists()
+    assert not (tmp_path / "optimizations" / CAMPAIGN / "result.json").exists()
+
+
 def _interrupt_after_first(lab, monkeypatch):
     """Interrupt before reserving the second CAD ID, after a committed row."""
     original = lab.run_experiment

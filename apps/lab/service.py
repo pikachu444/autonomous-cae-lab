@@ -5,14 +5,17 @@ from dataclasses import dataclass
 import hashlib
 import inspect
 import json
+import math
 from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import secrets
 import threading
+import time
 from typing import Callable, Mapping
 import uuid
 
 from caelab import Lab
+from caelab.execution_control import CancellationToken, cancellation_scope, check_cancelled
 from caelab.storage import check_id, load_json, utc_now
 
 
@@ -83,6 +86,9 @@ class LabService:
         self._lock = threading.RLock()
         self._active_job = None
         self._jobs: dict[str, dict] = {}
+        self._job_tokens: dict[str, CancellationToken] = {}
+        self._job_threads: dict[str, threading.Thread] = {}
+        self._accepting_jobs = True
 
     def _selected(self) -> Store:
         with self._lock:
@@ -140,6 +146,7 @@ class LabService:
             selected = self._selected()
             jobs = deepcopy(list(self._jobs.values()))
             active = self._active_store
+            accepting = self._accepting_jobs
         studies, experiments, campaigns = [], [], []
         for folder in self._folders(selected, "studies"):
             try:
@@ -173,7 +180,7 @@ class LabService:
                 except Exception as exc:
                     row["error"] = self._error(exc)
                 campaigns.append(row)
-        return {"token": self.token, "active_store": active,
+        return {"token": self.token, "active_store": active, "accepting_jobs": accepting,
                 "stores": [{"id": item.id, "label": item.id, "writable": item.writable}
                            for item in self._stores.values()],
                 "studies": studies, "experiments": experiments, "campaigns": campaigns,
@@ -184,7 +191,7 @@ class LabService:
         return sorted((p for p in root.iterdir() if p.is_dir()), key=lambda p: p.name) if root.exists() else []
 
     @staticmethod
-    def _error(exc: Exception) -> str:
+    def _error(exc: BaseException) -> str:
         return f"{type(exc).__name__}: {exc}"
 
     def study(self, identifier: str) -> dict:
@@ -352,6 +359,8 @@ class LabService:
 
     def submit(self, operation: str, arguments: dict) -> dict:
         with self._lock:
+            if not self._accepting_jobs:
+                raise ServiceError(503, "Lab service is shutting down; new jobs are closed")
             if not isinstance(operation, str) or operation not in OPERATIONS:
                 raise ServiceError(400, "Operation is not in the Lab allowlist")
             if not isinstance(arguments, dict):
@@ -369,12 +378,24 @@ class LabService:
                 raise ServiceError(400, str(exc)) from exc
             identifier = "J" + uuid.uuid4().hex
             job = {"id": identifier, "operation": operation, "status": "RUNNING",
-                   "created_utc": utc_now(), "store_id": selected.id}
+                   "created_utc": utc_now(), "store_id": selected.id,
+                   "cancel_requested": False, "cancel_observed": False,
+                   "cleanup_pending": False, "cleanup_owners": []}
             self._jobs[identifier] = job
+            self._job_tokens[identifier] = CancellationToken()
             self._active_job = identifier
             snapshot = deepcopy(job)
-            threading.Thread(target=self._execute, args=(selected, identifier, method, deepcopy(arguments)),
-                             name=f"caelab-{identifier}", daemon=True).start()
+            worker = threading.Thread(target=self._execute,
+                                      args=(selected, identifier, method, deepcopy(arguments)),
+                                      name=f"caelab-{identifier}", daemon=True)
+            self._job_threads[identifier] = worker
+            try:
+                worker.start()
+            except Exception as exc:
+                job.update(status="FAILED", error=self._error(exc), completed_utc=utc_now())
+                self._active_job = None
+                self._job_threads.pop(identifier)
+                raise
             return snapshot
 
     def _argument_paths(self, selected: Store, operation: str, arguments: dict):
@@ -407,24 +428,130 @@ class LabService:
 
     def _execute(self, selected: Store, identifier: str, method: Callable, arguments: dict):
         update = {}
+        token = self._job_tokens[identifier]
         try:
-            operation = self._jobs[identifier]["operation"]
-            if operation == "analysis_run":
-                from .reporting import verified_record
-                verified_record(selected.lab, arguments["parent_experiment_id"])
-            elif operation in {"doe_run", "optimization_run"}:
-                self._campaign_preflight(selected, arguments["campaign_id"])
-            result = method(**arguments)
-            update = {"status": "COMPLETED", "result": result}
-        except Exception as exc:
-            update = {"status": "FAILED", "error": self._error(exc)}
+            with cancellation_scope(token):
+                check_cancelled()
+                operation = self._jobs[identifier]["operation"]
+                if operation == "analysis_run":
+                    from .reporting import verified_record
+                    verified_record(selected.lab, arguments["parent_experiment_id"])
+                elif operation in {"doe_run", "optimization_run"}:
+                    self._campaign_preflight(selected, arguments["campaign_id"])
+                check_cancelled()
+                result = method(**arguments)
+            # A request after the operation's last checkpoint is not an observed
+            # interruption. Preserve that completed/failed Core result verbatim.
+            update = {"status": "CANCELLED" if token.observed else "COMPLETED", "result": result}
+        except BaseException as exc:
+            update = {"status": "CANCELLED" if token.observed else "FAILED", "error": self._error(exc)}
         finally:
             with self._lock:
-                self._jobs[identifier].update(**update, completed_utc=utc_now())
-                self._active_job = None
+                job = self._jobs[identifier]
+                job.update(**update, cancel_requested=token.requested,
+                           cancel_observed=token.observed,
+                           cleanup_pending=token.cleanup_pending,
+                           cleanup_owners=token.cleanup_owners)
+                if token.cleanup_pending:
+                    job.update(status="CLEANUP_PENDING", operation_finished_utc=utc_now(),
+                               deferred_terminal_status="CANCELLED" if token.observed else "FAILED")
+                else:
+                    job["completed_utc"] = utc_now()
+                    self._active_job = None
 
     def job(self, identifier: str) -> dict:
+        try:
+            check_id(identifier)
+        except (TypeError, ValueError) as exc:
+            raise ServiceError(400, "A valid job ID string is required") from exc
         with self._lock:
             if identifier not in self._jobs:
                 raise ServiceError(404, "Job not found")
             return deepcopy(self._jobs[identifier])
+
+    def cancel(self, identifier: str) -> dict:
+        """Request cooperative cancellation; a terminal job is unchanged."""
+        try:
+            check_id(identifier)
+        except (TypeError, ValueError) as exc:
+            raise ServiceError(400, "A valid job ID string is required") from exc
+        with self._lock:
+            if identifier not in self._jobs:
+                raise ServiceError(404, "Job not found")
+            if identifier == self._active_job:
+                token = self._job_tokens[identifier]
+                token.request()
+                if self._jobs[identifier]["status"] == "CLEANUP_PENDING":
+                    error = self._retry_cleanup(token, timeout=1.0)
+                    if error is not None:
+                        self._jobs[identifier]["cleanup_error"] = error
+                    self._resolve_cleanup(identifier)
+                else:
+                    self._jobs[identifier].update(status="CANCEL_REQUESTED", cancel_requested=True,
+                                                 cancel_observed=token.observed)
+            return deepcopy(self._jobs[identifier])
+
+    def _resolve_cleanup(self, identifier: str):
+        """Publish a deferred terminal snapshot only under the service lock."""
+        job, token = self._jobs[identifier], self._job_tokens[identifier]
+        job.update(cancel_requested=token.requested, cancel_observed=token.observed,
+                   cleanup_pending=token.cleanup_pending, cleanup_owners=token.cleanup_owners)
+        worker = self._job_threads[identifier]
+        if job["status"] == "CLEANUP_PENDING" and not token.cleanup_pending and not worker.is_alive():
+            job.update(status=job["deferred_terminal_status"], completed_utc=utc_now())
+            self._active_job = None
+
+    @staticmethod
+    def _retry_cleanup(token: CancellationToken, *, timeout: float) -> str | None:
+        try:
+            token.retry_cleanup(timeout=timeout)
+        except BaseException as exc:
+            # Retained ownership still blocks admission; preserve the retry
+            # error instead of pretending that cancellation finished.
+            return LabService._error(exc)
+        return None
+
+    def shutdown(self, timeout: float = 5.0) -> dict:
+        """Close admission and boundedly join owned workers without forcing threads."""
+        if (type(timeout) not in (int, float) or not 0 <= timeout <= threading.TIMEOUT_MAX
+                or not math.isfinite(timeout)):
+            raise ServiceError(400, "Shutdown timeout must be finite, nonnegative and within the thread limit")
+        deadline = time.monotonic() + timeout
+        with self._lock:
+            self._accepting_jobs = False
+            if self._active_job is not None:
+                token = self._job_tokens[self._active_job]
+                token.request()
+                job = self._jobs[self._active_job]
+                job.update(cancel_requested=True, cancel_observed=token.observed)
+                if job["status"] != "CLEANUP_PENDING":
+                    job["status"] = "CANCEL_REQUESTED"
+            workers = list(self._job_threads.values())
+        # Workers publish their final snapshot under _lock, so never hold it
+        # while joining. An uncooperative operation stays pending truthfully.
+        for worker in workers:
+            if worker is not threading.current_thread() and worker.is_alive():
+                worker.join(max(0.0, deadline - time.monotonic()))
+        with self._lock:
+            cleanup_id = (self._active_job if self._active_job is not None and
+                          self._jobs[self._active_job]["status"] == "CLEANUP_PENDING" else None)
+        if cleanup_id is not None:
+            error = self._retry_cleanup(self._job_tokens[cleanup_id],
+                                        timeout=max(0.0, deadline - time.monotonic()))
+            with self._lock:
+                if error is not None:
+                    self._jobs[cleanup_id]["cleanup_error"] = error
+                if self._active_job == cleanup_id:
+                    self._resolve_cleanup(cleanup_id)
+        # A dead Python worker can leave unresolved owned native resources.
+        # Do not busy-spin the normal server shutdown loop on a failed retry.
+        if any(token.cleanup_pending for token in self._job_tokens.values()):
+            threading.Event().wait(max(0.0, deadline - time.monotonic()))
+        with self._lock:
+            if self._active_job is not None:
+                self._resolve_cleanup(self._active_job)
+            pending = ([deepcopy(self._jobs[self._active_job])]
+                       if self._active_job is not None else [])
+            return {"accepting_jobs": False, "pending": pending,
+                    "joined": (not any(worker.is_alive() for worker in workers) and
+                               not any(token.cleanup_pending for token in self._job_tokens.values()))}

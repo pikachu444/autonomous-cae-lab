@@ -9,6 +9,7 @@ from filelock import FileLock
 
 from .campaign import _verify_current_model
 from .contracts import CapabilityUnavailable
+from .execution_control import check_cancelled
 from .schema import validate as validate_schema
 from .storage import canonical_hash, check_id, load_json, save_json, source_identity, utc_now
 
@@ -523,6 +524,7 @@ def run_optimization(lab, identifier):
 
             def evaluate(values):
                 nonlocal cursor, versions
+                check_cancelled()
                 _verify_sources(lab, plan, snapshot)
                 key = _key(plan, values)
                 if cursor < len(rows):
@@ -544,6 +546,7 @@ def run_optimization(lab, identifier):
                         _verify_sources(lab, plan, snapshot)
                     else:
                         cad = _experiment(lab, plan, item, analysis=False, allow_run=True, verified=verified)
+                        check_cancelled()
                         analysis = (_experiment(lab, plan, item, analysis=True, allow_run=True, verified=verified)
                                     if plan["analysis"] and cad["status"] == "COMPLETED_REVIEW_REQUIRED" else None)
                     row = _record(lab, plan, item, cad, analysis)

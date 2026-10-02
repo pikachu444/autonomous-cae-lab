@@ -1,6 +1,21 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
-## Long-running operations: implemented, focused verification passed
+## Current checkpoint: cancellation source unit complete
+
+Cooperative MCP/HTTP/UI cancel and normal shutdown reuse LabService. Failed
+owned cleanup stays CLEANUP_PENDING and blocks writers/stores; original handles
+and partial results survive. Group retries serialize ownership checks/reaping.
+511 distinct focused checks covered this unit, final changed paths52PASS;
+independent source review has no remaining P1/P2 after two bounded corrections.
+Record: `benchmarks/records/20261002-research-job-cancellation-development.json`.
+No new native/provider/GUI acceptance or phase completion. Preceding exact b492
+CI36984895065:8SUCCESS/2FAIL (beam Fz completion gate, OpenRadioss download404).
+Next: reuse fixture CAD/STEP/Gmsh/CCX for condition/stress integration, then
+later phase integrations; run full native/reference/GUI checks separately.
+Guarded job-profile admission, other adapter controls, restart/multiprocess and
+physical qualification remain OPEN/UNKNOWN/NOT_RELEASED. Old failures retained.
+
+## Historical checkpoint: long-running operations and301 focused checks
 
 ADR0018 reuses LabService for three MCP job operations, sharing writer admission
 with17 existing synchronous tools. All three Code_Aster adapters now use
