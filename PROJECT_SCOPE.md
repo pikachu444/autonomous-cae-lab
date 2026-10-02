@@ -1,6 +1,52 @@
 # Autonomous CAE Lab — project scope and requirement ledger
 
-## Current D3.4 first native case and reader corrections — next D3.5
+## Current D3.5 source integration and full coupled mathematical checkpoint
+
+`pde.fenicsx.imported` is implemented through existing pde.run/Core/Results:
+immutable bounded MSH2.2 ASCII, separate dense native copies and complete
+original/geometry/vertex/DOF/importer-cell/facet mappings, named physical
+Dirichlet/Neumann boundaries and measured-h reference verdicts. Two experimental
+presets and original-byte/hash browser selection share existing transport.
+Adapter owns syntax/native import; pure Domain owns geometry/science/verdict;
+Core owns declaration/revision/execution/artifacts/evidence/provenance.
+No new wire/schema/provider/model/profile/auth or numerical optimizer.
+
+Final134 distinct Python checks PASS (133 in186.00s plus one changed HTTP
+preset check in40.71s, one existing CadQuery deprecation warning). Writer82 and
+Root52 are included, not additional;23 Node PASS230.504ms;15 AST/UTF8-LF PASS.
+Independent20-file source review closes with0 P1/P2. Actual installed toy
+Gmsh4.12.1/DOLFINx0.11 import/mapping/forms/BC/XDMF/failure-finalization passes
+without any native solve. Source-only UNSOLVED interpolants/placeholders and
+failed fixture/selector attempts remain explicitly separate and retained.
+Record: `benchmarks/records/20261003-imported-pde-development.json`.
+Source publication is recorded after commit and confirmed main push.
+
+Imported canonical native acceptance NOT_RUN: fixed five positives/two numerical
+negatives/ten preflight controls, seven processes/21 levels are PLANNED only.
+Freeze a new clean-source store before actual execution; preserve .02/.3 errors,
+EVERY-pair1.8/.9 rates,1e-10 actual residual,96KiB original/128KiB whole HTTP caps.
+Official Research NOT_ADMITTED, same-record field GUI NOT_RUN, physical/model/
+deployment UNKNOWN/NOT_RELEASED. Next D3.6 connects guarded research admission
+and field inspection through existing contracts, then ordered Phases5-7.
+
+Separately, exact coupled sourcec941dabc8dc2d0b6c6399d977081a5be94945d93 /
+CI37043230271 executes all17 declared cases:6 mathematical successes,
+3 numerical REJECTED/all metrics invalid with reasons,8 preflight/no-native
+refusals;9 processes/27 fields. Independent complete L2/full-gradient-H1/rates,
+region/interface/boundary inputs, native exports/source/ledger audit PASS0 P1/P2.
+Maximum norm differences3.55e-15/5.33e-15, rates4.51e-14; unchanged original6489
+files/91668322B. ZIP11243323122 digest verified, expires2026-11-01T17:59:55Z;
+local raw retention does not establish durable remote backup. Coupled actual
+mathematical evidence does not admit Research or qualify physical models.
+Whole exact CI is7SUCCESS/3FAIL; Core2459PASS/4optional skips/1warning226.99s.
+The PDE job remains failed at its separate vector step; old vector6c numerical
+rate failure, Aster Fz and explicit runtime failures stay retained without
+threshold/response/mesh changes or unchanged manual reruns. Record:
+`benchmarks/records/20261003-coupled-pde-native-ci.json`.
+All52/whole Phase4/P2.2 remain OPEN; fixture pin3e48 and old implementations remain.
+Earlier current/NOT_RUN/CI-in-progress paragraphs below are historical observations.
+
+## Historical D3.4 first native case and reader corrections — next D3.5
 
 Exact197 CI37036684653 completed7SUCCESS/3FAIL; Core2450PASS/4optional skips.
 Only E-coupled-mixed actually solved on8/16/32, with clean original197 identity,
@@ -790,7 +836,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R13 | Equal importance for engineer GUI and autonomous headless workflows sharing underlying models/artifacts. | Partial: original native CAD and reports retained; bounded P1.1/P1.2a/P1.2b and04ff/run03 P1.3 research pass. Official GUI observed the same optimized experiment IDs/revision/metrics as headless records. This unit did not separately test manually entered GUI questions; wider product/native interaction remains OPEN. |
 | R14 | Evaluate Code_Aster/SALOME-MECA as main nonlinear implicit, CalculiX/PrePoMax secondary; benchmark materials/contact/convergence and automation/license. | Partial: d29/native05 completes beamFx/Fy on both solvers with independent raw/cross-field checks; Fz Aster fine fails native accuracy, four separate method probes fail/unadopted. Original partial records preserved; record20261002-structural-family-native05. Nonlinear/contact/material/remaining families and qualifications stay open. |
 | R15 | OpenRadioss primarily explicit; investigate preprocessing gap, conversion and full explicit cards/controls. | Partial: pinned native flight and three reduced conservative-stop/rebound cases passed; common route/HTTP/native CI connected, integrated-source rerun pending. Original wall contact rejected; general surface contact/converter/full explicit scope open. |
-| R16 | Compare FEniCSx/UFL, FreeFEM, GetDP/Gmsh, GetFEM, MOOSE for user equations/weak form, nonlinear/multiphysics/AD/PETSc/HPC. | Partial: real bounded scalar and D3.1 rectangle analytical acceptance; D3.2 transient exact508 CI/independent872-step audit passed. D3.3 vector source implemented, actual6c coarse-pair L2 rateFAIL/REJECTED with13casesNOT_RUN. D3.4 coupled/material-interface source has105 focused checks plus169 legacy regressions; independent17-file review0 P1/P2, coupled197 first-case native three levels independently audited PASS; suite reader partial/16NOT_RUN retained, corrected consumer44sourcePASS/independent review0 P1/P2 plus original-field reading PASS; full qualification open. Wider solver/nonlinear/multiphysics/HPC comparison open. |
+| R16 | Compare FEniCSx/UFL, FreeFEM, GetDP/Gmsh, GetFEM, MOOSE for user equations/weak form, nonlinear/multiphysics/AD/PETSc/HPC. | Partial: bounded scalar/nonlinear/rectangle proofs and transient508872-step native audit retained; vector6c coarse-pair rateFAIL/REJECTED remains. Coupled c941 full17 cases/27 native fields independently mathematically qualified, wholeCI7SUCCESS/3FAIL remains. D3.5 imported source implemented through existing Domain/adapter/Core/Results with134 Python/23 Node checks and20-file independent review0 P1/P2; canonical imported native/guarded Research/fieldGUI NOT_RUN/NOT_ADMITTED. All wider domains/MPI/backend comparison and physical/model/deployment qualifications remain open; records20261003-imported-pde-development and coupled-pde-native-ci. |
 | R17 | MFront/TFEL for material definition, material-point tests, tangents, finite strain, codegen, solver interfaces and identification. | Partial: actual compiled behavior, MGIS/MTest stress histories and full FD/native tangent gates passed at clean c29d6af. Solver coupling, finite strain and physical qualification open; synthetic-reference inverse slice underway. |
 | R18 | Evaluate DAKOTA/OpenMDAO/pymoo/SciPy/NLopt/TAO/MOOSE by problem type; DOE/search/UQ/sensitivity/surrogate/multiobjective numerical engines. | Partial: SciPy LHS and adaptive continuous single-objective DE with analytical engine regression; other engine roles remain open. |
 | R19 | Common experiment schema for study/physics/model/parameters/BC-load/output/objectives/constraints/validation/campaign/environment/provenance with adapter extensions. | Partial: v1 envelope/campaign plus additive declared model revision/material/BC/load metadata, ADR 0007; per-backend semantics not all executed. |
@@ -802,7 +848,7 @@ not assumed. These slices do not close any phase or remove a requirement.
 | R25 | Phase 1 actual OpenScience request → discovery → registry → CAD change/regeneration → validation/artifacts/evidence → research result. | Bounded workflow gates P1.1/P1.2a/P1.2b/P1.3 actual PASS at their exact sources;04ff/run03 adds changed-condition comparison/engine search/PDE interpretation. Full product/general planning/engineering qualification remains OPEN; historical failures and context limits retained. |
 | R26 | Phase 2 simulation-driven fixture design: exact CAD → mesh → implicit solver → mechanical metrics/constraints/evidence. | Partial: exact STEP Gmsh/CalculiX linear screen; actual contact/bolts/material/stress qualification open. |
 | R27 | Phase 3 numerical DOE/optimization through gated CAD/FEA, trace every iteration including optimizer state. | Partial: actual adaptive structural campaign passed (9 evaluations/8 children), metric semantics/failure/replay verified; converged/global optimum and wider optimization remain open. |
-| R28 | Phase 4 real general PDE adapter with canonical benchmark and user-defined equation/weak form. | Partial: clean d363 nonlinear/linear-limit/reference-rejection/HTTP/browser and exact CI36710166010 plus independent review passed. D3.1 rectangle/mixed native and D3.2 transient exact508/872-step evidence remain. D3.3 vector actual6c numerical rateFAIL/REJECTED; D3.4 coupled/material-interface source has105 focused checks and169 legacy regressions, independent17-file review0 P1/P2; coupled197 three native levels independently audited PASS, suite reader partial/16NOT_RUN retained; reader44PASS/independent review0 P1/P2 and original-field reading PASS, full native qualification open. Imported/MPI/guarded Research/fieldGUI/physical PDE coverage remains open. |
+| R28 | Phase 4 real general PDE adapter with canonical benchmark and user-defined equation/weak form. | Partial: bounded scalar/nonlinear/rectangle proofs and transient508872-step native audit retained; vector6c coarse-pair rateFAIL/REJECTED remains. Coupled c941 full17 cases/27 native fields independently mathematically qualified, wholeCI7SUCCESS/3FAIL remains. D3.5 imported source implemented through existing Domain/adapter/Core/Results with134 Python/23 Node checks and20-file independent review0 P1/P2; canonical imported native/guarded Research/fieldGUI NOT_RUN/NOT_ADMITTED. All wider domains/MPI/backend comparison and physical/model/deployment qualifications remain open; records20261003-imported-pde-development and coupled-pde-native-ci. |
 | R29 | Phase 5 implicit benchmarks: linear, geometric nonlinearity, plasticity, contact, hyperelasticity, viscoelasticity with trusted references. | Partial: affine elasticity and J2 full-field loading/unloading at two meshes/two materials passed; retained zero-force relative residual failure remains. Geometric nonlinearity/contact/hyperelasticity/viscoelasticity/native energy open. |
 | R30 | Phase 6 actual OpenRadioss impact/drop with IC/gravity/contact/rigid/energy/forces/acceleration/timestep/failure validation. | Partial: clean d363 three reduced compliant cases passed28 full-history gates each plus two preflight blocks; native browser run, all8 CI jobs and independent raw archive review passed. Wall contact remains rejected; general surface/material/physical/failure/rotating contact open. |
 | R31 | Phase 7 MFront/MOOSE/multiphysics/inverse/UQ/sensitivity/surrogate/multiobjective/HPC/SSH/Slurm/PBS/physical integration. | Partial: MFront stress/tangent/sensitivity and synthetic nine-candidate inverse connected to shared engine/default/HTTP. Exact33 local default proof and sealed CI36722365195 native/raw independent audits passed; no measured fit/convergence. Viscoelastic extension deferred under serial phase order; MOOSE/coupling/UQ/surrogate/multiobjective/HPC/physical integrations remain open. |
@@ -959,7 +1005,7 @@ authorization. Simulation alone cannot qualify every fixture requirement.
 | 1 | Existing CadQuery/native Part/Sketcher reused; bounded P1.1/P1.2a/P1.2b actual gates retained | Actual04ff/run03 bounded P1.3 connected conditions/solver/comparison/engine search/scalar PDE PASS;788-file retention. Full product/Phase1 qualification remains OPEN with declared limitations. |
 | 2 | Exact STEP to Gmsh/CalculiX child run, 4/3/2/1.5 mm area-load screen/reactions; actual04ff research shares the same records; MIDAS139+CFD18 source/coverage survey | ACTIVE P2.2: clean947/research06 completes all9 control questions44 tools/9 Core records, final complete-prompt interpretation/GUI AX/owned Stop/1094-file retention/fresh independent audit PASS. Numerical outcome remains FAILED_OR_PARTIAL: Fz accuracy/roof mesh convergence OPEN; exact947 CI source127PASS/8SUCCESS2FAIL. Original source definitions, deferred single-case work, materials/fasteners/contact/stress/physical qualification OPEN. |
 | 3 | Seeded LHS DOE/shared SciPy DE; actual CAD and declared-input native candidates, explicit constraints and exact replay | Converged fixture optimization, broader variable/engine/UQ/multiobjective coverage. |
-| 4 | Clean d363 declared scalar FEniCSx linear/nonlinear/linear-limit/reference-rejection proof, HTTP/browser and independently audited CI | Wider nonlinear/general domains, coupled PDE and MPI/HPC acceptance. |
+| 4 | Existing scalar/nonlinear/rectangle, transient508872-step and coupled c94117-case/27-field bounded mathematical proofs; vector source with rateFAIL retained; D3.5 imported source134Python/23Node and independent review | Imported actual native, grouped guarded Research/same-record field GUI, wider/MPI/backend and physical qualifications remain OPEN. |
 | 5 | Actual affine elasticity and small-strain J2 full load/unload fields on two meshes/materials | Geometric nonlinearity/contact/hyperelasticity/viscoelasticity/native energy/physical qualification. |
 | 6 | Actual flight and clean d363 three-case compliant force/acceleration/energy/impulse/rebound proof; ideal-wall correctly REJECTED | General surface/rotating contact, material/failure and physical qualification. |
 | 7 | MFront/MGIS/MTest stress/tangent/sensitivity; exact33 local default and sealed CI nine-candidate synthetic inverse with independent raw audits | Measured-data identification/viscoelastic state-energy/MOOSE/multiphysics/UQ/surrogate/multiobjective/HPC/physical loop after earlier phase gates. |

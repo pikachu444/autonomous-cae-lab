@@ -1,0 +1,190 @@
+{
+  "schema_version": "1",
+  "created_utc": "2026-10-02T18:36:11.973220+00:00",
+  "status": "PASS_BOUNDED_MATHEMATICAL_COUPLED_CAMPAIGN",
+  "source": {
+    "core_commit": "c941dabc8dc2d0b6c6399d977081a5be94945d93",
+    "core_dirty": false,
+    "core_source_sha256": "a7b48f64c6015aa151bdd96e930682174b810255bed9081642088a148f0ac781"
+  },
+  "execution_location": "GitHub Ubuntu CI; locally retained original bytes reviewed without solver rerun",
+  "CI": {
+    "run": 37043230271,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37043230271",
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": [
+      {
+        "name": "research-driver-source",
+        "id": 110958428493,
+        "conclusion": "success"
+      },
+      {
+        "name": "core",
+        "id": 110958428801,
+        "conclusion": "success"
+      },
+      {
+        "name": "native-registration",
+        "id": 110960384567,
+        "conclusion": "success"
+      },
+      {
+        "name": "codeaster",
+        "id": 110960384605,
+        "conclusion": "failure"
+      },
+      {
+        "name": "structural",
+        "id": 110960384628,
+        "conclusion": "success"
+      },
+      {
+        "name": "optimization",
+        "id": 110960384632,
+        "conclusion": "success"
+      },
+      {
+        "name": "native",
+        "id": 110960384705,
+        "conclusion": "success"
+      },
+      {
+        "name": "pde",
+        "id": 110960384735,
+        "conclusion": "failure"
+      },
+      {
+        "name": "doe",
+        "id": 110960384748,
+        "conclusion": "success"
+      },
+      {
+        "name": "explicit",
+        "id": 110960384781,
+        "conclusion": "failure"
+      }
+    ],
+    "successful_jobs": 7,
+    "failed_jobs": 3,
+    "coupled_step": "SUCCESS",
+    "PDE_job": 110960384735,
+    "PDE_job_status": "FAILURE_OTHER_VECTOR_STEP",
+    "Core_test_summary": [
+      "core\tRun python -m pytest -q\t2026-10-02T17:53:40.3971544Z 2459 passed, 4 skipped, 1 warning in 226.99s (0:03:46)"
+    ],
+    "whole_CI_PASS": false
+  },
+  "actual_counts": {
+    "accepted": 6,
+    "common_records": 17,
+    "complete_native_field_levels": 27,
+    "native_processes": 9,
+    "node_observations": 13131,
+    "numerical_negative_REJECTED": 3,
+    "preflight_REJECTED_NOT_RUN": 8,
+    "scalar_dof_observations": 26262,
+    "triangle_observations": 24192
+  },
+  "native_versions": {
+    "basix": "0.11.0",
+    "dolfinx": "0.11.0.post0",
+    "ffcx": "0.11.0",
+    "mpi4py": "3.1.5",
+    "numpy": "1.26.4",
+    "petsc": "3.19.6",
+    "petsc4py": "3.19.6",
+    "python": "3.12.3",
+    "ufl": "2026.1.0"
+  },
+  "independent_review": {
+    "status": "PASS_BOUNDED_EXACT_C941_COUPLED_17_CASE_CAMPAIGN_REVIEW",
+    "findings": [],
+    "mathematics": {
+      "accepted_finest_max_L2": 0.0018124232951600005,
+      "accepted_finest_max_full_gradient_H1": 0.1330820993989577,
+      "accepted_min_allpair_component_or_aggregate_H1_rate": 0.9601869356236511,
+      "accepted_min_allpair_component_or_aggregate_L2_rate": 1.9558506642889573,
+      "actual_constraint_residual_normalization_KSP": "PASS_NO_INDEPENDENT_A_ASSEMBLY",
+      "all_27_fullfields": "PASS",
+      "component_and_aggregate_L2_and_full_gradient_H1_rates": "PASS_MATCH_ORIGINAL",
+      "max_absolute_differences": {
+        "L2": 3.552713678800501e-15,
+        "full_gradient_H1": 5.329070518200751e-15,
+        "rates": 4.5075054799781356e-14
+      },
+      "negative_failure_sets": "EXACTLY_MATCH_COMMON_ALL_NINE_METRICS_INVALID_WITH_REASONS",
+      "piecewise_coefficients_RHS_BC_interface_and_XDMF_HDF_identity": "PASS"
+    },
+    "source_common_identity": {
+      "11_plan_sources_Git_bodies": true,
+      "9_source_copies_each_9_native_process": true,
+      "all17_proposal_model_registry_revisions_and_ledger_artifacts": true,
+      "native_worker_and_Domain_original_source": true
+    },
+    "side_effect_counters": {
+      "Core_operations": 0,
+      "auth_content_reads": 0,
+      "native_solver_calls": 0,
+      "provider_calls": 0,
+      "runtime_HTTP": 0,
+      "tests": 0,
+      "tracked_source_edits": 0
+    }
+  },
+  "retention": {
+    "API_artifact_id": 11243323122,
+    "API_digest_verified": true,
+    "ZIP": {
+      "sha256": "c3bcdf06e5c414bf648861c6a45b5933b4817bb699d2b60ea9181b50331b0eb5",
+      "size_bytes": 19437890
+    },
+    "expiry_UTC": "2026-11-01T17:59:55Z",
+    "all_original_regular_files": 6489,
+    "all_original_regular_bytes": 91668322,
+    "before_after_inventory": {
+      "sha256": "dd686f3e7aa64f62512e29d66f7782b8ca6a0458ceb5e4c09f9e54ea491e1444",
+      "size_bytes": 1362145
+    },
+    "before_after_identical": true,
+    "coupled_store_files": 433,
+    "coupled_store_bytes": 10023780,
+    "local_store": "artifacts/review-coupled-pde-ci-20261003-02/extracted/coupled-pde-lab",
+    "durable_remote_raw_backup": "UNKNOWN_NOT_UPLOADED"
+  },
+  "review_receipts": {
+    "final-seal.json": {
+      "relative_path": "artifacts/review-coupled-pde-ci-20261003-02/final-seal.json",
+      "size_bytes": 5755,
+      "sha256": "59e1afac59b128f337a95dbbfaa6465481301aebb60f110b5479aeddccf47233"
+    },
+    "independent-coupled-campaign-review.json": {
+      "relative_path": "artifacts/review-coupled-pde-ci-20261003-02/independent-coupled-campaign-review.json",
+      "size_bytes": 36493,
+      "sha256": "509587c8728eceeb0488fa82601599c3f7bc9f989082eeb95526af5c07456054"
+    },
+    "all27-independent-fields.json": {
+      "relative_path": "artifacts/review-coupled-pde-ci-20261003-02/all27-independent-fields.json",
+      "size_bytes": 41369,
+      "sha256": "28e1449d101219ea2807684bf8ce4f1179568d569c8f89a9e65f0cb35064389a"
+    }
+  },
+  "terminal_CI_receipt": {
+    "relative_path": "artifacts/development-pde-imported-20261003-01/root-c941-publication-01/receipt.json",
+    "sha256": "b8ce2c5bacc101de9e5bdbd52160fe617c4f30ca6c4a2675403a6ca208c884ad"
+  },
+  "prior197_source_first_case_and_failed_readers": "Preserved unchanged; this is a separate clean-source full campaign after consumer corrections",
+  "qualification": "UNKNOWN",
+  "decision": "NOT_RELEASED",
+  "official_research_admission": "NOT_ADMITTED",
+  "native_field_GUI": "NOT_RUN",
+  "limits": [
+    "Only the frozen sourcec941 coupled campaign is reviewed, not live dirty D3.5 development or wholeCI/PDEjob success.",
+    "Only coupled27 fields were numerically audited; other archive collections were byte-inventoried only.",
+    "Six mathematical successes and three expected invalid numerical controls/eight preflight refusals are not physical qualification or release.",
+    "Facet-ID associations are retained/source/edge checked; HDF exports nodes/triangles without an independent facet-ID dataset.",
+    "Local ZIP API digest/copy inventory is closed; the remote rawartifact expires as stated.",
+    "The old vector6c numerical rate rejection and other failed native/runtime gates remain; no thresholds, response definitions or old meshes were changed.",
+    "D3.5 imported development and actual Research/GUI have separate source/run identities and are not qualified by this record."
+  ]
+}

@@ -63,7 +63,7 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m pytest -q
       - name: Check fixture form settings and diagnostic stress field admission
-        run: node --test tests/test_fixture_controls.js tests/test_campaign_controls.js
+        run: node --test tests/test_fixture_controls.js tests/test_campaign_controls.js tests/test_imported_mesh_controls.js
       - run: python scripts/verify_mcp.py
       - name: Verify native OpenScience source and tool guards without model calls
         run: |
@@ -272,7 +272,8 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y build-essential pkg-config \
             python3-dolfinx=1:0.11.0.post0-2~ppa1~noble1 \
-            python3-dolfinx-real=1:0.11.0.post0-2~ppa1~noble1
+            python3-dolfinx-real=1:0.11.0.post0-2~ppa1~noble1 \
+            python3-gmsh=4.12.1+ds1-1.1build2
       - name: Compare declared weak forms with analytical solutions and convergence rates
         run: python -m scripts.verify_pde --store artifacts/pde-lab
       - name: Verify full Newton histories, nonlinear manufactured fields and the exact linear limit
@@ -286,6 +287,9 @@ jobs:
       - name: Verify two coupled scalar fields across a conforming material interface
         if: ${{ !cancelled() && steps.pde_runtime.outcome == 'success' }}
         run: python -m scripts.verify_coupled_pde --store artifacts/coupled-pde-lab
+      - name: Verify immutable imported meshes and named physical PDE boundaries
+        if: ${{ !cancelled() && steps.pde_runtime.outcome == 'success' }}
+        run: python -m scripts.verify_imported_pde --store artifacts/imported-pde-lab
       - name: Connect actual PDE to the common local research/results surface
         run: python -m scripts.verify_lab_ui --store artifacts/http-pde-lab --library pde=artifacts/pde-lab
       - name: Preserve weak forms, field data, raw errors and common evidence
@@ -300,6 +304,7 @@ jobs:
             artifacts/transient-pde-lab/
             artifacts/vector-pde-lab/
             artifacts/coupled-pde-lab/
+            artifacts/imported-pde-lab/
             artifacts/http-pde-lab/
           include-hidden-files: true
           if-no-files-found: warn

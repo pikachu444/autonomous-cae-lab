@@ -78,6 +78,21 @@ interface load or zero pointwise P1 flux-jump acceptance is added. Imported/MPI,
 coupled native qualification, guarded Research and native-field GUI stay open;
 physical UNKNOWN/NOT_RELEASED is unchanged.
 
+ADR0023 adds `pde.fenicsx.imported` through the same explicit declaration/Core/
+Results/ledger operation. Adapter syntax owns bounded exact MSH2.2 ASCII,
+immutable original sparse IDs, separate dense copies, owned no-config Gmsh
+lifetime and complete actual original/geometry/vertex/DOF/importer-cell/facet
+mappings. Pure Domain receives normalized meshes and owns conforming embedded
+polygon/named boundary/scientific input/measured-h reference verdicts. Browser
+selection freezes original bytes/hash/display labels within96KiB raw and128KiB
+whole transport caps; no filesystem-path or research-variable mesh promotion.
+Ten-source isolated native workers retain full fields/inputs/actual residual
+and partial files.134 Python/23 Node source checks and independent20-file review
+qualify implementation only; canonical imported native/guarded Research/field
+GUI remain separate. Coupled c941 actual17-case/27-field mathematical proof is
+retained independently, without physical approval or backend guard admission.
+No new schema/wire/provider/model/profile/auth/optimizer. UNKNOWN/NOT_RELEASED.
+
 `ModelAnalysisAdapter.solve(output, settings)` extends the same declared-model
 Core to independent geometry/material/load models. Optional pure
 `describe_model` supplies common geometry, materials, boundaries, loads and

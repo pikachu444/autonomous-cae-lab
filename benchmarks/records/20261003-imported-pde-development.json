@@ -1,0 +1,285 @@
+{
+  "schema_version": "1",
+  "created_utc": "2026-10-02T18:53:02.949264+00:00",
+  "status": "PASS_BOUNDED_D35_SOURCE_IMPLEMENTATION",
+  "comparison_base": "5b7dc3d58e9da5504a27cb9cce801d6791615d33",
+  "source_commit": "Recorded separately after source commit and confirmed main publication",
+  "backend": "pde.fenicsx.imported",
+  "adapter_version": "1",
+  "implemented": [
+    "Adapter parses exact bounded immutable MSH2.2 ASCII; preserves original sparse IDs and bytes, creates separate dense native input and complete mappings.",
+    "Pure Domain verifies conforming embedded polygon, complete named physical boundaries, same domain across refinement levels, scientific inputs and actual measured-h convergence verdict.",
+    "Isolated worker owns no-config Gmsh initialize/merge/model_to_mesh/finalize, actual original/geometry/vertex/DOF/importer-cell/facet identities, tagged scalar forms, actual constrained residual and complete fields/inputs.",
+    "Existing pde_run/declaration/Core/Results/ledger and two experimental presets; browser file selection supplies original bytes/hash/labels without filesystem paths.",
+    "Independent runner freezes seventeen declared cases, source/input/progress/ledger and full direct polynomial Gauss-Duffy/boundary/error/rate checks in a new clean-source store."
+  ],
+  "boundaries": {
+    "unchanged_wire": "pde.run / pde_run",
+    "new_schema": false,
+    "provider_model_profile_auth_changes": false,
+    "numerical_optimizer_changes": false,
+    "research_control_plane": "OpenScience questions, hypotheses, campaigns and interpretation; numerical engines generate candidates",
+    "mesh_syntax_owner": "Adapter",
+    "scientific_rules_verdict_owner": "Domain",
+    "common_envelope_registry_execution_evidence_provenance_owner": "Core/Root",
+    "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8"
+  },
+  "input_bounds": {
+    "format": "MSH2.2 ASCII scalar real64 serial P1",
+    "levels_min": 3,
+    "levels_max": 8,
+    "total_original_bytes_max": 98304,
+    "whole_HTTP_JSON_bytes_max": 131072,
+    "derived_copy": "Same grammar internally reparses deterministic coordinate serialization without changing original declared byte bound or IDs"
+  },
+  "source_checks": {
+    "final_distinct_python_tests_passed": 134,
+    "elapsed_seconds": 186.0,
+    "writer_subset_passed": 82,
+    "Root_subset_passed": 52,
+    "subset_counts_are_included_in_133": false,
+    "distinct_node_tests_passed": 23,
+    "node_duration_ms": 230.504,
+    "python_AST_UTF8_LF": 15,
+    "independent_source_review_files": 20,
+    "open_P1": 0,
+    "open_P2": 0,
+    "native_toy": "Actual optional sparse import, independent index-space maps, tags, harmonic/zero form ranks, selected BCs, XDMF/H5 and failure-finalize; no LinearProblem/solve",
+    "canonical_native_solves": 0,
+    "Source_fixture_scope": "UNSOLVED labelled polynomial interpolants and placeholder field transport are not native numerical evidence",
+    "subset_counts_are_included_in_134": true,
+    "final_bundle_python_tests": 133,
+    "additional_changed_HTTP_preset_tests": 1,
+    "additional_HTTP_elapsed_seconds": 40.71,
+    "additional_HTTP_warning": "One existing CadQuery ast.NameConstant deprecation warning; not a native failure"
+  },
+  "source_files": [
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "size_bytes": 21778,
+      "sha256": "4768dfd65ae79ddf8f8f00579fa3cf11a66cc8aeac4adc8a5c3a4be28fa72af2"
+    },
+    {
+      "path": "caelab/engine.py",
+      "size_bytes": 47140,
+      "sha256": "fcca63b787d4fe6951a10ed61c67f756522750e234a3dd74b7ecf078f39b755a"
+    },
+    {
+      "path": "apps/lab/service.py",
+      "size_bytes": 39632,
+      "sha256": "fcf31c6edcfc06acd34c9fa2cea80941ae3f11d4c21ef68fba50d9cb59a55eec"
+    },
+    {
+      "path": "tests/test_backend_integration.py",
+      "size_bytes": 4553,
+      "sha256": "4e2e784c3183a50f5aee4501b6299e3319d551e017a097f96581bd61398f5bfa"
+    },
+    {
+      "path": "tests/test_lab_server.py",
+      "size_bytes": 37415,
+      "sha256": "cba7f7a7216f09fc652ed15d2694f5d515250b044881fe8ee5846665b026becc"
+    },
+    {
+      "path": "tests/test_pde_thread.py",
+      "size_bytes": 14787,
+      "sha256": "fe7477f198a42ca3340fe8a7d427aa8b76a3d0faee1aabb675c7bc2cb0ae6ac7"
+    },
+    {
+      "path": "scripts/verify_imported_pde.py",
+      "size_bytes": 28682,
+      "sha256": "077dae2c062231870e6067a083db8d57f5ba76a7a7b3d3b2c581f722cff64814"
+    },
+    {
+      "path": "tests/test_verify_imported_pde.py",
+      "size_bytes": 12051,
+      "sha256": "b5e61be0450bdadd7226c5e3b4e89449b263cc1f88d0908587f937ed1893751d"
+    },
+    {
+      "path": "apps/lab/static/imported-mesh-controls.js",
+      "size_bytes": 4197,
+      "sha256": "8ac3753b57fceba7f3c963711d08c3e5cedab534491ecb7b1cb1168730f021f1"
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "size_bytes": 77138,
+      "sha256": "6c5521f5d6272a5feb5714d32ccef233af5fe14e270ac13df566e7fc64e0bfdd"
+    },
+    {
+      "path": "apps/lab/static/index.html",
+      "size_bytes": 28957,
+      "sha256": "86f6038c9107c4fbfa56146bad89090e4fea347b23d5fd764c3582c3d278f6c6"
+    },
+    {
+      "path": "tests/test_imported_mesh_controls.js",
+      "size_bytes": 3502,
+      "sha256": "a3efb4f274e4215297e972f196e1ae3c0163f85a1d1d72f047d528492ba94891"
+    },
+    {
+      "path": "plugins/pde_imported/__init__.py",
+      "size_bytes": 282,
+      "sha256": "681829edfde8f95866ee3806a318f7d096ed1bca6ccc858e4276a1a168dce399"
+    },
+    {
+      "path": "plugins/pde_imported/reference.py",
+      "size_bytes": 39627,
+      "sha256": "9cea0f9bf14206d52828de5dfe2e7cfbcc5429fd429c48954f3a2ad65174cd6b"
+    },
+    {
+      "path": "caelab/adapters/fenicsx_gmsh.py",
+      "size_bytes": 12806,
+      "sha256": "7e92393db542d2422e76622061c573859ea1541732e56269c04f6c15db2f15e6"
+    },
+    {
+      "path": "caelab/adapters/fenicsx_imported.py",
+      "size_bytes": 13229,
+      "sha256": "720b04a9c408f25721711f3d8514302a0eaa9437a1092bb4a619b9d98180336c"
+    },
+    {
+      "path": "caelab/adapters/fenicsx_imported_worker.py",
+      "size_bytes": 28491,
+      "sha256": "a94d93bcd6f2e3c84225f60ee01ae1c530725e7d7685650bf9d748d9380e8ad0"
+    },
+    {
+      "path": "tests/test_fenicsx_gmsh.py",
+      "size_bytes": 6517,
+      "sha256": "fe520f4d0e7c09be0aa4bbed5ba62afebf272fed709ae5f5b8e0fec02b0ca7c6"
+    },
+    {
+      "path": "tests/test_pde_imported.py",
+      "size_bytes": 25703,
+      "sha256": "dcdf95cd4ea96f7d860aaa1c419d9f8078a73e6744225efec0f9c88d0ae194cb"
+    },
+    {
+      "path": "tests/test_pde_imported_reference.py",
+      "size_bytes": 16666,
+      "sha256": "faefe659dd9633522dbf4c70ff8e68605d65846cfba3b30c7b385e7953fc7553"
+    }
+  ],
+  "packet": {
+    "path": "docs/PDE_IMPORTED_PACKET.md",
+    "sha256": "b2a0b76c6cd77631a1a9575cf535c7798961fbb864cc92460d0afe3510b60d26"
+  },
+  "ADR": {
+    "path": "ADR/0023-imported-mesh-named-pde-boundaries.md",
+    "sha256": "79cb689a5a24645f073e262a574af4f32e9905dff129d2b99033ac39792caf92"
+  },
+  "local_receipts": {
+    "root-final-source-02/source-freeze.json": {
+      "path": "artifacts/development-pde-imported-20261003-01/root-final-source-02/source-freeze.json",
+      "size_bytes": 3656,
+      "sha256": "ba8340f73f614d0bb327daa3a1f9bffc4bc6c9ad58e84f9cc88de328699f0024"
+    },
+    "root-final-source-02/focused.log": {
+      "path": "artifacts/development-pde-imported-20261003-01/root-final-source-02/focused.log",
+      "size_bytes": 195,
+      "sha256": "8050d57c2aa92bf417f8067e0da9df903c5fc12249296603c788e9b145d8b446"
+    },
+    "root-final-source-02/exit.json": {
+      "path": "artifacts/development-pde-imported-20261003-01/root-final-source-02/exit.json",
+      "size_bytes": 66,
+      "sha256": "408de22cab07965ac61ff9e3a2f14f15c12cdf768dd2a32fcd4deef6132cc366"
+    },
+    "root-final-source-01/focused.log": {
+      "path": "artifacts/development-pde-imported-20261003-01/root-final-source-01/focused.log",
+      "size_bytes": 218,
+      "sha256": "a8e7cc525c42563a8f685c28afb7614383049908f331b8b7c97cf6498c76aa1f"
+    },
+    "root-final-source-01/exit.json": {
+      "path": "artifacts/development-pde-imported-20261003-01/root-final-source-01/exit.json",
+      "size_bytes": 66,
+      "sha256": "858cb7809a0e34328ec9e246423d881d4f2f0e766d1a65704af4351c27497345"
+    },
+    "root-integration-review-01/independent-review.json": {
+      "path": "artifacts/development-pde-imported-20261003-01/root-integration-review-01/independent-review.json",
+      "size_bytes": 9702,
+      "sha256": "fa111a6beb322675894dbaa119a5c87de25326bb26ffc18ca940bc084671da13"
+    },
+    "writer-independent-review-01/independent-review.json": {
+      "path": "artifacts/development-pde-imported-20261003-01/writer-independent-review-01/independent-review.json",
+      "size_bytes": 10545,
+      "sha256": "d127153d743556321e3093fd3cd421b3b00097072cb5f7c662251506eccd2c98"
+    },
+    "writer-source-01/source-pins.json": {
+      "path": "artifacts/development-pde-imported-20261003-01/writer-source-01/source-pins.json",
+      "size_bytes": 1757,
+      "sha256": "d130687a53ea792161e4c1ecb8e2bfae58b1af6f6e4e6c807555c049ed854d3b"
+    },
+    "writer-source-01/freeze-receipt.json": {
+      "path": "artifacts/development-pde-imported-20261003-01/writer-source-01/freeze-receipt.json",
+      "size_bytes": 2584,
+      "sha256": "5de1a9b54fc3c9cebf4c0c669d2c476a4e18cd3af6027b23859ad0c3b774a0a3"
+    },
+    "writer-source-01/evidence-files.json": {
+      "path": "artifacts/development-pde-imported-20261003-01/writer-source-01/evidence-files.json",
+      "size_bytes": 165603,
+      "sha256": "497aceda5d912d1778a9b1cac4fb57267cfabd966474d9cfc31c5094d11ddc0d"
+    },
+    "writer-source-01/commands-and-attempts.json": {
+      "path": "artifacts/development-pde-imported-20261003-01/writer-source-01/commands-and-attempts.json",
+      "size_bytes": 4202,
+      "sha256": "2192c21691ac93b40cb0062ca3336511dbedd5c468161dd35ecc0ffec695dc13"
+    },
+    "writer-source-01/toy-retention.json": {
+      "path": "artifacts/development-pde-imported-20261003-01/writer-source-01/toy-retention.json",
+      "size_bytes": 394,
+      "sha256": "cb4b18277de65b2fd4a89c782de23ad16a0618563555b8b5e66a363c06bf98fa"
+    },
+    "writer-source-01/receipt-clarifications.json": {
+      "path": "artifacts/development-pde-imported-20261003-01/writer-source-01/receipt-clarifications.json",
+      "size_bytes": 790,
+      "sha256": "85811c3865915c0b7024218a203d304e20105b9da8fb4e481c0c71cfb56d9c68"
+    },
+    "root-browser-source-01/frontend-review-relay.json": {
+      "path": "artifacts/development-pde-imported-20261003-01/root-browser-source-01/frontend-review-relay.json",
+      "size_bytes": 858,
+      "sha256": "a89b5d47b05c70d3e357b6b670279ccc238efc5a1a853de439e56b7c926cfe04"
+    },
+    "root-browser-source-01/node.log": {
+      "path": "artifacts/development-pde-imported-20261003-01/root-browser-source-01/node.log",
+      "size_bytes": 2343,
+      "sha256": "d5b6d9c1ed2de9141257c41e4a452f7b0e255a61cd343a01e5955afe090a1450"
+    },
+    "root-final-http-source-01/focused.log": {
+      "path": "artifacts/development-pde-imported-20261003-01/root-final-http-source-01/focused.log",
+      "size_bytes": 654,
+      "sha256": "c4aeaef894fa9079db8d6514cc3021525675e36fbbe737f7a4b4f5a3435ad03a"
+    },
+    "root-final-http-source-01/exit.json": {
+      "path": "artifacts/development-pde-imported-20261003-01/root-final-http-source-01/exit.json",
+      "size_bytes": 66,
+      "sha256": "daf37489ae987437ba1b205812f66fad8df65f6b34615ea15916a8e60a3b66b3"
+    }
+  },
+  "failed_attempts_retained": [
+    "Writer four Source/toy test-fixture failures and original logs/maps are retained in commands-and-attempts.json; final corrections preserve frozen limits and physics.",
+    "Root final-source-01 selected a nonexistent test name: zero tests, exit4; corrected actual selector final-source-02 executes133PASS."
+  ],
+  "planned_canonical_native": {
+    "accepted": 5,
+    "numerical_negative": 2,
+    "preflight": 10,
+    "native_processes": 7,
+    "native_levels": 21,
+    "status": "NOT_RUN",
+    "criteria": {
+      "max_l2_error": 0.02,
+      "max_h1_seminorm_error": 0.3,
+      "every_pair_min_l2_rate": 1.8,
+      "every_pair_min_h1_rate": 0.9,
+      "max_residual_relative": 1e-10
+    }
+  },
+  "prior_coupled_native_record": "benchmarks/records/20261003-coupled-pde-native-ci.json",
+  "next": "D3.6 bounded Research profile admission and same-record field inspector; actual Native/Research/GUI qualifications recorded separately, then ordered Phases5-7",
+  "canonical_native_acceptance": "NOT_RUN",
+  "official_research_admission": "NOT_ADMITTED",
+  "actual_field_GUI": "NOT_RUN",
+  "qualification": "UNKNOWN",
+  "decision": "NOT_RELEASED",
+  "remaining": [
+    "MSH4/high-order/curved/holes/vector/coupled/time/MPI/general forms/large assets in this imported backend",
+    "Retained vector6c first-pair numerical failure, Aster Fz/explicit runtime failures and whole CI qualification",
+    "Physical/material/model/corporate deployment and all52 whole-project qualification",
+    "Durable remote raw artifacts beyond temporary CI archives"
+  ]
+}

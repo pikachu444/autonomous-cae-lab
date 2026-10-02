@@ -1,5 +1,22 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+Imported PDE source integration2026-10-03 adds experimental pde.fenicsx.imported
+through existing pde_run/declaration/Results. Immutable bounded inline original
+MSH and labels remain frozen model context; adapter owns syntax/native copies/
+mappings/Gmsh and pure Domain owns normalized geometry/BC/reference verdicts.
+134 Python/23 Node checks and independent20-file source review do not admit this
+backend into the official Research guard. Canonical imported native NOT_RUN;
+Research NOT_ADMITTED; same-record fieldGUI NOT_RUN; UNKNOWN/NOT_RELEASED.
+Exact coupled c94117-case/27-field mathematical evidence is now independently
+closed, but also does not change the guarded model/tool universe. Whole c941
+CI7SUCCESS/3FAIL and old vector numerical rejection remain. No tool/schema/
+provider/model/profile/auth/optimizer change; OpenScience retains questions,
+hypotheses/campaigns/interpretation and numerical engines generate candidates.
+D3.6 explicitly declares new profile scope/time/mesh budgets and same-record
+field viewing before actual admission/research; original FixtureScalar and
+StructuralFamilies scopes remain. Records: imported-pde-development and
+coupled-pde-native-ci. Following NOT_RUN observations are historical.
+
 Coupled PDE source integration2026-10-03 adds experimental pde.fenicsx.coupled
 through existing pde_run/declaration/Results. Domain owns component-row cross-
 diffusion/reaction/region/side scientific checks; adapter owns tagged native

@@ -6,6 +6,16 @@ the research agent; the browser lets an engineer define and inspect the same
 studies, parameters, revisions, experiments and evidence. Unsupported operations
 are displayed as gaps. `UNKNOWN`, invalid metrics and `NOT_RELEASED` are retained.
 
+D3.5 adds two experimental imported-PDE presets through existing pde_run.
+Browser selection keeps3..8 original ASCII MSH files, exact bytes/hash/order
+and display labels; labels never become server/native paths.96KiB total raw
+and128KiB entire UTF8 POST caps apply before transport. Advanced settings hide
+raw mesh content but merge a cloned selected set; stale asynchronous selections
+cannot bind to another preset. Core/adapter still validate actual input before
+native work. No new endpoint/AI UI/provider/research admission/optimizer;
+source134Python/23Node checks are separate from canonical native/field-GUI proof.
+Existing unsupported/UNKNOWN/rejected metrics and NOT_RELEASED are preserved.
+
 ## Ownership and runtime
 
 ADR0018 reuses this service's public submit/job/overview from the stdio MCP

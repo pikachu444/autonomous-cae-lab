@@ -1,6 +1,52 @@
 # Current state — 2026-10-03 (Asia/Seoul)
 
-## Current D3.4 first native case and reader corrections — next D3.5
+## Current D3.5 source integration and full coupled mathematical checkpoint
+
+`pde.fenicsx.imported` is implemented through existing pde.run/Core/Results:
+immutable bounded MSH2.2 ASCII, separate dense native copies and complete
+original/geometry/vertex/DOF/importer-cell/facet mappings, named physical
+Dirichlet/Neumann boundaries and measured-h reference verdicts. Two experimental
+presets and original-byte/hash browser selection share existing transport.
+Adapter owns syntax/native import; pure Domain owns geometry/science/verdict;
+Core owns declaration/revision/execution/artifacts/evidence/provenance.
+No new wire/schema/provider/model/profile/auth or numerical optimizer.
+
+Final134 distinct Python checks PASS (133 in186.00s plus one changed HTTP
+preset check in40.71s, one existing CadQuery deprecation warning). Writer82 and
+Root52 are included, not additional;23 Node PASS230.504ms;15 AST/UTF8-LF PASS.
+Independent20-file source review closes with0 P1/P2. Actual installed toy
+Gmsh4.12.1/DOLFINx0.11 import/mapping/forms/BC/XDMF/failure-finalization passes
+without any native solve. Source-only UNSOLVED interpolants/placeholders and
+failed fixture/selector attempts remain explicitly separate and retained.
+Record: `benchmarks/records/20261003-imported-pde-development.json`.
+Source publication is recorded after commit and confirmed main push.
+
+Imported canonical native acceptance NOT_RUN: fixed five positives/two numerical
+negatives/ten preflight controls, seven processes/21 levels are PLANNED only.
+Freeze a new clean-source store before actual execution; preserve .02/.3 errors,
+EVERY-pair1.8/.9 rates,1e-10 actual residual,96KiB original/128KiB whole HTTP caps.
+Official Research NOT_ADMITTED, same-record field GUI NOT_RUN, physical/model/
+deployment UNKNOWN/NOT_RELEASED. Next D3.6 connects guarded research admission
+and field inspection through existing contracts, then ordered Phases5-7.
+
+Separately, exact coupled sourcec941dabc8dc2d0b6c6399d977081a5be94945d93 /
+CI37043230271 executes all17 declared cases:6 mathematical successes,
+3 numerical REJECTED/all metrics invalid with reasons,8 preflight/no-native
+refusals;9 processes/27 fields. Independent complete L2/full-gradient-H1/rates,
+region/interface/boundary inputs, native exports/source/ledger audit PASS0 P1/P2.
+Maximum norm differences3.55e-15/5.33e-15, rates4.51e-14; unchanged original6489
+files/91668322B. ZIP11243323122 digest verified, expires2026-11-01T17:59:55Z;
+local raw retention does not establish durable remote backup. Coupled actual
+mathematical evidence does not admit Research or qualify physical models.
+Whole exact CI is7SUCCESS/3FAIL; Core2459PASS/4optional skips/1warning226.99s.
+The PDE job remains failed at its separate vector step; old vector6c numerical
+rate failure, Aster Fz and explicit runtime failures stay retained without
+threshold/response/mesh changes or unchanged manual reruns. Record:
+`benchmarks/records/20261003-coupled-pde-native-ci.json`.
+All52/whole Phase4/P2.2 remain OPEN; fixture pin3e48 and old implementations remain.
+Earlier current/NOT_RUN/CI-in-progress paragraphs below are historical observations.
+
+## Historical D3.4 first native case and reader corrections — next D3.5
 
 Exact197 CI37036684653 completed7SUCCESS/3FAIL; Core2450PASS/4optional skips.
 Only E-coupled-mixed actually solved on8/16/32, with clean original197 identity,

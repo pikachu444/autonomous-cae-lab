@@ -301,6 +301,7 @@ class LabService:
         from plugins.pde_transient.reference import manufactured_settings as transient_pde_specification
         from plugins.pde_vector.reference import manufactured_settings as vector_pde_specification
         from plugins.pde_coupled.reference import manufactured_settings as coupled_pde_specification
+        from caelab.adapters.fenicsx_imported import manufactured_settings as imported_pde_specification
         from scripts.verify_codeaster import specification as codeaster_specification
         from scripts.verify_plasticity import specification as plasticity_specification
         from scripts.verify_openradioss import specification as explicit_specification
@@ -344,6 +345,12 @@ class LabService:
             "pde_coupled_harmonic": {"operation": "pde_run", "backend": "pde.fenicsx.coupled", "label": "두 영역의 결합 방정식 — 원항 없는 기준식",
                 "status": "EXPERIMENTAL", "scope": "원항 없는 기준식으로 재료 경계와 전체 필드·수렴을 확인; 실제 연구 연결과 물리 자격 UNKNOWN",
                 "settings": coupled_pde_specification(case="harmonic")},
+            "pde_imported_l_shape": {"operation": "pde_run", "backend": "pde.fenicsx.imported", "label": "가져온 메시 — L자 영역과 물리 경계",
+                "status": "EXPERIMENTAL", "scope": "작은 Gmsh ASCII 메시의 원본·경계 이름을 보존하는 scalar PDE; 실제 연구 연결과 물리 자격 UNKNOWN",
+                "settings": imported_pde_specification()},
+            "pde_imported_harmonic": {"operation": "pde_run", "backend": "pde.fenicsx.imported", "label": "가져온 메시 — 원항 없는 기준식",
+                "status": "EXPERIMENTAL", "scope": "L자 영역의 원항 없는 기준식과 전체 필드·수렴을 확인; 실제 연구 연결과 물리 자격 UNKNOWN",
+                "settings": imported_pde_specification(case="harmonic")},
             "codeaster_linear": {"operation": "model_analysis_run", "backend": "structural.code_aster", "label": "독립적인 선형 elasticity benchmark",
                 "status": "EXPERIMENTAL", "scope": "가정된 solid block의 affine analytical reference; 비선형·접촉 및 물리·강도 검증 UNKNOWN",
                 "settings": codeaster_specification()},

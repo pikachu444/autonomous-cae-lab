@@ -1,6 +1,30 @@
 # Sequential system worklist
 
-## Current reader corrections and D3.5 sequence
+## Current D3.5 source complete — D3.6 next
+
+- [x] Frozen imported-mesh/named-boundary packet/ADR0023 preserved.
+- [x] D3.5 immutable original/dense/native mappings, pure Domain boundary/reference
+  checks, adapter import/forms/fields/residual, existing Core/Results and browser.
+- [x] Final134 distinct Python +23 Node checks,15 AST/LF, independent20-file
+  review0 P1/P2; actual optional import/form/BC/XDMF/finalization, native solves0.
+- [x] Coupled c941 actual17-case/27-field independent bounded mathematical proof;
+  exactCI7SUCCESS/3FAIL retained, Core2459PASS/4skips/1warning.
+- [ ] Record exact D3.5 source commit, confirmed main push and its separate CI.
+- [ ] D3.5 imported fresh clean-source native17-case/21-level acceptance; fixed
+  criteria/byte limits and invalid results stay separate from execution status.
+- [ ] D3.6 capability-aware guarded Research admission with unchanged approved
+  model/profile/auth, explicit time/mesh/process budgets and failure semantics.
+- [ ] D3.6 same-record verified native-field inspector and actual human/AI flow;
+  preserve scalar missing-JSON capability and vector numerical rejection.
+- [ ] Continue ordered Phases5-7 implementations with essential regressions and
+  separate native/reference/GUI/physical qualification queue; all52 stay OPEN.
+
+Records: `../benchmarks/records/20261003-imported-pde-development.json` and
+`../benchmarks/records/20261003-coupled-pde-native-ci.json`.
+Canonical imported/Research/fieldGUI remain NOT_RUN/NOT_ADMITTED/NOT_RUN;
+physical/deployment UNKNOWN/NOT_RELEASED. Source publication recorded separately.
+
+## Historical reader corrections and D3.5 sequence
 
 - [x] Original197 first coupled case independently audited on all3 fields;
   unchanged raw/native/source/ledger proof, remaining16NOT_RUN/whole suitePARTIAL.

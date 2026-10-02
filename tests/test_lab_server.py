@@ -238,7 +238,7 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     client, service, _, _ = real_flow
     presets = client.request("/api/presets")
     assert set(presets) == {"structural_linear", "pde_canonical", "pde_nonlinear", "pde_rectangle",
-                            "pde_transient_mesh", "pde_transient_time", "pde_vector_lame", "pde_vector_harmonic", "pde_coupled_interface", "pde_coupled_harmonic", "codeaster_linear",
+                            "pde_transient_mesh", "pde_transient_time", "pde_vector_lame", "pde_vector_harmonic", "pde_coupled_interface", "pde_coupled_harmonic", "pde_imported_l_shape", "pde_imported_harmonic", "codeaster_linear",
                             "codeaster_plasticity", "material_point", "material_inverse", "explicit_freefall",
                             "explicit_ground_stop", "explicit_compliant_stop"} | {
         f"family_{case}_{load}_{solver}" for case, load in (
@@ -272,6 +272,12 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     assert all(presets[key]["operation"] == "pde_run" and presets[key]["backend"] == "pde.fenicsx.coupled"
                and presets[key]["declared_inputs"] is False and "UNKNOWN" in presets[key]["scope"]
                for key in ("pde_coupled_interface", "pde_coupled_harmonic"))
+    from caelab.adapters.fenicsx_imported import manufactured_settings as imported_spec
+    assert presets["pde_imported_l_shape"]["settings"] == imported_spec()
+    assert presets["pde_imported_harmonic"]["settings"] == imported_spec(case="harmonic")
+    assert all(presets[key]["operation"] == "pde_run" and presets[key]["backend"] == "pde.fenicsx.imported"
+               and presets[key]["declared_inputs"] is False and "UNKNOWN" in presets[key]["scope"]
+               for key in ("pde_imported_l_shape", "pde_imported_harmonic"))
     assert all(preset["operation"] == "model_analysis_run" for key, preset in presets.items()
                if preset["operation"] != "pde_run" and key != "structural_linear")
     assert presets["explicit_ground_stop"]["status"] == "REJECTED"
@@ -609,6 +615,17 @@ def test_declared_campaign_controls_are_served_before_their_ui_consumer(client):
     assert headers["Content-Type"].startswith("text/javascript")
     assert page.index(b'/static/campaign-controls.js') < page.index(b'/static/app.js')
     assert b'id="campaignTarget"' in page and b'id="modelRegisterForm"' in page
+
+
+def test_imported_mesh_controls_are_served_before_bounded_file_selection(client):
+    static = Path(__file__).resolve().parents[1] / "apps/lab/static"
+    controls, headers = client.request("/static/imported-mesh-controls.js", raw=True)
+    page, _ = client.request("/", raw=True)
+    assert controls == (static / "imported-mesh-controls.js").read_bytes()
+    assert headers["Content-Type"].startswith("text/javascript")
+    assert page.index(b'/static/imported-mesh-controls.js') < page.index(b'/static/app.js')
+    assert b'id="importedMeshFiles" type="file" accept=".msh" multiple' in page
+    assert b'id="importedMeshSummary"' in page and b'id="importedMeshError"' in page
 
 
 def test_writable_and_readonly_store_overlap_is_rejected(tmp_path):

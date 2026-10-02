@@ -8,6 +8,7 @@ const state = {
   selectedExperiment: null, selectedCampaign: null, comparison: new Set(), studyRequest: 0,
   experimentRequest: 0, campaignRequest: 0, viewer: null, fixtureConditionError: null,
   modelDiscovery: [], modelContext: "", modelRequest: 0,
+  importedLevels: [], importedMeshError: null, importedRequest: 0, importedLoading: false,
   campaignSelections: new Map(), campaignSelectionKey: "", campaignDrafts: {}, campaignTarget: "cad", cadCampaignType: "doe",
 };
 const operationNames = {
@@ -208,6 +209,7 @@ function updateControls() {
   if (!$("nativeFinal").value || !$("nativeModelId").value.trim()) document.querySelector('[data-operation="native_final"]').disabled = true;
   if (!state.presets[$("simulationPreset").value] || ($("simulationPreset").value === "structural_linear" && !$("analysisParent").value)) $("simulationRunBtn").disabled = true;
   if (!$("fixtureConditionFields").hidden && state.fixtureConditionError) $("simulationRunBtn").disabled = true;
+  if (!$("importedMeshFields").hidden && (state.importedMeshError || state.importedLoading)) $("simulationRunBtn").disabled = true;
   $("fixtureUseInCampaign").disabled = !writable() || busy() || Boolean(state.fixtureConditionError);
   if (!document.querySelector("[data-campaign-variable]:checked")) $("campaignPlanBtn").disabled = true;
   $("modelDiscoverBtn").disabled = busy() || !state.overview || !state.presets[$("modelCampaignPreset").value]?.declared_inputs || !available("model_parameters_discover");
@@ -437,9 +439,56 @@ function selectPreset() {
   $("simulationRunBtn").dataset.operation = operation;
   $("simulationId").value = makeId(operation === "pde_run" ? "E-pde" : operation === "model_analysis_run" ? "E-model" : "E-solve");
   $("fixtureConditionFields").hidden = preset?.backend !== "fixture.calculix";
+  $("importedMeshFields").hidden = preset?.backend !== "pde.fenicsx.imported";
+  state.importedRequest++; state.importedLoading = false; state.importedLevels = [];
+  $("importedMeshFiles").value = ""; importedMeshError(null);
+  if (!$("importedMeshFields").hidden) {
+    try {
+      const selected = window.importedMeshControls.splitSettings(preset.settings);
+      state.importedLevels = selected.levels;
+      $("simulationSettings").value = pretty(selected.draft);
+    } catch (error) { importedMeshError(error.message); }
+  }
+  renderImportedMeshes();
   if (!$("fixtureConditionFields").hidden) loadFixtureConditions();
   else fixtureConditionError(null);
   updateControls();
+}
+function importedMeshError(message) {
+  state.importedMeshError = message;
+  $("importedMeshError").textContent = message ?? "";
+  $("importedMeshError").hidden = !message;
+}
+function renderImportedMeshes() {
+  const container = clear("importedMeshSummary");
+  if (!state.importedLevels.length) return;
+  const summaries = window.importedMeshControls.summaries(state.importedLevels);
+  container.append(table(["순서 · 파일", "크기", "SHA-256", "순서 변경"], summaries.map((row, index) => {
+    const actions = el("div"); actions.className = "button-row";
+    for (const [label, delta] of [["위로", -1], ["아래로", 1]]) {
+      const button = action(label, () => {
+        const other = index + delta;
+        [state.importedLevels[index], state.importedLevels[other]] = [state.importedLevels[other], state.importedLevels[index]];
+        renderImportedMeshes();
+      }, "button secondary compact");
+      button.disabled = index + delta < 0 || index + delta >= summaries.length;
+      actions.append(button);
+    }
+    return [`${index + 1}. ${row.source}`, `${row.size_bytes} bytes`, el("span", row.sha256, "mono"), actions];
+  })));
+}
+async function selectImportedFiles() {
+  const request = ++state.importedRequest;
+  state.importedLoading = true; state.importedLevels = []; clear("importedMeshSummary"); importedMeshError(null); updateControls();
+  try {
+    const levels = await window.importedMeshControls.fromFiles($("importedMeshFiles").files);
+    if (request !== state.importedRequest) return;
+    state.importedLevels = levels; renderImportedMeshes();
+  } catch (error) {
+    if (request === state.importedRequest) importedMeshError(error.message);
+  } finally {
+    if (request === state.importedRequest) { state.importedLoading = false; updateControls(); }
+  }
 }
 function fixtureConditionError(message) {
   state.fixtureConditionError = message;
@@ -475,6 +524,10 @@ function changeFixtureConditions() {
 function fixtureSimulationSettings() {
   if (!$("fixtureConditionFields").hidden && state.fixtureConditionError) throw new Error(state.fixtureConditionError);
   const settings = parseField("simulationSettings", "object");
+  if (!$("importedMeshFields").hidden) {
+    if (state.importedMeshError || state.importedLoading) throw new Error(state.importedMeshError ?? "파일을 읽는 중입니다.");
+    return window.importedMeshControls.settingsWithLevels(settings, state.importedLevels);
+  }
   return $("fixtureConditionFields").hidden ? settings : window.fixtureControls.validate(settings);
 }
 function campaignOperation() { return isModelCampaign() ? "model_optimization_plan" : $("campaignType").value === "optimization" ? "optimization_plan" : "doe_plan"; }
@@ -766,7 +819,9 @@ async function runJob(operation, arguments_, handler) {
   if (!available(operation)) throw new Error("이 작업은 현재 실행 가능한 capability로 제공되지 않습니다.");
   state.submitting = true; updateControls();
   try {
-    const job = await api("/api/jobs", { method: "POST", body: JSON.stringify({ operation, arguments: arguments_ }) });
+    const body = operation === "pde_run" && arguments_.backend === "pde.fenicsx.imported"
+      ? window.importedMeshControls.requestBody(operation, arguments_) : JSON.stringify({ operation, arguments: arguments_ });
+    const job = await api("/api/jobs", { method: "POST", body });
     state.job = job; if (handler) state.handlers.set(job.id, handler); renderJob();
     if (activeJob(job)) schedulePoll();
     else {
@@ -871,6 +926,7 @@ $("useLocalBtn").addEventListener("click", () => switchStore("local").catch((err
 $("refreshBtn").addEventListener("click", () => loadOverview().catch((error) => notify(error.message)));
 $("dismissNotice").addEventListener("click", () => { $("notice").hidden = true; });
 $("simulationPreset").addEventListener("change", selectPreset); $("analysisParent").addEventListener("change", updateControls);
+$("importedMeshFiles").addEventListener("change", () => selectImportedFiles());
 document.querySelectorAll("[data-fixture-field]").forEach((input) => { input.addEventListener(input.tagName === "SELECT" ? "change" : "input", changeFixtureConditions); });
 $("simulationSettings").addEventListener("input", () => { loadFixtureConditions(); updateControls(); });
 $("fixtureUseInCampaign").addEventListener("click", () => {
