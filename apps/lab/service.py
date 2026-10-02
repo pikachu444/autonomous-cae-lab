@@ -355,6 +355,16 @@ class LabService:
                     "scope": "고정된 공개 입력·참조의 제한된 solid 모델; 원 NFX 재현·강도·물리 검증 UNKNOWN. 실제 결과 기록에서 수치 판정 확인.",
                     "settings": family_specification(case, load_case),
                 }
+        # Advertise the existing binding interface without calling descriptors,
+        # runtime admission or a solver. Availability/qualification is separate.
+        adapters = self._selected().lab.model_analysis_adapters
+        for preset in presets.values():
+            adapter = adapters.get(preset["backend"])
+            preset["declared_inputs"] = (preset["operation"] == "model_analysis_run" and
+                adapter is not None and all(callable(getattr(adapter, name, None)) for name in
+                    ("describe_model", "describe_inputs", "bind_inputs", "input_runtime_identity")) and
+                isinstance(getattr(adapter, "input_source_files", None), (list, tuple)) and
+                bool(adapter.input_source_files))
         return presets
 
     def submit(self, operation: str, arguments: dict) -> dict:

@@ -1,0 +1,134 @@
+"use strict";
+
+// Prepare existing model-campaign API inputs; Core and the numerical engine own execution.
+(function (root) {
+  const inputId = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
+  const storeId = /^[A-Za-z][A-Za-z0-9_-]{0,79}$/;
+  const sha256 = /^[0-9a-fA-F]{64}$/;
+  const nativeKeys = ["backend", "document", "object", "path", "alias"];
+  const candidateKeys = ["native", "label", "unit", "value", "lower", "upper", "source_sha256"];
+  const planKeys = ["study_id", "campaign_id", "parameter_ids", "seed", "objective", "constraints",
+    "max_generations", "population_size", "initial_values", "required_validations", "engine"];
+  const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
+  const mapping = (value) => value !== null && typeof value === "object" &&
+    (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
+  const exactKeys = (value, names) => mapping(value) && Object.keys(value).length === names.length && names.every((name) => own(value, name));
+  const finite = (value) => typeof value === "number" && Number.isFinite(value);
+  const nonempty = (value) => typeof value === "string" && value.trim().length > 0;
+  const digest = (value) => typeof value === "string" && sha256.test(value);
+  function jsonValue(value, ancestors = new Set()) {
+    if (value === null || typeof value === "string" || typeof value === "boolean") return true;
+    if (typeof value === "number") return Number.isFinite(value);
+    if ((!Array.isArray(value) && !mapping(value)) || ancestors.has(value)) return false;
+    const keys = Reflect.ownKeys(value).filter((key) => !(Array.isArray(value) && key === "length"));
+    if (keys.some((key) => typeof key !== "string" || !Object.getOwnPropertyDescriptor(value, key).enumerable ||
+        !own(Object.getOwnPropertyDescriptor(value, key), "value")) ||
+        (Array.isArray(value) && (keys.length !== value.length || keys.some((key, index) => key !== String(index))))) return false;
+    ancestors.add(value);
+    const valid = keys.every((key) => jsonValue(value[key], ancestors));
+    ancestors.delete(value);
+    return valid;
+  }
+  function cloneJson(value) {
+    if (Array.isArray(value)) return value.map(cloneJson);
+    if (mapping(value)) return Object.fromEntries(Object.keys(value).map((key) => [key, cloneJson(value[key])]));
+    return value;
+  }
+  function validNative(native, backend) {
+    return exactKeys(native, nativeKeys) && native.backend === backend && digest(native.document) &&
+      native.object === "declared_inputs" && typeof native.path === "string" && inputId.test(native.path) && native.alias === "";
+  }
+  function validateDiscovery(candidates, backend) {
+    if (!nonempty(backend) || !Array.isArray(candidates) || candidates.length < 1 || candidates.length > 32 || !jsonValue(candidates)) {
+      throw new Error("선택한 모델의 실제 입력 후보 1~32개가 필요합니다.");
+    }
+    const paths = new Set();
+    let revision, source;
+    candidates.forEach((candidate) => {
+      if (!exactKeys(candidate, candidateKeys) || !validNative(candidate.native, backend) ||
+          !digest(candidate.source_sha256) || !nonempty(candidate.label) || !nonempty(candidate.unit) ||
+          !finite(candidate.value) || !finite(candidate.lower) || !finite(candidate.upper) ||
+          !(candidate.lower <= candidate.value && candidate.value <= candidate.upper && candidate.lower < candidate.upper) ||
+          paths.has(candidate.native.path)) throw new Error("모델 입력 후보의 식별자·단위·범위가 불완전합니다.");
+      revision ??= candidate.native.document; source ??= candidate.source_sha256;
+      if (candidate.native.document !== revision || candidate.source_sha256 !== source) {
+        throw new Error("서로 다른 모델 개정이나 소스의 입력 후보를 섞을 수 없습니다.");
+      }
+      paths.add(candidate.native.path);
+    });
+    return candidates;
+  }
+  function validEntry(entry, backend) {
+    return mapping(entry) && jsonValue(entry) && entry.target === "model_analysis" && entry.mode === "free" &&
+      entry.kind === "continuous" && mapping(entry.input_effect) && entry.input_effect.status === "PASS" &&
+      typeof entry.parameter_id === "string" && inputId.test(entry.parameter_id) && validNative(entry.native, backend) &&
+      nonempty(entry.unit) && digest(entry.source_sha256) && entry.model_template_revision === entry.native.document &&
+      finite(entry.current_value) && finite(entry.lower_bound) && finite(entry.upper_bound) &&
+      entry.lower_bound < entry.upper_bound && entry.lower_bound <= entry.current_value && entry.current_value <= entry.upper_bound &&
+      finite(entry.upper_bound - entry.lower_bound) && finite(entry.upper_bound + entry.lower_bound);
+  }
+  function eligibleModelEntries(entries, candidates, backend) {
+    validateDiscovery(candidates, backend);
+    if (!Array.isArray(entries)) throw new Error("연구 변수 레지스트리가 필요합니다.");
+    const byPath = new Map(candidates.map((candidate) => [candidate.native.path, candidate]));
+    return entries.filter((entry) => {
+      if (!validEntry(entry, backend)) return false;
+      const candidate = byPath.get(entry.native.path);
+      return candidate !== undefined && nativeKeys.every((key) => entry.native[key] === candidate.native[key]) &&
+        entry.unit === candidate.unit && entry.source_sha256 === candidate.source_sha256 &&
+        entry.current_value === candidate.value && entry.model_template_revision === candidate.native.document &&
+        entry.lower_bound >= candidate.lower && entry.upper_bound <= candidate.upper;
+    });
+  }
+  function modelPlanArguments(fields, context) {
+    if (!exactKeys(fields, planKeys) || !exactKeys(context, ["backend", "settings", "entries"]) ||
+        !nonempty(context.backend) || !mapping(context.settings) || !jsonValue(fields) || !jsonValue(context)) {
+      throw new Error("모델 최적화 계획에는 기존 API의 입력과 유한한 JSON 데이터만 사용할 수 있습니다.");
+    }
+    if (typeof fields.study_id !== "string" || !storeId.test(fields.study_id) ||
+        typeof fields.campaign_id !== "string" || !storeId.test(fields.campaign_id) || fields.campaign_id.length > 58 ||
+        fields.engine !== "scipy.differential_evolution" || !Number.isSafeInteger(fields.seed) || fields.seed < 0 || fields.seed > 2 ** 32 - 1 ||
+        !Number.isSafeInteger(fields.max_generations) || fields.max_generations < 1 || fields.max_generations > 100 ||
+        !Number.isSafeInteger(fields.population_size) || fields.population_size < 5 || fields.population_size > 64 ||
+        fields.population_size * (fields.max_generations + 1) > 512) {
+      throw new Error("연구·캠페인 ID, SciPy 엔진, 시드와 기존 실행 예산 범위를 확인하세요.");
+    }
+    const entries = context.entries;
+    if (!Array.isArray(entries) || !entries.length || entries.length > 32 || entries.some((entry) => !validEntry(entry, context.backend)) ||
+        new Set(entries.map((entry) => entry.parameter_id)).size !== entries.length ||
+        new Set(entries.map((entry) => entry.native.path)).size !== entries.length ||
+        entries.some((entry) => entry.native.document !== entries[0].native.document || entry.source_sha256 !== entries[0].source_sha256)) {
+      throw new Error("같은 최신 모델에 등록된 연속 자유 변수만 선택할 수 있습니다.");
+    }
+    const selected = fields.parameter_ids, available = new Map(entries.map((entry) => [entry.parameter_id, entry]));
+    if (!Array.isArray(selected) || !selected.length || new Set(selected).size !== selected.length ||
+        selected.some((name) => typeof name !== "string" || !available.has(name))) {
+      throw new Error("발견·등록된 서로 다른 모델 연구 변수 ID를 선택하세요.");
+    }
+    const objective = fields.objective;
+    if (!exactKeys(objective, ["source", "metric", "unit", "direction"]) || objective.source !== "model" ||
+        !nonempty(objective.metric) || !nonempty(objective.unit) || !["minimize", "maximize"].includes(objective.direction)) {
+      throw new Error("목적 함수의 출처는 model이며 지표·단위·최소화 또는 최대화를 명시해야 합니다.");
+    }
+    if (!Array.isArray(fields.constraints) || fields.constraints.length > 16 || fields.constraints.some((constraint) =>
+      !exactKeys(constraint, ["source", "metric", "unit", "operator", "limit", "scale"]) || constraint.source !== "model" ||
+      !nonempty(constraint.metric) || !nonempty(constraint.unit) || !["<=", ">="].includes(constraint.operator) ||
+      !finite(constraint.limit) || !finite(constraint.scale) || constraint.scale <= 0)) {
+      throw new Error("제약은 model 지표·단위·비교 연산·유한한 한계와 양수인 정규화 값을 명시해야 합니다.");
+    }
+    const requirements = fields.required_validations;
+    if (!exactKeys(requirements, ["model"]) || !Array.isArray(requirements.model) ||
+        requirements.model.some((name) => !nonempty(name)) || new Set(requirements.model).size !== requirements.model.length) {
+      throw new Error("필수 수치 검증은 model 배열의 서로 다른 검사 이름으로 지정하세요.");
+    }
+    const initial = fields.initial_values;
+    if (initial !== null && (!exactKeys(initial, selected) || selected.some((name) => !finite(initial[name]) ||
+        initial[name] < available.get(name).lower_bound || initial[name] > available.get(name).upper_bound))) {
+      throw new Error("초기값은 선택한 모든 변수의 등록 범위 안에 있어야 합니다.");
+    }
+    return { ...cloneJson(fields), backend: context.backend, settings: cloneJson(context.settings) };
+  }
+  const api = { validateDiscovery, eligibleModelEntries, modelPlanArguments };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.campaignControls = api;
+})(typeof window !== "undefined" ? window : globalThis);

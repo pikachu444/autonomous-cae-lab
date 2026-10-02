@@ -51,15 +51,15 @@ class Client:
         assert job["status"] == "RUNNING"
         return self.finish(job["id"], expected_status=expected_status)
 
-    def finish(self, identifier, *, expected_status="COMPLETED"):
-        deadline = time.monotonic() + 40
+    def finish(self, identifier, *, expected_status="COMPLETED", observation_timeout=40, poll_interval=.02):
+        deadline = time.monotonic() + observation_timeout
         while True:
             job = self.request("/api/jobs/" + identifier)
             if job["status"] != "RUNNING":
                 assert job["status"] == expected_status, job
                 return job
             assert time.monotonic() < deadline, job
-            time.sleep(.02)
+            time.sleep(poll_interval)
 
 
 @contextmanager
@@ -321,6 +321,64 @@ def test_http_declared_input_metadata_uses_common_registry_and_plan_without_nati
     assert file_hashes(library) == before
 
 
+def test_presets_advertise_complete_bindings_without_descriptor_or_runtime_calls(client, monkeypatch):
+    adapters = client.server.service._selected().lab.model_analysis_adapters
+
+    def unexpected_call(*args, **kwargs):
+        raise AssertionError("Preset metadata must not discover, admit or solve")
+
+    for backend in ("structural.code_aster", "material.mfront.inverse"):
+        for name in ("describe_model", "describe_inputs", "bind_inputs", "input_runtime_identity", "solve"):
+            monkeypatch.setattr(adapters[backend], name, unexpected_call)
+    presets = client.request("/api/presets")
+    assert {key for key, value in presets.items() if value["declared_inputs"]} == {
+        "codeaster_linear", "material_inverse"}
+    # A source/runtime declaration alone is insufficient. A missing binding
+    # must immediately withdraw the model from the UI's advertised choices.
+    monkeypatch.setattr(adapters["material.mfront.inverse"], "bind_inputs", None)
+    assert not client.request("/api/presets")["material_inverse"]["declared_inputs"]
+
+
+def test_http_model_campaign_run_exposes_verified_model_records_and_reuses_them(tmp_path):
+    from test_model_parameters import STUDY, synthetic_lab, template_settings
+
+    # Real Core/HTTP/SciPy, explicitly synthetic domain observations. No native
+    # solver or provider call, and no numerical physics acceptance is claimed.
+    lab, adapter = synthetic_lab(tmp_path / "local")
+    service = LabService(lab.store, lab_factory=lambda path: lab)
+    with running(service) as client:
+        arguments = {"backend": adapter.backend, "settings": template_settings()}
+        discovered = client.job("model_parameters_discover", arguments)["result"]
+        assert discovered[0]["native"]["path"] == "input_x"
+        client.job("model_parameters_register", {**arguments, "study_id": STUDY,
+            "input_id": "input_x", "parameter_id": "research_x", "display_name": "TEST ONLY X",
+            "lower": 0.0, "upper": 4.0})
+        plan = client.job("model_optimization_plan", {**arguments, "study_id": STUDY,
+            "campaign_id": "C-model-http-run", "parameter_ids": ["research_x"], "seed": 13,
+            "objective": {"source": "model", "metric": "synthetic_objective", "unit": "1", "direction": "minimize"},
+            "constraints": [], "initial_values": {"research_x": 1.0},
+            "required_validations": {"model": ["synthetic_check"]}})["result"]
+        assert plan["route"] == "model_analysis"
+        job = client.request("/api/jobs", {"operation": "optimization_run",
+            "arguments": {"campaign_id": plan["campaign_id"]}}, expected=202)
+        result = client.finish(job["id"], observation_timeout=300, poll_interval=.2)["result"]
+        assert result["decision"] == "NOT_RELEASED" and result["termination"]["evaluation_count"] > 5
+        inspected = client.request("/api/campaigns/" + plan["campaign_id"])
+        assert inspected["record"] == result
+        for row in result["evaluations"]:
+            assert not {"cad_experiment_id", "analysis_experiment_id"}.intersection(row)
+            experiment = client.request("/api/experiments/" + row["model_experiment_id"])
+            assert experiment["integrity"] == "VERIFIED"
+            assert experiment["result"]["campaign_id"] == plan["campaign_id"]
+            assert experiment["result"]["decision"] == "NOT_RELEASED"
+        before = file_hashes(lab.store)
+        calls = adapter.calls
+        replay = client.request("/api/jobs", {"operation": "optimization_run",
+            "arguments": {"campaign_id": plan["campaign_id"]}}, expected=202)
+        assert client.finish(replay["id"], observation_timeout=300, poll_interval=.2)["result"] == result
+        assert adapter.calls == calls and file_hashes(lab.store) == before
+
+
 def test_single_writer_blocks_second_job_and_store_switch_while_reads_work(tmp_path):
     entered, release = threading.Event(), threading.Event()
 
@@ -465,6 +523,16 @@ def test_fixture_conditions_script_and_form_are_served_from_the_same_source(clie
     assert page.index(b'/static/fixture-controls.js') < page.index(b'/static/app.js')
     assert b'data-fixture-field="force_N"' in page
     assert b'data-fixture-field="provenance"' in page
+
+
+def test_declared_campaign_controls_are_served_before_their_ui_consumer(client):
+    static = Path(__file__).resolve().parents[1] / "apps/lab/static"
+    controls, headers = client.request("/static/campaign-controls.js", raw=True)
+    page, _ = client.request("/", raw=True)
+    assert controls == (static / "campaign-controls.js").read_bytes()
+    assert headers["Content-Type"].startswith("text/javascript")
+    assert page.index(b'/static/campaign-controls.js') < page.index(b'/static/app.js')
+    assert b'id="campaignTarget"' in page and b'id="modelRegisterForm"' in page
 
 
 def test_writable_and_readonly_store_overlap_is_rejected(tmp_path):

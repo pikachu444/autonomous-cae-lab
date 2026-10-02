@@ -1,5 +1,21 @@
 # Autonomous CAE Lab — project scope and requirement ledger
 
+## Current D2 checkpoint: declared-model optimization connected to Explore
+
+Existing model input discovery/registration and model_optimization_plan now
+feed the common SciPy engine/run/inspector; no second optimizer or Core/adapter
+rewrite. Template/source-bound variables, settings/backend/study/store
+invalidation, exact model objectives/constraints, CAD drafts/deselection and
+model-experiment links are integrated.27 distinct focused checks PASS(18Node+
+9HTTP); source review closed with no P1/P2. Actual new-store UI discovery,
+registration, stale-setting refusal and plan C-model-ui-20261002-01 were checked.
+Historical9-row native campaign and first verified result were read only;
+new native/provider/official OpenScience runs0. No convergence/physics claim.
+Record: benchmarks/records/20261002-model-campaign-ui-development.json.
+Prior exact dd61 source CI36997910602 completed8SUCCESS/2FAIL(codeaster,explicit).
+Next ordered development is D3 Phase4. Full native/reference/GUI verification,
+all52/P2.2 and physical qualification remain OPEN/UNKNOWN/NOT_RELEASED.
+
 ## Current D1 source checkpoint
 
 Pushed source `dd61b946c66103ae98fee2c83c81c16271f784a0`, source CI36997910602

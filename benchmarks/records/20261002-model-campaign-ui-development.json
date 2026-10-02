@@ -1,0 +1,123 @@
+{
+  "schema_version": "1.0",
+  "status": "PASS_SOFTWARE_INTEGRATION_BOUNDED",
+  "created_utc": "2026-10-02T11:40:45.787103+00:00",
+  "source_base_commit": "2ea8764808af9ed2df5cb3432308420c080f6510",
+  "source_publication": "Exact implementation commit/CI recorded in the following publication receipt; this file does not claim new native physics.",
+  "source_files": [
+    {
+      "path": "apps/lab/service.py",
+      "sha256": "45fb698bf3dfbdb29a764c7362ec4fc2f810aecb42ce971c410330677647f64e",
+      "size_bytes": 35456
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "sha256": "4e1ecbcb21b64965fed34f1c2e0fad1fd2e2dfbd9c5e57d60f4ef4abe1e74075",
+      "size_bytes": 74051
+    },
+    {
+      "path": "apps/lab/static/index.html",
+      "sha256": "8115e8cd6d21c1315a620f6e0c3b0b1ec91b7ab849639153c2165796bfb83a9b",
+      "size_bytes": 28400
+    },
+    {
+      "path": "apps/lab/static/campaign-controls.js",
+      "sha256": "6eccbee041fba39582f37c96a3963a73b8a07d99af5ae51307575592224ea799",
+      "size_bytes": 10011
+    },
+    {
+      "path": "tests/test_campaign_controls.js",
+      "sha256": "420c0d0b007cca3c5c1f72a4b9c615b098091a031b2740dbe78fde5437e1ba40",
+      "size_bytes": 12640
+    },
+    {
+      "path": "tests/test_lab_server.py",
+      "sha256": "6fa8a3fed9a4e1b794d75902bec21b5715eb631b6d5c2bcd4ff6e232045e8ce9",
+      "size_bytes": 30801
+    },
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "sha256": "ffbe2c807b384bad6c04f2b5e473aa8bede7df30b125b5ea2c1ac23b3bce4e94",
+      "size_bytes": 20419
+    }
+  ],
+  "scope": "D2 Phase3: existing declared-model discovery/registration/optimization API in Explore; common SciPy engine/run/replay reused.",
+  "changes": [
+    "Nonexecuting preset binding advertisement; actual runtime discovery/admission remains separate",
+    "Model template/source-bound continuous free variables; invalidate settings/backend/study/store context",
+    "Exact model-source objective/constraints/validation request; CAD/model drafts and deselection retained",
+    "Existing model experiment links, termination and UNKNOWN/NOT_RELEASED; no new optimizer/Core/adapter/schema"
+  ],
+  "checks": {
+    "node": {
+      "status": "PASS",
+      "distinct_tests": 18,
+      "command": "node --test tests/test_campaign_controls.js tests/test_fixture_controls.js",
+      "seconds": 0.1730161
+    },
+    "http": {
+      "status": "PASS",
+      "distinct_tests": 9,
+      "deselected": 45,
+      "seconds": 103.52,
+      "command": "python -B -m pytest tests/test_lab_server.py -q -p no:cacheprovider -k 'declared or model_campaign or presets' --tb=short",
+      "scope": "Real Core/HTTP/SciPy with explicitly test-only synthetic observations; no native physics qualification"
+    },
+    "distinct_total": 27,
+    "syntax": "PASS",
+    "independent_source_review": "PASS; no open P1/P2 in bounded seven-file scope and final display correction"
+  },
+  "failed_attempts": [
+    {
+      "kind": "TEST_OBSERVATION_TIMEOUT",
+      "initial_result": "8PASS/1FAIL",
+      "observation_seconds": 40,
+      "native_solver_failures_inferred": false,
+      "evidence": "Optimizer still RUNNING; five synthetic journal rows retained in pytest-54 temporary store.",
+      "correction": "Test-only observation window300s/poll0.2s; solver/algorithm budget, objective and all numerical thresholds unchanged.",
+      "retention": "OS temporary pytest store; not a durable engineering experiment"
+    }
+  ],
+  "manual_ui": {
+    "status": "PASS_BOUNDED",
+    "url": "http://127.0.0.1:8768/#explore",
+    "store": "artifacts/development-model-campaign-ui-20261002-01",
+    "study_id": "S-model-ui-20261002-01",
+    "campaign_id": "C-model-ui-20261002-01",
+    "checks": [
+      "Actual Code_Aster input discovery and declared-input registration; 100000..300000MPa",
+      "Changing settings blocked old register/plan; restoring settings required rediscovery",
+      "Existing .001mm constraint and four numerical requirements preserved in actual Core plan",
+      "CAD/model switching retained model draft and deliberately unchecked variable",
+      "Historical readonly nine-row native campaign and first model experiment VERIFIED/UNKNOWN/NOT_RELEASED"
+    ],
+    "plan_sha256": "6d45b901deb76aa9a1fc5180a646220510f9d94451383515c87fcf65b7bf6061",
+    "registry_sha256": "4f8d7e63d2b6014aa78c1815352ae88eb2bd195f4da81027a3e1ce20351b88e6",
+    "model_template_revision": "291a55117d14de05c30d71e5a43dd8c878568cd80399d3462c76f0e18d8c5e63",
+    "native_solver_runs": 0,
+    "provider_calls": 0,
+    "official_openscience_runs": 0,
+    "historical_campaign": "C-model-optimization in artifacts/integrated-20260930-model-optimization",
+    "historical_native_reexecution": false,
+    "historical_read_response_seconds_approximately": 162,
+    "historical_read_limit": "Repeated complete artifact/path verification; exact hash versus Windows path-I/O bottleneck UNKNOWN. No thresholds or integrity gates removed.",
+    "screenshot_file": "NOT_SAVED; actual DOM observations retained in conversation; source/store manifests are independent evidence"
+  },
+  "previous_source_ci": {
+    "source_commit": "dd61b946c66103ae98fee2c83c81c16271f784a0",
+    "run_id": 36997910602,
+    "status": "COMPLETED_FAILURE",
+    "successful_jobs": 8,
+    "failed_jobs": [
+      "codeaster",
+      "explicit"
+    ],
+    "failed_log_cause": "Not re-fetched for this source; prior failure details are separate historical evidence, not assumed verified here"
+  },
+  "limitations": [
+    "No fresh native model search/convergence, guarded job admission, official research/GUI or new physical qualification",
+    "MFront inverse interface advertised; actual inverse runtime discovery/admission not run in this unit",
+    "All original52, P2.2 and full phase completion remain OPEN; UNKNOWN/NOT_RELEASED retained"
+  ],
+  "next_development": "D3 Phase4: extend existing declared PDE domains/boundaries/time/vector/coupled forms in bounded units; consolidate native/reference verification separately"
+}

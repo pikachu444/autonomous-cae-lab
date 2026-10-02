@@ -43,6 +43,19 @@ run arbitrary commands, import arbitrary code or accept server filesystem paths.
 
 ## HTTP API
 
+Explore reuses existing declared-model discovery/registration and
+`model_optimization_plan`, then the same `optimization_run`/inspector as CAD.
+Preset `declared_inputs` advertises the complete adapter binding interface
+without calling discovery, runtime admission or solve; actual discovery still
+requires the declared environment and may perform inverse-runtime admission.
+Only advertised preset inputs enter this UI. Settings/backend/study/store
+changes invalidate discovery; eligible variables match its exact template,
+source, native ID, unit and declared-input PASS. Model objectives/constraints
+use source `model`, requirements use `{model:[...]}`, and CAD draft/settings
+remain separate. Candidate links use verified `model_experiment_id` records;
+termination, invalid responses, UNKNOWN and NOT_RELEASED remain visible.
+This is a human integration, not new native or official OpenScience acceptance.
+
 Fixture conditions use the existing `analysis_run` settings without new HTTP or
 Core operations. Typed load/material/mesh controls and advanced JSON synchronize;
 invalid JSON disables form edits until repaired so stale fields cannot overwrite
@@ -73,7 +86,9 @@ This human interface is separate from official OpenScience research admission.
 - `GET /api/presets`: bounded existing sample inputs for `structural_linear`,
   `pde_canonical`, `codeaster_linear`; these include `backend`, `settings`,
   `label`, `scope`, `status`. Reuse the existing verification specifications and
-  assumed fixture material, and describe assumptions clearly.
+  assumed fixture material, and describe assumptions clearly. Additive
+  `declared_inputs:boolean` indicates a complete declared binding interface,
+  not a runnable installed solver, admission or physical qualification.
 - `GET /api/compare?ids=ID,ID`: Core comparison for at most 12 selected experiments.
 - `GET /api/artifacts/ID?path=RELATIVE`: verified, manifest-listed bytes within
   that experiment. Reject absolute paths, traversal, symlinks escaping the
@@ -97,6 +112,11 @@ This human interface is separate from official OpenScience research admission.
 `model_analysis_run` → `Lab.run_model_analysis`; `doe_plan`/`doe_run` →
 `Lab.plan_doe`/`Lab.run_doe`; `optimization_plan`/`optimization_run` →
 `Lab.plan_optimization`/`Lab.run_optimization`.
+`model_parameters_discover`/`model_parameters_register` →
+`Lab.discover_model_parameters`/`Lab.register_model_parameter`;
+`model_optimization_plan` → `Lab.plan_model_optimization`. These operations
+already exist in the allowlist; discovery is permitted in read-only libraries,
+registration/planning/run remain writable-store operations.
 
 Native import requires a later bounded upload API; client filesystem paths are
 not supported. No operation takes a shell command. Existing native surface

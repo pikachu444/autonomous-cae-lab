@@ -1,5 +1,12 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+Human Explore integration2026-10-02 reuses existing model input discovery,
+registration, planning and common optimization run/inspection. The numerical
+engine still generates candidates; OpenScience chooses research semantics and
+interprets retained evidence. No new MCP tool, provider choice or guarded
+runtime admission follows from this UI checkpoint. Actual native research/GUI
+verification is queued separately; UNKNOWN/NOT_RELEASED remain authoritative.
+
 ## Additive long-running job operations (ADR0018)
 
 `research_job_start(operation, arguments)` reuses the existing LabService

@@ -1,5 +1,19 @@
 # Adaptive numerical search acceptance
 
+## Human declared-model integration — development checkpoint2026-10-02
+
+Explore now connects existing input discovery/registration and model planning
+to the common SciPy DE runner and verified model-experiment links. Preset
+binding metadata is non-executing; Code_Aster/inverse discovery still needs its
+configured runtime, and inverse admission may perform native preflight.
+Changing settings/backend/study/store withdraws old discovered mappings.
+Model requests preserve fixed context and explicit source `model`, units,
+constraints, seed and budgets; CAD settings/drafts remain intact.27 distinct
+focused checks PASS(18Node+9HTTP, real SciPy with test-only observations).
+No new native/provider/official OpenScience or convergence qualification is
+claimed. Historical9-evaluation native records remain independent evidence.
+Record: `../benchmarks/records/20261002-model-campaign-ui-development.json`.
+
 `Lab.plan_optimization` freezes an objective, optional constraints, required
 numerical checks, registered continuous free variables, source identities and
 public SciPy differential-evolution options before execution. Core coordinates

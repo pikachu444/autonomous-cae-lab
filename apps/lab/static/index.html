@@ -8,6 +8,7 @@
   <title>Autonomous CAE Lab · 로컬 연구실</title>
   <link rel="stylesheet" href="/static/style.css">
   <script src="/static/fixture-controls.js" defer></script>
+  <script src="/static/campaign-controls.js" defer></script>
   <script src="/static/app.js" defer></script>
 </head>
 <body>
@@ -121,9 +122,30 @@
 
       <section id="explore" data-panel="explore" hidden>
         <div class="page-heading"><div><p class="eyebrow">04 / EXPLORE</p><h1>수치 엔진이 생성하는 후보.</h1><p class="lead">고정한 계획과 seed를 바탕으로 탐색하고, 실패한 설계도 기록에 남깁니다.</p></div><span class="outline-label">DOE / Numerical Optimization</span></div>
+        <article class="card model-card"><fieldset data-read-job><label>탐색 대상<select id="campaignTarget"><option value="cad">등록된 CAD 설계 변수</option><option value="model">선언한 해석 모델 입력 · 최적화</option></select></label></fieldset></article>
+        <article id="declaredModelArea" class="card separated" hidden>
+          <fieldset data-read-job>
+            <h2>해석 모델의 입력 변수</h2>
+            <label>탐색할 해석 모델<select id="modelCampaignPreset"><option value="">예제를 불러오는 중…</option></select></label>
+            <div id="modelCampaignDescription" class="preset-description"></div>
+            <details class="advanced"><summary>고정할 모델 설정</summary><textarea id="modelCampaignSettings" rows="12" class="json-input" spellcheck="false" aria-label="탐색 모델 설정 JSON"></textarea></details>
+            <p class="hint">광고된 입력만 변경하고 하중·메시 등 나머지 설정은 고정합니다. 변수 발견은 현재 실행 환경도 확인하며, 역추정 모델은 기존 런타임 사전검사를 수행할 수 있습니다.</p>
+            <button type="button" id="modelDiscoverBtn" class="button primary" data-operation="model_parameters_discover">모델 변수 발견·환경 확인</button>
+          </fieldset>
+          <div id="modelDiscoveryList" class="separated empty-state">모델 설정을 확인한 뒤 입력 변수를 발견하세요.</div>
+          <form id="modelRegisterForm" class="separated"><fieldset data-write>
+            <h3>발견한 입력을 연구 변수로 등록</h3>
+            <label>선언된 입력<select id="modelInputId" required><option value="">먼저 모델 변수를 발견하세요</option></select></label>
+            <div class="form-grid"><label>모델 연구 변수 ID<input id="modelParameterId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,63}"></label><label>모델 변수 표시 이름<input id="modelParameterName" required></label></div>
+            <div class="form-grid"><label>모델 변수 하한<input id="modelParameterLower" type="number" step="any" required></label><label>모델 변수 상한<input id="modelParameterUpper" type="number" step="any" required></label></div>
+            <label>모델 변수 사용 방식<select id="modelParameterMode"><option value="free">자유 변수</option><option value="fixed">고정 변수</option></select></label>
+            <p class="hint">등록 시 입력 변경과 모델 선언의 일치를 검증합니다. 물리적 효과·측정 재료·강도 자격은 UNKNOWN입니다.</p>
+            <button id="modelRegisterBtn" class="button secondary" data-operation="model_parameters_register">입력 변경 확인 후 등록</button>
+          </fieldset></form>
+        </article>
         <div class="two-column explore-columns"><article class="card"><form id="campaignForm"><fieldset data-write><div class="card-heading"><div><p class="eyebrow">PLAN FIRST</p><h2>새 탐색 계획</h2></div></div><div class="form-grid"><label>탐색 방식<select id="campaignType"><option value="doe">DOE · Latin hypercube</option><option value="optimization">최적화 · Differential evolution</option></select></label><label>새 캠페인 ID<input id="campaignId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,57}" autocomplete="off"></label></div><div class="context-readout" id="campaignModel">설계 화면의 작업 모델을 사용합니다.</div><label class="field-label">등록된 자유 변수</label><div id="campaignVariables" class="variable-options empty-state">먼저 연구 변수를 등록하세요.</div><div class="form-grid"><label>Seed<input id="campaignSeed" type="number" min="0" max="4294967295" value="13" step="1" required></label><label id="sampleCountField">DOE 표본 수<input id="campaignSamples" type="number" min="2" max="32" value="2" step="1"></label></div>
-          <div id="optimizationFields" hidden><div class="form-grid"><label>최대 세대 수<input id="optimizationGenerations" type="number" min="1" max="100" value="1" step="1"></label><label>모집단 수<input id="optimizationPopulation" type="number" min="5" max="64" value="5" step="1"></label></div><h3>명시적 목적 함수</h3><div class="form-grid"><label>결과 출처<select id="objectiveSource"><option value="cad">CAD</option><option value="analysis">해석</option></select></label><label>방향<select id="objectiveDirection"><option value="minimize">최소화</option><option value="maximize">최대화</option></select></label></div><div class="form-grid"><label>Metric 이름<input id="objectiveMetric" value="cad_volume"></label><label>단위<input id="objectiveUnit" value="mm^3"></label></div><details class="advanced"><summary>제약·초깃값·필수 검증</summary><label>제약 목록 (JSON)<textarea id="optimizationConstraints" rows="5" class="json-input" spellcheck="false">[]</textarea></label><label>초기 후보 (JSON / null)<textarea id="optimizationInitial" rows="2" class="json-input" spellcheck="false">null</textarea></label><label>필수 검증 (JSON)<textarea id="optimizationRequired" rows="3" class="json-input" spellcheck="false">{"cad": [], "analysis": []}</textarea></label></details><p class="hint">유효한 metric과 선언한 제약으로 판단합니다. 한 세대의 결과는 수렴한 전역 최적해가 아닙니다.</p></div>
-          <label>후속 구조 해석<select id="campaignAnalysis"><option value="">CAD만 실행</option><option value="structural_linear">기존 fixture 선형 구조 screen</option></select></label><details id="campaignAnalysisDetails" class="advanced" hidden><summary>후속 해석의 명시적 설정</summary><textarea id="campaignAnalysisSettings" rows="12" class="json-input" spellcheck="false" aria-label="캠페인 해석 설정 JSON"></textarea></details><div class="form-footer"><small>계획을 저장한 후 목록에서 실행합니다.</small><button class="button primary" data-operation="doe_plan" id="campaignPlanBtn">새 계획 저장</button></div></fieldset></form></article>
+          <div id="optimizationFields" hidden><div class="form-grid"><label>최대 세대 수<input id="optimizationGenerations" type="number" min="1" max="100" value="1" step="1"></label><label>모집단 수<input id="optimizationPopulation" type="number" min="5" max="64" value="5" step="1"></label></div><h3>명시적 목적 함수</h3><div class="form-grid"><label>결과 출처<select id="objectiveSource"><option value="cad">CAD</option><option value="analysis">해석</option><option value="model" disabled>선언 모델 해석</option></select></label><label>방향<select id="objectiveDirection"><option value="minimize">최소화</option><option value="maximize">최대화</option></select></label></div><div class="form-grid"><label>Metric 이름<input id="objectiveMetric" value="cad_volume"></label><label>단위<input id="objectiveUnit" value="mm^3"></label></div><details class="advanced"><summary>제약·초깃값·필수 검증</summary><label>제약 목록 (JSON)<textarea id="optimizationConstraints" rows="5" class="json-input" spellcheck="false">[]</textarea></label><label>초기 후보 (JSON / null)<textarea id="optimizationInitial" rows="2" class="json-input" spellcheck="false">null</textarea></label><label>필수 검증 (JSON)<textarea id="optimizationRequired" rows="3" class="json-input" spellcheck="false">{"cad": [], "analysis": []}</textarea></label></details><p class="hint">유효한 metric과 선언한 제약으로 판단합니다. 한 세대의 결과는 수렴한 전역 최적해가 아닙니다.</p></div>
+          <div id="campaignCadAnalysis"><label>후속 구조 해석<select id="campaignAnalysis"><option value="">CAD만 실행</option><option value="structural_linear">기존 fixture 선형 구조 screen</option></select></label><details id="campaignAnalysisDetails" class="advanced" hidden><summary>후속 해석의 명시적 설정</summary><textarea id="campaignAnalysisSettings" rows="12" class="json-input" spellcheck="false" aria-label="캠페인 해석 설정 JSON"></textarea></details></div><div class="form-footer"><small>계획을 저장한 후 목록에서 실행합니다.</small><button class="button primary" data-operation="doe_plan" id="campaignPlanBtn">새 계획 저장</button></div></fieldset></form></article>
           <article class="card"><div class="card-heading"><div><p class="eyebrow">PERSISTED CAMPAIGNS</p><h2>계획·실행 기록</h2></div><span id="campaignCount" class="badge neutral">0</span></div><div id="campaignList" class="empty-state">저장한 계획이 나타납니다.</div><div id="campaignDetail" class="campaign-detail"></div></article></div>
       </section>
 
