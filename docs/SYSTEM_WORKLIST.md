@@ -1,6 +1,20 @@
 # Sequential system worklist
 
-## Current D3.1 CI expectation correction
+## Current D3.1 bounded native/reference checkpoint
+
+Source dd8f499 closes6 accepted/2 numerical rejects/3 preflight NOT_RUN cases
+and24 mesh levels. Independent direct polynomial integration reproduces all
+L2/gradient-H1 errors and rates; original277files/4217783B remain unchanged.
+Actual readonly Results opens the original VERIFIED record/source/artifact
+links at8769. Native field rendering and guarded rectangle Research remain open.
+Corrected4457af6 exact CI37010014698 passes2240Core checks(1optional skip) and
+the PDE6/2/3 job; whole workflow completed8SUCCESS/2FAIL. Aster Fz numerical
+checks fail (internal cause UNKNOWN from log); explicit asset404 is retained.
+Records: `../benchmarks/records/20261002-rectangle-pde-native.json` and
+`../benchmarks/records/20261002-rectangle-pde-publication.json`.
+Next D3.2 transient/time history; Phase4/all52/P2.2 remain OPEN/UNKNOWN/NOT_RELEASED.
+
+## Historical D3.1 CI expectation correction
 
 Exact dd8 CI37008460574 reports2237PASS/2FAIL/1SKIP and skips8 downstream
 native jobs. Corrected the two stale expected-backend lists;12 focused checks
@@ -9,7 +23,7 @@ PASS, product/native sources unchanged. Local original-dd8 runner completes
 Record: `../benchmarks/records/20261002-rectangle-backend-ci-correction.json`.
 Next D3.2 transient/time history; all52/P2.2 and qualification stay open.
 
-## Current D3.1 checkpoint: rectangle and mixed PDE source checks
+## Historical D3.1 checkpoint: rectangle and mixed PDE source checks
 
 Declared rectangle/named mixed boundaries are integrated through the existing
 PDE/Core/preset/Results route.136 distinct focused checks PASS; one actual
@@ -96,7 +110,7 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 | D0 integrated | Resident submit/inspect/cancel, configurable Code_Aster budgets/live logs, owned cleanup and normal shutdown; focused checks/review pass | Actual native cancellation/guard admission, unwired adapter controls, restart/multiprocess |
 | D1 source integrated | Typed material/load/mesh, exact campaign condition copy, complete diagnostic stress artifacts/table; reuse CAD and child analysis | New native/field GUI and existing beam/roof/mesh/reaction/stress/reference qualification; rotated axes/joints remain open |
 | D2 Phase3 source integrated | Expose existing declared-model discovery/registration and model optimization in Explore; reuse269d8bf stopping/constraints/replay | Numerical convergence, active constraints, interruption/replay and actual research/native linkage |
-| D3 Phase4 active | D3.1 rectangle/named mixed boundaries source checks pass; D3.2 transient/time history next, then vector/coupled/domain import | New native manufactured/reference solutions, bounded research admission/GUI, cross-backend/parallel checks |
+| D3 Phase4 active | D3.1 rectangle/named mixed boundaries source/native/direct reference and bounded Results inspection close; D3.2 transient/time history next, then vector/coupled/domain import | Guarded research admission/native field GUI, wider/cross-backend/parallel checks remain open |
 | D4 Phase5 | Geometric/material/contact implementations and fixture coupling | Nonlinear convergence, histories, energy, canonical comparisons |
 | D5 Phase6 | Explicit preprocessing/contact/material/fields and campaign integration | Impact/drop force/energy/timestep/reference checks |
 | D6 Phase7 | Measured inverse interfaces, UQ/surrogate/multiobjective/MDO, MOOSE/HPC | Engine/coupling/HPC and actual measured-data acceptance |

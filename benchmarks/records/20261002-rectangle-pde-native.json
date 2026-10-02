@@ -1,0 +1,488 @@
+{
+  "schema_version": "1.0",
+  "status": "PASS_BOUNDED_INDEPENDENT_MATHEMATICAL",
+  "created_utc": "2026-10-02T13:16:14.900295+00:00",
+  "source": {
+    "core_commit": "dd8f499d28184e0b74b1e1c98ff2a2a46bb86b40",
+    "core_dirty": false,
+    "core_source_sha256": "e946b40d26e580fee991fd0c148a2812dffa1cc267314781bd876c0d621dff2a"
+  },
+  "backend": "pde.fenicsx.rectangle",
+  "source_pin": {
+    "core": {
+      "core_commit": "dd8f499d28184e0b74b1e1c98ff2a2a46bb86b40",
+      "core_dirty": false,
+      "core_source_sha256": "e946b40d26e580fee991fd0c148a2812dffa1cc267314781bd876c0d621dff2a"
+    },
+    "files": {
+      "caelab/adapters/fenicsx_rectangle.py": "b0f614db04ee05b107373049f4e09f8c80f3809f456117add5f60b1d9040b756",
+      "caelab/adapters/fenicsx_rectangle_worker.py": "9b5e1a7e7ab9ffb90073785985c2e546ffca4c62012dffb370bb74e8b3422617",
+      "caelab/adapters/fenicsx_worker.py": "2e1cd29a71e4a216be6677e44b841205193ef72658d7a29d010dca7253d57301",
+      "caelab/execution_control.py": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede",
+      "plugins/pde_elliptic/reference.py": "72d82766634a48a562594198615f8daaa4e2d1f57dddea7106137b48ca8c9521",
+      "scripts/verify_rectangle_pde.py": "94e4ddc71709a887d0883476661364bffebf1b26a73cbad287e146bc32e09678"
+    }
+  },
+  "execution": {
+    "store": "artifacts/integrated-20261002-rectangle-pde-01",
+    "started_utc": "2026-10-02T12:44:27.161558+00:00",
+    "finished_utc": "2026-10-02T12:47:29.022564+00:00",
+    "solver_processes": 8,
+    "native_mesh_levels": 24,
+    "accepted_experiments": [
+      "E-rectangle-mixed",
+      "E-rectangle-reaction",
+      "E-rectangle-domain",
+      "E-rectangle-all-dirichlet",
+      "E-rectangle-zero-source-all-dirichlet",
+      "E-rectangle-zero-source-zero-flux"
+    ],
+    "numerical_rejections": [
+      "E-rectangle-reference-reject",
+      "E-rectangle-flux-reject"
+    ],
+    "preflight_rejections": [
+      "E-rectangle-invalid-expression",
+      "E-rectangle-invalid-corner",
+      "E-rectangle-invalid-pure-neumann"
+    ],
+    "default_wall_timeout_seconds": null,
+    "provider_calls": 0,
+    "official_openscience_runs": 0
+  },
+  "actual_versions": {
+    "basix": "0.11.0",
+    "dolfinx": "0.11.0.post0",
+    "ffcx": "0.11.0",
+    "mpi4py": "3.1.5",
+    "numpy": "1.26.4",
+    "petsc": "3.19.6",
+    "petsc4py": "3.19.6",
+    "python": "3.12.3",
+    "ufl": "2026.1.0"
+  },
+  "fixed_criteria": {
+    "max_l2_error": 0.03,
+    "min_l2_rate": 1.8,
+    "max_h1_seminorm_error": 0.5,
+    "min_h1_rate": 0.9,
+    "max_residual_relative": 1e-10
+  },
+  "cases": {
+    "E-rectangle-all-dirichlet": {
+      "model_revision": "fed49a3024a89a33e043e23d7ac380c8fb2aad9ea840706270d176d8c211b38c",
+      "metrics": {
+        "h1_seminorm_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.999288614276604
+        },
+        "h1_seminorm_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.14381187965676714
+        },
+        "l2_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.000478036322252
+        },
+        "l2_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0014038230330489013
+        },
+        "linear_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.4490227664876013e-15
+        }
+      },
+      "mesh_counts": [
+        8,
+        16,
+        32
+      ],
+      "max_residual_relative": 1.4490227664876013e-15
+    },
+    "E-rectangle-domain": {
+      "model_revision": "be88cfd61f27c7cfae9a44111d23fa8e86fd73505d6a35b6d0a9bf101db362d0",
+      "metrics": {
+        "h1_seminorm_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.9892994730123137
+        },
+        "h1_seminorm_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.045356436033017686
+        },
+        "l2_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.9962232463257568
+        },
+        "l2_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.00034499535370172255
+        },
+        "linear_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 4.0923664733755395e-15
+        }
+      },
+      "mesh_counts": [
+        8,
+        16,
+        32
+      ],
+      "max_residual_relative": 4.0923664733755395e-15
+    },
+    "E-rectangle-mixed": {
+      "model_revision": "db1f36e32082086c9a2b71d081a06f5e0a0569474600d1d176872be7cb3e6693",
+      "metrics": {
+        "h1_seminorm_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.9892994730123119
+        },
+        "h1_seminorm_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.14334873610435256
+        },
+        "l2_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.9962232459733649
+        },
+        "l2_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0014538075814079887
+        },
+        "linear_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 4.5118395153797194e-15
+        }
+      },
+      "mesh_counts": [
+        8,
+        16,
+        32
+      ],
+      "max_residual_relative": 4.5118395153797194e-15
+    },
+    "E-rectangle-reaction": {
+      "model_revision": "5c65d20412e3e83d62552be78832a4e8febb44c96a5cd49a2dbee5deb429c58e",
+      "metrics": {
+        "h1_seminorm_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.989364397978892
+        },
+        "h1_seminorm_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.14335085558839317
+        },
+        "l2_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.9966441327745335
+        },
+        "l2_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0012747519334085858
+        },
+        "linear_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 4.259464670898521e-15
+        }
+      },
+      "mesh_counts": [
+        8,
+        16,
+        32
+      ],
+      "max_residual_relative": 4.259464670898521e-15
+    },
+    "E-rectangle-zero-source-all-dirichlet": {
+      "model_revision": "3a463d37849315cd664e685e781ee4a11bfe4e61de71472b774dabf5cec9dbb2",
+      "metrics": {
+        "h1_seminorm_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.0000000000000053
+        },
+        "h1_seminorm_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.05705443307345482
+        },
+        "l2_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.000000000249237
+        },
+        "l2_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0008105403382615845
+        },
+        "linear_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.5643205769771669e-15
+        }
+      },
+      "mesh_counts": [
+        8,
+        16,
+        32
+      ],
+      "max_residual_relative": 1.5643205769771669e-15
+    },
+    "E-rectangle-zero-source-zero-flux": {
+      "model_revision": "f1a476cf45dae8fcd60977a9ce5e7fac1cb835fa59ea72739342d59b0756936d",
+      "metrics": {
+        "h1_seminorm_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.0000000000000053
+        },
+        "h1_seminorm_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.05705443307345452
+        },
+        "l2_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.0000000004389893
+        },
+        "l2_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0008105403381483392
+        },
+        "linear_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.9795563080492377e-15
+        }
+      },
+      "mesh_counts": [
+        8,
+        16,
+        32
+      ],
+      "max_residual_relative": 1.9795563080492377e-15
+    }
+  },
+  "reaction_coarse_field_max_difference": 0.007037312945048058,
+  "raw_acceptance_sha256": "d0775cde23d49234b0cee5df09cdb64a0136e273e5cb089d197d75527a7fd8fd",
+  "frozen_plan_sha256": "dc7d38b36337152c133bbeee0442122ae819eebb2734d1cefa0280fefb82e188",
+  "independent_review": {
+    "status": "PASS_BOUNDED_INDEPENDENT_MATHEMATICAL",
+    "report_sha256": "8626f9b12d2bee7d0f3899f6a83667e0c0962f6282b3764af3e2f4307eda4f03",
+    "method": "Fixed5x5 Gauss-Legendre Duffy quadrature of saved complete P1 fields and independent direct analytic polynomials; no plugin/worker/import/solver reuse",
+    "mesh_levels": 24,
+    "max_l2_difference": 8.881784197001252e-15,
+    "max_gradient_h1_difference": 6.750155989720952e-14,
+    "comparison": {
+      "absolute_tolerance": 1e-10,
+      "relative_tolerance": 1e-09
+    },
+    "open_P1": 0,
+    "open_P2": 0,
+    "native_solver_reexecution": 0,
+    "residual_scope": "Native assembled norm normalization/bounds; no independent matrix reconstruction",
+    "hdf5_scope": "Byte/manifest identity; numerical integration uses complete DOF JSON",
+    "initial_audit_failures": {
+      "status": "AUDIT_FAILED retained",
+      "count": 14,
+      "reason": "Reader expected exact full dict equality despite one declared Domain-derived recomputed_boundary_value_error member and mistook native versus enriched Root records",
+      "closure": "All native members exactly match; the sole extra member is finite and independently recomputed. Initial1501 checks/receipt preserved; no product, raw field or numerical threshold change.",
+      "receipt_sha256": "94d477e6f3c248af655ad4d1bf53d8abc46f679c3e4d27ee1bc403277acd2b7b"
+    }
+  },
+  "retention": {
+    "location": "LOCAL_ONLY for this exact original store",
+    "files": 277,
+    "size_bytes": 4217783,
+    "members_sha256": "ad75e64ef26993ec5625be442396475bf382345f673f1b73af4522b33912389a",
+    "manifest_sha256": "4f0d771809ac59bb40ecdd6643c652445abf106b11afe72a68cbd72b39c8c7e5",
+    "after_browser_inspection": "All277 original bytes rechecked unchanged by Root",
+    "supplement_files": [
+      {
+        "path": "artifacts/review-rectangle-pde-20261002-01/audit_rectangle.py",
+        "sha256": "9cdab6a835cc9a53afa92b0706480b90cba94065b9b79dc4a29063c317385d72",
+        "size_bytes": 29812
+      },
+      {
+        "path": "artifacts/review-rectangle-pde-20261002-01/finalize_review.py",
+        "sha256": "3812a2b9bd051cecfe581a3bf1b1ea08bd48e940cff28eb6f734c1325b0596ee",
+        "size_bytes": 10034
+      },
+      {
+        "path": "artifacts/review-rectangle-pde-20261002-01/independent-review-final.json",
+        "sha256": "8626f9b12d2bee7d0f3899f6a83667e0c0962f6282b3764af3e2f4307eda4f03",
+        "size_bytes": 59588
+      },
+      {
+        "path": "artifacts/review-rectangle-pde-20261002-01/independent-review.json",
+        "sha256": "94d477e6f3c248af655ad4d1bf53d8abc46f679c3e4d27ee1bc403277acd2b7b",
+        "size_bytes": 253631
+      },
+      {
+        "path": "artifacts/review-rectangle-pde-20261002-01/originals-after.json",
+        "sha256": "4f0d771809ac59bb40ecdd6643c652445abf106b11afe72a68cbd72b39c8c7e5",
+        "size_bytes": 53448
+      },
+      {
+        "path": "artifacts/review-rectangle-pde-20261002-01/originals-before.json",
+        "sha256": "4f0d771809ac59bb40ecdd6643c652445abf106b11afe72a68cbd72b39c8c7e5",
+        "size_bytes": 53448
+      },
+      {
+        "path": "artifacts/review-rectangle-pde-20261002-01/originals-final.json",
+        "sha256": "4f0d771809ac59bb40ecdd6643c652445abf106b11afe72a68cbd72b39c8c7e5",
+        "size_bytes": 53448
+      },
+      {
+        "path": "artifacts/review-rectangle-pde-20261002-01/review-plan.json",
+        "sha256": "298889dc081d7a20462113a0ebc928303158dc8a7180d40be3b1a302ba24d993",
+        "size_bytes": 3563
+      }
+    ],
+    "exact_local_store_remote_raw_backup": "UNKNOWN",
+    "remote_ci_raw": "Separate corrected-source PDE job upload is visible as successful job; this exact original store was not uploaded"
+  },
+  "human_ui": {
+    "status": "PASS_BOUNDED_READ_ONLY_SUMMARY_ARTIFACT_LINKS",
+    "url": "http://127.0.0.1:8769/#results",
+    "server_source_commit": "4457af69f89092ca1e21c99dad74683b3612ee3b",
+    "server_pid": 42377,
+    "server_exec_session": 84772,
+    "ui_store": "artifacts/development-rectangle-pde-ui-20261002-01",
+    "readonly_library": "rectangle=artifacts/integrated-20261002-rectangle-pde-01",
+    "actual_checked_experiment": "E-rectangle-mixed",
+    "record_source": "dd8f499d28184e0b74b1e1c98ff2a2a46bb86b40",
+    "integrity": "VERIFIED",
+    "model_revision": "db1f36e32082086c9a2b71d081a06f5e0a0569474600d1d176872be7cb3e6693",
+    "checks": [
+      "Actual11-row library is readonly",
+      "Actual record exposes five valid numerical metrics, original source/revision and hashed XDMF/H5/DOF/source links",
+      "Original two UNKNOWN qualifications and NOT_RELEASED remain"
+    ],
+    "native_field_rendering": "NOT_RUN; no image/surface is registered for this PDE record",
+    "download_or_export_execution": "NOT_RUN; links were inspected",
+    "screenshots": "Actual browser screenshots displayed; no screenshot file retained",
+    "new_solver_or_provider_runs": 0
+  },
+  "exact_corrected_source_ci": {
+    "source_commit": "4457af69f89092ca1e21c99dad74683b3612ee3b",
+    "run_id": 37010014698,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37010014698",
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": {
+      "research-driver-source": "success",
+      "core": "success",
+      "optimization": "success",
+      "codeaster": "failure",
+      "structural": "success",
+      "native": "success",
+      "native-registration": "success",
+      "explicit": "failure",
+      "pde": "success",
+      "doe": "success"
+    },
+    "core_pytest": {
+      "passed": 2240,
+      "skipped": 1,
+      "seconds": 119.6
+    },
+    "new_rectangle_pde_step": {
+      "status": "PASS_BOUNDED_MATHEMATICAL",
+      "accepted": 6,
+      "numerical_rejections": 2,
+      "preflight_rejections": 3
+    },
+    "explicit_failure": "Pinned official OpenRadioss download HTTP404/curl22 before solver execution",
+    "log_scope": "Core/pde/explicit job logs were read while the overall workflow was in progress; codeaster job log and the final 8-success/2-failure job map were read after workflow completion. No unchanged solver failure was rerun.",
+    "log_hashes": {
+      "core": "5d9112ce25ec8cb574a343bf39b7594421ab37fdf49e75cf752181e0a3a42124",
+      "pde": "d630781eae63cac025a92d7c898c4ed93b91ec00fdc7a2e75e3235c026ec230c",
+      "explicit": "f25e09222fe7652475e414fc03b768f2bf0547a5a60714a8165b65c2e283bcde",
+      "codeaster": "b10199528682c42cb7fb0f5f0bde894e82c728c1ade297fd6ef7a4ee80953fce"
+    },
+    "observed_utc": "2026-10-02T13:30:44.412548+00:00",
+    "job_ids": {
+      "research-driver-source": 110847238091,
+      "core": 110847238223,
+      "optimization": 110848707745,
+      "codeaster": 110848707748,
+      "structural": 110848707792,
+      "native": 110848707797,
+      "native-registration": 110848707836,
+      "explicit": 110848707840,
+      "pde": 110848707852,
+      "doe": 110848707968
+    },
+    "job_completed_utc": {
+      "research-driver-source": "2026-10-02T12:59:58Z",
+      "core": "2026-10-02T13:03:17Z",
+      "optimization": "2026-10-02T13:17:15Z",
+      "codeaster": "2026-10-02T13:12:15Z",
+      "structural": "2026-10-02T13:07:29Z",
+      "native": "2026-10-02T13:15:49Z",
+      "native-registration": "2026-10-02T13:09:15Z",
+      "explicit": "2026-10-02T13:03:59Z",
+      "pde": "2026-10-02T13:05:59Z",
+      "doe": "2026-10-02T13:05:51Z"
+    },
+    "job_totals": {
+      "success": 8,
+      "failure": 2,
+      "skipped": 0
+    },
+    "codeaster_failure": {
+      "step": "Compare complete beam, pressure cylinder and curved roof fields across two native solvers",
+      "case": "E-ansys_vmd1_regular-Fz-aster",
+      "wrapper_error": "AssertionError: Native numerical checks failed: E-ansys_vmd1_regular-Fz-aster",
+      "internal_native_cause": "UNKNOWN_NOT_READ_FROM_THIS_JOB_LOG",
+      "later_steps": "J2, MGIS/MTest and inverse acceptance steps SKIPPED in this job",
+      "solver_reexecuted_locally_for_this_observation": false
+    },
+    "completed_job_map_sha256": "d3564d33eb059b85ff3c99992f56d8b1d18a6eb720add5ae8bab4aee449eed9a",
+    "retained_local_logs": {
+      "core": "artifacts/development-pde-rectangle-20261002-01/correction-core-api.log",
+      "pde": "artifacts/development-pde-rectangle-20261002-01/correction-pde-api.log",
+      "explicit": "artifacts/development-pde-rectangle-20261002-01/correction-explicit-api.log",
+      "codeaster": "artifacts/development-pde-rectangle-20261002-01/correction-codeaster-api.log"
+    }
+  },
+  "official_openscience_rectangle": "NOT_ADMITTED",
+  "model_preference": "openai-codex/gpt-5.6-sol unchanged; no fallback",
+  "qualification": {
+    "decision": "NOT_RELEASED",
+    "model_qualification": "UNKNOWN",
+    "physical_validation": "UNKNOWN"
+  },
+  "limitations": [
+    "Dimensionless scalar linear rectangle/P1/doubling meshes with at least one whole Dirichlet side; no pure Neumann, Robin, imported/general domain, transient/vector/coupled/nonlinear rectangle or MPI acceptance",
+    "Manufactured analytical verification is not NAFEMS/physical or engineering approval",
+    "Input flux integrals verify binding, not computed solution-flux accuracy/global equilibrium",
+    "No actual new official OpenScience/provider, native cancellation or native field GUI rendering in this unit",
+    "Full52/P2.2 and whole Phase4 remain OPEN"
+  ],
+  "next_development": "D3.2 transient scalar weak form/time history; separate bounded research admission, grouped verification and later phases follow the worklist"
+}

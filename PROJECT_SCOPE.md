@@ -1,6 +1,27 @@
 # Autonomous CAE Lab — project scope and requirement ledger
 
-## Current D3.1 CI expectation correction
+## Current D3.1 bounded native/reference checkpoint
+
+Implementation dd8f499 and test-only correction4457af6 are pushed to main.
+Fresh original-dd8 store `artifacts/integrated-20261002-rectangle-pde-01`
+closes6 accepted/2 numerical rejected/3 no-native refusals across24 native
+mesh levels. Independent saved-field L2/gradient-H1 integration and all rates
+agree (max differences8.88e-15/6.75e-14); no open P1/P2. All277 original files,
+4217783B, remain unchanged after actual readonly human Results inspection.
+The inspector verifies E-rectangle-mixed/original source and hashed artifact
+links; native field rendering/export and official rectangle Research admission
+remain unverified/NOT_ADMITTED. Core CI37010014698 at exact4457af6 passes2240
+tests with1 optional form-runtime skip; PDE job executes6/2/3 and passes.
+Whole CI completed8SUCCESS/2FAIL: Aster Fz native numerical checks fail
+(internal cause UNKNOWN from this log); explicit download fails HTTP404/curl22.
+Records: `benchmarks/records/20261002-rectangle-pde-native.json` and
+`benchmarks/records/20261002-rectangle-pde-publication.json`.
+Mathematical proof is scoped to scalar rectangles; it is not physical approval.
+Next D3.2 transient/time history, followed by vector/coupled/imported domains
+and bounded research admission. Phase4/all52/P2.2 remain OPEN/UNKNOWN/NOT_RELEASED.
+This publication-only checkpoint is not a new native source run.
+
+## Historical D3.1 CI expectation correction
 
 Source dd8f499 is pushed. Its local fresh-store runner closes6 accepted,
 2 numerical rejections and3 no-native refusals; independent raw/mathematical
@@ -12,7 +33,7 @@ The correction's exact commit/CI is recorded after publication. Native source
 remains dd8f499; this test correction is not a solver reexecution. Next D3.2
 transient/time history; whole Phase4/all52/P2.2 remain OPEN/UNKNOWN/NOT_RELEASED.
 
-## Current D3.1 checkpoint: rectangle and mixed PDE source checks
+## Historical D3.1 checkpoint: rectangle and mixed PDE source checks
 
 `pde.fenicsx.rectangle` extends the existing declared PDE operation through
 Domain/adapter boundaries and common Simulation/Results. Spatial Dirichlet and

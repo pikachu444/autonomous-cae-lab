@@ -2,6 +2,28 @@
 
 ## Declared rectangle and mixed boundaries — ADR0019
 
+Clean source dd8f499 fresh store `artifacts/integrated-20261002-rectangle-pde-01`
+actually passes6 accepted/2 numerical rejected/3 preflight NOT_RUN cases on24
+mesh levels. Default finest L2=0.0014538075814079887/rate=1.9962232459733649;
+gradient-H1=0.14334873610435256/rate=0.9892994730123119; relative residual
+4.5118395153797194e-15. Reaction/domain/all-D/zero-load cases retain the same
+criteria. Independent direct-polynomial5x5 Duffy integration reproduces all
+24 L2/gradient-H1 errors and rates (max differences8.88e-15/6.75e-14).
+All277 original files/4217783B survive read-only human Results inspection;
+the original source/revision/artifact links are VERIFIED. Native PDE surface
+rendering/export and official Research rectangle admission remain open.
+Actual runtime: Python3.12.3/DOLFINx0.11.0.post0/PETSc3.19.6/UFL2026.1.0.
+The test-only corrected4457af6 exact CI37010014698 passes2240Core tests
+(1optional form-runtime skip) and the new PDE6/2/3 step. Overall workflow
+completed8SUCCESS/2FAIL: Aster Fz native numerical checks fail (internal cause
+UNKNOWN from the scoped log); explicit pinned asset404 is retained. Earlier dd8 Core failure
+(2237PASS/2 stale registry expectation FAIL/1SKIP) and14 initial audit reader
+assumption failures are retained and closed without changing native fields or
+criteria. Records: [native/reference](../benchmarks/records/20261002-rectangle-pde-native.json)
+and [publication](../benchmarks/records/20261002-rectangle-pde-publication.json).
+This is bounded manufactured mathematical acceptance, not NAFEMS or physical
+qualification; all decisions remain NOT_RELEASED and whole Phase4 stays open.
+
 New `pde.fenicsx.rectangle` reuses `pde.run` and the existing Simulation/Results
 surface. `problem.domain` is `{type:"rectangle",lengths:[Lx,Ly]}` with
 dimensionless `[0,Lx] x [0,Ly]`, finite lengths0.001..1000. `problem.boundaries`

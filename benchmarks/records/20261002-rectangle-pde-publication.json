@@ -1,0 +1,117 @@
+{
+  "schema_version": "1.0",
+  "status": "PUSH_CONFIRMED_SOURCE_AND_TEST_CORRECTION",
+  "created_utc": "2026-10-02T13:16:14.908295+00:00",
+  "implementation_commit": "dd8f499d28184e0b74b1e1c98ff2a2a46bb86b40",
+  "test_correction_commit": "4457af69f89092ca1e21c99dad74683b3612ee3b",
+  "source_push_confirmed": true,
+  "test_push_confirmed": true,
+  "implementation_ci": {
+    "run_id": 37008460574,
+    "status": "COMPLETED_FAILURE",
+    "core_tests": {
+      "passed": 2237,
+      "failed": 2,
+      "skipped": 1
+    },
+    "reason": "Two stale expected backend sets; all8 native jobs SKIPPED"
+  },
+  "corrected_ci": {
+    "source_commit": "4457af69f89092ca1e21c99dad74683b3612ee3b",
+    "run_id": 37010014698,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37010014698",
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": {
+      "research-driver-source": "success",
+      "core": "success",
+      "optimization": "success",
+      "codeaster": "failure",
+      "structural": "success",
+      "native": "success",
+      "native-registration": "success",
+      "explicit": "failure",
+      "pde": "success",
+      "doe": "success"
+    },
+    "core_pytest": {
+      "passed": 2240,
+      "skipped": 1,
+      "seconds": 119.6
+    },
+    "new_rectangle_pde_step": {
+      "status": "PASS_BOUNDED_MATHEMATICAL",
+      "accepted": 6,
+      "numerical_rejections": 2,
+      "preflight_rejections": 3
+    },
+    "explicit_failure": "Pinned official OpenRadioss download HTTP404/curl22 before solver execution",
+    "log_scope": "Core/pde/explicit job logs were read while the overall workflow was in progress; codeaster job log and the final 8-success/2-failure job map were read after workflow completion. No unchanged solver failure was rerun.",
+    "log_hashes": {
+      "core": "5d9112ce25ec8cb574a343bf39b7594421ab37fdf49e75cf752181e0a3a42124",
+      "pde": "d630781eae63cac025a92d7c898c4ed93b91ec00fdc7a2e75e3235c026ec230c",
+      "explicit": "f25e09222fe7652475e414fc03b768f2bf0547a5a60714a8165b65c2e283bcde",
+      "codeaster": "b10199528682c42cb7fb0f5f0bde894e82c728c1ade297fd6ef7a4ee80953fce"
+    },
+    "observed_utc": "2026-10-02T13:30:44.412548+00:00",
+    "job_ids": {
+      "research-driver-source": 110847238091,
+      "core": 110847238223,
+      "optimization": 110848707745,
+      "codeaster": 110848707748,
+      "structural": 110848707792,
+      "native": 110848707797,
+      "native-registration": 110848707836,
+      "explicit": 110848707840,
+      "pde": 110848707852,
+      "doe": 110848707968
+    },
+    "job_completed_utc": {
+      "research-driver-source": "2026-10-02T12:59:58Z",
+      "core": "2026-10-02T13:03:17Z",
+      "optimization": "2026-10-02T13:17:15Z",
+      "codeaster": "2026-10-02T13:12:15Z",
+      "structural": "2026-10-02T13:07:29Z",
+      "native": "2026-10-02T13:15:49Z",
+      "native-registration": "2026-10-02T13:09:15Z",
+      "explicit": "2026-10-02T13:03:59Z",
+      "pde": "2026-10-02T13:05:59Z",
+      "doe": "2026-10-02T13:05:51Z"
+    },
+    "job_totals": {
+      "success": 8,
+      "failure": 2,
+      "skipped": 0
+    },
+    "codeaster_failure": {
+      "step": "Compare complete beam, pressure cylinder and curved roof fields across two native solvers",
+      "case": "E-ansys_vmd1_regular-Fz-aster",
+      "wrapper_error": "AssertionError: Native numerical checks failed: E-ansys_vmd1_regular-Fz-aster",
+      "internal_native_cause": "UNKNOWN_NOT_READ_FROM_THIS_JOB_LOG",
+      "later_steps": "J2, MGIS/MTest and inverse acceptance steps SKIPPED in this job",
+      "solver_reexecuted_locally_for_this_observation": false
+    },
+    "completed_job_map_sha256": "d3564d33eb059b85ff3c99992f56d8b1d18a6eb720add5ae8bab4aee449eed9a",
+    "retained_local_logs": {
+      "core": "artifacts/development-pde-rectangle-20261002-01/correction-core-api.log",
+      "pde": "artifacts/development-pde-rectangle-20261002-01/correction-pde-api.log",
+      "explicit": "artifacts/development-pde-rectangle-20261002-01/correction-explicit-api.log",
+      "codeaster": "artifacts/development-pde-rectangle-20261002-01/correction-codeaster-api.log"
+    }
+  },
+  "local_native_source": {
+    "core_commit": "dd8f499d28184e0b74b1e1c98ff2a2a46bb86b40",
+    "core_dirty": false,
+    "core_source_sha256": "e946b40d26e580fee991fd0c148a2812dffa1cc267314781bd876c0d621dff2a"
+  },
+  "local_native_record_sha256": "e34ced7754d3cdea98a5f288cd34c30e5e198e297185f14bb230e2bf499850c6",
+  "development_record_sha256": "701370a6a2083f6fb3664dd478dc945c3c331a80e3bb99abb31cdd38e10f11be",
+  "test_correction_record_sha256": "ab6090cdf336c1dd915d44c494d58016992c6d17bf0379061fea27af33ae2cda",
+  "native_code_reexecuted_by_test_correction": false,
+  "test_only_diff_review": "PASS_READ_ONLY_DIFF; no openP1/P2",
+  "documentation_commit_is_new_native_verification": false,
+  "full52": "OPEN",
+  "decision": "NOT_RELEASED",
+  "observed_utc": "2026-10-02T13:30:44.412548+00:00",
+  "repository_record_hash_scope": "SHA-256 of Git UTF-8/LF record blobs. Raw experiment and retained local log hashes refer their original file bytes separately."
+}
