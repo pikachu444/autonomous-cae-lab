@@ -38,6 +38,7 @@ $script:OpenScienceBoundedTools = @('caelab_study_create', 'caelab_study_inspect
     'caelab_parameters_register', 'caelab_parameters_list', 'caelab_experiment_run',
     'caelab_experiment_inspect', 'caelab_experiment_summary', 'caelab_experiment_compare')
 . (Join-Path $PSScriptRoot 'openscience-research.ps1')
+. (Join-Path $PSScriptRoot 'windows-git-transport.ps1')
 if ($Purpose -ceq 'Research') {
     if (-not $PSBoundParameters.ContainsKey('Steps')) { $Steps = 24 }
     if (-not $PSBoundParameters.ContainsKey('AllowedTools')) { $AllowedTools = @((New-OpenScienceResearchDefinition -Profile $ResearchProfile).allowed_tools) }
@@ -326,9 +327,8 @@ function Assert-OpenScienceContext($Context, [switch]$LifecycleOnly) {
 function New-OpenScienceMcpGitTransport {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$RepoRoot, [string]$HostGitPath, [string]$OriginalWslPath)
-    $pointer = Join-Path $RepoRoot '.git'
-    if (-not ((Test-Path -LiteralPath $pointer -PathType Leaf) -and
-        ((Get-Content -LiteralPath $pointer -TotalCount 1) -match '^gitdir: [A-Za-z]:'))) {
+    $mode = Get-OpenScienceMcpGitTransportMode -RepoRoot $RepoRoot
+    if ($mode -ceq 'NATIVE_WSL_GIT') {
         return [pscustomobject]@{ Mode = 'NATIVE_WSL_GIT'; Environment = @(); SubprocessEnvironment = @{} }
     }
     # The local.ps1 bridge pattern is reused, but its executable source is
@@ -354,12 +354,12 @@ function New-OpenScienceMcpGitTransport {
         [Text.UTF8Encoding]::new($false).GetBytes($gitConfigText))).ToLowerInvariant()
     Assert-OpenScienceCondition ((Test-Path -LiteralPath $gitConfig -PathType Leaf) -and
         (Get-OpenScienceHash $gitConfig) -ceq $gitConfigHash) 'MCP Git config must retain its exact inert LF-only source.'
-    Assert-OpenScienceCondition ($HostGitPath -and (Test-Path -LiteralPath $HostGitPath -PathType Leaf)) 'Existing host Git is required for this managed worktree.'
+    Assert-OpenScienceCondition ($HostGitPath -and (Test-Path -LiteralPath $HostGitPath -PathType Leaf)) 'Existing host Git is required for this Windows checkout.'
     Assert-OpenScienceCondition ($OriginalWslPath -and $OriginalWslPath -notmatch '[\r\n]') 'Existing WSL PATH is missing or multiline.'
     $bridgeDirectory = ConvertTo-OpenScienceWslPath (Split-Path -Parent $bridge)
     $hostGitWslPath = ConvertTo-OpenScienceWslPath $HostGitPath
     return [pscustomobject]@{
-        Mode = 'WINDOWS_MANAGED_WORKTREE_GIT'; BridgePath = $bridge; BridgeSha256 = $expectedHash
+        Mode = $mode; BridgePath = $bridge; BridgeSha256 = $expectedHash
         HostGitPath = $HostGitPath; HostGitSha256 = Get-OpenScienceHash $HostGitPath
         Environment = @(('PATH=' + $bridgeDirectory + ':' + $OriginalWslPath), "CAELAB_HOST_GIT=$hostGitWslPath",
             ('CAELAB_GIT_CONFIG=' + (ConvertTo-OpenScienceWslPath $gitConfig)))
@@ -419,10 +419,8 @@ function New-OpenScienceLocalContext {
     $profile = Join-Path $artifacts "profiles\$ProfileTag"
     Assert-OpenScienceContainedPath $profile $RepoRoot | Out-Null
     $markerPath = Assert-OpenScienceContainedPath (Join-Path $profile 'caelab-profile-owner.json') $profile
-    $gitPointer = Join-Path $RepoRoot '.git'
     $hostGit = $null; $originalWslPath = $null
-    if ((Test-Path -LiteralPath $gitPointer -PathType Leaf) -and
-        ((Get-Content -LiteralPath $gitPointer -TotalCount 1) -match '^gitdir: [A-Za-z]:')) {
+    if ((Get-OpenScienceMcpGitTransportMode -RepoRoot $RepoRoot) -cne 'NATIVE_WSL_GIT') {
         $hostGit = (Get-Command git.exe -ErrorAction Stop).Source
         $originalWslPath = & wsl.exe -d $WslDistro -- /usr/bin/printenv PATH
         Assert-OpenScienceCondition ($LASTEXITCODE -eq 0 -and @($originalWslPath).Count -eq 1) 'Could not read the existing WSL command path.'
@@ -1334,7 +1332,9 @@ function Start-OpenScienceLocalServerLocked($Context, [int]$Port, [int]$StartupT
     Assert-OpenScienceCondition ((Read-OpenScienceJson $Context.ConfigPath).mcp.caelab.command -ccontains
         ('PYTHONPYCACHEPREFIX=' + (ConvertTo-OpenScienceWslPath $cacheRoot))) 'MCP command does not bind the fresh owned Python cache.'
     $bootSource = Get-OpenScienceRepositorySourcePin -Context $Context
-    if ($Context.McpGitTransport.Mode -eq 'WINDOWS_MANAGED_WORKTREE_GIT') {
+    Assert-OpenScienceCondition ($Context.McpGitTransport.Mode -ceq
+        (Get-OpenScienceMcpGitTransportMode -RepoRoot $Context.RepoRoot)) 'MCP Git transport no longer matches the checkout layout.'
+    if ($Context.McpGitTransport.Mode -cin @('WINDOWS_MANAGED_WORKTREE_GIT', 'WINDOWS_PRIMARY_CHECKOUT_GIT')) {
         $bridgePin = @($bootSource.files | Where-Object path -eq 'scripts/wsl-windows-git/git')
         $configPin = @($bootSource.files | Where-Object path -eq 'scripts/wsl-windows-git/empty.config')
         Assert-OpenScienceCondition ($bridgePin.Count -eq 1 -and $bridgePin[0].sha256 -ceq $Context.McpGitTransport.BridgeSha256 -and
@@ -1437,7 +1437,10 @@ function Invoke-OpenScienceRuntimeSelfTest([string]$RepoRoot, [string]$RunName) 
     $checks.Add('public_url_rejected')
     $git = (Get-Command $(if ($IsWindows) { 'git.exe' } else { 'git' }) -ErrorAction Stop).Source
     $nativeGitFixture = Join-Path $root 'native-git-fixture'
-    New-Item -ItemType Directory -Path (Join-Path $nativeGitFixture '.git') -ErrorAction Stop | Out-Null
+    New-Item -ItemType Directory -Path $nativeGitFixture -ErrorAction Stop | Out-Null
+    # A relative Linux gitdir stays native; a drive-root .git directory is now
+    # correctly classified as a Windows primary checkout.
+    [IO.File]::WriteAllText((Join-Path $nativeGitFixture '.git'), ('gitdir: ../native-git' + [char]10), [Text.UTF8Encoding]::new($false))
     $nativeTransport = New-OpenScienceMcpGitTransport -RepoRoot $nativeGitFixture
     Assert-OpenScienceCondition ($nativeTransport.Mode -eq 'NATIVE_WSL_GIT' -and $nativeTransport.Environment.Count -eq 0 -and
         $nativeTransport.SubprocessEnvironment.Count -eq 0) 'Native Git checkout gained a Windows bridge.'

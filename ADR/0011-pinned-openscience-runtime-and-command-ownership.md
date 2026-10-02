@@ -163,3 +163,22 @@ Root owns shared context/settings integration; one bounded agent owns guard/test
 another reproduced the installed runtime and a read-only reviewer checked async
 grant/root races. Source checks and NEW actual run03 are separate acceptance.
 Impact: R11/R13/R21/R25/R43/R45/R51/R52; OpenScience operation schemas unchanged.
+
+## Windows primary checkout Git transport correction, 2026-10-03
+
+Actual source662 Resident01 correctly refused an UNKNOWN dirty status: native
+WSL Git on the primary Windows .git directory exceeded the existing3s limit.
+One same-cwd/argv/limit comparison observed3.007114s timeout versus0.293798s
+rc0/clean with the existing tracked Windows bridge; Core/HEAD/index unchanged.
+Extend only positive absolute Windows-drive .git-directory selection to that
+bridge. Preserve the managed gitdir-file predicate and native Linux/relative
+layouts; both factories, startup mode/bridge/config/host pins and generic
+Python wrapper use the shared classifier. Generic execution also uses the
+exact tracked inert-config bridge with invocation-local argv environment.
+Increasing the probe limit, assuming clean on failure, rewriting Git pointers
+or changing global settings were rejected. No Core/wire/Domain/tool/model/
+auth/accuracy/deadline/release policy changes. Advances R11/R21/R25/R43/R51/R52.
+Source72distinct checks,56runtime mocks,8focused MCP tests and unchanged private
+47cold rechecks PASS; actual new clean resident/research/GUI remain separate
+gates. Preserved failed run01 is not upgraded by cold proof. Record:
+benchmarks/records/20261003-windows-primary-git-transport.json.

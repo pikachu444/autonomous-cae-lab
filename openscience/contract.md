@@ -1,5 +1,14 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+Primary Windows Git transport now reuses the exact tracked inert bridge and
+boot/host pins already used for managed worktrees. Actual Resident01 refused
+UNKNOWN before any inference; owned Stop and absent store confirmed. Core/wire/
+Domain/schema/tools/model/thresholds stay unchanged. 72source checks/56mocks/
+8MCPtests and unchanged private47cold rechecks PASS; clean corrective Resident/
+Research/GUI remain NOT_RUN. Exact662 CI Core2578PASS and7SUCCESS/3FAIL is
+separate. Record: benchmarks/records/20261003-windows-primary-git-transport.json.
+
+
 D3.6 source ff1 is main-pushed; exact CI37063689992 fails one /proc test
 observation race (2571PASS/5skips), not a new scientific verdict. Original
 imported field GUI now passes mesh/node and stale-field-clear checks with

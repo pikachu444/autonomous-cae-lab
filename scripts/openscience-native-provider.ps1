@@ -135,8 +135,7 @@ function New-OpenScienceNativeContext {
     Assert-OpenScienceCondition ($Steps -ge 1 -and $Steps -le $(if ($researchDefinition) { 24 } else { 3 })) 'Step budget is outside the declared purpose.'
     foreach ($tool in $AllowedTools) { Assert-OpenScienceCondition ($tool -cin $admittedTools) 'Tool is outside the declared purpose.' }
     $hostGit = $null; $originalWslPath = $null
-    $gitPointer = Join-Path $RepoRoot '.git'
-    if ((Test-Path -LiteralPath $gitPointer -PathType Leaf) -and ((Get-Content -LiteralPath $gitPointer -TotalCount 1) -match '^gitdir: [A-Za-z]:')) {
+    if ((Get-OpenScienceMcpGitTransportMode -RepoRoot $RepoRoot) -cne 'NATIVE_WSL_GIT') {
         $hostGit = (Get-Command git.exe -ErrorAction Stop).Source
         $originalWslPath = & wsl.exe -d $WslDistro -- /usr/bin/printenv PATH
         Assert-OpenScienceCondition ($LASTEXITCODE -eq 0 -and @($originalWslPath).Count -eq 1) 'Could not read the existing WSL command path.'

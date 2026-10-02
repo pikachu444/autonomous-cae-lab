@@ -1,0 +1,268 @@
+{
+  "schema": 1,
+  "kind": "windows-primary-checkout-mcp-git-transport-correction",
+  "captured_utc": "2026-10-02T22:44:03.889751+00:00",
+  "source_parent": "662274cfc453789704b8c3cd44675b1fe120088b",
+  "source_capture": "Reviewed dirty working bytes on published source662; corrective publication SHA is recorded in the later immutable publication receipt and actual fresh owner.",
+  "reviewed_source_files": [
+    {
+      "path": "scripts/windows-git-transport.ps1",
+      "size_bytes": 630,
+      "sha256": "e27f1c023556a01603d5c4c111994fd3679be645014a5d47f14938dedde5f8b5"
+    },
+    {
+      "path": "scripts/openscience-server-local.ps1",
+      "size_bytes": 144493,
+      "sha256": "8b11e33581312e5bb41bc192141724ad3bff0e01c763b68bcff1a0301b15b349"
+    },
+    {
+      "path": "scripts/openscience-native-provider.ps1",
+      "size_bytes": 23941,
+      "sha256": "c8054cb16d50605794e2588159cd3c9bc47b177944cf43ecd5a1ddd3d72169f6"
+    },
+    {
+      "path": "scripts/local.ps1",
+      "size_bytes": 4279,
+      "sha256": "8f0a839141417c1f01735cab85385170ec5b3f3ea8226a887161bc83a47ce953"
+    },
+    {
+      "path": "scripts/verify_mcp_git_transport_source.ps1",
+      "size_bytes": 22762,
+      "sha256": "ff928a0e13ca85d26ce3f7d7b4fd76c0b129fa35eac46cd1c7364a7ec9a94d22"
+    },
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "size_bytes": 23897,
+      "sha256": "120b87f04e7715c1934f867bb60c9e3e5ef407e3daa74bbacf6929149e71207b"
+    }
+  ],
+  "reason": {
+    "official_primary_binding": "BOOTSTRAP02_CREATED_AND_OWNED_STOPPED",
+    "failed_run": "pde-r-20261003-01",
+    "resident": "REFUSED_BEFORE_INFERENCE_CORE_DIRTY_UNKNOWN_TIMEOUT",
+    "owned_stop": "CONFIRMED_STORE_ABSENT",
+    "model_question_calls": 0,
+    "native_solver_calls": 0,
+    "comparison": {
+      "same_cwd_argv_timeout": 3,
+      "native_wsl_elapsed_seconds": 3.007114,
+      "native_wsl_status": "TIMEOUT_UNKNOWN",
+      "tracked_windows_bridge_elapsed_seconds": 0.293798,
+      "tracked_windows_bridge_return_code": 0,
+      "tracked_windows_bridge_dirty": false,
+      "comparisons": 1,
+      "core_and_head_and_index_unchanged": true
+    }
+  },
+  "change": {
+    "primary": "WINDOWS_PRIMARY_CHECKOUT_GIT for absolute Windows-drive root with ordinary .git directory",
+    "managed": "WINDOWS_MANAGED_WORKTREE_GIT leaf gitdir predicate preserved",
+    "native": "Linux and relative gitdir retain native WSL Git",
+    "callers": "Both context factories and generic Python wrapper use shared classifier",
+    "pins": "Same tracked exact LF bridge, inert config and host executable; startup also binds mode to checkout layout",
+    "environment": "Three invocation/argv scoped values; no encrypted MCP.environment or global/user Git edits",
+    "ci": "One cold Windows source step with optional WSL diagnostic explicitly NOT_RUN; downstream jobs unchanged"
+  },
+  "verification": {
+    "new_transport_distinct_checks": 72,
+    "cold_ci_rechecks": 60,
+    "rechecks_additive": false,
+    "actual_read_only_git": {
+      "commit": "662274cfc453789704b8c3cd44675b1fe120088b",
+      "dirty": true,
+      "probes": {
+        "commit": {
+          "error": null,
+          "return_code": 0,
+          "status": "KNOWN"
+        },
+        "dirty": {
+          "error": null,
+          "return_code": 0,
+          "status": "KNOWN"
+        }
+      }
+    },
+    "actual_read_only_git_scope": "Unchanged extracted stdlib diagnostic only, not actual resident MCP",
+    "runtime_mocks": 56,
+    "focused_mcp_tests": 8,
+    "focused_mcp_tests_seconds": 18.65,
+    "private_operator_rechecks": 47,
+    "private_operator_changed": false,
+    "production_source_review": "PASS_41_CHECKS_ZERO_P1_P2",
+    "final_test_ci_review": "PASS_ZERO_OPEN_P1_P2",
+    "independent_static_evidence_checks": 236,
+    "independent_checks_are_executed_tests": false
+  },
+  "exact_prior_ci": {
+    "source": "662274cfc453789704b8c3cd44675b1fe120088b",
+    "run_id": 37069526302,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37069526302",
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": [
+      {
+        "name": "research-driver-source",
+        "conclusion": "success"
+      },
+      {
+        "name": "core",
+        "conclusion": "success"
+      },
+      {
+        "name": "codeaster",
+        "conclusion": "failure"
+      },
+      {
+        "name": "pde",
+        "conclusion": "failure"
+      },
+      {
+        "name": "doe",
+        "conclusion": "success"
+      },
+      {
+        "name": "structural",
+        "conclusion": "success"
+      },
+      {
+        "name": "explicit",
+        "conclusion": "failure"
+      },
+      {
+        "name": "native-registration",
+        "conclusion": "success"
+      },
+      {
+        "name": "optimization",
+        "conclusion": "success"
+      },
+      {
+        "name": "native",
+        "conclusion": "success"
+      }
+    ],
+    "core_pytest": {
+      "passed": 2578,
+      "skipped": 5,
+      "warnings": 1,
+      "seconds": 231.5
+    },
+    "failure_limits": [
+      "Code_Aster native numerical checks failed for E-ansys_vmd1_regular-Fz-aster; no new numerical diagnosis inferred here.",
+      "PDE vector step reports Wrong vector numerical classification; no new metric value inferred without native artifact review.",
+      "OpenRadioss pinned download returned HTTP404 before solver execution; distinct from older local qualification failures."
+    ]
+  },
+  "preserved_evidence": [
+    {
+      "path": "artifacts/development-mcp-git-transport-20261003-01/source-tests-01/attempt01/receipt.json",
+      "size_bytes": 14140,
+      "sha256": "54286979663fb6aa8a413ce686b4cb9f40279f62a9058c5f8bb7e153e0845b1e"
+    },
+    {
+      "path": "artifacts/development-mcp-git-transport-20261003-01/source-tests-01/attempt01/actual-read-only-git.json",
+      "size_bytes": 1511,
+      "sha256": "b22abb8c8af28002df6eb588ecd8bad53190a22495d29d3843f745bd82e91d2c"
+    },
+    {
+      "path": "artifacts/development-mcp-git-transport-20261003-01/source-tests-01/ci-source01/receipt.json",
+      "size_bytes": 11493,
+      "sha256": "f29de0c4858af58b6211a6fc128a1760f9c91690c47b1e758f04d5b65f0e1b66"
+    },
+    {
+      "path": "artifacts/development-mcp-git-transport-20261003-01/source-tests-01/freeze-receipt-correction01.json",
+      "size_bytes": 38953,
+      "sha256": "56b5d780bc2b540e6c78bbc52e7c7cb6fdf320b8e3575e74e2cd7939716f8d81"
+    },
+    {
+      "path": "artifacts/development-mcp-git-transport-20261003-01/independent-review-01/production-source-review.json",
+      "size_bytes": 12246,
+      "sha256": "935f082fce817c50ac7ddcb550b830c090a2231cfaf4c33d17e161e779efe6e9"
+    },
+    {
+      "path": "artifacts/development-mcp-git-transport-20261003-01/live-operator-recheck-01/recheck-receipt.json",
+      "size_bytes": 4223,
+      "sha256": "f24e55d12144cb3c097fee71d73394ee973189774e06fb0aebad4132495bb314"
+    },
+    {
+      "path": "artifacts/development-mcp-git-transport-20261003-01/root-checks-01/runtime-selftest-output.json",
+      "size_bytes": 3235,
+      "sha256": "6588ead2c1cdc95659d2e1407f57f6f42df77a4a1441129fb85f714a858b5a6f"
+    },
+    {
+      "path": "artifacts/development-mcp-git-transport-20261003-01/root-checks-01/mcp-runtime-identity-tests.json",
+      "size_bytes": 1390,
+      "sha256": "08c6eac070be8e479f5c9cd64e1d4a8309b24eca233689c671982a804912a942"
+    },
+    {
+      "path": "artifacts/development-mcp-git-transport-20261003-01/ci-662-01/run.json",
+      "size_bytes": 25153,
+      "sha256": "46af1969c47fd666705a074ca4b555a12a62cab158ad3dbaa951e6a5539b5e33"
+    },
+    {
+      "path": "artifacts/development-mcp-git-transport-20261003-01/ci-662-01/core.log",
+      "size_bytes": 324298,
+      "sha256": "391205963fb78632c0a20a6e730ae4559d608d660578ac4b7e83b31c951d15e3"
+    },
+    {
+      "path": "artifacts/development-mcp-git-transport-20261003-01/ci-662-01/failed.log",
+      "size_bytes": 17004,
+      "sha256": "63b23baab106f80a37805f2e678e440f9cdf9275029cf89709ee049298e97cf7"
+    },
+    {
+      "path": "artifacts/development-pde-research-20261003-01/mcp-git-transport-diagnostic-01/diagnosis.json",
+      "size_bytes": 13784,
+      "sha256": "8508347176afe7d13edf578a8c723515f2cf0fca258a380d0916b82d394fb90c"
+    },
+    {
+      "path": "artifacts/development-pde-research-20261003-01/mcp-git-transport-diagnostic-01/comparison.json",
+      "size_bytes": 3781,
+      "sha256": "2e34a43504b888e23b7b2cae494227ca399f22b7625324b6cad0140d7bd692a6"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-01/resident-01/acceptance.json",
+      "size_bytes": 1410,
+      "sha256": "b76c6bd4b7467e84b23ac3051a70cd162e1523ba4131eafbdbb2e29b10d3cb15"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-01/resident-01/resident-source-identity.json",
+      "size_bytes": 1656,
+      "sha256": "0f4541310a4c355239a0d354b1151cd7b7042b6364baa25619859723859c7467"
+    },
+    {
+      "path": "artifacts/pde-r-20261003-01/resident-01/root-stop-after-resident-refusal.json",
+      "size_bytes": 715,
+      "sha256": "eadc8ec9148269c38df0ddd20a5a188c883f6fff98de1f98c1d21ad377809343"
+    },
+    {
+      "path": "artifacts/pde-fields-bootstrap-20261003-02/primary-project-binding-01/project-binding.json",
+      "size_bytes": 591,
+      "sha256": "b567023c22e216dfb45bf0a21e730c743fdc9677bddc7ae60442f9830bed73b8"
+    },
+    {
+      "path": "artifacts/development-mcp-git-transport-20261003-01/independent-review-01/independent-review.json",
+      "size_bytes": 38551,
+      "sha256": "2919518769d85dfa2e7151ec20a923f090169c052099901a640ed941ea663245"
+    }
+  ],
+  "unmodified_gates": [
+    "MCP Git timeout3s and UNKNOWN/dirty=null on failure",
+    "SourcePin20s/10s/16MiB and complete double snapshots",
+    "approved openai-codex/gpt-5.6-sol and existing OAuth profile",
+    "PDEFields schema3/exact six-tool canonical definition",
+    "numerical thresholds and Core/Domain/adapter semantics",
+    "source lease/lifecycle/store retention and UNKNOWN/NOT_RELEASED"
+  ],
+  "actual_corrected_resident": "NOT_RUN",
+  "actual_connected_research": "NOT_RUN",
+  "actual_connected_gui": "NOT_RUN",
+  "retention": "Closed originals and new local raw receipts retained in ignored artifact paths; public hashes alone do not establish remote durable raw backup.",
+  "remaining": [
+    "Publish reviewed correction, then fresh pde-r-20261003-02 using existing primary project binding.",
+    "Actual current clean-source noReply resident all probes KNOWN before one fixed c0/c3 official5.6Sol question.",
+    "Actual receipts/results/source/interpretation, same-record GUI, owned Stop and immutable retention.",
+    "Next ordered D4.1/P5.1 geometric-nonlinearity source development; full qualification remains separate.",
+    "Whole52/Phase4/P2.2/physical/strength/deployment remain OPEN/UNKNOWN and NOT_RELEASED."
+  ]
+}

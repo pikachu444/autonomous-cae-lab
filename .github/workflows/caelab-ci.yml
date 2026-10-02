@@ -43,6 +43,18 @@ jobs:
               @($taskPdeSourceReceipt.side_effect_counters.PSObject.Properties | Where-Object Value -NE 0).Count -ne 0) {
             throw 'PDE research source parity did not produce the expected bounded evidence.'
           }
+      - name: Check Windows checkout Git transport and pinned refusal gates
+        shell: pwsh
+        run: |
+          $taskGitSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'artifacts/mcp-git-transport-source-ci'
+          $null = & ./scripts/verify_mcp_git_transport_source.ps1 -RepoRoot $env:GITHUB_WORKSPACE -OutputPath $taskGitSourceRoot -SkipWslDiagnostic
+          $taskGitReceipt = Get-Content -LiteralPath (Join-Path $taskGitSourceRoot 'receipt.json') -Raw | ConvertFrom-Json -Depth 60
+          if ($taskGitReceipt.status -cne 'PASS_SOURCE_TRANSPORT_CHECKS' -or
+              $taskGitReceipt.check_count -ne @($taskGitReceipt.checks).Count -or $taskGitReceipt.check_count -le 0 -or
+              $taskGitReceipt.actual_read_only_wsl.status -cne 'NOT_RUN' -or -not $taskGitReceipt.actual_read_only_wsl.skipped -or
+              @($taskGitReceipt.side_effects.PSObject.Properties | Where-Object Value -NE 0).Count -ne 0) {
+            throw 'Cold Git transport checks did not produce the expected source-only evidence.'
+          }
       - name: Preserve source-only checks and public synthetic refusal fixtures
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -51,6 +63,7 @@ jobs:
           path: |
             artifacts/p2-structural-research-failure-flow-20261002-01/
             artifacts/pde-research-source-ci/
+            artifacts/mcp-git-transport-source-ci/
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30

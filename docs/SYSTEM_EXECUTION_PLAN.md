@@ -1,5 +1,27 @@
 # Autonomous CAE Lab — sequential system execution plan
 
+## Current primary Git transport correction and exact662 CI
+
+Main662274c is push-confirmed. Exact CI37069526302:7 jobs SUCCESS/3FAIL;
+Core2578PASS/5skips, MCP/source guards/HTTP PASS. Aster numerical/vector
+classification failures and OpenRadioss download404 remain separate OPEN gates.
+Bootstrap02 created the official primary binding and stopped. Resident01 then
+refused before inference: native WSL Git dirty probe TIMEOUT/UNKNOWN; no store,
+model question or solver call. Exact owned Stop confirmed. One identical3s
+comparison: native3.007114s timeout vs tracked Windows bridge0.293798s clean.
+The reviewed correction selects that same pinned bridge for Windows primary
+.git directories, preserves managed/Linux selection and all identity/deadline/
+UNKNOWN gates; both factories/startup and generic wrapper are covered.
+72 distinct source checks PASS (60 cold rechecks are not additive),56runtime
+mocks/8MCP tests PASS; unchanged private operator47rechecks PASS. Actual new
+clean-source Resident/Research/GUI remain NOT_RUN until corrective publication.
+Record: `benchmarks/records/20261003-windows-primary-git-transport.json`.
+NEXT: fresh02 current resident proof, one fixed approved5.6Sol c0/c3 question,
+same-record GUI/owned Stop/retention; then ordered D4.1/P5.1 source development.
+Whole52/Phase4/P2.2/physical/deployment stay OPEN/UNKNOWN, NOT_RELEASED.
+Earlier checkpoints below retain their exact historical facts.
+
+
 ## Current D3.6 publication, original field GUI and startup correction
 
 D3.6 source ff1d58d0e48db20e779ac72c2775c3401199895d is committed and
