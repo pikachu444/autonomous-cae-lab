@@ -1,5 +1,35 @@
 # Connected structural family acceptance
 
+## Latest P2.2 checkpoint: two private observations; roof refinement running
+
+Record: `benchmarks/records/20261002-structural-matrix-diagnostic.json`
+(SHA256046ebaff66a9ac3cf07af329837ba204211a1522633908c7e95bc0c837cb28eb).
+Root executed exactly two authorized private middle/fine observations on clean
+managed94773a3. Original physics/default MUMPS/native1e-6 are unchanged; only
+INFO2 verbosity is added. Actual original matrix/RHS, installed Python bytes,
+call counts and restoration are retained. Fine reproduces FACTOR_57:
+3.32295e-6>1e-6, and its solution remains UNAVAILABLE. No new acceptance is assigned.
+
+Middle returned DEPL physical1143 values match the raw table exactly, but its
+126 postprocessed dual values cannot be used as the exported augmented A/b's
+algebraic solution. The large direct A*DEPL-b is preserved, not adopted as a
+verified native residual. Pinned official amumpp postprocessing supports this
+representation limitation; exact compiled vendor/coefficient equivalence stays
+UNKNOWN. An independently reviewed separate correction preserves the initial
+raw claims. Actual review49PASS/openP1/P2=0,192 protected files unchanged;
+selected raw retention85files/32949514B exact. Scratch/preferences trees are
+excluded and raw remote backup is UNKNOWN_NOT_UPLOADED. All NOT_RELEASED.
+
+Next, the frozen roof nz2 sequence8/16/22 is actually running in new
+`runs/p2-roof-refine-native-20261002-01`. CalculiX full retains valid Core gates:
+reference1.244918%<2%, last-mesh change0.105221%<1%. Remaining full Aster/CCX-half,
+raw cross-solver/scaling audit and fresh approved5.6Sol three-question research
+are not complete at this checkpoint. The existing CLI's first CCX argv attempt
+was refused before Lab/native because Windows/WSL split JSON; the failure is
+retained and only the ignored invocation recorder now passes the exact argument
+array through stdin. Core, adapters and canonical drivers are unchanged.
+P2.2/full52 and beam accuracy remain OPEN. Previous checkpoints below are retained.
+
 Updated: 2026-10-02. Current unit: P2.2, still OPEN. ADR0017 and the frozen
 `structural-families-v1.json` retain the predeclared geometry, DOFs, loads,
 response/field definitions and numerical thresholds. The full MIDAS survey

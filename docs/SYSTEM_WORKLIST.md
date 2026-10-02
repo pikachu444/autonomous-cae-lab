@@ -1,5 +1,19 @@
 # Sequential system worklist
 
+## Latest P2.2 checkpoint: two private observations; roof refinement running
+
+Clean managed94773a3 executes both original private matrix observations. Fine
+retains FACTOR_57/3.32295e-6>unchanged1e-6 and u UNAVAILABLE. Middle returned DEPL
+is not qualified as the exported A/b's algebraic u; its residual conflict and
+separate UNKNOWN correction remain. Independent49-check reporting audit PASS,
+85selected files/32949514B retained; this is not a numerical acceptance or release.
+Record: `benchmarks/records/20261002-structural-matrix-diagnostic.json`;
+details in `docs/STRUCTURAL_FAMILIES_ACCEPTANCE.md`. Canonical source/CI unchanged.
+The new roof8/16/22 nz2 native store is actually running. CCX full passes original
+reference/mesh gates (1.244918%/0.105221%); Aster full, CCX half, raw audit and
+fresh approved5.6Sol research remain unfinished. Complete them in this order.
+P2.2/beam accuracy/full52 stay OPEN and all NOT_RELEASED; earlier records retained.
+
 Updated: 2026-10-02 (Asia/Seoul). Roadmap:
 [SYSTEM_EXECUTION_PLAN](SYSTEM_EXECUTION_PLAN.md). Full scope:
 [PROJECT_SCOPE](../PROJECT_SCOPE.md). Root owns this queue and integration.

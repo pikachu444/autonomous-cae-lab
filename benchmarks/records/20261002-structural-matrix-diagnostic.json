@@ -1,0 +1,198 @@
+{
+  "schema_version": "1",
+  "record_kind": "PRIVATE_NATIVE_DIAGNOSTIC_OBSERVATION_NOT_ACCEPTANCE",
+  "created_utc": "2026-10-02T03:59:23.008739+00:00",
+  "unit": "P2.2",
+  "source_commit": "94773a35d73773faf5dc2714ea7d9071c812f357",
+  "source_dirty": false,
+  "main_documentation_commit_at_execution": "74251e971feda3965283059e95059c81d4fef943",
+  "run_id": "p2-structural-matrix-diagnostic-20261002-01",
+  "diagnostic_processes": 2,
+  "max_authorized_native_processes": 2,
+  "Core_experiments_created": 0,
+  "model_calls": 0,
+  "scope": "Read-only observations of original unchanged middle/fine beam-Fz MECA_STATIQUE, default MUMPS/native1e-6, INFO2 verbosity only. No new solver option probe or canonical gate modification.",
+  "preparation_source": {
+    "path": "artifacts/p2-structural-matrix-diagnostic-preparation-20261002-02/technical-packet.json",
+    "bytes": 26930,
+    "sha256": "79186449818b8f8b018e6f68a9e5a9153c8977ab06cfc1b845129be63c517ece"
+  },
+  "independent_source_gate": {
+    "path": "artifacts/p2-structural-matrix-diagnostic-preparation-review-20261002-01/independent-review-correction02.json",
+    "bytes": 12328,
+    "sha256": "37d536ea5ebe47836b44cbc03771d3656add959b4fdf526484f3c62709de2e2e"
+  },
+  "initial_two_source_P2_findings": "Original01 counts before validation and absent actual installed source copies are preserved; corrected02 separates entries/calls and retains matched observed installed bytes.",
+  "root_authorization": {
+    "path": "artifacts/p2-structural-matrix-diagnostic-control-20261002-01/root-authorization.json",
+    "bytes": 996,
+    "sha256": "50f84c7bd79615fa643f798f1a7d4f6200b9bf538ac6a121701762d6263e8e1a"
+  },
+  "actual_observation": {
+    "path": "artifacts/p2-structural-matrix-diagnostic-control-20261002-01/combined-observation.json",
+    "bytes": 22485,
+    "sha256": "78b019bffb274f619d63e1409773e813597374bb04615539384ab70864b584cd"
+  },
+  "middle": {
+    "native_exit_code": 0,
+    "dimension": 1269,
+    "nnz": 125253,
+    "native_A": "EXPORTED_ORIGINAL_ASSEMBLED_AUGMENTED_MATRIX",
+    "native_b": "EXPORTED_ORIGINAL_RHS",
+    "native_returned_DEPL": "RETURNED_DEPL_FIELD_POSTPROCESSED_DUAL_ASSOCIATION_UNKNOWN",
+    "algebraic_solution_equivalence": "UNKNOWN_INCONSISTENT_WITH_EXPORTED_A_B",
+    "direct_exported_A_DEPL_minus_b": {
+      "residual_infinity": 986388509.3269627,
+      "normwise_infinity_backward_error": 0.17171579731661138,
+      "componentwise_backward_error": 0.9999227863381,
+      "basis": "A*u-b of observed assembled augmented equations; not MUMPS RINFOG(9) or an engineering acceptance",
+      "native_threshold_changed": false,
+      "numerical_verdict": "NOT_ASSIGNED",
+      "interpretation": "This arithmetic is reproduced but is not a verified native linear-system residual: original returned DEPL dual representation is not established as algebraic u of exported augmented A/b."
+    },
+    "internal_mumps_scaled_residual_printed": 5.97e-17,
+    "internal_mumps_error_bound_printed": 5.85e-07,
+    "internal_mumps_condition_number1_printed": 2280000000.0,
+    "iterative_refinements_performed": 0,
+    "physical_field_values_count": 1143,
+    "physical_field_vs_raw_DEPL_difference": 0.0,
+    "dual_field_values_count": 126,
+    "dual_field_observed_relationship": "126 saved dual values match -raw_reaction/2 within3.458922037680168e-11; no algebraic-u rescaling performed."
+  },
+  "fine": {
+    "native_exit_code": 1,
+    "dimension": 7065,
+    "nnz": 902121,
+    "native_A": "EXPORTED_ORIGINAL_ASSEMBLED_AUGMENTED_MATRIX",
+    "native_b": "EXPORTED_ORIGINAL_RHS",
+    "native_u": "UNAVAILABLE",
+    "native_error": "FACTOR_57",
+    "estimated_relative_solution_error": 3.32295e-06,
+    "unchanged_native_limit": 1e-06,
+    "internal_mumps_scaled_residual_printed": 1.45e-16,
+    "internal_mumps_condition_number1_printed": 9200000000.0,
+    "iterative_refinements_performed": 0,
+    "substitute_solution": "NOT_COMPUTED_OR_ADOPTED"
+  },
+  "actual_bindings_restored": true,
+  "actual_original_call_counts_per_level": {
+    "MECA_STATIQUE": 1,
+    "_computeMatrix": 1,
+    "_computeRhs": 1
+  },
+  "retained_installed_source_modules": 3,
+  "runtime": {
+    "binaries": {
+      "gmsh": {
+        "path": "/usr/bin/gmsh",
+        "sha256": "08d91cc9ce7244999950c4fa1165b42ec9132e21194faec32e4f2dc109e1682c"
+      },
+      "prlimit": {
+        "path": "/usr/bin/prlimit",
+        "sha256": "17064f67e650d6152a6902b013aab496b54c87587c8eea6f5023aafee6154069"
+      },
+      "singularity": {
+        "path": "/usr/bin/singularity",
+        "sha256": "994f404350a92a919264e16e1239f409ac550b3fa8118e80cdee1634fc36ff0a"
+      }
+    },
+    "image_bytes": 1526157312,
+    "image_sha256": "f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64",
+    "oci_manifest_sha256": "d8d19ea91989eac0d38195bc5795c54c69f530f7196f53d67697ffa57c9106d5",
+    "omp_num_threads": "2"
+  },
+  "local_retention": {
+    "path": "artifacts/p2-structural-matrix-diagnostic-retained-20261002-01/retention.json",
+    "bytes": 28600,
+    "sha256": "2bc696b66950561cbf0c8f2b9bc484e8febfaf0655d782f1db85893593a4719d"
+  },
+  "retained_selected_files": 80,
+  "retained_selected_bytes": 32863857,
+  "scratch_preferences_trees": "EXCLUDED_NOT_CLAIMED",
+  "raw_remote_backup": "UNKNOWN_NOT_UPLOADED",
+  "independent_actual_review": {
+    "reference": {
+      "path": "artifacts/p2-structural-matrix-diagnostic-actual-review-20261002-01/independent-actual-review.json",
+      "bytes": 26325,
+      "sha256": "64163862df6eb91a58949ad5ee60f9137edc55885ce2d4432273948810366ea2"
+    },
+    "status": "PASS_BOUNDED_ACTUAL_EVIDENCE_AUDIT_WITH_INTERPRETATION_P2_CLOSED",
+    "checks": 49,
+    "open_P1_P2": 0,
+    "protected_regular_files_unchanged": 192,
+    "scope": "Saved original two native observations, installed sources/call/restore identities,85selected source/copies; not numerical acceptance."
+  },
+  "exact_source_CI": "Previously recorded947 run36950198263; this private diagnostic has no new CI execution. Later documentation commits are not new solver/source verification.",
+  "unknown": [
+    "Whether returned DEPL dual entries are original augmented algebraic solution values",
+    "Internal MUMPS permutations/scalings/LAGR2 reduction",
+    "Compiled vendor build/source equivalence",
+    "Exact refinement stopping cause",
+    "Material/machine/strength/physical/durability qualification"
+  ],
+  "numerical_acceptance": "NOT_ASSIGNED_DIAGNOSTIC_ONLY",
+  "decision": "NOT_RELEASED",
+  "P2.2": "OPEN",
+  "full52": "OPEN",
+  "next": "Reviewed roof nz2 request8/16/22, separate fresh native store then same conditions in approved5.6Sol OpenScience full/half/interpretation.",
+  "association_limitation_correction": {
+    "path": "artifacts/p2-structural-matrix-diagnostic-control-20261002-01/association-disposition.json",
+    "bytes": 3233,
+    "sha256": "8df3ea2f8e4d37a564bc6193eca782b865917b9391cd715e3b8d7cb7477a4eb9"
+  },
+  "official_solution_postprocessing_sources": [
+    {
+      "reference": {
+        "path": "artifacts/p2-structural-numerical-source-20261002-01/frozen-sources/official-amumpp.F90",
+        "bytes": 29837,
+        "sha256": "346a4cb6a9a739f3d0803b142ef422d42a991223d2e480d5ece8604610dddab5"
+      },
+      "pin": "50ebc13c70ee9df62faf93ddcb746a3757b3042a",
+      "lines": [
+        659,
+        697
+      ],
+      "observed_source_behavior": "LAGR2 recovery halves/copies dual entries and later mrconl MULT rescales solution Lagranges."
+    },
+    {
+      "reference": {
+        "path": "artifacts/p2-structural-numerical-source-20261002-01/frozen-sources/official-amumpd.F90",
+        "bytes": 24306,
+        "sha256": "1a89949efea6c6837e497372ad92f44ae690fa3d326e7039c9f44c34b3138af8"
+      },
+      "pin": "50ebc13c70ee9df62faf93ddcb746a3757b3042a",
+      "lines": [
+        538,
+        550
+      ],
+      "observed_source_behavior": "RINFOG9 fatal accuracy check precedes amumpp2 solution postprocessing."
+    }
+  ],
+  "independent_actual_saved_byte_analysis": {
+    "path": "artifacts/p2-structural-matrix-diagnostic-actual-review-20261002-01/middle-association-analysis01.json",
+    "bytes": 20402,
+    "sha256": "296573556f7940ae606b8f49ad5966ae5f40fef3735220e29480cd5e985eafc4"
+  },
+  "candidate01_preserved": {
+    "path": "artifacts/p2-structural-matrix-diagnostic-control-20261002-01/public-record-candidate.json",
+    "bytes": 5606,
+    "sha256": "32c87abfaf6ad3c19026972c1e540291fcb826953ad7b20795f3f0e1c769ddf0"
+  },
+  "association_supplement_retention": {
+    "path": "artifacts/p2-structural-matrix-diagnostic-retained-20261002-01-supplement-01/retention.json",
+    "bytes": 1966,
+    "sha256": "b152217ac448b2bbe264c0b21d7d5e30caed63e827c50af90127ee3c5d982b18"
+  },
+  "total_selected_retained_files": 85,
+  "total_selected_retained_bytes": 32949514,
+  "publication_created_utc": "2026-10-02T04:17:28.916689+00:00",
+  "roof_following_this_checkpoint": {
+    "status": "ACTUAL_NATIVE_IN_PROGRESS_NOT_COMPLETE",
+    "store": "managed947/runs/p2-roof-refine-native-20261002-01",
+    "source_commit": "94773a35d73773faf5dc2714ea7d9071c812f357",
+    "ccx_full_status": "COMPLETED_REVIEW_REQUIRED",
+    "ccx_full_mesh_response_relative": 0.0010522106263652251,
+    "ccx_full_reference_relative_error": 0.012449181492714448,
+    "remaining": "Aster full and CCX half, independent raw audit, then fresh same-condition OpenScience3questions; no full roof acceptance claim yet."
+  }
+}
