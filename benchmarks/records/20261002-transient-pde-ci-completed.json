@@ -1,0 +1,131 @@
+{
+  "schema_version": "1.0",
+  "kind": "D3.2 exact-source completed CI observation",
+  "created_utc": "2026-10-02T14:58:33.504972+00:00",
+  "source_commit": "508988bd7e9fb6328b7b92ebabb789495f80c0ad",
+  "run_id": 37020551603,
+  "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37020551603",
+  "status": "COMPLETED_FAILURE",
+  "success_jobs": 8,
+  "failed_jobs": 2,
+  "jobs": [
+    {
+      "name": "research-driver-source",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "core",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "codeaster",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "name": "pde",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "native-registration",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "native",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "doe",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "optimization",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "explicit",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "name": "structural",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "raw_observation": {
+    "path": "artifacts/development-pde-transient-20261002-01/source-ci-completed-observation.json",
+    "sha256": "3963d5c7f10adadddbab1ec89e234195688be88fa84f384261a17a4f42a34b46"
+  },
+  "scoped_job_logs": [
+    {
+      "job": "core",
+      "job_id": 110882217954,
+      "status": "completed",
+      "conclusion": "success",
+      "path": "artifacts/development-pde-transient-20261002-01/source-ci-core-job.log",
+      "sha256": "7a60250b1f9e5ae3cf64d07404dfc1aad17e346f007d4aea602c564943d0017d",
+      "selected_observed_lines": [
+        "2026-10-02T14:36:37.6677889Z 2300 passed, 2 skipped, 1 warning in 212.95s (0:03:32)"
+      ]
+    },
+    {
+      "job": "pde",
+      "job_id": 110884323819,
+      "status": "completed",
+      "conclusion": "success",
+      "path": "artifacts/development-pde-transient-20261002-01/source-ci-pde-job.log",
+      "sha256": "c5f3e7642bb2616e33c3a5a99c9197606308313707d5dab34f26deef8965e824",
+      "selected_observed_lines": [
+        "2026-10-02T14:42:38.9703448Z   \"status\": \"PASS_BOUNDED_MATHEMATICAL\",",
+        "2026-10-02T14:42:38.9704344Z   \"accepted\": [",
+        "2026-10-02T14:42:38.9707381Z   \"numerical_rejections\": [",
+        "2026-10-02T14:42:38.9709358Z   \"preflight_rejections\": [",
+        "2026-10-02T14:42:38.9713408Z   \"native_studies\": 24,",
+        "2026-10-02T14:42:38.9713765Z   \"retained_snapshots\": 872,",
+        "2026-10-02T14:42:38.9714147Z   \"native_solves\": 848"
+      ]
+    },
+    {
+      "job": "explicit",
+      "job_id": 110884324063,
+      "status": "completed",
+      "conclusion": "failure",
+      "path": "artifacts/development-pde-transient-20261002-01/source-ci-explicit-job.log",
+      "sha256": "7f026a6dda603d560e5b51f23f5d52175c4c19df4a31248d99d6e657251f562f",
+      "selected_observed_lines": [
+        "2026-10-02T14:38:15.3982052Z curl: (22) The requested URL returned error: 404",
+        "2026-10-02T14:38:15.4013543Z ##[error]Process completed with exit code 22."
+      ]
+    },
+    {
+      "job": "codeaster",
+      "job_id": 110884323768,
+      "status": "completed",
+      "conclusion": "failure",
+      "path": "artifacts/development-pde-transient-20261002-01/source-ci-codeaster-job.log",
+      "sha256": "2c7d08f18b6c118d84fd80667f288ff11bcfdb020bda5afd94b470f08cd116c7",
+      "selected_observed_lines": [
+        "2026-10-02T14:46:20.4501140Z AssertionError: Native numerical checks failed: E-ansys_vmd1_regular-Fz-aster",
+        "2026-10-02T14:46:20.8700538Z ##[error]Process completed with exit code 1."
+      ]
+    }
+  ],
+  "scope": "Core and actual transient PDE acceptance step SUCCESS. Independent retained-field/CI archive mathematics audit is separate and pending; no whole-CI, whole-phase or physical PASS.",
+  "local_new_store_transient_native": "NOT_RUN",
+  "official_transient_research_admission": "NOT_ADMITTED",
+  "native_field_GUI": "NOT_RUN",
+  "release": "NOT_RELEASED",
+  "retention": "Ignored local raw observation/logs retained; public compact receipt has exact IDs/hashes/scoped lines only. No failing solver/asset rerun or threshold change.",
+  "known_failure_scope": {
+    "codeaster": "E-ansys_vmd1_regular-Fz-aster native numerical checks fail; internal solver cause UNKNOWN from scoped log",
+    "explicit": "Pinned asset HTTP404/curl22 before solver; no new asset substituted"
+  }
+}

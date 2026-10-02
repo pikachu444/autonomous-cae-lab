@@ -1,6 +1,37 @@
 # Declared weak-form PDE acceptance
 
-## Transient scalar rectangles — ADR0020 source checkpoint
+## Vector Lamé form — ADR0021 source checkpoint
+
+`pde.fenicsx.vector` adds bounded real two-component stationary rectangle P1
+forms, λ>=0/μ>0/c>=0, full vector D/traction/refinement/reference inputs and
+component plus aggregate L2/Frobenius-gradient-H1 verdicts. Native adapter owns
+blocked DOF/BC mapping, actual constrained A*x-b, per-scalar state sync and
+complete XDMF/H5/DOF/geometry/binding/partial progress. Existing AST, Core,
+result/evidence schema and process ownership remain.84 distinct focused PASS,
+13 Python syntax files PASS and independent16-file source review0 P1/P2.
+[source record](../benchmarks/records/20261002-vector-pde-development.json).
+Frozen [packet](PDE_VECTOR_PACKET.md) defines .04/.8 finest vector errors,
+all component/vector rates1.8/.9 and residual1e-10 before native output.
+Runner six accepted/three numerical negatives/five preflight,9 processes/27
+meshes are PLANNED. Vector actual native acceptance NOT_RUN, Research
+NOT_ADMITTED, field GUI NOT_RUN; physical/material/strength UNKNOWN/NOT_RELEASED.
+
+## Transient exact-source native CI and independent retained-field checkpoint
+
+Source508988b CI37020551603 actually closes5 accepted/3 numerical rejections/
+5 preflight refusals,8 processes/24 studies/872 snapshots/848 solves. All872
+L2 and full-gradient H1 pairs independently recomputed; max differences
+6.22e-15/1.24e-14, all refinement rates agree. Native field/time/source/ledger
+hashes and6079 original archive files match. No open P1/P2. Core2300 PASS/
+2optional skips; whole CI8SUCCESS/2FAIL retains Aster Fz and asset404 failures.
+[native CI/reference record](../benchmarks/records/20261002-transient-pde-native-ci.json).
+Residual normalization is independently checked; constrained matrices are not
+independently reassembled. Local fresh transient solve NOT_RUN; official
+Research/native field GUI remain NOT_ADMITTED/NOT_RUN. Model/physical
+UNKNOWN/NOT_RELEASED. Raw CI artifact expires2026-11-01T14:42:49Z; local copy
+and public compact hashes do not guarantee indefinite remote raw retention.
+
+## Historical transient scalar rectangles — ADR0020 source checkpoint
 
 `pde.fenicsx.transient` implements fixed backward Euler on a dimensionless
 rectangle, safe t-bound scalar source/reference/side expressions, nodal initial

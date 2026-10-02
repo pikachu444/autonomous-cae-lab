@@ -1,6 +1,35 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
-## Current D3.2 source integration checkpoint
+## Current D3.3 source checkpoint — next D3.4
+
+Vector backend `pde.fenicsx.vector`, Domain reference/verdict, worker/native
+bindings, common registry/experimental presets and independent full-field
+acceptance runner are implemented.84 distinct focused checks PASS (53+31),
+13 Python syntax files PASS; independent16-file source review0 P1/P2. Record:
+`benchmarks/records/20261002-vector-pde-development.json`. Source base af6f818;
+publication record supplies the resulting exact source/main push/CI.
+No vector native solver execution yet. Frozen PDE_VECTOR_PACKET/ADR0021 keep
+criteria .04 vector L2/.8 gradient-H1, all vector/component rates1.8/.9 and
+actual constrained residual1e-10. Runner's6 accepted/3 numerical negatives/
+5 preflight controls,9 processes/27 meshes are PLANNED counts. Use a fresh
+clean-source store for `python -m scripts.verify_vector_pde --store artifacts/new-vector-store`.
+
+Transient exact508988b CI37020551603 is completed:2300Core PASS/2optional skips;
+actual PDE5/3/5,8 processes/24 studies/872 snapshots/848 solves. Independent
+all-step field/reference/time/source/ledger/retention review PASS,0 P1/P2.
+`benchmarks/records/20261002-transient-pde-native-ci.json` records exact source,
+archive/receipt hashes, runtimes and raw artifact expiry2026-11-01T14:42:49Z.
+Local transient new-store solve NOT_RUN; official transient/vector Research
+NOT_ADMITTED, native-field GUI NOT_RUN. Whole workflow8SUCCESS/2FAIL retains
+Aster Fz numerical failure with internal cause UNKNOWN and explicit asset404.
+
+Continue D3.4 coupled systems/material interfaces, then D3.5 imported domains;
+D3.6 grouped clean native/reference/guarded Research/same-record GUI is separate.
+Root owns common interfaces; frozen old PDE/schema/guard sources and fixture
+pin are preserved. All52/P2.2/whole Phase4 and physical/deployment qualification
+remain OPEN/UNKNOWN/NOT_RELEASED. Do not rerun unchanged failures or change criteria.
+
+## Historical D3.2 source integration checkpoint
 
 Verified pushed source: `508988bd7e9fb6328b7b92ebabb789495f80c0ad`.
 Exact CI37020551603 is IN_PROGRESS; Core/research-driver-source succeed,

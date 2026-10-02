@@ -299,6 +299,7 @@ class LabService:
         from plugins.pde_nonlinear.reference import manufactured_settings as nonlinear_pde_specification
         from plugins.pde_elliptic.reference import manufactured_settings as rectangle_pde_specification
         from plugins.pde_transient.reference import manufactured_settings as transient_pde_specification
+        from plugins.pde_vector.reference import manufactured_settings as vector_pde_specification
         from scripts.verify_codeaster import specification as codeaster_specification
         from scripts.verify_plasticity import specification as plasticity_specification
         from scripts.verify_openradioss import specification as explicit_specification
@@ -330,6 +331,12 @@ class LabService:
             "pde_transient_time": {"operation": "pde_run", "backend": "pde.fenicsx.transient", "label": "시간에 따른 확산·반응 — 시간 간격 비교",
                 "status": "EXPERIMENTAL", "scope": "고정된 메시에서 시간 간격에 따른 오차·잔차·전체 이력을 비교; 실제 연구 연결과 물리 자격 UNKNOWN",
                 "settings": transient_pde_specification(axis="time", case="temporal")},
+            "pde_vector_lame": {"operation": "pde_run", "backend": "pde.fenicsx.vector", "label": "두 성분 벡터 약형 — 결합·경계하중",
+                "status": "EXPERIMENTAL", "scope": "두 성분의 결합과 방향별 경계하중·오차를 보존하는 Lamé형 PDE; 실제 연구 연결과 물리 자격 UNKNOWN",
+                "settings": vector_pde_specification()},
+            "pde_vector_harmonic": {"operation": "pde_run", "backend": "pde.fenicsx.vector", "label": "두 성분 벡터 약형 — 원항 없는 기준식",
+                "status": "EXPERIMENTAL", "scope": "원항이 없는 기준식으로 벡터 방향·전체 필드·수렴을 확인; 실제 연구 연결과 물리 자격 UNKNOWN",
+                "settings": vector_pde_specification(case="harmonic")},
             "codeaster_linear": {"operation": "model_analysis_run", "backend": "structural.code_aster", "label": "독립적인 선형 elasticity benchmark",
                 "status": "EXPERIMENTAL", "scope": "가정된 solid block의 affine analytical reference; 비선형·접촉 및 물리·강도 검증 UNKNOWN",
                 "settings": codeaster_specification()},

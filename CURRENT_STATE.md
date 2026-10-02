@@ -1,6 +1,31 @@
-# Current state — 2026-10-02 (Asia/Seoul)
+# Current state — 2026-10-03 (Asia/Seoul)
 
-## Current D3.2 source integration checkpoint
+## Current D3.3 source integration and D3.2 native checkpoint
+
+`pde.fenicsx.vector` is integrated through the existing PDE/Core/Results route:
+two components, Lamé-type form, directed D/traction, blocked DOFs, component
+and aggregate verdicts, complete native fields/binding/partial progress and
+actual constrained residual source.84 distinct focused checks PASS (53 writer
++31 Root); independent16-file source review closes with0 P1/P2. Actual native
+form/layout/BC/XDMF metadata checks perform no solve. Record:
+`benchmarks/records/20261002-vector-pde-development.json`. Source base af6f818;
+exact source commit, confirmed main push and CI are recorded after publication.
+Vector native acceptance NOT_RUN; official Research NOT_ADMITTED; field GUI
+NOT_RUN. Model/physical qualification UNKNOWN and NOT_RELEASED remain.
+
+Exact transient source508988b CI37020551603 completed8SUCCESS/2FAIL, with
+2300Core PASS/2optional skips. Actual transient PDE closes5 accepted/3 numerical
+rejections/5 preflight refusals,8 processes/24 studies/872 snapshots/848 solves.
+Independent all872 L2/full-gradient-H1 integrations, rates, native field/time/
+ledger/source hashes and6079 original files agree;0 P1/P2. Record:
+`benchmarks/records/20261002-transient-pde-native-ci.json`. Local fresh transient
+solver execution, guarded Research and field GUI remain NOT_RUN/NOT_ADMITTED.
+Aster Fz numerical failure (internal cause UNKNOWN) and explicit HTTP404/curl22
+remain; no whole-CI/phase/engineering PASS. Next ordered source unit D3.4
+coupled/material interfaces, then D3.5 import; grouped qualification D3.6.
+All52/P2.2/whole Phase4 remain OPEN. Old implementations and fixture pin remain.
+
+## Historical D3.2 source integration checkpoint
 
 Exact source `508988bd7e9fb6328b7b92ebabb789495f80c0ad` is committed and
 confirmed pushed to main. Exact CI37020551603 is IN_PROGRESS at observation;

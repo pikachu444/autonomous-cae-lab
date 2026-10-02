@@ -280,6 +280,8 @@ jobs:
         run: python -m scripts.verify_rectangle_pde --store artifacts/rectangle-pde-lab
       - name: Verify complete initial and transient histories with separate time and mesh refinement
         run: python -m scripts.verify_transient_pde --store artifacts/transient-pde-lab
+      - name: Verify coupled vector directions, blocked DOFs and independent full-field error integration
+        run: python -m scripts.verify_vector_pde --store artifacts/vector-pde-lab
       - name: Connect actual PDE to the common local research/results surface
         run: python -m scripts.verify_lab_ui --store artifacts/http-pde-lab --library pde=artifacts/pde-lab
       - name: Preserve weak forms, field data, raw errors and common evidence
@@ -292,6 +294,7 @@ jobs:
             artifacts/nonlinear-pde-lab/
             artifacts/rectangle-pde-lab/
             artifacts/transient-pde-lab/
+            artifacts/vector-pde-lab/
             artifacts/http-pde-lab/
           include-hidden-files: true
           if-no-files-found: warn

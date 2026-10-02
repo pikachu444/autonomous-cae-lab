@@ -1,5 +1,16 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+Vector PDE integration2026-10-03 adds an experimental `pde.fenicsx.vector`
+backend through existing pde_run/declaration/results. Domain owns mathematics
+and verdicts; adapter owns UFL/directed native fields.84 focused source checks
+and independent review do not admit it into the official Research guard.
+Transient source508988b has actual CI plus independent872-step mathematical
+field/reference evidence; this likewise does not expand the guarded tool/model
+universe. OpenScience retains question/hypothesis/campaign/interpretation
+ownership; numerical engines generate search candidates. No new tool/schema/
+provider/profile/auth/optimizer. Vector native NOT_RUN; both guarded Research
+NOT_ADMITTED and field GUI NOT_RUN; physical UNKNOWN/NOT_RELEASED (ADR0020/0021).
+
 Transient PDE integration2026-10-02 adds an experimental backend through the
 existing pde_run operation and common declaration/result extension. Safe time
 expressions, initial conditions and complete history belong to Domain/adapter;

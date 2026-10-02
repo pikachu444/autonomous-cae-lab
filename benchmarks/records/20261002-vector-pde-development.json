@@ -1,0 +1,418 @@
+{
+  "schema_version": "1.0",
+  "status": "PASS_SOFTWARE_INTEGRATION_BOUNDED",
+  "created_utc": "2026-10-02T15:33:53.949472+00:00",
+  "source_base_commit": "af6f8186219049a836eff5fc4879377d875ffdfd",
+  "source_publication": "Pre-commit candidate source pins; exact implementation commit, main push and exact-source CI recorded separately after publication. Not actual vector native acceptance.",
+  "scope": "D3.3 Phase4 stationary dimensionless real two-component Lame-type rectangle, fixed P1/serial/direct execution, directed D/traction and reference fields through existing PDE/Core/Results.",
+  "source_hash_scope": "Exact UTF8/LF candidate file bytes; staged Git blobs must match.",
+  "source_files": [
+    {
+      "path": "plugins/pde_vector/__init__.py",
+      "sha256": "ac3a182dac744504a9ec2c787cf34e3ceefd7987e21d9b3413310f51a813b304",
+      "size_bytes": 66
+    },
+    {
+      "path": "plugins/pde_vector/reference.py",
+      "sha256": "30706bc258af45fd47dd498b92c145d8c7bd871f49d0e82ef4e2e55ad21429c2",
+      "size_bytes": 19009
+    },
+    {
+      "path": "caelab/adapters/fenicsx_vector.py",
+      "sha256": "2f261b91cf1dae3ae8da5978ebf22839a42cdde61a2e9ab45dcdeac3499632e2",
+      "size_bytes": 11239
+    },
+    {
+      "path": "caelab/adapters/fenicsx_vector_worker.py",
+      "sha256": "d3e9ac0ba486e792ba8c1832e3411284a44393d813c63814efd2104f2112ab31",
+      "size_bytes": 18764
+    },
+    {
+      "path": "tests/test_pde_vector.py",
+      "sha256": "4460caf40dfd7d29adf222dbf00e5146b324a124b65a0c4657308f290f4c6d17",
+      "size_bytes": 19456
+    },
+    {
+      "path": "tests/test_pde_vector_reference.py",
+      "sha256": "6ab99ccea1bc3158c06f8a97da15d9a2665d2d6937687fe50eb2620f522a7bcc",
+      "size_bytes": 12752
+    },
+    {
+      "path": "caelab/engine.py",
+      "sha256": "8ad53cd65e6a59916c3b70653def3d786ac83a597a7a4e28d94b2e7c97203d4f",
+      "size_bytes": 46906
+    },
+    {
+      "path": "apps/lab/service.py",
+      "sha256": "d32efa2f4afcc98189fc645a8faa488aea92dccc69a0c14d6d9e26a14fe7e527",
+      "size_bytes": 37820
+    },
+    {
+      "path": "tests/test_backend_integration.py",
+      "sha256": "3eda59c615c5b5a542985707cc7f56c8cf433800edac85cf6cacab8bc317e6f6",
+      "size_bytes": 4506
+    },
+    {
+      "path": "tests/test_pde_thread.py",
+      "sha256": "9af587338bc62a3d123813624366a399f4d26b9d9d8ae947a65a4fb1db84f731",
+      "size_bytes": 14475
+    },
+    {
+      "path": "tests/test_lab_server.py",
+      "sha256": "cd91306b5c1c45ba3030c969707e0afcc0b78306104909e0ec99b5ce2127f6df",
+      "size_bytes": 35572
+    },
+    {
+      "path": "scripts/verify_vector_pde.py",
+      "sha256": "acbaca57923cd363e4521b2dacc5a64704efd647f9c88e2b5a738c0225d9b521",
+      "size_bytes": 21538
+    },
+    {
+      "path": "tests/test_verify_vector_pde.py",
+      "sha256": "b8c43377a93d54a02192b07815473702ad2bb9d62163283c2d320d496f854dea",
+      "size_bytes": 9198
+    },
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "sha256": "bbcdd7c22debc024791324a31ee1e1e3c6eefb34690336aeb50fb2ec924ca780",
+      "size_bytes": 21105
+    },
+    {
+      "path": "docs/PDE_VECTOR_PACKET.md",
+      "sha256": "a25c9dc073876dd7fa14ceaefb08c445e26be9c82fe51c746c16173eee10f311",
+      "size_bytes": 11753
+    },
+    {
+      "path": "ADR/0021-vector-lame-weak-form.md",
+      "sha256": "9192171349c07f5dddca4158f125d86ade1e83c6f18886a2ba43336ac4b35f22",
+      "size_bytes": 2780
+    }
+  ],
+  "changes": [
+    "Vector Domain plugin owns complete two-component input/model declarations, manufactured references, preflight checks, aggregate and per-component scientific verdicts.",
+    "Adapter/worker reuse bounded spatial AST and owned native process; native blocked DOF mapping, actual constrained A*x-b residual and per-scalar function/LinearProblem.x synchronization, full vector XDMF/H5/DOF/binding/progress and eight source copies.",
+    "Core default registry and two experimental presets reuse pde.run, common declaration, result and artifact ledger; no new schema/wire/provider/profile/auth/optimizer.",
+    "Fresh-store clean-source vector runner freezes six accepted/three numerical negatives/five preflight controls; independent direct-polynomial 5x5 Gauss-Duffy full-field integration and every component/vector error/rate planned, with source/ledger/retention gates. CI adds vector step and always retains its store."
+  ],
+  "checks": {
+    "distinct_total": 84,
+    "writer": {
+      "distinct_tests": 53,
+      "seconds": 8.75,
+      "receipt": {
+        "path": "artifacts/development-pde-vector-20261002-01/writer-source-01/freeze-receipt.json",
+        "sha256": "d7b13cc676026c627b9e90d1c252c956496fd5e4107665a807991db3541e2df3",
+        "size_bytes": 5606
+      },
+      "actual_form_layout_bc_xdmf_metadata": "PASS without LinearProblem or solve",
+      "failed_attempts": [
+        {
+          "result": "51 passed, 1 failed, 1 skipped in 9.45s",
+          "attempt": 1,
+          "cause": "Duplicate-JSON fixture replacement did not alter final sorted member; optional HDF5 reader absent."
+        },
+        {
+          "result": "52 passed, 1 failed in 13.68s",
+          "attempt": 2,
+          "cause": "Form-only test assumed Nx3 geometry; actual XY geometry Nx2 and Vector attribute Nx3. Test corrected, production physics unchanged."
+        }
+      ],
+      "latest_log": {
+        "path": "artifacts/development-pde-vector-20261002-01/writer-source-01/attempt-03-pytest.log",
+        "sha256": "fc84aa9bf13292622e7129d840d9ec4ea80084ca3319a4ee3149a0162a01a8ca",
+        "size_bytes": 101
+      }
+    },
+    "root": {
+      "command": "./scripts/local.ps1 -PythonArgs @('-B','-m','pytest','-q','tests/test_verify_vector_pde.py','tests/test_backend_integration.py','tests/test_pde_thread.py','tests/test_lab_server.py','-k','verify_vector or backend_integration or optional_pde_declaration or existing_presets_and_core_campaign_inspection')",
+      "exit_code": 0,
+      "passed": 31,
+      "deselected": 77,
+      "warnings": 1,
+      "elapsed_seconds": 92.31,
+      "log_sha256": "820db1bd59612f2b682cb8777a71c953da80b3fa3fe39d898d83aae9b5628530",
+      "receipt_is_post_run": true
+    },
+    "root_receipt": {
+      "path": "artifacts/development-pde-vector-20261002-01/root-source-01/freeze-receipt.json",
+      "sha256": "07a6c72996a54f51e9ce7ce4db83813366c96b638f066e184b520c02f02fe4a2",
+      "size_bytes": 3403
+    },
+    "root_log": {
+      "path": "artifacts/development-pde-vector-20261002-01/root-source-01/focused-source.log",
+      "sha256": "820db1bd59612f2b682cb8777a71c953da80b3fa3fe39d898d83aae9b5628530",
+      "size_bytes": 680
+    },
+    "syntax_python_files": 13,
+    "independent_source_review": {
+      "schema_version": "1",
+      "kind": "D3.3 independent read-only source review",
+      "created_utc": "2026-10-02T15:33:53.949472+00:00",
+      "status": "PASS_SOURCE_ONLY",
+      "reviewer": "/root/official_project_workflow",
+      "capture_scope": "Root preserves independent reviewer final collaboration message; reviewer wrote no files and ran no tests/native/provider/Core/runtime/HTTP/auth calls.",
+      "reviewed_files": [
+        {
+          "path": "plugins/pde_vector/__init__.py",
+          "sha256": "ac3a182dac744504a9ec2c787cf34e3ceefd7987e21d9b3413310f51a813b304",
+          "size_bytes": 66
+        },
+        {
+          "path": "plugins/pde_vector/reference.py",
+          "sha256": "30706bc258af45fd47dd498b92c145d8c7bd871f49d0e82ef4e2e55ad21429c2",
+          "size_bytes": 19009
+        },
+        {
+          "path": "caelab/adapters/fenicsx_vector.py",
+          "sha256": "2f261b91cf1dae3ae8da5978ebf22839a42cdde61a2e9ab45dcdeac3499632e2",
+          "size_bytes": 11239
+        },
+        {
+          "path": "caelab/adapters/fenicsx_vector_worker.py",
+          "sha256": "d3e9ac0ba486e792ba8c1832e3411284a44393d813c63814efd2104f2112ab31",
+          "size_bytes": 18764
+        },
+        {
+          "path": "tests/test_pde_vector.py",
+          "sha256": "4460caf40dfd7d29adf222dbf00e5146b324a124b65a0c4657308f290f4c6d17",
+          "size_bytes": 19456
+        },
+        {
+          "path": "tests/test_pde_vector_reference.py",
+          "sha256": "6ab99ccea1bc3158c06f8a97da15d9a2665d2d6937687fe50eb2620f522a7bcc",
+          "size_bytes": 12752
+        },
+        {
+          "path": "caelab/engine.py",
+          "sha256": "8ad53cd65e6a59916c3b70653def3d786ac83a597a7a4e28d94b2e7c97203d4f",
+          "size_bytes": 46906
+        },
+        {
+          "path": "apps/lab/service.py",
+          "sha256": "d32efa2f4afcc98189fc645a8faa488aea92dccc69a0c14d6d9e26a14fe7e527",
+          "size_bytes": 37820
+        },
+        {
+          "path": "tests/test_backend_integration.py",
+          "sha256": "3eda59c615c5b5a542985707cc7f56c8cf433800edac85cf6cacab8bc317e6f6",
+          "size_bytes": 4506
+        },
+        {
+          "path": "tests/test_pde_thread.py",
+          "sha256": "9af587338bc62a3d123813624366a399f4d26b9d9d8ae947a65a4fb1db84f731",
+          "size_bytes": 14475
+        },
+        {
+          "path": "tests/test_lab_server.py",
+          "sha256": "cd91306b5c1c45ba3030c969707e0afcc0b78306104909e0ec99b5ce2127f6df",
+          "size_bytes": 35572
+        },
+        {
+          "path": "scripts/verify_vector_pde.py",
+          "sha256": "acbaca57923cd363e4521b2dacc5a64704efd647f9c88e2b5a738c0225d9b521",
+          "size_bytes": 21538
+        },
+        {
+          "path": "tests/test_verify_vector_pde.py",
+          "sha256": "b8c43377a93d54a02192b07815473702ad2bb9d62163283c2d320d496f854dea",
+          "size_bytes": 9198
+        },
+        {
+          "path": ".github/workflows/caelab-ci.yml",
+          "sha256": "bbcdd7c22debc024791324a31ee1e1e3c6eefb34690336aeb50fb2ec924ca780",
+          "size_bytes": 21105
+        },
+        {
+          "path": "docs/PDE_VECTOR_PACKET.md",
+          "sha256": "a25c9dc073876dd7fa14ceaefb08c445e26be9c82fe51c746c16173eee10f311",
+          "size_bytes": 11753
+        },
+        {
+          "path": "ADR/0021-vector-lame-weak-form.md",
+          "sha256": "9192171349c07f5dddca4158f125d86ade1e83c6f18886a2ba43336ac4b35f22",
+          "size_bytes": 2780
+        }
+      ],
+      "reviewed_file_count": 16,
+      "open_P1": 0,
+      "open_P2": 0,
+      "findings": "Blocked DOFs/BC, per-scalar sync, Lame form/directed binding, actual constrained A*x-b source, component/aggregate norms and rates, partial retention, eight native source copies and independent Duffy/closed-form/direction controls checked. All initial/final hashes and Root log agree. Protected legacy PDE/helper diff empty.",
+      "side_effect_counters": {
+        "writes": 0,
+        "tests": 0,
+        "solver": 0,
+        "provider": 0,
+        "Core": 0,
+        "runtime": 0,
+        "HTTP": 0,
+        "auth": 0
+      },
+      "root_freeze_receipt": {
+        "path": "artifacts/development-pde-vector-20261002-01/root-source-01/freeze-receipt.json",
+        "sha256": "07a6c72996a54f51e9ce7ce4db83813366c96b638f066e184b520c02f02fe4a2",
+        "size_bytes": 3403
+      },
+      "limits": "Source verification only; actual vector native fields/Reference/Research/GUI and physical qualification not asserted."
+    },
+    "independent_review_receipt": {
+      "path": "artifacts/development-pde-vector-20261002-01/independent-source-review.json",
+      "sha256": "efa8247ab8b77612281a0d00b24e7d63aa87cb94312be07e1d300640e3b5e0bc",
+      "size_bytes": 4054
+    },
+    "git_diff_check": "PASS",
+    "protected_legacy_files": 17,
+    "protected_legacy_diff": "EMPTY"
+  },
+  "preserved_sources": [
+    {
+      "path": "caelab/adapters/fenicsx_pde.py",
+      "sha256": "2ca87fc2e5f83e5cacbee2780437bcac38aec6a9ad481019f5baf1e4ff9dc893",
+      "size_bytes": 17072
+    },
+    {
+      "path": "caelab/adapters/fenicsx_worker.py",
+      "sha256": "2e1cd29a71e4a216be6677e44b841205193ef72658d7a29d010dca7253d57301",
+      "size_bytes": 17091
+    },
+    {
+      "path": "caelab/adapters/fenicsx_nonlinear.py",
+      "sha256": "705036578d1c5ab8ac2af426aca513c14d42860ee9eaabdab1b9c9bd07eade75",
+      "size_bytes": 22520
+    },
+    {
+      "path": "caelab/adapters/fenicsx_nonlinear_worker.py",
+      "sha256": "025a2a41a5a4ee3a87bc7b1016d74ad355d2bc1428f56182aa66c67193eae1f4",
+      "size_bytes": 19224
+    },
+    {
+      "path": "plugins/pde_nonlinear/reference.py",
+      "sha256": "79b77541982dcf3c42f75f4bea6ade145c106484a167abf416518f12e7f11505",
+      "size_bytes": 24611
+    },
+    {
+      "path": "caelab/pde.py",
+      "sha256": "1676badd13201d4055ba2cc69ff1fa47316127362139b7284f049d2d7bf05058",
+      "size_bytes": 945
+    },
+    {
+      "path": "caelab/declared_model.py",
+      "sha256": "7b4442af93e6aabd50f21baeb205449a3492cd4c0579d9a7b1488123cd945b01",
+      "size_bytes": 13942
+    },
+    {
+      "path": "schemas/experiment.schema.json",
+      "sha256": "34468e2bf70768df889f959909683a5bb45ea7ca0cfcda50fba0a21b1931405b",
+      "size_bytes": 2321
+    },
+    {
+      "path": "schemas/result.schema.json",
+      "sha256": "ad67db58b09e8419a7517e9804e53e42fbe810939d94a2b74174b2267e30bc2d",
+      "size_bytes": 2132
+    },
+    {
+      "path": "scripts/verify_pde.py",
+      "sha256": "23a48071fe0b6960d055580f8e48181861716111ee15da0935a456b176275563",
+      "size_bytes": 5555
+    },
+    {
+      "path": "scripts/verify_nonlinear_pde.py",
+      "sha256": "324b2d2771914496447c3f45a49a4e0acb7f255f2892d2ba2b93e3a2643bda3e",
+      "size_bytes": 10226
+    },
+    {
+      "path": "caelab/adapters/fenicsx_rectangle.py",
+      "sha256": "b0f614db04ee05b107373049f4e09f8c80f3809f456117add5f60b1d9040b756",
+      "size_bytes": 15458
+    },
+    {
+      "path": "caelab/adapters/fenicsx_rectangle_worker.py",
+      "sha256": "9b5e1a7e7ab9ffb90073785985c2e546ffca4c62012dffb370bb74e8b3422617",
+      "size_bytes": 17019
+    },
+    {
+      "path": "plugins/pde_elliptic/reference.py",
+      "sha256": "72d82766634a48a562594198615f8daaa4e2d1f57dddea7106137b48ca8c9521",
+      "size_bytes": 23859
+    },
+    {
+      "path": "caelab/execution_control.py",
+      "sha256": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede",
+      "size_bytes": 6546
+    },
+    {
+      "path": "openscience/native_guard.mjs",
+      "sha256": "8f36839fc712cdf8fa46c9bbe249ed5dfbf3b5f27d0a341f2b92383a22bce7e6",
+      "size_bytes": 44190
+    },
+    {
+      "path": "openscience/native_git_state.mjs",
+      "sha256": "967fa10d6ac94301549bbbc4735921eb810fde0996415562a4cd225b23f3e73b",
+      "size_bytes": 11087
+    }
+  ],
+  "fixture_submodule": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "mathematical_controls_frozen_before_output": {
+    "packet": {
+      "path": "docs/PDE_VECTOR_PACKET.md",
+      "sha256": "a25c9dc073876dd7fa14ceaefb08c445e26be9c82fe51c746c16173eee10f311",
+      "size_bytes": 11753
+    },
+    "adr": {
+      "path": "ADR/0021-vector-lame-weak-form.md",
+      "sha256": "9192171349c07f5dddca4158f125d86ade1e83c6f18886a2ba43336ac4b35f22",
+      "size_bytes": 2780
+    },
+    "finest_vector_L2_max": 0.04,
+    "finest_frobenius_gradient_H1_max": 0.8,
+    "minimum_every_vector_and_component_L2_rate": 1.8,
+    "minimum_every_vector_and_component_H1_rate": 0.9,
+    "maximum_actual_constrained_relative_residual": 1e-10,
+    "planned_counts": {
+      "accepted": 6,
+      "numerically_rejected": 3,
+      "preflight_rejected": 5,
+      "experiments": 14,
+      "native_processes": 9,
+      "native_meshes": 27
+    },
+    "planned_counts_are_observations": false,
+    "no_rigorous_Korn_bound_claim": true
+  },
+  "actual_vector_native_acceptance": {
+    "status": "NOT_RUN",
+    "new_native_solver_processes": 0,
+    "physical_qualification": "UNKNOWN",
+    "engineering_release": "NOT_RELEASED"
+  },
+  "official_research_admission": "NOT_ADMITTED",
+  "new_vector_native_field_GUI": "NOT_RUN",
+  "exact_candidate_source_CI": "NOT_RUN_BEFORE_PUBLICATION",
+  "previous_exact_CI": {
+    "commit": "508988bd7e9fb6328b7b92ebabb789495f80c0ad",
+    "run_id": 37020551603,
+    "status": "FAILURE_8_SUCCESS_2_FAILURE",
+    "Core_passed": 2300,
+    "transient_actual_counts": {
+      "accepted": 5,
+      "all_step_norm_pairs_recomputed": 872,
+      "core_artifacts_verified": 5418,
+      "experiments": 13,
+      "final_norm_pairs": 24,
+      "full_field_export_pairs_verified": 872,
+      "initial_fields": 24,
+      "native_processes": 8,
+      "native_solves": 848,
+      "numerically_rejected": 3,
+      "preflight_rejected": 5,
+      "runner_preserved_hashes_verified": 5444,
+      "snapshots": 872,
+      "studies": 24
+    },
+    "independent_native_record": "benchmarks/records/20261002-transient-pde-native-ci.json",
+    "not_candidate_source_verification": true
+  },
+  "next_ordered_source_unit": "D3.4 coupled systems/material interfaces, then D3.5 imported domains",
+  "verification_queue": "D3.3 clean native/refinement/reference directed fields; D3.6 official guarded Research admission and same-record native-field GUI, wider/cross-backend/MPI remain open.",
+  "retention": "Ignored local writer/Root/reviewer receipts and failed test attempts preserved by hashes; Git record contains compact evidence and source bytes, no credentials/company data.",
+  "remaining": "Whole Phase4/all52/P2.2, general autonomous research planning, physical and deployment qualification remain OPEN/UNKNOWN/NOT_RELEASED."
+}

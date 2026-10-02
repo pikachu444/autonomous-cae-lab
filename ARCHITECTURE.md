@@ -56,8 +56,16 @@ ADR0019 adds `pde.fenicsx.rectangle` through the same operation and explicit
 declaration opt-in. The elliptic Domain plugin owns declared rectangle/named
 Dirichlet-Neumann conditions and reference verdicts; the adapter retains actual
 native topology/boundary fields and reuses the accepted AST helper and owned
-process cancellation. Legacy PDE sources/revisions remain. General/time/vector/
-coupled/MPI and guarded OpenScience rectangle admission stay open.
+process cancellation. Legacy PDE sources/revisions remain.
+ADR0020 adds transient scalar rectangles with bounded time expressions,
+initial conditions and complete N+1 histories. ADR0021 adds real two-component
+Lamé-type vector forms with directed D/traction, blocked native DOFs and
+component plus aggregate reference checks. Both reuse the same explicit model
+declaration/Core/Results/artifact ledger. Domain owns scientific meaning and
+verdicts; adapters own native forms/fields/residuals. Vector source is integrated;
+transient exact-source CI and independent field audit supply bounded mathematical
+evidence. Coupled/imported/MPI, guarded Research admission and native-field GUI
+remain open; physical UNKNOWN/NOT_RELEASED is unchanged.
 
 `ModelAnalysisAdapter.solve(output, settings)` extends the same declared-model
 Core to independent geometry/material/load models. Optional pure

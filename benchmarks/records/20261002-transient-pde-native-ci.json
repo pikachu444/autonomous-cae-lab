@@ -1,0 +1,158 @@
+{
+  "schema_version": "1.0",
+  "kind": "D3.2 exact-source actual native CI and independent field retention qualification",
+  "created_utc": "2026-10-02T15:33:53.949472+00:00",
+  "status": "PASS_BOUNDED_INDEPENDENT_TRANSIENT_FIELD_AND_RETENTION_REVIEW",
+  "source_commit": "508988bd7e9fb6328b7b92ebabb789495f80c0ad",
+  "source": {
+    "core": {
+      "core_commit": "508988bd7e9fb6328b7b92ebabb789495f80c0ad",
+      "core_dirty": false,
+      "core_source_sha256": "11b9069914e97cbb204b52194abcc80e9be0af3ce73af1f9a216e4fcd7f18c4e"
+    },
+    "git_blob_core_files": 51,
+    "git_blob_schema_files": 6,
+    "git_objects_LF_match_copied_native_bytes": true,
+    "native_source_copies": 72,
+    "pinned_fixture": "160000 commit 3e48bf6138f495299f45b1af254bfb4aaff307b8\tplugins/fixture_design/upstream",
+    "source_hashes": {
+      "caelab/adapters/fenicsx_rectangle.py": "b0f614db04ee05b107373049f4e09f8c80f3809f456117add5f60b1d9040b756",
+      "caelab/adapters/fenicsx_rectangle_worker.py": "9b5e1a7e7ab9ffb90073785985c2e546ffca4c62012dffb370bb74e8b3422617",
+      "caelab/adapters/fenicsx_time_expression.py": "dbe77423dd516b3001efff3102c68324f16c35ae578abef54579ceb6c2118623",
+      "caelab/adapters/fenicsx_transient.py": "9b949135f3791e88972fff448b7a0160e739b8d10e63abad008dcdb43eb218b9",
+      "caelab/adapters/fenicsx_transient_worker.py": "4932e2f8e39f3d7f2a25db510d2703fbc76baa95984270fda4a66787ad6de3bf",
+      "caelab/adapters/fenicsx_worker.py": "2e1cd29a71e4a216be6677e44b841205193ef72658d7a29d010dca7253d57301",
+      "caelab/execution_control.py": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede",
+      "plugins/pde_elliptic/reference.py": "72d82766634a48a562594198615f8daaa4e2d1f57dddea7106137b48ca8c9521",
+      "plugins/pde_transient/reference.py": "5e35589b9bc1378b72a9f89ed28e04ab9176ce8b34341b8083a79bed347c87dd",
+      "scripts/verify_transient_pde.py": "56fb9817d4f926e8ae92de09c73e16eeada3f02081c01f0843ad0cb9684a1901"
+    }
+  },
+  "ci_run_id": 37020551603,
+  "ci_url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37020551603",
+  "ci_overall": "FAILURE_8_SUCCESS_2_FAILURE",
+  "core_job": "SUCCESS",
+  "core_test_observation": {
+    "passed": 2300,
+    "optional_form_runtime_skipped": 2,
+    "warnings": 1,
+    "seconds": 212.95,
+    "python": "3.12.14"
+  },
+  "pde_job": "SUCCESS",
+  "actual_counts": {
+    "accepted": 5,
+    "all_step_norm_pairs_recomputed": 872,
+    "core_artifacts_verified": 5418,
+    "experiments": 13,
+    "final_norm_pairs": 24,
+    "full_field_export_pairs_verified": 872,
+    "initial_fields": 24,
+    "native_processes": 8,
+    "native_solves": 848,
+    "numerically_rejected": 3,
+    "preflight_rejected": 5,
+    "runner_preserved_hashes_verified": 5444,
+    "snapshots": 872,
+    "studies": 24
+  },
+  "floating_agreement": {
+    "agreement_tolerance": {
+      "norm_abs": 1e-12,
+      "norm_rel": 1e-10,
+      "rate_abs": 1e-09
+    },
+    "agreement_tolerances_are_audit_roundoff_only_not_changed_scientific_limits": true,
+    "final_rate_max_absolute_difference": 5.062616992290714e-14,
+    "gradient_h1_max_absolute_difference": 1.2434497875801753e-14,
+    "hdf_dof_coordinates_max_absolute_difference": 2.220446049250313e-16,
+    "l2_max_absolute_difference": 6.217248937900877e-15,
+    "max_retained_normalized_residual": 2.874619708166209e-16
+  },
+  "native_runtime_versions": {
+    "basix": "0.11.0",
+    "dolfinx": "0.11.0.post0",
+    "ffcx": "0.11.0",
+    "mpi4py": "3.1.5",
+    "numpy": "1.26.4",
+    "petsc": "3.19.6",
+    "petsc4py": "3.19.6",
+    "python": "3.12.3",
+    "ufl": "2026.1.0"
+  },
+  "independent_audit_runtime": {
+    "h5py": "3.14.0",
+    "numpy": "2.5.2",
+    "python": "3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]"
+  },
+  "sealed_archive": {
+    "github_artifact_id": 11233836554,
+    "github_digest_verified": true,
+    "github_expires_at": "2026-11-01T14:42:49Z",
+    "regular_files": 6079,
+    "sha256": "249d32c3587d84892708035a5efd6607ce2661d5f96e7c478909f3eae375a537",
+    "size_bytes": 17702244,
+    "uncompressed_bytes": 81594969
+  },
+  "transient_store": {
+    "acceptance_sha256": "7457243c711b3af237ba5224d593b1a24059f920d43aac98775c5eb5168513e5",
+    "bytes": 73542691,
+    "plan_sha256": "87d4190ff97ae1a8864273825c348aec9e4591032ac2b2657b98d5f9f02b37c1",
+    "regular_files": 5463,
+    "relative_path": "extracted/transient-pde-lab"
+  },
+  "independent_review": {
+    "path": "artifacts/review-transient-pde-ci-20261002-01/independent-review.json",
+    "sha256": "7f5da4fa3fc2897b03d4e5abc51b5164da49815036a3d2676d865145631c76e2",
+    "size_bytes": 31182
+  },
+  "final_seal": {
+    "path": "artifacts/review-transient-pde-ci-20261002-01/final-seal.json",
+    "sha256": "fd77e81e1dfd1b2c23d48fcdc40addf13c179991b5c0e9805acea53053b7877c",
+    "size_bytes": 2252
+  },
+  "proofs": {
+    "after": {
+      "path": "extracted-inventory-after.json",
+      "sha256": "02a6da66ec1db15dc9ee83e0d1fd3eed0e6e8ebc45d326c4d088d1cac05817ff",
+      "size_bytes": 1281769
+    },
+    "before": {
+      "path": "extracted-inventory-before.json",
+      "sha256": "02a6da66ec1db15dc9ee83e0d1fd3eed0e6e8ebc45d326c4d088d1cac05817ff",
+      "size_bytes": 1281769
+    },
+    "quadrature": {
+      "path": "all-step-independent-quadrature.json",
+      "sha256": "6d55ba63b18fe615130fb3f7aad92b822d8a9b9f2198c768fbfbb1139df8f9b8",
+      "size_bytes": 257884
+    }
+  },
+  "open_P1_P2": [],
+  "audit_side_effect_counters": {
+    "auth_reads": 0,
+    "core_operations": 0,
+    "http_runtime": 0,
+    "model": 0,
+    "provider": 0,
+    "repository_edits": 0,
+    "solver": 0
+  },
+  "local_new_store_transient_native": "NOT_RUN",
+  "official_research_admission": "NOT_ADMITTED",
+  "native_field_GUI": "NOT_RUN",
+  "physical_validation": "UNKNOWN",
+  "model_qualification": "UNKNOWN",
+  "decision": "NOT_RELEASED",
+  "limitations": [
+    "Manufactured scalar real serial P1 rectangle/unit capacity/backward-Euler mathematical evidence only.",
+    "Constrained A*x-b absolute/RHS norms and KSP are retained native observations; residual normalization was independently recomputed, not the native systems.",
+    "Prescribed side integrals prove input binding; no physical solution flux equilibrium or engineering strength is claimed.",
+    "This scoped artifact audit does not requalify unrelated historical PDE stores also in the same ZIP.",
+    "Official guarded Research and native field GUI are NOT_RUN/NOT_ADMITTED for transient; CI success is not engineering release.",
+    "GitHub raw artifact expiry remains explicit; a local verified copy is not indefinite remote retention."
+  ],
+  "retention": "Exact CI sealed artifact verified and extracted unchanged locally. Public Git record retains IDs, source pins, scope and hashes; the ignored raw ZIP and complete field audit are not Git backups. GitHub artifact expires 2026-11-01T14:42:49Z; local verified copy does not guarantee indefinite remote retention.",
+  "previous_ci_completion_record": "benchmarks/records/20261002-transient-pde-ci-completed.json",
+  "failure_scope": "Whole exact CI has8 SUCCESS/2 FAILURE. Code_Aster E-ansys_vmd1_regular-Fz-aster numerical checks fail with internal cause UNKNOWN from scoped log; explicit pinned download HTTP404/curl22 occurs before solver. No unchanged failure rerun/threshold substitution."
+}

@@ -1,6 +1,18 @@
 # Sequential system worklist
 
-## Current D3.2 source integration checkpoint
+## Current D3.3 checkpoint — next D3.4
+
+Vector source integration closes84 distinct focused checks and independent
+16-file review0 P1/P2; vector actual native acceptance remains NOT_RUN.
+Record: `../benchmarks/records/20261002-vector-pde-development.json`.
+Transient exact508 CI actually closes5/3/5 and872 snapshots; independent
+all-step quadrature/field/time/source/ledger/retention audit PASS,0 P1/P2.
+Record: `../benchmarks/records/20261002-transient-pde-native-ci.json`.
+Whole CI8SUCCESS/2FAIL; guarded Research/native-field GUI and local transient
+new-store execution remain open. Next source D3.4 coupled/material, then D3.5
+imported domains, with D3.6 grouped qualification. All52/whole Phase4/P2.2 OPEN.
+
+## Historical D3.2 source integration checkpoint
 
 Transient scalar rectangle/time expressions/initial conditions and complete
 N+1 history are implemented through existing PDE/Core/Results, with separate
@@ -122,7 +134,7 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 | D0 integrated | Resident submit/inspect/cancel, configurable Code_Aster budgets/live logs, owned cleanup and normal shutdown; focused checks/review pass | Actual native cancellation/guard admission, unwired adapter controls, restart/multiprocess |
 | D1 source integrated | Typed material/load/mesh, exact campaign condition copy, complete diagnostic stress artifacts/table; reuse CAD and child analysis | New native/field GUI and existing beam/roof/mesh/reaction/stress/reference qualification; rotated axes/joints remain open |
 | D2 Phase3 source integrated | Expose existing declared-model discovery/registration and model optimization in Explore; reuse269d8bf stopping/constraints/replay | Numerical convergence, active constraints, interruption/replay and actual research/native linkage |
-| D3 Phase4 active | D3.1 rectangle/mixed source/native/reference close; D3.2 transient/complete history source closed with76 focused checks; next D3.3 vector, then coupled/domain import | Transient native/reference, guarded research admission/native field GUI, wider/cross-backend/parallel checks remain open |
+| D3 Phase4 active | D3.1 rectangle/mixed native/reference close; D3.2 transient native CI and independent872-step review close; D3.3 vector source closed with84 focused checks; next D3.4 coupled/material, then D3.5 import | Vector native/reference, guarded Research admission/native field GUI, wider/cross-backend/parallel and physical checks open |
 | D4 Phase5 | Geometric/material/contact implementations and fixture coupling | Nonlinear convergence, histories, energy, canonical comparisons |
 | D5 Phase6 | Explicit preprocessing/contact/material/fields and campaign integration | Impact/drop force/energy/timestep/reference checks |
 | D6 Phase7 | Measured inverse interfaces, UQ/surrogate/multiobjective/MDO, MOOSE/HPC | Engine/coupling/HPC and actual measured-data acceptance |

@@ -238,7 +238,7 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     client, service, _, _ = real_flow
     presets = client.request("/api/presets")
     assert set(presets) == {"structural_linear", "pde_canonical", "pde_nonlinear", "pde_rectangle",
-                            "pde_transient_mesh", "pde_transient_time", "codeaster_linear",
+                            "pde_transient_mesh", "pde_transient_time", "pde_vector_lame", "pde_vector_harmonic", "codeaster_linear",
                             "codeaster_plasticity", "material_point", "material_inverse", "explicit_freefall",
                             "explicit_ground_stop", "explicit_compliant_stop"} | {
         f"family_{case}_{load}_{solver}" for case, load in (
@@ -260,6 +260,12 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     assert all(presets[key]["operation"] == "pde_run" and presets[key]["backend"] == "pde.fenicsx.transient"
                and presets[key]["declared_inputs"] is False and "UNKNOWN" in presets[key]["scope"]
                for key in ("pde_transient_mesh", "pde_transient_time"))
+    from plugins.pde_vector.reference import manufactured_settings as vector_spec
+    assert presets["pde_vector_lame"]["settings"] == vector_spec()
+    assert presets["pde_vector_harmonic"]["settings"] == vector_spec(case="harmonic")
+    assert all(presets[key]["operation"] == "pde_run" and presets[key]["backend"] == "pde.fenicsx.vector"
+               and presets[key]["declared_inputs"] is False and "UNKNOWN" in presets[key]["scope"]
+               for key in ("pde_vector_lame", "pde_vector_harmonic"))
     assert all(preset["operation"] == "model_analysis_run" for key, preset in presets.items()
                if preset["operation"] != "pde_run" and key != "structural_linear")
     assert presets["explicit_ground_stop"]["status"] == "REJECTED"
