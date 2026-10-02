@@ -1,0 +1,152 @@
+{
+  "schema_version": "1.0",
+  "created_utc": "2026-10-02T17:36:44.998487+00:00",
+  "status": "PASS_ROOT_READER_SOURCE_CORRECTION_NATIVE_QUALIFICATION_SEPARATE",
+  "source_base_commit": "0617c39f9260457872ee35c0c81653e033bb11a6",
+  "source_publication": "Exact correction commit/push/CI is recorded after publication, not inferred from this precommit record.",
+  "producer_source_commit": "197c39b323ae590f860ed98c9cce3e920a88d87d",
+  "exact_producer_ci": {
+    "run_id": 37036684653,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37036684653",
+    "status": "COMPLETED",
+    "conclusion": "FAILURE",
+    "jobs": {
+      "research-driver-source": {
+        "job_id": 110936511695,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      "core": {
+        "job_id": 110936511992,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      "native-registration": {
+        "job_id": 110938586366,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      "pde": {
+        "job_id": 110938586382,
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      "structural": {
+        "job_id": 110938586396,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      "explicit": {
+        "job_id": 110938586418,
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      "optimization": {
+        "job_id": 110938586444,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      "codeaster": {
+        "job_id": 110938586472,
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      "native": {
+        "job_id": 110938586516,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      "doe": {
+        "job_id": 110938586528,
+        "status": "completed",
+        "conclusion": "success"
+      }
+    },
+    "core_tests": {
+      "passed": 2450,
+      "optional_form_runtime_skips": 4,
+      "warnings": 1,
+      "seconds": 230.25
+    },
+    "pde_step_scope": "Scalar/nonlinear/rectangle/transient succeeded; vector retains prior coarse-pair rate failure; coupled stopped at Root reader KeyError:mesh_studies. Aster/explicit failures remain."
+  },
+  "actual_coupled_first_case": {
+    "experiment_id": "E-coupled-mixed",
+    "source_commit": "197c39b323ae590f860ed98c9cce3e920a88d87d",
+    "native_processes": 1,
+    "mesh_counts": [
+      8,
+      16,
+      32
+    ],
+    "solver_status": "COMPLETED",
+    "converged": true,
+    "core_status": "COMPLETED_REVIEW_REQUIRED",
+    "independent_full_field_audit": "PENDING_IN_READONLY_ARTIFACT_QUEUE",
+    "suite_status": "FAILED_OR_PARTIAL_ROOT_READER",
+    "acceptance_json": "ABSENT",
+    "remaining_planned_cases": "NOT_RUN",
+    "original_artifacts": "Preserved, no manual solver rerun."
+  },
+  "cause": "Root read assessed mesh_studies from Core extension instead of adapter pde/result.json; Core retains declaration/revision, not adapter scientific fields.",
+  "correction": "Read immutable assessed adapter artifact; strictly match solver/converged/metrics with Core before retaining original worker observations. Only two consumer readers changed.",
+  "files": [
+    {
+      "path": "scripts/verify_vector_pde.py",
+      "sha256": "77c8189bd36cb49aeb7cb3260a80f934955a83ff4783946c876db77a58913d24",
+      "size_bytes": 22397,
+      "AST_UTF8_LF": "PASS"
+    },
+    {
+      "path": "scripts/verify_coupled_pde.py",
+      "sha256": "7b49e5b5e2a1da80918189f09416e9317c024d97b7a94c6264e682f2ef15abdc",
+      "size_bytes": 26582,
+      "AST_UTF8_LF": "PASS"
+    },
+    {
+      "path": "tests/test_pde_assessed_artifact.py",
+      "sha256": "b91f24b33ca784b080064870d5637482a845135a544c2d275f3ff087ba7b4703",
+      "size_bytes": 3502,
+      "AST_UTF8_LF": "PASS"
+    }
+  ],
+  "source_tests": {
+    "count": 42,
+    "seconds": 40.83,
+    "exit_code": 0,
+    "log": "root-reader-correction-02/focused.log",
+    "sha256": "4d3422f909390f43c5f85c07f7f9f596026eb6c28687eba845f435519c6561ab",
+    "scope": "2 real-Core synthetic-envelope controls+5 mismatch controls+35 existing vector/coupled runner source controls; no native math qualification"
+  },
+  "initial_attempt": {
+    "count_pass": 35,
+    "count_setup_errors": 7,
+    "seconds": 12.3,
+    "cause": "Wrong new fixture constructor keyword cad_adapters; corrected adapters, no production Core change.",
+    "log": "root-reader-correction-01/focused.log",
+    "sha256": "366f860601b4ba3b1942cc883d0602f26e6e13204beaa0cdabe1866cd35be199"
+  },
+  "receipt_sha256": "486baa6ff9565c9d181c2bf61971f2761b393b9a2e1450a4cb885fcccb844df5",
+  "independent_review": {
+    "status": "PASS_0_P1_P2",
+    "sha256": "3e738e453c3c53958dc81c81dea3bd1c144f9dc626d5768d3942f1862a602381",
+    "reviewer": "/root/official_project_workflow"
+  },
+  "preservation": {
+    "criteria_controls_native_Domain_sources": "UNCHANGED",
+    "reader_consumers": "Two consumers intentionally changed after197; this does not rewrite old197 or6c evidence.",
+    "solver_calls_in_correction": 0,
+    "OpenScience_guard_profile_provider_model_auth": "UNCHANGED",
+    "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8"
+  },
+  "next": "D3.5 imported mesh and physical boundaries frozen before implementation; D3.6 fresh grouped native/reference/Research/field-GUI queue remains.",
+  "remaining": {
+    "whole_coupled_suite": "NOT_QUALIFIED",
+    "official_research": "NOT_ADMITTED",
+    "native_field_gui": "NOT_RUN",
+    "whole_phase4": "OPEN",
+    "all52": "OPEN",
+    "physical": "UNKNOWN",
+    "decision": "NOT_RELEASED"
+  }
+}

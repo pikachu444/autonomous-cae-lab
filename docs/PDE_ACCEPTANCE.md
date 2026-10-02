@@ -1,5 +1,34 @@
 # Declared weak-form PDE acceptance
 
+## Current D3.4 reader correction — ordered D3.5 preparation
+
+Exact source197 CI37036684653 completed7SUCCESS/3FAIL; Core2450PASS/
+4optional form-runtime skips,230.25s. Scalar/nonlinear/rectangle/transient PDE
+steps succeeded, vector coarse-pair rateFAIL remains. Coupled E-coupled-mixed
+actually solved three meshes8/16/32, solverCOMPLETED/convergedtrue and common
+COMPLETED_REVIEW_REQUIRED, but the suite stopped in Root's verification reader:
+KeyError:mesh_studies. Assessed observations live in adapter pde/result.json;
+Core's pde extension retains declaration/revision. This is a reader defect,
+not evidence of numerical coupled failure or a whole-suite native PASS.
+
+Both vector/coupled readers now use the retained adapter artifact and strictly
+match execution/metrics with Core before comparing original worker studies.
+42 focused source regressions PASS40.83s (7 real-Core envelope/mismatch controls
+plus35 existing reader controls); independent three-file review0 P1/P2. Initial
+new-fixture setup errors35PASS/7ERROR are retained separately, not double counted.
+No solver rerun, native/Domain/control/criteria changes. Record:
+`../benchmarks/records/20261003-pde-reader-correction.json`. Exact correction
+publication is recorded separately after commit/push. Original197 first-case
+full-field audit is pending; acceptance.json absent, remaining cases NOT_RUN.
+
+The reviewed D3.5 imported-mesh/named-boundary packet and ADR0023 are frozen;
+implementation follows this bounded correction. Source-grid n means intervals
+per unit (initial ambiguous-n P2 corrected before implementation). Full native/
+reference/OpenScience/same-record GUI qualification remains queued in D3.6.
+Whole Phase4/all52 OPEN; physical UNKNOWN/NOT_RELEASED. Provider/model/profile/
+auth and fixture pin are preserved. Earlier NOT_RUN/CI-in-progress statements
+below are historical observations, not current completion claims.
+
 ## Coupled/material-interface source integration — ADR0022
 
 `pde.fenicsx.coupled` preserves full two-component regional source/reference,

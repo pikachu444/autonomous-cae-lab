@@ -14,7 +14,8 @@ from caelab import Lab
 from caelab.adapters.fenicsx_coupled_worker import SOURCE_PATHS
 from caelab.storage import canonical_hash, load_json, save_json, source_identity, utc_now
 from plugins.pde_coupled.reference import manufactured_settings
-from scripts.verify_vector_pde import _QUADRATURE, _require, _sha, _close, _original_observations
+from scripts.verify_vector_pde import (_QUADRATURE, _require, _sha, _close,
+                                     _original_observations, _assessed_studies)
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 BACKEND = "pde.fenicsx.coupled"
@@ -153,10 +154,10 @@ def _integrate_field(experiment, settings, field):
 
 
 def _fields(experiment, settings, result, folder):
-    root,detail = folder/"pde",result["extensions"]["pde"]
+    root,assessed_studies = folder/"pde",_assessed_studies(result, folder)
     studies = load_json(root/"worker_result.json")["mesh_studies"]
-    _require(len(studies)==len(detail["mesh_studies"])==len(settings["mesh"]["cell_counts"]),"Incomplete coupled studies")
-    _require(all(_original_observations(raw, assessed) for raw,assessed in zip(studies,detail["mesh_studies"])),"Core changed original coupled observations")
+    _require(len(studies)==len(assessed_studies)==len(settings["mesh"]["cell_counts"]),"Incomplete coupled studies")
+    _require(all(_original_observations(raw, assessed) for raw,assessed in zip(studies,assessed_studies)),"Adapter changed original coupled observations")
     _require(load_json(root/"progress.json")=={"schema_version":"1","status":"COMPLETED","completed":[{"cells_per_axis":n} for n in settings["mesh"]["cell_counts"]]},"Incomplete coupled native progress")
     previous,closure = None,[]
     for n,study in zip(settings["mesh"]["cell_counts"],studies):

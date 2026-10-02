@@ -1,6 +1,24 @@
 # Sequential system worklist
 
-## Current D3.4 source checkpoint — next D3.5
+## Current reader correction and D3.5 sequence
+
+- [x] Root reader defect identified from exact197 CI37036684653; original
+  first coupled process/three fields preserved, whole suite FAILED_OR_PARTIAL.
+- [x] Both reader consumers corrected;42 focused checks PASS40.83s;
+  independent three-file review0 P1/P2. Native/control/criteria unchanged.
+- [x] Freeze reviewed D3.5 packet/ADR0023 before imported implementation;
+  source-grid n clarification P2 closed. Packet is preparation, not qualification.
+- [ ] Commit/push confirmed correction and record its exact source CI separately.
+- [ ] D3.5 implement imported mesh/physical groups at adapter/Domain boundaries
+  with common Core/Results and bounded browser selection.
+- [ ] D3.5 essential regressions, independent review and meaningful publication.
+- [ ] D3.6 grouped native/reference/guarded Research/same-record native-field GUI.
+- [ ] Continue Phases5-7 using existing code; whole52/physical/deployment stay open.
+
+Record: `../benchmarks/records/20261003-pde-reader-correction.json`.
+Original197 independent full-field audit pending; no whole native PASS.
+
+## Historical D3.4 source checkpoint — next D3.5
 
 Coupled/material-interface source passes105 focused checks plus169 separate
 legacy regressions; final17-file independent source review PASS,0 P1/P2. Native

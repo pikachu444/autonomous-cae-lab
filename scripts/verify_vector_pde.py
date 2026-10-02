@@ -177,14 +177,29 @@ def _integrate_field(experiment, settings, field):
             "l2": math.sqrt(sum(l2)), "h1": math.sqrt(sum(h1))}
 
 
+def _assessed_studies(result, folder):
+    """Read the retained adapter outcome; Core extensions hold model metadata."""
+    detail = load_json(folder / "pde/result.json")
+    _require(isinstance(detail, dict) and isinstance(detail.get("mesh_studies"), list),
+             "Missing assessed studies in the retained PDE adapter artifact")
+    _require(detail.get("raw_result") == "pde/result.json" and
+             detail.get("solver_status") == result["solver_status"] and
+             detail.get("converged") is result["converged"],
+             "PDE adapter execution identity differs from Core")
+    _require(_original_observations(detail.get("metrics"), result["metrics"]) and
+             _original_observations(result["metrics"], detail.get("metrics")),
+             "PDE adapter metrics differ from Core")
+    return detail["mesh_studies"]
+
+
 def _fields(experiment, settings, result, folder):
-    detail = result["extensions"]["pde"]
+    assessed_studies = _assessed_studies(result, folder)
     root = folder / "pde"
     studies = load_json(root / "worker_result.json")["mesh_studies"]
     _require(len(studies) == len(settings["mesh"]["cell_counts"]), "Incomplete vector mesh studies")
-    _require(len(detail["mesh_studies"]) == len(studies), "Core lost vector studies")
-    for raw, assessed in zip(studies, detail["mesh_studies"]):
-        _require(_original_observations(raw, assessed), "Core changed original vector observations")
+    _require(len(assessed_studies) == len(studies), "Adapter lost vector studies")
+    for raw, assessed in zip(studies, assessed_studies):
+        _require(_original_observations(raw, assessed), "Adapter changed original vector observations")
     previous, closure = None, []
     progress = load_json(root / "progress.json")
     _require(progress == {"schema_version": "1", "status": "COMPLETED", "completed": [
