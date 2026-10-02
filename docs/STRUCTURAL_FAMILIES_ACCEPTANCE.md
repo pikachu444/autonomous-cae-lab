@@ -1,6 +1,18 @@
 # Connected structural family acceptance
 
-## Latest P2.2 checkpoint: three roof research questions closed; AI denominator error retained
+## Advisory correction only; numerical verification remains open
+
+The new clean947 one-Bare correction copies13 supplied typed facts exactly:
+1 question/0 tools/Core/native calls;15 independent checks PASS. Original03
+wrong denominator and the original FAILED_OR_PARTIAL run are retained.
+Get-StructuralScalingEvidence supplies the formal error/denominator from usable
+Core results; it is not Core.compare arithmetic or AI recomputation.
+Record: `../benchmarks/records/20261002-openscience-roof-interpretation-correction.json`. Aster CPU-limit failure and cross-solver
+UNKNOWN remain. Current GUI/raw remote/general qualification remain UNKNOWN.
+Owner now separates ordered development from consolidated numerical checks;
+this correction does not justify another unchanged solver rerun.
+
+## Historical P2.2 checkpoint: three roof research questions closed; AI denominator error retained
 
 Clean947/approved5.6Sol roof research closes all3 Root-declared questions on
 nz2 grids8/16/22:9 reused original direct tool receipts +7 new half-load tools,

@@ -1,6 +1,21 @@
 # Autonomous CAE Lab — project scope and requirement ledger
 
-## Latest P2.2 checkpoint: three roof research questions closed; AI denominator error retained
+## Current execution priority: ordered development and separate verification
+
+Latest owner instruction on2026-10-02 supersedes earlier benchmark-first serial
+queues: develop/integrate remaining functions in phase order and consolidate
+full numerical/native verification separately. Run essential changed-code
+checks, reuse existing work, and retry a failure only after its cause/input or
+execution policy changes. Implemented, tested and numerically qualified remain
+distinct. All original52 IDs/descriptions/requirements and accepted boundaries
+remain active; P2.2 and whole-project completion remain OPEN.
+
+A new one-Bare supplied-fact copy passes15 independent checks on clean947;
+no tool/Core/native calls or fresh numerical evidence. Original03 error and
+Aster failure are retained. Details: `benchmarks/records/20261002-openscience-roof-interpretation-correction.json`.
+Earlier checkpoints/work orders below are historical where superseded here.
+
+## Historical P2.2 checkpoint: three roof research questions closed; AI denominator error retained
 
 Clean947/approved5.6Sol roof research closes all3 Root-declared questions on
 nz2 grids8/16/22:9 reused original direct tool receipts +7 new half-load tools,

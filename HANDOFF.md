@@ -1,6 +1,30 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
-## Latest P2.2 checkpoint: three roof research questions closed; AI denominator error retained
+## Current work order: development first, separate numerical verification
+
+The owner explicitly changed the work order on2026-10-02: finish remaining
+software and system integration in phase order; consolidate numerical/native
+benchmarks separately. Keep essential changed-code checks during development.
+Do not repeatedly rerun an unchanged failed case or block independent feature
+work on it. Earlier NEXT SERIAL/queued-only directives below are historical.
+The full52 scope, architecture, thresholds and UNKNOWN/NOT_RELEASED remain.
+
+Completed one new approved5.6Sol Bare supplied-fact correction on clean947:
+1 question/0 tools/0 Core/0 native calls;15 independent checks PASS;50 files,
+2058034B retained plus a separate review supplement. Owned Stop is confirmed.
+Record: `benchmarks/records/20261002-openscience-roof-interpretation-correction.json`. Original03 remains wrong; this exact copy
+is not independent AI arithmetic, general research reasoning or new physics.
+The scaling formula is in Get-StructuralScalingEvidence, not Core.compare.
+Aster failure/roof comparison UNKNOWN/P2.2 OPEN and raw remote UNKNOWN remain.
+
+Current development unit: reuse existing LabService for asynchronous MCP
+submission/status and remove short fixed Code_Aster execution caps. Then
+continue fixture conditions/stress integration, existing optimization campaign,
+PDE families, nonlinear/contact, explicit preprocessing and advanced engines in
+that order. Cancellation/native-profile admission and all full benchmarks are
+separate explicit integration/verification gates, not presumed complete.
+
+## Historical P2.2 checkpoint: three roof research questions closed; AI denominator error retained
 
 Clean947/approved5.6Sol roof research closes all3 Root-declared questions on
 nz2 grids8/16/22:9 reused original direct tool receipts +7 new half-load tools,

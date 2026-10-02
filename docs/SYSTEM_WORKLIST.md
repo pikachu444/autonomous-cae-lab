@@ -1,6 +1,31 @@
 # Sequential system worklist
 
-## Latest P2.2 checkpoint: three roof research questions closed; AI denominator error retained
+## Current scheduling rule — owner instruction2026-10-02
+
+Development/integration proceeds in phase order, reusing existing modules.
+Full native/reference/cross-solver/OpenScience/GUI validation is maintained as
+an independent queue. Essential regression checks accompany each code unit;
+full benchmark campaigns run in groups after integration. Unchanged failures
+are retained rather than repeatedly rerun. A verification gap blocks a PASS or
+release claim, and blocks dependent invalid execution, but does not block
+independent later software development. All52 requirements remain active.
+Earlier NEXT SERIAL and later-phase-queued statements below are historical.
+
+| Development sequence | Implementation work | Verification queue |
+| --- | --- | --- |
+| D0 current | Long jobs: existing service reuse, MCP submit/inspect, configurable execution budgets and live logs | Native lifecycle/cancellation/profile admission; no new solver proof yet |
+| D1 Phase2 | Fixture material/load/interfaces/stress outputs; reuse CAD and child analysis | Existing beam accuracy, roof Aster completion, mesh/reaction/stress/reference checks |
+| D2 Phase3 | Integrate preserved269d8bf campaign; stopping/constraints and wider variables | Numerical convergence, active constraints, interruption/replay |
+| D3 Phase4 | Extend declared domains/boundaries/time/vector/coupled forms | Manufactured/reference solutions and cross-backend/parallel checks |
+| D4 Phase5 | Geometric/material/contact implementations and fixture coupling | Nonlinear convergence, histories, energy, canonical comparisons |
+| D5 Phase6 | Explicit preprocessing/contact/material/fields and campaign integration | Impact/drop force/energy/timestep/reference checks |
+| D6 Phase7 | Measured inverse interfaces, UQ/surrogate/multiobjective/MDO, MOOSE/HPC | Engine/coupling/HPC and actual measured-data acceptance |
+| Throughout | Common reporting, same-record human inspection and physical/deployment interfaces | Actual GUI, durable raw backup, corporate approval and physical evidence |
+
+State stays implementation-qualified, UNKNOWN or NOT_RELEASED as applicable;
+this schedule is not a declaration that any whole phase is complete.
+
+## Historical P2.2 checkpoint: three roof research questions closed; AI denominator error retained
 
 Clean947/approved5.6Sol roof research closes all3 Root-declared questions on
 nz2 grids8/16/22:9 reused original direct tool receipts +7 new half-load tools,

@@ -1,0 +1,118 @@
+{
+  "schema_version": "1.0",
+  "run_id": "p2-roof-interpretation-correction-20261002-01",
+  "status": "PASS_BOUNDED_ADVISORY_INTERPRETATION_CORRECTION",
+  "scope": "One new Bare exact supplied-fact copy; no new numerical computation, general research reasoning or native qualification",
+  "started_utc": "2026-10-02T07:03:30.3393848Z",
+  "completed_utc": "2026-10-02T07:05:25.1341312Z",
+  "source": {
+    "cae_commit": "94773a35d73773faf5dc2714ea7d9071c812f357",
+    "cae_source_clean": true,
+    "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "openscience_version": "2.0.146",
+    "openscience_source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+    "model": "openai-codex/gpt-5.6-sol"
+  },
+  "execution": {
+    "question_count": 1,
+    "tool_calls": 0,
+    "fresh_MCP_resident_calls": 0,
+    "Core_calls": 0,
+    "native_solver_calls": 0,
+    "numerical_store_created": false,
+    "session_id": "ses_f04929125ffe83axFCd6zLgyR7",
+    "message_id": "msg_0fb6ddab0001CPaELZ4Nyf01KV",
+    "default_guard_restored": true,
+    "command_exit": 0,
+    "control_trace": "COMPLETED"
+  },
+  "stored_question": {
+    "original_stdin_bytes": 116465,
+    "original_stdin_sha256": "3f59171343e221183290e8872c065875e056382ea78a32e8119edc79f6c659f6",
+    "official_bytes": 116466,
+    "official_sha256": "188e66273ad75634cc2629ecde897ef0cf44ee8482ae66b9323097b9af655ae1",
+    "identity": "LF plus whole original stdin; not a claim of model cognition for every token"
+  },
+  "supplied_facts": {
+    "formal_expression": "abs(half-0.5*full)/max(abs(full),1e-12 mm)",
+    "denominator": "max(abs(full),1e-12 mm)",
+    "full_mm": -91.02406001906105,
+    "half_mm": -45.512030009523386,
+    "formal_relative_error": 7.845128521946442e-14,
+    "relative_error_unit": "1",
+    "limit": 1e-07,
+    "Core_given_scaling_status": "PASS",
+    "original_03_error": "SYMMETRIC_DENOMINATOR_WAS_INCORRECT",
+    "independent_numerical_verdict": "NOT_RECOMPUTED_OR_ESTABLISHED_BY_AI",
+    "Aster_status": "FAILED_EXECUTION",
+    "physical_qualification": "UNKNOWN",
+    "decision": "NOT_RELEASED"
+  },
+  "formal_scaling_origin": {
+    "implementation": "scripts/verify_structural_research_live.ps1:Get-StructuralScalingEvidence",
+    "expression": "abs(half - 0.5 * full) / max(abs(full), 1e-12 mm)",
+    "full_mm": -91.02406001906105,
+    "half_mm": -45.512030009523386,
+    "relative_error": 7.845128521946442e-14,
+    "unit": "1",
+    "unchanged_limit": 1e-07,
+    "status": "PASS",
+    "attribution": "Stock deterministic verifier arithmetic on usable Core results; not Core.compare arithmetic and not AI recomputation. Core_given_scaling_status in the supplied response is a historical label."
+  },
+  "independent_review": {
+    "status": "PASS_READ_ONLY_ACTUAL_ONE_BARE_SUPPLIED_FACT_CORRECTION_AUDIT",
+    "checks": 15,
+    "protected_inputs": 108,
+    "open_new_unit_P1": 0,
+    "open_new_unit_P2": 0,
+    "review_sha256": "ccde5e9007883b383f1d2fd8283e5057b5102c873d8c45c531cf9f2351af6024",
+    "source_gate_sha256": "d1be9c9fc75d72966ab11bdae994b8c426108800c99540358f980a30f5cd80bc"
+  },
+  "retention": {
+    "local_manifest": "artifacts/p2-roof-interpretation-correction-retained-20261002-01/retention.json",
+    "sha256": "e01975e75bd634c6cfb3cc58b62bf53df13c31da7cae52efedd2bcfcb3a826b8",
+    "files": 50,
+    "size_bytes": 2058034,
+    "independent_review_supplement": "artifacts/p2-roof-interpretation-correction-review-retained-20261002-01/retention.json",
+    "supplement_sha256": "220b35d73fff74d5ac4ef1a3d8f12a48a34168c6a8df14e813c6c6825709303b",
+    "frozen_original_manifest_unchanged": true,
+    "raw_remote_backup": "UNKNOWN_NOT_UPLOADED"
+  },
+  "owned_stop": {
+    "status": "PASS_OWNED_STOP_PIDS_ABSENT_PORT_CLOSED",
+    "owned_pids_absent": [
+      86880,
+      62496,
+      48928
+    ],
+    "local4098_listening": false,
+    "launch_context_unchanged": true,
+    "stopped_owner_sha256": "4f323b6644d00dccc906ed8d12eddd45cb0154327fb209222ea8d6da18e8b0dc",
+    "gui": "QUEUED_PANEL_NOT_VERIFIED"
+  },
+  "preserved_limits": {
+    "original_03_response": "SYMMETRIC_DENOMINATOR_WAS_INCORRECT; original bytes unchanged",
+    "original_research_record": "benchmarks/records/20261002-openscience-roof-refinement-research.json",
+    "Aster": "FAILED_EXECUTION",
+    "cross_solver_roof": "UNKNOWN",
+    "original_roof_research": "FAILED_OR_PARTIAL",
+    "P2_2": "OPEN",
+    "general_autonomous_research": "UNKNOWN",
+    "physical_qualification": "UNKNOWN",
+    "decision": "NOT_RELEASED"
+  },
+  "exact_source_CI": {
+    "run_id": 36950198263,
+    "source_commit": "94773a35d73773faf5dc2714ea7d9071c812f357",
+    "status": "completed",
+    "conclusion": "failure",
+    "success_jobs": 8,
+    "failed_jobs": [
+      "codeaster",
+      "explicit"
+    ],
+    "scope": "Historical exact source; this Bare run and later documentation are not a solver rerun"
+  },
+  "acceptance_sha256": "802c8d99032234b8fca57b23298f3885ff66592d764380c2e48aaf424096dda6",
+  "next_work": "Owner now requests development/integration first, consolidated independent numerical verification separately. Do not rerun unchanged failed cases or block unrelated development on a benchmark."
+}

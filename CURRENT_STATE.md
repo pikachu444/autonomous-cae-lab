@@ -1,6 +1,24 @@
 # Current state — 2026-10-02 (Asia/Seoul)
 
-## Latest P2.2 checkpoint: three roof research questions closed; AI denominator error retained
+## Latest checkpoint and owner-directed execution change
+
+One new Bare supplied-fact correction is PASS_BOUNDED_ADVISORY only:
+clean947/official4082/approved5.6Sol,1 question/0 tool/Core/native calls,
+15 independent checks,50-file/2058034B retention and confirmed owned Stop.
+See `benchmarks/records/20261002-openscience-roof-interpretation-correction.json`. The original03 response/error and all old
+FAILED_OR_PARTIAL records remain unchanged; no new numerical verdict is made.
+The formal scaling arithmetic belongs to the stock deterministic verifier.
+Current GUI/general autonomy/physical qualification/raw remote remain UNKNOWN.
+
+Owner now requests remaining development/integration first, in phase order,
+with consolidated numerical/native verification separately. Essential changed
+code checks remain mandatory. Do not repeat an unchanged failure or hold all
+later software work behind one solver example. Old serial work orders below
+are historical. Full52/P2.2 stay OPEN; existing implementations/proofs are reused.
+Long-running job integration is the current development unit; source acceptance
+and actual native/OpenScience acceptance must be reported separately.
+
+## Historical P2.2 checkpoint: three roof research questions closed; AI denominator error retained
 
 Clean947/approved5.6Sol roof research closes all3 Root-declared questions on
 nz2 grids8/16/22:9 reused original direct tool receipts +7 new half-load tools,
