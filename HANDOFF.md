@@ -1,4 +1,49 @@
-## Current checkpoint: managed startup corrected; actual Research retry next
+## Current checkpoint: P5.2a connected material research bounded PASS
+
+Actual producer `592a215b22f54cee9684291f695d2fd42f3fa844` runs one complete
+question through official OpenScience2.0.146 and approved `openai-codex/gpt-5.6-sol`.
+Study `S-material-hyperelastic-r-01` in fresh `runs/material-hyperelastic-r-20261003-01`
+contains E210000/E105000 MPa analyses with the same12-state deformation history.
+Nine completed tool rows use six existing Core tools; two model-analysis calls
+are not a count of native subprocesses. No question retry or model fallback.
+Each result:21valid metrics,32PASS/10blockingUNKNOWN, NOT_RELEASED.
+Independent numerical checks:74PASS/0FAIL per record; integration69/24/35PASS
+are overlapping scopes, not an additive test total; openP1/P2=0.
+Official conversation GUI shows this exact session, model, two result IDs and
+interpretation. Full measured F/P/A/W curves/field inspection remain unverified.
+Original owned lifecycle Stop completes; completed-loop Stop does not certify
+active busy cancellation. Whole new store1367files/45523431B is retained unchanged.
+Bootstrap01/02, private capture01/02/03 and retention01 failures are preserved;
+consumer corrections changed no Core, native result, scientific limit or question.
+Exact592a CI37102202073 completes7SUCCESS/3FAIL:Core3232PASS/5SKIP/1warning;
+AsterFz/vectorPDE/download404 remain OPEN, internal numerical causes UNKNOWN.
+Record: `benchmarks/records/20261003-material-research-r01-qualified.json`.
+Public record SHA256: `b50cbd01474ed259e0163d697d70b8d4ced709c21a41aff0316af32b9210ccec`. Raw archives remain local; remote raw durability UNKNOWN.
+NEXT: ordered P5.2b reuse the six frozen Maxwell drafts; correct post-update
+state, transport/build/process evidence and driver/range gaps, then separate
+source, native/reference/state/energy and connected research/GUI acceptance.
+Full52/Phases5-7/physical/material/strength/FE/corporate deployment remain OPEN
+or UNKNOWN; numerical success is not release. Earlier checkpoints are history.
+
+---
+
+## Next concrete unit — P5.2b preserved Maxwell state and evidence
+
+The exact six original drafts and old unbound81-test XML are frozen under
+`artifacts/development-viscoelastic-20261003-01/root-recovery-freeze-01`.
+Freeze receipt SHA256 `301a3a65cfc79c42673e93c97492215b6193c7e88dcea1520563a538fa7f6e54`.
+Recovery is complete; implementation and native acceptance have not started.
+Root owns registry/common integration. Preserve originals, reuse the law, fix
+MGIS committed-state/K reset and masking fake first. Review exact-ramp stress,
+consistent tangent, native energy/dissipation and representable increments.
+Then bind current build/transport/owned execution helpers, source tests, clean
+source native9-state plus17-state same-path composition/changed-tau runs, and
+independent raw-state/FD/energy audits before broader Research admission.
+Shared-time composition is not a measured temporal convergence order.
+Contact/fixture coupling and Phase6/7 follow; existing CI/fine32 failures remain
+separate OPEN items and are not retried unchanged to obtain a passing label.
+
+## Historical source checkpoint: managed startup corrected; Research pending at592a publication
 
 MaterialPoints source52db/Bootstrap01 failed at managed metadata HTTP15s before
 the whole question or experiment; exact endpoint remains UNKNOWN. Declared
@@ -19,7 +64,7 @@ Earlier checkpoints below are history, not fresh native verification.
 
 ---
 
-## Current checkpoint: reviewed MaterialPoints source; one-question research next
+## Historical source checkpoint: reviewed MaterialPoints source52db; Research was next
 
 The separate case-sensitive MaterialPoints/schema4/material-points-v1 profile
 connects the qualified SVK material adapter to the same6existing Core tools.

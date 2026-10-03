@@ -1,4 +1,56 @@
-# Connected MaterialPoints acceptance
+## Current checkpoint: P5.2a connected material research bounded PASS
+
+Actual producer `592a215b22f54cee9684291f695d2fd42f3fa844` runs one complete
+question through official OpenScience2.0.146 and approved `openai-codex/gpt-5.6-sol`.
+Study `S-material-hyperelastic-r-01` in fresh `runs/material-hyperelastic-r-20261003-01`
+contains E210000/E105000 MPa analyses with the same12-state deformation history.
+Nine completed tool rows use six existing Core tools; two model-analysis calls
+are not a count of native subprocesses. No question retry or model fallback.
+Each result:21valid metrics,32PASS/10blockingUNKNOWN, NOT_RELEASED.
+Independent numerical checks:74PASS/0FAIL per record; integration69/24/35PASS
+are overlapping scopes, not an additive test total; openP1/P2=0.
+Official conversation GUI shows this exact session, model, two result IDs and
+interpretation. Full measured F/P/A/W curves/field inspection remain unverified.
+Original owned lifecycle Stop completes; completed-loop Stop does not certify
+active busy cancellation. Whole new store1367files/45523431B is retained unchanged.
+Bootstrap01/02, private capture01/02/03 and retention01 failures are preserved;
+consumer corrections changed no Core, native result, scientific limit or question.
+Exact592a CI37102202073 completes7SUCCESS/3FAIL:Core3232PASS/5SKIP/1warning;
+AsterFz/vectorPDE/download404 remain OPEN, internal numerical causes UNKNOWN.
+Record: `benchmarks/records/20261003-material-research-r01-qualified.json`.
+Public record SHA256: `b50cbd01474ed259e0163d697d70b8d4ced709c21a41aff0316af32b9210ccec`. Raw archives remain local; remote raw durability UNKNOWN.
+NEXT: ordered P5.2b reuse the six frozen Maxwell drafts; correct post-update
+state, transport/build/process evidence and driver/range gaps, then separate
+source, native/reference/state/energy and connected research/GUI acceptance.
+Full52/Phases5-7/physical/material/strength/FE/corporate deployment remain OPEN
+or UNKNOWN; numerical success is not release. Earlier checkpoints are history.
+
+---
+
+## Actual acceptance on clean592a / material-hyperelastic-r-20261003-01
+
+| Gate | Verdict |
+| --- | --- |
+| Resident source/project/approved model resource without inference | PASS; existing grants/auth reused |
+| One complete question / fixed E210000 and E105000 conditions | PASS; user1, assistant5, nine tools, two analyses |
+| Two native results / full raw numerical review | PASS bounded;74 checks each,21valid/32PASS/10UNKNOWN |
+| Inspect / summary / compare / interpretation | PASS; theory and unavailable measured histories distinguished |
+| Official conversation GUI / exact session and result IDs | Root observed PASS; full measured-curve viewer unverified |
+| Exact owned Stop / immutable new store and source retention | PASS; active busy cancellation unexercised here |
+| Final independent integration | PASS;0openP1/P2; scopes69/24/35 are not additive |
+| Exact source CI |7SUCCESS/3FAIL; distinct failures remain OPEN |
+| Physical/material/FE/strength/durability/binary-source/remote raw archive | UNKNOWN / NOT_RELEASED |
+
+Original native01 and all failed/refused consumers remain unchanged. Original
+producer launcher29bd884b and final capture-only consumer045af6b4 are distinct;
+no corrected consumer is retroactively attributed as the scientific producer.
+Canonical proposal revision and physical pretty-file digest are both verified
+with their own meanings. Optional bit-exact cross-E MTest scaling FAIL is kept:
+native P/A/W scaling is exact0.5, MTest stress delta5.0520897943964024e-11MPa
+and actual-F delta4.440892098500626e-16 remain observations. Both original per-run
+criteria pass; roundoff attribution is inference, no scaling threshold was added.
+
+# Historical source-only MaterialPoints acceptance (52db)
 
 ADR0027 defines the source gate. Qualified native solver evidence remains
 producer3a/native02, independent71PASS/21valid/32PASS+10UNKNOWN/NOT_RELEASED.

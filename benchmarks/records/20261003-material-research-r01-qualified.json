@@ -1,0 +1,432 @@
+{
+  "schema_version": 1,
+  "kind": "bounded-actual-connected-material-research",
+  "status": "PASS_BOUNDED_ACTUAL_CONNECTED_MATERIAL_RESEARCH",
+  "actual_source_commit": "592a215b22f54cee9684291f695d2fd42f3fa844",
+  "profile_source": "52db7fb48cfb8915469fd51b867307abd4226c33",
+  "previous_svk_scientific_source": "3a1921e15959e222957d43f9b857d9a014f1f611",
+  "previous_source_scope": "Accepted SVK constitutive/evidence/state implementation unchanged; original native02 retained, not overwritten. New actual experiments are produced by592a, not by a documentation commit.",
+  "fixture_submodule": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "core_source_sha256": "6bde5a5be583f818249c0f6d095afaef5e6851d4e811fee8facdb704d87287ab",
+  "created_utc": "2026-10-03T07:24:15.740293+00:00",
+  "runtime": {
+    "product": "Official OpenScience",
+    "version": "2.0.146",
+    "model_requested": "openai-codex/gpt-5.6-sol",
+    "auth": "Existing approved external ChatGPT profile reused; no login/model fallback/new grant.",
+    "whole_questions": 1,
+    "logical_chat_params_hooks": 5,
+    "question_retries": 0,
+    "provider_http_request_count": "UNKNOWN",
+    "cloud_weight_identity": "UNKNOWN",
+    "session_id": "ses_eff8eef96ffe6Uru5wQlXaL5wO",
+    "command_exit_code": 0,
+    "command_elapsed_seconds": 508.79,
+    "command_timed_out": false,
+    "native_wall_timeout_seconds": null,
+    "native_cpu_seconds": 86400,
+    "command_mcp_seconds": 3600,
+    "question": {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/run-01/question.txt",
+      "size_bytes": 8768,
+      "sha256": "daae390165ff5b0495a5f2e8a170fdd577458f859ea7c77cfe36930fe71d384b"
+    },
+    "settings": {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/run-01/condition-settings.json",
+      "size_bytes": 7503,
+      "sha256": "14f846d3d876b265beb02de1e411b531481f301bc832f5c843598f5e08f0a1d2"
+    },
+    "producer_launcher_sha256": "29bd884b09b6a8add72fa2ffbaae829254e92c2f5ed7581d862e3e0dff0e6a5a",
+    "final_capture_consumer_sha256": "045af6b44ee91adf57692b42b6152fb84ce951bd0a9485941fb426690c395c90",
+    "profile_definition_sha256": "d8da36811056261e2bdcd22cd20851960540744553e74568dd7c37716870b63c",
+    "model_analysis_tool_invocations": 2,
+    "tool_invocation_count_is_not_native_subprocess_count": true,
+    "stored_user_messages": 1,
+    "stored_assistant_messages": 5
+  },
+  "study_id": "S-material-hyperelastic-r-01",
+  "actual_experiments": [
+    {
+      "experiment_id": "E-material-hyperelastic-r-01-e105",
+      "youngs_modulus_mpa": 105000,
+      "model_revision": "4213894028d77621a174e8ed725e2b09aae99822982bbdf1ec6e8a9f4f0b45da",
+      "canonical_proposal_revision": "e6aa76fd8ba30b258accfcc3f4fcb372d97a018feb31839028f9acb5b5a46894",
+      "result": {
+        "path": "runs/material-hyperelastic-r-20261003-01/experiments/E-material-hyperelastic-r-01-e105/result.json",
+        "size_bytes": 352013,
+        "sha256": "f90bcc184e78e155e33dcb8dafd1a578eecf4b034126b35700234221f2cb5699"
+      },
+      "physical_proposal": {
+        "path": "runs/material-hyperelastic-r-20261003-01/experiments/E-material-hyperelastic-r-01-e105/proposal.json",
+        "size_bytes": 17575,
+        "sha256": "2f7eb6140de6153dd6679ed02714da91bc5cd389abf806c781a22c4e1dd2aeb9"
+      },
+      "thread": {
+        "path": "runs/material-hyperelastic-r-20261003-01/experiments/E-material-hyperelastic-r-01-e105/thread.json",
+        "size_bytes": 1921,
+        "sha256": "209e7a06ffcb0f91acaf031bca75021e88135431d93e5562c9bc6a0feed9477a"
+      },
+      "analysis_raw": {
+        "path": "runs/material-hyperelastic-r-20261003-01/experiments/E-material-hyperelastic-r-01-e105/simulation/analysis_raw.json",
+        "size_bytes": 462831,
+        "sha256": "687b98e8d3f0cfeb29f98cfacf45da229612eaa577ab06a5926adc37264ccd01"
+      },
+      "native_raw": {
+        "path": "runs/material-hyperelastic-r-20261003-01/experiments/E-material-hyperelastic-r-01-e105/simulation/native_raw.json",
+        "size_bytes": 5813831,
+        "sha256": "016c1fa21a343a2177ad790f15f078a7cf2a333071900a90209ed6c3fe067860"
+      },
+      "solver_status": "COMPLETED",
+      "converged": true,
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "decision": "NOT_RELEASED",
+      "metrics": {
+        "count": 21,
+        "all_valid": true
+      },
+      "validation_counts": {
+        "PASS": 32,
+        "FAIL": 0,
+        "UNKNOWN": 10
+      },
+      "unknown": [
+        "model_qualification",
+        "material_qualification",
+        "physical_validation",
+        "static_strength",
+        "fatigue_durability",
+        "solver_coupling",
+        "corporate_license_approval",
+        "corporate_security_approval",
+        "native_dissipated_energy",
+        "mtest_energy"
+      ],
+      "artifacts": 679
+    },
+    {
+      "experiment_id": "E-material-hyperelastic-r-01-e210",
+      "youngs_modulus_mpa": 210000,
+      "model_revision": "38a882ca070a7ba82cf06862c3350245c78d75f837fca80a84f03c5a522bd75f",
+      "canonical_proposal_revision": "6242a214ae6fc34f658addefb8b70d3b802f2ac9df0e6badcb8cdf69eda729f5",
+      "result": {
+        "path": "runs/material-hyperelastic-r-20261003-01/experiments/E-material-hyperelastic-r-01-e210/result.json",
+        "size_bytes": 352107,
+        "sha256": "56899ba80c3ecf5078485e796a27932edbd7fd5056b49b4cc5510d654103a69e"
+      },
+      "physical_proposal": {
+        "path": "runs/material-hyperelastic-r-20261003-01/experiments/E-material-hyperelastic-r-01-e210/proposal.json",
+        "size_bytes": 17575,
+        "sha256": "ec996c7b4c11a03777a79855b13ba42521f8d3d4bb88cf3809e69c3eb1231cec"
+      },
+      "thread": {
+        "path": "runs/material-hyperelastic-r-20261003-01/experiments/E-material-hyperelastic-r-01-e210/thread.json",
+        "size_bytes": 1921,
+        "sha256": "3b896f43ae80af2186b949608ddf7d3d6babb6cdd01bb25a8b34d00fa73cf9a2"
+      },
+      "analysis_raw": {
+        "path": "runs/material-hyperelastic-r-20261003-01/experiments/E-material-hyperelastic-r-01-e210/simulation/analysis_raw.json",
+        "size_bytes": 462740,
+        "sha256": "265f295ecc25c50889677ae9fc5b2a2ce71df6f4b89d7af35b082620cdad52b0"
+      },
+      "native_raw": {
+        "path": "runs/material-hyperelastic-r-20261003-01/experiments/E-material-hyperelastic-r-01-e210/simulation/native_raw.json",
+        "size_bytes": 5806583,
+        "sha256": "6ef2e570298f3da068a52a4d8b9484c4e9909640113883dd6ec03efafe568169"
+      },
+      "solver_status": "COMPLETED",
+      "converged": true,
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "decision": "NOT_RELEASED",
+      "metrics": {
+        "count": 21,
+        "all_valid": true
+      },
+      "validation_counts": {
+        "PASS": 32,
+        "FAIL": 0,
+        "UNKNOWN": 10
+      },
+      "unknown": [
+        "model_qualification",
+        "material_qualification",
+        "physical_validation",
+        "static_strength",
+        "fatigue_durability",
+        "solver_coupling",
+        "corporate_license_approval",
+        "corporate_security_approval",
+        "native_dissipated_energy",
+        "mtest_energy"
+      ],
+      "artifacts": 679
+    }
+  ],
+  "control": {
+    "actual_tool_rows": 9,
+    "actual_tool_types": [
+      "caelab_study_create",
+      "caelab_study_inspect",
+      "caelab_model_analysis_run",
+      "caelab_experiment_inspect",
+      "caelab_experiment_summary",
+      "caelab_experiment_compare"
+    ],
+    "actual_native_accepted_hooks": 14,
+    "native_refusals": 0,
+    "hook_scope": "chat.params/tool.execute.before; not every HTTP/final wire/tool-after",
+    "resident": "PASS_ACTUAL_CONNECTED_RESOURCE_NO_INFERENCE_OR_MUTATION",
+    "final_capture": "PASS_CONTROLLED_SAME_STORE_SETTINGS_REVISIONS_DEFAULT_SOURCE_IDLE",
+    "root_interpretation": "PASS_BOUNDED_INTERPRETATION; actual values/theory/full-history limits independently reviewed",
+    "official_gui": "PASS_ACTUAL_RESEARCH_SESSION_TWO_RESULT_IDS_MODEL_REVISION_AND_NOT_RELEASED; no full history viewer certification",
+    "owned_stop": "PASS_ORIGINAL_PRODUCER_EXACT_OWNED_LIFECYCLE; actual owner stopped and store unchanged"
+  },
+  "numerical_review": {
+    "required_per_record_checks": [
+      {
+        "id": "E-material-hyperelastic-r-01-e105",
+        "PASS": 74,
+        "FAIL": 0
+      },
+      {
+        "id": "E-material-hyperelastic-r-01-e210",
+        "PASS": 74,
+        "FAIL": 0
+      }
+    ],
+    "count_semantics": "Independent reviewer checks only; do not add to tests/other gates.",
+    "scope": "605observations/33FDsets/1211statehashes/11sameDLL MTest each, all original limits including actualF residual1e-14",
+    "optional_exact_scaling": "FAIL_RETAINED for bit-exact MTest scaling; not specified as required gate, no threshold changed. Native P/A/W and FD exact0.5; reviewer observed MTest physical delta5.0520897943964024e-11MPa and Fdelta4.440892098500626e-16. Roundoff attribution is inference. AI full response scaling was unobserved.",
+    "freeze": {
+      "path": "artifacts/development-material-point-20261003-01/material-research-numerical-review-01/freeze-receipt.json",
+      "size_bytes": 10922,
+      "sha256": "11bd9c866c928c2620fbdf1115ccdf397382aaea1e7b42b232c1fcb930193084"
+    },
+    "report": {
+      "path": "artifacts/development-material-point-20261003-01/material-research-numerical-review-01/REPORT.md",
+      "size_bytes": 5874,
+      "sha256": "2960262baba37374f7c6be8e383c6aab57e99314406e8a12046fa554f8e49cc9"
+    }
+  },
+  "retained_attempts": {
+    "bootstrap01": "FAILED at oldsource52db metadata15s before question/solver; exact failed endpointUNKNOWN",
+    "bootstrap02": "REFUSED before launching due Root reused oldsource profile; ownership guard correct",
+    "bootstrap03": "PASS on new source-bound profile; actual first metadata15.5935042s within original startup clock/cap60, second0.0794049s",
+    "capture01": "Private consumer PSCustomObject index returnednull; actual study texts exact; property access correction only",
+    "capture02": "Private consumer conflated canonical proposal revision and physical pretty-file digest; actual canonical and manifestphysical hashes independently correct",
+    "capture03": "Private imported hook checker lacked taskRecord report sink; all hook predicates passed; dictionaryalias preserves reporting",
+    "capture04": "PASS after minimal capture-only amendments; no source/Core/store/solver/question change",
+    "retention01": "Retained missing-size-field assumption failure; boot hash/index metadata has no sizefield; newretention02 verifies suppliedhashes and measurescurrentlength explicitly",
+    "independent_reader_failures": "Retained within independent reports; transport archive path/serialization and EOL consumer assumptions corrected append-only; no production change.",
+    "original_native01_and_geometric03": "FAILED/partial remain unchanged; no numerical threshold or response substitution."
+  },
+  "evidence_receipts": [
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/bootstrap-01/phase-receipt.json",
+      "size_bytes": 2153,
+      "sha256": "83c7e8a941f94cf56162108f977f8fd2832fe46190fa1c660cc1e03eb91d749b"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/bootstrap-02/phase-receipt.json",
+      "size_bytes": 1988,
+      "sha256": "b615e0dd0cab8048799379dde0033c381b0a47c2f540d44f10a18aecf4df5063"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/bootstrap-03/phase-receipt.json",
+      "size_bytes": 2114,
+      "sha256": "960b4e427eb6d983f81b87333b48f9c5eb4500a87a553d1887d7c7070f5fe74d"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/resident-01/phase-receipt.json",
+      "size_bytes": 5604,
+      "sha256": "62dd668543e7ff6e87b8c3c9d1fccf80b2bb8f258658720b3c808e9ca9ce66d9"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/resident-01/resident-receipt.json",
+      "size_bytes": 10796,
+      "sha256": "3662205196a7bac914034c81f275c47ab7a4f3b6b1d42bf9768658db1ea0fdcd"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/run-01/phase-receipt.json",
+      "size_bytes": 20568,
+      "sha256": "af250e5fe36bda993ece638879dd13cc2cad6b1948552106ea49c2b329fa2b25"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/run-01/run-receipt.json",
+      "size_bytes": 26511,
+      "sha256": "3711fe53323e1cfca3923f1a641411549176c334ee8de2222fa87c227705d4f2"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/capture-01/phase-receipt.json",
+      "size_bytes": 1984,
+      "sha256": "a0f17e8cbf9dfd4e4cc029d03566fc05d3a603cb3ddd2b372287267a7479b686"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/capture-02/phase-receipt.json",
+      "size_bytes": 2073,
+      "sha256": "053cc19ffc1e19624b6db59b87baf76fd0275fab262d24ec20713e7ebeab88f0"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/capture-03/phase-receipt.json",
+      "size_bytes": 2056,
+      "sha256": "52ef613897b260a57012f980f2c5a275ac51449d9e4b0d15573104aebc3e8b43"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/capture-04/phase-receipt.json",
+      "size_bytes": 6132,
+      "sha256": "42691c6a32403151527581feaf974e541e535236fa431ec681fc3302977e17c1"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/stop-01/phase-receipt.json",
+      "size_bytes": 1978,
+      "sha256": "9c418a441894551d98a83edf14d9661b6c0b9c34208873d97edd3be52f01c9df"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/root-interpretation-review-01/receipt.json",
+      "size_bytes": 4169,
+      "sha256": "282daeaa122ebccb2eb57776a1366aee195ebc66eab116141dba72044a2d3d42"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/official-gui-01/receipt.json",
+      "size_bytes": 2745,
+      "sha256": "dfc824dc44af7e2fa16baa2196615a6e5279228f76edc55ad9857e2a162204dd"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/root-retention-01/failure-receipt.json",
+      "size_bytes": 587,
+      "sha256": "6ad3e0aa1942be03326e0872595769326b5e79e60dad9c3f5683592335843bd6"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/root-retention-02/receipt.json",
+      "size_bytes": 5028,
+      "sha256": "5500c85b21d21b6abe455fe882ea377af2b4d5cbb878b3919c00c9c07f3c0a86"
+    }
+  ],
+  "independent_consumer_reviews": [
+    {
+      "path": "artifacts/development-material-point-20261003-01/material-research-capture-diagnosis-01/independent-diagnosis.json",
+      "size_bytes": 8782,
+      "sha256": "ea29f00ea831856a7a561c98674823b28bb4bf80aa5d9e75c92724660563a95e"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/material-research-capture-diagnosis-01/diagnosis02/independent-diagnosis.json",
+      "size_bytes": 218455,
+      "sha256": "62db90a78ca1ce325c1d23dafef0182b2b2762be9a973bd02f9544a0e4cd5276"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/material-research-capture-diagnosis-01/diagnosis03/attempt-02/independent-diagnosis.json",
+      "size_bytes": 10037,
+      "sha256": "61152f5b8b38d35864a6f470fa6ae2189e586a28bccfc9b5be43985890eceb9e"
+    }
+  ],
+  "exact_source_ci": {
+    "source_commit": "592a215b22f54cee9684291f695d2fd42f3fa844",
+    "run_id": 37102202073,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37102202073",
+    "status": "COMPLETED",
+    "conclusion": "FAILURE",
+    "jobs": {
+      "SUCCESS": 7,
+      "FAILURE": 3,
+      "pending": 0
+    },
+    "core": {
+      "passed": 3232,
+      "skipped": 5,
+      "warnings": 1,
+      "seconds": 443.7
+    },
+    "source": {
+      "PASS": 127,
+      "actual_model_runtime_core_solver_counters": 0
+    },
+    "failed_outer": [
+      "Code_Aster Fz numerical assertion",
+      "PDE vector classification assertion",
+      "Fixed OpenRadioss download HTTP404/curl22; native NOT_RUN"
+    ],
+    "inner_solver_code_level_estimate_limit_and_vector_case_category": "UNKNOWN in actual completed logs",
+    "later_material_ci_steps": "J2/MGIS-MTest/material-inverse SKIPPED; not material Research proof",
+    "artifact_metadata_count": 9,
+    "zip_payload_downloaded": false,
+    "receipt": {
+      "path": "artifacts/development-material-point-20261003-01/ci-592a-01/receipt.json",
+      "size_bytes": 28169,
+      "sha256": "7dcefd02bf65c5dd7da30c1a9a39981b10be42dae5b685e02774300f26b99057"
+    }
+  },
+  "retention": {
+    "path": "runs/material-hyperelastic-r-20261003-01",
+    "file_count": 1367,
+    "size_bytes": 45523431,
+    "manifest": {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/root-retention-02/store-manifest.json",
+      "sha256": "08a1ff38f746c863e2ed9c39fc25177f3f461bc948fdcc314c7e09987dfb6f0b",
+      "size_bytes": 374793
+    },
+    "same_as_capture_final_and_stop_before": true
+  },
+  "controls_manifest": {
+    "file_count": 230,
+    "size_bytes": 20105730,
+    "manifest": {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/root-retention-02/control-artifacts-manifest.json",
+      "sha256": "056e40f984d45b9c410f6f151556c95203ea055a3b72fa6e8b8ca5b313ae3488",
+      "size_bytes": 52500
+    }
+  },
+  "source_manifest": {
+    "file_count": 558,
+    "size_bytes": 11967789,
+    "manifest": {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/root-retention-02/source-manifest.json",
+      "sha256": "4eac0b89461b44db1234c99074d372e31dfb22d3af0d958cd5efe3d15d34730d",
+      "size_bytes": 152754
+    },
+    "semantics": "Boot-source file hashes and index identity verified exactly. Boot manifest has no size field; sizes measured from retained current working bytes, not attributed to boot metadata."
+  },
+  "remote_raw_archive": "UNKNOWN",
+  "decision": "NOT_RELEASED",
+  "next": "Ordered P5.2b: reuse preserved six Maxwell drafts and correct committed-state, transport/build/process/MTest/range gaps in a bounded Root packet, then native/reference/state/energy gates and connected research/GUI. Contact/fixture coupling/P6/P7 remain later.",
+  "limitations": [
+    "Bounded assumed SVK material-point numerical and research-control loop only.",
+    "All52/Phases5-7/general autonomous research remain OPEN.",
+    "Material/model/physical/strength/durability/FE/corporate approval and upstreambinary-source equivalence remain UNKNOWN.",
+    "Same DLL driver comparison is not independent law or physical qualification.",
+    "No new optimizer or numerical search; deterministic engine ownership unchanged.",
+    "Official conversation GUI is not a full F/P/A/W curve/native CAD viewer.",
+    "Completed loop owned Stop is verified; active busy cancellation was not exercised in this run.",
+    "Logical model hooks/stored messages do not prove cloud weights or each provider HTTP/final wire.",
+    "Exact-source CI has seven successful and three failed jobs; this acceptance does not close those distinct failures."
+  ],
+  "sealed_utc": "2026-10-03T07:34:53.698010+00:00",
+  "independent_integration": {
+    "status": "PASS_BOUNDED_ACTUAL_MATERIAL_RESEARCH",
+    "open_P1_P2": [],
+    "receipt": {
+      "path": "artifacts/development-material-point-20261003-01/material-research-actual-integration-review-01/independent-review.json",
+      "size_bytes": 12793,
+      "sha256": "e0e8e04a009b79426d7d08498235d19800aaa47b32bad865e7f068a079e836b7"
+    },
+    "check_scopes_not_additive": {
+      "initial_integration": {
+        "PASS": 69
+      },
+      "capture04_supplement": {
+        "PASS": 24
+      },
+      "final_stop_retention_seal": {
+        "PASS": 35
+      },
+      "separate_numerical_reviewer_each_record": {
+        "PASS": 74,
+        "FAIL": 0
+      }
+    },
+    "frozen_final_inputs": {
+      "file_count": 2170,
+      "size_bytes": 634881,
+      "sha256": "835a714b3512e7f01fcef9429ed3ac9b36342c89bcb226a0164185e10a174a4d"
+    },
+    "scope": "Actual question, nine tools, two model analyses, actual revisions/raw artifacts, interpretation, Root-observed official conversation GUI, owned Stop and local retention. No new native/provider/Core calls by reviewer."
+  }
+}

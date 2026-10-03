@@ -1,4 +1,42 @@
-## Current checkpoint: managed startup corrected; actual Research retry next
+## Current checkpoint: P5.2a connected material research bounded PASS
+
+Actual producer `592a215b22f54cee9684291f695d2fd42f3fa844` runs one complete
+question through official OpenScience2.0.146 and approved `openai-codex/gpt-5.6-sol`.
+Study `S-material-hyperelastic-r-01` in fresh `runs/material-hyperelastic-r-20261003-01`
+contains E210000/E105000 MPa analyses with the same12-state deformation history.
+Nine completed tool rows use six existing Core tools; two model-analysis calls
+are not a count of native subprocesses. No question retry or model fallback.
+Each result:21valid metrics,32PASS/10blockingUNKNOWN, NOT_RELEASED.
+Independent numerical checks:74PASS/0FAIL per record; integration69/24/35PASS
+are overlapping scopes, not an additive test total; openP1/P2=0.
+Official conversation GUI shows this exact session, model, two result IDs and
+interpretation. Full measured F/P/A/W curves/field inspection remain unverified.
+Original owned lifecycle Stop completes; completed-loop Stop does not certify
+active busy cancellation. Whole new store1367files/45523431B is retained unchanged.
+Bootstrap01/02, private capture01/02/03 and retention01 failures are preserved;
+consumer corrections changed no Core, native result, scientific limit or question.
+Exact592a CI37102202073 completes7SUCCESS/3FAIL:Core3232PASS/5SKIP/1warning;
+AsterFz/vectorPDE/download404 remain OPEN, internal numerical causes UNKNOWN.
+Record: `benchmarks/records/20261003-material-research-r01-qualified.json`.
+Public record SHA256: `b50cbd01474ed259e0163d697d70b8d4ced709c21a41aff0316af32b9210ccec`. Raw archives remain local; remote raw durability UNKNOWN.
+NEXT: ordered P5.2b reuse the six frozen Maxwell drafts; correct post-update
+state, transport/build/process evidence and driver/range gaps, then separate
+source, native/reference/state/energy and connected research/GUI acceptance.
+Full52/Phases5-7/physical/material/strength/FE/corporate deployment remain OPEN
+or UNKNOWN; numerical success is not release. Earlier checkpoints are history.
+
+---
+
+## Ordered next work
+
+- [x] P5.2a actual connected material question/two analyses/raw audit/interpretation/official conversation GUI/owned Stop/immutable retention.
+- [x] P5.2b read-only recovery and exact freeze of the six existing Maxwell drafts; no recreation.
+- [ ] P5.2b bounded state/range/reference corrections, meaningful cold tests and independent source review.
+- [ ] P5.2b current adapter/build/process integration, clean-source native history/composition/changed-tau and state/FD/native energy audits.
+- [ ] P5.2b explicit connected Research admission and same-record human inspection, retaining UNKNOWN/NOT_RELEASED.
+- [ ] Contact/fixture coupling, remaining Phase6 and Phase7 gates in roadmap order.
+
+## Historical source checkpoint: managed startup corrected; Research pending at592a publication
 
 MaterialPoints source52db/Bootstrap01 failed at managed metadata HTTP15s before
 the whole question or experiment; exact endpoint remains UNKNOWN. Declared
@@ -19,7 +57,7 @@ Earlier checkpoints below are history, not fresh native verification.
 
 ---
 
-## Current checkpoint: reviewed MaterialPoints source; one-question research next
+## Historical source checkpoint: reviewed MaterialPoints source52db; Research was next
 
 The separate case-sensitive MaterialPoints/schema4/material-points-v1 profile
 connects the qualified SVK material adapter to the same6existing Core tools.
