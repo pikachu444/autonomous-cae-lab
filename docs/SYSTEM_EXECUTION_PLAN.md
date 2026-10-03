@@ -1,31 +1,34 @@
-## Current checkpoint: native01 retained failure; reviewed evidence correction; native02 next
+## Current checkpoint: native02 bounded qualification PASS; MaterialPoints research next
 
-At exact source627cde3900059535c7b190277a077676925970e6 the real SVK worker
-compiled/integrated11nominals/594signed probes, but Core FAILED_EXECUTION with
-metrics{}: compiler recipe parsing and committed-state/MTest consumer defects.
-Original Domain FAIL/all21invalid and every old artifact stay immutable.
-Independent raw math:605observations/33all-h FD sets/31PASS,12retained contract
-failures; raw values passing does not promote the failed experiment.
-Root ports the exact independently reviewed6-file correction.474 cold tests
-PASS(303Domain+151adapter+17legacy+3integration),0fail/errors/skips,161.48s.
-Compiler/composition/byte-closure and separate state auditor have0openP1/P2.
-Equations, scientific thresholds,21metrics, Core/wire/optimizer and authorized
-research model/auth remain unchanged. Actual MGIS committed K reset and actual
-MTest e1 are recorded; original strict1e-14 imposed-F residual criterion remains.
-All4old stores/1204files and frozen candidates/audits survive hash checks.
-Records: benchmarks/records/20261003-svk-native01-retained-failure.json and
-benchmarks/records/20261003-svk-compiler-evidence-correction.json.
-Exact prior627 CI37092103573:3022PASS/5skips/1warning357.05s;7success/3fails
-(AsterFz numerical, vectorPDE classification, OpenRadioss404 before solver).
-That prior CI is not corrected native proof. NEXT: publish reviewed source,
-then clean-source fresh runs/material-hyperelastic-nq-20261003-02 /
-E-material-hyperelastic-nq-02-svk and independent full raw/native audit.
-Corrected native NOT_RUN; Research NOT_ADMITTED; same-record GUI NOT_RUN.
-Geometric native03 remains FAILED/metrics{} with two-mesh partial evidence;
-fine/smallangle UNKNOWN, no unchanged failed rerun or criterion relaxation.
+Exact clean producer `3a1921e15959e222957d43f9b857d9a014f1f611`, fresh
+`runs/material-hyperelastic-nq-20261003-02` / `E-material-hyperelastic-nq-02-svk`:
+Core COMPLETED_REVIEW_REQUIRED, solver COMPLETED/converged,21valid metrics,
+32PASS/0FAIL/10blockingUNKNOWN; NOT_RELEASED. Actual605observations include
+11nominals/594signed probes;33FD sets retain all3h/full81A/9energy gradients.
+Independent Decimal80/full-state/native audit ran once:71PASS/0FAIL,0openP1/P2,
+59.141710s; actual1211state hashes/committed K reset/MTest residuals verified.
+Original strict MTest1e-14 criterion remains; max actual F residual2.220446e-16.
+Published correction474cold + two sealed source reviews and actual audit close
+four consumer defects in corrected02 only. Original627/native01 FAILED/metrics{}
+and frozen Domain FAIL/all21invalid stay unchanged. Scientific limits/equations,
+compile log/options/actual library and approved5.6Sol/auth remain unchanged.
+New685files/22747766B and all4old stores/1204files retain complete hash inventories.
+Root generic read-only GUI8772 verifies this same original record:21valid rows,
+42validation rows, exact producer/model revision,10UNKNOWN and NOT_RELEASED.
+Dedicated material-history view and Research-produced GUI are separate open gates.
+Record: `benchmarks/records/20261003-svk-native02-qualified.json`; prior failure
+and source-only correction records retain their historical NOT_RUN observations.
+Exact3a CI37096454447:7SUCCESS/3FAIL,Core3232PASS/5skips/1warning456.71s.
+AsterFz numerical/vectorPDE classification/explicit download404 remain OPEN;
+exact logs do not establish internal causes. CI is distinct from local native02.
+NEXT: privately implement/review explicit MaterialPoints schema4 profile using
+the same6existing tools; publish, then one new official approved5.6Sol research
+question, condition comparison/interpretation/same-record GUI/owned Stop/retention.
+Main Research NOT_ADMITTED/live NOT_RUN; no unchanged fine32 solver retry.
+Geometric03 remains FAILED with two-mesh partial evidence; fine/smallangle UNKNOWN.
 Physical/strength/durability/FEcoupling/binary-source/corporate/remote-raw UNKNOWN;
-NOT_RELEASED. Whole52/Phases1-7 remain OPEN. Continue ordered Research/GUI,
-preserved viscoelastic source, fixture contact/coupling, Phase6 and Phase7.
+whole52/Phases1-7 remain OPEN, NOT_RELEASED. Then preserved visco/contact/coupling,
+Phase6 and Phase7. Earlier snapshots below are historical at their exact sources.
 
 ---
 

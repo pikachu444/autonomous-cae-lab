@@ -1,0 +1,551 @@
+{
+  "schema_version": 1,
+  "kind": "bounded-native-material-point-acceptance",
+  "created_utc": "2026-10-03T04:58:50.969754+00:00",
+  "status": "BOUNDED_NATIVE_SVK_QUALIFIED_NOT_RELEASED",
+  "source_commit": "3a1921e15959e222957d43f9b857d9a014f1f611",
+  "source_clean_at_execution": true,
+  "publication_is_metadata_not_new_solver_verification": true,
+  "backend": "material.mfront.hyperelastic",
+  "case": "saint_venant_kirchhoff",
+  "store": "runs/material-hyperelastic-nq-20261003-02",
+  "study_id": "S-material-hyperelastic-nq-02",
+  "experiment_id": "E-material-hyperelastic-nq-02-svk",
+  "model_revision": "7328ff4858c741964dfcf15cc8648f28fa285e91fe2baf4827d53a20ae618990",
+  "core_status": "COMPLETED_REVIEW_REQUIRED",
+  "solver_status": "COMPLETED",
+  "converged": true,
+  "valid_metrics": 21,
+  "validation_counts": {
+    "PASS": 32,
+    "UNKNOWN": 10
+  },
+  "metrics": {
+    "analytical_tangent_relative_error": {
+      "unit": "1",
+      "valid": true,
+      "value": 2.0527086455651337e-16
+    },
+    "cauchy_stress_error": {
+      "unit": "MPa",
+      "valid": true,
+      "value": 1.978150976356119e-11
+    },
+    "cross_driver_stress_error": {
+      "unit": "MPa",
+      "valid": true,
+      "value": 3.5981884138891473e-11
+    },
+    "fd_energy_gradient_vs_native_1e-07": {
+      "unit": "MPa",
+      "valid": true,
+      "value": 2.0614368168025976e-07
+    },
+    "fd_energy_gradient_vs_native_1e-08": {
+      "unit": "MPa",
+      "valid": true,
+      "value": 1.8405524997433531e-06
+    },
+    "fd_energy_gradient_vs_native_1e-09": {
+      "unit": "MPa",
+      "valid": true,
+      "value": 3.567665902437511e-05
+    },
+    "fd_energy_gradient_vs_reference_1e-07": {
+      "unit": "MPa",
+      "valid": true,
+      "value": 2.0615107132471167e-07
+    },
+    "fd_energy_gradient_vs_reference_1e-08": {
+      "unit": "MPa",
+      "valid": true,
+      "value": 1.8405451100989012e-06
+    },
+    "fd_energy_gradient_vs_reference_1e-09": {
+      "unit": "MPa",
+      "valid": true,
+      "value": 3.5676666414019564e-05
+    },
+    "fd_tangent_vs_native_1e-07": {
+      "unit": "1",
+      "valid": true,
+      "value": 6.650018562140819e-10
+    },
+    "fd_tangent_vs_native_1e-08": {
+      "unit": "1",
+      "valid": true,
+      "value": 6.006004009660724e-09
+    },
+    "fd_tangent_vs_native_1e-09": {
+      "unit": "1",
+      "valid": true,
+      "value": 1.2020447464065565e-07
+    },
+    "fd_tangent_vs_reference_1e-07": {
+      "unit": "1",
+      "valid": true,
+      "value": 6.650018562140819e-10
+    },
+    "fd_tangent_vs_reference_1e-08": {
+      "unit": "1",
+      "valid": true,
+      "value": 6.00600380438986e-09
+    },
+    "fd_tangent_vs_reference_1e-09": {
+      "unit": "1",
+      "valid": true,
+      "value": 1.2020447464065565e-07
+    },
+    "mtest_stress_error": {
+      "unit": "MPa",
+      "valid": true,
+      "value": 3.0752289603697136e-11
+    },
+    "native_energy_density_error": {
+      "unit": "MPa",
+      "valid": true,
+      "value": 2.4619195571062846e-14
+    },
+    "pk1_stress_error": {
+      "unit": "MPa",
+      "valid": true,
+      "value": 1.978150976356119e-11
+    },
+    "probe_native_energy_density_error": {
+      "unit": "MPa",
+      "valid": true,
+      "value": 3.957945082788683e-14
+    },
+    "probe_pk1_stress_error": {
+      "unit": "MPa",
+      "valid": true,
+      "value": 2.2396307031158358e-11
+    },
+    "tangent_major_symmetry_relative_error": {
+      "unit": "1",
+      "valid": true,
+      "value": 5.131771613912834e-17
+    }
+  },
+  "blocking_unknown_types": [
+    "model_qualification",
+    "material_qualification",
+    "physical_validation",
+    "static_strength",
+    "fatigue_durability",
+    "solver_coupling",
+    "corporate_license_approval",
+    "corporate_security_approval",
+    "native_dissipated_energy",
+    "mtest_energy"
+  ],
+  "source_files": {
+    "plugins/hyperelastic/__init__.py": {
+      "path": "plugins/hyperelastic/__init__.py",
+      "sha256": "c1b942901836390150aa3963dc3fb131691ec43602d47cded60a2e45679ca7ca",
+      "size_bytes": 293
+    },
+    "plugins/hyperelastic/reference.py": {
+      "path": "plugins/hyperelastic/reference.py",
+      "sha256": "c32893d057d96856451fa038d558715db0dab67704a064222361dc9fe3d367c0",
+      "size_bytes": 41655
+    },
+    "tests/test_hyperelastic_reference.py": {
+      "path": "tests/test_hyperelastic_reference.py",
+      "sha256": "5186e6fab4682a7118fa9f4544539bb2f0659f41187d7fecc948e973908fee70",
+      "size_bytes": 56496
+    },
+    "caelab/adapters/mfront_hyperelastic.py": {
+      "path": "caelab/adapters/mfront_hyperelastic.py",
+      "sha256": "96088c58b5b8e48d5ccfba821e548e14c16042902a21294b39eb7d068fe03c64",
+      "size_bytes": 21312
+    },
+    "caelab/adapters/mfront_hyperelastic_worker.py": {
+      "path": "caelab/adapters/mfront_hyperelastic_worker.py",
+      "sha256": "a7227ee0dae5067856c2cd2877868fb407eac1af65c3a9ef5c7904a37b990fb5",
+      "size_bytes": 39897
+    },
+    "caelab/adapters/mfront_material.py": {
+      "path": "caelab/adapters/mfront_material.py",
+      "sha256": "4ea387647fbaddeec47c0c637240209427cb509ef8b1e8b703e8737be3d79dec",
+      "size_bytes": 16859
+    },
+    "caelab/adapters/mfront_material_worker.py": {
+      "path": "caelab/adapters/mfront_material_worker.py",
+      "sha256": "3200b2beb25fb04f45dd9eaeff426237802c62021861c90242cff7be79f4197f",
+      "size_bytes": 25425
+    },
+    "caelab/adapters/codeaster_elasticity.py": {
+      "path": "caelab/adapters/codeaster_elasticity.py",
+      "sha256": "956e84044d0b35780a23648577771236b708fefeb8d69492b6d85cdf4a25165a",
+      "size_bytes": 41300
+    },
+    "caelab/adapters/codeaster_execution.py": {
+      "path": "caelab/adapters/codeaster_execution.py",
+      "sha256": "04bf82ca3ea258a9218f9de33c14aefda1319abfa199fa246c36d5d1cefc2fad",
+      "size_bytes": 1347
+    },
+    "caelab/execution_control.py": {
+      "path": "caelab/execution_control.py",
+      "sha256": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede",
+      "size_bytes": 6546
+    },
+    "caelab/engine.py": {
+      "path": "caelab/engine.py",
+      "sha256": "106448a8cbb3ae0d9ef3cbaa9ed9f6bfe08cbf2f9fa8a1f9887e17e6708b4eae",
+      "size_bytes": 47354
+    },
+    "apps/lab/service.py": {
+      "path": "apps/lab/service.py",
+      "sha256": "68588117cd583f9866e1bf578c721315313dde0c2ffac9448fd9cd1aca62d059",
+      "size_bytes": 40722
+    },
+    "tests/test_backend_integration.py": {
+      "path": "tests/test_backend_integration.py",
+      "sha256": "cdf690d8e74791e104d9e97ec5f214297c10c6c09538242a90917d8d1146a3bd",
+      "size_bytes": 4633
+    },
+    "tests/test_lab_server.py": {
+      "path": "tests/test_lab_server.py",
+      "sha256": "e469d003c4dbd0a4940b844eed6a7bdd79f311654e862c9da06fa333be29a8a3",
+      "size_bytes": 38081
+    },
+    "tests/test_hyperelastic_integration.py": {
+      "path": "tests/test_hyperelastic_integration.py",
+      "sha256": "c310fbc239d92fc962c106e64273cd0a1a1bdf4941e336e6394178061db832cf",
+      "size_bytes": 6987
+    },
+    "tests/test_mfront_hyperelastic.py": {
+      "path": "tests/test_mfront_hyperelastic.py",
+      "sha256": "cf435f40d4e2c56b786f9e5914fccbf19a5f995ade810a1fa0081cf276271ec8",
+      "size_bytes": 49281
+    },
+    "tests/fixtures/mfront/SaintVenantKirchhoffElasticity.mfront": {
+      "path": "tests/fixtures/mfront/SaintVenantKirchhoffElasticity.mfront",
+      "sha256": "d97fcce350a40060c287aaad9928603e8b144039a7cef95045073b00079efff4",
+      "size_bytes": 3002
+    },
+    "tests/fixtures/mfront/SaintVenantKirchhoffElasticity.source.json": {
+      "path": "tests/fixtures/mfront/SaintVenantKirchhoffElasticity.source.json",
+      "sha256": "64c5f8bf800cc96fe7cb4b3789cff93eab296c65b14ba6c41053745417c860aa",
+      "size_bytes": 764
+    },
+    ".gitattributes": {
+      "path": ".gitattributes",
+      "sha256": "4b858cf02959b0af37107b38ba766c7273bece6d830c5af56ae7592e915dbaad",
+      "size_bytes": 1534
+    },
+    "tests/fixtures/mfront/svk-native01-compiler-commands.txt": {
+      "path": "tests/fixtures/mfront/svk-native01-compiler-commands.txt",
+      "sha256": "6d49943e7001436577db029ef0d405ef3e21471434628dd08ef626a4c30f5eca",
+      "size_bytes": 2625
+    }
+  },
+  "captured_artifacts": {
+    "analysis_raw.json": {
+      "path": "runs/material-hyperelastic-nq-20261003-02/experiments/E-material-hyperelastic-nq-02-svk/simulation/analysis_raw.json",
+      "size_bytes": 462740,
+      "sha256": "77b65632c122128a1dfd888b383baf9e2ccd7fe7a389b412688b49e7415f9af7"
+    },
+    "build/SaintVenantKirchhoffElasticity.mfront": {
+      "path": "runs/material-hyperelastic-nq-20261003-02/experiments/E-material-hyperelastic-nq-02-svk/simulation/build/SaintVenantKirchhoffElasticity.mfront",
+      "size_bytes": 3002,
+      "sha256": "d97fcce350a40060c287aaad9928603e8b144039a7cef95045073b00079efff4"
+    },
+    "build/compile.stdout.log": {
+      "path": "runs/material-hyperelastic-nq-20261003-02/experiments/E-material-hyperelastic-nq-02-svk/simulation/build/compile.stdout.log",
+      "size_bytes": 100966,
+      "sha256": "fbc2119cd82646ee07cb5de568ab18a5e3f48eedd923133ec22b831fb3a1e488"
+    },
+    "build/src/libBehaviour.so": {
+      "path": "runs/material-hyperelastic-nq-20261003-02/experiments/E-material-hyperelastic-nq-02-svk/simulation/build/src/libBehaviour.so",
+      "size_bytes": 186944,
+      "sha256": "f2fc1df1f580879dc035f144aa0cea0c91ecf0429e8c9d1e1087e85218d15eb8"
+    },
+    "build_identity.json": {
+      "path": "runs/material-hyperelastic-nq-20261003-02/experiments/E-material-hyperelastic-nq-02-svk/simulation/build_identity.json",
+      "size_bytes": 13690,
+      "sha256": "f1160e6e588706334f4d9b3f0876377a67184a8ffb46a191f2ec0f6aee4e85b5"
+    },
+    "domain_reference.py": {
+      "path": "runs/material-hyperelastic-nq-20261003-02/experiments/E-material-hyperelastic-nq-02-svk/simulation/domain_reference.py",
+      "size_bytes": 41655,
+      "sha256": "c32893d057d96856451fa038d558715db0dab67704a064222361dc9fe3d367c0"
+    },
+    "input.json": {
+      "path": "runs/material-hyperelastic-nq-20261003-02/experiments/E-material-hyperelastic-nq-02-svk/simulation/input.json",
+      "size_bytes": 4708,
+      "sha256": "56ff58df3fbb015a285aec53ebb4e6a10c4aff31fbdf277798e8dd768af7ac4b"
+    },
+    "mfront_hyperelastic.py": {
+      "path": "runs/material-hyperelastic-nq-20261003-02/experiments/E-material-hyperelastic-nq-02-svk/simulation/mfront_hyperelastic.py",
+      "size_bytes": 21312,
+      "sha256": "96088c58b5b8e48d5ccfba821e548e14c16042902a21294b39eb7d068fe03c64"
+    },
+    "mfront_hyperelastic_worker.py": {
+      "path": "runs/material-hyperelastic-nq-20261003-02/experiments/E-material-hyperelastic-nq-02-svk/simulation/mfront_hyperelastic_worker.py",
+      "size_bytes": 39897,
+      "sha256": "a7227ee0dae5067856c2cd2877868fb407eac1af65c3a9ef5c7904a37b990fb5"
+    },
+    "native_raw.json": {
+      "path": "runs/material-hyperelastic-nq-20261003-02/experiments/E-material-hyperelastic-nq-02-svk/simulation/native_raw.json",
+      "size_bytes": 5806594,
+      "sha256": "3bf2f54e1b9bdc46df1d2f2a529ef3cc791c7ddf1d3d168984743488000c6eaa"
+    }
+  },
+  "evidence": [
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-qualification-02/receipt.json",
+      "size_bytes": 198693,
+      "sha256": "10038074efb6e39301dff98af064b3cdd923975f84f92931c02d2d87f4b33c4e"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-qualification-review-02/final-freeze-receipt.json",
+      "size_bytes": 11073,
+      "sha256": "4e5e19bdc89d3dfb9ef946a1ea8034e9698143fc12db2e17966c37dd1b11dc7e"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-qualification-review-02/audit-run-01/raw-math-state-audit.json",
+      "size_bytes": 11700,
+      "sha256": "647e1079f25bc82e6355decb9da9d1d09fc6297814ecd0ecb705fd7e55b7ab44"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-qualification-review-02/REPORT.final.md",
+      "size_bytes": 5344,
+      "sha256": "0fdbdaf543ae42f42c923a77e6742af16d3f8be37ec2c115376544907a7daea0"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/generic-gui-qualification-01/receipt.json",
+      "size_bytes": 1271,
+      "sha256": "7ec108680f3150de7722ec41e149786ae8ed992b27c3828aa8700884629da9d0"
+    },
+    {
+      "path": "benchmarks/records/20261003-svk-native01-retained-failure.json",
+      "size_bytes": 6280,
+      "sha256": "798ca9f269b126117dde5fd78701eccfc03260bb5a446fbf15f92ce8e76964b3"
+    },
+    {
+      "path": "benchmarks/records/20261003-svk-compiler-evidence-correction.json",
+      "size_bytes": 10836,
+      "sha256": "2efaaefb2b33c0a4f69693cddf488a885139fe178aebea5f63377be469e55798"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/root-native-evidence-integration-02/candidate-manifest.json",
+      "size_bytes": 4652,
+      "sha256": "821dc354834238a4772115a8f8c0b19e9cc8ae88c19fa6cf6231a8f4426d2465"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-evidence-correction-review-01/independent-review.json",
+      "size_bytes": 11565,
+      "sha256": "2e256826c052bec49e569d1ef7d6073cacce818b780b33c984e85270247db7a2"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-state-source-review-01/freeze-receipt.json",
+      "size_bytes": 6301,
+      "sha256": "b989d8cec79b477299be0bd74259d00b3f3f61ca781b11efebd86f69e5c99998"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-evidence-correction-review-01/seal.json",
+      "size_bytes": 3982,
+      "sha256": "de048cb09c7e140668a920b7cb4d2292ce5a23880212614ae3fe0b7b617996ab"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/root-native-evidence-cold-runner-01/attempt-01/receipt.json",
+      "size_bytes": 1187396,
+      "sha256": "372ebab7720f95b046ae1a7713231567c7a1497a2cf5a148a1a2fea43711e5a3"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/root-native-evidence-cold-runner-01/attempt-01/linux-receipt.json",
+      "size_bytes": 205950,
+      "sha256": "7024d8d1c322d3728255b288e8b9a1a0f77e54c410d59b48d636e33bb3d8bf28"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/root-native-evidence-cold-runner-01/attempt-01/junit.xml",
+      "size_bytes": 74524,
+      "sha256": "14aa5608c15114463fbbc6b9b7f8ec1cc7b04204994809027cbb4987836739f6"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/ci-3a-01/receipt.json",
+      "size_bytes": 21677,
+      "sha256": "7029a3c8c70c4d9d27376ff23c25d9130a60d54782f865bfb47fe391e7abdbc0"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/ci-3a-01/captured-files-manifest.json",
+      "size_bytes": 9959,
+      "sha256": "58c7dc800a2f6ac454d0e0e618d2e6697942547424ee580d272fcc3925508600"
+    }
+  ],
+  "actual_native": {
+    "observations": 605,
+    "nominal_endpoints": 11,
+    "signed_probes": 594,
+    "fd_sets": 33,
+    "all_fd_steps": [
+      1e-07,
+      1e-08,
+      1e-09
+    ],
+    "mtest_driver_endpoints": 11,
+    "complete_state_hashes": 1211,
+    "producer_elapsed_seconds": 135.89748524711467,
+    "wall_timeout_seconds": null,
+    "compile_command_log_unchanged_from_native01": true,
+    "actual_library": {
+      "bytes": 186944,
+      "sha256": "f2fc1df1f580879dc035f144aa0cea0c91ecf0429e8c9d1e1087e85218d15eb8"
+    },
+    "new_store_files": 685,
+    "new_store_bytes": 22747766,
+    "runtime": "MGIS3/TFEL5/native Python3.11.14; Core Python3.12.3"
+  },
+  "independent_audit": {
+    "PASS": 71,
+    "FAIL": 0,
+    "executed_once": true,
+    "elapsed_seconds": 59.141710293944925,
+    "method": "independent Decimal80 scalar-energy derivatives; no production import or new native solve",
+    "scope": "All native9P/W/81A, every signed FD/all h, committed state1211, strict MTest residuals, objectivity/recovery and exact Core/source/store evidence",
+    "max_errors_mpa": {
+      "PK1": 2.2453150450019166e-11,
+      "stored_energy": 2.7033930649622562e-14,
+      "tangent": 5.820766091346741e-11
+    },
+    "max_actual_mtest_F_residual": 2.220446049250313e-16,
+    "original_strict_mtest_criterion": 1e-14,
+    "open_P1": 0,
+    "open_P2": 0
+  },
+  "root_combined_finding_disposition": {
+    "basis": "Published474cold and two sealed source reviews plus this completed independent actual71 audit; not raw math alone",
+    "make_continuation_parsing": "CLOSED_IN_CORRECTED_NATIVE02; original failure retained",
+    "source_vs_shared_link_flags": "CLOSED_IN_CORRECTED_NATIVE02; compiler flags/log unchanged",
+    "MGIS_committed_state_K_reset": "CLOSED_IN_CORRECTED_NATIVE02; actual post-update capture and next baseline verified",
+    "MTest_imposed_vs_actual_gradient": "CLOSED_IN_CORRECTED_NATIVE02; original strict criterion and actual e1 retained"
+  },
+  "preservation": {
+    "original_native01": "FAILED_EXECUTION/metrics{}; original Domain FAIL/all21invalid untouched",
+    "four_old_stores": [
+      {
+        "all_recorded_file_hashes_unchanged_in_completed_audit": true,
+        "bytes": 546600,
+        "files": 49,
+        "path": "runs/geometric-nq-20261003-01"
+      },
+      {
+        "all_recorded_file_hashes_unchanged_in_completed_audit": true,
+        "bytes": 2360689,
+        "files": 159,
+        "path": "runs/geometric-nq-20261003-02"
+      },
+      {
+        "all_recorded_file_hashes_unchanged_in_completed_audit": true,
+        "bytes": 6206445,
+        "files": 311,
+        "path": "runs/geometric-nq-20261003-03"
+      },
+      {
+        "all_recorded_file_hashes_unchanged_in_completed_audit": true,
+        "bytes": 22053382,
+        "files": 685,
+        "path": "runs/material-hyperelastic-nq-20261003-01"
+      }
+    ],
+    "completed_independent_guard": {
+      "after": {
+        "bytes": 570283,
+        "sha256": "fb10c5b1f25a1c11c25032e42e1a75c089ed61c3bb2bc99a4d2e910b3898838f"
+      },
+      "before": {
+        "bytes": 570283,
+        "sha256": "fb10c5b1f25a1c11c25032e42e1a75c089ed61c3bb2bc99a4d2e910b3898838f"
+      },
+      "bytes": 75572835,
+      "files": 2350,
+      "unchanged": true
+    },
+    "raw_local_retention": "HASH_VERIFIED_LOCAL",
+    "remote_raw_durability": "UNKNOWN",
+    "broad_guard_or_math_rerun_for_publication": false
+  },
+  "gui": {
+    "qualification": "ROOT_READONLY_GENERIC_SAME_RECORD_VERIFIED",
+    "receipt": {
+      "path": "artifacts/development-material-point-20261003-01/generic-gui-qualification-01/receipt.json",
+      "size_bytes": 1271,
+      "sha256": "7ec108680f3150de7722ec41e149786ae8ed992b27c3828aa8700884629da9d0"
+    },
+    "Research_GUI": "NOT_RUN",
+    "dedicated_material_history_view": "NOT_IMPLEMENTED"
+  },
+  "research": {
+    "current_main_profile_admission": "NOT_ADMITTED",
+    "new_MaterialPoints_profile": "PRIVATE_IMPLEMENTATION_ACTIVE",
+    "live_approved_model_execution": "NOT_RUN",
+    "approved_model": "openai-codex/gpt-5.6-sol",
+    "new_Core_wire_tools": 0,
+    "plan": "review/freeze/profile publication then one fresh authentic question, compare/interpret, same-record GUI, owned Stop and retention"
+  },
+  "exact_source_ci": {
+    "run_id": 37096454447,
+    "source_commit": "3a1921e15959e222957d43f9b857d9a014f1f611",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37096454447",
+    "status": "COMPLETED",
+    "conclusion": "FAILURE",
+    "jobs": {
+      "SUCCESS": 7,
+      "FAILURE": 3
+    },
+    "core": {
+      "passed": 3232,
+      "skipped": 5,
+      "warnings": 1,
+      "seconds": 456.71,
+      "skip_details": "UNKNOWN; terse log",
+      "warning": "CadQuery ast.NameConstant deprecation"
+    },
+    "source_driver": "127 cold checks PASS; no real model/Core/native execution",
+    "failed_gates": [
+      "Code_Aster E-ansys_vmd1_regular-Fz-aster native numerical outer gate",
+      "vector PDE numerical classification outer gate",
+      "explicit runtime curl HTTP404 before native execution"
+    ],
+    "internal_causes_not_in_exact_logs": "UNKNOWN",
+    "final_log_collection": {
+      "status": "HASH_VERIFIED_FINAL",
+      "receipt": {
+        "path": "artifacts/development-material-point-20261003-01/ci-3a-01/receipt.json",
+        "size_bytes": 21677,
+        "sha256": "7029a3c8c70c4d9d27376ff23c25d9130a60d54782f865bfb47fe391e7abdbc0"
+      },
+      "raw_files": 55,
+      "raw_bytes": 1217612,
+      "job_full_logs": 10,
+      "artifact_metadata": 9,
+      "artifact_retention_days": 30,
+      "artifact_zip_downloads": 0
+    }
+  },
+  "scientific_limits_equations_and_settings_unchanged": true,
+  "geometric_native03": "FAILED_EXECUTION/metrics{}; 8/16 mesh partial evidence;32-mesh REL residual stagnation cause UNKNOWN; no unchanged retry",
+  "qualification_scope": "Official SVK law at bounded large rotations/small Green strain; two drivers of same DLL are not independent material physics",
+  "unknown": [
+    "binary/source equivalence",
+    "dissipated energy",
+    "MTest energy",
+    "physical material/strength/durability",
+    "constitutive FE coupling",
+    "corporate deployment approval",
+    "remote raw durability"
+  ],
+  "decision": "NOT_RELEASED",
+  "next_gate": "MaterialPoints guarded research connection, then preserved viscoelastic source/contact/fixture coupling/Phase6/Phase7",
+  "whole_52_requirements": "OPEN",
+  "publication_preparation": {
+    "failed_attempt": {
+      "path": "artifacts/development-material-point-20261003-01/publication-native02-preparation-attempt01-failure.json",
+      "size_bytes": 382,
+      "sha256": "b06edc666346c62c7a175f9f9c4efd8ade76b25b14d04c305f749677d2f679e5"
+    },
+    "scope": "Root metadata helper source-list shape assumption failed before any public/source/store writes; corrected without solver rerun"
+  }
+}

@@ -1,6 +1,7 @@
 # ADR0026 — finite-strain SVK material point through existing operations
 
-Status: accepted for D4.2/P5.2a source development; native qualification pending.
+Status: accepted; bounded SVK native02 mathematical/state qualification PASS at3a.
+Research admission, constitutive FE and physical qualification remain separate gates.
 
 Reuse the existing material.mfront runtime/build/evidence and ModelAnalysis
 boundary, with a separate pure hyperelastic Domain and adapter/worker. Core
