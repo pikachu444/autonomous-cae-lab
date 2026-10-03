@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-03T11:00:43.281244+00:00",
+  "source_commit": "c489dd606a71a2b3b68731af7d43294e986afc50",
+  "source_main_publication": "CONFIRMED",
+  "remote_main": "c489dd606a71a2b3b68731af7d43294e986afc50\trefs/heads/main",
+  "status": "ACTUAL_FAILURES_RETAINED_PHASE_IDENTITY_CORRECTION_REQUIRED",
+  "stores": {
+    "01": {
+      "path": "runs/viscoelastic-native-20261003-01",
+      "files": 36,
+      "bytes": 420675,
+      "manifest": {
+        "path": "artifacts/development-viscoelastic-20261003-01/native-acceptance-01/store-frozen-manifest.json",
+        "size_bytes": 6608,
+        "sha256": "3aaac3c09a41848b5c8db12d9109a5a4db821ebe740e04050e2042d0b6c22cbe"
+      },
+      "launcher_receipt": {
+        "path": "artifacts/development-viscoelastic-20261003-01/native-acceptance-01/receipt.json",
+        "size_bytes": 7305,
+        "sha256": "70adbfa050633108fe25682acc28dabf35aa1e2614b2b0967393fc367be09fc2"
+      },
+      "acceptance": {
+        "path": "runs/viscoelastic-native-20261003-01/acceptance.json",
+        "size_bytes": 6028,
+        "sha256": "4a1aaeb41ec6a419c7fce23d6d3832af3916fd029ecfd4834cc5af0cc007e03c"
+      },
+      "canonical": {
+        "status": "FAILED_EXECUTION",
+        "converged": null,
+        "metrics": {},
+        "decision": "NOT_RELEASED"
+      },
+      "preflight": "REJECTED_BEFORE_EXPORT_NATIVE_NOT_RUN"
+    },
+    "02": {
+      "path": "runs/viscoelastic-native-20261003-02",
+      "files": 102,
+      "bytes": 11203341,
+      "manifest": {
+        "path": "artifacts/development-viscoelastic-20261003-01/native-acceptance-02/store-frozen-manifest.json",
+        "size_bytes": 19264,
+        "sha256": "52dbeb141da0334c8f0df7deed6cd198f87d8abbc94eb8c0aabf76dea8654fc1"
+      },
+      "launcher_receipt": {
+        "path": "artifacts/development-viscoelastic-20261003-01/native-acceptance-02/receipt.json",
+        "size_bytes": 7509,
+        "sha256": "94f65d8a624c4a4d5088b345f96543c19bf83786ce81d9711d149ca1323c32e5"
+      },
+      "acceptance": {
+        "path": "runs/viscoelastic-native-20261003-02/acceptance.json",
+        "size_bytes": 6028,
+        "sha256": "17434bd4fa7482d40882ff415597ce40294f53209d1dec61b8ef624b73022cd1"
+      },
+      "canonical": {
+        "status": "FAILED_EXECUTION",
+        "converged": null,
+        "metrics": {},
+        "decision": "NOT_RELEASED"
+      },
+      "preflight": "REJECTED_BEFORE_EXPORT_NATIVE_NOT_RUN"
+    }
+  },
+  "native01_cause": "Root launcher omitted required protected image configuration; no native build/integration executed",
+  "native02_cause": "Root adapter parser compared actual constitutive e1 with printed globalu0. Actual MGIS8 increments/all probes and MTest9 states completed; all8 MTest increments report convergence after2iterations. Result not reclassified.",
+  "native02_independent_diagnosis": {
+    "finding": "P2_TABLE_PHASE_IDENTITY",
+    "strain_mismatches": 33,
+    "maximum_absolute_difference": 2.168404344971009e-19,
+    "table_time_stress_branch": "EXACT",
+    "original_global_state": "NOT_CAPTURED; must not be synthesized from old constitutive output"
+  },
+  "converter_metadata": "Existing tfel.math registers actual native vector<double> binding; metadata probe only, not constitutive qualification",
+  "ci": {
+    "run_id": 37116279685,
+    "source_commit": "c489dd606a71a2b3b68731af7d43294e986afc50",
+    "success": 1,
+    "failure": 1,
+    "skipped": 8,
+    "pytest_passed": 3570,
+    "pytest_failed": 1,
+    "pytest_skipped": 5,
+    "pytest_seconds": 553.22,
+    "finding": "CRLF->LF corruption fixture is a no-op for actual LF source; correction must choose real opposite reviewed variant without changing production admission"
+  },
+  "evidence": [
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/native-table-diagnosis-01/REPORT.md",
+      "size_bytes": 10047,
+      "sha256": "e7a2a348513039627923cb511619c1e8b2f72686af6b2a4665ccb938bd86f9a0"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/native-table-diagnosis-01/freeze-receipt.json",
+      "size_bytes": 9114,
+      "sha256": "50e6e3e7413801c77f36f0f6fe0b984a19f69b589aa4fbef96a1496c58dfb1d0"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/native-table-diagnosis-01/diagnosis-run-02/column-diagnosis.json",
+      "size_bytes": 19448,
+      "sha256": "7a2421f1860fa43486c06a5bc4154326e5a886342557e5299da881ecb1147ab6"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/native-binding-metadata-01/receipt.json",
+      "size_bytes": 847,
+      "sha256": "c72e66f94daf5d362ebf0a9ca9f50856ec85457ff51eb06e4fd3e6e409120df5"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/native-binding-metadata-02/receipt.json",
+      "size_bytes": 1279,
+      "sha256": "af3a1329d9bf5c26040156c5e21b560fc932abe1f9360a38596ae173eca2f0af"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/native-binding-metadata-03/receipt.json",
+      "size_bytes": 1264,
+      "sha256": "a3405ce2498c9e455dcaf108fdf6f721780ef0c8eba2ae1578a79a4445aa3b97"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/ci-c489dd6-01/receipt.json",
+      "size_bytes": 17720,
+      "sha256": "d34bda2476b6104634298e7562a7dc8e932bdd61cc9e933712a090b071ae3a53"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/ci-c489dd6-01/captured-files-manifest.json",
+      "size_bytes": 5685,
+      "sha256": "bf3b0eb497fa71a0b8537712ab9d0027c46ac0d881f6efaf03968c59b67f55b9"
+    },
+    {
+      "path": "benchmarks/records/20261003-preserved-maxwell-source.json",
+      "size_bytes": 16845,
+      "sha256": "83f9c24adc3707126c5b50aebe1da1c9978ca160484cb59b20cc1ac04c8b9020"
+    }
+  ],
+  "next": "Reviewed six-file source correction, coherent Main publication, fresh runs/viscoelastic-native-20261003-03 with explicit existing SIF configuration, independent original state/FD/energy audit, then explicit Research admission",
+  "research": "SVK_ONLY_MAXWELL_NOT_ADMITTED",
+  "scientific_thresholds": "UNCHANGED",
+  "new_native_or_provider_calls_in_checkpoint": 0,
+  "decision": "NOT_RELEASED",
+  "geometric_fine32": "Separate original actual Newton failure; cause UNKNOWN; not retried here",
+  "unknown": [
+    "physical material",
+    "spatial FE/solver coupling",
+    "strength",
+    "durability",
+    "upstream binary source commits",
+    "corporate license/security",
+    "off-machine raw durability"
+  ],
+  "retention": "Complete original01/02 stores, commands/logs/build/library/partials and diagnosis retained locally; no original result/raw was changed"
+}

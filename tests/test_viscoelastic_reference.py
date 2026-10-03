@@ -108,7 +108,15 @@ def make_raw(tmp_path, settings=None):
         "internal_state_variables": list(row["branch_stress_kelvin_mpa"]),
         "properties_native": [0.] * 5 if i == 0 else list(props.values()),
         "external_state_variables_native": [0.] if i == 0 else [settings["temperature_k"]],
-        "iterations": 0 if i == 0 else 1, "substeps": 0,
+        "iterations": i * 2, "substeps": 0,
+        "iterations_before": max(0, i - 1) * 2, "iterations_after": i * 2,
+        "iterations_increment": 0 if i == 0 else 2,
+        "buffer_phase": "INITIAL_UNPREPARED" if i == 0 else "AFTER_EXECUTE_COMMIT",
+        "global_u0": list(row["gradients_kelvin"]) + [0.] * 6,
+        "global_u1": list(row["gradients_kelvin"]) + [0.] * 6,
+        "prepared_e0_kelvin": [0.] * 6 if i == 0 else list(rows[i - 1]["gradients_kelvin"]),
+        "committed_s0_kelvin_mpa": list(row["stress_kelvin_mpa"]),
+        "committed_iv0": list(row["branch_stress_kelvin_mpa"]),
         "state_phase": "INITIAL_UNPREPARED" if i == 0 else "INTEGRATED"} for i, row in enumerate(rows)]
     descriptor = {"behaviour": worker.BEHAVIOUR, "hypothesis": "TRIDIMENSIONAL",
         "gradients": ["Strain"], "thermodynamic_forces": ["Stress"], "gradient_size": 6, "force_size": 6,
@@ -123,10 +131,12 @@ def make_raw(tmp_path, settings=None):
                   "substep_limit": 1, "iteration_limit": 10, "strain_epsilon": 1e-14, "stress_epsilon_mpa": 1e-10,
                   "imposed_components": ["EXX", "EYY", "EZZ", "EXY", "EXZ", "EYZ"],
                   "imposed_interpolation": "piecewise_linear",
+                  "buffer_mapping": deepcopy(worker.MTEST_BUFFER_MAPPING),
                   "imposed_history": [{"time_s": row["time_s"], "gradients_kelvin": ref.to_kelvin(row["strain"])}
                                       for row in settings["history"]],
                   "native_output_table": {"column_count": 21, "stored_energy_column": 20,
-                      "dissipated_energy_column": 21, "sha256": "b" * 64, "rows": len(states)}}}
+                      "dissipated_energy_column": 21, "sha256": "b" * 64, "rows": len(states),
+                      "source_commit": worker.TFEL_COMMIT, "buffer_mapping": deepcopy(worker.MTEST_TABLE_MAPPING)}}}
     assert transport.calls == (len(settings["history"]) - 1) * 37
     return raw
 

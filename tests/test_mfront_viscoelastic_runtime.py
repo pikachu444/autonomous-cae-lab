@@ -260,7 +260,14 @@ def corrupt_evidence(output, raw, kind):
         raw["transport_sha256"] = next(value for value in worker.TRANSPORT_VARIANTS if value != raw["transport_sha256"])
     elif kind == "transport_capture_replaced_variant":
         path = output / "mfront_material_worker.py"
-        path.write_bytes(path.read_bytes().replace(b"\r\n", b"\n"))
+        original = path.read_bytes()
+        actual_digest = digest(original)
+        assert worker.TRANSPORT_VARIANTS[actual_digest] == len(original)
+        normalized = original.replace(b"\r\n", b"\n")
+        opposite = normalized.replace(b"\n", b"\r\n") if original == normalized else normalized
+        assert opposite != original and digest(opposite) != actual_digest
+        assert worker.TRANSPORT_VARIANTS[digest(opposite)] == len(opposite)
+        path.write_bytes(opposite)
     elif kind == "compiler_helper_capture":
         path = output / worker.COMPILER_HELPER_NAME
         path.write_bytes(path.read_bytes() + b"\n")
@@ -367,6 +374,7 @@ def test_numerical_reference_rejection_preserves_actual_reliable_execution(tmp_p
         row = raw["mtest"]["states"][1]
         row["stress_kelvin_mpa"][0] += .1
         row["stress_physical_mpa"] = ref.from_kelvin(row["stress_kelvin_mpa"])
+        row["committed_s0_kelvin_mpa"] = list(row["stress_kelvin_mpa"])
         path = output / "mtest.res"
         path.write_text(table_text(raw["mtest"]["states"]))
         raw["mtest"]["native_output_table"] = worker.parse_mtest_table(path, raw["mtest"]["states"])
@@ -419,7 +427,9 @@ def test_mtest_producer_retains_actual_imposed_api_values_and_actual_returned_st
     created = []
     class State:
         def __init__(self):
-            self.e1 = [0.] * 6
+            self.e1, self.e0 = [0.] * 6, [0.] * 6
+            self.u0, self.u1 = [0.] * 12, [0.] * 12
+            self.s0, self.iv0 = [0.] * 6, [0.] * 6
             self.s1, self.iv1 = [0.] * 6, [0.] * 6
             self.mprops1, self.evs0 = [0.] * 5, [0.]
             self.iterations = self.subSteps = 0
@@ -441,6 +451,8 @@ def test_mtest_producer_retains_actual_imposed_api_values_and_actual_returned_st
             self.imposed[name] = deepcopy(history)
         def execute(self, state, workspace, previous, time):
             state.e1 = [self.imposed[name][time] for name in worker.MTEST_COMPONENTS]
+            state.u0 = list(state.e1) + [float(i + 1) for i in range(6)]
+            state.u1 = list(state.u0)
             state.e1[0] += 9e-15
             state.mprops1 = list(self.properties.values())
             state.evs0, state.iterations = [settings["temperature_k"]], 1
@@ -459,6 +471,13 @@ def test_mtest_producer_retains_actual_imposed_api_values_and_actual_returned_st
     assert observed["states"][1]["strain_physical"] == ref.from_kelvin(actual)
     assert "stored_energy_mpa" not in observed["states"][1]  # Mandatory real table supplies energy separately.
     assert load_json(tmp_path / "mtest.partial.json") == observed
+    assert observed["buffer_mapping"] == worker.MTEST_BUFFER_MAPPING
+    assert observed["states"][1]["global_u0"] == observed["states"][1]["global_u1"]
+    assert observed["states"][1]["global_u0"][6:] == [1., 2., 3., 4., 5., 6.]
+    assert observed["states"][1]["global_u0"][:6] != actual
+    assert observed["states"][1]["prepared_e0_kelvin"] == [0.] * 6
+    assert observed["states"][1]["iterations_before"] == 0
+    assert observed["states"][1]["iterations_after"] == observed["states"][1]["iterations_increment"] == 1
 
 
 def test_exact_native_law_source_matches_lf_checkout():
@@ -471,3 +490,250 @@ def test_exact_native_law_source_matches_lf_checkout():
     assert len(law) == 7417
     assert hashlib.sha256(law).hexdigest() == actual_worker.SOURCE_SHA256 == (
         "8501f6d338d0d58fd9391031274dd0d15ecaf333f6158f0c80a73ffdb99e3d7a")
+
+
+def test_distinct_actual_global_and_last_integration_buffers_keep_exact_table_and_old_metrics(tmp_path, raw_template):
+    """TEST ONLY ulp-sized global/e1 distinction; no printed value is substituted."""
+    raw = deepcopy(raw_template)
+    settings = ref.canonical_settings()
+    original = ref.assess(settings, raw)
+    row = raw["mtest"]["states"][1]
+    row["gradients_kelvin"][0] = math.nextafter(row["gradients_kelvin"][0], math.inf)
+    row["strain_physical"] = ref.from_kelvin(row["gradients_kelvin"])
+    path = tmp_path / "mtest.res"
+    path.write_text(table_text(raw["mtest"]["states"]))
+    before = ref.state_hash(raw)
+    metadata = worker.parse_mtest_table(path, raw["mtest"]["states"])
+    parsed_row = [float(x) for x in path.read_text().splitlines()[-8].split()]
+    assert parsed_row[1:7] == row["global_u0"][:6] != row["gradients_kelvin"]
+    assert metadata["buffer_mapping"] == worker.MTEST_TABLE_MAPPING
+    assert ref.state_hash(raw) == before
+    assessed = ref.assess(settings, raw)
+    assert all(c["status"] == "PASS" for c in assessed["checks"])
+    assert assessed["metrics"] == original["metrics"] and assessed["reference"] == original["reference"]
+    assert raw["mtest"]["states"][2]["prepared_e0_kelvin"] == row["global_u0"][:6]
+    assert raw["mtest"]["states"][2]["prepared_e0_kelvin"] != row["gradients_kelvin"]
+
+
+@pytest.mark.parametrize("column", [0, 1, 7, 13])
+def test_table_identity_is_exact_even_for_one_ulp_difference(tmp_path, raw_template, column):
+    states = deepcopy(raw_template["mtest"]["states"])
+    lines = table_text(states).splitlines()
+    data_index = next(i for i, line in enumerate(lines) if not line.startswith("#")) + 1
+    values = [float(x) for x in lines[data_index].split()]
+    values[column] = math.nextafter(values[column], math.inf)
+    lines[data_index] = " ".join(format(v, ".17g") for v in values)
+    path = tmp_path / "mtest.res"
+    path.write_text("\n".join(lines) + "\n")
+    with pytest.raises(ValueError, match="disagrees"):
+        worker.parse_mtest_table(path, states)
+
+
+@pytest.mark.parametrize("kind", ["missing_mapping", "wrong_source", "wrong_size", "wrong_constraints",
+    "wrong_slice", "wrong_e0_phase", "missing_table_mapping", "wrong_table_stress", "wrong_table_source"])
+def test_exact_mtest_primary_mapping_metadata_is_mandatory(raw_template, kind):
+    raw = deepcopy(raw_template)
+    mtest = raw["mtest"]
+    if kind == "missing_mapping":
+        mtest.pop("buffer_mapping")
+    elif kind == "missing_table_mapping":
+        mtest["native_output_table"].pop("buffer_mapping")
+    elif kind == "wrong_table_stress":
+        mtest["native_output_table"]["buffer_mapping"]["stress"] = "CurrentState.s1"
+    elif kind == "wrong_table_source":
+        mtest["native_output_table"]["source_commit"] = "f" * 40
+    else:
+        key, value = {"wrong_source": ("source_commit", "f" * 40),
+            "wrong_size": ("global_unknown_count", 6), "wrong_constraints": ("imposed_gradient_constraint_count", 0),
+            "wrong_slice": ("global_gradient_slice", [6, 12]),
+            "wrong_e0_phase": ("prepared_e0_kelvin", "CurrentState.e0 (end of increment)")}[kind]
+        mtest["buffer_mapping"][key] = value
+    with pytest.raises(ValueError):
+        ref.assess(ref.canonical_settings(), raw)
+
+
+@pytest.mark.parametrize("field", ["global_u0", "global_u1", "prepared_e0_kelvin", "committed_s0_kelvin_mpa", "committed_iv0"])
+@pytest.mark.parametrize("kind", ["missing", "truncated", "boolean", "nonfinite"])
+def test_complete_finite_actual_mtest_buffers_are_mandatory(raw_template, field, kind):
+    raw = deepcopy(raw_template)
+    row = raw["mtest"]["states"][2]
+    if kind == "missing":
+        row.pop(field)
+    elif kind == "truncated":
+        row[field].pop()
+    else:
+        row[field][-1] = False if kind == "boolean" else float("inf")
+    with pytest.raises(ValueError):
+        ref.assess(ref.canonical_settings(), raw)
+
+
+@pytest.mark.parametrize("kind", ["u0_tail", "u1_gradient", "s0", "iv0", "prepared_e0", "phase", "initial_tail"])
+def test_actual_mtest_commit_phase_and_previous_global_continuity_refuse_tampering(raw_template, kind):
+    raw = deepcopy(raw_template)
+    row = raw["mtest"]["states"][2]
+    if kind == "phase":
+        row["buffer_phase"] = "BEFORE_COMMIT"
+    elif kind == "initial_tail":
+        raw["mtest"]["states"][0]["global_u0"][-1] = 1.
+        raw["mtest"]["states"][0]["global_u1"][-1] = 1.
+    else:
+        field, index = {"u0_tail": ("global_u0", 11), "u1_gradient": ("global_u1", 0),
+            "s0": ("committed_s0_kelvin_mpa", 3), "iv0": ("committed_iv0", 4),
+            "prepared_e0": ("prepared_e0_kelvin", 2)}[kind]
+        row[field][index] += .1
+    verdict = ref.assess(ref.canonical_settings(), raw)
+    assert next(c for c in verdict["checks"] if c["code"] == "native_driver_continuity")["status"] == "FAIL"
+    assert all(m["valid"] is False for m in verdict["metrics"].values())
+
+
+@pytest.mark.parametrize("value,passes", [(math.nextafter(1e-14, 0.), True),
+    (-math.nextafter(1e-14, 0.), True), (1e-14, False), (-1e-14, False),
+    (math.nextafter(1e-14, math.inf), False)])
+def test_actual_global_gradient_uses_existing_strict_epsilon_without_table_tolerance(raw_template, value, passes):
+    raw = deepcopy(raw_template)
+    states = raw["mtest"]["states"]
+    states[3]["global_u0"][3] = states[3]["global_u1"][3] = value
+    states[4]["prepared_e0_kelvin"][3] = value
+    verdict = ref.assess(ref.canonical_settings(), raw)
+    assert next(c for c in verdict["checks"] if c["code"] == "native_tensor_mapping")["status"] == ("PASS" if passes else "FAIL")
+    assert next(c for c in verdict["checks"] if c["code"] == "native_driver_continuity")["status"] == "PASS"
+    assert all(m["valid"] is passes for m in verdict["metrics"].values())
+
+
+def test_global_to_last_integration_residual_is_independent_of_both_imposed_residuals(raw_template):
+    raw = deepcopy(raw_template)
+    states = raw["mtest"]["states"]
+    states[3]["global_u0"][3] = states[3]["global_u1"][3] = 6e-15
+    states[4]["prepared_e0_kelvin"][3] = 6e-15
+    states[3]["gradients_kelvin"][3] = -6e-15
+    states[3]["strain_physical"] = ref.from_kelvin(states[3]["gradients_kelvin"])
+    verdict = ref.assess(ref.canonical_settings(), raw)
+    assert abs(states[3]["global_u0"][3]) < 1e-14 and abs(states[3]["gradients_kelvin"][3]) < 1e-14
+    assert abs(states[3]["global_u0"][3] - states[3]["gradients_kelvin"][3]) > 1e-14
+    assert next(c for c in verdict["checks"] if c["code"] == "native_tensor_mapping")["status"] == "FAIL"
+
+
+def test_native_cumulative_iterations_exceed_ten_while_actual_increment_remains_two(raw_template):
+    mtest = raw_template["mtest"]
+    assert [row["iterations"] for row in mtest["states"]] == list(range(0, 17, 2))
+    assert mtest["states"][-1]["iterations"] > mtest["iteration_limit"] == 10
+    assert all(row["iterations_increment"] == 2 for row in mtest["states"][1:])
+    assert all(c["status"] == "PASS" for c in ref.assess(ref.canonical_settings(), raw_template)["checks"])
+
+
+@pytest.mark.parametrize("kind", ["delta_zero", "delta_negative", "delta_eleven", "reset", "altered_before", "altered_delta"])
+def test_actual_increment_counter_limit_and_cumulative_continuity_are_mandatory(raw_template, kind):
+    raw = deepcopy(raw_template)
+    row = raw["mtest"]["states"][6]
+    if kind.startswith("delta_"):
+        delta = {"delta_zero": 0, "delta_negative": -1, "delta_eleven": 11}[kind]
+        row["iterations_increment"] = delta
+        row["iterations_after"] = row["iterations"] = row["iterations_before"] + delta
+    elif kind == "reset":
+        row["iterations_after"] = row["iterations"] = 2
+        row["iterations_increment"] = 2 - row["iterations_before"]
+    elif kind == "altered_before":
+        row["iterations_before"] += 1
+        row["iterations_increment"] -= 1
+    else:
+        row["iterations_increment"] += 1
+    verdict = ref.assess(ref.canonical_settings(), raw)
+    assert next(c for c in verdict["checks"] if c["code"] == "native_driver_continuity")["status"] == "FAIL"
+
+
+@pytest.mark.parametrize("field", ["iterations_before", "iterations_after", "iterations_increment"])
+@pytest.mark.parametrize("kind", ["missing", "boolean"])
+def test_actual_mtest_counter_fields_must_be_present_and_typed(raw_template, field, kind):
+    raw = deepcopy(raw_template)
+    row = raw["mtest"]["states"][1]
+    if kind == "missing":
+        row.pop(field)
+    else:
+        row[field] = True
+    with pytest.raises(ValueError):
+        ref.assess(ref.canonical_settings(), raw)
+
+
+@pytest.mark.parametrize("kind", ["missing", "loaded", "resolved", "digest", "size", "boolean_size", "float_size", "extra"])
+def test_extra_converter_binding_requires_exact_actual_identity(kind):
+    record = deepcopy(worker.SEALED_MTEST_MATH_BINDING)
+    if kind == "missing":
+        record.pop("sha256")
+    elif kind == "loaded":
+        record["loaded_path"] = record["resolved_path"]
+    elif kind == "resolved":
+        record["resolved_path"] = "/foreign/tfel/math.so"
+    elif kind == "digest":
+        record["sha256"] = "f" * 64
+    elif kind == "size":
+        record["size_bytes"] += 1
+    elif kind == "boolean_size":
+        record["size_bytes"] = True
+    elif kind == "float_size":
+        record["size_bytes"] = float(record["size_bytes"])
+    else:
+        record["unknown"] = "TEST ONLY"
+    with pytest.raises(ValueError, match="converter binding"):
+        worker.checked_mtest_math_binding(record)
+
+
+def test_converter_capture_measures_actual_bytes_and_refuses_later_drift(tmp_path, monkeypatch):
+    """TEST ONLY disk module; the actual protected binary is never imported."""
+    path = tmp_path / "TEST_ONLY_math.so"
+    path.write_bytes(b"TEST ONLY converter module bytes")
+    record = {"loaded_path": str(path), "resolved_path": str(path.resolve()),
+              "size_bytes": path.stat().st_size, "sha256": digest(path.read_bytes())}
+    monkeypatch.setattr(worker, "SEALED_MTEST_MATH_BINDING", record)
+    observed = worker.capture_mtest_math_binding(SimpleNamespace(__file__=str(path)))
+    assert observed == record and observed is not record
+    observed["sha256"] = "f" * 64
+    assert record["sha256"] == digest(path.read_bytes())
+    path.write_bytes(path.read_bytes() + b"!")
+    with pytest.raises(ValueError, match="converter binding"):
+        worker.capture_mtest_math_binding(SimpleNamespace(__file__=str(path)))
+
+
+@pytest.mark.parametrize("kind", ["missing", "wrong_binding", "extra", "raw_only", "policy"])
+def test_converter_binding_consumer_rejects_missing_or_rebound_actual_record(tmp_path, monkeypatch, raw_template, kind):
+    def corrupt(output, raw):
+        if kind == "policy":
+            path = output / "frozen_execution_policy.json"
+            policy = load_json(path)
+            policy["extra_native_bindings"]["tfel_math"]["sha256"] = "f" * 64
+            save_json(path, policy)
+        elif kind == "raw_only":
+            raw["extra_native_bindings"]["tfel_math"]["sha256"] = "f" * 64
+        else:
+            extra = raw["runtime"]["extra_native_bindings"]
+            if kind == "missing":
+                extra.pop("tfel_math")
+            elif kind == "extra":
+                extra["foreign"] = deepcopy(worker.SEALED_MTEST_MATH_BINDING)
+            else:
+                extra["tfel_math"]["sha256"] = "f" * 64
+            raw["extra_native_bindings"] = deepcopy(extra)
+            save_json(output / "runtime.json", raw["runtime"])
+    install_testonly_executor(monkeypatch, tmp_path, raw_template, corrupt)
+    output = tmp_path / "converter-refused"
+    outcome = adapter_module.MFrontViscoelasticAdapter().solve(output, ref.canonical_settings())
+    assert outcome["solver_status"] == "FAILED_EXECUTION" and outcome["converged"] is None
+    assert load_json(output / "execution_failure.json")["numerical_verdict"] == "UNKNOWN"
+    assert (output / "native_raw.json").exists()
+
+
+@pytest.mark.parametrize("ending", ["LF", "CRLF"])
+def test_transport_opposite_variant_corruption_is_real_and_refused_for_both_source_forms(tmp_path, monkeypatch, ending):
+    data = adapter_module.transport.WORKER.read_bytes().replace(b"\r\n", b"\n")
+    if ending == "CRLF":
+        data = data.replace(b"\n", b"\r\n")
+    selected = digest(data)
+    path = tmp_path / "mfront_material_worker.py"
+    path.write_bytes(data)
+    corrupt_evidence(tmp_path, {}, "transport_capture_replaced_variant")
+    changed = path.read_bytes()
+    assert data != changed and selected != digest(changed)
+    assert worker.TRANSPORT_VARIANTS[digest(changed)] == len(changed)
+    monkeypatch.setattr(worker, "__package__", "")
+    monkeypatch.setattr(worker, "_checked_module", no_native)
+    with pytest.raises(ValueError, match="selected exact reviewed"):
+        worker._transport(selected, output=tmp_path)

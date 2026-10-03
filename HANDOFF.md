@@ -1,4 +1,24 @@
-## Current checkpoint: P5.2b preserved Maxwell source reviewed; native pending
+## Current checkpoint: P5.2b actual MTest phase/counter source corrected
+
+Main source unit reuses c489 and fixes the result consumer; native02 completed
+all8 MTest increments in2 local iterations but its original result remains
+FAILED_EXECUTION/metrics{} because the parser compared globalu0 with e1.
+Native01 failed only Root's missing image configuration. Both original stores
+are frozen; independent primary/source reviews close the new phase/counter P2.
+Cold: first393=392PASS/1harnessFAIL, then failed-node1PASS;393 distinct cases,
+same production bytes, no unrelated passed-suite repeat, CorePython3.12.3.
+NEXT: new `runs/viscoelastic-native-20261003-03` with explicit protectedSIF;
+canonical9, midpoint17, tau2, preflight refusal and independent actual
+state/all-signed-FD/native-energy audit; then explicit Research/wholequestion/
+same-record human inspection. Contact/fixture/P6/P7 and old numericalCI gaps
+remain in the existing ordered roadmap. Whole52 is active.
+Record: `benchmarks/records/20261003-maxwell-state-correction-source.json` (SHA256 `e46ee48cc613aba14712b5d601b70e1eb79bf8a52ca6fcdc0f2585c993b6a881`).
+Actual original failures: `benchmarks/records/20261003-maxwell-native-r01-r02-failed.json`.
+Corrected-source native03 is pending; Research stays SVK-only. UNKNOWN / NOT_RELEASED remain.
+
+---
+
+## Historical checkpoint at c489: P5.2b preserved Maxwell source reviewed; native pending
 
 Root reuses the six frozen Maxwell drafts. Reviewed state/range/reference,
 transport/build/runtime/MTest/common-route candidate passes one combined413 cold

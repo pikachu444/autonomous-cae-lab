@@ -337,6 +337,22 @@ def _containers(value):
 MTEST_LIMITS = {"substep_limit": 1, "iteration_limit": 10,
                 "strain_epsilon": 1e-14, "stress_epsilon_mpa": 1e-10}
 MTEST_COMPONENTS = ["EXX", "EYY", "EZZ", "EXY", "EXZ", "EYZ"]
+MTEST_BUFFER_MAPPING = {
+    "source_commit": "85554f233306548d8c9c4d36af54b715c608b8c7",
+    "hypothesis": "Tridimensional", "gradient_count": 6,
+    "imposed_gradient_constraint_count": 6, "global_unknown_count": 12,
+    "global_gradient_slice": [0, 6],
+    "global_u0": "StudyCurrentState.u0", "global_u1": "StudyCurrentState.u1",
+    "prepared_e0_kelvin": "CurrentState.e0 (prepared start of increment)",
+    "gradients_kelvin": "CurrentState.e1 (last constitutive evaluation)",
+    "stress_kelvin_mpa": "CurrentState.s1", "internal_state_variables": "CurrentState.iv1",
+    "committed_s0_kelvin_mpa": "CurrentState.s0", "committed_iv0": "CurrentState.iv0",
+    "initial_phase": "INITIAL_UNPREPARED", "post_execute_phase": "AFTER_EXECUTE_COMMIT",
+    "iterations": "StudyCurrentState.iterations (cumulative)",
+    "iterations_increment": "actual iterations_after minus actual iterations_before"}
+MTEST_TABLE_MAPPING = {"time": "time_s", "gradients": "StudyCurrentState.u0[0:6]",
+    "stress": "CurrentState.s0", "branch": "CurrentState.iv0",
+    "stored_energy": "CurrentState.se0", "dissipated_energy": "CurrentState.de0"}
 
 
 def _mtest_imposed_history(settings, mtest):
@@ -358,7 +374,37 @@ def _mtest_imposed_history(settings, mtest):
             mtest.get("imposed_interpolation") != "piecewise_linear" or
             mtest.get("imposed_history") != expected):
         raise ValueError("Exact actual imposed MTest Kelvin history/ordering is required")
+    if state_hash(mtest.get("buffer_mapping")) != state_hash(MTEST_BUFFER_MAPPING):
+        raise ValueError("Exact primary-supported MTest buffer/phase/count mapping is required")
     return expected
+
+
+def _mtest_buffer_admission(row, previous, index, imposed):
+    """Validate actual distinct global, prepared and endpoint committed buffers."""
+    u0 = vector(row.get("global_u0"), 12, "MTest global u0")
+    u1 = vector(row.get("global_u1"), 12, "MTest global u1")
+    e0 = vector(row.get("prepared_e0_kelvin"), label="MTest prepared e0")
+    s0 = vector(row.get("committed_s0_kelvin_mpa"), label="MTest committed s0")
+    iv0 = vector(row.get("committed_iv0"), label="MTest committed iv0")
+    counts = [row.get(key) for key in ("iterations_before", "iterations_after", "iterations_increment")]
+    if any(type(value) is not int for value in counts):
+        raise ValueError("Actual cumulative before/after and per-increment iteration counts are required")
+    before, after, increment_count = counts
+    expected_before = 0 if index == 0 else previous["iterations"]
+    expected_e0 = [0.] * 6 if index == 0 else previous["global_u0"][:6]
+    continuity = (before == expected_before and after == row["iterations"] and
+        increment_count == after - before and e0 == expected_e0 and u0 == u1 and
+        s0 == row["stress_kelvin_mpa"] and iv0 == row["internal_state_variables"])
+    if index == 0:
+        continuity &= (row.get("buffer_phase") == "INITIAL_UNPREPARED" and
+            before == after == increment_count == 0 and u0 == u1 == [0.] * 12 and
+            e0 == s0 == iv0 == [0.] * 6)
+    else:
+        continuity &= (row.get("buffer_phase") == "AFTER_EXECUTE_COMMIT" and
+            0 < increment_count <= MTEST_LIMITS["iteration_limit"])
+    mapping = (_error(u0[:6], row["gradients_kelvin"]) < MTEST_LIMITS["strain_epsilon"] and
+               _error(u0[:6], imposed["gradients_kelvin"]) < MTEST_LIMITS["strain_epsilon"])
+    return continuity, mapping
 
 
 def assess(settings, raw):
@@ -402,7 +448,9 @@ def assess(settings, raw):
     table = mtest.get("native_output_table")
     if (not isinstance(table, dict) or table.get("column_count") != 21 or table.get("stored_energy_column") != 20 or
             table.get("dissipated_energy_column") != 21 or not isinstance(table.get("sha256"), str) or
-            len(table["sha256"]) != 64 or table.get("rows") != len(states)):
+            len(table["sha256"]) != 64 or table.get("rows") != len(states) or
+            table.get("source_commit") != MTEST_BUFFER_MAPPING["source_commit"] or
+            state_hash(table.get("buffer_mapping")) != state_hash(MTEST_TABLE_MAPPING)):
         raise ValueError("Strict actual MTest energy output table identity is required")
     initial = mgis.get("initial")
     _observation(initial, "MGIS initial")
@@ -529,8 +577,11 @@ def assess(settings, raw):
         isv = vector(other.get("internal_state_variables"), label="MTest native q")
         if type(other.get("substeps")) is not int or type(other.get("iterations")) is not int:
             raise ValueError("MTest actual step/iteration counts are required")
-        flags["native_driver_continuity"] &= (other["substeps"] == 0 and
-            0 <= other["iterations"] <= MTEST_LIMITS["iteration_limit"] and isv == other["branch_stress_kelvin_mpa"])
+        continuity, global_mapping = _mtest_buffer_admission(
+            other, None if index == 0 else states[index - 1], index, imposed_history[index])
+        flags["native_driver_continuity"] &= (other["substeps"] == 0 and continuity and
+            isv == other["branch_stress_kelvin_mpa"])
+        flags["native_tensor_mapping"] &= global_mapping
         if index == 0:
             flags["native_driver_continuity"] &= other.get("state_phase") == "INITIAL_UNPREPARED" and properties == [0.] * 5 and external == [0.] and other["iterations"] == 0
         else:

@@ -128,7 +128,10 @@ def _frozen_policy(settings, budgets):
             "transport_sha256": SOURCE_HASHES[worker.TRANSPORT_KEY],
             "compiler_helper_sha256": SOURCE_HASHES[worker.COMPILER_HELPER_KEY],
             "sealed_installed_native_binaries": deepcopy(SEALED_NATIVE_BINARIES),
-            "mtest_limits": deepcopy(worker.MTEST_LIMITS)}
+            "mtest_limits": deepcopy(worker.MTEST_LIMITS),
+            "mtest_buffer_mapping": deepcopy(worker.MTEST_BUFFER_MAPPING),
+            "mtest_table_mapping": deepcopy(worker.MTEST_TABLE_MAPPING),
+            "extra_native_bindings": {"tfel_math": deepcopy(worker.SEALED_MTEST_MATH_BINDING)}}
 
 
 def checked_native(output, input_sha, settings, budgets):
@@ -181,6 +184,11 @@ def checked_native(output, input_sha, settings, budgets):
                 for name in ("python", "numpy", "compiler", "mfront", "make"))):
         raise ValueError("Actual native package/runtime identity is incomplete")
     runtime_helpers._sealed_runtime(raw)
+    extra = runtime.get("extra_native_bindings")
+    if (not isinstance(extra, dict) or set(extra) != {"tfel_math"} or
+            extra != raw.get("extra_native_bindings") or extra != policy["extra_native_bindings"]):
+        raise ValueError("Actual extra converter binding differs from the frozen policy/raw/runtime")
+    worker.checked_mtest_math_binding(extra["tfel_math"])
     flags = worker._transport(policy["transport_sha256"]).portable_compiler_flags(
         runtime["tfel_recommended_oflags0"], runtime["tfel_cpp_compiler_flags"], runtime["tfel_include_path"])
     makefile = (output / "build/src/Makefile.mfront").read_text(encoding="utf-8")

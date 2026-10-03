@@ -1,3 +1,20 @@
+## Current acceptance: phase/counter source reviewed, actual03 pending
+
+Source reviews close exact globalu0/table mapping, preparede0 continuity,
+cumulative/local counters and extra converter identity without changing law,
+limits, metric construction or signedFD loops. First393=392PASS/1harnessFAIL,
+then targeted1PASS covers393 distinct source cases on unchanged final bytes.
+Native01: Root image-config failure before native execution. Native02: MGIS/
+MTest completed, then Root parser failed; originalFAILED/metrics{} retained.
+Corrected-source canonical9/refined17/tau2, independent actual native-state/
+energy/FD audit, explicit Research and human view are pending. Physical/FE/
+strength/durability stay UNKNOWN. Historical source/native states follow below.
+Record: `benchmarks/records/20261003-maxwell-state-correction-source.json` (SHA256 `e46ee48cc613aba14712b5d601b70e1eb79bf8a52ca6fcdc0f2585c993b6a881`).
+Actual original failures: `benchmarks/records/20261003-maxwell-native-r01-r02-failed.json`.
+Corrected-source native03 is pending; Research stays SVK-only. UNKNOWN / NOT_RELEASED remain.
+
+---
+
 # P5.2b preserved single-branch Maxwell acceptance
 
 This unit reuses the exact six existing drafts under

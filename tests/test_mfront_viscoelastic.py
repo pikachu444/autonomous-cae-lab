@@ -110,8 +110,8 @@ def table_text(states):
         lines.append(f"# {i + 14} column: internal state variable BranchStress component {i}")
     lines += ["# 20 column: stored energy", "# 21 column: disspated energy"]
     for state in states:
-        values = [state["time_s"], *state["gradients_kelvin"], *state["stress_kelvin_mpa"],
-                  *state["internal_state_variables"], state["stored_energy_mpa"], state["dissipated_energy_mpa"]]
+        values = [state["time_s"], *state["global_u0"][:6], *state["committed_s0_kelvin_mpa"],
+                  *state["committed_iv0"], state["stored_energy_mpa"], state["dissipated_energy_mpa"]]
         lines.append(" ".join(format(x, ".17g") for x in values))
     return "\n".join(lines) + "\n"
 
@@ -234,6 +234,7 @@ def write_testonly_native(output, settings, raw_template, monkeypatch):
         "resource_limits": load_json(output / "frozen_execution_policy.json")["resource_limits"],
         "mgis_binding_sha256": sealed["mgis_binding"]["sha256"],
         "mtest_binding_sha256": sealed["mtest_binding"]["sha256"],
+        "extra_native_bindings": {"tfel_math": deepcopy(worker.SEALED_MTEST_MATH_BINDING)},
         "executables": {key: {"path": "/TEST_ONLY/" + key, **sealed[key]} for key in ("compiler", "mfront", "mtest", "tfel_config")}}
     for name, prefix, version, key in (("mgis", worker.MGIS_PREFIX, "3.0", "mgis_binding"),
                                      ("tfel", worker.TFEL_PREFIX, "5.0.0", "mtest_binding")):
@@ -290,6 +291,7 @@ def write_testonly_native(output, settings, raw_template, monkeypatch):
         compiler_helper_sha256=adapter_module.SOURCE_HASHES[worker.COMPILER_HELPER_KEY],
         source_files=deepcopy(adapter_module.SOURCE_HASHES), process_policy=deepcopy(runtime["process_policy"]),
         resource_limits=deepcopy(runtime["resource_limits"]),
+        extra_native_bindings=deepcopy(runtime["extra_native_bindings"]),
         conventions={"physical": "xx,yy,zz,xy,xz,yz", "native": "xx,yy,zz,sqrt2*xy,sqrt2*xz,sqrt2*yz",
                      "strain": "infinitesimal_tensor_not_engineering_shear", "stress_unit": "MPa",
                      "energy_unit": "MPa = MJ/m^3 per reference volume"})

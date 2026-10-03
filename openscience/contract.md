@@ -1,4 +1,20 @@
-## Current checkpoint: P5.2b preserved Maxwell source reviewed; native pending
+## Current checkpoint: adapter-only native phase evidence; Research admission unchanged
+
+OpenScience retains question/campaign/interpretation ownership. Core keeps the
+existing declared-model/common-result operations and numerical engines own
+candidate search. MTest's global/constitutive/prepared/committed buffers and
+cumulative/local counters are adapter evidence, not new shared wire operations.
+Exact table/global correspondence and original scientific verdicts are required;
+actual native energy is mandatory. Maxwell admission follows fresh native03
+and independent audit, then one complete Research question and same-record view.
+Approved `openai-codex/gpt-5.6-sol` remains the research model.
+Record: `benchmarks/records/20261003-maxwell-state-correction-source.json` (SHA256 `e46ee48cc613aba14712b5d601b70e1eb79bf8a52ca6fcdc0f2585c993b6a881`).
+Actual original failures: `benchmarks/records/20261003-maxwell-native-r01-r02-failed.json`.
+Corrected-source native03 is pending; Research stays SVK-only. UNKNOWN / NOT_RELEASED remain.
+
+---
+
+## Historical checkpoint at c489: P5.2b preserved Maxwell source reviewed; native pending
 
 Root reuses the six frozen Maxwell drafts. Reviewed state/range/reference,
 transport/build/runtime/MTest/common-route candidate passes one combined413 cold

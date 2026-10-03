@@ -30,6 +30,22 @@ COMPILER_HELPER_KEY = "caelab/adapters/mfront_hyperelastic_worker.py"
 MTEST_LIMITS = {"substep_limit": 1, "iteration_limit": 10,
                 "strain_epsilon": 1e-14, "stress_epsilon_mpa": 1e-10}
 MTEST_COMPONENTS = ["EXX", "EYY", "EZZ", "EXY", "EXZ", "EYZ"]
+MTEST_BUFFER_MAPPING = {
+    "source_commit": "85554f233306548d8c9c4d36af54b715c608b8c7",
+    "hypothesis": "Tridimensional", "gradient_count": 6,
+    "imposed_gradient_constraint_count": 6, "global_unknown_count": 12,
+    "global_gradient_slice": [0, 6],
+    "global_u0": "StudyCurrentState.u0", "global_u1": "StudyCurrentState.u1",
+    "prepared_e0_kelvin": "CurrentState.e0 (prepared start of increment)",
+    "gradients_kelvin": "CurrentState.e1 (last constitutive evaluation)",
+    "stress_kelvin_mpa": "CurrentState.s1", "internal_state_variables": "CurrentState.iv1",
+    "committed_s0_kelvin_mpa": "CurrentState.s0", "committed_iv0": "CurrentState.iv0",
+    "initial_phase": "INITIAL_UNPREPARED", "post_execute_phase": "AFTER_EXECUTE_COMMIT",
+    "iterations": "StudyCurrentState.iterations (cumulative)",
+    "iterations_increment": "actual iterations_after minus actual iterations_before"}
+MTEST_TABLE_MAPPING = {"time": "time_s", "gradients": "StudyCurrentState.u0[0:6]",
+    "stress": "CurrentState.s0", "branch": "CurrentState.iv0",
+    "stored_energy": "CurrentState.se0", "dissipated_energy": "CurrentState.de0"}
 REFERENCE_SOURCE_SHA256 = "d1e378bf9c473c93d7e292b403196a750e72df70e1a8737ed0df80a7bc2dce86"
 TFEL_COMMIT = "85554f233306548d8c9c4d36af54b715c608b8c7"
 REFERENCE_SOURCE_URL = f"https://raw.githubusercontent.com/thelfer/tfel/{TFEL_COMMIT}/mfront/tests/behaviours/GeneralizedMaxwell.mfront"
@@ -48,6 +64,40 @@ ARRAYS = {"gradients": "gradients_kelvin", "thermodynamic_forces": "stress_kelvi
           "dissipated_energies": "dissipated_energies"}
 EXPECTED_SHAPES = {"gradients_kelvin": [1, 6], "stress_kelvin_mpa": [1, 6],
                    "internal_state_variables": [1, 6], "stored_energies": [1], "dissipated_energies": [1]}
+
+
+SEALED_MTEST_MATH_BINDING = {
+    "loaded_path": "/opt/spack/var/spack/environments/simvia_env/.spack-env/view/lib/python3.11/site-packages/tfel/math.so",
+    "resolved_path": TFEL_PREFIX + "/lib/python3.11/site-packages/tfel/math.so",
+    "size_bytes": 927872,
+    "sha256": "9685745ba9c4b2a4a83e3fa593767ff1e88649362a6a06cc86277b6780910245"}
+
+
+def checked_mtest_math_binding(record):
+    """The extra converter binding is adapter-specific, separate from six tools."""
+    if (not isinstance(record, dict) or set(record) != set(SEALED_MTEST_MATH_BINDING) or
+            type(record.get("size_bytes")) is not int or
+            any(type(record.get(key)) is not str for key in ("loaded_path", "resolved_path", "sha256")) or
+            record != SEALED_MTEST_MATH_BINDING):
+        raise ValueError("Actual installed tfel.math converter binding differs from its exact sealed identity")
+    return deepcopy(record)
+
+
+def capture_mtest_math_binding(module):
+    """Read actual loaded bytes after importing the installed converter module."""
+    loaded = Path(module.__file__)
+    resolved = loaded.resolve(strict=True)
+    if not resolved.is_file():
+        raise ValueError("Actual installed tfel.math converter binding is not a file")
+    return checked_mtest_math_binding({"loaded_path": str(loaded), "resolved_path": str(resolved),
+        "size_bytes": resolved.stat().st_size, "sha256": sha256(resolved)})
+
+
+def _mtest_native_vector(value, size, label):
+    values = list(value)
+    if (len(values) != size or any(type(x) not in (int, float) or not math.isfinite(x) for x in values)):
+        raise ValueError(label + " requires complete finite actual native vector components")
+    return [float(x) for x in values]
 
 
 def sha256(path):
@@ -361,7 +411,7 @@ def integrate_history(binding, behaviour, settings, library_sha, output, np, tra
 
 def parse_mtest_table(path, states):
     path = Path(path)
-    if not path.is_file() or path.stat().st_size > MAX_RAW_BYTES:
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > MAX_RAW_BYTES:
         raise ValueError("Actual MTest output table is absent/unbounded")
     headers, rows = {}, []
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -393,14 +443,20 @@ def parse_mtest_table(path, states):
             any("BranchStress" not in headers[i] for i in range(14, 20)) or len(rows) != len(states)):
         raise ValueError("Pinned MTest time/tensor/q/native-energy header/count contract changed")
     for row, state in zip(rows, states):
-        if (row[0] != state["time_s"] or row[1:7] != state["gradients_kelvin"] or
-                row[7:13] != state["stress_kelvin_mpa"] or row[13:19] != state["internal_state_variables"]):
+        u0 = _mtest_native_vector(state.get("global_u0", []), 12, "MTest global u0")
+        u1 = _mtest_native_vector(state.get("global_u1", []), 12, "MTest global u1")
+        s0 = _mtest_native_vector(state.get("committed_s0_kelvin_mpa", []), 6, "MTest committed s0")
+        iv0 = _mtest_native_vector(state.get("committed_iv0", []), 6, "MTest committed iv0")
+        if (u0 != u1 or s0 != state["stress_kelvin_mpa"] or iv0 != state["internal_state_variables"] or
+                row[0] != state["time_s"] or row[1:7] != u0[:6] or
+                row[7:13] != s0 or row[13:19] != iv0):
             raise ValueError("Actual MTest table disagrees with ordered native state buffers")
         state["stored_energy_mpa"], state["dissipated_energy_mpa"] = row[19:21]
     return {"artifact": "mtest.res", "sha256": sha256(path), "rows": len(rows), "column_count": 21,
             "stored_energy_column": 20, "dissipated_energy_column": 21,
             "columns": {str(k): v for k, v in headers.items()},
-            "source_commit": TFEL_COMMIT, "method": "Actual pinned MTest printOutput cs.se0/cs.de0"}
+            "source_commit": TFEL_COMMIT, "method": "Actual pinned MTest printOutput cs.se0/cs.de0",
+            "buffer_mapping": deepcopy(MTEST_TABLE_MAPPING)}
 
 
 def mtest_history(module, library, settings, output):
@@ -431,24 +487,39 @@ def mtest_history(module, library, settings, output):
     result = {"library_sha256": library_sha, "material_properties": properties,
               "external_state_variables": {"Temperature": settings["temperature_k"]},
               **deepcopy(MTEST_LIMITS), "imposed_components": list(MTEST_COMPONENTS),
-              "imposed_interpolation": "piecewise_linear", "imposed_history": deepcopy(imposed), "states": []}
-    def retain(time):
-        gradients, forces, q = ([float(x) for x in v] for v in (list(state.e1), list(state.s1), list(state.iv1)))
-        if len(gradients) != 6 or len(forces) != 6 or len(q) != 6:
-            raise ValueError("MTest omitted complete native 3D stress/strain/branch components")
+              "imposed_interpolation": "piecewise_linear", "imposed_history": deepcopy(imposed),
+              "buffer_mapping": deepcopy(MTEST_BUFFER_MAPPING), "states": []}
+    def retain(time, iterations_before):
+        gradients, forces, q = (_mtest_native_vector(v, 6, "MTest actual e1/s1/iv1")
+                                for v in (state.e1, state.s1, state.iv1))
+        u0, u1 = (_mtest_native_vector(v, 12, "MTest actual six gradients plus six multipliers")
+                  for v in (state.u0, state.u1))
+        e0, s0, iv0 = (_mtest_native_vector(v, 6, "MTest actual prepared/committed e0/s0/iv0")
+                       for v in (state.e0, state.s0, state.iv0))
+        if type(state.iterations) is not int or type(state.subSteps) is not int:
+            raise ValueError("Actual native cumulative iteration/substep counters are required")
+        iterations_after = state.iterations
         result["states"].append({"time_s": float(time), "state_phase": "INITIAL_UNPREPARED" if time == 0 else "INTEGRATED",
             "gradients_kelvin": gradients, "strain_physical": _physical(gradients),
             "stress_kelvin_mpa": forces, "stress_physical_mpa": _physical(forces),
             "branch_stress_kelvin_mpa": q, "branch_stress_physical_mpa": _physical(q), "internal_state_variables": q,
             "properties_native": [float(x) for x in state.mprops1],
             "external_state_variables_native": [float(x) for x in state.evs0],
-            "iterations": int(state.iterations), "substeps": int(state.subSteps)})
+            "iterations": int(state.iterations), "substeps": int(state.subSteps),
+            "iterations_before": iterations_before, "iterations_after": iterations_after,
+            "iterations_increment": iterations_after - iterations_before,
+            "buffer_phase": "INITIAL_UNPREPARED" if time == 0 else "AFTER_EXECUTE_COMMIT",
+            "global_u0": u0, "global_u1": u1, "prepared_e0_kelvin": e0,
+            "committed_s0_kelvin_mpa": s0, "committed_iv0": iv0})
         test.printOutput(time, state)
         save(output / "mtest.partial.json", result)
-    retain(0.)
+    retain(0., 0)
     for previous, entry in zip(settings["history"], settings["history"][1:]):
+        if type(state.iterations) is not int:
+            raise ValueError("Actual native cumulative iteration counter is required before execute")
+        iterations_before = state.iterations
         test.execute(state, workspace, previous["time_s"], entry["time_s"])
-        retain(entry["time_s"])
+        retain(entry["time_s"], iterations_before)
     if sha256(library) != library_sha:
         raise ValueError("Behavior binary drifted during MTest")
     # The CPython local MTest object closes/flushed its native output on return.
@@ -473,7 +544,11 @@ def solve(input_path):
     limits = resource_limits(budgets)
     if (policy.get("resource_limits") != limits or policy.get("behavior") != BEHAVIOUR or
             policy.get("native_interface") != "generic" or policy.get("native_hypothesis") != "Tridimensional" or
-            state_hash(policy.get("mtest_limits")) != state_hash(MTEST_LIMITS) or policy.get("compiler_policy") != transport.COMPILER_POLICY):
+            state_hash(policy.get("mtest_limits")) != state_hash(MTEST_LIMITS) or
+            state_hash(policy.get("mtest_buffer_mapping")) != state_hash(MTEST_BUFFER_MAPPING) or
+            state_hash(policy.get("mtest_table_mapping")) != state_hash(MTEST_TABLE_MAPPING) or
+            state_hash(policy.get("extra_native_bindings")) != state_hash({"tfel_math": SEALED_MTEST_MATH_BINDING}) or
+            policy.get("compiler_policy") != transport.COMPILER_POLICY):
         raise ValueError("Frozen native execution/resource/driver policy changed")
     resource.setrlimit(resource.RLIMIT_AS, (limits["address_space_bytes"],) * 2)
     resource.setrlimit(resource.RLIMIT_CPU, (budgets["solver_time_seconds"],) * 2)
@@ -527,12 +602,14 @@ def solve(input_path):
     import mgis.behaviour as binding
     import tfel
     import tfel.math
+    math_binding = capture_mtest_math_binding(tfel.math)
     import mtest
     mgis_package = transport.installed_package_identity(MGIS_PREFIX, "mgis", "3.0", binding.__file__, output)
     tfel_package = transport.installed_package_identity(TFEL_PREFIX, "tfel", "5.0.0", mtest._mtest.__file__, output)
     runtime.update(numpy=np.__version__, mgis=mgis_package["version"], mgis_package=mgis_package, tfel_package=tfel_package,
         mgis_binding_sha256=sha256(binding.__file__), mtest_binding_sha256=sha256(mtest._mtest.__file__),
-        mgis_binding_path=binding.__file__, mtest_binding_path=mtest._mtest.__file__)
+        mgis_binding_path=binding.__file__, mtest_binding_path=mtest._mtest.__file__,
+        extra_native_bindings={"tfel_math": math_binding})
     save(output / "runtime.json", runtime)
     sealed = policy["sealed_installed_native_binaries"]
     for name, field in (("mgis_binding", "mgis_binding_sha256"), ("mtest_binding", "mtest_binding_sha256")):
@@ -581,7 +658,8 @@ def solve(input_path):
         "source_sha256": SOURCE_SHA256, "transport_sha256": policy["transport_sha256"], "library_sha256": library_sha,
         "compiler_helper_sha256": policy["compiler_helper_sha256"], "source_files": deepcopy(pins),
         "process_policy": deepcopy(budgets), "resource_limits": deepcopy(limits),
-        "runtime": runtime, "behaviour_description": descriptor,
+        "runtime": runtime, "extra_native_bindings": {"tfel_math": deepcopy(math_binding)},
+        "behaviour_description": descriptor,
         "conventions": {"physical": "xx,yy,zz,xy,xz,yz", "native": "xx,yy,zz,sqrt2*xy,sqrt2*xz,sqrt2*yz",
                         "strain": "infinitesimal_tensor_not_engineering_shear", "stress_unit": "MPa",
                         "energy_unit": "MPa = MJ/m^3 per reference volume"}}
@@ -595,6 +673,8 @@ def solve(input_path):
             raw["mtest"]["native_output_table"] = parse_mtest_table(output / "mtest.res", raw["mtest"]["states"])
             save(output / "mtest.partial.json", raw["mtest"])
         assert_captures(output, policy)
+        if capture_mtest_math_binding(tfel.math) != math_binding:
+            raise ValueError("Actual installed tfel.math converter binding changed during native execution")
         if (sha256(source) != SOURCE_SHA256 or sha256(library) != library_sha or
                 sha256(input_path) != raw["input_sha256"] or sha256(__file__) != raw["worker_sha256"]):
             raise ValueError("Native source/input/worker/library identity drifted")

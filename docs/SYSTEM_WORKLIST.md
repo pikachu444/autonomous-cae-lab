@@ -1,4 +1,18 @@
-## Current checkpoint: P5.2b preserved Maxwell source reviewed; native pending
+## Current ordered work: close actual Maxwell acceptance before Research expansion
+
+- [x] Preserve c489 native01/02 failures and independently diagnose phase/counters.
+- [x] Review six-file correction;393 distinct cold cases through392PASS plus1 targetedPASS.
+- [ ] Run corrected clean committed source in fresh native03: refusal/canonical9/refined17/tau2.
+- [ ] Independently audit original actual fullstate/signedFD/nativeenergy/composition.
+- [ ] Explicit Maxwell Research admission, wholequestion, interpretation and same-record human view.
+- [ ] Continue existing P5.3 contact/fixture, Phase6/7 and deferred numerical/CI gates in order.
+Record: `benchmarks/records/20261003-maxwell-state-correction-source.json` (SHA256 `e46ee48cc613aba14712b5d601b70e1eb79bf8a52ca6fcdc0f2585c993b6a881`).
+Actual original failures: `benchmarks/records/20261003-maxwell-native-r01-r02-failed.json`.
+Corrected-source native03 is pending; Research stays SVK-only. UNKNOWN / NOT_RELEASED remain.
+
+---
+
+## Historical checkpoint at c489: P5.2b preserved Maxwell source reviewed; native pending
 
 Root reuses the six frozen Maxwell drafts. Reviewed state/range/reference,
 transport/build/runtime/MTest/common-route candidate passes one combined413 cold
@@ -31,7 +45,7 @@ Whole52 scope remains active. Earlier checkpoints below are historical.
 
 ---
 
-## Ordered next work
+## Historical ordered next work at c489
 
 - [x] P5.2a connected material question/two analyses/raw audit/official conversation GUI/owned Stop/retention.
 - [x] P5.2b preserve six drafts; fix state/range/native formula and complete cold/independent source review.

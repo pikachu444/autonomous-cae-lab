@@ -94,3 +94,24 @@ and change only the worker fixed digest. The constitutive text and all other
 worker AST remain identical. Retain the original CRLF draft/seals; one new real
 Main regression/import smoke and independent P2closure qualify this transport
 correction without repeating or relabeling the original413/native evidence.
+
+## Actual MTest phase/counter clarification
+
+Native02 exposes an adapter consumer defect: printOutput uses globalu0[:6] and
+committeds0/iv0, while e1 retains the last constitutive evaluation. Capture both
+actual buffers independently and require exact table correspondence with u0,
+s0 andiv0. Retain actual e0 as prepared prior-global strain, not an endpoint
+copy. Full12-vector size follows six gradients and six imposed multipliers.
+Official GenericSolver increments cumulativeiterations separately from local
+iter. Preserve actual before/after and enforce local delta1..10, initial0 and
+failedsubsteps0; cumulative16 is valid for eight two-iteration increments.
+These decisions follow pinnedTFEL85554 primary and independent source review.
+The installed tfel.math import registers the global-vector converter; capture
+and seal its actual loaded/resolved file,size927872/SHA9685745 independently
+within this adapter. Shared six-binary helpers and Core interfaces are unchanged.
+Alternatives of replacing e1, comparing e0=e1, relaxing printed-gradient
+identity/scientific limits, or changing the driveriteration limit are rejected.
+Native energies remain actual mandatory table outputs. Old failedstores and
+verdicts stay unchanged; clean corrected-source native03 is the next gate.
+The CI transport negativecontrol chooses a real opposite exact LF/CRLF form
+from the actual checkout; production selected-source admission is unchanged.

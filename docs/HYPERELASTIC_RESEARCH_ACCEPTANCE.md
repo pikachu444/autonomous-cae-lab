@@ -1,4 +1,16 @@
-## Current checkpoint: P5.2b preserved Maxwell source reviewed; native pending
+## Current relation: SVK Research preserved; Maxwell source correction reviewed
+
+The earlier qualified SVK Research session and original store remain unchanged.
+Maxwell's new phase/counter source correction covers393 distinct source cases;
+corrected-source native qualification and explicit MaterialPoints admission are
+separate next gates. No new Research/model/auth call is attributed to this unit.
+Record: `benchmarks/records/20261003-maxwell-state-correction-source.json` (SHA256 `e46ee48cc613aba14712b5d601b70e1eb79bf8a52ca6fcdc0f2585c993b6a881`).
+Actual original failures: `benchmarks/records/20261003-maxwell-native-r01-r02-failed.json`.
+Corrected-source native03 is pending; Research stays SVK-only. UNKNOWN / NOT_RELEASED remain.
+
+---
+
+## Historical checkpoint at c489: P5.2b preserved Maxwell source reviewed; native pending
 
 Root reuses the six frozen Maxwell drafts. Reviewed state/range/reference,
 transport/build/runtime/MTest/common-route candidate passes one combined413 cold

@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-03T11:49:00.423593+00:00",
+  "status": "REVIEWED_ACTUAL_MTEST_PHASE_COUNTER_SOURCE_CORRECTION_NATIVE03_PENDING",
+  "source_parent": "c489dd606a71a2b3b68731af7d43294e986afc50",
+  "source_files": [
+    {
+      "path": "caelab/adapters/mfront_viscoelastic.py",
+      "sha256": "a1c2967d8dd971c959e828eea6d6dbcda9948a0a198a6188cac789c53812c235",
+      "size_bytes": 33130
+    },
+    {
+      "path": "caelab/adapters/mfront_viscoelastic_worker.py",
+      "sha256": "8f8818244e632da27d58eee8631776775979448d3c5972f3887ab83cddcb2966",
+      "size_bytes": 45205
+    },
+    {
+      "path": "plugins/material_point/viscoelastic_reference.py",
+      "sha256": "cd790dca972754c134635b723e8a2f00cbd57b0b7ce8a091c32af716170a9fe6",
+      "size_bytes": 46001
+    },
+    {
+      "path": "tests/test_mfront_viscoelastic.py",
+      "sha256": "be3758c4f6ab7896c23de9de175678467377b53235f5ab8f4c2584855f62695d",
+      "size_bytes": 23110
+    },
+    {
+      "path": "tests/test_mfront_viscoelastic_runtime.py",
+      "sha256": "b0ce82a8f17b73bd96d0554026ef3182f0b21c1978f0995aece47f395478dda9",
+      "size_bytes": 41822
+    },
+    {
+      "path": "tests/test_viscoelastic_reference.py",
+      "sha256": "89f9955a8309619b2736651c3235bf694daa2d22597f42344eda4acde2b73fd6",
+      "size_bytes": 33580
+    }
+  ],
+  "source_freeze": {
+    "path": "artifacts/development-viscoelastic-20261003-01/native-state-correction-01/freeze-receipt.json",
+    "size_bytes": 4652,
+    "sha256": "4ffbe15675afbb618fa794216292b9d05ca0b92ad87a42ebbef4846b928a1a8d"
+  },
+  "independent_reviews": [
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/native-state-domain-independent-review-01/REPORT.md",
+      "size_bytes": 4842,
+      "sha256": "a434e48e90c5d9dccdeb41f7eac5da2c1d1390009f8c10273af6f372ee6e52bb"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/native-state-runtime-independent-review-01/independent-review.json",
+      "size_bytes": 25128,
+      "sha256": "791076a2b459eee11e75970e6181c3065497fd7dec43bd319ca9c54829e3144a"
+    }
+  ],
+  "open_p1": 0,
+  "open_p2": 0,
+  "cold": {
+    "first": {
+      "counts": {
+        "errors": 0,
+        "failures": 1,
+        "skipped": 0,
+        "suite_time_s": 140.892,
+        "tests": 393
+      },
+      "elapsed_seconds": 142.7162906769663,
+      "receipt": {
+        "sha256": "0118e6071dc18c56d6863a916687ed9cba2c5cb03c37d4a5b711131f587ae043",
+        "size_bytes": 83398
+      }
+    },
+    "failed_node_only": {
+      "counts": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "suite_time_s": 6.892,
+        "tests": 1
+      },
+      "elapsed_seconds": 8.246002708096057,
+      "receipt": {
+        "sha256": "3179dee761eeff4f746a773ff4448f2565251dac214ada841f524e6f4a5fbde9",
+        "size_bytes": 83331
+      }
+    },
+    "distinct_cases_covered": 393,
+    "counts_not_added": "First393=392PASS/1harnessFAIL; runner-only targeted1PASS, same six source files across both commands. Not one393PASS command.",
+    "native_calls": 0,
+    "provider_calls": 0,
+    "python": "3.12.3"
+  },
+  "mapping": {
+    "global": "Actual fullu0/u1 length12; first6 Kelvingradients, last6 nativeconstraint multipliers retained",
+    "constitutive": "Actual e1/s1/iv1 unchanged",
+    "prepared": "Actual e0 equals previous globalu0[:6]",
+    "endpoint": "Exact globalu0=u1,s0=s1,iv0=iv1 aftercommit",
+    "table": "Exact time/u0[:6]/s0/iv0; actual native energy columns20/21 mandatory",
+    "epsilon": "Original strict1e-14 for imposed/global/lastintegration residuals",
+    "iterations": "Actual cumulative before/after retained; original local delta1..10 and substeps0"
+  },
+  "extra_binding": {
+    "adapter_only": "tfel.math converter registration",
+    "size_bytes": 927872,
+    "sha256": "9685745ba9c4b2a4a83e3fa593767ff1e88649362a6a06cc86277b6780910245",
+    "shared_six_binary_helpers": "UNCHANGED"
+  },
+  "transport": "Both real opposite LF/CRLF corruption fixtures refuse; original production allowlist unchanged",
+  "scientific_law_limits_metrics_fd_kernels": "UNCHANGED",
+  "original_failed_native_record": "benchmarks/records/20261003-maxwell-native-r01-r02-failed.json",
+  "native_qualification": "NOT_RUN_ON_CORRECTED_SOURCE",
+  "fresh_store_next": "runs/viscoelastic-native-20261003-03",
+  "research_admission": "SVK_ONLY_MAXWELL_NOT_ADMITTED",
+  "new_exact_source_ci": "PENDING_AFTER_COMMIT",
+  "decision": "NOT_RELEASED",
+  "unknown": [
+    "measured material",
+    "spatialFE/solver coupling",
+    "physical/strength/durability",
+    "upstream binarysource commits",
+    "corporate license/security",
+    "off-machine rawdurability"
+  ],
+  "requirements": "All52 original requirement ledger columns preserved; source proof is not fullP5.2b/Phase5-7 completion"
+}

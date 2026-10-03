@@ -1,4 +1,19 @@
-## Current checkpoint: P5.2b preserved Maxwell source reviewed; native pending
+## Current checkpoint: bounded P5.2b source correction, wider scope retained
+
+R17/R29 retain bounded single-branch Maxwell material-point work. New exact
+MTest phase/counter/source evidence advances R19/R20/R21/R33/R34/R43/R48/R51/
+R52 source gates. First393=392PASS/1harnessFAIL then targeted1PASS covers393
+unique cases; actual corrected-source qualification and Research remain pending.
+All52 original requirement names/scope columns below are retained. SpatialFE,
+contact/fixture coupling, measured materials, physical/strength/durability and
+corporate deployment gates remain OPEN/UNKNOWN; source success is not release.
+Record: `benchmarks/records/20261003-maxwell-state-correction-source.json` (SHA256 `e46ee48cc613aba14712b5d601b70e1eb79bf8a52ca6fcdc0f2585c993b6a881`).
+Actual original failures: `benchmarks/records/20261003-maxwell-native-r01-r02-failed.json`.
+Corrected-source native03 is pending; Research stays SVK-only. UNKNOWN / NOT_RELEASED remain.
+
+---
+
+## Historical checkpoint at c489: P5.2b preserved Maxwell source reviewed; native pending
 
 Root reuses the six frozen Maxwell drafts. Reviewed state/range/reference,
 transport/build/runtime/MTest/common-route candidate passes one combined413 cold

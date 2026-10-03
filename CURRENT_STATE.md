@@ -1,4 +1,21 @@
-## Current checkpoint: P5.2b preserved Maxwell source reviewed; native pending
+## Current checkpoint: MTest result phase and local iteration semantics corrected
+
+Native02 failure belongs to Root's parser/admission code: printedu0 is distinct
+from constitutivee1, and cumulativeiterations16 is not a local10 breach.
+The reviewed source captures actual12-componentu0/u1, preparede0, committeds0/
+iv0 and cumulative before/after counters. Exact table identity uses actualu0/
+s0/iv0; strict1e-14 and all scientific law/metric/FD criteria are unchanged.
+Existing tfel.math registers the native converter; its additional exact binding
+record belongs only to this adapter. Shared six-binary/process/build/Core
+interfaces remain unchanged. First392PASS plus corrected harness-node1PASS
+cover393 distinct cases with unchanged six source files. Native03 follows.
+Record: `benchmarks/records/20261003-maxwell-state-correction-source.json` (SHA256 `e46ee48cc613aba14712b5d601b70e1eb79bf8a52ca6fcdc0f2585c993b6a881`).
+Actual original failures: `benchmarks/records/20261003-maxwell-native-r01-r02-failed.json`.
+Corrected-source native03 is pending; Research stays SVK-only. UNKNOWN / NOT_RELEASED remain.
+
+---
+
+## Historical checkpoint at c489: P5.2b preserved Maxwell source reviewed; native pending
 
 Root reuses the six frozen Maxwell drafts. Reviewed state/range/reference,
 transport/build/runtime/MTest/common-route candidate passes one combined413 cold
