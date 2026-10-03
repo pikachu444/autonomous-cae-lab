@@ -30,3 +30,9 @@ same-record beam inspection are separate gates before native Research promotion.
 Verify Domain mathematics/refusals and native parser/deck/source/cancellation
 contracts, then generic routing/UNKNOWN controls and independent review.
 Subsequent native qualification uses a new store and retains failed attempts.
+
+Development checkpoint: Domain/native/shared source and focused contracts are
+implemented and independently reviewed0P1/P2; fixed limits, Core schema/wire/provider
+and Research profiles remain unchanged. Record20261003-geometric-beam-development
+retains the one mounted-store HTTP failure and justified targeted scratch recheck.
+Actual native beam/Research/new field qualification stays separate NOT_RUN.

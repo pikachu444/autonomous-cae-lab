@@ -120,6 +120,19 @@ async def main():
                 independent = rejected_model.structuredContent or json.loads(rejected_model.content[0].text)
                 assert independent["status"] == "REJECTED" and independent["solver_status"] == "NOT_RUN"
                 assert independent["decision"] == "NOT_RELEASED" and independent["cad_revision"] is None
+                # The new beam uses this same public operation, while its
+                # official native Research profile remains separately unadmitted.
+                from plugins.geometric_nonlinearity.reference import default_settings
+                invalid_beam = default_settings()
+                invalid_beam["history"]["moments_n_mm"][-1] *= 2
+                rejected_beam = await call("model_analysis_run", {
+                    "study_id": "S-MCP", "experiment_id": "E-MCP-beam-reject",
+                    "backend": "structural.code_aster.geometric_nonlinearity", "settings": invalid_beam})
+                beam = rejected_beam.structuredContent or json.loads(rejected_beam.content[0].text)
+                assert beam["status"] == "REJECTED" and beam["solver_status"] == "NOT_RUN"
+                assert beam["decision"] == "NOT_RELEASED" and beam["metrics"] == {}
+                assert beam["cad_revision"] is None and "parent_experiment_id" not in beam
+                assert not (Path(directory) / "experiments/E-MCP-beam-reject/simulation").exists()
                 # Invalid declared templates are refused by the same planning
                 # API before creating a campaign or invoking a native runtime.
                 rejected_plan = await session.call_tool("model_optimization_plan", {

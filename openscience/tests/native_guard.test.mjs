@@ -1489,6 +1489,7 @@ test('historical fourteen-tool research cannot silently admit model_analysis',as
 });
 for (const [label,mutate,code] of [
   ['unadmitted solver',a => a.backend='structural.code_aster.plasticity','RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['unadmitted finite-rotation beam',a => a.backend='structural.code_aster.geometric_nonlinearity','RESEARCH_CAPABILITY_NOT_ADMITTED'],
   ['unresolved torsion',a => a.settings.load_case='Mx','RESEARCH_CAPABILITY_NOT_ADMITTED'],
   ['arbitrary family',a => a.settings.case='unknown_case','RESEARCH_CAPABILITY_NOT_ADMITTED'],
   ['numeric booleans',a => a.settings.load_factor=true,'RESEARCH_WORK_BUDGET_EXCEEDED'],

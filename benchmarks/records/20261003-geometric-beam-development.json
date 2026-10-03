@@ -1,0 +1,284 @@
+{
+  "schema": 1,
+  "record_id": "20261003-geometric-beam-development",
+  "created_utc": "2026-10-03T00:42:36.956116+00:00",
+  "kind": "BOUNDED_D4.1_P5.1_SOURCE_INTEGRATION",
+  "status": "SOURCE_IMPLEMENTED_AND_REVIEWED",
+  "decision": "NOT_RELEASED",
+  "source_base_commit": "c6cf49f3bf31df6f4efe2b90d68c1e5c17b5ab6a",
+  "source_identity": "Exact working-file hashes below; this checkpoint is not a native solver run.",
+  "backend": "structural.code_aster.geometric_nonlinearity",
+  "case": "pure_end_moment_beam",
+  "packet": "docs/GEOMETRIC_NONLINEARITY_PACKET.md",
+  "adr": "ADR/0025-finite-rotation-beam-domain-adapter.md",
+  "source_files": [
+    {
+      "path": "plugins/geometric_nonlinearity/__init__.py",
+      "size_bytes": 311,
+      "sha256": "737793b4438476b20872d425c805aef1fa46d9acaab1289814421b44da2518d7"
+    },
+    {
+      "path": "plugins/geometric_nonlinearity/reference.py",
+      "size_bytes": 32286,
+      "sha256": "b65608ab9fab4b9fb2ed6ff2e0bf21ed7f89815bab4788a1e64943f5eab677fc"
+    },
+    {
+      "path": "caelab/adapters/codeaster_geometric.py",
+      "size_bytes": 26618,
+      "sha256": "6e13ae82a6acbb66cd16ef7d87328a1c2e9803fcfe0c459b33beecb328edace9"
+    },
+    {
+      "path": "caelab/adapters/codeaster_geometric_worker.py",
+      "size_bytes": 32636,
+      "sha256": "7f8c5012a4d0ebaa1998af39d6ff41602b825be5fe84285b36371042e4f02ec8"
+    },
+    {
+      "path": "caelab/engine.py",
+      "size_bytes": 47247,
+      "sha256": "0e701da954e65b552e081bc0670fd25a948fb8c3fc77f82c3cd85cf98a0abfbe"
+    },
+    {
+      "path": "apps/lab/service.py",
+      "size_bytes": 40159,
+      "sha256": "789c271526fcece8f7b04bc1d6afc530a4c7747ebd600850e0718dbc8c89cd63"
+    },
+    {
+      "path": "tests/test_codeaster_geometric.py",
+      "size_bytes": 35530,
+      "sha256": "aaa5f2b39afe10892ca4d96a3e6321495a542e5432d958fa4bd5d49dd6e9e219"
+    },
+    {
+      "path": "tests/test_geometric_nonlinearity_reference.py",
+      "size_bytes": 29063,
+      "sha256": "95bcb236780e8d9e0a73b3241bbe29156f00cb86e66b70031a747abe6307d0f9"
+    },
+    {
+      "path": "tests/test_geometric_integration.py",
+      "size_bytes": 6149,
+      "sha256": "15b48abbc70dacd97c91c3ab382413f15cba00d92b295ab6b3ef779fddc8f83c"
+    },
+    {
+      "path": "tests/test_backend_integration.py",
+      "size_bytes": 4601,
+      "sha256": "5e4625f7be4006d9d62bf48c7d02d4f2f663aade3b1d76850a656756e3c7a028"
+    },
+    {
+      "path": "tests/test_lab_server.py",
+      "size_bytes": 38024,
+      "sha256": "ad4db20f85f2597b6883b2d92e1ecedf21235addb1b4469dea7de62ce6673202"
+    },
+    {
+      "path": "openscience/tests/native_guard.test.mjs",
+      "size_bytes": 112382,
+      "sha256": "3674a17cf4458adb03ed06bdfaa48878acae93c5b1df1ef5e01f7983f419b248"
+    },
+    {
+      "path": "scripts/verify_mcp.py",
+      "size_bytes": 12821,
+      "sha256": "0b1a31923434685a637669adc6a058c4f2333126522fadbcc9e6e08a63cfb8e2"
+    }
+  ],
+  "architecture": {
+    "Core_schema_wire": "UNCHANGED",
+    "numerical_optimizer": "UNCHANGED",
+    "fixture_upstream": "REUSED_UNCHANGED",
+    "selected_provider_model": "UNCHANGED openai-codex/gpt-5.6-sol",
+    "Domain": "Pure independent circle reference, full-field signed criteria, refusal and UNKNOWN rates",
+    "Adapter": "Pinned17.4 native beam deck, mesh/catalogue/history bindings, six mixed-unit DOFs, cancellation/source guards",
+    "Common_integration": "Existing Lab/CLI/HTTP/MCP operation, registry/preset, revisions/artifacts/UNKNOWN and invalid-input blocking"
+  },
+  "verification": {
+    "domain": {
+      "passed": 119,
+      "python": "3.12.3",
+      "pytest_seconds": 1.59,
+      "scope": "Cold mathematical/admission/tampered-record tests; native calls0",
+      "prior_attempt": "107 passed/2 test-fixture failures retained; final119 is not additive"
+    },
+    "native_adapter": {
+      "passed": 69,
+      "python": "3.13.5",
+      "pytest_seconds": 20.76,
+      "scope": "Cold mocked native/runtime/parser/deck tests; native calls0",
+      "root_312_recheck": "The same69 are included in the shared269, not additive"
+    },
+    "shared_312": {
+      "total_distinct": 269,
+      "original_passed": 268,
+      "original_failed": 1,
+      "warnings": 1,
+      "pytest_seconds": 884.36,
+      "failed_case": "tests/test_lab_server.py::test_http_model_campaign_run_exposes_verified_model_records_and_reuses_them",
+      "failure": "Existing HTTP30s campaign-read TimeoutError after a completed synthetic optimization; not solver execution",
+      "targeted_recheck": {
+        "passed": 1,
+        "pytest_seconds": 25.63,
+        "process_seconds": 29.014999999897555,
+        "change": "Only new Linux-native scratch location; all13 source bytes, HTTP30s/observation300s deadlines and numerical criteria unchanged"
+      },
+      "final": "All269 distinct tests covered by original268 successes and this one justified targeted recheck; not270 tests"
+    },
+    "read_only_diagnosis": {
+      "original_file_count": 110,
+      "original_bytes": 243247,
+      "record_sha256": "4ff22ca394df029251a7476553074b937c4e9f41d76b9b512aef3e23fc6fafd2",
+      "windows_mounted_seconds": 37.67466202401556,
+      "linux_native_exact_copy_seconds": 0.24970131204463542,
+      "adapter_solve_calls": 0,
+      "original_files": "ALL_UNCHANGED; independently verified before/after",
+      "product_mounted_store_latency": "OPEN; environment correction is not a production performance fix"
+    },
+    "guard": {
+      "total": 109,
+      "passed": 108,
+      "skipped": 1,
+      "failed": 0,
+      "node": "24.18.0",
+      "skip": "External PDE Research definition fixture was not supplied",
+      "scope": "New beam remains unadmitted by existing StructuralFamilies guard; production profiles unchanged"
+    },
+    "mcp": {
+      "status": "PASS",
+      "process_seconds": 78.6239745,
+      "tools": 31,
+      "beam": "Actual generic model_analysis_run rejects2rad input before simulation/no CAD parent/no metrics/NOT_RELEASED",
+      "scope": "Existing CAD/DOE/optimization/PDE/model controls retained; no actual beam solve/provider question"
+    },
+    "independent_review": {
+      "status": "PASS_SOURCE_SCOPE",
+      "open_P1_P2": 0,
+      "scope": "Read-only source/math/routing,18 official refs, cold receipts and exact110-file/profile/recheck closure; actual native qualification not performed"
+    }
+  },
+  "parent_exact_ci": {
+    "source": "c6cf49f3bf31df6f4efe2b90d68c1e5c17b5ab6a",
+    "run_id": 37079812926,
+    "status": "COMPLETED_FAILURE",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37079812926",
+    "jobs_success": 7,
+    "jobs_failed": 3,
+    "core_passed": 2578,
+    "core_skipped": 5,
+    "core_warnings": 1,
+    "core_seconds": 238.65,
+    "failures": [
+      "PDE: Wrong vector numerical classification",
+      "Code_Aster: Native numerical checks failed: E-ansys_vmd1_regular-Fz-aster",
+      "Explicit: runtime download HTTP404 before solver"
+    ],
+    "scope": "Parent documentation/source revision; no new geometric beam verification. No manual CI/native retry in this unit"
+  },
+  "actual_native_beam": "NOT_RUN",
+  "new_official_research_admission": "NOT_ADMITTED",
+  "new_beam_field_GUI": "NOT_RUN",
+  "unknown": [
+    "native_global_energy",
+    "native_section_property_coverage",
+    "compiled_source_equivalence",
+    "material_qualification",
+    "static_strength",
+    "model_qualification",
+    "physical_validation",
+    "durability",
+    "corporate_deployment"
+  ],
+  "next": [
+    "Fresh immutable native beam reference/mesh/field/Newton qualification",
+    "Separate explicit guarded Research admission and same-record human field inspection",
+    "Ordered D4.2/P5.2 material work; reuse retained material/inverse sources and review viscoelastic draft before any port",
+    "Remaining contact/fixture coupling, Phase6/7 and full52 acceptance"
+  ],
+  "proofs": {
+    "domain_summary": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/domain-01/domain-summary.json",
+      "size_bytes": 8208,
+      "sha256": "a0e6f3d45a39e25cb1c454109cd20e953a2091da079e4df6dee483509f345c48",
+      "retention": "LOCAL_RAW; remote raw durability UNKNOWN"
+    },
+    "domain_312": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/domain-01/attempt-02/receipt.json",
+      "size_bytes": 2401,
+      "sha256": "30cce6e0f05cb532ffd2c641e86968a0c1c587e6caf4f054e0784be1a8a6c075",
+      "retention": "LOCAL_RAW; remote raw durability UNKNOWN"
+    },
+    "native_cold_freeze": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-adapter-01/freeze-receipt.json",
+      "size_bytes": 8004,
+      "sha256": "adc5908180c3ca1a4b1fe30876f0efff7710b0d14d85d0ea68ba7fb9bdf01f0b",
+      "retention": "LOCAL_RAW; remote raw durability UNKNOWN"
+    },
+    "root_312_original": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/root-integration-01/attempt-01/receipt.json",
+      "size_bytes": 6190,
+      "sha256": "dd246befefb11552b12050b7568b6fd1a79321e49afc480e50e8d0f85e28ff35",
+      "retention": "LOCAL_RAW; remote raw durability UNKNOWN"
+    },
+    "read_only_mount_comparison": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/root-integration-01/campaign-read-profile-01/receipt.json",
+      "size_bytes": 19716,
+      "sha256": "e03d553bfa8ccce4b35895863086d766bb588ffa613b162681bbc5bbb97b3818",
+      "retention": "LOCAL_RAW; remote raw durability UNKNOWN"
+    },
+    "root_312_targeted_recheck": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/root-integration-01/campaign-recheck-01/receipt.json",
+      "size_bytes": 6187,
+      "sha256": "850d72ff17a50a0a57483de724270e2205210e79ec9ff63c891b0f110f1332c3",
+      "retention": "LOCAL_RAW; remote raw durability UNKNOWN"
+    },
+    "native_research_guard": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/root-integration-01/guard-01/receipt.json",
+      "size_bytes": 528,
+      "sha256": "3c2a639fe7b6d14c3b3db2f49ca0b82a3fee4deb6724a40b8aeda7711cd02eed",
+      "retention": "LOCAL_RAW; remote raw durability UNKNOWN"
+    },
+    "actual_mcp": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/root-integration-01/mcp-01/receipt.json",
+      "size_bytes": 331,
+      "sha256": "16d2f1757e37ce664782516d4818929d7f109ae29902e92a27c49e69b90e3d37",
+      "retention": "LOCAL_RAW; remote raw durability UNKNOWN"
+    },
+    "independent_final_review": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/independent-source-review-01/independent-review.json",
+      "size_bytes": 30129,
+      "sha256": "e47a00e5d62ef66e0dae805f59746e08b7e70022e415b30d29fb3a136e17fea5",
+      "retention": "LOCAL_RAW; remote raw durability UNKNOWN"
+    },
+    "independent_review_seal": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/independent-source-review-01/review-seal.json",
+      "size_bytes": 2211,
+      "sha256": "69d4aa513a799d3aee322bddda0942d320ebc323b9cc29abcb10fe0c30aab4b8",
+      "retention": "LOCAL_RAW; remote raw durability UNKNOWN"
+    },
+    "independent_read_only_closure": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/independent-source-review-01/profile-and-final-source-closure.json",
+      "size_bytes": 27181,
+      "sha256": "a2afef6d9a1aa99d4751d40cea4401b19487a2b84cb2806abb11db6d028082cb",
+      "retention": "LOCAL_RAW; remote raw durability UNKNOWN"
+    },
+    "parent_exact_ci": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/ci-c6-01/run.json",
+      "size_bytes": 25377,
+      "sha256": "5436022ad9a9cb23e68ccfc2a3943358a51b1303a57d9569cdddd6caa2d53a94",
+      "retention": "LOCAL_RAW; remote raw durability UNKNOWN"
+    },
+    "parent_exact_ci_failed_log": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/ci-c6-01/failed.log",
+      "size_bytes": 16912,
+      "sha256": "5f6064d2c6e8344bc72b1725cd8ddce3a0b5cf3db42d6c5c33c4959280dd5b67",
+      "retention": "LOCAL_RAW; remote raw durability UNKNOWN"
+    },
+    "parent_exact_ci_core_log": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/ci-c6-01/core.log",
+      "size_bytes": 322076,
+      "sha256": "04aac8397f9a76701a537521ed2d7972dcd266a762462f5cc51ed6f246148b17",
+      "retention": "LOCAL_RAW; remote raw durability UNKNOWN"
+    }
+  },
+  "limitations": [
+    "Cold tests and solver exit are not native numerical acceptance or engineering approval",
+    "Derived bending energy/fiber stress are separate from native global energy/Cauchy fields",
+    "Fixed scientific limits preserved; unmeasurable mesh rates UNKNOWN",
+    "Public compact record/source durability does not prove remote raw artifact backup",
+    "No whole phase or full52 completion claim"
+  ]
+}

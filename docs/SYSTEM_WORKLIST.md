@@ -1,5 +1,28 @@
 # Sequential system worklist
 
+## Current D4.1/P5.1 finite-rotation beam — reviewed source checkpoint
+
+`structural.code_aster.geometric_nonlinearity` now reuses the existing
+declared-model Lab/CLI/HTTP/MCP path, revisions, artifacts and UNKNOWN gates.
+Pure circle-reference Domain and pinned17.4 beam adapter/worker are integrated;
+Core schema/wire/optimizer/fixture/provider/auth and native Research profiles stay unchanged.
+119 Domain tests PASS;69 cold adapter tests also pass in Root's Python3.12
+shared269. Original shared268PASS/1FAIL is retained; only the failed existing
+HTTP campaign-read test passes a fresh Linux-native scratch recheck (25.63s).
+Identical110-file record reads take37.674662s on the Windows mount versus
+0.249701s on Linux; no solver/optimizer rerun for that comparison. Mounted-store
+product latency remains OPEN. Guard108PASS/1external-fixtureSKIP and actual MCP
+PASS preserve beam preflight refusal; independent source review closes0P1/P2.
+Record: `benchmarks/records/20261003-geometric-beam-development.json`.
+Actual native beam, new Research admission and same-record new field GUI remain
+NOT_RUN/NOT_ADMITTED. Native energy/material/strength/physical/durability and
+all52/wholePhase5 remain UNKNOWN/OPEN, NOT_RELEASED. Earlier snapshots are history.
+
+- [x] D4.1 pure Domain/native source, shared routing/refusal, focused tests/review.
+- [ ] D4.1 fresh native mathematical/field/Newton qualification.
+- [ ] D4.1 explicit Research admission and same-record new beam field GUI.
+- [ ] D4.2/P5.2 hyperelastic/viscoelastic source, independent tangent/energy gates.
+
 ## Current connected PDEFields research — source8fe, D4.1 active
 
 Actual run `pde-r-20261003-02` completes the bounded D3.6 connected gate on
@@ -377,7 +400,7 @@ Earlier NEXT SERIAL and later-phase-queued statements below are historical.
 | D1 source integrated | Typed material/load/mesh, exact campaign condition copy, complete diagnostic stress artifacts/table; reuse CAD and child analysis | New native/field GUI and existing beam/roof/mesh/reaction/stress/reference qualification; rotated axes/joints remain open |
 | D2 Phase3 source integrated | Expose existing declared-model discovery/registration and model optimization in Explore; reuse269d8bf stopping/constraints/replay | Numerical convergence, active constraints, interruption/replay and actual research/native linkage |
 | D3 Phase4 bounded connected gate closed | Rectangle/transient/coupled/imported bounded native/reference evidence; source8fe/run02 actual c0/c3 Research, independent199-check review, same-record field GUI/Stop/67-file retention PASS; vector rateFAIL retained | Wider/parallel/backend/latency/physical and whole Phase4 qualification OPEN |
-| D4 Phase5 source ACTIVE | P5.1 finite-rotation beam Domain/native packet and official source study frozen; disjoint source implementation active | Focused shared routing/source review, then fresh native/Research/field qualification; material/contact/fixture coupling follows |
+| D4 Phase5 source ACTIVE | P5.1 finite-rotation Domain/native/shared source implemented;119Domain/shared269 coverage with retained one environment failure/recheck, guard108+1skip/MCP/independent review | Fresh native/Research/field qualification; mounted-store latency OPEN; ordered material/contact/fixture coupling follows |
 | D5 Phase6 | Explicit preprocessing/contact/material/fields and campaign integration | Impact/drop force/energy/timestep/reference checks |
 | D6 Phase7 | Measured inverse interfaces, UQ/surrogate/multiobjective/MDO, MOOSE/HPC | Engine/coupling/HPC and actual measured-data acceptance |
 | Throughout | Common reporting, same-record human inspection and physical/deployment interfaces | Actual GUI, durable raw backup, corporate approval and physical evidence |

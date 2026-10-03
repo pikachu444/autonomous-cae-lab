@@ -115,7 +115,7 @@ class LabService:
             "native_final": ("최종 형상 선택", "fixture.freecad", "EXPERIMENTAL", "원본의 기존 final-solid 선택"),
             "analysis_run": ("선형 구조 해석", "fixture.calculix", "EXPERIMENTAL", "검증된 CAD parent, 가정된 재료·하중; NOT_RELEASED"),
             "pde_run": ("약형 PDE 실험", ", ".join(sorted(self._selected().lab.pde_adapters)), "EXPERIMENTAL", "제한된 선형·비선형 scalar weak form와 해석해 비교; 물리 검증 UNKNOWN"),
-            "model_analysis_run": ("모델·재료·동해석 실행", "CalculiX / Code_Aster / MFront / OpenRadioss", "EXPERIMENTAL", "보·압력용기·곡면 지붕의 제한된 선형 모델과 기존 재료·동해석; 실행 기록별 검증 확인, 물리·강도 UNKNOWN"),
+            "model_analysis_run": ("모델·재료·동해석 실행", "CalculiX / Code_Aster / MFront / OpenRadioss", "EXPERIMENTAL", "제한된 선형 모델·큰 회전 보·재료·동해석; 실행 기록별 수치 검증 확인, 물리·강도 UNKNOWN"),
             "doe_plan": ("DOE 계획", "scipy.latin_hypercube", "IMPLEMENTED", "수치 엔진이 후보를 생성"),
             "doe_run": ("DOE 실행", "scipy.latin_hypercube", "IMPLEMENTED", "기존 Core의 개별 실험과 증거 재사용"),
             "optimization_plan": ("최적화 계획", "scipy.differential_evolution", "IMPLEMENTED", "수치 엔진의 목적 함수·제약·seed"),
@@ -304,6 +304,7 @@ class LabService:
         from caelab.adapters.fenicsx_imported import manufactured_settings as imported_pde_specification
         from scripts.verify_codeaster import specification as codeaster_specification
         from scripts.verify_plasticity import specification as plasticity_specification
+        from plugins.geometric_nonlinearity.reference import default_settings as geometric_specification
         from scripts.verify_openradioss import specification as explicit_specification
         from scripts.verify_compliant_drop import specification as compliant_specification
         from plugins.material_point.reference import canonical_settings as material_specification
@@ -357,6 +358,9 @@ class LabService:
             "codeaster_plasticity": {"operation": "model_analysis_run", "backend": "structural.code_aster.plasticity", "label": "소성 재료의 하중·제하 benchmark",
                 "status": "EXPERIMENTAL", "scope": "J2 small-strain 전체 이력·해석해 검증; 접촉·기하 비선형·재료 자격 UNKNOWN",
                 "settings": plasticity_specification()},
+            "codeaster_geometric": {"operation": "model_analysis_run", "backend": "structural.code_aster.geometric_nonlinearity", "label": "보의 큰 회전 — 끝 모멘트 기준 해석",
+                "status": "EXPERIMENTAL", "scope": "끝 모멘트를 받는 보의 1 rad 이내 회전·변형·반력·곡률 비교; 실제 솔버 기준 검증 대기, 물리·강도 UNKNOWN",
+                "settings": geometric_specification()},
             "material_point": {"operation": "model_analysis_run", "backend": "material.mfront", "label": "재료점의 응력·접선 benchmark",
                 "status": "EXPERIMENTAL", "scope": "실제 MGIS·MTest 응력 및 유한차분 접선 검증; 솔버 결합·물리적 재료 자격 UNKNOWN",
                 "settings": material_specification()},

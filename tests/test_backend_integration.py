@@ -8,7 +8,7 @@ from apps.lab.service import LabService
 from caelab import Lab
 
 
-BACKENDS = {"structural.code_aster", "structural.code_aster.plasticity", "material.mfront",
+BACKENDS = {"structural.code_aster", "structural.code_aster.plasticity", "structural.code_aster.geometric_nonlinearity", "material.mfront",
             "material.mfront.inverse", "explicit.openradioss", "structural.families.calculix",
             "structural.families.code_aster"}
 PDE_BACKENDS = {"pde.fenicsx", "pde.fenicsx.nonlinear", "pde.fenicsx.rectangle", "pde.fenicsx.transient", "pde.fenicsx.vector", "pde.fenicsx.coupled", "pde.fenicsx.imported"}

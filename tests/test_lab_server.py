@@ -145,6 +145,7 @@ def real_flow(tmp_path_factory):
 
 
 @pytest.mark.parametrize("backend", ["structural.code_aster", "structural.code_aster.plasticity",
+                                    "structural.code_aster.geometric_nonlinearity",
                                     "material.mfront", "explicit.openradioss"])
 def test_declared_backend_http_dispatch_retains_preflight_rejection_without_cad_parent(client, backend):
     client.job("study_create", study_arguments())
@@ -239,7 +240,7 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     presets = client.request("/api/presets")
     assert set(presets) == {"structural_linear", "pde_canonical", "pde_nonlinear", "pde_rectangle",
                             "pde_transient_mesh", "pde_transient_time", "pde_vector_lame", "pde_vector_harmonic", "pde_coupled_interface", "pde_coupled_harmonic", "pde_imported_l_shape", "pde_imported_harmonic", "codeaster_linear",
-                            "codeaster_plasticity", "material_point", "material_inverse", "explicit_freefall",
+                            "codeaster_plasticity", "codeaster_geometric", "material_point", "material_inverse", "explicit_freefall",
                             "explicit_ground_stop", "explicit_compliant_stop"} | {
         f"family_{case}_{load}_{solver}" for case, load in (
             ("ansys_vmd1_regular", "Fx"), ("ansys_vmd1_regular", "Fy"), ("ansys_vmd1_regular", "Fz"),

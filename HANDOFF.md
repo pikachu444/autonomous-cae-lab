@@ -1,5 +1,27 @@
 # Resume Autonomous CAE Lab locally or in a new session
 
+## Current D4.1/P5.1 finite-rotation beam — reviewed source checkpoint
+
+`structural.code_aster.geometric_nonlinearity` now reuses the existing
+declared-model Lab/CLI/HTTP/MCP path, revisions, artifacts and UNKNOWN gates.
+Pure circle-reference Domain and pinned17.4 beam adapter/worker are integrated;
+Core schema/wire/optimizer/fixture/provider/auth and native Research profiles stay unchanged.
+119 Domain tests PASS;69 cold adapter tests also pass in Root's Python3.12
+shared269. Original shared268PASS/1FAIL is retained; only the failed existing
+HTTP campaign-read test passes a fresh Linux-native scratch recheck (25.63s).
+Identical110-file record reads take37.674662s on the Windows mount versus
+0.249701s on Linux; no solver/optimizer rerun for that comparison. Mounted-store
+product latency remains OPEN. Guard108PASS/1external-fixtureSKIP and actual MCP
+PASS preserve beam preflight refusal; independent source review closes0P1/P2.
+Record: `benchmarks/records/20261003-geometric-beam-development.json`.
+Actual native beam, new Research admission and same-record new field GUI remain
+NOT_RUN/NOT_ADMITTED. Native energy/material/strength/physical/durability and
+all52/wholePhase5 remain UNKNOWN/OPEN, NOT_RELEASED. Earlier snapshots are history.
+
+NEXT: commit/push this reviewed source; new native store for1rad and
+small-angle histories with original fixed limits and full native fields.
+Then explicit Research/field admission and ordered material/contact work.
+
 ## Current connected PDEFields research — source8fe, D4.1 active
 
 Actual run `pde-r-20261003-02` completes the bounded D3.6 connected gate on
