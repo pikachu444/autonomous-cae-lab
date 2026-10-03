@@ -143,6 +143,56 @@ foreach ($taskPdeWrongCase in @('pdefields', 'PDEFIELDS')) {
 }
 Set-OpenScienceExpectedTools -Context $taskPdeContext -RequiredTool $null
 Assert-NativeCheck ($null -eq (Read-OpenScienceJson $taskPdeContext.GuardPath).required) 'pde_research_does_not_force_a_specific_tool'
+$taskMaterialArgs = $taskNativeArgs.Clone(); $taskMaterialArgs.RunName += '-material'
+$taskMaterialArgs.Purpose = 'Research'; $taskMaterialArgs.ResearchProfile = 'MaterialPoints'; $taskMaterialArgs.Remove('AllowedTools')
+$taskMaterialContext = New-OpenScienceLocalContext @taskMaterialArgs
+$taskMaterialConfig = Read-OpenScienceJson $taskMaterialContext.ConfigPath
+Assert-NativeCheck ($taskMaterialContext.ResearchDefinition.schema -eq 4 -and
+    $taskMaterialContext.ResearchDefinition.profile -ceq 'material-points-v1' -and
+    $taskMaterialContext.AllowedTools.Count -eq 6 -and $taskMaterialContext.AllowedTools -ccontains 'caelab_model_analysis_run' -and
+    $taskMaterialContext.AllowedTools -cnotcontains 'caelab_pde_run' -and
+    $taskMaterialContext.AllowedTools -cnotcontains 'caelab_parameters_register' -and
+    $taskResearchContext.AllowedTools.Count -eq 14 -and $taskStructuralContext.ResearchDefinition.schema -eq 2 -and
+    $taskPdeContext.ResearchDefinition.schema -eq 3) 'material_scope_is_explicit_and_preserves_all_historical_scopes'
+Assert-NativeCheck ($taskMaterialConfig.agent.research.steps -eq 24 -and $taskMaterialConfig.mcp.caelab.timeout -eq 3600000 -and
+    $taskMaterialConfig.model -ceq $taskNativeArgs.ModelId -and $taskMaterialConfig.small_model -ceq $taskNativeArgs.ModelId -and
+    $taskMaterialConfig.default_agent -ceq 'research') 'material_scope_binds_existing_model_and_research_budgets'
+Assert-NativeCheck ($taskMaterialContext.ResearchDefinition.budgets.material_point.min_history_entries -eq 3 -and
+    $taskMaterialContext.ResearchDefinition.budgets.material_point.max_history_entries -eq 12 -and
+    $taskMaterialContext.ResearchDefinition.budgets.material_point.max_signed_probe_states -eq 594 -and
+    $taskMaterialContext.ResearchDefinition.budgets.material_point.max_request_bytes -eq 65536) 'material_scope_has_exact_qualified_workload_caps'
+Assert-NativeCheck ((Get-OpenScienceHash $taskNativeAuthFile) -ceq $taskAuthBytesHash -and
+    -not (Test-Path -LiteralPath $taskMaterialContext.StoreRoot) -and
+    $taskMaterialContext.ResearchDefinitionSha256 -ceq (Get-OpenScienceSourcePinSha256 $taskMaterialContext.ResearchDefinition)) 'material_scope_is_intent_bound_without_auth_or_Core_mutation'
+Assert-NativeCheck ($taskMaterialConfig.agent.research.prompt -match 'NOT_RELEASED' -and
+    $taskMaterialConfig.agent.research.prompt -match 'small Green strain' -and
+    $taskMaterialConfig.agent.research.prompt -match 'hash-bound artifacts' -and
+    $taskMaterialConfig.agent.research.prompt -match 'not full measured F/P/A/W histories') 'material_prompt_preserves_SVK_and_measured_artifact_limits'
+foreach ($taskMaterialRuntimeKey in $taskMaterialContext.ResearchDefinition.runtime_environment.Keys) {
+    Assert-NativeCheck ($taskMaterialConfig.mcp.caelab.command -ccontains ($taskMaterialRuntimeKey + '=' +
+        $taskMaterialContext.ResearchDefinition.runtime_environment[$taskMaterialRuntimeKey])) ('material_mcp_uses_existing_runtime_' + $taskMaterialRuntimeKey)
+}
+foreach ($taskMaterialBudgetKey in $taskMaterialContext.ResearchDefinition.budgets.material_point.Keys) {
+    $taskMaterialDrift = [pscustomobject](Read-OpenScienceJson (Join-Path $taskMaterialContext.ProfileRoot 'context.json'))
+    $taskMaterialDrift.ResearchDefinition.budgets.material_point[$taskMaterialBudgetKey] += 1
+    Assert-NativeRefused { Assert-OpenScienceContext $taskMaterialDrift } ('material_definition_budget_drift_refused_' + $taskMaterialBudgetKey)
+}
+$taskMaterialImageDrift = [pscustomobject](Read-OpenScienceJson (Join-Path $taskMaterialContext.ProfileRoot 'context.json'))
+$taskMaterialImageDrift.ResearchDefinition.runtime_environment.CAELAB_CODEASTER_IMAGE_SHA256 = ('0' * 64)
+Assert-NativeRefused { Assert-OpenScienceContext $taskMaterialImageDrift } 'material_image_descriptor_drift_blocks_provider_launch'
+$taskMaterialAcceptance = $taskNativeArgs.Clone(); $taskMaterialAcceptance.ResearchProfile = 'MaterialPoints'
+Assert-NativeRefused { New-OpenScienceLocalContext @taskMaterialAcceptance } 'material_scope_requires_research_purpose'
+$taskMaterialOtherTool = $taskMaterialArgs.Clone(); $taskMaterialOtherTool.RunName += '-other-tool'
+$taskMaterialOtherTool.AllowedTools = @('caelab_optimization_run')
+Assert-NativeRefused { New-OpenScienceLocalContext @taskMaterialOtherTool } 'material_scope_refuses_optimizer_before_configuration'
+foreach ($taskMaterialWrongCase in @('materialpoints', 'MATERIALPOINTS', 'mAterialPoints')) {
+    Assert-NativeRefused { New-OpenScienceResearchDefinition -Profile $taskMaterialWrongCase } ('material_definition_requires_canonical_case_' + $taskMaterialWrongCase)
+    $taskMaterialBadCase = $taskMaterialArgs.Clone(); $taskMaterialBadCase.RunName += '-wrong-case'
+    $taskMaterialBadCase.ResearchProfile = $taskMaterialWrongCase
+    Assert-NativeRefused { New-OpenScienceLocalContext @taskMaterialBadCase } ('material_launcher_requires_canonical_case_' + $taskMaterialWrongCase)
+}
+Set-OpenScienceExpectedTools -Context $taskMaterialContext -RequiredTool $null
+Assert-NativeCheck ($null -eq (Read-OpenScienceJson $taskMaterialContext.GuardPath).required) 'material_research_does_not_force_a_specific_tool'
 $taskNativeConfigBytes = [IO.File]::ReadAllBytes($taskNativeContext.ConfigPath)
 $taskNativeChangedConfig = $taskNativeConfig.Clone(); $taskNativeChangedConfig.model = 'openai-codex/other'
 Write-OpenScienceJson $taskNativeContext.ConfigPath $taskNativeChangedConfig

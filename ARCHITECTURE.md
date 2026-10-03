@@ -1,5 +1,16 @@
 # Architecture
 
+## Explicit material-point research (ADR0027)
+
+MaterialPoints/schema4 admits only the qualified bounded SVK adapter through
+the six existing model-analysis study/inspection/comparison tools. Core31 tools,
+Domain physics, adapters/native syntax and deterministic numerical engines retain
+their owners. Old research scopes/provider/auth/default/Stop remain. The current
+summary offers validation/error metrics and original artifact references rather
+than full measured F/P/A/W histories. Source admission and actual connected
+question/GUI/Stop are separate gates; physical/FE release remains UNKNOWN.
+
+
 ## Explicit PDE research and retained native field views (ADR0024)
 
 OpenScience gets an optional PDEFields scope with six existing operations,

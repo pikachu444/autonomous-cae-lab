@@ -76,6 +76,27 @@ const nativeFreeze = value => {
   }
   return value;
 };
+const nativeMaterialLimits = nativeFreeze({stress_absolute_mpa:1e-10, stress_relative:1e-8,
+  tangent_relative:1e-8, energy_absolute_mpa:1e-10, energy_relative:1e-8,
+  finite_difference_relative:1e-6, finite_difference_steps:[1e-7,1e-8,1e-9]});
+const nativeMaterialDefinition = nativeFreeze({
+  schema:4, kind:'autonomous-cae-lab.openscience-research-definition', profile:'material-points-v1', agent:'research',
+  allowed_tools:[...nativeStructuralResearchTools], runtime_environment:{...nativeStructuralRuntime},
+  budgets:{steps:24, mcp_timeout_seconds:3600, command_timeout_seconds:3600,
+    material_point:{min_history_entries:3,max_history_entries:12,max_signed_probe_states:594,max_request_bytes:65536}},
+  capabilities:[{backend:'material.mfront.hyperelastic',operations:['model_analysis_run'],cases:['saint_venant_kirchhoff'],
+    inputs:'Exact case/material/temperature_k/history/limits; physical nine-component F with 3..12 ordered entries. Domain owns finite-strain/probe scientific admission and fixed reference limits.',
+    runtime:'Existing exact17.4 SIF and SHA, TFEL5/MGIS3/MTest and Singularity containment; no runtime or model fallback.',
+    evidence:'Immutable Core metrics/checks and hash-bound actual native F/P/A/W histories, all signed probes and same-library MTest. Summaries do not expose full measured histories.',
+    verification:'IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF'}],
+  limitations:[
+    'Declared scope is not current native execution proof, physical qualification or engineering release.',
+    'Unmodified SVK covers large proper rotations with small Green strain, not general rubber, large-stretch stability or finite-element constitutive coupling.',
+    'Work budgets bound parsed-hook JSON and signed-probe counts, not original MCP wire bytes or scientific accuracy. Native wall defaultNone and positive CPU86400 are separate execution policies.',
+    'Only the six listed tools are admitted; variable registration, jobs and numerical optimizer tools are not provided. Numerical engines own search candidates.',
+    'Interpret actual returned IDs, revisions, metrics and UNKNOWNs. Full measured F/P/A/W histories require same-record hash-bound artifacts and are not invented from summaries.',
+    'Material, physical, strength, durability, binary/source equivalence and deployment requirements remain UNKNOWN; all outcomes remain NOT_RELEASED.'],
+});
 class NativeGuardRefusal extends Error {
   constructor(code) {
     // Upstream classifies statusless Error text as a provider failure. Keep
@@ -201,10 +222,12 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
         !nativeSha(settings.config_sha256) || !nativeSha(settings.plugin_sha256) || !nativeSha(settings.boot_source_sha256)) nativeRefuse('SETTINGS_INVALID');
     if (Object.hasOwn(settings, 'research')) {
       const research = settings.research;
-      exactKeys(research, research.schema === 3 ? [...nativeResearchKeys, 'profile'] :
+      exactKeys(research, [3,4].includes(research.schema) ? [...nativeResearchKeys, 'profile'] :
         research.schema === 2 ? [...nativeResearchKeys, 'profile', 'benchmark_definition'] : nativeResearchKeys,
         'RESEARCH_DEFINITION_INVALID');
-      if (research.schema === 3) {
+      if (research.schema === 4) {
+        if (nativeCanonical(research) !== nativeCanonical(nativeMaterialDefinition)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
+      } else if (research.schema === 3) {
         if (research.kind !== 'autonomous-cae-lab.openscience-research-definition' || research.agent !== 'research' ||
             research.profile !== 'pde-fields-v1' ||
             nativeCanonical(research.allowed_tools) !== nativeCanonical(nativePdeResearchTools) ||
@@ -569,6 +592,44 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
   // This research schema is independent of the native-context schema.
   // Check parsed JSON shape/resource admission only; Domain/adapters own AST,
   // coefficient definiteness, references, fluxes and numerical verdicts.
+  const materialArguments = args => {
+    const bound = settings.research.budgets.material_point;
+    exactKeys(args, ['study_id','experiment_id','backend','settings',
+      ...(Object.hasOwn(args,'hypothesis_id') ? ['hypothesis_id'] : [])], 'RESEARCH_ARGUMENTS_REQUIRED');
+    if (args.backend !== 'material.mfront.hyperelastic') nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+    if (typeof args.study_id !== 'string' || !args.study_id.trim() || typeof args.experiment_id !== 'string' ||
+        !args.experiment_id.trim() || (Object.hasOwn(args,'hypothesis_id') && args.hypothesis_id !== null &&
+        (typeof args.hypothesis_id !== 'string' || !args.hypothesis_id.trim()))) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+    const request = args.settings;
+    exactKeys(request, ['case','material','temperature_k','history','limits'], 'RESEARCH_ARGUMENTS_REQUIRED');
+    if (request.case !== 'saint_venant_kirchhoff') nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+    exactKeys(request.material, ['youngs_modulus_mpa','poisson_ratio'], 'RESEARCH_ARGUMENTS_REQUIRED');
+    const real = value => typeof value === 'number' && Number.isFinite(value);
+    const material = request.material;
+    if (!real(material.youngs_modulus_mpa) || material.youngs_modulus_mpa <= 0 || material.youngs_modulus_mpa > 1e9 ||
+        !real(material.poisson_ratio) || material.poisson_ratio <= -1 || material.poisson_ratio >= .5 ||
+        !real(request.temperature_k) || request.temperature_k <= 0 || request.temperature_k > 5000)
+      nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+    exactKeys(request.limits, Object.keys(nativeMaterialLimits), 'RESEARCH_ARGUMENTS_REQUIRED');
+    if (nativeCanonical(request.limits) !== nativeCanonical(nativeMaterialLimits)) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+    const history = request.history;
+    if (!Array.isArray(history) || history.length < bound.min_history_entries || history.length > bound.max_history_entries ||
+        (history.length-1)*request.limits.finite_difference_steps.length*9*2 > bound.max_signed_probe_states)
+      nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+    let previous = -1;
+    for (const entry of history) {
+      exactKeys(entry, ['time_s','deformation_gradient'], 'RESEARCH_ARGUMENTS_REQUIRED');
+      if (!real(entry.time_s) || entry.time_s < 0 || entry.time_s > 1e6 || entry.time_s <= previous ||
+          (previous === -1 && entry.time_s !== 0) || !Array.isArray(entry.deformation_gradient) ||
+          entry.deformation_gradient.length !== 9) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+      for (const value of entry.deformation_gradient) if (!real(value)) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+      previous = entry.time_s;
+    }
+    // Hook arguments are parsed JSON; this is not an original MCP wire bound.
+    let encoded;
+    try { encoded = JSON.stringify(args); } catch { nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED'); }
+    if (Buffer.byteLength(encoded,'utf8') > bound.max_request_bytes) nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+  };
   const pdeArguments = args => {
     const bound = settings.research.budgets.pde;
     exactKeys(args, ['study_id', 'experiment_id', 'backend', 'settings',
@@ -693,6 +754,11 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
     if (!Object.hasOwn(settings, 'research')) return;
     if (!nativeRecord(args)) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
     const budget = settings.research.budgets;
+    if (settings.research.schema === 4) {
+      if (!nativeStructuralResearchTools.includes(tool)) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      if (tool === 'caelab_model_analysis_run') materialArguments(args);
+      return;
+    }
     if (settings.research.schema === 3) {
       if (!nativePdeResearchTools.includes(tool)) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
       if (tool === 'caelab_pde_run') pdeArguments(args);

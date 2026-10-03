@@ -1,34 +1,35 @@
-## Current checkpoint: native02 bounded qualification PASS; MaterialPoints research next
+## Current checkpoint: reviewed MaterialPoints source; one-question research next
 
-Exact clean producer `3a1921e15959e222957d43f9b857d9a014f1f611`, fresh
-`runs/material-hyperelastic-nq-20261003-02` / `E-material-hyperelastic-nq-02-svk`:
-Core COMPLETED_REVIEW_REQUIRED, solver COMPLETED/converged,21valid metrics,
-32PASS/0FAIL/10blockingUNKNOWN; NOT_RELEASED. Actual605observations include
-11nominals/594signed probes;33FD sets retain all3h/full81A/9energy gradients.
-Independent Decimal80/full-state/native audit ran once:71PASS/0FAIL,0openP1/P2,
-59.141710s; actual1211state hashes/committed K reset/MTest residuals verified.
-Original strict MTest1e-14 criterion remains; max actual F residual2.220446e-16.
-Published correction474cold + two sealed source reviews and actual audit close
-four consumer defects in corrected02 only. Original627/native01 FAILED/metrics{}
-and frozen Domain FAIL/all21invalid stay unchanged. Scientific limits/equations,
-compile log/options/actual library and approved5.6Sol/auth remain unchanged.
-New685files/22747766B and all4old stores/1204files retain complete hash inventories.
-Root generic read-only GUI8772 verifies this same original record:21valid rows,
-42validation rows, exact producer/model revision,10UNKNOWN and NOT_RELEASED.
-Dedicated material-history view and Research-produced GUI are separate open gates.
-Record: `benchmarks/records/20261003-svk-native02-qualified.json`; prior failure
-and source-only correction records retain their historical NOT_RUN observations.
-Exact3a CI37096454447:7SUCCESS/3FAIL,Core3232PASS/5skips/1warning456.71s.
-AsterFz numerical/vectorPDE classification/explicit download404 remain OPEN;
-exact logs do not establish internal causes. CI is distinct from local native02.
-NEXT: privately implement/review explicit MaterialPoints schema4 profile using
-the same6existing tools; publish, then one new official approved5.6Sol research
-question, condition comparison/interpretation/same-record GUI/owned Stop/retention.
-Main Research NOT_ADMITTED/live NOT_RUN; no unchanged fine32 solver retry.
-Geometric03 remains FAILED with two-mesh partial evidence; fine/smallangle UNKNOWN.
-Physical/strength/durability/FEcoupling/binary-source/corporate/remote-raw UNKNOWN;
-whole52/Phases1-7 remain OPEN, NOT_RELEASED. Then preserved visco/contact/coupling,
-Phase6 and Phase7. Earlier snapshots below are historical at their exact sources.
+The separate case-sensitive MaterialPoints/schema4/material-points-v1 profile
+connects the qualified SVK material adapter to the same6existing Core tools.
+PS/Node canonical descriptor agrees; existing three profile/prompt/hook contracts
+remain. No Core/wire/optimizer/scientific criterion/provider/auth/runtime change.
+Writer guard156PASS/0FAIL/0SKIP116.57s, PS60PASS and155preservation controls
+are separate overlapping evidence. Supplemental19PASS/1Windows deep-fixture
+setupFAIL/2SKIP stays retained; independent review disposition is in the record.
+Exact six working files are ported from the frozen candidate. Existing Git LF
+normalization is recorded separately; it is not identical working-byte proof.
+Records: `benchmarks/records/20261003-material-points-research-development.json`,
+ADR0027, `docs/HYPERELASTIC_RESEARCH_ACCEPTANCE.md` and the native02 record.
+Actual native proof remains clean producer3a1921e/native02:21valid metrics,
+32PASS/10UNKNOWN, independent71PASS/0FAIL; no new solver/math run in this source
+checkpoint. Native01 FAILED/metrics{} and all original stores remain unchanged.
+Prior original-record generic GUI8772 is verified; dedicated material-history
+view and new Research-produced GUI remain separate. Main profile source is
+implemented; real official Research/live same-record GUI/owned Stop NOT_RUN.
+NEXT: clean published-source resident proof, one complete approved5.6Sol question
+with fixed E210000/E105000 and identical12-state F/history/original limits,
+actual inspect/summary/compare/interpretation, same-record GUI/owned Stop/retention.
+Full measured histories are original artifacts; summary-only interpretation
+cannot invent them. Numeric search remains owned by deterministic engines.
+Exact native producer3a CI37096454447 completed7SUCCESS/3FAIL,Core3232PASS,
+5skips/1warning; AsterFz/vectorPDE/download404 remain separate OPEN gates.
+This profile publication requires its own exact-source CI; not new native proof.
+Geometric03 fine32 cause remains UNKNOWN, no unchanged failed solver retry.
+Physical/material/strength/durability/FEcoupling/binary-source/corporate/remote-raw
+UNKNOWN; NOT_RELEASED, whole52/Phases5-7 OPEN. Continue preserved visco/contact/
+fixture coupling, Phase6 and Phase7 after the bounded connected-material gate.
+Earlier snapshots below are historical at their exact source/run checkpoints.
 
 ---
 

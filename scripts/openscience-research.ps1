@@ -13,7 +13,35 @@ $script:OpenSciencePdeResearchTools = @('caelab_study_create', 'caelab_study_ins
     'caelab_experiment_compare')
 
 function New-OpenScienceResearchDefinition {
-    param([ValidateSet('FixtureScalar', 'StructuralFamilies', 'PDEFields', IgnoreCase=$false)][string]$Profile = 'FixtureScalar')
+    param([ValidateSet('FixtureScalar', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', IgnoreCase=$false)][string]$Profile = 'FixtureScalar')
+    if ($Profile -ceq 'MaterialPoints') {
+        return [ordered]@{
+            schema = 4; kind = 'autonomous-cae-lab.openscience-research-definition'
+            profile = 'material-points-v1'; agent = 'research'
+            allowed_tools = @($script:OpenScienceStructuralResearchTools)
+            runtime_environment = [ordered]@{ MPLBACKEND = 'Agg'; OMP_NUM_THREADS = '2'; QT_QPA_PLATFORM = 'offscreen'
+                CAELAB_CODEASTER_IMAGE = '/home/pikachu444/.local/share/autonomous-cae-lab/code_aster_17.4.0-oci.sif'
+                CAELAB_CODEASTER_IMAGE_SHA256 = 'f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64'
+                CAELAB_SINGULARITY_COMMAND = '/usr/bin/singularity' }
+            budgets = [ordered]@{ steps = 24; mcp_timeout_seconds = 3600; command_timeout_seconds = 3600
+                material_point = @{ min_history_entries = 3; max_history_entries = 12
+                    max_signed_probe_states = 594; max_request_bytes = 65536 } }
+            capabilities = @(
+                [ordered]@{ backend = 'material.mfront.hyperelastic'; operations = @('model_analysis_run')
+                    cases = @('saint_venant_kirchhoff')
+                    inputs = 'Exact case/material/temperature_k/history/limits; physical nine-component F with 3..12 ordered entries. Domain owns finite-strain/probe scientific admission and fixed reference limits.'
+                    runtime = 'Existing exact17.4 SIF and SHA, TFEL5/MGIS3/MTest and Singularity containment; no runtime or model fallback.'
+                    evidence = 'Immutable Core metrics/checks and hash-bound actual native F/P/A/W histories, all signed probes and same-library MTest. Summaries do not expose full measured histories.'
+                    verification = 'IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF' }
+            )
+            limitations = @('Declared scope is not current native execution proof, physical qualification or engineering release.',
+                'Unmodified SVK covers large proper rotations with small Green strain, not general rubber, large-stretch stability or finite-element constitutive coupling.',
+                'Work budgets bound parsed-hook JSON and signed-probe counts, not original MCP wire bytes or scientific accuracy. Native wall defaultNone and positive CPU86400 are separate execution policies.',
+                'Only the six listed tools are admitted; variable registration, jobs and numerical optimizer tools are not provided. Numerical engines own search candidates.',
+                'Interpret actual returned IDs, revisions, metrics and UNKNOWNs. Full measured F/P/A/W histories require same-record hash-bound artifacts and are not invented from summaries.',
+                'Material, physical, strength, durability, binary/source equivalence and deployment requirements remain UNKNOWN; all outcomes remain NOT_RELEASED.')
+        }
+    }
     if ($Profile -ceq 'PDEFields') {
         return [ordered]@{
             schema = 3; kind = 'autonomous-cae-lab.openscience-research-definition'
@@ -137,6 +165,8 @@ function Get-OpenSciencePurposeTools($Context) {
 function Assert-OpenScienceResearchDefinition($Definition) {
     $profile = if ($Definition.schema -eq 2 -and $Definition.profile -ceq 'structural-families-v1') {
         'StructuralFamilies'
+    } elseif ($Definition.schema -eq 4 -and $Definition.profile -ceq 'material-points-v1') {
+        'MaterialPoints'
     } elseif ($Definition.schema -eq 3 -and $Definition.profile -ceq 'pde-fields-v1') {
         'PDEFields'
     } else { 'FixtureScalar' }
@@ -147,6 +177,16 @@ function Assert-OpenScienceResearchDefinition($Definition) {
 function Get-OpenScienceResearchPrompt($Definition) {
     Assert-OpenScienceResearchDefinition $Definition
     $scope = $Definition | ConvertTo-Json -Depth 12 -Compress
+    if ($Definition.schema -eq 4 -and $Definition.profile -ceq 'material-points-v1') {
+        return @"
+You are the research control plane for Autonomous CAE Lab. Plan from the supplied material-point question, use only this explicit six-tool scope and the selected provider/model, execute NEW experiment IDs, inspect and summarize the same returned IDs/revisions, compare actual results and interpret the numerical evidence and UNKNOWN checks. No alternate model/provider, fallback or invented results.
+For caelab_model_analysis_run pass exactly study_id, experiment_id, backend and settings, with hypothesis_id only when supplied. Use backend material.mfront.hyperelastic and case saint_venant_kirchhoff. Settings contains exactly case, material, temperature_k, history and limits. Keep the supplied physical nine-component F order xx,yy,zz,xy,yx,xz,zx,yz,zy and every fixed limit/all three finite-difference steps unchanged. Missing inputs require a concrete question before execution; never delete or substitute conditions or relax a limit to obtain PASS.
+Respect the declared 3..12 history entries, 594 signed probes and parsed JSON resource budget. Domain/adapters own determinant, Green-strain, initial-state and probe admission, reference equations, native syntax and numerical verdicts. Scientifically invalid input must remain a retained preflight rejection with no native execution. Initial t0 is unprepared; measured native history begins at the actual identity endpoint.
+This bounded SVK law covers large proper rotations with small Green strain, not general rubber, large-stretch stability or finite-element material coupling. Generic Core summaries provide metrics/checks, not full measured F/P/A/W histories. Interpret a full history only from supplied same-record hash-bound artifacts; never pretend a summary measured an unavailable component or energy.
+Registration, job and numerical optimizer tools are not available here. Numerical engines own candidate search. Preserve failed experiments, invalid metric values/reasons, engineering assumptions, independent UNKNOWNs and NOT_RELEASED. Solver completion and a comparison are not material, strength, physical, durability or release qualification.
+Declared profile: $scope
+"@
+    }
     if ($Definition.schema -eq 3 -and $Definition.profile -ceq 'pde-fields-v1') {
         return @"
 You are the research control plane for Autonomous CAE Lab. Follow the human's supplied mathematical question through the declared PDE families below. Explain the plan, choose an admitted backend, execute new experiment IDs, inspect and compare actual receipts, and interpret their evidence. Use only the six listed tools and the selected provider/model. Capability metadata is not current execution or qualification proof.

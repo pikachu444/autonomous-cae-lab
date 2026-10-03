@@ -1,0 +1,418 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-03T05:29:02.101609+00:00",
+  "status": "REVIEWED_MATERIAL_RESEARCH_SOURCE_LIVE_NOT_RUN",
+  "source_parent": "37865df6209aece40528f8c4448c91d5f32825bc",
+  "actual_native_qualification_producer": "3a1921e15959e222957d43f9b857d9a014f1f611",
+  "profile": "MaterialPoints",
+  "definition_schema": 4,
+  "definition_profile": "material-points-v1",
+  "definition_canonical_sha256": "d8da36811056261e2bdcd22cd20851960540744553e74568dd7c37716870b63c",
+  "working_source_files": [
+    {
+      "path": "scripts/openscience-research.ps1",
+      "size_bytes": 25196,
+      "sha256": "39bc8b6c4162c0d8ba3da22efcc2c10e704d3aef20f34bd0a26d24788a0d9b04"
+    },
+    {
+      "path": "scripts/openscience-native-provider.ps1",
+      "size_bytes": 23959,
+      "sha256": "fcdca7e64cf4abc128ce6be15cb8f7d395437a85064728f8507834f47dbc5b82"
+    },
+    {
+      "path": "scripts/openscience-server-local.ps1",
+      "size_bytes": 144529,
+      "sha256": "23f0bac20c9c97e084fa697dec87c9c95f45804a57dfb78f0a3a2a6c8696a53f"
+    },
+    {
+      "path": "openscience/native_guard.mjs",
+      "size_bytes": 60722,
+      "sha256": "74e24802fe5430e3dd440e974c2b31baa2f86104b33a027816bf9866956b18c6"
+    },
+    {
+      "path": "openscience/tests/native_guard.test.mjs",
+      "size_bytes": 126150,
+      "sha256": "66b0ec21354c4efc58693f0dc03ead9aabd5cf35de6ae3d2e4f62dc5195eede0"
+    },
+    {
+      "path": "scripts/verify_openscience_native.ps1",
+      "size_bytes": 26862,
+      "sha256": "37974e319a43ee60e06fcf6fef47aaf8328eceb2824246de21929f4d5d579f39"
+    }
+  ],
+  "published_git_blob_files": [
+    {
+      "path": "scripts/openscience-research.ps1",
+      "size_bytes": 25082,
+      "sha256": "9908eeee3f58670a7334e295b4337a2647bc1bb3cb5b529bfba0dfca74ba0fb3",
+      "git_blob_oid": "f8945d4073d6b6ce465e3e5ebae897a207782a10",
+      "normalization": "CRLF to LF only; independent parity closure",
+      "working_sha256": "39bc8b6c4162c0d8ba3da22efcc2c10e704d3aef20f34bd0a26d24788a0d9b04"
+    },
+    {
+      "path": "scripts/openscience-native-provider.ps1",
+      "size_bytes": 23703,
+      "sha256": "9f3a1aa6c574e7a92bc29b840ee6cb145dd6d5f1e3c21219fc363769a4d1d688",
+      "git_blob_oid": "ccb780a6d9280a00f1fc5f267d388d0d71bc8073",
+      "normalization": "CRLF to LF only; independent parity closure",
+      "working_sha256": "fcdca7e64cf4abc128ce6be15cb8f7d395437a85064728f8507834f47dbc5b82"
+    },
+    {
+      "path": "scripts/openscience-server-local.ps1",
+      "size_bytes": 143063,
+      "sha256": "727cef264cf9cde35177c53123845253ceb1e020cf2be6675fc496c00eb7d317",
+      "git_blob_oid": "6ad84825ec9e32e9556cd3ce9e955065df24e396",
+      "normalization": "CRLF to LF only; independent parity closure",
+      "working_sha256": "23f0bac20c9c97e084fa697dec87c9c95f45804a57dfb78f0a3a2a6c8696a53f"
+    },
+    {
+      "path": "openscience/native_guard.mjs",
+      "size_bytes": 60061,
+      "sha256": "480deec264edf30fd918f88f5c2d8b258cc1895c5ab4404b1fe8ef01ed986c7c",
+      "git_blob_oid": "5ee5a43d78bbc6f0508c277cee825d8d598ecbab",
+      "normalization": "CRLF to LF only; independent parity closure",
+      "working_sha256": "74e24802fe5430e3dd440e974c2b31baa2f86104b33a027816bf9866956b18c6"
+    },
+    {
+      "path": "openscience/tests/native_guard.test.mjs",
+      "size_bytes": 124713,
+      "sha256": "37c2b3b188a0ed33cfe4c4b40990d6b40eb16a00116daebfd4bb5d3a45230263",
+      "git_blob_oid": "7235573d8c1cb439269c6e39380afb5591430ddd",
+      "normalization": "CRLF to LF only; independent parity closure",
+      "working_sha256": "66b0ec21354c4efc58693f0dc03ead9aabd5cf35de6ae3d2e4f62dc5195eede0"
+    },
+    {
+      "path": "scripts/verify_openscience_native.ps1",
+      "size_bytes": 26722,
+      "sha256": "090e73c7ee02d4f9198aaa7db7718eca09cc70fbc77fe0d81e610c9161667fb8",
+      "git_blob_oid": "994c5c1ea99b65df9fa6cf9b20d448b384cd6005",
+      "normalization": "CRLF to LF only; independent parity closure",
+      "working_sha256": "37974e319a43ee60e06fcf6fef47aaf8328eceb2824246de21929f4d5d579f39"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "artifacts/development-material-point-20261003-01/material-research-profile-implementation-01/freeze-receipt.json",
+      "size_bytes": 17182,
+      "sha256": "866a2b348cc9468c8543c50adb21d93752fd988d4004565616ea5a35ec6dc0cd"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/material-research-profile-review-01/independent-review.json",
+      "size_bytes": 48457,
+      "sha256": "49ec1906b3c24e4620dd196181b071e1c27fcfcf34dc6281ba3baccf81b1116e"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/material-research-packet-01.md",
+      "size_bytes": 5549,
+      "sha256": "ca6f6cb48fd8bccb617faf2a461dc4d18d0454f1eedf691600fa09f195fe877c"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/material-research-root-drafts-01/receipt.json",
+      "size_bytes": 993,
+      "sha256": "8587f8dc20b253836dad0835f191e3a9fc22cec4b35b618cedebf91123ce1c91"
+    },
+    {
+      "path": "benchmarks/records/20261003-svk-native02-qualified.json",
+      "size_bytes": 21728,
+      "sha256": "491def6e66773832ed99c00052ccad82f5398a475f2410b52a56e20799edc8a4"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/material-research-profile-review-01/seal.json",
+      "size_bytes": 6650,
+      "sha256": "40c3e23ba544b2fca27cbeff0ff376be5da6f184c4e9ad929b445c154cef95e7"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/material-research-live-preparation-01/preparation.json",
+      "size_bytes": 4879,
+      "sha256": "be0c90875f6b295801516b98aa1e81ebd342b7814a3be2d5ffd96035876e79fc"
+    }
+  ],
+  "writer_checks": {
+    "full_native_guard_suite": {
+      "fail": 0,
+      "node": "v24.18.0",
+      "pass": 156,
+      "seconds": 116.5680798,
+      "skip": 0,
+      "tests": 156
+    },
+    "powershell_descriptor_case_default_delegation": {
+      "fail": 0,
+      "pass": 60
+    },
+    "protected": {
+      "Main_source_files": 21,
+      "all_exact": true,
+      "native02_bytes": 22747766,
+      "native02_files": 685
+    },
+    "source_preservation": {
+      "PS_function_definitions": 73,
+      "checks": 155,
+      "fail": 0
+    },
+    "supplemental_unchanged_git_source_helpers": {
+      "fail": 1,
+      "failure": "Synthetic recursive submodule setup failed at Git clone: Windows Filename too long in deep retained private fixture path. No product capture assertion/native call failed.",
+      "pass": 19,
+      "seconds": 69.8604887,
+      "skip": 2,
+      "skips": [
+        "Windows unsupported POSIX-only filename case",
+        "Optional distinct historical-helper fixture not supplied"
+      ],
+      "tests": 22
+    }
+  },
+  "retained_failed_attempts": [
+    {
+      "id": "ps-attempt-01",
+      "reason": "Cold checker compared unordered hashtable serialization to ordered JSON. Fixed checker to exact canonical hashing; production descriptor unchanged.",
+      "status": "FAILED_PREPARATION"
+    },
+    {
+      "id": "ps-attempt-02",
+      "reason": "Cold AST import omitted pure script:OpenScienceBoundedTools required by constructor default binding. Imported its exact AST assignment, no controller top-level executed.",
+      "status": "FAILED_PREPARATION"
+    },
+    {
+      "fail": 1,
+      "id": "node-attempt-01",
+      "pass": 155,
+      "reason": "New mock changed stored session after the last existing GET response, expecting an extra observation not provided by this seam. Test-only correction changes the actually returned second fresh GET response. No production hook changed or guarantee expanded.",
+      "skip": 0
+    },
+    {
+      "fail": 1,
+      "id": "node-support-01",
+      "pass": 19,
+      "reason": "Deep private Windows synthetic Git submodule fixture path exceeds installed Git filename limit; retained unchanged without Main/global Git configuration patch.",
+      "skip": 2
+    }
+  ],
+  "writer_limits": [
+    "Private source preparation only. Profile admission/publication/current official research questions and interpretation await Root and independent review.",
+    "Full existing synthetic config verifier source was extended and parsed, not executed; PS controls exercise pure descriptor/assertion/prompt, parameter refusal and actual early delegation with a downstream mock.",
+    "Full guard suite uses synthetic managed metadata and actual source-reader/Git-state primitives; no actual MCP tool outcome is asserted.",
+    "Descriptor steps24/MCP3600/command3600 are immutable ceilings; existing caller-selected lesser Steps behavior is preserved; default Research construction24 verified.",
+    "Parsed UTF8 JSON and 594 signed probes are resource caps, not raw wire measurement or scientific verdicts. Domain/adapter admission/math/native CPU/wall/process policies are unchanged.",
+    "Full native F/P/A/W histories remain hash-bound artifacts; generic summaries do not provide those histories. Actual tool/live interpretation and GUI integration are NOT_RUN.",
+    "SVK large proper rotation/small Green strain, UNKNOWN/NOT_RELEASED, binary/source equivalence/physical/material/strength/durability/FE coupling/remote retention/all52 and Phase5-7 limits are preserved.",
+    "The source-local snapshot observed only protected hashes. Root native02 qualification is separate; no independent native audit was repeated here."
+  ],
+  "independent_review": {
+    "status": "PASS_BOUNDED_MATERIAL_SOURCE_PROFILE_NATIVE_RESEARCH_NOT_ADMITTED",
+    "open_findings": {
+      "P1": 0,
+      "P2": 0
+    },
+    "closed_harness_observations": [
+      {
+        "attempt": "writer node-attempt-01",
+        "outcome": "155 PASS/1 FAIL retained",
+        "cause": "New late-session mock mutated stored session after the second GET returned its snapshot. Final test-only correction mutates the actual returned second fresh GET response. Existing product hooks are unchanged; no extra observation is claimed."
+      },
+      {
+        "attempt": "writer node-support-01",
+        "outcome": "19 PASS/1 FAIL/2 SKIP retained",
+        "cause": "Deep synthetic Git clone path, confirmed by successful one exact unchanged case in a fresh short cache. No global Git long-path setting or passing-suite rerun."
+      },
+      {
+        "attempt": "independent pure PS outer invocation",
+        "outcome": "Initial command did not launch: conventional Program Files PowerShell path absent.",
+        "cause": "Correctly located existing Codex bundled PowerShell7.6.5; pure AST control completed, with no target source/runtime change."
+      }
+    ],
+    "EOL_and_publication": {
+      "files": [
+        {
+          "path": "scripts/openscience-research.ps1",
+          "baseline_working": {
+            "bytes": 19911,
+            "path": "scripts/openscience-research.ps1",
+            "sha256": "f5532f601cb7485a7faa749ae1b4aba87b38711fde7468751648c79f6a68f5c9"
+          },
+          "baseline_Git_commit": "37865df6209aece40528f8c4448c91d5f32825bc",
+          "baseline_Git_LF_bytes": 19797,
+          "baseline_Git_LF_sha256": "91523d9c54d5e39074a3d4ae06d5d39405515a2a9718d9bce9fa6f371ad63fde",
+          "candidate_working": {
+            "path": "artifacts/development-material-point-20261003-01/material-research-profile-implementation-01/staging/scripts/openscience-research.ps1",
+            "bytes": 25196,
+            "sha256": "39bc8b6c4162c0d8ba3da22efcc2c10e704d3aef20f34bd0a26d24788a0d9b04"
+          },
+          "candidate_reconstructed_LF_bytes": 25082,
+          "candidate_reconstructed_LF_sha256": "9908eeee3f58670a7334e295b4337a2647bc1bb3cb5b529bfba0dfca74ba0fb3",
+          "candidate_public_Git_blob": "NOT_YET_PUBLISHED_BY_ROOT"
+        },
+        {
+          "path": "scripts/openscience-native-provider.ps1",
+          "baseline_working": {
+            "bytes": 23941,
+            "path": "scripts/openscience-native-provider.ps1",
+            "sha256": "c8054cb16d50605794e2588159cd3c9bc47b177944cf43ecd5a1ddd3d72169f6"
+          },
+          "baseline_Git_commit": "37865df6209aece40528f8c4448c91d5f32825bc",
+          "baseline_Git_LF_bytes": 23685,
+          "baseline_Git_LF_sha256": "cd2e1de919bed66a77baebb369a8257300457127047f78b12e32a4af4a476348",
+          "candidate_working": {
+            "path": "artifacts/development-material-point-20261003-01/material-research-profile-implementation-01/staging/scripts/openscience-native-provider.ps1",
+            "bytes": 23959,
+            "sha256": "fcdca7e64cf4abc128ce6be15cb8f7d395437a85064728f8507834f47dbc5b82"
+          },
+          "candidate_reconstructed_LF_bytes": 23703,
+          "candidate_reconstructed_LF_sha256": "9f3a1aa6c574e7a92bc29b840ee6cb145dd6d5f1e3c21219fc363769a4d1d688",
+          "candidate_public_Git_blob": "NOT_YET_PUBLISHED_BY_ROOT"
+        },
+        {
+          "path": "scripts/openscience-server-local.ps1",
+          "baseline_working": {
+            "bytes": 144493,
+            "path": "scripts/openscience-server-local.ps1",
+            "sha256": "8b11e33581312e5bb41bc192141724ad3bff0e01c763b68bcff1a0301b15b349"
+          },
+          "baseline_Git_commit": "37865df6209aece40528f8c4448c91d5f32825bc",
+          "baseline_Git_LF_bytes": 143027,
+          "baseline_Git_LF_sha256": "d4b8fbb18f04e890487335301116d63b5777178886663fb19c95d324348723ae",
+          "candidate_working": {
+            "path": "artifacts/development-material-point-20261003-01/material-research-profile-implementation-01/staging/scripts/openscience-server-local.ps1",
+            "bytes": 144529,
+            "sha256": "23f0bac20c9c97e084fa697dec87c9c95f45804a57dfb78f0a3a2a6c8696a53f"
+          },
+          "candidate_reconstructed_LF_bytes": 143063,
+          "candidate_reconstructed_LF_sha256": "727cef264cf9cde35177c53123845253ceb1e020cf2be6675fc496c00eb7d317",
+          "candidate_public_Git_blob": "NOT_YET_PUBLISHED_BY_ROOT"
+        },
+        {
+          "path": "openscience/native_guard.mjs",
+          "baseline_working": {
+            "bytes": 54868,
+            "path": "openscience/native_guard.mjs",
+            "sha256": "5e1add449800cfe816c7f73ce46a9ffadb7f915228e21aad40100eb2ca3171dc"
+          },
+          "baseline_Git_commit": "37865df6209aece40528f8c4448c91d5f32825bc",
+          "baseline_Git_LF_bytes": 54204,
+          "baseline_Git_LF_sha256": "54fd3292823fed3571fb53030ec07842814f129962d76ac1002bf90436677491",
+          "candidate_working": {
+            "path": "artifacts/development-material-point-20261003-01/material-research-profile-implementation-01/staging/openscience/native_guard.mjs",
+            "bytes": 60722,
+            "sha256": "74e24802fe5430e3dd440e974c2b31baa2f86104b33a027816bf9866956b18c6"
+          },
+          "candidate_reconstructed_LF_bytes": 60061,
+          "candidate_reconstructed_LF_sha256": "480deec264edf30fd918f88f5c2d8b258cc1895c5ab4404b1fe8ef01ed986c7c",
+          "candidate_public_Git_blob": "NOT_YET_PUBLISHED_BY_ROOT"
+        },
+        {
+          "path": "openscience/tests/native_guard.test.mjs",
+          "baseline_working": {
+            "bytes": 112382,
+            "path": "openscience/tests/native_guard.test.mjs",
+            "sha256": "3674a17cf4458adb03ed06bdfaa48878acae93c5b1df1ef5e01f7983f419b248"
+          },
+          "baseline_Git_commit": "37865df6209aece40528f8c4448c91d5f32825bc",
+          "baseline_Git_LF_bytes": 110943,
+          "baseline_Git_LF_sha256": "3c122b5afdb80c2e048f98b7583c8c0d70b9cc3043f259e31cc14ff644016be5",
+          "candidate_working": {
+            "path": "artifacts/development-material-point-20261003-01/material-research-profile-implementation-01/staging/openscience/tests/native_guard.test.mjs",
+            "bytes": 126150,
+            "sha256": "66b0ec21354c4efc58693f0dc03ead9aabd5cf35de6ae3d2e4f62dc5195eede0"
+          },
+          "candidate_reconstructed_LF_bytes": 124713,
+          "candidate_reconstructed_LF_sha256": "37c2b3b188a0ed33cfe4c4b40990d6b40eb16a00116daebfd4bb5d3a45230263",
+          "candidate_public_Git_blob": "NOT_YET_PUBLISHED_BY_ROOT"
+        },
+        {
+          "path": "scripts/verify_openscience_native.ps1",
+          "baseline_working": {
+            "bytes": 21675,
+            "path": "scripts/verify_openscience_native.ps1",
+            "sha256": "b2f794280e9b93f67a89a3eac01e783c9acd7b64eeb049a2cef46877f04d18cf"
+          },
+          "baseline_Git_commit": "37865df6209aece40528f8c4448c91d5f32825bc",
+          "baseline_Git_LF_bytes": 21535,
+          "baseline_Git_LF_sha256": "b0b6fb254d9fe73539a062e8edbf13741e9c6b0741df75ce857e8f219c072bb7",
+          "candidate_working": {
+            "path": "artifacts/development-material-point-20261003-01/material-research-profile-implementation-01/staging/scripts/verify_openscience_native.ps1",
+            "bytes": 26862,
+            "sha256": "37974e319a43ee60e06fcf6fef47aaf8328eceb2824246de21929f4d5d579f39"
+          },
+          "candidate_reconstructed_LF_bytes": 26722,
+          "candidate_reconstructed_LF_sha256": "090e73c7ee02d4f9198aaa7db7718eca09cc70fbc77fe0d81e610c9161667fb8",
+          "candidate_public_Git_blob": "NOT_YET_PUBLISHED_BY_ROOT"
+        }
+      ],
+      "working_vs_LF": "All six reviewed working files contain mixed CRLF/LF; baseline CRLF-to-LF bodies equal exact parent Git blobs. Candidate working hashes and reconstructed LF hashes are distinct and must not be substituted for each other.",
+      "literal_semantics": "Legacy PowerShell here-string prompt raw bytes depend on EOL. Exact old/new prompt parity holds independently in working and LF caches; cross-representation equality is only after explicitly recorded CRLF-to-LF normalization. New PS/Node schema4 definition canonical digest is identical in both representations.",
+      "publication_boundaries": "Root owns exact-byte port and future published Git-blob SHA recording; this review does not claim a candidate remote commit or identical working/Git bytes."
+    },
+    "remaining_gates": [
+      "Root exact port/stage/commit/push and future published Git-blob hash closure.",
+      "Actual MaterialPoints profile startup/admission, same authorized selected model/project and native tool/source guards are NOT_RUN here.",
+      "Actual new research question/tool receipts/interpretation, same-record GUI and full measured history interpretation remain NOT_RUN.",
+      "Physical/material/strength/durability, binary-source equivalence, FE coupling/deployment/raw remote durability, whole52 and Phase5-7 completion remain UNKNOWN/open; all outcomes remain NOT_RELEASED.",
+      "Inherited optional supporting cases remain two explicit skips; full synthetic config verifier is not executed."
+    ],
+    "full_receipt": {
+      "path": "artifacts/development-material-point-20261003-01/material-research-profile-review-01/independent-review.json",
+      "size_bytes": 48457,
+      "sha256": "49ec1906b3c24e4620dd196181b071e1c27fcfcf34dc6281ba3baccf81b1116e"
+    }
+  },
+  "contract": {
+    "existing_tools": [
+      "caelab_study_create",
+      "caelab_study_inspect",
+      "caelab_model_analysis_run",
+      "caelab_experiment_inspect",
+      "caelab_experiment_summary",
+      "caelab_experiment_compare"
+    ],
+    "backend": "material.mfront.hyperelastic",
+    "case": "saint_venant_kirchhoff",
+    "resource_caps": {
+      "steps": 24,
+      "mcp_timeout_seconds": 3600,
+      "command_timeout_seconds": 3600,
+      "min_history_entries": 3,
+      "max_history_entries": 12,
+      "max_signed_probe_states": 594,
+      "max_parsed_request_bytes": 65536
+    },
+    "runtime": "Same explicit pinned StructuralFamilies runtime; no new installation",
+    "approved_model": "openai-codex/gpt-5.6-sol",
+    "automatic_fallback": false,
+    "Core_MCP_tools": 31,
+    "new_wire_Core_optimizer_scientific_fields": 0,
+    "old_profiles_descriptors_prompts_hooks_preserved": true,
+    "settings": "Exact case/material/temperature/history/limits; finite physical9F/time and immutable original limits; Domain retains physics",
+    "summary_limit": "No full measured F/P/A/W history in generic summary; original artifact references only",
+    "native_wall_timeout_seconds": null,
+    "native_cpu_limit_seconds": 86400
+  },
+  "actual_calls_for_source_development": {
+    "Core": 0,
+    "GUI": 0,
+    "HTTP_session": 0,
+    "Main_Git_mutations": 0,
+    "auth_reads": 0,
+    "behaviour_compile_load_integrate": 0,
+    "native_solver": 0,
+    "official_runtime": 0,
+    "provider": 0
+  },
+  "actual_official_research": "NOT_RUN",
+  "same_record_Research_GUI": "NOT_RUN",
+  "owned_Stop_retention": "NOT_RUN_FOR_NEW_RESEARCH",
+  "qualification_GUI": "Prior Root read-only native02 generic record verified; not new Research acceptance",
+  "next_gate": "Publish/reconfirm clean source, fresh official5.6Sol one complete question/two fixed E conditions, inspect/compare/interpret, GUI, owned Stop/hash retention",
+  "physical_FE_binary_source_remote_raw": "UNKNOWN",
+  "decision": "NOT_RELEASED",
+  "whole_52_Phase5_7": "OPEN",
+  "prior_native01_native02_records": "UNCHANGED",
+  "Root_integration": {
+    "exact_six_working_bytes": true,
+    "staged_git_LF_only": true,
+    "independent_canonical_old_prompt_parity": true,
+    "extra_full_passing_suites_repeated": false,
+    "actual_new_model_native_auth_calls": 0
+  }
+}

@@ -31,8 +31,8 @@ function assertRepositorySourcePin(expected,current) {
 }
 ${gitStateSource}
 `;
-const temporarySource = `${prefix}\n${source}\nexport { createNativeHooks, NativeGuardRefusal, assertNativeGitState };\n`;
-const { createNativeHooks, NativeGuardRefusal, assertNativeGitState } = await import(`data:text/javascript;base64,${Buffer.from(temporarySource).toString('base64')}`);
+const temporarySource = `${prefix}\n${source}\nexport { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeMaterialDefinition, nativeMaterialLimits };\n`;
+const { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeMaterialDefinition, nativeMaterialLimits } = await import(`data:text/javascript;base64,${Buffer.from(temporarySource).toString('base64')}`);
 const tools = [
   'caelab_study_create', 'caelab_study_inspect', 'caelab_parameters_discover',
   'caelab_parameters_register', 'caelab_parameters_list', 'caelab_experiment_run',
@@ -1847,5 +1847,196 @@ test('PDEFields late model and provider changes cannot pass the logical stream g
     const hooks = await f.hooks();
     await assert.rejects(hooks['chat.params'](request,immutable({options:{reasoningEffort:'low'}})),refusal('MODEL_CHANGED'));
     assert.equal(f.reader.calls,2); assert.equal(f.receipts().at(-1).accepted,false);
+  }
+});
+
+// Source-only MaterialPoints admission fixtures. These are inputs and mocked
+// metadata; no behaviour, native library, Core or model is invoked.
+function materialResearchFixture(t, definition = nativeMaterialDefinition) {
+  const f = readerFixture(t, {managed:true});
+  f.settings.research = structuredClone(definition);
+  f.settings.allowed = [...definition.allowed_tools]; f.guard.allowed = [...definition.allowed_tools];
+  f.settings.model = f.guard.model = 'openai-codex/gpt-5.6-sol';
+  json(f.settings.configPath,{model:f.settings.model,permission:{'*':'deny'}});
+  f.settings.config_sha256 = sha(fs.readFileSync(f.settings.configPath));
+  json(f.settingsPath,f.settings); f.writeGuard({});
+  return {...f,request:() => ({...f.request(),model:{providerID:'openai-codex',id:'gpt-5.6-sol'}})};
+}
+function materialSettings() {
+  // Exact canonical Domain input, including physical xx,yy,zz,xy,yx,xz,zx,yz,zy
+  // order. It is not a synthetic native response or scientific PASS.
+  const gradients = [
+    [1,1,1,0,0,0,0,0,0], [1,1,1,0,0,0,0,0,0],
+    [1.001,1,1,0,0,0,0,0,0], [.999,1.0007,1.0003,0,0,0,0,0,0],
+    [1,1,1,.0006,0,0,0,0,0], [1,1,1,0,-.0004,0,0,0,0],
+    [1.001,.9995,1.0007,.0004,.00015,-.0002,.00025,.0003,-.00035],
+    [.707707821950556,.7070360705084289,1.0007,-.7064703850834796,.7079199539849119,-.0003535533905932737,.00025,7.071067811865474e-5,-.00035],
+    [.5003700961894324,.43327119554127336,.8666200190267093,-.8653923910825464,.7506899519052838,-.0003598076211353316,.43369972094505754,-.5003700961894322,.24974509618943236],
+    [1.001,.9995,1.0007,.0004,.00015,-.0002,.00025,.0003,-.00035],
+    [.5000000000000001,.5000000000000001,1,-.8660254037844386,.8660254037844386,0,0,0,0],
+    [1,1,1,0,0,0,0,0,0],
+  ];
+  return {case:'saint_venant_kirchhoff',material:{youngs_modulus_mpa:210000,poisson_ratio:.3},
+    temperature_k:293.15,history:gradients.map((deformation_gradient,time_s) => ({time_s,deformation_gradient})),
+    limits:structuredClone(nativeMaterialLimits)};
+}
+const materialRequest = () => ({study_id:'S-material-source-only',experiment_id:'E-material-source-only',
+  backend:'material.mfront.hyperelastic',settings:materialSettings()});
+const materialBefore = (hooks,f,output) => hooks['tool.execute.before']({tool:'caelab_model_analysis_run',sessionID:f.sessionID},output);
+
+test('MaterialPoints descriptor is exact, frozen and independent of the native context schema',async t => {
+  assert.equal(nativeMaterialDefinition.schema,4); assert.equal(nativeMaterialDefinition.profile,'material-points-v1');
+  assert.deepEqual(nativeMaterialDefinition.allowed_tools,['caelab_study_create','caelab_study_inspect','caelab_model_analysis_run',
+    'caelab_experiment_inspect','caelab_experiment_summary','caelab_experiment_compare']);
+  assert.equal(Object.isFrozen(nativeMaterialDefinition.budgets.material_point),true);
+  assert.equal(Object.isFrozen(nativeMaterialLimits.finite_difference_steps),true);
+  const f = materialResearchFixture(t), hooks = await f.hooks();
+  assert.equal(f.settings.schema,3); await hooks['chat.params'](f.request(),immutable({options:{}}));
+  assert.equal(f.receipts().at(-1).accepted,true);
+});
+
+test('MaterialPoints actual PowerShell descriptor and pure Domain inputs match the admitted Node constants',
+  {skip:!process.env.CAELAB_MATERIAL_RESEARCH_DEFINITION_PATH && 'External PS descriptor/pure Domain fixture was not supplied.'},async t => {
+    const definition = JSON.parse(fs.readFileSync(process.env.CAELAB_MATERIAL_RESEARCH_DEFINITION_PATH,'utf8'));
+    assert.equal(canonical(definition),canonical(nativeMaterialDefinition));
+    const limits = JSON.parse(fs.readFileSync(process.env.CAELAB_MATERIAL_FIXED_LIMITS_PATH,'utf8'));
+    const settings = JSON.parse(fs.readFileSync(process.env.CAELAB_MATERIAL_CANONICAL_SETTINGS_PATH,'utf8'));
+    assert.equal(canonical(limits),canonical(nativeMaterialLimits));
+    assert.equal(canonical(settings),canonical(materialSettings()));
+    const f = materialResearchFixture(t,definition), hooks = await f.hooks();
+    await materialBefore(hooks,f,immutable({args:{...materialRequest(),settings}}));
+    assert.equal(f.receipts().at(-1).accepted,true);
+  });
+
+test('MaterialPoints admits its full canonical history, second assumed E and existing six tools without mutation',async t => {
+  const f = materialResearchFixture(t), hooks = await f.hooks();
+  for (const E of [210000,105000]) {
+    const args = materialRequest(); args.settings.material.youngs_modulus_mpa = E;
+    const output = immutable({args}), original = JSON.stringify(output);
+    await materialBefore(hooks,f,output); assert.equal(JSON.stringify(output),original);
+    assert.equal((args.settings.history.length-1)*3*9*2,594);
+  }
+  for (const tool of nativeMaterialDefinition.allowed_tools.filter(tool => tool !== 'caelab_model_analysis_run')) {
+    const args = immutable({study_id:'S-material-source-only',experiment_id:'E-material-source-only'}), output = immutable({args});
+    await hooks['tool.execute.before']({tool,sessionID:f.sessionID},output);
+    assert.equal(f.receipts().at(-1).accepted,true); assert.equal(f.receipts().at(-1).tool,tool);
+  }
+});
+
+test('MaterialPoints forwards finite scientific-invalid inputs unchanged to Domain preflight',async t => {
+  const f = materialResearchFixture(t), hooks = await f.hooks(), args = materialRequest();
+  args.settings.history[2].deformation_gradient = [0,0,0,0,0,0,0,0,0];
+  const output = immutable({args}), original = JSON.stringify(output);
+  await materialBefore(hooks,f,output); assert.equal(JSON.stringify(output),original);
+  // Guard admission is not native execution or a Domain verdict.
+  assert.equal(f.receipts().at(-1).accepted,true);
+});
+
+for (const [label,patch,code='RESEARCH_ARGUMENTS_REQUIRED'] of [
+  ['missing settings',a => delete a.settings], ['extra outer key',a => a.unlisted='x'],
+  ['empty study',a => a.study_id=' '], ['empty experiment',a => a.experiment_id=''],
+  ['boolean hypothesis',a => a.hypothesis_id=true], ['empty hypothesis',a => a.hypothesis_id=' '],
+  ['alternate backend',a => a.backend='material.mfront','RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['alternate case',a => a.settings.case='neo_hookean','RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['missing limit',a => delete a.settings.limits.tangent_relative],
+  ['extra setting',a => a.settings.optimize=true], ['extra material',a => a.settings.material.density=1],
+  ['string E',a => a.settings.material.youngs_modulus_mpa='210000'],
+  ['boolean E',a => a.settings.material.youngs_modulus_mpa=true], ['nonfinite E',a => a.settings.material.youngs_modulus_mpa=Infinity],
+  ['zero E',a => a.settings.material.youngs_modulus_mpa=0], ['overbound E',a => a.settings.material.youngs_modulus_mpa=1e9+1],
+  ['nu upper',a => a.settings.material.poisson_ratio=.5], ['nu lower',a => a.settings.material.poisson_ratio=-1],
+  ['string temperature',a => a.settings.temperature_k='293.15'], ['zero temperature',a => a.settings.temperature_k=0],
+  ['overbound temperature',a => a.settings.temperature_k=5001],
+  ['relaxed tolerance',a => a.settings.limits.stress_relative=1e-7],
+  ['reordered h',a => a.settings.limits.finite_difference_steps.reverse()],
+  ['missing h',a => a.settings.limits.finite_difference_steps.pop()],
+  ['numeric-string h',a => a.settings.limits.finite_difference_steps[0]='1e-7'],
+  ['two history entries',a => a.settings.history.length=2,'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['thirteen history entries',a => a.settings.history.push({time_s:12,deformation_gradient:[1,1,1,0,0,0,0,0,0]}),'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['extra entry',a => a.settings.history[2].extra=0], ['nonzero first time',a => a.settings.history[0].time_s=.1],
+  ['duplicate time',a => a.settings.history[2].time_s=1], ['reverse time',a => a.settings.history[2].time_s=.5],
+  ['time beyond cap',a => a.settings.history[11].time_s=1e6+1], ['string time',a => a.settings.history[1].time_s='1'],
+  ['short F',a => a.settings.history[2].deformation_gradient.pop()],
+  ['sparse F',a => delete a.settings.history[2].deformation_gradient[3]],
+  ['nonfinite F',a => a.settings.history[2].deformation_gradient[3]=NaN],
+  ['boolean F',a => a.settings.history[2].deformation_gradient[3]=false],
+  ['string F',a => a.settings.history[2].deformation_gradient[3]='.0006'],
+]) test(`MaterialPoints refuses ${label} without rewriting arguments`,async t => {
+  const f = materialResearchFixture(t), hooks = await f.hooks(), args = materialRequest(); patch(args);
+  const original = structuredClone(args), output = {args};
+  await assert.rejects(materialBefore(hooks,f,output),refusal(code)); assert.deepEqual(output.args,original);
+  assert.equal(f.receipts().at(-1).accepted,false);
+});
+
+test('MaterialPoints admits the minimum history and exact parsed UTF8 byte cap, refuses one byte more',async t => {
+  const f = materialResearchFixture(t), hooks = await f.hooks(), args = materialRequest(); args.settings.history.length=3;
+  args.hypothesis_id = '가'.repeat(100);
+  args.hypothesis_id += 'x'.repeat(65536-Buffer.byteLength(JSON.stringify(args),'utf8'));
+  assert.equal(Buffer.byteLength(JSON.stringify(args),'utf8'),65536);
+  await materialBefore(hooks,f,immutable({args}));
+  const excessive = structuredClone(args); excessive.hypothesis_id += 'x';
+  await assert.rejects(materialBefore(hooks,f,immutable({args:excessive})),refusal('RESEARCH_WORK_BUDGET_EXCEEDED'));
+});
+
+test('MaterialPoints canonical descriptor cannot widen runtime, image, tools, schema or any work budget',async t => {
+  for (const patch of [d => d.schema=3,d => d.profile='MaterialPoints',d => d.profile='material-points-v2',
+    d => d.allowed_tools.push('caelab_jobs_submit'),d => d.runtime_environment.CAELAB_CODEASTER_IMAGE='/other.sif',
+    d => d.runtime_environment.CAELAB_CODEASTER_IMAGE_SHA256='0'.repeat(64),d => d.runtime_environment.OMP_NUM_THREADS='8',
+    d => d.capabilities[0].backend='material.mfront',d => d.capabilities[0].cases.push('neo_hookean'),
+    ...['steps','mcp_timeout_seconds','command_timeout_seconds'].map(key => d => d.budgets[key]++),
+    ...Object.keys(nativeMaterialDefinition.budgets.material_point).map(key => d => d.budgets.material_point[key]++),
+  ]) {
+    const f = materialResearchFixture(t), definition = f.settings.research; patch(definition); json(f.settingsPath,f.settings);
+    await assert.rejects(f.hooks(),refusal('RESEARCH_DEFINITION_INVALID'));
+  }
+});
+
+test('MaterialPoints refuses optimizer/job/register tools and historical scopes cannot admit its backend',async t => {
+  const f = materialResearchFixture(t), hooks = await f.hooks();
+  for (const tool of ['caelab_parameters_register','caelab_optimization_run','caelab_job_submit','caelab_pde_run'])
+    await assert.rejects(hooks['tool.execute.before']({tool,sessionID:f.sessionID},{args:{}}),refusal('TOOL_NOT_ALLOWED'));
+  for (const make of [researchFixture,structuralResearchFixture,pdeResearchFixture]) {
+    const prior = make(t), priorHooks = await prior.hooks();
+    await assert.rejects(priorHooks['tool.execute.before']({tool:'caelab_model_analysis_run',sessionID:prior.sessionID},
+      {args:materialRequest()}),refusal(make===structuralResearchFixture ? 'RESEARCH_CAPABILITY_NOT_ADMITTED' : 'TOOL_NOT_ALLOWED'));
+  }
+});
+
+test('MaterialPoints retains late source, session/grant/config/settings/Stop and stage refusals',async t => {
+  for (const [drift,code] of [['source','SOURCE_IMPORTABLE_CHANGED'],['session','PROJECT_SESSION_CHANGED'],
+    ['grant','PROJECT_GRANT_CHANGED'],['config','CONFIG_CHANGED'],['settings','SETTINGS_CHANGED'],
+    ['stopping','RUNTIME_STOPPING'],['no_tools','NO_TOOLS_STAGE'],['required','REQUIRED_TOOL_MISMATCH']]) {
+    const f = materialResearchFixture(t), load = f.dependencies.loadFilesystem;
+    if (drift==='session') {
+      const get = f.pluginInput.client.session.get;
+      f.pluginInput.client.session.get = async (...args) => {
+        const response = await get(...args);
+        if (f.counts.session===2) response.data.projectID='prj_foreign';
+        return response;
+      };
+    }
+    f.dependencies.loadFilesystem = async (...args) => {
+      const data = await load(...args);
+      if (f.counts.filesystem===2) {
+        if (drift==='source') fs.writeFileSync(path.join(f.repo,'new_material.py'),'SECRET UNPINNED IMPORT');
+        if (drift==='grant') {f.state.filesystem.grants[0].access='read';data.grants[0].access='read';}
+        if (drift==='config') fs.appendFileSync(f.settings.configPath,' ');
+        if (drift==='settings') fs.appendFileSync(f.settingsPath,' ');
+        if (drift==='stopping') f.writeGuard({stopping:true});
+        if (drift==='no_tools') f.writeGuard({no_tools:true});
+        if (drift==='required') f.writeGuard({required:'caelab_study_inspect'});
+      }
+      return data;
+    };
+    const hooks = await f.hooks(); await assert.rejects(materialBefore(hooks,f,immutable({args:materialRequest()})),refusal(code),drift);
+    assert.equal(f.receipts().at(-1).accepted,false); assert.equal(JSON.stringify(f.receipts()).includes('SECRET'),false);
+  }
+});
+
+test('MaterialPoints exact approved model has no fallback on late provider/model changes',async t => {
+  for (const patch of [r => r.model.id='gpt-other',r => r.model.providerID='ollama']) {
+    const f = materialResearchFixture(t), request = f.request(), load = f.dependencies.loadFilesystem;
+    f.dependencies.loadFilesystem = async (...args) => {const data=await load(...args);if(f.counts.filesystem===2) patch(request);return data;};
+    const hooks = await f.hooks(); await assert.rejects(hooks['chat.params'](request,immutable({options:{}})),refusal('MODEL_CHANGED'));
+    assert.equal(f.receipts().at(-1).accepted,false);
   }
 });
