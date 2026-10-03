@@ -1,0 +1,333 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-03T15:36:20.228826+00:00",
+  "status": "BOUNDED_CONNECTED_VISCOELASTIC_RESEARCH_PASS_NOT_RELEASED",
+  "source_commit": "8a1b3454ff108c5332c39dc09b32daa843e6fdb0",
+  "scientific_source_basis": "700249afc2415db5b25da4499d1099bffad5b1c7",
+  "publication": "This documentation commit records already completed source8a1b345 execution; it is not a new solver or CI producer.",
+  "profile": {
+    "name": "ViscoelasticPoints",
+    "schema": 5,
+    "id": "viscoelastic-points-v1",
+    "canonical_sha256": "23028f399c79e099a054294a4599e08efa89410ccd380f81e047eabb4c06d99b",
+    "max_signed_probes_per_analysis": 576,
+    "aggregate_campaign_probe_cap": "NOT_IMPLEMENTED_OR_CLAIMED"
+  },
+  "runtime": {
+    "openscience": "2.0.146",
+    "official_source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+    "model": "openai-codex/gpt-5.6-sol",
+    "automatic_fallbacks": 0,
+    "automatic_question_retries": 0,
+    "current_owned_server": "STOPPED"
+  },
+  "store": "runs/viscoelastic-r-20261003-01",
+  "study_id": "S-viscoelastic-r-01",
+  "session_id": "ses_efdc2eb38ffeMay3HSpHIc5ny6",
+  "actual_question": {
+    "bytes": 6642,
+    "sha256": "e2fb5e8be680b5efef65f4765af5d81b604d7b7fa52098636456063eff8ddf3c",
+    "count": 1,
+    "assistant_messages": 4,
+    "completed_tool_rows": 9,
+    "distinct_existing_tools": 6,
+    "analysis_calls": 2,
+    "elapsed_seconds": 391.884,
+    "exit_code": 0,
+    "timed_out": false,
+    "hooks": {
+      "chat_params": 4,
+      "tool_before": 9,
+      "accepted": 13,
+      "refused": 0
+    },
+    "scope": "Logical model/tool guards; not every HTTP/final wire or model weights."
+  },
+  "cases": [
+    {
+      "id": "E-viscoelastic-r-01-tau1",
+      "model_revision": "11d9905650021b5f55c42fb003a02e0c1798ef085c0f1be29963067c16a8ee74",
+      "canonical_proposal_revision": "77ed7919fa1be72d39bb21fd6c365d4e4feae231b40305875ec9ea0398ac23fa",
+      "physical_proposal_sha256": "5df9140d902f0d9ae10aecc14a3df02c10a16b18cf576f121a04bfa8e85e04ff",
+      "physical_result_sha256": "d80453d587a14893a1a5adcecfac88d6e21268b019ad641f6c9a1a63ef71e6f0",
+      "artifacts": 89,
+      "metrics": 21,
+      "validation_counts": {
+        "PASS": 25,
+        "UNKNOWN": 8
+      },
+      "unknown": [
+        "model_qualification",
+        "material_qualification",
+        "physical_validation",
+        "static_strength",
+        "fatigue_durability",
+        "solver_coupling",
+        "corporate_license_approval",
+        "corporate_security_approval"
+      ],
+      "native_final_energies_mpa": [
+        [
+          2.2178395119311588e-05,
+          0.003919078550918861
+        ],
+        [
+          2.2178395119311578e-05,
+          0.003919078550918861
+        ]
+      ],
+      "analytical_reference_work_final_mpa": 0.003941256946038172,
+      "decision": "NOT_RELEASED"
+    },
+    {
+      "id": "E-viscoelastic-r-01-tau2",
+      "model_revision": "e40e8ae588ac63f7e33abcfaa48143ecbaf2eb24ddac9f76f6ccf78d768b203b",
+      "canonical_proposal_revision": "421ccc6daf6e68e9e8cef6a5cb3beea3d07fd732504cfaf510d3a647f475c08a",
+      "physical_proposal_sha256": "e6cd482966c8e74fa4c4d7c18961316964267f1c55eba01e194fee4218c2a2e7",
+      "physical_result_sha256": "384301fbabcb858394b1c51ef1f2285a06b83cc15ee3e887b889f66d3ac2b4cf",
+      "artifacts": 89,
+      "metrics": 21,
+      "validation_counts": {
+        "PASS": 25,
+        "UNKNOWN": 8
+      },
+      "unknown": [
+        "model_qualification",
+        "material_qualification",
+        "physical_validation",
+        "static_strength",
+        "fatigue_durability",
+        "solver_coupling",
+        "corporate_license_approval",
+        "corporate_security_approval"
+      ],
+      "native_final_energies_mpa": [
+        [
+          2.7674841566941146e-06,
+          0.0025015638845484254
+        ],
+        [
+          2.767484156694114e-06,
+          0.002501563884548425
+        ]
+      ],
+      "analytical_reference_work_final_mpa": 0.002504331368705119,
+      "decision": "NOT_RELEASED"
+    }
+  ],
+  "fresh_numerical_audit": {
+    "checks": {
+      "nominal_increments": 16,
+      "signed_probes": 576,
+      "fd_matrices": 48,
+      "mtest_states_and_table_rows_each": 18,
+      "pass_predicates": 308,
+      "fail_predicates": 0,
+      "manager_snapshots": 1218,
+      "independently_recomputed_fullstate_hashes": 1184,
+      "scope": "Independent read-only checks, not pytest/native executions"
+    },
+    "precision_decimal_digits": 180,
+    "maximum_stress_error_mpa": 1.17051e-15,
+    "maximum_branch_error_mpa": 7.49189e-16,
+    "maximum_tangent_relative_error": 9.42646e-17,
+    "maximum_fd_relative_error": 1.5823e-10,
+    "unchanged_fd_limit": 1e-08,
+    "maximum_native_energy_independent_work_closure_mpa": 2.8831e-18,
+    "maximum_reference_consumer_work_error_mpa": 2.56825e-18,
+    "scope": "Fresh actual originals; independent high-precision constitutive/math/state audit, no additional native run. Maxima here rounded; full precision in retained receipt."
+  },
+  "integration_review": {
+    "pass": 59,
+    "fail": 0,
+    "open_P1_P2": 0,
+    "unchanged_inputs": 244,
+    "separate_from_numerical_checks": true
+  },
+  "interpretation": {
+    "hold": "tau2 relaxes more slowly than tau1 on the supplied equal-strain holds.",
+    "unloading_counterexample": {
+      "time_s": 4,
+      "tau1_stress_xx_mpa": 0.32543502663498863,
+      "tau2_stress_xx_mpa": 0.11495869041870223
+    },
+    "hypothesis": "Actual counterexample narrows the final narrative; original study.hypothesis preserved, no formal revision event claimed.",
+    "reference_work": "Independent analytical prediction; native MGIS/MTest stored and dissipated energy histories are separate actual outputs.",
+    "same_library": "MGIS and MTest use one generated library: independent driver agreement, not independent constitutive implementation."
+  },
+  "gui": {
+    "verdict": "PASS_BOUNDED_ROOT_OFFICIAL_CONVERSATION_VIEW",
+    "scope": "Exact question/model/session/experiment revisions, nine xx rows, native energy table, hypothesis counterexample, UNKNOWN and NOT_RELEASED.",
+    "standalone_screenshot_hash": "UNKNOWN",
+    "full_spatial_or_six_component_probe_state_views": "NOT_RUN",
+    "user_engineering_approval": "UNKNOWN"
+  },
+  "retention": {
+    "new_store_files": 187,
+    "new_store_bytes": 22641729,
+    "independently_audited_experiment_files": 182,
+    "independently_audited_experiment_bytes": 22639829,
+    "unchanged_original_store_files": 1896,
+    "original_store_count": 5,
+    "after_completed_loop_owned_stop": "PASS",
+    "active_busy_cancellation": "NOT_RUN_THIS_LOOP",
+    "local_raw": "RETAINED",
+    "remote_raw_durability": "UNKNOWN"
+  },
+  "retained_failures": {
+    "bootstrap01": "Server ready, then private old-store inventory consumer nested-array error; zero whole-question/scientific calls in failed phase. Same ready owner used by reviewed03 Resident/Run; old receipts unchanged.",
+    "private03": "Only two += inventory consumers corrected; actual question/settings remain unchanged.",
+    "independent_reader_attempt01": "KeyError mtest_package; original reader/log/exit1 retained. Correct actual tfel_package key in attempt02, 308PASS/exit0; no native retry.",
+    "source_fixture_attempts": "Earlier wrong small-strain fixture and Windows1ULP fixture attempt retained in immutable source-admission record."
+  },
+  "exact_source_ci": {
+    "source_commit": "8a1b3454ff108c5332c39dc09b32daa843e6fdb0",
+    "run_id": 37129374544,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37129374544",
+    "jobs": {
+      "success": 7,
+      "failure": 3,
+      "pending": 0
+    },
+    "core": {
+      "pass": 3674,
+      "skip": 5,
+      "warning": 1
+    },
+    "native_material_jobs": "SKIPPED; local fresh native proof is separate",
+    "failure_payload_capture": {
+      "diagnostic_checks_pass": 45,
+      "regular_files": 97,
+      "bytes": 54252709,
+      "selected_archive_files": 37,
+      "selected_archive_bytes": 2313541,
+      "artifact_expiry_utc": "2026-11-02"
+    },
+    "open_failures": {
+      "aster_fz_fine": "FACTOR_57 MUMPS estimate3.32295e-6 exceeds unchanged1e-6; fine384HEXA20,2225nodes,2739importedcells; nativeexit1/CoreFAILED_EXECUTION/emptymetrics. Cause correction not proven.",
+      "vector_pde": "Native completes; original8->16 vectorL2 rate1.7950984424561094 and component0 rate1.7796221489007413 below unchanged1.8, nine invalid metrics retained. Candidate16/32/64 NOT_RUN.",
+      "openradioss": "Original official asset and currently probed official metadata URLs404. Replacement official asset/digest UNKNOWN; no inferred removal or guessed URL fix."
+    }
+  },
+  "evidence": {
+    "resident": {
+      "path": "artifacts/viscoelastic-r-20261003-01/resident-01/resident-receipt.json",
+      "size_bytes": 10528,
+      "sha256": "b98f81bd587ad6699ced78d4b6ce833efea5d8c5e918a0fe55656b462e24dea0"
+    },
+    "actual_run": {
+      "path": "artifacts/viscoelastic-r-20261003-01/run-01/run-receipt.json",
+      "size_bytes": 23862,
+      "sha256": "9c943798fe5c776069051efa5a29425793447787ad45bcf76eaf03c4f6f36da3"
+    },
+    "capture": {
+      "path": "artifacts/viscoelastic-r-20261003-01/capture-01/phase-receipt.json",
+      "size_bytes": 6062,
+      "sha256": "de50f7d27fbce341621c55ea40fe03c7c5c5d94861d3f949e0042f7387106ca5"
+    },
+    "tools": {
+      "path": "artifacts/viscoelastic-r-20261003-01/capture-01/actual-tool-receipts.json",
+      "size_bytes": 562092,
+      "sha256": "f02f1bb6f2b2ef03b7b356b4af6dce6789712b7fc5107919c0d1999881ec82e9"
+    },
+    "interpretation": {
+      "path": "artifacts/viscoelastic-r-20261003-01/capture-01/interpretation.txt",
+      "size_bytes": 6525,
+      "sha256": "b883d33d5235460129ea11cd9b61677e5037c5d027b0a5364c18d3ef91a87771"
+    },
+    "gui": {
+      "path": "artifacts/viscoelastic-r-20261003-01/gui-01/root-observation.json",
+      "size_bytes": 3322,
+      "sha256": "31a2a10697a2c6e176fc35da1f52f760895a457ee3b2fec193a6ed30fe809a06"
+    },
+    "owned_stop": {
+      "path": "artifacts/viscoelastic-r-20261003-01/stop-01/phase-receipt.json",
+      "size_bytes": 2062,
+      "sha256": "bd9a8dc1f1847472ce6601dec2898fef0417abed8d3ab357adc085285421e49b"
+    },
+    "store_manifest": {
+      "path": "artifacts/viscoelastic-r-20261003-01/stop-01/store-before-stop.json",
+      "size_bytes": 52780,
+      "sha256": "5708b2aea37f326234dc973daab160db7cea58e57e30a6a2bf783aca357614f3"
+    },
+    "numerical_audit": {
+      "path": "artifacts/development-viscoelastic-20261003-01/research-native-independent-audit-01/audit-receipt.json",
+      "size_bytes": 469391,
+      "sha256": "738cce508d6b4c9a7ce150c9aa85cc5d550d49389313361c9c923c7a69669682"
+    },
+    "numerical_seal": {
+      "path": "artifacts/development-viscoelastic-20261003-01/research-native-independent-audit-01/final-seal.json",
+      "size_bytes": 5416,
+      "sha256": "cb508e907502af944cd472fdeeeca7c5c3976ed60f1358c675617a6ef03cf79e"
+    },
+    "numerical_report": {
+      "path": "artifacts/development-viscoelastic-20261003-01/research-native-independent-audit-01/REPORT.md",
+      "size_bytes": 14348,
+      "sha256": "42956c980132acbb2f93dd9b197757427e12719975f999edcbc9d3f51bd6eae5"
+    },
+    "integration_review": {
+      "path": "artifacts/development-viscoelastic-20261003-01/research-actual-integration-review-01/independent-review.json",
+      "size_bytes": 9518,
+      "sha256": "4cc1c8c5fb198dfb39432f53cb2a9daf49714e5cf1dff447169faaf0728b8fcb"
+    },
+    "integration_checks": {
+      "path": "artifacts/development-viscoelastic-20261003-01/research-actual-integration-review-01/integration-checks.json",
+      "size_bytes": 81525,
+      "sha256": "f6698a1f7e3d880c8335a455ec02f60aa6aa276000b3781c53c0aa3c5c1191cb"
+    },
+    "ci": {
+      "path": "artifacts/development-viscoelastic-20261003-01/ci-8a1b345-01/receipt.json",
+      "size_bytes": 55225,
+      "sha256": "e1c97270a24ec07fc7c32b6ea99fe0d8458a71af01e29a736c5e1a1c66be6cfe"
+    },
+    "ci_failure_capture": {
+      "path": "artifacts/development-viscoelastic-20261003-01/ci-8a1b345-failures-01/receipt.json",
+      "size_bytes": 2771,
+      "sha256": "65f32210c10f8731bbdb9de8f326bdf0ce5dcc5250358e23d29572da2f122ff3"
+    },
+    "ci_failure_diagnosis": {
+      "path": "artifacts/development-viscoelastic-20261003-01/ci-8a1b345-failures-01/diagnosis.json",
+      "size_bytes": 32705,
+      "sha256": "edd9fc5b3bf41137f6b96ec18dd0c9a911a66491bbd0fbd0df719c9beca8544c"
+    },
+    "private_harness": {
+      "path": "artifacts/development-viscoelastic-20261003-01/research-live-preparation-03/viscoelastic-points-live.ps1",
+      "size_bytes": 37818,
+      "sha256": "b7289cb3e3138710ae1a714b9aa8be277bf512147431a8e47950cd0479b410e8"
+    },
+    "private_correction_review": {
+      "path": "artifacts/development-viscoelastic-20261003-01/research-live-preparation-03/correction-review.json",
+      "size_bytes": 4552,
+      "sha256": "c7b476b79a6bc3c9a5b13914e2f781fa979f288ef42bdc81943a9752bf637e40"
+    },
+    "source_admission": {
+      "path": "benchmarks/records/20261003-viscoelastic-research-source.json",
+      "size_bytes": 5927,
+      "sha256": "0ba3ccdce5dec07e2f81ec4383d322bcc810785efd110be5c1edd981f95c60f5"
+    },
+    "prior_native04": {
+      "path": "benchmarks/records/20261003-maxwell-native-r04-qualified.json",
+      "size_bytes": 9808,
+      "sha256": "4b3e5e4065ac0ddf1e140a3d3c3cdf6da76db5c3ed2c5ed5f80f2ab89b419ea1"
+    }
+  },
+  "unchanged_numerical_source_files": {
+    "caelab/adapters/codeaster_elasticity.py": "956e84044d0b35780a23648577771236b708fefeb8d69492b6d85cdf4a25165a",
+    "caelab/adapters/codeaster_execution.py": "04bf82ca3ea258a9218f9de33c14aefda1319abfa199fa246c36d5d1cefc2fad",
+    "caelab/adapters/mfront_hyperelastic_worker.py": "cf7e6a631ea1a9ea3a52abefb4247f1eda977b60c8643ecb116b297097eb3960",
+    "caelab/adapters/mfront_inverse.py": "acc3743901515afeb973b30bc0639a1d4afe6fa261f7cf465d6ff24ad986ba7f",
+    "caelab/adapters/mfront_inverse_runtime_probe.py": "5979aab3d05794d264673e121c5aabe0f4785eb8da0edd1cbee5e593c1d01b47",
+    "caelab/adapters/mfront_material.py": "4ea387647fbaddeec47c0c637240209427cb509ef8b1e8b703e8737be3d79dec",
+    "caelab/adapters/mfront_material_worker.py": "3200b2beb25fb04f45dd9eaeff426237802c62021861c90242cff7be79f4197f",
+    "caelab/adapters/mfront_single_branch_maxwell.mfront": "8501f6d338d0d58fd9391031274dd0d15ecaf333f6158f0c80a73ffdb99e3d7a",
+    "caelab/adapters/mfront_viscoelastic.py": "4baff35dd17018055c16cc395f7f20bdc6eb69e608045ae57c7d524bc98d5eff",
+    "caelab/adapters/mfront_viscoelastic_worker.py": "1e133ec4963d8745d6efd83e0771dd35c5b68019a8e9270f939e1b23bce32ff8",
+    "caelab/execution_control.py": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede",
+    "plugins/material_point/inverse_reference.py": "52c754823800a64cdcfa12923a95cad9776ee130baebf35662ded37ee338ad27",
+    "plugins/material_point/reference.py": "bb1ac0652e4c3c2b3f5b338dcc2c3a81c3aad4a97afc5dd1a1421eb1f89bc2e9",
+    "plugins/material_point/viscoelastic_reference.py": "cd790dca972754c134635b723e8a2f00cbd57b0b7ce8a091c32af716170a9fe6"
+  },
+  "decision": "NOT_RELEASED",
+  "requirements": "P5.2b bounded source/native/connected gate closed. Full52/wholePhase5/Phases6-7 remain active; P5.1 fine/small-angle, P5.3 contact and P2.4 real fixture coupling remain open.",
+  "next": "P5.3 full authoritative contact-definition admission, then Domain/adapter/reference/cross-solver/native/common Research/human acceptance in roadmap order; no unchanged closed Maxwell rerun."
+}

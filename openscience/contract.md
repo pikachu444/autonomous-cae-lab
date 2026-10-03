@@ -1,21 +1,26 @@
-## Current checkpoint: P5.2b bounded actual native04 qualified; Research next
+## Current checkpoint: P5.2b connected Maxwell research qualified; P5.3 next
 
-Actual producer700249afc2415db5b25da4499d1099bffad5b1c7 / fresh native04:
-canonical9, refined17 and tau2 each solverCOMPLETED/convergedtrue,21valid metrics,
-25PASS/8blockingUNKNOWN. Native-unrepresentable input is REJECTED/NOT_RUN/noexport.
-Original states/probes/tables/library/runtime90checks and independent180-digit
-ODE/energy/work/all1152probes/96FD matrices219judgments PASS,0openP1/P2.
-All287files/44,284,633B are frozen unchanged; original failed01/02/03 and SVK
-Research are preserved. Law/limits/metrics/scientific thresholds are unchanged.
-Exact source CI37123979472:7SUCCESS/3FAIL; Core3674PASS/5SKIP/1warning.
-CI Fz/vector/explicit404 gates remain separate; no new solver evidence is
-attributed to this later documentation commit. Remote raw durability UNKNOWN.
-NEXT: explicit Maxwell Research admission, one whole approved5.6Sol question,
-original inspect/summary/compare/interpretation/same-record human inspection.
-MaterialPoints/schema4 is still SVK-only. P5.3 contact/fixture, Phase6/7/full52
-remain active; physical/material/FE/strength/durability/deployment UNKNOWN,
-NOT_RELEASED. Separate source and failed-native records remain retained.
-Record: `benchmarks/records/20261003-maxwell-native-r04-qualified.json` (SHA256 `4b3e5e4065ac0ddf1e140a3d3c3cdf6da76db5c3ed2c5ed5f80f2ab89b419ea1`).
+Actual clean source `8a1b3454ff108c5332c39dc09b32daa843e6fdb0` completes one whole approved5.6Sol
+question through official OpenScience2.0.146:9completed tool rows,6existing
+tools,2fresh tau1/tau2 analyses;391.884s/exit0/no timeout/retry/fallback.
+Each original result:21valid metrics/25PASS/8blockingUNKNOWN/89artifacts,
+COMPLETED_REVIEW_REQUIRED/NOT_RELEASED. Fresh independent numerical/state
+audit308PASS and separate connection/interpretation review59PASS;0openP1/P2.
+The final narrative uses a real unloading counterexample to narrow the initial
+hypothesis; the original structured study hypothesis remains preserved.
+Root's same-record official conversation/table view and completed-loop owned
+Stop PASS. New187files/22,641,729B and five old stores/1896files stay unchanged.
+Standalone pixel hash, active busy cancellation and remote raw durability are
+UNKNOWN/NOT_RUN; full spatial/physical/material/strength/durability/FE approval
+is not established. Source/native04 proof and fresh research proof stay separate.
+Bootstrap01 private inventory consumer failure and audit-reader attempt01 are
+retained; reviewed03/attempt02 close those consumers without native retries.
+Exact8a1b CI37129374544:7SUCCESS/3FAIL; Core3674PASS/5SKIP. Actual failure
+payloads retain Aster MUMPS accuracy, coarse vector rate and OpenRadioss404.
+No thresholds are loosened. This publication is documentation of8a1b execution.
+NEXT: P5.3 admit a full authoritative contact definition, then implement/verify
+contact/interfaces and P2.4 fixture coupling; Phase6/7/full52 remain active.
+Record: `benchmarks/records/20261004-viscoelastic-research-r01-qualified.json`; SHA256 `358888f80265c428e9af1b489ae68f1b04b01de2c43a45f8cb5d5b2674f49de3`.
 
 ---
 

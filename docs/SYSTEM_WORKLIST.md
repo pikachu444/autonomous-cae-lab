@@ -1,24 +1,26 @@
-## Current checkpoint: P5.2b Maxwell Research source reviewed; actual question next
+## Current checkpoint: P5.2b connected Maxwell research qualified; P5.3 next
 
-Separate ViscoelasticPoints/schema5 admits only the qualified single-branch
-Maxwell adapter through the same six existing Core tools. SVK/other profiles,
-Core/native scientific source, fixed limits and approved5.6Sol/auth remain.
-Exact PS/Node/Domain descriptor23028f... binds2..17states/576signed probes/
-65536parsed bytes and the protected MFRONT SIF. PS133checks PASS; Node210distinct
-controls close across original209PASS/1fixtureFAIL and actualCore targeted1PASS.
-Both earlier fixture failures remain; no old assertion/threshold was relaxed.
-Independent source/private-launcher review PASS,0openP1/P2;3preparation P2closed
-before actual execution. Original private01 remains; reviewed private02 is ready.
-Native science remains producer700249a/native04/90state checks/219numerical
-judgments; all14numerical source files are unchanged. This is source admission,
-not a new solver verification or connected Research success. Actual question,
-human view/ownedStop are NOT_RUN here; exact new-source CI is pending.
-NEXT: fresh viscoelastic-r-20261003-01, approved5.6Sol one whole tau1/tau2
-question, original inspect/summary/compare/interpretation, same-record human
-view, ownedStop and retention. ThenP5.3/Phase6/7/deferred CI in roadmap order.
-Full52 remain active; physical/material/FE/strength/durability/deployment and
-remote raw durability UNKNOWN, NOT_RELEASED.
-Record: `benchmarks/records/20261003-viscoelastic-research-source.json`.
+Actual clean source `8a1b3454ff108c5332c39dc09b32daa843e6fdb0` completes one whole approved5.6Sol
+question through official OpenScience2.0.146:9completed tool rows,6existing
+tools,2fresh tau1/tau2 analyses;391.884s/exit0/no timeout/retry/fallback.
+Each original result:21valid metrics/25PASS/8blockingUNKNOWN/89artifacts,
+COMPLETED_REVIEW_REQUIRED/NOT_RELEASED. Fresh independent numerical/state
+audit308PASS and separate connection/interpretation review59PASS;0openP1/P2.
+The final narrative uses a real unloading counterexample to narrow the initial
+hypothesis; the original structured study hypothesis remains preserved.
+Root's same-record official conversation/table view and completed-loop owned
+Stop PASS. New187files/22,641,729B and five old stores/1896files stay unchanged.
+Standalone pixel hash, active busy cancellation and remote raw durability are
+UNKNOWN/NOT_RUN; full spatial/physical/material/strength/durability/FE approval
+is not established. Source/native04 proof and fresh research proof stay separate.
+Bootstrap01 private inventory consumer failure and audit-reader attempt01 are
+retained; reviewed03/attempt02 close those consumers without native retries.
+Exact8a1b CI37129374544:7SUCCESS/3FAIL; Core3674PASS/5SKIP. Actual failure
+payloads retain Aster MUMPS accuracy, coarse vector rate and OpenRadioss404.
+No thresholds are loosened. This publication is documentation of8a1b execution.
+NEXT: P5.3 admit a full authoritative contact definition, then implement/verify
+contact/interfaces and P2.4 fixture coupling; Phase6/7/full52 remain active.
+Record: `benchmarks/records/20261004-viscoelastic-research-r01-qualified.json`; SHA256 `358888f80265c428e9af1b489ae68f1b04b01de2c43a45f8cb5d5b2674f49de3`.
 
 ---
 
@@ -1165,16 +1167,16 @@ This evidence/docs checkpoint is not another solver run.
 - [ ] P4.3: verify serial/parallel equivalence and rejected unsafe declarations
   before advertising wider parallel capability.
 
-## Phase5 — connected nonlinear implicit/material/contact (P5.1 SOURCE ACTIVE)
+## Phase5 — connected nonlinear implicit/material/contact (P5.3 NEXT)
 
 - [ ] P5.1: freeze and execute a geometric-nonlinearity reference, full loads/
   displacement/stress/reactions/energy and genuine convergence histories.
   Whole MIDAS §9 inventory guides branching/large-rotation/path-control coverage.
 - [x] P5.2a bounded SVK source/native/connected Research accepted; measured
   material/FE/physical release remains UNKNOWN (retained592a research record).
-- [ ] P5.2b: source/native04 and explicit Research source are qualified;
-  finish actual whole tau1/tau2 Research, same-record human view/Stop/retention.
-  Native/source qualification does not close this connected gate.
+- [x] P5.2b bounded Maxwell source/native/connected Research gate: clean8a1b
+  actualr01 two-condition loop, independent308numerical/59integration PASS,
+  same-record conversation view/ownedStop/retention;8UNKNOWN/NOT_RELEASED.
 - [ ] P5.3: obtain full published material/contact definitions (NAFEMS candidate
   families R0026/R0081), freeze cases and execute cross-solver/mesh/reference
   checks; connect common human/AI results, then close P2.4's recorded dependency.

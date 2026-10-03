@@ -1,6 +1,6 @@
 # ADR0029 — bounded Maxwell research through existing operations
 
-Status: accepted after bounded independent source/private-preparation review; actual connected acceptance remains NOT_RUN.
+Status: accepted; bounded actual8a1b/r01 connected Research, independent numerical/integration review and same-record conversation view/ownedStop/retention PASS. Engineering release remains blocked by8UNKNOWN.
 
 P5.2b native04 at source700249a qualifies the synthetic infinitesimal isotropic
 single-branch material point, its real committed state, all signed probes,
@@ -60,3 +60,21 @@ evidence interpretation, same-record human view, owned Stop and retention.
 Source tests alone do not close connected research. Physical/material/FE/
 strength/durability/binary-source/raw remote durability remain UNKNOWN;
 NOT_RELEASED and full52/Phases5-7 remain active.
+
+## Actual bounded acceptance at source8a1b345
+
+One authentic6642-byte question,9tools/2fresh tau cases and391.884s/exit0
+exercise the admitted boundary. Each result retains21valid metrics,
+25PASS/8UNKNOWN/89artifacts/NOT_RELEASED. Independent308numerical predicates
+and59integration checks have separate scopes. Same generated-library drivers
+do not prove independent constitutive physics. Native stored/dissipated energy
+and analytical work stay distinct. The unloading counterexample revises only
+the final narrative, leaving the original study hypothesis preserved.
+Root observes the official conversation/table; no standalone pixel hash or
+spatial/native-state GUI qualification is claimed. Completed-loop ownedStop
+preserves new187files and old1896files; active busy cancellation is separate.
+The576 cap is per analysis, not an aggregate campaign gate. Raw remote
+durability and deployment remain UNKNOWN. Exact8a1b CI7SUCCESS/3FAIL is separate.
+Record: `benchmarks/records/20261004-viscoelastic-research-r01-qualified.json`.
+No new numerical/source/profile/model/auth/optimizer/Core interface change is
+made by this checkpoint. P5.3 and full52 remain active.

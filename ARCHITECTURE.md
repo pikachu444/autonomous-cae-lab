@@ -10,7 +10,11 @@ deterministic search, approved model/auth and lifecycle keep their owners.
 Actual stress/BranchStress/native energy histories and independently predicted
 work are distinguished; full state/probe/tangent/MTest artifacts retain their
 original record identity. Source admission is separate from actual connected
-Research/GUI/Stop acceptance and physical release.
+Research/GUI/Stop acceptance and physical release. Actual8a1b/r01 now closes
+the bounded supplied tau comparison with308independent numerical and59integration
+checks, same-record conversation view/ownedStop/retention. Eight blocking
+UNKNOWNs still prevent engineering release; P5.3 contact and real fixture
+interfaces are separate next gates.
 
 ## Preserved Maxwell material-point source (ADR0028)
 
@@ -21,8 +25,8 @@ the adapter owns actual MGIS/MTest buffers, generated law/build/runtime evidence
 and common owned execution. Shared compiler behavior names are explicit trusted
 constants. Execution reliability and numerical acceptance are separate. Source
 review/cold proof does not qualify native behavior, measured material or release.
-MaterialPoints remains SVK-only until fresh Maxwell native and explicit Research
-admission gates. Deterministic engines retain numerical search ownership.
+MaterialPoints remains SVK-only; qualified Maxwell is admitted separately by
+ViscoelasticPoints (ADR0029). Deterministic engines retain numerical search ownership.
 
 
 ## Explicit material-point research (ADR0027)
