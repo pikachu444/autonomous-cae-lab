@@ -1,16 +1,27 @@
-## Current ordered work: reviewed binding paths, fresh native04 next
+## Current checkpoint: P5.2b bounded actual native04 qualified; Research next
 
-- [x] Freeze actual01/02/03 failures; distinguish Root parser/path bugs from actual numerical failures.
-- [x] Review bounded binding-path correction;216 affected coldPASS, independent0openP1/P2.
-- [ ] Fresh corrected-source native04: refusal/canonical9/refined17/tau2.
-- [ ] Independently audit actual states/all signedFD/native energy/composition.
-- [ ] Explicit Maxwell Research admission/wholequestion/interpretation/same-record human view.
-- [ ] P5.3 contact/fixture, Phase6/7 and deferred numerical/CI gates in existing order.
+- [x] Reviewed binding-path source correction and216 affected tests.
+- [x] Fresh native04 canonical9/refined17/tau2 and preflight refusal.
+- [x] Independent actual runtime/state90 and numerical219 checks.
+- [ ] Explicit Maxwell Research admission/wholequestion/same-record human view.
+- [ ] P5.3 contact/fixture, Phase6/7 and deferred numericalCI gates in order.
 
-Parent d77 CI7SUCCESS/3FAIL/core3647PASS5SKIP is separate; actual03 stays FAILED.
-Whole52, physical/material/strength/durability/deployment remain OPEN/UNKNOWN.
-Record: `benchmarks/records/20261003-maxwell-binding-path-source.json` (SHA256 `a50d0e0158721f031b9e9578d0e91d2867a29a49dd8096ac5a6384588378c348`).
-Original failed native03: `benchmarks/records/20261003-maxwell-native-r03-failed.json`.
+Actual producer700249afc2415db5b25da4499d1099bffad5b1c7 / fresh native04:
+canonical9, refined17 and tau2 each solverCOMPLETED/convergedtrue,21valid metrics,
+25PASS/8blockingUNKNOWN. Native-unrepresentable input is REJECTED/NOT_RUN/noexport.
+Original states/probes/tables/library/runtime90checks and independent180-digit
+ODE/energy/work/all1152probes/96FD matrices219judgments PASS,0openP1/P2.
+All287files/44,284,633B are frozen unchanged; original failed01/02/03 and SVK
+Research are preserved. Law/limits/metrics/scientific thresholds are unchanged.
+Exact source CI37123979472:7SUCCESS/3FAIL; Core3674PASS/5SKIP/1warning.
+CI Fz/vector/explicit404 gates remain separate; no new solver evidence is
+attributed to this later documentation commit. Remote raw durability UNKNOWN.
+NEXT: explicit Maxwell Research admission, one whole approved5.6Sol question,
+original inspect/summary/compare/interpretation/same-record human inspection.
+MaterialPoints/schema4 is still SVK-only. P5.3 contact/fixture, Phase6/7/full52
+remain active; physical/material/FE/strength/durability/deployment UNKNOWN,
+NOT_RELEASED. Separate source and failed-native records remain retained.
+Record: `benchmarks/records/20261003-maxwell-native-r04-qualified.json` (SHA256 `4b3e5e4065ac0ddf1e140a3d3c3cdf6da76db5c3ed2c5ed5f80f2ab89b419ea1`).
 
 ---
 

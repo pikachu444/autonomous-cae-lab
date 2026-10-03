@@ -1,0 +1,283 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-03T13:13:29.850467+00:00",
+  "status": "BOUNDED_ACTUAL_MAXWELL_NATIVE_QUALIFIED",
+  "native_source_commit": "700249afc2415db5b25da4499d1099bffad5b1c7",
+  "store": "runs/viscoelastic-native-20261003-04",
+  "scope": "Synthetic isotropic single-branch Maxwell material point, protected exact local SIF; not spatialFE/material/physical/strength/durability qualification",
+  "actual_verifier": {
+    "exit_code": 0,
+    "elapsed_seconds": 144.27987389988266,
+    "receipt": {
+      "path": "artifacts/development-viscoelastic-20261003-01/native-acceptance-04/receipt.json",
+      "size_bytes": 11382,
+      "sha256": "c90a933113d2efb20a76f4c303896f9c65f0ae316682df8a33031822ebbaaa01"
+    },
+    "acceptance": {
+      "path": "runs/viscoelastic-native-20261003-04/acceptance.json",
+      "size_bytes": 89702,
+      "sha256": "88450bfff57da987b3903ec84385b74524b7ed3a130913e227001741927fe60b"
+    },
+    "core_result_summary": {
+      "path": "artifacts/development-viscoelastic-20261003-01/native-acceptance-04/core-result-summary-02.json",
+      "size_bytes": 5373,
+      "sha256": "212a1a06c78e5e8e2995aaa447e86a8a653e798fb3dfd7629f769286dcf327b0"
+    },
+    "scope_note": "Actual original result.json solver_status/converged fields are authoritative; acceptance case summaries omit convergence."
+  },
+  "cases": [
+    {
+      "experiment_id": "E-viscoelastic-canonical",
+      "model_revision": "4676f6b4045aa6aee24fbbdbf2bf2293c6a17228c24201df8f9482eb07323756",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "converged": true,
+      "decision": "NOT_RELEASED",
+      "result": {
+        "size_bytes": 109946,
+        "sha256": "b5a6fdfc6e50e79b3e680490e00fc40ad560b88f261bfa00671caf561e7070ce"
+      },
+      "metrics": 21,
+      "all_metrics_valid": true,
+      "validation_counts": {
+        "PASS": 25,
+        "FAIL": 0,
+        "UNKNOWN": 8
+      },
+      "unknown_checks": [
+        "model_qualification",
+        "material_qualification",
+        "physical_validation",
+        "static_strength",
+        "fatigue_durability",
+        "solver_coupling",
+        "corporate_license_approval",
+        "corporate_security_approval"
+      ],
+      "mgis_increments": 8,
+      "mtest_states": 9,
+      "mtest_local_deltas": [
+        0,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "native_raw": {
+        "size_bytes": 5157167,
+        "sha256": "1590b843dd43c9ac0632796e19c9e018797654955b92a4244595235230d116d4"
+      }
+    },
+    {
+      "experiment_id": "E-viscoelastic-changed-tau",
+      "model_revision": "f88ca8e069da6f801b75c4f879efc55efea5d35e146e319b87ca689e5798d402",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "converged": true,
+      "decision": "NOT_RELEASED",
+      "result": {
+        "size_bytes": 110202,
+        "sha256": "7dd76d6ead76e2952a100d9a0c14d2f1a22f4c5d86eeb749a24f8c89b46490bb"
+      },
+      "metrics": 21,
+      "all_metrics_valid": true,
+      "validation_counts": {
+        "PASS": 25,
+        "FAIL": 0,
+        "UNKNOWN": 8
+      },
+      "unknown_checks": [
+        "model_qualification",
+        "material_qualification",
+        "physical_validation",
+        "static_strength",
+        "fatigue_durability",
+        "solver_coupling",
+        "corporate_license_approval",
+        "corporate_security_approval"
+      ],
+      "mgis_increments": 8,
+      "mtest_states": 9,
+      "mtest_local_deltas": [
+        0,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "native_raw": {
+        "size_bytes": 5158321,
+        "sha256": "d2ec05f6ce524c81c3f3cf0592ffe1bbe14c2a9d728382b08e0354b7f7428266"
+      }
+    },
+    {
+      "experiment_id": "E-viscoelastic-native-representability",
+      "model_revision": "5ad2bcdb539341c8c59792f30757b5f910e369367f49073b3bb7ef4d89fad5c1",
+      "status": "REJECTED",
+      "solver_status": "NOT_RUN",
+      "converged": null,
+      "decision": "NOT_RELEASED",
+      "result": {
+        "size_bytes": 5219,
+        "sha256": "873b6606873d3d03327f092bb5503a734af2c078e316c868370d2e36cf8bf750"
+      },
+      "metrics": 0,
+      "all_metrics_valid": null,
+      "validation_counts": {
+        "PASS": 0,
+        "FAIL": 1,
+        "UNKNOWN": 2
+      },
+      "unknown_checks": [
+        "model_qualification",
+        "physical_validation"
+      ]
+    },
+    {
+      "experiment_id": "E-viscoelastic-refined",
+      "model_revision": "4365b5a31dc80d283e73df6dfa2a3dfe69b1d4b7a1350b66e19b96e624dac1e3",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "converged": true,
+      "decision": "NOT_RELEASED",
+      "result": {
+        "size_bytes": 120159,
+        "sha256": "e227466432b9e573483566f98ccd2b48a4caa32bf12c561fb7db87c4b8d4034e"
+      },
+      "metrics": 21,
+      "all_metrics_valid": true,
+      "validation_counts": {
+        "PASS": 25,
+        "FAIL": 0,
+        "UNKNOWN": 8
+      },
+      "unknown_checks": [
+        "model_qualification",
+        "material_qualification",
+        "physical_validation",
+        "static_strength",
+        "fatigue_durability",
+        "solver_coupling",
+        "corporate_license_approval",
+        "corporate_security_approval"
+      ],
+      "mgis_increments": 16,
+      "mtest_states": 17,
+      "mtest_local_deltas": [
+        0,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "native_raw": {
+        "size_bytes": 10355143,
+        "sha256": "b5693d5c930cec5afc77eb03ff4a6e28bea85d246ef0a49b03177225a90ed789"
+      }
+    }
+  ],
+  "raw_retention": {
+    "manifest": {
+      "path": "artifacts/development-viscoelastic-20261003-01/native-acceptance-04/store-frozen-manifest.json",
+      "size_bytes": 54609,
+      "sha256": "de227ce99d2a2d1a2d0fcb56c4c57b111077ff9591c8b4bfddb2b25b953beab4"
+    },
+    "files": 287,
+    "bytes": 44284633,
+    "status": "Frozen local originals; remote raw durability UNKNOWN"
+  },
+  "original01_02_03_and_svk_research_unchanged": true,
+  "source_correction_record": "benchmarks/records/20261003-maxwell-binding-path-source.json",
+  "source_correction_counts": "216 affected tests PASS; independent source review0P1/P2; genuine Main import/hash PASS",
+  "main_import_receipt": {
+    "path": "artifacts/development-viscoelastic-20261003-01/root-native-binding-publication-01/main-smoke-01/receipt.json",
+    "size_bytes": 8176,
+    "sha256": "2754fbf19dfc1ca93b226a6e7e3f2478a5009f56b47728e5831b86a05828bc94"
+  },
+  "independent_native_audits": {
+    "reviews": [
+      {
+        "path": "artifacts/development-viscoelastic-20261003-01/native-state-independent-audit-04/REPORT.md",
+        "size_bytes": 6555,
+        "sha256": "0a9f90e23a75ab0b5bb4c9c9642f8df5fa881cf0bdf3b81cd2add2ca60298a15"
+      },
+      {
+        "path": "artifacts/development-viscoelastic-20261003-01/native-state-independent-audit-04/freeze-receipt.json",
+        "size_bytes": 4413,
+        "sha256": "b697de0fad318e591b5e895e56095a83bcd00891c688321e8762e80e7649afa4"
+      },
+      {
+        "path": "artifacts/development-viscoelastic-20261003-01/native-numerical-independent-audit-04/REPORT.md",
+        "size_bytes": 11593,
+        "sha256": "c55a03eacce7c1fe02fb04555a3d6fa846bba5522229bb0e348544b20c6c8d28"
+      },
+      {
+        "path": "artifacts/development-viscoelastic-20261003-01/native-numerical-independent-audit-04/final-seal.json",
+        "size_bytes": 4230,
+        "sha256": "c229cc7b0e5d573de43472a7def7b93d97b36453bd91965b3919339fa5255c21"
+      }
+    ],
+    "runtime_state_evidence_checks": 90,
+    "independent_numerical_judgments": 219,
+    "open_p1": 0,
+    "open_p2": 0,
+    "counts_not_added_to_pytest": "Pure read-only actual-data audits; no additional pytest/native executions",
+    "numerical_precision": "Independent180-digit ODE integration",
+    "scope": "32nominal/1152signedprobes/96FDmatrices/35MTeststates/table/nativeenergy/work/composition/tau2"
+  },
+  "numerical_thresholds_law_kernels": "UNCHANGED",
+  "shared_time_composition": "PASS actual and independently recomputed",
+  "official_openscience": "NOT_RUN_ON_MAXWELL; existing SVK Research proof separately retained",
+  "research_admission": "MaterialPoints/schema4 remains SVK-only until explicit new admission",
+  "selected_research_model": "openai-codex/gpt-5.6-sol",
+  "exact_native_source_ci": {
+    "source_commit": "700249afc2415db5b25da4499d1099bffad5b1c7",
+    "run_id": 37123979472,
+    "counts": "7SUCCESS/3FAIL",
+    "core": "3674PASS/5SKIP/1warning/357.43s",
+    "receipt": {
+      "path": "artifacts/development-viscoelastic-20261003-01/ci-700249a-01/receipt.json",
+      "size_bytes": 50670,
+      "sha256": "4011b4dc92bbbf0ca209c5877d67dc806016b637db8a97d0381fe979179d367a"
+    },
+    "limits": "Exact-source outer Fz/vector assertions and explicit404 retained. d77 downloaded inner causes are separate-source evidence, not inferred as current inner causes."
+  },
+  "next": [
+    "Explicit Maxwell Research admission",
+    "One whole approved model question/original inspect/summary/compare/interpretation/human view",
+    "P5.3 contact/fixture, Phase6/7 and deferred numericalCI gates in roadmap order"
+  ],
+  "requirements": "All52 remain active; numerical slice does not imply full Phase5 completion",
+  "decision": "NOT_RELEASED",
+  "unknown": [
+    "model_qualification",
+    "material_qualification",
+    "physical_validation",
+    "static_strength",
+    "fatigue_durability",
+    "solver_coupling",
+    "corporate_license_approval",
+    "corporate_security_approval"
+  ],
+  "qualified_utc": "2026-10-03T13:23:04.708651+00:00"
+}
