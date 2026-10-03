@@ -1,0 +1,597 @@
+{
+  "actual_native_Newton_residual": 7.73070496507e-10,
+  "automatic_retries": 0,
+  "backend": "structural.code_aster.contact_patch",
+  "blocking_unknowns": [
+    "model_qualification",
+    "material_qualification",
+    "physical_validation",
+    "static_strength",
+    "fatigue_durability",
+    "pointwise_contact_gap",
+    "cross_solver_contact",
+    "fixture_joint_contact",
+    "corporate_license_approval",
+    "corporate_security_approval"
+  ],
+  "cad_revision": null,
+  "case": "Official Code_Aster SSNP121A analytical inputs with separately generated uniform2 mesh; not NAFEMS CGS1 or MIDAS",
+  "contact_OpenScience_research": "NOT_ADMITTED_NOT_RUN; next bounded source packet is private only",
+  "cpu_limit_seconds": 86400,
+  "created_utc": "2026-10-03T22:15:50.397700+00:00",
+  "documentation_is_not_a_new_solver_run": true,
+  "engineering_decision": "NOT_RELEASED",
+  "evidence": {
+    "artifacts/development-contact-20261004-01/ci142-failed-evidence-01/MANIFEST.json": {
+      "bytes": 42642,
+      "path": "artifacts/development-contact-20261004-01/ci142-failed-evidence-01/MANIFEST.json",
+      "sha256": "3f1e861015252d27ec90f7368aafa228c65007144f54d87f6aa5d7013f73eb86"
+    },
+    "artifacts/development-contact-20261004-01/ci142-failed-evidence-01/REPORT.md": {
+      "bytes": 8700,
+      "path": "artifacts/development-contact-20261004-01/ci142-failed-evidence-01/REPORT.md",
+      "sha256": "30411b865b3d65e3d956b461908b7c88f4c1df438f17bd13ad137b96e0dd2cb2"
+    },
+    "artifacts/development-contact-20261004-01/ci142-failed-evidence-01/failure-context.json": {
+      "bytes": 8991,
+      "path": "artifacts/development-contact-20261004-01/ci142-failed-evidence-01/failure-context.json",
+      "sha256": "d6ff71321f9a3233b4e7754e436a079a9a5a0cf61ec374f6aeddea37ffe6cd4b"
+    },
+    "artifacts/development-contact-20261004-01/ci142-failed-evidence-01/run-37155264019.json": {
+      "bytes": 13014,
+      "path": "artifacts/development-contact-20261004-01/ci142-failed-evidence-01/run-37155264019.json",
+      "sha256": "832d5a3396a72831fc96d31cbab08b71d90be2615e40b35cdaf5408fc1d1a753"
+    },
+    "artifacts/development-contact-20261004-01/ci142-failed-evidence-01/summary.json": {
+      "bytes": 1650,
+      "path": "artifacts/development-contact-20261004-01/ci142-failed-evidence-01/summary.json",
+      "sha256": "66b7c88d18b9b9f438dbd213e897df984a02a788da1f7454c790545c8f1b406e"
+    },
+    "artifacts/development-contact-20261004-01/contact-refinement-native-math-audit-01/REPORT.md": {
+      "bytes": 17992,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-native-math-audit-01/REPORT.md",
+      "sha256": "06df5b3397e05eaf7884216dddbf0516a5e80a7780e9104c1c0537e488dfbe07"
+    },
+    "artifacts/development-contact-20261004-01/contact-refinement-native-math-audit-01/audit-receipt.json": {
+      "bytes": 51309,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-native-math-audit-01/audit-receipt.json",
+      "sha256": "cc46a0c41c65e051b839043b284bdb47394b3b6748239455850190bc554c8f35"
+    },
+    "artifacts/development-contact-20261004-01/contact-refinement-native-math-audit-01/final-seal.json": {
+      "bytes": 4586,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-native-math-audit-01/final-seal.json",
+      "sha256": "ae72ca57b2ff1474d5b795320042dee4b8069dacfb584893de7ca042b256c71b"
+    },
+    "artifacts/development-contact-20261004-01/contact-refinement-native-root-01/receipt.json": {
+      "bytes": 69459,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-native-root-01/receipt.json",
+      "sha256": "26d90200cc25e4601214d8cef6b274c858ac5ea526fa817a0fdd99c1d684cc35"
+    },
+    "artifacts/development-contact-20261004-01/contact-refinement-native-runtime-audit-01/FREEZE.json": {
+      "bytes": 10185,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-native-runtime-audit-01/FREEZE.json",
+      "sha256": "fee5d6dcce636faa3c8814a258567bd72103405fe4d307296e96b48b21aeabd1"
+    },
+    "artifacts/development-contact-20261004-01/contact-refinement-native-runtime-audit-01/REPORT.md": {
+      "bytes": 10089,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-native-runtime-audit-01/REPORT.md",
+      "sha256": "ad11efea6d1e3262a74c1204d4f69fc6bf08f33e20e58a1563aefb3584933be0"
+    },
+    "artifacts/development-contact-20261004-01/contact-refinement-native-runtime-audit-01/actual-runtime-audit.json": {
+      "bytes": 28497,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-native-runtime-audit-01/actual-runtime-audit.json",
+      "sha256": "04693ac5c2fcbab493e3213cb2b6c893306ea1deeac6c1457c44413dac1431fe"
+    },
+    "artifacts/development-contact-20261004-01/contact-refinement-native-runtime-audit-01/producer-runner-closure-01.json": {
+      "bytes": 9124,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-native-runtime-audit-01/producer-runner-closure-01.json",
+      "sha256": "894066c3fae59e11a2357c47deb6c5804de582c4f20ac7c514b5de5a1cce5ba6"
+    },
+    "artifacts/development-contact-20261004-01/contact-refinement-native-runtime-audit-01/producer-runner-diagnosis-01.json": {
+      "bytes": 1438,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-native-runtime-audit-01/producer-runner-diagnosis-01.json",
+      "sha256": "2c543509389bda783fd486262b141760d0bcffe28e271454420eb59e444b8640"
+    }
+  },
+  "exact_source_ci": {
+    "archive_digest_and_size_match_github_api": true,
+    "conclusion": "failure",
+    "core_pytest": {
+      "passed": 3932,
+      "seconds": 548.41,
+      "skipped": 5,
+      "warnings": 1
+    },
+    "credential_files_directly_read_or_dumped": 0,
+    "engineering_decision": "NOT_RELEASED",
+    "evidence": {
+      "MANIFEST.json": {
+        "bytes": 42642,
+        "path": "artifacts/development-contact-20261004-01/ci142-failed-evidence-01/MANIFEST.json",
+        "sha256": "3f1e861015252d27ec90f7368aafa228c65007144f54d87f6aa5d7013f73eb86"
+      },
+      "REPORT.md": {
+        "bytes": 8700,
+        "path": "artifacts/development-contact-20261004-01/ci142-failed-evidence-01/REPORT.md",
+        "sha256": "30411b865b3d65e3d956b461908b7c88f4c1df438f17bd13ad137b96e0dd2cb2"
+      },
+      "failure-context.json": {
+        "bytes": 8991,
+        "path": "artifacts/development-contact-20261004-01/ci142-failed-evidence-01/failure-context.json",
+        "sha256": "d6ff71321f9a3233b4e7754e436a079a9a5a0cf61ec374f6aeddea37ffe6cd4b"
+      },
+      "run-37155264019.json": {
+        "bytes": 13014,
+        "path": "artifacts/development-contact-20261004-01/ci142-failed-evidence-01/run-37155264019.json",
+        "sha256": "832d5a3396a72831fc96d31cbab08b71d90be2615e40b35cdaf5408fc1d1a753"
+      }
+    },
+    "extracted_files_byte_identical_to_zip": true,
+    "extracted_original_files": 143,
+    "failed_jobs": [
+      {
+        "cause": "FIRST_ADJACENT_VECTOR_AND_COMPONENT0_L2_RATE_BELOW_UNCHANGED_MIN_1_8",
+        "job_id": 111299068334,
+        "name": "pde"
+      },
+      {
+        "cause": "PINNED_RUNTIME_DOWNLOAD_HTTP404_NATIVE_STEPS_SKIPPED",
+        "job_id": 111299068350,
+        "name": "explicit"
+      },
+      {
+        "cause": "NATIVE_LEVEL2_MUMPS_FACTOR57_ERROR3_32295E_MINUS6_ABOVE_RESI_RELA1E_MINUS6_EXIT1",
+        "job_id": 111299068356,
+        "name": "codeaster"
+      }
+    ],
+    "failure_cause_isolation_beyond_observed_gate_or_native_error": "UNKNOWN",
+    "gh_read_only_api_invocations": 12,
+    "git_source_docs_old_stores_evidence_threshold_auth_changes": 0,
+    "implicit_contact_native_ci": "ABSENT_FROM_EXACT_WORKFLOW_AND_JOB_LIST",
+    "job_conclusions": {
+      "failure": 3,
+      "success": 7
+    },
+    "kind": "SEALED_EXACT_CI_FAILURE_ATTRIBUTION",
+    "native_compiler_provider_ci_test_reruns": 0,
+    "original_failed_job_archives_downloaded": 2,
+    "original_success_job_archives_downloaded": 0,
+    "report": "REPORT.md",
+    "run_attempt": 1,
+    "run_id": 37155264019,
+    "run_url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37155264019",
+    "sealed_utc": "2026-10-03T22:13:56.411140+00:00",
+    "source_commit": "142c8ab02181a513987a04af6d7ced5996381086",
+    "status": "completed"
+  },
+  "experiment_id": "E-ssnp121a-uniform2",
+  "failed_calculix_pilot": {
+    "numerical_status": "7PASS_6FAIL_PRESERVED_NO_RETRY_OR_RETUNING",
+    "record": {
+      "bytes": 47956,
+      "path": "benchmarks/records/20261004-contact-calculix-pilot-r01-failed.json",
+      "sha256": "6184753dad0fe02f4fe421c8dfdf8b7e5bcc5e9f8fa7f16006925fb2114aaeca"
+    }
+  },
+  "fixed_limits": {
+    "absolute_native_Newton_residual": 2e-08,
+    "force_balance_relative": 1e-06,
+    "reaction_relative": 0.01,
+    "six_signed_sample_relative": 0.01
+  },
+  "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "full_field_diagnostics": {
+    "Gauss_stress_energy_j_per_m": "9999.99836478907649592605386244757373577745490498822262837233430107097926534647143863929436",
+    "all25_LAGS_max_pa": "-99700.012082949164323508739471435546875",
+    "all25_LAGS_min_pa": "-100350.79651937392191030085086822509765625",
+    "comparison_acceptance": "DIAGNOSTIC_ONLY; no full-field/gap/energy/moment qualification threshold",
+    "projected_gap_max_m": "0.00000409625507272993075812165868077584856123538320501802335338481742519323201849914170012734883",
+    "projected_gap_min_m": "-0.00000237571473412808377731825601378797979662183544324636471461349856888394224976804912276984587"
+  },
+  "independent_reviews": {
+    "additional_native_Core_provider_calls": 0,
+    "closed_original_reviews": "Original127math/63runtime unchanged; not rerun or added to new counts",
+    "new_math_field_identity": {
+      "FAIL": 0,
+      "PASS": 79
+    },
+    "new_runner_metadata_only": {
+      "FAIL": 0,
+      "PASS": 8
+    },
+    "new_runtime_common_MED": {
+      "FAIL": 0,
+      "PASS": 48
+    },
+    "open_P1_P2": 0
+  },
+  "local_retention": {
+    "both_complete_manifests_unchanged": true,
+    "new_bytes": 14799091,
+    "new_files": 58,
+    "original_bytes": 8204671,
+    "original_files": 103
+  },
+  "mesh_convergence": "UNKNOWN; one deterministic subdivision demonstrates sensitivity, not asymptotic convergence",
+  "metrics": {
+    "A_normal_traction": {
+      "unit": "Pa",
+      "valid": true,
+      "value": -100080.28194244076
+    },
+    "A_vertical_displacement": {
+      "unit": "m",
+      "valid": true,
+      "value": -0.049998380874502375
+    },
+    "B_normal_traction": {
+      "unit": "Pa",
+      "valid": true,
+      "value": -100080.28239691662
+    },
+    "B_vertical_displacement": {
+      "unit": "m",
+      "valid": true,
+      "value": -0.04999836082077358
+    },
+    "N14_normal_traction": {
+      "unit": "Pa",
+      "valid": true,
+      "value": -100084.03833573495
+    },
+    "N14_vertical_displacement": {
+      "unit": "m",
+      "valid": true,
+      "value": -0.049998765097633506
+    },
+    "all_nodes_force_balance_relative": {
+      "unit": "1",
+      "valid": true,
+      "value": 1.3187673239787282e-16
+    },
+    "bottom_reaction_y": {
+      "unit": "N/m",
+      "valid": true,
+      "value": 199999.9679172642
+    },
+    "boundary_force_balance_relative": {
+      "unit": "1",
+      "valid": true,
+      "value": 8.522057045541197e-15
+    },
+    "derived_projected_gap_max": {
+      "unit": "m",
+      "valid": true,
+      "value": 4.096255072728878e-06
+    },
+    "derived_projected_gap_max_absolute": {
+      "unit": "m",
+      "valid": true,
+      "value": 4.096255072728878e-06
+    },
+    "derived_projected_gap_min": {
+      "unit": "m",
+      "valid": true,
+      "value": -2.375714734130266e-06
+    },
+    "max_sample_displacement_relative_error": {
+      "unit": "1",
+      "valid": true,
+      "value": 3.278358452846186e-05
+    },
+    "max_sample_pressure_relative_error": {
+      "unit": "1",
+      "valid": true,
+      "value": 0.0008403833573494921
+    },
+    "slave_normal_traction_max": {
+      "unit": "Pa",
+      "valid": true,
+      "value": -99700.01208294916
+    },
+    "slave_normal_traction_min": {
+      "unit": "Pa",
+      "valid": true,
+      "value": -100350.79651937392
+    },
+    "top_reaction_y": {
+      "unit": "N/m",
+      "valid": true,
+      "value": -199999.96791726252
+    }
+  },
+  "model_revision": "8ff3f7fe86721064b7a087b3d2e7b5eb1f9938af52229b1c06e703ee222b6936",
+  "native_field_counts": {
+    "displacements": 1154,
+    "nodes": 1154,
+    "reactions": 1154,
+    "slave_pressure_samples": 25,
+    "stress_locations": 4240
+  },
+  "native_field_scope": {
+    "direct_MED_to_table_to_common": "BIT_EXACT_READ_ONLY_HDF5",
+    "final_INST": 1,
+    "final_NUME_ORDRE": 1,
+    "geometric_ELGA_Z": "UNAVAILABLE",
+    "native_ELGA_COOR_Z": "INTEGRATION_W",
+    "native_contact_gap": "UNKNOWN_UNAVAILABLE",
+    "native_stress_XY": "MEASURED",
+    "nodal_and_stress_and_pressure_complete": true,
+    "stress_component_values": 16960
+  },
+  "native_processes": 1,
+  "next": "Explicit ContactPatches six-tool admission, clean-source whole approved5.6Sol original/uniform2 question and same-result human gate; then P2.4 fixture coupling and remaining ordered Phase6/7/deferred gates.",
+  "operation": "model_analysis_run",
+  "original_baseline": {
+    "model_revision": "83f40f7ac4cb45feb8b60e707a1a3f056525e688dfd15867b25e95d9d758e279",
+    "producer_commit": "9d0d613bd8d6ec5a1d5c1a59805c002c84e71c92",
+    "record": {
+      "path": "benchmarks/records/20261004-contact-native-r01-qualified.json",
+      "sha256": "974a1fe42338fb31367f75fcf2858b04ffe1152d08379a7dbdf556163b336fff"
+    },
+    "result": {
+      "bytes": 102083,
+      "path": "runs/contact-native-20261004-01/experiments/E-ssnp121a-canonical/result.json",
+      "sha256": "cb76e765ae7aaeb29b94a0b3508da1ae33f70da830e5b81519aa30260bc21caf"
+    }
+  },
+  "original_native_processes_repeated": 0,
+  "owned_native_elapsed_seconds": 11.648838,
+  "owned_process": {
+    "finished_utc": "2026-10-03T21:30:14.727561+00:00",
+    "pid": 63480,
+    "return_code": 0,
+    "started_utc": "2026-10-03T21:30:03.078723+00:00",
+    "status": "COMPLETED",
+    "stderr": "solver.stderr.log",
+    "stdout": "solver.stdout.log",
+    "timeout_seconds": null
+  },
+  "pair_threshold": "NONE; six signed differences are diagnostics, no invented pair pass criterion",
+  "producer_commit": "142c8ab02181a513987a04af6d7ced5996381086",
+  "producer_elapsed_seconds": 55.23400000017136,
+  "producer_runners": {
+    "actual_inner_argv_entrypoint": {
+      "bytes": 757,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-native-root-01/native-inner.py",
+      "sha256": "7ef94e351f229718331793840875b1bf8dac4b6534b5cbd090f2d72262e06481"
+    },
+    "outer_orchestrator": {
+      "bytes": 7697,
+      "path": "artifacts/development-contact-20261004-01/run-refinement-native-01.py",
+      "sha256": "4d9e7f8c595f05fb3399ae84dbedbce7a73f4beedae035249e045612d0b3e9f2"
+    },
+    "runner_sha256_definition": "Retained outer __file__ bytes, not argv entrypoint; narrow metadata closure8PASS, original diagnosis and receipts preserved."
+  },
+  "producer_source_files": [
+    {
+      "bytes": 48348,
+      "path": "caelab/engine.py",
+      "sha256": "3c5d5107428101980baf66f2d6ec128cd00df98165994886c7ff36cd9f828655"
+    },
+    {
+      "bytes": 4152,
+      "path": "caelab/registry.py",
+      "sha256": "bb89b0ef0caf0a4f1833a8396aba2138ee8c2a6d5b5e22f8892a0c0a1a1606e4"
+    },
+    {
+      "bytes": 6546,
+      "path": "caelab/execution_control.py",
+      "sha256": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede"
+    },
+    {
+      "bytes": 41300,
+      "path": "caelab/adapters/codeaster_elasticity.py",
+      "sha256": "956e84044d0b35780a23648577771236b708fefeb8d69492b6d85cdf4a25165a"
+    },
+    {
+      "bytes": 1347,
+      "path": "caelab/adapters/codeaster_execution.py",
+      "sha256": "04bf82ca3ea258a9218f9de33c14aefda1319abfa199fa246c36d5d1cefc2fad"
+    },
+    {
+      "bytes": 33550,
+      "path": "caelab/adapters/codeaster_worker.py",
+      "sha256": "856219f47b0410c68d3163d8e1206f3cf1627d421accfefb14eada5b57b627dc"
+    },
+    {
+      "bytes": 19127,
+      "path": "caelab/adapters/codeaster_contact.py",
+      "sha256": "87030f2d7c8360c93846dcb942c1231a49ef75dee4aa3a123e63f2c203b90961"
+    },
+    {
+      "bytes": 37583,
+      "path": "caelab/adapters/codeaster_contact_worker.py",
+      "sha256": "7bed2ec61487f0301d9f0304d2b91d3a133a3c1db6b71923c7e157fe02eab1e5"
+    },
+    {
+      "bytes": 23375,
+      "path": "caelab/adapters/codeaster_contact_mesh.py",
+      "sha256": "4aa4233f9a788927a21f053159e670e6099a2aae5ce08c3ec09d073feb6d020e"
+    },
+    {
+      "bytes": 20088,
+      "path": "plugins/contact_patch/reference.py",
+      "sha256": "0144c1ad9a97b7eed1228eaff3fd4d5c15187d15f28e67a530fb2e4b9cd788df"
+    },
+    {
+      "bytes": 10281,
+      "path": "scripts/verify_contact_refinement.py",
+      "sha256": "558ce63e6280dd349bd7fbb512bba1fa5065167c229c9b6c8af011605ae8bb1f"
+    },
+    {
+      "bytes": 5882,
+      "path": "benchmarks/specifications/contact-patch-ssnp121a-v1.json",
+      "sha256": "10a01110c2b8b07d9d4dd37b6690d6cdca3ee8145596d8ff8fa05e0583595ba7"
+    },
+    {
+      "bytes": 63046,
+      "path": "benchmarks/input-data/codeaster/ssnp121a-17.4.0.mmed",
+      "sha256": "825e79a01b983b14b136d4fc2490c2bc40e85ccc25ebd8ae6aa32e88dd544f91"
+    },
+    {
+      "bytes": 84849,
+      "path": "benchmarks/input-data/codeaster/ssnp121a-17.4.0.mesh.json",
+      "sha256": "7398ce4349f076e225e76d1d840d60da1dfe24b57181c1ae1d7b5cfc069d8291"
+    },
+    {
+      "bytes": 117827,
+      "path": "benchmarks/input-data/codeaster/ssnp121a-17.4.0.uniform_quad4_2x.mmed",
+      "sha256": "a23a617fe5de9eb8e52775fcbd10ddcac1aa14cac99ad09ab703e8b58f3b0f6c"
+    },
+    {
+      "bytes": 267995,
+      "path": "benchmarks/input-data/codeaster/ssnp121a-17.4.0.uniform_quad4_2x.mesh.json",
+      "sha256": "2c1de222fa076cd0afbe98d5dd911cac01f22cae21c96ed090e5be4a2e38b46d"
+    },
+    {
+      "bytes": 294946,
+      "path": "benchmarks/input-data/codeaster/ssnp121a-17.4.0.uniform_quad4_2x.generation.json",
+      "sha256": "d0ca8549f7f769c39dfc42b5dda9c3120c87c929e71aadacf18bd5bff688a3a8"
+    },
+    {
+      "bytes": 1458,
+      "path": "benchmarks/input-data/codeaster/ssnp121a-17.4.0.uniform_quad4_2x.profile.json",
+      "sha256": "3c157999052aaa37dd03c5b07981a3f047c921d784511c06f97fc5846475ca11"
+    },
+    {
+      "bytes": 17107,
+      "path": "benchmarks/records/20261004-contact-native-r01-qualified.json",
+      "sha256": "974a1fe42338fb31367f75fcf2858b04ffe1152d08379a7dbdf556163b336fff"
+    },
+    {
+      "bytes": 47956,
+      "path": "benchmarks/records/20261004-contact-calculix-pilot-r01-failed.json",
+      "sha256": "6184753dad0fe02f4fe421c8dfdf8b7e5bcc5e9f8fa7f16006925fb2114aaeca"
+    }
+  ],
+  "remote_raw_durability": "UNKNOWN; immutable local ignored stores/seals retained, public hashes are not uploaded raw evidence",
+  "result": {
+    "bytes": 232764,
+    "path": "runs/contact-refinement-native-20261004-01/experiments/E-ssnp121a-uniform2/result.json",
+    "sha256": "1f6e4be2058aba4eaa516c29974c928d0475babdd85ec5c47ee83f77f44b1bcb"
+  },
+  "same_result_contact_human_inspection": "NOT_RUN; generic artifact downloads exist, full contact viewer is separate",
+  "schema_version": 1,
+  "settings": {
+    "case": "ssnp121a_frictionless_patch",
+    "limits": {
+      "force_balance_relative": 1e-06,
+      "reference_relative": 0.01
+    },
+    "material": {
+      "poisson_ratio": 0.0,
+      "youngs_modulus_pa": 2000000.0
+    },
+    "mesh_variant": "uniform_quad4_2x",
+    "top_displacement_m": -0.1
+  },
+  "signed_original_sample_comparison": [
+    {
+      "absolute_difference": 0.0012538699666038156,
+      "analytical_reference": -100000.0,
+      "comparison_arithmetic_available": true,
+      "comparison_reason": null,
+      "difference_relative_to_fixed_analytical_reference": 1.2538699666038155e-08,
+      "metric": "A_normal_traction",
+      "original": -100080.2806885708,
+      "refined": -100080.28194244076,
+      "refined_metric_reason": null,
+      "refined_metric_valid": true,
+      "signed_difference": -0.0012538699666038156,
+      "unit": "Pa",
+      "verdict": "DIAGNOSTIC_NO_PAIR_THRESHOLD"
+    },
+    {
+      "absolute_difference": 1.6799137161557787e-06,
+      "analytical_reference": -0.05,
+      "comparison_arithmetic_available": true,
+      "comparison_reason": null,
+      "difference_relative_to_fixed_analytical_reference": 3.359827432311557e-05,
+      "metric": "A_vertical_displacement",
+      "original": -0.04999670096078622,
+      "refined": -0.049998380874502375,
+      "refined_metric_reason": null,
+      "refined_metric_valid": true,
+      "signed_difference": -1.6799137161557787e-06,
+      "unit": "m",
+      "verdict": "DIAGNOSTIC_NO_PAIR_THRESHOLD"
+    },
+    {
+      "absolute_difference": 0.0016632893966743723,
+      "analytical_reference": -100000.0,
+      "comparison_arithmetic_available": true,
+      "comparison_reason": null,
+      "difference_relative_to_fixed_analytical_reference": 1.6632893966743723e-08,
+      "metric": "B_normal_traction",
+      "original": -100080.28073362722,
+      "refined": -100080.28239691662,
+      "refined_metric_reason": null,
+      "refined_metric_valid": true,
+      "signed_difference": -0.0016632893966743723,
+      "unit": "Pa",
+      "verdict": "DIAGNOSTIC_NO_PAIR_THRESHOLD"
+    },
+    {
+      "absolute_difference": 1.6598604729717303e-06,
+      "analytical_reference": -0.05,
+      "comparison_arithmetic_available": true,
+      "comparison_reason": null,
+      "difference_relative_to_fixed_analytical_reference": 3.319720945943461e-05,
+      "metric": "B_vertical_displacement",
+      "original": -0.04999670096030061,
+      "refined": -0.04999836082077358,
+      "refined_metric_reason": null,
+      "refined_metric_valid": true,
+      "signed_difference": -1.6598604729717303e-06,
+      "unit": "m",
+      "verdict": "DIAGNOSTIC_NO_PAIR_THRESHOLD"
+    },
+    {
+      "absolute_difference": 266.64909482953954,
+      "analytical_reference": -100000.0,
+      "comparison_arithmetic_available": true,
+      "comparison_reason": null,
+      "difference_relative_to_fixed_analytical_reference": 0.0026664909482953954,
+      "metric": "N14_normal_traction",
+      "original": -100350.68743056449,
+      "refined": -100084.03833573495,
+      "refined_metric_reason": null,
+      "refined_metric_valid": true,
+      "signed_difference": 266.64909482953954,
+      "unit": "Pa",
+      "verdict": "DIAGNOSTIC_NO_PAIR_THRESHOLD"
+    },
+    {
+      "absolute_difference": 2.040831283158656e-05,
+      "analytical_reference": -0.05,
+      "comparison_arithmetic_available": true,
+      "comparison_reason": null,
+      "difference_relative_to_fixed_analytical_reference": 0.00040816625663173123,
+      "metric": "N14_vertical_displacement",
+      "original": -0.04997835678480192,
+      "refined": -0.049998765097633506,
+      "refined_metric_reason": null,
+      "refined_metric_valid": true,
+      "signed_difference": -2.040831283158656e-05,
+      "unit": "m",
+      "verdict": "DIAGNOSTIC_NO_PAIR_THRESHOLD"
+    }
+  ],
+  "source_record": {
+    "bytes": 9961,
+    "path": "benchmarks/records/20261004-contact-uniform2-source-r01.json",
+    "sha256": "6770d4b20e3d4f5fbf94bca45ace5513da7019204c15dba17d5318df8a1cf828"
+  },
+  "status": "BOUNDED_UNIFORM2_NATIVE_REFERENCE_FIELD_IDENTITY_AND_MESH_SENSITIVITY_PASS",
+  "store": "runs/contact-refinement-native-20261004-01",
+  "validation_counts": {
+    "FAIL": 0,
+    "PASS": 12,
+    "UNKNOWN": 10
+  },
+  "wall_timeout_seconds": null,
+  "whole_52_requirements": "ACTIVE",
+  "whole_Phase5_6_7": "OPEN"
+}

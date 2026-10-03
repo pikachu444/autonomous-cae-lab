@@ -1,8 +1,9 @@
 # Contact foundation acceptance
 
-Current P5.3: original native PASS; uniform2 source/preparation PASS, mechanics pending;
-independent127 math/63 runtime checks, zero open P1/P2. Mesh/cross-solver and
-connected Research/human acceptance remain OPEN.
+Current P5.3: original and uniform2 native reference/field identity PASS.
+New independent79math/48runtime checks, separate8metadata checks,0openP1/P2.
+One mesh subdivision is sensitivity; asymptotic/cross-solver and connected
+Research/human acceptance remain OPEN.
 Whole Phase5, P2.4 fixture coupling, Phases6/7 and the52 requirements remain open.
 
 `structural.code_aster.contact_patch` uses the existing common model-analysis
@@ -137,3 +138,28 @@ Production verifier requires the SHA-qualified historical local baseline; absent
 local evidence blocks before Lab/native. The portable genuine result fixture is
 for cold tests and is not a fallback solver result. No contact CI native step is
 claimed. Record: `benchmarks/records/20261004-contact-uniform2-source-r01.json`.
+
+## Actual uniform2 native checkpoint
+
+Producer `142c8ab02181a513987a04af6d7ced5996381086` executes exactly one new job, no original repeat or automatic
+retry. `E-ssnp121a-uniform2` has17valid metrics/12PASS/10UNKNOWN, NOT_RELEASED. Maximum
+original-sample pressure/DY errors0.0008403833573494921/3.278358452846186e-5
+are below unchanged1%; raw Newton7.730704965070e-10 is below2e-8. All1154
+DEPL/REAC rows,4240stress locations/four components and25LAGS_C retain identity
+against actual read-only MED. Independent79math and48runtime predicates pass;
+original127/63 reviews are closed and not rerun. The retained outer7697B hash
+and inner757B argv hash have distinct documented roles, closed by8metadata-only
+checks. Root wrapper55.234s and owned native11.648838s are separate.
+
+Six signed original-to-new sample differences have no mesh-pair threshold.
+All25pressures still range[-100350.79651937392,-99700.01208294916]Pa;
+whole-field uniformity, projected gap, energy and moment are diagnostics only.
+One pair does not establish convergence, native contact gap or engineering release.
+New58files/14,799,091B and old103/8,204,671B remain locally intact; remote
+raw UNKNOWN. Exact142 CI37155264019 has7SUCCESS/3FAIL; contact CI absent.
+Failed CalculiX pilot remains failed. Full qualified record: `benchmarks/records/20261004-contact-uniform2-native-r01-qualified.json`.
+
+Next ContactPatches/schema6 is a separate six-tool source/live/human admission.
+Generic Lab Results can download the same hash-bound JSON/MED but the existing
+PDE inspector excludes contact; full contact field visualization is a separate
+human gate. Research/native/physical/release evidence must stay distinct.

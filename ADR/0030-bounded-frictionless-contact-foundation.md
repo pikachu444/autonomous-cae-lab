@@ -78,3 +78,14 @@ This uses the existing declared-model operation, not a new Core/schema/registry
 interface or numerical search. Source and preparation gates pass; native and
 OpenScience scope admission remain separate next gates. Comparison records
 signed old/new original samples without inventing a mesh-pair threshold.
+
+Uniform2 native disposition at producer142: one new native job plus independent
+79math/48runtime checks establish original-sample reference correctness and full
+field identity at the generated mesh. No original job repeats and no threshold
+changes. Separate outer/inner executor pins close metadata meaning without raw
+rewrites. Full-field nonuniformity and derived gaps stay diagnostic; sensitivity
+is not convergence. CalculiX failure remains a capability limitation. The next
+optional ContactPatches research descriptor reuses six existing Core tools and
+keeps shared schemas/Domain/native/default scopes/model/auth unchanged; source
+admission, whole question and human contact fields remain distinct next gates.
+Native-qualified record: `benchmarks/records/20261004-contact-uniform2-native-r01-qualified.json`.

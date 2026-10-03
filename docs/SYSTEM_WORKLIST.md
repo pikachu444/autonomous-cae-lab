@@ -1,4 +1,39 @@
-## Current checkpoint: P5.3 uniform2 source and mesh preparation verified; native next
+## Current checkpoint: P5.3 uniform2 native mesh sensitivity verified; Research next
+
+Clean pushed producer `142c8ab02181a513987a04af6d7ced5996381086` runs one fresh uniform2 contact job in
+`runs/contact-refinement-native-20261004-01`, exp `E-ssnp121a-uniform2`, revision `8ff3f7fe86721064b7a087b3d2e7b5eb1f9938af52229b1c06e703ee222b6936`.
+Root55.234s/owned native11.648838s, exit0, retry0, wallNone/CPU86400;
+no original solves repeated. The actual common record has17valid metrics,
+12PASS/0FAIL/10blockingUNKNOWN, NOT_RELEASED. Six signed A/B/N14 responses
+retain1%; pressure max error0.0840383%, DY0.00327836%, balance<1e-6 and actual
+Newton7.730704965070e-10<2e-8. All thresholds and original defaults unchanged.
+Independent NEW math79 and runtime48 PASS, zero openP1/P2; complete1154 U/RF,
+4240stress locations/16960values and25 genuine signed LAGS_C; direct MED data
+is bit-exact. Outer/inner runner roles close by separate8metadata-only checks;
+the pending diagnosis and all producer/raw records remain immutable.
+Original103files/8,204,671B and new58/14,799,091B retained unchanged locally;
+remote raw UNKNOWN. Full-field uniformity/gap/energy/moments remain diagnostics.
+One subdivision establishes sensitivity, not asymptotic convergence. CalculiX
+7PASS/6FAIL remains failed; cross-solver, native-gap/strength/physical/fixture
+qualifications UNKNOWN. Contact CI is absent; exact142 CI37155264019 is
+7SUCCESS/3FAIL(codeaster,pde,explicit), separate from local contact proof.
+Exact CI Core3932PASS/5SKIP/1warning. Failed native Aster Fz24x4x4 has MUMPS
+FACTOR_57/error3.32295e-6>1e-6/exit1; vector8-to16 rates1.79509844 and
+component0 1.77962215<1.8; OpenRadioss pinned URL404/exit22 before native.
+Exact failure175files/60,600,800B retained; deeper causes/skipped gates UNKNOWN,
+no timeout attribution, threshold relaxation or failure retry.
+Record: `benchmarks/records/20261004-contact-uniform2-native-r01-qualified.json`; SHA256 `cffd4efd2a08401334fef40fede8061fc23585a02b635a92712e97990f6f684f`.
+NEXT: optional ContactPatches/schema6 admission, whole approved5.6Sol question
+with original/uniform2 conditions and same-result human inspection; then P2.4
+fixture coupling and remaining Phase6/7/deferred gates. Research is NOT_ADMITTED/
+NOT_RUN here; generic summary/artifact downloads are not a full contact viewer.
+Core/registry/schema/optimizer/approved model/auth/fixture pin unchanged.
+Whole52/Phases5-7 ACTIVE, engineering NOT_RELEASED. Earlier checkpoints below
+are historical; this publication is no additional solver execution.
+
+---
+
+## Historical checkpoint: P5.3 uniform2 source and mesh preparation verified; native next
 
 The existing contact backend admits only optional mesh_variant=uniform_quad4_2x.
 Original defaults, six1% sample gates, reactions1%/balance1e-6, native2e-8 and
@@ -1285,7 +1320,8 @@ This evidence/docs checkpoint is not another solver run.
 - [x] P5.3 original native01: canonical/analytical variant/invalid block; independent127math/63runtime PASS; exact source/fields/retention verified.
 - [x] P5.3 actual private CalculiX comparison: immutable7PASS/6FAIL, complete fields and source-backed capability limits; no cross-solver qualification.
 - [x] P5.3 uniform2 deterministic MED generation/readback, independent full geometry/binary identity, source46-review and integrated257cold PASS.
-- [ ] P5.3 one fresh committed-source uniform2 native/full-field signed comparison, then whole Research/human and P2.4 fixture coupling.
+- [x] P5.3 one fresh142 uniform2 native/full-field signed comparison; independent79math/48runtime PASS,10UNKNOWN/NOT_RELEASED.
+- [ ] P5.3 ContactPatches admission/whole Research/same-record human; then P2.4 fixture coupling and remaining Phase6/7/deferred gates.
 - [ ] P5.3: obtain full published material/contact definitions (NAFEMS candidate
   families R0026/R0081), freeze cases and execute cross-solver/mesh/reference
   checks; connect common human/AI results, then close P2.4's recorded dependency.
