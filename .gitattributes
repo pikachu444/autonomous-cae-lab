@@ -43,3 +43,12 @@ tests/fixtures/codeaster_174_contact/canonical-result.json -text
 tests/fixtures/codeaster_174_contact/README.md text eol=lf
 benchmarks/records/20261004-contact-uniform2-source-r01.json -text
 benchmarks/records/20261004-contact-uniform2-native-r01-qualified.json -text
+
+# Preserve exact reviewed research source and source-capsule byte pins.
+scripts/openscience-research.ps1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+scripts/openscience-server-local.ps1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+scripts/openscience-native-provider.ps1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+openscience/native_guard.mjs -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+openscience/tests/native_guard.test.mjs -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+scripts/verify_openscience_native.ps1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+benchmarks/records/20261004-contact-research-source-r01.json -text

@@ -1,3 +1,24 @@
+## Current checkpoint: P5.3 ContactPatches source admitted; actual Research next
+
+Optional ContactPatches/schema6/contact-patches-v1 reuses six existing tools;
+native context remains3, Core/registry/Domain/native/model/auth/default scopes unchanged.
+Final five production files plus corrected test are independently reviewed,
+zero openP1/P2. Main full guard/source-pin: 311PASS/5explicit legacy/platform SKIP/0FAIL;
+all92 contact cases execute. Actual Main PS descriptor SHA164f39 agrees exactly.
+Private supplied92/absent83+9SKIP, PS68/static87/pureDomain10 overlap/separate;
+none are native, provider or Core execution. Original collection P1 and all
+preparation failures/seals remain retained. Six -text paths preserve exact bytes.
+Record: `benchmarks/records/20261004-contact-research-source-r01.json`; SHA256 `a9af1332a67ff4cad7598510c3e5d1877b1721c868e81de871c1b89bcc84cd56`.
+Actual Research/Bootstrap/Resident/question/human/Stop NOT_RUN. NEXT: fresh
+`runs/contact-research-20261004-01`, one approved5.6Sol original/uniform2 question,
+independent actual numerical/interpretation audit and same-result human/ownedStop;
+full contact field gate, then P2.4 and remaining Phase6/7/deferred gates.
+Prior142/native proof and failed CalculiX pilot remain separate and unchanged.
+Exact new source CI pending; prior142 CI7SUCCESS/3FAIL is not new verification.
+Ten blockingUNKNOWN/NOT_RELEASED; whole52/Phases5-7 remain ACTIVE.
+
+---
+
 # Contact foundation acceptance
 
 Current P5.3: original and uniform2 native reference/field identity PASS.

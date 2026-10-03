@@ -1,5 +1,16 @@
 # Architecture
 
+## Explicit contact-patch research (ADR0031)
+
+ContactPatches/schema6 uses the six existing model-analysis operations with a
+separate exact descriptor. Native context3, Core envelopes, Domain verdicts,
+adapter syntax, deterministic search and approved model/auth keep their owners.
+Finite scientific-invalid inputs are forwarded unchanged to Domain preflight;
+source guards constrain shape, capability and parsed resource budgets only.
+Source admission is verified separately from the next whole Research and human
+field gates. Ten UNKNOWNs and NOT_RELEASED remain. See ADR0031 and the contact
+research source record; no contact viewer or fixture qualification is inferred.
+
 ## Explicit Maxwell material-point research (ADR0029)
 
 ViscoelasticPoints/schema5 admits the qualified bounded single-branch Maxwell

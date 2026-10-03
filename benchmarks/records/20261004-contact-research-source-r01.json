@@ -1,0 +1,306 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-03T23:10:44.872712+00:00",
+  "status": "BOUNDED_CONTACT_RESEARCH_SOURCE_REVIEWED_ACTUAL_RESEARCH_NOT_RUN",
+  "source_parent_commit": "0b6a12a8b36a22b917856f4df8895066efc46fac",
+  "source_publication": "THIS_COMMIT; not a new contact solver or actual Research verification",
+  "profile": {
+    "selector": "ContactPatches",
+    "schema": 6,
+    "id": "contact-patches-v1",
+    "native_context_schema": 3,
+    "canonical_sha256": "164f39c6019786ad5e152777d36016d5415b2962c3b6baa5cb69a0c8b47e4405",
+    "backend": "structural.code_aster.contact_patch",
+    "case": "ssnp121a_frictionless_patch",
+    "tools": [
+      "caelab_study_create",
+      "caelab_study_inspect",
+      "caelab_model_analysis_run",
+      "caelab_experiment_inspect",
+      "caelab_experiment_summary",
+      "caelab_experiment_compare"
+    ],
+    "budgets": {
+      "steps": 24,
+      "mcp_timeout_seconds": 3600,
+      "command_timeout_seconds": 3600,
+      "contact_patch": {
+        "max_stress_locations": 4240,
+        "max_solid_cells": 1060,
+        "max_request_bytes": 16384,
+        "max_boundary_segments": 184,
+        "max_slave_pressure_nodes": 25,
+        "max_nodes": 1154
+      }
+    },
+    "runtime_environment": {
+      "MPLBACKEND": "Agg",
+      "OMP_NUM_THREADS": "1",
+      "QT_QPA_PLATFORM": "offscreen",
+      "CAELAB_CODEASTER_IMAGE": "/home/pikachu444/.local/share/autonomous-cae-lab/code_aster_17.4.0-oci.sif",
+      "CAELAB_CODEASTER_IMAGE_SHA256": "f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64",
+      "CAELAB_SINGULARITY_COMMAND": "/usr/bin/singularity"
+    }
+  },
+  "source_files": [
+    {
+      "path": "scripts/openscience-research.ps1",
+      "size_bytes": 37938,
+      "sha256": "89e1b5035d491dadd225f51ffa1ea57ed523970b61eec936ba15d78623c26526"
+    },
+    {
+      "path": "scripts/openscience-server-local.ps1",
+      "size_bytes": 145173,
+      "sha256": "d230b83fe1ecfb3b301d1e6f91ee58103c4433e70df5f9c266bbbbd133b6f695"
+    },
+    {
+      "path": "scripts/openscience-native-provider.ps1",
+      "size_bytes": 23999,
+      "sha256": "8fc07647b9f3f5c3376c2fa1b3b00dcc42f21b6827b88b96265d35f37ad67b96"
+    },
+    {
+      "path": "openscience/native_guard.mjs",
+      "size_bytes": 74697,
+      "sha256": "2788ed22cfce181835ab69c3314dcfbb2df610b628343b81b5ac49f5e3444a7b"
+    },
+    {
+      "path": "openscience/tests/native_guard.test.mjs",
+      "size_bytes": 155738,
+      "sha256": "e831fbfb8a252a7ddf6d2e86cbfa82f66f09604878f558e42a2b53af3ed37e81"
+    },
+    {
+      "path": "scripts/verify_openscience_native.ps1",
+      "size_bytes": 38305,
+      "sha256": "d48c945c94c473c1edafb40bc4e34a0187d1b0f3130e66df66048095c74730c1"
+    }
+  ],
+  "source_acceptance": {
+    "Main": {
+      "receipt": {
+        "path": "artifacts/development-contact-20261004-01/contact-research-main-integration-01/main-source-gate-01/receipt.json",
+        "size_bytes": 8417,
+        "sha256": "2b6796e58851d1ad7129d9ffc8e4f4f706857033bcb6e9793f6ba186581c05a5"
+      },
+      "suite": {
+        "tests": 316,
+        "pass": 311,
+        "fail": 0,
+        "skip": 5,
+        "explicit_original_skips": [
+          {
+            "name": "PDEFields actual exported PowerShell definition has its frozen canonical pin and is admitted unchanged",
+            "time": "0.000146",
+            "classname": "test",
+            "file": "C:\\SourceCodes\\autonomous-cae-lab\\openscience\\tests\\native_guard.test.mjs"
+          },
+          {
+            "name": "MaterialPoints actual PowerShell descriptor and pure Domain inputs match the admitted Node constants",
+            "time": "0.000136",
+            "classname": "test",
+            "file": "C:\\SourceCodes\\autonomous-cae-lab\\openscience\\tests\\native_guard.test.mjs"
+          },
+          {
+            "name": "ViscoelasticPoints actual PS descriptor and Domain canonical9/refined17/tau2 inputs have exact source parity",
+            "time": "0.000088",
+            "classname": "test",
+            "file": "C:\\SourceCodes\\autonomous-cae-lab\\openscience\\tests\\native_guard.test.mjs"
+          },
+          {
+            "name": "POSIX-only colon Git magic and wildcard names cannot widen or evade literal roots",
+            "time": "0.000573",
+            "classname": "test",
+            "file": "C:\\SourceCodes\\autonomous-cae-lab\\openscience\\tests\\source_pin.test.mjs"
+          },
+          {
+            "name": "optional actual historical helper preserves lowercase admission and pins without weakening uppercase refusal",
+            "time": "0.000184",
+            "classname": "test",
+            "file": "C:\\SourceCodes\\autonomous-cae-lab\\openscience\\tests\\source_pin.test.mjs"
+          }
+        ],
+        "contact_cases_included": 92,
+        "old_cases_included": 224,
+        "counts_overlap": "92 contact cases repeat the reviewed private candidate source gate on Main and are not added to its unique count."
+      },
+      "commands": [
+        {
+          "name": "Main-powershell-syntax-and-definition",
+          "argv": [
+            "C:\\Users\\pikac\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+            "-NoLogo",
+            "-NoProfile",
+            "-Command",
+            "$ErrorActionPreference='Stop'\n$taskPaths=@('scripts/openscience-research.ps1','scripts/openscience-server-local.ps1','scripts/openscience-native-provider.ps1','scripts/verify_openscience_native.ps1')\nforeach($taskPath in $taskPaths){$taskTokens=$null;$taskErrors=$null;$null=[Management.Automation.Language.Parser]::ParseFile((Join-Path (Get-Location) $taskPath),[ref]$taskTokens,[ref]$taskErrors);if($taskErrors.Count -ne 0){throw ('Actual Main syntax error: '+$taskPath)}}\n. ./scripts/openscience-research.ps1\n$taskDefinition=New-OpenScienceResearchDefinition -Profile ContactPatches\n$taskJson=$taskDefinition|ConvertTo-Json -Depth 30\n[IO.File]::WriteAllText('artifacts/development-contact-20261004-01/contact-research-main-integration-01/main-source-gate-01/main-contact-definition.json',$taskJson,[Text.UTF8Encoding]::new($false))\n$PSVersionTable.PSVersion.ToString()\n"
+          ],
+          "exit_code": 0,
+          "elapsed_seconds": 1.3280000002123415
+        },
+        {
+          "name": "Main-canonical-descriptor",
+          "argv": [
+            "C:\\Program Files\\nodejs\\node.exe",
+            "-e",
+            "const fs=require('fs'),c=require('crypto');const v=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));const s=JSON.stringify(v,(_,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x);process.stdout.write(c.createHash('sha256').update(s).digest('hex'));",
+            "C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\development-contact-20261004-01\\contact-research-main-integration-01\\main-source-gate-01\\main-contact-definition.json"
+          ],
+          "exit_code": 0,
+          "elapsed_seconds": 0.31200000015087426
+        },
+        {
+          "name": "node-version",
+          "argv": [
+            "C:\\Program Files\\nodejs\\node.exe",
+            "--version"
+          ],
+          "exit_code": 0,
+          "elapsed_seconds": 0.06300000008195639
+        },
+        {
+          "name": "Main-full-native-guard-and-source-pin",
+          "argv": [
+            "C:\\Program Files\\nodejs\\node.exe",
+            "--test",
+            "--test-reporter=tap",
+            "--test-reporter-destination=stdout",
+            "--test-reporter=junit",
+            "--test-reporter-destination=C:\\SourceCodes\\autonomous-cae-lab\\artifacts\\development-contact-20261004-01\\contact-research-main-integration-01\\main-source-gate-01\\Main-source.junit.xml",
+            "openscience/tests/native_guard.test.mjs",
+            "openscience/tests/source_pin.test.mjs"
+          ],
+          "exit_code": 0,
+          "elapsed_seconds": 164.8430000001099
+        }
+      ],
+      "powershell_version": "7.6.5",
+      "node_version": "v24.18.0",
+      "scope": "Actual Main four PS parsers/schema6 descriptor plus full Node native-guard/source-pin regression; no native/provider/Core calls."
+    },
+    "private_contact_cases": {
+      "distinct": 92,
+      "supplied": {
+        "pass": 92,
+        "skip": 0
+      },
+      "absent": {
+        "pass": 83,
+        "skip": 9
+      },
+      "corrected_receipt": {
+        "path": "artifacts/development-contact-20261004-01/contact-research-source-01/correction-01/cold-node-01/receipt.json",
+        "size_bytes": 2259,
+        "sha256": "ed9a27d11a82fb177354bc3352221d34b06daa3f5a794b8273f9fe2ff0f8c5ef"
+      }
+    },
+    "retained_independent_scopes": {
+      "actual_PS_synthetic": 68,
+      "static_preservation": 87,
+      "actual_pure_Domain": 10
+    },
+    "counting": "Main Contact92/private92/83 overlap. Node-invalid8 reuse the same Domain-invalid8. No summed success total.",
+    "pure_Domain_limit": "Two canonical settings/eight ValueError refusals; no Core rejected experiment or solver response is created."
+  },
+  "independent_reviews": {
+    "production": {
+      "path": "artifacts/development-contact-20261004-01/contact-research-production-independent-review-01/review.json",
+      "size_bytes": 11529,
+      "sha256": "e18ad0131eb86db1dcd82560384efcec548f7ceaecb14ed50d93ad58dd9e34f9"
+    },
+    "cold_test": {
+      "path": "artifacts/development-contact-20261004-01/contact-research-cold-independent-review-01/independent-review.json",
+      "size_bytes": 48227,
+      "sha256": "eda043ff4fe082867545f7384affd88c28425d4ff3605439fd188c550e3966a3"
+    },
+    "cold_review_checks": 33,
+    "open_P1": 0,
+    "open_P2": 0,
+    "scope": "Read-only source/prepared launcher/test/XML/TAP evidence, not live Research or native science."
+  },
+  "immutable_preparation": {
+    "original_freeze": {
+      "path": "artifacts/development-contact-20261004-01/contact-research-source-01/FREEZE.json",
+      "size_bytes": 13608,
+      "sha256": "cc87d3b8fc4ed6ecae86fe249700b7f5cc6e782ffde293c249f45f9121ed1723"
+    },
+    "final_freeze": {
+      "path": "artifacts/development-contact-20261004-01/contact-research-source-01/correction-01/FREEZE.json",
+      "size_bytes": 7698,
+      "sha256": "2ebd7a0290abaad3419cf5dbafd38bed4512c3eddbc3bdec9623e1d470ed87ba"
+    },
+    "promotion_receipt": {
+      "path": "artifacts/development-contact-20261004-01/contact-research-main-integration-01/promotion-receipt.json",
+      "size_bytes": 6484,
+      "sha256": "7612fd2ebcfb9da4bde18be8f4f76e7885daf47b8619ecf7d32bd3dfa303f3ad"
+    }
+  },
+  "source_byte_policy": "Six exact -text paths retain reviewed mixed LF/CRLF bytes; global Git policy and all other source bytes unchanged. New record uses exact -text. Per-path whitespace explicitly recognizes CRLF as a line ending while retaining blank-at-eol/blank-at-eof/space-before-tab checks.",
+  "failed_attempts": "Original external-fixture collection P1 corrected in one test; preparer LF/path and NameError/cp949 sealer failures retained. No native/provider/question retry.",
+  "prior_native_science": {
+    "producer": "142c8ab02181a513987a04af6d7ced5996381086",
+    "record": {
+      "path": "benchmarks/records/20261004-contact-uniform2-native-r01-qualified.json",
+      "size_bytes": 23653,
+      "sha256": "cffd4efd2a08401334fef40fede8061fc23585a02b635a92712e97990f6f684f"
+    },
+    "status": "REUSED_UNCHANGED_SEPARATE_NATIVE_PROOF",
+    "17_valid_12_PASS_10_UNKNOWN": true,
+    "CalculiX_pilot": "RETAINED_7_PASS_6_FAIL_NOT_ADMITTED",
+    "asymptotic_convergence": "UNKNOWN"
+  },
+  "exact_CI": {
+    "source_publication": "PENDING_THIS_COMMIT_RUN",
+    "parent_0b": "SKIP_CI_DOCUMENTATION_NO_NEW_NATIVE_PROOF",
+    "native_producer_142": {
+      "run_id": 37155264019,
+      "success_jobs": 7,
+      "failed_jobs": 3,
+      "Core_pass": 3932,
+      "Core_skip": 5,
+      "contact_native_CI": "ABSENT",
+      "failed": [
+        "Code_Aster Fz level2 MUMPS accuracy >1e-6",
+        "vector n8-to16 rate <1.8",
+        "OpenRadioss URL404 before native"
+      ]
+    }
+  },
+  "prepared_live": {
+    "status": "PREPARED_NOT_RUN",
+    "model": "openai-codex/gpt-5.6-sol",
+    "official_OpenScience": "2.0.146/source4082a2ecb73e166d4503963798228ba700f3840f",
+    "launcher": {
+      "path": "artifacts/development-contact-20261004-01/contact-research-source-01/correction-01/live-preparation/contact-patches-live.ps1",
+      "size_bytes": 41580,
+      "sha256": "03d3669a61a5573ca13dea5eb76560c1c459dd13fc6512fe0c3d5eabbd3b33fd"
+    },
+    "source_capsule": {
+      "path": "artifacts/development-contact-20261004-01/contact-research-source-01/correction-01/live-preparation/source-capsule.json",
+      "size_bytes": 5959,
+      "sha256": "53c2c4f046d94964684ffec406947bf02bcd7e3b12fd2619139b5ffd4b1a6040"
+    },
+    "question": {
+      "path": "artifacts/development-contact-20261004-01/contact-research-source-01/correction-01/live-preparation/contact-research-question-01.txt",
+      "size_bytes": 4784,
+      "sha256": "2c0d9ec62b12d7fac28b8ccf89c7a2e28286b83877a09b0232d44b36daae1bce"
+    },
+    "fresh_store": "runs/contact-research-20261004-01",
+    "study_id": "S-contact-research-01",
+    "experiment_ids": [
+      "E-contact-research-01-original",
+      "E-contact-research-01-uniform2"
+    ],
+    "native_analyses_requested_later": 2,
+    "native_calls_in_this_source_unit": 0,
+    "provider_calls_in_this_source_unit": 0,
+    "completed_loop_Stop": "NOT_RUN_SEPARATE_FROM_ACTIVE_BUSY_CANCELLATION"
+  },
+  "limitations": [
+    "Source admission is not actual connected execution or engineering qualification.",
+    "Scientific-invalid finite inputs pass unchanged to the existing Domain preflight; exact .01/1e-6 scientific limits remain.",
+    "Full native JSON/MED arrays are hash-bound artifacts, not common summaries. No contact preset or full contact viewer exists.",
+    "Original pressure sign, stress XY/native W and derived-gap distinctions remain. One subdivision is sensitivity, not convergence.",
+    "All ten blocking engineering UNKNOWNs/NOT_RELEASED, failed pilot and raw remote durability UNKNOWN remain.",
+    "Whole52/Phases5-7/P2.4/native FE/physical/corporate deployment are not completed by this source checkpoint."
+  ],
+  "next": "Clean pushed source -> Bootstrap/Resident -> one whole approved5.6Sol original/uniform2 question -> Capture/independent numerical and interpretation audit -> same-record human/ownedStop/retention; full contact field gate, then P2.4 fixture coupling and remaining Phase6/7/deferred gates.",
+  "publication_format_observation": "First plain diff--check diagnosed retained CR bytes as trailing whitespace after -text promotion. Explicit per-path cr-at-eol resolves format interpretation without changing source/capsule bytes, global configuration, scientific thresholds or rerunning numerical gates."
+}

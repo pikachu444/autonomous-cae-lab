@@ -122,6 +122,60 @@ const nativeViscoelasticDefinition = nativeFreeze({
     'Shared-time refinement checks composition of the identical piecewise-linear path, not temporal convergence order; increment tangents depend on dt.',
     'Material, physical, strength, durability, binary/source equivalence and deployment requirements remain UNKNOWN; all outcomes remain NOT_RELEASED.'],
 });
+const nativeContactLimits = nativeFreeze({reference_relative:.01, force_balance_relative:1e-6});
+const nativeContactDefinition = nativeFreeze({
+  "schema": 6,
+  "kind": "autonomous-cae-lab.openscience-research-definition",
+  "profile": "contact-patches-v1",
+  "agent": "research",
+  "runtime_environment": {
+    "MPLBACKEND": "Agg",
+    "OMP_NUM_THREADS": "1",
+    "QT_QPA_PLATFORM": "offscreen",
+    "CAELAB_CODEASTER_IMAGE": "/home/pikachu444/.local/share/autonomous-cae-lab/code_aster_17.4.0-oci.sif",
+    "CAELAB_CODEASTER_IMAGE_SHA256": "f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64",
+    "CAELAB_SINGULARITY_COMMAND": "/usr/bin/singularity"
+  },
+  "budgets": {
+    "steps": 24,
+    "mcp_timeout_seconds": 3600,
+    "command_timeout_seconds": 3600,
+    "contact_patch": {
+      "max_nodes": 1154,
+      "max_solid_cells": 1060,
+      "max_boundary_segments": 184,
+      "max_stress_locations": 4240,
+      "max_slave_pressure_nodes": 25,
+      "max_request_bytes": 16384
+    }
+  },
+  "capabilities": [
+    {
+      "backend": "structural.code_aster.contact_patch",
+      "operations": [
+        "model_analysis_run"
+      ],
+      "cases": [
+        "ssnp121a_frictionless_patch"
+      ],
+      "inputs": "Exact case/material/top_displacement_m/limits with optional mesh_variant=uniform_quad4_2x; omitted selector preserves original. Domain owns finite scientific admission and unchanged six1%/reaction1%/balance1e-6 verdicts. No arbitrary code, paths, counts or levels.",
+      "runtime": "Existing exact Code_Aster17.4 SIF and SHA with OMP1 and Singularity containment; no runtime or model fallback.",
+      "evidence": "Code_Aster SSNP121A: original313 nodes/265 QUAD4/92 SEG2 or uniform2 1154/1060/184 with original313 name/coordinate prefix. Native pressure13/25 nodes, stress1060/4240 locations, complete U/RF and hash-bound JSON/MED fields.",
+      "verification": "IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF"
+    }
+  ],
+  "limitations": [
+    "Declared research scope is not current connected Research execution proof, physical qualification or engineering release.",
+    "This is native Code_Aster SSNP121A, not NAFEMS CGS1 or MIDAS replication. Failed CalculiX pilot7PASS/6FAIL remains failed and outside this production scope.",
+    "One uniform subdivision establishes sensitivity, not asymptotic convergence. Measured stress XY and native integration weight W remain separate; native contact gap and measured geometric stress Z are unavailable. Projected gap is diagnostic.",
+    "Budgets bound parsed-hook JSON and retained resource counts, not original MCP wire bytes or engineering accuracy. Native wall defaultNone and positive CPU86400 remain separate execution policies.",
+    "Only the six listed tools are admitted. OpenScience chooses questions, hypotheses, conditions and interpretation; deterministic numerical engines own search candidates.",
+    "Inspect actual returned IDs/revisions, signed pressure versus positive magnitude, sample metrics versus whole-field diagnostics, checks and raw artifact references. Full native fields require same-record hash-bound JSON/MED, not summary arrays.",
+    "Generic Lab Results offers metrics and raw downloads, with no contact preset or contact full-field viewer. The PDE field viewer excludes contact; conversation/result identity and human full-field visual inspection are separate gates.",
+    "All ten blocking engineering UNKNOWNs remain. Preserve failed results and invalid metrics; no automatic model/backend fallback, retry, reference response substitution or release claim. All outcomes remain NOT_RELEASED."
+  ],
+  "allowed_tools": [...nativeStructuralResearchTools]
+});
 class NativeGuardRefusal extends Error {
   constructor(code) {
     // Upstream classifies statusless Error text as a provider failure. Keep
@@ -247,10 +301,12 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
         !nativeSha(settings.config_sha256) || !nativeSha(settings.plugin_sha256) || !nativeSha(settings.boot_source_sha256)) nativeRefuse('SETTINGS_INVALID');
     if (Object.hasOwn(settings, 'research')) {
       const research = settings.research;
-      exactKeys(research, [3,4,5].includes(research.schema) ? [...nativeResearchKeys, 'profile'] :
+      exactKeys(research, [3,4,5,6].includes(research.schema) ? [...nativeResearchKeys, 'profile'] :
         research.schema === 2 ? [...nativeResearchKeys, 'profile', 'benchmark_definition'] : nativeResearchKeys,
         'RESEARCH_DEFINITION_INVALID');
-      if (research.schema === 5) {
+      if (research.schema === 6) {
+        if (nativeCanonical(research) !== nativeCanonical(nativeContactDefinition)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
+      } else if (research.schema === 5) {
         if (nativeCanonical(research) !== nativeCanonical(nativeViscoelasticDefinition)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
       } else if (research.schema === 4) {
         if (nativeCanonical(research) !== nativeCanonical(nativeMaterialDefinition)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
@@ -819,10 +875,58 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
     try { encoded = JSON.stringify(args); } catch { nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED'); }
     if (Buffer.byteLength(encoded, 'utf8') > bound.max_request_bytes) nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
   };
+  const contactArguments = (tool, args) => {
+    if (!nativeStructuralResearchTools.includes(tool)) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+    const strings = keys => {
+      for (const key of keys) if (typeof args[key] !== 'string' || !args[key].trim()) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+    };
+    if (tool === 'caelab_model_analysis_run') {
+      const outer = ['study_id','experiment_id','backend','settings'];
+      if (Object.hasOwn(args,'hypothesis_id')) outer.push('hypothesis_id');
+      exactKeys(args, outer, 'RESEARCH_ARGUMENTS_REQUIRED');
+      strings(['study_id','experiment_id']);
+      if (args.hypothesis_id != null && (typeof args.hypothesis_id !== 'string' || !args.hypothesis_id.trim())) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+      if (args.backend !== 'structural.code_aster.contact_patch') nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      const request = args.settings;
+      const keys = ['case','material','top_displacement_m','limits'];
+      if (nativeRecord(request) && Object.hasOwn(request,'mesh_variant')) keys.push('mesh_variant');
+      exactKeys(request, keys, 'RESEARCH_ARGUMENTS_REQUIRED');
+      if (request.case !== 'ssnp121a_frictionless_patch' ||
+          (Object.hasOwn(request,'mesh_variant') && request.mesh_variant !== 'uniform_quad4_2x')) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      exactKeys(request.material, ['youngs_modulus_pa','poisson_ratio'], 'RESEARCH_ARGUMENTS_REQUIRED');
+      exactKeys(request.limits, ['reference_relative','force_balance_relative'], 'RESEARCH_ARGUMENTS_REQUIRED');
+      for (const value of [request.material.youngs_modulus_pa,request.material.poisson_ratio,request.top_displacement_m])
+        if (typeof value !== 'number' || !Number.isFinite(value)) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+      for (const [key,value] of Object.entries(nativeContactLimits))
+        if (typeof request.limits[key] !== 'number' || request.limits[key] !== value) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+      // Finite scientific-invalid E/nu/displacement pass unchanged to Domain.
+      // This hook never applies engineering ranges, fills settings or runs a solver.
+    } else if (tool === 'caelab_study_create') {
+      exactKeys(args,['study_id','name','research_question','hypothesis','objective'],'RESEARCH_ARGUMENTS_REQUIRED');
+      strings(['study_id','name','research_question','hypothesis','objective']);
+    } else if (tool === 'caelab_study_inspect') {
+      exactKeys(args,['study_id'],'RESEARCH_ARGUMENTS_REQUIRED'); strings(['study_id']);
+    } else if (tool === 'caelab_experiment_compare') {
+      exactKeys(args,['experiment_ids'],'RESEARCH_ARGUMENTS_REQUIRED');
+      if (!Array.isArray(args.experiment_ids) || !args.experiment_ids.length ||
+          args.experiment_ids.some(value => typeof value !== 'string' || !value.trim())) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+    } else {
+      exactKeys(args,['experiment_id'],'RESEARCH_ARGUMENTS_REQUIRED'); strings(['experiment_id']);
+    }
+    // Tool hooks expose parsed arguments, not the original MCP wire bytes.
+    let encoded;
+    try { encoded = JSON.stringify(args); } catch { nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED'); }
+    if (Buffer.byteLength(encoded,'utf8') > settings.research.budgets.contact_patch.max_request_bytes)
+      nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+  };
   const researchArguments = (tool, args) => {
     if (!Object.hasOwn(settings, 'research')) return;
     if (!nativeRecord(args)) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
     const budget = settings.research.budgets;
+    if (settings.research.schema === 6) {
+      contactArguments(tool, args);
+      return;
+    }
     if (settings.research.schema === 5) {
       if (!nativeStructuralResearchTools.includes(tool)) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
       if (tool === 'caelab_model_analysis_run') viscoelasticArguments(args);

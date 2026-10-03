@@ -13,7 +13,37 @@ $script:OpenSciencePdeResearchTools = @('caelab_study_create', 'caelab_study_ins
     'caelab_experiment_compare')
 
 function New-OpenScienceResearchDefinition {
-    param([ValidateSet('FixtureScalar', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', IgnoreCase=$false)][string]$Profile = 'FixtureScalar')
+    param([ValidateSet('FixtureScalar', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', 'ContactPatches', IgnoreCase=$false)][string]$Profile = 'FixtureScalar')
+    if ($Profile -ceq 'ContactPatches') {
+        return [ordered]@{
+            schema = 6; kind = 'autonomous-cae-lab.openscience-research-definition'
+            profile = 'contact-patches-v1'; agent = 'research'
+            allowed_tools = @($script:OpenScienceStructuralResearchTools)
+            runtime_environment = [ordered]@{ MPLBACKEND = 'Agg'; OMP_NUM_THREADS = '1'; QT_QPA_PLATFORM = 'offscreen'
+                CAELAB_CODEASTER_IMAGE = '/home/pikachu444/.local/share/autonomous-cae-lab/code_aster_17.4.0-oci.sif'
+                CAELAB_CODEASTER_IMAGE_SHA256 = 'f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64'
+                CAELAB_SINGULARITY_COMMAND = '/usr/bin/singularity' }
+            budgets = [ordered]@{ steps = 24; mcp_timeout_seconds = 3600; command_timeout_seconds = 3600
+                contact_patch = @{ max_nodes = 1154; max_solid_cells = 1060; max_boundary_segments = 184
+                    max_stress_locations = 4240; max_slave_pressure_nodes = 25; max_request_bytes = 16384 } }
+            capabilities = @(
+                [ordered]@{ backend = 'structural.code_aster.contact_patch'; operations = @('model_analysis_run')
+                    cases = @('ssnp121a_frictionless_patch')
+                    inputs = 'Exact case/material/top_displacement_m/limits with optional mesh_variant=uniform_quad4_2x; omitted selector preserves original. Domain owns finite scientific admission and unchanged six1%/reaction1%/balance1e-6 verdicts. No arbitrary code, paths, counts or levels.'
+                    runtime = 'Existing exact Code_Aster17.4 SIF and SHA with OMP1 and Singularity containment; no runtime or model fallback.'
+                    evidence = 'Code_Aster SSNP121A: original313 nodes/265 QUAD4/92 SEG2 or uniform2 1154/1060/184 with original313 name/coordinate prefix. Native pressure13/25 nodes, stress1060/4240 locations, complete U/RF and hash-bound JSON/MED fields.'
+                    verification = 'IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF' }
+            )
+            limitations = @('Declared research scope is not current connected Research execution proof, physical qualification or engineering release.',
+                'This is native Code_Aster SSNP121A, not NAFEMS CGS1 or MIDAS replication. Failed CalculiX pilot7PASS/6FAIL remains failed and outside this production scope.',
+                'One uniform subdivision establishes sensitivity, not asymptotic convergence. Measured stress XY and native integration weight W remain separate; native contact gap and measured geometric stress Z are unavailable. Projected gap is diagnostic.',
+                'Budgets bound parsed-hook JSON and retained resource counts, not original MCP wire bytes or engineering accuracy. Native wall defaultNone and positive CPU86400 remain separate execution policies.',
+                'Only the six listed tools are admitted. OpenScience chooses questions, hypotheses, conditions and interpretation; deterministic numerical engines own search candidates.',
+                'Inspect actual returned IDs/revisions, signed pressure versus positive magnitude, sample metrics versus whole-field diagnostics, checks and raw artifact references. Full native fields require same-record hash-bound JSON/MED, not summary arrays.',
+                'Generic Lab Results offers metrics and raw downloads, with no contact preset or contact full-field viewer. The PDE field viewer excludes contact; conversation/result identity and human full-field visual inspection are separate gates.',
+                'All ten blocking engineering UNKNOWNs remain. Preserve failed results and invalid metrics; no automatic model/backend fallback, retry, reference response substitution or release claim. All outcomes remain NOT_RELEASED.')
+        }
+    }
     if ($Profile -ceq 'ViscoelasticPoints') {
         return [ordered]@{
             schema = 5; kind = 'autonomous-cae-lab.openscience-research-definition'
@@ -194,6 +224,8 @@ function Get-OpenSciencePurposeTools($Context) {
 function Assert-OpenScienceResearchDefinition($Definition) {
     $profile = if ($Definition.schema -eq 2 -and $Definition.profile -ceq 'structural-families-v1') {
         'StructuralFamilies'
+    } elseif ($Definition.schema -eq 6 -and $Definition.profile -ceq 'contact-patches-v1') {
+        'ContactPatches'
     } elseif ($Definition.schema -eq 5 -and $Definition.profile -ceq 'viscoelastic-points-v1') {
         'ViscoelasticPoints'
     } elseif ($Definition.schema -eq 4 -and $Definition.profile -ceq 'material-points-v1') {
@@ -208,6 +240,15 @@ function Assert-OpenScienceResearchDefinition($Definition) {
 function Get-OpenScienceResearchPrompt($Definition) {
     Assert-OpenScienceResearchDefinition $Definition
     $scope = $Definition | ConvertTo-Json -Depth 12 -Compress
+    if ($Definition.schema -eq 6 -and $Definition.profile -ceq 'contact-patches-v1') {
+        return @"
+You are the research control plane for Autonomous CAE Lab. Follow the supplied Code_Aster SSNP121A contact question through only these six tools and the selected provider/model. Choose hypotheses and conditions, execute NEW experiment IDs, inspect the same returned IDs/revisions, compare actual signed responses and interpret checks, counterexamples and UNKNOWNs. No automatic model/backend fallback, retry or invented results.
+For caelab_model_analysis_run pass exactly study_id, experiment_id, backend and settings, with hypothesis_id only when supplied. Backend is structural.code_aster.contact_patch and case is ssnp121a_frictionless_patch. Settings contains exactly case, material, top_displacement_m and limits, with mesh_variant only when uniform_quad4_2x is explicitly requested. Omission retains original mesh and declaration. Material contains youngs_modulus_pa and poisson_ratio; limits remain reference_relative=.01 and force_balance_relative=1e-6. Do not inject IDs/hashes, arbitrary code/paths/levels, fill or normalize conditions, substitute reference responses, or relax numerical limits. Missing required conditions need a concrete question before execution. Finite scientific-invalid settings belong to Domain preflight and retained REJECTED/NOT_RUN evidence; never bypass it.
+The original313/265/92 mesh and one fixed uniform2 1154/1060/184 mesh share original313 names/coordinates and physical conditions. Pressure has13/25 slave nodes and stress1060/4240 locations; full U/RF and stress arrays are in actual hash-bound native JSON/MED artifacts, not generic tool summaries. Distinguish signed contact traction from positive pressure magnitude, actual A/B/N14 samples from whole-field diagnostics, measured stress XY from native integration weight W. Native gap and geometric stress Z are unavailable; projected gaps remain derived diagnostics. One subdivision is sensitivity, not asymptotic convergence. This is not NAFEMS CGS1/MIDAS replication; failed CalculiX pilot7PASS/6FAIL remains failed and outside this scope.
+Report only real returned study/experiment/model revisions, valid and invalid metric values/reasons, actual validation checks, all ten blocking engineering UNKNOWNs and raw artifact references. Generic Lab Results has common metrics/raw downloads, no contact preset or full-field viewer; the PDE viewer excludes contact. Conversation/result identity and human full-field inspection are separate gates. Numerical engines own search candidates; no numerical optimizer or job tools are admitted here. Preserve every failed experiment and NOT_RELEASED. Solver completion, comparison or visualization is not engineering release.
+Declared profile: $scope
+"@
+    }
     if ($Definition.schema -eq 5 -and $Definition.profile -ceq 'viscoelastic-points-v1') {
         return @"
 You are the research control plane for Autonomous CAE Lab. Plan from the supplied viscoelastic question, use only this explicit six-tool scope and the selected provider/model, execute NEW experiment IDs, inspect and summarize the same returned IDs/revisions, compare actual results and interpret numerical evidence and UNKNOWN checks. No alternate model/provider, fallback or invented results.

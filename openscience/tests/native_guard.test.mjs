@@ -31,8 +31,8 @@ function assertRepositorySourcePin(expected,current) {
 }
 ${gitStateSource}
 `;
-const temporarySource = `${prefix}\n${source}\nexport { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeMaterialDefinition, nativeMaterialLimits, nativeViscoelasticDefinition, nativeViscoelasticLimits };\n`;
-const { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeMaterialDefinition, nativeMaterialLimits, nativeViscoelasticDefinition, nativeViscoelasticLimits } = await import(`data:text/javascript;base64,${Buffer.from(temporarySource).toString('base64')}`);
+const temporarySource = `${prefix}\n${source}\nexport { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeMaterialDefinition, nativeMaterialLimits, nativeViscoelasticDefinition, nativeViscoelasticLimits, nativeContactDefinition, nativeContactLimits };\n`;
+const { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeMaterialDefinition, nativeMaterialLimits, nativeViscoelasticDefinition, nativeViscoelasticLimits, nativeContactDefinition, nativeContactLimits } = await import(`data:text/javascript;base64,${Buffer.from(temporarySource).toString('base64')}`);
 const tools = [
   'caelab_study_create', 'caelab_study_inspect', 'caelab_parameters_discover',
   'caelab_parameters_register', 'caelab_parameters_list', 'caelab_experiment_run',
@@ -2241,4 +2241,173 @@ test('ViscoelasticPoints retains selected5.6Sol and refuses late model/provider 
     const hooks=await f.hooks();await assert.rejects(hooks['chat.params'](request,immutable({options:{}})),refusal('MODEL_CHANGED'));
     assert.equal(f.receipts().at(-1).accepted,false);
   }
+});
+
+
+// ContactPatches source-only admission. All responses below are mock metadata;
+// the canonical inputs and scientific-invalid rejections come from actual pure
+// Domain code in the supplied source receipt. No response field is fabricated.
+const contactResearchFixture = (t,definition=nativeContactDefinition) => materialResearchFixture(t,definition);
+// Default unit-test discovery must not require private external evidence. These
+// fallback values are synthetic REQUEST INPUTS only, never native responses or
+// a claimed Domain verdict. External PS/Domain proof tests are explicitly skipped
+// unless their independently captured source receipts are supplied.
+const contactDomain = process.env.CAELAB_CONTACT_DOMAIN_FIXTURE_PATH
+  ? JSON.parse(fs.readFileSync(process.env.CAELAB_CONTACT_DOMAIN_FIXTURE_PATH,'utf8')) : null;
+const contactMockOriginal = {case:'ssnp121a_frictionless_patch',material:{youngs_modulus_pa:2e6,poisson_ratio:0},
+  top_displacement_m:-.1,limits:{reference_relative:.01,force_balance_relative:1e-6}};
+const contactMockCanonical = {original:contactMockOriginal,
+  uniform2:{...structuredClone(contactMockOriginal),mesh_variant:'uniform_quad4_2x'}};
+const contactDomainCases = contactDomain?.scientific_invalid ?? ['E below','E above','E negative','nu nonzero',
+  'DY zero','DY positive','DY too small','DY too large'].map(label => ({label}));
+const contactRequest = (variant='original') => ({study_id:'S-contact-source-only',experiment_id:'E-contact-'+variant,
+  backend:'structural.code_aster.contact_patch',settings:structuredClone((contactDomain?.canonical ?? contactMockCanonical)[variant])});
+
+test('ContactPatches actual PS descriptor and pure Domain original/refined settings agree',
+  {skip:(!contactDomain || !process.env.CAELAB_CONTACT_RESEARCH_DEFINITION_PATH) && 'External actual PS/pure Domain source receipts were not supplied.'},async t => {
+  const definition=JSON.parse(fs.readFileSync(process.env.CAELAB_CONTACT_RESEARCH_DEFINITION_PATH,'utf8'));
+  assert.equal(canonical(definition),canonical(nativeContactDefinition));
+  assert.equal(canonical(contactDomain.fixed_limits),canonical(nativeContactLimits));
+  assert.equal(contactDomain.native_calls,0);assert.equal(contactDomain.provider_calls,0);
+  assert.match(contactDomain.source_sha256,/^[0-9a-f]{64}$/);
+  assert.equal(Object.isFrozen(nativeContactDefinition.budgets.contact_patch),true);
+  assert.equal(Object.isFrozen(nativeContactLimits),true);
+  for(const variant of ['original','uniform2']) {
+    const f=contactResearchFixture(t,definition),hooks=await f.hooks();
+    const output=immutable({args:contactRequest(variant)}),before=JSON.stringify(output);
+    await materialBefore(hooks,f,output);assert.equal(JSON.stringify(output),before);
+    assert.equal(f.settings.schema,3);assert.equal(f.receipts().at(-1).accepted,true);
+  }
+  assert.equal(Object.hasOwn(contactDomain.canonical.original,'mesh_variant'),false);
+  assert.equal(contactDomain.canonical.uniform2.mesh_variant,'uniform_quad4_2x');
+});
+
+const contactSixArgs = {
+  caelab_study_create:{study_id:'S-contact-source-only',name:'contact',research_question:'same conditions?',hypothesis:'refinement reduces errors',objective:'compare actual signed samples'},
+  caelab_study_inspect:{study_id:'S-contact-source-only'},
+  caelab_model_analysis_run:contactRequest(),
+  caelab_experiment_inspect:{experiment_id:'E-contact-original'},
+  caelab_experiment_summary:{experiment_id:'E-contact-original'},
+  caelab_experiment_compare:{experiment_ids:['E-contact-original','E-contact-uniform2']},
+};
+for(const [tool,args] of Object.entries(contactSixArgs)) {
+  test('ContactPatches admits exact unchanged '+tool,async t => {
+    const f=contactResearchFixture(t),hooks=await f.hooks(),output=immutable({args:structuredClone(args)}),before=JSON.stringify(output);
+    await hooks['tool.execute.before']({tool,sessionID:f.sessionID},output);
+    assert.equal(JSON.stringify(output),before);assert.equal(f.receipts().at(-1).accepted,true);
+  });
+  test('ContactPatches refuses extra path/code argument for '+tool,async t => {
+    const f=contactResearchFixture(t),hooks=await f.hooks(),wrong={...structuredClone(args),code:'solver(path)'};
+    await assert.rejects(hooks['tool.execute.before']({tool,sessionID:f.sessionID},{args:wrong}),refusal('RESEARCH_ARGUMENTS_REQUIRED'));
+  });
+}
+
+for(const item of contactDomainCases) {
+  test('ContactPatches forwards finite Domain-invalid '+item.label+' unchanged',
+    {skip:!contactDomain && 'Actual pure Domain source rejection receipt was not supplied.'},async t => {
+    assert.equal(item.domain_preflight,'REJECTED_PURE_SETTINGS');assert.equal(item.native_calls,0);
+    assert.ok(item.reason.length>0);
+    const f=contactResearchFixture(t),hooks=await f.hooks(),args=contactRequest();args.settings=structuredClone(item.settings);
+    const output=immutable({args}),before=JSON.stringify(output);
+    await materialBefore(hooks,f,output);assert.equal(JSON.stringify(output),before);assert.equal(f.receipts().at(-1).accepted,true);
+  });
+}
+
+for(const [label,patch,code='RESEARCH_ARGUMENTS_REQUIRED'] of [
+  ['missing settings',a => delete a.settings],['null settings',a => a.settings=null],['extra outer',a => a.path='/tmp/file'],
+  ['empty study',a => a.study_id=' '],['bool experiment',a => a.experiment_id=true],['bool hypothesis',a => a.hypothesis_id=true],
+  ['foreign backend',a => a.backend='structural.families.code_aster','RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['foreign case',a => a.settings.case='CGS1','RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['missing material',a => delete a.settings.material],['null material',a => a.settings.material=null],
+  ['extra settings path',a => a.settings.mesh_path='/tmp/mesh.mmed'],['extra settings code',a => a.settings.code='STAT_NON_LINE()'],
+  ['extra material',a => a.settings.material.density=1],['missing E',a => delete a.settings.material.youngs_modulus_pa],
+  ['string E',a => a.settings.material.youngs_modulus_pa='2000000'],['bool E',a => a.settings.material.youngs_modulus_pa=true],
+  ['infinite E',a => a.settings.material.youngs_modulus_pa=Infinity],['NaN nu',a => a.settings.material.poisson_ratio=NaN],
+  ['null nu',a => a.settings.material.poisson_ratio=null],['bool DY',a => a.settings.top_displacement_m=false],
+  ['nonfinite DY',a => a.settings.top_displacement_m=-Infinity],['missing DY',a => delete a.settings.top_displacement_m],
+  ['missing limits',a => delete a.settings.limits],['extra limit',a => a.settings.limits.residual=2e-8],
+  ['reference drift',a => a.settings.limits.reference_relative=.011],['balance drift',a => a.settings.limits.force_balance_relative=1e-5],
+  ['bool limit',a => a.settings.limits.reference_relative=true],['string limit',a => a.settings.limits.force_balance_relative='0.000001'],
+  ['null selector',a => a.settings.mesh_variant=null,'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['bool selector',a => a.settings.mesh_variant=true,'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['explicit original selector',a => a.settings.mesh_variant='original','RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['arbitrary level selector',a => a.settings.mesh_variant=4,'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['selector case drift',a => a.settings.mesh_variant='Uniform_quad4_2x','RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['selector path',a => a.settings.mesh_variant='../mesh','RESEARCH_CAPABILITY_NOT_ADMITTED'],
+]) test('ContactPatches refuses '+label,async t => {
+  const f=contactResearchFixture(t),hooks=await f.hooks(),args=contactRequest();patch(args);
+  await assert.rejects(materialBefore(hooks,f,immutable({args})),refusal(code));assert.equal(f.receipts().at(-1).accepted,false);
+});
+
+test('ContactPatches permits nullable hypothesis without filling omitted settings',async t => {
+  const f=contactResearchFixture(t),hooks=await f.hooks(),args=contactRequest();args.hypothesis_id=null;
+  const output=immutable({args}),before=JSON.stringify(output);await materialBefore(hooks,f,output);assert.equal(JSON.stringify(output),before);
+});
+test('ContactPatches applies UTF8 parsed-request bound exactly at 16384 and rejects overflow',async t => {
+  const f=contactResearchFixture(t),hooks=await f.hooks();
+  const args=structuredClone(contactSixArgs.caelab_study_create);
+  args.research_question='한'.repeat(5000);let size=Buffer.byteLength(JSON.stringify(args),'utf8');
+  assert.ok(size<16384);args.research_question+='x'.repeat(16384-size);
+  assert.equal(Buffer.byteLength(JSON.stringify(args),'utf8'),16384);
+  await hooks['tool.execute.before']({tool:'caelab_study_create',sessionID:f.sessionID},immutable({args}));
+  const overflow=structuredClone(args);overflow.research_question+='한';
+  await assert.rejects(hooks['tool.execute.before']({tool:'caelab_study_create',sessionID:f.sessionID},{args:overflow}),refusal('RESEARCH_WORK_BUDGET_EXCEEDED'));
+});
+
+for(const [label,patch] of [
+  ['schema',d => d.schema=5],['profile',d => d.profile='ContactPatches'],['kind',d => d.kind+='x'],['agent',d => d.agent='other'],
+  ['extra key',d => d.extra=1],['tool7',d => d.allowed_tools.push('caelab_pde_run')],['tools order',d => d.allowed_tools.reverse()],
+  ['backend',d => d.capabilities[0].backend='structural.families.code_aster'],['case',d => d.capabilities[0].cases=['CGS1']],
+  ['capability text',d => d.capabilities[0].evidence+='x'],['limitations text',d => d.limitations[0]+='x'],
+  ['runtime OMP',d => d.runtime_environment.OMP_NUM_THREADS='2'],['runtime image',d => d.runtime_environment.CAELAB_CODEASTER_IMAGE+='x'],
+  ['image SHA',d => d.runtime_environment.CAELAB_CODEASTER_IMAGE_SHA256='0'.repeat(64)],
+  ['steps',d => d.budgets.steps=23],['command timeout',d => d.budgets.command_timeout_seconds=3601],['MCP timeout',d => d.budgets.mcp_timeout_seconds=3599],
+  ...Object.keys(nativeContactDefinition.budgets.contact_patch).map(key => ['budget '+key,d => d.budgets.contact_patch[key]++]),
+]) test('ContactPatches exact canonical descriptor refuses '+label,async t => {
+  const f=contactResearchFixture(t);patch(f.settings.research);json(f.settingsPath,f.settings);
+  await assert.rejects(f.hooks(),refusal('RESEARCH_DEFINITION_INVALID'));
+});
+
+test('ContactPatches keeps every historical scope closed and exposes no extra job/search/PDE tool',async t => {
+  for(const make of [researchFixture,structuralResearchFixture,pdeResearchFixture,materialResearchFixture,viscoelasticResearchFixture]) {
+    const f=make(t),hooks=await f.hooks();
+    await assert.rejects(materialBefore(hooks,f,{args:contactRequest()}),refusal([structuralResearchFixture,materialResearchFixture,viscoelasticResearchFixture].includes(make)?'RESEARCH_CAPABILITY_NOT_ADMITTED':'TOOL_NOT_ALLOWED'));
+  }
+  const f=contactResearchFixture(t),hooks=await f.hooks();
+  for(const tool of ['caelab_research_job_start','caelab_research_job_cancel','caelab_parameters_register','caelab_optimization_run','caelab_pde_run'])
+    await assert.rejects(hooks['tool.execute.before']({tool,sessionID:f.sessionID},{args:{}}),refusal('TOOL_NOT_ALLOWED'));
+});
+
+for(const [drift,code] of [['source','SOURCE_IMPORTABLE_CHANGED'],['session','PROJECT_SESSION_CHANGED'],
+  ['grant','PROJECT_GRANT_CHANGED'],['project','PROJECT_FILESYSTEM_CHANGED'],['config','CONFIG_CHANGED'],['settings','SETTINGS_CHANGED'],
+  ['stopping','RUNTIME_STOPPING'],['no_tools','NO_TOOLS_STAGE'],['required','REQUIRED_TOOL_MISMATCH']]) {
+  test('ContactPatches retains late '+drift+' refusal',async t => {
+    const f=contactResearchFixture(t),load=f.dependencies.loadFilesystem;
+    if(drift==='session') {
+      const get=f.pluginInput.client.session.get;
+      f.pluginInput.client.session.get=async(...args) => {const response=await get(...args);if(f.counts.session===2) response.data.projectID='prj_foreign';return response;};
+    }
+    f.dependencies.loadFilesystem=async(...args) => {
+      const data=await load(...args);
+      if(f.counts.filesystem===2) {
+        if(drift==='source') fs.writeFileSync(path.join(f.repo,'unadmitted_contact.py'),'UNPINNED SOURCE TEST DATA');
+        if(drift==='grant') {f.state.filesystem.grants[0].access='read';data.grants[0].access='read';}
+        if(drift==='project') {f.state.filesystem.projectID='prj_foreign';data.projectID='prj_foreign';}
+        if(drift==='config') fs.appendFileSync(f.settings.configPath,' ');
+        if(drift==='settings') fs.appendFileSync(f.settingsPath,' ');
+        if(drift==='stopping') f.writeGuard({stopping:true});
+        if(drift==='no_tools') f.writeGuard({no_tools:true});
+        if(drift==='required') f.writeGuard({required:'caelab_study_inspect'});
+      }
+      return data;
+    };
+    const hooks=await f.hooks();await assert.rejects(materialBefore(hooks,f,immutable({args:contactRequest()})),refusal(code));
+    assert.equal(f.receipts().at(-1).accepted,false);
+  });
+}
+for(const [label,patch] of [['model',r => r.model.id='other-model'],['provider',r => r.model.providerID='ollama']])
+test('ContactPatches selected5.6Sol late '+label+' change is refused',async t => {
+  const f=contactResearchFixture(t),request=f.request(),load=f.dependencies.loadFilesystem;
+  f.dependencies.loadFilesystem=async(...args) => {const data=await load(...args);if(f.counts.filesystem===2) patch(request);return data;};
+  const hooks=await f.hooks();await assert.rejects(hooks['chat.params'](request,immutable({options:{}})),refusal('MODEL_CHANGED'));
 });

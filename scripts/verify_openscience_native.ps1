@@ -243,6 +243,65 @@ foreach ($taskViscoWrongCase in @('viscoelasticpoints', 'VISCOELASTICPOINTS')) {
 }
 Set-OpenScienceExpectedTools -Context $taskViscoContext -RequiredTool $null
 Assert-NativeCheck ($null -eq (Read-OpenScienceJson $taskViscoContext.GuardPath).required) 'viscoelastic_does_not_force_specific_tool'
+# CONTACT_PATCHES_SOURCE_GATE_BEGIN
+$taskContactArgs = $taskResearchArgs.Clone(); $taskContactArgs.RunName += '-contact'
+$taskContactArgs.ResearchProfile = 'ContactPatches'; $taskContactArgs.Remove('AllowedTools')
+$taskContactContext = New-OpenScienceLocalContext @taskContactArgs
+$taskContactConfig = Read-OpenScienceJson $taskContactContext.ConfigPath
+Assert-NativeCheck ($taskContactContext.ResearchDefinition.schema -eq 6 -and
+    $taskContactContext.ResearchDefinition.profile -ceq 'contact-patches-v1' -and
+    $taskContactContext.ResearchDefinition.capabilities[0].backend -ceq 'structural.code_aster.contact_patch' -and
+    $taskContactContext.ResearchDefinition.capabilities[0].cases[0] -ceq 'ssnp121a_frictionless_patch') 'contact_schema6_is_separate_from_native_context_schema3'
+Assert-NativeCheck ((Get-OpenScienceSourcePinSha256 @($taskContactContext.AllowedTools)) -ceq
+    (Get-OpenScienceSourcePinSha256 @($script:OpenScienceStructuralResearchTools))) 'contact_reuses_exact_existing_six_tools'
+Assert-NativeCheck ($taskContactContext.Steps -eq 24 -and $taskContactConfig.agent.research.steps -eq 24 -and
+    $taskContactConfig.agent.'caelab-acceptance'.steps -eq 3 -and $taskContactConfig.mcp.caelab.timeout -eq 3600000 -and
+    $taskContactContext.ResearchDefinition.budgets.command_timeout_seconds -eq 3600 -and
+    $taskContactConfig.model -ceq $taskNativeArgs.ModelId -and $taskContactConfig.small_model -ceq $taskNativeArgs.ModelId) 'contact_preserves_selected_model_transport_and_acceptance_budgets'
+Assert-NativeCheck ((Get-OpenScienceSourcePinSha256 $taskContactContext.ResearchDefinition.budgets.contact_patch) -ceq
+    (Get-OpenScienceSourcePinSha256 @{max_nodes=1154;max_solid_cells=1060;max_boundary_segments=184;max_stress_locations=4240;max_slave_pressure_nodes=25;max_request_bytes=16384})) 'contact_resource_caps_are_exact'
+Assert-NativeCheck ($taskContactContext.ResearchDefinition.runtime_environment.OMP_NUM_THREADS -ceq '1' -and
+    (New-OpenScienceResearchDefinition -Profile StructuralFamilies).runtime_environment.OMP_NUM_THREADS -ceq '2') 'contact_OMP1_does_not_change_historical_OMP2'
+foreach ($taskContactRuntimeKey in $taskContactContext.ResearchDefinition.runtime_environment.Keys) {
+    Assert-NativeCheck ($taskContactConfig.mcp.caelab.command -ccontains ($taskContactRuntimeKey + '=' +
+        $taskContactContext.ResearchDefinition.runtime_environment[$taskContactRuntimeKey])) ('contact_mcp_runtime_' + $taskContactRuntimeKey)
+}
+Assert-NativeCheck ($taskContactConfig.agent.research.prompt -match 'ssnp121a_frictionless_patch' -and
+    $taskContactConfig.agent.research.prompt -match 'uniform_quad4_2x' -and $taskContactConfig.agent.research.prompt -match 'signed contact traction' -and
+    $taskContactConfig.agent.research.prompt -match 'not asymptotic convergence' -and $taskContactConfig.agent.research.prompt -match 'all ten blocking engineering UNKNOWNs' -and
+    $taskContactConfig.agent.research.prompt -match 'NOT_RELEASED') 'contact_prompt_retains_actual_identity_diagnostics_and_release_limits'
+Assert-NativeCheck ($taskContactConfig.permission.'*' -ceq 'deny' -and $taskContactConfig.permission.mcp.'*' -ceq 'deny' -and
+    @($taskContactContext.AllowedTools | Where-Object {$taskContactConfig.permission[$_] -cne 'allow' -or $taskContactConfig.permission.mcp[$_] -cne 'allow'}).Count -eq 0) 'contact_permissions_remain_closed_six_tool_allowlist'
+Assert-NativeCheck ((Get-OpenScienceHash $taskNativeAuthFile) -ceq $taskAuthBytesHash -and
+    -not (Test-Path -LiteralPath $taskContactContext.StoreRoot) -and
+    $taskContactContext.ResearchDefinitionSha256 -ceq (Get-OpenScienceSourcePinSha256 $taskContactContext.ResearchDefinition)) 'contact_definition_intent_preserves_auth_bytes_and_creates_no_Core_store'
+foreach ($taskContactBudgetKey in $taskContactContext.ResearchDefinition.budgets.contact_patch.Keys) {
+    $taskContactDrift = [pscustomobject](Read-OpenScienceJson (Join-Path $taskContactContext.ProfileRoot 'context.json'))
+    $taskContactDrift.ResearchDefinition.budgets.contact_patch[$taskContactBudgetKey] += 1
+    Assert-NativeRefused { Assert-OpenScienceContext $taskContactDrift } ('contact_budget_drift_refused_' + $taskContactBudgetKey)
+}
+$taskContactImageDrift = [pscustomobject](Read-OpenScienceJson (Join-Path $taskContactContext.ProfileRoot 'context.json'))
+$taskContactImageDrift.ResearchDefinition.runtime_environment.CAELAB_CODEASTER_IMAGE_SHA256 = ('0' * 64)
+Assert-NativeRefused { Assert-OpenScienceContext $taskContactImageDrift } 'contact_image_drift_blocks_launch'
+$taskContactAcceptance = $taskNativeArgs.Clone(); $taskContactAcceptance.ResearchProfile = 'ContactPatches'
+Assert-NativeRefused { New-OpenScienceLocalContext @taskContactAcceptance } 'contact_requires_research_purpose'
+$taskContactWrongTool = $taskContactArgs.Clone(); $taskContactWrongTool.RunName += '-wrong-tool'
+$taskContactWrongTool.AllowedTools = @('caelab_optimization_run')
+Assert-NativeRefused { New-OpenScienceLocalContext @taskContactWrongTool } 'contact_refuses_unlisted_optimizer'
+foreach ($taskContactWrongCase in @('contactpatches', 'CONTACTPATCHES', 'Contactpatches')) {
+    Assert-NativeRefused { New-OpenScienceResearchDefinition -Profile $taskContactWrongCase } ('contact_case_sensitive_definition_' + $taskContactWrongCase)
+    $taskContactBadCase = $taskContactArgs.Clone(); $taskContactBadCase.ResearchProfile = $taskContactWrongCase
+    Assert-NativeRefused { New-OpenScienceLocalContext @taskContactBadCase } ('contact_case_sensitive_launcher_' + $taskContactWrongCase)
+    Assert-NativeRefused { New-OpenScienceNativeContext -ResearchProfile $taskContactWrongCase } ('contact_case_sensitive_native_' + $taskContactWrongCase)
+}
+Set-OpenScienceExpectedTools -Context $taskContactContext -RequiredTool $null
+Assert-NativeCheck ($null -eq (Read-OpenScienceJson $taskContactContext.GuardPath).required) 'contact_does_not_force_specific_tool'
+$taskContactMockOwner = @{boot_source=@{schema=1;synthetic=$true};boot_source_sha256=('a'*64)}
+Initialize-OpenScienceNativeGuard $taskContactContext $taskContactMockOwner
+$taskContactGuardSettings = Read-OpenScienceJson $taskContactContext.PluginSettingsPath
+Assert-NativeCheck ($taskContactGuardSettings.schema -eq 3 -and $taskContactGuardSettings.research.schema -eq 6 -and
+    (Get-OpenScienceSourcePinSha256 $taskContactGuardSettings.research) -ceq $taskContactContext.ResearchDefinitionSha256) 'contact_native_guard_schema3_carries_unchanged_schema6_descriptor'
+# CONTACT_PATCHES_SOURCE_GATE_END
 $taskNativeConfigBytes = [IO.File]::ReadAllBytes($taskNativeContext.ConfigPath)
 $taskNativeChangedConfig = $taskNativeConfig.Clone(); $taskNativeChangedConfig.model = 'openai-codex/other'
 Write-OpenScienceJson $taskNativeContext.ConfigPath $taskNativeChangedConfig

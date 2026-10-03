@@ -1,4 +1,25 @@
-## Current checkpoint: P5.3 uniform2 native mesh sensitivity verified; Research next
+## Current checkpoint: P5.3 ContactPatches source admitted; actual Research next
+
+Optional ContactPatches/schema6/contact-patches-v1 reuses six existing tools;
+native context remains3, Core/registry/Domain/native/model/auth/default scopes unchanged.
+Final five production files plus corrected test are independently reviewed,
+zero openP1/P2. Main full guard/source-pin: 311PASS/5explicit legacy/platform SKIP/0FAIL;
+all92 contact cases execute. Actual Main PS descriptor SHA164f39 agrees exactly.
+Private supplied92/absent83+9SKIP, PS68/static87/pureDomain10 overlap/separate;
+none are native, provider or Core execution. Original collection P1 and all
+preparation failures/seals remain retained. Six -text paths preserve exact bytes.
+Record: `benchmarks/records/20261004-contact-research-source-r01.json`; SHA256 `a9af1332a67ff4cad7598510c3e5d1877b1721c868e81de871c1b89bcc84cd56`.
+Actual Research/Bootstrap/Resident/question/human/Stop NOT_RUN. NEXT: fresh
+`runs/contact-research-20261004-01`, one approved5.6Sol original/uniform2 question,
+independent actual numerical/interpretation audit and same-result human/ownedStop;
+full contact field gate, then P2.4 and remaining Phase6/7/deferred gates.
+Prior142/native proof and failed CalculiX pilot remain separate and unchanged.
+Exact new source CI pending; prior142 CI7SUCCESS/3FAIL is not new verification.
+Ten blockingUNKNOWN/NOT_RELEASED; whole52/Phases5-7 remain ACTIVE.
+
+---
+
+## Historical checkpoint: P5.3 uniform2 native mesh sensitivity verified; Research next
 
 Clean pushed producer `142c8ab02181a513987a04af6d7ced5996381086` runs one fresh uniform2 contact job in
 `runs/contact-refinement-native-20261004-01`, exp `E-ssnp121a-uniform2`, revision `8ff3f7fe86721064b7a087b3d2e7b5eb1f9938af52229b1c06e703ee222b6936`.
@@ -1321,7 +1342,8 @@ This evidence/docs checkpoint is not another solver run.
 - [x] P5.3 actual private CalculiX comparison: immutable7PASS/6FAIL, complete fields and source-backed capability limits; no cross-solver qualification.
 - [x] P5.3 uniform2 deterministic MED generation/readback, independent full geometry/binary identity, source46-review and integrated257cold PASS.
 - [x] P5.3 one fresh142 uniform2 native/full-field signed comparison; independent79math/48runtime PASS,10UNKNOWN/NOT_RELEASED.
-- [ ] P5.3 ContactPatches admission/whole Research/same-record human; then P2.4 fixture coupling and remaining Phase6/7/deferred gates.
+- [x] P5.3 ContactPatches source admission: exact schema6/six tools, corrected default collection, independent production/test review and Main full source regression.
+- [ ] P5.3 one whole actual original/uniform2 Research question, independent numerical/interpretation audit, same-result human/ownedStop/retention and full contact-field gate; then P2.4 and Phase6/7/deferred gates.
 - [ ] P5.3: obtain full published material/contact definitions (NAFEMS candidate
   families R0026/R0081), freeze cases and execute cross-solver/mesh/reference
   checks; connect common human/AI results, then close P2.4's recorded dependency.
