@@ -1,14 +1,15 @@
 # Contact foundation acceptance
 
-Current P5.3: full official SSNP121A definition acquired; corrected source controls
-and independent review PASS/0openP1/P2. Actual mechanical acceptance NOT_RUN.
+Current P5.3: original canonical and analytical variant native acceptance PASS;
+independent127 math/63 runtime checks, zero open P1/P2. Mesh/cross-solver and
+connected Research/human acceptance remain OPEN.
 Whole Phase5, P2.4 fixture coupling, Phases6/7 and the52 requirements remain open.
 
 `structural.code_aster.contact_patch` uses the existing common model-analysis
 route. The contact Domain owns references/verdicts; the adapter owns the native
 input, syntax, execution and fields. This source unit changes no common schema,
 optimizer, old research scope, approved5.6Sol selection or authentication.
-GUI/Research presets are admitted after actual native qualification.
+GUI/Research presets remain pending the ordered comparison and admission gates.
 
 ## Frozen case and evidence
 
@@ -48,14 +49,33 @@ table format only. ELGA measured XY matches four FPG4 points per actual QUAD4;
 native W matches the independently derived bilinear Jacobian, sum4m2. Retain
 raw COOR_Z as W; geometric ELGA Z remains UNAVAILABLE. No zero is manufactured.
 
+## Actual native01 evidence
+
+Producer9d0d613/native01 runs two native processes without automatic retry or
+wall timeout. Each valid result has17 valid metrics/12 PASS/10 blocking UNKNOWN.
+Canonical pressure/displacement maximum relative errors are0.0035068743056448875 /
+0.0004328643039616664; variant0.0035185310968273553 /0.00044393855026331197.
+Top/base forces match the independent -/+200000 and -/+50000 N/m references;
+boundary balances1.6012338425539465e-15 /1.0771250195477792e-14 and all-node
+balances1.8189898590575725e-17 /8.18545265910159e-17 satisfy the original1e-6.
+Invalid boolean nu is REJECTED before export/native, with0metrics/1FAIL/2UNKNOWN.
+Original103files/8,204,671bytes, input MED, final313nodal/1060stress/13pressure
+fields and convergence logs are retained. Independent MED reading confirms
+the actual final order1/INST1 fields against every native-table value.
+Full-field uniformity, projected gaps, energy and moments remain diagnostics;
+no full-field correctness thresholds or native gap channel are manufactured.
+Native binary/upstream equivalence and remote raw retention remain UNKNOWN.
+Independent reader correction preserves59PASS/2falseFAIL, then four narrow
+projection/group checks close the reader assumptions without native reruns.
+The public native record pins both independent reports and exact producer.
+
 ## Remaining ordered acceptance
 
 - [x] Corrected worker74/independent0openP1/P2 and final producer-consumer1 PASS. Source scopes remain separately attributed.
-- [ ] Commit reviewed source, then run `scripts/verify_contact.py` in a fresh
-  `runs/contact-native-20261004-01` store: original canonical, analytical E1e6/
-  DY-.05m variant, and boolean-nu invalid-input block.
-- [ ] Independently check every actual node/field/location/order, original signed
-  samples, reactions, native convergence and exact source/runtime/artifact hashes.
+- [x] Clean9d source executes original canonical, analytical E1e6/DY-.05m
+  variant and boolean-nu preflight refusal in fresh contact-native-20261004-01.
+- [x] Independent127 math/field and63 runtime/common checks verify all actual
+  fields, original sample/reaction limits, convergence, source/runtime and retention.
 - [ ] Verify mesh/contact/cross-solver scope separately from the original six
   point criteria; retain pointwise gap and physical validity UNKNOWN.
 - [ ] Admit bounded contact to OpenScience, execute a whole research question

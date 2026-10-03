@@ -1,7 +1,8 @@
 # ADR0030 — bounded frictionless contact through the common model route
 
-Status: accepted boundary; corrected source review PASS/0openP1/P2, actual mechanical
-acceptance NOT_RUN. Contact research admission and engineering release are separate.
+Status: accepted boundary; corrected source and original native01 reference/field
+identity acceptance PASS, zero open P1/P2. Mesh/cross-solver/contact research
+admission and engineering release remain separate pending gates.
 
 P5.3 follows the completed bounded SVK/Maxwell research gates. A complete official
 Code_Aster SSNP121A definition and exact17.4.0 native MED are accessible. Full
@@ -48,9 +49,15 @@ require common revisions, original evidence, independent review and actual
 execution. R29 and P2.4 real fixture fastener/contact coupling remain open.
 The pinned fixture implementation is not replaced by this independent patch.
 
-Next gates: corrected source controls/review, fresh committed-source canonical
-and analytical variant plus invalid-input block, independent full native field/
-reference/equilibrium audit, mesh/cross-solver contact, explicit OpenScience
-whole-question admission and same-native-result human inspection, then P2.4.
+Completed gates: corrected source controls/review, fresh committed-source
+canonical and analytical variant plus invalid-input block, independent native
+field identity/reference/equilibrium audit. Next: mesh/cross-solver contact,
+explicit OpenScience whole-question admission and same-native-result human
+inspection, then P2.4.
 OpenScience remains the control plane; no new scope or model is selected here.
 Ten blocking qualifications retain UNKNOWN and every result remains NOT_RELEASED.
+
+Actual clean9d/native01 qualification is recorded in
+`benchmarks/records/20261004-contact-native-r01-qualified.json`: two valid cases,
+one preflight refusal, independent127math/63runtime checks; no threshold changes.
+All10 blocking qualifications remain UNKNOWN and both results NOT_RELEASED.

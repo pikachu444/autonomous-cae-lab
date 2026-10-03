@@ -1,0 +1,393 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-03T18:03:00.102052+00:00",
+  "status": "BOUNDED_ORIGINAL_CONTACT_NATIVE_REFERENCE_AND_FIELD_IDENTITY_PASS",
+  "producer_commit": "9d0d613bd8d6ec5a1d5c1a59805c002c84e71c92",
+  "documentation_is_not_a_new_solver_run": true,
+  "backend": "structural.code_aster.contact_patch",
+  "operation": "model_analysis_run",
+  "case": "Official Code_Aster SSNP121A/tag17.4.0; distinct from NAFEMS CGS1 and MIDAS",
+  "store": "runs/contact-native-20261004-01",
+  "native_processes": 2,
+  "invalid_preflight_blocks": 1,
+  "automatic_retries": 0,
+  "producer_elapsed_seconds": 87.48499999986961,
+  "wall_timeout_seconds": null,
+  "cpu_limit_seconds": 86400,
+  "engineering_decision": "NOT_RELEASED",
+  "cases": {
+    "E-ssnp121a-canonical": {
+      "experiment_id": "E-ssnp121a-canonical",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "converged": true,
+      "decision": "NOT_RELEASED",
+      "model_revision": "83f40f7ac4cb45feb8b60e707a1a3f056525e688dfd15867b25e95d9d758e279",
+      "valid_metrics": 17,
+      "validations": {
+        "PASS": 12,
+        "FAIL": 0,
+        "UNKNOWN": 10
+      },
+      "result": {
+        "path": "runs/contact-native-20261004-01/experiments/E-ssnp121a-canonical/result.json",
+        "bytes": 102083,
+        "sha256": "cb76e765ae7aaeb29b94a0b3508da1ae33f70da830e5b81519aa30260bc21caf"
+      },
+      "settings": {
+        "case": "ssnp121a_frictionless_patch",
+        "limits": {
+          "force_balance_relative": 1e-06,
+          "reference_relative": 0.01
+        },
+        "material": {
+          "poisson_ratio": 0.0,
+          "youngs_modulus_pa": 2000000.0
+        },
+        "top_displacement_m": -0.1
+      },
+      "metrics": {
+        "A_normal_traction": -100080.2806885708,
+        "A_vertical_displacement": -0.04999670096078622,
+        "B_normal_traction": -100080.28073362722,
+        "B_vertical_displacement": -0.04999670096030061,
+        "N14_normal_traction": -100350.68743056449,
+        "N14_vertical_displacement": -0.04997835678480192,
+        "all_nodes_force_balance_relative": 1.8189898590575725e-17,
+        "bottom_reaction_y": 199999.9357408671,
+        "boundary_force_balance_relative": 1.6012338425539465e-15,
+        "derived_projected_gap_max": 8.191740892331267e-06,
+        "derived_projected_gap_max_absolute": 8.191740892331267e-06,
+        "derived_projected_gap_min": -4.7516921355148755e-06,
+        "max_sample_displacement_relative_error": 0.0004328643039616664,
+        "max_sample_pressure_relative_error": 0.0035068743056448875,
+        "slave_normal_traction_max": -99699.96683996948,
+        "slave_normal_traction_min": -100350.68743056449,
+        "top_reaction_y": -199999.9357408668
+      },
+      "blocking_unknowns": [
+        "model_qualification",
+        "material_qualification",
+        "physical_validation",
+        "static_strength",
+        "fatigue_durability",
+        "pointwise_contact_gap",
+        "cross_solver_contact",
+        "fixture_joint_contact",
+        "corporate_license_approval",
+        "corporate_security_approval"
+      ]
+    },
+    "E-patch-analytical-variant": {
+      "experiment_id": "E-patch-analytical-variant",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "converged": true,
+      "decision": "NOT_RELEASED",
+      "model_revision": "a28c70dcadf75c4f5b047a5dafa01d6304ac88b1c3be28ae18dd9a8890fbec60",
+      "valid_metrics": 17,
+      "validations": {
+        "PASS": 12,
+        "FAIL": 0,
+        "UNKNOWN": 10
+      },
+      "result": {
+        "path": "runs/contact-native-20261004-01/experiments/E-patch-analytical-variant/result.json",
+        "bytes": 102489,
+        "sha256": "26afc5e94103fa84e69b1e8eb7116a3784c6c1a23c228074ecdf3664fdad5497"
+      },
+      "settings": {
+        "case": "ssnp121a_frictionless_patch",
+        "limits": {
+          "force_balance_relative": 1e-06,
+          "reference_relative": 0.01
+        },
+        "material": {
+          "poisson_ratio": 0.0,
+          "youngs_modulus_pa": 1000000.0
+        },
+        "top_displacement_m": -0.05
+      },
+      "metrics": {
+        "A_normal_traction": -25020.625557949934,
+        "A_vertical_displacement": -0.024998226253709118,
+        "B_normal_traction": -25020.625569370735,
+        "B_vertical_displacement": -0.024998226253458686,
+        "N14_normal_traction": -25087.963277420684,
+        "N14_vertical_displacement": -0.02498890153624342,
+        "all_nodes_force_balance_relative": 8.18545265910159e-17,
+        "bottom_reaction_y": 49999.98352431312,
+        "boundary_force_balance_relative": 1.0771250195477792e-14,
+        "derived_projected_gap_max": 4.179959833976177e-06,
+        "derived_projected_gap_max_absolute": 4.179959833976177e-06,
+        "derived_projected_gap_min": -2.432193609307734e-06,
+        "max_sample_displacement_relative_error": 0.00044393855026331197,
+        "max_sample_pressure_relative_error": 0.0035185310968273553,
+        "slave_normal_traction_max": -24924.169348375966,
+        "slave_normal_traction_min": -25087.963277420684,
+        "top_reaction_y": -49999.98352431258
+      },
+      "blocking_unknowns": [
+        "model_qualification",
+        "material_qualification",
+        "physical_validation",
+        "static_strength",
+        "fatigue_durability",
+        "pointwise_contact_gap",
+        "cross_solver_contact",
+        "fixture_joint_contact",
+        "corporate_license_approval",
+        "corporate_security_approval"
+      ]
+    },
+    "E-contact-input-reject": {
+      "experiment_id": "E-contact-input-reject",
+      "status": "REJECTED",
+      "solver_status": "NOT_RUN",
+      "converged": null,
+      "decision": "NOT_RELEASED",
+      "model_revision": "c419133979151a07d975296b03a583633fa78773af0a95fa2f9fb69e85a63f20",
+      "valid_metrics": 0,
+      "validations": {
+        "PASS": 0,
+        "FAIL": 1,
+        "UNKNOWN": 2
+      },
+      "result": {
+        "path": "runs/contact-native-20261004-01/experiments/E-contact-input-reject/result.json",
+        "bytes": 4296,
+        "sha256": "179d22813432ab4d565b14d1dce89f0fed445f047a77753b775bbd8e4cceffa7"
+      },
+      "settings": {
+        "case": "ssnp121a_frictionless_patch",
+        "limits": {
+          "force_balance_relative": 1e-06,
+          "reference_relative": 0.01
+        },
+        "material": {
+          "poisson_ratio": false,
+          "youngs_modulus_pa": 2000000.0
+        },
+        "top_displacement_m": -0.1
+      },
+      "metrics": {},
+      "blocking_unknowns": [
+        "model_qualification",
+        "physical_validation"
+      ]
+    }
+  },
+  "fixed_limits": {
+    "six_signed_sample_relative": 0.01,
+    "top_bottom_reaction_relative": 0.01,
+    "global_force_balance_relative": 1e-06,
+    "native_absolute_residual": 2e-08,
+    "native_XY_W_identity_relative_and_absolute": 1e-13
+  },
+  "native_fields_per_valid_case": {
+    "DEPL_rows": 313,
+    "REAC_NODA_rows": 313,
+    "slave_LAGS_C_rows": 13,
+    "Gauss_locations": 1060,
+    "stress_components": [
+      "SIXX",
+      "SIYY",
+      "SIZZ",
+      "SIXY"
+    ],
+    "final_NUME_ORDRE": 1,
+    "final_INST": 1.0,
+    "geometric_ELGA_Z": "UNAVAILABLE",
+    "native_ELGA_COOR_Z": "integration weight W"
+  },
+  "independent_reviews": {
+    "math_field_identity": {
+      "PASS": 127,
+      "FAIL": 0,
+      "precision_decimal_digits": 90
+    },
+    "runtime_common_MED": {
+      "PASS": 63,
+      "FAIL": 0
+    },
+    "open_P1_P2": 0
+  },
+  "reader_corrections": {
+    "initial_report": "first-reader-report.json",
+    "initial_sha256": "146e784834129e572f550627d9cb55059aa06829e89464f41a476bfcd57359ee",
+    "initial_PASS": 59,
+    "initial_FAIL": 2,
+    "cause": "Reader incorrectly expected rich raw sample/slave metadata inside strict Domain and expected analysis raw to equal strict Domain. Actual frozen adapter explicitly projects only those scientific keys and retains the complete raw observation.",
+    "correction_scope": "Two affected JSON shape checks corrected to the existing projection; two narrow original group-identity checks added. Other59 PASS reused, not rerun; no data/threshold/source changes or native/test calls."
+  },
+  "fullfield_scope": "All actual rows/components/locations/orders checked and retained; uniform field, gap, energy and moment comparisons are diagnostics without new acceptance thresholds",
+  "limitations": [
+    "Six sample1percent/reaction1percent/global1e-6 are the only scientific response/equilibrium gates used.",
+    "Native Gauss XY/W1e-13 is field identity, not a stress/gap correctness threshold.",
+    "Uniform full-stress/displacement comparisons, projected gaps, moments, energy and per-body reductions are retained diagnostics without new acceptance thresholds.",
+    "D_PLAN ELGA raw COOR_Z measures native W; geometric stress Z remains UNAVAILABLE. Nodal XYZ are genuine measured data.",
+    "Pointwise native contact gap, refinement/cross-solver/fixture/material/physical/strength/durability/corporate validity remain UNKNOWN/NOT_RELEASED.",
+    "This review does not establish provider/research/GUI/CI/Git publication or full project-goal completion.",
+    "Constitutive/reference/equilibrium mathematics and quadrature XY/Jacobian accuracy are owned by the separate numerical reviewer",
+    "Fixed original mesh only; no new mesh convergence/cross-solver/NAFEMS/MIDAS/general fixture or physical qualification",
+    "Actual ELGA XY/W is measured; geometric ELGA Z and native gap remain unavailable; projected gaps are derived diagnostics",
+    "MED's padded unsupported LAGS_C components outside native support are reported by the original solver; extra REAC_NODA LAGS_C has no table-derived qualification",
+    "Native installed runtime reports spack-local/build metadata; binary equivalence to upstream source commit remains UNKNOWN",
+    "SIF identity is the actual captured producer provenance pin, not a new image-read/native call by this reviewer",
+    "Exact9d CI is not evaluated here; prior parent CI does not verify this source; no cloud/raw durability or GUI/Research acceptance is inferred",
+    "All ten blocking qualifications and NOT_RELEASED remain; process completion is not engineering approval"
+  ],
+  "research_admission": "NOT_ADMITTED; no new provider/model/auth selection",
+  "remote_raw_durability": "UNKNOWN; original 103 files / 8,204,671 bytes retained locally under ignored runs/",
+  "source_record": {
+    "path": "benchmarks/records/20261004-contact-patch-source.json",
+    "bytes": 9090,
+    "sha256": "c775f1982f40f2cda5d65a7deddb5a09023cfa0fb55cd4c19874c2cf4cafab4f"
+  },
+  "producer_receipt": {
+    "path": "artifacts/development-contact-20261004-01/native-root-run-01/receipt.json",
+    "bytes": 26055,
+    "sha256": "fd891d786015eaa5f89ec56a5394ed0ab0675e381599dfe7ee77f35135b330fa"
+  },
+  "evidence": {
+    "independent_math": {
+      "path": "artifacts/development-contact-20261004-01/native-math-independent-audit-01/audit-receipt.json",
+      "bytes": 69320,
+      "sha256": "8dfdc51f035949944afa88b06bc26b6f125d11cf85e486ba1c49e8665f94748b"
+    },
+    "independent_math_seal": {
+      "path": "artifacts/development-contact-20261004-01/native-math-independent-audit-01/final-seal.json",
+      "bytes": 4933,
+      "sha256": "064997a2a8f4e0460237f030e3919745033566e82bff17d9580c3d78f8e9608f"
+    },
+    "independent_math_report": {
+      "path": "artifacts/development-contact-20261004-01/native-math-independent-audit-01/REPORT.md",
+      "bytes": 15610,
+      "sha256": "7dc20e7db76755baa92999a35cf53d6884213e2c10388d19b4e233eacaa8dae7"
+    },
+    "independent_runtime": {
+      "path": "artifacts/development-contact-20261004-01/native-runtime-independent-audit-01/independent-audit.json",
+      "bytes": 38298,
+      "sha256": "4cc93a7690d5c5ed3c9d004bb95383c4aefb2e0931ad9548e1fdeefcad1297b1"
+    },
+    "independent_runtime_seal": {
+      "path": "artifacts/development-contact-20261004-01/native-runtime-independent-audit-01/freeze-receipt.json",
+      "bytes": 4319,
+      "sha256": "1ad5c07933dacc1d19d2ed197c1318a2df1876df18774ca757ae1bbffa2e9153"
+    },
+    "independent_runtime_report": {
+      "path": "artifacts/development-contact-20261004-01/native-runtime-independent-audit-01/REPORT.md",
+      "bytes": 7760,
+      "sha256": "f5e006265641ab95ef6ff6f508e2e08a9ccbe87360f936066816b3e9efc3ca18"
+    },
+    "exact_CI_receipt": {
+      "path": "artifacts/development-contact-20261004-01/ci-9d0d613-inventory-01/receipt.json",
+      "bytes": 2146,
+      "sha256": "98e9ef7ee380dd37b3413f02d725a2010b13c0f8181daa9879ade34617f81c78"
+    },
+    "exact_CI_report": {
+      "path": "artifacts/development-contact-20261004-01/ci-9d0d613-inventory-01/report.json",
+      "bytes": 36144,
+      "sha256": "c3102ce688109dac6ecdce30da2b8577452902c9fefc93cc5b48d0d8c07aa24a"
+    },
+    "exact_CI_manifest": {
+      "path": "artifacts/development-contact-20261004-01/ci-9d0d613-inventory-01/captured-files-manifest.json",
+      "bytes": 16808,
+      "sha256": "191bb235ee486b7562f238451309772d8982f3cd9968c91333bb4169f7f34e93"
+    }
+  },
+  "exact_source_ci": {
+    "source_commit": "9d0d613bd8d6ec5a1d5c1a59805c002c84e71c92",
+    "run_id": 37140315572,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37140315572",
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": {
+      "success": 7,
+      "failure": 3
+    },
+    "core_pytest": {
+      "passed": 3840,
+      "skipped": 5,
+      "warnings": 1,
+      "seconds": 460.35,
+      "raw": {
+        "file": {
+          "path": "job-logs/111253216690-core.stdout.log",
+          "bytes": 213994,
+          "sha256": "54273787a64b5c62074bd4d43f04fd3cb06d0ef5049b54ffa9aade68700f714f"
+        },
+        "matches": [
+          {
+            "line_1based": 496,
+            "text": "2026-10-03T17:31:32.6967328Z 3840 passed, 5 skipped, 1 warning in 460.35s (0:07:40)"
+          }
+        ]
+      }
+    },
+    "research_source_wrapper_scope": "Exact completed job wrapper output; source artifact JSON was not downloaded/re-audited. Launcher80 or local native counts are not inferred from this CI.",
+    "contact_native_CI": "ABSENT",
+    "failed_jobs": [
+      "codeaster",
+      "pde",
+      "explicit"
+    ],
+    "actual_failures": {
+      "codeaster": {
+        "type": "FACTOR_57",
+        "mesh_cells": [
+          [
+            6,
+            1,
+            1
+          ],
+          [
+            12,
+            2,
+            2
+          ],
+          [
+            24,
+            4,
+            4
+          ]
+        ],
+        "printed_estimate": 3.32295e-06,
+        "unchanged_limit": 1e-06,
+        "fine_response": "UNAVAILABLE",
+        "Core_status": "FAILED_EXECUTION"
+      },
+      "pde": {
+        "vector_L2_rate_8_to16": 1.7950984424561094,
+        "component0_L2_rate_8_to16": 1.7796221489007413,
+        "unchanged_rate_limit": 1.8,
+        "Core_status": "REJECTED",
+        "invalid_metrics": 9
+      },
+      "explicit": {
+        "type": "HTTP404/curl22",
+        "native_verification": "SKIPPED",
+        "replacement_url": "UNKNOWN"
+      }
+    },
+    "closed_failures_not_rerun": true
+  },
+  "unchanged_numerical_source_files": {
+    "caelab/adapters/codeaster_elasticity.py": "956e84044d0b35780a23648577771236b708fefeb8d69492b6d85cdf4a25165a",
+    "caelab/adapters/codeaster_execution.py": "04bf82ca3ea258a9218f9de33c14aefda1319abfa199fa246c36d5d1cefc2fad",
+    "caelab/adapters/mfront_hyperelastic_worker.py": "cf7e6a631ea1a9ea3a52abefb4247f1eda977b60c8643ecb116b297097eb3960",
+    "caelab/adapters/mfront_inverse.py": "acc3743901515afeb973b30bc0639a1d4afe6fa261f7cf465d6ff24ad986ba7f",
+    "caelab/adapters/mfront_inverse_runtime_probe.py": "5979aab3d05794d264673e121c5aabe0f4785eb8da0edd1cbee5e593c1d01b47",
+    "caelab/adapters/mfront_material.py": "4ea387647fbaddeec47c0c637240209427cb509ef8b1e8b703e8737be3d79dec",
+    "caelab/adapters/mfront_material_worker.py": "3200b2beb25fb04f45dd9eaeff426237802c62021861c90242cff7be79f4197f",
+    "caelab/adapters/mfront_single_branch_maxwell.mfront": "8501f6d338d0d58fd9391031274dd0d15ecaf333f6158f0c80a73ffdb99e3d7a",
+    "caelab/adapters/mfront_viscoelastic.py": "4baff35dd17018055c16cc395f7f20bdc6eb69e608045ae57c7d524bc98d5eff",
+    "caelab/adapters/mfront_viscoelastic_worker.py": "1e133ec4963d8745d6efd83e0771dd35c5b68019a8e9270f939e1b23bce32ff8",
+    "caelab/execution_control.py": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede",
+    "plugins/material_point/inverse_reference.py": "52c754823800a64cdcfa12923a95cad9776ee130baebf35662ded37ee338ad27",
+    "plugins/material_point/reference.py": "bb1ac0652e4c3c2b3f5b338dcc2c3a81c3aad4a97afc5dd1a1421eb1f89bc2e9",
+    "plugins/material_point/viscoelastic_reference.py": "cd790dca972754c134635b723e8a2f00cbd57b0b7ce8a091c32af716170a9fe6"
+  },
+  "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "next": "Ordered mesh/contact/cross-solver acceptance, then explicit OpenScience whole-question and same-result human view; close P2.4 fixture coupling. Whole52 and remaining Phases5-7 stay active."
+}

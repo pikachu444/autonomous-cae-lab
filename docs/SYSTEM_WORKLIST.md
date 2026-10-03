@@ -1,4 +1,34 @@
-## Current checkpoint: P5.3 bounded contact source reviewed; actual native next
+## Current checkpoint: P5.3 original contact native acceptance qualified; comparison next
+
+Clean, pushed producer `9d0d613bd8d6ec5a1d5c1a59805c002c84e71c92` executes two actual Code_Aster contact runs
+in `runs/contact-native-20261004-01`, plus one invalid-input preflight block.
+Official SSNP121A and its original mesh retain their own identity, separate
+from NAFEMS CGS1/MIDAS. Canonical and analytical E1e6/DY-.05m variant each
+produce 17 valid metrics, 12 PASS, 10 blocking UNKNOWN, NOT_RELEASED.
+Maximum signed pressure error is 0.350687% / 0.351853%; displacement error
+0.043286% / 0.044394%. Original 1% and balance 1e-6 limits are unchanged.
+Both complete native fields retain 313 DEPL/REAC rows, 13 slave LAGS_C and
+1060 four-component stress locations, final order1/INST1, genuine XY/W.
+Independent math/field review 127 PASS and runtime/common/MED review 63 PASS;
+zero open P1/P2. The first reader's two incorrect JSON-shape FAILs remain
+preserved and are closed by four narrow projection/group checks; old 59 PASS
+are reused rather than rerun. No additional native or provider calls.
+The original 103 files / 8,204,671 bytes remain unchanged. Full stress/gap/
+energy diagnostics do not imply mesh convergence, physical or strength approval.
+Exact9d CI37140315572: 7 SUCCESS / 3 FAIL (codeaster, pde, explicit), separate
+from this local contact gate; contact native is absent from that workflow.
+Core has 3840 PASS/5 SKIP. Exact failed artifacts retain fine Fz FACTOR_57
+(3.32295e-6 > 1e-6), vector8-to16 rate1.79509844 <1.8 and runtime URL404.
+No failed native job is retried or numerical threshold loosened here.
+NEXT: mesh/contact/cross-solver checks, then explicit OpenScience whole research
+question and same-result human view; P2.4 fixture coupling follows. No old scope,
+approved5.6Sol/auth, optimizer, Core schema or fixture implementation changes.
+Record: `benchmarks/records/20261004-contact-native-r01-qualified.json`; SHA256 `974a1fe42338fb31367f75fcf2858b04ffe1152d08379a7dbdf556163b336fff`.
+Whole52 and remaining Phases5-7 stay active; engineering remains NOT_RELEASED.
+
+---
+
+## Historical checkpoint: P5.3 bounded contact source reviewed
 
 Full official SSNP121A/tag17.4 source and unmodified MED are frozen, distinct
 from NAFEMS CGS1/MIDAS. New contact Domain/adapter uses the existing common
@@ -1201,7 +1231,8 @@ This evidence/docs checkpoint is not another solver run.
   actualr01 two-condition loop, independent308numerical/59integration PASS,
   same-record conversation view/ownedStop/retention;8UNKNOWN/NOT_RELEASED.
 - [x] P5.3 foundation: full distinctSSNP121A/nativeMED; corrected Domain/adapter/common source and actual no-solve XY/W format verified.
-- [ ] P5.3 actual canonical/variant/invalid contact, independent full native audit, then mesh/cross-solver/Research/human/P2.4.
+- [x] P5.3 original native01: canonical/analytical variant/invalid block; independent127math/63runtime PASS; exact source/fields/retention verified.
+- [ ] P5.3 mesh/contact/cross-solver, then whole Research/human and P2.4 fixture coupling.
 - [ ] P5.3: obtain full published material/contact definitions (NAFEMS candidate
   families R0026/R0081), freeze cases and execute cross-solver/mesh/reference
   checks; connect common human/AI results, then close P2.4's recorded dependency.
