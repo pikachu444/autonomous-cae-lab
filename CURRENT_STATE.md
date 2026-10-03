@@ -1,17 +1,21 @@
-## Current checkpoint: MTest result phase and local iteration semantics corrected
+## Current checkpoint: distinguish actual native loaded and resolved paths
 
-Native02 failure belongs to Root's parser/admission code: printedu0 is distinct
-from constitutivee1, and cumulativeiterations16 is not a local10 breach.
-The reviewed source captures actual12-componentu0/u1, preparede0, committeds0/
-iv0 and cumulative before/after counters. Exact table identity uses actualu0/
-s0/iv0; strict1e-14 and all scientific law/metric/FD criteria are unchanged.
-Existing tfel.math registers the native converter; its additional exact binding
-record belongs only to this adapter. Shared six-binary/process/build/Core
-interfaces remain unchanged. First392PASS plus corrected harness-node1PASS
-cover393 distinct cases with unchanged six source files. Native03 follows.
-Record: `benchmarks/records/20261003-maxwell-state-correction-source.json` (SHA256 `e46ee48cc613aba14712b5d601b70e1eb79bf8a52ca6fcdc0f2585c993b6a881`).
-Actual original failures: `benchmarks/records/20261003-maxwell-native-r01-r02-failed.json`.
-Corrected-source native03 is pending; Research stays SVK-only. UNKNOWN / NOT_RELEASED remain.
+Root result-consumer bug caused native03 failure after all8 MTest increments
+completed with2 local iterations. It is not evidence of OpenScience or native
+Newton failure. Both actual binding SHAs match installed-package records.
+Adapter source now retains actual __file__ alias and strict resolved path as
+separate fields, and checks both exact protected pairs without normalizing
+arbitrary input. Shared helpers, Domain, law, thresholds and MTest buffers/
+counters/table/FD remain unchanged. Bounded216PASS/independent0P1/P2 closes only
+this source gate; actual fresh04 qualification/Research are pending.
+Recovered exact d77 CI payloads identify native FACTOR_57 precision failure
+(3.32295e-6 >1e-6) for Fz fine and first-pair vectorL2 rate1.795098<1.8
+for PDE. Fine response remains UNAVAILABLE; vector nativeconverged but Core
+REJECTED. Underlying conditioning/discretization cause remains UNKNOWN. No retry.
+Original01/02/03 and qualified SVK Research stores remain immutable; full52,
+contact/fixture/P6/P7, physical/strength/durability/deployment stay OPEN/UNKNOWN.
+Record: `benchmarks/records/20261003-maxwell-binding-path-source.json` (SHA256 `a50d0e0158721f031b9e9578d0e91d2867a29a49dd8096ac5a6384588378c348`).
+Original failed native03: `benchmarks/records/20261003-maxwell-native-r03-failed.json`.
 
 ---
 

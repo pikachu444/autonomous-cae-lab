@@ -53,6 +53,15 @@ BEHAVIOUR = "SingleBranchMaxwell"
 BUILD_ARGUMENTS = ["--omake", "--interface=generic", "--@SelectedModellingHypothesis=Tridimensional", SOURCE_NAME]
 TFEL_PREFIX = "/opt/spack/opt/spack/linux-zen2/tfel-5.0.0-flantzxx3vcxkf4qlpwnl7midzoe33ma"
 MGIS_PREFIX = "/opt/spack/opt/spack/linux-zen2/mgis-3.0-dfpytmkwj5iza5npkbvk5hils7heaxad"
+# Exact actual view/resolved pairs observed in the protected installed runtime.
+# Legacy *_binding_path is resolved, matching the accepted SVK producer.
+SEALED_BINDING_PATHS = {
+    "mgis_binding": {
+        "loaded_path": "/opt/spack/var/spack/environments/simvia_env/.spack-env/view/lib/python3.11/site-packages/mgis/behaviour.so",
+        "resolved_path": MGIS_PREFIX + "/lib/python3.11/site-packages/mgis/behaviour.so"},
+    "mtest_binding": {
+        "loaded_path": "/opt/spack/var/spack/environments/simvia_env/.spack-env/view/lib/python3.11/site-packages/mtest/_mtest.so",
+        "resolved_path": TFEL_PREFIX + "/lib/python3.11/site-packages/mtest/_mtest.so"}}
 MAX_FILE_BYTES = 128 * 1024 ** 2
 MAX_RAW_BYTES = 32 * 1024 ** 2
 MATERIAL_KEYS = ["equilibrium_bulk_modulus_mpa", "equilibrium_shear_modulus_mpa",
@@ -91,6 +100,17 @@ def capture_mtest_math_binding(module):
         raise ValueError("Actual installed tfel.math converter binding is not a file")
     return checked_mtest_math_binding({"loaded_path": str(loaded), "resolved_path": str(resolved),
         "size_bytes": resolved.stat().st_size, "sha256": sha256(resolved)})
+
+
+def capture_binding_paths(name, loaded_path):
+    """Capture the actual __file__ alias and strict resolved path independently."""
+    if name not in SEALED_BINDING_PATHS or type(loaded_path) is not str:
+        raise ValueError("Actual native binding requires its sealed loaded/resolved path pair")
+    observed = {"loaded_path": loaded_path,
+                "resolved_path": str(Path(loaded_path).resolve(strict=True))}
+    if observed != SEALED_BINDING_PATHS[name]:
+        raise ValueError("Actual native binding differs from its exact sealed loaded/resolved path pair")
+    return observed
 
 
 def _mtest_native_vector(value, size, label):
@@ -548,6 +568,7 @@ def solve(input_path):
             state_hash(policy.get("mtest_buffer_mapping")) != state_hash(MTEST_BUFFER_MAPPING) or
             state_hash(policy.get("mtest_table_mapping")) != state_hash(MTEST_TABLE_MAPPING) or
             state_hash(policy.get("extra_native_bindings")) != state_hash({"tfel_math": SEALED_MTEST_MATH_BINDING}) or
+            state_hash(policy.get("sealed_binding_paths")) != state_hash(SEALED_BINDING_PATHS) or
             policy.get("compiler_policy") != transport.COMPILER_POLICY):
         raise ValueError("Frozen native execution/resource/driver policy changed")
     resource.setrlimit(resource.RLIMIT_AS, (limits["address_space_bytes"],) * 2)
@@ -604,11 +625,14 @@ def solve(input_path):
     import tfel.math
     math_binding = capture_mtest_math_binding(tfel.math)
     import mtest
+    mgis_paths = capture_binding_paths("mgis_binding", binding.__file__)
+    mtest_paths = capture_binding_paths("mtest_binding", mtest._mtest.__file__)
     mgis_package = transport.installed_package_identity(MGIS_PREFIX, "mgis", "3.0", binding.__file__, output)
     tfel_package = transport.installed_package_identity(TFEL_PREFIX, "tfel", "5.0.0", mtest._mtest.__file__, output)
     runtime.update(numpy=np.__version__, mgis=mgis_package["version"], mgis_package=mgis_package, tfel_package=tfel_package,
         mgis_binding_sha256=sha256(binding.__file__), mtest_binding_sha256=sha256(mtest._mtest.__file__),
-        mgis_binding_path=binding.__file__, mtest_binding_path=mtest._mtest.__file__,
+        mgis_binding_path=mgis_paths["resolved_path"], mtest_binding_path=mtest_paths["resolved_path"],
+        mgis_binding_loaded_path=mgis_paths["loaded_path"], mtest_binding_loaded_path=mtest_paths["loaded_path"],
         extra_native_bindings={"tfel_math": math_binding})
     save(output / "runtime.json", runtime)
     sealed = policy["sealed_installed_native_binaries"]

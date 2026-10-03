@@ -737,3 +737,105 @@ def test_transport_opposite_variant_corruption_is_real_and_refused_for_both_sour
     monkeypatch.setattr(worker, "_checked_module", no_native)
     with pytest.raises(ValueError, match="selected exact reviewed"):
         worker._transport(selected, output=tmp_path)
+
+
+def test_actual_view_resolved_prefix_pairs_are_separately_bound(tmp_path, monkeypatch, raw_template):
+    """TEST ONLY native metadata with both exact actually observed path pairs."""
+    install_testonly_executor(monkeypatch, tmp_path, raw_template)
+    output = tmp_path / "actual-path-pair-TEST-ONLY"
+    outcome = adapter_module.MFrontViscoelasticAdapter().solve(output, ref.canonical_settings())
+    assert outcome["solver_status"] == "COMPLETED" and outcome["converged"] is True
+    raw = load_json(output / "native_raw.json")
+    runtime = raw["runtime"]
+    policy = load_json(output / "frozen_execution_policy.json")
+    assert policy["sealed_binding_paths"] == worker.SEALED_BINDING_PATHS
+    for key, package_name in (("mgis_binding", "mgis"), ("mtest_binding", "tfel")):
+        paths = worker.SEALED_BINDING_PATHS[key]
+        assert runtime[key + "_loaded_path"] == paths["loaded_path"]
+        assert runtime[key + "_path"] == paths["resolved_path"]
+        assert paths["loaded_path"] != paths["resolved_path"]
+        package = runtime[package_name + "_package"]
+        assert package["binding_path"] == runtime[key + "_path"]
+        assert package["binding_sha256"] == runtime[key + "_sha256"] == adapter_module.SEALED_NATIVE_BINARIES[key]["sha256"]
+        assert package["spec_sha256"] == worker.sha256(output / (package_name + "_installed_spec.json"))
+
+
+@pytest.mark.parametrize("key,package_name", [("mgis_binding", "mgis"), ("mtest_binding", "tfel")])
+@pytest.mark.parametrize("kind", ["missing_loaded", "changed_loaded", "loaded_is_resolved", "loaded_dotdot",
+    "missing_resolved", "changed_resolved", "wrong_prefix", "package_loaded_path", "swapped_pair",
+    "package_hash", "spec_hash"])
+def test_sealed_loaded_resolved_package_pairs_reject_altered_metadata(tmp_path, monkeypatch, raw_template, key, package_name, kind):
+    def corrupt(output, raw):
+        runtime = raw["runtime"]
+        package = runtime[package_name + "_package"]
+        if kind == "missing_loaded":
+            runtime.pop(key + "_loaded_path")
+        elif kind == "changed_loaded":
+            runtime[key + "_loaded_path"] += ".foreign"
+        elif kind == "loaded_is_resolved":
+            runtime[key + "_loaded_path"] = runtime[key + "_path"]
+        elif kind == "loaded_dotdot":
+            runtime[key + "_loaded_path"] = runtime[key + "_loaded_path"].replace("/site-packages/", "/site-packages/../site-packages/")
+        elif kind == "missing_resolved":
+            runtime.pop(key + "_path")
+        elif kind == "changed_resolved":
+            runtime[key + "_path"] += ".foreign"
+            package["binding_path"] = runtime[key + "_path"]
+        elif kind == "wrong_prefix":
+            runtime[key + "_path"] = "/foreign-prefix/" + Path(runtime[key + "_path"]).name
+            package["binding_path"] = runtime[key + "_path"]
+        elif kind == "package_loaded_path":
+            package["binding_path"] = runtime[key + "_loaded_path"]
+        elif kind == "swapped_pair":
+            other = "mtest_binding" if key == "mgis_binding" else "mgis_binding"
+            runtime[key + "_path"] = worker.SEALED_BINDING_PATHS[other]["resolved_path"]
+            runtime[key + "_loaded_path"] = worker.SEALED_BINDING_PATHS[other]["loaded_path"]
+            package["binding_path"] = runtime[key + "_path"]
+        elif kind == "package_hash":
+            package["binding_sha256"] = "f" * 64
+        else:
+            package["spec_sha256"] = "f" * 64
+        save_json(output / "runtime.json", runtime)
+    install_testonly_executor(monkeypatch, tmp_path, raw_template, corrupt)
+    output = tmp_path / "refused-path-pair-TEST-ONLY"
+    outcome = adapter_module.MFrontViscoelasticAdapter().solve(output, ref.canonical_settings())
+    assert outcome["solver_status"] == "FAILED_EXECUTION" and outcome["converged"] is None
+    assert outcome["metrics"] == {} and outcome["pending_validations"] == ref.PENDING
+    assert (output / "native_raw.json").exists() and (output / "runtime.json").exists()
+
+
+@pytest.mark.parametrize("key", ["mgis_binding", "mtest_binding"])
+def test_actual_alias_resolution_is_measured_and_wrong_pair_refused_even_with_equal_bytes(tmp_path, monkeypatch, key):
+    """TEST ONLY filesystem stand-in; no protected binary is loaded."""
+    prefix = tmp_path / "TEST_ONLY_installed_prefix"
+    view = tmp_path / "TEST_ONLY_spack_view"
+    prefix.mkdir()
+    view.mkdir()
+    target = prefix / "binding.so"
+    target.write_bytes(b"TEST ONLY identical native-binding stand-in bytes")
+    loaded = view / "binding.so"
+    loaded.symlink_to(target)
+    paths = {"loaded_path": str(loaded), "resolved_path": str(target.resolve(strict=True))}
+    monkeypatch.setitem(worker.SEALED_BINDING_PATHS, key, paths)
+    observed = worker.capture_binding_paths(key, str(loaded))
+    assert observed == paths and observed is not paths
+    assert observed["loaded_path"] != observed["resolved_path"]
+    foreign = prefix / "same-bytes-foreign-binding.so"
+    foreign.write_bytes(target.read_bytes())
+    assert worker.sha256(foreign) == worker.sha256(target)
+    loaded.unlink()
+    loaded.symlink_to(foreign)
+    with pytest.raises(ValueError, match="sealed loaded/resolved"):
+        worker.capture_binding_paths(key, str(loaded))
+
+
+@pytest.mark.parametrize("key", ["mgis_binding", "mtest_binding"])
+def test_frozen_binding_pair_policy_cannot_be_changed(tmp_path, monkeypatch, raw_template, key):
+    def corrupt(output, raw):
+        path = output / "frozen_execution_policy.json"
+        policy = load_json(path)
+        policy["sealed_binding_paths"][key]["loaded_path"] = policy["sealed_binding_paths"][key]["resolved_path"]
+        save_json(path, policy)
+    install_testonly_executor(monkeypatch, tmp_path, raw_template, corrupt)
+    outcome = adapter_module.MFrontViscoelasticAdapter().solve(tmp_path / "policy-pair-refused", ref.canonical_settings())
+    assert outcome["solver_status"] == "FAILED_EXECUTION" and outcome["converged"] is None

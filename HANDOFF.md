@@ -1,20 +1,18 @@
-## Current checkpoint: P5.2b actual MTest phase/counter source corrected
+## Current checkpoint: P5.2b native binding-path source corrected
 
-Main source unit reuses c489 and fixes the result consumer; native02 completed
-all8 MTest increments in2 local iterations but its original result remains
-FAILED_EXECUTION/metrics{} because the parser compared globalu0 with e1.
-Native01 failed only Root's missing image configuration. Both original stores
-are frozen; independent primary/source reviews close the new phase/counter P2.
-Cold: first393=392PASS/1harnessFAIL, then failed-node1PASS;393 distinct cases,
-same production bytes, no unrelated passed-suite repeat, CorePython3.12.3.
-NEXT: new `runs/viscoelastic-native-20261003-03` with explicit protectedSIF;
-canonical9, midpoint17, tau2, preflight refusal and independent actual
-state/all-signed-FD/native-energy audit; then explicit Research/wholequestion/
-same-record human inspection. Contact/fixture/P6/P7 and old numericalCI gaps
-remain in the existing ordered roadmap. Whole52 is active.
-Record: `benchmarks/records/20261003-maxwell-state-correction-source.json` (SHA256 `e46ee48cc613aba14712b5d601b70e1eb79bf8a52ca6fcdc0f2585c993b6a881`).
-Actual original failures: `benchmarks/records/20261003-maxwell-native-r01-r02-failed.json`.
-Corrected-source native03 is pending; Research stays SVK-only. UNKNOWN / NOT_RELEASED remain.
+Actual03 at clean d77 completed MGIS8/MTest9, each increment2 local iterations,
+but Root consumer compared a loaded Spack view alias with the package resolved
+path. Original Core FAILED_EXECUTION/convergedNone/metrics{} stays frozen.
+Reviewed correction captures both actual paths and seals both known pairs;
+SHA/spec/prefix/version checks and all scientific limits are unchanged.
+One affected Core3.12.3 gate216PASS; independent review0openP1/P2.
+NEXT: fresh native04 canonical9/refined17/tau2/preflight refusal and independent
+actual state/signedFD/nativeenergy audit, then explicit Maxwell Research and
+one whole question/same-record human view. MaterialPoints remains SVK-only.
+Parent d77 CI7SUCCESS/3FAIL; core3647PASS/5SKIP. Fz-Aster/vectorPDE/404 gates
+are separate. P5.3 contact/fixture, P6/P7 and whole52 remain active, NOT_RELEASED.
+Record: `benchmarks/records/20261003-maxwell-binding-path-source.json` (SHA256 `a50d0e0158721f031b9e9578d0e91d2867a29a49dd8096ac5a6384588378c348`).
+Original failed native03: `benchmarks/records/20261003-maxwell-native-r03-failed.json`.
 
 ---
 

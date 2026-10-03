@@ -115,3 +115,12 @@ Native energies remain actual mandatory table outputs. Old failedstores and
 verdicts stay unchanged; clean corrected-source native03 is the next gate.
 The CI transport negativecontrol chooses a real opposite exact LF/CRLF form
 from the actual checkout; production selected-source admission is unchanged.
+
+## Actual loaded/resolved binding clarification
+
+Native03 exposes Root path-identity consumer failure after successful integration.
+Retain actual module __file__ separately from strict Path.resolve; require both
+exact protected aliases/resolved prefixes and unchanged actual SHA/spec/version.
+Shared helpers and scientific law/state/limits remain unchanged. Arbitrary path
+normalization or weaker package/hash verification is rejected. Bounded216 source
+PASS and narrow independent review precede fresh04; old failed stores unchanged.

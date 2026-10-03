@@ -240,7 +240,8 @@ def write_testonly_native(output, settings, raw_template, monkeypatch):
                                      ("tfel", worker.TFEL_PREFIX, "5.0.0", "mtest_binding")):
         spec = output / (name + "_installed_spec.json")
         save_json(spec, {"TEST_ONLY": True, "version": version})
-        runtime[key + "_path"] = prefix + "/TEST_ONLY_binding.so"
+        runtime[key + "_path"] = worker.SEALED_BINDING_PATHS[key]["resolved_path"]
+        runtime[key + "_loaded_path"] = worker.SEALED_BINDING_PATHS[key]["loaded_path"]
         runtime[name + "_package"] = {"name": name, "version": version, "package_prefix": prefix,
             "binding_path": runtime[key + "_path"], "binding_sha256": runtime[key + "_sha256"],
             "spec_sha256": adapter_module.transport.sha256(spec)}

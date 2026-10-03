@@ -1,12 +1,12 @@
-## Current relation: SVK Research preserved; Maxwell source correction reviewed
+## Current adjacent P5.2b checkpoint
 
-The earlier qualified SVK Research session and original store remain unchanged.
-Maxwell's new phase/counter source correction covers393 distinct source cases;
-corrected-source native qualification and explicit MaterialPoints admission are
-separate next gates. No new Research/model/auth call is attributed to this unit.
-Record: `benchmarks/records/20261003-maxwell-state-correction-source.json` (SHA256 `e46ee48cc613aba14712b5d601b70e1eb79bf8a52ca6fcdc0f2585c993b6a881`).
-Actual original failures: `benchmarks/records/20261003-maxwell-native-r01-r02-failed.json`.
-Corrected-source native03 is pending; Research stays SVK-only. UNKNOWN / NOT_RELEASED remain.
+The qualified SVK native/Research history below remains intact. Maxwell native03
+failed Root loaded/resolved binding comparison after integration; corrected
+source216PASS/independent0P1/P2 does not broaden MaterialPoints/schema4.
+Fresh native04 and independent actual audit precede explicit admission/Research.
+Approved5.6Sol/auth, native SVK records and all UNKNOWN/NOT_RELEASED stay unchanged.
+Record: `benchmarks/records/20261003-maxwell-binding-path-source.json` (SHA256 `a50d0e0158721f031b9e9578d0e91d2867a29a49dd8096ac5a6384588378c348`).
+Original failed native03: `benchmarks/records/20261003-maxwell-native-r03-failed.json`.
 
 ---
 

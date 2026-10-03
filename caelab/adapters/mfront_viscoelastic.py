@@ -131,7 +131,8 @@ def _frozen_policy(settings, budgets):
             "mtest_limits": deepcopy(worker.MTEST_LIMITS),
             "mtest_buffer_mapping": deepcopy(worker.MTEST_BUFFER_MAPPING),
             "mtest_table_mapping": deepcopy(worker.MTEST_TABLE_MAPPING),
-            "extra_native_bindings": {"tfel_math": deepcopy(worker.SEALED_MTEST_MATH_BINDING)}}
+            "extra_native_bindings": {"tfel_math": deepcopy(worker.SEALED_MTEST_MATH_BINDING)},
+            "sealed_binding_paths": deepcopy(worker.SEALED_BINDING_PATHS)}
 
 
 def checked_native(output, input_sha, settings, budgets):
@@ -221,11 +222,13 @@ def checked_native(output, input_sha, settings, budgets):
         package = runtime.get(name + "_package")
         if (not isinstance(package, dict) or package.get("name") != name or package.get("version") != version or
                 package.get("package_prefix") != prefix or
+                runtime.get(binding_key + "_loaded_path") != worker.SEALED_BINDING_PATHS[binding_key]["loaded_path"] or
+                runtime.get(binding_key + "_path") != worker.SEALED_BINDING_PATHS[binding_key]["resolved_path"] or
                 not _native_path(package.get("binding_path"), prefix) or
                 package.get("spec_sha256") != transport.sha256(output / (name + "_installed_spec.json")) or
                 package.get("binding_sha256") != runtime.get(binding_key + "_sha256") or
                 package.get("binding_path") != runtime.get(binding_key + "_path")):
-            raise ValueError("Actual installed package and loaded binding are not tied together")
+            raise ValueError("Actual installed package and sealed loaded/resolved binding pair are not tied together")
     desc = raw.get("behaviour_description")
     if (not isinstance(desc, dict) or desc.get("behaviour") != worker.BEHAVIOUR or
             desc.get("hypothesis") != "TRIDIMENSIONAL" or desc.get("gradients") != ["Strain"] or

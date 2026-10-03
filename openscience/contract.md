@@ -1,16 +1,16 @@
-## Current checkpoint: adapter-only native phase evidence; Research admission unchanged
+## Current checkpoint: adapter path evidence; Research admission unchanged
 
-OpenScience retains question/campaign/interpretation ownership. Core keeps the
-existing declared-model/common-result operations and numerical engines own
-candidate search. MTest's global/constitutive/prepared/committed buffers and
-cumulative/local counters are adapter evidence, not new shared wire operations.
-Exact table/global correspondence and original scientific verdicts are required;
-actual native energy is mandatory. Maxwell admission follows fresh native03
-and independent audit, then one complete Research question and same-record view.
-Approved `openai-codex/gpt-5.6-sol` remains the research model.
-Record: `benchmarks/records/20261003-maxwell-state-correction-source.json` (SHA256 `e46ee48cc613aba14712b5d601b70e1eb79bf8a52ca6fcdc0f2585c993b6a881`).
-Actual original failures: `benchmarks/records/20261003-maxwell-native-r01-r02-failed.json`.
-Corrected-source native03 is pending; Research stays SVK-only. UNKNOWN / NOT_RELEASED remain.
+OpenScience owns research questions/campaigns/interpretation; numerical engines
+own search and Core owns common operation/result/evidence. Native03 was direct
+Core acceptance, with no official OpenScience calls. Root's loaded/resolved
+binding-path defect is corrected within only the Maxwell adapter.
+No new Core/schema/registry/Research interface. Actual native04 and independent
+scientific audit precede explicit Maxwell Research admission. MaterialPoints/
+schema4 remains SVK-only and approved openai-codex/gpt-5.6-sol remains unchanged.
+One affected216 sourcePASS and narrow independent0P1/P2 are source evidence,
+not native/physical/release qualification. Whole52 remains active, NOT_RELEASED.
+Record: `benchmarks/records/20261003-maxwell-binding-path-source.json` (SHA256 `a50d0e0158721f031b9e9578d0e91d2867a29a49dd8096ac5a6384588378c348`).
+Original failed native03: `benchmarks/records/20261003-maxwell-native-r03-failed.json`.
 
 ---
 

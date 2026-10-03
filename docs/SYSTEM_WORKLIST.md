@@ -1,14 +1,16 @@
-## Current ordered work: close actual Maxwell acceptance before Research expansion
+## Current ordered work: reviewed binding paths, fresh native04 next
 
-- [x] Preserve c489 native01/02 failures and independently diagnose phase/counters.
-- [x] Review six-file correction;393 distinct cold cases through392PASS plus1 targetedPASS.
-- [ ] Run corrected clean committed source in fresh native03: refusal/canonical9/refined17/tau2.
-- [ ] Independently audit original actual fullstate/signedFD/nativeenergy/composition.
-- [ ] Explicit Maxwell Research admission, wholequestion, interpretation and same-record human view.
-- [ ] Continue existing P5.3 contact/fixture, Phase6/7 and deferred numerical/CI gates in order.
-Record: `benchmarks/records/20261003-maxwell-state-correction-source.json` (SHA256 `e46ee48cc613aba14712b5d601b70e1eb79bf8a52ca6fcdc0f2585c993b6a881`).
-Actual original failures: `benchmarks/records/20261003-maxwell-native-r01-r02-failed.json`.
-Corrected-source native03 is pending; Research stays SVK-only. UNKNOWN / NOT_RELEASED remain.
+- [x] Freeze actual01/02/03 failures; distinguish Root parser/path bugs from actual numerical failures.
+- [x] Review bounded binding-path correction;216 affected coldPASS, independent0openP1/P2.
+- [ ] Fresh corrected-source native04: refusal/canonical9/refined17/tau2.
+- [ ] Independently audit actual states/all signedFD/native energy/composition.
+- [ ] Explicit Maxwell Research admission/wholequestion/interpretation/same-record human view.
+- [ ] P5.3 contact/fixture, Phase6/7 and deferred numerical/CI gates in existing order.
+
+Parent d77 CI7SUCCESS/3FAIL/core3647PASS5SKIP is separate; actual03 stays FAILED.
+Whole52, physical/material/strength/durability/deployment remain OPEN/UNKNOWN.
+Record: `benchmarks/records/20261003-maxwell-binding-path-source.json` (SHA256 `a50d0e0158721f031b9e9578d0e91d2867a29a49dd8096ac5a6384588378c348`).
+Original failed native03: `benchmarks/records/20261003-maxwell-native-r03-failed.json`.
 
 ---
 

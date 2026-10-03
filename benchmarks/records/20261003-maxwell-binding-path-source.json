@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-03T12:44:23.858552+00:00",
+  "status": "REVIEWED_BINDING_PATH_SOURCE_FRESH_NATIVE04_PENDING",
+  "source_parent": "d77fcfe987cc52e7130c714202457945fd5b9106",
+  "source_files": [
+    {
+      "path": "caelab/adapters/mfront_viscoelastic.py",
+      "sha256": "4baff35dd17018055c16cc395f7f20bdc6eb69e608045ae57c7d524bc98d5eff",
+      "size_bytes": 33464
+    },
+    {
+      "path": "caelab/adapters/mfront_viscoelastic_worker.py",
+      "sha256": "1e133ec4963d8745d6efd83e0771dd35c5b68019a8e9270f939e1b23bce32ff8",
+      "size_bytes": 46877
+    },
+    {
+      "path": "tests/test_mfront_viscoelastic.py",
+      "sha256": "6d6729c5dc5bcb84aa6edc9ae7596afa1552e00ef1d180584a219bbf9ebeb819",
+      "size_bytes": 23216
+    },
+    {
+      "path": "tests/test_mfront_viscoelastic_runtime.py",
+      "sha256": "d56eb042610f548688a8caf5eebb9304e9a09d2a8a1114d45e9c04ec4752442c",
+      "size_bytes": 47902
+    }
+  ],
+  "source_freeze": {
+    "path": "artifacts/development-viscoelastic-20261003-01/native-binding-path-correction-01/freeze-receipt.json",
+    "size_bytes": 3260,
+    "sha256": "a382839212cf1d78c9779c80bc9b0152e01ede45dcbed4d10c3ceea3611d5c3e"
+  },
+  "independent_reviews": [
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/native-binding-path-independent-review-01/independent-review.json",
+      "size_bytes": 22793,
+      "sha256": "a998312d78bb327d1846abcdb715ebde9df4047061a87f8cc15cfba4b7747ad4"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/native-binding-path-independent-review-01/receipt.json",
+      "size_bytes": 1465,
+      "sha256": "8558f45946b6aa7d254e40de7b4404634ae8bca24d9b433128e1aabb3f90b4e0"
+    }
+  ],
+  "open_p1": 0,
+  "open_p2": 0,
+  "cold": {
+    "counts": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "suite_time_s": 96.811,
+      "tests": 216
+    },
+    "elapsed_seconds": 98.46321522118524,
+    "groups": {
+      "tests.test_mfront_viscoelastic": 40,
+      "tests.test_mfront_viscoelastic_runtime": 176
+    },
+    "import_pins_pass": true,
+    "process_network_guard": true,
+    "receipt": {
+      "sha256": "c7f06dbf67d26006dd8fc2bee62a97477126fc39e3d36ad25f1a60bca2200544",
+      "size_bytes": 83750
+    },
+    "python": "3.12.3",
+    "cases": "216 in one command: adapter40 plus runtime176 (old149 plus27 controls)",
+    "native_build_provider_git_calls": 0,
+    "unrelated_closed_suites_rerun": 0
+  },
+  "change": "Actual loaded module alias and strict resolved path captured separately; legacy binding_path is resolved as in existing SVK producer. Both exact protected pairs are sealed. Original actual SHA/spec/prefix/version checks remain mandatory.",
+  "unchanged": "478 candidate files, old40 adapter assertions/149 runtime cases, Domain/law/scientific thresholds/all MTest phase-counter-table/FD math/shared6binary/compiler/process/transport/Core/Research interfaces",
+  "original_failed_native_record": "benchmarks/records/20261003-maxwell-native-r03-failed.json",
+  "native_qualification": "NOT_RUN_ON_CORRECTED_SOURCE",
+  "fresh_store_next": "runs/viscoelastic-native-20261003-04",
+  "research_admission": "SVK_ONLY_MAXWELL_NOT_ADMITTED",
+  "parent_ci": {
+    "source_commit": "d77fcfe987cc52e7130c714202457945fd5b9106",
+    "run_id": 37121324456,
+    "counts": "7SUCCESS/3FAIL",
+    "core": "3647PASS/5SKIP/1warning/350.40s",
+    "receipt": {
+      "path": "artifacts/development-viscoelastic-20261003-01/ci-d77fcfe-01/receipt.json",
+      "size_bytes": 51019,
+      "sha256": "1369a06910a838bbb978d760be9b398335595db5a3540276d7ec896d8a13f363"
+    },
+    "limits": "CI success is not native04 qualification; Fz-Aster/PDEvector/explicit404 remain independent open gates."
+  },
+  "parent_ci_payload_diagnosis": {
+    "source_commit": "d77fcfe987cc52e7130c714202457945fd5b9106",
+    "receipt": {
+      "path": "artifacts/development-viscoelastic-20261003-01/ci-d77-failure-artifacts-01/receipt.json",
+      "size_bytes": 3231,
+      "sha256": "d654720cd41be3f64587ac18ee9acdd7c05e8da91836404f96f424b5467b097e"
+    },
+    "diagnosis": {
+      "path": "artifacts/development-viscoelastic-20261003-01/ci-d77-failure-artifacts-01/diagnosis.json",
+      "size_bytes": 18984,
+      "sha256": "cca75ebcb1abd27b4ede37d3b55193e4616ddcffa044b84126c33eb5c27278d2"
+    },
+    "two_zip_size_digest_head_checks": "PASS",
+    "aster_fz": {
+      "case": "E-ansys_vmd1_regular-Fz-aster",
+      "level": [
+        24,
+        4,
+        4
+      ],
+      "native_operation": "MECA_STATIQUE/MUMPS",
+      "native_error": "FACTOR_57",
+      "printed_estimate": 3.32295e-06,
+      "fixed_resi_rela": 1e-06,
+      "native_exit_code": 1,
+      "timeout": false,
+      "fine_response": "UNAVAILABLE",
+      "core_metrics": {},
+      "inner_numerical_cause": "UNKNOWN"
+    },
+    "vector_pde": {
+      "case": "E-vector-mixed",
+      "native_exit_code": 0,
+      "core_status": "REJECTED",
+      "converged": true,
+      "failed_gate": "pde_l2_convergence_rate",
+      "fixed_min_rate": 1.8,
+      "first_pair": [
+        8,
+        16
+      ],
+      "first_vector_rate": 1.7950984424561094,
+      "first_u0_rate": 1.7796221489007413,
+      "second_vector_rate": 1.9114360941548467,
+      "all_pairs_required": true,
+      "runtime_discretization_difference_cause": "UNKNOWN"
+    },
+    "source_native_ci_reruns": 0
+  },
+  "new_exact_source_ci": "PENDING_AFTER_COMMIT",
+  "decision": "NOT_RELEASED",
+  "unknown": [
+    "measured material",
+    "spatialFE/solver coupling",
+    "physical/strength/durability",
+    "upstream binarysource commits",
+    "corporate license/security",
+    "off-machine rawdurability"
+  ],
+  "requirements": "All52 requirement names/scope columns retained; only bounded source gate closes."
+}

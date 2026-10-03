@@ -1,17 +1,16 @@
-## Current acceptance: phase/counter source reviewed, actual03 pending
+## Current acceptance: binding source reviewed, native04 pending
 
-Source reviews close exact globalu0/table mapping, preparede0 continuity,
-cumulative/local counters and extra converter identity without changing law,
-limits, metric construction or signedFD loops. First393=392PASS/1harnessFAIL,
-then targeted1PASS covers393 distinct source cases on unchanged final bytes.
-Native01: Root image-config failure before native execution. Native02: MGIS/
-MTest completed, then Root parser failed; originalFAILED/metrics{} retained.
-Corrected-source canonical9/refined17/tau2, independent actual native-state/
-energy/FD audit, explicit Research and human view are pending. Physical/FE/
-strength/durability stay UNKNOWN. Historical source/native states follow below.
-Record: `benchmarks/records/20261003-maxwell-state-correction-source.json` (SHA256 `e46ee48cc613aba14712b5d601b70e1eb79bf8a52ca6fcdc0f2585c993b6a881`).
-Actual original failures: `benchmarks/records/20261003-maxwell-native-r01-r02-failed.json`.
-Corrected-source native03 is pending; Research stays SVK-only. UNKNOWN / NOT_RELEASED remain.
+Native03 clean d77: MGIS8/MTest9 completed; all8 local increments2iterations.
+Root consumer rejected identical-hash actual view/resolved binding paths.
+Original FAILED_EXECUTION/convergedNone/metrics{} and104file store remain frozen.
+New source independently captures/seals actual loaded and resolved paths,
+retains exact SHA/spec/prefix/version, and passes one affected216 cold cases
+with narrow independent0openP1/P2. Law/limits/metrics/state/table/FD unchanged.
+Native04 canonical9/refined17/tau2 and actual state/energy/FD audit are pending;
+no old raw/failed result was reclassified. Explicit Maxwell Research/wholequestion/
+human view follows qualification; physical/FE/strength/durability UNKNOWN.
+Record: `benchmarks/records/20261003-maxwell-binding-path-source.json` (SHA256 `a50d0e0158721f031b9e9578d0e91d2867a29a49dd8096ac5a6384588378c348`).
+Original failed native03: `benchmarks/records/20261003-maxwell-native-r03-failed.json`.
 
 ---
 

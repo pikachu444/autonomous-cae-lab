@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "scope": "Retained actual Maxwell native03 failure; not a numerical qualification",
+  "created_utc": "2026-10-03T12:21:27.768746+00:00",
+  "source_commit": "d77fcfe987cc52e7130c714202457945fd5b9106",
+  "store": "runs/viscoelastic-native-20261003-03",
+  "run_status": "FAIL_ACTUAL_NATIVE_RETAINED",
+  "process_exit_code": 1,
+  "elapsed_seconds": 56.772665000054985,
+  "core_status": "FAILED_EXECUTION",
+  "converged": null,
+  "metrics": {},
+  "decision": "NOT_RELEASED",
+  "cause_owner": "Root implementation",
+  "confirmed_cause": "Actual installed package and loaded binding are not tied together",
+  "explanation": "Consumer compares actual module loaded Spack view path with installed-package resolved prefix path. Actual binding bytes/hash are equal. Distinguish and seal the two paths; do not relax binary/spec/version verification.",
+  "actual_completed_native_evidence": {
+    "mgis_nominal_increments": 8,
+    "mtest_states": 9,
+    "mtest_local_iteration_increments": [
+      0,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+    ],
+    "mtest_full_global_lengths": [
+      12,
+      12,
+      12,
+      12,
+      12,
+      12,
+      12,
+      12,
+      12
+    ],
+    "native_output_table_columns": 21,
+    "native_raw": {
+      "size_bytes": 5156854,
+      "sha256": "d21b64914926665518cde161baca0c1e1ff6659c4e79ce2bcbdcf2159d5f7258"
+    },
+    "native_table": {
+      "size_bytes": 4426,
+      "sha256": "4200e1634e120000c4d81f84ba864f4287c3db3ae6cd1b84855ad4b1fe9d4570"
+    },
+    "scientific_qualification": "NOT_CLOSED",
+    "refined_history": "NOT_RUN",
+    "changed_tau": "NOT_RUN"
+  },
+  "bindings": [
+    {
+      "binding": "mgis_binding",
+      "actual_loaded_path": "/opt/spack/var/spack/environments/simvia_env/.spack-env/view/lib/python3.11/site-packages/mgis/behaviour.so",
+      "actual_package_resolved_path": "/opt/spack/opt/spack/linux-zen2/mgis-3.0-dfpytmkwj5iza5npkbvk5hils7heaxad/lib/python3.11/site-packages/mgis/behaviour.so",
+      "same_actual_sha256": "60f70796a3d575a678891425d096d2fd5832ed1d4f9f5dcd9a7cd79d926aa8be",
+      "actual_package_prefix": "/opt/spack/opt/spack/linux-zen2/mgis-3.0-dfpytmkwj5iza5npkbvk5hils7heaxad",
+      "actual_package_spack_hash": "dfpytmkwj5iza5npkbvk5hils7heaxad",
+      "actual_spec_sha256": "1f2010375a407cf88003c3766e8321dc6587e2831ef71b16660b5964654e474b",
+      "upstream_binary_source_commit": "UNKNOWN"
+    },
+    {
+      "binding": "mtest_binding",
+      "actual_loaded_path": "/opt/spack/var/spack/environments/simvia_env/.spack-env/view/lib/python3.11/site-packages/mtest/_mtest.so",
+      "actual_package_resolved_path": "/opt/spack/opt/spack/linux-zen2/tfel-5.0.0-flantzxx3vcxkf4qlpwnl7midzoe33ma/lib/python3.11/site-packages/mtest/_mtest.so",
+      "same_actual_sha256": "88ab5619cc5cbf8ec82ca0f97e0f71f0f6785000f3398c31f64d53028d8a0f21",
+      "actual_package_prefix": "/opt/spack/opt/spack/linux-zen2/tfel-5.0.0-flantzxx3vcxkf4qlpwnl7midzoe33ma",
+      "actual_package_spack_hash": "flantzxx3vcxkf4qlpwnl7midzoe33ma",
+      "actual_spec_sha256": "f7b545033a1476f6e0206c52f8bf94e56f13054336b762ec9c825fa9cc2fc16e",
+      "upstream_binary_source_commit": "UNKNOWN"
+    }
+  ],
+  "original_store": {
+    "files": 104,
+    "bytes": 11262765,
+    "frozen_manifest": {
+      "size_bytes": 19635,
+      "sha256": "bcf803b33fb92bd78823c79d456cc90a1aa64a284a02975630c3b549b1375b12"
+    },
+    "failure_checkpoint": {
+      "size_bytes": 9634,
+      "sha256": "84bbfe125572cddfeda113bd4d2b8dedc94fc60e34de76f29113ef1575a42443"
+    },
+    "launcher_receipt": {
+      "size_bytes": 7829,
+      "sha256": "85ba69fec80200397ab9faf69b7d0cc11d6219798408000206c9d75968a8070f"
+    },
+    "store_retention": "Local immutable originals; remote raw durability UNKNOWN"
+  },
+  "original_01_02_and_research_stores_unchanged": {
+    "runs/viscoelastic-native-20261003-01": true,
+    "runs/viscoelastic-native-20261003-02": true,
+    "runs/material-hyperelastic-r-20261003-01": true
+  },
+  "reclassified_old_result": false,
+  "official_openscience_calls": 0,
+  "openscience_cause": "No involvement/evidence in this direct Core native acceptance",
+  "separate_geometric_fine32_failure": "Actual Newton failure retained; its internal numerical cause remains UNKNOWN",
+  "pending": [
+    "Reviewed binding-path source correction",
+    "Fresh corrected-source native04 canonical/refined/tau",
+    "Independent actual scientific/state/probe/energy qualification",
+    "Explicit Maxwell Research admission and connected question/human inspection",
+    "P5.3 contact/fixture and Phase6/7 ordered gates",
+    "Physical/measured material/strength/durability/deployment UNKNOWN"
+  ]
+}
