@@ -17,3 +17,5 @@ tests/fixtures/codeaster_174_structural_import/expected_mesh.json -text
 tests/fixtures/codeaster_174_structural_import/import-observations.json -text
 tests/fixtures/codeaster_174_structural_import/probe-intent.json -text
 tests/fixtures/codeaster_174_structural_import/probe-receipt.json -text
+tests/fixtures/mfront/SaintVenantKirchhoffElasticity.mfront -text
+tests/fixtures/mfront/SaintVenantKirchhoffElasticity.source.json -text

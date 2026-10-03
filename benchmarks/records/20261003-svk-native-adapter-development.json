@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "status": "PASS_BOUNDED_ADAPTER_COMMON_SOURCE_NATIVE_NOT_RUN",
+  "created_utc": "2026-10-03T03:02:01.152617+00:00",
+  "base_source": "fe5d3fd7943ff466bc14e1ef4d2968eec86c37a7",
+  "backend": "material.mfront.hyperelastic",
+  "source_files": [
+    {
+      "path": "plugins/hyperelastic/__init__.py",
+      "size_bytes": 293,
+      "sha256": "c1b942901836390150aa3963dc3fb131691ec43602d47cded60a2e45679ca7ca"
+    },
+    {
+      "path": "plugins/hyperelastic/reference.py",
+      "size_bytes": 39144,
+      "sha256": "fe90482f7b4114b0a7a3fcf3d9d6c98d7b3b305c571ff6b3d7879b1581002bc9"
+    },
+    {
+      "path": "tests/test_hyperelastic_reference.py",
+      "size_bytes": 38329,
+      "sha256": "101cf74ff1bc61d3e2fb4bff1905009a19f15a63da27c4ddb51a197d0dddcd10"
+    },
+    {
+      "path": "caelab/adapters/mfront_hyperelastic.py",
+      "size_bytes": 21037,
+      "sha256": "f8e1798b336b969d2f8e207d468e6138dbe7cb86f1da972e4a88cc727cbf2cb5"
+    },
+    {
+      "path": "caelab/adapters/mfront_hyperelastic_worker.py",
+      "size_bytes": 30435,
+      "sha256": "aed49cd3b1a7679eb6d298e605e01a2a23cd6c631429dd2c1439c7b13c8b9664"
+    },
+    {
+      "path": "caelab/adapters/mfront_material.py",
+      "size_bytes": 16859,
+      "sha256": "4ea387647fbaddeec47c0c637240209427cb509ef8b1e8b703e8737be3d79dec"
+    },
+    {
+      "path": "caelab/adapters/mfront_material_worker.py",
+      "size_bytes": 25425,
+      "sha256": "3200b2beb25fb04f45dd9eaeff426237802c62021861c90242cff7be79f4197f"
+    },
+    {
+      "path": "caelab/adapters/codeaster_elasticity.py",
+      "size_bytes": 41300,
+      "sha256": "956e84044d0b35780a23648577771236b708fefeb8d69492b6d85cdf4a25165a"
+    },
+    {
+      "path": "caelab/adapters/codeaster_execution.py",
+      "size_bytes": 1347,
+      "sha256": "04bf82ca3ea258a9218f9de33c14aefda1319abfa199fa246c36d5d1cefc2fad"
+    },
+    {
+      "path": "caelab/execution_control.py",
+      "size_bytes": 6546,
+      "sha256": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede"
+    },
+    {
+      "path": "caelab/engine.py",
+      "size_bytes": 47354,
+      "sha256": "106448a8cbb3ae0d9ef3cbaa9ed9f6bfe08cbf2f9fa8a1f9887e17e6708b4eae"
+    },
+    {
+      "path": "apps/lab/service.py",
+      "size_bytes": 40722,
+      "sha256": "68588117cd583f9866e1bf578c721315313dde0c2ffac9448fd9cd1aca62d059"
+    },
+    {
+      "path": "tests/test_backend_integration.py",
+      "size_bytes": 4633,
+      "sha256": "cdf690d8e74791e104d9e97ec5f214297c10c6c09538242a90917d8d1146a3bd"
+    },
+    {
+      "path": "tests/test_lab_server.py",
+      "size_bytes": 38081,
+      "sha256": "e469d003c4dbd0a4940b844eed6a7bdd79f311654e862c9da06fa333be29a8a3"
+    },
+    {
+      "path": "tests/test_hyperelastic_integration.py",
+      "size_bytes": 6987,
+      "sha256": "c310fbc239d92fc962c106e64273cd0a1a1bdf4941e336e6394178061db832cf"
+    },
+    {
+      "path": "tests/test_mfront_hyperelastic.py",
+      "size_bytes": 37431,
+      "sha256": "2ae7ce3dfa9a536f53ac89949e41ade27ee2a4415f13c2d001ac94c64ece0f89"
+    },
+    {
+      "path": "tests/fixtures/mfront/SaintVenantKirchhoffElasticity.mfront",
+      "size_bytes": 3002,
+      "sha256": "d97fcce350a40060c287aaad9928603e8b144039a7cef95045073b00079efff4"
+    },
+    {
+      "path": "tests/fixtures/mfront/SaintVenantKirchhoffElasticity.source.json",
+      "size_bytes": 764,
+      "sha256": "64c5f8bf800cc96fe7cb4b3789cff93eab296c65b14ba6c41053745417c860aa"
+    },
+    {
+      "path": ".gitattributes",
+      "size_bytes": 1380,
+      "sha256": "f100669a2bff48ed8520f704a58225c1d54fb0a055b5d102c0c6cb7d00f5f5ca"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-adapter-correction-01/freeze-receipt.json",
+      "size_bytes": 8973,
+      "sha256": "3bed4a1646cab6160de6692ad0eccfaa2c40df35ad44703f9f4bef79bc3b9037"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-adapter-review-01/receipt.json",
+      "size_bytes": 4926,
+      "sha256": "ebc8846686fcacb1e9245afcf0f42217b70a76977ee91d2b6f0141e3eac9a23f"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-adapter-review-01/REPORT.md",
+      "size_bytes": 14610,
+      "sha256": "17cb29ecac2c468b545bf72885a5ce9e946909bbfdcc5efb3bde627c631a2970"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/root-adapter-integration-01/port-receipt.json",
+      "size_bytes": 1520,
+      "sha256": "6024deb49b3e5af319b095af2958bd7595139990aa1d92145c35d306727d6352"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/root-common-cold-runner-01/attempt-01/receipt.json",
+      "size_bytes": 432708,
+      "sha256": "400091220de3d4661223f9dae258234e2b64eb9e720724dc18f5ed6e5c307975"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/root-common-cold-runner-01/attempt-01/linux-receipt.json",
+      "size_bytes": 205071,
+      "sha256": "e77fda832900e82ede4b138b5555d5b4cd23df3b066ebdf52e5c5015eebc7149"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/root-common-cold-runner-01/attempt-01/junit.xml",
+      "size_bytes": 161268,
+      "sha256": "60973fb47520a5cf9b97221dfc653e30c91a82b0ac9527ade5792deb03d7f335"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/root-common-review-01/independent-review.json",
+      "size_bytes": 13790,
+      "sha256": "0807a8caf92182fb524da3e328f1bf70c9795d0bd7df7c83a8e97e65360fc9eb"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/ci-fe-01/receipt.json",
+      "size_bytes": 2493,
+      "sha256": "288047278c9891aca2033178c4e23e15ef9f33236627288a95b28ab28947c7ab"
+    }
+  ],
+  "source_gates": {
+    "writer_cold": "99 PASS = 88 new + 11 existing; both private environment variables UNSET",
+    "independent_native_adapter": "51 PASS; two P2 CLOSED; no open P1/P2; actual native calls0",
+    "root_common_integration": "203 PASS / 0 failures/errors/skips / 1 existing CadQuery warning, 135.25s",
+    "counts_overlap": "Writer99 is inside Root203; reused Domain156/independent59 are not additive",
+    "cold_context": "Exact Main bytes in fresh Linux scratch; mountedFS HTTP deadline unchanged; no native numerical qualification"
+  },
+  "changes": [
+    "Default registry and EXPERIMENTAL preset reuse generic model_analysis_run, no Core wire/schema change",
+    "Native PK19/DPK1_DF81/reference-volume W and same-library MTest conversion owned by adapter",
+    "Invalid direct input rejected before native output creation; portable ordinary-import tests use explicit synthetic doubles",
+    "Existing material/inverse/fixtures/CAD/PDE/numerical engines retained; no model/auth/profile replacement"
+  ],
+  "scientific_policy": {
+    "frozen_packet": "docs/HYPERELASTIC_PACKET.md / ADR0026",
+    "law": "SVK finite rotations/small Green strain; not general rubber or FE coupling",
+    "wall_seconds": null,
+    "cpu_seconds": 86400,
+    "native_qualification": "NOT_RUN",
+    "planned_endpoints": 11,
+    "planned_signed_probes": 594,
+    "initial_t0": "INITIAL_UNPREPARED"
+  },
+  "ci": {
+    "source": "fe5d3fd7943ff466bc14e1ef4d2968eec86c37a7",
+    "run_id": 37089799489,
+    "core": "2929 PASS/5 skips/1 warning,273.19s",
+    "jobs": "7 SUCCESS/3 FAIL",
+    "failures": [
+      "Code_Aster Fz numerical classification",
+      "vector PDE numerical classification",
+      "OpenRadioss HTTP404 before solver"
+    ],
+    "scope": "Prior published Domain source, excludes this pending native adapter/common source"
+  },
+  "unknown": [
+    "actual native stress/tangent/energy qualification",
+    "binary/source equivalence",
+    "dissipated energy",
+    "MTest energy",
+    "physical/material/strength/durability",
+    "FE coupling",
+    "corporate approval",
+    "remote raw retention"
+  ],
+  "research": "NOT_ADMITTED_NOT_RUN",
+  "gui": "NOT_RUN",
+  "decision": "NOT_RELEASED",
+  "whole_52_requirements": "OPEN",
+  "fixture_eol": "Scoped -text preserves exact pinned official fixture and attribution bytes on Windows checkout; no Python/worker/math/test body changes"
+}

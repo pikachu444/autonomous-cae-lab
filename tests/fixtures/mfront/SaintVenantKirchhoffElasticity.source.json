@@ -1,0 +1,13 @@
+{
+  "author": "T. Helfer (original @Author)",
+  "bytes": 3002,
+  "commit": "85554f233306548d8c9c4d36af54b715c608b8c7",
+  "file": "SaintVenantKirchhoffElasticity.mfront",
+  "installed_relative_path": "share/doc/mfront/tests/behaviours/SaintVenantKirchhoffElasticity.mfront",
+  "licenses": ["GNU GPL", "CeCILL-A"],
+  "native_execution": "NOT_RUN; this fixture is exact unmodified primary source used by inert cold build/admission tests",
+  "sha256": "d97fcce350a40060c287aaad9928603e8b144039a7cef95045073b00079efff4",
+  "source_url": "https://raw.githubusercontent.com/thelfer/tfel/85554f233306548d8c9c4d36af54b715c608b8c7/mfront/tests/behaviours/SaintVenantKirchhoffElasticity.mfront",
+  "upstream_binary_source_equivalence": "UNKNOWN",
+  "version": "TFEL 5.0.0"
+}
