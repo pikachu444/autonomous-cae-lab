@@ -1,0 +1,267 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-03T04:22:19.185213+00:00",
+  "status": "PASS_REVIEWED_SOURCE_AND_COLD_CORRECTION_NEW_NATIVE_NOT_RUN",
+  "source_parent": "627cde3900059535c7b190277a077676925970e6",
+  "backend": "material.mfront.hyperelastic",
+  "source_files": [
+    {
+      "path": "plugins/hyperelastic/__init__.py",
+      "size_bytes": 293,
+      "sha256": "c1b942901836390150aa3963dc3fb131691ec43602d47cded60a2e45679ca7ca"
+    },
+    {
+      "path": "plugins/hyperelastic/reference.py",
+      "size_bytes": 41655,
+      "sha256": "c32893d057d96856451fa038d558715db0dab67704a064222361dc9fe3d367c0"
+    },
+    {
+      "path": "tests/test_hyperelastic_reference.py",
+      "size_bytes": 56496,
+      "sha256": "5186e6fab4682a7118fa9f4544539bb2f0659f41187d7fecc948e973908fee70"
+    },
+    {
+      "path": "caelab/adapters/mfront_hyperelastic.py",
+      "size_bytes": 21312,
+      "sha256": "96088c58b5b8e48d5ccfba821e548e14c16042902a21294b39eb7d068fe03c64"
+    },
+    {
+      "path": "caelab/adapters/mfront_hyperelastic_worker.py",
+      "size_bytes": 39897,
+      "sha256": "a7227ee0dae5067856c2cd2877868fb407eac1af65c3a9ef5c7904a37b990fb5"
+    },
+    {
+      "path": "caelab/adapters/mfront_material.py",
+      "size_bytes": 16859,
+      "sha256": "4ea387647fbaddeec47c0c637240209427cb509ef8b1e8b703e8737be3d79dec"
+    },
+    {
+      "path": "caelab/adapters/mfront_material_worker.py",
+      "size_bytes": 25425,
+      "sha256": "3200b2beb25fb04f45dd9eaeff426237802c62021861c90242cff7be79f4197f"
+    },
+    {
+      "path": "caelab/adapters/codeaster_elasticity.py",
+      "size_bytes": 41300,
+      "sha256": "956e84044d0b35780a23648577771236b708fefeb8d69492b6d85cdf4a25165a"
+    },
+    {
+      "path": "caelab/adapters/codeaster_execution.py",
+      "size_bytes": 1347,
+      "sha256": "04bf82ca3ea258a9218f9de33c14aefda1319abfa199fa246c36d5d1cefc2fad"
+    },
+    {
+      "path": "caelab/execution_control.py",
+      "size_bytes": 6546,
+      "sha256": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede"
+    },
+    {
+      "path": "caelab/engine.py",
+      "size_bytes": 47354,
+      "sha256": "106448a8cbb3ae0d9ef3cbaa9ed9f6bfe08cbf2f9fa8a1f9887e17e6708b4eae"
+    },
+    {
+      "path": "apps/lab/service.py",
+      "size_bytes": 40722,
+      "sha256": "68588117cd583f9866e1bf578c721315313dde0c2ffac9448fd9cd1aca62d059"
+    },
+    {
+      "path": "tests/test_backend_integration.py",
+      "size_bytes": 4633,
+      "sha256": "cdf690d8e74791e104d9e97ec5f214297c10c6c09538242a90917d8d1146a3bd"
+    },
+    {
+      "path": "tests/test_lab_server.py",
+      "size_bytes": 38081,
+      "sha256": "e469d003c4dbd0a4940b844eed6a7bdd79f311654e862c9da06fa333be29a8a3"
+    },
+    {
+      "path": "tests/test_hyperelastic_integration.py",
+      "size_bytes": 6987,
+      "sha256": "c310fbc239d92fc962c106e64273cd0a1a1bdf4941e336e6394178061db832cf"
+    },
+    {
+      "path": "tests/test_mfront_hyperelastic.py",
+      "size_bytes": 49281,
+      "sha256": "cf435f40d4e2c56b786f9e5914fccbf19a5f995ade810a1fa0081cf276271ec8"
+    },
+    {
+      "path": "tests/fixtures/mfront/SaintVenantKirchhoffElasticity.mfront",
+      "size_bytes": 3002,
+      "sha256": "d97fcce350a40060c287aaad9928603e8b144039a7cef95045073b00079efff4"
+    },
+    {
+      "path": "tests/fixtures/mfront/SaintVenantKirchhoffElasticity.source.json",
+      "size_bytes": 764,
+      "sha256": "64c5f8bf800cc96fe7cb4b3789cff93eab296c65b14ba6c41053745417c860aa"
+    },
+    {
+      "path": ".gitattributes",
+      "size_bytes": 1534,
+      "sha256": "4b858cf02959b0af37107b38ba766c7273bece6d830c5af56ae7592e915dbaad"
+    },
+    {
+      "path": "tests/fixtures/mfront/svk-native01-compiler-commands.txt",
+      "size_bytes": 2625,
+      "sha256": "6d49943e7001436577db029ef0d405ef3e21471434628dd08ef626a4c30f5eca"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "artifacts/development-material-point-20261003-01/root-native-evidence-integration-02/candidate-manifest.json",
+      "size_bytes": 4652,
+      "sha256": "821dc354834238a4772115a8f8c0b19e9cc8ae88c19fa6cf6231a8f4426d2465"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-evidence-correction-review-01/independent-review.json",
+      "size_bytes": 11565,
+      "sha256": "2e256826c052bec49e569d1ef7d6073cacce818b780b33c984e85270247db7a2"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-state-source-review-01/freeze-receipt.json",
+      "size_bytes": 6301,
+      "sha256": "b989d8cec79b477299be0bd74259d00b3f3f61ca781b11efebd86f69e5c99998"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-evidence-correction-review-01/seal.json",
+      "size_bytes": 3982,
+      "sha256": "de048cb09c7e140668a920b7cb4d2292ce5a23880212614ae3fe0b7b617996ab"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/root-native-evidence-cold-runner-01/attempt-01/receipt.json",
+      "size_bytes": 1187396,
+      "sha256": "372ebab7720f95b046ae1a7713231567c7a1497a2cf5a148a1a2fea43711e5a3"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/root-native-evidence-cold-runner-01/attempt-01/linux-receipt.json",
+      "size_bytes": 205950,
+      "sha256": "7024d8d1c322d3728255b288e8b9a1a0f77e54c410d59b48d636e33bb3d8bf28"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/root-native-evidence-cold-runner-01/attempt-01/junit.xml",
+      "size_bytes": 74524,
+      "sha256": "14aa5608c15114463fbbc6b9b7f8ec1cc7b04204994809027cbb4987836739f6"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-compiler-command-correction-02/freeze-receipt.json",
+      "size_bytes": 8395,
+      "sha256": "5131b5d23dd1dbf378e61acb36ea81740d94cd75f3fedb200eb1162e78aada56"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-state-domain-correction-01/freeze.json",
+      "size_bytes": 5497,
+      "sha256": "04f02cb0adc562729aedd936988659ce5183b9707d1ea776255a3f7f230a0ee1"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-qualification-review-01/REPORT.md",
+      "size_bytes": 19581,
+      "sha256": "5aca76da259bef572aa68571f7c69b62d9fa017f3f7032a109f55fbf0d34aca8"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/native-qualification-review-01/freeze-receipt.json",
+      "size_bytes": 9788,
+      "sha256": "6654c183b8f82026d46efb2d50dbc3dedc72e04136eee902961e30af9e329a4c"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/ci-627-01/receipt.json",
+      "size_bytes": 2959,
+      "sha256": "ae425f680064c4723c8102c71f635830f439caade962a18d4997c305560d0550"
+    },
+    {
+      "path": "benchmarks/records/20261003-svk-native01-retained-failure.json",
+      "size_bytes": 6280,
+      "sha256": "798ca9f269b126117dde5fd78701eccfc03260bb5a446fbf15f92ce8e76964b3"
+    }
+  ],
+  "original_actual_native": {
+    "source_commit": "627cde3900059535c7b190277a077676925970e6",
+    "store": "runs/material-hyperelastic-nq-20261003-01",
+    "experiment_id": "E-material-hyperelastic-nq-01-svk",
+    "Core": "FAILED_EXECUTION",
+    "metrics": {},
+    "original_Domain": "FAIL_ALL21_METRICS_INVALID",
+    "immutable": true,
+    "raw_numerical_audit": "31 PASS / 12 retained contract failures, 605 full observations / 33 all-h FD sets",
+    "raw_math_scope": "Bounded raw values only; failed Core/Domain record is not reclassified"
+  },
+  "corrections": [
+    "Join complete Make backslash-continuation recipes as data; retain raw log/hash and command classification",
+    "Require frozen portable flags for source/dependency compilation; verify exact non-LTO link objects/output/dependencies",
+    "Record actual MGIS post-update state/hash: physical fields and dt preserved, K zeroed; next baseline/probes use committed snapshot",
+    "Keep exact imposed MTest F separate from actual e1; retain signed/absolute residuals, original strict 1e-14 epsilon and actual-F kinematic admission",
+    "Independent private quoted-wrapper parser P2 corrected and preserved in final merged AST"
+  ],
+  "cold": {
+    "tests": 474,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "per_file_counts": {
+      "Domain": 303,
+      "adapter": 151,
+      "legacy_material": 17,
+      "common_integration": 3
+    },
+    "pytest_seconds": 161.48,
+    "process_seconds": 162.9321198759135,
+    "context": "Exact-byte fresh Linux Python3.12, ordinary imports, private cold variables/PYTHONPATH unset",
+    "prior_counts_overlap_not_additive": true,
+    "actual_native_provider_auth_GUI_execution": false
+  },
+  "independent_source_reviews": {
+    "compiler_composition": "66 compiler / 17 composition / 27 byte-closure checks",
+    "state_semantics": "30 preliminary / 29 final offline checks",
+    "open_P1": 0,
+    "open_P2": 0,
+    "actual_native_qualification": "NOT_RUN"
+  },
+  "preservation": {
+    "old_stores": 4,
+    "old_store_files": 1204,
+    "all_unchanged": true,
+    "tested_Main_source_files": 550,
+    "tested_archive_members": 551,
+    "candidate_files": 6,
+    "original_failures_raw_attempts_audits_frozen_candidates_preserved": true,
+    "publication_EOL": "Three scoped .gitattributes rules; no global Git configuration"
+  },
+  "contract": {
+    "ADR": "ADR/0026-finite-strain-material-point.md",
+    "packet": "docs/HYPERELASTIC_PACKET.md",
+    "equations_fixed_limits_21_metrics_unchanged": true,
+    "Core_wire_optimizer_model_auth_unchanged": true,
+    "wall_seconds": null,
+    "cpu_seconds": 86400,
+    "law_scope": "SVK finite rotation/small Green strain material point"
+  },
+  "ci": {
+    "source": "627cde3900059535c7b190277a077676925970e6",
+    "run_id": 37092103573,
+    "core": "3022 PASS / 5 skips / 1 warning,357.05s",
+    "jobs": "7 SUCCESS / 3 FAIL",
+    "scope": "Exact prior source; does not qualify this corrected native execution",
+    "failures": [
+      "Code_Aster Fz numerical",
+      "vector PDE classification",
+      "OpenRadioss HTTP404 before solver"
+    ]
+  },
+  "next_gate": {
+    "store": "runs/material-hyperelastic-nq-20261003-02",
+    "experiment_id": "E-material-hyperelastic-nq-02-svk",
+    "new_native": "NOT_RUN",
+    "Research": "NOT_ADMITTED",
+    "same_record_GUI": "NOT_RUN"
+  },
+  "unknown": [
+    "binary/source equivalence",
+    "dissipated energy",
+    "MTest energy",
+    "physical material/strength/durability",
+    "constitutive FE coupling",
+    "corporate deployment approval",
+    "remote raw durability"
+  ],
+  "decision": "NOT_RELEASED",
+  "whole_52_requirements": "OPEN"
+}

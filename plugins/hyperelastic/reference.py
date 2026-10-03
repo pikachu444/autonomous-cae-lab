@@ -426,8 +426,11 @@ def assess(settings: dict, raw: dict) -> dict:
     reference = _reference(settings)
     _required(raw, {"library_sha256", "initial", "steps", "mtest"}, "Native raw")
     library = _sha(raw["library_sha256"], "Native library")
-    mtest = _required(raw["mtest"], {"library_sha256", "steps"}, "MTest raw")
+    mtest = _required(raw["mtest"], {"library_sha256", "steps", "deformation_gradient_epsilon"}, "MTest raw")
     other_library = _sha(mtest["library_sha256"], "MTest library")
+    mtest_gradient_epsilon = _number(mtest["deformation_gradient_epsilon"], "MTest deformation gradient epsilon")
+    if mtest_gradient_epsilon != 1e-14:
+        raise ValueError("MTest deformation gradient epsilon must retain the original fixed 1e-14 criterion")
     steps, other_steps = raw["steps"], mtest["steps"]
     expected_steps = len(settings["history"]) - 1
     if (not isinstance(steps, list) or len(steps) != expected_steps or
@@ -448,6 +451,7 @@ def assess(settings: dict, raw: dict) -> dict:
         previous["material_properties"] == properties and previous["external_state_variables"] == external)
     scales, limits = reference["scales"], settings["limits"]
     errors, fd_reports = [], {h: [] for h in limits["finite_difference_steps"]}
+    mtest_gradient_reports = []
     stress_bound = limits["stress_absolute_mpa"] + limits["stress_relative"] * scales["stress_mpa"]
     energy_bound = limits["energy_absolute_mpa"] + limits["energy_relative"] * scales["energy_mpa"]
     fd_stress_bound = limits["stress_absolute_mpa"] + limits["finite_difference_relative"] * scales["stress_mpa"]
@@ -477,7 +481,8 @@ def assess(settings: dict, raw: dict) -> dict:
     for index, (step, other, expected) in enumerate(zip(steps, other_steps, reference["states"][1:]), 1):
         _required(step, {"time_s", "dt_s", "deformation_gradient", "pk1_stress_mpa", "cauchy_stress_mpa",
             "pk1_tangent_mpa", "stored_energy_density_mpa", "integration_return", "initial_state", "initial_state_sha256",
-            "nominal_before_probes", "nominal_after_probes", "finite_differences"}, "Actual MGIS endpoint")
+            "nominal_before_probes", "nominal_after_probes", "nominal_after_update", "nominal_after_update_sha256",
+            "finite_differences"}, "Actual MGIS endpoint")
         f = _vector(step["deformation_gradient"], 9, "Actual F")
         p = _vector(step["pk1_stress_mpa"], 9, "Actual PK1")
         sigma = _vector(step["cauchy_stress_mpa"], 6, "Actual Cauchy")
@@ -491,10 +496,18 @@ def assess(settings: dict, raw: dict) -> dict:
         baseline = checked_state(step["initial_state"], "Nominal initial snapshot")
         before = checked_state(step["nominal_before_probes"], "Nominal before probes")
         after = checked_state(step["nominal_after_probes"], "Nominal after probes")
+        committed = checked_state(step["nominal_after_update"], "Nominal committed snapshot")
         flags["immutable_probe_state"] &= (all(baseline[key] == previous[key] for key in previous if key != "dt_s") and
             baseline["dt_s"] == dt and before == after)
+        # MGIS update commits s1 to s0 and resets the manager's nonphysical K
+        # cache. Preserve its actual pre-update tangent and require the captured
+        # committed state, including dt and every physical field, independently.
+        flags["immutable_probe_state"] &= (all(committed[key] == after[key] for key in after
+            if key != "manager_tangent_cache_mpa") and
+            all(value == 0.0 for value in _flat(committed["manager_tangent_cache_mpa"])))
         flags["snapshot_content"] &= (_sha(step["initial_state_sha256"], "Nominal baseline hash") == state_hash(baseline) and
-            matches_snapshot(before, step, dt, tangent=True) and matches_snapshot(after, step, dt, tangent=True))
+            matches_snapshot(before, step, dt, tangent=True) and matches_snapshot(after, step, dt, tangent=True) and
+            _sha(step["nominal_after_update_sha256"], "Nominal committed hash") == state_hash(committed))
         fm = to_matrix(f)
         jacobian = determinant(fm)
         if jacobian > 0.0:
@@ -506,11 +519,23 @@ def assess(settings: dict, raw: dict) -> dict:
         else:
             measure_error, skew_error = scales["stress_mpa"], scales["stress_mpa"]
             flags["native_tensor_measure"] = False
-        _required(other, {"phase", "time_s", "dt_s", "deformation_gradient", "cauchy_stress_kelvin_mpa", "integration_return"}, "MTest endpoint")
+        _required(other, {"phase", "time_s", "dt_s", "imposed_deformation_gradient", "deformation_gradient",
+            "cauchy_stress_kelvin_mpa", "integration_return"}, "MTest endpoint")
+        imposed_f = _vector(other["imposed_deformation_gradient"], 9, "MTest imposed F")
         other_f = _vector(other["deformation_gradient"], 9, "MTest F")
+        _kinematics(other_f)
+        other_time = _number(other["time_s"], "MTest time")
+        other_dt = _number(other["dt_s"], "MTest dt")
+        gradient_residuals = [_number(actual - imposed, "MTest F residual") for actual, imposed in zip(other_f, imposed_f)]
+        gradient_errors = [abs(value) for value in gradient_residuals]
+        gradient_passed = all(value < mtest_gradient_epsilon for value in gradient_errors)
+        mtest_gradient_reports.append({"history_index": index, "time_s": other_time, "dt_s": other_dt,
+            "imposed_deformation_gradient": imposed_f, "deformation_gradient": other_f,
+            "signed_residuals": gradient_residuals, "absolute_residuals": gradient_errors,
+            "maximum_absolute_residual": max(gradient_errors), "passed": gradient_passed})
         other_sigma = from_kelvin(other["cauchy_stress_kelvin_mpa"])
-        flags["native_history"] &= (other["phase"] == "INTEGRATED" and _number(other["time_s"], "MTest time") == time == expected["time_s"] and
-            _number(other["dt_s"], "MTest dt") == dt and other_f == expected["deformation_gradient"])
+        flags["native_history"] &= (other["phase"] == "INTEGRATED" and other_time == time == expected["time_s"] and
+            other_dt == dt and imposed_f == expected["deformation_gradient"] and gradient_passed)
         flags["reliable_integrations"] &= _return(other["integration_return"], "MTest integration") == 1
         errors.append({"history_index": index, "time_s": time,
             "pk1_error_mpa": _max_error(p, expected["pk1_stress_mpa"]), "pk1_error_norm_mpa": _norm_error(p, expected["pk1_stress_mpa"]),
@@ -574,8 +599,13 @@ def assess(settings: dict, raw: dict) -> dict:
                 "tangent_vs_reference_mpa": _max_error(_flat(recomputed_a), _flat(expected["pk1_tangent_mpa"])),
                 "gradient_vs_native_mpa": _max_error(recomputed_p, p),
                 "gradient_vs_reference_mpa": _max_error(recomputed_p, expected["pk1_stress_mpa"])})
-        previous = after
+        previous = committed
     checks = [{"code": code, "status": "PASS" if flag else "FAIL", "observed": flag, "expected": True} for code, flag in flags.items()]
+    checks.append({"code": "mtest_deformation_gradient_residual",
+        "status": "PASS" if all(row["passed"] for row in mtest_gradient_reports) else "FAIL",
+        "observed": max(row["maximum_absolute_residual"] for row in mtest_gradient_reports),
+        "limit": mtest_gradient_epsilon, "comparison": "strictly_less_than",
+        "component_order": list(F_COMPONENTS), "every_component_error": [deepcopy(row["absolute_residuals"]) for row in mtest_gradient_reports]})
     metrics = {}
 
     def numeric(code: str, values: list[float], unit: str, bound: float) -> None:
@@ -611,7 +641,7 @@ def assess(settings: dict, raw: dict) -> dict:
     return {"reference": reference, "checks": checks, "metrics": metrics, "passed": complete,
         "numerical_status": "FAIL" if not scientific_passed else "PASS" if complete else "UNKNOWN",
         "release_status": "NOT_RELEASED", "pending": [{"code": code, "status": "UNKNOWN", "blocking": True} for code in PENDING],
-        "endpoint_errors": errors, "probe_errors": probe_errors,
+        "endpoint_errors": errors, "probe_errors": probe_errors, "mtest_gradient_residuals": mtest_gradient_reports,
         "finite_difference_errors": [{"h": h, "steps": rows} for h, rows in fd_reports.items()],
         "pair_observations": pair_report, "native_observations": {
             "time_s": [row["time_s"] for row in steps], "pk1_stress_mpa": [deepcopy(row["pk1_stress_mpa"]) for row in steps],

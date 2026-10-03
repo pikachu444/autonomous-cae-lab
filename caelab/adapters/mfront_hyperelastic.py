@@ -5,7 +5,6 @@ import hashlib
 import json
 from pathlib import Path
 import re
-import shlex
 
 from plugins.hyperelastic import reference as domain
 from .. import execution_control
@@ -98,17 +97,19 @@ def checked_native(output, input_sha, settings, budgets):
             ("CXXFLAGS", "CPPFLAGS", "LDFLAGS", "CXX ", "CXX=", "INCLUDES", "-std="))]
         if observed_flags != build["compiler_flags_makefile"]:
             raise ValueError("Makefile flag observation differs from retained actual Makefile")
-        _hash(output, "build/compile.stdout.log")
+        if (build.get("compiler_commands_sha256") != _hash(output, "build/compile.stdout.log") or
+                build.get("compiler_command_policy") != worker.COMPILER_COMMAND_POLICY or
+                build.get("dependency_artifact") != "library_dependencies.stdout.log" or
+                build.get("dependency_artifact_sha256") != _hash(output, "library_dependencies.stdout.log") or
+                set(build["dependency_sha256"]) != set(worker.library_dependency_paths(
+                    (output / "library_dependencies.stdout.log").read_text(encoding="utf-8")))):
+            raise ValueError("Original compiler/dependency log hashes or classified policy differ")
         compiler = runtime["executables"]["g++"]["path"]
-        expanded = [line for line in (output / "build/compile.stdout.log").read_text().splitlines()
-            if compiler in line and any(token in line for token in (" -c", " -shared", " -M "))]
-        if not expanded or build.get("actual_compiler_commands") != expanded:
+        records = worker.compiler_command_evidence(
+            (output / "build/compile.stdout.log").read_text(encoding="utf-8"), compiler, flags)
+        expanded = [record["command"] for record in records]
+        if build.get("actual_compiler_commands") != expanded or build.get("compiler_command_evidence") != records:
             raise ValueError("Actual expanded compiler commands are absent or differ from original log")
-        for line in expanded:
-            tokens = shlex.split(line)
-            if (any(token.startswith(("-march", "-mtune")) or token in ("-ffast-math", "-ftree-vectorize") for token in tokens) or
-                    not {"-O2", "-fno-fast-math", "-std=c++20"}.issubset(tokens)):
-                raise ValueError("Actual compiler command violates portable O2/no-fast-math policy")
         for name, prefix, version, binding_name in (("mgis", worker.MGIS_PREFIX, "3.0", "mgis"),
             ("tfel", worker.TFEL_PREFIX, "5.0.0", "mtest")):
             package = runtime[name + "_package"]

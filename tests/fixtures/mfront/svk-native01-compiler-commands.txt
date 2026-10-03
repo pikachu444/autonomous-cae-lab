@@ -1,0 +1,13 @@
+make: Entering directory '/work/build/src'
+set -e; rm -f SaintVenantKirchhoffElasticity.d;	    \
+/usr/bin/x86_64-linux-gnu-g++-12 -M -Wall -Wfatal-errors -ansi -fvisibility-inlines-hidden -fvisibility=hidden -fno-fast-math -DTFEL_NO_RUNTIME_CHECK_BOUNDS -O2 -DNDEBUG -fPIC -I../include -DTFEL_ARCH64 -DTFEL_HAVE_NORETURN_ATTRIBUTE -std=c++20 -I/opt/spack/opt/spack/linux-zen2/tfel-5.0.0-flantzxx3vcxkf4qlpwnl7midzoe33ma/include SaintVenantKirchhoffElasticity.cxx > SaintVenantKirchhoffElasticity.d.$$; \
+sed 's,\(SaintVenantKirchhoffElasticity\)\.o[ :]*,\1.o SaintVenantKirchhoffElasticity.d : ,g' < SaintVenantKirchhoffElasticity.d.$$ > SaintVenantKirchhoffElasticity.d; \
+rm -f SaintVenantKirchhoffElasticity.d.$$
+set -e; rm -f SaintVenantKirchhoffElasticity-generic.d;	    \
+/usr/bin/x86_64-linux-gnu-g++-12 -M -Wall -Wfatal-errors -ansi -fvisibility-inlines-hidden -fvisibility=hidden -fno-fast-math -DTFEL_NO_RUNTIME_CHECK_BOUNDS -O2 -DNDEBUG -fPIC -I../include -DTFEL_ARCH64 -DTFEL_HAVE_NORETURN_ATTRIBUTE -std=c++20 -I/opt/spack/opt/spack/linux-zen2/tfel-5.0.0-flantzxx3vcxkf4qlpwnl7midzoe33ma/include SaintVenantKirchhoffElasticity-generic.cxx > SaintVenantKirchhoffElasticity-generic.d.$$; \
+sed 's,\(SaintVenantKirchhoffElasticity-generic\)\.o[ :]*,\1.o SaintVenantKirchhoffElasticity-generic.d : ,g' < SaintVenantKirchhoffElasticity-generic.d.$$ > SaintVenantKirchhoffElasticity-generic.d; \
+rm -f SaintVenantKirchhoffElasticity-generic.d.$$
+/usr/bin/x86_64-linux-gnu-g++-12 -Wall -Wfatal-errors -ansi -fvisibility-inlines-hidden -fvisibility=hidden -fno-fast-math -DTFEL_NO_RUNTIME_CHECK_BOUNDS -O2 -DNDEBUG -fPIC -I../include -DTFEL_ARCH64 -DTFEL_HAVE_NORETURN_ATTRIBUTE -std=c++20 -I/opt/spack/opt/spack/linux-zen2/tfel-5.0.0-flantzxx3vcxkf4qlpwnl7midzoe33ma/include SaintVenantKirchhoffElasticity-generic.cxx -o SaintVenantKirchhoffElasticity-generic.o -c
+/usr/bin/x86_64-linux-gnu-g++-12 -Wall -Wfatal-errors -ansi -fvisibility-inlines-hidden -fvisibility=hidden -fno-fast-math -DTFEL_NO_RUNTIME_CHECK_BOUNDS -O2 -DNDEBUG -fPIC -I../include -DTFEL_ARCH64 -DTFEL_HAVE_NORETURN_ATTRIBUTE -std=c++20 -I/opt/spack/opt/spack/linux-zen2/tfel-5.0.0-flantzxx3vcxkf4qlpwnl7midzoe33ma/include SaintVenantKirchhoffElasticity.cxx -o SaintVenantKirchhoffElasticity.o -c
+/usr/bin/x86_64-linux-gnu-g++-12 -shared SaintVenantKirchhoffElasticity-generic.o SaintVenantKirchhoffElasticity.o  -o libBehaviour.so -L"/opt/spack/opt/spack/linux-zen2/tfel-5.0.0-flantzxx3vcxkf4qlpwnl7midzoe33ma/lib" -lMFrontProfiling -lTFELMaterial -lTFELMath -lTFELUtilities -lTFELException -lTFELNUMODIS 
+make: Leaving directory '/work/build/src'

@@ -19,3 +19,6 @@ tests/fixtures/codeaster_174_structural_import/probe-intent.json -text
 tests/fixtures/codeaster_174_structural_import/probe-receipt.json -text
 tests/fixtures/mfront/SaintVenantKirchhoffElasticity.mfront -text
 tests/fixtures/mfront/SaintVenantKirchhoffElasticity.source.json -text
+tests/fixtures/mfront/svk-native01-compiler-commands.txt -text
+plugins/hyperelastic/__init__.py text eol=lf
+plugins/hyperelastic/reference.py text eol=lf

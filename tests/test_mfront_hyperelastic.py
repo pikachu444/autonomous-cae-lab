@@ -8,6 +8,7 @@ its numerical agreement proves a serialization contract, never native accuracy.
 from copy import deepcopy
 import json
 from pathlib import Path
+import shlex
 from types import SimpleNamespace
 
 import numpy as np
@@ -17,6 +18,21 @@ from caelab.adapters import mfront_hyperelastic as adapter
 from caelab.adapters import mfront_hyperelastic_worker as worker
 domain = adapter.domain
 SVK_SOURCE = Path(__file__).parent / "fixtures/mfront/SaintVenantKirchhoffElasticity.mfront"
+COMPILER_LOG = Path(__file__).parent / "fixtures/mfront/svk-native01-compiler-commands.txt"
+
+
+def synthetic_compiler_log(compiler, flags):
+    """Inert explicit make-recipe shape; it does not invoke any executable."""
+    lines = []
+    for name in (worker.BEHAVIOUR, worker.BEHAVIOUR + "-generic"):
+        lines.append("set -e; rm -f " + name + ".d; \\\n" + compiler + " -M " + shlex.join(flags) +
+                     " " + name + ".cxx > " + name + ".d.$$; \\\nrm -f " + name + ".d.$$")
+    for name in (worker.BEHAVIOUR + "-generic", worker.BEHAVIOUR):
+        lines.append(compiler + " " + shlex.join(flags) + " " + name + ".cxx -o " + name + ".o -c")
+    lines.append(compiler + " -shared " + worker.BEHAVIOUR + "-generic.o " + worker.BEHAVIOUR +
+                 ".o -o libBehaviour.so -L" + worker.TFEL_PREFIX + "/lib " +
+                 " ".join("-l" + name for name in worker._LINK_LIBRARIES))
+    return "\n".join(lines) + "\n"
 
 
 @pytest.fixture(scope="session")
@@ -51,10 +67,12 @@ def write_synthetic_native(output, settings, contract):
     (output / "build" / (worker.BEHAVIOUR + ".mfront")).write_bytes(SVK_SOURCE.read_bytes())
     flags = adapter.transport.portable_compiler_flags("-fno-fast-math -O2", "-DTFEL_ARCH64 -std=c++20", worker.TFEL_PREFIX + "/include")
     compiler = "/MOCK_UNSOLVED/g++"
-    command = compiler + " " + " ".join(flags) + " -c synthetic.cxx"
+    log = synthetic_compiler_log(compiler, flags)
+    commands = worker.compiler_command_evidence(log, compiler, flags)
     makefile = "CXXFLAGS = " + " ".join(flags) + "\n"
     (build / "Makefile.mfront").write_text(makefile)
-    (output / "build/compile.stdout.log").write_text(command + "\n")
+    (output / "build/compile.stdout.log").write_text(log)
+    (output / "library_dependencies.stdout.log").write_text("lib.so => /MOCK_UNSOLVED/lib.so (0x0000)\n")
     digest = worker.sha256(build / "libBehaviour.so")
     native["library_sha256"] = native["mtest"]["library_sha256"] = digest
     runtime = {"python": "MOCK_UNSOLVED", "numpy": "MOCK_UNSOLVED", "tfel": "tfel-config 5.0.0 (MOCK_UNSOLVED)",
@@ -72,7 +90,11 @@ def write_synthetic_native(output, settings, contract):
     desc = worker.descriptor(FakeBinding(), fake_behaviour())
     identity = {"library_path": "build/src/libBehaviour.so", "library_sha256": digest, "source_sha256": worker.SOURCE_SHA256,
         "generation_arguments": list(worker.BUILD_ARGUMENTS), "makefile_sha256": worker.sha256(build / "Makefile.mfront"),
-        "actual_compiler_commands": [command], "compiler_commands_artifact": "build/compile.stdout.log",
+        "actual_compiler_commands": [record["command"] for record in commands], "compiler_commands_artifact": "build/compile.stdout.log",
+        "compiler_commands_sha256": worker.sha256(output / "build/compile.stdout.log"),
+        "compiler_command_policy": worker.COMPILER_COMMAND_POLICY, "compiler_command_evidence": commands,
+        "dependency_artifact": "library_dependencies.stdout.log",
+        "dependency_artifact_sha256": worker.sha256(output / "library_dependencies.stdout.log"),
         "compiler_flags_policy": worker.COMPILER_POLICY, "compiler_flags_override": flags,
         "compiler_flags_makefile": [makefile.strip()], "dependency_sha256": {"/MOCK_UNSOLVED/lib.so": "d" * 64}}
     native.update(schema_version="1", input_sha256=worker.sha256(output / "input.json"), source_sha256=worker.SOURCE_SHA256,
@@ -184,13 +206,15 @@ class FakeBinding:
         return SimpleNamespace(exit_status=self.code if self.fail_at == len(self.calls) else 1,
             time_step_increase_factor=1., error_message="MOCK_UNSOLVED", n=0)
     def update(self, manager):
+        # Match pinned MGIS3 update: reset K, then copy s1 physical state to s0.
+        manager.K[:] = 0.
         self.updates.append(manager)
         for name in ("gradients", "thermodynamic_forces", "stored_energies"):
             getattr(manager.s0, name)[:] = getattr(manager.s1, name)
 
 
 def test_frozen_domain_bytes_and_default_metric_contract():
-    assert worker.sha256(domain.__file__) == "fe90482f7b4114b0a7a3fcf3d9d6c98d7b3b305c571ff6b3d7879b1581002bc9"
+    assert worker.sha256(domain.__file__) == "c32893d057d96856451fa038d558715db0dab67704a064222361dc9fe3d367c0"
     assert worker.sha256(Path(domain.__file__).with_name("__init__.py")) == "c1b942901836390150aa3963dc3fb131691ec43602d47cded60a2e45679ca7ca"
     assert len(set(adapter.MFrontHyperelasticAdapter.default_metrics)) == 21
     assert set(worker.F_COMPONENTS) == {"xx", "yy", "zz", "xy", "yx", "xz", "zx", "yz", "zy"}
@@ -432,7 +456,11 @@ def test_all_594_synthetic_probes_and_11_nominals_have_independent_complete_stat
             assert all(p["initial_state"] == step["initial_state"] for p in fd["probes"])
             assert all(p["initial_state_sha256"] == worker.state_hash(p["initial_state"]) and
                 p["final_state_sha256"] == worker.state_hash(p["final_state"]) for p in fd["probes"])
-        baseline = step["nominal_after_probes"]
+        committed = step["nominal_after_update"]
+        assert step["nominal_after_update_sha256"] == worker.state_hash(committed)
+        assert committed["manager_tangent_cache_mpa"] == [[0.] * 9 for _ in range(9)]
+        assert all(committed[key] == step["nominal_after_probes"][key] for key in committed if key != "manager_tangent_cache_mpa")
+        baseline = committed
     library = tmp_path / "MOCK_UNSOLVED.so"
     library.write_bytes(b"MOCK_UNSOLVED_NOT_A_LIBRARY")
     raw["library_sha256"] = worker.sha256(library)
@@ -516,6 +544,8 @@ class FakeMTest:
         if self.fail_at == len(self.calls):
             raise RuntimeError("MOCK_UNSOLVED MTest failure")
         state.e1 = [self.maps[name][t1] for name in worker.F_NAMES]
+        # A solver unknown can differ from the imposed map by binary roundoff.
+        state.e1[0] = float(np.nextafter(state.e1[0], np.inf))
         sigma = domain.response(state.e1, spec()["material"])["cauchy_stress_mpa"]
         state.s1 = list(sigma[:3]) + [math_sqrt2() * value for value in sigma[3:]]
         state.iterations, state.subSteps = 1, 1
@@ -540,7 +570,13 @@ def test_mtest_names_physical9_and_public_kelvin6_endpoints_same_library(tmp_pat
     assert instance.recorded["setMaximumNumberOfSubSteps"] == (1,)
     assert instance.recorded["setDeformationGradient"] == (worker.IDENTITY,)
     assert raw["stored_energy"] == "UNKNOWN" and all(len(s["cauchy_stress_kelvin_mpa"]) == 6 for s in raw["steps"])
-    assert all(s["deformation_gradient"] == entry["deformation_gradient"] for s, entry in zip(raw["steps"], spec()["history"][1:]))
+    assert raw["deformation_gradient_epsilon"] == 1e-14
+    assert instance.recorded["setDeformationGradientEpsilon"] == (1e-14,)
+    for observed, entry in zip(raw["steps"], spec()["history"][1:]):
+        assert observed["imposed_deformation_gradient"] == entry["deformation_gradient"]
+        assert observed["deformation_gradient"] != observed["imposed_deformation_gradient"]
+        assert observed["deformation_gradient"] == [float(v) for v in observed["deformation_gradient"]]
+        assert all(abs(v - imposed) < 1e-14 for v, imposed in zip(observed["deformation_gradient"], observed["imposed_deformation_gradient"]))
 
 
 def test_mtest_failure_keeps_prior_endpoints_without_synthesized_success(tmp_path):
@@ -615,12 +651,15 @@ def test_build_uses_exact_source_generic3d_portable_flags_and_no_scientific_wall
         if label == "compile":
             (output / "src/libBehaviour.so").write_bytes(b"MOCK_UNSOLVED_NOT_COMPILED")
             (output / "src/Makefile.mfront").write_text("CXXFLAGS = " + " ".join(flags) + "\n")
-            line = tools["g++"] + " " + " ".join(flags) + " -c MOCK_UNSOLVED.cxx"
-            (output / "compile.stdout.log").write_text(line + "\n")
-            return line
-        return {"tfel": "tfel-config 5.0.0 MOCK_UNSOLVED", "tfel_recommended_oflags0": "-fno-fast-math -O2",
-            "tfel_cpp_compiler_flags": "-std=c++20", "tfel_include_path": str(include),
-            "library_dependencies": "lib.so => " + str(dependency) + " (0x0000)"}.get(label, "MOCK_UNSOLVED")
+            log = synthetic_compiler_log(tools["g++"], flags)
+            (output / "compile.stdout.log").write_text(log)
+            return log
+        result = {"tfel": "tfel-config 5.0.0 MOCK_UNSOLVED", "tfel_recommended_oflags0": "-fno-fast-math -O2",
+             "tfel_cpp_compiler_flags": "-std=c++20", "tfel_include_path": str(include),
+             "library_dependencies": "lib.so => " + str(dependency) + " (0x0000)"}.get(label, "MOCK_UNSOLVED")
+        if label == "library_dependencies":
+            (output / "library_dependencies.stdout.log").write_text(result + "\n")
+        return result
     transport = SimpleNamespace(shutil=adapter.transport.shutil, _executable=lambda name: tools[name],
         _command=command, portable_compiler_flags=adapter.transport.portable_compiler_flags)
     output = tmp_path / "build-output"
@@ -632,6 +671,10 @@ def test_build_uses_exact_source_generic3d_portable_flags_and_no_scientific_wall
     assert compile_row[0][-1].startswith("CXXFLAGS=") and "-O2" in compile_row[0][-1]
     assert build["source_sha256"] == worker.SOURCE_SHA256 and build["library_sha256"] == worker.sha256(library)
     assert build["compiler_flags_override"] == flags and build["dependency_sha256"] == {str(dependency): worker.sha256(dependency)}
+    assert build["compiler_command_evidence"] == worker.compiler_command_evidence(
+        (output / "build/compile.stdout.log").read_text(), tools["g++"], flags)
+    assert build["compiler_commands_sha256"] == worker.sha256(output / "build/compile.stdout.log")
+    assert build["dependency_artifact_sha256"] == worker.sha256(output / "library_dependencies.stdout.log")
     assert all(row[2] == 10 for row in calls if row[1] not in ("generate", "compile"))
 
 
@@ -656,3 +699,147 @@ def test_reused_installed_package_guard_checks_real_readonly_metadata(tmp_path, 
     worker.save(spec_path, {"spec": {"nodes": nodes}})
     with pytest.raises(ValueError):
         adapter.transport.installed_package_identity(prefix, "mgis", "3.0", binding, tmp_path)
+
+
+def actual_compiler_case():
+    """Exact recipe subset from failed native01, not a native-success fixture."""
+    data = COMPILER_LOG.read_bytes()
+    assert len(data) == 2625 and worker.sha256(COMPILER_LOG) == "6d49943e7001436577db029ef0d405ef3e21471434628dd08ef626a4c30f5eca"
+    flags = adapter.transport.portable_compiler_flags(
+        "-fvisibility-inlines-hidden -fvisibility=hidden -fno-fast-math -DTFEL_NO_RUNTIME_CHECK_BOUNDS -O2 -DNDEBUG",
+        "-DTFEL_ARCH64 -DTFEL_HAVE_NORETURN_ATTRIBUTE -std=c++20", worker.TFEL_PREFIX + "/include")
+    return data.decode("utf-8"), "/usr/bin/x86_64-linux-gnu-g++-12", flags
+
+
+@pytest.mark.parametrize("line_ending", ["LF", "CRLF"])
+def test_actual_continued_dependency_two_objects_and_flagless_non_lto_link(line_ending):
+    text, compiler, flags = actual_compiler_case()
+    records = worker.compiler_command_evidence(text.replace("\n", "\r\n") if line_ending == "CRLF" else text, compiler, flags)
+    assert [row["stage"] for row in records] == ["DEPENDENCY", "DEPENDENCY", "COMPILE", "COMPILE", "LINK"]
+    assert {row["source"] for row in records if row["stage"] == "COMPILE"} == {
+        worker.BEHAVIOUR + ".cxx", worker.BEHAVIOUR + "-generic.cxx"}
+    assert all({"-O2", "-fno-fast-math", "-std=c++20"}.issubset(row["tokens"]) for row in records[:-1])
+    assert not {"-O2", "-fno-fast-math", "-std=c++20"}.issubset(records[-1]["tokens"])
+    assert records[-1]["objects"] == [worker.BEHAVIOUR + "-generic.o", worker.BEHAVIOUR + ".o"]
+    assert all("\\\n" not in row["logical_recipe"] and "\\\r\n" not in row["logical_recipe"] for row in records)
+    assert "sed " in records[0]["logical_recipe"] and records[0]["tokens"][-2:] == [">", worker.BEHAVIOUR + ".d.$$"]
+
+
+@pytest.mark.parametrize("flag", ["-march=native", "-mtune=native", "-ffast-math", "-ftree-vectorize", "-Ofast", "-flto", "-flto=auto"])
+def test_bad_portability_or_lto_flag_on_continuation_is_never_hidden(flag):
+    text, compiler, flags = actual_compiler_case()
+    text = text.replace(" -M -Wall", " -M \\\n " + flag + " -Wall", 1)
+    with pytest.raises(ValueError, match="portable/non-LTO"):
+        worker.compiler_command_evidence(text, compiler, flags)
+
+
+@pytest.mark.parametrize("flag", ["-flto", "-flto=auto", "-fuse-linker-plugin", "-Wl,-plugin,/foreign/lto-plugin.so", "-march=native", "-ffast-math"])
+def test_shared_link_rejects_lto_and_extra_codegen_or_link_flags(flag):
+    text, compiler, flags = actual_compiler_case()
+    text = text.replace(" -shared ", " \\\n " + flag + " -shared ")
+    with pytest.raises(ValueError):
+        worker.compiler_command_evidence(text, compiler, flags)
+
+
+@pytest.mark.parametrize("kind", ["NUL", "trailing_escape", "trailing_continuation", "unterminated_quote", "wrapped", "foreign_compiler", "unknown_stage", "missing_compile", "duplicate_compile", "missing_link", "wrong_object", "wrong_target", "missing_compile_flag", "wrong_dependency"])
+def test_malformed_unknown_incomplete_or_foreign_actual_command_refuses(kind):
+    text, compiler, flags = actual_compiler_case()
+    lines = text.splitlines(keepends=True)
+    compile_line = next(line for line in lines if " -c\n" in line)
+    link_line = next(line for line in lines if " -shared " in line)
+    text = {
+        "NUL": lambda: text + "\x00",
+        "trailing_escape": lambda: text.rstrip() + "\\",
+        "trailing_continuation": lambda: text + compiler + " -M \\\n",
+        "unterminated_quote": lambda: text.replace(" -shared ", " -shared '"),
+        "wrapped": lambda: text.replace(compiler + " -M", "env " + compiler + " -M", 1),
+        "foreign_compiler": lambda: text + "/foreign/g++ -c foreign.cxx\n",
+        "unknown_stage": lambda: text + compiler + " --version\n",
+        "missing_compile": lambda: text.replace(compile_line, "", 1),
+        "duplicate_compile": lambda: text + compile_line,
+        "missing_link": lambda: text.replace(link_line, "", 1),
+        "wrong_object": lambda: text.replace(" -shared " + worker.BEHAVIOUR + "-generic.o", " -shared foreign.o"),
+        "wrong_target": lambda: text.replace(" -o libBehaviour.so", " -o foreign.so"),
+        "missing_compile_flag": lambda: text.replace(compile_line, compile_line.replace(" -O2", ""), 1),
+        "wrong_dependency": lambda: text.replace(" > " + worker.BEHAVIOUR + ".d.$$", " > foreign.d.$$", 1),
+    }[kind]()
+    with pytest.raises(ValueError):
+        worker.compiler_command_evidence(text, compiler, flags)
+
+
+@pytest.mark.parametrize("kind", ["normalized_command", "classified_stage", "joined_recipe", "compiler_log_hash", "dependency_log_hash", "dependency_paths"])
+def test_adapter_binds_complete_log_classification_and_dependency_evidence(monkeypatch, tmp_path, contract, kind):
+    def mutate(output, raw):
+        identity = json.loads((output / "build_identity.json").read_text())
+        if kind == "normalized_command":
+            identity["actual_compiler_commands"][0] = identity["actual_compiler_commands"][0].replace("-O2", "")
+        elif kind == "classified_stage":
+            identity["compiler_command_evidence"][0]["stage"] = "LINK"
+        elif kind == "joined_recipe":
+            identity["compiler_command_evidence"][0]["logical_recipe"] += " foreign"
+        elif kind == "compiler_log_hash":
+            (output / "build/compile.stdout.log").write_text((output / "build/compile.stdout.log").read_text() + "\n")
+        elif kind == "dependency_log_hash":
+            (output / "library_dependencies.stdout.log").write_text("lib.so => /foreign/lib.so (0x0000)\n")
+        else:
+            identity["dependency_sha256"] = {"/foreign/lib.so": "d" * 64}
+        dump(output, "build_identity.json", identity)
+    fake_native(monkeypatch, tmp_path, contract, mutate)
+    with pytest.raises(RuntimeError, match="compiler|log|commands"):
+        adapter.MFrontHyperelasticAdapter().solve(tmp_path / "out", spec())
+    assert (tmp_path / "out/native_raw.json").is_file()
+    assert not (tmp_path / "out/analysis_raw.json").exists()
+
+
+@pytest.mark.parametrize("text", ["lib.so => not found\n", "unrecognized\n", "lib.so => /lib/a.so (0x0)\nlib.so => /lib/a.so (0x1)\n", "lib.so => /lib/../foreign.so (0x0)\n", "\x00"])
+def test_unresolved_duplicate_or_malformed_library_dependency_binding_refuses(text):
+    with pytest.raises(ValueError):
+        worker.library_dependency_paths(text)
+
+
+@pytest.mark.parametrize("wrapper,nested_compiler,flag", [
+    ("sh -c", "PINNED", "-march=native"),
+    ("/bin/bash -c", "PINNED", "-flto"),
+    ("/bin/dash -c", "PINNED", "-ffast-math"),
+    ("env sh -c", "PINNED", "-Ofast"),
+    ("sh -c", "g++", "-march=native"),
+    ("bash -c", "/usr/bin/g++", "-ffast-math"),
+    ("sh -c", "clang++", "-flto"),
+    ("bash -c", "/usr/bin/clang++", "-Ofast"),
+    ("sh -c", "gcc", "-mtune=native"),
+    ("sh -c", "/usr/bin/x86_64-linux-gnu-g++-12", "-march=native"),
+    ("sh -c", "c++", "-ffast-math"),
+    ("bash -c", "../bin/cc", "-flto"),
+    ("unknown-wrapper", "PINNED", "-ffast-math"),
+    ("unknown-wrapper", "clang++", "-flto"),
+    ("unknown-wrapper", '"/usr/bin/clang++"', "-march=native"),
+    ("sh -c", "g'++'", "-Ofast"),
+])
+def test_quoted_nested_or_alternate_compiler_is_not_skipped_after_valid_five_commands(wrapper, nested_compiler, flag):
+    text, compiler, flags = actual_compiler_case()
+    nested_compiler = compiler if nested_compiler == "PINNED" else nested_compiler
+    payload = nested_compiler + " " + flag + " -c " + worker.BEHAVIOUR + ".cxx -o " + worker.BEHAVIOUR + ".o"
+    text += wrapper + " " + shlex.quote(payload) + "\n"
+    with pytest.raises(ValueError, match="Unknown/wrapped"):
+        worker.compiler_command_evidence(text, compiler, flags)
+
+
+@pytest.mark.parametrize("prefix,executable", [
+    ("env ", "PINNED"), ("ccache ", "PINNED"), ("", "gcc"), ("", "/usr/bin/clang++"),
+    ("", "'PINNED'"), ("sh -c ", '"PINNED"'),
+])
+def test_extra_env_quoted_executable_or_alternate_compile_never_bypasses_complete_build(prefix, executable):
+    text, compiler, flags = actual_compiler_case()
+    executable = executable.replace("PINNED", compiler)
+    text += prefix + executable + " -ffast-math " + worker.BEHAVIOUR + ".cxx -o " + worker.BEHAVIOUR + ".o -c\n"
+    with pytest.raises(ValueError):
+        worker.compiler_command_evidence(text, compiler, flags)
+
+
+def test_quoted_direct_pinned_executable_retains_all_actual_stage_tokens():
+    text, compiler, flags = actual_compiler_case()
+    before = worker.compiler_command_evidence(text, compiler, flags)
+    after = worker.compiler_command_evidence(text.replace(compiler, '"' + compiler + '"'), compiler, flags)
+    assert len(after) == 5
+    assert [record["tokens"] for record in after] == [record["tokens"] for record in before]
+    assert [record["stage"] for record in after] == [record["stage"] for record in before]

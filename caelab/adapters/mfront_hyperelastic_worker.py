@@ -12,6 +12,7 @@ import math
 import os
 from pathlib import Path
 import platform
+import re
 import shlex
 import time
 
@@ -29,6 +30,7 @@ MAX_FILE_BYTES = 128 * 1024 ** 2
 F_COMPONENTS = ("xx", "yy", "zz", "xy", "yx", "xz", "zx", "yz", "zy")
 F_NAMES = ("FXX", "FYY", "FZZ", "FXY", "FYX", "FXZ", "FZX", "FYZ", "FZY")
 IDENTITY = [1., 1., 1., 0., 0., 0., 0., 0., 0.]
+MTEST_DEFORMATION_GRADIENT_EPSILON = 1e-14
 SOURCE_NAMES = {"domain_reference.py", "domain_init.py", "mfront_hyperelastic.py",
     "mfront_hyperelastic_worker.py", "mfront_material.py", "mfront_material_worker.py",
     "codeaster_elasticity.py", "codeaster_execution.py", "execution_control.py"}
@@ -231,6 +233,9 @@ def integrate_history(binding, behaviour, settings, library_sha, output):
             # observation; no finite-difference manager is ever updated.
             binding.update(nominal)
             baseline = snapshot(nominal, nominal.s0, properties, external, dt)
+            step["nominal_after_update"] = deepcopy(baseline)
+            step["nominal_after_update_sha256"] = state_hash(baseline)
+            save(output / "mgis.partial.json", raw)
     except BaseException as error:
         raw["execution_failure"] = {"type": type(error).__name__, "message": str(error)}
         save(output / "mgis.partial.json", raw)
@@ -246,7 +251,7 @@ def mtest_history(module, library, settings, output):
     test.setBehaviour("generic", str(library), BEHAVIOUR)
     test.setMaximumNumberOfSubSteps(1)
     test.setMaximumNumberOfIterations(10)
-    test.setDeformationGradientEpsilon(1e-14)
+    test.setDeformationGradientEpsilon(MTEST_DEFORMATION_GRADIENT_EPSILON)
     test.setStressEpsilon(1e-10)
     for name, value in {"YoungModulus": settings["material"]["youngs_modulus_mpa"], "PoissonRatio": settings["material"]["poisson_ratio"]}.items():
         test.setMaterialProperty(name, value)
@@ -262,7 +267,8 @@ def mtest_history(module, library, settings, output):
     test.initializeCurrentState(state)
     test.initializeWorkSpace(workspace)
     record = {"library_sha256": library_sha, "steps": [], "stress_measure": "Cauchy_Kelvin6",
-        "gradient_names": list(F_NAMES), "substep_limit": 1, "stored_energy": "UNKNOWN", "dissipated_energy": "UNKNOWN"}
+        "gradient_names": list(F_NAMES), "substep_limit": 1, "stored_energy": "UNKNOWN", "dissipated_energy": "UNKNOWN",
+        "deformation_gradient_epsilon": MTEST_DEFORMATION_GRADIENT_EPSILON}
     save(output / "mtest.partial.json", record)
     try:
         for previous, entry in zip(settings["history"], settings["history"][1:]):
@@ -274,7 +280,8 @@ def mtest_history(module, library, settings, output):
             if len(gradients) != 9 or len(stress) != 6 or not all(math.isfinite(v) for v in gradients + stress):
                 raise ValueError("MTest did not expose complete finite physical9 F/Kelvin6 Cauchy")
             record["steps"].append({"phase": "INTEGRATED", "time_s": entry["time_s"], "dt_s": entry["time_s"] - previous["time_s"],
-                "deformation_gradient": gradients, "cauchy_stress_kelvin_mpa": stress, "integration_return": 1,
+                "deformation_gradient": gradients, "imposed_deformation_gradient": list(entry["deformation_gradient"]),
+                "cauchy_stress_kelvin_mpa": stress, "integration_return": 1,
                 "return_semantics": "Documented void execute completed without exception", "iterations": int(state.iterations), "substeps": int(state.subSteps),
                 "elapsed_seconds": time.perf_counter() - started})
             test.printOutput(entry["time_s"], state)
@@ -361,6 +368,163 @@ def validated_policy(policy):
     return deepcopy(policy)
 
 
+COMPILER_COMMAND_POLICY = "SVK_exact_compile_dependency_and_non_LTO_shared_link_v1"
+_LINK_LIBRARIES = ["MFrontProfiling", "TFELMaterial", "TFELMath", "TFELUtilities", "TFELException", "TFELNUMODIS"]
+_COMPILER_NAME = re.compile(
+    r"(?:^|[\s/\"';&|()])(?:[\w.+]+-)*(?:g\+\+|gcc|clang\+\+|clang|c\+\+|cc)"
+    r"(?:-[\d.]+)?(?=$|[\s\"';&|(),])")
+_COMPILER_WRAPPERS = {"sh", "bash", "dash", "zsh", "ksh", "env", "command", "exec", "ccache", "sccache", "distcc", "icecc"}
+
+
+def _logical_build_lines(text):
+    """Remove POSIX escaped newlines without executing or repairing the log."""
+    if not isinstance(text, str) or not text or "\x00" in text:
+        raise ValueError("Actual compiler log is empty, malformed or contains NUL")
+    buffer, quote, index = [], None, 0
+    while index < len(text):
+        char = text[index]
+        if char == "\\" and quote != "'":
+            if index + 1 == len(text):
+                raise ValueError("Unterminated compiler-log escape/continuation")
+            following = text[index + 1]
+            if following == "\n":
+                if index + 2 == len(text):
+                    raise ValueError("Unterminated compiler-log continuation")
+                index += 2
+                continue
+            if following == "\r" and text[index + 2:index + 3] == "\n":
+                if index + 3 == len(text):
+                    raise ValueError("Unterminated compiler-log continuation")
+                index += 3
+                continue
+            buffer.extend((char, following))
+            index += 2
+            continue
+        if char in ("'", '"'):
+            if quote is None:
+                quote = char
+            elif quote == char:
+                quote = None
+        if char in ("\r", "\n"):
+            if quote is not None:
+                raise ValueError("Unterminated or unsupported multiline compiler-log quote")
+            if char == "\r":
+                if text[index + 1:index + 2] != "\n":
+                    raise ValueError("Malformed compiler-log line ending")
+                index += 1
+            yield "".join(buffer)
+            buffer = []
+        else:
+            buffer.append(char)
+        index += 1
+    if quote is not None:
+        raise ValueError("Unterminated compiler-log quote")
+    if buffer:
+        yield "".join(buffer)
+
+
+def compiler_command_evidence(text, compiler, flags):
+    """Classify this fixed generated SVK build; shell tokens are never executed.
+
+    The original recipes remain in the hashed log. Normalized command strings
+    and full joined recipes bind every token, including continued flags. Source
+    compilation/dependency stages use the exact queried portable flags. The
+    non-LTO link consumes only their two objects and the fixed TFEL libraries.
+    """
+    if (not isinstance(compiler, str) or not compiler.startswith("/") or
+            any(char in compiler for char in ("\x00", "\n", "\r")) or
+            not isinstance(flags, list) or not all(isinstance(flag, str) for flag in flags) or
+            not {"-O2", "-fno-fast-math", "-std=c++20"}.issubset(flags)):
+        raise ValueError("Fixed compiler/exact portable flag identity is required")
+    sources = [BEHAVIOUR + ".cxx", BEHAVIOUR + "-generic.cxx"]
+    objects = [BEHAVIOUR + "-generic.o", BEHAVIOUR + ".o"]
+    records = []
+    for recipe in _logical_build_lines(text):
+        lexer = shlex.shlex(recipe, posix=True, punctuation_chars=";&|<>")
+        lexer.whitespace_split, lexer.commenters = True, ""
+        tokens = list(lexer)
+        segments, segment = [], []
+        for token in tokens:
+            if token == ";":
+                segments.append(segment)
+                segment = []
+            else:
+                segment.append(token)
+        segments.append(segment)
+        for command in segments:
+            if not command:
+                continue
+            executable = Path(command[0]).name
+            # A quoted nested command is one shlex token, so exact list-member
+            # checks lose its compiler and flags. Such payloads/wrappers are
+            # refused, never recursively executed or counted as harmless text.
+            compiler_like = (executable in _COMPILER_WRAPPERS or "g++" in executable or
+                             any(compiler in token or _COMPILER_NAME.search(token) for token in command))
+            if not compiler_like:
+                continue
+            if command[0] != compiler or command.count(compiler) != 1:
+                raise ValueError("Unknown/wrapped compiler command in actual build log")
+            if any(token in ("&", "&&", "|", "||", "<", "<<", ">>", "#") or
+                   "$(" in token or "`" in token for token in command):
+                raise ValueError("Unsupported compiler shell syntax in actual build log")
+            if any(token.startswith(("-march", "-mtune", "-flto")) or
+                   token in ("-ffast-math", "-ftree-vectorize", "-Ofast", "-fuse-linker-plugin")
+                   for token in command):
+                raise ValueError("Actual compiler command violates portable/non-LTO policy")
+            args = command[1:]
+            record = {"command": shlex.join(command), "tokens": command, "logical_recipe": recipe}
+            if "-M" in args:
+                if args.count("-M") != 1 or "-c" in args or "-shared" in args:
+                    raise ValueError("Ambiguous actual dependency command")
+                source = next((name for name in sources if name in args), None)
+                target = source[:-4] + ".d.$$" if source else None
+                if args != ["-M", *flags, source, ">", target]:
+                    raise ValueError("Actual dependency flags/source/output differ from fixed build")
+                record.update(stage="DEPENDENCY", source=source, target=target)
+            elif "-c" in args:
+                source = next((name for name in sources if name in args), None)
+                target = source[:-4] + ".o" if source else None
+                if args != [*flags, source, "-o", target, "-c"]:
+                    raise ValueError("Actual source compilation flags/source/object differ from fixed build")
+                record.update(stage="COMPILE", source=source, target=target)
+            elif "-shared" in args:
+                expected = ["-shared", *objects, "-o", "libBehaviour.so", "-L" + TFEL_PREFIX + "/lib",
+                            *("-l" + name for name in _LINK_LIBRARIES)]
+                if args != expected:
+                    raise ValueError("Actual non-LTO shared link objects/target/TFEL dependencies differ")
+                record.update(stage="LINK", objects=objects, target="libBehaviour.so",
+                              library_search_paths=[TFEL_PREFIX + "/lib"], libraries=list(_LINK_LIBRARIES))
+            else:
+                raise ValueError("Unclassifiable actual compiler command")
+            records.append(record)
+    for stage in ("DEPENDENCY", "COMPILE"):
+        observed = [record["source"] for record in records if record["stage"] == stage]
+        if len(observed) != 2 or set(observed) != set(sources):
+            raise ValueError("Complete unique actual dependency/source compilations are required")
+    if len(records) != 5 or sum(record["stage"] == "LINK" for record in records) != 1:
+        raise ValueError("One actual shared-library link and no extra compiler commands are required")
+    return records
+
+
+def library_dependency_paths(text):
+    """Bind the recorded native ldd paths, without claiming current host bytes."""
+    if not isinstance(text, str) or "\x00" in text or "not found" in text:
+        raise ValueError("Malformed/unresolved native library dependency log")
+    paths = []
+    for line in text.splitlines():
+        parts = line.split()
+        path = parts[2] if len(parts) > 2 and parts[1] == "=>" else (parts[0] if parts else "")
+        if path.startswith("/"):
+            if path in paths or ".." in Path(path).parts:
+                raise ValueError("Duplicate/noncanonical actual library dependency path")
+            paths.append(path)
+        elif parts and not parts[0].startswith("linux-vdso."):
+            raise ValueError("Unknown actual native library dependency line")
+    if not paths:
+        raise ValueError("Actual library dependency paths are absent")
+    return paths
+
+
 def build_native(output, transport):
     if not SOURCE_PATH.is_file() or SOURCE_PATH.stat().st_size != 3002 or sha256(SOURCE_PATH) != SOURCE_SHA256:
         raise ValueError("Installed tests SVK source differs from exact pinned 3002-byte source; gallery fallback forbidden")
@@ -392,24 +556,32 @@ def build_native(output, transport):
     save(output / "runtime.json", runtime)
     flags = transport.portable_compiler_flags(runtime["tfel_recommended_oflags0"], runtime["tfel_cpp_compiler_flags"], runtime["tfel_include_path"])
     transport._command([tools["mfront"], *BUILD_ARGUMENTS], build, "generate", None)
-    expanded = transport._command([tools["make"], "-C", "src", "-f", "Makefile.mfront", "-j1", "--trace",
+    transport._command([tools["make"], "-C", "src", "-f", "Makefile.mfront", "-j1", "--trace",
         "CXX=" + tools["g++"], "CXXFLAGS=" + shlex.join(flags)], build, "compile", None)
-    commands = [line for line in expanded.splitlines() if tools["g++"] in line and any(token in line for token in (" -c", " -shared", " -M "))]
+    compile_log = build / "compile.stdout.log"
+    if compile_log.is_symlink() or not compile_log.is_file() or not 0 < compile_log.stat().st_size <= MAX_FILE_BYTES:
+        raise ValueError("Actual compiler log missing/linked/unbounded")
+    command_records = compiler_command_evidence(compile_log.read_text(encoding="utf-8"), tools["g++"], flags)
+    commands = [record["command"] for record in command_records]
     library, makefile = build / "src/libBehaviour.so", build / "src/Makefile.mfront"
     if not commands or not library.is_file() or not library.stat().st_size or not makefile.is_file():
         raise ValueError("Expanded actual compiler commands/library/Makefile missing")
     dependencies = transport._command([tools["ldd"], str(library)], output, "library_dependencies", 10)
     dependency_hashes = {}
-    for line in dependencies.splitlines():
-        parts = line.split()
-        name = parts[2] if len(parts) > 2 and parts[1] == "=>" else (parts[0] if parts else "")
-        if name.startswith("/") and Path(name).is_file():
-            dependency_hashes[name] = sha256(name)
-    if not dependency_hashes:
+    for name in library_dependency_paths(dependencies):
+        if not Path(name).is_file():
+            raise ValueError("Actual generated library dependency file is unavailable")
+        dependency_hashes[name] = sha256(name)
+    dependency_log = output / "library_dependencies.stdout.log"
+    if (dependency_log.is_symlink() or not dependency_log.is_file() or
+            library_dependency_paths(dependency_log.read_text(encoding="utf-8")) != list(dependency_hashes)):
         raise ValueError("Generated library dependency identities missing")
     identity = {"library_path": "build/src/libBehaviour.so", "library_sha256": sha256(library), "source_sha256": SOURCE_SHA256,
         "generation_arguments": list(BUILD_ARGUMENTS), "makefile_sha256": sha256(makefile), "actual_compiler_commands": commands,
         "compiler_commands_artifact": "build/compile.stdout.log", "compiler_flags_policy": COMPILER_POLICY,
+        "compiler_commands_sha256": sha256(compile_log), "compiler_command_policy": COMPILER_COMMAND_POLICY,
+        "compiler_command_evidence": command_records,
+        "dependency_artifact": "library_dependencies.stdout.log", "dependency_artifact_sha256": sha256(dependency_log),
         "compiler_flags_override": flags, "compiler_flags_makefile": [line for line in makefile.read_text().splitlines()
             if any(token in line for token in ("CXXFLAGS", "CPPFLAGS", "LDFLAGS", "CXX ", "CXX=", "INCLUDES", "-std="))],
         "dependency_sha256": dependency_hashes}

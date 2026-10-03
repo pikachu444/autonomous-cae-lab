@@ -161,3 +161,46 @@ energy_gradient_mpa. MTest steps use phase=INTEGRATED,time_s,dt_s,
 deformation_gradient,cauchy_stress_kelvin_mpa,integration_return. Both drivers
 bind the same top library_sha256; extra native metadata stays adapter-owned.
 Supplement fixes spellings only, not the math/history/limits/admission scope.
+
+## Actual compiler-log stage clarification
+
+Native01 from producer `627cde3900059535c7b190277a077676925970e6` exposed two
+evidence-parser defects: physical Make continuation lines were passed directly
+to shell tokenization, and shared linking was checked as source compilation.
+Retain that failed run and all raw observations. Normalize complete logical
+recipes as data, retain the original log/hash, classify every compiler command
+and compare complete worker/adapter records. Malformed/unterminated/NUL records,
+unclassified commands, missing expected stages, forbidden target flags,
+fast-math and LTO must fail closed. Portable `-O2`, `-fno-fast-math` and C++20
+are required for both generated sources' compilation and dependency processing.
+The non-LTO shared link must consume the exact expected objects and produce the
+declared library; it need not repeat source code-generation flags. See ADR0026
+for the official GCC basis. Preserve all Domain equations, native observation
+coverage, scientific thresholds, UNKNOWN/NOT_RELEASED states and existing
+Research admission boundaries. Actual-log cold regressions and independent
+review precede publication and a separate fresh-store native execution.
+
+## Actual committed state and MTest gradient supplement
+
+MGIS3 update resets the manager's K and copies native s1 to s0. Each successful
+nominal step must retain independent `nominal_after_update` and
+`nominal_after_update_sha256` immediately after the actual update. All physical
+snapshot fields/dt must equal `nominal_after_probes`, K must be exactly zero,
+and the next nominal/probe baseline must exactly match the committed snapshot
+with only the declared dt adjustment. The successful integration tangent stays
+in its existing pre-update observation. No probe updates history or supplies a
+replacement K; missing/corrupt/aliased update evidence fails closed.
+
+MTest's prescribed component-time maps and iterative e1 are distinct evidence.
+Each actual endpoint retains `imposed_deformation_gradient` exactly from the
+configured maps and `deformation_gradient` exactly from native e1. Record
+`deformation_gradient_epsilon=1e-14` in MTest metadata: this is the original
+worker's fixed solver criterion, not a new or enlarged tolerance. Require exact
+prescribed history/time/order and independently retain/check all9 actual F
+residuals strictly below that original criterion. Never round/overwrite e1,
+modify the solver epsilon, or substitute an observed-F scientific reference.
+MGIS nominal/probe F remains exact, all frozen stress/tangent/energy/all-h FD/
+objectivity/recovery limits remain unchanged, and missing metadata/map evidence
+fails closed. ADR0026 records the pinned official source basis and original
+native01 failure; that historical result is immutable. These raw supplements
+do not add a Core/wire operation, release claim or Research admission.

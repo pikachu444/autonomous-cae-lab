@@ -1,29 +1,31 @@
-## Current checkpoint: SVK adapter and common source integrated; native gate next
+## Current checkpoint: native01 retained failure; reviewed evidence correction; native02 next
 
-The exact corrected adapter/worker/test/official3002B fixture is ported to Main.
-The default registry and EXPERIMENTAL material_hyperelastic preset reuse the
-existing declared-model operation. Custom/empty registries, schemas/wire,
-old material/inverse/CAD/PDE/numerical engines and approved research model remain.
-Root203 cold tests PASS/0fail/errors/skips/1existing warning135.25s in an exact-byte
-fresh Linux snapshot; writer99 overlaps these203. Independent adapter51 checks
-close preflight-before-output and private-test-dependency P2s; no open P1/P2.
-Domain156/independent59 remain prior source evidence, not new native execution.
-All source and copied inputs survive before/after hash checks; historical attempts
-are retained. Native wall defaultNone/CPU86400 and scientific limits are unchanged.
-Record: benchmarks/records/20261003-svk-native-adapter-development.json.
-Exact prior fe5 CI37089799489: core2929PASS/5skips/1warning273.19s,7success/3fails
-(AsterFz numerical, vectorPDE classification, OpenRadioss HTTP404 before solver).
-That CI excludes this adapter/common candidate and is not new native proof.
-NEXT: publish reviewed source, then clean-source fresh
-runs/material-hyperelastic-nq-20261003-01 / E-material-hyperelastic-nq-01-svk:
-actual11endpoints/594signed clone probes/all3h/PK19/81tangent/native storedW and
-same-library MTest. Actual native qualification remains NOT_RUN; Research is
-NOT_ADMITTED/NOT_RUN and same-record GUI NOT_RUN until separate acceptance.
-Geometric native03 stays FAILED/metrics{} with only two-mesh partial evidence;
-no unchanged fine-mesh retry or criterion relaxation. Physical/material/strength/
-durability/FE-coupling/binary-source/corporate/remote-raw UNKNOWN; NOT_RELEASED.
-Whole52/Phases1-7 remain OPEN. After this native/Research/GUI gate continue
-ordered viscoelastic source, fixture contact/coupling, Phase6 and Phase7.
+At exact source627cde3900059535c7b190277a077676925970e6 the real SVK worker
+compiled/integrated11nominals/594signed probes, but Core FAILED_EXECUTION with
+metrics{}: compiler recipe parsing and committed-state/MTest consumer defects.
+Original Domain FAIL/all21invalid and every old artifact stay immutable.
+Independent raw math:605observations/33all-h FD sets/31PASS,12retained contract
+failures; raw values passing does not promote the failed experiment.
+Root ports the exact independently reviewed6-file correction.474 cold tests
+PASS(303Domain+151adapter+17legacy+3integration),0fail/errors/skips,161.48s.
+Compiler/composition/byte-closure and separate state auditor have0openP1/P2.
+Equations, scientific thresholds,21metrics, Core/wire/optimizer and authorized
+research model/auth remain unchanged. Actual MGIS committed K reset and actual
+MTest e1 are recorded; original strict1e-14 imposed-F residual criterion remains.
+All4old stores/1204files and frozen candidates/audits survive hash checks.
+Records: benchmarks/records/20261003-svk-native01-retained-failure.json and
+benchmarks/records/20261003-svk-compiler-evidence-correction.json.
+Exact prior627 CI37092103573:3022PASS/5skips/1warning357.05s;7success/3fails
+(AsterFz numerical, vectorPDE classification, OpenRadioss404 before solver).
+That prior CI is not corrected native proof. NEXT: publish reviewed source,
+then clean-source fresh runs/material-hyperelastic-nq-20261003-02 /
+E-material-hyperelastic-nq-02-svk and independent full raw/native audit.
+Corrected native NOT_RUN; Research NOT_ADMITTED; same-record GUI NOT_RUN.
+Geometric native03 remains FAILED/metrics{} with two-mesh partial evidence;
+fine/smallangle UNKNOWN, no unchanged failed rerun or criterion relaxation.
+Physical/strength/durability/FEcoupling/binary-source/corporate/remote-raw UNKNOWN;
+NOT_RELEASED. Whole52/Phases1-7 remain OPEN. Continue ordered Research/GUI,
+preserved viscoelastic source, fixture contact/coupling, Phase6 and Phase7.
 
 ---
 
@@ -53,7 +55,7 @@ Whole52/Phase5-7/physical/deployment stay OPEN/UNKNOWN, NOT_RELEASED.
 
 - [x] P5.2a pure Domain/math/strict observation contract/source review/main-import tests.
 - [x] Geometric native03 partial raw/field/mesh audit and output-P2 actual closure.
-- [ ] P5.2a native adapter/worker cold/source gate and common integration.
+- [x] P5.2a native adapter/worker cold/source gate and common integration; reviewed correction474PASS. Actual qualification is separate.
 - [ ] P5.2a fresh native11endpoints/594probes/energy/MTest independent qualification.
 - [ ] New Research/human inspection; P5.2b preserved visco, contact/fixture coupling.
 - [ ] Geometric fine/smallangle/whole criteria and failed-record runtime provenance remain OPEN.

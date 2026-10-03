@@ -1,0 +1,193 @@
+{
+  "schema_version": "1",
+  "record_id": "svk-native01-retained-failure-20261003",
+  "producer_source_commit": "627cde3900059535c7b190277a077676925970e6",
+  "store": "runs/material-hyperelastic-nq-20261003-01",
+  "study_id": "S-material-hyperelastic-nq-01",
+  "experiment_id": "E-material-hyperelastic-nq-01-svk",
+  "core_status": "FAILED_EXECUTION",
+  "solver_status": "FAILED_EXECUTION",
+  "converged": null,
+  "core_metrics": {},
+  "decision": "NOT_RELEASED",
+  "original_failure": "Malformed native hyperelastic evidence: No escaped character",
+  "original_frozen_Domain": {
+    "numerical_status": "FAIL",
+    "failed_checks": [
+      "native_history",
+      "immutable_probe_state"
+    ],
+    "all_21_metrics_valid": false
+  },
+  "actual_observations": {
+    "nominal_endpoints": 11,
+    "signed_probes": 594,
+    "FD_records": 33,
+    "FD_steps": [
+      1e-07,
+      1e-08,
+      1e-09
+    ],
+    "PK1_components": 9,
+    "tangent_components": 81,
+    "native_stored_reference_volume_energy": true,
+    "same_library_MTest_endpoints": 11,
+    "worker_exit_code": 0,
+    "wall_limit_seconds": null,
+    "native_qualification": "FAILED_NOT_PROMOTED"
+  },
+  "independent_audit": {
+    "status": "NUMERICAL_VALUES_BOUNDED_PASS_RAW_CONTRACT_FAIL_CORE_FAILED",
+    "pass_controls": 31,
+    "preserved_failed_contract_controls": 12,
+    "coverage": {
+      "FD_records": 33,
+      "MTest_history": 11,
+      "all_PK1_components": 9,
+      "all_native_W": true,
+      "all_tangent_components": 81,
+      "distinct_Decimal80_F": 495,
+      "native_h_values": [
+        1e-07,
+        1e-08,
+        1e-09
+      ],
+      "native_records": 605,
+      "nominal": 11,
+      "objectivity_pairs": 7,
+      "recovery_pairs": 2,
+      "signed_probes": 594
+    },
+    "scientific_thresholds": "UNCHANGED",
+    "report": {
+      "path": "artifacts/development-material-point-20261003-01/native-qualification-review-01/REPORT.md",
+      "size_bytes": 19581,
+      "sha256": "5aca76da259bef572aa68571f7c69b62d9fa017f3f7032a109f55fbf0d34aca8"
+    },
+    "freeze": {
+      "path": "artifacts/development-material-point-20261003-01/native-qualification-review-01/freeze-receipt.json",
+      "size_bytes": 9788,
+      "sha256": "6654c183b8f82026d46efb2d50dbc3dedc72e04136eee902961e30af9e329a4c"
+    },
+    "mathematical_receipt": {
+      "path": "artifacts/development-material-point-20261003-01/native-qualification-review-01/math-run-02/raw-math-audit.json",
+      "size_bytes": 8280,
+      "sha256": "51c94b3ff07d7384b14cba8a37df098439922f74331bcf5f26f64db0fa29b6dc"
+    },
+    "source_findings": [
+      "Physical Make continuation tokenization defect",
+      "Source-codegen flag requirement incorrectly applied to non-LTO link",
+      "Pre-update Kcache wrongly assumed to be committed baseline",
+      "Solved MTest e1 wrongly assumed bit-identical to prescribed F"
+    ],
+    "finding_status": "OPEN_FOR_NEW_SOURCE_CORRECTION_AND_NATIVE_QUALIFICATION"
+  },
+  "retention": {
+    "store_file_count": 685,
+    "store_size_bytes": 22053382,
+    "producer_receipt": {
+      "path": "artifacts/development-material-point-20261003-01/native-qualification-01/receipt.json",
+      "size_bytes": 173262,
+      "sha256": "14b73e888bfbc43edb9e097e3ea211b266326512e77e1ac79b6af88429cdfc3b"
+    },
+    "raw": {
+      "bytes": 5775508,
+      "sha256": "a89bbbceff76d26af1d6831557337c4cb0806e99e6274c617dcc8f1a686ed2c9"
+    },
+    "library": {
+      "bytes": 186944,
+      "sha256": "f2fc1df1f580879dc035f144aa0cea0c91ecf0429e8c9d1e1087e85218d15eb8"
+    },
+    "original_store_unchanged": true,
+    "historical_audit_guard": {
+      "files": 1574,
+      "bytes": 44046053,
+      "unchanged": true
+    },
+    "final_audit_guard": {
+      "files": 1573,
+      "bytes": 44044673,
+      "unchanged": true
+    },
+    "declared_guard_difference": "Root-owned .gitattributes added one exact recipe-fixture -text line after historical audit; independent reconstruction matches original source hash",
+    "remote_raw_durability": "UNKNOWN"
+  },
+  "exact_source_CI": {
+    "source_commit": "627cde3900059535c7b190277a077676925970e6",
+    "run_id": 37092103573,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37092103573",
+    "conclusion": "failure",
+    "core": "3022 passed, 5 skipped, 1 warning in 357.05s",
+    "job_results": [
+      {
+        "name": "core",
+        "conclusion": "success"
+      },
+      {
+        "name": "research-driver-source",
+        "conclusion": "success"
+      },
+      {
+        "name": "native-registration",
+        "conclusion": "success"
+      },
+      {
+        "name": "codeaster",
+        "conclusion": "failure"
+      },
+      {
+        "name": "pde",
+        "conclusion": "failure"
+      },
+      {
+        "name": "optimization",
+        "conclusion": "success"
+      },
+      {
+        "name": "structural",
+        "conclusion": "success"
+      },
+      {
+        "name": "doe",
+        "conclusion": "success"
+      },
+      {
+        "name": "explicit",
+        "conclusion": "failure"
+      },
+      {
+        "name": "native",
+        "conclusion": "success"
+      }
+    ],
+    "distinct_failures": [
+      "Code_Aster E-ansys_vmd1_regular-Fz-aster numerical checks",
+      "Vector PDE numerical classification",
+      "OpenRadioss HTTP404 before solver"
+    ],
+    "native_hyperelastic_qualification": "NOT_RUN_BY_THIS_CI",
+    "receipt": {
+      "path": "artifacts/development-material-point-20261003-01/ci-627-01/receipt.json",
+      "size_bytes": 2959,
+      "sha256": "ae425f680064c4723c8102c71f635830f439caade962a18d4997c305560d0550"
+    }
+  },
+  "not_run": {
+    "OpenScience_question": true,
+    "hyperelastic_GUI": true,
+    "corrected_source_native02": true
+  },
+  "unknown": [
+    "physical_model",
+    "material",
+    "strength",
+    "durability",
+    "FE_constitutive_coupling",
+    "native_dissipation",
+    "MTest_energy",
+    "upstream_binary_source_equivalence",
+    "corporate_approval"
+  ],
+  "next_gate": "Reviewed evidence correction, clean-source new store native02; original native01 is immutable",
+  "whole52": "OPEN"
+}
