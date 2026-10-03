@@ -525,7 +525,13 @@ def test_mock_worker_command_graph_archives_real_fixture_zero_and_exact_beam_pol
             if name == "DEBUT": (Path.cwd() / "fort.20").write_bytes((level / "mesh.mail").read_bytes())
             if name == "LIRE_MAILLAGE": return NativeMesh(expected)
             if name in ("STAT_NON_LINE", "CALC_CHAMP"): return Result()
-            if name == "IMPR_RESU": (level / "results.med").write_bytes(b"MOCK_UNSOLVED_MED_NOT_NATIVE")
+            if name == "IMPR_RESU":
+                if kwargs["FORMAT"] == "MED":
+                    (level / "results.med").write_bytes(b"MOCK_UNSOLVED_MED_NOT_NATIVE")
+                elif kwargs["FORMAT"] == "RESULTAT":
+                    (level / "aster.resu").write_bytes(b"MOCK_UNSOLVED_RESULTAT_NOT_NATIVE")
+                else:
+                    pytest.fail("Unsupported native output format")
             if name == "CREA_TABLE":
                 selection = kwargs["RESU"]
                 state = next(item for item in fixture["states"] if item["order"] == selection["NUME_ORDRE"])
@@ -554,7 +560,45 @@ def test_mock_worker_command_graph_archives_real_fixture_zero_and_exact_beam_pol
     assert prescribed["DDL_IMPO"] == ({"GROUP_NO": "BEAM", "DZ": 0.}, {"GROUP_NO": "CLAMP", "DX": 0., "DY": 0., "DRX": 0., "DRY": 0., "DRZ": 0.})
     section = next(kwargs for name, kwargs in calls if name == "AFFE_CARA_ELEM")
     assert section["POUTRE"]["CARA"] == ["HY", "HZ"] and section["POUTRE"]["VALE"] == [2., 1.]
+    outputs = [kwargs for name, kwargs in calls if name == "IMPR_RESU"]
+    assert [(output["FORMAT"], output["UNITE"]) for output in outputs] == [("MED", 80), ("RESULTAT", 8)]
+    assert outputs[0]["RESU"]["RESULTAT"] is outputs[1]["RESU"]["RESULTAT"]
+    for output in outputs:
+        assert output["RESU"]["NOM_CHAM"] == ("DEPL", "REAC_NODA", "SIEF_ELGA", "VARI_ELGA")
+        assert output["RESU"]["TOUT_ORDRE"] == "OUI"
+    assert (level / "results.med").read_bytes() == b"MOCK_UNSOLVED_MED_NOT_NATIVE"
+    assert (level / "aster.resu").read_bytes() == b"MOCK_UNSOLVED_RESULTAT_NOT_NATIVE"
     saved = load_json(level / "worker_result.json")
     assert len(saved["states"]) == 5 and saved["states"][0]["order"] == 0
     assert saved["states"][0]["tables"]["DEPL"] == fixture["states"][0]["tables"]["DEPL"]
     assert (level / "order_0_vari_elga.table.json").is_file() and (level / "native_history.partial.json").is_file()
+
+
+@pytest.mark.parametrize("missing", [False, True], ids=["empty-resultat", "missing-resultat"])
+def test_missing_or_empty_native_resultat_refuses_completion_and_retains_partial(monkeypatch, tmp_path, missing):
+    """Cold completed-field fixture cannot replace the required native text file."""
+    retained = {}
+
+    def solver(folder, calls):
+        write_native_fixture(folder, load_json(folder / "input.json")["settings"], adapter.elastic.process_budgets())
+        retained["worker_result"] = (folder / "worker_result.json").read_bytes()
+        if missing:
+            (folder / "aster.resu").unlink()
+        else:
+            (folder / "aster.resu").write_bytes(b"")
+
+    _, calls = mock_execution(monkeypatch, tmp_path, solver=solver)
+    output = tmp_path / "simulation"
+    with pytest.raises(RuntimeError, match="Required native beam evidence is missing: aster.resu"):
+        adapter.CodeAsterGeometricAdapter().solve(output, domain.default_settings())
+    assert not (output / "analysis_raw.json").exists()
+    assert len([call for call in calls if call["label"] == "solver"]) == 1
+    level = output / "level_0"
+    assert (level / "worker_result.json").read_bytes() == retained["worker_result"]
+    assert (level / "results.med").read_bytes() == b"MOCK_UNSOLVED_MED_NOT_NATIVE"
+    assert (output / "scratch" / "level_0").is_dir()
+    assert not (output / "level_1").exists()
+    if missing:
+        assert not (level / "aster.resu").exists()
+    else:
+        assert (level / "aster.resu").stat().st_size == 0

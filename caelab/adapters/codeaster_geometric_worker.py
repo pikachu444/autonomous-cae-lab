@@ -456,8 +456,10 @@ def solve_level(input_path: str) -> None:
     result = CALC_CHAMP(reuse=result, RESULTAT=result, FORCE="REAC_NODA")
     access, indexes = result.getAccessParameters(), list(result.getIndexes())
     _save(output / "native_access_parameters.json", {"available_orders": indexes, "access_parameters": access})
-    # Preserve native MED even if a subsequent unsupported table layout fails.
+    # Preserve native MED and text fields before any subsequent table-layout failure.
     IMPR_RESU(FORMAT="MED", UNITE=80, RESU=_F(RESULTAT=result,
+        NOM_CHAM=("DEPL", "REAC_NODA", "SIEF_ELGA", "VARI_ELGA"), TOUT_ORDRE="OUI"))
+    IMPR_RESU(FORMAT="RESULTAT", UNITE=8, RESU=_F(RESULTAT=result,
         NOM_CHAM=("DEPL", "REAC_NODA", "SIEF_ELGA", "VARI_ELGA"), TOUT_ORDRE="OUI"))
     pairs = _order_times(access, indexes, history["times_s"])
     states = []

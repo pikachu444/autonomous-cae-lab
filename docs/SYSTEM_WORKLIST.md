@@ -1,5 +1,39 @@
 # Sequential system worklist
 
+## Current D4.1 native failure/output correction; ordered D4.2 source active
+
+Beam source ff0028a9db66a35035b8e1c6f36fbaa0754c9dd4 is main-push confirmed.
+Actual default native01 fails Newton40 at its second nonzero increment. The
+declared21-state same-load native02 converges all21 level0 states, but Core
+FAILED_EXECUTION: the required aster.resu is0bytes. Both failures/208 original
+files and immutable independent seals are retained; other meshes/small-angle
+are NOT_RUN. Numerical success, Research admission and field GUI are not claimed.
+Output-only correction prints actual RESULTAT/unit8 for the same four native
+fields/allorders. Strict evidence, scientific limits/Newton40/budgets and
+Domain/Core/registry/Research/provider/auth are unchanged. Actual Python3.12.3
+Linux-scratch71 cold tests PASS9.67s;57 independent source checks close0P1/P2.
+Real corrected output and full native numerical acceptance remain NOT_RUN.
+Record: `benchmarks/records/20261003-geometric-beam-output-correction.json`.
+
+Exactff CI37083657255 completed7SUCCESS/3FAIL; Core2771PASS/5skips/1warning.
+PDE vector classification, Aster Fz native checks and explicit download404
+remain distinct OPEN gates; this is not corrected-source native verification.
+D4.2/P5.2a packet/ADR0026 freeze bounded SVK PK1/DPK1_DF, independent energy
+Hessian/full-state/all-h native FD and native stored-energy gates. Private pure
+Domain implementation is ACTIVE; main material/native integration NOT_RUN.
+Existing material/inverse and six retained visco drafts are preserved. The old
+hyperelastic proposal was NOT_LOCATED in scoped recovery, not assumed complete.
+Physical/model/material/strength/durability/deployment UNKNOWN, NOT_RELEASED,
+mounted-store latency and whole52/Phase5-7 OPEN. Earlier snapshots are history.
+
+- [x] D4.1 source integration/main publication and actual failed native01/02 diagnosis.
+- [x] Output-only correction/71 cold tests/57 independent source controls.
+- [ ] Fresh corrected native03/three meshes/small angle/independent raw audit.
+- [ ] Explicit beam Research admission and same-record field GUI.
+- [x] D4.2 material recovery and official finite-strain packet/ADR0026.
+- [ ] P5.2a SVK Domain/native/shared source and separate full native qualification.
+- [ ] P5.2b reuse/rebase six preserved visco drafts, then contact/fixture coupling.
+
 ## Current D4.1/P5.1 finite-rotation beam — reviewed source checkpoint
 
 `structural.code_aster.geometric_nonlinearity` now reuses the existing
@@ -947,7 +981,7 @@ This evidence/docs checkpoint is not another solver run.
 - [ ] P5.1: freeze and execute a geometric-nonlinearity reference, full loads/
   displacement/stress/reactions/energy and genuine convergence histories.
   Whole MIDAS §9 inventory guides branching/large-rotation/path-control coverage.
-- [ ] P5.2a: review the preserved hyperelastic proposal, then implement/run its
+- [ ] P5.2a: implement the recovered official SVK packet/ADR0026, then run its
   declared reference and independent tangent/energy checks within one packet.
 - [ ] P5.2b: review preserved viscoelastic working files before implementation
   resumes; verify MGIS/MTest state/tangent/FD/stored/dissipated-energy histories

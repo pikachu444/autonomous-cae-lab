@@ -1,0 +1,332 @@
+{
+  "schema": 1,
+  "record_id": "20261003-geometric-beam-output-correction",
+  "created_utc": "2026-10-03T01:28:39.585023+00:00",
+  "kind": "BOUNDED_OUTPUT_ONLY_SOURCE_CORRECTION_WITH_RETAINED_NATIVE_FAILURES",
+  "status": "SOURCE_CORRECTION_REVIEWED; FRESH_NATIVE_NOT_RUN",
+  "decision": "NOT_RELEASED",
+  "source_base_commit": "ff0028a9db66a35035b8e1c6f36fbaa0754c9dd4",
+  "source_identity": "Exact13 working-file pins; two changed files. This source checkpoint is not a new native run.",
+  "backend": "structural.code_aster.geometric_nonlinearity",
+  "source_files": [
+    {
+      "path": "plugins/geometric_nonlinearity/__init__.py",
+      "size_bytes": 311,
+      "sha256": "737793b4438476b20872d425c805aef1fa46d9acaab1289814421b44da2518d7"
+    },
+    {
+      "path": "plugins/geometric_nonlinearity/reference.py",
+      "size_bytes": 32286,
+      "sha256": "b65608ab9fab4b9fb2ed6ff2e0bf21ed7f89815bab4788a1e64943f5eab677fc"
+    },
+    {
+      "path": "caelab/adapters/codeaster_geometric.py",
+      "size_bytes": 26618,
+      "sha256": "6e13ae82a6acbb66cd16ef7d87328a1c2e9803fcfe0c459b33beecb328edace9"
+    },
+    {
+      "path": "caelab/adapters/codeaster_geometric_worker.py",
+      "size_bytes": 32795,
+      "sha256": "dccd9daa984524afd629285e52daa454512a42e4e9f3614f3f559bf234861e39"
+    },
+    {
+      "path": "caelab/engine.py",
+      "size_bytes": 47247,
+      "sha256": "0e701da954e65b552e081bc0670fd25a948fb8c3fc77f82c3cd85cf98a0abfbe"
+    },
+    {
+      "path": "apps/lab/service.py",
+      "size_bytes": 40159,
+      "sha256": "789c271526fcece8f7b04bc1d6afc530a4c7747ebd600850e0718dbc8c89cd63"
+    },
+    {
+      "path": "tests/test_codeaster_geometric.py",
+      "size_bytes": 37957,
+      "sha256": "0c0406de44faf36393707207664c03704975cb201a73dbbbdab75199f71e55f5"
+    },
+    {
+      "path": "tests/test_geometric_nonlinearity_reference.py",
+      "size_bytes": 29063,
+      "sha256": "95bcb236780e8d9e0a73b3241bbe29156f00cb86e66b70031a747abe6307d0f9"
+    },
+    {
+      "path": "tests/test_geometric_integration.py",
+      "size_bytes": 6149,
+      "sha256": "15b48abbc70dacd97c91c3ab382413f15cba00d92b295ab6b3ef779fddc8f83c"
+    },
+    {
+      "path": "tests/test_backend_integration.py",
+      "size_bytes": 4601,
+      "sha256": "5e4625f7be4006d9d62bf48c7d02d4f2f663aade3b1d76850a656756e3c7a028"
+    },
+    {
+      "path": "tests/test_lab_server.py",
+      "size_bytes": 38024,
+      "sha256": "ad4db20f85f2597b6883b2d92e1ecedf21235addb1b4469dea7de62ce6673202"
+    },
+    {
+      "path": "openscience/tests/native_guard.test.mjs",
+      "size_bytes": 112382,
+      "sha256": "3674a17cf4458adb03ed06bdfaa48878acae93c5b1df1ef5e01f7983f419b248"
+    },
+    {
+      "path": "scripts/verify_mcp.py",
+      "size_bytes": 12821,
+      "sha256": "0b1a31923434685a637669adc6a058c4f2333126522fadbcc9e6e08a63cfb8e2"
+    }
+  ],
+  "changed_files": [
+    {
+      "path": "caelab/adapters/codeaster_geometric_worker.py",
+      "size_bytes": 32795,
+      "sha256": "dccd9daa984524afd629285e52daa454512a42e4e9f3614f3f559bf234861e39"
+    },
+    {
+      "path": "tests/test_codeaster_geometric.py",
+      "size_bytes": 37957,
+      "sha256": "0c0406de44faf36393707207664c03704975cb201a73dbbbdab75199f71e55f5"
+    }
+  ],
+  "correction": {
+    "worker": "Print actual RESULTAT unit8 after MED80, same native result/four fields/allorders, before table extraction",
+    "adapter": "UNCHANGED strict nonempty aster.resu evidence requirement",
+    "scientific_policy": "UNCHANGED Domain/default history/limits/Newton40/budgets/mesh/frame conventions",
+    "common_and_research": "UNCHANGED Core/registry/wire/profiles/provider/model/auth",
+    "primary_catalogue": {
+      "commit": "50ebc13c70ee9df62faf93ddcb746a3757b3042a",
+      "url": "https://gitlab.com/codeaster/src/-/raw/50ebc13c70ee9df62faf93ddcb746a3757b3042a/code_aster/Cata/Commands/impr_resu.py",
+      "local_path": "artifacts/development-geometric-nonlinearity-20261003-01/official-source-01/sources/code_aster/Cata/Commands/impr_resu.py",
+      "bytes": 25099,
+      "sha256": "a1d88a57c3fedeaef5e016efbf1d7231f1533f85be20b85b93e7f2b603196f5a",
+      "lines": [
+        "30: FORMAT enum RESULTAT",
+        "38-42: RESULTAT unit8 output",
+        "198-284: RESULTAT RESU with NOM_CHAM/TOUT_ORDRE"
+      ],
+      "retrieval": "Earlier official retained HTTP200 source receipt used; current web-view attempt returned403, no claim of fresh runtime catalogue or compiled equivalence",
+      "actual_identity": {
+        "path": "artifacts/development-geometric-nonlinearity-20261003-01/official-source-01/sources/code_aster/Cata/Commands/impr_resu.py",
+        "size_bytes": 25099,
+        "sha256": "a1d88a57c3fedeaef5e016efbf1d7231f1533f85be20b85b93e7f2b603196f5a"
+      },
+      "scope": "Retained official17.4 source catalogue; no live runtime catalogue import or compiled-equivalence claim"
+    }
+  },
+  "verification": {
+    "cold": {
+      "reported_suite": 71,
+      "supersedes": 69,
+      "additive": false,
+      "actual_pytest_seconds": 9.67,
+      "runtime": {
+        "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+        "executable": "/home/pikachu444/.local/share/autonomous-cae-lab/venv-py312/bin/python",
+        "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39"
+      },
+      "red_receipt": {
+        "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-output-correction-01/red01/receipt.json",
+        "size_bytes": 853,
+        "sha256": "729a74ebc36fcf36d81a99d2befa848435bb0f39bca61eab816027d9f7d994fc"
+      },
+      "green_receipt": {
+        "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-output-correction-01/green01/receipt.json",
+        "size_bytes": 871,
+        "sha256": "ac3777948d63d046289549f222104575a5a06b7fa59476a49840a3126b5019ab"
+      },
+      "freeze_receipt": {
+        "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-output-correction-01/freeze-receipt.json",
+        "size_bytes": 8689,
+        "sha256": "26aec5c06a536b634790d2aa75ce668a243ec41a3ba45f9f829801fb8d1db114"
+      }
+    },
+    "independent_source": {
+      "checks": 57,
+      "open_P1_P2": 0,
+      "scope": "Output-only AST/catalogue/test-receipt/partial-artifact/old208-file retention review; no new solve"
+    },
+    "native_output_after_correction": "NOT_RUN"
+  },
+  "original_native_attempts": [
+    {
+      "store": "runs/geometric-nq-20261003-01",
+      "producer_commit": "ff0028a9db66a35035b8e1c6f36fbaa0754c9dd4",
+      "experiment_id": "E-geometric-nq-01-1rad",
+      "model_revision": "098c2567871a368e2c6cb5b14a4b82ff0e0c58eb4fb96b88369f02685245cbc3",
+      "status": "FAILED_EXECUTION",
+      "metrics": {},
+      "decision": "NOT_RELEASED",
+      "description": "Original five-state history: second nonzero increment exhausts Newton40",
+      "file_count": 49,
+      "size_bytes": 546600,
+      "remaining_meshes_and_small_angle": "NOT_RUN"
+    },
+    {
+      "store": "runs/geometric-nq-20261003-02",
+      "producer_commit": "ff0028a9db66a35035b8e1c6f36fbaa0754c9dd4",
+      "experiment_id": "E-geometric-nq-02-refined-1rad",
+      "model_revision": "8827ccbd35ed05da250fae7572d7035b7b8def25ac0d18ba0ac2335b424008ad",
+      "status": "FAILED_EXECUTION",
+      "metrics": {},
+      "decision": "NOT_RELEASED",
+      "description": "Declared21-state same-load variant: level0 converges but required text output is empty",
+      "file_count": 159,
+      "size_bytes": 2360689,
+      "remaining_meshes_and_small_angle": "NOT_RUN"
+    }
+  ],
+  "refinement": {
+    "generator": "numpy.linspace moments0..140 in21points; numpy.interp inverse times on original piecewise-linear load",
+    "original_points_preserved": [
+      0,
+      1,
+      5,
+      10,
+      20
+    ],
+    "max_moment_increment_n_mm": 7,
+    "same_function_probes": 129,
+    "max_difference_n_mm": 1.4210854715202004e-14,
+    "scope": "Declared numerical-engine input, not fabricated/interpolated native results; original five-state failure preserved",
+    "root_probe_evidence": "native-qualification-02/history-generation.json;129 actual generator probes",
+    "independent_piecewise_probe_observation": {
+      "count": 100,
+      "max_difference_n_mm": 2.842170943040401e-14,
+      "evidence": "native-diagnosis-01/native-diagnosis.json; independent piecewise load-path audit"
+    }
+  },
+  "actual_refined_level0": {
+    "states": 21,
+    "raw_tables": 105,
+    "native_MED_bytes": 275475,
+    "max_newton_iterations": 16,
+    "max_relative_residual": 9.452045495501e-11,
+    "max_absolute_residual": 7.472678476006e-09,
+    "missing_required_text_bytes": 0,
+    "independent_raw_checks": 358,
+    "scope": "Actual native observations only. Core FAILED_EXECUTION/metrics{}; full numerical acceptance not assessed"
+  },
+  "exact_parent_ci": {
+    "source": "ff0028a9db66a35035b8e1c6f36fbaa0754c9dd4",
+    "run_id": 37083657255,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37083657255",
+    "status": "COMPLETED_FAILURE",
+    "jobs_success": 7,
+    "jobs_failed": 3,
+    "core_passed": 2771,
+    "core_skipped": 5,
+    "core_warnings": 1,
+    "core_seconds": 312.69,
+    "failures": [
+      "PDE: Wrong vector numerical classification",
+      "Code_Aster: Native numerical checks failed: E-ansys_vmd1_regular-Fz-aster",
+      "Explicit: runtime download HTTP404 before solver"
+    ],
+    "scope": "Exactff source, not the corrected output source or new beam numerical qualification; no manual unchanged retry"
+  },
+  "new_official_research_admission": "NOT_ADMITTED",
+  "new_beam_field_GUI": "NOT_RUN",
+  "next_material_source": {
+    "status": "PRIVATE_DOMAIN_IMPLEMENTATION_ACTIVE; NATIVE_NOT_RUN",
+    "packet": {
+      "path": "docs/HYPERELASTIC_PACKET.md",
+      "size_bytes": 10586,
+      "sha256": "219ee7d09a7203c11be0dbcaf76cb8cf946a583fdfe6ab3ef11d1d2834880123"
+    },
+    "adr": {
+      "path": "ADR/0026-finite-strain-material-point.md",
+      "size_bytes": 2466,
+      "sha256": "feb84a68e1eedc70a15c32e2ae42a905171f3db2ccbb10865e1feb8f308f8255"
+    },
+    "recovery": {
+      "path": "artifacts/development-material-point-20261003-01/recovery-01/inventory.json",
+      "size_bytes": 55175,
+      "sha256": "a079017dc7e1c441e5dc1b2d1655f6275aae4d0d4cf6117a7c7519c06766e911"
+    },
+    "official_sources": {
+      "path": "artifacts/development-material-point-20261003-01/hyperelastic-source-01/recommendation.json",
+      "size_bytes": 20508,
+      "sha256": "1b8953fb1b61198ff5a2dcccc838890e29935ac2eed93a5fa803a08f0413f285"
+    },
+    "scope": "Bounded SVK large-rotation/small-strain material point; reuse existing runtime/material/inverse and preserve six visco drafts"
+  },
+  "next": [
+    "Commit/push reviewed correction, verify clean source, new immutable native03 store",
+    "All three meshes/all21 native states/reference/every-pair rates, then distinct small-angle history",
+    "Independent complete raw mathematical audit; separate Research/field GUI admission",
+    "Ordered D4.2/P5.2a SVK source/native energy-tangent gates, P5.2b preserved visco, contact/fixture coupling, Phase6/7"
+  ],
+  "proofs": {
+    "default_native_receipt": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-qualification-01/receipt.json",
+      "size_bytes": 17485,
+      "sha256": "51e29936f59c9bb7d3516838ea0217d874bab09612af5f45c5fc2927b448b3b3"
+    },
+    "default_independent_diagnosis": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-diagnosis-01/native-diagnosis.json",
+      "size_bytes": 28195,
+      "sha256": "cec7ebaf8cab01e5fcccad8f67c6a2f0d8d9715545134adfd0ebf655bb49ce97"
+    },
+    "default_seal": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-diagnosis-01/seal.json",
+      "size_bytes": 1619,
+      "sha256": "17999f0c68d37b1b60200e2c117a5f3e6177badd4453637e6831624237c3c4c3"
+    },
+    "refined_native_receipt": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-qualification-02/receipt.json",
+      "size_bytes": 43528,
+      "sha256": "94cf96f2984fcd7aa33b6765a303f1802be36c3d873ded081ca15b746bb08973"
+    },
+    "declared_refinement": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-qualification-02/history-generation.json",
+      "size_bytes": 1142,
+      "sha256": "ffbb77619b5a72d7fe837b72cc6a1b7e11415bd029d7374a3be1a2eb13c8c7b7"
+    },
+    "refined_independent_raw_diagnosis": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-output-review-01/raw-diagnosis.json",
+      "size_bytes": 19871,
+      "sha256": "1679c20a4fdacc731ac6fec2ce8b3213247d61602bd1c0976905b8b26539ca32"
+    },
+    "refined_raw_seal": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-output-review-01/raw-seal.json",
+      "size_bytes": 1037,
+      "sha256": "4699e7486c33425a92cd6d553a3d881fdb5b3d538106a465774901216263fae9"
+    },
+    "output_correction_cold_freeze": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-output-correction-01/freeze-receipt.json",
+      "size_bytes": 8689,
+      "sha256": "26aec5c06a536b634790d2aa75ce668a243ec41a3ba45f9f829801fb8d1db114"
+    },
+    "output_correction_independent_review": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-output-review-01/correction-review-01/independent-correction-review.json",
+      "size_bytes": 10135,
+      "sha256": "a8fdd8cf5b7fe8c3f3a1177846da57b10a8b8ed77ea716241e18c7504ea5437f"
+    },
+    "output_correction_independent_seal": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-output-review-01/correction-review-01/seal.json",
+      "size_bytes": 795,
+      "sha256": "28567e0c99dd79d6d48cc77f1f592126fdab9850bc868a2e89df055a38a0eea8"
+    },
+    "exact_ff_ci": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/ci-ff-01/run.json",
+      "size_bytes": 25377,
+      "sha256": "e23d61fcee3d55bd8f0e140a558c137c8ba14e4913f65ac9ddc207d3b832b0b3"
+    },
+    "exact_ff_ci_failed_log": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/ci-ff-01/failed.log",
+      "size_bytes": 16912,
+      "sha256": "9fb12ce751ac1ae86be5c707ce52890e89d02ccdea40ecf480ffc24f4d847ce9"
+    },
+    "exact_ff_ci_core_log": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/ci-ff-01/core.log",
+      "size_bytes": 323167,
+      "sha256": "845bf06eb2eaf3b2ba307735724cd2f287b94b4ea9e6bbce2908e418fd97dcd5"
+    }
+  },
+  "limitations": [
+    "All208 original native files and independent seals remain unchanged; no old result rewritten to PASS",
+    "71 cold tests supersede69 for this suite; no additive counting",
+    "Derived bending energy/fiber stress do not qualify native global energy/Cauchy stress",
+    "Model/material/physical/strength/durability/corporate deployment UNKNOWN; whole52 OPEN",
+    "Local raw hashes/public compact record do not establish remote raw durability"
+  ]
+}

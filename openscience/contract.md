@@ -1,5 +1,31 @@
 # OpenScience ↔ CAE-Lab contract v1
 
+## Current D4.1 native failure/output correction; ordered D4.2 source active
+
+Beam source ff0028a9db66a35035b8e1c6f36fbaa0754c9dd4 is main-push confirmed.
+Actual default native01 fails Newton40 at its second nonzero increment. The
+declared21-state same-load native02 converges all21 level0 states, but Core
+FAILED_EXECUTION: the required aster.resu is0bytes. Both failures/208 original
+files and immutable independent seals are retained; other meshes/small-angle
+are NOT_RUN. Numerical success, Research admission and field GUI are not claimed.
+Output-only correction prints actual RESULTAT/unit8 for the same four native
+fields/allorders. Strict evidence, scientific limits/Newton40/budgets and
+Domain/Core/registry/Research/provider/auth are unchanged. Actual Python3.12.3
+Linux-scratch71 cold tests PASS9.67s;57 independent source checks close0P1/P2.
+Real corrected output and full native numerical acceptance remain NOT_RUN.
+Record: `benchmarks/records/20261003-geometric-beam-output-correction.json`.
+
+Exactff CI37083657255 completed7SUCCESS/3FAIL; Core2771PASS/5skips/1warning.
+PDE vector classification, Aster Fz native checks and explicit download404
+remain distinct OPEN gates; this is not corrected-source native verification.
+D4.2/P5.2a packet/ADR0026 freeze bounded SVK PK1/DPK1_DF, independent energy
+Hessian/full-state/all-h native FD and native stored-energy gates. Private pure
+Domain implementation is ACTIVE; main material/native integration NOT_RUN.
+Existing material/inverse and six retained visco drafts are preserved. The old
+hyperelastic proposal was NOT_LOCATED in scoped recovery, not assumed complete.
+Physical/model/material/strength/durability/deployment UNKNOWN, NOT_RELEASED,
+mounted-store latency and whole52/Phase5-7 OPEN. Earlier snapshots are history.
+
 Source8fe actual PDEFields research now completes one approved5.6Sol question,
 9 calls/2 experiments/6 meshes, original-result comparison and interpretation,
 independent199-check review, same-record field GUI, exact owned Stop and67-file
