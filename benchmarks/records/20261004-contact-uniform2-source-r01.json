@@ -1,0 +1,244 @@
+{
+  "backend": "structural.code_aster.contact_patch",
+  "base_CI": {
+    "conclusion": "failure",
+    "failed_jobs": [
+      "codeaster",
+      "pde",
+      "explicit"
+    ],
+    "headSha": "4f7c09b2e43f881635610effc02408eafeabd978",
+    "inner_failure_causes": "UNKNOWN_NOT_READ_FOR_THIS_EXACT_COMMIT",
+    "refined_contact_verification": "ABSENT; documentation parent CI is not a new contact solve",
+    "run_id": 37151437233,
+    "status": "completed",
+    "successful_jobs": 7
+  },
+  "created_utc": "2026-10-03T21:20:48.475612+00:00",
+  "decision": "NOT_RELEASED",
+  "evidence": {
+    "integrated_cold_junit": {
+      "bytes": 41909,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-integrated-cold-01/junit.xml",
+      "sha256": "f550d6e834c5c028b48ad15b828b6420d058f7e2fc06afb06ac2a47a9b90970c"
+    },
+    "integrated_cold_receipt": {
+      "bytes": 7272,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-integrated-cold-01/receipt.json",
+      "sha256": "27f97577c6108f81a19a7851cb3debe198eee2823ad17be85d3d7813ca200d6c"
+    },
+    "mesh_audit": {
+      "bytes": 1509,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-mesh-independent-audit-01/MANIFEST.json",
+      "sha256": "45fedb06360381f6f6d5e0b73ff2d4fe311ddf64cb32cef9360cd726dd71f15c"
+    },
+    "mesh_binary_supplement": {
+      "bytes": 871,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-mesh-independent-audit-01/canonical-supplement-01/MANIFEST.json",
+      "sha256": "11c2fde5c699e0ddc82d8a65300f797802763f78ced82c2b72a472d00f7525d6"
+    },
+    "preparation_manifest": {
+      "bytes": 2181,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-source-01/native-med-preparation-01/MANIFEST.json",
+      "sha256": "71266dfd4d75decf588accbb25c9f33f7f439472168ff4fb68d5505e0b702664"
+    },
+    "preparation_receipt": {
+      "bytes": 1029,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-source-01/native-med-preparation-01/native-preparation-receipt.json",
+      "sha256": "94e03d8c808268613c9c14900d06959f769c08ebe3c206d733c2b53b53ff2d11"
+    },
+    "runner_review": {
+      "bytes": 1285,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-root-runner-review-02/freeze-receipt.json",
+      "sha256": "a1b6d637e90c51889d3c5878234b4e3c4b2fd69ab0ab04322bb688f2ce715bbb"
+    },
+    "source_promotion": {
+      "bytes": 4624,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-integration-01/receipt.json",
+      "sha256": "5df18c90248f4d43b68a4b4406de560c4f40a82d727172d9265445979711f5cb"
+    },
+    "source_review": {
+      "bytes": 1842,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-source-independent-review-01/FREEZE.json",
+      "sha256": "a0e501a0d5d6c6d48203cf01c9663eaf5ebd3ee9ebb893325f99537f098cfefb"
+    },
+    "verifier_review": {
+      "bytes": 1598,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-root-verifier-review-02/freeze-receipt.json",
+      "sha256": "2bd9a4acaa7c5cfaba874a6605911f56c5c5b66f9b0bd78ad0abb3a02ce78493"
+    },
+    "worker_freeze": {
+      "bytes": 19277,
+      "path": "artifacts/development-contact-20261004-01/contact-refinement-source-01/FREEZE.json",
+      "sha256": "64c678e2648d0e4729cd7a3ae2fcd733378880db614d92d09b69af1b81b2ba4f"
+    }
+  },
+  "existing_calculix_comparison": {
+    "record": {
+      "bytes": 47956,
+      "path": "benchmarks/records/20261004-contact-calculix-pilot-r01-failed.json",
+      "sha256": "6184753dad0fe02f4fe421c8dfdf8b7e5bcc5e9f8fa7f16006925fb2114aaeca"
+    },
+    "status": "FAIL_PRESERVED; seven PASS/six FAIL; no retuning or repetition"
+  },
+  "mesh_preparation": {
+    "actual_owned_processes": 1,
+    "elapsed_seconds": 4.905047204811126,
+    "exit_code": 0,
+    "independent_binary_reader": {
+      "access": "READ_ONLY",
+      "h5py": "3.14.0",
+      "python": "3.13.5"
+    },
+    "independent_full_topology_geometry_groups_binary_read": "PASS_PREPARATION_ONLY",
+    "master_segments": 22,
+    "mechanical_calls": 0,
+    "nodes": 1154,
+    "original_prefix_coordinates_names_preserved": 313,
+    "quad4": 1060,
+    "runtime": {
+      "MEDLoader": "9.14.0",
+      "numpy": "1.26.4",
+      "python": "3.11.14"
+    },
+    "seg2": 184,
+    "slave_segments": 24
+  },
+  "new_source_CI": "NOT_RUN_AT_THIS_CHECKPOINT",
+  "next": [
+    "Commit/push clean reviewed source, then one fresh uniform2 native run and independent full-field audit",
+    "Explicit bounded OpenScience whole contact research and same-result human inspection",
+    "P2.4 fixture fastener/contact load path, then the remaining ordered Phase6/7 and deferred gates"
+  ],
+  "numerical_refinement": "UNKNOWN_NOT_RUN",
+  "operation": "model_analysis_run",
+  "optional_mesh_variant": "uniform_quad4_2x",
+  "original_baseline": {
+    "original_repeated_native_calls": 0,
+    "producer_commit": "9d0d613bd8d6ec5a1d5c1a59805c002c84e71c92",
+    "qualified_record": {
+      "bytes": 17107,
+      "path": "benchmarks/records/20261004-contact-native-r01-qualified.json",
+      "sha256": "974a1fe42338fb31367f75fcf2858b04ffe1152d08379a7dbdf556163b336fff"
+    }
+  },
+  "pair_comparison_scope": "Six signed original A/B/N14 response diagnostics; no pair pass threshold or asymptotic convergence claim",
+  "producer_commit_scope": "The containing clean source commit will be pinned by the subsequent fresh native receipt",
+  "refined_mechanical_calls": 0,
+  "remote_raw_retention": "UNKNOWN; local ignored evidence retained, these hashes are public",
+  "retained_failures": [
+    "cold01 lazy-import collector KeyError before collection; zero tests",
+    "Windows inventory WinError1920; temporary pytest links classified separately",
+    "independent mesh auditor orientation assumption; preserved directed parent/child orientation closes it",
+    "Root verifier01 common validation key and nonrepresentable ratio P2s; corrected02/12 cold controls",
+    "Root runner01 missing final source/provenance equality P2; corrected before execution"
+  ],
+  "schema_version": 1,
+  "scientific_limits_unchanged": {
+    "force_balance_relative": 1e-06,
+    "native_absolute_residual": 2e-08,
+    "signed_sample_and_reaction_relative": 0.01
+  },
+  "source_and_cold_gates": {
+    "Git_byte_preservation_rules_added": 14,
+    "count_scope": "257 integrated controls include candidate245 and Root12; no additive count of repetitions",
+    "elapsed_seconds": 54.34607977489941,
+    "independent_source_checks": 46,
+    "integrated_tests": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 257
+    },
+    "native_and_provider_calls": 0,
+    "open_P1": 0,
+    "open_P2": 0,
+    "sources_unchanged": true
+  },
+  "source_base_commit": "4f7c09b2e43f881635610effc02408eafeabd978",
+  "source_files": [
+    {
+      "bytes": 20088,
+      "path": "plugins/contact_patch/reference.py",
+      "sha256": "0144c1ad9a97b7eed1228eaff3fd4d5c15187d15f28e67a530fb2e4b9cd788df"
+    },
+    {
+      "bytes": 19127,
+      "path": "caelab/adapters/codeaster_contact.py",
+      "sha256": "87030f2d7c8360c93846dcb942c1231a49ef75dee4aa3a123e63f2c203b90961"
+    },
+    {
+      "bytes": 37583,
+      "path": "caelab/adapters/codeaster_contact_worker.py",
+      "sha256": "7bed2ec61487f0301d9f0304d2b91d3a133a3c1db6b71923c7e157fe02eab1e5"
+    },
+    {
+      "bytes": 23375,
+      "path": "caelab/adapters/codeaster_contact_mesh.py",
+      "sha256": "4aa4233f9a788927a21f053159e670e6099a2aae5ce08c3ec09d073feb6d020e"
+    },
+    {
+      "bytes": 16919,
+      "path": "tests/test_contact_patch_reference.py",
+      "sha256": "5410b9d3a6115e6ca241113b401424a79e5e5d0a6c5444eaddef4b4b39962649"
+    },
+    {
+      "bytes": 16614,
+      "path": "tests/test_codeaster_contact.py",
+      "sha256": "10cc79d0a08188e70abfed05b4bae9659f9ac64a77d2adbbfefa6d8e584099b7"
+    },
+    {
+      "bytes": 31356,
+      "path": "tests/test_codeaster_contact_worker.py",
+      "sha256": "541e05c90d17fc02f2c0ed0d620b7240d94f8ca258ea311a3691761b519c1b34"
+    },
+    {
+      "bytes": 8387,
+      "path": "tests/test_codeaster_contact_mesh.py",
+      "sha256": "13d5107cd1e613029bb9d03ba47e7402c390ced909e0203457176c536e53d1b9"
+    },
+    {
+      "bytes": 117827,
+      "path": "benchmarks/input-data/codeaster/ssnp121a-17.4.0.uniform_quad4_2x.mmed",
+      "sha256": "a23a617fe5de9eb8e52775fcbd10ddcac1aa14cac99ad09ab703e8b58f3b0f6c"
+    },
+    {
+      "bytes": 267995,
+      "path": "benchmarks/input-data/codeaster/ssnp121a-17.4.0.uniform_quad4_2x.mesh.json",
+      "sha256": "2c1de222fa076cd0afbe98d5dd911cac01f22cae21c96ed090e5be4a2e38b46d"
+    },
+    {
+      "bytes": 294946,
+      "path": "benchmarks/input-data/codeaster/ssnp121a-17.4.0.uniform_quad4_2x.generation.json",
+      "sha256": "d0ca8549f7f769c39dfc42b5dda9c3120c87c929e71aadacf18bd5bff688a3a8"
+    },
+    {
+      "bytes": 1458,
+      "path": "benchmarks/input-data/codeaster/ssnp121a-17.4.0.uniform_quad4_2x.profile.json",
+      "sha256": "3c157999052aaa37dd03c5b07981a3f047c921d784511c06f97fc5846475ca11"
+    },
+    {
+      "bytes": 10281,
+      "path": "scripts/verify_contact_refinement.py",
+      "sha256": "558ce63e6280dd349bd7fbb512bba1fa5065167c229c9b6c8af011605ae8bb1f"
+    },
+    {
+      "bytes": 4720,
+      "path": "tests/test_contact_refinement_verifier.py",
+      "sha256": "8a64c463721aaaef048cd7aecc2ee13aac47315d1c1e82c2d2debda1d9b9cae6"
+    },
+    {
+      "bytes": 102083,
+      "path": "tests/fixtures/codeaster_174_contact/canonical-result.json",
+      "sha256": "cb76e765ae7aaeb29b94a0b3508da1ae33f70da830e5b81519aa30260bc21caf"
+    },
+    {
+      "bytes": 1108,
+      "path": "tests/fixtures/codeaster_174_contact/README.md",
+      "sha256": "0306b7d4ff4cb2686a4c52e84e2a9a1fdef3bafb32a02086f59d370a0b4b681a"
+    }
+  ],
+  "status": "BOUNDED_UNIFORM2_SOURCE_AND_MESH_PREPARATION_PASS",
+  "whole_52_requirements": "ACTIVE",
+  "whole_Phase5_6_7": "OPEN"
+}

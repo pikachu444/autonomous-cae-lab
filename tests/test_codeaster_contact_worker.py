@@ -59,7 +59,7 @@ def catalog(frozen, *, generated=True):
     if generated:
         node_groups.update({name: deepcopy(frozen["levels"]["-1"]["groups"][name]["node_ids"])
                             for name in worker.BOUNDARY_GROUPS})
-    return {"schema_version": "1", "node_indexing": "ZERO_BASED_CODE_ASTER_UNRENUMBERED", "node_ids": list(range(313)),
+    return {"schema_version": "1", "node_indexing": "ZERO_BASED_CODE_ASTER_UNRENUMBERED", "node_ids": list(range(len(frozen["coordinates_in_native_order"]))),
             "coordinates_m": [[*point, 0.0] for point in frozen["coordinates_in_native_order"]],
             "native_node_names": deepcopy(frozen["node_name_field"]), "cells": cells,
             "group_cell_ids": groups, "group_node_ids": node_groups}
@@ -67,6 +67,10 @@ def catalog(frozen, *, generated=True):
 
 @pytest.fixture
 def raw(frozen):
+    return _raw_for(frozen)
+
+
+def _raw_for(frozen, mesh_variant=None):
     mesh = catalog(frozen)
     coordinates = mesh["coordinates_m"]
     boundaries = frozen["levels"]["-1"]["groups"]
@@ -104,11 +108,15 @@ def raw(frozen):
     for table in tables.values():
         for column in table:
             table[column].reverse()
-    return {"schema_version": "1", "solver_status": "COMPLETED", "converged": True, "order": 1,
-            "input_sha256": "0" * 64, "mesh_input_sha256": worker.MESH_SHA256,
-            "mesh_inspection_sha256": worker.MESH_INSPECTION_SHA256, "mesh": mesh, "frozen_mesh": deepcopy(frozen),
+    profile = worker.selected_mesh_contract(mesh_variant)
+    result = {"schema_version": "1", "solver_status": "COMPLETED", "converged": True, "order": 1,
+            "input_sha256": "0" * 64, "mesh_input_sha256": profile["mesh_sha256"],
+            "mesh_inspection_sha256": profile["catalog_sha256"], "mesh": mesh, "frozen_mesh": deepcopy(frozen),
             "available_orders": [0, 1], "access_parameters": {"NUME_ORDRE": [0, 1], "INST": [0.0, 1.0]},
             "native_tables": tables, "test_only": "MOCK response; native_solver_executed=False"}
+    if mesh_variant is not None:
+        result["mesh_variant"] = mesh_variant
+    return result
 
 
 def test_good_original_catalog_preserves_double_nodes_and_native_cell_ids(frozen):
@@ -288,8 +296,8 @@ class MockNativeMesh:
     def getCoordinates(self):
         return types.SimpleNamespace(toNumpy=lambda: types.SimpleNamespace(tolist=lambda: deepcopy(self.catalog["coordinates_m"])))
     def getNodes(self, name=None): return deepcopy(self.catalog["group_node_ids"][name] if name is not None else self.catalog["node_ids"])
-    def getNumberOfNodes(self): return 313
-    def getNumberOfCells(self): return 357
+    def getNumberOfNodes(self): return len(self.catalog["node_ids"])
+    def getNumberOfCells(self): return len(self.catalog["cells"])
     def getConnectivity(self): return [deepcopy(cell["node_ids"]) for cell in self.catalog["cells"]]
     def getCellTypeName(self, index): return self.catalog["cells"][index]["cell_type"]
     def getGroupsOfCells(self): return list(self.catalog["group_cell_ids"])
@@ -342,8 +350,13 @@ def test_wrong_actual_mesh_blocks_all_model_contact_material_and_stat_commands(t
 
 
 @pytest.mark.parametrize("mutate_input", [False, True])
-def test_mock_execution_preserves_original_native_policy_and_append_only_tables(tmp_path, monkeypatch, frozen, raw, mutate_input):
-    input_path = prepare_input(tmp_path, monkeypatch)
+@pytest.mark.parametrize("mesh_variant", [None, "uniform_quad4_2x"])
+def test_mock_execution_preserves_original_native_policy_and_append_only_tables(tmp_path, monkeypatch, frozen, raw, mutate_input, mesh_variant):
+    if mesh_variant is not None:
+        frozen = json.loads((ASSET_ROOT / "ssnp121a-17.4.0.uniform_quad4_2x.mesh.json").read_text())
+        raw = _raw_for(frozen, mesh_variant)
+    input_path = (prepare_input(tmp_path, monkeypatch) if mesh_variant is None else
+                  prepare_refined_input(tmp_path, monkeypatch))
     mesh, calls = MockNativeMesh(frozen), {}
     result = types.SimpleNamespace(getAccessParameters=lambda: deepcopy(raw["access_parameters"]),
                                    getIndexes=lambda: [0, 1])
@@ -382,6 +395,8 @@ def test_mock_execution_preserves_original_native_policy_and_append_only_tables(
     worker.solve_level(str(input_path))
     native = json.loads((input_path.parent / "worker_result.json").read_text())
     assert native["input_sha256"] == hashlib.sha256(input_path.read_bytes()).hexdigest()
+    assert native.get("mesh_variant") == mesh_variant
+    assert native["mesh_input_sha256"] == worker.selected_mesh_contract(mesh_variant)["mesh_sha256"]
     assert native["native_tables"] == raw["native_tables"]
     assert native["native_policy"] == worker.NATIVE_POLICY
     contact = calls["DEFI_CONTACT"][0]
@@ -397,3 +412,106 @@ def test_mock_execution_preserves_original_native_policy_and_append_only_tables(
     old_bytes = existing.read_bytes()
     with pytest.raises(FileExistsError): worker._write_new(existing, {"replacement": True})
     assert existing.read_bytes() == old_bytes
+
+
+@pytest.fixture(scope="module")
+def refined_frozen():
+    profile = worker.selected_mesh_contract("uniform_quad4_2x")
+    path = ASSET_ROOT / "ssnp121a-17.4.0.uniform_quad4_2x.mesh.json"
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == profile["catalog_sha256"]
+    return json.loads(path.read_text())
+
+
+@pytest.fixture
+def refined_raw(refined_frozen):
+    return _raw_for(refined_frozen, "uniform_quad4_2x")
+
+
+def test_refined_catalog_and_complete_native_format_mock_fields_keep_actual_ids_XY_W_and_all_samples(refined_frozen, refined_raw):
+    before = deepcopy(refined_raw)
+    guard = worker.validate_mesh_catalog(refined_raw["mesh"], refined_frozen, "uniform_quad4_2x")
+    assert [guard[key] for key in ("node_count", "body_element_count", "boundary_element_count", "total_cell_count")] == [1154, 1060, 184, 1244]
+    observed = worker.parse_contact_tables(refined_raw, mesh_variant="uniform_quad4_2x")
+    assert [observed["samples"][name]["node_id"] for name in ("A", "B", "N14")] == [0, 1, 13]
+    assert len(observed["slave_contact"]["node_ids"]) == 25
+    fields = observed["fields"]
+    assert len(fields["displacements_m"]) == len(fields["nodal_reactions_n_per_m"]) == 1154
+    assert len(fields["stresses_pa"]) == len(fields["stress_identifiers"]) == len(fields["stress_integration_weights_m2"]) == 4240
+    assert fields["stress_geometric_z_m"] is None and fields["stress_coordinate_component_order"] == ["x", "y"]
+    assert math.fsum(fields["stress_integration_weights_m2"]) == pytest.approx(4.0, abs=1e-13)
+    assert observed["boundary_reactions_n_per_m"]["top"] == pytest.approx([0.0, -2e5])
+    assert refined_raw == before
+
+
+@pytest.mark.parametrize("damage", ["partial_depl", "partial_reaction", "partial_stress", "partial_pressure", "missing_pressure", "pressure_substitute",
+    "old_mesh_hash", "old_catalog_hash", "wrong_variant", "missing_variant", "original_prefix", "group", "normal", "point_weight", "point_xy", "order"])
+def test_refined_actual_full_coverage_and_profile_binding_cannot_be_relaxed(refined_raw, damage):
+    tables = refined_raw["native_tables"]
+    if damage.startswith("partial_"):
+        name = {"partial_depl": "DEPL", "partial_reaction": "REAC_NODA", "partial_stress": "SIEF_ELGA", "partial_pressure": "LAGS_C"}[damage]
+        for column in tables[name].values(): column.pop()
+    elif damage == "missing_pressure": del tables["LAGS_C"]
+    elif damage == "pressure_substitute": tables["LAGS_C"]["SIYY"] = tables["LAGS_C"].pop("LAGS_C")
+    elif damage == "old_mesh_hash": refined_raw["mesh_input_sha256"] = worker.MESH_SHA256
+    elif damage == "old_catalog_hash": refined_raw["mesh_inspection_sha256"] = worker.MESH_INSPECTION_SHA256
+    elif damage == "wrong_variant": refined_raw["mesh_variant"] = "original"
+    elif damage == "missing_variant": del refined_raw["mesh_variant"]
+    elif damage == "original_prefix": refined_raw["mesh"]["coordinates_m"][13][0] = 0.0
+    elif damage == "group": refined_raw["mesh"]["group_cell_ids"]["AB"].pop()
+    elif damage == "normal": refined_raw["mesh"]["cells"][0]["node_ids"].reverse()
+    elif damage == "point_weight": tables["SIEF_ELGA"]["COOR_Z"][0] *= 2
+    elif damage == "point_xy": tables["SIEF_ELGA"]["COOR_X"][0] += 1e-4
+    elif damage == "order": tables["DEPL"]["NUME_ORDRE"][0] = 0
+    with pytest.raises(ValueError):
+        worker.parse_contact_tables(refined_raw, mesh_variant="uniform_quad4_2x")
+
+
+@pytest.mark.parametrize("selector", [None, "original", "uniform_quad4_4x", "../bad.mmed", True, 1])
+def test_defensive_worker_rejects_unadmitted_selectors_before_native_import(selector):
+    request = settings()
+    request["mesh_variant"] = selector
+    with pytest.raises(ValueError):
+        worker.validate_settings(request)
+
+
+def prepare_refined_input(tmp_path, monkeypatch):
+    output = tmp_path / "level_00"
+    output.mkdir()
+    profile = worker.selected_mesh_contract("uniform_quad4_2x")
+    shutil.copyfile(ASSET_ROOT / "ssnp121a-17.4.0.uniform_quad4_2x.mmed", output / "mesh.mmed")
+    shutil.copyfile(ASSET_ROOT / "ssnp121a-17.4.0.uniform_quad4_2x.mmed", tmp_path / "fort.20")
+    shutil.copyfile(ASSET_ROOT / "ssnp121a-17.4.0.uniform_quad4_2x.mesh.json", tmp_path / "frozen_mesh.json")
+    for source, name in ((ASSET_ROOT / "ssnp121a-17.4.0.mmed", "source_parent.mmed"),
+                         (ASSET_ROOT / "ssnp121a-17.4.0.mesh.json", "source_parent_mesh.json"),
+                         (ASSET_ROOT / "ssnp121a-17.4.0.uniform_quad4_2x.generation.json", "mesh_generation_recipe.json"),
+                         (ASSET_ROOT / worker.mesh_contracts.PROFILE_NAME, worker.mesh_contracts.PROFILE_NAME),
+                         (Path(worker.mesh_contracts.__file__), "codeaster_contact_mesh.py")):
+        shutil.copyfile(source, tmp_path / name)
+    config = {"settings": {**settings(), "mesh_variant": "uniform_quad4_2x"},
+              "mesh_sha256": profile["mesh_sha256"], "mesh_inspection_sha256": profile["catalog_sha256"]}
+    input_path = output / "input.json"
+    input_path.write_text(json.dumps(config))
+    monkeypatch.chdir(tmp_path)
+    return input_path
+
+
+@pytest.mark.parametrize("damage", ["actual_prefix", "catalog", "mesh", "parent", "recipe", "profile"])
+def test_refined_admission_refuses_actual_and_captured_drift_before_all_mechanics(tmp_path, monkeypatch, refined_frozen, damage):
+    input_path = prepare_refined_input(tmp_path, monkeypatch)
+    native_mesh = MockNativeMesh(refined_frozen)
+    if damage == "actual_prefix": native_mesh.catalog["coordinates_m"][13][0] = 0.0
+    else:
+        file = {"catalog": tmp_path / "frozen_mesh.json", "mesh": input_path.parent / "mesh.mmed",
+                "parent": tmp_path / "source_parent.mmed", "recipe": tmp_path / "mesh_generation_recipe.json",
+                "profile": tmp_path / worker.mesh_contracts.PROFILE_NAME}[damage]
+        file.write_bytes(file.read_bytes() + b"\n")
+    calls = []
+    def forbidden(**kwargs): pytest.fail("Refined mesh refusal must precede all mechanical/contact/material commands")
+    commands = {name: forbidden for name in ("AFFE_CHAR_MECA", "AFFE_MATERIAU", "AFFE_MODELE", "CALC_CHAMP", "CREA_TABLE",
+        "DEFI_CONTACT", "DEFI_FONCTION", "DEFI_GROUP", "DEFI_LIST_REEL", "DEFI_MATERIAU", "FIN", "IMPR_RESU", "STAT_NON_LINE")}
+    commands.update({"DEBUT": lambda **kwargs: calls.append("DEBUT"), "LIRE_MAILLAGE": lambda **kwargs: native_mesh})
+    install_commands(monkeypatch, commands)
+    with pytest.raises((ValueError, RuntimeError)):
+        worker.solve_level(str(input_path))
+    assert not (input_path.parent / "worker_result.json").exists()
+    assert calls == (["DEBUT"] if damage == "actual_prefix" else [])

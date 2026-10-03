@@ -13,7 +13,7 @@ import json
 import math
 
 
-__version__ = "1.0"
+__version__ = "1.1"
 _CASE = "ssnp121a_frictionless_patch"
 _LIMITS = {"reference_relative": 0.01, "force_balance_relative": 1e-6}
 _SAMPLES = ("A", "B", "N14")
@@ -30,6 +30,17 @@ _PENDING = [
 _WIDTH_M = 2.0
 _TOTAL_HEIGHT_M = 2.0
 _SLAVE_NODES = 13
+_REFINED_VARIANT = "uniform_quad4_2x"
+
+
+def _mesh_shape(settings: dict) -> dict:
+    if "mesh_variant" not in settings:
+        return {"nodes": 313, "solid_cells": 265, "segments": 92,
+                "slave_nodes": 13, "slave_segments": 12, "master_segments": 11}
+    if type(settings["mesh_variant"]) is not str or settings["mesh_variant"] != _REFINED_VARIANT:
+        raise ValueError("Only optional mesh_variant=uniform_quad4_2x is admitted")
+    return {"nodes": 1154, "solid_cells": 1060, "segments": 184,
+            "slave_nodes": 25, "slave_segments": 24, "master_segments": 22}
 
 
 def _keys(value: object, expected: set[str], label: str) -> dict:
@@ -58,7 +69,10 @@ def _vector(value: object, length: int, label: str) -> list[float]:
 
 def validate_settings(settings: dict) -> dict:
     """Normalize only the frozen case, bounded E/displacement and fixed limits."""
-    _keys(settings, {"case", "material", "top_displacement_m", "limits"}, "Contact settings")
+    required = {"case", "material", "top_displacement_m", "limits"}
+    if not isinstance(settings, dict) or set(settings) not in (required, required | {"mesh_variant"}):
+        raise ValueError("Contact settings require original four keys with only optional mesh_variant")
+    _mesh_shape(settings)
     if type(settings["case"]) is not str or settings["case"] != _CASE:
         raise ValueError(f"Only {_CASE} is supported")
     material = _keys(settings["material"], {"youngs_modulus_pa", "poisson_ratio"}, "Material")
@@ -75,8 +89,11 @@ def validate_settings(settings: dict) -> dict:
     normalized_limits = {name: _number(limits[name], name) for name in _LIMITS}
     if normalized_limits != _LIMITS:
         raise ValueError("Contact reference and force-balance limits are fixed; changes require new admission")
-    return {"case": _CASE, "material": {"youngs_modulus_pa": young, "poisson_ratio": poisson},
-            "top_displacement_m": displacement, "limits": normalized_limits}
+    normalized = {"case": _CASE, "material": {"youngs_modulus_pa": young, "poisson_ratio": poisson},
+                  "top_displacement_m": displacement, "limits": normalized_limits}
+    if "mesh_variant" in settings:
+        normalized["mesh_variant"] = _REFINED_VARIANT
+    return normalized
 
 
 def _reference(settings: dict) -> dict:
@@ -85,12 +102,15 @@ def _reference(settings: dict) -> dict:
     pressure = -traction
     force = pressure * _WIDTH_M
     interface_displacement = settings["top_displacement_m"] / 2.0
-    canonical = (settings["material"]["youngs_modulus_pa"] == 2e6 and
-                 settings["top_displacement_m"] == -0.1)
-    return {
+    canonical_material = (settings["material"]["youngs_modulus_pa"] == 2e6 and
+                          settings["top_displacement_m"] == -0.1)
+    refined = "mesh_variant" in settings
+    canonical = canonical_material and not refined
+    result = {
         "case": _CASE, "reference_identity": "Code_Aster_SSNP121A",
         "canonical_original_inputs": canonical,
-        "reference_kind": "original_published_analytical_case" if canonical else "analytical_parameter_variant",
+        "reference_kind": ("analytical_mesh_refinement" if refined else
+                           "original_published_analytical_case" if canonical else "analytical_parameter_variant"),
         "nafems_cgs1_replication": False,
         "material": copy.deepcopy(settings["material"]),
         "bulk_vertical_strain": strain, "normal_traction_pa": traction,
@@ -107,6 +127,10 @@ def _reference(settings: dict) -> dict:
         "six_published_sample_relative_limits": settings["limits"]["reference_relative"],
         "force_reference_kind": "additional_analytical_unit_thickness_resultant",
     }
+    if refined:
+        result.update(mesh_variant=_REFINED_VARIANT, canonical_material_inputs=canonical_material,
+                      original_vendor_mesh_replication=False)
+    return result
 
 
 def analytical_reference(settings: dict) -> dict:
@@ -119,7 +143,7 @@ def model_declaration(settings: dict) -> dict:
     normalized = validate_settings(settings)
     material = normalized["material"]
     interface = {"axis": "y", "coordinate": 0.0, "unit": "m", "x_interval_m": [-1.0, 1.0]}
-    return {
+    declaration = {
         "case": _CASE,
         "geometry": {"type": "two_disconnected_rectangles", "unit": "m", "plane": "xy",
             "bodies": [{"id": "upper", "x_interval_m": [-1.0, 1.0], "y_interval_m": [0.0, 1.0]},
@@ -164,9 +188,18 @@ def model_declaration(settings: dict) -> dict:
             "sample_coordinate_unit": "m"},
         "reference": _reference(normalized),
     }
+    if "mesh_variant" in normalized:
+        shape = _mesh_shape(normalized)
+        declaration["mesh"].update(source="deterministic_uniform_subdivision_2x_of_fixed_original_nonmatching_mesh",
+            node_count=shape["nodes"], solid_cell_count=shape["solid_cells"],
+            boundary_segment_count=shape["segments"], slave_contact_segment_count=shape["slave_segments"],
+            master_contact_segment_count=shape["master_segments"], original_prefix_node_count=313,
+            mesh_variant=_REFINED_VARIANT, original_vendor_mesh_replication=False,
+            source_discrepancy="Parent official MED has92SEG2 rather than documented132; this generated uniform2 mesh has184SEG2.")
+    return declaration
 
 
-def _validated_observation(observation: dict) -> dict:
+def _validated_observation(observation: dict, settings: dict | None = None) -> dict:
     if (not isinstance(observation, dict) or not _REQUIRED_OBSERVATIONS <= set(observation) or
             set(observation) - (_REQUIRED_OBSERVATIONS | _OPTIONAL_OBSERVATIONS)):
         raise ValueError("Contact observation has missing or unsupported fields")
@@ -179,13 +212,14 @@ def _validated_observation(observation: dict) -> dict:
     reactions = _keys(observation["boundary_reactions_n_per_m"], _REACTION_FIELDS, "Reactions")
     normalized_reactions = {name: _vector(reactions[name], 2, f"Reaction {name}") for name in sorted(_REACTION_FIELDS)}
     slave = _keys(observation["slave_contact"], {"node_ids", "normal_traction_pa"}, "Slave contact")
+    shape = _mesh_shape(settings or {})
     ids = slave["node_ids"]
-    if (not isinstance(ids, list) or len(ids) != _SLAVE_NODES or
-            any(type(node) is not int or not 0 <= node < 313 for node in ids) or len(set(ids)) != len(ids)):
-        raise ValueError("Slave contact requires 13 unique native integer node indices in [0,313)")
-    traction = _vector(slave["normal_traction_pa"], _SLAVE_NODES, "Slave normal_traction_pa")
+    if (not isinstance(ids, list) or len(ids) != shape["slave_nodes"] or
+            any(type(node) is not int or not 0 <= node < shape["nodes"] for node in ids) or len(set(ids)) != len(ids)):
+        raise ValueError(f"Slave contact requires {shape['slave_nodes']} unique native integer node indices in [0,{shape['nodes']})")
+    traction = _vector(slave["normal_traction_pa"], shape["slave_nodes"], "Slave normal_traction_pa")
     raw_gaps = observation.get("projected_gaps_m")
-    gaps = None if raw_gaps is None else _vector(raw_gaps, _SLAVE_NODES, "projected_gaps_m")
+    gaps = None if raw_gaps is None else _vector(raw_gaps, shape["slave_nodes"], "projected_gaps_m")
     fields = observation.get("fields")
     if "fields" in observation:
         if not isinstance(fields, dict):
@@ -203,7 +237,7 @@ def assess(settings: dict, observation: dict) -> dict:
     """Keep signed failed observations, fixed reference gates and unresolved physics."""
     normalized = validate_settings(settings)
     reference = _reference(normalized)
-    observed = _validated_observation(observation)
+    observed = _validated_observation(observation, normalized)
     checks = []
     errors = {"normal_traction_pa": [], "vertical_displacement_m": []}
 

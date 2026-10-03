@@ -69,3 +69,12 @@ Proceed sequentially with an explicitly distinct uniform2 mesh sensitivity
 extension of the existing Aster backend, then Research/human/fixture gates.
 Original case/assets/1% and1e-6 criteria remain; generated/native mesh identity
 is a separate required gate. This decision is not refined-native acceptance.
+
+Uniform2 source decision: fixed optional mesh_variant is Domain settings, with
+immutable generated MED/catalogue/recipe/profile and stable adapter generator.
+The original313 prefix, directed boundaries and nonmatching topology remain.
+General remeshing/path/level inputs are excluded from this bounded admission.
+This uses the existing declared-model operation, not a new Core/schema/registry
+interface or numerical search. Source and preparation gates pass; native and
+OpenScience scope admission remain separate next gates. Comparison records
+signed old/new original samples without inventing a mesh-pair threshold.

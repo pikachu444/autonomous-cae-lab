@@ -27,3 +27,18 @@ benchmarks/input-data/codeaster/*.mmed -text
 benchmarks/input-data/codeaster/*.mesh.json -text
 benchmarks/records/20261004-contact-native-r01-qualified.json -text
 benchmarks/records/20261004-contact-calculix-pilot-r01-failed.json -text
+plugins/contact_patch/reference.py text eol=lf
+caelab/adapters/codeaster_contact.py text eol=lf
+caelab/adapters/codeaster_contact_worker.py text eol=lf
+caelab/adapters/codeaster_contact_mesh.py text eol=lf
+tests/test_contact_patch_reference.py text eol=lf
+tests/test_codeaster_contact.py text eol=lf
+tests/test_codeaster_contact_worker.py text eol=lf
+tests/test_codeaster_contact_mesh.py text eol=lf
+benchmarks/input-data/codeaster/ssnp121a-17.4.0.uniform_quad4_2x.generation.json -text
+benchmarks/input-data/codeaster/ssnp121a-17.4.0.uniform_quad4_2x.profile.json -text
+scripts/verify_contact_refinement.py text eol=lf
+tests/test_contact_refinement_verifier.py text eol=lf
+tests/fixtures/codeaster_174_contact/canonical-result.json -text
+tests/fixtures/codeaster_174_contact/README.md text eol=lf
+benchmarks/records/20261004-contact-uniform2-source-r01.json -text

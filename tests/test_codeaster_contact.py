@@ -175,3 +175,96 @@ def test_real_parser_observation_projects_metadata_without_changing_samples():
     assert numeric["samples"]["N14"]["normal_traction_pa"] == parsed["samples"]["N14"]["normal_traction_pa"]
     assert numeric["fields"] == parsed["fields"]
     assert raw == before
+
+
+def fake_refined_native(monkeypatch, tmp_path, *, mutate_capture=None, failed_sample=False):
+    """Complete native-format response is MOCK; real parser/Domain/Core execute."""
+    import test_codeaster_contact_worker as fixture
+    frozen = json.loads((fixture.ASSET_ROOT / "ssnp121a-17.4.0.uniform_quad4_2x.mesh.json").read_text())
+    image = tmp_path / "refined-test-only-image"
+    image.write_bytes(b"MOCK; no solver executable")
+    original_sha = adapter.native._sha256
+    monkeypatch.setattr(adapter.native, "_sha256", lambda path: adapter._IMAGE_SHA if path == image else original_sha(path))
+    monkeypatch.setattr(adapter.native, "_image_identity", lambda out: (image, adapter._IMAGE_SHA, "TEST-ONLY-RUNTIME", "unused", "unused"))
+    monkeypatch.setattr(adapter.native, "process_budgets", lambda: {"solver_memory_mb": 1024,
+                        "solver_time_seconds": 86400, "subprocess_timeout_seconds": None})
+    calls = []
+    def process(command, level, label, *, timeout):
+        calls.append({"argv": command, "timeout": timeout})
+        raw = fixture._raw_for(frozen, "uniform_quad4_2x")
+        raw["input_sha256"] = hashlib.sha256((level / "input.json").read_bytes()).hexdigest()
+        raw.update(versions={"test_only": True}, code_aster_runtime={"test_only": True}, native_policy=deepcopy(adapter.worker.NATIVE_POLICY),
+                   native_mesh_checks=adapter.worker.validate_mesh_catalog(raw["mesh"], frozen, "uniform_quad4_2x"))
+        if failed_sample:
+            index = next(i for i, identifier in enumerate(raw["native_tables"]["LAGS_C"]["NOEUD"]) if int(identifier) == 1)
+            raw["native_tables"]["LAGS_C"]["LAGS_C"][index] = -2e5
+        (level / "worker_result.json").write_text(json.dumps(raw))
+        (level / "results.med").write_bytes(b"TEST ONLY fake native fields; no solver")
+        (level / "aster.mess").write_text(log())
+        if mutate_capture is not None:
+            captured = level.parent / mutate_capture
+            captured.write_bytes(captured.read_bytes() + b"\n")
+        return "TEST ONLY complete fake refined output"
+    monkeypatch.setattr(adapter.native, "_process", process)
+    return calls
+
+
+def test_refined_same_backend_Core_route_uses_frozen_selected_identity_and_stays_NOT_RELEASED(tmp_path, monkeypatch):
+    calls = fake_refined_native(monkeypatch, tmp_path)
+    lab = Lab(tmp_path / "refined-store")
+    lab.create_study("S-contact-refined", "test only", "test only", "test only", "test only")
+    request = {**settings(), "mesh_variant": "uniform_quad4_2x"}
+    result = lab.run_model_analysis(study_id="S-contact-refined", experiment_id="E-contact-refined",
+                                    backend=adapter.CodeAsterContactPatchAdapter.backend, settings=request)
+    assert result["status"] == "COMPLETED_REVIEW_REQUIRED" and result["decision"] == "NOT_RELEASED"
+    assert len([v for v in result["validations"] if v["status"] == "UNKNOWN"]) == 10
+    assert len(calls) == 1 and calls[0]["timeout"] is None
+    experiment = lab.store / "experiments/E-contact-refined"
+    output = experiment / "simulation"
+    profile = adapter.worker.selected_mesh_contract("uniform_quad4_2x")
+    assert hashlib.sha256((output / "level_0/mesh.mmed").read_bytes()).hexdigest() == profile["mesh_sha256"]
+    assert hashlib.sha256((output / "frozen_mesh.json").read_bytes()).hexdigest() == profile["catalog_sha256"]
+    assert hashlib.sha256((output / "source_parent.mmed").read_bytes()).hexdigest() == adapter._MESH_SHA
+    config = json.loads((output / "level_0/input.json").read_text())
+    assert set(config) == {"settings", "mesh_sha256", "mesh_inspection_sha256"}
+    raw = json.loads((output / "analysis_raw.json").read_text())
+    assert raw["provenance"]["mesh_profile_sha256"] == adapter.worker.REFINED_PROFILE_SHA256
+    assert raw["reference"]["original_vendor_mesh_replication"] is False
+    assert len(raw["contact_observation"]["fields"]["stresses_pa"]) == 4240
+    inspected = lab.inspect_experiment("E-contact-refined")
+    assert inspected["model_revision"] == result["model_revision"]
+    original = (experiment / "result.json").read_bytes()
+    with pytest.raises(FileExistsError):
+        lab.run_model_analysis(study_id="S-contact-refined", experiment_id="E-contact-refined",
+                               backend=adapter.CodeAsterContactPatchAdapter.backend, settings=request)
+    assert (experiment / "result.json").read_bytes() == original
+
+
+@pytest.mark.parametrize("selector", [None, "original", "uniform_quad4_4x", "../unadmitted.mmed", True, 1])
+def test_bad_mesh_selector_blocks_native_export_and_process(monkeypatch, tmp_path, selector):
+    monkeypatch.setattr(adapter.native, "_image_identity", lambda out: pytest.fail("Bad mesh variant reached native runtime"))
+    output = tmp_path / "invalid"
+    result = adapter.CodeAsterContactPatchAdapter().solve(output, {**settings(), "mesh_variant": selector})
+    assert result["status"] == "REJECTED" and result["solver_status"] == "NOT_RUN"
+    assert not (output / "level_0").exists() and not list(output.rglob("*.export"))
+
+
+@pytest.mark.parametrize("captured", ["source_parent.mmed", "source_parent_mesh.json", "frozen_mesh.json", "selected_source.mmed",
+                                     "mesh_generation_recipe.json", adapter.worker.mesh_contracts.PROFILE_NAME])
+def test_refined_parent_selected_and_generation_capture_drift_is_rejected_after_extraction(monkeypatch, tmp_path, captured):
+    fake_refined_native(monkeypatch, tmp_path, mutate_capture=captured)
+    output = tmp_path / "refined-mutated"
+    with pytest.raises(RuntimeError, match="source changed"):
+        adapter.CodeAsterContactPatchAdapter().solve(output, {**settings(), "mesh_variant": "uniform_quad4_2x"})
+    assert (output / "level_0/worker_result.json").is_file()
+    assert (output / "level_0/domain_contact_observation.json").is_file()
+    assert not (output / "analysis_raw.json").exists()
+
+
+def test_refined_failed_sample_is_preserved_as_finite_invalid_metric(monkeypatch, tmp_path):
+    fake_refined_native(monkeypatch, tmp_path, failed_sample=True)
+    output = tmp_path / "refined-failed"
+    result = adapter.CodeAsterContactPatchAdapter().solve(output, {**settings(), "mesh_variant": "uniform_quad4_2x"})
+    assert result["solver_status"] == "COMPLETED" and result["status"] == "REJECTED"
+    assert result["metrics"]["A_normal_traction"]["value"] == -2e5
+    assert all(not metric["valid"] for metric in result["metrics"].values())

@@ -30,12 +30,15 @@ _SOURCES = {
     "domain_reference.py": Path(domain.__file__).resolve(),
     "codeaster_contact.py": Path(__file__).resolve(),
     "codeaster_contact_worker.py": Path(worker.__file__).resolve(),
-    "codeaster_worker.py": Path(__file__).with_name("codeaster_worker.py"),
+    "codeaster_worker.py": Path(native.__file__).with_name("codeaster_worker.py"),
     "codeaster_runtime_adapter.py": Path(native.__file__).resolve(),
-    "codeaster_execution.py": Path(__file__).with_name("codeaster_execution.py"),
-    "execution_control.py": Path(__file__).resolve().parents[1] / "execution_control.py",
+    "codeaster_execution.py": Path(native.__file__).with_name("codeaster_execution.py"),
+    "execution_control.py": Path(native.__file__).resolve().parents[1] / "execution_control.py",
     "reference_specification.json": _SPEC,
     "frozen_mesh.json": _CATALOG,
+    "codeaster_contact_mesh.py": Path(worker.mesh_contracts.__file__).resolve(),
+    "source_parent.mmed": _MESH,
+    "source_parent_mesh.json": _CATALOG,
 }
 _BYTES = {name: path.read_bytes() for name, path in _SOURCES.items()}
 _SHA = {name: hashlib.sha256(data).hexdigest() for name, data in _BYTES.items()}
@@ -52,9 +55,30 @@ _LIMITATIONS = [
 ]
 
 
-def _assert_sources(output: Path) -> None:
-    for name, path in _SOURCES.items():
-        if native._sha256(path) != _SHA[name] or native._sha256(output / name) != _SHA[name]:
+def _source_bundle(mesh_variant: str | None = None) -> tuple[dict, dict, dict]:
+    paths, data, hashes = dict(_SOURCES), dict(_BYTES), dict(_SHA)
+    if mesh_variant is not None:
+        profile = worker.selected_mesh_contract(mesh_variant)
+        additions = {
+            "frozen_mesh.json": (_ASSET_ROOT / "ssnp121a-17.4.0.uniform_quad4_2x.mesh.json", profile["catalog_sha256"]),
+            "selected_source.mmed": (_ASSET_ROOT / "ssnp121a-17.4.0.uniform_quad4_2x.mmed", profile["mesh_sha256"]),
+            "mesh_generation_recipe.json": (_ASSET_ROOT / "ssnp121a-17.4.0.uniform_quad4_2x.generation.json", profile["recipe_sha256"]),
+            worker.mesh_contracts.PROFILE_NAME: (_ASSET_ROOT / worker.mesh_contracts.PROFILE_NAME, worker.REFINED_PROFILE_SHA256),
+        }
+        for name, (path, digest) in additions.items():
+            content = path.read_bytes()
+            if hashlib.sha256(content).hexdigest() != digest or path.is_symlink():
+                raise RuntimeError(f"Sealed refined contact source changed: {name}")
+            paths[name], data[name], hashes[name] = path, content, digest
+        if hashes["codeaster_contact_mesh.py"] != profile["generator_sha256"]:
+            raise RuntimeError("Captured mesh generator differs from the actual sealed preparation source")
+    return paths, data, hashes
+
+
+def _assert_sources(output: Path, mesh_variant: str | None = None) -> None:
+    paths, _, hashes = _source_bundle(mesh_variant)
+    for name, path in paths.items():
+        if path.is_symlink() or native._sha256(path) != hashes[name] or native._sha256(output / name) != hashes[name]:
             raise RuntimeError(f"Contact source changed: {name}; captured evidence remains preserved")
     if native._sha256(_MESH) != _MESH_SHA or native._sha256(_CATALOG) != _CATALOG_SHA:
         raise RuntimeError("Original contact mesh/catalogue drifted; no substitute input is admitted")
@@ -113,7 +137,7 @@ def _numerical_observation(observation: dict) -> dict:
 
 class CodeAsterContactPatchAdapter:
     backend = "structural.code_aster.contact_patch"
-    version = "1.0"
+    version = "1.1"
     domain = "contact_patch"
     physics_domain = "structural"
     analysis_type = "nonlinear_static"
@@ -128,6 +152,12 @@ class CodeAsterContactPatchAdapter:
 
     def describe_model(self, settings: dict) -> dict:
         declaration = deepcopy(domain.model_declaration(settings))
+        selected = worker.mesh_contracts.variant(settings)
+        if selected is not None:
+            profile = worker.selected_mesh_contract(selected)
+            declaration["mesh"].update(asset_sha256=profile["mesh_sha256"], catalog_sha256=profile["catalog_sha256"],
+                parent_asset_sha256=profile["parent"]["mesh_sha256"], generation_recipe_sha256=profile["recipe_sha256"],
+                generation_source_sha256=profile["generator_sha256"], mesh_profile_sha256=worker.REFINED_PROFILE_SHA256)
         model_keys = ("geometry", "materials", "mesh", "sections", "interfaces", "contact", "coordinate_systems")
         model = {name: declaration.pop(name) for name in model_keys if name in declaration}
         return {"model": model, **declaration}
@@ -137,21 +167,35 @@ class CodeAsterContactPatchAdapter:
         if output.is_symlink() or (output.exists() and (not output.is_dir() or any(output.iterdir()))):
             raise ValueError("Contact output must be new or empty; original evidence cannot be overwritten")
         output.mkdir(parents=True, exist_ok=True)
-        for name, data in _BYTES.items():
-            (output / name).write_bytes(data)
-        _assert_sources(output)
-        provenance = {"adapter": self.backend, "adapter_version": self.version,
-            "captured_source_sha256": dict(_SHA), "domain_plugin": {"module": domain.__name__,
-            "version": domain.__version__, "source_artifact": "simulation/domain_reference.py",
-            "source_sha256": _SHA["domain_reference.py"]},
-            "reference": "Code_Aster SSNP121A/17.4.0/50ebc13c70ee9df62faf93ddcb746a3757b3042a",
-            "mesh_sha256": _MESH_SHA, "mesh_catalog_sha256": _CATALOG_SHA,
-            "assumptions": list(_LIMITATIONS)}
+        checked, admission_error = None, None
         try:
             checked = domain.validate_settings(settings)
         except ValueError as exc:
+            admission_error = exc
+        selected = worker.mesh_contracts.variant(checked) if checked is not None else None
+        profile = worker.selected_mesh_contract(selected)
+        _, captured_bytes, captured_hashes = _source_bundle(selected)
+        for name, data in captured_bytes.items():
+            (output / name).write_bytes(data)
+        _assert_sources(output, selected)
+        limitations = list(_LIMITATIONS)
+        if selected is not None:
+            limitations[2] = "Selected generated uniform2 asset has1154nodes/1060QUAD4/184SEG2; original313 prefix and all named groups are preserved."
+            limitations.append("One uniform2 subdivision is a mesh-sensitivity comparison; mesh convergence and original vendor-mesh replication are not claimed.")
+        provenance = {"adapter": self.backend, "adapter_version": self.version,
+            "captured_source_sha256": captured_hashes, "domain_plugin": {"module": domain.__name__,
+            "version": domain.__version__, "source_artifact": "simulation/domain_reference.py",
+            "source_sha256": _SHA["domain_reference.py"]},
+            "reference": "Code_Aster SSNP121A/17.4.0/50ebc13c70ee9df62faf93ddcb746a3757b3042a",
+            "mesh_sha256": profile["mesh_sha256"], "mesh_catalog_sha256": profile["catalog_sha256"],
+            "assumptions": limitations}
+        if selected is not None:
+            provenance.update(mesh_variant=selected, source_parent_mesh=profile["parent"],
+                generation_recipe_sha256=profile["recipe_sha256"], generation_source_sha256=profile["generator_sha256"],
+                mesh_profile_sha256=worker.REFINED_PROFILE_SHA256, mesh_metadata_byte_repeatability="NOT_CLAIMED")
+        if admission_error is not None:
             outcome = {"status": "REJECTED", "solver_status": "NOT_RUN", "converged": None,
-                "checks": [{"code": "contact_preflight", "status": "FAIL", "observed": str(exc)}],
+                "checks": [{"code": "contact_preflight", "status": "FAIL", "observed": str(admission_error)}],
                 "metrics": {}, "pending_validations": list(domain._PENDING),
                 "provenance": provenance, "raw_result": "simulation/analysis_raw.json"}
             save_json(output / "analysis_raw.json", outcome)
@@ -165,9 +209,10 @@ class CodeAsterContactPatchAdapter:
             raise RuntimeError("Initial contact qualification requires the already protected17.4 SIF")
         level = output / "level_0"
         level.mkdir(exist_ok=False)
-        (level / "mesh.mmed").write_bytes(_MESH.read_bytes())
-        save_json(level / "input.json", {"settings": checked, "mesh_sha256": _MESH_SHA,
-            "mesh_inspection_sha256": _CATALOG_SHA})
+        selected_mesh = (_MESH if selected is None else _ASSET_ROOT / "ssnp121a-17.4.0.uniform_quad4_2x.mmed")
+        (level / "mesh.mmed").write_bytes(selected_mesh.read_bytes())
+        save_json(level / "input.json", {"settings": checked, "mesh_sha256": profile["mesh_sha256"],
+            "mesh_inspection_sha256": profile["catalog_sha256"]})
         input_sha = native._sha256(level / "input.json")
         (level / "model.comm").write_text("import sys\nsys.path.insert(0, '/work')\n"
             "from codeaster_contact_worker import solve_level\n"
@@ -186,8 +231,8 @@ class CodeAsterContactPatchAdapter:
         scratch.mkdir(exist_ok=False)
         save_json(level / "scratch.json", {"path": "simulation/scratch/level_0",
             "retention_status": "PRESERVED_UNTIL_VALID_EXTRACTION"})
-        _assert_sources(output)
-        if (native._sha256(image) != image_sha or native._sha256(level / "mesh.mmed") != _MESH_SHA or
+        _assert_sources(output, selected)
+        if (native._sha256(image) != image_sha or native._sha256(level / "mesh.mmed") != profile["mesh_sha256"] or
                 native._sha256(level / "input.json") != input_sha):
             raise RuntimeError("Contact runtime/input drift before native execution")
         command = [runtime, "exec", "--cleanenv", "--containall", "--no-home", "--env", "OMP_NUM_THREADS=1",
@@ -197,13 +242,15 @@ class CodeAsterContactPatchAdapter:
             "caelab-codeaster-contact", "/work/level_0/model.export"]
         native._process(command, level, "solver", timeout=budgets["subprocess_timeout_seconds"])
         raw = json.loads((level / "worker_result.json").read_text(encoding="utf-8"))
-        if (raw.get("input_sha256") != input_sha or raw.get("mesh_input_sha256") != _MESH_SHA or
+        if (raw.get("input_sha256") != input_sha or raw.get("mesh_input_sha256") != profile["mesh_sha256"] or
+                raw.get("mesh_variant") != selected or
                 raw.get("solver_status") != "COMPLETED" or raw.get("converged") is not True or
                 not isinstance(raw.get("versions"), dict) or not isinstance(raw.get("code_aster_runtime"), dict)):
             raise ValueError("Native contact result identity/status/runtime does not match the original request")
         if not (level / "results.med").is_file() or not (level / "results.med").stat().st_size:
             raise ValueError("Complete native contact MED field artifact is missing")
-        observation = worker.parse_contact_tables(raw)
+        observation = (worker.parse_contact_tables(raw) if selected is None else
+                       worker.parse_contact_tables(raw, mesh_variant=selected))
         save_json(level / "parsed_contact.json", observation)
         convergence = parse_convergence_log((level / "aster.mess").read_text(encoding="utf-8", errors="replace"))
         save_json(level / "nonlinear_convergence.json", convergence)
@@ -211,7 +258,8 @@ class CodeAsterContactPatchAdapter:
         save_json(level / "domain_contact_observation.json", numerical_observation)
         assessed = domain.assess(checked, numerical_observation)
         checks = [{"code": "native_contact_mesh_identity", "status": "PASS",
-                   "observed": raw["native_mesh_checks"], "limit": "Exact public313node/265QUAD4/92SEG2 asset"},
+                   "observed": raw["native_mesh_checks"], "limit": ("Exact public313node/265QUAD4/92SEG2 asset" if selected is None else
+                       "Exact sealed uniform2 1154node/1060QUAD4/184SEG2 asset and original313 parent identity")},
                   {"code": "native_contact_absolute_convergence", "status": convergence["status"],
                    "observed": convergence["final_absolute_residual"], "limit": convergence["absolute_residual_limit"]},
                   *assessed["checks"]]
@@ -220,8 +268,8 @@ class CodeAsterContactPatchAdapter:
         if not completed:
             for metric in metrics.values():
                 metric.update(valid=False, reason="Contact native/reference gate failed; original observation retained")
-        _assert_sources(output)
-        if (native._sha256(image) != image_sha or native._sha256(level / "mesh.mmed") != _MESH_SHA or
+        _assert_sources(output, selected)
+        if (native._sha256(image) != image_sha or native._sha256(level / "mesh.mmed") != profile["mesh_sha256"] or
                 native._sha256(level / "input.json") != input_sha):
             raise RuntimeError("Contact runtime/input drift after extraction; original artifacts remain")
         provenance.update(code_aster_runtime=raw["code_aster_runtime"], versions=raw["versions"],
@@ -238,6 +286,6 @@ class CodeAsterContactPatchAdapter:
             "pending_validations": assessed["pending_validations"], "provenance": provenance,
             "raw_result": "simulation/analysis_raw.json", "reference": assessed["reference"],
             "contact_observation": observation, "nonlinear_convergence": convergence,
-            "limitations": [*assessed["limitations"], *_LIMITATIONS]}
+            "limitations": [*assessed["limitations"], *limitations]}
         save_json(output / "analysis_raw.json", outcome)
         return outcome

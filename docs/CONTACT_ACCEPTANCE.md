@@ -1,6 +1,6 @@
 # Contact foundation acceptance
 
-Current P5.3: original canonical and analytical variant native acceptance PASS;
+Current P5.3: original native PASS; uniform2 source/preparation PASS, mechanics pending;
 independent127 math/63 runtime checks, zero open P1/P2. Mesh/cross-solver and
 connected Research/human acceptance remain OPEN.
 Whole Phase5, P2.4 fixture coupling, Phases6/7 and the52 requirements remain open.
@@ -118,3 +118,22 @@ Public failed record: benchmarks/records/20261004-contact-calculix-pilot-r01-fai
 Ten blocking UNKNOWNs: model, material, physical, static strength, fatigue,
 pointwise contact gap, cross-solver contact, fixture joint, corporate license
 and corporate security. Solver exit success never authorizes RELEASED.
+
+## Uniform2 source and preparation checkpoint
+
+The fixed optional selector reuses the same Domain/adapter/common operation.
+Original four-key defaults and exact scientific limits remain. The single actual
+MED preparation and independent math/direct-HDF5 audit establish1154/1060/184,
+original313 prefix and AB24/EF22. Source46-review has zero openP1/P2. Main
+integrated257cold PASS (54.346080s) includes previous245 and Root12.
+Helper/source/test LF and profile/recipe/golden fixture byte rules preserve pins
+across Git checkout. Retained failed consumers were corrected before execution.
+
+Fresh native compatibility, all1154 U/RF,4240 stresses,25 slave pressures, six
+signed A/B/N14 comparisons and residual remain UNKNOWN_NOT_RUN. Reuse the
+qualified9d original result; do not repeat its solves. One subdivision will show
+sensitivity only; cross-solver/physical/strength/fixture release stays UNKNOWN.
+Production verifier requires the SHA-qualified historical local baseline; absent
+local evidence blocks before Lab/native. The portable genuine result fixture is
+for cold tests and is not a fallback solver result. No contact CI native step is
+claimed. Record: `benchmarks/records/20261004-contact-uniform2-source-r01.json`.

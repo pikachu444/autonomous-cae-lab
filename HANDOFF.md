@@ -1,4 +1,29 @@
-## Current checkpoint: P5.3 CalculiX comparison failed; ordered mesh extension active
+## Current checkpoint: P5.3 uniform2 source and mesh preparation verified; native next
+
+The existing contact backend admits only optional mesh_variant=uniform_quad4_2x.
+Original defaults, six1% sample gates, reactions1%/balance1e-6, native2e-8 and
+Core/registry/schema/approved model/auth remain unchanged. Generated MED has
+1154nodes/1060QUAD4/184SEG2, AB24/EF22, preserving original313 coordinates/names.
+One actual MEDLoader preparation/readback succeeds; independent topology/math
+and direct read-only HDF5/canonical checks PASS. Source46-review has0openP1/P2.
+Actual integrated Main cold suite:257PASS/0FAIL/error/skip in54.346080s;
+candidate245 and Root12 are included, not additional repeated successes.
+Retained collector/inventory/auditor/Root consumer failures are corrected in
+separate records; no old native result, metric, criterion or failed pilot changes.
+New contact mechanics and refined numerical verdict are UNKNOWN_NOT_RUN here.
+NEXT: clean commit/push, one fresh uniform2 native job and independent full-field
+comparison against SHA-qualified9d original (no original rerun); then whole
+OpenScience contact research/human, P2.4 fixture coupling and remaining Phase6/7.
+One mesh subdivision gives sensitivity, not asymptotic convergence proof.
+Exact4f parentCI37151437233:7SUCCESS/3FAIL(codeaster,pde,explicit); inner causes
+UNKNOWN for this exact run. New source CI is pending and contact CI is absent.
+Record: `benchmarks/records/20261004-contact-uniform2-source-r01.json`; SHA256 `6770d4b20e3d4f5fbf94bca45ace5513da7019204c15dba17d5318df8a1cf828`.
+Local raw/seals retained; remote raw UNKNOWN. Whole52/Phases5-7 ACTIVE;
+ten contact engineering UNKNOWNs/NOT_RELEASED and failed CalculiX comparison stay.
+
+---
+
+## Historical checkpoint: P5.3 CalculiX comparison failed; ordered mesh extension active
 
 One private CalculiX2.21 original-CPE4 pilot exits0 in1.980334s, four Newton
 iterations, without wall timeout or retry. Independent actual full-field audit

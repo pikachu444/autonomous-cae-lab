@@ -16,9 +16,11 @@ import re
 from typing import Any
 
 if __package__:
+    from . import codeaster_contact_mesh as mesh_contracts
     from .codeaster_worker import (COORDINATE_COMPONENTS, _field_order, _finite,
         _identifier, _json_safe, _name, _runtime_versions, _table, _table_identifier)
 else:
+    import codeaster_contact_mesh as mesh_contracts
     from codeaster_worker import (COORDINATE_COMPONENTS, _field_order, _finite,
         _identifier, _json_safe, _name, _runtime_versions, _table, _table_identifier)
 
@@ -27,6 +29,9 @@ CASE = "ssnp121a_frictionless_patch"
 MESH_SHA256 = "825e79a01b983b14b136d4fc2490c2bc40e85ccc25ebd8ae6aa32e88dd544f91"
 MESH_INSPECTION_SHA256 = "7398ce4349f076e225e76d1d840d60da1dfe24b57181c1ae1d7b5cfc069d8291"
 FROZEN_CATALOG_CANONICAL_SHA256 = "583407113cbf7d20543bf8a2b1f44e2f0ba814281747e160bd0ff84788ace739"
+REFINED_PROFILE_SHA256 = "3c157999052aaa37dd03c5b07981a3f047c921d784511c06f97fc5846475ca11"
+_PROFILE_PATH = ((Path(__file__).resolve().parents[2] / "benchmarks/input-data/codeaster" / mesh_contracts.PROFILE_NAME)
+                 if __package__ else Path(__file__).resolve().parent / mesh_contracts.PROFILE_NAME)
 VECTOR_COMPONENTS = ("DX", "DY")
 STRESS_COMPONENTS = ("SIXX", "SIYY", "SIZZ", "SIXY")
 STRESS_COORDINATE_COMPONENTS = ("COOR_X", "COOR_Y")
@@ -60,10 +65,18 @@ NATIVE_POLICY = {
 }
 
 
+def selected_mesh_contract(mesh_variant: str | None = None) -> dict:
+    if mesh_variant is None:
+        return mesh_contracts.contract()
+    return mesh_contracts.contract(mesh_variant, mesh_contracts.load_profile(_PROFILE_PATH, REFINED_PROFILE_SHA256))
+
+
 def validate_settings(settings: Any) -> None:
     """Defensive native admission, without evaluating scientific responses."""
-    if not isinstance(settings, dict) or set(settings) != {"case", "material", "top_displacement_m", "limits"}:
+    required = {"case", "material", "top_displacement_m", "limits"}
+    if not isinstance(settings, dict) or set(settings) not in (required, required | {"mesh_variant"}):
         raise ValueError("Unsupported contact settings shape")
+    mesh_contracts.variant(settings)
     if settings["case"] != CASE:
         raise ValueError("Unsupported contact case")
     material = settings["material"]
@@ -89,15 +102,21 @@ def _write_new(path: Path, value: Any) -> None:
         stream.write(text)
 
 
-def _frozen_catalog(expected: Any) -> dict:
-    if not isinstance(expected, dict) or expected.get("source_sha256") != MESH_SHA256:
+def _frozen_catalog(expected: Any, mesh_variant: str | None = None) -> dict:
+    profile = selected_mesh_contract(mesh_variant)
+    if not isinstance(expected, dict) or expected.get("source_sha256") != profile["mesh_sha256"]:
         raise ValueError("Missing pinned SSNP121A source catalogue")
     try:
         encoded = json.dumps(expected, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
     except (TypeError, ValueError) as exc:
         raise ValueError("Malformed pinned source catalogue") from exc
-    if hashlib.sha256(encoded).hexdigest() != FROZEN_CATALOG_CANONICAL_SHA256:
+    if hashlib.sha256(encoded).hexdigest() != profile["canonical_sha256"]:
         raise ValueError("Frozen source catalogue differs from the sealed official inspection")
+    if mesh_variant is not None and (expected.get("source_parent") != profile["parent"] or
+            expected.get("generator_source_sha256") != profile["generator_sha256"] or
+            expected.get("generation_recipe_sha256") != profile["recipe_sha256"] or
+            expected.get("mesh_variant") != mesh_variant):
+        raise ValueError("Refined catalogue generation/parent identity differs from the sealed profile")
     return expected
 
 
@@ -109,18 +128,19 @@ def _indices(values: Any, upper: int, label: str, *, count: int | None = None) -
     return values
 
 
-def capture_native_catalog(mesh: Any) -> dict:
+def capture_native_catalog(mesh: Any, mesh_variant: str | None = None) -> dict:
     """Capture numeric mesh APIs before any mechanical/contact command."""
+    profile = selected_mesh_contract(mesh_variant)
     coordinates = mesh.getCoordinates().toNumpy().tolist()
     nodes, count = list(mesh.getNodes()), mesh.getNumberOfNodes()
-    if type(count) is not int or count != 313 or len(coordinates) != count:
-        raise ValueError("Native contact mesh must contain the original 313 nodes")
+    if type(count) is not int or count != profile["node_count"] or len(coordinates) != count:
+        raise ValueError("Native contact mesh node count differs from the selected sealed profile")
     _indices(nodes, count, "node", count=count)
     if nodes != list(range(count)):
         raise ValueError("Native contact node ordering is not the unrenumbered MED ordering")
     cell_count, connectivity = mesh.getNumberOfCells(), mesh.getConnectivity()
-    if type(cell_count) is not int or cell_count != 357 or len(connectivity) != cell_count:
-        raise ValueError("Native contact mesh must contain all 265 QUAD4 and 92 SEG2 cells")
+    if type(cell_count) is not int or cell_count != profile["total_cell_count"] or len(connectivity) != cell_count:
+        raise ValueError("Native contact mesh must contain every selected QUAD4 and SEG2 cell")
     cell_names = list(mesh.getGroupsOfCells())
     node_names = list(mesh.getGroupsOfNodes())
     for names in (cell_names, node_names):
@@ -137,23 +157,25 @@ def capture_native_catalog(mesh: Any) -> dict:
         "group_node_ids": {name: list(mesh.getNodes(name)) for name in node_names}}
 
 
-def validate_mesh_catalog(catalog: Any, expected: Any) -> dict:
+def validate_mesh_catalog(catalog: Any, expected: Any, mesh_variant: str | None = None) -> dict:
     """Verify all original indices, topology, groups and directed normals.
 
     Native cell ordering may differ from MED level ordering. Each full ordered
     connectivity has one source match; actual native cell IDs remain unchanged.
     Coincident body nodes must not be merged, reordered or coordinate-matched.
     """
-    expected = _frozen_catalog(expected)
+    profile = selected_mesh_contract(mesh_variant)
+    node_count, cell_count = profile["node_count"], profile["total_cell_count"]
+    expected = _frozen_catalog(expected, mesh_variant)
     if (not isinstance(catalog, dict) or catalog.get("schema_version") != "1" or
             catalog.get("node_indexing") != "ZERO_BASED_CODE_ASTER_UNRENUMBERED"):
         raise ValueError("Missing actual unrenumbered native contact catalogue")
-    nodes = _indices(catalog.get("node_ids"), 313, "node", count=313)
-    if nodes != list(range(313)):
+    nodes = _indices(catalog.get("node_ids"), node_count, "node", count=node_count)
+    if nodes != list(range(node_count)):
         raise ValueError("Native node index/order differs from the original MED")
     coordinates = catalog.get("coordinates_m")
     source_coordinates = expected["coordinates_in_native_order"]
-    if not isinstance(coordinates, list) or len(coordinates) != 313:
+    if not isinstance(coordinates, list) or len(coordinates) != node_count:
         raise ValueError("Incomplete native contact coordinates")
     for actual, source in zip(coordinates, source_coordinates):
         if not isinstance(actual, list) or len(actual) != 3:
@@ -165,7 +187,7 @@ def validate_mesh_catalog(catalog: Any, expected: Any) -> dict:
     if labels is not None and labels != expected["node_name_field"]:
         raise ValueError("Actual native node labels differ from the MED label field")
     cells = catalog.get("cells")
-    if not isinstance(cells, list) or len(cells) != 357:
+    if not isinstance(cells, list) or len(cells) != cell_count:
         raise ValueError("Incomplete native contact cell catalogue")
     source_cells = {}
     source_groups = {}
@@ -175,7 +197,7 @@ def validate_mesh_catalog(catalog: Any, expected: Any) -> dict:
             source_cells[(cell_type, tuple(connectivity))] = (level, index)
         for name, group in data["groups"].items():
             source_groups[name] = {(level, index) for index in group["cell_ids"]}
-    if len(source_cells) != 357:
+    if len(source_cells) != cell_count:
         raise ValueError("Frozen MED contains ambiguous ordered connectivity")
     mapping, native_cells = {}, {}
     for index, cell in enumerate(cells):
@@ -184,7 +206,7 @@ def validate_mesh_catalog(catalog: Any, expected: Any) -> dict:
         cell_type = cell.get("cell_type")
         if cell_type not in ("QUAD4", "SEG2"):
             raise ValueError("Unsupported native contact cell type")
-        connectivity = _indices(cell.get("node_ids"), 313, "cell node", count=4 if cell_type == "QUAD4" else 2)
+        connectivity = _indices(cell.get("node_ids"), node_count, "cell node", count=4 if cell_type == "QUAD4" else 2)
         key = (cell_type, tuple(connectivity))
         match = source_cells.get(key)
         if match is None or match in mapping.values():
@@ -196,7 +218,7 @@ def validate_mesh_catalog(catalog: Any, expected: Any) -> dict:
         raise ValueError("Actual native material/boundary groups differ from the MED")
     boundary_nodes = {}
     for name, source_set in source_groups.items():
-        actual = _indices(group_cells[name], 357, name + " cell", count=len(source_set))
+        actual = _indices(group_cells[name], cell_count, name + " cell", count=len(source_set))
         if {mapping[index] for index in actual} != source_set:
             raise ValueError(f"Native {name} group does not contain the original directed cells")
         if name not in ("PLAQUE1", "PLAQUE2"):
@@ -207,11 +229,11 @@ def validate_mesh_catalog(catalog: Any, expected: Any) -> dict:
             set(original_groups), set(original_groups) | set(BOUNDARY_GROUPS)):
         raise ValueError("Native named-node groups are incomplete or contain unexpected groups")
     for name, source in original_groups.items():
-        actual = _indices(group_nodes[name], 313, name + " node", count=len(source["node_ids"]))
+        actual = _indices(group_nodes[name], node_count, name + " node", count=len(source["node_ids"]))
         if set(actual) != set(source["node_ids"]):
             raise ValueError(f"Native named-node group {name} drifted")
     for name in BOUNDARY_GROUPS:
-        if name in group_nodes and set(_indices(group_nodes[name], 313, name + " node")) != set(boundary_nodes[name]):
+        if name in group_nodes and set(_indices(group_nodes[name], node_count, name + " node")) != set(boundary_nodes[name]):
             raise ValueError(f"Generated native {name} node group differs from its directed cells")
     normals = {}
     for name, expected_normal in (("AB", [0.0, -1.0, 0.0]), ("EF", [0.0, 1.0, 0.0])):
@@ -227,9 +249,10 @@ def validate_mesh_catalog(catalog: Any, expected: Any) -> dict:
         normals[name] = directed
     if set(boundary_nodes["AB"]) & set(boundary_nodes["EF"]):
         raise ValueError("The separate slave/master interface nodes were merged")
-    return {"status": "PASS", "node_count": 313, "body_element_count": 265, "boundary_element_count": 92,
-        "total_cell_count": 357, "node_indexing": catalog["node_indexing"],
-        "coordinate_policy": "Exact original MED double values in original numeric order; no snapping",
+    return {"status": "PASS", "node_count": node_count, "body_element_count": profile["quad4_count"], "boundary_element_count": profile["seg2_count"],
+        "total_cell_count": cell_count, "node_indexing": catalog["node_indexing"],
+        "coordinate_policy": ("Exact original MED double values in original numeric order; no snapping" if mesh_variant is None else
+                              "Exact sealed refined MED doubles; original313 index/bit prefix preserved; generated nodes appended without snapping/merging"),
         "source_cell_mapping": [{"native_cell_id": index, "source_level": level, "source_cell_id": cell}
                                 for index, (level, cell) in mapping.items()],
         "boundary_node_ids": boundary_nodes, "normal_vectors_xyz": normals,
@@ -237,8 +260,8 @@ def validate_mesh_catalog(catalog: Any, expected: Any) -> dict:
         "solver_gate": "Verified before AFFE_MODELE, DEFI_CONTACT and STAT_NON_LINE"}
 
 
-def validate_native_mesh(mesh: Any, expected: Any) -> dict:
-    return validate_mesh_catalog(capture_native_catalog(mesh), expected)
+def validate_native_mesh(mesh: Any, expected: Any, mesh_variant: str | None = None) -> dict:
+    return validate_mesh_catalog(capture_native_catalog(mesh, mesh_variant), expected, mesh_variant)
 
 
 def _final_order(access: Any, indexes: Any) -> int:
@@ -365,12 +388,15 @@ def _projected_gaps(catalog: dict, displacement: dict, slave_nodes: list[int]) -
     return gaps
 
 
-def parse_contact_tables(raw: dict) -> dict:
+def parse_contact_tables(raw: dict, *, mesh_variant: str | None = None) -> dict:
     """Return complete observed fields; never substitute stress for LAGS_C."""
     if (not isinstance(raw, dict) or raw.get("schema_version") != "1" or
             raw.get("solver_status") != "COMPLETED" or raw.get("converged") is not True):
         raise ValueError("Incomplete native contact result")
-    if raw.get("mesh_input_sha256") != MESH_SHA256 or raw.get("mesh_inspection_sha256") != MESH_INSPECTION_SHA256:
+    profile = selected_mesh_contract(mesh_variant)
+    if raw.get("mesh_variant") != mesh_variant:
+        raise ValueError("Native contact selected mesh variant differs from the declared request")
+    if raw.get("mesh_input_sha256") != profile["mesh_sha256"] or raw.get("mesh_inspection_sha256") != profile["catalog_sha256"]:
         raise ValueError("Native contact input/catalogue identity differs from the fixed source")
     if not isinstance(raw.get("input_sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", raw["input_sha256"]):
         raise ValueError("Missing actual native contact input digest")
@@ -378,7 +404,7 @@ def parse_contact_tables(raw: dict) -> dict:
     if type(raw.get("order")) is not int or raw["order"] != order:
         raise ValueError("Native contact table selection differs from final access order")
     catalog = raw.get("mesh")
-    guard = validate_mesh_catalog(catalog, raw.get("frozen_mesh"))
+    guard = validate_mesh_catalog(catalog, raw.get("frozen_mesh"), mesh_variant)
     tables = raw.get("native_tables")
     if not isinstance(tables, dict):
         raise ValueError("Missing original native contact tables")
@@ -434,16 +460,25 @@ def solve_level(input_path: str) -> None:
     if not isinstance(config, dict) or set(config) != {"settings", "mesh_sha256", "mesh_inspection_sha256"}:
         raise ValueError("Unsupported contact worker input envelope")
     validate_settings(config["settings"])
-    if config["mesh_sha256"] != MESH_SHA256 or config["mesh_inspection_sha256"] != MESH_INSPECTION_SHA256:
+    selected = mesh_contracts.variant(config["settings"])
+    profile = selected_mesh_contract(selected)
+    if config["mesh_sha256"] != profile["mesh_sha256"] or config["mesh_inspection_sha256"] != profile["catalog_sha256"]:
         raise ValueError("Unsupported contact source mesh/catalogue digest")
     output, settings = input_file.parent, config["settings"]
     mesh_file = output / "mesh.mmed"
     frozen_file = output.parent / "frozen_mesh.json"
-    if hashlib.sha256(mesh_file.read_bytes()).hexdigest() != MESH_SHA256:
+    if hashlib.sha256(mesh_file.read_bytes()).hexdigest() != profile["mesh_sha256"]:
         raise ValueError("Level mesh.mmed differs from the pinned official MED")
-    if hashlib.sha256(frozen_file.read_bytes()).hexdigest() != MESH_INSPECTION_SHA256:
+    if hashlib.sha256(frozen_file.read_bytes()).hexdigest() != profile["catalog_sha256"]:
         raise ValueError("Captured frozen_mesh.json differs from the sealed inspection bytes")
-    expected = _frozen_catalog(json.loads(frozen_file.read_text(encoding="utf-8")))
+    expected = _frozen_catalog(json.loads(frozen_file.read_text(encoding="utf-8")), selected)
+    if selected is not None:
+        protected = {"source_parent.mmed": MESH_SHA256, "source_parent_mesh.json": MESH_INSPECTION_SHA256,
+            "mesh_generation_recipe.json": profile["recipe_sha256"], "codeaster_contact_mesh.py": profile["generator_sha256"],
+            mesh_contracts.PROFILE_NAME: REFINED_PROFILE_SHA256}
+        for name, digest in protected.items():
+            if hashlib.sha256((output.parent / name).read_bytes()).hexdigest() != digest:
+                raise ValueError("Captured refined generation source/recipe/parent identity drift before mechanics")
 
     from code_aster.Commands import (AFFE_CHAR_MECA, AFFE_MATERIAU, AFFE_MODELE,
         CALC_CHAMP, CREA_TABLE, DEBUT, DEFI_CONTACT, DEFI_FONCTION, DEFI_GROUP,
@@ -452,7 +487,7 @@ def solve_level(input_path: str) -> None:
 
     DEBUT(CODE="OUI", ERREUR=_F(ALARME="ALARME"), IGNORE_ALARM="CONTACT3_16", DEBUG=_F(SDVERI="OUI"))
     deferred = Path("fort.20")
-    if not deferred.is_file() or hashlib.sha256(deferred.read_bytes()).hexdigest() != MESH_SHA256:
+    if not deferred.is_file() or hashlib.sha256(deferred.read_bytes()).hexdigest() != profile["mesh_sha256"]:
         raise RuntimeError("Actual deferred unit20 differs from the pinned official MED")
     versions, runtime = _runtime_versions()
     _write_new(output / "runtime.json", {"versions": versions, "code_aster_runtime": runtime})
@@ -460,14 +495,14 @@ def solve_level(input_path: str) -> None:
         raise RuntimeError("Contact worker requires the exact pinned native17.4.0 API")
     mesh = LIRE_MAILLAGE(FORMAT="MED", UNITE=20)
     try:
-        guard = validate_native_mesh(mesh, expected)
+        guard = validate_native_mesh(mesh, expected, selected)
         mesh = DEFI_GROUP(reuse=mesh, MAILLAGE=mesh,
                           CREA_GROUP_NO=tuple(_F(GROUP_MA=name) for name in BOUNDARY_GROUPS))
-        catalog = capture_native_catalog(mesh)
-        guard = validate_mesh_catalog(catalog, expected)
+        catalog = capture_native_catalog(mesh, selected)
+        guard = validate_mesh_catalog(catalog, expected, selected)
         if not set(BOUNDARY_GROUPS) <= catalog["group_node_ids"].keys():
             raise ValueError("DEFI_GROUP did not create every original boundary node group")
-        guard.update({"mesh_sha256": MESH_SHA256, "mesh_inspection_sha256": MESH_INSPECTION_SHA256,
+        guard.update({"mesh_sha256": profile["mesh_sha256"], "mesh_inspection_sha256": profile["catalog_sha256"],
                       "generated_boundary_groups_verified": True})
     except (ValueError, TypeError, KeyError, OSError) as exc:
         _write_new(output / "native_mesh_checks.json", {"status": "FAIL", "error": str(exc), "solver_status": "NOT_RUN"})
@@ -511,15 +546,17 @@ def solve_level(input_path: str) -> None:
     if input_file.read_bytes() != input_bytes:
         raise RuntimeError("Contact input bytes changed after native model admission; retained tables are not qualified")
     raw = {"schema_version": "1", "solver_status": "COMPLETED", "converged": True, "order": order,
-        "input_sha256": input_sha256, "mesh_input_sha256": MESH_SHA256,
-        "mesh_inspection_sha256": MESH_INSPECTION_SHA256, "versions": versions, "code_aster_runtime": runtime,
+        "input_sha256": input_sha256, "mesh_input_sha256": profile["mesh_sha256"],
+        "mesh_inspection_sha256": profile["catalog_sha256"], "versions": versions, "code_aster_runtime": runtime,
         "native_policy": NATIVE_POLICY, "native_material": material_spec, "native_mesh_checks": guard,
         "access_parameters": access, "available_orders": indexes, "native_tables": tables,
         "mesh": catalog, "frozen_mesh": expected,
         "convergence_evidence": "STAT_NON_LINE returned under original ARRET OUI/absolute2e-8; .mess histories are parsed separately after process exit",
         "measured_linear_residual": None}
     # Tables are already retained if this strict parser refuses the extraction.
-    raw["observation"] = parse_contact_tables(raw)
+    if selected is not None:
+        raw["mesh_variant"] = selected
+    raw["observation"] = parse_contact_tables(raw, mesh_variant=selected)
     IMPR_RESU(FORMAT="MED", UNITE=80,
               RESU=_F(RESULTAT=result, NOM_CHAM=("DEPL", "SIEF_ELGA", "REAC_NODA"), NUME_ORDRE=order))
     IMPR_RESU(FORMAT="RESULTAT", UNITE=8,

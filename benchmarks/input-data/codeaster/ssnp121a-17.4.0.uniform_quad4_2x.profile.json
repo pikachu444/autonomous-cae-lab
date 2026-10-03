@@ -1,0 +1,40 @@
+{
+  "decision": "NOT_RELEASED",
+  "kind": "SEALED_UNIFORM_QUAD4_2X_CONTACT_PROFILE",
+  "mechanical_solver_calls": 0,
+  "metadata_byte_repeatability": "NOT_CLAIMED",
+  "numerical_verdict": "UNKNOWN_NOT_RUN",
+  "parent": {
+    "canonical_sha256": "583407113cbf7d20543bf8a2b1f44e2f0ba814281747e160bd0ff84788ace739",
+    "catalog_sha256": "7398ce4349f076e225e76d1d840d60da1dfe24b57181c1ae1d7b5cfc069d8291",
+    "mesh_sha256": "825e79a01b983b14b136d4fc2490c2bc40e85ccc25ebd8ae6aa32e88dd544f91"
+  },
+  "pins": {
+    "canonical_sha256": "cd470a995aaba700e5843e9a4db2e8243dc2e2b8fb830cbb0e193c3bf51d65e5",
+    "catalog_sha256": "2c1de222fa076cd0afbe98d5dd911cac01f22cae21c96ed090e5be4a2e38b46d",
+    "generator_sha256": "4aa4233f9a788927a21f053159e670e6099a2aae5ce08c3ec09d073feb6d020e",
+    "mesh_sha256": "a23a617fe5de9eb8e52775fcbd10ddcac1aa14cac99ad09ab703e8b58f3b0f6c",
+    "recipe_sha256": "d0ca8549f7f769c39dfc42b5dda9c3120c87c929e71aadacf18bd5bff688a3a8"
+  },
+  "readback_status": "PASS_FULL_COORDINATE_CONNECTIVITY_GROUP_NAME_IDENTITY",
+  "runtime": {
+    "MEDLoader": "9.14.0",
+    "numpy": "1.26.4",
+    "python": "3.11.14"
+  },
+  "shape": {
+    "body_counts": {
+      "PLAQUE1": 576,
+      "PLAQUE2": 484
+    },
+    "master_nodes": 23,
+    "master_segments": 22,
+    "node_count": 1154,
+    "quad4_count": 1060,
+    "seg2_count": 184,
+    "slave_nodes": 25,
+    "slave_segments": 24,
+    "total_cell_count": 1244,
+    "variant": "uniform_quad4_2x"
+  }
+}

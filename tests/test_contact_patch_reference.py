@@ -266,3 +266,50 @@ def test_finite_failed_large_response_is_retained_as_invalid_metric():
         "value": 1e300, "unit": "Pa", "valid": False,
         "reason": "Contact numerical gates failed: sample_A_normal_traction_pa"}
     assert math.isfinite(result["metrics"]["max_sample_pressure_relative_error"]["value"])
+
+
+@pytest.mark.parametrize("selector", [None, "original", "../mesh.mmed", "uniform_quad4_4x", True, False, 1, {}, []])
+def test_only_the_single_new_explicit_mesh_selector_is_allowed(selector):
+    request = settings()
+    request["mesh_variant"] = selector
+    with pytest.raises(ValueError):
+        validate_settings(request)
+
+
+def test_refined_canonical_material_is_not_original_vendor_mesh_replication_and_limits_stay_fixed():
+    request = {**settings(), "mesh_variant": "uniform_quad4_2x"}
+    normalized = validate_settings(request)
+    assert normalized["mesh_variant"] == "uniform_quad4_2x"
+    reference = analytical_reference(request)
+    assert reference["canonical_original_inputs"] is False
+    assert reference["canonical_material_inputs"] is True
+    assert reference["original_vendor_mesh_replication"] is False
+    assert reference["normal_traction_pa"] == -1e5 and reference["interface_vertical_displacement_m"] == -0.05
+    assert reference["six_published_sample_relative_limits"] == 0.01
+    declaration = model_declaration(request)
+    assert [declaration["mesh"][name] for name in ("node_count", "solid_cell_count", "boundary_segment_count")] == [1154, 1060, 184]
+    assert [declaration["mesh"][name] for name in ("slave_contact_segment_count", "master_contact_segment_count")] == [24, 22]
+    actual = observation()
+    actual["slave_contact"] = {"node_ids": [*range(24), 1153], "normal_traction_pa": [-1e5] * 25}
+    actual["projected_gaps_m"] = [0.0] * 25
+    assessed = assess(request, actual)
+    assert set(statuses(assessed).values()) == {"PASS"}
+    assert len(assessed["pending_validations"]) == 10
+    assert assessed["contact_observation"]["pointwise_qualification"] == "UNKNOWN"
+    actual["samples"]["A"]["normal_traction_pa"] *= 1.02
+    assert statuses(assess(request, actual))["sample_A_normal_traction_pa"] == "FAIL"
+    assert not assess(request, actual)["metrics"]["A_normal_traction"]["valid"]
+
+
+@pytest.mark.parametrize("damage", ["old_count", "out_of_range", "missing_pressure", "gap_count"])
+def test_refined_observation_count_and_pairing_are_not_guessed_from_returned_data(damage):
+    request = {**settings(), "mesh_variant": "uniform_quad4_2x"}
+    actual = observation()
+    actual["slave_contact"] = {"node_ids": list(range(25)), "normal_traction_pa": [-1e5] * 25}
+    actual["projected_gaps_m"] = [0.0] * 25
+    if damage == "old_count": actual["slave_contact"] = {"node_ids": list(range(13)), "normal_traction_pa": [-1e5] * 13}
+    elif damage == "out_of_range": actual["slave_contact"]["node_ids"][-1] = 1154
+    elif damage == "missing_pressure": actual["slave_contact"]["normal_traction_pa"].pop()
+    elif damage == "gap_count": actual["projected_gaps_m"].pop()
+    with pytest.raises(ValueError):
+        assess(request, actual)
