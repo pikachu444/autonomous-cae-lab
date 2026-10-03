@@ -1,0 +1,369 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-03T10:07:44.350105+00:00",
+  "status": "REVIEWED_PRESERVED_MAXWELL_SOURCE_NATIVE_NOT_RUN",
+  "source_parent": "13118543dd0b93f0460c9666f36dfb8b24c4cfe9",
+  "working_and_staged_source_files": [
+    {
+      "path": ".gitattributes",
+      "size_bytes": 1623,
+      "sha256": "4c02870781ff9f2c620d9299af72732b85d8c54f615d4aa2ee7149b47c86eddf",
+      "git_blob_oid": "2ac3ee3b06ef9b61214760273b6983b7a6652c93",
+      "git_blob_size_bytes": 1599,
+      "git_blob_sha256": "f4d2f3c7239eeb8161db95824b70f84130603f04a0e006afd29b20449d7c6828",
+      "normalization": "CRLF_TO_LF_ONLY"
+    },
+    {
+      "path": "caelab/engine.py",
+      "size_bytes": 48219,
+      "sha256": "5da9e20f64ca182faa4572d1bfe4b9b824e8e11326fa336e92c910a9dda332ef",
+      "git_blob_oid": "0feda11fced6bf99958da499d728bf5c122d4cc8",
+      "git_blob_size_bytes": 47481,
+      "git_blob_sha256": "299bf16d2c73e7da3b195bf26b2baae5fe3d160c13b2c3272ab4c028a74eb0d6",
+      "normalization": "CRLF_TO_LF_ONLY"
+    },
+    {
+      "path": "apps/lab/service.py",
+      "size_bytes": 41857,
+      "sha256": "7a94b712b3169ff283d4c69a3dd5e07c70d3ff55e2f4db81e7259a8d83f7aae2",
+      "git_blob_oid": "19c7df5adfee05a5e590f616ba261d05d09b41c3",
+      "git_blob_size_bytes": 41254,
+      "git_blob_sha256": "4ba764f98bfeba73c957f5166a407f0ad5395938aba8bad71d1bfb062b947e1b",
+      "normalization": "CRLF_TO_LF_ONLY"
+    },
+    {
+      "path": "caelab/adapters/mfront_hyperelastic_worker.py",
+      "size_bytes": 40902,
+      "sha256": "cf7e6a631ea1a9ea3a52abefb4247f1eda977b60c8643ecb116b297097eb3960",
+      "git_blob_oid": "a0d9e796feeab0eb7e6b909f6c1aebd3c85d5577",
+      "git_blob_size_bytes": 40257,
+      "git_blob_sha256": "54e8cf5df2225276e763c61084679d2aac886991d8cc652aa8c4d42157b43ef6",
+      "normalization": "CRLF_TO_LF_ONLY"
+    },
+    {
+      "path": "caelab/adapters/mfront_viscoelastic.py",
+      "size_bytes": 32024,
+      "sha256": "9bfb3f1e03f5d82f9d75de07364da049caf52913b9099ccda9269ae56b3cf70f",
+      "git_blob_oid": "e060cbe7da0552096c616b29fad9586fb3c47cce",
+      "git_blob_size_bytes": 32024,
+      "git_blob_sha256": "9bfb3f1e03f5d82f9d75de07364da049caf52913b9099ccda9269ae56b3cf70f",
+      "normalization": "IDENTICAL"
+    },
+    {
+      "path": "caelab/adapters/mfront_viscoelastic_worker.py",
+      "size_bytes": 39396,
+      "sha256": "964bbd4376ff0aeebff9548afa97203a46dc7a1277e7e793f00ae461c207299c",
+      "git_blob_oid": "658dc7052641cf2f853dcffd0fecf73f15bc8bb3",
+      "git_blob_size_bytes": 39396,
+      "git_blob_sha256": "964bbd4376ff0aeebff9548afa97203a46dc7a1277e7e793f00ae461c207299c",
+      "normalization": "IDENTICAL"
+    },
+    {
+      "path": "caelab/adapters/mfront_single_branch_maxwell.mfront",
+      "size_bytes": 7417,
+      "sha256": "8501f6d338d0d58fd9391031274dd0d15ecaf333f6158f0c80a73ffdb99e3d7a",
+      "git_blob_oid": "35e8fc43b798a9212e4967e5f2f758be517189cb",
+      "git_blob_size_bytes": 7417,
+      "git_blob_sha256": "8501f6d338d0d58fd9391031274dd0d15ecaf333f6158f0c80a73ffdb99e3d7a",
+      "normalization": "IDENTICAL"
+    },
+    {
+      "path": "plugins/material_point/viscoelastic_reference.py",
+      "size_bytes": 41885,
+      "sha256": "2c7d751a5d3c2a578b38e76071767da92760e276571b937152a33230fc4dfc15",
+      "git_blob_oid": "89536bdc456ab82e20b3932e8c99af10c020c8cb",
+      "git_blob_size_bytes": 41885,
+      "git_blob_sha256": "2c7d751a5d3c2a578b38e76071767da92760e276571b937152a33230fc4dfc15",
+      "normalization": "IDENTICAL"
+    },
+    {
+      "path": "tests/test_backend_integration.py",
+      "size_bytes": 4740,
+      "sha256": "374b5849395382738164a1a4f0db227815e8308129f62f48a6fb77f615ba0745",
+      "git_blob_oid": "d5a63c200368117edbca8b9247f550bcd8a289e4",
+      "git_blob_size_bytes": 4665,
+      "git_blob_sha256": "caaa19016a656448109adbe5a4d6f7b518efcbc4344977f012211c12ad00481e",
+      "normalization": "CRLF_TO_LF_ONLY"
+    },
+    {
+      "path": "tests/test_lab_server.py",
+      "size_bytes": 38792,
+      "sha256": "ea7494888dbffb86b926b96e0c9d63a6d654391fc7a964a1fbce3fa5d69fcf7e",
+      "git_blob_oid": "e64d0067f47249021376b009c07197368582482f",
+      "git_blob_size_bytes": 38106,
+      "git_blob_sha256": "0378f529959939e0973b9a3f3c2fb722128c5c977b8a516fff173d05d85aea9f",
+      "normalization": "CRLF_TO_LF_ONLY"
+    },
+    {
+      "path": "tests/test_mfront_compiler_evidence.py",
+      "size_bytes": 2838,
+      "sha256": "1c4c3694265e0574be79e1ec14ea13afb5453d4a0e7a040f896a6d5147297ec4",
+      "git_blob_oid": "627a7477c2bc2f5883db97f34cfbfac3dfdae037",
+      "git_blob_size_bytes": 2838,
+      "git_blob_sha256": "1c4c3694265e0574be79e1ec14ea13afb5453d4a0e7a040f896a6d5147297ec4",
+      "normalization": "IDENTICAL"
+    },
+    {
+      "path": "tests/test_mfront_viscoelastic.py",
+      "size_bytes": 22553,
+      "sha256": "18026e227741cb8f890a1e210dbc315f03892b9619027a244e680cd364a7ee22",
+      "git_blob_oid": "6025e7618ef552a82814f71006eacf3c761dd265",
+      "git_blob_size_bytes": 22553,
+      "git_blob_sha256": "18026e227741cb8f890a1e210dbc315f03892b9619027a244e680cd364a7ee22",
+      "normalization": "IDENTICAL"
+    },
+    {
+      "path": "tests/test_mfront_viscoelastic_runtime.py",
+      "size_bytes": 27016,
+      "sha256": "3995486488118745990bb6cc9cfa47dc0c3dec0e6395f9404b5a7f78966288c5",
+      "git_blob_oid": "c06964d2abe15ab3a1f6717cbe74e006309a7707",
+      "git_blob_size_bytes": 27016,
+      "git_blob_sha256": "3995486488118745990bb6cc9cfa47dc0c3dec0e6395f9404b5a7f78966288c5",
+      "normalization": "IDENTICAL"
+    },
+    {
+      "path": "tests/test_viscoelastic_reference.py",
+      "size_bytes": 32222,
+      "sha256": "89b5bdb03f7765925c9c7444eb794c6815594e6df1ef9aafd319875d7d7214e2",
+      "git_blob_oid": "2c7367fb676453caca3252315b8c635297ba0977",
+      "git_blob_size_bytes": 32222,
+      "git_blob_sha256": "89b5bdb03f7765925c9c7444eb794c6815594e6df1ef9aafd319875d7d7214e2",
+      "normalization": "IDENTICAL"
+    },
+    {
+      "path": "tests/test_viscoelastic_range.py",
+      "size_bytes": 13455,
+      "sha256": "2095cf0112e384090e631908a6bba961b7d080168af87d6db32e64548787c88c",
+      "git_blob_oid": "8be60b47c6bd8b6fbc60551d6bdb61f1a7a67139",
+      "git_blob_size_bytes": 13455,
+      "git_blob_sha256": "2095cf0112e384090e631908a6bba961b7d080168af87d6db32e64548787c88c",
+      "normalization": "IDENTICAL"
+    },
+    {
+      "path": "tests/test_viscoelastic_integration.py",
+      "size_bytes": 7509,
+      "sha256": "5d07de6aaeb06a0e8d3ec9052936593778b956419899f98dd8846cca66ebc393",
+      "git_blob_oid": "01e4fe01d5c75069889505988d202b14febbef9a",
+      "git_blob_size_bytes": 7509,
+      "git_blob_sha256": "5d07de6aaeb06a0e8d3ec9052936593778b956419899f98dd8846cca66ebc393",
+      "normalization": "IDENTICAL"
+    },
+    {
+      "path": "scripts/verify_viscoelastic.py",
+      "size_bytes": 7248,
+      "sha256": "c56be887d8a23d06b8a5974839e06ede6778663ccde5b006504905a2fedd1b69",
+      "git_blob_oid": "77433870da19f68b19cf91e1d4040def77665def",
+      "git_blob_size_bytes": 7248,
+      "git_blob_sha256": "c56be887d8a23d06b8a5974839e06ede6778663ccde5b006504905a2fedd1b69",
+      "normalization": "IDENTICAL"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/root-recovery-freeze-01/receipt.json",
+      "size_bytes": 3577,
+      "sha256": "301a3a65cfc79c42673e93c97492215b6193c7e88dcea1520563a538fa7f6e54"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/state-correction-01/freeze-receipt.json",
+      "size_bytes": 11339,
+      "sha256": "b8c64680b6af3ae64fcc92ac38f4a98eacf411140a3f47df47cc571478c3ca5a"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/state-independent-review-01/REPORT.md",
+      "size_bytes": 7485,
+      "sha256": "14e550e5ef4eef36ca501da275c99cc7da3e589990d8f287ec97ce0e71caf69f"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/range-correction-01/freeze-receipt.json",
+      "size_bytes": 8384,
+      "sha256": "0e81f8918b4e2121bed09d6e114e7eb0b03a081745e390c6fe70f76c3f329728"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/range-independent-review-01/REPORT-02.md",
+      "size_bytes": 8404,
+      "sha256": "d921d402aaeafb4bada4c563cfcdb5dcf8f0b127cd120b1e6267e4c1d122ea90"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/common-integration-01/freeze-receipt.json",
+      "size_bytes": 1066,
+      "sha256": "b5e2464fccc5ba016500d8bc7a91382afb754c352890f462d554d6ad529e37a6"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/common-integration-correction-01/freeze-receipt.json",
+      "size_bytes": 888,
+      "sha256": "12a722b3a47350ab7ae8a6a8a87f3d06eadec1f8fb1233a90636ebedf087197b"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/common-independent-review-correction-01/independent-review.json",
+      "size_bytes": 11099,
+      "sha256": "3916ff42004ac0f7937dfee1e6c1c6abe30b45258f14439e38625f8889143b0f"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/compiler-evidence-01/freeze-receipt.json",
+      "size_bytes": 894,
+      "sha256": "4b65a474dd7f743dede4d682604a7deb29d439355768f3f7d60b9f83732e3fac"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/compiler-independent-review-01/freeze-receipt.json",
+      "size_bytes": 3875,
+      "sha256": "08859ea475ff2c791b45e7ac430cb4c090802a81463bd04f5cb95c72f84c5e31"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/adapter-correction-01/freeze-receipt.json",
+      "size_bytes": 4863,
+      "sha256": "7b606d68c89d037c8e81817fc1f0dce2ca7330acedf6a25c120917f42bfcf60c"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/adapter-correction-01/cold-tests-01/receipt.json",
+      "size_bytes": 99826,
+      "sha256": "40cb6809c371d3e7b8180378be67750243fd130783dc8b27ff20847b7ccd6704"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/adapter-correction-01/cold-tests-01/test-results.xml",
+      "size_bytes": 67467,
+      "sha256": "999829398ca469b21a91c86c4b446d99c8dfdc4b6ceb3cd2d41651d5c1d605e5"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/adapter-runtime-independent-review-01/independent-review.json",
+      "size_bytes": 16693,
+      "sha256": "cc9c00fee90e1b1d1640e349c43a55402b64c7c3a853503528c5a99b6032b57e"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/adapter-runtime-independent-review-01/receipt.json",
+      "size_bytes": 1258,
+      "sha256": "ac201cc9d73e118fb1c990760746f96b5b354bbd43ee3f6abd3be0e6336d480e"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/adapter-domain-independent-review-01/REPORT.md",
+      "size_bytes": 9491,
+      "sha256": "30c7adb2e6291edf200da9db181c8ca3bb84f4e6eb75a334dd75734b4c74651f"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/adapter-domain-independent-review-01/freeze-receipt.json",
+      "size_bytes": 4845,
+      "sha256": "ba59028ba07c4abaf7015f9c50dbb732d066b1b343ee50eb070abb1667a194f8"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/adapter-domain-independent-review-01/review-run-01/source-evidence-review.json",
+      "size_bytes": 16582,
+      "sha256": "bbe33c68eaeefe726a0f3ed0178a677d00bb71534db9578b47e5a9934510db86"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/root-publication-01/newline-correction-01/correction.json",
+      "size_bytes": 1677,
+      "sha256": "e0a270e05e045cfde25e55c9170f58f63f5830cd806f49a2651ce9779cd5dd28"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/root-publication-01/newline-correction-01/freeze-receipt.json",
+      "size_bytes": 1682,
+      "sha256": "cbfeccfdeea06c3e15d812fdb7bd46a1c3146d6f9ef032acfe04c3979cb794bb"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/root-publication-01/main-smoke-01/receipt.json",
+      "size_bytes": 20983,
+      "sha256": "2a5b44a9499f1ec8457cd4567e39080ea126a0b2c5167210d8be2e008cf5ac4b"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/root-publication-01/main-smoke-01/test-results.xml",
+      "size_bytes": 383,
+      "sha256": "96c69777330753a44d4066e0a081c65c313ba37a8ab375d322965f4cd6fd5aa5"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/adapter-publication-newline-independent-review-01/independent-review.json",
+      "size_bytes": 12598,
+      "sha256": "94b4fe912cb8ca2471a253ff9666ca931204030e4ed8af0983da9fb560fc0c6e"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/adapter-publication-newline-independent-review-01/receipt.json",
+      "size_bytes": 1963,
+      "sha256": "32e7687bd71a8dfdb116a1f842f9269ecd0334b9ccb2258aff9f8083a9b6f372"
+    },
+    {
+      "path": "artifacts/development-viscoelastic-20261003-01/root-publication-01/preparation-failure-01.json",
+      "size_bytes": 406,
+      "sha256": "04f84d206d5e763d7b8e0fd29563db9ef859b75b6541ba79853d0b6a5ab8476a"
+    }
+  ],
+  "combined_cold": {
+    "tests": 413,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "deselected": 7,
+    "warnings": 1,
+    "elapsed_seconds": 149.97549944603816,
+    "python": "3.12.3",
+    "scope": "Original frozen coherent candidate source/runtime/build/evidence admission413; final Root LF publication correction separately verified with one Main regression/import smoke. Real pinned CADQuery common fixture separate from zero MFront/MGIS/MTest calls.",
+    "overlap": "Earlier144/204/7/13/80 gates are included or overlapping, not added"
+  },
+  "independent_source": {
+    "runtime": "PASS",
+    "domain_mtest_verifier": "PASS",
+    "open_p1": 0,
+    "open_p2": 0
+  },
+  "native_qualification": "NOT_RUN",
+  "native_store_next": "runs/viscoelastic-native-20261003-01",
+  "planned_order": [
+    "native representability refusal before export",
+    "canonical9 tau1",
+    "midpoint17 tau1 composition",
+    "canonical9 tau2",
+    "independent original state/signed FD/native energy audit",
+    "explicit Research admission",
+    "one complete question/original inspection/interpretation/same-record human view"
+  ],
+  "current_research_admission": "SVK_ONLY_MAXWELL_NOT_ADMITTED",
+  "actual_native_build_integrations": 0,
+  "official_research_provider_calls": 0,
+  "prior_exact_source_ci": {
+    "source_commit": "13118543dd0b93f0460c9666f36dfb8b24c4cfe9",
+    "run_id": 37106887644,
+    "job_counts": {
+      "total": 10,
+      "success": 7,
+      "failure": 3,
+      "cancelled": 0,
+      "skipped": 0,
+      "pending": 0
+    },
+    "source_receipt": {
+      "path": "artifacts/development-material-point-20261003-01/ci-1311854-01/receipt.json",
+      "size_bytes": 22749,
+      "sha256": "7c4a6bb32bdb75327af4714b4e2cbadbc41dc33038709428caa1ad7fdbdd6719"
+    },
+    "failures": "AsterFz/vectorPDE/native OpenRadioss fixed URL404 remain OPEN; inner numerical causes UNKNOWN"
+  },
+  "new_source_ci": "PENDING_AFTER_COMMIT",
+  "decision": "NOT_RELEASED",
+  "requirements": "All52 original scope columns preserved; source proof alone does not complete P5.2b or Phases5-7",
+  "unknown": [
+    "measured material",
+    "spatial FE/solver coupling",
+    "physical/strength/durability",
+    "positive-subnormal/native time driver qualification",
+    "upstream binary source commits",
+    "corporate license/security",
+    "off-machine raw durability"
+  ],
+  "retention": "Original six drafts, failed preparations and historical experiments retained locally; raw remote durability UNKNOWN",
+  "publication_correction": {
+    "reason": "Root detected CRLF draft fixed digest incompatible with eol=lf fresh Git checkout",
+    "original_law_sha256": "253bea86857cb6bba711bd0eea58f7f7fe4536dab3bbb600be37d178d65217aa",
+    "exact_LF_law_sha256": "8501f6d338d0d58fd9391031274dd0d15ecaf333f6158f0c80a73ffdb99e3d7a",
+    "law_working_and_staged_bytes": 7417,
+    "worker_change": "Only fixed SOURCE_SHA256 literal; all other AST unchanged",
+    "original_tests_preserved": true,
+    "new_Main_regression": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "Main_imports_and_CLI_help": "PASS; real Python3.12.3/Main files, original131 dirty integration context",
+    "independent": "P2 CLOSED,0openP1/P2",
+    "prior_413_rerun": false,
+    "original_candidate_and_seals_preserved": true
+  }
+}

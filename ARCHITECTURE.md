@@ -1,5 +1,18 @@
 # Architecture
 
+## Preserved Maxwell material-point source (ADR0028)
+
+The synthetic one-branch viscoelastic Domain and adapter reuse the existing
+model-analysis boundary. Core stores declared revisions, append-only experiments
+and validations; Domain owns independent history/stress/tangent/energy verdicts;
+the adapter owns actual MGIS/MTest buffers, generated law/build/runtime evidence
+and common owned execution. Shared compiler behavior names are explicit trusted
+constants. Execution reliability and numerical acceptance are separate. Source
+review/cold proof does not qualify native behavior, measured material or release.
+MaterialPoints remains SVK-only until fresh Maxwell native and explicit Research
+admission gates. Deterministic engines retain numerical search ownership.
+
+
 ## Explicit material-point research (ADR0027)
 
 MaterialPoints/schema4 admits only the qualified bounded SVK adapter through

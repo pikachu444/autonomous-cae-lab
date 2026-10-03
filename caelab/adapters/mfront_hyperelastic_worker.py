@@ -423,21 +423,25 @@ def _logical_build_lines(text):
         yield "".join(buffer)
 
 
-def compiler_command_evidence(text, compiler, flags):
-    """Classify this fixed generated SVK build; shell tokens are never executed.
+def compiler_command_evidence(text, compiler, flags, *, behaviour=BEHAVIOUR):
+    """Classify a fixed generated generic build; shell tokens are never executed.
 
     The original recipes remain in the hashed log. Normalized command strings
     and full joined recipes bind every token, including continued flags. Source
     compilation/dependency stages use the exact queried portable flags. The
     non-LTO link consumes only their two objects and the fixed TFEL libraries.
+    A backend supplies its trusted source identifier; settings cannot select it.
+    The default preserves the existing SVK build and admission policy.
     """
     if (not isinstance(compiler, str) or not compiler.startswith("/") or
             any(char in compiler for char in ("\x00", "\n", "\r")) or
             not isinstance(flags, list) or not all(isinstance(flag, str) for flag in flags) or
             not {"-O2", "-fno-fast-math", "-std=c++20"}.issubset(flags)):
         raise ValueError("Fixed compiler/exact portable flag identity is required")
-    sources = [BEHAVIOUR + ".cxx", BEHAVIOUR + "-generic.cxx"]
-    objects = [BEHAVIOUR + "-generic.o", BEHAVIOUR + ".o"]
+    if not isinstance(behaviour, str) or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", behaviour) is None:
+        raise ValueError("Trusted behaviour must be one ASCII source identifier")
+    sources = [behaviour + ".cxx", behaviour + "-generic.cxx"]
+    objects = [behaviour + "-generic.o", behaviour + ".o"]
     records = []
     for recipe in _logical_build_lines(text):
         lexer = shlex.shlex(recipe, posix=True, punctuation_chars=";&|<>")

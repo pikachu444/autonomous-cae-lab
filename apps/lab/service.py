@@ -310,6 +310,7 @@ class LabService:
         from plugins.material_point.reference import canonical_settings as material_specification
         from plugins.material_point.inverse_reference import canonical_settings as inverse_specification
         from plugins.hyperelastic.reference import canonical_settings as hyperelastic_specification
+        from plugins.material_point.viscoelastic_reference import canonical_settings as viscoelastic_specification
         from plugins.structural_families.reference import specification as family_specification
         material_path = (Path(__file__).resolve().parents[2] /
                          "plugins/fixture_design/upstream/examples/printed_material_ASSUMED.json")
@@ -371,6 +372,9 @@ class LabService:
             "material_hyperelastic": {"operation": "model_analysis_run", "backend": "material.mfront.hyperelastic", "label": "큰 회전 재료점의 응력·에너지 기준 해석",
                 "status": "EXPERIMENTAL", "scope": "작은 Green 변형과 큰 회전의 SVK 재료점 응력·접선·저장 에너지 비교; 실제 솔버 수치 검증 대기, 물성·강도·솔버 결합 UNKNOWN",
                 "settings": hyperelastic_specification()},
+            "material_viscoelastic": {"operation": "model_analysis_run", "backend": "material.mfront.viscoelastic", "label": "점탄성 재료의 하중·유지·제하",
+                "status": "EXPERIMENTAL", "scope": "합성 단일 Maxwell 가지의 응력·이력·에너지 비교; 실제 수치 검증 대기, 물성·강도·솔버 결합 UNKNOWN",
+                "settings": viscoelastic_specification()},
             "explicit_freefall": {"operation": "model_analysis_run", "backend": "explicit.openradioss", "label": "강체 자유낙하 benchmark",
                 "status": "EXPERIMENTAL", "scope": "질량·중력·초기 속도·시간 간격에 대한 실제 자유낙하 검증; 충격·파손 자격 UNKNOWN",
                 "settings": explicit_specification(case="rigid_cube_freefall")},

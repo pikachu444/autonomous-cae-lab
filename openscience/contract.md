@@ -1,4 +1,37 @@
-## Current checkpoint: P5.2a connected material research bounded PASS
+## Current checkpoint: P5.2b preserved Maxwell source reviewed; native pending
+
+Root reuses the six frozen Maxwell drafts. Reviewed state/range/reference,
+transport/build/runtime/MTest/common-route candidate passes one combined413 cold
+cases,0FAIL/ERROR/SKIP,Core Python3.12.3,149.975499s. Earlier144/204/7/13/80
+counts overlap and are not added. Runtime and Domain/verifier independent
+reviews PASS,0openP1/P2. Root then closes a publication newline P2: exactLF law
+8501/fixed worker digest, one new Main regression PASS and actual Main imports/
+CLIhelp PASS; scientific and execution logic unchanged. Original CRLF candidate
+and413 proof are retained and separately attributed. The old masking update/K reset, cancellation-prone
+short limits, compiler/transport gaps and MTest input-identity interpretation
+are corrected without loosening scientific stress/branch/tangent/energy limits.
+Reliable execution is separate from numerical acceptance; UNKNOWN/invalid
+metrics and NOT_RELEASED remain. Existing pinned CADQuery fixture execution is
+separate from zero actual MFront/MGIS/MTest and zero official provider calls.
+Record: `benchmarks/records/20261003-preserved-maxwell-source.json`.
+Record SHA256: `83f9c24adc3707126c5b50aebe1da1c9978ca160484cb59b20cc1ac04c8b9020`.
+ADR0028 and `docs/VISCOELASTIC_ACCEPTANCE.md` define the native gates.
+Exact source parent13118543dd0b93f0460c9666f36dfb8b24c4cfe9 CI37106887644
+completed7SUCCESS/3FAIL; inner AsterFz/vectorPDE causes UNKNOWN, OpenRadioss URL404.
+New-source CI requires this commit's own run. No old CI/numerical evidence is
+attributed as new Maxwell qualification. Root manages commit/source IDs.
+NEXT: clean-source fresh `runs/viscoelastic-native-20261003-01`: native preflight
+refusal, canonical9, midpoint17 composition, changed tau2, independent actual
+state/full signed FD/native energy audit; then explicit connected Research and
+same-record human inspection. Actual native qualification is NOT_RUN here.
+MaterialPoints remains SVK-only; approved5.6Sol/auth/old scopes are unchanged.
+Contact/fixture coupling, Phase6/7 and prior fine32/CI failures remain OPEN;
+physical/material/FE/strength/durability/deployment UNKNOWN, NOT_RELEASED.
+Whole52 scope remains active. Earlier checkpoints below are historical.
+
+---
+
+## Historical checkpoint: P5.2a connected material research bounded PASS
 
 Actual producer `592a215b22f54cee9684291f695d2fd42f3fa844` runs one complete
 question through official OpenScience2.0.146 and approved `openai-codex/gpt-5.6-sol`.

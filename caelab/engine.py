@@ -85,12 +85,14 @@ class Lab:
             from .adapters.mfront_material import MFrontMaterialAdapter
             from .adapters.mfront_inverse import MFrontInverseAdapter
             from .adapters.mfront_hyperelastic import MFrontHyperelasticAdapter
+            from .adapters.mfront_viscoelastic import MFrontViscoelasticAdapter
             from .adapters.openradioss import OpenRadiossAdapter
             model_analysis_adapters = {
                 adapter.backend: adapter() for adapter in (
                     CodeAsterElasticityAdapter, CodeAsterPlasticityAdapter, CodeAsterGeometricAdapter,
                     StructuralFamilyCalculiXAdapter, StructuralFamilyCodeAsterAdapter,
-                    MFrontMaterialAdapter, MFrontInverseAdapter, MFrontHyperelasticAdapter, OpenRadiossAdapter)
+                    MFrontMaterialAdapter, MFrontInverseAdapter, MFrontHyperelasticAdapter,
+                    MFrontViscoelasticAdapter, OpenRadiossAdapter)
             }
         self.model_analysis_adapters = model_analysis_adapters
 
