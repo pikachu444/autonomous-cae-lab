@@ -1,0 +1,211 @@
+{
+  "schema": 1,
+  "record_id": "20261003-geometric-beam-native03-partial",
+  "created_utc": "2026-10-03T02:13:54.586240+00:00",
+  "kind": "ACTUAL_PARTIAL_NATIVE_QUALIFICATION_WITH_INDEPENDENT_RAW_AUDIT",
+  "producer_commit": "ad68d036dd6e7f5df3f2be5b1fbf5a81831d0f14",
+  "store": "runs/geometric-nq-20261003-03",
+  "experiment_id": "E-geometric-nq-03-refined-1rad",
+  "model_revision": "8827ccbd35ed05da250fae7572d7035b7b8def25ac0d18ba0ac2335b424008ad",
+  "core_status": "FAILED_EXECUTION",
+  "core_metrics": {},
+  "decision": "NOT_RELEASED",
+  "actual_scope": {
+    "native_processes": 3,
+    "native_exit_codes": [
+      0,
+      0,
+      1
+    ],
+    "complete_meshes": [
+      8,
+      16
+    ],
+    "failed_mesh": 32,
+    "complete_states": 42,
+    "converged_nonzero_steps": 40,
+    "individual_raw_table_files": 210,
+    "nodal_rows_each_field": 546,
+    "GP_rows_each_field": 504,
+    "POST_rows": 84,
+    "raw_component_scalars": 11592,
+    "small_angle": "NOT_RUN",
+    "Core_records": 1,
+    "accepted_Core_records": 0
+  },
+  "two_mesh_mathematical_observations": [
+    {
+      "field": "max_position_error_mm",
+      "observed": 0.6245366104597383,
+      "combined_absolute_limit": 1.00000001,
+      "within_declared_limit_on_two_completed_meshes_only": true
+    },
+    {
+      "field": "max_rotation_error_rad",
+      "observed": 2.952638133990604e-13,
+      "combined_absolute_limit": 1.001e-05,
+      "within_declared_limit_on_two_completed_meshes_only": true
+    },
+    {
+      "field": "max_nodal_force_error_n",
+      "observed": 2.4027831774773663e-09,
+      "combined_absolute_limit": 1e-08,
+      "within_declared_limit_on_two_completed_meshes_only": true
+    },
+    {
+      "field": "max_nodal_moment_error_n_mm",
+      "observed": 9.574392834110768e-09,
+      "combined_absolute_limit": 0.0014010000000000001,
+      "within_declared_limit_on_two_completed_meshes_only": true
+    },
+    {
+      "field": "root_moment_error_n_mm",
+      "observed": 1.1677059319481486e-10,
+      "combined_absolute_limit": 0.0014010000000000001,
+      "within_declared_limit_on_two_completed_meshes_only": true
+    },
+    {
+      "field": "force_balance_error_n",
+      "observed": 2.959900779697863e-25,
+      "combined_absolute_limit": 1e-08,
+      "within_declared_limit_on_two_completed_meshes_only": true
+    },
+    {
+      "field": "moment_balance_error_n_mm",
+      "observed": 3.534378834046947e-08,
+      "combined_absolute_limit": 0.0014010000000000001,
+      "within_declared_limit_on_two_completed_meshes_only": true
+    },
+    {
+      "field": "max_section_force_error_n",
+      "observed": 1.305622276959184e-09,
+      "combined_absolute_limit": 1e-08,
+      "within_declared_limit_on_two_completed_meshes_only": true
+    },
+    {
+      "field": "max_section_moment_error_n_mm",
+      "observed": 5.065103891865874e-11,
+      "combined_absolute_limit": 0.0014010000000000001,
+      "within_declared_limit_on_two_completed_meshes_only": true
+    },
+    {
+      "field": "max_curvature_error_per_mm",
+      "observed": 3.617711599041007e-16,
+      "combined_absolute_limit": 1.01e-08,
+      "within_declared_limit_on_two_completed_meshes_only": true
+    },
+    {
+      "field": "derived_energy_error_n_mm",
+      "observed": 8.267164730568766e-12,
+      "combined_absolute_limit": 0.0007000100000000002,
+      "within_declared_limit_on_two_completed_meshes_only": true
+    }
+  ],
+  "partial_mesh_pair": {
+    "coarse": 8,
+    "fine": 16,
+    "coarse_error_mm": 0.6245366104597383,
+    "fine_error_mm": 0.1560807832942235,
+    "actual_h_mm": [
+      125.0,
+      62.5
+    ],
+    "rate": 2.0004932221122043,
+    "declared_min_rate": 1.8,
+    "error_floor_mm": 1e-08,
+    "within_rate_limit": true,
+    "scope": "PARTIAL_TWO_MESH_OBSERVATION_ONLY"
+  },
+  "output_correction": {
+    "status": "ACTUALLY_CLOSED_FOR_TWO_COMPLETED_MESHES",
+    "text_bytes": [
+      148172,
+      269132
+    ],
+    "all_fields_all_orders": true,
+    "text_scalar_comparisons": 11088,
+    "text_max_printing_difference": 4.83169e-13,
+    "MED_array_scalar_comparisons": 12600,
+    "MED_vs_JSON_difference": 0,
+    "scope": "Original native RESULTAT/MED/JSON roundtrip, not complete three-mesh acceptance"
+  },
+  "fine_failure": {
+    "element_count": 32,
+    "first_time_s": 1.0,
+    "first_moment_n_mm": 7.0,
+    "reference_tip_rotation_rad": 0.05,
+    "maximum_iterations": 40,
+    "last_printed_relative_residual": 2.06425e-10,
+    "last_printed_absolute_residual": 1.44497e-09,
+    "relative_limit": 1e-10,
+    "absolute_limit": 1e-08,
+    "diagnosis": "Very small residual stagnation above fixed relative gate; NOT a wall/CPU deadline",
+    "specific_roundoff_conditioning_model_or_solver_cause": "UNKNOWN_NOT_ESTABLISHED",
+    "native_gate": "OPEN; NO THRESHOLD_OR_POLICY_CHANGE; NO_UNCHANGED_RETRY"
+  },
+  "retention": {
+    "new_files": 311,
+    "new_bytes": 6206445,
+    "historical_files": 208,
+    "all_original_bytes": "UNCHANGED_VERIFIED",
+    "remote_raw_durability": "UNKNOWN"
+  },
+  "provenance": {
+    "recorded_core_sha256": "aea47e6e85cddd1e290f76c475c243aadbbd25b661fb5d8d6fae3a2e2dd54b8b",
+    "core_dirty": false,
+    "source13_and_native10_copies": "INDEPENDENTLY_BOUND_TO_AD68_BODY_AND_EXACT_WORKING_PINS",
+    "failed_core_adapter_details": {},
+    "actual_SIF_byte_preservation": "NOT_INDEPENDENTLY_PROVEN_BY_THIS_FAILED_RECORD; path/version/drift gates separate",
+    "compiled_source_equivalence": "UNKNOWN"
+  },
+  "unknown": [
+    "finest32_fields_and_error",
+    "remaining_two_mesh_pairs",
+    "small_angle",
+    "native_tangent_conditioning",
+    "independent_A_x_minus_b",
+    "native_global_energy",
+    "native_section_properties",
+    "model_material_physical_strength_durability_deployment"
+  ],
+  "research_admission": "NOT_ADMITTED",
+  "new_beam_GUI": "NOT_RUN",
+  "proofs": {
+    "producer": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-qualification-03/receipt.json",
+      "size_bytes": 78294,
+      "sha256": "8fb7b6d360e067b8b4e53949bff89785ad27f7256faba639be4ade3287172815"
+    },
+    "launch": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-launch-04-corrected/receipt.json",
+      "size_bytes": 814,
+      "sha256": "60b2f78297dcf73b61d8f82f149ed7ca78f240f715036c185392f08db00daea0"
+    },
+    "independent_raw": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-qualification-review-03/independent-actual-review.json",
+      "size_bytes": 945159,
+      "sha256": "5f2399b1a96d6c3a6a78ddc1fb323fd1562abde40b707c21d03a6d7174e3c905"
+    },
+    "independent_supplement": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-qualification-review-03/native-source-and-diagnosis-supplement.json",
+      "size_bytes": 21280,
+      "sha256": "35220c36a179f67b7eed261f1477173298fbb0bfb3b58e39dbc07a1266533dd4"
+    },
+    "independent_seal": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/native-qualification-review-03/seal.json",
+      "size_bytes": 3649,
+      "sha256": "bd1e40cbd6d9efffe108d2d6a7458d9bf9d0b6da53da1197849da3c7cf31c845"
+    },
+    "exact_source_ci": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/ci-ad-01/receipt.json",
+      "size_bytes": 2969,
+      "sha256": "35047fad0e88db02a115eb53d79b27b82acaea4bee84513fcfad928290da4d66"
+    },
+    "source_main_confirmation": {
+      "path": "artifacts/development-geometric-nonlinearity-20261003-01/output-publication-01/remote-confirmed-01.json",
+      "size_bytes": 1168,
+      "sha256": "e177f8b85ed95cb792c9d17f5cfaa8e1f92726a4bb15634f6165d40d6f68e938"
+    }
+  },
+  "next": "Retain this failed numerical gate; continue ordered material source. Any new beam method/input study needs an explicit justified packet and new IDs, never a rewritten PASS."
+}

@@ -1,5 +1,34 @@
 # Sequential system worklist
 
+## Current P5.2a pure SVK source; geometric native03 remains partial
+
+Pure finite-kinematics SVK Domain is ported as exact frozen source.156 distinct
+Python3.12 cold tests PASS in staging and real main import context (not312);
+59 independent Decimal80/full9P/81Hessian/Cauchy/tamper checks close0P1/P2.
+Core/registry/wire/optimizer/fixture/Research/model/auth are unchanged. Native
+adapter is being implemented privately; actual compile/11endpoints/594probes,
+Research/GUI/physical qualification remain NOT_RUN/NOT_ADMITTED/UNKNOWN.
+Record: `benchmarks/records/20261003-svk-domain-development.json`.
+
+Actual geometric producerad68/native03 completes8/16 meshes,42states and
+original JSON/RESULTAT/MED agreement. Partial8-to16 position rate2.000493;
+32firstM7 step stagnates above fixedREL1e-10 (last2.06425e-10), not a deadline.
+Core FAILED_EXECUTION/metrics{}, finest/missingpairs/smallangle unqualified;
+specific rounding/conditioning cause UNKNOWN. Source output-P2 actually closes
+on two meshes.311new+208old files/seals unchanged; no criteria change/retry.
+Record: `benchmarks/records/20261003-geometric-beam-native03-partial.json`.
+Exactad68 CI37086603442:7SUCCESS/3FAIL,Core2773PASS/5skips/1warning319.77s.
+Vector classification/Aster Fz/explicit download404 remain separate OPEN gates.
+This CI does not verify private SVK or complete local geometric acceptance.
+Whole52/Phase5-7/physical/deployment stay OPEN/UNKNOWN, NOT_RELEASED.
+
+- [x] P5.2a pure Domain/math/strict observation contract/source review/main-import tests.
+- [x] Geometric native03 partial raw/field/mesh audit and output-P2 actual closure.
+- [ ] P5.2a native adapter/worker cold/source gate and common integration.
+- [ ] P5.2a fresh native11endpoints/594probes/energy/MTest independent qualification.
+- [ ] New Research/human inspection; P5.2b preserved visco, contact/fixture coupling.
+- [ ] Geometric fine/smallangle/whole criteria and failed-record runtime provenance remain OPEN.
+
 ## Current D4.1 native failure/output correction; ordered D4.2 source active
 
 Beam source ff0028a9db66a35035b8e1c6f36fbaa0754c9dd4 is main-push confirmed.

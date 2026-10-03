@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "record_id": "20261003-svk-domain-development",
+  "created_utc": "2026-10-03T02:13:54.611770+00:00",
+  "source_base_commit": "ad68d036dd6e7f5df3f2be5b1fbf5a81831d0f14",
+  "kind": "PURE_FINITE_KINEMATICS_DOMAIN_SOURCE_NOT_NATIVE_ADAPTER_OR_RESEARCH_ADMISSION",
+  "status": "SOURCE_PORTED_AND_REVIEWED",
+  "decision": "NOT_RELEASED",
+  "source_files": [
+    {
+      "path": "plugins/hyperelastic/__init__.py",
+      "size_bytes": 293,
+      "sha256": "c1b942901836390150aa3963dc3fb131691ec43602d47cded60a2e45679ca7ca"
+    },
+    {
+      "path": "plugins/hyperelastic/reference.py",
+      "size_bytes": 39144,
+      "sha256": "fe90482f7b4114b0a7a3fcf3d9d6c98d7b3b305c571ff6b3d7879b1581002bc9"
+    },
+    {
+      "path": "tests/test_hyperelastic_reference.py",
+      "size_bytes": 38329,
+      "sha256": "101cf74ff1bc61d3e2fb4bff1905009a19f15a63da27c4ddb51a197d0dddcd10"
+    }
+  ],
+  "packet": {
+    "path": "docs/HYPERELASTIC_PACKET.md",
+    "size_bytes": 10586,
+    "sha256": "219ee7d09a7203c11be0dbcaf76cb8cf946a583fdfe6ab3ef11d1d2834880123"
+  },
+  "adr": {
+    "path": "ADR/0026-finite-strain-material-point.md",
+    "size_bytes": 2466,
+    "sha256": "feb84a68e1eedc70a15c32e2ae42a905171f3db2ccbb10865e1feb8f308f8255"
+  },
+  "scope": "Bounded SVK large rotations/small Green strain; independent general9 PK1/full81 tangent/Cauchy/reference-volume energy, admission and observed-state assessment",
+  "verification": {
+    "cold": {
+      "distinct_passed": 156,
+      "native_Core_provider_calls": 0,
+      "staging_seconds": 30.92,
+      "root_main_import_process_seconds": 32.71900000004098,
+      "root_main_counts": {
+        "tests": 156,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "counts_additive": false
+    },
+    "independent": {
+      "checks": 59,
+      "passed": 59,
+      "open_P1_P2": 0,
+      "python": "3.12.3",
+      "method": "Decimal80 scalar C-invariant energy differentiation;29 canonical/mixed rotated states,9P/81Hessian/6Cauchy",
+      "tamper_controls": "Correlated drivers wrong stress, all-zero energy and current-volume energy remain FAIL/invalid despite consistent hashes/FD summaries"
+    },
+    "retained_attempt": "Initial149PASS/3independent-oracle float-rounding failures; test-only1e-14 absolute assertion corrected to1e-12 for observed4e-14. Frozen scientific1e-10 energy gate unchanged"
+  },
+  "installed_readonly_readiness": {
+    "actual_tests_source_bytes": 3002,
+    "actual_tests_source_sha256": "d97fcce350a40060c287aaad9928603e8b144039a7cef95045073b00079efff4",
+    "TFEL": "5.0.0",
+    "MGIS": "3.0",
+    "native_python": "3.11.14",
+    "portable_compiler_and_PK1_DPK1_options": "PASS_READONLY",
+    "actual_behaviour_compile_load_9x9_energy_MTest": "NOT_RUN",
+    "binary_commit_equivalence": "UNKNOWN"
+  },
+  "architecture": {
+    "Domain": "Pure math/reference/admission/assessment, no NumPy/native paths",
+    "Core_registry_wire_optimizer_fixture_profiles_model_auth": "UNCHANGED",
+    "native_adapter": "PRIVATE_IMPLEMENTATION_ACTIVE_NOT_PORTED_NOT_REGISTERED",
+    "existing_material_inverse_visco_drafts": "REUSED_OR_PRESERVED_UNCHANGED"
+  },
+  "native_contract": {
+    "initial_t0": "INITIAL_UNPREPARED_EXCLUDED_FROM_NATIVE_SUCCESS",
+    "planned_actual_endpoints": 11,
+    "planned_full_state_signed_probes": 594,
+    "planned_difference_steps": [
+      1e-07,
+      1e-08,
+      1e-09
+    ],
+    "native_dissipation_MTest_energy": "UNKNOWN",
+    "scope": "Counts belong to synthetic cold contract and planned native work; actual native NOT_RUN"
+  },
+  "research_admission": "NOT_ADMITTED",
+  "GUI": "NOT_RUN",
+  "physical_material_solver_coupling_general_rubber": "UNKNOWN_NOT_QUALIFIED",
+  "proofs": {
+    "staging_freeze": {
+      "path": "artifacts/development-material-point-20261003-01/domain-01/freeze.json",
+      "size_bytes": 8666,
+      "sha256": "dbec016b485d27de257b5d21d52342c37889db57ff21440560e344d3f0529fee"
+    },
+    "independent_report": {
+      "path": "artifacts/development-material-point-20261003-01/domain-review-01/REPORT.md",
+      "size_bytes": 10687,
+      "sha256": "4e7cdbd37fbc0db44bba57612691ed6d87b4902ba386ba76a57fa39bffccf325"
+    },
+    "independent_receipt": {
+      "path": "artifacts/development-material-point-20261003-01/domain-review-01/receipt.json",
+      "size_bytes": 1471,
+      "sha256": "30b593b2b0b759c9d2cdf70f2e92f6b4becf91e9216eaa8b56b8122c7106bae7"
+    },
+    "root_verbatim_port": {
+      "path": "artifacts/development-material-point-20261003-01/root-domain-integration-01/port-receipt.json",
+      "size_bytes": 952,
+      "sha256": "344a0a0cc6585013bc147cbb84292fc8dc0c14125da14c7ccb8cd1e9415552db"
+    },
+    "root_main_import_checks": {
+      "path": "artifacts/development-material-point-20261003-01/root-domain-integration-01/check-receipt.json",
+      "size_bytes": 2016,
+      "sha256": "843a4eb96027658eb1247817caa92da9f2a1e62503e70d48960a0a1aefa26d9e"
+    },
+    "root_main_junit": {
+      "path": "artifacts/development-material-point-20261003-01/root-domain-integration-01/results.xml",
+      "size_bytes": 24169,
+      "sha256": "453a7ebaebc203ebd0fccaba04d805dcdad65918e3dcf6ab2e585c41deecd66a"
+    },
+    "installed_runtime_readiness": {
+      "path": "artifacts/development-material-point-20261003-01/hyperelastic-runtime-recovery-01/runtime-recovery.json",
+      "size_bytes": 33948,
+      "sha256": "a555b74516a694f2f39068049673866132cf24e3f838fcb52938f6bacd9a9d01"
+    },
+    "installed_runtime_freeze": {
+      "path": "artifacts/development-material-point-20261003-01/hyperelastic-runtime-recovery-01/freeze-receipt.json",
+      "size_bytes": 8496,
+      "sha256": "3c12648911083a427f8b096200d959cd332e2d49807cdeafca3bcd2ea7d2298b"
+    },
+    "official_primary_research": {
+      "path": "artifacts/development-material-point-20261003-01/hyperelastic-source-01/recommendation.json",
+      "size_bytes": 20508,
+      "sha256": "1b8953fb1b61198ff5a2dcccc838890e29935ac2eed93a5fa803a08f0413f285"
+    },
+    "recovered_preserved_material": {
+      "path": "artifacts/development-material-point-20261003-01/recovery-01/inventory.json",
+      "size_bytes": 55175,
+      "sha256": "a079017dc7e1c441e5dc1b2d1655f6275aae4d0d4cf6117a7c7519c06766e911"
+    }
+  },
+  "next": [
+    "Private native adapter/worker cold/source review then Root common registry/preset integration",
+    "Clean published-source new native store; actual full state/P/K/energy/MTest/all-h/objectivity/recovery independent audit",
+    "Separate guarded Research and human inspection; preserved viscoelastic source, contact/fixture coupling, Phase6/7"
+  ],
+  "limitations": [
+    "Cold shapes/driver fixtures are SYNTHETIC_NOT_NATIVE, never actual compiled results",
+    "MGIS/MTest of one DLL are not independent material laws/cross-solver physics",
+    "Initialized/absent buffers are not fabricated successful energy/tangent observations",
+    "Whole52/Phase5-7 and physical/deployment remain OPEN; remote raw durability UNKNOWN"
+  ]
+}
