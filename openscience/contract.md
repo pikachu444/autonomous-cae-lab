@@ -701,3 +701,23 @@ The common summary does not expose complete measured F/P/A/W histories; use
 verified original artifact references and disclose that interpretation limit.
 Actual fresh official5.6Sol research/GUI/owned Stop must verify source admission.
 UNKNOWN/NOT_RELEASED and old profile/source/model/project/grant/Stop gates remain.
+
+## ViscoelasticPoints research admission (ADR0029)
+
+Separate case-sensitive ViscoelasticPoints/schema5/viscoelastic-points-v1 admits
+only material.mfront.viscoelastic/single_branch_maxwell through the same six
+existing tools. MaterialPoints remains SVK-only. Explicit MFRONT SIF/SHA and
+Singularity are fixed;24steps/3600seconds are transport budgets. History2..17,
+576signed probes and65536parsed-JSON bytes bound one request; native wallNone/
+CPU86400 and all Domain numerical limits remain independent and unchanged.
+Exact settings contain case, five K/G/tau material fields, temperature_k,
+time_s/physical tensor strain6 history and fixed Maxwell limits. Finite
+scientific-invalid initial state/strain/representability inputs reach retained
+Domain/adapter preflight unchanged; no unsafe native code/path is admitted.
+Stress/BranchStress/native energy history metrics are actual observations;
+reference_work_history is analytical work. Full states/tangents/probes/MTest
+remain same-record hash-bound artifacts. A supplied tau comparison is not
+optimization, temporal convergence, measured material or FE qualification.
+Source parity/guard tests and actual fresh official5.6Sol one-question loop,
+same-record human inspection/owned Stop/retention are separate gates. Old
+source/model/project/grant/default guards and UNKNOWN/NOT_RELEASED remain.

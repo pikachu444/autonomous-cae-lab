@@ -1,27 +1,24 @@
-## Current checkpoint: P5.2b bounded actual native04 qualified; Research next
+## Current checkpoint: P5.2b Maxwell Research source reviewed; actual question next
 
-- [x] Reviewed binding-path source correction and216 affected tests.
-- [x] Fresh native04 canonical9/refined17/tau2 and preflight refusal.
-- [x] Independent actual runtime/state90 and numerical219 checks.
-- [ ] Explicit Maxwell Research admission/wholequestion/same-record human view.
-- [ ] P5.3 contact/fixture, Phase6/7 and deferred numericalCI gates in order.
-
-Actual producer700249afc2415db5b25da4499d1099bffad5b1c7 / fresh native04:
-canonical9, refined17 and tau2 each solverCOMPLETED/convergedtrue,21valid metrics,
-25PASS/8blockingUNKNOWN. Native-unrepresentable input is REJECTED/NOT_RUN/noexport.
-Original states/probes/tables/library/runtime90checks and independent180-digit
-ODE/energy/work/all1152probes/96FD matrices219judgments PASS,0openP1/P2.
-All287files/44,284,633B are frozen unchanged; original failed01/02/03 and SVK
-Research are preserved. Law/limits/metrics/scientific thresholds are unchanged.
-Exact source CI37123979472:7SUCCESS/3FAIL; Core3674PASS/5SKIP/1warning.
-CI Fz/vector/explicit404 gates remain separate; no new solver evidence is
-attributed to this later documentation commit. Remote raw durability UNKNOWN.
-NEXT: explicit Maxwell Research admission, one whole approved5.6Sol question,
-original inspect/summary/compare/interpretation/same-record human inspection.
-MaterialPoints/schema4 is still SVK-only. P5.3 contact/fixture, Phase6/7/full52
-remain active; physical/material/FE/strength/durability/deployment UNKNOWN,
-NOT_RELEASED. Separate source and failed-native records remain retained.
-Record: `benchmarks/records/20261003-maxwell-native-r04-qualified.json` (SHA256 `4b3e5e4065ac0ddf1e140a3d3c3cdf6da76db5c3ed2c5ed5f80f2ab89b419ea1`).
+Separate ViscoelasticPoints/schema5 admits only the qualified single-branch
+Maxwell adapter through the same six existing Core tools. SVK/other profiles,
+Core/native scientific source, fixed limits and approved5.6Sol/auth remain.
+Exact PS/Node/Domain descriptor23028f... binds2..17states/576signed probes/
+65536parsed bytes and the protected MFRONT SIF. PS133checks PASS; Node210distinct
+controls close across original209PASS/1fixtureFAIL and actualCore targeted1PASS.
+Both earlier fixture failures remain; no old assertion/threshold was relaxed.
+Independent source/private-launcher review PASS,0openP1/P2;3preparation P2closed
+before actual execution. Original private01 remains; reviewed private02 is ready.
+Native science remains producer700249a/native04/90state checks/219numerical
+judgments; all14numerical source files are unchanged. This is source admission,
+not a new solver verification or connected Research success. Actual question,
+human view/ownedStop are NOT_RUN here; exact new-source CI is pending.
+NEXT: fresh viscoelastic-r-20261003-01, approved5.6Sol one whole tau1/tau2
+question, original inspect/summary/compare/interpretation, same-record human
+view, ownedStop and retention. ThenP5.3/Phase6/7/deferred CI in roadmap order.
+Full52 remain active; physical/material/FE/strength/durability/deployment and
+remote raw durability UNKNOWN, NOT_RELEASED.
+Record: `benchmarks/records/20261003-viscoelastic-research-source.json`.
 
 ---
 
@@ -1173,11 +1170,11 @@ This evidence/docs checkpoint is not another solver run.
 - [ ] P5.1: freeze and execute a geometric-nonlinearity reference, full loads/
   displacement/stress/reactions/energy and genuine convergence histories.
   Whole MIDAS §9 inventory guides branching/large-rotation/path-control coverage.
-- [ ] P5.2a: implement the recovered official SVK packet/ADR0026, then run its
-  declared reference and independent tangent/energy checks within one packet.
-- [ ] P5.2b: review preserved viscoelastic working files before implementation
-  resumes; verify MGIS/MTest state/tangent/FD/stored/dissipated-energy histories
-  against the declared reference without weakening thresholds.
+- [x] P5.2a bounded SVK source/native/connected Research accepted; measured
+  material/FE/physical release remains UNKNOWN (retained592a research record).
+- [ ] P5.2b: source/native04 and explicit Research source are qualified;
+  finish actual whole tau1/tau2 Research, same-record human view/Stop/retention.
+  Native/source qualification does not close this connected gate.
 - [ ] P5.3: obtain full published material/contact definitions (NAFEMS candidate
   families R0026/R0081), freeze cases and execute cross-solver/mesh/reference
   checks; connect common human/AI results, then close P2.4's recorded dependency.

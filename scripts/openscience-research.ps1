@@ -13,7 +13,36 @@ $script:OpenSciencePdeResearchTools = @('caelab_study_create', 'caelab_study_ins
     'caelab_experiment_compare')
 
 function New-OpenScienceResearchDefinition {
-    param([ValidateSet('FixtureScalar', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', IgnoreCase=$false)][string]$Profile = 'FixtureScalar')
+    param([ValidateSet('FixtureScalar', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', IgnoreCase=$false)][string]$Profile = 'FixtureScalar')
+    if ($Profile -ceq 'ViscoelasticPoints') {
+        return [ordered]@{
+            schema = 5; kind = 'autonomous-cae-lab.openscience-research-definition'
+            profile = 'viscoelastic-points-v1'; agent = 'research'
+            allowed_tools = @($script:OpenScienceStructuralResearchTools)
+            runtime_environment = [ordered]@{ MPLBACKEND = 'Agg'; OMP_NUM_THREADS = '2'; QT_QPA_PLATFORM = 'offscreen'
+                CAELAB_MFRONT_IMAGE = '/home/pikachu444/.local/share/autonomous-cae-lab/code_aster_17.4.0-oci.sif'
+                CAELAB_MFRONT_IMAGE_SHA256 = 'f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64'
+                CAELAB_SINGULARITY_COMMAND = '/usr/bin/singularity' }
+            budgets = [ordered]@{ steps = 24; mcp_timeout_seconds = 3600; command_timeout_seconds = 3600
+                material_point = @{ min_history_entries = 2; max_history_entries = 17
+                    max_signed_probe_states = 576; max_request_bytes = 65536 } }
+            capabilities = @(
+                [ordered]@{ backend = 'material.mfront.viscoelastic'; operations = @('model_analysis_run')
+                    cases = @('single_branch_maxwell')
+                    inputs = 'Exact case/material/temperature_k/history/limits; physical six-component tensor strain xx,yy,zz,xy,xz,yz and 2..17 ordered entries. Domain owns initial-state, representability and fixed stress/tangent/energy verdicts.'
+                    runtime = 'Existing exact17.4 SIF and SHA, TFEL5/MGIS3/MTest and Singularity containment; no runtime or model fallback.'
+                    evidence = 'Immutable Core metrics/checks and hash-bound actual stress, BranchStress, tangent and native stored/dissipated energy histories, all signed probes and same-library MTest.'
+                    verification = 'IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF' }
+            )
+            limitations = @('Declared scope is not current native execution proof, physical qualification or engineering release.',
+                'Synthetic infinitesimal isotropic single-branch Maxwell material point; measured materials, finite-strain viscoelasticity, multiple branches and spatial finite-element coupling remain unqualified.',
+                'Work budgets bound parsed-hook JSON and signed-probe counts, not original MCP wire bytes or scientific accuracy. Native wall defaultNone and positive CPU86400 are separate execution policies.',
+                'Only the six listed tools are admitted; variable registration, jobs and numerical optimizer tools are not provided. Numerical engines own search candidates.',
+                'Interpret actual returned IDs, revisions, metrics and UNKNOWNs. Complete measured histories require same-record hash-bound artifacts; summary error metrics cannot substitute for response histories.',
+                'Shared-time refinement checks composition of the identical piecewise-linear path, not temporal convergence order; increment tangents depend on dt.',
+                'Material, physical, strength, durability, binary/source equivalence and deployment requirements remain UNKNOWN; all outcomes remain NOT_RELEASED.')
+        }
+    }
     if ($Profile -ceq 'MaterialPoints') {
         return [ordered]@{
             schema = 4; kind = 'autonomous-cae-lab.openscience-research-definition'
@@ -165,6 +194,8 @@ function Get-OpenSciencePurposeTools($Context) {
 function Assert-OpenScienceResearchDefinition($Definition) {
     $profile = if ($Definition.schema -eq 2 -and $Definition.profile -ceq 'structural-families-v1') {
         'StructuralFamilies'
+    } elseif ($Definition.schema -eq 5 -and $Definition.profile -ceq 'viscoelastic-points-v1') {
+        'ViscoelasticPoints'
     } elseif ($Definition.schema -eq 4 -and $Definition.profile -ceq 'material-points-v1') {
         'MaterialPoints'
     } elseif ($Definition.schema -eq 3 -and $Definition.profile -ceq 'pde-fields-v1') {
@@ -177,6 +208,16 @@ function Assert-OpenScienceResearchDefinition($Definition) {
 function Get-OpenScienceResearchPrompt($Definition) {
     Assert-OpenScienceResearchDefinition $Definition
     $scope = $Definition | ConvertTo-Json -Depth 12 -Compress
+    if ($Definition.schema -eq 5 -and $Definition.profile -ceq 'viscoelastic-points-v1') {
+        return @"
+You are the research control plane for Autonomous CAE Lab. Plan from the supplied viscoelastic question, use only this explicit six-tool scope and the selected provider/model, execute NEW experiment IDs, inspect and summarize the same returned IDs/revisions, compare actual results and interpret numerical evidence and UNKNOWN checks. No alternate model/provider, fallback or invented results.
+For caelab_model_analysis_run pass exactly study_id, experiment_id, backend and settings, with hypothesis_id only when supplied. Use backend material.mfront.viscoelastic and case single_branch_maxwell. Settings contains exactly case, material, temperature_k, history and limits. Material contains equilibrium_bulk_modulus_mpa, equilibrium_shear_modulus_mpa, branch_bulk_modulus_mpa, branch_shear_modulus_mpa and relaxation_time_s. Each history entry contains time_s and six physical tensor strain components xx,yy,zz,xy,xz,yz; these are not engineering shear or deformation gradients. Keep every supplied condition, fixed limit and all three finite-difference steps unchanged. Missing inputs require a concrete question before execution; never delete or substitute conditions or relax a limit to obtain PASS.
+Respect the declared 2..17 history entries, 576 signed probes and parsed JSON resource budget. Domain/adapters own zero initial state, representability, independent reference equations, native syntax and numerical verdicts. Scientific-invalid inputs must remain retained preflight rejections with no native execution. The synthetic infinitesimal single-branch law is not measured material, finite-strain viscoelasticity or spatial FE qualification. Shared-time subdivision checks composition of the identical piecewise-linear path, not temporal convergence order; increment tangents depend on dt.
+Core metrics may contain complete retained histories. Interpret response values only from actual valid returned histories or same-record hash-bound artifacts, never from error metrics or analytical predictions alone. Stress, relaxing BranchStress and actual native stored/dissipated energies are distinct; do not replace missing energy with half stress times strain after unloading.
+Registration, job and numerical optimizer tools are not available here. Numerical engines own candidate search. Preserve failed experiments, invalid metric values/reasons, assumptions, independent UNKNOWNs and NOT_RELEASED. Solver completion and comparison are not material, strength, physical, durability or release qualification.
+Declared profile: $scope
+"@
+    }
     if ($Definition.schema -eq 4 -and $Definition.profile -ceq 'material-points-v1') {
         return @"
 You are the research control plane for Autonomous CAE Lab. Plan from the supplied material-point question, use only this explicit six-tool scope and the selected provider/model, execute NEW experiment IDs, inspect and summarize the same returned IDs/revisions, compare actual results and interpret the numerical evidence and UNKNOWN checks. No alternate model/provider, fallback or invented results.

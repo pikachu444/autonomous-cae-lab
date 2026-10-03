@@ -193,6 +193,56 @@ foreach ($taskMaterialWrongCase in @('materialpoints', 'MATERIALPOINTS', 'mAteri
 }
 Set-OpenScienceExpectedTools -Context $taskMaterialContext -RequiredTool $null
 Assert-NativeCheck ($null -eq (Read-OpenScienceJson $taskMaterialContext.GuardPath).required) 'material_research_does_not_force_a_specific_tool'
+# Distinct Maxwell admission; existing MaterialPoints stays SVK-only.
+$taskViscoArgs = $taskResearchArgs.Clone(); $taskViscoArgs.RunName += '-visco'
+$taskViscoArgs.ResearchProfile = 'ViscoelasticPoints'; $taskViscoArgs.Remove('AllowedTools')
+$taskViscoContext = New-OpenScienceLocalContext @taskViscoArgs
+$taskViscoConfig = Read-OpenScienceJson $taskViscoContext.ConfigPath
+Assert-NativeCheck ($taskViscoContext.ResearchDefinition.schema -eq 5 -and
+    $taskViscoContext.ResearchDefinition.profile -ceq 'viscoelastic-points-v1' -and
+    $taskViscoContext.ResearchDefinition.capabilities[0].backend -ceq 'material.mfront.viscoelastic' -and
+    $taskViscoContext.ResearchDefinition.capabilities[0].cases[0] -ceq 'single_branch_maxwell' -and
+    $taskViscoContext.AllowedTools.Count -eq 6 -and
+    $taskMaterialContext.ResearchDefinition.schema -eq 4 -and
+    $taskMaterialContext.ResearchDefinition.capabilities[0].backend -ceq 'material.mfront.hyperelastic') 'viscoelastic_scope_is_separate_from_SVK'
+Assert-NativeCheck ($taskViscoContext.ResearchDefinition.budgets.material_point.min_history_entries -eq 2 -and
+    $taskViscoContext.ResearchDefinition.budgets.material_point.max_history_entries -eq 17 -and
+    $taskViscoContext.ResearchDefinition.budgets.material_point.max_signed_probe_states -eq 576 -and
+    $taskViscoContext.ResearchDefinition.budgets.material_point.max_request_bytes -eq 65536) 'viscoelastic_caps_bind_native04_refined_workload'
+Assert-NativeCheck ($taskViscoConfig.agent.research.steps -eq 24 -and $taskViscoConfig.mcp.caelab.timeout -eq 3600000 -and
+    $taskViscoConfig.default_agent -ceq 'research' -and $taskViscoConfig.model -ceq $taskNativeArgs.ModelId -and
+    $taskViscoConfig.small_model -ceq $taskNativeArgs.ModelId) 'viscoelastic_preserves_explicit_model_and_transport_budgets'
+Assert-NativeCheck ($taskViscoConfig.agent.research.prompt -match 'xx,yy,zz,xy,xz,yz' -and
+    $taskViscoConfig.agent.research.prompt -match 'not temporal convergence order' -and
+    $taskViscoConfig.agent.research.prompt -match 'Numerical engines own candidate search' -and
+    $taskViscoConfig.agent.research.prompt -match 'NOT_RELEASED') 'viscoelastic_prompt_retains_tensor_memory_and_release_boundaries'
+foreach ($taskViscoRuntimeKey in $taskViscoContext.ResearchDefinition.runtime_environment.Keys) {
+    Assert-NativeCheck ($taskViscoConfig.mcp.caelab.command -ccontains ($taskViscoRuntimeKey + '=' +
+        $taskViscoContext.ResearchDefinition.runtime_environment[$taskViscoRuntimeKey])) ('viscoelastic_mcp_runtime_' + $taskViscoRuntimeKey)
+}
+Assert-NativeCheck ((Get-OpenScienceHash $taskNativeAuthFile) -ceq $taskAuthBytesHash -and
+    -not (Test-Path -LiteralPath $taskViscoContext.StoreRoot) -and
+    $taskViscoContext.ResearchDefinitionSha256 -ceq (Get-OpenScienceSourcePinSha256 $taskViscoContext.ResearchDefinition)) 'viscoelastic_intent_binding_preserves_auth_without_Core'
+foreach ($taskViscoBudgetKey in $taskViscoContext.ResearchDefinition.budgets.material_point.Keys) {
+    $taskViscoDrift = [pscustomobject](Read-OpenScienceJson (Join-Path $taskViscoContext.ProfileRoot 'context.json'))
+    $taskViscoDrift.ResearchDefinition.budgets.material_point[$taskViscoBudgetKey] += 1
+    Assert-NativeRefused { Assert-OpenScienceContext $taskViscoDrift } ('viscoelastic_budget_drift_refused_' + $taskViscoBudgetKey)
+}
+$taskViscoImageDrift = [pscustomobject](Read-OpenScienceJson (Join-Path $taskViscoContext.ProfileRoot 'context.json'))
+$taskViscoImageDrift.ResearchDefinition.runtime_environment.CAELAB_MFRONT_IMAGE_SHA256 = ('0' * 64)
+Assert-NativeRefused { Assert-OpenScienceContext $taskViscoImageDrift } 'viscoelastic_image_drift_blocks_launch'
+$taskViscoAcceptance = $taskNativeArgs.Clone(); $taskViscoAcceptance.ResearchProfile = 'ViscoelasticPoints'
+Assert-NativeRefused { New-OpenScienceLocalContext @taskViscoAcceptance } 'viscoelastic_requires_research_purpose'
+$taskViscoWrongTool = $taskViscoArgs.Clone(); $taskViscoWrongTool.RunName += '-wrong-tool'
+$taskViscoWrongTool.AllowedTools = @('caelab_optimization_run')
+Assert-NativeRefused { New-OpenScienceLocalContext @taskViscoWrongTool } 'viscoelastic_refuses_unlisted_optimizer'
+foreach ($taskViscoWrongCase in @('viscoelasticpoints', 'VISCOELASTICPOINTS')) {
+    Assert-NativeRefused { New-OpenScienceResearchDefinition -Profile $taskViscoWrongCase } ('viscoelastic_case_sensitive_definition_' + $taskViscoWrongCase)
+    $taskViscoBadCase = $taskViscoArgs.Clone(); $taskViscoBadCase.ResearchProfile = $taskViscoWrongCase
+    Assert-NativeRefused { New-OpenScienceLocalContext @taskViscoBadCase } ('viscoelastic_case_sensitive_launcher_' + $taskViscoWrongCase)
+}
+Set-OpenScienceExpectedTools -Context $taskViscoContext -RequiredTool $null
+Assert-NativeCheck ($null -eq (Read-OpenScienceJson $taskViscoContext.GuardPath).required) 'viscoelastic_does_not_force_specific_tool'
 $taskNativeConfigBytes = [IO.File]::ReadAllBytes($taskNativeContext.ConfigPath)
 $taskNativeChangedConfig = $taskNativeConfig.Clone(); $taskNativeChangedConfig.model = 'openai-codex/other'
 Write-OpenScienceJson $taskNativeContext.ConfigPath $taskNativeChangedConfig

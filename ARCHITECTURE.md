@@ -1,5 +1,17 @@
 # Architecture
 
+## Explicit Maxwell material-point research (ADR0029)
+
+ViscoelasticPoints/schema5 admits the qualified bounded single-branch Maxwell
+adapter through the six existing model-analysis study/inspection/comparison
+tools. Its separate canonical descriptor preserves the SVK-only MaterialPoints
+profile. Core operations, Domain numerical verdicts, adapter native syntax,
+deterministic search, approved model/auth and lifecycle keep their owners.
+Actual stress/BranchStress/native energy histories and independently predicted
+work are distinguished; full state/probe/tangent/MTest artifacts retain their
+original record identity. Source admission is separate from actual connected
+Research/GUI/Stop acceptance and physical release.
+
 ## Preserved Maxwell material-point source (ADR0028)
 
 The synthetic one-branch viscoelastic Domain and adapter reuse the existing

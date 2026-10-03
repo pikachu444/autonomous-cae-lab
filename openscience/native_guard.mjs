@@ -97,6 +97,31 @@ const nativeMaterialDefinition = nativeFreeze({
     'Interpret actual returned IDs, revisions, metrics and UNKNOWNs. Full measured F/P/A/W histories require same-record hash-bound artifacts and are not invented from summaries.',
     'Material, physical, strength, durability, binary/source equivalence and deployment requirements remain UNKNOWN; all outcomes remain NOT_RELEASED.'],
 });
+const nativeViscoelasticLimits = nativeFreeze({stress_absolute_mpa:1e-10, stress_relative:1e-8,
+  tangent_relative:1e-8, energy_absolute_mpa:1e-12, energy_relative:1e-8,
+  finite_difference_steps:[1e-7,1e-8,1e-9]});
+const nativeViscoelasticDefinition = nativeFreeze({
+  schema:5, kind:'autonomous-cae-lab.openscience-research-definition', profile:'viscoelastic-points-v1', agent:'research',
+  allowed_tools:[...nativeStructuralResearchTools], runtime_environment:{MPLBACKEND:'Agg', OMP_NUM_THREADS:'2', QT_QPA_PLATFORM:'offscreen',
+    CAELAB_MFRONT_IMAGE:'/home/pikachu444/.local/share/autonomous-cae-lab/code_aster_17.4.0-oci.sif',
+    CAELAB_MFRONT_IMAGE_SHA256:'f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64',
+    CAELAB_SINGULARITY_COMMAND:'/usr/bin/singularity'},
+  budgets:{steps:24, mcp_timeout_seconds:3600, command_timeout_seconds:3600,
+    material_point:{min_history_entries:2,max_history_entries:17,max_signed_probe_states:576,max_request_bytes:65536}},
+  capabilities:[{backend:'material.mfront.viscoelastic',operations:['model_analysis_run'],cases:['single_branch_maxwell'],
+    inputs:'Exact case/material/temperature_k/history/limits; physical six-component tensor strain xx,yy,zz,xy,xz,yz and 2..17 ordered entries. Domain owns initial-state, representability and fixed stress/tangent/energy verdicts.',
+    runtime:'Existing exact17.4 SIF and SHA, TFEL5/MGIS3/MTest and Singularity containment; no runtime or model fallback.',
+    evidence:'Immutable Core metrics/checks and hash-bound actual stress, BranchStress, tangent and native stored/dissipated energy histories, all signed probes and same-library MTest.',
+    verification:'IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF'}],
+  limitations:[
+    'Declared scope is not current native execution proof, physical qualification or engineering release.',
+    'Synthetic infinitesimal isotropic single-branch Maxwell material point; measured materials, finite-strain viscoelasticity, multiple branches and spatial finite-element coupling remain unqualified.',
+    'Work budgets bound parsed-hook JSON and signed-probe counts, not original MCP wire bytes or scientific accuracy. Native wall defaultNone and positive CPU86400 are separate execution policies.',
+    'Only the six listed tools are admitted; variable registration, jobs and numerical optimizer tools are not provided. Numerical engines own search candidates.',
+    'Interpret actual returned IDs, revisions, metrics and UNKNOWNs. Complete measured histories require same-record hash-bound artifacts; summary error metrics cannot substitute for response histories.',
+    'Shared-time refinement checks composition of the identical piecewise-linear path, not temporal convergence order; increment tangents depend on dt.',
+    'Material, physical, strength, durability, binary/source equivalence and deployment requirements remain UNKNOWN; all outcomes remain NOT_RELEASED.'],
+});
 class NativeGuardRefusal extends Error {
   constructor(code) {
     // Upstream classifies statusless Error text as a provider failure. Keep
@@ -222,10 +247,12 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
         !nativeSha(settings.config_sha256) || !nativeSha(settings.plugin_sha256) || !nativeSha(settings.boot_source_sha256)) nativeRefuse('SETTINGS_INVALID');
     if (Object.hasOwn(settings, 'research')) {
       const research = settings.research;
-      exactKeys(research, [3,4].includes(research.schema) ? [...nativeResearchKeys, 'profile'] :
+      exactKeys(research, [3,4,5].includes(research.schema) ? [...nativeResearchKeys, 'profile'] :
         research.schema === 2 ? [...nativeResearchKeys, 'profile', 'benchmark_definition'] : nativeResearchKeys,
         'RESEARCH_DEFINITION_INVALID');
-      if (research.schema === 4) {
+      if (research.schema === 5) {
+        if (nativeCanonical(research) !== nativeCanonical(nativeViscoelasticDefinition)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
+      } else if (research.schema === 4) {
         if (nativeCanonical(research) !== nativeCanonical(nativeMaterialDefinition)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
       } else if (research.schema === 3) {
         if (research.kind !== 'autonomous-cae-lab.openscience-research-definition' || research.agent !== 'research' ||
@@ -630,6 +657,48 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
     try { encoded = JSON.stringify(args); } catch { nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED'); }
     if (Buffer.byteLength(encoded,'utf8') > bound.max_request_bytes) nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
   };
+  const viscoelasticArguments = args => {
+    const bound = settings.research.budgets.material_point;
+    exactKeys(args, ['study_id','experiment_id','backend','settings',
+      ...(Object.hasOwn(args,'hypothesis_id') ? ['hypothesis_id'] : [])], 'RESEARCH_ARGUMENTS_REQUIRED');
+    if (args.backend !== 'material.mfront.viscoelastic') nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+    if (typeof args.study_id !== 'string' || !args.study_id.trim() || typeof args.experiment_id !== 'string' ||
+        !args.experiment_id.trim() || (Object.hasOwn(args,'hypothesis_id') && args.hypothesis_id !== null &&
+        (typeof args.hypothesis_id !== 'string' || !args.hypothesis_id.trim()))) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+    const request = args.settings;
+    exactKeys(request, ['case','material','temperature_k','history','limits'], 'RESEARCH_ARGUMENTS_REQUIRED');
+    if (request.case !== 'single_branch_maxwell') nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+    const materialKeys = ['equilibrium_bulk_modulus_mpa','equilibrium_shear_modulus_mpa',
+      'branch_bulk_modulus_mpa','branch_shear_modulus_mpa','relaxation_time_s'];
+    exactKeys(request.material, materialKeys, 'RESEARCH_ARGUMENTS_REQUIRED');
+    const real = value => typeof value === 'number' && Number.isFinite(value);
+    for (const key of materialKeys) {
+      const value = request.material[key], upper = key === 'relaxation_time_s' ? 1e6 : 1e9;
+      if (!real(value) || value < 1e-6 || value > upper) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+    }
+    if (!real(request.temperature_k) || request.temperature_k <= 0 || request.temperature_k > 5000)
+      nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+    exactKeys(request.limits, Object.keys(nativeViscoelasticLimits), 'RESEARCH_ARGUMENTS_REQUIRED');
+    if (nativeCanonical(request.limits) !== nativeCanonical(nativeViscoelasticLimits)) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+    const history = request.history;
+    if (!Array.isArray(history) || history.length < bound.min_history_entries || history.length > bound.max_history_entries ||
+        (history.length-1)*request.limits.finite_difference_steps.length*6*2 > bound.max_signed_probe_states)
+      nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+    let previous = -1;
+    for (const entry of history) {
+      exactKeys(entry, ['time_s','strain'], 'RESEARCH_ARGUMENTS_REQUIRED');
+      if (!real(entry.time_s) || entry.time_s < 0 || entry.time_s > 1e6 || entry.time_s <= previous ||
+          (previous === -1 && entry.time_s !== 0) || !Array.isArray(entry.strain) ||
+          entry.strain.length !== 6) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+      for (const value of entry.strain) if (!real(value)) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+      previous = entry.time_s;
+    }
+    // Finite scientific-invalid strain/initial-state/ratio requests reach Domain
+    // preflight unchanged; a parsed JSON bound never certifies native physics.
+    let encoded;
+    try { encoded = JSON.stringify(args); } catch { nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED'); }
+    if (Buffer.byteLength(encoded,'utf8') > bound.max_request_bytes) nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+  };
   const pdeArguments = args => {
     const bound = settings.research.budgets.pde;
     exactKeys(args, ['study_id', 'experiment_id', 'backend', 'settings',
@@ -754,6 +823,11 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
     if (!Object.hasOwn(settings, 'research')) return;
     if (!nativeRecord(args)) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
     const budget = settings.research.budgets;
+    if (settings.research.schema === 5) {
+      if (!nativeStructuralResearchTools.includes(tool)) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      if (tool === 'caelab_model_analysis_run') viscoelasticArguments(args);
+      return;
+    }
     if (settings.research.schema === 4) {
       if (!nativeStructuralResearchTools.includes(tool)) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
       if (tool === 'caelab_model_analysis_run') materialArguments(args);

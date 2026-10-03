@@ -31,8 +31,8 @@ function assertRepositorySourcePin(expected,current) {
 }
 ${gitStateSource}
 `;
-const temporarySource = `${prefix}\n${source}\nexport { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeMaterialDefinition, nativeMaterialLimits };\n`;
-const { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeMaterialDefinition, nativeMaterialLimits } = await import(`data:text/javascript;base64,${Buffer.from(temporarySource).toString('base64')}`);
+const temporarySource = `${prefix}\n${source}\nexport { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeMaterialDefinition, nativeMaterialLimits, nativeViscoelasticDefinition, nativeViscoelasticLimits };\n`;
+const { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeMaterialDefinition, nativeMaterialLimits, nativeViscoelasticDefinition, nativeViscoelasticLimits } = await import(`data:text/javascript;base64,${Buffer.from(temporarySource).toString('base64')}`);
 const tools = [
   'caelab_study_create', 'caelab_study_inspect', 'caelab_parameters_discover',
   'caelab_parameters_register', 'caelab_parameters_list', 'caelab_experiment_run',
@@ -2037,6 +2037,208 @@ test('MaterialPoints exact approved model has no fallback on late provider/model
     const f = materialResearchFixture(t), request = f.request(), load = f.dependencies.loadFilesystem;
     f.dependencies.loadFilesystem = async (...args) => {const data=await load(...args);if(f.counts.filesystem===2) patch(request);return data;};
     const hooks = await f.hooks(); await assert.rejects(hooks['chat.params'](request,immutable({options:{}})),refusal('MODEL_CHANGED'));
+    assert.equal(f.receipts().at(-1).accepted,false);
+  }
+});
+
+// ViscoelasticPoints fixtures are declared inputs and synthetic hook metadata.
+// No material reference equation, native law, Core or provider is executed.
+const viscoelasticResearchFixture = (t,definition=nativeViscoelasticDefinition) => materialResearchFixture(t,definition);
+function viscoelasticSettings({refined=false,relaxation_time_s=1}={}) {
+  let times=[0,.2,1,1.2,2,2.2,3,3.2,4],amplitudes=[0,1,1,0,0,-.5,-.5,0,0];
+  const direction=[.001,-.0002,.0003,.0004,-.0003,.0002];
+  if(refined) {
+    times=times.flatMap((value,index,all) => index<all.length-1 ? [value,(value+all[index+1])/2] : [value]);
+    amplitudes=amplitudes.flatMap((value,index,all) => index<all.length-1 ? [value,(value+all[index+1])/2] : [value]);
+  }
+  return {case:'single_branch_maxwell',material:{equilibrium_bulk_modulus_mpa:1000,equilibrium_shear_modulus_mpa:500,
+    branch_bulk_modulus_mpa:2000,branch_shear_modulus_mpa:1000,relaxation_time_s},temperature_k:293.15,
+    history:times.map((time_s,index) => ({time_s,strain:direction.map(value => value*amplitudes[index])})),
+    limits:structuredClone(nativeViscoelasticLimits)};
+}
+const viscoelasticRequest = options => ({study_id:'S-viscoelastic-source-only',experiment_id:'E-viscoelastic-source-only',
+  backend:'material.mfront.viscoelastic',settings:viscoelasticSettings(options)});
+
+test('ViscoelasticPoints actual PS descriptor and Domain canonical9/refined17/tau2 inputs have exact source parity',
+  {skip:!process.env.CAELAB_VISCOELASTIC_RESEARCH_DEFINITION_PATH && 'External PS descriptor/pure Domain fixtures were not supplied.'},async t => {
+    const definition=JSON.parse(fs.readFileSync(process.env.CAELAB_VISCOELASTIC_RESEARCH_DEFINITION_PATH,'utf8'));
+    assert.equal(sha(canonical(definition)),'23028f399c79e099a054294a4599e08efa89410ccd380f81e047eabb4c06d99b');
+    assert.equal(canonical(definition),canonical(nativeViscoelasticDefinition));
+    const limits=JSON.parse(fs.readFileSync(process.env.CAELAB_VISCOELASTIC_FIXED_LIMITS_PATH,'utf8'));
+    assert.equal(canonical(limits),canonical(nativeViscoelasticLimits));
+    const f=viscoelasticResearchFixture(t,definition),hooks=await f.hooks();
+    for(const [variable,options] of [['CAELAB_VISCOELASTIC_CANONICAL_SETTINGS_PATH',{}],
+      ['CAELAB_VISCOELASTIC_REFINED_SETTINGS_PATH',{refined:true}],['CAELAB_VISCOELASTIC_TAU2_SETTINGS_PATH',{relaxation_time_s:2}]]) {
+      const settings=JSON.parse(fs.readFileSync(process.env[variable],'utf8'));
+      assert.equal(canonical(settings),canonical(viscoelasticSettings(options)));
+      const output=immutable({args:{...viscoelasticRequest(options),settings}}),before=JSON.stringify(output);
+      await materialBefore(hooks,f,output);assert.equal(JSON.stringify(output),before);
+    }
+  });
+
+test('ViscoelasticPoints schema5 is separately frozen with exact six tools, MFront image and workload ceilings',async t => {
+  assert.equal(nativeViscoelasticDefinition.schema,5);assert.equal(nativeViscoelasticDefinition.profile,'viscoelastic-points-v1');
+  assert.deepEqual(nativeViscoelasticDefinition.allowed_tools,nativeMaterialDefinition.allowed_tools);
+  assert.deepEqual(nativeViscoelasticDefinition.capabilities.map(c => [c.backend,c.operations,c.cases]),
+    [['material.mfront.viscoelastic',['model_analysis_run'],['single_branch_maxwell']]]);
+  assert.deepEqual(nativeViscoelasticDefinition.budgets,{steps:24,mcp_timeout_seconds:3600,command_timeout_seconds:3600,
+    material_point:{min_history_entries:2,max_history_entries:17,max_signed_probe_states:576,max_request_bytes:65536}});
+  assert.equal(nativeViscoelasticDefinition.runtime_environment.CAELAB_MFRONT_IMAGE,
+    '/home/pikachu444/.local/share/autonomous-cae-lab/code_aster_17.4.0-oci.sif');
+  assert.equal(nativeViscoelasticDefinition.runtime_environment.CAELAB_MFRONT_IMAGE_SHA256,
+    'f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64');
+  assert.equal(Object.hasOwn(nativeViscoelasticDefinition.runtime_environment,'CAELAB_CODEASTER_IMAGE'),false);
+  assert.equal(Object.isFrozen(nativeViscoelasticDefinition.budgets.material_point),true);
+  assert.equal(Object.isFrozen(nativeViscoelasticLimits.finite_difference_steps),true);
+  assert.equal(nativeViscoelasticLimits.energy_absolute_mpa,1e-12);
+  assert.equal(Object.hasOwn(nativeViscoelasticLimits,'finite_difference_relative'),false);
+  const f=viscoelasticResearchFixture(t),hooks=await f.hooks();assert.equal(f.settings.schema,3);
+  await hooks['chat.params'](f.request(),immutable({options:{}}));assert.equal(f.receipts().at(-1).accepted,true);
+});
+
+test('ViscoelasticPoints admits canonical9/refined17/tau2 and all six existing tools with unchanged physical strain',async t => {
+  const f=viscoelasticResearchFixture(t),hooks=await f.hooks();
+  for(const options of [{},{refined:true},{relaxation_time_s:2}]) {
+    const args=viscoelasticRequest(options),output=immutable({args}),before=JSON.stringify(output);
+    await materialBefore(hooks,f,output);assert.equal(JSON.stringify(output),before);assert.equal(f.receipts().at(-1).accepted,true);
+    assert.equal((args.settings.history.length-1)*3*6*2,options.refined?576:288);
+  }
+  for(const [tool,args] of [['caelab_study_create',{study_id:'S-viscoelastic-source-only',title:'Source-only admission'}],
+    ['caelab_study_inspect',{study_id:'S-viscoelastic-source-only'}],
+    ['caelab_experiment_inspect',{experiment_id:'E-viscoelastic-source-only'}],
+    ['caelab_experiment_summary',{experiment_id:'E-viscoelastic-source-only'}],
+    ['caelab_experiment_compare',{experiment_ids:['E-viscoelastic-source-only','E-viscoelastic-source-only-tau2']}]]) {
+    const output=immutable({args}),before=JSON.stringify(output);
+    await hooks['tool.execute.before']({tool,sessionID:f.sessionID},output);
+    assert.equal(JSON.stringify(output),before);assert.equal(f.receipts().at(-1).tool,tool);assert.equal(f.receipts().at(-1).accepted,true);
+  }
+});
+
+test('ViscoelasticPoints admits exactly2 and17 entries plus nullable/supplied hypothesis routing',async t => {
+  const f=viscoelasticResearchFixture(t),hooks=await f.hooks();
+  for(const [count,hypothesis] of [[2,null],[17,'H-explicit-source-only']]) {
+    const args=viscoelasticRequest({refined:true});args.settings.history.length=count;args.hypothesis_id=hypothesis;
+    await materialBefore(hooks,f,immutable({args}));assert.equal(f.receipts().at(-1).accepted,true);
+  }
+});
+
+test('ViscoelasticPoints forwards finite scientific-invalid strain, initial state and dt/tau unchanged to Domain',async t => {
+  for(const patch of [a => a.settings.history[2].strain[3]=.02,a => a.settings.history[0].strain[0]=.001,
+    a => {a.settings.history[1].time_s=Number.MIN_VALUE;a.settings.material.relaxation_time_s=1e6;}]) {
+    const f=viscoelasticResearchFixture(t),hooks=await f.hooks(),args=viscoelasticRequest();patch(args);
+    const output=immutable({args}),before=JSON.stringify(output);await materialBefore(hooks,f,output);
+    assert.equal(JSON.stringify(output),before);assert.equal(f.receipts().at(-1).accepted,true);
+    // Source admission is neither a Domain verdict nor any native execution.
+  }
+});
+
+for(const [label,patch,code='RESEARCH_ARGUMENTS_REQUIRED'] of [
+  ['SVK backend',a => a.backend='material.mfront.hyperelastic','RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['other backend',a => a.backend='material.mfront','RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['SVK case',a => a.settings.case='saint_venant_kirchhoff','RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['missing settings',a => delete a.settings],['missing setting',a => delete a.settings.temperature_k],
+  ['extra setting',a => a.settings.deformation_gradient=[1,1,1]],['extra outer key',a => a.request_id='x'],
+  ['empty study',a => a.study_id=' '],['empty experiment',a => a.experiment_id=''],['boolean hypothesis',a => a.hypothesis_id=true],
+  ['extra SVK material',a => a.settings.material.youngs_modulus_mpa=210000],
+  ['missing branch modulus',a => delete a.settings.material.branch_bulk_modulus_mpa],
+  ['string modulus',a => a.settings.material.equilibrium_bulk_modulus_mpa='1000'],
+  ['boolean modulus',a => a.settings.material.equilibrium_shear_modulus_mpa=true],
+  ['nonfinite modulus',a => a.settings.material.branch_shear_modulus_mpa=Infinity],
+  ['below modulus bound',a => a.settings.material.branch_bulk_modulus_mpa=1e-7],
+  ['above modulus bound',a => a.settings.material.branch_bulk_modulus_mpa=1e9+1],
+  ['below tau bound',a => a.settings.material.relaxation_time_s=0],['above tau bound',a => a.settings.material.relaxation_time_s=1e6+1],
+  ['string temperature',a => a.settings.temperature_k='293.15'],['zero temperature',a => a.settings.temperature_k=0],
+  ['above temperature bound',a => a.settings.temperature_k=5001],
+  ['SVK energy absolute limit',a => a.settings.limits.energy_absolute_mpa=1e-10],
+  ['SVK extra FD relative limit',a => a.settings.limits.finite_difference_relative=1e-6],
+  ['missing fixed limit',a => delete a.settings.limits.tangent_relative],
+  ['relaxed stress limit',a => a.settings.limits.stress_relative=1e-7],
+  ['reversed FD order',a => a.settings.limits.finite_difference_steps.reverse()],
+  ['omitted FD step',a => a.settings.limits.finite_difference_steps.pop()],
+  ['string FD step',a => a.settings.limits.finite_difference_steps[0]='1e-7'],
+  ['one history entry',a => a.settings.history.length=1,'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['eighteen entries',a => {a.settings=viscoelasticSettings({refined:true});a.settings.history.push({time_s:5,strain:[0,0,0,0,0,0]});},'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['extra history field',a => a.settings.history[2].dt_s=.8],['nonzero first time',a => a.settings.history[0].time_s=.1],
+  ['duplicate time',a => a.settings.history[2].time_s=.2],['reversed time',a => a.settings.history[2].time_s=.1],
+  ['string time',a => a.settings.history[1].time_s='.2'],['nonfinite time',a => a.settings.history[1].time_s=NaN],
+  ['overbound time',a => a.settings.history[8].time_s=1e6+1],
+  ['short strain',a => a.settings.history[2].strain.pop()],['F9 in strain',a => a.settings.history[2].strain.push(0,0,0)],
+  ['sparse physical strain',a => delete a.settings.history[2].strain[3]],
+  ['string strain',a => a.settings.history[2].strain[3]='.0004'],['boolean strain',a => a.settings.history[2].strain[3]=false],
+  ['nonfinite strain',a => a.settings.history[2].strain[3]=Infinity],
+]) test(`ViscoelasticPoints refuses ${label} before dispatch and preserves original arguments`,async t => {
+  const f=viscoelasticResearchFixture(t),hooks=await f.hooks(),args=viscoelasticRequest();patch(args);
+  const before=structuredClone(args);await assert.rejects(materialBefore(hooks,f,{args}),refusal(code),label);
+  assert.deepEqual(args,before);assert.equal(f.receipts().at(-1).accepted,false);
+});
+
+test('ViscoelasticPoints exact parsed UTF8 cap admits65536 and rejects65537 without a raw-wire claim',async t => {
+  const f=viscoelasticResearchFixture(t),hooks=await f.hooks(),args=viscoelasticRequest({refined:true});
+  args.hypothesis_id='가'.repeat(100);args.hypothesis_id+='x'.repeat(65536-Buffer.byteLength(JSON.stringify(args),'utf8'));
+  assert.equal(Buffer.byteLength(JSON.stringify(args),'utf8'),65536);await materialBefore(hooks,f,immutable({args}));
+  const tooLarge=structuredClone(args);tooLarge.hypothesis_id+='x';
+  await assert.rejects(materialBefore(hooks,f,immutable({args:tooLarge})),refusal('RESEARCH_WORK_BUDGET_EXCEEDED'));
+});
+
+test('ViscoelasticPoints exact descriptor rejects schema/case/runtime/tool/capability/budget drift before hooks load',async t => {
+  for(const patch of [d => d.schema=4,d => d.schema=6,d => d.profile='ViscoelasticPoints',d => d.profile='viscoelastic-points-v2',
+    d => d.agent='caelab-acceptance',d => d.kind='other',d => d.allowed_tools.push('caelab_research_job_start'),
+    d => d.capabilities[0].backend='material.mfront.hyperelastic',d => d.capabilities[0].cases.push('other_law'),
+    d => d.capabilities[0].operations.push('optimization_run'),d => d.runtime_environment.CAELAB_MFRONT_IMAGE='/other.sif',
+    d => d.runtime_environment.CAELAB_MFRONT_IMAGE_SHA256='0'.repeat(64),d => d.runtime_environment.OMP_NUM_THREADS='4',
+    d => d.runtime_environment.CAELAB_SINGULARITY_COMMAND='/other/singularity',
+    ...['steps','mcp_timeout_seconds','command_timeout_seconds'].map(key => d => d.budgets[key]++),
+    ...Object.keys(nativeViscoelasticDefinition.budgets.material_point).map(key => d => d.budgets.material_point[key]++),
+  ]) {
+    const f=viscoelasticResearchFixture(t);patch(f.settings.research);json(f.settingsPath,f.settings);
+    await assert.rejects(f.hooks(),refusal('RESEARCH_DEFINITION_INVALID'));
+  }
+});
+
+test('Historical scopes including MaterialPoints stay closed to Maxwell; ViscoelasticPoints exposes no new jobs/search/register/PDE',async t => {
+  for(const make of [researchFixture,structuralResearchFixture,pdeResearchFixture,materialResearchFixture]) {
+    const f=make(t),hooks=await f.hooks();
+    await assert.rejects(hooks['tool.execute.before']({tool:'caelab_model_analysis_run',sessionID:f.sessionID},{args:viscoelasticRequest()}),
+      refusal([structuralResearchFixture,materialResearchFixture].includes(make)?'RESEARCH_CAPABILITY_NOT_ADMITTED':'TOOL_NOT_ALLOWED'));
+  }
+  const f=viscoelasticResearchFixture(t),hooks=await f.hooks();
+  for(const tool of ['caelab_research_job_start','caelab_research_job_cancel','caelab_model_optimization_plan',
+    'caelab_model_parameters_register','caelab_parameters_register','caelab_optimization_run','caelab_pde_run'])
+    await assert.rejects(hooks['tool.execute.before']({tool,sessionID:f.sessionID},{args:{}}),refusal('TOOL_NOT_ALLOWED'));
+});
+
+test('ViscoelasticPoints retains existing latest source/session/grant/config/settings/Stop/no-tools/required-stage boundaries',async t => {
+  for(const [drift,code] of [['source','SOURCE_IMPORTABLE_CHANGED'],['session','PROJECT_SESSION_CHANGED'],
+    ['grant','PROJECT_GRANT_CHANGED'],['config','CONFIG_CHANGED'],['settings','SETTINGS_CHANGED'],
+    ['stopping','RUNTIME_STOPPING'],['no_tools','NO_TOOLS_STAGE'],['required','REQUIRED_TOOL_MISMATCH']]) {
+    const f=viscoelasticResearchFixture(t),load=f.dependencies.loadFilesystem;
+    if(drift==='session') {
+      const get=f.pluginInput.client.session.get;
+      f.pluginInput.client.session.get=async(...args) => {const response=await get(...args);if(f.counts.session===2) response.data.projectID='prj_foreign';return response;};
+    }
+    f.dependencies.loadFilesystem=async(...args) => {
+      const data=await load(...args);
+      if(f.counts.filesystem===2) {
+        if(drift==='source') fs.writeFileSync(path.join(f.repo,'new_maxwell.py'),'SECRET UNPINNED IMPORT');
+        if(drift==='grant') {f.state.filesystem.grants[0].access='read';data.grants[0].access='read';}
+        if(drift==='config') fs.appendFileSync(f.settings.configPath,' ');
+        if(drift==='settings') fs.appendFileSync(f.settingsPath,' ');
+        if(drift==='stopping') f.writeGuard({stopping:true});
+        if(drift==='no_tools') f.writeGuard({no_tools:true});
+        if(drift==='required') f.writeGuard({required:'caelab_study_inspect'});
+      }
+      return data;
+    };
+    const hooks=await f.hooks();await assert.rejects(materialBefore(hooks,f,immutable({args:viscoelasticRequest()})),refusal(code),drift);
+    assert.equal(f.receipts().at(-1).accepted,false);assert.equal(JSON.stringify(f.receipts()).includes('SECRET'),false);
+  }
+});
+
+test('ViscoelasticPoints retains selected5.6Sol and refuses late model/provider change without fallback',async t => {
+  for(const patch of [r => r.model.id='other-model',r => r.model.providerID='ollama']) {
+    const f=viscoelasticResearchFixture(t),request=f.request(),load=f.dependencies.loadFilesystem;
+    f.dependencies.loadFilesystem=async(...args) => {const data=await load(...args);if(f.counts.filesystem===2) patch(request);return data;};
+    const hooks=await f.hooks();await assert.rejects(hooks['chat.params'](request,immutable({options:{}})),refusal('MODEL_CHANGED'));
     assert.equal(f.receipts().at(-1).accepted,false);
   }
 });

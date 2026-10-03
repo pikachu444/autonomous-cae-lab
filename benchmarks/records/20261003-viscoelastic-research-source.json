@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-03T14:20:52.815567+00:00",
+  "status": "BOUNDED_VISCOELASTIC_RESEARCH_SOURCE_REVIEWED_ACTUAL_NOT_RUN",
+  "source_parent_commit": "a979728d7fce96b6bdd8505cde68eab883c84fe3",
+  "source_publication": "THIS_COMMIT; not a new native solver verification",
+  "profile": {
+    "selector": "ViscoelasticPoints",
+    "schema": 5,
+    "id": "viscoelastic-points-v1",
+    "canonical_sha256": "23028f399c79e099a054294a4599e08efa89410ccd380f81e047eabb4c06d99b",
+    "backend": "material.mfront.viscoelastic",
+    "case": "single_branch_maxwell",
+    "history_min_max": [
+      2,
+      17
+    ],
+    "signed_probe_states_per_request": 576,
+    "parsed_json_bytes": 65536,
+    "tools": "Same six existing model-analysis tools; Core operations unchanged"
+  },
+  "source_files": [
+    {
+      "path": "openscience/native_guard.mjs",
+      "size_bytes": 67266,
+      "sha256": "118fad61e5cecf1d78468eab66abbdfdcc1c076cdea7b5409c0219ccd710de20"
+    },
+    {
+      "path": "openscience/tests/native_guard.test.mjs",
+      "size_bytes": 142306,
+      "sha256": "912e9ec3f7817e3b8bd61c50c1be85a6ff566fd1e7687815ccf42f7f5dce20b3"
+    },
+    {
+      "path": "scripts/openscience-research.ps1",
+      "size_bytes": 31166,
+      "sha256": "505580cbb0a2bc490fe4b084d7708d77780388b126e668d303189de9cf0678fb"
+    },
+    {
+      "path": "scripts/openscience-native-provider.ps1",
+      "size_bytes": 23981,
+      "sha256": "0f81ae752c0aa9c2e7d83dbd4f476d9dd1599f09bbcc7b27267c3bc3702ec288"
+    },
+    {
+      "path": "scripts/openscience-server-local.ps1",
+      "size_bytes": 145137,
+      "sha256": "6e44cae1f2916db358171b7f663dafc181d02e4e0775e0325443b00a78c4ada2"
+    },
+    {
+      "path": "scripts/verify_openscience_native.ps1",
+      "size_bytes": 31725,
+      "sha256": "85f8ad51c78ea6a3a46185b9f4ff0eb3d401eb2c46c6a40db0f6e038f171dc9b"
+    }
+  ],
+  "source_acceptance": {
+    "powershell": {
+      "checks_pass": 133,
+      "receipt": {
+        "path": "artifacts/development-viscoelastic-20261003-01/research-admission-01/ps-tests/receipt.json",
+        "size_bytes": 2251,
+        "sha256": "bf7ce51e5a2e08d2e020b8673c5a2119f06af930ec19b6b608fa58243419d7b1"
+      },
+      "detailed_checks": {
+        "path": "artifacts/vra01/native-checks.json",
+        "size_bytes": 8791,
+        "sha256": "eab0020e0175ab65a7d126207ef0d26acb3799cad8f0813c76568d8452443b08"
+      }
+    },
+    "node": {
+      "distinct_closed": 210,
+      "new_maxwell_controls": 54,
+      "original_full_suite": {
+        "pass": 209,
+        "fail": 1,
+        "skip": 0
+      },
+      "targeted_actual_Core_fixture_retry": {
+        "pass": 1,
+        "not_selected": 209
+      },
+      "counting": "210 distinct controls across commands; not a new full210PASS run or211unique",
+      "freeze": {
+        "path": "artifacts/development-viscoelastic-20261003-01/research-admission-01/node-tests/freeze-receipt.json",
+        "size_bytes": 19736,
+        "sha256": "ead9f18d5b3b58559b4175df0e0f37d88e6b39cad53eeb3b283401b83a1fa602"
+      },
+      "failed_attempts": "Original wrong small-strain fixture and Windows3.12.14/libm1ULP parity retry remain retained; actual declaredCore3.12.3 inputs close unchanged inherited assertions"
+    },
+    "independent_review": {
+      "verdict": "PASS",
+      "open_P1_P2": 0,
+      "record": {
+        "path": "artifacts/development-viscoelastic-20261003-01/research-admission-01/independent-review/review.json",
+        "size_bytes": 21927,
+        "sha256": "28ba23c6c802aa196aaf99f8119eaa769a6a148ad6242e2b7630148a542c2bab"
+      },
+      "private_preparation_P2_closed": 3
+    }
+  },
+  "native_scientific_basis": {
+    "producer": "700249afc2415db5b25da4499d1099bffad5b1c7",
+    "record": {
+      "path": "benchmarks/records/20261003-maxwell-native-r04-qualified.json",
+      "size_bytes": 9808,
+      "sha256": "4b3e5e4065ac0ddf1e140a3d3c3cdf6da76db5c3ed2c5ed5f80f2ab89b419ea1"
+    },
+    "current_fourteen_scientific_source_files_unchanged": true,
+    "new_native_requalification": "NOT_RUN_NOT_REQUIRED_FOR_UNCHANGED_NUMERICAL_SOURCE"
+  },
+  "private_actual_preparation": {
+    "harness": {
+      "path": "artifacts/development-viscoelastic-20261003-01/research-live-preparation-02/viscoelastic-points-live.ps1",
+      "size_bytes": 37820,
+      "sha256": "c20d142e27e6528595ca26f6e7bbc2b773a6abe274e6c41de633fb21fa92bef7"
+    },
+    "question": {
+      "path": "artifacts/development-viscoelastic-20261003-01/research-live-preparation-02/viscoelastic-research-question-01.txt",
+      "size_bytes": 6642,
+      "sha256": "e2fb5e8be680b5efef65f4765af5d81b604d7b7fa52098636456063eff8ddf3c"
+    },
+    "scope": "one whole approved5.6Sol tau1/tau2 question, freshviscoelastic-r-20261003-01, exact new original IDs; prior stores retained",
+    "execution": "NOT_RUN",
+    "failed_preparation": "Old01Capture-only fence, wrong prior-producer and physicalCRLF/declaredLF mismatch retained; new02closes3P2 before any model/native call"
+  },
+  "unchanged": "Old four profiles/prompts/assertions, native law/limits/Core/optimizer/provider/auth/lifecycle; actual modified interface is explicit admission only",
+  "actual_connected_research": "NOT_RUN",
+  "same_record_human_inspection": "NOT_RUN",
+  "new_source_CI": "PENDING_EXACT_PUBLICATION",
+  "model": "openai-codex/gpt-5.6-sol",
+  "decision": "NOT_RELEASED",
+  "requirements": "All52 ledger/Phases5-7 remain active. Synthetic material point is not measured material/FE/strength/durability/release.",
+  "unknown": [
+    "physical",
+    "measured_material",
+    "solver_coupling",
+    "strength",
+    "durability",
+    "binary_source",
+    "remote_raw_durability",
+    "corporate_license_and_security"
+  ],
+  "next": "Fresh clean-source Bootstrap/Resident, one actual whole question, original inspect/summary/compare and evidence interpretation, same-record human view, ownedStop/retention; thenP5.3 and existing Phase6/7 in order"
+}
