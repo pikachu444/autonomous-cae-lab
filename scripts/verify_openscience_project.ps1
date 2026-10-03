@@ -385,9 +385,12 @@ Invoke-ProjectCheck 'changed_valid_project_intent_cannot_reuse_research_profile'
 }
 $taskProjectSettingsOwner = @{boot_source=@{schema=1;test_only=$true};boot_source_sha256=('a'*64);native=@{Pid=170002}}
 Initialize-OpenScienceNativeGuard $taskProjectContext $taskProjectSettingsOwner
-Invoke-ProjectCheck 'generated_schema_two_settings_contain_exact_immutable_binding' {
+Invoke-ProjectCheck 'generated_schema_three_settings_contain_exact_immutable_binding_and_source_reader' {
     $settings=Read-OpenScienceJson $taskProjectContext.PluginSettingsPath
-    Assert-OpenScienceCondition ($settings.schema -eq 2 -and (Get-OpenScienceSourcePinSha256 $settings.project_binding) -ceq
+    Assert-OpenScienceCondition ($settings.schema -eq 3 -and
+        $settings.source_reader.node_path -ceq $taskProjectContext.NodePath -and $settings.source_reader.node_sha256 -ceq $taskProjectContext.NodeSha256 -and
+        $settings.source_reader.worker_path -ceq $taskProjectContext.SourceReaderPath -and $settings.source_reader.worker_sha256 -ceq $taskProjectContext.SourceReaderSha256 -and
+        (Get-OpenScienceSourcePinSha256 $settings.project_binding) -ceq
         (Get-OpenScienceSourcePinSha256 $taskProjectBinding) -and (Get-OpenScienceHash $taskProjectContext.PluginSettingsPath) -ceq
         $taskProjectSettingsOwner.plugin_settings_sha256) 'Generated settings omitted/changed project ownership.'
 }
@@ -464,7 +467,7 @@ function Invoke-ProjectLifecycleFixture {
         controller=$identityMap[170000];launcher=$identityMap[170001];native=$identityMap[170002];proxy=$null;
         runtime_url=$taskProjectContext.RuntimeURL;workspace_url=(Get-OpenScienceProjectWorkspaceUrl $taskProjectContext $taskProjectContext.RuntimeURL);health_run_id='synthetic-health'}
     Write-OpenScienceJson $taskProjectContext.OwnerPath $owner -CreateNew
-    $state=@{aborted=$false;foreign=$false;creation='valid';replays=0}
+    $state=@{aborted=$false;foreign=$false;creation='valid';replays=0;metadata_pause_ms=0;metadata_error_endpoint=$null}
     function Get-OpenScienceProcessIdentity([int]$ProcessId) { Assert-OpenScienceCondition ($identityMap.ContainsKey($ProcessId)) 'Foreign PID requested.'; return $identityMap[$ProcessId] }
     function Get-OpenScienceDescendants([int]$RootPid) { Assert-OpenScienceCondition ($RootPid -eq 170001) 'Foreign process tree requested.'; return $identityMap[170002] }
     function Get-NetTCPConnection([string]$State,[int]$OwningProcess) {
@@ -477,8 +480,12 @@ function Invoke-ProjectLifecycleFixture {
         }
         $abort=($Uri -ceq "$($taskProjectContext.RuntimeURL)/session/$taskProjectSessionId/abort")
         Assert-ProjectHeaders $taskProjectContext $Headers -Abort:$abort
-        $taskProjectTrace.Add(@{method=$Method;uri=$Uri;headers=$Headers})
+        $taskProjectTrace.Add(@{method=$Method;uri=$Uri;headers=$Headers;timeout_seconds=$TimeoutSeconds})
+        if ($state.metadata_error_endpoint -and $Uri -ceq ($taskProjectContext.RuntimeURL+$state.metadata_error_endpoint)) {
+            throw 'Synthetic metadata transport failure; test-only-secret-must-not-enter-receipt.'
+        }
         if($Uri -ceq "$($taskProjectContext.RuntimeURL)/project/current" -and $Method -ceq 'GET') {
+            if ($state.metadata_pause_ms) { [Threading.Thread]::Sleep($state.metadata_pause_ms) }
             $project=@{id=$taskProjectBinding.project_id;worktree=$taskProjectIdentity}
             if($state.creation -ceq 'workspace-id'){$project.id='prj_foreign'}
             if($state.creation -ceq 'workspace-directory'){$project.worktree=$taskProjectRepo}
@@ -540,7 +547,96 @@ function Invoke-ProjectLifecycleFixture {
             $current.ProjectBinding.project_directory -ceq $taskProjectIdentity -and $current.ConnectorStatus -ceq 'not_checked_for_lifecycle') 'Lifecycle lookup confused project identity with source.'
     }
     Invoke-ProjectCheck 'actual_managed_workspace_gate_reads_exact_project_and_active_source_grant' {
+        $before=$taskProjectTrace.Count
         Assert-OpenScienceManagedWorkspace $taskProjectContext $taskProjectContext.RuntimeURL
+        $reads=@($taskProjectTrace | Select-Object -Skip $before)
+        Assert-OpenScienceCondition ($reads.Count -eq 2 -and $reads[0].timeout_seconds -eq 15 -and $reads[1].timeout_seconds -eq 15) 'Default ready-runtime metadata limits or call count changed.'
+    }
+    Invoke-ProjectCheck 'startup_metadata_uses_declared_remaining_clock_and_retains_raw_responses' {
+        $before=$taskProjectTrace.Count;$clock=[Diagnostics.Stopwatch]::StartNew()
+        $directory=Join-Path $taskProjectContext.ProfileRoot 'synthetic-startup-metadata'
+        $state.metadata_pause_ms=1100
+        try {
+            Assert-OpenScienceManagedWorkspace $taskProjectContext $taskProjectContext.RuntimeURL -TimeoutSeconds 60 `
+                -StartupWatch $clock -StartupTimeoutSeconds 30 -LogDirectory $directory
+        } finally {$state.metadata_pause_ms=0;$clock.Stop()}
+        $reads=@($taskProjectTrace | Select-Object -Skip $before)
+        Assert-OpenScienceCondition ($reads.Count -eq 2 -and $reads[0].timeout_seconds -gt 15 -and
+            $reads[0].timeout_seconds -lt 30 -and $reads[1].timeout_seconds -gt 0 -and
+            $reads[1].timeout_seconds -lt $reads[0].timeout_seconds) 'Metadata requests did not share the remaining startup budget.'
+        foreach ($name in @('01-project-current','02-project-current-filesystem')) {
+            $receipt=Read-OpenScienceJson (Join-Path $directory ($name+'.receipt.json'))
+            $response=Join-Path $directory ($name+'.response.json')
+            Assert-OpenScienceCondition ($receipt.outcome -ceq 'HTTP_RESPONSE_NOT_YET_VALIDATED' -and
+                $receipt.status_code -eq 200 -and $receipt.response_sha256 -ceq (Get-OpenScienceHash $response) -and
+                $receipt.response_bytes -eq (Get-Item -LiteralPath $response).Length -and $receipt.elapsed_seconds -ge 0 -and
+                -not $receipt.Contains('headers')) 'Actual synthetic response bytes/status/hash were not retained without headers.'
+        }
+        $before=$taskProjectTrace.Count
+        Assert-ProjectRefused { Assert-OpenScienceManagedWorkspace $taskProjectContext $taskProjectContext.RuntimeURL -LogDirectory $directory }
+        Assert-OpenScienceCondition ($taskProjectTrace.Count -eq $before) 'Existing metadata evidence caused another request.'
+    }
+    Invoke-ProjectCheck 'startup_metadata_per_request_cap_does_not_expand_declared_budget' {
+        $before=$taskProjectTrace.Count;$clock=[Diagnostics.Stopwatch]::StartNew()
+        try { Assert-OpenScienceManagedWorkspace $taskProjectContext $taskProjectContext.RuntimeURL -TimeoutSeconds 60 -StartupWatch $clock -StartupTimeoutSeconds 180 }
+        finally {$clock.Stop()}
+        $reads=@($taskProjectTrace | Select-Object -Skip $before)
+        Assert-OpenScienceCondition ($reads.Count -eq 2 -and $reads[0].timeout_seconds -eq 60 -and $reads[1].timeout_seconds -eq 60) 'The per-request cap was not retained.'
+    }
+    Invoke-ProjectCheck 'startup_exhaustion_preserves_attempt_and_blocks_second_metadata_request' {
+        $before=$taskProjectTrace.Count;$clock=[Diagnostics.Stopwatch]::StartNew()
+        $directory=Join-Path $taskProjectContext.ProfileRoot 'synthetic-exhausted-startup-metadata'
+        $state.metadata_pause_ms=2100
+        try { Assert-ProjectRefused { Assert-OpenScienceManagedWorkspace $taskProjectContext $taskProjectContext.RuntimeURL -TimeoutSeconds 60 -StartupWatch $clock -StartupTimeoutSeconds 2 -LogDirectory $directory } }
+        finally {$state.metadata_pause_ms=0;$clock.Stop()}
+        $reads=@($taskProjectTrace | Select-Object -Skip $before)
+        $receipt=Read-OpenScienceJson (Join-Path $directory '02-project-current-filesystem.receipt.json')
+        Assert-OpenScienceCondition ($reads.Count -eq 1 -and $reads[0].timeout_seconds -eq 1 -and
+            $receipt.endpoint -ceq '/project/current/filesystem' -and $receipt.outcome -ceq 'STARTUP_BUDGET_EXHAUSTED' -and
+            $null -eq $receipt.timeout_seconds -and $null -eq $receipt.status_code -and
+            -not (Test-Path -LiteralPath (Join-Path $directory '02-project-current-filesystem.response.json'))) 'Budget exhaustion reached another request or lost its endpoint evidence.'
+    }
+    foreach ($endpoint in @('/project/current','/project/current/filesystem')) {
+        Invoke-ProjectCheck ('metadata_transport_failure_'+$taskProjectChecks.Count+'_retained_without_retry_or_secret') {
+            $before=$taskProjectTrace.Count
+            $directory=Join-Path $taskProjectContext.ProfileRoot ('synthetic-transport-failure-'+$taskProjectChecks.Count)
+            $state.metadata_error_endpoint=$endpoint;$failure=$null
+            try { Assert-OpenScienceManagedWorkspace $taskProjectContext $taskProjectContext.RuntimeURL -LogDirectory $directory }
+            catch {$failure=$_.Exception.Message}
+            finally {$state.metadata_error_endpoint=$null}
+            $name=$(if($endpoint -ceq '/project/current'){'01-project-current'}else{'02-project-current-filesystem'})
+            $receipt=Read-OpenScienceJson (Join-Path $directory ($name+'.receipt.json'))
+            $expectedCalls=$(if($endpoint -ceq '/project/current'){1}else{2})
+            Assert-OpenScienceCondition ($failure -and $failure.Contains($endpoint) -and
+                -not $failure.Contains('test-only-secret') -and $taskProjectTrace.Count-$before -eq $expectedCalls -and
+                $receipt.outcome -ceq 'READ_FAILED' -and $receipt.endpoint -ceq $endpoint -and $receipt.exception_class -and
+                $null -eq $receipt.status_code -and $null -eq $receipt.response_sha256 -and
+                -not (($receipt | ConvertTo-Json -Depth 10).Contains('test-only-secret'))) 'Failed metadata transport was retried, admitted or leaked untrusted error bytes.'
+        }
+    }
+    Invoke-ProjectCheck 'unpaired_stopped_or_out_of_bounds_startup_clocks_block_metadata' {
+        $before=$taskProjectTrace.Count;$clock=[Diagnostics.Stopwatch]::StartNew()
+        Assert-ProjectRefused { Assert-OpenScienceManagedWorkspace $taskProjectContext $taskProjectContext.RuntimeURL -StartupTimeoutSeconds 30 }
+        Assert-ProjectRefused { Assert-OpenScienceManagedWorkspace $taskProjectContext $taskProjectContext.RuntimeURL -StartupWatch $clock }
+        Assert-ProjectRefused { Assert-OpenScienceManagedWorkspace $taskProjectContext $taskProjectContext.RuntimeURL -StartupWatch $clock -StartupTimeoutSeconds 181 }
+        $clock.Stop()
+        Assert-ProjectRefused { Assert-OpenScienceManagedWorkspace $taskProjectContext $taskProjectContext.RuntimeURL -StartupWatch $clock -StartupTimeoutSeconds 30 }
+        Assert-ProjectRefused { Assert-OpenScienceManagedWorkspace $taskProjectContext $taskProjectContext.RuntimeURL -TimeoutSeconds 0 }
+        Assert-ProjectRefused { Assert-OpenScienceManagedWorkspace $taskProjectContext $taskProjectContext.RuntimeURL -TimeoutSeconds 181 }
+        Assert-OpenScienceCondition ($taskProjectTrace.Count -eq $before) 'Invalid clock/bounds reached metadata HTTP.'
+    }
+    Invoke-ProjectCheck 'controller_startup_passes_original_clock_and_recomputes_mcp_remaining' {
+        $tokens=$null;$errors=$null
+        $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $taskProjectRepo 'scripts/openscience-server-local.ps1'),[ref]$tokens,[ref]$errors)
+        Assert-OpenScienceCondition ($errors.Count -eq 0) 'Controller source does not parse.'
+        $internal=@($ast.FindAll({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq 'Invoke-OpenScienceServeInternal'},$false))
+        $text=$internal[0].Extent.Text
+        $metadata=$text.IndexOf('Assert-OpenScienceManagedWorkspace $context $ready.Url -TimeoutSeconds 60 -StartupWatch $watch')
+        $budget=$text.IndexOf('$remaining = [int][Math]::Floor($spec.startup_timeout_seconds - $watch.Elapsed.TotalSeconds)',$metadata)
+        $mcp=$text.IndexOf('$mcpResponse = Invoke-OpenScienceHttp', $metadata)
+        Assert-OpenScienceCondition ($internal.Count -eq 1 -and $metadata -ge 0 -and
+            $text.Contains('-StartupTimeoutSeconds $spec.startup_timeout_seconds -LogDirectory') -and
+            $budget -gt $metadata -and $mcp -gt $budget) 'Startup metadata or MCP detached from the original startup clock.'
     }
     foreach($scenario in @('workspace-id','workspace-directory','filesystem-project','filesystem-root','filesystem-grant','filesystem-status')) {
         $state.creation=$scenario

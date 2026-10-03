@@ -1,3 +1,24 @@
+## Current checkpoint: managed startup corrected; actual Research retry next
+
+MaterialPoints source52db/Bootstrap01 failed at managed metadata HTTP15s before
+the whole question or experiment; exact endpoint remains UNKNOWN. Declared
+startup120s and accepted guard14937ms are retained. Reviewed correction shares
+the remaining startup clock across both metadata GETs and MCP; default ready
+calls15s, all ownership/grant/source/model/scientific checks stay unchanged.
+Cold136PASS/1obsolete-schema-verifierFAIL is retained; only the corrected
+exactschema3/source-reader assertion rerun1PASS. Independent source0openP1/P2.
+Record: `benchmarks/records/20261003-managed-startup-budget-correction.json`.
+Exact52db CI37100131735:7SUCCESS/3FAIL,Core3232PASS/5skip/1warning266.75s;
+AsterFz/vectorPDE/download404 remain separate OPEN, internal causes UNKNOWN.
+Native science remains3a/native02/21valid/32PASS+10UNKNOWN/independent71PASS.
+NEXT: clean newly published-source Bootstrap02 once, then Resident/one whole
+approved5.6Sol E210000/E105000 question/inspect-summary-compare/interpretation/
+same-record ResearchGUI/ownedStop. Actual retry/Research are NOT_RUN here.
+Full52/Phases5-7/physical/FE/strength/deployment OPEN/UNKNOWN, NOT_RELEASED.
+Earlier checkpoints below are history, not fresh native verification.
+
+---
+
 ## Current checkpoint: reviewed MaterialPoints source; one-question research next
 
 The separate case-sensitive MaterialPoints/schema4/material-points-v1 profile

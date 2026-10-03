@@ -22,3 +22,14 @@ private preparation receipt; no split/forced-tool transcript or model fallback.
 Common summaries cannot establish unavailable full measured history values.
 Keep every failed/refused attempt and original qualification store unchanged.
 Whole52/Phases5-7 remain OPEN after this bounded source gate.
+
+## Retained startup failure and bounded source correction
+
+Source52db Bootstrap01: managed metadata15s timeout before Research/solver;
+official native ready/health and accepted14937ms source guard retained. Exact
+metadata endpoint UNKNOWN. Reviewed source uses original120s startup clock,
+per-request cap60/fresh remaining, then fresh MCP remaining; ready defaults15.
+No source/ownership/grant/model/scientific guard removed. Cold136PASS plus
+retained obsolete schema2 expectationFAIL; only corrected exact3 assertion1PASS.
+Independent source0P1/P2. Bootstrap02/Resident/whole5.6Sol question/ResearchGUI/
+ownedStop still NOT_RUN at this source checkpoint. See startup correction record.

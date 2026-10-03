@@ -132,14 +132,64 @@ function Assert-OpenScienceSessionWorkspace($Context, $Filesystem, [string]$Sess
     }
 }
 
-function Assert-OpenScienceManagedWorkspace($Context, [string]$RuntimeUrl) {
+function Assert-OpenScienceManagedWorkspace {
+    param($Context, [string]$RuntimeUrl,
+        [ValidateRange(1,180)][int]$TimeoutSeconds = 15,
+        [Diagnostics.Stopwatch]$StartupWatch,
+        [ValidateRange(0,180)][int]$StartupTimeoutSeconds = 0,
+        [string]$LogDirectory)
+    Assert-OpenScienceCondition (($null -eq $StartupWatch) -eq ($StartupTimeoutSeconds -eq 0)) 'Managed metadata requires a paired startup clock and budget.'
+    if ($StartupWatch) { Assert-OpenScienceCondition $StartupWatch.IsRunning 'Managed startup clock must be running.' }
+    if ($LogDirectory) {
+        $LogDirectory = Assert-OpenScienceContainedPath ([IO.Path]::GetFullPath($LogDirectory)) $Context.ProfileRoot
+        Assert-OpenScienceDirectoryAncestors (Split-Path -Parent $LogDirectory)
+        Assert-OpenScienceCondition (-not (Test-Path -LiteralPath $LogDirectory)) 'Preserve managed metadata evidence; use a new directory.'
+        New-Item -ItemType Directory -Path $LogDirectory -ErrorAction Stop | Out-Null
+        Assert-OpenScienceDirectoryAncestors $LogDirectory
+    }
     $headers = Get-OpenScienceProjectHeaders $Context
-    $projectResponse = Invoke-OpenScienceHttp "$RuntimeUrl/project/current" -Headers $headers -TimeoutSeconds 15
+    function Read-ManagedMetadata([string]$Endpoint, [string]$ReceiptName) {
+        $watch = [Diagnostics.Stopwatch]::StartNew()
+        $receipt = [ordered]@{schema=1;kind='autonomous-cae-lab.managed-metadata-read';endpoint=$Endpoint;
+            started_utc=[DateTime]::UtcNow.ToString('o');timeout_seconds=$null;status_code=$null;
+            outcome='NOT_REQUESTED';exception_class=$null;response_sha256=$null;response_bytes=$null}
+        try {
+            $timeout = $TimeoutSeconds
+            if ($StartupWatch) {
+                $remaining = [int][Math]::Floor($StartupTimeoutSeconds - $StartupWatch.Elapsed.TotalSeconds)
+                Assert-OpenScienceCondition ($remaining -gt 0) "Managed metadata startup budget exhausted before $Endpoint."
+                $timeout = [Math]::Min($timeout, $remaining)
+            }
+            $receipt.timeout_seconds = $timeout
+            $receipt.outcome = 'HTTP_PENDING'
+            $response = Invoke-OpenScienceHttp "$RuntimeUrl$Endpoint" -Headers $headers -TimeoutSeconds $timeout
+            $receipt.status_code = [int]$response.StatusCode
+            $bytes = [Text.UTF8Encoding]::new($false).GetBytes([string]$response.Content)
+            $receipt.response_bytes = $bytes.Length
+            $receipt.response_sha256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
+            if ($LogDirectory) {
+                $stream = [IO.FileStream]::new((Join-Path $LogDirectory ($ReceiptName+'.response.json')),
+                    [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::Read)
+                try { $stream.Write($bytes); $stream.Flush($true) } finally { $stream.Dispose() }
+            }
+            $receipt.outcome = 'HTTP_RESPONSE_NOT_YET_VALIDATED'
+            return $response
+        } catch {
+            $receipt.exception_class = $_.Exception.GetType().FullName
+            $receipt.outcome = $(if ($receipt.outcome -ceq 'NOT_REQUESTED') {'STARTUP_BUDGET_EXHAUSTED'} else {'READ_FAILED'})
+            throw [InvalidOperationException]::new("Managed metadata read failed at $Endpoint (timeout=$($receipt.timeout_seconds)); evidence=$LogDirectory.", $_.Exception)
+        } finally {
+            $receipt.elapsed_seconds = $watch.Elapsed.TotalSeconds
+            $receipt.completed_utc = [DateTime]::UtcNow.ToString('o')
+            if ($LogDirectory) { Write-OpenScienceJson (Join-Path $LogDirectory ($ReceiptName+'.receipt.json')) $receipt -CreateNew }
+        }
+    }
+    $projectResponse = Read-ManagedMetadata '/project/current' '01-project-current'
     Assert-OpenScienceCondition ($projectResponse.StatusCode -eq 200) 'Managed project metadata is unavailable; inference refused.'
     $project = $projectResponse.Content | ConvertFrom-Json -AsHashtable -ErrorAction Stop
     Assert-OpenScienceCondition ($project.id -ceq $Context.ProjectBinding.project_id -and
         [IO.Path]::GetFullPath($project.worktree) -ceq $Context.ProjectBinding.project_directory) 'Managed project ownership changed.'
-    $fsResponse = Invoke-OpenScienceHttp "$RuntimeUrl/project/current/filesystem" -Headers $headers -TimeoutSeconds 15
+    $fsResponse = Read-ManagedMetadata '/project/current/filesystem' '02-project-current-filesystem'
     Assert-OpenScienceCondition ($fsResponse.StatusCode -eq 200) 'Managed project filesystem is unavailable; inference refused.'
     Assert-OpenScienceManagedFilesystem $Context.ProjectBinding ($fsResponse.Content | ConvertFrom-Json -AsHashtable -ErrorAction Stop)
 }

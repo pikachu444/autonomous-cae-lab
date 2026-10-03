@@ -1235,7 +1235,14 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
         Write-OpenScienceJson (Join-Path $directory 'global-health.json') $health -CreateNew
         $remaining = [int][Math]::Floor($spec.startup_timeout_seconds - $watch.Elapsed.TotalSeconds)
         Assert-OpenScienceCondition ($remaining -gt 0) 'No startup time remains for MCP readiness.'
-        if ($context.ProjectBinding) { Assert-OpenScienceManagedWorkspace $context $ready.Url }
+        if ($context.ProjectBinding) {
+            Assert-OpenScienceManagedWorkspace $context $ready.Url -TimeoutSeconds 60 -StartupWatch $watch `
+                -StartupTimeoutSeconds $spec.startup_timeout_seconds -LogDirectory (Join-Path $directory 'managed-workspace-startup')
+        }
+        # Managed instance initialization uses the same startup clock. Its
+        # elapsed time cannot be reused as an additional MCP timeout budget.
+        $remaining = [int][Math]::Floor($spec.startup_timeout_seconds - $watch.Elapsed.TotalSeconds)
+        Assert-OpenScienceCondition ($remaining -gt 0) 'No startup time remains after managed metadata readiness.'
         $mcpResponse = Invoke-OpenScienceHttp "$($ready.Url)/mcp" -Headers (Get-OpenScienceProjectHeaders $context) -TimeoutSeconds ([Math]::Min(60, $remaining))
         $mcp = $mcpResponse.Content | ConvertFrom-Json -AsHashtable
         Write-OpenScienceJson (Join-Path $directory 'mcp-current.json') $mcp -CreateNew

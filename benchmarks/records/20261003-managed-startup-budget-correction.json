@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "kind": "bounded-managed-runtime-startup-correction",
+  "status": "REVIEWED_SOURCE_CORRECTION_ACTUAL_BOOTSTRAP02_NOT_RUN",
+  "source_parent": "52db7fb48cfb8915469fd51b867307abd4226c33",
+  "material_profile_source": "52db7fb48cfb8915469fd51b867307abd4226c33",
+  "source_working_pins": [
+    {
+      "path": "scripts/openscience-project.ps1",
+      "size_bytes": 17291,
+      "sha256": "bc17eefc2907d561ec40bb2befcbcd9bc966196aed0de99ab2fd8e52d0145a93"
+    },
+    {
+      "path": "scripts/openscience-server-local.ps1",
+      "size_bytes": 145093,
+      "sha256": "358515e6f5916aa4310f5f3d7d0b108a2eae44b3609c7d903ec7f15af8669632"
+    },
+    {
+      "path": "scripts/verify_openscience_project.ps1",
+      "size_bytes": 59930,
+      "sha256": "d8790eef2ad3ce667c0d4356dcb9f76a484f35363e613a8d3cf46b737c3d0ca0"
+    }
+  ],
+  "scientific_native_producer": "3a1921e15959e222957d43f9b857d9a014f1f611",
+  "scientific_native_scope": "Original native02 21valid/32PASS+10UNKNOWN and independent71PASS; unchanged and not rerun at this source checkpoint.",
+  "failed_bootstrap": {
+    "source_commit": "52db7fb48cfb8915469fd51b867307abd4226c33",
+    "phase": "Bootstrap01",
+    "outcome": "FAILED_OR_PARTIAL",
+    "started_utc": "2026-10-03T05:36:29.3338067Z",
+    "completed_utc": "2026-10-03T05:37:41.1415301Z",
+    "scope": "Official native OpenScience server/health started, then managed metadata HTTP timeout before any research question or experiment.",
+    "metadata_timeout_seconds": 15,
+    "declared_startup_timeout_seconds": 120,
+    "exact_endpoint": "UNKNOWN",
+    "metadata_start_remaining_seconds": "UNKNOWN_NOT_RETAINED",
+    "guard_observation": {
+      "code": "PLUGIN_LOADED",
+      "interpretation": "These source stages coexist with the15s metadata timeout. This is supporting evidence for cold managed initialization budget pressure, not proof of the exact endpoint or all server latency.",
+      "status": "accepted",
+      "hook": "plugin.loaded",
+      "project_check": {
+        "identity": "PASS",
+        "session": "NOT_RUN",
+        "filesystem": "NOT_RUN"
+      },
+      "source_check": {
+        "capture": {
+          "status": "PASS",
+          "elapsed_ms": 5986,
+          "error_kind": null
+        },
+        "compare": {
+          "status": "PASS",
+          "elapsed_ms": 6,
+          "error_kind": null
+        },
+        "final_bytes": {
+          "status": "PASS",
+          "elapsed_ms": 8945,
+          "error_kind": null
+        }
+      },
+      "sum_retained_stage_ms": 14937,
+      "pid": 15980,
+      "accepted": true,
+      "timestamp_utc": "2026-10-03T05:37:32.571Z"
+    },
+    "causal_limit": "Accepted source stages14937ms overlap metadata timeout; exact native queuing/initialization cause and all latency remain UNKNOWN."
+  },
+  "correction": {
+    "metadata": "Every GET uses min(per-request cap60, fresh floor remaining of the original startup clock).",
+    "mcp": "Remaining startup time is recomputed after both metadata reads, before MCP.",
+    "ready_runtime_default_timeout_seconds": 15,
+    "automatic_http_or_model_retries": 0,
+    "evidence": "Fresh private contained directory: endpoint/status/selected timeout/elapsed/exception class and UTF8-reencoded Invoke-WebRequest.Content/hash. No headers/auth/config; not original HTTP wire bytes; response receipt is not a validation verdict.",
+    "unchanged": "All project/root/grant/source/guard/model/native scientific criteria, definition and existing6 tools retained."
+  },
+  "tests": {
+    "full_suite": {
+      "passed": 136,
+      "failed": 1,
+      "total": 137,
+      "retained_failure": "Obsolete exact schema2 verifier expectation; generator/guard already schema3 and actual bindings match.",
+      "production_source_bytes_identical_to_final": true
+    },
+    "isolated_corrected_assertion": {
+      "passed": 1,
+      "failed": 0,
+      "scope": "Only corrected existing assertion AST on original hash-bound synthetic context/settings/binding; exact3+4source-reader fields. Other passing controls not rerun."
+    },
+    "not_a_single_fresh_137_pass_claim": true,
+    "actual_provider_http_core_server_calls": 0
+  },
+  "independent_review": {
+    "status": "PASS_BOUNDED_STARTUP_BUDGET_SOURCE_ONLY",
+    "open_findings": {
+      "P1": 0,
+      "P2": 0
+    },
+    "checks": 36,
+    "evidence": {
+      "path": "artifacts/development-material-point-20261003-01/material-research-startup-budget-review-01/independent-review.json",
+      "size_bytes": 17299,
+      "sha256": "e8f6c88e44a671df75db54af6ef7f7dc5f5ad1f297c95b05b91a3bf15fd8e5a7"
+    }
+  },
+  "exact_material_source_ci": {
+    "source_commit": "52db7fb48cfb8915469fd51b867307abd4226c33",
+    "run_id": 37100131735,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37100131735",
+    "conclusion": "failure",
+    "job_counts": {
+      "total": 10,
+      "success": 7,
+      "failure": 3,
+      "cancelled": 0,
+      "skipped": 0,
+      "pending": 0
+    },
+    "core": {
+      "passed": 3232,
+      "skipped": 5,
+      "warnings": 1,
+      "seconds": 266.75
+    },
+    "source_checks": 127,
+    "failures": [
+      "Aster Fz outer numerical assertion",
+      "vector PDE outer classification assertion",
+      "OpenRadioss fixed runtime download HTTP404"
+    ],
+    "limitations": "Internal Aster/vector cause UNKNOWN; later material steps SKIPPED; not a MaterialPoints live proof. This correction needs its own exact-source CI."
+  },
+  "actual_next_gates": {
+    "bootstrap02": "NOT_RUN",
+    "resident": "NOT_RUN",
+    "whole_question": "NOT_RUN",
+    "original_inspect_summary_compare_interpretation": "NOT_RUN",
+    "research_gui": "NOT_RUN",
+    "owned_stop_retention": "NOT_RUN"
+  },
+  "next_action": "Publish this reviewed source, then fresh Bootstrap02 once from the clean new commit; preserve Bootstrap01. After success continue Resident/one whole approved5.6Sol question/Capture/same-record GUI/ownedStop.",
+  "model": "openai-codex/gpt-5.6-sol",
+  "model_fallback": false,
+  "limitations": [
+    "Physical/material/strength/durability/constitutiveFE/binary-source/corporate/remoteRAW UNKNOWN.",
+    "Fine32 geometric Newton cause UNKNOWN; no unchanged failed solver retry.",
+    "Full52/Phases5-7 OPEN; NOT_RELEASED. Preserved visco/contact/fixture coupling/Phase6/7 follow connected material gate."
+  ],
+  "evidence": [
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/bootstrap-01/phase-receipt.json",
+      "size_bytes": 2153,
+      "sha256": "83c7e8a941f94cf56162108f977f8fd2832fe46190fa1c660cc1e03eb91d749b"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/material-research-bootstrap-diagnosis-01/independent-diagnosis.json",
+      "size_bytes": 17333,
+      "sha256": "5edde9f2afb6954b922fc0fb2f5314869d82aba6b025df2925538c322b697600"
+    },
+    {
+      "path": "artifacts/material-hyperelastic-r-20261003-01/root-bootstrap-failure-retention-01/retention.json",
+      "size_bytes": 1945,
+      "sha256": "dcf7f109a69d212e2e251d58393a3e86d5774bc96c1162af735c1653b7a3d3cf"
+    },
+    {
+      "path": "artifacts/material-startup-budget-checks-20261003-01/project-checks.json",
+      "size_bytes": 18854,
+      "sha256": "7d13c2c451e1e479849ec578afea493e8434938ef0549acf73c6307130f5777e"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/material-research-startup-budget-correction-01/isolated-schema-three-verifier-02/receipt.json",
+      "size_bytes": 1562,
+      "sha256": "209118eac8b34da11636b84c89b28b2810bcd1dd3bf4be83026628cca42b34a7"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/ci-52db-01/receipt.json",
+      "size_bytes": 35057,
+      "sha256": "0b6a5cd2e921dd9c320061fa772ab9272cc23aaa3b7988e341c122fe20d4878c"
+    },
+    {
+      "path": "artifacts/development-material-point-20261003-01/material-research-startup-budget-correction-01/source-freeze-02.json",
+      "size_bytes": 2002,
+      "sha256": "b0ab1df5cec688b35c7c7255a019d1fded564d838e00fbba8a7931798d2b2bc2"
+    }
+  ],
+  "created_utc": "2026-10-03T06:08:49.382244+00:00"
+}
