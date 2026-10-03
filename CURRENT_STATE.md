@@ -1,4 +1,27 @@
-## Current checkpoint: P5.2b connected Maxwell research qualified; P5.3 next
+## Current checkpoint: P5.3 bounded contact source reviewed; actual native next
+
+Full official SSNP121A/tag17.4 source and unmodified MED are frozen, distinct
+from NAFEMS CGS1/MIDAS. New contact Domain/adapter uses the existing common
+model route; no schema, optimizer, old scope, model or auth change. Domain78,
+current worker74, Root corrected common25 and final real-parser1 PASS have
+separate/overlapping scopes; no summed test total. Independent review0openP1/P2.
+Original29/56/2/metadata and failed environment attempts remain preserved.
+One actual no-solve native process verifies mesh313/265QUAD4/92SEG2 and1060
+synthetic ELGA locations. Actual2D COOR_Z is W; measured XY/W stay separate,
+geometric ELGA Z UNAVAILABLE. Four interface/provenance/format P2s are closed;
+native solved stresses/contact pressure/reactions are NOT_RUN.
+Six original1% signed criteria, additional force1e-6 and Newton2e-8 stay fixed.
+Parent152ddf6 exactCI37133911354:7SUCCESS/3FAIL; new contact absent there.
+NEXT: fresh committed-source `runs/contact-native-20261004-01` canonical and
+analytical variant plus invalid block, independent full actual audit; then
+mesh/cross-solver/OpenScience/human and P2.4 fixture coupling in roadmap order.
+Ten blockingUNKNOWN/NOT_RELEASED; whole52/Phases5-7 remain active.
+Record: `benchmarks/records/20261004-contact-patch-source.json`; SHA256 `c775f1982f40f2cda5d65a7deddb5a09023cfa0fb55cd4c19874c2cf4cafab4f`.
+ADR0030 and `docs/CONTACT_ACCEPTANCE.md` preserve the bounded contract/gates.
+
+---
+
+## Historical checkpoint: P5.2b connected Maxwell research qualified
 
 Actual clean source `8a1b3454ff108c5332c39dc09b32daa843e6fdb0` completes one whole approved5.6Sol
 question through official OpenScience2.0.146:9completed tool rows,6existing

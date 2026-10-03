@@ -23,3 +23,5 @@ tests/fixtures/mfront/svk-native01-compiler-commands.txt -text
 plugins/hyperelastic/__init__.py text eol=lf
 plugins/hyperelastic/reference.py text eol=lf
 /caelab/adapters/mfront_single_branch_maxwell.mfront text eol=lf
+benchmarks/input-data/codeaster/*.mmed -text
+benchmarks/input-data/codeaster/*.mesh.json -text

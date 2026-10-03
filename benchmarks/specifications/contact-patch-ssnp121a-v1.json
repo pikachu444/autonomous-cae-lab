@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "id": "contact-patch-ssnp121a-v1",
+  "case": "ssnp121a_frictionless_patch",
+  "status": "FULL_OFFICIAL_DEFINITION_ADMITTED_NATIVE_AND_CONNECTED_ACCEPTANCE_NOT_RUN",
+  "source": {
+    "project": "Code_Aster",
+    "tag": "17.4.0",
+    "commit": "50ebc13c70ee9df62faf93ddcb746a3757b3042a",
+    "native_comm_url": "https://gitlab.com/codeaster/src/-/raw/17.4.0/astest/ssnp121a.comm",
+    "native_comm_sha256": "febbf1d09f82c90aeedf4d6decf05d21630f4e1cbe1c7f63fea1be684834a518",
+    "problem_url": "https://codeaster.gitlab.io/doc/docaster/manuals/man_v/v6/v6.03.121/Probl_me_de_r_f_rence.html",
+    "solution_url": "https://codeaster.gitlab.io/doc/docaster/manuals/man_v/v6/v6.03.121/Solution_de_r_f_rence.html",
+    "model_url": "https://codeaster.gitlab.io/doc/docaster/manuals/man_v/v6/v6.03.121/Mod_lisation_A.html",
+    "local_acquisition_summary_sha256": "b336cba374c3318e9258c3b0e2bf3d49d3c71d7940190599b0d49a1e127b2350",
+    "local_acquisition_manifest_sha256": "84775150afa584bd93d08603cea481d2b8c3d6c89d0ad3195b5b500d2fafbf0c",
+    "original_comm_regression_values_used_as_scientific_reference": false
+  },
+  "geometry": {
+    "unit": "m",
+    "dimension": 2,
+    "hypothesis": "plane_strain",
+    "upper_bounds": [
+      [
+        -1,
+        0
+      ],
+      [
+        1,
+        1
+      ]
+    ],
+    "lower_bounds": [
+      [
+        -1,
+        -1
+      ],
+      [
+        1,
+        0
+      ]
+    ],
+    "unit_out_of_plane_thickness": true,
+    "initial_interface_gap_m": 0.0
+  },
+  "material": {
+    "both_bodies": {
+      "youngs_modulus_pa": 2000000.0,
+      "poisson_ratio": 0.0
+    },
+    "model": "infinitesimal_linear_isotropic_elasticity",
+    "measured_material_qualification": "UNKNOWN"
+  },
+  "boundary_conditions": {
+    "top_y1": {
+      "dx_m": 0.0,
+      "dy_m": -0.1
+    },
+    "base_y_minus1": {
+      "dx_m": 0.0,
+      "dy_m": 0.0
+    },
+    "vertical_sides": "traction_free"
+  },
+  "contact": {
+    "friction": "NONE",
+    "physical_normal": "normal_to_y0",
+    "separate_nonmatching_nodes": true,
+    "upper_segments": 12,
+    "lower_segments": 11
+  },
+  "native_translation": {
+    "upper_body_group": "PLAQUE1",
+    "lower_body_group": "PLAQUE2",
+    "slave_group": "AB",
+    "master_group": "EF",
+    "top_group": "CD",
+    "base_group": "GH",
+    "slave_edge_direction": "left_to_right",
+    "master_edge_direction": "right_to_left",
+    "formulation": "CONTINUE",
+    "integration": "SIMPSON",
+    "integration_order": 4,
+    "geometry_reaction": "CONTROLE",
+    "geometry_iterations": 2,
+    "contact_and_geometry_resolution": "POINT_FIXE",
+    "contact_algorithm": "STANDARD",
+    "contact_coefficient": 1000.0,
+    "initial_contact": "NON",
+    "friction": "SANS",
+    "normals": "MAIT_AUTO",
+    "relation": "ELAS",
+    "deformation": "PETIT",
+    "linear_solver": "LDLT",
+    "maximum_newton_iterations": 30,
+    "absolute_native_residual_limit": 2e-08
+  },
+  "mesh": {
+    "native_med_path": "benchmarks/input-data/codeaster/ssnp121a-17.4.0.mmed",
+    "native_med_sha256": "825e79a01b983b14b136d4fc2490c2bc40e85ccc25ebd8ae6aa32e88dd544f91",
+    "native_catalog_path": "benchmarks/input-data/codeaster/ssnp121a-17.4.0.mesh.json",
+    "native_catalog_sha256": "7398ce4349f076e225e76d1d840d60da1dfe24b57181c1ae1d7b5cfc069d8291",
+    "nodes": 313,
+    "quad4": 265,
+    "seg2": 92,
+    "upper_quad4": 144,
+    "lower_quad4": 121
+  },
+  "published_reference": {
+    "method": "Analytical uniaxial epsilon=U0/2, sigma=E*epsilon; exact nu0 condition.",
+    "normal_traction_pa": -100000.0,
+    "interface_vertical_displacement_m": -0.05,
+    "sample_relative_error_limit": 0.01,
+    "samples": {
+      "A": {
+        "native_node_index": 0,
+        "coordinate_m": [
+          -1.0,
+          0.0
+        ]
+      },
+      "B": {
+        "native_node_index": 1,
+        "coordinate_m": [
+          1.0,
+          0.0
+        ]
+      },
+      "N14": {
+        "native_node_index": 13,
+        "coordinate_m": [
+          2.98023223876953e-08,
+          0.0
+        ]
+      }
+    },
+    "sample_tests": "Three signed contact multipliers and three vertical displacements; original1% criteria unchanged."
+  },
+  "additional_derived_reference": {
+    "contact_force_magnitude_n_per_m": 200000.0,
+    "top_reaction_n_per_m": [
+      0.0,
+      -200000.0
+    ],
+    "base_reaction_n_per_m": [
+      0.0,
+      200000.0
+    ],
+    "global_force_balance_relative_limit": 1e-06,
+    "normal_force_reference_relative_limit": 0.01,
+    "pointwise_pressure_gap_qualification": "UNKNOWN; full fields and derived gaps retained, original six sample gates do not prove pointwise contact."
+  },
+  "analytic_variants": {
+    "youngs_modulus_pa_range": [
+      10000.0,
+      1000000000.0
+    ],
+    "poisson_ratio": 0.0,
+    "negative_top_displacement_m_magnitude_range": [
+      0.0001,
+      0.2
+    ],
+    "identity": "Analytical variants of the bounded patch, not original vendor replications."
+  },
+  "discrepancies": [
+    "ModelA document lists132SEG2, exact native MED has92SEG2.",
+    "Document figure plate numbers differ from native PLAQUE1-upper/PLAQUE2-lower; physical regions are bound to actual coordinates.",
+    "Old document SIMPSON2 subdivision description is not silently declared equivalent to17.4 SIMPSON/order4."
+  ],
+  "naFems_cgs1_replication": "NOT_CLAIMED_FULL_ORIGINAL_R0081_DEFINITION_NOT_OBTAINED",
+  "acceptance_remaining": [
+    "source/Domain/adapter independent review",
+    "actual native sampled pressure/displacement and equilibrium",
+    "full-state/field identity audit",
+    "mesh/refinement and cross-solver contact",
+    "explicit OpenScience admission/whole question/original-result interpretation",
+    "same-native-result human inspection",
+    "P2.4 real fixture fastener/contact load path",
+    "physical/material/strength/durability/corporate deployment"
+  ],
+  "decision": "NOT_RELEASED"
+}

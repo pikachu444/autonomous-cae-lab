@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-03T17:20:28.595673+00:00",
+  "status": "BOUNDED_CONTACT_SOURCE_PASS_ACTUAL_MECHANICAL_AND_CONNECTED_ACCEPTANCE_NOT_RUN",
+  "source_parent_commit": "152ddf6bbc056e43a46192df97871f55012dd587",
+  "source_identity": {
+    "plugins/contact_patch/__init__.py": {
+      "path": "plugins/contact_patch/__init__.py",
+      "bytes": 276,
+      "sha256": "a99d8c6d09af885276b3a42f88d0f4e51ef19232d4698a4f9813e7b645c92e19"
+    },
+    "plugins/contact_patch/reference.py": {
+      "path": "plugins/contact_patch/reference.py",
+      "bytes": 17914,
+      "sha256": "7709705c2e7f948a768a90f9efa7f3d203d1fecebc7fe42f89b64b5b7f6cb819"
+    },
+    "caelab/adapters/codeaster_contact.py": {
+      "path": "caelab/adapters/codeaster_contact.py",
+      "bytes": 15347,
+      "sha256": "6f2ea3c3fed8ff69af4665e526ab08bead026e19813b14968ddca67e84da1911"
+    },
+    "caelab/adapters/codeaster_contact_worker.py": {
+      "path": "caelab/adapters/codeaster_contact_worker.py",
+      "bytes": 34449,
+      "sha256": "f12da3e35fd3ff4dde049f9343734e4909d3b16ff63327f44368a38b86d1559e"
+    },
+    "caelab/engine.py": {
+      "path": "caelab/engine.py",
+      "bytes": 48348,
+      "sha256": "3c5d5107428101980baf66f2d6ec128cd00df98165994886c7ff36cd9f828655"
+    },
+    "scripts/verify_contact.py": {
+      "path": "scripts/verify_contact.py",
+      "bytes": 4672,
+      "sha256": "26af4fc757da6071453edac53a1ae8d7df28c2e3e6292418a38890bb677eeded"
+    },
+    "tests/test_codeaster_contact.py": {
+      "path": "tests/test_codeaster_contact.py",
+      "bytes": 10121,
+      "sha256": "8d06269067ce7b19025d9441d77392ab77c40e9e27af50038a60c5d43a09b7cf"
+    },
+    "tests/test_codeaster_contact_worker.py": {
+      "path": "tests/test_codeaster_contact_worker.py",
+      "bytes": 23851,
+      "sha256": "372999e5ab668ddd7ea5e5fb280bd1990626d5fbcfff4c4f97d73a4aa6f38903"
+    },
+    "tests/test_contact_patch_reference.py": {
+      "path": "tests/test_contact_patch_reference.py",
+      "bytes": 14131,
+      "sha256": "e1788bbe739e02264ab6502d1c27e3973af519affd03d3baabc02b1df5422822"
+    },
+    "tests/test_backend_integration.py": {
+      "path": "tests/test_backend_integration.py",
+      "bytes": 4992,
+      "sha256": "d239c66ca76e30c3cb5469a648bc320634345e4175ec220553f0027ed6d994da"
+    },
+    ".gitattributes": {
+      "path": ".gitattributes",
+      "bytes": 1718,
+      "sha256": "4f6edc407947492938a875c07acddef58adbec87b36069ebc19042b3b525148c"
+    }
+  },
+  "case": "Code_Aster SSNP121A distinct from NAFEMS CGS1/MIDAS",
+  "backend": "structural.code_aster.contact_patch",
+  "common_operation": "model_analysis_run",
+  "domain": "contact_patch",
+  "source_only": true,
+  "engineering_decision": "NOT_RELEASED",
+  "fixed_scientific_limits": {
+    "six_signed_sample_relative": 0.01,
+    "normal_reaction_relative": 0.01,
+    "force_balance_relative": 1e-06,
+    "native_absolute_residual": 2e-08,
+    "native_XY_W_identity_relative_and_absolute": 1e-13
+  },
+  "source_controls": {
+    "domain": 78,
+    "worker_current": 74,
+    "root_original": 29,
+    "root_corrected_common": 25,
+    "root_final_real_parser_domain": 1,
+    "counts_are_overlapping_and_separately_attributed": true,
+    "current_open_P1_P2": 0
+  },
+  "closed_findings": [
+    "Worker native metadata projected into strict numerical Domain without discarding raw metadata",
+    "Separate registered and not-yet-admitted preset expectations",
+    "Original input SHA rechecked after native finalization",
+    "Measured D_PLAN ELGA XY/W preserved, no manufactured geometric Z"
+  ],
+  "actual_native_api": {
+    "processes": 1,
+    "mechanical_solver_calls": 0,
+    "material_and_contact_definitions": 0,
+    "exit_code": 0,
+    "elapsed_seconds": 12.105663776164874,
+    "field_values": "EXPLICIT_SYNTHETIC_CONSTANTS_FORMAT_ONLY_NOT_SOLVED_RESPONSE",
+    "nodes": 313,
+    "body_elements": 265,
+    "boundary_elements": 92,
+    "gauss_locations": 1060,
+    "measured_elga_coordinates": "XY",
+    "COOR_Z": "actual integration W; geometric Z UNAVAILABLE",
+    "weight_sum_m2": 4.0,
+    "max_independent_XY_error_m": 3.3306690738754696e-16,
+    "max_independent_W_error_m2": 6.071532165918825e-18,
+    "table_ids": "Observed decimal NOEUD/MAILLE, POINT1..4/SOUS_POINT1"
+  },
+  "metadata_attribution_correction": "Original independent metadata snapshot mislabeled its1e-12 check as the source limit. Actual unchanged f692/f12 worker gate is1e-13; final review supplements this. Observed errors satisfy1e-13 without another native call.",
+  "research_admission": "NOT_ADMITTED; old scopes/approved5.6Sol/auth unchanged",
+  "remaining_unknowns": [
+    "model_qualification",
+    "material_qualification",
+    "physical_validation",
+    "static_strength",
+    "fatigue_durability",
+    "pointwise_contact_gap",
+    "cross_solver_contact",
+    "fixture_joint_contact",
+    "corporate_license_approval",
+    "corporate_security_approval"
+  ],
+  "parent_ci": {
+    "source_commit": "152ddf6bbc056e43a46192df97871f55012dd587",
+    "run_id": 37133911354,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37133911354",
+    "jobs": {
+      "success": 7,
+      "failure": 3
+    },
+    "failed_jobs": [
+      "codeaster",
+      "pde",
+      "explicit"
+    ],
+    "payload_causes": "NOT_INSPECTED_FOR_THIS_PARENT; older8a1b failures are separately retained",
+    "contact": "ABSENT; not this candidate's CI/native proof"
+  },
+  "retention": {
+    "original_source01_source02_readiness01": "RETAINED_UNCHANGED",
+    "raw_evidence": "LOCAL_IGNORED; remote raw durability UNKNOWN",
+    "previous_numerical_source_files_unchanged": 14,
+    "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8"
+  },
+  "evidence": {
+    "official_definition": {
+      "path": "artifacts/development-contact-20261004-01/reference-acquisition-01/MANIFEST.json",
+      "bytes": 4307,
+      "sha256": "84775150afa584bd93d08603cea481d2b8c3d6c89d0ad3195b5b500d2fafbf0c"
+    },
+    "frozen_specification": {
+      "path": "benchmarks/specifications/contact-patch-ssnp121a-v1.json",
+      "bytes": 5882,
+      "sha256": "10a01110c2b8b07d9d4dd37b6690d6cdca3ee8145596d8ff8fa05e0583595ba7"
+    },
+    "domain78": {
+      "path": "artifacts/development-contact-20261004-01/domain-source-01/receipt-02.json",
+      "bytes": 2988,
+      "sha256": "036b996e1339b02031fe18c41284785241ece38bcd1557e68b26593ca3f4a04d"
+    },
+    "worker74": {
+      "path": "artifacts/development-contact-20261004-01/worker-source-03/source-test-seal.json",
+      "bytes": 3180,
+      "sha256": "882b395b3c85b44c8643fc6b8339f50c8f7ed3c097f602a3b3e5bccc7392ea96"
+    },
+    "root_original29": {
+      "path": "artifacts/development-contact-20261004-01/outer-source-01/receipt.json",
+      "bytes": 2536,
+      "sha256": "1788f97fced4458d2af0d402d12e6fedfe2e6c5941395ef537d725f1aeef286c"
+    },
+    "root_corrected25": {
+      "path": "artifacts/development-contact-20261004-01/outer-source-02/receipt.json",
+      "bytes": 3798,
+      "sha256": "63510b1e0bb3baeb949cb6a5ecb13a442c8dc8986d802b0646366afdcc73abd9"
+    },
+    "root_final_parser1": {
+      "path": "artifacts/development-contact-20261004-01/outer-source-03/receipt.json",
+      "bytes": 3312,
+      "sha256": "0c09e70b6a76634ebbc6b1dc49b362717eff943ecb0098e3c2a734ffbd1e53eb"
+    },
+    "actual_api_manifest": {
+      "path": "artifacts/development-contact-20261004-01/native-api-readiness-01/MANIFEST.json",
+      "bytes": 7588,
+      "sha256": "6a4741250b2b6f4bc0fd17b902d6fc05f3c1ae9b6126eb278c87312eaf21a299"
+    },
+    "actual_api_report": {
+      "path": "artifacts/development-contact-20261004-01/native-api-readiness-01/readiness-report.json",
+      "bytes": 7205,
+      "sha256": "ea89524a36b5045e437c8a5ff47ca6de42c93f0cf95db65ac266318f6a22d107"
+    },
+    "actual_api_completion": {
+      "path": "artifacts/development-contact-20261004-01/native-api-readiness-01/command-receipt.json",
+      "bytes": 1683,
+      "sha256": "89ac0666439d95c1bc29d7c2bb3ea76c8fc46759d58dd611ded0e23ab9d748d9"
+    },
+    "original_metadata_review": {
+      "path": "artifacts/development-contact-20261004-01/independent-source-review-01/readiness-metadata-review.json",
+      "bytes": 4741,
+      "sha256": "397638cc3ca5f6448d756ff4f9917e5b6708b40966c28cc1266a9bebfcfe12b5"
+    },
+    "metadata_attribution_supplement": {
+      "path": "artifacts/development-contact-20261004-01/independent-source-review-01/metadata-attribution-supplement.json",
+      "bytes": 1648,
+      "sha256": "e7a2e5365cfa0d9412d4a0888b9f5796f1b2f379ff7502bc305d4e48c92f5542"
+    },
+    "final_independent_review": {
+      "path": "artifacts/development-contact-20261004-01/independent-source-review-01/independent-review.json",
+      "bytes": 19733,
+      "sha256": "bee8d4d20fa2105b061ab3e43f960d595536e2340d9ff12ff2591cb322b5da02"
+    }
+  },
+  "next": "Fresh clean committed-source scripts/verify_contact.py canonical/analytical variant/invalid block, independent actual reference/equilibrium/full-field audit; mesh/cross-solver, explicit OpenScience/human and P2.4 follow. Full52/Phases5-7 remain active."
+}

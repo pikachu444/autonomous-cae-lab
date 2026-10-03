@@ -12,6 +12,9 @@ BACKENDS = {"structural.code_aster", "structural.code_aster.plasticity", "struct
             "material.mfront.inverse", "material.mfront.hyperelastic", "material.mfront.viscoelastic", "explicit.openradioss", "structural.families.calculix",
             "structural.families.code_aster"}
 PDE_BACKENDS = {"pde.fenicsx", "pde.fenicsx.nonlinear", "pde.fenicsx.rectangle", "pde.fenicsx.transient", "pde.fenicsx.vector", "pde.fenicsx.coupled", "pde.fenicsx.imported"}
+# Contact is registered for its source/native acceptance. Its GUI/Research
+# preset is admitted after actual native qualification, as a separate gate.
+DEFAULT_MODEL_BACKENDS = BACKENDS | {"structural.code_aster.contact_patch"}
 
 
 def test_default_model_registry_constructs_without_native_commands_and_preserves_explicit_mapping(tmp_path, monkeypatch):
@@ -20,7 +23,7 @@ def test_default_model_registry_constructs_without_native_commands_and_preserves
 
     monkeypatch.setattr(subprocess, "run", unexpected)
     lab = Lab(tmp_path / "default")
-    assert set(lab.model_analysis_adapters) == BACKENDS
+    assert set(lab.model_analysis_adapters) == DEFAULT_MODEL_BACKENDS
     assert Lab(tmp_path / "empty", model_analysis_adapters={}).model_analysis_adapters == {}
     custom = {"test.only": object()}
     assert Lab(tmp_path / "custom", model_analysis_adapters=custom).model_analysis_adapters is custom
@@ -30,7 +33,7 @@ def test_default_model_registry_constructs_without_native_commands_and_preserves
     assert Lab(tmp_path / "custom-pde", pde_adapters=custom_pde).pde_adapters is custom_pde
 
 
-@pytest.mark.parametrize("backend", sorted(BACKENDS))
+@pytest.mark.parametrize("backend", sorted(DEFAULT_MODEL_BACKENDS))
 def test_default_model_backend_invalid_input_records_common_rejection_without_native(tmp_path, backend):
     lab = Lab(tmp_path)
     lab.create_study("S-admission", "Backend admission", "Does invalid input block native work?",
