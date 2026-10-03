@@ -61,3 +61,11 @@ Actual clean9d/native01 qualification is recorded in
 `benchmarks/records/20261004-contact-native-r01-qualified.json`: two valid cases,
 one preflight refusal, independent127math/63runtime checks; no threshold changes.
 All10 blocking qualifications remain UNKNOWN and both results NOT_RELEASED.
+
+Root comparison decision: the one private CalculiX original-mesh pilot
+retains local numerical FAIL and source-backed formulation/output limitations.
+No mortar drop-in, retuning or extrapolated-pressure substitution is admitted.
+Proceed sequentially with an explicitly distinct uniform2 mesh sensitivity
+extension of the existing Aster backend, then Research/human/fixture gates.
+Original case/assets/1% and1e-6 criteria remain; generated/native mesh identity
+is a separate required gate. This decision is not refined-native acceptance.

@@ -69,6 +69,38 @@ Independent reader correction preserves59PASS/2falseFAIL, then four narrow
 projection/group checks close the reader assumptions without native reruns.
 The public native record pins both independent reports and exact producer.
 
+## Failed CalculiX comparison and bounded next mesh gate
+
+The private2.21 pilot is a retained numerical failure, not a production backend.
+All13 predeclared comparisons retain their limits:7PASS/6FAIL. Both A/B raw
+z-side pressures are-96664.1Pa (3.3359%); original DY=-.05068286m (1.36572%).
+N14 both pressures=-100327.025Pa and DY=-.04985620m pass. Top/base normal
+forces pass; boundary/all-node balance about9.000002e-8 passes1e-6. These
+global force checks cannot close failed local pressure/displacement criteria.
+The actual six DAT sections and .12d/FRD map all313original/626expanded nodes,
+265CPE4/2120stress locations and26separate pressures. Preserve all raw fields.
+
+u=2m/forceN input representation retains exact626XY and313declaredZ0 through
+an actual947field F20 inlet proof; this is not installed binary/source identity.
+The sole native job takes1.980334s/exit0/fouriterations, no wall timeout/retry.
+Minimum increment warning1e-8-to1e-6 remains. First FRD reader failure is
+retained; correcting documented binary32-before-E12.5 does not alter1% gates.
+
+Official2.21 source supports nonmatching nodal-quadrature/master-force-transfer
+and current-normal/frozen-area hypotheses, not a proven single cause. CPE
+automatic MPCs meet the mortar NoLM restrictions in checkspcmpc.f:121-156.
+Face-to-face changes the law/pairing policy and lacks inspected direct point
+pressures; extrapolated FRD values cannot replace the frozen original samples.
+Do not force this failed pilot through tuning or repeat it unchanged.
+
+Root proceeds with existing qualified Aster uniform2 mesh sensitivity. Only a
+fixed optional mesh selector is planned; Core/schema/registry/policy/thresholds
+stay. Target1154nodes/1060QUAD4/184SEG2, AB24/EF22 retain the original313prefix,
+groups and A/B/N14. Preparation/readback and source/native audits are pending.
+One refinement will not establish asymptotic convergence or contact release.
+Then explicit whole OpenScience research/human view and real fixture coupling.
+Public failed record: benchmarks/records/20261004-contact-calculix-pilot-r01-failed.json.
+
 ## Remaining ordered acceptance
 
 - [x] Corrected worker74/independent0openP1/P2 and final producer-consumer1 PASS. Source scopes remain separately attributed.

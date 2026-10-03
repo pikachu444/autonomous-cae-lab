@@ -1,0 +1,1299 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-03T20:09:41.254901+00:00",
+  "status": "ACTUAL_PRIVATE_CALCULIX_CONTACT_PILOT_NUMERICAL_FAIL",
+  "case": "Official Code_Aster SSNP121A original geometry translated to CalculiX CPE4; distinct from NAFEMS CGS1/MIDAS",
+  "engineering_decision": "NOT_RELEASED",
+  "documentation_is_not_a_new_solver_run": true,
+  "production_backend_admitted": false,
+  "Core_or_OpenScience_contact_admitted": false,
+  "producer": {
+    "base_commit": "fd41d0bbb31706710c4fe9f326603abc91825c21",
+    "clean_committed_producer": false,
+    "basis": "Ignored private helper and frozen input plus pinned base; main does not implement this pilot",
+    "helper": {
+      "path": "artifacts/development-contact-20261004-01/calculix-pilot-source-02/calculix_pilot.py",
+      "bytes": 23914,
+      "sha256": "b225f7900dba1d93dcc2fa4f00fa3b68ba28f918e5cf3840cee322f7e3dd08cc"
+    },
+    "freeze": {
+      "path": "artifacts/development-contact-20261004-01/calculix-pilot-source-02/FREEZE.json",
+      "bytes": 38676,
+      "sha256": "eb428851525e054cf9e915b7a4d5b59781fc6cf3c87408c9b97b8add2df4ec06"
+    },
+    "comparison_intent": {
+      "path": "artifacts/development-contact-20261004-01/calculix-pilot-comparison-intent-01.json",
+      "bytes": 5065,
+      "sha256": "cb800d1c18de1b72130d5115ad2c94a834af187db895c6a56bcbda0ac6f88d8f"
+    },
+    "root_native_approval": {
+      "path": "artifacts/development-contact-20261004-01/calculix-native-root-approval-01.json",
+      "bytes": 1567,
+      "sha256": "9fc041ead5050eb3813a791df9f023c9816b53827e374be31683026bcccef2ba"
+    },
+    "source01_lexical_guard_retained": {
+      "path": "artifacts/development-contact-20261004-01/calculix-pilot-source-01/FREEZE.json",
+      "bytes": 27590,
+      "sha256": "cbd383a5cbbd1bc8bd231eb0f50d1049158fd7ebc38cbb6be8a48a3886f501c8"
+    }
+  },
+  "input_fidelity": {
+    "native_length_unit_m": 2.0,
+    "native_force_unit_n": 1.0,
+    "original_XY_fields": 626,
+    "explicit_Z_zero_embedding_fields": 313,
+    "native_F20_node_and_parameter_fields": 947,
+    "failed_native_inlet_fields": 0,
+    "maximum_field_characters": 20,
+    "proof_scope": "Actual compiled F20.0 formatted reader, not installed mechanical binary equivalence",
+    "compiler_sha256": "142861efc95f49e33705852027dae8c2e5382fd1155fcec6116ef973f25d8f84",
+    "libgfortran_sha256": "342618ccfebe840446e4ef2b7893f4161b2084845e570f42d68a70bfde58a58d",
+    "receipt": {
+      "path": "artifacts/development-contact-20261004-01/native-input-format-probe-01/receipt.json",
+      "bytes": 2637,
+      "sha256": "61f3e0e218285b7666df957437ba34b4857f48943c47a77171fe04d6cf74aacc"
+    },
+    "conversion": {
+      "K_native_to_pa_per_m": 0.125,
+      "RF_native_to_n": 1.0,
+      "S_CSTR_CPRESS_native_to_pa": 0.25,
+      "U_CDIS_FRD_coordinate_native_to_m": 2.0,
+      "coordinate_and_displacement_input": "math.ldexp(physical_m, -1)",
+      "force_unit_n": 1.0,
+      "length_unit_m": 2.0,
+      "length_unit_name": "u"
+    },
+    "native_input_parameters": {
+      "c0_coefficient": {
+        "native_unit": "dimensionless",
+        "native_value": 0.001,
+        "physical_unit": "dimensionless",
+        "physical_value": 0.001,
+        "scale_power2": 0
+      },
+      "penalty_K": {
+        "native_unit": "N/u^3",
+        "native_value": 80000000000.0,
+        "physical_unit": "Pa/m",
+        "physical_value": 10000000000.0,
+        "scale_power2": 3
+      },
+      "poisson_ratio": {
+        "native_unit": "dimensionless",
+        "native_value": 0.0,
+        "physical_unit": "dimensionless",
+        "physical_value": 0.0,
+        "scale_power2": 0
+      },
+      "sigma_infinity": {
+        "native_unit": "N/u^2",
+        "native_value": 4.0,
+        "physical_unit": "Pa",
+        "physical_value": 1.0,
+        "scale_power2": 2
+      },
+      "static_min_time_increment": {
+        "native_unit": "unchanged native step time",
+        "native_value": 1e-08,
+        "physical_unit": "unchanged native step time",
+        "physical_value": 1e-08,
+        "scale_power2": 0
+      },
+      "thickness": {
+        "native_unit": "u",
+        "native_value": 0.5,
+        "physical_unit": "m",
+        "physical_value": 1.0,
+        "scale_power2": -1
+      },
+      "top_DY": {
+        "native_unit": "u",
+        "native_value": -0.05,
+        "physical_unit": "m",
+        "physical_value": -0.1,
+        "scale_power2": -1
+      },
+      "youngs_modulus": {
+        "native_unit": "N/u^2",
+        "native_value": 8000000.0,
+        "physical_unit": "Pa",
+        "physical_value": 2000000.0,
+        "scale_power2": 2
+      }
+    }
+  },
+  "requested_recipe": {
+    "K_pa_per_m": 10000000000.0,
+    "actual_native_questions": [
+      "installed source/build equivalence",
+      "input floating conversion",
+      "actual final increment/time/convergence/kinematic flags",
+      "actual original DAT U/RF mappings",
+      "actual expanded .12d plus FRD measured XYZ correspondence",
+      "26 active slave pressure values",
+      "both thickness-side A/B/N14 identities",
+      "2120 stress locations and native order",
+      "native CDIS/COPEN sign/clipping",
+      "numerical reference/equilibrium qualification"
+    ],
+    "c0": 0.001,
+    "c0_source": "surfacebehaviors.f:260-270: dimensionless c0 multiplies sqrt(slave_area)",
+    "contact_type": "NODE TO SURFACE",
+    "coordinate_proof_scope": {
+      "explicit_CPE4_Z_zero_embedding_fields": 313,
+      "original_catalogue_XY_fields": 626,
+      "original_measured_3D_XYZ_catalogue": "UNAVAILABLE: source catalogue provides XY only",
+      "proven_node_fields": 939,
+      "proven_parameter_fields": 8,
+      "statement": "939 are 626 original XY plus 313 explicit Z=0 embedding fields; not 939 measured source coordinates"
+    },
+    "cpu_limit_seconds": 86400,
+    "declared_unit_native_questions": [
+      "native absolute-length fallback",
+      "actual representative area and cutoff implementation",
+      "actual installed dimensional behavior"
+    ],
+    "element_type": "CPE4",
+    "engineering_decision": "NOT_RELEASED",
+    "equilibrium_relative_limit": 1e-06,
+    "expected_bottom_RF_n": [
+      0.0,
+      200000.0
+    ],
+    "expected_compression_cpress_reference_pa": 100000.0,
+    "expected_counts_status": "SOURCE_DERIVED_NOT_NATIVE_OBSERVED",
+    "expected_native_compression_cpress_n_per_u2": 400000.0,
+    "expected_slave_pressure_vertices": 26,
+    "expected_stress_locations": 2120,
+    "expected_top_RF_n": [
+      0.0,
+      -200000.0
+    ],
+    "external_retries": 0,
+    "facial_surfaces": true,
+    "friction": "NONE_BY_ABSENT_FRICTION",
+    "input_contact_face": "S1",
+    "internal_contact_face": "S3",
+    "master": "EF",
+    "native_RF_unit": "N",
+    "native_adaptive_increment": true,
+    "native_default_iteration_controls": true,
+    "native_input_parameters": {
+      "c0_coefficient": {
+        "native_unit": "dimensionless",
+        "native_value": 0.001,
+        "physical_unit": "dimensionless",
+        "physical_value": 0.001,
+        "scale_power2": 0
+      },
+      "penalty_K": {
+        "native_unit": "N/u^3",
+        "native_value": 80000000000.0,
+        "physical_unit": "Pa/m",
+        "physical_value": 10000000000.0,
+        "scale_power2": 3
+      },
+      "poisson_ratio": {
+        "native_unit": "dimensionless",
+        "native_value": 0.0,
+        "physical_unit": "dimensionless",
+        "physical_value": 0.0,
+        "scale_power2": 0
+      },
+      "sigma_infinity": {
+        "native_unit": "N/u^2",
+        "native_value": 4.0,
+        "physical_unit": "Pa",
+        "physical_value": 1.0,
+        "scale_power2": 2
+      },
+      "static_min_time_increment": {
+        "native_unit": "unchanged native step time",
+        "native_value": 1e-08,
+        "physical_unit": "unchanged native step time",
+        "physical_value": 1e-08,
+        "scale_power2": 0
+      },
+      "thickness": {
+        "native_unit": "u",
+        "native_value": 0.5,
+        "physical_unit": "m",
+        "physical_value": 1.0,
+        "scale_power2": -1
+      },
+      "top_DY": {
+        "native_unit": "u",
+        "native_value": -0.05,
+        "physical_unit": "m",
+        "physical_value": -0.1,
+        "scale_power2": -1
+      },
+      "youngs_modulus": {
+        "native_unit": "N/u^2",
+        "native_value": 8000000.0,
+        "physical_unit": "Pa",
+        "physical_value": 2000000.0,
+        "scale_power2": 2
+      }
+    },
+    "native_output": "ASCII_NODE_FILE_OUTPUT_3D",
+    "native_units": {
+      "K_native_to_pa_per_m": 0.125,
+      "RF_native_to_n": 1.0,
+      "S_CSTR_CPRESS_native_to_pa": 0.25,
+      "U_CDIS_FRD_coordinate_native_to_m": 2.0,
+      "coordinate_and_displacement_input": "math.ldexp(physical_m, -1)",
+      "force_unit_n": 1.0,
+      "length_unit_m": 2.0,
+      "length_unit_name": "u"
+    },
+    "numeric_inlet_proof_receipt_sha256": "61f3e0e218285b7666df957437ba34b4857f48943c47a77171fe04d6cf74aacc",
+    "numerical_verdict": "UNKNOWN_NOT_RUN",
+    "omp_threads": 1,
+    "original_interface_DY_m": -0.05,
+    "original_signed_pressure_reference_pa": -100000.0,
+    "original_support_reference_unit": "N/m",
+    "poisson_ratio": 0.0,
+    "pressure_overclosure": "LINEAR_NATIVE_QUASI_BILINEAR_PENALTY",
+    "pressure_sample_rule": "Each actual mapped z-side sample separately; no mean, selection, RF/area or bulk-stress substitution",
+    "reference_relative_limit": 0.01,
+    "reference_support_thickness_conversion": "Original N/m multiplied by actual thickness1m gives native N reference; raw RF stays N",
+    "sigma_infinity_pa": 1.0,
+    "slave": "AB",
+    "small_sliding": true,
+    "source_checkpoint": "fd41d0bbb31706710c4fe9f326603abc91825c21",
+    "static_final_time": 1.0,
+    "static_initial_increment": 1.0,
+    "static_max_increment": 1.0,
+    "static_min_increment": 1e-08,
+    "step_nlgeom_requested": false,
+    "thickness_m": 1.0,
+    "top_displacement_m": -0.1,
+    "wall_limit_seconds": null,
+    "youngs_modulus_pa": 2000000.0
+  },
+  "execution": {
+    "raw_directory": "artifacts/development-contact-20261004-01/calculix-native-pilot-01",
+    "receipt": {
+      "path": "artifacts/development-contact-20261004-01/calculix-native-pilot-01/process-receipt.json",
+      "bytes": 44512,
+      "sha256": "1279c3800e4e347d5cb888d2a80863448b58db1720b80d18311c57b3fb89987b"
+    },
+    "native_process_calls": 1,
+    "external_retries": 0,
+    "native_exit_code": 0,
+    "elapsed_seconds": 1.9803342919331044,
+    "wall_limit_seconds": null,
+    "CPU_limit_seconds": 86400,
+    "omp_threads": 1,
+    "owned_leader_reaped": true,
+    "cleanup_pending": false,
+    "observed": {
+      "CPU_threads_reported_max": 1,
+      "DAT_ascii_precision": "E13.6: seven significant digits",
+      "FRD_ascii_precision": "E12.5: six significant digits; retrieved source casts float before printing",
+      "Newton_iteration_lines": [
+        "iteration 1",
+        "iteration 2",
+        "iteration 3",
+        "iteration 4"
+      ],
+      "STA_final_row": [
+        "1",
+        "1",
+        "1",
+        "4",
+        "0.100000E+01",
+        "0.100000E+01",
+        "0.100000E+01"
+      ],
+      "actual_runtime_iperturb_kinematic_flags": "UNKNOWN_NOT_PRINTED",
+      "cleanup_pending": false,
+      "contact_spring_count": "26 each of four iterations as observed in native CVG",
+      "exit_code": 0,
+      "external_retries": 0,
+      "input_NLGEOM_requested": false,
+      "input_step_flags": [
+        "*STEP"
+      ],
+      "installed_binary_source_equivalence": "UNKNOWN",
+      "internal_CalculiX_time_seconds": 0.405083,
+      "matrix_equations": 576,
+      "matrix_lower_nonzeros": 4440,
+      "minimum_increment_clamped": "Requested1e-8 changed to approximately1e-6 in native stdout warning",
+      "native_process_calls": 1,
+      "owned_leader_reaped": true,
+      "process_elapsed_seconds": 1.9803342919331044,
+      "version": "2.21"
+    }
+  },
+  "independent_numerical_verdict": {
+    "status": "FAIL",
+    "comparisons": 13,
+    "PASS": 7,
+    "FAIL": 6,
+    "six_individual_pressure_samples_limit": 0.01,
+    "three_original_DY_limit": 0.01,
+    "two_normal_support_limits": 0.01,
+    "two_force_vector_balance_limits": 1e-06,
+    "checks": [
+      {
+        "actual_expanded_node_id": 314,
+        "key": "A_z_minus_normal_traction",
+        "limit": 0.01,
+        "native_CDIST_clearance": "-4.833255E-06",
+        "native_CPRESS": "386656.4",
+        "physical_raw_clearance_m": "-0.000009666510",
+        "pressure_source": "Unaveraged actual DAT CSTR at connectivity-and-coordinate-bound z side",
+        "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+        "reference": -100000.0,
+        "relative_error": 0.033359,
+        "unit": "Pa",
+        "valid": false,
+        "value": -96664.1,
+        "value_decimal": "-96664.1",
+        "verdict": "FAIL"
+      },
+      {
+        "actual_expanded_node_id": 316,
+        "key": "A_z_plus_normal_traction",
+        "limit": 0.01,
+        "native_CDIST_clearance": "-4.833255E-06",
+        "native_CPRESS": "386656.4",
+        "physical_raw_clearance_m": "-0.000009666510",
+        "pressure_source": "Unaveraged actual DAT CSTR at connectivity-and-coordinate-bound z side",
+        "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+        "reference": -100000.0,
+        "relative_error": 0.033359,
+        "unit": "Pa",
+        "valid": false,
+        "value": -96664.1,
+        "value_decimal": "-96664.1",
+        "verdict": "FAIL"
+      },
+      {
+        "actual_original_node_id": 1,
+        "key": "A_vertical_displacement",
+        "limit": 0.01,
+        "native_DAT_DY": "-2.534143E-02",
+        "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+        "reference": -0.05,
+        "relative_error": 0.0136572,
+        "unit": "m",
+        "valid": false,
+        "value": -0.05068286,
+        "value_decimal": "-0.05068286",
+        "verdict": "FAIL"
+      },
+      {
+        "actual_expanded_node_id": 317,
+        "key": "B_z_minus_normal_traction",
+        "limit": 0.01,
+        "native_CDIST_clearance": "-4.833255E-06",
+        "native_CPRESS": "386656.4",
+        "physical_raw_clearance_m": "-0.000009666510",
+        "pressure_source": "Unaveraged actual DAT CSTR at connectivity-and-coordinate-bound z side",
+        "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+        "reference": -100000.0,
+        "relative_error": 0.033359,
+        "unit": "Pa",
+        "valid": false,
+        "value": -96664.1,
+        "value_decimal": "-96664.1",
+        "verdict": "FAIL"
+      },
+      {
+        "actual_expanded_node_id": 319,
+        "key": "B_z_plus_normal_traction",
+        "limit": 0.01,
+        "native_CDIST_clearance": "-4.833255E-06",
+        "native_CPRESS": "386656.4",
+        "physical_raw_clearance_m": "-0.000009666510",
+        "pressure_source": "Unaveraged actual DAT CSTR at connectivity-and-coordinate-bound z side",
+        "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+        "reference": -100000.0,
+        "relative_error": 0.033359,
+        "unit": "Pa",
+        "valid": false,
+        "value": -96664.1,
+        "value_decimal": "-96664.1",
+        "verdict": "FAIL"
+      },
+      {
+        "actual_original_node_id": 2,
+        "key": "B_vertical_displacement",
+        "limit": 0.01,
+        "native_DAT_DY": "-2.534143E-02",
+        "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+        "reference": -0.05,
+        "relative_error": 0.0136572,
+        "unit": "m",
+        "valid": false,
+        "value": -0.05068286,
+        "value_decimal": "-0.05068286",
+        "verdict": "FAIL"
+      },
+      {
+        "actual_expanded_node_id": 353,
+        "key": "N14_z_minus_normal_traction",
+        "limit": 0.01,
+        "native_CDIST_clearance": "-5.016401E-06",
+        "native_CPRESS": "401308.1",
+        "physical_raw_clearance_m": "-0.000010032802",
+        "pressure_source": "Unaveraged actual DAT CSTR at connectivity-and-coordinate-bound z side",
+        "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+        "reference": -100000.0,
+        "relative_error": 0.00327025,
+        "unit": "Pa",
+        "valid": true,
+        "value": -100327.025,
+        "value_decimal": "-100327.025",
+        "verdict": "PASS"
+      },
+      {
+        "actual_expanded_node_id": 355,
+        "key": "N14_z_plus_normal_traction",
+        "limit": 0.01,
+        "native_CDIST_clearance": "-5.016401E-06",
+        "native_CPRESS": "401308.1",
+        "physical_raw_clearance_m": "-0.000010032802",
+        "pressure_source": "Unaveraged actual DAT CSTR at connectivity-and-coordinate-bound z side",
+        "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+        "reference": -100000.0,
+        "relative_error": 0.00327025,
+        "unit": "Pa",
+        "valid": true,
+        "value": -100327.025,
+        "value_decimal": "-100327.025",
+        "verdict": "PASS"
+      },
+      {
+        "actual_original_node_id": 14,
+        "key": "N14_vertical_displacement",
+        "limit": 0.01,
+        "native_DAT_DY": "-2.492810E-02",
+        "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+        "reference": -0.05,
+        "relative_error": 0.002876,
+        "unit": "m",
+        "valid": true,
+        "value": -0.0498562,
+        "value_decimal": "-0.04985620",
+        "verdict": "PASS"
+      },
+      {
+        "key": "top_reaction_y",
+        "limit": 0.01,
+        "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+        "reference": -200000.0,
+        "relative_error": 0.000143155,
+        "unit": "N",
+        "valid": true,
+        "value": -199971.369,
+        "value_decimal": "-199971.369",
+        "verdict": "PASS"
+      },
+      {
+        "key": "bottom_reaction_y",
+        "limit": 0.01,
+        "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+        "reference": 200000.0,
+        "relative_error": 0.000143245,
+        "unit": "N",
+        "valid": true,
+        "value": 199971.351,
+        "value_decimal": "199971.351",
+        "verdict": "PASS"
+      },
+      {
+        "key": "boundary_force_balance_relative",
+        "limit": 1e-06,
+        "normalization_force_n": 200000,
+        "reason": "Norm of actual summed DX/DY RF vector; no pressure-from-force substitution",
+        "unit": "1",
+        "valid": true,
+        "value": 9.000002206433212e-08,
+        "vector_n": [
+          "0.000012604095",
+          "-0.018",
+          "5.73949479E-12"
+        ],
+        "verdict": "PASS"
+      },
+      {
+        "key": "all_nodes_force_balance_relative",
+        "limit": 1e-06,
+        "normalization_force_n": 200000,
+        "reason": "Norm of actual summed DX/DY RF vector; no pressure-from-force substitution",
+        "unit": "1",
+        "valid": true,
+        "value": 9.000001618062179e-08,
+        "vector_n": [
+          "0.000012604196197001934",
+          "-0.0179999988231867821",
+          "3.34E-19"
+        ],
+        "verdict": "PASS"
+      }
+    ],
+    "samples": {
+      "A": {
+        "mapped_pair": [
+          314,
+          316
+        ],
+        "original_node_id": 1,
+        "signed_pressure_samples": [
+          {
+            "actual_expanded_node_id": 314,
+            "key": "A_z_minus_normal_traction",
+            "limit": 0.01,
+            "native_CDIST_clearance": "-4.833255E-06",
+            "native_CPRESS": "386656.4",
+            "physical_raw_clearance_m": "-0.000009666510",
+            "pressure_source": "Unaveraged actual DAT CSTR at connectivity-and-coordinate-bound z side",
+            "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+            "reference": -100000.0,
+            "relative_error": 0.033359,
+            "unit": "Pa",
+            "valid": false,
+            "value": -96664.1,
+            "value_decimal": "-96664.1",
+            "verdict": "FAIL"
+          },
+          {
+            "actual_expanded_node_id": 316,
+            "key": "A_z_plus_normal_traction",
+            "limit": 0.01,
+            "native_CDIST_clearance": "-4.833255E-06",
+            "native_CPRESS": "386656.4",
+            "physical_raw_clearance_m": "-0.000009666510",
+            "pressure_source": "Unaveraged actual DAT CSTR at connectivity-and-coordinate-bound z side",
+            "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+            "reference": -100000.0,
+            "relative_error": 0.033359,
+            "unit": "Pa",
+            "valid": false,
+            "value": -96664.1,
+            "value_decimal": "-96664.1",
+            "verdict": "FAIL"
+          }
+        ],
+        "vertical_displacement": {
+          "actual_original_node_id": 1,
+          "key": "A_vertical_displacement",
+          "limit": 0.01,
+          "native_DAT_DY": "-2.534143E-02",
+          "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+          "reference": -0.05,
+          "relative_error": 0.0136572,
+          "unit": "m",
+          "valid": false,
+          "value": -0.05068286,
+          "value_decimal": "-0.05068286",
+          "verdict": "FAIL"
+        }
+      },
+      "B": {
+        "mapped_pair": [
+          317,
+          319
+        ],
+        "original_node_id": 2,
+        "signed_pressure_samples": [
+          {
+            "actual_expanded_node_id": 317,
+            "key": "B_z_minus_normal_traction",
+            "limit": 0.01,
+            "native_CDIST_clearance": "-4.833255E-06",
+            "native_CPRESS": "386656.4",
+            "physical_raw_clearance_m": "-0.000009666510",
+            "pressure_source": "Unaveraged actual DAT CSTR at connectivity-and-coordinate-bound z side",
+            "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+            "reference": -100000.0,
+            "relative_error": 0.033359,
+            "unit": "Pa",
+            "valid": false,
+            "value": -96664.1,
+            "value_decimal": "-96664.1",
+            "verdict": "FAIL"
+          },
+          {
+            "actual_expanded_node_id": 319,
+            "key": "B_z_plus_normal_traction",
+            "limit": 0.01,
+            "native_CDIST_clearance": "-4.833255E-06",
+            "native_CPRESS": "386656.4",
+            "physical_raw_clearance_m": "-0.000009666510",
+            "pressure_source": "Unaveraged actual DAT CSTR at connectivity-and-coordinate-bound z side",
+            "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+            "reference": -100000.0,
+            "relative_error": 0.033359,
+            "unit": "Pa",
+            "valid": false,
+            "value": -96664.1,
+            "value_decimal": "-96664.1",
+            "verdict": "FAIL"
+          }
+        ],
+        "vertical_displacement": {
+          "actual_original_node_id": 2,
+          "key": "B_vertical_displacement",
+          "limit": 0.01,
+          "native_DAT_DY": "-2.534143E-02",
+          "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+          "reference": -0.05,
+          "relative_error": 0.0136572,
+          "unit": "m",
+          "valid": false,
+          "value": -0.05068286,
+          "value_decimal": "-0.05068286",
+          "verdict": "FAIL"
+        }
+      },
+      "N14": {
+        "mapped_pair": [
+          353,
+          355
+        ],
+        "original_node_id": 14,
+        "signed_pressure_samples": [
+          {
+            "actual_expanded_node_id": 353,
+            "key": "N14_z_minus_normal_traction",
+            "limit": 0.01,
+            "native_CDIST_clearance": "-5.016401E-06",
+            "native_CPRESS": "401308.1",
+            "physical_raw_clearance_m": "-0.000010032802",
+            "pressure_source": "Unaveraged actual DAT CSTR at connectivity-and-coordinate-bound z side",
+            "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+            "reference": -100000.0,
+            "relative_error": 0.00327025,
+            "unit": "Pa",
+            "valid": true,
+            "value": -100327.025,
+            "value_decimal": "-100327.025",
+            "verdict": "PASS"
+          },
+          {
+            "actual_expanded_node_id": 355,
+            "key": "N14_z_plus_normal_traction",
+            "limit": 0.01,
+            "native_CDIST_clearance": "-5.016401E-06",
+            "native_CPRESS": "401308.1",
+            "physical_raw_clearance_m": "-0.000010032802",
+            "pressure_source": "Unaveraged actual DAT CSTR at connectivity-and-coordinate-bound z side",
+            "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+            "reference": -100000.0,
+            "relative_error": 0.00327025,
+            "unit": "Pa",
+            "valid": true,
+            "value": -100327.025,
+            "value_decimal": "-100327.025",
+            "verdict": "PASS"
+          }
+        ],
+        "vertical_displacement": {
+          "actual_original_node_id": 14,
+          "key": "N14_vertical_displacement",
+          "limit": 0.01,
+          "native_DAT_DY": "-2.492810E-02",
+          "reason": "Unchanged predeclared analytical reference comparison; finite failed response retained",
+          "reference": -0.05,
+          "relative_error": 0.002876,
+          "unit": "m",
+          "valid": true,
+          "value": -0.0498562,
+          "value_decimal": "-0.04985620",
+          "verdict": "PASS"
+        }
+      }
+    },
+    "supports": {
+      "all_original_DAT_RF_n": [
+        "0.000012604196197001934",
+        "-0.0179999988231867821",
+        "3.34E-19"
+      ],
+      "bottom_DAT_RF_n": [
+        "0.000043",
+        "199971.351",
+        "1.13163579E-12"
+      ],
+      "bottom_original_ids": [
+        7,
+        8,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82
+      ],
+      "boundary_DAT_RF_n": [
+        "0.000012604095",
+        "-0.018",
+        "5.73949479E-12"
+      ],
+      "diagnostic_expanded_bottom_FRD_RF_n": [
+        "0.00002",
+        "199971.38",
+        "1.13163502E-12"
+      ],
+      "diagnostic_expanded_top_FRD_RF_n": [
+        "-0.000221395905",
+        "-199971.38",
+        "4.6078592E-12"
+      ],
+      "method": "Sum original mapped DAT RF once; expanded FRD sums used only for independent printed-response identity, never added again",
+      "support_reference_conversion": "Aster N/m times actual physical thickness1m; native thickness0.5u is not 0.5m",
+      "top_DAT_RF_n": [
+        "-0.000030395905",
+        "-199971.369",
+        "4.6078590E-12"
+      ],
+      "top_original_ids": [
+        3,
+        4,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41
+      ]
+    },
+    "failed_metric_keys": [
+      "A_z_minus_normal_traction",
+      "A_z_plus_normal_traction",
+      "A_vertical_displacement",
+      "B_z_minus_normal_traction",
+      "B_z_plus_normal_traction",
+      "B_vertical_displacement"
+    ],
+    "full_field_counts": {
+      "DAT_CDIS": 26,
+      "DAT_CSTR": 26,
+      "DAT_RF": 313,
+      "DAT_S": 2120,
+      "DAT_U": 313,
+      "DAT_XYZ": 2120,
+      "expanded_nodes": 626,
+      "failed_comparisons": 6,
+      "individual_numerical_comparisons": 13,
+      "original_CPE4_and_expanded_C3D8": 265,
+      "original_nodes": 313,
+      "passed_comparisons": 7
+    },
+    "DAT_sections": [
+      {
+        "field": "U",
+        "header": " displacements (vx,vy,vz) for set ALL_ORIGINAL and time  0.1000000E+01",
+        "line": 8,
+        "time": "1.000000"
+      },
+      {
+        "field": "RF",
+        "header": " forces (fx,fy,fz) for set ALL_ORIGINAL and time  0.1000000E+01",
+        "line": 324,
+        "time": "1.000000"
+      },
+      {
+        "field": "S",
+        "header": " stresses (elem, integ.pnt.,sxx,syy,szz,sxy,sxz,syz) for set ALL_BODIES and time  0.1000000E+01",
+        "line": 640,
+        "time": "1.000000"
+      },
+      {
+        "field": "XYZ",
+        "header": " global coordinates (elem, integ.pnt.,x,y,z) for set ALL_BODIES and time  0.1000000E+01",
+        "line": 2763,
+        "time": "1.000000"
+      },
+      {
+        "field": "CDIS",
+        "header": " relative contact displacement (slave node,normal,tang1,tang2) for all contact elements and time 0.1000000E+01",
+        "line": 4886,
+        "time": "1.000000"
+      },
+      {
+        "field": "CSTR",
+        "header": " contact stress (slave node,press,tang1,tang2) for all contact elements and time 0.1000000E+01",
+        "line": 4915,
+        "time": "1.000000"
+      }
+    ],
+    "reference_geometry_identity": {
+      "expected": 2120,
+      "identity_verdict": "PASS",
+      "matched": 2120,
+      "method": "Independent C3D8 trilinear reference interpolation at eight 2x2x2 Gauss locations; printed last-digit intervals only",
+      "mismatches": []
+    },
+    "DAT_FRD_precision_diagnostics": {
+      "CONTACT": {
+        "compared_components": 156,
+        "failures": [],
+        "outside_printed_intervals": 0,
+        "precision_identity_verdict": "PASS"
+      },
+      "RF": {
+        "compared_components": 939,
+        "expanded_rule": "sum",
+        "failures": [],
+        "maximum_absolute_native_difference": "0.01",
+        "note": "ASCII interval diagnostic only, no external acceptance threshold changed; FRD source uses float cast before E12.5",
+        "outside_printed_intervals": 0,
+        "precision_identity_verdict": "PASS"
+      },
+      "U": {
+        "compared_components": 939,
+        "expanded_rule": "mean",
+        "failures": [],
+        "maximum_absolute_native_difference": "5E-8",
+        "note": "ASCII interval diagnostic only, no external acceptance threshold changed; FRD source uses float cast before E12.5",
+        "outside_printed_intervals": 0,
+        "precision_identity_verdict": "PASS"
+      }
+    },
+    "cross_solver_differences": [
+      {
+        "absolute_difference": "3416.1806885708",
+        "aster": "-100080.2806885708",
+        "ccx": "-96664.1",
+        "key": "A_z_minus_normal_traction",
+        "relative_to_fixed_analytical_reference": "0.034161806885708",
+        "signed_difference": "3416.1806885708",
+        "unit": "Pa",
+        "verdict": "DIAGNOSTIC_NO_THRESHOLD"
+      },
+      {
+        "absolute_difference": "3416.1806885708",
+        "aster": "-100080.2806885708",
+        "ccx": "-96664.1",
+        "key": "A_z_plus_normal_traction",
+        "relative_to_fixed_analytical_reference": "0.034161806885708",
+        "signed_difference": "3416.1806885708",
+        "unit": "Pa",
+        "verdict": "DIAGNOSTIC_NO_THRESHOLD"
+      },
+      {
+        "absolute_difference": "0.00068615903921378",
+        "aster": "-0.04999670096078622",
+        "ccx": "-0.05068286",
+        "key": "A_vertical_displacement",
+        "relative_to_fixed_analytical_reference": "0.0137231807842756",
+        "signed_difference": "-0.00068615903921378",
+        "unit": "m",
+        "verdict": "DIAGNOSTIC_NO_THRESHOLD"
+      },
+      {
+        "absolute_difference": "3416.18073362722",
+        "aster": "-100080.28073362722",
+        "ccx": "-96664.1",
+        "key": "B_z_minus_normal_traction",
+        "relative_to_fixed_analytical_reference": "0.0341618073362722",
+        "signed_difference": "3416.18073362722",
+        "unit": "Pa",
+        "verdict": "DIAGNOSTIC_NO_THRESHOLD"
+      },
+      {
+        "absolute_difference": "3416.18073362722",
+        "aster": "-100080.28073362722",
+        "ccx": "-96664.1",
+        "key": "B_z_plus_normal_traction",
+        "relative_to_fixed_analytical_reference": "0.0341618073362722",
+        "signed_difference": "3416.18073362722",
+        "unit": "Pa",
+        "verdict": "DIAGNOSTIC_NO_THRESHOLD"
+      },
+      {
+        "absolute_difference": "0.00068615903969939",
+        "aster": "-0.04999670096030061",
+        "ccx": "-0.05068286",
+        "key": "B_vertical_displacement",
+        "relative_to_fixed_analytical_reference": "0.0137231807939878",
+        "signed_difference": "-0.00068615903969939",
+        "unit": "m",
+        "verdict": "DIAGNOSTIC_NO_THRESHOLD"
+      },
+      {
+        "absolute_difference": "23.66243056449",
+        "aster": "-100350.68743056449",
+        "ccx": "-100327.025",
+        "key": "N14_z_minus_normal_traction",
+        "relative_to_fixed_analytical_reference": "0.0002366243056449",
+        "signed_difference": "23.66243056449",
+        "unit": "Pa",
+        "verdict": "DIAGNOSTIC_NO_THRESHOLD"
+      },
+      {
+        "absolute_difference": "23.66243056449",
+        "aster": "-100350.68743056449",
+        "ccx": "-100327.025",
+        "key": "N14_z_plus_normal_traction",
+        "relative_to_fixed_analytical_reference": "0.0002366243056449",
+        "signed_difference": "23.66243056449",
+        "unit": "Pa",
+        "verdict": "DIAGNOSTIC_NO_THRESHOLD"
+      },
+      {
+        "absolute_difference": "0.00012215678480192",
+        "aster": "-0.04997835678480192",
+        "ccx": "-0.04985620",
+        "key": "N14_vertical_displacement",
+        "relative_to_fixed_analytical_reference": "0.0024431356960384",
+        "signed_difference": "0.00012215678480192",
+        "unit": "m",
+        "verdict": "DIAGNOSTIC_NO_THRESHOLD"
+      },
+      {
+        "absolute_difference": "28.5667408668",
+        "aster_as_force_n": "-199999.9357408668",
+        "ccx": "-199971.369",
+        "key": "top_reaction_y",
+        "relative_to_fixed_analytical_reference": "0.000142833704334",
+        "signed_difference": "28.5667408668",
+        "unit": "N",
+        "verdict": "DIAGNOSTIC_NO_THRESHOLD"
+      },
+      {
+        "absolute_difference": "28.5847408671",
+        "aster_as_force_n": "199999.9357408671",
+        "ccx": "199971.351",
+        "key": "bottom_reaction_y",
+        "relative_to_fixed_analytical_reference": "0.0001429237043355",
+        "signed_difference": "-28.5847408671",
+        "unit": "N",
+        "verdict": "DIAGNOSTIC_NO_THRESHOLD"
+      }
+    ],
+    "cross_solver_qualification": "UNKNOWN: existing Aster baseline passes and this pilot fails; no new pair threshold"
+  },
+  "independent_evidence": {
+    "math_report": {
+      "path": "artifacts/development-contact-20261004-01/calculix-native-math-audit-01/REPORT.md",
+      "bytes": 5711,
+      "sha256": "c50988ebf7c5abf69db4346787cc3cb060e6437567445f384e3fe116ac850ed8"
+    },
+    "math_receipt": {
+      "path": "artifacts/development-contact-20261004-01/calculix-native-math-audit-01/receipt.json",
+      "bytes": 1183,
+      "sha256": "18208c6b5d022ce0c69f1ef11b49a14018ae53826ba510746b0c0d8cd85fd3cd"
+    },
+    "math_result": {
+      "path": "artifacts/development-contact-20261004-01/calculix-native-math-audit-01/audit-result.json",
+      "bytes": 24463,
+      "sha256": "2400adcd2315ced0b51ef31cd816c0dbabde90dba29df48c354e43184992bb34"
+    },
+    "math_seal": {
+      "manifest": {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-math-audit-01/MANIFEST.json",
+        "bytes": 1861,
+        "sha256": "9c9a912de3ed5a146cd42478eeb8695b90e7028e2764c7181ed43fd847375c7e"
+      },
+      "listed_files": 11,
+      "listed_bytes": 2075734,
+      "root_rehash_failures": 0
+    },
+    "cause_report": {
+      "path": "artifacts/development-contact-20261004-01/calculix-native-cause-review-01/REPORT.md",
+      "bytes": 13224,
+      "sha256": "37048986d85b45dc3450219765e793bcadd47e305d39f95afc7bd734e18633e1"
+    },
+    "cause_full26": {
+      "path": "artifacts/development-contact-20261004-01/calculix-native-cause-review-01/actual-raw-channel-context.json",
+      "bytes": 39981,
+      "sha256": "c3ffb3018df9bc6a61c388879c68a6c5e88eec9f1fb277fcbfdd7f7c695532fe"
+    },
+    "cause_seal": {
+      "manifest": {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-cause-review-01/MANIFEST.json",
+        "bytes": 2265,
+        "sha256": "bbd853c974fde8effc4712c5ebb28d5045b5626785576dd575455b9646bafa9e"
+      },
+      "listed_files": 13,
+      "listed_bytes": 285781,
+      "root_rehash_failures": 0
+    },
+    "first_math_reader_failure_retained": {
+      "path": "artifacts/development-contact-20261004-01/calculix-native-math-audit-01/FAILED_ATTEMPT_01.json",
+      "bytes": 1313,
+      "sha256": "ee437a9b655eecbcb70c571664e5a2f1e272adeed2e6063b446e22e577860cea"
+    },
+    "reader_correction": "Only actual frd.c binary32 cast before E12.5 formatting; engineering thresholds unchanged",
+    "new_solver_calls_for_reviews": 0
+  },
+  "cause_and_capability": {
+    "single_cause": "UNKNOWN; nonmatching slave-node quadrature/master interpolation and current-normal/frozen-area are source-supported hypotheses",
+    "source_equivalence": "UNKNOWN; retained official2.21 does not establish Ubuntu2.21-1 build equivalence",
+    "node_to_face_has_direct_sample_channels": true,
+    "mortar_drop_in_admitted": false,
+    "mortar_reason": "Official checkspcmpc.f:121-156 excludes MPC-involved slave nodes; CPE4 creates automatic side-plane MPCs",
+    "face_to_face_drop_in_admitted": false,
+    "face_to_face_reason": "Requires different contact law/no SMALL SLIDING; inspected direct CSTR lacks A/B/N14 sampled XYZ, nodal FRD pressure is extrapolated",
+    "prohibited_shortcuts": [
+      "retune K/sigma to pass",
+      "repeat unchanged pilot",
+      "RF/area pressure",
+      "average or select z-side pressure",
+      "substitute extrapolated nodal pressure",
+      "loosen original limits"
+    ]
+  },
+  "retention": {
+    "raw_files": [
+      {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-pilot-01/execution-intent.json",
+        "bytes": 6450,
+        "sha256": "4f76cdeb3cf31bc385d5683224ca77eb83674a26d1f838a8dfcdb1faf729f6cf"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-pilot-01/native.stderr.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-pilot-01/native.stdout.log",
+        "bytes": 5569,
+        "sha256": "e631a3f22350f59ba7e866dc0ae3438a9606a6116f335748f5d29dd4db4632d0"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-pilot-01/OUTPUT_MANIFEST.json",
+        "bytes": 2096,
+        "sha256": "18c550b0f72f497a08e656ad290cabe46a5ab9b6a4a0ca2bfb5307a50579c6b2"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-pilot-01/process-receipt.json",
+        "bytes": 44512,
+        "sha256": "1279c3800e4e347d5cb888d2a80863448b58db1720b80d18311c57b3fb89987b"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-pilot-01/process-start.json",
+        "bytes": 127,
+        "sha256": "0cfd1c33d00af40a86e5ebb4cfa096dada294cfed24582a70b4be2d7196f2b0a"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-pilot-01/spooles.out",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-pilot-01/ssnp121a.12d",
+        "bytes": 66250,
+        "sha256": "4847824542c09bb2e0659ce931c2d30d84985021ec373a7a5fe7d1e3b00776ca"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-pilot-01/ssnp121a.cvg",
+        "bytes": 602,
+        "sha256": "b64ecc3da41ac225dd11e8aa1c3766a54eab627b7b80747e3de7f020a0002922"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-pilot-01/ssnp121a.dat",
+        "bytes": 367283,
+        "sha256": "c48b54d358592e850d83bd71599b5a31a71beb9bbe57b61a62ef180648a8d394"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-pilot-01/ssnp121a.frd",
+        "bytes": 128139,
+        "sha256": "91f85e4753d1429f9624a3e4ac9e5ebddbc5dd844f981d76452bb18a16d432cb"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-pilot-01/ssnp121a.inp",
+        "bytes": 20558,
+        "sha256": "02c5f103c4bc6f711f4e562052a70e814366ff26867d674478a39d98b8b54562"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-pilot-01/ssnp121a.sta",
+        "bytes": 170,
+        "sha256": "e665a21a0362f79a8818fce548af9cab044be9a606a2ec6ea0a8abf6a2e7da92"
+      }
+    ],
+    "raw_file_count": 13,
+    "raw_bytes": 641756,
+    "raw_seal": {
+      "manifest": {
+        "path": "artifacts/development-contact-20261004-01/calculix-native-pilot-01/OUTPUT_MANIFEST.json",
+        "bytes": 2096,
+        "sha256": "18c550b0f72f497a08e656ad290cabe46a5ab9b6a4a0ca2bfb5307a50579c6b2"
+      },
+      "listed_files": 12,
+      "listed_bytes": 639660,
+      "root_rehash_failures": 0
+    },
+    "protected_files_root_rehashed": 139,
+    "raw_retention": "LOCAL_PRESERVED",
+    "remote_raw_retention": "UNKNOWN"
+  },
+  "exact_base_CI": {
+    "conclusion": "failure",
+    "headSha": "fd41d0bbb31706710c4fe9f326603abc91825c21",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "databaseId": 111261462678,
+        "failed_steps": [],
+        "name": "research-driver-source",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37143113127/job/111261462678"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 111261462763,
+        "failed_steps": [],
+        "name": "core",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37143113127/job/111261462763"
+      },
+      {
+        "conclusion": "failure",
+        "databaseId": 111263609686,
+        "failed_steps": [
+          {
+            "conclusion": "failure",
+            "name": "Verify coupled vector directions, blocked DOFs and independent full-field error integration",
+            "number": 10
+          }
+        ],
+        "name": "pde",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37143113127/job/111263609686"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 111263609700,
+        "failed_steps": [],
+        "name": "structural",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37143113127/job/111263609700"
+      },
+      {
+        "conclusion": "failure",
+        "databaseId": 111263609707,
+        "failed_steps": [
+          {
+            "conclusion": "failure",
+            "name": "Compare complete beam, pressure cylinder and curved roof fields across two native solvers",
+            "number": 7
+          }
+        ],
+        "name": "codeaster",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37143113127/job/111263609707"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 111263609716,
+        "failed_steps": [],
+        "name": "native",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37143113127/job/111263609716"
+      },
+      {
+        "conclusion": "failure",
+        "databaseId": 111263609717,
+        "failed_steps": [
+          {
+            "conclusion": "failure",
+            "name": "Install the digest-pinned official OpenRadioss runtime outside the repository",
+            "number": 5
+          }
+        ],
+        "name": "explicit",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37143113127/job/111263609717"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 111263609741,
+        "failed_steps": [],
+        "name": "optimization",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37143113127/job/111263609741"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 111263609753,
+        "failed_steps": [],
+        "name": "doe",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37143113127/job/111263609753"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 111263609782,
+        "failed_steps": [],
+        "name": "native-registration",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37143113127/job/111263609782"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37143113127",
+    "metadata_artifact": {
+      "path": "artifacts/development-contact-20261004-01/ci-fd41d0b-metadata-01.json",
+      "bytes": 2670,
+      "sha256": "79ebe118c9f9971e8b811fbf4d268dfcf0ceaa3d5bfe2e6322c7c22d823065aa"
+    },
+    "inner_failure_causes": "UNKNOWN for fd41 run; no artifact inspection or rerun",
+    "does_not_verify_this_ignored_pilot": true
+  },
+  "pending_validations": {
+    "OpenScience_contact_admission": "UNKNOWN",
+    "corporate_license_approval": "UNKNOWN",
+    "corporate_security_approval": "UNKNOWN",
+    "cross_solver_contact": "UNKNOWN",
+    "fatigue_durability": "UNKNOWN",
+    "fixture_joint_contact": "UNKNOWN",
+    "material": "UNKNOWN",
+    "mesh_convergence": "UNKNOWN",
+    "model": "UNKNOWN",
+    "physical": "UNKNOWN",
+    "pointwise_contact_gap": "UNKNOWN",
+    "remote_raw_qualification": "UNKNOWN",
+    "same_native_human_inspection": "UNKNOWN",
+    "static_strength": "UNKNOWN"
+  },
+  "root_next_gate": {
+    "decision": "Preserve failed comparison and capability limits; proceed to original Aster uniform2 mesh sensitivity through existing backend",
+    "private_implementation": "artifacts/development-contact-20261004-01/contact-refinement-source-01",
+    "target_counts_not_yet_observed": {
+      "nodes": 1154,
+      "QUAD4": 1060,
+      "SEG2": 184,
+      "AB_segments": 24,
+      "EF_segments": 22
+    },
+    "required_order": [
+      "deterministic generation and actual MED readback",
+      "cold default/refined controls and independent source review",
+      "Root source commit and fresh refined native experiment",
+      "original/refined signed comparison and independent full field audit",
+      "bounded OpenScience whole question and same-result human view",
+      "P2.4 real fixture coupling",
+      "remaining Phase6/7"
+    ],
+    "mesh_convergence": "UNKNOWN; one refinement is sensitivity, not asymptotic convergence proof"
+  },
+  "whole_52_requirements": "ACTIVE",
+  "whole_Phase5_6_7": "OPEN",
+  "limitations": [
+    "Private ignored pilot, not a production adapter or Core admission",
+    "Source catalogue supplies626XY;313Z0 are explicit planar embedding, not original3D provenance",
+    "One original mesh and one predeclared penalty law only; no retuning or rerun",
+    "Root protected139 source/evidence hashes retained; process facts are raw receipt observations",
+    "Cross-solver pair differences diagnostic only with no invented PASS threshold",
+    "Scalar penalty approximation does not predict 2D boundary pressure or FE convergence",
+    "Printed interval compatibility establishes textual mapping evidence, not hidden binary64 precision",
+    "Actual source kinematic flags and internal per-spring area/normal memberships are unobserved"
+  ]
+}

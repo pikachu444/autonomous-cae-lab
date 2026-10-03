@@ -1,4 +1,30 @@
-## Current checkpoint: P5.3 original contact native acceptance qualified; comparison next
+## Current checkpoint: P5.3 CalculiX comparison failed; ordered mesh extension active
+
+One private CalculiX2.21 original-CPE4 pilot exits0 in1.980334s, four Newton
+iterations, without wall timeout or retry. Independent actual full-field audit
+retains7PASS/6FAIL among13 predeclared comparisons. A/B each z-side pressure
+error3.3359% and original DY error1.36572% exceed the unchanged1% gate.
+N14 and both support/balance criteria pass; equilibrium never replaces pressure.
+Actual313U/RF,626expanded vertices,2120stress/XYZ and26CDIS/CSTR map completely.
+Native minimum increment clamps1e-8 to1e-6; warning is retained, no cutback.
+Source01 inlet failure stays preserved; source02 units useu=2m/forceN and an
+actual947-field F20 reader proof. Installed-source equivalence remains UNKNOWN.
+This ignored pilot is not a committed production adapter or OpenScience admission.
+Source-backed review excludes unqualified mortar and extrapolated-pressure
+shortcuts. A single discretization/kinematic cause is UNKNOWN; no retuning/retry.
+NEXT: existing Aster backend's deterministic uniform2 mesh extension in private
+staging: target1154nodes/1060QUAD4/184SEG2, original313prefix and A/B/N14 preserved.
+Generation/readback, source review and fresh native comparison remain pending;
+then whole Research/human and P2.4 fixture coupling. Core/registry/schema unchanged.
+Exactfd41 CI37143113127 completes7SUCCESS/3FAIL; its inner causes UNKNOWN here.
+Previously qualified9d Aster runs remain unchanged; this document is no new solve.
+Record: `benchmarks/records/20261004-contact-calculix-pilot-r01-failed.json`; SHA256 `6184753dad0fe02f4fe421c8dfdf8b7e5bcc5e9f8fa7f16006925fb2114aaeca`.
+Raw13files/641756bytes and139 protected files Root-rehashed unchanged; remote raw UNKNOWN.
+Whole52/Phases5-7 active; engineering NOT_RELEASED and contact cross-solver UNKNOWN.
+
+---
+
+## Historical checkpoint: P5.3 original contact native acceptance qualified; comparison next
 
 Clean, pushed producer `9d0d613bd8d6ec5a1d5c1a59805c002c84e71c92` executes two actual Code_Aster contact runs
 in `runs/contact-native-20261004-01`, plus one invalid-input preflight block.

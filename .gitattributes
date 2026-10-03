@@ -26,3 +26,4 @@ plugins/hyperelastic/reference.py text eol=lf
 benchmarks/input-data/codeaster/*.mmed -text
 benchmarks/input-data/codeaster/*.mesh.json -text
 benchmarks/records/20261004-contact-native-r01-qualified.json -text
+benchmarks/records/20261004-contact-calculix-pilot-r01-failed.json -text
