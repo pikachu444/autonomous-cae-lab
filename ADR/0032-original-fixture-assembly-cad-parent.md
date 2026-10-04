@@ -1,6 +1,6 @@
 # ADR 0032: Preserve the original fixture assembly as a CAD parent
 
-Date: 2026-10-04. Status: proposed pending source review and native acceptance.
+Date: 2026-10-04. Status: accepted for the bounded CAD parent after source/native/human review; mechanics remains separate.
 
 ## Context
 
@@ -71,3 +71,6 @@ fields, equilibrium, convergence and mesh sensitivity. Printed material,
 machine mounting, fastener grade/preload/friction, measured strength, physical
 tests, fatigue and corporate deployment approvals remain UNKNOWN/NOT_RELEASED.
 All 52 requirements and later Phase 6/7 work remain in scope.
+
+Qualified actual source f8f60eb/newnative01 and same-revision human evidence:
+`benchmarks/records/20261004-fixture-assembly-native-human-r01-qualified.json`. This later record does not change the decision's CAD scope.

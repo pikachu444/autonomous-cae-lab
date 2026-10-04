@@ -1,4 +1,33 @@
-## Current checkpoint: P2.4 original fixture assembly CAD source integrated
+## Current checkpoint: P2.4 original assembly CAD native and human verified
+
+Evidence: `benchmarks/records/20261004-fixture-assembly-native-human-r01-qualified.json`; actual clean producer/viewer
+`f8f60eb335fb829a8ddc5d0ca1c2506788baae44`; fixture pin3e48bf6.
+New Core `8d1071134a2bcd7d42a9320b431754591909476747f35e96fbbb4113c6e09ef2` binds15parts/117faces/
+15interfaces/8seats/154nativefiles. Native48PASS+1UNKNOWN; Core50PASS+11UNKNOWN.
+Two actual registration probes agree with320/400mm³ simple geometry references;
+invalid70mm design, unsupported single-support analysis and copied-parent hash
+corruption reject before export/mesh/solver/child reservation as applicable.
+Independent native621-file and separate human17-input reviews close0openP1/P2.
+Actual same-record Canvas shows original assembly; one clicked support face
+matches native face7/display98/BREP. Single-support parent list excludes assembly;
+read-only write disabling is a separate condition. Original218files unchanged.
+Root/reviewer expectation errors are preserved and narrowly closed; no CAD/solver
+retry or numerical limit change. Human server8775 remainsRUNNING/read-only;
+Stop/absence is not claimed. Captured Python+JSON editable source is retained;
+portable rebuild/FCStd/actualCADcancel and assemblymechanics/Research remain unverified.
+Exactf8 CI37174171417 completes7SUCCESS/3FAIL; exact raw-artifact diagnosis:
+OpenRadiossHTTP404; vector first L2 rate1.7951/u0 1.7796<fixed1.8 (valid REJECTED);
+beamFzfine MUMPS FACTOR_57 estimate3.32295e-6>fixed1e-6 (native failure, no fields).
+See `benchmarks/records/20261004-fixture-assembly-ci-r01-qualified.json`. No unchanged solver rerun or threshold relaxation; fullCI fails.
+NEXT SERIAL: original7-body native volume/face mesh, explicit compression/contact/
+joint assumptions, actual mechanics/full fields and connected Research/human.
+Bounded Phase5 contact functions remain qualified in their prior scope; P2.4,
+Phase6/7/deferred gates and all52 ACTIVE/UNKNOWN/NOT_RELEASED. No docs commit is
+a new solver verification. See docs/FIXTURE_ASSEMBLY_ACCEPTANCE.md.
+
+---
+
+## Historical checkpoint: P2.4 original fixture assembly CAD source integrated
 
 Record: `benchmarks/records/20261004-fixture-assembly-source-r01.json`;
 source is the commit containing that record, parent35a3df4; fixture pin3e48bf6.

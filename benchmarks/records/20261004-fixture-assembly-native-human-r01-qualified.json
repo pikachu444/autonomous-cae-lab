@@ -1,0 +1,290 @@
+{
+  "schema_version": 1,
+  "checkpoint": "P2.4_ORIGINAL_ASSEMBLY_CAD_PARENT_NATIVE_HUMAN",
+  "utc": "2026-10-04T04:19:36.574266+00:00",
+  "status": "PASS_BOUNDED_NATIVE_CORE_CAD_AND_SAME_REVISION_HUMAN",
+  "scientific_source_commit": "f8f60eb335fb829a8ddc5d0ca1c2506788baae44",
+  "viewer_source_commit": "f8f60eb335fb829a8ddc5d0ca1c2506788baae44",
+  "record_commit": "COMMIT_CONTAINING_THIS_RECORD_IS_METADATA_NOT_A_NEW_SOLVE",
+  "observed_upstream_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "source_acceptance_record": "benchmarks/records/20261004-fixture-assembly-source-r01.json",
+  "source_gates": {
+    "python_pass": 105,
+    "python_seconds": 98.62,
+    "ui_leaf_pass": 273,
+    "ui_nested_suites": 14,
+    "source": "f8f60eb335fb829a8ddc5d0ca1c2506788baae44",
+    "counts_not_added_to_original_private_or_native_executions": true
+  },
+  "native": {
+    "store": "runs/fixture-assembly-native-20261004-01",
+    "study": "S-original-assembly",
+    "experiment": "E-assembly-default",
+    "status": "COMPLETED_REVIEW_REQUIRED",
+    "solver_status": "NOT_RUN",
+    "core_source_dirty": false,
+    "worker_source_commit": "UNKNOWN",
+    "worker_git_observation": "NOT_QUERIED; captured source bytes independently bound",
+    "cad_revision": "8d1071134a2bcd7d42a9320b431754591909476747f35e96fbbb4113c6e09ef2",
+    "native_revision": "7a2ed7a57284cfbd5284e1c96db064bade268f4624ad8f83886c26a6be5cbec4",
+    "source_definition_sha256": "98bef622b96762c2b6faaa88bd1ef92f639c10c819941fc71f2ed986e2e22baa",
+    "assembly_step_sha256": "48b0311396040c5a4d4c7e2ed43d7cf709a855f9fe42ec582515c2d770f55967",
+    "catalog_sha256": "4210911cc237eefc10c534948ee8fa44134d21a3e6484e01817946e75b2e8d91",
+    "surface_sha256": "936d1527a5feb510b25167b7a08f554bf6043adec717fd2c9d60de71d28b16c6",
+    "runtime": {
+      "python": "3.12.3",
+      "cadquery": "2.7.0",
+      "ocp": "7.8.1.1.post1",
+      "numpy": "2.3.5",
+      "trimesh": "5.1.0"
+    },
+    "default_export_jobs": 1,
+    "registration_probe_jobs": 2,
+    "internal_build_calls_are_not_counted_as_one_total_build": true,
+    "actual_process_elapsed_seconds": 15.8902118660044,
+    "process_exit_code": 0,
+    "wall_timeout_seconds": null,
+    "components": 15,
+    "faces": 117,
+    "interfaces": 15,
+    "distinct_bolt_seats": 8,
+    "native_files": 154,
+    "display_triangles": 13532,
+    "native_validations": {
+      "PASS": 48,
+      "UNKNOWN": 1
+    },
+    "core_validations": {
+      "PASS": 50,
+      "UNKNOWN": 11
+    },
+    "registration_geometry_effects": [
+      {
+        "input": "specimen.width",
+        "caller_bounds_mm": [
+          9,
+          12
+        ],
+        "probe_mm": [
+          10,
+          9
+        ],
+        "actual_boolean_difference_mm3": 319.99999999999983,
+        "independent_rectangular_difference_mm3": 320
+      },
+      {
+        "input": "specimen.length",
+        "caller_bounds_mm": [
+          70,
+          90
+        ],
+        "probe_mm": [
+          80,
+          90
+        ],
+        "actual_boolean_difference_mm3": 400.0000000000004,
+        "independent_rectangular_difference_mm3": 400,
+        "failed70mm_overhang_attempt_preserved": true
+      }
+    ],
+    "probes_are_geometry_effects_not_export_or_solver_tolerances": true,
+    "invalid_design": {
+      "id": "E-assembly-invalid-length",
+      "length_mm": 70,
+      "status": "REJECTED",
+      "solver_status": "NOT_RUN",
+      "native_export": false
+    },
+    "unsupported_analysis": {
+      "id": "E-assembly-unsupported-analysis",
+      "backend": "fixture.calculix",
+      "status": "REJECTED",
+      "solver_status": "NOT_RUN",
+      "mesh_deck_solver_output": false
+    },
+    "quarantine": {
+      "store": "runs/fixture-assembly-corrupt-20261004-01",
+      "original_parent_unchanged": true,
+      "only_delta": "cad/assembly_catalog.json appended b'\\n ' (2 bytes)",
+      "rejection": "Artifact hash mismatch before child/ledger reservation",
+      "new_child_reserved": false
+    }
+  },
+  "human": {
+    "receipt": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/human-01/RECEIPT.json",
+      "bytes": 4627,
+      "sha256": "28df4834c27770c45887f8708f3191e0f0b29cb90c3688bcbd01684324e0da0c"
+    },
+    "read_only_library": true,
+    "url": "http://127.0.0.1:8775/#results",
+    "selected_face": "printed_support_right:face:7:c90f8da775f0c1e589a4e2847c85299fae2e293bc11f5fa25a4e911a5ca69f06",
+    "display_id": 98,
+    "human_faces_clicked": 1,
+    "native_catalog_faces": 117,
+    "renderer": "Retained pinned upstream surface_viewer.js in the common Canvas; no iframe",
+    "screenshot": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/human-01/assembly-selected-face.jpg",
+      "bytes": 95785,
+      "sha256": "6b08e59e08a8b127e8a47f76519d85231abd60d79570a63e2d85cde2d3732a4e"
+    },
+    "single_support_parent_list_excludes_assembly": true,
+    "read_only_disabling_is_not_independent_backend_refusal_proof": true,
+    "verified_hash_badge_and_not_released_badges_are_distinct": true,
+    "server": "RUNNING",
+    "stop_or_process_absence_qualified": false,
+    "new_CAD_solver_model_calls": 0
+  },
+  "independent_reviews": {
+    "open_P1": 0,
+    "open_P2": 0,
+    "scope": "new native CAD and retained human observations",
+    "native_files_checked": 621,
+    "human_selected_inputs_checked": 17,
+    "human_review_does_not_repeat_621_file_native_audit": true,
+    "sealed_reports": {
+      "native": [
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/main-native-review-01/REPORT.md",
+          "bytes": 7422,
+          "sha256": "43cbb5252a173660b09c80143d8bac24eab5d1c35ba1dd139a0aebe8858e239b"
+        },
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/main-native-review-01/RECEIPT.json",
+          "bytes": 2885,
+          "sha256": "5581e18eba17cf899dae76e5cf29c37e94eeab2c2e041e00b7c838079d30cb70"
+        },
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/main-native-review-01/MANIFEST.json",
+          "bytes": 1934,
+          "sha256": "c48bf81d3cdec862c80ac8387ba8fdc32ee00f91427a702a1ffb27176deafd92"
+        }
+      ],
+      "human": [
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/human-review-01/REPORT.md",
+          "bytes": 1431,
+          "sha256": "f070a60a2c7e1da13e71d9fa77ccac05359e283742488d221548f65bb69276f1"
+        },
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/human-review-01/review.json",
+          "bytes": 4609,
+          "sha256": "b67d04227c6138a1ef52c4f4cb80e760983031ef9d10fe0c7e70dd5f842a3e42"
+        },
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/human-review-01/RECEIPT.json",
+          "bytes": 6060,
+          "sha256": "b6b765b360cf716460465d43a0bf5b4c02cf62c42acc63146aad3749c85fd6e0"
+        }
+      ]
+    }
+  },
+  "retention": {
+    "original_store_files": 218,
+    "quarantine_files": 218,
+    "all_original_store_bytes_unchanged_after_human": true,
+    "original_manifest": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/native-01/retained-store-manifest.json",
+      "bytes": 43311,
+      "sha256": "e9ddd35d081259f3fc85e7ba7a4f4113c84b1891400aee7cde0510a78d00e3e9"
+    },
+    "raw_evidence": "local ignored runs/artifacts; not claimed remotely archived or signed"
+  },
+  "retained_attempt_errors": {
+    "root_native_launcher": "Expected FAILED_EXECUTION but unsupported backend correctly REJECTED/NOT_RUN; original preserved, no CAD/solver retry",
+    "native_reviewer_count": "Expected46 native PASS; actual48 native plus2 Core assignment PASS; narrow correction, no geometry/limits change",
+    "root_human_seal": "Incorrectly expected release text in VERIFIED badge; separate real badges checked, no UI/native change",
+    "human_reviewer": "Assumed tab key in decision-dom; compared actual tab-bearing records plus URL/badges, no UI/native change"
+  },
+  "exact_source_CI": {
+    "source": "f8f60eb335fb829a8ddc5d0ca1c2506788baae44",
+    "run": 37174171417,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37174171417",
+    "status": "completed",
+    "conclusion": "failure",
+    "updated_at": "2026-10-04T03:54:29Z",
+    "success": 7,
+    "failure": 3,
+    "jobs": [
+      {
+        "id": 111353207427,
+        "name": "research-driver-source",
+        "conclusion": "success"
+      },
+      {
+        "id": 111353207593,
+        "name": "core",
+        "conclusion": "success"
+      },
+      {
+        "id": 111354930255,
+        "name": "doe",
+        "conclusion": "success"
+      },
+      {
+        "id": 111354930295,
+        "name": "optimization",
+        "conclusion": "success"
+      },
+      {
+        "id": 111354930298,
+        "name": "native",
+        "conclusion": "success"
+      },
+      {
+        "id": 111354930303,
+        "name": "native-registration",
+        "conclusion": "success"
+      },
+      {
+        "id": 111354930304,
+        "name": "structural",
+        "conclusion": "success"
+      },
+      {
+        "id": 111354930311,
+        "name": "explicit",
+        "conclusion": "failure"
+      },
+      {
+        "id": 111354930322,
+        "name": "pde",
+        "conclusion": "failure"
+      },
+      {
+        "id": 111354930327,
+        "name": "codeaster",
+        "conclusion": "failure"
+      }
+    ],
+    "observation": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/exact-source-ci-02.json",
+      "bytes": 25438,
+      "sha256": "b5cc21948ed952714f5e5f6200b30ff45fa797d38eec9ef1fc60a7e575982c95"
+    },
+    "failed_log_diagnosis": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/ci-diagnosis-01/diagnosis.json",
+      "bytes": 17676,
+      "sha256": "e4863ec548b941e13066350e3213de3c2722076d497c31150fd2318bbab598ad"
+    },
+    "explicit": "Fixed official asset URL returnsHTTP404/exit22; later native steps NOT_RUN",
+    "pde": "Wrong vector numerical classification; exact metric/root cause pending raw artifact inspection",
+    "codeaster": "Regular beamFz completion/convergence assertion; exact metric/root cause pending raw artifact inspection",
+    "full_CI_pass_claimed": false,
+    "new_contact_or_assembly_mechanics_CI_claimed": false
+  },
+  "limits": {
+    "portable_rebuild": "NOT_VERIFIED",
+    "FCStd": "NOT_PROVIDED",
+    "display_tessellation": "APPROXIMATE_CAD_VIEW_NOT_FE_MESH",
+    "all117_human_selections": "NOT_RUN",
+    "CAD_OS_cancellation": "NOT_RUN",
+    "assembly_mechanics_Research": "NOT_ADMITTED / NOT_RUN",
+    "physical_strength_material_fastener_machine_durability_corporate": "UNKNOWN"
+  },
+  "current_phase": "Bounded Phase5 contact Research/view reached; active return P2.4 CAD prereqs closed, mesh/mechanics next",
+  "next_serial": "Original7-body global volume/face mesh, declared compression/contact/joint assumptions, actual full-field mechanics and connected Research/human; then Phase6/7 and deferred gates",
+  "whole_P2_4": "OPEN",
+  "whole_52": "ACTIVE",
+  "decision": "NOT_RELEASED"
+}

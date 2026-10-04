@@ -23,6 +23,36 @@ surface joins were independently read and hashed. Width10→12mm changed actual
 solid volume by640mm³, agreeing with80×4×2mm³. This is actual geometry evidence
 with clear original-source identity, not a metadata-only effect.
 
+## Qualified clean-source Core native and same-revision human gate
+
+Record: `benchmarks/records/20261004-fixture-assembly-native-human-r01-qualified.json`. Actual producer/viewer f8f60eb is separate
+from this later metadata checkpoint. Newstore fixture-assembly-native-20261004-01
+retains the complete default parent, invalid70mm attempt and unsupported analysis.
+Core50PASS/11UNKNOWN, native48PASS/1UNKNOWN;15components/117faces/15interfaces/
+8distinctseats/154nativefiles. Exact native/Core/source revisions and STEP/catalog/
+surface/source hashes are in the record. Width10→9 and length80→90 actual Boolean
+volume differences320/400mm³ agree with independent rectangular references.
+Unsupported fixture.calculix remainsREJECTED/NOT_RUN, no deck/mesh/solver; copied
+catalog whitespace corruption blocks child reservation without editing the parent.
+
+Independent native review checks621 inputs; separate human review checks17.
+One real displayed face selects printed_support_right nativeface7/display98 with
+matching BREP. Full117 native/display coverage is independently audited; all117
+human clicks are NOT_RUN. Verified hashes and NOT_RELEASED have separate badges.
+Read-only mode disables writes independently of the excluded incompatible parent.
+Native218files remain unchanged after human inspection. Server8775 remainsRUNNING.
+Original Root/reviewer count/status/badge/key assumption failures are preserved;
+narrow closures neither rerun CAD/solver nor change numerical/geometric criteria.
+
+Gate1 (new native/Core store) and gate2 (independent identity and human view) below
+are now closed within this CAD scope. NEXT is native volume/face mesh for7 active
+compression bodies; the8bolts remain present CAD and explicitly inactive in that
+preprocessing pilot because threads/nuts/base anchorage/preload are undefined.
+Then gate3 freezes actual mechanics assumptions before gate4 execution/Research.
+No idealized connection may silently qualify actual fasteners or machine mounting.
+Exactf8 CI7SUCCESS/3FAIL is recorded separately; wholeCI/assemblymechanics PASS
+is not claimed. All previously stated limits and UNKNOWN/NOT_RELEASED remain.
+
 ## Next gates in order
 
 1. Run a new store from the committed clean source. Discover/register typed

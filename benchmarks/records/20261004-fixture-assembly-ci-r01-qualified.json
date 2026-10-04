@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "utc": "2026-10-04T04:28:38.739320+00:00",
+  "checkpoint": "EXACT_F8_SOURCE_CI_RETAINED_FAILURE_CONTEXT",
+  "source_commit": "f8f60eb335fb829a8ddc5d0ca1c2506788baae44",
+  "run": 37174171417,
+  "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37174171417",
+  "result": "7SUCCESS_3FAIL_NO_PENDING_NOT_FULL_CI_PASS",
+  "scope": "Read exact failed logs and two original CI artifacts; no reruns or source correction",
+  "initial_log_record": {
+    "path": "artifacts/development-fixture-coupling-20261004-01/ci-diagnosis-01/diagnosis.json",
+    "bytes": 17676,
+    "sha256": "e4863ec548b941e13066350e3213de3c2722076d497c31150fd2318bbab598ad"
+  },
+  "sealed_context": [
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/ci-numerical-context-01/numerical-context.json",
+      "bytes": 18926,
+      "sha256": "6f6cb85afd60051c6712e77f971d6d54a9f4333adde5bcebcd0828bd68c6b11d"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/ci-numerical-context-01/receipt.json",
+      "bytes": 3340,
+      "sha256": "5efe15f2ff8cd4242edfa21f8af2d41766275f72eaf73732c5e5e58af55b887a"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/ci-numerical-context-01/MANIFEST.json",
+      "bytes": 9873,
+      "sha256": "ae494510dd116892dc152da84e52579ea5d2735e310e322df702d9c7d4221b07"
+    }
+  ],
+  "downloads": {
+    "artifacts": 2,
+    "total_bytes": 49732846,
+    "each_downloaded_once": true,
+    "exact_id_name_run_head_size_sha256_verified": true,
+    "selected_raw_members": 16,
+    "local_ignored_evidence": true,
+    "CI_artifact_expiry": "2026-11-03",
+    "old_diagnosis_and_three_logs_unchanged": true,
+    "pde": {
+      "id": 11292314711,
+      "bytes": 22534119,
+      "sha256": "0687d9b683aeca02ce3259ac0dcabc67db9ee3c962afebe769e379174fd6d367"
+    },
+    "codeaster": {
+      "id": 11292758747,
+      "bytes": 27198727,
+      "sha256": "84119d23fac16fcbb95175f42e0ca4cab7b5641fda74d78c0ca2228322d88aa7"
+    }
+  },
+  "explicit": {
+    "job": 111354930311,
+    "step": 5,
+    "failure": "HTTP404 / curl exit22",
+    "fixed_asset": "latest-20260728/OpenRadioss_linux64.zip",
+    "later_native_steps": "SKIPPED_NOT_RUN",
+    "meaning": "CI runtime acquisition blocker",
+    "verified_replacement_asset_digest_runtime": "UNKNOWN"
+  },
+  "pde": {
+    "job": 111354930322,
+    "step": 10,
+    "case": "E-vector-mixed",
+    "planned_category": "ACCEPTED",
+    "mesh_counts": [
+      8,
+      16,
+      32
+    ],
+    "solver_status": "COMPLETED",
+    "converged": true,
+    "core_status": "REJECTED",
+    "assessments": {
+      "PASS": 8,
+      "FAIL": 1
+    },
+    "failing_validation": "pde_l2_convergence_rate",
+    "fixed_min_L2_rate": 1.8,
+    "aggregate_L2_rates": [
+      1.7950984424561094,
+      1.9114360941548467
+    ],
+    "u0_L2_rates": [
+      1.7796221489007413,
+      1.8994642134121147
+    ],
+    "raw_error_log_ratio_independently_recomputed": true,
+    "finest_L2": 0.007074533334231585,
+    "finest_H1": 0.3256203037009979,
+    "metrics": "ALL9_INVALID_PRESERVED",
+    "meaning": "Actual frozen numerical convergence gate fails; no Core classification defect established",
+    "absolute_error_pass_overrides_failed_initial_rate": false
+  },
+  "codeaster": {
+    "job": 111354930327,
+    "step": 7,
+    "case": "E-ansys_vmd1_regular-Fz-aster",
+    "fine_level": 2,
+    "mesh_counts": [
+      24,
+      4,
+      4
+    ],
+    "native_operation": "MECA_STATIQUE linear_solver.solve(rhs,diriBCs)",
+    "native_code": "FACTOR_57",
+    "native_MUMPS_error_estimate": 3.32295e-06,
+    "fixed_RESI_RELA": 1e-06,
+    "execution_return_code": 1,
+    "execution_reason": "NONZERO_EXIT",
+    "timeout": null,
+    "core_status": "FAILED_EXECUTION",
+    "converged": null,
+    "metrics": {},
+    "fine_worker_result_parsed_fields_MED": "ABSENT",
+    "reference_error": "UNAVAILABLE",
+    "meaning": "Native linear solve fails before reference field comparison; failure preserved",
+    "compiled_vendor_identity_conditioning_root_cause_verified_fix": "UNKNOWN"
+  },
+  "follow_up": [
+    "Retain full failing-case/state/rate/native-code context in verifier diagnostics",
+    "Diagnose and predeclare an actual vector mesh/model correction while preserving original failed case and fixed1.8 criterion",
+    "Verify official solver/runtime/numerical options or model conditioning before a changed native beam run; preserve RESI_RELA1e-6",
+    "Verify existing official OpenRadioss asset/digest before repairing CI acquisition; preserve current local runtime"
+  ],
+  "threshold_category_response_changed_to_make_CI_green": false,
+  "new_native_Core_solver_provider_test_Git_calls_by_reviewer": 0,
+  "whole_52": "ACTIVE",
+  "decision": "NOT_RELEASED"
+}
