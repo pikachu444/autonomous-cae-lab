@@ -300,7 +300,7 @@ def test_each_mesh_field_is_manifested_and_stays_unqualified(tmp_path, monkeypat
     assert result["status"] == "COMPLETED"  # Synthetic plumbing, not a native verdict.
     assert result["metrics"]["peak_stress"]["valid"] is False
     assert {"static_strength", "physical_load_test", "material_qualification", "stress_convergence"} <= set(result["pending_validations"])
-    assert result["provenance"]["adapter_version"] == "3"
+    assert result["provenance"]["adapter_version"] == "4"
     manifest = {record["path"]: record for record in artifact_manifest(experiment, revision="b" * 64)}
     for index, study in enumerate(result["mesh_studies"]):
         name = f"support_{index}/stress_field.json"

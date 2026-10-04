@@ -1229,7 +1229,13 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
         $owner.native = $ready.Native; $owner.runtime_url = $ready.Url; $owner.readiness_source = $ready.Source
         Save-OpenScienceRuntimeOwner $owner
         $healthResponse = Invoke-OpenScienceHttp "$($ready.Url)/global/health" -TimeoutSeconds 10
-        Assert-OpenScienceCondition ($healthResponse.StatusCode -eq 200) 'Owned global health probe failed.'
+        # Retain the actual response before admission; a non-200 is not a timeout.
+        # This local public health body contains no request headers or credentials.
+        Write-OpenScienceJson (Join-Path $directory 'global-health-probe.json') @{
+            observed_utc = [DateTime]::UtcNow.ToString('o'); uri = "$($ready.Url)/global/health"
+            status_code = [int]$healthResponse.StatusCode; decoded_body = [string]$healthResponse.Content
+        } -CreateNew
+        Assert-OpenScienceCondition ($healthResponse.StatusCode -eq 200) "Owned global health probe returned HTTP $([int]$healthResponse.StatusCode); response retained in global-health-probe.json."
         $health = $healthResponse.Content | ConvertFrom-Json -AsHashtable
         Assert-OpenScienceReadiness $context $ready.Url $ready.Pid $ready.Native $ready.Connections $health $null
         $owner.health_run_id = $health.runId

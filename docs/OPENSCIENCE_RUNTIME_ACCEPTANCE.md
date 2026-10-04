@@ -1,4 +1,29 @@
-## Current checkpoint: per-mesh common response implemented and independently reviewed
+## Current checkpoint: readiness diagnostics and v4 fixture correction verified
+
+Record: `benchmarks/records/20261005-research-health-diagnostics-ci-r01.json`.
+Parent f8036de exact CI37219222903 is1SUCCESS/1FAIL/8SKIPPED: Core4243PASS/
+1FAIL/5SKIP at synthetic provenance expected3 versus published adapter4.
+Only that expected literal is corrected; Main stress-field57PASS.
+Owned server readiness/source/cancel SelfTest56PASS/0provider/0backend.
+Independent source review has no openP1/P2; numerical limits unchanged.
+
+Fresh human06 fails before MCP/question/solver at non200 global-health
+assertion. Actual HTTP status/body and underlying cause UNKNOWN; original
+f803 boot is distinct from this later diagnostic source. Owned processes
+are now independently saved-cleaned and Root-observed ABSENT; store ABSENT.
+This change saves actual response before unchanged200/runID/PID/socket
+admission and reports its HTTP status. It adds no retries/proxy/budget/auth
+or model changes and does not explain the historical missing response.
+Root reader shell-interpolation failure and corrected file-reader retained.
+
+SERIAL NEXT: clean human07/approved5.6Sol actual per-mesh AI and result gate;
+then retained original assembly P2.4 tag0/body-aware84-group import, explicit
+Domain mechanics/reference/full fields and connected assembly research.
+Whole52/Phase6/7 OPEN; UNKNOWN/NOT_RELEASED and earlier evidence preserved.
+
+---
+
+## Historical checkpoint: per-mesh common response implemented and independently reviewed
 
 Record: `benchmarks/records/20261005-fixture-mesh-response-source-r01.json`.
 Adapter4 adds same-index mesh size and signed loaded-saddle global UZ lists,

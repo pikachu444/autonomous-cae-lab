@@ -1,0 +1,160 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.research-health-probe-and-v4-ci-fixture",
+  "recorded_utc": "2026-10-04T17:29:01.993121+00:00",
+  "status": "SOURCE_CONTROLS_PASS_FRESH_CONNECTED_RESEARCH_NEXT",
+  "parent_source_commit": "f8036de7377b98ce687237858acb57dc93525a8a",
+  "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "source_files": [
+    {
+      "path": "tests/test_fixture_stress_field.py",
+      "base_bytes": 16926,
+      "base_sha256": "06558d5f4764926ee5c104747add931a860ca76c9c45d6ef365810ab80541219",
+      "bytes": 16926,
+      "sha256": "2811f955f7bdc056eebbbb2a1aaf798e39abd7006a42e881d2d1db5b1fc8c99b"
+    },
+    {
+      "path": "scripts/openscience-server-local.ps1",
+      "base_bytes": 145284,
+      "base_sha256": "84853b7b60845f7f2ffc09c41c02f046d7dc2df5eadd567b342d5f08e8a2c157",
+      "bytes": 145847,
+      "sha256": "c0d38b60c396daa1ea6adec63d246b63fc3dfdfd4973cc26ce2520d6429a9932"
+    }
+  ],
+  "changes": [
+    "Retain actual local health HTTP status and decoded body before unchanged200/readiness admission; expose actual status in failure.",
+    "Change the single synthetic stress-field provenance expected version3 to4; preserve all invalid/UNKNOWN/artifact/numerical assertions."
+  ],
+  "Main": {
+    "stress_field_tests": {
+      "pass": 57,
+      "fail": 0,
+      "skip": 0,
+      "duration_seconds": 9.484,
+      "warning": 1,
+      "scope": "Real CAD and synthetic Gmsh/CalculiX I/O fixture controls; not a new native solve."
+    },
+    "server_selftest": {
+      "pass": 56,
+      "provider_calls": 0,
+      "backend_calls": 0,
+      "scope": "Owned readiness/source/process/cancellation mock controls, not live research."
+    }
+  },
+  "exact_parent_CI": {
+    "source": "f8036de7377b98ce687237858acb57dc93525a8a",
+    "run_id": 37219222903,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37219222903",
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": {
+      "success": 1,
+      "failure": 1,
+      "skipped": 8
+    },
+    "Core": {
+      "pass": 4243,
+      "fail": 1,
+      "skip": 5,
+      "warning": 1,
+      "duration_seconds": 371.09,
+      "failed_test": "tests/test_fixture_stress_field.py::test_each_mesh_field_is_manifested_and_stays_unqualified",
+      "failure": "Published adapter version4 conflicts with literal3 in synthetic fixture provenance assertion."
+    },
+    "native_jobs": "SKIPPED; no new Code_Aster/PDE/explicit qualification or failure."
+  },
+  "fresh_human06_boot": {
+    "actual_source_commit": "f8036de7377b98ce687237858acb57dc93525a8a",
+    "run_id": "lab-question-human-20261005-06",
+    "actual_boot_server_source_sha256": "84853b7b60845f7f2ffc09c41c02f046d7dc2df5eadd567b342d5f08e8a2c157",
+    "status": "FAILED_BEFORE_MCP_AND_QUESTION",
+    "observed_failure": "Non200/global-health assertion, not transport timeout.",
+    "HTTP_status": "UNKNOWN",
+    "response_body": "NOT_RETAINED",
+    "underlying_cause": "UNKNOWN",
+    "saved_cleanup": "owned native41884 stopped, launcher51664, closed ownerfailed",
+    "Root_later_actual_process_ids": "controller107648/launcher51664/native41884 all ABSENT",
+    "shared_store": "ABSENT",
+    "question_calls": 0,
+    "solver_calls": 0,
+    "diagnostic_change_is_not_retroactive_cause_proof": true
+  },
+  "Root_reader_attempts": [
+    {
+      "status": "FAILED_BEFORE_INTENDED_OBSERVATION",
+      "basis": "exec chunk0bbfc9 exit1",
+      "reason": "Nested PowerShell interpolation produced invalid reader variables.",
+      "corrected_by": "File-based check-closed-02.ps1 and actual absence receipt; first intended receipt ABSENT."
+    }
+  ],
+  "preserved": {
+    "health_timeout_seconds": 10,
+    "startup_timeout_seconds": 180,
+    "health_HTTP_status_required": 200,
+    "runID_PID_socket_source_gates_unchanged": true,
+    "proxy_retry_auth_model_changes": 0,
+    "approved_model": "openai-codex/gpt-5.6-sol",
+    "prior_human05_records_and_numerical_limits_unchanged": true
+  },
+  "independent_source_review": "PASS; no openP1/P2, bounded source scope",
+  "evidence": [
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/health-and-ci-source-change-01.json",
+      "bytes": 882,
+      "sha256": "9025912b7023148dbdbe07475e8c2eea4cb8f85e68727f53aa0403252a897c74"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/health-and-ci-stress-main-01.xml",
+      "bytes": 8039,
+      "sha256": "37ccf110655f143aef496bef6a2677bb0401117585bbb90016006bba65a2b991"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/health-and-ci-stress-main-01.log",
+      "bytes": 815,
+      "sha256": "c581bf81705408ba58b1d4854569d3e1e8472145442d6c52bcf27f9374ee002f"
+    },
+    {
+      "path": "artifacts/health-ci-source-20261005-01/self-test.json",
+      "bytes": 3224,
+      "sha256": "c7f2ea6c175373f89112ae92e7621596990e703af915d99713d696cd9719014d"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/f803-ci-readonly-01/REPORT.md",
+      "bytes": 4676,
+      "sha256": "ddda0536d25ebac043f839a30daa8960daf144aee69349773935746c4089d70e"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/f803-ci-readonly-01/MANIFEST.json",
+      "bytes": 3083,
+      "sha256": "a26e6d51ea2d41510b1e90d390af407006696cc015e7392af42c6a6236cf9ed7"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-06/startup-readonly-review-01/receipt.json",
+      "bytes": 11545,
+      "sha256": "0ae956d58d6b9d8c057c9299bde56c08213882004e03b7f48187e41f137d7fbc"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-06/root-owned-process-absence-02.json",
+      "bytes": 408,
+      "sha256": "cc6b9b43a1bee3bde5ed468f522ccc9d4241d274d89c4c58d92ff7fd848083f8"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/health-and-ci-source-review-01/RECEIPT.json",
+      "bytes": 5278,
+      "sha256": "b39b1208160da1c9072fc466000ccd08939c31ae1b5acd22f2e6cc1d1efb244d"
+    }
+  ],
+  "raw_response_retention": "New global-health-probe.json stays in private owned profile; no headers/auth in public checkpoint.",
+  "next": [
+    "fresh clean human07 ordinary question and per-mesh AI/readable result",
+    "P2.4 retained seven-body/84-group tag0 native import",
+    "explicit Domain mechanics/reference/full fields and connected assembly research"
+  ],
+  "open": [
+    "new per-mesh live AI NOT_RUN",
+    "whole52/Phase6/Phase7 OPEN",
+    "oldcfa native CI failures unresolved in their exact source scope",
+    "optimization convergence/measured data/physical/strength/durability UNKNOWN"
+  ],
+  "decision": "NOT_RELEASED"
+}
