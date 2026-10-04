@@ -1,4 +1,22 @@
-## Current checkpoint: original assembly coarse/fine mesh independently qualified
+## Current checkpoint: mesh reuse source reviewed; actual capture next
+
+Record: `benchmarks/records/20261004-fixture-assembly-mesh-reuse-source-r01.json`.
+Root promotes two exact new files: qualified-bundle capture/recheck and its
+55 PASS source controls; independent open P1/P2 = 0. Current CAD joins precede
+captured code; original numerical verification runs once before byte copy.
+Recheck verifies bytes/identity, preserves original runtime provenance and never
+remeshes. Actual coarse/fine capture and Windows junction behavior are NOT_RUN.
+Pinned17.4 import source plus small headers predicts70 face tag collisions per
+profile,29 across bodies: not an actual native observation. NEXT is new-path
+capture/recheck, then new solver transport (second/entity tag0, original unchanged)
+and actual body-aware84-group import; explicit Domain mechanics/full fields then
+public analysis/campaign and connected question/conditions/results/compare.
+Existing d9 CI37183746545 is7SUCCESS/3FAIL; no new CI or solver proof is inferred.
+User workflow, all52/P2.4/Phase6/7 remain OPEN; UNKNOWN/NOT_RELEASED unchanged.
+
+---
+
+## Historical checkpoint: original assembly coarse/fine mesh independently qualified
 
 Record: `benchmarks/records/20261004-fixture-assembly-mesh-native-r02-qualified.json`.
 Clean actual producer d9a1a9f reused retained f8 CAD in two NEW paths. 3.0mm:

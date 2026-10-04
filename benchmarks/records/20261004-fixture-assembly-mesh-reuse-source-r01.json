@@ -1,0 +1,178 @@
+{
+  "accepted_native_import_lookup": {
+    "across_component_collisions_per_profile": 29,
+    "actual_transport_and_native_import": "NOT_RUN",
+    "collision_scope": "Pinned source logic plus retained small headers; NOT actual native observations or element counts",
+    "compiled_image_source_equivalence_newly_examined": "UNKNOWN",
+    "format": "https://gmsh.info/doc/texinfo/#MSH-file-format-version-2-ASCII",
+    "header_predicted_directed_face_collisions_per_profile": 70,
+    "manifest": {
+      "sha256": "0c096610543845d2c86a441b8d210ddc4bd01aa4df5536602e30c0d45ed2a30c",
+      "size_bytes": 6589
+    },
+    "next_native_gate": "Actual exact84 nonempty cell groups, per-body coordinate bijections, sparse-source/native0-index cell/node/connectivity membership and all face/body joins",
+    "next_transport_candidate": "New solver transport only: retain two tags, replace elementary/entity tag with 0; preserve PhysicalNames, sparse IDs, ordered nodes and coordinate text exactly; original mesh unchanged",
+    "report": {
+      "sha256": "5658c9288e4bb85975291a5df86b78f4b908bdd09440fc2673ba3bfc1f681a66",
+      "size_bytes": 6978
+    },
+    "root": "artifacts\\development-fixture-coupling-20261004-01\\assembly-native-import-lookup-01",
+    "source": "https://gitlab.com/codeaster/src/-/raw/50ebc13c70ee9df62faf93ddcb746a3757b3042a/bibfor/prepost/gmlelt.F90",
+    "source_entry": {
+      "sha256": "676c5afa997abf6c8b5c46771e0e5c55b5a44619fb466dcbfafe47be9739c03f",
+      "size_bytes": 10132
+    },
+    "tria6_python_permutation_source_only": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "upstream_commit": "50ebc13c70ee9df62faf93ddcb746a3757b3042a",
+    "upstream_version": "17.4.0",
+    "volume_cross_collisions": 0
+  },
+  "accepted_reuse_lookup": {
+    "findings": [
+      "mesh_parent always regenerates; use exact original verify_output and trusted captured source",
+      "Mesh preprocessing is not a Core CAD parent; existing AnalysisAdapter/engine boundaries remain",
+      "Full material/contact/joint/BC assumptions must be explicit Domain input before mechanics",
+      "Curved TETRA10 GP/fields cannot reuse the affine box or 2D pressure parser unchanged"
+    ],
+    "manifest": {
+      "sha256": "928712d4518c965de9c9d1c55166ce0ae92e2f1a58ac6e1ad9e04540ea721d75",
+      "size_bytes": 5225
+    },
+    "report": {
+      "sha256": "15f25751bb5f5981e8d054aaa06071d448afceab0592f9578dba7cf926f246a8",
+      "size_bytes": 7769
+    },
+    "root": "artifacts\\development-fixture-coupling-20261004-01\\assembly-mechanics-reuse-01"
+  },
+  "ci": {
+    "exact_mesh_source_commit": "d9a1a9fa9096f66e30fa637bebd931bc59cd9c33",
+    "jobs_failed": 3,
+    "jobs_success": 7,
+    "new_source_ci": "NOT_RUN; check exact source after publication",
+    "raw_new_ci_causal_diagnosis": "NOT_RUN",
+    "run_id": 37183746545,
+    "status": "COMPLETED_FAILURE"
+  },
+  "created_utc": "2026-10-04T08:34:06.672447+00:00",
+  "decision": "NOT_RELEASED",
+  "execution": {
+    "actual_qualified_reuse_capture": "NOT_RUN",
+    "actual_windows_junction": "NOT_RUN",
+    "new_cad_generations": 0,
+    "new_native_calls": 0,
+    "new_provider_calls": 0,
+    "new_sdk_initializations": 0,
+    "new_solver_calls": 0
+  },
+  "implementation": {
+    "capture_policy": "Fresh separate root; no links, overlap or overwrite; preserve original runtime paths as original execution; retain partial failures",
+    "constructor_pins": "Trusted Root/operator configuration, never Research settings",
+    "initial_verification": "Exact live CAD parent before captured-code load; one original-root numerical verify_output before exclusive byte copy",
+    "public_admission": false,
+    "recheck": "Same completed object; source/copy byte and file-identity plus current Main CAD joins; no numerical-array decode/native execution",
+    "source_loading": {
+      "global_sys_settings_changed": false,
+      "helper": "Fresh module compile/exec of hash-checked original bytes",
+      "membership": "Complete expected capsule files and prefix directories; unexpected pyc/cache and reparse refused before execution",
+      "scientific_verifier_logic_changed": false,
+      "standalone_hook": "Exact assembly_mesh.py plus _captured_mesh_domain/_assembly_mesh_domain only; compile pinned bytes"
+    }
+  },
+  "independent_source_review": {
+    "inputs_unchanged": true,
+    "old_numerical_array_reaudits": 0,
+    "open_P1": 0,
+    "open_P2": 0,
+    "receipt": {
+      "sha256": "9931912e56f06e718b0363826743b6ac2ef8f09fc5228d1e42f5295609c6c80c",
+      "size_bytes": 1840
+    },
+    "report": {
+      "sha256": "31e477f50edc5bb551c392aa3ee003c6b570ba42c17b8235a3b78f08c91c8eee",
+      "size_bytes": 1485
+    },
+    "root": "artifacts\\development-fixture-coupling-20261004-01\\assembly-mesh-reuse-review-01",
+    "target_imports_and_tests": 0
+  },
+  "limitations": [
+    "Source/tests are not actual transfer qualification or engineering approval",
+    "Global curved positivity and native assembly mechanics remain UNKNOWN/NOT_RUN",
+    "Strength, material, physical durability and corporate deployment remain UNKNOWN"
+  ],
+  "next_serial": [
+    "Publish reviewed source then capture/recheck both existing qualified meshes in new paths without regeneration",
+    "New source-bound solver transport and actual component-aware native import/catalogue",
+    "Explicit Domain mechanics/material/joint/contact/reference declaration and owned solve/full fields/balance/refinement",
+    "Public analysis/campaign, official OpenScience and same-record human condition change/compare"
+  ],
+  "original_mesh_record": "benchmarks/records/20261004-fixture-assembly-mesh-native-r02-qualified.json",
+  "original_native_mesh_producer": "d9a1a9fa9096f66e30fa637bebd931bc59cd9c33",
+  "retention": "Source and compact records committed; raw bundles, candidate/review/lookup evidence and partial attempts are local ignored, not remotely archived",
+  "service_acceptance": {
+    "P2.4": "OPEN",
+    "Phase6_7": "OPEN",
+    "approved_research_model": "GPT-5.6 Sol; unchanged",
+    "open_gaps": [
+      "Lab question to official OpenScience handoff",
+      "Original assembly public analysis/conditions/campaign",
+      "User-facing stage/blocked-next-step workflow"
+    ],
+    "user_path": "Question -> conditions -> actual solve -> understandable results -> condition change/compare on same records",
+    "whole52": "OPEN"
+  },
+  "solver_status": "NOT_RUN",
+  "source_base": "d2ad81bbcba1991486224e5ac53a845e3e28afaa",
+  "source_files": {
+    "caelab/adapters/fixture_assembly_mesh_reuse.py": {
+      "sha256": "eebd4a6fcd8b8f98badc6fe9508d65a68efc41e545c61770bd0ae68d50ed8d18",
+      "size_bytes": 18708
+    },
+    "tests/test_fixture_assembly_mesh_reuse.py": {
+      "sha256": "58e637e30f94b383eb93751d69305d4c1de5537cba344b046fed2dd7df62bf47",
+      "size_bytes": 20580
+    }
+  },
+  "source_producer": "commit_containing_this_record; exact new source bytes below",
+  "status": "QUALIFIED_BOUNDED_REUSE_SOURCE_ACTUAL_CAPTURE_NOT_RUN",
+  "writer": {
+    "cold_junit": {
+      "sha256": "3c11b3aef145a962c9cd605bb4456e62bcb1b54bbae862ffe379f434bd208878",
+      "size_bytes": 7916
+    },
+    "cold_receipt": {
+      "sha256": "1fee19301726fe9b92a1503e23c6ec097fb815947847f905a51bd15a69fb3b9c",
+      "size_bytes": 2041
+    },
+    "elapsed_seconds": 3.0654665280599147,
+    "freeze": {
+      "sha256": "40c593b4fe97e3750558c8551b33f8bfb724e4406ce024a2588ed353ea14429a",
+      "size_bytes": 2285
+    },
+    "manifest": {
+      "sha256": "3f201b50b149763078212759096a286f5d02e96c518affa14fe224c7645072af",
+      "size_bytes": 3410
+    },
+    "protected_file_count": 1282,
+    "protected_size_bytes": 838171159,
+    "protected_unchanged": true,
+    "receipt": {
+      "sha256": "65ef0b55311a415c54c059f6bf3872a79a59026794d6666770e314acf17be6ea",
+      "size_bytes": 6228
+    },
+    "result": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 55
+    },
+    "root": "artifacts\\development-fixture-coupling-20261004-01\\assembly-mesh-reuse-source-01",
+    "synthetic_boundary_scope": "Clearly synthetic verification/source boundaries; no FE qualification or production admission bypass"
+  }
+}
