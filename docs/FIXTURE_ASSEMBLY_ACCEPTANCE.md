@@ -186,3 +186,19 @@ New exact correction CI NOT_RUN until publication/check; no solver rerun.
 NEXT: reviewed current-stage/next-action UI and actual saved-model/failure view,
 then component-aware native import, explicit mechanics, Research/human compare.
 All52 and whole service remain OPEN; UNKNOWN/NOT_RELEASED unchanged.
+
+## Original native-import source qualification (2026-10-05)
+
+Record: `benchmarks/records/20261005-fixture-assembly-native-import-source-r01.json`. Internal adapter source only, not AnalysisAdapter/public
+Research admission. Original qualified bundle capture/same-object checks and
+CAD/mesh/source identities are reused. Solver transport changes only each
+element second/entity tag to0; all other original bytes are retained.
+Full7body/84group node/cell memberships and ordered native zero-based
+bijections are required, including coincident different-body nodes.
+Main final44 controls PASS, actual module/class import PASS, independent
+source review0P1/P2; synthetic APIs/processes are not native acceptance.
+Actual runtime/SIF identity preflight completed; actual coarse/fine import
+NOT_RUN. Next fresh coarse actual import, raw audit, fine1.5, then explicit
+Domain mechanics/reference/full fields and connected Research. Original
+material/contact/fastener/mounting/physical/strength/durability UNKNOWN,
+solver NOT_RUN and NOT_RELEASED; no failed result or thresholds replaced.

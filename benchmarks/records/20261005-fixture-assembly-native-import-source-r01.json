@@ -1,0 +1,236 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.original-seven-body-native-import-source",
+  "recorded_utc": "2026-10-04T19:02:19.703576+00:00",
+  "base_commit": "246a195dac504842c9e3b0fee77edea2df1a7589",
+  "status": "SOURCE_QUALIFIED_ACTUAL_NATIVE_IMPORT_NOT_RUN",
+  "source_files": [
+    {
+      "path": "caelab/adapters/fixture_assembly_native_import.py",
+      "size_bytes": 18846,
+      "sha256": "b7dc793cc9e054cdf10422ffd93e8a86a2b6133a3f69230a22fdf2e2ba86b878"
+    },
+    {
+      "path": "caelab/adapters/fixture_assembly_native_import_worker.py",
+      "size_bytes": 18525,
+      "sha256": "f989f06ed0169eb06c297b3d1adc18b331f88dd254244af7d30aca31d1248e15"
+    },
+    {
+      "path": "tests/test_fixture_assembly_native_import.py",
+      "size_bytes": 22693,
+      "sha256": "26f51e8017761f3566ec95660ca9c17efa3d2f6fd4eaf7f07ec98524a50dd897"
+    }
+  ],
+  "architecture": "Internal adapter helper only; unchanged Core/schema/registry/Domain/pinned upstream/research admission. QualifiedAssemblyMeshBundle and original CAD/meshes reused.",
+  "entrypoint": "caelab.adapters.fixture_assembly_native_import.import_bundle(bundle,parent_result,parent_root,output)",
+  "native_scope": "DEBUT/LIRE_MAILLAGE/API observation/FIN only; no remeshing, material, BC, load, MECA or provider call",
+  "transport": "Preserve every original MSH2.2 byte except each second elementary/entity tag token becomes ASCII0; exact84 physical groups, sparse IDs, XYZ text, cell types and ordered connectivity unchanged.",
+  "comparison": "Full7 disjoint body-local node/cell bijections; all84 cell/node memberships; no global coincident-node merge; TRIA6 identity and existing official TETRA10 permutation.",
+  "coordinate_absolute_limit_mm": 1e-12,
+  "limits_not_relaxed": true,
+  "owned_execution": "Reuse existing _process/process_budgets; wall timeout None, native CPU default86400s; before/after pinned image/runtime/worker/input/raw output; original same captured object full recheck before import and at final admission.",
+  "main_source_gate": {
+    "status": "PASS",
+    "tests": {
+      "tests": 44,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "python": "3.12.3",
+    "elapsed_seconds": 11.71356680104509,
+    "actual_main_module_import": true,
+    "synthetic_controls_are_not_native_evidence": true,
+    "native_or_provider_invocations": 0
+  },
+  "narrow_CI_observer_correction": {
+    "source": {
+      "path": "tests/test_structural_family_process_control.py",
+      "size_bytes": 16124,
+      "sha256": "3eddd96f0ad8615f264040ed177e7bae8b47a81498039a0b03449eb3de167478"
+    },
+    "scope": "Test-only /proc ESRCH/ProcessLookupError is process absence; add one deterministic observation case. Production cleanup, ownership, permission/live/malformed observations and numerical rules unchanged.",
+    "exact_parent_CI": {
+      "source": "246a195dac504842c9e3b0fee77edea2df1a7589",
+      "run_id": 37223475676,
+      "job_id": 111498267954,
+      "success_jobs": 1,
+      "failed_jobs": 1,
+      "skipped_jobs": 8,
+      "pytest": {
+        "passed": 4243,
+        "failed": 1,
+        "skipped": 5,
+        "seconds": 700.48
+      },
+      "failure": "tests/test_structural_family_process_control.py::_stopped line27 raises ProcessLookupError Errno3 during line170 post-cleanup stopped-PID read",
+      "production_or_solver_defect_from_this_trace": "NOT_ESTABLISHED"
+    },
+    "Main_full_file": {
+      "tests": 25,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "elapsed_seconds": 3.3413963348139077,
+    "actual_local_owned_process_controls": true,
+    "native_solver_provider_calls": 0,
+    "independent_source_review": {
+      "status": "PASS_READ_ONLY_TEST_OBSERVER_SOURCE_REVIEW",
+      "open_P1": 0,
+      "open_P2": 0
+    }
+  },
+  "independent_source_review": {
+    "status": "PASS_BOUNDED_SOURCE_ONLY_NATIVE_IMPORT_NOT_RUN",
+    "open_P1": 0,
+    "open_P2": 0,
+    "receipt": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-source-review-01/RECEIPT.json",
+      "size_bytes": 7734,
+      "sha256": "5c77a9b575f359d49e8c5beb64a1ba893308898ed6d6b6fdc68e2a7001a454f6"
+    }
+  },
+  "preflight": {
+    "scope": "Existing Apptainer/SIF identity and one actual --version probe only; no native import",
+    "receipt": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-root-20261005-01/runtime-observation-01.json",
+      "size_bytes": 916,
+      "sha256": "bed9fe45dc3dfa819744471ab905f2f66f1979c6711157b7d700a33e94bd0abf"
+    },
+    "SIF_sha256": "f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64",
+    "compiled_image_source_equivalence": "UNKNOWN"
+  },
+  "exact_previous_CI": {
+    "native_human07_producer": "162231311b72886f0a3f6eb2371f90473564a2ef",
+    "run_id": 37220790564,
+    "conclusion": "FAILURE",
+    "success_jobs": 7,
+    "failed_jobs": 3,
+    "observed_failed_log_assertions": [
+      "Vector classification assertion at scripts/verify_vector_pde.py:297",
+      "Code_Aster E-ansys_vmd1_regular-Fz-aster completion/check assertion",
+      "Approved OpenRadioss ZIP HTTP404 before checksum/unpack/native execution"
+    ],
+    "vector_actual_case_status_and_numerical_cause": "UNKNOWN",
+    "Code_Aster_actual_status_metric_and_convergence_cause": "UNKNOWN",
+    "correction_of_scope": "Failure assertions do not prove numerical/reference failure or convergence cause; frozen old human07 record is preserved."
+  },
+  "continuation": {
+    "id": "autonomous-cae-lab",
+    "kind": "heartbeat",
+    "status": "ACTIVE",
+    "interval_minutes": 30,
+    "destination": "same current chat",
+    "old_whole52_goal_status": "BLOCKED, not complete; no resume mutation available",
+    "controls": "Latestrepo/gate/candidate/ownedjob recovery; no duplicate writer; Root integration; approved5.6Sol only; meaningful verification/commit/push; UNKNOWN/NOT_RELEASED.",
+    "requires": "Computer/app/repository available",
+    "official_guidance": "https://developers.openai.com/codex/app/automations/"
+  },
+  "actual_coarse_fine_native_import": "NOT_RUN",
+  "solver_status": "NOT_RUN",
+  "converged": null,
+  "public_assembly_backend": "NOT_ADMITTED",
+  "whole52_and_Phase6_7": "OPEN",
+  "decision": "NOT_RELEASED",
+  "retention": "Original meshes/CAD/failed attempts preserved. Public summary/hash pins; raw private source/control/runtime evidence retained locally; no credentials/request headers.",
+  "evidence": [
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-source-01/FREEZE.json",
+      "size_bytes": 1744,
+      "sha256": "4f3c9ba83059389cd5543ae51814591c9fceac6ba6688f4a1ca2a0cf0a8f675e"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-source-01/RECEIPT.json",
+      "size_bytes": 28031,
+      "sha256": "14f5eb24640f5774fb61cbab740e1da3b1c27d748638ba0ddd6984d7874b0389"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-source-01/MANIFEST.json",
+      "size_bytes": 6569,
+      "sha256": "52306dfbce2bdbaaac58557b418c60ed8e0ab790cae4254d84bf4c39db6905a5"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-source-review-01/RECEIPT.json",
+      "size_bytes": 7734,
+      "sha256": "5c77a9b575f359d49e8c5beb64a1ba893308898ed6d6b6fdc68e2a7001a454f6"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-root-20261005-01/promotion-01.json",
+      "size_bytes": 1478,
+      "sha256": "e9ed09b5cf6c701f9b871ff4f5dda47b7979ff827a4068654e60d8392ea059f3"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-root-20261005-01/main-source-tests-01/receipt.json",
+      "size_bytes": 1559,
+      "sha256": "74094a0d92c6cb34b92ae482584177383fae92d71694f325d55648ca4f8d2e1e"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-root-20261005-01/main-source-tests-01/junit.xml",
+      "size_bytes": 7280,
+      "sha256": "18d924d1eeee294dcbb992a97667845106aaa7342f347e38be140e9234b07a20"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-root-20261005-01/runtime-observation-01.json",
+      "size_bytes": 916,
+      "sha256": "bed9fe45dc3dfa819744471ab905f2f66f1979c6711157b7d700a33e94bd0abf"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/work-continuation-20261005-01.json",
+      "size_bytes": 1121,
+      "sha256": "a7c2b44c389c6b1b664ada2d1e8ec728ba7ac397276792a4a0f2fc49b34fc618"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/162-ci-readonly-01/MANIFEST.json",
+      "size_bytes": 1546,
+      "sha256": "3da680403e781258d7dff7413c61582fd20187b3eadcc1b59e34d6bd699d37d3"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/246-ci-readonly-01/MANIFEST.json",
+      "size_bytes": 1189,
+      "sha256": "96b68b883584ffb6757b5dbdced523f27d287fedf0f351b2f58b79d1ba811f26"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/246-ci-readonly-01/CORE-FAILURE-SUPPLEMENT.json",
+      "size_bytes": 32285,
+      "sha256": "3712548968e0702cfc79c63b02ab0eed4e23f8dae2bebdc380dfcb49be109474"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/proc-observer-correction-01/CANDIDATE.json",
+      "size_bytes": 670,
+      "sha256": "cfee21945f681490006225ead9f796df3baa77bb1a0670a8b98afec806806e2f"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/proc-observer-correction-01/READONLY-REVIEW.json",
+      "size_bytes": 4898,
+      "sha256": "b148d62aadc637c47ecc3731efcd0d7861d7e9cf8d77548d62d17adbd99c15a5"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/proc-observer-correction-01/promotion-01.json",
+      "size_bytes": 421,
+      "sha256": "59328bdbf15ecb86b8da17b1a57587372b882604f5635d8b4b4c1f7259cf5775"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/proc-observer-correction-01/main-tests-01/receipt.json",
+      "size_bytes": 1041,
+      "sha256": "2bdd821a5d59fdcba6aeec449263854233ef47cd680b1903b0d42f8cf0913807"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/proc-observer-correction-01/main-tests-01/junit.xml",
+      "size_bytes": 4557,
+      "sha256": "86b14bf89ad683f52f2ffa7f64627052fb9add270930c8bbbc31750d07142409"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-07/result-preview-stop-01.json",
+      "size_bytes": 450,
+      "sha256": "6cdb56a7e172e1eaee7bd026bd049b1fea7975094b8639bfa646b4d94f542ac7"
+    }
+  ],
+  "next_serial": [
+    "Commit/push reviewed clean source and run one fresh coarse3 actual native import",
+    "Independent actual catalog/body/group/connectivity/retention audit before fine1.5",
+    "Freeze Domain materials/frames/joints/contact/load/BC/reference rules before actual mechanics",
+    "Full fields/balance/mesh sensitivity, connected assembly Research/human workflow",
+    "Remaining measured data, Phase6/7 spatial/multiphysics/UQ/physical and service usability gates"
+  ]
+}

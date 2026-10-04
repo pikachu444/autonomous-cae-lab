@@ -1,4 +1,32 @@
-## Current checkpoint: actual per-mesh AI, native response and human result verified
+## Current checkpoint: original assembly native-import source qualified; actual import next
+
+Record: `benchmarks/records/20261005-fixture-assembly-native-import-source-r01.json`. Base246a195;3 new internal adapter/test files plus
+a test-only disappearing-PID observer correction from exact246 CI failure.
+Main actual module/class import and final44 source controls PASS; independent
+review0openP1/P2. Exact tag0 transport and full7body/84group/index/order guards
+reuse original qualified CAD/meshes; no Core/schema/registry/Domain changes.
+Source passes and runtime/SIF preflight do not prove actual native import.
+Coarse/fine import, mechanics/full fields and public assembly Research NOT_RUN.
+
+Exact246 CI37223475676 is1SUCCESS/1FAIL/8SKIP, Core4243PASS/1FAIL/5SKIP.
+The failure is /proc ProcessLookupError after cleanup, not a proved solver
+defect. Narrow observer correction full-file25PASS; permission/live/owner
+guards unchanged. Whole new CI is not claimed from these selected controls.
+Exact162 failed logs retain vector classification and Code_Aster completion/
+check assertions; actual case/status/metric/convergence causes UNKNOWN.
+Approved OpenRadioss ZIP HTTP404 precedes checksum/unpack/native execution.
+Existing whole52 goal is BLOCKED, not complete. Same-chat30minute heartbeat
+is ACTIVE and resumes saved sequential work when computer/app are available.
+Saved human07 preview is stopped before promotion; approved5.6Sol unchanged.
+
+SERIAL NEXT: clean committed source → fresh coarse3 actual import and raw
+independent identity audit → fine1.5 → explicit Domain mechanics/reference →
+full fields/balance/sensitivity and connected assembly Research/human gate.
+Whole52/Phase6/7 and service usability OPEN; engineering UNKNOWN/NOT_RELEASED.
+
+---
+
+## Historical checkpoint: actual per-mesh AI, native response and human result verified
 
 Record: `benchmarks/records/20261005-lab-per-mesh-research-r01.json`. Clean native producer1622313,
 fixture3e48, approved5.6Sol, fresh human07 ordinary Lab question.

@@ -25,7 +25,7 @@ def _wait_for(path, seconds=5):
 def _stopped(pid):
     try:
         status = Path(f"/proc/{pid}/stat").read_text()
-    except FileNotFoundError:
+    except (FileNotFoundError, ProcessLookupError):
         # A killed child can be reaped between any existence check and read.
         return True
     return status.split()[2] == "Z"
@@ -33,6 +33,7 @@ def _stopped(pid):
 
 @pytest.mark.parametrize("observation,expected", [
     (FileNotFoundError, True),
+    (ProcessLookupError, True),
     ("7014 (python) Z 1 1 1", True),
     ("7014 (python) S 1 1 1", False),
     ("7014 (python) R 1 1 1", False),
