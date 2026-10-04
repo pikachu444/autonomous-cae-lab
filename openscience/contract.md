@@ -1,4 +1,18 @@
-## Current checkpoint: both real mesh reuse transfers independently qualified
+## Current checkpoint: isolated import control reviewed and integrated
+
+Record: `benchmarks/records/20261004-fixture-assembly-mesh-reuse-ci-correction-r01.json`.
+Only the test changes: fresh interpreter checks reader imports and preserves
+the ambient module cache. Selected55 PASS plus one synthetic order variation
+of the same case PASS; independent openP1/P2=0. Production reader unchanged.
+Old exact868 CI37189476293 remains FAILED(4136/1/5; native8 SKIPPED).
+New exact correction CI NOT_RUN until publication/check; no solver rerun.
+NEXT: reviewed current-stage/next-action UI and actual saved-model/failure view,
+then component-aware native import, explicit mechanics, Research/human compare.
+All52 and whole service remain OPEN; UNKNOWN/NOT_RELEASED unchanged.
+
+---
+
+## Historical checkpoint: both real mesh reuse transfers independently qualified
 
 Record: `benchmarks/records/20261004-fixture-assembly-mesh-reuse-r01-qualified.json`.
 Clean source8684491 captures/rechecks retained coarse3/fine1_5 into NEW paths;

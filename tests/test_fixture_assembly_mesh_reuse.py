@@ -420,7 +420,112 @@ def test_unknown_capture_cannot_self_admit_a_receipt(context):
         c.constructor().recheck(c.output)
 
 
-def test_imports_have_no_native_or_provider_admission():
-    assert not any(name in sys.modules for name in ("gmsh","cadquery","OCP","code_aster"))
+def test_imports_have_no_native_or_provider_admission(tmp_path):
+    import subprocess
+
+    reader=(BASE/"caelab/adapters/fixture_assembly_mesh_reuse.py").resolve()
+    source=reader.read_bytes()
+    expected={"filename":str(reader),"sha256":hashlib.sha256(source).hexdigest(),
+              "size_bytes":len(source)}
+    guarded_roots=("gmsh","cadquery","OCP","code_aster","FreeCAD","Part",
+                   "mgis","mtest","openai","anthropic","ollama","litellm")
+    # An unrelated earlier test may have loaded these modules in the parent.
+    # Preserve that evidence; admission is checked in an isolated interpreter.
+    parent_modules={name:module for name,module in sys.modules.copy().items()
+                    if name.split(".",1)[0] in guarded_roots}
+    script=r'''
+import builtins
+import hashlib
+import importlib
+import importlib.abc
+import json
+from pathlib import Path
+import sys
+from types import ModuleType
+
+filename=Path(sys.argv[1]).resolve()
+source=filename.read_bytes()
+pin={"filename":str(filename),"sha256":hashlib.sha256(source).hexdigest(),
+     "size_bytes":len(source)}
+assert pin=={"filename":sys.argv[1],"sha256":sys.argv[2],
+             "size_bytes":int(sys.argv[3])},pin
+roots=set(json.loads(sys.argv[4]))
+def loaded_guarded_modules():
+    return sorted(name for name in sys.modules if name.split(".",1)[0] in roots)
+assert loaded_guarded_modules()==[]
+attempts=[]
+class BlockedImport(RuntimeError):
+    pass
+def reject(name):
+    if name.split(".",1)[0] in roots:
+        attempts.append(name)
+        raise BlockedImport(name)
+original_import=builtins.__import__
+def guarded_import(name,*args,**kwargs):
+    reject(name)
+    return original_import(name,*args,**kwargs)
+class ImportGuard(importlib.abc.MetaPathFinder):
+    def find_spec(self,fullname,path=None,target=None):
+        reject(fullname)
+        return None
+builtins.__import__=guarded_import
+sys.meta_path.insert(0,ImportGuard())
+
+# Execute the checked read buffer directly, so an existing pyc cannot be used.
+module=ModuleType("_qualified_mesh_reader_import_control")
+module.__file__=str(filename)
+module.__package__=""
+sys.modules[module.__name__]=module
+code=compile(source,str(filename),"exec")
+exec(code,module.__dict__)
+assert code.co_filename==pin["filename"]
+assert attempts==[]
+assert loaded_guarded_modules()==[]
+reader_attempts=list(attempts)
+assert module._Pin("a"*64,0).value()=={"sha256":"a"*64,"size_bytes":0}
+assert not hasattr(module.QualifiedAssemblyMeshBundle,"solve")
+assert not hasattr(module.QualifiedAssemblyMeshBundle,"mesh_parent")
+decimal=importlib.import_module("decimal")
+assert decimal.Decimal("1.25")+decimal.Decimal("2.75")==decimal.Decimal("4")
+assert attempts==[]
+
+rejections=[]
+for name,operation in (("openai",lambda:__import__("openai")),
+                       ("gmsh",lambda:importlib.import_module("gmsh"))):
+    try:
+        operation()
+    except BlockedImport as error:
+        assert str(error)==name
+        rejections.append(name)
+    else:
+        raise AssertionError("Import guard admitted "+name)
+assert attempts==["openai","gmsh"]
+assert loaded_guarded_modules()==[]
+print(json.dumps({"executed_reader":pin,"reader_import_attempts":reader_attempts,
+                  "standard_library_positive_control":True,
+                  "reader_positive_control":True,"rejected_imports":rejections,
+                  "loaded_guarded_modules":loaded_guarded_modules(),
+                  "solve_admitted":False,"mesh_parent_admitted":False},sort_keys=True))
+'''
+    command=[sys.executable,"-I","-S","-B","-c",script,str(reader),
+             expected["sha256"],str(expected["size_bytes"]),json.dumps(guarded_roots)]
+    completed=subprocess.run(command,capture_output=True,text=True,timeout=30)
+    (tmp_path/"reader-import-command.json").write_text(json.dumps(command),encoding="utf-8")
+    (tmp_path/"reader-import.stdout.json").write_text(completed.stdout,encoding="utf-8")
+    (tmp_path/"reader-import.stderr.txt").write_text(completed.stderr,encoding="utf-8")
+    assert completed.returncode==0,(completed.stdout,completed.stderr)
+    receipt=json.loads(completed.stdout)
+    assert receipt["executed_reader"]==expected
+    assert receipt["reader_import_attempts"]==[]
+    assert receipt["standard_library_positive_control"] is True
+    assert receipt["reader_positive_control"] is True
+    assert receipt["rejected_imports"]==["openai","gmsh"]
+    assert receipt["loaded_guarded_modules"]==[]
+    assert receipt["solve_admitted"] is False
+    assert receipt["mesh_parent_admitted"] is False
+    after_modules={name:module for name,module in sys.modules.copy().items()
+                   if name.split(".",1)[0] in guarded_roots}
+    assert after_modules.keys()==parent_modules.keys()
+    assert all(after_modules[name] is module for name,module in parent_modules.items())
     assert not hasattr(r.QualifiedAssemblyMeshBundle,"solve")
     assert not hasattr(r.QualifiedAssemblyMeshBundle,"mesh_parent")

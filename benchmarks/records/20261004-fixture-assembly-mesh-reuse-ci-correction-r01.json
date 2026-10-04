@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-04T09:28:23.216050+00:00",
+  "status": "SOURCE_CORRECTION_REVIEWED_NEW_EXACT_SOURCE_CI_NOT_RUN",
+  "integration_parent": "ca060b6bceecca0fca78cafc983a972fdc5b9039",
+  "source_base": "868449176262dafdfedc6ec9e8918553d0b6dfb2",
+  "promotion": {
+    "path": "tests/test_fixture_assembly_mesh_reuse.py",
+    "sha256": "f483427212664390135e3d5daa39990003ba92b407f75d1c9cd56caac4c124ac",
+    "size_bytes": 25246
+  },
+  "scope": "Only the import-admission test changes; production reader and the other 54 cases remain unchanged.",
+  "cause": "The old global sys.modules assertion sees modules loaded by earlier tests in a shared full-suite process.",
+  "correction": "Fresh -I -S -B interpreter compiles the pinned reader buffer, guards imports with positive and refusal controls, and preserves the parent module cache.",
+  "selected_tests": {
+    "pass": 55,
+    "fail": 0,
+    "skip": 0,
+    "seconds": 3.248542075045407
+  },
+  "order_variation": {
+    "pass": 1,
+    "same_test_case": true,
+    "synthetic_parent_only": true,
+    "seconds": 0.40111348405480385
+  },
+  "independent_review": {
+    "root": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-reuse-ci-correction-review-01",
+    "receipt_sha256": "03f2ff1336b3411f53de84b3d265e50e25bf3ccb9719d25f97b48bd5eec5801d",
+    "open_P1": 0,
+    "open_P2": 0
+  },
+  "freeze": {
+    "root": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-reuse-ci-correction-01",
+    "sha256": "2408eb4e9296cade8520bc2410498821cfae3546bea712ecccb7d20c29e66304"
+  },
+  "unchanged_reader_sha256": "eebd4a6fcd8b8f98badc6fe9508d65a68efc41e545c61770bd0ae68d50ed8d18",
+  "historical_CI": {
+    "source": "868449176262dafdfedc6ec9e8918553d0b6dfb2",
+    "run_id": 37189476293,
+    "status": "FAILED",
+    "core_pass": 4136,
+    "core_fail": 1,
+    "core_skip": 5,
+    "native_jobs_skipped": 8
+  },
+  "new_exact_source_CI": "NOT_RUN; inspect the containing source commit after publication",
+  "native_solver_provider_calls": 0,
+  "raw_evidence_retention": "LOCAL_ONLY ignored artifacts; compact record and corrected source are publication targets",
+  "whole_service_acceptance": "OPEN",
+  "decision": "NOT_RELEASED",
+  "limitations": [
+    "55 source controls and one order variation are not full CI or fresh engineering evidence.",
+    "Current native transfers retain source8684491 provenance.",
+    "UI stage correction and real human workflow remain separate gates."
+  ],
+  "next": "Publish this exact correction, inspect CI; integrate reviewed human-stage display and verify actual stored-model/failed-record views."
+}
