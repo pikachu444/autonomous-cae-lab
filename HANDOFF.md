@@ -1,4 +1,32 @@
-## Current checkpoint: readiness diagnostics and v4 fixture correction verified
+## Current checkpoint: actual per-mesh AI, native response and human result verified
+
+Record: `benchmarks/records/20261005-lab-per-mesh-research-r01.json`. Clean native producer1622313,
+fixture3e48, approved5.6Sol, fresh human07 ordinary Lab question.
+Editable width32 CAD and actual CalculiX4/3/2mm complete. Signed loaded
+global UZ(mm) [-.005642080,-.005730928,-.005827884] is now stored in
+same-index common metrics and read by the actual AI into a three-row table.
+Eight tools/final answer and clicked checksum-confirmed Core result verified.
+Independent raw deck/DAT audit:60files/40917581B unchanged,0openP1/P2.
+Last-two change1.663657% and signed XYZ balance9.377e-9 pass unchanged
+5%/1% gates;15PASS/7blockingUNKNOWN, invalid stress and NOT_RELEASED.
+This is no asymptotic convergence, real material or strength approval.
+
+New health200/version2.0.146 recorded; old human06 missing status/cause
+remains UNKNOWN. Exact resident/Core IDLE and owned Stop receipts retained;
+runtime/Lab stopped before publication. GUI layout, math formatting and
+model preview remain usability gates; whole service is not complete.
+Exact162 CI37220790564:7SUCCESS/3FAIL; Core/source/native CAD/structural/
+DOE/optimization pass, vector PDE/Code_Aster comparison/runtime download
+failures remain open. A containing documentation commit is no new solve.
+
+SERIAL NEXT: P2.4 retained original7body/84group tag0 native import; then
+explicit Domain mechanics/reference/full fields and connected assembly.
+All52 and wholePhase6/7 OPEN; measured/physical/strength/durability and
+corporate deployment gates remain UNKNOWN/NOT_RELEASED.
+
+---
+
+## Historical checkpoint: readiness diagnostics and v4 fixture correction verified
 
 Record: `benchmarks/records/20261005-research-health-diagnostics-ci-r01.json`.
 Parent f8036de exact CI37219222903 is1SUCCESS/1FAIL/8SKIPPED: Core4243PASS/

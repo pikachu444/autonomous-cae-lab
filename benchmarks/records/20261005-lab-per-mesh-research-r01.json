@@ -1,0 +1,335 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.actual-human-per-mesh-research",
+  "recorded_utc": "2026-10-04T18:10:04.066756+00:00",
+  "status": "BOUNDED_CONNECTED_NATIVE_AND_HUMAN_RESULT_PASS_WHOLE_SERVICE_OPEN",
+  "actual_clean_producer_commit": "162231311b72886f0a3f6eb2371f90473564a2ef",
+  "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "containing_checkpoint_commit_is_not_a_new_native_producer": true,
+  "run_id": "lab-question-human-20261005-07",
+  "job_id": "J70d147efb5f54eebb24cea84f494a66c",
+  "session_id": "ses_ef801d843ffem8wsRU5rWjYet8",
+  "model": "openai-codex/gpt-5.6-sol",
+  "research_profile": "FixtureRefinement",
+  "research_schema": 7,
+  "question": "Ordinary Korean Lab question: editable width32 CAD; hypothetical orthotropic properties; bottom XYZ fixed; central24mm area-weighted -Z100N; same CAD4/3/2mm.",
+  "question_mode": "Actual browser textarea and AI button, not handwritten tool calls.",
+  "tool_calls": 8,
+  "final_answer_chars": 3395,
+  "native_mesh_cases": 3,
+  "CAD": {
+    "experiment_id": "exp_roller_cad_w32_20261005_a",
+    "revision": "8b88e4804601b4be6b9b567f61ec5cd42215ba04b3c25f8684294c80bd4fac99",
+    "status": "COMPLETED_REVIEW_REQUIRED",
+    "solver_status": "NOT_RUN",
+    "decision": "NOT_RELEASED"
+  },
+  "analysis": {
+    "experiment_id": "exp_roller_fea_mesh432_100N_20261005_a",
+    "parent_experiment_id": "exp_roller_cad_w32_20261005_a",
+    "cad_revision": "8b88e4804601b4be6b9b567f61ec5cd42215ba04b3c25f8684294c80bd4fac99",
+    "status": "COMPLETED_REVIEW_REQUIRED",
+    "solver_status": "COMPLETED",
+    "adapter_version": "4",
+    "runtime_versions": {
+      "CalculiX": "2.21",
+      "Gmsh": "4.12.1"
+    },
+    "validations": {
+      "PASS": 15,
+      "blocking_UNKNOWN": [
+        "fatigue_durability",
+        "joint_and_contact",
+        "machine_interface",
+        "material_qualification",
+        "physical_load_test",
+        "static_strength",
+        "stress_convergence"
+      ]
+    },
+    "metrics": {
+      "applied_force_per_support": {
+        "unit": "N",
+        "valid": true,
+        "value": 100
+      },
+      "displacement_mesh_change_ratio": {
+        "unit": "1",
+        "valid": true,
+        "value": 0.016636569979773187
+      },
+      "loaded_saddle_min_global_uz": {
+        "unit": "mm",
+        "valid": true,
+        "value": [
+          -0.00564208,
+          -0.005730928,
+          -0.005827884
+        ]
+      },
+      "max_displacement": {
+        "unit": "mm",
+        "valid": true,
+        "value": 0.005827884
+      },
+      "mesh_size_max_mm": {
+        "unit": "mm",
+        "valid": true,
+        "value": [
+          4,
+          3,
+          2
+        ]
+      },
+      "peak_stress": {
+        "reason": "Averaged nodal diagnostic; no stress convergence or material allowable",
+        "unit": "MPa",
+        "valid": false,
+        "value": 0.5990678756165371
+      },
+      "reaction_balance_ratio": {
+        "unit": "1",
+        "valid": true,
+        "value": 9.377174045109376e-09
+      },
+      "reaction_force": {
+        "unit": "N",
+        "valid": true,
+        "value": [
+          -6.981000019593144e-09,
+          -3.778289999022619e-08,
+          100.0000001715396
+        ]
+      }
+    },
+    "loaded_node_counts": [
+      123,
+      228,
+      438
+    ],
+    "response_definition": "Signed minimum global Cartesian UZ over loaded ROLLER_NODES, same index as mesh sizes; not whole-model displacement magnitude.",
+    "DAT_identity": "Same-index loaded-node membership/counts/path/SHA checked independently against actual deck/DAT.",
+    "native_result": {
+      "path": "runs/lab-question-human-20261005-07/experiments/exp_roller_fea_mesh432_100N_20261005_a/simulation/result.json",
+      "bytes": 31149,
+      "sha256": "56f3d6dbc54136d1b144a8bbd7f82340b64a996920ba059dc2c35cc33d855dc6"
+    },
+    "decision": "NOT_RELEASED"
+  },
+  "independent_audit": {
+    "status": "PASS_BOUNDED_HUMAN07_TWO_COMPLETED_SUBTREES_THREE_NATIVE_LEVELS_AND_COMMON_PER_MESH_ARRAYS",
+    "open_P1": 0,
+    "open_P2": 0,
+    "frozen_completed_subtrees": {
+      "files": 60,
+      "bytes": 40917581,
+      "unchanged": true
+    },
+    "scope": "Direct raw native deck/DAT comparison, common-array/provenance/answer tables; no new provider/solver calls.",
+    "IDLE_Stop_supplement": "PASS_BOUNDED_SAVED_BRIDGE_IDLE_AND_SAVED_OWNED_STOP_METADATA"
+  },
+  "actual_GUI": {
+    "answer_table": "All three signed mesh values visible; same-index native values agree.",
+    "result_route": "Actual analysis experiment button opens checksum-confirmed common record/native source.",
+    "result_verdict": "15PASS/7blockingUNKNOWN, invalid diagnostic stress, NOT_RELEASED.",
+    "open_usability": [
+      "Math/heading markup visible in answer",
+      "Wide two-column answer layout",
+      "No registered FEA model preview",
+      "Raw reaction vector/English parameter labels",
+      "Capability-map coverage labels need alignment",
+      "Convergence label is broader than bounded last-two criterion"
+    ]
+  },
+  "readiness_and_cleanup": {
+    "actual_health_HTTP_status": 200,
+    "version": "2.0.146",
+    "run_id": "local-129464-e306e373-b3f2-46cb-b97f-465d205ec80b",
+    "health_receipt_sha256": "390cdd2a6bd7c50b73cffde311e0f164a89ed94420a60b42a8967809415ed7f0",
+    "old_human06_status_body_and_cause": "UNKNOWN; new success does not explain old missing response.",
+    "cleanup_confirmed": true,
+    "resident_idle_confirmed": true,
+    "official_runtime": "STOPPED through owned exact-source gate",
+    "Lab": "Exact recorded arguments/cwd unique process stopped after all jobs terminal; Root session9830 exit0.",
+    "independent_current_PID_absence": "Not claimed by saved-receipt-only audit"
+  },
+  "exact_producer_CI": {
+    "run_id": 37220790564,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37220790564",
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": [
+      {
+        "name": "core",
+        "conclusion": "success",
+        "failed_steps": []
+      },
+      {
+        "name": "research-driver-source",
+        "conclusion": "success",
+        "failed_steps": []
+      },
+      {
+        "name": "pde",
+        "conclusion": "failure",
+        "failed_steps": [
+          "Verify coupled vector directions, blocked DOFs and independent full-field error integration"
+        ]
+      },
+      {
+        "name": "optimization",
+        "conclusion": "success",
+        "failed_steps": []
+      },
+      {
+        "name": "explicit",
+        "conclusion": "failure",
+        "failed_steps": [
+          "Install the digest-pinned official OpenRadioss runtime outside the repository"
+        ]
+      },
+      {
+        "name": "codeaster",
+        "conclusion": "failure",
+        "failed_steps": [
+          "Compare complete beam, pressure cylinder and curved roof fields across two native solvers"
+        ]
+      },
+      {
+        "name": "native-registration",
+        "conclusion": "success",
+        "failed_steps": []
+      },
+      {
+        "name": "native",
+        "conclusion": "success",
+        "failed_steps": []
+      },
+      {
+        "name": "structural",
+        "conclusion": "success",
+        "failed_steps": []
+      },
+      {
+        "name": "doe",
+        "conclusion": "success",
+        "failed_steps": []
+      }
+    ],
+    "summary": "7SUCCESS/3FAIL: vector PDE reference/refusal, Code_Aster structural comparison and explicit runtime installation remain open; CI is not engineering approval."
+  },
+  "numerical_limits_unchanged": {
+    "last_two_displacement_relative_change": 0.05,
+    "signed_XYZ_balance": 0.01,
+    "two_levels_do_not_establish_asymptotic_convergence": true
+  },
+  "Root_reader_failure": {
+    "scope": "Saved observation reader default Windows encoding cp949 failed; corrected with explicit utf-8-sig. No native/model/source side effect."
+  },
+  "retention": "Public summary/hash pins; full raw native files, private receipts and screenshots retained in fresh local store/artifacts. No credentials or request headers committed.",
+  "evidence": [
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-07/runtime-started.json",
+      "bytes": 680,
+      "sha256": "2668bd5f87d4acb54471bf991d4df6e3e03b18b1b9095242189710390a0ee7a5"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-07/runtime-stopped.json",
+      "bytes": 309,
+      "sha256": "d32be20517a9c3b22a8b853ebfee41de3256d7c1f60d1b023ed920d2735bf201"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-07/lab-stop-01.json",
+      "bytes": 822,
+      "sha256": "c499ea3346167e8d59f5e9e066fdf5011a3adca37bd9086b9ea5e0da205b2895"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-07/question-01.txt",
+      "bytes": 1269,
+      "sha256": "02d551b0992c17a96184a242f533f74c776de48bcd923130d578bd32687682c1"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-07/question-progress-04.json",
+      "bytes": 27807,
+      "sha256": "07f85207ef01b788a8e2a92d55b53533a8f2503a860a79fb48590d5c551f97d3"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-07/completed-question-01.ax.txt",
+      "bytes": 24157,
+      "sha256": "20f6226fd3bfc79bc3642c8f6324900d0b24675fb138ddede4e88b3f7fc6b9f4"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-07/per-mesh-answer-01.jpg",
+      "bytes": 123622,
+      "sha256": "cc52e683aaa9ce666afff3d74a76a0c8fb6d514fa9338bef2b20a4cf82fa36af"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-07/linked-result-02.ax.txt",
+      "bytes": 7163,
+      "sha256": "922a094e1a17dc39ede98f47367ea9e4c9505b5335899c74adbbaaad8c00ea59"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-07/linked-result-02.jpg",
+      "bytes": 97265,
+      "sha256": "164ba1cbc4113cac34d278baa86308f7422690d4e671dbbdb7e2f56bfe98e833"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-07/native-per-mesh-review-01/RECEIPT.json",
+      "bytes": 2928,
+      "sha256": "ce116c15eb0bd581989566e559fef428288dbc19cc91c187b87af76ea97a3b0e"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-07/native-per-mesh-review-01/IDLE-STOP-SUPPLEMENT.json",
+      "bytes": 7143,
+      "sha256": "2fe41a3606613408d1ddd5c4dbe3f6469c133a333c89068149d4daf3b577cb6c"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-07/native-per-mesh-review-01/numerical-proof.json",
+      "bytes": 9394,
+      "sha256": "616ca3c4870c5a3ac806751dd1e8588ad93b3ea45ab0aa1d3bd7e16e28b9034a"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-07/native-per-mesh-review-01/answer-protocol-proof.json",
+      "bytes": 2782,
+      "sha256": "8f70a3d784d9ddee4d7428b45264645048341f887260b9f46826c82ce531c776"
+    },
+    {
+      "path": "runs/lab-question-human-20261005-07/experiments/exp_roller_fea_mesh432_100N_20261005_a/simulation/result.json",
+      "bytes": 31149,
+      "sha256": "56f3d6dbc54136d1b144a8bbd7f82340b64a996920ba059dc2c35cc33d855dc6"
+    },
+    {
+      "path": "runs/lab-question-human-20261005-07/experiments/exp_roller_cad_w32_20261005_a/result.json",
+      "bytes": 22863,
+      "sha256": "67d7dba2da26654a8f75c44d82b7b0d140d77c0f9f2cc83dfde0a33a822c6659"
+    },
+    {
+      "path": "runs/lab-question-human-20261005-07/experiments/exp_roller_fea_mesh432_100N_20261005_a/result.json",
+      "bytes": 45469,
+      "sha256": "e22322118c3f58cab3c4273f4366c875b4988c7a395436476f288989c274390e"
+    },
+    {
+      "path": "artifacts/lab-question-human-20261005-07/lab-questions/run-73e8881fa5864d37ba330cd2032e7b60/response.json",
+      "bytes": 768,
+      "sha256": "804379ade88212c2f8de8faf026a2bd7f080d2e5e8ebf6613d4dc1bdeaa7b4c1"
+    },
+    {
+      "path": "artifacts/lab-question-human-20261005-07/lab-questions/run-73e8881fa5864d37ba330cd2032e7b60/command/resident-idle-000001/no-reply-response.json",
+      "bytes": 4250,
+      "sha256": "6511f07a9cf3d6cf2c2c2029d98dc672e3ee27e2d4b88708d49b9f60c0d84f26"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/162-ci-observation-02.json",
+      "bytes": 26140,
+      "sha256": "081f02ff6e4beca15a7d2e7c0c9b37be0f05229585b5c0bd10784b9120f441ef"
+    }
+  ],
+  "next_serial": [
+    "P2.4 retained original7body/84group tag0 transport and actual body-aware native import",
+    "Frozen Domain laws/material/frame/load/reference/full-field rules",
+    "Actual coupled solve/equilibrium/mesh sensitivity/independent review and connected assembly question",
+    "Remaining Phase6/7 measured data, spatial/multiphysics/UQ and physical/engineering gates"
+  ],
+  "whole52_and_Phase6_7": "OPEN",
+  "decision": "NOT_RELEASED"
+}
