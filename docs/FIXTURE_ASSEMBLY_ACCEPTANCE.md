@@ -202,3 +202,18 @@ NOT_RUN. Next fresh coarse actual import, raw audit, fine1.5, then explicit
 Domain mechanics/reference/full fields and connected Research. Original
 material/contact/fastener/mounting/physical/strength/durability UNKNOWN,
 solver NOT_RUN and NOT_RELEASED; no failed result or thresholds replaced.
+
+## Actual coarse native import qualified (2026-10-05)
+
+Record: `benchmarks/records/20261005-fixture-assembly-native-import-coarse-r01-qualified.json`. Actual clean producer538089c, freshcoarse3.
+Same original CAD/qualifiedmesh, no remesh. Code_Aster17.4 observes all
+76214nodes/61344orderedcells,7disjoint bodies/84fullphysicalgroups.
+Tag0 transport preserves every other original byte. Independent raw
+node/cell/coordinate/order/membership maps agree fully; maxabsoluteXYZ
+5.68434e-14mm<=fixed1e-12mm. Original manifests and248selectedrawfiles
+remainunchanged. Imported identity is not mechanics or field acceptance.
+Next newfine1.5 import/rawaudit before explicit Domain mechanics, full
+fields/balance/sensitivity and connected assembly Research/human gate.
+Actual material/contact/mounting/fastener/physical/strength/durability
+UNKNOWN; no MECA/Gauss/reference, publicbackend NOT_ADMITTED,
+solver NOT_RUN and NOT_RELEASED. CI has separate unresolved failures.

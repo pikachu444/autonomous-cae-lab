@@ -1,0 +1,435 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.original-seven-body-actual-native-import",
+  "recorded_utc": "2026-10-04T19:49:46.397839+00:00",
+  "status": "QUALIFIED_COARSE_NATIVE_IMPORT_IDENTITY_MECHANICS_NOT_RUN",
+  "actual_clean_source_commit": "538089cb2fb832da1543ef52f41e5c1b699b48af",
+  "checkpoint_is_not_new_native_producer": true,
+  "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "original_mesh_producer": "d9a1a9fa9096f66e30fa637bebd931bc59cd9c33",
+  "new_store": "runs/fixture-assembly-native-import-20261005-01/coarse3",
+  "parent_experiment": "E-assembly-default",
+  "parent": {
+    "cad_prefix": "cad",
+    "cad_provenance": {
+      "adapter": "fixture.assembly",
+      "adapter_version": "1",
+      "cad_source_sha256": "98bef622b96762c2b6faaa88bd1ef92f639c10c819941fc71f2ed986e2e22baa",
+      "core_commit": "f8f60eb335fb829a8ddc5d0ca1c2506788baae44",
+      "core_dirty": false,
+      "core_source_sha256": "f96633004ca8f5295be0459512edf3173374ea461d45312a3e877f74516394b7",
+      "created_utc": "2026-10-04T03:29:52.342711+00:00",
+      "execution_settings": {},
+      "material": null,
+      "mesh": null,
+      "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+      "proposal_sha256": "6cfd5cc2d5e91bfd36aa79e14634ed5bc4054f754ffb2fe9508ba57fb116052c",
+      "python": "3.12.3",
+      "random_seed": null,
+      "registry_sha256": "377dfff1d25619e14116a28e27677e3c0088e1ae28629386547acc7c6471bef1",
+      "solver": null,
+      "source_commit": "UNKNOWN"
+    },
+    "cad_revision": "8d1071134a2bcd7d42a9320b431754591909476747f35e96fbbb4113c6e09ef2",
+    "catalog_sha256": "4210911cc237eefc10c534948ee8fa44134d21a3e6484e01817946e75b2e8d91",
+    "experiment_id": "E-assembly-default",
+    "input_sha256": "4b12ccc8a630ac512a8b4277a204e851a188630060f8cbf9d62bf8edb2d5e456",
+    "native_revision": "7a2ed7a57284cfbd5284e1c96db064bade268f4624ad8f83886c26a6be5cbec4",
+    "result_sha256": "6209d2a5f5832abab7dfa407db05524478ed10a3fdb4652a057bd4d6bf4f8328",
+    "source_sha256": "98bef622b96762c2b6faaa88bd1ef92f639c10c819941fc71f2ed986e2e22baa"
+  },
+  "mesh_revision": "83a2bb86ee6986a0caeb35a53706564c9b5f3262d24aeb692403026fcd0c4bed",
+  "mesh_size_mm": 3.0,
+  "preservation": "Original CAD/live parent and qualified original mesh complete saved before/after manifests are equal. No CAD regeneration/remeshing/old-result rewrite.",
+  "source_files": {
+    "codeaster_elasticity.py": {
+      "sha256": "956e84044d0b35780a23648577771236b708fefeb8d69492b6d85cdf4a25165a",
+      "size_bytes": 41300
+    },
+    "codeaster_execution.py": {
+      "sha256": "04bf82ca3ea258a9218f9de33c14aefda1319abfa199fa246c36d5d1cefc2fad",
+      "size_bytes": 1347
+    },
+    "codeaster_worker.py": {
+      "sha256": "856219f47b0410c68d3163d8e1206f3cf1627d421accfefb14eada5b57b627dc",
+      "size_bytes": 33550
+    },
+    "execution_control.py": {
+      "sha256": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede",
+      "size_bytes": 6546
+    },
+    "fixture_assembly_mesh_reuse.py": {
+      "sha256": "eebd4a6fcd8b8f98badc6fe9508d65a68efc41e545c61770bd0ae68d50ed8d18",
+      "size_bytes": 18708
+    },
+    "fixture_assembly_native_import.py": {
+      "sha256": "b7dc793cc9e054cdf10422ffd93e8a86a2b6133a3f69230a22fdf2e2ba86b878",
+      "size_bytes": 18846
+    },
+    "fixture_assembly_native_import_worker.py": {
+      "sha256": "f989f06ed0169eb06c297b3d1adc18b331f88dd254244af7d30aca31d1248e15",
+      "size_bytes": 18525
+    },
+    "storage.py": {
+      "sha256": "f77e0f3cc74de59cab9ba5addd15c54c71bb14d4172a31b28796c6482b957a6f",
+      "size_bytes": 3309
+    }
+  },
+  "source_qualification_record": "benchmarks/records/20261005-fixture-assembly-native-import-source-r01.json",
+  "transport": {
+    "scope": "Only each second elementary/entity tag token replaced by ASCII0; every other original MSH2.2 byte retained.",
+    "source": {
+      "sha256": "69c4da7e539b9d3d04c35f8e61f38721777275f81776a359e8d2ccc857295930",
+      "size_bytes": 8450832
+    },
+    "transport": {
+      "sha256": "9b49c18e1b90fd90e7c7516fa9976bdee1f779435f0eed48f64dfb3162c87c44",
+      "size_bytes": 8442464
+    },
+    "physical_groups": 84,
+    "preserved": [
+      "PhysicalNames/tags",
+      "sparse source IDs",
+      "XYZ text/precision",
+      "cell type/order/connectivity"
+    ]
+  },
+  "actual_native_catalog": {
+    "nodes": 76214,
+    "ordered_cells": 61344,
+    "TETRA10": 44226,
+    "TRIA6": 17118,
+    "disjoint_volume_bodies": 7,
+    "physical_groups": 84,
+    "maximum_absolute_coordinate_error_mm": 5.684341886080802e-14,
+    "fixed_absolute_coordinate_limit_mm": 1e-12,
+    "bodies": [
+      {
+        "cell_count": 27436,
+        "component_id": "printed_base",
+        "node_count": 46727,
+        "volume_group": "V0001"
+      },
+      {
+        "cell_count": 7554,
+        "component_id": "printed_support_left",
+        "node_count": 12873,
+        "volume_group": "V0002"
+      },
+      {
+        "cell_count": 7536,
+        "component_id": "printed_support_right",
+        "node_count": 12844,
+        "volume_group": "V0003"
+      },
+      {
+        "cell_count": 272,
+        "component_id": "metal_roller_left",
+        "node_count": 605,
+        "volume_group": "V0004"
+      },
+      {
+        "cell_count": 272,
+        "component_id": "metal_roller_right",
+        "node_count": 605,
+        "volume_group": "V0005"
+      },
+      {
+        "cell_count": 272,
+        "component_id": "metal_loading_nose",
+        "node_count": 605,
+        "volume_group": "V0006"
+      },
+      {
+        "cell_count": 884,
+        "component_id": "specimen",
+        "node_count": 1955,
+        "volume_group": "V0007"
+      }
+    ],
+    "scope": "Full node/cell/coordinate/type/ordered connectivity and all84 cell/node memberships; component-local bijections retain distinct coincident-body nodes.",
+    "native_indices": "Observed zero-based numeric API indices, not source sparse IDs or guessed name suffixes.",
+    "optional_native_SD_node_cell_names": "Both UNAVAILABLE in actual image; no names fabricated. Future field tables require actual numeric/index association.",
+    "element_permutations": {
+      "11": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        8
+      ],
+      "9": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    }
+  },
+  "runtime": {
+    "observed": {
+      "code_aster_runtime": {
+        "branch": "v17.4.0",
+        "parentid": "spack-local",
+        "uncommitted": [
+          "built with Spack"
+        ],
+        "version": "17.4.0"
+      },
+      "versions": {
+        "code_aster": "17.4.0",
+        "mpi4py": "3.1.5",
+        "numpy": "1.26.4",
+        "petsc": "3.24.0",
+        "petsc4py": "3.24.1",
+        "python": "3.11.14",
+        "scipy": "1.15.2"
+      }
+    },
+    "SIF_sha256": "f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64",
+    "compiled_SIF_source_equivalence": "UNKNOWN; observed branchv17.4.0, parentidspack-local, builtwithSpack is not upstream commit proof",
+    "host_python": "3.12.3",
+    "vendor_python": "3.11.14",
+    "native_execution": {
+      "finished_utc": "2026-10-04T19:30:34.238493+00:00",
+      "pid": 77678,
+      "return_code": 0,
+      "started_utc": "2026-10-04T19:22:38.043350+00:00",
+      "status": "COMPLETED",
+      "stderr": "native-import.stderr.log",
+      "stdout": "native-import.stdout.log",
+      "timeout_seconds": null
+    },
+    "root_total_seconds": 1587.8300495049916,
+    "wall_timeout_seconds": null,
+    "solver_CPU_default_seconds": 86400,
+    "saved_owned_terminal_record_is_not_current_PID_absence_proof": true
+  },
+  "independent_raw_audit": {
+    "status": "PASS_BOUNDED_ACTUAL_NATIVE_IMPORT_IDENTITY_ONLY",
+    "open_P1": 0,
+    "open_P2": 0,
+    "scope": "Distinct stdlib raw implementation; no production comparator/import/capture/recheck, SDK/container/native/Core/provider/HTTP/Git calls.",
+    "nodes_cells_groups_and_seven_body_bijections": "PASS",
+    "production_maps_equal_to_independent_maps": true,
+    "selected_raw_files": 248,
+    "selected_raw_bytes": 135316621,
+    "before_after_unchanged": true,
+    "receipt": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-native-review-01/RECEIPT.json",
+      "size_bytes": 8230,
+      "sha256": "a6d90794ced85f0aa2f4f8d7f054734d91381d2fafdd740c04d8ae4a302cedab"
+    },
+    "current_OS_PID_absence": "UNKNOWN"
+  },
+  "exact_source_CI_observation": {
+    "source_commit": "538089cb2fb832da1543ef52f41e5c1b699b48af",
+    "run_id": 37227069229,
+    "observed_utc": "2026-10-04T19:30:50Z",
+    "status": "IN_PROGRESS_SNAPSHOT",
+    "jobs": {
+      "SUCCESS": 5,
+      "FAILURE": 3,
+      "PENDING": 2
+    },
+    "Core": {
+      "status": "SUCCESS",
+      "python": {
+        "passed": 4289,
+        "skipped": 5,
+        "warnings": 1,
+        "seconds": 670.07
+      },
+      "MCP_source_HTTP": "SUCCESS"
+    },
+    "failed_steps": [
+      "PDE step5 FEniCSx installation",
+      "Code_Aster step7 structural cross-comparison",
+      "Explicit step5 OpenRadioss installation"
+    ],
+    "current_failed_log_causes": "UNKNOWN; failed logs not read in this observation; old162 vector numerical assertion is not applied to this installation failure.",
+    "CI_not_original_assembly_import_qualification": true
+  },
+  "exact_source_CI_final": {
+    "source_commit": "538089cb2fb832da1543ef52f41e5c1b699b48af",
+    "run_id": 37227069229,
+    "observed_utc": "2026-10-04T19:48:18Z",
+    "status": "COMPLETED",
+    "conclusion": "FAILURE",
+    "jobs": {
+      "SUCCESS": 7,
+      "FAILURE": 3,
+      "SKIPPED": 0
+    },
+    "native_and_optimization": "SUCCESS",
+    "failed_steps": [
+      "PDE step5 FEniCSx installation",
+      "Code_Aster step7 structural cross-comparison",
+      "Explicit step5 OpenRadioss installation"
+    ],
+    "current_failed_log_causes": "UNKNOWN; this final metadata did not read failed logs",
+    "receipt": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/538-ci-readonly-01/FINAL-SUPPLEMENT.json",
+      "size_bytes": 59408,
+      "sha256": "a3c37227b6601a961716747f3ebbf2837eb624afe700f357fd3dc3ff85b1e3d2"
+    }
+  },
+  "next_curved_field_research": {
+    "scope": "Official pinned source knowledge only; not actual native fields, physical fixture approval or frozen material/load/default decision.",
+    "lookup": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/curved-field-kernel-lookup-01/REPORT.md",
+      "size_bytes": 10269,
+      "sha256": "a0787514262a414665165dd5c83ff2484d2263c52e7cbc7c135437a33ef90d55"
+    },
+    "source_pins": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/curved-field-kernel-lookup-01/SOURCE_PINS.json",
+      "size_bytes": 9788,
+      "sha256": "4330ab9e73d65532eb7ba5315f02f6f35dfa117bdefef5f9dac2b7eb9f0b7ac6"
+    },
+    "TETRA10_RIGI": "FPG5",
+    "MASS": "FPG15",
+    "TRIA6_face": "FPG6",
+    "native_Gauss_ID_order_XYZ_W_join_and_compiled_image_equivalence": "UNKNOWN",
+    "prospective_affine_boundary_patch": "Independent U/6stress/curved-mesh-volume energy/body force/moment comparison, not actual fixture mechanics or replacement response."
+  },
+  "fine1p5_native_import": "NOT_RUN",
+  "mechanics_materials_contact_load_Gauss_fields_reference": "NOT_RUN",
+  "public_assembly_research_backend": "NOT_ADMITTED",
+  "solver_status": "NOT_RUN",
+  "converged": null,
+  "engineering": "Material/process/frame, real contact/fastening/mounting/physical/strength/durability requirements UNKNOWN",
+  "whole52_and_Phase6_7": "OPEN",
+  "decision": "NOT_RELEASED",
+  "continuation": "Same current chat heartbeat ACTIVE every30min; existing goal BLOCKED/notcomplete. Localcomputer/app/repository must remainavailable.",
+  "retention": "Full raw/capsule/owned process/Root/audit evidence retained locally in fresh store. Public summary/hash pins only, no credentials/company data or raw request headers.",
+  "evidence": [
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-root-20261005-01/coarse3/receipt.json",
+      "size_bytes": 1032,
+      "sha256": "7930f45f59df94b382f40620b245114cefe3d34f9a337050398055b16d35acf9"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-root-20261005-01/coarse3/intention.json",
+      "size_bytes": 861,
+      "sha256": "623a816ff11bd6697e0ce0783a6dc7749362735ce65cd5111be4ba1ee06dcb63"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-root-20261005-01/coarse3/output-manifest.json",
+      "size_bytes": 43521,
+      "sha256": "0a47579a4a72287541104dd428fc65b22ad062457e978d9cbdf0d1fe01913b1c"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-root-20261005-01/coarse3/protected-before.json",
+      "size_bytes": 73145,
+      "sha256": "32716c534b68b2dc20f2f7ccbca556ab5ff5557825e7cd93e926620b4e46272b"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-root-20261005-01/coarse3/protected-after.json",
+      "size_bytes": 73145,
+      "sha256": "32716c534b68b2dc20f2f7ccbca556ab5ff5557825e7cd93e926620b4e46272b"
+    },
+    {
+      "path": "runs/fixture-assembly-native-import-20261005-01/coarse3/result.json",
+      "size_bytes": 4298837,
+      "sha256": "1132d6674a998dc72d6e4ef445224db844f748d2ce50356c56aa9f9264228d79"
+    },
+    {
+      "path": "runs/fixture-assembly-native-import-20261005-01/coarse3/native-comparison.json",
+      "size_bytes": 804313,
+      "sha256": "bdd0bd35272cec4f97fa2b497d1544a1196f5b7f208935f0760de7747550253c"
+    },
+    {
+      "path": "runs/fixture-assembly-native-import-20261005-01/coarse3/intent.json",
+      "size_bytes": 3581,
+      "sha256": "b46c2d069f4e63decf0bd4361099ea51f11249053283669e72acfabd30f4a0c1"
+    },
+    {
+      "path": "runs/fixture-assembly-native-import-20261005-01/coarse3/transport.json",
+      "size_bytes": 4291828,
+      "sha256": "f5743b43e6a08b68b655638ce42825847f06c59761213260b17d2c3b43d69fb9"
+    },
+    {
+      "path": "runs/fixture-assembly-native-import-20261005-01/coarse3/mesh-reuse/mesh-reuse-receipt.json",
+      "size_bytes": 68269,
+      "sha256": "976ef04c39cf829d95242f0e8e470a7fd07da60144fe83f87782634fad0dc2f1"
+    },
+    {
+      "path": "runs/fixture-assembly-native-import-20261005-01/coarse3/native/input.json",
+      "size_bytes": 2554,
+      "sha256": "b9212b6679941149aa52fbb5e0bae65db4c39206ae58fb91c2c87963eae2cbce"
+    },
+    {
+      "path": "runs/fixture-assembly-native-import-20261005-01/coarse3/native/native-catalog.json",
+      "size_bytes": 11469980,
+      "sha256": "50b7c222f72359bd86d724b7421a6b083575df4b84465917bf32f44606835ecc"
+    },
+    {
+      "path": "runs/fixture-assembly-native-import-20261005-01/coarse3/native/worker-result.json",
+      "size_bytes": 3217,
+      "sha256": "474a43ee32cdf7828b5df5a515242f5a368f9d26787785458c326f161a17fbd5"
+    },
+    {
+      "path": "runs/fixture-assembly-native-import-20261005-01/coarse3/native/runtime-before.json",
+      "size_bytes": 265,
+      "sha256": "f7c092026c7a51b2b98d70df0d34a4ca935d8c659a02fe39d1fd340a146c112b"
+    },
+    {
+      "path": "runs/fixture-assembly-native-import-20261005-01/coarse3/native/runtime-after.json",
+      "size_bytes": 265,
+      "sha256": "f7c092026c7a51b2b98d70df0d34a4ca935d8c659a02fe39d1fd340a146c112b"
+    },
+    {
+      "path": "runs/fixture-assembly-native-import-20261005-01/coarse3/native/native-import.command.json",
+      "size_bytes": 867,
+      "sha256": "ddfb755825e7173cd1a2869f92a4eff15f923c82735ae4228004c543f32e9e11"
+    },
+    {
+      "path": "runs/fixture-assembly-native-import-20261005-01/coarse3/native/native-import.execution.json",
+      "size_bytes": 278,
+      "sha256": "c64c8211501ef98ab3c97d0d6ff72712dbfb2ed5c26217bf8a9048e658fbf6f9"
+    },
+    {
+      "path": "runs/fixture-assembly-native-import-20261005-01/coarse3/native/aster.mess",
+      "size_bytes": 12133,
+      "sha256": "4ed634f5fcfeae03b25f7d677cf30fe6c858a94137bb808215e5286488a5c36e"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-import-native-review-01/RECEIPT.json",
+      "size_bytes": 8230,
+      "sha256": "a6d90794ced85f0aa2f4f8d7f054734d91381d2fafdd740c04d8ae4a302cedab"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/curved-field-kernel-lookup-01/REPORT.md",
+      "size_bytes": 10269,
+      "sha256": "a0787514262a414665165dd5c83ff2484d2263c52e7cbc7c135437a33ef90d55"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/curved-field-kernel-lookup-01/SOURCE_PINS.json",
+      "size_bytes": 9788,
+      "sha256": "4330ab9e73d65532eb7ba5315f02f6f35dfa117bdefef5f9dac2b7eb9f0b7ac6"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/538-ci-readonly-01/MANIFEST.json",
+      "size_bytes": 1352,
+      "sha256": "e435f164344407d41b05342d0aadab19bb1e9681cd01c840d5136328dd63f210"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/538-ci-readonly-01/FINAL-SUPPLEMENT.json",
+      "size_bytes": 59408,
+      "sha256": "a3c37227b6601a961716747f3ebbf2837eb624afe700f357fd3dc3ff85b1e3d2"
+    }
+  ],
+  "next_serial": [
+    "Fresh fine1.5 import from clean committed source and independent raw audit",
+    "Root freezes explicit Domain materials/frames/joints/contact/BC/load/reference/full-field rules",
+    "Actual mechanics/full fields/balance/mesh sensitivity and connected assembly Research/human gate",
+    "Remaining Phase6/7 measured/spatial/multiphysics/UQ/physical and service usability gates"
+  ]
+}

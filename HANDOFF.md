@@ -1,4 +1,32 @@
-## Current checkpoint: original assembly native-import source qualified; actual import next
+## Current checkpoint: actual original coarse mesh imported and independently qualified
+
+Record: `benchmarks/records/20261005-fixture-assembly-native-import-coarse-r01-qualified.json`. Actual clean producer538089c, freshcoarse3 store.
+Original CAD and qualified3mm mesh reused unchanged; tag0 transport changes
+only each entity-tag token. Actual Code_Aster17.4 imports76214nodes/61344cells,
+7disjoint bodies/all84groups with full ordered node/cell/membership bijections.
+Independent raw audit0P1/P2,248files/135316621B unchanged; maps equal,
+maxXYZerror5.68434e-14mm<=unchanged1e-12mm. Native owned exit0/runtime
+before-after retained, Source538 clean before/after; no wall timeout.
+Compiled SIF-source equivalence/current OS PID absence remain UNKNOWN.
+
+This is native import identity, not MECA/contact/Gauss/fields/reference or
+public assembly Research qualification. Solver NOT_RUN/NOT_RELEASED.
+Source538 exactCI37227069229 completed7SUCCESS/3FAIL at19:48:18Z;
+Core4289PASS/5SKIP/MCP/source/HTTP successful. PDE installation, Aster
+cross-comparison and explicit installation failed; detailed causes UNKNOWN.
+Old162 numerical assertions are not applied to current installation failure.
+Official curved-field lookup is knowledge only, not frozen mechanics inputs.
+
+SERIAL NEXT: freshfine1.5 actual import/raw audit → explicit Domain laws,
+materials/frame/contact/BC/load/reference/full-field rules → actualmechanics,
+balance/sensitivity and connected assembly Research/human gate.
+Whole52/Phase6/7/service usability OPEN; engineering UNKNOWN/NOT_RELEASED.
+Same-chat30minute heartbeat ACTIVE; priorgoal BLOCKED/notcomplete, local
+computer/app required. Approved5.6Sol retained; source-development AI stopped.
+
+---
+
+## Historical checkpoint: original assembly native-import source qualified; actual import next
 
 Record: `benchmarks/records/20261005-fixture-assembly-native-import-source-r01.json`. Base246a195;3 new internal adapter/test files plus
 a test-only disappearing-PID observer correction from exact246 CI failure.
