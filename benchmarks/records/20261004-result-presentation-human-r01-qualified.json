@@ -1,0 +1,140 @@
+{
+  "scope": "Readable result screen and retained offline HTTP report; bounded presentation only",
+  "status": "PASS_BOUNDED_RETAINED_CLEAN_SOURCE_RESULT_SCREEN_AND_HTTP_REPORT",
+  "created_utc": "2026-10-04T06:04:02.884383+00:00",
+  "ui_source_commit": "3f15f5b32e921a39f29481e7e7a38b6daac825f0",
+  "clean_ui_source_at_launch": true,
+  "source_identity": {
+    "UI": "3f15f5b32e921a39f29481e7e7a38b6daac825f0",
+    "scientific_CAD_core": "f8f60eb335fb829a8ddc5d0ca1c2506788baae44",
+    "adapter_source": "UNKNOWN"
+  },
+  "core_CAD_revision": "8d1071134a2bcd7d42a9320b431754591909476747f35e96fbbb4113c6e09ef2",
+  "native_CAD_revision": "7a2ed7a57284cfbd5284e1c96db064bade268f4624ad8f83886c26a6be5cbec4",
+  "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "store": "runs/fixture-assembly-native-20261004-01",
+  "experiment_id": "E-assembly-default",
+  "geometry": {
+    "components": 15,
+    "faces": 117,
+    "display_only": true
+  },
+  "input_parameters": {
+    "P-length": 80.0,
+    "P-width": 10.0
+  },
+  "exact_metrics": {
+    "cad_bounds": {
+      "unit": "mm",
+      "valid": true,
+      "value": [
+        160.00000020000007,
+        80.00000020000009,
+        53.854720442678314
+      ]
+    },
+    "cad_component_count": {
+      "unit": "1",
+      "valid": true,
+      "value": 15
+    },
+    "cad_volume": {
+      "unit": "mm^3",
+      "valid": true,
+      "value": 208586.3762398164
+    }
+  },
+  "validation_counts": {
+    "PASS": 50,
+    "UNKNOWN": 11
+  },
+  "decision": "NOT_RELEASED",
+  "solver_status": "NOT_RUN",
+  "selected_face": {
+    "catalog_face_id": "printed_support_right:face:15:ed81374a6f1a6f7f0c1ece1aebfecead84eae79deba080ed504b0a12a9495516",
+    "component_id": "printed_support_right",
+    "display_face_id": 106,
+    "type": "CYLINDER",
+    "local_ordinal": 15,
+    "native_brep_path": "native_faces/printed_support_right/face-015.brep",
+    "native_geometry_sha256": "ed81374a6f1a6f7f0c1ece1aebfecead84eae79deba080ed504b0a12a9495516",
+    "real_display_triangles": 168
+  },
+  "default_view": {
+    "visible_raw_blocks": 0,
+    "technical_details": "CLOSED",
+    "raw_records": "RETAINED",
+    "camera": "Actual pointer rotation and wheel zoom for the screenshot; pinned default camera unchanged"
+  },
+  "original_store": {
+    "files": 218,
+    "bytes": 5982714,
+    "unchanged": true,
+    "new_writable_store_files": 0
+  },
+  "root_receipt": {
+    "path": "artifacts/development-result-presentation-20261004-01/human-01/root-receipt.json",
+    "size_bytes": 9627,
+    "sha256": "91b19c3ac7d4a32c2ce159c6fccffbd3d69a89fac31927ad05c0b83d11e3921b"
+  },
+  "actual_screenshot": {
+    "path": "artifacts/development-result-presentation-20261004-01/human-01/result-primary.jpg",
+    "size_bytes": 74192,
+    "sha256": "582641b0bfeafcfba94241bb1a3a0ae4c5cfe3cb2f4f697474645b1c8e15d205"
+  },
+  "report": {
+    "content_type": "text/html; charset=utf-8",
+    "path": "served-report.html",
+    "size_bytes": 341199,
+    "sha256": "9aea57c6ede0ce2cc638a929fd35a48e0bf1c603cdc95af9674402fa872584aa",
+    "same_experiment": "E-assembly-default",
+    "release": "NOT_RELEASED",
+    "unknowns_preserved": true,
+    "human_visual": "UNVERIFIED_CUA_TAB_BIND_TIMEOUT"
+  },
+  "served_static_exact_files": 5,
+  "independent_review": {
+    "open_P1": 0,
+    "open_P2": 0,
+    "completion": {
+      "path": "artifacts/development-result-presentation-20261004-01/human-review-01/final-completion.json",
+      "size_bytes": 2282,
+      "sha256": "d7c2da8f81a92a25ff67e4b579db0b7c7593cdbf412c80fb1488dd91b7028f7f"
+    },
+    "report": {
+      "path": "artifacts/development-result-presentation-20261004-01/human-review-01/REPORT.md",
+      "size_bytes": 1653,
+      "sha256": "a24937b5f8529fae819b91f820d5f0cfd58a80b33ae2991aee11ced7d930a287"
+    },
+    "review": {
+      "path": "artifacts/development-result-presentation-20261004-01/human-review-01/review.json",
+      "size_bytes": 11571,
+      "sha256": "504c2038bbde31725bb7ad141a8904dd1203e354ac6fc745062e9a48807df706"
+    },
+    "receipt": {
+      "path": "artifacts/development-result-presentation-20261004-01/human-review-01/receipt.json",
+      "size_bytes": 10592,
+      "sha256": "e03e0682b4d967278b6aea340df84bdfed05d5803b010e80451d54e65ccad8c8"
+    }
+  },
+  "CI": {
+    "run_id": 37180143113,
+    "source_commit": "3f15f5b32e921a39f29481e7e7a38b6daac825f0",
+    "status": "in_progress",
+    "conclusion": "",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37180143113"
+  },
+  "new_native_mesh_solver_provider_calls": 0,
+  "retention": "Private raw artifacts/screenshots/reports retained locally in the named ignored directories; this public record stores hashes, not all raw files",
+  "collector_corrections": "Root visibility/innerText/JPEG assumptions and reviewer units/terminal-summary assumptions failed, were retained and narrowly corrected; product/scientific source or thresholds unchanged",
+  "limitations": [
+    "One actual clicked face; no repeated all117-face human audit",
+    "Raw native CAD remains the f8 execution, not a new solve",
+    "Actual mesh/mechanics/CAD cancellation/portable CAD/strength gates remain NOT_RUN or UNKNOWN",
+    "Whole52 and Phase6/7 are incomplete",
+    "Old source03 mixed-EOL physical copies remain not retained",
+    "Rendered offline report remains UNVERIFIED_CUA_TAB_BIND_TIMEOUT despite retainedHTTP200/escapedHTML/source tests",
+    "This closes only the result-view witness. The complete human research→CAD→solver→condition change/campaign workflow is not newly qualified"
+  ],
+  "next": "Serial P2.4 original seven-body volume/face mesh → explicit mechanics/contact/joints → actual solver fields/reference → connectedResearch/human gate; Phase6/7/deferred remain open"
+}

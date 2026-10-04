@@ -41,3 +41,20 @@ runtime. Full exact-source CI is queried after publication and remains separate.
 After that bounded gate, continue original seven-body volume/face meshing and
 fixture mechanics. Actual fastening, material, strength, fatigue, machine and
 physical requirements remain UNKNOWN/NOT_RELEASED. Whole52/Phase6/7 stay open.
+
+## Qualified clean-source result-view witness
+
+The new public human-r01 record binds clean UI3f15 to the original scientific f8
+CAD. Actual15-part3D,80/10mm inputs,50PASS/11UNKNOWN, no-analysis/unapproved and
+one real face15→display106/BREP are readable. Default raw blocks0; full exact
+208586.3762398164mm³ and result/thread/captured registry/proposal remain behind
+closed details.218 original files/5,982,714B match before/after/current hashes.
+Independent new review PASS,0openP1/P2. Actual camera rotation/zoom used for the
+image does not change the pinned default viewer. The original source record's
+NOT_RUN gate is historical, not rewritten. Five served files and saved escaped
+HTML match; rendered report visual stays UNVERIFIED_CUA_TAB_BIND_TIMEOUT. Root
+and reviewer collector-only failed assumptions/corrections are preserved.
+Whole-system human research/analysis/campaign acceptance is still open. The
+latest user criticism is evaluated against actual usable flows and this limited
+result-view correction must not be called system completion. Resume serial mesh
+and mechanics implementation; no model/auth/solver/scientific threshold change.

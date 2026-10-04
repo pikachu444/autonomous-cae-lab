@@ -1,4 +1,26 @@
-## Current checkpoint: readable result presentation source reviewed
+## Current checkpoint: readable result view independently verified
+
+Record: `benchmarks/records/20261004-result-presentation-human-r01-qualified.json`.
+Clean UI source3f15f5b32e921a39f29481e7e7a38b6daac825f0 serves the real
+original15-component fixture, captured80/10mm inputs, exact raw metrics and
+50PASS/11UNKNOWN with NOT_RUN/NOT_RELEASED. Technical IDs/hashes/JSON are closed
+by default. New actual face15/CYLINDER/display106 joins the original catalog,
+surface168triangles and face-015 BREP. All218files/5,982,714B remain unchanged.
+Independent bounded human/HTTP review closes0P1/P2. Scientific CAD producer is
+stillf8; adapter source remains UNKNOWN. This is a result-view witness, not a
+new solver run or complete usable research-system acceptance. Saved HTML/static
+bytes reconcile, but actual report browser visual remains UNVERIFIED because
+Cua could not bind its tab despite HTTP200. Collector/units/image-format/console
+assumption failures and corrections are retained. CI3f15 snapshot is in_progress.
+NEXT SERIAL: source-integrate the reviewed seven-body mesher (Main targeted
+checks underway), actual3.0/1.5mm mesh, explicit fixture mechanics/fields, then
+connectedResearch/human usage. The latest user criticism of overall service
+usability is a separate gap audit; do not close the system from display or
+source-only passes. Whole52/Phase6/7 and engineering UNKNOWN/NOT_RELEASED stay open.
+
+---
+
+## Historical checkpoint: readable result presentation source reviewed
 
 Record: `benchmarks/records/20261004-result-presentation-source-r01.json`.
 The human results screen leads with the actual model, captured inputs/units,
