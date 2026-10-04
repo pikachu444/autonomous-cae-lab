@@ -1,4 +1,23 @@
-## Current checkpoint: P5.3 ContactPatches source admitted; actual Research next
+## Current checkpoint: P5.3 connected contact Research verified; full-field view next
+
+Record: `benchmarks/records/20261004-contact-research-r01-qualified.json`; producer `a9276493118bf573f9574ec6605aa96c77d811a6`.
+One approved5.6Sol whole question/9 completed calls/2 fresh native analyses;
+both17valid/12PASS/10blockingUNKNOWN/NOT_RELEASED. Independent math140PASS,
+direct MED27106bit-exact scalar comparisons; runtime89PASS/2reviewer-assumption
+FAILs preserved and closed by13narrowPASS, no productionP1/P2 or reruns.
+Official conversation/common same-record human and owned completed Stop PASS;
+new108files/19,118,060B and prior161/23,003,762B unchanged. A/B pressure errors
+slightly increase despite both sample maxima decreasing; two-level convergence
+and full-field improvement are not qualified. Exacta927 CI37161185926:7SUCCESS/
+3FAIL(PDE fixed rate1.8, AsterFACTOR_57, OpenRadioss404); contact nativeCI absent.
+NEXT: same-record complete contact fields/source review/actual clean-source
+browser gate, then P2.4 pinned-fixture coupling and remainingPhase6/7/deferred
+gates. Full-field GUI NOT_RUN; busy cancellation/remote raw/physical UNKNOWN.
+Whole52/Phases5-7 ACTIVE. Earlier snapshots below retain their historical scope.
+
+---
+
+## Historical checkpoint: P5.3 ContactPatches source admitted; actual Research next
 
 Optional ContactPatches/schema6/contact-patches-v1 reuses six existing tools;
 native context remains3, Core/registry/Domain/native/model/auth/default scopes unchanged.

@@ -1,4 +1,17 @@
-## Current checkpoint: P5.3 ContactPatches source admitted; actual Research next
+## Current checkpoint: P5.3 connected contact Research verified
+
+Record: `benchmarks/records/20261004-contact-research-r01-qualified.json`; producer `a9276493118bf573f9574ec6605aa96c77d811a6`.
+Bounded whole-question/two-condition research, independent math/MED review,
+generic same-record human view, owned Stop and retention PASS. Ten blocking
+UNKNOWNs/NOT_RELEASED remain. The full contact-field browser gate is NEXT,
+then P2.4 and remainingPhase6/7/deferred gates. Whole52 remains ACTIVE.
+Exact producerCI7SUCCESS/3FAIL stays separate from this local acceptance.
+See HANDOFF.md and docs/CONTACT_ACCEPTANCE.md for exact evidence and limits;
+all older checkpoints below are historical.
+
+---
+
+## Historical checkpoint: P5.3 ContactPatches source admitted; actual Research next
 
 Optional ContactPatches/schema6/contact-patches-v1 reuses six existing tools;
 native context remains3, Core/registry/Domain/native/model/auth/default scopes unchanged.
@@ -1327,7 +1340,7 @@ This evidence/docs checkpoint is not another solver run.
 - [ ] P4.3: verify serial/parallel equivalence and rejected unsafe declarations
   before advertising wider parallel capability.
 
-## Phase5 — connected nonlinear implicit/material/contact (P5.3 NEXT)
+## Phase5 — connected nonlinear implicit/material/contact (P5.3 full-field GUI NEXT)
 
 - [ ] P5.1: freeze and execute a geometric-nonlinearity reference, full loads/
   displacement/stress/reactions/energy and genuine convergence histories.
@@ -1343,7 +1356,8 @@ This evidence/docs checkpoint is not another solver run.
 - [x] P5.3 uniform2 deterministic MED generation/readback, independent full geometry/binary identity, source46-review and integrated257cold PASS.
 - [x] P5.3 one fresh142 uniform2 native/full-field signed comparison; independent79math/48runtime PASS,10UNKNOWN/NOT_RELEASED.
 - [x] P5.3 ContactPatches source admission: exact schema6/six tools, corrected default collection, independent production/test review and Main full source regression.
-- [ ] P5.3 one whole actual original/uniform2 Research question, independent numerical/interpretation audit, same-result human/ownedStop/retention and full contact-field gate; then P2.4 and Phase6/7/deferred gates.
+- [x] P5.3 actuala927 whole original/uniform2 Research question; independent140math/27106MEDscalars/integration, generic same-record human/ownedStop/108-file retention. TenUNKNOWN/NOT_RELEASED.
+- [ ] P5.3 complete same-record contact-field source/tests/independent review/clean-source actual browser gate; then P2.4 and Phase6/7/deferred gates. Read original fields; no repeated solver needed.
 - [ ] P5.3: obtain full published material/contact definitions (NAFEMS candidate
   families R0026/R0081), freeze cases and execute cross-solver/mesh/reference
   checks; connect common human/AI results, then close P2.4's recorded dependency.

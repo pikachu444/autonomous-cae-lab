@@ -1,4 +1,17 @@
-## Current checkpoint: reviewed MaterialPoints source; one-question research next
+## Current checkpoint: P5.3 connected contact Research verified
+
+Record: `benchmarks/records/20261004-contact-research-r01-qualified.json`; producer `a9276493118bf573f9574ec6605aa96c77d811a6`.
+Bounded whole-question/two-condition research, independent math/MED review,
+generic same-record human view, owned Stop and retention PASS. Ten blocking
+UNKNOWNs/NOT_RELEASED remain. The full contact-field browser gate is NEXT,
+then P2.4 and remainingPhase6/7/deferred gates. Whole52 remains ACTIVE.
+Exact producerCI7SUCCESS/3FAIL stays separate from this local acceptance.
+See HANDOFF.md and docs/CONTACT_ACCEPTANCE.md for exact evidence and limits;
+all older checkpoints below are historical.
+
+---
+
+## Historical checkpoint: reviewed MaterialPoints source; one-question research next
 
 The separate case-sensitive MaterialPoints/schema4/material-points-v1 profile
 connects the qualified SVK material adapter to the same6existing Core tools.

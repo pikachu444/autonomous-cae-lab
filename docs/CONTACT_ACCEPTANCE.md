@@ -1,4 +1,23 @@
-## Current checkpoint: P5.3 ContactPatches source admitted; actual Research next
+## Current checkpoint: P5.3 connected contact Research verified; full-field view next
+
+Record: `benchmarks/records/20261004-contact-research-r01-qualified.json`; producer `a9276493118bf573f9574ec6605aa96c77d811a6`.
+One approved5.6Sol whole question/9 completed calls/2 fresh native analyses;
+both17valid/12PASS/10blockingUNKNOWN/NOT_RELEASED. Independent math140PASS,
+direct MED27106bit-exact scalar comparisons; runtime89PASS/2reviewer-assumption
+FAILs preserved and closed by13narrowPASS, no productionP1/P2 or reruns.
+Official conversation/common same-record human and owned completed Stop PASS;
+new108files/19,118,060B and prior161/23,003,762B unchanged. A/B pressure errors
+slightly increase despite both sample maxima decreasing; two-level convergence
+and full-field improvement are not qualified. Exacta927 CI37161185926:7SUCCESS/
+3FAIL(PDE fixed rate1.8, AsterFACTOR_57, OpenRadioss404); contact nativeCI absent.
+NEXT: same-record complete contact fields/source review/actual clean-source
+browser gate, then P2.4 pinned-fixture coupling and remainingPhase6/7/deferred
+gates. Full-field GUI NOT_RUN; busy cancellation/remote raw/physical UNKNOWN.
+Whole52/Phases5-7 ACTIVE. Earlier snapshots below retain their historical scope.
+
+---
+
+## Historical checkpoint: P5.3 ContactPatches source admitted; actual Research next
 
 Optional ContactPatches/schema6/contact-patches-v1 reuses six existing tools;
 native context remains3, Core/registry/Domain/native/model/auth/default scopes unchanged.
@@ -21,10 +40,11 @@ Ten blockingUNKNOWN/NOT_RELEASED; whole52/Phases5-7 remain ACTIVE.
 
 # Contact foundation acceptance
 
-Current P5.3: original and uniform2 native reference/field identity PASS.
+Native-mesh checkpoint: original and uniform2 native reference/field identity PASS.
 New independent79math/48runtime checks, separate8metadata checks,0openP1/P2.
-One mesh subdivision is sensitivity; asymptotic/cross-solver and connected
-Research/human acceptance remain OPEN.
+One mesh subdivision is sensitivity; asymptotic/cross-solver acceptance remains
+OPEN. Latest bounded actual Research/common human gate is verified above;
+complete contact-field browser inspection is the next gate.
 Whole Phase5, P2.4 fixture coupling, Phases6/7 and the52 requirements remain open.
 
 `structural.code_aster.contact_patch` uses the existing common model-analysis
@@ -132,8 +152,12 @@ Public failed record: benchmarks/records/20261004-contact-calculix-pilot-r01-fai
   fields, original sample/reaction limits, convergence, source/runtime and retention.
 - [ ] Verify mesh/contact/cross-solver scope separately from the original six
   point criteria; retain pointwise gap and physical validity UNKNOWN.
-- [ ] Admit bounded contact to OpenScience, execute a whole research question
-  and inspect the same original native results in the human interface.
+- [x] ContactPatches/schema6 wholea927 question executes two fresh conditions;
+  independent140math/27106native MED scalars/integration, official conversation
+  and generic same-record human/ownedStop/108-file retention PASS.
+- [ ] Complete contact-field browser view of original U/RF, signed LAGS_C,
+  native Gauss stress/XY/W and genuine topology; same-record source/hash binding
+  and actual clean-source browser proof, without any new solver execution.
 - [ ] Close P2.4 real fixture fastener/contact load path using the pinned fixture
   implementation; then continue the queued Phase6/7 gates.
 

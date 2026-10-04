@@ -1,0 +1,613 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-04T00:09:11.798361+00:00",
+  "status": "PASS_BOUNDED_CONNECTED_CONTACT_RESEARCH_COMMON_HUMAN_AND_OWNED_STOP",
+  "producer_commit": "a9276493118bf573f9574ec6605aa96c77d811a6",
+  "publication_is_new_solver_execution": false,
+  "profile": {
+    "selector": "ContactPatches",
+    "schema": 6,
+    "id": "contact-patches-v1",
+    "canonical_sha256": "164f39c6019786ad5e152777d36016d5415b2962c3b6baa5cb69a0c8b47e4405",
+    "native_context_schema": 3
+  },
+  "approved_model": "openai-codex/gpt-5.6-sol",
+  "openscience_version": "2.0.146",
+  "backend": "structural.code_aster.contact_patch",
+  "case": "ssnp121a_frictionless_patch",
+  "study_id": "S-contact-research-01",
+  "hypothesis_id": "S-contact-research-01-H1",
+  "session_id": "ses_efbe81d36ffe1epRoF0GYf03zW",
+  "store": "runs/contact-research-20261004-01",
+  "question": {
+    "complete_stored_stdin_bytes": 4784,
+    "sha256": "2c0d9ec62b12d7fac28b8ccf89c7a2e28286b83877a09b0232d44b36daae1bce",
+    "question_invocations": 1,
+    "question_retry_count": 0,
+    "completed_tool_calls": 9,
+    "distinct_tools": 6,
+    "observed_step_finish_events": 6,
+    "provider_wire_call_count": "UNKNOWN",
+    "seconds": 333.84,
+    "exit_code": 0,
+    "timed_out": false,
+    "workspace_default_guard_restored": true,
+    "native_source_guard_accepted_hooks": 15
+  },
+  "source_identity": {
+    "core_commit": "a9276493118bf573f9574ec6605aa96c77d811a6",
+    "core_dirty": false,
+    "core_source_sha256": "699d5693f4cce39c11104d73b63cb22da02d45dabba774ab582503889bb5f6a2",
+    "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "fixture_source_sha256": "c8a11097d2831b7730d5e039e2cd0c05e7b3a40c8b963505a67db0ae8d4d00a9",
+    "resident_semantics": "Actual connected on-disk source identity; not a Python imported-bytecode proof"
+  },
+  "phase_receipts": {
+    "bootstrap": {
+      "path": "artifacts/contact-research-20261004-01/bootstrap-01/phase-receipt.json",
+      "size_bytes": 2586,
+      "sha256": "64fef4805eb62f868abae96eeabcdc2747519f026918f62fe40a9d69c99bd9c8"
+    },
+    "resident": {
+      "path": "artifacts/contact-research-20261004-01/resident-01/resident-receipt.json",
+      "size_bytes": 10592,
+      "sha256": "d668aafa216d0ee1f320b7973cf12e8a66a48379bced9b1b5cd6e454f1eae23e"
+    },
+    "run": {
+      "path": "artifacts/contact-research-20261004-01/run-01/run-receipt.json",
+      "size_bytes": 21698,
+      "sha256": "671b3ead9d659418b3b5806e677262ab4484704774a6e0f692091b4c5f1c9849"
+    },
+    "capture": {
+      "path": "artifacts/contact-research-20261004-01/capture-01/phase-receipt.json",
+      "size_bytes": 6476,
+      "sha256": "cc7f9c10f564d4b0d3c6bec6bc8d7bfee9a0374aa7f1648586f232ac470ad808"
+    },
+    "owned_stop": {
+      "path": "artifacts/contact-research-20261004-01/stop-01/phase-receipt.json",
+      "size_bytes": 2455,
+      "sha256": "b2f99097c4fba4a72246268881c36ff05679156fcfbca56f5d91bb37f24b79b4"
+    },
+    "root_generic_human": {
+      "path": "artifacts/contact-research-20261004-01/human-common-01/final-observation.json",
+      "size_bytes": 3901,
+      "sha256": "b0271ffce47d191f86e15b886725ccb8c6c834cf648f46cc5cd0543e344c4693"
+    }
+  },
+  "scientific_records": [
+    {
+      "experiment_id": "E-contact-research-01-original",
+      "model_revision": "98fed36716c228301a901f1c6b8041723fe44a85a443cefabbe0ddeae1ec16c9",
+      "proposal_revision": "584684e061f355de91deaaed3b46b44727c4d51db6334e78a66ceef12be02d65",
+      "registry_revision": 0,
+      "cad_revision": null,
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "converged": true,
+      "decision": "NOT_RELEASED",
+      "metrics": {
+        "A_normal_traction": {
+          "unit": "Pa",
+          "valid": true,
+          "value": -100080.2806885708
+        },
+        "A_vertical_displacement": {
+          "unit": "m",
+          "valid": true,
+          "value": -0.04999670096078622
+        },
+        "B_normal_traction": {
+          "unit": "Pa",
+          "valid": true,
+          "value": -100080.28073362722
+        },
+        "B_vertical_displacement": {
+          "unit": "m",
+          "valid": true,
+          "value": -0.04999670096030061
+        },
+        "N14_normal_traction": {
+          "unit": "Pa",
+          "valid": true,
+          "value": -100350.68743056449
+        },
+        "N14_vertical_displacement": {
+          "unit": "m",
+          "valid": true,
+          "value": -0.04997835678480192
+        },
+        "all_nodes_force_balance_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.8189898590575725e-17
+        },
+        "bottom_reaction_y": {
+          "unit": "N/m",
+          "valid": true,
+          "value": 199999.9357408671
+        },
+        "boundary_force_balance_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.6012338425539465e-15
+        },
+        "derived_projected_gap_max": {
+          "unit": "m",
+          "valid": true,
+          "value": 8.191740892331267e-06
+        },
+        "derived_projected_gap_max_absolute": {
+          "unit": "m",
+          "valid": true,
+          "value": 8.191740892331267e-06
+        },
+        "derived_projected_gap_min": {
+          "unit": "m",
+          "valid": true,
+          "value": -4.7516921355148755e-06
+        },
+        "max_sample_displacement_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0004328643039616664
+        },
+        "max_sample_pressure_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0035068743056448875
+        },
+        "slave_normal_traction_max": {
+          "unit": "Pa",
+          "valid": true,
+          "value": -99699.96683996948
+        },
+        "slave_normal_traction_min": {
+          "unit": "Pa",
+          "valid": true,
+          "value": -100350.68743056449
+        },
+        "top_reaction_y": {
+          "unit": "N/m",
+          "valid": true,
+          "value": -199999.9357408668
+        }
+      },
+      "validation_counts": {
+        "PASS": 12,
+        "UNKNOWN": 10
+      },
+      "blocking_unknowns": [
+        "model_qualification",
+        "material_qualification",
+        "physical_validation",
+        "static_strength",
+        "fatigue_durability",
+        "pointwise_contact_gap",
+        "cross_solver_contact",
+        "fixture_joint_contact",
+        "corporate_license_approval",
+        "corporate_security_approval"
+      ],
+      "execution_settings": {
+        "case": "ssnp121a_frictionless_patch",
+        "limits": {
+          "force_balance_relative": 1e-06,
+          "reference_relative": 0.01
+        },
+        "material": {
+          "poisson_ratio": 0,
+          "youngs_modulus_pa": 2000000
+        },
+        "top_displacement_m": -0.1
+      },
+      "native_field_counts": {
+        "nodes": 313,
+        "quad4": 265,
+        "seg2": 92,
+        "slave_lags_c": 13,
+        "gauss": 1060
+      },
+      "direct_med_comparison": "ALL_CAPTURED_SCALARS_BIT_EXACT_IN_INDEPENDENT_READ_ONLY_REVIEW",
+      "selected_artifact_entries": [
+        {
+          "mime_type": "application/json",
+          "path": "simulation/analysis_raw.json",
+          "revision": "584684e061f355de91deaaed3b46b44727c4d51db6334e78a66ceef12be02d65",
+          "sha256": "285825e717ab2a29ae5698d888476b8ccf4eacfba5289ffd674565aa6d4cd431",
+          "size_bytes": 585840
+        },
+        {
+          "mime_type": "application/json",
+          "path": "simulation/level_0/parsed_contact.json",
+          "revision": "584684e061f355de91deaaed3b46b44727c4d51db6334e78a66ceef12be02d65",
+          "sha256": "04a8ec6963ae0810ed1272b8038fb113426ef8d01a6cf286a83724800cf7216d",
+          "size_bytes": 471548
+        },
+        {
+          "mime_type": "application/octet-stream",
+          "path": "simulation/level_0/results.med",
+          "revision": "584684e061f355de91deaaed3b46b44727c4d51db6334e78a66ceef12be02d65",
+          "sha256": "46638beef19ae69034aa88a045cb4278cdbf97450179e3fae9e12c969ccd3a26",
+          "size_bytes": 116006
+        }
+      ],
+      "result_file": {
+        "path": "runs/contact-research-20261004-01/experiments/E-contact-research-01-original/result.json",
+        "size_bytes": 104502,
+        "sha256": "e370635d1e9833d9f1277cae5f433ff00ed70262bc09123d12e8784b5eedc520"
+      }
+    },
+    {
+      "experiment_id": "E-contact-research-01-uniform2",
+      "model_revision": "356a4129bbf085e8a7a47122eaa22b760d9b8584ee20bda6108a3eb3389a5b59",
+      "proposal_revision": "dafb818683a2cc623c06c5bf8c067fa22ff09589b2e3b103a976f231169aad79",
+      "registry_revision": 0,
+      "cad_revision": null,
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "converged": true,
+      "decision": "NOT_RELEASED",
+      "metrics": {
+        "A_normal_traction": {
+          "unit": "Pa",
+          "valid": true,
+          "value": -100080.28194244076
+        },
+        "A_vertical_displacement": {
+          "unit": "m",
+          "valid": true,
+          "value": -0.049998380874502375
+        },
+        "B_normal_traction": {
+          "unit": "Pa",
+          "valid": true,
+          "value": -100080.28239691662
+        },
+        "B_vertical_displacement": {
+          "unit": "m",
+          "valid": true,
+          "value": -0.04999836082077358
+        },
+        "N14_normal_traction": {
+          "unit": "Pa",
+          "valid": true,
+          "value": -100084.03833573495
+        },
+        "N14_vertical_displacement": {
+          "unit": "m",
+          "valid": true,
+          "value": -0.049998765097633506
+        },
+        "all_nodes_force_balance_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.3187673239787282e-16
+        },
+        "bottom_reaction_y": {
+          "unit": "N/m",
+          "valid": true,
+          "value": 199999.9679172642
+        },
+        "boundary_force_balance_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 8.522057045541197e-15
+        },
+        "derived_projected_gap_max": {
+          "unit": "m",
+          "valid": true,
+          "value": 4.096255072728878e-06
+        },
+        "derived_projected_gap_max_absolute": {
+          "unit": "m",
+          "valid": true,
+          "value": 4.096255072728878e-06
+        },
+        "derived_projected_gap_min": {
+          "unit": "m",
+          "valid": true,
+          "value": -2.375714734130266e-06
+        },
+        "max_sample_displacement_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 3.278358452846186e-05
+        },
+        "max_sample_pressure_relative_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0008403833573494921
+        },
+        "slave_normal_traction_max": {
+          "unit": "Pa",
+          "valid": true,
+          "value": -99700.01208294916
+        },
+        "slave_normal_traction_min": {
+          "unit": "Pa",
+          "valid": true,
+          "value": -100350.79651937392
+        },
+        "top_reaction_y": {
+          "unit": "N/m",
+          "valid": true,
+          "value": -199999.96791726252
+        }
+      },
+      "validation_counts": {
+        "PASS": 12,
+        "UNKNOWN": 10
+      },
+      "blocking_unknowns": [
+        "model_qualification",
+        "material_qualification",
+        "physical_validation",
+        "static_strength",
+        "fatigue_durability",
+        "pointwise_contact_gap",
+        "cross_solver_contact",
+        "fixture_joint_contact",
+        "corporate_license_approval",
+        "corporate_security_approval"
+      ],
+      "execution_settings": {
+        "case": "ssnp121a_frictionless_patch",
+        "limits": {
+          "force_balance_relative": 1e-06,
+          "reference_relative": 0.01
+        },
+        "material": {
+          "poisson_ratio": 0,
+          "youngs_modulus_pa": 2000000
+        },
+        "mesh_variant": "uniform_quad4_2x",
+        "top_displacement_m": -0.1
+      },
+      "native_field_counts": {
+        "nodes": 1154,
+        "quad4": 1060,
+        "seg2": 184,
+        "slave_lags_c": 25,
+        "gauss": 4240
+      },
+      "direct_med_comparison": "ALL_CAPTURED_SCALARS_BIT_EXACT_IN_INDEPENDENT_READ_ONLY_REVIEW",
+      "selected_artifact_entries": [
+        {
+          "mime_type": "application/json",
+          "path": "simulation/analysis_raw.json",
+          "revision": "dafb818683a2cc623c06c5bf8c067fa22ff09589b2e3b103a976f231169aad79",
+          "sha256": "024bfe88cc41f71dc1352bd12aaca5e8fae1605a18a0d21e8a37302f2b302c8f",
+          "size_bytes": 2237898
+        },
+        {
+          "mime_type": "application/json",
+          "path": "simulation/level_0/parsed_contact.json",
+          "revision": "dafb818683a2cc623c06c5bf8c067fa22ff09589b2e3b103a976f231169aad79",
+          "sha256": "19c49cfb50fc69471f5ce0ed385b9f63d4ed930df09988c848a3248af917e486",
+          "size_bytes": 1863935
+        },
+        {
+          "mime_type": "application/octet-stream",
+          "path": "simulation/level_0/results.med",
+          "revision": "dafb818683a2cc623c06c5bf8c067fa22ff09589b2e3b103a976f231169aad79",
+          "sha256": "fd75428bd85eef6a9b81915408bb7caebb2a0fd6b852aa291fe25fae76a23cc0",
+          "size_bytes": 321175
+        }
+      ],
+      "result_file": {
+        "path": "runs/contact-research-20261004-01/experiments/E-contact-research-01-uniform2/result.json",
+        "size_bytes": 233688,
+        "sha256": "8b0454e12cf021b2942da23d6111ab2be05bc5c310852eb7274370e2a3e731de"
+      }
+    }
+  ],
+  "interpretation": {
+    "hypothesis": "Both maximum A/B/N14 signed-pressure and DY reference errors decrease after one fixed subdivision",
+    "assessment": "SUPPORTED_ONLY_FOR_THE_TWO_DECLARED_SAMPLE_MAXIMA",
+    "analytical_signed_traction_pa": -100000,
+    "analytical_dy_m": -0.05,
+    "sample_error_limit": 0.01,
+    "force_balance_limit": 1e-06,
+    "native_newton_limit": 2e-08,
+    "A_pressure_relative_error_increase": 1.253869966601033e-08,
+    "B_pressure_relative_error_increase": 1.663289396676166e-08,
+    "counterexamples": [
+      "A/B individual pressure errors slightly increase.",
+      "Boundary/all-node relative force balance is slightly worse while still passing.",
+      "Whole slave traction extreme is slightly worse.",
+      "The actor retains both actual A/B values in its final table but does not explicitly discuss the micro-increase in prose."
+    ],
+    "no_claim": [
+      "pointwise full-field improvement",
+      "asymptotic mesh convergence from two levels",
+      "native pointwise gap",
+      "cross-solver equivalence",
+      "material/physical/strength/fatigue qualification",
+      "engineering release"
+    ]
+  },
+  "independent_reviews": {
+    "math": {
+      "pass": 140,
+      "fail": 0,
+      "open_p1_p2": 0,
+      "receipt": {
+        "path": "artifacts/development-contact-20261004-01/contact-research-math-audit-01/audit-receipt.json",
+        "size_bytes": 113342,
+        "sha256": "565c260f18a0af9498dc9325ecd756936753464a35d874e3e2479876141c11c8"
+      },
+      "seal": {
+        "path": "artifacts/development-contact-20261004-01/contact-research-math-audit-01/final-seal.json",
+        "size_bytes": 6259,
+        "sha256": "c0e7c47779f463df477fa7d270466237f2acc2d8046747d00399538bb4d09973"
+      }
+    },
+    "runtime_med": {
+      "initial_pass": 89,
+      "initial_reviewer_assumption_fail": 2,
+      "original_record_preserved": true,
+      "narrow_append_only_closure_pass": 13,
+      "narrow_closure_fail": 0,
+      "open_production_p1_p2": 0,
+      "all_captured_med_scalar_comparisons": 27106,
+      "revision_layer_explanation": "Core hashes the original retained execution/declaration with integer E/nu; native float-canonical input is a different representation and was a reviewer oracle assumption.",
+      "original_receipt": {
+        "path": "artifacts/development-contact-20261004-01/contact-research-runtime-audit-01/actual-runtime-audit.json",
+        "size_bytes": 68942,
+        "sha256": "4657ff73013473494b42735652d776d69fc093373880f65d7618ac59be4c9306"
+      },
+      "closure": {
+        "path": "artifacts/development-contact-20261004-01/contact-research-runtime-audit-01/revision-layer-closure-01.json",
+        "size_bytes": 17057,
+        "sha256": "826d550cc1823598e18d0354f484ffeb8c7e546c03cfbcacc8b7c38ddd20b346"
+      },
+      "seal": {
+        "path": "artifacts/development-contact-20261004-01/contact-research-runtime-audit-01/FREEZE.json",
+        "size_bytes": 11851,
+        "sha256": "d5c7e136681d72e0ef0cff69dcd0cfca3132fffa9a0b7168d6d9d364b54b6fd5"
+      }
+    },
+    "integration": {
+      "open_p1_p2": 0,
+      "receipt": {
+        "path": "artifacts/development-contact-20261004-01/contact-research-integration-audit-01/independent-actual-review.json",
+        "size_bytes": 141293,
+        "sha256": "605b2f6d1a6e62223f1d0a1b7d19d01d492b32d81b5fa0b1c884a2a3c09fbd14"
+      },
+      "seal": {
+        "path": "artifacts/development-contact-20261004-01/contact-research-integration-audit-01/freeze-receipt.json",
+        "size_bytes": 2853,
+        "sha256": "54146f3801b3dcb05a0395c2fc439a7b7c977e6b2e9f0d7610c941fba7e2c68a"
+      },
+      "human_stop_supplement": {
+        "path": "artifacts/development-contact-20261004-01/contact-research-integration-audit-01/human-stop-supplement-review.json",
+        "size_bytes": 13126,
+        "sha256": "c33ddcf06d0acc4066e0f30d286651c2330ebb1ece66d75a04bc9c096295e0ce"
+      },
+      "human_stop_seal": {
+        "path": "artifacts/development-contact-20261004-01/contact-research-integration-audit-01/human-stop-supplement-freeze.json",
+        "size_bytes": 5147,
+        "sha256": "284bcb96104868fc3a0a109b7127b71abb06584eb9a0cffae33447897b42bd62"
+      }
+    },
+    "additional_scientific_or_provider_runs_by_reviewers": 0
+  },
+  "human_and_control": {
+    "official_conversation": "PASS_ACTUAL_OBSERVATION",
+    "generic_same_record_results": "PASS_ACTUAL_OBSERVATION",
+    "owned_completed_runtime_stop": "PASS_EXISTING_OWNED_HELPER_AND_IMMUTABLE_STORE",
+    "full_contact_field_gui": "NOT_RUN_NEXT_IMPLEMENTATION",
+    "actual_raw_download": "NOT_RUN",
+    "active_busy_cancellation": "UNKNOWN"
+  },
+  "retention": {
+    "new_store": {
+      "files": 108,
+      "bytes": 19118060,
+      "status": "UNCHANGED_AFTER_CAPTURE_HUMAN_AND_STOP"
+    },
+    "prior_stores": {
+      "files": 161,
+      "bytes": 23003762,
+      "status": "UNCHANGED"
+    },
+    "new_manifest": {
+      "path": "artifacts/contact-research-20261004-01/capture-01/store-before-final-control.json",
+      "size_bytes": 31230,
+      "sha256": "886b4356c72e9e61fd6fc5eb9f05cdf1c561d283178ad412a3678d7e93637783"
+    },
+    "prior_manifest": {
+      "path": "artifacts/contact-research-20261004-01/capture-01/prior-store-retention.json",
+      "size_bytes": 45178,
+      "sha256": "eabc51a8985eaacca3231d5604120d759071e63913a86d8defd2c4040255e81b"
+    },
+    "planning": {
+      "path": "artifacts/contact-research-20261004-01/capture-01/planning.txt",
+      "size_bytes": 772,
+      "sha256": "54c5564e91c71cac9fd21beee05c8980c4f6de8255253bd2eb1747a177755682"
+    },
+    "interpretation": {
+      "path": "artifacts/contact-research-20261004-01/capture-01/interpretation.txt",
+      "size_bytes": 6165,
+      "sha256": "db2ac7585975d8722678ed46da5bbdc991b7e12988e52fd4e37dcb676ac920a7"
+    },
+    "raw_remote_durability": "UNKNOWN"
+  },
+  "exact_producer_ci": {
+    "run_id": 37161185926,
+    "run_url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37161185926",
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": {
+      "success": 7,
+      "failure": 3,
+      "pending": 0
+    },
+    "core": {
+      "job_id": 111314771594,
+      "pytest": {
+        "passed": 3932,
+        "skipped": 5,
+        "warnings": 1,
+        "seconds": 600.95,
+        "one_based_line": 497
+      },
+      "ui_controls_tap": {
+        "tests": 130,
+        "one_based_line": 1306,
+        "pass": 130,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "native_guard_and_source_pin_tap": {
+        "tests": 316,
+        "one_based_line": 3259,
+        "pass": 303,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 13
+      },
+      "native_git_state_tap": {
+        "tests": 8,
+        "one_based_line": 3317,
+        "pass": 8,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "log_sha256": "847df9e0aee9342905d3413dc30c34622ff9c6478154a650de2f266cab86e36b"
+    },
+    "failure_scope": "PDE rates below fixed1.8; Code_Aster FACTOR_57 accuracy refusal; OpenRadioss pinned HTTP404 before native. Deeper causes/skipped gates remain UNKNOWN.",
+    "summary": {
+      "path": "artifacts/development-contact-20261004-01/cia927-evidence-01/summary.json",
+      "size_bytes": 3449,
+      "sha256": "11f4680419b48875b37e52aa2b0977accdaab04570c48fe9ae81ceaff931348a"
+    },
+    "manifest": {
+      "path": "artifacts/development-contact-20261004-01/cia927-evidence-01/MANIFEST.json",
+      "size_bytes": 45562,
+      "sha256": "6962439a91b51358d9e0fda2cc1518964e2f97d9e26467527df0e26608af6f66"
+    },
+    "contact_native_ci": "ABSENT_FROM_THIS_WORKFLOW"
+  },
+  "engineering_blocking_unknowns": [
+    "model_qualification",
+    "material_qualification",
+    "physical_validation",
+    "static_strength",
+    "fatigue_durability",
+    "pointwise_contact_gap",
+    "cross_solver_contact",
+    "fixture_joint_contact",
+    "corporate_license_approval",
+    "corporate_security_approval"
+  ],
+  "decision": "NOT_RELEASED",
+  "next_ordered_gates": [
+    "Exact same-record full contact-field renderer/source tests/independent review/actual clean-source browser proof without solver reruns",
+    "P2.4 pinned fixture fastener/contact load-path coupling",
+    "Remaining Phase6/7 and deferred numerical/CI acceptance gates"
+  ],
+  "whole_52_requirements": "ACTIVE_NOT_COMPLETE"
+}
