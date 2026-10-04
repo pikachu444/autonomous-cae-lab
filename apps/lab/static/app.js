@@ -207,10 +207,10 @@ function updateControls() {
   }
   if (!$("nativePath").value || !state.studyId) document.querySelector('[data-operation="parameter_register"]').disabled = true;
   if (!$("nativeFinal").value || !$("nativeModelId").value.trim()) document.querySelector('[data-operation="native_final"]').disabled = true;
-  if (!state.presets[$("simulationPreset").value] || ($("simulationPreset").value === "structural_linear" && !$("analysisParent").value)) $("simulationRunBtn").disabled = true;
+  if (!state.presets[$("simulationPreset").value] || (simulationOperation() === "analysis_run" && !$("analysisParent").value)) $("simulationRunBtn").disabled = true;
   if (!$("fixtureConditionFields").hidden && state.fixtureConditionError) $("simulationRunBtn").disabled = true;
   if (!$("importedMeshFields").hidden && (state.importedMeshError || state.importedLoading)) $("simulationRunBtn").disabled = true;
-  $("fixtureUseInCampaign").disabled = !writable() || busy() || Boolean(state.fixtureConditionError);
+  $("fixtureUseInCampaign").disabled = !writable() || busy() || Boolean(state.fixtureConditionError) || !window.cadControls.supportsBackend(state.presets.structural_linear, $("cadBackend").value);
   if (!document.querySelector("[data-campaign-variable]:checked")) $("campaignPlanBtn").disabled = true;
   $("modelDiscoverBtn").disabled = busy() || !state.overview || !state.presets[$("modelCampaignPreset").value]?.declared_inputs || !available("model_parameters_discover");
   if (!state.studyId || !currentModelDiscovery() || !$("modelInputId").value) $("modelRegisterBtn").disabled = true;
@@ -219,6 +219,22 @@ function updateControls() {
   $("compareCount").textContent = `${state.comparison.size}개 선택 · 최대 12개`;
 }
 
+function renderAnalysisParents() {
+  const preset = state.presets[$("simulationPreset").value];
+  const oldParent = $("analysisParent").value;
+  const parents = clear("analysisParent"); option(parents, "", "이 해석에 연결된 CAD 실험을 선택하세요");
+  list(state.overview?.experiments).filter((record) => window.cadControls.eligibleParent(preset, record))
+    .forEach((record) => option(parents, record.id, `${record.id} · ${record.study_id}`));
+  parents.value = [...parents.options].some((item) => item.value === oldParent) ? oldParent : "";
+}
+function refreshCadAnalysis() {
+  const compatible = window.cadControls.supportsBackend(state.presets.structural_linear, $("cadBackend").value);
+  $("campaignAnalysis").options[1].disabled = !compatible;
+  if (!compatible && $("campaignAnalysis").value) {
+    $("campaignAnalysis").value = "";
+    $("campaignAnalysis").dispatchEvent(new Event("change"));
+  }
+}
 function renderOverview() {
   const overview = state.overview;
   if (!overview) return;
@@ -251,11 +267,7 @@ function renderOverview() {
     capabilities.append(card);
   });
   if (!capabilities.children.length) capabilities.append(el("p", "서버에서 capability 정보를 제공하지 않았습니다.", "empty-state"));
-  const oldParent = $("analysisParent").value;
-  const parents = clear("analysisParent"); option(parents, "", "완료한 CAD 실험을 선택하세요");
-  list(overview.experiments).filter((record) => record.status === "COMPLETED_REVIEW_REQUIRED" && record.cad_revision && /^fixture\./.test(record.backend ?? "") && record.solver_status === "NOT_RUN")
-    .forEach((record) => option(parents, record.id, `${record.id} · ${record.study_id}`));
-  parents.value = [...parents.options].some((item) => item.value === oldParent) ? oldParent : "";
+  renderAnalysisParents();
   renderExperimentList(); renderCampaignList(); updateControls();
 }
 async function loadOverview({ followJobs = true } = {}) {
@@ -315,7 +327,7 @@ function renderRegistry() {
     input.dataset.cadParameter = entry.parameter_id; input.readOnly = entry.mode === "fixed";
     label.append(input, el("small", `범위 ${number(entry.lower_bound)}–${number(entry.upper_bound)} · ${entry.mode === "fixed" ? "고정값" : "자유 변수"}`, "hint")); values.append(label);
   });
-  renderCampaignVariables(); updateControls();
+  refreshCadAnalysis(); renderCampaignVariables(); updateControls();
 }
 function renderCampaignVariables() {
   if (state.campaignSelectionKey) state.campaignSelections.set(state.campaignSelectionKey,
@@ -387,7 +399,7 @@ function renderPresets(data) {
   if (!select.options.length) option(select, "", "사용 가능한 예제 없음");
   selectPreset();
   const structural = state.presets.structural_linear;
-  $("campaignAnalysis").options[1].disabled = !structural;
+  refreshCadAnalysis();
   if (structural) $("campaignAnalysisSettings").value = pretty(structural.settings);
   const models = clear("modelCampaignPreset");
   Object.entries(state.presets).filter(([, preset]) => preset.declared_inputs === true)
@@ -452,7 +464,7 @@ function selectPreset() {
   renderImportedMeshes();
   if (!$("fixtureConditionFields").hidden) loadFixtureConditions();
   else fixtureConditionError(null);
-  updateControls();
+  renderAnalysisParents(); updateControls();
 }
 function importedMeshError(message) {
   state.importedMeshError = message;
@@ -686,7 +698,7 @@ function renderExperimentDetail(data) {
     visual.append(picture, el("p", image.path, "preview-caption"));
   } else visual.append(el("p", "이 실험에 manifest로 등록된 이미지가 없습니다. 아래의 원본 CAD·메시·field 파일을 내려받아 확인하세요.", "empty-state"));
   const surface = list(result.artifacts).find((item) => /(?:^|\/)surface\.json$/.test(item.path));
-  if (surface) visual.append(action("원본 FreeCAD surface viewer 열기", () => openSurface(visual, identifier, surface.path)));
+  if (surface) visual.append(action("같은 실험의 원본 3D 형상 열기", () => openSurface(visual, identifier, surface.path)));
   visual.append(el("p", "네이티브 3D surface는 같은 실험의 검증된 파일로 엽니다. 치구의 진단용 응력 성분은 아래 원본 연결 표에서 확인합니다.", "hint separated"));
   evidenceGrid.append(evidence, visual); container.append(evidenceGrid);
   renderFixtureStressFields(container, result);
@@ -703,7 +715,7 @@ function renderExperimentDetail(data) {
   const commit = source.core_commit ?? source.source_commit;
   $("selectedSource").textContent = commit ? `소스 ${String(commit).slice(0, 12)}${source.core_dirty ? " · 로컬 변경 있음" : ""}` : "소스 버전: 이 기록에 미제공";
   $("selectedSource").title = text(commit);
-  if (result.status === "COMPLETED_REVIEW_REQUIRED" && result.cad_revision && result.solver_status === "NOT_RUN") $("analysisParent").value = identifier;
+  if (window.cadControls.eligibleParent(state.presets[$("simulationPreset").value], { ...result, backend: result.provenance?.adapter })) $("analysisParent").value = identifier;
   updateControls();
 }
 function renderContactFields(container, inspection) {
@@ -1039,9 +1051,9 @@ async function openSurface(container, identifier, path) {
     viewerScript ??= new Promise((resolve, reject) => { const script = document.createElement("script"); script.src = "/upstream/surface_viewer.js"; script.addEventListener("load", resolve); script.addEventListener("error", () => reject(new Error("원본 surface viewer를 불러올 수 없습니다."))); document.head.append(script); });
     await viewerScript;
   }
-  const canvas = el("canvas"); canvas.className = "preview-canvas"; canvas.setAttribute("aria-label", "원본 FreeCAD 표면 · 드래그 회전, 휠 확대, 클릭 면 확인");
+  const canvas = el("canvas"); canvas.className = "preview-canvas"; canvas.setAttribute("aria-label", "같은 실험의 원본 표면 · 드래그 회전, 휠 확대, 클릭 면 확인");
   const selection = el("p", "드래그로 회전 · 휠로 확대 · 면을 클릭해 원본 face ID 확인", "preview-caption"); container.append(canvas, selection);
-  const viewer = window.createFaceViewer(canvas, (face) => { selection.textContent = face ? `원본 face ${face.id} · ${text(face.type ?? face.surface)}` : "선택된 면 없음"; }); viewer.setData(surface); state.viewer = viewer;
+  const viewer = window.createFaceViewer(canvas, (face) => { selection.textContent = face ? `${face.component_id ? text(face.component_id) + " · " : ""}원본 face ${text(face.catalog_face_id ?? face.id)} · ${text(face.type ?? face.surface)}` : "선택된 면 없음"; }); viewer.setData(surface); state.viewer = viewer;
 }
 async function compareExperiments() {
   if (state.comparison.size < 2) return;
@@ -1167,7 +1179,11 @@ bindForm("nativeFinalForm", "native_final", () => ({ model: $("nativeModelId").v
 bindForm("simulationForm", simulationOperation, () => {
   const preset = state.presets[$("simulationPreset").value], operation = simulationOperation();
   const args = { experiment_id: $("simulationId").value.trim(), backend: preset.backend, settings: fixtureSimulationSettings() };
-  if (operation === "analysis_run") args.parent_experiment_id = $("analysisParent").value;
+  if (operation === "analysis_run") {
+    const parent = list(state.overview?.experiments).find((record) => record.id === $("analysisParent").value);
+    if (!window.cadControls.eligibleParent(preset, parent)) throw new Error("이 해석에 연결된 CAD 부모 실험을 선택하세요.");
+    args.parent_experiment_id = $("analysisParent").value;
+  }
   else args.study_id = state.studyId;
   return args;
 }, async (result, args) => { $("simulationId").value = makeId("E-solve"); await inspectExperiment(result.experiment_id ?? args.experiment_id); });
@@ -1176,7 +1192,10 @@ bindForm("campaignForm", campaignOperation, () => {
   const args = { study_id: state.studyId, campaign_id: $("campaignId").value.trim(), parameter_ids: [...document.querySelectorAll("[data-campaign-variable]:checked")].map((input) => input.value), seed: numeric("campaignSeed") };
   if (!model) { args.backend = $("cadBackend").value; args.model = $("cadModel").value.trim(); }
   if (!args.parameter_ids.length) throw new Error("등록된 자유 변수를 하나 이상 선택하세요.");
-  if (!model && $("campaignAnalysis").value) { args.analysis_backend = state.presets.structural_linear.backend; args.analysis_settings = parseField("campaignAnalysisSettings", "object"); }
+  if (!model && $("campaignAnalysis").value) {
+    if (!window.cadControls.supportsBackend(state.presets.structural_linear, args.backend)) throw new Error("현재 CAD 모델에 연결된 후속 구조 해석이 없습니다. CAD만 실행할 수 있습니다.");
+    args.analysis_backend = state.presets.structural_linear.backend; args.analysis_settings = parseField("campaignAnalysisSettings", "object");
+  }
   if ($("campaignType").value === "optimization") {
     args.objective = { source: $("objectiveSource").value, metric: $("objectiveMetric").value.trim(), unit: $("objectiveUnit").value.trim(), direction: $("objectiveDirection").value };
     args.constraints = parseField("optimizationConstraints", "array"); args.initial_values = parseField("optimizationInitial", "nullable-object"); args.required_validations = parseField("optimizationRequired", "object");
@@ -1194,7 +1213,7 @@ $("discoverBtn").addEventListener("click", () => runJob("parameter_discover", { 
 $("registryRefreshBtn").addEventListener("click", () => runJob("registry_refresh", { study_id: state.studyId, backend: $("cadBackend").value, model: $("cadModel").value.trim() }, () => loadStudy(state.studyId)).catch((error) => notify(error.message)));
 $("nativePath").addEventListener("change", () => chooseCandidate($("nativePath").value));
 $("nativeFinal").addEventListener("change", updateControls); $("nativeModelId").addEventListener("input", updateControls);
-$("cadBackend").addEventListener("change", () => { state.discovery = []; renderDiscovery([]); if ($("cadBackend").value === "fixture.cadquery") $("cadModel").value = "roller_support"; else { $("cadModel").value = $("nativeModelId").value; $("nativeArea").open = true; } renderRegistry(); });
+$("cadBackend").addEventListener("change", () => { state.discovery = []; renderDiscovery([]); if ($("cadBackend").value === "fixture.cadquery") $("cadModel").value = "roller_support"; else if ($("cadBackend").value === "fixture.assembly") $("cadModel").value = "bending_assembly"; else { $("cadModel").value = $("nativeModelId").value; $("nativeArea").open = true; } renderRegistry(); });
 $("cadModel").addEventListener("change", () => { renderDiscovery([]); renderRegistry(); });
 $("studySelect").addEventListener("change", () => {
   state.studyId = $("studySelect").value; state.study = null; state.registry = { entries: [] };

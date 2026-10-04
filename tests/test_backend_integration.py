@@ -23,6 +23,10 @@ def test_default_model_registry_constructs_without_native_commands_and_preserves
 
     monkeypatch.setattr(subprocess, "run", unexpected)
     lab = Lab(tmp_path / "default")
+    assert set(lab.adapters) == {"fixture.cadquery", "fixture.freecad", "fixture.assembly"}
+    assert Lab(tmp_path / "empty-cad", adapters={}).adapters == {}
+    custom_cad = {"test.cad": object()}
+    assert Lab(tmp_path / "custom-cad", adapters=custom_cad).adapters is custom_cad
     assert set(lab.model_analysis_adapters) == DEFAULT_MODEL_BACKENDS
     assert Lab(tmp_path / "empty", model_analysis_adapters={}).model_analysis_adapters == {}
     custom = {"test.only": object()}
@@ -50,6 +54,7 @@ def test_default_model_backend_invalid_input_records_common_rejection_without_na
 def test_simulation_presets_share_generic_declared_operation_without_cad_parent(tmp_path):
     service = LabService(tmp_path)
     presets = service.presets()
+    assert presets["structural_linear"]["parent_backends"] == ["fixture.cadquery"]
     model_presets = {key: preset for key, preset in presets.items() if preset["operation"] == "model_analysis_run"}
     assert {preset["backend"] for preset in model_presets.values()} == BACKENDS
     assert presets["explicit_ground_stop"]["status"] == "REJECTED"

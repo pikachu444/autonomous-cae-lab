@@ -250,6 +250,7 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     assert presets["codeaster_linear"]["settings"] == aster_spec()
     assert presets["structural_linear"]["settings"]["material"]["qualification"] == "ASSUMED_NOT_MEASURED"
     assert presets["structural_linear"]["operation"] == "analysis_run"
+    assert presets["structural_linear"]["parent_backends"] == ["fixture.cadquery"]
     assert presets["pde_canonical"]["operation"] == "pde_run"
     from plugins.pde_elliptic.reference import manufactured_settings
     assert presets["pde_rectangle"]["settings"] == manufactured_settings()

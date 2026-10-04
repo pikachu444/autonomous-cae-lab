@@ -106,10 +106,10 @@ class LabService:
     def capabilities(self) -> list[dict]:
         descriptions = {
             "study_create": ("연구 만들기", None, "IMPLEMENTED", "Core 연구 질문·가설·목표 기록"),
-            "parameter_discover": ("설계 변수 찾기", "fixture.cadquery / fixture.freecad", "IMPLEMENTED", "기존 CAD adapter의 native 변수"),
-            "parameter_register": ("설계 변수 등록", "fixture.cadquery / fixture.freecad", "IMPLEMENTED", "기존 Core의 범위·형상 효과 검증"),
+            "parameter_discover": ("설계 변수 찾기", "fixture.cadquery / fixture.freecad / fixture.assembly", "IMPLEMENTED", "기존 CAD adapter의 native 변수"),
+            "parameter_register": ("설계 변수 등록", "fixture.cadquery / fixture.freecad / fixture.assembly", "IMPLEMENTED", "기존 Core의 범위·형상 효과 검증"),
             "registry_refresh": ("변수 매핑 갱신", None, "IMPLEMENTED", "기존 Core의 native 개정 확인"),
-            "cad_run": ("CAD 실험", "fixture.cadquery / fixture.freecad", "IMPLEMENTED", "형상 검증과 편집 가능한 원본·증거; 강도 승인 아님"),
+            "cad_run": ("CAD 실험", "fixture.cadquery / fixture.freecad / fixture.assembly", "IMPLEMENTED", "원본 조립체·단일 부품의 형상 검증과 재생성 입력·증거; 조립체 해석·강도 검증은 별도"),
             "native_create": ("FreeCAD 원본 만들기", "fixture.freecad", "EXPERIMENTAL", "설정된 FreeCAD 실행 환경 필요"),
             "native_inspect": ("FreeCAD 원본 살펴보기", "fixture.freecad", "EXPERIMENTAL", "기존 native model ID로 조회"),
             "native_final": ("최종 형상 선택", "fixture.freecad", "EXPERIMENTAL", "원본의 기존 final-solid 선택"),
@@ -316,8 +316,8 @@ class LabService:
                          "plugins/fixture_design/upstream/examples/printed_material_ASSUMED.json")
         # Exact existing acceptance inputs; material remains explicitly assumed.
         presets = {
-            "structural_linear": {"operation": "analysis_run", "backend": "fixture.calculix", "label": "가정된 재료·하중의 선형 구조 screen",
-                "status": "EXPERIMENTAL", "scope": "100 N/support 및 미측정 orthotropic 재료; peak stress와 강도·물리 검증 UNKNOWN, NOT_RELEASED",
+            "structural_linear": {"operation": "analysis_run", "backend": "fixture.calculix", "parent_backends": ["fixture.cadquery"], "label": "가정된 재료·하중의 선형 구조 screen",
+                "status": "EXPERIMENTAL", "scope": "roller_support 단일 부품의 100 N/support 및 미측정 orthotropic 재료; peak stress와 강도·물리 검증 UNKNOWN, NOT_RELEASED",
                 "settings": {"load": {"force_per_support_N": 100.0,
                     "source": "Illustrative 100 N screen per support; unqualified, not measured"},
                     "material": load_json(material_path), "mesh": {"max_sizes_mm": [4.0, 3.0, 2.0]}}},

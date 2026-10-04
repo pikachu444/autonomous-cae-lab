@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "checkpoint": "P2.4_ORIGINAL_ASSEMBLY_CAD_PARENT_SOURCE",
+  "utc": "2026-10-04T03:24:16.689047+00:00",
+  "status": "PASS_BOUNDED_MAIN_SOURCE_NATIVE_PENDING",
+  "source_commit": "COMMIT_CONTAINING_THIS_RECORD",
+  "source_parent": "35a3df41649363c74c2c8f28cbf8353dbb5f13f2",
+  "observed_upstream_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "source_files": [
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "sha256": "b26c0fe90367f066f6f5703efc178ce93174e3d9b0f940ab66e9c2f91bb94c5e",
+      "bytes": 23954,
+      "before_sha256": "b58088fec6476d724669c5ee2f19ecf842eb80a2fe205766866354809fd203cb"
+    },
+    {
+      "path": "ADR/0032-original-fixture-assembly-cad-parent.md",
+      "sha256": "5930002718b7fcc21985f957a99b92ad3329fa54fa9f6750dd81d6e571a0a279",
+      "bytes": 4276,
+      "before_sha256": null
+    },
+    {
+      "path": "apps/lab/service.py",
+      "sha256": "43e43510152129bf9a910249d2f5f9a9a7f98454454e471509a996e5f4806a89",
+      "bytes": 41433,
+      "before_sha256": "7a94b712b3169ff283d4c69a3dd5e07c70d3ff55e2f4db81e7259a8d83f7aae2"
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "sha256": "db0782317a3a8cd92612e5a6df2cbbf985432d36f3988bbbae7a807e12ef061c",
+      "bytes": 103807,
+      "before_sha256": "aef569ea7296feda5b78430395763406b9145297bdaff30e9c815bb60fc4e5ec"
+    },
+    {
+      "path": "apps/lab/static/cad-controls.js",
+      "sha256": "208706ac5bcdb6327b5dce2c8cffa06afbe8f69c1aa9219b1785d85b85849147",
+      "bytes": 1009,
+      "before_sha256": null
+    },
+    {
+      "path": "apps/lab/static/index.html",
+      "sha256": "fe51490ebc6a060034377776350ba1c5dff8a678cd91d339f8e5f7b90e6ee243",
+      "bytes": 29360,
+      "before_sha256": "d585955d881c62c9668842c07351bcba0d033dc3e2582361c5302d0c6bf12ee4"
+    },
+    {
+      "path": "caelab/engine.py",
+      "sha256": "47d629c8b897da5f360928ab549913159d8c1b6ceeda659604a50f130f27cf2f",
+      "bytes": 47744,
+      "before_sha256": "3c5d5107428101980baf66f2d6ec128cd00df98165994886c7ff36cd9f828655"
+    },
+    {
+      "path": "tests/test_backend_integration.py",
+      "sha256": "d5dbd4d88599db00f1ec4ad6070aea2c2b2e9f68066b460f7af9c24f883a2e74",
+      "bytes": 5286,
+      "before_sha256": "d239c66ca76e30c3cb5469a648bc320634345e4175ec220553f0027ed6d994da"
+    },
+    {
+      "path": "tests/test_cad_controls.js",
+      "sha256": "63a5da65d142082a52c5c961cb31dd2dc1e3b9f237f0c0502e426db449989cfb",
+      "bytes": 2354,
+      "before_sha256": null
+    },
+    {
+      "path": "tests/test_lab_server.py",
+      "sha256": "3f48c407165e79d8b20b136b34032bda46aac32dbaf2839ed7cb81c8eea6a4ec",
+      "bytes": 38707,
+      "before_sha256": "22673b675c43871ffa1a93e26eb3f9c02a332b829c94f798066aee170bbf6b08"
+    },
+    {
+      "path": "docs/VERIFICATION_SCOPE.md",
+      "sha256": "f65cc9dd157d85cd2a2151852719a8da0968a47b229056996235d7c400f3b915",
+      "bytes": 3145,
+      "before_sha256": null
+    },
+    {
+      "path": "caelab/adapters/fixture_assembly.py",
+      "sha256": "00ed0451f1448c440cacdb91c3314217e8c2fde06479c116e3cd7854cada37eb",
+      "bytes": 19790,
+      "before_sha256": null
+    },
+    {
+      "path": "caelab/adapters/fixture_assembly_worker.py",
+      "sha256": "c9107e4a7b1d8d945a300902875c8a139a22ead5ee306b2f232ecce67ed8604a",
+      "bytes": 27499,
+      "before_sha256": null
+    },
+    {
+      "path": "plugins/fixture_design/assembly_interfaces.py",
+      "sha256": "5b71b84d23f5f8e6bdb54924c237dce953f46cfc25d4e959ba8bf9094aaf77e2",
+      "bytes": 1748,
+      "before_sha256": null
+    },
+    {
+      "path": "tests/test_fixture_assembly.py",
+      "sha256": "eb1d1ba5df9ec770e9e639c67f15ba58ea05575dc55ee80f03f441402e96b85b",
+      "bytes": 24737,
+      "before_sha256": null
+    }
+  ],
+  "main_gates": {
+    "main_python": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/main-python-01.xml",
+      "sha256": "c21ddabd906edf4346912549a964e9f05a8705beae4045fa67eee9ea463511c1",
+      "leaf_cases": 105,
+      "suites": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "main_ui": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/main-ui-01.xml",
+      "sha256": "fa66e03d16fdbfd3cb734bf24a515a2fe2201d5a89a8b386143a14284fe979c6",
+      "leaf_cases": 273,
+      "suites": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "main_python_seconds": 98.62,
+  "main_python_warning": "Existing CadQuery ast.NameConstant deprecation; not a failure",
+  "private_original_candidate": {
+    "tests_passed": 72,
+    "pytest_seconds": 110.14,
+    "freeze_sha256": "eb41569b81a4e3e0423c229964dbc7551700668b915145124ce9af704db19210",
+    "native_revision": "523a5d30d2abbb5c4e178c3aa6faf959ab3acc2efd38eeceed6bf577785df78d",
+    "assembly_step_sha256": "c0f1f79910d25206684fcb2258cc9113da5eed74c5a32dee1a2373174056a5ca",
+    "components": 15,
+    "faces": 117,
+    "interfaces": 15,
+    "distinct_bolt_seats": 8,
+    "native_files": 154,
+    "display_triangles": 13532,
+    "width_10_to_12_boolean_difference_mm3": 640.0000000000003,
+    "independent_analytical_difference_mm3": 640,
+    "source_scope": "Original private candidate only; not corrected clean Main execution"
+  },
+  "bounded_corrections": [
+    {
+      "finding": "P2 runtime-version literals",
+      "pass": 3,
+      "freeze_sha256": "11756b69892488777c82582fbd89af37be12743031a0154e3b1480d62e5c3d65"
+    },
+    {
+      "finding": "P1 valid payload could be admitted after nonzero worker exit",
+      "pass": 4,
+      "freeze_sha256": "bd5e99e6d2ad5bbac4596c9dec128889d5102d8229dd66464838109f544ac964"
+    }
+  ],
+  "counts_are_separate_executions_not_additive": true,
+  "independent_reviews": {
+    "root-integration-source-01/source-freeze-01.json": "bd9542ecf56b77292413db6bffa97ecbf696d4e256d6ab11318eaf4c31f5ab8c",
+    "root-integration-review-01/final-review.json": "4973409daf2286dfb07a2e6801ac0d260e7678f305377411403f84850413f68d",
+    "root-integration-review-01/final-freeze-receipt.json": "8666f3f7d9ca417ef4e7c9a2026c809251a1bb6067d24291d314dec9a6488275",
+    "assembly-worker-exit-delta-01/FREEZE.json": "bd5e99e6d2ad5bbac4596c9dec128889d5102d8229dd66464838109f544ac964",
+    "assembly-source-native-review-01/REPORT.md": "bac09c988f399843830973ba7183238c3740a2edf141236e1ee047fd8d4479fd",
+    "assembly-source-native-review-01/RECEIPT.json": "1f996955d118bf379995326f43b23fdecf476867ddef9ee5fb49aa22809d4b6b"
+  },
+  "open_P1_P2": 0,
+  "new_cad_backend": "fixture.assembly",
+  "model": "bending_assembly",
+  "typed_parameters": [
+    "specimen.length",
+    "specimen.width",
+    "specimen.thickness",
+    "specimen.span_ratio"
+  ],
+  "caller_bounds_required": true,
+  "intrinsic_bounds": "NOT_JUSTIFIED_NONE",
+  "portable_rebuild_recipe": "NOT_VERIFIED",
+  "freecad_parametric_document": "NOT_PROVIDED",
+  "corrected_clean_main_native": "NOT_RUN",
+  "core_native_parent": "NOT_RUN",
+  "same_revision_human": "NOT_RUN",
+  "assembly_research_admission": "NOT_ADMITTED",
+  "fixture_mechanics": "UNKNOWN",
+  "actual_cad_os_cancellation": "NOT_RUN",
+  "engineering_decision": "NOT_RELEASED",
+  "whole_52": "ACTIVE_NOT_COMPLETE",
+  "new_exact_source_ci": "PENDING_AFTER_PUSH",
+  "prior_exact_source_ci": {
+    "commit": "93d5efec1e6dd5f560732a497c5f37b72000a64f",
+    "run": 37166716411,
+    "success_jobs": 7,
+    "failed_jobs": 3,
+    "failures": [
+      "OpenRadioss download HTTP404",
+      "vector PDE classification",
+      "Aster Fz check"
+    ],
+    "detailed_new_failure_metrics": "UNKNOWN"
+  },
+  "retention": "Private candidate/native/audit receipts retained append-only locally; remote raw UNKNOWN",
+  "next_in_order": [
+    "Fresh clean-source Core CAD store and rejection/identity gates",
+    "Independent actual evidence review and same-revision human CAD view",
+    "Frozen fixture load-path/contact/joint/mechanical acceptance",
+    "Remaining Phase6/7 and deferred reference/CI gates"
+  ]
+}

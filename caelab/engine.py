@@ -10,6 +10,7 @@ import zipfile
 from filelock import FileLock
 
 from .adapters.fixture_cadquery import FixtureCadQueryAdapter
+from .adapters.fixture_assembly import FixtureAssemblyAdapter
 from .adapters.fixture_freecad import FixtureFreeCADAdapter
 from .contracts import (AnalysisAdapter, CADAdapter, DOEAdapter, OptimizationAdapter,
                         PDEAdapter, ModelAnalysisAdapter, CapabilityUnavailable, FileRevision)
@@ -49,6 +50,7 @@ class Lab:
         self._registration_file_lock = FileLock(str(lock_root / (lock_key + ".lock")), timeout=30)
         self.adapters = adapters if adapters is not None else {
             FixtureCadQueryAdapter.backend: FixtureCadQueryAdapter(),
+            FixtureAssemblyAdapter.backend: FixtureAssemblyAdapter(),
             FixtureFreeCADAdapter.backend: FixtureFreeCADAdapter(self.store),
         }
         if analysis_adapters is None:

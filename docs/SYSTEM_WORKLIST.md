@@ -1,4 +1,27 @@
-## Current checkpoint: P5.3 same-record complete contact-field browser verified
+## Current checkpoint: P2.4 original fixture assembly CAD source integrated
+
+Record: `benchmarks/records/20261004-fixture-assembly-source-r01.json`;
+source is the commit containing that record, parent35a3df4; fixture pin3e48bf6.
+The original15-component bending fixture is reused as `fixture.assembly`,
+with4 typed caller-bounded parameters, actual native component/face/interface
+identity and the existing common CAD viewer. Single-support analysis presets
+admit only their declared parent backend; assembly mechanics is not admitted.
+Main Python105PASS/0FAIL/SKIP98.62s (one existing warning); UI273JUnit leaf
+PASS/14suites/0FAIL/SKIP. Independent source reviews close0openP1/P2.
+Original private72/native, portability3 and worker-exit4 controls are separate
+executions. Original15parts/117faces/15interfaces/8seats are retained proof of
+the original candidate, not a corrected-source Main CAD qualification.
+NEXT: new clean-source Core/store CAD acceptance and same-revision human view,
+then actual fixture load-path/contact/joint mechanics; P2.4 remains OPEN.
+Phase5 contact Research/view evidence remains qualified within its old scope;
+Phase6/7/deferred CI and full52 remain ACTIVE/UNKNOWN/NOT_RELEASED.
+New exact-source CI is pending after push; prior93 CI7SUCCESS/3FAIL is separate.
+Verification scope is defined in `docs/VERIFICATION_SCOPE.md`; upstream solver
+benchmarks are reused, and changed integration/model assumptions are checked.
+
+---
+
+## Historical checkpoint: P5.3 same-record complete contact-field browser verified
 
 Evidence: `benchmarks/records/20261004-contact-field-human-r01-qualified.json`.
 Viewer93d5efec reads scientifica927: original313/13/1060 and uniform1154/25/4240
@@ -1395,7 +1418,7 @@ This evidence/docs checkpoint is not another solver run.
 - [x] P5.3 one fresh142 uniform2 native/full-field signed comparison; independent79math/48runtime PASS,10UNKNOWN/NOT_RELEASED.
 - [x] P5.3 ContactPatches source admission: exact schema6/six tools, corrected default collection, independent production/test review and Main full source regression.
 - [x] P5.3 actuala927 whole original/uniform2 Research question; independent140math/27106MEDscalars/integration, generic same-record human/ownedStop/108-file retention. TenUNKNOWN/NOT_RELEASED.
-- [ ] P5.3 complete same-record contact-field source/tests/independent review/clean-source actual browser gate; then P2.4 and Phase6/7/deferred gates. Read original fields; no repeated solver needed.
+- [x] P5.3 complete same-record contact-field source/tests/independent review/clean-source actual browser gate; then P2.4 and Phase6/7/deferred gates. Read original fields; no repeated solver needed.
 - [ ] P5.3: obtain full published material/contact definitions (NAFEMS candidate
   families R0026/R0081), freeze cases and execute cross-solver/mesh/reference
   checks; connect common human/AI results, then close P2.4's recorded dependency.

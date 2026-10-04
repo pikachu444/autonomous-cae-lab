@@ -1,5 +1,18 @@
 # Architecture
 
+## Original fixture assembly CAD parent (ADR0032)
+
+`fixture.assembly` reuses the pinned original bending fixture. Domain declares
+roles/interfaces; the adapter owns named native CAD, actual geometry checks,
+global STEP/BREP, face catalog, display tessellation and captured rebuild input.
+Core uses its existing registry/execution/revision/artifact gates unchanged.
+The Lab uses explicit analysis-preset parent metadata: the single-support
+CalculiX screen cannot accept an assembly parent. Assembly mechanics and
+Research admission require their own reviewed load-path/contact/joint gates.
+Source is reviewed; clean-Main native/human acceptance is next. Native exit0,
+geometric coincidence and display tessellation do not establish strength.
+See ADR0032, FIXTURE_ASSEMBLY_ACCEPTANCE and VERIFICATION_SCOPE.
+
 ## Explicit contact-patch research (ADR0031)
 
 ContactPatches/schema6 uses the six existing model-analysis operations with a
