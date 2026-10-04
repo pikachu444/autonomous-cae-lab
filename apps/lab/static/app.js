@@ -23,12 +23,12 @@ const operationNames = {
 };
 const readOperations = new Set(["parameter_discover", "native_inspect", "model_parameters_discover"]);
 const labels = {
-  PASS: "PASS · 통과", FAIL: "FAIL · 실패", UNKNOWN: "UNKNOWN · 미검증", WARNING: "WARNING · 검토",
-  NOT_RELEASED: "NOT_RELEASED · 승인 없음", RELEASED: "RELEASED", VERIFIED: "VERIFIED · 해시 확인",
-  NOT_CHECKED: "NOT_CHECKED · 미확인", IMPLEMENTED: "구현됨", EXPERIMENTAL: "실험 범위", PLANNED: "계획됨",
+  PASS: "통과", FAIL: "조건 미충족", UNKNOWN: "미확인", WARNING: "검토 필요",
+  NOT_RELEASED: "공학적 사용 미승인", RELEASED: "공학적 사용 승인", VERIFIED: "기록·원본 일치",
+  NOT_CHECKED: "기록 확인 전", IMPLEMENTED: "구현됨", EXPERIMENTAL: "실험 범위", PLANNED: "계획됨",
   RUNNING: "실행 중", CANCEL_REQUESTED: "취소 처리 중", CANCELLED: "취소 완료",
   CLEANUP_PENDING: "종료 확인 중",
-  COMPLETED: "실행 완료", FAILED: "작업 실패", REJECTED: "검증 거절",
+  COMPLETED: "실행 완료", FAILED: "작업 실패", REJECTED: "조건 미충족",
   FAILED_EXECUTION: "실행 실패", COMPLETED_REVIEW_REQUIRED: "완료 · 검토 필요", NO_FEASIBLE_DESIGN: "유효한 후보 없음",
   CONVERGED: "수치 수렴", MAX_GENERATIONS: "세대 예산 종료", NOT_RUN: "실행 안 함",
 };
@@ -63,7 +63,9 @@ function badge(status, override) {
     : ["FAIL", "FAILED", "REJECTED", "FAILED_EXECUTION", "NO_FEASIBLE_DESIGN"].includes(code) ? "fail"
       : ["UNKNOWN", "WARNING", "NOT_RELEASED"].includes(code) ? "unknown"
         : ["RUNNING", "CANCEL_REQUESTED", "CLEANUP_PENDING", "PLANNED"].includes(code) ? "pending" : code === "EXPERIMENTAL" ? "experimental" : "neutral";
-  return el("span", override ?? labels[code] ?? code, `badge ${kind}`);
+  const item = el("span", override ?? labels[code] ?? code, `badge ${kind}`);
+  item.dataset.status = code; item.title = code;
+  return item;
 }
 function action(label, handler, className = "button subtle compact") {
   const button = el("button", label, className);
@@ -621,7 +623,7 @@ function renderExperimentList() {
     (!query || `${row.id} ${row.study_id} ${row.backend}`.toLowerCase().includes(query)));
   const container = clear("experimentList");
   if (!records.length) { container.append(el("p", "이 조건에 맞는 실험이 없습니다. 실험을 실행하거나 다른 저장소를 선택하세요.", "empty-state")); updateControls(); return; }
-  container.append(table(["비교", "실험 / 연구", "Backend", "실행 상태", "출시 판정", "기록 검사", ""], records.map((row) => {
+  container.append(table(["비교", "실험 / 연구", "작업", "실행 상태", "사용 승인", "기록 확인", ""], records.map((row) => {
     const select = el("input"); select.type = "checkbox"; select.checked = state.comparison.has(row.id); select.setAttribute("aria-label", `${row.id} 비교 선택`);
     select.addEventListener("change", () => {
       if (select.checked && state.comparison.size >= 12) { select.checked = false; notify("한 번에 최대 12개 실험을 비교할 수 있습니다."); return; }
@@ -629,15 +631,15 @@ function renderExperimentList() {
     });
     const identifier = el("div"); identifier.append(experimentButton(row.id), el("small", row.study_id));
     if (row.error) identifier.append(el("small", text(row.error), "metric-reason"));
-    return [select, identifier, el("span", row.backend ?? "—", "mono"), badge(row.status), badge(row.decision ?? "UNKNOWN"), badge(row.integrity ?? "NOT_CHECKED"), action("열기", () => inspectExperiment(row.id))];
+    return [select, identifier, el("span", window.resultPresentation.title(row.backend)), badge(row.status), badge(row.decision ?? "UNKNOWN"), badge(row.integrity ?? "NOT_CHECKED"), action("열기", () => inspectExperiment(row.id))];
   })));
   updateControls();
 }
 async function inspectExperiment(identifier) {
   location.hash = "results"; const request = ++state.experimentRequest, store = activeStore();
   state.selectedExperiment = null;
-  const loading = panel("기록과 산출물을 확인하고 있습니다.", "VERIFYING INTEGRITY"); loading.append(el("p", identifier, "mono separated")); clear("experimentDetail").append(loading);
-  $("selectedSource").textContent = "소스 버전: 검증 중";
+  const loading = panel("실험을 불러오고 있습니다."); loading.append(el("p", "저장된 기록과 원본 파일의 일치를 확인하고 있습니다.", "hint separated")); clear("experimentDetail").append(loading);
+  $("selectedSource").textContent = "기록 확인 중";
   try {
     const data = await api(`/api/experiments/${idPath(identifier)}`);
     if (request !== state.experimentRequest || store !== activeStore()) return;
@@ -645,8 +647,8 @@ async function inspectExperiment(identifier) {
     state.selectedExperiment = data; renderExperimentDetail(data);
   } catch (error) {
     if (request !== state.experimentRequest) return;
-    const card = panel("기록을 검증할 수 없습니다.", "INTEGRITY CHECK FAILED"); card.classList.add("detail-error"); card.append(el("p", error.message), el("p", "확인되지 않은 수치와 원본 파일을 신뢰한 결과로 표시하지 않습니다."));
-    clear("experimentDetail").append(card); $("selectedSource").textContent = "소스 버전: 확인 불가"; throw error;
+    const card = panel("이 실험의 기록을 확인할 수 없습니다."); card.classList.add("detail-error"); card.append(el("p", error.message), el("p", "파일과 기록의 일치를 확인한 후 결과를 표시합니다."));
+    clear("experimentDetail").append(card); $("selectedSource").textContent = "기록 확인 실패"; throw error;
   }
 }
 function metricCell(metric) {
@@ -658,63 +660,104 @@ function metricCell(metric) {
   return cell;
 }
 function renderExperimentDetail(data) {
-  const result = data.result, summary = data.summary, identifier = result.experiment_id;
-  const container = clear("experimentDetail");
-  const header = panel(identifier, "VERIFIED EXPERIMENT"); header.classList.add("result-header");
-  const verdicts = el("div", undefined, "status-title separated"); verdicts.append(badge(result.status), badge(data.integrity), badge(result.decision)); header.append(verdicts);
-  const meta = el("div", undefined, "result-meta");
-  [ ["연구", result.study?.id ?? result.study?.study_id], ["솔버", result.solver_status], ["수치 수렴", result.converged === null ? "미해당" : result.converged === true ? "확인됨" : "미확인 / 미수렴"], ["부모", result.parent_experiment_id] ].forEach(([title, value]) => { if (value !== undefined) { const item = el("span", `${title}: `); item.append(el("strong", value)); meta.append(item); } });
-  header.append(meta);
-  const explanation = el("div", undefined, "result-explanation"); explanation.append(badge(result.decision), el("p", result.decision === "NOT_RELEASED" ? `미검증 요구사항 ${list(summary?.unknown).length}개와 독립 검증 상태를 확인하세요. 실행 완료와 솔버 종료 코드는 강도·물리·출시 승인이 아닙니다.` : "출시 판정의 근거와 모든 독립 검증을 함께 확인하세요.")); header.append(explanation);
-  const downloads = el("div", undefined, "button-row separated");
-  downloads.append(link("검증된 HTML 보고서", `/api/report/${idPath(identifier)}.html`, "button secondary compact"), link("보고서 JSON", `/api/report/${idPath(identifier)}.json`, "button subtle compact", true), link("근거 묶음 ZIP", `/api/report/${idPath(identifier)}.zip`, "button primary compact", true)); header.append(downloads);
-  header.append(el("p", "ZIP은 원본과 부모 연결을 보존하는 로컬 내보내기입니다. 원격 보관·서명·물리 검증을 대신하지 않습니다.", "hint separated")); container.append(header);
-  const detailGrid = el("div", undefined, "detail-grid");
-  const metrics = panel("단위와 유효성", "NUMERICAL METRICS"); metrics.append(table(["Metric", "값 / 단위", "유효성"], Object.entries(result.metrics ?? {}).map(([name, metric]) => [el("span", name, "mono"), metricCell(metric), badge(metric.valid === true ? "PASS" : "FAIL", metric.valid === true ? "수치 응답 유효" : "INVALID")])));
-  if (!Object.keys(result.metrics ?? {}).length) metrics.append(el("p", "이 실험은 사용할 수 있는 수치 metric을 제공하지 않았습니다.", "empty-state"));
-  const inputs = panel("같은 개정의 입력", "INPUTS & MODEL"); inputs.append(rawDetail("연구 변수 입력", result.input_parameters), rawDetail("명시한 모델·하중·검증 설정", data.proposal));
-  if (result.parent_experiment_id) inputs.append(experimentButton(result.parent_experiment_id, "부모 CAD 실험 열기 →"));
-  detailGrid.append(metrics, inputs); container.append(detailGrid);
-  const validation = panel("독립 검증 상태", "VALIDATIONS"); validation.classList.add("detail-wide");
-  validation.append(table(["검증", "상태", "범위", "관찰 / 한계 / 근거"], list(result.validations).map((item) => {
-    const label = el("div", item.type, "validation-type"); label.append(el("small", item.validator));
-    const detail = el("div"); detail.append(el("span", text(item.notes ?? item.observed ?? item.expected ?? item.threshold), "hint"), rawDetail("검증 레코드", item));
-    return [label, badge(item.status), item.blocking ? "승인을 차단하는 검증" : "보조 검증", detail];
-  }))); container.append(validation);
-  const evidenceGrid = el("div", undefined, "detail-grid");
-  const evidence = panel("판정의 바탕이 된 관찰", "EVIDENCE");
-  list(result.evidence).forEach((item) => {
-    const card = el("div", undefined, "evidence-card"); card.append(el("h3", item.id), el("p", `${item.type} · ${text(item.method)}`), el("pre", pretty(item.observation)), el("p", `출처: ${text(item.source)}`, "hint"));
-    if (typeof item.artifact === "string" && list(result.artifacts).some((artifact) => artifact.path === item.artifact)) card.append(link(item.artifact, artifactUrl(identifier, item.artifact), "text-link artifact-path", true));
-    else card.append(el("p", `원본 참조: ${text(item.artifact)}`, "hint"));
-    evidence.append(card);
+  const result = data.result, identifier = result.experiment_id;
+  const presentation = window.resultPresentation, check = presentation.checks(result);
+  const container = clear("experimentDetail"), backend = result.provenance?.adapter;
+  const header = panel(presentation.title(backend), "실험 결과"); header.classList.add("result-header");
+  const verdicts = el("div", undefined, "status-title"); verdicts.append(badge(result.status), badge(data.integrity), badge(result.decision)); header.append(verdicts);
+  const context = result.solver_status === "NOT_RUN" ? "이 기록에는 해석 실행 결과가 없습니다."
+    : `해석 실행: ${labels[result.solver_status] ?? "상세 기록에서 확인"} · 수치 수렴: ${result.converged === true ? "확인됨" : result.converged === false ? "미수렴" : "미확인"}`;
+  header.append(el("p", context, "result-context"));
+  const downloads = el("div", undefined, "button-row");
+  downloads.append(link("보고서 열기", `/api/report/${idPath(identifier)}.html`, "button secondary compact"), link("원본 묶음 저장", `/api/report/${idPath(identifier)}.zip`, "button subtle compact", true)); header.append(downloads); container.append(header);
+
+  const overview = el("div", undefined, "result-overview");
+  const visual = panel("모델 형상"); visual.classList.add("result-visual");
+  const artifactsList = list(result.artifacts), surface = artifactsList.find(item => /(?:^|\/)surface\.json$/.test(item.path));
+  const image = artifactsList.find(item => /\.(png|jpe?g|webp)$/i.test(item.path));
+  if (surface) {
+    const loading = el("p", "원본 3D 형상을 불러오고 있습니다…", "empty-state surface-loading"); visual.append(loading);
+    const retry = action("형상 다시 불러오기", loadSurface, "button secondary compact"); retry.hidden = true; visual.append(retry);
+    async function loadSurface() {
+      retry.disabled = true;
+      try { if (await openSurface(visual, identifier, surface.path)) { loading.remove(); retry.hidden = true; } }
+      catch (error) { if (visual.isConnected) { loading.textContent = `형상을 불러오지 못했습니다. ${error.message}`; retry.hidden = false; } }
+      finally { retry.disabled = false; }
+    }
+    Promise.resolve().then(loadSurface);
+    visual.append(el("p", "같은 실험에서 저장한 원본 CAD 표면입니다.", "visual-note"));
+  } else if (image) {
+    const picture = el("img"); picture.className = "preview-image"; picture.src = artifactUrl(identifier, image.path); picture.alt = "선택한 실험의 원본 미리보기"; picture.loading = "lazy";
+    picture.addEventListener("error", () => { picture.hidden = true; visual.append(el("p", "미리보기를 확인하지 못했습니다. 상세 기록의 원본 파일을 확인하세요.", "metric-reason")); });
+    visual.append(picture);
+  } else visual.append(el("p", "이 실험에 등록된 형상 미리보기가 없습니다. 제공된 수치 결과와 원본 파일을 확인하세요.", "empty-state"));
+  const side = el("div", undefined, "result-side");
+  const inputs = panel("입력 조건"), values = presentation.inputs(data);
+  const inputList = el("dl", undefined, "result-facts");
+  values.forEach(item => { inputList.append(el("dt", item.name), el("dd", `${number(item.value)}${item.unit && item.unit !== "1" ? ` ${item.unit}` : ""}`)); });
+  if (values.length) inputs.append(inputList); else inputs.append(el("p", "등록된 연구 변수 입력이 없습니다. 모델·하중 설정은 상세 기록에서 확인하세요.", "empty-state"));
+  if (result.parent_experiment_id) inputs.append(experimentButton(result.parent_experiment_id, "사용한 CAD 실험 보기 →"));
+  side.append(inputs);
+  const checks = panel("확인 상태");
+  const checkCounts = el("div", undefined, "check-counts");
+  for (const [code, count] of Object.entries(check.counts)) if (count) checkCounts.append(badge(code === "other" ? "NOT_CHECKED" : code, `${code === "other" ? "기타" : labels[code]} ${count}개`));
+  checks.append(checkCounts, el("p", `이 실험 기록에 포함된 검사 ${check.total}개 기준입니다.`, "hint"));
+  checks.append(el("p", result.decision === "NOT_RELEASED" ? "강도·실물 사용 승인에 필요한 확인이 남아 있습니다." : "사용 승인 여부는 기록의 판정과 근거를 따릅니다.", "check-note")); side.append(checks);
+  overview.append(visual, side); container.append(overview);
+
+  const metrics = panel("결과값"); metrics.classList.add("detail-wide");
+  const metricRows = Object.entries(result.metrics ?? {}), metricGrid = el("div", undefined, "result-metrics");
+  metricRows.forEach(([name, metric], index) => {
+    const card = el("div", undefined, "result-metric"), label = el("span", presentation.metricName(name, index), "stat-label"); label.title = name;
+    const unit = metric.unit === "1" ? (name === "cad_component_count" ? "개" : "") : metric.unit === "mm^3" ? "mm³" : metric.unit ?? "";
+    const displayNumber = value => typeof value === "number" && Number.isFinite(value)
+      ? new Intl.NumberFormat("ko-KR", { maximumSignificantDigits: 6 }).format(value) : text(value);
+    const value = Array.isArray(metric.value) ? (name === "cad_bounds" ? metric.value.map(displayNumber).join(" × ") : text(metric.value)) : displayNumber(metric.value);
+    card.append(label, el("strong", `${value} ${unit}`.trim(), `result-metric-value${metric.valid === true ? "" : " invalid-value"}`), badge(metric.valid === true ? "PASS" : "FAIL", metric.valid === true ? "수치 응답 유효" : "판단에 사용할 수 없는 값"));
+    if (metric.reason) card.append(el("p", metric.reason, "metric-reason")); metricGrid.append(card);
   });
-  if (!list(result.evidence).length) evidence.append(el("p", "이 기록에 제공된 evidence가 없습니다.", "empty-state"));
-  const visual = panel("같은 실험의 형상", "VERIFIED ARTIFACT PREVIEW");
-  const image = list(result.artifacts).find((item) => /\.(png|jpe?g|webp)$/i.test(item.path));
-  if (image) {
-    const picture = el("img"); picture.className = "preview-image"; picture.src = artifactUrl(identifier, image.path); picture.alt = `${identifier}의 검증된 CAD 미리보기`; picture.loading = "lazy";
-    picture.addEventListener("error", () => { picture.hidden = true; visual.append(el("p", "미리보기 파일을 다시 검증해 불러올 수 없습니다. 원본 산출물 목록을 확인하세요.", "metric-reason")); });
-    visual.append(picture, el("p", image.path, "preview-caption"));
-  } else visual.append(el("p", "이 실험에 manifest로 등록된 이미지가 없습니다. 아래의 원본 CAD·메시·field 파일을 내려받아 확인하세요.", "empty-state"));
-  const surface = list(result.artifacts).find((item) => /(?:^|\/)surface\.json$/.test(item.path));
-  if (surface) visual.append(action("같은 실험의 원본 3D 형상 열기", () => openSurface(visual, identifier, surface.path)));
-  visual.append(el("p", "네이티브 3D surface는 같은 실험의 검증된 파일로 엽니다. 치구의 진단용 응력 성분은 아래 원본 연결 표에서 확인합니다.", "hint separated"));
-  evidenceGrid.append(evidence, visual); container.append(evidenceGrid);
+  if (metricRows.length) metrics.append(metricGrid, el("p", "표시값은 읽기 쉽게 반올림했습니다. 원래 수치·단위·판정은 상세 기록에 보존됩니다.", "hint separated")); else metrics.append(el("p", "이 실험은 사용할 수 있는 수치 결과를 제공하지 않았습니다.", "empty-state")); container.append(metrics);
+
+  if (check.unresolved.length) {
+    const pending = panel("남은 확인 사항"); pending.classList.add("detail-wide", "result-pending");
+    const rows = el("ul", undefined, "pending-checks");
+    check.unresolved.forEach((item, index) => {
+      const row = el("li"), name = el("span", presentation.validationName(item.type, index)); name.title = item.type;
+      row.append(name, badge(item.status)); if (item.blocking) row.append(el("small", "사용 승인에 필요")); rows.append(row);
+    }); pending.append(rows); container.append(pending);
+  }
   renderFixtureStressFields(container, result);
   renderContactFields(container, data);
   renderPdeFields(container, data);
-  const artifacts = panel("원본과 처리한 산출물", "ARTIFACTS · VERIFIED BY HASH"); artifacts.classList.add("detail-wide");
+
+  const records = el("details", undefined, "card result-records detail-wide"); records.append(el("summary", "상세 검사·원본 파일·실행 기록"));
+  records.append(el("p", `실험 ${identifier} · 연구 ${result.study?.id ?? result.study?.study_id ?? "미제공"}`, "hint separated"));
+  const validation = panel("기록에 포함된 검사");
+  validation.append(table(["검사", "상태", "범위", "원본 기록"], list(result.validations).map((item, index) => {
+    const label = el("div", presentation.validationName(item.type, index), "validation-type"); label.append(el("small", `${item.type} · ${item.validator}`));
+    const detail = el("div"); detail.append(el("span", text(item.notes ?? item.observed ?? item.expected ?? item.threshold), "hint"), rawDetail("검사 기록 펼치기", item));
+    return [label, badge(item.status), item.blocking ? "사용 승인에 필요" : "보조 검사", detail];
+  }))); records.append(validation);
+  const evidence = panel("검사 근거");
+  list(result.evidence).forEach(item => {
+    const card = el("div", undefined, "evidence-card"); card.append(el("h3", item.id), el("p", `${item.type} · ${text(item.method)}`), rawDetail("관찰 원본 펼치기", item));
+    if (typeof item.artifact === "string" && artifactsList.some(artifact => artifact.path === item.artifact)) card.append(link(item.artifact, artifactUrl(identifier, item.artifact), "text-link artifact-path", true));
+    evidence.append(card);
+  });
+  if (!list(result.evidence).length) evidence.append(el("p", "이 기록에 제공된 검사 근거가 없습니다.", "empty-state")); records.append(evidence);
+  const artifacts = panel("원본 파일");
   artifacts.append(table(["파일", "크기", "SHA-256", "개정"], list(result.artifacts).map((item) => {
     const digest = el("div", item.sha256, "mono"); return [link(item.path, artifactUrl(identifier, item.path), "artifact-path", true), `${number(item.size_bytes)} bytes`, digest, el("span", item.revision, "mono")];
-  }))); container.append(artifacts);
-  const provenance = panel("소스와 실행 개정", "PROVENANCE");
+  }))); records.append(artifacts);
+  const provenance = panel("실행 버전과 원본 식별 정보");
   const source = result.provenance ?? {}; const sourceGrid = el("div", undefined, "source-grid separated");
   [["Core commit", source.core_commit], ["Core 변경 상태", source.core_dirty === true ? "기록 시 로컬 변경 있음" : source.core_dirty === false ? "기록 시 clean" : "미기록 / 미확인"], ["Source commit", source.source_commit], ["Core source SHA", source.core_source_sha256], ["CAD revision", result.cad_revision], ["Model revision", result.model_revision ?? result.extensions?.pde?.model_revision], ["Adapter / version", `${text(source.adapter)} / ${text(source.adapter_version)}`]].forEach(([label, value]) => sourceGrid.append(el("span", label), el("div", text(value), "mono")));
-  provenance.append(sourceGrid, rawDetail("전체 provenance · thread · result", { provenance: source, thread: data.thread, result })); container.append(provenance);
+  provenance.append(sourceGrid, rawDetail("연구 변수·모델·하중 설정", { registry: data.registry_snapshot, proposal: data.proposal }), rawDetail("전체 provenance · thread · result", { provenance: source, thread: data.thread, result }), link("보고서 JSON 저장", `/api/report/${idPath(identifier)}.json`, "button subtle compact", true)); records.append(provenance);
+  records.append(el("p", "원본 묶음은 이 기록과 부모 실험을 함께 저장합니다. 원격 보관과 서명은 별도 확인이 필요합니다.", "hint separated")); container.append(records);
   const commit = source.core_commit ?? source.source_commit;
-  $("selectedSource").textContent = commit ? `소스 ${String(commit).slice(0, 12)}${source.core_dirty ? " · 로컬 변경 있음" : ""}` : "소스 버전: 이 기록에 미제공";
+  $("selectedSource").textContent = "기록·원본 확인됨";
   $("selectedSource").title = text(commit);
+  $("resultBrowser").open = false;
   if (window.cadControls.eligibleParent(state.presets[$("simulationPreset").value], { ...result, backend: result.provenance?.adapter })) $("analysisParent").value = identifier;
   updateControls();
 }
@@ -1045,15 +1088,33 @@ function renderStressNodes(container, field, identifier, path) {
 }
 let viewerScript;
 async function openSurface(container, identifier, path) {
+  const request = state.experimentRequest, store = activeStore();
+  const current = () => container.isConnected && request === state.experimentRequest && store === activeStore()
+    && state.selectedExperiment?.result?.experiment_id === identifier;
+  if (!current()) return false;
   const surface = await api(artifactUrl(identifier, path));
+  if (!current()) return false;
   if (!Array.isArray(surface.bounds) || surface.bounds.length !== 2 || !Array.isArray(surface.faces)) throw new Error("원본 viewer가 읽을 수 있는 surface artifact가 아닙니다.");
   if (!window.createFaceViewer) {
-    viewerScript ??= new Promise((resolve, reject) => { const script = document.createElement("script"); script.src = "/upstream/surface_viewer.js"; script.addEventListener("load", resolve); script.addEventListener("error", () => reject(new Error("원본 surface viewer를 불러올 수 없습니다."))); document.head.append(script); });
+    viewerScript ??= new Promise((resolve, reject) => { const script = document.createElement("script"); script.src = "/upstream/surface_viewer.js"; script.addEventListener("load", resolve); script.addEventListener("error", () => { script.remove(); reject(new Error("원본 surface viewer를 불러올 수 없습니다.")); }); document.head.append(script); }).catch(error => { viewerScript = undefined; throw error; });
     await viewerScript;
   }
+  if (!current()) return false;
   const canvas = el("canvas"); canvas.className = "preview-canvas"; canvas.setAttribute("aria-label", "같은 실험의 원본 표면 · 드래그 회전, 휠 확대, 클릭 면 확인");
-  const selection = el("p", "드래그로 회전 · 휠로 확대 · 면을 클릭해 원본 face ID 확인", "preview-caption"); container.append(canvas, selection);
-  const viewer = window.createFaceViewer(canvas, (face) => { selection.textContent = face ? `${face.component_id ? text(face.component_id) + " · " : ""}원본 face ${text(face.catalog_face_id ?? face.id)} · ${text(face.type ?? face.surface)}` : "선택된 면 없음"; }); viewer.setData(surface); state.viewer = viewer;
+  const stage = el("div", undefined, "surface-stage"), controls = el("div", undefined, "surface-controls");
+  const selection = el("p", window.resultPresentation.faceDescription(null), "surface-selection");
+  const selectedRecord = rawDetail("선택한 면의 원본 정보", null); selectedRecord.hidden = true;
+  stage.append(canvas); container.insertBefore(stage, container.querySelector(".visual-note"));
+  const viewer = window.createFaceViewer(canvas, face => {
+    selection.textContent = window.resultPresentation.faceDescription(face); selectedRecord.hidden = !face;
+    selectedRecord.querySelector("pre").textContent = pretty(face ? { component_id: face.component_id,
+      catalog_face_id: face.catalog_face_id, display_face_id: face.id, type: face.type ?? face.surface } : null);
+  }); viewer.setData(surface); state.viewer = viewer;
+  controls.append(el("span", "드래그 회전 · 휠 확대 · 클릭 면 선택", "hint"), action("기본 보기", () => {
+    viewer.setData(surface); selection.textContent = window.resultPresentation.faceDescription(null); selectedRecord.hidden = true;
+  }, "button subtle compact"));
+  stage.append(controls, selection, selectedRecord);
+  return true;
 }
 async function compareExperiments() {
   if (state.comparison.size < 2) return;

@@ -294,30 +294,48 @@ def _text(value):
 
 
 def _detail(label, value):
-    return f"<section><h2>{_text(label)}</h2><pre>{_text(value)}</pre></section>"
+    return f"<details><summary>{_text(label)}</summary><pre>{_text(value)}</pre></details>"
 
 
 def render_html(record):
     """Render exact observations; validity and release remain separate verdicts."""
     result = record["result"]
+    metric_names = {"cad_bounds": "전체 크기", "cad_component_count": "부품 수", "cad_volume": "형상 체적"}
     metrics = "".join(
         "<tr>" + "".join(f"<td>{_text(value)}</td>" for value in (
-            name, metric.get("value"), metric.get("unit"), metric.get("valid"), metric.get("reason"))) + "</tr>"
-        for name, metric in result["metrics"].items())
+            metric_names.get(name, f"결과값 {index + 1}"), metric.get("value"), metric.get("unit"),
+            "수치 응답 유효" if metric.get("valid") is True else "판단에 사용할 수 없음", metric.get("reason"))) + "</tr>"
+        for index, (name, metric) in enumerate(result["metrics"].items()))
     artifacts = "".join(
         "<tr>" + "".join(f"<td>{_text(artifact.get(key))}</td>" for key in (
             "path", "sha256", "size_bytes", "revision")) + "</tr>"
         for artifact in result["artifacts"])
     title = f"Autonomous CAE Lab · {result['experiment_id']}"
+    checks = result["validations"]
+    counts = {status: sum(item.get("status") == status for item in checks) for status in ("PASS", "FAIL", "UNKNOWN", "WARNING")}
+    status_names = {"COMPLETED_REVIEW_REQUIRED": "완료 · 검토 필요", "COMPLETED": "실행 완료",
+                    "REJECTED": "조건 미충족", "FAILED_EXECUTION": "실행 실패",
+                    "NOT_RELEASED": "공학적 사용 미승인", "RELEASED": "공학적 사용 승인",
+                    "UNKNOWN": "미확인", "NOT_RUN": "해석 실행 안 함", "VERIFIED": "기록·원본 일치"}
+    badges = "".join(f'<span class="badge" data-status="{_text(code)}">{_text(status_names.get(code, code))}</span>'
+                     for code in (result.get("status"), result.get("decision"), record["integrity"]))
+    solver = "이 기록에는 해석 실행 결과가 없습니다." if result.get("solver_status") == "NOT_RUN" else (
+        f'해석 실행: {status_names.get(result.get("solver_status"), result.get("solver_status"))} · '
+        f'수치 수렴: {"확인됨" if result.get("converged") is True else "미수렴" if result.get("converged") is False else "미확인"}')
     sections = [
+        '<section><h2>결과값</h2><table><thead><tr><th>측정값</th><th>값</th><th>단위</th>'
+        '<th>수치 유효성</th><th>무효 사유</th></tr></thead><tbody>' + metrics + '</tbody></table>'
+        + ('<p>이 실험은 수치 결과를 제공하지 않았습니다.</p>' if not result["metrics"] else '') + '</section>',
+        '<section class="checks"><h2>확인 상태</h2>'
+        f'<p>이 실험 기록의 검사 {len(checks)}개 중 통과 {counts["PASS"]}개 · 조건 미충족 {counts["FAIL"]}개 · '
+        f'미확인 {counts["UNKNOWN"]}개 · 검토 필요 {counts["WARNING"]}개 · 기타 {len(checks) - sum(counts.values())}개입니다.</p>'
+        '<p>확인되지 않은 요구사항은 미확인 상태로 유지됩니다. 강도와 실물 사용 승인은 별도 근거가 필요합니다.</p></section>',
         _detail("연구와 가설 (현재 연구 메타데이터)", record["study"]),
         _detail("실행 입력과 공통 모델 선언", record["proposal"]),
         _detail("실제 입력 매개변수", result["input_parameters"]),
         _detail("실행 및 판정", {key: result.get(key) for key in (
             "status", "solver_status", "converged", "decision")}),
-        '<section><h2>수치 관측값</h2><table><thead><tr><th>지표</th><th>값</th><th>단위</th>'
-        '<th>유효 여부</th><th>무효 사유</th></tr></thead><tbody>' + metrics + '</tbody></table></section>',
-        _detail("독립 검증 판정과 UNKNOWN 항목", result["validations"]),
+        _detail("기록에 포함된 검사와 미확인 항목", result["validations"]),
         _detail("검증 근거 (전체 evidence)", result["evidence"]),
         _detail("리비전과 실행 출처", {key: result.get(key) for key in (
             "cad_revision", "model_revision", "proposal_revision", "registry_revision", "provenance")}),
@@ -325,21 +343,24 @@ def render_html(record):
         _detail("연결 기록 (thread)", record["thread"]),
         _detail("레지스트리 스냅샷", record["registry_snapshot"]),
         _detail("원본 ledger와 실제 파일 SHA-256", {"ledger": record["ledger"], "hashes": record["hashes"]}),
-        '<section><h2>등록된 원본·가공 파일</h2><table><thead><tr><th>상대 경로</th><th>SHA-256</th>'
-        '<th>바이트</th><th>리비전</th></tr></thead><tbody>' + artifacts + '</tbody></table></section>',
+        '<details><summary>등록된 원본·가공 파일</summary><table><thead><tr><th>상대 경로</th><th>SHA-256</th>'
+        '<th>바이트</th><th>리비전</th></tr></thead><tbody>' + artifacts + '</tbody></table></details>',
         _detail("부모 CAD 연결 기록", record.get("parent_chain", [])),
         _detail("내보내기 범위와 한계", record["limitations"]),
+        _detail("전체 실험 결과 · 원래 수치와 단위", result),
     ]
     return ('<!doctype html><html lang="ko"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width, initial-scale=1">'
             f'<title>{_text(title)}</title><style>'
-            'body{font-family:system-ui,sans-serif;max-width:1100px;margin:32px auto;padding:0 20px;line-height:1.6;color:#17212b}'
-            'h1{font-size:1.6rem}h2{font-size:1.15rem}section{margin:28px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere;'
-            'background:#f2f5f7;padding:14px;border-radius:8px}table{border-collapse:collapse;width:100%;font-size:.9rem}'
-            'td,th{border:1px solid #ced7df;padding:8px;text-align:left;overflow-wrap:anywhere}p{padding:12px;background:#fff4d8}'
-            '</style></head><body>' + f'<h1>{_text(title)}</h1><div>파일 무결성: {_text(record["integrity"])}</div>'
-            '<p>솔버 실행 상태와 수치 검증 판정은 별도로 기록합니다. UNKNOWN은 미검증이며, '
-            '실행 완료나 수치 PASS가 강도 검증 또는 RELEASED를 뜻하지 않습니다.</p>'
+            'body{font-family:"Segoe UI","Malgun Gothic",system-ui,sans-serif;max-width:1000px;margin:32px auto;padding:0 24px;line-height:1.7;color:#172b37;background:#f5f7f9}'
+            'h1{font-size:1.6rem}h2{font-size:1.15rem;margin-top:0}header,section{background:white;border:1px solid #dce5e9;border-radius:12px;padding:24px;margin:20px 0}'
+            'pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f2f5f7;padding:14px;border-radius:8px;max-height:500px;overflow:auto}'
+            'table{border-collapse:collapse;width:100%;font-size:.9rem}td,th{border-bottom:1px solid #dce5e9;padding:12px 8px;text-align:left;overflow-wrap:anywhere}'
+            'th{background:#f6f9fa}.badge{display:inline-block;padding:5px 10px;margin:0 8px 8px 0;border-radius:5px;background:#edf2f5;font-size:.85rem}'
+            '[data-status="NOT_RELEASED"],[data-status="UNKNOWN"],.checks{background:#fffcf3}.checks{border-color:#eadfc9}'
+            'details{margin:14px 0;padding:14px 18px;background:white;border:1px solid #dce5e9;border-radius:8px}summary{cursor:pointer;color:#526b76;font-weight:600}'
+            '@media print{body{background:white}details{break-inside:avoid}details>pre{display:block;max-height:none}}'
+            '</style></head><body>' + f'<header><h1>{_text(record["study"].get("name") or title)}</h1>{badges}<p>{_text(solver)}</p></header>'
             + "".join(sections) + '</body></html>')
 
 

@@ -1,4 +1,22 @@
-## Current checkpoint: P2.4 original assembly CAD native and human verified
+## Current checkpoint: readable result presentation source reviewed
+
+Record: `benchmarks/records/20261004-result-presentation-source-r01.json`.
+The human results screen leads with the actual model, captured inputs/units,
+responses and unresolved checks. Raw IDs/hashes/observations remain in closed
+technical details; the escaped offline HTML report follows the same ordering.
+Source01: Node277 leaf+14 nested containers and Python122 PASS; source02 only
+narrows one CAD caption, syntax/supplement reviewed;0openP1/P2. No test evidence
+is relabeled as a new native or clean-browser run. Source03 normalizes only
+two Python file line endings; independent body/AST/index proof closes the
+staged-byte mismatch. Old mixed-EOL copies are not retained. Existing f8 CAD remains the
+scientific producer. Core/wire/Domain/upstream/model/auth and criteria unchanged.
+NEXT: new clean-source viewer/report gate, then P2.4 seven-body native mesh and
+actual mechanics. All52, Phase6/7, UNKNOWN/NOT_RELEASED and existing CI failures
+remain open; a presentation change is not research or engineering approval.
+
+---
+
+## Historical checkpoint: P2.4 original assembly CAD native and human verified
 
 Evidence: `benchmarks/records/20261004-fixture-assembly-native-human-r01-qualified.json`; actual clean producer/viewer
 `f8f60eb335fb829a8ddc5d0ca1c2506788baae44`; fixture pin3e48bf6.

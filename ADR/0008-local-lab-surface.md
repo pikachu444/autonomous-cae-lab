@@ -84,3 +84,13 @@ repository's human inspection/execution surface; it is not the official
 OpenScience workspace and currently has no live AI conversation connection.
 Official OpenScience uses a project, a model picker and conversations with
 visible tool activity. Actual GUI-agent acceptance remains a separate gate.
+
+## Explicit results-readability request, 2026-10-04
+
+The user's latest criticism of the shared image/output is an explicit request
+to improve presentation. Root makes a bounded results/report correction: model,
+conditions, response validity and unresolved checks first; exact technical
+records in closed details. This supersedes the earlier usage-question scope
+only for this correction. It changes no Core/wire/Domain/backend/upstream,
+model/auth/research admission or numerical/engineering verdict. Follow
+RESULTS_PRESENTATION_ACCEPTANCE; original P2.4 and Phase6/7 work continues.

@@ -7,6 +7,7 @@ physics. The tests verify evidence retention, safe paths and exported bytes.
 from copy import deepcopy
 import hashlib
 from html import escape
+from html.parser import HTMLParser
 import io
 import json
 from pathlib import PurePosixPath
@@ -177,7 +178,7 @@ def test_korean_html_escapes_all_external_text_and_keeps_verdicts_and_details(tm
     lab, _ = _store(tmp_path)
     record = reporting.verified_record(lab, "E-model")
     html = reporting.render_html(record)
-    assert '<html lang="ko">' in html and "수치 관측값" in html and "무효 사유" in html
+    assert '<html lang="ko">' in html and "결과값" in html and "무효 사유" in html
     assert "REJECTED" in html and "COMPLETED" in html and "NOT_RELEASED" in html and "UNKNOWN" in html
     assert escape(REASON, quote=True) in html
     assert escape(INJECTION, quote=True) in html
@@ -189,6 +190,42 @@ def test_korean_html_escapes_all_external_text_and_keeps_verdicts_and_details(tm
         assert validation["type"] in html
     for label in ("result_sha256", "thread_sha256", "ledger_sha256"):
         assert record["hashes"][label] in html
+
+    class FirstView(HTMLParser):
+        """Observe initially readable content without opening technical records."""
+        def __init__(self):
+            super().__init__()
+            self.closed_depth = 0
+            self.style_depth = 0
+            self.visible = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "details":
+                assert "open" not in dict(attrs)
+                self.closed_depth += 1
+            if tag == "style":
+                self.style_depth += 1
+            if tag == "pre":
+                assert self.closed_depth > 0
+
+        def handle_endtag(self, tag):
+            if tag == "details":
+                self.closed_depth -= 1
+            if tag == "style":
+                self.style_depth -= 1
+
+        def handle_data(self, value):
+            if not self.closed_depth and not self.style_depth:
+                self.visible.append(value)
+
+    first_view = FirstView()
+    first_view.feed(html)
+    readable = " ".join(first_view.visible)
+    assert "공학적 사용 미승인" in readable and "판단에 사용할 수 없음" in readable
+    assert "0.5" in readable and "mm" in readable and REASON in readable
+    assert "result_sha256" not in readable and record["hashes"]["result_sha256"] not in readable
+    assert "test_response" not in readable
+    assert record["result"]["metrics"]["test_response"]["valid"] is False
 
 
 @pytest.mark.parametrize("identifier", ["E-child", "E-model"])

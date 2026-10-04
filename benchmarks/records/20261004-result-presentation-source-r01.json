@@ -1,0 +1,135 @@
+{
+  "scope": "bounded human result screen and self-contained HTML report presentation",
+  "source_commit": "commit containing this record; exact viewer qualification is a later record",
+  "parent_commit": "395614c27df0ee4d09f96c38e0a51f9bd9f5b0db",
+  "created_utc": "2026-10-04T05:24:03.381256+00:00",
+  "source_files": [
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "size_bytes": 23988,
+      "sha256": "b35ea069203f8609e1325a5222cebdb50c00b2db69f248a683b13d84a6e59769"
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "size_bytes": 107605,
+      "sha256": "e8a837ff9cc91181a130e6a7a3f142c9f51ea304881738f4f8821127d178a279"
+    },
+    {
+      "path": "apps/lab/static/index.html",
+      "size_bytes": 29480,
+      "sha256": "a2aaf73fc9016e7492fc92bdb9ec9f558095114402c08b1d2ed812db9fa87547"
+    },
+    {
+      "path": "apps/lab/static/style.css",
+      "size_bytes": 24943,
+      "sha256": "508fe99cf9b7b27490855af971a484ceaade72944a61e664a1928fc8d7254db0"
+    },
+    {
+      "path": "apps/lab/static/result-presentation.js",
+      "size_bytes": 4025,
+      "sha256": "ac4116fb0a25928ad5dfe552144399587268706dda759b2fcdd825211faf1420"
+    },
+    {
+      "path": "apps/lab/reporting.py",
+      "size_bytes": 22235,
+      "sha256": "df6fd7a6b932fc89cc40fa6098b46a4190f030975297f666d7205f185394b3b6"
+    },
+    {
+      "path": "tests/test_result_presentation.js",
+      "size_bytes": 3046,
+      "sha256": "62065dced3b19a376fc30d830a6621f8a7758d14ab3ad6bc7b81c87f407292e3"
+    },
+    {
+      "path": "tests/test_lab_reporting.py",
+      "size_bytes": 31532,
+      "sha256": "e0a46dde55616437814471a53e032cbda19f04e4a66652eca48f5e27436f146d"
+    }
+  ],
+  "source_gates": {
+    "node_source01": {
+      "leaf_cases": 277,
+      "nested_containers": 14,
+      "failure": 0,
+      "skip": 0,
+      "evidence": {
+        "path": "artifacts/development-result-presentation-20261004-01/source-01/node-current.xml",
+        "size_bytes": 54281,
+        "sha256": "5f4dd228a107eafcd1500c1a3b3292b5db7ac734c72202c3d9f9c230ae2d12dd"
+      }
+    },
+    "python_source01": {
+      "cases": 122,
+      "failure": 0,
+      "skip": 0,
+      "duration_seconds": 206.78,
+      "existing_warnings": 1,
+      "evidence": {
+        "path": "artifacts/development-result-presentation-20261004-01/source-01/pytest.xml",
+        "size_bytes": 148915,
+        "sha256": "453d3005828fee255aac57503d144dfb79bace8fc462a4d15979557e08800102"
+      }
+    },
+    "source02": {
+      "change": "one CAD-caption sentence removes an inference from NOT_RUN to mesh absence",
+      "app_syntax": "PASS",
+      "other_seven_source_files": "UNCHANGED",
+      "whole_test_rerun": "NOT_RUN"
+    },
+    "source03": {
+      "change": "Git-canonical CRLF-to-LF only; staged bytes originally differed from raw working bytes",
+      "python_AST": "UNCHANGED",
+      "narrow_independent_review": "PASS",
+      "previous_source01_02_evidence": "retained; no relabeling or rerun",
+      "normalization_evidence": {
+        "path": "artifacts/development-result-presentation-20261004-01/source-03/git-line-endings.json",
+        "sha256": "145e56b4db2f2701cbfe30683b6b02220b88f43514a616a0ac40454e5e723c2a"
+      }
+    }
+  },
+  "independent_review": {
+    "status": "PASS_BOUNDED_RESULT_PRESENTATION_SOURCE",
+    "open_P1": 0,
+    "open_P2": 0,
+    "source01_start_vs_finish": "Root declared single caption change; not asserted eight-file finish unchanged",
+    "source01": {
+      "path": "artifacts/development-result-presentation-20261004-01/source-review-01/receipt.json",
+      "size_bytes": 4553,
+      "sha256": "59d80d9cf5ebee7b98012819fcfb831c5713934f3ddc8b343480e2fce8d6f8b9"
+    },
+    "source02_supplement": {
+      "path": "artifacts/development-result-presentation-20261004-01/source-review-01/supplement-01/receipt.json",
+      "size_bytes": 2568,
+      "sha256": "250883e8d1058e3780032b31e0d56a411348a244e99126599e2490c462556a9b"
+    },
+    "source03_line_endings": {
+      "path": "artifacts/development-result-presentation-20261004-01/source-review-01/line-endings-01/receipt.json",
+      "size_bytes": 8374,
+      "sha256": "a406630e9b74b99ae5f3b367ea22db6c79b8a2422e3efd38be6fdbcf23af308d",
+      "old_raw_mixed_EOL_copy": "NOT_RETAINED; Root before/after hash witness and independent normalized-body/AST proof retained",
+      "final_eight_source_files_equal_Git_index": true
+    }
+  },
+  "presentation": {
+    "primary_view": "same-record model; captured inputs and units; valid and invalid responses; unresolved checks; execution and engineering decision",
+    "technical_records": "closed details; complete original checks/evidence/IDs/hashes/source remain accessible",
+    "native_face": "friendly component/type/native ordinal; exact catalog and display IDs retained separately",
+    "loader": "same request/store/selected experiment and connected DOM checked after each await",
+    "offline_report": "escaped self-contained HTML; readable verdict/values first; exact raw observations retained in closed details"
+  },
+  "boundaries": {
+    "Core_schema_and_registry": "UNCHANGED",
+    "HTTP_MCP_operations": "UNCHANGED",
+    "pinned_upstream": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "research_model_and_auth": "UNCHANGED",
+    "scientific_solver_or_CAD_rerun": "NOT_RUN",
+    "thresholds_units_original_verdicts": "UNCHANGED"
+  },
+  "limits": {
+    "new_clean_source_browser": "NOT_RUN",
+    "new_native_mesh_mechanics": "NOT_RUN",
+    "whole_exact_source_CI": "NOT_RUN for uncommitted source; query after publication",
+    "engineering": "UNKNOWN/NOT_RELEASED retained",
+    "whole_52_requirements_and_Phase6_7": "OPEN"
+  },
+  "next": "new clean viewer/report gate using unchanged f8 CAD record, then seven-body native mesh and mechanics in existing sequence"
+}

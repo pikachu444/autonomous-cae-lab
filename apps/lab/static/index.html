@@ -13,6 +13,7 @@
   <script src="/static/imported-mesh-controls.js" defer></script>
   <script src="/static/pde-field-inspector.js" defer></script>
   <script src="/static/contact-field-inspector.js" defer></script>
+  <script src="/static/result-presentation.js" defer></script>
   <script src="/static/app.js" defer></script>
 </head>
 <body>
@@ -155,10 +156,10 @@
       </section>
 
       <section id="results" data-panel="results" hidden>
-        <div class="page-heading"><div><p class="eyebrow">05 / RESULTS & EVIDENCE</p><h1>결과를 근거와 함께 읽습니다.</h1><p class="lead">기록을 열면 결과·ledger·산출물 해시를 검증합니다. 목록 자체는 검증 판정이 아닙니다.</p></div><span id="selectedSource" class="outline-label">소스 버전: 기록 선택 후 확인</span></div>
-        <article class="card result-browser"><div class="card-heading"><h2>실험 기록</h2><div class="button-row"><span id="compareCount" class="hint">0개 선택</span><button type="button" id="compareBtn" class="button secondary compact">선택 결과 비교</button></div></div><div class="form-grid filter-grid"><label class="search-label">기록 검색<input id="experimentSearch" type="search" placeholder="실험 ID, 연구, backend"></label><label>상태<select id="experimentFilter"><option value="">모든 상태</option><option value="COMPLETED_REVIEW_REQUIRED">실행 완료 · 검토 필요</option><option value="REJECTED">검증 거절</option><option value="FAILED_EXECUTION">실행 실패</option></select></label></div><div id="experimentList" class="table-scroll"><p class="empty-state">실험을 실행하거나 읽기 전용 라이브러리를 선택하세요.</p></div></article>
+        <div class="page-heading"><div><p class="eyebrow">05 / 결과</p><h1>형상과 결과를 확인하세요.</h1><p class="lead">실험을 선택하면 입력 조건, 결과와 남은 확인 사항을 함께 볼 수 있습니다.</p></div><span id="selectedSource" class="outline-label">실험 선택 대기</span></div>
+        <details class="card result-browser" id="resultBrowser" open><summary>실험 선택·비교</summary><div class="card-heading"><h2>실험 기록</h2><div class="button-row"><span id="compareCount" class="hint">0개 선택</span><button type="button" id="compareBtn" class="button secondary compact">선택 결과 비교</button></div></div><div class="form-grid filter-grid"><label class="search-label">기록 검색<input id="experimentSearch" type="search" placeholder="실험 이름, 연구, 실행 프로그램"></label><label>상태<select id="experimentFilter"><option value="">모든 상태</option><option value="COMPLETED_REVIEW_REQUIRED">실행 완료 · 검토 필요</option><option value="REJECTED">조건 미충족</option><option value="FAILED_EXECUTION">실행 실패</option></select></label></div><div id="experimentList" class="table-scroll"><p class="empty-state">실험을 실행하거나 읽기 전용 라이브러리를 선택하세요.</p></div></details>
         <div id="comparisonDetail" hidden></div>
-        <div id="experimentDetail"><article class="card empty-detail"><span class="empty-icon" aria-hidden="true">↗</span><h2>하나의 실험, 연결된 근거.</h2><p>기록의 ‘열기’를 선택하면 입력값, 유효한 수치 응답,<br>독립 검증과 내려받을 원본 산출물을 확인할 수 있습니다.</p></article></div>
+        <div id="experimentDetail"><article class="card empty-detail"><span class="empty-icon" aria-hidden="true">↗</span><h2>확인할 실험을 선택하세요.</h2><p>기록의 ‘열기’를 선택하면 형상, 입력 조건과 결과를 볼 수 있습니다.<br>상세 검사와 원본 파일도 같은 화면에서 확인할 수 있습니다.</p></article></div>
       </section>
     </main>
     <footer class="workspace-footer"><span>Autonomous CAE Lab · 로컬 인터페이스</span><span id="footerStore">저장소 연결 중</span><span>수치 검증은 공학적 사용 승인과 구분합니다.</span></footer>
