@@ -1,4 +1,31 @@
-## Current checkpoint: actual Lab question, load change and cancellation verified
+## Current checkpoint: per-mesh common response implemented and independently reviewed
+
+Record: `benchmarks/records/20261005-fixture-mesh-response-source-r01.json`.
+Adapter4 adds same-index mesh size and signed loaded-saddle global UZ lists,
+with generated DAT hashes/count/path and ROLLER_NODES/frame provenance.
+Original six metrics,5%/1% gates, invalid stress and engineering UNKNOWNs stay.
+Candidate source11Python/1newNode controls pass; Main full-import/CadQuery
+preflight19Python and complete presentation14Node pass. Independent0P1/P2.
+Actual retained human05 four analyses/12DAT readback matches all ordered values
+and common outcome; files unchanged. This is a read-only projection of producer
+fb7339bb, not a new solve or retrofit of historical stored metrics/results.
+Root command/import-reader setup failures are retained and corrected separately.
+
+Actual approved5.6Sol human05 question/100-150N change/cancel gates remain
+qualified in the previous record. New live AI per-mesh interpretation is NEXT.
+Exact previous containing cfa27d8 CI37215237465 finishes FAILURE; Core and
+research-driver-source PASS, while native failure scopes remain open. This
+source checkpoint is not a new solver qualification or whole-service approval.
+
+SERIAL NEXT: fresh clean ordinary Lab question using approved5.6Sol and new
+adapter metrics, then P2.4 retained seven-body/84-group tag0 native import,
+explicit Domain mechanics/reference/full fields and connected assembly research.
+All52 and wholePhase6/7 remain OPEN/NOT_RELEASED. No unchanged failed native
+replay, physical/material/strength/durability approval or optimizer convergence.
+
+---
+
+## Historical checkpoint: actual Lab question, load change and cancellation verified
 
 Record: `benchmarks/records/20261005-lab-question-change-cancel-r01.json`.
 Clean producer fb7339bb / pinned fixture3e48 / approved GPT-5.6 Sol,

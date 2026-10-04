@@ -13,6 +13,7 @@
     applied_force_per_support: "지지대별 하중", displacement_mesh_change_ratio: "마지막 두 메시의 변위 변화율 (상대비)",
     peak_stress: "절점 평균 응력 (진단용)", reaction_balance_ratio: "반력 상대 불평형 (상대비)",
     reaction_force: "지지대 반력 (X, Y, Z)",
+    mesh_size_max_mm: "메시별 최대 크기", loaded_saddle_min_global_uz: "메시별 하중 안장 Z 변위 (최솟값)",
   };
   const parameterNames = {
     "specimen.length": "시편 길이", "specimen.width": "시편 폭",

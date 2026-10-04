@@ -204,3 +204,20 @@ test("retained fixture result labels preserve exact scalars, units, invalid diag
   assert.equal(record.status, "COMPLETED_REVIEW_REQUIRED"); assert.equal(record.decision, "NOT_RELEASED"); assert.equal(JSON.stringify(record), before);
   assert.equal(presentation.metricName("__proto__", 4), "결과값 5"); assert.equal(presentation.validationName("constructor", 6), "확인 항목 7");
 });
+
+test("per-mesh response labels preserve paired numeric lists, units and invalid signed observation reason", () => {
+  const result = frozen({ decision: "NOT_RELEASED", metrics: {
+    mesh_size_max_mm: { value: [4, 3, 2], unit: "mm", valid: true },
+    loaded_saddle_min_global_uz: { value: [-0.00564208, -0.005730928, -0.005827884], unit: "mm", valid: false,
+      reason: "Declared mesh trend threshold exceeded" },
+  }, validations: [{ type: "static_strength", status: "UNKNOWN", blocking: true }] });
+  const before = JSON.stringify(result);
+  const rows = Object.entries(result.metrics).map(([name, metric], index) => ({ name: presentation.metricName(name, index), metric }));
+  assert.deepEqual(rows.map(row => row.name), ["메시별 최대 크기", "메시별 하중 안장 Z 변위 (최솟값)"]);
+  assert.equal(rows[0].metric, result.metrics.mesh_size_max_mm); assert.equal(rows[1].metric, result.metrics.loaded_saddle_min_global_uz);
+  assert.deepEqual(rows[0].metric, { value: [4, 3, 2], unit: "mm", valid: true });
+  assert.deepEqual(rows[1].metric, { value: [-0.00564208, -0.005730928, -0.005827884], unit: "mm", valid: false,
+    reason: "Declared mesh trend threshold exceeded" });
+  assert.equal(presentation.checks(result).unresolved[0].status, "UNKNOWN"); assert.equal(result.decision, "NOT_RELEASED");
+  assert.equal(JSON.stringify(result), before); assert.equal(presentation.metricName("unavailable_series", 7), "결과값 8");
+});

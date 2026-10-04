@@ -1,5 +1,6 @@
 """Preflight tests use real CadQuery STEP, never synthetic solver success."""
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -8,7 +9,9 @@ import pytest
 from caelab.adapters.fixture_cadquery import FixtureCadQueryAdapter
 from caelab.adapters.fixture_calculix import (FixtureCalculiXAdapter, UPSTREAM,
                                               _base_reactions, _finite_displacement_table,
-                                              _request_base_reactions, _apply_saddle_forces)
+                                              _request_base_reactions, _apply_saddle_forces,
+                                              _per_mesh_responses)
+from caelab.outcomes import validate_outcome
 from caelab.storage import artifact_manifest
 
 
@@ -143,3 +146,86 @@ def test_area_load_keeps_small_forces_within_calculix_field_width(tmp_path):
               deck.read_text().split("*CLOAD\n")[1].split("*NODE PRINT")[0].splitlines()]
     assert max(map(len, fields)) <= 20
     assert sum(map(float, fields)) == pytest.approx(sum(forces.values()), abs=1e-8)
+
+
+def _per_mesh_response_fixture(output):
+    """Controlled DAT bytes only; no geometry, native solve or scientific approval."""
+    observations = [(4, -0.00564208), (3, -0.005730928), (2, -0.005827884)]
+    studies = []
+    for index, (size, uz) in enumerate(observations):
+        folder = output / f"support_{index}"
+        folder.mkdir(parents=True)
+        dat = folder / f"support_{index}.dat"
+        dat.write_bytes(f"TEST ONLY: native-looking DAT fixture {index}\n".encode())
+        studies.append({"mesh_size_max_mm": size,
+                        "displacement": {"min_vertical_displacement_mm": uz},
+                        "boundary": {"loaded_node_count": 2, "loaded_node_ids": [2, 7]},
+                        "files": {"displacement_table": f"support_{index}/support_{index}.dat"}})
+    return studies
+
+
+def test_per_mesh_response_preserves_order_sign_scope_and_evidence(tmp_path):
+    studies = _per_mesh_response_fixture(tmp_path)
+    before = json.dumps(studies, sort_keys=True)
+    metrics, evidence = _per_mesh_responses(studies, tmp_path, True)
+    assert metrics == {
+        "mesh_size_max_mm": {"value": [4, 3, 2], "unit": "mm", "valid": True},
+        "loaded_saddle_min_global_uz": {"value": [-0.00564208, -0.005730928, -0.005827884], "unit": "mm", "valid": True},
+    }
+    assert (evidence["node_set"], evidence["coordinate_system"], evidence["component"], evidence["statistic"]) == (
+        "ROLLER_NODES", "global Cartesian", "UZ", "minimum over loaded saddle nodes")
+    assert evidence["source_result"] == "simulation/result.json"
+    assert evidence["mesh_metric"] == "mesh_size_max_mm" and evidence["response_metric"] == "loaded_saddle_min_global_uz"
+    manifest = {entry["path"]: entry for entry in artifact_manifest(tmp_path, revision="a" * 64)}
+    for index, row in enumerate(evidence["studies"]):
+        relative = f"support_{index}/support_{index}.dat"
+        assert row == {"index": index, "mesh_size_max_mm": [4, 3, 2][index], "loaded_node_count": 2,
+                       "displacement_table": "simulation/" + relative,
+                       "displacement_table_sha256": hashlib.sha256((tmp_path / relative).read_bytes()).hexdigest()}
+        assert row["displacement_table_sha256"] == manifest[relative]["sha256"]
+    assert json.dumps(studies, sort_keys=True) == before
+    assert FixtureCalculiXAdapter.version == "4"
+    assert FixtureCalculiXAdapter.default_metrics == ["max_displacement", "peak_stress", "displacement_mesh_change_ratio",
+        "applied_force_per_support", "reaction_force", "reaction_balance_ratio", "mesh_size_max_mm", "loaded_saddle_min_global_uz"]
+
+
+def test_per_mesh_response_retains_finite_failed_trend_in_common_outcome(tmp_path):
+    studies = _per_mesh_response_fixture(tmp_path)
+    metrics, evidence = _per_mesh_responses(studies, tmp_path, False)
+    assert metrics["mesh_size_max_mm"] == {"value": [4, 3, 2], "unit": "mm", "valid": True}
+    assert metrics["loaded_saddle_min_global_uz"] == {"value": [-0.00564208, -0.005730928, -0.005827884],
+        "unit": "mm", "valid": False, "reason": "Declared mesh trend threshold exceeded"}
+    # A rejected controlled outcome verifies the existing numeric-list boundary,
+    # without representing a completed native execution or engineering approval.
+    outcome = {"status": "REJECTED", "checks": [{"code": "displacement_mesh_trend", "status": "FAIL"}],
+               "metrics": metrics, "provenance": {"per_mesh_displacement": evidence},
+               "solver_status": "NOT_RUN", "converged": None, "pending_validations": ["static_strength"]}
+    before = json.dumps(outcome, sort_keys=True)
+    validate_outcome(outcome)
+    assert json.dumps(outcome, sort_keys=True) == before
+
+
+@pytest.mark.parametrize("fault", ["missing", "nonfinite", "boolean", "order", "missing_dat", "foreign_dat", "count", "duplicate_ids", "trend"])
+def test_per_mesh_response_rejects_unavailable_or_misassociated_observations(tmp_path, fault):
+    studies = _per_mesh_response_fixture(tmp_path)
+    passed = True
+    if fault == "missing":
+        studies[1]["displacement"] = {}
+    elif fault == "nonfinite":
+        studies[1]["displacement"]["min_vertical_displacement_mm"] = float("nan")
+    elif fault == "boolean":
+        studies[1]["displacement"]["min_vertical_displacement_mm"] = True
+    elif fault == "order":
+        studies[1]["mesh_size_max_mm"] = 4
+    elif fault == "missing_dat":
+        (tmp_path / "support_1/support_1.dat").unlink()
+    elif fault == "foreign_dat":
+        studies[1]["files"]["displacement_table"] = "../foreign.dat"
+    elif fault == "count":
+        studies[1]["boundary"]["loaded_node_count"] = True
+    elif fault == "duplicate_ids":
+        studies[1]["boundary"]["loaded_node_ids"] = [2, 2]
+    elif fault == "trend":
+        passed = 1
+    with pytest.raises(ValueError, match="per-mesh"):
+        _per_mesh_responses(studies, tmp_path, passed)

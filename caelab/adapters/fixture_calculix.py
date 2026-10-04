@@ -55,6 +55,68 @@ def _finite_positive(value: Any) -> bool:
     return (type(value) in (int, float) and math.isfinite(value) and value > 0)
 
 
+def _per_mesh_responses(studies: list[dict], output: Path,
+                        mesh_trend_passed: bool) -> tuple[dict, dict]:
+    """Project loaded-saddle global UZ observations without another native parser.
+
+    Both numeric lists use the native study order. The signed minimum is over
+    ROLLER_NODES only; it is not a whole-model extremum or a magnitude.
+    """
+    if (not isinstance(studies, list) or not 2 <= len(studies) <= 8 or
+            type(mesh_trend_passed) is not bool):
+        raise ValueError("Invalid per-mesh response sequence or trend verdict")
+    root = Path(output).resolve(strict=True)
+    if not root.is_dir():
+        raise ValueError("Per-mesh response output directory is missing")
+    sizes, displacements, sources = [], [], []
+    for index, study in enumerate(studies):
+        if not isinstance(study, dict):
+            raise ValueError(f"Invalid per-mesh response study: {index}")
+        size = study.get("mesh_size_max_mm")
+        if not _finite_positive(size) or (sizes and sizes[-1] <= size):
+            raise ValueError(f"Invalid per-mesh response mesh order: {index}")
+        displacement = study.get("displacement")
+        uz = (displacement.get("min_vertical_displacement_mm")
+              if isinstance(displacement, dict) else None)
+        if type(uz) not in (int, float) or not math.isfinite(uz):
+            raise ValueError(f"Missing or nonfinite per-mesh signed UZ: {index}")
+        boundary = study.get("boundary")
+        count = boundary.get("loaded_node_count") if isinstance(boundary, dict) else None
+        ids = boundary.get("loaded_node_ids") if isinstance(boundary, dict) else None
+        if (type(count) is not int or count <= 0 or not isinstance(ids, list) or
+                len(ids) != count or any(type(node) is not int or node <= 0 for node in ids) or
+                len(set(ids)) != count):
+            raise ValueError(f"Invalid per-mesh loaded-node identity: {index}")
+        files = study.get("files")
+        relative = files.get("displacement_table") if isinstance(files, dict) else None
+        expected = f"support_{index}/support_{index}.dat"
+        if relative != expected:
+            raise ValueError(f"Invalid per-mesh DAT association: {index}")
+        dat = root / relative
+        if (dat.is_symlink() or dat.parent.is_symlink() or not dat.is_file() or
+                not dat.resolve(strict=True).is_relative_to(root)):
+            raise ValueError(f"Missing or unowned per-mesh DAT artifact: {index}")
+        sizes.append(size)
+        displacements.append(uz)
+        sources.append({"index": index, "mesh_size_max_mm": size,
+                        "loaded_node_count": count,
+                        "displacement_table": "simulation/" + relative,
+                        "displacement_table_sha256": hashlib.sha256(dat.read_bytes()).hexdigest()})
+    metrics = {
+        "mesh_size_max_mm": {"value": sizes, "unit": "mm", "valid": True},
+        "loaded_saddle_min_global_uz": {"value": displacements, "unit": "mm",
+                                        "valid": mesh_trend_passed,
+                                        **({"reason": "Declared mesh trend threshold exceeded"}
+                                           if not mesh_trend_passed else {})},
+    }
+    provenance = {"source_result": "simulation/result.json", "node_set": "ROLLER_NODES",
+                  "coordinate_system": "global Cartesian", "component": "UZ",
+                  "statistic": "minimum over loaded saddle nodes", "unit": "mm",
+                  "mesh_metric": "mesh_size_max_mm", "response_metric": "loaded_saddle_min_global_uz",
+                  "studies": sources}
+    return metrics, provenance
+
+
 def _artifact(parent: dict, root: Path, name: str) -> tuple[Path, str, dict]:
     matching = [a for a in parent.get("artifacts", []) if a.get("path") == name]
     if len(matching) != 1:
@@ -325,10 +387,11 @@ def _extract_stress_field(frd: Path, nodes: dict, screen: Any) -> tuple[dict, di
 
 class FixtureCalculiXAdapter:
     backend = "fixture.calculix"
-    version = "3"
+    version = "4"
     analysis_type = "linear_static"
     default_metrics = ["max_displacement", "peak_stress", "displacement_mesh_change_ratio",
-                       "applied_force_per_support", "reaction_force", "reaction_balance_ratio"]
+                       "applied_force_per_support", "reaction_force", "reaction_balance_ratio",
+                       "mesh_size_max_mm", "loaded_saddle_min_global_uz"]
 
     def solve(self, parent_result: dict, parent_root: Path, output: Path,
               settings: dict) -> dict:
@@ -597,6 +660,9 @@ class FixtureCalculiXAdapter:
                                                     for v in studies), "unit": "1", "valid": True},
             "applied_force_per_support": {"value": load["force_per_support_N"], "unit": "N", "valid": True},
         }
+        per_mesh_metrics, per_mesh_provenance = _per_mesh_responses(studies, output, mesh_trend_passed)
+        metrics.update(per_mesh_metrics)
+        provenance["per_mesh_displacement"] = per_mesh_provenance
         provenance.update({"mesh": ["simulation/" + v["files"]["mesh"] for v in studies],
                            "solver_deck": ["simulation/" + v["files"]["deck"] for v in studies]})
         result = {"status": "COMPLETED" if mesh_trend_passed and reaction_passed else "REJECTED", "checks": checks,

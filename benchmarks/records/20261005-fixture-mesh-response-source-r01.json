@@ -1,0 +1,462 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.per-mesh-loaded-saddle-response-source",
+  "status": "SOURCE_MAIN_CONTROLS_AND_RETAINED_NATIVE_READBACK_PASS_NEW_CONNECTED_RUN_NOT_RUN",
+  "recorded_utc": "2026-10-04T16:55:54.486564+00:00",
+  "parent_source_commit": "cfa27d86364ea59066b830931c9f75accdf46d26",
+  "retained_native_producer": "fb7339bb3f8843492288456df1ce98284447b4ec",
+  "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "adapter": "fixture.calculix",
+  "adapter_version": "4",
+  "change": "Two same-index numeric-list metrics expose mesh maximum size and signed minimum global UZ over loaded saddle ROLLER_NODES, with DAT hashes/count/path/frame provenance. Existing six metrics and numerical/engineering policies unchanged.",
+  "source_files": [
+    {
+      "path": "caelab/adapters/fixture_calculix.py",
+      "bytes": 39920,
+      "sha256": "b5b664a837f534da6338ad1a78aa422dd0ac392be43c978e50622a3e8a5080a4",
+      "base_sha256": "c08a1d0a462ef6791ae36cab127418a637b08252a75b6ebb0c0ca6103842bf03"
+    },
+    {
+      "path": "tests/test_fixture_calculix.py",
+      "bytes": 12057,
+      "sha256": "9cbd2c751a93e43e094cee8549dd9de7e4601d3bcb055e4f9ff6fba80b730086",
+      "base_sha256": "141e007b87af4b91f0493f58ebd2f5e923a8a0e65663067a2bfc9f1a4e2f6804"
+    },
+    {
+      "path": "apps/lab/static/result-presentation.js",
+      "bytes": 13788,
+      "sha256": "bd374be94fc4bbadc7fdca8e6ea854d01eb1034b279f2f7aef680601884f745e",
+      "base_sha256": "b6a58de97014f2991ed76340e87007634df13b4b61e77b3ceebcaed5e4448ef8"
+    },
+    {
+      "path": "tests/test_result_presentation.js",
+      "bytes": 17900,
+      "sha256": "b607828218cf324c014a137f08abd429667cd9ffafc3060ba1d981df15863b5d",
+      "base_sha256": "2c6e7f65e8f6f6b220f1cbbed4f1cd83908cf51be57ed35391cbdb42c1a4e75b"
+    }
+  ],
+  "candidate_freeze": {
+    "path": "artifacts/development-human-workflow-20261004-01/per-mesh-response-source-01/FREEZE.json",
+    "bytes": 2136,
+    "sha256": "1971a5e6cd8526045da944fdec28a60b042ae3feca84fd9e5de7865d02827ad3"
+  },
+  "candidate_controls": {
+    "Python": {
+      "pass": 11,
+      "legacy_deselected": 8,
+      "scope": "AST-only helper"
+    },
+    "Node": {
+      "pass": 1,
+      "legacy_filtered": 13
+    },
+    "syntax_pass": 4,
+    "evidence": {
+      "path": "artifacts/development-human-workflow-20261004-01/per-mesh-response-source-01/evidence/RECEIPT.json",
+      "bytes": 3491,
+      "sha256": "35d2248cecbe61479e2abd00b8f3e3e7b63af791631af7f1fc8a24f7f1608784"
+    }
+  },
+  "independent_review": {
+    "path": "artifacts/development-human-workflow-20261004-01/per-mesh-response-review-01/RECEIPT.json",
+    "bytes": 6902,
+    "sha256": "2bd214d1380dad262edbe1b91e2035fea31e9902eb15d822a0323ee32f013798"
+  },
+  "Main": {
+    "Python": {
+      "pass": 19,
+      "fail": 0,
+      "skip": 0,
+      "scope": "Full canonical adapter import, real CadQuery preflight/source controls; no solver.",
+      "evidence": [
+        {
+          "path": "artifacts/development-human-workflow-20261004-01/per-mesh-main-pytest-01.xml",
+          "bytes": 2935,
+          "sha256": "7b08e06352bdf051261ef7de1a1319eaa017aa7e74e31068fab62ce0fab6ad36"
+        },
+        {
+          "path": "artifacts/development-human-workflow-20261004-01/per-mesh-main-pytest-01.log",
+          "bytes": 802,
+          "sha256": "39f04e0c4fb18bd909d2147926dab8e7f9f3af279c6c9d65997e389856b5ea97"
+        }
+      ]
+    },
+    "Node": {
+      "pass": 14,
+      "fail": 0,
+      "skip": 0,
+      "duration_ms": 212.4597,
+      "scope": "tests/test_result_presentation.js; includes the new selected case.",
+      "basis": "Root observed exec result chunk3938d2, exit0; separate raw file not recorded."
+    }
+  },
+  "retained_actual_readback": {
+    "evidence": {
+      "path": "artifacts/development-human-workflow-20261004-01/per-mesh-candidate-readback-01.json",
+      "bytes": 8789,
+      "sha256": "fb3608c486e6f325184106f266c2ed2a9e5eaa7918df8e2d4ef0809305961269"
+    },
+    "actual_experiments": 4,
+    "DAT_sources": 12,
+    "basis": "Full private candidate module and exact promoted helper bytes; existing common outcome validates the read-only projection.",
+    "file_overwrites": 0,
+    "source_result_and_DAT_bytes_unchanged": true,
+    "meaning": "Observation projection of nativefb7339b, not new native execution or replacement stored results.",
+    "proofs": [
+      {
+        "experiment_id": "fea_width32_100N_432mm_20261005_a1",
+        "raw_result_sha256": "6c4eb773b87f03658f13906cbe5ed1399db188ffb3005d31d836f12bb469ffd7",
+        "native_producer": "fb7339bb3f8843492288456df1ce98284447b4ec",
+        "metrics": {
+          "mesh_size_max_mm": {
+            "value": [
+              4,
+              3,
+              2
+            ],
+            "unit": "mm",
+            "valid": true
+          },
+          "loaded_saddle_min_global_uz": {
+            "value": [
+              -0.00564208,
+              -0.005730928,
+              -0.005827884
+            ],
+            "unit": "mm",
+            "valid": true
+          }
+        },
+        "evidence_map": {
+          "source_result": "simulation/result.json",
+          "node_set": "ROLLER_NODES",
+          "coordinate_system": "global Cartesian",
+          "component": "UZ",
+          "statistic": "minimum over loaded saddle nodes",
+          "unit": "mm",
+          "mesh_metric": "mesh_size_max_mm",
+          "response_metric": "loaded_saddle_min_global_uz",
+          "studies": [
+            {
+              "index": 0,
+              "mesh_size_max_mm": 4,
+              "loaded_node_count": 123,
+              "displacement_table": "simulation/support_0/support_0.dat",
+              "displacement_table_sha256": "0177d815d7546e178fc6df3daf88154033e2ca657014c4203fb868b3b714b9b1"
+            },
+            {
+              "index": 1,
+              "mesh_size_max_mm": 3,
+              "loaded_node_count": 228,
+              "displacement_table": "simulation/support_1/support_1.dat",
+              "displacement_table_sha256": "4eaa6190f051ceea53563e23d859d94f478f510e35bce78dc3bff86d1503a5c9"
+            },
+            {
+              "index": 2,
+              "mesh_size_max_mm": 2,
+              "loaded_node_count": 438,
+              "displacement_table": "simulation/support_2/support_2.dat",
+              "displacement_table_sha256": "908c24db71d319b3de174ae744e2b232fdd4b78eea9e10b904e0ad2ba1f2f2fc"
+            }
+          ]
+        },
+        "common_outcome": "PASS_PROJECTED_NOT_STORED",
+        "failed_trend_finite_observations_retained": true,
+        "selected_raw_and_DAT_bytes_unchanged": true
+      },
+      {
+        "experiment_id": "fea_width38_100N_432mm_20261005_a1",
+        "raw_result_sha256": "807afb019f63578e11dd1a23049c210f2a727bf9573f41498d6264dcb8520baa",
+        "native_producer": "fb7339bb3f8843492288456df1ce98284447b4ec",
+        "metrics": {
+          "mesh_size_max_mm": {
+            "value": [
+              4,
+              3,
+              2
+            ],
+            "unit": "mm",
+            "valid": true
+          },
+          "loaded_saddle_min_global_uz": {
+            "value": [
+              -0.005505997,
+              -0.00557447,
+              -0.005707813
+            ],
+            "unit": "mm",
+            "valid": true
+          }
+        },
+        "evidence_map": {
+          "source_result": "simulation/result.json",
+          "node_set": "ROLLER_NODES",
+          "coordinate_system": "global Cartesian",
+          "component": "UZ",
+          "statistic": "minimum over loaded saddle nodes",
+          "unit": "mm",
+          "mesh_metric": "mesh_size_max_mm",
+          "response_metric": "loaded_saddle_min_global_uz",
+          "studies": [
+            {
+              "index": 0,
+              "mesh_size_max_mm": 4,
+              "loaded_node_count": 123,
+              "displacement_table": "simulation/support_0/support_0.dat",
+              "displacement_table_sha256": "997a32a3113597edbb1d747da8428b11f7c40789cf6bcfebf5315cbcd491b729"
+            },
+            {
+              "index": 1,
+              "mesh_size_max_mm": 3,
+              "loaded_node_count": 228,
+              "displacement_table": "simulation/support_1/support_1.dat",
+              "displacement_table_sha256": "e13b658c6ff711527249be6e3814ec2e045743ff93982a5abeff840111b16465"
+            },
+            {
+              "index": 2,
+              "mesh_size_max_mm": 2,
+              "loaded_node_count": 438,
+              "displacement_table": "simulation/support_2/support_2.dat",
+              "displacement_table_sha256": "b7e5568766ee7be926442050f9bf86798c43a614df0e833034a51c554df1b819"
+            }
+          ]
+        },
+        "common_outcome": "PASS_PROJECTED_NOT_STORED",
+        "failed_trend_finite_observations_retained": true,
+        "selected_raw_and_DAT_bytes_unchanged": true
+      },
+      {
+        "experiment_id": "fea_width32_150N_432mm_20261005_a1",
+        "raw_result_sha256": "5b7cb56985ae0e1487b774db2fe1b071529bbe5718f6bd83d3e9b1b847f9ab27",
+        "native_producer": "fb7339bb3f8843492288456df1ce98284447b4ec",
+        "metrics": {
+          "mesh_size_max_mm": {
+            "value": [
+              4,
+              3,
+              2
+            ],
+            "unit": "mm",
+            "valid": true
+          },
+          "loaded_saddle_min_global_uz": {
+            "value": [
+              -0.00846312,
+              -0.008596392,
+              -0.008741827
+            ],
+            "unit": "mm",
+            "valid": true
+          }
+        },
+        "evidence_map": {
+          "source_result": "simulation/result.json",
+          "node_set": "ROLLER_NODES",
+          "coordinate_system": "global Cartesian",
+          "component": "UZ",
+          "statistic": "minimum over loaded saddle nodes",
+          "unit": "mm",
+          "mesh_metric": "mesh_size_max_mm",
+          "response_metric": "loaded_saddle_min_global_uz",
+          "studies": [
+            {
+              "index": 0,
+              "mesh_size_max_mm": 4,
+              "loaded_node_count": 123,
+              "displacement_table": "simulation/support_0/support_0.dat",
+              "displacement_table_sha256": "b084922ab781d5c5496b85805876a830cc59be11f210c13257957ed88c40879f"
+            },
+            {
+              "index": 1,
+              "mesh_size_max_mm": 3,
+              "loaded_node_count": 228,
+              "displacement_table": "simulation/support_1/support_1.dat",
+              "displacement_table_sha256": "9513ca18861cf47e32d09d85918c8fafc22b7d10241c3f63de21b3642ca7781f"
+            },
+            {
+              "index": 2,
+              "mesh_size_max_mm": 2,
+              "loaded_node_count": 438,
+              "displacement_table": "simulation/support_2/support_2.dat",
+              "displacement_table_sha256": "f9750e73a52d69166ea246d9bd7ce47c23eab5c062c9319d8f7e136bcdfb2837"
+            }
+          ]
+        },
+        "common_outcome": "PASS_PROJECTED_NOT_STORED",
+        "failed_trend_finite_observations_retained": true,
+        "selected_raw_and_DAT_bytes_unchanged": true
+      },
+      {
+        "experiment_id": "fea_width38_150N_432mm_20261005_a1",
+        "raw_result_sha256": "11984823f00b240f5c23a7903f7d1148f8e0078cd2b20fc681f5a133658aeade",
+        "native_producer": "fb7339bb3f8843492288456df1ce98284447b4ec",
+        "metrics": {
+          "mesh_size_max_mm": {
+            "value": [
+              4,
+              3,
+              2
+            ],
+            "unit": "mm",
+            "valid": true
+          },
+          "loaded_saddle_min_global_uz": {
+            "value": [
+              -0.008258996,
+              -0.008361705,
+              -0.00856172
+            ],
+            "unit": "mm",
+            "valid": true
+          }
+        },
+        "evidence_map": {
+          "source_result": "simulation/result.json",
+          "node_set": "ROLLER_NODES",
+          "coordinate_system": "global Cartesian",
+          "component": "UZ",
+          "statistic": "minimum over loaded saddle nodes",
+          "unit": "mm",
+          "mesh_metric": "mesh_size_max_mm",
+          "response_metric": "loaded_saddle_min_global_uz",
+          "studies": [
+            {
+              "index": 0,
+              "mesh_size_max_mm": 4,
+              "loaded_node_count": 123,
+              "displacement_table": "simulation/support_0/support_0.dat",
+              "displacement_table_sha256": "e8714475e1bb6267b0c1db11d00258caee9b1637327abe2455c7e58a742064d2"
+            },
+            {
+              "index": 1,
+              "mesh_size_max_mm": 3,
+              "loaded_node_count": 228,
+              "displacement_table": "simulation/support_1/support_1.dat",
+              "displacement_table_sha256": "adce6a7119aa562e0e36c5e61e9ccc09b2f7dfdaf81fc92d47337d22ad210bd4"
+            },
+            {
+              "index": 2,
+              "mesh_size_max_mm": 2,
+              "loaded_node_count": 438,
+              "displacement_table": "simulation/support_2/support_2.dat",
+              "displacement_table_sha256": "88585a01d87e68f657ca8b8f6fa4d7003cc56284d05af5278d2f2d987e9791f5"
+            }
+          ]
+        },
+        "common_outcome": "PASS_PROJECTED_NOT_STORED",
+        "failed_trend_finite_observations_retained": true,
+        "selected_raw_and_DAT_bytes_unchanged": true
+      }
+    ]
+  },
+  "Root_reader_failures": [
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/per-mesh-readback-command-attempt-01.json",
+      "bytes": 209,
+      "sha256": "01070bf7a9edd09cb0644a1432a47ec644ee032febde84f21568edf302421244"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/per-mesh-candidate-readback-01.log",
+      "bytes": 669,
+      "sha256": "caf55d5e0383eb369f583414289124d712b000e982a2477dce9a8ac4b8cc36c5"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/readback-reader-import-attempt-01.py",
+      "bytes": 3743,
+      "sha256": "36cafe8c6c3583a2ee22e99a3f80b29d0557b4cbbaeb8dad5c2cfc2ef3a5bba1"
+    }
+  ],
+  "Root_reader_failure_scope": "First external CLI array serialization and then missing repository sys.path. Both before native/readback; corrected wrapper/import path then exit0. No candidate/production defect or threshold change.",
+  "protected_logic": {
+    "original_six_metrics_and_other_solve_AST": "UNCHANGED",
+    "original_eight_Python_tests_and_two_fixtures_AST": "UNCHANGED",
+    "displacement_mesh_trend_limit": 0.05,
+    "signed_XYZ_balance_limit": 0.01,
+    "stress": "INVALID_DIAGNOSTIC",
+    "engineering_unknowns": "UNCHANGED",
+    "renderer": "Two literal labels; formatting/fallback unchanged"
+  },
+  "previous_containing_source_CI": {
+    "source_commit": "cfa27d86364ea59066b830931c9f75accdf46d26",
+    "run_id": 37215237465,
+    "status": "completed",
+    "conclusion": "failure",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37215237465",
+    "jobs": [
+      {
+        "name": "core",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "research-driver-source",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "explicit",
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      {
+        "name": "native-registration",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "optimization",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "native",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "structural",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "codeaster",
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      {
+        "name": "doe",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "pde",
+        "status": "completed",
+        "conclusion": "failure"
+      }
+    ],
+    "evidence": {
+      "path": "artifacts/development-human-workflow-20261004-01/cfa-ci-observation-01.json",
+      "bytes": 26138,
+      "sha256": "85b53365e1cfeb37cf790a92c81fb5aa5410bd663ee2c78fc652dd4833465668"
+    },
+    "interpretation": "Research driver default fixture correction closes its source failure. Whole CI still fails; unrelated native failures not replayed locally or relabelled as approval."
+  },
+  "new_containing_source_CI": "NOT_RUN_BEFORE_PUBLICATION",
+  "new_native_or_model_calls_this_unit": 0,
+  "new_live_AI_per_mesh_interpretation": "NOT_RUN",
+  "next_serial": [
+    "Fresh clean ordinary Lab question proves new per-mesh metrics in an actual approved5.6Sol answer.",
+    "Then retained seven-body84-group mesh tag0 transport/native import, Domain mechanics/full fields and connected assembly research."
+  ],
+  "next_import_source_facts": {
+    "official_source_commit": "50ebc13c70ee9df62faf93ddcb746a3757b3042a",
+    "LIRE_MAILLAGE": "https://gitlab.com/codeaster/src/-/raw/50ebc13c70ee9df62faf93ddcb746a3757b3042a/code_aster/CodeCommands/lire_maillage.py",
+    "native_names": "Optional mesh.sdj.NOMNOE/NOMMAI vectors; do not fabricate labels.",
+    "coordinate_conversion": "PRE_GMSH gmeneu.F90 uses1PE21.14; source/transport bytes exact, native coordinates use existing1e-12 comparison, not bitwise17g.",
+    "node_identity": "Importer preserves used IDs without XYZ dedup; orphan nodes omitted. Actual full/body coverage and84 memberships NOT_RUN.",
+    "mechanical_solve_or_native_quadrature": "NOT_RUN_BY_THIS_LOOKUP"
+  },
+  "decision": "NOT_RELEASED",
+  "whole52_Phase6_Phase7": "OPEN",
+  "raw_evidence_committed": false
+}
