@@ -1,0 +1,288 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-04T01:42:29.063593+00:00",
+  "status": "PASS_BOUNDED_ACTUAL_CONTACT_FIELD_BROWSER_TWO_RETAINED_RECORDS",
+  "viewer_source_commit": "93d5efec1e6dd5f560732a497c5f37b72000a64f",
+  "scientific_producer_commit": "a9276493118bf573f9574ec6605aa96c77d811a6",
+  "scientific_record": {
+    "path": "benchmarks/records/20261004-contact-research-r01-qualified.json",
+    "size_bytes": 21959,
+    "sha256": "dc01734a05c9f55709df59e83781bd9d35544d38fe38a5292fa365ed33268567"
+  },
+  "source_record": {
+    "path": "benchmarks/records/20261004-contact-field-source-r01.json",
+    "size_bytes": 9545,
+    "sha256": "9f4d911e6de915719d3098001b9e6f8b447ea1f5ebf390af7461f16a9e114632"
+  },
+  "actual_human_receipt": {
+    "path": "artifacts/contact-field-human-20261004-01/human-receipt.json",
+    "size_bytes": 9780,
+    "sha256": "da77cd4938ae546bdf570c0e6e9b482821a2f6c36d39444a421c0cbc70da1d1e"
+  },
+  "independent_human_evidence_review": {
+    "path": "artifacts/development-contact-20261004-01/contact-field-human-review-01/delta-01/final-review.json",
+    "size_bytes": 21586,
+    "sha256": "0311d2250086b9755effa6a105d5dc35478725928dab95fb6ba7119bf43bd6ac"
+  },
+  "retained_initial_review": {
+    "path": "artifacts/development-contact-20261004-01/contact-field-human-review-01/independent-review.json",
+    "size_bytes": 20324,
+    "sha256": "b7834bf69acc34ee1b5d75550ba26e633c8fc601aa8aab78627d9910853b710f"
+  },
+  "initial_review_limit": "13PASS/1FAIL preserved; translated expected research library label was a reviewer assumption; narrow corrected label delta closes the P2, not a new browser run",
+  "open_P1": 0,
+  "open_P2": 0,
+  "browser": {
+    "url": "http://127.0.0.1:8774/#results",
+    "tab_id": "27",
+    "owned_exec_session": 57201,
+    "server_state": "RUNNING_AS_USER_VISIBLE_READ_ONLY_LIBRARY; no server Stop or process absence claim",
+    "readonly_library": "research=runs/contact-research-20261004-01",
+    "primary_store": "runs/contact-field-human-20261004-01"
+  },
+  "actual_views": [
+    "original313/U/RF and uniform1154/U/RF; N14 exact alias filter and original tiny X",
+    "all13/25 signed contact-pressure rows and actual mesh/scatter; direct N14 canvas clicks",
+    "all1060/4240 genuine Gauss point channels and last10/40 rows, all four components/XY/W",
+    "direct Gauss point clicks98:1:1:1 and208:1:1:1; no smoothing/averaging/geometric Z",
+    "expanded native connectivity/groups/source file hashes and preserved source/model/proposal identity",
+    "actual uniform2 native MED browser download321175B and exact SHA256",
+    "selection original-to-uniform clears old detail; readonly library/10UNKNOWN/NOT_RELEASED preserved"
+  ],
+  "not_executed": [
+    "actual in-flight store-swap race test",
+    "busy research cancellation",
+    "additional solver/provider/research runs",
+    "native desktop MED GUI",
+    "all source downloads",
+    "responsive viewport variants"
+  ],
+  "limitations": [
+    "Source153/renderer30+r03delta8/Node283 are existing overlapping source checks, not new browser counts.",
+    "Original pressure01 JPEG captured page overview; stress-last01 JPEG captured footer after table shrink; AX contains actual field state. Proper field screenshots retained separately.",
+    "Exact numeric filter356 matches normalized cell356 and raw MAILLE356/cell355; labeled table distinguishes both, eight rows not a single-cell-only claim.",
+    "Canvas pointer selection chooses an actual nearest point; coincident rows remain separately accessible in full table.",
+    "Browser field loading is slow: original artifact responses about14s each due repeated full verified_record preflight/recheck/Core inspection; detailed timing/profile root cause not measured.",
+    "Initial Root launcher OrderedDictionary aggregation returned null; typed pscustomobject correction and failed launch01 preserved.",
+    "Premature first original selector wait expired while hash loading continued; later original field completed without retry/reload or native rerun."
+  ],
+  "native_MED_download": {
+    "path": "artifacts/contact-field-human-20261004-01/browser-01/actual-uniform2-results.med",
+    "size_bytes": 321175,
+    "sha256": "fd75428bd85eef6a9b81915408bb7caebb2a0fd6b852aa291fe25fae76a23cc0"
+  },
+  "browser_evidence": [
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/actual-uniform2-results.med",
+      "size_bytes": 321175,
+      "sha256": "fd75428bd85eef6a9b81915408bb7caebb2a0fd6b852aa291fe25fae76a23cc0"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/original-cell356-01.ax.txt",
+      "size_bytes": 98540,
+      "sha256": "81d7cfb9e4eecf4422d5919df9ceddeedea154cb2cfaf81d9b11ecbe368af715"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/original-cell356-01.jpg",
+      "size_bytes": 108592,
+      "sha256": "cfcb83d86bb9b20ffbfa4a8b46ff002094edb91a77d6caa5b78194de091b0d42"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/original-n14-nodal-01.ax.txt",
+      "size_bytes": 94662,
+      "sha256": "6dd0c28df51a9675907b001bdc376580fb9443a12a99bde0824086897e748b09"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/original-n14-nodal-01.jpg",
+      "size_bytes": 100760,
+      "sha256": "024cf2e34c852e5de7c2721e4ce4e13c448e099f07529350eca88333f7bdc318"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/original-pressure-01.ax.txt",
+      "size_bytes": 96644,
+      "sha256": "ea822f28ca4cd7b1a899456deb41ebd066a5a9b9fb254ec5966cbc3ae3d06171"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/original-pressure-01.jpg",
+      "size_bytes": 96066,
+      "sha256": "4fefd9786a619c24a76e40dd46a2ee9a571cbf0d505375f08e6663c93eb27506"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/original-pressure-02.ax.txt",
+      "size_bytes": 98065,
+      "sha256": "785667ed2ed52beec370a099d6e2ecf308ec9ff0ed91db08ce0e558ea0a1e59a"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/original-pressure-02.jpg",
+      "size_bytes": 79083,
+      "sha256": "6ab277c0bdf34e6efdaf43153c86f3fc02db71223eb6616aa88b057a6efc6063"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/original-source-topology-01.ax.txt",
+      "size_bytes": 162579,
+      "sha256": "1c78c5cd8c9c6ba2039605e8512b78b81994ef25490278db6186462f5d202a47"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/original-stress-last-01.ax.txt",
+      "size_bytes": 99543,
+      "sha256": "0bf37aebd3cc24d82cd4fcf5c417bd42bb3a6979520b72f2546f3a8533b181ad"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/original-stress-last-01.jpg",
+      "size_bytes": 137170,
+      "sha256": "5f55c34d644b184b6389bfb67ff63959a0837cc0b7cb60fe19a7ed84563f6a60"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/original-stress-point-01.ax.txt",
+      "size_bytes": 100029,
+      "sha256": "1c90e47f5e996e90685807d5d4ebd5b278326b8e659474edd027cc56e2c58a7c"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/original-stress-point-01.jpg",
+      "size_bytes": 101450,
+      "sha256": "b44af3c661cca2ea4ae1750df0ba2334865cdaa13ffb74e4f6c226f4916bec7e"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/uniform2-initial-selection-01.ax.txt",
+      "size_bytes": 4502,
+      "sha256": "86445b18fa5ab4f226dd83384fd2f1092cb4116cf50fe7b1d1208cd4e77d2aca"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/uniform2-n14-nodal-01.ax.txt",
+      "size_bytes": 193981,
+      "sha256": "c4f56cf059c0e992741895f2be85a078bf14fea6f278d6300ca48c243d4f2d13"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/uniform2-n14-nodal-01.jpg",
+      "size_bytes": 118558,
+      "sha256": "3754e799ede8385c8616834777b75bb2aaf8d7a063a974b4be3e947a073ae8e9"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/uniform2-pressure-01.ax.txt",
+      "size_bytes": 199945,
+      "sha256": "369f8b1fa01b3ee13776b072ef2bd379a10d1fcda62c6e96488c13d74f5beac5"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/uniform2-pressure-01.jpg",
+      "size_bytes": 89330,
+      "sha256": "97148c321df39d9af782f8d308bc8d5cf8aba8d38a82d63506fd834f804dcb67"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/uniform2-source-topology-01.ax.txt",
+      "size_bytes": 405070,
+      "sha256": "e35213edbd11574cbca4772a574a215fb0e41197683f83f57f485e9419165aec"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/uniform2-stress-last-01.ax.txt",
+      "size_bytes": 214483,
+      "sha256": "07e6d55bf1b084931afda7b23d33b703082c24043979c3c6b3f70da45f4e66e9"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/uniform2-stress-point-01.ax.txt",
+      "size_bytes": 216967,
+      "sha256": "22fd6b7cf6fe000640409cac8105c9944ee885515414cab732e681a249df4a7b"
+    },
+    {
+      "path": "artifacts/contact-field-human-20261004-01/browser-01/uniform2-stress-point-01.jpg",
+      "size_bytes": 115424,
+      "sha256": "fbae4bf91a93ec0bf0df43fa5298492ab37c0f23d2bddacbba68d963b274e179"
+    }
+  ],
+  "retention": [
+    {
+      "manifest": {
+        "path": "artifacts/contact-research-20261004-01/capture-01/store-before-final-control.json",
+        "size_bytes": 31230,
+        "sha256": "886b4356c72e9e61fd6fc5eb9f05cdf1c561d283178ad412a3678d7e93637783"
+      },
+      "files": 108,
+      "size_bytes": 19118060,
+      "all_bytes_unchanged": true
+    },
+    {
+      "manifest": {
+        "path": "artifacts/contact-research-20261004-01/capture-01/prior-store-retention.json",
+        "size_bytes": 45178,
+        "sha256": "eabc51a8985eaacca3231d5604120d759071e63913a86d8defd2c4040255e81b"
+      },
+      "files": 161,
+      "size_bytes": 23003762,
+      "all_bytes_unchanged": true
+    }
+  ],
+  "source_files_unchanged": true,
+  "new_solver_provider_research_runs": 0,
+  "new_scientific_files": 0,
+  "exact_viewer_source_CI": {
+    "source_commit": "93d5efec1e6dd5f560732a497c5f37b72000a64f",
+    "run_id": 37166716411,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37166716411",
+    "observed_utc": "2026-10-04T01:38:53Z",
+    "status": "COMPLETED",
+    "conclusion": "FAILURE",
+    "success_jobs": 7,
+    "failed_jobs": 3,
+    "pending_jobs": 0,
+    "previous_observation": "2026-10-04T01:21:19Z:5SUCCESS/3FAIL/2PENDING; preserved original seal",
+    "pending": [],
+    "core_pytest": {
+      "passed": 3933,
+      "skipped": 5,
+      "warnings": 1,
+      "duration_seconds": 546.2
+    },
+    "UI_TAP": {
+      "passed": 283,
+      "failed": 0,
+      "skipped": 0
+    },
+    "source_guard_TAP": {
+      "passed": 303,
+      "skipped": 13,
+      "failed": 0
+    },
+    "native_git_state_TAP": {
+      "passed": 8,
+      "failed": 0
+    },
+    "research_driver_TAP": {
+      "passed": 291,
+      "skipped": 11,
+      "failed": 0
+    },
+    "MCP": {
+      "tools_listed": 31,
+      "list_requests": 1,
+      "call_requests": 18,
+      "DOE_points": 2,
+      "optimization_evaluations": 9,
+      "declared_model_execution": "NOT_RUN_RUNTIME_UNCONFIGURED"
+    },
+    "failures": {
+      "explicit": "Pinned OpenRadioss HTTP404/curl22 before native; native steps skipped",
+      "pde": "Wrong vector numerical classification; detailed failed metrics UNKNOWN in retained new log",
+      "codeaster": "E-ansys_vmd1_regular-Fz-aster native numerical checks failed; exact detailed metrics/native error UNKNOWN in retained new log"
+    },
+    "earlier_a927_failure_causes_not_reused": true,
+    "contact_native_CI": "ABSENT",
+    "seal": {
+      "path": "artifacts/development-contact-20261004-01/ci93d5-evidence-01/MANIFEST.json",
+      "size_bytes": 9787,
+      "sha256": "effe1e89df2fe02ebb36cbb951da678683dde1bbb532e341e51e2f785e523c73"
+    },
+    "terminal_delta": {
+      "path": "artifacts/development-contact-20261004-01/ci93d5-delta-01/OBSERVATION.json",
+      "size_bytes": 8842,
+      "sha256": "91a27f043eef38e007b34b28c90a4f6f33d5ddae3214a062d7a0c624ab35db21"
+    }
+  },
+  "engineering_decision": "NOT_RELEASED",
+  "blocking_engineering_UNKNOWNs": 10,
+  "whole52_and_phases5_7": "ACTIVE",
+  "next": [
+    "P2.4 pinned fixture fastener/contact/interface coupling in existing serial roadmap",
+    "explicit bounded performance follow-up: retain complete integrity checks while reducing repeated file-request validation",
+    "remaining Phase6/7 and deferred numerical/CI gates"
+  ],
+  "remote_raw_retention": "UNKNOWN"
+}

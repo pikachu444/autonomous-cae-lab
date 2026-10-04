@@ -1,4 +1,23 @@
-## Current checkpoint: P5.3 complete contact-field source verified; browser next
+## Current checkpoint: P5.3 same-record complete contact-field browser verified
+
+Evidence: `benchmarks/records/20261004-contact-field-human-r01-qualified.json`.
+Viewer93d5efec reads scientifica927: original313/13/1060 and uniform1154/25/4240
+native nodal/contact/Gauss fields; actual point selections/final rows/MED download
+PASS bounded. Independent review closes0openP1/P2; original label-assumption FAIL
+is retained. New108/prior161 scientific files unchanged; no new solve/provider.
+Source UI283/server60 PASS. Exact93d5 CI37166716411 at01:38:53UTC completes
+7SUCCESS/3FAIL: OpenRadioss404, vector-PDE classification and AsterFz check fail;
+detailed new PDE/Aster metrics UNKNOWN. Contact-native CI absent. Core3933PASS/
+5SKIP; viewer stays RUNNING/read-only, Stop/process absence is not claimed.
+Slow file loading performance follow-up OPEN; no integrity/threshold relaxation.
+NEXT P2.4 pinned-fixture coupling, then remainingPhase6/7/deferred gates.
+Ten engineering UNKNOWNs/NOT_RELEASED and full52ACTIVE remain. Actual in-flight
+race/busy cancel/native desktop MED/remote raw remain unverified. Older checkpoints
+below retain their original scope and limits; a docs commit is not a new solve.
+
+---
+
+## Historical checkpoint: P5.3 complete contact-field source verified; browser next
 
 Record: `benchmarks/records/20261004-contact-field-source-r01.json`; source is
 this commit, parent44de21f. Scientific records still belong to clean producera927.
