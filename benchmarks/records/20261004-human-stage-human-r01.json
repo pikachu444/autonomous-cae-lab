@@ -1,0 +1,267 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-04T10:09:30.489992+00:00",
+  "status": "PASS_BOUNDED_TRUTHFUL_STORED_STAGE_WITNESS_WHOLE_USABILITY_OPEN",
+  "ui_source_commit": "e2337b49f58f3d8e1db48c99eb1f7cbfb23c7f71",
+  "original_CAD_record": {
+    "experiment_id": "E-assembly-default",
+    "status": "COMPLETED_REVIEW_REQUIRED",
+    "solver_status": "NOT_RUN",
+    "decision": "NOT_RELEASED",
+    "cad_revision": "8d1071134a2bcd7d42a9320b431754591909476747f35e96fbbb4113c6e09ef2"
+  },
+  "original_recorded_provenance": {
+    "core_commit": "f8f60eb335fb829a8ddc5d0ca1c2506788baae44",
+    "core_dirty": false,
+    "source_commit": "UNKNOWN",
+    "source_dirty": null
+  },
+  "runtime": {
+    "python": "3.12.3 observed in new server log",
+    "server": "http://127.0.0.1:8777",
+    "new_store": "runs/result-human-stage-20261004-01",
+    "library": "runs/fixture-assembly-native-20261004-01",
+    "local_native_solver_provider_operations_submitted": 0,
+    "jobs": 0,
+    "writable_files": 0
+  },
+  "witness": {
+    "model": "Stored original surface preview,80/10mm, reported15 parts,50PASS/11UNKNOWN; model ready/analysis not run and unavailable assembly analysis stated.",
+    "rejected": "Stored70/10mm record,13PASS/1FAIL/1UNKNOWN; downstream block, no usable metrics and no previous model preview.",
+    "list": "Default and both retained rejected rows have truthful stage captions.",
+    "scope": "These are stored-record observations, not new solver/scientific/whole user workflow acceptance."
+  },
+  "integrity": {
+    "original_files": 218,
+    "original_size_bytes": 5982714,
+    "Root_all_original_bytes_unchanged": true,
+    "served_source_files_exact": 5,
+    "independent_small_selected_inputs": 23,
+    "independent_original_full_rehash": false
+  },
+  "independent_review": {
+    "root": "artifacts/development-result-presentation-20261004-01/human-stage-human-review-01",
+    "receipt": {
+      "sha256": "ba9452c666953ab31d654c38568032d5a2a08f88b237607fc43c86f5abaf7ff5",
+      "size_bytes": 2040
+    },
+    "verdict": "PASS_BOUNDED_TRUTHFUL_STAGE_WITNESS",
+    "new_caption_integrity_open_P1": 0,
+    "new_caption_integrity_open_P2": 0
+  },
+  "evidence": {
+    "root": "artifacts/development-result-presentation-20261004-01/human-stage-human-01",
+    "files": {
+      "intention.json": {
+        "sha256": "d65ea02d3ee60f0383f7eb115223dbf8a5677b52b6af8c0cd740f93bb42265a5",
+        "size_bytes": 540
+      },
+      "source-before.json": {
+        "sha256": "40dfc95955e6be02f1db91726baeb0bc0b339db36c0e8fbbd719bbd7a890c4bd",
+        "size_bytes": 740
+      },
+      "served-source.json": {
+        "sha256": "11c82996feb9c66290ec68978d50c1c9114f72f477607334d9a5e5ff2f642409",
+        "size_bytes": 1160
+      },
+      "model-ready.dom.txt": {
+        "sha256": "d88779bfc0ca432b18bdd75cf5fe4027d815aca483b3678a2c1000da89d097f7",
+        "size_bytes": 6218
+      },
+      "list.dom.txt": {
+        "sha256": "3606c7f15de2ba65cb3830fdab138a32698261149f003ea2649d6d51ab76c3d9",
+        "size_bytes": 7141
+      },
+      "rejected.dom.txt": {
+        "sha256": "931acb0c19b1b843bb80ada6951950876c48f513533eb1cec3df450431df7bbb",
+        "size_bytes": 4343
+      },
+      "model-primary.jpg": {
+        "sha256": "14acf5c6d0b7a1210b16cdbfa79d20bf39d4e2b6e9170f39d618890f833d9e93",
+        "size_bytes": 76596
+      },
+      "list.jpg": {
+        "sha256": "b6cc8485849cb8d041c824a8609657e17ef8ddfc3d520f502b56491e487877ef",
+        "size_bytes": 108296
+      },
+      "rejected.jpg": {
+        "sha256": "51130e931cad18aff284a75c7d7c9ac6dc2ac5fae338f41d5135089ff1e200c8",
+        "size_bytes": 120735
+      },
+      "root-guards.json": {
+        "sha256": "71389dae148a7d3e441710c520153d66dcf9c9fed5fcf42f0925859e42ada6e5",
+        "size_bytes": 551
+      },
+      "capture-manifest.json": {
+        "sha256": "eb411e5ca9e3814138909b7ea2f3acc25013a4d457e828ec3239225345090aaa",
+        "size_bytes": 2750
+      },
+      "server-observation.log": {
+        "sha256": "bc7153a658510f091dc9925c6efa4608ef1faccd7becbbf820abf0cd170b9b2a",
+        "size_bytes": 2627
+      },
+      "console-observation.json": {
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "size_bytes": 3
+      },
+      "collector-route-failure.json": {
+        "sha256": "7e034ce00f77630f4cc2c929c8c04374a6059f0a0485f3753e9d9175866935a1",
+        "size_bytes": 581
+      },
+      "browser-wait-failure.json": {
+        "sha256": "e07807b56cb0d4e1c7e39430bd97ba54a32a43babe893df2b321567465f0eb17",
+        "size_bytes": 292
+      }
+    },
+    "retention": "LOCAL_ONLY ignored artifacts; this compact record is remotely published. Mutable LIVE server.log excluded from sealed capture map; finite observation copy retained."
+  },
+  "CI_observations": {
+    "ci-parent-26eed92-observed-01.json": {
+      "file": {
+        "sha256": "43fe44f8f43272a4cfa312a619a5cc00534dfedfe5d704bed39db9b8989624ac",
+        "size_bytes": 1226
+      },
+      "observed": {
+        "conclusion": "cancelled",
+        "jobs": [
+          {
+            "conclusion": "success",
+            "name": "research-driver-source",
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "core",
+            "status": "completed"
+          },
+          {
+            "conclusion": "cancelled",
+            "name": "optimization",
+            "status": "completed"
+          },
+          {
+            "conclusion": "cancelled",
+            "name": "native-registration",
+            "status": "completed"
+          },
+          {
+            "conclusion": "cancelled",
+            "name": "native",
+            "status": "completed"
+          },
+          {
+            "conclusion": "cancelled",
+            "name": "structural",
+            "status": "completed"
+          },
+          {
+            "conclusion": "cancelled",
+            "name": "doe",
+            "status": "completed"
+          },
+          {
+            "conclusion": "failure",
+            "name": "explicit",
+            "status": "completed"
+          },
+          {
+            "conclusion": "cancelled",
+            "name": "pde",
+            "status": "completed"
+          },
+          {
+            "conclusion": "cancelled",
+            "name": "codeaster",
+            "status": "completed"
+          }
+        ],
+        "source": "26eed92afece3ae7ad321af9b534990bfd66613b",
+        "status": "completed",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37192279119"
+      }
+    },
+    "ci-ui-e2337b4-observed-01.json": {
+      "file": {
+        "sha256": "f19a23c5e795883e78358079b92490f872b3284fabf5e511ac7bea8d3f6badd7",
+        "size_bytes": 1170
+      },
+      "observed": {
+        "conclusion": "",
+        "jobs": [
+          {
+            "conclusion": "success",
+            "name": "research-driver-source",
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "core",
+            "status": "completed"
+          },
+          {
+            "conclusion": "",
+            "name": "native",
+            "status": "in_progress"
+          },
+          {
+            "conclusion": "",
+            "name": "optimization",
+            "status": "in_progress"
+          },
+          {
+            "conclusion": "",
+            "name": "codeaster",
+            "status": "in_progress"
+          },
+          {
+            "conclusion": "",
+            "name": "doe",
+            "status": "in_progress"
+          },
+          {
+            "conclusion": "",
+            "name": "structural",
+            "status": "in_progress"
+          },
+          {
+            "conclusion": "failure",
+            "name": "explicit",
+            "status": "completed"
+          },
+          {
+            "conclusion": "",
+            "name": "native-registration",
+            "status": "in_progress"
+          },
+          {
+            "conclusion": "",
+            "name": "pde",
+            "status": "in_progress"
+          }
+        ],
+        "source": "e2337b49f58f3d8e1db48c99eb1f7cbfb23c7f71",
+        "status": "in_progress",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37193102654"
+      }
+    }
+  },
+  "CI_limit": "Exact UIe233 core/source-driver SUCCESS; explicit FAILURE and seven other native jobs active at observation. Whole CI has not passed; cause of explicit failure not newly examined here. Parent26 overall CANCELLED with core/source-driver SUCCESS and explicit FAILURE. Source868 earlier failure preserved.",
+  "retained_failures": [
+    "Root collector initially used undeclared /app.js route and got404; old collector source retained, declared/static route comparison passed.",
+    "Returning to an already witnessed model hit browser selector deadline during asynchronous surface loading; not a native/solver failure. Early model.dom loading is not a ready witness."
+  ],
+  "OPEN_product_work": [
+    "specimen_overhang still displays fallback 확인 항목1; specific human failure explanation and condition-change acceptance are NOT_QUALIFIED.",
+    "Question-to-official OpenScience handoff and original assembly public analysis/conditions/campaign admission remain open.",
+    "Same-record question/conditions/actual solve/result/change/compare whole workflow NOT_RUN."
+  ],
+  "not_qualified_by_this_gate": [
+    "Live nested completed-job rejection",
+    "New camera/face/cancellation/HTML report witness",
+    "New CAD/meshing/mechanics, numerical convergence, strength or release"
+  ],
+  "overall_52_requirement_acceptance": "OPEN; existing completed ledger entries retained",
+  "whole_service": "OPEN",
+  "decision": "NOT_RELEASED",
+  "next": "Make declared blocking rules understandable and close connected research/analysis/condition-change gaps; retained original assembly mechanics still needs component-aware native import/full fields."
+}

@@ -1,4 +1,22 @@
-## Current checkpoint: truthful stage captions integrated; human view next
+## Current checkpoint: actual stage views verified; product workflow open
+
+Record: `benchmarks/records/20261004-human-stage-human-r01.json`.
+Clean UIe233 actual stored-model/list/rejected pixels and DOM independently
+match ready/no-analysis and downstream rejection.80/10mm model,70/10mm rejection;
+all218 original files/5,982,714B unchanged, new store/jobs empty. Five served
+source files match. This is bounded stage evidence, not whole usability.
+OPEN: fallback blocking name `specimen_overhang`/specific cause and condition
+change, official question handoff, assembly analysis/campaign and full workflow.
+Exacte233 CI core/source-driver SUCCESS; explicit FAILURE, seven native jobs
+active at observation. Parent26 overall CANCELLED. Whole CI has not passed.
+Root collector route and browser wait failures retained; no new solver proof.
+NEXT: understandable blocking rules and connected human research/analysis/
+change/compare; component-aware import/mechanics still required for assembly.
+Overall52 and service remain OPEN; UNKNOWN/NOT_RELEASED unchanged.
+
+---
+
+## Historical checkpoint: truthful stage captions integrated; human view next
 
 Record: `benchmarks/records/20261004-human-stage-source-r01.json`.
 List/detail/job captions distinguish model-ready/no-analysis, actual failure,
