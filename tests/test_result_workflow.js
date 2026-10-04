@@ -8,6 +8,7 @@ const { readFileSync } = require("node:fs");
 const vm = require("node:vm");
 const presentation = require("../apps/lab/static/result-presentation.js");
 const cadControls = require("../apps/lab/static/cad-controls.js");
+const researchControls = require("../apps/lab/static/research-controls.js");
 const appSource = readFileSync(require.resolve("../apps/lab/static/app.js"), "utf8");
 const htmlSource = readFileSync(require.resolve("../apps/lab/static/index.html"), "utf8");
 const bootBoundary = '$(' + '"jobCancelBtn").addEventListener("click", async () => {';
@@ -76,9 +77,9 @@ function harness({ writable = true, callable = true, selectedPreset = "linear" }
       if (!selector.startsWith("[data-operation=")) return null;
       if (!selectors.has(selector)) selectors.set(selector, new TinyNode("button")); return selectors.get(selector);
     } };
-  const sandbox = { document, Node: TinyNode, window: { cadControls,
+  const sandbox = { document, Node: TinyNode, window: { cadControls, researchControls,
     resultPresentation: { ...presentation, workflow: (value, context) => { calls.push({ value, context }); return presentation.workflow(value, context); } } },
-    location: { hash: "#results" }, URLSearchParams, Intl, console,
+    location: { hash: "#results" }, TextEncoder, URL, URLSearchParams, Intl, console,
     fetch: () => { prohibited.http++; throw new Error("HTTP is forbidden in the display gate"); },
     setTimeout: () => { prohibited.timers++; throw new Error("Application timers are forbidden in the display gate"); }, clearTimeout: () => {} };
   vm.createContext(sandbox);

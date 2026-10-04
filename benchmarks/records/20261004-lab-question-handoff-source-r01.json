@@ -1,0 +1,401 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-04T11:51:05.121272+00:00",
+  "status": "SOURCE_REVIEWED_ACTUAL_USER_FLOW_NOT_RUN",
+  "integration_parent": "4a612490d5dad6d3ec667913aa6f5c89a2327174",
+  "source_identity": "Containing source commit plus exact final files; no solver verification from later documentation commits.",
+  "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "files": [
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "sha256": "b8f61c181b44d19c8bd60bff7616804bc10b03755eadbdc6d96019838b91a3ab",
+      "size_bytes": 25207
+    },
+    {
+      "path": "ADR/0033-lab-question-handoff.md",
+      "sha256": "3a4105061afada3ce14be01163269642563826f246b377e1dfc79bbeeae7ae38",
+      "size_bytes": 4334
+    },
+    {
+      "path": "apps/lab/CONTRACT.md",
+      "sha256": "9065076e9360034707cf2b19636a9a560a7aa4c3c9086e6ac89004d8b9e0c064",
+      "size_bytes": 15135
+    },
+    {
+      "path": "apps/lab/research.py",
+      "sha256": "2a333a08bfa5f53e36e801a47e229d75630a55075ae2d43c5e284a8523091d8f",
+      "size_bytes": 22279
+    },
+    {
+      "path": "apps/lab/server.py",
+      "sha256": "5b189a0e519445300e3bec41f31c60baa1fc28585696b07a35c30977911bd73e",
+      "size_bytes": 13222
+    },
+    {
+      "path": "apps/lab/service.py",
+      "sha256": "003c46507332a72cbc33aee398ef24f95859063e8628747c202483a93f13cde1",
+      "size_bytes": 45552
+    },
+    {
+      "path": "apps/lab/static/index.html",
+      "sha256": "adccac96c152ba0cfcfd64b7952fe4c0ea85495a3122b0c5ea195bbde66c814e",
+      "size_bytes": 31828
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "sha256": "0b18fc69069dd07fc1613a995c06b59e7ae598fd24021bb922a9d6fd6d774fa5",
+      "size_bytes": 120005
+    },
+    {
+      "path": "apps/lab/static/style.css",
+      "sha256": "9dbd586592d6bb9fe615e73fa52bafd52ba6487a827a658973b1a9e09e30eff7",
+      "size_bytes": 26427
+    },
+    {
+      "path": "apps/lab/static/research-controls.js",
+      "sha256": "de3295272ed388d1ce594a36c51a51573fd2cfdbdd2dbc99ac1c9e06b28ffd03",
+      "size_bytes": 11504
+    },
+    {
+      "path": "openscience/contract.md",
+      "sha256": "ffcf222956fad936900fdadbffa4b7d58a1b6076d4f8d1fa646f38ab5bceb1c8",
+      "size_bytes": 85360
+    },
+    {
+      "path": "openscience/jobs.py",
+      "sha256": "9e038ad7a66d9211da9ab007fdf681bcd58ce16fbd78abdf518084ac1ac978fd",
+      "size_bytes": 4846
+    },
+    {
+      "path": "openscience/mcp_server.py",
+      "sha256": "566cbd0f0ef35d2b0ca8ebe53255fe81df275332a8cbc484a24f4d02ac839487",
+      "size_bytes": 19175
+    },
+    {
+      "path": "scripts/lab-openscience.ps1",
+      "sha256": "b4f618e54eca95c5c7a7fa2d5a597a17d6239b811fac2e23d5b6101d1a584742",
+      "size_bytes": 25791
+    },
+    {
+      "path": "scripts/openscience-local.ps1",
+      "sha256": "d09e7e74b2c43e6c7f2dd03c5767a280c7a583547620a8146f0a537dd77cb7a9",
+      "size_bytes": 39431
+    },
+    {
+      "path": "scripts/openscience-server-local.ps1",
+      "sha256": "982e9f7b48cc5624095a02c064ab1cef241767791e2dbeea83b5bea96976f20b",
+      "size_bytes": 145242
+    },
+    {
+      "path": "scripts/verify_lab_research.ps1",
+      "sha256": "439088d76d699d151c309f4c4b4e1d35e6e67746296b8f9693498646d787fe3d",
+      "size_bytes": 28549
+    },
+    {
+      "path": "scripts/verify_openscience_live.ps1",
+      "sha256": "f5787e7d05055f1445e30d2b21e25bda3c180d1111f23900c45eb6347b1e969d",
+      "size_bytes": 85591
+    },
+    {
+      "path": "tests/test_lab_research.py",
+      "sha256": "a55da5494e2d0925e6dc155392c4b260b10a1f88d92441ffc20aba4618f02d97",
+      "size_bytes": 25010
+    },
+    {
+      "path": "tests/test_lab_research_service.py",
+      "sha256": "7d68606b6f51e886beec6a51ce8559bef1fb9762452165ed3a52b152e155d2c3",
+      "size_bytes": 6446
+    },
+    {
+      "path": "tests/test_openscience_jobs.py",
+      "sha256": "efc806f3a0cc0e98d9bdeb9980d9d1bd0972b76efde5092eebb4bb36da422a3e",
+      "size_bytes": 14363
+    },
+    {
+      "path": "tests/test_research_handoff.js",
+      "sha256": "e3aa54fbb3e99c694096b9b0939e395749f71420beaf6be7fedf14861ef325de",
+      "size_bytes": 30670
+    },
+    {
+      "path": "tests/test_result_workflow.js",
+      "sha256": "4a5b0a9a7e9578853903bed5b24e78beffe21c5b87128b307275f8e66e467da6",
+      "size_bytes": 19820
+    }
+  ],
+  "change": "Natural user question to existing official OpenScience, actual retained response/tools, same Core store, verified follow-up session and owned cleanup.",
+  "architecture": "Lab transport only; unchanged Core numerical operations, canonical research descriptors, Domain/adapter ownership, numerical engine and engineering verdicts.",
+  "approved_model": "openai-codex/gpt-5.6-sol",
+  "root_source_gates": [
+    {
+      "evidence": "artifacts/development-human-workflow-20261004-01/root-service-tests-01.xml",
+      "tests": 72,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 73.39
+    },
+    {
+      "evidence": "artifacts/development-human-workflow-20261004-01/root-resident-tests-01.xml",
+      "tests": 40,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 31.449
+    },
+    {
+      "evidence": "artifacts/development-human-workflow-20261004-01/root-progress-final-01.xml",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 6.096
+    },
+    {
+      "evidence": "artifacts/development-human-workflow-20261004-01/root-bridge-final-01.xml",
+      "tests": 47,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 2.358
+    }
+  ],
+  "existing_UI_regression": {
+    "before_harness_correction": {
+      "tests": 308,
+      "pass": 300,
+      "fail": 8,
+      "evidence": "artifacts/development-human-workflow-20261004-01/root-existing-ui-01.tap"
+    },
+    "cause": "Old VM omitted the new real research-controls module loaded by the actual index; assertions unchanged.",
+    "after_targeted_harness_correction": {
+      "evidence": "artifacts/development-human-workflow-20261004-01/root-ui-harness-correction-01.xml",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "testcase_seconds": 0.066705
+    },
+    "final_existing_and_new_UI": {
+      "TAP": {
+        "tests": 332,
+        "pass": 332,
+        "fail": 0,
+        "skip": 0,
+        "evidence": "artifacts/development-human-workflow-20261004-01/root-ui-final-01.tap"
+      },
+      "XML_leaf_cases": {
+        "evidence": "artifacts/development-human-workflow-20261004-01/root-ui-final-01.xml",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "seconds": 0.004976
+      },
+      "reporter_count_limit": "Node TAP includes 14 nested test containers; XML counts 318 leaf cases."
+    }
+  },
+  "bridge_gate": {
+    "initial": {
+      "python": 35,
+      "PowerShell": 52
+    },
+    "all_terminal_resident_correction": {
+      "python": 3,
+      "PowerShell": 30
+    },
+    "receipts": [
+      "artifacts/development-human-workflow-20261004-01/bridge-source-01/RECEIPT.json",
+      "artifacts/development-human-workflow-20261004-01/bridge-source-02/RECEIPT.json"
+    ],
+    "independent_review_correction": {
+      "python": {
+        "failures": 0,
+        "stderr": "python-02.stderr.txt",
+        "tests": 21,
+        "stdout": "python-02.stdout.txt",
+        "skipped": 0,
+        "command": "python-02.command.json",
+        "errors": 0,
+        "seconds": 1.787,
+        "junit": "python-02.junit.xml",
+        "exit_code": 0,
+        "coverage": "10 new correction cases plus 7 existing owner drift and 4 existing project/source/descriptor/dead-owner controls",
+        "deselected": 26
+      },
+      "powershell_prior_helper": {
+        "receipt": "powershell-02.receipt.json",
+        "stderr": "powershell-02.stderr.txt",
+        "stdout": "powershell-02.stdout.txt",
+        "controlled_noReply_resource_reads": 10,
+        "command": "powershell-02.command.json",
+        "controlled_inference_starts": 5,
+        "checks": 63,
+        "exit_code": 0,
+        "selection": "BOUNDED_INDEPENDENT_REVIEW_CORRECTION"
+      },
+      "final_helper_supplement": {
+        "receipt": "artifacts/development-human-workflow-20261004-01/bridge-source-02/helper-final-01/RECEIPT.json",
+        "sha256": "ce3b978bcc03982e8d86676b851100ab77f318a177cbe4fd4508e05fbb809951",
+        "result": {
+          "status": "PASS_CONTROLLED_SOURCE_ONLY_FROZEN_BRIDGE_FINAL_SHARED_HELPER",
+          "checks": 63,
+          "provenance": "SYNTHETIC_NOT_NATIVE",
+          "actual_provider_auth_solver_GUI_Git_install_calls": 0,
+          "Root_shared_helper_pins": {
+            "scripts/verify_openscience_live.ps1": "f5787e7d05055f1445e30d2b21e25bda3c180d1111f23900c45eb6347b1e969d",
+            "scripts/openscience-local.ps1": "d09e7e74b2c43e6c7f2dd03c5767a280c7a583547620a8146f0a537dd77cb7a9"
+          },
+          "source": [
+            {
+              "size_bytes": 22279,
+              "sha256": "2a333a08bfa5f53e36e801a47e229d75630a55075ae2d43c5e284a8523091d8f",
+              "path": "apps/lab/research.py"
+            },
+            {
+              "size_bytes": 25791,
+              "sha256": "b4f618e54eca95c5c7a7fa2d5a597a17d6239b811fac2e23d5b6101d1a584742",
+              "path": "scripts/lab-openscience.ps1"
+            },
+            {
+              "size_bytes": 25010,
+              "sha256": "a55da5494e2d0925e6dc155392c4b260b10a1f88d92441ffc20aba4618f02d97",
+              "path": "tests/test_lab_research.py"
+            },
+            {
+              "size_bytes": 28549,
+              "sha256": "439088d76d699d151c309f4c4b4e1d35e6e67746296b8f9693498646d787fe3d",
+              "path": "scripts/verify_lab_research.ps1"
+            }
+          ],
+          "exit_code": 0,
+          "selection": "BOUNDED_INDEPENDENT_REVIEW_CORRECTION"
+        }
+      }
+    }
+  },
+  "UI_gate": {
+    "baseline_progress_gate": {
+      "pass": 23,
+      "fail": 0,
+      "skip": 0
+    },
+    "actual_tool_prefix_targeted": {
+      "pass": 1,
+      "fail": 0,
+      "skip": 0
+    },
+    "receipts": [
+      "artifacts/development-human-workflow-20261004-01/ui-source-02/RECEIPT.json",
+      "artifacts/development-human-workflow-20261004-01/ui-source-03/RECEIPT.json"
+    ]
+  },
+  "historical_launcher": {
+    "checks": 84,
+    "fail": 0,
+    "scope": "Controlled existing launcher/default guards, short forced stdin and user cancellation; no provider/native execution.",
+    "evidence": "artifacts/lab-research-source-20261004b/launcher-checks/checks.json",
+    "source_binding_limit": "Historical source before final question/option correction; no contemporaneous full pre-run SHA manifest was recorded."
+  },
+  "launcher_final": {
+    "checks": 88,
+    "fail": 0,
+    "scope": "Existing controlled launcher suite plus literal option-name questions; no provider/native execution.",
+    "evidence": "artifacts/lab-research-source-20261004d/launcher-checks/checks.json",
+    "pre_run_source": {
+      "observed_utc": "2026-10-04T11:41:42.0217238Z",
+      "run_name": "lab-research-source-20261004d",
+      "scope": "CONTROLS_ONLY_NO_PROVIDER_NATIVE",
+      "files": [
+        {
+          "path": "scripts/openscience-local.ps1",
+          "sha256": "d09e7e74b2c43e6c7f2dd03c5767a280c7a583547620a8146f0a537dd77cb7a9"
+        },
+        {
+          "path": "scripts/openscience-server-local.ps1",
+          "sha256": "982e9f7b48cc5624095a02c064ab1cef241767791e2dbeea83b5bea96976f20b"
+        },
+        {
+          "path": "scripts/verify_openscience_live.ps1",
+          "sha256": "f5787e7d05055f1445e30d2b21e25bda3c180d1111f23900c45eb6347b1e969d"
+        }
+      ]
+    }
+  },
+  "retained_failures": [
+    "Initial launcher normal guard-restoration grouping failure and exact three failed-source copies in launcher-failed-source-01.",
+    "Eight existing VM dependency failures retained separately from their targeted correction.",
+    "Independent review found five exceptional/deferred cleanup, API privacy and option-name question paths; close only against corrected-source evidence.",
+    "Launcher c retained a preflight-throw regression in existing oversized multiple-prompts refusal; restored its existing transport failure result in final d."
+  ],
+  "previous_exact_source_CI": {
+    "source": "e2337b49f58f3d8e1db48c99eb1f7cbfb23c7f71",
+    "status": "completed",
+    "conclusion": "failure",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37193102654",
+    "jobs": [
+      {
+        "name": "research-driver-source",
+        "conclusion": "success"
+      },
+      {
+        "name": "core",
+        "conclusion": "success"
+      },
+      {
+        "name": "native",
+        "conclusion": "success"
+      },
+      {
+        "name": "optimization",
+        "conclusion": "success"
+      },
+      {
+        "name": "codeaster",
+        "conclusion": "failure"
+      },
+      {
+        "name": "doe",
+        "conclusion": "success"
+      },
+      {
+        "name": "structural",
+        "conclusion": "success"
+      },
+      {
+        "name": "explicit",
+        "conclusion": "failure"
+      },
+      {
+        "name": "native-registration",
+        "conclusion": "success"
+      },
+      {
+        "name": "pde",
+        "conclusion": "failure"
+      }
+    ]
+  },
+  "exact_containing_source_CI": "NOT_RUN until publication; verify this exact commit independently.",
+  "actual_question_followup_cancel": "NOT_RUN; next new shared store/owned runtime and real browser gate.",
+  "native_force_stop": "UNQUALIFIED; resident observation waits for underlying work, it does not force-stop a solver.",
+  "whole52": "OPEN",
+  "whole_service": "OPEN",
+  "original_assembly_mechanics": "OPEN",
+  "Phase6_7": "OPEN",
+  "engineering": "UNKNOWN requirements stay UNKNOWN; NOT_RELEASED",
+  "retention": "Public compact record and code; raw local evidence, sessions and outputs in new ignored paths, no credentials published.",
+  "independent_review": {
+    "path": "artifacts/development-human-workflow-20261004-01/source-review-01/RECEIPT.json",
+    "sha256": "84226035011e5bf7c45d5851d4f951654cf8a0984d4a134ba787ee819e291212",
+    "open_P1": 0,
+    "open_P2": 0,
+    "closed_P2": 5,
+    "closed_paths": [
+      "Latch actual command start; missing/invalid same-owner/request completion remains CLEANUP_PENDING on the exact Popen until resident IDLE evidence.",
+      "Post-Popen observer errors retain ownership and observations; failed cancel-marker write cannot invent CANCELLED or abandon a later verified completion.",
+      "Original launcher failure and guard_restore_failure preserved; failures take priority over CANCELLED; deferred owned cleanup restores the existing default Research guard only after frozen owner/source and owned final checks.",
+      "Pre-start errors raise a generic Korean ValueError; detailed private diagnostics omit credential values.",
+      "Option-like final questions remain data; fixed option-prefix guards unchanged."
+    ]
+  }
+}

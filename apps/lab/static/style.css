@@ -20,3 +20,16 @@ label,.field-label{display:block;font-size:11px;font-weight:600;color:#455b66;ma
 @media(max-width:1120px){.result-overview{grid-template-columns:minmax(0,1fr) 230px;gap:16px}.result-visual .preview-canvas,.surface-loading{height:360px;min-height:360px}.result-header{grid-template-columns:1fr}.result-header>.button-row{grid-column:1;grid-row:auto}.result-facts{font-size:13px}}
 @media(max-width:820px){.result-overview{grid-template-columns:1fr}.result-side{grid-template-columns:1fr 1fr}.result-header>h2{font-size:24px}.result-visual .preview-canvas,.surface-loading{height:380px;min-height:380px}}
 @media(max-width:480px){.result-side,.pending-checks{grid-template-columns:1fr}.result-visual .preview-canvas,.surface-loading{height:290px;min-height:290px}.surface-controls{flex-wrap:wrap}.result-metric-value{font-size:18px}}
+
+/* Question handoff uses the existing cards and single-job controls. */
+.research-question-columns{align-items:start;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}
+.research-connection{margin:14px 0;padding:14px 16px;background:#f3f5f7;border-radius:10px;line-height:1.65}
+.research-connection strong{display:block;margin-bottom:4px}.research-connection p{margin:0}
+.research-scope ul{padding-left:20px;margin:8px 0 14px}.research-scope li{line-height:1.65;margin-bottom:6px}
+.research-question-card textarea{font:inherit;line-height:1.7}.research-question-card .check-line{display:flex;align-items:center;gap:9px;margin-top:12px}.research-question-card .check-line input{width:auto;margin:0}
+.research-records{margin:26px 0}.research-records>.hint{margin:12px 0 18px}
+.research-answer{border-top:1px solid #dfe4e8;padding-top:20px;margin-top:20px}.research-answer:first-child{border-top:0;padding-top:0}
+.research-answer-heading{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.research-question-text,.research-answer-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.85;font:inherit}.research-answer-text{padding:16px 18px;background:#f7f8fa;border-radius:10px}
+.research-answer .raw-detail{margin-top:16px}.research-answer small{display:block;color:#606d7a}.research-answer .button-row{flex-wrap:wrap}
+@media(max-width:1120px){.research-question-columns{grid-template-columns:1fr}.research-answer-text{max-height:70vh;overflow:auto}}

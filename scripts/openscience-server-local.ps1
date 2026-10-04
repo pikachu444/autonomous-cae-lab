@@ -769,7 +769,8 @@ function Set-OpenScienceExpectedTools {
 
 function Invoke-OpenScienceSessionAbort {
     [CmdletBinding()]
-    param([Parameter(Mandatory)]$Context, [Parameter(Mandatory)][ValidatePattern('^[A-Za-z0-9_-]+$')][string]$SessionId)
+    param([Parameter(Mandatory)]$Context, [Parameter(Mandatory)][ValidatePattern('^[A-Za-z0-9_-]+$')][string]$SessionId,
+        [ValidateSet('runner_timeout','user_cancel')][string]$Source='runner_timeout')
     # MCP/provider availability must never prevent cancelling an owned session.
     $current = Get-OpenScienceLocalRuntime -OwnerPath $Context.OwnerPath -LifecycleOnly
     Assert-OpenScienceCondition ($Context.RuntimeURL -eq $current.RuntimeURL) 'Abort context is not the current owned runtime.'
@@ -777,11 +778,11 @@ function Invoke-OpenScienceSessionAbort {
     Assert-OpenScienceContainedPath $directory $Context.ProfileRoot | Out-Null
     New-Item -ItemType Directory -Path $directory -ErrorAction Stop | Out-Null
     $uri = "$($current.RuntimeURL)/session/$SessionId/abort"
-    $request = [ordered]@{ method = 'POST'; uri = $uri; session_id = $SessionId; abort_source = 'runner_timeout'; requested_utc = [DateTime]::UtcNow.ToString('o') }
+    $request = [ordered]@{ method = 'POST'; uri = $uri; session_id = $SessionId; abort_source = $Source; requested_utc = [DateTime]::UtcNow.ToString('o') }
     Write-OpenScienceJson (Join-Path $directory 'request.json') $request -CreateNew
     try {
         $headers = Get-OpenScienceProjectHeaders $current
-        $headers['x-openscience-abort-source'] = 'runner_timeout'
+        $headers['x-openscience-abort-source'] = $Source
         $response = Invoke-OpenScienceHttp $uri -Method POST -Headers $headers -TimeoutSeconds 20
         [IO.File]::WriteAllText((Join-Path $directory 'response.txt'), [string]$response.Content, [Text.UTF8Encoding]::new($false))
         $receipt = [ordered]@{ session_id = $SessionId; method = 'POST'; uri = $uri; status_code = [int]$response.StatusCode

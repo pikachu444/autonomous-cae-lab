@@ -46,6 +46,28 @@ def _control_metadata() -> dict:
             "completion_is_numerical_pass": False}
 
 
+def execution_status() -> dict:
+    """Observe the existing resident writer without creating a Lab or store.
+
+    A busy synchronous lock cannot be mistaken for idle after an AI session
+    abort. This is process-resident evidence, not an inventory of OS processes.
+    """
+    store = str(Path(os.environ.get("CAELAB_STORE", str(Path(__file__).resolve().parents[1] / "runs"))).resolve())
+    base = {"scope": "PROCESS_RESIDENT", "store_root": store}
+    if not _lock.acquire(blocking=False):
+        return {**base, "state": "BUSY", "idle_confirmed": False}
+    try:
+        if _synchronous_depth:
+            return {**base, "state": "BUSY", "idle_confirmed": False}
+        if _resident is None:
+            return {**base, "state": "IDLE", "idle_confirmed": True}
+        if os.environ.get("CAELAB_STORE") != _bound_setting:
+            return {**base, "state": "UNKNOWN", "idle_confirmed": False}
+        return {**base, **_resident.execution_status()}
+    finally:
+        _lock.release()
+
+
 def start(operation: str, arguments: dict) -> dict:
     """Submit one allowlisted operation; preserve the service's admission gates."""
     from apps.lab.service import ServiceError

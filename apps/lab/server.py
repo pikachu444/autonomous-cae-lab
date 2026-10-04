@@ -179,6 +179,8 @@ class LabHandler(BaseHTTPRequestHandler):
             return self._json(200, service.overview())
         if path == "/api/presets":
             return self._json(200, service.presets())
+        if path == "/api/research":
+            return self._json(200, service.research_status())
         for prefix, operation in (("/api/studies/", service.study), ("/api/experiments/", service.experiment),
                                   ("/api/campaigns/", service.campaign), ("/api/jobs/", service.job)):
             if path.startswith(prefix):
@@ -214,7 +216,13 @@ def main(argv=None):
     parser.add_argument("--store", type=Path, required=True)
     parser.add_argument("--port", type=int, default=8766)
     parser.add_argument("--library", action="append", default=[], metavar="ID=PATH")
+    parser.add_argument("--openscience-owner", type=Path,
+                        help="Existing verified Research runtime ownership file; no model selection")
+    parser.add_argument("--openscience-powershell", type=Path,
+                        help="Trusted host PowerShell executable for the configured Research bridge")
     args = parser.parse_args(argv)
+    if args.openscience_powershell is not None and args.openscience_owner is None:
+        parser.error("--openscience-powershell requires --openscience-owner")
     libraries = {}
     for item in args.library:
         identifier, separator, path = item.partition("=")
@@ -223,7 +231,12 @@ def main(argv=None):
         libraries[identifier] = Path(path)
     if not 0 <= args.port <= 65535:
         parser.error("Port must be between 0 and 65535")
-    server = LabHTTPServer(LabService(args.store, libraries=libraries), args.port)
+    research = None
+    if args.openscience_owner is not None:
+        from .research import OpenScienceResearch
+        research = OpenScienceResearch(args.openscience_owner, args.store,
+                                       powershell=args.openscience_powershell)
+    server = LabHTTPServer(LabService(args.store, libraries=libraries, research=research), args.port)
     print(f"Autonomous CAE Lab: http://127.0.0.1:{server.server_port}", flush=True)
     try:
         server.serve_forever()

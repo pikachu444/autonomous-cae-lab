@@ -10,6 +10,8 @@ const state = {
   modelDiscovery: [], modelContext: "", modelRequest: 0,
   importedLevels: [], importedMeshError: null, importedRequest: 0, importedLoading: false,
   campaignSelections: new Map(), campaignSelectionKey: "", campaignDrafts: {}, campaignTarget: "cad", cadCampaignType: "doe",
+  researchStatus: null, researchStatusError: null, researchStatusRequest: 0, researchLoading: false,
+  researchHistory: new Map(), researchContexts: new Map(), researchSession: null,
 };
 const operationNames = {
   study_create: "연구 만들기", parameter_discover: "CAD 변수 발견", parameter_register: "연구 변수 등록",
@@ -20,6 +22,7 @@ const operationNames = {
   optimization_run: "수치 최적화 실행",
   model_parameters_discover: "모델 입력 발견·환경 확인", model_parameters_register: "모델 연구 변수 등록",
   model_optimization_plan: "해석 모델 최적화 계획 저장",
+  research_run: "AI 연구 질문",
 };
 const readOperations = new Set(["parameter_discover", "native_inspect", "model_parameters_discover"]);
 const labels = {
@@ -190,6 +193,127 @@ function parseField(id, kind) {
 }
 function numeric(id) { const value = Number($(id).value); if (!$(id).value.trim() || !Number.isFinite(value)) throw new Error("유한한 숫자를 입력하세요."); return value; }
 
+function researchContext() { return { local: activeStore() === "local", writable: writable(), busy: busy() }; }
+function confirmedResearchSession() {
+  if (activeJob(state.job)) return null;
+  const session = state.researchSession;
+  return session?.jobStatus === "COMPLETED" && window.researchControls.canContinue(session.result, state.researchStatus,
+    { ...researchContext(), resultStore: session.store, activeStore: activeStore() }) ? session.result.session_id : null;
+}
+function updateResearchControls() {
+  if (!$('researchRunBtn')) return;
+  const sessionId = confirmedResearchSession(), checked = $("researchContinue").checked;
+  $("researchContinue").disabled = busy() || !sessionId;
+  if (!sessionId) $("researchContinue").checked = false;
+  $("researchResetBtn").disabled = busy(); $("researchQuestion").disabled = busy();
+  let inputError = null;
+  try { window.researchControls.request($("researchQuestion").value, checked && sessionId ? sessionId : undefined); }
+  catch (error) { inputError = error.message; }
+  const runnable = !state.researchLoading && window.researchControls.canRun(state.researchStatus, researchContext());
+  $("researchRunBtn").disabled = !runnable || Boolean(inputError);
+  $("researchSessionState").textContent = sessionId
+    ? ($("researchContinue").checked ? "확인된 대화의 맥락을 이어 질문합니다." : "새 대화로 질문합니다. 이전 답변은 아래에 보존됩니다.")
+    : "새 대화로 질문합니다. 확인되지 않은 대화는 이어서 실행하지 않습니다.";
+  $("researchInputState").textContent = busy() ? "현재 작업의 종료를 확인한 뒤 질문할 수 있습니다."
+    : !writable() || activeStore() !== "local" ? "질문을 실행하려면 작업 저장소로 전환하세요."
+      : state.researchLoading ? "AI 연구 연결을 확인하고 있습니다."
+        : !runnable ? window.researchControls.statusView(state.researchStatus).reason : inputError ?? "질문만 입력하면 됩니다. 연구 ID·가설·목적을 먼저 작성할 필요는 없습니다.";
+}
+function renderResearchConnection() {
+  const view = window.researchControls.statusView(state.researchStatus), target = clear("researchConnection");
+  target.append(el("strong", view.ready ? view.modelLabel : "AI 연구 연결 대기"), el("p", view.reason));
+  if (view.workspaceUrl) target.append(link("연결된 OpenScience 열기 →", view.workspaceUrl));
+  const scope = clear("researchScope");
+  if (view.ready && view.scopes.length) {
+    scope.append(el("strong", "이 연결에서 지원하는 범위")); const items = el("ul");
+    view.scopes.forEach(item => items.append(el("li", `${item.label}: ${item.operations.join(" · ") || "지원 작업 확인 필요"}`)));
+    scope.append(items);
+  } else scope.append(el("p", "연결을 확인하면 실제 지원 범위가 나타납니다.", "hint"));
+  $("researchConnectionJson").textContent = pretty(state.researchStatusError ? { status: state.researchStatus, error: state.researchStatusError } : state.researchStatus);
+  updateResearchControls();
+}
+async function loadResearchStatus() {
+  const request = ++state.researchStatusRequest; state.researchLoading = true; updateResearchControls();
+  try {
+    const status = await api("/api/research");
+    if (request !== state.researchStatusRequest) return;
+    state.researchStatus = status; state.researchStatusError = null;
+  } catch (error) {
+    if (request !== state.researchStatusRequest) return;
+    state.researchStatus = { configured: false, available: false, state: "UNAVAILABLE", reason: "AI 연구 연결을 확인할 수 없습니다. 새로고침한 뒤 다시 확인하세요." };
+    state.researchStatusError = error.message;
+  } finally {
+    if (request === state.researchStatusRequest) { state.researchLoading = false; renderResearchConnection(); }
+  }
+}
+function retainResearchJob(job) {
+  if (job?.operation !== "research_run" || !job.result) return;
+  const context = state.researchContexts.get(job.id);
+  const store = typeof job.store_id === "string" ? job.store_id : null;
+  const view = window.researchControls.responseView(job.result, context ?? {});
+  state.researchHistory.set(job.id, { job, store, view, bound: Boolean(store && (!context || context.store === store)) });
+  if (context && job.id === state.job?.id) state.researchSession = { result: view.valid ? job.result : null, store, jobStatus: job.status };
+  renderResearchAnswers();
+}
+function renderResearchAnswers() {
+  const target = clear("researchAnswers"), records = [...state.researchHistory.values()].reverse();
+  const current = state.job;
+  const hasProgress = current?.operation === "research_run" && activeJob(current) && current.progress;
+  if (hasProgress) {
+    const view = window.researchControls.progressView(current.progress), workflow = window.researchControls.jobWorkflow(current);
+    const card = el("section", undefined, "research-answer"), heading = el("div", undefined, "research-answer-heading");
+    heading.append(badge(current.status, workflow.stage), badge(current.progress?.decision)); card.append(heading);
+    if (view.valid) {
+      const context = state.researchContexts.get(current.id);
+      if (typeof context?.question === "string") card.append(el("h3", "보낸 질문"), el("p", context.question, "research-question-text"));
+      card.append(el("h3", "수신 중인 실제 AI 답변"), el("div", view.answer || "아직 받은 답변이 없습니다. 반환된 도구 상태를 아래에서 확인하세요.", "research-answer-text"));
+      appendResearchTools(card, view.tools, current.store_id, Boolean(typeof current.store_id === "string" && (!context || context.store === current.store_id)), "아직 반환된 도구 기록이 없습니다.");
+      card.append(el("small", "실행 중인 부분 기록입니다. 최종 응답이 확인되기 전에는 대화를 이어 실행하지 않습니다. 각 실험의 미확인·실패 판정은 그대로 유지됩니다."));
+    } else card.append(el("p", view.reason, "metric-reason"));
+    card.append(rawDetail("현재 진행·작업 원본 기록", current)); target.append(card);
+  }
+  if (!records.length && !hasProgress) {
+    target.append(el("p", activeJob(state.job) && state.job?.operation === "research_run"
+      ? "AI 연구가 실행 중입니다. 실제 답변과 도구 기록이 반환되면 표시합니다."
+      : "질문을 보내면 실제 답변, 도구 상태와 연결된 실험이 여기에 나타납니다.", "empty-state")); return;
+  }
+  records.forEach(({ job, store, view, bound }) => {
+    const card = el("section", undefined, "research-answer"), workflow = window.researchControls.jobWorkflow(job);
+    const heading = el("div", undefined, "research-answer-heading"); heading.append(badge(job.status, workflow.stage), badge(job.result?.decision)); card.append(heading);
+    if (view.valid) {
+      card.append(el("h3", "보낸 질문"), el("p", view.question, "research-question-text"), el("h3", "실제 AI 답변"));
+      card.append(el("div", view.answer || "받은 답변이 없습니다. 아래의 작업 기록에서 실패·취소 근거를 확인하세요.", "research-answer-text"));
+      if (view.reason) card.append(el("p", view.reason, "metric-reason"));
+      appendResearchTools(card, view.tools, store, bound, "반환된 도구 실행 기록이 없습니다.");
+    } else card.append(el("p", view.reason, "metric-reason"));
+    card.append(el("small", "AI 응답은 수치 검증이나 공학적 사용 승인을 뜻하지 않습니다. 각 실험의 미확인·실패 판정은 그대로 유지됩니다."));
+    card.append(rawDetail("답변·도구·작업 원본 기록", job)); target.append(card);
+  });
+}
+function appendResearchTools(card, tools, store, bound, emptyMessage) {
+  if (!tools.length) { card.append(el("p", emptyMessage, "hint")); return; }
+  card.append(table(["실행한 도구", "실제 상태", "연결된 실험"], tools.map(item => {
+    if (!item) return ["도구 기록 확인 필요", badge("UNKNOWN"), "원본 기록에서 확인하세요."];
+    const name = el("span", item.label); name.title = item.raw.tool;
+    const resultLink = item.experimentId && bound && store === activeStore()
+      ? action("실험 결과 보기 →", async () => { await inspectExperiment(item.experimentId); showArea("results"); location.hash = "results"; })
+      : el("span", item.experimentId ? "원래 실험 저장소에서 확인하세요." : "연결된 실험 없음");
+    if (item.experimentId) { resultLink.dataset.experimentId = item.experimentId; resultLink.title = item.experimentId; }
+    return [name, badge(item.status, item.statusLabel), resultLink];
+  })));
+}
+async function submitResearchQuestion() {
+  if (state.researchLoading || !window.researchControls.canRun(state.researchStatus, researchContext())) throw new Error("AI 연구 연결과 작업 저장소 상태를 확인한 뒤 질문하세요.");
+  const session = confirmedResearchSession();
+  if ($("researchContinue").checked && !session) throw new Error("확인된 대화가 없습니다. 새 대화로 질문하세요.");
+  const args = window.researchControls.request($("researchQuestion").value, $("researchContinue").checked ? session : undefined);
+  await runJob("research_run", args, () => renderResearchAnswers());
+}
+function researchError(error) {
+  state.researchStatusError = error.message; $("researchConnectionJson").textContent = pretty({ status: state.researchStatus, error: error.message });
+  notify(window.researchControls.safeMessage(error.message, "AI 연구 요청을 완료하지 못했습니다. 연결 상태와 작업 기록을 확인하세요."));
+}
+
 function showArea(name) {
   const selected = ["research", "design", "simulation", "explore", "results"].includes(name) ? name : "research";
   document.querySelectorAll("[data-panel]").forEach((item) => { item.hidden = item.dataset.panel !== selected; });
@@ -226,6 +350,7 @@ function updateControls() {
   if (isModelCampaign() && !currentModelDiscovery()) $("campaignPlanBtn").disabled = true;
   $("compareBtn").disabled = state.comparison.size < 2;
   $("compareCount").textContent = `${state.comparison.size}개 선택 · 최대 12개`;
+  updateResearchControls();
 }
 
 function renderAnalysisParents() {
@@ -285,6 +410,8 @@ async function loadOverview({ followJobs = true } = {}) {
     $("connectionState").textContent = "로컬 서버 연결됨 · 목록은 미확인 상태이며 기록을 열 때 해시를 검증합니다.";
     $("connectionState").classList.remove("offline");
     renderOverview();
+    list(state.overview.jobs).filter(job => job.operation === "research_run").forEach(retainResearchJob);
+    renderResearchAnswers();
     if (state.studyId) await loadStudy(state.studyId); else renderStudy();
     if (followJobs) {
       const running = list(state.overview.jobs).find(activeJob);
@@ -1141,7 +1268,8 @@ async function compareExperiments() {
 
 function renderJob() {
   const job = state.job; if (!job) { $("jobPanel").hidden = true; return; }
-  const workflow = window.resultPresentation.workflow(job, workflowContext(job, "job"));
+  const workflow = job.operation === "research_run" ? window.researchControls.jobWorkflow(job)
+    : window.resultPresentation.workflow(job, workflowContext(job, "job"));
   $("jobPanel").hidden = false; $("jobPanel").classList.toggle("finished", workflow.tone === "recorded"); $("jobPanel").classList.toggle("failed", workflow.tone === "failed");
   const indicator = $("jobPanel").querySelector(".job-indicator"); if (indicator) indicator.style.animation = activeJob(job) ? "" : "none";
   $("jobTitle").textContent = Object.hasOwn(operationNames, job.operation) ? operationNames[job.operation] : "작업 상태";
@@ -1151,7 +1279,9 @@ function renderJob() {
   $("jobCancelBtn").hidden = !activeJob(job);
   $("jobCancelBtn").disabled = job.status === "CANCEL_REQUESTED";
   $("jobCancelBtn").textContent = job.status === "CLEANUP_PENDING" ? "종료 재시도" : "작업 취소";
-  $("jobJson").textContent = pretty(job); updateControls();
+  $("jobJson").textContent = pretty(job);
+  if (job.operation === "research_run") { retainResearchJob(job); renderResearchAnswers(); }
+  updateControls();
 }
 function schedulePoll(delay = 1200) {
   clearTimeout(state.pollTimer);
@@ -1165,31 +1295,38 @@ async function pollJob() {
     state.job = job; renderJob();
     if (activeJob(job)) { schedulePoll(); return; }
     await loadOverview({ followJobs: false });
+    if (job.operation === "research_run") await loadResearchStatus();
     const handler = state.handlers.get(identifier); state.handlers.delete(identifier);
     if (job.status === "COMPLETED" && handler) await handler(job.result);
-    if (job.status === "FAILED") notify(`작업이 실패했습니다: ${text(job.error)}`);
+    if (job.status === "FAILED") { if (job.operation === "research_run") researchError(new Error(text(job.error))); else notify(`작업이 실패했습니다: ${text(job.error)}`); }
     if (job.status === "CANCELLED") notify("작업 취소가 완료됐습니다. 부분 기록은 보존됩니다.", true);
   } catch (error) {
     if (activeJob(state.job)) {
-      $("jobMessage").textContent = `상태 연결을 확인할 수 없습니다: ${error.message} · 실행 실패로 단정하지 않고 다시 확인합니다.`; schedulePoll(4000);
-    } else notify(`작업 상태는 ${labels[state.job?.status] ?? state.job?.status}입니다. 후속 기록 읽기 실패: ${error.message}`);
+      $("jobMessage").textContent = state.job?.operation === "research_run" ? "작업 상태 연결을 확인할 수 없습니다. 종료를 단정하지 않고 다시 확인합니다."
+        : `상태 연결을 확인할 수 없습니다: ${error.message} · 실행 실패로 단정하지 않고 다시 확인합니다.`; schedulePoll(4000);
+    } else if (state.job?.operation === "research_run") researchError(error);
+    else notify(`작업 상태는 ${labels[state.job?.status] ?? state.job?.status}입니다. 후속 기록 읽기 실패: ${error.message}`);
   }
 }
 async function runJob(operation, arguments_, handler) {
   if (!writable() && !readOperations.has(operation)) throw new Error("읽기 전용 라이브러리에서는 새 작업을 실행할 수 없습니다. 작업 저장소로 전환하세요.");
   if (busy()) throw new Error("이미 실행 중인 작업이 있습니다. 종료 상태를 확인한 뒤 다음 작업을 시작하세요.");
   if (!available(operation)) throw new Error("이 작업은 현재 실행 가능한 capability로 제공되지 않습니다.");
+  const researchRequest = operation === "research_run" ? { ...arguments_, store: activeStore() } : null;
+  if (researchRequest && (state.researchLoading || !window.researchControls.canRun(state.researchStatus, researchContext()))) throw new Error("AI 연구 연결과 작업 저장소 상태를 확인하세요.");
   state.submitting = true; updateControls();
   try {
     const body = operation === "pde_run" && arguments_.backend === "pde.fenicsx.imported"
       ? window.importedMeshControls.requestBody(operation, arguments_) : JSON.stringify({ operation, arguments: arguments_ });
     const job = await api("/api/jobs", { method: "POST", body });
+    if (researchRequest) state.researchContexts.set(job.id, researchRequest);
     state.job = job; if (handler) state.handlers.set(job.id, handler); renderJob();
     if (activeJob(job)) schedulePoll();
     else {
       await loadOverview({ followJobs: false });
+      if (operation === "research_run") await loadResearchStatus();
       if (job.status === "COMPLETED" && handler) { state.handlers.delete(job.id); await handler(job.result); }
-      else if (job.status === "FAILED") notify(text(job.error));
+      else if (job.status === "FAILED") { if (operation === "research_run") researchError(new Error(text(job.error))); else notify(text(job.error)); }
     }
   } finally { state.submitting = false; updateControls(); }
 }
@@ -1202,9 +1339,9 @@ $("jobCancelBtn").addEventListener("click", async () => {
     if (identifier !== state.job?.id) return;
     state.job = job; renderJob();
     if (activeJob(job)) schedulePoll();
-    else await loadOverview({ followJobs: false });
+    else { await loadOverview({ followJobs: false }); if (job.operation === "research_run") await loadResearchStatus(); }
   } catch (error) {
-    notify(`취소 요청을 확인할 수 없습니다: ${error.message}`);
+    if (state.job?.operation === "research_run") researchError(error); else notify(`취소 요청을 확인할 수 없습니다: ${error.message}`);
     renderJob(); schedulePoll();
   }
 });
@@ -1219,6 +1356,7 @@ async function switchStore(identifier) {
   if (busy()) throw new Error("작업 실행 중에는 저장소를 바꿀 수 없습니다.");
   const overview = await api("/api/store", { method: "POST", body: JSON.stringify({ id: identifier }) });
   state.overview = overview; state.studyId = ""; state.study = null; state.registry = { entries: [] }; state.discovery = [];
+  state.researchSession = null; $("researchContinue").checked = false; renderResearchAnswers();
   invalidateModelDiscovery(); state.campaignSelections.clear(); state.campaignSelectionKey = "";
   state.selectedExperiment = null; state.selectedCampaign = null; state.comparison.clear(); state.studyRequest++; state.experimentRequest++; state.campaignRequest++;
   clear("campaignDetail"); clear("comparisonDetail").hidden = true;
@@ -1229,8 +1367,11 @@ async function switchStore(identifier) {
 
 // Exact Core keyword arguments are assembled here; no commands or file paths.
 bindForm("studyForm", "study_create", () => ({ study_id: $("studyId").value.trim(), name: $("studyName").value.trim(), research_question: $("studyQuestion").value.trim(), hypothesis: $("studyHypothesis").value.trim(), objective: $("studyObjective").value.trim() }), async (_result, args) => {
-  await loadStudy(args.study_id); $("studyId").value = makeId("S"); notify("연구가 기록되었습니다. 설계에서 실제 변수를 연결하세요.", true);
+  await loadStudy(args.study_id); $("studyId").value = makeId("S"); notify("연구 기록만 저장했습니다. AI 질문이나 해석을 실행한 것은 아닙니다.", true);
 });
+$("researchQuestionForm").addEventListener("submit", (event) => { event.preventDefault(); submitResearchQuestion().catch(researchError); });
+$("researchQuestion").addEventListener("input", updateResearchControls); $("researchContinue").addEventListener("change", updateResearchControls);
+$("researchResetBtn").addEventListener("click", () => { if (busy()) return; state.researchSession = null; $("researchContinue").checked = false; updateResearchControls(); $("researchQuestion").focus(); });
 bindForm("registerForm", "parameter_register", () => ({ study_id: state.studyId, backend: $("cadBackend").value, model: $("cadModel").value.trim(), native_path: $("nativePath").value, parameter_id: $("parameterId").value.trim(), display_name: $("parameterName").value.trim(), lower: numeric("parameterLower"), upper: numeric("parameterUpper"), mode: $("parameterMode").value, kind: $("parameterKind").value }), async () => { await loadStudy(state.studyId); notify("형상 효과가 확인된 연구 변수를 등록했습니다.", true); });
 bindForm("modelRegisterForm", "model_parameters_register", () => {
   if (!currentModelDiscovery() || !state.modelDiscovery.some((item) => item.native.path === $("modelInputId").value)) throw new Error("현재 모델 설정으로 입력 변수를 먼저 발견하세요.");
@@ -1292,7 +1433,7 @@ $("studySelect").addEventListener("change", () => {
 });
 $("storeSelect").addEventListener("change", () => switchStore($("storeSelect").value).catch((error) => { $("storeSelect").value = activeStore(); notify(error.message); }));
 $("useLocalBtn").addEventListener("click", () => switchStore("local").catch((error) => notify(error.message)));
-$("refreshBtn").addEventListener("click", () => loadOverview().catch((error) => notify(error.message)));
+$("refreshBtn").addEventListener("click", () => Promise.allSettled([loadOverview(), loadResearchStatus()]).then(results => results.forEach(result => { if (result.status === "rejected") notify(result.reason.message); })));
 $("dismissNotice").addEventListener("click", () => { $("notice").hidden = true; });
 $("simulationPreset").addEventListener("change", selectPreset); $("analysisParent").addEventListener("change", updateControls);
 $("importedMeshFiles").addEventListener("change", () => selectImportedFiles());
@@ -1344,6 +1485,6 @@ $("jobDetailsBtn").addEventListener("click", () => { $("jobDetails").hidden = !$
 window.addEventListener("hashchange", () => showArea(location.hash.slice(1)));
 $("studyId").value = makeId("S"); $("cadExperimentId").value = makeId("E-cad"); $("campaignId").value = makeId("C-doe");
 showArea(location.hash.slice(1)); updateControls();
-Promise.allSettled([loadOverview(), api("/api/presets").then(renderPresets)]).then((results) => {
+Promise.allSettled([loadOverview(), api("/api/presets").then(renderPresets), loadResearchStatus()]).then((results) => {
   results.forEach((result) => { if (result.status === "rejected") notify(result.reason.message); }); updateControls();
 });

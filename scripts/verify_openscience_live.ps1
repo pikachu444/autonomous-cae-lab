@@ -217,9 +217,9 @@ setTimeout(()=>process.exit(0),1500); // Keep the inherited-launcher CIM identit
         throw 'Unexpected idle mock route; no real HTTP request is permitted.'
     }
     function Invoke-OpenScienceSessionAbort {
-        param($Context,[string]$SessionId)
+        param($Context,[string]$SessionId,[string]$Source='runner_timeout')
         $taskMockOrder.Add("abort:$SessionId")
-        $taskResponse=Invoke-RestMethod -Uri ($Context.RuntimeURL+'/session/'+$SessionId+'/abort') -Method Post -Headers @{'x-openscience-directory'=$Context.RepoRoot;'x-openscience-abort-source'='runner_timeout'}
+        $taskResponse=Invoke-RestMethod -Uri ($Context.RuntimeURL+'/session/'+$SessionId+'/abort') -Method Post -Headers @{'x-openscience-directory'=$Context.RepoRoot;'x-openscience-abort-source'=$Source}
         return [pscustomobject]@{session_id=$SessionId;response=$taskResponse;Confirmed=$taskMockAbortConfirmed;StatusCode=200;SessionId=$SessionId}
     }
     function Stop-OpenScienceOwnedLauncher {
@@ -568,9 +568,44 @@ setTimeout(()=>process.exit(0),1500); // Keep the inherited-launcher CIM identit
             $taskRelayValidationCount++
         }
         $taskMockContext=$taskLegacyMock
+        $taskForcedDir=Join-Path $taskChecksRoot '09-short-forced-stdin'
+        $taskShortQuestion='  한글 질문 "quotes" literal $() --model other  '+"`n"+'두 번째 줄'
+        $taskForced=Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--title',$taskForcedDir,'--bare','--',$taskShortQuestion) -LogDirectory $taskForcedDir -TimeoutSeconds 8 -NoTools -ForceStdin
+        $taskForcedEvent=@([IO.File]::ReadLines($taskForced.stdout_path) | ForEach-Object {$_ | ConvertFrom-Json -AsHashtable} | Where-Object type -eq 'mock_stdin')[0]
+        Assert-LauncherCheck ($taskForced.exit_code -eq 0 -and -not $taskForced.failure -and $taskForced.actual_arguments[-1] -ceq '--' -and
+            $taskForced.arguments[-1] -ceq $taskShortQuestion) 'trusted forced stdin removes a short Unicode question from actual argv'
+        Assert-LauncherCheck ($taskForcedEvent.original_sha256 -ceq $taskForced.stdin.sha256 -and $taskForcedEvent.expected_native_sha256 -ceq $taskForced.stdin.expected_native_sha256 -and
+            $taskForced.log_relay_final.stdin_delivery_complete -and $taskForced.workspace_default_guard_restored) 'forced short stdin reaches inherited child exactly with separate native LF prefix'
+        $taskOldOrder=@($taskMockOrder); $taskMockOrder.Clear(); $taskOldCalls=@($taskMockCalls); $taskMockCalls.Clear()
+        $taskMockIdleState.poll=0; $taskMockIdleState.busy_responses=1; $taskMockIdleState.foreign=$false
+        $taskMockIdleState.malformed=$false; $taskMockIdleState.unavailable=$false; $taskMockAbortConfirmed=$true
+        $taskUserDir=Join-Path $taskChecksRoot '10-user-cancel'
+        $taskUser=Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--log-path',(Join-Path $taskUserDir 'stdout.jsonl'),'--mock-timeout','--','No provider request') -LogDirectory $taskUserDir -TimeoutSeconds 8 -CancellationRequested { $true }
+        $taskUserAbort=@($taskMockCalls | Where-Object { $_.uri -like '*/abort' })
+        Assert-LauncherCheck ($taskUser.user_cancelled -and -not $taskUser.timed_out -and $taskUser.cancellation_idle_confirmed -and
+            $taskUserAbort.Count -eq 1 -and $taskUserAbort[0].abort_source -ceq 'user_cancel' -and
+            (Test-Path -LiteralPath (Join-Path $taskUserDir 'user-cancel-session-idle.json'))) 'user cancellation has a distinct cause and observed exact idle receipt'
+        Assert-LauncherCheck ($taskMockOrder[0] -ceq 'abort:ses_mock123' -and $taskMockOrder[1] -ceq 'idle:ses_mock123' -and $taskMockOrder[2].StartsWith('stop:') -and
+            -not $taskUser.launcher_still_running -and -not $taskUser.log_relay_still_running -and $taskUser.workspace_default_guard_restored) 'confirmed user abort and idle precede owned CLI termination and default guard restoration'
+        $taskUserOrder=@($taskMockOrder); $taskUserCalls=@($taskMockCalls)
+        $taskMockOrder.Clear(); foreach($item in $taskOldOrder){$taskMockOrder.Add($item)}
+        $taskMockCalls.Clear(); foreach($item in $taskOldCalls){$taskMockCalls.Add($item)}
+        $taskLiteralCount=0
+        foreach($taskLiteralQuestion in @('--bare','--attach','--model=other','--')){
+            $taskLiteralCount++
+            $taskLiteralDir=Join-Path $taskChecksRoot ('11-option-question-'+$taskLiteralCount)
+            $taskLiteralCallsBefore=$taskMockCalls.Count
+            $taskLiteral=Invoke-OpenScienceLocalCommand -Context $taskMockContext -Arguments @('run','--title',$taskLiteralDir,'--',$taskLiteralQuestion) -LogDirectory $taskLiteralDir -TimeoutSeconds 8 -ForceStdin
+            $taskLiteralGuard=@($taskMockCalls | Select-Object -Skip $taskLiteralCallsBefore | Where-Object kind -EQ 'schema_guard')[0]
+            $taskLiteralEvent=@([IO.File]::ReadLines($taskLiteral.stdout_path) | ForEach-Object {$_ | ConvertFrom-Json -AsHashtable} | Where-Object type -EQ 'mock_stdin')[0]
+            $taskLiteralHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($taskUtf8.GetBytes($taskLiteralQuestion))).ToLowerInvariant()
+            Assert-LauncherCheck ($taskLiteral.exit_code -eq 0 -and -not $taskLiteral.failure -and -not $taskLiteralGuard.no_tools -and
+                $taskLiteral.arguments[-1] -ceq $taskLiteralQuestion -and $taskLiteral.actual_arguments[-1] -ceq '--' -and
+                $taskLiteralEvent.original_sha256 -ceq $taskLiteralHash -and $taskLiteral.workspace_default_guard_restored) "literal question preserves text and default tool guard:$taskLiteralQuestion"
+        }
         $taskCheckRecord=[ordered]@{outcome='PASS_LAUNCHER_MOCKS_ONLY';inference_performed=$false;mcp_mutations_performed=$false;tests=$taskTests;mock_http_receipts=$taskMockCalls;timeout_order=$taskMockOrder
             prompt_fixture=$taskPromptFixture;local_mock_launcher_processes=@(Get-ChildItem -LiteralPath $taskChecksRoot -Recurse -Filter 'relay-ready.json' -File).Count
-            local_mock_inherited_stdin_children=2;local_validation_relay_processes=$taskRelayValidationCount
+            local_mock_inherited_stdin_children=(3+$taskLiteralCount);user_cancellation_order=$taskUserOrder;user_cancellation_calls=$taskUserCalls;local_validation_relay_processes=$taskRelayValidationCount
             provider_calls=0;model_calls=0;core_calls=0;solver_calls=0;actual_http_calls=0;actual_auth_reads_or_changes=0;completed_utc=[DateTime]::UtcNow.ToString('o')}
         $taskCheckRecord | ConvertTo-Json -Depth 25 | Set-Content -LiteralPath (Join-Path $taskChecksRoot 'checks.json') -Encoding utf8
         Write-Host "Launcher checks=$($taskTests.Count) PASS; no inference; evidence=$taskChecksRoot"

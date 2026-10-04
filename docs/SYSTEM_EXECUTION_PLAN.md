@@ -1,4 +1,14 @@
-## Current checkpoint: first assembly mesh rejected; real user-flow gaps explicit
+## Current checkpoint: Lab question handoff source reviewed; actual user flow next
+
+Record: `benchmarks/records/20261004-lab-question-handoff-source-r01.json`. Parent4a612490; exact final source files and narrowed gate scopes are pinned there.
+
+SERIAL SUPPLEMENT: close the audited missing Lab question-to-official-OpenScience front door on existing admitted models, then resume original assembly P2.4 quality/mechanics and human compare. The earlier bounded native/research acceptances are retained. No unchanged failed assembly replay or threshold relaxation. Actual front-door question/change/cancel is the next gate; source/display/control tests do not close it.
+
+Exact prior e233 CI completed FAILURE: seven jobs succeeded, Code_Aster/explicit/PDE failed. New containing-source CI is unverified until publication; documentation is not solver proof.
+
+---
+
+## Historical checkpoint: first assembly mesh rejected; real user-flow gaps explicit
 
 Clean source148e2360ce18df0285f2c1e528353ab42de23b92 ran fresh3.0mm against
 retained f8 CAD.44,191 TETRA10/220,955 samples; support left3/right2 samples have

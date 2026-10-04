@@ -1,3 +1,17 @@
+## Lab question handoff boundary (ADR0033)
+
+The human Lab may submit a complete user question to its configured existing
+official Research runtime. It uses the same approved5.6Sol, canonical descriptor,
+managed source/project/store and launcher guards; no new Core tool, model client
+or descriptor expansion is introduced. Actual answer/tool/session references
+return to Lab while the underlying Core experiments stay authoritative.
+User cancellation extends the existing owned abort/idle/CLI cleanup sequence.
+The existing source-identity resource additionally observes its resident writer
+without initializing a Lab/store. All started-inference terminal paths require
+the same resident/store to confirm idle; this does not force-stop native solvers.
+The bridge does not interpret CLI completion as numerical PASS or release.
+Source admission and real question/follow-up/cancellation remain separate gates.
+
 ## Current checkpoint: actual stage views verified; product workflow open
 
 Record: `benchmarks/records/20261004-human-stage-human-r01.json`.

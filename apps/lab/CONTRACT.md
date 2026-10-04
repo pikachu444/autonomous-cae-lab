@@ -1,5 +1,31 @@
 # Local Lab application contract
 
+## User questions through official OpenScience (ADR0033)
+
+The optional trusted `--openscience-owner PATH` startup setting binds the Lab
+to one existing approved Research runtime and the same writable store.
+`--openscience-powershell PATH` selects the installed host executable at startup
+and requires that owner setting; browser requests cannot select either path.
+`GET /api/research` reports verified availability, model, declared scope and
+official workspace URL. An unavailable or unconfigured runtime cannot start
+inference and is never replaced automatically.
+
+`POST /api/jobs` with `operation=research_run` accepts only a nonblank UTF8
+`question` of at most16384 bytes and an optional exact owned `session_id`.
+Existing token/origin/JSON/read-only/single-writer gates apply. The trusted
+bridge revalidates source, owner, project, store, model and descriptor, then
+hands the unchanged question to the existing official launcher through stdin.
+Actual text/tool status and partial failures remain visible. Confirmed user
+cancellation retains partial output; unconfirmed cleanup keeps the writer busy.
+Active job progress reads retained events only. It neither polls the provider
+nor admits a follow-up session. After any started inference ends, the same
+connected MCP resident must confirm its same-store writer idle before the Lab
+gate opens. AI session idle alone does not prove a native tool has stopped;
+forced cancellation of an in-flight solver remains unqualified.
+This application operation adds no Core/MCP operation or engineering rule.
+The connected source and actual user-flow gates are separate; whole service
+completion and engineering release are not implied.
+
 D3.6 now adds explicit PDEFields/schema3 research scope and a read-only native
 field inspector through existing operations/artifact API; Core/wire/Domain/
 adapters and old scope definitions remain. Source/identity/staleness/refusal

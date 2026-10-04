@@ -31,13 +31,13 @@ function Measure-OpenScienceCommandTransport {
 }
 
 function New-OpenScienceCommandTransport {
-    param($Context,[string[]]$Arguments,[string]$LogDirectory)
+    param($Context,[string[]]$Arguments,[string]$LogDirectory,[switch]$ForceStdin)
     $taskTransport=[pscustomobject]@{Arguments=@($Arguments);Stdin=$null}
     $taskInvocation=@($Context.NodePath,$Context.LauncherPath)+@($Arguments)
-    if((Measure-OpenScienceCommandTransport $taskInvocation) -le 16384){return $taskTransport}
+    if(-not $ForceStdin -and (Measure-OpenScienceCommandTransport $taskInvocation) -le 16384){return $taskTransport}
     $taskSeparator=[array]::IndexOf($Arguments,'--')
     Assert-OpenScienceCondition ($Arguments[0] -ceq 'run' -and $taskSeparator -eq $Arguments.Count-2 -and
-        @($Arguments | Where-Object {$_ -ceq '--'}).Count -eq 1) 'Large commands require one final run prompt after a single separator.'
+        @($Arguments | Select-Object -First ($Arguments.Count-1) | Where-Object { $_ -ceq '--' }).Count -eq 1) 'Large commands require one final run prompt after a single separator.'
     # Only source-supported option arities are accepted. An earlier positional
     # message, file/command input, joined option or unknown option is ambiguous.
     $taskValues=@('--attach','--session','-s','--workspace','--agent','--model','--delegation','--format','--autonomy','--deadline','--title')
@@ -223,34 +223,36 @@ function Confirm-OpenScienceCancelledSessionIdle {
         [Parameter(Mandatory)]$Context,
         [Parameter(Mandatory)][ValidatePattern('^ses_[A-Za-z0-9]+$')][string]$SessionId,
         [Parameter(Mandatory)][string]$LogDirectory,
-        [ValidateRange(1,20)][int]$TimeoutSeconds=20
+        [ValidateRange(1,20)][int]$TimeoutSeconds=20,
+        [ValidateSet('runner_timeout','user_cancel')][string]$Cause='runner_timeout'
     )
     Assert-OpenScienceContainedPath $LogDirectory $Context.ArtifactRoot | Out-Null
+    $taskIdlePrefix=if($Cause -ceq 'user_cancel'){'user-cancel'}else{'timeout'}
     try {
         $taskCurrent=Get-OpenScienceLocalRuntime -OwnerPath $Context.OwnerPath -LifecycleOnly
         Assert-OpenScienceCondition ($taskCurrent.RunName -ceq $Context.RunName -and $taskCurrent.RepoRoot -ceq $Context.RepoRoot -and
             $taskCurrent.RuntimeURL -ceq $Context.RuntimeURL) 'Cancellation idle context is not the exact owned runtime.'
         $taskMetadataResponse=Invoke-OpenScienceHttp ($taskCurrent.RuntimeURL+'/session/'+$SessionId) -Headers (Get-OpenScienceProjectHeaders $taskCurrent) -TimeoutSeconds 15
-        Write-OpenScienceJson (Join-Path $LogDirectory 'timeout-session-idle-metadata.json') @{status_code=$taskMetadataResponse.StatusCode;body=$taskMetadataResponse.Content} -CreateNew
+        Write-OpenScienceJson (Join-Path $LogDirectory "$taskIdlePrefix-session-idle-metadata.json") @{status_code=$taskMetadataResponse.StatusCode;body=$taskMetadataResponse.Content} -CreateNew
         $taskMetadata=$taskMetadataResponse.Content | ConvertFrom-Json -AsHashtable -ErrorAction Stop
         Assert-OpenScienceCondition ($taskMetadataResponse.StatusCode -eq 200) 'Cancelled session metadata failed; CLI termination refused.'
         Assert-OpenScienceOwnedSessionMetadata $taskCurrent $taskMetadata $SessionId
         $taskIdleWatch=[Diagnostics.Stopwatch]::StartNew(); $taskSequence=0
         do {
-            $taskStatusPath=Join-Path $LogDirectory ('timeout-session-idle-status-'+(++$taskSequence).ToString('000')+'.json')
+            $taskStatusPath=Join-Path $LogDirectory ($taskIdlePrefix+'-session-idle-status-'+(++$taskSequence).ToString('000')+'.json')
             $taskStatus=Get-OpenScienceOwnedSessionStatus $taskCurrent $taskStatusPath
             if(-not $taskStatus.Contains($SessionId) -or $taskStatus[$SessionId].type -ceq 'idle') {
                 $taskIdleReceipt=[ordered]@{state='IDLE_CONFIRMED';session_id=$SessionId;repo_root=$taskCurrent.RepoRoot
                     status_path=$taskStatusPath;status_sha256=Get-OpenScienceHash $taskStatusPath
                     absent_from_status_map=(-not $taskStatus.Contains($SessionId));observed_utc=[DateTime]::UtcNow.ToString('o')}
-                Write-OpenScienceJson (Join-Path $LogDirectory 'timeout-session-idle.json') $taskIdleReceipt -CreateNew
+                Write-OpenScienceJson (Join-Path $LogDirectory "$taskIdlePrefix-session-idle.json") $taskIdleReceipt -CreateNew
                 return [pscustomobject]$taskIdleReceipt
             }
             Start-Sleep -Milliseconds 300
         } while($taskIdleWatch.Elapsed.TotalSeconds -lt $TimeoutSeconds)
         throw 'Cancelled exact session did not settle to idle within its bounded wait; CLI termination refused.'
     } catch {
-        Write-OpenScienceJson (Join-Path $LogDirectory 'timeout-session-idle-failure.json') @{session_id=$SessionId;failure=$_.Exception.Message
+        Write-OpenScienceJson (Join-Path $LogDirectory "$taskIdlePrefix-session-idle-failure.json") @{session_id=$SessionId;failure=$_.Exception.Message
             idle_confirmed=$false;cli_termination_refused=$true;observed_utc=[DateTime]::UtcNow.ToString('o')} -CreateNew
         throw
     }
@@ -261,7 +263,8 @@ function Invoke-OpenScienceLocalCommand {
     param(
         [Parameter(Mandatory)]$Context, [Parameter(Mandatory)][string[]]$Arguments,
         [Parameter(Mandatory)][string]$LogDirectory,
-        [ValidateRange(1,3600)][int]$TimeoutSeconds=300, [string]$RequiredTool, [switch]$NoTools
+        [ValidateRange(1,3600)][int]$TimeoutSeconds=300, [string]$RequiredTool, [switch]$NoTools,
+        [switch]$ForceStdin, [scriptblock]$CancellationRequested
     )
     $ErrorActionPreference='Stop'
     $taskCommandBudget = if ($Context.Purpose -ceq 'Research') { $Context.ResearchDefinition.budgets.command_timeout_seconds } else { 600 }
@@ -282,6 +285,13 @@ function Invoke-OpenScienceLocalCommand {
         $taskStatuses=Invoke-RestMethod -Uri ($taskCurrent.RuntimeURL+'/session/status') -Headers (Get-OpenScienceProjectHeaders $taskCurrent) -TimeoutSec 20
         $taskStatuses | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath (Join-Path $LogDirectory 'session-status-preflight.json') -Encoding utf8
         if(@($taskStatuses.PSObject.Properties | Where-Object { $_.Value.type -ne 'idle' }).Count -gt 0){throw 'An owned server session is active; preserve it and wait for idle or cancel its exact session before another model request.'}
+        # The final positional question is data, including literal CLI option names.
+        $taskPromptTail=@(); $taskPromptAt=[array]::IndexOf($taskArgs,'--')
+        if($taskPromptAt -ge 0){
+            # Transport validates malformed prompts through the existing failure record.
+            $taskPromptTail=@($taskArgs | Select-Object -Skip $taskPromptAt)
+            $taskArgs=@($taskArgs | Select-Object -First $taskPromptAt)
+        }
         if ($taskArgs -contains '--attach' -or $taskArgs -contains '--continue' -or $taskArgs -contains '-c') { throw 'Use an explicit owned session; attachment and continuation guessing cannot override this launcher.' }
         if ($taskArgs -contains '-m' -or @($taskArgs | Where-Object { $_ -match '^--(attach|continue|session|workspace|model|agent|delegation|format)=' -or $_ -match '^-[scm].+' }).Count -gt 0) { throw 'Pass controlled options as separate argument values, never joined or abbreviated overrides.' }
         $taskAgent = if ($taskCurrent.Purpose -ceq 'Research') { 'research' } else { 'caelab-acceptance' }
@@ -303,7 +313,7 @@ function Invoke-OpenScienceLocalCommand {
         Set-OpenScienceExpectedTools -Context $taskCurrent -RequiredTool $RequiredTool -NoTools:($NoTools -or $taskArgs -contains '--bare')
         $taskPrefix=@('run','--attach',$taskCurrent.RuntimeURL)
         if ($taskSessionIndex -lt 0) { $taskPrefix+=@('--session',$taskSessionId) }
-        $taskArgs=$taskPrefix + @($taskArgs | Select-Object -Skip 1)
+        $taskArgs=$taskPrefix + @($taskArgs | Select-Object -Skip 1) + $taskPromptTail
     } elseif ($taskArgs[0] -in @('serve','web','')) {
         throw 'Use the owned server controller and its returned official Workspace URL.'
     }
@@ -318,11 +328,11 @@ function Invoke-OpenScienceLocalCommand {
     $taskTransport=$null
     $taskRelayPath=Join-Path $LogDirectory 'command-relay.mjs'; $taskRequestPath=Join-Path $LogDirectory 'command-request.json'
     $taskRelayReadyPath=Join-Path $LogDirectory 'relay-ready.json'; $taskRelayFinalPath=Join-Path $LogDirectory 'relay-final.json'
-    $taskWatch=[Diagnostics.Stopwatch]::StartNew(); $taskTimedOut=$false; $taskIdentity=$null; $taskExit=$null; $taskStop=$null
+    $taskWatch=[Diagnostics.Stopwatch]::StartNew(); $taskTimedOut=$false; $taskUserCancelled=$false; $taskIdentity=$null; $taskExit=$null; $taskStop=$null
     try {
         # Validate the complete official invocation before preparing its relay.
         $taskStart=New-OpenScienceLocalProcessInfo -Context $Context -Arguments $taskArgs
-        $taskTransport=New-OpenScienceCommandTransport -Context $Context -Arguments $taskArgs -LogDirectory $LogDirectory
+        $taskTransport=New-OpenScienceCommandTransport -Context $Context -Arguments $taskArgs -LogDirectory $LogDirectory -ForceStdin:$ForceStdin
         [IO.File]::WriteAllText($taskRelayPath,(Get-OpenScienceCommandRelaySource),[Text.UTF8Encoding]::new($false))
         $taskRequest=[ordered]@{kind='autonomous-cae-lab.openscience-command';run_name=$Context.RunName
             repo_root=$Context.RepoRoot;log_directory=$LogDirectory;node_path=$Context.NodePath;launcher_path=$Context.LauncherPath
@@ -363,18 +373,28 @@ function Invoke-OpenScienceLocalCommand {
                 if(Test-Path -LiteralPath $taskRelayFinalPath){break}
                 throw 'Log relay exited without a final CLI receipt; output and prior session are retained.'
             }
-            if ($taskWatch.Elapsed.TotalSeconds -ge $TimeoutSeconds) {
-                $taskTimedOut=$true
+            # Only trusted callers supply this callback; HTTP supplies no code.
+            $taskCancelRequested=$false
+            if($CancellationRequested){
+                $taskCancelValue=& $CancellationRequested
+                Assert-OpenScienceCondition ($taskCancelValue -is [bool]) 'Cancellation callback must return one boolean.'
+                $taskCancelRequested=$taskCancelValue
+            }
+            if ($taskWatch.Elapsed.TotalSeconds -ge $TimeoutSeconds -or ($taskCancelRequested -and $null -ne $taskIdentity)) {
+                $taskUserCancelled=$taskCancelRequested -and $null -ne $taskIdentity
+                $taskTimedOut=-not $taskUserCancelled
+                $taskAbortCause=if($taskUserCancelled){'user_cancel'}else{'runner_timeout'}
+                $taskCancelPrefix=if($taskUserCancelled){'user-cancel'}else{'timeout'}
                 if ($taskArgs[0] -eq 'run') {
                     # Identity is known before inference, even when stdout is late.
                     $taskAbortAttempted=$true
-                    [ordered]@{session_id=$taskSessionId;path=('/session/'+$taskSessionId+'/abort');source='runner_timeout';requested_utc=[DateTime]::UtcNow.ToString('o')} |
-                        ConvertTo-Json | Set-Content -LiteralPath (Join-Path $LogDirectory 'timeout-session-abort-request.json') -Encoding utf8
-                    $taskAbort=Invoke-OpenScienceSessionAbort -Context $Context -SessionId $taskSessionId
+                    [ordered]@{session_id=$taskSessionId;path=('/session/'+$taskSessionId+'/abort');source=$taskAbortCause;requested_utc=[DateTime]::UtcNow.ToString('o')} |
+                        ConvertTo-Json | Set-Content -LiteralPath (Join-Path $LogDirectory "$taskCancelPrefix-session-abort-request.json") -Encoding utf8
+                    $taskAbort=Invoke-OpenScienceSessionAbort -Context $Context -SessionId $taskSessionId -Source $taskAbortCause
                     if(-not $taskAbort.Confirmed -or $taskAbort.StatusCode -ne 200 -or $taskAbort.SessionId -ne $taskSessionId){throw 'Exact session cancellation was not confirmed; CLI termination is refused and evidence retained.'}
                     $taskAbortConfirmed=$true
-                    $taskAbort | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $LogDirectory 'timeout-session-abort.json') -Encoding utf8
-                    $taskIdleReceipt=Confirm-OpenScienceCancelledSessionIdle -Context $Context -SessionId $taskSessionId -LogDirectory $LogDirectory
+                    $taskAbort | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $LogDirectory "$taskCancelPrefix-session-abort.json") -Encoding utf8
+                    $taskIdleReceipt=Confirm-OpenScienceCancelledSessionIdle -Context $Context -SessionId $taskSessionId -LogDirectory $LogDirectory -Cause $taskAbortCause
                     Assert-OpenScienceCondition ($taskIdleReceipt.state -ceq 'IDLE_CONFIRMED' -and $taskIdleReceipt.session_id -ceq $taskSessionId) 'Exact cancelled session idle was not confirmed; CLI termination refused.'
                     $taskIdleConfirmed=$true
                 }
@@ -406,7 +426,7 @@ function Invoke-OpenScienceLocalCommand {
             }
             $taskExit=$taskRelayFinal.exit_code
             if($taskRelayFinal.error){throw $taskRelayFinal.error}
-            if(-not $taskTimedOut -and $null -eq $taskExit){throw 'CLI did not report a normal exit code.'}
+            if(-not $taskTimedOut -and -not $taskUserCancelled -and $null -eq $taskExit){throw 'CLI did not report a normal exit code.'}
         } elseif(-not $taskFailure){throw 'No final CLI receipt is available; evidence remains live and unverified.'}
     } catch {
         $taskFailure=$_.Exception.Message
@@ -417,7 +437,8 @@ function Invoke-OpenScienceLocalCommand {
         # independent relay/CLI keep recording until actual child exit.
         if($taskProcess){$taskProcess.Dispose()}; $taskWatch.Stop()
         if($taskCommandLock){
-            if($taskExit -eq 0 -and -not $taskFailure -and -not $taskTimedOut -and $taskArgs[0] -eq 'run'){
+            if((($taskExit -eq 0 -and -not $taskFailure -and -not $taskTimedOut) -or
+                ($taskUserCancelled -and $taskIdleConfirmed -and -not $taskStillRunning -and -not $taskRelayStillRunning)) -and $taskArgs[0] -eq 'run'){
                 try { Set-OpenScienceExpectedTools -Context $Context; $taskGuardRestored=$true }
                 catch { $taskGuardRestoreFailure=$_.Exception.Message; $taskFailure='Workspace guard restoration failed: '+$taskGuardRestoreFailure }
             }
@@ -425,15 +446,15 @@ function Invoke-OpenScienceLocalCommand {
         }
     }
     $taskRecord=[ordered]@{
-        arguments=$taskArgs; exit_code=$taskExit; timed_out=$taskTimedOut; failure=$taskFailure
+        arguments=$taskArgs; exit_code=$taskExit; timed_out=$taskTimedOut; user_cancelled=$taskUserCancelled; failure=$taskFailure
         elapsed_seconds=[math]::Round($taskWatch.Elapsed.TotalSeconds,3); session_id=$taskSessionId; launcher_identity=$taskIdentity; launcher_stop=$taskStop
         cancellation_attempted=$taskAbortAttempted; cancellation_before_cli_stop=$taskAbortConfirmed
         cancellation_idle_confirmed=$taskIdleConfirmed; cancellation_idle_receipt=$taskIdleReceipt
         workspace_default_guard_restored=$taskGuardRestored; guard_restore_failure=$taskGuardRestoreFailure
         log_relay_identity=$taskRelayIdentity;log_relay_still_running=[bool]$taskRelayStillRunning;log_relay_final=$taskRelayFinal
         output_hashes_finalized=[bool]$taskRelayFinal;log_relay_path=$taskRelayPath
-        launcher_still_running=[bool]$taskStillRunning; cleanup_refused_after_abort_failure=($taskTimedOut -and $taskAbortAttempted -and -not $taskAbortConfirmed)
-        cleanup_refused_after_idle_failure=($taskTimedOut -and $taskAbortConfirmed -and -not $taskIdleConfirmed)
+        launcher_still_running=[bool]$taskStillRunning; cleanup_refused_after_abort_failure=(($taskTimedOut -or $taskUserCancelled) -and $taskAbortAttempted -and -not $taskAbortConfirmed)
+        cleanup_refused_after_idle_failure=(($taskTimedOut -or $taskUserCancelled) -and $taskAbortConfirmed -and -not $taskIdleConfirmed)
         stdout_path=$taskOutPath; stderr_path=$taskErrPath
         stdout_sha256=$(if(Test-Path -LiteralPath $taskOutPath){Get-OpenScienceLiveHash $taskOutPath})
         stderr_sha256=$(if(Test-Path -LiteralPath $taskErrPath){Get-OpenScienceLiveHash $taskErrPath}); runtime_owner=$Context.OwnerPath

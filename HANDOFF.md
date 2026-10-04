@@ -1,4 +1,14 @@
-## Current checkpoint: actual stage views verified; product workflow open
+## Current checkpoint: Lab question handoff source reviewed; actual user flow next
+
+Record: `benchmarks/records/20261004-lab-question-handoff-source-r01.json`. Parent4a612490; exact final source files and narrowed gate scopes are pinned there.
+
+NEXT SERIAL: publish this reviewed source, start one new owned FixtureScalar runtime with approved GPT-5.6 Sol and one new shared Lab/Core store, then actual browser question → CAD/analysis/answer → changed-condition follow-up → busy cancellation/retention. Reuse existing auth/project/runtime; no model fallback, profile reset or old-store overwrite. Forced solver interruption remains unqualified. After that front-door gate, return to original assembly quality/mechanics; full service/52 remain OPEN.
+
+Exact prior e233 CI completed FAILURE: seven jobs succeeded, Code_Aster/explicit/PDE failed. New containing-source CI is unverified until publication; documentation is not solver proof.
+
+---
+
+## Historical checkpoint: actual stage views verified; product workflow open
 
 Record: `benchmarks/records/20261004-human-stage-human-r01.json`.
 Clean UIe233 actual stored-model/list/rejected pixels and DOM independently

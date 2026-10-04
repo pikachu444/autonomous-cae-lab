@@ -31,6 +31,42 @@ def study_arguments(identifier="S-job"):
             "objective": "Record execution without numerical approval"}
 
 
+def test_execution_observer_does_not_initialize_store(resident):
+    result = jobs.execution_status()
+    assert result["idle_confirmed"] and result["scope"] == "PROCESS_RESIDENT"
+    assert result["store_root"] == str(resident.resolve())
+    assert jobs._resident is None and not resident.exists()
+
+
+def test_execution_observer_sees_actual_synchronous_writer_without_waiting(resident):
+    entered, release = threading.Event(), threading.Event()
+    def hold():
+        with jobs.synchronous_writer():
+            entered.set()
+            release.wait(3)
+    thread = threading.Thread(target=hold)
+    thread.start()
+    try:
+        assert entered.wait(2)
+        started = time.monotonic()
+        result = jobs.execution_status()
+        assert result["state"] == "BUSY" and not result["idle_confirmed"]
+        assert time.monotonic() - started < .5
+    finally:
+        release.set()
+        thread.join(3)
+    assert not thread.is_alive()
+    assert jobs.execution_status()["idle_confirmed"]
+
+
+def test_execution_observer_refuses_changed_store(resident, monkeypatch):
+    with jobs.synchronous_writer():
+        pass
+    monkeypatch.setenv("CAELAB_STORE", str(resident.parent / "different"))
+    result = jobs.execution_status()
+    assert result["state"] == "UNKNOWN" and not result["idle_confirmed"]
+
+
 def finish(identifier):
     deadline = time.monotonic() + 5
     while True:

@@ -67,7 +67,7 @@ def contained(root: Path, relative: str) -> Path:
 
 class LabService:
     def __init__(self, store: str | Path, *, libraries: Mapping[str, str | Path] | None = None,
-                 lab_factory: Callable[[Path], Lab] = Lab):
+                 lab_factory: Callable[[Path], Lab] = Lab, research=None):
         local = Path(store).resolve()
         local.mkdir(parents=True, exist_ok=True)
         self._stores = {"local": Store("local", local, True, lab_factory(local))}
@@ -89,6 +89,28 @@ class LabService:
         self._job_tokens: dict[str, CancellationToken] = {}
         self._job_threads: dict[str, threading.Thread] = {}
         self._accepting_jobs = True
+        self._research = research
+
+    def research_status(self) -> dict:
+        """Describe the configured official control plane, never choose a model."""
+        if self._research is None:
+            return {"configured": False, "available": False, "state": "NOT_CONFIGURED",
+                    "reason": "AI 연구 연결이 준비되지 않았습니다."}
+        status = self._research.status()
+        with self._lock:
+            if not self._selected().writable:
+                return {**status, "available": False, "reason": "읽기 전용 기록입니다. 작업 저장소를 선택하세요."}
+            if self._active_job is not None or not self._accepting_jobs:
+                return {**status, "available": False, "reason": "진행 중인 작업의 종료 상태를 먼저 확인하세요."}
+        return status
+
+    def execution_status(self) -> dict:
+        """Small resident observation; no store scan or native execution."""
+        with self._lock:
+            pending = (self._active_job is not None or
+                       any(token.cleanup_pending for token in self._job_tokens.values()))
+            return {"state": "BUSY" if pending else "IDLE", "idle_confirmed": not pending,
+                    "accepting_jobs": self._accepting_jobs}
 
     def _selected(self) -> Store:
         with self._lock:
@@ -129,6 +151,10 @@ class LabService:
                  "status": status, "scope": scope,
                  "callable": callable(getattr(lab, OPERATIONS[operation], None))}
                 for operation, (label, backend, status, scope) in descriptions.items()]
+        rows.append({"operation": "research_run", "label": "AI에게 연구 질문하기",
+                     "backend": "OpenScience", "status": "EXPERIMENTAL",
+                     "scope": "연결한 공식 모델이 허용된 도구로 연구하고 같은 기록을 해석합니다.",
+                     "callable": self._research is not None})
         for operation, label, backend, scope in (
             ("nonlinear_contact", "비선형·접촉", "Code_Aster / CalculiX", "다음 독립 reference benchmark 필요"),
             ("physical_validation", "실물·내구 시험", None, "측정·시험 근거가 필요하며 UNKNOWN 유지"),
@@ -415,7 +441,7 @@ class LabService:
         with self._lock:
             if not self._accepting_jobs:
                 raise ServiceError(503, "Lab service is shutting down; new jobs are closed")
-            if not isinstance(operation, str) or operation not in OPERATIONS:
+            if not isinstance(operation, str) or (operation not in OPERATIONS and operation != "research_run"):
                 raise ServiceError(400, "Operation is not in the Lab allowlist")
             if not isinstance(arguments, dict):
                 raise ServiceError(400, "Operation arguments must be a JSON object")
@@ -424,9 +450,24 @@ class LabService:
             selected = self._selected()
             if not selected.writable and operation not in READ_OPERATIONS:
                 raise ServiceError(403, "Selected library is read only")
-            method = getattr(selected.lab, OPERATIONS[operation])
+            if operation == "research_run":
+                if self._research is None:
+                    raise ServiceError(503, "AI 연구 연결이 준비되지 않았습니다.")
+                method = self._research.run
+            else:
+                method = getattr(selected.lab, OPERATIONS[operation])
             try:
                 inspect.signature(method).bind(**arguments)
+                if operation == "research_run":
+                    question = arguments.get("question")
+                    if (set(arguments) - {"question", "session_id"} or not isinstance(question, str)
+                            or not question.strip() or "\x00" in question
+                            or len(question.encode("utf-8")) > 16384):
+                        raise ValueError("연구 질문은 빈 내용 없이 16 KiB 이내의 텍스트로 입력하세요.")
+                    session = arguments.get("session_id")
+                    if session is not None and (not isinstance(session, str)
+                                               or not re.fullmatch(r"ses_[A-Za-z0-9]+", session)):
+                        raise ValueError("확인된 대화 ID가 필요합니다.")
                 self._argument_paths(selected, operation, arguments)
             except (TypeError, ValueError) as exc:
                 raise ServiceError(400, str(exc)) from exc
@@ -483,22 +524,36 @@ class LabService:
     def _execute(self, selected: Store, identifier: str, method: Callable, arguments: dict):
         update = {}
         token = self._job_tokens[identifier]
+        result = None
+        operation = self._jobs[identifier]["operation"]
         try:
             with cancellation_scope(token):
                 check_cancelled()
-                operation = self._jobs[identifier]["operation"]
                 if operation == "analysis_run":
                     from .reporting import verified_record
                     verified_record(selected.lab, arguments["parent_experiment_id"])
                 elif operation in {"doe_run", "optimization_run"}:
                     self._campaign_preflight(selected, arguments["campaign_id"])
                 check_cancelled()
-                result = method(**arguments)
+                if operation == "research_run":
+                    result = method(**arguments, cancellation_requested=lambda: token.requested)
+                    if result.get("status") == "CANCELLED" and token.requested:
+                        # The bridge has confirmed its exact session idle and
+                        # native command cleanup before acknowledging this.
+                        token.check()
+                else:
+                    result = method(**arguments)
             # A request after the operation's last checkpoint is not an observed
             # interruption. Preserve that completed/failed Core result verbatim.
             update = {"status": "CANCELLED" if token.observed else "COMPLETED", "result": result}
+            if operation == "research_run" and result.get("status") in {"FAILED", "CANCELLED"}:
+                update["status"] = result["status"]
+                if result.get("error"):
+                    update["error"] = result["error"]
         except BaseException as exc:
             update = {"status": "CANCELLED" if token.observed else "FAILED", "error": self._error(exc)}
+            if operation == "research_run" and result is not None:
+                update["result"] = result
         finally:
             with self._lock:
                 job = self._jobs[identifier]
@@ -521,7 +576,17 @@ class LabService:
         with self._lock:
             if identifier not in self._jobs:
                 raise ServiceError(404, "Job not found")
-            return deepcopy(self._jobs[identifier])
+            snapshot = deepcopy(self._jobs[identifier])
+            research = (self._research if identifier == self._active_job and
+                        snapshot["operation"] == "research_run" else None)
+        if research is not None and callable(getattr(research, "progress", None)):
+            # Read already retained events, never start another health/inference
+            # request during the regular job poll.
+            try:
+                snapshot["progress"] = deepcopy(research.progress())
+            except (OSError, ValueError):
+                snapshot["progress"] = {"state": "UNAVAILABLE"}
+        return snapshot
 
     def cancel(self, identifier: str) -> dict:
         """Request cooperative cancellation; a terminal job is unchanged."""

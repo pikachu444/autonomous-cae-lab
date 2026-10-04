@@ -106,6 +106,7 @@ def runtime_source_identity() -> str:
     This creates no Lab/store, imports no CAD model and supplies no provenance
     verdict. On-disk fingerprints are not a hash of cached Python bytecode.
     """
+    from openscience.jobs import execution_status
     core_module = sys.modules[Lab.__module__]
     core_path = Path(core_module.__file__).resolve()
     core_root = core_path.parents[1]
@@ -133,6 +134,7 @@ def runtime_source_identity() -> str:
         "schema_version": 1, "resource": _SOURCE_IDENTITY_URI, "diagnostic_only": True,
         "observed_at": datetime.now(timezone.utc).isoformat(),
         "fingerprint_observation": "on-disk source; not cached imported Python bytecode",
+        "execution": execution_status(),
         "process": {"pid": os.getpid(), "python_executable": sys.executable,
                     "mcp_server_path": str(Path(__file__).resolve())},
         "core": {"module_path": str(core_path), "repo_path": str(core_root),

@@ -1,0 +1,134 @@
+"use strict";
+
+// Presentation and request validation only. The server owns research admission.
+(function (root, factory) {
+  const controls = factory();
+  if (typeof module === "object" && module.exports) module.exports = controls;
+  if (root) root.researchControls = controls;
+})(typeof window === "undefined" ? null : window, function () {
+  const MODEL = "openai-codex/gpt-5.6-sol";
+  const SESSION = /^ses_[A-Za-z0-9]+$/;
+  const EXPERIMENT = /^[A-Za-z][A-Za-z0-9_-]{0,79}$/;
+  function fullMatch(pattern, value) { return typeof value === "string" && pattern.exec(value)?.[0] === value; }
+  const operationLabels = Object.freeze({
+    study_create: "연구 기록 저장", parameter_discover: "CAD 변수 확인", parameter_register: "연구 변수 등록",
+    registry_refresh: "원본 모델 변경 확인", cad_run: "CAD 생성·검사", native_create: "편집 가능한 CAD 생성",
+    native_inspect: "원본 CAD 확인", native_final: "해석할 형상 선택", analysis_run: "CAD 구조 해석",
+    pde_run: "편미분방정식 해석", model_analysis_run: "선언된 모델 해석", model_parameters_discover: "해석 모델 입력 확인",
+    model_parameters_register: "해석 입력 등록", doe_plan: "설계 후보 계획", doe_run: "수치 후보 탐색",
+    optimization_plan: "최적화 계획", optimization_run: "수치 최적화", model_optimization_plan: "모델 최적화 계획",
+    experiment_inspect: "실험 결과 확인", study_inspect: "연구 기록 확인", capabilities: "지원 범위 확인",
+    parameter_list: "등록된 연구 변수 확인", experiment_summary: "실험 결과 요약", experiment_compare: "실험 결과 비교",
+    optimization_inspect: "최적화 실행 기록 확인",
+  });
+  const wireAliases = Object.freeze({ parameters_discover: "parameter_discover", parameters_register: "parameter_register",
+    parameters_list: "parameter_list", experiment_run: "cad_run" });
+  const backendLabels = Object.freeze({
+    "fixture.cadquery": "편집 가능한 CAD와 설계 변수", "fixture.freecad": "FreeCAD 원본 모델",
+    "fixture.calculix": "CAD 구조 해석", "fixture.assembly": "전체 조립체 CAD",
+    "structural.code_aster.contact_patch": "두 판의 마찰 없는 접촉",
+    "pde.fenicsx": "편미분방정식 모델", "pde.fenicsx.imported": "가져온 메시의 편미분방정식",
+  });
+  const toolStatuses = Object.freeze({
+    completed: "도구 응답 받음", running: "실행 중", pending: "대기 중", error: "도구 실패",
+    COMPLETED: "도구 응답 받음", COMPLETED_REVIEW_REQUIRED: "응답 받음 · 검토 필요",
+    RUNNING: "실행 중", FAILED: "도구 실패", FAILED_EXECUTION: "실행 실패", REJECTED: "조건 미충족",
+    CANCELLED: "취소 완료", FAIL: "조건 미충족", PASS: "해당 검사 통과", UNKNOWN: "미확인", NOT_RELEASED: "공학적 사용 미승인",
+  });
+  function request(question, sessionId) {
+    if (typeof question !== "string" || !question.trim()) throw new Error("연구하고 싶은 질문을 입력하세요.");
+    // A lone surrogate would be replaced during UTF8 encoding, losing the input.
+    for (let i = 0; i < question.length; i++) {
+      const code = question.charCodeAt(i);
+      if (code >= 0xd800 && code <= 0xdbff) {
+        const next = question.charCodeAt(++i);
+        if (!(next >= 0xdc00 && next <= 0xdfff)) throw new Error("질문의 문자 형식을 확인하세요.");
+      } else if (code >= 0xdc00 && code <= 0xdfff) throw new Error("질문의 문자 형식을 확인하세요.");
+    }
+    if (new TextEncoder().encode(question).length > 16384) throw new Error("질문을 16 KiB 이내로 줄여 주세요.");
+    const args = { question };
+    if (sessionId !== undefined && sessionId !== null) {
+      if (!fullMatch(SESSION, sessionId)) throw new Error("확인된 대화에서만 계속 질문할 수 있습니다.");
+      args.session_id = sessionId;
+    }
+    return args;
+  }
+  function workspace(value) {
+    try {
+      const url = new URL(value);
+      return ["http:", "https:"].includes(url.protocol) && ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname)
+        && !url.username && !url.password ? url.href : null;
+    } catch { return null; }
+  }
+  function safeMessage(value, fallback = "AI 연구 연결을 확인할 수 없습니다. 연결 상태를 새로고침해 주세요.") {
+    if (typeof value !== "string" || !value.trim() || value.length > 400 || !/[가-힣]/.test(value)
+      || /[\\/`{}\u0000-\u0008\u000b\u000c\u000e-\u001f]|[A-Za-z]:|\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b/.test(value)) return fallback;
+    return value;
+  }
+  function statusView(data) {
+    const capabilities = Array.isArray(data?.capabilities) ? data.capabilities : [];
+    const validCapabilities = capabilities.every(item => item && typeof item.backend === "string" && item.backend.length > 0
+      && Array.isArray(item.operations) && item.operations.every(op => typeof op === "string" && op.length > 0));
+    const ready = data?.configured === true && data.available === true && data.state === "READY" && data.model === MODEL
+      && typeof data.profile === "string" && data.profile.length > 0 && workspace(data.workspace_url) !== null && validCapabilities;
+    return { ready, modelLabel: data?.model === MODEL ? "GPT-5.6 Sol · ChatGPT" : "승인 모델 확인 필요",
+      workspaceUrl: ready ? workspace(data.workspace_url) : null,
+      reason: ready ? "승인된 모델에 연결됐습니다. 질문을 보내면 실제 AI 답변과 실행 기록이 여기에 나타납니다."
+        : safeMessage(data?.reason, data?.configured === false ? "AI 연구 연결이 준비되지 않았습니다." : undefined),
+      scopes: ready ? capabilities.map(item => ({ label: backendLabels[item.backend] ?? "등록된 연구 모델",
+        operations: item.operations.map(operation => operationLabels[operation] ?? "등록된 도구") })) : [] };
+  }
+  function canRun(status, context) {
+    return statusView(status).ready && context?.local === true && context.writable === true && context.busy === false;
+  }
+  function toolView(item) {
+    if (!item || typeof item.tool !== "string" || typeof item.status !== "string") return null;
+    const wireName = item.tool.replace(/^.*[.:/]/, "").replace(/^caelab_/, "");
+    const name = Object.hasOwn(wireAliases, wireName) ? wireAliases[wireName] : wireName;
+    return { label: Object.hasOwn(operationLabels, name) ? operationLabels[name] : "도구 실행", status: item.status,
+      statusLabel: Object.hasOwn(toolStatuses, item.status) ? toolStatuses[item.status] : "상태 확인 필요",
+      experimentId: fullMatch(EXPERIMENT, item.experiment_id) ? item.experiment_id : null,
+      raw: item };
+  }
+  function responseView(data, context = {}) {
+    const valid = data?.kind === "openscience_research" && ["COMPLETED", "FAILED", "CANCELLED"].includes(data.status)
+      && data.model === MODEL && typeof data.profile === "string" && typeof data.question === "string"
+      && typeof data.answer === "string" && Array.isArray(data.tools) && data.completion_is_engineering_approval === false
+      && data.decision === "NOT_RELEASED" && (context.question === undefined || data.question === context.question);
+    if (!valid) return { valid: false, confirmed: false, answer: "", tools: [], reason: "AI 응답 형식을 확인할 수 없습니다. 작업 기록에서 원본 응답을 확인하세요." };
+    const sessionValid = fullMatch(SESSION, data.session_id);
+    const sourceValid = fullMatch(/^[0-9a-f]{40}$/, data.source_commit);
+    const confirmed = data.status === "COMPLETED" && sessionValid && sourceValid && workspace(data.workspace_url) !== null
+      && data.profile.length > 0;
+    return { valid: true, confirmed, answer: data.answer, question: data.question, status: data.status,
+      sessionId: sessionValid ? data.session_id : null, tools: data.tools.map(toolView),
+      reason: data.error ? safeMessage(data.error, "AI 연구가 완료되지 않았습니다. 남은 답변과 작업 기록을 확인하세요.") : null };
+  }
+  function canContinue(result, status, context) {
+    const view = responseView(result);
+    return view.confirmed && statusView(status).ready && context?.local === true && context.writable === true
+      && typeof context.resultStore === "string" && context.resultStore === context.activeStore
+      && result.model === status.model && result.profile === status.profile && result.workspace_url === status.workspace_url;
+  }
+  function progressView(data) {
+    const valid = data?.model === MODEL && typeof data.answer === "string" && Array.isArray(data.tools)
+      && typeof data.cleanup_pending === "boolean" && data.completion_is_engineering_approval === false && data.decision === "NOT_RELEASED"
+      && (data.session_id === null || fullMatch(SESSION, data.session_id));
+    return valid ? { valid: true, confirmed: false, answer: data.answer, tools: data.tools.map(toolView), cleanupPending: data.cleanup_pending }
+      : { valid: false, confirmed: false, answer: "", tools: [], cleanupPending: false, reason: "진행 기록을 확인할 수 없습니다. 작업 원본 기록을 확인하세요." };
+  }
+  function jobWorkflow(job) {
+    const progress = progressView(job.progress);
+    if (job.status === "CLEANUP_PENDING" || (["RUNNING", "CANCEL_REQUESTED"].includes(job.status) && progress.cleanupPending)) return { tone: "pending", stage: "AI 연구 종료 확인 중", next: "종료를 확인할 때까지 다음 작업은 시작할 수 없습니다. 받은 답변과 작업 기록은 보존됩니다." };
+    if (job.status === "CANCEL_REQUESTED") return { tone: "pending", stage: "AI 연구 취소 처리 중", next: "실제 실행의 종료를 확인하고 있습니다. 부분 답변과 실행 기록은 보존됩니다." };
+    if (job.status === "RUNNING") return { tone: "pending", stage: "AI 연구 실행 중", next: progress.valid && (progress.answer || progress.tools.length)
+      ? "지금까지 받은 실제 답변과 도구 상태를 표시합니다. 최종 종료를 확인한 뒤 다음 질문을 보낼 수 있습니다."
+      : "연결된 AI가 질문을 처리하고 있습니다. 실제 답변과 도구 기록은 반환되면 표시됩니다." };
+    const response = responseView(job.result);
+    if (job.status === "FAILED" || job.result?.status === "FAILED") return { tone: "failed", stage: "AI 연구 실패", next: response.answer ? "남은 부분 답변과 도구 기록을 확인하세요. 새 질문으로 다시 시작할 수 있습니다." : "연구를 완료하지 못했습니다. 연결 상태와 작업 기록을 확인하세요." };
+    if (job.status === "CANCELLED" || job.result?.status === "CANCELLED") return { tone: "cancelled", stage: "AI 연구 취소 완료", next: "부분 답변과 실행 기록은 보존됩니다. 다음 질문은 새 대화로 시작하세요." };
+    if (job.status === "COMPLETED" && response.valid) return { tone: "recorded", stage: "AI 응답 받음 · 결과 검토 필요", next: "답변과 연결된 실험을 확인하세요. 수치 검증과 공학적 사용 승인은 각 실험의 판정을 따릅니다." };
+    return { tone: "unknown", stage: "AI 연구 상태 미확인", next: "작업 기록에서 실제 응답과 종료 상태를 확인하세요." };
+  }
+  return Object.freeze({ MODEL, request, workspace, safeMessage, statusView, canRun, toolView, responseView, canContinue, progressView, jobWorkflow });
+});
