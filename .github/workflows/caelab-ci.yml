@@ -43,6 +43,17 @@ jobs:
               @($taskPdeSourceReceipt.side_effect_counters.PSObject.Properties | Where-Object Value -NE 0).Count -ne 0) {
             throw 'PDE research source parity did not produce the expected bounded evidence.'
           }
+      - name: Verify explicit fixture refinement scope and preserve original profiles
+        shell: pwsh
+        run: |
+          $taskRefinementRoot = Join-Path $env:GITHUB_WORKSPACE 'artifacts/fixture-refinement-source-ci'
+          & ./scripts/verify_fixture_refinement_research_source.ps1 -RepoRoot $env:GITHUB_WORKSPACE -OutputPath $taskRefinementRoot
+          $taskRefinementReceipt = Get-Content -LiteralPath (Join-Path $taskRefinementRoot 'receipt.json') -Raw | ConvertFrom-Json -Depth 60
+          if ($taskRefinementReceipt.status -cne 'PASS_FIXTURE_REFINEMENT_SOURCE_ONLY' -or
+              $taskRefinementReceipt.check_count -ne 11 -or $taskRefinementReceipt.guard_exit_code -ne 0 -or
+              $taskRefinementReceipt.actual_auth_model_Core_solver_HTTP_GUI_calls -ne 0) {
+            throw 'Fixture refinement source checks did not produce the expected bounded evidence.'
+          }
       - name: Check Windows checkout Git transport and pinned refusal gates
         shell: pwsh
         run: |
@@ -80,6 +91,19 @@ jobs:
               $taskOwnerIoReceipt.actual_runtime_provider_auth_HTTP_solver_GUI_Git_install_calls -ne 0) {
             throw 'Windows owner byte checks did not produce the expected read-only evidence.'
           }
+      - name: Check actual research waiting phases without runtime calls
+        shell: pwsh
+        run: |
+          $taskProgressReceiptPath = Join-Path $env:GITHUB_WORKSPACE 'artifacts/lab-research-source-ci/progress.json'
+          $null = & ./scripts/verify_lab_research.ps1 -RepoRoot $env:GITHUB_WORKSPACE -ProgressOnly -OutputPath $taskProgressReceiptPath
+          $taskProgressReceipt = Get-Content -LiteralPath $taskProgressReceiptPath -Raw | ConvertFrom-Json -Depth 60
+          if ($taskProgressReceipt.status -cne 'PASS_CONTROLLED_SOURCE_ONLY' -or
+              $taskProgressReceipt.selection -cne 'BOUNDED_PROGRESS_PHASE_AND_EXISTING_TERMINAL_CONTROLS' -or
+              $taskProgressReceipt.check_count -ne 54 -or
+              @($taskProgressReceipt.checks | Where-Object status -CNE 'PASS').Count -ne 0 -or
+              $taskProgressReceipt.actual_runtime_HTTP_provider_GUI_solver_Git_calls -ne 0) {
+            throw 'Research phase controls did not produce the expected bounded source evidence.'
+          }
       - name: Preserve source-only checks and public synthetic refusal fixtures
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -88,10 +112,12 @@ jobs:
           path: |
             artifacts/p2-structural-research-failure-flow-20261002-01/
             artifacts/pde-research-source-ci/
+            artifacts/fixture-refinement-source-ci/
             artifacts/mcp-git-transport-source-ci/
             artifacts/lab-research-source-ci/
             artifacts/development-human-workflow-20261004-01/bridge-source-01/
             artifacts/development-human-workflow-20261004-01/owner-io-source-01/
+            artifacts/development-human-workflow-20261004-01/research-progress-candidate-01/
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30
@@ -117,7 +143,7 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m pytest -q
       - name: Check forms, imported meshes and retained PDE/contact fields
-        run: node --test tests/test_fixture_controls.js tests/test_cad_controls.js tests/test_campaign_controls.js tests/test_imported_mesh_controls.js tests/test_pde_field_inspector.js tests/test_contact_field_inspector.js tests/test_result_presentation.js tests/test_result_workflow.js tests/test_research_handoff.js
+        run: node --test tests/test_fixture_controls.js tests/test_cad_controls.js tests/test_campaign_controls.js tests/test_imported_mesh_controls.js tests/test_pde_field_inspector.js tests/test_contact_field_inspector.js tests/test_result_presentation.js tests/test_result_workflow.js tests/test_research_handoff.js tests/test_research_answer.js
       - run: python scripts/verify_mcp.py
       - name: Verify native OpenScience source and tool guards without model calls
         run: |

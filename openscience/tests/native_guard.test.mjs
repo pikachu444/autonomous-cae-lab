@@ -243,6 +243,103 @@ function structuralResearchFixture(t) {
   json(f.settingsPath,f.settings); f.writeGuard({});
   return f;
 }
+// The canonical descriptor is embedded in the guard for the copied plugin.
+// PS parity is separately checked using its actual exported definition below.
+const refinementDefinition = JSON.parse(source.match(
+  /const nativeFixtureRefinementDefinition = nativeFreeze\((\{[\s\S]*?\})\);/)[1]);
+function refinementResearchFixture(t, definition = refinementDefinition) {
+  const f = readerFixture(t, {managed:true});
+  f.settings.allowed = [...definition.allowed_tools]; f.guard.allowed = [...definition.allowed_tools];
+  f.settings.research = structuredClone(definition);
+  json(f.settingsPath,f.settings); f.writeGuard({});
+  return f;
+}
+function refinementAnalysis(mesh = [4,3,2]) {
+  return {parent_experiment_id:'cad32',experiment_id:'solve32',backend:'fixture.calculix',settings:{
+    load:{force_per_support_N:100,source:'Hypothetical test load'},
+    material:{model:'orthotropic',E_1_MPa:1800,E_2_MPa:1800,E_3_MPa:900,
+      nu_12:.3,nu_13:.3,nu_23:.3,G_12_MPa:650,G_13_MPa:320,G_23_MPa:320,
+      axes:'global CAD X/Y/Z',provenance:'Synthetic assumption',qualification:'UNKNOWN'},
+    mesh:{max_sizes_mm:mesh}}};
+}
+test('fixture refinement actual PS definition exactly matches the copied native guard',
+  {skip:!process.env.CAELAB_FIXTURE_REFINEMENT_DEFINITION_PATH && 'External actual PS definition was not supplied.'},async t => {
+    const definition = JSON.parse(fs.readFileSync(process.env.CAELAB_FIXTURE_REFINEMENT_DEFINITION_PATH,'utf8'));
+    assert.equal(canonical(definition),canonical(refinementDefinition));
+    const f = refinementResearchFixture(t,definition), hooks = await f.hooks();
+    await hooks['chat.params'](f.request(),{});
+    assert.equal(definition.schema,7); assert.equal(definition.profile,'fixture-refinement-v1');
+    assert.equal(definition.allowed_tools.length,14);
+    const args = refinementAnalysis(), original = structuredClone(args);
+    await hooks['tool.execute.before']({tool:'caelab_analysis_run',sessionID:f.sessionID},{args});
+    assert.deepEqual(args,original); assert.equal(f.receipts().at(-1).accepted,true);
+  });
+test('fixture refinement analysis and numerical planning admit three requested meshes without rewriting conditions',async t => {
+  const f = refinementResearchFixture(t), hooks = await f.hooks();
+  for (const mesh of [[4,3],[4,3,2]]) {
+    const analysis = refinementAnalysis(mesh);
+    for (const [tool,args] of [['caelab_analysis_run',analysis],['caelab_optimization_plan',{
+      backend:'fixture.cadquery',model:'roller_support',analysis_backend:'fixture.calculix',
+      analysis_settings:analysis.settings,seed:13,max_generations:1,population_size:5}]]) {
+      const original = structuredClone(args);
+      await hooks['tool.execute.before']({tool,sessionID:f.sessionID},{args});
+      assert.deepEqual(args,original); assert.equal(f.receipts().at(-1).accepted,true);
+    }
+  }
+});
+test('fixture refinement retains finite scientific-invalid conditions for Domain rejection',async t => {
+  const f = refinementResearchFixture(t), hooks = await f.hooks();
+  // Work count is this hook's boundary; scientific limits belong to Domain.
+  for (const mesh of [[2,4],[-1,-2],[4]]) {
+    const args = refinementAnalysis(mesh); args.settings.load.force_per_support_N = -100;
+    const original = structuredClone(args);
+    await hooks['tool.execute.before']({tool:'caelab_analysis_run',sessionID:f.sessionID},{args});
+    assert.deepEqual(args,original); assert.equal(f.receipts().at(-1).accepted,true);
+  }
+});
+for (const [label,mesh] of [['four meshes',[5,4,3,2]],['missing list',undefined],['empty list',[]]]) {
+  test(`fixture refinement refuses ${label} for analysis and numerical planning`,async t => {
+    const f = refinementResearchFixture(t), hooks = await f.hooks();
+    const analysis = refinementAnalysis(mesh);
+    if (mesh === undefined) analysis.settings.mesh = {element_size_mm:4};
+    for (const [tool,args] of [['caelab_analysis_run',analysis],['caelab_optimization_plan',{
+      backend:'fixture.cadquery',model:'roller_support',analysis_backend:'fixture.calculix',analysis_settings:analysis.settings}]]) {
+      const original = structuredClone(args);
+      await assert.rejects(hooks['tool.execute.before']({tool,sessionID:f.sessionID},{args}),refusal('RESEARCH_WORK_BUDGET_EXCEEDED'));
+      assert.deepEqual(args,original); assert.equal(f.receipts().at(-1).accepted,false);
+    }
+  });
+}
+test('fixture refinement rejects descriptor tampering including boundary metadata and larger work budgets',async t => {
+  for (const change of [d => d.budgets.analysis.max_mesh_levels=4,d => d.profile='fixture-refinement-v2',
+    d => d.runtime_environment.OMP_NUM_THREADS='8',d => d.allowed_tools.push('caelab_model_analysis_run'),
+    d => d.capabilities[1].boundary_model='Invented bolt clamp',d => d.capabilities[1].numerical_verdict='Always PASS']) {
+    const f = refinementResearchFixture(t); change(f.settings.research); json(f.settingsPath,f.settings);
+    await assert.rejects(f.hooks(),refusal('RESEARCH_DEFINITION_INVALID'));
+  }
+});
+test('fixture refinement preserves source grant and stopping gates for admitted analysis',async t => {
+  for (const drift of ['source','grant','stopping']) {
+    const f = refinementResearchFixture(t), hooks = await f.hooks();
+    if (drift === 'source') json(f.statePath,{...f.boot,source_commit:'f'.repeat(40)});
+    if (drift === 'grant') f.state.filesystem.grants[0].access='read';
+    if (drift === 'stopping') f.writeGuard({stopping:true});
+    const args = refinementAnalysis(), original = structuredClone(args);
+    await assert.rejects(hooks['tool.execute.before']({tool:'caelab_analysis_run',sessionID:f.sessionID},{args}));
+    assert.deepEqual(args,original); assert.equal(f.receipts().at(-1).accepted,false);
+  }
+});
+test('fixture refinement keeps backend numerical engine and population admission limits',async t => {
+  const f = refinementResearchFixture(t), hooks = await f.hooks();
+  for (const [tool,args,code] of [
+    ['caelab_analysis_run',{...refinementAnalysis(),backend:'structural.code_aster.contact_patch'},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+    ['caelab_optimization_plan',{backend:'fixture.cadquery',model:'roller_support',engine:'llm.optimizer'},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+    ['caelab_optimization_plan',{backend:'fixture.cadquery',model:'roller_support',population_size:6},'RESEARCH_WORK_BUDGET_EXCEEDED']]) {
+    const original = structuredClone(args);
+    await assert.rejects(hooks['tool.execute.before']({tool,sessionID:f.sessionID},{args}),refusal(code));
+    assert.deepEqual(args,original); assert.equal(f.receipts().at(-1).accepted,false);
+  }
+});
 const refusal = code => error => error.name === 'CaeLabNativeGuardRefusal' && error.code === code && !error.message.includes('synthetic snapshot');
 // Pinned official 4082a2ecb73e166d4503963798228ba700f3840f:
 // backend/cli/src/session/message-v2.ts general Error -> UnknownError branch

@@ -1,3 +1,28 @@
+## Current checkpoint: actual Lab CAD reached; analysis input and user display corrected
+
+Record: `benchmarks/records/20261004-lab-human-input-correction-r01.json`.
+Actual clean dd3a254 human02/approved5.6Sol reaches two CAD experiments and the
+same-session continuation. Both exact question bytes and same-store cleanup are
+retained. The six analysis calls lack the required settings shape and are
+refused before Core/solver. Legacy2-level scope also excludes requested4/3/2.
+No analysis or changed-load/busy-cancel gate passed; all28CAD files/616261B remain
+unchanged. Owned Lab/runtime are stopped. Root observer timeouts are retained.
+
+Reviewed correction adds explicit FixtureRefinement/schema7 with the same14tools,
+three-level work count and actual input/BC/global-axes instructions. All6 old
+canonical profiles/default2 stay unchanged. Safe readable answers, error
+headlines, actual phases and MCP failure rows preserve original evidence/gates.
+Main UI35, profilePS11/Node23, selected bridgePy37 and MainPS54 PASS; independent
+source reviews have no openP1/P2. Source checks are not actual solver/GUI proof.
+Exact dd3 CI37202665758 is7SUCCESS/3FAIL(codeaster/explicit/pde); new CI unverified.
+
+SERIAL NEXT: reviewed published source -> fresh human03 ordinary question/CAD/
+three-mesh analysis/readable links -> changed-load/retention/busy-cancel. Then
+original assembly P2.4 native transport/mechanics/full fields and remaining
+phases. Whole52 and Phase6/7 remain OPEN; UNKNOWN/NOT_RELEASED unchanged.
+
+---
+
 # OpenScience local runtime acceptance — 2026-09-30
 
 ## Actual Research-purpose04ff loop, 2026-10-01

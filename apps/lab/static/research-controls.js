@@ -23,6 +23,11 @@
   });
   const wireAliases = Object.freeze({ parameters_discover: "parameter_discover", parameters_register: "parameter_register",
     parameters_list: "parameter_list", experiment_run: "cad_run" });
+  function operationLabel(value, fallback) {
+    const wireName = value.replace(/^.*[.:/]/, "").replace(/^caelab_/, "");
+    const name = Object.hasOwn(wireAliases, wireName) ? wireAliases[wireName] : wireName;
+    return Object.hasOwn(operationLabels, name) ? operationLabels[name] : fallback;
+  }
   const backendLabels = Object.freeze({
     "fixture.cadquery": "편집 가능한 CAD와 설계 변수", "fixture.freecad": "FreeCAD 원본 모델",
     "fixture.calculix": "CAD 구조 해석", "fixture.assembly": "전체 조립체 CAD",
@@ -76,16 +81,14 @@
       reason: ready ? "승인된 모델에 연결됐습니다. 질문을 보내면 실제 AI 답변과 실행 기록이 여기에 나타납니다."
         : safeMessage(data?.reason, data?.configured === false ? "AI 연구 연결이 준비되지 않았습니다." : undefined),
       scopes: ready ? capabilities.map(item => ({ label: backendLabels[item.backend] ?? "등록된 연구 모델",
-        operations: item.operations.map(operation => operationLabels[operation] ?? "등록된 도구") })) : [] };
+        operations: item.operations.map(operation => operationLabel(operation, "등록된 도구")) })) : [] };
   }
   function canRun(status, context) {
     return statusView(status).ready && context?.local === true && context.writable === true && context.busy === false;
   }
   function toolView(item) {
     if (!item || typeof item.tool !== "string" || typeof item.status !== "string") return null;
-    const wireName = item.tool.replace(/^.*[.:/]/, "").replace(/^caelab_/, "");
-    const name = Object.hasOwn(wireAliases, wireName) ? wireAliases[wireName] : wireName;
-    return { label: Object.hasOwn(operationLabels, name) ? operationLabels[name] : "도구 실행", status: item.status,
+    return { label: operationLabel(item.tool, "도구 실행"), status: item.status,
       statusLabel: Object.hasOwn(toolStatuses, item.status) ? toolStatuses[item.status] : "상태 확인 필요",
       experimentId: fullMatch(EXPERIMENT, item.experiment_id) ? item.experiment_id : null,
       raw: item };
@@ -102,7 +105,9 @@
       && data.profile.length > 0;
     return { valid: true, confirmed, answer: data.answer, question: data.question, status: data.status,
       sessionId: sessionValid ? data.session_id : null, tools: data.tools.map(toolView),
-      reason: data.error ? safeMessage(data.error, "AI 연구가 완료되지 않았습니다. 남은 답변과 작업 기록을 확인하세요.") : null };
+      reason: typeof data.error === "string" && data.error.trim() ? safeMessage(data.error, data.status === "COMPLETED"
+        ? "AI 연구 중 오류가 발생했습니다. 도구 상태와 원본 작업 기록을 확인하세요."
+        : "AI 연구가 완료되지 않았습니다. 남은 답변과 작업 기록을 확인하세요.") : null };
   }
   function canContinue(result, status, context) {
     const view = responseView(result);
@@ -117,6 +122,85 @@
     return valid ? { valid: true, confirmed: false, answer: data.answer, tools: data.tools.map(toolView), cleanupPending: data.cleanup_pending }
       : { valid: false, confirmed: false, answer: "", tools: [], cleanupPending: false, reason: "진행 기록을 확인할 수 없습니다. 작업 원본 기록을 확인하세요." };
   }
+  // Small presentation subset. No HTML, link resolution or numeric conversion.
+  // The exact raw string remains available even when syntax is formatted.
+  function answerInline(value, depth = 0) {
+    const parts = []; let start = 0, position = 0;
+    while (position < value.length) {
+      const marker = value[position] === "`" && value[position - 1] !== "`" && value[position + 1] !== "`" ? "`"
+        : value.startsWith("**", position) ? "**" : value[position] === "*" ? "*" : null;
+      if (!marker || (marker !== "`" && position > 0 && !/[\s([{]/.test(value[position - 1]))) { position++; continue; }
+      const close = value.indexOf(marker, position + marker.length), content = close < 0 ? "" : value.slice(position + marker.length, close);
+      const codeEnd = marker !== "`" || (value[close - 1] !== "`" && value[close + 1] !== "`");
+      const emphasisEnd = marker !== "*" || close + 1 === value.length || /[\s.,;:!?)\]}]/.test(value[close + 1]);
+      if (close < 0 || !content.trim() || !codeEnd || !emphasisEnd) { position += marker.length; continue; }
+      if (start < position) parts.push({ type: "text", text: value.slice(start, position) });
+      if (marker === "`") parts.push({ type: "code", text: content });
+      else parts.push({ type: marker === "**" ? "strong" : "em", parts: depth < 2 ? answerInline(content, depth + 1) : [{ type: "text", text: content }] });
+      position = close + marker.length; start = position;
+    }
+    if (start < value.length) parts.push({ type: "text", text: value.slice(start) });
+    return parts;
+  }
+  function answerBlocks(raw) {
+    if (typeof raw !== "string") throw new TypeError("답변 원문은 문자열이어야 합니다.");
+    const lines = raw.split(/\r\n|\n|\r/), starts = [0], blocks = []; let index = 0;
+    for (const ending of raw.matchAll(/\r\n|\n|\r/g)) starts.push(ending.index + ending[0].length);
+    const marker = line => /^\s*([-+*]|\d+[.)])[ \t]+(.*)$/.exec(line);
+    const fenced = line => /^\s*(`{3,}|~{3,})([^`]*)$/.exec(line);
+    const cells = line => {
+      // Ambiguous escaped/code pipes remain literal paragraphs instead of
+      // incorrectly splitting a value into guessed cells.
+      if (!line.includes("|")) return null;
+      let code = false;
+      for (let position = 0; position < line.length; position++) {
+        if (line[position] === "\\" && line[position + 1] === "|") return null;
+        if (line[position] === "`") code = !code;
+        else if (line[position] === "|" && code) return null;
+      }
+      let body = line.trim(); if (body.startsWith("|")) body = body.slice(1); if (body.endsWith("|")) body = body.slice(0, -1);
+      const values = body.split("|").map(value => value.trim()); return values.length >= 2 ? values : null;
+    };
+    const tableAt = position => {
+      const header = cells(lines[position] ?? ""), rule = cells(lines[position + 1] ?? "");
+      return header && rule?.length === header.length && rule.every(value => /^:?-{3,}:?$/.test(value)) ? header : null;
+    };
+    while (index < lines.length) {
+      if (!lines[index].trim()) { index++; continue; }
+      const fence = fenced(lines[index]);
+      if (fence) {
+        const start = index++; const closing = fence[1];
+        while (index < lines.length && lines[index].trim() !== closing) index++;
+        if (index < lines.length) index++;
+        blocks.push({ type: "technical", text: raw.slice(starts[start], starts[index] ?? raw.length) }); continue;
+      }
+      const header = tableAt(index);
+      if (header) {
+        const start = index, rows = []; index += 2; let valid = true;
+        while (index < lines.length && lines[index].trim() && lines[index].includes("|")) {
+          const row = cells(lines[index]); if (!row || row.length !== header.length) valid = false;
+          rows.push(row); index++;
+        }
+        blocks.push(valid ? { type: "table", header: header.map(value => answerInline(value)), rows: rows.map(row => row.map(value => answerInline(value))) }
+          : { type: "paragraph", parts: answerInline(lines.slice(start, index).join("\n")) }); continue;
+      }
+      const first = marker(lines[index]);
+      if (first) {
+        const ordered = /^\d/.test(first[1]), items = [];
+        while (index < lines.length) {
+          const match = marker(lines[index]); if (!match || /^\d/.test(match[1]) !== ordered) break;
+          const label = match[1], content = [match[2]]; index++;
+          while (index < lines.length && lines[index].trim() && !marker(lines[index]) && !fenced(lines[index]) && !tableAt(index)) content.push(lines[index++]);
+          items.push({ marker: label, parts: answerInline(content.join("\n")) });
+        }
+        blocks.push({ type: "list", ordered, items }); continue;
+      }
+      const content = [lines[index++]];
+      while (index < lines.length && lines[index].trim() && !marker(lines[index]) && !fenced(lines[index]) && !tableAt(index)) content.push(lines[index++]);
+      blocks.push({ type: "paragraph", parts: answerInline(content.join("\n")) });
+    }
+    return { raw, blocks };
+  }
   function jobWorkflow(job) {
     const progress = progressView(job.progress);
     if (job.status === "CLEANUP_PENDING" || (job.status === "CANCEL_REQUESTED" && progress.cleanupPending)) return { tone: "pending", stage: "AI 연구 종료 확인 중", next: "종료를 확인할 때까지 다음 작업은 시작할 수 없습니다. 받은 답변과 작업 기록은 보존됩니다." };
@@ -127,8 +211,15 @@
     const response = responseView(job.result);
     if (job.status === "FAILED" || job.result?.status === "FAILED") return { tone: "failed", stage: "AI 연구 실패", next: response.answer ? "남은 부분 답변과 도구 기록을 확인하세요. 새 질문으로 다시 시작할 수 있습니다." : "연구를 완료하지 못했습니다. 연결 상태와 작업 기록을 확인하세요." };
     if (job.status === "CANCELLED" || job.result?.status === "CANCELLED") return { tone: "cancelled", stage: "AI 연구 취소 완료", next: "부분 답변과 실행 기록은 보존됩니다. 다음 질문은 새 대화로 시작하세요." };
+    if (job.status === "COMPLETED" && response.valid && typeof job.result.error === "string" && job.result.error.trim()) return {
+      tone: "failed", stage: "AI 연구 중 오류 발생", next: "받은 답변과 실패한 도구 기록을 확인하세요. AI 응답 수신과 실제 해석·검증 판정은 별개입니다." };
     if (job.status === "COMPLETED" && response.valid) return { tone: "recorded", stage: "AI 응답 받음 · 결과 검토 필요", next: "답변과 연결된 실험을 확인하세요. 수치 검증과 공학적 사용 승인은 각 실험의 판정을 따릅니다." };
     return { tone: "unknown", stage: "AI 연구 상태 미확인", next: "작업 기록에서 실제 응답과 종료 상태를 확인하세요." };
   }
-  return Object.freeze({ MODEL, request, workspace, safeMessage, statusView, canRun, toolView, responseView, canContinue, progressView, jobWorkflow });
+  function phaseLabel(value) {
+    const phases = { RUNTIME_VERIFY: "AI 연구 실행 환경을 확인하고 있습니다.", RESIDENT_VERIFY: "연결된 AI 실행기의 준비 상태를 확인하고 있습니다.",
+      CLI_PREFLIGHT: "질문을 보내기 전에 대화와 실행 조건을 확인하고 있습니다.", END_VERIFY: "답변과 도구 실행의 종료 상태를 확인하고 있습니다." };
+    return typeof value === "string" && Object.hasOwn(phases, value) ? phases[value] : null;
+  }
+  return Object.freeze({ MODEL, request, workspace, safeMessage, statusView, canRun, toolView, responseView, canContinue, progressView, answerBlocks, phaseLabel, jobWorkflow });
 });

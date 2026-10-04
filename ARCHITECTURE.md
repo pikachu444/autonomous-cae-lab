@@ -1,5 +1,16 @@
 # Architecture
 
+## Explicit fixture refinement research (ADR0034)
+
+FixtureRefinement/schema7 preserves the existing fourteen-tool fixture/scalar
+route and adds one analysis mesh work level through a separate canonical intent.
+The control plane receives the actual adapter input shape, fixed boundary model
+and global material frame. Domain scientific verdicts, adapter syntax and Core
+operations remain unchanged. Historical descriptors/defaults stay pinned.
+Formatted AI text preserves raw evidence and cannot become a Core verdict.
+Source, actual human research, native validation and engineering release are
+separate gates; UNKNOWN and NOT_RELEASED remain authoritative.
+
 ## Original fixture assembly CAD parent (ADR0032)
 
 `fixture.assembly` reuses the pinned original bending fixture. Domain declares

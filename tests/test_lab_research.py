@@ -570,3 +570,124 @@ def test_owner_io_unsupported_platform_fails_before_child(configured, monkeypatc
     monkeypatch.setattr(research.subprocess, "run", lambda *_args, **_options: pytest.fail("Unsupported reader spawned"))
     with pytest.raises(ValueError, match="소유권"):
         bridge._read_owner_bytes()
+
+
+def observed_registration_error():
+    # One nonsensitive observed human-02 tool event, with only the displayed
+    # type/tool/status/output/truncation fields. All other events below are
+    # SYNTHETIC_NOT_NATIVE; no reasoning or credentials are fixture material.
+    return {"type": "tool_use", "part": {"type": "tool", "tool": "caelab_parameters_register",
+        "state": {"status": "completed", "metadata": {"truncated": False},
+            "output": "Error executing tool parameters_register: Bounds must contain the current CAD value and lie inside native model bounds"}}}
+
+
+def test_progress_observed_mcp_failure_and_recovered_success_are_separate(configured, monkeypatch):
+    bridge, _, _ = configured
+    def start(directory, command):
+        events(directory, [observed_registration_error(),
+            {"type": "tool_use", "part": {"tool": "caelab_parameters_register", "state": {
+                "status": "completed", "metadata": {"truncated": False},
+                "output": json.dumps({"status": "REGISTERED", "value": 100.0, "bounds": [90.0, 110.0]})}}},
+            {"type": "tool_use", "part": {"tool": "caelab_analysis_run", "state": {
+                "status": "completed", "output": json.dumps({"status": "UNKNOWN", "experiment_id": "E-preserved"})}}},
+            {"type": "text", "part": {"text": "수정된 범위 90.0–110.0, 현재값 100.0을 등록했습니다."}}])
+        response(bridge, directory)
+        return FakeProcess()
+    monkeypatch.setattr(bridge, "_start", start)
+    question = "현재값 100.0, 범위 90.0–110.0, 허용값 1.23e-4를 확인하세요."
+    result = bridge.run(question)
+    assert result["tools"] == [
+        {"tool": "caelab_parameters_register", "status": "FAILED", "tool_status": "completed",
+         "error": "Bounds must contain the current CAD value and lie inside native model bounds"},
+        {"tool": "caelab_parameters_register", "status": "REGISTERED", "tool_status": "completed"},
+        {"tool": "caelab_analysis_run", "status": "UNKNOWN", "tool_status": "completed", "experiment_id": "E-preserved"}]
+    assert result["status"] == "COMPLETED" and "error" not in result
+    assert result["question"] == question and "100.0" in result["answer"]
+    assert result["decision"] == "NOT_RELEASED" and result["completion_is_engineering_approval"] is False
+
+
+@pytest.mark.parametrize("output,metadata", [
+    (json.dumps({"registered": True, "value": 100.0}), {"truncated": False}),
+    (json.dumps({"tools": ["parameters_register", "parameters_list"], "count": 2}), {"truncated": False}),
+    ("Registered parameters_register successfully. Bounds are valid.", {"truncated": False}),
+    ("Example: Error executing tool parameters_register: quoted explanation", {"truncated": False}),
+    ("Error executing tool parameters_list: different tool", {"truncated": False}),
+    ("Error executing tool parameters_register: truncated response", {"truncated": True}),
+    ("Error executing tool parameters_register: no complete-output proof", None),
+])
+def test_progress_success_discovery_and_unconfirmed_error_text_are_not_failed(configured, output, metadata):
+    bridge, _, _ = configured
+    state = {"status": "completed", "output": output, "metadata": metadata}
+    events(bridge.evidence_root, [{"type": "tool_use", "part": {"tool": "caelab_parameters_register", "state": state}}])
+    answer, tools, errors = bridge._output(bridge.evidence_root)
+    assert answer == "" and errors == []
+    assert tools == [{"tool": "caelab_parameters_register", "status": "completed"}]
+
+
+def test_progress_typed_and_event_errors_keep_existing_priority(configured):
+    bridge, _, _ = configured
+    failure = observed_registration_error()
+    failure["part"]["state"]["error"] = "typed error has priority"
+    events(bridge.evidence_root, [failure, {"type": "error", "error": "event error preserved"}])
+    answer, tools, errors = bridge._output(bridge.evidence_root)
+    assert tools == [{"tool": "caelab_parameters_register", "status": "completed"}]
+    assert errors == ["typed error has priority", "event error preserved"] and answer == ""
+
+
+def test_progress_mcp_row_error_hides_private_path_and_credentials(configured):
+    bridge, _, _ = configured
+    failure = observed_registration_error()
+    failure["part"]["state"]["output"] = "Error executing tool parameters_register: C:\\private\\auth.json authorization=SECRET bearer TOKEN"
+    events(bridge.evidence_root, [failure])
+    _, tools, errors = bridge._output(bridge.evidence_root)
+    assert tools[0]["status"] == "FAILED" and errors == []
+    assert not any(value in tools[0]["error"] for value in ("private", "auth.json", "SECRET", "TOKEN"))
+
+
+@pytest.mark.parametrize("phase", sorted(research.PROGRESS_PHASES))
+def test_progress_only_fixed_phase_and_utc_are_public(configured, phase):
+    bridge, _, _ = configured
+    bridge._directory, bridge._active = bridge.evidence_root, True
+    stamp = "2026-10-04T12:34:56.1234567Z"
+    save(bridge.evidence_root / "progress.json", {"phase": phase, "phase_started_utc": stamp,
+        "session_id": "ses_owned123", "request_path": "C:\\private\\request.json", "phase_label": "private"})
+    owner_reads = len(bridge._synthetic_owner_reads)
+    snapshot = bridge.progress()
+    assert snapshot["phase"] == phase and snapshot["phase_started_utc"] == stamp
+    assert snapshot["session_id"] == "ses_owned123" and snapshot["answer"] == "" and snapshot["tools"] == []
+    assert snapshot["cleanup_pending"] is False and bridge.active
+    assert len(bridge._synthetic_owner_reads) == owner_reads
+    assert "private" not in json.dumps(snapshot) and "AI_RUNNING" not in json.dumps(snapshot)
+    assert snapshot["decision"] == "NOT_RELEASED" and not snapshot["completion_is_engineering_approval"]
+
+
+@pytest.mark.parametrize("phase", ["AI_RUNNING", "C:\\private\\request.json", ["RUNTIME_VERIFY"]])
+def test_progress_unknown_or_untyped_phase_is_ignored(configured, phase):
+    bridge, _, _ = configured
+    bridge._directory, bridge._active = bridge.evidence_root, True
+    save(bridge.evidence_root / "progress.json", {"phase": phase, "phase_started_utc": "2026-10-04T12:34:56Z"})
+    snapshot = bridge.progress()
+    assert "phase" not in snapshot and "phase_started_utc" not in snapshot
+
+
+@pytest.mark.parametrize("stamp", ["C:\\private\\owner.json", "2026-10-04T12:34:56+09:00",
+                                  "2026-02-30T12:34:56Z", 123])
+def test_progress_invalid_or_non_utc_timestamp_is_ignored(configured, stamp):
+    bridge, _, _ = configured
+    bridge._directory, bridge._active = bridge.evidence_root, True
+    save(bridge.evidence_root / "progress.json", {"phase": "RUNTIME_VERIFY", "phase_started_utc": stamp})
+    snapshot = bridge.progress()
+    assert snapshot["phase"] == "RUNTIME_VERIFY" and "phase_started_utc" not in snapshot
+
+
+def test_progress_phase_coexists_with_actual_answer_tools_and_cleanup(configured):
+    bridge, _, _ = configured
+    bridge._directory, bridge._active, bridge._cleanup_pending = bridge.evidence_root, True, True
+    events(bridge.evidence_root, [observed_registration_error(),
+        {"type": "text", "part": {"text": "실제로 도착한 답변 1.23e-4"}}])
+    save(bridge.evidence_root / "progress.json", {"phase": "END_VERIFY", "cleanup_pending": True,
+        "state": "CLEANUP_PENDING", "session_id": "ses_owned123", "phase_started_utc": "2026-10-04T12:34:56Z"})
+    snapshot = bridge.progress()
+    assert snapshot["answer"] == "실제로 도착한 답변 1.23e-4" and snapshot["tools"][0]["status"] == "FAILED"
+    assert snapshot["phase"] == "END_VERIFY" and snapshot["cleanup_pending"] is True
+    assert "error" not in snapshot and bridge.active and bridge.cleanup_pending

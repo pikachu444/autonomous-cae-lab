@@ -76,6 +76,101 @@ const nativeFreeze = value => {
   }
   return value;
 };
+// Exact opt-in PS descriptor; schema1 and all historical profiles are unchanged.
+const nativeFixtureRefinementDefinition = nativeFreeze({
+  "schema": 7,
+  "kind": "autonomous-cae-lab.openscience-research-definition",
+  "agent": "research",
+  "allowed_tools": [
+    "caelab_study_create",
+    "caelab_study_inspect",
+    "caelab_parameters_discover",
+    "caelab_parameters_register",
+    "caelab_parameters_list",
+    "caelab_experiment_run",
+    "caelab_experiment_inspect",
+    "caelab_experiment_summary",
+    "caelab_experiment_compare",
+    "caelab_analysis_run",
+    "caelab_optimization_plan",
+    "caelab_optimization_run",
+    "caelab_optimization_inspect",
+    "caelab_pde_run"
+  ],
+  "runtime_environment": {
+    "MPLBACKEND": "Agg",
+    "OMP_NUM_THREADS": "2",
+    "QT_QPA_PLATFORM": "offscreen",
+    "CAELAB_FENICSX_PYTHON": "/usr/bin/python3"
+  },
+  "budgets": {
+    "steps": 24,
+    "mcp_timeout_seconds": 3600,
+    "command_timeout_seconds": 3600,
+    "optimization": {
+      "max_generations": 1,
+      "population_size": 5
+    },
+    "analysis": {
+      "max_mesh_levels": 3
+    },
+    "pde": {
+      "max_mesh_levels": 3,
+      "max_cell_count": 32
+    }
+  },
+  "capabilities": [
+    {
+      "backend": "fixture.cadquery",
+      "operations": [
+        "parameters_discover",
+        "parameters_register",
+        "experiment_run"
+      ],
+      "model": "roller_support",
+      "inputs": "Discover native paths/current values/bounds first. Register only requested research variables; registration bounds must contain the current CAD value and stay within discovered native bounds, including fixed variables. A fixed variable must keep its discovered current_value. A requested different value needs free registration and an explicit experiment value. Unregistered CAD dimensions retain their current defaults.",
+      "runtime": "Existing WslPython with pinned fixture/CadQuery dependencies",
+      "evidence": "Core source/Python/platform and fixture source fingerprints; immutable CAD artifacts",
+      "verification": "IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF"
+    },
+    {
+      "backend": "fixture.calculix",
+      "operations": [
+        "analysis_run",
+        "optimization_plan",
+        "optimization_run",
+        "optimization_inspect"
+      ],
+      "inputs": "analysis_run requires exactly parent_experiment_id, experiment_id, backend=fixture.calculix and settings with exactly load/material/mesh. load: force_per_support_N and source. material: model, provenance, qualification; orthotropic E_1_MPa/E_2_MPa/E_3_MPa/nu_12/nu_13/nu_23/G_12_MPa/G_13_MPa/G_23_MPa/axes, or isotropic elastic_modulus_MPa/poisson_ratio. mesh: max_sizes_mm, two or three positive strictly descending sizes in mm. optimization_plan uses this same analysis_settings and deterministic numerical engine.",
+      "runtime": "Gmsh and ccx on the configured resident WSL PATH; existing SciPy numerical engine",
+      "evidence": "Existing solver executable/version, parent STEP, raw fields, mesh/reaction checks and campaign journals",
+      "verification": "IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF",
+      "boundary_model": "One verified roller_support solid, roller diameter8.3mm and depth>=24mm: bottom fixed in X/Y/Z; total negative-Z saddle force distributed by clipped tessellated surface area over the central24mm. This idealization is fixed by the existing adapter, not caller-supplied bolt/contact conditions. Orthotropic axes are global CAD X/Y/Z; axes text declares provenance and does not rotate the constitutive tensor.",
+      "numerical_verdict": "Existing final-two-mesh displacement relative change<=5% and signed all-axis reaction balance<=1% remain unchanged. Peak stress is an invalid diagnostic, not strength evidence. Three meshes alone do not establish asymptotic convergence."
+    },
+    {
+      "backend": "pde.fenicsx",
+      "operations": [
+        "pde_run"
+      ],
+      "inputs": "Bounded scalar linear elliptic weak form on unit square, Dirichlet data, manufactured reference and declared mesh/error limits",
+      "runtime": "Existing isolated /usr/bin/python3 FEniCSx worker; not the Lab venv",
+      "evidence": "Existing worker source/version/interpreter, fields, reference errors/rates and residual checks",
+      "verification": "IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF"
+    }
+  ],
+  "limitations": [
+    "Capability metadata does not establish installation, a numerical PASS or engineering approval.",
+    "CFD/Navier-Stokes, arbitrary geometry/domain/equation families and PDE input-binding optimization are not admitted by this profile.",
+    "One bounded numerical generation does not establish a converged/global optimum.",
+    "Solver completion does not qualify strength, materials, physical loads or release.",
+    "Other implemented adapters remain outside this bounded research profile until their phase acceptance.",
+    "In-flight solver/campaign cancellation is not established by the historical CAD-only cancellation proof.",
+    "This opt-in profile admits one additional analysis mesh level; the historical FixtureScalar default remains two. Tool/backend/model/security/cleanup and native execution policies are unchanged.",
+    "Arbitrary support boundaries, material rotations, bolt/contact mechanics and original assembly mechanics are not admitted. Missing physical material/load data stay explicitly assumed and UNKNOWN; all results remain NOT_RELEASED."
+  ],
+  "profile": "fixture-refinement-v1"
+});
 const nativeMaterialLimits = nativeFreeze({stress_absolute_mpa:1e-10, stress_relative:1e-8,
   tangent_relative:1e-8, energy_absolute_mpa:1e-10, energy_relative:1e-8,
   finite_difference_relative:1e-6, finite_difference_steps:[1e-7,1e-8,1e-9]});
@@ -301,10 +396,12 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
         !nativeSha(settings.config_sha256) || !nativeSha(settings.plugin_sha256) || !nativeSha(settings.boot_source_sha256)) nativeRefuse('SETTINGS_INVALID');
     if (Object.hasOwn(settings, 'research')) {
       const research = settings.research;
-      exactKeys(research, [3,4,5,6].includes(research.schema) ? [...nativeResearchKeys, 'profile'] :
+      exactKeys(research, [3,4,5,6,7].includes(research.schema) ? [...nativeResearchKeys, 'profile'] :
         research.schema === 2 ? [...nativeResearchKeys, 'profile', 'benchmark_definition'] : nativeResearchKeys,
         'RESEARCH_DEFINITION_INVALID');
-      if (research.schema === 6) {
+      if (research.schema === 7) {
+        if (nativeCanonical(research) !== nativeCanonical(nativeFixtureRefinementDefinition)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
+      } else if (research.schema === 6) {
         if (nativeCanonical(research) !== nativeCanonical(nativeContactDefinition)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
       } else if (research.schema === 5) {
         if (nativeCanonical(research) !== nativeCanonical(nativeViscoelasticDefinition)) nativeRefuse('RESEARCH_DEFINITION_INVALID');

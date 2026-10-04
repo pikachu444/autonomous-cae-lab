@@ -1,3 +1,15 @@
+## Explicit fixture refinement scope (ADR0034)
+
+The trusted runtime owner may select FixtureRefinement/schema7 with the existing
+fourteen tools and three backends. Its exact canonical descriptor admits up to
+three analysis mesh levels while preserving every historical descriptor and
+default. The control plane receives the existing load/material/mesh contract,
+fixed bottom/central24mm saddle idealization and global CAD material axes.
+No browser-supplied scope, boundary control, tensor rotation or new backend is
+introduced. Domain owns scientific rejection and unchanged numerical thresholds.
+Actual errors and inert formatted answers preserve raw text and same-record Core
+links; presentation and turn completion cannot establish numerical PASS/release.
+
 ## Lab question handoff boundary (ADR0033)
 
 The human Lab may submit a complete user question to its configured existing

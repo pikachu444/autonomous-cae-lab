@@ -266,7 +266,8 @@ function renderResearchAnswers() {
     if (view.valid) {
       const context = state.researchContexts.get(current.id);
       if (typeof context?.question === "string") card.append(el("h3", "보낸 질문"), el("p", context.question, "research-question-text"));
-      card.append(el("h3", "수신 중인 실제 AI 답변"), el("div", view.answer || "아직 받은 답변이 없습니다. 반환된 도구 상태를 아래에서 확인하세요.", "research-answer-text"));
+      card.append(el("h3", "수신 중인 실제 AI 답변"));
+      appendResearchAnswer(card, view.answer, "아직 받은 답변이 없습니다. 반환된 도구 상태를 아래에서 확인하세요.");
       appendResearchTools(card, view.tools, current.store_id, Boolean(typeof current.store_id === "string" && (!context || context.store === current.store_id)), "아직 반환된 도구 기록이 없습니다.");
       card.append(el("small", "실행 중인 부분 기록입니다. 최종 응답이 확인되기 전에는 대화를 이어 실행하지 않습니다. 각 실험의 미확인·실패 판정은 그대로 유지됩니다."));
     } else card.append(el("p", view.reason, "metric-reason"));
@@ -282,13 +283,42 @@ function renderResearchAnswers() {
     const heading = el("div", undefined, "research-answer-heading"); heading.append(badge(job.status, workflow.stage), badge(job.result?.decision)); card.append(heading);
     if (view.valid) {
       card.append(el("h3", "보낸 질문"), el("p", view.question, "research-question-text"), el("h3", "실제 AI 답변"));
-      card.append(el("div", view.answer || "받은 답변이 없습니다. 아래의 작업 기록에서 실패·취소 근거를 확인하세요.", "research-answer-text"));
+      appendResearchAnswer(card, view.answer, "받은 답변이 없습니다. 아래의 작업 기록에서 실패·취소 근거를 확인하세요.");
       if (view.reason) card.append(el("p", view.reason, "metric-reason"));
       appendResearchTools(card, view.tools, store, bound, "반환된 도구 실행 기록이 없습니다.");
     } else card.append(el("p", view.reason, "metric-reason"));
     card.append(el("small", "AI 응답은 수치 검증이나 공학적 사용 승인을 뜻하지 않습니다. 각 실험의 미확인·실패 판정은 그대로 유지됩니다."));
     card.append(rawDetail("답변·도구·작업 원본 기록", job)); target.append(card);
   });
+}
+function appendResearchAnswer(card, answer, emptyMessage) {
+  const body = el("div", undefined, "research-answer-text research-answer-formatted");
+  function inline(target, parts) {
+    parts.forEach(part => {
+      const item = el(part.type === "strong" ? "strong" : part.type === "em" ? "em" : part.type === "code" ? "code" : "span", part.text);
+      if (part.parts) inline(item, part.parts); target.append(item);
+    });
+  }
+  if (!answer) body.append(el("p", emptyMessage));
+  else window.researchControls.answerBlocks(answer).blocks.forEach(block => {
+    if (block.type === "paragraph") { const paragraph = el("p"); inline(paragraph, block.parts); body.append(paragraph); }
+    else if (block.type === "list") {
+      const items = el(block.ordered ? "ol" : "ul", undefined, "research-answer-list");
+      block.items.forEach(entry => {
+        const item = el("li"), marker = el("span", entry.marker, "research-list-marker"), content = el("span");
+        inline(content, entry.parts); item.append(marker, content); items.append(item);
+      }); body.append(items);
+    } else if (block.type === "table") {
+      const wrapper = el("div", undefined, "table-scroll"), values = el("table"), header = el("thead"), row = el("tr"), rows = el("tbody");
+      block.header.forEach(parts => { const cell = el("th"); cell.scope = "col"; inline(cell, parts); row.append(cell); }); header.append(row);
+      block.rows.forEach(parts => { const record = el("tr"); parts.forEach(value => { const cell = el("td"); inline(cell, value); record.append(cell); }); rows.append(record); });
+      values.append(header, rows); wrapper.append(values); body.append(wrapper);
+    } else if (block.type === "technical") {
+      const detail = el("details", undefined, "raw-detail"); detail.append(el("summary", "코드·기술 출력 원문"), el("pre", block.text)); body.append(detail);
+    }
+  });
+  card.append(body);
+  if (answer) { const original = el("details", undefined, "raw-detail research-answer-original"); original.append(el("summary", "AI 답변 원문"), el("pre", answer)); card.append(original); }
 }
 function appendResearchTools(card, tools, store, bound, emptyMessage) {
   if (!tools.length) { card.append(el("p", emptyMessage, "hint")); return; }
@@ -1276,6 +1306,10 @@ function renderJob() {
   const marker = badge(job.status, workflow.stage); $("jobStatus").className = workflow.tone === "failed" ? "badge fail" : marker.className; $("jobStatus").textContent = marker.textContent;
   $("jobStatus").dataset.status = marker.dataset.status; $("jobStatus").title = marker.title;
   $("jobMessage").textContent = workflow.next;
+  if (job.operation === "research_run" && activeJob(job)) {
+    const phase = window.researchControls.phaseLabel(job.progress?.phase);
+    if (phase) $("jobMessage").append(el("small", phase, "research-phase"));
+  }
   $("jobCancelBtn").hidden = !activeJob(job);
   $("jobCancelBtn").disabled = job.status === "CANCEL_REQUESTED";
   $("jobCancelBtn").textContent = job.status === "CLEANUP_PENDING" ? "종료 재시도" : "작업 취소";

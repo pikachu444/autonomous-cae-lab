@@ -1,0 +1,370 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.lab-human-input-and-answer-correction",
+  "status": "ACTUAL_HUMAN02_CAD_PARTIAL_PASS_ANALYSIS_NOT_RUN_REVIEWED_SOURCE_CORRECTION",
+  "completed_utc": "2026-10-04T13:54:03.264890+00:00",
+  "parent_source_commit": "dd3a254a8c5a4bb0b8fdef3c7f82cb038fb280da",
+  "fixture_source_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "actual_baseline": {
+    "run_id": "lab-question-human-20261004-02",
+    "model": "openai-codex/gpt-5.6-sol",
+    "profile": "FixtureScalar",
+    "turns": [
+      {
+        "path": "artifacts/lab-question-human-20261004-02/lab-questions/run-6dd8f9dabb35436c9d02170b97a15cc0",
+        "request_sha256": "707685886324d51758b52c32639299fc0b3c371e18e9a095f30566ce082b9a3f",
+        "response_sha256": "63c7293fdccc2c1c548d3d5042d70dd955fbda9d9783310e84f9e8e2d1642f6b",
+        "stdout_sha256": "394633a91a93a025dc4571fc9307e543d7753fb2ef422622f22cc848d7c6d59e",
+        "question_bytes": 964,
+        "question_sha256": "c189bcf68a32f8b09344ac4e15c2fa357e641d7f8913d7de64bcd5c47116d896",
+        "native_bytes": 965,
+        "native_sha256": "c3a1371ac1985c4f00eeed36b1b11f2d82d584cb0148fe3678efb9641444aa40",
+        "session_id": "ses_ef90f0784ffeZ1mlDoeLHdVbM6",
+        "CLI_turn_status": "COMPLETED",
+        "cleanup_verified": true,
+        "tool_calls": 7,
+        "actual_failures": [
+          {
+            "tool": "caelab_parameters_register",
+            "transport_status": "completed",
+            "error": "Error executing tool parameters_register: Bounds must contain the current CAD value and lie inside native model bounds"
+          }
+        ]
+      },
+      {
+        "path": "artifacts/lab-question-human-20261004-02/lab-questions/run-e206f32338814d13ae238e2ab1b7e1d3",
+        "request_sha256": "774ece96ea960f08edb47d5f2a4b9eab28dbd5ef7e7dfd09f834eb487cfb800e",
+        "response_sha256": "4f9c2c4ac1f10d3d81ed8b80e58418ea2f780a55ca7c931f48cacf63a6358d2d",
+        "stdout_sha256": "a5377217df2c094dc0570ba31fc520c21783d5ecca08c3a1b0e302c5d0ac0aee",
+        "question_bytes": 822,
+        "question_sha256": "6f7e05d0f5669262f49bc672b0e55effb103b4f23f075789d0aeef5166deeb44",
+        "native_bytes": 823,
+        "native_sha256": "af2a3b2a640964a4dbd2d93206d6956fdd275f343ee082f91cc72ad7ffc4fe17",
+        "session_id": "ses_ef90f0784ffeZ1mlDoeLHdVbM6",
+        "CLI_turn_status": "COMPLETED",
+        "cleanup_verified": true,
+        "tool_calls": 6,
+        "actual_failures": [
+          {
+            "tool": "caelab_analysis_run",
+            "transport_status": "error",
+            "error": "CAE native guard denied this operation."
+          },
+          {
+            "tool": "caelab_analysis_run",
+            "transport_status": "error",
+            "error": "CAE native guard denied this operation."
+          },
+          {
+            "tool": "caelab_analysis_run",
+            "transport_status": "error",
+            "error": "CAE native guard denied this operation."
+          },
+          {
+            "tool": "caelab_analysis_run",
+            "transport_status": "error",
+            "error": "CAE native guard denied this operation."
+          },
+          {
+            "tool": "caelab_analysis_run",
+            "transport_status": "error",
+            "error": "CAE native guard denied this operation."
+          },
+          {
+            "tool": "caelab_analysis_run",
+            "transport_status": "error",
+            "error": "CAE native guard denied this operation."
+          }
+        ]
+      }
+    ],
+    "CAD_experiments": [
+      "cad-width32-d8p3-v1",
+      "cad-width38-d8p3-v1"
+    ],
+    "analysis_experiments": 0,
+    "actual_solver_runs": 0,
+    "existing_CAD_files_preserved": 28,
+    "existing_CAD_bytes_preserved": 616261,
+    "owned_runtime_and_Lab_stopped": true,
+    "diagnosis": "AI analysis settings invented fields, including mesh.element_size_mm rather than required mesh.max_sizes_mm. Native guard rejects the missing declared mesh list before Core/solver. Legacy admitted profile separately has max_mesh_levels2; requested4/3/2 would exceed that count even after shape correction.",
+    "internal_guard_code_observed": false,
+    "changed_load_followup": "NOT_RUN",
+    "busy_cancellation": "NOT_RUN",
+    "independent_actual_baseline_review": "NOT_RUN"
+  },
+  "correction": {
+    "profile": "FixtureRefinement",
+    "schema": 7,
+    "profile_id": "fixture-refinement-v1",
+    "canonical_sha256": "bd7e341d373ce732d72f7c4263d35b015047efd4cde0f181aee73e1a11459632",
+    "original_six_descriptors_unchanged": true,
+    "old_default_mesh_limit": 2,
+    "new_opt_in_mesh_limit": 3,
+    "tool_count": 14,
+    "Core_Domain_adapter_native_criteria_changed": false,
+    "ui": "Safe formatted actual text/raw original; error headline; real phase subtitle; scope labels.",
+    "bridge": "Corresponding full MCP plain error row is FAILED while transport status remains completed; recovered row remains separate.",
+    "criteria": "Existing displacement5%/signed all-axis reaction1%; stress invalid; UNKNOWN/NOT_RELEASED unchanged."
+  },
+  "source_checks": {
+    "ui_private_initial": "9PASS/1tableFAIL; corrected selected table1PASS and added alias1PASS retained",
+    "ui_Main_integrated": "35PASS (11new+24existing)",
+    "profile_PS": 11,
+    "profile_Node_selected": 23,
+    "bridge_private_Python_selected": 37,
+    "bridge_private_Python_deselected": 43,
+    "bridge_private_PS_selected": 54,
+    "bridge_Main_final_dependency_PS_selected": 54,
+    "bridge_private_shared_research_metadata_drift": "Retained initial and second tested pins differ from final metadata; Main final selected gate binds final shared bytes.",
+    "actual_runtime_model_Core_solver_HTTP_GUI_calls": 0,
+    "actual_new_GUI": "NOT_RUN"
+  },
+  "source_files": [
+    {
+      "path": "apps/lab/static/research-controls.js",
+      "bytes": 17709,
+      "sha256": "8e893df1c7075ee67817866eac99f34321e8f4c7181ef598138f2d86e07da399"
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "bytes": 122297,
+      "sha256": "e9e703fce4e2912c8c2f81c9b91310ca510d5109a4254a731e11b34de24e47d2"
+    },
+    {
+      "path": "apps/lab/static/style.css",
+      "bytes": 27547,
+      "sha256": "e5dda96b9f2dcaf5642b2f758e0d8b494bdd07efa6e54c674cc08fb017f2da4c"
+    },
+    {
+      "path": "tests/test_research_answer.js",
+      "bytes": 22249,
+      "sha256": "a08e53e4645b15826f18e04342e6fb08408e32ffa0da648829459c8705f7a0c7"
+    },
+    {
+      "path": "apps/lab/research.py",
+      "bytes": 24943,
+      "sha256": "c6769587c14e5807dc25fc839ac7b4e12e7a526028eae01c8baa14f158382623"
+    },
+    {
+      "path": "scripts/lab-openscience.ps1",
+      "bytes": 28923,
+      "sha256": "0cb26d8dbce6ee8590ef4d0077d81288921dbc68ee4a586185e4b6781bbfea66"
+    },
+    {
+      "path": "tests/test_lab_research.py",
+      "bytes": 39317,
+      "sha256": "a52018781a65a61e94aeb1846a83ce711c41c3e41dc8fc56fc5c417e427198c8"
+    },
+    {
+      "path": "scripts/verify_lab_research.ps1",
+      "bytes": 46016,
+      "sha256": "5ecba80c0d0353f6c91876c953d06ea799ef832d5a5dcbdad61c91646100a82c"
+    },
+    {
+      "path": "scripts/openscience-research.ps1",
+      "bytes": 44642,
+      "sha256": "189690adcd5d37c28d864eca1d9a5631b44bf2a8471c795eb4a964300d3e14d6"
+    },
+    {
+      "path": "scripts/openscience-server-local.ps1",
+      "bytes": 145284,
+      "sha256": "84853b7b60845f7f2ffc09c41c02f046d7dc2df5eadd567b342d5f08e8a2c157"
+    },
+    {
+      "path": "scripts/openscience-native-provider.ps1",
+      "bytes": 24020,
+      "sha256": "0b81758538fd2cce0b906b4a1392a7f7cbc15c040643f14eff9ffd6ede3eafd8"
+    },
+    {
+      "path": "openscience/native_guard.mjs",
+      "bytes": 80442,
+      "sha256": "995dcbd9f9faf7bc9f58347d0807fc85c1ff55be72885345958bb5e384f48c20"
+    },
+    {
+      "path": "openscience/tests/native_guard.test.mjs",
+      "bytes": 162362,
+      "sha256": "0560a687a4c4a92a80c33a65f4d5b11e0cc3cefa5929d5a133b1fecc440bfc91"
+    },
+    {
+      "path": "scripts/verify_fixture_refinement_research_source.ps1",
+      "bytes": 5841,
+      "sha256": "cc2934198c596a46342ad12faaffb662eece2ef7142a3739ff44f73cb6b87ad3"
+    },
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "bytes": 28379,
+      "sha256": "433280a1dc4c9a54935229450723fd404699d2a2281f6ab408b2bdffe46d88bd"
+    }
+  ],
+  "retained_local_evidence": [
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-02/BASELINE-01.json",
+      "bytes": 23409,
+      "sha256": "fa15e7becee6698a5a1303b3dbe44e9ea7b607c77877ac3074e3b1dd8285b1c3"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-02/question-transport-01.json",
+      "bytes": 3176,
+      "sha256": "f23692036cfb48bd2f571307d11ee26314b20e0fc8a063147ef6ee8fced6f61a"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-02/first-cad-preservation-before-01.json",
+      "bytes": 6504,
+      "sha256": "f344b14dff1e75b1a43c333e066d7b77e1b95d2add631f489652cb8fbae9ef4c"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-02/runtime-stopped.json",
+      "bytes": 308,
+      "sha256": "c099739fa523932db660b99860f469dfc06be568045dc0ba391488e17c133d2e"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-02/first-answer-01.ax.txt",
+      "bytes": 3233,
+      "sha256": "3b3664fd9a733e58642b7022becad230f57f2abdae3b3a7c9202fdbcdcb632b3"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-02/first-answer-01.jpg",
+      "bytes": 209355,
+      "sha256": "32be49de7130275e61d97118a7311cd5cc4f16a8a17e167f3e25317ecdd404cd"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-02/boundary-ended-01.ax.txt",
+      "bytes": 20595,
+      "sha256": "c108d381e8c6d36206f9000f2f65a3f1afefece0d899f48f83d345297b2fc65b"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-02/boundary-ended-01.jpg",
+      "bytes": 223686,
+      "sha256": "1f216d10a5d23a32edf6779c215ee1737f5325a32b1bf20353187ce97cb5372e"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-02/connection-observer-timeout-01.json",
+      "bytes": 732,
+      "sha256": "febee0b23d32c1b4fdc60cd60665f6ab96f34f0d44f62772d4646ae980f7cb38"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-02/connection-observer-timeout-02.json",
+      "bytes": 712,
+      "sha256": "69eca5639bb5311c0996dd469fdca272465a52fc51d3c40712dc111516f332e4"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/readable-answer-candidate-01/FREEZE.json",
+      "bytes": 1940,
+      "sha256": "f0e2009f6acc534ff732271de8a341aadea0ec670c47fbd3b7a43608bb73d32b"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/readable-answer-candidate-01/evidence/RECEIPT.json",
+      "bytes": 7516,
+      "sha256": "411a1240549793801e193ba56a4bd2ddfadf859d9a8f2b3a13c1db7ce53c144e"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/readable-answer-review-01/RECEIPT.json",
+      "bytes": 8113,
+      "sha256": "dcdd96418ece1efbfb6ef9a82d0f2e71162e8dadb5a83c8f95f538ffd4dc4491"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/readable-answer-main-01.tap",
+      "bytes": 3856,
+      "sha256": "71cf4f046a6a5ce82f80c151b4bdcc361310bddbb8b23a5e6b9a11ebcd616e6e"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/research-progress-candidate-01/FREEZE.json",
+      "bytes": 4909,
+      "sha256": "018df908da3a8fd4569e0d3da581ed92891993cdf1d1c66a4ad0533e5d349e7c"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/research-progress-candidate-01/RECEIPT.json",
+      "bytes": 17183,
+      "sha256": "168753aaa54368c67ce4933f3067eb14fc08f1b5601eb356e5caefa760c59471"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/research-progress-review-01/RECEIPT.json",
+      "bytes": 10448,
+      "sha256": "6f5d804080ff0c19859f722739e16999ebc1cb6be2cb3478f5c3efa023de1368"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/research-progress-main-01.json",
+      "bytes": 26441,
+      "sha256": "8da69da8cca9c5ff1cd755e02131cc8560798daee1b2c6c24ed94d29a1c86a79"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/fixture-refinement-profile-check-01/receipt.json",
+      "bytes": 1087,
+      "sha256": "7dd43b18206cd9d2c02d60bea2f329755fb1d246b623f1245b7ed08421d0a977"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/fixture-refinement-profile-check-02/receipt.json",
+      "bytes": 1087,
+      "sha256": "5133c2fe80d32365da93f240a99855087255e9e48573f4942fb6cbffc44b5751"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/fixture-refinement-profile-check-02/native-guard.log",
+      "bytes": 2405,
+      "sha256": "2cfe79e62c46ba667804156afafcc2fb0122b1eef7cd78ec4e66a25022f8100d"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/fixture-refinement-profile-review-01/independent-review.json",
+      "bytes": 14952,
+      "sha256": "622438778a31930b4acc5324b3a94514a376933ab770e90e88fbf6cc20ac9027"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/latency-source-review-01/RECEIPT.json",
+      "bytes": 14279,
+      "sha256": "faefd25effd0b2fcd532f2a317a78cad559d07f71ddf7a942196a9960651e76e"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/exact-dd3-ci-failures-01/REPORT.md",
+      "bytes": 4439,
+      "sha256": "7411a4a88b85d49baab3e1b8739bb260049ab0213cf1134fbbd2a0d20f8b21c9"
+    }
+  ],
+  "retention": "Original store, profiles, raw request/command/response/logs, errors, screens, source checks and reviews retained locally. Only this sanitized record/source/docs are public; auth/owner/encrypted reasoning are excluded.",
+  "CI": {
+    "exact_parent_commit": "dd3a254a8c5a4bb0b8fdef3c7f82cb038fb280da",
+    "run_id": 37202665758,
+    "status": "COMPLETED_FAILURE",
+    "SUCCESS": [
+      "research-driver-source",
+      "core",
+      "doe",
+      "structural",
+      "optimization",
+      "native",
+      "native-registration"
+    ],
+    "FAILURE": [
+      "codeaster",
+      "explicit",
+      "pde"
+    ],
+    "new_containing_source": "UNVERIFIED_UNTIL_PUBLICATION",
+    "first_failed_steps": {
+      "explicit": {
+        "job": 111439569473,
+        "step": 5,
+        "cause": "Pinned OpenRadioss public release asset HTTP404/curl22 before native execution; upstream reason UNKNOWN."
+      },
+      "codeaster": {
+        "job": 111439569460,
+        "step": 7,
+        "cause": "Completed/numerical classification assertion for E-ansys_vmd1_regular-Fz-aster; underlying status/channel/native cause UNKNOWN."
+      },
+      "pde": {
+        "job": 111439569553,
+        "step": 10,
+        "cause": "Vector numerical result classification assertion; actual case/status/internal cause UNKNOWN."
+      }
+    }
+  },
+  "next_serial": [
+    "Publish reviewed source; new human03 shared store/runtime with selected5.6Sol/FixtureRefinement.",
+    "Actual ordinary browser question -> CAD/three-mesh analysis/readable linked answer.",
+    "Changed-load same-session follow-up and old-byte retention; actual busy cancellation/resident-IDLE.",
+    "Resume original assembly P2.4 native transport/mechanics/full fields, then remaining phases."
+  ],
+  "whole52": "OPEN",
+  "Phase6_Phase7": "OPEN",
+  "engineering": "UNKNOWN",
+  "release": "NOT_RELEASED"
+}

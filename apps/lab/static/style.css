@@ -33,3 +33,10 @@ label,.field-label{display:block;font-size:11px;font-weight:600;color:#455b66;ma
 .research-question-text,.research-answer-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.85;font:inherit}.research-answer-text{padding:16px 18px;background:#f7f8fa;border-radius:10px}
 .research-answer .raw-detail{margin-top:16px}.research-answer small{display:block;color:#606d7a}.research-answer .button-row{flex-wrap:wrap}
 @media(max-width:1120px){.research-question-columns{grid-template-columns:1fr}.research-answer-text{max-height:70vh;overflow:auto}}
+
+/* Parsed answer blocks are read-only presentation; raw prose stays accessible. */
+.research-answer-formatted{white-space:normal}.research-answer-formatted>p{white-space:pre-wrap;margin:0 0 1em}.research-answer-formatted>p:last-child{margin-bottom:0}
+.research-answer-formatted strong{font-weight:700}.research-answer-formatted code{font-size:.92em;padding:1px 4px;border-radius:4px;background:#e8edf1;overflow-wrap:anywhere}
+.research-answer-formatted .research-answer-list{list-style:none;margin:0 0 1em;padding:0}.research-answer-list>li{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:9px;margin:6px 0;line-height:1.8;white-space:pre-wrap}.research-list-marker{font-variant-numeric:tabular-nums;color:var(--muted)}
+.research-answer-formatted .table-scroll{margin:1em 0}.research-answer-formatted th,.research-answer-formatted td{white-space:pre-wrap;vertical-align:top}.research-answer-formatted .raw-detail{margin:12px 0}.research-answer-original>summary{font-size:12px;color:var(--muted)}
+.job-panel .research-phase{display:block;margin-top:4px;font-size:12px;color:var(--muted);line-height:1.6}

@@ -1,6 +1,7 @@
 """Trusted Lab handoff to the existing owned official OpenScience launcher."""
 
 from copy import deepcopy
+from datetime import datetime
 import hashlib
 import json
 import os
@@ -17,6 +18,7 @@ import uuid
 MODEL = "openai-codex/gpt-5.6-sol"
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
 SESSION = re.compile(r"ses_[A-Za-z0-9]+\Z")
+PROGRESS_PHASES = frozenset({"RUNTIME_VERIFY", "RESIDENT_VERIFY", "CLI_PREFLIGHT", "END_VERIFY"})
 
 
 def windows_path(path: Path) -> str:
@@ -111,6 +113,17 @@ class OpenScienceResearch:
         snapshot = {"session_id": metadata.get("session_id"), "answer": answer, "tools": tools,
                     "cleanup_pending": self._cleanup_pending, "model": MODEL,
                     "completion_is_engineering_approval": False, "decision": "NOT_RELEASED"}
+        phase = metadata.get("phase")
+        if isinstance(phase, str) and phase in PROGRESS_PHASES:
+            snapshot["phase"] = phase
+            stamp = metadata.get("phase_started_utc")
+            if isinstance(stamp, str) and re.fullmatch(
+                    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,7})?(?:Z|\+00:00)", stamp):
+                try:
+                    datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+                    snapshot["phase_started_utc"] = stamp
+                except ValueError:
+                    pass
         if errors:
             snapshot["error"] = "\n".join(errors)
         return snapshot
@@ -362,6 +375,15 @@ class OpenScienceResearch:
                             tool["experiment_id"] = output["experiment_id"]
                     if state.get("error"):
                         errors.append(self._safe_error(state["error"]))
+                    elif (state.get("status") == "completed" and isinstance(state.get("output"), str)
+                          and isinstance(state.get("metadata"), dict)
+                          and state["metadata"].get("truncated") is False):
+                        # The observed MCP error is returned as completed plain
+                        # text. Keep it on this row; a later tool can recover.
+                        failure = re.fullmatch(r"Error executing tool ([A-Za-z0-9_]+): (\S[\s\S]*)", state["output"])
+                        if failure and part["tool"] in {failure[1], "caelab_" + failure[1]}:
+                            tool.update(status="FAILED", tool_status=state["status"],
+                                        error=self._safe_error(failure[2]))
                     tools.append(tool)
                 if event.get("type") == "error":
                     errors.append(self._safe_error(event.get("error", "OpenScience tool error")))

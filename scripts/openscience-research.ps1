@@ -13,7 +13,21 @@ $script:OpenSciencePdeResearchTools = @('caelab_study_create', 'caelab_study_ins
     'caelab_experiment_compare')
 
 function New-OpenScienceResearchDefinition {
-    param([ValidateSet('FixtureScalar', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', 'ContactPatches', IgnoreCase=$false)][string]$Profile = 'FixtureScalar')
+    param([ValidateSet('FixtureScalar', 'FixtureRefinement', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', 'ContactPatches', IgnoreCase=$false)][string]$Profile = 'FixtureScalar')
+    if ($Profile -ceq 'FixtureRefinement') {
+        # Explicit new scope: never change the historical schema1 fingerprint.
+        $definition = New-OpenScienceResearchDefinition -Profile FixtureScalar
+        $definition.schema = 7
+        $definition.profile = 'fixture-refinement-v1'
+        $definition.budgets.analysis.max_mesh_levels = 3
+        $definition.capabilities[0].inputs = 'Discover native paths/current values/bounds first. Register only requested research variables; registration bounds must contain the current CAD value and stay within discovered native bounds, including fixed variables. A fixed variable must keep its discovered current_value. A requested different value needs free registration and an explicit experiment value. Unregistered CAD dimensions retain their current defaults.'
+        $definition.capabilities[1].inputs = 'analysis_run requires exactly parent_experiment_id, experiment_id, backend=fixture.calculix and settings with exactly load/material/mesh. load: force_per_support_N and source. material: model, provenance, qualification; orthotropic E_1_MPa/E_2_MPa/E_3_MPa/nu_12/nu_13/nu_23/G_12_MPa/G_13_MPa/G_23_MPa/axes, or isotropic elastic_modulus_MPa/poisson_ratio. mesh: max_sizes_mm, two or three positive strictly descending sizes in mm. optimization_plan uses this same analysis_settings and deterministic numerical engine.'
+        $definition.capabilities[1].boundary_model = 'One verified roller_support solid, roller diameter8.3mm and depth>=24mm: bottom fixed in X/Y/Z; total negative-Z saddle force distributed by clipped tessellated surface area over the central24mm. This idealization is fixed by the existing adapter, not caller-supplied bolt/contact conditions. Orthotropic axes are global CAD X/Y/Z; axes text declares provenance and does not rotate the constitutive tensor.'
+        $definition.capabilities[1].numerical_verdict = 'Existing final-two-mesh displacement relative change<=5% and signed all-axis reaction balance<=1% remain unchanged. Peak stress is an invalid diagnostic, not strength evidence. Three meshes alone do not establish asymptotic convergence.'
+        $definition.limitations += @('This opt-in profile admits one additional analysis mesh level; the historical FixtureScalar default remains two. Tool/backend/model/security/cleanup and native execution policies are unchanged.',
+            'Arbitrary support boundaries, material rotations, bolt/contact mechanics and original assembly mechanics are not admitted. Missing physical material/load data stay explicitly assumed and UNKNOWN; all results remain NOT_RELEASED.')
+        return $definition
+    }
     if ($Profile -ceq 'ContactPatches') {
         return [ordered]@{
             schema = 6; kind = 'autonomous-cae-lab.openscience-research-definition'
@@ -222,7 +236,9 @@ function Get-OpenSciencePurposeTools($Context) {
 }
 
 function Assert-OpenScienceResearchDefinition($Definition) {
-    $profile = if ($Definition.schema -eq 2 -and $Definition.profile -ceq 'structural-families-v1') {
+    $profile = if ($Definition.schema -eq 7 -and $Definition.profile -ceq 'fixture-refinement-v1') {
+        'FixtureRefinement'
+    } elseif ($Definition.schema -eq 2 -and $Definition.profile -ceq 'structural-families-v1') {
         'StructuralFamilies'
     } elseif ($Definition.schema -eq 6 -and $Definition.profile -ceq 'contact-patches-v1') {
         'ContactPatches'
@@ -240,6 +256,18 @@ function Assert-OpenScienceResearchDefinition($Definition) {
 function Get-OpenScienceResearchPrompt($Definition) {
     Assert-OpenScienceResearchDefinition $Definition
     $scope = $Definition | ConvertTo-Json -Depth 12 -Compress
+    if ($Definition.schema -eq 7 -and $Definition.profile -ceq 'fixture-refinement-v1') {
+        return @"
+You are the research control plane for Autonomous CAE Lab. Follow the supplied question with the existing fourteen tools and selected provider/model. Explain the plan in ordinary language, create NEW experiment IDs, inspect the actual returned results, compare measured responses, and answer the question with values, units, checks, assumptions and same-record references. No invented results or model/backend fallback. Metadata is not current execution or release proof.
+For fixture.cadquery/roller_support discover native paths, current values and bounds before registration. Bounds must contain the current CAD value and lie within discovered bounds even for a fixed parameter; lower=upper is not a valid registration shortcut. A mode=fixed variable must keep its discovered current_value. To request a different value, register it as free and supply that explicit value for each experiment. Register only requested variables; other CAD dimensions retain their current defaults. Preserve existing CAD revisions and reuse their returned experiment IDs for analysis and changed loads.
+For caelab_analysis_run pass exactly parent_experiment_id, experiment_id, backend=fixture.calculix and settings. The parent is the verified CAD experiment ID; Core inherits its study and hypothesis. Settings has exactly load, material, mesh. load has exactly force_per_support_N (positive magnitude in N, applied in negative Z) and source (assumed or measured provenance). mesh has exactly max_sizes_mm: a two or three item positive strictly descending array in mm, preserving the requested sizes. Do not use mesh.element_size_mm, units, analysis_type, material_axes, boundary_conditions, loads, checks, limits or limitations as settings keys.
+Material has model, provenance and qualification. For model=orthotropic use E_1_MPa, E_2_MPa, E_3_MPa, nu_12, nu_13, nu_23, G_12_MPa, G_13_MPa, G_23_MPa and a nonempty axes declaration. For model=isotropic use elastic_modulus_MPa and poisson_ratio. The existing adapter uses the global CAD X/Y/Z axes; axes is provenance text, not a rotation API. Preserve supplied constants and clearly mark hypothetical properties; do not silently supply measured material data.
+The admitted boundary idealization is bottom fixed in X/Y/Z, with total negative-Z saddle force distributed by clipped tessellated surface area over the central24mm of one verified support (roller diameter8.3mm, depth>=24mm). Explain this fixed idealization before execution. Do not invent bolt-hole clamps, contact or rotation controls. If the question requests incompatible boundaries or axes, state the limitation and ask for the missing decision; do not replace the requested physics silently. Already explicit compatible assumptions do not require asking again.
+The unchanged adapter checks final-two-mesh displacement change<=5% and signed all-axis reaction balance<=1%. Peak stress remains an invalid diagnostic; three meshes alone do not prove asymptotic convergence. Finite scientific-invalid inputs belong to Domain preflight and retained rejection evidence; never normalize them, relax thresholds, substitute reference responses or retry an unchanged failure. Report tool errors distinctly from successful corrected calls.
+For numerical search use optimization_plan/optimization_run with the same declared analysis_settings: the existing deterministic numerical engine generates candidates. Preserve infeasible/failed points and actual termination. Do not act as a substitute numerical optimizer. Inspect and compare only actual returned study/model/experiment/campaign IDs. Changed conditions append new experiments. Preserve all UNKNOWNs, invalid metric values/reasons, old artifacts and NOT_RELEASED. CLI completion and solver success are not engineering approval.
+Declared profile: $scope
+"@
+    }
     if ($Definition.schema -eq 6 -and $Definition.profile -ceq 'contact-patches-v1') {
         return @"
 You are the research control plane for Autonomous CAE Lab. Follow the supplied Code_Aster SSNP121A contact question through only these six tools and the selected provider/model. Choose hypotheses and conditions, execute NEW experiment IDs, inspect the same returned IDs/revisions, compare actual signed responses and interpret checks, counterexamples and UNKNOWNs. No automatic model/backend fallback, retry or invented results.

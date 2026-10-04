@@ -70,6 +70,45 @@ function Get-LabResearchRuntime($Request) {
     return $current
 }
 
+function Write-LabResearchProgress {
+    param($Context,[string]$Directory,
+        [ValidateSet('RUNTIME_VERIFY','RESIDENT_VERIFY','CLI_PREFLIGHT','END_VERIFY')][string]$Phase,
+        $Values)
+    $contained = $false
+    try {
+        # The request bootstrap and frozen owner precede the first call. Never
+        # create a directory or follow a link merely to report a display phase.
+        Assert-LabResearchCondition (Test-Path -LiteralPath $Directory -PathType Container) 'An existing owned progress directory is required.'
+        Assert-OpenScienceDirectoryAncestors $Directory
+        Assert-OpenScienceContainedPath $Directory $Context.ArtifactRoot | Out-Null
+        $path = Join-Path $Directory 'progress.json'
+        Assert-OpenScienceContainedPath $path $Context.ArtifactRoot | Out-Null
+        $contained = $true
+        $progress = [ordered]@{}
+        if (Test-Path -LiteralPath $path) {
+            $previous = Read-OpenScienceJson $path
+            Assert-LabResearchCondition ($previous -is [Collections.IDictionary]) 'Progress metadata must be an object.'
+            foreach ($key in $previous.Keys) { $progress[$key] = $previous[$key] }
+        }
+        if ($Values) { foreach ($key in $Values.Keys) { $progress[$key] = $Values[$key] } }
+        if ($Phase) {
+            $progress.phase = $Phase
+            $progress.phase_started_utc = [DateTime]::UtcNow.ToString('o')
+        }
+        Write-OpenScienceJson $path $progress
+    } catch {
+        # Display I/O cannot bypass admission or abandon command cleanup. The
+        # atomic writer leaves the old record intact; retain local diagnostics.
+        if ($contained) {
+            try {
+                Write-OpenScienceJson (Join-Path $Directory ('progress-error-'+[Guid]::NewGuid().ToString('N')+'.json')) @{
+                    phase=$Phase;error=$_.Exception.Message
+                } -CreateNew
+            } catch { }
+        }
+    }
+}
+
 function Read-LabResearchResident {
     param($Request, $Context, [string]$Directory, [string]$SessionId)
     New-Item -ItemType Directory -Path $Directory -ErrorAction Stop | Out-Null
@@ -140,7 +179,7 @@ function Confirm-LabResearchResidentIdle {
             if(-not(Test-Path -LiteralPath $observation)){New-Item -ItemType Directory -Path $observation | Out-Null}
             Write-OpenScienceJson (Join-Path $observation 'failure.json') @{error=$_.Exception.Message} -CreateNew
         }
-        Write-OpenScienceJson (Join-Path (Split-Path -Parent $Directory) 'progress.json') @{
+        Write-LabResearchProgress $Context (Split-Path -Parent $Directory) -Values @{
             state='CLEANUP_PENDING';cleanup_pending=$true;session_id=$SessionId
         }
         Start-Sleep -Seconds 2
@@ -157,7 +196,7 @@ function Complete-LabResearchCleanup($Context, $Command, [string]$Directory, $Re
     while ($Command.launcher_still_running -or $Command.log_relay_still_running -or
         (($Command.user_cancelled -or $Command.timed_out) -and -not $Command.cancellation_idle_confirmed) -or
         ($deferred -and (-not $Command.output_hashes_finalized -or -not $guardVerified))) {
-        Write-OpenScienceJson (Join-Path (Split-Path -Parent $Directory) 'progress.json') @{
+        Write-LabResearchProgress $Context (Split-Path -Parent $Directory) -Values @{
             state='CLEANUP_PENDING'; cleanup_pending=$true; session_id=$Command.session_id
         }
         $attempt++
@@ -269,6 +308,8 @@ function Invoke-LabOpenScienceRequest {
         Assert-LabResearchBootstrap $labRequest $labOwner
         . Import-LabResearchLauncher $labRequest.repo_root
         Assert-OpenScienceDirectoryAncestors $labDirectory
+        Assert-OpenScienceContainedPath $labDirectory $labOwner.context.ArtifactRoot | Out-Null
+        Write-LabResearchProgress $labOwner.context $labDirectory -Phase RUNTIME_VERIFY
         $labContext = Get-LabResearchRuntime $labRequest
         Assert-OpenScienceContainedPath $labDirectory $labContext.ArtifactRoot | Out-Null
         $labProfile = if ($labContext.ResearchDefinition.profile) { $labContext.ResearchDefinition.profile } else { 'FixtureScalar' }
@@ -299,11 +340,14 @@ function Invoke-LabOpenScienceRequest {
             $labCancelPath = Join-Path $labDirectory 'cancel.txt'
             $labCancel = { Test-Path -LiteralPath $labCancelPath -PathType Leaf }.GetNewClosure()
             $labCommandDirectory = Join-Path $labDirectory 'command'
+            Write-LabResearchProgress $labContext $labDirectory -Phase RESIDENT_VERIFY
             $labResident=Read-LabResearchResident $labRequest $labContext (Join-Path $labDirectory 'resident-before')
             Assert-LabResearchCondition ($labResident.identity.execution.idle_confirmed -is [bool] -and
                 $labResident.identity.execution.idle_confirmed -and $labResident.identity.execution.state -ceq 'IDLE') 'The connected resident already owns a writer; inference refused.'
+            Write-LabResearchProgress $labContext $labDirectory -Phase CLI_PREFLIGHT
             $labCommand = Invoke-OpenScienceLocalCommand -Context $labContext -Arguments $labArguments -LogDirectory $labCommandDirectory `
                 -TimeoutSeconds 3600 -ForceStdin -CancellationRequested $labCancel
+            Write-LabResearchProgress $labContext $labDirectory -Phase END_VERIFY
             $labCommand = Complete-LabResearchCleanup $labContext $labCommand $labCommandDirectory $labRequest
             $null=Confirm-LabResearchResidentIdle $labRequest $labContext $labResident $labCommandDirectory $labCommand.session_id
             $labResponse.command_started=$true
