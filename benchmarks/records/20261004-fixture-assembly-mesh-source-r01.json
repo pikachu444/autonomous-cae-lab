@@ -1,0 +1,131 @@
+{
+  "scope": "Internal original fixture seven-body native volume/face preprocessing boundary; source-only qualification",
+  "source_commit": "Commit containing this record; exact native execution is a separate later qualification",
+  "parent_commit": "c8e52191d782e690cbfb2b69b1a0a623ffec8eb8",
+  "created_utc": "2026-10-04T06:08:29.279437+00:00",
+  "reviewed_files": [
+    {
+      "path": "caelab/adapters/fixture_assembly_mesh.py",
+      "size_bytes": 40770,
+      "sha256": "f1ce3e569f53952ba70e0570a1cbfab89f9d7df5f774324eb152a4dae2e3d21c",
+      "CRLF_count": 0,
+      "LF_count": 713
+    },
+    {
+      "path": "caelab/adapters/fixture_assembly_mesh_worker.py",
+      "size_bytes": 18891,
+      "sha256": "88f099fd0a3de5fc5b86a446e124c916a6eeb3c816fea6f48975dd53384ab02c",
+      "CRLF_count": 0,
+      "LF_count": 331
+    },
+    {
+      "path": "plugins/fixture_design/assembly_mesh.py",
+      "size_bytes": 4318,
+      "sha256": "0ca8e2abb7632b81ce9cd70faed828605bd22809dfde912afbf848028017d86b",
+      "CRLF_count": 0,
+      "LF_count": 76
+    },
+    {
+      "path": "tests/test_fixture_assembly_mesh.py",
+      "size_bytes": 31839,
+      "sha256": "3c4031d383deefe3d7e49d05d7211a70f17a5fc473e14cb20b0876f34d37e7cb",
+      "CRLF_count": 0,
+      "LF_count": 614
+    }
+  ],
+  "writer_freeze": {
+    "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-source-01/FREEZE.json",
+    "size_bytes": 5272,
+    "sha256": "7164dbc535724e95fb869d9c3f4145e12a05dbe7e1b4f55a232a753a90bc9eae"
+  },
+  "independent_review": {
+    "status": "PASS_BOUNDED_SOURCE_ONLY",
+    "open_P1": 0,
+    "open_P2": 0,
+    "inputs": 60,
+    "review": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-completed-source-review-01/independent-review.json",
+      "size_bytes": 12535,
+      "sha256": "00dc42f394fcf0309e35f452ede4f72a2d6a7b4f2cc187a4f5dbfd261d8672cf"
+    },
+    "receipt": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-completed-source-review-01/receipt.json",
+      "size_bytes": 914,
+      "sha256": "d3e98a406ce132394e218d1083dff54c4ddaba2a30d66f5c266a859b55b9dd59"
+    },
+    "freeze": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-completed-source-review-01/FREEZE.json",
+      "size_bytes": 15990,
+      "sha256": "b26f7dad5b29d06c3b51e0e7a4c86f544d04241823b687b70553ba0433d605d6"
+    }
+  },
+  "writer_final_cold": {
+    "cases": 67,
+    "failed": 0,
+    "skip": 0,
+    "seconds": 24.38,
+    "earlier_attempts": "cold01 interrupted; cold02 60PASS1FAIL; preserved and not additive"
+  },
+  "main_source_gate": {
+    "cases": 67,
+    "failed": 0,
+    "skip": 0,
+    "seconds": 463.64,
+    "receipt": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-main-source-01/main-checks.json",
+      "size_bytes": 1735,
+      "sha256": "926f4cde58fe81fb1150bf357d21f18df6aed2a369678e1c073110403afeb6ab"
+    },
+    "XML": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-main-source-01/pytest.xml",
+      "size_bytes": 9354,
+      "sha256": "56d6c6c958f59ca4d9a293bdd5c72457834bb01fa2c25944ac2ff969020e47ee"
+    },
+    "reviewed_candidate_bytes": "EXACT"
+  },
+  "existing_parent_join": {
+    "core_producer": "f8f60eb335fb829a8ddc5d0ca1c2506788baae44",
+    "core_CAD_revision": "8d1071134a2bcd7d42a9320b431754591909476747f35e96fbbb4113c6e09ef2",
+    "native_CAD_revision": "7a2ed7a57284cfbd5284e1c96db064bade268f4624ad8f83886c26a6be5cbec4",
+    "components": 15,
+    "faces": 117,
+    "interfaces": 15,
+    "active": 7,
+    "inactive_bolts": 8,
+    "limitation": "Prior read-only parent join reused as evidence, not a new native execution"
+  },
+  "boundaries": "Domain declares intent/unknown joints; adapters own nativeSDK/syntax; no Core/common/schema/registry/UI/upstream/AnalysisAdapter/research-admission change",
+  "profile_mm": [
+    3.0,
+    1.5
+  ],
+  "geometry_gates": {
+    "center_mm": 1e-07,
+    "bounds_mm": 2e-07,
+    "relative_measure": 1e-08,
+    "body_volume_error_percent": 1.0
+  },
+  "fields": "Full sparse actualSDK node/element/entity/physical/body/face joins, TETRA10/TRIA6, ASCII17g binary64 coordinate roundtrip incl-negative-zero, five actualSDK Jacobian samples/nonpickle typedNPZ",
+  "execution_policy": {
+    "wall_timeout": null,
+    "cpu_limit_seconds": 86400,
+    "threads": 2,
+    "retry": 0,
+    "config_read": false,
+    "nonzero_child": "BLOCK",
+    "cancellation": "Owned process path, actualOS cleanup NOT_RUN"
+  },
+  "new_SDK_CAD_mesh_solver_provider_runs": 0,
+  "native_coarse_fine": "NOT_RUN",
+  "solver_status": "NOT_RUN",
+  "decision": "NOT_RELEASED",
+  "limits": [
+    "Native SDK/API/loading/kernel compatibility and physical numerical quality require fresh execution",
+    "Five sample positivity is not global positivity or Code_Aster Gauss fields",
+    "Inactive bolts lack qualified threads/nuts/anchors/preload",
+    "Three namespace-collided SDK docstrings excluded as primary proof",
+    "Mounted Main cold source path is slower; no native speed or performance verdict follows",
+    "Whole P2.4/52/Phase6/7 and real research/solver/condition-change/campaign usage remain OPEN"
+  ],
+  "next": "Commit exact source, run new3.0 then1.5mm against the same retained f8 CAD (no CAD regen); independently inspect raw mesh quality/identity. Then explicit mechanics/fields/Research/human acceptance."
+}

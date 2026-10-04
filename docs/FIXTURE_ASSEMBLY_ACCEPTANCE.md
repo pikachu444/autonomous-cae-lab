@@ -83,3 +83,20 @@ remain NOT_RUN/UNKNOWN. Engineering decision remains NOT_RELEASED.
 Upstream benchmarks, integration checking, research model adequacy and physical
 qualification are distinct; see VERIFICATION_SCOPE. Retained passing solvers
 are not rerun merely to reproduce an unchanged test result.
+
+## Original seven-body mesh source gate (2026-10-04)
+
+See source-r01 record: four exact new files, Domain/adapter ownership, writer67
+and Root Main67 PASS, independent source review0P1/P2. Parent is the Core
+experiment root, producerf8/CAD8d/native7a; full original15parts/117faces/interfaces
+are retained while seven bodies enter this bounded compression-path mesh.
+SparseSDK IDs, exact binary64 coordinates/17g writer, body/face/physical/entity
+joins and complete five-point SDK Jacobian arrays bind the mesh revision.
+Fixed3.0/1.5mm, geometry tolerances and1% body-volume limits are unchanged.
+Native/coarse/fine/actualOScancel/solver/fields/mechanics are NOT_RUN. This helper
+returns preprocessing evidence, not a completed Core analysis or engineering
+approval. No public registry/Research admission follows from source passes.
+Next: clean committed source, fresh coarse/fine native runs, raw review, then
+actual mechanics and one complete human Research→CAD→analysis→condition change/
+numerical campaign flow. UNKNOWN fastening/material/strength/physical/release
+and whole52 remain open. Existing historic native/render/CI records are preserved.

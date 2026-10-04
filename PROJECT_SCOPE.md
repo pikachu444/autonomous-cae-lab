@@ -1,4 +1,23 @@
-## Current checkpoint: readable result view independently verified
+## Current checkpoint: seven-body assembly mesher source integrated
+
+Record: `benchmarks/records/20261004-fixture-assembly-mesh-source-r01.json`.
+Four exact reviewed files add internal original-assembly preprocessing only:
+seven compression-path bodies, eight inactive bolts with unknown fastening,
+separate native BREP imports, actual sparse TETRA10/TRIA6 joins, binary64 MSH17g
+roundtrip and five SDK Jacobian samples with unchanged1% body-volume gate.
+Writer cold67PASS24.380s; Root Main67PASS463.64s, exact same4bytes. Independent
+completed-source review60inputs/P1P2=0. This is source-only; actual SDK/native
+coarse/fine/cancellation/mechanics is NOT_RUN. No public analysis or Research
+admission, common schema/Core/registry/upstream/UI/model/auth/threshold change.
+NEXT SERIAL: commit/publish source, fresh3.0mm→1.5mm mesh against existing f8 CAD,
+raw identity/quality review, then explicit mechanics/full fields and connected
+Research/human condition-change/campaign acceptance. General service usability
+is still an open integration gate; display/source tests do not close it.
+All52/P2.4/Phase6/7, material/fastening/strength/physical and NOT_RELEASED stay open.
+
+---
+
+## Historical checkpoint: readable result view independently verified
 
 Record: `benchmarks/records/20261004-result-presentation-human-r01-qualified.json`.
 Clean UI source3f15f5b32e921a39f29481e7e7a38b6daac825f0 serves the real
