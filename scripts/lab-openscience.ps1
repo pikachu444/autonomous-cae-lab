@@ -1,6 +1,11 @@
 # Fixed trusted Lab facade; all inference/lifecycle remains in the owned launcher.
-[CmdletBinding()]
-param([switch]$Library, [string]$RequestPath)
+[CmdletBinding(DefaultParameterSetName='Request',PositionalBinding=$false)]
+param(
+    [Parameter(Mandatory,ParameterSetName='Library')][switch]$Library,
+    [Parameter(Mandatory,ParameterSetName='Request')][string]$RequestPath,
+    [Parameter(Mandatory,ParameterSetName='OwnerBytes')][switch]$ReadOwnerBytes,
+    [Parameter(Mandatory,ParameterSetName='OwnerBytes')][string]$OwnerPath
+)
 $script:LabOpenScienceScriptPath = $PSCommandPath
 
 function Assert-LabResearchCondition($Condition, [string]$Message) {
@@ -334,6 +339,15 @@ function Invoke-LabOpenScienceRequest {
     try { $stream.Write($responseBytes); $stream.Flush($true) } finally { $stream.Dispose() }
 }
 
+if ($ReadOwnerBytes) {
+    $ErrorActionPreference='Stop'
+    Assert-LabResearchCondition ($OwnerPath -cmatch '^[A-Za-z]:\\' -and
+        [IO.Path]::GetFullPath($OwnerPath) -ceq $OwnerPath) 'A trusted absolute Windows owner path is required.'
+    $ownerBytes=[IO.File]::ReadAllBytes($OwnerPath)
+    $output=[Console]::OpenStandardOutput()
+    try { $output.Write($ownerBytes,0,$ownerBytes.Length); $output.Flush() } finally { $output.Dispose() }
+    return
+}
 if ($Library) { return }
 if (-not $RequestPath) { throw 'A trusted request file is required.' }
 Invoke-LabOpenScienceRequest -Path $RequestPath

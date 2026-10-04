@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+from types import SimpleNamespace
 
 import pytest
 
@@ -44,9 +45,22 @@ def configured(tmp_path, monkeypatch):
                                             "source_directory": win(repo), "working_root": win(repo),
                                             "project_directory": "C:\\SYNTHETIC\\managed-project"}}}
     save(owner_path, owner)
+    owner_reads = []
+    def read_host_owner(command, **options):
+        # SYNTHETIC_NOT_NATIVE: the Windows-owned file is represented by this
+        # fixture; only the new metadata seam is intercepted, not admission.
+        assert command == [str(powershell), "-NoLogo", "-NoProfile", "-NonInteractive", "-File",
+                           win(repo / "scripts/lab-openscience.ps1"), "-ReadOwnerBytes", "-OwnerPath", win(owner_path)]
+        assert options == {"cwd": repo, "stdin": research.subprocess.DEVNULL,
+                           "stdout": research.subprocess.PIPE, "stderr": research.subprocess.PIPE,
+                           "shell": False, "timeout": 10, "check": False}
+        owner_reads.append(command)
+        return research.subprocess.CompletedProcess(command, 0, owner_path.read_bytes(), b"")
+    monkeypatch.setattr(research.subprocess, "run", read_host_owner)
     bridge = research.OpenScienceResearch(owner_path, store, repo=repo, powershell=powershell,
                                          evidence_root=tmp_path / "evidence")
     assert bridge._configuration_error is None
+    bridge._synthetic_owner_reads = owner_reads
     return bridge, owner, owner_path
 
 
@@ -464,3 +478,95 @@ def test_native_wsl_path_mapping_refuses_unmounted_and_network_paths(monkeypatch
     for path in (Path("/home/person/request"), Path("/tmp/request"), Path("/mnt/server/request")):
         with pytest.raises(ValueError, match="mounted local-drive"):
             research.windows_path(path)
+
+
+def test_owner_io_authoritative_host_bytes_initialize_and_refresh_with_blind_linux_view(configured, monkeypatch):
+    bridge, owner, owner_path = configured
+    raw = b"\xef\xbb\xbf" + json.dumps(owner, ensure_ascii=False, indent=3).replace("\n", "\r\n").encode("utf-8") + b"\r\n"
+    calls = []
+    original_read = Path.read_bytes
+    def linux_read(path):
+        if path == owner_path:
+            raise FileNotFoundError("SYNTHETIC Linux view cannot see the Windows owner")
+        return original_read(path)
+    def host_read(command, **options):
+        calls.append((command, options))
+        assert command == [str(bridge.powershell), "-NoLogo", "-NoProfile", "-NonInteractive", "-File",
+                           research.windows_path(bridge.facade), "-ReadOwnerBytes", "-OwnerPath", research.windows_path(owner_path)]
+        assert options == {"cwd": bridge.repo, "stdin": research.subprocess.DEVNULL,
+                           "stdout": research.subprocess.PIPE, "stderr": research.subprocess.PIPE,
+                           "shell": False, "timeout": 10, "check": False}
+        return research.subprocess.CompletedProcess(command, 0, raw, b"")
+    monkeypatch.setattr(Path, "read_bytes", linux_read)
+    monkeypatch.setattr(research.subprocess, "run", host_read)
+    monkeypatch.setattr(research.subprocess, "Popen", lambda *_args, **_options: pytest.fail("Metadata read launched inference"))
+    authoritative = research.OpenScienceResearch(owner_path, bridge.store, repo=bridge.repo,
+                                                 powershell=bridge.powershell, evidence_root=bridge.evidence_root)
+    assert authoritative._configuration_error is None and authoritative._initial == owner
+    assert authoritative._owner_sha == hashlib.sha256(raw).hexdigest()
+    assert authoritative._current_owner() == owner and authoritative._read_owner_bytes() == raw
+    assert len(calls) == 3 and not authoritative.active and not authoritative.cleanup_pending
+    assert not bridge.evidence_root.exists()  # Metadata reads do not copy the owner or mutate profiles.
+
+
+def test_owner_io_native_windows_keeps_direct_file_read(configured, monkeypatch):
+    bridge, _, owner_path = configured
+    raw = owner_path.read_bytes()
+    monkeypatch.setattr(research, "os", SimpleNamespace(name="nt"))
+    monkeypatch.setattr(research.subprocess, "run", lambda *_args, **_options: pytest.fail("Native Windows read spawned a child"))
+    assert bridge._read_owner_bytes() == raw and bridge._current_owner() == bridge._initial
+
+
+@pytest.mark.parametrize("failure", ["nonzero", "stderr", "timeout", "oserror"])
+def test_owner_io_read_failures_are_private_and_never_infer(configured, monkeypatch, failure):
+    bridge, _, owner_path = configured
+    private = f"{owner_path} authorization=OWNER_SECRET; PRIVATE_OWNER_BODY".encode()
+    def fail_read(command, **options):
+        if failure == "timeout":
+            raise research.subprocess.TimeoutExpired(command, 10, output=private, stderr=private)
+        if failure == "oserror":
+            raise OSError(private.decode())
+        return research.subprocess.CompletedProcess(command, 1 if failure == "nonzero" else 0, private, private)
+    monkeypatch.setattr(research.subprocess, "run", fail_read)
+    monkeypatch.setattr(bridge, "_start", lambda *_: pytest.fail("Owner read failure launched inference"))
+    status = bridge.status()
+    assert status["state"] == "UNAVAILABLE" and "소유권" in status["reason"]
+    with pytest.raises(ValueError, match="소유권") as caught:
+        bridge.run("읽기 실패")
+    public = json.dumps(status, ensure_ascii=False) + str(caught.value)
+    assert str(owner_path) not in public and "OWNER_SECRET" not in public and "PRIVATE_OWNER_BODY" not in public
+    assert not bridge.active and not bridge.cleanup_pending and bridge._process is None
+    initial = research.OpenScienceResearch(owner_path, bridge.store, repo=bridge.repo,
+                                          powershell=bridge.powershell, evidence_root=bridge.evidence_root)
+    assert initial._initial is None and "소유권" in initial._configuration_error
+
+
+@pytest.mark.parametrize("change", ["changed", "deleted"])
+def test_owner_io_refresh_never_reuses_an_initial_snapshot(configured, monkeypatch, change):
+    bridge, _, owner_path = configured
+    before = len(bridge._synthetic_owner_reads)
+    if change == "deleted":
+        owner_path.unlink()
+    else:
+        owner_path.write_bytes(owner_path.read_bytes() + b"\r\n")
+    monkeypatch.setattr(bridge, "_start", lambda *_: pytest.fail("Changed/deleted owner launched inference"))
+    with pytest.raises(ValueError, match="소유권"):
+        bridge.run("현재 원본 확인")
+    assert len(bridge._synthetic_owner_reads) == before + 1 and not bridge.active
+
+
+@pytest.mark.parametrize("missing", ["powershell", "facade"])
+def test_owner_io_missing_trusted_reader_fails_before_child(configured, monkeypatch, missing):
+    bridge, _, _ = configured
+    getattr(bridge, missing).unlink()
+    monkeypatch.setattr(research.subprocess, "run", lambda *_args, **_options: pytest.fail("Missing trusted reader spawned"))
+    with pytest.raises(ValueError, match="소유권"):
+        bridge._current_owner()
+
+
+def test_owner_io_unsupported_platform_fails_before_child(configured, monkeypatch):
+    bridge, _, _ = configured
+    monkeypatch.setattr(research, "os", SimpleNamespace(name="unsupported"))
+    monkeypatch.setattr(research.subprocess, "run", lambda *_args, **_options: pytest.fail("Unsupported reader spawned"))
+    with pytest.raises(ValueError, match="소유권"):
+        bridge._read_owner_bytes()

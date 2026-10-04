@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-04T12:34:37.339276+00:00",
+  "status": "OWNER_IO_SOURCE_REVIEWED_ACTUAL_USER_RESEARCH_NOT_RUN",
+  "integration_parent": "f5375a3f2b0e797733f5339f0d15b59a4a590232",
+  "source_identity": "Containing commit plus these exact physical/index bytes; metadata or documentation is not a new solver run.",
+  "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "files": [
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "size_bytes": 26274,
+      "sha256": "cfa373397255218c9fb00c8ca8ef0b48cf9f17a125902710859f91a64d58d246"
+    },
+    {
+      "path": "ADR/0033-lab-question-handoff.md",
+      "size_bytes": 4880,
+      "sha256": "fe9cb85bfa158181d3a1af4cbba4333a9be6ee4212e5a1d55899d952647060f3"
+    },
+    {
+      "path": "apps/lab/CONTRACT.md",
+      "size_bytes": 15443,
+      "sha256": "3f3565ff7524173045e4f5e0ff21a738cee9746a789ae8b79ff417f33c9e6134"
+    },
+    {
+      "path": "apps/lab/research.py",
+      "size_bytes": 23478,
+      "sha256": "608bb310a3c52ec630fe52b3a1a55b3fe2db11bb0dea0177896f37e0e34775b1"
+    },
+    {
+      "path": "apps/lab/static/research-controls.js",
+      "size_bytes": 11485,
+      "sha256": "e21264fe777663b3fefebb959fed4b624e5e0afaa891d3a7d2a8fb05991873dc"
+    },
+    {
+      "path": "openscience/contract.md",
+      "size_bytes": 85597,
+      "sha256": "231f9c7ebd4f96767e1970a125030d3b56a78350a9d1b502f99524faba67133a"
+    },
+    {
+      "path": "scripts/lab-openscience.ps1",
+      "size_bytes": 26572,
+      "sha256": "4aaed5f1c1dfe855debb3ab4b75b89ff6103d7e265c7a783cc4b768824095dbd"
+    },
+    {
+      "path": "scripts/verify_lab_research.ps1",
+      "size_bytes": 34235,
+      "sha256": "7dead6cd6384f473f5e17a193b423c38d8bc2e0d53d17ab8f3c6d6fad7bf6eeb"
+    },
+    {
+      "path": "tests/test_lab_research.py",
+      "size_bytes": 31608,
+      "sha256": "8ec768a64c332073b2efed5c7bd0efe9112eed8115a41b540146efaf809aad7b"
+    },
+    {
+      "path": "tests/test_research_handoff.js",
+      "size_bytes": 30712,
+      "sha256": "c865e4d38b080523fdc84ebeda0293ba65d1f6474383f7695a952614cd186c31"
+    }
+  ],
+  "actual_human_01": {
+    "run_id": "lab-question-human-20261004-01",
+    "source_commit": "f5375a3f2b0e797733f5339f0d15b59a4a590232",
+    "status": "CONNECTION_REFUSED_BEFORE_QUESTION_MODEL_OR_SOLVER",
+    "observation": "Host Windows reads its READY ownership file, while WSL direct Path.read_bytes reports ENOENT. The same WSL process invoking trusted host PowerShell reads the original owner. Underlying filesystem-view discrepancy is UNKNOWN.",
+    "question_model_solver_calls": 0,
+    "shutdown": "Owned Lab process exited 0; owned official runtime stopped before editing; old store, profile and evidence retained.",
+    "local_evidence": "artifacts/development-human-workflow-20261004-01/human-01/"
+  },
+  "correction": {
+    "owner_io": "WSL uses fixed trusted host PowerShell raw-byte ownership-file reader for both initial and current ownership checks; native Windows retains direct byte reads. No owner copy or profile/auth relocation.",
+    "metadata_only": "Bounded 10-second ownership metadata read; no solver wall-clock limit change, runtime/model/HTTP/auth operation or fallback.",
+    "ui": "Normal RUNNING ownership is displayed as execution; cancellation/cleanup displays end confirmation. Admission and resident-IDLE cleanup gates unchanged.",
+    "preserved": [
+      "owner SHA/source/store/project/profile/model checks",
+      "original question bytes",
+      "single writer",
+      "owned handle and same MCP resident IDLE",
+      "existing Core/Domain/adapter boundaries",
+      "numerical thresholds and engines",
+      "UNKNOWN/NOT_RELEASED"
+    ]
+  },
+  "controlled_checks": {
+    "python": {
+      "passed": 58,
+      "existing": 47,
+      "new_owner_io": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 2.458
+    },
+    "powershell": {
+      "passed": 34,
+      "metadata_reader_child_starts": 10,
+      "actual_runtime_provider_auth_HTTP_solver_GUI_Git_install_calls": 0
+    },
+    "ui_selected_existing_test": {
+      "passed": 1,
+      "failures": 0,
+      "seconds": 0.1216298,
+      "scope": "One changed state-label control only; remaining tests not selected in this run."
+    },
+    "worker_receipt": {
+      "path": "artifacts/development-human-workflow-20261004-01/owner-io-source-01/RECEIPT.json",
+      "size_bytes": 3195,
+      "sha256": "06eaba5b5fa6005331fdf52c9a1d26356b5617079edb594830729f2dd016f373"
+    },
+    "ui_tap": {
+      "path": "artifacts/development-human-workflow-20261004-01/owner-io-ui-state-01.tap",
+      "size_bytes": 388,
+      "sha256": "d1e3e3508db207a54f47981916276f1214fe9168f057d0ce9c170b9cc7c9b1a2"
+    }
+  },
+  "actual_metadata_witness": {
+    "scope": "ACTUAL_METADATA_IO_ONLY_NOT_RESEARCH",
+    "exit_code": 0,
+    "original_owner_sha256": "a5cdf32ba0c8f5c0a2a7c8ac33242b78a8171b082033ea5589ce3715455026c2",
+    "bytes": 201958,
+    "owner_state": "stopped",
+    "source_commit": "f5375a3f2b0e797733f5339f0d15b59a4a590232",
+    "provider_question_native_solver_calls": 0,
+    "raw_owner_body_persisted": false
+  },
+  "independent_reviews": [
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/owner-io-review-01/RECEIPT.json",
+      "size_bytes": 7191,
+      "sha256": "348e7c569ac457694d9118fca0f22ee6b9de9072cd289e3701b7bd8c781ac568"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/owner-io-ui-review-01/RECEIPT.json",
+      "size_bytes": 2897,
+      "sha256": "3b6354f9c9df6f26d49c22dffb9373524d2cb3b741567a8063ddfc94acdd4b7b"
+    }
+  ],
+  "parent_exact_ci": {
+    "headSha": "f5375a3f2b0e797733f5339f0d15b59a4a590232",
+    "status": "completed",
+    "conclusion": "failure",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37200181761",
+    "jobs": [
+      {
+        "name": "core",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37200181761/job/111430090280"
+      },
+      {
+        "name": "research-driver-source",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37200181761/job/111430090450"
+      },
+      {
+        "name": "native-registration",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37200181761/job/111431370935"
+      },
+      {
+        "name": "native",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37200181761/job/111431370943"
+      },
+      {
+        "name": "doe",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37200181761/job/111431371011"
+      },
+      {
+        "name": "optimization",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37200181761/job/111431371016"
+      },
+      {
+        "name": "pde",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37200181761/job/111431371030"
+      },
+      {
+        "name": "structural",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37200181761/job/111431371042"
+      },
+      {
+        "name": "codeaster",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37200181761/job/111431371050"
+      },
+      {
+        "name": "explicit",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37200181761/job/111431371064"
+      }
+    ]
+  },
+  "containing_source_ci": "UNVERIFIED_UNTIL_PUBLICATION",
+  "engineering": {
+    "verdict": "UNKNOWN",
+    "release": "NOT_RELEASED"
+  },
+  "next_serial": [
+    "Publish reviewed source and check exact-source CI.",
+    "Fresh lab-question-human-20261004-02 owned runtime and shared store using existing approved openai-codex/gpt-5.6-sol/FixtureScalar/auth/project.",
+    "Actual browser question -> official control plane -> CAD/CalculiX -> readable same-store results; then verified changed-condition follow-up and busy cancellation/retention with same MCP resident IDLE.",
+    "Return to original assembly P2.4 native import and explicit mechanics/full fields, then remaining Phase6/7 and complete52 acceptance."
+  ],
+  "limits": [
+    "201958-byte stopped-owner witness verifies only original byte transport; actual question/answer/follow-up/cancellation remains NOT_RUN.",
+    "Full service, complete52, assembly, physical/material/strength/durability and deployment remain OPEN or UNKNOWN.",
+    "Raw ownership/auth/question/runtime evidence remains local and ignored; public record contains only safe pins and bounded observations."
+  ]
+}

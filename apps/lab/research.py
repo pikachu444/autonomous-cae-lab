@@ -73,7 +73,7 @@ class OpenScienceResearch:
         self._configuration_error = None
         self.evidence_root = Path(evidence_root).resolve() if evidence_root else None
         try:
-            data = self.owner.read_bytes()
+            data = self._read_owner_bytes()
             self._owner_sha = hashlib.sha256(data).hexdigest()
             self._initial = self._validate_owner(json.loads(data))
             if self.evidence_root is None:
@@ -149,10 +149,29 @@ class OpenScienceResearch:
             raise ValueError("An owned loopback project URL is required")
         return owner
 
+    def _read_owner_bytes(self) -> bytes:
+        """Read the authoritative host file; this mode performs no runtime action."""
+        message = "AI 연구 런타임의 소유권 파일을 읽을 수 없습니다."
+        try:
+            if os.name == "nt":
+                return self.owner.read_bytes()
+            if os.name != "posix" or not self.powershell.is_file() or not self.facade.is_file():
+                raise ValueError(message)
+            command = [str(self.powershell), "-NoLogo", "-NoProfile", "-NonInteractive", "-File",
+                       windows_path(self.facade), "-ReadOwnerBytes", "-OwnerPath", windows_path(self.owner)]
+            completed = subprocess.run(command, cwd=self.repo, stdin=subprocess.DEVNULL,
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False,
+                                       timeout=10, check=False)
+            if completed.returncode != 0 or completed.stderr:
+                raise ValueError(message)
+            return completed.stdout  # Hash the original bytes, including BOM/CRLF.
+        except (OSError, subprocess.TimeoutExpired):
+            raise ValueError(message) from None
+
     def _current_owner(self) -> dict:
         if self._configuration_error or self._initial is None:
             raise ValueError("AI 연구 연결의 소유권을 확인할 수 없습니다.")
-        data = self.owner.read_bytes()
+        data = self._read_owner_bytes()
         if hashlib.sha256(data).hexdigest() != self._owner_sha:
             raise ValueError("AI 연구 런타임의 소유권이 변경되었습니다.")
         return self._validate_owner(json.loads(data))

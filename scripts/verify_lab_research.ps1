@@ -1,10 +1,11 @@
 # Controlled source-only checks. No provider, auth, solver, GUI, Git or install.
 [CmdletBinding()]
 param([string]$RepoRoot=(Split-Path -Parent $PSScriptRoot), [string]$OutputPath, [switch]$TerminalResidentOnly,
-    [switch]$ReviewCorrectionOnly)
+    [switch]$ReviewCorrectionOnly,[switch]$OwnerIoOnly)
 $ErrorActionPreference='Stop'
 $verifyRepo=[IO.Path]::GetFullPath($RepoRoot)
-$verifyEvidence=Join-Path $verifyRepo ('artifacts/development-human-workflow-20261004-01/bridge-source-02/ps-controls-'+[Guid]::NewGuid().ToString('N'))
+$verifyEvidenceParent=if($OwnerIoOnly){'owner-io-source-01'}else{'bridge-source-02'}
+$verifyEvidence=Join-Path $verifyRepo ('artifacts/development-human-workflow-20261004-01/'+$verifyEvidenceParent+'/ps-controls-'+[Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $verifyEvidence -ErrorAction Stop | Out-Null
 $verifyChecks=[Collections.Generic.List[object]]::new()
 function Check([bool]$Condition,[string]$Name) {
@@ -15,6 +16,76 @@ foreach ($relative in @('scripts/lab-openscience.ps1','scripts/verify_lab_resear
     $tokens=$null; $errors=$null
     $null=[Management.Automation.Language.Parser]::ParseFile((Join-Path $verifyRepo $relative),[ref]$tokens,[ref]$errors)
     Check ($errors.Count -eq 0) "syntax:$relative"
+}
+if ($OwnerIoOnly) {
+    # Exercise only the actual fixed read-only facade process with synthetic
+    # private bytes. Do not import or call the research/runtime launcher.
+    $ownerIoPath=Join-Path $verifyEvidence 'runtime-owner.json'
+    $ownerIoText='{"provenance":"SYNTHETIC_NOT_NATIVE","label":"질문 Ω 😀","padding":"'+('x'*70000)+'"}'+"`r`n"
+    [byte[]]$ownerIoBytes=@(0xEF,0xBB,0xBF)+[Text.UTF8Encoding]::new($false).GetBytes($ownerIoText)
+    [IO.File]::WriteAllBytes($ownerIoPath,$ownerIoBytes)
+    $ownerIoOriginalHash=(Get-FileHash -LiteralPath $ownerIoPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $ownerIoStarts=0
+    function Invoke-VerifyOwnerRead([string]$Name,[string[]]$Arguments) {
+        $process=[Diagnostics.Process]::new()
+        $process.StartInfo=[Diagnostics.ProcessStartInfo]::new()
+        $process.StartInfo.FileName=(Get-Command pwsh.exe -ErrorAction Stop).Source
+        $process.StartInfo.UseShellExecute=$false; $process.StartInfo.CreateNoWindow=$true
+        $process.StartInfo.WorkingDirectory=$verifyRepo
+        $process.StartInfo.RedirectStandardOutput=$true; $process.StartInfo.RedirectStandardError=$true
+        $fixedArguments=@('-NoLogo','-NoProfile','-NonInteractive','-File',(Join-Path $verifyRepo 'scripts/lab-openscience.ps1'))+$Arguments
+        foreach($argument in $fixedArguments){$process.StartInfo.ArgumentList.Add($argument)}
+        $stdout=[IO.MemoryStream]::new()
+        try {
+            Check ($process.Start()) 'fixed metadata reader child started'
+            $script:ownerIoStarts++
+            $copy=$process.StandardOutput.BaseStream.CopyToAsync($stdout)
+            $errorRead=$process.StandardError.ReadToEndAsync()
+            Check ($process.WaitForExit(10000)) 'metadata-only read completes within bounded wait'
+            $copy.GetAwaiter().GetResult()
+            $errorText=$errorRead.GetAwaiter().GetResult()
+            [byte[]]$bytes=$stdout.ToArray()
+            [IO.File]::WriteAllBytes((Join-Path $verifyEvidence ($Name+'.stdout.bin')),$bytes)
+            [IO.File]::WriteAllText((Join-Path $verifyEvidence ($Name+'.stderr.txt')),$errorText,[Text.UTF8Encoding]::new($false))
+            @{provenance='SYNTHETIC_NOT_NATIVE';executable=$process.StartInfo.FileName;arguments=$fixedArguments
+                exit_code=$process.ExitCode;stdout_bytes=$bytes.Length;owner_original_sha256=$ownerIoOriginalHash} |
+                ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $verifyEvidence ($Name+'.invocation.json')) -Encoding utf8
+            return @{exit_code=$process.ExitCode;stdout=$bytes;stderr=$errorText}
+        } finally { $stdout.Dispose(); $process.Dispose() }
+    }
+    $read=Invoke-VerifyOwnerRead 'exact' @('-ReadOwnerBytes','-OwnerPath',$ownerIoPath)
+    Check ($read.exit_code -eq 0 -and $read.stderr.Length -eq 0) 'fixed owner read emits no diagnostics or extra output on success'
+    Check ($read.stdout.Length -gt 65536 -and [Convert]::ToBase64String($read.stdout) -ceq
+        [Convert]::ToBase64String($ownerIoBytes)) 'exact original bytes including UTF8 BOM Unicode CRLF and pipe-sized payload'
+    foreach($case in @(
+        @{name='conflicting_request';arguments=@('-ReadOwnerBytes','-OwnerPath',$ownerIoPath,'-RequestPath',$ownerIoPath)},
+        @{name='conflicting_library';arguments=@('-ReadOwnerBytes','-OwnerPath',$ownerIoPath,'-Library')},
+        @{name='missing_read_mode';arguments=@('-OwnerPath',$ownerIoPath)},
+        @{name='unknown_mode';arguments=@('-ReadOwnerBytes','-OwnerPath',$ownerIoPath,'-Mode','unknown')},
+        @{name='extra_argument';arguments=@('-ReadOwnerBytes','-OwnerPath',$ownerIoPath,'untrusted-extra')},
+        @{name='false_read_mode';arguments=@('-ReadOwnerBytes:$false','-OwnerPath',$ownerIoPath)},
+        @{name='relative_path';arguments=@('-ReadOwnerBytes','-OwnerPath','runtime-owner.json')},
+        @{name='linux_path';arguments=@('-ReadOwnerBytes','-OwnerPath','/mnt/c/untrusted/runtime-owner.json')},
+        @{name='missing_owner';arguments=@('-ReadOwnerBytes','-OwnerPath',(Join-Path $verifyEvidence 'missing-owner.json'))}
+    )) {
+        $rejected=Invoke-VerifyOwnerRead $case.name $case.arguments
+        Check ($rejected.exit_code -ne 0 -and $rejected.stdout.Length -eq 0) ('unsupported/conflicting mode or read failure is closed:'+ $case.name)
+    }
+    Check ((Get-FileHash -LiteralPath $ownerIoPath -Algorithm SHA256).Hash.ToLowerInvariant() -ceq
+        $ownerIoOriginalHash) 'metadata-only reads never mutate or copy the owned input'
+    $receipt=@{status='PASS_CONTROLLED_OWNER_IO_ONLY';provenance='SYNTHETIC_NOT_NATIVE';selection='BOUNDED_AUTHORITATIVE_OWNER_IO'
+        checks=@($verifyChecks);check_count=$verifyChecks.Count;metadata_reader_child_starts=$ownerIoStarts
+        actual_runtime_provider_auth_HTTP_solver_GUI_Git_install_calls=0;evidence=$verifyEvidence;source=@{}}
+    foreach ($relative in @('apps/lab/research.py','scripts/lab-openscience.ps1','tests/test_lab_research.py','scripts/verify_lab_research.ps1')) {
+        $receipt.source[$relative]=(Get-FileHash -LiteralPath (Join-Path $verifyRepo $relative) -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+    if ($OutputPath) {
+        if(Test-Path -LiteralPath $OutputPath){throw 'A fresh owner I/O receipt path is required.'}
+        $receipt | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $OutputPath -Encoding utf8
+    }
+    $receipt | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $verifyEvidence 'receipt.json') -Encoding utf8
+    $receipt | ConvertTo-Json -Depth 20
+    return
 }
 . (Join-Path $verifyRepo 'scripts/openscience-local.ps1') -Library
 . (Join-Path $verifyRepo 'scripts/lab-openscience.ps1') -Library

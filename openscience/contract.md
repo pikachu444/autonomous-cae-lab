@@ -5,6 +5,9 @@ official Research runtime. It uses the same approved5.6Sol, canonical descriptor
 managed source/project/store and launcher guards; no new Core tool, model client
 or descriptor expansion is introduced. Actual answer/tool/session references
 return to Lab while the underlying Core experiments stay authoritative.
+WSL obtains the original native owner bytes through the fixed read-only host
+facade, preserving its raw hash and the same runtime guards; this is metadata
+I/O, with no provider call, profile relocation or additional research capability.
 User cancellation extends the existing owned abort/idle/CLI cleanup sequence.
 The existing source-identity resource additionally observes its resident writer
 without initializing a Lab/store. All started-inference terminal paths require

@@ -119,7 +119,7 @@
   }
   function jobWorkflow(job) {
     const progress = progressView(job.progress);
-    if (job.status === "CLEANUP_PENDING" || (["RUNNING", "CANCEL_REQUESTED"].includes(job.status) && progress.cleanupPending)) return { tone: "pending", stage: "AI 연구 종료 확인 중", next: "종료를 확인할 때까지 다음 작업은 시작할 수 없습니다. 받은 답변과 작업 기록은 보존됩니다." };
+    if (job.status === "CLEANUP_PENDING" || (job.status === "CANCEL_REQUESTED" && progress.cleanupPending)) return { tone: "pending", stage: "AI 연구 종료 확인 중", next: "종료를 확인할 때까지 다음 작업은 시작할 수 없습니다. 받은 답변과 작업 기록은 보존됩니다." };
     if (job.status === "CANCEL_REQUESTED") return { tone: "pending", stage: "AI 연구 취소 처리 중", next: "실제 실행의 종료를 확인하고 있습니다. 부분 답변과 실행 기록은 보존됩니다." };
     if (job.status === "RUNNING") return { tone: "pending", stage: "AI 연구 실행 중", next: progress.valid && (progress.answer || progress.tools.length)
       ? "지금까지 받은 실제 답변과 도구 상태를 표시합니다. 최종 종료를 확인한 뒤 다음 질문을 보낼 수 있습니다."

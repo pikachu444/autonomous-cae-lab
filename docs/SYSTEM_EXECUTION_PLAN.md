@@ -1,4 +1,20 @@
-## Current checkpoint: Lab question handoff source reviewed; actual user flow next
+## Current checkpoint: authoritative Windows owner I/O reviewed; human research next
+
+Record: `benchmarks/records/20261004-lab-owner-io-source-r01.json`. Exact parent source `f5375a3f2b0e797733f5339f0d15b59a4a590232` is push-confirmed.
+
+Actual human-01 reached the new Lab screen but refused connection before any question/model/solver call: Windows and WSL have different visibility of the same ownership file; the underlying filesystem-view cause remains UNKNOWN. Owned Lab/runtime were stopped and old evidence/store/profile preserved.
+
+Correction uses the trusted Windows host to read original owner bytes on WSL, preserving all ownership/source/store/model gates. Python58, PowerShell34 and one changed UI state-label control PASS; independent reviews have zero open P1/P2. Actual stopped-owner201958B/SHA matches Windows: metadata I/O only, not research success.
+
+Exact f537 CI37200181761 completes FAILURE: seven SUCCESS, Code_Aster/explicit/PDE FAILURE. New containing-source CI is UNVERIFIED until publication. No documentation or source test is solver approval.
+
+SERIAL NEXT: human-02 connected Lab question/change/cancel first; return to original assembly native import and explicit mechanics/full fields, then remaining Phase6/7. Reuse existing engines, solver adapters, auth/project/model and retained CAD/meshes. No whole-system completion from source/metadata checks.
+
+UNKNOWN/NOT_RELEASED and full52 remain OPEN.
+
+---
+
+## Historical checkpoint: Lab question handoff source reviewed; actual user flow next
 
 Record: `benchmarks/records/20261004-lab-question-handoff-source-r01.json`. Parent4a612490; exact final source files and narrowed gate scopes are pinned there.
 

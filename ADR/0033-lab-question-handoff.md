@@ -27,6 +27,14 @@ logging in, broadening a descriptor and switching models are separate actions.
 In WSL, only trusted mounted-drive paths are mapped for the fixed Windows
 executable. Credentials remain in their existing external profile.
 
+The first actual WSL browser gate refused before inference: Linux could not
+read the native owner in its mounted profile view, while the fixed host
+PowerShell read the original file and SHA. WSL therefore reads the original
+owner bytes through a fixed read-only facade mode for both initial and current
+ownership. The same raw hash and all existing ownership/source/model/project/
+store checks still apply. The path comes only from trusted server configuration;
+no browser path, owner copy, profile relocation or authentication change is added.
+
 A trusted optional cancellation callback extends the existing launcher. User
 cancellation is recorded separately from timeout and preserves its exact
 session abort, confirmed idle, owned CLI termination and retained raw output.

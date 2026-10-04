@@ -271,7 +271,7 @@ test("running/cancel-requested progress renders escaped actual partials, failed 
   h.ui.state.overview.active_store = "library"; h.ui.renderResearchAnswers();
   assert.equal(walk(h.$("researchAnswers")).filter(node => node.tagName === "BUTTON" && node.dataset.experimentId).length, 0);
 });
-test("actual active progress cleanup flag shows end confirmation pending; terminal result remains authoritative", async () => {
+test("active ownership remains running until cancellation or cleanup; terminal result remains authoritative", async () => {
   const progress = { session_id: null, model: controls.MODEL, answer: "종료 확인 전 받은 실제 부분 답변", tools: [],
     cleanup_pending: true, completion_is_engineering_approval: false, decision: "NOT_RELEASED" };
   const h = harness({ fetchReply: () => reply(job({ status: "RUNNING", result: undefined, progress })) });
@@ -279,7 +279,7 @@ test("actual active progress cleanup flag shows end confirmation pending; termin
   assert.deepEqual(h.paths.map(item => item.path), ["/api/jobs/J-synthetic"], "Progress polling never runs owner health");
   for (const code of ["RUNNING", "CANCEL_REQUESTED"]) {
     h.ui.state.job = job({ status: code, result: undefined, progress }); h.ui.renderJob();
-    assert.equal(h.$("jobStatus").textContent, "AI 연구 종료 확인 중"); assert.equal(h.$("jobStatus").dataset.status, code);
+    assert.equal(h.$("jobStatus").textContent, code === "RUNNING" ? "AI 연구 실행 중" : "AI 연구 종료 확인 중"); assert.equal(h.$("jobStatus").dataset.status, code);
     assert.equal(h.$("jobPanel").classList.contains("finished"), false); assert.equal(h.$("jobCancelBtn").hidden, false);
     assert.equal(h.$("researchRunBtn").disabled, true); assert.equal(h.$("researchContinue").disabled, true);
     assert.match(h.$("researchAnswers").textContent, /종료 확인 전 받은 실제 부분 답변/);

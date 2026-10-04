@@ -6,6 +6,10 @@ The optional trusted `--openscience-owner PATH` startup setting binds the Lab
 to one existing approved Research runtime and the same writable store.
 `--openscience-powershell PATH` selects the installed host executable at startup
 and requires that owner setting; browser requests cannot select either path.
+WSL reads the original Windows ownership bytes through the fixed read-only
+host facade; native Windows reads directly. Exact raw hashes and the same
+ownership/source/profile/model/project/store checks apply. No owner snapshot,
+profile relocation, runtime start or authentication action is part of this read.
 `GET /api/research` reports verified availability, model, declared scope and
 official workspace URL. An unavailable or unconfigured runtime cannot start
 inference and is never replaced automatically.
