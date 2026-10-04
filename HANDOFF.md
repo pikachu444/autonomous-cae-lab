@@ -1,4 +1,23 @@
-## Current checkpoint: first assembly mesh rejected; real user-flow gaps explicit
+## Current checkpoint: reviewed high-order mesh correction; native r02 next
+
+Record: `benchmarks/records/20261004-fixture-assembly-mesh-correction-source-r02.json`.
+The original coarse mesh failure is independently confirmed from actual node
+coordinates: five negative centroid samples. MSH export correctly stopped.
+The failed run, 238 diagnosis inputs and missing runtime snapshot gap are kept.
+Reviewed correction enables Gmsh high-order optimization 0 to 2 and preserves
+diagnostic runtime observations on rejected jobs. Existing quality/identity,
+eight-output revision, profiles, CAD, Domain/Core and approved model are unchanged.
+Exactly 16 selected controlled checks pass; independent source P1/P2 = 0.
+This is source-only. Corrected pinned Gmsh 4.12.1 quality is NOT_RUN. NEXT SERIAL:
+publish then NEW r02 coarse3 -> fine1p5 against retained f8 CAD, raw review,
+explicit mechanics/full fields, and connected OpenScience/human condition change.
+UI source3f15 exact CI37180143113 completes 7 SUCCESS/3 FAIL; full CI does not pass.
+Question handoff, assembly analysis/campaign and next-step UX remain service gaps.
+All 52 requirements, P2.4, Phase6/7 and UNKNOWN/NOT_RELEASED remain open.
+
+---
+
+## Historical checkpoint: first assembly mesh rejected; real user-flow gaps explicit
 
 Clean source148e2360ce18df0285f2c1e528353ab42de23b92 ran fresh3.0mm against
 retained f8 CAD.44,191 TETRA10/220,955 samples; support left3/right2 samples have

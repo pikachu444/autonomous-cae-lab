@@ -226,6 +226,28 @@ def runtime(g, h) -> dict:
             "cpu_limit_seconds": resource.getrlimit(resource.RLIMIT_CPU)[0]}
 
 
+def runtime_snapshot(g, h, root: Path, phase: str) -> dict:
+    """Append diagnostic observations without adding trusted mesh artifacts.
+
+    These snapshots remain available on rejected jobs. They never replace the
+    success result's bound runtime fields or independently admit mesh quality.
+    """
+    if phase not in ("before", "after"):
+        raise ValueError("Only fixed before/after runtime diagnostic phases are supported")
+    snapshot = {"schema_version": 1, "phase": phase, "diagnostic_only": True,
+                "request_sha256": h.file_entry(root / "request.json")["sha256"]}
+    try:
+        observed = runtime(g, h)
+    except BaseException as exc:
+        h.save(root / ("runtime-" + phase + ".json"), {**snapshot,
+               "observation_status": "UNKNOWN", "runtime": None,
+               "exception_type": type(exc).__name__, "reason": str(exc)})
+        raise
+    h.save(root / ("runtime-" + phase + ".json"), {**snapshot,
+           "observation_status": "OBSERVED", "runtime": observed})
+    return observed
+
+
 def produce(g, h, root: Path, request: dict, catalog: dict) -> dict:
     """SDK-dependent operations are injectable solely as controlled cold fixtures."""
     import numpy as np
@@ -274,7 +296,7 @@ def main(input_file: Path) -> int:
         raise ValueError("Existing hard CPU policy cannot support the declared 86400 seconds")
     resource.setrlimit(resource.RLIMIT_CPU, (86400, hard))
     g = _load(h.safe(root / "capsule", "gmsh.py"), "_captured_official_gmsh")
-    before = runtime(g, h)
+    before = runtime_snapshot(g, h, root, "before")
     initialized = logger_started = finalized = False
     error, result = None, None
     started = time.monotonic()
@@ -305,7 +327,7 @@ def main(input_file: Path) -> int:
             "logger_started": logger_started, "finalize_succeeded": finalized, "initialize_attempts": 1,
             "elapsed_seconds": time.monotonic()-started, "solver_calls": 0, "provider_calls": 0})
     try:
-        after = runtime(g, h)
+        after = runtime_snapshot(g, h, root, "after")
         h.check_request(root, request)
         if h.file_entry(input_file) != request_bytes or h.file_entry(Path(h.__file__)) != source_before["helper"] or h.file_entry(Path(__file__)) != source_before["worker"] or before != after:
             raise ValueError("Executed mesh source/input/runtime drift")

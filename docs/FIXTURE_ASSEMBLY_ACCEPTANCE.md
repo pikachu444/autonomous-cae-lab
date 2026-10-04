@@ -112,3 +112,16 @@ Independent raw diagnosis pending; current official high-order optimizer2 is
 rationale for a bounded changed recipe, not pinned4.12.1 compatibility proof.
 Next after source review/commit: new coarse/fine paths, no threshold relaxation
 or unchanged retry. Whole assembly and human Research/campaign remain open.
+
+## Reviewed mesh correction r02: source qualification only
+
+See `benchmarks/records/20261004-fixture-assembly-mesh-correction-source-r02.json`.
+Independent arithmetic confirms r01 is an actual curved mesh quality failure.
+HighOrderOptimize 0 -> 2 is reviewed with 16 selected controlled PASS checks;
+failed-job runtime snapshots are diagnostic-only. Same original CAD, 3.0/1.5mm,
+five-point positivity, 1% body-volume and bitwise MSH17g criteria remain.
+No actual corrected SDK/mesh run is inferred. Fresh r02 coarse/fine raw gates
+precede mechanics/full fields and connected Research/human acceptance. Initial
+bootstrap/runtime refusal can stop before an after diagnostic. Question handoff,
+assembly campaign and stage/next-step UX are still open; display/CAD/source PASS
+does not complete the service. Engineering UNKNOWN/NOT_RELEASED remains.

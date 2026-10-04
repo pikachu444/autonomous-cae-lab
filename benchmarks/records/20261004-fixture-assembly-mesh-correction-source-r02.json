@@ -1,0 +1,191 @@
+{
+  "status": "QUALIFIED_BOUNDED_SOURCE_CORRECTION_ONLY",
+  "source_commit": "commit_containing_this_record",
+  "source_base": "148e2360ce18df0285f2c1e528353ab42de23b92",
+  "parent_checkpoint": "cdf5f0410dab73a11c86cf91e4b54b9627b10ed0",
+  "created_utc": "2026-10-04T06:44:35.627754+00:00",
+  "source_files": [
+    {
+      "path": "caelab/adapters/fixture_assembly_mesh.py",
+      "size_bytes": 40770,
+      "sha256": "aec846665003b20d29d3e377761cb19298124e97571bd96ad8d461af112dc82d"
+    },
+    {
+      "path": "caelab/adapters/fixture_assembly_mesh_worker.py",
+      "size_bytes": 19982,
+      "sha256": "a2266c8631d6d9ca8a36b89a10339de4f0694611389c1c7353a889be4170eb50"
+    },
+    {
+      "path": "tests/test_fixture_assembly_mesh.py",
+      "size_bytes": 36305,
+      "sha256": "1bc65055b7902c7d240f9e0459dd53e8242921628403734d60425fbbbb146c97"
+    },
+    {
+      "path": "plugins/fixture_design/assembly_mesh.py",
+      "size_bytes": 4318,
+      "sha256": "0ca8e2abb7632b81ce9cd70faed828605bd22809dfde912afbf848028017d86b"
+    }
+  ],
+  "change": {
+    "Mesh.HighOrderOptimize": {
+      "before": 0,
+      "after": 2
+    },
+    "runtime_diagnostics": "request-bound OBSERVED or UNKNOWN before/after; diagnostic-only; early refusal may stop before after snapshot",
+    "success_contract": "same runtime/source equality and eight trusted outputs/revision material",
+    "unchanged": [
+      "original curved CAD",
+      "3.0/1.5mm profiles",
+      "five actual positive samples",
+      "1% per-body volume",
+      "binary64 MSH17g",
+      "CPU86400/wallNone/threads2/no retry",
+      "Domain/Core/UI/upstream/model/auth"
+    ]
+  },
+  "evidence": [
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-correction-01/FREEZE.json",
+      "size_bytes": 3343,
+      "sha256": "502e5d187e08c39c9cbff9b101c45be661e1b53d0cea85d6cfe819221aa8e9c8"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-correction-01/MANIFEST.json",
+      "size_bytes": 4825,
+      "sha256": "c5cacd64dcf01ae349941077501b2c572545c1fd7624e9b2fe330ca6e5d7aa2c"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-correction-01/RECEIPT.json",
+      "size_bytes": 5865,
+      "sha256": "57436bc4557408f70d1118ee9cfff0a22dbea517810ac4f2a2a43295e53d9409"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-correction-01/evidence/cold-01/receipt.json",
+      "size_bytes": 1339,
+      "sha256": "a596d61f89f9d91c087cb07ceb21c8d48bda8e9e52766707ce713951796a0e53"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-correction-01/evidence/cold-01/junit.xml",
+      "size_bytes": 2456,
+      "sha256": "d7bda9c06736d3304d51bf61bc2dea4391898d8a498eea8a3fbd2bc562907e9f"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-correction-main-01/promotion.json",
+      "size_bytes": 1435,
+      "sha256": "ddb1111f9eb490954d22eb0a05fd00190b369eb6e5b3b08bf70af9a9c79ca914"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-correction-review-01/RECEIPT.json",
+      "size_bytes": 1166,
+      "sha256": "301f8316223221ec12d498313588a96e978a25cf96c4c676213e0079f96004e9"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-correction-review-01/review.json",
+      "size_bytes": 15651,
+      "sha256": "b37eb123c228adbfb21c356589ea5eb76639c47ee1202cafe0ef1218a8feb3c0"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-correction-review-01/REPORT.md",
+      "size_bytes": 1974,
+      "sha256": "d0d877d6c1da04c38a9d870a6bd6697547c9cda50570a4609db8f86551774cf4"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-diagnosis-01/diagnosis.json",
+      "size_bytes": 23103,
+      "sha256": "ee4bfb3ca2f3cc307c599b9faa40251c4ef9a894b40d965bba3515d768f5b21a"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-diagnosis-01/REPORT.md",
+      "size_bytes": 2764,
+      "sha256": "e3d0625af4fc0736deebf196900c901d28280e35b486f865bb04e021f67bb2fd"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-diagnosis-01/receipt.json",
+      "size_bytes": 2569,
+      "sha256": "82739ec4c5ef28ad0b8e07f15813ed57f2554668e4699bf77b9c99350d625b41"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-diagnosis-01/FREEZE.json",
+      "size_bytes": 56012,
+      "sha256": "e19c29e73ecd29e1c5443340314e71b4414d47013a7580b62dc6e791cdc01282"
+    }
+  ],
+  "source_checks": {
+    "selected_cases": 16,
+    "pass": 16,
+    "fail": 0,
+    "errors": 0,
+    "skips": 0,
+    "elapsed_seconds": 5.318307067966089,
+    "old_selected": 10,
+    "new_instances": 6,
+    "protected_inputs": 22,
+    "protected_unchanged": true,
+    "execution_copies": "byte-identical WSL-local retained",
+    "full67_repeat": false,
+    "real_native_SDK_calls": 0,
+    "synthetic_initialize_callbacks": 1
+  },
+  "independent_source_review": {
+    "selected_inputs": 27,
+    "open_P1": 0,
+    "open_P2": 0,
+    "target_executions": 0
+  },
+  "original_native_r01": {
+    "status": "CONFIRMED_ACTUAL_QUALITY_FAILURE_RETAINED",
+    "source": "148e2360ce18df0285f2c1e528353ab42de23b92",
+    "run": "runs/fixture-assembly-mesh-native-20261004-01/coarse3",
+    "tetra10": 44191,
+    "five_point_samples": 220955,
+    "negative_centroids": 5,
+    "minimum_determinant_mm3": -0.02343144265704311,
+    "independent_basis": "actual matrix determinants and quadratic interpolation of actual ten-node coordinates",
+    "native_warning_elements": 7,
+    "warning_measure": "distinct from five-point sample count",
+    "all_body_volume_errors_below_fixed_1_percent": true,
+    "MSH_writer_reached": false,
+    "diagnosis_inputs": 238,
+    "diagnosis_inputs_bytes": 97042636,
+    "unchanged": true,
+    "full_runtime_snapshots": "NOT_PERSISTED; before guards inferred from executed path, after unavailable"
+  },
+  "official_rationale": {
+    "url": "https://gmsh.info/doc/texinfo/gmsh.html#Mesh-options",
+    "observed_manual": "4.15.2",
+    "pinned_runtime": "4.12.1",
+    "pinned_tag_document": "UNAVAILABLE",
+    "corrected_4_12_1_API_and_mesh_quality": "NOT_RUN"
+  },
+  "CI": {
+    "UI_source": "3f15f5b32e921a39f29481e7e7a38b6daac825f0",
+    "UI_run": 37180143113,
+    "UI_conclusion": "failure",
+    "successful_jobs": 7,
+    "failed_jobs": [
+      "codeaster",
+      "explicit",
+      "pde"
+    ],
+    "new_causal_diagnosis": "NOT_RUN",
+    "mesh_source": "148e2360ce18df0285f2c1e528353ab42de23b92",
+    "mesh_run": 37182007727,
+    "mesh_snapshot": "in_progress; historical observation, no completed conclusion"
+  },
+  "user_flow": {
+    "record": "benchmarks/records/20261004-human-workflow-gap-r01.json",
+    "service_complete": false,
+    "open": [
+      "question to official OpenScience handoff",
+      "original assembly mechanics/campaign",
+      "stage and blocked next-step UX"
+    ]
+  },
+  "next_serial": "clean committed/published corrected source; NEW mesh-native-20261004-02 coarse3 then fine1p5; independent raw gate; explicit mechanics/full fields; connected Research/human use",
+  "new_native_runs": 0,
+  "solver_calls": 0,
+  "provider_calls": 0,
+  "whole_52_Phase6_Phase7": "OPEN",
+  "engineering": "UNKNOWN",
+  "decision": "NOT_RELEASED"
+}

@@ -281,6 +281,8 @@ def test_controlled_complete_recipe_sparse_ids_shuffled_geometry(context, size):
     assert [c["component_id"] for c in values["quality"]["bodies"]] == list(d.ACTIVE)
     assert all(b["status"] == "PASS" and b["sample_count"] == 5 for b in values["quality"]["bodies"])
     assert mapping["nodes"][0]["id"] != 1 and mapping["mesh_size_mm"] == size
+    assert mapping["options"]["requested"]["Mesh.HighOrderOptimize"] == 2
+    assert mapping["options"]["observed"]["Mesh.HighOrderOptimize"] == 2
     assert len(mapping["geometry_join"]["entities"]) == 84
     assert d.intent(context.catalog["components"])["inactive"] == context.request["intent"]["inactive"]
     assert len(d.intent(context.catalog["components"])["inactive"]) == 8
@@ -612,3 +614,70 @@ def test_actual_loaded_library_identity_is_observed_or_refused(context,tmp_path,
     else:
         with pytest.raises(ValueError,match="library|identity"):
             w.runtime(sdk,h)
+
+
+def test_high_order_optimizer_option_must_be_observed_before_generation(context):
+    g = ControlledSDK(context.catalog)
+    original = g.option.getNumber
+    g.option.getNumber = lambda name: 0 if name == "Mesh.HighOrderOptimize" else original(name)
+    with pytest.raises(ValueError,match="Actual Gmsh options differ"):
+        w.produce(g,h,context.output,context.request,context.catalog)
+    assert g.generated == 0 and not (context.output / "mesh.msh").exists()
+
+
+@pytest.mark.parametrize("phase,unavailable", [("before",False),("after",False),("before",True),("after",True)])
+def test_runtime_diagnostic_is_observed_or_unknown_without_admission(context,phase,unavailable):
+    observation = {"python": "synthetic", "library_sha256": "synthetic-not-native"}
+    def observe(g,helper):
+        assert helper is h
+        if unavailable:
+            raise ValueError("Synthetic missing actual library observation")
+        return deepcopy(observation)
+    context.monkeypatch.setattr(w,"runtime",observe)
+    if unavailable:
+        with pytest.raises(ValueError,match="Synthetic missing"):
+            w.runtime_snapshot(None,h,context.output,phase)
+    else:
+        assert w.runtime_snapshot(None,h,context.output,phase) == observation
+    snapshot = h.read_json(context.output / f"runtime-{phase}.json")
+    assert snapshot["diagnostic_only"] is True and snapshot["phase"] == phase
+    assert snapshot["request_sha256"] == h.file_entry(context.output / "request.json")["sha256"]
+    assert snapshot["runtime"] == (None if unavailable else observation)
+    assert snapshot["observation_status"] == ("UNKNOWN" if unavailable else "OBSERVED")
+    assert not (context.output / "mesh.msh").exists() and not (context.output / "result.json").exists()
+
+
+def test_quality_failure_preserves_both_runtime_diagnostics_and_lifecycle(context):
+    import resource
+    import io
+    events = []
+    observed = {"python": "3.12.3", "gmsh_version": "4.12.1",
+                "observation": "SYNTHETIC CONTROL; no SDK or native job"}
+    # Exercise the actual worker control flow with explicitly controlled callbacks.
+    # No real SDK source is imported or initialized; no OS CPU budget is changed.
+    sdk = SimpleNamespace(initialize=lambda *a,**k: events.append("initialize"),
+                          finalize=lambda: events.append("finalize"),
+                          logger=SimpleNamespace(start=lambda: events.append("logger-start"),
+                              get=lambda: ["SYNTHETIC quality failure"],stop=lambda: events.append("logger-stop")))
+    context.monkeypatch.setattr(w,"bootstrap",lambda path: (h,context.request))
+    context.monkeypatch.setattr(w,"_load",lambda *a,**k: sdk)
+    context.monkeypatch.setattr(w,"runtime",lambda *a,**k: deepcopy(observed))
+    context.monkeypatch.setattr(w,"sys",SimpleNamespace(version="3.12.3 synthetic-runtime",executable=sys.executable,stderr=io.StringIO()))
+    context.monkeypatch.setattr(h,"SYSTEM_PYTHON",sys.executable)
+    context.monkeypatch.setattr(resource,"getrlimit",lambda limit: (86400,resource.RLIM_INFINITY))
+    context.monkeypatch.setattr(resource,"setrlimit",lambda *a,**k: events.append("declared-cpu-policy"))
+    def rejected(g,helper,root,request,catalog):
+        assert g is sdk and helper is h
+        h.save(root / "quality.json",{"status":"FAIL","basis":"SYNTHETIC CONTROL; not actual field data"})
+        raise ValueError("Actual five-point Jacobian/one-percent body-volume quality FAILED; no mesh exported")
+    context.monkeypatch.setattr(w,"produce",rejected)
+    assert w.main(context.output / "request.json") == 1
+    for phase in ("before","after"):
+        snapshot = h.read_json(context.output / f"runtime-{phase}.json")
+        assert snapshot["runtime"] == observed and snapshot["observation_status"] == "OBSERVED"
+        assert snapshot["diagnostic_only"] is True
+    assert events == ["declared-cpu-policy","initialize","logger-start","logger-stop","finalize"]
+    assert h.read_json(context.output / "lifecycle.json")["finalize_succeeded"] is True
+    assert h.read_json(context.output / "quality.json")["status"] == "FAIL"
+    assert h.read_json(context.output / "failure.json")["status"] == "REJECTED_PREPROCESSING"
+    assert not (context.output / "mesh.msh").exists() and not (context.output / "result.json").exists()

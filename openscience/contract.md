@@ -1071,3 +1071,16 @@ optimization, temporal convergence, measured material or FE qualification.
 Source parity/guard tests and actual fresh official5.6Sol one-question loop,
 same-record human inspection/owned Stop/retention are separate gates. Old
 source/model/project/grant/default guards and UNKNOWN/NOT_RELEASED remain.
+
+## Reviewed mesh correction r02: source qualification only
+
+See `benchmarks/records/20261004-fixture-assembly-mesh-correction-source-r02.json`.
+Independent arithmetic confirms r01 is an actual curved mesh quality failure.
+HighOrderOptimize 0 -> 2 is reviewed with 16 selected controlled PASS checks;
+failed-job runtime snapshots are diagnostic-only. Same original CAD, 3.0/1.5mm,
+five-point positivity, 1% body-volume and bitwise MSH17g criteria remain.
+No actual corrected SDK/mesh run is inferred. Fresh r02 coarse/fine raw gates
+precede mechanics/full fields and connected Research/human acceptance. Initial
+bootstrap/runtime refusal can stop before an after diagnostic. Question handoff,
+assembly campaign and stage/next-step UX are still open; display/CAD/source PASS
+does not complete the service. Engineering UNKNOWN/NOT_RELEASED remains.

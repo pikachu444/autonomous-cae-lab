@@ -151,7 +151,7 @@ def positive_id(value):
 def mesh_options(mesh_size_mm: float) -> dict:
     size = domain().profile(mesh_size_mm)["mesh_size_mm"]
     return {"General.NumThreads": 2, "Mesh.MaxNumThreads2D": 2, "Mesh.MaxNumThreads3D": 2,
-            "Mesh.ElementOrder": 2, "Mesh.SecondOrderLinear": 0, "Mesh.HighOrderOptimize": 0,
+            "Mesh.ElementOrder": 2, "Mesh.SecondOrderLinear": 0, "Mesh.HighOrderOptimize": 2,
             "Mesh.MeshSizeMin": size, "Mesh.MeshSizeMax": size,
             "Mesh.MeshSizeFromCurvature": 0, "Mesh.MeshSizeFromPoints": 1,
             "Mesh.MeshSizeExtendFromBoundary": 1, "Mesh.Algorithm3D": 1,
