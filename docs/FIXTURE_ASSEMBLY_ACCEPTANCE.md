@@ -156,3 +156,21 @@ and actual body-aware84-group import; explicit Domain mechanics/full fields then
 public analysis/campaign and connected question/conditions/results/compare.
 Existing d9 CI37183746545 is7SUCCESS/3FAIL; no new CI or solver proof is inferred.
 User workflow, all52/P2.4/Phase6/7 remain OPEN; UNKNOWN/NOT_RELEASED unchanged.
+
+
+## Qualified coarse and fine actual reuse
+
+Record: `benchmarks/records/20261004-fixture-assembly-mesh-reuse-r01-qualified.json`.
+Clean source8684491 captures/rechecks retained coarse3/fine1_5 into NEW paths;
+each222files,105,891,866/620,811,667bytes, no remesh/SDK/solver/provider call.
+Independent221 copy identities,23 sources/188 parent/8 outputs, original runtime
+role and all bytes pass; openP1/P2=0. Live experiment189 and whole CAD store218
+are distinct scopes and unchanged. Initial pre-capture count-scope error is kept.
+Root totals744.85/843.28s are transfer checks, not solver time or fresh meshing.
+Exact868 CI37189476293 FAILED: core4136PASS/1FAIL/5SKIP, source-driverSUCCESS,
+8 dependent native jobsSKIPPED. Cause: import test uses shared sys.modules;
+fresh-import/order-isolation test correction is candidate-only, reader unchanged.
+NEXT: close that control, new tag0 solver transport/actual body-aware84-group
+import, explicit Domain mechanics/full fields, public Research/human compare.
+Display stage/next-step correction is candidate-only. User workflow and
+all52/P2.4/Phase6/7 remain OPEN; UNKNOWN/NOT_RELEASED. Raw evidence local only.

@@ -1,0 +1,216 @@
+{
+  "checkpoint_commit": "commit_containing_this_record; metadata only",
+  "ci": {
+    "cause": "Import-only test asserts global sys.modules absence; other full-suite CAD tests previously loaded CadQuery",
+    "core": {
+      "failed": 1,
+      "passed": 4136,
+      "seconds": 657.26,
+      "skipped": 5
+    },
+    "correction": "Isolated candidate/test-only fresh-byte import guard and synthetic preloaded-parent control are in progress, NOT promoted",
+    "dependent_native_jobs": "8 SKIPPED",
+    "exact_commit": "868449176262dafdfedc6ec9e8918553d0b6dfb2",
+    "failed_log": {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-reuse-ci-01/failed-log.txt",
+      "sha256": "1b0fb5112707eb170ba24a0494a5a52e884cca53d4abe84c11bbc9e19dc096ec",
+      "size_bytes": 11960
+    },
+    "research_driver_source": "SUCCESS",
+    "run_id": 37189476293,
+    "status": "COMPLETED_FAILURE",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37189476293"
+  },
+  "created_utc": "2026-10-04T09:12:46.562554+00:00",
+  "decision": "NOT_RELEASED",
+  "limitations": [
+    "Actual Windows junction behavior NOT_RUN",
+    "Large-file Windows/WSL transfer validation takes minutes; observed times are not a solver error",
+    "Code_Aster import/curved native GP/mechanics remain NOT_RUN/UNKNOWN",
+    "Public assembly Research, full service path, all52/P2.4/Phase6/7 remain OPEN",
+    "Strength/material/physical/durability/corporate acceptance UNKNOWN"
+  ],
+  "new_native_solver_provider_executions": 0,
+  "next_serial": [
+    "Close exact CI test-order control without changing production reader",
+    "New solver transport: physical tag unchanged and second/entity tag0, original mesh preserved",
+    "Actual component-aware native catalogue and84 exact volume/face memberships",
+    "Explicit Domain material/joint/contact/reference declaration, mechanics/full fields/balance/refinement",
+    "Public analysis/campaign and official OpenScience question/conditions/results/compare"
+  ],
+  "original_native_mesh_record": "benchmarks/records/20261004-fixture-assembly-mesh-native-r02-qualified.json",
+  "product_correction": "Display-only stage/next-step candidate in progress; neither shipped nor human-qualified yet",
+  "retention": "Compact record/code remotely committed; original/new raw stores and ignored evidence retained locally only",
+  "root_failed_pre_capture_attempt": {
+    "cause": "Whole-store218 count incorrectly asserted on individual experiment189; corrected harness scope only, no capture at failure",
+    "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-reuse-root-01/actual-coarse3/bootstrap-failure.json",
+    "retained_harnesses": [
+      "artifacts/development-fixture-coupling-20261004-01/run-mesh-reuse-root-01.py",
+      "artifacts/development-fixture-coupling-20261004-01/run-mesh-reuse-root-02.py"
+    ],
+    "sha256": "fba8f7f81e6be1e2862bafbe079d04530669b66b261c9f5c34d9af67013ea7ed",
+    "size_bytes": 689
+  },
+  "runs": [
+    {
+      "actual_profile_name": "coarse3",
+      "capture_receipt": {
+        "sha256": "f09f5158b4380e8bd45cdfd6fb87ae9003614f632a7e86d35a09af83ba0d0ca0",
+        "size_bytes": 68255
+      },
+      "captured": {
+        "all221_independent_file_identities": true,
+        "bytes": 105891866,
+        "captured_parent_files": 188,
+        "complete_membership": true,
+        "copied_files_before_new_receipt": 221,
+        "files": 222,
+        "new_receipt": {
+          "sha256": "f09f5158b4380e8bd45cdfd6fb87ae9003614f632a7e86d35a09af83ba0d0ca0",
+          "size_bytes": 68255
+        },
+        "outputs": 8,
+        "source_files": 23,
+        "unchanged_before_after": true
+      },
+      "descriptor": {
+        "sha256": "6cf69467347ec324bc4dd272dd8d94c417d2f01be605d8f79ba7fdc5f7e57cfd",
+        "size_bytes": 1886
+      },
+      "git_clean_before_after": true,
+      "independent_review": {
+        "manifest": {
+          "sha256": "ed2de730c7487bbc049305f5d9b7acbfbe417a9dc2fdfb02a69aef53f167ae7d",
+          "size_bytes": 1611
+        },
+        "open_P1": 0,
+        "open_P2": 0,
+        "receipt": {
+          "sha256": "76313e315f7c21989adde68865c21fb5b78b5e1b1d1521089d82e59744f56611",
+          "size_bytes": 1781
+        },
+        "report": {
+          "sha256": "9bb924167027661b38451a39989cd3f70a1a5043891f1165ecf9976b17263ffb",
+          "size_bytes": 1684
+        },
+        "root": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-reuse-actual-review-01/coarse3"
+      },
+      "manifest": {
+        "sha256": "6b267461c0635573c5849e257cf9b4f8995c04d87d881d6b270b6ecb6147a0df",
+        "size_bytes": 37318
+      },
+      "mesh_revision": "83a2bb86ee6986a0caeb35a53706564c9b5f3262d24aeb692403026fcd0c4bed",
+      "native_sdk_cad_solver_provider_calls": 0,
+      "new_store": "runs/fixture-assembly-mesh-reuse-20261004-01/coarse3",
+      "original_native_producer": "d9a1a9fa9096f66e30fa637bebd931bc59cd9c33",
+      "parent_experiment": {
+        "files": 189,
+        "size_bytes": 5925520,
+        "unchanged": true
+      },
+      "profile_directory": "coarse3",
+      "root_evidence": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-reuse-root-01/actual-coarse3-02",
+      "root_receipt": {
+        "sha256": "7d65543b1acf1789ac7001fab002eedf7a6f7e5592a91699d05936c710db619e",
+        "size_bytes": 2246
+      },
+      "source_commit": "868449176262dafdfedc6ec9e8918553d0b6dfb2",
+      "timing_seconds": {
+        "additional_recheck": 146.33600217895582,
+        "capture_including_its_recheck": 589.0896900929511,
+        "root_total": 744.8537900100928
+      },
+      "whole_original_store": {
+        "bytes": 5982714,
+        "files": 218,
+        "unchanged_before_after": true,
+        "writer_protection_map_equal": true
+      }
+    },
+    {
+      "actual_profile_name": "fine1_5",
+      "capture_receipt": {
+        "sha256": "2bc77f467ab95a9e532e31a0245b1b311e603e336038af2f5d2a80204b9959ad",
+        "size_bytes": 68265
+      },
+      "captured": {
+        "all221_independent_file_identities": true,
+        "bytes": 620811667,
+        "captured_parent_files": 188,
+        "complete_membership": true,
+        "copied_files_before_new_receipt": 221,
+        "files": 222,
+        "new_receipt": {
+          "sha256": "2bc77f467ab95a9e532e31a0245b1b311e603e336038af2f5d2a80204b9959ad",
+          "size_bytes": 68265
+        },
+        "outputs": 8,
+        "source_files": 23,
+        "unchanged_before_after": true
+      },
+      "descriptor": {
+        "sha256": "f0c32f87b580b3c064147c4f969eedb9b957bac67465837d3a37a0da57c02735",
+        "size_bytes": 1886
+      },
+      "git_clean_before_after": true,
+      "independent_review": {
+        "manifest": {
+          "sha256": "fa9a2d3800f0bad16ee93c548e88e1fa94b20214507321a40ea5997a76dd58dd",
+          "size_bytes": 1751
+        },
+        "open_P1": 0,
+        "open_P2": 0,
+        "receipt": {
+          "sha256": "735d6b4674f2712ad293979e6603f03fcd6cd68907d8b4155afa05841fd3940c",
+          "size_bytes": 1827
+        },
+        "report": {
+          "sha256": "d785f5498050880b8e88d507fa889af2f5cb4d4b9c989fb3a28be904090fe16e",
+          "size_bytes": 1671
+        },
+        "root": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-reuse-actual-review-01/fine1p5"
+      },
+      "manifest": {
+        "sha256": "f5704988fe51b98176caad490cd9762204ae46617de069f2253033fb9dd87992",
+        "size_bytes": 37323
+      },
+      "mesh_revision": "d978f8420630b0011c1432d717ef302c0139e5ffbccaf2c989c8c4cf23bcd18e",
+      "native_sdk_cad_solver_provider_calls": 0,
+      "new_store": "runs/fixture-assembly-mesh-reuse-20261004-01/fine1p5",
+      "original_native_producer": "d9a1a9fa9096f66e30fa637bebd931bc59cd9c33",
+      "parent_experiment": {
+        "files": 189,
+        "size_bytes": 5925520,
+        "unchanged": true
+      },
+      "profile_directory": "fine1p5",
+      "root_evidence": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-reuse-root-01/actual-fine1p5-02",
+      "root_receipt": {
+        "sha256": "10feee7fa8940bf4c1cd774d9f7afbb37c43f762ff3cb8a6c808a16f02e102c0",
+        "size_bytes": 2246
+      },
+      "source_commit": "868449176262dafdfedc6ec9e8918553d0b6dfb2",
+      "timing_seconds": {
+        "additional_recheck": 201.90781533601694,
+        "capture_including_its_recheck": 628.7588917019311,
+        "root_total": 843.2826638040133
+      },
+      "whole_original_store": {
+        "bytes": 5982714,
+        "files": 218,
+        "unchanged_before_after": true,
+        "writer_protection_map_equal": true
+      }
+    }
+  ],
+  "scope": "Actual independent byte transfer into two new separate roots and same-object recheck; original numerical verifier reused once per profile, not new SDK execution",
+  "solver_status": "NOT_RUN",
+  "source_producer": "868449176262dafdfedc6ec9e8918553d0b6dfb2",
+  "source_reader_unchanged": {
+    "path": "caelab/adapters/fixture_assembly_mesh_reuse.py",
+    "sha256": "eebd4a6fcd8b8f98badc6fe9508d65a68efc41e545c61770bd0ae68d50ed8d18",
+    "size_bytes": 18708
+  },
+  "source_record": "benchmarks/records/20261004-fixture-assembly-mesh-reuse-source-r01.json",
+  "status": "QUALIFIED_BOUNDED_REAL_COARSE_FINE_BYTE_TRANSFER_CI_TEST_FAILURE_OPEN"
+}
