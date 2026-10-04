@@ -170,3 +170,37 @@ test("owned lifecycle status overrides positive payloads and terminal unknown jo
   assert.equal(presentation.workflow({ ...completed("cad_run", cad()), cleanup_pending: true }, { kind: "job" }).stage, "종료 확인 중 · 다음 작업 차단");
   assert.equal(presentation.workflow({ status: "UNRECOGNIZED", result: cad() }, { kind: "job" }).stage, "현재 단계 미확인");
 });
+
+test("retained fixture result labels preserve exact scalars, units, invalid diagnostic stress and UNKNOWN checks", () => {
+  // Display-only projection of retained human-05 E-fea width32 result.json,
+  // SHA256 6688f4bff821e6e3e3128bdb743f8ee6847c3678a5e0c47472eaf5709b28c098.
+  // Source numerical/engineering qualification is not repeated by this test.
+  const record = frozen({ experiment_id: "fea_width32_100N_432mm_20261005_a1", status: "COMPLETED_REVIEW_REQUIRED",
+    solver_status: "COMPLETED", converged: true, decision: "NOT_RELEASED", metrics: {
+      applied_force_per_support: { unit: "N", valid: true, value: 100 },
+      displacement_mesh_change_ratio: { unit: "1", valid: true, value: 0.016636569979773187 },
+      max_displacement: { unit: "mm", valid: true, value: 0.005827884 },
+      peak_stress: { reason: "Averaged nodal diagnostic; no stress convergence or material allowable", unit: "MPa", valid: false, value: 0.5990678756165371 },
+      reaction_balance_ratio: { unit: "1", valid: true, value: 9.377174045109376e-9 },
+      reaction_force: { unit: "N", valid: true, value: [-6.981000019593144e-9, -3.778289999022619e-8, 100.0000001715396] },
+    }, validations: [
+      { type: "machine_interface", status: "UNKNOWN", blocking: true }, { type: "static_strength", status: "UNKNOWN", blocking: true },
+      { type: "physical_load_test", status: "UNKNOWN", blocking: true }, { type: "fatigue_durability", status: "UNKNOWN", blocking: true },
+      { type: "joint_and_contact", status: "UNKNOWN", blocking: true }, { type: "material_qualification", status: "UNKNOWN", blocking: true },
+      { type: "stress_convergence", status: "UNKNOWN", blocking: true },
+    ] });
+  const before = JSON.stringify(record);
+  const metricRows = Object.entries(record.metrics).map(([name, metric], index) => ({ name: presentation.metricName(name, index), metric }));
+  assert.deepEqual(metricRows.map(row => row.name), ["지지대별 하중", "마지막 두 메시의 변위 변화율 (상대비)", "최대 변위",
+    "절점 평균 응력 (진단용)", "반력 상대 불평형 (상대비)", "지지대 반력 (X, Y, Z)"]);
+  metricRows.forEach((row, index) => assert.equal(row.metric, Object.values(record.metrics)[index]));
+  assert.deepEqual(metricRows.map(row => row.metric.unit), ["N", "1", "mm", "MPa", "1", "N"]);
+  assert.equal(metricRows[1].metric.value, 0.016636569979773187); assert.equal(metricRows[4].metric.value, 9.377174045109376e-9);
+  assert.equal(metricRows[3].metric.valid, false); assert.equal(metricRows[3].metric.reason, record.metrics.peak_stress.reason);
+  assert.deepEqual(metricRows[5].metric.value, [-6.981000019593144e-9, -3.778289999022619e-8, 100.0000001715396]);
+  const unresolved = presentation.checks(record).unresolved;
+  assert.deepEqual(unresolved.map((check, index) => presentation.validationName(check.type, index)), ["시험기 장착 조건", "정적 강도", "실물 하중 시험", "피로와 내구성", "체결·접촉", "재료 물성 검증", "응력 수렴"]);
+  unresolved.forEach((check, index) => { assert.equal(check, record.validations[index]); assert.equal(check.status, "UNKNOWN"); assert.equal(check.blocking, true); });
+  assert.equal(record.status, "COMPLETED_REVIEW_REQUIRED"); assert.equal(record.decision, "NOT_RELEASED"); assert.equal(JSON.stringify(record), before);
+  assert.equal(presentation.metricName("__proto__", 4), "결과값 5"); assert.equal(presentation.validationName("constructor", 6), "확인 항목 7");
+});

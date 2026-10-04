@@ -1307,7 +1307,7 @@ function renderJob() {
   $("jobStatus").dataset.status = marker.dataset.status; $("jobStatus").title = marker.title;
   $("jobMessage").textContent = workflow.next;
   if (job.operation === "research_run" && activeJob(job)) {
-    const phase = window.researchControls.phaseLabel(job.progress?.phase);
+    const phase = window.researchControls.phaseLabel(job.progress?.phase, job.progress);
     if (phase) $("jobMessage").append(el("small", phase, "research-phase"));
   }
   $("jobCancelBtn").hidden = !activeJob(job);

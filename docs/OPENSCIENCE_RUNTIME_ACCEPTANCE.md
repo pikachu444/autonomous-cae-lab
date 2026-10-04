@@ -1,4 +1,39 @@
-## Current checkpoint: actual Lab CAD reached; analysis input and user display corrected
+## Current checkpoint: actual Lab question, load change and cancellation verified
+
+Record: `benchmarks/records/20261005-lab-question-change-cancel-r01.json`.
+Clean producer fb7339bb / pinned fixture3e48 / approved GPT-5.6 Sol,
+FixtureRefinement/schema7, new `lab-question-human-20261004-05`:
+ordinary Lab questions create width32/38 editable CAD, run actual CalculiX
+100N and same-session150N with4/3/2mm meshes, and link the same Core results.
+Twelve completed native levels are independently read back. Fine UZ(mm):
+100N .005827884/.005707813;150N .008741827/.008561720. Linear1.5 scaling
+error <=1e-9mm within raw-DAT rounding bound1.25e-9mm; unchanged5% mesh and
+1% signed XYZ reaction gates PASS. Hypothetical material/idealized restraint;
+all seven blocking engineering UNKNOWNs and diagnostic invalid stress remain.
+Fixed six experiment subtrees212files/177104722B are independently unchanged.
+
+Third200N question is CANCELLED and exact resident/Core returns IDLE after
+native work finishes; partial/new results and old records are retained.
+This proves cooperative AI cancellation/cleanup, not instant solver interruption.
+Owned research runtime and original Lab are stopped. Updated local result
+preview has no research owner; it is a saved-result view, not live AI readiness.
+Reviewed display/default bridge fixture correction is integrated: Main UI49
+and defaultPS56 PASS, independent source reviews0openP1/P2. Actual saved-result
+GUI shows readable metrics/15PASS/7UNKNOWN and NOT_RELEASED. Source checks do
+not relabel producerfb or qualify a later solver run. Exactfb CI37207419871
+is6SUCCESS/4FAIL: source-driver mock-path failure corrected here; Code_Aster,
+explicit download and vectorPDE failures remain separate and unresolved.
+
+SERIAL NEXT: expose existing per-mesh UZ through common AI/readable results
+(4/3 values exist natively but the actual AI called them UNKNOWN), then P2.4
+new tag0/body-aware import of the retained seven-body/84-group meshes, frozen
+Domain mechanics/reference/full fields, and connected assembly research.
+Phase6/7 and all52 remain OPEN; numerical optimization convergence, measured
+data/physical/strength/durability and corporate release are not established.
+
+---
+
+## Historical checkpoint: actual Lab CAD reached; analysis input and user display corrected
 
 Record: `benchmarks/records/20261004-lab-human-input-correction-r01.json`.
 Actual clean dd3a254 human02/approved5.6Sol reaches two CAD experiments and the

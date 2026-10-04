@@ -4,7 +4,7 @@ param([string]$RepoRoot=(Split-Path -Parent $PSScriptRoot), [string]$OutputPath,
     [switch]$ReviewCorrectionOnly,[switch]$OwnerIoOnly,[switch]$ProgressOnly,[string]$SharedSourceRoot)
 $ErrorActionPreference='Stop'
 $verifyRepo=[IO.Path]::GetFullPath($RepoRoot)
-$verifyEvidenceParent=if($ProgressOnly){'research-progress-candidate-01'}elseif($OwnerIoOnly){'owner-io-source-01'}else{'bridge-source-02'}
+$verifyEvidenceParent=if($ProgressOnly){'research-progress-candidate-01'}elseif($OwnerIoOnly){'owner-io-source-01'}else{'bridge-default-correction-01'}
 $verifyEvidence=Join-Path $verifyRepo ('artifacts/development-human-workflow-20261004-01/'+$verifyEvidenceParent+'/ps-controls-'+[Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $verifyEvidence -ErrorAction Stop | Out-Null
 $verifyChecks=[Collections.Generic.List[object]]::new()
@@ -315,7 +315,8 @@ Check ($timeout.response.status -ceq 'FAILED' -and $timeout.response.timed_out -
 
 # Cleanup retry observes the same owned identities and refuses termination until
 # exact session abort and idle confirmation; no CLI/provider is started here.
-$cleanupDir=Join-Path $verifyEvidence 'cleanup-controlled'
+$cleanupRequestDirectory=Join-Path $verifyEvidence 'cleanup-controlled'
+$cleanupDir=Join-Path $cleanupRequestDirectory 'command'
 New-Item -ItemType Directory -Path $cleanupDir | Out-Null
 Write-OpenScienceJson (Join-Path $cleanupDir 'command-request.json') @{provenance='SYNTHETIC_NOT_NATIVE'} -CreateNew
 [IO.File]::WriteAllText((Join-Path $cleanupDir 'stdout.jsonl'),'SYNTHETIC partial log')
@@ -350,7 +351,7 @@ function Stop-OpenScienceOwnedLauncher {
 function Start-Sleep {
     param([int]$Seconds)
     $script:verifySleepCount++
-    Check ((Read-OpenScienceJson (Join-Path $verifyEvidence 'progress.json')).cleanup_pending -and
+    Check ((Read-OpenScienceJson (Join-Path $cleanupRequestDirectory 'progress.json')).cleanup_pending -and
         -not $verifyStopped) 'unconfirmed cleanup retains busy evidence before retry'
 }
 $pending=[pscustomobject]@{launcher_still_running=$true;log_relay_still_running=$true;user_cancelled=$true
@@ -370,7 +371,7 @@ $verifyResourceState='BUSY'; $verifyResidentWaits=0
 function Start-Sleep {
     param([int]$Seconds)
     $script:verifyResidentWaits++
-    Check ((Read-OpenScienceJson (Join-Path $verifyEvidence 'progress.json')).cleanup_pending) 'busy resident keeps terminal cancellation unpublished'
+    Check ((Read-OpenScienceJson (Join-Path $cleanupRequestDirectory 'progress.json')).cleanup_pending) 'busy resident keeps terminal cancellation unpublished'
     $script:verifyResourceState='IDLE'
 }
 $idleResident=Confirm-LabResearchResidentIdle $residentRequest $verifyContext $initialResident $cleanupDir 'ses_owned123'

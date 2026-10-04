@@ -197,3 +197,47 @@ test("observed capability wire aliases share tool labels without inventing opera
   assert.deepEqual(unknown.scopes[0].operations, ["등록된 도구", "등록된 도구"]);
   assert.equal(controls.statusView({ ...h.ui.state.researchStatus, available: false }).ready, false); assert.deepEqual(h.counters, { http: 0, timers: 0 });
 });
+
+test("received human-05 answer or valid tool status hides stale preparation wording, preserving END_VERIFY and active/cleanup gates", () => {
+  // Exact retained human-05/progress-03.json job.progress, SHA256
+  // 50197ee339efdffa376ae250f5e0a5aecb4b529875d09cc47b5a6a66abf39c73.
+  // Its tools array is empty; tool-only controls below are distinct fixtures.
+  const observed = { session_id: null,
+    answer: "계획은 다음과 같습니다.\n\n1. 새 연구 기록을 만들고 `roller_support`의 실제 CAD 파라미터 경로·현재값·허용범위를 먼저 조회합니다.\n2. 요청된 변수인 지지대 폭만 등록합니다. 롤러 지름 8.3 mm와 나머지 치수는 등록하지 않고 CAD 기본값을 유지합니다.\n3. 폭 32 mm CAD와 38 mm CAD를 각각 새 불변 실험으로 생성하고 검증 결과를 확인합니다.\n4. 각 검증된 CAD를 부모로 삼아 **순서대로** CalculiX 해석을 실행합니다. 해석은 4→3→2 mm 메시, 지지대당 100 N의 총 하향(-Z) 하중, 제시된 가상 직교이방성 물성을 그대로 사용합니다.\n5. 동일 기록에서 처짐, 최종 두 메시의 처짐 변화(허용 기준 ≤5%), X/Y/Z 각 축의 **부호 있는** 반력 평형(허용 기준 ≤1%)을 읽어 비교합니다.\n\n지원되는 경계 이상화는 요청하신 그대로, 한 개 지지대의 아래면 X/Y/Z 완전 고정과 안장 중앙 24 mm 구간의 테셀레이션 면적 비례 총 -Z 100 N 분포입니다. 이는 볼트 체결·접촉·회전을 재현하지 않습니다. 직교이방성 축은 전역 CAD X/Y/Z이며, Z를 가상 적층 방향으로 선언하되 별도 재료 회전은 적용하지 않습니다. 피크 응력은 유효한 강도 지표가 아니며, 세 메시만으로 점근 수렴을 입증하지 않습니다.",
+    tools: [], cleanup_pending: true, model: "openai-codex/gpt-5.6-sol", completion_is_engineering_approval: false,
+    decision: "NOT_RELEASED", phase: "CLI_PREFLIGHT", phase_started_utc: "2026-10-04T15:01:42.5045545Z" };
+  assert.equal(observed.answer.length, 661); assert.equal(controls.progressView(observed).valid, true);
+  assert.match(controls.phaseLabel(observed.phase), /질문을 보내기 전에/); // One-argument compatibility.
+  const h = harness(), base = { id: "J-phase-observed", operation: "research_run", store_id: "local", status: "RUNNING" };
+  const hasPhase = () => h.$("jobMessage").children.some(node => node.className === "research-phase");
+  const signals = [observed, { ...observed, answer: " \n", tools: [{ tool: "caelab_study_create", status: "completed" }] }];
+  for (const signal of signals) {
+    for (const phase of ["RUNTIME_VERIFY", "RESIDENT_VERIFY", "CLI_PREFLIGHT"]) {
+      const progress = { ...signal, phase }, before = JSON.stringify(progress);
+      h.ui.state.job = { ...base, progress }; h.ui.renderJob();
+      assert.equal(controls.phaseLabel(phase, progress), null); assert.equal(hasPhase(), false);
+      assert.equal(h.$("jobStatus").textContent, "AI 연구 실행 중"); assert.equal(h.$("jobStatus").dataset.status, "RUNNING");
+      assert.equal(h.$("researchRunBtn").disabled, true); assert.equal(h.$("researchContinue").disabled, true);
+      assert.equal(h.$("jobCancelBtn").hidden, false); assert.equal(h.$("jobCancelBtn").disabled, false);
+      assert.equal(h.ui.confirmedResearchSession(), null); assert.equal(JSON.stringify(progress), before);
+      if (signal === observed) assert(walk(h.$("researchAnswers")).some(node => node.tagName === "PRE" && node.textContent === observed.answer));
+    }
+  }
+  for (const progress of [
+    { ...observed, answer: " \n", tools: [] },
+    { ...observed, answer: " \n", tools: [{ tool: "caelab_study_create", status: 1 }, null, { tool: "caelab_study_create", status: " " }] },
+    { ...observed, model: "unverified-model" }, { ...observed, tools: null },
+  ]) {
+    h.ui.state.job = { ...base, progress }; h.ui.renderJob();
+    assert.equal(controls.phaseLabel("CLI_PREFLIGHT", progress), controls.phaseLabel("CLI_PREFLIGHT")); assert.equal(hasPhase(), true);
+  }
+  for (const status of ["RUNNING", "CANCEL_REQUESTED", "CLEANUP_PENDING"]) {
+    h.ui.state.job = { ...base, status, progress: { ...observed, phase: "END_VERIFY" } }; h.ui.renderJob();
+    assert.equal(hasPhase(), true); assert.equal(h.$("jobMessage").children.at(-1).textContent, controls.phaseLabel("END_VERIFY"));
+    assert.equal(h.$("jobStatus").dataset.status, status); assert.equal(h.$("jobStatus").textContent, status === "RUNNING" ? "AI 연구 실행 중" : "AI 연구 종료 확인 중");
+    assert.equal(h.$("researchRunBtn").disabled, true); assert.equal(h.$("researchContinue").disabled, true);
+    assert.equal(h.$("jobCancelBtn").disabled, status === "CANCEL_REQUESTED"); assert.equal(h.ui.confirmedResearchSession(), null);
+  }
+  for (const phase of ["FUTURE_PHASE", "constructor", null, {}, true]) assert.equal(controls.phaseLabel(phase, observed), null);
+  assert.deepEqual(h.counters, { http: 0, timers: 0 });
+});

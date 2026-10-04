@@ -216,10 +216,13 @@
     if (job.status === "COMPLETED" && response.valid) return { tone: "recorded", stage: "AI 응답 받음 · 결과 검토 필요", next: "답변과 연결된 실험을 확인하세요. 수치 검증과 공학적 사용 승인은 각 실험의 판정을 따릅니다." };
     return { tone: "unknown", stage: "AI 연구 상태 미확인", next: "작업 기록에서 실제 응답과 종료 상태를 확인하세요." };
   }
-  function phaseLabel(value) {
+  function phaseLabel(value, data) {
     const phases = { RUNTIME_VERIFY: "AI 연구 실행 환경을 확인하고 있습니다.", RESIDENT_VERIFY: "연결된 AI 실행기의 준비 상태를 확인하고 있습니다.",
       CLI_PREFLIGHT: "질문을 보내기 전에 대화와 실행 조건을 확인하고 있습니다.", END_VERIFY: "답변과 도구 실행의 종료 상태를 확인하고 있습니다." };
-    return typeof value === "string" && Object.hasOwn(phases, value) ? phases[value] : null;
+    if (typeof value !== "string" || !Object.hasOwn(phases, value)) return null;
+    const progress = progressView(data);
+    const received = progress.valid && (progress.answer.trim() || progress.tools.some(tool => tool && tool.status.trim()));
+    return value !== "END_VERIFY" && received ? null : phases[value];
   }
   return Object.freeze({ MODEL, request, workspace, safeMessage, statusView, canRun, toolView, responseView, canContinue, progressView, answerBlocks, phaseLabel, jobWorkflow });
 });

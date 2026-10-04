@@ -10,6 +10,9 @@
     cad_component_count: "부품 수", cad_bounds: "전체 크기", cad_volume: "형상 체적",
     maximum_displacement: "최대 변위", max_displacement: "최대 변위",
     maximum_von_mises: "최대 등가 응력", max_von_mises: "최대 등가 응력",
+    applied_force_per_support: "지지대별 하중", displacement_mesh_change_ratio: "마지막 두 메시의 변위 변화율 (상대비)",
+    peak_stress: "절점 평균 응력 (진단용)", reaction_balance_ratio: "반력 상대 불평형 (상대비)",
+    reaction_force: "지지대 반력 (X, Y, Z)",
   };
   const parameterNames = {
     "specimen.length": "시편 길이", "specimen.width": "시편 폭",
@@ -24,6 +27,7 @@
     roller_retention: "롤러 이탈 방지", machine_interface: "시험기 장착 조건",
     static_strength: "정적 강도", physical_load_test: "실물 하중 시험",
     fatigue_durability: "피로와 내구성", corporate_license_security: "회사 사용·보안 승인",
+    joint_and_contact: "체결·접촉", material_qualification: "재료 물성 검증", stress_convergence: "응력 수렴",
   };
   const componentNames = {
     printed_base: "바닥판", printed_support_left: "왼쪽 받침", printed_support_right: "오른쪽 받침",

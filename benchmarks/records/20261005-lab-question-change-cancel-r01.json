@@ -1,0 +1,382 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.actual-lab-question-change-cancel-and-display-checkpoint",
+  "status": "BOUNDED_HUMAN05_QUESTION_CHANGE_CANCEL_PASS_FULL_SYSTEM_OPEN",
+  "recorded_utc": "2026-10-04T15:56:02.255717+00:00",
+  "native_producer_commit": "fb7339bb3f8843492288456df1ce98284447b4ec",
+  "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "model": "openai-codex/gpt-5.6-sol",
+  "profile": "FixtureRefinement/schema7",
+  "store_run_id": "lab-question-human-20261004-05",
+  "turns": [
+    {
+      "job_id": "J9d116d0cce2e48f6adbe219b2d7fce5f",
+      "status": "COMPLETED",
+      "session_id": "ses_ef8905aa1ffeSZZlCxSHT6GI4C",
+      "actual_tool_rows": 12,
+      "cleanup_pending": false,
+      "snapshot": {
+        "path": "artifacts/development-human-workflow-20261004-01/human-05/first-completed-01.json",
+        "bytes": 30256,
+        "sha256": "7eaf6db6e9bf913e0bbff4b6cf8da53312ba35e3b579e5abd098bc6d6bacbb1b"
+      }
+    },
+    {
+      "job_id": "J148c86c9581c4f12a3bd8d3ec0988de4",
+      "status": "COMPLETED",
+      "session_id": "ses_ef8905aa1ffeSZZlCxSHT6GI4C",
+      "actual_tool_rows": 5,
+      "cleanup_pending": false,
+      "snapshot": {
+        "path": "artifacts/development-human-workflow-20261004-01/human-05/followup-completed-or-progress-01.json",
+        "bytes": 35453,
+        "sha256": "1a72423eda7c719858344464bcb107188040c180b7943434cbd1020863f30082"
+      }
+    },
+    {
+      "job_id": "J37dfc4c6f80f46fbadc5bb552c2d45e3",
+      "status": "CANCELLED",
+      "session_id": "ses_ef8905aa1ffeSZZlCxSHT6GI4C",
+      "actual_tool_rows": 0,
+      "cleanup_pending": false,
+      "snapshot": {
+        "path": "artifacts/development-human-workflow-20261004-01/human-05/cancel-ended-01.json",
+        "bytes": 33338,
+        "sha256": "737f126ebb44ed2435da11545ac9571db749aabaec57547cea90ee1499583cb8"
+      }
+    }
+  ],
+  "experiments": [
+    {
+      "experiment_id": "cad_width32_20261005_a1",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "NOT_RUN",
+      "decision": "NOT_RELEASED",
+      "result": {
+        "path": "runs/lab-question-human-20261004-05/experiments/cad_width32_20261005_a1/result.json",
+        "bytes": 22474,
+        "sha256": "8b553f6ea53e2590088833b80861de9ff75258692f80f04fd7c242245a672e19"
+      }
+    },
+    {
+      "experiment_id": "cad_width38_20261005_a1",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "NOT_RUN",
+      "decision": "NOT_RELEASED",
+      "result": {
+        "path": "runs/lab-question-human-20261004-05/experiments/cad_width38_20261005_a1/result.json",
+        "bytes": 23557,
+        "sha256": "71bfca9218e77ce6db714a3006446da07a75a8dd74e5d8c4d9e18c29b3be1b12"
+      }
+    },
+    {
+      "experiment_id": "fea_width32_100N_432mm_20261005_a1",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "result": {
+        "path": "runs/lab-question-human-20261004-05/experiments/fea_width32_100N_432mm_20261005_a1/result.json",
+        "bytes": 43244,
+        "sha256": "6688f4bff821e6e3e3128bdb743f8ee6847c3678a5e0c47472eaf5709b28c098"
+      }
+    },
+    {
+      "experiment_id": "fea_width38_100N_432mm_20261005_a1",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "result": {
+        "path": "runs/lab-question-human-20261004-05/experiments/fea_width38_100N_432mm_20261005_a1/result.json",
+        "bytes": 43252,
+        "sha256": "495128279d6c1131b04c9320d1312f10440682a49862d9473286affb74ce895e"
+      }
+    },
+    {
+      "experiment_id": "fea_width32_150N_432mm_20261005_a1",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "result": {
+        "path": "runs/lab-question-human-20261004-05/experiments/fea_width32_150N_432mm_20261005_a1/result.json",
+        "bytes": 43246,
+        "sha256": "ddeb37243576b0bf93b5b1adc7e0a8a1f2c7b2b97a36129a80569651c477abf1"
+      }
+    },
+    {
+      "experiment_id": "fea_width38_150N_432mm_20261005_a1",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "result": {
+        "path": "runs/lab-question-human-20261004-05/experiments/fea_width38_150N_432mm_20261005_a1/result.json",
+        "bytes": 43242,
+        "sha256": "3c3edb194641cb3b7e85da95e47b5385c3b7890b04c6bb73ff542c0fb95f3870"
+      }
+    },
+    {
+      "experiment_id": "fea_width32_200N_321p5mm_20261005_a1",
+      "status": "COMPLETED_REVIEW_REQUIRED",
+      "solver_status": "COMPLETED",
+      "decision": "NOT_RELEASED",
+      "result": {
+        "path": "runs/lab-question-human-20261004-05/experiments/fea_width32_200N_321p5mm_20261005_a1/result.json",
+        "bytes": 43407,
+        "sha256": "9b70e3a496c6f768d5b5298c4be31363196bd453874f8dd8d326054a1f06f26c"
+      }
+    }
+  ],
+  "native_versions": {
+    "ccx": "2.21",
+    "gmsh": "4.12.1"
+  },
+  "independent_reviews": [
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-05/native-first-question-review-01/RECEIPT.json",
+      "bytes": 22994,
+      "sha256": "bc05cdcb72019d1b9b4d688c8d203ff9503d39213d2ad11a8b5605b8e61abb90"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-05/native-followup-review-01/RECEIPT.json",
+      "bytes": 7305,
+      "sha256": "8667bac8d69c7e0da67af226f853a58397899c56cc4b79e97ad038abc75988d3"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/human-05/cancel-wait-source-lookup-01/receipt.json",
+      "bytes": 21872,
+      "sha256": "5d3a5502ac47d061db0f13a25cc4cba7642434f0515e78548b3e48b03ddea0a9"
+    }
+  ],
+  "source_reviews": [
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/bridge-default-correction-review-01/RECEIPT.json",
+      "bytes": 5133,
+      "sha256": "115418af00615c918344dcc2c8b0077477ba8e486a685e7047dba66c1e5938ec"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/readable-phase-followup-review-01/RECEIPT.json",
+      "bytes": 20177,
+      "sha256": "7e8e009fd97f768950bd45b8637e5c15dcb0ab94849dd94825ae902bb9b9a780"
+    },
+    {
+      "path": "artifacts/development-human-workflow-20261004-01/readable-result-labels-review-01/RECEIPT.json",
+      "bytes": 16663,
+      "sha256": "1f82678b993a85045cca486c068f25dec2f1ddfa992e95b4fc44a7568c76a4b1"
+    }
+  ],
+  "numerical": {
+    "scope": "Hypothetical orthotropic single support, bottom XYZ fixed and area-weighted central24mm -Z load; global material axes.",
+    "mesh_sizes_mm": [
+      4,
+      3,
+      2
+    ],
+    "widths_mm": [
+      32,
+      38
+    ],
+    "max_abs_global_UZ_mm": {
+      "100N_width32": [
+        "0.005642080",
+        "0.005730928",
+        "0.005827884"
+      ],
+      "100N_width38": [
+        "0.005505997",
+        "0.005574470",
+        "0.005707813"
+      ],
+      "150N_width32": [
+        "0.008463120",
+        "0.008596392",
+        "0.008741827"
+      ],
+      "150N_width38": [
+        "0.008258996",
+        "0.008361705",
+        "0.008561720"
+      ]
+    },
+    "fine_width_increase_deflection_reduction_percent_100N": 2.060284659063225,
+    "unchanged_mesh_change_limit": 0.05,
+    "unchanged_signed_XYZ_balance_limit": 0.01,
+    "linear_reference": {
+      "factor": "1.5",
+      "maximum_scalar_error_mm": "1e-9",
+      "raw_literal_rounding_bound_mm": "1.25e-9",
+      "loaded_node_U_components_checked": 4734,
+      "CLOAD_pairs_checked": 1578
+    },
+    "first_proof": {
+      "path": "artifacts/development-human-workflow-20261004-01/human-05/native-first-question-review-01/numerical-proof.json",
+      "bytes": 12779,
+      "sha256": "96b0a9b2115008652a60d868e8ea85d6af285004ecd64539f4eb3932234640a0"
+    },
+    "followup_proof": {
+      "path": "artifacts/development-human-workflow-20261004-01/human-05/native-followup-review-01/numerical-proof.json",
+      "bytes": 21340,
+      "sha256": "bdc9240beff2e70d12c7c17a187467ac27c869a65254f4a309a90c58542a69dd"
+    }
+  },
+  "retention": {
+    "fixed_scope": "Two CAD and four100/150N analysis experiment subtrees; third200N excluded from this sealed inventory.",
+    "files": 212,
+    "bytes": 177104722,
+    "before_after_identical": true,
+    "manifest": {
+      "path": "artifacts/development-human-workflow-20261004-01/human-05/native-followup-review-01/inventory-after.json",
+      "bytes": 52053,
+      "sha256": "2de942020596f5e6c92f987be9856cad78e0282c7dd44f90c974c66ba7ad28a8"
+    }
+  },
+  "cancellation": {
+    "status": "CANCELLED_CLEANUP_CONFIRMED_RESIDENT_IDLE",
+    "native_active_before_UI_cancel": {
+      "path": "artifacts/development-human-workflow-20261004-01/human-05/native-busy-before-cancel-01.json",
+      "bytes": 545,
+      "sha256": "ad98437e0ebb77355247b04a2c686dc91bea4d70302280b638271ea4fc3a42f6"
+    },
+    "terminal_utc": "2026-10-04T15:31:59.507Z",
+    "instant_native_interruption": "NOT_VERIFIED_NATIVE_COMPLETED_BEFORE_RESIDENT_IDLE",
+    "intermediate_idle_probe_failures": "001/003 HTTP35s timeout;002/004 empty HTTP200;005 exact IDLE PASS. Underlying timing cause UNKNOWN."
+  },
+  "owned_stop": {
+    "runtime": {
+      "path": "artifacts/development-human-workflow-20261004-01/human-05/runtime-stopped.json",
+      "bytes": 309,
+      "sha256": "0772f9539d72b9ff613e338560c06373fb33b9bb19a459ea1cdafe06630a096c"
+    },
+    "Lab": {
+      "path": "artifacts/development-human-workflow-20261004-01/human-05/lab-stop-request.json",
+      "bytes": 125,
+      "sha256": "ea94a6e89ef24ba7b638dc0c397e2c90ad394d6600d4c836b6652bf144101dab"
+    }
+  },
+  "display_and_default_bridge_correction": {
+    "status": "PASS_BOUNDED_MAIN_SOURCE_AND_SAVED_RESULT_GUI",
+    "source_parent": "fb7339bb3f8843492288456df1ce98284447b4ec",
+    "source_files": {
+      "apps/lab/static/research-controls.js": {
+        "bytes": 17938,
+        "sha256": "85b4f0ea3ae1bdd192725a2ca193cc4b87233424f7508bc953e11fe9744f5b9b"
+      },
+      "apps/lab/static/app.js": {
+        "bytes": 122311,
+        "sha256": "fa5d5d7f1747cf3de724427fa31a10f14fc6f2263c395a5eae1586b817534980"
+      },
+      "tests/test_research_answer.js": {
+        "bytes": 27263,
+        "sha256": "87cdba8b579e17cd7079f40703ae62055ee3385caafde1bfcdcd2d6d7f667313"
+      },
+      "apps/lab/static/result-presentation.js": {
+        "bytes": 13662,
+        "sha256": "b6a58de97014f2991ed76340e87007634df13b4b61e77b3ceebcaed5e4448ef8"
+      },
+      "tests/test_result_presentation.js": {
+        "bytes": 16447,
+        "sha256": "2c6e7f65e8f6f6b220f1cbbed4f1cd83908cf51be57ed35391cbdb42c1a4e75b"
+      },
+      "scripts/verify_lab_research.ps1": {
+        "bytes": 46116,
+        "sha256": "7cadfde9b409cf90a1fa433a7a1b5ba112cee7b85a350553e9a3e1a82f0aec9e"
+      }
+    },
+    "ui": {
+      "passed": 49,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "evidence": {
+        "path": "artifacts/development-human-workflow-20261004-01/display-main-49-01.tap",
+        "bytes": 5455,
+        "sha256": "04a906f888a6b846f8fb925a06244a7f3f20c491aae36ef6fc7a857930553b6b"
+      }
+    },
+    "default_bridge": {
+      "passed": 56,
+      "selection": "INITIAL_TARGETED_BRIDGE_CONTROLS",
+      "evidence": {
+        "path": "artifacts/development-human-workflow-20261004-01/bridge-default-main-01.json",
+        "bytes": 9403,
+        "sha256": "70eeee3bfeb22daab934b62973e993a1f5ba70f30fa4e2fd778a537a75a81c54"
+      }
+    },
+    "new_provider_or_solver_calls": 0,
+    "served_assets": [
+      {
+        "url": "/static/app.js",
+        "bytes": 122311,
+        "sha256": "fa5d5d7f1747cf3de724427fa31a10f14fc6f2263c395a5eae1586b817534980"
+      },
+      {
+        "url": "/static/research-controls.js",
+        "bytes": 17938,
+        "sha256": "85b4f0ea3ae1bdd192725a2ca193cc4b87233424f7508bc953e11fe9744f5b9b"
+      },
+      {
+        "url": "/static/result-presentation.js",
+        "bytes": 13662,
+        "sha256": "b6a58de97014f2991ed76340e87007634df13b4b61e77b3ceebcaed5e4448ef8"
+      }
+    ],
+    "GUI_basis": "Actual Cua saved first-100N record, matching hashes; no restarted research owner/model.",
+    "GUI_evidence": [
+      {
+        "path": "artifacts/development-human-workflow-20261004-01/human-05/result-preview-02.ax.txt",
+        "bytes": 6539,
+        "sha256": "a1c8f07358e6337de203e1fe6bfd91d75f57b54f2ca24e8d45fc8a7e98b56403"
+      },
+      {
+        "path": "artifacts/development-human-workflow-20261004-01/human-05/result-preview-01.jpg",
+        "bytes": 106678,
+        "sha256": "9549cd2837d06f8b7fa488e6031af7bcdf8adde1396f05925193052205079ab2"
+      },
+      {
+        "path": "artifacts/development-human-workflow-20261004-01/human-05/result-preview-02.jpg",
+        "bytes": 98492,
+        "sha256": "24eb31c08f62b57771a0faf49761cc3c76e51036a5886a642c060c2d351b2c85"
+      },
+      {
+        "path": "artifacts/development-human-workflow-20261004-01/human-05/result-preview-03.jpg",
+        "bytes": 104554,
+        "sha256": "2d7266cf95a4a53ad608e184c1d5d14582bfcedd5c6f247f39e768908580e583"
+      }
+    ],
+    "scope_limits": [
+      "Changed phase suppression has controlled source evidence, not a new live AI turn.",
+      "Vector wrapping and same-analysis geometry/field display remain usability follow-ups."
+    ]
+  },
+  "prior_failed_startups": {
+    "human03": "MCP connection closed; original cause UNKNOWN, no question/solver/store.",
+    "human04": "Exact raw context intent reuse rejected, then populated preflight cache not empty; no official runtime/question. Guards not waived.",
+    "human05": "Fresh single-context official startup and actual questions succeed; no model fallback/auth reset."
+  },
+  "exact_native_source_CI": {
+    "source_commit": "fb7339bb3f8843492288456df1ce98284447b4ec",
+    "run_id": 37207419871,
+    "status": "FAILURE",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37207419871",
+    "success_jobs": 6,
+    "failure_jobs": 4,
+    "source_driver_failure": "Default controlled cleanup directory conflicted with strict production phase path. Test fixture correction only, no production gate relaxation.",
+    "other_failures": [
+      "Code_Aster family assertion unresolved",
+      "Pinned explicit release archive404 before native execution",
+      "VectorPDE numerical classification unresolved"
+    ],
+    "new_containing_commit_CI": "NOT_RUN_BEFORE_PUBLICATION"
+  },
+  "open": [
+    "Per-mesh4/3 UZ exists natively but is absent from common AI summary; native evidence is not UNKNOWN.",
+    "Same-analysis editable geometry/fields, vector wrapping and startup/cleanup responsiveness need further usability work.",
+    "Seven-body assembly84-group import/mechanical law/materials/full fields/connected research P2.4.",
+    "Native immediate cancellation, wider physics/measured data/strength/durability, Phases6/7 and full52."
+  ],
+  "next_serial_gates": [
+    "Adapter-owned per-mesh common response visibility without changing evidence or thresholds.",
+    "New tag0 native transport and body-aware84-group import using retained qualified meshes.",
+    "Freeze Domain mechanics/reference before coupled solve/full-field checks and public research."
+  ],
+  "engineering_decision": "NOT_RELEASED",
+  "raw_local_evidence_committed": false
+}
