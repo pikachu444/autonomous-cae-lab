@@ -89,7 +89,7 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m pytest -q
       - name: Check forms, imported meshes and retained PDE/contact fields
-        run: node --test tests/test_fixture_controls.js tests/test_cad_controls.js tests/test_campaign_controls.js tests/test_imported_mesh_controls.js tests/test_pde_field_inspector.js tests/test_contact_field_inspector.js tests/test_result_presentation.js
+        run: node --test tests/test_fixture_controls.js tests/test_cad_controls.js tests/test_campaign_controls.js tests/test_imported_mesh_controls.js tests/test_pde_field_inspector.js tests/test_contact_field_inspector.js tests/test_result_presentation.js tests/test_result_workflow.js
       - run: python scripts/verify_mcp.py
       - name: Verify native OpenScience source and tool guards without model calls
         run: |

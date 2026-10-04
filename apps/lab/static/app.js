@@ -130,6 +130,13 @@ function available(operation) {
   const matching = list(state.overview?.capabilities).filter((item) => item.operation === operation);
   return !matching.length || matching.some((item) => item.callable === true);
 }
+function workflowContext(value, kind = "experiment", integrity = "NOT_CHECKED") {
+  const result = kind === "job" ? value?.result : value;
+  const backend = result?.provenance?.adapter ?? result?.backend;
+  const preset = state.presets[$("simulationPreset").value];
+  return { kind, integrity, writable: writable(), busy: busy(), analysisAvailable: available("analysis_run"),
+    eligibleParent: window.cadControls.eligibleParent(preset, { ...result, backend }) };
+}
 function option(select, value, label) { const item = el("option", label); item.value = value; select.append(item); }
 function selectedEntries() {
   const backend = $("cadBackend").value, model = $("cadModel").value.trim();
@@ -623,7 +630,7 @@ function renderExperimentList() {
     (!query || `${row.id} ${row.study_id} ${row.backend}`.toLowerCase().includes(query)));
   const container = clear("experimentList");
   if (!records.length) { container.append(el("p", "이 조건에 맞는 실험이 없습니다. 실험을 실행하거나 다른 저장소를 선택하세요.", "empty-state")); updateControls(); return; }
-  container.append(table(["비교", "실험 / 연구", "작업", "실행 상태", "사용 승인", "기록 확인", ""], records.map((row) => {
+  container.append(table(["비교", "실험 / 연구", "작업", "현재 단계 / 다음 할 일", "사용 승인", "기록 확인", ""], records.map((row) => {
     const select = el("input"); select.type = "checkbox"; select.checked = state.comparison.has(row.id); select.setAttribute("aria-label", `${row.id} 비교 선택`);
     select.addEventListener("change", () => {
       if (select.checked && state.comparison.size >= 12) { select.checked = false; notify("한 번에 최대 12개 실험을 비교할 수 있습니다."); return; }
@@ -631,7 +638,9 @@ function renderExperimentList() {
     });
     const identifier = el("div"); identifier.append(experimentButton(row.id), el("small", row.study_id));
     if (row.error) identifier.append(el("small", text(row.error), "metric-reason"));
-    return [select, identifier, el("span", window.resultPresentation.title(row.backend)), badge(row.status), badge(row.decision ?? "UNKNOWN"), badge(row.integrity ?? "NOT_CHECKED"), action("열기", () => inspectExperiment(row.id))];
+    const workflow = window.resultPresentation.workflow(row, workflowContext(row, "experiment", row.integrity));
+    const progress = el("div"); progress.append(badge(row.status, workflow.stage), el("small", workflow.next));
+    return [select, identifier, el("span", window.resultPresentation.title(row.backend)), progress, badge(row.decision ?? "UNKNOWN"), badge(row.integrity ?? "NOT_CHECKED"), action("열기", () => inspectExperiment(row.id))];
   })));
   updateControls();
 }
@@ -664,7 +673,9 @@ function renderExperimentDetail(data) {
   const presentation = window.resultPresentation, check = presentation.checks(result);
   const container = clear("experimentDetail"), backend = result.provenance?.adapter;
   const header = panel(presentation.title(backend), "실험 결과"); header.classList.add("result-header");
-  const verdicts = el("div", undefined, "status-title"); verdicts.append(badge(result.status), badge(data.integrity), badge(result.decision)); header.append(verdicts);
+  const workflow = presentation.workflow(result, workflowContext(result, "experiment", data.integrity));
+  const verdicts = el("div", undefined, "status-title"); verdicts.append(badge(result.status, workflow.stage), badge(data.integrity), badge(result.decision)); header.append(verdicts);
+  header.append(el("p", workflow.next, "hint"));
   const context = result.solver_status === "NOT_RUN" ? "이 기록에는 해석 실행 결과가 없습니다."
     : `해석 실행: ${labels[result.solver_status] ?? "상세 기록에서 확인"} · 수치 수렴: ${result.converged === true ? "확인됨" : result.converged === false ? "미수렴" : "미확인"}`;
   header.append(el("p", context, "result-context"));
@@ -1130,14 +1141,13 @@ async function compareExperiments() {
 
 function renderJob() {
   const job = state.job; if (!job) { $("jobPanel").hidden = true; return; }
-  $("jobPanel").hidden = false; $("jobPanel").classList.toggle("finished", job.status === "COMPLETED"); $("jobPanel").classList.toggle("failed", job.status === "FAILED");
-  $("jobTitle").textContent = operationNames[job.operation] ?? job.operation;
-  const marker = badge(job.status); $("jobStatus").className = marker.className; $("jobStatus").textContent = marker.textContent;
-  $("jobMessage").textContent = job.status === "RUNNING" ? "서버에서 실행 중입니다. 하나의 작업만 실행하며, 완료 또는 실패 상태를 계속 확인합니다."
-    : job.status === "CANCEL_REQUESTED" ? "취소를 요청했습니다. 실행 중인 단계가 중단 요청을 처리하는 동안 상태를 계속 확인합니다."
-    : job.status === "CLEANUP_PENDING" ? "솔버 종료가 확인되지 않았습니다. 다음 작업은 차단됩니다. 취소 버튼으로 같은 작업의 종료를 다시 요청할 수 있습니다."
-    : job.status === "CANCELLED" ? "작업이 중단 요청을 처리했습니다. 부분 로그와 실험 기록은 결과 목록에 보존됩니다. 수치 검증은 결과 기록에서 확인하세요."
-    : job.status === "FAILED" ? `실행 실패: ${text(job.error)} · 부분 기록이 있으면 결과 목록에서 확인하세요.` : "작업이 끝났습니다. 실제 결과의 수치·CAD 검증과 미검증 항목은 기록에서 확인하세요.";
+  const workflow = window.resultPresentation.workflow(job, workflowContext(job, "job"));
+  $("jobPanel").hidden = false; $("jobPanel").classList.toggle("finished", workflow.tone === "recorded"); $("jobPanel").classList.toggle("failed", workflow.tone === "failed");
+  const indicator = $("jobPanel").querySelector(".job-indicator"); if (indicator) indicator.style.animation = activeJob(job) ? "" : "none";
+  $("jobTitle").textContent = Object.hasOwn(operationNames, job.operation) ? operationNames[job.operation] : "작업 상태";
+  const marker = badge(job.status, workflow.stage); $("jobStatus").className = workflow.tone === "failed" ? "badge fail" : marker.className; $("jobStatus").textContent = marker.textContent;
+  $("jobStatus").dataset.status = marker.dataset.status; $("jobStatus").title = marker.title;
+  $("jobMessage").textContent = workflow.next;
   $("jobCancelBtn").hidden = !activeJob(job);
   $("jobCancelBtn").disabled = job.status === "CANCEL_REQUESTED";
   $("jobCancelBtn").textContent = job.status === "CLEANUP_PENDING" ? "종료 재시도" : "작업 취소";

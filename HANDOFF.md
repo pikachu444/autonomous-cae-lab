@@ -1,4 +1,18 @@
-## Current checkpoint: isolated import control reviewed and integrated
+## Current checkpoint: truthful stage captions integrated; human view next
+
+Record: `benchmarks/records/20261004-human-stage-source-r01.json`.
+List/detail/job captions distinguish model-ready/no-analysis, actual failure,
+recorded metadata and result review. Generic CAD completion badges were found
+by independent review and corrected; exact21 Node controls PASS, openP1/P2=0.
+The existing CI Node command includes the new workflow control file.
+This is display/source acceptance. Actual fresh-browser gate and new exact CI
+are NOT_RUN. NEXT: saved15-part model plus rejected-record actual UI witness,
+then component-aware native import/mechanics and connected Research/compare.
+All52 and whole service remain OPEN; UNKNOWN/NOT_RELEASED unchanged.
+
+---
+
+## Historical checkpoint: isolated import control reviewed and integrated
 
 Record: `benchmarks/records/20261004-fixture-assembly-mesh-reuse-ci-correction-r01.json`.
 Only the test changes: fresh interpreter checks reader imports and preserves

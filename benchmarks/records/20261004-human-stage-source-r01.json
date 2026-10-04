@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-04T09:43:47.010111+00:00",
+  "status": "DISPLAY_SOURCE_REVIEWED_ACTUAL_HUMAN_NOT_RUN",
+  "integration_parent": "26eed92afece3ae7ad321af9b534990bfd66613b",
+  "base_four_file_source": "868449176262dafdfedc6ec9e8918553d0b6dfb2",
+  "promotion": [
+    {
+      "path": "apps/lab/static/result-presentation.js",
+      "sha256": "88edd8434bb18604b231f2661338a6d98c7ec946585ae4421bb674aeb7ba760b",
+      "size_bytes": 13228
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "sha256": "39678bf83641bdd2574a87d79080396e42d67abdc44e36300b7b71bef99c6435",
+      "size_bytes": 107937
+    },
+    {
+      "path": "tests/test_result_presentation.js",
+      "sha256": "7d925634370340738e76aac72151a94c886680b3467107ed52945226cb2f3ad6",
+      "size_bytes": 12947
+    },
+    {
+      "path": "tests/test_result_workflow.js",
+      "sha256": "27f8121dad4c33c76fe6454f9e0029d8836478cfd6ad924dc1baeaf8da30c818",
+      "size_bytes": 19707
+    }
+  ],
+  "Root_CI_addition": {
+    "path": ".github/workflows/caelab-ci.yml",
+    "sha256": "baf48c38442e7c83a38068a4011d8413a959f8d098208e8a2ed32c685597a989",
+    "size_bytes": 24018,
+    "freeze_sha256": "012cb3e4ee9942ee8a1071f4f6fdf2d8a1557488fe6b0964676969bff6f9031a",
+    "scope": "One existing Node CI command now includes the new workflow VM test; no other byte/line-ending change."
+  },
+  "behavior": [
+    "Persisted CAD-only, solver execution, rejection/failure, cancellation and missing evidence receive explicit stage/next-step captions.",
+    "Completed HTTP job dispatch uses the actual nested result outcome.",
+    "Experiment-list/detail badges use the same stage caption instead of generic completion.",
+    "Unsupported original assembly analysis is stated plainly; existing gates and raw verdicts are preserved."
+  ],
+  "selected_Node_controls": {
+    "pass": 21,
+    "fail": 0,
+    "skip": 0,
+    "seconds": 0.38079959999999996,
+    "version": "v24.18.0"
+  },
+  "independent_review": {
+    "root": "artifacts/development-result-presentation-20261004-01/human-stage-source-review-01/caption-closure-01",
+    "receipt_sha256": "247f65578783f352d49ffe0e3ada5e60aa352af84ce11677a5bbe23401fce2f9",
+    "open_P1": 0,
+    "open_P2": 0
+  },
+  "writer": {
+    "root": "artifacts/development-result-presentation-20261004-01/human-stage-caption-correction-01",
+    "freeze_sha256": "7bfef3cc1b609fe31829996c98b9b27f3f0dd8f8e5bbd2a5e458a987e6248376",
+    "receipt_sha256": "fdcb54254506273f58c6c835ba69d0e25d88c1541457d3cebc37b7f315402c73"
+  },
+  "retained_attempts": [
+    "source01 first controlled run19PASS/2 test-fixture failures; repaired tinyDOM run21PASS",
+    "Final Korean phrase-only3affected PASS; not a new full suite.",
+    "Independent source review P2: generic completion badge remained in list/detail; new bounded correction and21controls close it."
+  ],
+  "unchanged": [
+    "Core/service/schema/registry/upstream/adapters/auth and the approved GPT-5.6 Sol selection",
+    "Scientific inputs, identities, metrics, UNKNOWN/NOT_RELEASED and existing execution/cancellation/read-only gates"
+  ],
+  "actual_browser": "NOT_RUN; next clean-source read-only stored CAD/rejected-record witness",
+  "nested_failed_job_live_browser": "NOT_RUN; controlled Node VM only",
+  "exact_source_CI": "NOT_RUN; inspect this containing source commit after publication",
+  "parent_CI": {
+    "source": "26eed92afece3ae7ad321af9b534990bfd66613b",
+    "run_id": 37192279119,
+    "observed": "IN_PROGRESS; source driver succeeded, core active"
+  },
+  "native_solver_provider_calls": 0,
+  "whole_service": "OPEN",
+  "decision": "NOT_RELEASED",
+  "open_workflow": [
+    "Lab question-to-official OpenScience handoff",
+    "Original assembly public analysis/conditions/campaign admission",
+    "Actual same-record question/conditions/solve/result/change/compare acceptance"
+  ],
+  "raw_evidence_retention": "LOCAL_ONLY ignored artifacts; compact source record, four UI/test files and one CI command addition are publication targets"
+}
