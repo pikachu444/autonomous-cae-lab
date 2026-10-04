@@ -690,6 +690,7 @@ function renderExperimentDetail(data) {
   visual.append(el("p", "네이티브 3D surface는 같은 실험의 검증된 파일로 엽니다. 치구의 진단용 응력 성분은 아래 원본 연결 표에서 확인합니다.", "hint separated"));
   evidenceGrid.append(evidence, visual); container.append(evidenceGrid);
   renderFixtureStressFields(container, result);
+  renderContactFields(container, data);
   renderPdeFields(container, data);
   const artifacts = panel("원본과 처리한 산출물", "ARTIFACTS · VERIFIED BY HASH"); artifacts.classList.add("detail-wide");
   artifacts.append(table(["파일", "크기", "SHA-256", "개정"], list(result.artifacts).map((item) => {
@@ -705,6 +706,172 @@ function renderExperimentDetail(data) {
   if (result.status === "COMPLETED_REVIEW_REQUIRED" && result.cad_revision && result.solver_status === "NOT_RUN") $("analysisParent").value = identifier;
   updateControls();
 }
+function renderContactFields(container, inspection) {
+  const result = inspection.result;
+  if (result.provenance?.adapter !== "structural.code_aster.contact_patch") return;
+  const card = panel("같은 실험의 접촉 필드", "NATIVE CONTACT FIELD · SAME RECORD");
+  card.classList.add("detail-wide", "contact-field-card");
+  card.append(badge(result.status), badge(result.decision),
+    el("p", "원본 메시의 절점·접촉 절점·적분점 값을 확인합니다. 원래 수치 판정과 미검증 요구사항은 위 결과를 따릅니다. 전체 필드 표시는 강도·물리·출시 승인이 아닙니다.", "hint separated"));
+  const detail = el("div", undefined, "separated"); card.append(detail); container.append(card);
+  const request = state.experimentRequest, store = activeStore();
+  const current = () => request === state.experimentRequest && store === activeStore() && state.selectedExperiment === inspection;
+  async function fetchBytes(relative) {
+    if (!current()) throw new Error("선택한 실험이 바뀌었습니다.");
+    const response = await fetch(artifactUrl(result.experiment_id, relative), { cache: "no-store", headers: { Accept: "application/octet-stream" } });
+    if (!current()) throw new Error("선택한 실험이 바뀌었습니다.");
+    if (!response.ok) throw new Error(`원본 산출물을 검증해 읽을 수 없습니다 (${response.status}).`);
+    const size = Number(response.headers.get("Content-Length"));
+    if (Number.isFinite(size) && size > 32 * 1024 * 1024) throw new Error("화면에서 읽을 수 있는 파일 크기를 넘습니다. 원본을 내려받아 확인하세요.");
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (!current()) throw new Error("선택한 실험이 바뀌었습니다.");
+    return bytes;
+  }
+  detail.append(el("p", "같은 기록의 입력·메시·소스·전체 필드 해시를 확인하고 있습니다…", "hint"));
+  Promise.resolve().then(async () => {
+    if (!window.contactFieldInspector) throw new Error("접촉 필드 검사를 불러올 수 없습니다. 원본 산출물 목록을 확인하세요.");
+    const field = await window.contactFieldInspector.loadContactField(inspection, fetchBytes, current);
+    if (!current()) return;
+    clear(detail);
+    if (field.status !== "available") {
+      detail.append(el("p", field.reason ?? "신뢰할 수 있는 접촉 필드를 읽지 못했습니다. 원본 산출물을 확인하세요.", "metric-reason"));
+      return;
+    }
+    renderContactNativeValues(detail, field, result.experiment_id, current);
+  }).catch(error => { if (current()) clear(detail).append(el("p", error.message, "metric-reason")); });
+}
+
+function renderContactNativeValues(container, field, identifier, isCurrent) {
+  const meta = field.metadata, exact = value => typeof value === "number" ? (Object.is(value, -0) ? "-0" : String(value)) : text(value);
+  // Keep IEEE signed zero in the point inspector as a JSON number, too.
+  function nativeText(value) {
+    if (typeof value === "number") return exact(value);
+    if (Array.isArray(value)) return `[${value.map(nativeText).join(", ")}]`;
+    if (value && typeof value === "object") return `{\n${Object.entries(value).map(([key, child]) => `${JSON.stringify(key)}: ${nativeText(child)}`).join(",\n")}\n}`;
+    return JSON.stringify(value);
+  }
+  const coords = values => values.map(exact).join(" / ");
+  const alias = id => Object.entries(meta.aliases ?? {}).filter(([, nodeId]) => String(nodeId) === String(id)).map(([name]) => name).join(" / ");
+  const positions = new Map(field.nodes.map(node => [node.id, node]));
+  const solids = field.cells.filter(cell => cell.type === "QUAD4"), edges = field.cells.filter(cell => cell.type === "SEG2");
+  container.append(el("p", `${field.nodes.length}개 절점 · ${solids.length}개 QUAD4 · ${edges.length}개 SEG2 · ${field.slave.length}개 접촉 절점 · ${field.gauss.length}개 적분점 · 원본 단계 ${exact(meta.order)} / INST ${exact(meta.inst)}`, "hint"));
+  container.append(el("p", `원본 소스 ${text(meta.sourceCommit)} · 모델 ${text(meta.modelRevision)} · 제안 ${text(meta.proposalRevision)}`, "mono separated"));
+  const unknown = list(meta.validations).filter(item => item.blocking === true && item.status === "UNKNOWN");
+  container.append(badge(meta.decision), el("p", `원래 미검증 요구사항 ${unknown.length}개를 유지합니다. native 접촉 간극은 UNAVAILABLE입니다. 응력 적분점의 W는 면적 가중치(m²)이며 기하 Z 좌표가 아닙니다.`, "hint separated"));
+  const downloads = el("div", undefined, "button-row separated");
+  field.downloads.forEach(item => downloads.append(link(item.path, artifactUrl(identifier, item.path), "text-link artifact-path", true)));
+  container.append(downloads, rawDetail("표시 파일의 SHA·크기·개정과 캡처된 소스", { files: field.downloads, sourceHashes: meta.sourceHashes }));
+  const controls = el("div", undefined, "button-row separated"), label = el("label", "원본 필드 / 성분"), component = el("select");
+  component.setAttribute("aria-label", "접촉 원본 필드 성분");
+  const options = [
+    ["ux", "절점 변위 Ux (m)", "nodes", "m", row => row.u.dx],
+    ["uy", "절점 변위 Uy (m)", "nodes", "m", row => row.u.dy],
+    ["rfx", "절점 반력 RFx (N/m)", "nodes", "N/m", row => row.rf_n_per_m.dx],
+    ["rfy", "절점 반력 RFy (N/m)", "nodes", "N/m", row => row.rf_n_per_m.dy],
+    ["pressure", "접촉 절점 signed LAGS_C (Pa)", "slave", "Pa", row => row.normalTractionPa],
+    ...[["xx", "SIXX"], ["yy", "SIYY"], ["zz", "SIZZ"], ["xy", "SIXY"]].map(([key, name]) => [key, `적분점 ${name} (Pa)`, "gauss", "Pa", row => row.stress_pa[key]]),
+  ];
+  options.forEach(([key, name]) => option(component, key, name)); component.value = "uy";
+  label.append(component); controls.append(label); container.append(controls);
+  const canvas = el("canvas"); canvas.width = 900; canvas.height = 520; canvas.className = "contact-field-canvas";
+  canvas.setAttribute("role", "img"); canvas.setAttribute("aria-label", `${identifier}의 원본 QUAD4·SEG2 메시와 실제 필드 점`);
+  const legend = el("p", undefined, "hint contact-field-legend"), description = el("p", undefined, "hint");
+  const scatter = el("canvas"); scatter.width = 900; scatter.height = 280; scatter.className = "contact-field-canvas"; scatter.hidden = true;
+  scatter.setAttribute("role", "img"); scatter.setAttribute("aria-label", `${identifier}의 실제 접촉 절점 X와 부호 있는 LAGS_C`);
+  const picked = rawDetail("선택한 실제 원본 점", null);
+  container.append(canvas, legend, description, scatter, picked);
+  const filter = el("label", "원본 절점 ID / raw ID 또는 셀 ID로 찾기 (정확히)"), input = el("input");
+  input.type = "text"; input.placeholder = "빈칸이면 전체 필드"; input.setAttribute("aria-label", "접촉 원본 필드 ID 필터"); filter.append(input); container.append(filter);
+  const rows = el("div"), caption = el("p", undefined, "hint"), pagination = el("div", undefined, "button-row separated");
+  let page = 0, filtered = [], plotted = [];
+  const previous = action("이전 필드 50개", () => { if (isCurrent()) { page--; drawRows(); } });
+  const next = action("다음 필드 50개", () => { if (isCurrent()) { page++; drawRows(); } });
+  const last = action("마지막 필드 50개", () => { if (isCurrent()) { page = Math.max(0, Math.ceil(filtered.length / 50) - 1); drawRows(); } });
+  pagination.append(previous, next, last); container.append(rows, caption, pagination);
+  const selected = () => options.find(item => item[0] === component.value);
+  function rowId(row, kind) { return kind === "gauss" ? `${row.cellId}:${row.order}:${row.point}:${row.subpoint}` : String(row.id); }
+  function drawRows() {
+    if (!isCurrent()) return;
+    const kind = selected()[2], start = page * 50, visible = filtered.slice(start, start + 50);
+    let headings, values;
+    if (kind === "nodes") {
+      headings = ["절점 / alias", "DEPL raw ID", "RF raw ID", "X / Y / Z (m)", "Ux (m)", "Uy (m)", "RFx (N/m)", "RFy (N/m)"];
+      values = visible.map(row => [`${row.id}${alias(row.id) ? ` (${alias(row.id)})` : ""}`, row.rawDeplId, row.rawReactionId, coords(row.xyz_m), exact(row.u.dx), exact(row.u.dy), exact(row.rf_n_per_m.dx), exact(row.rf_n_per_m.dy)]);
+    } else if (kind === "slave") {
+      headings = ["접촉 절점 / alias", "DEPL.LAGS_C raw ID", "X / Y / Z (m)", "signed LAGS_C (Pa)"];
+      values = visible.map(row => [`${row.id}${alias(row.id) ? ` (${alias(row.id)})` : ""}`, row.rawId, coords(row.xyz_m), exact(row.normalTractionPa)]);
+    } else {
+      headings = ["셀 ID", "raw MAILLE", "순서", "POINT", "SOUS_POINT", "X / Y (m)", "W (m²)", "SIXX (Pa)", "SIYY (Pa)", "SIZZ (Pa)", "SIXY (Pa)"];
+      values = visible.map(row => [String(row.cellId), row.rawElementId, String(row.order), String(row.point), String(row.subpoint), coords(row.xy_m), exact(row.weight_m2), ...["xx", "yy", "zz", "xy"].map(name => exact(row.stress_pa[name]))]);
+    }
+    clear(rows).append(table(headings, values));
+    caption.textContent = filtered.length ? `${start + 1}–${start + visible.length} / ${filtered.length}개 원본 행 표시` : "해당 원본 ID가 없습니다.";
+    previous.disabled = page === 0; next.disabled = start + 50 >= filtered.length; last.disabled = next.disabled;
+  }
+  function drawScatter(points, valueOf) {
+    const ctx = scatter.getContext("2d"); if (!ctx) return;
+    ctx.clearRect(0, 0, scatter.width, scatter.height);
+    const xs = points.map(row => row.xyz_m[0]), ys = points.map(valueOf), xmin = Math.min(...xs), xmax = Math.max(...xs), ymin = Math.min(...ys), ymax = Math.max(...ys);
+    const dx = xmax - xmin, dy = ymax - ymin;
+    if (![xmin, xmax, ymin, ymax, dx, dy].every(Number.isFinite) || !(dx > 0)) return;
+    const px = x => 65 + (x - xmin) / dx * (scatter.width - 110), py = y => dy === 0 ? scatter.height / 2 : 30 + (ymax - y) / dy * (scatter.height - 75);
+    ctx.strokeStyle = "#6d7d86"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(65, 25); ctx.lineTo(65, scatter.height - 45); ctx.lineTo(scatter.width - 45, scatter.height - 45); ctx.stroke();
+    ctx.fillStyle = "#172b37"; ctx.font = "12px sans-serif";
+    ctx.fillText(`X (m): ${exact(xmin)} → ${exact(xmax)}`, 70, scatter.height - 12);
+    ctx.fillText(`signed LAGS_C (Pa): ${exact(ymin)} → ${exact(ymax)}`, 75, 18);
+    points.forEach(row => { ctx.fillStyle = alias(row.id) ? "#a83836" : "#19746e"; ctx.beginPath(); ctx.arc(px(row.xyz_m[0]), py(valueOf(row)), 4, 0, Math.PI * 2); ctx.fill(); });
+  }
+  function drawMesh() {
+    if (!isCurrent()) return;
+    const ctx = canvas.getContext("2d"), [key, name, kind, unit, valueOf] = selected(), points = field[kind];
+    scatter.hidden = kind !== "slave";
+    description.textContent = kind === "slave" ? "도트와 아래 X–LAGS_C 산점도는 실제 slave 접촉 절점의 부호 있는 값입니다. master·비접촉 절점의 가상 0이나 반력/면적 대체값을 만들지 않습니다."
+      : kind === "gauss" ? "도트는 실제 적분점 XY의 원본 응력입니다. 보간·절점 평균·외삽·요소 전체 색칠을 하지 않습니다. 적분점 기하 Z는 UNAVAILABLE입니다."
+        : "도트는 원본 절점 값입니다. 변형 배율이나 연속장 보간을 적용하지 않았으며, 메시 선은 캡처된 원래 좌표와 연결을 따릅니다.";
+    if (!ctx) { legend.textContent = "브라우저가 캔버스를 표시하지 못합니다. 전체 원본 표와 다운로드를 확인하세요."; return; }
+    let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity, minimum = Infinity, maximum = -Infinity;
+    field.nodes.forEach(row => { xmin = Math.min(xmin, row.xyz_m[0]); xmax = Math.max(xmax, row.xyz_m[0]); ymin = Math.min(ymin, row.xyz_m[1]); ymax = Math.max(ymax, row.xyz_m[1]); });
+    points.forEach(row => { minimum = Math.min(minimum, valueOf(row)); maximum = Math.max(maximum, valueOf(row)); });
+    const dx = xmax - xmin, dy = ymax - ymin, span = maximum - minimum;
+    ctx.clearRect(0, 0, canvas.width, canvas.height); plotted = [];
+    if (![dx, dy, minimum, maximum, span].every(Number.isFinite) || !(dx > 0 && dy > 0)) { legend.textContent = "화면 좌표·색상 범위를 표시할 수 없습니다. 원본 표를 확인하세요."; return; }
+    const scale = Math.min((canvas.width - 70) / dx, (canvas.height - 70) / dy), left = (canvas.width - dx * scale) / 2, top = (canvas.height - dy * scale) / 2;
+    const xy = coords => [left + (coords[0] - xmin) * scale, top + (ymax - coords[1]) * scale];
+    field.cells.forEach(cell => {
+      ctx.strokeStyle = cell.type === "SEG2" ? "#172b37a0" : "#66798550"; ctx.lineWidth = cell.type === "SEG2" ? 1 : .5; ctx.beginPath();
+      cell.nodeIds.forEach((id, index) => { const [x, y] = xy(positions.get(id).xyz_m); if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+      if (cell.type === "QUAD4") ctx.closePath(); ctx.stroke();
+    });
+    points.forEach(row => {
+      const [x, y] = xy(kind === "gauss" ? row.xy_m : row.xyz_m), value = valueOf(row), fraction = span === 0 ? .5 : Math.max(0, Math.min(1, (value - minimum) / span));
+      ctx.fillStyle = `hsl(${230 * (1 - fraction)} 65% 48%)`; ctx.beginPath(); ctx.arc(x, y, kind === "slave" ? 4 : kind === "gauss" ? 1.8 : 2.2, 0, Math.PI * 2); ctx.fill();
+      plotted.push({ x, y, row, kind });
+      if (kind !== "gauss" && alias(row.id)) { ctx.strokeStyle = "#172b37"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = "#172b37"; ctx.font = "12px sans-serif"; ctx.fillText(alias(row.id), x + 7, y - 5); }
+    });
+    canvas.setAttribute("aria-label", `${identifier} · ${name} · 원본 ${points.length}개 점과 ${solids.length} QUAD4 / ${edges.length} SEG2`);
+    legend.textContent = `${name} · 실제 점 ${points.length}개 · 최솟값 ${exact(minimum)} / 최댓값 ${exact(maximum)} ${unit} · 파랑 → 빨강 · 클릭하면 실제 행 표시`;
+    if (kind === "slave") drawScatter(points, valueOf);
+  }
+  function changeFilter() {
+    if (!isCurrent()) return;
+    const kind = selected()[2], query = input.value.trim();
+    filtered = !query ? field[kind] : field[kind].filter(row => kind === "gauss" ? String(row.cellId) === query || row.rawElementId === query || rowId(row, kind) === query : String(row.id) === query || row.rawId === query || row.rawDeplId === query || row.rawReactionId === query || alias(row.id).split(" / ").includes(query));
+    page = 0; drawRows();
+  }
+  canvas.addEventListener("click", event => {
+    if (!isCurrent()) return;
+    const bounds = canvas.getBoundingClientRect(); if (!(bounds.width > 0 && bounds.height > 0)) return;
+    const x = (event.clientX - bounds.left) * canvas.width / bounds.width, y = (event.clientY - bounds.top) * canvas.height / bounds.height;
+    let near = null, distance = 100;
+    plotted.forEach(point => { const d = (point.x - x) ** 2 + (point.y - y) ** 2; if (d < distance) { near = point; distance = d; } });
+    picked.querySelector("pre").textContent = nativeText(near ? { location: near.kind, id: rowId(near.row, near.kind), captured_native_row: near.row } : null); picked.open = true;
+  });
+  input.addEventListener("input", changeFilter);
+  component.addEventListener("change", () => { if (!isCurrent()) return; input.value = ""; picked.querySelector("pre").textContent = pretty(null); changeFilter(); drawMesh(); });
+  changeFilter(); drawMesh();
+  container.append(rawDetail("전체 원본 메시 연결·그룹·alias와 표시 한계", { cells: field.cells, nodeGroups: field.nodeGroups, cellGroups: field.cellGroups, aliases: meta.aliases, limitations: field.limitations }));
+}
+
 function renderPdeFields(container, inspection) {
   const result = inspection.result;
   if (!String(result.provenance?.adapter ?? "").startsWith("pde.")) return;

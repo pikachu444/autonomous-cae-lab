@@ -1,4 +1,23 @@
-## Current checkpoint: P5.3 connected contact Research verified
+## Current checkpoint: P5.3 complete contact-field source verified; browser next
+
+Record: `benchmarks/records/20261004-contact-field-source-r01.json`; source is
+this commit, parent44de21f. Scientific records still belong to clean producera927.
+Read-only viewer preserves every actual U/RF, signed slave pressure, Gauss
+stress/XY/W and exact QUAD4/SEG2 connection in both retained research records.
+No interpolation, invented Z/gap, criterion/model/adapter/Core/schema changes.
+Independent reader/native-byte compatibility and renderer/Main integration
+reviews close with0openP1/P2. Main UI TAP283PASS (JUnit269leaf;14nested parents),
+Lab server60PASS/1existing CadQuery warning;0FAIL/SKIP. Counts are not additive
+with candidate or old source suites. New108/prior161scientific files unchanged.
+Actual clean-source contact-field browser NOT_RUN; next fresh human store8774
+reads the same records, then P2.4 pinned-fixture coupling and Phase6/7/deferred
+gates. New exact-sourceCI PENDING after push; olda9277SUCCESS/3FAIL stays
+separate. Ten contactblockingUNKNOWNs/NOT_RELEASED and whole52ACTIVE remain.
+Historical checkpoints below retain their original proof and limitations.
+
+---
+
+## Historical checkpoint: P5.3 connected contact Research verified
 
 Record: `benchmarks/records/20261004-contact-research-r01-qualified.json`; producer `a9276493118bf573f9574ec6605aa96c77d811a6`.
 Bounded whole-question/two-condition research, independent math/MED review,

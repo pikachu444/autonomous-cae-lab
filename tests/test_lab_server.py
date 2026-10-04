@@ -638,6 +638,15 @@ def test_retained_pde_field_reader_is_served_before_the_results_consumer(client)
     assert page.index(b'/static/pde-field-inspector.js') < page.index(b'/static/app.js')
 
 
+def test_retained_contact_field_reader_is_served_before_the_results_consumer(client):
+    static = Path(__file__).resolve().parents[1] / "apps/lab/static"
+    reader, headers = client.request("/static/contact-field-inspector.js", raw=True)
+    page, _ = client.request("/", raw=True)
+    assert reader == (static / "contact-field-inspector.js").read_bytes()
+    assert headers["Content-Type"].startswith("text/javascript")
+    assert page.index(b'/static/contact-field-inspector.js') < page.index(b'/static/app.js')
+
+
 def test_writable_and_readonly_store_overlap_is_rejected(tmp_path):
     library = tmp_path / "store/history"
     library.mkdir(parents=True)

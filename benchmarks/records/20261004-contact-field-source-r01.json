@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-04T00:59:36.455641+00:00",
+  "status": "PASS_BOUNDED_CONTACT_FIELD_MAIN_SOURCE_ACTUAL_BROWSER_NOT_RUN",
+  "source_parent_commit": "44de21f26c6ae1dc3fa4883aaecbe51deaa7cd5e",
+  "source_publication": "THIS_COMMIT",
+  "scientific_producer_commit": "a9276493118bf573f9574ec6605aa96c77d811a6",
+  "scientific_acceptance_record": {
+    "path": "benchmarks/records/20261004-contact-research-r01-qualified.json",
+    "size_bytes": 21959,
+    "sha256": "dc01734a05c9f55709df59e83781bd9d35544d38fe38a5292fa365ed33268567"
+  },
+  "source_files_working_bytes": {
+    "apps/lab/static/contact-field-inspector.js": {
+      "size_bytes": 41964,
+      "sha256": "eb8b94a1f95e4510d9078d62f8457e0ae17368600727168442cf3aaa3ca28e51"
+    },
+    "tests/test_contact_field_inspector.js": {
+      "size_bytes": 37047,
+      "sha256": "c6b67dacc0563d193ce639449c68fc0bced020355806e21a0fb6f253b42aac35"
+    },
+    "apps/lab/static/app.js": {
+      "size_bytes": 102594,
+      "sha256": "aef569ea7296feda5b78430395763406b9145297bdaff30e9c815bb60fc4e5ec"
+    },
+    "apps/lab/static/index.html": {
+      "size_bytes": 29087,
+      "sha256": "d585955d881c62c9668842c07351bcba0d033dc3e2582361c5302d0c6bf12ee4"
+    },
+    "apps/lab/static/style.css": {
+      "size_bytes": 21223,
+      "sha256": "2abf5706c52139fa854a4bda7dcf68395c5b872fbce7b3f568deefd25dd28ff7"
+    },
+    "tests/test_lab_server.py": {
+      "size_bytes": 39310,
+      "sha256": "22673b675c43871ffa1a93e26eb3f9c02a332b829c94f798066aee170bbf6b08"
+    },
+    ".github/workflows/caelab-ci.yml": {
+      "size_bytes": 23927,
+      "sha256": "b58088fec6476d724669c5ee2f19ecf842eb80a2fe205766866354809fd203cb"
+    }
+  },
+  "main_source_tests": {
+    "node": {
+      "tap_tests_and_passed": 283,
+      "junit_leaf_testcases_and_passed": 269,
+      "failures": 0,
+      "skipped": 0,
+      "elapsed_seconds": 14.642564800102264,
+      "count_note": "Node TAP includes14 nested parent tests omitted from JUnit leaf testcase elements; not additive.",
+      "receipt": {
+        "path": "artifacts/development-contact-20261004-01/contact-field-main-integration-01/main-source-gate-01/node-receipt.json",
+        "size_bytes": 2951,
+        "sha256": "04e439bc7ce9afc552f5458dad99cbca375eb22692f9cd3c315e2f1ef141f207"
+      }
+    },
+    "lab_server": {
+      "passed": 60,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "warnings": 1,
+      "warning": "Existing CadQuery ast.NameConstant deprecation on Python3.12; no production change.",
+      "elapsed_seconds": 81.42103350022808,
+      "receipt": {
+        "path": "artifacts/development-contact-20261004-01/contact-field-main-integration-01/main-source-gate-01/lab-server-receipt.json",
+        "size_bytes": 2417,
+        "sha256": "1d3375a70637f14fc8939213a6c522ddd1a28856406e9aaa6d0faeb5797ae4f6"
+      }
+    },
+    "syntax": "Root node --check app.js and contact-field-inspector.js exit0; tool output a5b426.",
+    "artifacts": [
+      {
+        "path": "artifacts/development-contact-20261004-01/contact-field-main-integration-01/main-source-gate-01/lab-server-receipt.json",
+        "size_bytes": 2417,
+        "sha256": "1d3375a70637f14fc8939213a6c522ddd1a28856406e9aaa6d0faeb5797ae4f6"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/contact-field-main-integration-01/main-source-gate-01/lab-server.junit.xml",
+        "size_bytes": 139750,
+        "sha256": "0cbdb93d4a7f38cddaa7b35f2c14a67b327680af646641675ced1ba3396f9501"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/contact-field-main-integration-01/main-source-gate-01/lab-server.stderr.txt",
+        "size_bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/contact-field-main-integration-01/main-source-gate-01/lab-server.stdout.txt",
+        "size_bytes": 847,
+        "sha256": "f1b58510eddb961fc203cebfcdea8a2056af1cc72027dcea2b4452cd9e594a03"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/contact-field-main-integration-01/main-source-gate-01/node-receipt.json",
+        "size_bytes": 2951,
+        "sha256": "04e439bc7ce9afc552f5458dad99cbca375eb22692f9cd3c315e2f1ef141f207"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/contact-field-main-integration-01/main-source-gate-01/node.junit.xml",
+        "size_bytes": 52602,
+        "sha256": "d755218c440e305d61665e509a7a521f64bd4e2d98f600a0120ed9ef23edb898"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/contact-field-main-integration-01/main-source-gate-01/node.stderr.txt",
+        "size_bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/contact-field-main-integration-01/main-source-gate-01/node.stdout.txt",
+        "size_bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/development-contact-20261004-01/contact-field-main-integration-01/main-source-gate-01/node.tap.txt",
+        "size_bytes": 51334,
+        "sha256": "da355d04bfefad51b51d31ea89fb959eabba5844ce030bce7a37caa4e1a7f71f"
+      }
+    ]
+  },
+  "independent_reviews": {
+    "reader_source_and_two_actual_record_compatibility": {
+      "path": "artifacts/development-contact-20261004-01/contact-field-reader-review-01/review.json",
+      "size_bytes": 12772,
+      "sha256": "7314e085620db79a43b2881fab87242315648e7d8acf9122413a3303e67e82dd"
+    },
+    "renderer_r03_narrow_delta": {
+      "path": "artifacts/development-contact-20261004-01/contact-field-renderer-review-01/r03-delta-01/receipt.json",
+      "size_bytes": 2816,
+      "sha256": "0bb0afa773e2aa25de1276f6d9934b7ce1ae46222f04ec2ded9b42299a781fb6"
+    },
+    "main_integration_delta": {
+      "path": "artifacts/development-contact-20261004-01/contact-field-main-integration-review-01/review.json",
+      "size_bytes": 14736,
+      "sha256": "93f58bfe77014b2566c2fc050dff310922703e8124a3c79910bb6d5f47983a6a"
+    },
+    "open_P1": 0,
+    "open_P2": 0
+  },
+  "read_only_field_contract": {
+    "backend": "structural.code_aster.contact_patch",
+    "case": "ssnp121a_frictionless_patch",
+    "accepted_mesh_variants": [
+      "original",
+      "uniform_quad4_2x"
+    ],
+    "final_order": 1,
+    "final_inst": 1,
+    "original_counts": {
+      "nodes_U_RF": 313,
+      "QUAD4": 265,
+      "SEG2": 92,
+      "signed_slave_pressure": 13,
+      "stress_gauss_locations": 1060
+    },
+    "uniform2_counts": {
+      "nodes_U_RF": 1154,
+      "QUAD4": 1060,
+      "SEG2": 184,
+      "signed_slave_pressure": 25,
+      "stress_gauss_locations": 4240
+    },
+    "views": [
+      "actual XY wire mesh and nodal U/RF components",
+      "genuine signed slave pressure and XY scatter",
+      "actual Gauss SIXX/SIYY/SIZZ/SIXY point samples",
+      "complete paginated or exact-ID-filtered native values",
+      "raw artifact paths/SHA256/revisions/download links and exact connectivity/groups"
+    ],
+    "trusted_field_gate": "manifest path/SHA256/size/revision and strict JSON/native raw-to-normalized identity; stale store/record requests blocked",
+    "coor_z": "native 2D integration weight W in m2; not geometric Z",
+    "unavailable": [
+      "native contact gap",
+      "Gauss geometric Z",
+      "nodal U/RF DZ"
+    ],
+    "no_interpolation_smoothing_or_averaging": true,
+    "coincident_point_selection": "nearest canvas point may select the first coincident row; exact ID filter/table preserves and distinguishes every row",
+    "available_meaning": "trusted retained byte and field identity, never engineering PASS or release",
+    "preserve_failed_finite_record_status_and_invalid_metrics": true
+  },
+  "retention": [
+    {
+      "inventory": {
+        "path": "artifacts/contact-research-20261004-01/capture-01/store-before-final-control.json",
+        "size_bytes": 31230,
+        "sha256": "886b4356c72e9e61fd6fc5eb9f05cdf1c561d283178ad412a3678d7e93637783"
+      },
+      "files": 108,
+      "size_bytes": 19118060,
+      "unchanged": true
+    },
+    {
+      "inventory": {
+        "path": "artifacts/contact-research-20261004-01/capture-01/prior-store-retention.json",
+        "size_bytes": 45178,
+        "sha256": "eabc51a8985eaacca3231d5604120d759071e63913a86d8defd2c4040255e81b"
+      },
+      "files": 161,
+      "size_bytes": 23003762,
+      "unchanged": true
+    }
+  ],
+  "new_contact_solver_provider_research_runs": 0,
+  "Core_Domain_adapter_registry_schema_optimizer_auth_model_selection_changes": 0,
+  "fixture_upstream_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "actual_clean_source_browser": "NOT_RUN_NEXT",
+  "new_source_exact_CI": "PENDING_AFTER_PUSH",
+  "previous_exact_CI": {
+    "source_commit": "a9276493118bf573f9574ec6605aa96c77d811a6",
+    "run_id": 37161185926,
+    "success_jobs": 7,
+    "failed_jobs": 3,
+    "failures": [
+      "fixed PDE rate1.8",
+      "Aster MUMPS FACTOR_57",
+      "pinned OpenRadioss download404"
+    ],
+    "contact_native_CI": "ABSENT",
+    "new_solver_verification": false
+  },
+  "engineering_decision": "NOT_RELEASED",
+  "whole_52_and_phases_5_7": "ACTIVE",
+  "next": [
+    "one actual clean-source browser gate using the two existing research records without native reruns",
+    "P2.4 pinned fixture fastener/contact/interface coupling",
+    "remaining Phase6/7 and deferred numerical/CI acceptance"
+  ]
+}
