@@ -1084,3 +1084,17 @@ precede mechanics/full fields and connected Research/human acceptance. Initial
 bootstrap/runtime refusal can stop before an after diagnostic. Question handoff,
 assembly campaign and stage/next-step UX are still open; display/CAD/source PASS
 does not complete the service. Engineering UNKNOWN/NOT_RELEASED remains.
+
+## Native r02 coarse/fine preprocessing qualified
+
+Actual clean producer d9a1a9f: 3.0mm44,226 TETRA10 and1.5mm298,441; all
+221,130/1,492,205 declared samples positive. Independent full MSH/native identity,
+ten-node interpolation, signed FPG5 body integration, runtime/revision/retention
+close with0P1/P2. See `20261004-fixture-assembly-mesh-native-r02-qualified.json`.
+Original f8 CAD218 unchanged, failed r01 retained; seven active bodies and
+eight inactive bolts. No geometry replacement, quality relaxation, solver or
+provider call. Root/worker/SDK timings differ and remain separate. Reuse the
+qualified meshes for the next explicit mechanics/fields/balance/sensitivity gate.
+Public assembly analysis/campaign and connected human workflow are not admitted
+from preprocessing. Global positivity, strength/material/physical and actual
+OS cancellation remain UNKNOWN/NOT_RUN; service and whole52 remain incomplete.

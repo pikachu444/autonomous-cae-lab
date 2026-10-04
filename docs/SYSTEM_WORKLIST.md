@@ -1,4 +1,24 @@
-## Current checkpoint: reviewed high-order mesh correction; native r02 next
+## Current checkpoint: original assembly coarse/fine mesh independently qualified
+
+Record: `benchmarks/records/20261004-fixture-assembly-mesh-native-r02-qualified.json`.
+Clean actual producer d9a1a9f reused retained f8 CAD in two NEW paths. 3.0mm:
+44,226 TETRA10/221,130 samples; 1.5mm:298,441/1,492,205. Nonpositive samples = 0.
+Seven signed body-volume errors remain below fixed1%; maxima0.000311578 and
+0.0000217455. Both full MSH binary64 coordinate/ID/connectivity and84 native
+body/face joins, revision, actual4.12.1 runtime and lifecycle independently pass.
+Each review242 inputs, no reader errors/openP1/P2; original218 manifests match.
+Original r01 failure remains retained. Seven bodies are active; eight bolts
+are inactive. Geometry refinement is not stress/displacement convergence.
+NEXT SERIAL: reuse qualified meshes without regeneration; freeze actual pilot
+contact/joints/materials/references, then full mechanics/balance/sensitivity,
+public AnalysisAdapter/Research and same-record human condition-change/compare.
+Exactd9 CI37183746545 completes7SUCCESS/3FAIL; fullCI still fails. Question
+handoff and stage/next-step UX remain service gaps. This metadata commit is
+not a new solver run. All52/P2.4/Phase6/7, UNKNOWN and NOT_RELEASED remain open.
+
+---
+
+## Historical checkpoint: reviewed high-order mesh correction; native r02 next
 
 Record: `benchmarks/records/20261004-fixture-assembly-mesh-correction-source-r02.json`.
 The original coarse mesh failure is independently confirmed from actual node

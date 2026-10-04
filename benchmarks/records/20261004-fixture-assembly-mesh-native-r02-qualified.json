@@ -1,0 +1,655 @@
+{
+  "status": "QUALIFIED_BOUNDED_NATIVE_COARSE_AND_FINE_PREPROCESSING",
+  "created_utc": "2026-10-04T07:20:32.376500+00:00",
+  "native_producer": "d9a1a9fa9096f66e30fa637bebd931bc59cd9c33",
+  "checkpoint_commit": "commit_containing_this_record; metadata only",
+  "source_record": "benchmarks/records/20261004-fixture-assembly-mesh-correction-source-r02.json",
+  "runs": [
+    {
+      "profile_mm": 3.0,
+      "run": "runs/fixture-assembly-mesh-native-20261004-02/coarse3",
+      "source_commit": "d9a1a9fa9096f66e30fa637bebd931bc59cd9c33",
+      "mesh_revision": "83a2bb86ee6986a0caeb35a53706564c9b5f3262d24aeb692403026fcd0c4bed",
+      "status": "QUALIFIED_BOUNDED_NATIVE_PREPROCESSING",
+      "native_counts": {
+        "tetra10": 44226,
+        "tria6": 17118,
+        "selected_nodes": 76214,
+        "api_nodes": 76214,
+        "physical_groups": 84,
+        "five_point_samples": 221130,
+        "nonpositive": 0
+      },
+      "quality": {
+        "bodies": [
+          {
+            "cad_volume_mm3": 139259.60186674682,
+            "component_id": "printed_base",
+            "integrated_mesh_volume_mm3": 139261.32366597885,
+            "maximum_determinant_mm3": 81.07389119603215,
+            "minimum_determinant_mm3": 7.960551322651899,
+            "nonpositive_count": 0,
+            "relative_volume_error": 1.2363953429107962e-05,
+            "relative_volume_limit": 0.01,
+            "sample_count": 137180,
+            "status": "PASS",
+            "tetra10_count": 27436
+          },
+          {
+            "cad_volume_mm3": 28407.546873914744,
+            "component_id": "printed_support_left",
+            "integrated_mesh_volume_mm3": 28409.594037664967,
+            "maximum_determinant_mm3": 71.31690824313287,
+            "minimum_determinant_mm3": 1.5529593722711021,
+            "nonpositive_count": 0,
+            "relative_volume_error": 7.206408069339745e-05,
+            "relative_volume_limit": 0.01,
+            "sample_count": 37770,
+            "status": "PASS",
+            "tetra10_count": 7554
+          },
+          {
+            "cad_volume_mm3": 28407.546873914744,
+            "component_id": "printed_support_right",
+            "integrated_mesh_volume_mm3": 28409.614308941702,
+            "maximum_determinant_mm3": 76.42874983795357,
+            "minimum_determinant_mm3": 1.5531782596743504,
+            "nonpositive_count": 0,
+            "relative_volume_error": 7.277766841798962e-05,
+            "relative_volume_limit": 0.01,
+            "sample_count": 37680,
+            "status": "PASS",
+            "tetra10_count": 7536
+          },
+          {
+            "cad_volume_mm3": 1206.3715789784806,
+            "component_id": "metal_roller_left",
+            "integrated_mesh_volume_mm3": 1205.996511179432,
+            "maximum_determinant_mm3": 43.50745072874552,
+            "minimum_determinant_mm3": 9.756819609064484,
+            "nonpositive_count": 0,
+            "relative_volume_error": 0.000310905699026963,
+            "relative_volume_limit": 0.01,
+            "sample_count": 1360,
+            "status": "PASS",
+            "tetra10_count": 272
+          },
+          {
+            "cad_volume_mm3": 1206.3715789784806,
+            "component_id": "metal_roller_right",
+            "integrated_mesh_volume_mm3": 1205.9957004079424,
+            "maximum_determinant_mm3": 47.13863107702199,
+            "minimum_determinant_mm3": 9.816519817546485,
+            "nonpositive_count": 0,
+            "relative_volume_error": 0.00031157777345551936,
+            "relative_volume_limit": 0.01,
+            "sample_count": 1360,
+            "status": "PASS",
+            "tetra10_count": 272
+          },
+          {
+            "cad_volume_mm3": 1206.3715789784806,
+            "component_id": "metal_loading_nose",
+            "integrated_mesh_volume_mm3": 1205.9975393894265,
+            "maximum_determinant_mm3": 43.509318915689896,
+            "minimum_determinant_mm3": 9.756280283950996,
+            "nonpositive_count": 0,
+            "relative_volume_error": 0.00031005338286466393,
+            "relative_volume_limit": 0.01,
+            "sample_count": 1360,
+            "status": "PASS",
+            "tetra10_count": 272
+          },
+          {
+            "cad_volume_mm3": 3200.0,
+            "component_id": "specimen",
+            "integrated_mesh_volume_mm3": 3200.000000000004,
+            "maximum_determinant_mm3": 32.391764202023175,
+            "minimum_determinant_mm3": 0.1471074832983425,
+            "nonpositive_count": 0,
+            "relative_volume_error": 1.2789769243681803e-15,
+            "relative_volume_limit": 0.01,
+            "sample_count": 4420,
+            "status": "PASS",
+            "tetra10_count": 884
+          }
+        ],
+        "decision": "NOT_RELEASED",
+        "determinant_consistency": {
+          "bound": "gamma16_sum_abs_six_products_plus_16_subnormal_roundings",
+          "maximum_absolute_difference_mm3": 2.842170943040401e-14,
+          "maximum_forward_bound_mm3": 2.523401629617389e-13,
+          "sample_count": 221130
+        },
+        "limitations": [
+          "Five sampled geometric Jacobians do not prove positivity throughout an element",
+          "This is mesh preprocessing, not Code_Aster Gauss/stress/contact/convergence evidence",
+          "Materials, load path, fasteners, physical strength and release remain UNKNOWN"
+        ],
+        "status": "PASS"
+      },
+      "captured_parent": {
+        "cad_prefix": "cad",
+        "cad_provenance": {
+          "adapter": "fixture.assembly",
+          "adapter_version": "1",
+          "cad_source_sha256": "98bef622b96762c2b6faaa88bd1ef92f639c10c819941fc71f2ed986e2e22baa",
+          "core_commit": "f8f60eb335fb829a8ddc5d0ca1c2506788baae44",
+          "core_dirty": false,
+          "core_source_sha256": "f96633004ca8f5295be0459512edf3173374ea461d45312a3e877f74516394b7",
+          "created_utc": "2026-10-04T03:29:52.342711+00:00",
+          "execution_settings": {},
+          "material": null,
+          "mesh": null,
+          "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+          "proposal_sha256": "6cfd5cc2d5e91bfd36aa79e14634ed5bc4054f754ffb2fe9508ba57fb116052c",
+          "python": "3.12.3",
+          "random_seed": null,
+          "registry_sha256": "377dfff1d25619e14116a28e27677e3c0088e1ae28629386547acc7c6471bef1",
+          "solver": null,
+          "source_commit": "UNKNOWN"
+        },
+        "cad_revision": "8d1071134a2bcd7d42a9320b431754591909476747f35e96fbbb4113c6e09ef2",
+        "catalog_sha256": "4210911cc237eefc10c534948ee8fa44134d21a3e6484e01817946e75b2e8d91",
+        "experiment_id": "E-assembly-default",
+        "input_sha256": "4b12ccc8a630ac512a8b4277a204e851a188630060f8cbf9d62bf8edb2d5e456",
+        "native_revision": "7a2ed7a57284cfbd5284e1c96db064bade268f4624ad8f83886c26a6be5cbec4",
+        "result_sha256": "6209d2a5f5832abab7dfa407db05524478ed10a3fdb4652a057bd4d6bf4f8328",
+        "source_sha256": "98bef622b96762c2b6faaa88bd1ef92f639c10c819941fc71f2ed986e2e22baa"
+      },
+      "output_files": {
+        "imported_geometry.json": {
+          "sha256": "1138e0378a20a7c0d433c318cb7ddfb316be12837a0ff8dc4ae03d6ade4145b5",
+          "size_bytes": 248951
+        },
+        "jacobian_metadata.json": {
+          "sha256": "e498f7ad87006508caf0ac012f1d4cfda08d306039240ce6d5cf4a38feef98c4",
+          "size_bytes": 487842
+        },
+        "jacobians.npz": {
+          "sha256": "06a958219e3aec77b00dabc4e224dae4eb702cfc3a439f69c8af74fda8cf7946",
+          "size_bytes": 23706426
+        },
+        "lifecycle.json": {
+          "sha256": "4c41cd3c6bb7fb194a4f405599087ad618dcd7b98bab7a902835ef3a61c1713d",
+          "size_bytes": 234
+        },
+        "mapping.json": {
+          "sha256": "952118fb1d372d545a8b5bdc03980e71f60c224026140c4a3fc29dde7a51b0a5",
+          "size_bytes": 65711824
+        },
+        "mesh.msh": {
+          "sha256": "69c4da7e539b9d3d04c35f8e61f38721777275f81776a359e8d2ccc857295930",
+          "size_bytes": 8450832
+        },
+        "mesher.log": {
+          "sha256": "801886896394c69ce24fa13a0239bf3593206025cbffd2dac09e176408ef5efb",
+          "size_bytes": 37489
+        },
+        "quality.json": {
+          "sha256": "29164c2617f4afe4a16f762a9b358e6cc381f0720c8f524089ab037e4a75c909",
+          "size_bytes": 3828
+        }
+      },
+      "runtime": {
+        "cpu_limit_seconds": 86400,
+        "gmsh_version": "4.12.1",
+        "library_evidence": "actual_/proc/self/maps",
+        "library_path": "/usr/lib/x86_64-linux-gnu/libgmsh.so.4.12.1",
+        "library_sha256": "13d7aa9e48ca2333a8be79453ac6e7503cc9d803d98004b8aef5796bed1ae0f9",
+        "python": "3.12.3",
+        "sdk_path": "/mnt/c/SourceCodes/autonomous-cae-lab/runs/fixture-assembly-mesh-native-20261004-02/coarse3/capsule/gmsh.py",
+        "sdk_requested_library": "libgmsh.so.4.12",
+        "sdk_sha256": "275cd3fa7141a723e22c717ebd70a8760683e3a2692598f780874ce3386b9cb6"
+      },
+      "request": {
+        "path": "runs/fixture-assembly-mesh-native-20261004-02/coarse3/request.json",
+        "size_bytes": 40653,
+        "sha256": "24ec396c9dbcf5cb2fee56d606703b669f1e845b628cc8db01318b42e0f61eae"
+      },
+      "result": {
+        "path": "runs/fixture-assembly-mesh-native-20261004-02/coarse3/result.json",
+        "size_bytes": 589669,
+        "sha256": "2eff0d6b1ec3f867634d1a4e3df7dee80bdcf5f9d3128fe9ac470ed390758e82"
+      },
+      "process": {
+        "path": "runs/fixture-assembly-mesh-native-20261004-02/coarse3/process.json",
+        "size_bytes": 776,
+        "sha256": "a0260aa9b6c7b2087ae8569dcc05888c5edf7d16b4cba28c1a76d17484405176"
+      },
+      "lifecycle": {
+        "path": "runs/fixture-assembly-mesh-native-20261004-02/coarse3/lifecycle.json",
+        "size_bytes": 234,
+        "sha256": "4c41cd3c6bb7fb194a4f405599087ad618dcd7b98bab7a902835ef3a61c1713d"
+      },
+      "diagnostics": [
+        {
+          "path": "runs/fixture-assembly-mesh-native-20261004-02/coarse3/runtime-before.json",
+          "size_bytes": 771,
+          "sha256": "1f3866e659750d3d187e8c306f041c453168508feabb9127a5bdb7400f32d4ab"
+        },
+        {
+          "path": "runs/fixture-assembly-mesh-native-20261004-02/coarse3/runtime-after.json",
+          "size_bytes": 770,
+          "sha256": "d6b4402f8d9f63b9609a1f2fa34176bfd9d4251ad033aa30d47a4ebef48155ff"
+        }
+      ],
+      "timing_seconds": {
+        "Root_attempt": 253.67216805601493,
+        "owned_worker": 72.03318136907183,
+        "SDK_lifecycle": 34.622957261046395
+      },
+      "original218_unchanged": true,
+      "independent_review": {
+        "verdict": "PASS_BOUNDED_COARSE_NATIVE_PREPROCESSING",
+        "open_P1": 0,
+        "open_P2": 0,
+        "inspected_inputs": 242,
+        "inspected_bytes": 106187650,
+        "store_files": 233,
+        "store_bytes": 105977849,
+        "reader_errors": [],
+        "evidence": [
+          {
+            "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-review-02/coarse3/receipt.json",
+            "size_bytes": 3839,
+            "sha256": "89e4d2cfaa4fb8c3f7a754af39ee4a4a5dfdcad4e1562f9dee459ccc0189047a"
+          },
+          {
+            "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-review-02/coarse3/REPORT.md",
+            "size_bytes": 2811,
+            "sha256": "fefa7ce828f27144762d3363b2fa467f4d76827b4f5d88f7b439eebefe088ce1"
+          },
+          {
+            "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-review-02/coarse3/raw-review.json",
+            "size_bytes": 9221,
+            "sha256": "24f32d754db665f9f9854d28a2654798f2f7691b07ac74a9fb9c5a538b24141e"
+          },
+          {
+            "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-review-02/coarse3/FREEZE.json",
+            "size_bytes": 56711,
+            "sha256": "4cee316f57832de5307de7ffba49c84a1e0f1c2212ba9eabd1e7f5c7c56e5b4c"
+          }
+        ]
+      },
+      "Root_records": [
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-02/coarse3/launch.json",
+          "size_bytes": 1749,
+          "sha256": "b0f4a143738d2a4affd88902ea50222f8b94cc4c91373efbed0cb03640196078"
+        },
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-02/coarse3/attempt.json",
+          "size_bytes": 411,
+          "sha256": "761ad3bc2da05f9d2c10f45f8814ad8ed04c7136162fc0b3f068699cd22cf3ea"
+        },
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-02/coarse3/controller-result.json",
+          "size_bytes": 12863,
+          "sha256": "18e53ba48da69baf8f1d4034a79ae6845d4f4d51df90c745135d3ea73030e10f"
+        },
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-02/coarse3/parent-store-before.json",
+          "size_bytes": 46691,
+          "sha256": "186505294dddb1b772d60b9c57b5ce816003a5a8329d91888be288db52008be1"
+        },
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-02/coarse3/parent-store-after.json",
+          "size_bytes": 46712,
+          "sha256": "af17524982814300250ea3ef84e1432dc23cc40a74c111bced01e376e04003d5"
+        }
+      ],
+      "solver_calls": 0,
+      "provider_calls": 0,
+      "decision": "NOT_RELEASED"
+    },
+    {
+      "profile_mm": 1.5,
+      "run": "runs/fixture-assembly-mesh-native-20261004-02/fine1p5",
+      "source_commit": "d9a1a9fa9096f66e30fa637bebd931bc59cd9c33",
+      "mesh_revision": "d978f8420630b0011c1432d717ef302c0139e5ffbccaf2c989c8c4cf23bcd18e",
+      "status": "QUALIFIED_BOUNDED_NATIVE_PREPROCESSING",
+      "native_counts": {
+        "tetra10": 298441,
+        "tria6": 62086,
+        "selected_nodes": 457131,
+        "api_nodes": 457131,
+        "physical_groups": 84,
+        "five_point_samples": 1492205,
+        "nonpositive": 0
+      },
+      "quality": {
+        "bodies": [
+          {
+            "cad_volume_mm3": 139259.60186674682,
+            "component_id": "printed_base",
+            "integrated_mesh_volume_mm3": 139259.70522768178,
+            "maximum_determinant_mm3": 10.9941236004945,
+            "minimum_determinant_mm3": 0.9893028011349743,
+            "nonpositive_count": 0,
+            "relative_volume_error": 7.422176538154102e-07,
+            "relative_volume_limit": 0.01,
+            "sample_count": 1017165,
+            "status": "PASS",
+            "tetra10_count": 203433
+          },
+          {
+            "cad_volume_mm3": 28407.546873914744,
+            "component_id": "printed_support_left",
+            "integrated_mesh_volume_mm3": 28407.736378923266,
+            "maximum_determinant_mm3": 10.009925730868714,
+            "minimum_determinant_mm3": 0.9399176665529339,
+            "nonpositive_count": 0,
+            "relative_volume_error": 6.670938865765268e-06,
+            "relative_volume_limit": 0.01,
+            "sample_count": 212095,
+            "status": "PASS",
+            "tetra10_count": 42419
+          },
+          {
+            "cad_volume_mm3": 28407.546873914744,
+            "component_id": "printed_support_right",
+            "integrated_mesh_volume_mm3": 28407.73652524717,
+            "maximum_determinant_mm3": 10.705426012071214,
+            "minimum_determinant_mm3": 0.9319560371086655,
+            "nonpositive_count": 0,
+            "relative_volume_error": 6.676089747204875e-06,
+            "relative_volume_limit": 0.01,
+            "sample_count": 209665,
+            "status": "PASS",
+            "tetra10_count": 41933
+          },
+          {
+            "cad_volume_mm3": 1206.3715789784806,
+            "component_id": "metal_roller_left",
+            "integrated_mesh_volume_mm3": 1206.3455769541224,
+            "maximum_determinant_mm3": 9.269442556974806,
+            "minimum_determinant_mm3": 0.9551789892084667,
+            "nonpositive_count": 0,
+            "relative_volume_error": 2.155390993226738e-05,
+            "relative_volume_limit": 0.01,
+            "sample_count": 9300,
+            "status": "PASS",
+            "tetra10_count": 1860
+          },
+          {
+            "cad_volume_mm3": 1206.3715789784806,
+            "component_id": "metal_roller_right",
+            "integrated_mesh_volume_mm3": 1206.3453458440922,
+            "maximum_determinant_mm3": 9.395335798459124,
+            "minimum_determinant_mm3": 1.149487451017411,
+            "nonpositive_count": 0,
+            "relative_volume_error": 2.174548443072762e-05,
+            "relative_volume_limit": 0.01,
+            "sample_count": 9565,
+            "status": "PASS",
+            "tetra10_count": 1913
+          },
+          {
+            "cad_volume_mm3": 1206.3715789784806,
+            "component_id": "metal_loading_nose",
+            "integrated_mesh_volume_mm3": 1206.3453458937602,
+            "maximum_determinant_mm3": 8.780089611205014,
+            "minimum_determinant_mm3": 0.9530607859048146,
+            "nonpositive_count": 0,
+            "relative_volume_error": 2.1745443259366094e-05,
+            "relative_volume_limit": 0.01,
+            "sample_count": 9470,
+            "status": "PASS",
+            "tetra10_count": 1894
+          },
+          {
+            "cad_volume_mm3": 3200.0,
+            "component_id": "specimen",
+            "integrated_mesh_volume_mm3": 3199.999999999999,
+            "maximum_determinant_mm3": 9.172078480858094,
+            "minimum_determinant_mm3": 1.0714623711759232,
+            "nonpositive_count": 0,
+            "relative_volume_error": 2.842170943040401e-16,
+            "relative_volume_limit": 0.01,
+            "sample_count": 24945,
+            "status": "PASS",
+            "tetra10_count": 4989
+          }
+        ],
+        "decision": "NOT_RELEASED",
+        "determinant_consistency": {
+          "bound": "gamma16_sum_abs_six_products_plus_16_subnormal_roundings",
+          "maximum_absolute_difference_mm3": 5.329070518200751e-15,
+          "maximum_forward_bound_mm3": 3.747127200048422e-14,
+          "sample_count": 1492205
+        },
+        "limitations": [
+          "Five sampled geometric Jacobians do not prove positivity throughout an element",
+          "This is mesh preprocessing, not Code_Aster Gauss/stress/contact/convergence evidence",
+          "Materials, load path, fasteners, physical strength and release remain UNKNOWN"
+        ],
+        "status": "PASS"
+      },
+      "captured_parent": {
+        "cad_prefix": "cad",
+        "cad_provenance": {
+          "adapter": "fixture.assembly",
+          "adapter_version": "1",
+          "cad_source_sha256": "98bef622b96762c2b6faaa88bd1ef92f639c10c819941fc71f2ed986e2e22baa",
+          "core_commit": "f8f60eb335fb829a8ddc5d0ca1c2506788baae44",
+          "core_dirty": false,
+          "core_source_sha256": "f96633004ca8f5295be0459512edf3173374ea461d45312a3e877f74516394b7",
+          "created_utc": "2026-10-04T03:29:52.342711+00:00",
+          "execution_settings": {},
+          "material": null,
+          "mesh": null,
+          "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+          "proposal_sha256": "6cfd5cc2d5e91bfd36aa79e14634ed5bc4054f754ffb2fe9508ba57fb116052c",
+          "python": "3.12.3",
+          "random_seed": null,
+          "registry_sha256": "377dfff1d25619e14116a28e27677e3c0088e1ae28629386547acc7c6471bef1",
+          "solver": null,
+          "source_commit": "UNKNOWN"
+        },
+        "cad_revision": "8d1071134a2bcd7d42a9320b431754591909476747f35e96fbbb4113c6e09ef2",
+        "catalog_sha256": "4210911cc237eefc10c534948ee8fa44134d21a3e6484e01817946e75b2e8d91",
+        "experiment_id": "E-assembly-default",
+        "input_sha256": "4b12ccc8a630ac512a8b4277a204e851a188630060f8cbf9d62bf8edb2d5e456",
+        "native_revision": "7a2ed7a57284cfbd5284e1c96db064bade268f4624ad8f83886c26a6be5cbec4",
+        "result_sha256": "6209d2a5f5832abab7dfa407db05524478ed10a3fdb4652a057bd4d6bf4f8328",
+        "source_sha256": "98bef622b96762c2b6faaa88bd1ef92f639c10c819941fc71f2ed986e2e22baa"
+      },
+      "output_files": {
+        "imported_geometry.json": {
+          "sha256": "1138e0378a20a7c0d433c318cb7ddfb316be12837a0ff8dc4ae03d6ade4145b5",
+          "size_bytes": 248951
+        },
+        "jacobian_metadata.json": {
+          "sha256": "e65f18801f6dd0e6b4d8479d23f9720726c1ef47f73cb2f957b526fda257281e",
+          "size_bytes": 3544740
+        },
+        "jacobians.npz": {
+          "sha256": "29ceff47785f46db57b850f0e7406508123809341301d5af2c6866c7c37547d8",
+          "size_bytes": 159965666
+        },
+        "lifecycle.json": {
+          "sha256": "669af5a178a6ba3cf98b8287fa5e22055718e3bbd9388128763b5b22d1c405b0",
+          "size_bytes": 234
+        },
+        "mapping.json": {
+          "sha256": "e6c5ae1de00fa2a14c56687f5ef3cc40e271da09d18dfcab42346e391ccb628c",
+          "size_bytes": 390103469
+        },
+        "mesh.msh": {
+          "sha256": "a21f16725e1e303166d09abef42317d9a2dfd0e3cc0d17d58bd3c9bb37ece999",
+          "size_bytes": 56094567
+        },
+        "mesher.log": {
+          "sha256": "66e35152141fead6fa2c5b70281fa0c2e78dbb24ca87fb0ad0ff3e67d7402301",
+          "size_bytes": 40406
+        },
+        "quality.json": {
+          "sha256": "c4cce4a71e0f57dfb60a80081eb720d488b160390e754b2eafcc4e888c9772f8",
+          "size_bytes": 3840
+        }
+      },
+      "runtime": {
+        "cpu_limit_seconds": 86400,
+        "gmsh_version": "4.12.1",
+        "library_evidence": "actual_/proc/self/maps",
+        "library_path": "/usr/lib/x86_64-linux-gnu/libgmsh.so.4.12.1",
+        "library_sha256": "13d7aa9e48ca2333a8be79453ac6e7503cc9d803d98004b8aef5796bed1ae0f9",
+        "python": "3.12.3",
+        "sdk_path": "/mnt/c/SourceCodes/autonomous-cae-lab/runs/fixture-assembly-mesh-native-20261004-02/fine1p5/capsule/gmsh.py",
+        "sdk_requested_library": "libgmsh.so.4.12",
+        "sdk_sha256": "275cd3fa7141a723e22c717ebd70a8760683e3a2692598f780874ce3386b9cb6"
+      },
+      "request": {
+        "path": "runs/fixture-assembly-mesh-native-20261004-02/fine1p5/request.json",
+        "size_bytes": 40653,
+        "sha256": "c1f85a1d016bf1b477f70ab5fa336d47faf20b3b05b680668e198e7cf2f3e9bf"
+      },
+      "result": {
+        "path": "runs/fixture-assembly-mesh-native-20261004-02/fine1p5/result.json",
+        "size_bytes": 4155013,
+        "sha256": "06cf60196e49c47c98098a0cd02dcb5dd387a4c8eb8a2a0199fb1dce6fcaa242"
+      },
+      "process": {
+        "path": "runs/fixture-assembly-mesh-native-20261004-02/fine1p5/process.json",
+        "size_bytes": 777,
+        "sha256": "6903d4acd18e1109bb8554575a32bea7f62766b8d28640a56286ea9778362203"
+      },
+      "lifecycle": {
+        "path": "runs/fixture-assembly-mesh-native-20261004-02/fine1p5/lifecycle.json",
+        "size_bytes": 234,
+        "sha256": "669af5a178a6ba3cf98b8287fa5e22055718e3bbd9388128763b5b22d1c405b0"
+      },
+      "diagnostics": [
+        {
+          "path": "runs/fixture-assembly-mesh-native-20261004-02/fine1p5/runtime-before.json",
+          "size_bytes": 771,
+          "sha256": "8c16e063de590a54483c8b09e570ed76e28dea75f4091f123dbd76f43156c5f8"
+        },
+        {
+          "path": "runs/fixture-assembly-mesh-native-20261004-02/fine1p5/runtime-after.json",
+          "size_bytes": 770,
+          "sha256": "abe9b0696057a41c23ad39f5534bcc64c29b7d8e8da89ff97413f918f3891c76"
+        }
+      ],
+      "timing_seconds": {
+        "Root_attempt": 534.1554160797969,
+        "owned_worker": 310.03277902607806,
+        "SDK_lifecycle": 228.83173816790804
+      },
+      "original218_unchanged": true,
+      "independent_review": {
+        "verdict": "PASS_BOUNDED_FINE_NATIVE_PREPROCESSING",
+        "open_P1": 0,
+        "open_P2": 0,
+        "inspected_inputs": 242,
+        "inspected_bytes": 621110332,
+        "store_files": 233,
+        "store_bytes": 620900516,
+        "reader_errors": [],
+        "evidence": [
+          {
+            "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-review-02/fine1p5/receipt.json",
+            "size_bytes": 4497,
+            "sha256": "e41522e07c4caa2b416778b942037f2a1bd1787a4f6c32c68012f5cd6950e24a"
+          },
+          {
+            "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-review-02/fine1p5/REPORT.md",
+            "size_bytes": 2849,
+            "sha256": "087b7a2e5ccf943856b49c15a8f926003e7c8ccd3a910537c0836ac756ef06e7"
+          },
+          {
+            "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-review-02/fine1p5/raw-review.json",
+            "size_bytes": 9281,
+            "sha256": "c65099ee9c5bc82fd3ec2bdbaa55d2d828eee6845054f12f4240765b301fd673"
+          },
+          {
+            "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-review-02/fine1p5/FREEZE.json",
+            "size_bytes": 57291,
+            "sha256": "1aadfe9f83a4c4ffd4435934fbe45c8452b67d6e176ea67a3f12586ec41cd7c3"
+          }
+        ]
+      },
+      "Root_records": [
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-02/fine1p5/launch.json",
+          "size_bytes": 1749,
+          "sha256": "96408b0e2155243104f9528e8ce72d039688231f44480bca9a71d8d3be2415d6"
+        },
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-02/fine1p5/attempt.json",
+          "size_bytes": 410,
+          "sha256": "eed3cb71c93b520404e7b04b2845e0669d9e7570403a05f31c93f9239557454c"
+        },
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-02/fine1p5/controller-result.json",
+          "size_bytes": 12879,
+          "sha256": "15e5d1cae23fbaba93e9e77f98cad7056ce68d26caf6d2714f2e0b418c2bfe6d"
+        },
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-02/fine1p5/parent-store-before.json",
+          "size_bytes": 46691,
+          "sha256": "186505294dddb1b772d60b9c57b5ce816003a5a8329d91888be288db52008be1"
+        },
+        {
+          "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-02/fine1p5/parent-store-after.json",
+          "size_bytes": 46712,
+          "sha256": "af17524982814300250ea3ef84e1432dc23cc40a74c111bced01e376e04003d5"
+        }
+      ],
+      "solver_calls": 0,
+      "provider_calls": 0,
+      "decision": "NOT_RELEASED"
+    }
+  ],
+  "independent_basis": "full actual determinants/matrices, ten-node quadratic interpolation, signed FPG5 integration, complete MSH bits/IDs/connectivity/physical and native geometry joins, runtime/source/revision/lifecycle",
+  "geometry_scope": {
+    "active_bodies": 7,
+    "active_faces": 77,
+    "short_physical_groups": 84,
+    "original_CAD_components": 15,
+    "original_CAD_faces": 117,
+    "inactive_bolts": 8,
+    "CAD_union_node_merge_or_regeneration": false,
+    "original_CAD_producer": "f8f60eb335fb829a8ddc5d0ca1c2506788baae44"
+  },
+  "criteria": {
+    "all_five_actual_samples_positive": true,
+    "maximum_body_relative_volume_error": 0.01,
+    "coordinate_roundtrip": "binary64 bits including negative zero",
+    "old_thresholds_unchanged": true
+  },
+  "refinement_interpretation": "seven body-volume approximations improve; geometry preprocessing only, not displacement/stress convergence",
+  "retention": {
+    "original218": "both before/after manifests unchanged",
+    "original_failed_r01": "retained, not retried or reclassified",
+    "coarse_new_store": "233 local files",
+    "fine_new_store": "233 local files",
+    "raw_outputs": "append-only local ignored runs; exact hashes in reviewed records, not committed raw data"
+  },
+  "remaining_unknown": [
+    "global Jacobian positivity",
+    "actual solver quadrature/full-field mechanics",
+    "binary/source build equivalence",
+    "material/fasteners/machine/strength/physical/durability",
+    "OS native cancellation"
+  ],
+  "CI": {
+    "source_commit": "d9a1a9fa9096f66e30fa637bebd931bc59cd9c33",
+    "run": 37183746545,
+    "conclusion": "failure",
+    "successful_jobs": 7,
+    "failed_jobs": [
+      "codeaster",
+      "explicit",
+      "pde"
+    ],
+    "new_raw_artifact_causal_diagnosis": "NOT_RUN",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37183746545"
+  },
+  "next_serial": "reuse these qualified immutable meshes, freeze 7-body compression mechanics/idealized contact/joints/materials/references; actual full fields/balance/sensitivity; explicit public AnalysisAdapter/Research and same-record human question/condition-change/compare",
+  "service_gaps_record": "benchmarks/records/20261004-human-workflow-gap-r01.json",
+  "whole_52_P2_4_Phase6_Phase7": "OPEN",
+  "service_complete": false,
+  "decision": "NOT_RELEASED"
+}
