@@ -58,3 +58,13 @@ Whole-system human research/analysis/campaign acceptance is still open. The
 latest user criticism is evaluated against actual usable flows and this limited
 result-view correction must not be called system completion. Resume serial mesh
 and mechanics implementation; no model/auth/solver/scientific threshold change.
+
+## Actual service usage remains open
+
+The separate human-workflow gap record identifies question-to-OpenScience
+handoff, original assembly solver/campaign admission and stage/next-step labels.
+A CAD/source/display completion must not be shown as complete research/service
+acceptance. The existing no-analysis/unapproved detail is correct; the connected
+human research→admitted solve→field review→condition-change/campaign flow remains
+an explicit next gate after the serial mesh/mechanics foundation. Reuse official
+OpenScience/approved model and existing bounded code, preserve all prior evidence.

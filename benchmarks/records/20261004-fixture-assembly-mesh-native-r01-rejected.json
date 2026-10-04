@@ -1,0 +1,263 @@
+{
+  "status": "ROOT_OBSERVED_REJECTED_NATIVE_PREPROCESSING",
+  "source_commit": "148e2360ce18df0285f2c1e528353ab42de23b92",
+  "created_utc": "2026-10-04T06:26:03.882779+00:00",
+  "run": "fixture-assembly-mesh-native-20261004-01/coarse3",
+  "original_CAD_producer": "f8f60eb335fb829a8ddc5d0ca1c2506788baae44",
+  "profile_mm": 3.0,
+  "quality": {
+    "bodies": [
+      {
+        "cad_volume_mm3": 139259.60186674682,
+        "component_id": "printed_base",
+        "integrated_mesh_volume_mm3": 139261.32366597882,
+        "maximum_determinant_mm3": 80.9861831864875,
+        "minimum_determinant_mm3": 7.3717322697800025,
+        "nonpositive_count": 0,
+        "relative_volume_error": 1.2363953428898972e-05,
+        "relative_volume_limit": 0.01,
+        "sample_count": 137010,
+        "status": "PASS",
+        "tetra10_count": 27402
+      },
+      {
+        "cad_volume_mm3": 28407.546873914744,
+        "component_id": "printed_support_left",
+        "integrated_mesh_volume_mm3": 28409.564060264278,
+        "maximum_determinant_mm3": 71.88927960443489,
+        "minimum_determinant_mm3": -0.02343144265704311,
+        "nonpositive_count": 3,
+        "relative_volume_error": 7.100881883562415e-05,
+        "relative_volume_limit": 0.01,
+        "sample_count": 37770,
+        "status": "FAIL",
+        "tetra10_count": 7554
+      },
+      {
+        "cad_volume_mm3": 28407.546873914744,
+        "component_id": "printed_support_right",
+        "integrated_mesh_volume_mm3": 28409.58918266734,
+        "maximum_determinant_mm3": 77.02812328910824,
+        "minimum_determinant_mm3": -0.02343144265704311,
+        "nonpositive_count": 2,
+        "relative_volume_error": 7.189317548821338e-05,
+        "relative_volume_limit": 0.01,
+        "sample_count": 37675,
+        "status": "FAIL",
+        "tetra10_count": 7535
+      },
+      {
+        "cad_volume_mm3": 1206.3715789784806,
+        "component_id": "metal_roller_left",
+        "integrated_mesh_volume_mm3": 1205.9965111794324,
+        "maximum_determinant_mm3": 44.8185271707402,
+        "minimum_determinant_mm3": 9.589525856966148,
+        "nonpositive_count": 0,
+        "relative_volume_error": 0.000310905699026586,
+        "relative_volume_limit": 0.01,
+        "sample_count": 1360,
+        "status": "PASS",
+        "tetra10_count": 272
+      },
+      {
+        "cad_volume_mm3": 1206.3715789784806,
+        "component_id": "metal_roller_right",
+        "integrated_mesh_volume_mm3": 1205.9957004079426,
+        "maximum_determinant_mm3": 47.11582931949479,
+        "minimum_determinant_mm3": 10.182090835020439,
+        "nonpositive_count": 0,
+        "relative_volume_error": 0.0003115777734553309,
+        "relative_volume_limit": 0.01,
+        "sample_count": 1360,
+        "status": "PASS",
+        "tetra10_count": 272
+      },
+      {
+        "cad_volume_mm3": 1206.3715789784806,
+        "component_id": "metal_loading_nose",
+        "integrated_mesh_volume_mm3": 1205.997539389427,
+        "maximum_determinant_mm3": 44.77829470248075,
+        "minimum_determinant_mm3": 9.588856797309266,
+        "nonpositive_count": 0,
+        "relative_volume_error": 0.00031005338286428695,
+        "relative_volume_limit": 0.01,
+        "sample_count": 1360,
+        "status": "PASS",
+        "tetra10_count": 272
+      },
+      {
+        "cad_volume_mm3": 3200.0,
+        "component_id": "specimen",
+        "integrated_mesh_volume_mm3": 3200.000000000004,
+        "maximum_determinant_mm3": 32.39176420202315,
+        "minimum_determinant_mm3": 0.1471074832983425,
+        "nonpositive_count": 0,
+        "relative_volume_error": 1.2789769243681803e-15,
+        "relative_volume_limit": 0.01,
+        "sample_count": 4420,
+        "status": "PASS",
+        "tetra10_count": 884
+      }
+    ],
+    "decision": "NOT_RELEASED",
+    "determinant_consistency": {
+      "bound": "gamma16_sum_abs_six_products_plus_16_subnormal_roundings",
+      "maximum_absolute_difference_mm3": 2.842170943040401e-14,
+      "maximum_forward_bound_mm3": 2.543872967325235e-13,
+      "sample_count": 220955
+    },
+    "limitations": [
+      "Five sampled geometric Jacobians do not prove positivity throughout an element",
+      "This is mesh preprocessing, not Code_Aster Gauss/stress/contact/convergence evidence",
+      "Materials, load path, fasteners, physical strength and release remain UNKNOWN"
+    ],
+    "status": "FAIL"
+  },
+  "process": {
+    "command": [
+      "/usr/bin/python3",
+      "-I",
+      "-B",
+      "/mnt/c/SourceCodes/autonomous-cae-lab/runs/fixture-assembly-mesh-native-20261004-01/coarse3/capsule/fixture_assembly_mesh_worker.py",
+      "/mnt/c/SourceCodes/autonomous-cae-lab/runs/fixture-assembly-mesh-native-20261004-01/coarse3/request.json"
+    ],
+    "elapsed_seconds": 38.80077314306982,
+    "exit_code": 1,
+    "interrupted": false,
+    "owned_leader_reaped": true,
+    "policy": {
+      "coordinate_roundtrip": "binary64_bits_including_negative_zero",
+      "cpu_limit_seconds": 86400,
+      "native_retry_count": 0,
+      "producer": "Gmsh4.12.1",
+      "read_config_files": false,
+      "threads": 2,
+      "wall_timeout_seconds": null,
+      "writer": "adapter_msh2_ascii_17g"
+    },
+    "provider_calls": 0,
+    "solver_calls": 0
+  },
+  "lifecycle": {
+    "elapsed_seconds": 21.24400519998744,
+    "finalize_succeeded": true,
+    "initialize_attempts": 1,
+    "initialize_succeeded": true,
+    "logger_started": true,
+    "provider_calls": 0,
+    "read_config_files": false,
+    "solver_calls": 0
+  },
+  "root_attempt": {
+    "state": "FAILED",
+    "error_type": "RuntimeError",
+    "error": "Assembly mesh worker exited with code 1; no mesh admitted; evidence retained at /mnt/c/SourceCodes/autonomous-cae-lab/runs/fixture-assembly-mesh-native-20261004-01/coarse3",
+    "elapsed_seconds": 160.2032502219081,
+    "original_store_unchanged": true,
+    "output_partials": "RETAINED",
+    "source_commit": "148e2360ce18df0285f2c1e528353ab42de23b92",
+    "solver_calls": 0,
+    "provider_calls": 0
+  },
+  "rejection": "Actual curved TETRA10 five-point determinants failed positivity; no mesh or positive result admitted",
+  "tetra10_count": 44191,
+  "sampled_nonpositive_by_body": {
+    "printed_support_left": 3,
+    "printed_support_right": 2
+  },
+  "native_log_warning": "7 inverted curved elements; distinct native distortion measure, not equated to five sampled failures",
+  "accepted_MSH": "ABSENT",
+  "accepted_result": "ABSENT",
+  "retention": "All raw mapping/NPZ/quality/capsule/process/log and original218 bytes retained locally; this public record retains hashes/observations only",
+  "evidence": [
+    {
+      "path": "runs/fixture-assembly-mesh-native-20261004-01/coarse3/request.json",
+      "size_bytes": 40653,
+      "sha256": "d6b7ab6ea180be386654edd3428a4e3220308c62a74c65271a4344492a04f830"
+    },
+    {
+      "path": "runs/fixture-assembly-mesh-native-20261004-01/coarse3/mapping.json",
+      "size_bytes": 65656289,
+      "sha256": "a200303bbd70124a103aea2f1534715578a599ec42f3edcd18a4c2ae5e9eaf48"
+    },
+    {
+      "path": "runs/fixture-assembly-mesh-native-20261004-01/coarse3/jacobians.npz",
+      "size_bytes": 23687666,
+      "sha256": "1e987cac67df56e56ccf7c900288a171d5c7a819cc4fdfe69df0bdc9f11c09cc"
+    },
+    {
+      "path": "runs/fixture-assembly-mesh-native-20261004-01/coarse3/jacobian_metadata.json",
+      "size_bytes": 487457,
+      "sha256": "faf05c996586d17870361cf16f280ee5d2de43f2cef984c43e54bde57f5efd56"
+    },
+    {
+      "path": "runs/fixture-assembly-mesh-native-20261004-01/coarse3/imported_geometry.json",
+      "size_bytes": 248951,
+      "sha256": "1138e0378a20a7c0d433c318cb7ddfb316be12837a0ff8dc4ae03d6ade4145b5"
+    },
+    {
+      "path": "runs/fixture-assembly-mesh-native-20261004-01/coarse3/quality.json",
+      "size_bytes": 3828,
+      "sha256": "7776889cd5af73f1d14697ae301042131ffa012f543b1d29b664ef143c7420c4"
+    },
+    {
+      "path": "runs/fixture-assembly-mesh-native-20261004-01/coarse3/mesher.log",
+      "size_bytes": 33029,
+      "sha256": "cd3faf43aa6fcea6a3aaab282db49d26fc77483df63c97af578851e84843a34f"
+    },
+    {
+      "path": "runs/fixture-assembly-mesh-native-20261004-01/coarse3/failure.json",
+      "size_bytes": 296,
+      "sha256": "c5aa16c8d3826d5cb63e30dbe40de4ece966b55ee5a0ee4306c1a00e15ee4264"
+    },
+    {
+      "path": "runs/fixture-assembly-mesh-native-20261004-01/coarse3/process.json",
+      "size_bytes": 776,
+      "sha256": "c126233c987821d229bd68cef2f50f04c9990bd414efd0bd4006c782b2dfbd80"
+    },
+    {
+      "path": "runs/fixture-assembly-mesh-native-20261004-01/coarse3/lifecycle.json",
+      "size_bytes": 233,
+      "sha256": "85344a5e80151a7b0f320483be3d78adecf191bf2288cd484e7ddd70f9873a14"
+    }
+  ],
+  "root_evidence": [
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-01/coarse3/launch.json",
+      "size_bytes": 1677,
+      "sha256": "fe28473f654843ed4d3f90d11c6aa9d4df1c23243444dfc52b1ae348943caf75"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-01/coarse3/attempt.json",
+      "size_bytes": 458,
+      "sha256": "cc63f347215a830a85c7c9fcb9fe218b99be5ca5fcb1fee5d4377d1b2d8d6d05"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-01/coarse3/parent-store-before.json",
+      "size_bytes": 46691,
+      "sha256": "186505294dddb1b772d60b9c57b5ce816003a5a8329d91888be288db52008be1"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-mesh-native-01/coarse3/parent-store-after.json",
+      "size_bytes": 46712,
+      "sha256": "af17524982814300250ea3ef84e1432dc23cc40a74c111bced01e376e04003d5"
+    }
+  ],
+  "limitations": [
+    "Full runtime snapshots were not persisted on this failed worker attempt; exact source/runtime guard conditions passed in code path but not relabeled as raw before/after observations",
+    "Generic failure.native_qualityUNKNOWN is separate from retained explicit qualityFAIL",
+    "Independent pure raw-array diagnosis is pending, no native/release success inferred",
+    "Root harness entry first failed before any native call due Python path; corrected by invoking the same immutable harness through runpy, no production change"
+  ],
+  "next": "Bounded adapter correction: enable documented high-order elastic+optimization from explicit0 to2 while preserving CAD/profiles/thresholds; retain runtime diagnostic snapshots on failure. Source review/commit precedes new r02coarse/fine paths. No unchanged native retry.",
+  "documentation_rationale": {
+    "url": "https://gmsh.info/doc/texinfo/gmsh.html#Mesh-options",
+    "document_version": "4.15.2",
+    "pinned_runtime": "4.12.1",
+    "scope": "Current official rationale only; pinned4.12.1 raw tutorial unavailable; actual compatibility stays unverified until the changed fresh execution"
+  },
+  "solver_status": "NOT_RUN",
+  "provider_calls": 0,
+  "decision": "NOT_RELEASED",
+  "whole_system": "OPEN"
+}

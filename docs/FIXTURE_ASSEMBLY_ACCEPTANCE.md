@@ -100,3 +100,15 @@ Next: clean committed source, fresh coarse/fine native runs, raw review, then
 actual mechanics and one complete human Research→CAD→analysis→condition change/
 numerical campaign flow. UNKNOWN fastening/material/strength/physical/release
 and whole52 remain open. Existing historic native/render/CI records are preserved.
+
+## Native coarse-r01 quality rejection
+
+Exact148e source/new3.0mm original-f8 parent:44,191 TETRA10,220,955 actual five
+samples, left3/right2 nonpositive; body-volume errors<1% do not override the
+positivity gate. Nonzero worker/owned reaping/finalization; no MSH/result admitted.
+Raw fields/quality/log/capsule/parent218 retained, no solver/strength/release.
+Runtime guard code passed but failed-run full runtime snapshots are absent.
+Independent raw diagnosis pending; current official high-order optimizer2 is
+rationale for a bounded changed recipe, not pinned4.12.1 compatibility proof.
+Next after source review/commit: new coarse/fine paths, no threshold relaxation
+or unchanged retry. Whole assembly and human Research/campaign remain open.

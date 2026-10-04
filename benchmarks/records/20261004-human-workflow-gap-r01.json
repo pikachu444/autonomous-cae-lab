@@ -1,0 +1,40 @@
+{
+  "scope": "One actual human research\u2192CAD\u2192solver\u2192condition-change/campaign workflow source audit",
+  "status": "THREE_OPEN_INTEGRATION_GAPS",
+  "created_utc": "2026-10-04T06:26:04.006834+00:00",
+  "source_commit": "148e2360ce18df0285f2c1e528353ab42de23b92",
+  "report": {
+    "path": "artifacts/development-user-flow-20261004-01/connection-review-01/REPORT.md",
+    "size_bytes": 2531,
+    "sha256": "694fbecc4cd2e0e2e22467629d0f61d9a28301bcf88abe6027935dcf4f3e5cf6"
+  },
+  "review": {
+    "path": "artifacts/development-user-flow-20261004-01/connection-review-01/review.json",
+    "size_bytes": 21046,
+    "sha256": "64ff9ea43a802a655e1d4f174988f1b2d0af8c2ad2f1441939a118a7042a0b9f"
+  },
+  "receipt": {
+    "path": "artifacts/development-user-flow-20261004-01/connection-review-01/receipt.json",
+    "size_bytes": 902,
+    "sha256": "96b13a7afc13992ccac4fd6ba25324a285956289153bd8a3cc326af105a84b21"
+  },
+  "gaps": [
+    "Lab study metadata create does not hand question/explicit model/provider/owned-context to official OpenScience launcher",
+    "Original assembly correctly excluded from single-support solver/campaign; mesh\u2192mechanics/fullfields\u2192Research/human admission is incomplete",
+    "Job/CAD completion labels omit stage/blocked next-step contract; detail solverNOT_RUN/NOT_RELEASED is correct"
+  ],
+  "human_acceptance": "One supported question through approved explicit model/context, exact input/parent, actual admitted solve, readable same-record fields and new condition or frozen numerical campaign, with original evidence preserved",
+  "requirements": [
+    "R02",
+    "R20",
+    "R21",
+    "R26",
+    "R33",
+    "R50",
+    "R52"
+  ],
+  "native_or_provider_calls": 0,
+  "new_source_changes": 0,
+  "whole_system": "OPEN",
+  "next": "Reuse existing OpenScience launcher and bounded research assets after serial P2.4 mesh/mechanics; stage/next-step presentation closure is required in that same human gate, not a new broad redesign"
+}

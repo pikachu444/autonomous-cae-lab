@@ -1,4 +1,27 @@
-## Current checkpoint: seven-body assembly mesher source integrated
+## Current checkpoint: first assembly mesh rejected; real user-flow gaps explicit
+
+Clean source148e2360ce18df0285f2c1e528353ab42de23b92 ran fresh3.0mm against
+retained f8 CAD.44,191 TETRA10/220,955 samples; support left3/right2 samples have
+nonpositive Jacobians (min-0.0234314mm³), while each integrated body volume error
+is below fixed1%. Correctly REJECTED: no MSH/result admitted, child exit1/reaped,
+SDK finalized; original218 bytes unchanged. Raw invalid fields are retained.
+Source67 PASS does not qualify mesh quality. Independent raw-array diagnosis
+is pending. Failed-run full runtime snapshots were not persisted; retain that
+evidence gap. See `20261004-fixture-assembly-mesh-native-r01-rejected.json`.
+Bounded correction is proposed in isolated candidate ownership: explicit high-
+order optimization0→2, retain observed runtime diagnostics, unchanged profiles/
+CAD/quality/identity/precision gates; review/commit then NEW coarse/fine paths.
+No unchanged run retry, solver/provider call, engineering or service approval.
+The independent human-workflow audit records3 actual gaps: question-to-official
+OpenScience handoff, assembly solver/campaign admission, stage/blocked-next-step
+UX. See `20261004-human-workflow-gap-r01.json`; reuse existing approved model/
+launcher/research code and keep serial P2.4→Research/human order. Display/source/
+CAD transactions are not whole-system completion. All52/P2.4/Phase6/7 and
+UNKNOWN/NOT_RELEASED remain open.
+
+---
+
+## Historical checkpoint: seven-body assembly mesher source integrated
 
 Record: `benchmarks/records/20261004-fixture-assembly-mesh-source-r01.json`.
 Four exact reviewed files add internal original-assembly preprocessing only:
