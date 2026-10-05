@@ -323,7 +323,9 @@ function previewHarness({ viewerReady = true } = {}) {
     setTimeout: () => { throw new Error("No live jobs or application timers permitted"); }, clearTimeout: () => {} };
   vm.createContext(sandbox);
   vm.runInContext(appSource.slice(0, bootBoundary) + "\n" + appSource.slice(switchStart, switchEnd)
-    + "\nglobalThis.previewApp = {state,renderCadPreview,inspectExperiment,switchStore};", sandbox);
+    // Parent-preview harness does not mount execution controls; its assertions
+    // exercise store fencing and artifact reads through the real functions.
+    + "\nupdateControls=()=>{};globalThis.previewApp = {state,renderCadPreview,inspectExperiment,switchStore};", sandbox);
   const app = sandbox.previewApp; app.state.overview = { active_store: "local", stores: [{ id: "local", writable: true }] };
   const visual = new PreviewNode("article"); visual.append(Object.assign(new PreviewNode("h2"), { textContent: "모델 형상" }));
   const child = frozen(previewRecord()); app.state.selectedExperiment = child;

@@ -36,9 +36,11 @@
       }
     } else throw new Error("등방성 또는 직교 이방성 재료를 선택하세요.");
     const sizes = settings.mesh?.max_sizes_mm;
-    if (!exactKeys(settings.mesh, ["max_sizes_mm"]) || !Array.isArray(sizes) || sizes.length < 2 || sizes.length > 8 ||
+    const selected = settings.mesh?.mode === "selected";
+    if (!(exactKeys(settings.mesh, ["max_sizes_mm"]) || (selected && exactKeys(settings.mesh, ["mode", "max_sizes_mm"]))) ||
+        !Array.isArray(sizes) || (selected ? sizes.length !== 1 : sizes.length < 2 || sizes.length > 8) ||
         sizes.some((size, index) => !positive(size) || (index > 0 && sizes[index - 1] <= size))) {
-      throw new Error("메시는 큰 값부터 작은 값까지 서로 다른 양수 2~8개를 mm로 입력하세요.");
+      throw new Error("선택 모드는 양수 크기 하나, 기존 비교 모드는 큰 값부터 서로 다른 양수 2~8개를 mm로 입력하세요.");
     }
     return settings;
   }
@@ -47,7 +49,7 @@
     const result = { model: settings.material.model, force_N: String(settings.load.force_per_support_N),
       source: settings.load.source, provenance: settings.material.provenance,
       qualification: settings.material.qualification, axes: settings.material.axes ?? "",
-      mesh_sizes: settings.mesh.max_sizes_mm.join(", ") };
+      mesh_sizes: settings.mesh.max_sizes_mm.join(", "), mesh_mode: settings.mesh.mode === "selected" ? "selected" : "trend" };
     [...isotropic, ...orthotropic].forEach((name) => { result[name] = settings.material[name] === undefined ? "" : String(settings.material[name]); });
     return result;
   }
@@ -64,7 +66,10 @@
     else delete material.axes;
     result.load = { force_per_support_N: numberInput(fields.force_N, "지지부당 하중"), source: fields.source };
     if (!nonempty(fields.mesh_sizes)) throw new Error("메시 크기를 입력하세요.");
-    result.mesh = { max_sizes_mm: fields.mesh_sizes.trim().split(/[\s,]+/).map((value) => numberInput(value, "메시 크기")) };
+    const mode = fields.mesh_mode ?? (previous.mesh.mode === "selected" ? "selected" : "trend");
+    if (!["selected", "trend"].includes(mode)) throw new Error("지원되는 메시 사용 방식을 선택하세요.");
+    result.mesh = { ...(mode === "selected" ? { mode: "selected" } : {}),
+      max_sizes_mm: fields.mesh_sizes.trim().split(/[\s,]+/).map((value) => numberInput(value, "메시 크기")) };
     return validate(result);
   }
   function verifyStressField(field, artifacts, path) {

@@ -20,6 +20,19 @@ test("condition edits preserve provenance and numerical settings without inventi
   assert.deepEqual(changed.mesh.max_sizes_mm, [4, 3, 2, 1.5]);
   assert.equal(original.load.force_per_support_N, 100);
 });
+
+test("a selected single mesh survives load changes without introducing a sweep", () => {
+  const original = settings(); original.mesh = { mode: "selected", max_sizes_mm: [4] };
+  const fields = toFields(original); fields.force_N = "150";
+  const changed = fromFields(fields, original);
+  assert.deepEqual(changed.mesh, original.mesh);
+  assert.equal(changed.load.force_per_support_N, 150);
+  assert.equal(original.load.force_per_support_N, 100);
+  assert.equal(changed.material.qualification, "ASSUMED_NOT_MEASURED");
+  assert.throws(() => validate({ ...original, mesh: { mode: "selected", max_sizes_mm: [4, 3] } }));
+  assert.throws(() => validate({ ...original, mesh: { max_sizes_mm: [4] } }));
+  assert.throws(() => validate({ ...original, mesh: { mode: "unknown", max_sizes_mm: [4] } }));
+});
 test("switching to an explicitly entered isotropic material drops incompatible constants", () => {
   const original = settings(), fields = { ...toFields(original), model: "isotropic", elastic_modulus_MPa: "210000", poisson_ratio: "0.3" };
   const changed = fromFields(fields, original);

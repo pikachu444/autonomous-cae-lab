@@ -17,9 +17,9 @@ Dakota/GEMSEO/LS-OPT 계열 시험–해석 비교를 연구 참고로, SimScale
 | 현재 순서 | 실제 사용자 산출물 | 상태와 완료 기준 |
 |---|---|---|
 | B0 | 불량 재현/지그 가능성의 실제 목적과 재사용 기능 확인 | 공식 조사·public Core/HTTP/UI의 기존 경로 확인. 설치/새 수치 검증 아님; SimScale을 동일 연구 제품으로 판정하지 않음 |
-| B1–B2 **다음 활성** | 관찰/시험 목적·가설·응답 → 모델·전체 조건 → 작업 → 결과/이력 → 조건 변경·비교 → 다음 시험·저장 | 원본 조건을 새 실험 초안으로 불러오는 연결부터 구현. 기존 study의 질문/가설/목적을 재사용; 구조화 측정–응답/경쟁 가설 매핑은 별도 미완료 항목. 단위·시간/단계·원본/새 결과를 보존 |
+| B1–B2 **활성** | 관찰/시험 목적·가설·응답 → 모델·전체 조건 → 작업 → 결과/이력 → 조건 변경·비교 → 다음 시험·저장 | 원 조건→새 실험→100/150N 실제 비교·전체U 재열람의 제한된 단위 완료. [기록](../benchmarks/records/20261006-condition-reuse-r01.json). 다음은 공통 이력/응답 선택과 관측–응답 매핑. 기존 study는 텍스트이며 구조화 측정·경쟁 가설·inverse는 OPEN |
 | B3 | OpenScience가 지원 시나리오에서 같은 흐름을 실행·해석 | 기존 approved5.6Sol/OAuth와 지원 profile 재사용. API callable을 AI admission/host readiness로 대신하지 않음 |
-| B4 | 지그:150N 변경·수치 탐색/조립체 mechanics. 불량:관측–응답 매핑/가설 비교. 이후 Phase3–7 확장 | 시험체와 지그 변형·접촉·하중 경로, 불량 위치/형태/발생 조건과 비교. synthetic inverse를 실제 불량 원인 검증으로 사용하지 않음; 전체 모델 의무 mesh sweep 없음 |
+| B4 | 지그:수치 탐색/조립체 mechanics. 불량:관측–응답 매핑/가설 비교. 이후 Phase3–7 확장 | 수동150N 조건 변경의 선형 비교 완료, 수치 엔진 탐색은 미실행. 시험체와 지그 변형·접촉·하중 경로, 불량 위치/형태/발생 조건과 비교. synthetic inverse를 실제 불량 원인 검증으로 사용하지 않음; 전체 모델 의무 mesh sweep 없음 |
 | B5 | 필요한 engine/후처리/외부 native inspection 기능 재사용 | GEMSEO/ParaView·trame/PrePoMax 등을 역할별 평가. blanket 설치·새 공통 engine 재개발은 완료 조건 아님 |
 
 현재 R2 lifetime/native-cleanup/PS observer 후보는 작업 트리에 보존했습니다. PS 모의349 assertions PASS는
@@ -35,15 +35,15 @@ Root가 [전체 시스템·전달 방식 후속 의견](reviews/20261005-astra-h
 Root는 요구 변형, 작은 검사·기록의 직렬화, 자신이 만든 통합 문제를 대기로 보고하는 행동을 즉시 교정합니다. 필요한 수정·검사·기록은 다음 실제 사용자 연구 산출물 내부 작업으로 수행합니다.
 공식 selected run01/02의 질문 전 실패를 보존하고 시작 대기의 반복 검증·시간 계산 결함을 직접 수정했습니다. clean d509/run03은 약81초에 준비됐고, 승인5.6Sol의 한국어32→38 질문으로 CAD2개·CalculiX2개·비교 표·동일 기록 전체 필드·새로고침 후38mm 재열람·정상 종료를 실제 확인했습니다. Record: `../benchmarks/records/20261005-selected-cae-research-r03.json`.
 하중부 수직 처짐은2.628393% 감소, 부피는20.429658% 증가했습니다. 가상 등방성210000MPa를 명시했으며 기존 orthotropic 기준 재현은 아닙니다. AI가 하중부|UZ|를 “최대 변위 크기”라고 잘못 부른 것은 전체|U|와 구분해 정정 기록을 남겼습니다. 최초 enum거부2건/원답변/UNKNOWN/NOT_RELEASED는 보존했습니다.
-S3-R1의 HTTP 작업 내구 기록·원J-id/완료 결과 재열람·불명확한 실행 차단을 구현하고 실제 HTTP 재시작/원본 필드 열람으로 확인했습니다. [검증 기록](../benchmarks/records/20261005-http-job-recovery-r01.json). 다음 활성 산출물은 exact-owned R2의 재접속·실제 취소/종료 확인입니다. 작은 수정마다 새 Astra 승인 단계를 추가하지 않습니다.
+S3-R1의 HTTP 작업 내구 기록·원J-id/완료 결과 재열람·불명확한 실행 차단을 구현하고 실제 HTTP 재시작/원본 필드 열람으로 확인했습니다. [검증 기록](../benchmarks/records/20261005-http-job-recovery-r01.json). exact-owned R2의 재접속·실제 취소/종료 확인은 미완료 운영 항목으로 보존하며 현재 개발 순서는 위 B표입니다. 작은 수정마다 새 Astra 승인 단계를 추가하지 않습니다.
 S3는 긴 탐색·무감독 인계와 전체U1 완료의 조건입니다. S3 전이라는 이유로 첫 짧은 비교 실행까지 미루지 않습니다.
-그 다음 S3 최소 복구→150N 조건 변경·수치 엔진 탐색/U1 완료→원본 조립체 mechanics와 남은 Phase1–7 순서입니다.
+150N 새 조건의 제한된 실제 비교는 완료했습니다. 공통 연구 골격을 연결한 뒤 수치 엔진 탐색/U1·원본 조립체 mechanics와 남은 Phase1–7을 확장하며, R2는 무감독 운영 완료 전에 닫습니다.
 전체 모델/explicit의 의무 mesh sweep은 없으며, 기존 canonical 기준·실패·UNKNOWN/NOT_RELEASED는 보존합니다.
 
 ## 현재 판정
 
 - 의미 있는 실제 연구 프로토타입. 일부 단일 지지부·PDE·재료·접촉 연구는 실행 기록이 있습니다.
-- 현재 사용자 서비스 완료 아님. 짧은 감독32/38 비교와 같은 기록 전체 변위장·재열람·정상 종료는 실제 확인했습니다. 장시간 종료·재접속,150N 조건 변경과 numerical engine의 연속 연구/fullU1은 OPEN입니다.
+- 현재 사용자 서비스 완료 아님. 짧은 감독32/38 비교와150N 조건 변경·선형 응답 비교·전체 변위장 재열람은 실제 확인했습니다. 장시간 종료·재접속, numerical engine의 연속 연구/fullU1과 측정–응답/원인 가설 비교는 OPEN입니다.
 - 전체 조립체 mechanics, broader Phase 3–7, 실물/배포 요구 OPEN. 강도·실물은 UNKNOWN/NOT_RELEASED.
 - Goal은04:31:51Z 실제 ACTIVE였으나05:13:57Z 다시 BLOCKED로 관측됐습니다. 전환 원인 UNKNOWN, 사용자/시스템 재개 제어. 기존30분 후속 작업 ACTIVE와 실제 개발·서비스 가동은 별도입니다.
 - clean source `c94da4e86be05146353e716b4fba8d71a96b7246`/새 run02에서 승인5.6Sol 연결, 실제 CAD 변수 조회 질문, 같은 resident IDLE/cleanup, foreground Ctrl+C/owned STOPPED를 확인했습니다. 질문310.124764초의 지연 원인은 NOT_ISOLATED입니다.
@@ -61,7 +61,7 @@ S3는 긴 탐색·무감독 인계와 전체U1 완료의 조건입니다. S3 전
 | S2a | 부모 CAD와 정확한 수치 검사 이름을 결과에 표시 | BOUNDED_FRESH_GUI_PASS / Root | 실제 부모·revision·manifest/caption과 늦은 성공 응답 차단 확인. late-error/detached branch는 source controlled-DOM 증거 |
 | S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | BOUNDED_SELECTED_LIVE_PASS / Root | clean d509/run03 실제32/38 해석의7715/9155절점 전체U와 같은 부모·개정·단위, 저장·browser reload/reopen·UZ/전체\|U\|/보기배율·구속/하중 확인. 범용 후처리·조립체·애니메이션 완료는 아님; record20261005-selected-cae-research-r03 |
 | S3 | 종료·강제 중단·재시작 상태와 admission 복구 | R1_BOUNDED_HTTP_PASS; R2_OPEN / Root | 원J-id/결과 보존·실제 HTTP metadata controller crash/restart·미해결 새 실행 차단·기존 필드 열람 완료. 취소 intent와 온전한 과거 완료 보호 교정. exact-owned session/resident/native authority와 대표 실제 취소/복구가 다음이며 전체S3 PASS 아님 |
-| U1 | 첫 간단한 사용자 CAE 연구 | SHORT_COMPARISON_DONE; FULL_U1_OPEN / Root | d509/run03 한국어32→38 질문·실제 비교·저장·재열람·정상 종료 완료. S3/150N 조건 변경/수치엔진탐색/해석·보고서가 남음. 작은Astra감수 대기는 완료 기준 아님 |
+| U1 | 첫 간단한 사용자 CAE 연구 | SHORT_COMPARISON_AND_150N_DONE; FULL_U1_OPEN / Root | d509/run03 한국어32→38 질문과새150N 조건 비교·재열람 완료. S3/수치엔진탐색/새 결과의AI해석·연구 보고서가 남음. 작은Astra감수 대기는 완료 기준 아님 |
 | S4a | coarse native affine full-field patch | OPEN / Domain·adapter | source kernel 재사용, U/strain/stress/energy/force/moment 전체 참조 비교. actual mechanics와 구분 |
 | S4b | 원본7부품 실제 조립체 연구 | OPEN / Domain·adapter·Root | 부품별 재료/접촉/하중·관측점 선언, load path·평형/에너지·모델 목적별 검증, actual Research 연결. 전체 재메시 비교는 의무 아님 |
 | S5 | Phase3의 남은 실제 탐색 연결 | OPEN | 기존 LHS/DE 재사용, 유효 response·budget/convergence·후보비교·재개; mixed variables 후속 |
@@ -83,7 +83,7 @@ fixture adapter6은 명시적 `mesh={mode:'selected',max_sizes_mm:[4]}`의 단�
 무mode의 기존2–8개/5%/1% screen은 그대로입니다. clean ce12037의 실제 공개 MCP/Core/native 단일 mesh 실행·두 pre-native 거부는 독립 확인했습니다. 사람 form/field GUI와 trusted Research는 다음 gate입니다.
 기존 공식 Research schema1/7은 undeclared mode를 거부합니다. 별도 trusted selected profile을 다음 순차 단위로 연결하며,
 historical descriptor/판정/수치 문턱을 바꾸거나 단일 mesh를 수렴 PASS로 만들지 않습니다. schema8 source는 독립 감수·통합했으며 actual new-scope Research는 다음 gate입니다.
-후속150N 결과의 선형 비례를 raw 정밀도에 맞게 대조하고 조건 변경을 새 record로 보존합니다.
+150N 새 record의 전체U·반력 선형 비례를 FRD 정밀도 기준으로 대조했습니다. 이는 고정 선형 모델의 조건 변경 검증이며 실측 불량 원인이나 조립체 물리 검증을 대신하지 않습니다.
 기존 SciPy DE(population5/max_generations1/seed13)로 유효 응답을 쓰는 연구용 탐색을 실행합니다.
 budget 종료/`converged=false`/best observed를 최적해 확정과 구분합니다. DOE는 현재14-tool profile에 없습니다.
 AI가 같은 record를 해석하고 사람이 모델·입력·결과·한계를 확인하며 같은 보고서를 저장·다시 엽니다.

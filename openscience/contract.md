@@ -1,3 +1,16 @@
+## Human condition-reuse boundary (B1–B2)
+
+The Lab GUI can copy declared settings from a VERIFIED experiment into an
+editable draft, preserve study/backend/parent identities and require a new
+experiment ID. This invokes existing Core operations only after explicit
+submission; it adds no research tool or automatic solver/provider execution.
+Purpose templates remain text, not structured observations or cause validation.
+Same-store/study and UNKNOWN/recovery/read-only gates remain. Single selected
+mesh policy, original responses/invalid metrics and NOT_RELEASED are unchanged.
+Actual bounded100→150N/manual comparison is recorded in
+`benchmarks/records/20261006-condition-reuse-r01.json`; measured defect research,
+general jig mechanics and numerical-engine exploration remain open.
+
 ## HTTP recovery observation boundary (ADR0037)
 
 The opt-in Lab HTTP journal retains transport J-ids/results and blocks new

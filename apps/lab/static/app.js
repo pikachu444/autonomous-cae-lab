@@ -12,6 +12,8 @@ const state = {
   campaignSelections: new Map(), campaignSelectionKey: "", campaignDrafts: {}, campaignTarget: "cad", cadCampaignType: "doe",
   researchStatus: null, researchStatusError: null, researchStatusRequest: 0, researchLoading: false,
   researchHistory: new Map(), researchContexts: new Map(), researchSession: null,
+  simulationDraft: null,
+  researchPurposeDraft: {},
 };
 const operationNames = {
   study_create: "연구 만들기", parameter_discover: "CAD 변수 발견", parameter_register: "연구 변수 등록",
@@ -129,7 +131,7 @@ function writable() {
 function activeStore() { return typeof state.overview?.active_store === "object" ? state.overview.active_store.id : state.overview?.active_store; }
 function activeJob(job) { return ["RUNNING", "CANCEL_REQUESTED", "CLEANUP_PENDING"].includes(job?.status); }
 function recoveryRequired() { return state.overview?.execution?.state === "RECOVERY_REQUIRED" || state.job?.status === "RECOVERY_REQUIRED"; }
-function busy() { return state.submitting || activeJob(state.job) || recoveryRequired() || state.overview?.execution?.accepting_jobs === false; }
+function busy() { return state.submitting || state.storeSwitching || activeJob(state.job) || recoveryRequired() || state.overview?.execution?.accepting_jobs === false; }
 function viewBusy() { return state.submitting || activeJob(state.job) || state.storeSwitching; }
 function available(operation) {
   const matching = list(state.overview?.capabilities).filter((item) => item.operation === operation);
@@ -143,6 +145,33 @@ function workflowContext(value, kind = "experiment", integrity = "NOT_CHECKED") 
     eligibleParent: window.cadControls.eligibleParent(preset, { ...result, backend }) };
 }
 function option(select, value, label) { const item = el("option", label); item.value = value; select.append(item); }
+function researchPurpose(purpose) {
+  if (purpose === "defect") return {
+    name: "제품 불량 재현 연구",
+    question: "관찰한 불량의 위치·형태: [입력]\n발생 조건과 정상 조건의 차이: [입력]\n측정/사진/시험의 출처와 단위: [입력]\n질문: 어떤 조건과 메커니즘이 이 현상을 재현하고 다른 원인 가설과 구별되는가?",
+    hypothesis: "H1: [원인 가설과 모델에서 바꿀 조건]\nH2: [경쟁 원인 가설과 모델에서 바꿀 조건]\n가설을 구별할 관찰량/조건: [입력]",
+    objective: "불량 위치·변형 모양·발생 시점/하중·응답 이력을 관찰과 비교한다. 비교 위치/방향/단위·허용 오차와 다른 조건에서 확인할 응답은 [입력]. 설명하지 못한 현상과 다음 구별 시험을 남긴다.",
+  };
+  if (purpose === "jig") return {
+    name: "제작 전 시험 지그 검토",
+    question: "시험 목적과 시험체: [입력]\n지그 CAD/체결/접촉·장착 조건: [입력]\n장비의 하중/스트로크 범위와 출처: [입력]\n질문: 제작 전에 원하는 하중·구속을 전달하고 시험체 응답을 측정할 수 있는가?",
+    hypothesis: "설계안 A: [하중 경로·접촉/체결·지그 강성]\n설계안 B: [바꿀 조건 또는 설계]\n시험체 응답을 왜곡할 수 있는 지그 변형/미끄럼: [입력]",
+    objective: "간섭·장착, 하중 전달/반력, 접촉·미끄럼, 지그와 시험체의 변형, 장비 하중/스트로크 요구량을 비교한다. 시험 목적별 허용값과 출처는 [입력]. 미확인 항목과 제작 전 필요한 확인을 남긴다.",
+  };
+  throw new Error("연구 목적을 선택하세요.");
+}
+function prepareResearchPurpose(purpose) {
+  const draft = researchPurpose(purpose);
+  const fields = { studyName: draft.name, studyQuestion: draft.question, studyHypothesis: draft.hypothesis, studyObjective: draft.objective,
+    researchQuestion: `${draft.question}\n\n비교할 가설:\n${draft.hypothesis}\n\n연구 목적:\n${draft.objective}\n\n입력하지 않은 조건은 미확인으로 두고, 지원되는 모델·도구 범위와 필요한 정보를 먼저 확인해 주세요.` };
+  let filled = 0;
+  for (const [id, value] of Object.entries(fields)) {
+    if (!$(id).value.trim() || $(id).value === state.researchPurposeDraft[id]) { $(id).value = value; filled++; }
+  }
+  state.researchPurposeDraft = fields;
+  location.hash = "research";
+  notify(filled ? "빈 질문에 연구 작성 틀을 넣었습니다. 관찰·조건을 입력해 주세요. 실행은 시작하지 않았습니다." : "작성 중인 질문을 유지했습니다. 새 질문을 준비하려면 해당 입력을 비운 뒤 목적을 선택하세요.", true);
+}
 function selectedEntries() {
   const backend = $("cadBackend").value, model = $("cadModel").value.trim();
   return list(state.registry?.entries).filter((item) => item.native?.backend === backend &&
@@ -398,6 +427,7 @@ function updateControls() {
   if (!$("nativePath").value || !state.studyId) document.querySelector('[data-operation="parameter_register"]').disabled = true;
   if (!$("nativeFinal").value || !$("nativeModelId").value.trim()) document.querySelector('[data-operation="native_final"]').disabled = true;
   if (!state.presets[$("simulationPreset").value] || (simulationOperation() === "analysis_run" && !$("analysisParent").value)) $("simulationRunBtn").disabled = true;
+  if (state.simulationDraft && (state.simulationDraft.store !== activeStore() || state.simulationDraft.source.studyId !== state.studyId)) $("simulationRunBtn").disabled = true;
   if (!$("fixtureConditionFields").hidden && state.fixtureConditionError) $("simulationRunBtn").disabled = true;
   if (!$("importedMeshFields").hidden && (state.importedMeshError || state.importedLoading)) $("simulationRunBtn").disabled = true;
   $("fixtureUseInCampaign").disabled = !writable() || busy() || Boolean(state.fixtureConditionError) || !window.cadControls.supportsBackend(state.presets.structural_linear, $("cadBackend").value);
@@ -407,6 +437,7 @@ function updateControls() {
   if (isModelCampaign() && !currentModelDiscovery()) $("campaignPlanBtn").disabled = true;
   $("compareBtn").disabled = state.comparison.size < 2;
   $("compareCount").textContent = `${state.comparison.size}개 선택 · 최대 12개`;
+  document.querySelectorAll("[data-experiment-draft]").forEach((item) => { item.disabled = blocked || !available(item.dataset.experimentDraft); });
   updateResearchControls();
 }
 
@@ -414,7 +445,7 @@ function renderAnalysisParents() {
   const preset = state.presets[$("simulationPreset").value];
   const oldParent = $("analysisParent").value;
   const parents = clear("analysisParent"); option(parents, "", "이 해석에 연결된 CAD 실험을 선택하세요");
-  list(state.overview?.experiments).filter((record) => window.cadControls.eligibleParent(preset, record))
+  list(state.overview?.experiments).filter((record) => record.study_id === state.studyId && window.cadControls.eligibleParent(preset, record))
     .forEach((record) => option(parents, record.id, `${record.id} · ${record.study_id}`));
   parents.value = [...parents.options].some((item) => item.value === oldParent) ? oldParent : "";
 }
@@ -491,7 +522,7 @@ async function loadStudy(identifier) {
     const data = await api(`/api/studies/${idPath(identifier)}`);
     if (request !== state.studyRequest || store !== activeStore()) return;
     state.studyId = identifier; state.study = data.study; state.registry = data.registry ?? { entries: [] };
-    $("studySelect").value = identifier; renderStudy(); renderRegistry();
+    $("studySelect").value = identifier; renderStudy(); renderRegistry(); renderAnalysisParents(); updateControls();
   } catch (error) {
     if (request !== state.studyRequest) return;
     state.study = null; state.registry = { entries: [] }; renderStudy(); renderRegistry(); throw error;
@@ -640,6 +671,7 @@ function simulationOperation() {
   return "analysis_run";
 }
 function selectPreset() {
+  clearSimulationDraft();
   const preset = state.presets[$("simulationPreset").value]; const description = clear("presetDescription");
   if (preset) {
     description.append(badge(preset.status), el("p", preset.scope), el("p", `Backend: ${preset.backend}`, "mono"));
@@ -663,6 +695,71 @@ function selectPreset() {
   if (!$("fixtureConditionFields").hidden) loadFixtureConditions();
   else fixtureConditionError(null);
   renderAnalysisParents(); updateControls();
+}
+function clearSimulationDraft() {
+  state.simulationDraft = null;
+  clear("simulationDraftContext").hidden = true;
+}
+async function prepareExperimentDraft(record) {
+  if (!writable() || busy() || state.storeSwitching) throw new Error("실행 가능한 작업 저장소에서 이전 작업의 종료 상태를 확인하세요.");
+  const store = activeStore(), request = state.experimentRequest;
+  const draft = window.experimentDraft.fromRecord(record, state.presets);
+  if (!draft.available) throw new Error(draft.reason);
+  if (!available(draft.operation)) throw new Error("이 조건을 실행할 기능이 현재 연결되지 않았습니다.");
+  if (draft.arguments.parent_experiment_id) {
+    const parent = list(state.overview?.experiments).find(item => item.id === draft.arguments.parent_experiment_id);
+    if (!window.cadControls.eligibleParent(state.presets[draft.presetId], parent)) throw new Error("원본 CAD 부모를 같은 저장소에서 선택할 수 없습니다.");
+  }
+  await loadStudy(draft.source.studyId);
+  if (store !== activeStore() || request !== state.experimentRequest || state.studyId !== draft.source.studyId
+      || busy() || state.storeSwitching) throw new Error("연구 또는 저장소가 바뀌었습니다. 원 실험을 다시 열어 조건을 불러오세요.");
+  $("simulationPreset").value = draft.presetId; selectPreset();
+  clear("presetDescription").append(el("strong", "저장된 해석 조건을 사용합니다."),
+    el("p", "아래 조건은 원 실험에서 가져왔습니다. 해석 예제의 초기 설정으로 바꾸지 않았습니다.", "hint"));
+  $("simulationSettings").value = pretty(draft.arguments.settings);
+  if (!$("importedMeshFields").hidden) {
+    const imported = window.importedMeshControls.splitSettings(draft.arguments.settings);
+    state.importedLevels = imported.levels; $("simulationSettings").value = pretty(imported.draft); renderImportedMeshes();
+  }
+  if (draft.arguments.parent_experiment_id) {
+    $("analysisParent").value = draft.arguments.parent_experiment_id;
+    if ($("analysisParent").value !== draft.arguments.parent_experiment_id) throw new Error("원본 CAD 부모를 같은 저장소에서 선택할 수 없습니다.");
+  }
+  loadFixtureConditions();
+  state.simulationDraft = { ...draft, store };
+  const context = clear("simulationDraftContext"); context.hidden = false;
+  context.append(el("strong", "원래 조건에서 새 가상 실험 준비"), el("p", `${draft.source.experimentId} · ${draft.source.studyId}`),
+    el("p", "원래 재료·하중·메시와 모델 연결을 불러왔습니다. 바꿀 조건을 검토한 뒤 새 실험으로 실행하세요. 원 결과는 보존됩니다.", "hint"));
+  location.hash = "simulation"; updateControls();
+  notify("원래 조건을 새 실험 초안으로 불러왔습니다. 아직 해석은 실행하지 않았습니다.", true);
+}
+function simulationArguments() {
+  if (state.storeSwitching) throw new Error("저장소 전환이 끝난 뒤 조건을 확인하세요.");
+  const preset = state.presets[$("simulationPreset").value], operation = simulationOperation(), draft = state.simulationDraft;
+  if (!preset) throw new Error("해석할 모델을 선택하세요.");
+  if (draft && (draft.store !== activeStore() || draft.source.studyId !== state.studyId
+      || draft.source.backend !== preset.backend || draft.operation !== operation)) throw new Error("원 실험과 현재 연구·모델 연결이 달라졌습니다. 조건을 다시 불러오세요.");
+  const args = { experiment_id: $("simulationId").value.trim(), backend: preset.backend, settings: fixtureSimulationSettings() };
+  if (draft && args.experiment_id === draft.source.experimentId) throw new Error("원 결과를 보존하도록 새 실험 ID를 사용하세요.");
+  if (operation === "analysis_run") {
+    const parent = list(state.overview?.experiments).find((record) => record.id === $("analysisParent").value);
+    if (!window.cadControls.eligibleParent(preset, parent) || parent.study_id !== state.studyId) throw new Error("현재 연구에 연결된 CAD 부모 실험을 선택하세요.");
+    if (draft && $("analysisParent").value !== draft.source.parentExperimentId) throw new Error("불러온 조건은 원래 CAD 부모와 연결되어 있습니다. 다른 모델은 모델 선택부터 새로 준비하세요.");
+    args.parent_experiment_id = $("analysisParent").value;
+  } else {
+    args.study_id = state.studyId;
+    if (draft?.arguments.hypothesis_id) args.hypothesis_id = draft.arguments.hypothesis_id;
+  }
+  return args;
+}
+function simulationSubmissionContext() {
+  return { store: activeStore(), studyId: state.studyId, source: state.simulationDraft?.source.experimentId };
+}
+async function completeSimulation(result, args, context) {
+  if (context.store !== activeStore() || context.studyId !== state.studyId) return;
+  const source = context.source;
+  if (source) state.comparison = new Set([source, result.experiment_id ?? args.experiment_id]);
+  $("simulationId").value = makeId("E-solve"); await inspectExperiment(result.experiment_id ?? args.experiment_id);
 }
 function importedMeshError(message) {
   state.importedMeshError = message;
@@ -884,8 +981,29 @@ function renderExperimentDetail(data) {
   const inputList = el("dl", undefined, "result-facts");
   values.forEach(item => { inputList.append(el("dt", item.name), el("dd", `${number(item.value)}${item.unit && item.unit !== "1" ? ` ${item.unit}` : ""}`)); });
   if (values.length) inputs.append(inputList); else inputs.append(el("p", "등록된 연구 변수 입력이 없습니다. 모델·하중 설정은 상세 기록에서 확인하세요.", "empty-state"));
+  if (data.integrity === "VERIFIED" && backend === "fixture.calculix") {
+    try {
+      const fields = window.fixtureControls.toFields(data.proposal.execution), facts = el("dl", undefined, "result-facts separated");
+      const rows = [["지지부당 하중", `${fields.force_N} N`], ["하중 출처", fields.source],
+        ["재료 모델", fields.model === "isotropic" ? "등방성" : "직교 이방성"],
+        ["재료 데이터", fields.qualification === "ASSUMED_NOT_MEASURED" ? "측정되지 않은 가정값" : fields.qualification],
+        ["재료 출처", fields.provenance], ["메시", `${fields.mesh_sizes} mm · ${fields.mesh_mode === "selected" ? "선택한 메시 하나" : "기존 메시 비교"}`]];
+      if (fields.model === "isotropic") rows.splice(3, 0, ["탄성계수 E", `${fields.elastic_modulus_MPa} MPa`], ["푸아송비 ν", fields.poisson_ratio]);
+      rows.forEach(([label, value]) => facts.append(el("dt", label), el("dd", value))); inputs.append(facts);
+    } catch (_error) { inputs.append(el("p", "간단한 양식으로 표시할 수 없는 조건입니다. 원래 전체 조건을 확인하세요.", "hint")); }
+  }
   if (presentation.safeExperimentId(result.parent_experiment_id) && result.parent_experiment_id !== identifier)
     inputs.append(experimentButton(result.parent_experiment_id, "기록이 참조한 CAD 실험 보기 →"));
+  if (data.integrity === "VERIFIED" && data.proposal?.execution && result.solver_status !== "NOT_RUN") {
+    const original = el("details", undefined, "advanced separated");
+    original.append(el("summary", "원래 해석의 전체 조건"), el("pre", pretty(data.proposal.execution))); inputs.append(original);
+  }
+  const draft = window.experimentDraft?.fromRecord(data, state.presets);
+  if (draft?.available) {
+    const reuse = action("이 조건에서 새 실험 준비", () => prepareExperimentDraft(data), "button secondary compact");
+    reuse.dataset.experimentDraft = draft.operation; reuse.disabled = !writable() || busy() || !available(draft.operation);
+    inputs.append(reuse, el("p", writable() ? "조건을 불러온 뒤 수정·실행합니다. 기존 결과는 바뀌지 않습니다." : "읽기 전용 기록입니다. 다른 저장소로 모델을 옮기는 기능은 아직 제공하지 않습니다.", "hint"));
+  }
   side.append(inputs);
   const checks = panel("확인 상태");
   const checkCounts = el("div", undefined, "check-counts");
@@ -898,7 +1016,10 @@ function renderExperimentDetail(data) {
   const metrics = panel("결과값"); metrics.classList.add("detail-wide");
   const metricRows = Object.entries(result.metrics ?? {}), metricGrid = el("div", undefined, "result-metrics");
   metricRows.forEach(([name, metric], index) => {
-    const card = el("div", undefined, "result-metric"), label = el("span", presentation.metricName(name, index), "stat-label"); label.title = name;
+    const metricLabel = name === "max_displacement" && result.provenance?.adapter === "fixture.calculix"
+      && result.provenance?.adapter_details?.per_mesh_displacement?.response_metric === "loaded_saddle_min_global_uz"
+      ? "하중 안장 최대 |UZ| (전체 |U| 최대 아님)" : presentation.metricName(name, index);
+    const card = el("div", undefined, "result-metric"), label = el("span", metricLabel, "stat-label"); label.title = name;
     const unit = metric.unit === "1" ? (name === "cad_component_count" ? "개" : "") : metric.unit === "mm^3" ? "mm³" : metric.unit ?? "";
     const displayNumber = value => typeof value === "number" && Number.isFinite(value)
       ? new Intl.NumberFormat("ko-KR", { maximumSignificantDigits: 6 }).format(value) : text(value);
@@ -1420,13 +1541,22 @@ async function openSurface(container, preview, current) {
 }
 async function compareExperiments() {
   if (state.comparison.size < 2) return;
-  const data = await api(`/api/compare?${new URLSearchParams({ ids: [...state.comparison].join(",") })}`);
+  const store = activeStore(), ids = [...state.comparison];
+  const data = await api(`/api/compare?${new URLSearchParams({ ids: ids.join(",") })}`);
+  if (state.storeSwitching || store !== activeStore() || ids.join("\n") !== [...state.comparison].join("\n")) return;
+  renderComparison(data);
+}
+function renderComparison(data) {
   const records = list(data.comparison ?? data.results ?? data); const container = clear("comparisonDetail"); container.hidden = false;
   const card = panel("검증된 기록 비교", "COMPARE · VALIDITY RETAINED"); card.classList.add("compare-card");
   card.append(el("p", "단위와 유효성을 함께 읽으세요. INVALID 값은 성능 우열이나 최적 후보의 근거로 사용할 수 없습니다.", "hint separated"));
   const names = new Set(records.flatMap((record) => Object.keys(record.metrics ?? {})));
-  const rows = [["실행 상태", ...records.map((record) => badge(record.status))], ["출시 판정", ...records.map((record) => badge(record.decision))], ["연구 변수", ...records.map((record) => el("span", text(record.parameters), "mono"))], ["UNKNOWN", ...records.map((record) => el("span", list(record.unknown).join(", "), "hint"))]];
-  names.forEach((name) => rows.push([el("span", name, "mono"), ...records.map((record) => metricCell(record.metrics?.[name]))]));
+  const rows = [["실행 상태", ...records.map((record) => badge(record.status))], ["출시 판정", ...records.map((record) => badge(record.decision))], ["연구 변수", ...records.map((record) => el("span", text(record.parameters), "mono"))], ["미확인 항목", ...records.map((record) => el("span", list(record.unknown).map((name, index) => window.resultPresentation.validationName(name, index)).join(" · "), "hint"))]];
+  [...names].forEach((name, index) => {
+    const label = el("span", name === "max_displacement" ? "저장된 최대 변위 응답" : window.resultPresentation.metricName(name, index)); label.title = name;
+    rows.push([label, ...records.map((record) => metricCell(record.metrics?.[name]))]);
+  });
+  if (names.has("max_displacement")) card.append(el("p", "전체 변위장 최대 |U|와 하중부 |UZ|는 다른 응답입니다. 아래 값의 위치·성분은 원 실험의 결과 정의와 전체 필드에서 확인하세요.", "hint"));
   card.append(table(["응답", ...records.map((record) => record.experiment_id)], rows), action("비교 닫기", () => { container.hidden = true; })); container.append(card);
 }
 
@@ -1513,10 +1643,13 @@ $("jobCancelBtn").addEventListener("click", async () => {
     renderJob(); schedulePoll();
   }
 });
-function bindForm(id, operation, build, handler) {
+function bindForm(id, operation, build, handler, capture) {
   $(id).addEventListener("submit", async (event) => {
     event.preventDefault(); if (!event.currentTarget.reportValidity()) return;
-    try { const args = build(); await runJob(typeof operation === "function" ? operation() : operation, args, (result) => handler?.(result, args)); }
+    try {
+      const args = build(), context = capture?.();
+      await runJob(typeof operation === "function" ? operation() : operation, args, (result) => handler?.(result, args, context));
+    }
     catch (error) { notify(error.message); }
   });
 }
@@ -1524,11 +1657,15 @@ async function switchStore(identifier) {
   if (viewBusy()) throw new Error("작업 실행 중에는 저장소를 바꿀 수 없습니다.");
   if (state.storeSwitching) throw new Error("저장소 전환을 확인하고 있습니다.");
   // Invalidate pending parent/artifact reads before the server changes stores.
-  state.storeSwitching = true; state.experimentRequest++; state.fixtureViewer?.destroy(); state.fixtureViewer = null; $("storeSelect").disabled = true;
+  state.storeSwitching = true; state.experimentRequest++; state.fixtureViewer?.destroy(); state.fixtureViewer = null; updateControls();
   let overview;
   try { overview = await api("/api/store", { method: "POST", body: JSON.stringify({ id: identifier }) }); }
-  finally { state.storeSwitching = false; $("storeSelect").disabled = viewBusy() || !state.overview; }
-  state.overview = overview; state.studyId = ""; state.study = null; state.registry = { entries: [] }; state.discovery = [];
+  catch (error) {
+    state.overview = null; state.studyId = ""; state.study = null; state.registry = { entries: [] }; clearSimulationDraft();
+    throw error;
+  }
+  finally { state.storeSwitching = false; updateControls(); }
+  state.overview = overview; state.studyId = ""; state.study = null; state.registry = { entries: [] }; state.discovery = []; clearSimulationDraft();
   state.researchSession = null; $("researchContinue").checked = false; renderResearchAnswers();
   invalidateModelDiscovery(); state.campaignSelections.clear(); state.campaignSelectionKey = "";
   state.selectedExperiment = null; state.selectedCampaign = null; state.comparison.clear(); state.studyRequest++; state.experimentRequest++; state.campaignRequest++;
@@ -1561,17 +1698,7 @@ bindForm("cadForm", "cad_run", () => {
 bindForm("nativeCreateForm", "native_create", () => ({ template: $("nativeTemplate").value }), renderNative);
 bindForm("nativeInspectForm", "native_inspect", () => ({ model: $("nativeModelId").value.trim() }), renderNative);
 bindForm("nativeFinalForm", "native_final", () => ({ model: $("nativeModelId").value.trim(), final: $("nativeFinal").value }), renderNative);
-bindForm("simulationForm", simulationOperation, () => {
-  const preset = state.presets[$("simulationPreset").value], operation = simulationOperation();
-  const args = { experiment_id: $("simulationId").value.trim(), backend: preset.backend, settings: fixtureSimulationSettings() };
-  if (operation === "analysis_run") {
-    const parent = list(state.overview?.experiments).find((record) => record.id === $("analysisParent").value);
-    if (!window.cadControls.eligibleParent(preset, parent)) throw new Error("이 해석에 연결된 CAD 부모 실험을 선택하세요.");
-    args.parent_experiment_id = $("analysisParent").value;
-  }
-  else args.study_id = state.studyId;
-  return args;
-}, async (result, args) => { $("simulationId").value = makeId("E-solve"); await inspectExperiment(result.experiment_id ?? args.experiment_id); });
+bindForm("simulationForm", simulationOperation, simulationArguments, completeSimulation, simulationSubmissionContext);
 bindForm("campaignForm", campaignOperation, () => {
   const model = isModelCampaign();
   const args = { study_id: state.studyId, campaign_id: $("campaignId").value.trim(), parameter_ids: [...document.querySelectorAll("[data-campaign-variable]:checked")].map((input) => input.value), seed: numeric("campaignSeed") };
@@ -1602,8 +1729,10 @@ $("cadBackend").addEventListener("change", () => { state.discovery = []; renderD
 $("cadModel").addEventListener("change", () => { renderDiscovery([]); renderRegistry(); });
 $("studySelect").addEventListener("change", () => {
   state.studyId = $("studySelect").value; state.study = null; state.registry = { entries: [] };
+  $("analysisParent").value = "";
   renderDiscovery([]); invalidateModelDiscovery(); renderRegistry(); loadStudy(state.studyId).catch((error) => notify(error.message));
 });
+document.querySelectorAll("[data-research-purpose]").forEach((button) => button.addEventListener("click", () => prepareResearchPurpose(button.dataset.researchPurpose)));
 $("storeSelect").addEventListener("change", () => switchStore($("storeSelect").value).catch((error) => { $("storeSelect").value = activeStore(); notify(error.message); }));
 $("useLocalBtn").addEventListener("click", () => switchStore("local").catch((error) => notify(error.message)));
 $("refreshBtn").addEventListener("click", () => Promise.allSettled([loadOverview(), loadResearchStatus()]).then(results => results.forEach(result => { if (result.status === "rejected") notify(result.reason.message); })));

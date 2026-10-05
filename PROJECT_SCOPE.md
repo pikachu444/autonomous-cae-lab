@@ -1,4 +1,9 @@
-## Current checkpoint: skeleton-first integration and reference research
+## Current checkpoint: original-condition reuse and actual150N comparison
+
+All R01–R52/Phase1–7 remain. B1–B2 original-condition reuse has bounded actual native/GUI acceptance: same38mm CAD/study/material/selected4mm, new100→150N experiment, full-field linear scaling/reaction comparison, original93-file retention,491 Node/206 Python PASS. Source/run/hash distinctions and limits: `benchmarks/records/20261006-condition-reuse-r01.json`. Six PASS/seven UNKNOWN, invalid stress/mesh sensitivity and NOT_RELEASED unchanged. Text purpose drafts are not structured measured-data/unique-cause validation. NEXT common history/response/observation mapping, numerical-engine exploration and original assembly mechanics; R2 actual cancellation/reconnect and broader phases remain OPEN. No blanket completion/release promotion.
+
+---
+## Historical checkpoint: skeleton-first integration and reference research
 
 All R01–R52 and Phase1–7 remain in scope; none is removed or promoted by research. User directs skeleton-first for product-defect reproduction/cause hypotheses and pre-fabrication test-jig feasibility. Queue: `docs/CAE_RESEARCH_EXECUTION_PLAN.md`; method references/gaps: `docs/CAE_PLATFORM_REFERENCE_RESEARCH.md`. Observation/response mapping, general assembly/explicit/measured inverse/UQ/HPC remain incomplete. SimScale is a UI reference, not a complete research-tool match. Pending R2 is source-only, not actual reconnect/cancel acceptance. Exact535 CI finalized7SUCCESS/3FAIL.
 

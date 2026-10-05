@@ -133,7 +133,8 @@ test("actual request form precedes secondary metadata and explicit assembly rest
   assert(htmlSource.indexOf('id="researchQuestionForm"') < htmlSource.indexOf('id="studyForm"'));
   assert.match(htmlSource, /<details class="research-records"><summary[^>]*>연구 기록만 저장/);
   const primary = htmlSource.slice(htmlSource.indexOf('id="researchQuestionForm"'), htmlSource.indexOf('</form>', htmlSource.indexOf('id="researchQuestionForm"')));
-  assert.doesNotMatch(primary, /studyId|studyHypothesis|studyObjective/); assert.match(primary, /placeholder="연구하고 싶은 문제와 알고 있는 조건을 적어 주세요\."/);
+  assert.doesNotMatch(primary, /studyId|studyHypothesis|studyObjective/);
+  assert.match(primary, /<textarea id="researchQuestion"[^>]*placeholder="[^"]+"><\/textarea>/);
   assert.match(htmlSource, /전체 조립체의 하중·접촉 해석은 아직 준비되지 않았습니다/);
   for (const id of ["studyForm", "studyId", "studyName", "studyQuestion", "studyHypothesis", "studyObjective", "simulationRunBtn", "jobCancelBtn"]) assert.equal([...htmlSource.matchAll(new RegExp(`id="${id}"`, "g"))].length, 1);
 });

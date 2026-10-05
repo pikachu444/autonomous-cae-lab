@@ -1,0 +1,356 @@
+{
+  "schema_version": 1,
+  "id": "20261006-condition-reuse-r01",
+  "recorded_utc": "2026-10-05T16:27:25.758Z",
+  "acceptance": "Verified original conditions → new experiment → changed load → native result comparison/reopen",
+  "outcome": "BOUNDED_NATIVE_AND_GUI_PASS",
+  "scope": "B1–B2 condition-reuse slice. Whole 52 requirements/Phase1–7 remain incomplete.",
+  "source": {
+    "tested_base_commit": "75f27a06cc42f328ce9b2159c772d4e75cd5ec81",
+    "native_producer_core_commit": "75f27a06cc42f328ce9b2159c772d4e75cd5ec81",
+    "native_producer_core_dirty": true,
+    "native_producer_core_source_sha256": "74b980ac2bf71b99edeaf3d02eb87019c75f4d5be4f1681f9c6fefcca947d350",
+    "pinned_fixture_upstream_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "final_controlled_and_reopened_ui_files": [
+      {
+        "path": ".github/workflows/caelab-ci.yml",
+        "worktree_sha256": "040ff1209f925fdf7060cd98e4d5f74780130d50f8f5a6bf49648307822bcbb8",
+        "lf_normalized_sha256": "040ff1209f925fdf7060cd98e4d5f74780130d50f8f5a6bf49648307822bcbb8"
+      },
+      {
+        "path": "apps/lab/static/app.js",
+        "worktree_sha256": "899e36fd3891944bff57225dc616cbd4217d4d999498749b159597718bc23cea",
+        "lf_normalized_sha256": "c5a794138de6645f3a4d20d0417a00badd23be3f868aaaf918ce03f7618c5827"
+      },
+      {
+        "path": "apps/lab/static/index.html",
+        "worktree_sha256": "d87e154515056e5aeacc3e744fffd4d956d8d463a67ec22b912ec3d8d7eb9661",
+        "lf_normalized_sha256": "0e0829ce15ce3b477fb8677bb2a087c8d002aa4a66bfb34da81e6d37707f1a03"
+      },
+      {
+        "path": "apps/lab/static/fixture-controls.js",
+        "worktree_sha256": "151463af8d5a19853facf047fbec6a97c4d8c31ed6450994f2fcf9d0ac344be6",
+        "lf_normalized_sha256": "151463af8d5a19853facf047fbec6a97c4d8c31ed6450994f2fcf9d0ac344be6"
+      },
+      {
+        "path": "apps/lab/static/experiment-draft.js",
+        "worktree_sha256": "c2f165ac056869776757aaed7b2308b56f2c52ef9b1ec80373a88c7e2604e096",
+        "lf_normalized_sha256": "c2f165ac056869776757aaed7b2308b56f2c52ef9b1ec80373a88c7e2604e096"
+      },
+      {
+        "path": "tests/test_experiment_draft.js",
+        "worktree_sha256": "b687392bc11187fbc20d93bc5dfde6d73a0ebbb538d2c639f450ab382203e3cf",
+        "lf_normalized_sha256": "b687392bc11187fbc20d93bc5dfde6d73a0ebbb538d2c639f450ab382203e3cf"
+      },
+      {
+        "path": "tests/test_fixture_controls.js",
+        "worktree_sha256": "3ce182130b634930fc61284164c1a2c5500ab061e07375fb1a35e65f3b26124c",
+        "lf_normalized_sha256": "3ce182130b634930fc61284164c1a2c5500ab061e07375fb1a35e65f3b26124c"
+      },
+      {
+        "path": "tests/test_fixture_field_viewer.js",
+        "worktree_sha256": "b5f88ef72cf5e8426321628e6ad89ff64ae82a9402313b5da0087d9a07ee6bd2",
+        "lf_normalized_sha256": "b5f88ef72cf5e8426321628e6ad89ff64ae82a9402313b5da0087d9a07ee6bd2"
+      },
+      {
+        "path": "tests/test_result_presentation.js",
+        "worktree_sha256": "080dff0811aff53d8818860bf00509f213ba262d99d00277b4c4a007a1682d63",
+        "lf_normalized_sha256": "080dff0811aff53d8818860bf00509f213ba262d99d00277b4c4a007a1682d63"
+      },
+      {
+        "path": "tests/test_result_workflow.js",
+        "worktree_sha256": "a31f0421a9ea79a46d5e35d9480a0023986a268641d8fe632aa1c3b0723e1264",
+        "lf_normalized_sha256": "a31f0421a9ea79a46d5e35d9480a0023986a268641d8fe632aa1c3b0723e1264"
+      },
+      {
+        "path": "tests/test_research_handoff.js",
+        "worktree_sha256": "a6a2b0f27073b6cfc0c2cee758816ed703d554d845b3b72972209c609c7f8009",
+        "lf_normalized_sha256": "a6a2b0f27073b6cfc0c2cee758816ed703d554d845b3b72972209c609c7f8009"
+      }
+    ],
+    "distinction": "Native submission occurred on base75f27a+dirty candidate before final UI race/name fixes. Same retained results were reopened on final UI source; no second native solve claimed. Core, fixture adapter and numerical thresholds unchanged by this unit.",
+    "unrelated_preserved_candidates": [
+      "openscience/jobs.py",
+      "openscience/mcp_server.py",
+      "openscience/resident_identity.py",
+      "scripts/lab-openscience.ps1",
+      "scripts/verify_lab_research.ps1",
+      "tests/test_mcp_runtime_identity.py",
+      "tests/test_mcp_native_cleanup.py",
+      "tests/test_resident_identity.py"
+    ]
+  },
+  "implementation": [
+    "Deep-copy original declared settings from VERIFIED identity/hash-joined record; never substitute example preset settings.",
+    "New experiment ID, same study/backend/CAD parent; same-store and same-study submission guards.",
+    "Purpose drafts for observations/competing hypotheses and virtual jig objectives; preserve edited input, no automatic provider/solver request.",
+    "Reuse existing selected single-mesh policy without forced sweep or changed engineering thresholds.",
+    "Show material/load/mesh/source conditions and distinguish loaded-saddle UZ from whole-field displacement.",
+    "Capture source/store/study before submission; ignore stale completion/compare after navigation changes.",
+    "Read-only libraries/recovery-required stores retain execution fences; CAD/model campaigns are not silently copied."
+  ],
+  "actual_run": {
+    "store": "runs/cae-selected-research-20261005-03",
+    "old_experiment": "fea_width38_100N_mesh4_corrected_20261005_sesef3f",
+    "new_experiment": "fea_width38_150N_mesh4_condition_reuse_20261006_r01",
+    "parent_experiment": "cad_width38_20261005_sesef3f",
+    "job_id": "J7fcc644e7668443e82da46bbeb21e1d9",
+    "operation": "analysis_run",
+    "job_status": "COMPLETED",
+    "created_utc": "2026-10-05T16:02:07.492938+00:00",
+    "completed_utc": "2026-10-05T16:02:24.072531+00:00",
+    "original_settings": {
+      "load": {
+        "force_per_support_N": 100,
+        "source": "사용자 지정 가정 하중: 단일 지지부 중앙 24 mm saddle에 총 100 N, 음의 전역 Z 방향"
+      },
+      "material": {
+        "elastic_modulus_MPa": 210000,
+        "model": "isotropic",
+        "poisson_ratio": 0.3,
+        "provenance": "단일 지지부 예제용 가정 등방성 물성: E=210000 MPa, nu=0.30; 실측 또는 재료 인증값이 아님",
+        "qualification": "HYPOTHETICAL_UNQUALIFIED"
+      },
+      "mesh": {
+        "max_sizes_mm": [
+          4
+        ],
+        "mode": "selected"
+      }
+    },
+    "new_settings": {
+      "load": {
+        "force_per_support_N": 150,
+        "source": "원100N 가상 실험에서 하중만150N으로 변경한 조건. 음의 전역 Z 방향, 중앙24mm saddle 분포; 실측 하중이 아님"
+      },
+      "material": {
+        "elastic_modulus_MPa": 210000,
+        "model": "isotropic",
+        "poisson_ratio": 0.3,
+        "provenance": "단일 지지부 예제용 가정 등방성 물성: E=210000 MPa, nu=0.30; 실측 또는 재료 인증값이 아님",
+        "qualification": "HYPOTHETICAL_UNQUALIFIED"
+      },
+      "mesh": {
+        "max_sizes_mm": [
+          4
+        ],
+        "mode": "selected"
+      }
+    },
+    "solver": {
+      "backend": "fixture.calculix",
+      "status": "COMPLETED",
+      "versions": {
+        "ccx": "This is Version 2.21",
+        "gmsh": "4.12.1"
+      }
+    },
+    "adapter_version": "6",
+    "final_result_sha256": "56b3ecc55358dc4ee0948f89903a3de7dbacdda8f3ea4418010700720d07163f",
+    "proposal_sha256": "fa78085abb4476a8e363953d50750d1e2be96b00b3263a51962ace9e669b0397",
+    "field_sha256": "75d61eda63c9953fc1c037e40cf645816d1d4edf403aa4fb28c7297572591b6f",
+    "frd_sha256": "f97af9e515f64cd4df753bc7bd5e3518727537666fb213a4dacb2575f7f77f66",
+    "provider_calls_this_unit": 0,
+    "comparison": {
+      "observed_at": "2026-10-05T16:17:04.798Z",
+      "comparison_kind": "fixed-linear-model load scaling; no material/strength qualification",
+      "old_experiment": "fea_width38_100N_mesh4_corrected_20261005_sesef3f",
+      "new_experiment": "fea_width38_150N_mesh4_condition_reuse_20261006_r01",
+      "same_parent_cad": "cad_width38_20261005_sesef3f",
+      "same_cad_revision": "77f549d9e3721b6a3b11cbf6b6ca0c3b26537c55a743b81304fb71eb99c1a389",
+      "same_study": "study_single_support_width_20261005_sesef3f",
+      "inputs_changed": [
+        "load.force_per_support_N",
+        "load.source"
+      ],
+      "single_selected_mesh_mm": 4,
+      "identical_node_coordinates_connectivity_and_fixed_dofs": true,
+      "node_count": 9155,
+      "element_count": 5319,
+      "expected_factor": 1.5,
+      "serialization_comparison_tolerance": 0.00001,
+      "full_field_maximum_U_mm": {
+        "old": 0.000025850489302665532,
+        "new": 0.000038775799507734316,
+        "ratio": 1.5000025358798919
+      },
+      "pointwise_normalized_maximum_error": 0.0000029432614284600313,
+      "normalized_L2_error": 0.000002056714187808056,
+      "loaded_saddle_max_abs_UZ_mm": {
+        "old": 0.00002293114,
+        "new": 0.00003439671,
+        "ratio": 1.5
+      },
+      "reaction_force_N": [
+        -5.731419988865902e-8,
+        1.4377801986809068e-7,
+        150.00000135765
+      ],
+      "reaction_balance_ratio": 9.109630013302955e-9,
+      "validation_counts": {
+        "PASS": 6,
+        "UNKNOWN": 7
+      },
+      "solver_status": "COMPLETED",
+      "converged": true,
+      "decision": "NOT_RELEASED",
+      "peak_stress_valid": false,
+      "mesh_sensitivity_assessed": false,
+      "retention": {
+        "protected_original_file_count": 93,
+        "protected_original_bytes": 23168880,
+        "missing": [],
+        "changed": [],
+        "scope": "pre-run studies, experiments and ledger; runtime/journal files excluded"
+      },
+      "outcome": "PASS_BOUNDED_LINEAR_CONDITION_REUSE",
+      "limitations": [
+        "Hypothetical unqualified isotropic material",
+        "Not measured defect reproduction",
+        "Not full assembly contact mechanics",
+        "Not jig manufacturing approval",
+        "No parameter search or measured-data inverse execution in this comparison"
+      ]
+    }
+  },
+  "verification": {
+    "node": {
+      "passed": 491,
+      "failed": 0,
+      "test_files": 13,
+      "log": "artifacts/research-condition-reuse-20261006-01/node-controls-final-r03.log"
+    },
+    "python": {
+      "passed": 206,
+      "failed": 0,
+      "warnings": 1,
+      "python_version": "3.12.3",
+      "test_files": [
+        "tests/test_lab_server.py",
+        "tests/test_lab_reporting.py",
+        "tests/test_lab_cancellation.py",
+        "tests/test_lab_job_journal.py"
+      ],
+      "seconds": 248.61,
+      "log": "artifacts/research-condition-reuse-20261006-01/python-controls-final-r02.log"
+    },
+    "actual_gui": [
+      "Original38/100N verified conditions loaded; same assumed isotropic material/CAD/study/selected4mm.",
+      "Only force changed to150N with explanatory source; new ID submitted using actual HTTP analysis_run.",
+      "After final UI fixes/reload, original/new record comparison and150N full field reopened from retained store."
+    ],
+    "independent_review": {
+      "agent": "/root/cae_reference_platforms",
+      "kind": "bounded read-only source review",
+      "findings": [
+        "P1 store-switch admission race",
+        "P2 pairing live draft instead of submitted source",
+        "P2 study changed while original parent/settings retained"
+      ],
+      "corrections": "Root fixed all3. Follow-up reader confirmed corrections and no additional mandatory finding in this scope. Reviewer did not run tests/browser/native.",
+      "broad_astra_approval_step_added": false
+    },
+    "failed_control_attempts": [
+      {
+        "log": "artifacts/research-condition-reuse-20261006-01/node-controls.log",
+        "cause": "Old literal placeholder assertion; changed to empty primary input/nonempty placeholder behavior."
+      },
+      {
+        "log": "artifacts/research-condition-reuse-20261006-01/node-controls-final.log",
+        "cause": "3 viewer/parent-preview harness failures: newly executed updateControls reached unmounted form DOM. Scope explicit mock added; separate controls tests retain real gates."
+      },
+      {
+        "scope": "Verification script only",
+        "cause": "Strict-reference equality used for study object; corrected to deep equality. Numerical tolerance unchanged."
+      }
+    ],
+    "ci": {
+      "native_base": "75f27a06cc42f328ce9b2159c772d4e75cd5ec81",
+      "run_id": 37335373386,
+      "observed_status": "IN_PROGRESS",
+      "observed_utc": "2026-10-05T16:12:18Z",
+      "distinction": "Not PASS; not a clean producer for these source edits. Published feature commit CI must be checked separately."
+    }
+  },
+  "artifacts": {
+    "retention": "LOCAL_ONLY; artifacts and runs ignored, no binaries/company data/auth copied to public Git.",
+    "files": [
+      {
+        "path": "artifacts/research-condition-reuse-20261006-01/original-record.json",
+        "sha256": "1acb553844befecf08abc53e41567d4bc1ed494401a045cbb5cb3c3acab553bd",
+        "bytes": 63431
+      },
+      {
+        "path": "artifacts/research-condition-reuse-20261006-01/new-record.json",
+        "sha256": "a5da630632394955d09d0abbb8e49446367aff6f8c32c9e757af445fe6a8bf93",
+        "bytes": 63673
+      },
+      {
+        "path": "artifacts/research-condition-reuse-20261006-01/presets.json",
+        "sha256": "1877ac3535acf021eb1b2c8808404b5f73c9c009433238185d3c5a59635391bc",
+        "bytes": 191517
+      },
+      {
+        "path": "artifacts/research-condition-reuse-20261006-01/protected-originals-before.json",
+        "sha256": "7bac5c3736cc0cfd22d8dd543d475b011300c0124e44c7878c37dab4c0323b5c",
+        "bytes": 18944
+      },
+      {
+        "path": "artifacts/research-condition-reuse-20261006-01/completed-job.json",
+        "sha256": "d6bd1582203f928d5e475505da11b118113870fc2376519aa6fdb56ea1cecc96",
+        "bytes": 21338
+      },
+      {
+        "path": "artifacts/research-condition-reuse-20261006-01/linear-comparison-retention.json",
+        "sha256": "f04ff7448ab20ba88c37f94cdbd0c4a5fd2d67b4e8bb9a997d069853532c5f58",
+        "bytes": 2081
+      },
+      {
+        "path": "artifacts/research-condition-reuse-20261006-01/verify-linear-reuse.cjs",
+        "sha256": "aef7400ee5e5b7f0bc7107c025a332439ab596ef3bad576f8a958271e5a5e99f",
+        "bytes": 6369
+      },
+      {
+        "path": "artifacts/research-condition-reuse-20261006-01/node-controls-final-r03.log",
+        "sha256": "1e2b77116b8e41ee75683971990982a78516cc00b67efabb128b388ea5202046",
+        "bytes": 41547
+      },
+      {
+        "path": "artifacts/research-condition-reuse-20261006-01/python-controls-final-r02.log",
+        "sha256": "f6eadc2ea73bf5513d27c90282637ad5132ae4a6e287ae9a67f8be63115a8ae9",
+        "bytes": 840
+      },
+      {
+        "path": "artifacts/research-condition-reuse-20261006-01/conditions-150N.jpg",
+        "sha256": "569f37ff961d316141ed665877c33f3543bf8b54cf15c5322dd113ab97eabf37",
+        "bytes": 77140
+      },
+      {
+        "path": "artifacts/research-condition-reuse-20261006-01/comparison-100N-150N.jpg",
+        "sha256": "a3351933fce256481d54cf63db64cb37abe27b6e04af72f750ee2ba267783f76",
+        "bytes": 62739
+      },
+      {
+        "path": "artifacts/research-condition-reuse-20261006-01/comparison-values-100N-150N.jpg",
+        "sha256": "16eb8dcecad862e62995688c2b1d3148e0ebb2067daf7ff95f3935546cfcff61",
+        "bytes": 73862
+      },
+      {
+        "path": "artifacts/research-condition-reuse-20261006-01/full-field-150N.jpg",
+        "sha256": "a2a5d91b46444e2a4e278365c8f254cdb054d4e388ccc1daa7c86990b1c2e42d",
+        "bytes": 64595
+      }
+    ]
+  },
+  "limitations": [
+    "No measured product defect case or unique cause conclusion.",
+    "No general assembly/contact mechanics or jig manufacturing approval.",
+    "Study observations/hypotheses remain text; structured measurement-to-response and competing-cause mappings OPEN.",
+    "No current provider research interpretation; approved5.6Sol/OAuth prior run remains separately recorded.",
+    "No actual owned native interruption/reconnect proof; pendingR2 remains uncommitted.",
+    "No DOE/optimization in this manual150N run; numerical engine remains owner of candidates.",
+    "Original fine1.5 RUNNING/noPID/no receipt UNKNOWN retained; no original assembly remesh.",
+    "6PASS/7UNKNOWN; invalid stress/mesh sensitivity retained; NOT_RELEASED."
+  ],
+  "next_acceptance": "Purpose-directed common history/response selection and observation-to-response mapping, then existing numerical-engine150N/width exploration and original assembly mechanics. No new solver-example prerequisite."
+}

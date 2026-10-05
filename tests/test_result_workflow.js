@@ -9,6 +9,7 @@ const vm = require("node:vm");
 const presentation = require("../apps/lab/static/result-presentation.js");
 const cadControls = require("../apps/lab/static/cad-controls.js");
 const researchControls = require("../apps/lab/static/research-controls.js");
+const fixtureControls = require("../apps/lab/static/fixture-controls.js");
 const appSource = readFileSync(require.resolve("../apps/lab/static/app.js"), "utf8");
 const htmlSource = readFileSync(require.resolve("../apps/lab/static/index.html"), "utf8");
 const bootBoundary = '$(' + '"jobCancelBtn").addEventListener("click", async () => {';
@@ -77,13 +78,13 @@ function harness({ writable = true, callable = true, selectedPreset = "linear" }
       if (!selector.startsWith("[data-operation=")) return null;
       if (!selectors.has(selector)) selectors.set(selector, new TinyNode("button")); return selectors.get(selector);
     } };
-  const sandbox = { document, Node: TinyNode, window: { cadControls, researchControls,
+  const sandbox = { document, Node: TinyNode, window: { cadControls, researchControls, fixtureControls,
     resultPresentation: { ...presentation, workflow: (value, context) => { calls.push({ value, context }); return presentation.workflow(value, context); } } },
     location: { hash: "#results" }, TextEncoder, URL, URLSearchParams, Intl, console,
     fetch: () => { prohibited.http++; throw new Error("HTTP is forbidden in the display gate"); },
     setTimeout: () => { prohibited.timers++; throw new Error("Application timers are forbidden in the display gate"); }, clearTimeout: () => {} };
   vm.createContext(sandbox);
-  vm.runInContext(appSource.slice(0, split) + "\nglobalThis.appUnderTest = {state, workflowContext, renderExperimentList, renderExperimentDetail, renderJob, updateControls, activeJob};", sandbox, { filename: require.resolve("../apps/lab/static/app.js") });
+  vm.runInContext(appSource.slice(0, split) + "\nglobalThis.appUnderTest = {state, workflowContext, renderExperimentList, renderExperimentDetail, renderJob, updateControls, activeJob, researchPurpose, prepareResearchPurpose, simulationArguments, clearSimulationDraft, simulationSubmissionContext, completeSimulation, renderComparison};", sandbox, { filename: require.resolve("../apps/lab/static/app.js") });
   const app = sandbox.appUnderTest;
   app.state.presets = { linear: { operation: "analysis_run", backend: "fixture.calculix", parent_backends: ["fixture.cadquery"] } };
   app.state.overview = { active_store: "display", stores: [{ id: "display", writable }], experiments: [],
@@ -91,6 +92,75 @@ function harness({ writable = true, callable = true, selectedPreset = "linear" }
   app.state.studyId = "S-display";
   return { app, $, document, calls, indicator, prohibited };
 }
+
+test("research-purpose drafts keep user observations and send no provider or simulation request", () => {
+  const h = harness(), observations = "실측 0.21 mm, 출처: 시험 A. H1과 H2는 아직 미확인.";
+  h.$("researchQuestion").value = observations; h.$("studyHypothesis").value = "사용자가 작성한 가설";
+  h.app.prepareResearchPurpose("defect");
+  assert.equal(h.$("researchQuestion").value, observations);
+  assert.equal(h.$("studyHypothesis").value, "사용자가 작성한 가설");
+  assert.match(h.$("studyQuestion").value, /불량의 위치·형태.*\[입력\]/);
+  assert.match(h.$("studyObjective").value, /다음 구별 시험/);
+  assert.deepEqual(h.prohibited, { http: 0, timers: 0 });
+  const jig = harness(); jig.app.prepareResearchPurpose("jig");
+  assert.match(jig.$("researchQuestion").value, /장비의 하중\/스트로크/);
+  assert.match(jig.$("studyObjective").value, /지그와 시험체의 변형/);
+  assert.deepEqual(jig.prohibited, { http: 0, timers: 0 });
+  jig.$("studyObjective").value = "사용자 기준: 지그 처짐 0.05 mm 이내. 아직 측정하지 않음.";
+  jig.app.prepareResearchPurpose("defect");
+  assert.match(jig.$("researchQuestion").value, /불량의 위치·형태/);
+  assert.equal(jig.$("studyObjective").value, "사용자 기준: 지그 처짐 0.05 mm 이내. 아직 측정하지 않음.");
+});
+
+test("actual comparison translates response names without changing invalid metrics or conflating loaded UZ with whole-field U", () => {
+  const h = harness(), data = freeze([{ experiment_id: "E-100", status: "COMPLETED_REVIEW_REQUIRED", decision: "NOT_RELEASED",
+    parameters: {}, unknown: ["static_strength"], metrics: { max_displacement: { value: 0.00002, unit: "mm", valid: true },
+      peak_stress: { value: 0.4, unit: "MPa", valid: false, reason: "허용 강도 미확인" } } }]);
+  const original = JSON.stringify(data); h.app.renderComparison(data);
+  const text = h.$("comparisonDetail").textContent;
+  assert.match(text, /저장된 최대 변위 응답/); assert.match(text, /절점 평균 응력/);
+  assert.match(text, /전체 변위장 최대 \|U\|와 하중부 \|UZ\|는 다른 응답/);
+  assert.match(text, /판단에 사용할 수 없음/); assert.match(text, /허용 강도 미확인/);
+  assert.equal(JSON.stringify(data), original); assert.deepEqual(h.prohibited, { http: 0, timers: 0 });
+});
+
+test("draft submission keeps the source CAD and single mesh while changing one load", () => {
+  const h = harness();
+  const settings = { load: { force_per_support_N: 150, source: "Virtual load case, not measured" },
+    material: { model: "isotropic", elastic_modulus_MPa: 210000, poisson_ratio: 0.3, provenance: "Illustrative", qualification: "ASSUMED_NOT_MEASURED" },
+    mesh: { mode: "selected", max_sizes_mm: [4] } };
+  h.app.state.overview.experiments = [{ id: "E-cad-source", study_id: "S-display", backend: "fixture.cadquery", status: "COMPLETED_REVIEW_REQUIRED", solver_status: "NOT_RUN", cad_revision: "a".repeat(64) }];
+  h.$("analysisParent").value = "E-cad-source"; h.$("simulationId").value = "E-new-load";
+  h.$("simulationSettings").value = JSON.stringify(settings); h.$("importedMeshFields").hidden = true;
+  h.app.state.simulationDraft = { store: "display", operation: "analysis_run", arguments: {}, source: {
+    experimentId: "E-original", studyId: "S-display", backend: "fixture.calculix", parentExperimentId: "E-cad-source" } };
+  const args = h.app.simulationArguments();
+  assert.equal(args.parent_experiment_id, "E-cad-source"); assert.equal(args.experiment_id, "E-new-load");
+  assert.equal(JSON.stringify(args.settings), JSON.stringify(settings));
+  h.$("simulationId").value = "E-original"; assert.throws(() => h.app.simulationArguments(), /새 실험/);
+  h.$("simulationId").value = "E-new-load"; h.app.state.studyId = "S-other";
+  assert.throws(() => h.app.simulationArguments(), /연결이 달라졌습니다/);
+  h.app.clearSimulationDraft();
+  assert.throws(() => h.app.simulationArguments(), /현재 연구에 연결된 CAD/);
+  h.app.state.studyId = "S-display"; h.app.state.storeSwitching = true;
+  assert.throws(() => h.app.simulationArguments(), /저장소 전환/);
+  h.app.updateControls(); assert.equal(h.$("simulationRunBtn").disabled, true);
+  assert.deepEqual(h.prohibited, { http: 0, timers: 0 });
+});
+
+test("simulation completion keeps the submitted source and ignores a changed study or store", async () => {
+  const h = harness(); h.app.state.simulationDraft = { source: { experimentId: "E-original" } };
+  const submitted = h.app.simulationSubmissionContext();
+  h.app.state.simulationDraft.source.experimentId = "E-other-draft";
+  assert.equal(submitted.source, "E-original");
+  h.app.state.studyId = "S-changed";
+  await h.app.completeSimulation({ experiment_id: "E-new" }, { experiment_id: "E-new" }, submitted);
+  assert.equal(h.app.state.comparison.size, 0);
+  h.app.state.studyId = submitted.studyId; h.app.state.overview.active_store = "other";
+  await h.app.completeSimulation({ experiment_id: "E-new" }, { experiment_id: "E-new" }, submitted);
+  assert.equal(h.app.state.comparison.size, 0);
+  assert.deepEqual(h.prohibited, { http: 0, timers: 0 });
+});
 
 test("Node and browser workflow exports agree without a browser service or a test-only admission path", () => {
   const source = readFileSync(require.resolve("../apps/lab/static/result-presentation.js"), "utf8"), browser = { window: {} };

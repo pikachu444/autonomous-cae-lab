@@ -92,7 +92,8 @@ function appHarness(data = fixture()) {
     location: { hash: "#results" }, URL, URLSearchParams, Intl, Uint8Array, console, setTimeout: () => { throw new Error("No app timers or live jobs permitted"); }, clearTimeout() {},
     fetch: (path, options) => new Promise((resolve, reject) => requests.push({ path, options, resolve, reject })) };
   vm.createContext(sandbox); vm.runInContext(appSource.slice(0, bootBoundary) + "\n" + appSource.slice(switchStart, switchEnd)
-    + "\nrenderResearchAnswers=()=>{};invalidateModelDiscovery=()=>{};renderDiscovery=()=>{};renderOverview=()=>{};renderStudy=()=>{};renderRegistry=()=>{};globalThis.fieldApp={state,renderFixtureFields,switchStore};", sandbox);
+    // Field lifecycle harness does not mount the application's execution forms.
+    + "\nupdateControls=()=>{};renderResearchAnswers=()=>{};invalidateModelDiscovery=()=>{};renderDiscovery=()=>{};renderOverview=()=>{};renderStudy=()=>{};renderRegistry=()=>{};globalThis.fieldApp={state,renderFixtureFields,switchStore};", sandbox);
   const app = sandbox.fieldApp; app.state.overview = { active_store: "TEST_ONLY-local", stores: [{ id: "TEST_ONLY-local", writable: true }] }; app.state.selectedExperiment = data.inspection;
   return { app, requests, data, root: doc.createElement("main"), doc };
 }

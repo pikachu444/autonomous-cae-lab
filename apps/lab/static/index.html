@@ -17,6 +17,7 @@
   <script src="/static/contact-field-inspector.js" defer></script>
   <script src="/static/result-presentation.js" defer></script>
   <script src="/static/research-controls.js" defer></script>
+  <script src="/static/experiment-draft.js" defer></script>
   <script src="/static/app.js" defer></script>
 </head>
 <body>
@@ -58,7 +59,9 @@
             <div id="researchConnection" class="research-connection" role="status">AI 연구 연결을 확인하고 있습니다.</div>
             <div id="researchScope" class="research-scope"></div>
             <p class="hint">전체 조립체의 하중·접촉 해석은 아직 준비되지 않았습니다. 지원되는 모델과 도구 범위에서 질문하세요.</p>
-            <form id="researchQuestionForm"><label for="researchQuestion">연구 질문<textarea id="researchQuestion" rows="6" required placeholder="연구하고 싶은 문제와 알고 있는 조건을 적어 주세요."></textarea></label>
+            <div class="button-row"><button type="button" class="button secondary compact" data-research-purpose="defect">제품 불량 재현 연구</button><button type="button" class="button secondary compact" data-research-purpose="jig">제작 전 지그 검토</button></div>
+            <p class="hint">선택하면 관찰·가설·비교할 응답의 작성 틀을 넣습니다. 직접 작성한 내용은 유지하며 해석을 바로 실행하지 않습니다.</p>
+            <form id="researchQuestionForm"><label for="researchQuestion">연구 질문<textarea id="researchQuestion" rows="6" required placeholder="불량의 관찰 내용·발생 조건, 또는 시험 목적·지그 조건과 알고 싶은 점을 적어 주세요."></textarea></label>
               <label class="check-line"><input id="researchContinue" type="checkbox" disabled>확인된 대화에서 계속 질문</label><p id="researchSessionState" class="hint">새 대화로 질문합니다.</p>
               <div class="form-footer"><button type="button" id="researchResetBtn" class="button subtle">새 대화 시작</button><button id="researchRunBtn" class="button primary" data-operation="research_run" disabled>AI에게 질문하기</button></div>
               <p id="researchInputState" class="hint" role="status"></p>
@@ -72,10 +75,10 @@
         <div class="two-column research-columns">
           <article class="card"><div class="card-heading"><div><p class="eyebrow">NEW STUDY</p><h2>새 연구 만들기</h2></div><span class="step-tag">시작하기</span></div>
             <form id="studyForm"><fieldset data-write>
-              <div class="form-grid"><label>연구 ID<input id="studyId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,79}" autocomplete="off"></label><label>연구 이름<input id="studyName" value="지지부 설계 변수 연구" required></label></div>
-              <label>연구 질문<textarea id="studyQuestion" rows="2" required>설계 변수의 변화가 기하 형상과 변형 응답에 어떤 영향을 주는가?</textarea></label>
-              <label>가설<textarea id="studyHypothesis" rows="2" required>설계 변수의 변화에 따라 형상과 수치 응답이 달라진다.</textarea></label>
-              <label>목적<textarea id="studyObjective" rows="2" required>설계·수치 검증의 근거를 남기고, 미검증 요구사항을 구분한다.</textarea></label>
+              <div class="form-grid"><label>연구 ID<input id="studyId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,79}" autocomplete="off"></label><label>연구 이름<input id="studyName" placeholder="예: 편측 변형 불량의 재현 조건 연구" required></label></div>
+              <label>관찰·시험 목적과 연구 질문<textarea id="studyQuestion" rows="4" required placeholder="관찰한 불량·발생 조건·측정, 또는 만들려는 지그와 시험 목적"></textarea></label>
+              <label>비교할 가설<textarea id="studyHypothesis" rows="4" required placeholder="서로 다른 원인 또는 설계 가설과 각 가설을 확인할 조건"></textarea></label>
+              <label>비교할 응답과 연구 목적<textarea id="studyObjective" rows="4" required placeholder="불량 위치·형태·하중–변위 등 비교할 응답, 시험 가능성을 판단할 조건"></textarea></label>
               <div class="form-footer"><small>새 ID로 기록합니다. 기존 연구는 상단에서 선택하세요.</small><button class="button primary" data-operation="study_create">연구 기록 저장</button></div>
             </fieldset></form>
           </article>
@@ -115,6 +118,7 @@
       <section id="simulation" data-panel="simulation" hidden>
         <div class="page-heading"><div><p class="eyebrow">03 / SIMULATION</p><h1>같은 개정에서 실행하는 해석.</h1><p class="lead">검증한 CAD 부모 또는 명시한 모델을 기존 adapter로 실행합니다.</p></div><span class="outline-label">원본 · 설정 · 결과 보존</span></div>
         <div class="two-column simulation-columns"><article class="card"><form id="simulationForm"><fieldset data-write><div class="card-heading"><div><p class="eyebrow">ANALYSIS INPUTS</p><h2>해석 시작</h2></div></div><label>해석 예제<select id="simulationPreset" required><option value="">예제를 불러오는 중…</option></select></label><div id="presetDescription" class="preset-description"></div><div id="parentField"><label>CAD 부모 실험 · 실행 전 해시 재검사<select id="analysisParent"><option value="">완료한 CAD 실험을 선택하세요</option></select></label><p class="hint">부모를 실제 검증한 뒤 정확한 STEP과 CAD 개정으로 새 자식 실험을 만듭니다. 목록 선택만으로 검증 완료를 주장하지 않습니다.</p></div><label>새 해석 실험 ID<input id="simulationId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,79}" autocomplete="off"></label>
+          <div id="simulationDraftContext" class="preset-description" role="status" hidden></div>
           <div id="fixtureConditionFields" class="separated" hidden>
             <h3>치구의 해석 조건</h3>
             <p class="hint">지지부 하나를 해석합니다. 바닥의 X·Y·Z 변위를 고정하고, 안장 중앙 24 mm에 −Z 방향 하중을 분포시킵니다. 볼트와 실제 롤러 접촉은 아직 포함하지 않습니다.</p>
@@ -135,7 +139,9 @@
             <label>재료 데이터의 출처<textarea rows="2" data-fixture-field="provenance" aria-label="재료 데이터의 출처"></textarea></label>
             <label>입력 데이터 상태<input data-fixture-field="qualification" aria-label="재료 입력 데이터 상태"></label>
             <p class="hint">초기값은 미측정 가정값입니다. 상태를 입력하는 것만으로 재료나 강도가 검증되지는 않습니다.</p>
-            <label>메시 크기 (mm · 큰 값부터)<input data-fixture-field="mesh_sizes" placeholder="4, 3, 2, 1.5" aria-label="메시 크기 mm"></label>
+            <label>메시 사용 방식<select id="fixtureMeshMode" data-fixture-field="mesh_mode"><option value="selected">선택한 메시 하나로 실행</option><option value="trend">기존 벤치마크의 여러 메시 비교</option></select></label>
+            <label>메시 크기 (mm)<input data-fixture-field="mesh_sizes" placeholder="선택 메시: 4 / 기존 비교: 4, 3, 2" aria-label="메시 크기 mm"></label>
+            <p class="hint">선택 모드는 크기 하나를 지정합니다. 기존 비교 모드는 큰 값부터 작은 값까지 입력합니다. 원래 실험의 방식을 유지하며 메시 비교를 자동으로 추가하지 않습니다.</p>
             <p id="fixtureConditionError" class="metric-reason" role="alert" hidden></p>
             <button type="button" id="fixtureUseInCampaign" class="button secondary">이 조건을 탐색 계획에 사용</button>
           </div>
