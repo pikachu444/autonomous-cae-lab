@@ -36,7 +36,7 @@ def native(service, monkeypatch, *, wait=None, mutate=None):
         if wait:
             wait[0].set()
             assert wait[1].wait(10)
-        identifier = "native-test-" + str(len(calls))
+        identifier = f"{len(calls):032x}"  # Real FreeCAD UUID syntax can start with a digit.
         root = service._selected().path / "native_designs" / identifier
         root.mkdir(parents=True, exist_ok=False)
         (root / "editable.FCStd").write_bytes(raw)

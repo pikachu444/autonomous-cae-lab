@@ -647,7 +647,11 @@ async function loadNativeImports() {
     const container = clear("nativeImportList"), records = list(data.imports);
     if (!records.length) container.append(el("p", "이 저장소에 가져온 모델이 없습니다. 파일을 선택해 시작하세요.", "empty-state"));
     else container.append(table(["가져온 모델", "원본", "다음 작업"], records.map(record => {
-      if (!record.model || record.error) return [record.id, "가져오기 완료 확인 필요", text(record.error)];
+      if (!record.model || record.error) {
+        const partial = el("div");
+        partial.append(el("p", "부분 기록이 남아 있습니다. 완료한 모델로 선택할 수 없습니다."), rawDetail("부분 기록·오류 상세", record));
+        return ["가져오기 완료 확인 필요", "원본 확인 전", partial];
+      }
       const button = action("모델 확인·변수 연결", () => openImportedModel(record.id));
       button.dataset.nativeImport = record.id;
       return [record.document || record.model, `${number(record.input?.size_bytes)}바이트 보존 · 선택 시 원본 재검사`, button];

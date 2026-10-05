@@ -9,7 +9,7 @@ import re
 import uuid
 import zipfile
 
-from caelab.storage import check_id, source_identity, utc_now
+from caelab.storage import source_identity, utc_now
 
 
 MIN_NATIVE_BYTES = 100
@@ -23,6 +23,15 @@ def folder(store, identifier):
     if not isinstance(identifier, str) or not IMPORT_ID.fullmatch(identifier):
         raise ValueError("A retained native input ID is required")
     return contained(Path(store), "native_imports/" + identifier)
+
+
+def model_id(value):
+    # Native model references use the existing Lab reference contract; study/
+    # experiment IDs have a different rule and exclude numeric UUID prefixes.
+    from .service import REFERENCE
+    if not isinstance(value, str) or not REFERENCE.fullmatch(value):
+        raise ValueError("A native model reference is required")
+    return value
 
 
 def _read(path, maximum):
@@ -137,7 +146,7 @@ def retain_result(store, capture, info, producer):
         raise ValueError("Native import transport source changed")
     if not isinstance(info, dict) or not isinstance(info.get("design"), str):
         raise ValueError("Native importer did not return a model ID")
-    model = check_id(info["design"])
+    model = model_id(info["design"])
     if info.get("source_sha256") != capture["input"]["sha256"]:
         raise ValueError("Imported native revision differs from the retained original")
     root = folder(store, capture["id"])
@@ -173,7 +182,7 @@ def inspect_import(store, identifier, *, verify_original=True):
             or not isinstance(capture.get("input"), dict)
             or info.get("source_sha256") != capture["input"].get("sha256")):
         raise ValueError("Native import record identity is invalid")
-    check_id(result["model"])
+    model_id(result["model"])
     if verify_original:
         verified_input(store, result["capture"])
     return {"id": identifier, "model": result["model"], "created_utc": pin["completed_utc"],

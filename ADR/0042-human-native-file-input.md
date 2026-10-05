@@ -44,3 +44,5 @@ OpenScience remains the research control plane with approved5.6Sol/OAuth;
 numerical engines and Domain/adapter boundaries remain. Company data must stay
 outside this public repository. Physical qualification remains UNKNOWN and
 release NOT_RELEASED.
+
+Actual r01 correction: native UUID model references can begin with a digit. Transport reuses Lab REFERENCE, not Core study/experiment check_id; adapter UUID/path validation is unchanged. The failed clean378 import and unsealed partial bytes are retained; source correction does not claim actual r02 PASS.

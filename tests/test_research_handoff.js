@@ -139,6 +139,17 @@ test("late imported-model listing cannot attach an older store's native model to
   assert.equal(h.$("nativeModelId").value, "");
 });
 
+test("incomplete native input keeps internal error in secondary detail and offers no model action", async () => {
+  const h = nativeHarness({fetchReply: () => reply({imports: [{id: "U" + "a".repeat(32), status: "UNCONFIRMED",
+    error: "FileNotFoundError: /TEST_ONLY/private/native_imports/import.json"}]})});
+  await h.ui.loadNativeImports();
+  const container = h.$("nativeImportList");
+  assert.match(container.textContent, /부분 기록이 남아 있습니다/);
+  assert.equal(walk(container).filter(node => node.tagName === "BUTTON").length, 0);
+  assert.match(walk(container).find(node => node.tagName === "DETAILS").textContent, /TEST_ONLY\/private/);
+  assert.doesNotMatch(walk(container).filter(node => node.tagName === "P").map(node => node._text).join(""), /FileNotFoundError|private/);
+});
+
 test("late native upload completion preserves a newer CAD selection and retains the original job handler", async () => {
   for (const identifier of ["cadBackend", "cadModel", "nativeModelId"]) {
     const imported = job({id: "J-native", operation: "native_import", status: "RUNNING", result: undefined});

@@ -1,3 +1,5 @@
+G1 actual r01 on clean37854c6 failed in the new model-ID transport after native import. The preserved numeric-prefix native UUID prompted the existing REFERENCE-contract correction; 15 HTTP/68 selected Node source controls PASS. Fresh clean-source r02 native workflow remains NEXT. See records/20261006-native-input-reference-correction-r02.json.
+
 # G1 human file input source qualification; actual browser/native next
 
 ADR0042 and records/20261006-native-input-source-r01.json connect the existing Core/native importer to tokenized binary human file selection. Latest15 HTTP source controls/final1 cancel control and67 Node controls PASS; TEST_ONLY native/provenance and no actual FreeCAD/browser/solver/provider. Independent two P2 findings are corrected and final closure is separately recorded. NEXT clean-source fresh-store file chooser/import/discover/register/new editable CAD/reopen. Arbitrary CAD-parent FEA, active native recovery, physical qualification and whole52 remain OPEN/UNKNOWN/NOT_RELEASED.

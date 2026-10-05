@@ -88,14 +88,20 @@ for (const invalidate of ["lease", "detach", "destroy"]) test(`component/deforma
 const appSource = fs.readFileSync(require.resolve("../apps/lab/static/app.js"), "utf8"), bootBoundary = appSource.indexOf('$("jobCancelBtn").addEventListener("click", async () => {');
 const switchStart = appSource.indexOf("async function switchStore("), switchEnd = appSource.indexOf("\n// Exact Core keyword arguments", switchStart);
 function appHarness(data = fixture()) {
-  const doc = documentFixture(), requests = [], sandbox = { document: doc, Node: TinyNode, window: { fixtureFieldControls: controls, fixtureFieldViewer: viewer },
+  const doc = documentFixture(), requests = [], nativeLists = [], sandbox = { document: doc, Node: TinyNode, window: { fixtureFieldControls: controls, fixtureFieldViewer: viewer },
     location: { hash: "#results" }, URL, URLSearchParams, Intl, Uint8Array, console, setTimeout: () => { throw new Error("No app timers or live jobs permitted"); }, clearTimeout() {},
-    fetch: (path, options) => new Promise((resolve, reject) => requests.push({ path, options, resolve, reject })) };
+    fetch: (path, options) => {
+      if (path === "/api/native-imports") {
+        nativeLists.push({ path, options });
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ imports: [] }) });
+      }
+      return new Promise((resolve, reject) => requests.push({ path, options, resolve, reject }));
+    } };
   vm.createContext(sandbox); vm.runInContext(appSource.slice(0, bootBoundary) + "\n" + appSource.slice(switchStart, switchEnd)
     // Field lifecycle harness does not mount the application's execution forms.
     + "\nupdateControls=()=>{};renderResearchAnswers=()=>{};invalidateModelDiscovery=()=>{};renderDiscovery=()=>{};renderOverview=()=>{};renderStudy=()=>{};renderRegistry=()=>{};globalThis.fieldApp={state,renderFixtureFields,switchStore};", sandbox);
   const app = sandbox.fieldApp; app.state.overview = { active_store: "TEST_ONLY-local", stores: [{ id: "TEST_ONLY-local", writable: true }] }; app.state.selectedExperiment = data.inspection;
-  return { app, requests, data, root: doc.createElement("main"), doc };
+  return { app, requests, nativeLists, data, root: doc.createElement("main"), doc };
 }
 function response(bytes) { return { ok: true, status: 200, headers: { get: () => String(bytes.length) }, arrayBuffer: async () => Uint8Array.from(bytes).buffer }; }
 test("actual result renderer fetches only the same manifested child field and keeps all source links in closed verification detail", async () => {
@@ -143,6 +149,8 @@ test("the real store POST invalidates mounted controls and pending field reads b
   mounted.refs.component.value = "UX"; mounted.refs.component.emit("change"); assert.equal(mounted.refs.canvas.paint.length, paints);
   assert.equal(h.requests[2].path, "/api/store"); assert.equal(h.requests[2].options.method, "POST"); h.requests[1].reject(new Error("TEST_ONLY old field while store POST is pending")); assert.equal(await second, false);
   h.requests[2].resolve({ ok: true, status: 200, json: async () => ({ active_store: "TEST_ONLY-other", stores: [] }) }); await switchPending;
+  assert.equal(h.nativeLists.length, 1); assert.equal(h.nativeLists[0].path, "/api/native-imports");
+  assert.equal(h.app.state.storeSwitching, false);
   assert.equal(h.app.state.overview.active_store, "TEST_ONLY-other"); assert.equal(h.app.state.selectedExperiment, null); assert.equal(h.app.state.fixtureViewer, null);
 });
 
@@ -244,6 +252,7 @@ test("actual same-record mounted overlay callbacks stop before the store POST co
   mounted.refs.visibility.value = "xray"; mounted.refs.visibility.emit("change"); mounted.refs.checks.fixed.checked = false; mounted.refs.checks.fixed.emit("change"); mounted.refs.fit.emit("click");
   assert.equal(mounted.refs.canvas.paint.length, paints); assert.equal(mounted.refs.policy.textContent, policy);
   h.requests[1].resolve({ ok: true, status: 200, json: async () => ({ active_store: "TEST_ONLY-other", stores: [] }) }); await switching;
+  assert.equal(h.nativeLists.length, 1); assert.equal(h.app.state.storeSwitching, false);
 });
 
 // TEST_ONLY mounted lifecycle controls. No real browser, HTTP, retained fields, or native run.

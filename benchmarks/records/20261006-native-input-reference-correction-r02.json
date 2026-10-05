@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "unit": "G1 native model-reference transport correction",
+  "created_utc": "2026-10-05T23:31:20.862806+00:00",
+  "base_commit": "37854c672ec928b719b1edc69fb09e46a3f0393b",
+  "source_files": {
+    "apps/lab/native_input.py": {
+      "sha256": "5a49e938e010d967ec32901a729d63430a3c6456052df00358a08e027af912f0",
+      "size_bytes": 9549
+    },
+    "apps/lab/server.py": {
+      "sha256": "cd27c3f6eaa1d41dd94d33206ae9fa0548c7062f0619f69a42f60e3b73eea49d",
+      "size_bytes": 15019
+    },
+    "apps/lab/service.py": {
+      "sha256": "04e3235a355911f6d3b6c29ff5afc7b4dabc08318d33a1f66c9068d5f8072ce4",
+      "size_bytes": 57971
+    },
+    "apps/lab/static/app.js": {
+      "sha256": "811bcf01b45b78d1b2848e2b467b3faba32b0ddd8f32dd130236ae3c88b94a9f",
+      "size_bytes": 173115
+    },
+    "apps/lab/static/index.html": {
+      "sha256": "9127b391c900490fc513dc22c8c12f4ded9d9c51e748bf65b891649e83e0f927",
+      "size_bytes": 40209
+    },
+    "apps/lab/static/native-upload-controls.js": {
+      "sha256": "d094849ad8428d8aed11498dfb72877bedcba8203ffa8667c704256bc327de92",
+      "size_bytes": 3661
+    },
+    "tests/test_native_import_http.py": {
+      "sha256": "b807e00fb0e3916503a6cf1a23e68db3da617fb1219b6b1aa34b0ac8d78fb648",
+      "size_bytes": 14544
+    },
+    "tests/test_native_upload_controls.js": {
+      "sha256": "312ae3c15694cebcb1b6957ccc01a9b56c2557249efd603c260faf0d38acf36e",
+      "size_bytes": 7394
+    },
+    "tests/test_research_handoff.js": {
+      "sha256": "8785f1bfee56579ca7eae1ba510cba4f8a14d6e684cb7e29eb6b267277108786",
+      "size_bytes": 46083
+    },
+    "tests/test_fixture_field_viewer.js": {
+      "sha256": "9fd1f6649b3e9962b42e61ec4777d6c882f635cd865d00e34272ccf294ea93f7",
+      "size_bytes": 51695
+    },
+    ".github/workflows/caelab-ci.yml": {
+      "sha256": "e3862aa5b74f75f971224b6a3a6dd2b33a5364dc7df6f19d953881df7cf796c7",
+      "size_bytes": 29887
+    }
+  },
+  "failed_actual_r01": {
+    "producer_commit": "37854c672ec928b719b1edc69fb09e46a3f0393b",
+    "store": "runs/cae-native-input-20261006-01",
+    "job": "Ja4511cd30c0b40c3be1a73d122b7c9a6",
+    "input": "U55a8f89a3cab4ba9af2dea2a128786e6",
+    "observed_native_model": "4c2471d4d07040aebc4500e2108cf535",
+    "status": "FAILED",
+    "completion_seal": "ABSENT",
+    "error": "ValueError: Invalid study or experiment ID",
+    "classification": "ROOT_TRANSPORT_MODEL_REFERENCE_CONTRACT_DEFECT",
+    "evidence": "Existing FreeCAD import created new editable/baseline/STEP/preview/surface; new transport incorrectly applied study/experiment identifier validation to numeric-prefix native UUID.",
+    "original": {
+      "sha256": "7ab8a9d194150317d644c0312713d5e85b4878140f35a919b6753fd03a3ee415",
+      "size_bytes": 2723
+    },
+    "preserved_files": 11,
+    "preserved_bytes": 27275,
+    "manifest": {
+      "sha256": "0c07dedee7f15b42f6bab5dc54adb1481467342d8d0ce0d5e6f8316e201cee1a",
+      "size_bytes": 2012
+    },
+    "job_receipt": {
+      "sha256": "d3f32c43ff76f07f39ffd84491febc4677e84b1c99970a59e3222288ec8f997c",
+      "size_bytes": 411
+    },
+    "controller": {
+      "owned_handle": 90639,
+      "stop": "Ctrl+C after FAILED/idle",
+      "exit_code": 0,
+      "scope": "Inactive metadata HTTP shutdown; not active native/provider cancellation"
+    }
+  },
+  "correction": [
+    "Reuse existing Lab REFERENCE contract for model identity; keep native adapter path containment/UUID rule unchanged",
+    "Positive transport controls now use numeric-prefix native UUID syntax",
+    "Incomplete imported records remain unselectable; raw error/path moves to secondary detail",
+    "Existing field test harness answers only the new native-list GET; two store controls retain deferred field/POST assertions and assert one list refresh",
+    "CI includes new native file-boundary helper controls"
+  ],
+  "source_verification": {
+    "http": {
+      "pass": 15,
+      "seconds": 16.8,
+      "exit_code": 0,
+      "log": {
+        "sha256": "ff514b8d855412aa3381e8750f4dee508f4010eedd17beafdd6e9d368500f8ac",
+        "size_bytes": 102
+      },
+      "scope": "Real HTTP/job/journal, TEST_ONLY native/provenance; no actual FreeCAD"
+    },
+    "node_selected": {
+      "pass": 68,
+      "fail": 0,
+      "seconds": 0.4589503,
+      "exit_code": 0,
+      "log": {
+        "sha256": "c4cfe12816b85d50e48e2c440d2dcba10770359516d5ad70685f4e4f41e0b3a6",
+        "size_bytes": 7412
+      },
+      "scope": "Selected source/UI controls; no actual browser"
+    },
+    "node_ci_correction": {
+      "pass": 522,
+      "fail": 0,
+      "cancelled": 0,
+      "seconds": 14.922917,
+      "exit_code": 0,
+      "log": {
+        "sha256": "dc5e05989d345ad8044f6c984acf91bd938581bc722c26f46acc0c7839bf29fa",
+        "size_bytes": 45179
+      },
+      "scope": "Full affected CI Node step plus native-upload helper; source controls, no browser/native"
+    }
+  },
+  "independent_read": {
+    "reader": "field_kernel_publication_review",
+    "scope": "Native ID correction read-only",
+    "p1": 0,
+    "p2": 0,
+    "native_input_sha256": "5a49e938e010d967ec32901a729d63430a3c6456052df00358a08e027af912f0",
+    "http_test_sha256": "b807e00fb0e3916503a6cf1a23e68db3da617fb1219b6b1aa34b0ac8d78fb648"
+  },
+  "ci": {
+    "head": "37854c672ec928b719b1edc69fb09e46a3f0393b",
+    "run": 37387240331,
+    "status": "COMPLETED",
+    "conclusion": "FAILURE",
+    "research_source": "SUCCESS",
+    "core": "FAILURE: Node 480PASS/34CANCELLED/0FAIL",
+    "first_cancel": "tests/test_fixture_field_viewer.js store POST pending response",
+    "solver_jobs": "SKIPPED; not native/solver failure or PASS",
+    "cause": "FIELD_TEST_HARNESS_UNANSWERED_NATIVE_LIST_GET",
+    "read_only_investigation": "cae_result_context found switchStore awaits loadNativeImports while the old deferred harness only resolves store POST; 33 subsequent parent cancellations. No actual HTTP/native runs."
+  },
+  "new_solver_runs": 0,
+  "provider_calls": 0,
+  "new_meshes": 0,
+  "actual_g1_r02": "NEXT_FRESH_STORE_CLEAN_CORRECTED_SOURCE",
+  "scope": "Human native CAD input/parameter/editable revision; arbitrary CAD structural admission unchanged",
+  "whole_52_phase_1_7": "INCOMPLETE",
+  "physical": "UNKNOWN",
+  "release": "NOT_RELEASED"
+}
