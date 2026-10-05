@@ -217,3 +217,30 @@ fields/balance/sensitivity and connected assembly Research/human gate.
 Actual material/contact/mounting/fastener/physical/strength/durability
 UNKNOWN; no MECA/Gauss/reference, publicbackend NOT_ADMITTED,
 solver NOT_RUN and NOT_RELEASED. CI has separate unresolved failures.
+
+## Source-only assembly field kernel checkpoint (2026-10-05)
+
+Record: `benchmarks/records/20261005-fixture-assembly-field-kernel-source-r01.json`.
+Exact four reviewed source files pass 40 actual WSL Python 3.12.3 tests, with no failures/errors/skips.
+Independent Domain and corrected geometry reviews have zero open P1/P2. The preserved failed geometry
+review exposed an edge-to-midside association defect; Source02 closes it. Private 19/139 and 21/145
+method/subcontrol counts are separate from Root's 40. The WSL Git-pointer preflight failed before test
+collection; host Git resolved that environment issue without changing worktree configuration.
+
+The closed coarse import (native producer538089c) supports a pure topology check of 7 bodies,
+34226 exterior/41988 interior nodes and17118 faces. Protected native/mapping inputs are unchanged;
+there is no new native solve. E2000MPa/nu.25 and full-exterior affine displacement are a hypothetical
+integration patch, not actual fixture materials/contact/load. Native Gauss fields and mechanics NOT_RUN.
+
+Fine1.5 source815e207 retains RUNNING metadata but all9 recorded PIDs are absent at Root's
+2026-10-05T04:19:56Z observation; session2197 is unavailable and the terminal receipt is absent.
+Completion and interruption cause are UNKNOWN_NOT_QUALIFIED/UNKNOWN. Old output is preserved.
+There were no relevant Web/Research listeners at that observation. Mathematical helper PASS does not
+establish current research usability. Root's newly registered Goal is ACTIVE; heartbeat ACTIVE is separate.
+
+Exact815 CI37230315608 is7SUCCESS/3FAIL, Core4289PASS/5SKIP. Aster comparison assertion, vector PDE
+classification and explicit installation remain open. Missing exact internal causes stay UNKNOWN.
+Core/schema/registry/OpenScience contracts are unchanged; approved5.6Sol remains the research model.
+The requested Astra/high review guides the next usable start/question/result/condition-change and
+retained-job recovery gate, followed by actual assembly mechanics and remaining52/Phase6/7 work.
+This record is source-only: engineering UNKNOWN/invalid metrics/NOT_RELEASED remain in force.

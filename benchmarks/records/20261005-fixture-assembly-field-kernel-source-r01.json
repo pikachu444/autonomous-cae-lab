@@ -1,0 +1,311 @@
+{
+  "schema_version": 1,
+  "status": "QUALIFIED_BOUNDED_SOURCE_KERNEL_AND_CLOSED_COARSE_TOPOLOGY_ONLY",
+  "checkpoint_utc": "2026-10-05T04:23:54.846206+00:00",
+  "base_source_commit": "815e20768c972be736f1dee634b0d46d6323c90c",
+  "qualification_identity": "Exact candidate file bytes and retained actual worktree gates; containing commit is not a new native verification",
+  "fixture_upstream_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "source_files": [
+    {
+      "path": "plugins/fixture_design/assembly_field_reference.py",
+      "size_bytes": 6851,
+      "sha256": "e51a2e943c0ef7471351cc99b800d3bf4e14c65e36e6608fd96e1b13448b03d8"
+    },
+    {
+      "path": "tests/test_fixture_assembly_field_reference.py",
+      "size_bytes": 15303,
+      "sha256": "5b0f4e25b865f8101b923bafb2af9a8cd84e051636b404b2c00a9fd505842778"
+    },
+    {
+      "path": "caelab/adapters/fixture_assembly_field_geometry.py",
+      "size_bytes": 9700,
+      "sha256": "fb8f1f5fac9221d1193646b997417167f4f8e9f581015c492d7626344268de94"
+    },
+    {
+      "path": "tests/test_fixture_assembly_field_geometry.py",
+      "size_bytes": 22011,
+      "sha256": "e6b7b810f668534e94373cc2b6c39f69850f49dcd13d8353b8d2b57ec9808972"
+    }
+  ],
+  "branch": "codex/assembly-field-kernel",
+  "reference": {
+    "case": "fixture_assembly_affine_field_patch_v1",
+    "intent": "SYNTHETIC_HOMOGENEOUS_ISOTROPIC_NUMERICAL_PATCH",
+    "material": {
+      "youngs_modulus_mpa": 2000.0,
+      "poisson_ratio": 0.25,
+      "qualification": "HYPOTHETICAL_NOT_MEASURED"
+    },
+    "gradient": [
+      [
+        0.0001,
+        4e-05,
+        -5e-05
+      ],
+      [
+        -2e-05,
+        -0.0002,
+        6e-05
+      ],
+      [
+        9e-05,
+        -8e-05,
+        0.0003
+      ]
+    ],
+    "translation_mm": [
+      0.012,
+      -0.007,
+      0.003
+    ],
+    "strain6_tensor": [
+      0.0001,
+      -0.0002,
+      0.0003,
+      1e-05,
+      2e-05,
+      -1e-05
+    ],
+    "stress6_mpa": [
+      0.32,
+      -0.16,
+      0.64,
+      0.016,
+      0.032,
+      -0.016
+    ],
+    "energy_density_mpa": 0.00012896,
+    "boundary": "AFFINE_ON_ALL_EXTERIOR_NODES_INTERIOR_FREE",
+    "scientific_limits": {
+      "displacement_absolute_mm": 1e-07,
+      "stress_absolute_mpa": 1e-06,
+      "mesh_volume_relative": 1e-08,
+      "energy_relative": 1e-06,
+      "force_balance_scaled": 1e-07,
+      "moment_balance_scaled": 1e-07
+    },
+    "meaning": "Integration patch reference only; no fixture material/contact/load/strength defaults"
+  },
+  "tests": {
+    "worktree_python": "3.12.3",
+    "actual_pytest": {
+      "tests": 40,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "domain_private": {
+      "python": "3.12.14",
+      "methods": 19,
+      "subcontrols": 139,
+      "counts_combined": false
+    },
+    "geometry_corrected_private": {
+      "python": "3.12.14",
+      "methods": 21,
+      "subcontrols": 145,
+      "counts_combined": false
+    },
+    "initial_Root_preflight": "WSL Linux Git could not resolve Windows worktree pointer; 0 tests ran; retained and fixed using host Git",
+    "original_geometry_history": "16 methods/134subcontrols PASS did not qualify quadratic edge association; independent P2 preserved",
+    "corrected_geometry": "Canonical edge-to-midside correspondence/reverse identity/corner role plus native TRIA6 edge slots; independent P2 closed"
+  },
+  "closed_coarse_preflight": {
+    "input_native_producer": "538089cb2fb832da1543ef52f41e5c1b699b48af",
+    "nodes": 76214,
+    "cells": 61344,
+    "groups": 84,
+    "bodies": [
+      {
+        "component_id": "printed_base",
+        "exterior_nodes": 20066,
+        "interior_nodes": 26661,
+        "boundary_faces": 10036
+      },
+      {
+        "component_id": "printed_support_left",
+        "exterior_nodes": 5730,
+        "interior_nodes": 7143,
+        "boundary_faces": 2868
+      },
+      {
+        "component_id": "printed_support_right",
+        "exterior_nodes": 5726,
+        "interior_nodes": 7118,
+        "boundary_faces": 2866
+      },
+      {
+        "component_id": "metal_roller_left",
+        "exterior_nodes": 426,
+        "interior_nodes": 179,
+        "boundary_faces": 212
+      },
+      {
+        "component_id": "metal_roller_right",
+        "exterior_nodes": 426,
+        "interior_nodes": 179,
+        "boundary_faces": 212
+      },
+      {
+        "component_id": "metal_loading_nose",
+        "exterior_nodes": 426,
+        "interior_nodes": 179,
+        "boundary_faces": 212
+      },
+      {
+        "component_id": "specimen",
+        "exterior_nodes": 1426,
+        "interior_nodes": 529,
+        "boundary_faces": 712
+      }
+    ],
+    "exterior_nodes": 34226,
+    "interior_nodes": 41988,
+    "boundary_faces": 17118,
+    "protected_input_files_unchanged": true,
+    "new_native_calls": 0,
+    "scope": "Pure helper conformance and free interior DOF preflight from actual qualified original coarse import"
+  },
+  "architecture": {
+    "Core_schema_registry_provenance_changes": 0,
+    "OpenScience_contract_changes": 0,
+    "Domain": "Frozen mathematical laws/declarations and numerical limits",
+    "adapter": "Source-ordered ten-node geometry and complete conforming native topology; derived expectations, never native observations",
+    "numerical_candidate_generation": "Deterministic numerical engine remains owner",
+    "approved_research_model": "openai-codex/gpt-5.6-sol",
+    "research_provider_calls": 0
+  },
+  "fine_attempt": {
+    "source_commit": "815e20768c972be736f1dee634b0d46d6323c90c",
+    "store": "runs/fixture-assembly-native-import-20261005-01/fine1p5",
+    "metadata": "Saved RUNNING; terminal receipt absent",
+    "actual_ownership": "Recorded9PIDs absent at04:19:56UTC; session2197 reattach unknown",
+    "completion": "UNKNOWN_NOT_QUALIFIED",
+    "termination_cause": "UNKNOWN",
+    "outputs": "Preserved; no overwrite/retry/cancellation"
+  },
+  "base_exact_CI": {
+    "source_commit": "815e20768c972be736f1dee634b0d46d6323c90c",
+    "run_id": 37230315608,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37230315608",
+    "conclusion": "failure",
+    "success_jobs": 7,
+    "failed_jobs": 3,
+    "Core_pytest": {
+      "passed": 4289,
+      "skipped": 5
+    },
+    "failures": [
+      "Aster comparison outer assertion; internal numerical status UNKNOWN",
+      "Vector PDE numerical classification assertion",
+      "Explicit installer step failed; exact terminal installer cause UNKNOWN"
+    ],
+    "new_candidate_CI": "NOT_RUN_AT_SOURCE_CHECKPOINT"
+  },
+  "knowledge_limits": {
+    "primary_aster_source": "50ebc13c70ee9df62faf93ddcb746a3757b3042a",
+    "MECA_TETRA10_source_class_lines": "meca_3d.py1586-1598; older1556-1567 pointer corrected",
+    "compiled_source_equivalence": "UNKNOWN",
+    "actual_native_point_order_geometry_and_fields": "NOT_RUN",
+    "restart": "NOT_ESTABLISHED; existing local mesh and absent retained base cannot be assumed reusable",
+    "prospective_fast_transport": "Qualified original native/source identity -> ASTER ASCII -> native LIRE_MAILLAGE(ASTER); actual conversion/precision/performance NOT_RUN"
+  },
+  "readiness": "No current relevant Web/Research listeners at Root04:19 snapshot; Astra high independent CAE usability audit in progress",
+  "whole_P2_4_Phase6_7_and_52": "OPEN",
+  "native_mechanics_full_fields": "NOT_RUN",
+  "material_contact_load_strength_durability_physical_deployment": "UNKNOWN",
+  "decision": "NOT_RELEASED",
+  "retention": "Private originals/hashes retained locally; compact public source checkpoint is not full raw-store remote retention",
+  "evidence": [
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-field-reference-review-01/RECEIPT.json",
+      "size_bytes": 9541,
+      "sha256": "1b99593e847edf6a0e53f88e753d3e60e12e8b0388278765fd6ccf8ab142dceb"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-field-geometry-review-01/correction-review-01/READONLY-REVIEW.json",
+      "size_bytes": 8954,
+      "sha256": "e129226b9e49acd05be46dc38352a07e1e9f84c046e67ac04acdd1b46e84c906"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-field-geometry-review-01/READONLY-REVIEW.json",
+      "size_bytes": 8254,
+      "sha256": "8a0f7c8f7f3b46a849f640524b56dbaf65eb50f3e15b864a49ba7dabb0087086"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-field-reference-source-01/FREEZE.json",
+      "size_bytes": 2809,
+      "sha256": "ccb8bfc3305ac00fd1298b676150679418335ed14e63be83a7989f8a19917e50"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-field-geometry-source-01/FREEZE.json",
+      "size_bytes": 1816,
+      "sha256": "4f9be291d07bc4c42272fb50a6a582bc505ae9c0557080b5063011f67f8d9bcb"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-field-geometry-source-02/FREEZE.json",
+      "size_bytes": 2671,
+      "sha256": "d090d792b0bca029591d02af4ff9f1cfd6c052af6caa5290b10e8cc3d790c456"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-field-kernel-worktree-root-20261005-01/copy-receipt.json",
+      "size_bytes": 3184,
+      "sha256": "4fc3ffa6d253e5059b33df620efb665bb769944513e8beba648b73aa0e42b7b3"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-field-kernel-worktree-root-20261005-01/wsl-preflight-failure-01/RECEIPT.json",
+      "size_bytes": 1165,
+      "sha256": "302e704e2437fb969845db36b9ec5b510f058a0f2951fb3e065ae40688945342"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-field-kernel-worktree-root-20261005-01/wsl-py312-tests-01/receipt.json",
+      "size_bytes": 2631,
+      "sha256": "6ab422045f4131607fccb902e3cfc25206242db19f4935fe59959c8f3d3e4203"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-field-kernel-worktree-root-20261005-01/wsl-py312-tests-01/junit.xml",
+      "size_bytes": 6852,
+      "sha256": "c2d26360d085ee1abdd50ad0e7cf0d693bdeb290be3986d62b7d3ed1a29a8d89"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-field-kernel-worktree-root-20261005-01/wsl-py312-tests-01/pytest.log",
+      "size_bytes": 289,
+      "sha256": "568ea0b6b911d0d6ab95de8c31e0e8fdfa64520dfb94de9f1c8b5e712f3a23de"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-field-kernel-worktree-root-20261005-01/coarse-topology-preflight-01/receipt.json",
+      "size_bytes": 1211578,
+      "sha256": "1aedd3e6f251e1cfb0fc0bce4ba1fac1bb412064e7db9da8b760fb2718f5e920"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/815-ci-readonly-01/RECEIPT.json",
+      "size_bytes": 8984,
+      "sha256": "61f85ca50e8607ca77d96bb8e3caf72b69bd03c62e2582a87cebe0fac5357ae5"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/root-observation-01/RECEIPT.json",
+      "size_bytes": 1258,
+      "sha256": "adba406706b1ce545b4a5270b56f5f5c2759fa5b0898711d24a18471643a2818"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-affine-quadrature-lookup-01/MANIFEST.json",
+      "size_bytes": 7043,
+      "sha256": "8e52daf5b7fc12d29606cf90b5b84169c7837c2fa3d1dcd4b1f67ffde426dea6"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-affine-native-syntax-lookup-01/FREEZE.json",
+      "size_bytes": 911,
+      "sha256": "0316e7be67ea78807724981de82144addd34007b7d3dfb0fc2eb56a165ce7b7b"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-gmsh-reader-performance-lookup-01/MANIFEST.json",
+      "size_bytes": 7080,
+      "sha256": "2d6806b22ad98a8b66005ddfe95214e0d4e00d12c8c561510da1bf64c7f1ed13"
+    },
+    {
+      "path": "artifacts/development-fixture-coupling-20261004-01/assembly-native-reuse-lookup-01/MANIFEST.json",
+      "size_bytes": 8499,
+      "sha256": "95ef6c3dead716c3d6286e5a446b7b47981233e1cdee5260a763abfdbce7af78"
+    }
+  ]
+}

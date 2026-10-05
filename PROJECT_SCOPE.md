@@ -1,4 +1,15 @@
-## Current checkpoint: actual original coarse mesh imported and independently qualified
+## Current checkpoint: reviewed assembly field kernel source; usable CAE workflow remains open
+
+The source-only checkpoint is in `benchmarks/records/20261005-fixture-assembly-field-kernel-source-r01.json`.
+See `docs/FIXTURE_ASSEMBLY_ACCEPTANCE.md` for the bounded 40-test and closed-coarse topology gates,
+interrupted fine import, and current readiness limits. Native field/mechanics qualification remains open.
+Root's renewed application Goal is ACTIVE; the approved research model remains `openai-codex/gpt-5.6-sol`.
+Next: apply the requested independent Astra/high usability review to start/question/result/condition-change
+and retained job recovery, then continue the original 52 requirements and Phase 1-7.
+
+---
+
+## Historical checkpoint: actual original coarse mesh imported and independently qualified
 
 Record: `benchmarks/records/20261005-fixture-assembly-native-import-coarse-r01-qualified.json`. Actual clean producer538089c, freshcoarse3 store.
 Original CAD and qualified3mm mesh reused unchanged; tag0 transport changes
