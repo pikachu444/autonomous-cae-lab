@@ -19,7 +19,7 @@ Dakota/GEMSEO/LS-OPT 계열 시험–해석 비교를 연구 참고로, SimScale
 | B0 | 불량 재현/지그 가능성의 실제 목적과 재사용 기능 확인 | 공식 조사·public Core/HTTP/UI의 기존 경로 확인. 설치/새 수치 검증 아님; SimScale을 동일 연구 제품으로 판정하지 않음 |
 | B1–B2 | 관찰/시험 목적·가설·응답 → 모델·전체 조건 → 작업 → 결과/이력 → 조건 변경·비교 → 다음 시험·저장 | 원 조건→새150N 실험/전체U, 관측 scalar/배열 저장·재열람에 이어 retained Maxwell16채널/9실제시각/부호 그래프/정확 시점 비교·재열람 완료([이력 기록](../benchmarks/records/20261006-response-history-r01.json)). τ=1/2 가상 응답 구분, off-grid시간 null/단위 거부. 실측 자격·유일 원인·general curve/inverse·다른 native축/전체 조립체는 OPEN |
 | B3 제한된 실제 연결 완료 | OpenScience가 지원 시나리오에서 같은 흐름을 실행·해석 | cleanaf536/run03의 승인5.6Sol이2원실험/all3비교를 읽고 한국어 해석·브라우저/HTTP 재시작 재열람·idle 종료를 실제 확인. 원193파일 보존/새solver0. [실행 기록](../benchmarks/records/20261006-response-interpretation-r03.json). O-ID조회거부3건·정밀도 메모·실패한 시작 보존. 원인/지그 승인·범용역문제/다른driver/운영 신뢰성은 OPEN |
-| B4 **활성** | 지그:수치 탐색/조립체 mechanics. 불량:관측–응답 매핑/가설 비교. 이후 Phase3–7 확장 | 다음은 기존150N/width의SciPy DE5×1/seed13 및같은CAD/해석/응답비교. selected모드의GUI필수mesh-trend 오류와자동0.0065mm 가상screen을 먼저 바로잡아 Core거부규칙/목적·단위를 유지한다. 이후 원7부품/84그룹 재사용 mechanics. synthetic inverse를 실제 불량 원인 검증으로 사용하지 않음; 전체 모델 의무 mesh sweep 없음 |
+| B4 **활성** | 지그:수치 탐색/조립체 mechanics. 불량:관측–응답 매핑/가설 비교. 이후 Phase3–7 확장 | clean774/run01에서150N/selected4mm SciPy DE5×1/seed13의9CAD·9CalculiX·한국어 비교/재열람 완료([실행 기록](../benchmarks/records/20261006-fixture-width-search-r01.json)). 원38응답 정확 일치/all9 native 반력·UZ/저장 feedback 재생 확인. MAX_GENERATIONS/converged=false/best observed 유지. 다음은 병렬 결과 조회9 guard거부와escaped pipe 표 출력 교정/같은 best 전체장, 그 뒤 원7부품/84그룹 mechanics. 실물·원인·전체 Phase 완료 아님; 의무 mesh sweep 없음 |
 | B5 | 필요한 engine/후처리/외부 native inspection 기능 재사용 | GEMSEO/ParaView·trame/PrePoMax 등을 역할별 평가. blanket 설치·새 공통 engine 재개발은 완료 조건 아님 |
 
 현재 R2 lifetime/native-cleanup/PS observer 후보8파일은 실제B3의clean-source 실행 동안만 stash/원bytes로 보존했고 idleStop 뒤 정확히 복원했습니다. PS 모의349 assertions PASS는
@@ -62,10 +62,10 @@ S3는 긴 탐색·무감독 인계와 전체U1 완료의 조건입니다. S3 전
 | S2a | 부모 CAD와 정확한 수치 검사 이름을 결과에 표시 | BOUNDED_FRESH_GUI_PASS / Root | 실제 부모·revision·manifest/caption과 늦은 성공 응답 차단 확인. late-error/detached branch는 source controlled-DOM 증거 |
 | S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | BOUNDED_SELECTED_LIVE_PASS / Root | clean d509/run03 실제32/38 해석의7715/9155절점 전체U와 같은 부모·개정·단위, 저장·browser reload/reopen·UZ/전체\|U\|/보기배율·구속/하중 확인. 범용 후처리·조립체·애니메이션 완료는 아님; record20261005-selected-cae-research-r03 |
 | S3 | 종료·강제 중단·재시작 상태와 admission 복구 | R1_BOUNDED_HTTP_PASS; R2_OPEN / Root | 원J-id/결과 보존·실제 HTTP metadata controller crash/restart·미해결 새 실행 차단·기존 필드 열람 완료. 취소 intent와 온전한 과거 완료 보호 교정. exact-owned session/resident/native authority와 대표 실제 취소/복구가 다음이며 전체S3 PASS 아님 |
-| U1 | 첫 간단한 사용자 CAE 연구 | SHORT_COMPARISON_AND_150N_DONE; FULL_U1_OPEN / Root | d509/run03 한국어32→38 질문과새150N 조건 비교·재열람 완료. S3/수치엔진탐색/새 결과의AI해석·연구 보고서가 남음. 작은Astra감수 대기는 완료 기준 아님 |
+| U1 | 첫 간단한 사용자 CAE 연구 | SHORT_COMPARISON_150N_AND_ENGINE_DONE; FULL_U1_OPEN / Root | d509/run03 한국어32→38 질문과새150N 조건 비교·재열람 완료. 9개 native 수치탐색/새 결과의AI해석·재열람까지 추가 확인; 신뢰성/장시간복구·보고서와 전체U1은 남음. 작은Astra감수 대기는 완료 기준 아님 |
 | S4a | coarse native affine full-field patch | OPEN / Domain·adapter | source kernel 재사용, U/strain/stress/energy/force/moment 전체 참조 비교. actual mechanics와 구분 |
 | S4b | 원본7부품 실제 조립체 연구 | OPEN / Domain·adapter·Root | 부품별 재료/접촉/하중·관측점 선언, load path·평형/에너지·모델 목적별 검증, actual Research 연결. 전체 재메시 비교는 의무 아님 |
-| S5 | Phase3의 남은 실제 탐색 연결 | OPEN | 기존 LHS/DE 재사용, 유효 response·budget/convergence·후보비교·재개; mixed variables 후속 |
+| S5 | Phase3의 남은 실제 탐색 연결 | BOUNDED_WIDTH_DE_DONE; BROADER_OPEN | 기존 DE의9unique 실제 폭 탐색 완료; broader LHS/DE 재사용, 유효 response·budget/convergence·후보비교·재개; mixed variables 후속 |
 | S6 | Phase4 PDE 연구 흐름 | OPEN | 지원 form별 actual field/reference/거부·mesh/time/MPI 검증, 변경·비교·AI 해석 |
 | S7 | Phase5 재료·접촉의 FE coupling | OPEN | 재료점→구조 연결, history/energy/finite strain·native convergence와 물리 적합성 구분 |
 | S8 | Phase6 실제 explicit 연구 | OPEN | 공식 설치 문제 진단, surface contact/preprocessing/history/animation·momentum/energy 비교 |

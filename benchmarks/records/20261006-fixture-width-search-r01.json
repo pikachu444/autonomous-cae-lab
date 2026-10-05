@@ -1,0 +1,824 @@
+{
+  "schema_version": 1,
+  "status": "BOUNDED_ACTUAL_ENGINE_SEARCH_PASS_QUERY_RELIABILITY_OPEN",
+  "unit": "B4 retained150N/selected4mm registered-width engine search -> new native CAD/CalculiX -> approved Korean interpretation/reopen",
+  "scope": "Hypothetical isolated support, not original assembly, measured material, product-defect cause or fabrication approval",
+  "source_commit": "774d7c13a20e9dded484173a3fbf7be3cd1d6bee",
+  "source_clean_at_runtime_boot_and_question": true,
+  "store": "runs/cae-fixture-width-search-20261006-01",
+  "baseline_native_record": "benchmarks/records/20261006-condition-reuse-r01.json",
+  "baseline_producer_is_not_new_search_source": true,
+  "source_controls": {
+    "node_final_pass": 554,
+    "node_affected_pass": 19,
+    "proof": "artifacts/fixture-width-search-20261006-01",
+    "native_runs": 0,
+    "provider_runs": 0
+  },
+  "code_files": [
+    {
+      "path": "apps/lab/static/campaign-controls.js",
+      "bytes": 12266,
+      "raw_sha256": "cd6849a3902327a2e120849dd67ea0e64c52a2ad85df8c042abb47136f383174",
+      "lf_sha256": "cd6849a3902327a2e120849dd67ea0e64c52a2ad85df8c042abb47136f383174"
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "bytes": 167915,
+      "raw_sha256": "8a036798bbb7a70a5d9c1d43402da29a831ff289173c76b7eb79c7866d623218",
+      "lf_sha256": "df025045e23b4d18c3c7d185dc6fc56b4c13a0d413d3c28166049f9221cb064b"
+    },
+    {
+      "path": "apps/lab/static/index.html",
+      "bytes": 39269,
+      "raw_sha256": "d8c068b7ab89dff998cdafc8c843102ba47d5eecbf951f7e1b56f30449bdb990",
+      "lf_sha256": "022be3750cb76db440f6f1ea0b19cc8e517483df995ceff95247b5603a2b4b3a"
+    },
+    {
+      "path": "tests/test_campaign_controls.js",
+      "bytes": 19774,
+      "raw_sha256": "0c263497e778b163ac8ea82ce2dec4ef0f495243cdff3010e671f05c978bd62b",
+      "lf_sha256": "0c263497e778b163ac8ea82ce2dec4ef0f495243cdff3010e671f05c978bd62b"
+    },
+    {
+      "path": "tests/test_fixture_optimization_handoff.js",
+      "bytes": 6547,
+      "raw_sha256": "e57152423e4437a77bf9790ba0c1068643fd6296473b293c2d0fccf28f54b9a7",
+      "lf_sha256": "e57152423e4437a77bf9790ba0c1068643fd6296473b293c2d0fccf28f54b9a7"
+    }
+  ],
+  "declared_conditions": {
+    "load": {
+      "force_per_support_N": 150,
+      "source": "원100N 가상 실험에서 하중만150N으로 변경한 조건. 음의 전역 Z 방향, 중앙24mm saddle 분포; 실측 하중이 아님"
+    },
+    "material": {
+      "elastic_modulus_MPa": 210000,
+      "model": "isotropic",
+      "poisson_ratio": 0.3,
+      "provenance": "단일 지지부 예제용 가정 등방성 물성: E=210000 MPa, nu=0.30; 실측 또는 재료 인증값이 아님",
+      "qualification": "HYPOTHETICAL_UNQUALIFIED"
+    },
+    "mesh": {
+      "max_sizes_mm": [
+        4
+      ],
+      "mode": "selected"
+    }
+  },
+  "actual": {
+    "status": "BOUNDED_ACTUAL_ENGINE_SEARCH_AND_APPROVED_INTERPRETATION_VERIFIED_WITH_RETAINED_QUERY_FAILURES",
+    "checked_utc": "2026-10-05T21:15:56.381890+00:00",
+    "source_commit": "774d7c13a20e9dded484173a3fbf7be3cd1d6bee",
+    "boot_source_sha256": "f8085f708e24d19ebce65e50514099420817c3e56bd9d64b9c5e0a6bacdc2ee4",
+    "source_clean_at_native_and_provider_execution": true,
+    "job_id": "Jbdeda2f9a8034228aadee66309766fe2",
+    "session_id": "ses_ef229ad6cffe89wfyTlgUmqPrp",
+    "model": "openai-codex/gpt-5.6-sol",
+    "question_sha256": "d7352ab913e3e8781638e148d4d7d512efb02e9000c8d82dcd604a9113df04ff",
+    "answer_sha256": "28ce701c263a96084506140e38f0603561cf3486a0815dba237963b59c89058f",
+    "saved_concatenated_text_sha256": "7ad45da4050a9a80710656e19fcbf7a840c86cb1deb456e083c4758c7a445e25",
+    "answer_join": "HTTP driver joins5 text events with4 newlines; original observed file concatenates the same5 events",
+    "stdout_sha256": "51647c3e857f803600bb12989dddbec9002a919cc89b54ea41d0b594680469f4",
+    "actual_tool_counts": [
+      {
+        "tool": "caelab_experiment_compare",
+        "status": "completed",
+        "count": 1
+      },
+      {
+        "tool": "caelab_experiment_inspect",
+        "status": "completed",
+        "count": 11
+      },
+      {
+        "tool": "caelab_experiment_summary",
+        "status": "completed",
+        "count": 10
+      },
+      {
+        "tool": "caelab_experiment_summary",
+        "status": "error",
+        "count": 9
+      },
+      {
+        "tool": "caelab_optimization_inspect",
+        "status": "completed",
+        "count": 1
+      },
+      {
+        "tool": "caelab_optimization_plan",
+        "status": "completed",
+        "count": 1
+      },
+      {
+        "tool": "caelab_optimization_run",
+        "status": "completed",
+        "count": 1
+      },
+      {
+        "tool": "caelab_parameters_list",
+        "status": "completed",
+        "count": 1
+      },
+      {
+        "tool": "caelab_study_inspect",
+        "status": "completed",
+        "count": 1
+      }
+    ],
+    "native_and_engine_verification": {
+      "status": "VERIFIED_CAMPAIGN_NATIVE_RESPONSES_AND_SAVED_FEEDBACK_REPLAY",
+      "source_commit": "774d7c13a20e9dded484173a3fbf7be3cd1d6bee",
+      "source_dirty": false,
+      "campaign_id": "C-width150N-search-20261006-r01",
+      "plan_sha256": "759fdea7a49a697145a38b0af42e9382c438c774a12b1dc6cb837effb606d007",
+      "result_sha256": "1c7081d2d366f0e28eff4714ef80cbf6b82fad457cf948c3fa5060abf08c6eaa",
+      "new_cad_count": 9,
+      "new_solver_count": 9,
+      "termination": {
+        "algorithm": {
+          "atol": 1e-12,
+          "bounds": [
+            [
+              28.0,
+              60.0
+            ]
+          ],
+          "constraint_convention": "dimensionless_residual_le_zero",
+          "constraint_count": 0,
+          "engine": "scipy.differential_evolution",
+          "initial_population": [
+            {
+              "support_width_mm": 38.0
+            },
+            {
+              "support_width_mm": 31.959919363766463
+            },
+            {
+              "support_width_mm": 39.47521981482878
+            },
+            {
+              "support_width_mm": 53.06270135976863
+            },
+            {
+              "support_width_mm": 45.35599603898855
+            }
+          ],
+          "initial_values": {
+            "support_width_mm": 38.0
+          },
+          "initialization": {
+            "engine": "scipy.stats.qmc.LatinHypercube",
+            "optimization": null,
+            "rng": "numpy.random.default_rng",
+            "scramble": true,
+            "seed": 13,
+            "strength": 1
+          },
+          "internal_availability_constraint": true,
+          "max_generations": 1,
+          "memoization": "exact_float_hex",
+          "mutation": [
+            0.5,
+            1.0
+          ],
+          "numpy_version": "2.3.5",
+          "parameter_order": [
+            "support_width_mm"
+          ],
+          "polish": false,
+          "population_size": 5,
+          "recombination": 0.7,
+          "rng": "numpy.random.default_rng",
+          "seed": 13,
+          "strategy": "best1bin",
+          "tol": 1e-08,
+          "updating": "deferred",
+          "vectorized": false,
+          "version": "1.17.0",
+          "workers": 1
+        },
+        "candidate_values": {
+          "support_width_mm": 57.84648176871021
+        },
+        "constraint_residuals": [],
+        "converged": false,
+        "evaluation_count": 9,
+        "generations": 1,
+        "objective": 3.35316e-05,
+        "termination_reason": "MAX_GENERATIONS"
+      },
+      "incumbent_index": 8,
+      "table": [
+        {
+          "index": 1,
+          "width_mm": 38.0,
+          "cad_experiment_id": "E-C-width150N-search-20261006-r01-0001",
+          "analysis_experiment_id": "E-C-width150N-search-20261006-r01-0001-solve",
+          "cad_volume_mm3": 36783.829878355966,
+          "usable": true,
+          "numerically_feasible": true,
+          "unknown": [
+            "fatigue_durability",
+            "joint_and_contact",
+            "machine_interface",
+            "material_qualification",
+            "physical_load_test",
+            "static_strength",
+            "stress_convergence"
+          ],
+          "failures": [],
+          "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+          "analysis_result_sha256": "b6776689b4951509505c1c61893ba9b3541cb00e7829375884c1b66e50bd2b4f",
+          "loaded_saddle_max_abs_uz_mm": 3.439671e-05,
+          "reaction_N": [
+            -5.731419988865902e-08,
+            1.4377801986809068e-07,
+            150.00000135765
+          ],
+          "reaction_balance_ratio": 9.109630013302955e-09,
+          "independent_native_dat": {
+            "dat_sha256": "9e512856978e3d92e20f59fd86327ce441469441f2751f801de2f5422b7ee460",
+            "loaded_nodes": 123,
+            "fixed_nodes": 1273,
+            "max_abs_loaded_uz_mm": 3.439671e-05,
+            "reaction_fsum_N": [
+              -5.731419988865902e-08,
+              1.4377801986809068e-07,
+              150.00000135765
+            ],
+            "reaction_summary_delta_N": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "declared_1percent_equilibrium_pass": true
+          }
+        },
+        {
+          "index": 2,
+          "width_mm": 31.959919363766463,
+          "cad_experiment_id": "E-C-width150N-search-20261006-r01-0002",
+          "analysis_experiment_id": "E-C-width150N-search-20261006-r01-0002-solve",
+          "cad_volume_mm3": 30502.146016673094,
+          "usable": true,
+          "numerically_feasible": true,
+          "unknown": [
+            "fatigue_durability",
+            "joint_and_contact",
+            "machine_interface",
+            "material_qualification",
+            "physical_load_test",
+            "static_strength",
+            "stress_convergence"
+          ],
+          "failures": [],
+          "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+          "analysis_result_sha256": "332ba75df819e0c9f28129b1718acf7418305741fe7d63fb54f87fe61f8ee185",
+          "loaded_saddle_max_abs_uz_mm": 3.529884e-05,
+          "reaction_N": [
+            -1.659690001582253e-07,
+            1.0121100004527229e-07,
+            150.0000006982733
+          ],
+          "reaction_balance_ratio": 4.832183737491455e-09,
+          "independent_native_dat": {
+            "dat_sha256": "43c06cf45965352497e68a2f2b71d82863e0edc6e0d14a9d0e86f70aacc9bc37",
+            "loaded_nodes": 123,
+            "fixed_nodes": 1057,
+            "max_abs_loaded_uz_mm": 3.529884e-05,
+            "reaction_fsum_N": [
+              -1.659690001582253e-07,
+              1.0121100004527229e-07,
+              150.0000006982733
+            ],
+            "reaction_summary_delta_N": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "declared_1percent_equilibrium_pass": true
+          }
+        },
+        {
+          "index": 3,
+          "width_mm": 39.47521981482878,
+          "cad_experiment_id": "E-C-width150N-search-20261006-r01-0003",
+          "analysis_experiment_id": "E-C-width150N-search-20261006-r01-0003-solve",
+          "cad_volume_mm3": 38318.058485777896,
+          "usable": true,
+          "numerically_feasible": true,
+          "unknown": [
+            "fatigue_durability",
+            "joint_and_contact",
+            "machine_interface",
+            "material_qualification",
+            "physical_load_test",
+            "static_strength",
+            "stress_convergence"
+          ],
+          "failures": [],
+          "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+          "analysis_result_sha256": "3f4d15d304cc42f015ed5798297442467ee115b5ed8948ac95a51e56048b9cac",
+          "loaded_saddle_max_abs_uz_mm": 3.477503e-05,
+          "reaction_N": [
+            2.060900001831596e-07,
+            -3.977440000715478e-07,
+            150.000000391962
+          ],
+          "reaction_balance_ratio": 3.968249490894811e-09,
+          "independent_native_dat": {
+            "dat_sha256": "e3ef70cf0c5d39b853a209b76d7e8fc8b396218c37791c6c1c40c35f9bcbf4b7",
+            "loaded_nodes": 123,
+            "fixed_nodes": 1289,
+            "max_abs_loaded_uz_mm": 3.477503e-05,
+            "reaction_fsum_N": [
+              2.060900001831596e-07,
+              -3.977440000715478e-07,
+              150.000000391962
+            ],
+            "reaction_summary_delta_N": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "declared_1percent_equilibrium_pass": true
+          }
+        },
+        {
+          "index": 4,
+          "width_mm": 53.06270135976863,
+          "cad_experiment_id": "E-C-width150N-search-20261006-r01-0004",
+          "analysis_experiment_id": "E-C-width150N-search-20261006-r01-0004-solve",
+          "cad_volume_mm3": 52449.03929251535,
+          "usable": true,
+          "numerically_feasible": true,
+          "unknown": [
+            "fatigue_durability",
+            "joint_and_contact",
+            "machine_interface",
+            "material_qualification",
+            "physical_load_test",
+            "static_strength",
+            "stress_convergence"
+          ],
+          "failures": [],
+          "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+          "analysis_result_sha256": "58c6009b044fff0e0be4cdb56bf57916bd47b6b8f83015bcb9aecef424c0e2d9",
+          "loaded_saddle_max_abs_uz_mm": 3.414147e-05,
+          "reaction_N": [
+            -5.827750000238564e-07,
+            6.25089999249989e-08,
+            149.999999797966
+          ],
+          "reaction_balance_ratio": 4.1330742280902986e-09,
+          "independent_native_dat": {
+            "dat_sha256": "96704165711076093582c14ffb84d30b4383ca544802c4ab4c937bebfb781b81",
+            "loaded_nodes": 123,
+            "fixed_nodes": 1625,
+            "max_abs_loaded_uz_mm": 3.414147e-05,
+            "reaction_fsum_N": [
+              -5.827750000238564e-07,
+              6.25089999249989e-08,
+              149.999999797966
+            ],
+            "reaction_summary_delta_N": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "declared_1percent_equilibrium_pass": true
+          }
+        },
+        {
+          "index": 5,
+          "width_mm": 45.35599603898855,
+          "cad_experiment_id": "E-C-width150N-search-20261006-r01-0005",
+          "analysis_experiment_id": "E-C-width150N-search-20261006-r01-0005-solve",
+          "cad_volume_mm3": 44434.06575890407,
+          "usable": true,
+          "numerically_feasible": true,
+          "unknown": [
+            "fatigue_durability",
+            "joint_and_contact",
+            "machine_interface",
+            "material_qualification",
+            "physical_load_test",
+            "static_strength",
+            "stress_convergence"
+          ],
+          "failures": [],
+          "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+          "analysis_result_sha256": "8cdeb91bb5c7fb5fab9cbd8702739a0df5f6995fb4abdf061bd16de197f50c7c",
+          "loaded_saddle_max_abs_uz_mm": 3.410555e-05,
+          "reaction_N": [
+            4.039769999738723e-07,
+            -2.2323900001434562e-07,
+            149.9999998272083
+          ],
+          "reaction_balance_ratio": 3.285591674370586e-09,
+          "independent_native_dat": {
+            "dat_sha256": "24a1181aa2ee675896a4c2fb683939b4c86e0ce50b11f83d49df99e11862d725",
+            "loaded_nodes": 123,
+            "fixed_nodes": 1513,
+            "max_abs_loaded_uz_mm": 3.410555e-05,
+            "reaction_fsum_N": [
+              4.039769999738723e-07,
+              -2.2323900001434562e-07,
+              149.9999998272083
+            ],
+            "reaction_summary_delta_N": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "declared_1percent_equilibrium_pass": true
+          }
+        },
+        {
+          "index": 6,
+          "width_mm": 58.02494743830667,
+          "cad_experiment_id": "E-C-width150N-search-20261006-r01-0006",
+          "analysis_experiment_id": "E-C-width150N-search-20261006-r01-0006-solve",
+          "cad_volume_mm3": 57609.7752141949,
+          "usable": true,
+          "numerically_feasible": true,
+          "unknown": [
+            "fatigue_durability",
+            "joint_and_contact",
+            "machine_interface",
+            "material_qualification",
+            "physical_load_test",
+            "static_strength",
+            "stress_convergence"
+          ],
+          "failures": [],
+          "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+          "analysis_result_sha256": "a63cbaee378747b1745e266a2c47b3e1b13d43a6981b1c47f4c854bf71098bcc",
+          "loaded_saddle_max_abs_uz_mm": 3.361459e-05,
+          "reaction_N": [
+            -1.9630200010233067e-07,
+            -2.1762660007290833e-07,
+            149.9999998140096
+          ],
+          "reaction_balance_ratio": 2.3140943662610593e-09,
+          "independent_native_dat": {
+            "dat_sha256": "493a60de9a0af7e1cb60c9f9e06b55a3ef7d5220e15158c53e55d028d67dc6b1",
+            "loaded_nodes": 123,
+            "fixed_nodes": 1735,
+            "max_abs_loaded_uz_mm": 3.361459e-05,
+            "reaction_fsum_N": [
+              -1.9630200010233067e-07,
+              -2.1762660007290833e-07,
+              149.9999998140096
+            ],
+            "reaction_summary_delta_N": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "declared_1percent_equilibrium_pass": true
+          }
+        },
+        {
+          "index": 7,
+          "width_mm": 52.54171878200784,
+          "cad_experiment_id": "E-C-width150N-search-20261006-r01-0007",
+          "analysis_experiment_id": "E-C-width150N-search-20261006-r01-0007-solve",
+          "cad_volume_mm3": 51907.217411644124,
+          "usable": true,
+          "numerically_feasible": true,
+          "unknown": [
+            "fatigue_durability",
+            "joint_and_contact",
+            "machine_interface",
+            "material_qualification",
+            "physical_load_test",
+            "static_strength",
+            "stress_convergence"
+          ],
+          "failures": [],
+          "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+          "analysis_result_sha256": "057224260458fa036ae614fe0b1d050abe4ca42ca0aa24e61f3d5908511af5f6",
+          "loaded_saddle_max_abs_uz_mm": 3.402993e-05,
+          "reaction_N": [
+            -8.399599993458646e-08,
+            -5.068229999557378e-08,
+            149.999999239455
+          ],
+          "reaction_balance_ratio": 5.112306323969499e-09,
+          "independent_native_dat": {
+            "dat_sha256": "71487f6cc952ad330d4dfc5fa02850d28dd567e7526c8c5ca1fdc3162de290ef",
+            "loaded_nodes": 123,
+            "fixed_nodes": 1625,
+            "max_abs_loaded_uz_mm": 3.402993e-05,
+            "reaction_fsum_N": [
+              -8.399599993458646e-08,
+              -5.068229999557378e-08,
+              149.999999239455
+            ],
+            "reaction_summary_delta_N": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "declared_1percent_equilibrium_pass": true
+          }
+        },
+        {
+          "index": 8,
+          "width_mm": 57.84648176871021,
+          "cad_experiment_id": "E-C-width150N-search-20261006-r01-0008",
+          "analysis_experiment_id": "E-C-width150N-search-20261006-r01-0008-solve",
+          "cad_volume_mm3": 57424.170917814605,
+          "usable": true,
+          "numerically_feasible": true,
+          "unknown": [
+            "fatigue_durability",
+            "joint_and_contact",
+            "machine_interface",
+            "material_qualification",
+            "physical_load_test",
+            "static_strength",
+            "stress_convergence"
+          ],
+          "failures": [],
+          "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+          "analysis_result_sha256": "776b1547d9f1d313b77c1aa2c88961d38d9122edbfa675ede02ef0bbaf061135",
+          "loaded_saddle_max_abs_uz_mm": 3.35316e-05,
+          "reaction_N": [
+            -1.6785000005374637e-07,
+            -3.0934599983733383e-07,
+            150.000001849593
+          ],
+          "reaction_balance_ratio": 1.2551870691252767e-08,
+          "independent_native_dat": {
+            "dat_sha256": "9a83896e1657e4029a94a24dac7b0790275fed09ebbe5c44ab5a9b332d318fae",
+            "loaded_nodes": 123,
+            "fixed_nodes": 1727,
+            "max_abs_loaded_uz_mm": 3.35316e-05,
+            "reaction_fsum_N": [
+              -1.6785000005374637e-07,
+              -3.0934599983733383e-07,
+              150.000001849593
+            ],
+            "reaction_summary_delta_N": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "declared_1percent_equilibrium_pass": true
+          }
+        },
+        {
+          "index": 9,
+          "width_mm": 46.73148921449443,
+          "cad_experiment_id": "E-C-width150N-search-20261006-r01-0009",
+          "analysis_experiment_id": "E-C-width150N-search-20261006-r01-0009-solve",
+          "cad_volume_mm3": 45864.57866143016,
+          "usable": true,
+          "numerically_feasible": true,
+          "unknown": [
+            "fatigue_durability",
+            "joint_and_contact",
+            "machine_interface",
+            "material_qualification",
+            "physical_load_test",
+            "static_strength",
+            "stress_convergence"
+          ],
+          "failures": [],
+          "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+          "analysis_result_sha256": "f5eb3e79ec05cd97594fd032309bd4e51a1aaa283c5d24a35cda7230ec2f7af7",
+          "loaded_saddle_max_abs_uz_mm": 3.378849e-05,
+          "reaction_N": [
+            1.0544503012924046e-07,
+            -5.750100004142426e-08,
+            149.99999878041
+          ],
+          "reaction_balance_ratio": 8.169930675123689e-09,
+          "independent_native_dat": {
+            "dat_sha256": "8b5dccdb688c0d71af8a1fc26ad6b89a873e9af818b8cc14ef7b9e1ea8421b1f",
+            "loaded_nodes": 123,
+            "fixed_nodes": 1501,
+            "max_abs_loaded_uz_mm": 3.378849e-05,
+            "reaction_fsum_N": [
+              1.0544503012924046e-07,
+              -5.750100004142426e-08,
+              149.99999878041
+            ],
+            "reaction_summary_delta_N": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "declared_1percent_equilibrium_pass": true
+          }
+        }
+      ],
+      "initial38_reference": {
+        "baseline": "fea_width38_150N_mesh4_condition_reuse_20261006_r01",
+        "new": "E-C-width150N-search-20261006-r01-0001-solve",
+        "baseline_loaded_abs_uz_mm": 3.439671e-05,
+        "difference_mm": 0.0,
+        "exact_metric_match": true
+      },
+      "elapsed_seconds": 9.008973552845418,
+      "physical_validation": "UNKNOWN",
+      "decision": "NOT_RELEASED"
+    },
+    "best_observed": {
+      "index": 8,
+      "width_mm": 57.84648176871021,
+      "cad_experiment_id": "E-C-width150N-search-20261006-r01-0008",
+      "analysis_experiment_id": "E-C-width150N-search-20261006-r01-0008-solve",
+      "cad_volume_mm3": 57424.170917814605,
+      "usable": true,
+      "numerically_feasible": true,
+      "unknown": [
+        "fatigue_durability",
+        "joint_and_contact",
+        "machine_interface",
+        "material_qualification",
+        "physical_load_test",
+        "static_strength",
+        "stress_convergence"
+      ],
+      "failures": [],
+      "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+      "analysis_result_sha256": "776b1547d9f1d313b77c1aa2c88961d38d9122edbfa675ede02ef0bbaf061135",
+      "loaded_saddle_max_abs_uz_mm": 3.35316e-05,
+      "reaction_N": [
+        -1.6785000005374637e-07,
+        -3.0934599983733383e-07,
+        150.000001849593
+      ],
+      "reaction_balance_ratio": 1.2551870691252767e-08,
+      "independent_native_dat": {
+        "dat_sha256": "9a83896e1657e4029a94a24dac7b0790275fed09ebbe5c44ab5a9b332d318fae",
+        "loaded_nodes": 123,
+        "fixed_nodes": 1727,
+        "max_abs_loaded_uz_mm": 3.35316e-05,
+        "reaction_fsum_N": [
+          -1.6785000005374637e-07,
+          -3.0934599983733383e-07,
+          150.000001849593
+        ],
+        "reaction_summary_delta_N": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "declared_1percent_equilibrium_pass": true
+      }
+    },
+    "baseline38": {
+      "index": 1,
+      "width_mm": 38.0,
+      "cad_experiment_id": "E-C-width150N-search-20261006-r01-0001",
+      "analysis_experiment_id": "E-C-width150N-search-20261006-r01-0001-solve",
+      "cad_volume_mm3": 36783.829878355966,
+      "usable": true,
+      "numerically_feasible": true,
+      "unknown": [
+        "fatigue_durability",
+        "joint_and_contact",
+        "machine_interface",
+        "material_qualification",
+        "physical_load_test",
+        "static_strength",
+        "stress_convergence"
+      ],
+      "failures": [],
+      "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+      "analysis_result_sha256": "b6776689b4951509505c1c61893ba9b3541cb00e7829375884c1b66e50bd2b4f",
+      "loaded_saddle_max_abs_uz_mm": 3.439671e-05,
+      "reaction_N": [
+        -5.731419988865902e-08,
+        1.4377801986809068e-07,
+        150.00000135765
+      ],
+      "reaction_balance_ratio": 9.109630013302955e-09,
+      "independent_native_dat": {
+        "dat_sha256": "9e512856978e3d92e20f59fd86327ce441469441f2751f801de2f5422b7ee460",
+        "loaded_nodes": 123,
+        "fixed_nodes": 1273,
+        "max_abs_loaded_uz_mm": 3.439671e-05,
+        "reaction_fsum_N": [
+          -5.731419988865902e-08,
+          1.4377801986809068e-07,
+          150.00000135765
+        ],
+        "reaction_summary_delta_N": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "declared_1percent_equilibrium_pass": true
+      }
+    },
+    "protected_original_and_snapshot": {
+      "files": 119,
+      "bytes": 35392424,
+      "all_original_bytes_unchanged": true,
+      "copied_original_bytes_unchanged": true,
+      "new_results_appended": true
+    },
+    "preserved_preexisting_r2_files": {
+      "count": 8,
+      "raw_bytes_unchanged": true
+    },
+    "query_failures": {
+      "count": 9,
+      "code": "PROJECT_FILESYSTEM_READ_FAILED",
+      "cause": "NOT_ISOLATED; competing guard admission/event-loop contention candidate",
+      "native_execution_failures": 0,
+      "read_only_fallback_answer_completed": true,
+      "no_solver_replay": true
+    },
+    "closure": {
+      "response_completed": true,
+      "relay_exit_code": 0,
+      "stdin_hash_and_delivery_verified": true,
+      "guard_restore_confirmed": true,
+      "same_resident_idle_confirmed": true,
+      "owned_native_state": "stopped",
+      "owned_closed_utc": "2026-10-05T21:12:13.0214636Z",
+      "http_foreground30987_exit": 1,
+      "http_ctrl_c_is_not_native_cancel_proof": true,
+      "new_metadata_observer64244_port": 8771,
+      "provider": "NOT_CONFIGURED"
+    },
+    "snapshot_pointer_diagnostic": {
+      "pointer_snapshot_bytes": null,
+      "manifest_bytes": 35392424,
+      "wrong_pointer_field_not_used_as_evidence": true
+    },
+    "physical_validation": "UNKNOWN",
+    "decision": "NOT_RELEASED",
+    "question_elapsed_seconds": 772.894789
+  },
+  "independent_review": {
+    "reviewer": "existing field_kernel_publication_review",
+    "scope": "Read-only frozen plan/bounds/native parent, initial38 and best8 DAT/loadedUZ/all-axis reactions/source/UNKNOWN",
+    "max_two_row_reaction_accumulation_delta_N": 1.71e-13,
+    "root_all9_native_and_saved_engine_replay": "campaign-verification.json",
+    "source_P2_closed": "CAD/model-target draft switching preserves selected requirements and explicit overrides",
+    "not_reviewed_as_pass": "all9 by reviewer, actual provider cleanup at reviewer reading time, physical/assembly/global optimum"
+  },
+  "gui": {
+    "operator": "Root via browser controls, not user signoff",
+    "baseline_to_campaign_draft": "Actual38mm/150N baseline handed same frozen selected4mm into exploration form",
+    "actual_provider_question_submitted_in_ordinary_GUI": true,
+    "answer_and_all9_values_reopened_after_browser_reload": true,
+    "actual_same_record_full_field_for_best_candidate": "OPEN at this checkpoint",
+    "table_rendering": "OPEN: escaped pipe in |UZ| header fell back to prose; raw answer retained",
+    "proof": "artifacts/fixture-width-search-20261006-01"
+  },
+  "retention": {
+    "state": "LOCAL_ONLY",
+    "native_artifacts_in_public_git": false,
+    "protected_original_and_snapshot": {
+      "files": 119,
+      "bytes": 35392424,
+      "all_original_bytes_unchanged": true,
+      "copied_original_bytes_unchanged": true,
+      "new_results_appended": true
+    }
+  },
+  "exact_source_CI": {
+    "run": 37371558639,
+    "source": "774d7c13a20e9dded484173a3fbf7be3cd1d6bee",
+    "status": "FAILURE",
+    "source_job": "SUCCESS",
+    "core": "CANCELLED before any step; hosted runner not acquired",
+    "dependent_jobs": "8SKIPPED",
+    "annotation_proof": "ci-core-annotations.json",
+    "is_solver_or_engine_failure": false,
+    "is_current_all_CI_pass": false
+  },
+  "known_prior_CI": {
+    "source": "1b8cfc3d57488e47e55f1b34fe8df09bf56066f3",
+    "run": 37357503196,
+    "status": "7SUCCESS/3FAIL",
+    "failures": [
+      "PDE vector numerical classification",
+      "Aster E-ansys_vmd1_regular-Fz numerical checks",
+      "official explicit download404 before solve"
+    ],
+    "not_replayed_here": true
+  },
+  "remaining": [
+    "Parallel native guard metadata admission reliability",
+    "Readable escaped-delimiter answer table and same best-record field inspection",
+    "Original7part/84group assembly mechanics",
+    "FullU1/active cancellation and reconnect",
+    "General observation/inverse and remaining52/Phase1-7",
+    "Approved remote artifact restoration/physical/company deployment"
+  ],
+  "next": "Narrow plugin admission serialization with retained all gates5s metadata bounds; actual retained18CAD/analysis summary batch, no new solver. Then original qualified assembly mechanics.",
+  "decision": "NOT_RELEASED",
+  "physical_validation": "UNKNOWN",
+  "whole52_Phase1_to_7": "INCOMPLETE"
+}
