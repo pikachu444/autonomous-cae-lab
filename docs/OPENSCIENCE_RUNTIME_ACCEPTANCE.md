@@ -1,4 +1,22 @@
-## Current checkpoint: actual original coarse mesh imported and independently qualified
+## Current checkpoint: owned startup correction; actual selected question still OPEN
+
+Record: `benchmarks/records/20261005-openscience-startup-progress-source-r01.json`.
+Actual Main82/run01 failed the native source capture20s boundary before Lab/question;
+the deeper cause is NOT_ISOLATED. The same exact pin was read in6s by existing Node
+and the installed Bun cold/post-idle diagnostic. This does not erase the failed run.
+Run02 passed plugin/source/MCP and published READY after its parent timeout decision;
+owned STOPPED/foreground1 retain the original error. Neither run submitted a question.
+Full owner validation cost2584ms versus114ms for one corrected inert progress read.
+Progress checks now bind the exact new controller/profile/launch marker; READY still
+requires the unchanged full runtime/source/project/MCP gate. Controller preparation
+counts in the startup interval and final readiness must fit its existing deadline.
+Root18 controlled ownership checks and45 existing controlled launcher checks PASS.
+This source correction has no provider/native/GUI qualification or larger startup/
+solver budget. Next: fresh clean-source selected32→38 actual research/save/reopen/stop.
+Core/Domain/adapter operations, research scope/model/auth, invalid metrics and UNKNOWN/
+NOT_RELEASED remain. S3/fullU1/all52 remain OPEN.
+
+## Historical checkpoint: actual original coarse mesh imported and independently qualified
 
 Record: `benchmarks/records/20261005-fixture-assembly-native-import-coarse-r01-qualified.json`. Actual clean producer538089c, freshcoarse3 store.
 Original CAD and qualified3mm mesh reused unchanged; tag0 transport changes

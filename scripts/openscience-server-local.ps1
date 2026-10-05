@@ -627,6 +627,35 @@ function Read-OpenScienceRuntimeOwner([string]$Path, [switch]$LifecycleOnly) {
     return $owner
 }
 
+function Read-OpenScienceStartupProgress($Context, $ControllerIdentity, [string]$ContextPath, [string]$LaunchToken) {
+    # Progress is an inert read. Rehashing executables/configuration on every
+    # polling tick competes with the controller's actual startup checks. READY
+    # still goes through Get-OpenScienceLocalRuntime before it can be returned.
+    $owner = Read-OpenScienceJson $Context.OwnerPath
+    Assert-OpenScienceCondition ($owner.kind -ceq 'autonomous-cae-lab.openscience-runtime' -and $owner.schema -eq 1 -and
+        $owner.launch_token -ceq $LaunchToken -and $owner.context_path -ceq $ContextPath -and
+        $owner.repo_root -ceq $Context.RepoRoot -and $owner.run_name -ceq $Context.RunName -and
+        $owner.profile_root -ceq $Context.ProfileRoot -and $owner.context.OwnerPath -ceq $Context.OwnerPath) 'Startup progress is not this newly owned controller/profile.'
+    Assert-OpenScienceProcessIdentity $ControllerIdentity $owner.controller
+    return [pscustomobject]@{ State = $owner.state; Failure = $owner.failure }
+}
+
+function Wait-OpenScienceLocalStartup($Context, $Controller, $ControllerIdentity, [string]$ContextPath,
+    [string]$LaunchToken, [string]$Directory, $StartupWatch, [int]$StartupTimeoutSeconds) {
+    while ($StartupWatch.Elapsed.TotalSeconds -lt $StartupTimeoutSeconds + 5) {
+        Assert-OpenScienceCondition (-not $Controller.HasExited) "Hidden controller exited; logs retained at $Directory."
+        if (Test-Path -LiteralPath $Context.OwnerPath -PathType Leaf) {
+            $progress = Read-OpenScienceStartupProgress $Context $ControllerIdentity $ContextPath $LaunchToken
+            if ($progress.State -eq 'ready') { return Get-OpenScienceLocalRuntime $Context.OwnerPath }
+            Assert-OpenScienceCondition ($progress.State -notin @('failed', 'stopped')) "Startup failed; logs retained at $Directory. $($progress.Failure)"
+        }
+        Start-Sleep -Milliseconds 300
+    }
+    Write-OpenScienceJson (Join-Path $Directory ('stop-request-' + [Guid]::NewGuid().ToString('N') + '.json')) @{ launch_token = $LaunchToken; run_name = $Context.RunName; repo_root = $Context.RepoRoot
+        reason = 'startup_timeout'; requested_utc = [DateTime]::UtcNow.ToString('o') } -CreateNew
+    throw "Owned startup timeout; stop request and logs retained at $Directory."
+}
+
 function Get-OpenScienceLocalRuntime {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$OwnerPath, [switch]$LifecycleOnly)
@@ -1159,6 +1188,10 @@ function Find-OpenScienceServerReady($Context, $Launcher, [string]$Directory) {
 }
 
 function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchToken) {
+    # Include controller preparation in the same startup interval observed by
+    # the parent. Previously the controller reset its clock after validation,
+    # allowing READY after the parent had already requested a timeout stop.
+    $watch = [Diagnostics.Stopwatch]::StartNew()
     $spec = Read-OpenScienceJson $ContextPath
     $context = [pscustomobject]$spec.context
     Assert-OpenScienceContext $context
@@ -1181,7 +1214,6 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
     try {
         if ($context.Transport -ceq 'ChatGPT') {
             Initialize-OpenScienceNativeGuard $context $owner
-            $watch = [Diagnostics.Stopwatch]::StartNew()
             $config = Read-OpenScienceJson $context.ConfigPath
             Write-OpenScienceJson (Join-Path $directory 'config-before-serve.json') $config -CreateNew
         } else {
@@ -1197,7 +1229,6 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
         $proxyInfo.ArgumentList.Clear(); $proxyInfo.ArgumentList.Add($owner.proxy_script); $proxyInfo.ArgumentList.Add($proxySettingsPath)
         $proxyLogged = Start-OpenScienceLoggedProcess $proxyInfo $directory 'proxy'
         $owner.proxy = $proxyLogged.Identity; Save-OpenScienceRuntimeOwner $owner
-        $watch = [Diagnostics.Stopwatch]::StartNew()
         while (-not (Test-Path -LiteralPath $proxyReadyPath -PathType Leaf)) {
             Assert-OpenScienceCondition (-not $proxyLogged.Process.HasExited -and $watch.Elapsed.TotalSeconds -lt $spec.startup_timeout_seconds) 'Owned proxy did not publish bounded readiness.'
             Start-Sleep -Milliseconds 200
@@ -1257,6 +1288,8 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
         if ($context.Transport -ceq 'ChatGPT') { Assert-OpenScienceNativeGuardLoaded $context $owner }
         Assert-OpenScienceRepositorySourcePin $owner.boot_source (Get-OpenScienceRepositorySourcePin -Context $context -GitPath $owner.boot_source.git_path -GitSha256 $owner.boot_source.git_sha256)
         $owner.workspace_url = Get-OpenScienceProjectWorkspaceUrl $context $ready.Url
+        Assert-OpenScienceCondition ($watch.Elapsed.TotalSeconds -lt $spec.startup_timeout_seconds) 'Startup deadline expired before final verified readiness.'
+        $owner.startup_elapsed_seconds = $watch.Elapsed.TotalSeconds
         $owner.state = 'ready'; $owner.ready_utc = [DateTime]::UtcNow.ToString('o'); Save-OpenScienceRuntimeOwner $owner
         Write-Output ("Owned OpenScience ready at " + $owner.runtime_url)
         $handledStopRequests = [Collections.Generic.HashSet[string]]::new()
@@ -1373,25 +1406,12 @@ function Start-OpenScienceLocalServerLocked($Context, [int]$Port, [int]$StartupT
         '-Mode', 'ServeInternal', '-ContextPath', $specPath, '-LaunchToken', $token) | ForEach-Object { ConvertTo-OpenScienceWindowsArgument $_ }
     # A fresh machine environment prevents inherited user provider credentials
     # from reaching the hidden controller; child PSIs also filter by key name.
+    $watch = [Diagnostics.Stopwatch]::StartNew()
     $controller = Start-Process -FilePath $pwsh -ArgumentList $arguments -WorkingDirectory $Context.RepoRoot -WindowStyle Hidden -UseNewEnvironment -PassThru -ErrorAction Stop `
         -RedirectStandardOutput (Join-Path $directory 'controller-stdout.txt') -RedirectStandardError (Join-Path $directory 'controller-stderr.txt')
     $identity = Get-OpenScienceProcessIdentity $controller.Id
     Write-OpenScienceJson (Join-Path $directory 'controller-launch.json') @{ identity = $identity; launch_token = $token; context_path = $specPath } -CreateNew
-    $watch = [Diagnostics.Stopwatch]::StartNew()
-    while ($watch.Elapsed.TotalSeconds -lt $StartupTimeoutSeconds + 5) {
-        Assert-OpenScienceCondition (-not $controller.HasExited) "Hidden controller exited; logs retained at $directory."
-        if (Test-Path -LiteralPath $Context.OwnerPath -PathType Leaf) {
-            $owner = Read-OpenScienceRuntimeOwner $Context.OwnerPath
-            if ($owner.launch_token -ceq $token) {
-                if ($owner.state -eq 'ready') { return Get-OpenScienceLocalRuntime $Context.OwnerPath }
-                Assert-OpenScienceCondition ($owner.state -notin @('failed', 'stopped')) "Startup failed; logs retained at $directory. $($owner.failure)"
-            }
-        }
-        Start-Sleep -Milliseconds 300
-    }
-    Write-OpenScienceJson (Join-Path $directory ('stop-request-' + [Guid]::NewGuid().ToString('N') + '.json')) @{ launch_token = $token; run_name = $Context.RunName; repo_root = $Context.RepoRoot
-        reason = 'startup_timeout'; requested_utc = [DateTime]::UtcNow.ToString('o') } -CreateNew
-    throw "Owned startup timeout; stop request and logs retained at $directory."
+    return Wait-OpenScienceLocalStartup $Context $controller $identity $specPath $token $directory $watch $StartupTimeoutSeconds
 }
 
 function Stop-OpenScienceLocalServer([string]$OwnerPath) {

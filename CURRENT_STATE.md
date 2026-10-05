@@ -1,12 +1,12 @@
-## Current work: sequential usable CAE research flow
+## Current work: finish the actual selected CAE research flow
 
-Current plan and next gates: `docs/CAE_RESEARCH_EXECUTION_PLAN.md`. Original52/Phase1–7 and accepted architecture remain.
-Selected4mm public Core/native/full-U and Source67 same-field GUI data are qualified separately. The displayed-overlay and render-refusal corrections are integrated as a bounded source unit; final58 impacted viewer checks and earlier152 controls are distinct receipts. Root directly reviewed the final pending-input fix. Actual corrected pixels and official new-profile Research remain OPEN. Record: `benchmarks/records/20261005-fixture-field-pixel-correction-source-r03.json`.
-User2026-10-05 correction: Astra reviews overall system usefulness and Root delivery priorities; do not require a new Astra review for every small patch. Finish user research flows and group necessary verification. No mandatory global/full-model/explicit mesh-convergence sweep; historical canonical thresholds/failures, UNKNOWN and NOT_RELEASED remain.
-Exact Source67 CI is completed7SUCCESS/3FAIL; see `benchmarks/records/20261005-ci-67caf04-r01.json`. Full CI and whole system are not PASS. S3 durable recovery is still a plan (`docs/S3_HTTP_RECOVERY_PLAN.md`), not implementation. The existing goal-resume question remains pending; authorized development and ACTIVE heartbeat continue separately.
+Single queue: `docs/CAE_RESEARCH_EXECUTION_PLAN.md`; original52/Phase1–7/ADR remain. Astra/high process review03 requires immediate correction of Root's instruction following, serial tiny reviews/records and delayed user results; this is not a future system-assessment policy.
+Main82a9766's corrected viewer was actually used for100xUZ, visible loads, empty-input refusal and recovery. Scope is that observed view subset; wider field interaction and complete user flow remain OPEN.
+Official selected run01 failed source capture TIMEOUT before Lab/question; deeper cause NOT_ISOLATED, launcher cleanup UNCONFIRMED preserved. Run02 passed plugin/source/MCP and published READY, but its parent timer expired before that readiness; exact owned STOPPED/foreground1 preserve the original failure. Neither run submitted a research question.
+Startup correction removes repeated heavy validation from progress ticks while preserving exact controller/profile identity and the full final runtime admission gate. Both startup intervals include preparation, without increasing the120s startup or any solver budget. Root18 ownership controls/45 launcher controls PASS; corrected live startup/research is NOT_RUN. Record: `benchmarks/records/20261005-openscience-startup-progress-source-r01.json`.
+NEXT: fresh clean-source selected32→38 actual question/analysis/comparison/save/reopen/stop, then S3 recovery/150N/numerical exploration/fullU1 and remaining phases. No new small Astra gate or mandatory full-model/explicit mesh sweep. Existing invalid metrics, UNKNOWN/NOT_RELEASED remain. Goal-resume question is pending; ACTIVE heartbeat and authorized development continue separately.
 
 ---
-
 ## Historical checkpoint: reviewed assembly field kernel source; usable CAE workflow remains open
 
 The source-only checkpoint is in `benchmarks/records/20261005-fixture-assembly-field-kernel-source-r01.json`.

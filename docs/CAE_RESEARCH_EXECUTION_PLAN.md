@@ -9,9 +9,10 @@
 ## 사용자 지시와 전체 시스템 감수 반영 — 2026-10-05
 
 Root가 [전체 시스템·전달 방식 후속 의견](reviews/20261005-astra-high/SYSTEM-DELIVERY-REVIEW-02.md)을 읽고 채택했습니다.
-사용자가 요청한 Astra 감수는 전체 구성·실제 CAE 연구 사용성·Root의 작업 방식입니다. 작은 수정마다 새 Astra 승인을 기다리지 않습니다.
-Root가 영향 검사·통합·기본 화면 사용을 책임지고, 중요한 공통 경계와 완성된 연구 흐름/대표 수치 결과를 독립 검토합니다.
-현재 작은 GUI 교정을 한 묶음으로 마치고, 짧은 감독 실행으로 공식 selected Research의32→38 비교·저장·재열람·정상 종료를 먼저 닫습니다.
+사용자의 최신 지시는 **지금 Root가 요구를 변형하고 헤매는 작업 방식 자체를 Astra에게 보고해 교정받으라**는 것입니다. Root의 “미래 통합성 평가 때 활용” 답변도 그대로 전달했고, Astra/high03은 CURRENT_ROOT_BEHAVIOR_REQUIRES_IMMEDIATE_CORRECTION으로 판정했습니다. 보고서SHA7bec2a6861b86c8631d857d1415abc292941f6e867ddc7dae085ce422101799a. 작은 수정마다 새 Astra 승인을 기다리지 않습니다.
+Root는 요구 변형, 작은 검사·기록의 직렬화, 자신이 만든 통합 문제를 대기로 보고하는 행동을 즉시 교정합니다. 필요한 수정·검사·기록은 다음 실제 사용자 연구 산출물 내부 작업으로 수행합니다.
+교정 viewer의100배UZ/하중·빈 입력 거부·회복을 실제 화면에서 확인했습니다. 공식 selected run01/02는 질문 전에 실패했습니다. 원본 실패를 보존하고, 시작 대기의 반복 전체 검증 및 시간 계산 결함을 직접 수정했습니다.18소유권/45launcher controls는 source proof이며 새 실제 실행은 아직 OPEN입니다. Record: `../benchmarks/records/20261005-openscience-startup-progress-source-r01.json`.
+다음 산출물은 간단한 한국어 질문을 통한 공식 selected Research의32→38 실제 해석·비교·저장·재열람·정상 종료입니다. 새 작은 감수나 문서 작성으로 이 산출물을 대체하지 않습니다.
 S3는 긴 탐색·무감독 인계와 전체U1 완료의 조건입니다. S3 전이라는 이유로 첫 짧은 비교 실행까지 미루지 않습니다.
 그 다음 S3 최소 복구→150N 조건 변경·수치 엔진 탐색/U1 완료→원본 조립체 mechanics와 남은 Phase1–7 순서입니다.
 전체 모델/explicit의 의무 mesh sweep은 없으며, 기존 canonical 기준·실패·UNKNOWN/NOT_RELEASED는 보존합니다.

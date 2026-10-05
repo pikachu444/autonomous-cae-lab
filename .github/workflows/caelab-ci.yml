@@ -78,6 +78,10 @@ jobs:
               @($taskGitReceipt.side_effects.PSObject.Properties | Where-Object Value -NE 0).Count -ne 0) {
             throw 'Cold Git transport checks did not produce the expected source-only evidence.'
           }
+      - name: Check owned startup progress without admitting a runtime
+        shell: pwsh
+        run: |
+          $null = & ./scripts/verify_openscience_startup_poll.ps1 -RepoRoot $env:GITHUB_WORKSPACE -OutputPath (Join-Path $env:GITHUB_WORKSPACE 'artifacts/startup-progress-source-ci')
       - name: Check Lab question handoff and cleanup without provider calls
         shell: pwsh
         run: |

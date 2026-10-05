@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "id": "20261005-openscience-startup-progress-source-r01",
+  "scope": "SOURCE_CORRECTION_AND_RETAINED_FAILED_LIVE_ATTEMPTS_NOT_RESEARCH_PASS",
+  "observed_base_commit": "82a97662b1b1955ae45a0e4a5b3b89bfbea2ed19",
+  "source_sha256": {
+    "scripts/openscience-server-local.ps1": "79321320e15eab3e9b3b1f272aaa0aa7622a11ee90dd1684ac6f492698d8fcbc",
+    ".github/workflows/caelab-ci.yml": "4fa65889f6071f5123f0ae5291083c73930ce2c36d8b6ff9c304881b084af51e",
+    "scripts/verify_openscience_startup_poll.ps1": "bd900356c0eee4b57f4f2d16f2de32ab56a86922a28f73dfc367a19b0e8258aa"
+  },
+  "approved_model": "openai-codex/gpt-5.6-sol",
+  "openscience_version": "2.0.146",
+  "openscience_source_commit": "4082a2ecb73e166d4503963798228ba700f3840f",
+  "live_attempts": [
+    {
+      "launcher_cleanup": "UNCONFIRMED",
+      "result": "FAILED_BEFORE_LAB_AND_QUESTION",
+      "error_kind": "TIMEOUT",
+      "deeper_cause": "NOT_ISOLATED",
+      "source_capture_elapsed_ms": 20074,
+      "owned_three_processes_and_two_listeners": "ABSENT_AT_LATER_OBSERVATION_NOT_A_TERMINAL_SUCCESS_RECEIPT",
+      "run": "cae-selected-research-20261005-01"
+    },
+    {
+      "controller_created_utc": "2026-10-05T12:05:41.665743Z",
+      "owner_started_utc": "2026-10-05T12:06:13.3014862Z",
+      "plugin_final_bytes_ms": 11551,
+      "owner_ready_utc": "2026-10-05T12:07:49.1754014Z",
+      "run": "cae-selected-research-20261005-02",
+      "result": "FAILED_PARENT_STARTUP_TIMEOUT_BEFORE_LAB_AND_QUESTION",
+      "owner_closed_utc": "2026-10-05T12:08:07.3010787Z",
+      "cleanup": "OWNED_STOPPED_FOREGROUND_EXIT1_ORIGINAL_STARTUP_ERROR_RETAINED",
+      "plugin_capture_ms": 6575
+    }
+  ],
+  "diagnosis": {
+    "same_installed_bun_cold_read_ms": 6118,
+    "post_idle_read_ms": 5769,
+    "unchanged_source_pin": true,
+    "pin_files": 715,
+    "original_full_owner_read_ms": 2584.2543,
+    "new_progress_read_ms": 114.1018,
+    "same_installed_bun_idle_ms": 21030,
+    "direct_node_read_ms": 6255,
+    "timing_scope": "ONE_READ_ONLY_SAMPLE_NOT_WHOLE_STARTUP_GUARANTEE",
+    "original_capture_timeout_reproduced": false
+  },
+  "correction": [
+    "Poll only exact newly launched controller/profile metadata without repeating full executable/config checks.",
+    "READY still must pass the unchanged full owned runtime/source/project/MCP gate.",
+    "Controller and parent startup intervals include controller preparation; no clock reset after validation.",
+    "Final verified readiness must remain inside the existing startup budget; no startup or solver budget increase."
+  ],
+  "controlled_checks": {
+    "actual_corrected_startup": "NOT_RUN",
+    "startup_ownership": 18,
+    "actual_runtime_provider_auth_Core_solver_GUI_calls": 0,
+    "launcher": 45
+  },
+  "root_work_method_audit": {
+    "effort": "high",
+    "model": "gpt-6-astra",
+    "report_sha256": "7bec2a6861b86c8631d857d1415abc292941f6e867ddc7dae085ce422101799a",
+    "disposition": "Current instruction following and work method, not a deferred system review. Routine fixes/tests are internal parts of the next actual selected32-to38 research flow; no new small Astra gate.",
+    "verdict": "CURRENT_ROOT_BEHAVIOR_REQUIRES_IMMEDIATE_CORRECTION"
+  },
+  "next": "Fresh clean-source selected Research startup and simple Korean32-to38 analysis/comparison/save/reopen/owned stop. S3/fullU1/all52 remain OPEN.",
+  "engineering_verdict": "UNKNOWN_NOT_RELEASED",
+  "historical_artifacts": "PRESERVED",
+  "new_CAD_mesh_solver_or_provider_calls": 0
+}
