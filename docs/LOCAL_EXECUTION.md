@@ -1,4 +1,4 @@
-# Current approved CAE research launcher — source gate, live acceptance open
+# Current approved CAE research launcher — bounded actual connection verified
 
 Root prepared the existing approved local settings outside this public repository.
 The source-reviewed foreground entry point is:
@@ -13,9 +13,16 @@ The owner-bound Lab also forwards the existing Windows PowerShell7 executable in
 Default local path settings: `%LOCALAPPDATA%\AutonomousCAELab\cae-research-settings.json`;
 schema1 has only runtime_prefix, auth_profile_root and project_binding_path. No credentials belong in Git.
 No new login/model/provider is selected. A reused output path is rejected. Ctrl+C is the intended foreground exit.
-Verified-owner cleanup is required; real Ctrl+C and new-store question acceptance are still OPEN at this source checkpoint.
+Clean c94/new run02 actually completed one CAD-discovery question, eight returned variables,
+same resident/store IDLE cleanup and idle Ctrl+C/owned STOPPED. Question latency310.124764s,
+cause NOT_ISOLATED. These gate services were stopped deliberately; this document is not current READY status.
+Active-job/native cancellation, durable restart, complete field GUI and U1 remain OPEN.
+Record: `benchmarks/records/20261005-cae-usability-live-r03.json`.
 `-ValidateOnly` performs path/project/schema admission and explicitly returns NOT_CHECKED readiness.
-A model answer/exit0 cannot qualify engineering. Read the single current plan and source acceptance record above before use.
+A model answer/exit0 cannot qualify engineering. Read `docs/CAE_RESEARCH_EXECUTION_PLAN.md` before use.
+The default research plan no longer requires whole-model mesh-convergence sweeps; ADR0035
+keeps purpose-specific checks, targeted optional sensitivity and historical benchmark limits.
+The actual fixture adapter still requires2–8 mesh levels; opt-in selected-mesh support is a pending software unit.
 
 ---
 

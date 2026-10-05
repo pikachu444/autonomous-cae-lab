@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.cae-usability-retained-live-checkpoint",
+  "observed_utc": "2026-10-05T06:48:15Z",
+  "verdict": "PASS_BOUNDED_CONNECTED_QUESTION_AND_PARENT_CONTEXT",
+  "source_commit": "c94da4e86be05146353e716b4fba8d71a96b7246",
+  "fixture_head": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "S1": {
+    "run": "cae-research-usability-20261005-02",
+    "model": "openai-codex/gpt-5.6-sol",
+    "authentication": "EXISTING_APPROVED_CHATGPT",
+    "profile": "fixture-refinement-v1",
+    "actual_tool": "caelab_parameters_discover",
+    "completed_tool_count": 1,
+    "returned_variables": 8,
+    "question_elapsed_seconds": 310.124764,
+    "performance_cause": "NOT_ISOLATED",
+    "raw_HTTP_answer_equal": true,
+    "resident_idle_confirmed": true,
+    "cleanup_confirmed": true,
+    "idle_ctrl_c": true,
+    "foreground_exit": 0,
+    "owned_state": "STOPPED",
+    "native_solver": "NOT_REQUESTED"
+  },
+  "S2a": {
+    "new_writable_store": "runs/cae-result-view-20261005-01",
+    "historical_library": "runs/lab-question-human-20261005-07",
+    "native_producer": "162231311b72886f0a3f6eb2371f90473564a2ef",
+    "child": "exp_roller_fea_mesh432_100N_20261005_a",
+    "parent": "exp_roller_cad_w32_20261005_a",
+    "cad_revision": "8b88e4804601b4be6b9b567f61ec5cd42215ba04b3c25f8684294c80bd4fac99",
+    "preview": "SAME_REVISION_MANIFESTED_PARENT_CAD_PNG",
+    "preview_pixels": [
+      1100,
+      560
+    ],
+    "caption": "PARENT_CAD_NOT_FEA_FIELD",
+    "late_success_store_switch": "PASS_REAL_NETWORK_OBSERVATION",
+    "store_switch_time_local": "15:21:36",
+    "old_response_completion_time_local": "15:21:56",
+    "network_delay_injected": false,
+    "later_local_DOM_stale_items": 0,
+    "late_error_and_detached_draw": "CONTROLLED_DOM_SOURCE_ONLY",
+    "old_files": 72,
+    "old_bytes": 40924681,
+    "all_old_bytes_unchanged": true,
+    "original_blocking_UNKNOWN": 7,
+    "fresh_jobs": [],
+    "native_mesh_provider_calls": 0,
+    "actual_ctrl_c": true,
+    "foreground_exit": 0
+  },
+  "independent": {
+    "model": "gpt-6-astra",
+    "effort": "high",
+    "verdict": "BOUNDED_LIVE_EVIDENCE_PASS",
+    "open_p1": 0,
+    "open_p2": 0,
+    "receipt_sha256": "e96fc48df6a1501d6fa79d222dfc54a928617a82f44a35073c2774cc7a2f3331",
+    "procedural_deviation": "Reviewer initially invoked read-only Git status/rev-parse contrary to bounded no-Git packet; no mutation or later Git calls; recorded and evaluated by Root."
+  },
+  "mesh_policy": {
+    "decision": "ADR/0035-purpose-specific-model-verification.md",
+    "default": "SUITABLE_SELECTED_MESH_AND_PURPOSE_SPECIFIC_DOMAIN_EVIDENCE",
+    "mandatory_global_full_model_sweep": false,
+    "targeted_sensitivity": "OPTIONAL_WHEN_JUSTIFIED",
+    "historical_thresholds_and_failures": "UNCHANGED",
+    "current_fixture_selected_mesh_support": "OPEN_EXISTING_ADAPTER_REQUIRES_2_TO_8_LEVELS",
+    "no_mesh_independence_inferred": true
+  },
+  "exact_source_ci": {
+    "run_id": 37269269559,
+    "status": "completed",
+    "conclusion": "failure",
+    "success_jobs": 7,
+    "failed_jobs": 3,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37269269559",
+    "failed_log_observations": {
+      "explicit": "Official approved runtime download HTTP404/curl22 before native execution",
+      "codeaster": "Native numerical checks failed: E-ansys_vmd1_regular-Fz-aster",
+      "pde": "Wrong vector numerical classification"
+    },
+    "deeper_numeric_causes": "UNKNOWN"
+  },
+  "goal": {
+    "observed_status": "BLOCKED",
+    "transition_cause": "UNKNOWN",
+    "resume_control": "USER_OR_SYSTEM",
+    "automation": "ACTIVE_SEPARATE_FROM_GOAL_AND_SERVICES"
+  },
+  "actual_gate_service_state": "INTENTIONALLY_STOPPED_AFTER_BOUNDED_TESTS",
+  "retained_receipts": [
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/host-bridge-correction-root-01/S1-LIVE-RECEIPT-03.json",
+      "sha256": "57ffae167fd9f02788feb5038d91eb6508e3424e17d8b7d8bca8825fa42ad6ef"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/result-context-live-root-01/RECEIPT.json",
+      "sha256": "40a046f7ba1d8d822740a314f5c5afae3c03d59e6cdb19ed246cb70a1a95f7eb"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/live-usability-review-astra-01/RECEIPT.json",
+      "sha256": "e96fc48df6a1501d6fa79d222dfc54a928617a82f44a35073c2774cc7a2f3331"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/c94-ci-readonly-root-01/RUN-JOBS.json",
+      "sha256": "a224457ff429a6abbfadf010d766ffa6d3aab25c441feb1dd371328a990a3052"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/c94-ci-readonly-root-01/codeaster-FAILED.txt",
+      "sha256": "44f66ddb38a4e186fde69cd497bc624bc49ccf78a5182bc7eaec9e67d0f1149f"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/c94-ci-readonly-root-01/explicit-FAILED.txt",
+      "sha256": "6854e4c289ee2375a02f3053429b7d50d9b42994a7acab937fdd9f0fa6c97bee"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/c94-ci-readonly-root-01/pde-FAILED.txt",
+      "sha256": "b163c6338815cdb90ad587fe5f1b6446f5de2593c8b8086e3aa44818d8711d4a"
+    }
+  ],
+  "retention": "Actual raw files/screenshots remain local ignored artifacts, hashed separately; public record is not remote raw-byte restore. No credentials committed.",
+  "open": [
+    "Active-job/native cancellation",
+    "Durable HTTP restart/recovery/admission",
+    "S2b actual complete native U and same-record field GUI",
+    "Opt-in selected-mesh research mode",
+    "U1 complete condition-change/numerical-search/research user flow",
+    "Original assembly mechanics/full fields",
+    "All52/whole Phase1-7 software service"
+  ],
+  "engineering_decision": "NOT_RELEASED",
+  "next": "S2b frozen five-file full-U source review/integration, new-path output-only actual replay of one suitable existing mesh; explicit selected-mesh contract then same-record field GUI and S3 recovery. No remesh/sweep."
+}
