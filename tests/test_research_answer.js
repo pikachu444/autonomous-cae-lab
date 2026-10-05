@@ -151,6 +151,47 @@ test("browser/CommonJS formatter agree and scoped styles keep wrapping/spacing w
   assert.doesNotMatch(appSource.slice(appSource.indexOf("function appendResearchAnswer("), appSource.indexOf("function appendResearchTools(")), /innerHTML|eval\(|href\s*=/);
 });
 
+test("retained human-07 headings and escaped equations become inert readable prose with exact signs, units and raw source", () => {
+  // Verbatim subsection of human-07/native-per-mesh-review-01/final-answer.txt.
+  // Its original producer1622313 qualification is not repeated by this test.
+  const raw = String.raw`### 안장 하중 절점의 최소 signed Z 변위
+
+이는 전체 모델의 변위 크기가 아니라, **하중을 받은 안장 절점에서 전역 \(U_Z\)의 최솟값**입니다.
+
+| 최대 메시 크기 | 하중 절점 수 | 최소 signed \(U_Z\) (mm) | 직전 메시 대비 변화 |
+|---:|---:|---:|---:|
+| 4 mm | 123 | **−0.005642080** | 기준 |
+| 3 mm | 228 | **−0.005730928** | 크기 **+1.550%** |
+| 2 mm | 438 | **−0.005827884** | 크기 **+1.664%** |
+
+변화율은 각 비교에서 더 미세한 메시 결과를 분모로 사용했습니다. 부호 있는 값은 메시를 세분화할수록 더 음수가 되었으며, 즉 **−Z 방향 처짐 크기가 조금 증가**했습니다.
+
+최종 3→2 mm 변화율은 ` + "`0.01663657 = 1.663657%`" + String.raw`로, 어댑터의 허용 기준 **≤5%**를 통과했습니다. 다만 세 메시만으로 점근적 메시 수렴이 증명된 것은 아닙니다.`;
+  const h = harness(), card = new TinyNode(); h.ui.appendResearchAnswer(card, raw, "empty");
+  const body = card.children[0], nodes = walk(body), header = nodes.find(node => node.tagName === "H4");
+  assert(header); assert.equal(header.textContent, "안장 하중 절점의 최소 signed Z 변위"); assert(!body.textContent.includes("###"));
+  assert.match(body.textContent, /수식은 원문 식을 텍스트로 표시합니다/); assert.match(body.textContent, /전역 U_Z의 최솟값/);
+  assert(!body.textContent.includes(String.raw`\(U_Z\)`)); assert.equal(nodes.filter(node => node.tagName === "TABLE").length, 1);
+  for (const literal of ["−0.005642080", "−0.005730928", "−0.005827884", "+1.550%", "+1.664%", "4 mm", "3 mm", "2 mm", "(mm)", "≤5%", "0.01663657 = 1.663657%", "−Z"])
+    assert(body.textContent.includes(literal), `Preserve original response: ${literal}`);
+  assert.equal(walk(card).filter(node => node.tagName === "PRE").at(-1).textContent, raw);
+  assert.equal(nodes.some(node => ["A", "IMG", "SCRIPT", "IFRAME", "MATH"].includes(node.tagName)), false); assert.deepEqual(h.counters, { http: 0, timers: 0 });
+});
+test("heading recognition keeps adjacent prose and preserves headings/math inside technical output as exact raw text", () => {
+  const technical = "```text\r\n## 원문 코드 heading\r\n\\(not-an-equation\\)\r\n```\r\n";
+  const raw = "앞 문단 −100 N\n## **확인** <script>run()</script>\n다음 문단 UNKNOWN\n\n" + technical + "\n### 남은 검토\nNOT_RELEASED";
+  const h = harness(), card = new TinyNode(); h.ui.appendResearchAnswer(card, raw, "empty");
+  const body = card.children[0], nodes = walk(body);
+  assert(nodes.some(node => node.tagName === "H3" && node.textContent === "확인 <script>run()</script>"));
+  assert(nodes.some(node => node.tagName === "H4" && node.textContent === "남은 검토"));
+  assert(body.textContent.includes("앞 문단 −100 N")); assert(body.textContent.includes("다음 문단 UNKNOWN")); assert(body.textContent.includes("NOT_RELEASED"));
+  assert(nodes.some(node => node.tagName === "PRE" && node.textContent === technical));
+  assert.equal(nodes.filter(node => node.tagName === "SCRIPT").length, 0);
+  assert.equal(walk(card).filter(node => node.tagName === "PRE").at(-1).textContent, raw);
+  assert.match(styleSource, /\.research-question-columns\{[^}]*grid-template-columns:minmax\(0,1fr\)\}/);
+  assert.deepEqual(h.counters, { http: 0, timers: 0 });
+});
+
 test("actual completed response error is visible while raw completion/confirmed continuation and failure/cancel precedence stay intact", () => {
   const h = harness(), result = payload("도구 실행을 완료하지 못했습니다. **UNKNOWN**, `NOT_RELEASED` 유지");
   result.error = Array(6).fill("CAE native guard denied this operation.").join("\n");

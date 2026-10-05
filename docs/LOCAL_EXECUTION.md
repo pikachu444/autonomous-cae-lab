@@ -1,3 +1,23 @@
+# Current approved CAE research launcher — source gate, live acceptance open
+
+Root prepared the existing approved local settings outside this public repository.
+The source-reviewed foreground entry point is:
+
+```powershell
+.\scripts\cae-research-local.ps1
+```
+
+It reuses approved ChatGPT/`openai-codex/gpt-5.6-sol`, existing OpenScience2.0.146,
+canonical FixtureRefinement/schema7/fourteen tools, new store/profile, and the same owned Research+Lab binding.
+Default local path settings: `%LOCALAPPDATA%\AutonomousCAELab\cae-research-settings.json`;
+schema1 has only runtime_prefix, auth_profile_root and project_binding_path. No credentials belong in Git.
+No new login/model/provider is selected. A reused output path is rejected. Ctrl+C is the intended foreground exit.
+Verified-owner cleanup is required; real Ctrl+C and new-store question acceptance are still OPEN at this source checkpoint.
+`-ValidateOnly` performs path/project/schema admission and explicitly returns NOT_CHECKED readiness.
+A model answer/exit0 cannot qualify engineering. Read the single current plan and source acceptance record above before use.
+
+---
+
 # Primary Windows / WSL execution — 2026-09-30
 
 The primary session uses `C:\SourceCodes\autonomous-cae-lab`. The folder was

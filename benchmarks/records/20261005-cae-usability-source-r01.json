@@ -1,0 +1,260 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.usability-source-acceptance",
+  "recorded_utc": "2026-10-05T05:27:56.1797813Z",
+  "verdict": "PASS_BOUNDED_SOURCE_INTEGRATION_ONLY",
+  "user_service_acceptance": "OPEN",
+  "engineering_decision": "NOT_RELEASED",
+  "source_under_controls": {
+    "head": "ed3f4edeac7d19a5ee4b15fd2822fd89d2c95a8a",
+    "dirty": [
+      "A  scripts/cae-research-local.ps1",
+      "A  scripts/verify_cae_research_launcher.ps1",
+      "M  apps/lab/static/app.js",
+      "M  apps/lab/static/result-presentation.js",
+      "M  apps/lab/static/style.css",
+      "M  scripts/lab-local.ps1",
+      "M  tests/test_research_answer.js",
+      "M  tests/test_result_presentation.js"
+    ],
+    "source_tree_sha256": "278bf1571ffbec360a44926ce528396ece34a837aaea2dafc85ef886ec8626c9",
+    "fixture_head": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "fixture_index": "3e48bf6138f495299f45b1af254bfb4aaff307b8"
+  },
+  "source_files": [
+    {
+      "path": "scripts/cae-research-local.ps1",
+      "bytes": 13825,
+      "sha256": "db2898c6497ad497105f86e0beb4dfb178d29113c0ad900ebe1248caa1a0a13b",
+      "index_blob": "8ec38a65202448d10a0e1e3c698a3d6ce82adcc3"
+    },
+    {
+      "path": "scripts/lab-local.ps1",
+      "bytes": 2748,
+      "sha256": "2f1f21393bbbe76eac3766fe430080785b180a3fed7562e43dd74d54f880dc69",
+      "index_blob": "b8061084993320792fb1c496ff3f28fc52992462"
+    },
+    {
+      "path": "scripts/verify_cae_research_launcher.ps1",
+      "bytes": 25511,
+      "sha256": "73fc60c55b3c07a4daa9ebb3fadf9672cd15dac26586867b221d618dbda9bdcf",
+      "index_blob": "6e67a54feb79dd59158f57809352c4dea742a6a2"
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "bytes": 126942,
+      "sha256": "a5540efff796edeaacbb84c224c8a1ad5c4b52e52c4a8244afde1d1d9951e6c6",
+      "index_blob": "307cb1d7be9de60d006cebff9442b42afdaaa9c2"
+    },
+    {
+      "path": "apps/lab/static/result-presentation.js",
+      "bytes": 18354,
+      "sha256": "4e12d3b95410006115ca634e30ec6f0097af529f3348b7da90f278b42aba7c96",
+      "index_blob": "0d1fa950ef3eac79008aed79e8ab91bab4aaa27c"
+    },
+    {
+      "path": "apps/lab/static/style.css",
+      "bytes": 27960,
+      "sha256": "e438d5fe857f9c055fa25ad1a095b8084a0aa0b26db296db319b35406fea0bfa",
+      "index_blob": "56c4db5049fd907df63b6b20c5e95655373bc69b"
+    },
+    {
+      "path": "tests/test_research_answer.js",
+      "bytes": 30969,
+      "sha256": "d133575a6cc60cee67b7dc977eb0fe1fccd31e7463dfcbf75b9041d7dfe4092a",
+      "index_blob": "8d6f3473107e9899140a996e638d9473bccab3d7"
+    },
+    {
+      "path": "tests/test_result_presentation.js",
+      "bytes": 33982,
+      "sha256": "1c337235e5595fbcbe47d006701dd5fc63bdec25a1b5d60e0bec12671b772c8c",
+      "index_blob": "aa373c50e02bcc1d4b2d6cbf192d6f4c0d227799"
+    }
+  ],
+  "protected_native_files": [
+    {
+      "path": "caelab/adapters/codeaster_elasticity.py",
+      "sha256": "956e84044d0b35780a23648577771236b708fefeb8d69492b6d85cdf4a25165a",
+      "bytes": 41300
+    },
+    {
+      "path": "caelab/adapters/codeaster_execution.py",
+      "sha256": "04bf82ca3ea258a9218f9de33c14aefda1319abfa199fa246c36d5d1cefc2fad",
+      "bytes": 1347
+    },
+    {
+      "path": "caelab/adapters/codeaster_worker.py",
+      "sha256": "856219f47b0410c68d3163d8e1206f3cf1627d421accfefb14eada5b57b627dc",
+      "bytes": 33550
+    },
+    {
+      "path": "caelab/execution_control.py",
+      "sha256": "e4fca5ca504f71b15503cb3dc83b30e78787f56957e138086c0d1a46af84aede",
+      "bytes": 6546
+    },
+    {
+      "path": "caelab/adapters/fixture_assembly_mesh_reuse.py",
+      "sha256": "eebd4a6fcd8b8f98badc6fe9508d65a68efc41e545c61770bd0ae68d50ed8d18",
+      "bytes": 18708
+    },
+    {
+      "path": "caelab/adapters/fixture_assembly_native_import.py",
+      "sha256": "b7dc793cc9e054cdf10422ffd93e8a86a2b6133a3f69230a22fdf2e2ba86b878",
+      "bytes": 18846
+    },
+    {
+      "path": "caelab/adapters/fixture_assembly_native_import_worker.py",
+      "sha256": "f989f06ed0169eb06c297b3d1adc18b331f88dd254244af7d30aca31d1248e15",
+      "bytes": 18525
+    },
+    {
+      "path": "caelab/storage.py",
+      "sha256": "f77e0f3cc74de59cab9ba5addd15c54c71bb14d4172a31b28796c6482b957a6f",
+      "bytes": 3309
+    }
+  ],
+  "changes": [
+    "One foreground launcher composes the existing approved OpenScience Research runtime with Lab and forwards the same new store/owner into WSL.",
+    "Fixed existing ChatGPT/gpt-5.6-sol, FixtureRefinement/schema7/fourteen tools; external path settings only; fresh output/profile admission and verified-owner cleanup.",
+    "Same-revision verified direct parent CAD preview; truthful last-pair displacement-screen captions; inert readable headings and preserved raw answer.",
+    "Reusable source verifier now records full actual selected source/fixture identities and working dependency pins; historical815 remains explicitly historical."
+  ],
+  "architecture_contract_impact": "Existing ADR0033/0034 operations and descriptor only. No new Core/Domain/adapter schema, model, numerical rule or tool.",
+  "source_reviews": {
+    "model": "gpt-6-astra",
+    "effort": "high",
+    "original": "S1_P2_PROVENANCE_DEFECT_S2a_SOURCE_PASS",
+    "correction": "P2_CLOSED_BOUNDED_SOURCE_PASS",
+    "open_identified_p1": 0,
+    "open_identified_p2": 0,
+    "reviewer_test_reruns": 0
+  },
+  "root_checks": {
+    "powershell_mock_pass": 35,
+    "powershell_fail": 0,
+    "node_controlled_dom_pass": 46,
+    "node_fail": 0,
+    "node_skip": 0,
+    "js_syntax_pass": 4,
+    "staged_diff_check": "PASS",
+    "protected_native_working_bytes_unchanged": 8
+  },
+  "real_start_question_stop_browser_native": "NOT_RUN_IN_SOURCE_UNIT",
+  "actual_external_settings_validation": "PATHS_VALIDATED_NOT_STARTED_NOT_READINESS",
+  "goal_observation": {
+    "observed_utc": "2026-10-05 05:13:57 UTC",
+    "status": "BLOCKED",
+    "transition_cause": "UNKNOWN",
+    "prior_active_observation": "historical 04:31:51 UTC",
+    "heartbeat_status": "ACTIVE",
+    "authorised_work_continues": true,
+    "resume_control": "user/system"
+  },
+  "exact_previous_ci": {
+    "source_commit": "bffbd807c56d9aa2cf817f4f6f5bfcbfb54bae77",
+    "run_id": 37265205047,
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs_success": 7,
+    "jobs_failure": 3,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37265205047",
+    "failures": [
+      {
+        "job": "explicit",
+        "observed": "official digest-pinned download HTTP404/curl22",
+        "category": "INSTALL_URL_OR_REMOTE_ARTIFACT_FAILURE_NO_SOLVER_RUN"
+      },
+      {
+        "job": "codeaster",
+        "observed": "Native numerical checks failed: E-ansys_vmd1_regular-Fz-aster",
+        "actual_numeric_cause": "UNKNOWN"
+      },
+      {
+        "job": "pde",
+        "observed": "Wrong vector numerical classification",
+        "actual_native_or_rejection_cause": "UNKNOWN"
+      }
+    ]
+  },
+  "source_unit_ci": "NOT_RUN_YET_NOT_A_PREVIOUS_CI_PASS",
+  "retained_evidence": [
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/usability-source-review-astra-01/RECEIPT.json",
+      "bytes": 558,
+      "sha256": "87bc636f74b36ed549d31d11280ead62ff87e4993faea0983eff4076cb7b7994"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/usability-source-review-astra-01/RECEIPT-02.json",
+      "bytes": 559,
+      "sha256": "134eb3e7b11882090e227d5ee0f9aa67ac5c012dac4561611e64e46e75b9949f"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/launcher-source-correction-root-01/FREEZE.json",
+      "bytes": 1626,
+      "sha256": "3864f58858d1cc26a7ea2cad718a89699aa8674a3d807b8a53f6982d74511332"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/usability-source-integration-root-01/launcher-controls-01/RECEIPT.json",
+      "bytes": 5991,
+      "sha256": "9e597de26ea113f7c5ba429714574142e82bcb81f205f7b955fb328b87faaf85"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/usability-source-integration-root-01/launcher-controls-01/SOURCE-PIN-BEFORE.json",
+      "bytes": 180547,
+      "sha256": "09f0551aecf2c57653d5efb84bb57c71b3ac08dc26a8efdb4b013d443379da90"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/usability-source-integration-root-01/launcher-controls-01/SOURCE-PIN-AFTER.json",
+      "bytes": 180547,
+      "sha256": "09f0551aecf2c57653d5efb84bb57c71b3ac08dc26a8efdb4b013d443379da90"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/usability-source-integration-root-01/node-tests-01.txt",
+      "bytes": 5503,
+      "sha256": "b1b6850825b072f404bdd83bbc072c6036a17aef9b03f5629c379f0524a51438"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/root-observation-01/GOAL-BLOCKED-OBSERVATION-02.json",
+      "bytes": 2347,
+      "sha256": "a3e64a748542a71b8ca0e3a2aa086a540c6e4ac0126d7fd4c856a33aded000c4"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/bff-ci-readonly-root-01/RUN.json",
+      "bytes": 239,
+      "sha256": "9766aef3f23f334f884f6fe8474da0dcfedab5c1e66fd93de505ed1a0cedfe44"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/bff-ci-readonly-root-01/JOBS.jsonl",
+      "bytes": 2329,
+      "sha256": "1842f77225736584af6fb91ec9618db828667eaf386beedcee6a6dc685ef8164"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/bff-ci-readonly-root-01/explicit-failed.log",
+      "bytes": 4950,
+      "sha256": "74b69912cfdd7f6192d5ef6afbd3521c88ff9d4b8088c531fd444c0e78f5e301"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/bff-ci-readonly-root-01/codeaster-failed.log",
+      "bytes": 6925,
+      "sha256": "bdd49e64f866fae9a2ad869d66dc06a0e5b192577a7b0b119dedf52707421711"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/bff-ci-readonly-root-01/pde-failed.log",
+      "bytes": 5129,
+      "sha256": "c1ceb99fe4e7e0dc8317ba1d3349c9626e9a10af2baafc8baddfe75a50ff0839"
+    }
+  ],
+  "retention": "Raw receipts/snapshots/logs remain local ignored bytes. This public record and code do not claim remote restoration of all artifacts.",
+  "preserved": [
+    "Original frozen candidates and failed review",
+    "52 requirement rows and historical prose",
+    "Old fine1p5 partial outputs/RUNNING; terminal and cause UNKNOWN",
+    "Invalid diagnostic stress and seven blocking UNKNOWNs"
+  ],
+  "next": [
+    "Actual clean-source new-store Start/Question/Stop and real interruption gate",
+    "Fresh same-record GUI; S2b actual mesh/BC/load/U still OPEN",
+    "S3 append-only HTTP recovery/admission then U1 user workflow",
+    "Remaining ordered Phase1-7 gates in docs/CAE_RESEARCH_EXECUTION_PLAN.md"
+  ]
+}

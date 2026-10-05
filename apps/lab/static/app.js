@@ -6,7 +6,7 @@ const state = {
   overview: null, presets: {}, studyId: "", study: null, registry: { entries: [] },
   discovery: [], job: null, submitting: false, pollTimer: null, handlers: new Map(),
   selectedExperiment: null, selectedCampaign: null, comparison: new Set(), studyRequest: 0,
-  experimentRequest: 0, campaignRequest: 0, viewer: null, fixtureConditionError: null,
+  experimentRequest: 0, campaignRequest: 0, viewer: null, fixtureConditionError: null, storeSwitching: false,
   modelDiscovery: [], modelContext: "", modelRequest: 0,
   importedLevels: [], importedMeshError: null, importedRequest: 0, importedLoading: false,
   campaignSelections: new Map(), campaignSelectionKey: "", campaignDrafts: {}, campaignTarget: "cad", cadCampaignType: "doe",
@@ -291,17 +291,41 @@ function renderResearchAnswers() {
     card.append(rawDetail("답변·도구·작업 원본 기록", job)); target.append(card);
   });
 }
+function researchAnswerBlocks(answer) {
+  const blocks = [], lines = answer.split(/\r\n|\n|\r/), starts = [0]; let start = 0, fence = null;
+  for (const ending of answer.matchAll(/\r\n|\n|\r/g)) starts.push(ending.index + ending[0].length);
+  const flush = end => { if (end > start) blocks.push(...window.researchControls.answerBlocks(answer.slice(start, end)).blocks); };
+  lines.forEach((line, index) => {
+    if (fence) { if (line.trim() === fence) fence = null; return; }
+    const technical = /^\s*(`{3,}|~{3,})([^`]*)$/.exec(line);
+    if (technical) { fence = technical[1]; return; }
+    const heading = /^ {0,3}(#{1,6})[ \t]+(.+)$/.exec(line);
+    if (!heading) return;
+    flush(starts[index]);
+    const parsed = window.researchControls.answerBlocks(heading[2]).blocks[0];
+    blocks.push({ type: "heading", level: Math.min(6, Math.max(3, heading[1].length + 1)),
+      parts: parsed?.parts ?? [{ type: "text", text: heading[2] }] });
+    start = starts[index + 1] ?? answer.length;
+  });
+  flush(answer.length); return blocks;
+}
 function appendResearchAnswer(card, answer, emptyMessage) {
   const body = el("div", undefined, "research-answer-text research-answer-formatted");
   function inline(target, parts) {
     parts.forEach(part => {
-      const item = el(part.type === "strong" ? "strong" : part.type === "em" ? "em" : part.type === "code" ? "code" : "span", part.text);
+      // Remove only paired math delimiters in prose. Keep expression text,
+      // signs, units and code unchanged; there is no equation evaluator.
+      const value = part.type !== "code" && typeof part.text === "string"
+        ? part.text.replace(/\\\(([\s\S]*?)\\\)/g, "$1").replace(/\\\[([\s\S]*?)\\\]/g, "$1") : part.text;
+      const item = el(part.type === "strong" ? "strong" : part.type === "em" ? "em" : part.type === "code" ? "code" : "span", value);
       if (part.parts) inline(item, part.parts); target.append(item);
     });
   }
+  if (answer && /\\(?:\(|\[)/.test(answer)) body.append(el("p", "수식은 원문 식을 텍스트로 표시합니다. 첨자·지수 표기와 정확한 원문은 ‘AI 답변 원문’에서 확인할 수 있습니다.", "hint research-equation-note"));
   if (!answer) body.append(el("p", emptyMessage));
-  else window.researchControls.answerBlocks(answer).blocks.forEach(block => {
+  else researchAnswerBlocks(answer).forEach(block => {
     if (block.type === "paragraph") { const paragraph = el("p"); inline(paragraph, block.parts); body.append(paragraph); }
+    else if (block.type === "heading") { const heading = el(`h${block.level}`); inline(heading, block.parts); body.append(heading); }
     else if (block.type === "list") {
       const items = el(block.ordered ? "ol" : "ul", undefined, "research-answer-list");
       block.items.forEach(entry => {
@@ -802,6 +826,8 @@ function renderExperimentList() {
   updateControls();
 }
 async function inspectExperiment(identifier) {
+  if (state.storeSwitching) throw new Error("저장소를 바꾸고 있습니다. 전환 후 기록을 열어 주세요.");
+  if (!window.resultPresentation.safeExperimentId(identifier)) throw new Error("실험 식별자를 확인할 수 없습니다.");
   location.hash = "results"; const request = ++state.experimentRequest, store = activeStore();
   state.selectedExperiment = null;
   const loading = panel("실험을 불러오고 있습니다."); loading.append(el("p", "저장된 기록과 원본 파일의 일치를 확인하고 있습니다.", "hint separated")); clear("experimentDetail").append(loading);
@@ -809,7 +835,7 @@ async function inspectExperiment(identifier) {
   try {
     const data = await api(`/api/experiments/${idPath(identifier)}`);
     if (request !== state.experimentRequest || store !== activeStore()) return;
-    if (data.integrity !== "VERIFIED") throw new Error("서버가 이 기록의 검증 완료를 확인하지 않았습니다.");
+    if (data.integrity !== "VERIFIED" || data.result?.experiment_id !== identifier) throw new Error("서버가 요청한 기록의 식별자와 검증 완료를 확인하지 않았습니다.");
     state.selectedExperiment = data; renderExperimentDetail(data);
   } catch (error) {
     if (request !== state.experimentRequest) return;
@@ -834,37 +860,22 @@ function renderExperimentDetail(data) {
   const verdicts = el("div", undefined, "status-title"); verdicts.append(badge(result.status, workflow.stage), badge(data.integrity), badge(result.decision)); header.append(verdicts);
   header.append(el("p", workflow.next, "hint"));
   const context = result.solver_status === "NOT_RUN" ? "이 기록에는 해석 실행 결과가 없습니다."
-    : `해석 실행: ${labels[result.solver_status] ?? "상세 기록에서 확인"} · 수치 수렴: ${result.converged === true ? "확인됨" : result.converged === false ? "미수렴" : "미확인"}`;
+    : `해석 실행: ${labels[result.solver_status] ?? "상세 기록에서 확인"} · ${presentation.numericalCaption(result)}`;
   header.append(el("p", context, "result-context"));
   const downloads = el("div", undefined, "button-row");
   downloads.append(link("보고서 열기", `/api/report/${idPath(identifier)}.html`, "button secondary compact"), link("원본 묶음 저장", `/api/report/${idPath(identifier)}.zip`, "button subtle compact", true)); header.append(downloads); container.append(header);
 
   const overview = el("div", undefined, "result-overview");
   const visual = panel("모델 형상"); visual.classList.add("result-visual");
-  const artifactsList = list(result.artifacts), surface = artifactsList.find(item => /(?:^|\/)surface\.json$/.test(item.path));
-  const image = artifactsList.find(item => /\.(png|jpe?g|webp)$/i.test(item.path));
-  if (surface) {
-    const loading = el("p", "원본 3D 형상을 불러오고 있습니다…", "empty-state surface-loading"); visual.append(loading);
-    const retry = action("형상 다시 불러오기", loadSurface, "button secondary compact"); retry.hidden = true; visual.append(retry);
-    async function loadSurface() {
-      retry.disabled = true;
-      try { if (await openSurface(visual, identifier, surface.path)) { loading.remove(); retry.hidden = true; } }
-      catch (error) { if (visual.isConnected) { loading.textContent = `형상을 불러오지 못했습니다. ${error.message}`; retry.hidden = false; } }
-      finally { retry.disabled = false; }
-    }
-    Promise.resolve().then(loadSurface);
-    visual.append(el("p", "같은 실험에서 저장한 원본 CAD 표면입니다.", "visual-note"));
-  } else if (image) {
-    const picture = el("img"); picture.className = "preview-image"; picture.src = artifactUrl(identifier, image.path); picture.alt = "선택한 실험의 원본 미리보기"; picture.loading = "lazy";
-    picture.addEventListener("error", () => { picture.hidden = true; visual.append(el("p", "미리보기를 확인하지 못했습니다. 상세 기록의 원본 파일을 확인하세요.", "metric-reason")); });
-    visual.append(picture);
-  } else visual.append(el("p", "이 실험에 등록된 형상 미리보기가 없습니다. 제공된 수치 결과와 원본 파일을 확인하세요.", "empty-state"));
+  const artifactsList = list(result.artifacts);
+  renderCadPreview(visual, data);
   const side = el("div", undefined, "result-side");
   const inputs = panel("입력 조건"), values = presentation.inputs(data);
   const inputList = el("dl", undefined, "result-facts");
   values.forEach(item => { inputList.append(el("dt", item.name), el("dd", `${number(item.value)}${item.unit && item.unit !== "1" ? ` ${item.unit}` : ""}`)); });
   if (values.length) inputs.append(inputList); else inputs.append(el("p", "등록된 연구 변수 입력이 없습니다. 모델·하중 설정은 상세 기록에서 확인하세요.", "empty-state"));
-  if (result.parent_experiment_id) inputs.append(experimentButton(result.parent_experiment_id, "사용한 CAD 실험 보기 →"));
+  if (presentation.safeExperimentId(result.parent_experiment_id) && result.parent_experiment_id !== identifier)
+    inputs.append(experimentButton(result.parent_experiment_id, "기록이 참조한 CAD 실험 보기 →"));
   side.append(inputs);
   const checks = panel("확인 상태");
   const checkCounts = el("div", undefined, "check-counts");
@@ -1254,13 +1265,63 @@ function renderStressNodes(container, field, identifier, path) {
   input.addEventListener("input", () => { selected = input.value.trim() ? field.nodes.filter((node) => node.node_id === Number(input.value)) : field.nodes; page = 0; draw(); });
   draw();
 }
-let viewerScript;
-async function openSurface(container, identifier, path) {
+function renderCadPreview(container, inspection) {
+  const presentation = window.resultPresentation, result = inspection.result;
   const request = state.experimentRequest, store = activeStore();
   const current = () => container.isConnected && request === state.experimentRequest && store === activeStore()
-    && state.selectedExperiment?.result?.experiment_id === identifier;
+    && !state.storeSwitching && state.selectedExperiment === inspection;
+  const ownPreview = presentation.cadPreview(inspection); let parentLink = null;
+  if (!ownPreview && (result.parent_experiment_id === null || result.parent_experiment_id === undefined)) {
+    container.append(el("p", "이 실험에 등록된 형상 미리보기가 없습니다. 제공된 수치 결과와 원본 파일을 확인하세요.", "empty-state"));
+    return Promise.resolve(false);
+  }
+  const loading = el("p", "같은 CAD 개정의 원본 형상을 확인하고 있습니다…", "empty-state surface-loading");
+  const note = el("p", "이 미리보기는 CAD 형상입니다. 해석 메시, 변형장, 구속·하중 오버레이와 절점 변위는 제공하지 않습니다.", "visual-note");
+  const retry = action("형상 다시 불러오기", loadPreview, "button secondary compact"); retry.hidden = true;
+  container.append(loading, retry, note);
+  async function loadPreview() {
+    if (!current()) return false;
+    retry.disabled = true;
+    try {
+      let preview = ownPreview;
+      if (!preview) {
+        const parentId = presentation.parentCadId(inspection);
+        const parent = await api(`/api/experiments/${idPath(parentId)}`);
+        if (!current()) return false;
+        preview = presentation.parentCadPreview(inspection, parent);
+      }
+      if (!current()) return false;
+      if (preview.parent) {
+        container.querySelector("h2").textContent = "사용한 부모 CAD 형상(해석 메시/변형장 아님)";
+        note.textContent = "같은 CAD 개정의 부모 실험에서 저장한 원본 형상입니다. 해석 메시, 변형장, 구속·하중 오버레이와 절점 변위는 이 미리보기에서 제공하지 않습니다.";
+        parentLink ??= experimentButton(preview.experimentId, "이 형상의 부모 CAD 실험 보기 →"); note.append(el("br"), parentLink);
+      } else note.textContent = "같은 실험에서 저장한 원본 CAD 형상입니다. 해석 메시, 변형장, 구속·하중 오버레이와 절점 변위는 이 미리보기에서 제공하지 않습니다.";
+      const opened = preview.kind === "surface" ? await openSurface(container, preview, current)
+        : await openCadImage(container, preview, current);
+      if (!current() || !opened) return false;
+      loading.remove(); retry.hidden = true; return true;
+    } catch (error) {
+      if (current()) { loading.textContent = `형상을 불러오지 못했습니다. ${error.message}`; retry.hidden = false; }
+      return false;
+    } finally { if (current()) retry.disabled = false; }
+  }
+  return Promise.resolve().then(loadPreview);
+}
+function openCadImage(container, preview, current) {
+  if (!current()) return Promise.resolve(false);
+  return new Promise((resolve, reject) => {
+    const picture = el("img", undefined, "preview-image"); picture.hidden = true;
+    picture.alt = preview.parent ? "사용한 부모 CAD 형상(해석 메시/변형장 아님)" : "같은 실험의 원본 CAD 형상";
+    picture.addEventListener("load", () => { if (!current()) { picture.remove(); resolve(false); return; } picture.hidden = false; resolve(true); });
+    picture.addEventListener("error", () => { picture.remove(); if (!current()) resolve(false); else reject(new Error("등록된 원본 CAD 이미지를 불러올 수 없습니다.")); });
+    container.insertBefore(picture, container.querySelector(".visual-note"));
+    picture.src = artifactUrl(preview.experimentId, preview.path);
+  });
+}
+let viewerScript;
+async function openSurface(container, preview, current) {
   if (!current()) return false;
-  const surface = await api(artifactUrl(identifier, path));
+  const surface = await api(artifactUrl(preview.experimentId, preview.path));
   if (!current()) return false;
   if (!Array.isArray(surface.bounds) || surface.bounds.length !== 2 || !Array.isArray(surface.faces)) throw new Error("원본 viewer가 읽을 수 있는 surface artifact가 아닙니다.");
   if (!window.createFaceViewer) {
@@ -1268,17 +1329,20 @@ async function openSurface(container, identifier, path) {
     await viewerScript;
   }
   if (!current()) return false;
-  const canvas = el("canvas"); canvas.className = "preview-canvas"; canvas.setAttribute("aria-label", "같은 실험의 원본 표면 · 드래그 회전, 휠 확대, 클릭 면 확인");
+  const canvas = el("canvas"); canvas.className = "preview-canvas";
+  canvas.setAttribute("aria-label", `${preview.parent ? "사용한 부모 CAD 형상(해석 메시/변형장 아님)" : "같은 실험의 원본 CAD 표면"} · 드래그 회전, 휠 확대, 클릭 면 확인`);
   const stage = el("div", undefined, "surface-stage"), controls = el("div", undefined, "surface-controls");
   const selection = el("p", window.resultPresentation.faceDescription(null), "surface-selection");
   const selectedRecord = rawDetail("선택한 면의 원본 정보", null); selectedRecord.hidden = true;
   stage.append(canvas); container.insertBefore(stage, container.querySelector(".visual-note"));
   const viewer = window.createFaceViewer(canvas, face => {
+    if (!current()) return;
     selection.textContent = window.resultPresentation.faceDescription(face); selectedRecord.hidden = !face;
     selectedRecord.querySelector("pre").textContent = pretty(face ? { component_id: face.component_id,
       catalog_face_id: face.catalog_face_id, display_face_id: face.id, type: face.type ?? face.surface } : null);
   }); viewer.setData(surface); state.viewer = viewer;
   controls.append(el("span", "드래그 회전 · 휠 확대 · 클릭 면 선택", "hint"), action("기본 보기", () => {
+    if (!current()) return;
     viewer.setData(surface); selection.textContent = window.resultPresentation.faceDescription(null); selectedRecord.hidden = true;
   }, "button subtle compact"));
   stage.append(controls, selection, selectedRecord);
@@ -1388,7 +1452,12 @@ function bindForm(id, operation, build, handler) {
 }
 async function switchStore(identifier) {
   if (busy()) throw new Error("작업 실행 중에는 저장소를 바꿀 수 없습니다.");
-  const overview = await api("/api/store", { method: "POST", body: JSON.stringify({ id: identifier }) });
+  if (state.storeSwitching) throw new Error("저장소 전환을 확인하고 있습니다.");
+  // Invalidate pending parent/artifact reads before the server changes stores.
+  state.storeSwitching = true; state.experimentRequest++; $("storeSelect").disabled = true;
+  let overview;
+  try { overview = await api("/api/store", { method: "POST", body: JSON.stringify({ id: identifier }) }); }
+  finally { state.storeSwitching = false; $("storeSelect").disabled = busy() || !state.overview; }
   state.overview = overview; state.studyId = ""; state.study = null; state.registry = { entries: [] }; state.discovery = [];
   state.researchSession = null; $("researchContinue").checked = false; renderResearchAnswers();
   invalidateModelDiscovery(); state.campaignSelections.clear(); state.campaignSelectionKey = "";

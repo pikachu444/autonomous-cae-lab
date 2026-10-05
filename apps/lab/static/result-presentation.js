@@ -29,6 +29,7 @@
     static_strength: "정적 강도", physical_load_test: "실물 하중 시험",
     fatigue_durability: "피로와 내구성", corporate_license_security: "회사 사용·보안 승인",
     joint_and_contact: "체결·접촉", material_qualification: "재료 물성 검증", stress_convergence: "응력 수렴",
+    displacement_mesh_trend: "마지막 두 메시의 변위 변화 검사",
   };
   const componentNames = {
     printed_base: "바닥판", printed_support_left: "왼쪽 받침", printed_support_right: "오른쪽 받침",
@@ -40,7 +41,11 @@
 
   function title(backend) { return lookup(backendNames, backend, "해석·모델 실험"); }
   function metricName(name, index = 0) { return lookup(metricNames, name, `결과값 ${index + 1}`); }
-  function validationName(name, index = 0) { return lookup(validationNames, name, `확인 항목 ${index + 1}`); }
+  function validationName(name, index = 0) {
+    const reaction = /^mesh_(\d+)_reaction_balance$/.exec(name);
+    return reaction ? `메시 ${Number(reaction[1]) + 1}의 X/Y/Z 반력 평형`
+      : lookup(validationNames, name, `확인 항목 ${index + 1}`);
+  }
   function inputs(record) {
     const entries = array(record.registry_snapshot?.entries);
     return Object.entries(record.result?.input_parameters ?? {}).map(([id, value], index) => {
@@ -70,6 +75,59 @@
   const object = value => value !== null && typeof value === "object" && !Array.isArray(value);
   const own = (value, key) => object(value) && Object.hasOwn(value, key) ? value[key] : undefined;
   const named = value => typeof value === "string" && value.trim().length > 0;
+  const fullMatch = (pattern, value) => typeof value === "string" && pattern.exec(value)?.[0] === value;
+  const revision = value => fullMatch(/^[0-9a-f]{64}$/, value);
+  function safeExperimentId(value) { return fullMatch(/^[A-Za-z][A-Za-z0-9_-]{0,79}$/, value); }
+  function numericalCaption(result) {
+    // Name only this adapter's recorded check. Do not infer a new verdict from
+    // metric values or turn its last-pair screen into asymptotic convergence.
+    const trend = array(result?.validations).filter(item => item?.validator === "fixture.calculix"
+      && item.type === "displacement_mesh_trend");
+    if (result?.provenance?.adapter === "fixture.calculix" && trend.length === 1) {
+      const status = lookup({ PASS: "통과", FAIL: "조건 미충족", UNKNOWN: "미확인", WARNING: "검토 필요" }, trend[0].status, "기록에서 확인");
+      const threshold = typeof trend[0].threshold === "number" && Number.isFinite(trend[0].threshold)
+        ? ` · 기준 상대비 ≤ ${trend[0].threshold}` : "";
+      return `${validationNames.displacement_mesh_trend}: ${status}${threshold} · 점근 수렴을 입증한 것은 아닙니다.`;
+    }
+    const recorded = result?.converged === true ? "충족으로 기록됨" : result?.converged === false ? "미충족으로 기록됨" : "미확인";
+    return `기록된 수치 자격: ${recorded} · 검사 범위는 상세 기록에서 확인하세요.`;
+  }
+  function safeArtifactPath(path) {
+    return typeof path === "string" && path.length > 0 && path.length <= 1024 && !/[\\:\u0000-\u001f\u007f]/.test(path)
+      && path.split("/").every(part => part && part !== "." && part !== "..");
+  }
+  function cadPreview(record) {
+    const result = record?.result;
+    if (record?.integrity !== "VERIFIED" || !safeExperimentId(result?.experiment_id) || !revision(result.cad_revision)) return null;
+    const artifacts = array(result.artifacts).filter(item => safeArtifactPath(item?.path) && item.path.startsWith("cad/")
+      && item.revision === result.cad_revision && revision(item.sha256) && Number.isSafeInteger(item.size_bytes) && item.size_bytes > 0);
+    const surface = artifacts.find(item => /(?:^|\/)surface\.json$/.test(item.path) && item.mime_type === "application/json");
+    const image = artifacts.find(item => /\.png$/i.test(item.path) && item.mime_type === "image/png"
+      || /\.jpe?g$/i.test(item.path) && item.mime_type === "image/jpeg"
+      || /\.webp$/i.test(item.path) && item.mime_type === "image/webp");
+    const artifact = surface ?? image;
+    return artifact ? { experimentId: result.experiment_id, path: artifact.path, kind: surface ? "surface" : "image", parent: false } : null;
+  }
+  function parentCadId(record) {
+    const result = record?.result, parentId = result?.parent_experiment_id;
+    if (record?.integrity !== "VERIFIED" || !safeExperimentId(result?.experiment_id) || !safeExperimentId(parentId)
+      || parentId === result.experiment_id || !revision(result.cad_revision)) throw new Error("부모 CAD 연결과 개정을 확인할 수 없습니다.");
+    return parentId;
+  }
+  function parentCadPreview(child, parent) {
+    const parentId = parentCadId(child), result = parent?.result;
+    if (parent?.integrity !== "VERIFIED" || result?.experiment_id !== parentId
+      || result.cad_revision !== child.result.cad_revision) throw new Error("부모 CAD의 기록·원본 일치 또는 같은 CAD 개정을 확인할 수 없습니다.");
+    // This bounded view accepts a direct CAD parent only, never follows a chain
+    // or cycle, and never borrows a solver image from another analysis record.
+    if (result.parent_experiment_id !== undefined && result.parent_experiment_id !== null
+      || result.solver_status !== "NOT_RUN" || result.status !== "COMPLETED_REVIEW_REQUIRED"
+      || !["fixture.cadquery", "fixture.freecad", "fixture.assembly"].includes(result.provenance?.adapter))
+      throw new Error("직접 연결된 CAD 부모 기록이 아닙니다. 부모 참조와 실행 기록을 확인하세요.");
+    const preview = cadPreview(parent);
+    if (!preview) throw new Error("같은 CAD 개정으로 등록된 부모 형상 미리보기가 없습니다.");
+    return { ...preview, parent: true };
+  }
   const step = (stage, next, tone = "unknown") => ({ stage, next, tone });
   const uncertain = () => step("현재 단계 미확인", "실행 기록과 원본을 확인하세요. 다음 단계를 판단할 정보가 부족합니다.");
   function stopped(status) {
@@ -140,12 +198,13 @@
       return step("해석 안 함", "모델과 입력 조건·실행 기록을 확인하세요. 사용할 수 있는 해석 결과는 아직 없습니다.");
     }
     if (["COMPLETED", "CONVERGED"].includes(solver)) {
-      const convergence = own(result, "converged") === false ? "미수렴으로 기록됐습니다. " : own(result, "converged") === true ? "" : "수렴 여부는 미확인입니다. ";
-      return step("해석 실행됨 · 결과 검토 필요", `${convergence}결과값과 검사 근거·남은 확인 사항을 확인하세요. 해석 실행만으로 강도나 사용 승인을 확정할 수 없습니다.`, "review");
+      const qualification = own(result, "converged") === false ? "수치 자격이 미충족으로 기록됐습니다. " : own(result, "converged") === true ? "" : "수치 자격은 미확인입니다. ";
+      return step("해석 실행됨 · 결과 검토 필요", `${qualification}결과값과 검사 근거·남은 확인 사항을 확인하세요. 해석 실행만으로 강도나 사용 승인을 확정할 수 없습니다.`, "review");
     }
     return uncertain();
   }
-  const api = { title, metricName, validationName, inputs, checks, faceDescription, workflow };
+  const api = { title, metricName, validationName, inputs, checks, faceDescription, workflow,
+    numericalCaption, safeExperimentId, cadPreview, parentCadId, parentCadPreview };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.resultPresentation = api;
 })(typeof window !== "undefined" ? window : globalThis);

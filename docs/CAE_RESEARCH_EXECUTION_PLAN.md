@@ -11,7 +11,7 @@
 - 의미 있는 실제 연구 프로토타입. 일부 단일 지지부·PDE·재료·접촉 연구는 실행 기록이 있습니다.
 - 현재 사용자 서비스 완료 아님. 기본 실행 연결, 결과 맥락, 장시간 종료·재접속이 핵심 gap입니다.
 - 전체 조립체 mechanics, broader Phase 3–7, 실물/배포 요구 OPEN. 강도·실물은 UNKNOWN/NOT_RELEASED.
-- Root 새 목표는 실제 ACTIVE. 기존30분 후속 작업 ACTIVE와 서비스 가동은 별도입니다.
+- Goal은04:31:51Z 실제 ACTIVE였으나05:13:57Z 다시 BLOCKED로 관측됐습니다. 전환 원인 UNKNOWN, 사용자/시스템 재개 제어. 기존30분 후속 작업 ACTIVE와 실제 개발·서비스 가동은 별도입니다.
 - 2026-10-05T04:19:50–56Z 관찰에 관련 listeners 없음. 이후 새 가동 검증을 요구합니다.
 - fine1.5 이전9PID 없음/terminal receipt 없음/old RUNNING 보존. 완료·종료 원인 UNKNOWN_NOT_QUALIFIED/UNKNOWN.
   같은 Gmsh import를 원인 변화 없이 재실행하지 않습니다.
@@ -22,8 +22,8 @@
 | 순서 | 작업과 사용자 결과 | 상태/담당 | 완료 기준 |
 |---|---|---|---|
 | S0 | 실제 실행·중단·목표 상태 복원 | READONLY_OBSERVED / Root | 지정PIDs/ports/원기록 구분, old outputs 보존. 종료 원인 UNKNOWN 유지 |
-| S1 | 한 실행 동작에 승인 OpenScience+Lab 연결 | IMPLEMENTING / launcher 후보 담당, 통합 Root | 같은 clean source/새 store/owner, approved5.6Sol, 질문 가능 상태, 정상 종료·실패 cleanup 확인 |
-| S2a | 부모 CAD와 정확한 수치 검사 이름을 결과에 표시 | IMPLEMENTING / UI 후보 담당 | 부모·revision·manifest 확인, stale UI 차단, mesh screen을 일반 수렴으로 과장하지 않음 |
+| S1 | 한 실행 동작에 승인 OpenScience+Lab 연결 | SOURCE_INTEGRATED_LIVE_OPEN / Root | 같은 clean source/새 store/owner, approved5.6Sol, 질문 가능 상태, 정상 종료·실패 cleanup 확인 |
+| S2a | 부모 CAD와 정확한 수치 검사 이름을 결과에 표시 | SOURCE_INTEGRATED_GUI_OPEN / Root | 부모·revision·manifest 확인, stale UI 차단, mesh screen을 일반 수렴으로 과장하지 않음 |
 | S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | OPEN / adapter·UI, Root | raw native fields와 동일 기록, probe/성분/단위·좌표계 검증. CAD 색칠을 FEA로 대신하지 않음 |
 | S3 | 종료·강제 중단·재시작 상태와 admission 복구 | NEXT / Root shared execution owner | tiny crash/identity matrix, append-only reconciliation, real native cancel/reconnect, old evidence 보존 |
 | U1 | 첫 간단한 사용자 CAE 연구 | WAITING_ON_S1_S2_S3 / Root | 아래 한 사용자 흐름을 실제로 끝내고 독립 검토·같은 GUI 결과·보고서로 확인 |
@@ -74,4 +74,17 @@ worker 시작 직전/직후, child 실행 중 재시작, 완료 직후 terminal 
 감수 기준 Main815e207 / upstream3e48bf6. 최종 private receipt02SHA=e7dcdbfca100b70406c93c0ea3edf2f7f7ca0b1bc699a78fec3a6899cdbf9334.
 공개 사본은 LF만 정리했으며 원본 사본/digest를 별도 보존합니다. source/실행 증거 전체87파일을 원격 복원했다고 주장하지 않습니다.
 [docs/reviews/20261005-astra-high/LIVE-OBSERVATION-ADDENDUM.md](reviews/20261005-astra-high/LIVE-OBSERVATION-ADDENDUM.md)에
-실제 Root 관찰과 현재 Goal 정정 출처가 있습니다. 과거 BLOCKED/생성 거절은 역사이며 지금 ACTIVE입니다.
+실제 Root 관찰과 현재 Goal 정정 출처가 있습니다. ACTIVE 관찰은04:31:51Z의 역사입니다. 최신05:13:57Z Root get_goal은 BLOCKED이며 원인은 UNKNOWN입니다.
+
+## S1/S2a source-only integration checkpoint
+
+`benchmarks/records/20261005-cae-usability-source-r01.json` binds the reviewed8working-file bytes,
+actual selected parent/source dirty state, retained Root35mock/46controlled-DOM passes and4syntax checks.
+Astra/high caught the verifier's hardcoded historical commit; Root's new correction binds full actual HEAD,
+fixture/head/index and unchanged working source snapshots. Incremental independent review closed thatP2.
+Eight protected native files and52ledger rows remain unchanged; no solver/provider/runtime was run by source checks.
+Actual external approved path settings validate, but this is NOT readiness. Next is actual clean-source
+new-store one-action Start/Question/Stop plus fresh same-record GUI. S2b fields and S3 recovery remain OPEN.
+Previous exact bff CI37265205047 closed7success/3failure: explicit official download404, Aster Fz numerical
+classification and vector PDE classification. Raw failed logs retained; deeper numeric causes UNKNOWN.
+No previous CI or source-only gate is promoted to current full service/solver/engineering acceptance.

@@ -88,14 +88,14 @@ test("analysis guidance uses declared parent compatibility plus integrity, write
   assert.equal(cadControls.eligibleParent(supportPreset, { ...record, cad_revision: "" }), false);
 });
 
-test("solver execution preserves explicit convergence uncertainty, invalid responses and release verdict", () => {
+test("solver execution preserves recorded qualification uncertainty, invalid responses and release verdict", () => {
   for (const converged of [undefined, false, true]) {
     const record = frozen({ ...cad(), solver_status: "COMPLETED", decision: "UNKNOWN", converged });
     const before = JSON.stringify(record), report = presentation.workflow(record, context(record));
     assert.equal(report.stage, "해석 실행됨 · 결과 검토 필요"); assert.equal(report.tone, "review");
     assert.match(report.next, /검사 근거·남은 확인 사항/); assert.match(report.next, /승인을 확정할 수 없습니다/);
-    if (converged === undefined) assert.match(report.next, /수렴 여부는 미확인/);
-    if (converged === false) assert.match(report.next, /미수렴으로 기록/);
+    if (converged === undefined) assert.match(report.next, /수치 자격은 미확인/);
+    if (converged === false) assert.match(report.next, /수치 자격이 미충족으로 기록/);
     assert.equal(record.decision, "UNKNOWN"); assert.equal(record.metrics.diagnostic.valid, false);
     assert(Object.is(record.metrics.diagnostic.value, -0)); assert.equal(JSON.stringify(record), before);
   }
@@ -220,4 +220,180 @@ test("per-mesh response labels preserve paired numeric lists, units and invalid 
     reason: "Declared mesh trend threshold exceeded" });
   assert.equal(presentation.checks(result).unresolved[0].status, "UNKNOWN"); assert.equal(result.decision, "NOT_RELEASED");
   assert.equal(JSON.stringify(result), before); assert.equal(presentation.metricName("unavailable_series", 7), "결과값 8");
+});
+
+test("fixture caption reports the named last-pair check, never a boolean proof of convergence", () => {
+  for (const [status, caption] of [["PASS", "통과"], ["FAIL", "조건 미충족"], ["UNKNOWN", "미확인"], ["WARNING", "검토 필요"]]) {
+    const record = frozen({ converged: true, decision: "NOT_RELEASED", provenance: { adapter: "fixture.calculix" },
+      metrics: { peak_stress: { value: 0.5990678756165371, valid: false, unit: "MPa" } },
+      validations: [{ type: "displacement_mesh_trend", validator: "fixture.calculix", status, threshold: .05 },
+        ...["machine_interface", "static_strength", "physical_load_test", "fatigue_durability", "joint_and_contact", "material_qualification", "stress_convergence"]
+          .map(type => ({ type, status: "UNKNOWN", blocking: true }))] });
+    const before = JSON.stringify(record), shown = presentation.numericalCaption(record);
+    assert.match(shown, /마지막 두 메시의 변위 변화 검사/); assert(shown.includes(caption)); assert.match(shown, /기준 상대비 ≤ 0\.05/);
+    assert.match(shown, /점근 수렴을 입증한 것은 아닙니다/); assert.doesNotMatch(shown, /수치 수렴: 확인됨/);
+    assert.equal(record.metrics.peak_stress.valid, false); assert.equal(record.decision, "NOT_RELEASED");
+    assert.equal(record.validations.filter(item => item.blocking && item.status === "UNKNOWN").length, 7);
+    assert.equal(JSON.stringify(record), before);
+  }
+  for (const record of [{ converged: true }, { converged: false }, {},
+    { converged: true, provenance: { adapter: "other.backend" }, validations: [{ type: "displacement_mesh_trend", validator: "fixture.calculix", status: "PASS" }] },
+    { converged: true, provenance: { adapter: "fixture.calculix" }, validations: [{ type: "displacement_mesh_trend", validator: "other.backend", status: "PASS" }] }]) {
+    assert.match(presentation.numericalCaption(record), /기록된 수치 자격/); assert.doesNotMatch(presentation.numericalCaption(record), /수렴.*확인됨|마지막 두 메시/);
+  }
+  assert.equal(presentation.validationName("displacement_mesh_trend"), "마지막 두 메시의 변위 변화 검사");
+  assert.equal(presentation.validationName("mesh_2_reaction_balance"), "메시 3의 X/Y/Z 반력 평형");
+});
+
+// UNSOLVED direct-parent fixtures. This tests verified-read presentation only;
+// no HTTP server, scientific run, WebGL/browser layout or native field is used.
+const { readFileSync } = require("node:fs");
+const vm = require("node:vm");
+const appSource = readFileSync(require.resolve("../apps/lab/static/app.js"), "utf8");
+const bootBoundary = appSource.indexOf('$("jobCancelBtn").addEventListener("click", async () => {');
+assert(bootBoundary > 0, "Test must stop before application boot/listeners");
+const switchStart = appSource.indexOf("async function switchStore(");
+const switchEnd = appSource.indexOf("\n// Exact Core keyword arguments", switchStart);
+assert(switchStart > bootBoundary && switchEnd > switchStart, "Read the actual store switch definition without later listeners/boot");
+const CAD_REVISION = "a".repeat(64);
+function previewArtifact(kind = "surface", changes = {}) {
+  return { path: kind === "surface" ? "cad/native/surface.json" : "cad/preview.png", revision: CAD_REVISION,
+    mime_type: kind === "surface" ? "application/json" : "image/png", sha256: "b".repeat(64), size_bytes: 100, ...changes };
+}
+function previewRecord(parent = false, artifacts = []) {
+  return { integrity: "VERIFIED", result: { experiment_id: parent ? "E-parent" : "E-analysis",
+    parent_experiment_id: parent ? null : "E-parent", cad_revision: CAD_REVISION,
+    status: "COMPLETED_REVIEW_REQUIRED", solver_status: parent ? "NOT_RUN" : "COMPLETED",
+    provenance: { adapter: parent ? "fixture.cadquery" : "fixture.calculix" }, artifacts } };
+}
+test("parent preview admits only the exact verified direct CAD parent and same-revision manifested CAD artifact", () => {
+  const child = frozen(previewRecord()), parent = frozen(previewRecord(true, [previewArtifact()]));
+  const before = JSON.stringify([child, parent]);
+  assert.deepEqual(presentation.parentCadPreview(child, parent), { experimentId: "E-parent", path: "cad/native/surface.json", kind: "surface", parent: true });
+  assert.equal(presentation.parentCadPreview(child, previewRecord(true, [previewArtifact("image")])).kind, "image");
+  assert.equal(JSON.stringify([child, parent]), before);
+  const changed = changes => ({ ...parent, result: { ...parent.result, ...changes } });
+  for (const invalid of [{ ...parent, integrity: "NOT_CHECKED" }, changed({ experiment_id: "E-unrelated" }), changed({ cad_revision: "c".repeat(64) }),
+    changed({ parent_experiment_id: "E-analysis" }), changed({ parent_experiment_id: "E-parent" }), changed({ parent_experiment_id: "E-other-CAD" }),
+    changed({ solver_status: "COMPLETED" }), changed({ status: "REJECTED" }), changed({ provenance: { adapter: "other.backend" } })]) {
+    assert.throws(() => presentation.parentCadPreview(child, invalid));
+  }
+  for (const invalid of [{ ...child, integrity: "NOT_CHECKED" }, { ...child, result: { ...child.result, parent_experiment_id: "E-analysis" } },
+    { ...child, result: { ...child.result, cad_revision: "" } }]) assert.throws(() => presentation.parentCadId(invalid));
+  for (const unsafe of ["../E-parent", "E/parent", "E\\parent", "E-parent\n", "E-parent?store=other", "E-parent" + "x".repeat(80)]) {
+    assert.equal(presentation.safeExperimentId(unsafe), false);
+    assert.throws(() => presentation.parentCadId({ ...child, result: { ...child.result, parent_experiment_id: unsafe } }));
+  }
+  for (const changes of [{ revision: "c".repeat(64) }, { path: "cad/../surface.json" }, { path: "/cad/surface.json" },
+    { path: "cad\\surface.json" }, { path: "cad/\u0000surface.json" }, { path: "simulation/surface.json" },
+    { sha256: "not-a-digest" }, { size_bytes: -1 }, { mime_type: "text/html" }])
+    assert.throws(() => presentation.parentCadPreview(child, previewRecord(true, [previewArtifact("surface", changes)])));
+});
+
+class PreviewNode {
+  constructor(tag = "div") { this.tagName = tag.toUpperCase(); this.children = []; this.listeners = new Map(); this.attributes = {}; this.dataset = {}; this.className = ""; this._text = ""; this.isConnected = true; }
+  set textContent(value) { this._text = String(value ?? ""); this.children = []; }
+  get textContent() { return this._text + this.children.map(child => child.textContent).join(""); }
+  set innerHTML(_value) { throw new Error("Untrusted preview must remain inert"); }
+  append(...items) { items.forEach(child => { child.parentNode = this; this.children.push(child); }); }
+  insertBefore(child, before) { child.parentNode = this; const index = this.children.indexOf(before); this.children.splice(index < 0 ? this.children.length : index, 0, child); }
+  remove() { if (this.parentNode) this.parentNode.children = this.parentNode.children.filter(child => child !== this); this.isConnected = false; }
+  replaceChildren(...items) { this.children.forEach(child => { child.isConnected = false; }); this.children = []; this._text = ""; this.append(...items); }
+  addEventListener(name, callback) { this.listeners.set(name, callback); }
+  setAttribute(name, value) { this.attributes[name] = String(value); }
+  querySelector(selector) { return previewWalk(this).slice(1).find(node => selector.startsWith(".") ? node.className.split(/\s+/).includes(selector.slice(1)) : node.tagName === selector.toUpperCase()) ?? null; }
+}
+function previewWalk(node) { return [node, ...node.children.flatMap(previewWalk)]; }
+function previewHarness({ viewerReady = true } = {}) {
+  const ids = new Map(), requests = [], shown = [], $ = id => { if (!ids.has(id)) ids.set(id, new PreviewNode()); return ids.get(id); };
+  const document = { getElementById: $, createElement: tag => new PreviewNode(tag), head: new PreviewNode("head") };
+  const viewer = () => ({ setData: value => shown.push(value) });
+  const sandbox = { document, Node: PreviewNode, window: { resultPresentation: presentation, ...(viewerReady ? { createFaceViewer: viewer } : {}) },
+    location: { hash: "#results" }, URL, URLSearchParams, Intl, console,
+    fetch: (path, options) => new Promise(resolve => { requests.push({ path, options, respond: (data, ok = true) => resolve({ ok, status: ok ? 200 : 409, json: async () => data }) }); }),
+    setTimeout: () => { throw new Error("No live jobs or application timers permitted"); }, clearTimeout: () => {} };
+  vm.createContext(sandbox);
+  vm.runInContext(appSource.slice(0, bootBoundary) + "\n" + appSource.slice(switchStart, switchEnd)
+    + "\nglobalThis.previewApp = {state,renderCadPreview,inspectExperiment,switchStore};", sandbox);
+  const app = sandbox.previewApp; app.state.overview = { active_store: "local", stores: [{ id: "local", writable: true }] };
+  const visual = new PreviewNode("article"); visual.append(Object.assign(new PreviewNode("h2"), { textContent: "모델 형상" }));
+  const child = frozen(previewRecord()); app.state.selectedExperiment = child;
+  return { app, visual, child, requests, shown, document, window: sandbox.window, viewer };
+}
+async function waitForRequests(h, count) { for (let tick = 0; tick < 30 && h.requests.length < count; tick++) await Promise.resolve(); assert.equal(h.requests.length, count); }
+const DISPLAY_SURFACE = frozen({ bounds: [[0, 0, 0], [32, 40, 26]], faces: [] });
+test("actual parent surface renderer reads the declared parent then its verified artifact and links that same parent", async () => {
+  const h = previewHarness(), original = JSON.stringify(h.child), pending = h.app.renderCadPreview(h.visual, h.child);
+  await waitForRequests(h, 1); assert.equal(h.requests[0].path, "/api/experiments/E-parent");
+  h.requests[0].respond(frozen(previewRecord(true, [previewArtifact()])));
+  await waitForRequests(h, 2); assert.equal(h.requests[1].path, "/api/artifacts/E-parent?path=cad%2Fnative%2Fsurface.json");
+  h.requests[1].respond(DISPLAY_SURFACE); assert.equal(await pending, true); assert.equal(h.shown.length, 1); assert.equal(h.shown[0], DISPLAY_SURFACE);
+  assert.equal(h.visual.querySelector("h2").textContent, "사용한 부모 CAD 형상(해석 메시/변형장 아님)");
+  assert.match(h.visual.querySelector("canvas").attributes["aria-label"], /부모 CAD.*해석 메시\/변형장 아님/);
+  assert.match(h.visual.textContent, /구속·하중 오버레이와 절점 변위.*제공하지 않습니다/);
+  const parentLink = previewWalk(h.visual).find(node => node.tagName === "BUTTON" && node.className.includes("record-id")); assert(parentLink);
+  assert.equal(parentLink.textContent, "이 형상의 부모 CAD 실험 보기 →"); assert.equal(JSON.stringify(h.child), original);
+});
+test("late parent record after a selection change cannot fetch or paint a different parent's surface", async () => {
+  const h = previewHarness(), pending = h.app.renderCadPreview(h.visual, h.child);
+  await waitForRequests(h, 1); h.app.state.selectedExperiment = previewRecord();
+  h.requests[0].respond(previewRecord(true, [previewArtifact()])); assert.equal(await pending, false);
+  assert.equal(h.requests.length, 1); assert.equal(h.shown.length, 0); assert.equal(h.visual.querySelector("canvas"), null);
+  assert.equal(h.visual.querySelector("h2").textContent, "모델 형상");
+});
+test("late surface after a store switch and late viewer script after a request change never create a current canvas", async () => {
+  for (const delayedScript of [false, true]) {
+    const h = previewHarness({ viewerReady: !delayedScript }), pending = h.app.renderCadPreview(h.visual, h.child);
+    await waitForRequests(h, 1); h.requests[0].respond(previewRecord(true, [previewArtifact()])); await waitForRequests(h, 2);
+    if (!delayedScript) { h.app.state.overview.active_store = "other"; h.requests[1].respond(DISPLAY_SURFACE); }
+    else {
+      h.requests[1].respond(DISPLAY_SURFACE); for (let tick = 0; tick < 30 && !h.document.head.children.length; tick++) await Promise.resolve();
+      assert.equal(h.document.head.children.length, 1); h.app.state.experimentRequest++;
+      h.window.createFaceViewer = h.viewer; h.document.head.children[0].listeners.get("load")();
+    }
+    assert.equal(await pending, false); assert.equal(h.shown.length, 0); assert.equal(h.visual.querySelector("canvas"), null);
+  }
+});
+test("actual store POST invalidates an outstanding parent read before the active-store response and blocks new inspection", async () => {
+  const h = previewHarness(), pending = h.app.renderCadPreview(h.visual, h.child);
+  await waitForRequests(h, 1); const switching = h.app.switchStore("other"); await waitForRequests(h, 2);
+  assert.equal(h.app.state.storeSwitching, true); assert.equal(h.requests[1].path, "/api/store"); assert.equal(h.requests[1].options.method, "POST");
+  await assert.rejects(h.app.inspectExperiment("E-analysis"), /저장소를 바꾸고 있습니다/);
+  h.requests[0].respond(previewRecord(true, [previewArtifact()])); assert.equal(await pending, false);
+  assert.equal(h.requests.length, 2); assert.equal(h.shown.length, 0);
+  h.requests[1].respond({ error: "Controlled store rejection" }, false); await assert.rejects(switching, /Controlled store rejection/);
+  assert.equal(h.app.state.storeSwitching, false);
+});
+test("parent record integrity/revision/link errors remain visible without any artifact fetch", async () => {
+  for (const parent of [{ ...previewRecord(true, [previewArtifact()]), integrity: "NOT_CHECKED" },
+    ...[{ cad_revision: "c".repeat(64) }, { experiment_id: "E-unrelated" }, { parent_experiment_id: "E-analysis" }]
+      .map(change => ({ ...previewRecord(true), result: { ...previewRecord(true, [previewArtifact()]).result, ...change } }))]) {
+    const h = previewHarness(), pending = h.app.renderCadPreview(h.visual, h.child);
+    await waitForRequests(h, 1); h.requests[0].respond(parent); assert.equal(await pending, false);
+    assert.equal(h.requests.length, 1); assert.match(h.visual.textContent, /형상을 불러오지 못했습니다/); assert.equal(h.shown.length, 0);
+  }
+});
+test("parent endpoint errors and self-references cannot become an artifact preview", async () => {
+  const h = previewHarness(), pending = h.app.renderCadPreview(h.visual, h.child);
+  await waitForRequests(h, 1); h.requests[0].respond({ error: "Controlled missing parent" }, false);
+  assert.equal(await pending, false); assert.match(h.visual.textContent, /Controlled missing parent/); assert.equal(h.requests.length, 1);
+  const self = previewHarness();
+  const invalid = frozen({ ...self.child, result: { ...self.child.result, parent_experiment_id: "E-analysis" } });
+  self.app.state.selectedExperiment = invalid;
+  assert.equal(await self.app.renderCadPreview(self.visual, invalid), false); assert.equal(self.requests.length, 0);
+  assert.match(self.visual.textContent, /부모 CAD 연결과 개정을 확인할 수 없습니다/);
+});
+test("parent image stays hidden until its original load event and late images are discarded after selection changes", async () => {
+  for (const stale of [false, true]) {
+    const h = previewHarness(), pending = h.app.renderCadPreview(h.visual, h.child);
+    await waitForRequests(h, 1); h.requests[0].respond(previewRecord(true, [previewArtifact("image")]));
+    for (let tick = 0; tick < 30 && !h.visual.querySelector("img"); tick++) await Promise.resolve();
+    const image = h.visual.querySelector("img"); assert(image); assert.equal(image.hidden, true);
+    assert.equal(image.src, "/api/artifacts/E-parent?path=cad%2Fpreview.png"); assert.match(image.alt, /부모 CAD.*해석 메시\/변형장 아님/);
+    if (stale) h.app.state.selectedExperiment = previewRecord();
+    image.listeners.get("load")(); assert.equal(await pending, !stale); assert.equal(h.requests.length, 1);
+    if (stale) { assert.equal(h.visual.querySelector("img"), null); assert.equal(image.hidden, true); }
+    else assert.equal(image.hidden, false);
+    assert.equal(h.shown.length, 0, "An image is never a nodal result field");
+  }
 });

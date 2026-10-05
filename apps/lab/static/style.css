@@ -22,7 +22,7 @@ label,.field-label{display:block;font-size:11px;font-weight:600;color:#455b66;ma
 @media(max-width:480px){.result-side,.pending-checks{grid-template-columns:1fr}.result-visual .preview-canvas,.surface-loading{height:290px;min-height:290px}.surface-controls{flex-wrap:wrap}.result-metric-value{font-size:18px}}
 
 /* Question handoff uses the existing cards and single-job controls. */
-.research-question-columns{align-items:start;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}
+.research-question-columns{align-items:start;grid-template-columns:minmax(0,1fr)}
 .research-connection{margin:14px 0;padding:14px 16px;background:#f3f5f7;border-radius:10px;line-height:1.65}
 .research-connection strong{display:block;margin-bottom:4px}.research-connection p{margin:0}
 .research-scope ul{padding-left:20px;margin:8px 0 14px}.research-scope li{line-height:1.65;margin-bottom:6px}
@@ -36,6 +36,7 @@ label,.field-label{display:block;font-size:11px;font-weight:600;color:#455b66;ma
 
 /* Parsed answer blocks are read-only presentation; raw prose stays accessible. */
 .research-answer-formatted{white-space:normal}.research-answer-formatted>p{white-space:pre-wrap;margin:0 0 1em}.research-answer-formatted>p:last-child{margin-bottom:0}
+.research-answer-formatted>h3,.research-answer-formatted>h4,.research-answer-formatted>h5,.research-answer-formatted>h6{margin:1.5em 0 .7em;line-height:1.55;color:var(--ink);overflow-wrap:anywhere}.research-answer-formatted>h3{font-size:19px}.research-answer-formatted>h4{font-size:16px}.research-answer-formatted>.research-equation-note{font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:12px}
 .research-answer-formatted strong{font-weight:700}.research-answer-formatted code{font-size:.92em;padding:1px 4px;border-radius:4px;background:#e8edf1;overflow-wrap:anywhere}
 .research-answer-formatted .research-answer-list{list-style:none;margin:0 0 1em;padding:0}.research-answer-list>li{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:9px;margin:6px 0;line-height:1.8;white-space:pre-wrap}.research-list-marker{font-variant-numeric:tabular-nums;color:var(--muted)}
 .research-answer-formatted .table-scroll{margin:1em 0}.research-answer-formatted th,.research-answer-formatted td{white-space:pre-wrap;vertical-align:top}.research-answer-formatted .raw-detail{margin:12px 0}.research-answer-original>summary{font-size:12px;color:var(--muted)}
