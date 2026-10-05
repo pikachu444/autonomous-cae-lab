@@ -1,4 +1,20 @@
-## Current checkpoint: owned startup correction; actual selected question still OPEN
+## Current checkpoint: actual selected research comparison and owned closure
+
+Clean d509/new `cae-selected-research-20261005-03` completes the approved5.6Sol
+Korean width32/38 question, two CAD parents/two corrected CalculiX analyses,
+comparison, same-record32 field view and browser-reload38 field reopening.
+Startup80.958286s; question jobJ5b77d7e255674faca30ed037335a7813 COMPLETED,
+residentIDLE/facadecleanup true; foreground27591 exit0/ownedSTOPPED at12:55:33Z.
+Initial material-enum refusals and original AI answer are retained. AI's
+maximum-displacement label is explicitly corrected: loaded saddle|UZ| and
+whole-field|U| are distinct. Actual hypothetical isotropic210000MPa is not the
+old orthotropic reference. No material/strength qualification is inferred.
+Record: `benchmarks/records/20261005-selected-cae-research-r03.json`.
+S3 restart/reconnect/active-native cancel,150N/search/fullU1 and all52 remain
+OPEN;6PASS/7UNKNOWN and invalid metrics/NOT_RELEASED remain per analysis.
+Exact d509 CI37309316059 completed7SUCCESS/3FAIL; no full CI success is claimed.
+
+## Historical source checkpoint: owned startup correction
 
 Record: `benchmarks/records/20261005-openscience-startup-progress-source-r01.json`.
 Actual Main82/run01 failed the native source capture20s boundary before Lab/question;
@@ -11,8 +27,8 @@ Progress checks now bind the exact new controller/profile/launch marker; READY s
 requires the unchanged full runtime/source/project/MCP gate. Controller preparation
 counts in the startup interval and final readiness must fit its existing deadline.
 Root18 controlled ownership checks and45 existing controlled launcher checks PASS.
-This source correction has no provider/native/GUI qualification or larger startup/
-solver budget. Next: fresh clean-source selected32→38 actual research/save/reopen/stop.
+This source-only record did not qualify provider/native/GUI or enlarge startup/
+solver budgets. The later actual selected run is recorded separately above.
 Core/Domain/adapter operations, research scope/model/auth, invalid metrics and UNKNOWN/
 NOT_RELEASED remain. S3/fullU1/all52 remain OPEN.
 

@@ -11,8 +11,9 @@
 Root가 [전체 시스템·전달 방식 후속 의견](reviews/20261005-astra-high/SYSTEM-DELIVERY-REVIEW-02.md)을 읽고 채택했습니다.
 사용자의 최신 지시는 **지금 Root가 요구를 변형하고 헤매는 작업 방식 자체를 Astra에게 보고해 교정받으라**는 것입니다. Root의 “미래 통합성 평가 때 활용” 답변도 그대로 전달했고, Astra/high03은 CURRENT_ROOT_BEHAVIOR_REQUIRES_IMMEDIATE_CORRECTION으로 판정했습니다. 보고서SHA7bec2a6861b86c8631d857d1415abc292941f6e867ddc7dae085ce422101799a. 작은 수정마다 새 Astra 승인을 기다리지 않습니다.
 Root는 요구 변형, 작은 검사·기록의 직렬화, 자신이 만든 통합 문제를 대기로 보고하는 행동을 즉시 교정합니다. 필요한 수정·검사·기록은 다음 실제 사용자 연구 산출물 내부 작업으로 수행합니다.
-교정 viewer의100배UZ/하중·빈 입력 거부·회복을 실제 화면에서 확인했습니다. 공식 selected run01/02는 질문 전에 실패했습니다. 원본 실패를 보존하고, 시작 대기의 반복 전체 검증 및 시간 계산 결함을 직접 수정했습니다.18소유권/45launcher controls는 source proof이며 새 실제 실행은 아직 OPEN입니다. Record: `../benchmarks/records/20261005-openscience-startup-progress-source-r01.json`.
-다음 산출물은 간단한 한국어 질문을 통한 공식 selected Research의32→38 실제 해석·비교·저장·재열람·정상 종료입니다. 새 작은 감수나 문서 작성으로 이 산출물을 대체하지 않습니다.
+공식 selected run01/02의 질문 전 실패를 보존하고 시작 대기의 반복 검증·시간 계산 결함을 직접 수정했습니다. clean d509/run03은 약81초에 준비됐고, 승인5.6Sol의 한국어32→38 질문으로 CAD2개·CalculiX2개·비교 표·동일 기록 전체 필드·새로고침 후38mm 재열람·정상 종료를 실제 확인했습니다. Record: `../benchmarks/records/20261005-selected-cae-research-r03.json`.
+하중부 수직 처짐은2.628393% 감소, 부피는20.429658% 증가했습니다. 가상 등방성210000MPa를 명시했으며 기존 orthotropic 기준 재현은 아닙니다. AI가 하중부|UZ|를 “최대 변위 크기”라고 잘못 부른 것은 전체|U|와 구분해 정정 기록을 남겼습니다. 최초 enum거부2건/원답변/UNKNOWN/NOT_RELEASED는 보존했습니다.
+다음 활성 산출물은 S3-R1입니다: HTTP 작업을 실행 전에 내구 저장하고, 재시작 후 원J-id/결과 조회를 보존하며 종료가 불명확하면 새 실행을 차단합니다. 기존 계획을 재사용해 구현 중이며 새 작은 Astra 승인 단계를 추가하지 않습니다.
 S3는 긴 탐색·무감독 인계와 전체U1 완료의 조건입니다. S3 전이라는 이유로 첫 짧은 비교 실행까지 미루지 않습니다.
 그 다음 S3 최소 복구→150N 조건 변경·수치 엔진 탐색/U1 완료→원본 조립체 mechanics와 남은 Phase1–7 순서입니다.
 전체 모델/explicit의 의무 mesh sweep은 없으며, 기존 canonical 기준·실패·UNKNOWN/NOT_RELEASED는 보존합니다.
@@ -20,7 +21,7 @@ S3는 긴 탐색·무감독 인계와 전체U1 완료의 조건입니다. S3 전
 ## 현재 판정
 
 - 의미 있는 실제 연구 프로토타입. 일부 단일 지지부·PDE·재료·접촉 연구는 실행 기록이 있습니다.
-- 현재 사용자 서비스 완료 아님. 실제 기본 연결·질문·부모 CAD 표시의 bounded gate는 통과했고, 전체 해석장 표시와 장시간 종료·재접속은 OPEN입니다.
+- 현재 사용자 서비스 완료 아님. 짧은 감독32/38 비교와 같은 기록 전체 변위장·재열람·정상 종료는 실제 확인했습니다. 장시간 종료·재접속,150N 조건 변경과 numerical engine의 연속 연구/fullU1은 OPEN입니다.
 - 전체 조립체 mechanics, broader Phase 3–7, 실물/배포 요구 OPEN. 강도·실물은 UNKNOWN/NOT_RELEASED.
 - Goal은04:31:51Z 실제 ACTIVE였으나05:13:57Z 다시 BLOCKED로 관측됐습니다. 전환 원인 UNKNOWN, 사용자/시스템 재개 제어. 기존30분 후속 작업 ACTIVE와 실제 개발·서비스 가동은 별도입니다.
 - clean source `c94da4e86be05146353e716b4fba8d71a96b7246`/새 run02에서 승인5.6Sol 연결, 실제 CAD 변수 조회 질문, 같은 resident IDLE/cleanup, foreground Ctrl+C/owned STOPPED를 확인했습니다. 질문310.124764초의 지연 원인은 NOT_ISOLATED입니다.
