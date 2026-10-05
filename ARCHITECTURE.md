@@ -1,5 +1,15 @@
 # Architecture
 
+## Declared observation comparison (ADR0038)
+
+Core persists separate append-only observation/response records and receipts,
+rechecks their original experiment identities/artifacts and retains explicit
+scope declarations. HTTP uses its existing source preflight/recheck and write
+fences. A scalar difference is not a Domain verdict; alignment and measurements
+remain unqualified, and native history semantics belong to adapters. The Lab
+form and verified record download refer to the same preserved source. No new
+OpenScience tool/profile or numerical-engine substitution is admitted here.
+
 ## Explicit fixture refinement research (ADR0034)
 
 FixtureRefinement/schema7 preserves the existing fourteen-tool fixture/scalar

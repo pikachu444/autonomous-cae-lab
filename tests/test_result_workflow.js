@@ -84,13 +84,14 @@ function harness({ writable = true, callable = true, selectedPreset = "linear" }
     fetch: () => { prohibited.http++; throw new Error("HTTP is forbidden in the display gate"); },
     setTimeout: () => { prohibited.timers++; throw new Error("Application timers are forbidden in the display gate"); }, clearTimeout: () => {} };
   vm.createContext(sandbox);
-  vm.runInContext(appSource.slice(0, split) + "\nglobalThis.appUnderTest = {state, workflowContext, renderExperimentList, renderExperimentDetail, renderJob, updateControls, activeJob, researchPurpose, prepareResearchPurpose, simulationArguments, clearSimulationDraft, simulationSubmissionContext, completeSimulation, renderComparison};", sandbox, { filename: require.resolve("../apps/lab/static/app.js") });
+  vm.runInContext(appSource.slice(0, split) + "\nglobalThis.appUnderTest = {state, workflowContext, renderExperimentList, renderExperimentDetail, renderJob, updateControls, activeJob, researchPurpose, prepareResearchPurpose, simulationArguments, clearSimulationDraft, simulationSubmissionContext, completeSimulation, renderComparison, observationArguments, observationSubmissionContext, completeObservation, loadResponseComparisons};", sandbox, { filename: require.resolve("../apps/lab/static/app.js") });
+  vm.runInContext(readFileSync(require.resolve("../apps/lab/static/observation-controls.js"), "utf8"), sandbox);
   const app = sandbox.appUnderTest;
   app.state.presets = { linear: { operation: "analysis_run", backend: "fixture.calculix", parent_backends: ["fixture.cadquery"] } };
   app.state.overview = { active_store: "display", stores: [{ id: "display", writable }], experiments: [],
     capabilities: [{ operation: "analysis_run", callable }] };
   app.state.studyId = "S-display";
-  return { app, $, document, calls, indicator, prohibited };
+  return { app, $, document, calls, indicator, prohibited, sandbox };
 }
 
 test("research-purpose drafts keep user observations and send no provider or simulation request", () => {
@@ -160,6 +161,71 @@ test("simulation completion keeps the submitted source and ignores a changed stu
   await h.app.completeSimulation({ experiment_id: "E-new" }, { experiment_id: "E-new" }, submitted);
   assert.equal(h.app.state.comparison.size, 0);
   assert.deepEqual(h.prohibited, { http: 0, timers: 0 });
+});
+
+function observationFixture(h) {
+  // UI-only declarations, never physical observations or native evidence.
+  h.sandbox.recordJson = JSON.stringify({ integrity: "VERIFIED", record_id: "E-ui-source",
+    study: { id: "S-display" }, proposal: { id: "E-ui-source", study_id: "S-display" },
+    result: { ...result("fixture.calculix"), experiment_id: "E-ui-source", study: { id: "S-display" },
+      provenance: { adapter: "fixture.calculix", adapter_details: { per_mesh_displacement: { response_metric: "loaded_saddle_min_global_uz" } } },
+      metrics: { max_displacement: { value: -2e-5, unit: "mm", valid: true },
+        invalid_diagnostic: { value: 999, unit: "mm", valid: false } } } });
+  vm.runInContext("state.selectedExperiment = JSON.parse(recordJson)", h.sandbox);
+  h.app.state.observationId = "O-ui";
+  const fields = { observationPurpose: "DEFECT_REPRODUCTION", observationHypothesis: "TEST ONLY hypothesis",
+    observationResponse: '["max_displacement",null]', observationName: "TEST ONLY",
+    observationValue: "-2e-5", observationTolerance: "0", observationSourceKind: "SYNTHETIC",
+    observationSource: "UI protocol fixture only", observationQuantity: "displacement", observationComponent: "declared scalar",
+    observationLocation: "TEST ONLY location", observationFrame: "TEST ONLY frame", observationCondition: "TEST ONLY case", observationConditions: "[]" };
+  Object.entries(fields).forEach(([id, value]) => { h.$(id).value = value; });
+  h.app.state.overview.capabilities.push({ operation: "response_comparison_save", callable: true });
+  return h.app.state.selectedExperiment;
+}
+test("actual observation form keeps signed output units and blocks wrong study, invalid metric and store transition", () => {
+  const h = harness(); observationFixture(h);
+  const args = h.app.observationArguments();
+  assert.equal(args.observation.value, -2e-5); assert.equal(args.observation.unit, "mm");
+  assert.equal(args.observation.source_kind, "SYNTHETIC"); assert.equal(args.experiment_id, "E-ui-source");
+  h.app.updateControls(); assert.equal(h.$("observationSaveBtn").disabled, false);
+  h.$("observationResponse").value = '["invalid_diagnostic",null]'; assert.throws(() => h.app.observationArguments(), /유효한 저장 응답/);
+  h.app.state.studyId = "S-other"; assert.throws(() => h.app.observationArguments(), /현재 연구/);
+  h.app.updateControls(); assert.equal(h.$("observationSaveBtn").disabled, true);
+  h.app.state.studyId = "S-display"; h.app.state.storeSwitching = true;
+  assert.throws(() => h.app.observationSubmissionContext(), /현재 연구/);
+  assert.deepEqual(h.prohibited, { http: 0, timers: 0 });
+});
+test("observation completion cannot attach a saved comparison to a newly selected experiment or study", async () => {
+  for (const change of [h => { h.app.state.studyId = "S-other"; }, h => { h.app.state.overview.active_store = "other"; },
+    h => { h.app.state.selectedExperiment = structuredClone(h.app.state.selectedExperiment); }]) {
+    const h = harness(); observationFixture(h); const context = h.app.observationSubmissionContext(); change(h);
+    await h.app.completeObservation({ id: "O-ui", source: { experiment_id: "E-ui-source" } }, { comparison_id: "O-ui", experiment_id: "E-ui-source" }, context);
+    assert.equal(h.app.state.observationId, "O-ui"); assert.deepEqual(h.prohibited, { http: 0, timers: 0 });
+  }
+});
+test("late comparison list cannot replace the new selected record's view", async () => {
+  const h = harness(); observationFixture(h); let release;
+  h.sandbox.fetch = () => new Promise(resolve => { release = resolve; });
+  h.$("observationRecords").textContent = "before";
+  const pending = h.app.loadResponseComparisons();
+  h.app.state.selectedExperiment = structuredClone(h.app.state.selectedExperiment);
+  h.$("observationRecords").textContent = "new selected view";
+  release({ ok: true, json: async () => [] }); await pending;
+  assert.equal(h.$("observationRecords").textContent, "new selected view");
+});
+test("comparison reopening names its own response and never borrows another experiment's loaded-UZ provenance", async () => {
+  const h = harness(); observationFixture(h);
+  h.sandbox.fetch = async () => ({ ok: true, json: async () => [{ integrity: "VERIFIED", record: { id: "O-other",
+    source: { study_id: "S-display", experiment_id: "E-other-source" }, request: { hypothesis: "TEST ONLY",
+      response: { metric: "max_displacement" }, observation: { name: "TEST ONLY target", source_kind: "SYNTHETIC", source: "TEST ONLY", quantity: "displacement",
+        component: "declared scalar", location: "test-only", coordinate_frame: "test-only", condition: "test-only" } },
+    comparison: { status: "NUMERIC_DIFFERENCE_ONLY", observed_value: -2e-5, response_value: -2e-5, unit: "mm", difference: 0,
+      declared_absolute_tolerance: 0, within_declared_tolerance: true, condition_bindings_supplied: false } } }] });
+  await h.app.loadResponseComparisons(); const text = h.$("observationRecords").textContent;
+  assert.match(text, /원 응답:/); assert.doesNotMatch(text, /하중 안장 절점/);
+  assert.match(text, /이 비교의 원 해석 결과 보기/);
+  assert.match(text, /원인 확정·물리 검증·사용 승인으로 판정하지 않습니다/);
+  assert.match(text, /명시적 조건 연결은 제공되지 않았습니다/);
 });
 
 test("Node and browser workflow exports agree without a browser service or a test-only admission path", () => {

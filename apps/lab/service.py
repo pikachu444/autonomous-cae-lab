@@ -33,6 +33,7 @@ OPERATIONS = {
     "model_parameters_discover": "discover_model_parameters",
     "model_parameters_register": "register_model_parameter",
     "model_optimization_plan": "plan_model_optimization",
+    "response_comparison_save": "save_response_comparison",
 }
 READ_OPERATIONS = frozenset({"parameter_discover", "native_inspect", "model_parameters_discover"})
 REFERENCE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
@@ -184,6 +185,7 @@ class LabService:
     def capabilities(self) -> list[dict]:
         descriptions = {
             "study_create": ("연구 만들기", None, "IMPLEMENTED", "Core 연구 질문·가설·목표 기록"),
+            "response_comparison_save": ("관측·시험 기준과 비교 기록", None, "IMPLEMENTED", "사용자가 선언한 관측값과 보존된 수치 응답의 차이; 원인·물리 검증 또는 사용 승인 아님"),
             "parameter_discover": ("설계 변수 찾기", "fixture.cadquery / fixture.freecad / fixture.assembly", "IMPLEMENTED", "기존 CAD adapter의 native 변수"),
             "parameter_register": ("설계 변수 등록", "fixture.cadquery / fixture.freecad / fixture.assembly", "IMPLEMENTED", "기존 Core의 범위·형상 효과 검증"),
             "registry_refresh": ("변수 매핑 갱신", None, "IMPLEMENTED", "기존 Core의 native 개정 확인"),
@@ -287,6 +289,46 @@ class LabService:
     def experiment(self, identifier: str) -> dict:
         from .reporting import verified_record
         return verified_record(self._selected().lab, check_id(identifier))
+
+    @staticmethod
+    def _comparison_source(selected: Store, identifier: str) -> str:
+        path = contained(selected.path, f"response_comparisons/{check_id(identifier)}/record.json")
+        contained(selected.path, f"response_comparisons/{identifier}/receipt.json")
+        value = load_json(path)
+        return check_id(value["request"]["experiment_id"])
+
+    def _response_comparison(self, selected: Store, identifier: str) -> dict:
+        from .reporting import preflight_records, recheck_records
+        from jsonschema.exceptions import ValidationError
+        source = self._comparison_source(selected, identifier)
+        expected = preflight_records(selected.lab, [source])
+        try:
+            record = selected.lab.inspect_response_comparison(identifier)
+        except ValidationError as error:
+            raise ValueError("Comparison record schema is invalid") from error
+        recheck_records(selected.lab, expected)
+        return {"record": record, "integrity": "VERIFIED"}
+
+    def response_comparison(self, identifier: str) -> dict:
+        return self._response_comparison(self._selected(), check_id(identifier))
+
+    def response_comparisons(self, study_id: str) -> list[dict]:
+        selected = self._selected()
+        study_id = check_id(study_id)
+        contained(selected.path, f"studies/{study_id}/study.json")
+        selected.lab.inspect_study(study_id)
+        root = contained(selected.path, "response_comparisons")
+        if not root.is_dir():
+            return []
+        rows = []
+        for folder in sorted(root.iterdir()):
+            try:
+                value = self._response_comparison(selected, check_id(folder.name))
+                if value["record"]["source"]["study_id"] == study_id:
+                    rows.append(value)
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                rows.append({"id": folder.name, "integrity": "UNKNOWN", "error": str(error)})
+        return rows
 
     def _campaign(self, selected: Store, identifier: str) -> tuple[str, Path]:
         check_id(identifier)
@@ -575,13 +617,13 @@ class LabService:
             if value is not None and (not isinstance(value, str) or not value or len(value) > 512
                                       or any(char in value for char in ("/", "\\", "\x00", ":"))):
                 raise ValueError(f"{key} must be an existing native object/dimension name")
-        for key in ("study_id", "experiment_id", "parent_experiment_id", "campaign_id", "parameter_id", "hypothesis_id"):
+        for key in ("study_id", "experiment_id", "parent_experiment_id", "campaign_id", "parameter_id", "hypothesis_id", "comparison_id"):
             if arguments.get(key) is not None:
                 check_id(arguments[key])
-        for namespace in ("studies", "experiments", "ledger", "campaigns", "optimizations", "native_designs"):
+        for namespace in ("studies", "experiments", "ledger", "campaigns", "optimizations", "native_designs", "response_comparisons"):
             contained(selected.path, namespace)
         for key, namespace in (("study_id", "studies"), ("experiment_id", "experiments"),
-                               ("parent_experiment_id", "experiments")):
+                               ("parent_experiment_id", "experiments"), ("comparison_id", "response_comparisons")):
             if arguments.get(key):
                 contained(selected.path, f"{namespace}/{arguments[key]}")
         if arguments.get("campaign_id"):
@@ -603,6 +645,9 @@ class LabService:
                     raise JournalError("HTTP worker start could not be retained")
             with cancellation_scope(token):
                 check_cancelled()
+                if operation == "response_comparison_save":
+                    from .reporting import preflight_records, recheck_records
+                    comparison_sources = preflight_records(selected.lab, [arguments["experiment_id"]])
                 if operation == "analysis_run":
                     from .reporting import verified_record
                     verified_record(selected.lab, arguments["parent_experiment_id"])
@@ -620,6 +665,8 @@ class LabService:
                         token.check()
                 else:
                     result = method(**arguments)
+                    if operation == "response_comparison_save":
+                        recheck_records(selected.lab, comparison_sources)
             # A request after the operation's last checkpoint is not an observed
             # interruption. Preserve that completed/failed Core result verbatim.
             update = {"status": "CANCELLED" if token.observed else "COMPLETED", "result": result}

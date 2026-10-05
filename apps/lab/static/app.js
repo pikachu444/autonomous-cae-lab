@@ -14,6 +14,8 @@ const state = {
   researchHistory: new Map(), researchContexts: new Map(), researchSession: null,
   simulationDraft: null,
   researchPurposeDraft: {},
+  observationRequest: 0,
+  observationId: "",
 };
 const operationNames = {
   study_create: "연구 만들기", parameter_discover: "CAD 변수 발견", parameter_register: "연구 변수 등록",
@@ -25,6 +27,7 @@ const operationNames = {
   model_parameters_discover: "모델 입력 발견·환경 확인", model_parameters_register: "모델 연구 변수 등록",
   model_optimization_plan: "해석 모델 최적화 계획 저장",
   research_run: "AI 연구 질문",
+  response_comparison_save: "관측·시험 기준 비교 저장",
 };
 const readOperations = new Set(["parameter_discover", "native_inspect", "model_parameters_discover"]);
 const labels = {
@@ -438,6 +441,7 @@ function updateControls() {
   $("compareBtn").disabled = state.comparison.size < 2;
   $("compareCount").textContent = `${state.comparison.size}개 선택 · 최대 12개`;
   document.querySelectorAll("[data-experiment-draft]").forEach((item) => { item.disabled = blocked || !available(item.dataset.experimentDraft); });
+  if (!observationReady()) $("observationSaveBtn").disabled = true;
   updateResearchControls();
 }
 
@@ -936,13 +940,14 @@ async function inspectExperiment(identifier) {
   location.hash = "results"; const request = ++state.experimentRequest, store = activeStore();
   state.fixtureViewer?.destroy(); state.fixtureViewer = null;
   state.selectedExperiment = null;
+  $("observationPanel").hidden = true; state.observationRequest++;
   const loading = panel("실험을 불러오고 있습니다."); loading.append(el("p", "저장된 기록과 원본 파일의 일치를 확인하고 있습니다.", "hint separated")); clear("experimentDetail").append(loading);
   $("selectedSource").textContent = "기록 확인 중";
   try {
     const data = await api(`/api/experiments/${idPath(identifier)}`);
     if (request !== state.experimentRequest || store !== activeStore()) return;
     if (data.integrity !== "VERIFIED" || data.result?.experiment_id !== identifier) throw new Error("서버가 요청한 기록의 식별자와 검증 완료를 확인하지 않았습니다.");
-    state.selectedExperiment = data; renderExperimentDetail(data);
+    state.selectedExperiment = data; renderExperimentDetail(data); renderObservation(data);
   } catch (error) {
     if (request !== state.experimentRequest) return;
     const card = panel("이 실험의 기록을 확인할 수 없습니다."); card.classList.add("detail-error"); card.append(el("p", error.message), el("p", "파일과 기록의 일치를 확인한 후 결과를 표시합니다."));
@@ -956,6 +961,109 @@ function metricCell(metric) {
   cell.append(el("small", metric.valid === true ? "유효한 수치 응답" : "INVALID · 판단에 사용할 수 없음"));
   if (metric.reason) cell.append(el("small", metric.reason, "metric-reason"));
   return cell;
+}
+function observationReady() {
+  const record = state.selectedExperiment;
+  return Boolean(!state.storeSwitching && record?.result?.status === "COMPLETED_REVIEW_REQUIRED"
+    && record.result.study?.id === state.studyId && window.observationControls?.choices(record).length);
+}
+function observationSubmissionContext() {
+  if (!observationReady()) throw new Error("현재 연구에 속한 검증된 실험과 유효한 응답을 먼저 선택하세요.");
+  return { store: activeStore(), studyId: state.studyId, record: state.selectedExperiment };
+}
+function observationArguments() {
+  observationSubmissionContext();
+  return window.observationControls.build(state.selectedExperiment, {
+    comparisonId: state.observationId, purpose: $("observationPurpose").value,
+    hypothesis: $("observationHypothesis").value, responseKey: $("observationResponse").value,
+    name: $("observationName").value, value: $("observationValue").value,
+    sourceKind: $("observationSourceKind").value, source: $("observationSource").value,
+    quantity: $("observationQuantity").value, component: $("observationComponent").value,
+    location: $("observationLocation").value, coordinateFrame: $("observationFrame").value,
+    condition: $("observationCondition").value, tolerance: $("observationTolerance").value,
+    conditions: parseField("observationConditions", "array"),
+  });
+}
+function observationResponseNote() {
+  const choice = window.observationControls?.choices(state.selectedExperiment).find(item => item.key === $("observationResponse").value);
+  $("observationResponseNote").textContent = choice
+    ? `기록된 응답: ${number(choice.value)} ${choice.unit} · 관측값과 허용 차이도 ${choice.unit}로 입력하세요.${choice.component !== undefined ? " 배열 항목의 물리적 성분은 사용자가 확인해야 합니다." : ""}`
+    : "선택한 응답의 값과 단위가 여기에 나타납니다.";
+}
+function observationSourceCaption(source) {
+  let caption = window.resultPresentation.title(source.backend);
+  if (source.backend === "fixture.calculix") {
+    try {
+      const fields = window.fixtureControls.toFields(source.execution);
+      caption += ` · 지지부당 ${fields.force_N} N · 메시 ${fields.mesh_sizes} mm`;
+    } catch { /* Preserve the exact source in the expandable record. */ }
+  }
+  return caption;
+}
+function renderObservation(data) {
+  const choices = window.observationControls?.choices(data) ?? [];
+  const panel = $("observationPanel"); panel.hidden = !choices.length || data.result.status !== "COMPLETED_REVIEW_REQUIRED";
+  state.observationRequest++; clear("observationRecords");
+  if (panel.hidden) return;
+  state.observationId = makeId("O");
+  $("observationContext").textContent = `선택한 ${observationSourceCaption({ backend: data.result.provenance.adapter, execution: data.proposal.execution })} 결과에 관측을 연결합니다. 원래 모델과 응답은 그대로 보존합니다.`;
+  $("observationEditor").open = false;
+  const response = clear("observationResponse"); option(response, "", "유효한 응답을 선택하세요");
+  choices.forEach(choice => option(response, choice.key, `${choice.label} · ${choice.unit}`));
+  for (const id of ["observationPurpose", "observationHypothesis", "observationName", "observationSourceKind", "observationSource",
+    "observationValue", "observationTolerance", "observationQuantity", "observationComponent", "observationLocation", "observationFrame", "observationCondition"]) $(id).value = "";
+  $("observationConditions").value = "[]"; response.value = ""; observationResponseNote(); updateControls();
+  loadResponseComparisons(data).catch(error => notify(error.message));
+}
+async function loadResponseComparisons(inspection = state.selectedExperiment) {
+  if (!inspection) return;
+  const request = ++state.observationRequest, store = activeStore(), studyId = inspection.result.study.id;
+  const current = () => request === state.observationRequest && !state.storeSwitching && store === activeStore() && state.selectedExperiment === inspection;
+  clear("observationRecords").append(el("p", "이 연구의 저장된 관측 비교를 확인하고 있습니다…", "hint"));
+  try {
+    const rows = await api(`/api/response-comparisons?study_id=${idPath(studyId)}`);
+    if (!current()) return;
+    if (!Array.isArray(rows)) throw new Error("관측 비교 목록의 형식을 확인할 수 없습니다.");
+    const target = clear("observationRecords");
+    if (!rows.length) target.append(el("p", "저장된 관측 비교가 없습니다. 관측값과 조건을 입력해 새 비교를 남길 수 있습니다.", "hint"));
+    rows.forEach(value => {
+      const record = value.record, comparison = record?.comparison;
+      if (value.integrity !== "VERIFIED" || record?.source?.study_id !== studyId || !comparison) {
+        const error = el("p", `확인할 수 없는 비교 기록: ${value.id ?? "미제공"} · ${value.error ?? "원본 일치 미확인"}`, "metric-reason"); target.append(error); return;
+      }
+      const observation = record.request.observation, details = el("details", undefined, "advanced separated");
+      const kind = { MEASURED_REPORTED: "사용자 보고 측정값", SPECIFICATION: "규격·목표값", SYNTHETIC: "가상 데이터" }[observation.source_kind];
+      details.append(el("summary", `${observation.name} · ${kind} · ${comparison.status === "DECLARED_CONDITION_MISMATCH" ? "조건 불일치 · 차이 계산 보류" : "수치 차이 기록됨"}`));
+      details.append(el("p", record.request.hypothesis, "separated"), el("p", `해석 조건: ${observationSourceCaption(record.source)}`),
+        el("p", `출처: ${observation.source}`), el("p", `관측 범위: ${observation.quantity} · ${observation.component} · ${observation.location} · ${observation.coordinate_frame}`),
+        el("p", `관측 조건: ${observation.condition}`));
+      const selected = record.request.response;
+      const sourceChoice = record.source.experiment_id === inspection.result.experiment_id
+        ? window.observationControls?.choices(inspection).find(choice => choice.metric === selected.metric && choice.component === selected.component) : null;
+      details.append(el("p", `원 응답: ${sourceChoice?.label ?? window.resultPresentation.metricName(selected.metric)}${selected.component !== undefined && !sourceChoice ? ` · 사용자 지정 배열 항목 ${selected.component + 1} (물리 성분 미확인)` : ""}`));
+      details.append(table(["관측·기준", "해석 응답", "해석 − 관측", "절대 허용 차이"], [[
+        `${number(comparison.observed_value)} ${comparison.unit}`, `${number(comparison.response_value)} ${comparison.unit}`,
+        comparison.difference === null ? "조건 불일치 · 계산 보류" : `${number(comparison.difference)} ${comparison.unit}`,
+        `${number(comparison.declared_absolute_tolerance)} ${comparison.unit}`]]));
+      details.append(el("p", comparison.within_declared_tolerance === null ? "명시적으로 연결한 입력 조건이 일치하지 않습니다."
+        : comparison.within_declared_tolerance ? "입력한 허용 차이 이내입니다." : "입력한 허용 차이를 초과합니다."));
+      details.append(el("p", "위치·성분·좌표계·조건의 물리적 일치는 사용자 선언이며 독립 확인 전입니다. 수치가 맞아도 원인 확정·물리 검증·사용 승인으로 판정하지 않습니다.", "hint"));
+      if (!comparison.condition_bindings_supplied) details.append(el("p", "저장된 입력과의 명시적 조건 연결은 제공되지 않았습니다.", "hint"));
+      details.append(experimentButton(record.source.experiment_id, "이 비교의 원 해석 결과 보기 →"),
+        link("비교 원본 저장", `/api/response-comparisons/${idPath(record.id)}`, "text-link", true), rawDetail("입력·선택 응답·원본 해시·조건 검사", record));
+      target.append(details);
+    });
+  } catch (error) {
+    if (!current()) return;
+    clear("observationRecords").append(el("p", `관측 비교를 확인하지 못했습니다: ${error.message}`, "metric-reason")); throw error;
+  }
+}
+async function completeObservation(result, args, context) {
+  if (result?.id !== args.comparison_id || result?.source?.experiment_id !== args.experiment_id) throw new Error("저장된 관측 비교의 연결을 확인할 수 없습니다.");
+  if (!context || state.storeSwitching || context.store !== activeStore() || context.studyId !== state.studyId || context.record !== state.selectedExperiment) return;
+  state.observationId = makeId("O");
+  await loadResponseComparisons(context.record);
+  notify("관측·조건·수치 차이를 새 기록으로 저장했습니다. 물리적 일치와 원인은 확인 전입니다.", true);
 }
 function renderExperimentDetail(data) {
   state.fixtureViewer?.destroy(); state.fixtureViewer = null;
@@ -1669,6 +1777,7 @@ async function switchStore(identifier) {
   state.researchSession = null; $("researchContinue").checked = false; renderResearchAnswers();
   invalidateModelDiscovery(); state.campaignSelections.clear(); state.campaignSelectionKey = "";
   state.selectedExperiment = null; state.selectedCampaign = null; state.comparison.clear(); state.studyRequest++; state.experimentRequest++; state.campaignRequest++;
+  $("observationPanel").hidden = true; state.observationRequest++;
   clear("campaignDetail"); clear("comparisonDetail").hidden = true;
   const card = panel("저장소가 바뀌었습니다.", "RESULTS"); card.append(el("p", "목록에서 열 기록을 선택하세요.", "empty-state")); clear("experimentDetail").append(card);
   $("selectedSource").textContent = "소스 버전: 기록 선택 후 확인"; renderDiscovery([]); renderOverview();
@@ -1699,6 +1808,8 @@ bindForm("nativeCreateForm", "native_create", () => ({ template: $("nativeTempla
 bindForm("nativeInspectForm", "native_inspect", () => ({ model: $("nativeModelId").value.trim() }), renderNative);
 bindForm("nativeFinalForm", "native_final", () => ({ model: $("nativeModelId").value.trim(), final: $("nativeFinal").value }), renderNative);
 bindForm("simulationForm", simulationOperation, simulationArguments, completeSimulation, simulationSubmissionContext);
+bindForm("observationForm", "response_comparison_save", observationArguments, completeObservation, observationSubmissionContext);
+$("observationResponse").addEventListener("change", observationResponseNote);
 bindForm("campaignForm", campaignOperation, () => {
   const model = isModelCampaign();
   const args = { study_id: state.studyId, campaign_id: $("campaignId").value.trim(), parameter_ids: [...document.querySelectorAll("[data-campaign-variable]:checked")].map((input) => input.value), seed: numeric("campaignSeed") };

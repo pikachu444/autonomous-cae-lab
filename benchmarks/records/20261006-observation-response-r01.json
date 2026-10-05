@@ -1,0 +1,457 @@
+{
+  "schema_version": 1,
+  "id": "20261006-observation-response-r01",
+  "recorded_utc": "2026-10-05T17:36:57.5883486Z",
+  "acceptance": "Explicit observation/source/scope -> preserved response -> numeric difference or declared-condition mismatch -> append/save -> readable reload",
+  "outcome": "BOUNDED_SOFTWARE_AND_RETAINED_NATIVE_RESPONSE_PASS",
+  "scope": "B1-B2 scalar/explicit flat-array item slice. Entire52/Phase1-7 incomplete. No measured defect, unique-cause, jig release or new native qualification.",
+  "requirement_impact": [
+    "R01",
+    "R02",
+    "R03",
+    "R09",
+    "R10",
+    "R11",
+    "R12",
+    "R13",
+    "R19",
+    "R20",
+    "R21",
+    "R24"
+  ],
+  "source": {
+    "tested_base_commit": "854b1e14192fb5a7719a11e0111658f89de20f19",
+    "comparison_producer": {
+      "core_commit": "854b1e14192fb5a7719a11e0111658f89de20f19",
+      "core_dirty": true,
+      "core_source_sha256": "e41ecb2c0822fa09def629e72d9106c80ed3a9dc5c96a77528937c4fed3291ac"
+    },
+    "final_tested_and_reopened_files": [
+      {
+        "path": ".github/workflows/caelab-ci.yml",
+        "worktree_sha256": "040ff1209f925fdf7060cd98e4d5f74780130d50f8f5a6bf49648307822bcbb8",
+        "lf_normalized_sha256": "040ff1209f925fdf7060cd98e4d5f74780130d50f8f5a6bf49648307822bcbb8"
+      },
+      {
+        "path": "caelab/engine.py",
+        "worktree_sha256": "32e2aca91acc843b200af3abefc8195ff479c61acf660bbadcceb6a9ecb3444a",
+        "lf_normalized_sha256": "32e2aca91acc843b200af3abefc8195ff479c61acf660bbadcceb6a9ecb3444a"
+      },
+      {
+        "path": "caelab/schema.py",
+        "worktree_sha256": "cd4c605066f2a4a13dbef44729ac7dff7928e5b18b525c3bab932bbaa20af6e4",
+        "lf_normalized_sha256": "2d0b522e22fac70f537f4c38cbf13dff706665015af46ba8ce739371ec684071"
+      },
+      {
+        "path": "caelab/response_comparison.py",
+        "worktree_sha256": "5729ff1d46d6ecead0dd32ac236b7e7051f20ea0d906dc2163ba943d33353100",
+        "lf_normalized_sha256": "5729ff1d46d6ecead0dd32ac236b7e7051f20ea0d906dc2163ba943d33353100"
+      },
+      {
+        "path": "schemas/response-comparison-request.schema.json",
+        "worktree_sha256": "662f8ca14502c14b506eaa70b9e791ebd199cb7000f4186092b81095a94ca74e",
+        "lf_normalized_sha256": "662f8ca14502c14b506eaa70b9e791ebd199cb7000f4186092b81095a94ca74e"
+      },
+      {
+        "path": "apps/lab/server.py",
+        "worktree_sha256": "912460d9a2cfc29ae28465452b66514eda35b8f536bf892eecaacf1f8c8d87c8",
+        "lf_normalized_sha256": "912460d9a2cfc29ae28465452b66514eda35b8f536bf892eecaacf1f8c8d87c8"
+      },
+      {
+        "path": "apps/lab/service.py",
+        "worktree_sha256": "acb8b712c6265115b517ad5a0a13d6fbaf6786ac4e14a23de9e10c5e092bcb4f",
+        "lf_normalized_sha256": "acb8b712c6265115b517ad5a0a13d6fbaf6786ac4e14a23de9e10c5e092bcb4f"
+      },
+      {
+        "path": "apps/lab/static/app.js",
+        "worktree_sha256": "892ee33503cb7b4d2a4ae365ade4ba4a1487062d878799515f1fd8710e8bd4b3",
+        "lf_normalized_sha256": "3e69bd3a1fec997950c5d9610ef894d5a12c50af570bc2115be31cb19ed62b1c"
+      },
+      {
+        "path": "apps/lab/static/index.html",
+        "worktree_sha256": "7977ee856610d63c18b1160798287a5a2bac7e6b4c3a68da749ab511df2d0c4a",
+        "lf_normalized_sha256": "f34a994de2494bf525eef5fc490ecc2b74a4552f3989f23465c212b07d1ed65f"
+      },
+      {
+        "path": "apps/lab/static/result-presentation.js",
+        "worktree_sha256": "25466f250281f5649a4d0cead1aabeb9eeb3d09f6f77c47278dcbd84f59b7272",
+        "lf_normalized_sha256": "25466f250281f5649a4d0cead1aabeb9eeb3d09f6f77c47278dcbd84f59b7272"
+      },
+      {
+        "path": "apps/lab/static/observation-controls.js",
+        "worktree_sha256": "932debbfd4f66ec0bd081ce5fd3b480287f545cf5fdcdee62957afc8b04c2c04",
+        "lf_normalized_sha256": "932debbfd4f66ec0bd081ce5fd3b480287f545cf5fdcdee62957afc8b04c2c04"
+      },
+      {
+        "path": "apps/lab/static/fixture-controls.js",
+        "worktree_sha256": "151463af8d5a19853facf047fbec6a97c4d8c31ed6450994f2fcf9d0ac344be6",
+        "lf_normalized_sha256": "151463af8d5a19853facf047fbec6a97c4d8c31ed6450994f2fcf9d0ac344be6"
+      },
+      {
+        "path": "tests/test_response_comparison.py",
+        "worktree_sha256": "674ffbc173582dde8d5f6aabf4b9af09a618e9a537e3f8e4ab07f1ab133b5ac3",
+        "lf_normalized_sha256": "674ffbc173582dde8d5f6aabf4b9af09a618e9a537e3f8e4ab07f1ab133b5ac3"
+      },
+      {
+        "path": "tests/test_observation_controls.js",
+        "worktree_sha256": "922431900a88d92b01149341b2901758eae5d6f2c7a0bce4fceede6ecccb3a8a",
+        "lf_normalized_sha256": "922431900a88d92b01149341b2901758eae5d6f2c7a0bce4fceede6ecccb3a8a"
+      },
+      {
+        "path": "tests/test_result_workflow.js",
+        "worktree_sha256": "6dd16a3d9d2aa96747e41dc215d600868abe25fd4023debc40878575041f757f",
+        "lf_normalized_sha256": "6dd16a3d9d2aa96747e41dc215d600868abe25fd4023debc40878575041f757f"
+      }
+    ],
+    "commit_binding": "Resolve this record introducing commit and verify LF-normalized source-file hashes; this is not a new native producer.",
+    "pinned_fixture_upstream_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "uncommitted_R2_excluded": [
+      "openscience/jobs.py",
+      "openscience/mcp_server.py",
+      "openscience/resident_identity.py",
+      "scripts/lab-openscience.ps1",
+      "scripts/verify_lab_research.ps1",
+      "tests/test_mcp_runtime_identity.py",
+      "tests/test_mcp_native_cleanup.py",
+      "tests/test_resident_identity.py"
+    ]
+  },
+  "native_basis": {
+    "store": "runs/cae-selected-research-20261005-03",
+    "original100": "fea_width38_100N_mesh4_corrected_20261005_sesef3f",
+    "changed150": "fea_width38_150N_mesh4_condition_reuse_20261006_r01",
+    "native_producer_basis_records": [
+      "benchmarks/records/20261005-selected-cae-research-r03.json",
+      "benchmarks/records/20261006-condition-reuse-r01.json"
+    ],
+    "old100_producer": "d509175a7ac10f56c0bf144443276837da2f4e2b",
+    "old150_producer_base": "75f27a06cc42f328ce9b2159c772d4e75cd5ec81",
+    "old150_producer_dirty": true,
+    "old150_producer_core_source_sha256": "74b980ac2bf71b99edeaf3d02eb87019c75f4d5be4f1681f9c6fefcca947d350",
+    "geometry_scope": "Single38mm support; same native CAD parent, assumed isotropic210000MPa/nu0.3 and selected4mm. Not original7-part assembly mechanics.",
+    "validation_counts": {
+      "FAIL": 0,
+      "PASS": 6,
+      "UNKNOWN": 7,
+      "WARNING": 0
+    },
+    "original_decision": "NOT_RELEASED",
+    "new_solver_runs": 0,
+    "new_provider_calls": 0,
+    "physical_reverification": "NOT_RUN"
+  },
+  "actual_cases": [
+    {
+      "method": "Actual browser form -> HTTP -> Core",
+      "job": "Ja937c0f87be04478abed5c92674beef2",
+      "comparison_id": "O-lab-muvigxic",
+      "source_experiment": "fea_width38_150N_mesh4_condition_reuse_20261006_r01",
+      "purpose": "JIG_FEASIBILITY",
+      "target_kind": "SYNTHETIC",
+      "response": {
+        "component": 2,
+        "metric": "reaction_force"
+      },
+      "target_value": 150,
+      "response_value": 150.00000135765,
+      "unit": "N",
+      "signed_difference": 1.3576500066392327E-06,
+      "tolerance": 0.0001,
+      "within_declared_tolerance": true,
+      "two_exact_bindings_matched": true,
+      "outcome": "NUMERIC_DIFFERENCE_ONLY"
+    },
+    {
+      "method": "Actual HTTP -> Core -> browser reload",
+      "job": "Jdb889ed4bf8c4eeb9745503a53f61683",
+      "comparison_id": "O-100N-condition-mismatch-20261006-r01",
+      "source_experiment": "fea_width38_100N_mesh4_corrected_20261005_sesef3f",
+      "purpose": "DEFECT_REPRODUCTION",
+      "target_kind": "SYNTHETIC",
+      "target_value": 150,
+      "response_value": 99.999999608173,
+      "unit": "N",
+      "signed_difference": null,
+      "within_declared_tolerance": null,
+      "outcome": "DECLARED_CONDITION_MISMATCH"
+    }
+  ],
+  "intentional_refusals": [
+    {
+      "case": "unit",
+      "job": "J4e264c49f38c4eb5a9102a865db6c9cb",
+      "status": "FAILED",
+      "error": "ValueError: Observation and response units must match exactly; no conversion is inferred",
+      "record_created": false
+    },
+    {
+      "case": "invalid_metric",
+      "job": "Jd3bf1fcbb2bd4cfa8d634fbcfc26419c",
+      "status": "FAILED",
+      "error": "ValueError: Only an existing valid response can be compared",
+      "record_created": false
+    }
+  ],
+  "controls": {
+    "python": {
+      "passed": 245,
+      "failed": 0,
+      "warnings": 1,
+      "log": "artifacts/observation-response-20261006-01/python-final.log",
+      "scope": "Real Core/persistence/HTTP/read-only/recovery/path-race controls; test-only producers are not native proof"
+    },
+    "node": {
+      "passed": 510,
+      "failed": 0,
+      "log": "artifacts/observation-response-20261006-01/node-final-ui.log",
+      "scope": "Pure helpers and controlled DOM/source fences; actual GUI proof listed separately"
+    },
+    "syntax_and_diff": "Node app syntax and ordinary Git diff checks passed",
+    "runtime": {
+      "observed_utc": "2026-10-05T17:27:02.7510189Z",
+      "comparisons": [
+        "O-lab-muvigxic",
+        "O-100N-condition-mismatch-20261006-r01"
+      ],
+      "negative_receipts": [
+        {
+          "case": "unit",
+          "job": "J4e264c49f38c4eb5a9102a865db6c9cb",
+          "status": "FAILED",
+          "error": "ValueError: Observation and response units must match exactly; no conversion is inferred",
+          "record_created": false
+        },
+        {
+          "case": "invalid_metric",
+          "job": "Jd3bf1fcbb2bd4cfa8d634fbcfc26419c",
+          "status": "FAILED",
+          "error": "ValueError: Only an existing valid response can be compared",
+          "record_created": false
+        }
+      ],
+      "original_files": 115,
+      "original_bytes": 35382328.0,
+      "originals_unchanged": true,
+      "new_solver_runs": 0,
+      "provider_calls": 0,
+      "status": "BOUNDED_SOFTWARE_PASS",
+      "physical_validation": "UNKNOWN",
+      "causal_verdict": "NOT_EVALUATED",
+      "decision": "NOT_RELEASED"
+    }
+  },
+  "gui": {
+    "url": "http://127.0.0.1:8767/#results",
+    "created_positive_with_form": true,
+    "refreshed_and_reopened_both": true,
+    "own_source_conditions_and_response_visible": true,
+    "screenshot": "artifacts/observation-response-20261006-01/comparison-reopened.png",
+    "ax": "artifacts/observation-response-20261006-01/reopened-ax.txt",
+    "separate_verified_JSON_download_route_exercised_by_HTTP": true,
+    "native_field_view_not_newly_requalified": true
+  },
+  "independent_review": {
+    "agent": "/root/cae_reference_platforms",
+    "mode": "READ_ONLY",
+    "new_astra_approval_gate": false,
+    "findings": [
+      "Missing explicit condition-array traversal",
+      "Missing plain selected response identity",
+      "Borrowed current loaded-UZ provenance for another source"
+    ],
+    "all_corrected": true,
+    "last_source_label_closure_reread": true,
+    "reviewer_test_or_native_execution": "NOT_RUN",
+    "note": "artifacts/observation-response-20261006-01/review-closure.txt"
+  },
+  "initial_attempts": [
+    {
+      "kind": "Test fixture",
+      "result": "1 failed/32 passed",
+      "cause": "Wrong assumed artifact directory model_analysis instead of actual simulation",
+      "repair": "Fixture follows real run_declared_model output directory"
+    },
+    {
+      "kind": "Test error wording",
+      "result": "1 failed/243 passed",
+      "cause": "Guard correctly refused escaping path; assertion expected different text",
+      "repair": "Assert actual path-escape guard and Core-not-called/non-persistence"
+    },
+    {
+      "kind": "Browser locator",
+      "result": "getByLabel no match before any form change",
+      "repair": "Use observed stable form IDs, then verify visible AX state"
+    }
+  ],
+  "process_observation": {
+    "old_owned_terminal": 24798,
+    "old_interrupt_exit": 1,
+    "old_interrupt_is_clean_native_or_provider_proof": false,
+    "current_owned_terminal": 83007,
+    "current_http_port": 8767,
+    "current_research_provider_attached": false,
+    "original_completed_job": "J7fcc644e7668443e82da46bbeb21e1d9",
+    "original_job_retained": true,
+    "new_controller_state": "IDLE",
+    "actual_native_cancel_or_reconnect": "UNKNOWN"
+  },
+  "preunit_exact_ci": {
+    "commit": "854b1e14192fb5a7719a11e0111658f89de20f19",
+    "run_id": 37341451820,
+    "conclusion": "FAILURE",
+    "success_count": 7,
+    "fail_count": 3,
+    "failures": [
+      "Code_Aster E-ansys_vmd1_regular-Fz numerical checks",
+      "PDE wrong vector numerical classification",
+      "Explicit official runtime download404 before solve"
+    ],
+    "current_new_source_CI": "NOT_OBSERVED_IN_THIS_RECORD; query introducing commit, never borrow old results"
+  },
+  "retention": {
+    "original_namespaces": [
+      "studies",
+      "experiments",
+      "ledger"
+    ],
+    "files": 115,
+    "bytes": 35382328,
+    "unchanged": true,
+    "runtime_journal_and_new_comparisons_excluded": true,
+    "evidence_location": "LOCAL_ONLY",
+    "proof_files": 23,
+    "proof_bytes": null,
+    "manifest": [
+      {
+        "path": "artifacts/observation-response-20261006-01/ci854-failed.log",
+        "bytes": 17004,
+        "sha256": "1d0c7cf0cd7fc7977f40502d036aecf9bf97cbf7e7c6920f9a962d3010a21c9b"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/comparison-reopened.png",
+        "bytes": 96771,
+        "sha256": "483309c6a639e0d5e1a1ad0b7061a6cb4f7e2734c484ee27242469978568c5db"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/core-first.log",
+        "bytes": 2493,
+        "sha256": "14e28b164dcf7fd2d167d0984ff80773ab88e4dc54318f075ca6028f2a5f4273"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/core-second.log",
+        "bytes": 102,
+        "sha256": "47ca64a2785c7b0f5e8858f9d7ac045353426f00c791878d4f748d330c02b0cd"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/J4e264c49f38c4eb5a9102a865db6c9cb.json",
+        "bytes": 469,
+        "sha256": "1cfd08338d8c12257354540395e89c23af2f29d596ef81d9981ff20a53075081"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/Ja937c0f87be04478abed5c92674beef2.json",
+        "bytes": 5744,
+        "sha256": "78a0fb5a88674457fa5041d1317645863ecc9ddcc2c9d2da0f6e80aa7dceb7fc"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/Jd3bf1fcbb2bd4cfa8d634fbcfc26419c.json",
+        "bytes": 440,
+        "sha256": "4c1f6e0d77178da23049dc64ff270cd67687b0450810eddd1a9dc2f38f404e4b"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/Jdb889ed4bf8c4eeb9745503a53f61683.json",
+        "bytes": 5754,
+        "sha256": "8da0cd0313819c9e5849972fd6712e6208612ab2e9bc0cfe5785ed849f8efe34"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/node-final-ui.log",
+        "bytes": 43708,
+        "sha256": "31978a37cd57ec7045c1e0625ef850001fedbcc55f0ac32b689b29793f4c771e"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/node-final.log",
+        "bytes": 43687,
+        "sha256": "43dc7e7e1d26e2d064889f15dca191401b1e184473aef8dee8efa94587b4db83"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/node-first.log",
+        "bytes": 7804,
+        "sha256": "e232187a03e2a956c75f4ead7313c9fc7a8f757d40f1954486f9e5a59fb52e7a"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/node-workflow-second.log",
+        "bytes": 3724,
+        "sha256": "64b3069bab5e3a1705f19a1d913b0fc6caab537081b66e11ef10d4172f579aa6"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/O-100N-condition-mismatch-20261006-r01-reopened.json",
+        "bytes": 5419,
+        "sha256": "e7d12c884664cd6397e8720e847b8707aa4262d2f8f000081fdc718726d3eb52"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/O-lab-muvigxic-reopened.json",
+        "bytes": 5409,
+        "sha256": "25f859b479d913e256c82be8be9a672ea4898fd21eda5fcd87a05261a5aea7a8"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/protected-after.json",
+        "bytes": 23803,
+        "sha256": "8efcf8f287029acc909945ecc85a0b7c5a8234ffed7769c9098d4e9c9436e11b"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/protected-before.json",
+        "bytes": 23803,
+        "sha256": "8efcf8f287029acc909945ecc85a0b7c5a8234ffed7769c9098d4e9c9436e11b"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/python-final.log",
+        "bytes": 921,
+        "sha256": "06dad386f21b6fbf903bff8fc903ce57bf16d936e130c72329ac5621f796f306"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/python-integration-first.log",
+        "bytes": 3598,
+        "sha256": "636c6d3938cf271b09f2cb2121d2a34f5000a86b3574cdb6d5add04106f78402"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/reopened-ax.txt",
+        "bytes": 5028,
+        "sha256": "aca8462abcf25614256093004301ef03f20383d48296ae12b81e81bdfabbc1ac"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/review-closure.txt",
+        "bytes": 1146,
+        "sha256": "bdb7261590065db452a6071682809c90c7beb9250f9a42f350f1e0672c894156"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/runtime-proof.json",
+        "bytes": 957,
+        "sha256": "671c8d2024544cdf53424cd97fba7abab42f0890465bda1c9066ab13ef72d5f2"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/source-files.json",
+        "bytes": 3677,
+        "sha256": "82f122898d0fa861f8a27352033cb57496e126712e932b12bc246471c366de85"
+      },
+      {
+        "path": "artifacts/observation-response-20261006-01/verify-runtime.ps1",
+        "bytes": 5012,
+        "sha256": "cfa2a722c20abf2c7eb60a28456df714f0dbf528c98d560ec816d2034794be23"
+      }
+    ],
+    "off_machine_restore": "UNKNOWN"
+  },
+  "limits": [
+    "User-declared physical scope is not independently verified",
+    "MEASURED_REPORTED is unqualified user reporting; targets here are synthetic",
+    "Matching scalar/tolerance never establishes unique cause, specification inequalities or jig approval",
+    "No implicit unit conversion, sign/norm, tensor-component, axis/time, interpolation or curve alignment",
+    "General history alignment/inverse/UQ, structured OpenScience interpretation and original assembly mechanics remain OPEN",
+    "R2 candidates and actual owned provider/native cancellation/reconnect remain OPEN",
+    "Software phase52 completion and engineering release are distinct; neither is claimed"
+  ],
+  "scope_alignment": "USER_DECLARED_UNVERIFIED",
+  "physical_validation": "UNKNOWN",
+  "causal_verdict": "NOT_EVALUATED",
+  "decision": "NOT_RELEASED",
+  "next_acceptance": "Reuse retained native history channels with explicit physical quantity/measure/location and actual time/load axes in the common observation mapping, then connected interpretation and existing numerical-engine/assembly flow."
+}

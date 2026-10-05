@@ -1,4 +1,8 @@
-## Current checkpoint: original-condition reuse and actual150N comparison
+## Current checkpoint: declared observation-to-response records
+
+R01–R03/R09–R13/R19–R21/R24 remain partial. ADR0038 adds a bounded append-only Core/HTTP/GUI scalar observation record with explicit source/location/component/frame/condition, exact unit and source checks; unchanged original native results. Actual SYNTHETIC150N comparison,100N condition-mismatch/no-difference, invalid-unit/stress refusal and browser reload are in `benchmarks/records/20261006-observation-response-r01.json`;245 Python/510 Node PASS,115 original files35382328B unchanged. This is structured declaration/storage, not qualified measurements, unique-cause/inverse/Domain feasibility or whole52/Phase1–7 completion. No new native/provider run/MCP admission; physical UNKNOWN/NOT_RELEASED remain. NEXT retained histories/axes→mapping→connected interpretation/engine/assembly. R2 actual recovery remains OPEN.
+
+## Historical checkpoint: original-condition reuse and actual150N comparison
 
 All R01–R52/Phase1–7 remain. B1–B2 original-condition reuse has bounded actual native/GUI acceptance: same38mm CAD/study/material/selected4mm, new100→150N experiment, full-field linear scaling/reaction comparison, original93-file retention,491 Node/206 Python PASS. Source/run/hash distinctions and limits: `benchmarks/records/20261006-condition-reuse-r01.json`. Six PASS/seven UNKNOWN, invalid stress/mesh sensitivity and NOT_RELEASED unchanged. Text purpose drafts are not structured measured-data/unique-cause validation. NEXT common history/response/observation mapping, numerical-engine exploration and original assembly mechanics; R2 actual cancellation/reconnect and broader phases remain OPEN. No blanket completion/release promotion.
 

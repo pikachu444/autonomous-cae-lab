@@ -17,7 +17,7 @@ Dakota/GEMSEO/LS-OPT 계열 시험–해석 비교를 연구 참고로, SimScale
 | 현재 순서 | 실제 사용자 산출물 | 상태와 완료 기준 |
 |---|---|---|
 | B0 | 불량 재현/지그 가능성의 실제 목적과 재사용 기능 확인 | 공식 조사·public Core/HTTP/UI의 기존 경로 확인. 설치/새 수치 검증 아님; SimScale을 동일 연구 제품으로 판정하지 않음 |
-| B1–B2 **활성** | 관찰/시험 목적·가설·응답 → 모델·전체 조건 → 작업 → 결과/이력 → 조건 변경·비교 → 다음 시험·저장 | 원 조건→새 실험→100/150N 실제 비교·전체U 재열람의 제한된 단위 완료. [기록](../benchmarks/records/20261006-condition-reuse-r01.json). 다음은 공통 이력/응답 선택과 관측–응답 매핑. 기존 study는 텍스트이며 구조화 측정·경쟁 가설·inverse는 OPEN |
+| B1–B2 **활성** | 관찰/시험 목적·가설·응답 → 모델·전체 조건 → 작업 → 결과/이력 → 조건 변경·비교 → 다음 시험·저장 | 원 조건→새 실험→100/150N 실제 비교·전체U 재열람 완료. 추가로 명시한 관측 출처·위치·성분·조건과 scalar/배열 항목의 공통 저장·차이·조건 불일치·재열람 완료([기록](../benchmarks/records/20261006-observation-response-r01.json)). 다음은 보유 이력의 실제 시간/하중 축과 응답 채널을 공통 매핑에 연결. 가상 기준의 기능 검증이며 실측 자격·경쟁 원인 식별·general inverse는 OPEN |
 | B3 | OpenScience가 지원 시나리오에서 같은 흐름을 실행·해석 | 기존 approved5.6Sol/OAuth와 지원 profile 재사용. API callable을 AI admission/host readiness로 대신하지 않음 |
 | B4 | 지그:수치 탐색/조립체 mechanics. 불량:관측–응답 매핑/가설 비교. 이후 Phase3–7 확장 | 수동150N 조건 변경의 선형 비교 완료, 수치 엔진 탐색은 미실행. 시험체와 지그 변형·접촉·하중 경로, 불량 위치/형태/발생 조건과 비교. synthetic inverse를 실제 불량 원인 검증으로 사용하지 않음; 전체 모델 의무 mesh sweep 없음 |
 | B5 | 필요한 engine/후처리/외부 native inspection 기능 재사용 | GEMSEO/ParaView·trame/PrePoMax 등을 역할별 평가. blanket 설치·새 공통 engine 재개발은 완료 조건 아님 |

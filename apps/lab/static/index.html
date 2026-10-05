@@ -18,6 +18,7 @@
   <script src="/static/result-presentation.js" defer></script>
   <script src="/static/research-controls.js" defer></script>
   <script src="/static/experiment-draft.js" defer></script>
+  <script src="/static/observation-controls.js" defer></script>
   <script src="/static/app.js" defer></script>
 </head>
 <body>
@@ -184,6 +185,27 @@
         <div class="page-heading"><div><p class="eyebrow">05 / 결과</p><h1>형상과 결과를 확인하세요.</h1><p class="lead">실험을 선택하면 입력 조건, 결과와 남은 확인 사항을 함께 볼 수 있습니다.</p></div><span id="selectedSource" class="outline-label">실험 선택 대기</span></div>
         <details class="card result-browser" id="resultBrowser" open><summary>실험 선택·비교</summary><div class="card-heading"><h2>실험 기록</h2><div class="button-row"><span id="compareCount" class="hint">0개 선택</span><button type="button" id="compareBtn" class="button secondary compact">선택 결과 비교</button></div></div><div class="form-grid filter-grid"><label class="search-label">기록 검색<input id="experimentSearch" type="search" placeholder="실험 이름, 연구, 실행 프로그램"></label><label>상태<select id="experimentFilter"><option value="">모든 상태</option><option value="COMPLETED_REVIEW_REQUIRED">실행 완료 · 검토 필요</option><option value="REJECTED">조건 미충족</option><option value="FAILED_EXECUTION">실행 실패</option></select></label></div><div id="experimentList" class="table-scroll"><p class="empty-state">실험을 실행하거나 읽기 전용 라이브러리를 선택하세요.</p></div></details>
         <div id="comparisonDetail" hidden></div>
+        <article id="observationPanel" class="card" hidden>
+          <div class="card-heading"><div><p class="eyebrow">관측과 해석 응답</p><h2>관측·시험 기준 비교</h2></div></div>
+          <p id="observationContext" class="hint"></p>
+          <div id="observationRecords"></div>
+          <details id="observationEditor" class="advanced separated"><summary>새 관측값 또는 시험 기준 연결</summary>
+            <p class="hint separated">같은 위치·성분·조건의 응답을 직접 선택하세요. 비교는 수치 차이를 기록하며, 불량 원인 확정이나 지그 제작 승인은 별도의 근거가 필요합니다.</p>
+            <form id="observationForm"><fieldset data-write>
+              <div class="form-grid"><label>연구 목적<select id="observationPurpose" required><option value="">목적을 선택하세요</option><option value="DEFECT_REPRODUCTION">제품 불량 재현 · 원인 가설 비교</option><option value="JIG_FEASIBILITY">지그 제작 전 · 시험 가능성 검토</option></select></label><label>비교할 해석 응답<select id="observationResponse" required><option value="">유효한 응답을 선택하세요</option></select></label></div>
+              <p id="observationResponseNote" class="hint"></p>
+              <label>비교할 원인 가설 또는 시험 목적<textarea id="observationHypothesis" rows="2" maxlength="2000" required placeholder="예: 지지부 강성이 낮아 관측 위치의 변형이 커졌는가?"></textarea></label>
+              <div class="form-grid"><label>관측·기준 이름<input id="observationName" maxlength="256" required placeholder="예: 하중부 수직 변위"></label><label>출처 구분<select id="observationSourceKind" required><option value="">출처를 선택하세요</option><option value="MEASURED_REPORTED">측정값 · 사용자가 보고한 값</option><option value="SPECIFICATION">시험 규격·목표값</option><option value="SYNTHETIC">가상 데이터 · 기능 확인·가정</option></select></label></div>
+              <label>출처·파일·측정 또는 기준의 근거<textarea id="observationSource" rows="2" maxlength="2000" required></textarea></label>
+              <div class="form-grid"><label>관측값<input id="observationValue" inputmode="decimal" required></label><label>절대 허용 차이<input id="observationTolerance" inputmode="decimal" required></label></div>
+              <p class="hint">선택한 응답의 단위로 입력합니다. 부호를 유지하며 단위 변환을 자동으로 수행하지 않습니다. 허용 차이는 비교 범위이며 설계의 상한·하한 규격 판정과는 구분합니다.</p>
+              <div class="form-grid"><label>물리량<input id="observationQuantity" maxlength="128" required placeholder="예: 변위"></label><label>관측 성분<input id="observationComponent" maxlength="128" required placeholder="예: 전체 변위 크기 또는 전역 Z 성분"></label><label>관측 위치<input id="observationLocation" maxlength="512" required placeholder="측정 지점·절점 집합·시험편 위치"></label><label>좌표계<input id="observationFrame" maxlength="128" required placeholder="관측 기준의 좌표계"></label></div>
+              <label>시간·하중·온도 등 관측 조건<textarea id="observationCondition" rows="2" maxlength="2000" required></textarea></label>
+              <details class="advanced"><summary>저장된 입력과의 명시적 조건 연결 · 선택 사항</summary><p class="hint">원래 입력의 정확한 경로·값·단위를 연결합니다. 불일치하면 수치 차이를 계산하지 않습니다. 연결을 비워도 관측 조건이 확인된 것은 아닙니다.</p><label>조건 연결 (JSON 배열)<textarea id="observationConditions" rows="3" class="json-input" spellcheck="false">[]</textarea></label></details>
+              <div class="form-footer"><small>원래 모델·해석 결과를 보존하고 새 비교 기록으로 저장합니다.</small><button id="observationSaveBtn" class="button primary" data-operation="response_comparison_save">관측 비교 저장</button></div>
+            </fieldset></form>
+          </details>
+        </article>
         <div id="experimentDetail"><article class="card empty-detail"><span class="empty-icon" aria-hidden="true">↗</span><h2>확인할 실험을 선택하세요.</h2><p>기록의 ‘열기’를 선택하면 형상, 입력 조건과 결과를 볼 수 있습니다.<br>상세 검사와 원본 파일도 같은 화면에서 확인할 수 있습니다.</p></article></div>
       </section>
     </main>

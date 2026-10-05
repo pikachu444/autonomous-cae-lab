@@ -1,3 +1,25 @@
+## Declared observation/response records (ADR0038; B1–B2)
+
+Common Core/Python and the Lab HTTP GUI can append a declared observation to a
+verified original result through `save_response_comparison`; inspect/list return
+rechecked records. Required source category, quantity, component, location,
+coordinate frame, condition and exact unit remain explicit user declarations.
+Only a valid finite scalar or explicitly selected flat-array item is supported.
+Declared input bindings compare exact keys/array indices and values; mismatch
+retains source values with null difference/tolerance verdict. No implicit unit
+conversion, axis/time inference, interpolation or physical alignment occurs.
+
+MEASURED_REPORTED is an unqualified user report. SPECIFICATION/SYNTHETIC are
+distinct sources; matching numbers do not identify a unique cause or approve a
+jig. Scope stays USER_DECLARED_UNVERIFIED, physical validation UNKNOWN, causal
+verdict NOT_EVALUATED and NOT_RELEASED. Original solver metrics, invalid values,
+validation/evidence and immutable results remain authoritative.
+
+This human comparison slice adds no MCP tool, provider call or profile admission.
+Approved openai-codex/gpt-5.6-sol/OAuth and canonical inverse thresholds remain
+unchanged. Connected interpretation, general history alignment, inverse/UQ and
+Domain feasibility criteria remain OPEN. See record20261006-observation-response-r01.
+
 ## Human condition-reuse boundary (B1–B2)
 
 The Lab GUI can copy declared settings from a VERIFIED experiment into an

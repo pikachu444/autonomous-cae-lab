@@ -141,6 +141,20 @@ class Lab:
     def inspect_study(self, study_id: str) -> dict[str, Any]:
         return load_json(self.store / "studies" / check_id(study_id) / "study.json")
 
+    def save_response_comparison(self, comparison_id: str, experiment_id: str, purpose: str,
+                                 hypothesis: str, observation: dict, response: dict) -> dict[str, Any]:
+        from .response_comparison import save_comparison
+        return save_comparison(self, comparison_id=comparison_id, experiment_id=experiment_id,
+                               purpose=purpose, hypothesis=hypothesis, observation=observation, response=response)
+
+    def inspect_response_comparison(self, comparison_id: str) -> dict[str, Any]:
+        from .response_comparison import inspect_comparison
+        return inspect_comparison(self, comparison_id)
+
+    def response_comparisons(self, study_id: str) -> list[dict[str, Any]]:
+        from .response_comparison import list_comparisons
+        return list_comparisons(self, study_id)
+
     @_registration_guard
     def registry(self, study_id: str) -> dict[str, Any]:
         return load_json(self.store / "studies" / check_id(study_id) / "parameters.json")

@@ -165,6 +165,10 @@ class LabHandler(BaseHTTPRequestHandler):
             if set(query) != {"ids"} or len(query["ids"]) != 1:
                 raise ServiceError(400, "Compare requires one ids query argument")
             return self._json(200, service.compare(query["ids"][0].split(",")))
+        if path == "/api/response-comparisons":
+            if set(query) != {"study_id"} or len(query["study_id"]) != 1:
+                raise ServiceError(400, "Observation comparisons require one study_id")
+            return self._json(200, service.response_comparisons(query["study_id"][0]))
         if path.startswith("/api/artifacts/"):
             if set(query) != {"path"} or len(query["path"]) != 1:
                 raise ServiceError(400, "Artifact requires one relative path argument")
@@ -182,7 +186,8 @@ class LabHandler(BaseHTTPRequestHandler):
             return self._json(200, service.presets())
         if path == "/api/research":
             return self._json(200, service.research_status())
-        for prefix, operation in (("/api/studies/", service.study), ("/api/experiments/", service.experiment),
+        for prefix, operation in (("/api/response-comparisons/", service.response_comparison),
+                                  ("/api/studies/", service.study), ("/api/experiments/", service.experiment),
                                   ("/api/campaigns/", service.campaign), ("/api/jobs/", service.job)):
             if path.startswith(prefix):
                 return self._json(200, operation(path.removeprefix(prefix)))
