@@ -184,7 +184,7 @@ def test_per_mesh_response_preserves_order_sign_scope_and_evidence(tmp_path):
                        "displacement_table_sha256": hashlib.sha256((tmp_path / relative).read_bytes()).hexdigest()}
         assert row["displacement_table_sha256"] == manifest[relative]["sha256"]
     assert json.dumps(studies, sort_keys=True) == before
-    assert FixtureCalculiXAdapter.version == "4"
+    assert FixtureCalculiXAdapter.version == "5"
     assert FixtureCalculiXAdapter.default_metrics == ["max_displacement", "peak_stress", "displacement_mesh_change_ratio",
         "applied_force_per_support", "reaction_force", "reaction_balance_ratio", "mesh_size_max_mm", "loaded_saddle_min_global_uz"]
 

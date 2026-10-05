@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.fixture-complete-displacement-source",
+  "observed_utc": "2026-10-05T06:56:13Z",
+  "verdict": "PASS_BOUNDED_REVIEWED_SOURCE_ONLY",
+  "source_parent": "49771dc08ef60532150594a0db0c88ebe8700fa2",
+  "candidate_parent": "c94da4e86be05146353e716b4fba8d71a96b7246",
+  "fixture_head": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "adapter_version": "5",
+  "reviewed_tested_working_files": [
+    {
+      "path": "caelab/adapters/fixture_calculix.py",
+      "bytes": 41267,
+      "sha256": "37fe0e4e332fd84a2b6b203739e004bda4e495af1e6099d6b3fa43137ec1867f"
+    },
+    {
+      "path": "caelab/adapters/fixture_field.py",
+      "bytes": 30055,
+      "sha256": "e716cd22adaa512257ac5964c5797a07ec3d54c9cbe632f2951752413dcf01a6"
+    },
+    {
+      "path": "tests/test_fixture_calculix.py",
+      "bytes": 12057,
+      "sha256": "b99797d85054738ed631c434ad0e8fd5b071db668931896f766a5474c19e9389"
+    },
+    {
+      "path": "tests/test_fixture_field.py",
+      "bytes": 26879,
+      "sha256": "d75dbe022163fdd899db8d80749d6f08bf1565e11e00a69771a11f257c483fcb"
+    },
+    {
+      "path": "tests/test_fixture_stress_field.py",
+      "bytes": 20446,
+      "sha256": "daa13c635dc4dcb7619181a5de5d8e496f4cf88450dd8326788d0507bd6b5ccc"
+    }
+  ],
+  "artifact": {
+    "path": "support_N/fea_field.json",
+    "schema_version": "1.0",
+    "kind": "fixture_calculix_nodal_displacement",
+    "coverage": "ALL_MESH_NODES",
+    "coordinate_frame": "SOLVER_GLOBAL_CARTESIAN",
+    "position_unit": "mm",
+    "displacement_unit": "mm",
+    "force_unit": "N",
+    "static": {
+      "step": 1,
+      "increment": 1,
+      "load_parameter": 1
+    },
+    "node_ids_vectors_tokens": "EXACT_OBSERVED_NATIVE_U",
+    "geometry_topology": "DECK_POSITIONS_C3D10_COMPLETE_CPS6_EXTERIOR",
+    "inputs": "PRE_EXECUTION_MESH_DECK_SADDLE_SHA_BYTES",
+    "sources": "MESH_DECK_FRD_DAT_SADDLE_SHA_BYTES",
+    "qualification": "UNKNOWN",
+    "engineering_valid": false,
+    "max_source_bytes": 67108864
+  },
+  "root_primary_controls": {
+    "pass": 175,
+    "fail": 0,
+    "skip": 3,
+    "skip_reason": "OPTIONAL_LOCAL_HISTORICAL_PROBES",
+    "warnings": 1,
+    "warning_reason": "EXISTING_CADQUERY_DEPRECATION",
+    "seconds": 14.81,
+    "source_head": "49771dc08ef60532150594a0db0c88ebe8700fa2",
+    "source_dirty": true,
+    "exact_frozen_bytes_unchanged": true,
+    "protected8_unchanged": true,
+    "ledger52_unchanged": true,
+    "native_solver_mesh_provider_calls": 0
+  },
+  "candidate_controls": {
+    "pass": 175,
+    "skip": 3,
+    "optional_real_saved_file_controls_pass": 3,
+    "old_files_unchanged": 15,
+    "old_partial_U_refused": true,
+    "earlier_synthetic_stress_failure": "2FAIL_55PASS_RETAINED",
+    "correction": "TWO_AUTHORISED_TEST_ONLY_PLUMBING_FIXTURES_AND_VERSION5_EXPECTATION",
+    "cross_checkout_line_endings": "ACTUAL_RAW_HASH_DIFFERENCES_RECORDED_CANONICAL_ORIGINAL_CONTENT_IDENTICAL"
+  },
+  "independent": {
+    "model": "gpt-6-astra",
+    "effort": "high",
+    "verdict": "BOUNDED_SOURCE_ONLY_PASS",
+    "open_p1": 0,
+    "open_p2": 0,
+    "receipt_sha256": "03d425f981b8c64bc3247bfb615823f1217d41128e4fac8c7c0f3c0a34672195",
+    "candidate23_files_204294_bytes_verified": true,
+    "test_rerun": false,
+    "native_gui_calls": 0
+  },
+  "preserved": [
+    "Pinned upstream and saddle helpers",
+    "Loaded-node DAT U and base DAT RF",
+    "Material/load/boundary/step/mechanics and existing native commands",
+    "Common default metrics and loaded-U statistic",
+    "5% displacement screen and1% signed reaction criterion",
+    "Invalid peak stress and seven UNKNOWNs",
+    "All52 and existing experiment bytes"
+  ],
+  "retained_receipts": [
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-full-field-source-01/MANIFEST.json",
+      "sha256": "0815d8a50daac62ef675d03dba457801219f29f9d10db2ccea33835db9c59fe6"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-full-field-source-01/RECEIPT.json",
+      "sha256": "6fbb95b249674f80ccac681e6830ad6e9bfa749af0e972c73fffa72143ea4b0b"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-full-field-review-astra-01/RECEIPT.json",
+      "sha256": "03d425f981b8c64bc3247bfb615823f1217d41128e4fac8c7c0f3c0a34672195"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-full-field-integration-root-01/BASELINE.json",
+      "sha256": "8bd781eac1639546d1e21e40dc6f497c9fdb79a611031811e1086b328560a11c"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-full-field-integration-root-01/PYTEST-MAIN-01.log",
+      "sha256": "10bbb3868a41688b7d811cbf289d6932697a436393872a04b9684720655b3c00"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-full-field-integration-root-01/PYTEST-MAIN-01.json",
+      "sha256": "b900c386461da2233499bd1f4b23d714496165b0fa2cf6a401ff55b29d1e3f38"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-full-field-integration-root-01/SOURCE-AFTER-01.json",
+      "sha256": "a025e24d21071763b8ec9b9911e5740784f5a69a22a2d2a5b5736aa9a971320d"
+    }
+  ],
+  "retention": "Raw logs/frozen copies/reviews/source snapshots are local ignored evidence, not a remote raw restore claim.",
+  "fresh_native": "NOT_RUN_AT_SOURCE_CHECKPOINT",
+  "field_GUI": "NOT_RUN",
+  "selected_mesh_public_contract": "OPEN_EXISTING2_TO8_POLICY_PRESERVED",
+  "new_source_CI": "NOT_RUN_UNTIL_SOURCE_COMMIT_PUSH",
+  "whole_U1_and_service": "OPEN",
+  "engineering_decision": "NOT_RELEASED",
+  "next": "Clean reviewed source commit/push; output-only replay on one retained suitable mesh in a new immutable path; original loaded response/raw vectors/source identity check, then explicit selected-mesh contract and same-record field GUI/recovery. No remesh/global sweep."
+}

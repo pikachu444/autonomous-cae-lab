@@ -1,5 +1,28 @@
 # First structural child experiment
 
+## Current S2b complete-displacement source checkpoint — 2026-10-05
+
+Reviewed fixture adapter5 adds an output-only all-node FRD U request and
+`support_N/fea_field.json`. Native coordinates/connectivity, complete CPS6 exterior,
+fixed XYZ/load vectors, all U tokens and mesh/deck/saddle/FRD/DAT source hashes are
+bound to the same parent/revision/mesh. Every loaded vector is checked against DAT.
+Missing/partial/nonfinite/misassociated fields are refused; old partial U is never filled.
+The artifact declares observed ALL_MESH_NODES coverage, qualification UNKNOWN and
+engineering_valid=false. Coordinate/displacement units are mm, forces N, the frame
+is SOLVER_GLOBAL_CARTESIAN; step1/increment1/load_parameter1 is static, not seconds.
+
+Only output changes: loaded DAT U/base RF, material, load, boundary, step, pinned
+mesh/deck/parser routines, common metrics,5%/1% screens, invalid stress and seven
+UNKNOWNs remain. Root Primary175PASS/3optionalSKIP and independent Astra/high
+source review0P1/P2 qualify source only. Fresh complete native field and same-record
+GUI remain OPEN; see `../benchmarks/records/20261005-fixture-full-field-source-r01.json`.
+
+ADR0035 scopes mesh sensitivity to justified purpose-specific investigations.
+These historical refinement screens are not universal full-model user gates.
+The current2–8 mesh-list contract still needs a separate opt-in selected-mesh unit.
+Next native field check reuses one retained suitable mesh/deck in a NEW path and
+changes its output request only; no CAD regeneration or mesh sweep is needed.
+
 ## Source continuation2026-10-02: conditions and complete diagnostic fields
 
 Fixture adapter3 appends `support_N/stress_field.json` for each mesh: complete

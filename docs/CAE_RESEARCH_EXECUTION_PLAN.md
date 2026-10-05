@@ -25,7 +25,7 @@
 | S0 | 실제 실행·중단·목표 상태 복원 | READONLY_OBSERVED / Root | 지정PIDs/ports/원기록 구분, old outputs 보존. 종료 원인 UNKNOWN 유지 |
 | S1 | 한 실행 동작에 승인 OpenScience+Lab 연결 | BOUNDED_LIVE_PASS / Root | 새 run02 실제 질문·도구 결과·resident idle·owned Stop 확인. active-job/native 취소·재시작은 S3 |
 | S2a | 부모 CAD와 정확한 수치 검사 이름을 결과에 표시 | BOUNDED_FRESH_GUI_PASS / Root | 실제 부모·revision·manifest/caption과 늦은 성공 응답 차단 확인. late-error/detached branch는 source controlled-DOM 증거 |
-| S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | SOURCE_CANDIDATE / adapter, Root | 실제 전체 절점 U·raw 일치·probe/성분/단위·좌표계, 같은 GUI. 기존 적절한 mesh 재사용; 새 global sweep 없음 |
+| S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | SOURCE_REVIEWED_INTEGRATED_NATIVE_GUI_OPEN / Root | 전체 U output-only source의 Primary175PASS/3SKIP·Astra0P1/P2. 다음은 기존 적절한 mesh 한 개의 새 path 실제 출력·같은 GUI; global sweep 없음 |
 | S3 | 종료·강제 중단·재시작 상태와 admission 복구 | NEXT / Root shared execution owner | tiny crash/identity matrix, append-only reconciliation, real native cancel/reconnect, old evidence 보존 |
 | U1 | 첫 간단한 사용자 CAE 연구 | WAITING_ON_S1_S2_S3 / Root | 아래 한 사용자 흐름을 실제로 끝내고 독립 검토·같은 GUI 결과·보고서로 확인 |
 | S4a | coarse native affine full-field patch | OPEN / Domain·adapter | source kernel 재사용, U/strain/stress/energy/force/moment 전체 참조 비교. actual mechanics와 구분 |
@@ -126,3 +126,15 @@ Root private receipts: `host-bridge-correction-root-01/S1-LIVE-RECEIPT-03.json` 
 Both are under `artifacts/development-cae-usability-audit-20261005-01/`; retained locally, not a remote raw restore claim.
 Exact c94 CI37269269559 completed7SUCCESS/3FAIL: native/source/Core/registration/structural/DOE/optimization succeeded;
 explicit download, Code_Aster and vector PDE jobs failed. Whole CI is not PASS; fresh actual failed logs are retained separately.
+
+## S2b full-U source checkpoint
+
+Bounded reviewed5files advance fixture adapter4→5: all-node FRD U request,
+pre-native mesh/deck/saddle pins, strict native2.21 geometry/full-field reader,
+additive `fea_field.json`/manifest association and TEST_ONLY compatibility controls.
+Existing loaded DAT U/BASE RF/mechanics/native commands/statistics/thresholds remain.
+Root Primary175PASS/3optionalSKIP14.81s; candidate actual legacy3PASS/15old files unchanged;
+independent Astra/high source0P1/P2. No complete fresh native output or field GUI is implied.
+Record: `benchmarks/records/20261005-fixture-full-field-source-r01.json`.
+Next actual gate changes only output on one suitable retained mesh/deck in a NEW immutable path.
+The separate opt-in selected-mesh public contract is still OPEN. No legacy U inference or remesh.

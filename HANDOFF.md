@@ -3,7 +3,7 @@
 Use `docs/CAE_RESEARCH_EXECUTION_PLAN.md` as the single current work/status table.
 Astra/high audit and detailed plan: `docs/reviews/20261005-astra-high/`.
 Verified clean-c94 actual connection/question/idle cleanup and fresh parent-CAD/stale-success UI: `benchmarks/records/20261005-cae-usability-live-r03.json`.
-S1/S2a bounded live gates PASS; S2b full-field candidate review/native/UI and S3 recovery/U1 remain OPEN.
+S1/S2a bounded live gates PASS. Reviewed S2b full-U source/Primary175PASS/3SKIP: `benchmarks/records/20261005-fixture-full-field-source-r01.json`; new actual output/UI and S3 recovery/U1 remain OPEN.
 User's mesh policy: no mandatory global/full-model mesh sweep; purpose-specific Domain checks and optional targeted sensitivity. ADR0035 preserves historical screens/thresholds; selected-mesh software mode is still OPEN.
 All52/Phase1-7/UNKNOWN/NOT_RELEASED remain; same source's exactCI37269269559 ended7SUCCESS/3FAIL, not whole CI PASS.
 Goal BLOCKED/cause UNKNOWN; heartbeat ACTIVE separately. Two actual gate services were intentionally stopped after verification.

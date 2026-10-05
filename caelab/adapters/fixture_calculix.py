@@ -23,6 +23,8 @@ from typing import Any
 import cadquery as cq
 
 from .fixture_saddle_load import saddle_nodal_forces
+from .fixture_field import (capture_fixture_field_inputs, extract_fixture_field,
+                            request_complete_displacement)
 from ..storage import save_json
 
 
@@ -387,7 +389,7 @@ def _extract_stress_field(frd: Path, nodes: dict, screen: Any) -> tuple[dict, di
 
 class FixtureCalculiXAdapter:
     backend = "fixture.calculix"
-    version = "4"
+    version = "5"
     analysis_type = "linear_static"
     default_metrics = ["max_displacement", "peak_stress", "displacement_mesh_change_ratio",
                        "applied_force_per_support", "reaction_force", "reaction_balance_ratio",
@@ -596,6 +598,8 @@ class FixtureCalculiXAdapter:
                                         if key not in ("nodal_loads", "loaded_node_ids")},
                            "limit": "Unique cylindrical face; central 24 mm patch; normalized total force"})
             _request_base_reactions(deck)
+            request_complete_displacement(deck, nodes)
+            field_inputs = capture_fixture_field_inputs(folder, index)
             checks.append({"code": f"mesh_{index}_cad_volume", "status": "PASS",
                            "observed": boundary["mesh_volume_relative_error"], "limit": .08})
             ccx = subprocess.run(["ccx", job], cwd=folder, text=True, capture_output=True, timeout=300)
@@ -618,6 +622,11 @@ class FixtureCalculiXAdapter:
                            "observed": reactions, "limit": .01})
             stress_field, stress = _extract_stress_field(frd, nodes, screen)
             save_json(folder / "stress_field.json", stress_field)
+            fea_field = extract_fixture_field(
+                folder, mesh_index=index, mesh_size_max_mm=size,
+                parent_experiment_id=parent_result["experiment_id"],
+                cad_revision=parent_result["cad_revision"], expected_inputs=field_inputs)
+            save_json(folder / "fea_field.json", fea_field)
             studies.append({"mesh_size_max_mm": size, "nodes": len(nodes),
                             "elements_C3D10": len(elements),
                             "minimum_quadratic_jacobian_mm3": jac,
@@ -630,6 +639,7 @@ class FixtureCalculiXAdapter:
                                       "gmsh_log": f"{job}/gmsh.log", "ccx_log": f"{job}/ccx.log",
                                       "field_results": f"{job}/{job}.frd",
                                       "stress_field": f"{job}/stress_field.json",
+                                      "fea_field": f"{job}/fea_field.json",
                                       "displacement_table": f"{job}/{job}.dat"}})
         coarse, fine = studies[-2:]
         numerator = abs(coarse["displacement"]["max_abs_vertical_displacement_mm"] -

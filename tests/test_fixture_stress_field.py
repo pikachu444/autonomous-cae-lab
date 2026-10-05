@@ -222,6 +222,7 @@ LOADED = (4, 8, 9, 10)
 
 
 def synthetic_adapter_run(tmp_path, monkeypatch, screen, *, malformed_index=None):
+    """TEST_ONLY complete protocol plumbing; no mesh/solver process or physics."""
     parent_root = tmp_path / "parent"
     cad = FixtureCadQueryAdapter().regenerate("roller_support", {"support_width_mm": 38}, parent_root / "cad")
     assert cad.generated
@@ -236,20 +237,25 @@ def synthetic_adapter_run(tmp_path, monkeypatch, screen, *, malformed_index=None
 
     def deck_double(path, nodes, elements, support, material, force):
         assert nodes == UNIT_NODES and len(elements) == 1 and force == 100.
-        path.write_text("*HEADING\nSynthetic artifact I/O only\n*NSET, NSET=BASE_FIXED\n" +
+        path.write_text("*HEADING\nTEST_ONLY synthetic artifact I/O; no native solve\n*NODE\n" +
+                        "".join(f"{node}, {x:.10g}, {y:.10g}, {z:.10g}\n" for node, (x, y, z) in nodes.items()) +
+                        "*ELEMENT, TYPE=C3D10, ELSET=SUPPORT\n1, 1,2,3,4,5,6,7,8,9,10\n" +
+                        "*NSET, NSET=BASE_FIXED\n" +
                         ", ".join(map(str, FIXED)) + "\n*NSET, NSET=ROLLER_NODES\n" +
                         ", ".join(map(str, LOADED)) + "\n*MATERIAL, NAME=PRINT_INPUT\n" +
                         "\n".join(screen.elastic_material_lines(material)) +
-                        "\n*STEP\n*STATIC\n*BOUNDARY\nBASE_FIXED, 1, 3\n*CLOAD\n" +
+                        "\n*SOLID SECTION, ELSET=SUPPORT, MATERIAL=PRINT_INPUT\n" +
+                        "*STEP\n*STATIC\n*BOUNDARY\nBASE_FIXED, 1, 3\n*CLOAD\n" +
                         "".join(f"{node}, 3, -25\n" for node in LOADED) +
-                        "*NODE PRINT, NSET=ROLLER_NODES\nU\n*EL FILE\nS\n*END STEP\n")
+                        "*NODE PRINT, NSET=ROLLER_NODES\nU\n" +
+                        "*NODE FILE, NSET=ROLLER_NODES\nU\n*EL FILE\nS\n*END STEP\n")
         return {"fixed_node_count": len(FIXED), "loaded_node_count": len(LOADED),
                 "loaded_node_ids": list(LOADED), "per_node_force_N": -25.,
                 "mesh_volume_relative_error": 0.}
 
     # Only these boundary/volume/load fixture doubles bypass physics. The
     # pinned node parser, C3D10 Jacobian, U/stress extraction, reaction checker,
-    # STEP preflight, artifact hashes and new field writer execute normally.
+    # STEP preflight, artifact hashes and both field writers execute normally.
     io_screen = SimpleNamespace(**{name: getattr(screen, name) for name in
                                   ("elastic_material_lines", "parse_gmsh_inp", "quadratic_tet_jacobian_quality",
                                    "extract_vertical_displacements", "extract_stress_diagnostic")},
@@ -257,7 +263,8 @@ def synthetic_adapter_run(tmp_path, monkeypatch, screen, *, malformed_index=None
     monkeypatch.setattr(adapter, "_screen", lambda: io_screen)
     monkeypatch.setattr(adapter, "saddle_nodal_forces", lambda *_args, **_kwargs: {
         "nodal_loads": {node: -25. for node in LOADED}, "loaded_node_ids": list(LOADED),
-        "total_applied_force_N": 100.})
+        "loaded_node_count": len(LOADED), "total_applied_force_N": 100.,
+        "surface_group": "SADDLE_SIDE", "face_count": 3})
     monkeypatch.setattr(adapter.shutil, "which", lambda name: f"synthetic://{name}")
     monkeypatch.setattr(adapter, "_version", lambda _: "synthetic I/O fixture; no native process")
     calls = []
@@ -267,19 +274,40 @@ def synthetic_adapter_run(tmp_path, monkeypatch, screen, *, malformed_index=None
         folder = Path(cwd)
         if command[0] == "gmsh":
             mesh = folder / "gmsh.inp"
-            mesh.write_text("*NODE\n" + "".join(f"{node}, {x}, {y}, {z}\n" for node, (x, y, z) in UNIT_NODES.items()) +
-                            "*ELEMENT, TYPE=C3D10\n1, 1,2,3,4,5,6,7,8,9,10\n")
+            mesh.write_text("*HEADING\nTEST_ONLY explicit unit TET10/CPS6\n*NODE\n" +
+                            "".join(f"{node}, {x}, {y}, {z}\n" for node, (x, y, z) in UNIT_NODES.items()) +
+                            "*ELEMENT, TYPE=CPS6, ELSET=BOTTOM\n101, 1,2,3,5,6,7\n" +
+                            "*ELEMENT, TYPE=CPS6, ELSET=SADDLE_SIDE\n102, 1,4,2,8,9,5\n" +
+                            "103, 2,4,3,9,10,6\n104, 3,4,1,10,8,7\n" +
+                            "*ELEMENT, TYPE=C3D10, ELSET=SUPPORT\n1, 1,2,3,4,5,6,7,8,9,10\n")
         elif command[0] == "ccx":
             job = command[1]
             tensor = stress_text([(node, [node, 0, 0, 0, 0, 0]) for node in UNIT_NODES])
             if job == f"support_{malformed_index}":
                 tensor = tensor.replace(stress_row(10, [10, 0, 0, 0, 0, 0]) + "\n", "")
-            (folder / f"{job}.frd").write_text(tensor, encoding="ascii")
+            geometry = ["    1C", "    1UTEST_ONLY complete native-looking protocol fixture",
+                        "    1UVERSION Version 2.21", "    2C 10 1",
+                        *(stress_row(node, xyz) for node, xyz in UNIT_NODES.items()), " -3", "    3C 1 1",
+                        f" -1{1:10d}{6:5d}{0:5d}{1:5d}", " -2" + "".join(f"{node:10d}" for node in UNIT_NODES), " -3"]
+            def headers(counter):
+                return ["    1PSTEP" + " " * 14 + f"{counter:12d}{1:12d}{1:12d}" + " " * 10,
+                        "  100CL" + f"{101:5d}{1.:12.9f}{10:12d}{0:22d}{1:5d}" + " " * 11 + "1"]
+            displacement = [" -4  DISP 4 1", " -5 D1 1 2 1 0", " -5 D2 1 2 2 0", " -5 D3 1 2 3 0",
+                            " -5 ALL 1 2 0 0 1ALL", *(stress_row(node, [0., 0., -.01 if node in LOADED else 0.])
+                                                       for node in UNIT_NODES), " -3"]
+            error = [" -4  ERROR 1 1", " -5 STR(%) 1 1 0 0",
+                     *(stress_row(node, [0.]) for node in UNIT_NODES), " -3", "9999"]
+            # Reuse the original stress fixture unchanged; only complete its
+            # surrounding native metadata/topology/DISP protocol envelope.
+            stress = tensor.splitlines()[:-1]  # Discard its separate 9999.
+            (folder / f"{job}.frd").write_text("\n".join(geometry + headers(1) + displacement +
+                headers(2) + stress + headers(3) + error) + "\n", encoding="ascii")
             (folder / f"{job}.dat").write_text(
-                "displacements (vx,vy,vz) for set ROLLER_NODES\n" +
-                "".join(f"{node} 0 0 -0.01\n" for node in LOADED) +
-                "\nforces (fx,fy,fz) for set BASE_FIXED\n" +
-                "".join(f"{node} 0 0 {100 if node == 1 else 0}\n" for node in FIXED) + "\n")
+                " S T E P 1\n INCREMENT 1\n\n" +
+                "displacements (vx,vy,vz) for set ROLLER_NODES and time 0.1000000E+01\n" +
+                "".join(f"{node} 0.000000E+00 0.000000E+00 -1.000000E-02\n" for node in LOADED) +
+                "\nforces (fx,fy,fz) for set BASE_FIXED and time 0.1000000E+01\n" +
+                "".join(f"{node} 0.000000E+00 0.000000E+00 {100 if node == 1 else 0:.6E}\n" for node in FIXED) + "\n")
         else:
             pytest.fail(f"Unexpected external execution: {command}")
         return subprocess.CompletedProcess(command, 0, "synthetic I/O fixture", "")
@@ -300,7 +328,7 @@ def test_each_mesh_field_is_manifested_and_stays_unqualified(tmp_path, monkeypat
     assert result["status"] == "COMPLETED"  # Synthetic plumbing, not a native verdict.
     assert result["metrics"]["peak_stress"]["valid"] is False
     assert {"static_strength", "physical_load_test", "material_qualification", "stress_convergence"} <= set(result["pending_validations"])
-    assert result["provenance"]["adapter_version"] == "4"
+    assert result["provenance"]["adapter_version"] == "5"
     manifest = {record["path"]: record for record in artifact_manifest(experiment, revision="b" * 64)}
     for index, study in enumerate(result["mesh_studies"]):
         name = f"support_{index}/stress_field.json"
@@ -313,6 +341,14 @@ def test_each_mesh_field_is_manifested_and_stays_unqualified(tmp_path, monkeypat
         assert field["source_frd"] == {"path": f"support_{index}.frd", "sha256": hashlib.sha256(
             (output / study["files"]["field_results"]).read_bytes()).hexdigest()}
         assert manifest[f"simulation/{name}"]["sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+        displacement_name = f"support_{index}/fea_field.json"
+        assert study["files"]["fea_field"] == displacement_name
+        observed = json.loads((output / displacement_name).read_text())
+        assert observed["coverage"] == "ALL_MESH_NODES" and observed["node_count"] == 10
+        assert observed["qualification"] == "UNKNOWN" and observed["engineering_valid"] is False
+        assert observed["sources"]["frd"]["sha256"] == field["source_frd"]["sha256"]
+        assert manifest[f"simulation/{displacement_name}"]["sha256"] == hashlib.sha256(
+            (output / displacement_name).read_bytes()).hexdigest()
     common_json = json.dumps(result)
     assert '"stress_MPa":' not in common_json and '"von_mises_MPa":' not in common_json
 
@@ -322,9 +358,11 @@ def test_incomplete_new_mesh_retains_raw_results_and_prior_mesh_field(tmp_path, 
         synthetic_adapter_run(tmp_path, monkeypatch, screen, malformed_index=1)
     output = tmp_path / "synthetic-experiment/simulation"
     assert (output / "support_0/stress_field.json").is_file()
+    assert (output / "support_0/fea_field.json").is_file()
     first = json.loads((output / "support_0/stress_field.json").read_text())
     assert first["source_frd"]["sha256"] == hashlib.sha256((output / "support_0/support_0.frd").read_bytes()).hexdigest()
     assert (output / "support_1/support_1.frd").is_file()
     assert (output / "support_1/support_1.dat").is_file()
     assert not (output / "support_1/stress_field.json").exists()
+    assert not (output / "support_1/fea_field.json").exists()
     assert not (output / "result.json").exists()
