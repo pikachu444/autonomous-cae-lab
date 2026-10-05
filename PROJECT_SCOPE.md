@@ -1,4 +1,8 @@
-## Current checkpoint: retained native histories and exact-time comparisons
+## Current checkpoint: comparison-to-research source integration
+
+R01–R03/R09–R13/R19–R21/R24/R43/R48/R52 remain partial. ADR0040 adds verified same-result comparison context to the existing OpenScience summary and a guarded, edit-preserving question handoff. Final83 Python/543 Node and341 guard PASS/14 SKIP are source controls. Run01 copied193 files22671946B unchanged; the actual GUI question was refused BEFORE provider execution on dirty resident Git. The clean-source actual B3 probe is next; source publication is not AI interpretation/solver/physical completion. Record: `benchmarks/records/20261006-response-interpretation-source-r01.json`. Entire52/Phase1–7, original UNKNOWN/NOT_RELEASED and outstanding numerical-engine/assembly/general inverse/operational recovery gates remain.
+
+## Historical checkpoint: retained native histories and exact-time comparisons
 
 R01–R03/R09–R13/R19–R21/R24 remain partial. ADR0039 connects retained Maxwell signed stress/branch/driver-specific energy histories, actual axes, explicit observation time and append-only compare/reopen. Actual virtual τ=1/2 comparisons, off-grid/null verdict, unit refusal, native/ref retained checks and unchanged187-file evidence: `benchmarks/records/20261006-response-history-r01.json`;268 Python/527 Node PASS. No new solve/provider/MCP admission, measured cause, spatial coupling or whole52/Phase1–7 completion. UNKNOWN/NOT_RELEASED persist. NEXT approved same-record interpretation→existing engine/assembly; general curves, other native-axis mappings/R2 recovery and remaining phases are OPEN.
 

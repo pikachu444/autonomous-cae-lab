@@ -14,6 +14,8 @@ const state = {
   researchHistory: new Map(), researchContexts: new Map(), researchSession: null,
   simulationDraft: null,
   researchPurposeDraft: {},
+  comparisonResearchDraft: "",
+  comparisonResearchPrefix: "",
   observationRequest: 0,
   observationId: "",
 };
@@ -1095,6 +1097,24 @@ function observationSourceCaption(source) {
   }
   return caption;
 }
+function prepareComparisonResearch(rows, context) {
+  if (busy() || state.storeSwitching || !context || context.store !== activeStore()
+      || context.inspection !== state.selectedExperiment || context.studyId !== context.inspection.result.study.id
+      || activeStore() !== "local" || !writable())
+    throw new Error("같은 작업 저장소의 결과와 비교 기록을 선택한 뒤 연구 질문에 연결하세요.");
+  const draft = window.comparisonResearch.draft(rows, context.studyId);
+  const previous = $("researchQuestion").value;
+  const prefix = previous === state.comparisonResearchDraft ? state.comparisonResearchPrefix : previous;
+  const question = prefix.trim() ? `${prefix}\n\n${draft.question}` : draft.question;
+  window.researchControls.request(question); // Validate before changing an edited question.
+  $("researchQuestion").value = question; state.comparisonResearchDraft = question;
+  state.comparisonResearchPrefix = prefix;
+  state.researchSession = null; $("researchContinue").checked = false;
+  location.hash = "research"; showArea("research"); updateResearchControls();
+  $("researchQuestion").focus?.();
+  notify("저장된 비교를 확인할 연구 질문을 준비했습니다. 질문 보내기를 누르면 연결된 AI가 원기록을 읽습니다.", true);
+  return draft;
+}
 function renderObservation(data) {
   const choices = window.observationControls?.choices(data) ?? [];
   const panel = $("observationPanel"); panel.hidden = !choices.length || data.result.status !== "COMPLETED_REVIEW_REQUIRED";
@@ -1121,6 +1141,8 @@ async function loadResponseComparisons(inspection = state.selectedExperiment) {
     if (!Array.isArray(rows)) throw new Error("관측 비교 목록의 형식을 확인할 수 없습니다.");
     const target = clear("observationRecords");
     if (!rows.length) target.append(el("p", "저장된 관측 비교가 없습니다. 관측값과 조건을 입력해 새 비교를 남길 수 있습니다.", "hint"));
+    const researchContext = {store, studyId, inspection};
+    if (rows.length) target.append(action("이 연구의 관측 비교를 AI 질문에 연결", () => prepareComparisonResearch(rows, researchContext)));
     rows.forEach(value => {
       const record = value.record, comparison = record?.comparison;
       if (value.integrity !== "VERIFIED" || record?.source?.study_id !== studyId || !comparison) {
@@ -1150,6 +1172,7 @@ async function loadResponseComparisons(inspection = state.selectedExperiment) {
       details.append(el("p", "위치·성분·좌표계·조건의 물리적 일치는 사용자 선언이며 독립 확인 전입니다. 수치가 맞아도 원인 확정·물리 검증·사용 승인으로 판정하지 않습니다.", "hint"));
       if (!comparison.condition_bindings_supplied) details.append(el("p", "저장된 입력과의 명시적 조건 연결은 제공되지 않았습니다.", "hint"));
       details.append(experimentButton(record.source.experiment_id, "이 비교의 원 해석 결과 보기 →"),
+        action("이 비교를 AI 질문에 연결", () => prepareComparisonResearch([value], researchContext)),
         link("비교 원본 저장", `/api/response-comparisons/${idPath(record.id)}`, "text-link", true), rawDetail("입력·선택 응답·원본 해시·조건 검사", record));
       target.append(details);
     });

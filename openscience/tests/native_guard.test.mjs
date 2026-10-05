@@ -1745,6 +1745,25 @@ test('research budget/runtime descriptor tampering fails before loading tools',a
   }
 });
 
+test('retained response interpretation grants only the existing summary reader', async t => {
+  // TEST_ONLY hook admission: no provider, Core or native solver call.
+  const f = viscoelasticResearchFixture(t);
+  const historicalDefinition = canonical(f.settings.research);
+  f.settings.allowed = ['caelab_experiment_summary'];
+  f.guard.allowed = ['caelab_experiment_summary'];
+  json(f.settingsPath, f.settings); f.writeGuard({});
+  const hooks = await f.hooks();
+  const args = {experiment_id:'E-retained-history'};
+  await hooks['tool.execute.before']({tool:'caelab_experiment_summary',sessionID:f.sessionID},{args});
+  assert.deepEqual(args,{experiment_id:'E-retained-history'});
+  assert.equal(canonical(f.settings.research),historicalDefinition);
+  for (const tool of ['caelab_model_analysis_run','caelab_study_create','caelab_experiment_inspect','shell'])
+    await assert.rejects(hooks['tool.execute.before']({tool,sessionID:f.sessionID},{args:{}}),refusal('TOOL_NOT_ALLOWED'));
+  f.writeGuard({});
+  await hooks['tool.execute.before']({tool:'caelab_experiment_summary',sessionID:f.sessionID},{args});
+  assert.deepEqual(f.settings.allowed,['caelab_experiment_summary']);
+});
+
 const structuralRequest = () => ({backend:'structural.families.calculix',settings:{
   case:'ansys_vmd1_regular',load_case:'Fz',load_factor:1,mesh_cells:[[6,1,1],[12,2,2],[24,4,4]]}});
 test('explicit structural profile admits both solvers and changed loads without rewriting arguments',async t => {

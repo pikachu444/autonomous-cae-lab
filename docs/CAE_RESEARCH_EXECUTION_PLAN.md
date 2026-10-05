@@ -18,7 +18,7 @@ Dakota/GEMSEO/LS-OPT 계열 시험–해석 비교를 연구 참고로, SimScale
 |---|---|---|
 | B0 | 불량 재현/지그 가능성의 실제 목적과 재사용 기능 확인 | 공식 조사·public Core/HTTP/UI의 기존 경로 확인. 설치/새 수치 검증 아님; SimScale을 동일 연구 제품으로 판정하지 않음 |
 | B1–B2 | 관찰/시험 목적·가설·응답 → 모델·전체 조건 → 작업 → 결과/이력 → 조건 변경·비교 → 다음 시험·저장 | 원 조건→새150N 실험/전체U, 관측 scalar/배열 저장·재열람에 이어 retained Maxwell16채널/9실제시각/부호 그래프/정확 시점 비교·재열람 완료([이력 기록](../benchmarks/records/20261006-response-history-r01.json)). τ=1/2 가상 응답 구분, off-grid시간 null/단위 거부. 실측 자격·유일 원인·general curve/inverse·다른 native축/전체 조립체는 OPEN |
-| B3 **다음 활성** | OpenScience가 지원 시나리오에서 같은 흐름을 실행·해석 | 같은 구조화 관측 비교와 native 이력 범위를 기존 approved5.6Sol/OAuth가 읽고 해석하는 실제 연결. 필요한 좁은 read admission과 원본/출처를 검증한다. API callable을 AI admission/host readiness로 대신하지 않음 |
+| B3 **활성** | OpenScience가 지원 시나리오에서 같은 흐름을 실행·해석 | 기존 summary의 reverified 비교 context/편집 보존 질문 연결과 source 검사는 완료. run01은 dirty resident Git에서 provider 호출 전 거부됨. 기존 clean-source 조건을 유지하고 검증된 구현 커밋→새 run02의 approved5.6Sol/OAuth 실제 기록 읽기·답변·재열람·idle 종료를 즉시 이어간다. [소스 기록](../benchmarks/records/20261006-response-interpretation-source-r01.json); 실제 해석은 OPEN |
 | B4 | 지그:수치 탐색/조립체 mechanics. 불량:관측–응답 매핑/가설 비교. 이후 Phase3–7 확장 | 수동150N 조건 변경의 선형 비교 완료, 수치 엔진 탐색은 미실행. 시험체와 지그 변형·접촉·하중 경로, 불량 위치/형태/발생 조건과 비교. synthetic inverse를 실제 불량 원인 검증으로 사용하지 않음; 전체 모델 의무 mesh sweep 없음 |
 | B5 | 필요한 engine/후처리/외부 native inspection 기능 재사용 | GEMSEO/ParaView·trame/PrePoMax 등을 역할별 평가. blanket 설치·새 공통 engine 재개발은 완료 조건 아님 |
 

@@ -58,12 +58,14 @@ function harness({ writable = true, store = "local", researchStatus = status(), 
   const indicator = new TinyNode("span"); indicator.className = "job-indicator"; $("jobPanel").append(indicator);
   const document = { getElementById: $, createElement: tag => new TinyNode(tag), querySelectorAll: selector => selector === "[data-operation]" ? operations : [],
     querySelector: selector => operations.find(node => selector === `[data-operation="${node.dataset.operation}"]`) ?? null };
-  const sandbox = { document, Node: TinyNode, window: { researchControls: controls, resultPresentation: presentation, cadControls },
+  // Deliberately controlled draft seam: the real helper has independent tests.
+  const comparisonResearch = {draft: (rows, studyId) => ({question: `저장된 비교 ${rows.map(row => row.record.id).join(", ")}를 해석하세요.`, studyId})};
+  const sandbox = { document, Node: TinyNode, window: { researchControls: controls, resultPresentation: presentation, cadControls, comparisonResearch },
     location: { hash: "research" }, TextEncoder, URL, URLSearchParams, Intl, console,
     fetch: async (path, options) => { paths.push({ path, options }); assert(fetchReply, "No uncontrolled HTTP is allowed"); return fetchReply(path, options); },
     setTimeout: (fn, delay) => { timers.push({ fn, delay }); return timers.length; }, clearTimeout: () => {} };
   vm.createContext(sandbox);
-  vm.runInContext(appSource.slice(0, boundary) + "\nglobalThis.ui = {state, updateControls, updateResearchControls, confirmedResearchSession, renderResearchConnection, loadResearchStatus, loadOverview, renderResearchAnswers, retainResearchJob, renderJob, submitResearchQuestion, runJob, pollJob, researchError};", sandbox);
+  vm.runInContext(appSource.slice(0, boundary) + "\nglobalThis.ui = {state, updateControls, updateResearchControls, confirmedResearchSession, renderResearchConnection, loadResearchStatus, loadOverview, renderResearchAnswers, retainResearchJob, renderJob, submitResearchQuestion, runJob, pollJob, researchError, prepareComparisonResearch};", sandbox);
   const ui = sandbox.ui;
   ui.state.overview = { active_store: store, stores: [{ id: store, writable }], token: "synthetic-token", capabilities: [], jobs: [] };
   ui.state.presets = { linear: { operation: "analysis_run", backend: "fixture.calculix", parent_backends: ["fixture.cadquery"] } };
@@ -188,6 +190,49 @@ test("completed AI job displays response receipt rather than numerical/engineeri
   const h = harness(); h.ui.state.job = job(); h.ui.renderJob();
   assert.equal(h.$("jobStatus").textContent, "AI 응답 받음 · 결과 검토 필요"); assert.equal(h.$("jobStatus").dataset.status, "COMPLETED");
   assert.match(h.$("jobMessage").textContent, /각 실험의 판정/); assert.equal(h.ui.confirmedResearchSession(), null, "Reloaded response is not implicitly continued");
+});
+
+test("comparison draft preserves edited question and awaits an explicit question submission", () => {
+  const h = harness(), inspection = {result:{study:{id:"S-context"}}};
+  h.ui.state.selectedExperiment = inspection;
+  h.ui.state.researchSession = {sessionId:"ses_previous"}; h.$("researchContinue").checked = true;
+  const context = {store:"local",studyId:"S-context",inspection};
+  h.ui.prepareComparisonResearch([{record:{id:"O-first"}}],context);
+  assert.match(h.$("researchQuestion").value,/O-first/); assert.ok(h.$("researchQuestion").value.startsWith(QUESTION));
+  assert.equal(h.ui.state.researchSession,null); assert.equal(h.$("researchContinue").checked,false);
+  assert.equal(h.sandbox.location.hash,"research"); assert.equal(h.paths.length,0);
+  assert.match(h.$("noticeText").textContent,/질문 보내기/);
+  h.ui.prepareComparisonResearch([{record:{id:"O-second"}}],context);
+  assert.match(h.$("researchQuestion").value,/O-second/); assert.doesNotMatch(h.$("researchQuestion").value,/O-first/);
+  assert.ok(h.$("researchQuestion").value.startsWith(QUESTION));
+});
+
+test("comparison handoff rejects stale store/result, busy and recovery without altering draft", () => {
+  for (const change of [
+    h => h.ui.state.overview.active_store="library",
+    h => h.ui.state.overview.stores[0].writable=false,
+    h => h.ui.state.selectedExperiment={result:{study:{id:"S-context"}}},
+    h => h.ui.state.storeSwitching=true,
+    h => h.ui.state.submitting=true,
+    h => h.ui.state.overview.execution={state:"RECOVERY_REQUIRED"},
+  ]) {
+    const h=harness(),inspection={result:{study:{id:"S-context"}}}; h.ui.state.selectedExperiment=inspection;
+    change(h);
+    assert.throws(()=>h.ui.prepareComparisonResearch([{record:{id:"O-first"}}],{store:"local",studyId:"S-context",inspection}));
+    assert.equal(h.$("researchQuestion").value,QUESTION); assert.equal(h.paths.length,0);
+  }
+});
+
+test("invalid or oversized comparison draft preserves edited text before any submission", () => {
+  const h=harness(),inspection={result:{study:{id:"S-context"}}};h.ui.state.selectedExperiment=inspection;
+  const context={store:"local",studyId:"S-context",inspection};
+  h.$("researchQuestion").value="가".repeat(5460);
+  assert.throws(()=>h.ui.prepareComparisonResearch([{record:{id:"O-first"}}],context));
+  assert.equal(h.$("researchQuestion").value,"가".repeat(5460));assert.equal(h.paths.length,0);
+  h.$("researchQuestion").value=QUESTION;
+  h.sandbox.window.comparisonResearch.draft=()=>{throw new Error("UNVERIFIED controlled seam");};
+  assert.throws(()=>h.ui.prepareComparisonResearch([],context),/UNVERIFIED/);
+  assert.equal(h.$("researchQuestion").value,QUESTION);assert.equal(h.paths.length,0);
 });
 
 test("recovered research blocks every new question even with a positive retained answer", async () => {

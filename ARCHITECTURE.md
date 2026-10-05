@@ -1,5 +1,13 @@
 # Architecture
 
+## Retained comparison interpretation (ADR0040)
+
+Existing Core research summaries optionally return verified observation context
+separately from solver metrics and Domain verdicts. The human question and
+OpenScience summary reader refer to those same IDs/hashes. Existing guarded
+tools/profiles/provider remain; omissions and unverified records are explicit.
+Interpretation cannot alter the original result or establish a unique cause.
+
 ## Retained response histories (ADR0039)
 
 Core owns exact-sample catalogs and append-only observation comparisons; adapters

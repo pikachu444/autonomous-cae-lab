@@ -667,7 +667,10 @@ class Lab:
 
     def research_summary(self, experiment_id: str) -> dict[str, Any]:
         result = self.inspect_experiment(experiment_id)
+        from .research_context import comparison_context
+        context = comparison_context(self, result)
         return {"experiment_id": result["experiment_id"], "study": result["study"],
+                **({"comparison_context": context} if context is not None else {}),
                 **({"parent_experiment_id": result["parent_experiment_id"]}
                    if "parent_experiment_id" in result else {}),
                 **({"campaign_id": result["campaign_id"]}

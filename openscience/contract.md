@@ -1,3 +1,15 @@
+## Retained comparison interpretation (ADR0040; B3)
+
+The existing experiment summary adds an optional separate `comparison_context`
+when comparison records exist in the selected store. Core verifies related
+records, receipt/record/result bytes and their original source/calculation.
+Unknown records have diagnostics without numerical payload; bounded omissions
+remain explicit. Metrics, validations, native producer and optimizer feedback
+are unchanged. There is no new MCP tool, descriptor, prompt or model selection.
+The Lab prepares a same-store editable question containing exact comparison and
+experiment references; the existing approved bridge sends it unchanged. Actual
+connected provider/GUI acceptance is pending; source tests are not that proof.
+
 ## Declared observation/response records (ADR0038; B1–B2)
 
 ADR0039 extends the human/Core boundary with verified retained Maxwell history

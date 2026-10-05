@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "status": "BOUNDED_SOURCE_CONTROLS_PASS_ACTUAL_INTERPRETATION_OPEN",
+  "created_utc": "2026-10-05T19:32:56.3343250Z",
+  "unit": "B3 existing summary comparison context and editable human handoff",
+  "source_base_commit": "1b8cfc3d57488e47e55f1b34fe8df09bf56066f3",
+  "source_dirty": true,
+  "final_source_files": [
+    {
+      "path": "caelab/research_context.py",
+      "raw_sha256": "a376642609ae7a9ab9c8fbcf560f7b1d34f6959fa984b4b39eb3f83bda05f339",
+      "lf_sha256": "a376642609ae7a9ab9c8fbcf560f7b1d34f6959fa984b4b39eb3f83bda05f339"
+    },
+    {
+      "path": "caelab/engine.py",
+      "raw_sha256": "bd0f70a7c094a6f674f906feb8115ee97cbc27522c3a60f519157b0bd4f48096",
+      "lf_sha256": "bd0f70a7c094a6f674f906feb8115ee97cbc27522c3a60f519157b0bd4f48096"
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "raw_sha256": "0b8af48e264f16ebdaaa520039ee5ade6d3b022775e236e343d836192db64fb8",
+      "lf_sha256": "e26dca850149985f2acbc48aede7ed57e0d5163e76d6100f01dfc93b01342b90"
+    },
+    {
+      "path": "apps/lab/static/index.html",
+      "raw_sha256": "d0c4d11ee9b4692614cf46a77ace4dcc41da392a5962fb2cacb2ba4fcd26ef0d",
+      "lf_sha256": "730da3caf13e8b22278817642da2256e8a1aca05c851034e6c98cb144d09317d"
+    },
+    {
+      "path": "apps/lab/static/comparison-research.js",
+      "raw_sha256": "d30d9f0d43781ef19c20472f439a53e23e4fe26f964588078fca2a4c80c95fc4",
+      "lf_sha256": "d30d9f0d43781ef19c20472f439a53e23e4fe26f964588078fca2a4c80c95fc4"
+    },
+    {
+      "path": "tests/test_research_comparison_context.py",
+      "raw_sha256": "9f1627bf6ea423d8a0e0c57935f3ca03f7ed7159efd41892baebbd091f9d6ca0",
+      "lf_sha256": "9f1627bf6ea423d8a0e0c57935f3ca03f7ed7159efd41892baebbd091f9d6ca0"
+    },
+    {
+      "path": "tests/test_comparison_research.js",
+      "raw_sha256": "f6c08b1b17f7d557a4e7780f2255fd6ca66d88b60209fa3d26d5eef5d7ff0706",
+      "lf_sha256": "f6c08b1b17f7d557a4e7780f2255fd6ca66d88b60209fa3d26d5eef5d7ff0706"
+    },
+    {
+      "path": "tests/test_research_handoff.js",
+      "raw_sha256": "5334cb8cefb6f9af3fc44e8cdb8d24547d5dc8f5732fe14ec95f1a3c0165aac7",
+      "lf_sha256": "5334cb8cefb6f9af3fc44e8cdb8d24547d5dc8f5732fe14ec95f1a3c0165aac7"
+    },
+    {
+      "path": "openscience/tests/native_guard.test.mjs",
+      "raw_sha256": "fe8438cad82a205008fc858a8fa3d7b02e3d2f1b4d0951df9e08597f0df78b2d",
+      "lf_sha256": "98ddf256ba857000de8cc0fbb2ed96aee33400d253e7d27c47c485d416e8b649"
+    }
+  ],
+  "native_source_commit": "8a1b3454ff108c5332c39dc09b32daa843e6fdb0",
+  "tests": {
+    "broad_before_final_numeric_overflow_correction": {
+      "pass": 296,
+      "log": "python-final.log",
+      "all_final_source_claim": false
+    },
+    "final_context_regression": {
+      "source_manifest": "source-candidate.json",
+      "pass": 83,
+      "log": "python-context-closure.log"
+    },
+    "final_lab_node": {
+      "pass": 543,
+      "log": "node-final.log"
+    },
+    "native_guard": {
+      "pass": 341,
+      "skipped": 14,
+      "log": "native-guard-final.log",
+      "fail": 0
+    },
+    "facade": {
+      "pass": 56,
+      "actual_provider": 0,
+      "status": "PASS_CONTROLLED_SOURCE_ONLY",
+      "log": "facade-controls.json"
+    }
+  },
+  "independent_read_review": {
+    "findings": "Bounded record/receipt byte parsing, deep/nonfinite metadata refusal and final aggregate record/receipt identity recheck",
+    "closure": "Root corrected; independent reader reread; final83 regression PASS",
+    "provider_or_solver_execution": 0,
+    "task": "cae_reference_platforms"
+  },
+  "snapshot": {
+    "copy": "runs/cae-response-interpretation-20261006-01",
+    "original": "runs/viscoelastic-r-20261003-01",
+    "excluding": "HTTP controller journal",
+    "files": 193,
+    "bytes": 22671946,
+    "read_seconds": [
+      31.37810047599487,
+      14.702534384094179
+    ],
+    "status": "BYTE_IDENTICAL_PROTECTED_NAMESPACES",
+    "manifest": "artifacts/response-interpretation-20261006-01/original-before.json"
+  },
+  "actual_preflight": {
+    "isolated_condition": "Resident Core Git is dirty; existing facade requires clean Core and fixture Git.",
+    "boot_source_sha256": "315f49ca2fc8adf7e9426097ac872ebd20d14db1f0456716b4e40233614834c8",
+    "foreground_exit": 0,
+    "error": "Resident process/source/store binding differs from the owned runtime.",
+    "core_commit": "1b8cfc3d57488e47e55f1b34fe8df09bf56066f3",
+    "core_dirty": true,
+    "provider_requests": 0,
+    "owner_stop": "STOPPED",
+    "solver_runs": 0,
+    "job_id": "Jf43d59d7b1524defaa23ac7ea8ead610",
+    "correction": "Commit verified source, then use a fresh context/store; do not loosen gate",
+    "foreground_session": 18200,
+    "status": "FAILED_BEFORE_PROVIDER"
+  },
+  "startup_refusal": {
+    "cause": "New importable B3 source not yet tracked",
+    "stage": "BEFORE_CONTROLLER_OR_PROVIDER",
+    "retained_record": "artifacts/response-interpretation-20261006-01/startup-untracked-source-refusal.json",
+    "correction": "Added known B3 files to index without byte changes"
+  },
+  "scope": {
+    "transport": "Existing approved ChatGPT OAuth",
+    "new_tool_or_profile": 0,
+    "actual_allowed_tools": [
+      "caelab_experiment_summary"
+    ],
+    "decision": "NOT_RELEASED",
+    "physical_validation": "UNKNOWN",
+    "canonical_declared_profile": "viscoelastic-points-v1",
+    "new_provider_interpretation": "NOT_EXECUTED",
+    "causal_verdict": "NOT_EVALUATED",
+    "research_model": "openai-codex/gpt-5.6-sol",
+    "new_solver_or_optimizer_run": 0
+  },
+  "ci_exact_base": {
+    "success": 7,
+    "evidence": "artifacts/response-interpretation-20261006-01/ci-base-1b8.json",
+    "failed_jobs": [
+      "pde vector numerical classification",
+      "Code_Aster Fz numerical checks",
+      "explicit official download404 before solve"
+    ],
+    "head": "1b8cfc3d57488e47e55f1b34fe8df09bf56066f3",
+    "run_id": 37357503196,
+    "status": "COMPLETED",
+    "fail": 3
+  },
+  "retention": "LOCAL_ONLY; no company CAD or credentials committed",
+  "r2_candidate": "Eight separate pending files temporarily stashed and raw-byte copied; restore after clean-source execution",
+  "next": "Fresh clean-source actual summary reading, Korean interpretation, reopen and owned idle closure; then existing numerical engine and original assembly mechanics",
+  "limits": [
+    "Whole52 and Phase1-7 incomplete",
+    "Directory enumeration precedes scan cap; total context may contain up to12 bounded records",
+    "Human connection scope reflects canonical capabilities while actual granted reader subset is separately enforced",
+    "General interpolation/inverse and other native histories remain OPEN",
+    "Native/provider cancellation and reconnection R2 remain OPEN"
+  ]
+}
