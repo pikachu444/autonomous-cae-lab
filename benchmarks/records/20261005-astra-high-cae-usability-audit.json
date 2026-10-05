@@ -1,0 +1,86 @@
+{
+  "status": "ROOT_ADOPTED_SEALED_ASTRA_PLAN_NOT_USER_ACCEPTANCE",
+  "utc": "2026-10-05T04:51:28.892120+00:00",
+  "source_unit_commit": "bffbd807c56d9aa2cf817f4f6f5bfcbfb54bae77",
+  "audited_Main_source": "815e20768c972be736f1dee634b0d46d6323c90c",
+  "auditor": "gpt-6-astra/high",
+  "research_model_unchanged": "openai-codex/gpt-5.6-sol",
+  "private_receipt": {
+    "size_bytes": 2152,
+    "sha256": "e7dcdbfca100b70406c93c0ea3edf2f7f7ca0b1bc699a78fec3a6899cdbf9334"
+  },
+  "copies": [
+    {
+      "path": "docs/reviews/20261005-astra-high/READONLY-AUDIT.md",
+      "private_original": {
+        "size_bytes": 27561,
+        "sha256": "67d112820da6171e420315009d13823932be730502b8f6ea3b2c68cee7b11373"
+      },
+      "public_LF": {
+        "size_bytes": 27561,
+        "sha256": "67d112820da6171e420315009d13823932be730502b8f6ea3b2c68cee7b11373"
+      }
+    },
+    {
+      "path": "docs/reviews/20261005-astra-high/IMPROVEMENT-PLAN.md",
+      "private_original": {
+        "size_bytes": 43022,
+        "sha256": "71bac6c283b70adf24ffefbfb80cd9b1a5c29d3bac6669ff6c8c5ceff4a59f85"
+      },
+      "public_LF": {
+        "size_bytes": 43022,
+        "sha256": "71bac6c283b70adf24ffefbfb80cd9b1a5c29d3bac6669ff6c8c5ceff4a59f85"
+      }
+    },
+    {
+      "path": "docs/reviews/20261005-astra-high/LIVE-OBSERVATION-ADDENDUM.md",
+      "private_original": {
+        "size_bytes": 3642,
+        "sha256": "d127c3a83fbb5648b21a4d7db0ccfe7992d1e34f60507ca70ab313b0ef084b57"
+      },
+      "public_LF": {
+        "size_bytes": 3642,
+        "sha256": "d127c3a83fbb5648b21a4d7db0ccfe7992d1e34f60507ca70ab313b0ef084b57"
+      }
+    }
+  ],
+  "plan": {
+    "path": "docs/CAE_RESEARCH_EXECUTION_PLAN.md",
+    "size_bytes": 8187,
+    "sha256": "41fd25d24e6c8c115e38de5f57d6bfdf623684bf270d066fe9ea12851ca28e65"
+  },
+  "previous_current_documents": {
+    "CURRENT_STATE.md": {
+      "size_bytes": 185978,
+      "sha256": "89ff37517d2f7d5168de2654d1b7b185b1428dbad758746829f1ea43a139077a"
+    },
+    "HANDOFF.md": {
+      "size_bytes": 187134,
+      "sha256": "c8079806cd5cc6461de6bf0f25f556049ea020fb82ff54327e1e07f8ec7e95d0"
+    },
+    "PROJECT_SCOPE.md": {
+      "size_bytes": 167393,
+      "sha256": "0f38d20eeab4aefe8cb9255f607e2345222e663bfaa682aa3cf76a99d2dbb868"
+    },
+    "docs/SYSTEM_EXECUTION_PLAN.md": {
+      "size_bytes": 82920,
+      "sha256": "5d4efec88147a1c0315f93e18edc97556c86b52d644036165efdb3d5f49a9a56"
+    },
+    "docs/SYSTEM_WORKLIST.md": {
+      "size_bytes": 120859,
+      "sha256": "f71ebfeb3654b94699ad3f8b63994d966a183f1c905a15fe1efe09fc91b5ed6b"
+    }
+  },
+  "ledger52_rows_unchanged": true,
+  "actual_native_provider_calls": 0,
+  "whole_project_goal": "ACTIVE_NOT_COMPLETE",
+  "decision": "NOT_RELEASED",
+  "Root_followup_decision": "S3 begins with HTTP journal/reconciliation/admission; no universal cross-process lock claim. Astra/high followup design risk is not reproduced deadlock.",
+  "source_unit_main_remote_push_confirmed": "bffbd807c56d9aa2cf817f4f6f5bfcbfb54bae77",
+  "independent_source_publication_review": {
+    "path": "artifacts/development-fixture-coupling-20261004-01/assembly-field-kernel-publication-review-01/READONLY-REVIEW.json",
+    "sha256": "02935d8447028ef75cfb2953d69314f958c597e9bcb1bc8a1acbf7adbb0c79ef",
+    "open_P1": 0,
+    "open_P2": 0
+  }
+}

@@ -1,4 +1,13 @@
-## Current checkpoint: reviewed assembly field kernel source; usable CAE workflow remains open
+## Current work: usable CAE research flow under an ACTIVE Goal
+
+The authoritative next-work/status table is `docs/CAE_RESEARCH_EXECUTION_PLAN.md`.
+The requested independent Astra/high audit and detailed plan are preserved in `docs/reviews/20261005-astra-high/`.
+Next: approved one-action research startup, truthful same-revision results, retained-job recovery, and actual
+question/solve/change/compare/numerical-search acceptance. Whole52/Phase1-7 remain open; engineering NOT_RELEASED.
+
+---
+
+## Historical checkpoint: reviewed assembly field kernel source; usable CAE workflow remains open
 
 The source-only checkpoint is in `benchmarks/records/20261005-fixture-assembly-field-kernel-source-r01.json`.
 See `docs/FIXTURE_ASSEMBLY_ACCEPTANCE.md` for the bounded 40-test and closed-coarse topology gates,

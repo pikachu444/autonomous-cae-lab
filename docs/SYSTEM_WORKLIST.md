@@ -1,4 +1,13 @@
-## Current checkpoint: actual Lab CAD reached; analysis input and user display corrected
+## Current work: usable CAE research flow under an ACTIVE Goal
+
+The authoritative next-work/status table is `docs/CAE_RESEARCH_EXECUTION_PLAN.md`.
+The requested independent Astra/high audit and detailed plan are preserved in `docs/reviews/20261005-astra-high/`.
+Next: approved one-action research startup, truthful same-revision results, retained-job recovery, and actual
+question/solve/change/compare/numerical-search acceptance. Whole52/Phase1-7 remain open; engineering NOT_RELEASED.
+
+---
+
+## Historical checkpoint: actual Lab CAD reached; analysis input and user display corrected
 
 Record: `benchmarks/records/20261004-lab-human-input-correction-r01.json`.
 Actual clean dd3a254 human02/approved5.6Sol reaches two CAD experiments and the
