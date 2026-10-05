@@ -20,11 +20,12 @@ const state = {
   comparisonResearchPrefix: "",
   observationRequest: 0,
   observationId: "",
+  nativeImportRequest: 0, nativeFileSelection: 0,
 };
 const operationNames = {
   study_create: "연구 만들기", parameter_discover: "CAD 변수 발견", parameter_register: "연구 변수 등록",
   registry_refresh: "원본 CAD 등록부 갱신", cad_run: "CAD 실험", native_create: "네이티브 모델 만들기",
-  native_inspect: "네이티브 모델 확인", native_final: "최종 솔리드 선택", analysis_run: "CAD 구조 해석",
+  native_import: "내 CAD 가져오기", native_inspect: "네이티브 모델 확인", native_final: "최종 솔리드 선택", analysis_run: "CAD 구조 해석",
   pde_run: "선언한 weak form 실행", model_analysis_run: "선언한 모델·재료·동해석",
   doe_plan: "DOE 계획 저장", doe_run: "DOE 실행", optimization_plan: "최적화 계획 저장",
   optimization_run: "수치 최적화 실행",
@@ -207,7 +208,7 @@ function invalidateModelDiscovery() {
 async function api(path, options = {}) {
   const headers = { Accept: "application/json", ...(options.headers ?? {}) };
   if (options.method === "POST") {
-    headers["Content-Type"] = "application/json";
+    headers["Content-Type"] = path === "/api/native-import" ? "application/octet-stream" : "application/json";
     headers["X-CAE-Token"] = state.overview?.token ?? "";
   }
   const response = await fetch(path, { cache: "no-store", ...options, headers });
@@ -418,6 +419,7 @@ function showArea(name) {
   document.title = `${{ research: "연구", design: "설계", simulation: "해석", explore: "탐색", results: "결과·근거" }[selected]} · Autonomous CAE Lab`;
 }
 function updateControls() {
+  for (const identifier of ["cadBackend", "cadModel", "nativeModelId"]) $(identifier).disabled = busy();
   const blocked = !writable() || busy();
   document.querySelectorAll("fieldset[data-write]").forEach((item) => { item.disabled = blocked; });
   document.querySelectorAll("fieldset[data-read-job]").forEach((item) => { item.disabled = busy() || !state.overview; });
@@ -433,6 +435,8 @@ function updateControls() {
   }
   if (!$("nativePath").value || !state.studyId) document.querySelector('[data-operation="parameter_register"]').disabled = true;
   if (!$("nativeFinal").value || !$("nativeModelId").value.trim()) document.querySelector('[data-operation="native_final"]').disabled = true;
+  if ($("nativeImportFile").files?.length !== 1) $("nativeImportBtn").disabled = true;
+  document.querySelectorAll("[data-native-import]").forEach(item => { item.disabled = busy() || !available("native_inspect"); });
   if (!state.presets[$("simulationPreset").value] || (simulationOperation() === "analysis_run" && !$("analysisParent").value)) $("simulationRunBtn").disabled = true;
   if (state.simulationDraft && (state.simulationDraft.store !== activeStore() || state.simulationDraft.source.studyId !== state.studyId)) $("simulationRunBtn").disabled = true;
   if (!$("fixtureConditionFields").hidden && state.fixtureConditionError) $("simulationRunBtn").disabled = true;
@@ -518,6 +522,7 @@ async function loadOverview({ followJobs = true } = {}) {
         ?? list(state.overview.jobs).find(job => job.id === state.job?.id);
       if (observed) { state.job = observed; renderJob(); schedulePoll(); }
     }
+    await loadNativeImports();
   } catch (error) {
     $("connectionState").textContent = `연결을 확인할 수 없습니다 · ${error.message}`;
     $("connectionState").classList.add("offline"); updateControls(); throw error;
@@ -618,14 +623,88 @@ function chooseCandidate(path) {
 }
 function renderNative(info) {
   const identifier = info.design ?? info.model ?? $("nativeModelId").value;
-  if (identifier) { $("nativeModelId").value = identifier; $("cadModel").value = identifier; $("cadBackend").value = "fixture.freecad"; renderRegistry(); }
+  if (identifier) {
+    const changed = $("cadModel").value !== identifier || $("cadBackend").value !== "fixture.freecad";
+    $("nativeModelId").value = identifier; $("cadModel").value = identifier; $("cadBackend").value = "fixture.freecad";
+    if (changed) { state.discovery = []; renderDiscovery([]); }
+    renderRegistry();
+  }
   const finals = clear("nativeFinal"); option(finals, "", "최종 솔리드를 선택하세요");
   list(info.final_candidates).forEach((item) => option(finals, item.name, `${item.label ?? item.name} · ${item.name}`));
   finals.value = info.final ?? "";
   const detail = clear("nativeDetail"); detail.append(el("h3", info.document ?? "네이티브 CAD"), el("p", identifier, "mono"));
   detail.append(el("p", `최종 솔리드: ${info.final ?? "선택 필요"}`, "hint"), el("p", `실제 후보 ${list(info.candidates).length}개 · 네이티브 등록 ${list(info.parameters).length}개`, "hint"));
   detail.append(el("p", "새 CAD 실험을 만들면 편집 가능한 원본과 내보낸 형상을 같은 실험 개정에서 확인할 수 있습니다.", "hint separated"));
+  if (info.native_import?.original_integrity === "VERIFIED") detail.append(el("p", "선택한 원본 FCStd를 별도로 보존하고 가져온 개정을 확인했습니다. 연구 변수를 발견해 새 CAD 개정을 만들 수 있습니다.", "hint"));
   detail.append(rawDetail("네이티브 모델의 실제 응답", info)); $("nativeArea").open = true; updateControls();
+}
+
+async function loadNativeImports() {
+  const request = ++state.nativeImportRequest, store = activeStore();
+  try {
+    const data = await api("/api/native-imports");
+    if (request !== state.nativeImportRequest || store !== activeStore() || state.storeSwitching) return;
+    const container = clear("nativeImportList"), records = list(data.imports);
+    if (!records.length) container.append(el("p", "이 저장소에 가져온 모델이 없습니다. 파일을 선택해 시작하세요.", "empty-state"));
+    else container.append(table(["가져온 모델", "원본", "다음 작업"], records.map(record => {
+      if (!record.model || record.error) return [record.id, "가져오기 완료 확인 필요", text(record.error)];
+      const button = action("모델 확인·변수 연결", () => openImportedModel(record.id));
+      button.dataset.nativeImport = record.id;
+      return [record.document || record.model, `${number(record.input?.size_bytes)}바이트 보존 · 선택 시 원본 재검사`, button];
+    })));
+    if (data.omitted) container.append(el("p", `최근 ${records.length}개를 표시합니다. 이전 ${data.omitted}개 기록도 저장소에 보존되어 있습니다.`, "hint"));
+    updateControls();
+  } catch (error) {
+    if (request === state.nativeImportRequest && store === activeStore() && !state.storeSwitching)
+      clear("nativeImportList").append(el("p", `가져온 모델 목록을 읽지 못했습니다: ${error.message}`, "hint"));
+  }
+}
+
+function nativeCadSelection() {
+  return JSON.stringify([$("cadBackend").value, $("cadModel").value, $("nativeModelId").value]);
+}
+
+async function openImportedModel(identifier) {
+  if (busy() || !available("native_inspect")) throw new Error("진행 중인 작업과 모델 확인 기능을 먼저 확인하세요.");
+  const store = activeStore(), request = ++state.nativeImportRequest, selection = nativeCadSelection();
+  state.submitting = true; updateControls();
+  let record;
+  try {
+    record = await api(`/api/native-imports/${idPath(identifier)}`);
+    if (request !== state.nativeImportRequest || store !== activeStore() || state.storeSwitching || selection !== nativeCadSelection()) return;
+    if (record.original_integrity !== "VERIFIED") throw new Error("가져온 원본의 무결성을 확인하지 못했습니다.");
+    $("nativeModelId").value = record.model;
+  } finally { state.submitting = false; updateControls(); }
+  if (!record || request !== state.nativeImportRequest || store !== activeStore()) return;
+  const inspectionSelection = nativeCadSelection();
+  await runJob("native_inspect", { model: record.model }, info => {
+    if (store === activeStore() && inspectionSelection === nativeCadSelection() && $("nativeModelId").value === record.model) renderNative(info);
+  });
+}
+
+async function submitNativeImport() {
+  if (!writable() || busy() || !available("native_import")) throw new Error("실행 가능한 작업 저장소에서 CAD 파일을 가져오세요.");
+  const input = $("nativeImportFile"), selected = state.nativeFileSelection, store = activeStore(), selection = nativeCadSelection();
+  if (input.files?.length !== 1) throw new Error("FCStd 파일 하나를 선택하세요.");
+  const file = input.files[0]; state.submitting = true; updateControls();
+  try {
+    const upload = await window.nativeUploadControls.readFile(file);
+    if (selected !== state.nativeFileSelection || input.files?.length !== 1 || input.files[0] !== file || store !== activeStore() || state.storeSwitching || selection !== nativeCadSelection())
+      throw new Error("읽는 동안 파일 선택이나 저장소가 바뀌었습니다. 다시 선택하세요.");
+    $("nativeImportFileState").textContent = `${upload.label} · ${number(upload.bytes)}바이트 · 원본을 보존하고 실제 모델을 검사합니다.`;
+    const job = await api("/api/native-import", { method: "POST", body: upload.body });
+    if (job.store_id !== store) throw new Error("가져오기 작업의 저장소를 확인해야 합니다. 원 작업은 작업 기록에서 확인하세요.");
+    state.job = job;
+    const handler = info => { if (store === activeStore() && selection === nativeCadSelection()) { renderNative(info); input.value = ""; state.nativeFileSelection++; $("nativeImportFileState").textContent = "원본을 보존하고 모델을 가져왔습니다. 연구를 선택한 뒤 변수를 발견하세요."; } };
+    state.handlers.set(job.id, handler); renderJob();
+    if (activeJob(job)) schedulePoll();
+    else {
+      await loadOverview({ followJobs: false });
+      state.handlers.delete(job.id);
+      if (job.status === "COMPLETED") handler(job.result);
+      else if (job.status === "FAILED") notify(text(job.error));
+    }
+  } finally { state.submitting = false; updateControls(); }
 }
 
 function renderPresets(data) {
@@ -1926,6 +2005,9 @@ async function switchStore(identifier) {
   }
   finally { state.storeSwitching = false; updateControls(); }
   state.overview = overview; state.studyId = ""; state.study = null; state.registry = { entries: [] }; state.discovery = []; clearSimulationDraft();
+  state.nativeImportRequest++; state.nativeFileSelection++; $("nativeImportFile").value = "";
+  $("nativeImportFileState").textContent = "FCStd 파일 하나를 선택하세요. 원본은 별도로 보존합니다.";
+  $("nativeModelId").value = ""; clear("nativeDetail"); clear("nativeFinal");
   state.researchSession = null; $("researchContinue").checked = false; renderResearchAnswers();
   invalidateModelDiscovery(); state.campaignSelections.clear(); state.campaignSelectionKey = "";
   state.selectedExperiment = null; state.selectedHistories = null; $("historyPanel").hidden = true; state.selectedCampaign = null; state.comparison.clear(); state.studyRequest++; state.experimentRequest++; state.campaignRequest++;
@@ -1933,6 +2015,7 @@ async function switchStore(identifier) {
   clear("campaignDetail"); clear("comparisonDetail").hidden = true;
   const card = panel("저장소가 바뀌었습니다.", "RESULTS"); card.append(el("p", "목록에서 열 기록을 선택하세요.", "empty-state")); clear("experimentDetail").append(card);
   $("selectedSource").textContent = "소스 버전: 기록 선택 후 확인"; renderDiscovery([]); renderOverview();
+  await loadNativeImports();
   if (state.studyId) await loadStudy(state.studyId); else { renderStudy(); renderRegistry(); }
 }
 
@@ -1957,6 +2040,8 @@ bindForm("cadForm", "cad_run", () => {
   return { study_id: state.studyId, experiment_id: $("cadExperimentId").value.trim(), backend: $("cadBackend").value, model: $("cadModel").value.trim(), values };
 }, async (result, args) => { $("cadExperimentId").value = makeId("E-cad"); await inspectExperiment(result.experiment_id ?? args.experiment_id); });
 bindForm("nativeCreateForm", "native_create", () => ({ template: $("nativeTemplate").value }), renderNative);
+$("nativeImportForm").addEventListener("submit", event => { event.preventDefault(); submitNativeImport().catch(error => notify(error.message)); });
+$("nativeImportFile").addEventListener("change", () => { state.nativeFileSelection++; $("nativeImportFileState").textContent = $("nativeImportFile").files?.length === 1 ? $("nativeImportFile").files[0].name : "FCStd 파일 하나를 선택하세요."; updateControls(); });
 bindForm("nativeInspectForm", "native_inspect", () => ({ model: $("nativeModelId").value.trim() }), renderNative);
 bindForm("nativeFinalForm", "native_final", () => ({ model: $("nativeModelId").value.trim(), final: $("nativeFinal").value }), renderNative);
 bindForm("simulationForm", simulationOperation, simulationArguments, completeSimulation, simulationSubmissionContext);

@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "unit": "G1 human FCStd binary transport to existing Core/native workflow",
+  "created_utc": "2026-10-05T23:07:04.849818+00:00",
+  "base_commit": "ca779211de298e74376a7a3bd72497993fc24d5d",
+  "state": "SOURCE_READY; separate R2 eight-file drafts remain uncommitted",
+  "source_files": {
+    "apps/lab/native_input.py": {
+      "sha256": "04c85da5e775b199928127c74281340ff00bfae111c363e8de29ac2cfbf6fe1e",
+      "size_bytes": 9194
+    },
+    "apps/lab/server.py": {
+      "sha256": "cd27c3f6eaa1d41dd94d33206ae9fa0548c7062f0619f69a42f60e3b73eea49d",
+      "size_bytes": 15019
+    },
+    "apps/lab/service.py": {
+      "sha256": "04e3235a355911f6d3b6c29ff5afc7b4dabc08318d33a1f66c9068d5f8072ce4",
+      "size_bytes": 57971
+    },
+    "apps/lab/static/app.js": {
+      "sha256": "3f92dabe947e183836df388609beaf641765421e615b4a2c2f1b8f9e35d9f4b6",
+      "size_bytes": 172890
+    },
+    "apps/lab/static/index.html": {
+      "sha256": "9127b391c900490fc513dc22c8c12f4ded9d9c51e748bf65b891649e83e0f927",
+      "size_bytes": 40209
+    },
+    "apps/lab/static/native-upload-controls.js": {
+      "sha256": "d094849ad8428d8aed11498dfb72877bedcba8203ffa8667c704256bc327de92",
+      "size_bytes": 3661
+    },
+    "tests/test_native_import_http.py": {
+      "sha256": "3a8b7bf4c48852b31cd0d322ee0f890c2b6c371acba7b3f1cf92249ebc02b78d",
+      "size_bytes": 14504
+    },
+    "tests/test_native_upload_controls.js": {
+      "sha256": "312ae3c15694cebcb1b6957ccc01a9b56c2557249efd603c260faf0d38acf36e",
+      "size_bytes": 7394
+    },
+    "tests/test_research_handoff.js": {
+      "sha256": "d9e7c7722ca4ea9bc2a1f27ffc7bab551afe3a4f3b0bfcac62d97237221daa6a",
+      "size_bytes": 45277
+    }
+  },
+  "source_verification": {
+    "new_http": {
+      "pass": 15,
+      "seconds": 51.91,
+      "exit_code": 0,
+      "exec_session": 31858,
+      "log": {
+        "sha256": "9dce160c26d8aa3edd13d0cd02c5fb8deacc917cfc785361192ff93c8e5f0fa2",
+        "size_bytes": 102
+      },
+      "scope": "Real HTTP/job/journal with TEST_ONLY native and producer; no FreeCAD"
+    },
+    "final_cancel_control": {
+      "pass": 1,
+      "seconds": 10.36,
+      "log": {
+        "sha256": "ed2652c02b75ca83ac373139132a8932bfcbf9dcb73f741d52a9bc843c3a4288",
+        "size_bytes": 101
+      },
+      "scope": "Same metadata-cancel control stabilized with captured raw bytes/owned thread completion; no native"
+    },
+    "node": {
+      "pass": 67,
+      "seconds": 1.9031882,
+      "exit_code": 0,
+      "log": {
+        "sha256": "5fdca5f238c98d02ec708ba4335c7547da45ad44d4c858651ed14c8170da37e3",
+        "size_bytes": 7321
+      },
+      "scope": "Native File boundary helper, selected UI leases, existing CAD/research/result recovery controls; no browser"
+    },
+    "earlier_http_journal": {
+      "pass_existing": 115,
+      "new_transport_pass": 8,
+      "new_transport_fail": 3,
+      "seconds": 551.26,
+      "exec_session": 86850,
+      "scope": "Earlier dirty source; three new synchronous producer-probe HTTP timeouts; not final-source full suite"
+    },
+    "corrected": [
+      "Producer Git probe moved to owned async job, raw bytes rechecked afterwards",
+      "Recovery rendering precedes recent native-input metadata query",
+      "Late upload/selection replies retain current CAD choice",
+      "Prepared import gets a completion seal only after final original check"
+    ],
+    "node_final_lf": {
+      "pass": 67,
+      "fail": 0,
+      "exit_code": 0,
+      "seconds": 3.8419861,
+      "log": {
+        "sha256": "06587a4cad8651f29dbee25205f4f6c5a99e71268ddfce096bbbb41a17d9764f",
+        "size_bytes": 7339
+      },
+      "scope": "Same relevant source controls after Root canonical LF preservation; no browser/native"
+    }
+  },
+  "independent_review": {
+    "reviewer": "field_kernel_publication_review",
+    "initial_p1": 0,
+    "initial_p2": 2,
+    "closure": "PASS_SOURCE_ONLY",
+    "final_p1": 0,
+    "final_p2": 0,
+    "reader_hashes": {
+      "apps/lab/native_input.py": "04c85da5e775b199928127c74281340ff00bfae111c363e8de29ac2cfbf6fe1e",
+      "apps/lab/service.py": "04e3235a355911f6d3b6c29ff5afc7b4dabc08318d33a1f66c9068d5f8072ce4",
+      "apps/lab/static/app.js": "8a208334a921991f69d14a0aec46c1c554f368e417af619ff794b6ca14ed37ff",
+      "tests/test_native_import_http.py": "3a8b7bf4c48852b31cd0d322ee0f890c2b6c371acba7b3f1cf92249ebc02b78d",
+      "tests/test_research_handoff.js": "d9e7c7722ca4ea9bc2a1f27ffc7bab551afe3a4f3b0bfcac62d97237221daa6a"
+    },
+    "scope": "Read-only final source/control reading; no repeated tests or actual FreeCAD/browser"
+  },
+  "actual_browser_native_acceptance": "NOT_RUN",
+  "actual_freecad_calls": 0,
+  "new_solver_runs": 0,
+  "provider_calls": 0,
+  "new_meshes": 0,
+  "contract": "Existing Core/Domain/adapter/native transaction reused; HTTP binary human input only. No MCP/profile/solver widening.",
+  "preserved": "Existing stores/qualified meshes/fine UNKNOWN/history and eight R2 drafts unchanged",
+  "ci": {
+    "source": "ca779211de298e74376a7a3bd72497993fc24d5d",
+    "run": 37382678644,
+    "last_status": "IN_PROGRESS",
+    "observed_success": [
+      "research-driver-source",
+      "core",
+      "native-registration",
+      "structural",
+      "native",
+      "doe"
+    ],
+    "observed_failure": [
+      "codeaster",
+      "explicit",
+      "pde"
+    ],
+    "optimization": "IN_PROGRESS",
+    "note": "Exact base CI, not a new upload/native verification. Known failures not replayed locally."
+  },
+  "next": "Clean-source new-store actual human file chooser/import/native candidate/registration/new CAD revision/reopen, then G2 explicit conditions",
+  "limitations": [
+    "No arbitrary CAD-parent structural solver support",
+    "No company CAD, physical qualification or engineering release",
+    "No actual native/provider active cancel/reconnect proof; partial result/source controls only"
+  ],
+  "physical_qualification": "UNKNOWN",
+  "release": "NOT_RELEASED",
+  "whole_52_phase_1_7": "INCOMPLETE",
+  "ui_line_endings": {
+    "reason": "Stage check found large CRLF/LF-only churn in two existing UI files; Root preserves reviewed content in canonical LF",
+    "files": {
+      "apps/lab/static/app.js": {
+        "reviewed_raw": {
+          "sha256": "8a208334a921991f69d14a0aec46c1c554f368e417af619ff794b6ca14ed37ff",
+          "size_bytes": 174386
+        },
+        "final_lf": {
+          "sha256": "3f92dabe947e183836df388609beaf641765421e615b4a2c2f1b8f9e35d9f4b6",
+          "size_bytes": 172890
+        },
+        "semantic_change": false
+      },
+      "apps/lab/static/index.html": {
+        "reviewed_raw": {
+          "sha256": "81d8041e9cfab54919366424c7120b4a334ab62240a2cfed1af6c8877c117509",
+          "size_bytes": 40380
+        },
+        "final_lf": {
+          "sha256": "9127b391c900490fc513dc22c8c12f4ded9d9c51e748bf65b891649e83e0f927",
+          "size_bytes": 40209
+        },
+        "semantic_change": false
+      }
+    },
+    "canonical_reviewed_content_equal": true
+  }
+}

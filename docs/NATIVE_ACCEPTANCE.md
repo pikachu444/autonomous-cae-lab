@@ -1,3 +1,8 @@
+# G1 human file input source qualification; actual browser/native next
+
+ADR0042 and records/20261006-native-input-source-r01.json connect the existing Core/native importer to tokenized binary human file selection. Latest15 HTTP source controls/final1 cancel control and67 Node controls PASS; TEST_ONLY native/provenance and no actual FreeCAD/browser/solver/provider. Independent two P2 findings are corrected and final closure is separately recorded. NEXT clean-source fresh-store file chooser/import/discover/register/new editable CAD/reopen. Arbitrary CAD-parent FEA, active native recovery, physical qualification and whole52 remain OPEN/UNKNOWN/NOT_RELEASED.
+
+---
 # Native FreeCAD Core acceptance
 
 ## P1.2b actual bounded acceptance PASS at30068

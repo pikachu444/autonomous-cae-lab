@@ -1331,3 +1331,18 @@ summary execution remains the next actual provider gate.
 The human answer formatter keeps raw text and signed numeric cells, handling
 escaped delimiter/code-span pipes without HTML execution. Stored9-candidate
 table and same best-candidate field retain original provenance and UNKNOWN.
+
+## Human native-file entry (ADR0042)
+
+The loopback Lab UI now connects one human-selected FCStd to the existing
+Core import_native_model/FreeCAD adapter, native inspection and parameter
+registry. The binary100-byte..25-MiB route is separate from JSON128KiB and accepts
+no host path. Original bytes/receipt/new input ID are immutable; async execution
+captures provenance, rechecks input and seals completed import identity.
+Metadata listing does not verify original bytes; model selection verifies them
+and separately inspects the current editable native revision. Late replies
+cannot overwrite another store/model selection. Partial input is UNCONFIRMED.
+This adds no MCP tool, profile, solver admission or arbitrary CAD-parent FEA.
+Source qualification and actual human/native acceptance are recorded separately
+in benchmarks/records/20261006-native-input-source-r01.json. G2 general model
+conditions, G3 hypotheses/observations and G4 owned operational recovery remain.

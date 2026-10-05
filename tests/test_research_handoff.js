@@ -65,7 +65,7 @@ function harness({ writable = true, store = "local", researchStatus = status(), 
     fetch: async (path, options) => { paths.push({ path, options }); assert(fetchReply, "No uncontrolled HTTP is allowed"); return fetchReply(path, options); },
     setTimeout: (fn, delay) => { timers.push({ fn, delay }); return timers.length; }, clearTimeout: () => {} };
   vm.createContext(sandbox);
-  vm.runInContext(appSource.slice(0, boundary) + "\nglobalThis.ui = {state, updateControls, updateResearchControls, confirmedResearchSession, renderResearchConnection, loadResearchStatus, loadOverview, renderResearchAnswers, retainResearchJob, renderJob, submitResearchQuestion, runJob, pollJob, researchError, prepareComparisonResearch};", sandbox);
+  vm.runInContext(appSource.slice(0, boundary) + "\nglobalThis.ui = {state, updateControls, updateResearchControls, confirmedResearchSession, renderResearchConnection, loadResearchStatus, loadOverview, renderResearchAnswers, retainResearchJob, renderJob, submitResearchQuestion, runJob, pollJob, researchError, prepareComparisonResearch, loadNativeImports, openImportedModel, submitNativeImport};", sandbox);
   const ui = sandbox.ui;
   ui.state.overview = { active_store: store, stores: [{ id: store, writable }], token: "synthetic-token", capabilities: [], jobs: [] };
   ui.state.presets = { linear: { operation: "analysis_run", backend: "fixture.calculix", parent_backends: ["fixture.cadquery"] } };
@@ -73,6 +73,99 @@ function harness({ writable = true, store = "local", researchStatus = status(), 
   return { ui, $, paths, timers, sandbox };
 }
 function reply(value, ok = true) { return { ok, status: ok ? 200 : 503, json: async () => value }; }
+
+function nativeHarness(options = {}) {
+  const h = harness(options);
+  h.ui.state.overview.capabilities = ["native_import", "native_inspect"].map(operation => ({operation, callable: true}));
+  h.$("nativeImportFile").files = [{name: "TEST_ONLY.FCStd"}];
+  return h;
+}
+
+test("native upload holds admission while reading and rejects changed selection or store before transport", async () => {
+  for (const change of [h => h.ui.state.nativeFileSelection++, h => { h.$("nativeImportFile").files = [{}]; },
+      h => { h.ui.state.overview.active_store = "changed"; }]) {
+    const h = nativeHarness(); let complete;
+    h.sandbox.window.nativeUploadControls = {readFile: () => new Promise(resolve => { complete = resolve; })};
+    const pending = h.ui.submitNativeImport();
+    assert.equal(h.ui.state.submitting, true);
+    assert.equal(h.$("nativeImportBtn").disabled, true);
+    await assert.rejects(h.ui.submitNativeImport(), /실행 가능한 작업 저장소/);
+    change(h);
+    complete({body: new ArrayBuffer(100), bytes: 100, label: "TEST_ONLY.FCStd"});
+    await assert.rejects(pending, /파일 선택이나 저장소가 바뀌었습니다/);
+    assert.equal(h.paths.length, 0);
+    assert.equal(h.ui.state.submitting, false);
+    assert.equal(h.ui.state.job, null);
+  }
+});
+
+test("native upload uses the same tokenized single-job flow with actual binary body, not a host path", async () => {
+  const body = new ArrayBuffer(101), imported = job({id: "J-native", operation: "native_import", status: "RUNNING", result: undefined});
+  const h = nativeHarness({fetchReply: (path, options) => {
+    assert.equal(path, "/api/native-import"); assert.equal(options.body, body);
+    assert.equal(options.method, "POST"); assert.equal(options.headers["Content-Type"], "application/octet-stream");
+    assert.equal(options.headers["X-CAE-Token"], "synthetic-token"); return reply(imported);
+  }});
+  h.sandbox.window.nativeUploadControls = {readFile: async () => ({body, bytes: 101, label: "<TEST_ONLY>.FCStd"})};
+  await h.ui.submitNativeImport();
+  assert.equal(h.ui.state.job.id, "J-native");
+  assert.equal(h.ui.state.handlers.has("J-native"), true);
+  assert.equal(h.timers.length, 1);
+  assert.match(h.$("nativeImportFileState").textContent, /<TEST_ONLY>\.FCStd/);
+  assert.equal(h.paths.length, 1);
+  assert.equal(h.ui.state.submitting, false);
+  assert.equal(h.$("nativeImportBtn").disabled, true, "The active job keeps admission closed after file reading ends");
+});
+
+test("native upload refuses read-only, recovery and ambiguous files without reading or posting", async () => {
+  for (const change of [h => { h.ui.state.overview.stores[0].writable = false; },
+      h => { h.ui.state.overview.execution = {state: "RECOVERY_REQUIRED", accepting_jobs: false}; },
+      h => { h.$("nativeImportFile").files = []; }, h => { h.$("nativeImportFile").files.push({}); }]) {
+    const h = nativeHarness(); let reads = 0;
+    h.sandbox.window.nativeUploadControls = {readFile: async () => { reads++; throw new Error("Unexpected read"); }};
+    change(h); await assert.rejects(h.ui.submitNativeImport());
+    assert.equal(reads, 0); assert.equal(h.paths.length, 0);
+    assert.equal(h.ui.state.submitting, false);
+  }
+});
+
+test("late imported-model listing cannot attach an older store's native model to the current view", async () => {
+  let complete; const h = nativeHarness({fetchReply: () => new Promise(resolve => { complete = resolve; })});
+  h.$("nativeImportList").textContent = "Current store sentinel";
+  const pending = h.ui.loadNativeImports(); h.ui.state.overview.active_store = "changed";
+  complete(reply({imports: [{id: "U" + "a".repeat(32), model: "old-model", input: {size_bytes: 100}}]}));
+  await pending;
+  assert.equal(h.$("nativeImportList").textContent, "Current store sentinel");
+  assert.equal(h.$("nativeModelId").value, "");
+});
+
+test("late native upload completion preserves a newer CAD selection and retains the original job handler", async () => {
+  for (const identifier of ["cadBackend", "cadModel", "nativeModelId"]) {
+    const imported = job({id: "J-native", operation: "native_import", status: "RUNNING", result: undefined});
+    const h = nativeHarness({fetchReply: () => reply(imported)}); let connected = 0;
+    h.sandbox.window.nativeUploadControls = {readFile: async () => ({body: new ArrayBuffer(101), bytes: 101, label: "TEST_ONLY.FCStd"})};
+    h.sandbox.renderNative = () => { connected++; };
+    await h.ui.submitNativeImport();
+    assert.equal(h.$("cadBackend").disabled, true); assert.equal(h.$("cadModel").disabled, true);
+    assert.equal(h.$("nativeModelId").disabled, true);
+    h.$(identifier).value = "New selected model after terminal update";
+    h.ui.state.handlers.get("J-native")({design: "old-imported-model"});
+    assert.equal(connected, 0);
+    assert.equal(h.$(identifier).value, "New selected model after terminal update");
+    assert.equal(h.ui.state.job.id, "J-native");
+  }
+});
+
+test("retained native verification does not start inspection after CAD selection changes", async () => {
+  let complete; const h = nativeHarness({fetchReply: () => new Promise(resolve => { complete = resolve; })});
+  const pending = h.ui.openImportedModel("U" + "a".repeat(32));
+  h.$("cadModel").value = "New selected model";
+  complete(reply({model: "old-imported-model", original_integrity: "VERIFIED"}));
+  await pending;
+  assert.deepEqual(h.paths.map(item => item.path), ["/api/native-imports/U" + "a".repeat(32)]);
+  assert.equal(h.$("nativeModelId").value, ""); assert.equal(h.ui.state.submitting, false);
+  assert.equal(h.ui.state.job, null);
+});
 
 test("CommonJS/browser pure exports agree; no model selector or fallback", () => {
   const browser = { window: {}, URL, TextEncoder };
@@ -285,7 +378,7 @@ test("refresh restores the durable job and original answer without polling an un
   const overview = { active_store: "local", stores: [{ id: "local", writable: true }], studies: [], capabilities: [], token: "synthetic-token", jobs: [retained],
     execution: { state: "RECOVERY_REQUIRED", outcome: "UNKNOWN", idle_confirmed: false, accepting_jobs: false, recovered_job_ids: [retained.id] } };
   const before = JSON.stringify(overview);
-  const h = harness({ fetchReply: path => { assert.equal(path, "/api/overview"); return reply(overview); } });
+  const h = harness({ fetchReply: path => { if (path === "/api/native-imports") return reply({imports: []}); assert.equal(path, "/api/overview"); return reply(overview); } });
   // These unrelated listing renderers have their own controls. Exercise the
   // actual refresh, answer restoration, job rendering and admission controls.
   h.sandbox.renderOverview = () => h.ui.updateControls(); h.sandbox.renderStudy = () => {};
@@ -297,7 +390,7 @@ test("refresh restores the durable job and original answer without polling an un
   assert.equal(h.$("jobCancelBtn").hidden, true);
   assert.equal(h.ui.confirmedResearchSession(), null);
   assert.equal(h.timers.length, 0);
-  assert.equal(h.paths.length, 1);
+  assert.deepEqual(h.paths.map(item => item.path), ["/api/overview", "/api/native-imports"]);
   assert.equal(JSON.stringify(overview), before);
   // Only a later authoritative terminal for that same ID can replace the
   // displayed recovery status; a positive result payload alone did not.
@@ -311,7 +404,7 @@ test("refresh restores the durable job and original answer without polling an un
 });
 
 test("refresh shows recovery and closes admission even when the damaged journal has no job", async () => {
-  const h = harness({ fetchReply: path => { assert.equal(path, "/api/overview"); return reply({ active_store: "local", stores: [{ id: "local", writable: true }], jobs: [],
+  const h = harness({ fetchReply: path => { if (path === "/api/native-imports") return reply({imports: []}); assert.equal(path, "/api/overview"); return reply({ active_store: "local", stores: [{ id: "local", writable: true }], jobs: [],
     execution: { state: "RECOVERY_REQUIRED", outcome: "UNKNOWN", idle_confirmed: false, accepting_jobs: false, recovered_job_ids: [] } }); } });
   h.sandbox.renderOverview = () => h.ui.updateControls(); h.sandbox.renderStudy = () => {};
   await h.ui.loadOverview();
@@ -319,7 +412,7 @@ test("refresh shows recovery and closes admission even when the damaged journal 
   assert.match(h.$("connectionState").textContent, /새 작업은 차단/);
   assert.equal(h.$("researchRunBtn").disabled, true);
   assert.equal(h.timers.length, 0);
-  assert.equal(h.paths.length, 1);
+  assert.deepEqual(h.paths.map(item => item.path), ["/api/overview", "/api/native-imports"]);
 });
 test("source-bound request context protects current session from older retained jobs", () => {
   const h = harness(); h.ui.state.job = job(); h.ui.state.researchContexts.set("J-synthetic", { question: QUESTION, store: "local" }); h.ui.retainResearchJob(h.ui.state.job);

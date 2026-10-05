@@ -1,4 +1,11 @@
-## Current checkpoint: general CAE workflow priority; assembly candidate source only
+## Current checkpoint: G1 human native input source ready; actual workflow next
+
+G1 connects browser-selected FCStd bytes to existing Core import_native_model/FreeCAD/registry without replacing native CAD. Binary100bytes..25MiB and old JSON128KiB, token/Host/Origin/RO/store/single-job/journal remain. Retained original/new U-ID and prepared import/completion seal are separate from later editable native revisions. ADR0042/benchmarks/records/20261006-native-input-source-r01.json record latest15HTTP source PASS/final1cancel PASS/67Node PASS; TEST_ONLY native/producer, actual browser/native/solver/provider0.
+Root fixed initial3 producer-probe HTTP timeouts by moving provenance to async execution and fixed two independent P2 findings: late CAD-selection overwrite and completed-looking partial import after final original rejection. Final independent closure is recorded separately before publication. Existing source/native/MCP profiles, qualified meshes, old experiments and eight separate R2 drafts are preserved. Whole52/Phase1-7 remain INCOMPLETE; physical UNKNOWN/NOT_RELEASED.
+NEXT actual clean-source/new-store human file selection -> native import -> real candidate/variable registration -> changed editable CAD experiment -> same result/original reinspection, then G2 conditions and G3-G4 research/results. Exact ca779 CI37382678644 last observed6SUCCESS/3FAIL/optimizationRUNNING; not upload/native or whole-project PASS.
+
+---
+## Historical checkpoint: general workflow priority; assembly candidate source only
 
 User challenged example-focused work. Root accepts the prioritization error: broader52/Phase1-7 remain incomplete. Existing generic native import/registry, declared model/Core results/engine are reused; human FCStd upload, model-selection material/load/BC/contact, hypothesis-to-conditions/residual, broader histories and owned recovery remain gaps. NEXT G1 human model input, then G2-G4 conditions/research/results in docs/CAE_RESEARCH_EXECUTION_PLAN.md. No added isolated example/native solve.
 Frozen4-file S4a candidate: worker84 SOURCE_ONLY PASS/exit0, independent final-pin P2 closed/0P1P2, Root four raw hashes matched. Record benchmarks/records/20261006-assembly-affine-source-r01.json; actual native/provider/mesh0, public admission unchanged, native/mechanics acceptance NOT_RUN. Original mesh/kernel/store/R2/fine UNKNOWN preserved.

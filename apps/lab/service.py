@@ -25,6 +25,7 @@ OPERATIONS = {
     "study_create": "create_study", "parameter_discover": "discover_parameters",
     "parameter_register": "register_parameter", "registry_refresh": "refresh_registry",
     "cad_run": "run_experiment", "native_create": "create_native_model",
+    "native_import": "import_native_model",
     "native_inspect": "inspect_native_model", "native_final": "select_native_final",
     "analysis_run": "run_analysis", "pde_run": "run_pde",
     "model_analysis_run": "run_model_analysis", "doe_plan": "plan_doe",
@@ -191,6 +192,7 @@ class LabService:
             "registry_refresh": ("변수 매핑 갱신", None, "IMPLEMENTED", "기존 Core의 native 개정 확인"),
             "cad_run": ("CAD 실험", "fixture.cadquery / fixture.freecad / fixture.assembly", "IMPLEMENTED", "원본 조립체·단일 부품의 형상 검증과 재생성 입력·증거; 조립체 해석·강도 검증은 별도"),
             "native_create": ("FreeCAD 원본 만들기", "fixture.freecad", "EXPERIMENTAL", "설정된 FreeCAD 실행 환경 필요"),
+            "native_import": ("내 FreeCAD 모델 가져오기", "fixture.freecad", "EXPERIMENTAL", "100바이트~25MiB FCStd 원본 보존·실제 native 가져오기; 임의 CAD의 구조해석 지원은 별도"),
             "native_inspect": ("FreeCAD 원본 살펴보기", "fixture.freecad", "EXPERIMENTAL", "기존 native model ID로 조회"),
             "native_final": ("최종 형상 선택", "fixture.freecad", "EXPERIMENTAL", "원본의 기존 final-solid 선택"),
             "analysis_run": ("선형 구조 해석", "fixture.calculix", "EXPERIMENTAL", "검증된 CAD parent, 가정된 재료·하중; NOT_RELEASED"),
@@ -219,7 +221,6 @@ class LabService:
             ("uncertainty_inverse", "역문제·불확실성", None, "추가 numerical engine 및 관측 자료 연결 필요"),
             ("hpc", "원격·병렬 계산", "MPI / SSH / Slurm / PBS", "실제 환경과 작업·증거 추적 검증 필요"),
             ("field_postprocessing", "해석 필드·애니메이션 화면", None, "원본 field 파일은 보존; 통합 field viewer는 미구현"),
-            ("native_upload", "기존 CAD 업로드", "FreeCAD", "경로 입력 대신 제한된 업로드 API가 필요"),
         ):
             rows.append({"operation": operation, "label": label, "backend": backend,
                          "status": "PLANNED", "scope": scope, "callable": False})
@@ -545,7 +546,49 @@ class LabService:
                 bool(adapter.input_source_files))
         return presets
 
+    def native_imports(self) -> dict:
+        from .native_input import list_imports
+        return list_imports(self._selected().path)
+
+    def native_import(self, identifier: str) -> dict:
+        from .native_input import inspect_import
+        return inspect_import(self._selected().path, identifier)
+
+    def submit_native_import(self, payload: bytes) -> dict:
+        from .native_input import retain_input, verified_input, producer_identity, retain_result
+        with self._lock:
+            if self._recovery_reasons or not self._accepting_jobs:
+                raise ServiceError(503, "Lab execution is closed or recovery is required")
+            if self._active_job is not None:
+                raise ServiceError(409, "A job is already running")
+            selected = self._selected()
+            if not selected.writable:
+                raise ServiceError(403, "Selected library is read only")
+            self._argument_paths(selected, "native_import", {})
+            capture = retain_input(selected.path, payload)
+
+            def import_owned(upload_id, input_sha256, input_bytes):
+                if (upload_id != capture["id"] or input_sha256 != capture["input"]["sha256"]
+                        or input_bytes != capture["input"]["size_bytes"]):
+                    raise ValueError("Native import job differs from its retained input")
+                self._argument_paths(selected, "native_import", {})
+                producer = producer_identity(selected.path, capture)
+                check_cancelled()
+                original, _receipt = verified_input(selected.path, capture)
+                info = selected.lab.import_native_model(original)
+                return retain_result(selected.path, capture, info, producer)
+
+            return self._submit("native_import", {"upload_id": capture["id"],
+                                "input_sha256": capture["input"]["sha256"],
+                                "input_bytes": capture["input"]["size_bytes"]},
+                                native_method=import_owned)
+
     def submit(self, operation: str, arguments: dict) -> dict:
+        if operation == "native_import":
+            raise ServiceError(400, "Native import requires the binary file-selection route")
+        return self._submit(operation, arguments)
+
+    def _submit(self, operation: str, arguments: dict, *, native_method=None) -> dict:
         with self._lock:
             if self._recovery_reasons:
                 raise ServiceError(503, "HTTP recovery is required; new execution is blocked")
@@ -560,7 +603,11 @@ class LabService:
             selected = self._selected()
             if not selected.writable and operation not in READ_OPERATIONS:
                 raise ServiceError(403, "Selected library is read only")
-            if operation == "research_run":
+            if operation == "native_import":
+                if native_method is None:
+                    raise ServiceError(400, "Retained native input is required")
+                method = native_method
+            elif operation == "research_run":
                 if self._research is None:
                     raise ServiceError(503, "AI 연구 연결이 준비되지 않았습니다.")
                 method = self._research.run
@@ -628,7 +675,7 @@ class LabService:
         for key in ("study_id", "experiment_id", "parent_experiment_id", "campaign_id", "parameter_id", "hypothesis_id", "comparison_id"):
             if arguments.get(key) is not None:
                 check_id(arguments[key])
-        for namespace in ("studies", "experiments", "ledger", "campaigns", "optimizations", "native_designs", "response_comparisons"):
+        for namespace in ("studies", "experiments", "ledger", "campaigns", "optimizations", "native_designs", "response_comparisons", "native_imports"):
             contained(selected.path, namespace)
         for key, namespace in (("study_id", "studies"), ("experiment_id", "experiments"),
                                ("parent_experiment_id", "experiments"), ("comparison_id", "response_comparisons")):

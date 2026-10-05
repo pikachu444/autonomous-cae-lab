@@ -13,6 +13,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 
 from .service import LabService, ServiceError, contained
 from .job_journal import HTTPJobJournal
+from .native_input import MIN_NATIVE_BYTES, MAX_NATIVE_BYTES
 
 
 MAX_BODY = 128 * 1024
@@ -51,23 +52,29 @@ class LabHandler(BaseHTTPRequestHandler):
         if self.headers.get("Sec-Fetch-Site", "").lower() == "cross-site":
             raise ServiceError(403, "Cross-site requests are not allowed")
 
-    def _json_body(self) -> dict:
+    def _bytes_body(self, content_type: str, maximum: int, minimum: int = 0) -> bytes:
         values = self.headers.get_all("X-CAE-Token", [])
         if len(values) != 1 or not secrets.compare_digest(values[0], self.server.service.token):
             raise ServiceError(403, "A valid X-CAE-Token is required")
         types = self.headers.get_all("Content-Type", [])
-        if len(types) != 1 or types[0].split(";", 1)[0].strip().lower() != "application/json":
-            raise ServiceError(415, "POST requires application/json")
+        if len(types) != 1 or types[0].split(";", 1)[0].strip().lower() != content_type:
+            raise ServiceError(415, "POST requires " + content_type)
         sizes = self.headers.get_all("Content-Length", [])
         if self.headers.get_all("Transfer-Encoding", []) or len(sizes) != 1 or not sizes[0].isdigit():
             raise ServiceError(400, "One explicit Content-Length is required")
         length = int(sizes[0])
-        if length > MAX_BODY:
-            raise ServiceError(413, "JSON body exceeds 128 KiB")
+        if length > maximum:
+            raise ServiceError(413, "Request body exceeds its allowed size")
+        if length < minimum:
+            raise ServiceError(400, "Request body is smaller than its allowed size")
         self.connection.settimeout(15)
         payload = self.rfile.read(length)
         if len(payload) != length:
-            raise ServiceError(400, "Incomplete JSON body")
+            raise ServiceError(400, "Incomplete request body")
+        return payload
+
+    def _json_body(self) -> dict:
+        payload = self._bytes_body("application/json", MAX_BODY)
 
         def object_pairs(pairs):
             value = {}
@@ -124,6 +131,11 @@ class LabHandler(BaseHTTPRequestHandler):
             query = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True,
                              max_num_fields=16)
             if method == "POST":
+                if path == "/api/native-import":
+                    if query:
+                        raise ServiceError(400, "Native import does not accept query arguments")
+                    payload = self._bytes_body("application/octet-stream", MAX_NATIVE_BYTES, MIN_NATIVE_BYTES)
+                    return self._json(202, self.server.service.submit_native_import(payload))
                 body = self._json_body()
                 if query:
                     raise ServiceError(400, "POST does not accept query arguments")
@@ -186,6 +198,10 @@ class LabHandler(BaseHTTPRequestHandler):
             return self._json(200, service.presets())
         if path == "/api/research":
             return self._json(200, service.research_status())
+        if path == "/api/native-imports":
+            return self._json(200, service.native_imports())
+        if path.startswith("/api/native-imports/"):
+            return self._json(200, service.native_import(path.removeprefix("/api/native-imports/")))
         for prefix, operation in (("/api/response-comparisons/", service.response_comparison),
                                   ("/api/response-histories/", service.response_histories),
                                   ("/api/studies/", service.study), ("/api/experiments/", service.experiment),

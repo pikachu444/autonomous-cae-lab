@@ -11,6 +11,7 @@
   <script src="/static/fixture-field-controls.js" defer></script>
   <script src="/static/fixture-field-viewer.js" defer></script>
   <script src="/static/cad-controls.js" defer></script>
+  <script src="/static/native-upload-controls.js" defer></script>
   <script src="/static/campaign-controls.js" defer></script>
   <script src="/static/imported-mesh-controls.js" defer></script>
   <script src="/static/pde-field-inspector.js" defer></script>
@@ -93,7 +94,15 @@
       </section>
 
       <section id="design" data-panel="design" hidden>
-        <div class="page-heading"><div><p class="eyebrow">02 / DESIGN</p><h1>형상과 연구 변수를 연결합니다.</h1><p class="lead">기존 fixture CAD를 재사용하고, 등록한 연구 ID로 새 개정을 실행합니다.</p></div><span id="registryRevision" class="outline-label">등록부 미선택</span></div>
+        <div class="page-heading"><div><p class="eyebrow">02 / DESIGN</p><h1>내 모델과 연구 변수를 연결합니다.</h1><p class="lead">편집 가능한 FreeCAD 파일을 가져오거나 기존 모델을 선택하고, 연구 변수로 새 개정을 만듭니다.</p></div><span id="registryRevision" class="outline-label">등록부 미선택</span></div>
+        <article class="card model-card"><h2>내 CAD 가져오기</h2>
+          <form id="nativeImportForm"><fieldset data-write><label>편집 가능한 FreeCAD 파일<input id="nativeImportFile" type="file" accept=".FCStd,.fcstd" required></label>
+            <p id="nativeImportFileState" class="hint" role="status">FCStd 파일 하나를 선택하세요. 원본은 별도로 보존합니다.</p>
+            <button id="nativeImportBtn" type="submit" class="button primary" data-operation="native_import">원본 보존하고 모델 가져오기</button>
+          </fieldset></form>
+          <p class="hint separated">100바이트~25 MiB의 FCStd를 지원합니다. 실제 feature·sketch와 최종 솔리드를 기존 FreeCAD에서 검사합니다. 가져온 CAD의 임의 하중·접촉 해석은 아직 연결할 작업입니다.</p>
+          <h3>이 저장소에서 가져온 모델</h3><div id="nativeImportList"><p class="empty-state">가져온 모델을 불러오는 중입니다.</p></div>
+        </article>
         <article class="card model-card"><div class="card-heading"><div><h2>작업 모델</h2><p class="hint">원본 CAD 경로는 등록 경계에서만 사용합니다. 실행 입력은 연구 변수 ID입니다.</p></div></div>
           <div class="form-grid model-grid"><label>CAD 방식<select id="cadBackend"><option value="fixture.cadquery">CadQuery · 편집 가능한 Python 모델</option><option value="fixture.freecad">FreeCAD · 편집 가능한 네이티브 모델</option><option value="fixture.assembly">원본 굽힘 치구 · 전체 조립체 CAD</option></select></label><label>모델 이름 / 네이티브 모델 ID<input id="cadModel" value="roller_support" required autocomplete="off"></label><button type="button" id="discoverBtn" class="button primary align-end" data-operation="parameter_discover">변수 발견</button></div>
           <p class="hint">단일 지지부는 <code>roller_support</code>, 원본 전체 조립체는 <code>bending_assembly</code>입니다. 전체 조립체의 하중·접촉 해석은 별도 연결이 필요합니다. FreeCAD 모델은 아래에서 만들거나 기존 모델 ID를 입력하세요.</p>
@@ -115,7 +124,7 @@
           <form id="nativeCreateForm"><fieldset data-write><h3>편집 가능한 예제 만들기</h3><label>예제<select id="nativeTemplate"><option value="roller_support">롤러 지지부 · Part</option><option value="sketch_locator">원형 로케이터 · Sketcher</option></select></label><button class="button primary" data-operation="native_create">네이티브 모델 만들기</button></fieldset></form>
           <div><form id="nativeInspectForm"><fieldset data-read-job><h3>기존 모델 확인</h3><label>모델 ID<input id="nativeModelId" required autocomplete="off" placeholder="이 저장소의 네이티브 모델 ID"></label><button class="button secondary" data-operation="native_inspect">모델·후보 확인</button></fieldset></form><form id="nativeFinalForm" class="separated"><fieldset data-write><label>최종 솔리드<select id="nativeFinal" required><option value="">모델을 먼저 확인하세요</option></select></label><button class="button secondary" data-operation="native_final">최종 솔리드 선택</button></fieldset></form></div>
           <div id="nativeDetail" class="native-detail"><p class="empty-state">모델의 최종 솔리드와 실제 후보를 확인합니다.</p></div>
-        </div><p class="hint separated">FCStd 가져오기는 제한된 업로드 API가 추가된 뒤 지원합니다. 현재 브라우저에서 사용자 파일 경로를 받지 않습니다. 원본 모델 파일은 실험 결과의 검증된 산출물에서 확인하세요.</p></details></article>
+        </div><p class="hint separated">가져온 모델이나 예제의 최종 솔리드를 선택한 뒤, 위에서 변수를 발견하고 연구에 등록하세요. 새 CAD 실험에서 편집 가능한 개정과 내보낸 형상을 확인할 수 있습니다.</p></details></article>
       </section>
 
       <section id="simulation" data-panel="simulation" hidden>

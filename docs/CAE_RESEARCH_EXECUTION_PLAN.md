@@ -16,11 +16,13 @@ Phase7 합성 inverse의 코드와 실행 기록을 보존하되 임의 사용�
 
 | 순서 | 공통 사용자 기능과 재사용 코드 | 남은 연결과 완료 기준 |
 |---|---|---|
-| G1 **다음 구현** | 자기 모델 입력: 기존 Core/CLI/MCP `import_native_model`, FreeCAD adapter, registry와 editable CAD 재사용 | HTTP/UI에서 FCStd 파일 선택→새 보존 원본/모델ID→실제 후보 발견·등록→새 개정 재열람. 브라우저에 없는 업로드 연결을 추가한다. 임의 CAD의 구조해석 지원으로 확대하지 않는다 |
+| G1 **SOURCE_READY / 실제 사용자 검증 다음** | 자기 모델 입력: 기존 Core/CLI/MCP `import_native_model`, FreeCAD adapter, registry와 editable CAD 재사용 | HTTP/UI에서 FCStd 파일 선택→새 보존 원본/모델ID→실제 후보 발견·등록→새 개정 재열람. 브라우저에 없는 업로드 연결을 추가한다. 임의 CAD의 구조해석 지원으로 확대하지 않는다 |
 | G2 | 같은 모델의 해석 조건: `describe_model`, Domain validator, qualified body/group catalog와 기존 adapter 재사용 | 모델 revision·부품/면/physical group에 재료/좌표계/하중/BC/contact를 명시적으로 연결. 지원 가능한 solver 경로만 실행하고 지원되지 않는 조합은 사전 거부. 대표 가상 모델에서 조건 편집→native 입력→같은 결과의 연결 확인 |
 | G3 | 목적과 가설의 연구 흐름: 기존 study/관측 comparison/context/LHS/DE/declared-input binding 재사용 | 가설별 바뀌는 입력·관측 위치/성분/단위/축·구별 응답을 연결하고 기존 numerical engine에 잔차/목표 전달. 질문→허용된 실행→비교→AI 해석을 같은 연구에 저장. 일반 관측 inverse는 아직 미구현 |
 | G4 | 공통 결과와 운용: 기존 full-field/history readers·report·HTTP journal/owned controller 재사용 | 지원 family별 field/curve와 원본 native를 같은 모델에서 읽기, export/reopen, 실제 소유 작업의 취소·재접속/부분 결과 보존. 라이브 핸들과 과거 기록을 구분 |
 | 이후 | S4b/S5–S9의 기존 Phase2–7 미완료 기능 | 일반 입구에 맞춰 실제 조립체 mechanics, PDE 확장, 재료FE coupling, 표면 explicit, 실측 inverse/UQ/다목적/HPC를 순차 추가. 실제 자료/환경 없는 물리·회사 gate는 UNKNOWN |
+
+G1 소스는 기존 Core native 가져오기를 HTTP/UI 파일 선택에 연결했다(ADR0042). 최신15HTTP source/67Node PASS이며 실제 FreeCAD·사람 화면·새 CAD 개정 acceptance는 다음 clean-source gate다. R2 별도8파일·기존 결과는 보존했다. [소스 기록](../benchmarks/records/20261006-native-input-source-r01.json).
 
 순서는 위 공통 연결의 의존성을 따른다. 새 optimizer를 만들거나 모든 solver 예제를 다시 푸는 일을
 G1의 선행조건으로 추가하지 않는다. S4a의 검토된 4개 NEW 파일은 SOURCE_ONLY로 보존하며
