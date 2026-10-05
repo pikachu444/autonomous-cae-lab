@@ -76,10 +76,12 @@
       && Array.isArray(item.operations) && item.operations.every(op => typeof op === "string" && op.length > 0));
     const ready = data?.configured === true && data.available === true && data.state === "READY" && data.model === MODEL
       && typeof data.profile === "string" && data.profile.length > 0 && workspace(data.workspace_url) !== null && validCapabilities;
-    return { ready, modelLabel: data?.model === MODEL ? "GPT-5.6 Sol · ChatGPT" : "승인 모델 확인 필요",
+    const recovery = data?.state === "RECOVERY_REQUIRED";
+    return { ready, recovery, modelLabel: recovery ? "실행 상태 확인 필요" : data?.model === MODEL ? "GPT-5.6 Sol · ChatGPT" : "승인 모델 확인 필요",
       workspaceUrl: ready ? workspace(data.workspace_url) : null,
       reason: ready ? "승인된 모델에 연결됐습니다. 질문을 보내면 실제 AI 답변과 실행 기록이 여기에 나타납니다."
-        : safeMessage(data?.reason, data?.configured === false ? "AI 연구 연결이 준비되지 않았습니다." : undefined),
+        : recovery ? "이전 작업의 완료·중단 여부가 확인되지 않았습니다. 새 실행은 차단되며 보존된 답변과 결과는 볼 수 있습니다."
+          : safeMessage(data?.reason, data?.configured === false ? "AI 연구 연결이 준비되지 않았습니다." : undefined),
       scopes: ready ? capabilities.map(item => ({ label: backendLabels[item.backend] ?? "등록된 연구 모델",
         operations: item.operations.map(operation => operationLabel(operation, "등록된 도구")) })) : [] };
   }
@@ -202,6 +204,7 @@
     return { raw, blocks };
   }
   function jobWorkflow(job) {
+    if (job.status === "RECOVERY_REQUIRED") return { tone: "unknown", stage: "실행 상태 확인 필요 · 새 작업 차단", next: "이전 작업의 완료·중단 여부가 확인되지 않았습니다. 보존된 답변과 결과는 볼 수 있으며, 실행 상태가 확인되기 전에는 새 작업을 시작하지 않습니다." };
     const progress = progressView(job.progress);
     if (job.status === "CLEANUP_PENDING" || (job.status === "CANCEL_REQUESTED" && progress.cleanupPending)) return { tone: "pending", stage: "AI 연구 종료 확인 중", next: "종료를 확인할 때까지 다음 작업은 시작할 수 없습니다. 받은 답변과 작업 기록은 보존됩니다." };
     if (job.status === "CANCEL_REQUESTED") return { tone: "pending", stage: "AI 연구 취소 처리 중", next: "실제 실행의 종료를 확인하고 있습니다. 부분 답변과 실행 기록은 보존됩니다." };

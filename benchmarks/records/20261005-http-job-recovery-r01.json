@@ -1,0 +1,171 @@
+{
+  "kind": "HTTP_JOB_RECOVERY_BOUNDED_ACCEPTANCE",
+  "schema_version": 1,
+  "observed_utc": "2026-10-05T14:31:59.3841994+00:00",
+  "status": "R1_BOUNDED_HTTP_PASS",
+  "source_identity": {
+    "git_baseline_commit": "d779e6b89f4a9c8ebc065a5a33b6d8b8d9fca428",
+    "working_tree_modified_at_verification": true,
+    "tested_final_raw_sha256": {
+      "apps/lab/job_journal.py": "9e69e3d4a01ef669a721c0442b9b4becab92fc79ee867f2c914d554810d3a239",
+      "apps/lab/service.py": "c7d68c6d235db946ed84971227867a385ff44ac5e27ca56489b3abd426e7c855",
+      "apps/lab/server.py": "e442a5265d4cfb30fd8202ea90af2455b5bd440c560da4621064c7838872d1d9",
+      "apps/lab/research.py": "2c50b4756d4a848a023c182b59da31d0556b47f9e7dceb332aa5bf24a079e1b9",
+      "apps/lab/static/app.js": "ea1b842ce33c44ab55749bc48970f6db9755e598e0d51e30325f99c4ec846d00",
+      "apps/lab/static/research-controls.js": "7b9b6222eda244cfe67ec4349ce713c708dc362c0ed984a6af3bf2e0242162a1",
+      "apps/lab/static/result-presentation.js": "fc45d9c05571c22d3ddeb3816d8fb01b4ae742e1f93b2ab4840a5815958e69e3",
+      "tests/test_lab_job_journal.py": "8091bdb109792c41b2fe6b13beaa61abb7801d6a48dce015605c618b9606929f",
+      "tests/test_lab_cancellation.py": "57a0a53ba0b1dee581d317ce8d07f6e761fc4fc2ee28533de033059a61e2060b",
+      "tests/test_lab_research_service.py": "d388da29a68e6b106449dff964348ba89fb168022ae92fddf6a3681913c6319a",
+      "tests/test_lab_server.py": "adc3f9ec1f33a38cab3f38ee2f33bd105632b09ddc005372f5e5636dbeb42576",
+      "tests/test_lab_research.py": "a893a11df6888998b98ac16126492fd18427034197df464b4c3340e21e1e552e",
+      "tests/test_research_handoff.js": "a40189778ac41a55c6207a3f09b32220bb6c5db1e199c02205789e23cdbc84e7",
+      "tests/test_result_presentation.js": "c34bd82a848eeb2ba66b46f465d51546ed67d21e5af907cd4bf920ea9e3a7c4b"
+    },
+    "http_source_sha256": "dc6fae127a7ec2bfa84cabd1c73e2f6f5930b00a2bc142217d029061b268ea6b",
+    "integration_identity": "Commit containing this record; exact tested file hashes, not baseline commit, identify the candidate",
+    "exact_integration_ci": "Observed after commit/push; not qualified by earlier native CI"
+  },
+  "scope": "HTTP_JOB_CONTROL",
+  "runtime": "Existing Ubuntu WSL Python 3.12.3 via scripts/local.ps1; C: mounted store",
+  "implementation": {
+    "admission_before_worker": true,
+    "research_prepared_before_popen": true,
+    "exclusive_claim_and_short_publication_lock": true,
+    "fsync_append_only_hash_chain": true,
+    "terminal_before_matching_release": true,
+    "recovered_records_are_not_live_handles": true,
+    "intact_released_history_protected_from_other_corrupt_claim": true,
+    "recovered_cancel_intent_persisted_but_observed_false": true,
+    "capacity_refused_before_worker_and_terminal_release_space_reserved": true,
+    "default_mcp_core_paths_do_not_acquire_http_claim": true
+  },
+  "validation": {
+    "final_affected_python": {
+      "passed": 98,
+      "exit_code": 0,
+      "seconds": 45.32,
+      "suites": [
+        "test_lab_job_journal.py",
+        "test_lab_cancellation.py",
+        "test_lab_research_service.py"
+      ],
+      "log": "artifacts/s3-r1-root-final-source-20261005-04.log"
+    },
+    "final_affected_node": {
+      "passed": 52,
+      "exit_code": 0,
+      "seconds": 0.2018548,
+      "suites": [
+        "test_research_handoff.js",
+        "test_result_presentation.js"
+      ],
+      "log": "artifacts\\development-cae-usability-audit-20261005-01\\fixture-selected-research-startup-root-01\\S3-R1-UI-CONTROLS-03.txt"
+    },
+    "earlier_broader_source_check": {
+      "passed": 195,
+      "basis": "Actual worker tool output; no retained log for that batch",
+      "limitation": "Earlier candidate; overlapping checks are not added to final 98/52"
+    },
+    "actual_http_control": {
+      "run": "s3-http-recovery-root-20261005-03",
+      "test_only": true,
+      "terminal_job": "J7e8d5bc84b79468582f02bbc9b3790f1",
+      "unresolved_job": "J274b800e36b64bfa87cdf70691a70d2a",
+      "forced_metadata_controller_exit": 24,
+      "terminal_reopened": "COMPLETED",
+      "unresolved_reopened": "RECOVERY_REQUIRED",
+      "unresolved_outcome": "UNKNOWN",
+      "accepting_jobs": false,
+      "idle_confirmed": false,
+      "new_http_job_status": 503,
+      "exact_final_http_observer_session": 14077,
+      "normal_owned_observer_exit_code": 0,
+      "source_limit": "Initial forced HTTP crash used earlier R1 source; final source reads it conservatively across source drift. Final pytest also uses real fresh controllers.",
+      "original_library": "old03",
+      "after_library_selection_new_http_job_status": 503,
+      "final_http_proof": "artifacts/development-cae-usability-audit-20261005-01/fixture-selected-research-startup-root-01/S3-R1-ROOT-FINAL-HTTP-04.json"
+    },
+    "actual_browser": {
+      "same_original_38mm_field_reopened": true,
+      "field_bytes_unchanged": true,
+      "library_read_available_while_recovery_blocks_execution": true,
+      "recovery_is_not_displayed_as_ai_connecting_or_running": true,
+      "source_limit": "Tested modified candidate; read-only original scientific producer remains d509175",
+      "screenshot": "artifacts/development-cae-usability-audit-20261005-01/fixture-selected-research-startup-root-01/S3-R1-FINAL-FIELD38-04.jpg"
+    },
+    "actual_new_solver_or_provider_calls": 0
+  },
+  "independent_review": {
+    "reviewer": "cae_result_context, read-only",
+    "findings": [
+      "Recovered cancellation intent lost on restart/uncertain claim",
+      "Capacity could overflow its own reader and closing records",
+      "Malformed current claim could overwrite separate intact completed history"
+    ],
+    "root_corrections": "All findings corrected in the bounded unit; final 98-test controls verify repeated restarts, damage and history preservation",
+    "independent_final_reexecution": "NOT_RUN; reviewer did not execute product or tests; Root owns final integration",
+    "astra": "No new tiny Astra gate; previous system/process advice is retained"
+  },
+  "original_science_retention": {
+    "source_commit": "d509175a7ac10f56c0bf144443276837da2f4e2b",
+    "run": "cae-selected-research-20261005-03",
+    "record": "benchmarks/records/20261005-selected-cae-research-r03.json",
+    "unchanged_files": 98,
+    "unchanged_bytes": 23172521,
+    "all_original_file_hashes_rechecked": true,
+    "retention": "LOCAL_ONLY",
+    "no_new_numerical_or_strength_verdict": true,
+    "decision": "NOT_RELEASED"
+  },
+  "retained_failed_attempts": [
+    "Root HTTP control01 missing required study metadata: HTTP400; corrected only test input in fresh02/03 stores",
+    "Root extended damage batch94PASS/2FAIL before correction; logs retained",
+    "Previous scientific d509 CI37309316059:7SUCCESS/3FAIL; not reclassified by transport work"
+  ],
+  "remaining": [
+    "R2 exact session/resident incarnation/native ownership and actual native reconnect/cancel recovery",
+    "Whole-store cross-transport exclusion and legacy orphan absence are not qualified",
+    "Full U1:150N condition change and existing numerical engine in the selected integrated research flow",
+    "Original assembly mechanics and wider Phase1-7/original52 acceptance",
+    "Material/strength/physical/durability/company deployment UNKNOWN/NOT_RELEASED"
+  ],
+  "evidence": [
+    {
+      "path": "artifacts/s3-r1-root-final-source-20261005-04.log",
+      "bytes": 183,
+      "sha256": "171dcd662d9c40ba649d6bd313412f4f3c8f5080b227ef6e13f20b336c0abfed",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-selected-research-startup-root-01/S3-R1-UI-CONTROLS-03.txt",
+      "bytes": 5630,
+      "sha256": "b89a4a10dfb6b84676962853dda649d8825c48092afecb4faf0e4d2dfba4e8f1",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-selected-research-startup-root-01/S3-R1-HTTP-CRASH-03.json",
+      "bytes": 20574,
+      "sha256": "b33f25b9eff88096709b182be8f3eb2ad994122a6dc7c4429ea742b4ec0eecd9",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-selected-research-startup-root-01/S3-R1-HTTP-TERMINAL-03.json",
+      "bytes": 745,
+      "sha256": "b06de26ca20c3a1e84a9845aa33ede65f1d1c9a9c3d73ba2b9027e11178496dc",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-selected-research-startup-root-01/S3-R1-ROOT-FINAL-HTTP-04.json",
+      "bytes": 1938,
+      "sha256": "4928766eafec3254635d2f96ce752ce507c1ec6e34b45b45b02b3b297dfa5eec",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-selected-research-startup-root-01/S3-R1-FINAL-FIELD38-04.jpg",
+      "bytes": 60667,
+      "sha256": "e8e8dcf4a85aa2dee112445bee4a3c93a5c14a200cf74554091079d3db22b800",
+      "retention": "LOCAL_ONLY"
+    }
+  ]
+}

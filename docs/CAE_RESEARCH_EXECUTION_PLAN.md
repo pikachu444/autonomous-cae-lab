@@ -13,7 +13,7 @@ Root가 [전체 시스템·전달 방식 후속 의견](reviews/20261005-astra-h
 Root는 요구 변형, 작은 검사·기록의 직렬화, 자신이 만든 통합 문제를 대기로 보고하는 행동을 즉시 교정합니다. 필요한 수정·검사·기록은 다음 실제 사용자 연구 산출물 내부 작업으로 수행합니다.
 공식 selected run01/02의 질문 전 실패를 보존하고 시작 대기의 반복 검증·시간 계산 결함을 직접 수정했습니다. clean d509/run03은 약81초에 준비됐고, 승인5.6Sol의 한국어32→38 질문으로 CAD2개·CalculiX2개·비교 표·동일 기록 전체 필드·새로고침 후38mm 재열람·정상 종료를 실제 확인했습니다. Record: `../benchmarks/records/20261005-selected-cae-research-r03.json`.
 하중부 수직 처짐은2.628393% 감소, 부피는20.429658% 증가했습니다. 가상 등방성210000MPa를 명시했으며 기존 orthotropic 기준 재현은 아닙니다. AI가 하중부|UZ|를 “최대 변위 크기”라고 잘못 부른 것은 전체|U|와 구분해 정정 기록을 남겼습니다. 최초 enum거부2건/원답변/UNKNOWN/NOT_RELEASED는 보존했습니다.
-다음 활성 산출물은 S3-R1입니다: HTTP 작업을 실행 전에 내구 저장하고, 재시작 후 원J-id/결과 조회를 보존하며 종료가 불명확하면 새 실행을 차단합니다. 기존 계획을 재사용해 구현 중이며 새 작은 Astra 승인 단계를 추가하지 않습니다.
+S3-R1의 HTTP 작업 내구 기록·원J-id/완료 결과 재열람·불명확한 실행 차단을 구현하고 실제 HTTP 재시작/원본 필드 열람으로 확인했습니다. [검증 기록](../benchmarks/records/20261005-http-job-recovery-r01.json). 다음 활성 산출물은 exact-owned R2의 재접속·실제 취소/종료 확인입니다. 작은 수정마다 새 Astra 승인 단계를 추가하지 않습니다.
 S3는 긴 탐색·무감독 인계와 전체U1 완료의 조건입니다. S3 전이라는 이유로 첫 짧은 비교 실행까지 미루지 않습니다.
 그 다음 S3 최소 복구→150N 조건 변경·수치 엔진 탐색/U1 완료→원본 조립체 mechanics와 남은 Phase1–7 순서입니다.
 전체 모델/explicit의 의무 mesh sweep은 없으며, 기존 canonical 기준·실패·UNKNOWN/NOT_RELEASED는 보존합니다.
@@ -37,9 +37,9 @@ S3는 긴 탐색·무감독 인계와 전체U1 완료의 조건입니다. S3 전
 | S0 | 실제 실행·중단·목표 상태 복원 | READONLY_OBSERVED / Root | 지정PIDs/ports/원기록 구분, old outputs 보존. 종료 원인 UNKNOWN 유지 |
 | S1 | 한 실행 동작에 승인 OpenScience+Lab 연결 | BOUNDED_LIVE_PASS / Root | 새 run02 실제 질문·도구 결과·resident idle·owned Stop 확인. active-job/native 취소·재시작은 S3 |
 | S2a | 부모 CAD와 정확한 수치 검사 이름을 결과에 표시 | BOUNDED_FRESH_GUI_PASS / Root | 실제 부모·revision·manifest/caption과 늦은 성공 응답 차단 확인. late-error/detached branch는 source controlled-DOM 증거 |
-| S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | BOUNDED_NATIVE_GUI_DATA_AND_CORRECTED_SOURCE / Root | clean ce12037 공개Core/native7715U·평형, Source67 실제 같은필드 데이터 확인은 qualified. 교정01/02의152controls와 최종03의58영향controls·Root 직접 검토를 구분. 실제 교정 화면/officialselectedResearch는 다음 사용자 실행에 묶어 확인; record20261005-fixture-field-pixel-correction-source-r03 |
-| S3 | 종료·강제 중단·재시작 상태와 admission 복구 | NEXT_AFTER_FIRST_SHORT_RESEARCH / Root shared execution owner | 채택한 docs/S3_HTTP_RECOVERY_PLAN.md의 HTTP-only R1 journal/RECOVERY_REQUIRED 후 exact-owned R2. tiny crash/identity와 대표 실제 취소·복구; 오래된 결과 보존. 아직 구현 아님 |
-| U1 | 첫 간단한 사용자 CAE 연구 | NEXT_SHORT_SUPERVISED_COMPARISON; FULL_U1_REQUIRES_S3 / Root | 먼저 아래32→38 질문·비교·저장·재열람·종료. 이후S3/150N/수치탐색/해석/보고서를 묶어 전체U1을 완료. 작은Astra감수 대기는 완료 기준 아님 |
+| S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | BOUNDED_SELECTED_LIVE_PASS / Root | clean d509/run03 실제32/38 해석의7715/9155절점 전체U와 같은 부모·개정·단위, 저장·browser reload/reopen·UZ/전체\|U\|/보기배율·구속/하중 확인. 범용 후처리·조립체·애니메이션 완료는 아님; record20261005-selected-cae-research-r03 |
+| S3 | 종료·강제 중단·재시작 상태와 admission 복구 | R1_BOUNDED_HTTP_PASS; R2_OPEN / Root | 원J-id/결과 보존·실제 HTTP metadata controller crash/restart·미해결 새 실행 차단·기존 필드 열람 완료. 취소 intent와 온전한 과거 완료 보호 교정. exact-owned session/resident/native authority와 대표 실제 취소/복구가 다음이며 전체S3 PASS 아님 |
+| U1 | 첫 간단한 사용자 CAE 연구 | SHORT_COMPARISON_DONE; FULL_U1_OPEN / Root | d509/run03 한국어32→38 질문·실제 비교·저장·재열람·정상 종료 완료. S3/150N 조건 변경/수치엔진탐색/해석·보고서가 남음. 작은Astra감수 대기는 완료 기준 아님 |
 | S4a | coarse native affine full-field patch | OPEN / Domain·adapter | source kernel 재사용, U/strain/stress/energy/force/moment 전체 참조 비교. actual mechanics와 구분 |
 | S4b | 원본7부품 실제 조립체 연구 | OPEN / Domain·adapter·Root | 부품별 재료/접촉/하중·관측점 선언, load path·평형/에너지·모델 목적별 검증, actual Research 연결. 전체 재메시 비교는 의무 아님 |
 | S5 | Phase3의 남은 실제 탐색 연결 | OPEN | 기존 LHS/DE 재사용, 유효 response·budget/convergence·후보비교·재개; mixed variables 후속 |

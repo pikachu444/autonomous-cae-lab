@@ -120,6 +120,77 @@ def test_exact_unicode_request_and_file_argument_vector(configured, monkeypatch)
     assert len(seen) == 1 and not bridge.active
 
 
+def test_prepared_callback_binds_durable_exact_request_before_popen(configured, monkeypatch):
+    bridge, _, _ = configured
+    seen = []
+
+    def prepared(value):
+        request = Path(value["request_path"])
+        question = Path(value["question_path"])
+        assert request.is_file() and question.read_bytes() == "실제 질문 Ω".encode()
+        assert hashlib.sha256(request.read_bytes()).hexdigest() == value["request_sha256"]
+        assert hashlib.sha256(question.read_bytes()).hexdigest() == value["question_sha256"]
+        assert "token" not in value and "auth" not in value and "context" not in value
+        seen.append(value)
+
+    def start(directory, command):
+        assert len(seen) == 1
+        response(bridge, directory)
+        return FakeProcess()
+
+    monkeypatch.setattr(bridge, "_start", start)
+    result = bridge.run("실제 질문 Ω", evidence_prepared=prepared)
+    assert result["status"] == "COMPLETED" and result["decision"] == "NOT_RELEASED"
+    request = json.loads(Path(seen[0]["request_path"]).read_bytes())
+    assert "evidence_prepared" not in request and "job_id" not in request
+
+
+def test_prepared_callback_failure_retains_request_and_never_starts(configured, monkeypatch):
+    bridge, _, _ = configured
+    seen = []
+    monkeypatch.setattr(bridge, "_start", lambda *args: pytest.fail("Popen must not follow failed journal binding"))
+
+    def failed(value):
+        seen.append(value)
+        raise OSError("TEST_ONLY durable HTTP binding failure")
+
+    with pytest.raises(ValueError):
+        bridge.run("보존할 질문", evidence_prepared=failed)
+    assert len(seen) == 1
+    assert Path(seen[0]["request_path"]).is_file()
+    assert Path(seen[0]["question_path"]).read_text() == "보존할 질문"
+    assert not bridge.active and bridge._process is None
+
+
+def test_http_service_injects_prepared_binding_and_recovers_same_request(configured, monkeypatch):
+    from apps.lab.job_journal import HTTPJobJournal
+    from apps.lab.service import LabService
+    bridge, _, _ = configured
+    journal = HTTPJobJournal(bridge.store)
+    lab = LabService(bridge.store, research=bridge, http_journal=journal)
+
+    def start(directory, command):
+        events_on_disk = [json.loads(p.read_bytes()) for p in
+                          (journal.root / "jobs" / lab._active_job).glob("*.json")]
+        prepared = [value for value in events_on_disk if value["event"] == "PREPARED"]
+        assert len(prepared) == 1
+        reference = prepared[0]["job"]["research_evidence"]
+        assert reference == prepared[0]["details"]
+        assert Path(reference["request_path"]) == directory / "request.json"
+        assert reference["request_sha256"] == hashlib.sha256((directory / "request.json").read_bytes()).hexdigest()
+        response(bridge, directory)
+        return FakeProcess()
+
+    monkeypatch.setattr(bridge, "_start", start)
+    job = lab.submit("research_run", {"question": "TEST_ONLY service prepared association"})
+    lab._job_threads[job["id"]].join(5)
+    assert not lab._job_threads[job["id"]].is_alive()
+    terminal = lab.job(job["id"])
+    assert terminal["status"] == "COMPLETED"
+    restored = LabService(bridge.store, http_journal=HTTPJobJournal(bridge.store))
+    assert restored.job(job["id"])["research_evidence"] == terminal["research_evidence"]
+
+
 @pytest.mark.parametrize("question", [None, 7, "", " \r\n\t", "\ud800", "a\0b", "가" * 5462, "x" * 16385])
 def test_question_refused_before_launch(configured, monkeypatch, question):
     bridge, _, _ = configured

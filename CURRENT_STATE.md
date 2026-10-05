@@ -1,4 +1,11 @@
-## Current checkpoint: actual selected CAE question, two analyses and saved field views
+## Current checkpoint: bounded HTTP recovery and retained CAE result access
+
+R1 HTTP journal/fence is implemented and verified. Record: `benchmarks/records/20261005-http-job-recovery-r01.json` binds the final tested source hashes on base d779e6b, actual HTTP jobs and evidence. Final affected controls:98 Python PASS/52 Node PASS. Independent review found cancellation-intent, capacity and past-completion protection defects; Root corrected them and verified repeated fresh-controller recovery.
+Actual HTTP metadata crash/restart retains the completed J-id and unresolved UNKNOWN job, refuses new execution with503 and permits the original d509/run03 library/38mm full field. The final owned observer14077 exited0; its closure does not close the unresolved claim. All original98files/23172521B remain unchanged LOCAL_ONLY. This is transport/read access acceptance, not a new solve or native reconnection authority.
+NEXT: exact-owned R2 session/resident/native recovery, then150N/engine/fullU1, original assembly mechanics and remaining52/Phase1-7. Short32/38 research remains completed; full product, native interruption/recovery and engineering qualification remain OPEN/UNKNOWN/NOT_RELEASED. No mandatory full-model/explicit mesh sweep. The application Goal-resume question is pending; the ACTIVE heartbeat and authorized development are separate.
+
+---
+## Historical checkpoint: actual selected CAE question, two analyses and saved field views
 
 Single queue: `docs/CAE_RESEARCH_EXECUTION_PLAN.md`; original52/Phase1–7/ADR remain. Astra/high03 audited Root's current instruction-following and serial tiny-review/document behavior, not a future system milestone. Root completed the next actual user-flow unit without another tiny Astra approval gate.
 Clean producer d509175a7ac10f56c0bf144443276837da2f4e2b/new `cae-selected-research-20261005-03`: approved5.6Sol Korean width32→38 question, two CAD parents, two corrected native CalculiX analyses and a readable comparison. Initial incorrect material-enum requests remain REJECTED/NOT_RUN; the model corrected them without Root substituting arguments. Same assumed isotropic210000MPa/nu0.3,100N/selected4mm; not the old orthotropic reference.

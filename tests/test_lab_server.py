@@ -82,6 +82,33 @@ def study_arguments(identifier="S-http"):
             "hypothesis": "폭 변경은 형상을 바꾼다.", "objective": "수치·증거와 UNKNOWN 보존"}
 
 
+def test_http_recovered_job_and_original_result_remain_readable(tmp_path):
+    from apps.lab.job_journal import HTTPJobJournal
+    store = tmp_path / "retained"
+    first = LabService(store, http_journal=HTTPJobJournal(store))
+    with running(first) as client:
+        terminal = client.job("study_create", study_arguments("S-retained-http"))
+    restored = LabService(store, http_journal=HTTPJobJournal(store))
+    with running(restored) as client:
+        assert client.request("/api/jobs/" + terminal["id"]) == terminal
+        assert client.request("/api/overview")["execution"]["state"] == "IDLE"
+
+
+def test_http_foreign_claim_without_job_still_blocks_new_execution(tmp_path):
+    from apps.lab.job_journal import HTTPJobJournal
+    store = tmp_path / "broken"
+    journal = HTTPJobJournal(store)
+    (journal.root / "claim.json").write_text('{"kind":"FOREIGN"}', encoding="utf-8")
+    restored = LabService(store, http_journal=HTTPJobJournal(store))
+    with running(restored) as client:
+        overview = client.request("/api/overview")
+        assert overview["execution"]["state"] == "RECOVERY_REQUIRED"
+        assert overview["execution"]["recovered_job_ids"] == []
+        assert overview["execution"]["idle_confirmed"] is False
+        client.request("/api/jobs", {"operation": "study_create", "arguments": study_arguments()}, expected=503)
+    assert not list(store.glob("studies/*"))
+
+
 def registration(native="support_width_mm", identifier="support_width", lower=28, upper=60):
     return {"study_id": "S-http", "backend": "fixture.cadquery", "model": "roller_support",
             "native_path": native, "parameter_id": identifier, "display_name": identifier,

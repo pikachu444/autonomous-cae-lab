@@ -12,6 +12,7 @@ import sys
 from urllib.parse import parse_qs, unquote, urlsplit
 
 from .service import LabService, ServiceError, contained
+from .job_journal import HTTPJobJournal
 
 
 MAX_BODY = 128 * 1024
@@ -236,7 +237,8 @@ def main(argv=None):
         from .research import OpenScienceResearch
         research = OpenScienceResearch(args.openscience_owner, args.store,
                                        powershell=args.openscience_powershell)
-    server = LabHTTPServer(LabService(args.store, libraries=libraries, research=research), args.port)
+    server = LabHTTPServer(LabService(args.store, libraries=libraries, research=research,
+                                     http_journal=HTTPJobJournal(args.store)), args.port)
     print(f"Autonomous CAE Lab: http://127.0.0.1:{server.server_port}", flush=True)
     try:
         server.serve_forever()
@@ -252,7 +254,9 @@ def main(argv=None):
                     # Another cooperative interruption is not proof that a
                     # daemon worker or its owned native children have stopped.
                     continue
-                if shutdown["joined"] and not shutdown["pending"]:
+                if shutdown["joined"] and (not shutdown["pending"] or shutdown.get("recovery_required")):
+                    # A read-only recovery observer owns no old process handle.
+                    # Its durable claim remains blocked after this server exits.
                     break
                 if not announced:
                     print("Waiting for cooperative Lab worker shutdown; new jobs are closed. "

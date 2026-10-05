@@ -18,6 +18,8 @@ from caelab import Lab
 from caelab.execution_control import CancellationToken, cancellation_scope, check_cancelled
 from caelab.storage import check_id, load_json, utc_now
 
+from .job_journal import HTTPJobJournal, JournalError
+
 
 OPERATIONS = {
     "study_create": "create_study", "parameter_discover": "discover_parameters",
@@ -67,7 +69,8 @@ def contained(root: Path, relative: str) -> Path:
 
 class LabService:
     def __init__(self, store: str | Path, *, libraries: Mapping[str, str | Path] | None = None,
-                 lab_factory: Callable[[Path], Lab] = Lab, research=None):
+                 lab_factory: Callable[[Path], Lab] = Lab, research=None,
+                 http_journal: HTTPJobJournal | None = None):
         local = Path(store).resolve()
         local.mkdir(parents=True, exist_ok=True)
         self._stores = {"local": Store("local", local, True, lab_factory(local))}
@@ -90,9 +93,54 @@ class LabService:
         self._job_threads: dict[str, threading.Thread] = {}
         self._accepting_jobs = True
         self._research = research
+        self._http_journal = http_journal
+        self._recovery_reasons = []
+        if http_journal is not None:
+            if http_journal.store != local:
+                raise ValueError("HTTP journal must belong to the configured local store")
+            self._jobs = deepcopy(http_journal.jobs)
+            self._recovery_reasons = list(http_journal.errors)
+            if self._recovery_reasons:
+                self._accepting_jobs = False
+
+    def _http_failure(self, identifier: str | None, error: BaseException):
+        reason = self._error(error)
+        self._recovery_reasons.append(reason)
+        self._accepting_jobs = False
+        if identifier is not None:
+            job = self._jobs[identifier]
+            if job.get("status") != "RECOVERY_REQUIRED":
+                job["retained_status"] = job["status"]
+            job.update(status="RECOVERY_REQUIRED", outcome="UNKNOWN", recovery_required=True,
+                       recovery_reason="실행 기록의 종료 상태를 확인해야 합니다. 새 작업은 차단됩니다.",
+                       persistence_error=reason)
+
+    def _http_event(self, identifier: str, event: str, *, details: dict | None = None) -> bool:
+        if self._http_journal is None:
+            return True
+        if self._jobs[identifier].get("recovery_required"):
+            self._jobs[identifier]["status"] = "RECOVERY_REQUIRED"
+            return False
+        try:
+            self._http_journal.append(identifier, event, self._jobs[identifier], details=details)
+            return True
+        except (OSError, ValueError, TypeError) as error:
+            self._http_failure(identifier, error)
+            return False
+
+    def _research_prepared(self, identifier: str, details: dict):
+        with self._lock:
+            self._jobs[identifier]["research_evidence"] = deepcopy(details)
+            if not self._http_event(identifier, "PREPARED", details=details):
+                raise JournalError("HTTP Research request binding could not be retained")
 
     def research_status(self) -> dict:
         """Describe the configured official control plane, never choose a model."""
+        with self._lock:
+            if self._recovery_reasons:
+                return {"configured": self._research is not None, "available": False,
+                        "state": "RECOVERY_REQUIRED", "outcome": "UNKNOWN",
+                        "reason": "이전 실행의 종료 상태를 확인해야 합니다. 새 작업은 차단됩니다."}
         if self._research is None:
             return {"configured": False, "available": False, "state": "NOT_CONFIGURED",
                     "reason": "AI 연구 연결이 준비되지 않았습니다."}
@@ -107,10 +155,18 @@ class LabService:
     def execution_status(self) -> dict:
         """Small resident observation; no store scan or native execution."""
         with self._lock:
+            if self._recovery_reasons:
+                return {"state": "RECOVERY_REQUIRED", "outcome": "UNKNOWN",
+                        "scope": "HTTP_JOB_CONTROL",
+                        "idle_confirmed": False, "accepting_jobs": False,
+                        "reason": "실행 상태 확인 필요 · 새 작업 차단. 보존 기록을 조회할 수 있습니다.",
+                        "recovered_job_ids": [identifier for identifier, job in self._jobs.items()
+                                              if job.get("recovery_required")]}
             pending = (self._active_job is not None or
                        any(token.cleanup_pending for token in self._job_tokens.values()))
             return {"state": "BUSY" if pending else "IDLE", "idle_confirmed": not pending,
-                    "accepting_jobs": self._accepting_jobs}
+                    "accepting_jobs": self._accepting_jobs,
+                    **({"scope": "HTTP_JOB_CONTROL"} if self._http_journal is not None else {})}
 
     def _selected(self) -> Store:
         with self._lock:
@@ -207,6 +263,8 @@ class LabService:
                     row["error"] = self._error(exc)
                 campaigns.append(row)
         return {"token": self.token, "active_store": active, "accepting_jobs": accepting,
+                "recovery_required": bool(self._recovery_reasons),
+                "execution": self.execution_status(),
                 "stores": [{"id": item.id, "label": item.id, "writable": item.writable}
                            for item in self._stores.values()],
                 "studies": studies, "experiments": experiments, "campaigns": campaigns,
@@ -439,6 +497,8 @@ class LabService:
 
     def submit(self, operation: str, arguments: dict) -> dict:
         with self._lock:
+            if self._recovery_reasons:
+                raise ServiceError(503, "HTTP recovery is required; new execution is blocked")
             if not self._accepting_jobs:
                 raise ServiceError(503, "Lab service is shutting down; new jobs are closed")
             if not isinstance(operation, str) or (operation not in OPERATIONS and operation != "research_run"):
@@ -476,6 +536,16 @@ class LabService:
                    "created_utc": utc_now(), "store_id": selected.id,
                    "cancel_requested": False, "cancel_observed": False,
                    "cleanup_pending": False, "cleanup_owners": []}
+            if self._http_journal is not None:
+                try:
+                    self._http_journal.reserve(job, arguments)
+                except (OSError, ValueError, TypeError) as error:
+                    # A claim or partial admission can survive a failed write.
+                    # Never start this worker or reuse another controller's claim.
+                    self._http_journal.recover()
+                    self._jobs.update(deepcopy(self._http_journal.jobs))
+                    self._http_failure(None, error)
+                    raise ServiceError(503, "HTTP admission could not be retained; recovery is required") from error
             self._jobs[identifier] = job
             self._job_tokens[identifier] = CancellationToken()
             self._active_job = identifier
@@ -488,6 +558,7 @@ class LabService:
                 worker.start()
             except Exception as exc:
                 job.update(status="FAILED", error=self._error(exc), completed_utc=utc_now())
+                self._http_event(identifier, "TERMINAL", details={"worker_started": False})
                 self._active_job = None
                 self._job_threads.pop(identifier)
                 raise
@@ -527,6 +598,9 @@ class LabService:
         result = None
         operation = self._jobs[identifier]["operation"]
         try:
+            with self._lock:
+                if not self._http_event(identifier, "WORKER_STARTED"):
+                    raise JournalError("HTTP worker start could not be retained")
             with cancellation_scope(token):
                 check_cancelled()
                 if operation == "analysis_run":
@@ -536,7 +610,10 @@ class LabService:
                     self._campaign_preflight(selected, arguments["campaign_id"])
                 check_cancelled()
                 if operation == "research_run":
-                    result = method(**arguments, cancellation_requested=lambda: token.requested)
+                    options = {"cancellation_requested": lambda: token.requested}
+                    if self._http_journal is not None and "evidence_prepared" in inspect.signature(method).parameters:
+                        options["evidence_prepared"] = lambda details: self._research_prepared(identifier, details)
+                    result = method(**arguments, **options)
                     if result.get("status") == "CANCELLED" and token.requested:
                         # The bridge has confirmed its exact session idle and
                         # native command cleanup before acknowledging this.
@@ -564,8 +641,10 @@ class LabService:
                 if token.cleanup_pending:
                     job.update(status="CLEANUP_PENDING", operation_finished_utc=utc_now(),
                                deferred_terminal_status="CANCELLED" if token.observed else "FAILED")
+                    self._http_event(identifier, "CLEANUP_PENDING")
                 else:
                     job["completed_utc"] = utc_now()
+                    self._http_event(identifier, "TERMINAL")
                     self._active_job = None
 
     def job(self, identifier: str) -> dict:
@@ -599,8 +678,21 @@ class LabService:
                 raise ServiceError(404, "Job not found")
             if identifier == self._active_job:
                 token = self._job_tokens[identifier]
+                if self._http_journal is not None:
+                    snapshot = self._jobs[identifier]
+                    previous = deepcopy(snapshot)
+                    snapshot.update(cancel_requested=True)
+                    if snapshot["status"] != "CLEANUP_PENDING":
+                        snapshot["status"] = "CANCEL_REQUESTED"
+                    if not self._http_event(identifier, "CANCEL_REQUESTED"):
+                        # Original token ownership still exists; cancellation is
+                        # requested even when persistence is uncertain.
+                        token.request()
+                        return deepcopy(snapshot)
+                    snapshot.update(previous)
                 token.request()
-                if self._jobs[identifier]["status"] == "CLEANUP_PENDING":
+                if (token.cleanup_pending or self._jobs[identifier]["status"] == "CLEANUP_PENDING"
+                        or self._jobs[identifier].get("retained_status") == "CLEANUP_PENDING"):
                     error = self._retry_cleanup(token, timeout=1.0)
                     if error is not None:
                         self._jobs[identifier]["cleanup_error"] = error
@@ -608,6 +700,15 @@ class LabService:
                 else:
                     self._jobs[identifier].update(status="CANCEL_REQUESTED", cancel_requested=True,
                                                  cancel_observed=token.observed)
+            elif self._jobs[identifier].get("recovery_required"):
+                job = self._jobs[identifier]
+                try:
+                    if self._http_journal is not None:
+                        self._http_journal.cancellation_intent(identifier)
+                except (OSError, ValueError, TypeError) as error:
+                    self._http_failure(identifier, error)
+                job.update(cancel_requested=True, cancel_observed=False,
+                           cancel_limitation="기록만 보존했습니다. 재연결 소유권이 없어 종료를 확인할 수 없습니다.")
             return deepcopy(self._jobs[identifier])
 
     def _resolve_cleanup(self, identifier: str):
@@ -616,8 +717,10 @@ class LabService:
         job.update(cancel_requested=token.requested, cancel_observed=token.observed,
                    cleanup_pending=token.cleanup_pending, cleanup_owners=token.cleanup_owners)
         worker = self._job_threads[identifier]
-        if job["status"] == "CLEANUP_PENDING" and not token.cleanup_pending and not worker.is_alive():
+        if ((job["status"] == "CLEANUP_PENDING" or job.get("retained_status") == "CLEANUP_PENDING")
+                and not token.cleanup_pending and not worker.is_alive()):
             job.update(status=job["deferred_terminal_status"], completed_utc=utc_now())
+            self._http_event(identifier, "TERMINAL")
             self._active_job = None
 
     @staticmethod
@@ -640,11 +743,12 @@ class LabService:
             self._accepting_jobs = False
             if self._active_job is not None:
                 token = self._job_tokens[self._active_job]
-                token.request()
                 job = self._jobs[self._active_job]
                 job.update(cancel_requested=True, cancel_observed=token.observed)
                 if job["status"] != "CLEANUP_PENDING":
                     job["status"] = "CANCEL_REQUESTED"
+                self._http_event(self._active_job, "CANCEL_REQUESTED")
+                token.request()
             workers = list(self._job_threads.values())
         # Workers publish their final snapshot under _lock, so never hold it
         # while joining. An uncooperative operation stays pending truthfully.
@@ -653,7 +757,7 @@ class LabService:
                 worker.join(max(0.0, deadline - time.monotonic()))
         with self._lock:
             cleanup_id = (self._active_job if self._active_job is not None and
-                          self._jobs[self._active_job]["status"] == "CLEANUP_PENDING" else None)
+                          self._job_tokens[self._active_job].cleanup_pending else None)
         if cleanup_id is not None:
             error = self._retry_cleanup(self._job_tokens[cleanup_id],
                                         timeout=max(0.0, deadline - time.monotonic()))
@@ -671,6 +775,9 @@ class LabService:
                 self._resolve_cleanup(self._active_job)
             pending = ([deepcopy(self._jobs[self._active_job])]
                        if self._active_job is not None else [])
+            pending.extend(deepcopy(job) for identifier, job in self._jobs.items()
+                           if job.get("recovery_required") and identifier != self._active_job)
             return {"accepting_jobs": False, "pending": pending,
+                    **({"recovery_required": bool(self._recovery_reasons)} if self._http_journal is not None else {}),
                     "joined": (not any(worker.is_alive() for worker in workers) and
                                not any(token.cleanup_pending for token in self._job_tokens.values()))}

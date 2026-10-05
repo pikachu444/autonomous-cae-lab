@@ -3,7 +3,7 @@
 Use `docs/CAE_RESEARCH_EXECUTION_PLAN.md` as the single current work/status table.
 Astra/high audit and detailed plan: `docs/reviews/20261005-astra-high/`.
 Source-only startup/result improvements: `benchmarks/records/20261005-cae-usability-source-r01.json`.
-Actual Start/Question/Stop, fresh GUI, S2b fields and S3 recovery/U1 remain OPEN; whole52/Phase1-7/NOT_RELEASED unchanged.
+Actual clean d509/selectedrun03 closes the short Korean32/38 question/native comparison, same-record full fields/reopen and ownedStop unit. Record: `benchmarks/records/20261005-selected-cae-research-r03.json`. Main d779e6b records it and was confirmed on remote main; it is a record commit, not a new solver producer. S3-R1 bounded HTTP recovery/retained-result unit is verified in `benchmarks/records/20261005-http-job-recovery-r01.json`; exact-owned R2 is next. 150N/search/fullU1/all52/Phase1-7 remain OPEN/NOT_RELEASED.
 Goal control was BLOCKED at05:13:57Z, cause UNKNOWN; prior ACTIVE is historical. Heartbeat ACTIVE is separate.
 
 ---

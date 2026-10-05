@@ -171,6 +171,15 @@ test("owned lifecycle status overrides positive payloads and terminal unknown jo
   assert.equal(presentation.workflow({ status: "UNRECOGNIZED", result: cad() }, { kind: "job" }).stage, "현재 단계 미확인");
 });
 
+test("recovered jobs keep uncertain outcome ahead of old positive results and cleanup flags", () => {
+  const job = frozen({ ...completed("cad_run", cad()), status: "RECOVERY_REQUIRED", cleanup_pending: true });
+  const report = presentation.workflow(job, { kind: "job" });
+  assert.equal(report.stage, "실행 상태 확인 필요 · 새 작업 차단");
+  assert.equal(report.tone, "unknown");
+  assert.match(report.next, /보존된 결과.*새 실행은 차단/);
+  assert.equal(job.result.decision, "NOT_RELEASED");
+});
+
 test("retained fixture result labels preserve exact scalars, units, invalid diagnostic stress and UNKNOWN checks", () => {
   // Display-only projection of retained human-05 E-fea width32 result.json,
   // SHA256 6688f4bff821e6e3e3128bdb743f8ee6847c3678a5e0c47472eaf5709b28c098.

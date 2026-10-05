@@ -1,3 +1,15 @@
+## HTTP recovery observation boundary (ADR0037)
+
+The opt-in Lab HTTP journal retains transport J-ids/results and blocks new
+HTTP execution as RECOVERY_REQUIRED/UNKNOWN when a prior outcome is unresolved.
+MCP/default LabService and synchronous Core operations do not acquire its claim.
+It grants no session/native reconnection or cancellation authority; those remain
+the exact-owned R2 continuation. Scientific operations, model/auth, invalid
+metrics and UNKNOWN/NOT_RELEASED are unchanged. Bounded integrated R1 HTTP
+recovery/read-only GUI verification is recorded in
+`benchmarks/records/20261005-http-job-recovery-r01.json`; R2, actual native
+interruption/reconnection and full-system acceptance remain open.
+
 ## Explicit selected-mesh Research source boundary (ADR0036)
 
 The explicit `FixtureSelected`/schema8/`fixture-selected-mesh-v1` candidate admits

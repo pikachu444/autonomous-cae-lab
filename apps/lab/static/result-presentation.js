@@ -131,6 +131,7 @@
   const step = (stage, next, tone = "unknown") => ({ stage, next, tone });
   const uncertain = () => step("현재 단계 미확인", "실행 기록과 원본을 확인하세요. 다음 단계를 판단할 정보가 부족합니다.");
   function stopped(status) {
+    if (status === "RECOVERY_REQUIRED") return step("실행 상태 확인 필요 · 새 작업 차단", "이전 작업의 완료·중단 여부가 확인되지 않았습니다. 보존된 결과는 볼 수 있으며 새 실행은 차단됩니다.");
     if (status === "CLEANUP_PENDING") return step("종료 확인 중 · 다음 작업 차단", "실행 프로세스의 종료가 확인되지 않았습니다. 종료 재시도로 같은 작업의 정리를 확인하세요.", "pending");
     if (status === "CANCEL_REQUESTED") return step("취소 처리 중", "중단 요청이 처리되는 동안 기다리세요. 종료가 확인되기 전에는 다음 작업을 시작할 수 없습니다.", "pending");
     if (status === "CANCELLED") return step("작업 취소됨", "남아 있는 부분 로그와 결과 기록을 확인하세요. 취소는 수치 검증이나 사용 승인이 아닙니다.");
@@ -177,7 +178,7 @@
   function workflow(value, context = {}) {
     const job = context.kind === "job", status = own(value, "status");
     if (job) {
-      const lifecycle = stopped(own(value, "cleanup_pending") === true ? "CLEANUP_PENDING" : status);
+      const lifecycle = stopped(status === "RECOVERY_REQUIRED" ? status : own(value, "cleanup_pending") === true ? "CLEANUP_PENDING" : status);
       if (lifecycle) return lifecycle;
       if (status !== "COMPLETED") return uncertain();
     }

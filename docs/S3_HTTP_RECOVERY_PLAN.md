@@ -1,6 +1,8 @@
 # S3 HTTP 실행 중단·재시작 복구 계획
 
-Root가 전체 보고서를 읽고 R1의 HTTP-only journal/fence와 별도 exact-owned R2를 채택했습니다. 현재는 SOURCE_READONLY_PLAN / 구현·테스트·native recovery NOT_RUN입니다. S2b의 교정 source·실제 화면·공식 selected Research 뒤에 순차 적용합니다. 전체 저장소 single-writer 보장이나 실제 중복 solver를 확인한 기록으로 해석하지 않습니다.
+현재 R1_BOUNDED_HTTP_PASS / R2_OPEN입니다. HTTP-only journal/fence를 구현하고 재시작 후 완료 J-id/답변 보존, 미해결 작업 차단, 실제 metadata HTTP controller 강제 종료, 동일 원본 연구의 읽기 전용 필드 열람을 확인했습니다. [검증 기록](../benchmarks/records/20261005-http-job-recovery-r01.json). MCP/Core 경로의 전체 저장소 single-writer나 실제 native 재연결/취소 권한을 주장하지 않습니다. 다음은 기존 R2의 exact session/resident/native ownership과 실제 취소·종료 확인입니다.
+
+아래는 구현 전에 작성한 역사적 SOURCE_READONLY_PLAN입니다. 그 원문의 NOT_RUN은 당시 조사 범위를 뜻하며, 현재 R1 판정은 위 기록을 따릅니다.
 
 Source report SHA a4ca701329802d844ccdf8150ad22a07ec47bbc7773220c2cbef1dd9d689987d; manifest SHA 6aa6fd0cf7f82a806db9bad51853418b123fe38f2eb3e302d256be6806e21e8f; receipt SHA 1314dc69bf83a4501b469d9bbb54cee46b500ef0e8a236c3b974523442968c23. 원문 LF 사본이며 raw private packet은 LOCAL_ONLY입니다.
 

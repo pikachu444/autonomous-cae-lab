@@ -392,7 +392,8 @@ class OpenScienceResearch:
         return "\n".join(answer), tools, errors
 
     def run(self, question: str, session_id: str | None = None, *,
-            cancellation_requested: Callable[[], bool] = lambda: False) -> dict:
+            cancellation_requested: Callable[[], bool] = lambda: False,
+            evidence_prepared: Callable[[dict], None] | None = None) -> dict:
         encoded = validate_question(question, session_id)
         with self._lock:
             if self._active:
@@ -403,6 +404,16 @@ class OpenScienceResearch:
         try:
             directory, command, sha = self._request("run", encoded, session_id)
             self._directory = directory
+            if evidence_prepared is not None:
+                request = json.loads((directory / "request.json").read_text(encoding="utf-8"))
+                evidence_prepared({"request_path": str(directory / "request.json"),
+                                   "request_sha256": sha, "owner_path": request["owner_path"],
+                                   "owner_sha256": request["owner_sha256"],
+                                   "question_path": str(directory / "question.txt"),
+                                   "question_sha256": request["question_sha256"],
+                                   "source_commit": request["source_commit"],
+                                   "boot_source_sha256": request["boot_source_sha256"],
+                                   "store_root": request["store_root"]})
             self._process = self._start(directory, command)
             self._cleanup_pending = True
             response = self._observe(directory, self._process, sha, cancellation_requested)

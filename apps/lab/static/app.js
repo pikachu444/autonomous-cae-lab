@@ -30,7 +30,7 @@ const labels = {
   NOT_RELEASED: "공학적 사용 미승인", RELEASED: "공학적 사용 승인", VERIFIED: "기록·원본 일치",
   NOT_CHECKED: "기록 확인 전", IMPLEMENTED: "구현됨", EXPERIMENTAL: "실험 범위", PLANNED: "계획됨",
   RUNNING: "실행 중", CANCEL_REQUESTED: "취소 처리 중", CANCELLED: "취소 완료",
-  CLEANUP_PENDING: "종료 확인 중",
+  CLEANUP_PENDING: "종료 확인 중", RECOVERY_REQUIRED: "실행 상태 확인 필요",
   COMPLETED: "실행 완료", FAILED: "작업 실패", REJECTED: "조건 미충족",
   FAILED_EXECUTION: "실행 실패", COMPLETED_REVIEW_REQUIRED: "완료 · 검토 필요", NO_FEASIBLE_DESIGN: "유효한 후보 없음",
   CONVERGED: "수치 수렴", MAX_GENERATIONS: "세대 예산 종료", NOT_RUN: "실행 안 함",
@@ -128,7 +128,9 @@ function writable() {
 }
 function activeStore() { return typeof state.overview?.active_store === "object" ? state.overview.active_store.id : state.overview?.active_store; }
 function activeJob(job) { return ["RUNNING", "CANCEL_REQUESTED", "CLEANUP_PENDING"].includes(job?.status); }
-function busy() { return state.submitting || activeJob(state.job); }
+function recoveryRequired() { return state.overview?.execution?.state === "RECOVERY_REQUIRED" || state.job?.status === "RECOVERY_REQUIRED"; }
+function busy() { return state.submitting || activeJob(state.job) || recoveryRequired() || state.overview?.execution?.accepting_jobs === false; }
+function viewBusy() { return state.submitting || activeJob(state.job) || state.storeSwitching; }
 function available(operation) {
   const matching = list(state.overview?.capabilities).filter((item) => item.operation === operation);
   return !matching.length || matching.some((item) => item.callable === true);
@@ -214,14 +216,15 @@ function updateResearchControls() {
   $("researchSessionState").textContent = sessionId
     ? ($("researchContinue").checked ? "확인된 대화의 맥락을 이어 질문합니다." : "새 대화로 질문합니다. 이전 답변은 아래에 보존됩니다.")
     : "새 대화로 질문합니다. 확인되지 않은 대화는 이어서 실행하지 않습니다.";
-  $("researchInputState").textContent = busy() ? "현재 작업의 종료를 확인한 뒤 질문할 수 있습니다."
+  $("researchInputState").textContent = recoveryRequired() ? "이전 작업의 완료·중단 여부를 확인해야 합니다. 보존된 답변과 결과를 먼저 확인하세요."
+    : busy() ? "현재 작업의 종료를 확인한 뒤 질문할 수 있습니다."
     : !writable() || activeStore() !== "local" ? "질문을 실행하려면 작업 저장소로 전환하세요."
       : state.researchLoading ? "AI 연구 연결을 확인하고 있습니다."
         : !runnable ? window.researchControls.statusView(state.researchStatus).reason : inputError ?? "질문만 입력하면 됩니다. 연구 ID·가설·목적을 먼저 작성할 필요는 없습니다.";
 }
 function renderResearchConnection() {
-  const view = window.researchControls.statusView(state.researchStatus), target = clear("researchConnection");
-  target.append(el("strong", view.ready ? view.modelLabel : "AI 연구 연결 대기"), el("p", view.reason));
+  const view = window.researchControls.statusView(recoveryRequired() ? { state: "RECOVERY_REQUIRED" } : state.researchStatus), target = clear("researchConnection");
+  target.append(el("strong", view.ready || view.recovery ? view.modelLabel : "AI 연구 연결 대기"), el("p", view.reason));
   if (view.workspaceUrl) target.append(link("연결된 OpenScience 열기 →", view.workspaceUrl));
   const scope = clear("researchScope");
   if (view.ready && view.scopes.length) {
@@ -383,9 +386,9 @@ function updateControls() {
   document.querySelectorAll("fieldset[data-write]").forEach((item) => { item.disabled = blocked; });
   document.querySelectorAll("fieldset[data-read-job]").forEach((item) => { item.disabled = busy() || !state.overview; });
   document.querySelectorAll("[data-operation]").forEach((item) => { item.disabled = !state.overview || busy() || (!writable() && !readOperations.has(item.dataset.operation)) || !available(item.dataset.operation); });
-  $("storeSelect").disabled = busy() || !state.overview;
-  $("studySelect").disabled = busy() || !state.overview;
-  $("useLocalBtn").disabled = busy();
+  $("storeSelect").disabled = viewBusy() || !state.overview;
+  $("studySelect").disabled = viewBusy() || !state.overview;
+  $("useLocalBtn").disabled = viewBusy();
   const needStudy = ["discoverBtn", "registryRefreshBtn", "simulationRunBtn", "campaignPlanBtn"];
   needStudy.forEach((id) => { if (!state.studyId) $(id).disabled = true; });
   if (!selectedEntries().length) {
@@ -444,7 +447,9 @@ function renderOverview() {
   select.value = state.studyId;
   const stats = clear("overviewStats");
   [["연구", studies.length, "기록한 질문과 가설"], ["실험", list(overview.experiments).length, "CAD · 구조 · PDE"],
-    ["탐색 계획", list(overview.campaigns).length, "DOE · 수치 최적화"], ["실행 중", list(overview.jobs).filter(activeJob).length, "동시에 한 작업"]].forEach(([label, value, caption]) => {
+    ["탐색 계획", list(overview.campaigns).length, "DOE · 수치 최적화"],
+    recoveryRequired() ? ["실행 상태 확인 필요", list(overview.jobs).filter(job => job.status === "RECOVERY_REQUIRED").length || "미확인", "새 작업 차단 · 보존 기록 조회 가능"]
+      : ["실행 중", list(overview.jobs).filter(activeJob).length, "동시에 한 작업"]].forEach(([label, value, caption]) => {
     const card = el("div", undefined, "stat-card"); card.append(el("span", label, "stat-label"), el("span", value, "stat-value"), el("span", caption, "stat-caption")); stats.append(card);
   });
   const capabilities = clear("capabilities");
@@ -461,15 +466,18 @@ function renderOverview() {
 async function loadOverview({ followJobs = true } = {}) {
   try {
     state.overview = await api("/api/overview");
-    $("connectionState").textContent = "로컬 서버 연결됨 · 목록은 미확인 상태이며 기록을 열 때 해시를 검증합니다.";
+    $("connectionState").textContent = state.overview.execution?.state === "RECOVERY_REQUIRED"
+      ? "로컬 서버 연결됨 · 실행 상태 확인 필요 · 새 작업은 차단되며 보존된 기록은 볼 수 있습니다."
+      : "로컬 서버 연결됨 · 목록은 미확인 상태이며 기록을 열 때 해시를 검증합니다.";
     $("connectionState").classList.remove("offline");
     renderOverview();
     list(state.overview.jobs).filter(job => job.operation === "research_run").forEach(retainResearchJob);
     renderResearchAnswers();
     if (state.studyId) await loadStudy(state.studyId); else renderStudy();
     if (followJobs) {
-      const running = list(state.overview.jobs).find(activeJob);
-      if (running) { state.job = running; renderJob(); schedulePoll(); }
+      const observed = list(state.overview.jobs).find(job => job.status === "RECOVERY_REQUIRED") ?? list(state.overview.jobs).find(activeJob)
+        ?? list(state.overview.jobs).find(job => job.id === state.job?.id);
+      if (observed) { state.job = observed; renderJob(); schedulePoll(); }
     }
   } catch (error) {
     $("connectionState").textContent = `연결을 확인할 수 없습니다 · ${error.message}`;
@@ -1513,13 +1521,13 @@ function bindForm(id, operation, build, handler) {
   });
 }
 async function switchStore(identifier) {
-  if (busy()) throw new Error("작업 실행 중에는 저장소를 바꿀 수 없습니다.");
+  if (viewBusy()) throw new Error("작업 실행 중에는 저장소를 바꿀 수 없습니다.");
   if (state.storeSwitching) throw new Error("저장소 전환을 확인하고 있습니다.");
   // Invalidate pending parent/artifact reads before the server changes stores.
   state.storeSwitching = true; state.experimentRequest++; state.fixtureViewer?.destroy(); state.fixtureViewer = null; $("storeSelect").disabled = true;
   let overview;
   try { overview = await api("/api/store", { method: "POST", body: JSON.stringify({ id: identifier }) }); }
-  finally { state.storeSwitching = false; $("storeSelect").disabled = busy() || !state.overview; }
+  finally { state.storeSwitching = false; $("storeSelect").disabled = viewBusy() || !state.overview; }
   state.overview = overview; state.studyId = ""; state.study = null; state.registry = { entries: [] }; state.discovery = [];
   state.researchSession = null; $("researchContinue").checked = false; renderResearchAnswers();
   invalidateModelDiscovery(); state.campaignSelections.clear(); state.campaignSelectionKey = "";

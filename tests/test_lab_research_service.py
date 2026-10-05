@@ -57,11 +57,40 @@ def test_disabled_bridge_has_no_false_available_operation(tmp_path):
     assert exc.value.status == 503
 
 
+def test_recovery_status_never_calls_official_bridge(tmp_path):
+    from apps.lab.job_journal import HTTPJobJournal
+    store = tmp_path / "recovery"
+    journal = HTTPJobJournal(store)
+    (journal.root / "claim.json").write_text('{"kind":"FOREIGN"}')
+    bridge = Bridge()
+    bridge.status = lambda: (_ for _ in ()).throw(AssertionError("No status facade during recovery"))
+    lab = LabService(store, research=bridge, http_journal=HTTPJobJournal(store))
+    assert lab.research_status()["state"] == "RECOVERY_REQUIRED"
+    with pytest.raises(ServiceError):
+        lab.submit("research_run", {"question": "must not execute"})
+    assert bridge.calls == []
+
+
+def test_http_journal_keeps_existing_mock_bridge_arguments_and_result(tmp_path):
+    from apps.lab.job_journal import HTTPJobJournal
+    store = tmp_path / "mock"
+    bridge = Bridge()
+    lab = LabService(store, research=bridge, http_journal=HTTPJobJournal(store))
+    question = "승인된 모델로 기존 질문 그대로"
+    job = lab.submit("research_run", {"question": question})
+    terminal = finish(lab, job)
+    assert terminal["status"] == "COMPLETED" and bridge.calls == [(question, None)]
+    assert terminal["result"]["decision"] == "NOT_RELEASED"
+    restored = LabService(store, http_journal=HTTPJobJournal(store))
+    assert restored.job(job["id"])["result"] == terminal["result"]
+
+
 @pytest.mark.parametrize("arguments", [
     {"question": " "}, {"question": True}, {"question": "가" * 5462},
     {"question": "hello\0"}, {"question": "hello", "owner": "foreign"},
     {"question": "hello", "session_id": "ses_foreign/path"},
     {"question": "hello", "cancellation_requested": True},
+    {"question": "hello", "evidence_prepared": "client callback"},
 ])
 def test_invalid_request_never_enters_official_bridge(tmp_path, arguments):
     bridge = Bridge()

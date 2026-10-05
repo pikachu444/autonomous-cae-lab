@@ -63,7 +63,7 @@ function harness({ writable = true, store = "local", researchStatus = status(), 
     fetch: async (path, options) => { paths.push({ path, options }); assert(fetchReply, "No uncontrolled HTTP is allowed"); return fetchReply(path, options); },
     setTimeout: (fn, delay) => { timers.push({ fn, delay }); return timers.length; }, clearTimeout: () => {} };
   vm.createContext(sandbox);
-  vm.runInContext(appSource.slice(0, boundary) + "\nglobalThis.ui = {state, updateControls, updateResearchControls, confirmedResearchSession, renderResearchConnection, loadResearchStatus, renderResearchAnswers, retainResearchJob, renderJob, submitResearchQuestion, runJob, pollJob, researchError};", sandbox);
+  vm.runInContext(appSource.slice(0, boundary) + "\nglobalThis.ui = {state, updateControls, updateResearchControls, confirmedResearchSession, renderResearchConnection, loadResearchStatus, loadOverview, renderResearchAnswers, retainResearchJob, renderJob, submitResearchQuestion, runJob, pollJob, researchError};", sandbox);
   const ui = sandbox.ui;
   ui.state.overview = { active_store: store, stores: [{ id: store, writable }], token: "synthetic-token", capabilities: [], jobs: [] };
   ui.state.presets = { linear: { operation: "analysis_run", backend: "fixture.calculix", parent_backends: ["fixture.cadquery"] } };
@@ -187,6 +187,93 @@ test("completed AI job displays response receipt rather than numerical/engineeri
   const h = harness(); h.ui.state.job = job(); h.ui.renderJob();
   assert.equal(h.$("jobStatus").textContent, "AI 응답 받음 · 결과 검토 필요"); assert.equal(h.$("jobStatus").dataset.status, "COMPLETED");
   assert.match(h.$("jobMessage").textContent, /각 실험의 판정/); assert.equal(h.ui.confirmedResearchSession(), null, "Reloaded response is not implicitly continued");
+});
+
+test("recovered research blocks every new question even with a positive retained answer", async () => {
+  const h = harness();
+  h.ui.state.job = job({ status: "RECOVERY_REQUIRED", cleanup_pending: true });
+  h.ui.state.researchContexts.set("J-synthetic", { question: QUESTION, store: "local" });
+  h.ui.renderJob();
+  assert.equal(h.$("jobStatus").textContent, "실행 상태 확인 필요 · 새 작업 차단");
+  assert.equal(h.$("jobStatus").dataset.status, "RECOVERY_REQUIRED");
+  assert.equal(h.$("jobPanel").classList.contains("finished"), false);
+  assert.equal(h.$("jobCancelBtn").hidden, true, "No fresh token can cancel an orphan");
+  assert.equal(h.$("researchRunBtn").disabled, true);
+  assert.equal(h.$("researchContinue").disabled, true);
+  assert.equal(h.ui.confirmedResearchSession(), null);
+  assert.match(h.$("researchAnswers").textContent, /실제 반환 텍스트 fixture/);
+  assert.match(h.$("researchInputState").textContent, /이전 작업.*확인해야/);
+  await assert.rejects(h.ui.submitResearchQuestion(), /AI 연구 연결과 작업 저장소 상태/);
+  assert.equal(h.paths.length, 0);
+  assert.equal(h.timers.length, 0);
+});
+
+test("unknown journal admission blocks execution with no recoverable job ID", async () => {
+  const h = harness();
+  h.ui.state.overview.execution = { state: "RECOVERY_REQUIRED", outcome: "UNKNOWN", idle_confirmed: false, accepting_jobs: false, recovered_job_ids: [] };
+  h.ui.state.job = job();
+  h.ui.updateControls();
+  assert.equal(h.$("researchRunBtn").disabled, true);
+  assert.equal(h.$("researchResetBtn").disabled, true);
+  assert.equal(h.$("storeSelect").disabled, false, "Recovery preserves library browsing, while server ownership still guards switching");
+  assert.equal(h.$("studySelect").disabled, false, "Preserved studies remain selectable");
+  h.ui.state.comparison.add("E-one"); h.ui.state.comparison.add("E-two");
+  h.ui.updateControls();
+  assert.equal(h.$("compareBtn").disabled, false, "Preserved result comparison remains available");
+  await assert.rejects(h.ui.submitResearchQuestion(), /AI 연구 연결과 작업 저장소 상태/);
+  assert.equal(h.paths.length, 0);
+  assert.equal(h.timers.length, 0);
+  h.ui.renderResearchConnection();
+  assert.match(h.$("researchConnection").textContent, /^실행 상태 확인 필요/);
+  assert.doesNotMatch(h.$("researchConnection").textContent, /연결 대기|승인된 모델에 연결됐습니다/);
+  assert.match(h.$("researchConnectionJson").textContent, /READY/, "Raw previous connection evidence remains intact");
+  const view = controls.statusView(status({ available: false, state: "RECOVERY_REQUIRED", reason: "raw_private_path" }));
+  assert.equal(view.ready, false);
+  assert.equal(view.modelLabel, "실행 상태 확인 필요");
+  assert.match(view.reason, /이전 작업.*보존된 답변과 결과/);
+  assert.doesNotMatch(view.reason, /private|raw|인증|로그인/);
+});
+
+test("refresh restores the durable job and original answer without polling an unknown worker", async () => {
+  const retained = job({ status: "RECOVERY_REQUIRED", cleanup_pending: true });
+  const overview = { active_store: "local", stores: [{ id: "local", writable: true }], studies: [], capabilities: [], token: "synthetic-token", jobs: [retained],
+    execution: { state: "RECOVERY_REQUIRED", outcome: "UNKNOWN", idle_confirmed: false, accepting_jobs: false, recovered_job_ids: [retained.id] } };
+  const before = JSON.stringify(overview);
+  const h = harness({ fetchReply: path => { assert.equal(path, "/api/overview"); return reply(overview); } });
+  // These unrelated listing renderers have their own controls. Exercise the
+  // actual refresh, answer restoration, job rendering and admission controls.
+  h.sandbox.renderOverview = () => h.ui.updateControls(); h.sandbox.renderStudy = () => {};
+  await h.ui.loadOverview();
+  assert.equal(h.ui.state.job.id, retained.id);
+  assert.match(h.$("connectionState").textContent, /실행 상태 확인 필요.*보존된 기록/);
+  assert.match(h.$("researchAnswers").textContent, /실제 반환 텍스트 fixture/);
+  assert.equal(h.$("researchRunBtn").disabled, true);
+  assert.equal(h.$("jobCancelBtn").hidden, true);
+  assert.equal(h.ui.confirmedResearchSession(), null);
+  assert.equal(h.timers.length, 0);
+  assert.equal(h.paths.length, 1);
+  assert.equal(JSON.stringify(overview), before);
+  // Only a later authoritative terminal for that same ID can replace the
+  // displayed recovery status; a positive result payload alone did not.
+  overview.execution = { state: "IDLE", idle_confirmed: true, accepting_jobs: true };
+  overview.jobs = [job()];
+  await h.ui.loadOverview();
+  assert.equal(h.ui.state.job.status, "COMPLETED");
+  assert.equal(h.$("researchRunBtn").disabled, false);
+  assert.equal(h.ui.confirmedResearchSession(), null);
+  assert.equal(h.timers.length, 0);
+});
+
+test("refresh shows recovery and closes admission even when the damaged journal has no job", async () => {
+  const h = harness({ fetchReply: path => { assert.equal(path, "/api/overview"); return reply({ active_store: "local", stores: [{ id: "local", writable: true }], jobs: [],
+    execution: { state: "RECOVERY_REQUIRED", outcome: "UNKNOWN", idle_confirmed: false, accepting_jobs: false, recovered_job_ids: [] } }); } });
+  h.sandbox.renderOverview = () => h.ui.updateControls(); h.sandbox.renderStudy = () => {};
+  await h.ui.loadOverview();
+  assert.equal(h.ui.state.job, null);
+  assert.match(h.$("connectionState").textContent, /새 작업은 차단/);
+  assert.equal(h.$("researchRunBtn").disabled, true);
+  assert.equal(h.timers.length, 0);
+  assert.equal(h.paths.length, 1);
 });
 test("source-bound request context protects current session from older retained jobs", () => {
   const h = harness(); h.ui.state.job = job(); h.ui.state.researchContexts.set("J-synthetic", { question: QUESTION, store: "local" }); h.ui.retainResearchJob(h.ui.state.job);

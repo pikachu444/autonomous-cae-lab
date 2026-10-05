@@ -68,17 +68,30 @@ Existing unsupported/UNKNOWN/rejected metrics and NOT_RELEASED are preserved.
 
 ## Ownership and runtime
 
+ADR0037 now opts the product HTTP entry point into a durable job journal.
+Admission precedes worker start; prepared Research identity precedes Popen;
+terminal/release records preserve J-ids and answers across a restart. Unresolved
+or corrupt ownership is RECOVERY_REQUIRED/UNKNOWN and blocks HTTP admission,
+while retained studies/results/libraries remain readable. The UI does not poll
+a recovered orphan as a live job. Cancellation intent is not observed native
+termination. Sound released history is preserved even beside a corrupt claim.
+Bounded R1 controls and actual HTTP/read-only field GUI are recorded in
+`benchmarks/records/20261005-http-job-recovery-r01.json`. R2 exact session/resident/
+native authority is open. Default LabService, MCP and synchronous Core paths
+do not acquire this HTTP claim; it is not whole-store cross-transport exclusion.
+
 ADR0018 reuses this service's public submit/job/overview from the stdio MCP
 resident. No second worker manager is implemented. Each transport process still
-has its own resident; this is not cross-process locking or persistence. New
+has its own resident; the default/MCP path has no HTTP persistence claim. New
 MCP jobs and HTTP POST /api/jobs/{id}/cancel request cooperative cancellation;
 completion remains distinct from numerical PASS. CANCEL_REQUESTED and
 CLEANUP_PENDING keep single-writer/store admission closed. Failed cleanup retains
 owned handles and partial Core results; only confirmed cleanup and worker exit
 release deferred terminal state. A late unobserved request preserves completion.
-Normal shutdown closes admission and joins cooperatively; forced process death,
-persistence, cross-process ownership and actual native guarded lifecycle remain
-open. The UI polls all nonterminal states and exposes cancellation/retry.
+Normal shutdown closes admission and joins cooperatively. The HTTP record/fence
+survives controller death, but native reconnection, cross-transport ownership
+and actual interrupted-native recovery remain open. The UI polls live owned
+nonterminal jobs and exposes cooperative cancellation/retry.
 
 Root owns this contract, launch/acceptance scripts, documentation and integration.
 The server owner changes `apps/lab/server.py`, `apps/lab/service.py`, package entry

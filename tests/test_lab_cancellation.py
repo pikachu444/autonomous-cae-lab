@@ -62,6 +62,61 @@ def test_unknown_and_terminal_cancellation_are_truthful(service):
     assert service.shutdown(timeout=1)["joined"]
 
 
+def test_recovered_cancel_and_shutdown_preserve_unknown_without_live_handles(tmp_path):
+    from apps.lab.job_journal import HTTPJobJournal
+    journal = HTTPJobJournal(tmp_path)
+    identifier = "J" + "1" * 32
+    journal.reserve({"id": identifier, "operation": "study_create", "status": "RUNNING",
+                     "store_id": "local", "cleanup_pending": False,
+                     "cancel_requested": False, "cancel_observed": False}, arguments())
+    lab = LabService(tmp_path, http_journal=HTTPJobJournal(tmp_path))
+    raw = (journal.root / "jobs" / identifier / "000000.json").read_bytes()
+    cancelled = lab.cancel(identifier)
+    assert cancelled["status"] == "RECOVERY_REQUIRED"
+    assert cancelled["cancel_requested"] and cancelled["cancel_observed"] is False
+    assert cancelled["cancel_limitation"]
+    assert not lab._job_tokens and not lab._job_threads and lab._active_job is None
+    report = lab.shutdown(timeout=0)
+    assert report["joined"] and report["recovery_required"]
+    assert report["pending"][0]["outcome"] == "UNKNOWN"
+    assert (journal.root / "jobs" / identifier / "000000.json").read_bytes() == raw
+    assert (journal.root / "claim.json").exists()
+    for _ in range(2):
+        restarted = LabService(tmp_path, http_journal=HTTPJobJournal(tmp_path))
+        retained = restarted.job(identifier)
+        assert retained["cancel_requested"] and retained["cancel_observed"] is False
+        assert retained["status"] == "RECOVERY_REQUIRED" and retained["outcome"] == "UNKNOWN"
+        assert retained["cancel_limitation"]
+        assert not restarted._job_tokens and not restarted._job_threads and restarted._active_job is None
+        assert not restarted.execution_status()["accepting_jobs"]
+        assert restarted.shutdown(timeout=0)["joined"]
+        assert (journal.root / "jobs" / identifier / "000000.json").read_bytes() == raw
+
+
+def test_server_main_can_close_recovery_observer_without_claiming_old_cleanup(tmp_path, monkeypatch):
+    from apps.lab.job_journal import HTTPJobJournal
+    journal = HTTPJobJournal(tmp_path)
+    (journal.root / "claim.json").write_text('{"kind":"FOREIGN"}')
+    closed = []
+
+    class RecoveryServer:
+        def __init__(self, service, port):
+            self.service, self.server_port = service, port
+
+        def serve_forever(self):
+            assert self.service.execution_status()["idle_confirmed"] is False
+            raise KeyboardInterrupt
+
+        def server_close(self):
+            assert self.service.execution_status()["state"] == "RECOVERY_REQUIRED"
+            closed.append(True)
+
+    monkeypatch.setattr(server_module, "LabHTTPServer", RecoveryServer)
+    server_module.main(["--store", str(tmp_path), "--port", "0"])
+    assert closed == [True]
+    assert (journal.root / "claim.json").read_text() == '{"kind":"FOREIGN"}'
+
+
 def test_requested_and_observed_cancel_keep_writer_blocked_until_exit(service, monkeypatch):
     lab = service._selected().lab
     original = lab.create_study
