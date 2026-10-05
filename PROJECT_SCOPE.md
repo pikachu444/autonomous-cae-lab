@@ -1,4 +1,9 @@
-## Current checkpoint: bounded HTTP recovery and retained CAE result access
+## Current checkpoint: skeleton-first integration and reference research
+
+All R01–R52 and Phase1–7 remain in scope; none is removed or promoted by research. User directs skeleton-first for product-defect reproduction/cause hypotheses and pre-fabrication test-jig feasibility. Queue: `docs/CAE_RESEARCH_EXECUTION_PLAN.md`; method references/gaps: `docs/CAE_PLATFORM_REFERENCE_RESEARCH.md`. Observation/response mapping, general assembly/explicit/measured inverse/UQ/HPC remain incomplete. SimScale is a UI reference, not a complete research-tool match. Pending R2 is source-only, not actual reconnect/cancel acceptance. Exact535 CI finalized7SUCCESS/3FAIL.
+
+---
+## Historical checkpoint: bounded HTTP recovery and retained CAE result access
 
 R1 HTTP journal/fence is implemented and verified. Record: `benchmarks/records/20261005-http-job-recovery-r01.json` binds the final tested source hashes on base d779e6b, actual HTTP jobs and evidence. Final affected controls:98 Python PASS/52 Node PASS. Independent review found cancellation-intent, capacity and past-completion protection defects; Root corrected them and verified repeated fresh-controller recovery.
 Actual HTTP metadata crash/restart retains the completed J-id and unresolved UNKNOWN job, refuses new execution with503 and permits the original d509/run03 library/38mm full field. The final owned observer14077 exited0; its closure does not close the unresolved claim. All original98files/23172521B remain unchanged LOCAL_ONLY. This is transport/read access acceptance, not a new solve or native reconnection authority.

@@ -1,4 +1,10 @@
-## Current checkpoint: bounded HTTP recovery and retained CAE result access
+## Current checkpoint: skeleton-first integration and reference research
+
+User directs the common Phase1–7 skeleton first, for product-defect reproduction/cause hypotheses and pre-fabrication test-jig feasibility. NEXT B1–B2 in `docs/CAE_RESEARCH_EXECUTION_PLAN.md`: observation/test purpose + hypotheses/responses, original-condition reuse for a new experiment, histories/compare/reopen. Existing study stores text, not structured measurement/cause mapping; general inverse/assembly mechanics remain OPEN. `docs/CAE_PLATFORM_REFERENCE_RESEARCH.md` compares Dakota/OpenTURNS/LS-OPT/optiSLang methods; SimScale is a UI reference. No candidate installation/native qualification.
+Preserve pending R2 edits. Two PS files have349 mocked assertions PASS, actual provider/native/HTTP calls0; product reconnect/native cancel remain unverified. Do not make exhaustive R2 closure a prerequisite for the common flow. Existing UNKNOWN claims/fences and immutable results remain. Exact535 CI37325675240 finalized7SUCCESS/3FAIL. Original52/Phase1–7 and NOT_RELEASED remain.
+
+---
+## Historical checkpoint: bounded HTTP recovery and retained CAE result access
 
 R1 HTTP journal/fence is implemented and verified. Record: `benchmarks/records/20261005-http-job-recovery-r01.json` binds the final tested source hashes on base d779e6b, actual HTTP jobs and evidence. Final affected controls:98 Python PASS/52 Node PASS. Independent review found cancellation-intent, capacity and past-completion protection defects; Root corrected them and verified repeated fresh-controller recovery.
 Actual HTTP metadata crash/restart retains the completed J-id and unresolved UNKNOWN job, refuses new execution with503 and permits the original d509/run03 library/38mm full field. The final owned observer14077 exited0; its closure does not close the unresolved claim. All original98files/23172521B remain unchanged LOCAL_ONLY. This is transport/read access acceptance, not a new solve or native reconnection authority.

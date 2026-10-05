@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0",
+  "kind": "platform_reference_research",
+  "id": "20261006-cae-platform-reference-research-r01",
+  "observed_utc": "2026-10-05T15:44:41Z",
+  "local_date": "2026-10-06",
+  "source_commit": "535266ae7e4bd03d1bcafb714314bf4ad4599041",
+  "status": "RESEARCH_COMPLETE",
+  "evidence_scope": "OFFICIAL_DOCUMENTATION_AND_READONLY_REPOSITORY_MAPPING",
+  "not_a_solver_qualification": true,
+  "actual_candidate_installations": 0,
+  "actual_candidate_solver_calls": 0,
+  "actual_research_model_calls": 0,
+  "deep_research_tool": "NOT_FOUND_IN_THIS_SESSION",
+  "method": [
+    "root_primary_web_research",
+    "independent_primary_platform_research",
+    "independent_readonly_existing_operation_mapping"
+  ],
+  "report": "docs/CAE_PLATFORM_REFERENCE_RESEARCH.md",
+  "report_sha256": "0332aa606a845ecedca55b88c949606c0ccc631a8a2f831c1d458f4776d54a12",
+  "execution_plan": "docs/CAE_RESEARCH_EXECUTION_PLAN.md",
+  "decision": "DEFECT_REPRODUCTION_AND_VIRTUAL_JIG_RESEARCH_SKELETON_FIRST",
+  "recommended_roles": {
+    "interaction_reference": "SimScale Agent: UI only, not the closest purpose match",
+    "editable_cad": "Existing FreeCAD adapter / FreeCAD FEM",
+    "calculix_inspection_reference": "PrePoMax",
+    "aster_inspection_reference": "SALOME-MECA/AsterStudy",
+    "extended_numerical_engine_candidate": "GEMSEO",
+    "general_field_candidate": "ParaView/VTK/trame",
+    "job_context_reference": "Rescale Assistant",
+    "remote_workflow_references": [
+      "RCE",
+      "AiiDA"
+    ],
+    "existing_numerical_engine": "SciPy LHS/DE preserved",
+    "approved_research_model": "openai-codex/gpt-5.6-sol",
+    "measurement_comparison_references": [
+      "Dakota",
+      "OpenTURNS",
+      "LS-OPT",
+      "optiSLang"
+    ],
+    "calibration_uq_component_candidate": "OpenTURNS: evaluate one required capability; not installed"
+  },
+  "pending_implementation": [
+    "observation_test_purpose_and_hypothesis_response_connection",
+    "verified_original_condition_reuse_for_new_experiment",
+    "unit_and_native_time_or_step_aware_history_presentation",
+    "structured_measurement_to_response_mapping_and_hypothesis_comparison",
+    "supported_OpenScience_profile_connection",
+    "remaining_phase_detail_implementation"
+  ],
+  "r2_candidate": {
+    "status": "SOURCE_ONLY_UNCOMMITTED",
+    "http_product_integration": "NOT_IMPLEMENTED",
+    "actual_native_cancel": "NOT_VERIFIED",
+    "powershell_assertions": {
+      "recovery": 263,
+      "existing_default": 56,
+      "existing_terminal": 30,
+      "total": 349
+    },
+    "actual_provider_native_http_calls": 0,
+    "files": {
+      "scripts/lab-openscience.ps1": "25ea8ee52606095985945d99be9c6f67b46bc73de327a6ba61c9a9f33976fad8",
+      "scripts/verify_lab_research.ps1": "8cbcdf56c5aaf53b90b74f8d1e0036c79562bda6af36db2a29d0dd9d185e21c9"
+    }
+  },
+  "exact_base_ci": {
+    "run_id": 37325675240,
+    "head_sha": "535266ae7e4bd03d1bcafb714314bf4ad4599041",
+    "status": "COMPLETED",
+    "conclusion": "FAILURE",
+    "success_jobs": 7,
+    "failed_jobs": [
+      "pde",
+      "explicit",
+      "codeaster"
+    ],
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37325675240"
+  },
+  "limitations": [
+    "No candidate installed or run in this investigation",
+    "No claim that a single product satisfies all52 requirements",
+    "Official indexed-only claims are marked separately in the report",
+    "Current native readiness is not established by method presence",
+    "R2 synthetic controls do not demonstrate actual reconnection/cancellation",
+    "General assembly/explicit/inverse/UQ/HPC features remain incomplete",
+    "A fitted response does not uniquely establish a defect cause; multiple hypotheses and uncalibrated conditions must be compared"
+  ],
+  "engineering_decision": "NOT_RELEASED",
+  "full_52_phase_1_to_7": "INCOMPLETE",
+  "user_research_objectives": [
+    "Product-defect reproduction and competing-cause investigation",
+    "Pre-fabrication feasibility of a test jig"
+  ]
+}

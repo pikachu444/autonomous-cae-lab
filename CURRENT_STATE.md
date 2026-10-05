@@ -1,4 +1,10 @@
-## Current checkpoint: bounded HTTP recovery and retained CAE result access
+## Current checkpoint: skeleton-first integration and reference research
+
+User prioritizes a common research skeleton for product-defect reproduction/cause hypotheses and pre-fabrication test-jig feasibility. See B0–B5 in `docs/CAE_RESEARCH_EXECUTION_PLAN.md` and Dakota/OpenTURNS/LS-OPT/optiSLang references in `docs/CAE_PLATFORM_REFERENCE_RESEARCH.md`; SimScale is only a UI reference. No installation/solver/provider run or numerical qualification occurred in this research unit. Existing study stores text, not structured measurement/cause mapping; next common implementation is original-condition reuse and readable field/history→change→compare→save/reopen. General inverse/assembly mechanics remain OPEN.
+R2 source candidates remain uncommitted: resident lifetime/native-cleanup and two PS observer files. PS349 mocked assertions PASS are source-only; HTTP product reconnect/actual native cancellation are unverified. Exact535 CI37325675240 final7SUCCESS/3FAIL; detailed known failures are preserved. Full52/Phase1–7 remain incomplete/UNKNOWN/NOT_RELEASED.
+
+---
+## Historical checkpoint: bounded HTTP recovery and retained CAE result access
 
 R1 HTTP journal/fence is implemented and verified. Record: `benchmarks/records/20261005-http-job-recovery-r01.json` binds the final tested source hashes on base d779e6b, actual HTTP jobs and evidence. Final affected controls:98 Python PASS/52 Node PASS. Independent review found cancellation-intent, capacity and past-completion protection defects; Root corrected them and verified repeated fresh-controller recovery.
 Actual HTTP metadata crash/restart retains the completed J-id and unresolved UNKNOWN job, refuses new execution with503 and permits the original d509/run03 library/38mm full field. The final owned observer14077 exited0; its closure does not close the unresolved claim. All original98files/23172521B remain unchanged LOCAL_ONLY. This is transport/read access acceptance, not a new solve or native reconnection authority.

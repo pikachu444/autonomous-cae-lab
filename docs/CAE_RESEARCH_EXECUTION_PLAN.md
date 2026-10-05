@@ -6,7 +6,29 @@
 상세 계획에는 단계별 개발·수치 검증·사용자 인계 기준, 의존성, R01–R52 매핑과 추정 자원이 있습니다.
 집중 작업일 추정은 완료 약속이 아닙니다. actual run 비용을 측정해 조정합니다.
 
-## 사용자 지시와 전체 시스템 감수 반영 — 2026-10-05
+## 현재 실행 순서 — 2026-10-06, 뼈대 먼저 연결
+
+사용자 최신 지시에 따라 **전체 공통 연구 흐름을 먼저 연결하고 Phase별 세부 기능을 순차 보완**합니다.
+새 solver 예제를 반복하거나 모든 복구 예외를 닫는 일을 전체 연결의 선행조건으로 삼지 않습니다.
+사용자가 밝힌 실제 목적은 **제품 불량을 재현하고 원인 가설을 비교**, **실험용 지그 제작 전에 시험 가능성을 검토**하는 것입니다.
+따라서 뼈대는 관찰/시험 목적·가설·비교 응답에서 시작합니다. [공식 조사](CAE_PLATFORM_REFERENCE_RESEARCH.md)의
+Dakota/GEMSEO/LS-OPT 계열 시험–해석 비교를 연구 참고로, SimScale을 화면 참고로 구분합니다. 후보 설치·실행은 미검증입니다.
+
+| 현재 순서 | 실제 사용자 산출물 | 상태와 완료 기준 |
+|---|---|---|
+| B0 | 불량 재현/지그 가능성의 실제 목적과 재사용 기능 확인 | 공식 조사·public Core/HTTP/UI의 기존 경로 확인. 설치/새 수치 검증 아님; SimScale을 동일 연구 제품으로 판정하지 않음 |
+| B1–B2 **다음 활성** | 관찰/시험 목적·가설·응답 → 모델·전체 조건 → 작업 → 결과/이력 → 조건 변경·비교 → 다음 시험·저장 | 원본 조건을 새 실험 초안으로 불러오는 연결부터 구현. 기존 study의 질문/가설/목적을 재사용; 구조화 측정–응답/경쟁 가설 매핑은 별도 미완료 항목. 단위·시간/단계·원본/새 결과를 보존 |
+| B3 | OpenScience가 지원 시나리오에서 같은 흐름을 실행·해석 | 기존 approved5.6Sol/OAuth와 지원 profile 재사용. API callable을 AI admission/host readiness로 대신하지 않음 |
+| B4 | 지그:150N 변경·수치 탐색/조립체 mechanics. 불량:관측–응답 매핑/가설 비교. 이후 Phase3–7 확장 | 시험체와 지그 변형·접촉·하중 경로, 불량 위치/형태/발생 조건과 비교. synthetic inverse를 실제 불량 원인 검증으로 사용하지 않음; 전체 모델 의무 mesh sweep 없음 |
+| B5 | 필요한 engine/후처리/외부 native inspection 기능 재사용 | GEMSEO/ParaView·trame/PrePoMax 등을 역할별 평가. blanket 설치·새 공통 engine 재개발은 완료 조건 아님 |
+
+현재 R2 lifetime/native-cleanup/PS observer 후보는 작업 트리에 보존했습니다. PS 모의349 assertions PASS는
+provider/native/HTTP 실제 호출0의 source-only 결과이며 HTTP 제품 연결·실제 취소는 미완료입니다.
+R2가 무감독 운영의 조건인 것과 모든 Phase 연결의 선행조건인 것을 구분합니다. 불명확한 원 작업의
+UNKNOWN/새 실행 fence·원본 결과는 유지합니다. 아래 S0–S10 표는 기능별 상태이며 현재 실행 순서는 이 B표입니다.
+exact535 CI37325675240 최종은7SUCCESS/3FAIL이며 새 기능 또는 전체52 완료 근거가 아닙니다.
+
+## 이전 사용자 지시와 전체 시스템 감수 반영 — 2026-10-05
 
 Root가 [전체 시스템·전달 방식 후속 의견](reviews/20261005-astra-high/SYSTEM-DELIVERY-REVIEW-02.md)을 읽고 채택했습니다.
 사용자의 최신 지시는 **지금 Root가 요구를 변형하고 헤매는 작업 방식 자체를 Astra에게 보고해 교정받으라**는 것입니다. Root의 “미래 통합성 평가 때 활용” 답변도 그대로 전달했고, Astra/high03은 CURRENT_ROOT_BEHAVIOR_REQUIRES_IMMEDIATE_CORRECTION으로 판정했습니다. 보고서SHA7bec2a6861b86c8631d857d1415abc292941f6e867ddc7dae085ce422101799a. 작은 수정마다 새 Astra 승인을 기다리지 않습니다.
