@@ -1,4 +1,11 @@
-## Current checkpoint: actual retained18 batch; original assembly field next
+## Current checkpoint: general CAE workflow priority; assembly candidate source only
+
+User challenged example-focused work. Root accepts the prioritization error: broader52/Phase1-7 remain incomplete. Existing generic native import/registry, declared model/Core results/engine are reused; human FCStd upload, model-selection material/load/BC/contact, hypothesis-to-conditions/residual, broader histories and owned recovery remain gaps. NEXT G1 human model input, then G2-G4 conditions/research/results in docs/CAE_RESEARCH_EXECUTION_PLAN.md. No added isolated example/native solve.
+Frozen4-file S4a candidate: worker84 SOURCE_ONLY PASS/exit0, independent final-pin P2 closed/0P1P2, Root four raw hashes matched. Record benchmarks/records/20261006-assembly-affine-source-r01.json; actual native/provider/mesh0, public admission unchanged, native/mechanics acceptance NOT_RUN. Original mesh/kernel/store/R2/fine UNKNOWN preserved.
+Previous actual18-read unit remains clean7fb reader/clean774 native producer, remotely saved914. Its exact914 CI37379259459 was IN_PROGRESS at observation; no whole CI/native/candidate PASS inferred. Whole52/Phase1-7/general CAE/physical/company deployment INCOMPLETE/UNKNOWN/NOT_RELEASED.
+
+---
+## Historical checkpoint: actual retained18 batch; assembly field was next
 
 Clean7fb825608f00d46b67e7bef265302f11e2ede3c5/new cae-guard-admission-20261006-02 used approved5.6Sol/OAuth with the existing singleton summary admission. Actual Jc684eee4799a4eeba413af59174c31d4/ses_ef1fd65faffeESm3vBPv9ozAs3:18 exact CAD/analysis IDs in one message,55ms start span,18COMPLETED/0errors;21accepted hook receipts, fresh source/project checks intact.18 reads took127.309s. Record: benchmarks/records/20261006-guard-admission-actual-r02.json.
 Original native producer remains clean774d7c13; no new CAD/solver/campaign or overwritten data. All485files/169852419B remain identical in original/snapshot;9 numeric rows, invalid stress/null mesh sensitivity/7UNKNOWN/NOT_RELEASED preserved. Independent reader verified18 result/source/metric/UNKNOWN pairs. Root retains raw AI prose and qualifies legacy max_displacement as loaded-saddle absUZ; returned parent IDs and CAD revisions match originals.

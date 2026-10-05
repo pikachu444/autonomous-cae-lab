@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "unit": "Reviewed S4a source candidate retained; general CAE user-workflow priority correction",
+  "created_utc": "2026-10-05T22:26:56.946833+00:00",
+  "base_commit": "914401f4d933f617dfcf85f7119fa82cf4323dfe",
+  "source_state": "BASE_PLUS_FOUR_NEW_FILES; separate uncommitted R2 drafts preserved",
+  "candidate_status": "SOURCE_ONLY",
+  "files_sha256": {
+    "caelab/adapters/fixture_assembly_affine_field.py": "68fb0bcdb9df1abfea2f4030e3b13b8cb2f9c7dfd69ae89752acaefa3f6168bb",
+    "caelab/adapters/fixture_assembly_affine_field_worker.py": "7cbe1e3f4ca9517486f7e9f6cbb6fbea22bdaa57de3de5f99e9b9eba885d1c2d",
+    "plugins/fixture_design/assembly_field_comparison.py": "a1fcaa4f2e7676950b59e92046625ba768ef9d6b517bd69877e481df5e569a12",
+    "tests/test_fixture_assembly_affine_field.py": "a195a45b3297b50a1de004fdb247635ed249bbc80f2fb1cc29dbd45d9eb3b71b"
+  },
+  "source_tests": {
+    "reported_by": "contact_foundation_lookup; actual exec session88264/output82688d",
+    "pass": 84,
+    "elapsed_seconds": 53.34,
+    "exit_code": 0,
+    "command": "wsl.exe -d Ubuntu --cd /mnt/c/SourceCodes/autonomous-cae-lab -- env PYTHONDONTWRITEBYTECODE=1 /home/pikachu444/.local/share/autonomous-cae-lab/venv-py312/bin/python -B -m pytest tests/test_fixture_assembly_affine_field.py tests/test_fixture_assembly_field_reference.py tests/test_fixture_assembly_field_geometry.py -q -p no:cacheprovider --basetemp /tmp/caelab-s4a-source-20261006-lookup-04",
+    "root_repeated_tests": false,
+    "scope": "44 new source controls plus40 existing reference/geometry controls; fake SDK/native collaborators, actual native execution0"
+  },
+  "independent_read": {
+    "reviewer": "field_kernel_publication_review",
+    "source_p1": 0,
+    "source_p2_remaining": 0,
+    "fixed": "Final raw field/energy/comparison/admitted-fields bytes rechecked against their original validation or creation pins",
+    "same_four_hashes_as_writer_and_root": true
+  },
+  "root_verification": "Four raw source hashes matched frozen writer/reviewer pins; source ownership/dependencies and final-pin paths inspected; no native execution",
+  "actual_solver_runs": 0,
+  "provider_calls": 0,
+  "new_meshes": 0,
+  "native_acceptance": "NOT_RUN",
+  "research_user_acceptance": "NOT_RUN",
+  "limits_unchanged": [
+    "Uabs1e-7mm",
+    "stressabs1e-6MPa",
+    "volrel1e-8",
+    "energyrel1e-6",
+    "force_scaled1e-7",
+    "moment_scaled1e-7"
+  ],
+  "material": "E2000MPa/nu0.25 HYPOTHETICAL numerical patch only",
+  "limitations": [
+    "No contact, jig load path, strength qualification or RELEASED claim.",
+    "Actual3D FORMULE/COOR_ELGA/POST_ELEM columns and MED roundtrip remain unverified.",
+    "Missing actual native energy is UNKNOWN/rejected; boundary work does not replace it.",
+    "Not registered in default Core adapters, public HTTP presets or OpenScience admission; no newly usable public solver capability.",
+    "Source test counts are not overall52/Phase1-7 acceptance."
+  ],
+  "priority_reason": "User challenged Root focusing on suggested examples while the general system remains incomplete. Root accepts the prioritization error and defers further isolated affine native runs.",
+  "next": "G1 connect existing generic FCStd import to human file-selection/upload, then G2 model-revision/material/selection/load/BC/contact declarations and G3 question/hypothesis/observation workflows across supported families.",
+  "architecture_contract_impact": "Existing Domain/adapter boundaries; no common schema change or public research profile widening. Existing approved5.6Sol/OAuth and numerical engines unchanged.",
+  "preserved": "Original stores/CAD/qualified meshes/fine UNKNOWN/R2 candidates and historical documents unchanged except new checkpoint prefix and explicit plan priority edits.",
+  "ci": "Exact914 CI37379259459 was observed IN_PROGRESS; no candidate-source CI or native PASS inferred from it.",
+  "release_state": "NOT_RELEASED",
+  "physical_qualification": "UNKNOWN",
+  "whole_project": "INCOMPLETE"
+}

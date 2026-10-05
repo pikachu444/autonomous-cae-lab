@@ -6,6 +6,28 @@
 상세 계획에는 단계별 개발·수치 검증·사용자 인계 기준, 의존성, R01–R52 매핑과 추정 자원이 있습니다.
 집중 작업일 추정은 완료 약속이 아닙니다. actual run 비용을 측정해 조정합니다.
 
+## 공통 기능 우선순위 교정 — 사용자 모델에서 시작
+
+사용자의 “예시 연구에만 집착하는가, 다른 기능은 모두 완료됐는가” 지적을 반영한다.
+Root는 제한된 지그/Maxwell 사례의 세부 검증을 범용 시스템 완성보다 오래 우선한 문제를 인정한다.
+예시는 변경된 연결을 검증할 때 재사용하며, 같은 예시를 더 정밀하게 만드는 것이 기본 다음 작업은 아니다.
+52개 요구사항과 Phase1–7은 미완료다. Phase4 PDE, Phase5 재료/접촉, Phase6 축약 explicit,
+Phase7 합성 inverse의 코드와 실행 기록을 보존하되 임의 사용자 모델의 통합 사용 가능으로 확대하지 않는다.
+
+| 순서 | 공통 사용자 기능과 재사용 코드 | 남은 연결과 완료 기준 |
+|---|---|---|
+| G1 **다음 구현** | 자기 모델 입력: 기존 Core/CLI/MCP `import_native_model`, FreeCAD adapter, registry와 editable CAD 재사용 | HTTP/UI에서 FCStd 파일 선택→새 보존 원본/모델ID→실제 후보 발견·등록→새 개정 재열람. 브라우저에 없는 업로드 연결을 추가한다. 임의 CAD의 구조해석 지원으로 확대하지 않는다 |
+| G2 | 같은 모델의 해석 조건: `describe_model`, Domain validator, qualified body/group catalog와 기존 adapter 재사용 | 모델 revision·부품/면/physical group에 재료/좌표계/하중/BC/contact를 명시적으로 연결. 지원 가능한 solver 경로만 실행하고 지원되지 않는 조합은 사전 거부. 대표 가상 모델에서 조건 편집→native 입력→같은 결과의 연결 확인 |
+| G3 | 목적과 가설의 연구 흐름: 기존 study/관측 comparison/context/LHS/DE/declared-input binding 재사용 | 가설별 바뀌는 입력·관측 위치/성분/단위/축·구별 응답을 연결하고 기존 numerical engine에 잔차/목표 전달. 질문→허용된 실행→비교→AI 해석을 같은 연구에 저장. 일반 관측 inverse는 아직 미구현 |
+| G4 | 공통 결과와 운용: 기존 full-field/history readers·report·HTTP journal/owned controller 재사용 | 지원 family별 field/curve와 원본 native를 같은 모델에서 읽기, export/reopen, 실제 소유 작업의 취소·재접속/부분 결과 보존. 라이브 핸들과 과거 기록을 구분 |
+| 이후 | S4b/S5–S9의 기존 Phase2–7 미완료 기능 | 일반 입구에 맞춰 실제 조립체 mechanics, PDE 확장, 재료FE coupling, 표면 explicit, 실측 inverse/UQ/다목적/HPC를 순차 추가. 실제 자료/환경 없는 물리·회사 gate는 UNKNOWN |
+
+순서는 위 공통 연결의 의존성을 따른다. 새 optimizer를 만들거나 모든 solver 예제를 다시 푸는 일을
+G1의 선행조건으로 추가하지 않는다. S4a의 검토된 4개 NEW 파일은 SOURCE_ONLY로 보존하며
+실제 native affine 예제 실행은 보류한다. 이 소스는 일반 조건/field seam에서 필요할 때 사용한다.
+[소스 기록](../benchmarks/records/20261006-assembly-affine-source-r01.json): worker84 PASS,
+독립 source0P1/P2, actual solver/provider0. 일반 사용자 기능이나 전체 Phase 완료를 승인한 기록이 아니다.
+
 ## 현재 실행 순서 — 2026-10-06, 뼈대 먼저 연결
 
 사용자 최신 지시에 따라 **전체 공통 연구 흐름을 먼저 연결하고 Phase별 세부 기능을 순차 보완**합니다.
@@ -19,7 +41,7 @@ Dakota/GEMSEO/LS-OPT 계열 시험–해석 비교를 연구 참고로, SimScale
 | B0 | 불량 재현/지그 가능성의 실제 목적과 재사용 기능 확인 | 공식 조사·public Core/HTTP/UI의 기존 경로 확인. 설치/새 수치 검증 아님; SimScale을 동일 연구 제품으로 판정하지 않음 |
 | B1–B2 | 관찰/시험 목적·가설·응답 → 모델·전체 조건 → 작업 → 결과/이력 → 조건 변경·비교 → 다음 시험·저장 | 원 조건→새150N 실험/전체U, 관측 scalar/배열 저장·재열람에 이어 retained Maxwell16채널/9실제시각/부호 그래프/정확 시점 비교·재열람 완료([이력 기록](../benchmarks/records/20261006-response-history-r01.json)). τ=1/2 가상 응답 구분, off-grid시간 null/단위 거부. 실측 자격·유일 원인·general curve/inverse·다른 native축/전체 조립체는 OPEN |
 | B3 제한된 실제 연결 완료 | OpenScience가 지원 시나리오에서 같은 흐름을 실행·해석 | cleanaf536/run03의 승인5.6Sol이2원실험/all3비교를 읽고 한국어 해석·브라우저/HTTP 재시작 재열람·idle 종료를 실제 확인. 원193파일 보존/새solver0. [실행 기록](../benchmarks/records/20261006-response-interpretation-r03.json). O-ID조회거부3건·정밀도 메모·실패한 시작 보존. 원인/지그 승인·범용역문제/다른driver/운영 신뢰성은 OPEN |
-| B4 **활성** | 지그:수치 탐색/조립체 mechanics. 불량:관측–응답 매핑/가설 비교. 이후 Phase3–7 확장 | clean774/run01에서150N/selected4mm SciPy DE5×1/seed13의9CAD·9CalculiX·한국어 비교/재열람 완료([실행 기록](../benchmarks/records/20261006-fixture-width-search-r01.json)). 원38응답 정확 일치/all9 native 반력·UZ/저장 feedback 재생 확인. MAX_GENERATIONS/converged=false/best observed 유지. 같은 best13226절점 전체장 열람/원문 보존7열9행 표 교정 완료. 병렬 조회9거부에 대해 모든 gate를 보존한 plugin admission queue source344guard/557Node PASS; clean7fb의 실제18요약 조회(한 메시지/55ms/18완료/0오류), 원485파일 보존·답변 재열람·residentIDLE/ownedStop 확인([실행 기록](../benchmarks/records/20261006-guard-admission-actual-r02.json)). 과거9조회거부·AI legacy-label 정밀도·Stop관측30s초과와 지연은 보존. 다음은 이미main인 kernel+원7부품/84그룹coarse3mm의 S4a native전체장 affine reference, 그다음 S4b coupled mechanics. 실물·원인·전체 Phase 완료 아님; 의무 mesh sweep 없음 |
+| B4 **활성** | 지그:수치 탐색/조립체 mechanics. 불량:관측–응답 매핑/가설 비교. 이후 Phase3–7 확장 | clean774/run01에서150N/selected4mm SciPy DE5×1/seed13의9CAD·9CalculiX·한국어 비교/재열람 완료([실행 기록](../benchmarks/records/20261006-fixture-width-search-r01.json)). 원38응답 정확 일치/all9 native 반력·UZ/저장 feedback 재생 확인. MAX_GENERATIONS/converged=false/best observed 유지. 같은 best13226절점 전체장 열람/원문 보존7열9행 표 교정 완료. 병렬 조회9거부에 대해 모든 gate를 보존한 plugin admission queue source344guard/557Node PASS; clean7fb의 실제18요약 조회(한 메시지/55ms/18완료/0오류), 원485파일 보존·답변 재열람·residentIDLE/ownedStop 확인([실행 기록](../benchmarks/records/20261006-guard-admission-actual-r02.json)). 과거9조회거부·AI legacy-label 정밀도·Stop관측30s초과와 지연은 보존. 사용자 최신 지시로 다음 우선순위는 위 G1–G4의 일반 모델 입력·조건·연구 연결이다. S4a source는 보존하고 isolated native 실행은 보류; S4b는 G2에서 기존 body/group 기반을 재사용한다. 실물·원인·전체 Phase 완료 아님; 의무 mesh sweep 없음 |
 | B5 | 필요한 engine/후처리/외부 native inspection 기능 재사용 | GEMSEO/ParaView·trame/PrePoMax 등을 역할별 평가. blanket 설치·새 공통 engine 재개발은 완료 조건 아님 |
 
 현재 R2 lifetime/native-cleanup/PS observer 후보8파일은 실제B3의clean-source 실행 동안만 stash/원bytes로 보존했고 idleStop 뒤 정확히 복원했습니다. PS 모의349 assertions PASS는
@@ -63,7 +85,7 @@ S3는 긴 탐색·무감독 인계와 전체U1 완료의 조건입니다. S3 전
 | S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | BOUNDED_SELECTED_LIVE_PASS / Root | clean d509/run03 실제32/38 해석의7715/9155절점 전체U와 같은 부모·개정·단위, 저장·browser reload/reopen·UZ/전체\|U\|/보기배율·구속/하중 확인. 범용 후처리·조립체·애니메이션 완료는 아님; record20261005-selected-cae-research-r03 |
 | S3 | 종료·강제 중단·재시작 상태와 admission 복구 | R1_BOUNDED_HTTP_PASS; R2_OPEN / Root | 원J-id/결과 보존·실제 HTTP metadata controller crash/restart·미해결 새 실행 차단·기존 필드 열람 완료. 취소 intent와 온전한 과거 완료 보호 교정. exact-owned session/resident/native authority와 대표 실제 취소/복구가 다음이며 전체S3 PASS 아님 |
 | U1 | 첫 간단한 사용자 CAE 연구 | SHORT_COMPARISON_150N_AND_ENGINE_DONE; FULL_U1_OPEN / Root | d509/run03 한국어32→38 질문과새150N 조건 비교·재열람 완료. 9개 native 수치탐색/새 결과의AI해석·재열람까지 추가 확인; 신뢰성/장시간복구·보고서와 전체U1은 남음. 작은Astra감수 대기는 완료 기준 아님 |
-| S4a | coarse native affine full-field patch | OPEN / Domain·adapter | source kernel 재사용, U/strain/stress/energy/force/moment 전체 참조 비교. actual mechanics와 구분 |
+| S4a | coarse native affine full-field patch | SOURCE_ONLY_DONE; ACTUAL_DEFERRED / Domain·adapter | 기존 kernel+새4파일84 source PASS/독립0P1P2 보존. actual U/stress/energy/RF native NOT_RUN. 일반 G1–G4 입구를 우선하며 실제 mechanics로 승격하지 않음 |
 | S4b | 원본7부품 실제 조립체 연구 | OPEN / Domain·adapter·Root | 부품별 재료/접촉/하중·관측점 선언, load path·평형/에너지·모델 목적별 검증, actual Research 연결. 전체 재메시 비교는 의무 아님 |
 | S5 | Phase3의 남은 실제 탐색 연결 | BOUNDED_WIDTH_DE_DONE; BROADER_OPEN | 기존 DE의9unique 실제 폭 탐색 완료; broader LHS/DE 재사용, 유효 response·budget/convergence·후보비교·재개; mixed variables 후속 |
 | S6 | Phase4 PDE 연구 흐름 | OPEN | 지원 form별 actual field/reference/거부·mesh/time/MPI 검증, 변경·비교·AI 해석 |
