@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.fixture-complete-displacement-native-output-replay",
+  "verdict": "PASS_BOUNDED_NATIVE_OUTPUT_REPLAY",
+  "scope": "OUTPUT_ONLY_REPLAY_NOT_CORE_EXPERIMENT",
+  "observed_utc": "2026-10-05T07:19:49.344201+00:00",
+  "source": {
+    "core_commit": "8c0233b9b08dec4d5fe2a39126e137c4afa20138",
+    "core_dirty": false,
+    "core_source_sha256": "7f013c992a2545cdda75f852a8d5c2cfd6a20dc0da3d6ccda70a758c0618d428",
+    "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "adapter_version": "5"
+  },
+  "model": {
+    "parent_experiment_id": "exp_roller_cad_w32_20261005_a",
+    "cad_revision": "8b88e4804601b4be6b9b567f61ec5cd42215ba04b3c25f8684294c80bd4fac99",
+    "historical_child_id": "exp_roller_fea_mesh432_100N_20261005_a",
+    "historical_producer": "162231311b72886f0a3f6eb2371f90473564a2ef",
+    "historical_producer_basis": "Independent direct parent/child and prior live-audit source binding; replay source-binding old_producer null is retained unchanged.",
+    "mesh_size_max_mm": 4,
+    "material_load_boundary": "EXISTING_DECLARED_HYPOTHETICAL_MATERIAL_100N_BOTTOM_XYZ_CENTRAL24MM_SADDLE",
+    "mechanical_deck_reverse_byte_identical": true,
+    "mesh_and_saddle_byte_identical": true
+  },
+  "execution": {
+    "new_path": "runs/fixture-full-field-native-20261005-01/support_0",
+    "ccx_version": "2.21",
+    "ccx_sha256": "6adaabf5bf0382fc2bfd692b984320ed375dba777f7dc8297562f818043faa1b",
+    "started_utc": "2026-10-05T07:09:17.723210Z",
+    "finished_utc": "2026-10-05T07:09:20.425130Z",
+    "elapsed_seconds": 2.7019329459872097,
+    "returncode": 0,
+    "native_solve_calls": 1,
+    "mesh_generation_calls": 0,
+    "provider_calls": 0,
+    "wall_timeout": null,
+    "owned_process_completion": "ACTUAL_WAIT_RETURN_AND_FINAL_EXECUTION_RECEIPT"
+  },
+  "native_field": {
+    "path": "runs/fixture-full-field-native-20261005-01/support_0/fea_field.json",
+    "sha256": "c6e243c4a3b9f577055a508e110c57140a03d12fd277027f64f74b391b9767e7",
+    "coverage": "ALL_MESH_NODES",
+    "nodes": 7715,
+    "observed_U_components": 23145,
+    "tet10_elements": 4422,
+    "cps6_exterior_faces": 1840,
+    "fixed_nodes": 1057,
+    "loaded_nodes": 123,
+    "fixed_U_all_zero": true,
+    "raw_U_tokens_match": true,
+    "loaded_DAT_components_compared": 369,
+    "loaded_DAT_precision_comparison": "PASS_NATIVE_FLOAT32_AND_PRINTED_ROUNDING_ONLY",
+    "frame": "SOLVER_GLOBAL_CARTESIAN",
+    "position_and_U_unit": "mm",
+    "force_unit": "N",
+    "static_step_increment_load_parameter": [1, 1, 1],
+    "qualification": "UNKNOWN",
+    "engineering_valid": false
+  },
+  "comparison": {
+    "old_new_DAT_byte_identical": true,
+    "signed_min_loaded_UZ_mm": -0.00564208,
+    "max_abs_loaded_UZ_mm": 0.00564208,
+    "reaction_N": [3.153599992591487e-8, -6.452000040491785e-9, 99.999999562226],
+    "relative_force_imbalance": 4.389558235595662e-9,
+    "unchanged_reaction_criterion": 0.01,
+    "old_new_STRESS_ERROR_values_identical": true,
+    "old_files_preserved": 72,
+    "old_bytes_preserved": 40924681,
+    "mesh_sensitivity": "NOT_ASSESSED_NO_NEW_SWEEP"
+  },
+  "independent_review": {
+    "model": "gpt-6-astra",
+    "effort": "high",
+    "verdict": "BOUNDED_NATIVE_OUTPUT_REPLAY_PASS",
+    "open_p1": 0,
+    "open_p2": 0,
+    "method": "INDEPENDENT_STDLIB_RAW_PARSER_NO_PRODUCT_IMPORT",
+    "verified_native_manifest_files": 20,
+    "verified_native_manifest_bytes": 7703390,
+    "review_files": 6,
+    "review_bytes": 46220,
+    "solver_test_git_product_import_calls": 0
+  },
+  "retained_evidence": [
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-full-field-native-root-01/MANIFEST.json",
+      "sha256": "8a10405eb48139040db7e1617c83486bfcf1a3361abce222f66e2e0ccfbdc11b"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-full-field-native-root-01/RECEIPT.json",
+      "sha256": "899fdc6d13ea91a21f2cf54ea6ddb7efa955f7d6f3f597f8e4e3c36105d3714d"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-full-field-native-review-astra-01/RECEIPT.json",
+      "sha256": "af02ef2faf5b7a0153be94378ed4f916d11312feb599cd3d61f26566babf2f6d"
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-full-field-integration-root-01/CI-8c-SNAPSHOT-01.json",
+      "sha256": "9f951ee06f0e506bd3452fb8eced44241217aeae2e16ea379fdcabbfadc471a3"
+    }
+  ],
+  "retained_attempts": [
+    "Version-only ccx -v exits201: initial replay driver incorrectly used check=True before solve; corrected to the observed version-only0/201 protocol. The actual solve still requires0. Original driver and FAILED-01 are retained.",
+    "Early CLI source-identity preflight imported a nonexistent module; corrected to existing caelab.storage.source_identity. Original standalone raw trace is not in the sealed packet, so independent attestation of that trace is unavailable."
+  ],
+  "exact_source_CI": {
+    "run": 37275234604,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37275234604",
+    "status": "COMPLETED_FAILURE",
+    "success": 7,
+    "failure": 3,
+    "failed_stages": ["explicit official runtime download HTTP404 before native", "Code_Aster E-ansys_vmd1_regular-Fz-aster numerical classification", "coupled vector PDE numerical classification"],
+    "deep_numerical_failure_causes": "UNKNOWN_NOT_ISOLATED",
+    "raw_failed_logs": "Retained separately in fixture-full-field-integration-root-01/CI-8c-*-FAILED-01.txt; not inferred from previous commits."
+  },
+  "retention": "Raw field/input/output/driver/review logs remain local ignored evidence; public record is not remote raw restoration proof.",
+  "Core_registration": "NOT_RUN",
+  "public_selected_mesh_contract": "OPEN_SEPARATE_SOURCE_PACKET",
+  "new_CAD_to_FEA": "NOT_RUN",
+  "field_GUI": "NOT_RUN",
+  "S3_recovery_whole_U1_all52": "OPEN",
+  "engineering_decision": "NOT_RELEASED",
+  "next": "Explicit opt-in selected-mesh adapter contract, trusted Research admission, actual public Core/native run and same-record complete-field GUI; then recovery and the full U1 flow. No mandatory whole-model mesh sweep."
+}

@@ -1,6 +1,20 @@
 # First structural child experiment
 
-## Current S2b complete-displacement source checkpoint — 2026-10-05
+## Current S2b complete-displacement output checkpoint — 2026-10-05
+
+Clean8c/new `fixture-full-field-native-20261005-01` reuses one retained4mm mesh and
+changes output only. Actual CalculiX2.21 solve1/2.701933s, remesh0/provider0;
+all7715 nodes/23145 U components,4422TET10/1840CPS6 match native output.
+The old/new DAT is byte-identical: signed loadedUZ=-0.005642080mm, reaction
+relative imbalance4.389558e-9<=unchanged1%. Mechanical reversal restores the
+old deck bytes; all72 historical files/40,924,681B remain unchanged.
+Independent Astra/high raw parser review PASS/0P1/P2, without solver rerun.
+Record: `../benchmarks/records/20261005-fixture-full-field-native-r01.json`.
+This is OUTPUT_ONLY_REPLAY_NOT_CORE_EXPERIMENT; public selected mode/Research,
+new CAD-to-FEA, field GUI, recovery/U1/all52 remain OPEN/UNKNOWN/NOT_RELEASED.
+Exact8c CI37275234604 ended7SUCCESS/3FAIL; separate raw failed logs retained.
+
+## Historical S2b complete-displacement source checkpoint — 2026-10-05
 
 Reviewed fixture adapter5 adds an output-only all-node FRD U request and
 `support_N/fea_field.json`. Native coordinates/connectivity, complete CPS6 exterior,
@@ -14,14 +28,14 @@ is SOLVER_GLOBAL_CARTESIAN; step1/increment1/load_parameter1 is static, not seco
 Only output changes: loaded DAT U/base RF, material, load, boundary, step, pinned
 mesh/deck/parser routines, common metrics,5%/1% screens, invalid stress and seven
 UNKNOWNs remain. Root Primary175PASS/3optionalSKIP and independent Astra/high
-source review0P1/P2 qualify source only. Fresh complete native field and same-record
-GUI remain OPEN; see `../benchmarks/records/20261005-fixture-full-field-source-r01.json`.
+source review0P1/P2 qualify source only. The subsequent native replay is recorded
+above; same-record GUI remains OPEN. See `../benchmarks/records/20261005-fixture-full-field-source-r01.json`.
 
 ADR0035 scopes mesh sensitivity to justified purpose-specific investigations.
 These historical refinement screens are not universal full-model user gates.
 The current2–8 mesh-list contract still needs a separate opt-in selected-mesh unit.
-Next native field check reuses one retained suitable mesh/deck in a NEW path and
-changes its output request only; no CAD regeneration or mesh sweep is needed.
+The native replay above uses one retained suitable mesh/deck in a NEW path and
+changes its output request only; no CAD regeneration or mesh sweep was performed.
 
 ## Source continuation2026-10-02: conditions and complete diagnostic fields
 

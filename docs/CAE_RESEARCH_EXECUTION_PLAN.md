@@ -25,7 +25,7 @@
 | S0 | 실제 실행·중단·목표 상태 복원 | READONLY_OBSERVED / Root | 지정PIDs/ports/원기록 구분, old outputs 보존. 종료 원인 UNKNOWN 유지 |
 | S1 | 한 실행 동작에 승인 OpenScience+Lab 연결 | BOUNDED_LIVE_PASS / Root | 새 run02 실제 질문·도구 결과·resident idle·owned Stop 확인. active-job/native 취소·재시작은 S3 |
 | S2a | 부모 CAD와 정확한 수치 검사 이름을 결과에 표시 | BOUNDED_FRESH_GUI_PASS / Root | 실제 부모·revision·manifest/caption과 늦은 성공 응답 차단 확인. late-error/detached branch는 source controlled-DOM 증거 |
-| S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | SOURCE_REVIEWED_INTEGRATED_NATIVE_GUI_OPEN / Root | 전체 U output-only source의 Primary175PASS/3SKIP·Astra0P1/P2. 다음은 기존 적절한 mesh 한 개의 새 path 실제 출력·같은 GUI; global sweep 없음 |
+| S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | BOUNDED_NATIVE_OUTPUT_PASS_PUBLIC_MODE_GUI_OPEN / Root | clean8c/기존4mm mesh1개/실제7715절점 U·원래DAT동일·Astra0P1/P2. 공개 selected-mode/Core·Research·같은 GUI는 다음 별도 gate; global sweep 없음 |
 | S3 | 종료·강제 중단·재시작 상태와 admission 복구 | NEXT / Root shared execution owner | tiny crash/identity matrix, append-only reconciliation, real native cancel/reconnect, old evidence 보존 |
 | U1 | 첫 간단한 사용자 CAE 연구 | WAITING_ON_S1_S2_S3 / Root | 아래 한 사용자 흐름을 실제로 끝내고 독립 검토·같은 GUI 결과·보고서로 확인 |
 | S4a | coarse native affine full-field patch | OPEN / Domain·adapter | source kernel 재사용, U/strain/stress/energy/force/moment 전체 참조 비교. actual mechanics와 구분 |
@@ -136,5 +136,20 @@ Existing loaded DAT U/BASE RF/mechanics/native commands/statistics/thresholds re
 Root Primary175PASS/3optionalSKIP14.81s; candidate actual legacy3PASS/15old files unchanged;
 independent Astra/high source0P1/P2. No complete fresh native output or field GUI is implied.
 Record: `benchmarks/records/20261005-fixture-full-field-source-r01.json`.
-Next actual gate changes only output on one suitable retained mesh/deck in a NEW immutable path.
-The separate opt-in selected-mesh public contract is still OPEN. No legacy U inference or remesh.
+The following native checkpoint closes that output-only gate. The separate opt-in selected-mesh public contract and field GUI remain OPEN. No legacy U inference or remesh.
+
+## S2b 실제 기존 메시 한 개의 전체 U 출력 checkpoint
+
+clean `8c0233b9b08dec4d5fe2a39126e137c4afa20138`/새 `fixture-full-field-native-20261005-01`에서
+기존 human07의4mm 메시·역학 입력을 재사용했습니다. 실제 CalculiX2.21 실행1회/2.701933초/exit0,
+재메시0/모델 호출0.7715절점/23145실제 U 성분·4422TET10·1840CPS6·고정1057/하중123를 보존했습니다.
+원래 DAT와 새 DAT는 바이트 동일, signed loaded UZ=-0.005642080mm, XYZ반력 상대 잔차4.389558e-9<=기존1%입니다.
+역학 입력을 되돌리면 원본과 바이트 동일하고, 기존72파일/40,924,681B도 그대로입니다.
+독립 Astra/high는 제품 parser 없이 원본을 별도로 읽어 bounded output replay PASS/0P1/P2를 확인했습니다.
+record: `benchmarks/records/20261005-fixture-full-field-native-r01.json`.
+이 실행은 OUTPUT_ONLY_REPLAY_NOT_CORE_EXPERIMENT입니다. 공개 단일 mesh/Core·Research 실행,
+새 CAD-to-FEA·field GUI·S3·전체U1·52개 요구·강도 승인은 OPEN/UNKNOWN/NOT_RELEASED입니다.
+version-only `ccx -v`의201을 드라이버가 실패로 처리한 첫 시도와 교정본을 모두 보존했습니다. native solve 실패가 아닙니다.
+정확한8c CI37275234604는7SUCCESS/3FAIL이며 explicit 설치404/Code_Aster/vectorPDE raw 실패 로그를 새로 보존했습니다.
+전체CI PASS가 아니고 후자 두 수치 실패의 깊은 원인은 아직 NOT_ISOLATED입니다.
+다음은 승인된5파일 selected-mode source 단위→Root의 공통 Research admission→실제 공개 실행/같은 field GUI입니다.
