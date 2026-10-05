@@ -1068,6 +1068,10 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
     if (['caelab_parameters_discover','caelab_parameters_register','caelab_experiment_run','caelab_optimization_plan'].includes(tool) &&
         (args.backend !== 'fixture.cadquery' || args.model !== 'roller_support')) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
     const analysisMesh = value => {
+      // Historical profiles describe refinement inputs only. A new adapter
+      // opt-in must not become Research admission through the old count gate.
+      if (nativeRecord(value?.mesh) && Object.hasOwn(value.mesh, 'mode'))
+        nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
       if (!Array.isArray(value?.mesh?.max_sizes_mm) || !value.mesh.max_sizes_mm.length ||
           value.mesh.max_sizes_mm.length > budget.analysis.max_mesh_levels) nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
     };

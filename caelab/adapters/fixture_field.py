@@ -499,8 +499,11 @@ def _dat(text: str, loads: list[dict], fixed: list[int], displacements: dict) ->
 
 
 def extract_fixture_field(folder: Path, *, mesh_index: int, mesh_size_max_mm: float,
-                          parent_experiment_id: str, cad_revision: str, expected_inputs: dict) -> dict:
+                          parent_experiment_id: str, cad_revision: str, expected_inputs: dict,
+                          adapter_version: str = "5") -> dict:
     """Read an immutable complete field; never infer U for an omitted native row."""
+    if type(adapter_version) is not str or adapter_version not in ("5", "6"):
+        raise ValueError("Unsupported fixture field producer adapter version")
     check_id(parent_experiment_id)
     if (type(mesh_size_max_mm) not in (float, int) or not math.isfinite(mesh_size_max_mm) or mesh_size_max_mm <= 0 or
             not isinstance(cad_revision, str) or not re.fullmatch(r"[0-9a-f]{64}", cad_revision)):
@@ -524,7 +527,7 @@ def extract_fixture_field(folder: Path, *, mesh_index: int, mesh_size_max_mm: fl
         if _read_bytes(path) != data[key]:
             raise ValueError(f"Fixture source changed during field extraction: {key}")
     return {"schema_version": "1.0", "kind": "fixture_calculix_nodal_displacement",
-            "backend": "fixture.calculix", "adapter_version": "5",
+            "backend": "fixture.calculix", "adapter_version": adapter_version,
             "parent_experiment_id": parent_experiment_id, "cad_revision": cad_revision,
             "mesh_index": mesh_index, "mesh_size_max_mm": mesh_size_max_mm,
             "coordinate_frame": "SOLVER_GLOBAL_CARTESIAN", "position_unit": "mm",

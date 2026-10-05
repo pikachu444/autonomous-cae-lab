@@ -341,6 +341,26 @@ test('fixture refinement keeps backend numerical engine and population admission
   }
 });
 const refusal = code => error => error.name === 'CaeLabNativeGuardRefusal' && error.code === code && !error.message.includes('synthetic snapshot');
+test('historical fixture research scopes refuse undeclared selected mesh mode before Core',async t => {
+  for (const fixtureFactory of [researchFixture,refinementResearchFixture]) {
+    const f = fixtureFactory(t), hooks = await f.hooks();
+    for (const mode of ['selected','refinement',true,null,undefined]) {
+      const analysis = refinementAnalysis([4]);
+      analysis.settings.mesh.mode = mode;
+      const requests = [
+        ['caelab_analysis_run',analysis],
+        ['caelab_optimization_plan',{backend:'fixture.cadquery',model:'roller_support',
+          analysis_backend:'fixture.calculix',analysis_settings:analysis.settings}],
+      ];
+      for (const [tool,args] of requests) {
+        const original = structuredClone(args);
+        await assert.rejects(hooks['tool.execute.before']({tool,sessionID:f.sessionID},{args}),
+          refusal('RESEARCH_CAPABILITY_NOT_ADMITTED'));
+        assert.deepEqual(args,original); assert.equal(f.receipts().at(-1).accepted,false);
+      }
+    }
+  }
+});
 // Pinned official 4082a2ecb73e166d4503963798228ba700f3840f:
 // backend/cli/src/session/message-v2.ts general Error -> UnknownError branch
 // retains e.toString(), not e.code; retry.ts:329-349 then checks this text.

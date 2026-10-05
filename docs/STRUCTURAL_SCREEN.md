@@ -33,7 +33,14 @@ above; same-record GUI remains OPEN. See `../benchmarks/records/20261005-fixture
 
 ADR0035 scopes mesh sensitivity to justified purpose-specific investigations.
 These historical refinement screens are not universal full-model user gates.
-The current2–8 mesh-list contract still needs a separate opt-in selected-mesh unit.
+Adapter6 now implements a separately reviewed explicit selected-mesh source unit:
+`mesh={mode:'selected',max_sizes_mm:[oneFinitePositiveSize]}`. Legacy no-mode2–8
+and5%/1% screens remain. Sensitivity is invalid null/NOT_ASSESSED, with no fake
+trend PASS or extra mandatory UNKNOWN. Source record:
+`../benchmarks/records/20261005-fixture-selected-mesh-source-r01.json`.
+Root237PASS/3optionalSKIP, actualPS11/Node24PASS0SKIP, independent source0P1/P2.
+Existing Research schema1/7 refuse the undeclared mode until a separate trusted
+selected profile is verified. Public Core/native selected run and human field GUI OPEN.
 The native replay above uses one retained suitable mesh/deck in a NEW path and
 changes its output request only; no CAD regeneration or mesh sweep was performed.
 

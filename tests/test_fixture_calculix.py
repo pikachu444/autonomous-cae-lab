@@ -184,7 +184,7 @@ def test_per_mesh_response_preserves_order_sign_scope_and_evidence(tmp_path):
                        "displacement_table_sha256": hashlib.sha256((tmp_path / relative).read_bytes()).hexdigest()}
         assert row["displacement_table_sha256"] == manifest[relative]["sha256"]
     assert json.dumps(studies, sort_keys=True) == before
-    assert FixtureCalculiXAdapter.version == "5"
+    assert FixtureCalculiXAdapter.version == "6"
     assert FixtureCalculiXAdapter.default_metrics == ["max_displacement", "peak_stress", "displacement_mesh_change_ratio",
         "applied_force_per_support", "reaction_force", "reaction_balance_ratio", "mesh_size_max_mm", "loaded_saddle_min_global_uz"]
 
@@ -229,3 +229,91 @@ def test_per_mesh_response_rejects_unavailable_or_misassociated_observations(tmp
         passed = 1
     with pytest.raises(ValueError, match="per-mesh"):
         _per_mesh_responses(studies, tmp_path, passed)
+
+
+def test_explicit_selected_response_retains_signed_observation_and_dat_binding(tmp_path):
+    study = _per_mesh_response_fixture(tmp_path)[:1]
+    before = json.dumps(study, sort_keys=True)
+    metrics, provenance = _per_mesh_responses(study, tmp_path, None, selected_mesh=True)
+    assert metrics == {"mesh_size_max_mm": {"value": [4], "unit": "mm", "valid": True},
+        "loaded_saddle_min_global_uz": {"value": [-.00564208], "unit": "mm", "valid": True,
+            "reason": "Observed on selected mesh; mesh sensitivity unassessed"}}
+    assert provenance["node_set"] == "ROLLER_NODES" and provenance["component"] == "UZ"
+    assert provenance["statistic"] == "minimum over loaded saddle nodes"
+    assert provenance["coordinate_system"] == "global Cartesian" and provenance["unit"] == "mm"
+    assert provenance["studies"] == [{"index": 0, "mesh_size_max_mm": 4, "loaded_node_count": 2,
+        "displacement_table": "simulation/support_0/support_0.dat",
+        "displacement_table_sha256": hashlib.sha256((tmp_path / "support_0/support_0.dat").read_bytes()).hexdigest()}]
+    assert json.dumps(study, sort_keys=True) == before
+
+
+@pytest.mark.parametrize("count,verdict,selected", [(1, True, False), (1, False, False), (1, None, False),
+    (1, True, True), (1, False, True), (0, None, True), (2, None, True), (3, None, True), (1, None, 1)])
+def test_single_response_requires_opt_in_and_unassessed_verdict(tmp_path, count, verdict, selected):
+    studies = _per_mesh_response_fixture(tmp_path)[:count]
+    with pytest.raises(ValueError, match="per-mesh"):
+        _per_mesh_responses(studies, tmp_path, verdict, selected_mesh=selected)
+
+
+@pytest.mark.parametrize("fault", ["missing", "nonfinite", "boolean", "missing_dat", "foreign_dat", "count", "duplicate_ids"])
+def test_selected_response_keeps_existing_numeric_node_and_source_guards(tmp_path, fault):
+    study = _per_mesh_response_fixture(tmp_path)[:1]
+    if fault == "missing":
+        study[0]["displacement"] = {}
+    elif fault in ("nonfinite", "boolean"):
+        study[0]["displacement"]["min_vertical_displacement_mm"] = float("nan") if fault == "nonfinite" else True
+    elif fault == "missing_dat":
+        (tmp_path / "support_0/support_0.dat").unlink()
+    elif fault == "foreign_dat":
+        study[0]["files"]["displacement_table"] = "support_1/support_1.dat"
+    elif fault == "count":
+        study[0]["boundary"]["loaded_node_count"] = 1
+    elif fault == "duplicate_ids":
+        study[0]["boundary"]["loaded_node_ids"] = [2, 2]
+    with pytest.raises(ValueError, match="per-mesh"):
+        _per_mesh_responses(study, tmp_path, None, selected_mesh=True)
+
+
+@pytest.fixture(scope="module")
+def mesh_policy_parent(tmp_path_factory):
+    return parent(tmp_path_factory.mktemp("TEST_ONLY-mesh-policy-parent"))
+
+
+@pytest.mark.parametrize("mesh", [{"max_sizes_mm": [3]}, {"max_sizes_mm": []},
+    {"max_sizes_mm": [3, 3]}, {"max_sizes_mm": [2, 3]}, {"max_sizes_mm": list(range(9, 0, -1))},
+    {"mode": "selected", "max_sizes_mm": [3, 2]}, {"mode": "selected", "max_sizes_mm": []},
+    {"mode": "selected", "max_sizes_mm": [0]}, {"mode": "selected", "max_sizes_mm": [-1]},
+    {"mode": "selected", "max_sizes_mm": [True]}, {"mode": "selected", "max_sizes_mm": [float("nan")]},
+    {"mode": "selected", "max_sizes_mm": [float("inf")]}, {"mode": "selected", "max_sizes_mm": [10 ** 400]},
+    {"mode": "selected", "max_sizes_mm": [None]},
+    {"mode": "selected", "max_sizes_mm": ["3"]}, {"mode": "selected", "max_sizes_mm": 3},
+    {"mode": "selected"}, {"mode": "selected", "max_sizes_mm": [3], "extra": 1},
+    {"mode": "refinement", "max_sizes_mm": [3, 2]}, {"mode": "unknown", "max_sizes_mm": [3]},
+    {"mode": "", "max_sizes_mm": [3]}, {"mode": None, "max_sizes_mm": [3]},
+    {"mode": True, "max_sizes_mm": [3]}, {"mode": 1, "max_sizes_mm": [3]},
+    {"mode": float("nan"), "max_sizes_mm": [3]}, {"mode": ["selected"], "max_sizes_mm": [3]}, None])
+def test_unsupported_mesh_requests_are_rejected_before_native_or_mesh(tmp_path, monkeypatch, mesh_policy_parent, mesh):
+    root, result = mesh_policy_parent
+    def prohibited(*_args, **_kwargs):
+        pytest.fail("Rejected mesh request reached executable/native gate")
+    monkeypatch.setattr("caelab.adapters.fixture_calculix.shutil.which", prohibited)
+    monkeypatch.setattr("caelab.adapters.fixture_calculix.subprocess.run", prohibited)
+    configuration = settings()
+    configuration["mesh"] = mesh
+    output = tmp_path / "rejected"
+    response = FixtureCalculiXAdapter().solve(result, root, output, configuration)
+    assert response["status"] == "REJECTED" and response["solver_status"] == "NOT_RUN"
+    assert response["checks"][-1]["code"] == "mesh_settings"
+    assert response["provenance"]["adapter_version"] == "6"
+    assert list(output.iterdir()) == [output / "result.json"]
+
+
+def test_selected_single_mesh_reaches_existing_executable_gate(tmp_path, monkeypatch, mesh_policy_parent):
+    root, result = mesh_policy_parent
+    monkeypatch.setattr("caelab.adapters.fixture_calculix.shutil.which", lambda _: None)
+    configuration = settings()
+    configuration["mesh"] = {"mode": "selected", "max_sizes_mm": [3]}
+    output = tmp_path / "selected"
+    with pytest.raises(RuntimeError, match="Missing open-source executable: gmsh"):
+        FixtureCalculiXAdapter().solve(result, root, output, configuration)
+    assert not (output / "input.step").exists()

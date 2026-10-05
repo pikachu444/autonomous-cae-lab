@@ -1,0 +1,192 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.fixture-explicit-selected-mesh-source",
+  "observed_utc": "2026-10-05T08:05:53.5485347Z",
+  "verdict": "PASS_BOUNDED_REVIEWED_SOURCE_ONLY",
+  "source_parent": "0c7def0e7279b83b9b2b2caa30c6b827c6b86315",
+  "candidate_parent": "8c0233b9b08dec4d5fe2a39126e137c4afa20138",
+  "fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "adapter_version": "6",
+  "frozen_tested_adapter_files": [
+    {
+      "path": "caelab/adapters/fixture_calculix.py",
+      "bytes": 43937,
+      "sha256": "99b8549a9fa7d7b3d5ad84c861b8aa912fc762015fa4b62c73b0fd61291642d7"
+    },
+    {
+      "path": "caelab/adapters/fixture_field.py",
+      "bytes": 30815,
+      "sha256": "7035b3244ba80716e72e2e8497888d9c65ac5deb53021ef432f8c7e9d71a183c"
+    },
+    {
+      "path": "tests/test_fixture_calculix.py",
+      "bytes": 17464,
+      "sha256": "4a35a5caee723f0f4bf808cbbeb57535cd0aec1461e65998939bc09608e5ee37"
+    },
+    {
+      "path": "tests/test_fixture_field.py",
+      "bytes": 28670,
+      "sha256": "9462bf512eb51ef4e3f0105f3015cd1ff813faf080a3bb5f8ffa682659c87097"
+    },
+    {
+      "path": "tests/test_fixture_stress_field.py",
+      "bytes": 27451,
+      "sha256": "4229563154095559343de8b1eaf8252e12a073feeef1adbbff573ac182352546"
+    }
+  ],
+  "frozen_tested_shared_guard_files": [
+    {
+      "path": "openscience/native_guard.mjs",
+      "bytes": 80727,
+      "sha256": "e4c4baeb4cf9ae5e90e09cdbdcb16f40d9a55ea03dc5f179d998b3155610e328",
+      "canonical_base_git_blob": "e610fb10d0ec8cc7e2ce396542a8eba7eace6d93",
+      "canonical_base_sha256": "995dcbd9f9faf7bc9f58347d0807fc85c1ff55be72885345958bb5e384f48c20"
+    },
+    {
+      "path": "openscience/tests/native_guard.test.mjs",
+      "bytes": 163368,
+      "sha256": "010ae24eec635638ccf8d158ad184f5381963a7ed904530c18f04e8637c7848a",
+      "canonical_base_git_blob": "b196357481a77d53fb0cc1a426023d49b6976e88",
+      "canonical_base_sha256": "0560a687a4c4a92a80c33a65f4d5b11e0cc3cefa5929d5a133b1fecc440bfc91"
+    },
+    {
+      "path": "scripts/verify_fixture_refinement_research_source.ps1",
+      "bytes": 5869,
+      "sha256": "0d940d51bc5b47755e82ce696935bf0417ae694740f4264f8b01cc2f26870515",
+      "canonical_base_git_blob": "b109fd806366512406691b1378309b3dc837ca7d",
+      "canonical_base_sha256": "cc2934198c596a46342ad12faaffb662eece2ef7142a3739ff44f73cb6b87ad3"
+    }
+  ],
+  "selected_contract": {
+    "mode": "selected",
+    "max_sizes_count": 1,
+    "positive_finite_numeric": true,
+    "explicit_only": true
+  },
+  "legacy_contract": {
+    "mode_key_absent": true,
+    "max_sizes_count_min": 2,
+    "max_sizes_count_max": 8,
+    "strictly_descending": true
+  },
+  "selected_result": {
+    "mesh_sensitivity": "NOT_ASSESSED",
+    "ratio": {
+      "value": null,
+      "unit": "1",
+      "valid": false,
+      "reason": "Mesh sensitivity not assessed for an explicitly selected single mesh"
+    },
+    "displacement_observation_reason": "Observed on selected mesh; mesh sensitivity unassessed",
+    "displacement_metrics_valid": true,
+    "mesh_trend_validation_created": false,
+    "mandatory_mesh_unknown_added": false,
+    "converged": true,
+    "converged_semantics": "native linear solve completion; no mesh-independence verdict",
+    "reaction_limit": 0.01,
+    "invalid_stress_retained": true,
+    "pending_engineering_count": 7,
+    "engineering_release": false
+  },
+  "legacy_preserved": {
+    "last_pair_displacement_limit": 0.05,
+    "signed_reaction_limit": 0.01,
+    "statistic": "loaded saddle vertical displacement",
+    "default_metrics_unchanged": true,
+    "old_mode_alias_added": false,
+    "old_default_helper_behavior_preserved": true
+  },
+  "root_primary_controls": {
+    "pass": 237,
+    "protected12_unchanged": true,
+    "seconds": 19.37,
+    "skip": 3,
+    "frozen5_bytes_unchanged": true,
+    "native_mesh_provider_calls": 0,
+    "warnings": 1,
+    "optional_skip_reason": "HISTORICAL_READONLY_PROBES",
+    "fail": 0,
+    "requirement_rows_unchanged": true
+  },
+  "worker_controls": {
+    "seconds": 20.04,
+    "native_mesh_provider_calls": 0,
+    "skip": 3,
+    "pass": 237
+  },
+  "historical_Research_guard": {
+    "initial_Node_skip": 1,
+    "no_default_or_descriptor_changes": true,
+    "mode_own_property_refused_in_schema1_and7": true,
+    "analysis_and_optimization_plan_covered": true,
+    "initial_skip": "ACTUAL_PS_DEFINITION_NOT_SUPPLIED",
+    "actual_PS_JS_Node_pass": 24,
+    "initial_Node_pass": 23,
+    "provider_Core_native_GUI_calls": 0,
+    "default_and_six_legacy_fingerprints_unchanged": true,
+    "actual_PS_checks": 11,
+    "actual_PS_JS_Node_skip": 0,
+    "refinement_canonical_sha256": "bd7e341d373ce732d72f7c4263d35b015047efd4cde0f181aee73e1a11459632"
+  },
+  "independent_reviews": [
+    {
+      "open_p2": 0,
+      "open_p1": 0,
+      "receipt_sha256": "06e6d661505b200cbb754e652254d64f49225cd7f74e890755be9f863baa81e8",
+      "verdict": "BOUNDED_SOURCE_ONLY_PASS",
+      "scope": "FROZEN5_ADAPTER_SOURCE",
+      "effort": "high",
+      "model": "gpt-6-astra"
+    },
+    {
+      "open_p2": 0,
+      "open_p1": 0,
+      "receipt_sha256": "4909f294ea2bd84dc4f6a112edf63a1fabd5c96931b72ce8f3c3bc53108a5dff",
+      "verdict": "BOUNDED_SOURCE_ONLY_PASS",
+      "scope": "FROZEN3_HISTORICAL_RESEARCH_GUARD",
+      "effort": "high",
+      "model": "gpt-6-astra"
+    }
+  ],
+  "retained_evidence": [
+    {
+      "sha256": "d1acc9336840c6dd72916d2e98bd45f87b42913997b28c389f4028e563bacdfe",
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-selected-mesh-source-01/MANIFEST.json"
+    },
+    {
+      "sha256": "6d205bf798c0fc007517cee63ca4ced829d34d983c2c58bbdc09078acc659967",
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-selected-mesh-source-01/RECEIPT.json"
+    },
+    {
+      "sha256": "06e6d661505b200cbb754e652254d64f49225cd7f74e890755be9f863baa81e8",
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-selected-mesh-review-astra-01/RECEIPT.json"
+    },
+    {
+      "sha256": "dd7a0fa9605e6d0c33fdf5a6d80cef107c771e35d3e6823bd79e93fd7fbefd2a",
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-selected-mesh-guard-root-01/MANIFEST.json"
+    },
+    {
+      "sha256": "4909f294ea2bd84dc4f6a112edf63a1fabd5c96931b72ce8f3c3bc53108a5dff",
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-selected-mesh-guard-review-astra-01/RECEIPT.json"
+    },
+    {
+      "sha256": "8782ae8c9529e709828b64884dde6e2d757b704dd6be3ec773b82c31c254458c",
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-selected-mesh-integration-root-01/SOURCE-AFTER-01.json"
+    },
+    {
+      "sha256": "a3ab68374e2a24aa6dbb4a77c5915434661f22230a9afb315cc4c680c0c66d01",
+      "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-selected-mesh-integration-root-01/LEGACY-REFINEMENT-SOURCE-01/receipt.json"
+    }
+  ],
+  "retained_capture_failure": "Initial PowerShell LF reconstruction did not match Git blob and stopped before sealing. Invalid partial copy/FAILED-01 retained; raw subprocess bytes plus verified original Git blob form the corrected canonical-before.",
+  "line_endings": "Raw working/frozen hashes retained; Git text filters and mjs text:unset are not assumed equal across checkouts.",
+  "previous_native": "8c output-only retained-mesh full7715 U PASS is separate historical evidence, not this selected-mode public execution.",
+  "Core_public_selected_native": "NOT_RUN_AT_SOURCE_CHECKPOINT",
+  "official_Research_selected": "OPEN_REQUIRES_SEPARATE_TRUSTED_PROFILE",
+  "human_selected_form_and_field_GUI": "OPEN",
+  "S3_U1_all52": "OPEN",
+  "new_source_CI": "NOT_RUN_UNTIL_SOURCE_PUSH",
+  "engineering_decision": "NOT_RELEASED",
+  "retention": "Private frozen source/logs/reviews remain local ignored evidence; public record does not assert off-machine raw restore.",
+  "next": "Commit/push reviewed8 source files; fresh public stdioMCP/Core selected single-mesh native result and refusal controls. Then explicit trusted Research admission and same-record human selected-mode/full-field view; no whole-model mesh sweep."
+}

@@ -37,6 +37,9 @@ _PENDING = ["machine_interface", "static_strength", "physical_load_test",
 _STRESS_LABELS = ("SXX 1 4 1 1", "SYY 1 4 2 2", "SZZ 1 4 3 3",
                   "SXY 1 4 1 2", "SYZ 1 4 2 3", "SZX 1 4 3 1")
 _STRESS_NUMBER = re.compile(r"[-+]?\d+\.\d+E[-+]\d+")
+_SELECTED_OBSERVATION = "Observed on selected mesh; mesh sensitivity unassessed"
+_MESH_NOT_ASSESSED = "Mesh sensitivity not assessed for an explicitly selected single mesh"
+_NATIVE_COMPLETION = "native linear solve completion; no mesh-independence verdict"
 
 
 def _screen():
@@ -58,14 +61,15 @@ def _finite_positive(value: Any) -> bool:
 
 
 def _per_mesh_responses(studies: list[dict], output: Path,
-                        mesh_trend_passed: bool) -> tuple[dict, dict]:
+                        mesh_trend_passed: bool | None, *, selected_mesh: bool = False) -> tuple[dict, dict]:
     """Project loaded-saddle global UZ observations without another native parser.
 
     Both numeric lists use the native study order. The signed minimum is over
     ROLLER_NODES only; it is not a whole-model extremum or a magnitude.
     """
-    if (not isinstance(studies, list) or not 2 <= len(studies) <= 8 or
-            type(mesh_trend_passed) is not bool):
+    if (not isinstance(studies, list) or type(selected_mesh) is not bool or
+            (selected_mesh and (len(studies) != 1 or mesh_trend_passed is not None)) or
+            (not selected_mesh and (not 2 <= len(studies) <= 8 or type(mesh_trend_passed) is not bool))):
         raise ValueError("Invalid per-mesh response sequence or trend verdict")
     root = Path(output).resolve(strict=True)
     if not root.is_dir():
@@ -107,8 +111,9 @@ def _per_mesh_responses(studies: list[dict], output: Path,
     metrics = {
         "mesh_size_max_mm": {"value": sizes, "unit": "mm", "valid": True},
         "loaded_saddle_min_global_uz": {"value": displacements, "unit": "mm",
-                                        "valid": mesh_trend_passed,
-                                        **({"reason": "Declared mesh trend threshold exceeded"}
+                                        "valid": True if selected_mesh else mesh_trend_passed,
+                                        **({"reason": _SELECTED_OBSERVATION} if selected_mesh else
+                                           {"reason": "Declared mesh trend threshold exceeded"}
                                            if not mesh_trend_passed else {})},
     }
     provenance = {"source_result": "simulation/result.json", "node_set": "ROLLER_NODES",
@@ -389,7 +394,7 @@ def _extract_stress_field(frd: Path, nodes: dict, screen: Any) -> tuple[dict, di
 
 class FixtureCalculiXAdapter:
     backend = "fixture.calculix"
-    version = "5"
+    version = "6"
     analysis_type = "linear_static"
     default_metrics = ["max_displacement", "peak_stress", "displacement_mesh_change_ratio",
                        "applied_force_per_support", "reaction_force", "reaction_balance_ratio",
@@ -491,18 +496,44 @@ class FixtureCalculiXAdapter:
         except (ValueError, KeyError, TypeError) as exc:
             return reject("material_definition", str(exc), "Valid elastic constants and qualification")
         mesh_settings = settings["mesh"]
-        if not isinstance(mesh_settings, dict) or set(mesh_settings) != {"max_sizes_mm"}:
-            return reject("mesh_settings", mesh_settings, "max_sizes_mm: descending list")
+
+        def reject_mesh(observed: Any, limit: str) -> dict:
+            # Preserve nonfinite input visibly while keeping the rejection JSON
+            # finite. Valid JSON observations retain their historical shape.
+            try:
+                json.dumps(observed, allow_nan=False)
+            except (ValueError, TypeError, OverflowError):
+                observed = repr(observed)
+            return reject("mesh_settings", observed, limit)
+
+        if not isinstance(mesh_settings, dict) or set(mesh_settings) not in ({"max_sizes_mm"}, {"mode", "max_sizes_mm"}):
+            return reject_mesh(mesh_settings, "max_sizes_mm: descending list")
+        selected_mesh = "mode" in mesh_settings
+        if selected_mesh and (type(mesh_settings["mode"]) is not str or mesh_settings["mode"] != "selected"):
+            return reject_mesh(mesh_settings, "Explicit mode must be selected")
         sizes = mesh_settings["max_sizes_mm"]
-        if (not isinstance(sizes, list) or len(sizes) < 2 or len(sizes) > 8 or
-                any(not _finite_positive(x) for x in sizes) or
+        size_limit = ("Exactly one finite positive size for explicit selected mode" if selected_mesh else
+                      "2–8 finite positive strictly descending sizes")
+        if (not isinstance(sizes, list) or (len(sizes) != 1 if selected_mesh else not 2 <= len(sizes) <= 8)):
+            return reject_mesh(sizes, size_limit)
+        try:
+            invalid_sizes = any(not _finite_positive(x) for x in sizes)
+        except OverflowError:
+            invalid_sizes = True
+        if (invalid_sizes or
                 any(a <= b for a, b in zip(sizes, sizes[1:]))):
-            return reject("mesh_settings", sizes, "2–8 finite positive strictly descending sizes")
+            return reject_mesh(sizes, size_limit)
         provenance.update({"force_per_support_N": load["force_per_support_N"],
                            "load_source": load["source"], "material": material,
                            "mesh_max_sizes_mm": sizes,
                            "load_discretization": "clipped_tessellated_saddle_surface_area_v1",
                            "model_idealization": "fixed bottom; distributed saddle nodal force; one printed support"})
+        if selected_mesh:
+            provenance.update({"mesh_policy": {"mode": "selected", "scope": "one explicitly selected mesh"},
+                               "mesh_sensitivity": {"status": "NOT_ASSESSED",
+                                                    "scope": "loaded saddle displacement on the selected mesh",
+                                                    "limitation": _MESH_NOT_ASSESSED},
+                               "converged_semantics": _NATIVE_COMPLETION})
 
         # Inspect only the hashed STEP. Do not regenerate the old hard-coded
         # bending assembly, whose holes and coordinate frame differ from this CAD.
@@ -625,7 +656,8 @@ class FixtureCalculiXAdapter:
             fea_field = extract_fixture_field(
                 folder, mesh_index=index, mesh_size_max_mm=size,
                 parent_experiment_id=parent_result["experiment_id"],
-                cad_revision=parent_result["cad_revision"], expected_inputs=field_inputs)
+                cad_revision=parent_result["cad_revision"], expected_inputs=field_inputs,
+                adapter_version=self.version)
             save_json(folder / "fea_field.json", fea_field)
             studies.append({"mesh_size_max_mm": size, "nodes": len(nodes),
                             "elements_C3D10": len(elements),
@@ -641,27 +673,33 @@ class FixtureCalculiXAdapter:
                                       "stress_field": f"{job}/stress_field.json",
                                       "fea_field": f"{job}/fea_field.json",
                                       "displacement_table": f"{job}/{job}.dat"}})
-        coarse, fine = studies[-2:]
-        numerator = abs(coarse["displacement"]["max_abs_vertical_displacement_mm"] -
-                        fine["displacement"]["max_abs_vertical_displacement_mm"])
+        fine = studies[-1]
         denominator = fine["displacement"]["max_abs_vertical_displacement_mm"]
         if not _finite_positive(denominator):
             raise RuntimeError("Fine-mesh displacement is zero or invalid")
-        trend = numerator / denominator
-        # This is a numerical screen only. A mesh trend is evidence, not an
-        # allowable stress, contact, bolted-base, or physical qualification.
-        checks.append({"code": "displacement_mesh_trend", "status": "PASS" if trend <= .05 else "FAIL",
-                       "observed": trend, "limit": .05})
-        mesh_trend_passed = trend <= .05
+        if selected_mesh:
+            trend = mesh_trend_passed = None
+        else:
+            coarse, fine = studies[-2:]
+            numerator = abs(coarse["displacement"]["max_abs_vertical_displacement_mm"] -
+                            fine["displacement"]["max_abs_vertical_displacement_mm"])
+            trend = numerator / denominator
+            # This is a numerical screen only. A mesh trend is evidence, not an
+            # allowable stress, contact, bolted-base, or physical qualification.
+            checks.append({"code": "displacement_mesh_trend", "status": "PASS" if trend <= .05 else "FAIL",
+                           "observed": trend, "limit": .05})
+            mesh_trend_passed = trend <= .05
         reaction_passed = all(v["reactions"]["relative_imbalance"] <= .01 for v in studies)
         metrics = {
-            "max_displacement": {"value": denominator, "unit": "mm", "valid": mesh_trend_passed,
-                                 **({"reason": "Declared mesh trend threshold exceeded"}
+            "max_displacement": {"value": denominator, "unit": "mm", "valid": True if selected_mesh else mesh_trend_passed,
+                                 **({"reason": _SELECTED_OBSERVATION} if selected_mesh else
+                                    {"reason": "Declared mesh trend threshold exceeded"}
                                     if not mesh_trend_passed else {})},
             "peak_stress": {"value": fine["stress_diagnostic"]["max_averaged_nodal_von_mises_MPa"],
                             "unit": "MPa", "valid": False,
                             "reason": "Averaged nodal diagnostic; no stress convergence or material allowable"},
-            "displacement_mesh_change_ratio": {"value": trend, "unit": "1", "valid": True},
+            "displacement_mesh_change_ratio": {"value": trend, "unit": "1", "valid": not selected_mesh,
+                                                **({"reason": _MESH_NOT_ASSESSED} if selected_mesh else {})},
             "reaction_force": {"value": fine["reactions"]["reaction_force_N"], "unit": "N",
                                "valid": reaction_passed,
                                **({"reason": "A mesh exceeds the 1% signed force balance limit"}
@@ -670,12 +708,13 @@ class FixtureCalculiXAdapter:
                                                     for v in studies), "unit": "1", "valid": True},
             "applied_force_per_support": {"value": load["force_per_support_N"], "unit": "N", "valid": True},
         }
-        per_mesh_metrics, per_mesh_provenance = _per_mesh_responses(studies, output, mesh_trend_passed)
+        per_mesh_metrics, per_mesh_provenance = _per_mesh_responses(
+            studies, output, mesh_trend_passed, selected_mesh=selected_mesh)
         metrics.update(per_mesh_metrics)
         provenance["per_mesh_displacement"] = per_mesh_provenance
         provenance.update({"mesh": ["simulation/" + v["files"]["mesh"] for v in studies],
                            "solver_deck": ["simulation/" + v["files"]["deck"] for v in studies]})
-        result = {"status": "COMPLETED" if mesh_trend_passed and reaction_passed else "REJECTED", "checks": checks,
+        result = {"status": "COMPLETED" if (selected_mesh or mesh_trend_passed) and reaction_passed else "REJECTED", "checks": checks,
                   "metrics": metrics, "solver_status": "COMPLETED",
                   "converged": True,
                   "pending_validations": [kind for kind in _PENDING if kind != "reaction_balance"],
@@ -686,5 +725,7 @@ class FixtureCalculiXAdapter:
                                   "Tessellated surface-area loading approximates a uniform vertical traction, not measured roller contact.",
                                   "Averaged nodal peak stress is diagnostic only.",
                                   "Material allowables and physical evidence remain unknown."]}
+        if selected_mesh:
+            result["limitations"].extend([_MESH_NOT_ASSESSED, _NATIVE_COMPLETION])
         save_json(output / "result.json", result)
         return result

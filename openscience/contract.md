@@ -1,3 +1,15 @@
+## Explicit selected-mesh Core source boundary (ADR0035)
+
+Fixture adapter6 adds explicit Core input `mesh={mode:'selected',max_sizes_mm:[oneFinitePositiveSize]}`.
+Legacy no-mode2–8 inputs and numerical screens remain. Selected native observations
+retain finite data and signed reaction checks; sensitivity is invalid null/NOT_ASSESSED,
+with no mesh-independence PASS or additional mandatory sensitivity check. Common schemas,
+tools, numerical engines and engineering UNKNOWN/NOT_RELEASED semantics are unchanged.
+The historical official Research schema1/7 rejects any mesh.mode own property before
+Core; this new adapter option requires a separate trusted selected Research profile.
+Source review is in `benchmarks/records/20261005-fixture-selected-mesh-source-r01.json`.
+Actual public selected native/Research and same-record human field GUI are separate open gates.
+
 ## Explicit fixture refinement scope (ADR0034)
 
 The trusted runtime owner may select FixtureRefinement/schema7 with the existing

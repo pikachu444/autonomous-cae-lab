@@ -450,6 +450,30 @@ def test_field_requires_canonical_experiment_revision_mesh_and_input_identity(tm
         _extract(folder, **identity)
 
 
+def test_trusted_version6_keeps_complete_observation_and_parent_binding(tmp_path):
+    folder = _fixture_sources(tmp_path)
+    original = {path.name: path.read_bytes() for path in folder.iterdir()}
+    previous = _extract(folder)
+    current = _extract(folder, adapter_version="6")
+    assert previous["adapter_version"] == "5" and current["adapter_version"] == "6"
+    assert current["parent_experiment_id"] == "TEST_ONLY-parent" and current["cad_revision"] == REVISION
+    assert current["coverage"] == "ALL_MESH_NODES" and current["engineering_valid"] is False
+    previous["adapter_version"] = "6"
+    assert current == previous
+    assert {path.name: path.read_bytes() for path in folder.iterdir()} == original
+
+
+@pytest.mark.parametrize("version", [4, 5, 6, 7, True, None, "4", "7", "6.0", "", ["6"]])
+def test_untrusted_producer_version_is_refused_before_source_read(tmp_path, monkeypatch, version):
+    folder = _fixture_sources(tmp_path)
+    expected = field.capture_fixture_field_inputs(folder, 0)
+    def prohibited(_path):
+        pytest.fail("Invalid producer version reached native source read")
+    monkeypatch.setattr(field, "_read_bytes", prohibited)
+    with pytest.raises(ValueError, match="producer adapter version"):
+        _extract(folder, expected, adapter_version=version)
+
+
 @pytest.mark.parametrize("index,counts,probe", [(0, (7715, 123), 314), (1, (13259, 228), 183), (2, (31376, 438), 546)])
 def test_optional_legacy_saved_bytes_refuse_full_u_and_retain_probes(index, counts, probe):
     root = os.environ.get("CAELAB_TEST_LEGACY_FIXTURE_SIMULATION")

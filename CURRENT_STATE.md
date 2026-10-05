@@ -4,7 +4,7 @@ Use `docs/CAE_RESEARCH_EXECUTION_PLAN.md` as the single current work/status tabl
 Astra/high audit and detailed plan: `docs/reviews/20261005-astra-high/`.
 Verified clean-c94 actual connection/question/idle cleanup and fresh parent-CAD/stale-success UI: `benchmarks/records/20261005-cae-usability-live-r03.json`.
 S1/S2a bounded live gates PASS. S2b clean8c retained-mesh native replay/full7715-node U and independent Astra raw review PASS: `benchmarks/records/20261005-fixture-full-field-native-r01.json`. This is output-only, not Core registration; selected-mesh public contract/Research/field GUI and S3/U1 remain OPEN. Next: reviewed opt-in selected-mode source, then shared admission/actual public run/same-field GUI.
-User's mesh policy: no mandatory global/full-model mesh sweep; purpose-specific Domain checks and optional targeted sensitivity. ADR0035 preserves historical screens/thresholds; selected-mesh software mode is still OPEN.
+User's mesh policy: no mandatory global/full-model sweep; purpose-specific checks/optional targeted sensitivity. ADR0035/`benchmarks/records/20261005-fixture-selected-mesh-source-r01.json` bind reviewed adapter6 opt-in selected mode and frozen historical Research refusal. Root237PASS/3SKIP, actualPS11/Node24PASS, two Astra source reviews. Next: actual public stdioMCP/Core/native, then trusted selected Research and same-field human UI; these remain OPEN.
 All52/Phase1-7/UNKNOWN/NOT_RELEASED remain; new native producer8c exactCI37275234604 ended7SUCCESS/3FAIL, not whole CI PASS. New failed logs are retained; source-only and older c94 records stay historical.
 Goal BLOCKED/cause UNKNOWN; heartbeat ACTIVE separately. Two actual gate services were intentionally stopped after verification.
 

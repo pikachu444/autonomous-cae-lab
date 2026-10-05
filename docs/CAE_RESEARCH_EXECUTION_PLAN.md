@@ -45,9 +45,10 @@
 전체 U와 signed Uz, 체적, XYZ 반력·입력/단위/구속/하중 분포를 비교합니다. geometry가 바뀐 revision에는
 그 형상에 대응하는 mesh가 필요하지만, 전체 모델의 여러 mesh 재해석은 기본 사용자 완료 조건이 아닙니다.
 기존 human07의4/3/2mm와5% screen은 해당 benchmark 기록에만 남깁니다. peak stress는 invalid diagnostic입니다.
-현재 fixture adapter는2–8개의 mesh를 요구하므로 단일 mesh 연구 모드는 아직 OPEN입니다.
-S2b 전체 U 출력 보존을 통합한 다음 명시적인 opt-in 단일 mesh 계약을 순차 구현·검증하며,
-historical refinement descriptor/판정/수치 문턱을 바꾸거나 단일 mesh를 수렴 PASS로 만들지 않습니다.
+fixture adapter6은 명시적 `mesh={mode:'selected',max_sizes_mm:[4]}`의 단일 mesh 계약을 구현했습니다.
+무mode의 기존2–8개/5%/1% screen은 그대로입니다. 실제 공개 Core/native 실행과 사람 form/field GUI는 다음 gate입니다.
+기존 공식 Research schema1/7은 undeclared mode를 거부합니다. 별도 trusted selected profile을 다음 순차 단위로 연결하며,
+historical descriptor/판정/수치 문턱을 바꾸거나 단일 mesh를 수렴 PASS로 만들지 않습니다.
 후속150N 결과의 선형 비례를 raw 정밀도에 맞게 대조하고 조건 변경을 새 record로 보존합니다.
 기존 SciPy DE(population5/max_generations1/seed13)로 유효 응답을 쓰는 연구용 탐색을 실행합니다.
 budget 종료/`converged=false`/best observed를 최적해 확정과 구분합니다. DOE는 현재14-tool profile에 없습니다.
@@ -152,4 +153,15 @@ record: `benchmarks/records/20261005-fixture-full-field-native-r01.json`.
 version-only `ccx -v`의201을 드라이버가 실패로 처리한 첫 시도와 교정본을 모두 보존했습니다. native solve 실패가 아닙니다.
 정확한8c CI37275234604는7SUCCESS/3FAIL이며 explicit 설치404/Code_Aster/vectorPDE raw 실패 로그를 새로 보존했습니다.
 전체CI PASS가 아니고 후자 두 수치 실패의 깊은 원인은 아직 NOT_ISOLATED입니다.
-다음은 승인된5파일 selected-mode source 단위→Root의 공통 Research admission→실제 공개 실행/같은 field GUI입니다.
+다음 selected-mode source 단위는 아래에 보존했습니다. 공개 Core/native→공통 Research admission→같은 field GUI 순서입니다.
+
+## S2b 명시적 selected-mode source checkpoint
+
+새8파일 source 단위: adapter/helper/test5파일과 기존 Research scope를 보존하는 guard/test/filter3파일.
+기록 `benchmarks/records/20261005-fixture-selected-mesh-source-r01.json`, ADR0035 구현 checkpoint 참조.
+Root Primary237PASS/3optionalSKIP19.37s, actual PS11checks/JS parity·refusal24PASS0SKIP;
+각각 독립 Astra/high0P1/P2. 기존 source/descriptor/defaults/숫자 문턱을 보존했습니다.
+selected에서는 실제 관측 U와 force balance를 보존하고 민감도는 invalid null/NOT_ASSESSED로 남깁니다.
+새 필수 trend UNKNOWN이나 mesh-independence PASS를 만들지 않으며 observed valid는 강도/정확도 승인이 아닙니다.
+native 선형 solve completion의 기존 converged 의미도 별도로 기록하고 invalid stress/7UNKNOWN/NOT_RELEASED를 유지합니다.
+새 public Core/native 실행·공식 selected Research·사람 form/field GUI·S3/U1/all52는 아직 OPEN입니다.

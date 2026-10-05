@@ -51,7 +51,7 @@ foreach ($refinementSourceBadCase in @('fixturerefinement','FIXTUREREFINEMENT'))
 $refinementSourceBefore = $env:CAELAB_FIXTURE_REFINEMENT_DEFINITION_PATH
 try {
     $env:CAELAB_FIXTURE_REFINEMENT_DEFINITION_PATH = $refinementSourceDefinitionPath
-    & node --test --test-name-pattern='fixture refinement|research purpose|legacy native settings|research budget/runtime' (Join-Path $refinementSourceRoot 'openscience/tests/native_guard.test.mjs') 2>&1 |
+    & node --test --test-name-pattern='fixture refinement|historical fixture research|research purpose|legacy native settings|research budget/runtime' (Join-Path $refinementSourceRoot 'openscience/tests/native_guard.test.mjs') 2>&1 |
         Tee-Object -FilePath (Join-Path $refinementSourceOutput 'native-guard.log')
     $refinementSourceExit = $LASTEXITCODE
 } finally {

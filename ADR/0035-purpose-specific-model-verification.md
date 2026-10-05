@@ -1,6 +1,6 @@
 # ADR 0035: Purpose-specific verification without mandatory full-model mesh sweeps
 
-Date: 2026-10-05. Status: accepted planning/verification policy; single-mesh research implementation OPEN.
+Date: 2026-10-05. Status: accepted policy; explicit selected-mesh adapter source implemented/reviewed, actual public native/Research/GUI acceptance OPEN.
 
 ## Context and decision
 
@@ -31,7 +31,7 @@ establish mesh independence or turn an unobserved mesh check into PASS.
 
 ## Software boundary and implementation sequence
 
-Current `fixture.calculix` still requires2–8 descending sizes in both solve admission
+At the policy decision, `fixture.calculix` required2–8 descending sizes in both solve admission
 and per-mesh response construction. The current Research resource guard can admit a
 one-level request that this adapter rejects. This policy does not claim that gap is fixed.
 First retain native whole-node U output through the bounded adapter-owned S2b unit.
@@ -45,6 +45,25 @@ numerical candidates or author solver syntax. Core continues common operations a
 append-only evidence. Domain determines applicability/verdicts; adapters own native
 output/grammar. No current common schema, public tool or grant is changed by this ADR.
 Future admission changes require exact contract/source/native/UI review, not a doc PASS.
+
+## Implemented source checkpoint
+
+`benchmarks/records/20261005-fixture-selected-mesh-source-r01.json` binds the reviewed
+adapter6 opt-in `mesh={mode:'selected',max_sizes_mm:[oneFinitePositiveSize]}`.
+No-mode2–8 behavior/defaults/5% trend/1% signed RF remain. Selected observed U has
+an explicit unassessed-sensitivity reason; change ratio is invalid null and provenance
+NOT_ASSESSED. No fabricated trend PASS or mandatory sensitivity UNKNOWN is added.
+All native/identity/full-U/material/BC guards and seven engineering pending gates stay.
+Reaction failure remains REJECTED. Observed data validity is distinct from whole-run
+qualification; native completion converged semantics never establish mesh independence.
+
+Root's shared guard addition refuses any mesh.mode own property for historical
+schema1/7 Research. This prevents the new adapter opt-in silently entering those
+frozen intents; their descriptors/model/tools/backend/budgets/defaults stay unchanged.
+Core's explicit public adapter setting is separate from trusted Research admission.
+Root237PASS/3optionalSKIP; actualPS11/Node parity24PASS0SKIP; two bounded independent
+Astra/high source reviews0P1/P2. Actual selected Core/native, trusted Research profile,
+same-record human form/field GUI and recovery still require their separate gates.
 
 ## Alternatives, requirements and sources
 
