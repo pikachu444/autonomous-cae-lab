@@ -1,3 +1,8 @@
+## Current source checkpoint: B4 mode-aware optimization draft; actual search next
+
+Existing selected4mm defaults now require only mesh_0_reaction_balance and no invented physical displacement limit. Current declarations, explicit user inputs and separate CAD/model drafts are preserved; legacy virtual screen and Core gates are unchanged. Record benchmarks/records/20261006-fixture-search-controls-r01.json binds5 source hashes/554Node PASS/19 affected PASS and the independently closed target-switch defect. Actual numerical search is OPEN; next approved FixtureSelected run uses the retained150N study and existing DE5x1/seed13. Whole52/Phase1-7/physical UNKNOWN/NOT_RELEASED remain. Exactaf536 CI37364226485 attempt2 again failed to acquire a hosted Core runner (zero steps; sourceSUCCESS/8SKIP), not a new numerical failure. Actual B3 record remains published on main4c0d29f.
+
+---
 ## Current checkpoint: actual comparison interpretation and preserved human answer
 
 B3 retained-interpretation slice passed on clean `af536ecb13cdf00dac35096d12d4fd10b2f92890`/fresh run03: approved5.6Sol reads2 original experiment summaries with3 verified comparison records and answers the hypothetical defect/recovery question in Korean. Actual job Jc3c2d05bb5dc417ca4f194d85f072f7e; details/failed attempts/source/runtime hashes: `benchmarks/records/20261006-response-interpretation-r03.json`. No new native calculation or numerical candidate. Native producer8a1b345 and193-file/22671946B original/snapshots remain unchanged. Browser reload and new metadata HTTP controller preserve the exact answer without replay; manual8770 observer64829 is provider-free after owned STOPPED/foreground55338 exit0.

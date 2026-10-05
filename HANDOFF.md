@@ -1,3 +1,8 @@
+## Current source checkpoint: B4 mode-aware optimization draft; actual search next
+
+Existing selected4mm defaults now require only mesh_0_reaction_balance and no invented physical displacement limit. Current declarations, explicit user inputs and separate CAD/model drafts are preserved; legacy virtual screen and Core gates are unchanged. Record benchmarks/records/20261006-fixture-search-controls-r01.json binds5 source hashes/554Node PASS/19 affected PASS and the independently closed target-switch defect. Actual numerical search is OPEN; next approved FixtureSelected run uses the retained150N study and existing DE5x1/seed13. Whole52/Phase1-7/physical UNKNOWN/NOT_RELEASED remain. Exactaf536 CI37364226485 attempt2 again failed to acquire a hosted Core runner (zero steps; sourceSUCCESS/8SKIP), not a new numerical failure. Actual B3 record remains published on main4c0d29f.
+
+---
 ## Current checkpoint: actual same-record OpenScience interpretation; B4 numerical search next
 
 Clean producer `af536ecb13cdf00dac35096d12d4fd10b2f92890`, fresh `cae-response-interpretation-20261006-03`: the ordinary GUI question used approved5.6Sol/OAuth and the existing summary reader to read both retained Maxwell experiments and all3 verified comparisons. Actual Jc3c2d05bb5dc417ca4f194d85f072f7e/ses_ef2574b56ffeRPFGBJhmS9ILlA completed. Korean answer preserves the0.7995736614706965MPa difference,1.1s mismatch/null and distinguishes prescribed-strain stress relaxation from product displacement recovery. Source record and all4 protected stores each retain193files/22671946B unchanged; new solver runs0. Record: `benchmarks/records/20261006-response-interpretation-r03.json`.

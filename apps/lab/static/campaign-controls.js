@@ -1,6 +1,6 @@
 "use strict";
 
-// Prepare existing model-campaign API inputs; Core and the numerical engine own execution.
+// Prepare existing campaign inputs/defaults; Core and the numerical engine own execution.
 (function (root) {
   const inputId = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
   const storeId = /^[A-Za-z][A-Za-z0-9_-]{0,79}$/;
@@ -128,7 +128,41 @@
     }
     return { ...cloneJson(fields), backend: context.backend, settings: cloneJson(context.settings) };
   }
-  const api = { validateDiscovery, eligibleModelEntries, modelPlanArguments };
+  function fixtureOptimizationDefaults(analysisSettings) {
+    if (!mapping(analysisSettings) || !jsonValue(analysisSettings) || !own(analysisSettings, "mesh")) {
+      throw new Error("기존 지그 해석 설정의 유한한 JSON 메시 선언이 필요합니다.");
+    }
+    const mesh = analysisSettings.mesh;
+    if (!mapping(mesh)) throw new Error("지그 메시 설정을 명시하세요.");
+    // The adapter admits only explicit selected; an absent mode retains legacy refinement.
+    const selected = own(mesh, "mode");
+    if (!exactKeys(mesh, selected ? ["mode", "max_sizes_mm"] : ["max_sizes_mm"]) ||
+        (selected && mesh.mode !== "selected")) {
+      throw new Error("메시 모드는 selected만 명시할 수 있습니다. 기존 복수 메시 설정에는 mode가 없습니다.");
+    }
+    const sizes = mesh.max_sizes_mm;
+    if (!Array.isArray(sizes) || (selected ? sizes.length !== 1 : sizes.length < 2 || sizes.length > 8) ||
+        sizes.some((size) => !finite(size) || size <= 0) ||
+        sizes.some((size, index) => index > 0 && sizes[index - 1] <= size)) {
+      throw new Error("selected에는 양수 메시 크기 하나, 기존 복수 메시에는 큰 값부터 서로 다른 양수 2~8개가 필요합니다.");
+    }
+    return {
+      meshMode: selected ? "selected" : "refinement",
+      objective: { source: "analysis", metric: "max_displacement", unit: "mm", direction: "minimize" },
+      objectiveLabel: "하중 안장 절점 최대 |UZ|",
+      constraints: selected ? [] : [
+        { source: "analysis", metric: "max_displacement", unit: "mm", operator: "<=", limit: 0.0065, scale: 0.0065 },
+      ],
+      required_validations: { cad: [], analysis: [
+        ...(selected ? [] : ["displacement_mesh_trend"]),
+        ...sizes.map((_size, index) => `mesh_${index}_reaction_balance`),
+      ] },
+      note: selected ?
+        "선택한 단일 메시의 관측 응답입니다. 메시 민감도는 미평가이며 물리적 허용 변위는 자동으로 설정하지 않습니다." :
+        "0.0065 mm는 과거 가상 비교용 기준이며 실제 지그의 허용 변위나 제작 승인이 아닙니다. 기존 메시 추세·반력 검사는 유지합니다.",
+    };
+  }
+  const api = { validateDiscovery, eligibleModelEntries, modelPlanArguments, fixtureOptimizationDefaults };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.campaignControls = api;
 })(typeof window !== "undefined" ? window : globalThis);

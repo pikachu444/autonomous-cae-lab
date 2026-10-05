@@ -10,6 +10,8 @@ const state = {
   modelDiscovery: [], modelContext: "", modelRequest: 0,
   importedLevels: [], importedMeshError: null, importedRequest: 0, importedLoading: false,
   campaignSelections: new Map(), campaignSelectionKey: "", campaignDrafts: {}, campaignTarget: "cad", cadCampaignType: "doe",
+  fixtureCampaignDefaults: null,
+  fixtureCampaignEdited: { constraints: false, requirements: false },
   researchStatus: null, researchStatusError: null, researchStatusRequest: 0, researchLoading: false,
   researchHistory: new Map(), researchContexts: new Map(), researchSession: null,
   simulationDraft: null,
@@ -844,6 +846,32 @@ function fixtureSimulationSettings() {
   return $("fixtureConditionFields").hidden ? settings : window.fixtureControls.validate(settings);
 }
 function campaignOperation() { return isModelCampaign() ? "model_optimization_plan" : $("campaignType").value === "optimization" ? "optimization_plan" : "doe_plan"; }
+function applyFixtureCampaignDefaults() {
+  const note = $("fixtureCampaignNote"), previous = state.fixtureCampaignDefaults;
+  if (isModelCampaign()) { note.hidden = true; return; }
+  const enabled = Boolean($("campaignAnalysis").value);
+  $("campaignAnalysisDetails").hidden = !enabled;
+  note.hidden = !enabled;
+  if (!enabled) {
+    if (!state.fixtureCampaignEdited.constraints && previous && $("optimizationConstraints").value === previous.constraints) $("optimizationConstraints").value = "[]";
+    if (!state.fixtureCampaignEdited.requirements && previous && $("optimizationRequired").value === previous.requirements) $("optimizationRequired").value = pretty({ cad: previous.cad, analysis: [] });
+    state.fixtureCampaignDefaults = null;
+    return;
+  }
+  // Use the current declared settings, never a preset fallback or a hidden physical limit.
+  const defaults = window.campaignControls.fixtureOptimizationDefaults(parseField("campaignAnalysisSettings", "object"));
+  let requirements;
+  try { requirements = parseField("optimizationRequired", "object"); } catch { /* Preserve the editable user input. */ }
+  const managedRequirements = previous && $("optimizationRequired").value === previous.requirements;
+  const emptyAnalysis = requirements && Object.keys(requirements).length === 2 && Array.isArray(requirements.cad) &&
+    Array.isArray(requirements.analysis) && requirements.analysis.length === 0;
+  const cad = managedRequirements ? previous.cad : emptyAnalysis ? requirements.cad : [];
+  const next = { constraints: pretty(defaults.constraints), requirements: pretty({ cad, analysis: defaults.required_validations.analysis }), cad };
+  if (!state.fixtureCampaignEdited.constraints && ($("optimizationConstraints").value.trim() === "[]" || (previous && $("optimizationConstraints").value === previous.constraints))) $("optimizationConstraints").value = next.constraints;
+  if (!state.fixtureCampaignEdited.requirements && (managedRequirements || emptyAnalysis)) $("optimizationRequired").value = next.requirements;
+  note.textContent = `${defaults.objectiveLabel} · ${defaults.note} 사용자 제약과 필수 검사는 직접 편집할 수 있습니다.`;
+  state.fixtureCampaignDefaults = next;
+}
 function campaignTargetChanged() {
   const previous = state.campaignTarget;
   state.campaignDrafts[previous] = Object.fromEntries(["objectiveSource", "objectiveDirection", "objectiveMetric", "objectiveUnit", "optimizationConstraints", "optimizationInitial", "optimizationRequired"].map((id) => [id, $(id).value]));
@@ -857,6 +885,7 @@ function campaignTargetChanged() {
   $("declaredModelArea").hidden = !model; $("campaignCadAnalysis").hidden = model;
   $("objectiveSource").querySelectorAll("option").forEach((item) => { item.disabled = model ? item.value !== "model" : item.value === "model"; });
   campaignMode(); renderCampaignVariables();
+  try { applyFixtureCampaignDefaults(); } catch (error) { notify(error.message); }
 }
 function campaignMode() {
   const optimization = $("campaignType").value === "optimization";
@@ -2002,17 +2031,10 @@ $("modelDiscoverBtn").addEventListener("click", async () => {
     });
   } catch (error) { notify(error.message); }
 });
-$("campaignAnalysis").addEventListener("change", () => {
-  const analysis = Boolean($("campaignAnalysis").value); $("campaignAnalysisDetails").hidden = !analysis;
-  const defaultConstraints = pretty([{ source: "analysis", metric: "max_displacement", unit: "mm", operator: "<=", limit: 0.0065, scale: 0.0065 }]);
-  let sizes = state.presets.structural_linear?.settings?.mesh?.max_sizes_mm ?? [];
-  try { sizes = parseField("campaignAnalysisSettings", "object").mesh?.max_sizes_mm ?? sizes; } catch { /* Submission reports malformed JSON. */ }
-  const defaultRequirements = pretty({ cad: [], analysis: ["displacement_mesh_trend", ...sizes.map((_size, index) => `mesh_${index}_reaction_balance`)] });
-  if (analysis && $("optimizationConstraints").value.trim() === "[]") $("optimizationConstraints").value = defaultConstraints;
-  if (analysis && $("optimizationRequired").value.includes('"analysis": []')) $("optimizationRequired").value = defaultRequirements;
-  if (!analysis && $("optimizationConstraints").value === defaultConstraints) $("optimizationConstraints").value = "[]";
-  if (!analysis && $("optimizationRequired").value === defaultRequirements) $("optimizationRequired").value = '{"cad": [], "analysis": []}';
-});
+$("campaignAnalysis").addEventListener("change", () => { try { applyFixtureCampaignDefaults(); } catch (error) { notify(error.message); } });
+$("campaignAnalysisSettings").addEventListener("change", () => { try { applyFixtureCampaignDefaults(); } catch (error) { notify(error.message); } });
+$("optimizationConstraints").addEventListener("input", () => { if (!isModelCampaign()) state.fixtureCampaignEdited.constraints = true; });
+$("optimizationRequired").addEventListener("input", () => { if (!isModelCampaign()) state.fixtureCampaignEdited.requirements = true; });
 $("objectiveSource").addEventListener("change", () => {
   if (isModelCampaign()) return;
   $("objectiveMetric").value = $("objectiveSource").value === "analysis" ? "max_displacement" : "cad_volume";

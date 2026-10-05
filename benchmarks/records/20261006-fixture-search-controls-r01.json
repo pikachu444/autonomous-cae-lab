@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "status": "SOURCE_CONTROLS_PASS_ACTUAL_B4_PENDING",
+  "source_parent_commit": "4c0d29f5b243e9003c8ad46b66c125f3b72a71ec",
+  "dirty_at_controls": true,
+  "unit": "B4 fixture optimization draft defaults match the declared selected or historical multi-mesh mode",
+  "code_files": [
+    {
+      "path": "apps/lab/static/campaign-controls.js",
+      "bytes": 12266,
+      "raw_sha256": "cd6849a3902327a2e120849dd67ea0e64c52a2ad85df8c042abb47136f383174",
+      "lf_sha256": "cd6849a3902327a2e120849dd67ea0e64c52a2ad85df8c042abb47136f383174"
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "bytes": 167915,
+      "raw_sha256": "8a036798bbb7a70a5d9c1d43402da29a831ff289173c76b7eb79c7866d623218",
+      "lf_sha256": "df025045e23b4d18c3c7d185dc6fc56b4c13a0d413d3c28166049f9221cb064b"
+    },
+    {
+      "path": "apps/lab/static/index.html",
+      "bytes": 39269,
+      "raw_sha256": "d8c068b7ab89dff998cdafc8c843102ba47d5eecbf951f7e1b56f30449bdb990",
+      "lf_sha256": "022be3750cb76db440f6f1ea0b19cc8e517483df995ceff95247b5603a2b4b3a"
+    },
+    {
+      "path": "tests/test_campaign_controls.js",
+      "bytes": 19774,
+      "raw_sha256": "0c263497e778b163ac8ea82ce2dec4ef0f495243cdff3010e671f05c978bd62b",
+      "lf_sha256": "0c263497e778b163ac8ea82ce2dec4ef0f495243cdff3010e671f05c978bd62b"
+    },
+    {
+      "path": "tests/test_fixture_optimization_handoff.js",
+      "bytes": 6547,
+      "raw_sha256": "e57152423e4437a77bf9790ba0c1068643fd6296473b293c2d0fccf28f54b9a7",
+      "lf_sha256": "e57152423e4437a77bf9790ba0c1068643fd6296473b293c2d0fccf28f54b9a7"
+    }
+  ],
+  "controls": {
+    "node_final_pass": 554,
+    "node_affected_pass": 19,
+    "proof": "artifacts/fixture-width-search-20261006-01",
+    "native_runs": 0,
+    "provider_runs": 0
+  },
+  "independent_review": {
+    "reviewer": "existing field_kernel_publication_review",
+    "corrected": "Model-target edits previously contaminated CAD automatic-default ownership, preserving obsolete trend checks on a later selected-mode handoff",
+    "closure": "READ_ONLY_BOUNDED_PASS; target-switch regression19PASS included"
+  },
+  "decision": "NOT_RELEASED",
+  "physical_validation": "UNKNOWN",
+  "scope": "No Core, Domain, adapter threshold, canonical profile or numerical-engine change",
+  "selected": {
+    "constraints": [],
+    "required_analysis": [
+      "mesh_0_reaction_balance"
+    ],
+    "objective_response": "loaded saddle node maximum |UZ|, mm; not full-field |U|"
+  },
+  "legacy": {
+    "historical_screen_mm": 0.0065,
+    "qualification": "VIRTUAL SCREEN, NOT PHYSICAL LIMIT",
+    "existing_mesh_trend_and_all_reactions_preserved": true
+  },
+  "preserved": "Explicit user constraints/requirements including empty constraints, CAD checks, model/CAD drafts and baseline results",
+  "actual_b4": "OPEN; fresh retained119file/35392424B copy, existing FixtureSelected/schema8 profile; no numerical candidates or provider question yet",
+  "exact_af536_ci": {
+    "run": 37364226485,
+    "attempt": 2,
+    "source_job": "SUCCESS",
+    "core": "CANCELLED with zero steps: hosted runner not acquired",
+    "dependent": "8SKIPPED",
+    "inference": "INFRASTRUCTURE, not a numerical solver verdict"
+  },
+  "next": "Same150N/selected4mm/registered width28..60mm deterministic SciPy DE population5/generation1/seed13, best observed/budget not a certified optimum"
+}

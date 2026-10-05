@@ -5,7 +5,7 @@ const assert = require("node:assert/strict");
 const { readFileSync } = require("node:fs");
 const vm = require("node:vm");
 const controls = require("../apps/lab/static/campaign-controls.js");
-const { validateDiscovery, eligibleModelEntries, modelPlanArguments } = controls;
+const { validateDiscovery, eligibleModelEntries, modelPlanArguments, fixtureOptimizationDefaults } = controls;
 const backend = "test.declared_model";
 const revision = "a".repeat(64), source = "d".repeat(64);
 const copy = (value) => structuredClone(value);
@@ -48,11 +48,12 @@ test("actual Candidate shape is returned unchanged through Node and browser UMD 
   const candidates = freeze(discovery()), before = JSON.stringify(candidates);
   assert.strictEqual(validateDiscovery(candidates, backend), candidates);
   assert.equal(JSON.stringify(candidates), before);
-  assert.deepEqual(Object.keys(controls).sort(), ["eligibleModelEntries", "modelPlanArguments", "validateDiscovery"]);
+  assert.deepEqual(Object.keys(controls).sort(), ["eligibleModelEntries", "fixtureOptimizationDefaults", "modelPlanArguments", "validateDiscovery"]);
   const browser = { window: {} };
   vm.runInNewContext(readFileSync(require.resolve("../apps/lab/static/campaign-controls.js"), "utf8"), browser);
   assert.deepEqual(Object.keys(browser.window.campaignControls).sort(), Object.keys(controls).sort());
   assert.equal(typeof browser.window.campaignControls.modelPlanArguments, "function");
+  assert.equal(typeof browser.window.campaignControls.fixtureOptimizationDefaults, "function");
 });
 
 test("discovery refuses missing, malformed, mixed or invented native input identities without mutation", () => {
@@ -194,4 +195,100 @@ test("existing seed, budget, selector and initial-value limits are checked witho
       required_validations: { model: [] }, constraints: [] };
     assert.deepEqual(modelPlanArguments(input, context()), { ...input, backend, settings: context().settings });
   }
+});
+
+function fixtureSettings(mesh = { mode: "selected", max_sizes_mm: [4] }) {
+  return { load: { force_per_support_N: 150, source: "TEST_ONLY hypothetical signed -Z saddle load" },
+    material: { model: "isotropic", E_MPa: 210000, nu: 0.3, qualification: "HYPOTHETICAL_UNQUALIFIED" },
+    mesh, metadata: { signed_value: -0.00003, unit: "mm", unchanged: [true, null] } };
+}
+
+test("selected-mesh defaults address existing reaction validation without demanding absent mesh evidence or a physical limit", () => {
+  const settings = freeze(fixtureSettings()), before = JSON.stringify(settings);
+  const defaults = fixtureOptimizationDefaults(settings);
+  // TEST_ONLY selected-output shape: no mesh-trend verdict, invalid sensitivity and stress are retained.
+  const selectedOutput = freeze({ metrics: {
+    max_displacement: { value: 0.0098, unit: "mm", valid: true },
+    displacement_mesh_change_ratio: { value: null, unit: "1", valid: false },
+    peak_stress: { value: 7, unit: "MPa", valid: false },
+    whole_field_norm: { value: 0.012, unit: "mm", valid: true },
+  }, validations: [{ type: "mesh_0_reaction_balance", status: "PASS", limit: 0.01 },
+    { type: "material_qualification", status: "UNKNOWN" }], decision: "NOT_RELEASED" });
+  const outputBefore = JSON.stringify(selectedOutput);
+  assert.equal(defaults.meshMode, "selected");
+  assert.deepEqual(defaults.required_validations, { cad: [], analysis: ["mesh_0_reaction_balance"] });
+  assert.equal(defaults.required_validations.analysis.every((name) => selectedOutput.validations.some((item) =>
+    item.type === name && item.status === "PASS")), true);
+  assert.deepEqual(defaults.constraints, []); // 0.0098 > the historical 0.0065 screen must not introduce a selected constraint.
+  assert.deepEqual(defaults.objective, { source: "analysis", metric: "max_displacement", unit: "mm", direction: "minimize" });
+  assert.equal(selectedOutput.metrics[defaults.objective.metric].value, 0.0098);
+  assert.notEqual(selectedOutput.metrics[defaults.objective.metric].value, selectedOutput.metrics.whole_field_norm.value);
+  assert.match(defaults.objectiveLabel, /안장.*\|UZ\|/);
+  assert.match(defaults.note, /민감도.*미평가/); assert.match(defaults.note, /물리적 허용 변위.*설정하지/);
+  assert.equal(JSON.stringify(selectedOutput), outputBefore); assert.equal(JSON.stringify(settings), before);
+});
+
+test("legacy refinement retains every existing numerical requirement and explicitly qualifies the historical virtual screen", () => {
+  for (const sizes of [[4, 2], [4, 3, 2], [8, 7, 6, 5, 4, 3, 2, 1]]) {
+    const settings = freeze(fixtureSettings({ max_sizes_mm: sizes })), before = JSON.stringify(settings);
+    const defaults = fixtureOptimizationDefaults(settings);
+    assert.equal(defaults.meshMode, "refinement");
+    assert.deepEqual(defaults.required_validations.analysis, ["displacement_mesh_trend",
+      ...Array.from({ length: sizes.length }, (_value, index) => `mesh_${index}_reaction_balance`)]);
+    assert.deepEqual(defaults.required_validations.cad, []);
+    assert.deepEqual(defaults.constraints, [
+      { source: "analysis", metric: "max_displacement", unit: "mm", operator: "<=", limit: 0.0065, scale: 0.0065 },
+    ]);
+    assert.match(defaults.note, /0\.0065 mm.*과거 가상/); assert.match(defaults.note, /제작 승인이 아닙니다/);
+    assert.equal(Object.hasOwn(settings.mesh, "mode"), false); assert.equal(JSON.stringify(settings), before);
+  }
+});
+
+test("malformed modes and mesh declarations are refused rather than falling back to a usable plan", () => {
+  for (const mode of ["refinement", "SELECTED", " selected", "selected ", "", null, false, 0, [], {}]) {
+    const settings = fixtureSettings({ mode, max_sizes_mm: [4] }), before = JSON.stringify(settings);
+    assert.throws(() => fixtureOptimizationDefaults(settings)); assert.equal(JSON.stringify(settings), before);
+  }
+  for (const mesh of [null, [], {}, { mode: "selected" }, { mode: "selected", max_sizes_mm: [] },
+    { mode: "selected", max_sizes_mm: [4, 2] }, { max_sizes_mm: [4] },
+    { max_sizes_mm: Array.from({ length: 9 }, (_item, index) => 10 - index) },
+    { max_sizes_mm: [2, 4] }, { max_sizes_mm: [4, 4] },
+    { mode: "selected", max_sizes_mm: ["4"] }, { mode: "selected", max_sizes_mm: [true] },
+    { mode: "selected", max_sizes_mm: [0] }, { mode: "selected", max_sizes_mm: [-4] },
+    { mode: "selected", max_sizes_mm: [NaN] }, { mode: "selected", max_sizes_mm: [Infinity] },
+    { mode: "selected", max_sizes_mm: [4], extra: "undeclared" }]) {
+    assert.throws(() => fixtureOptimizationDefaults(fixtureSettings(mesh)));
+  }
+  for (const settings of [null, [], {}, { mesh: { max_sizes_mm: [4, 2] }, other: Infinity }]) {
+    assert.throws(() => fixtureOptimizationDefaults(settings));
+  }
+});
+
+test("default calculation does not read accessors, inherited declarations or sparse/non-JSON settings", () => {
+  const settings = fixtureSettings(); let reads = 0;
+  Object.defineProperty(settings.mesh, "mode", { enumerable: true, get() { reads += 1; return "selected"; } });
+  assert.throws(() => fixtureOptimizationDefaults(settings)); assert.equal(reads, 0);
+  assert.throws(() => fixtureOptimizationDefaults(Object.create({ mesh: { mode: "selected", max_sizes_mm: [4] } })));
+  const sparse = fixtureSettings({ mode: "selected", max_sizes_mm: new Array(1) });
+  assert.throws(() => fixtureOptimizationDefaults(sparse));
+  const cyclic = fixtureSettings(); cyclic.metadata.loop = cyclic;
+  assert.throws(() => fixtureOptimizationDefaults(cyclic));
+});
+
+test("fresh defaults can be edited without mutating the original settings, other plans or existing parameter bounds", () => {
+  const settings = freeze(fixtureSettings()), before = JSON.stringify(settings);
+  const first = fixtureOptimizationDefaults(settings), second = fixtureOptimizationDefaults(settings);
+  first.objective.metric = "whole_field_norm"; first.required_validations.analysis.push("invented");
+  first.required_validations.cad.push("invented"); first.constraints.push({ limit: 1 });
+  assert.equal(second.objective.metric, "max_displacement");
+  assert.deepEqual(second.required_validations, { cad: [], analysis: ["mesh_0_reaction_balance"] });
+  assert.deepEqual(second.constraints, []); assert.equal(JSON.stringify(settings), before);
+  const oldPlan = freeze(fields()), oldContext = freeze(context());
+  assert.deepEqual(modelPlanArguments(oldPlan, oldContext), { ...oldPlan, backend, settings: oldContext.settings });
+  const outsideBounds = fields(); outsideBounds.initial_values.research_E = 99000;
+  assert.throws(() => modelPlanArguments(outsideBounds, oldContext));
+  assert.equal("settings" in second, false); assert.equal("parameter_ids" in second, false);
+  const legacy = fixtureSettings({ max_sizes_mm: [4, 2] });
+  const editedLegacy = fixtureOptimizationDefaults(legacy); editedLegacy.constraints[0].limit = 999;
+  assert.equal(fixtureOptimizationDefaults(legacy).constraints[0].limit, 0.0065);
 });
