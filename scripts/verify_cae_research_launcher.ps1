@@ -269,6 +269,7 @@ Invoke-LauncherControl 'interrupt_exit_is_distinct_from_normal_exit_and_cleanup'
 
 # Exercise the real candidate Lab facade with a inert local.ps1 that records
 # its Python argv. Only the pure path helper is provided for Windows mapping.
+$taskExpectedHostBridgeWsl = '/mnt/' + $PSHOME.Substring(0,1).ToLowerInvariant() + '/' + (Join-Path $PSHOME 'pwsh.exe').Substring(3).Replace('\', '/')
 $taskLocalStub = @'
 param([string[]]$PythonArgs)
 $PythonArgs | ConvertTo-Json | Set-Content -LiteralPath (Join-Path (Split-Path -Parent $PSScriptRoot) 'lab-argv.json')
@@ -293,7 +294,7 @@ Invoke-LauncherControl 'real_facade_composition_maps_same_windows_store_and_owne
     $exit = & $taskRealLabCall -Context $context -LabPort 8785
     $argv = Read-OpenScienceJson (Join-Path $taskLabStubRoot 'lab-argv.json')
     $expectedStore = '/mnt/c/' + $context.StoreRoot.Substring(3).Replace('\', '/')
-    Confirm-LauncherControl ($exit -eq 0 -and (@($argv) -join '|') -ceq "-m|apps.lab|--store|$expectedStore|--port|8785|--openscience-owner|/mnt/c/Synthetic Local/runtime-owner.json") 'Composed facade mixed Windows and WSL store identity or captured foreground output as exit code.'
+    Confirm-LauncherControl ($exit -eq 0 -and (@($argv) -join '|') -ceq "-m|apps.lab|--store|$expectedStore|--port|8785|--openscience-owner|/mnt/c/Synthetic Local/runtime-owner.json|--openscience-powershell|$taskExpectedHostBridgeWsl") 'Composed facade mixed store/owner/host executable identity or captured foreground output as exit code.'
 }
 Invoke-LauncherControl 'lab_facade_without_owner_preserves_default_saved_result_route' {
     & $taskVerifyLab -RepoRoot $taskLabStubRoot -Store 'runs/new-store' -Port 8783 -WithoutHistory | Out-Host
@@ -306,7 +307,7 @@ foreach ($case in @(@('windows_owner_with_spaces_is_mapped_without_port_clobber'
     Invoke-LauncherControl $label {
         & $taskVerifyLab -RepoRoot $taskLabStubRoot -Store 'runs/shared-store' -Port 8784 -WithoutHistory -OpenScienceOwner $path | Out-Host
         $argv = Read-OpenScienceJson (Join-Path $taskLabStubRoot 'lab-argv.json')
-        Confirm-LauncherControl ((@($argv) -join '|') -ceq "-m|apps.lab|--store|runs/shared-store|--port|8784|--openscience-owner|$expected") 'Owner path or selected foreground store/port changed.'
+        Confirm-LauncherControl ((@($argv) -join '|') -ceq "-m|apps.lab|--store|runs/shared-store|--port|8784|--openscience-owner|$expected|--openscience-powershell|$taskExpectedHostBridgeWsl") 'Owner, existing host PowerShell or selected foreground store/port changed.'
     }
 }
 foreach ($path in @('relative-owner.json', '/home/user/runtime-owner.json', '/mnt/c/../runtime-owner.json', "C:\Synthetic`nowner.json")) {
@@ -315,6 +316,30 @@ foreach ($path in @('relative-owner.json', '/home/user/runtime-owner.json', '/mn
         $null = Get-LauncherRefusal { & $taskVerifyLab -RepoRoot $taskLabStubRoot -WithoutHistory -OpenScienceOwner $path }
         Confirm-LauncherControl ((Get-OpenScienceHash (Join-Path $taskLabStubRoot 'lab-argv.json')) -ceq $before) 'Unsafe owner reached the foreground runner.'
     }
+}
+
+# A fake file is path-admission data only. The inert local runner never invokes it.
+$taskHostStubDirectory = Join-Path $taskVerifyEvidence 'existing host with spaces'
+New-Item -ItemType Directory -Path $taskHostStubDirectory | Out-Null
+$taskHostStub = Join-Path $taskHostStubDirectory 'pwsh.exe'
+[IO.File]::WriteAllText($taskHostStub, 'Inert existing-host admission fixture; never execute.')
+Invoke-LauncherControl 'explicit_existing_host_powershell_with_spaces_is_forwarded_exactly' {
+    & $taskVerifyLab -RepoRoot $taskLabStubRoot -Store 'runs/shared-store' -Port 8784 -WithoutHistory -OpenScienceOwner 'C:\Synthetic Local\runtime-owner.json' -OpenSciencePowerShell $taskHostStub | Out-Host
+    $argv = Read-OpenScienceJson (Join-Path $taskLabStubRoot 'lab-argv.json')
+    $expectedHost = '/mnt/' + $taskHostStub.Substring(0,1).ToLowerInvariant() + '/' + $taskHostStub.Substring(3).Replace('\', '/')
+    Confirm-LauncherControl ((@($argv) -join '|') -ceq "-m|apps.lab|--store|runs/shared-store|--port|8784|--openscience-owner|/mnt/c/Synthetic Local/runtime-owner.json|--openscience-powershell|$expectedHost") 'Explicit existing host executable changed before WSL handoff.'
+}
+foreach ($taskHostBad in @((Join-Path $taskVerifyEvidence 'missing/pwsh.exe'),'relative/pwsh.exe',"C:\Synthetic`nHost\pwsh.exe",(Join-Path $taskHostStubDirectory 'cmd.exe'))) {
+    Invoke-LauncherControl ('invalid_host_powershell_is_refused_' + $taskVerifyChecks.Count) {
+        $before = Get-OpenScienceHash (Join-Path $taskLabStubRoot 'lab-argv.json')
+        $null = Get-LauncherRefusal { & $taskVerifyLab -RepoRoot $taskLabStubRoot -WithoutHistory -OpenScienceOwner 'C:\Synthetic Local\runtime-owner.json' -OpenSciencePowerShell $taskHostBad }
+        Confirm-LauncherControl ((Get-OpenScienceHash (Join-Path $taskLabStubRoot 'lab-argv.json')) -ceq $before) 'Invalid host executable reached the foreground runner.'
+    }
+}
+Invoke-LauncherControl 'host_executable_without_research_owner_is_refused' {
+    $before = Get-OpenScienceHash (Join-Path $taskLabStubRoot 'lab-argv.json')
+    $null = Get-LauncherRefusal { & $taskVerifyLab -RepoRoot $taskLabStubRoot -WithoutHistory -OpenSciencePowerShell $taskHostStub }
+    Confirm-LauncherControl ((Get-OpenScienceHash (Join-Path $taskLabStubRoot 'lab-argv.json')) -ceq $before) 'An owner-free Lab unexpectedly admitted a Research host.'
 }
 
 $taskVerifySourcePinAfter = Get-OpenScienceRepositorySourcePin -RepoRoot $taskVerifySource

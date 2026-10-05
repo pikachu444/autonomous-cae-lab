@@ -4,16 +4,21 @@ param(
     [switch]$WithoutHistory,
     # Trusted startup configuration only; the browser cannot choose an owner.
     [string]$OpenScienceOwner,
+    # Host executable for the existing read-only owner/research facade.
+    [string]$OpenSciencePowerShell,
     [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot)
 )
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath($RepoRoot)
+if ($OpenSciencePowerShell -and -not $OpenScienceOwner) {
+    throw 'A research host PowerShell path requires the configured research owner.'
+}
 $arguments = @('-m', 'apps.lab', '--store', $Store, '--port', "$Port")
 if ($OpenScienceOwner) {
     # The Lab runs in WSL. Its existing bridge reads Windows owner bytes through
     # the host facade, so admit only absolute Windows or mounted-drive paths.
-    $ownerWslPath = & {
+    $toLabMountedPath = {
         param([string]$LabOwnerPath, [string]$LabSourceRoot)
         if ($LabOwnerPath -match '[\r\n\x00]') { throw 'The research owner must be a single local path.' }
         if ($LabOwnerPath -cmatch '^/mnt/([a-zA-Z])/(.+)$') {
@@ -29,8 +34,18 @@ if ($OpenScienceOwner) {
         # Isolate dot-sourced runner parameters from this launcher's Port/Store.
         . (Join-Path $LabSourceRoot 'scripts/openscience-server-local.ps1') -Library
         ConvertTo-OpenScienceWslPath $LabOwnerPath
-    } $OpenScienceOwner $projectRoot
-    $arguments += @('--openscience-owner', $ownerWslPath)
+    }
+    $ownerWslPath = & $toLabMountedPath $OpenScienceOwner $projectRoot
+    # Lab's former default C:/Program Files/PowerShell/7 path is not present
+    # on every host. Reuse this existing Windows PowerShell7 process by default.
+    $hostPowerShell = if ($OpenSciencePowerShell) { $OpenSciencePowerShell } else { Join-Path $PSHOME 'pwsh.exe' }
+    if ($hostPowerShell -notmatch '^[A-Za-z]:[\\/]' -or $hostPowerShell -match '[\r\n\x00]' -or
+        [IO.Path]::GetFileName($hostPowerShell) -ine 'pwsh.exe' -or
+        -not (Test-Path -LiteralPath $hostPowerShell -PathType Leaf)) {
+        throw 'Use the existing absolute Windows PowerShell7 pwsh.exe path for the research bridge.'
+    }
+    $hostPowerShellWslPath = & $toLabMountedPath $hostPowerShell $projectRoot
+    $arguments += @('--openscience-owner', $ownerWslPath, '--openscience-powershell', $hostPowerShellWslPath)
 }
 if (-not $WithoutHistory) {
     # Explicit historical roots; the browser cannot supply filesystem paths.

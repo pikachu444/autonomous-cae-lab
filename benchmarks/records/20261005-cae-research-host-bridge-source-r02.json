@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.cae-research-host-transport-correction",
+  "recorded_utc": "2026-10-05T05:45:45.4416526Z",
+  "verdict": "PASS_BOUNDED_SOURCE_CORRECTION",
+  "user_service_acceptance": "OPEN",
+  "source_parent": "c21bc317da24159dce8c6abda3e180bd27177d7b",
+  "fixture_head": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "actual_attempt": {
+    "run": "cae-research-usability-20261005-01",
+    "source_commit": "c21bc317da24159dce8c6abda3e180bd27177d7b",
+    "owned_runtime_ready": true,
+    "lab_http_ready": true,
+    "research_available": false,
+    "question_submitted": false,
+    "solver_run": false,
+    "default_host_powershell_present": false,
+    "cause": "Lab did not receive existing host PowerShell7 path; missing default prevented read-only owner transport",
+    "classification": "LAUNCHER_HOST_PATH_INTEGRATION_DEFECT"
+  },
+  "actual_cleanup": {
+    "root_session": 7973,
+    "idle_control_c_sent": true,
+    "foreground_exit": 0,
+    "facade_state": "LAB_EXITED",
+    "runtime_state": "STOPPED",
+    "active_job_native_cancel": "NOT_RUN"
+  },
+  "correction": "Owner-bound trusted lab facade forwards --openscience-powershell using the existing PSHOME/pwsh.exe by default; existing absolute Windows pwsh.exe required; owner-free extra host refused. No install/auth/model replacement.",
+  "source_files": [
+    {
+      "path": "scripts/lab-local.ps1",
+      "sha256": "72588fc0b9267de15be93e278d7f80d463b745dd476f55755382ac9a0355c47b",
+      "bytes": 3788
+    },
+    {
+      "path": "scripts/verify_cae_research_launcher.ps1",
+      "sha256": "9c813c3922cd1de35ac0dfba4a962362faf7ffd5a22eacf9db711f0c62237010",
+      "bytes": 28160
+    }
+  ],
+  "unchanged_facade_sha256": "db2898c6497ad497105f86e0beb4dfb178d29113c0ad900ebe1248caa1a0a13b",
+  "root_controls": {
+    "pass": 41,
+    "fail": 0,
+    "source_head": "c21bc317da24159dce8c6abda3e180bd27177d7b",
+    "source_dirty": [],
+    "source_snapshots": [
+      {
+        "path": "SOURCE-PIN-BEFORE.json",
+        "sha256": "fae4ee1946fe62acaa01fd1efd5bc070f52d14cce8e05f29ef8301250d808228"
+      },
+      {
+        "path": "SOURCE-PIN-AFTER.json",
+        "sha256": "fae4ee1946fe62acaa01fd1efd5bc070f52d14cce8e05f29ef8301250d808228"
+      }
+    ],
+    "real_runtime_provider_solver_lab_calls": 0
+  },
+  "independent": {
+    "model": "gpt-6-astra",
+    "effort": "high",
+    "verdict": "BOUNDED_SOURCE_ONLY_PASS",
+    "open_p1": 0,
+    "open_p2": 0,
+    "receipt_sha256": "6f1e88fdd06b2786d8fdbd52920eff67f48f2ac43a76cb440aa3a54cfc242499",
+    "test_rerun": 0
+  },
+  "preserved": "Original failed new run, raw owner and idle stop record; all8protected native bytes;52ledger rows; thresholds/UNKNOWN/invalid stress/NOT_RELEASED.",
+  "retention": "Selected raw receipts retained locally in ignored artifacts; no authentication contents committed.",
+  "evidence": [
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/usability-source-integration-root-01/LIVE-ATTEMPT-01.json",
+      "sha256": "47458ef2512bde44f8a16ed1609e55c30dbb5739055ae8777ebede48444c2ce1",
+      "bytes": 997
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/usability-source-integration-root-01/LIVE-STOP-01.json",
+      "sha256": "6196ab2acaafb7c4548a968a2f74cb7460bbe8244de4a84679099f4a8dd29476",
+      "bytes": 632
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/host-bridge-correction-root-01/staging/verify-root-01/RECEIPT.json",
+      "sha256": "76c187cb6a010a046a724501f446f5fee6bad99b8a5fabe9c22a4867a9ad88f6",
+      "bytes": 6556
+    },
+    {
+      "path": "artifacts/development-cae-usability-audit-20261005-01/host-bridge-review-astra-01/RECEIPT.json",
+      "sha256": "6f1e88fdd06b2786d8fdbd52920eff67f48f2ac43a76cb440aa3a54cfc242499",
+      "bytes": 531
+    }
+  ],
+  "next": "Clean-source NEWrun02 actual Research availability/question/cleanup, same-record GUI, then S2b/S3/U1. Corrected live readiness not yet qualified.",
+  "exact_parent_ci": {
+    "source_commit": "c21bc317da24159dce8c6abda3e180bd27177d7b",
+    "run_id": 37267983642,
+    "observed_status": "queued",
+    "conclusion": null,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37267983642"
+  },
+  "engineering_decision": "NOT_RELEASED"
+}

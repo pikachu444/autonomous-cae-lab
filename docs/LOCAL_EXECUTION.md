@@ -9,6 +9,7 @@ The source-reviewed foreground entry point is:
 
 It reuses approved ChatGPT/`openai-codex/gpt-5.6-sol`, existing OpenScience2.0.146,
 canonical FixtureRefinement/schema7/fourteen tools, new store/profile, and the same owned Research+Lab binding.
+The owner-bound Lab also forwards the existing Windows PowerShell7 executable into WSL; its ProgramFiles default is not assumed.
 Default local path settings: `%LOCALAPPDATA%\AutonomousCAELab\cae-research-settings.json`;
 schema1 has only runtime_prefix, auth_profile_root and project_binding_path. No credentials belong in Git.
 No new login/model/provider is selected. A reused output path is rejected. Ctrl+C is the intended foreground exit.

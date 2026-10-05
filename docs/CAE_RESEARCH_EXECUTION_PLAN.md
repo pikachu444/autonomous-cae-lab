@@ -88,3 +88,11 @@ new-store one-action Start/Question/Stop plus fresh same-record GUI. S2b fields 
 Previous exact bff CI37265205047 closed7success/3failure: explicit official download404, Aster Fz numerical
 classification and vector PDE classification. Raw failed logs retained; deeper numeric causes UNKNOWN.
 No previous CI or source-only gate is promoted to current full service/solver/engineering acceptance.
+## S1 actual attempt01 and bounded host-path correction
+
+Clean c21bc317/new cae-research-usability-20261005-01 actually started owned OpenScience4096 and Lab8766.
+Research remained UNAVAILABLE: the default ProgramFiles PowerShell7 path is absent on this computer.
+The host facade now forwards the existing PSHOME/pwsh.exe through the existing CLI argument. No installation/auth/model changed.
+Root41mock controls and independent Astra/high source review PASS; exact idle Ctrl+C/foreground0/ownedSTOPPED is retained.
+This is not a connected-question or active-job cancel PASS. Preserve run01 and require NEWrun02 with clean corrected source.
+Record: `benchmarks/records/20261005-cae-research-host-bridge-source-r02.json`. S2b/S3/U1 remain OPEN.

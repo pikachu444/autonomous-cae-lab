@@ -3,7 +3,8 @@
 Use `docs/CAE_RESEARCH_EXECUTION_PLAN.md` as the single current work/status table.
 Astra/high audit and detailed plan: `docs/reviews/20261005-astra-high/`.
 Source-only startup/result improvements: `benchmarks/records/20261005-cae-usability-source-r01.json`.
-Actual Start/Question/Stop, fresh GUI, S2b fields and S3 recovery/U1 remain OPEN; whole52/Phase1-7/NOT_RELEASED unchanged.
+Latest actual idle Start/Stop found a host path integration defect; reviewed correction: `benchmarks/records/20261005-cae-research-host-bridge-source-r02.json`. New connected-question acceptance remains OPEN.
+Actual connected Question, fresh GUI, S2b fields and S3 recovery/U1 remain OPEN; whole52/Phase1-7/NOT_RELEASED unchanged.
 Goal control was BLOCKED at05:13:57Z, cause UNKNOWN; prior ACTIVE is historical. Heartbeat ACTIVE is separate.
 
 ---
