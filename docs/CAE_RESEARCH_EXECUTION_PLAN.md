@@ -6,6 +6,16 @@
 상세 계획에는 단계별 개발·수치 검증·사용자 인계 기준, 의존성, R01–R52 매핑과 추정 자원이 있습니다.
 집중 작업일 추정은 완료 약속이 아닙니다. actual run 비용을 측정해 조정합니다.
 
+## 사용자 지시와 전체 시스템 감수 반영 — 2026-10-05
+
+Root가 [전체 시스템·전달 방식 후속 의견](reviews/20261005-astra-high/SYSTEM-DELIVERY-REVIEW-02.md)을 읽고 채택했습니다.
+사용자가 요청한 Astra 감수는 전체 구성·실제 CAE 연구 사용성·Root의 작업 방식입니다. 작은 수정마다 새 Astra 승인을 기다리지 않습니다.
+Root가 영향 검사·통합·기본 화면 사용을 책임지고, 중요한 공통 경계와 완성된 연구 흐름/대표 수치 결과를 독립 검토합니다.
+현재 작은 GUI 교정을 한 묶음으로 마치고, 짧은 감독 실행으로 공식 selected Research의32→38 비교·저장·재열람·정상 종료를 먼저 닫습니다.
+S3는 긴 탐색·무감독 인계와 전체U1 완료의 조건입니다. S3 전이라는 이유로 첫 짧은 비교 실행까지 미루지 않습니다.
+그 다음 S3 최소 복구→150N 조건 변경·수치 엔진 탐색/U1 완료→원본 조립체 mechanics와 남은 Phase1–7 순서입니다.
+전체 모델/explicit의 의무 mesh sweep은 없으며, 기존 canonical 기준·실패·UNKNOWN/NOT_RELEASED는 보존합니다.
+
 ## 현재 판정
 
 - 의미 있는 실제 연구 프로토타입. 일부 단일 지지부·PDE·재료·접촉 연구는 실행 기록이 있습니다.
@@ -25,9 +35,9 @@
 | S0 | 실제 실행·중단·목표 상태 복원 | READONLY_OBSERVED / Root | 지정PIDs/ports/원기록 구분, old outputs 보존. 종료 원인 UNKNOWN 유지 |
 | S1 | 한 실행 동작에 승인 OpenScience+Lab 연결 | BOUNDED_LIVE_PASS / Root | 새 run02 실제 질문·도구 결과·resident idle·owned Stop 확인. active-job/native 취소·재시작은 S3 |
 | S2a | 부모 CAD와 정확한 수치 검사 이름을 결과에 표시 | BOUNDED_FRESH_GUI_PASS / Root | 실제 부모·revision·manifest/caption과 늦은 성공 응답 차단 확인. late-error/detached branch는 source controlled-DOM 증거 |
-| S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | BOUNDED_NATIVE_SOURCE_GUI_DATA_PASS_PIXEL_P2_OPEN / Root | clean ce12037/새 Core CAD·selected4mm 한 mesh/실제7715절점 U·XYZ balance·두 pre-native 거부·Astra0P1/P2. schema8/GUI7 source와 두Astra0P1/P2/Root122PASS 통합. actual Source67 HTTP/GUI raw값·0/100x·5sourcepins 확인; Astra pixel1P2 교정3files 진행. official selected Research/visual usability는 OPEN; global sweep 없음 |
-| S3 | 종료·강제 중단·재시작 상태와 admission 복구 | NEXT / Root shared execution owner | tiny crash/identity matrix, append-only reconciliation, real native cancel/reconnect, old evidence 보존 |
-| U1 | 첫 간단한 사용자 CAE 연구 | WAITING_ON_S1_S2_S3 / Root | 아래 한 사용자 흐름을 실제로 끝내고 독립 검토·같은 GUI 결과·보고서로 확인 |
+| S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | BOUNDED_NATIVE_GUI_DATA_AND_CORRECTED_SOURCE / Root | clean ce12037 공개Core/native7715U·평형, Source67 실제 같은필드 데이터 확인은 qualified. 교정01/02의152controls와 최종03의58영향controls·Root 직접 검토를 구분. 실제 교정 화면/officialselectedResearch는 다음 사용자 실행에 묶어 확인; record20261005-fixture-field-pixel-correction-source-r03 |
+| S3 | 종료·강제 중단·재시작 상태와 admission 복구 | NEXT_AFTER_FIRST_SHORT_RESEARCH / Root shared execution owner | 채택한 docs/S3_HTTP_RECOVERY_PLAN.md의 HTTP-only R1 journal/RECOVERY_REQUIRED 후 exact-owned R2. tiny crash/identity와 대표 실제 취소·복구; 오래된 결과 보존. 아직 구현 아님 |
+| U1 | 첫 간단한 사용자 CAE 연구 | NEXT_SHORT_SUPERVISED_COMPARISON; FULL_U1_REQUIRES_S3 / Root | 먼저 아래32→38 질문·비교·저장·재열람·종료. 이후S3/150N/수치탐색/해석/보고서를 묶어 전체U1을 완료. 작은Astra감수 대기는 완료 기준 아님 |
 | S4a | coarse native affine full-field patch | OPEN / Domain·adapter | source kernel 재사용, U/strain/stress/energy/force/moment 전체 참조 비교. actual mechanics와 구분 |
 | S4b | 원본7부품 실제 조립체 연구 | OPEN / Domain·adapter·Root | 부품별 재료/접촉/하중·관측점 선언, load path·평형/에너지·모델 목적별 검증, actual Research 연결. 전체 재메시 비교는 의무 아님 |
 | S5 | Phase3의 남은 실제 탐색 연결 | OPEN | 기존 LHS/DE 재사용, 유효 response·budget/convergence·후보비교·재개; mixed variables 후속 |

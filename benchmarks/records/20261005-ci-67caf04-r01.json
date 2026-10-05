@@ -1,0 +1,139 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.exact-source-ci-observation",
+  "recorded_utc": "2026-10-05T10:35:47.7255401Z",
+  "parent_commit": "e5000f119d2eb6e82cfc4f8089eacb06028510bc",
+  "source_commit": "67caf04f85bfdfe93446a080bb093f5ebdee5941",
+  "run_id": 37291688651,
+  "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37291688651",
+  "status": "completed",
+  "conclusion": "failure",
+  "success_jobs": [
+    "core",
+    "research-driver-source",
+    "optimization",
+    "native-registration",
+    "structural",
+    "native",
+    "doe"
+  ],
+  "failed_jobs": [
+    "codeaster",
+    "pde",
+    "explicit"
+  ],
+  "core_observed": {
+    "python_warning": 1,
+    "gui_form_field_node_pass": 432,
+    "gui_form_field_node_fail": 0,
+    "python_pass": 4490,
+    "python_skip": 8
+  },
+  "selected_research_source_step": "SUCCESS; no runtime/provider/native verification inferred",
+  "failures": [
+    {
+      "observed": "curl exit22 HTTP404 before runtime/native",
+      "native_execution": "NOT_RUN",
+      "class": "ENVIRONMENT_DOWNLOAD",
+      "job_id": 111707883249,
+      "job": "explicit"
+    },
+    {
+      "deeper_cause": "NOT_ISOLATED",
+      "observed": "AssertionError: Native numerical checks failed: E-ansys_vmd1_regular-Fz-aster",
+      "class": "NUMERICAL_CLASSIFICATION",
+      "job_id": 111707883143,
+      "job": "codeaster"
+    },
+    {
+      "deeper_cause": "NOT_ISOLATED",
+      "observed": "AssertionError: Wrong vector numerical classification",
+      "class": "NUMERICAL_CLASSIFICATION",
+      "job_id": 111707883165,
+      "job": "pde"
+    }
+  ],
+  "raw_packet": {
+    "payload_bytes": 1296298,
+    "files": [
+      {
+        "path": "codeaster-02.log",
+        "bytes": 96519,
+        "sha256": "5dbfc0444deeb955bd82556fadb12a31fd138c4633c6d849ad2e4818c8ff8ea2"
+      },
+      {
+        "path": "codeaster-download-01.err",
+        "bytes": 49,
+        "sha256": "0713d01de91317a6362844e9bfca29ad22e6a0ea3e60b3b08709ebcc96b75276"
+      },
+      {
+        "path": "codeaster-download-02.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "core-01.log",
+        "bytes": 766476,
+        "sha256": "7d7b416d51e88322a573e5d12046c5b832f8a1dff90b13090a0a1564c5cb1cb9"
+      },
+      {
+        "path": "core-download-01.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "explicit-01.log",
+        "bytes": 4950,
+        "sha256": "bd0d1e9efe7cc8c08150e4f199daccf4fc54b0869eb4af236fab814d68d7c13a"
+      },
+      {
+        "path": "explicit-download-01.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "pde-01.log",
+        "bytes": 5129,
+        "sha256": "1db7cb8266279d2b08cbff8e61241da3b204958b48f498e921065ea1bf4bb6e5"
+      },
+      {
+        "path": "pde-download-01.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "research-driver-source-01.log",
+        "bytes": 394679,
+        "sha256": "c45393be04980966995a8847fcf37c92faae14bb0694fbdc1b2d37920dac443e"
+      },
+      {
+        "path": "research-driver-source-download-01.err",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "ROOT-OBSERVATION-01.json",
+        "bytes": 2128,
+        "sha256": "9bdaa46bdcc8d088e09209ffa974d5d1e639bd492eb65021603ffb07dcb1c3ed"
+      },
+      {
+        "path": "SNAPSHOT-01.json",
+        "bytes": 26368,
+        "sha256": "cda6227b3ad12a2db111099bcc59b8c1036ce2406d5f64890ea2942bfafe6f2e"
+      }
+    ],
+    "retention": "LOCAL_ONLY",
+    "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-selected-research-ci-67-root-01",
+    "receipt_sha256": "9bdaa46bdcc8d088e09209ffa974d5d1e639bd492eb65021603ffb07dcb1c3ed",
+    "payload_files": 13,
+    "manifest_sha256": "2136765cc37ff9578f654485a880193b24f24b3dd42ffd23c388c70348350842"
+  },
+  "limitations": [
+    "Whole CI failed; seven success jobs do not close the full system",
+    "No canonical numerical thresholds changed",
+    "Independent actual field GUI pixel correction and actual schema8 Research remain separate gates",
+    "Raw CI packet LOCAL_ONLY; public record binds hashes separately"
+  ],
+  "engineering_decision": "UNKNOWN/NOT_RELEASED",
+  "manual_native_retry_count": 0
+}

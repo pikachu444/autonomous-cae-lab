@@ -1,0 +1,124 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.fixture-field-pixel-correction-source",
+  "recorded_utc": "2026-10-05T11:34:16.9759250Z",
+  "parent_commit": "e5000f119d2eb6e82cfc4f8089eacb06028510bc",
+  "verdict": "ROOT_REVIEWED_BOUNDED_SOURCE_CORRECTION_ONLY",
+  "files": [
+    {
+      "path": "apps/lab/static/fixture-field-viewer.js",
+      "bytes": 36398,
+      "sha256": "01ca77a57358b9e993f138b694e3c69e305840ccfc9bddb2da10ce4a02c463b3",
+      "before_sha256": "adf040dff3acced127e84807e6c5fae10f3f67f5384ca45b9a897f2b140fdd23",
+      "frozen_path": "frozen2/apps/lab/static/fixture-field-viewer.js"
+    },
+    {
+      "path": "tests/test_fixture_field_viewer.js",
+      "bytes": 51104,
+      "sha256": "56380f3ad781cf7965517674570c815fc0768663ef8f9364e75c968ba46972ae",
+      "before_sha256": "266655adc5a031013280b390265b677f4a5709afed05e69717fe96450fa00aab",
+      "frozen_path": "frozen2/tests/test_fixture_field_viewer.js"
+    }
+  ],
+  "protected_sources": [
+    {
+      "path": "apps/lab/static/style.css",
+      "bytes": 30974,
+      "sha256": "f3eb97a5293c39a6bb51487b8f16c594fd106bc9ac9562d12fb8b3782a7975d8"
+    },
+    {
+      "path": "apps/lab/static/fixture-field-controls.js",
+      "bytes": 21119,
+      "sha256": "808f837c9f80dc4f6f43d35765ca576a846606964a1d1b3f4f21fa42dc739978"
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "bytes": 134228,
+      "sha256": "c22d4046cd73c7e58f604cc309596ba56a589afdde86520485ae8a464f37a53e"
+    },
+    {
+      "path": "apps/lab/static/index.html",
+      "bytes": 32142,
+      "sha256": "7d00a3a51e816c6e34c0869a201de2cb298583d36b162fa5f098a848745c23f3"
+    },
+    {
+      "path": "tests/test_fixture_field_controls.js",
+      "bytes": 13740,
+      "sha256": "555add19db4c9d373a0fccbc53f3e95ae80e040d39890ff10cecda90da2168c8"
+    }
+  ],
+  "impacted_controls": {
+    "path": "ATTEMPT-02.json",
+    "bytes": 37121,
+    "sha256": "e9b15981cf98273db509fe16877429fce210bba4ceeb790a61e10d76159c82d8",
+    "tests": 58,
+    "pass": 58,
+    "fail": 0,
+    "skip": 0,
+    "existing_viewer": 55,
+    "new": 3
+  },
+  "test_command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "--test",
+    "--test-reporter=tap",
+    "tests/test_fixture_field_viewer.js"
+  ],
+  "prior_full_controls": {
+    "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-full-field-gui-pixel-correction-02/ATTEMPT-03.json",
+    "bytes": 45285,
+    "sha256": "606a342df44e6c5830a48fc3a4d077c27e464062214c95c2db80ea37edaf6bab",
+    "pass": 152,
+    "fail": 0,
+    "skip": 0,
+    "rerun": false
+  },
+  "review_policy": "User requested whole-system/Root-delivery Astra audit, not a new Astra micro-review on every patch",
+  "Root_review": "Exact02-to03 delta read; persistent refused raw configuration across partial actions and complete-input recovery reviewed; frozen/protected bytes verified; retained worker controls adopted, no redundant tests",
+  "independent_history": [
+    {
+      "disposition": "Corrected in02; independently source-verified by review02",
+      "finding": "render-refusal stale picking/layout",
+      "review": "Astra/high01",
+      "report_sha256": "7b62a1626f61af2e1e9c79fcf7a8294eced55e92949ed1f9c7aba5442ad887ab"
+    },
+    {
+      "disposition": "Corrected in03; Root direct delta/control review, actual browser pending",
+      "finding": "blank factor bypass through raw-ID/overlay",
+      "review": "Astra/high02",
+      "report_sha256": "dbedcfc88cd4875e19ffbe19fe3797135d22699e83011877d8d1ef15d59203b1"
+    }
+  ],
+  "writer_packet": {
+    "receipt_sha256": "c194b619c833417a32fb87f8054b8c94dfab83a8bad50c93946ff2ba2b1f8dcb",
+    "freeze_sha256": "3de7a4ac8c059cb4160e251f59ebee9b2e736263ea0bf039efad3ad232798960",
+    "retention": "LOCAL_ONLY",
+    "path": "artifacts/development-cae-usability-audit-20261005-01/fixture-full-field-gui-pixel-correction-03",
+    "payload_bytes": 371534,
+    "manifest_sha256": "990a72ae2591d549df9c1ef487754650a6778e6c43dc9b24caf31495ff4325a2",
+    "payload_files": 20
+  },
+  "corrected_source_actual_browser": "NOT_RUN_AT_SOURCE_CHECKPOINT",
+  "native_CAD_remesh_provider_calls": 0,
+  "engineering_decision": "UNKNOWN/NOT_RELEASED",
+  "new_source_CI": "NOT_RUN_AT_SOURCE_CHECKPOINT",
+  "previous_exact_source_CI": "67caf04/37291688651 completed7SUCCESS3FAIL",
+  "document_checks": [
+    {
+      "path": "PROJECT_SCOPE.md",
+      "history_preserved": true,
+      "original52_unchanged": true
+    },
+    {
+      "path": "HANDOFF.md",
+      "history_preserved": true,
+      "original52_unchanged": false
+    },
+    {
+      "path": "CURRENT_STATE.md",
+      "history_preserved": true,
+      "original52_unchanged": false
+    }
+  ],
+  "next": "Actual same-field browser, then integrated research/lifecycle/condition-change/search user flow; no repeated micro-Astra gate"
+}

@@ -1,6 +1,22 @@
 # First structural child experiment
 
-## Current S2b complete-displacement output checkpoint — 2026-10-05
+## Current selected-mesh and user-field checkpoint — 2026-10-05
+
+Actual clean ce12037 public MCP/Core/new CAD32/one selected4mm mesh/CalculiX
+qualifies complete7715-node U and signed XYZ force balance under the declared
+hypothetical single-support assumptions. Record:
+`../benchmarks/records/20261005-fixture-selected-mesh-core-native-r01.json`.
+Source67 actual same-field HTTP/browser confirms parent/revision/raw values and
+source joins; its initial visual-overlay P2 is retained in the GUI live record.
+The bounded viewer/style/input correction is Root-reviewed; final58 impacted
+controls and prior152 historical controls remain distinct, with no native rerun.
+`../benchmarks/records/20261005-fixture-field-pixel-correction-source-r03.json`.
+Corrected actual pixels and official selected Research/user comparison remain
+OPEN at this source checkpoint. Single selected mesh sensitivity is NOT_ASSESSED;
+invalid stress, sevenUNKNOWN/NOT_RELEASED and unchanged historical criteria persist.
+Full-model/assembly/explicit global mesh refinement is not a mandatory user gate.
+
+## Historical S2b complete-displacement output checkpoint — 2026-10-05
 
 Clean8c/new `fixture-full-field-native-20261005-01` reuses one retained4mm mesh and
 changes output only. Actual CalculiX2.21 solve1/2.701933s, remesh0/provider0;
