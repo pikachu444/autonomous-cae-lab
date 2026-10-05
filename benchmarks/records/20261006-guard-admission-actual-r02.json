@@ -1,0 +1,297 @@
+{
+  "status": "ACTUAL_18_SUMMARIES_ONE_MODEL_STEP_COMPLETED_WITH_FRESH_ADMISSION_AND_RETAINED_RESULTS",
+  "checked_utc": "2026-10-05T21:55:49.324719+00:00",
+  "reader_source_commit": "7fb825608f00d46b67e7bef265302f11e2ede3c5",
+  "native_producer_commit": "774d7c13a20e9dded484173a3fbf7be3cd1d6bee",
+  "boot_source_sha256": "13cbb5ac29e47257c55b0c7801f21755f9c01df2e80c6262ad766e908684a6ac",
+  "job_id": "Jc684eee4799a4eeba413af59174c31d4",
+  "session_id": "ses_ef1fd65faffeESm3vBPv9ozAs3",
+  "model": "openai-codex/gpt-5.6-sol",
+  "request_sha256": "ce0d7dd9bcccd7aa64333dce2afd8f77475dfe9638f1d304c7724890cc099c40",
+  "question_sha256": "a861f77decb5cb91bca361fa05df02a15127688b483a96647afb3ef6e9e7d8b4",
+  "stdout_sha256": "d106e7436b35b7b0ba13edb51c4494641c9b5ad9e23c2747aa5395064032a5fc",
+  "answer_sha256": "1d305661b4be9ed19ec37941a85fbfac0695f534a83442476824a6d5048a983e",
+  "actual_batch": {
+    "tools": 18,
+    "completed": 18,
+    "errors": 0,
+    "message_id": "msg_10e02f89a001mOuDWjNjCa8PTX",
+    "start_span_ms": 55,
+    "start_to_last_end_seconds": 127.309,
+    "admission_receipts": 21,
+    "tool_admission_receipts": 18,
+    "fresh_source_project_checks": "ALL_PASS"
+  },
+  "native_values_verified": [
+    {
+      "id": "E-C-width150N-search-20261006-r01-0001-solve",
+      "loaded_saddle_abs_uz_mm": 3.439671e-05,
+      "reaction_xyz_n": [
+        -5.731419988865902e-08,
+        1.4377801986809068e-07,
+        150.00000135765
+      ],
+      "balance_ratio": 9.109630013302955e-09
+    },
+    {
+      "id": "E-C-width150N-search-20261006-r01-0002-solve",
+      "loaded_saddle_abs_uz_mm": 3.529884e-05,
+      "reaction_xyz_n": [
+        -1.659690001582253e-07,
+        1.0121100004527229e-07,
+        150.0000006982733
+      ],
+      "balance_ratio": 4.832183737491455e-09
+    },
+    {
+      "id": "E-C-width150N-search-20261006-r01-0003-solve",
+      "loaded_saddle_abs_uz_mm": 3.477503e-05,
+      "reaction_xyz_n": [
+        2.060900001831596e-07,
+        -3.977440000715478e-07,
+        150.000000391962
+      ],
+      "balance_ratio": 3.968249490894811e-09
+    },
+    {
+      "id": "E-C-width150N-search-20261006-r01-0004-solve",
+      "loaded_saddle_abs_uz_mm": 3.414147e-05,
+      "reaction_xyz_n": [
+        -5.827750000238564e-07,
+        6.25089999249989e-08,
+        149.999999797966
+      ],
+      "balance_ratio": 4.1330742280902986e-09
+    },
+    {
+      "id": "E-C-width150N-search-20261006-r01-0005-solve",
+      "loaded_saddle_abs_uz_mm": 3.410555e-05,
+      "reaction_xyz_n": [
+        4.039769999738723e-07,
+        -2.2323900001434562e-07,
+        149.9999998272083
+      ],
+      "balance_ratio": 3.285591674370586e-09
+    },
+    {
+      "id": "E-C-width150N-search-20261006-r01-0006-solve",
+      "loaded_saddle_abs_uz_mm": 3.361459e-05,
+      "reaction_xyz_n": [
+        -1.9630200010233067e-07,
+        -2.1762660007290833e-07,
+        149.9999998140096
+      ],
+      "balance_ratio": 2.3140943662610593e-09
+    },
+    {
+      "id": "E-C-width150N-search-20261006-r01-0007-solve",
+      "loaded_saddle_abs_uz_mm": 3.402993e-05,
+      "reaction_xyz_n": [
+        -8.399599993458646e-08,
+        -5.068229999557378e-08,
+        149.999999239455
+      ],
+      "balance_ratio": 5.112306323969499e-09
+    },
+    {
+      "id": "E-C-width150N-search-20261006-r01-0008-solve",
+      "loaded_saddle_abs_uz_mm": 3.35316e-05,
+      "reaction_xyz_n": [
+        -1.6785000005374637e-07,
+        -3.0934599983733383e-07,
+        150.000001849593
+      ],
+      "balance_ratio": 1.2551870691252767e-08
+    },
+    {
+      "id": "E-C-width150N-search-20261006-r01-0009-solve",
+      "loaded_saddle_abs_uz_mm": 3.378849e-05,
+      "reaction_xyz_n": [
+        1.0544503012924046e-07,
+        -5.750100004142426e-08,
+        149.99999878041
+      ],
+      "balance_ratio": 8.169930675123689e-09
+    }
+  ],
+  "retained": {
+    "files": 485,
+    "bytes": 169852419,
+    "original_and_snapshot_unchanged": true,
+    "new_cad": 0,
+    "new_solver": 0,
+    "new_campaign": 0
+  },
+  "closure": {
+    "relay_exit_code": 0,
+    "stdin_hash_and_delivery_verified": true,
+    "response_cleanup_confirmed": true,
+    "same_resident_idle_confirmed": true,
+    "guard_restore_confirmed": true,
+    "owned_native_state": "stopped",
+    "owned_closed_utc": "2026-10-05T21:48:28.418625Z"
+  },
+  "prior_9_refusals": "PRESERVED; historical PROJECT_FILESYSTEM_READ_FAILED cause NOT_ISOLATED",
+  "interpretation_note": {
+    "raw_answer_preserved": true,
+    "correction": "The legacy max_displacement metric here is loaded-saddle max abs(UZ), identical to abs(loaded_saddle_min_global_uz). The answer phrase treating max_displacement as a whole-model quantity is wrong. The separate whole-model magnitude for candidate8 is 0.00003751346344896009mm; no table number or metric is changed.",
+    "source_parent_and_material_detail": "Summary omits detailed native producer/material declarations; answer explicitly leaves these unverified. Actual summary parent_experiment_id and CAD revisions match native records and Core preflight.",
+    "result": "QUERY_COMPLETED; bounded numerical table retained; interpretive label limitation preserved"
+  },
+  "physical_validation": "UNKNOWN",
+  "decision": "NOT_RELEASED",
+  "r2_original_bytes_restored": 8,
+  "schema_version": 1,
+  "unit": "B4 retained candidate summaries: actual approved OpenScience batch admission and re-reading",
+  "run_name": "cae-guard-admission-20261006-02",
+  "store": "runs/cae-guard-admission-20261006-02",
+  "source_clean_at_question_and_tools": true,
+  "four_tested_source_files": {
+    "previous18_batch_9refusals": "PRESERVED_NOT_ISOLATED",
+    "source_parent_commit": "211a3ced26b5f78c64e429a1724a364482958bf1",
+    "files": [
+      {
+        "bytes": 88604,
+        "lf_sha256": "0c876f940508462b037b1d8e9603d3c4b00fe2ca94620048c0006658facc659c",
+        "path": "openscience/native_guard.mjs",
+        "raw_sha256": "88ced551c05650b9022c03760258eb557dc9e277f9711fb63f448aaae4ccc7ec"
+      },
+      {
+        "bytes": 180415,
+        "lf_sha256": "8d82ae0f897240a2228ae0266f800280224ad89ae7b507bde4dc9dff6c7bd049",
+        "path": "openscience/tests/native_guard.test.mjs",
+        "raw_sha256": "7fa1f8c4bf521c0538a7f7f6809708481856179026e87233099b4d6aa6adc270"
+      },
+      {
+        "bytes": 19463,
+        "lf_sha256": "79067cbe971f6fafc1fc54d2e973d1d8f72a6fa138933d2c92fe7a4899c84a48",
+        "path": "apps/lab/static/research-controls.js",
+        "raw_sha256": "79067cbe971f6fafc1fc54d2e973d1d8f72a6fa138933d2c92fe7a4899c84a48"
+      },
+      {
+        "bytes": 36191,
+        "lf_sha256": "ff1a5a3d626a83dab24fd7766b763d273c80fad82a234f80d5e190426ff7e3e3",
+        "path": "tests/test_research_answer.js",
+        "raw_sha256": "ff1a5a3d626a83dab24fd7766b763d273c80fad82a234f80d5e190426ff7e3e3"
+      }
+    ],
+    "node_pass": 557,
+    "guard_pass": 344,
+    "guard_skip": 14,
+    "guard_focused_pass": 3,
+    "dirty_at_controls": true,
+    "actual_provider_corrected_source": "PENDING",
+    "new_solver_runs": 0,
+    "independent_review": "READ_ONLY_0P1_P2_4FILES",
+    "table_affected_pass": 17
+  },
+  "source_controls": {
+    "guard_pass": 344,
+    "guard_skip": 14,
+    "lab_node_pass": 557,
+    "record": "benchmarks/records/20261006-guard-admission-source-r01.json",
+    "actual_provider_calls_in_these_controls": 0
+  },
+  "independent_read": {
+    "actual_ids_source_hash_metrics_reason_valid_unknown": "18/18 identical to protected native records; 0P1/P2",
+    "batch_starts_one_message": "18 calls within55ms",
+    "excluded": "Final prose, cleanup and all retained files checked separately by Root, not by reader"
+  },
+  "gui": {
+    "completed_response_and8column9row_table": true,
+    "browser_reload_same_answer": true,
+    "http_restart_same_job_and_result": true,
+    "new_metadata_terminal": 1829,
+    "port": 8772,
+    "provider": "NOT_CONFIGURED",
+    "proof": "artifacts/guard-admission-20261006-02"
+  },
+  "closure_observation": {
+    "initial_stop_observer": "TIMED_OUT_AT30_SECONDS",
+    "stop_request_count": 1,
+    "request_retained": true,
+    "stopping_utc": "2026-10-05T21:47:53.597Z",
+    "final_controller_state": "stopped",
+    "final_closed_utc": "2026-10-05T21:48:28.418625Z",
+    "late_closure_observed": true,
+    "process_stop_not_reissued": true
+  },
+  "http_foreground35300_exit": 1,
+  "http_ctrl_c_is_not_native_or_provider_cancel_proof": true,
+  "r2": {
+    "separate_uncommitted_original_files": 8,
+    "raw_bytes_restored": true,
+    "stash_retained": "6abf06668614f839af89750abf55de653a22af6c",
+    "actual_cancel_reconnect": "OPEN"
+  },
+  "exact_ci_observed_utc": "2026-10-05T21:56:28.206712+00:00",
+  "exact_ci": {
+    "id": 37376422364,
+    "head_sha": "7fb825608f00d46b67e7bef265302f11e2ede3c5",
+    "status": "in_progress",
+    "conclusion": "",
+    "jobs": [
+      {
+        "name": "core",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "research-driver-source",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "pde",
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      {
+        "name": "structural",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "optimization",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "name": "native-registration",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "codeaster",
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      {
+        "name": "native",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "name": "explicit",
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      {
+        "name": "doe",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "protected_original_manifest_sha256": "c4ad105894fcfbc2b5720293b52c79918657dbc2958b985a677bc8bb6485be73",
+  "protected_snapshot_manifest_sha256": "c4ad105894fcfbc2b5720293b52c79918657dbc2958b985a677bc8bb6485be73",
+  "proof_retention": "LOCAL_ONLY: raw synthetic stores, CLI/relay stdout, hook receipts, owner closure, screenshots. Public record hashes bind evidence; no credentials or company CAD copied.",
+  "limitations": [
+    "One prose claim needs Root qualification: legacy max_displacement is loaded-saddle absUZ, not whole-model magnitude. Raw answer and numerical records are retained unchanged. Summary parent_experiment_id and CAD revisions match the original parent pairs.",
+    "Controlled connection admits only summary; UI canonical capability list still describes the broader FixtureSelected definition, not this narrowed instance. Runtime gate remains the singleton.",
+    "18 admission checks took127.309s, with source validation unchanged; query responsiveness is still limited.",
+    "Initial owned Stop observer30s timed out. Same retained request later produced controller STOPPED/closed_utc after about35s; no second stop request, PID adoption, replay or kill. Actual cancellation/reconnect is still OPEN.",
+    "Whole52/Phase1-7/fullU1/general curves/inverse/assembly coupling/physical qualification/deployment remain incomplete."
+  ],
+  "next": "Reuse existing7part84group qualified coarse3mm and already-main4file kernel for frozen S4a actual native full-field affine patch, then declare S4b assembly material/contact/mounting/load assumptions. No new mesh sweep/fine replay."
+}
