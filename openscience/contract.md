@@ -8,7 +8,15 @@ remain explicit. Metrics, validations, native producer and optimizer feedback
 are unchanged. There is no new MCP tool, descriptor, prompt or model selection.
 The Lab prepares a same-store editable question containing exact comparison and
 experiment references; the existing approved bridge sends it unchanged. Actual
-connected provider/GUI acceptance is pending; source tests are not that proof.
+Cleanaf536/run03 actual approved5.6Sol reading/answer/reload/owned idle Stop passed
+for the retained material-point slice. Two E-summary calls delivered all3 verified
+records; three mistaken O-ID summary requests were refused and preserved. The
+raw answer and independent precision correction are separate from original
+numeric evidence. Record: `benchmarks/records/20261006-response-interpretation-r03.json`.
+The singleton reader grant does not authorize new model analyses despite the
+canonical profile capability display. New solver/engine work needs its existing
+appropriate profile. Startup reliability/actual busy cancellation/general inverse
+and whole52/Phase1–7 remain OPEN; source tests alone are not connected proof.
 
 ## Declared observation/response records (ADR0038; B1–B2)
 
@@ -21,7 +29,8 @@ reference-volume energy and unprepared t0 cannot be relabeled as integrated
 material evidence or total J. Component basis/sensor alignment is unqualified.
 Version1.1 records include the whole channel and its manifest origin. See
 `benchmarks/records/20261006-response-history-r01.json`. This adds no MCP tool,
-profile admission or provider run; connected same-record interpretation is OPEN.
+profile admission or provider run. Connected same-record interpretation was
+subsequently verified above; other history adapters/general inverse remain OPEN.
 
 Common Core/Python and the Lab HTTP GUI can append a declared observation to a
 verified original result through `save_response_comparison`; inspect/list return

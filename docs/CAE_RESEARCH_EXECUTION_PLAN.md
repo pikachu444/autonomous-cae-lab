@@ -18,15 +18,16 @@ Dakota/GEMSEO/LS-OPT 계열 시험–해석 비교를 연구 참고로, SimScale
 |---|---|---|
 | B0 | 불량 재현/지그 가능성의 실제 목적과 재사용 기능 확인 | 공식 조사·public Core/HTTP/UI의 기존 경로 확인. 설치/새 수치 검증 아님; SimScale을 동일 연구 제품으로 판정하지 않음 |
 | B1–B2 | 관찰/시험 목적·가설·응답 → 모델·전체 조건 → 작업 → 결과/이력 → 조건 변경·비교 → 다음 시험·저장 | 원 조건→새150N 실험/전체U, 관측 scalar/배열 저장·재열람에 이어 retained Maxwell16채널/9실제시각/부호 그래프/정확 시점 비교·재열람 완료([이력 기록](../benchmarks/records/20261006-response-history-r01.json)). τ=1/2 가상 응답 구분, off-grid시간 null/단위 거부. 실측 자격·유일 원인·general curve/inverse·다른 native축/전체 조립체는 OPEN |
-| B3 **활성** | OpenScience가 지원 시나리오에서 같은 흐름을 실행·해석 | 기존 summary의 reverified 비교 context/편집 보존 질문 연결과 source 검사는 완료. run01은 dirty resident Git에서 provider 호출 전 거부됨. 기존 clean-source 조건을 유지하고 검증된 구현 커밋→새 run02의 approved5.6Sol/OAuth 실제 기록 읽기·답변·재열람·idle 종료를 즉시 이어간다. [소스 기록](../benchmarks/records/20261006-response-interpretation-source-r01.json); 실제 해석은 OPEN |
-| B4 | 지그:수치 탐색/조립체 mechanics. 불량:관측–응답 매핑/가설 비교. 이후 Phase3–7 확장 | 수동150N 조건 변경의 선형 비교 완료, 수치 엔진 탐색은 미실행. 시험체와 지그 변형·접촉·하중 경로, 불량 위치/형태/발생 조건과 비교. synthetic inverse를 실제 불량 원인 검증으로 사용하지 않음; 전체 모델 의무 mesh sweep 없음 |
+| B3 제한된 실제 연결 완료 | OpenScience가 지원 시나리오에서 같은 흐름을 실행·해석 | cleanaf536/run03의 승인5.6Sol이2원실험/all3비교를 읽고 한국어 해석·브라우저/HTTP 재시작 재열람·idle 종료를 실제 확인. 원193파일 보존/새solver0. [실행 기록](../benchmarks/records/20261006-response-interpretation-r03.json). O-ID조회거부3건·정밀도 메모·실패한 시작 보존. 원인/지그 승인·범용역문제/다른driver/운영 신뢰성은 OPEN |
+| B4 **활성** | 지그:수치 탐색/조립체 mechanics. 불량:관측–응답 매핑/가설 비교. 이후 Phase3–7 확장 | 다음은 기존150N/width의SciPy DE5×1/seed13 및같은CAD/해석/응답비교. selected모드의GUI필수mesh-trend 오류와자동0.0065mm 가상screen을 먼저 바로잡아 Core거부규칙/목적·단위를 유지한다. 이후 원7부품/84그룹 재사용 mechanics. synthetic inverse를 실제 불량 원인 검증으로 사용하지 않음; 전체 모델 의무 mesh sweep 없음 |
 | B5 | 필요한 engine/후처리/외부 native inspection 기능 재사용 | GEMSEO/ParaView·trame/PrePoMax 등을 역할별 평가. blanket 설치·새 공통 engine 재개발은 완료 조건 아님 |
 
-현재 R2 lifetime/native-cleanup/PS observer 후보는 작업 트리에 보존했습니다. PS 모의349 assertions PASS는
+현재 R2 lifetime/native-cleanup/PS observer 후보8파일은 실제B3의clean-source 실행 동안만 stash/원bytes로 보존했고 idleStop 뒤 정확히 복원했습니다. PS 모의349 assertions PASS는
 provider/native/HTTP 실제 호출0의 source-only 결과이며 HTTP 제품 연결·실제 취소는 미완료입니다.
 R2가 무감독 운영의 조건인 것과 모든 Phase 연결의 선행조건인 것을 구분합니다. 불명확한 원 작업의
 UNKNOWN/새 실행 fence·원본 결과는 유지합니다. 아래 S0–S10 표는 기능별 상태이며 현재 실행 순서는 이 B표입니다.
 exact535 CI37325675240 최종은7SUCCESS/3FAIL이며 새 기능 또는 전체52 완료 근거가 아닙니다.
+exactaf536 CI37364226485 attempt1은 sourceSUCCESS/CoreCANCELLED(hosted runner 미확보)/8SKIP이며 Core만 재시도했습니다. 실제B3는 별도 source/run/retention 근거입니다. 공식 startup release-marker race는 후보 원인으로 보존하며 해결된 것으로 승격하지 않습니다.
 
 ## 이전 사용자 지시와 전체 시스템 감수 반영 — 2026-10-05
 
@@ -86,6 +87,7 @@ historical descriptor/판정/수치 문턱을 바꾸거나 단일 mesh를 수렴
 150N 새 record의 전체U·반력 선형 비례를 FRD 정밀도 기준으로 대조했습니다. 이는 고정 선형 모델의 조건 변경 검증이며 실측 불량 원인이나 조립체 물리 검증을 대신하지 않습니다.
 기존 SciPy DE(population5/max_generations1/seed13)로 유효 응답을 쓰는 연구용 탐색을 실행합니다.
 budget 종료/`converged=false`/best observed를 최적해 확정과 구분합니다. DOE는 현재14-tool profile에 없습니다.
+기존 registry폭28–60mm와150N/selected4mm/가상isotropic210000MPa/ν0.3/바닥·24mm saddle 조건을 명시적으로 동결합니다. 범위를 바꾸려면 새 등록으로 선언하고 엔진 후보를 직접 고치지 않습니다. selected에는 존재하지 않는`displacement_mesh_trend`를 요구하지 않으며, 반력/유효응답 게이트를 유지합니다. 원100N의0.0065mm 가상screen은150N 실물 허용치가 아닙니다. 목표가 하중부 최대\|UZ\|면 전체장 최대\|U\|와 구분하고 기존 native 전체장을 같은 기록에서 함께 봅니다. B3의읽기전용ViscoelasticPoints 연결에 실행 권한을 덧붙이지 않고 기존FixtureSelected/schema8을 사용합니다.
 AI가 같은 record를 해석하고 사람이 모델·입력·결과·한계를 확인하며 같은 보고서를 저장·다시 엽니다.
 rejected input에서는 solver 미실행, 취소 요청과 실제 종료, stale/restart 상태 및 old digest 보존도 확인합니다.
 

@@ -1,6 +1,6 @@
 # ADR0040 — Interpret the same retained observation comparisons
 
-Status: accepted; source controls passed, actual clean-source connected acceptance pending.
+Status: accepted; source controls and bounded clean-source retained interpretation passed.
 Date: 2026-10-06.
 
 ## Decision and reason
@@ -48,3 +48,13 @@ controls are source evidence. Three independent metadata/aggregate findings
 were corrected. The first actual question was refused before provider execution
 on dirty Git; record `20261006-response-interpretation-source-r01.json` preserves
 it. Original193 copied bytes and idle owned Stop are separate from interpretation.
+
+Cleanaf536/run03 actual approved5.6Sol read both E summaries/all3 comparison
+records, preserved null/declared scope and answered in Korean. Browser reload
+and a new provider-free HTTP observer reopen the same saved answer without
+replay; idle/CLI/relay/default guard/owned Stop are verified. Native8a1b345 and
+all193 protected files are unchanged. Record `20261006-response-interpretation-r03.json`
+retains3 erroneous O-ID experiment requests, the raw-answer energy-precision
+correction, dirty preflight and run02 official Windows Job startup failure.
+The observed release race candidate/latency and busy recovery remain OPEN.
+This bounded pass does not expand profile/tool scope or qualify physical causes.

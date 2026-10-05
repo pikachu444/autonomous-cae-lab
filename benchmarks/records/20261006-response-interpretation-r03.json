@@ -1,0 +1,730 @@
+{
+  "schema_version": 1,
+  "status": "BOUNDED_ACTUAL_RETAINED_INTERPRETATION_PASS",
+  "created_utc": "2026-10-05T20:28:20.639706+00:00",
+  "unit": "B3 original observation comparisons -> actual approved OpenScience interpretation -> saved human answer",
+  "scope": "Retained SYNTHETIC Maxwell material points; not measured product recovery, jig approval or all52/Phase1-7 completion",
+  "source_commit": "af536ecb13cdf00dac35096d12d4fd10b2f92890",
+  "source_clean_at_runtime_boot_and_question": true,
+  "boot_source_sha256": "0ce5730bca8b76258eb17249f058821709660118b2b076b70be0408c638aca6a",
+  "native_producer_source_commit": "8a1b3454ff108c5332c39dc09b32daa843e6fdb0",
+  "source_publication_proof": "artifacts/response-interpretation-20261006-02/source-publication.json",
+  "code_files": [
+    {
+      "path": "caelab/research_context.py",
+      "raw_sha256": "a376642609ae7a9ab9c8fbcf560f7b1d34f6959fa984b4b39eb3f83bda05f339",
+      "lf_sha256": "a376642609ae7a9ab9c8fbcf560f7b1d34f6959fa984b4b39eb3f83bda05f339"
+    },
+    {
+      "path": "caelab/engine.py",
+      "raw_sha256": "bd0f70a7c094a6f674f906feb8115ee97cbc27522c3a60f519157b0bd4f48096",
+      "lf_sha256": "bd0f70a7c094a6f674f906feb8115ee97cbc27522c3a60f519157b0bd4f48096"
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "raw_sha256": "0b8af48e264f16ebdaaa520039ee5ade6d3b022775e236e343d836192db64fb8",
+      "lf_sha256": "e26dca850149985f2acbc48aede7ed57e0d5163e76d6100f01dfc93b01342b90"
+    },
+    {
+      "path": "apps/lab/static/index.html",
+      "raw_sha256": "d0c4d11ee9b4692614cf46a77ace4dcc41da392a5962fb2cacb2ba4fcd26ef0d",
+      "lf_sha256": "730da3caf13e8b22278817642da2256e8a1aca05c851034e6c98cb144d09317d"
+    },
+    {
+      "path": "apps/lab/static/comparison-research.js",
+      "raw_sha256": "d30d9f0d43781ef19c20472f439a53e23e4fe26f964588078fca2a4c80c95fc4",
+      "lf_sha256": "d30d9f0d43781ef19c20472f439a53e23e4fe26f964588078fca2a4c80c95fc4"
+    },
+    {
+      "path": "tests/test_research_comparison_context.py",
+      "raw_sha256": "9f1627bf6ea423d8a0e0c57935f3ca03f7ed7159efd41892baebbd091f9d6ca0",
+      "lf_sha256": "9f1627bf6ea423d8a0e0c57935f3ca03f7ed7159efd41892baebbd091f9d6ca0"
+    },
+    {
+      "path": "tests/test_comparison_research.js",
+      "raw_sha256": "f6c08b1b17f7d557a4e7780f2255fd6ca66d88b60209fa3d26d5eef5d7ff0706",
+      "lf_sha256": "f6c08b1b17f7d557a4e7780f2255fd6ca66d88b60209fa3d26d5eef5d7ff0706"
+    },
+    {
+      "path": "tests/test_research_handoff.js",
+      "raw_sha256": "5334cb8cefb6f9af3fc44e8cdb8d24547d5dc8f5732fe14ec95f1a3c0165aac7",
+      "lf_sha256": "5334cb8cefb6f9af3fc44e8cdb8d24547d5dc8f5732fe14ec95f1a3c0165aac7"
+    },
+    {
+      "path": "openscience/tests/native_guard.test.mjs",
+      "raw_sha256": "fe8438cad82a205008fc858a8fa3d7b02e3d2f1b4d0951df9e08597f0df78b2d",
+      "lf_sha256": "98ddf256ba857000de8cc0fbb2ed96aee33400d253e7d27c47c485d416e8b649"
+    }
+  ],
+  "source_controls": {
+    "final_changed_core_python_pass": 83,
+    "final_lab_node_pass": 543,
+    "native_guard_pass": 341,
+    "native_guard_skip": 14,
+    "mocked_facade_pass": 56,
+    "broader_296_predates_final_overflow_correction": true,
+    "source_controls_are_not_actual_provider_or_solver_proof": true
+  },
+  "actual": {
+    "status": "ACTUAL_SAME_RECORD_INTERPRETATION_VERIFIED",
+    "source_commit": "af536ecb13cdf00dac35096d12d4fd10b2f92890",
+    "native_producer": "8a1b3454ff108c5332c39dc09b32daa843e6fdb0",
+    "job_id": "Jc3c2d05bb5dc417ca4f194d85f072f7e",
+    "session_id": "ses_ef2574b56ffeRPFGBJhmS9ILlA",
+    "question_sha256": "104857bbcb1e8d75713d8cb53cdfc997ca2e1f470da8bbc45cc1824a9a51a7a7",
+    "answer_sha256": "0fd42ea6621be86e936e56437d0ebbf293561f4ac760a2ccfa573980548af8bc",
+    "stdout_sha256": "338eed2c6657d4f3e66ed2d9b3524cbaacb76ea58e2d29b5c2cd57d652e34cf7",
+    "verified_summaries": [
+      {
+        "experiment_id": "E-viscoelastic-r-01-tau1",
+        "source_result_sha256": "d80453d587a14893a1a5adcecfac88d6e21268b019ad641f6c9a1a63ef71e6f0",
+        "comparison_ids": [
+          "O-history-offgrid-time-20261006-r01",
+          "O-lab-muvknahm"
+        ],
+        "tool_output_sha256": "748d488ac428421f0802d8a5790de10a79f14b17c6c78ca7ffb6c3b78828840b"
+      },
+      {
+        "experiment_id": "E-viscoelastic-r-01-tau2",
+        "source_result_sha256": "384301fbabcb858394b1c51ef1f2285a06b83cc15ee3e887b889f66d3ac2b4cf",
+        "comparison_ids": [
+          "O-history-tau2-vs-tau1-reference-20261006-r01"
+        ],
+        "tool_output_sha256": "ef3dbdd0bebe18cd276cfa7c0941bd43fe431d434f31dffadf64bf23acfbd6dc"
+      }
+    ],
+    "refused_comparison_id_lookups": [
+      {
+        "comparison_id": "O-history-offgrid-time-20261006-r01",
+        "status": "REFUSED_NOT_AN_EXPERIMENT"
+      },
+      {
+        "comparison_id": "O-lab-muvknahm",
+        "status": "REFUSED_NOT_AN_EXPERIMENT"
+      },
+      {
+        "comparison_id": "O-history-tau2-vs-tau1-reference-20261006-r01",
+        "status": "REFUSED_NOT_AN_EXPERIMENT"
+      }
+    ],
+    "cleanup_confirmed": true,
+    "resident_idle_confirmed": true,
+    "new_solver_runs": 0,
+    "physical_validation": "UNKNOWN",
+    "causal_validation": "NOT_EVALUATED",
+    "decision": "NOT_RELEASED"
+  },
+  "provider": {
+    "model": "openai-codex/gpt-5.6-sol",
+    "transport": "existing approved ChatGPT OAuth",
+    "runtime_version": "2.0.146",
+    "native_binary_sha256": "0337ab2d24ad2a9a9c8ba4c622074cca95b6daa086553010a2c5332acdab9c02",
+    "profile": "viscoelastic-points-v1",
+    "allowed_tools": [
+      "caelab_experiment_summary"
+    ],
+    "canonical_profile_and_descriptor_unchanged": true,
+    "new_tool_or_fallback": false,
+    "canonical_model_analysis_display_does_not_grant_execution": true,
+    "compiled_binary_to_source_equivalence": "UNKNOWN"
+  },
+  "meaningful_response_checks": {
+    "tau1_xx_1s_MPa": 3.1451250643935076,
+    "tau2_xx_1s_MPa": 3.944698725864204,
+    "signed_difference_MPa": 0.7995736614706965,
+    "reference_source": "SYNTHETIC independent tau1 analytical value",
+    "offgrid_declared_s": 1.1,
+    "recorded_sample_s": 1.0,
+    "offgrid_status": "DECLARED_AXIS_MISMATCH",
+    "offgrid_delta_and_verdict": null,
+    "stress_sign_time_branch_and_native_energy_tables": "MATCH_ORIGINAL",
+    "strain_control_vs_product_displacement_recovery": "EXPLICITLY_DISTINGUISHED",
+    "t0": "UNPREPARED_INITIAL_CONDITION",
+    "sensor_world_alignment": "UNKNOWN",
+    "original_checks_each": {
+      "PASS": 25,
+      "UNKNOWN": 8
+    },
+    "new_solver_runs": 0,
+    "new_numerical_candidates": 0
+  },
+  "independent_review": {
+    "agent": "field_kernel_publication_review",
+    "mode": "READ_ONLY",
+    "actual_tool_context_equals_snapshot": true,
+    "answer_equals_http_result": true,
+    "source_bytes_numbers_sign_axis_scope_retention": "PASS",
+    "human_gui_exercised_by": "Root via CUA",
+    "human_owner_usability_signoff": "UNKNOWN"
+  },
+  "raw_answer_precision_correction": {
+    "raw_answer_unchanged": true,
+    "statement": "MGIS/MTest difference approximately1e-15MPa in the energy paragraph",
+    "correction": "Energy table values are correct. Native stored-energy maximum error is1.3010426069826053e-18MPa; stress error is around1e-15MPa.",
+    "native_stored_energy_max_error_MPa": 1.3010426069826053e-18,
+    "native_dissipated_energy_max_error_MPa": 8.673617379884035e-19,
+    "no_numerical_evidence_or_threshold_changed": true
+  },
+  "retention": {
+    "mode": "LOCAL_ONLY",
+    "protected": [
+      {
+        "root": "runs/viscoelastic-r-20261003-01",
+        "files": 193,
+        "bytes": 22671946,
+        "mismatches": 0
+      },
+      {
+        "root": "runs/cae-response-interpretation-20261006-01",
+        "files": 193,
+        "bytes": 22671946,
+        "mismatches": 0
+      },
+      {
+        "root": "runs/cae-response-interpretation-20261006-02",
+        "files": 193,
+        "bytes": 22671946,
+        "mismatches": 0
+      },
+      {
+        "root": "runs/cae-response-interpretation-20261006-03",
+        "files": 193,
+        "bytes": 22671946,
+        "mismatches": 0
+      }
+    ],
+    "proof_files": [
+      {
+        "path": "artifacts/response-interpretation-20261006-03/actual-verification.json",
+        "bytes": 2449,
+        "sha256": "3eff61bc4ad768f650e0f04f7ec5e3a9d435116801dbe2bf0cb8031351e58d0b"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/answer.md",
+        "bytes": 10643,
+        "sha256": "0fd42ea6621be86e936e56437d0ebbf293561f4ac760a2ccfa573980548af8bc"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/build_record.py",
+        "bytes": 9988,
+        "sha256": "4df37ff3a3d3a2814a05fb1d7fe5d2b54db4051a9255dd8ef18bd517531b8800"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/ci-attempt1-core-annotations.json",
+        "bytes": 353,
+        "sha256": "10db5a702b9164d71cc4f69453fe747848ab7e75e949fc1bf9560b37bac23ab6"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/ci-exact-af536.json",
+        "bytes": 3373,
+        "sha256": "f42d4757a982452ce242d89e843e69c8e291e2fd09dfbdacf53f8011e5b58a57"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/context-pointer.json",
+        "bytes": 906,
+        "sha256": "8cbe4915a3d7c2caf07e805bf25ec6e2fe42b19505836ebf2708f51ce8eb1e21"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/gui-answer-comparisons.png",
+        "bytes": 69038,
+        "sha256": "50c90c79acf2af49ac5fd71f165dc591adcee2ed098b8022c178d8bac7d4296f"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/gui-answer.txt",
+        "bytes": 35276,
+        "sha256": "6e1b5b57900260199bf2ebef2d4aae297ed6bd22dd27841af2557d9afae9b030"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/gui-comparison-group.txt",
+        "bytes": 1377,
+        "sha256": "fecbdd8a0b47ebc9dcab751f50c5607a3224788e6459dbb0a562275044d11e35"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/gui-prepared-question.txt",
+        "bytes": 16344,
+        "sha256": "4487fd70201d9ec9b9fb297c6610de8ef5f6a4328c3f2cbaf132423ce8df93d5"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/gui-question.txt",
+        "bytes": 2208,
+        "sha256": "104857bbcb1e8d75713d8cb53cdfc997ca2e1f470da8bbc45cc1824a9a51a7a7"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/gui-reloaded-answer.txt",
+        "bytes": 32427,
+        "sha256": "32d36d2824443d9d7c6ef357e73ecf9b08cdf8c183399bf832c3d293ae2aa44c"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/gui-reloaded-interpretation.png",
+        "bytes": 80621,
+        "sha256": "610691035d816ab39f7bd6e0bf4666ae22c2af48a3f1ae90c5b6931641d31091"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/gui-retained-result.txt",
+        "bytes": 10633,
+        "sha256": "8cb4ca5615d07688ae23da61a1fc4a56ae5b31a9e6dba834e0cc9b2c2df8d5f1"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/http-job-current.json",
+        "bytes": 16219,
+        "sha256": "3a64de6bd6832a2f84dbcce90d5e201d97185589875779c71ad4ef4cd0c96d22"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/http-overview-current.json",
+        "bytes": 11459,
+        "sha256": "3c80f26a54e7e0871ddda0ba10d9e65484dc43dceedd04dcf3c3738022f9c214"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/http-restart-preservation.json",
+        "bytes": 433,
+        "sha256": "391c831beb09f33fc903d264ad5d01dadea3e4bd228ec5af4527099a5ebc3e18"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/lab-research-ready.json",
+        "bytes": 6,
+        "sha256": "abdfbffecbe18ed94df9829819e596ee285b52a94aa108514452a9121721c789"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/official-marker-events.jsonl",
+        "bytes": 1351,
+        "sha256": "528e7d4be5c167340be71193c36db7714bd63f72f983add40fcca44a91c06ef8"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/official-mcp-startup.log",
+        "bytes": 188,
+        "sha256": "7ea29a694c2067e5c84ab731f8c4eea9a0dfe5973d9025a1662a430054b881e6"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/original-before.json",
+        "bytes": 39099,
+        "sha256": "2f4ed5dbc9e2bbfb75aa784b675229100d1b4afbed121a68b6fd7c3de872262a"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/prepare.ps1",
+        "bytes": 4756,
+        "sha256": "6bc558ba34089df40d2c2abc1b27ae68efbdb35690c199e6ab4df56f5ed4ce5d"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/r2-restoration-check.json",
+        "bytes": 2076,
+        "sha256": "be46beef41b1db2486a09dd995e2d601e242cb600b2827c33ab0c561cb535097"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/r2-restored.json",
+        "bytes": 199,
+        "sha256": "adf241dc863621a0be708aa50e5c48ad33ec89aa7c4c9535582a2562294230a5"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/runtime-start.json",
+        "bytes": 205871,
+        "sha256": "e0b71669156dfb079ffb408fbd707847893d61ac285c79de4c08cad2c7fbf4bd"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/runtime-stop.json",
+        "bytes": 315,
+        "sha256": "0b2f08c2c63ea145115e2e920ed6efb42c7586c7f366ffae8693478234939f39"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/snapshot-before.json",
+        "bytes": 39099,
+        "sha256": "2f4ed5dbc9e2bbfb75aa784b675229100d1b4afbed121a68b6fd7c3de872262a"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/snapshot-inspection.json",
+        "bytes": 222,
+        "sha256": "3330eb2cbacf80004356adc5f9a2ca7557c92068ab2a8a33803848b5c8e4d8a3"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/snapshot-summaries.json",
+        "bytes": 64610,
+        "sha256": "f199056ea97c9a1fb7cc0ed2c25602f09bd5755df8269ee98091106cb54beacb"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/source-candidate.json",
+        "bytes": 2315,
+        "sha256": "cf77f18550c7ffa1b87addfc799ca99e33de79e22561bc0c3b210fc9608258f7"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/status-observer-timeout.json",
+        "bytes": 238,
+        "sha256": "04b2bf72dde121e66d8529ec04208f0841ef73117a2a0fc5b734c1416db6e871"
+      },
+      {
+        "path": "artifacts/response-interpretation-20261006-03/verify_actual.py",
+        "bytes": 5071,
+        "sha256": "d0258844d334efc18b8e253007f966947d511d8b519207111956c4f3e23ba931"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/command-relay.mjs",
+        "bytes": 4922,
+        "sha256": "d8862aae53eb0e1a5daf9c69666405bca1929568c5744562a988b0a2f85ce510"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/command-request.json",
+        "bytes": 4901,
+        "sha256": "b68a29d35a584666fa3143c98796633ae664cd0483af06066f60d158d2731e80"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/command.json",
+        "bytes": 7616,
+        "sha256": "4b8ccaac6324b2ae7e04a84398f93978afdcf3dca3c6f88cfd81b22ad3c77a5a"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/relay-final.json",
+        "bytes": 797,
+        "sha256": "4a39acce4c6d74c056532a4f30a0177f428c5c8ceb3483e115950db181b1245d"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/relay-ready.json",
+        "bytes": 457,
+        "sha256": "660d670b3a9a6261e6f384a47582995549649dedda557e5b2fdcc255dc640bbf"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/resident-idle-000001/http-status.json",
+        "bytes": 78,
+        "sha256": "613f0473f0e9d29da819b0514327deba1c730344ae72c9356951d0e5d4ff1c23"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/resident-idle-000001/no-reply-request.json",
+        "bytes": 387,
+        "sha256": "a28524cd03dde569b9aebf2ad1a67ab60811b2c050087762c928557813b11293"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/resident-idle-000001/no-reply-response.json",
+        "bytes": 3524,
+        "sha256": "52eda22cd79beeb0b4ff1ae924899ef89e5aa37d8818de57ffc3aca1ffbcf92a"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/resident-idle-000001/resident-source-identity.json",
+        "bytes": 1853,
+        "sha256": "be7e900d343d0501f6199be0f80925f4230656d45d43ee1d0ee6709df5425c55"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/resident-idle-000001/session-verified.json",
+        "bytes": 382,
+        "sha256": "f083649888f2df207a6126db20712cc0aab2dc53e21462339f09df57afae552e"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/session-created.json",
+        "bytes": 530,
+        "sha256": "abb209112ef01776f21566cfe5797eb25fe1ab43b9185fa0ca67158b87f15d03"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/session-status-preflight.json",
+        "bytes": 4,
+        "sha256": "e3566b3a06430868d71e9287dfd6c6c520a3da027aabea01951d407ee131dc2f"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/session-verified.json",
+        "bytes": 382,
+        "sha256": "2513d900864362880d7fdd8462338b2cc64a365a9cd77d6efdd2974605fd7753"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/stderr.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/stdin-prompt.txt",
+        "bytes": 2208,
+        "sha256": "104857bbcb1e8d75713d8cb53cdfc997ca2e1f470da8bbc45cc1824a9a51a7a7"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/command/stdout.jsonl",
+        "bytes": 91087,
+        "sha256": "338eed2c6657d4f3e66ed2d9b3524cbaacb76ea58e2d29b5c2cd57d652e34cf7"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/facade.stderr.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/facade.stdout.txt",
+        "bytes": 256,
+        "sha256": "5f331b37af5b37151329a4fcf5dda8ca820f956072f7891c37ce14580aee7d65"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/invocation.json",
+        "bytes": 402,
+        "sha256": "1d2ce23c5416a86f8de411032c77ca10defda9eb95918e28da4d6b17934357a0"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/progress.json",
+        "bytes": 86,
+        "sha256": "bc93caf60d907dd4acd9b132354fa7005be3fb6359d37436e293b9bce1d9ea61"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/question.txt",
+        "bytes": 2208,
+        "sha256": "104857bbcb1e8d75713d8cb53cdfc997ca2e1f470da8bbc45cc1824a9a51a7a7"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/request.json",
+        "bytes": 1360,
+        "sha256": "d41e1b65fb8c28be780413c003d51a71a3b9cb7e7d03d2f8c489261fab17d547"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/resident-before/http-status.json",
+        "bytes": 78,
+        "sha256": "613f0473f0e9d29da819b0514327deba1c730344ae72c9356951d0e5d4ff1c23"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/resident-before/no-reply-request.json",
+        "bytes": 387,
+        "sha256": "a28524cd03dde569b9aebf2ad1a67ab60811b2c050087762c928557813b11293"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/resident-before/no-reply-response.json",
+        "bytes": 3524,
+        "sha256": "eef9a64a9b5b5e46b0937c9d4a485e59376fcedcd3d4710fdb43420dea5c6389"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/resident-before/resident-source-identity.json",
+        "bytes": 1853,
+        "sha256": "f0f076f80ce8cd59274f046e6ff6328760e3e88392a3bd60606728667389335e"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/resident-before/session-created.json",
+        "bytes": 537,
+        "sha256": "1d0c11a195a6ac67bd71e90b559d958b74752b99a97570151364f5ff842e46a3"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/resident-before/session-verified.json",
+        "bytes": 382,
+        "sha256": "4e82e9c96e6783bb551944a7192890d95fbc5a423e754f5433b8f92027a605a8"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/run-0ee5356f5eb64877939812ee9e9793c3/response.json",
+        "bytes": 769,
+        "sha256": "14759b67d209116aedf07785a2ccb30683c85b1160447fd5c34deed47db7d132"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-1e878d7acc5a412aae5f46861d3db3a1/facade.stderr.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-1e878d7acc5a412aae5f46861d3db3a1/facade.stdout.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-1e878d7acc5a412aae5f46861d3db3a1/invocation.json",
+        "bytes": 405,
+        "sha256": "8c4f02c4909be1fd58205cd71be57e70c5249f0995189456c733b71ee40ca728"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-1e878d7acc5a412aae5f46861d3db3a1/progress.json",
+        "bytes": 90,
+        "sha256": "ea348957b38b98426459aeae8af752499e5f8ce525a1859ac490341ee2fac713"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-1e878d7acc5a412aae5f46861d3db3a1/request.json",
+        "bytes": 1232,
+        "sha256": "d12aba811759147810daf4b8d214f10d5ebb1c1ddf59c7c47afd213e34fd29bf"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-1e878d7acc5a412aae5f46861d3db3a1/response.json",
+        "bytes": 666,
+        "sha256": "c61a6a48e955139b8c1c609b2cc53a0860c2646af1e6d1898edc19f77944213d"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-82e16c043a2a4460af7fe21071d820b5/facade.stderr.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-82e16c043a2a4460af7fe21071d820b5/facade.stdout.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-82e16c043a2a4460af7fe21071d820b5/invocation.json",
+        "bytes": 405,
+        "sha256": "ee5e6f392c3294097884494ebf769509e26d5f5424917712e31ea6574eff34bb"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-82e16c043a2a4460af7fe21071d820b5/progress.json",
+        "bytes": 90,
+        "sha256": "34227f33bf0a254773d1507091d886c8e1b3eaedb6ce8bc72fb42b21656eacea"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-82e16c043a2a4460af7fe21071d820b5/request.json",
+        "bytes": 1232,
+        "sha256": "d12aba811759147810daf4b8d214f10d5ebb1c1ddf59c7c47afd213e34fd29bf"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-82e16c043a2a4460af7fe21071d820b5/response.json",
+        "bytes": 666,
+        "sha256": "c61a6a48e955139b8c1c609b2cc53a0860c2646af1e6d1898edc19f77944213d"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-a14c78dcb60c4c0fb608b5982a55e7f6/facade.stderr.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-a14c78dcb60c4c0fb608b5982a55e7f6/facade.stdout.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-a14c78dcb60c4c0fb608b5982a55e7f6/invocation.json",
+        "bytes": 405,
+        "sha256": "d3777125d1a8dedf81a6d6f884117aeb235be65a3f67dd0e93580f7173b605f4"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-a14c78dcb60c4c0fb608b5982a55e7f6/progress.json",
+        "bytes": 90,
+        "sha256": "202afa2c68b1d00856ad5a5821c55129d531cc4383606eaf56513dd5995d9d03"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-a14c78dcb60c4c0fb608b5982a55e7f6/request.json",
+        "bytes": 1232,
+        "sha256": "d12aba811759147810daf4b8d214f10d5ebb1c1ddf59c7c47afd213e34fd29bf"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-a14c78dcb60c4c0fb608b5982a55e7f6/response.json",
+        "bytes": 666,
+        "sha256": "c61a6a48e955139b8c1c609b2cc53a0860c2646af1e6d1898edc19f77944213d"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-e74e3f4147b349789124531fc75bfe07/facade.stderr.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-e74e3f4147b349789124531fc75bfe07/facade.stdout.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-e74e3f4147b349789124531fc75bfe07/invocation.json",
+        "bytes": 405,
+        "sha256": "89ac152f3aca78e061ed80056bef157e7f435d7d2fed1ad8f52121aa1cea0f51"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-e74e3f4147b349789124531fc75bfe07/progress.json",
+        "bytes": 90,
+        "sha256": "00f76eb62708b690fc9c42ee0659fb7e02dc60c60127f5a2d77a9470b90b9750"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-e74e3f4147b349789124531fc75bfe07/request.json",
+        "bytes": 1232,
+        "sha256": "d12aba811759147810daf4b8d214f10d5ebb1c1ddf59c7c47afd213e34fd29bf"
+      },
+      {
+        "path": "artifacts/cae-response-interpretation-20261006-03/lab-questions/status-e74e3f4147b349789124531fc75bfe07/response.json",
+        "bytes": 666,
+        "sha256": "c61a6a48e955139b8c1c609b2cc53a0860c2646af1e6d1898edc19f77944213d"
+      }
+    ],
+    "proof_bytes": 809705,
+    "excluding_protected_native": [
+      "HTTP controller journal",
+      "question/CLI evidence"
+    ],
+    "credentials_copied_or_committed": 0
+  },
+  "human_reopen": {
+    "browser_reload_same_answer": true,
+    "metadata_http_stop_restart_same_job_answer_without_replay": true,
+    "answer_sha256": "0fd42ea6621be86e936e56437d0ebbf293561f4ac760a2ccfa573980548af8bc",
+    "query_port": 8770,
+    "query_observer_session": 64829,
+    "provider_configured_after_stop": false,
+    "foregoing_http_session": 55338,
+    "foregoing_http_exit": 0,
+    "earlier_8767_8768_observers_not_adopted_or_killed": true
+  },
+  "lifecycle": {
+    "actual_cli_and_relay_exit": 0,
+    "resident_idle_confirmed": true,
+    "default_guard_restored": true,
+    "owned_native_state": "STOPPED",
+    "active_native_or_provider_cancel_reconnect": "OPEN"
+  },
+  "failures_and_limits": [
+    {
+      "run": "cae-response-interpretation-20261006-01",
+      "category": "ROOT_PREFLIGHT_MISTAKE",
+      "status": "REFUSED_BEFORE_PROVIDER",
+      "cause": "Existing facade requires clean Core Git; dirty development checkout was attempted. Source committed; gate retained."
+    },
+    {
+      "run": "cae-response-interpretation-20261006-02",
+      "category": "OFFICIAL_RUNTIME_STARTUP",
+      "status": "FAILED_BEFORE_MCP_PYTHON",
+      "error": "Timed out waiting for Windows Job Object ownership",
+      "root_cause": "NOT_ISOLATED",
+      "cleanup_receipt_retained": true,
+      "candidate": "Pinned parent writes release after Job assignment, then immediately removes it without a child consumption acknowledgment. Child polls10ms.",
+      "pinned_source": "4082a2ecb73e166d4503963798228ba700f3840f",
+      "primary_url": "https://github.com/synthetic-sciences/openscience/blob/4082a2ecb73e166d4503963798228ba700f3840f/backend/cli/src/mcp/index.ts",
+      "latest_source_same_cleanup": "8d99f3435b98a4d2783f4326346f4b47acaa3546/v2.0.151",
+      "run03_read_only_observed_release_lifetime_ms": 15.6329,
+      "marker_write_or_lock_or_permission_or_runtime_change": false,
+      "race_proven_as_run02_cause_or_fixed": false
+    },
+    {
+      "category": "LLM_QUERY_REFUSALS",
+      "status": "PRESERVED",
+      "count": 3,
+      "cause": "Model also queried O-comparison IDs as experiments; only E-summary IDs returned data. It read the three comparison records through both E summaries."
+    },
+    {
+      "category": "USABILITY_LATENCY",
+      "status": "OPEN",
+      "startup_seconds": 65.5849741,
+      "core_summary_precheck_seconds": [
+        19.260123348096386,
+        10.492529407143593
+      ],
+      "http_question_seconds": 352.348665,
+      "client10s_status_timeout_broken_pipe_is_not_native_failure": true
+    },
+    {
+      "category": "DIAGNOSTIC_HELPER_CORRECTIONS",
+      "product_source_changed": false,
+      "notes": "Existing WSL Python used after nonexistent .venv guess. Proof verifier corrected summary source-key location, plain-text refusal parsing and PS/Python manifest sorting; by-path byte comparison passes."
+    },
+    {
+      "category": "OPEN_FUNCTIONAL_SCOPE",
+      "items": [
+        "general curve/interpolation/inverse",
+        "other native history axes",
+        "numerical-engine150N/width search",
+        "original assembly mechanics",
+        "busy cancellation/reconnection",
+        "physical and deployment qualification"
+      ]
+    }
+  ],
+  "exact_source_ci": {
+    "run_id": 37364226485,
+    "source_commit": "af536ecb13cdf00dac35096d12d4fd10b2f92890",
+    "attempt1": {
+      "source_job": "SUCCESS",
+      "core": "CANCELLED",
+      "dependent_jobs": "8SKIP",
+      "annotation": "The job was not acquired by Runner of type hosted even after multiple attempts"
+    },
+    "core_job_retry_only": true,
+    "observed_attempt": 2,
+    "observed_status": "queued",
+    "observed_conclusion": "",
+    "not_a_new_native_or_physical_verification": true
+  },
+  "r2_candidate": {
+    "files": 8,
+    "restored_exact_raw_bytes_after_stop": true,
+    "stash": "9d0e5b0439c550e98c278a30f726627ef680be38",
+    "committed_with_b3": false
+  },
+  "decision": "NOT_RELEASED",
+  "physical_validation": "UNKNOWN",
+  "causal_validation": "NOT_EVALUATED",
+  "all52_or_phase1_to7_complete": false,
+  "next": "B4 reuse150N/width SciPy DE5x1 seed13; selected-mode appropriate requirements and explicitly declared virtual constraints, same native/result comparison; then original assembly and remaining phases."
+}

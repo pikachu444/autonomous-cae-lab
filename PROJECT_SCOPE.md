@@ -1,4 +1,8 @@
-## Current checkpoint: comparison-to-research source integration
+## Current checkpoint: bounded actual interpretation of retained comparison evidence
+
+R01–R03/R09–R13/R19–R21/R24/R43/R48/R52 remain partial, with B3 actual retained interpretation now verified on cleanaf536/run03. Existing approved5.6Sol/OAuth reads2 summaries/all3 comparison records, gives Korean hypothesis/next-measurement interpretation and preserves mismatched-time null/UNKNOWN/NOT_RELEASED. Same answer reloads after HTTP restart,193 protected files22671946B unchanged, new solve0. Record `benchmarks/records/20261006-response-interpretation-r03.json` retains3 query refusals, raw-answer precision correction and dirty-source/official-startup failures. Whole52/Phase1–7, actual recovery, numerical-engine exploration, assembly/general inverse/physical/deployment are OPEN. NEXT B4 existing150N/width engine and purpose-specific response comparison; no mandatory full-model mesh sweep or new solver-example prerequisite.
+
+## Historical checkpoint: comparison-to-research source integration
 
 R01–R03/R09–R13/R19–R21/R24/R43/R48/R52 remain partial. ADR0040 adds verified same-result comparison context to the existing OpenScience summary and a guarded, edit-preserving question handoff. Final83 Python/543 Node and341 guard PASS/14 SKIP are source controls. Run01 copied193 files22671946B unchanged; the actual GUI question was refused BEFORE provider execution on dirty resident Git. The clean-source actual B3 probe is next; source publication is not AI interpretation/solver/physical completion. Record: `benchmarks/records/20261006-response-interpretation-source-r01.json`. Entire52/Phase1–7, original UNKNOWN/NOT_RELEASED and outstanding numerical-engine/assembly/general inverse/operational recovery gates remain.
 
