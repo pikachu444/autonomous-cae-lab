@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.fixture-full-U-actual-browser-acceptance",
+  "recorded_utc": "2026-10-05T10:07:34.3001966Z",
+  "verdict": "FUNCTIONAL_BROWSER_DATA_PASS_PIXEL_USABILITY_CORRECTION_REQUIRED",
+  "visual_usability": "OPEN_P2",
+  "engineering_decision": "NOT_RELEASED",
+  "UI_source_commit": "67caf04f85bfdfe93446a080bb093f5ebdee5941",
+  "UI_clean_at_start": true,
+  "native_producer": "ce120378ee8da570a779f985cfc745bf0340c6ce",
+  "new_view_store": "runs/fixture-full-field-view-20261005-01",
+  "read_only_library": "selected=runs/fixture-selected-mesh-core-20261005-01",
+  "identity": {
+    "experiment": "E-selected-solve100",
+    "parent": "E-selected-cad32",
+    "revision": "676bd750044c0c0a20d33780bae993a384cee99ad93cbf1c50deef19a05f429b",
+    "field_bytes": 3962210,
+    "field_sha256": "b32cfaecf38e0040d01c2b4b1843a23f1b0b044c4000040dbc9734e06c95adf7",
+    "same_child_parent_revision_and_five_raw_source_pins_in_actual_GUI": true
+  },
+  "actually_observed": [
+    "Actual saved-record selection and verified HTTP full-U loading through same result artifact route",
+    "UZ and |U| physical ranges, undeformed/deformed and100x/0x display controls",
+    "Native probe314 XYZ/U/force and raw table unchanged by component/display factor",
+    "Actual parent/revision/adapter/producer/SHA plus all5native source pins in opened verification details",
+    "Recognizable exterior/color/triad/probe image; blue hidden fixed markers obscure displacement and saddle cues"
+  ],
+  "actual_values": {
+    "UZ_range_mm": [
+      -0.00564208,
+      2.17008E-05
+    ],
+    "magnitude_range_mm": [
+      0,
+      0.006169333909086347
+    ],
+    "probe314_XYZ_mm": [
+      4.15,
+      0,
+      26
+    ],
+    "probe314_U_tokens": [
+      "-2.49550E-03",
+      "9.69048E-06",
+      "-5.64208E-03"
+    ],
+    "probe314_force_N": [
+      0,
+      0,
+      -0.546711588795
+    ]
+  },
+  "independent_pixel_review": {
+    "model": "gpt-6-astra/high",
+    "verdict": "CORRECTION_REQUIRED_FOR_BOUNDED_PIXEL_USABILITY",
+    "P1": 0,
+    "P2": 1,
+    "source_anchor": "apps/lab/static/fixture-field-viewer.js:57",
+    "receipt": {
+      "bytes": 1993,
+      "sha256": "d2d30aa820e8acfc0092ae2373417fc802fc522fa88f18c65e1bf13ce4e6be1e"
+    },
+    "report": {
+      "bytes": 9772,
+      "sha256": "7a5adc0d7f7926c35cdcafdd9f83e761b78a9854af690f69be58740044ef3233"
+    },
+    "public_report": "docs/reviews/20261005-astra-high/FULL-FIELD-GUI-PIXEL.md",
+    "prior_source_PASS": "Retained historical bounded source verdict; actual pixel P2 does not alter native metrics/scientific criteria"
+  },
+  "required_correction": "Independent mesh-edge/restraint/load controls; default visible-surface marker/arrow/picking; explicit opt-in X-ray caption and visible/total counts; hidden/interior exact-ID probe identified; preserve all raw fields and values",
+  "screenshots": {
+    "public_exact_bytes": "docs/reviews/20261005-astra-high/images/fixture-full-field-initial-gui.jpg",
+    "pin": {
+      "bytes": 86647,
+      "sha256": "fada28688ce46a0103969ee03d053b6ceca16b01c26123da8ec44e5f35c7ee24"
+    },
+    "capture": "Actual UZ100x target browser; later |U|0x DOM is a separate state",
+    "partial_first_capture": "Retained locally, not used for pixel verdict"
+  },
+  "evidence": {
+    "Root_observation": {
+      "bytes": 1174,
+      "sha256": "43a709521998ce5a2ef9a9083261327ec952bd510b0dcc36bf33e226bcd88285"
+    },
+    "magnitude_zero_scale_DOM": {
+      "bytes": 1074,
+      "sha256": "902bbeb2a4d82a50e6aa9575abfba5b2081e97a8912ddd4d0e88fb090c2b14f6"
+    },
+    "verification_details_AX": {
+      "bytes": 2488,
+      "sha256": "65bf3f93e8da13e24ae43c5ee8ec828be1806dcb668919c8435cd4830dbe02ad"
+    },
+    "native71_after": "UNCHANGED/10791156B",
+    "old_human07_after": {
+      "files": 72,
+      "bytes": 40924681,
+      "unchanged": true
+    }
+  },
+  "owned_view_server": {
+    "foreground_session": 47783,
+    "exit": 0,
+    "state": "STOPPED"
+  },
+  "additional_solver_remesh_auth_provider_calls": 0,
+  "official_schema8_Research": "NOT_RUN",
+  "S3_U1_all52": "OPEN",
+  "limitations": [
+    "Actual still/DOM and representative controls only; no full-envelope/2mm/7body/performance/actual erroneous pick proof",
+    "Actual GUI tool exact-label/wrong-provenance selector timeouts retained separately from source/native correctness",
+    "Native/Core evidence qualified separately; this GUI performs no new solve/global refinement campaign",
+    "Generic company/physical/strength/material/deployment UNKNOWN/NOT_RELEASED remain"
+  ],
+  "retention": "Public exact initial screenshot, review prose and metadata confirmed by later push; other private raw artifacts LOCAL_ONLY. Not full off-machine restoration."
+}
