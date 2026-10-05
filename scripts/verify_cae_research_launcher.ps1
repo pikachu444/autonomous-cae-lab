@@ -140,19 +140,31 @@ Write-OpenScienceJson $taskProject @{ schema = 1; kind = 'autonomous-cae-lab.ope
 $taskValidSettings = [ordered]@{ schema = 1; runtime_prefix = $taskRuntime; auth_profile_root = $taskAuth; project_binding_path = $taskProject }
 Write-OpenScienceJson $taskSettings $taskValidSettings -CreateNew
 function Invoke-LauncherFixture {
-    param([string]$Run = ('control-' + [Guid]::NewGuid().ToString('N')), [string]$Config = $taskSettings, [switch]$Only)
-    Invoke-CaeResearchLocal -SourceRoot $taskFakeRepo -LocalSettingsPath $Config -ResearchRun $Run -LabPort 8782 -CheckOnly:$Only
+    param([string]$Run = ('control-' + [Guid]::NewGuid().ToString('N')), [string]$Config = $taskSettings, [switch]$Only, [string]$Profile = 'FixtureSelected')
+    Invoke-CaeResearchLocal -SourceRoot $taskFakeRepo -LocalSettingsPath $Config -ResearchRun $Run -LabPort 8782 -ResearchProfile $Profile -CheckOnly:$Only
 }
 
 Invoke-LauncherControl 'approved_model_profile_project_same_store_and_owned_normal_stop' {
     $result = Invoke-LauncherFixture
     $args = $script:taskContextArguments
     Confirm-LauncherControl ($args.ModelId -ceq 'openai-codex/gpt-5.6-sol' -and $args.Transport -ceq 'ChatGPT' -and $args.Purpose -ceq 'Research' -and
-        $args.ResearchProfile -ceq 'FixtureRefinement' -and $args.Steps -eq 24 -and $args.AllowedTools.Count -eq 14) 'Approved research selection changed.'
+        $args.ResearchProfile -ceq 'FixtureSelected' -and $args.Steps -eq 24 -and $args.AllowedTools.Count -eq 14) 'Approved research selection changed.'
     Confirm-LauncherControl ($args.RuntimePrefix -ceq $taskRuntime -and $args.AuthProfileRoot -ceq $taskAuth -and $args.ProjectBinding.source_directory -ceq $taskFakeRepo) 'Reusable setup binding changed.'
     Confirm-LauncherControl ($script:taskLabArguments.StoreRoot -ceq $args.StoreRoot -and $script:taskLabArguments.OwnerPath -ceq $result.OwnerPath -and
         $script:taskLabArguments.RepoRoot -ceq $taskFakeRepo -and $script:taskLabArguments.Port -eq 8782 -and $result.RuntimeState -ceq 'STOPPED' -and
         ($script:taskTrace -join ',') -ceq 'context,start,lab,owner,stop') 'Foreground store/owner forwarding or normal cleanup failed.'
+}
+Invoke-LauncherControl 'explicit_refinement_retains_trusted_historical_scope' {
+    $result = Invoke-LauncherFixture -Profile FixtureRefinement
+    Confirm-LauncherControl ($script:taskContextArguments.ResearchProfile -ceq 'FixtureRefinement' -and
+        $script:taskContext.ResearchDefinition.schema -eq 7 -and $result.ResearchProfile -ceq 'FixtureRefinement' -and
+        $result.RuntimeState -ceq 'STOPPED') 'Explicit historical refinement scope or owned cleanup changed.'
+}
+foreach ($taskInvalidScope in @('fixtureselected','FixtureScalar','ContactPatches')) {
+    Invoke-LauncherControl ('unadmitted_human_profile_' + $taskInvalidScope) {
+        $null = Get-LauncherRefusal { Invoke-LauncherFixture -Profile $taskInvalidScope }
+        Confirm-LauncherControl ($script:taskTrace.Count -eq 0) 'Unadmitted human profile reached context/runtime.'
+    }
 }
 Invoke-LauncherControl 'validate_only_creates_no_context_and_claims_no_readiness' {
     $result = Invoke-LauncherFixture -Only

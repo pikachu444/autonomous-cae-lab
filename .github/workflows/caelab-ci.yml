@@ -54,6 +54,18 @@ jobs:
               $taskRefinementReceipt.actual_auth_model_Core_solver_HTTP_GUI_calls -ne 0) {
             throw 'Fixture refinement source checks did not produce the expected bounded evidence.'
           }
+      - name: Check explicit selected-mesh research scope without runtime calls
+        shell: pwsh
+        run: |
+          $taskSelectedSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'artifacts/fixture-selected-source-ci'
+          $null = & ./scripts/verify_fixture_selected_research_source.ps1 -RepoRoot $env:GITHUB_WORKSPACE -OutputPath $taskSelectedSourceRoot
+          $taskSelectedReceipt = Get-Content -LiteralPath (Join-Path $taskSelectedSourceRoot 'receipt.json') -Raw | ConvertFrom-Json -Depth 60
+          if ($taskSelectedReceipt.status -cne 'PASS_FIXTURE_SELECTED_RESEARCH_SOURCE_ONLY' -or
+              $taskSelectedReceipt.check_count -ne @($taskSelectedReceipt.checks).Count -or $taskSelectedReceipt.check_count -le 0 -or
+              $taskSelectedReceipt.guard_exit_code -ne 0 -or
+              $taskSelectedReceipt.actual_auth_readiness_context_runtime_model_Core_solver_HTTP_GUI_calls -ne 0) {
+            throw 'Selected-mesh research source checks did not produce bounded source-only evidence.'
+          }
       - name: Check Windows checkout Git transport and pinned refusal gates
         shell: pwsh
         run: |
@@ -113,6 +125,7 @@ jobs:
             artifacts/p2-structural-research-failure-flow-20261002-01/
             artifacts/pde-research-source-ci/
             artifacts/fixture-refinement-source-ci/
+            artifacts/fixture-selected-source-ci/
             artifacts/mcp-git-transport-source-ci/
             artifacts/lab-research-source-ci/
             artifacts/development-human-workflow-20261004-01/bridge-source-01/
@@ -143,7 +156,7 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m pytest -q
       - name: Check forms, imported meshes and retained PDE/contact fields
-        run: node --test tests/test_fixture_controls.js tests/test_cad_controls.js tests/test_campaign_controls.js tests/test_imported_mesh_controls.js tests/test_pde_field_inspector.js tests/test_contact_field_inspector.js tests/test_result_presentation.js tests/test_result_workflow.js tests/test_research_handoff.js tests/test_research_answer.js
+        run: node --test tests/test_fixture_controls.js tests/test_fixture_field_controls.js tests/test_fixture_field_viewer.js tests/test_cad_controls.js tests/test_campaign_controls.js tests/test_imported_mesh_controls.js tests/test_pde_field_inspector.js tests/test_contact_field_inspector.js tests/test_result_presentation.js tests/test_result_workflow.js tests/test_research_handoff.js tests/test_research_answer.js
       - run: python scripts/verify_mcp.py
       - name: Verify native OpenScience source and tool guards without model calls
         run: |

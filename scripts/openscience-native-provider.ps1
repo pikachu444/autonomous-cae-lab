@@ -110,7 +110,7 @@ function New-OpenScienceNativeContext {
         [string]$WslDistro, [string]$WslPython, [AllowEmptyCollection()][string[]]$AllowedTools,
         [int]$OutputTokens, [int]$Steps, [int]$ProviderTimeoutSeconds, [Collections.IDictionary]$ProjectBinding,
         [ValidateSet('Acceptance', 'Research')][string]$Purpose = 'Acceptance',
-        [ValidateSet('FixtureScalar', 'FixtureRefinement', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', 'ContactPatches', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar')
+        [ValidateSet('FixtureScalar', 'FixtureRefinement', 'FixtureSelected', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', 'ContactPatches', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar')
     Assert-OpenScienceCondition ($ModelId -cmatch '^openai-codex/[A-Za-z0-9._-]+$') 'Select a full official ChatGPT model ID explicitly. No default or fallback model is permitted.'
     Assert-OpenScienceCondition (-not [string]::IsNullOrWhiteSpace($AuthProfileRoot)) 'The separately authenticated external profile is required.'
     $authRoot = [IO.Path]::GetFullPath($AuthProfileRoot)

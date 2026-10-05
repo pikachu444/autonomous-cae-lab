@@ -25,7 +25,7 @@
 | S0 | 실제 실행·중단·목표 상태 복원 | READONLY_OBSERVED / Root | 지정PIDs/ports/원기록 구분, old outputs 보존. 종료 원인 UNKNOWN 유지 |
 | S1 | 한 실행 동작에 승인 OpenScience+Lab 연결 | BOUNDED_LIVE_PASS / Root | 새 run02 실제 질문·도구 결과·resident idle·owned Stop 확인. active-job/native 취소·재시작은 S3 |
 | S2a | 부모 CAD와 정확한 수치 검사 이름을 결과에 표시 | BOUNDED_FRESH_GUI_PASS / Root | 실제 부모·revision·manifest/caption과 늦은 성공 응답 차단 확인. late-error/detached branch는 source controlled-DOM 증거 |
-| S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | BOUNDED_PUBLIC_MCP_CORE_NATIVE_PASS_RESEARCH_GUI_OPEN / Root | clean ce12037/새 Core CAD·selected4mm 한 mesh/실제7715절점 U·XYZ balance·두 pre-native 거부·Astra0P1/P2. trusted selected Research·같은 GUI는 다음 gate; global sweep 없음 |
+| S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | BOUNDED_NATIVE_AND_SOURCE_PASS_LIVE_RESEARCH_GUI_OPEN / Root | clean ce12037/새 Core CAD·selected4mm 한 mesh/실제7715절점 U·XYZ balance·두 pre-native 거부·Astra0P1/P2. schema8/GUI7 source와 두Astra0P1/P2/Root122PASS 통합. 실제 official selected Research·같은 GUI가 다음 gate; global sweep 없음 |
 | S3 | 종료·강제 중단·재시작 상태와 admission 복구 | NEXT / Root shared execution owner | tiny crash/identity matrix, append-only reconciliation, real native cancel/reconnect, old evidence 보존 |
 | U1 | 첫 간단한 사용자 CAE 연구 | WAITING_ON_S1_S2_S3 / Root | 아래 한 사용자 흐름을 실제로 끝내고 독립 검토·같은 GUI 결과·보고서로 확인 |
 | S4a | coarse native affine full-field patch | OPEN / Domain·adapter | source kernel 재사용, U/strain/stress/energy/force/moment 전체 참조 비교. actual mechanics와 구분 |
@@ -48,7 +48,7 @@
 fixture adapter6은 명시적 `mesh={mode:'selected',max_sizes_mm:[4]}`의 단일 mesh 계약을 구현했습니다.
 무mode의 기존2–8개/5%/1% screen은 그대로입니다. clean ce12037의 실제 공개 MCP/Core/native 단일 mesh 실행·두 pre-native 거부는 독립 확인했습니다. 사람 form/field GUI와 trusted Research는 다음 gate입니다.
 기존 공식 Research schema1/7은 undeclared mode를 거부합니다. 별도 trusted selected profile을 다음 순차 단위로 연결하며,
-historical descriptor/판정/수치 문턱을 바꾸거나 단일 mesh를 수렴 PASS로 만들지 않습니다.
+historical descriptor/판정/수치 문턱을 바꾸거나 단일 mesh를 수렴 PASS로 만들지 않습니다. schema8 source는 독립 감수·통합했으며 actual new-scope Research는 다음 gate입니다.
 후속150N 결과의 선형 비례를 raw 정밀도에 맞게 대조하고 조건 변경을 새 record로 보존합니다.
 기존 SciPy DE(population5/max_generations1/seed13)로 유효 응답을 쓰는 연구용 탐색을 실행합니다.
 budget 종료/`converged=false`/best observed를 최적해 확정과 구분합니다. DOE는 현재14-tool profile에 없습니다.
@@ -171,3 +171,7 @@ native 선형 solve completion의 기존 converged 의미도 별도로 기록하
 S1/S2a bounded live gates PASS. S2b clean ce12037 public stdio MCP/Core/new CAD/one selected4mm native solve/full7715-node U and independent Astra raw review PASS: `benchmarks/records/20261005-fixture-selected-mesh-core-native-r01.json`. Eight public calls, two real pre-native rejections, old72files preserved; no global mesh sweep. Trusted selected Research, same-field human GUI and S3/U1/all52 remain OPEN.
 
 Actual parent E-selected-cad32 / child E-selected-solve100 / revision676bd750044c0c0a20d33780bae993a384cee99ad93cbf1c50deef19a05f429b. One corresponding4mm mesh and one native solve; loaded UZ=-0.005642080mm, signed XYZ force residual4.389558377321599e-9<=unchanged1%. Sensitivity stays NOT_ASSESSED/invalid null, full U is measured data, invalid stress/seven UNKNOWNs/NOT_RELEASED remain. FINAL-02 SHA dc9053ba241853ecd6f2f5ddade8c36ef20c6248a1d1741be481bf065843d047 verifies71files/10791156B; independent Astra receipt bc9bd7039a2a460acf3d35fc692339e8a6a56ee738215e091bf5e80f729ce7bc verifies8files. Official Research/GUI/provider were NOT_RUN in this gate. Exact ce CI37281737051 snapshot is still in progress and already has failures; no whole CI PASS. Native source ce differs from this later documentation checkpoint.
+
+## Selected Research/full-U GUI integrated source checkpoint
+
+Two bounded source records: `benchmarks/records/20261005-fixture-selected-research-source-r01.json` and `benchmarks/records/20261005-fixture-full-field-gui-source-r01.json`. Separate Astra/high0P1/P2 reviews are retained in the review directory. Root's exact frozen GUI integration122PASS and CI two-test addition have bounded evidence; no new native/mesh/provider/browser action. Official schema8 Research, real full-U browser pixels/interactions/performance and S3/U1 remain OPEN. Exact ce37281737051 completed7SUCCESS/3FAIL with retained download404/AsterFz/PDEvector logs; deeper numerical causes NOT_ISOLATED. New integrated-source CI cannot inherit that result.

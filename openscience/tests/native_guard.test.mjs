@@ -31,8 +31,8 @@ function assertRepositorySourcePin(expected,current) {
 }
 ${gitStateSource}
 `;
-const temporarySource = `${prefix}\n${source}\nexport { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeMaterialDefinition, nativeMaterialLimits, nativeViscoelasticDefinition, nativeViscoelasticLimits, nativeContactDefinition, nativeContactLimits };\n`;
-const { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeMaterialDefinition, nativeMaterialLimits, nativeViscoelasticDefinition, nativeViscoelasticLimits, nativeContactDefinition, nativeContactLimits } = await import(`data:text/javascript;base64,${Buffer.from(temporarySource).toString('base64')}`);
+const temporarySource = `${prefix}\n${source}\nexport { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeFixtureSelectedDefinition, nativeMaterialDefinition, nativeMaterialLimits, nativeViscoelasticDefinition, nativeViscoelasticLimits, nativeContactDefinition, nativeContactLimits };\n`;
+const { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeFixtureSelectedDefinition, nativeMaterialDefinition, nativeMaterialLimits, nativeViscoelasticDefinition, nativeViscoelasticLimits, nativeContactDefinition, nativeContactLimits } = await import(`data:text/javascript;base64,${Buffer.from(temporarySource).toString('base64')}`);
 const tools = [
   'caelab_study_create', 'caelab_study_inspect', 'caelab_parameters_discover',
   'caelab_parameters_register', 'caelab_parameters_list', 'caelab_experiment_run',
@@ -361,6 +361,169 @@ test('historical fixture research scopes refuse undeclared selected mesh mode be
     }
   }
 });
+
+// TEST_ONLY parsed-hook controls. They never execute a provider, Core or solver.
+// The copied native descriptor has an independent frozen canonical pin, and the
+// optional external file exercises the actual PowerShell factory export.
+const selectedDefinitionSha = 'b501a8216d63baea80b0b5d1ce9b727409f2680e3d84ee5212e244a9f3f26626';
+const selectedResearchFixture = (t,definition=nativeFixtureSelectedDefinition) => refinementResearchFixture(t,definition);
+function selectedAnalysis(size=4) {
+  const request=refinementAnalysis([size]);
+  request.settings.mesh.mode='selected';
+  return request;
+}
+const selectedPlan = analysis => ({backend:'fixture.cadquery',model:'roller_support',seed:13,
+  engine:'scipy.differential_evolution',max_generations:1,population_size:5,
+  analysis_backend:'fixture.calculix',analysis_settings:analysis.settings});
+const selectedRequests = analysis => [['caelab_analysis_run',analysis],['caelab_optimization_plan',selectedPlan(analysis)]];
+async function checkSelectedRequest(f,hooks,tool,args,code) {
+  const output={args},original=structuredClone(output),before=f.receipts().length;
+  const action=hooks['tool.execute.before']({tool,sessionID:f.sessionID},output);
+  if (code) await assert.rejects(action,refusal(code));
+  else await action;
+  assert.deepEqual(output,original,'The hook must preserve all supplied arguments, including refusals.');
+  assert.equal(f.receipts().length,before+1);
+  const receipt=f.receipts().at(-1);
+  assert.equal(receipt.tool,tool); assert.equal(receipt.accepted,!code);
+  if (code) assert.equal(receipt.code,code);
+}
+
+test('fixture selected descriptor keeps the frozen scope and historical refinement pin',() => {
+  assert.equal(sha(canonical(nativeFixtureSelectedDefinition)),selectedDefinitionSha);
+  assert.equal(sha(canonical(refinementDefinition)),'bd7e341d373ce732d72f7c4263d35b015047efd4cde0f181aee73e1a11459632');
+  assert.equal(nativeFixtureSelectedDefinition.schema,8);
+  assert.equal(nativeFixtureSelectedDefinition.profile,'fixture-selected-mesh-v1');
+  assert.deepEqual(nativeFixtureSelectedDefinition.allowed_tools,refinementDefinition.allowed_tools);
+  assert.equal(nativeFixtureSelectedDefinition.allowed_tools.length,14);
+  assert.deepEqual(nativeFixtureSelectedDefinition.runtime_environment,refinementDefinition.runtime_environment);
+  const expectedBudgets=structuredClone(refinementDefinition.budgets); expectedBudgets.analysis.max_mesh_levels=1;
+  assert.deepEqual(nativeFixtureSelectedDefinition.budgets,expectedBudgets);
+  assert.deepEqual(nativeFixtureSelectedDefinition.capabilities.map(item => item.backend),
+    ['fixture.cadquery','fixture.calculix','pde.fenicsx']);
+  assert.equal(nativeFixtureSelectedDefinition.capabilities[1].boundary_model,refinementDefinition.capabilities[1].boundary_model);
+  const verdict=nativeFixtureSelectedDefinition.capabilities[1].numerical_verdict;
+  for (const text of ['reaction balance<=1%','NOT_ASSESSED','invalid-null','no displacement_mesh_trend',
+    'linear solve completion only','Peak stress remains invalid','seven engineering UNKNOWNs','NOT_RELEASED']) assert.ok(verdict.includes(text),text);
+  assert.ok(Object.isFrozen(nativeFixtureSelectedDefinition));
+  assert.ok(Object.isFrozen(nativeFixtureSelectedDefinition.budgets.analysis));
+});
+
+test('fixture selected actual PS definition exactly matches the native guard and admits both operations unchanged',
+  {skip:!process.env.CAELAB_FIXTURE_SELECTED_DEFINITION_PATH && 'External actual PS definition was not supplied.'},async t => {
+    const definition=JSON.parse(fs.readFileSync(process.env.CAELAB_FIXTURE_SELECTED_DEFINITION_PATH,'utf8'));
+    assert.equal(sha(canonical(definition)),selectedDefinitionSha);
+    assert.equal(canonical(definition),canonical(nativeFixtureSelectedDefinition));
+    const f=selectedResearchFixture(t,definition),hooks=await f.hooks();
+    await hooks['chat.params'](f.request(),{});
+    for (const [tool,args] of selectedRequests(selectedAnalysis())) await checkSelectedRequest(f,hooks,tool,args);
+  });
+
+test('fixture selected admits one finite numerical size for analysis and deterministic planning',async t => {
+  const f=selectedResearchFixture(t),hooks=await f.hooks();
+  await hooks['chat.params'](f.request(),{});
+  for (const size of [4,1e-12,1e3]) {
+    for (const [tool,args] of selectedRequests(selectedAnalysis(size))) await checkSelectedRequest(f,hooks,tool,args);
+  }
+});
+
+test('fixture selected finite scientific-invalid conditions forward unchanged for Domain rejection',async t => {
+  const f=selectedResearchFixture(t),hooks=await f.hooks();
+  const negativeLoad=selectedAnalysis(); negativeLoad.settings.load.force_per_support_N=-100;
+  const invalidMaterial=selectedAnalysis(); invalidMaterial.settings.material.E_3_MPa=-900;
+  // These are hook admission checks, never a scientific PASS. No value is fixed
+  // or replaced; actual Domain rejection and native execution are separate gates.
+  for (const analysis of [selectedAnalysis(0),selectedAnalysis(-4),negativeLoad,invalidMaterial]) {
+    for (const [tool,args] of selectedRequests(analysis)) await checkSelectedRequest(f,hooks,tool,args);
+  }
+});
+
+for (const [label,mesh,code] of [
+  ['missing mesh',undefined,'RESEARCH_ARGUMENTS_REQUIRED'],
+  ['nonobject mesh',[],'RESEARCH_ARGUMENTS_REQUIRED'],
+  ['omitted mode',{max_sizes_mm:[4]},'RESEARCH_ARGUMENTS_REQUIRED'],
+  ['refinement mode',{mode:'refinement',max_sizes_mm:[4]},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['case changed mode',{mode:'Selected',max_sizes_mm:[4]},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['boolean mode',{mode:true,max_sizes_mm:[4]},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['numeric mode',{mode:1,max_sizes_mm:[4]},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['null mode',{mode:null,max_sizes_mm:[4]},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['undefined own mode',{mode:undefined,max_sizes_mm:[4]},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+  ['extra mesh key',{mode:'selected',max_sizes_mm:[4],element_size_mm:4},'RESEARCH_ARGUMENTS_REQUIRED'],
+  ['missing size list',{mode:'selected'},'RESEARCH_ARGUMENTS_REQUIRED'],
+  ['nonarray size list',{mode:'selected',max_sizes_mm:4},'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['zero sizes',{mode:'selected',max_sizes_mm:[]},'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['two sizes',{mode:'selected',max_sizes_mm:[4,2]},'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ['NaN size',{mode:'selected',max_sizes_mm:[NaN]},'RESEARCH_ARGUMENTS_REQUIRED'],
+  ['positive infinity size',{mode:'selected',max_sizes_mm:[Infinity]},'RESEARCH_ARGUMENTS_REQUIRED'],
+  ['negative infinity size',{mode:'selected',max_sizes_mm:[-Infinity]},'RESEARCH_ARGUMENTS_REQUIRED'],
+  ['string size',{mode:'selected',max_sizes_mm:['4']},'RESEARCH_ARGUMENTS_REQUIRED'],
+  ['boolean size',{mode:'selected',max_sizes_mm:[true]},'RESEARCH_ARGUMENTS_REQUIRED'],
+  ['null size',{mode:'selected',max_sizes_mm:[null]},'RESEARCH_ARGUMENTS_REQUIRED'],
+  ['object size',{mode:'selected',max_sizes_mm:[{value:4}]},'RESEARCH_ARGUMENTS_REQUIRED'],
+  ['absent vector entry',{mode:'selected',max_sizes_mm:new Array(1)},'RESEARCH_ARGUMENTS_REQUIRED'],
+]) test(`fixture selected refuses ${label} for both operations with retained receipts`,async t => {
+  const f=selectedResearchFixture(t),hooks=await f.hooks(),analysis=selectedAnalysis();
+  analysis.settings.mesh=structuredClone(mesh);
+  for (const [tool,args] of selectedRequests(analysis)) await checkSelectedRequest(f,hooks,tool,args,code);
+});
+
+test('fixture selected planning requires explicit CalculiX analysis while historical CAD-only plans remain admitted',async t => {
+  const f=selectedResearchFixture(t),hooks=await f.hooks();
+  for (const backend of [undefined,null,'fixture.cadquery']) {
+    const args=selectedPlan(selectedAnalysis());
+    if (backend===undefined) delete args.analysis_backend; else args.analysis_backend=backend;
+    await checkSelectedRequest(f,hooks,'caelab_optimization_plan',args,'RESEARCH_CAPABILITY_NOT_ADMITTED');
+  }
+  const missingSettings=selectedPlan(selectedAnalysis()); delete missingSettings.analysis_settings;
+  await checkSelectedRequest(f,hooks,'caelab_optimization_plan',missingSettings,'RESEARCH_ARGUMENTS_REQUIRED');
+  for (const factory of [researchFixture,refinementResearchFixture]) {
+    const old=factory(t),oldHooks=await old.hooks();
+    await checkSelectedRequest(old,oldHooks,'caelab_optimization_plan',
+      {backend:'fixture.cadquery',model:'roller_support',seed:13,max_generations:1,population_size:5});
+  }
+});
+
+for (const [label,change] of [
+  ['profile',d => d.profile='fixture-selected-mesh-v2'],
+  ['schema',d => d.schema=7],
+  ['analysis budget',d => d.budgets.analysis.max_mesh_levels=2],
+  ['steps',d => d.budgets.steps=25],
+  ['optimization budget',d => d.budgets.optimization.max_generations=2],
+  ['runtime',d => d.runtime_environment.OMP_NUM_THREADS='8'],
+  ['tool',d => d.allowed_tools.push('caelab_model_analysis_run')],
+  ['backend',d => d.capabilities[1].backend='fixture.fake'],
+  ['boundary',d => d.capabilities[1].boundary_model='Invented bolt clamps'],
+  ['verdict',d => d.capabilities[1].numerical_verdict='Convergence always PASS'],
+  ['limitations',d => d.limitations=[]],
+]) test(`fixture selected refuses descriptor ${label} tampering before loading hooks`,async t => {
+  const f=selectedResearchFixture(t); change(f.settings.research); json(f.settingsPath,f.settings);
+  await assert.rejects(f.hooks(),refusal('RESEARCH_DEFINITION_INVALID'));
+});
+
+test('fixture selected keeps backend numerical engine and population boundaries',async t => {
+  const f=selectedResearchFixture(t),hooks=await f.hooks();
+  for (const [tool,args,code] of [
+    ['caelab_analysis_run',{...selectedAnalysis(),backend:'fixture.cadquery'},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+    ['caelab_optimization_plan',{...selectedPlan(selectedAnalysis()),backend:'fixture.calculix'},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+    ['caelab_optimization_plan',{...selectedPlan(selectedAnalysis()),model:'other_support'},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+    ['caelab_optimization_plan',{...selectedPlan(selectedAnalysis()),engine:'llm.optimizer'},'RESEARCH_CAPABILITY_NOT_ADMITTED'],
+    ['caelab_optimization_plan',{...selectedPlan(selectedAnalysis()),max_generations:2},'RESEARCH_WORK_BUDGET_EXCEEDED'],
+    ['caelab_optimization_plan',{...selectedPlan(selectedAnalysis()),population_size:6},'RESEARCH_WORK_BUDGET_EXCEEDED'],
+    ['caelab_optimization_plan',{...selectedPlan(selectedAnalysis()),population_size:4},'RESEARCH_WORK_BUDGET_EXCEEDED'],
+    ['caelab_optimization_plan',{...selectedPlan(selectedAnalysis()),population_size:true},'RESEARCH_WORK_BUDGET_EXCEEDED'],
+  ]) await checkSelectedRequest(f,hooks,tool,args,code);
+});
+
+for (const [drift,code] of [['source','SOURCE_CHANGED_OR_UNAVAILABLE'],['grant','PROJECT_GRANT_CHANGED'],['stopping','RUNTIME_STOPPING']]) {
+  test(`fixture selected retains ${drift} refusal for analysis and numerical planning`,async t => {
+    for (const [tool,args] of selectedRequests(selectedAnalysis())) {
+      const f=selectedResearchFixture(t),hooks=await f.hooks();
+      if (drift==='source') json(f.statePath,{...f.boot,source_commit:'f'.repeat(40)});
+      if (drift==='grant') f.state.filesystem.grants[0].access='read';
+      if (drift==='stopping') f.writeGuard({stopping:true});
+      await checkSelectedRequest(f,hooks,tool,args,code);
+    }
+  });
+}
 // Pinned official 4082a2ecb73e166d4503963798228ba700f3840f:
 // backend/cli/src/session/message-v2.ts general Error -> UnknownError branch
 // retains e.toString(), not e.code; retry.ts:329-349 then checks this text.

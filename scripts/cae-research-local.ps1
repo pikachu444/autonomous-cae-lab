@@ -7,12 +7,13 @@ param(
     [string]$SettingsPath = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab/cae-research-settings.json'),
     [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$RunName = ('cae-research-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff') + '-' + [Guid]::NewGuid().ToString('N').Substring(0, 8)),
     [ValidateRange(1024, 65535)][int]$Port = 8766,
+    [ValidateSet('FixtureSelected','FixtureRefinement', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureSelected',
     [switch]$ValidateOnly
 )
 
 # Runner parameters occupy a dot-sourcing caller's scope; preserve this facade.
 $taskCaeResearchOptions = @{ Library = [bool]$Library; RepoRoot = $RepoRoot; SettingsPath = $SettingsPath
-    RunName = $RunName; Port = $Port; ValidateOnly = [bool]$ValidateOnly }
+    RunName = $RunName; Port = $Port; ResearchProfile = $ResearchProfile; ValidateOnly = [bool]$ValidateOnly }
 . (Join-Path ([IO.Path]::GetFullPath($taskCaeResearchOptions.RepoRoot)) 'scripts/openscience-server-local.ps1') -Library
 
 function Assert-CaeResearchLocalPath {
@@ -72,7 +73,8 @@ function Read-CaeResearchLocalSettings {
 
 function New-CaeResearchLocalPlan {
     param([Parameter(Mandatory)][string]$SourceRoot, [Parameter(Mandatory)][string]$LocalSettingsPath,
-        [Parameter(Mandatory)][ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ResearchRun)
+        [Parameter(Mandatory)][ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ResearchRun,
+        [ValidateSet('FixtureSelected','FixtureRefinement', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureSelected')
     $source = Assert-CaeResearchLocalPath $SourceRoot 'Research source'
     Assert-OpenScienceCondition (Test-Path -LiteralPath (Join-Path $source 'scripts/lab-local.ps1') -PathType Leaf) 'The selected research source has no Lab launcher.'
     $settings = Read-CaeResearchLocalSettings $LocalSettingsPath $source
@@ -84,11 +86,13 @@ function New-CaeResearchLocalPlan {
         # empty paths here too so a previous owned profile is never reused.
         Assert-OpenScienceCondition (-not (Test-Path -LiteralPath $path)) 'This run has an existing store, evidence directory or research profile. Choose a fresh RunName; existing records are preserved.'
     }
-    $definition = New-OpenScienceResearchDefinition -Profile FixtureRefinement
+    $definition = New-OpenScienceResearchDefinition -Profile $ResearchProfile
     Assert-OpenScienceResearchDefinition $definition
-    Assert-OpenScienceCondition ($definition.schema -eq 7 -and $definition.profile -ceq 'fixture-refinement-v1' -and @($definition.allowed_tools).Count -eq 14) 'The approved fourteen-tool FixtureRefinement definition is required.'
+    $expectedSchema = if ($ResearchProfile -ceq 'FixtureSelected') {8} else {7}
+    $expectedProfile = if ($ResearchProfile -ceq 'FixtureSelected') {'fixture-selected-mesh-v1'} else {'fixture-refinement-v1'}
+    Assert-OpenScienceCondition ($definition.schema -eq $expectedSchema -and $definition.profile -ceq $expectedProfile -and @($definition.allowed_tools).Count -eq 14) 'The selected trusted fourteen-tool fixture definition is required.'
     return [pscustomobject]@{ RepoRoot = $source; RunName = $ResearchRun; StoreRoot = $store; ProfileRoot = $profile
-        OwnerPath = (Join-Path $profile 'runtime-owner.json'); Settings = $settings; Definition = $definition }
+        OwnerPath = (Join-Path $profile 'runtime-owner.json'); Settings = $settings; Definition = $definition; ResearchProfile = $ResearchProfile }
 }
 
 function Assert-CaeResearchLocalBinding {
@@ -117,11 +121,12 @@ function Invoke-CaeResearchLocal {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$SourceRoot, [Parameter(Mandatory)][string]$LocalSettingsPath,
         [Parameter(Mandatory)][ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ResearchRun,
-        [ValidateRange(1024, 65535)][int]$LabPort = 8766, [switch]$CheckOnly)
-    $plan = New-CaeResearchLocalPlan $SourceRoot $LocalSettingsPath $ResearchRun
+        [ValidateRange(1024, 65535)][int]$LabPort = 8766,
+        [ValidateSet('FixtureSelected','FixtureRefinement', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureSelected', [switch]$CheckOnly)
+    $plan = New-CaeResearchLocalPlan -SourceRoot $SourceRoot -LocalSettingsPath $LocalSettingsPath -ResearchRun $ResearchRun -ResearchProfile $ResearchProfile
     if ($CheckOnly) {
         return [pscustomobject]@{ State = 'PATHS_VALIDATED_NOT_STARTED'; RunName = $plan.RunName; StoreRoot = $plan.StoreRoot
-            Model = 'openai-codex/gpt-5.6-sol'; ResearchProfile = 'FixtureRefinement'; Readiness = 'NOT_CHECKED' }
+            Model = 'openai-codex/gpt-5.6-sol'; ResearchProfile = $plan.ResearchProfile; Readiness = 'NOT_CHECKED' }
     }
     $context = $null; $attempted = $false; $originalError = $null; $cleanupError = $null
     $cleanupState = 'NOT_STARTED'; $labExit = $null
@@ -129,7 +134,7 @@ function Invoke-CaeResearchLocal {
         Write-Host 'AI 연구를 준비합니다. 승인된 연구 모델과 기존 인증 설정을 사용합니다.'
         $context = New-OpenScienceLocalContext -RepoRoot $plan.RepoRoot -RunName $plan.RunName -ProfileTag cae-research -StoreRoot $plan.StoreRoot `
             -RuntimePrefix $plan.Settings.RuntimePrefix -AuthProfileRoot $plan.Settings.AuthProfileRoot -ProjectBinding $plan.Settings.ProjectBinding `
-            -ModelId 'openai-codex/gpt-5.6-sol' -Transport ChatGPT -Purpose Research -ResearchProfile FixtureRefinement `
+            -ModelId 'openai-codex/gpt-5.6-sol' -Transport ChatGPT -Purpose Research -ResearchProfile $plan.ResearchProfile `
             -AllowedTools @($plan.Definition.allowed_tools) -Steps 24
         Assert-CaeResearchLocalBinding $context $plan
         Assert-OpenScienceCondition (-not (Test-Path -LiteralPath $context.OwnerPath)) 'A runtime owner appeared before this launch; startup was refused.'
@@ -162,10 +167,10 @@ function Invoke-CaeResearchLocal {
     if ($cleanupError) { throw $cleanupError }
     return [pscustomobject]@{ State = $(if ($labExit -eq 130) { 'INTERRUPTED' } else { 'LAB_EXITED' }); LabExitCode = $labExit
         RuntimeState = $cleanupState; RunName = $plan.RunName; StoreRoot = $plan.StoreRoot; OwnerPath = $plan.OwnerPath
-        Model = 'openai-codex/gpt-5.6-sol'; ResearchProfile = 'FixtureRefinement' }
+        Model = 'openai-codex/gpt-5.6-sol'; ResearchProfile = $plan.ResearchProfile }
 }
 
 if ($taskCaeResearchOptions.Library) { return }
 $ErrorActionPreference = 'Stop'
 Invoke-CaeResearchLocal -SourceRoot $taskCaeResearchOptions.RepoRoot -LocalSettingsPath $taskCaeResearchOptions.SettingsPath `
-    -ResearchRun $taskCaeResearchOptions.RunName -LabPort $taskCaeResearchOptions.Port -CheckOnly:$taskCaeResearchOptions.ValidateOnly
+    -ResearchRun $taskCaeResearchOptions.RunName -LabPort $taskCaeResearchOptions.Port -ResearchProfile $taskCaeResearchOptions.ResearchProfile -CheckOnly:$taskCaeResearchOptions.ValidateOnly

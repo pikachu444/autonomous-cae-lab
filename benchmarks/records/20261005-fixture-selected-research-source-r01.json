@@ -1,0 +1,170 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-10-05T09:38:07.9976634Z",
+  "parent_commit": "79896906f721be56d6f7f6c25bb329b524487d45",
+  "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "engineering_decision": "NOT_RELEASED",
+  "source_identity": "Frozen raw working source hashes plus declared CI delta; later integrated commit is identified by subsequent live/CI receipts, not self-referential metadata.",
+  "latest_native_source_CI": {
+    "source_commit": "ce120378ee8da570a779f985cfc745bf0340c6ce",
+    "run_id": 37281737051,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37281737051",
+    "status": "COMPLETED",
+    "conclusion": "FAILURE",
+    "success": 7,
+    "failure": 3,
+    "retained_raw_records": [
+      {
+        "path": "SNAPSHOT-01.json",
+        "bytes": 26140,
+        "sha256": "31eaf70e3ba3ab685284532427b85bb7974cac876ef9752317ceb2f445a4495c"
+      },
+      {
+        "path": "pde-FAILED-01.txt",
+        "bytes": 5101,
+        "sha256": "47e943d9905e761a85a30fb19dd72209aa6a83d8b60e3f7d91ee96af93cdf861"
+      },
+      {
+        "path": "codeaster-FAILED-01.txt",
+        "bytes": 6889,
+        "sha256": "052a1a79067a766818dd61e62296ec8024e66370fa24ed2d3c1936c490362937"
+      },
+      {
+        "path": "explicit-FAILED-01.txt",
+        "bytes": 4922,
+        "sha256": "39685699406d2397b13097eb3204854a509ab03998f6904e347e3208069f5717"
+      }
+    ],
+    "failure_boundaries": [
+      "OpenRadioss official download HTTP404 before native execution",
+      "Code_Aster E-ansys_vmd1_regular-Fz-aster numerical assertion",
+      "Vector PDE numerical classification assertion"
+    ],
+    "deeper_numerical_causes": "NOT_ISOLATED",
+    "new_source_CI": "NOT_RUN_AT_THIS_SOURCE_CHECKPOINT"
+  },
+  "private_retention": "LOCAL_ONLY; metadata and selected read-only review prose are public. No claim of off-machine raw artifact restoration.",
+  "kind": "autonomous-cae-lab.selected-research-source-acceptance",
+  "verdict": "PASS_BOUNDED_SOURCE_INTEGRATION_ONLY",
+  "scope": {
+    "selector": "FixtureSelected",
+    "schema_version": 8,
+    "profile": "fixture-selected-mesh-v1",
+    "canonical_sha256": "b501a8216d63baea80b0b5d1ce9b727409f2680e3d84ee5212e244a9f3f26626",
+    "human_default": "FixtureSelected",
+    "human_historical_choice": "FixtureRefinement",
+    "lower_default": "FixtureScalar",
+    "research_model": "openai-codex/gpt-5.6-sol",
+    "transport": "EXISTING_CHATGPT_AUTH",
+    "tools": 14,
+    "automatic_fallback": false,
+    "new_plan_requires_fixture_calculix_and_selected_settings": true,
+    "mandatory_global_mesh_sweep": false
+  },
+  "source_files": [
+    {
+      "path": "scripts/openscience-research.ps1",
+      "bytes": 51371,
+      "sha256": "baa8c26aa0cb621c88bea3829269941d35ab13bb6776d744d124ac1d5c4c2344"
+    },
+    {
+      "path": "scripts/openscience-native-provider.ps1",
+      "bytes": 24039,
+      "sha256": "0e63e94a53d0008425de8fec42edf0277a0311508e6cd52b6d1e8f1152cae311"
+    },
+    {
+      "path": "scripts/openscience-server-local.ps1",
+      "bytes": 145885,
+      "sha256": "6400fea9d19e4f4eaea4105c1b7ba6266ecaa05a993127f2040ad4553b9d4ade"
+    },
+    {
+      "path": "scripts/cae-research-local.ps1",
+      "bytes": 14623,
+      "sha256": "577d71c12df3d25bdce87dddb2939dff33f5ef65a2b2b49278eea965ef6d1cbc"
+    },
+    {
+      "path": "scripts/verify_cae_research_launcher.ps1",
+      "bytes": 29081,
+      "sha256": "705d3901742639ac081bbda57e5c38d4e4d0c373dd28c5db5bf38ec34b2c6dd6"
+    },
+    {
+      "path": "openscience/native_guard.mjs",
+      "bytes": 87830,
+      "sha256": "d85a6a5ac2098e7b17f727c3ca2d9dc90850800b69ecc5000e5abb95b4e0345e"
+    },
+    {
+      "path": "scripts/verify_fixture_selected_research_source.ps1",
+      "bytes": 17613,
+      "sha256": "a64770156617295045939695aa0f4fb2c74ccbf9b0035e2af7f274cb52242c46"
+    },
+    {
+      "path": "openscience/tests/native_guard.test.mjs",
+      "bytes": 174771,
+      "sha256": "74638978c11918a99e973073fbde4cb13d72e44b9c0166e8a30f2209198c3f71"
+    },
+    {
+      "path": ".github/workflows/caelab-ci.yml",
+      "bytes": 29530,
+      "sha256": "c20daa67febd0d168cb87f8d57486741934397e6df692bb1d6bc8937783af81f"
+    }
+  ],
+  "controls": {
+    "Root_preflight_PASS": 18,
+    "Root_mock_PASS": 45,
+    "Root_mock_FAIL": 0,
+    "worker_ordered_baseline_PS_PASS": 110,
+    "worker_portable_PS_PASS": 89,
+    "worker_focused_Node_PASS": 66,
+    "worker_full_Node_PASS": 343,
+    "worker_full_Node_FAIL": 0,
+    "worker_optional_Node_SKIP": 11,
+    "new_selected_Node_tests": 42,
+    "historical_definitions": 7,
+    "historical_definitions_and_instruction_contract_unchanged": true,
+    "actual_auth_context_runtime_model_Core_solver_HTTP_GUI_calls": 0
+  },
+  "evidence": {
+    "Root_authoritative_manifest": {
+      "bytes": 13432,
+      "sha256": "b2d87b5de7a769e1662fa834e0fb8b428534d862d89ce94f0bb8d7fb2c7f5734"
+    },
+    "Root_payload_files": 72,
+    "Root_payload_bytes": 1841481,
+    "Root_historical_receipt": {
+      "bytes": 2185,
+      "sha256": "815a4af93f27618321168b8db1f466f518d4949a041dbb7f76c36313c7e87bf0"
+    },
+    "worker_manifest": {
+      "bytes": 13961,
+      "sha256": "410c01508d1563fbddd52e2066955d35f45ca3d596f5eede30d6835fd2a05430"
+    },
+    "worker_receipt": {
+      "bytes": 3888,
+      "sha256": "9be38ebe756fbf4f8e3ca99ed15ab6fc11f28d275f1ecb03e1b12583cfc236c3"
+    },
+    "independent_Astra_final_receipt": {
+      "bytes": 4698,
+      "sha256": "dcf9f6c7e80d59456e357f913201fd156e6a6ad23c167e815ea72e3b87447611"
+    },
+    "independent_review_verdict": "BOUNDED_SOURCE_ONLY_PASS",
+    "open_P1": 0,
+    "open_P2": 0,
+    "additional_CI_delta_receipt": {
+      "bytes": 1462,
+      "sha256": "ac8a92bcb1682f24382cc1412cfdcc80e95763376df406629826353bafe8e5b4"
+    }
+  },
+  "retained_attempts": [
+    "Root mixed-EOL literal helper stopped before tracked writes; correction retained historical instruction bytes",
+    "New schema8 omitted-backend path tightened before final source runs; prior candidate exports preserved",
+    "Worker stale phrase assertion and first optional-env full-suite failure logs retained; corrected invocation passed without weakening tests/scientific criteria",
+    "Original Root manifest aggregate null retained; additive explicit Int64 closure checks all original70 unchanged payloads",
+    "Primary GUI baseline raw CRLF/LF mismatch refused before writes; exact clean-Git/normalized-only-EOL check recorded before integration"
+  ],
+  "limitations": [
+    "Source-only scope qualification; official schema8 Research/GUI NOT_RUN at this checkpoint",
+    "Core/Domain/adapter scientific interfaces and all canonical thresholds unchanged",
+    "Single-mesh U is an observation, sensitivity invalid/null NOT_ASSESSED, invalid stress/sevenUNKNOWN/NOT_RELEASED remain",
+    "Independent source review is not current-source whole CI/native execution or all52/Phase1-7 completion"
+  ]
+}

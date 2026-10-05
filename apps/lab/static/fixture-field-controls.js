@@ -1,0 +1,215 @@
+"use strict";
+
+// Read-only adapter artifact inspection. Numerical/engineering verdicts stay in Core.
+(function (root) {
+  const LIMITS = Object.freeze({ bytes: 32 * 1024 * 1024, nodes: 40000, elements: 25000, faces: 8000, factor: 1000 });
+  const COMPONENTS = Object.freeze(["UX", "UY", "UZ", "MAGNITUDE"]);
+  const object = x => x !== null && typeof x === "object" && !Array.isArray(x);
+  const finite = x => typeof x === "number" && Number.isFinite(x);
+  const identifier = x => Number.isSafeInteger(x) && x > 0;
+  const sha = x => typeof x === "string" && x.length === 64 && /^[0-9a-f]{64}$/.test(x);
+  const id = x => typeof x === "string" && x.length <= 80 && /^[A-Za-z]/.test(x) && !/[^A-Za-z0-9_-]/.test(x);
+  const assert = (value, message) => { if (!value) throw new Error(message); };
+  const keys = (value, names) => object(value) && Object.keys(value).sort().join(",") === [...names].sort().join(",");
+  function copy(value) {
+    if (Array.isArray(value)) return value.map(copy);
+    return object(value) ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, copy(item)])) : value;
+  }
+  function freeze(value) {
+    if (value && typeof value === "object") { Object.values(value).forEach(freeze); Object.freeze(value); }
+    return value;
+  }
+  function equal(a, b) {
+    if (Object.is(a, b)) return true;
+    if (Array.isArray(a)) return Array.isArray(b) && a.length === b.length && a.every((value, i) => equal(value, b[i]));
+    return object(a) && object(b) && Object.keys(a).length === Object.keys(b).length &&
+      Object.keys(a).every(key => Object.hasOwn(b, key) && equal(a[key], b[key]));
+  }
+  function safePath(value) {
+    return typeof value === "string" && value.length > 0 && value.length <= 240 && !/[\\\x00-\x20:#?%]/.test(value) &&
+      value.split("/").every(part => part && part !== "." && part !== "..");
+  }
+  const contexts = new WeakMap(), verified = new WeakSet();
+  function catalog(inspection) {
+    assert(inspection?.integrity === "VERIFIED", "기록 검증이 완료된 실험만 필드를 표시합니다.");
+    const saved = copy(inspection), result = saved.result;
+    assert(object(result) && result.provenance?.adapter === "fixture.calculix" && id(result.experiment_id) &&
+      Array.isArray(result.artifacts), "fixture 해석 기록의 식별자를 확인할 수 없습니다.");
+    const manifest = new Map();
+    for (const artifact of result.artifacts) {
+      assert(object(artifact) && safePath(artifact.path) && !manifest.has(artifact.path) && sha(artifact.sha256) &&
+        Number.isSafeInteger(artifact.size_bytes) && artifact.size_bytes >= 0 && artifact.revision === result.cad_revision,
+      "산출물 경로·해시·크기·CAD 개정이 불완전하거나 중복됩니다.");
+      manifest.set(artifact.path, artifact);
+    }
+    const candidates = result.artifacts.filter(item => /(?:^|\/)fea_field\.json$/.test(item.path));
+    if (!candidates.length) return freeze({ status: "unavailable", entries: [], reason: "이 기록에는 전체 절점 U가 등록된 FEA 필드가 없습니다. 기존 결과와 원본 파일은 보존됩니다." });
+    const provenance = result.provenance, details = provenance.adapter_details, proposal = saved.proposal, thread = saved.thread;
+    assert(sha(result.cad_revision) && id(result.parent_experiment_id) && result.parent_experiment_id !== result.experiment_id &&
+      ["5", "6"].includes(provenance.adapter_version) && object(details) && details.adapter === "fixture.calculix" &&
+      details.adapter_version === provenance.adapter_version && details.parent_experiment_id === result.parent_experiment_id &&
+      details.cad_revision === result.cad_revision && provenance.parent_experiment_id === result.parent_experiment_id,
+    "부모 CAD·현재 개정·결과 생산 adapter의 연결이 일치하지 않습니다.");
+    assert(object(proposal) && proposal.id === result.experiment_id && proposal.parent_experiment_id === result.parent_experiment_id &&
+      proposal.model?.geometry?.source_experiment_id === result.parent_experiment_id && proposal.model.geometry.cad_revision === result.cad_revision &&
+      proposal.physics?.backend === "fixture.calculix" && equal(proposal.execution, provenance.execution_settings) &&
+      thread?.experiment === result.experiment_id && thread.parent_experiment === result.parent_experiment_id && thread.cad_revision === result.cad_revision,
+    "실험·입력·thread가 같은 부모 CAD 개정을 참조하지 않습니다.");
+    assert(["COMPLETED", "CONVERGED"].includes(result.solver_status) && result.decision === "NOT_RELEASED" &&
+      Array.isArray(result.validations) && object(result.metrics), "완료된 원본 관측과 미승인 상태를 확인할 수 없습니다.");
+    const sizes = details.mesh_max_sizes_mm, executionMesh = proposal.execution?.mesh;
+    assert(Array.isArray(sizes) && equal(sizes, executionMesh?.max_sizes_mm) && sizes.length >= 1 && sizes.length <= 8 &&
+      sizes.every((size, i) => finite(size) && size > 0 && (i === 0 || sizes[i - 1] > size)) &&
+      (executionMesh.mode === "selected" ? provenance.adapter_version === "6" && sizes.length === 1 : executionMesh.mode === undefined && sizes.length >= 2),
+    "기록된 메시 레벨과 선택 메시 정책이 일치하지 않습니다.");
+    if (executionMesh.mode === "selected") assert(details.mesh_policy?.mode === "selected" && details.mesh_sensitivity?.status === "NOT_ASSESSED" &&
+      result.metrics.displacement_mesh_change_ratio?.valid === false && result.metrics.displacement_mesh_change_ratio.value === null,
+    "선택 메시의 민감도 미평가 상태가 원본 판정과 다릅니다.");
+    const entries = candidates.map(artifact => {
+      const match = /^simulation\/support_([0-7])\/fea_field\.json$/.exec(artifact.path);
+      assert(match && artifact.mime_type === "application/json" && artifact.size_bytes > 0 && artifact.size_bytes <= LIMITS.bytes,
+        "지원하는 단일 fixture FEA JSON 경로가 아니거나 화면의 32 MiB 범위를 넘습니다.");
+      const index = Number(match[1]); assert(index < sizes.length, "필드의 메시 레벨이 현재 해석 설정에 없습니다.");
+      return { path: artifact.path, sha256: artifact.sha256, size_bytes: artifact.size_bytes, index, size_mm: sizes[index] };
+    }).sort((a, b) => a.index - b.index);
+    const output = freeze({ status: "available", entries }); contexts.set(output, { saved, manifest }); return output;
+  }
+  // Canonical C3D10 faces retain corner-to-midside edge associations.
+  const FACES = [[0, 1, 2, 4, 5, 6], [0, 3, 1, 7, 8, 4], [1, 3, 2, 8, 9, 5], [2, 3, 0, 9, 7, 6]];
+  function faceKey(ids) {
+    const edges = [[0, 1, 3], [1, 2, 4], [2, 0, 5]].map(([a, b, mid]) =>
+      [Math.min(ids[a], ids[b]), Math.max(ids[a], ids[b]), ids[mid]]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    return { corners: [...ids.slice(0, 3)].sort((a, b) => a - b).join(","), edges: JSON.stringify(edges) };
+  }
+  function vector(value, length = 3) { return Array.isArray(value) && value.length === length && value.every(finite); }
+  function verify(field, ctx, entry) {
+    const result = ctx.saved.result, version = result.provenance.adapter_version;
+    assert(keys(field, ["schema_version", "kind", "backend", "adapter_version", "parent_experiment_id", "cad_revision", "mesh_index", "mesh_size_max_mm", "coordinate_frame", "position_unit", "displacement_unit", "force_unit", "static", "coverage", "qualification", "engineering_valid", "nodes", "elements", "boundary_faces", "fixed_node_ids", "fixed_dofs", "loads", "node_count", "element_count", "boundary_face_count", "sources"]), "FEA 필드 선언이 불완전합니다.");
+    assert(field.schema_version === "1.0" && field.kind === "fixture_calculix_nodal_displacement" && field.backend === "fixture.calculix" &&
+      ["5", "6"].includes(field.adapter_version) && Number(field.adapter_version) <= Number(version) &&
+      field.parent_experiment_id === result.parent_experiment_id && field.cad_revision === result.cad_revision &&
+      field.mesh_index === entry.index && field.mesh_size_max_mm === entry.size_mm &&
+      field.coordinate_frame === "SOLVER_GLOBAL_CARTESIAN" && field.position_unit === "mm" && field.displacement_unit === "mm" && field.force_unit === "N" &&
+      field.coverage === "ALL_MESH_NODES" && field.qualification === "UNKNOWN" && field.engineering_valid === false &&
+      keys(field.static, ["step", "increment", "load_parameter"]) && field.static.step === 1 && field.static.increment === 1 && field.static.load_parameter === 1,
+    "필드 생산 버전·부모·개정·단위·좌표계·완전 범위·정적 단계가 일치하지 않습니다.");
+    assert(keys(field.sources, ["mesh", "deck", "saddle", "frd", "dat"]), "5개 native 원본 연결이 필요합니다.");
+    const names = { mesh: "gmsh.inp", deck: `support_${entry.index}.inp`, saddle: "saddle_load.json", frd: `support_${entry.index}.frd`, dat: `support_${entry.index}.dat` };
+    const prefix = entry.path.slice(0, entry.path.lastIndexOf("/") + 1);
+    for (const [name, filename] of Object.entries(names)) {
+      const source = field.sources[name], artifact = ctx.manifest.get(prefix + filename);
+      assert(keys(source, ["path", "sha256", "bytes"]) && source.path === filename && sha(source.sha256) &&
+        Number.isSafeInteger(source.bytes) && source.bytes > 0 && artifact && artifact.revision === result.cad_revision &&
+        artifact.sha256 === source.sha256 && artifact.size_bytes === source.bytes, "필드의 5개 원본 해시·크기·같은 개정 연결이 일치하지 않습니다.");
+    }
+    for (const [rows, count, limit] of [[field.nodes, field.node_count, LIMITS.nodes], [field.elements, field.element_count, LIMITS.elements], [field.boundary_faces, field.boundary_face_count, LIMITS.faces]]) {
+      assert(Array.isArray(rows) && Number.isSafeInteger(count) && count > 0 && count === rows.length && count <= limit,
+        "전체 절점·요소·외곽면 개수 또는 화면의 항목 범위를 확인할 수 없습니다.");
+    }
+    const nodes = new Map(); let last = 0;
+    for (const node of field.nodes) {
+      assert(keys(node, ["node_id", "position_mm", "displacement_mm", "displacement_tokens"]) && identifier(node.node_id) && node.node_id > last &&
+        vector(node.position_mm) && vector(node.displacement_mm) && finite(Math.hypot(...node.displacement_mm)) &&
+        Array.isArray(node.displacement_tokens) && node.displacement_tokens.length === 3 && node.displacement_tokens.every((token, i) =>
+          typeof token === "string" && !/\s/.test(token) && /^[-+]?\d\.\d{5}E[-+]\d{2,3}$/.test(token) && Number(token) === node.displacement_mm[i]),
+      "모든 절점의 원본 ID·좌표·U 3성분·native 수치가 유한하고 완전해야 합니다.");
+      nodes.set(node.node_id, node); last = node.node_id;
+    }
+    const faces = new Map(), elementIds = new Set(), used = new Set(); last = 0;
+    for (const element of field.elements) {
+      assert(keys(element, ["element_id", "type", "node_ids"]) && identifier(element.element_id) && element.element_id > last &&
+        element.type === "C3D10" && Array.isArray(element.node_ids) && element.node_ids.length === 10 &&
+        new Set(element.node_ids).size === 10 && element.node_ids.every(node => nodes.has(node)), "C3D10 원본 ID·10절점 연결이 불완전합니다.");
+      last = element.element_id; elementIds.add(last); element.node_ids.forEach(node => used.add(node));
+      for (const slots of FACES) {
+        const key = faceKey(slots.map(slot => element.node_ids[slot])), old = faces.get(key.corners);
+        assert(!old || old.edges === key.edges, "이웃 요소의 midside 절점 연결이 일치하지 않습니다.");
+        const count = (old?.count ?? 0) + 1; assert(count <= 2, "비다양체 요소 면은 표시할 수 없습니다."); faces.set(key.corners, { edges: key.edges, count });
+      }
+    }
+    assert(used.size === nodes.size, "U 절점 집합이 전체 요소 연결과 일치하지 않습니다.");
+    const exterior = new Map([...faces].filter(([, value]) => value.count === 1)), boundary = new Set(), boundaryIds = new Set(), groups = new Map(); last = 0;
+    for (const face of field.boundary_faces) {
+      assert(keys(face, ["element_id", "type", "group", "node_ids"]) && identifier(face.element_id) && face.element_id > last && !elementIds.has(face.element_id) &&
+        face.type === "CPS6" && typeof face.group === "string" && !/\s/.test(face.group) && /^[A-Z][A-Z0-9_]{0,63}$/.test(face.group) &&
+        Array.isArray(face.node_ids) && face.node_ids.length === 6 && new Set(face.node_ids).size === 6 && face.node_ids.every(node => nodes.has(node)),
+      "CPS6 외곽면의 원본 ID·그룹·6절점 연결이 불완전합니다.");
+      last = face.element_id; const key = faceKey(face.node_ids), actual = exterior.get(key.corners);
+      assert(actual?.edges === key.edges && !boundary.has(key.corners), "CPS6가 C3D10의 완전한 외곽면과 일치하지 않습니다.");
+      boundary.add(key.corners); const group = groups.get(face.group) ?? new Set();
+      face.node_ids.forEach(node => { boundaryIds.add(node); group.add(node); }); groups.set(face.group, group);
+    }
+    assert(boundary.size === exterior.size, "전체 C3D10 외곽면의 일부가 빠져 있습니다.");
+    assert(Array.isArray(field.fixed_node_ids) && field.fixed_node_ids.length > 0 && equal(field.fixed_dofs, [1, 2, 3]), "실제 고정 XYZ 절점 집합이 없습니다.");
+    const fixed = new Set(); last = 0;
+    for (const node of field.fixed_node_ids) { assert(identifier(node) && node > last && boundaryIds.has(node), "고정 절점 집합이 중복되거나 외곽면과 다릅니다."); fixed.add(node); last = node; }
+    const minZ = Math.min(...field.nodes.map(node => node.position_mm[2]));
+    assert(field.nodes.every(node => fixed.has(node.node_id) === (Math.abs(node.position_mm[2] - minZ) < 1e-4)), "고정 절점이 기록된 전체 바닥 면과 일치하지 않습니다.");
+    assert(Array.isArray(field.loads) && field.loads.length > 0 && field.loads.length <= nodes.size, "실제 saddle 하중 절점이 없습니다.");
+    const loaded = new Set(); let force = 0; last = 0;
+    for (const load of field.loads) {
+      assert(keys(load, ["node_id", "force_N", "dof", "force_token"]) && identifier(load.node_id) && load.node_id > last &&
+        boundaryIds.has(load.node_id) && !fixed.has(load.node_id) && load.dof === 3 && vector(load.force_N) && load.force_N[0] === 0 && load.force_N[1] === 0 && load.force_N[2] < 0 &&
+        typeof load.force_token === "string" && !/\s/.test(load.force_token) && /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[EeDd][-+]?\d+)?$/.test(load.force_token) &&
+        Number(load.force_token.replace(/[Dd]/, "E")) === load.force_N[2], "실제 하중 ID·방향·N 값과 고정 절점의 연결이 일치하지 않습니다.");
+      loaded.add(load.node_id); last = load.node_id; force -= load.force_N[2];
+    }
+    const saddles = [...groups].filter(([, members]) => [...loaded].every(node => members.has(node)));
+    assert(saddles.length === 1, "하중 절점이 하나의 기록된 saddle 표면 그룹에 연결되지 않습니다.");
+    const expectedForce = result.provenance.adapter_details.force_per_support_N;
+    assert(finite(force) && finite(expectedForce) && expectedForce > 0 && Math.abs(force - expectedForce) <= 1e-8 * expectedForce,
+      "직렬화된 절점 하중 합이 기록된 지지부당 하중과 다릅니다.");
+    const study = result.provenance.adapter_details.per_mesh_displacement?.studies?.[entry.index];
+    assert(study?.index === entry.index && study.mesh_size_max_mm === entry.size_mm && study.loaded_node_count === loaded.size &&
+      study.displacement_table === prefix + names.dat && study.displacement_table_sha256 === field.sources.dat.sha256,
+    "기존 하중 안장 통계와 같은 메시의 DAT 연결이 아닙니다.");
+    const model = freeze({ field: copy(field), artifact: copy(entry), metadata: { experimentId: result.experiment_id, parentId: result.parent_experiment_id,
+      revision: result.cad_revision, fieldProducer: field.adapter_version, resultProducer: version, coreCommit: result.provenance.core_commit ?? null,
+      upstreamCommit: result.provenance.source_commit ?? null, unknownCount: result.validations.filter(item => item.status === "UNKNOWN").length,
+      sensitivity: result.provenance.adapter_details.mesh_sensitivity?.status ?? "RECORDED_SCREEN", decision: result.decision,
+      loadedMaximumUz: result.metrics.max_displacement?.value ?? null, saddleGroup: saddles[0][0], totalForceN: force } });
+    verified.add(model); return model;
+  }
+  function strictJSON(bytes) {
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); let at = 0;
+    const space = () => { while (/[ \t\r\n]/.test(text[at] ?? "") && at < text.length) at++; };
+    function string() {
+      const start = at++; while (at < text.length) { const c = text[at++]; if (c === "\\") at++; else if (c === '"') return JSON.parse(text.slice(start, at)); }
+      throw new Error("JSON 문자열이 끝나지 않았습니다.");
+    }
+    function value(depth) {
+      assert(depth <= 12, "필드 JSON의 중첩 범위를 넘습니다."); space();
+      if (text[at] === "{") {
+        at++; space(); const seen = new Set(); if (text[at] === "}") { at++; return; }
+        while (true) { assert(text[at] === '"', "JSON key가 잘못되었습니다."); const key = string(); assert(!seen.has(key), "중복 JSON key가 있습니다."); seen.add(key); space(); assert(text[at++] === ":", "JSON key가 잘못되었습니다."); value(depth + 1); space(); const c = text[at++]; if (c === "}") return; assert(c === ",", "JSON 객체가 잘못되었습니다."); space(); }
+      }
+      if (text[at] === "[") { at++; space(); if (text[at] === "]") { at++; return; } while (true) { value(depth + 1); space(); const c = text[at++]; if (c === "]") return; assert(c === ",", "JSON 배열이 잘못되었습니다."); } }
+      if (text[at] === '"') { string(); return; }
+      const token = /^(?:-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null)/.exec(text.slice(at)); assert(token, "JSON 수치·값이 잘못되었습니다."); at += token[0].length;
+    }
+    value(0); space(); assert(at === text.length, "JSON 뒤에 다른 내용이 있습니다."); return JSON.parse(text);
+  }
+  function current(isCurrent) { assert(typeof isCurrent === "function" && isCurrent() === true, "선택한 결과·저장소가 바뀌었습니다."); }
+  async function loadField(record, entry, fetchBytes, isCurrent) {
+    current(isCurrent); const ctx = contexts.get(record); assert(ctx && record.entries.includes(entry), "검증한 같은 기록의 필드 선택이 필요합니다.");
+    assert(typeof fetchBytes === "function", "원본 파일 읽기가 필요합니다.");
+    const original = await fetchBytes(entry.path, entry.size_bytes); current(isCurrent);
+    assert(original instanceof Uint8Array && original.byteLength === entry.size_bytes && original.byteLength <= LIMITS.bytes, "필드 원본 바이트 크기가 manifest와 다릅니다.");
+    const bytes = Uint8Array.from(original), crypto = root.crypto ?? (typeof module !== "undefined" && module.exports ? require("node:crypto").webcrypto : null);
+    assert(crypto?.subtle, "원본 SHA-256 검사를 사용할 수 없습니다.");
+    const hash = await crypto.subtle.digest("SHA-256", bytes); current(isCurrent);
+    assert(Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("") === entry.sha256, "필드 원본 SHA-256이 manifest와 다릅니다.");
+    const model = verify(strictJSON(bytes), ctx, entry); current(isCurrent); return model;
+  }
+  function verifyField(field, inspection, path) {
+    const record = catalog(inspection), entry = record.entries.find(item => item.path === path); assert(entry, "manifest의 필드 경로가 필요합니다."); return verify(field, contexts.get(record), entry);
+  }
+  function requireVerified(model) { assert(verified.has(model), "완전한 같은 기록 필드 검증 후에만 표시합니다."); return model; }
+  function scalar(node, component) { assert(COMPONENTS.includes(component), "지원하는 U 성분을 선택하세요."); return component === "MAGNITUDE" ? Math.hypot(...node.displacement_mm) : node.displacement_mm[COMPONENTS.indexOf(component)]; }
+  function displayPosition(node, factor) {
+    assert(finite(factor) && factor >= 0 && factor <= LIMITS.factor, "보기 배율은 0~1000의 유한한 수치여야 합니다.");
+    const position = node.position_mm.map((value, i) => value + factor * node.displacement_mm[i]); assert(vector(position), "보기 좌표의 수치 범위를 넘었습니다."); return position;
+  }
+  const api = { LIMITS, COMPONENTS, catalog, loadField, verifyField, requireVerified, scalar, displayPosition };
+  if (typeof module !== "undefined" && module.exports) module.exports = api; else root.fixtureFieldControls = api;
+})(globalThis);

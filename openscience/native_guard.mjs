@@ -218,6 +218,102 @@ const nativeViscoelasticDefinition = nativeFreeze({
     'Material, physical, strength, durability, binary/source equivalence and deployment requirements remain UNKNOWN; all outcomes remain NOT_RELEASED.'],
 });
 const nativeContactLimits = nativeFreeze({reference_relative:.01, force_balance_relative:1e-6});
+// Explicit single-mesh PS scope, independently parity-tested.
+const nativeFixtureSelectedDefinition = nativeFreeze({
+  "schema": 8,
+  "kind": "autonomous-cae-lab.openscience-research-definition",
+  "agent": "research",
+  "allowed_tools": [
+    "caelab_study_create",
+    "caelab_study_inspect",
+    "caelab_parameters_discover",
+    "caelab_parameters_register",
+    "caelab_parameters_list",
+    "caelab_experiment_run",
+    "caelab_experiment_inspect",
+    "caelab_experiment_summary",
+    "caelab_experiment_compare",
+    "caelab_analysis_run",
+    "caelab_optimization_plan",
+    "caelab_optimization_run",
+    "caelab_optimization_inspect",
+    "caelab_pde_run"
+  ],
+  "runtime_environment": {
+    "MPLBACKEND": "Agg",
+    "OMP_NUM_THREADS": "2",
+    "QT_QPA_PLATFORM": "offscreen",
+    "CAELAB_FENICSX_PYTHON": "/usr/bin/python3"
+  },
+  "budgets": {
+    "steps": 24,
+    "mcp_timeout_seconds": 3600,
+    "command_timeout_seconds": 3600,
+    "optimization": {
+      "population_size": 5,
+      "max_generations": 1
+    },
+    "analysis": {
+      "max_mesh_levels": 1
+    },
+    "pde": {
+      "max_cell_count": 32,
+      "max_mesh_levels": 3
+    }
+  },
+  "capabilities": [
+    {
+      "backend": "fixture.cadquery",
+      "operations": [
+        "parameters_discover",
+        "parameters_register",
+        "experiment_run"
+      ],
+      "model": "roller_support",
+      "inputs": "Discover native paths/current values/bounds first. Register only requested research variables; registration bounds must contain the current CAD value and stay within discovered native bounds, including fixed variables. A fixed variable must keep its discovered current_value. A requested different value needs free registration and an explicit experiment value. Unregistered CAD dimensions retain their current defaults.",
+      "runtime": "Existing WslPython with pinned fixture/CadQuery dependencies",
+      "evidence": "Core source/Python/platform and fixture source fingerprints; immutable CAD artifacts",
+      "verification": "IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF"
+    },
+    {
+      "backend": "fixture.calculix",
+      "operations": [
+        "analysis_run",
+        "optimization_plan",
+        "optimization_run",
+        "optimization_inspect"
+      ],
+      "inputs": "analysis_run requires exactly parent_experiment_id, experiment_id, backend=fixture.calculix and settings with exactly load/material/mesh. load: force_per_support_N and source. material: model, provenance, qualification; orthotropic E_1_MPa/E_2_MPa/E_3_MPa/nu_12/nu_13/nu_23/G_12_MPa/G_13_MPa/G_23_MPa/axes, or isotropic elastic_modulus_MPa/poisson_ratio. mesh has exactly mode=selected and max_sizes_mm with one positive finite size in mm. optimization_plan requires analysis_backend=fixture.calculix with this same selected analysis_settings and deterministic numerical engine. Domain retains scientific-invalid inputs as pre-native rejections.",
+      "runtime": "Gmsh and ccx on the configured resident WSL PATH; existing SciPy numerical engine",
+      "evidence": "Existing solver executable/version, parent STEP, raw fields, mesh/reaction checks and campaign journals",
+      "verification": "IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF",
+      "boundary_model": "One verified roller_support solid, roller diameter8.3mm and depth>=24mm: bottom fixed in X/Y/Z; total negative-Z saddle force distributed by clipped tessellated surface area over the central24mm. This idealization is fixed by the existing adapter, not caller-supplied bolt/contact conditions. Orthotropic axes are global CAD X/Y/Z; axes text declares provenance and does not rotate the constitutive tensor.",
+      "numerical_verdict": "Signed all-axis reaction balance<=1% remains unchanged. Observed U on the selected mesh is measured data, not mesh independence. Mesh sensitivity stays NOT_ASSESSED with an invalid-null ratio and no displacement_mesh_trend verdict. Native converged means linear solve completion only. Peak stress remains invalid; seven engineering UNKNOWNs and NOT_RELEASED remain."
+    },
+    {
+      "backend": "pde.fenicsx",
+      "operations": [
+        "pde_run"
+      ],
+      "inputs": "Bounded scalar linear elliptic weak form on unit square, Dirichlet data, manufactured reference and declared mesh/error limits",
+      "runtime": "Existing isolated /usr/bin/python3 FEniCSx worker; not the Lab venv",
+      "evidence": "Existing worker source/version/interpreter, fields, reference errors/rates and residual checks",
+      "verification": "IMPLEMENTED_NOT_CURRENT_EXECUTION_PROOF"
+    }
+  ],
+  "limitations": [
+    "Capability metadata does not establish installation, a numerical PASS or engineering approval.",
+    "CFD/Navier-Stokes, arbitrary geometry/domain/equation families and PDE input-binding optimization are not admitted by this profile.",
+    "One bounded numerical generation does not establish a converged/global optimum.",
+    "Solver completion does not qualify strength, materials, physical loads or release.",
+    "Other implemented adapters remain outside this bounded research profile until their phase acceptance.",
+    "In-flight solver/campaign cancellation is not established by the historical CAD-only cancellation proof.",
+    "This explicit scope admits one selected mesh for new fixture analysis requests and numerical plans. Historical FixtureScalar/FixtureRefinement fingerprints and lower factory defaults remain unchanged; existing stored campaigns retain their original settings.",
+    "No mandatory full-model or global mesh sweep. Targeted sensitivity is a separate purpose-specific choice, not silently added or reported as passed.",
+    "Only the existing fixed bottom/saddle idealization is admitted. Arbitrary support boundaries, material rotations, bolt/contact and original assembly mechanics remain outside this scope. Physical material/load assumptions remain UNKNOWN."
+  ],
+  "profile": "fixture-selected-mesh-v1"
+});
 const nativeContactDefinition = nativeFreeze({
   "schema": 6,
   "kind": "autonomous-cae-lab.openscience-research-definition",
@@ -396,10 +492,12 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
         !nativeSha(settings.config_sha256) || !nativeSha(settings.plugin_sha256) || !nativeSha(settings.boot_source_sha256)) nativeRefuse('SETTINGS_INVALID');
     if (Object.hasOwn(settings, 'research')) {
       const research = settings.research;
-      exactKeys(research, [3,4,5,6,7].includes(research.schema) ? [...nativeResearchKeys, 'profile'] :
+      exactKeys(research, [3,4,5,6,7,8].includes(research.schema) ? [...nativeResearchKeys, 'profile'] :
         research.schema === 2 ? [...nativeResearchKeys, 'profile', 'benchmark_definition'] : nativeResearchKeys,
         'RESEARCH_DEFINITION_INVALID');
-      if (research.schema === 7) {
+      if (research.schema === 8) {
+        if (nativeCanonical(research) !== nativeCanonical(nativeFixtureSelectedDefinition)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
+      } else if (research.schema === 7) {
         if (nativeCanonical(research) !== nativeCanonical(nativeFixtureRefinementDefinition)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
       } else if (research.schema === 6) {
         if (nativeCanonical(research) !== nativeCanonical(nativeContactDefinition)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
@@ -1068,6 +1166,17 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
     if (['caelab_parameters_discover','caelab_parameters_register','caelab_experiment_run','caelab_optimization_plan'].includes(tool) &&
         (args.backend !== 'fixture.cadquery' || args.model !== 'roller_support')) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
     const analysisMesh = value => {
+      if (settings.research.schema === 8) {
+        if (!nativeRecord(value?.mesh)) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+        exactKeys(value.mesh, ['mode','max_sizes_mm'], 'RESEARCH_ARGUMENTS_REQUIRED');
+        if (value.mesh.mode !== 'selected') nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+        if (!Array.isArray(value.mesh.max_sizes_mm) || value.mesh.max_sizes_mm.length !== 1)
+          nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
+        if (typeof value.mesh.max_sizes_mm[0] !== 'number' || !Number.isFinite(value.mesh.max_sizes_mm[0]))
+          nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+        // Scientific finite-invalid inputs remain unchanged for Domain rejection.
+        return;
+      }
       // Historical profiles describe refinement inputs only. A new adapter
       // opt-in must not become Research admission through the old count gate.
       if (nativeRecord(value?.mesh) && Object.hasOwn(value.mesh, 'mode'))
@@ -1085,6 +1194,8 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
           !Number.isInteger(population) || population !== budget.optimization.population_size)
         nativeRefuse('RESEARCH_WORK_BUDGET_EXCEEDED');
       if ((args.engine ?? 'scipy.differential_evolution') !== 'scipy.differential_evolution') nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      if (settings.research.schema === 8 && args.analysis_backend !== 'fixture.calculix')
+        nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
       if (args.analysis_backend != null) {
         if (args.analysis_backend !== 'fixture.calculix') nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
         analysisMesh(args.analysis_settings);

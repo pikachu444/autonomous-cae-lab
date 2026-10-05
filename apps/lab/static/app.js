@@ -6,7 +6,7 @@ const state = {
   overview: null, presets: {}, studyId: "", study: null, registry: { entries: [] },
   discovery: [], job: null, submitting: false, pollTimer: null, handlers: new Map(),
   selectedExperiment: null, selectedCampaign: null, comparison: new Set(), studyRequest: 0,
-  experimentRequest: 0, campaignRequest: 0, viewer: null, fixtureConditionError: null, storeSwitching: false,
+  experimentRequest: 0, campaignRequest: 0, viewer: null, fixtureViewer: null, fixtureConditionError: null, storeSwitching: false,
   modelDiscovery: [], modelContext: "", modelRequest: 0,
   importedLevels: [], importedMeshError: null, importedRequest: 0, importedLoading: false,
   campaignSelections: new Map(), campaignSelectionKey: "", campaignDrafts: {}, campaignTarget: "cad", cadCampaignType: "doe",
@@ -829,6 +829,7 @@ async function inspectExperiment(identifier) {
   if (state.storeSwitching) throw new Error("저장소를 바꾸고 있습니다. 전환 후 기록을 열어 주세요.");
   if (!window.resultPresentation.safeExperimentId(identifier)) throw new Error("실험 식별자를 확인할 수 없습니다.");
   location.hash = "results"; const request = ++state.experimentRequest, store = activeStore();
+  state.fixtureViewer?.destroy(); state.fixtureViewer = null;
   state.selectedExperiment = null;
   const loading = panel("실험을 불러오고 있습니다."); loading.append(el("p", "저장된 기록과 원본 파일의 일치를 확인하고 있습니다.", "hint separated")); clear("experimentDetail").append(loading);
   $("selectedSource").textContent = "기록 확인 중";
@@ -852,6 +853,7 @@ function metricCell(metric) {
   return cell;
 }
 function renderExperimentDetail(data) {
+  state.fixtureViewer?.destroy(); state.fixtureViewer = null;
   const result = data.result, identifier = result.experiment_id;
   const presentation = window.resultPresentation, check = presentation.checks(result);
   const container = clear("experimentDetail"), backend = result.provenance?.adapter;
@@ -883,6 +885,7 @@ function renderExperimentDetail(data) {
   checks.append(checkCounts, el("p", `이 실험 기록에 포함된 검사 ${check.total}개 기준입니다.`, "hint"));
   checks.append(el("p", result.decision === "NOT_RELEASED" ? "강도·실물 사용 승인에 필요한 확인이 남아 있습니다." : "사용 승인 여부는 기록의 판정과 근거를 따릅니다.", "check-note")); side.append(checks);
   overview.append(visual, side); container.append(overview);
+  renderFixtureFields(container, data);
 
   const metrics = panel("결과값"); metrics.classList.add("detail-wide");
   const metricRows = Object.entries(result.metrics ?? {}), metricGrid = el("div", undefined, "result-metrics");
@@ -939,6 +942,65 @@ function renderExperimentDetail(data) {
   $("resultBrowser").open = false;
   if (window.cadControls.eligibleParent(state.presets[$("simulationPreset").value], { ...result, backend: result.provenance?.adapter })) $("analysisParent").value = identifier;
   updateControls();
+}
+function renderFixtureFields(container, inspection) {
+  const result = inspection.result;
+  if (result.provenance?.adapter !== "fixture.calculix") return Promise.resolve(false);
+  const card = panel("같은 해석의 메시와 절점 변위", "NATIVE FEA FIELD · SAME RECORD"); card.classList.add("detail-wide", "fixture-field-card");
+  card.append(el("p", "해석에 사용한 실제 메시·고정·하중과 저장된 전체 U를 확인합니다. 이 관측은 정확도·강도·실물 사용 승인이 아닙니다.", "hint separated"));
+  const choices = el("div", undefined, "button-row separated"), detail = el("div", undefined, "fixture-field-detail separated"); card.append(choices, detail); container.append(card);
+  const request = state.experimentRequest, store = activeStore(); let sequence = 0, mounted = null;
+  const current = () => card.isConnected && detail.isConnected && request === state.experimentRequest && store === activeStore()
+    && !state.storeSwitching && state.selectedExperiment === inspection;
+  let record;
+  try {
+    if (!window.fixtureFieldControls || !window.fixtureFieldViewer) throw new Error("FEA 필드 표시 모듈을 불러올 수 없습니다.");
+    record = window.fixtureFieldControls.catalog(inspection);
+    if (!record.entries.length) { detail.append(el("p", record.reason, "empty-state")); return Promise.resolve(false); }
+  } catch (error) { if (current()) detail.append(el("p", error.message, "metric-reason")); return Promise.resolve(false); }
+  const label = el("label", "해석 메시 레벨"), select = el("select"); label.append(select); choices.append(label);
+  record.entries.forEach((entry, i) => option(select, String(i), `${entry.size_mm} mm · 원본 레벨 ${entry.index}`)); select.value = String(record.entries.length - 1);
+  async function selectField() {
+    if (!current()) return false; const epoch = ++sequence, entry = record.entries[Number(select.value)];
+    const selected = () => current() && epoch === sequence;
+    mounted?.destroy(); if (state.fixtureViewer === mounted) state.fixtureViewer = null; mounted = null;
+    clear(detail).append(el("p", "같은 기록의 필드 바이트·원본 연결·전체 절점과 외곽면을 확인하고 있습니다…", "hint"));
+    try {
+      if (!entry) throw new Error("이 기록의 메시 레벨을 선택하세요.");
+      async function fetchFieldBytes(relative, expectedBytes) {
+        if (!selected()) throw new Error("필드 선택이 바뀌었습니다.");
+        const response = await fetch(artifactUrl(result.experiment_id, relative), { cache: "no-store", headers: { Accept: "application/octet-stream" } });
+        if (!selected()) throw new Error("필드 선택이 바뀌었습니다.");
+        if (!response.ok) throw new Error(`원본 필드를 검증해 읽을 수 없습니다 (${response.status}).`);
+        const length = response.headers.get("Content-Length");
+        if (length !== null && (!/^\d+$/.test(length) || Number(length) !== expectedBytes)) throw new Error("응답 바이트 크기가 같은 기록의 manifest와 다릅니다.");
+        const reader = response.body?.getReader?.();
+        if (!reader) {
+          if (length === null) throw new Error("읽기 범위를 확인할 수 없는 응답입니다.");
+          const bytes = new Uint8Array(await response.arrayBuffer()); if (!selected()) throw new Error("필드 선택이 바뀌었습니다."); return bytes;
+        }
+        const chunks = []; let size = 0;
+        try {
+          while (true) {
+            const chunk = await reader.read(); if (!selected()) throw new Error("필드 선택이 바뀌었습니다."); if (chunk.done) break;
+            size += chunk.value.byteLength;
+            if (size > expectedBytes || size > window.fixtureFieldControls.LIMITS.bytes) throw new Error("원본 필드가 화면 읽기 바이트 범위를 넘습니다."); chunks.push(chunk.value);
+          }
+        } catch (error) { await reader.cancel().catch(() => {}); throw error; } finally { reader.releaseLock(); }
+        if (size !== expectedBytes) throw new Error("필드 응답의 일부 바이트가 빠져 있습니다.");
+        const bytes = new Uint8Array(size); let offset = 0; chunks.forEach(chunk => { bytes.set(chunk, offset); offset += chunk.byteLength; }); return bytes;
+      }
+      const model = await window.fixtureFieldControls.loadField(record, entry, fetchFieldBytes, selected);
+      if (!selected()) return false; mounted = window.fixtureFieldViewer.mount(detail, model, selected); if (!mounted || !selected()) { mounted?.destroy(); return false; }
+      state.fixtureViewer = mounted;
+      const downloads = el("div", undefined, "button-row separated"); downloads.append(link("전체 절점 U JSON", artifactUrl(result.experiment_id, entry.path), "text-link", true));
+      const prefix = entry.path.slice(0, entry.path.lastIndexOf("/") + 1);
+      Object.values(model.field.sources).forEach(source => downloads.append(link(source.path, artifactUrl(result.experiment_id, prefix + source.path), "text-link artifact-path", true))); mounted.refs.provenance.append(downloads);
+      return true;
+    } catch (error) { if (selected()) clear(detail).append(el("p", error.message, "metric-reason")); return false; }
+  }
+  select.addEventListener("change", () => { void selectField(); }); choices.append(action("필드 다시 불러오기", selectField, "button secondary compact"));
+  return selectField();
 }
 function renderContactFields(container, inspection) {
   const result = inspection.result;
@@ -1454,7 +1516,7 @@ async function switchStore(identifier) {
   if (busy()) throw new Error("작업 실행 중에는 저장소를 바꿀 수 없습니다.");
   if (state.storeSwitching) throw new Error("저장소 전환을 확인하고 있습니다.");
   // Invalidate pending parent/artifact reads before the server changes stores.
-  state.storeSwitching = true; state.experimentRequest++; $("storeSelect").disabled = true;
+  state.storeSwitching = true; state.experimentRequest++; state.fixtureViewer?.destroy(); state.fixtureViewer = null; $("storeSelect").disabled = true;
   let overview;
   try { overview = await api("/api/store", { method: "POST", body: JSON.stringify({ id: identifier }) }); }
   finally { state.storeSwitching = false; $("storeSelect").disabled = busy() || !state.overview; }

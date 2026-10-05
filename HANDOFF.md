@@ -1,12 +1,13 @@
 ## Current work: sequential usable CAE research flow
 
-Use `docs/CAE_RESEARCH_EXECUTION_PLAN.md` as the single current work/status table.
-Astra/high audit and detailed plan: `docs/reviews/20261005-astra-high/`.
-Verified clean-c94 actual connection/question/idle cleanup and fresh parent-CAD/stale-success UI: `benchmarks/records/20261005-cae-usability-live-r03.json`.
-S1/S2a bounded live gates PASS. S2b clean ce12037 public stdio MCP/Core/new CAD/one selected4mm native solve/full7715-node U and independent Astra raw review PASS: `benchmarks/records/20261005-fixture-selected-mesh-core-native-r01.json`. Eight public calls, two real pre-native rejections, old72files preserved; no global mesh sweep. Trusted selected Research, same-field human GUI and S3/U1/all52 remain OPEN.
-User mesh policy: purpose-specific verification, no mandatory global/full-model sweep. Adapter6 selected mode and historical schema1/7 refusal are reviewed/source-tested. Root now owns a separate trusted selected Research profile; the existing GUI worker owns seven full-U display files in its managed checkout. Final native manifest71files and independent eight-file receipt verify; private bytes remain LOCAL_ONLY.
-All52/Phase1-7/UNKNOWN/NOT_RELEASED remain; new native producer8c exactCI37275234604 ended7SUCCESS/3FAIL, not whole CI PASS. New failed logs are retained; source-only and older c94 records stay historical.
-Goal BLOCKED/cause UNKNOWN; heartbeat ACTIVE separately. Two actual gate services were intentionally stopped after verification.
+Single execution plan: `docs/CAE_RESEARCH_EXECUTION_PLAN.md`; broad Astra/high audit and detailed plan in `docs/reviews/20261005-astra-high/`.
+S1/S2a bounded live gates remain qualified. S2b actual clean-ce public MCP/Core/new CAD/selected4mm/full7715-node native U is separately qualified in `benchmarks/records/20261005-fixture-selected-mesh-core-native-r01.json`.
+New trusted `FixtureSelected`/schema8 and same-full-U GUI source are integrated, each independently reviewed by Astra/high with0P1/P2. Records: `20261005-fixture-selected-research-source-r01.json` and `20261005-fixture-full-field-gui-source-r01.json` under `benchmarks/records/`. Root integrated GUI122PASS; source89/110PS+66focused/343full Node PASS,11optionalSKIP and Root18/45 controls are bounded source evidence, not live Research/GUI proof.
+No mandatory global/full-model/explicit mesh sweep. The human research launcher defaults to explicit selected mesh; historical refinement and seven canonical profiles remain. Selected numerical plans explicitly require CalculiX/settings, and deterministic numerical engines generate candidates. No model/backend fallback; approved5.6Sol/ChatGPT retained.
+NEXT: clean integrated-source official selected Research and same-retained-field actual human GUI → S3 recovery → U1 condition-change/search/interpretation/report, then the remaining Phase1–7 scope. Original7body/84groups, old72files and native field evidence are preserved; no remesh/native run was used for source/GUI integration.
+Exact ce CI37281737051 completed7SUCCESS/3FAIL. Retained explicit download404/Aster Fz/vector PDE assertion logs are separate; deeper numerical causes NOT_ISOLATED. New integrated-source CI is pending, not inherited PASS.
+Root final manifest72files/1841481B, source audit22files/208178B and GUI audit5files/56607B are checked. Historical null aggregate is retained and corrected by additive explicit-sum closure; private bytes LOCAL_ONLY. Whole52, broader phases, engineering/physical/strength/deployment UNKNOWN/NOT_RELEASED remain.
+Goal remains BLOCKED/cause UNKNOWN, pending existing user resume request; ACTIVE heartbeat and authorized ordinary development are separate. Prior gate services intentionally stopped; no current live service is claimed by this source checkpoint.
 
 ---
 

@@ -1,0 +1,166 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-10-05T09:38:07.9976634Z",
+  "parent_commit": "79896906f721be56d6f7f6c25bb329b524487d45",
+  "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "engineering_decision": "NOT_RELEASED",
+  "source_identity": "Frozen raw working source hashes plus declared CI delta; later integrated commit is identified by subsequent live/CI receipts, not self-referential metadata.",
+  "latest_native_source_CI": {
+    "source_commit": "ce120378ee8da570a779f985cfc745bf0340c6ce",
+    "run_id": 37281737051,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37281737051",
+    "status": "COMPLETED",
+    "conclusion": "FAILURE",
+    "success": 7,
+    "failure": 3,
+    "retained_raw_records": [
+      {
+        "path": "SNAPSHOT-01.json",
+        "bytes": 26140,
+        "sha256": "31eaf70e3ba3ab685284532427b85bb7974cac876ef9752317ceb2f445a4495c"
+      },
+      {
+        "path": "pde-FAILED-01.txt",
+        "bytes": 5101,
+        "sha256": "47e943d9905e761a85a30fb19dd72209aa6a83d8b60e3f7d91ee96af93cdf861"
+      },
+      {
+        "path": "codeaster-FAILED-01.txt",
+        "bytes": 6889,
+        "sha256": "052a1a79067a766818dd61e62296ec8024e66370fa24ed2d3c1936c490362937"
+      },
+      {
+        "path": "explicit-FAILED-01.txt",
+        "bytes": 4922,
+        "sha256": "39685699406d2397b13097eb3204854a509ab03998f6904e347e3208069f5717"
+      }
+    ],
+    "failure_boundaries": [
+      "OpenRadioss official download HTTP404 before native execution",
+      "Code_Aster E-ansys_vmd1_regular-Fz-aster numerical assertion",
+      "Vector PDE numerical classification assertion"
+    ],
+    "deeper_numerical_causes": "NOT_ISOLATED",
+    "new_source_CI": "NOT_RUN_AT_THIS_SOURCE_CHECKPOINT"
+  },
+  "private_retention": "LOCAL_ONLY; metadata and selected read-only review prose are public. No claim of off-machine raw artifact restoration.",
+  "kind": "autonomous-cae-lab.fixture-full-U-GUI-source-acceptance",
+  "verdict": "PASS_BOUNDED_SOURCE_INTEGRATION_ONLY",
+  "source_files": [
+    {
+      "path": "apps/lab/static/fixture-field-controls.js",
+      "bytes": 21119,
+      "sha256": "808f837c9f80dc4f6f43d35765ca576a846606964a1d1b3f4f21fa42dc739978"
+    },
+    {
+      "path": "apps/lab/static/fixture-field-viewer.js",
+      "bytes": 18617,
+      "sha256": "4ee40ea7891ff7d32d274bffb880ebe3d0ab3bf0c0c5ac888e6349fe17269f61"
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "bytes": 134228,
+      "sha256": "c22d4046cd73c7e58f604cc309596ba56a589afdde86520485ae8a464f37a53e"
+    },
+    {
+      "path": "apps/lab/static/index.html",
+      "bytes": 32142,
+      "sha256": "7d00a3a51e816c6e34c0869a201de2cb298583d36b162fa5f098a848745c23f3"
+    },
+    {
+      "path": "apps/lab/static/style.css",
+      "bytes": 30033,
+      "sha256": "99d4e06b2d084f46ea9a090bfa211957116d07ca0956da76a04f7a5e0e15e5f5"
+    },
+    {
+      "path": "tests/test_fixture_field_controls.js",
+      "bytes": 13740,
+      "sha256": "555add19db4c9d373a0fccbc53f3e95ae80e040d39890ff10cecda90da2168c8"
+    },
+    {
+      "path": "tests/test_fixture_field_viewer.js",
+      "bytes": 17852,
+      "sha256": "bd778bfafa84a93cfb2c965c8f2b723f3ec23367f1a7f6e7bc589db3202d5527"
+    }
+  ],
+  "exact_frozen_source_bytes": true,
+  "source_controls": {
+    "writer_PASS": 122,
+    "writer_FAIL": 0,
+    "writer_SKIP": 0,
+    "Root_integrated_PASS": 122,
+    "Root_integrated_FAIL": 0,
+    "Root_integrated_SKIP": 0,
+    "Root_log": {
+      "bytes": 11600,
+      "sha256": "966819892f946472bbcc366e034c60e7013a736b532809acaff81cbbf7504bf9"
+    },
+    "actual_provider_native_HTTP_browser_GUI_calls": 0
+  },
+  "independent_review": {
+    "model": "gpt-6-astra/high",
+    "verdict": "BOUNDED_SOURCE_REVIEW_PASS",
+    "open_P1": 0,
+    "open_P2": 0,
+    "receipt": {
+      "bytes": 1822,
+      "sha256": "f538eb2ba83fcde4595159d710c681253560730cbc06d4eb27e676e634719140"
+    },
+    "source_FREEZE": {
+      "bytes": 2644,
+      "sha256": "23c1bf8d210355fd1ec8b34c7f0f35160f167499bcde3d3975d396a95d719c1c"
+    },
+    "source_manifest": {
+      "bytes": 6986,
+      "sha256": "781f810d0d2a77f97f5df3b8944c85668651b14c98aea188ade8f6879e4d3d42"
+    },
+    "source_receipt": {
+      "bytes": 1299,
+      "sha256": "54afccaa272173266b14712b0025a1a32c66cfcfc8096b5138d624312616f7d8"
+    },
+    "CI_delta": {
+      "bytes": 1462,
+      "sha256": "ac8a92bcb1682f24382cc1412cfdcc80e95763376df406629826353bafe8e5b4"
+    }
+  },
+  "actual_retained_field": {
+    "producer": "ce120378ee8da570a779f985cfc745bf0340c6ce",
+    "store": "runs/fixture-selected-mesh-core-20261005-01",
+    "child": "E-selected-solve100",
+    "parent": "E-selected-cad32",
+    "revision": "676bd750044c0c0a20d33780bae993a384cee99ad93cbf1c50deef19a05f429b",
+    "bytes": 3962210,
+    "sha256": "b32cfaecf38e0040d01c2b4b1843a23f1b0b044c4000040dbc9734e06c95adf7",
+    "nodes": 7715,
+    "U_components": 23145,
+    "C3D10": 4422,
+    "CPS6": 1840,
+    "full_field_max_norm_mm": 0.006169333909086347,
+    "full_field_max_norm_node": 314,
+    "existing_loaded_max_abs_UZ_mm": 0.00564208,
+    "probe314_XYZ_mm": [
+      4.15,
+      0,
+      26
+    ],
+    "probe314_U_mm": [
+      -0.0024955,
+      9.69048E-06,
+      -0.00564208
+    ],
+    "probe314_100x_display_XYZ_mm": [
+      3.90045,
+      0.000969048,
+      25.435792
+    ],
+    "calculation": "display_position=x+factor*U; raw U/statistics/objective values unchanged",
+    "native_verification": "Reuse separate independently qualified public Core/native record; no new solve/remesh"
+  },
+  "limitations": [
+    "Real target browser pixel/interaction/performance/HTTP gate NOT_RUN; inert Node DOM/canvas controls are source evidence only",
+    "32MiB raw JSON, 40000nodes/25000C3D10/8000CPS6 are UI resource limits, separate from native64MiB-per-source and engineering criteria",
+    "Four display triangles per CPS6; face color is mean of drawn nodal scalars, explicitly a display approximation",
+    "Actual single-support4mm field only; historical2mm counts inform envelope, no2mm full-U/7body/explicit capability claim",
+    "S3/U1/all52/physical strength and deployment OPEN; UNKNOWN/NOT_RELEASED preserved"
+  ]
+}

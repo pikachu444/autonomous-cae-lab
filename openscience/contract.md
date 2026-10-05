@@ -1,3 +1,17 @@
+## Explicit selected-mesh Research source boundary (ADR0036)
+
+The explicit `FixtureSelected`/schema8/`fixture-selected-mesh-v1` candidate admits
+one selected fixture mesh and requires a CalculiX analysis backend/settings for
+new numerical plans. The human launcher defaults to selected and accepts an
+explicit historical refinement choice. Lower factory defaults, the seven
+historical definition fingerprints, approved5.6Sol/ChatGPT, fourteen tools,
+source/project/store bindings and ownership remain. Guard resource/shape/type
+admission and Domain scientific preflight are distinct; finite scientific-invalid
+inputs are retained without normalization. Canonical PS/JS equality and unchanged
+historical instruction text are protected; unordered JSON member order is not a
+cross-process prompt-byte guarantee. Independent Astra/high bounded source review PASS (0P1/P2); actual new-scope
+Research/GUI is NOT_RUN. See ADR0036 and the single execution plan.
+
 ## Explicit selected-mesh Core source boundary (ADR0035)
 
 Fixture adapter6 adds explicit Core input `mesh={mode:'selected',max_sizes_mm:[oneFinitePositiveSize]}`.
