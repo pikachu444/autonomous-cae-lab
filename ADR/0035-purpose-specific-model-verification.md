@@ -1,6 +1,6 @@
 # ADR 0035: Purpose-specific verification without mandatory full-model mesh sweeps
 
-Date: 2026-10-05. Status: accepted policy; explicit selected-mesh adapter source implemented/reviewed, actual public native/Research/GUI acceptance OPEN.
+Date: 2026-10-05. Status: accepted policy; explicit selected-mesh adapter source implemented/reviewed, actual public MCP/Core/native bounded PASS; trusted Research/GUI acceptance OPEN.
 
 ## Context and decision
 
@@ -79,3 +79,8 @@ sections on load path/intrusion/run quality/energy/added mass/timestep;
 [LS-DYNA mass scaling](https://www.dynasupport.com/howtos/general/mass-scaling) and
 [hourglass](https://www.dynasupport.com/howtos/element/hourglass).
 These examples support appropriate checks, not a claim that mesh sensitivity is never used.
+
+## Public selected-mesh native checkpoint
+
+S1/S2a bounded live gates PASS. S2b clean ce12037 public stdio MCP/Core/new CAD/one selected4mm native solve/full7715-node U and independent Astra raw review PASS: `benchmarks/records/20261005-fixture-selected-mesh-core-native-r01.json`. Eight public calls, two real pre-native rejections, old72files preserved; no global mesh sweep. Trusted selected Research, same-field human GUI and S3/U1/all52 remain OPEN.
+Producer ce12037 / adapter6; native completion is not mesh independence, stress qualification or release. Record preserves the source-only NOT_RUN checkpoint as history and binds the later actual public run separately.

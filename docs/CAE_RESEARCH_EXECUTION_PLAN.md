@@ -25,7 +25,7 @@
 | S0 | 실제 실행·중단·목표 상태 복원 | READONLY_OBSERVED / Root | 지정PIDs/ports/원기록 구분, old outputs 보존. 종료 원인 UNKNOWN 유지 |
 | S1 | 한 실행 동작에 승인 OpenScience+Lab 연결 | BOUNDED_LIVE_PASS / Root | 새 run02 실제 질문·도구 결과·resident idle·owned Stop 확인. active-job/native 취소·재시작은 S3 |
 | S2a | 부모 CAD와 정확한 수치 검사 이름을 결과에 표시 | BOUNDED_FRESH_GUI_PASS / Root | 실제 부모·revision·manifest/caption과 늦은 성공 응답 차단 확인. late-error/detached branch는 source controlled-DOM 증거 |
-| S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | BOUNDED_NATIVE_OUTPUT_PASS_PUBLIC_MODE_GUI_OPEN / Root | clean8c/기존4mm mesh1개/실제7715절점 U·원래DAT동일·Astra0P1/P2. 공개 selected-mode/Core·Research·같은 GUI는 다음 별도 gate; global sweep 없음 |
+| S2b | 실제 해석 mesh·하중·구속·U field·변형 표시 | BOUNDED_PUBLIC_MCP_CORE_NATIVE_PASS_RESEARCH_GUI_OPEN / Root | clean ce12037/새 Core CAD·selected4mm 한 mesh/실제7715절점 U·XYZ balance·두 pre-native 거부·Astra0P1/P2. trusted selected Research·같은 GUI는 다음 gate; global sweep 없음 |
 | S3 | 종료·강제 중단·재시작 상태와 admission 복구 | NEXT / Root shared execution owner | tiny crash/identity matrix, append-only reconciliation, real native cancel/reconnect, old evidence 보존 |
 | U1 | 첫 간단한 사용자 CAE 연구 | WAITING_ON_S1_S2_S3 / Root | 아래 한 사용자 흐름을 실제로 끝내고 독립 검토·같은 GUI 결과·보고서로 확인 |
 | S4a | coarse native affine full-field patch | OPEN / Domain·adapter | source kernel 재사용, U/strain/stress/energy/force/moment 전체 참조 비교. actual mechanics와 구분 |
@@ -46,7 +46,7 @@
 그 형상에 대응하는 mesh가 필요하지만, 전체 모델의 여러 mesh 재해석은 기본 사용자 완료 조건이 아닙니다.
 기존 human07의4/3/2mm와5% screen은 해당 benchmark 기록에만 남깁니다. peak stress는 invalid diagnostic입니다.
 fixture adapter6은 명시적 `mesh={mode:'selected',max_sizes_mm:[4]}`의 단일 mesh 계약을 구현했습니다.
-무mode의 기존2–8개/5%/1% screen은 그대로입니다. 실제 공개 Core/native 실행과 사람 form/field GUI는 다음 gate입니다.
+무mode의 기존2–8개/5%/1% screen은 그대로입니다. clean ce12037의 실제 공개 MCP/Core/native 단일 mesh 실행·두 pre-native 거부는 독립 확인했습니다. 사람 form/field GUI와 trusted Research는 다음 gate입니다.
 기존 공식 Research schema1/7은 undeclared mode를 거부합니다. 별도 trusted selected profile을 다음 순차 단위로 연결하며,
 historical descriptor/판정/수치 문턱을 바꾸거나 단일 mesh를 수렴 PASS로 만들지 않습니다.
 후속150N 결과의 선형 비례를 raw 정밀도에 맞게 대조하고 조건 변경을 새 record로 보존합니다.
@@ -63,7 +63,7 @@ rejected input에서는 solver 미실행, 취소 요청과 실제 종료, stale/
 운동량/변형 이력과 확보된 실험/참조를 Domain이 목적별로 평가합니다. 각각은 구현·관측한 항목만 PASS입니다.
 mesh sensitivity는 response나 관심 국부 현상/불확실성이 요구할 때 선택하고 범위·비용·판정 기준을 먼저 정합니다.
 기존 canonical benchmark의 정확도/mesh/time 조건, 고정5%/1% screen 및 실패 결과를 없애거나 완화하지 않습니다.
-[ADR0035](../ADR/0035-purpose-specific-model-verification.md)는 이 계획 우선순위와 아직 미구현인 단일 mesh 경계를 명시합니다.
+[ADR0035](../ADR/0035-purpose-specific-model-verification.md)는 이 계획 우선순위와 구현된 단일 mesh Core 경계와 별도 Research·GUI gate를 명시합니다.
 
 Root가 설계·공통 인터페이스·최종 통합·Git을 소유합니다. launcher와 UI 후보 담당은 서로 다른 파일에만 씁니다.
 내부 감수 Astra/high와 연구용 `openai-codex/gpt-5.6-sol`/기존 ChatGPT 인증을 구분하고 자동 대체하지 않습니다.
@@ -165,3 +165,9 @@ selected에서는 실제 관측 U와 force balance를 보존하고 민감도는 
 새 필수 trend UNKNOWN이나 mesh-independence PASS를 만들지 않으며 observed valid는 강도/정확도 승인이 아닙니다.
 native 선형 solve completion의 기존 converged 의미도 별도로 기록하고 invalid stress/7UNKNOWN/NOT_RELEASED를 유지합니다.
 새 public Core/native 실행·공식 selected Research·사람 form/field GUI·S3/U1/all52는 아직 OPEN입니다.
+
+## S2b actual public selected-mesh checkpoint
+
+S1/S2a bounded live gates PASS. S2b clean ce12037 public stdio MCP/Core/new CAD/one selected4mm native solve/full7715-node U and independent Astra raw review PASS: `benchmarks/records/20261005-fixture-selected-mesh-core-native-r01.json`. Eight public calls, two real pre-native rejections, old72files preserved; no global mesh sweep. Trusted selected Research, same-field human GUI and S3/U1/all52 remain OPEN.
+
+Actual parent E-selected-cad32 / child E-selected-solve100 / revision676bd750044c0c0a20d33780bae993a384cee99ad93cbf1c50deef19a05f429b. One corresponding4mm mesh and one native solve; loaded UZ=-0.005642080mm, signed XYZ force residual4.389558377321599e-9<=unchanged1%. Sensitivity stays NOT_ASSESSED/invalid null, full U is measured data, invalid stress/seven UNKNOWNs/NOT_RELEASED remain. FINAL-02 SHA dc9053ba241853ecd6f2f5ddade8c36ef20c6248a1d1741be481bf065843d047 verifies71files/10791156B; independent Astra receipt bc9bd7039a2a460acf3d35fc692339e8a6a56ee738215e091bf5e80f729ce7bc verifies8files. Official Research/GUI/provider were NOT_RUN in this gate. Exact ce CI37281737051 snapshot is still in progress and already has failures; no whole CI PASS. Native source ce differs from this later documentation checkpoint.

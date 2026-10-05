@@ -201,3 +201,8 @@ This integrates a piecewise linear tessellation, not the exact quadratic
 surface shape functions. A finer mesh check remains open. The load remains
 an assumed vertical traction, and contact, fasteners, material allowables,
 stress convergence and physical qualification remain unresolved.
+
+## Public selected-mesh native checkpoint
+
+S1/S2a bounded live gates PASS. S2b clean ce12037 public stdio MCP/Core/new CAD/one selected4mm native solve/full7715-node U and independent Astra raw review PASS: `benchmarks/records/20261005-fixture-selected-mesh-core-native-r01.json`. Eight public calls, two real pre-native rejections, old72files preserved; no global mesh sweep. Trusted selected Research, same-field human GUI and S3/U1/all52 remain OPEN.
+Producer ce12037 / adapter6; native completion is not mesh independence, stress qualification or release. Record preserves the source-only NOT_RUN checkpoint as history and binds the later actual public run separately.

@@ -1,0 +1,203 @@
+{
+  "schema": 1,
+  "kind": "autonomous-cae-lab.fixture-selected-mesh-public-core-native-acceptance",
+  "verdict": "PASS_BOUNDED_PUBLIC_MCP_CORE_NATIVE",
+  "source": {
+    "core_commit": "ce120378ee8da570a779f985cfc745bf0340c6ce",
+    "core_dirty": false,
+    "core_source_sha256": "74b980ac2bf71b99edeaf3d02eb87019c75f4d5be4f1681f9c6fefcca947d350"
+  },
+  "source_fixture_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "adapter_version": "6",
+  "actual": {
+    "kind": "ROOT_PUBLIC_STDIO_MCP_CORE_SELECTED_MESH_NATIVE_ACCEPTANCE",
+    "status": "PASS_BOUNDED_PUBLIC_MCP_CORE_NATIVE",
+    "source": {
+      "core_commit": "ce120378ee8da570a779f985cfc745bf0340c6ce",
+      "core_dirty": false,
+      "core_source_sha256": "74b980ac2bf71b99edeaf3d02eb87019c75f4d5be4f1681f9c6fefcca947d350"
+    },
+    "run": "runs/fixture-selected-mesh-core-20261005-01",
+    "parent_id": "E-selected-cad32",
+    "child_id": "E-selected-solve100",
+    "cad_revision": "676bd750044c0c0a20d33780bae993a384cee99ad93cbf1c50deef19a05f429b",
+    "analysis_status": "COMPLETED_REVIEW_REQUIRED",
+    "solver_status": "COMPLETED",
+    "mesh_count": 1,
+    "nodes": 7715,
+    "observed_U_components": 23145,
+    "field_sha256": "b32cfaecf38e0040d01c2b4b1843a23f1b0b044c4000040dbc9734e06c95adf7",
+    "metrics": {
+      "max_displacement": {
+        "value": 0.00564208,
+        "unit": "mm",
+        "valid": true,
+        "reason": "Observed on selected mesh; mesh sensitivity unassessed"
+      },
+      "peak_stress": {
+        "value": 0.5049166056399809,
+        "unit": "MPa",
+        "valid": false,
+        "reason": "Averaged nodal diagnostic; no stress convergence or material allowable"
+      },
+      "displacement_mesh_change_ratio": {
+        "value": null,
+        "unit": "1",
+        "valid": false,
+        "reason": "Mesh sensitivity not assessed for an explicitly selected single mesh"
+      },
+      "reaction_force": {
+        "value": [
+          3.153599992591487E-08,
+          -6.452000040491785E-09,
+          99.999999562226
+        ],
+        "unit": "N",
+        "valid": true
+      },
+      "reaction_balance_ratio": {
+        "value": 4.389558377321599E-09,
+        "unit": "1",
+        "valid": true
+      },
+      "applied_force_per_support": {
+        "value": 100.0,
+        "unit": "N",
+        "valid": true
+      },
+      "mesh_size_max_mm": {
+        "value": [
+          4.0
+        ],
+        "unit": "mm",
+        "valid": true
+      },
+      "loaded_saddle_min_global_uz": {
+        "value": [
+          -0.00564208
+        ],
+        "unit": "mm",
+        "valid": true,
+        "reason": "Observed on selected mesh; mesh sensitivity unassessed"
+      }
+    },
+    "unknown": [
+      "fatigue_durability",
+      "joint_and_contact",
+      "machine_interface",
+      "material_qualification",
+      "physical_load_test",
+      "static_strength",
+      "stress_convergence"
+    ],
+    "native_result_sha256": "e8b0bc4b431c7b2455d63dea2ec7ed1415015b17dce21145f50d745600138497",
+    "parent_bytes_preserved": true,
+    "historical_files_preserved": 72,
+    "historical_bytes_preserved": 40924681,
+    "public_mcp_calls": 8,
+    "analysis_operation_seconds": 8.74077855818905,
+    "whole_acceptance_seconds": 28.484329455997795,
+    "native_solve_calls": 1,
+    "mesh_generation_calls": 1,
+    "mesh_generation_reason": "One actual new CAD/Core model pipeline; no multiple-size sweep",
+    "provider_calls": 0,
+    "official_Research_GUI": "NOT_RUN",
+    "recovery_U1_all52": "OPEN",
+    "engineering_decision": "NOT_RELEASED"
+  },
+  "authoritative_final_manifest": {
+    "path": "artifacts\\development-cae-usability-audit-20261005-01\\fixture-selected-mesh-core-native-root-01\\MANIFEST-FINAL-02.json",
+    "sha256": "dc9053ba241853ecd6f2f5ddade8c36ef20c6248a1d1741be481bf065843d047",
+    "files": 71,
+    "bytes": 10791156,
+    "retention": "LOCAL_ONLY_IGNORED_BYTES_NOT_REMOTE_RESTORE_PROOF"
+  },
+  "root_receipt": {
+    "path": "artifacts\\development-cae-usability-audit-20261005-01\\fixture-selected-mesh-core-native-root-01\\RECEIPT.json",
+    "sha256": "db30619955dfd853a5dff45a39766d43040de7c2a546a784b1b255e85535dd42"
+  },
+  "independent_review": {
+    "model": "gpt-6-astra",
+    "effort": "high",
+    "verdict": "BOUNDED_PUBLIC_MCP_CORE_NATIVE_PASS",
+    "open_p1": 0,
+    "open_p2": 0,
+    "receipt": "artifacts\\development-cae-usability-audit-20261005-01\\fixture-selected-mesh-core-native-review-astra-01\\receipt.json",
+    "receipt_sha256": "bc9bd7039a2a460acf3d35fc692339e8a6a56ee738215e091bf5e80f729ce7bc",
+    "report_sha256": "3a5be5a6b9ea7596536afb7500acbfb9572138c706870cbf8a3f10a151ca600b",
+    "files": 8,
+    "bytes": 139931
+  },
+  "ci_snapshot": {
+    "source_commit": "ce120378ee8da570a779f985cfc745bf0340c6ce",
+    "run": 37281737051,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37281737051",
+    "status": "in_progress",
+    "conclusion": "",
+    "path": "artifacts\\development-cae-usability-audit-20261005-01\\fixture-selected-mesh-core-native-root-01\\CI-ce-SNAPSHOT-01.json",
+    "sha256": "839be4f44bc730752aa892361939e3e78f09299901f36253d7d0558d946d3428",
+    "jobs": [
+      {
+        "name": "research-driver-source",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "core",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "pde",
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      {
+        "name": "codeaster",
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      {
+        "name": "native",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "name": "optimization",
+        "status": "in_progress",
+        "conclusion": ""
+      },
+      {
+        "name": "structural",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "native-registration",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "doe",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "explicit",
+        "status": "completed",
+        "conclusion": "failure"
+      }
+    ],
+    "interpretation": "EXACT_SOURCE_SNAPSHOT_NOT_WHOLE_CI_PASS"
+  },
+  "limitations": [
+    "One explicitly selected mesh, not mesh independence or field-wide numerical accuracy. No mandatory global sweep.",
+    "Official trusted selected Research admission, human field GUI, S3 recovery, complete U1/52 requirements remain OPEN.",
+    "Root driver-time MANIFEST.json is not authoritative for the closed foreground log. FINAL-02 independently verifies all native/Core files and the externally closed exit-0 log.",
+    "New CAD public pipeline generated one corresponding mesh. Historical meshes/results/CAD were preserved; no multiple-size sweep.",
+    "Native CalculiX2.21/Gmsh4.12.1 are recorded. No new ccx executable digest was measured in this gate.",
+    "Seven engineering UNKNOWNs, invalid peak stress, invalid-null mesh sensitivity and NOT_RELEASED remain.",
+    "Private retained execution bytes are not committed or attested as restored off-machine. This public record is metadata.",
+    "CI snapshot was added after final native evidence sealing; its own hash is separate from the 71-file final manifest."
+  ]
+}
