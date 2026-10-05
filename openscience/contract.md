@@ -1,10 +1,22 @@
 ## Declared observation/response records (ADR0038; B1–B2)
 
+ADR0039 extends the human/Core boundary with verified retained Maxwell history
+channels and explicit recorded sample indices. Native semantics stay in the
+adapter. Observation axis quantity/value/unit is mandatory for a history
+comparison; a time mismatch retains the response with null difference/verdict.
+MGIS stress6/branch6 and MGIS/MTest native energy drivers remain separate;
+reference-volume energy and unprepared t0 cannot be relabeled as integrated
+material evidence or total J. Component basis/sensor alignment is unqualified.
+Version1.1 records include the whole channel and its manifest origin. See
+`benchmarks/records/20261006-response-history-r01.json`. This adds no MCP tool,
+profile admission or provider run; connected same-record interpretation is OPEN.
+
 Common Core/Python and the Lab HTTP GUI can append a declared observation to a
 verified original result through `save_response_comparison`; inspect/list return
 rechecked records. Required source category, quantity, component, location,
 coordinate frame, condition and exact unit remain explicit user declarations.
-Only a valid finite scalar or explicitly selected flat-array item is supported.
+Valid finite scalar/explicit flat-array items and the bounded exact-history
+adapter above are supported; arbitrary nested arrays remain unsupported.
 Declared input bindings compare exact keys/array indices and values; mismatch
 retains source values with null difference/tolerance verdict. No implicit unit
 conversion, axis/time inference, interpolation or physical alignment occurs.

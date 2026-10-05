@@ -84,8 +84,9 @@ function harness({ writable = true, callable = true, selectedPreset = "linear" }
     fetch: () => { prohibited.http++; throw new Error("HTTP is forbidden in the display gate"); },
     setTimeout: () => { prohibited.timers++; throw new Error("Application timers are forbidden in the display gate"); }, clearTimeout: () => {} };
   vm.createContext(sandbox);
-  vm.runInContext(appSource.slice(0, split) + "\nglobalThis.appUnderTest = {state, workflowContext, renderExperimentList, renderExperimentDetail, renderJob, updateControls, activeJob, researchPurpose, prepareResearchPurpose, simulationArguments, clearSimulationDraft, simulationSubmissionContext, completeSimulation, renderComparison, observationArguments, observationSubmissionContext, completeObservation, loadResponseComparisons};", sandbox, { filename: require.resolve("../apps/lab/static/app.js") });
+  vm.runInContext(appSource.slice(0, split) + "\nglobalThis.appUnderTest = {state, workflowContext, renderExperimentList, renderExperimentDetail, renderJob, updateControls, activeJob, researchPurpose, prepareResearchPurpose, simulationArguments, clearSimulationDraft, simulationSubmissionContext, completeSimulation, renderComparison, observationArguments, observationSubmissionContext, completeObservation, loadResponseComparisons, loadResponseHistories};", sandbox, { filename: require.resolve("../apps/lab/static/app.js") });
   vm.runInContext(readFileSync(require.resolve("../apps/lab/static/observation-controls.js"), "utf8"), sandbox);
+  vm.runInContext(readFileSync(require.resolve("../apps/lab/static/history-controls.js"), "utf8"), sandbox);
   const app = sandbox.appUnderTest;
   app.state.presets = { linear: { operation: "analysis_run", backend: "fixture.calculix", parent_backends: ["fixture.cadquery"] } };
   app.state.overview = { active_store: "display", stores: [{ id: "display", writable }], experiments: [],
@@ -212,6 +213,36 @@ test("late comparison list cannot replace the new selected record's view", async
   h.$("observationRecords").textContent = "new selected view";
   release({ ok: true, json: async () => [] }); await pending;
   assert.equal(h.$("observationRecords").textContent, "new selected view");
+});
+test("late history response cannot attach a channel to another selected record or store", async () => {
+  for (const change of [h => { h.app.state.selectedExperiment = structuredClone(h.app.state.selectedExperiment); },
+    h => { h.app.state.overview.active_store = "other"; }, h => { h.app.state.storeSwitching = true; }]) {
+    const h = harness(); observationFixture(h); let release;
+    const inspection = h.app.state.selectedExperiment;
+    h.sandbox.fetch = () => new Promise(resolve => { release = resolve; });
+    const pending = h.app.loadResponseHistories(inspection); change(h);
+    h.$("historyContext").textContent = "new selected view";
+    release({ ok: true, json: async () => ({ integrity: "VERIFIED", channels: [] }) }); await pending;
+    assert.equal(h.app.state.selectedHistories, null);
+    assert.equal(h.$("historyContext").textContent, "new selected view");
+  }
+});
+test("history comparison reopening uses its own channel and preserves time mismatch", async () => {
+  const h = harness(); observationFixture(h);
+  h.sandbox.fetch = async () => ({ ok: true, json: async () => [{integrity:"VERIFIED", record:{id:"O-history-other",
+    source:{study_id:"S-display",experiment_id:"E-other-source",backend:"material.mfront.viscoelastic"},
+    request:{hypothesis:"TEST ONLY",response:{history_channel:"mgis-stress-xz",sample_index:0},observation:{name:"TEST ONLY time",source_kind:"SYNTHETIC",
+      source:"TEST ONLY",quantity:"stress",component:"xz",location:"TEST_ONLY",coordinate_frame:"TEST_ONLY",condition:"TEST_ONLY"}},
+    comparison:{status:"DECLARED_AXIS_MISMATCH",unit:"MPa",difference:null,within_declared_tolerance:null,observed_value:-2,response_value:-3,
+      declared_absolute_tolerance:0,source_channel:{label:"응력 xz · MGIS",measure:"infinitesimal Cauchy stress",initial_state:{index:0,kind:"UNPREPARED_INITIAL_CONDITION"}},response_axis:{quantity:"time",value:0,unit:"s"},
+      declared_axis_check:{declared:{quantity:"time",value:.1,unit:"s"},matched:false}}}}]});
+  await h.app.loadResponseComparisons(); const visible=h.$("observationRecords").textContent;
+  assert.match(visible,/응력 xz · MGIS/); assert.match(visible,/기록 시각 0 s/); assert.match(visible,/관측 시각: 0.1 s/);
+  assert.match(visible,/보간하지 않음/); assert.match(visible,/차이 계산 보류/);
+  assert.match(visible,/재료 적분 전의 수치 초기 상태/);
+  const humanText=walk(h.$("observationRecords")).filter(node=>node.tagName==="P"||node.tagName==="SUMMARY").map(node=>node.textContent).join(" ");
+  assert.doesNotMatch(humanText,/infinitesimal Cauchy stress/);
+  assert.match(visible,/infinitesimal Cauchy stress/); // Original metadata remains in the expandable record.
 });
 test("comparison reopening names its own response and never borrows another experiment's loaded-UZ provenance", async () => {
   const h = harness(); observationFixture(h);

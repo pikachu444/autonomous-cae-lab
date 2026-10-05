@@ -155,6 +155,10 @@ class Lab:
         from .response_comparison import list_comparisons
         return list_comparisons(self, study_id)
 
+    def response_histories(self, experiment_id: str) -> dict[str, Any]:
+        from .response_history import history_catalog
+        return history_catalog(self, experiment_id)
+
     @_registration_guard
     def registry(self, study_id: str) -> dict[str, Any]:
         return load_json(self.store / "studies" / check_id(study_id) / "parameters.json")

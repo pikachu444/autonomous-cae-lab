@@ -1,4 +1,8 @@
-## Current checkpoint: declared observation-to-response records
+## Current checkpoint: retained native histories and exact-time comparisons
+
+R01–R03/R09–R13/R19–R21/R24 remain partial. ADR0039 connects retained Maxwell signed stress/branch/driver-specific energy histories, actual axes, explicit observation time and append-only compare/reopen. Actual virtual τ=1/2 comparisons, off-grid/null verdict, unit refusal, native/ref retained checks and unchanged187-file evidence: `benchmarks/records/20261006-response-history-r01.json`;268 Python/527 Node PASS. No new solve/provider/MCP admission, measured cause, spatial coupling or whole52/Phase1–7 completion. UNKNOWN/NOT_RELEASED persist. NEXT approved same-record interpretation→existing engine/assembly; general curves, other native-axis mappings/R2 recovery and remaining phases are OPEN.
+
+## Historical checkpoint: declared observation-to-response records
 
 R01–R03/R09–R13/R19–R21/R24 remain partial. ADR0038 adds a bounded append-only Core/HTTP/GUI scalar observation record with explicit source/location/component/frame/condition, exact unit and source checks; unchanged original native results. Actual SYNTHETIC150N comparison,100N condition-mismatch/no-difference, invalid-unit/stress refusal and browser reload are in `benchmarks/records/20261006-observation-response-r01.json`;245 Python/510 Node PASS,115 original files35382328B unchanged. This is structured declaration/storage, not qualified measurements, unique-cause/inverse/Domain feasibility or whole52/Phase1–7 completion. No new native/provider run/MCP admission; physical UNKNOWN/NOT_RELEASED remain. NEXT retained histories/axes→mapping→connected interpretation/engine/assembly. R2 actual recovery remains OPEN.
 

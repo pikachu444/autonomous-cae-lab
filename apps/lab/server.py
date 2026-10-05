@@ -187,6 +187,7 @@ class LabHandler(BaseHTTPRequestHandler):
         if path == "/api/research":
             return self._json(200, service.research_status())
         for prefix, operation in (("/api/response-comparisons/", service.response_comparison),
+                                  ("/api/response-histories/", service.response_histories),
                                   ("/api/studies/", service.study), ("/api/experiments/", service.experiment),
                                   ("/api/campaigns/", service.campaign), ("/api/jobs/", service.job)):
             if path.startswith(prefix):

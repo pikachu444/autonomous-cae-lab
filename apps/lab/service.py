@@ -290,6 +290,14 @@ class LabService:
         from .reporting import verified_record
         return verified_record(self._selected().lab, check_id(identifier))
 
+    def response_histories(self, identifier: str) -> dict:
+        from .reporting import preflight_records, recheck_records
+        selected = self._selected()
+        expected = preflight_records(selected.lab, [check_id(identifier)])
+        value = selected.lab.response_histories(identifier)
+        recheck_records(selected.lab, expected)
+        return value
+
     @staticmethod
     def _comparison_source(selected: Store, identifier: str) -> str:
         path = contained(selected.path, f"response_comparisons/{check_id(identifier)}/record.json")

@@ -1,0 +1,461 @@
+{
+  "schema_version": 1,
+  "status": "BOUNDED_RETAINED_HISTORY_COMPARISON_PASS_NOT_RELEASED",
+  "created_utc": "2026-10-05T18:33:47.2680678Z",
+  "unit": "B1-B2 exact native history samples and human comparisons",
+  "source_base_commit": "42dee327f5e1de7031592eb9803de5c3414db284",
+  "producer_distinction": "No new solver or provider execution. GUI candidate Core metadata producer predates final overflow validation; after final Python reload the HTTP comparisons use the second fingerprint. Final UI/reopen/tested14-file hashes are bound separately; publication commit is resolved from Git after commit.",
+  "native_source_commit": "8a1b3454ff108c5332c39dc09b32daa843e6fdb0",
+  "store": "runs/viscoelastic-r-20261003-01",
+  "study_id": "S-viscoelastic-r-01",
+  "native_sources": [
+    {
+      "experiment_id": "E-viscoelastic-r-01-tau1",
+      "result_sha256": "d80453d587a14893a1a5adcecfac88d6e21268b019ad641f6c9a1a63ef71e6f0",
+      "native_sha256": "280be724c2197a0ccd8840d163fd18b15aeb1f5e7f4e6b1f0b250e547d2207b3"
+    },
+    {
+      "experiment_id": "E-viscoelastic-r-01-tau2",
+      "result_sha256": "384301fbabcb858394b1c51ef1f2285a06b83cc15ee3e887b889f66d3ac2b4cf",
+      "native_sha256": "ccd78f238b4b9754e48e71f4989fde955cbbdcba6af1e05638b74d1930fa40a7"
+    }
+  ],
+  "comparison_producers": [
+    {
+      "core_commit": "42dee327f5e1de7031592eb9803de5c3414db284",
+      "core_dirty": true,
+      "core_source_sha256": "91c25ea9e76884980f0eccb30c831daf4754424ff5a30918897e14a73a877ee5"
+    },
+    {
+      "core_commit": "42dee327f5e1de7031592eb9803de5c3414db284",
+      "core_dirty": true,
+      "core_source_sha256": "ffd9a172bec0ff1fa777afbd512260f0e3ea4e26de3204fc222860ed6404e2db"
+    }
+  ],
+  "final_source_files": [
+    {
+      "path": "caelab/response_history.py",
+      "raw_sha256": "35f1edc2ff0f78677f87fb3e861b99adbc32dc0abef699c7a6b3476353530b53",
+      "lf_sha256": "35f1edc2ff0f78677f87fb3e861b99adbc32dc0abef699c7a6b3476353530b53"
+    },
+    {
+      "path": "caelab/response_comparison.py",
+      "raw_sha256": "b937826722e20d40bd3c4916e32a546422b51ec26ced4ef7fed047cdc6dc2a0a",
+      "lf_sha256": "b937826722e20d40bd3c4916e32a546422b51ec26ced4ef7fed047cdc6dc2a0a"
+    },
+    {
+      "path": "caelab/adapters/mfront_history.py",
+      "raw_sha256": "e58da4cfb904532d4c65beb02ac0147b40e4939d24ac7ccc304d90b0ce2d9faf",
+      "lf_sha256": "e58da4cfb904532d4c65beb02ac0147b40e4939d24ac7ccc304d90b0ce2d9faf"
+    },
+    {
+      "path": "caelab/engine.py",
+      "raw_sha256": "d770e4f7e3bd0ffde8c4ef74b149581db9679b6f862978530a4c5644dd023600",
+      "lf_sha256": "d770e4f7e3bd0ffde8c4ef74b149581db9679b6f862978530a4c5644dd023600"
+    },
+    {
+      "path": "schemas/response-comparison-request.schema.json",
+      "raw_sha256": "d4de02d762904f5ffcf166ab927a27849f0040ea4d0dbec9c4169035a2b603fd",
+      "lf_sha256": "d4de02d762904f5ffcf166ab927a27849f0040ea4d0dbec9c4169035a2b603fd"
+    },
+    {
+      "path": "apps/lab/server.py",
+      "raw_sha256": "21c27a2e16a31abe1b0123ea57c11befaf989f9189fb1eaf5192b3ce6536068a",
+      "lf_sha256": "21c27a2e16a31abe1b0123ea57c11befaf989f9189fb1eaf5192b3ce6536068a"
+    },
+    {
+      "path": "apps/lab/service.py",
+      "raw_sha256": "4e4e35b12678860756dbf739c2d01aa1e5f8cd210570ab79b6cced8964584273",
+      "lf_sha256": "4e4e35b12678860756dbf739c2d01aa1e5f8cd210570ab79b6cced8964584273"
+    },
+    {
+      "path": "apps/lab/static/app.js",
+      "raw_sha256": "56c53ee79c1d528a9454bdb22f9c35fffdeda46a18abb9447eb40281d84ba10b",
+      "lf_sha256": "9132c964af7890261149fe4f36e986ec3822002779cf0830d8da282185aeb7f7"
+    },
+    {
+      "path": "apps/lab/static/index.html",
+      "raw_sha256": "9e0e69475543f3a6fc0f0163c1a88012f8015c226a109941517c37372e007e2a",
+      "lf_sha256": "0a9ea981eb2919f82bd89bdeed8e1eeca2565175bf5dd77c7c79ee502ea008af"
+    },
+    {
+      "path": "apps/lab/static/result-presentation.js",
+      "raw_sha256": "596e3c60f2ca7466edf3edc8b1630ec60aceacf13b2a55aecf61f9741e1c2da8",
+      "lf_sha256": "596e3c60f2ca7466edf3edc8b1630ec60aceacf13b2a55aecf61f9741e1c2da8"
+    },
+    {
+      "path": "apps/lab/static/history-controls.js",
+      "raw_sha256": "e232bd15d77200e91b9fcfef3ae9780643dbb67d50c71ace412ae6f71d32007c",
+      "lf_sha256": "e232bd15d77200e91b9fcfef3ae9780643dbb67d50c71ace412ae6f71d32007c"
+    },
+    {
+      "path": "tests/test_response_history.py",
+      "raw_sha256": "bf72fd88d576836f2fbd2ab9fa13b1d3df5ca45a7f389159e1ced0268d60fd54",
+      "lf_sha256": "bf72fd88d576836f2fbd2ab9fa13b1d3df5ca45a7f389159e1ced0268d60fd54"
+    },
+    {
+      "path": "tests/test_history_controls.js",
+      "raw_sha256": "fb9c9d27b75e6e8835570a3b1798c64248d2de0c39050785628b9753087879c5",
+      "lf_sha256": "fb9c9d27b75e6e8835570a3b1798c64248d2de0c39050785628b9753087879c5"
+    },
+    {
+      "path": "tests/test_result_workflow.js",
+      "raw_sha256": "f947e1c07461318f8daed91c0fadd57f32da6c5b9863f7df3dbcaa91f2bf95d7",
+      "lf_sha256": "f947e1c07461318f8daed91c0fadd57f32da6c5b9863f7df3dbcaa91f2bf95d7"
+    }
+  ],
+  "channels": {
+    "count": 16,
+    "physical_components": [
+      "xx",
+      "yy",
+      "zz",
+      "xy",
+      "xz",
+      "yz"
+    ],
+    "stress_driver": "MGIS",
+    "branch_driver": "MGIS",
+    "energy_drivers": [
+      "MGIS",
+      "MTest"
+    ],
+    "energy_components": [
+      "stored",
+      "dissipated"
+    ],
+    "time_s": [
+      0,
+      0.2,
+      1,
+      1.2,
+      2,
+      2.2,
+      3,
+      3.2,
+      4
+    ],
+    "initial_state": "UNPREPARED_INITIAL_CONDITION",
+    "basis": "Tridimensional model components; sensor/world alignment UNKNOWN",
+    "energy_unit": "MPa = MJ/m3 per reference volume, not total J",
+    "reference_work_native": false
+  },
+  "reference": {
+    "reference_kind": "Independent exact-exponential standard-linear-solid Python law",
+    "times": [
+      0.0,
+      0.2,
+      1.0,
+      1.2,
+      2.0,
+      2.2,
+      3.0,
+      3.2,
+      4.0
+    ],
+    "max_stress_error_mpa": 2.220446049250313E-16,
+    "target_time_s": 1,
+    "target_xx_mpa": 3.1451250643935076,
+    "native_xx_mpa": 3.1451250643935076,
+    "reference_sha256": "e79f0c1d6a5deccce8e0f940d0186ebcdd6906f9f320f194000aa41f8e5a67a4",
+    "source_commit": "8a1b3454ff108c5332c39dc09b32daa843e6fdb0",
+    "new_solver_runs": 0,
+    "new_provider_runs": 0
+  },
+  "actual_cases": [
+    {
+      "comparison": "O-lab-muvknahm",
+      "job": "Jcca468b541a14c6ea986137e75915c7c",
+      "route": "GUI -> HTTP -> Core",
+      "kind": "SYNTHETIC",
+      "response": 3.1451250643935076,
+      "difference": 0,
+      "time_s": 1,
+      "declared_tolerance_mpa": 1E-09
+    },
+    {
+      "comparison": "O-history-tau2-vs-tau1-reference-20261006-r01",
+      "job": "Ja3e3522a5e874f5fad746f2f5b0d67cd",
+      "route": "HTTP -> Core -> browser reload",
+      "kind": "SYNTHETIC",
+      "response": 3.944698725864204,
+      "difference": 0.7995736614706965,
+      "within_tolerance": false
+    },
+    {
+      "comparison": "O-history-offgrid-time-20261006-r01",
+      "job": "J6aac868402fa41128943d85238e0eefe",
+      "status": "DECLARED_AXIS_MISMATCH",
+      "observed_time_s": 1.1,
+      "selected_time_s": 1,
+      "difference": null,
+      "within_tolerance": null
+    },
+    {
+      "comparison": "O-history-invalid-unit-20261006-r01",
+      "job": "J30beefbcc611466ca71191c68288360f",
+      "status": "FAILED_EXPECTED_REFUSAL",
+      "reason": "Pa vs recorded MPa, no automatic conversion",
+      "record_created": false
+    }
+  ],
+  "checks": {
+    "python_final_pass": 268,
+    "python_warning": "Existing CadQuery ast.NameConstant deprecation",
+    "node_final_pass": 527,
+    "syntax_and_diff_check": "PASS",
+    "actual_browser": "Final source reload:16 channels, signed xz response, exact chart point1.2s, separate MTest energy, all3 comparison records with own response/axis; no hidden-state injection",
+    "independent_review": "Two P2 findings fixed; limited final read closed; no reviewer execution",
+    "first_attempts": [
+      "Node test incorrectly included expanded original metadata when asserting human captions; corrected test scope, original English retained.",
+      "Initial-state optional-chain guard reached scalar branch when both indices were undefined; Root corrected guard and full Node rerun passed.",
+      "A select attempted before native-hash read completed, no model/action substitution; fresh state confirmed channels before selection."
+    ],
+    "native_validation_counts_unchanged": {
+      "PASS": 25,
+      "UNKNOWN": 8
+    }
+  },
+  "original_retention": {
+    "namespaces": [
+      "studies",
+      "experiments",
+      "ledger"
+    ],
+    "files": 187,
+    "bytes": 22641729,
+    "all_unchanged": true,
+    "excluded": [
+      "new response_comparisons",
+      "runtime",
+      "HTTP journal"
+    ]
+  },
+  "new_solver_runs": 0,
+  "new_provider_runs": 0,
+  "scope": {
+    "alignment": "USER_DECLARED_UNVERIFIED",
+    "physical_validation": "UNKNOWN",
+    "causal_verdict": "NOT_EVALUATED",
+    "decision": "NOT_RELEASED",
+    "measurement": "SYNTHETIC_ONLY",
+    "whole52_Phase1_to7": "INCOMPLETE",
+    "general_curve_interpolation_inverse": "OPEN",
+    "spatial_material_coupling": "OPEN",
+    "other_native_axis_mappings": "OPEN"
+  },
+  "services": {
+    "manual_history_session": 96718,
+    "url": "http://127.0.0.1:8768",
+    "provider": "NOT_CONFIGURED",
+    "prior_metadata_sessions_exit0": [
+      30441,
+      45399
+    ],
+    "native_provider_reconnect_cancel": "UNVERIFIED_R2_OPEN",
+    "run03_manual_session": 83007,
+    "run03_url": "http://127.0.0.1:8767"
+  },
+  "exact_base_ci": {
+    "source": "42dee327f5e1de7031592eb9803de5c3414db284",
+    "run": 37350183219,
+    "status": "COMPLETED",
+    "success": 7,
+    "failure": 3,
+    "failures": [
+      "Aster E-ansys_vmd1_regular-Fz native numerical verdict",
+      "PDE Wrong vector numerical classification",
+      "Explicit official runtime download404 before solve"
+    ],
+    "publication_head_ci": "PENDING_EXACT_COMMIT_CHECK"
+  },
+  "limitations": [
+    "Retained numerical model, not measured product-defect cause or jig manufacturing approval.",
+    "No unique-cause/physical/strength/durability/release inference from matching a single synthetic sample.",
+    "Full source/artifact reads have visible tens-of-seconds latency; performance remains OPEN, no execution timeout or forced native stop.",
+    "No new MCP tool/profile admission, no provider/model switch, no mandatory full-model mesh sweep.",
+    "R2 candidate changes are preserved outside this unit."
+  ],
+  "next": "B3 approved5.6Sol same-record structured interpretation; then existing numerical-engine exploration/original assembly mechanics and remaining phases",
+  "artifacts": {
+    "root": "artifacts/response-history-20261006-01",
+    "retention": "LOCAL_ONLY",
+    "off_machine_restore": "NOT_VERIFIED",
+    "evidence": [
+      {
+        "path": "ci42-failed.log",
+        "bytes": 16912,
+        "sha256": "3c092eb2c12f657c20577a6692b972136108b197f505260dfb7aaae542d6b232",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "comparisons-reopened-ax.txt",
+        "bytes": 17754,
+        "sha256": "82f74b8c8db6ca59c8b2179dc040eff342cc7f73d04ea6928492c6bb167fd256",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "comparisons-reopened.png",
+        "bytes": 92254,
+        "sha256": "88dfb007386aad499d4274d4fcf29fc126a26a86f4912ea1da6eea54ec883871",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "gui-comparison-reopened.json",
+        "bytes": 11107,
+        "sha256": "c114dd749d757baa6265d3722b4dbcbe081f46fce0385360fa053c9a5fca8173",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "history-reopened.png",
+        "bytes": 54084,
+        "sha256": "0e0a0b07d9c5fc4e0fe8ecfda1798fbaa1d6bc09ad4a76b34327b07171c8d49c",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "independent-reference-proof.json",
+        "bytes": 561,
+        "sha256": "c1d258780a5940a58d0b617da6bee501e6538ca8f30c72c645f39c72a98f0f15",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "J30beefbcc611466ca71191c68288360f.json",
+        "bytes": 469,
+        "sha256": "6fcb2d6a40e78220453ca59e487c1645f79c284d33871af5000d47d28a94a9ce",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "J6aac868402fa41128943d85238e0eefe.json",
+        "bytes": 11534,
+        "sha256": "aad134248dc27b54d3fbd78ce0a5d730f15899faefb3a6bc74017a79e6a5e46f",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "Ja3e3522a5e874f5fad746f2f5b0d67cd.json",
+        "bytes": 11514,
+        "sha256": "d72e0060b6167433da99e59c7a8d3ab2642cb34b74b21f5c5926716c332ecfd8",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "node-final.log",
+        "bytes": 45669,
+        "sha256": "5090d09f55e9415784108e54b56da738e9c36094908e1bd52c3244ade518711d",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "node-first-integration-failed.log",
+        "bytes": 51591,
+        "sha256": "de3710d101430c8d81ab0465685e52abd992673b1ccca0714d3c3e568f1e2430",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "node-first.log",
+        "bytes": 3728,
+        "sha256": "193ee673ecb9fa3fb15251d22bf2bc63f3f3e4fbaf4797df720269b0bab1dd61",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "node-helper.log",
+        "bytes": 1918,
+        "sha256": "0094a5dbaa7f85d3c58f9dd3d735c3c13c114134e776681fcd863732e3913cf6",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "node-initial-caption-guard-failed.log",
+        "bytes": 46486,
+        "sha256": "da111ea8beaf57d8c4f10a851e22683a1d8aece14da4bbe249af1e59a7b8cceb",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "O-history-offgrid-time-20261006-r01-reopened.json",
+        "bytes": 11199,
+        "sha256": "c65c705b06a73b36f6ed26b79485c3f19cb1dbc108371eb4e4711bfc2d35e289",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "O-history-tau2-vs-tau1-reference-20261006-r01-reopened.json",
+        "bytes": 11179,
+        "sha256": "7b86b218558e0319a1adfd95cb1111c0c738563764d1c283b09c9752898b3254",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "protected-after.json",
+        "bytes": 38869,
+        "sha256": "5ce148d67bbe5897867366c89f7cb0ffb7e89581203f08849979b378a48eddf7",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "protected-before.json",
+        "bytes": 38869,
+        "sha256": "5ce148d67bbe5897867366c89f7cb0ffb7e89581203f08849979b378a48eddf7",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "python-before-overflow-guard.log",
+        "bytes": 921,
+        "sha256": "af3c917e6785864bcbc98ecc8a9dda8729d2a365a957f85a7d498332a9109362",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "python-final.log",
+        "bytes": 921,
+        "sha256": "fac2d54314b17819d2c606a9824bb2d8af1684607399035d72fb2fe3c0c0a76b",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "python-first.log",
+        "bytes": 112,
+        "sha256": "f36d9b768bdbe4cabfdfa575af73d4a5cd7f13b7b1fc3bdc450368cae2d27922",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "reopened-ax.txt",
+        "bytes": 11443,
+        "sha256": "aa8b2e32a11446b90df7bacf08c326649f57347059127c0240ce402aa8abfb34",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "review-closure.txt",
+        "bytes": 731,
+        "sha256": "768154cdcfdf038ea803254f639802399d5b0c12968545da5afa37dd918aa9c1",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "runtime-proof.json",
+        "bytes": 810,
+        "sha256": "166723b93bbe46cd54570f8879256df01a8aa1a364210dd98fbed1624f383398",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "source-files.json",
+        "bytes": 3203,
+        "sha256": "d025214d1c1827fabc246a5cb2ecd528ea5369a92befd6daddc749877e4c53c4",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "tau1-catalog.json",
+        "bytes": 22620,
+        "sha256": "8cdc664f65a040c2a5e751c79d9f00fa38fa6f163309468340bd755c8a6e262a",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "tau1-inspection.json",
+        "bytes": 179484,
+        "sha256": "db0f2b004f1adcde710647042e6bfe5d7d1f359176c3ec2e6e8e7d335210593f",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "tau2-catalog.json",
+        "bytes": 22636,
+        "sha256": "93f0c458a277f0ce33d807316d548e4aa74583eb18f4be3cefa7138b1a28718a",
+        "retention": "LOCAL_ONLY"
+      },
+      {
+        "path": "verify-runtime.ps1",
+        "bytes": 4482,
+        "sha256": "6e4d09391baedca3fdf785e90d7083d2d9db4c71ae63712178fdd535e2d4de08",
+        "retention": "LOCAL_ONLY"
+      }
+    ]
+  }
+}

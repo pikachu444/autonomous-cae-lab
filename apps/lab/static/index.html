@@ -19,6 +19,7 @@
   <script src="/static/research-controls.js" defer></script>
   <script src="/static/experiment-draft.js" defer></script>
   <script src="/static/observation-controls.js" defer></script>
+  <script src="/static/history-controls.js" defer></script>
   <script src="/static/app.js" defer></script>
 </head>
 <body>
@@ -185,6 +186,14 @@
         <div class="page-heading"><div><p class="eyebrow">05 / 결과</p><h1>형상과 결과를 확인하세요.</h1><p class="lead">실험을 선택하면 입력 조건, 결과와 남은 확인 사항을 함께 볼 수 있습니다.</p></div><span id="selectedSource" class="outline-label">실험 선택 대기</span></div>
         <details class="card result-browser" id="resultBrowser" open><summary>실험 선택·비교</summary><div class="card-heading"><h2>실험 기록</h2><div class="button-row"><span id="compareCount" class="hint">0개 선택</span><button type="button" id="compareBtn" class="button secondary compact">선택 결과 비교</button></div></div><div class="form-grid filter-grid"><label class="search-label">기록 검색<input id="experimentSearch" type="search" placeholder="실험 이름, 연구, 실행 프로그램"></label><label>상태<select id="experimentFilter"><option value="">모든 상태</option><option value="COMPLETED_REVIEW_REQUIRED">실행 완료 · 검토 필요</option><option value="REJECTED">조건 미충족</option><option value="FAILED_EXECUTION">실행 실패</option></select></label></div><div id="experimentList" class="table-scroll"><p class="empty-state">실험을 실행하거나 읽기 전용 라이브러리를 선택하세요.</p></div></details>
         <div id="comparisonDetail" hidden></div>
+        <article id="historyPanel" class="card" hidden>
+          <div class="card-heading"><div><p class="eyebrow">RESPONSE HISTORY</p><h2>응답 이력</h2></div><span class="badge neutral">원래 해석 결과</span></div>
+          <p id="historyContext" class="hint"></p>
+          <div class="form-grid"><label>응답 채널<select id="historyChannel"></select></label><label>기록된 시점<select id="historySample"></select></label></div>
+          <div id="historyPlot" class="separated"></div><p id="historyValue"></p>
+          <p class="hint">기록된 시점과 부호를 유지합니다. 점을 선택하면 해당 표본을 확인합니다. 선은 표본의 순서를 보여주며 중간 시점의 값은 계산하지 않습니다. 0초는 재료 적분 전의 수치 초기 상태입니다.</p>
+          <details class="advanced"><summary>시점별 원래 값과 채널 출처</summary><div id="historyTable"></div><div id="historyOrigin"></div></details>
+        </article>
         <article id="observationPanel" class="card" hidden>
           <div class="card-heading"><div><p class="eyebrow">관측과 해석 응답</p><h2>관측·시험 기준 비교</h2></div></div>
           <p id="observationContext" class="hint"></p>
@@ -194,6 +203,7 @@
             <form id="observationForm"><fieldset data-write>
               <div class="form-grid"><label>연구 목적<select id="observationPurpose" required><option value="">목적을 선택하세요</option><option value="DEFECT_REPRODUCTION">제품 불량 재현 · 원인 가설 비교</option><option value="JIG_FEASIBILITY">지그 제작 전 · 시험 가능성 검토</option></select></label><label>비교할 해석 응답<select id="observationResponse" required><option value="">유효한 응답을 선택하세요</option></select></label></div>
               <p id="observationResponseNote" class="hint"></p>
+              <div id="observationHistoryFields" class="form-grid" hidden><label>비교할 기록 시점<select id="observationHistorySample"></select></label><label>관측 시각 (초)<input id="observationAxisValue" inputmode="decimal" placeholder="측정·기준의 시각을 직접 입력하세요"></label></div>
               <label>비교할 원인 가설 또는 시험 목적<textarea id="observationHypothesis" rows="2" maxlength="2000" required placeholder="예: 지지부 강성이 낮아 관측 위치의 변형이 커졌는가?"></textarea></label>
               <div class="form-grid"><label>관측·기준 이름<input id="observationName" maxlength="256" required placeholder="예: 하중부 수직 변위"></label><label>출처 구분<select id="observationSourceKind" required><option value="">출처를 선택하세요</option><option value="MEASURED_REPORTED">측정값 · 사용자가 보고한 값</option><option value="SPECIFICATION">시험 규격·목표값</option><option value="SYNTHETIC">가상 데이터 · 기능 확인·가정</option></select></label></div>
               <label>출처·파일·측정 또는 기준의 근거<textarea id="observationSource" rows="2" maxlength="2000" required></textarea></label>

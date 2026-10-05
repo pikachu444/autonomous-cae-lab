@@ -11,11 +11,16 @@
     "purpose": {"enum": ["DEFECT_REPRODUCTION", "JIG_FEASIBILITY"]},
     "hypothesis": {"type": "string", "minLength": 1, "maxLength": 2000, "pattern": "\\S"},
     "response": {
-      "type": "object", "additionalProperties": false, "required": ["metric"],
-      "properties": {
-        "metric": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "\\S"},
-        "component": {"type": "integer", "minimum": 0}
-      }
+      "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["metric"],
+          "properties": {
+            "metric": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "\\S"},
+            "component": {"type": "integer", "minimum": 0}}},
+        {"type": "object", "additionalProperties": false, "required": ["history_channel", "sample_index"],
+          "properties": {
+            "history_channel": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "\\S"},
+            "sample_index": {"type": "integer", "minimum": 0}}}
+      ]
     },
     "observation": {
       "type": "object", "additionalProperties": false,
@@ -32,6 +37,8 @@
         "coordinate_frame": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "\\S"},
         "condition": {"type": "string", "minLength": 1, "maxLength": 2000, "pattern": "\\S"},
         "tolerance": {"type": "number", "minimum": 0},
+        "axis": {"type": "object", "additionalProperties": false, "required": ["quantity", "value", "unit"],
+          "properties": {"quantity": {"const": "time"}, "value": {"type": "number"}, "unit": {"const": "s"}}},
         "conditions": {
           "type": "array", "maxItems": 16,
           "items": {

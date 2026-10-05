@@ -1,5 +1,14 @@
 # Architecture
 
+## Retained response histories (ADR0039)
+
+Core owns exact-sample catalogs and append-only observation comparisons; adapters
+own native tensor/driver/time/unit interpretation. The first Maxwell projection
+reuses manifest-bound native outputs, with no solver execution or analytical
+energy substitution. HTTP/GUI preserve the same source and actual axis; no
+interpolation or physical alignment is implied. OpenScience admission remains
+separate and unchanged.
+
 ## Declared observation comparison (ADR0038)
 
 Core persists separate append-only observation/response records and receipts,

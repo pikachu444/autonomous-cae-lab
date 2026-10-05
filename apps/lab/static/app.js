@@ -5,7 +5,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
   overview: null, presets: {}, studyId: "", study: null, registry: { entries: [] },
   discovery: [], job: null, submitting: false, pollTimer: null, handlers: new Map(),
-  selectedExperiment: null, selectedCampaign: null, comparison: new Set(), studyRequest: 0,
+  selectedExperiment: null, selectedHistories: null, selectedCampaign: null, comparison: new Set(), studyRequest: 0,
   experimentRequest: 0, campaignRequest: 0, viewer: null, fixtureViewer: null, fixtureConditionError: null, storeSwitching: false,
   modelDiscovery: [], modelContext: "", modelRequest: 0,
   importedLevels: [], importedMeshError: null, importedRequest: 0, importedLoading: false,
@@ -940,6 +940,7 @@ async function inspectExperiment(identifier) {
   location.hash = "results"; const request = ++state.experimentRequest, store = activeStore();
   state.fixtureViewer?.destroy(); state.fixtureViewer = null;
   state.selectedExperiment = null;
+  state.selectedHistories = null; $("historyPanel").hidden = true;
   $("observationPanel").hidden = true; state.observationRequest++;
   const loading = panel("실험을 불러오고 있습니다."); loading.append(el("p", "저장된 기록과 원본 파일의 일치를 확인하고 있습니다.", "hint separated")); clear("experimentDetail").append(loading);
   $("selectedSource").textContent = "기록 확인 중";
@@ -948,6 +949,9 @@ async function inspectExperiment(identifier) {
     if (request !== state.experimentRequest || store !== activeStore()) return;
     if (data.integrity !== "VERIFIED" || data.result?.experiment_id !== identifier) throw new Error("서버가 요청한 기록의 식별자와 검증 완료를 확인하지 않았습니다.");
     state.selectedExperiment = data; renderExperimentDetail(data); renderObservation(data);
+    loadResponseHistories(data).catch(error => {
+      if (state.selectedExperiment === data && store === activeStore()) notify(error.message);
+    });
   } catch (error) {
     if (request !== state.experimentRequest) return;
     const card = panel("이 실험의 기록을 확인할 수 없습니다."); card.classList.add("detail-error"); card.append(el("p", error.message), el("p", "파일과 기록의 일치를 확인한 후 결과를 표시합니다."));
@@ -965,7 +969,8 @@ function metricCell(metric) {
 function observationReady() {
   const record = state.selectedExperiment;
   return Boolean(!state.storeSwitching && record?.result?.status === "COMPLETED_REVIEW_REQUIRED"
-    && record.result.study?.id === state.studyId && window.observationControls?.choices(record).length);
+    && record.result.study?.id === state.studyId && (window.observationControls?.choices(record).length
+      || window.historyControls?.channels(record, state.selectedHistories).length));
 }
 function observationSubmissionContext() {
   if (!observationReady()) throw new Error("현재 연구에 속한 검증된 실험과 유효한 응답을 먼저 선택하세요.");
@@ -973,7 +978,7 @@ function observationSubmissionContext() {
 }
 function observationArguments() {
   observationSubmissionContext();
-  return window.observationControls.build(state.selectedExperiment, {
+  const fields = {
     comparisonId: state.observationId, purpose: $("observationPurpose").value,
     hypothesis: $("observationHypothesis").value, responseKey: $("observationResponse").value,
     name: $("observationName").value, value: $("observationValue").value,
@@ -982,13 +987,103 @@ function observationArguments() {
     location: $("observationLocation").value, coordinateFrame: $("observationFrame").value,
     condition: $("observationCondition").value, tolerance: $("observationTolerance").value,
     conditions: parseField("observationConditions", "array"),
-  });
+  };
+  const selected = historyObservationChannel();
+  return selected ? window.historyControls.build(state.selectedExperiment, state.selectedHistories, {
+    ...fields, channelId: selected.id, sampleIndex: $("observationHistorySample").value,
+    axisQuantity: "time", axisUnit: "s", axisValue: $("observationAxisValue").value,
+  }) : window.observationControls.build(state.selectedExperiment, fields);
+}
+function historyObservationChannel() {
+  const value = $("observationResponse").value;
+  return window.historyControls?.channels(state.selectedExperiment, state.selectedHistories)
+    .find(item => value === JSON.stringify(["history", item.id]));
+}
+function historyChannelCaption(channel) {
+  const measure = {"infinitesimal Cauchy stress": "미소변형 응력", "internal branch stress": "점탄성 분기의 내부 응력",
+    "reference-volume energy density": "기준 체적당 에너지"}[channel.measure] ?? channel.measure;
+  return `${measure} · 균질 재료점 1개 · 모델 성분 기준 (센서·세계 좌표 정렬 미확인)`;
 }
 function observationResponseNote() {
+  const history = historyObservationChannel();
+  $("observationHistoryFields").hidden = !history;
+  $("observationHistorySample").required = $("observationAxisValue").required = Boolean(history);
+  if (history) {
+    const sample = Number($("observationHistorySample").value), found = $("observationHistorySample").value !== "" && Number.isInteger(sample) && sample < history.values.length;
+    $("observationResponseNote").textContent = `${history.label} · ${historyChannelCaption(history)}${found ? ` · 기록값 ${number(history.values[sample])} ${history.unit}, 시각 ${number(history.axis.values[sample])} s` : " · 기록 시점을 선택하세요."} 관측 시각이 정확히 일치할 때만 차이를 계산합니다.`;
+    return;
+  }
   const choice = window.observationControls?.choices(state.selectedExperiment).find(item => item.key === $("observationResponse").value);
   $("observationResponseNote").textContent = choice
     ? `기록된 응답: ${number(choice.value)} ${choice.unit} · 관측값과 허용 차이도 ${choice.unit}로 입력하세요.${choice.component !== undefined ? " 배열 항목의 물리적 성분은 사용자가 확인해야 합니다." : ""}`
     : "선택한 응답의 값과 단위가 여기에 나타납니다.";
+}
+function changeObservationResponse() {
+  const history = historyObservationChannel(), samples = clear("observationHistorySample");
+  $("observationAxisValue").value = "";
+  if (history) {
+    option(samples, "", "기록된 시점을 선택하세요");
+    history.axis.values.forEach((time, index) => option(samples, String(index), `${number(time)} s${index === 0 ? " · 초기 상태" : ""}`));
+  }
+  observationResponseNote();
+}
+async function loadResponseHistories(inspection) {
+  const store = activeStore();
+  if (inspection.result.status !== "COMPLETED_REVIEW_REQUIRED") return;
+  const value = await api(`/api/response-histories/${idPath(inspection.result.experiment_id)}`);
+  if (state.storeSwitching || store !== activeStore() || state.selectedExperiment !== inspection) return;
+  const channels = window.historyControls?.channels(inspection, value) ?? [];
+  state.selectedHistories = value;
+  $("historyPanel").hidden = !channels.length;
+  if (!channels.length) return;
+  $("observationPanel").hidden = false;
+  const select = clear("historyChannel");
+  channels.forEach(item => {
+    option(select, item.id, `${item.label} · ${item.unit}`);
+    option($("observationResponse"), JSON.stringify(["history", item.id]), `${item.label} · 응답 이력 · ${item.unit}`);
+  });
+  select.value = channels[0].id; renderHistoryChannel(); updateControls();
+}
+function renderHistoryChannel() {
+  const channel = window.historyControls?.channels(state.selectedExperiment, state.selectedHistories)
+    .find(item => item.id === $("historyChannel").value);
+  if (!channel) { $("historyPanel").hidden = true; return; }
+  $("historyContext").textContent = `${channel.label} · ${historyChannelCaption(channel)}${channel.measure === "reference-volume energy density" ? " · MPa = MJ/m³ (기준 체적)" : ""}`;
+  const select = clear("historySample");
+  channel.axis.values.forEach((time, index) => option(select, String(index), `${number(time)} s${index === 0 ? " · 초기 상태" : ""}`));
+  select.value = String(channel.values.length - 1);
+  const target = clear("historyPlot"), width = 720, height = 250, left = 85, right = 25, top = 30, bottom = 45;
+  const xs = channel.axis.values, ys = channel.values, min = Math.min(...ys), max = Math.max(...ys);
+  const range = max - min, span = xs.at(-1) - xs[0];
+  if (Number.isFinite(range) && Number.isFinite(span) && span > 0) {
+    const svgNode = (name, attrs = {}, label) => {
+      const node = document.createElementNS("http://www.w3.org/2000/svg", name);
+      Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, String(value)));
+      if (label !== undefined) node.textContent = label;
+      return node;
+    };
+    const svg = svgNode("svg", { viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": `${channel.label}, 시간(s)에 따른 ${channel.unit}`, style: "display:block;width:100%;max-height:300px;background:var(--surface,#fff)" });
+    const x = value => left + (value - xs[0]) / span * (width - left - right);
+    const y = value => range > 0 ? top + (1 - (value - min) / range) * (height - top - bottom) : (height - bottom + top) / 2;
+    svg.append(svgNode("path", { d: `M${left} ${top}V${height-bottom}H${width-right}`, stroke: "#9ca9b6", fill: "none" }),
+      svgNode("polyline", { points: xs.map((value,index) => `${x(value)},${y(ys[index])}`).join(" "), fill: "none", stroke: "#376a83", "stroke-width": 2 }));
+    [[left, height-18, `${number(xs[0])} s`], [width-right-25,height-18,`${number(xs.at(-1))} s`],
+      [7,top+4,`${number(max)} ${channel.unit}`], [7,height-bottom,`${number(min)} ${channel.unit}`]].forEach(([a,b,label]) => svg.append(svgNode("text", {x:a,y:b,fill:"#526171","font-size":11},label)));
+    xs.forEach((time,index) => {
+      const point = svgNode("circle", {cx:x(time),cy:y(ys[index]),r:5,fill:"#376a83",role:"button",tabindex:0,"aria-label":`${number(time)} s · ${number(ys[index])} ${channel.unit}`});
+      point.append(svgNode("title", {}, `${number(time)} s · ${number(ys[index])} ${channel.unit}`));
+      const choose = () => { select.value = String(index); renderHistorySample(); };
+      point.addEventListener("click", choose); point.addEventListener("keydown", event => { if (["Enter"," "].includes(event.key)) { event.preventDefault(); choose(); } }); svg.append(point);
+    });
+    target.append(svg);
+  } else target.append(el("p", "축 범위가 표시 한계를 초과합니다. 시점별 원래 값에서 확인하세요.", "hint"));
+  clear("historyTable").append(table(["시간 (s)", `${channel.label} (${channel.unit})`], xs.map((value,index) => [number(value),number(ys[index])])));
+  clear("historyOrigin").append(rawDetail("채널·native 출처·원본 해시", channel));
+  renderHistorySample();
+}
+function renderHistorySample() {
+  const choice = window.historyControls?.sampleChoice(state.selectedExperiment, state.selectedHistories, $("historyChannel").value, Number($("historySample").value));
+  $("historyValue").textContent = choice ? `${choice.label} · ${number(choice.value)} ${choice.unit}` : "";
 }
 function observationSourceCaption(source) {
   let caption = window.resultPresentation.title(source.backend);
@@ -1004,7 +1099,7 @@ function renderObservation(data) {
   const choices = window.observationControls?.choices(data) ?? [];
   const panel = $("observationPanel"); panel.hidden = !choices.length || data.result.status !== "COMPLETED_REVIEW_REQUIRED";
   state.observationRequest++; clear("observationRecords");
-  if (panel.hidden) return;
+  if (data.result.status !== "COMPLETED_REVIEW_REQUIRED") return;
   state.observationId = makeId("O");
   $("observationContext").textContent = `선택한 ${observationSourceCaption({ backend: data.result.provenance.adapter, execution: data.proposal.execution })} 결과에 관측을 연결합니다. 원래 모델과 응답은 그대로 보존합니다.`;
   $("observationEditor").open = false;
@@ -1012,7 +1107,7 @@ function renderObservation(data) {
   choices.forEach(choice => option(response, choice.key, `${choice.label} · ${choice.unit}`));
   for (const id of ["observationPurpose", "observationHypothesis", "observationName", "observationSourceKind", "observationSource",
     "observationValue", "observationTolerance", "observationQuantity", "observationComponent", "observationLocation", "observationFrame", "observationCondition"]) $(id).value = "";
-  $("observationConditions").value = "[]"; response.value = ""; observationResponseNote(); updateControls();
+  $("observationConditions").value = "[]"; response.value = ""; clear("observationHistorySample"); $("observationAxisValue").value = ""; observationResponseNote(); updateControls();
   loadResponseComparisons(data).catch(error => notify(error.message));
 }
 async function loadResponseComparisons(inspection = state.selectedExperiment) {
@@ -1033,19 +1128,24 @@ async function loadResponseComparisons(inspection = state.selectedExperiment) {
       }
       const observation = record.request.observation, details = el("details", undefined, "advanced separated");
       const kind = { MEASURED_REPORTED: "사용자 보고 측정값", SPECIFICATION: "규격·목표값", SYNTHETIC: "가상 데이터" }[observation.source_kind];
-      details.append(el("summary", `${observation.name} · ${kind} · ${comparison.status === "DECLARED_CONDITION_MISMATCH" ? "조건 불일치 · 차이 계산 보류" : "수치 차이 기록됨"}`));
+      const mismatch = comparison.status !== "NUMERIC_DIFFERENCE_ONLY";
+      details.append(el("summary", `${observation.name} · ${kind} · ${mismatch ? "조건·시각 불일치 · 차이 계산 보류" : "수치 차이 기록됨"}`));
       details.append(el("p", record.request.hypothesis, "separated"), el("p", `해석 조건: ${observationSourceCaption(record.source)}`),
         el("p", `출처: ${observation.source}`), el("p", `관측 범위: ${observation.quantity} · ${observation.component} · ${observation.location} · ${observation.coordinate_frame}`),
         el("p", `관측 조건: ${observation.condition}`));
       const selected = record.request.response;
-      const sourceChoice = record.source.experiment_id === inspection.result.experiment_id
+      const sourceChoice = !selected.history_channel && record.source.experiment_id === inspection.result.experiment_id
         ? window.observationControls?.choices(inspection).find(choice => choice.metric === selected.metric && choice.component === selected.component) : null;
-      details.append(el("p", `원 응답: ${sourceChoice?.label ?? window.resultPresentation.metricName(selected.metric)}${selected.component !== undefined && !sourceChoice ? ` · 사용자 지정 배열 항목 ${selected.component + 1} (물리 성분 미확인)` : ""}`));
+      const channel = comparison.source_channel;
+      details.append(el("p", `원 응답: ${channel ? `${channel.label} · ${historyChannelCaption(channel)} · 기록 시각 ${number(comparison.response_axis.value)} ${comparison.response_axis.unit}` : sourceChoice?.label ?? window.resultPresentation.metricName(selected.metric)}${selected.component !== undefined && !sourceChoice ? ` · 사용자 지정 배열 항목 ${selected.component + 1} (물리 성분 미확인)` : ""}`));
+      if (channel?.initial_state && channel.initial_state.index === selected.sample_index && channel.initial_state.kind === "UNPREPARED_INITIAL_CONDITION")
+        details.append(el("p", "선택한 표본은 재료 적분 전의 수치 초기 상태이며 적분된 재료 응답의 근거가 아닙니다.", "hint"));
+      if (comparison.declared_axis_check) details.append(el("p", `관측 시각: ${number(comparison.declared_axis_check.declared.value)} ${comparison.declared_axis_check.declared.unit} · ${comparison.declared_axis_check.matched ? "기록 시각과 정확히 일치" : "기록 시각과 불일치 · 보간하지 않음"}`));
       details.append(table(["관측·기준", "해석 응답", "해석 − 관측", "절대 허용 차이"], [[
         `${number(comparison.observed_value)} ${comparison.unit}`, `${number(comparison.response_value)} ${comparison.unit}`,
-        comparison.difference === null ? "조건 불일치 · 계산 보류" : `${number(comparison.difference)} ${comparison.unit}`,
+        comparison.difference === null ? "조건·시각 불일치 · 계산 보류" : `${number(comparison.difference)} ${comparison.unit}`,
         `${number(comparison.declared_absolute_tolerance)} ${comparison.unit}`]]));
-      details.append(el("p", comparison.within_declared_tolerance === null ? "명시적으로 연결한 입력 조건이 일치하지 않습니다."
+      details.append(el("p", comparison.within_declared_tolerance === null ? "명시적으로 연결한 입력 조건 또는 관측 시각이 일치하지 않습니다."
         : comparison.within_declared_tolerance ? "입력한 허용 차이 이내입니다." : "입력한 허용 차이를 초과합니다."));
       details.append(el("p", "위치·성분·좌표계·조건의 물리적 일치는 사용자 선언이며 독립 확인 전입니다. 수치가 맞아도 원인 확정·물리 검증·사용 승인으로 판정하지 않습니다.", "hint"));
       if (!comparison.condition_bindings_supplied) details.append(el("p", "저장된 입력과의 명시적 조건 연결은 제공되지 않았습니다.", "hint"));
@@ -1131,7 +1231,7 @@ function renderExperimentDetail(data) {
     const unit = metric.unit === "1" ? (name === "cad_component_count" ? "개" : "") : metric.unit === "mm^3" ? "mm³" : metric.unit ?? "";
     const displayNumber = value => typeof value === "number" && Number.isFinite(value)
       ? new Intl.NumberFormat("ko-KR", { maximumSignificantDigits: 6 }).format(value) : text(value);
-    const value = Array.isArray(metric.value) ? (name === "cad_bounds" ? metric.value.map(displayNumber).join(" × ") : text(metric.value)) : displayNumber(metric.value);
+    const value = Array.isArray(metric.value) ? (name.endsWith("_history") ? "시점별 배열 · 이력 또는 원본 기록에서 확인" : name === "cad_bounds" ? metric.value.map(displayNumber).join(" × ") : text(metric.value)) : displayNumber(metric.value);
     card.append(label, el("strong", `${value} ${unit}`.trim(), `result-metric-value${metric.valid === true ? "" : " invalid-value"}`), badge(metric.valid === true ? "PASS" : "FAIL", metric.valid === true ? "수치 응답 유효" : "판단에 사용할 수 없는 값"));
     if (metric.reason) card.append(el("p", metric.reason, "metric-reason")); metricGrid.append(card);
   });
@@ -1776,7 +1876,7 @@ async function switchStore(identifier) {
   state.overview = overview; state.studyId = ""; state.study = null; state.registry = { entries: [] }; state.discovery = []; clearSimulationDraft();
   state.researchSession = null; $("researchContinue").checked = false; renderResearchAnswers();
   invalidateModelDiscovery(); state.campaignSelections.clear(); state.campaignSelectionKey = "";
-  state.selectedExperiment = null; state.selectedCampaign = null; state.comparison.clear(); state.studyRequest++; state.experimentRequest++; state.campaignRequest++;
+  state.selectedExperiment = null; state.selectedHistories = null; $("historyPanel").hidden = true; state.selectedCampaign = null; state.comparison.clear(); state.studyRequest++; state.experimentRequest++; state.campaignRequest++;
   $("observationPanel").hidden = true; state.observationRequest++;
   clear("campaignDetail"); clear("comparisonDetail").hidden = true;
   const card = panel("저장소가 바뀌었습니다.", "RESULTS"); card.append(el("p", "목록에서 열 기록을 선택하세요.", "empty-state")); clear("experimentDetail").append(card);
@@ -1809,7 +1909,10 @@ bindForm("nativeInspectForm", "native_inspect", () => ({ model: $("nativeModelId
 bindForm("nativeFinalForm", "native_final", () => ({ model: $("nativeModelId").value.trim(), final: $("nativeFinal").value }), renderNative);
 bindForm("simulationForm", simulationOperation, simulationArguments, completeSimulation, simulationSubmissionContext);
 bindForm("observationForm", "response_comparison_save", observationArguments, completeObservation, observationSubmissionContext);
-$("observationResponse").addEventListener("change", observationResponseNote);
+$("observationResponse").addEventListener("change", changeObservationResponse);
+$("observationHistorySample").addEventListener("change", observationResponseNote);
+$("historyChannel").addEventListener("change", renderHistoryChannel);
+$("historySample").addEventListener("change", renderHistorySample);
 bindForm("campaignForm", campaignOperation, () => {
   const model = isModelCampaign();
   const args = { study_id: state.studyId, campaign_id: $("campaignId").value.trim(), parameter_ids: [...document.querySelectorAll("[data-campaign-variable]:checked")].map((input) => input.value), seed: numeric("campaignSeed") };
