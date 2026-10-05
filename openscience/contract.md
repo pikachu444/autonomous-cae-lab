@@ -1316,3 +1316,18 @@ qualified meshes for the next explicit mechanics/fields/balance/sensitivity gate
 Public assembly analysis/campaign and connected human workflow are not admitted
 from preprocessing. Global positivity, strength/material/physical and actual
 OS cancellation remain UNKNOWN/NOT_RUN; service and whole52 remain incomplete.
+
+## Plugin admission serialization and retained result display
+
+ADR0041 queues only complete native-plugin pre-operation checks within one
+loaded plugin. Every waiting call rereads exact session/grants/source and current
+guard/model/arguments. A rejection releases the queue and remains a rejection;
+no previous admission is reused. The5s metadata read and existing source/body
+bounds remain. Tool execution/Core/MCP/native/HTTP are outside this queue.
+This is not repository-wide writer ownership or active cancel/reconnect proof.
+Historical clean774 search's9 filesystem refusals remain NOT_ISOLATED, with
+successful read-only fallback recorded separately. Clean corrected retained18
+summary execution remains the next actual provider gate.
+The human answer formatter keeps raw text and signed numeric cells, handling
+escaped delimiter/code-span pipes without HTML execution. Stored9-candidate
+table and same best-candidate field retain original provenance and UNKNOWN.

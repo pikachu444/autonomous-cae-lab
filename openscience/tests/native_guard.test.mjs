@@ -1255,6 +1255,86 @@ test('stopping managed hooks skip every metadata read and further source capture
   assert.equal(f.counts.session, 0); assert.equal(f.counts.filesystem, 0); assert.equal(f.counts.capture, 1);
 });
 
+test('plugin admission serializes an entire mixed18-hook batch, not merely individual metadata GETs', { timeout:10000 }, async t => {
+  const f = readerFixture(t, { managed: true });
+  const load = f.dependencies.loadFilesystem;
+  let unfinishedAdmissions = 0, maximum = 0;
+  let enterFirst;
+  const entered = new Promise(resolve => { enterFirst = resolve; });
+  let releaseFirst;
+  const release = new Promise(resolve => { releaseFirst = resolve; });
+  f.dependencies.loadFilesystem = async (...args) => {
+    const data = await load(...args);
+    if (f.counts.filesystem === 1) { enterFirst(); await release; }
+    if (f.counts.filesystem % 2 === 0) unfinishedAdmissions--;
+    return data;
+  };
+  const hooks = await f.hooks();
+  f.reader.beforeReturn = () => {
+    // Each schema3 capture is followed by a fresh second metadata pair. If a
+    // later admission interleaves, this counter exceeds one.
+    unfinishedAdmissions++; maximum = Math.max(maximum, unfinishedAdmissions);
+  };
+  const batch = Array.from({ length:18 }, (_, index) => index % 2
+    ? hooks['chat.params'](f.request(), {})
+    : hooks['tool.execute.before']({ tool:tools[7], sessionID:f.sessionID }, {}));
+  const completion = Promise.all(batch);
+  await entered;
+  assert.equal(f.counts.session, 1); assert.equal(f.counts.filesystem, 1);
+  assert.equal(f.reader.calls, 1, 'queued admissions must not capture before their own metadata');
+  releaseFirst();
+  await completion;
+  assert.equal(maximum, 1); assert.equal(unfinishedAdmissions, 0);
+  assert.equal(f.reader.calls, 19); assert.equal(f.counts.session, 36); assert.equal(f.counts.filesystem, 36);
+  assert.equal(f.receipts().filter(value => value.hook !== 'plugin.loaded' && value.accepted).length, 18);
+});
+
+test('rejected admission releases the queue and preserves the following caller independent source check', async t => {
+  const f = readerFixture(t, { managed:true }), hooks = await f.hooks();
+  const batch = [
+    hooks['tool.execute.before']({ tool:'unknown_tool', sessionID:f.sessionID }, {}),
+    hooks['tool.execute.before']({ tool:tools[7], sessionID:f.sessionID }, {}),
+    hooks['chat.params'](f.request(), {}),
+  ];
+  const results = await Promise.allSettled(batch);
+  assert.equal(results[0].status, 'rejected'); assert.ok(refusal('TOOL_NOT_ALLOWED')(results[0].reason));
+  assert.equal(results[1].status, 'fulfilled'); assert.equal(results[2].status, 'fulfilled');
+  const receipts = f.receipts().filter(value => value.hook !== 'plugin.loaded');
+  assert.deepEqual(receipts.map(value => value.code), ['TOOL_NOT_ALLOWED','CHECKS_PASSED','CHECKS_PASSED']);
+  assert.equal(f.reader.calls, 4); assert.equal(f.counts.filesystem, 6);
+});
+
+test('queued admissions reread grants, source and stopping after ownership wait; no accepted check is reused', { timeout:10000 }, async t => {
+  for (const [drift, expected] of [['grant','PROJECT_GRANT_CHANGED'],['source','SOURCE_CHANGED_OR_UNAVAILABLE'],['stopping','RUNTIME_STOPPING']]) {
+    const f = readerFixture(t, { managed:true });
+    const load = f.dependencies.loadFilesystem;
+    let enteredResolve, releaseResolve;
+    const entered = new Promise(resolve => { enteredResolve = resolve; });
+    const release = new Promise(resolve => { releaseResolve = resolve; });
+    f.dependencies.loadFilesystem = async (...args) => {
+      const data = await load(...args);
+      if (f.counts.filesystem === 1) { enteredResolve(); await release; }
+      return data;
+    };
+    const hooks = await f.hooks();
+    const resultsPromise = Promise.allSettled([
+      hooks['chat.params'](f.request(), {}),
+      hooks['tool.execute.before']({ tool:tools[7], sessionID:f.sessionID }, {}),
+    ]);
+    await entered;
+    assert.equal(f.counts.filesystem, 1); assert.equal(f.reader.calls, 1);
+    if (drift === 'grant') f.state.filesystem.grants[0].access = 'read';
+    if (drift === 'source') json(f.statePath, { ...f.boot, source_commit:'f'.repeat(40) });
+    if (drift === 'stopping') f.writeGuard({ stopping:true });
+    releaseResolve();
+    const results = await resultsPromise;
+    for (const result of results) { assert.equal(result.status, 'rejected'); assert.ok(refusal(expected)(result.reason)); }
+    assert.equal(f.receipts().at(-1).code, expected);
+    assert.equal(f.receipts().filter(value => value.hook !== 'plugin.loaded' && value.accepted).length, 0);
+    if (drift === 'stopping') { assert.equal(f.counts.filesystem, 1); assert.equal(f.reader.calls, 1); }
+  }
+});
+
 test('a metadata getter that ignores abort is still bounded and never reaches source or tools', async t => {
   const f = managedFixture(t);
   f.dependencies.loadSession = () => new Promise(() => {});

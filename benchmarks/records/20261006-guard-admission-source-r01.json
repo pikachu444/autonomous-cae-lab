@@ -1,0 +1,77 @@
+{
+  "protections": "UNCHANGED",
+  "document_repair": {
+    "record_commit": "99dc73e02df2e66f7cb15c6b16a160170d5a4e95",
+    "original_history_bytes_restored": true,
+    "experiments_or_code_affected": false,
+    "whole_52_ledger_preserved": true,
+    "historical_truncation_repaired_in": "211a3ced26b5f78c64e429a1724a364482958bf1"
+  },
+  "source": {
+    "previous18_batch_9refusals": "PRESERVED_NOT_ISOLATED",
+    "source_parent_commit": "211a3ced26b5f78c64e429a1724a364482958bf1",
+    "files": [
+      {
+        "bytes": 88604,
+        "lf_sha256": "0c876f940508462b037b1d8e9603d3c4b00fe2ca94620048c0006658facc659c",
+        "path": "openscience/native_guard.mjs",
+        "raw_sha256": "88ced551c05650b9022c03760258eb557dc9e277f9711fb63f448aaae4ccc7ec"
+      },
+      {
+        "bytes": 180415,
+        "lf_sha256": "8d82ae0f897240a2228ae0266f800280224ad89ae7b507bde4dc9dff6c7bd049",
+        "path": "openscience/tests/native_guard.test.mjs",
+        "raw_sha256": "7fa1f8c4bf521c0538a7f7f6809708481856179026e87233099b4d6aa6adc270"
+      },
+      {
+        "bytes": 19463,
+        "lf_sha256": "79067cbe971f6fafc1fc54d2e973d1d8f72a6fa138933d2c92fe7a4899c84a48",
+        "path": "apps/lab/static/research-controls.js",
+        "raw_sha256": "79067cbe971f6fafc1fc54d2e973d1d8f72a6fa138933d2c92fe7a4899c84a48"
+      },
+      {
+        "bytes": 36191,
+        "lf_sha256": "ff1a5a3d626a83dab24fd7766b763d273c80fad82a234f80d5e190426ff7e3e3",
+        "path": "tests/test_research_answer.js",
+        "raw_sha256": "ff1a5a3d626a83dab24fd7766b763d273c80fad82a234f80d5e190426ff7e3e3"
+      }
+    ],
+    "node_pass": 557,
+    "guard_pass": 344,
+    "guard_skip": 14,
+    "guard_focused_pass": 3,
+    "dirty_at_controls": true,
+    "actual_provider_corrected_source": "PENDING",
+    "new_solver_runs": 0,
+    "independent_review": "READ_ONLY_0P1_P2_4FILES",
+    "table_affected_pass": 17
+  },
+  "previous_native_producer": "774d7c13a20e9dded484173a3fbf7be3cd1d6bee",
+  "previous_actual_record": "benchmarks/records/20261006-fixture-width-search-r01.json",
+  "unit": "B4 native admission serialization and readable retained answer table",
+  "next": "Fresh clean-source approved5.6/OAuth singleton summary scope; same retained18 CAD/analysis records in a batch, no new native solve",
+  "status": "SOURCE_AND_RETAINED_GUI_PASS_ACTUAL_ADMISSION_PENDING",
+  "metadata_timeout_seconds": 5,
+  "control_attempts": {
+    "initial_mock_dependency_setup": "ABORTED source tests: installed mutable dependency after binding; harness corrected before final3/full controls",
+    "actual_native_or_provider_calls": 0
+  },
+  "schema_version": 1,
+  "physical_validation": "UNKNOWN",
+  "actual_gui": {
+    "copied_raw_answer_unchanged": true,
+    "source_parent": "211a3ced26b5f78c64e429a1724a364482958bf1",
+    "loaded_saddle_abs_uz_mm": 3.35316E-05,
+    "same9result_table": "7 columns/9 rows; reload/HTTP restart",
+    "baseline_comparison": "4 columns/4 rows",
+    "field_nodes": 13226,
+    "full_magnitude_mm": 3.751346344896009E-05,
+    "best_experiment": "E-C-width150N-search-20261006-r01-0008-solve",
+    "source_dirty": true,
+    "proof": "artifacts/guard-admission-20261006-01"
+  },
+  "decision": "NOT_RELEASED",
+  "scope": "Per-plugin checks only; native/Core/HTTP execution never held",
+  "actual_corrected_admission": "OPEN",
+  "independent_review": "0P1/P2 read-only, no tests/provider/native run by reviewer"
+}

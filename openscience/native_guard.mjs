@@ -1264,6 +1264,19 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
       nativeRefuse(code);
     }
   };
+  // Metadata GETs run on the native server's event loop. Concurrent source
+  // captures/final synchronous byte checks can starve another admission's
+  // loopback GET. Queue only the complete pre-operation checks in this plugin;
+  // tool execution, the MCP resident and native solvers never hold this queue.
+  // Every waiter rechecks live ownership/source/policy after acquiring it.
+  let admissionTail = Promise.resolve();
+  const admit = (hook, input, output) => {
+    const result = admissionTail.then(() => evaluate(hook, input, output));
+    // A denied call must release admission without admitting later calls on
+    // its evidence or masking its own rejection from the original caller.
+    admissionTail = result.then(() => undefined, () => undefined);
+    return result;
+  };
 
   try { settings = nativeFreeze(JSON.parse(JSON.stringify(suppliedSettings))); }
   catch { nativeRefuse('SETTINGS_INVALID'); }
@@ -1303,8 +1316,8 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
   }
   receipt('plugin.loaded', null, 'accepted', 'PLUGIN_LOADED', initialHashes);
   return {
-    'chat.params': async (input, output) => evaluate('chat.params', input, output),
-    'tool.execute.before': async (input, output) => evaluate('tool.execute.before', input, output),
+    'chat.params': async (input, output) => admit('chat.params', input, output),
+    'tool.execute.before': async (input, output) => admit('tool.execute.before', input, output),
   };
 }
 

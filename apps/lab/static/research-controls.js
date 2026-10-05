@@ -151,17 +151,34 @@
     const marker = line => /^\s*([-+*]|\d+[.)])[ \t]+(.*)$/.exec(line);
     const fenced = line => /^\s*(`{3,}|~{3,})([^`]*)$/.exec(line);
     const cells = line => {
-      // Ambiguous escaped/code pipes remain literal paragraphs instead of
-      // incorrectly splitting a value into guessed cells.
       if (!line.includes("|")) return null;
-      let code = false;
-      for (let position = 0; position < line.length; position++) {
-        if (line[position] === "\\" && line[position + 1] === "|") return null;
-        if (line[position] === "`") code = !code;
-        else if (line[position] === "|" && code) return null;
+      const body = line.trim(), ticks = [...body.matchAll(/`+/g)], closes = new Map(), next = new Map();
+      // Exact backtick-run matches, prepared once, keep each row linear-time.
+      // Unmatched or escaped opening runs are literal, not a guessed code span.
+      for (let index = ticks.length - 1; index >= 0; index--) {
+        const tick = ticks[index], length = tick[0].length;
+        if (next.has(length)) closes.set(tick.index, next.get(length));
+        next.set(length, tick.index + length);
       }
-      let body = line.trim(); if (body.startsWith("|")) body = body.slice(1); if (body.endsWith("|")) body = body.slice(0, -1);
-      const values = body.split("|").map(value => value.trim()); return values.length >= 2 ? values : null;
+      const values = []; let value = [], slashes = 0, firstSeparator = -1, lastSeparator = -1;
+      for (let position = 0; position < body.length;) {
+        const character = body[position], close = closes.get(position);
+        if (character === "`" && slashes % 2 === 0 && close !== undefined) {
+          value.push(body.slice(position, close)); position = close; slashes = 0; continue;
+        }
+        if (character === "|") {
+          if (slashes % 2 === 1) { value.pop(); value.push("|"); } // Remove only the delimiter escape for display.
+          else {
+            if (firstSeparator < 0) firstSeparator = position;
+            lastSeparator = position; values.push(value.join("").trim()); value = [];
+          }
+        } else value.push(character);
+        slashes = character === "\\" ? slashes + 1 : 0; position++;
+      }
+      values.push(value.join("").trim());
+      if (firstSeparator === 0) values.shift();
+      if (lastSeparator === body.length - 1) values.pop();
+      return values.length >= 2 ? values : null;
     };
     const tableAt = position => {
       const header = cells(lines[position] ?? ""), rule = cells(lines[position + 1] ?? "");

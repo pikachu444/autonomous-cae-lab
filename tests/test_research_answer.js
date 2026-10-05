@@ -89,16 +89,80 @@ test("formatter leaves numbers/maths/identifiers as text; partial delimiters rem
   assert(parsed.blocks[0].parts.some(part => part.type === "em")); assert(parsed.blocks[0].parts.some(part => part.type === "strong" && part.parts.some(value => value.type === "code")));
   assert.equal(controls.answerBlocks("01. 1.0000 mm\n03) UNKNOWN").blocks[0].items[0].marker, "01.");
 });
-test("tables preserve each original scalar/unit/signed value; ragged/ambiguous tables never invent cells", () => {
+test("tables preserve each original scalar/unit/signed value; ragged tables never invent cells", () => {
   const raw = "| 설계 | 처짐 (mm) | 판정 | 한계 |\n|---|---:|:---|---|\n|32 mm|−0.0012300|UNKNOWN|**`NOT_RELEASED`**|\n|38 mm|2.0e-08|FAIL|가상 재료|";
   const parsed = controls.answerBlocks(raw), table = parsed.blocks[0]; assert.equal(table.type, "table"); assert.equal(parsed.raw, raw);
   assert.deepEqual(table.rows.map(row => row.map(partsText)), [["32 mm", "−0.0012300", "UNKNOWN", "NOT_RELEASED"], ["38 mm", "2.0e-08", "FAIL", "가상 재료"]]);
   const h = harness(), card = new TinyNode(); h.ui.appendResearchAnswer(card, raw, "empty");
   const values = walk(card.children[0]).filter(node => node.tagName === "TD"); assert.deepEqual(values.map(node => node.textContent), table.rows.flat().map(partsText));
   assert(walk(values[3]).some(node => node.tagName === "CODE" && node.textContent === "NOT_RELEASED"));
-  for (const partial of ["|a|b|\n|---|---|\n|1.000|", "|a|b|\n|---|---|\n|`1|2`|UNKNOWN|"]) {
+  for (const partial of ["|a|b|\n|---|---|\n|1.000|", "|a|b|\n|---|---|\n|`1|2|UNKNOWN|"]) {
     const unknown = controls.answerBlocks(partial); assert.equal(unknown.raw, partial); assert.equal(unknown.blocks[0].type, "paragraph"); assert(blockText(unknown.blocks[0]).includes("UNKNOWN") || blockText(unknown.blocks[0]).includes("1.000"));
   }
+});
+
+test("retained B4 seven-column nine-candidate table keeps escaped UZ header, signed reactions and exact raw text", () => {
+  // Verbatim table from fixture-width-search-20261006-01/answer-observed.md.
+  // Displaying its saved AI statements is not native or engineering verification.
+  const raw = [
+    "| # | 폭 (mm) | CAD 체적 (mm³) | saddle 최대 \\|UZ\\| (mm) | 반력 [Rx, Ry, Rz] (N) | 균형비 | 판정 |",
+    "|---:|---:|---:|---:|---|---:|---|",
+    "| 1 | 38.000000 | 36,783.830 | 0.00003439671 | `[-5.731e-8, 1.438e-7, 150.000001358]` | 9.110e-9 | 유효·PASS |",
+    "| 2 | 31.959919 | 30,502.146 | 0.00003529884 | `[-1.660e-7, 1.012e-7, 150.000000698]` | 4.832e-9 | 유효·PASS |",
+    "| 3 | 39.475220 | 38,318.058 | 0.00003477503 | `[2.061e-7, -3.977e-7, 150.000000392]` | 3.968e-9 | 유효·PASS |",
+    "| 4 | 53.062701 | 52,449.039 | 0.00003414147 | `[-5.828e-7, 6.251e-8, 149.999999798]` | 4.133e-9 | 유효·PASS |",
+    "| 5 | 45.355996 | 44,434.066 | 0.00003410555 | `[4.040e-7, -2.232e-7, 149.999999827]` | 3.286e-9 | 유효·PASS |",
+    "| 6 | 58.024947 | 57,609.775 | 0.00003361459 | `[-1.963e-7, -2.176e-7, 149.999999814]` | 2.314e-9 | 유효·PASS |",
+    "| 7 | 52.541719 | 51,907.217 | 0.00003402993 | `[-8.400e-8, -5.068e-8, 149.999999239]` | 5.112e-9 | 유효·PASS |",
+    "| **8** | **57.846482** | **57,424.171** | **0.00003353160** | `[-1.679e-7, -3.093e-7, 150.000001850]` | 1.255e-8 | **best observed·PASS** |",
+    "| 9 | 46.731489 | 45,864.579 | 0.00003378849 | `[1.054e-7, -5.750e-8, 149.999998780]` | 8.170e-9 | 유효·PASS |",
+  ].join("\n");
+  const parsed = controls.answerBlocks(raw), table = parsed.blocks[0];
+  assert.equal(parsed.raw, raw); assert.equal(parsed.blocks.length, 1); assert.equal(table.type, "table");
+  assert.equal(table.header.length, 7); assert.equal(table.rows.length, 9);
+  assert(table.rows.every(row => row.length === 7)); assert.equal(partsText(table.header[3]), "saddle 최대 |UZ| (mm)");
+  assert.equal(partsText(table.rows[0][4]), "[-5.731e-8, 1.438e-7, 150.000001358]");
+  assert.equal(partsText(table.rows[7][3]), "0.00003353160"); assert.equal(partsText(table.rows[7][6]), "best observed·PASS");
+  const numbers = value => value.match(/[+−-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?/g);
+  assert.deepEqual(numbers(blockText(table)), numbers(raw));
+  const h = harness(), card = new TinyNode(); h.ui.appendResearchAnswer(card, raw, "empty");
+  const nodes = walk(card.children[0]);
+  assert.equal(nodes.filter(node => node.tagName === "TABLE").length, 1);
+  assert.equal(nodes.filter(node => node.tagName === "TH").length, 7);
+  assert.equal(nodes.filter(node => node.tagName === "TD").length, 63);
+  assert.deepEqual(nodes.filter(node => node.tagName === "TD").map(node => node.textContent), table.rows.flat().map(partsText));
+  assert.equal(walk(card).find(node => node.tagName === "PRE").textContent, raw);
+  assert.deepEqual(h.counters, { http: 0, timers: 0 });
+});
+
+test("table delimiters distinguish escape parity and matched single/multiple backtick runs without changing code content", () => {
+  const raw = ["| response | note |", "|---|---|", "| \\|UZ\\| | `1|2` |",
+    "| ending\\| | ``a`|b`` |", "| \\\\| even escape is a separator |",
+    "| \\\\\\|literal | `code\\|pipe` |", "| signed −0.00010 mm | `a``|b` |"].join("\n");
+  const parsed = controls.answerBlocks(raw), table = parsed.blocks[0];
+  assert.equal(parsed.raw, raw); assert.equal(table.type, "table");
+  assert.deepEqual(table.rows.map(row => row.map(partsText)), [
+    ["|UZ|", "1|2"], ["ending|", "``a`|b``"], ["\\\\", "even escape is a separator"],
+    ["\\\\|literal", "code\\|pipe"], ["signed −0.00010 mm", "`a``|b`"],
+  ]);
+  assert.equal(table.rows[0][1][0].type, "code");
+  const noOuterPipes = "response | note\n---|---\n`|native|` | literal\\|";
+  assert.deepEqual(controls.answerBlocks(noOuterPipes).blocks[0].rows.map(row => row.map(partsText)), [["|native|", "literal|"]]);
+});
+
+test("unmatched/escaped backticks and mismatched table widths retain plain fallback; protected-pipe HTML stays inert", () => {
+  for (const raw of ["|a|b|\n|---|---|\n|`1|2|UNKNOWN|", "|a|b|\n|---|---|\n|\\`1|2`|UNKNOWN|",
+    "|a|b|\n|---|---|\n|``1|2`|UNKNOWN|", "|a|b|\n|---|---|\n|1\\|2|UNKNOWN|extra|"]) {
+    const parsed = controls.answerBlocks(raw); assert.equal(parsed.raw, raw);
+    assert.equal(parsed.blocks[0].type, "paragraph"); assert(blockText(parsed.blocks[0]).includes("UNKNOWN"));
+  }
+  const raw = "| \\|UZ\\| | note |\n|---|---|\n| `<script>bad|code</script>` | <img src=x onerror=bad> |";
+  const h = harness(), card = new TinyNode(); h.ui.appendResearchAnswer(card, raw, "empty");
+  const nodes = walk(card.children[0]); assert.equal(nodes.filter(node => node.tagName === "TABLE").length, 1);
+  assert.equal(nodes.filter(node => ["A", "IMG", "SCRIPT", "IFRAME", "OBJECT"].includes(node.tagName)).length, 0);
+  assert(nodes.some(node => node.tagName === "CODE" && node.textContent === "<script>bad|code</script>"));
+  assert(nodes.some(node => node.tagName === "TD" && node.textContent === "<img src=x onerror=bad>"));
+  assert.equal(walk(card).find(node => node.tagName === "PRE").textContent, raw); assert.deepEqual(h.counters, { http: 0, timers: 0 });
 });
 test("technical fences keep exact CRLF/JSON/numbers in collapsed text only, including incomplete output", () => {
   const technical = '```json\r\n{"value":-0.000123456789,"status":"NOT_RELEASED","unsafe":"<script>run()</script>"}\r\n```\r\n';
