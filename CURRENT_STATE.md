@@ -1,3 +1,11 @@
+## Current implementation — retained assembly native evidence
+
+ADR0049 separates immutable original qualification pins from explicit trusted current parent-verifier dependencies. Original source/CAD/topology checks remain; default public admission does not expand. Actual original7-body S4a full U/RF/Gauss/energy comparison passes56 checks with unchanged6limits, same coarse mesh and protected originals. Four integrated source files pass422 tests. Exact producer and LOCAL_ONLY artifact pins are in [record](benchmarks/records/20261006-assembly-affine-actual-r03.json).
+
+PDE verifier now closes fields/invalid-metric reasons and writes detailed classification evidence before asserting expected success. Its actual canonical rejection is unchanged. Failed Aster accuracy experiments are preserved and not landed; explicit download404 and OpenScience field-question EPERM remain separate known failures. Whole52/Phases incomplete; S4b/common assembly conditions and research are NEXT, physical UNKNOWN/NOT_RELEASED.
+
+---
+
 ## Current implementation — general exact-field research
 
 ADR0048 adds additive response comparison1.2 for exact retained field/node/component; oldscalar1.0/history1.1 remain. Core verifies immutable envelopes/artifacts; adapter owns native syntax and original signed values; declared quantity/component/frame mismatch is null rather than an automatic physical match. General CAE research is additive to the earlier examples. Existing verified summary exposes the same record for approved interpretation without new provider/tool/native-execution authority.

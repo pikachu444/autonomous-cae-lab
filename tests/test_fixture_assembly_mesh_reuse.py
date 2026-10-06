@@ -28,7 +28,24 @@ spec.loader.exec_module(r)
 
 HELPER = b'''"""SYNTHETIC captured verification boundary, never native qualification."""
 from pathlib import Path
+import hashlib
+import json
 calls = []
+
+def validate_parent(actual, root):
+    recorded = json.loads((root / "result.json").read_text())
+    if actual != recorded:
+        raise ValueError("Synthetic live result differs")
+    cad = _cad_adapter()
+    expected = actual["native_source_fingerprint"]
+    # Real production CAD source assert, not a MainBoundary-only observation.
+    cad.verify_result(root / "cad", {"cad_generated":False, "native_revision":None,
+        "source_sha256":expected["source_sha256"], "source_fingerprint_before":expected}, expected)
+    cad.assembly_declarations()
+    cad.full_input({})
+    files = {p.relative_to(root).as_posix(): {"sha256":hashlib.sha256(p.read_bytes()).hexdigest(),
+             "size_bytes":p.stat().st_size} for p in root.rglob("*") if p.is_file()}
+    return {"identity":recorded["identity"], "files":files}
 def verify_output(root, result, request):
     calls.append(str(root))
     if str(root) != request["synthetic_original_root"]:
@@ -81,8 +98,30 @@ def context(tmp_path, monkeypatch):
     sources = {"fixture_assembly_mesh.py":HELPER, "assembly_mesh.py":DOMAIN,
                "fixture_assembly_mesh_worker.py":b"# SYNTHETIC worker; never executed\n",
                "gmsh.py":b"# SYNTHETIC SDK source; never imported\n",
-               "parent_verifier/pin.json":b'{"synthetic":true}\n'}
+               "parent_verifier/pin.json":b'{"synthetic":true}\n',
+               "parent_verifier/platform/contracts.py":b"# SYNTHETIC original contracts\n",
+               "parent_verifier/platform/execution_control.py":b"# SYNTHETIC original ownership\n"}
+    for name,path in {
+        "adapter/fixture_assembly.py":"caelab/adapters/fixture_assembly.py",
+        "adapter/fixture_assembly_worker.py":"caelab/adapters/fixture_assembly_worker.py",
+        "domain/assembly_interfaces.py":"plugins/fixture_design/assembly_interfaces.py",
+        "upstream/examples/bend_4mm.json":"plugins/fixture_design/upstream/examples/bend_4mm.json"}.items():
+        sources["parent_verifier/"+name]=(BASE/path).read_bytes()
     source_files = {name:write(bundle,"capsule/"+name, data) for name,data in sources.items()}
+    cad_files={name.removeprefix("parent_verifier/"):pin for name,pin in source_files.items()
+               if name.startswith("parent_verifier/")}
+    definition={"backend":"fixture.assembly","model":"bending_assembly","version":"1",
+        "paths":{"specimen.length":["Specimen length","mm"],"specimen.width":["Specimen width","mm"],
+                 "specimen.thickness":["Specimen thickness","mm"],"specimen.span_ratio":["Support span / specimen thickness","1"]},
+        "intrinsic_bounds":"No independent usable bounds claimed; original positive/resource/coupled relation checks remain authoritative",
+        "files":cad_files}
+    parent_result["native_source_fingerprint"]={"commit":"UNKNOWN","git_dirty":None,
+        "recorded_upstream_pin":"3e48bf6138f495299f45b1af254bfb4aaff307b8",
+        "git_observation":"NOT_QUERIED; actual source bytes are frozen independently","files":cad_files,
+        "files_sha256":hashlib.sha256(r._canonical(cad_files)).hexdigest(),
+        "source_sha256":hashlib.sha256(r._canonical(definition)).hexdigest()}
+    parent_files["result.json"]=save(parent,"result.json",parent_result)
+    write(bundle,"parent/result.json",(parent/"result.json").read_bytes())
     profile = {"name":"coarse3", "mesh_size_mm":3.0,"limits":{"body_mesh_volume_relative":.01}}
     revision = hashlib.sha256(b"SYNTHETIC ORIGINAL MESH REVISION; no FE qualification").hexdigest()
     request = {"schema_version":1, "source_files":deepcopy(source_files), "parent":deepcopy(identity),
@@ -101,6 +140,10 @@ def context(tmp_path, monkeypatch):
     # Explicitly injected Main boundary; production provides no switch or bypass.
     frozen_main_sources = deepcopy(source_files)
     class MainBoundary:
+        def source_files(self):
+            files={name:bundle/"capsule"/name for name in source_files}
+            files["parent_verifier/adapter/fixture_assembly.py"]=BASE/"caelab/adapters/fixture_assembly.py"
+            return files
         def source_fingerprint(self):
             events.append("main-source-read")
             return deepcopy(frozen_main_sources)
@@ -180,6 +223,294 @@ def test_constructor_freezes_nested_operator_pins(context):
     pins["foreign.py"]={"sha256":"f"*64,"size_bytes":0}
     request["size_bytes"]=0; result.clear()
     assert capture(c,obj)[1]["mesh_revision"]==c.revision
+
+
+def explicit_current(c, changes=None):
+    """Operator pins for SYNTHETIC current source observations, not settings."""
+    pins=deepcopy(c.source_files)
+    changed=changes or r._CURRENT_PARENT_CHANGES
+    for name in changed:
+        data=("SYNTHETIC current parent verifier: "+name).encode()
+        pins[name]={"sha256":hashlib.sha256(data).hexdigest(),"size_bytes":len(data)}
+    c.main_sources.clear(); c.main_sources.update(deepcopy(pins))
+    return pins
+
+
+def alter_isolated_parent(c, transform):
+    original=r.QualifiedAssemblyMeshBundle._mesh_helper
+    def controlled(self, module_name):
+        helper=original(self,module_name)
+        if module_name=="_qualified_historical_parent_helper":
+            validate=helper.validate_parent
+            def altered(*args):
+                actual=validate(*args)
+                return transform(actual)
+            helper.validate_parent=altered
+        return helper
+    c.monkeypatch.setattr(r.QualifiedAssemblyMeshBundle,"_mesh_helper",controlled)
+
+
+def test_default_remains_original_exact_and_refuses_known_current_evolution(context):
+    c=context; explicit_current(c)
+    with pytest.raises(ValueError,match="source differs"):
+        capture(c)
+    assert not c.loaded and not c.output.exists()
+
+
+@pytest.mark.parametrize("changed",[
+    ["parent_verifier/platform/contracts.py"],
+    ["parent_verifier/platform/execution_control.py"],
+    sorted(r._CURRENT_PARENT_CHANGES)])
+def test_explicit_current_preserves_original_maps_qualification_and_provenance(context,changed):
+    c=context; current=explicit_current(c,changed)
+    original=deepcopy(c.source_files)
+    before={p.relative_to(c.bundle).as_posix():entry(p) for p in c.bundle.rglob('*') if p.is_file()}
+    obj,descriptor=capture(c,c.constructor(current_source_files=current))
+    receipt=json.loads((c.output/r._RECEIPT).read_text())
+    assert receipt["source_files"]==receipt["original_source_files"]==original
+    assert receipt["current_parent_verifier_source_files"]==current!=original
+    assert descriptor["original_source_files"]==original
+    assert descriptor["current_parent_verifier_source_files"]==current
+    assert descriptor["source_admission"]==receipt["source_admission"]=={
+        "mode":"EXPLICIT_CURRENT_PARENT_VERIFIER", "changed_paths":sorted(changed),
+        "allowed_changed_paths":sorted(r._CURRENT_PARENT_CHANGES),
+        "scope":"Original captured preprocessing qualification; current verifier of the same CAD bytes; no new meshing or mechanics qualification"}
+    assert receipt["original_runtime_before"]==c.result["runtime_before"]
+    assert receipt["original_runtime_after"]==c.result["runtime_after"]
+    assert receipt["parent"]==c.request["parent"]==c.parent_result["identity"]
+    assert receipt["parent_files"]==c.parent_files
+    assert receipt["profile"]==c.result["profile"]
+    assert descriptor["mesh_revision"]==c.revision and descriptor["solver_status"]=="NOT_RUN"
+    assert [receipt[k] for k in ("native_calls","solver_calls","provider_calls")]==[0,0,0]
+    for name in original:
+        assert entry(c.output/"capsule"/name)==entry(c.bundle/"capsule"/name)==original[name]
+    assert before=={p.relative_to(c.bundle).as_posix():entry(p) for p in c.bundle.rglob('*') if p.is_file()}
+    assert len(c.loaded)==1 and c.loaded[0].calls==[str(c.bundle)]
+    assert obj.recheck(c.output)==descriptor
+    assert len(c.loaded)==1
+
+
+def test_default_records_original_exact_without_version_inference(context):
+    _,descriptor=capture(context)
+    assert descriptor["source_admission"]["mode"]=="ORIGINAL_EXACT"
+    assert descriptor["source_admission"]["changed_paths"]==[]
+    assert descriptor["original_source_files"]==descriptor["current_parent_verifier_source_files"]==context.source_files
+
+
+def test_explicit_current_nested_config_and_returned_context_are_defensive(context):
+    c=context; pins=explicit_current(c); frozen=deepcopy(pins)
+    obj=c.constructor(current_source_files=pins)
+    pins["parent_verifier/platform/contracts.py"]["sha256"]="f"*64
+    pins.clear()
+    _,descriptor=capture(c,obj)
+    before=deepcopy(descriptor)
+    descriptor["current_parent_verifier_source_files"]["gmsh.py"]["size_bytes"]=0
+    descriptor["original_source_files"].clear()
+    descriptor["source_admission"]["changed_paths"].append("gmsh.py")
+    actual=obj.recheck(c.output)
+    assert actual==before and actual["current_parent_verifier_source_files"]==frozen
+
+
+@pytest.mark.parametrize("kind",["missing","extra","alias","duplicate","bool_size","wrong_hash","wrong_type"])
+def test_explicit_current_requires_complete_exact_typed_operator_map(context,kind):
+    c=context; current=explicit_current(c)
+    if kind=="missing": current.pop("gmsh.py")
+    elif kind=="extra": current["foreign.py"]={"sha256":"f"*64,"size_bytes":1}
+    elif kind=="alias": current["GMSH.PY"]=current["gmsh.py"]
+    elif kind=="duplicate":
+        class Duplicate(dict):
+            def items(self): return list(super().items())+[next(iter(super().items()))]
+        current=Duplicate(current)
+    elif kind=="bool_size": current["parent_verifier/platform/contracts.py"]["size_bytes"]=True
+    elif kind=="wrong_hash": current["parent_verifier/platform/contracts.py"]["sha256"]="invalid"
+    else: current="same version, assume compatible"
+    with pytest.raises(ValueError): c.constructor(current_source_files=current)
+    assert not c.loaded and not c.output.exists()
+
+
+@pytest.mark.parametrize("name",["fixture_assembly_mesh.py","fixture_assembly_mesh_worker.py","assembly_mesh.py",
+    "gmsh.py","parent_verifier/pin.json"])
+def test_explicit_current_cannot_allow_mesh_cad_domain_sdk_or_other_verifier_changes(context,name):
+    c=context; current=explicit_current(c)
+    current[name]={"sha256":"f"*64,"size_bytes":12}
+    c.main_sources[name]=deepcopy(current[name])
+    with pytest.raises(ValueError,match="only for the two named"):
+        c.constructor(current_source_files=current)
+    assert not c.loaded and not c.output.exists()
+
+
+def test_explicit_current_never_replaces_original_capsule_operator_map(context):
+    c=context; current=explicit_current(c)
+    with pytest.raises(ValueError,match="independently trusted source map"):
+        capture(c,c.constructor(source_files=current,current_source_files=current))
+    assert not c.loaded and not c.output.exists()
+
+
+def test_explicit_current_requires_actual_fingerprint_not_only_allowlisted_change(context):
+    c=context; current=explicit_current(c)
+    current["parent_verifier/platform/contracts.py"]["sha256"]="f"*64
+    with pytest.raises(ValueError,match="source differs"):
+        capture(c,c.constructor(current_source_files=current))
+    assert not c.output.exists() and not c.loaded
+
+
+@pytest.mark.parametrize("moment",["before_capture","live_validation","numerical_verification","after_copy","recheck"])
+def test_explicit_current_drift_at_each_boundary_refuses_success(context,moment):
+    c=context; current=explicit_current(c)
+    obj=c.constructor(current_source_files=current)
+    def drift(): c.main_sources["parent_verifier/platform/contracts.py"]["sha256"]="f"*64
+    if moment=="before_capture": drift()
+    elif moment=="live_validation":
+        def altered(value): drift(); return value
+        alter_isolated_parent(c,altered)
+    elif moment=="numerical_verification":
+        original=r.QualifiedAssemblyMeshBundle._original_helper
+        def altered(self):
+            helper=original(self); verification=helper.verify_output
+            def verify(*args):
+                value=verification(*args); drift(); return value
+            helper.verify_output=verify
+            return helper
+        c.monkeypatch.setattr(r.QualifiedAssemblyMeshBundle,"_original_helper",altered)
+    elif moment=="after_copy":
+        original=r._read
+        def altered(root,name,pin,**kwargs):
+            value=original(root,name,pin,**kwargs)
+            if root==c.output and name=="mesh.msh": drift()
+            return value
+        c.monkeypatch.setattr(r,"_read",altered)
+    else:
+        capture(c,obj); drift()
+        with pytest.raises(ValueError,match="source differs"): obj.recheck(c.output)
+        return
+    with pytest.raises(ValueError,match="source differs"): capture(c,obj)
+    if moment in ("before_capture","live_validation","numerical_verification"):
+        assert not c.output.exists()
+    else:
+        assert c.output.exists() and not (c.output/r._RECEIPT).exists()
+
+
+@pytest.mark.parametrize("part",["identity","bytes"])
+def test_explicit_current_still_binds_same_original_live_cad(context,part):
+    c=context; current=explicit_current(c)
+    obj=c.constructor(current_source_files=current)
+    if part=="identity":
+        def altered(actual): actual["identity"]["native_revision"]="f"*64; return actual
+        alter_isolated_parent(c,altered)
+    else: (c.parent/"cad/component.bin").write_bytes(b"FOREIGN CURRENT CAD")
+    with pytest.raises(ValueError): capture(c,obj)
+    assert not c.output.exists() and not c.loaded
+
+
+def test_explicit_current_checks_parent_bytes_after_live_validation_and_on_recheck(context):
+    c=context; current=explicit_current(c)
+    obj,_=capture(c,c.constructor(current_source_files=current))
+    def altered(actual):
+        (c.parent/"cad/component.bin").write_bytes(b"DRIFT AFTER VALIDATION")
+        return actual
+    alter_isolated_parent(c,altered)
+    with pytest.raises(ValueError,match="pin drift|identity drift"): obj.recheck(c.output)
+
+
+@pytest.mark.parametrize("part",["nonempty","overlap","hardlink"])
+def test_explicit_current_keeps_append_only_and_alias_guards(context,tmp_path,part):
+    c=context; obj=c.constructor(current_source_files=explicit_current(c))
+    if part=="nonempty":
+        c.output.mkdir(); (c.output/"keep.txt").write_bytes(b"KEEP")
+        with pytest.raises(ValueError,match="Fresh empty"): capture(c,obj)
+        assert (c.output/"keep.txt").read_bytes()==b"KEEP"
+    elif part=="overlap":
+        with pytest.raises(ValueError,match="overlap"):
+            obj.capture(c.parent_result,c.parent,c.bundle/"nested-capture")
+    else:
+        os.link(c.bundle/"mesh.msh",tmp_path/"foreign-alias")
+        with pytest.raises(ValueError,match="Regular unshared"): capture(c,obj)
+    assert not c.loaded
+
+
+@pytest.mark.parametrize("name",["capsule/fixture_assembly_mesh.py","mesh.msh","quality.json","result.json"])
+def test_explicit_current_does_not_authorize_original_qualification_tamper(context,name):
+    c=context; current=explicit_current(c)
+    obj=c.constructor(current_source_files=current)
+    (c.bundle/name).write_bytes((c.bundle/name).read_bytes()+b"TAMPER")
+    with pytest.raises(ValueError,match="pin drift"): capture(c,obj)
+    assert not c.output.exists()
+
+
+def test_explicit_current_receipt_change_cannot_rebind_parent_or_original_sources(context):
+    c=context; obj,_=capture(c,c.constructor(current_source_files=explicit_current(c)))
+    receipt=json.loads((c.output/r._RECEIPT).read_text())
+    receipt["source_files"]=deepcopy(receipt["current_parent_verifier_source_files"])
+    save(c.output,r._RECEIPT,receipt)
+    with pytest.raises(ValueError,match="pin drift"): obj.recheck(c.output)
+
+
+def test_real_cad_source_assert_is_preserved_in_private_capsule_configuration(context,monkeypatch):
+    c=context; obj=c.constructor(current_source_files=explicit_current(c))
+    spec=importlib.util.spec_from_file_location("caelab.adapters._host_cad_assert_control",
+                                              BASE/"caelab/adapters/fixture_assembly.py")
+    host=importlib.util.module_from_spec(spec); spec.loader.exec_module(host)
+    expected=c.parent_result["native_source_fingerprint"]
+    raw={"cad_generated":False,"native_revision":None,"source_sha256":expected["source_sha256"],
+         "source_fingerprint_before":expected}
+    with pytest.raises(ValueError,match="Assembly source changed"):
+        host.verify_result(c.parent/"cad",raw,expected)
+    before={p.relative_to(c.bundle).as_posix():entry(p) for p in c.bundle.rglob('*') if p.is_file()}
+    cad=obj._original_cad(c.current)
+    for name in ("fingerprint","assert_sources","full_input","verify_result","validate_catalog","assembly_declarations"):
+        assert getattr(cad,name).__code__.co_code==getattr(host,name).__code__.co_code
+        assert getattr(cad,name).__code__.co_filename==str(c.bundle/"capsule/parent_verifier/adapter/fixture_assembly.py")
+    assert cad.fingerprint()==expected
+    cad.verify_result(c.parent/"cad",raw,expected)
+    assert len(cad.assembly_declarations()["component_roles"])==15
+    assert cad.full_input({})["specimen"]["length"]==80
+    assert cad.assembly_declarations.__defaults__==(cad.DOMAIN,)
+    assert all(path.is_relative_to(c.bundle/"capsule/parent_verifier") for path in cad.source_files().values())
+    with pytest.raises(ValueError,match="exact pinned CAD Domain"):
+        cad.importlib.util.spec_from_file_location("__main__",cad.DOMAIN)
+    assert not list(c.bundle.rglob('__pycache__'))
+    assert before=={p.relative_to(c.bundle).as_posix():entry(p) for p in c.bundle.rglob('*') if p.is_file()}
+    # No mutation of the host verifier or actual source policy.
+    assert host.source_files()["platform/contracts.py"]==BASE/"caelab/contracts.py"
+
+
+@pytest.mark.parametrize("name",["parent_verifier/adapter/fixture_assembly.py",
+    "parent_verifier/domain/assembly_interfaces.py","parent_verifier/platform/contracts.py"])
+def test_original_cad_verifier_capsule_tamper_blocks_before_native(context,name):
+    c=context; obj=c.constructor(current_source_files=explicit_current(c))
+    (c.bundle/"capsule"/name).write_bytes((c.bundle/"capsule"/name).read_bytes()+b"TAMPER")
+    with pytest.raises(ValueError,match="pin drift"): capture(c,obj)
+    assert not c.output.exists() and not c.loaded
+
+
+def test_current_drift_during_original_cad_code_load_refuses_before_capture(context):
+    c=context; obj=c.constructor(current_source_files=explicit_current(c))
+    original=r.QualifiedAssemblyMeshBundle._source_module
+    def changed(self,name,*args,**kwargs):
+        module=original(self,name,*args,**kwargs)
+        if name=="parent_verifier/adapter/fixture_assembly.py":
+            c.main_sources["parent_verifier/platform/contracts.py"]["sha256"]="f"*64
+        return module
+    c.monkeypatch.setattr(r.QualifiedAssemblyMeshBundle,"_source_module",changed)
+    with pytest.raises(ValueError,match="source differs"): capture(c,obj)
+    assert not c.output.exists() and not c.loaded
+
+
+def test_changed_mode_uses_preserved_cad_assert_not_host_source_override(context,monkeypatch):
+    import subprocess
+    c=context; obj=c.constructor(current_source_files=explicit_current(c))
+    def forbidden(*args,**kwargs): raise AssertionError("No native/provider operation admitted")
+    monkeypatch.setattr(subprocess,"Popen",forbidden)
+    monkeypatch.setattr(subprocess,"run",forbidden)
+    # The former path failed here; the unchanged envelope helper now receives
+    # its own isolated original CAD verifier, without changing this host hook.
+    monkeypatch.setattr(c.current,"validate_parent",lambda *a: (_ for _ in ()).throw(
+        ValueError("Assembly source changed; preserved outputs must not be admitted")))
+    _,descriptor=capture(c,obj)
+    assert descriptor["parent_verification_basis"]["cad_sources"]=="ORIGINAL_CAPSULE"
+    assert descriptor["parent_verification_basis"]["common_runtime_imports"]=="CURRENT_CORE_INTERFACES"
+    with pytest.raises(ValueError,match="Assembly source changed"):
+        c.current.validate_parent(c.parent_result,c.parent)
 
 
 @pytest.mark.parametrize("name",["request.json","result.json","capsule/assembly_mesh.py","mesh.msh","parent/cad/component.bin"])

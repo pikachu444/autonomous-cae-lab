@@ -1,3 +1,9 @@
+## Retained assembly verification — ADR0049
+
+Original/current verifier pins are separate trusted operator configuration; no new public execution, MCP tool/profile/model/provider authority is admitted. S4a full-field numerical PASS is a disconnected synthetic patch and must not become contact/load transfer or engineering approval. Same-family assembly conditions/observations and actual approved research remain OPEN. The new field question failed before provider interpretation (official credential lease EPERM), while the earlier approved5.6Sol/OAuth research result is retained. Whole52/Phases incomplete, UNKNOWN/NOT_RELEASED. See [record](../benchmarks/records/20261006-assembly-affine-actual-r03.json).
+
+---
+
 ## Fixed-CAD scalar condition search — ADR0047
 
 Human Lab/HTTP discovery, registration and planning bind advertised scalar

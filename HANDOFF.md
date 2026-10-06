@@ -1,3 +1,13 @@
+## Verified checkpoint — original assembly native field bridge
+
+Code_Aster S4a r03 on base51a92be+dirty reuse2 passed56 reference checks across the original7 bodies/84 groups; native exit0 and original/copied bytes unchanged. Main integrated4-source suite422 PASS. See [record](benchmarks/records/20261006-assembly-affine-actual-r03.json) and ADR0049 for exact source/run/hash/retention and final review. Native artifacts remain LOCAL_ONLY; synthetic affine/no contact or external load is not S4b.
+
+Exact51 CI37429582732 is7SUCCESS/3FAIL. Downloaded native evidence isolates Aster FACTOR_57, PDE all-pair/component convergence rejection and explicit official download404. Three accuracy candidates failed and were preserved; public Aster policy was restored. PDE diagnostics changed without relaxing thresholds. New field AI startup EPERM is retained; interpretation NOT_RUN, approved5.6Sol/OAuth unchanged.
+
+NEXT: the common original-assembly body/group conditions→supported native execution→same fields/observations/research bundle, then remaining originalPhase gates. Whole52/Phases INCOMPLETE, fine UNKNOWN and separateR2 retained. Goal ACTIVE. Large development/run/fix/integration before one final review; no new per-fix Astra gate.
+
+---
+
 ## Current checkpoint — general field observation bundle (ADR0048)
 
 Actual native and fixture fields now support exact original node UX/UY/UZ or derived magnitude, a general CAE research purpose, explicit reference/location/unit/frame/conditions, immutable comparison storage and verified reopening. Native887 norm versus independent affine reference differs2.534657542446056e-12mm (tolerance1e-8); fixture signedUZ versus1.5 times exact-original-XYZ100N response differs-4.9999999996721504e-11mm (tolerance1e-6). Frame mismatch preserves values with null difference/verdict; unit mismatch creates no comparison. Original520+124 files/85646701B unchanged; newsolver/provider0. Final184 adapter/688Node checks pass; older270Python preceded the native-load correction. Actual provider interpretation and final GUI/review/publication are recorded separately, never inferred.

@@ -1,0 +1,466 @@
+{
+  "schema_version": 1,
+  "unit": "Original seven-body Code_Aster field bridge and honest multi-backend diagnostics",
+  "created_utc": "2026-10-06T09:04:32.467036+00:00",
+  "base_commit": "51a92be552085480774ef70bd4272a165dd2ac9a",
+  "source_state": "BASE_PLUS_FOUR_FILES; original public Code_Aster family policy restored; failed candidates retained LOCAL_ONLY",
+  "source_files": {
+    "caelab/adapters/fixture_assembly_mesh_reuse.py": {
+      "sha256": "6c246a4fbd005560a4c3868c5d11f86d3690a6a8916e93f75c34cd6a953c28ac",
+      "size_bytes": 25021
+    },
+    "tests/test_fixture_assembly_mesh_reuse.py": {
+      "sha256": "5bca7735a10bc84055555a53857ff02f90f47f80af2363b37aad0ef84cbf463c",
+      "size_bytes": 44222
+    },
+    "scripts/verify_vector_pde.py": {
+      "sha256": "3076c2def67728571bebe34c4e65134b3350e6bfee5f4c7da3afcd95461292c2",
+      "size_bytes": 24760
+    },
+    "tests/test_verify_vector_pde.py": {
+      "sha256": "c8dae583217b61cd6b7d249ce32378199985223effb8e65db6b03079cbc291aa",
+      "size_bytes": 21549
+    }
+  },
+  "source_tests": {
+    "python": "3.12.3/WSL Ubuntu",
+    "terminal_session": 44118,
+    "exit_code": 0,
+    "passed": 422,
+    "failed": 0,
+    "elapsed_seconds": 56.99,
+    "files": [
+      "test_fixture_assembly_mesh_reuse.py",
+      "test_fixture_assembly_affine_field.py",
+      "test_structural_family_codeaster.py",
+      "test_structural_family_mesh.py",
+      "test_structural_family_acceptance.py",
+      "test_structural_family_process_control.py",
+      "test_verify_vector_pde.py"
+    ],
+    "final_source_pins": {
+      "caelab/adapters/fixture_assembly_mesh_reuse.py": {
+        "sha256": "6c246a4fbd005560a4c3868c5d11f86d3690a6a8916e93f75c34cd6a953c28ac",
+        "size_bytes": 25021
+      },
+      "tests/test_fixture_assembly_mesh_reuse.py": {
+        "sha256": "5bca7735a10bc84055555a53857ff02f90f47f80af2363b37aad0ef84cbf463c",
+        "size_bytes": 44222
+      },
+      "scripts/verify_vector_pde.py": {
+        "sha256": "3076c2def67728571bebe34c4e65134b3350e6bfee5f4c7da3afcd95461292c2",
+        "size_bytes": 24760
+      },
+      "tests/test_verify_vector_pde.py": {
+        "sha256": "c8dae583217b61cd6b7d249ce32378199985223effb8e65db6b03079cbc291aa",
+        "size_bytes": 21549
+      }
+    },
+    "basis": "Observed completed exec session; not a native solver or engineering approval"
+  },
+  "assembly": {
+    "status": "ACTUAL_FULL_FIELD_NUMERICAL_PATCH_PASS_PHYSICAL_UNKNOWN",
+    "worktree": "generic-cad-mechanics",
+    "producer": {
+      "commit": "51a92be552085480774ef70bd4272a165dd2ac9a",
+      "dirty": true,
+      "core_source_sha256": "94790c4d30126281492f5062b3b0b48768e914e407d1eb935efd5b880932343c",
+      "native_source_pins": {
+        "fixture_assembly_native_import.py": {
+          "sha256": "6ea636063eecf7e10d09ac89373e82672bd43116c92f3622a0c2bc0f08f46dce",
+          "size_bytes": 19174
+        },
+        "fixture_assembly_native_import_worker.py": {
+          "sha256": "a65b52d9a9a3b18829c82dfccd3e87434645f21b5dbc267d16fdf276704b8484",
+          "size_bytes": 18844
+        },
+        "codeaster_worker.py": {
+          "sha256": "6ddfcfb574b429ae1f813e80e19fc84f0e773b93e4ed9bf243e83a94e11e25c3",
+          "size_bytes": 34132
+        },
+        "fixture_assembly_mesh_reuse.py": {
+          "sha256": "6c246a4fbd005560a4c3868c5d11f86d3690a6a8916e93f75c34cd6a953c28ac",
+          "size_bytes": 25021
+        },
+        "codeaster_elasticity.py": {
+          "sha256": "016fa0c3abe6e7fed7ee0ab005dd8e791113ec7da292996e5d8aa5bf7523b5a2",
+          "size_bytes": 41981
+        },
+        "codeaster_execution.py": {
+          "sha256": "e61bc85cc2f935ea240fbe8b94031065ff60dbdbc17b722cc9bb0320c26b8af9",
+          "size_bytes": 1379
+        },
+        "execution_control.py": {
+          "sha256": "574bb6a9c521776658f4e82da4e6913e600cd1b987bf5d1f8b669258cebda72e",
+          "size_bytes": 11128
+        },
+        "storage.py": {
+          "sha256": "f77e0f3cc74de59cab9ba5addd15c54c71bb14d4172a31b28796c6482b957a6f",
+          "size_bytes": 3309
+        },
+        "fixture_assembly_affine_field.py": {
+          "sha256": "54918487148f7030170c6d3a99e1df6846c556038d88ea50689aef68b56513e1",
+          "size_bytes": 15891
+        },
+        "fixture_assembly_affine_field_worker.py": {
+          "sha256": "dff0834d5e4bb0ccb3f9cb00231315cb5ef8ee51b8bdfeb31620df109caeef77",
+          "size_bytes": 25905
+        },
+        "fixture_assembly_field_geometry.py": {
+          "sha256": "25c022321596989d16f9442e4b10b99207046dc596bb35f0dd16c5ca3fb4e841",
+          "size_bytes": 9896
+        },
+        "assembly_mesh.py": {
+          "sha256": "0ca8e2abb7632b81ce9cd70faed828605bd22809dfde912afbf848028017d86b",
+          "size_bytes": 4318
+        },
+        "assembly_field_reference.py": {
+          "sha256": "856893de54628eab51064e2bc610ec7fd5e2fec3679ade633c1658d0c9637203",
+          "size_bytes": 7001
+        },
+        "assembly_field_comparison.py": {
+          "sha256": "f419760f436ebe2d355e6b607ef839c6098d4dc92f7a66dac4293bf9faa03f79",
+          "size_bytes": 7221
+        },
+        "mesh_reuse_controller": {
+          "sha256": "6c246a4fbd005560a4c3868c5d11f86d3690a6a8916e93f75c34cd6a953c28ac",
+          "size_bytes": 25021
+        },
+        "mesh_reuse_tests": {
+          "sha256": "5bca7735a10bc84055555a53857ff02f90f47f80af2363b37aad0ef84cbf463c",
+          "size_bytes": 44222
+        }
+      }
+    },
+    "store": "runs/cae-assembly-affine-field-20261006-03",
+    "child": "fea_assembly_affine_patch_coarse3_20261006_r03",
+    "root_terminal_session": 83213,
+    "root_exit_code": 0,
+    "elapsed_seconds": 2260.884181434987,
+    "solver": "Code_Aster17.4.0",
+    "native_execution": {
+      "finished_utc": "2026-10-06T08:35:08.203308+00:00",
+      "pid": 43852,
+      "return_code": 0,
+      "started_utc": "2026-10-06T08:24:36.862387+00:00",
+      "status": "COMPLETED",
+      "stderr": "native-affine.stderr.log",
+      "stdout": "native-affine.stdout.log",
+      "timeout_seconds": null
+    },
+    "mesh_revision": "83a2bb86ee6986a0caeb35a53706564c9b5f3262d24aeb692403026fcd0c4bed",
+    "cad_revision": "8d1071134a2bcd7d42a9320b431754591909476747f35e96fbbb4113c6e09ef2",
+    "mesh_counts": {
+      "nodes": 76214,
+      "tetra10": 44226,
+      "tria6": 17118,
+      "bodies": 7,
+      "groups": 84
+    },
+    "original_qualification_source_count": 23,
+    "allowed_current_parent_verifier_differences": [
+      "parent_verifier/platform/contracts.py",
+      "parent_verifier/platform/execution_control.py"
+    ],
+    "source_admission": "Separate explicit trusted original/current pins; no rewritten historical qualification",
+    "scope": "S4a SYNTHETIC disconnected affine patch; E2000MPa/nu0.25, prescribed exterior, free interior, no contact/tie/external force",
+    "comparison": {
+      "status": "PASS",
+      "checks": 56,
+      "limits": {
+        "displacement_absolute_mm": 1e-07,
+        "energy_relative": 1e-06,
+        "force_balance_scaled": 1e-07,
+        "mesh_volume_relative": 1e-08,
+        "moment_balance_scaled": 1e-07,
+        "stress_absolute_mpa": 1e-06
+      },
+      "metrics": {
+        "displacement_absolute_mm": {
+          "unit": "mm",
+          "valid": true,
+          "value": 2.1597307275911248e-16
+        },
+        "energy_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 6.330305116099568e-15
+        },
+        "force_balance_scaled": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.224776470000172e-16
+        },
+        "mesh_volume_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 2.262431176231514e-15
+        },
+        "moment_balance_scaled": {
+          "unit": "1",
+          "valid": true,
+          "value": 7.995038113501989e-16
+        },
+        "stress_absolute_mpa": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 2.062627846299847e-12
+        }
+      }
+    },
+    "retention": {
+      "original_and_snapshot_unchanged": true,
+      "source_pins_unchanged": true,
+      "native_artifacts": "LOCAL_ONLY",
+      "artifact_pins": {
+        "root_receipt": {
+          "path": "artifacts/assembly-affine-field-20261006-03/root-receipt.json",
+          "sha256": "7bcb4f4bfebf0b364574840351ad19555e0af4beb7d9fb6325a61a074ec2e380",
+          "size_bytes": 867
+        },
+        "native_intention": {
+          "path": "artifacts/assembly-affine-field-20261006-03/native-intention.json",
+          "sha256": "705c639a112e493e93a63de760f0d72be6162072765432c41c8c38fcbe48fb81",
+          "size_bytes": 3151
+        },
+        "operator_current_pins": {
+          "path": "artifacts/assembly-affine-field-20261006-03/operator-current-pins.json",
+          "sha256": "0e27ff79acb9a8aa6eae7918e328344e44fcc128a088d50d9d7c11667027b23f",
+          "size_bytes": 8126
+        },
+        "protected_before": {
+          "path": "artifacts/assembly-affine-field-20261006-03/protected-before.json",
+          "sha256": "c7cc33d9b4fba2dcbc09067a6b396b7d3503b5d6de10c914d6e695cd9ee25ba4",
+          "size_bytes": 152028
+        },
+        "protected_after": {
+          "path": "artifacts/assembly-affine-field-20261006-03/protected-after.json",
+          "sha256": "c7cc33d9b4fba2dcbc09067a6b396b7d3503b5d6de10c914d6e695cd9ee25ba4",
+          "size_bytes": 152028
+        },
+        "result": {
+          "path": "runs/cae-assembly-affine-field-20261006-03/experiments/fea_assembly_affine_patch_coarse3_20261006_r03/result.json",
+          "sha256": "b14c57727a5571b07807e70bbd9eb1fcd70aa62e4d9a5424acc09b2db75fb862",
+          "size_bytes": 206170
+        },
+        "comparison": {
+          "path": "runs/cae-assembly-affine-field-20261006-03/experiments/fea_assembly_affine_patch_coarse3_20261006_r03/simulation/comparison.json",
+          "sha256": "176b8a491ad155ede0d94a39b27abf16a9724ff41fc745a55d61cc3e98a918f8",
+          "size_bytes": 18256
+        },
+        "admitted_fields": {
+          "path": "runs/cae-assembly-affine-field-20261006-03/experiments/fea_assembly_affine_patch_coarse3_20261006_r03/simulation/admitted-fields.json",
+          "sha256": "5b36430708b2b9b3c56824046780e69a91abdaeb498cef563d9bc13d39c50e61",
+          "size_bytes": 156805329
+        },
+        "native_execution": {
+          "path": "runs/cae-assembly-affine-field-20261006-03/experiments/fea_assembly_affine_patch_coarse3_20261006_r03/simulation/native/native-affine.execution.json",
+          "sha256": "ccbde3ec28226d8a18725259da9a8c23b9bac19c99b3364c87b85b3f4b72eee8",
+          "size_bytes": 278
+        }
+      }
+    },
+    "new_cad_generation": 0,
+    "new_mesh_generation": 0,
+    "new_provider_calls": 0,
+    "compiled_image_source_equivalence": "UNKNOWN",
+    "public_conditions_and_research_admission": "OPEN",
+    "S4b_contact_and_load_transfer": "OPEN",
+    "physical_validation": "UNKNOWN",
+    "decision": "NOT_RELEASED"
+  },
+  "exact_base_ci": {
+    "run_id": 37429582732,
+    "head_sha": "51a92be552085480774ef70bd4272a165dd2ac9a",
+    "status": "COMPLETED",
+    "success_jobs": 7,
+    "failed_jobs": 3,
+    "downloaded_artifacts": {
+      "codeaster_id": 11397251671,
+      "vector_pde_id": 11396679090
+    },
+    "codeaster": {
+      "actual_status": "FAILED_EXECUTION",
+      "level": 2,
+      "exception": "FACTOR_57",
+      "native_estimated_error": 3.32295e-06,
+      "previous_generic_classification": "Not isolated; now corrected from the downloaded raw native evidence",
+      "unchanged_RESI_RELA": 1e-06
+    },
+    "vector_pde": {
+      "case": "E-vector-mixed",
+      "native_status": "COMPLETED",
+      "domain_status": "REJECTED",
+      "failed_check": "pde_l2_convergence_rate",
+      "unchanged_limit_all_pairs_components": 1.8,
+      "first_pair_rates": {
+        "vector": 1.7950984424561094,
+        "u0": 1.7796221489007413,
+        "u1": 1.801197564880268
+      },
+      "next_pair_rates": {
+        "vector": 1.9114360941548467,
+        "u0": 1.8994642134121147,
+        "u1": 1.916281355617583
+      },
+      "change": "Verifier closes immutable result/fields/actual invalid-metric reasons and saves case diagnostics before expected-category assertion",
+      "new_native_execution": 0,
+      "numerical_acceptance": "FAIL_UNCHANGED",
+      "underlying_cause": "UNKNOWN"
+    },
+    "explicit": {
+      "stage": "OFFICIAL_RUNTIME_DOWNLOAD_BEFORE_SOLVE",
+      "http_status": 404,
+      "new_mirror_or_version": false,
+      "repository_or_release_change_cause": "UNKNOWN"
+    }
+  },
+  "unpublished_accuracy_trials": [
+    {
+      "store": "runs/cae-codeaster-precision-recovery-20261006-01",
+      "child": "E-ansys-vmd1-Fz-accuracy-recovery-r01",
+      "status": "FAILED_EXECUTION",
+      "reason": "FACTOR_57: FORCE refinement still estimates 3.57605e-6 > unchanged1e-6",
+      "receipt_entry": {
+        "sha256": "4ff385d705c49d2ffaa940a7949ddcd5a34916231cd786dd129e45754993569a",
+        "size_bytes": 1126
+      },
+      "intention_entry": {
+        "sha256": "b323c0408ddc92165b6c83700607d3b57ce2fd12d9725018918f906ffd475484",
+        "size_bytes": 2250
+      },
+      "elapsed_seconds": 81.33739040512592,
+      "published_policy_change": false
+    },
+    {
+      "store": "runs/cae-codeaster-precision-recovery-20261006-02",
+      "child": "E-ansys-vmd1-Fz-accuracy-recovery-r02",
+      "status": "FAILED_EXECUTION",
+      "reason": "FERMETUR_4: ELIM_LAGR=OUI requires optional PETSc SuperLU capability missing in the admitted local image",
+      "receipt_entry": {
+        "sha256": "f3f287c3d16b47ea7ba27a7f859f83e7b92e2400bde1c771f4bc518abfb83e93",
+        "size_bytes": 1127
+      },
+      "intention_entry": {
+        "sha256": "eb7a84c416622b51c4ae4a71d4b64981e6b9ecbf3dd584fead19cfeaed81b338",
+        "size_bytes": 2459
+      },
+      "elapsed_seconds": 101.09760594414547,
+      "published_policy_change": false
+    },
+    {
+      "store": "runs/cae-codeaster-precision-recovery-20261006-03",
+      "child": "E-ansys-vmd1-Fz-accuracy-recovery-r03",
+      "status": "FAILED_EXECUTION",
+      "reason": "FACTOR_57: equivalent CINE prescribed DOFs still estimate 3.07939e-6 > unchanged1e-6",
+      "receipt_entry": {
+        "sha256": "85e16859522e34de1a52798c3c121e1c6902be138e30100c9e418e5a68eae24a",
+        "size_bytes": 1126
+      },
+      "intention_entry": {
+        "sha256": "668e3c69c0c151e15e276c4cc89c22f4fae60c1c60c654b6131b6870e280f938",
+        "size_bytes": 2645
+      },
+      "elapsed_seconds": 79.72649932210334,
+      "published_policy_change": false
+    }
+  ],
+  "approved_interpretation": {
+    "new_field_question": "NOT_RUN",
+    "startup": "FAILED_BEFORE_QUESTION",
+    "reason": "Official OpenScience2.0.146 credential-processes.json.lock wx open EPERM; health HTTP500",
+    "exact_log_sha256": "88ce1d495d86e10ca21ac239fe4bd02da8bf0c1ade2964042e104bef4974d6b7",
+    "callback_actor_and_root_cause": "UNKNOWN",
+    "auth_and_model": "UNCHANGED approved openai-codex/gpt-5.6-sol/ChatGPT OAuth",
+    "previous_successful_fixed_cad_interpretation": "clean45fb00a/cae-fixed-cad-research-20261006-03 retained"
+  },
+  "independent_review": {
+    "status": "PASS_BOUNDED",
+    "P1": 0,
+    "P2": 0,
+    "reviewer": "/root/field_kernel_publication_review",
+    "review_entry": {
+      "sha256": "eb2fe6f84bd5ae04ae09a4cfca1c81dc9297afb39ea0ddfe00fd8018c2b6aafb",
+      "size_bytes": 4299
+    },
+    "manifest_entry": {
+      "sha256": "f0fe6c4fe54beb8a388c5aa52145f068949578d446b1efd2d7acfc17d88ef01d",
+      "size_bytes": 16930
+    },
+    "reviewed_record_before_final_metadata_entry": {
+      "sha256": "7fd85eaff629de98da95f70c7f2944d84bd74b94af84a5f030301e5923de337c",
+      "size_bytes": 15587
+    },
+    "scope": "Single final four-file source and preserved actual-evidence review; no repeated native run/physics/public admission",
+    "retention": "LOCAL_ONLY"
+  },
+  "remaining": [
+    "Revision-bound assembly materials/BC/load/contact and supported user execution",
+    "Assembly family fields/observations/research",
+    "Broader PDE/material FE coupling/explicit/inverse/UQ/multiobjective/HPC",
+    "Actual provider reconnect and general recovery",
+    "External physical/company deployment gates"
+  ],
+  "whole_52_phase_1_to_7": "INCOMPLETE",
+  "physical_validation": "UNKNOWN",
+  "decision": "NOT_RELEASED",
+  "publication_source_pins": {
+    "caelab/adapters/fixture_assembly_mesh_reuse.py": {
+      "staged_git_LF_blob": {
+        "sha256": "b8d51ad0ae2f43152b109eaeeab024193c7dcdfa172b0c5f2e05916ac5851304",
+        "size_bytes": 24681
+      },
+      "runtime_raw": {
+        "sha256": "6c246a4fbd005560a4c3868c5d11f86d3690a6a8916e93f75c34cd6a953c28ac",
+        "size_bytes": 25021
+      },
+      "only_CRLF_to_LF_difference": true
+    },
+    "tests/test_fixture_assembly_mesh_reuse.py": {
+      "staged_git_LF_blob": {
+        "sha256": "889134ea442e8a2e8208b031afbcdc3814b14e0de60a142d547e573bb9ea9a54",
+        "size_bytes": 43702
+      },
+      "runtime_raw": {
+        "sha256": "5bca7735a10bc84055555a53857ff02f90f47f80af2363b37aad0ef84cbf463c",
+        "size_bytes": 44222
+      },
+      "only_CRLF_to_LF_difference": true
+    },
+    "scripts/verify_vector_pde.py": {
+      "staged_git_LF_blob": {
+        "sha256": "3076c2def67728571bebe34c4e65134b3350e6bfee5f4c7da3afcd95461292c2",
+        "size_bytes": 24760
+      },
+      "runtime_raw": {
+        "sha256": "3076c2def67728571bebe34c4e65134b3350e6bfee5f4c7da3afcd95461292c2",
+        "size_bytes": 24760
+      },
+      "only_CRLF_to_LF_difference": false
+    },
+    "tests/test_verify_vector_pde.py": {
+      "staged_git_LF_blob": {
+        "sha256": "c8dae583217b61cd6b7d249ce32378199985223effb8e65db6b03079cbc291aa",
+        "size_bytes": 21549
+      },
+      "runtime_raw": {
+        "sha256": "c8dae583217b61cd6b7d249ce32378199985223effb8e65db6b03079cbc291aa",
+        "size_bytes": 21549
+      },
+      "only_CRLF_to_LF_difference": false
+    }
+  },
+  "current_main_historical_read": {
+    "status": "CURRENT_MAIN_VERIFIED_HISTORICAL_READ_PASS",
+    "receipt_entry": {
+      "sha256": "305a6ad7c2b2c4c4fefe824a09a732acbeaa40ddf99eb2f05e7b933a2adef7cd",
+      "size_bytes": 33280
+    },
+    "result_sha256": "b14c57727a5571b07807e70bbd9eb1fcd70aa62e4d9a5424acc09b2db75fb862",
+    "result_unchanged": true,
+    "elapsed_seconds": 24.01929174317047,
+    "new_native_and_provider_calls": 0,
+    "scope": "Current Main Core historical read; browser/public execution/provider admission remain OPEN"
+  },
+  "final_metadata_closure": "Review identities and already-observed read added after review; four implementation bytes unchanged"
+}

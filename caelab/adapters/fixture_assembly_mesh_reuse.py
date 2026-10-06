@@ -3,18 +3,21 @@
 Constructor pins are operator configuration, never research settings. Initial
 verification reuses the original captured numerical verifier; later rechecks
 only verify bytes and the live CAD parent. This is not mechanics admission.
+An optional independently trusted current map admits only the two named
+common parent-verifier changes; it never replaces the original capsule pins.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+import importlib.util
 import json
 import math
 import os
 from pathlib import Path
 import re
 import stat
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 
 
 _OUTPUTS = frozenset(("mesh.msh", "mapping.json", "jacobians.npz", "jacobian_metadata.json",
@@ -23,6 +26,8 @@ _SOURCES = frozenset(("fixture_assembly_mesh.py", "fixture_assembly_mesh_worker.
                      "assembly_mesh.py", "gmsh.py"))
 _RECEIPT = "mesh-reuse-receipt.json"
 _LOAD_POLICY = "Pinned bytes compile/exec; complete capsule membership; exact Domain-only standalone hook; no pyc/cache or global setting"
+_CURRENT_PARENT_CHANGES = frozenset(("parent_verifier/platform/contracts.py",
+                                     "parent_verifier/platform/execution_control.py"))
 
 
 @dataclass(frozen=True)
@@ -216,9 +221,11 @@ class _Capture:
 
 class QualifiedAssemblyMeshBundle:
     """Trusted original bundle, with only capture and post-execution byte recheck."""
-    __slots__ = ("_root", "_request_pin", "_result_pin", "_revision", "_sources", "_captures")
+    __slots__ = ("_root", "_request_pin", "_result_pin", "_revision", "_sources",
+                 "_current_sources", "_explicit_current", "_captures")
 
-    def __init__(self, bundle_root, *, request_entry, result_entry, mesh_revision, source_files):
+    def __init__(self, bundle_root, *, request_entry, result_entry, mesh_revision, source_files,
+                 current_source_files=None):
         self._root = _absolute(bundle_root)
         if not self._root.is_dir():
             raise ValueError("Retained original reuse bundle directory required")
@@ -228,7 +235,30 @@ class QualifiedAssemblyMeshBundle:
         self._revision, self._sources = mesh_revision, _map(source_files)
         if not _SOURCES.issubset(dict(self._sources)):
             raise ValueError("Complete trusted mesh source capsule required")
+        self._explicit_current = current_source_files is not None
+        self._current_sources = _map(current_source_files) if self._explicit_current else self._sources
+        original, current = dict(self._sources), dict(self._current_sources)
+        if original.keys() != current.keys():
+            raise ValueError("Current parent-verifier pins require exact original source membership")
+        if any(current[name] != pin for name, pin in original.items() if name not in _CURRENT_PARENT_CHANGES):
+            raise ValueError("Current pins may differ only for the two named common parent-verifier sources")
         self._captures = {}
+
+    def _source_context(self):
+        original, current = dict(self._sources), dict(self._current_sources)
+        return {"original_source_files": _values(self._sources),
+                "current_parent_verifier_source_files": _values(self._current_sources),
+                "source_admission": {
+                    "mode": "EXPLICIT_CURRENT_PARENT_VERIFIER" if self._explicit_current else "ORIGINAL_EXACT",
+                    "changed_paths": sorted(name for name in original if original[name] != current[name]),
+                    "allowed_changed_paths": sorted(_CURRENT_PARENT_CHANGES),
+                    "scope": "Original captured preprocessing qualification; current verifier of the same CAD bytes; no new meshing or mechanics qualification"},
+                "parent_verification_basis": {
+                    "envelope": "Unchanged pinned mesh helper logic and exact live CAD parent bytes",
+                    "cad_sources": "ORIGINAL_CAPSULE" if self._sources != self._current_sources else "CURRENT_ORIGINAL_EXACT",
+                    "current_source_guard": "Exact operator pins before and after verification",
+                    "common_runtime_imports": "CURRENT_CORE_INTERFACES",
+                    "historical_common_files": "Fingerprint evidence only; not executed as current control code"}}
 
     def _guard(self):
         request = _json(_read(self._root, "request.json", self._request_pin, keep=True)[0])
@@ -252,32 +282,48 @@ class QualifiedAssemblyMeshBundle:
 
     def _current(self):
         current = _main_helper()
-        if current.source_fingerprint() != _values(self._sources):
-            raise ValueError("Main parent verifier source differs from the trusted original capsule")
+        if _map(current.source_fingerprint()) != self._current_sources:
+            raise ValueError("Main parent verifier source differs from the exact trusted current map")
         return current
 
     def _live_parent(self, current, result, root, request, parent_files):
+        if self._current() is not current:
+            raise ValueError("Current parent-verifier object identity drift")
         identities = _check(root, parent_files)
-        actual = current.validate_parent(result, root)
+        if self._sources != self._current_sources:
+            helper = self._mesh_helper("_qualified_historical_parent_helper")
+            cad = self._original_cad(current)
+            helper._cad_adapter = lambda: cad
+            actual = helper.validate_parent(result, root)
+        else:
+            actual = current.validate_parent(result, root)
         if actual["identity"] != request["parent"] or actual["files"] != _values(parent_files):
             raise ValueError("Actual CAD parent identity/files differ from frozen mesh parent")
         _check(root, parent_files, identities)
+        if self._current() is not current:
+            raise ValueError("Current parent-verifier object identity drift")
         return identities
 
-    def _source_module(self, name, module_name):
+    def _source_module(self, name, module_name, *, package="", bootstrap_file=None):
         # Membership and all independent pins precede every captured code load.
         self._guard()
         pin = dict(self._sources)[name]
         path = _safe(self._root / "capsule", name)
         source, _ = _read(self._root / "capsule", name, pin, keep=True)
         module = ModuleType(module_name)
-        module.__file__, module.__package__ = str(path), ""
+        if bootstrap_file is not None:
+            bootstrap_file = _absolute(bootstrap_file)
+            _read(bootstrap_file.parent, bootstrap_file.name, pin)
+        module.__file__, module.__package__ = str(bootstrap_file or path), package
         exec(compile(source, str(path), "exec", dont_inherit=True), module.__dict__)
+        module.__file__ = str(path)
+        if bootstrap_file is not None:
+            _read(bootstrap_file.parent, bootstrap_file.name, pin)
         self._guard()
         return module
 
-    def _original_helper(self):
-        helper = self._source_module("fixture_assembly_mesh.py", "_qualified_original_mesh_helper")
+    def _mesh_helper(self, module_name):
+        helper = self._source_module("fixture_assembly_mesh.py", module_name)
         domain_path = _safe(self._root / "capsule", "assembly_mesh.py")
         def standalone(path, name):
             # The original verifier uses precisely these two Domain load names.
@@ -287,6 +333,50 @@ class QualifiedAssemblyMeshBundle:
             return self._source_module("assembly_mesh.py", name)
         helper.standalone = standalone
         return helper
+
+    def _original_helper(self):
+        return self._mesh_helper("_qualified_original_mesh_helper")
+
+    def _original_cad(self, current):
+        # Only loading configuration changes in this private namespace. The
+        # pinned fingerprint/assert/full_input/catalog/result logic is intact.
+        self._current()
+        name = "parent_verifier/adapter/fixture_assembly.py"
+        bootstrap = current.source_files()[name]
+        cad = self._source_module(name, "caelab.adapters._qualified_original_cad_verifier",
+                                  package="caelab.adapters", bootstrap_file=bootstrap)
+        source_paths = {key.removeprefix("parent_verifier/"): _safe(self._root / "capsule", key)
+                        for key, _ in self._sources if key.startswith("parent_verifier/")}
+        for required in ("upstream/examples/bend_4mm.json", "domain/assembly_interfaces.py",
+                         "adapter/fixture_assembly_worker.py", "platform/contracts.py",
+                         "platform/execution_control.py"):
+            if required not in source_paths:
+                raise ValueError("Complete original CAD verification capsule required")
+        cad.source_files = lambda: dict(source_paths)
+        cad.BASELINE = source_paths["upstream/examples/bend_4mm.json"]
+        cad.DOMAIN = source_paths["domain/assembly_interfaces.py"]
+        cad.UPSTREAM = cad.BASELINE.parent.parent
+        cad.WORKER = source_paths["adapter/fixture_assembly_worker.py"]
+        cad.assembly_declarations.__defaults__ = (cad.DOMAIN,)
+        owner = self
+        class DomainLoader:
+            def create_module(self, spec):
+                return None
+            def exec_module(self, module):
+                owner._current()
+                loaded = owner._source_module("parent_verifier/domain/assembly_interfaces.py",
+                                               "_fixture_assembly_declarations")
+                module.__dict__.update(loaded.__dict__)
+                owner._current()
+        def domain_spec(module_name, file, *args, **kwargs):
+            if module_name != "_fixture_assembly_declarations" or Path(file) != cad.DOMAIN or args or kwargs:
+                raise ValueError("Only the exact pinned CAD Domain loading configuration is admitted")
+            return importlib.util.spec_from_loader(module_name, DomainLoader(), origin=str(cad.DOMAIN))
+        cad.importlib = SimpleNamespace(util=SimpleNamespace(
+            spec_from_file_location=domain_spec, module_from_spec=importlib.util.module_from_spec))
+        self._guard()
+        self._current()
+        return cad
 
     def capture(self, parent_result, parent_root, output):
         root, live = _absolute(output), _absolute(parent_root)
@@ -339,6 +429,7 @@ class QualifiedAssemblyMeshBundle:
             "mesh_revision": self._revision, "parent": request["parent"], "profile": request["profile"],
             "request_entry": self._request_pin.value(), "result_entry": self._result_pin.value(),
             "source_files": _values(self._sources), "parent_files": _values(parent_files),
+            **self._source_context(),
             "output_files": result["output_files"], "captured_files": _values(files),
             "original_runtime_before": result["runtime_before"], "original_runtime_after": result["runtime_after"],
             "runtime_paths_role": "Original preprocessing execution; unchanged, not an execution in the copy",
@@ -352,6 +443,7 @@ class QualifiedAssemblyMeshBundle:
             "mesh_revision": self._revision, "parent": {k: request["parent"][k] for k in ("experiment_id", "cad_revision", "native_revision")},
             "profile": request["profile"], "receipt": {"path": _RECEIPT, **receipt_pin.value()},
             "source_load_policy": _LOAD_POLICY, "runtime_paths_role": receipt["runtime_paths_role"],
+            **self._source_context(),
             "solver_status": "NOT_RUN", "decision": "NOT_RELEASED", "native_calls": 0, "solver_calls": 0, "provider_calls": 0}
         capture = _Capture(live, parent_result_bytes, _canonical(request), _canonical(result), files,
                            tuple(originals.items()), tuple(copied.items()), tuple(parent_ids.items()), receipt_pin,

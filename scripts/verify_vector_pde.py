@@ -260,6 +260,25 @@ def _fields(experiment, settings, result, folder):
     return closure
 
 
+def _case_diagnostics(experiment, category, result, result_sha):
+    """Keep actual Core evidence separate from the frozen expected category."""
+    failed = [deepcopy(row["observation"]) for row in result.get("evidence", [])
+              if isinstance(row.get("observation"), dict) and row["observation"].get("status") == "FAIL"]
+    recorded = {row.get("code") for row in failed}
+    failed.extend({"code": row["type"], "status": "FAIL", "observed": None, "limit": row.get("threshold")}
+                  for row in result["validations"] if row["status"] == "FAIL" and row["type"] not in recorded)
+    return {"experiment_id": experiment, "expected_category": category,
+            "expected_status": "COMPLETED_REVIEW_REQUIRED" if category == "ACCEPTED" else "REJECTED",
+            "actual_status": result["status"],
+            "expected_solver_status": "NOT_RUN" if category == "PREFLIGHT_REJECTED" else "COMPLETED",
+            "actual_solver_status": result["solver_status"], "failed_checks": failed,
+            "result_sha256": result_sha}
+
+
+def _classification_failure(kind, diagnostics):
+    return f"Wrong vector {kind} classification: {json.dumps(diagnostics, sort_keys=True, allow_nan=False)}"
+
+
 def run(store):
     store = Path(store).resolve()
     _require(not store.exists(), "Vector acceptance store must be new; historical bytes retained")
@@ -292,32 +311,44 @@ def run(store):
                          "parent_experiment_id" not in result, "Vector result acquired false engineering approval/CAD parent")
                 unknown = {row["type"]:row["status"] for row in result["validations"]}
                 _require(unknown.get("physical_validation") == unknown.get("model_qualification") == "UNKNOWN", "Vector qualification changed")
-                expected_solver = "NOT_RUN" if category == "PREFLIGHT_REJECTED" else "COMPLETED"
-                _require(result["solver_status"] == expected_solver, "Wrong vector native execution classification")
-                _require(result["status"] == ("COMPLETED_REVIEW_REQUIRED" if category == "ACCEPTED" else "REJECTED"),
-                         "Wrong vector numerical classification")
+                result_sha = _sha(folder / "result.json")
                 ledger = load_json(store / "ledger" / f"{experiment}.json")
-                _require(ledger["experiment_id"] == experiment and ledger["result_sha256"] == _sha(folder / "result.json")
+                _require(ledger["experiment_id"] == experiment and ledger["result_sha256"] == result_sha
                          and ledger["thread_sha256"] == _sha(folder / "thread.json")
                          and lab.inspect_experiment(experiment) == result, "Vector immutable ledger/result/thread mismatch")
-                closure = []
-                if category != "PREFLIGHT_REJECTED":
+                diagnostics = _case_diagnostics(experiment, category, result, result_sha)
+                native_matches = result["solver_status"] == diagnostics["expected_solver_status"]
+                closure, field_verification = [], "NOT_CHECKED_NATIVE_EXECUTION"
+                if native_matches and result["solver_status"] == "COMPLETED":
                     closure = _fields(experiment, settings, result, folder)
-                    _require(all(metric["valid"] == (category == "ACCEPTED") for metric in result["metrics"].values()), "Wrong vector metric validity")
-                    if category == "NUMERICAL_REJECTED":
+                    # Validity follows the actual Domain checks, never the plan's expected label.
+                    numerical_passed = not any(row["status"] == "FAIL" for row in result["validations"])
+                    actual_status = "COMPLETED_REVIEW_REQUIRED" if numerical_passed else "REJECTED"
+                    _require(result["status"] == actual_status,
+                             f"Vector Core status differs from Domain checks: {json.dumps(diagnostics, sort_keys=True)}")
+                    _require(bool(result["metrics"]) and all(metric["valid"] is numerical_passed for metric in result["metrics"].values()),
+                             "Wrong vector metric validity for actual Domain verdict")
+                    if not numerical_passed:
                         _require(all(metric.get("reason") for metric in result["metrics"].values()), "Lost vector invalid-metric reasons")
                     from plugins.pde_vector.reference import model_declaration
                     declaration = model_declaration(settings)
                     _require(result["model_revision"] == canonical_hash({"settings": settings, "declaration": declaration}), "Vector declaration revision drift")
-                else:
+                    field_verification = "VERIFIED_COMPLETE"
+                elif native_matches and category == "PREFLIGHT_REJECTED":
                     _require(not (folder / "pde/command.json").exists(), "Invalid vector input launched native execution")
+                    _require(result["metrics"] == {}, "Preflight refusal acquired numerical metrics")
+                    field_verification = "NOT_RUN_PREFLIGHT"
+                _require(_sha(folder / "result.json") == result_sha, "Vector result drift during verification")
                 reports.append({"experiment_id": experiment, "category": category, "status": result["status"],
                     "solver_status": result["solver_status"], "metrics": result["metrics"], "field_norm_closure": closure,
                     "model_revision": result["model_revision"], "artifact_manifest_sha256": canonical_hash(result["artifacts"]),
-                    "result_sha256": _sha(folder / "result.json")})
+                    "result_sha256": result_sha, "field_verification": field_verification, "diagnostics": diagnostics})
                 preserved.update({str(path.relative_to(store)).replace("\\", "/"): _sha(path)
                                   for path in folder.rglob("*") if path.is_file()})
                 save_json(store / "acceptance_progress.json", {"status": "RUNNING", "source": pin, "cases": reports})
+                _require(native_matches, _classification_failure("native execution", diagnostics))
+                _require(result["status"] == diagnostics["expected_status"],
+                         _classification_failure("numerical", diagnostics))
         _verify_source(pin)
         _require(_sha(store / "acceptance_plan.json") == plan_sha, "Frozen vector plan drift at completion")
         for relative, digest in preserved.items():

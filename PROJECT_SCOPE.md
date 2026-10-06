@@ -1,3 +1,9 @@
+## Acceptance inventory update — original assembly S4a actual PASS
+
+Original7-body/84-group Code_Aster full-field/reference acceptance now passed56 checks; the historical source-only S4a row is superseded for this bounded numerical patch. Original qualification/source identity is preserved under ADR0049. This advances assembly evidence reuse and multi-backend verification, not contact/load transfer, physical qualification or all52 completion. [Record](benchmarks/records/20261006-assembly-affine-actual-r03.json) distinguishes native producer,422 final source tests, failed accuracy alternatives, unchanged PDE rejection and installation/provider failures. Existing52 section statuses remain; S4b and broaderPhase4–7/common user integration are OPEN. UNKNOWN/NOT_RELEASED.
+
+---
+
 ## Acceptance inventory update — general field research, ADR0048
 
 The existing general research/evidence/native-model/result requirements advance within two supported structural field families: exact original node and signed component or derived magnitude; explicit observation source/unit/frame/conditions; stored comparison and same-record reopening. GENERAL_CAE_RESEARCH removes example-only purpose restriction. Analytical native-point and retained exact-coordinate fixture scaling checks pass; physical location alignment, causal identification, arbitrary solver admission and full requirement completion remain UNKNOWN/open. Record20261006-general-field-observation-r01 preserves separate producer versions, failed attempts and unchanged644 original files. No requirement or Phase is removed or promoted to full completion. NEXT original7body/84group mechanics and common multi-backend conditions/results/research; whole52/Phase1–7 INCOMPLETE.

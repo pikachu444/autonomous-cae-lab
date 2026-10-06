@@ -1,3 +1,14 @@
+## Active next bundle — original assembly conditions and research
+
+S4a actual r03 is closed: original7body/84group mesh, Code_Aster full-field/reference56 checks PASS, originals unchanged; Main final4-source tests422 PASS. See [record](../benchmarks/records/20261006-assembly-affine-actual-r03.json)/ADR0049. This is disconnected synthetic affine, not physical contact/load transfer or public research admission.
+
+NEXT develop the complete revision-bound assembly body/group materials, BC, loads and contact declarations→supported backend execution→same family fields/observations/report/research bundle using existing code. Root develops/runs/fixes/integrates before one final review. Do not add another CalculiX example, per-fix Astra/report clone or mandatory remesh sweep.
+
+Three bounded Aster accuracy alternatives did not repair exact51 and are preserved/not published. PDE diagnostics are corrected while the original numerical rejection remains; explicit official download404 and new-field provider EPERM stay separate OPEN failures. Their repeated reproduction is not a prerequisite for the common user bundle. Entire52/Phase1–7 remain INCOMPLETE; actual material/strength/durability/physical/company gates UNKNOWN/NOT_RELEASED.
+
+---
+## Historical plan before S4a actual closure
+
 ## Active next bundle — original assembly and multi-backend admission
 
 General observation bridge now selects exact native/fixture field location and component, stores explicit reference/conditions and reopens the same comparison (ADR0048/record20261006-general-field-observation-r01). General CAE purpose is not restricted to defect/jig examples. Complete final GUI/review/approved interpretation at their actual source, then move to the existing original assembly code; do not extend another CalculiX example or UI redesign.
