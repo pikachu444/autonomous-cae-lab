@@ -1,3 +1,23 @@
+## New-session handoff — qualified startup / closure contradiction
+
+A copyable full-scope prompt is in docs/NEXT_SESSION_PROMPT.md.
+User correction: recover and concretize the single roadmap and implementation
+spec before code changes, then develop substantial common features. Example
+generation/source checks/solver exit0 do not substitute for system completion.
+
+Implementation main e10bb028 is published. Actual new startup admitted the selected
+5.6Sol/existing OAuth and seven retained-record tools; provider inference is
+NOT_RUN, new solver0. Recorded copy preserves2212 files/54162656B, no jobs copied.
+Stop caller exited1 on ownership identity refusal; preflight IDLE/provider0 and
+later saved STOPPED do not establish actual closure. Keep UNKNOWN_UNCONFIRMED;
+no PID adoption/kill/replay or old-run closure. Exact e10 CI is not overall PASS.
+See record20261007-qualified-runtime-actual-r01 for actual proof and current CI.
+NEXT broad common interpretation/executor/control bundle, using retained science.
+New-session prompt authorizes old automation ownership transfer/stop; current
+Goal remains ACTIVE, no duplicate Goal. Whole52/Phases incomplete/NOT_RELEASED.
+
+---
+
 ## Current checkpoint — qualified OpenScience runtime and numerical interpretation (ADR0057)
 
 The preserved single-file Windows MCP lifetime fix actually connects and closes

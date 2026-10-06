@@ -1,3 +1,15 @@
+## Scope checkpoint — actual startup, research/lifecycle still open
+
+R11/R31/R35 qualified startup admission advances at published e10bb028 with
+existing approved5.6Sol/OAuth and retained numerical-record tools. Provider
+interpretation is NOT_RUN; termination caller refused identity while saved owner
+says stopped, so closure UNKNOWN_UNCONFIRMED. General executor/control and wider
+Phase gates remain OPEN. Record20261007-qualified-runtime-actual-r01 and the
+full-scope new-session prompt preserve all52/Phase1-7, incomplete/NOT_RELEASED.
+No requirement removed or newly marked complete by this handoff.
+
+---
+
 ## Scope checkpoint — qualified OpenScience / numerical interpretation (ADR0057)
 
 R11/R31/R35 common research connection advances through a preserved Windows MCP

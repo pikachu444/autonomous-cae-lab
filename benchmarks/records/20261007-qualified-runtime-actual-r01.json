@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "acceptance": "qualified-runtime-start-and-new-session-handoff-r01",
+  "observed_utc": "2026-10-06T23:33:23.853Z",
+  "implementation_source": "e10bb028d8526895c24b4ec5ee5bbe7bcfc713f0",
+  "documentation_is_new_solver_verification": false,
+  "startup": {
+    "actual_production_admission": "OWNED_RUNTIME_READY",
+    "run_name": "cae-qualified-numerical-research-20261007-01",
+    "profile": "numerical-reports-v1",
+    "selected_model": "openai-codex/gpt-5.6-sol",
+    "authentication": "EXISTING_APPROVED_CHATGPT_OAUTH_UNCHANGED",
+    "boot_source_sha256": "6e68fb7a1ad5dfe927f20062757d43db285aeb1bac93f31c556cc06f92c29c7a",
+    "tool_names": [
+      "caelab_study_inspect",
+      "caelab_experiment_inspect",
+      "caelab_experiment_summary",
+      "caelab_doe_inspect",
+      "caelab_optimization_inspect",
+      "caelab_campaign_report_inspect",
+      "caelab_multiobjective_inspect"
+    ],
+    "provider_inference": "NOT_RUN",
+    "provider_calls": 0,
+    "new_solver": 0,
+    "proof": {
+      "path": "artifacts/cae-qualified-numerical-research-20261007-01/actual-start.json",
+      "sha256": "f17c4b25bb25e96424f81ff7b9e010f9c01ce5b0839b2aef80d5dcf1b6c4de73",
+      "retention": "LOCAL_ONLY"
+    }
+  },
+  "retained_science": {
+    "source_store": "runs/cae-phase7-extension-20261007-01",
+    "new_store": "runs/cae-qualified-numerical-research-20261007-01",
+    "files": 2212,
+    "bytes": 54162656,
+    "recorded_original_and_copy_hash_verification": true,
+    "source_unchanged_at_copy": true,
+    "control_jobs_copied": false,
+    "new_native_runs": 0,
+    "retention_not_recomputed_by_this_documentation_checkpoint": true,
+    "proof": {
+      "path": "artifacts/cae-qualified-numerical-research-20261007-01/copied-science.json",
+      "sha256": "137163f0eb1cc8ad1b671b63cc2390deccc78308d43ce9204e62a47ce9eae89d",
+      "retention": "LOCAL_ONLY"
+    }
+  },
+  "stop": {
+    "invocation": "Stop-OpenScienceLocalServer for this newly owned owner_path",
+    "terminal_session": 59282,
+    "exit_code": 1,
+    "error": "Controller refused termination: Process PID/creation/command changed or is not owned.",
+    "final_caller_receipt": "NOT_WRITTEN",
+    "idle_preflight": {
+      "state": "IDLE_CONFIRMED",
+      "provider_calls": 0,
+      "cancelled_sessions": [],
+      "observed_utc": "2026-10-06T23:25:20.8299346Z",
+      "proof": {
+        "external_profile": "cae-qualified-numerical-research-20261007-01-cae-research-research",
+        "relative_path": "lifecycle/stop-preflight-20261006T232518358-c8aef84cb3b44d409c0b1517fd556497/receipt.json",
+        "sha256": "cd6b81a2e82115d6113af0a0c4ebe414cbf40c72941057745377b634439a5683",
+        "retention": "LOCAL_ONLY"
+      }
+    },
+    "later_stored_owner": {
+      "state": "stopped",
+      "closed_utc": "2026-10-06T23:25:36.5259173Z"
+    },
+    "actual_closure": "UNKNOWN_UNCONFIRMED",
+    "reconciliation": "OPEN_CALLER_REFUSAL_VS_SAVED_STOPPED",
+    "pid_adoption_force_kill_replay": "NOT_PERFORMED",
+    "older_unknown_runs": "UNCHANGED",
+    "auth_free_diagnostic_closure_is_not_this_production_closure": true
+  },
+  "exact_ci": {
+    "run_id": 37545724692,
+    "head_sha": "e10bb028d8526895c24b4ec5ee5bbe7bcfc713f0",
+    "status": "completed",
+    "conclusion": "failure",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37545724692",
+    "jobs": [
+      {
+        "name": "research-driver-source",
+        "status": "completed",
+        "conclusion": "failure",
+        "failed_steps": [
+          "Check explicit selected-mesh research scope without runtime calls"
+        ]
+      },
+      {
+        "name": "core",
+        "status": "completed",
+        "conclusion": "failure",
+        "failed_steps": [
+          "Run python scripts/verify_mcp.py"
+        ]
+      },
+      {
+        "name": "structural",
+        "status": "completed",
+        "conclusion": "skipped",
+        "failed_steps": []
+      },
+      {
+        "name": "native-registration",
+        "status": "completed",
+        "conclusion": "skipped",
+        "failed_steps": []
+      },
+      {
+        "name": "explicit",
+        "status": "completed",
+        "conclusion": "skipped",
+        "failed_steps": []
+      },
+      {
+        "name": "codeaster",
+        "status": "completed",
+        "conclusion": "skipped",
+        "failed_steps": []
+      },
+      {
+        "name": "optimization",
+        "status": "completed",
+        "conclusion": "skipped",
+        "failed_steps": []
+      },
+      {
+        "name": "native",
+        "status": "completed",
+        "conclusion": "skipped",
+        "failed_steps": []
+      },
+      {
+        "name": "pde",
+        "status": "completed",
+        "conclusion": "skipped",
+        "failed_steps": []
+      },
+      {
+        "name": "doe",
+        "status": "completed",
+        "conclusion": "skipped",
+        "failed_steps": []
+      }
+    ],
+    "failure_root_cause": "NOT_ISOLATED",
+    "observed_log_failures": [
+      {
+        "job": "research-driver-source",
+        "check": "definition_factory_case_sensitive_choices",
+        "script": "scripts/verify_fixture_selected_research_source.ps1",
+        "exit_code": 1
+      },
+      {
+        "job": "core",
+        "script": "scripts/verify_mcp.py",
+        "line": 105,
+        "check": "optimized_inspect structured response equality with original search",
+        "error": "AssertionError",
+        "exit_code": 1
+      }
+    ],
+    "overall_pass": "NOT_CLAIMED"
+  },
+  "review": {
+    "runtime_implementation_final_independent_review": "NOT_COMPLETED",
+    "handoff_documentation_new_review_gate": false,
+    "prior_phase7_bundle_review": "RETAINED_SEPARATE_SOURCE"
+  },
+  "delivery": {
+    "new_session_prompt": "docs/NEXT_SESSION_PROMPT.md",
+    "old_goal_observed": "ACTIVE",
+    "old_heartbeat_ownership": "TRANSFER_OR_STOP_ON_NEW_SESSION_START_AUTHORIZED_IN_PROMPT",
+    "new_goal_created": false
+  },
+  "user_process_correction": {
+    "failure": "Roadmap and implementation specification were not used effectively as the controlling basis; repeated example generation, isolated validation and small reviews did not complete the general system.",
+    "required_change": "Restore existing implementation; map R01-R52/Phases to user features, inputs/outputs, modules/interfaces, support limits and acceptance; concretize the single roadmap and implementation specification before code changes, then develop and integrate substantial sequential feature bundles followed by a final bundle review.",
+    "example_only_work_is_requirement_completion": false,
+    "existing_implementation_must_be_reused": true,
+    "handoff_documents_are_system_completion": false
+  },
+  "scope": {
+    "whole52": "INCOMPLETE",
+    "whole_phase1_through7": "INCOMPLETE",
+    "physics_material_strength_durability_company": "UNKNOWN",
+    "release": "NOT_RELEASED"
+  },
+  "next_bundle": "Reuse retained numerical records for approved interpretation; integrate common executor/control/cancellation/reconnection. Investigate ownership contradiction and exact CI source failure without stopping independent implementation or replaying old solver/example failures."
+}

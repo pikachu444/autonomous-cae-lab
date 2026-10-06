@@ -1,3 +1,15 @@
+## Qualified production startup / handoff contract evidence
+
+Actual e10bb028 startup admits existing approved5.6Sol/OAuth and the seven
+NumericalReports reads. New inference/solver0; no profile/auth/scope expansion.
+IDLE/provider0 preflight and saved STOPPED conflict with Stop caller refusal;
+closure stays UNKNOWN_UNCONFIRMED until exact ownership evidence reconciles it.
+See20261007-qualified-runtime-actual-r01. Auth-free proof is separate. No blanket
+ledger reset, PID adoption or historical replay. Full scope/UNKNOWN/NOT_RELEASED
+and native producer versus reader distinctions remain intact.
+
+---
+
 ## Additive qualified runtime / NumericalReports contract (ADR0057)
 
 Default authentication/native pins remain strict. An explicit external qualified

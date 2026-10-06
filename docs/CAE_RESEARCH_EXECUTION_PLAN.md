@@ -1,3 +1,19 @@
+## Latest user correction — roadmap and specification govern development
+
+Restore the existing52/Phase1-7 ledger and code before changes. Concretize this
+single roadmap and reuse/complete the implementation specification, creating
+docs/CAE_SYSTEM_IMPLEMENTATION_SPEC.md only if no suitable spec exists. Map
+requirements to user features, inputs/outputs, modules/interfaces, supported
+backend scope, failure/cancel/recovery behavior and actual acceptance criteria.
+Develop substantial common feature bundles in dependency/Phase order, integrate
+and fix through real execution, then one final bundle review. Example scripts,
+isolated checks and solver exit0 cannot substitute for system completion.
+Finish planning promptly and start implementation; no documentation-only loop.
+Full copyable owner instructions: docs/NEXT_SESSION_PROMPT.md. Existing features,
+science, UNKNOWN/NOT_RELEASED and the ownership contradiction remain preserved.
+
+---
+
 # 현재 실행 순서 — 범용 연구 기능을 Phase 순서로 개발
 
 최신 사용자 지시: CAD·조립체·접촉 예시에 계속 매달리지 않는다. 예시가 기능

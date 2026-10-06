@@ -1,3 +1,22 @@
+## Actual startup and new-session checkpoint
+
+User identifies inadequate roadmap/spec-driven development and repeated example
+generation/verification as a work-process failure. New prompt requires explicit
+requirement-to-feature/module/interface/acceptance mapping before implementation,
+then immediate broad feature development; existing working code is preserved.
+
+Published implementation e10bb028 passed actual qualified production startup
+admission; new AI interpretation remains NOT_RUN. The copied science proof
+records2212 unchanged-source files/54162656B and no control jobs/native runs.
+Production Stop exited1 with owned-identity refusal. Later owner says stopped,
+but caller closure receipt is absent: actual closure UNKNOWN_UNCONFIRMED.
+The distinct auth-free closure and IDLE/provider0 cannot resolve this contradiction.
+Record20261007-qualified-runtime-actual-r01 preserves exact source/CI/evidence.
+Full-scope sequential bundle handoff: docs/NEXT_SESSION_PROMPT.md. No code/auth
+changes at this documentation checkpoint; all52/Phases remain incomplete.
+
+---
+
 ## Qualified runtime / common numerical interpretation checkpoint (ADR0057)
 
 Auth-free candidate r03 actually confirmed MCP activation and tracked Job/pipe
