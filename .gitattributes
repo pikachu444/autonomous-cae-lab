@@ -105,3 +105,12 @@ ARCHITECTURE.md -text
 openscience/contract.md -text
 apps/lab/CONTRACT.md -text
 docs/CAE_RESEARCH_EXECUTION_PLAN.md -text
+
+# Preserve tested cancellation and enriched research-read source bytes.
+caelab/declared_model.py -text
+openscience/mcp_server.py -text
+schemas/result.schema.json -text
+apps/lab/static/experiment-draft.js -text
+tests/test_fixture_stress_field.py -text
+tests/test_core_cancelled_result.py -text
+tests/test_experiment_draft.js -text

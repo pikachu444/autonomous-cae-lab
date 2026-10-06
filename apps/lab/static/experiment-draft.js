@@ -52,7 +52,7 @@
     requireValue([result, proposal, thread, study, ledger, hashes].every(mapping) && mapping(result.study) &&
       mapping(result.provenance) && mapping(proposal.physics) && mapping(proposal.model) && mapping(proposal.execution) &&
       result.schema_version === "1.0" && proposal.schema_version === "1.0" &&
-      ["REJECTED", "FAILED_EXECUTION", "COMPLETED_REVIEW_REQUIRED"].includes(result.status),
+      ["REJECTED", "FAILED_EXECUTION", "COMPLETED_REVIEW_REQUIRED", "CANCELLED"].includes(result.status),
     "INCOMPLETE_RECORD", "결과·제안·연구·연결·원본 해시와 실행 조건을 갖춘 저장 기록이 필요합니다.");
     const experimentId = result.experiment_id, studyId = result.study.id, hypothesisId = proposal.hypothesis_id;
     requireValue(id(experimentId) && id(studyId) && text(hypothesisId) && proposal.id === experimentId &&

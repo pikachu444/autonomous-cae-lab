@@ -17,6 +17,7 @@ from .contracts import (AnalysisAdapter, CADAdapter, DOEAdapter, OptimizationAda
 from . import registration_transaction as registration
 from .registry import register_parameter, validate_assignments
 from .outcomes import validate_outcome
+from .execution_control import ExecutionCancelled, ExecutionCleanupFailed, cancelled_outcome
 from .schema import validate as validate_schema
 from .storage import (artifact_manifest, canonical_hash, check_artifacts, check_id,
                       load_json, save_json, source_identity, utc_now)
@@ -371,6 +372,7 @@ class Lab:
         failed = any(c["status"] == "FAIL" for c in checks)
         outcome = None
         execution_error = False
+        execution_cancelled = False
         if not failed:
             native_values = {p["native"]["path"]: values.get(p["parameter_id"], p["current_value"])
                              for p in selected}
@@ -398,6 +400,13 @@ class Lab:
                             for item in sorted(cad_folder.iterdir()):
                                 if item.is_file() and item.name != "bundle.zip":
                                     bundle.write(item, item.name)
+            except ExecutionCleanupFailed:
+                raise
+            except ExecutionCancelled as exc:
+                execution_cancelled = True
+                observed = cancelled_outcome(folder, backend, exc, 'cad')
+                checks.extend({**check, 'evidence_artifact': observed['raw_result']}
+                              for check in observed['checks'])
             except Exception as exc:
                 execution_error = True
                 checks.append({"code": "cad_execution", "status": "FAIL",
@@ -423,7 +432,10 @@ class Lab:
                                 "evidence_ids": [evidence_id], "cad_revision": revision,
                                 "experiment_id": experiment_id, "solver_run_id": None,
                                 "timestamp": utc_now(), "notes": check.get("detail")})
-        for kind in outcome.pending_validations if outcome else []:
+        pending_types = list(outcome.pending_validations if outcome else [])
+        if execution_cancelled:
+            pending_types = list(dict.fromkeys([*pending_types, 'model_qualification', 'physical_validation']))
+        for kind in pending_types:
             validations.append({"type": kind, "validator": "not_executed", "status": "UNKNOWN",
                                 "blocking": True, "threshold": None, "expected_range": None,
                                 "evidence_ids": [], "cad_revision": revision, "experiment_id": experiment_id,
@@ -431,9 +443,9 @@ class Lab:
                                 "notes": "Evidence required before engineering release"})
 
         rejected = any(v["status"] == "FAIL" for v in validations)
-        execution_status = "FAILED_EXECUTION" if execution_error else (
+        execution_status = "CANCELLED" if execution_cancelled else "FAILED_EXECUTION" if execution_error else (
             "REJECTED" if rejected else "COMPLETED_REVIEW_REQUIRED")
-        if outcome and outcome.decision not in ("REVIEW_REQUIRED", "REJECTED"):
+        if not execution_cancelled and outcome and outcome.decision not in ("REVIEW_REQUIRED", "REJECTED"):
             execution_status = "FAILED_EXECUTION"
         artifacts = artifact_manifest(folder, revision=revision or proposal_revision)
         # The artifact reference in evidence is relative to the experiment root.
@@ -566,11 +578,17 @@ class Lab:
             "result_sha256": parent_result_hash})
 
         execution_error = False
+        execution_cancelled = False
         outcome = None
         try:
             outcome = adapter.solve(parent, parent_root, folder / "simulation", deepcopy(settings))
             validate_outcome(outcome)
             execution_error = outcome["solver_status"] == "FAILED_EXECUTION"
+        except ExecutionCleanupFailed:
+            raise
+        except ExecutionCancelled as exc:
+            execution_cancelled = True
+            outcome = cancelled_outcome(folder, backend, exc, 'analysis')
         except Exception as exc:
             execution_error = True
             outcome = {"status": "REJECTED", "checks": [{"code": "analysis_execution",
@@ -578,7 +596,7 @@ class Lab:
                        "metrics": {}, "solver_status": "FAILED_EXECUTION", "converged": None,
                        "pending_validations": [], "provenance": {}, "raw_result": None}
         checks = outcome["checks"]
-        if outcome["status"] == "REJECTED" and not any(c["status"] == "FAIL" for c in checks):
+        if not execution_cancelled and outcome["status"] == "REJECTED" and not any(c["status"] == "FAIL" for c in checks):
             checks.append({"code": "adapter_rejected", "status": "FAIL",
                            "observed": "Analysis adapter rejected without a detailed failure"})
         raw_result = outcome.get("raw_result")
@@ -626,7 +644,7 @@ class Lab:
                                 "timestamp": utc_now(),
                                 "notes": f"Unresolved in parent experiment {parent_id}"})
             observed_types.add(prior["type"])
-        status = ("FAILED_EXECUTION" if execution_error else
+        status = ("CANCELLED" if execution_cancelled else "FAILED_EXECUTION" if execution_error else
                   "REJECTED" if outcome["status"] == "REJECTED" or
                   any(c["status"] == "FAIL" for c in checks) else
                   "COMPLETED_REVIEW_REQUIRED")
@@ -718,18 +736,30 @@ class Lab:
                     raise ValueError("Parent CAD revision or result hash mismatch")
         return result
 
-    def research_summary(self, experiment_id: str) -> dict[str, Any]:
-        result = self.inspect_experiment(experiment_id)
+    def _research_result_context(self, result: dict) -> dict:
         from .research_context import comparison_context, analysis_conditions_context
         context = comparison_context(self, result)
         conditions = analysis_conditions_context(self, result)
         adapter = self.analysis_adapters.get(result['provenance'].get('adapter'))
         semantics_hook = getattr(adapter, 'research_metric_semantics', None)
         semantics = semantics_hook(result) if callable(semantics_hook) else None
-        return {"experiment_id": result["experiment_id"], "study": result["study"],
-                **({"comparison_context": context} if context is not None else {}),
+        return {**({"comparison_context": context} if context is not None else {}),
                 **({'analysis_conditions_context': conditions} if conditions is not None else {}),
-                **({'metric_semantics': semantics} if semantics else {}),
+                **({'metric_semantics': semantics} if semantics else {})}
+
+    def research_inspection(self, experiment_id: str) -> dict[str, Any]:
+        """Verified full read plus non-persisted research response definitions.
+
+        inspect_experiment remains the unchanged canonical stored result reader.
+        This transport response must not replace or be hashed as result.json.
+        """
+        result = self.inspect_experiment(experiment_id)
+        return {**result, **self._research_result_context(result)}
+
+    def research_summary(self, experiment_id: str) -> dict[str, Any]:
+        result = self.inspect_experiment(experiment_id)
+        return {"experiment_id": result["experiment_id"], "study": result["study"],
+                **self._research_result_context(result),
                 **({"parent_experiment_id": result["parent_experiment_id"]}
                    if "parent_experiment_id" in result else {}),
                 **({"campaign_id": result["campaign_id"]}

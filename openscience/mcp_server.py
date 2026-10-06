@@ -283,8 +283,12 @@ def experiment_run(study_id: str, experiment_id: str, backend: str, model: str,
 
 @mcp.tool()
 def experiment_inspect(experiment_id: str) -> dict:
-    """Read full metrics, evidence, validation, provenance and checked artifact hashes."""
-    return _lab().inspect_experiment(experiment_id)
+    """Read verified full results with metric_semantics and frozen conditions when available.
+
+    Use the declared component, selection and reduction; a metric ID does not
+    define a whole-field quantity. Added context does not modify result.json.
+    """
+    return _lab().research_inspection(experiment_id)
 
 
 @mcp.tool()

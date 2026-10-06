@@ -1,3 +1,17 @@
+## Cancellation lifecycle and consistent research read context (ADR0045)
+
+Common result schema1.0 additively admits CANCELLED after confirmed live-owned
+cleanup. Partial outputs are retained, convergence/metrics are not completed,
+qualification stays UNKNOWN/NOT_RELEASED; unconfirmed cleanup leaves no result
+seal. Existing experiment_inspect uses verified Core research_inspection with
+the same optional response/conditions/comparison context as experiment_summary.
+Canonical inspect_experiment and stored result bytes/hashes remain unchanged.
+No new tool/arguments/profile/provider, response substitution or PID authority.
+Clean8731 native campaign and its two actual defects are retained separately from
+corrected-source actual acceptance. Whole52/Phase1-7 and broader recovery remain
+open. See benchmarks/records/20261006-condition-research-actual-r01.json.
+
+---
 ## Frozen human conditions in numerical campaigns (ADR0044)
 
 Core freezes the declared condition record in existing DOE/DE plans and binds a

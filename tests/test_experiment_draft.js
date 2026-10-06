@@ -255,3 +255,17 @@ test("browser and CommonJS exports expose the same pure helper without requiring
   assert.equal(draft.available, true); assert.equal(draft.operation, "model_analysis_run");
   assert.deepEqual(JSON.parse(JSON.stringify(draft)), JSON.parse(JSON.stringify(fromRecord(JSON.parse(context.recordJson), presets))));
 });
+
+test("cancelled declared inputs can prepare a new experiment without copying partial responses", () => {
+  const record = saved();
+  record.result.status = "CANCELLED";
+  record.result.solver_status = "CANCELLED";
+  record.result.converged = null;
+  record.result.metrics = {};
+  const before = JSON.stringify(record);
+  const draft = fromRecord(record, presets);
+  assert.equal(draft.available, true);
+  assert.deepEqual(draft.arguments.settings, record.proposal.execution);
+  assert.equal(Object.hasOwn(draft.arguments, "metrics"), false);
+  assert.equal(JSON.stringify(record), before);
+});

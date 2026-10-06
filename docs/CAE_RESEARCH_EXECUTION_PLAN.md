@@ -1,3 +1,32 @@
+## Current checkpoint: actual connected numerical campaign; integration defects corrected in source
+
+Clean8731cfd9/new cae-condition-research-20261006-01 actually used the human saved
+conditions and existing approved5.6Sol/OAuth to execute the prepared DE plan:
+nine CAD revisions and nine CalculiX children, each with frozen revision-owned
+conditions. Root verified native DAT response/XYZ reactions, unchanged baseline
+files and exact candidate/feedback agreement with the retained numerical run.
+The same best-child full field and 47-file evidence report reopen in the browser.
+This is a limited supported model, not arbitrary CAD or whole52/Phase1-7 completion.
+
+Actual integration exposed two defects: the AI chose full inspection, which lacked
+the summary's response semantics, and misnamed loaded |UZ| as whole |U|; native
+user cancellation had a CANCELLED HTTP/owned receipt but FAILED_EXECUTION Core
+record. Original raw answer, cancelled child/partial logs and all results remain.
+ADR0045 adds the same verified context to full research reads and distinct Core
+CANCELLED across CAD/analysis/model/PDE; pending cleanup cannot seal mutable output.
+Corrected-source actual provider reading and native cancellation are NEXT, before
+the one final independent review of the larger G3/G4 bundle. No new Astra per fix.
+Source110Python PASS;614Node before LF normalization and30 affected final Node
+PASS are separately pinned. Exact873 CI failed seven portable stress mocks at the
+old subprocess boundary; source mocks now target owned commands and forbid real
+children. Source controls are not a new native/physics or exact new-commit CI PASS.
+Record benchmarks/records/20261006-condition-research-actual-r01.json contains IDs,
+producer/source/evidence pins and limits. UNKNOWN/invalid stress/NOT_RELEASED,
+original7part/84group/fine UNKNOWN and separate stashed R2 drafts are preserved.
+NEXT after this bundle: general CAD/group/assembly and remaining Phase4-7 gaps.
+Goal ACTIVE. Root owns integration, execution, Git and the final review decision.
+
+---
 ## 현재 G3/G4 큰 기능 묶음 — 소스 통합, 실제 연결 다음
 
 저장한 조건→기존 DOE/최적화→후보별 새 CAD/조건/해석→같은 결과의 AI 해석·보고서·취소를

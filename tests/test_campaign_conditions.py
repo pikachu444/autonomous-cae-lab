@@ -152,3 +152,36 @@ def test_summary_names_loaded_uz_only_for_advertised_fixture_version(lab):
     assert summary['metric_semantics']['max_displacement']['component'] == 'UZ'
     assert summary['metric_semantics']['max_displacement']['selection_id'] == 'S-saddle'
     assert 'metric_semantics' not in lab.research_summary('E-cad')
+
+
+def test_full_research_inspection_preserves_canonical_record_and_same_response_context(lab, monkeypatch):
+    from openscience import mcp_server
+    import hashlib
+    from pathlib import Path
+    lab.run_analysis(parent_experiment_id='E-cad', experiment_id='E-child',
+                     backend='fixture.calculix', conditions_id='C-conditions')
+    path = Path(lab.store) / 'experiments/E-child/result.json'
+    original = path.read_bytes()
+    canonical = lab.inspect_experiment('E-child')
+    monkeypatch.setattr(mcp_server, '_lab', lambda: lab)
+    full = mcp_server.experiment_inspect('E-child')
+    summary = lab.research_summary('E-child')
+    assert full['metric_semantics'] == summary['metric_semantics']
+    assert full['metric_semantics']['max_displacement']['component'] == 'UZ'
+    assert full['metric_semantics']['max_displacement']['reduction'] == 'MAX_ABSOLUTE'
+    assert full['analysis_conditions_context'] == summary['analysis_conditions_context']
+    assert {key: value for key, value in full.items()
+            if key not in ('analysis_conditions_context', 'metric_semantics', 'comparison_context')} == canonical
+    assert path.read_bytes() == original
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == hashlib.sha256(original).hexdigest()
+    assert 'metric_semantics' not in lab.research_inspection('E-cad')
+
+
+def test_full_research_inspection_rejects_changed_condition_artifact(lab):
+    from pathlib import Path
+    lab.run_analysis(parent_experiment_id='E-cad', experiment_id='E-child',
+                     backend='fixture.calculix', conditions_id='C-conditions')
+    path = Path(lab.store) / 'experiments/E-child/analysis_conditions.json'
+    path.write_bytes(path.read_bytes() + b' ')
+    with pytest.raises(ValueError, match='hash mismatch'):
+        lab.research_inspection('E-child')

@@ -115,6 +115,27 @@ def check_cancelled() -> None:
         token.check()
 
 
+def cancelled_outcome(folder, backend: str, error: ExecutionCancelled, namespace: str) -> dict:
+    """Retain a cancellation observation separately from numerical failure.
+
+    Unconfirmed child cleanup must propagate instead of sealing mutable output.
+    The lifecycle receipt is controller evidence, not a physical verdict.
+    """
+    from .storage import save_json, utc_now
+    token = _current.get()
+    if token is not None and token.cleanup_pending:
+        raise ExecutionCleanupFailed('Cancellation cannot seal output while owned cleanup is pending')
+    receipt = {'status': 'CANCELLED', 'reason': 'USER_REQUEST', 'backend': backend,
+               'error_type': type(error).__name__, 'observation': str(error),
+               'recorded_utc': utc_now(), 'numerical_verdict': 'UNKNOWN'}
+    save_json(folder / 'execution.json', receipt)
+    return {'status': 'REJECTED', 'solver_status': 'CANCELLED', 'converged': None,
+            'checks': [{'code': namespace + '_cancelled', 'status': 'WARNING',
+                        'observed': receipt, 'detail': 'User cancellation; retained partial evidence is not a completed solve'}],
+            'metrics': {}, 'pending_validations': ['model_qualification', 'physical_validation'],
+            'provenance': {'execution_lifecycle': receipt}, 'raw_result': 'execution.json'}
+
+
 def run_owned_command(command, cwd, label, *, timeout=None):
     """Capture an adapter command using its live Popen ownership for cancellation.
 

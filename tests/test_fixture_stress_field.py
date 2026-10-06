@@ -272,7 +272,8 @@ def synthetic_adapter_run(tmp_path, monkeypatch, screen, *, malformed_index=None
     monkeypatch.setattr(adapter, "_version", lambda _: "synthetic I/O fixture; no native process")
     calls = []
 
-    def process_double(command, *, cwd, **kwargs):
+    def process_double(command, cwd, label, **kwargs):
+        assert label == command[0]
         calls.append(command)
         folder = Path(cwd)
         if command[0] == "gmsh":
@@ -317,7 +318,10 @@ def synthetic_adapter_run(tmp_path, monkeypatch, screen, *, malformed_index=None
             pytest.fail(f"Unexpected external execution: {command}")
         return subprocess.CompletedProcess(command, 0, "synthetic I/O fixture", "")
 
-    monkeypatch.setattr(adapter.subprocess, "run", process_double)
+    monkeypatch.setattr(adapter, "run_owned_command", process_double)
+    def forbidden_process(*_args, **_kwargs):
+        pytest.fail('TEST_ONLY artifact plumbing must never launch a native process')
+    monkeypatch.setattr(adapter.subprocess, "Popen", forbidden_process)
     experiment = tmp_path / "synthetic-experiment"
     output = experiment / "simulation"
     try:

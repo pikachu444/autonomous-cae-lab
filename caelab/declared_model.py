@@ -7,6 +7,7 @@ import platform
 
 from .contracts import CapabilityUnavailable
 from .outcomes import validate_outcome
+from .execution_control import ExecutionCancelled, ExecutionCleanupFailed, cancelled_outcome
 from .schema import validate as validate_schema
 from .storage import artifact_manifest, canonical_hash, check_id, save_json, source_identity, utc_now
 
@@ -126,6 +127,7 @@ def run_declared_model(lab, *, study_id: str, experiment_id: str, backend: str,
     save_json(folder / "proposal.json", proposal)
     save_json(folder / "registry_snapshot.json", registry)
     failed_execution = False
+    execution_cancelled = False
     try:
         if declaration_error is not None:
             if not isinstance(declaration_error, ValueError):
@@ -139,6 +141,11 @@ def run_declared_model(lab, *, study_id: str, experiment_id: str, backend: str,
             outcome = adapter.solve(folder / output_directory, deepcopy(settings))
         validate_outcome(outcome)
         failed_execution = outcome["solver_status"] == "FAILED_EXECUTION"
+    except ExecutionCleanupFailed:
+        raise
+    except ExecutionCancelled as exc:
+        execution_cancelled = True
+        outcome = cancelled_outcome(folder, backend, exc, namespace)
     except Exception as exc:
         failed_execution = True
         outcome = {"status": "REJECTED", "solver_status": "FAILED_EXECUTION", "converged": None,
@@ -147,7 +154,7 @@ def run_declared_model(lab, *, study_id: str, experiment_id: str, backend: str,
                    "metrics": {}, "pending_validations": ["model_qualification", "physical_validation"],
                    "provenance": {}, "raw_result": None}
     checks = deepcopy(outcome["checks"])
-    if outcome["status"] == "REJECTED" and not any(c["status"] == "FAIL" for c in checks):
+    if not execution_cancelled and outcome["status"] == "REJECTED" and not any(c["status"] == "FAIL" for c in checks):
         checks.append({"code": "adapter_rejected", "status": "FAIL",
                        "observed": f"{label} adapter rejected without a detailed failure"})
     raw = outcome.get("raw_result")
@@ -178,7 +185,7 @@ def run_declared_model(lab, *, study_id: str, experiment_id: str, backend: str,
     result = {"schema_version": "1.0", "experiment_id": experiment_id,
               "study": {"id": study_id, "hypothesis": study["hypothesis"],
                         "hypothesis_id": proposal["hypothesis_id"]},
-              "status": "FAILED_EXECUTION" if failed_execution else
+              "status": "CANCELLED" if execution_cancelled else "FAILED_EXECUTION" if failed_execution else
                         "REJECTED" if any(c["status"] == "FAIL" for c in checks) else
                         "COMPLETED_REVIEW_REQUIRED",
               "decision": "NOT_RELEASED", "solver_status": outcome["solver_status"],
