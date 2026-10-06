@@ -1,3 +1,29 @@
+## Fixed-CAD material/load numerical research — ADR0047
+
+The human Explore view connects the exact saved native conditions and CAD parent,
+discovers admitted scalar inputs, registers explicit names/units/ranges and freezes
+a numerical plan. Existing DE initialization/execution produces new condition
+records and native analysis children on that same CAD revision. Existing geometry
+parameters retain their meaning. Candidate rows reopen the exact condition/result,
+whole field and report; an editable research question names actual completed IDs.
+
+Human HTTP jobs add `condition_parameters_discover` (read),
+`condition_parameters_register` and `condition_optimization_plan`; existing
+`optimization_run` executes the saved plan. Store/study/CAD/C-ID/context leases,
+busy/readonly checks and frozen plan provenance remain enforced. Unsupported or
+changed conditions do not start native work; Domain-invalid candidates retain
+rejection/null feedback. Numerical scenario ranges do not assert real material
+qualification, causal identification or a meaningful load-reduction design.
+Only force directions with conservatively separated load/constraint face bounds
+are discoverable scalar inputs. Adjacent/overlapping/unresolved directions are
+excluded before registration/native work; native integrated-force checks remain.
+
+The existing fixture-only AI profile explicitly refuses this new execution route.
+Approved5.6Sol/OAuth can interpret actual native experiment records through the
+existing reader; prepared questions alone are not provider execution. UNKNOWN,
+NOT_RELEASED and incomplete whole52/Phase1–7 remain visible. No mandatory mesh sweep.
+
+---
 ## Native CAD engineering workspace — ADR0046
 
 Existing upload/editable CAD now has real native face targets, partial displacement DOFs, material/vector force editor and actual native mechanics. Simulation shares one verified inspector with Results; whole |U|/component selectors, complete mesh, DOF/load values and exact experiment report exports retain original provenance. No arbitrary triangle-to-face selection or unsupported assembly authority is implied.

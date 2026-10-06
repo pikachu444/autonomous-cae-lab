@@ -1,3 +1,25 @@
+## Fixed-CAD scalar condition search — ADR0047
+
+Human Lab/HTTP discovery, registration and planning bind advertised scalar
+material/load inputs to one verified CAD revision and its frozen condition record.
+Existing SciPy engines own all candidates; each accepted candidate has new typed
+conditions and a native analysis child. Original geometry parameters are preserved.
+Source/policy drift blocks new execution; Domain rejection creates no native child
+and keeps null numerical feedback. Completed records remain historically readable.
+Force-variable discovery conservatively excludes directions whose retained face
+bounds cannot establish separation from the matching displacement constraints.
+Excluded directions cannot register or start native work; the exact native nodal
+force/constraint check remains. Bounds overlap is not a physical contact verdict.
+
+No MCP tool, descriptor, approved5.6Sol/OAuth authority or profile is added. The
+existing fixture-only `optimization_run` explicitly refuses `fixed_cad_analysis`;
+human HTTP executes it. The editable research handoff names actual completed native
+candidate IDs, original condition values and whole-vector response semantics for
+the existing approved result reader. Preparation is not a provider execution.
+Scenario bounds/ASSUMED inputs are not qualified material or a real design approval.
+UNKNOWN/invalid/NOT_RELEASED, whole52/Phase1–7 gaps and original results remain.
+
+---
 ## Native CAD result context — ADR0046
 
 No tools, profiles, approved model or provider authority are added. Core experiment inspection/summary expose the same frozen native conditions and adapter-owned whole-vector maximum semantics. Generic native execution by the existing fixture-only research profile is not admitted. The separate bbf actual 19-read corrected answer/native cancellation gate is now closed; reconnect is unverified.

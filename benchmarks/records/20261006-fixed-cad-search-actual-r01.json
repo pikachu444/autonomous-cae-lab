@@ -1,0 +1,858 @@
+{
+  "acceptance": "G3 fixed-CAD condition discovery/registration/numerical native research bundle",
+  "actual_ui": {
+    "campaign_job": "J24dd58fe69b449cc8507ca1009488854",
+    "display": {
+      "C3D10_count": 905,
+      "CPS6_boundary_count": 476,
+      "node_count": 1714,
+      "physical_quantity": "Whole-vector displacement magnitude, mm; per-node components and signed applied force preserved.",
+      "screenshot": "artifacts/fixed-cad-search-20261006-01/best-candidate-field.png"
+    },
+    "native_producer_base": "772c003fe12e6f6cb7160b963fbb77a2b0f37be3",
+    "origin": "http://127.0.0.1:8782",
+    "plan_job": "J75669c6397b04cf498a3897c47ccec8d8",
+    "proof_directory": "artifacts/fixed-cad-search-20261006-01",
+    "provider": "NOT_CONFIGURED on metadata acceptance server; question preparation is not a provider call.",
+    "registration_jobs": [
+      "Jf911d4964145452687ed272aa9f5c8f7",
+      "J606b45d89052426b90ba765248ee8eabf"
+    ],
+    "steps": [
+      "Open preserved CAD conditions",
+      "Discover5 scalar inputs",
+      "Register E/FX names and ranges",
+      "Save seeded DE plan",
+      "Execute10 actual native candidates",
+      "Reload completed plan and all10 responses",
+      "Select2 actual candidate records and prepare editable same-study research question",
+      "Reopen actual best-candidate whole field/conditions",
+      "Select native boundary node887",
+      "Read exact1714-node field and same child report",
+      "Final corrected HTTP discovery advertises E/nu/FX only on this C0; FY/FZ registration rejected before native work"
+    ]
+  },
+  "allowed_mutable_registry": {
+    "appended_variables": 2,
+    "old_entries_preserved": true,
+    "path": "studies/S-native-mechanics/parameters.json"
+  },
+  "analytical_reference": "Uniform X traction on 16x10x8mm isotropic solid: ex=FX/(80E), U=(ex*x,-nu*ex*y,-nu*ex*z).",
+  "campaign_id": "C-fixed-native-search-r01",
+  "campaign_result_sha256": "a9b41338572f9f1a7d2146b95b6d74a535d8953a20b7f3a6a28721cabe0d8285",
+  "comparison": "Each field at its own physical coordinates; no cross-run node ID equivalence/interpolation/mesh sweep.",
+  "copied_immutable_files": 199,
+  "decision": "NOT_RELEASED",
+  "exact_previous_ci": {
+    "commit": "772c003fe12e6f6cb7160b963fbb77a2b0f37be3",
+    "conclusion": "FAILURE",
+    "failed_jobs": {
+      "codeaster": "E-ansys_vmd1_regular-Fz-aster native numerical checks failed",
+      "explicit": "Official digest-pinned runtime download HTTP404 before solve",
+      "pde": "Wrong vector numerical classification"
+    },
+    "run_id": 37414292393,
+    "scope": "Previous clean source only; not CI for this dirty native producer/final publication.",
+    "success_jobs": [
+      "research-driver-source",
+      "core",
+      "optimization",
+      "native-registration",
+      "structural",
+      "native",
+      "doe"
+    ]
+  },
+  "failed_attempts": [
+    "First proof preparation import lacked repository sys.path; failed before new store creation. Corrected helper then prepared fresh store.",
+    "First source collection used obsolete registration import; corrected to existing registration_transaction before203PASS.",
+    "New presentation fixture omitted required frozen source/rebind policy and failed1/24; corrected test fixture, production contract unchanged. Final24PASS.",
+    "Original native/solver failures and old condition policy mismatch remain preserved; never recast as a new successful run."
+  ],
+  "final_direction_admission": {
+    "decision": "NOT_RELEASED",
+    "descriptors": [
+      "material_M1_E",
+      "material_M1_nu",
+      "load_L1_FX"
+    ],
+    "domain_source_sha256": "a892d3973540d633d4470d0ccb65267c60158a655c479b58b3c6b15901ce3487",
+    "failed_registration_jobs": [
+      {
+        "error": "ValueError: Condition input was not advertised by this solver/template",
+        "id": "Jdbb0a8fef1604247a125b6e04577c9f4",
+        "operation": "condition_parameters_register",
+        "status": "FAILED"
+      },
+      {
+        "error": "ValueError: Condition input was not advertised by this solver/template",
+        "id": "J0e16f9fc05c3480094530325ca78efea",
+        "operation": "condition_parameters_register",
+        "status": "FAILED"
+      }
+    ],
+    "interpretation": "Overlapping/adjacent bounds cannot establish separated support for the matching constrained DOF. Conservative unsupported; not an intersection or contact proof.",
+    "new_CAD": 0,
+    "new_child_experiments": 0,
+    "new_mesh": 0,
+    "new_provider": 0,
+    "new_solver": 0,
+    "old_native_producer_and10_completed_results": "UNCHANGED",
+    "retained_all_non_controller_bytes": true,
+    "retained_bytes": 50250636,
+    "retained_files": 520,
+    "source": {
+      "core_commit": "772c003fe12e6f6cb7160b963fbb77a2b0f37be3",
+      "core_dirty": true,
+      "core_source_sha256": "eb1eca614b3b63690ec3251efc15f23d5e885951f131ee06724303ef96d91293"
+    },
+    "status": "PASS_PRE_NATIVE_DIRECTION_ADMISSION"
+  },
+  "final_independent_review": {
+    "manifest_sha256": "b14318f3149688bf08f6af7f8b346876b2062b3c23ab2b410411354eef2610a0",
+    "open_P1": 0,
+    "open_P2": 0,
+    "packaging_author": "Root",
+    "packaging_reason": "Review verdict was complete. Root preserved its raw report and completed manifest/receipt packaging after stopping the finished review writer; no extra approval pass.",
+    "path": "artifacts/fixed-cad-search-20261006-01/final-review",
+    "receipt_sha256": "08b776253fa714e28bbd91ac82c34a9d124bdc637139776ddc562b55f62044c1",
+    "report_author": "field_kernel_publication_review",
+    "report_sha256": "9dcd5862d8b195c66346fb243e1271f372cd56eb65adea0b655168974bccbcae",
+    "scope": "Read-only source/raw journal/native fields/topology/retention/report and saved UI evidence; no new test/solver/provider.",
+    "status": "PASS_BOUNDED_SINGLE_BUNDLE"
+  },
+  "incumbent": {
+    "experiment_id": "E-C-fixed-native-search-r01-0002",
+    "objective": {
+      "experiment_id": "E-C-fixed-native-search-r01-0002",
+      "metric": "max_displacement",
+      "reason": null,
+      "source": "analysis",
+      "unit": "mm",
+      "valid": true,
+      "value": 0.00010246391359383945
+    },
+    "values": {
+      "elastic_E": 237516.03715280397,
+      "force_X": 118.32094174927697
+    }
+  },
+  "limits": "Single-solid linear static, scalar E/FX numerical scenarios; not inverse/identified cause/contact/assembly/general solver admission/global convergence.",
+  "mcp": {
+    "approved_model": "openai-codex/gpt-5.6-sol",
+    "fixed_cad_analysis_execution_by_existing_fixture_profile": "DENIED",
+    "interpretation": "Existing native result reader; new connected execution recorded separately if performed.",
+    "new_tool_descriptors": 0,
+    "profile_authority_expansion": 0
+  },
+  "native_producer_core_sha256": "eb1eca614b3b63690ec3251efc15f23d5e885951f131ee06724303ef96d91293",
+  "native_producer_domain_source_sha256": "2cab90a671d644c5f841a73e6dc5a5f99cf375c2f8796f79a79bf0a7697a01ab",
+  "native_runs": [
+    {
+      "analytical_maximum_mm": 0.00018091772986311168,
+      "conditions_id": "C-C-fixed-native-search-r01-0001",
+      "element_count": 905,
+      "experiment_id": "E-C-fixed-native-search-r01-0001",
+      "field_sha256": "897bdff41772f038ed42272f57fc01de137be67c70a5c3e3513148fd0684a490",
+      "index": 1,
+      "maximum_absolute_component_error_mm": 4.999870133258304e-11,
+      "native_producer": {
+        "core_commit": "772c003fe12e6f6cb7160b963fbb77a2b0f37be3",
+        "core_dirty": true,
+        "core_source_sha256": "eb1eca614b3b63690ec3251efc15f23d5e885951f131ee06724303ef96d91293"
+      },
+      "node_count": 1714,
+      "normalized_component_error": 2.8421687795967805e-07,
+      "reaction_relative_imbalance": 3.9380649211082395e-08,
+      "reference_status": "PASS",
+      "result_sha256": "fcddfbcebcd76507aa3f506e4e55b8c49c8f3b2fff9ef6bb42f3b48e28e9af1a",
+      "unchanged_limit": 1e-05,
+      "validation_counts": {
+        "FAIL": 0,
+        "PASS": 3,
+        "UNKNOWN": 8
+      },
+      "values": {
+        "elastic_E": 195972.34093384212,
+        "force_X": 172.3747480117702
+      },
+      "whole_maximum_vector_magnitude_mm": 0.0001809177054461572
+    },
+    {
+      "analytical_maximum_mm": 0.00010246391479277563,
+      "conditions_id": "C-C-fixed-native-search-r01-0002",
+      "element_count": 905,
+      "experiment_id": "E-C-fixed-native-search-r01-0002",
+      "field_sha256": "5b32c266144747111c27d6fc886b4df3f426720244fc6da02031c9853bdc90ee",
+      "index": 2,
+      "maximum_absolute_component_error_mm": 4.999893323326334e-12,
+      "native_producer": {
+        "core_commit": "772c003fe12e6f6cb7160b963fbb77a2b0f37be3",
+        "core_dirty": true,
+        "core_source_sha256": "eb1eca614b3b63690ec3251efc15f23d5e885951f131ee06724303ef96d91293"
+      },
+      "node_count": 1714,
+      "normalized_component_error": 5.018362898343356e-08,
+      "reaction_relative_imbalance": 1.7331902682760275e-08,
+      "reference_status": "PASS",
+      "result_sha256": "154154d616da0b8081439573be30d356a8a2d4ce883c056a74cc22dcf40ee776",
+      "unchanged_limit": 1e-05,
+      "validation_counts": {
+        "FAIL": 0,
+        "PASS": 3,
+        "UNKNOWN": 8
+      },
+      "values": {
+        "elastic_E": 237516.03715280397,
+        "force_X": 118.32094174927697
+      },
+      "whole_maximum_vector_magnitude_mm": 0.00010246391359383945
+    },
+    {
+      "analytical_maximum_mm": 0.0002110607172808281,
+      "conditions_id": "C-C-fixed-native-search-r01-0003",
+      "element_count": 905,
+      "experiment_id": "E-C-fixed-native-search-r01-0003",
+      "field_sha256": "a1f23493e65b4c8ce86d72a37cfd5db1884ffcf484cb12cd1cdbcc7e9dea4e48",
+      "index": 3,
+      "maximum_absolute_component_error_mm": 4.996697157324658e-11,
+      "native_producer": {
+        "core_commit": "772c003fe12e6f6cb7160b963fbb77a2b0f37be3",
+        "core_dirty": true,
+        "core_source_sha256": "eb1eca614b3b63690ec3251efc15f23d5e885951f131ee06724303ef96d91293"
+      },
+      "node_count": 1714,
+      "normalized_component_error": 2.4347136388162706e-07,
+      "reaction_relative_imbalance": 2.9121381879059595e-10,
+      "reference_status": "PASS",
+      "result_sha256": "e95a40eb99b098a1f6832235f0d30dd1d90769bcbdbbb426ef67b200925b7a13",
+      "unchanged_limit": 1e-05,
+      "validation_counts": {
+        "FAIL": 0,
+        "PASS": 3,
+        "UNKNOWN": 8
+      },
+      "values": {
+        "elastic_E": 188542.49257310355,
+        "force_X": 193.47033705634578
+      },
+      "whole_maximum_vector_magnitude_mm": 0.0002110607142822046
+    },
+    {
+      "analytical_maximum_mm": 0.00012360875923447345,
+      "conditions_id": "C-C-fixed-native-search-r01-0004",
+      "element_count": 905,
+      "experiment_id": "E-C-fixed-native-search-r01-0004",
+      "field_sha256": "18676a753d9c8b86e23a35105d1ed4fc241895c7e5c70549f000a1389a298a4f",
+      "index": 4,
+      "maximum_absolute_component_error_mm": 4.996594845231399e-11,
+      "native_producer": {
+        "core_commit": "772c003fe12e6f6cb7160b963fbb77a2b0f37be3",
+        "core_dirty": true,
+        "core_source_sha256": "eb1eca614b3b63690ec3251efc15f23d5e885951f131ee06724303ef96d91293"
+      },
+      "node_count": 1714,
+      "normalized_component_error": 4.157164007967995e-07,
+      "reaction_relative_imbalance": 1.650325435212094e-08,
+      "reference_status": "PASS",
+      "result_sha256": "5e6a34c7a05206c3e9f0f47f6ff38cb654560ae3c8c8e6c5fba689d2377b19e8",
+      "unchanged_limit": 1e-05,
+      "validation_counts": {
+        "FAIL": 0,
+        "PASS": 3,
+        "UNKNOWN": 8
+      },
+      "values": {
+        "elastic_E": 214538.65710111483,
+        "force_X": 128.92957147224365
+      },
+      "whole_maximum_vector_magnitude_mm": 0.00012360876692898648
+    },
+    {
+      "analytical_maximum_mm": 0.00014745662057342136,
+      "conditions_id": "C-C-fixed-native-search-r01-0005",
+      "element_count": 905,
+      "experiment_id": "E-C-fixed-native-search-r01-0005",
+      "field_sha256": "c4ea5f86b67bfd780f710023918e27b664da765cbe884171636655396d62fe00",
+      "index": 5,
+      "maximum_absolute_component_error_mm": 4.994089687691654e-11,
+      "native_producer": {
+        "core_commit": "772c003fe12e6f6cb7160b963fbb77a2b0f37be3",
+        "core_dirty": true,
+        "core_source_sha256": "eb1eca614b3b63690ec3251efc15f23d5e885951f131ee06724303ef96d91293"
+      },
+      "node_count": 1714,
+      "normalized_component_error": 3.483087070003095e-07,
+      "reaction_relative_imbalance": 1.3217758276654207e-08,
+      "reference_status": "PASS",
+      "result_sha256": "081f1ba5879ade9ca865649ffd8257f1ebe3d2ef231b2cccba1966c70c7f016d",
+      "unchanged_limit": 1e-05,
+      "validation_counts": {
+        "FAIL": 0,
+        "PASS": 3,
+        "UNKNOWN": 8
+      },
+      "values": {
+        "elastic_E": 221559.62602171363,
+        "force_X": 158.83735050052542
+      },
+      "whole_maximum_vector_magnitude_mm": 0.00014745658854015475
+    },
+    {
+      "analytical_maximum_mm": 0.00018738784419862421,
+      "conditions_id": "C-C-fixed-native-search-r01-0006",
+      "element_count": 905,
+      "experiment_id": "E-C-fixed-native-search-r01-0006",
+      "field_sha256": "a913531d3427ce50924c46d5f7b53fe94f1d8bdcdb29e0c63f64b498e0c54636",
+      "index": 6,
+      "maximum_absolute_component_error_mm": 4.992831525280593e-11,
+      "native_producer": {
+        "core_commit": "772c003fe12e6f6cb7160b963fbb77a2b0f37be3",
+        "core_dirty": true,
+        "core_source_sha256": "eb1eca614b3b63690ec3251efc15f23d5e885951f131ee06724303ef96d91293"
+      },
+      "node_count": 1714,
+      "normalized_component_error": 2.740171638345301e-07,
+      "reaction_relative_imbalance": 3.9605151216090976e-09,
+      "reference_status": "PASS",
+      "result_sha256": "976c29d5538dfc977c44a59310487002823117505f50e8c42eafec6c54461bed",
+      "unchanged_limit": 1e-05,
+      "validation_counts": {
+        "FAIL": 0,
+        "PASS": 3,
+        "UNKNOWN": 8
+      },
+      "values": {
+        "elastic_E": 215938.65914200628,
+        "force_X": 196.72952777915867
+      },
+      "whole_maximum_vector_magnitude_mm": 0.000187387829489172
+    },
+    {
+      "analytical_maximum_mm": 0.00012203762504278719,
+      "conditions_id": "C-C-fixed-native-search-r01-0007",
+      "element_count": 905,
+      "experiment_id": "E-C-fixed-native-search-r01-0007",
+      "field_sha256": "2441a83a8d97863d08baf7f6d2211c4a98d39fe600c8831ad8e4b0f84e988724",
+      "index": 7,
+      "maximum_absolute_component_error_mm": 4.993774930248454e-11,
+      "native_producer": {
+        "core_commit": "772c003fe12e6f6cb7160b963fbb77a2b0f37be3",
+        "core_dirty": true,
+        "core_source_sha256": "eb1eca614b3b63690ec3251efc15f23d5e885951f131ee06724303ef96d91293"
+      },
+      "node_count": 1714,
+      "normalized_component_error": 4.2083077076410326e-07,
+      "reaction_relative_imbalance": 7.507208938812302e-10,
+      "reference_status": "PASS",
+      "result_sha256": "8fda719b6c1c9466ce8a9de907d7cac5813168e68588dd120e30b2e58c7c8717",
+      "unchanged_limit": 1e-05,
+      "validation_counts": {
+        "FAIL": 0,
+        "PASS": 3,
+        "UNKNOWN": 8
+      },
+      "values": {
+        "elastic_E": 216091.9557146275,
+        "force_X": 128.21241530374732
+      },
+      "whole_maximum_vector_magnitude_mm": 0.00012203764329630796
+    },
+    {
+      "analytical_maximum_mm": 0.0002127559471456811,
+      "conditions_id": "C-C-fixed-native-search-r01-0008",
+      "element_count": 905,
+      "experiment_id": "E-C-fixed-native-search-r01-0008",
+      "field_sha256": "37da3e9c0e72e07845d7bb4eb500e5205af4a2f4b928f089f9d001a7f2f8a31e",
+      "index": 8,
+      "maximum_absolute_component_error_mm": 4.9994452534004447e-11,
+      "native_producer": {
+        "core_commit": "772c003fe12e6f6cb7160b963fbb77a2b0f37be3",
+        "core_dirty": true,
+        "core_source_sha256": "eb1eca614b3b63690ec3251efc15f23d5e885951f131ee06724303ef96d91293"
+      },
+      "node_count": 1714,
+      "normalized_component_error": 2.4166423299526774e-07,
+      "reaction_relative_imbalance": 2.9121381879059595e-10,
+      "reference_status": "PASS",
+      "result_sha256": "9f846f42a4fdb60ec3d3769784a1d0838fb935491e834ed9556b554e8aeef0fb",
+      "unchanged_limit": 1e-05,
+      "validation_counts": {
+        "FAIL": 0,
+        "PASS": 3,
+        "UNKNOWN": 8
+      },
+      "values": {
+        "elastic_E": 187040.19443059902,
+        "force_X": 193.47033705634578
+      },
+      "whole_maximum_vector_magnitude_mm": 0.00021275596629511615
+    },
+    {
+      "analytical_maximum_mm": 0.0001498505878776832,
+      "conditions_id": "C-C-fixed-native-search-r01-0009",
+      "element_count": 905,
+      "experiment_id": "E-C-fixed-native-search-r01-0009",
+      "field_sha256": "997adf072bad085fecf076f4641e6f814e96821a5b4f6f4ad1c159f600e0acf8",
+      "index": 9,
+      "maximum_absolute_component_error_mm": 4.9678596387428206e-11,
+      "native_producer": {
+        "core_commit": "772c003fe12e6f6cb7160b963fbb77a2b0f37be3",
+        "core_dirty": true,
+        "core_source_sha256": "eb1eca614b3b63690ec3251efc15f23d5e885951f131ee06724303ef96d91293"
+      },
+      "node_count": 1714,
+      "normalized_component_error": 3.40944065778797e-07,
+      "reaction_relative_imbalance": 6.171556043424429e-09,
+      "reference_status": "PASS",
+      "result_sha256": "28bc7e933096578f43139417ba22d108a9595d9875aa5fa4ca555fa8bb77cb9c",
+      "unchanged_limit": 1e-05,
+      "validation_counts": {
+        "FAIL": 0,
+        "PASS": 3,
+        "UNKNOWN": 8
+      },
+      "values": {
+        "elastic_E": 206730.90176021762,
+        "force_X": 150.6126966295128
+      },
+      "whole_maximum_vector_magnitude_mm": 0.0001498505556639364
+    },
+    {
+      "analytical_maximum_mm": 0.00011902596849337433,
+      "conditions_id": "C-C-fixed-native-search-r01-0010",
+      "element_count": 905,
+      "experiment_id": "E-C-fixed-native-search-r01-0010",
+      "field_sha256": "3d2674a905e29afa2d84790680f98b5a31127493ef9ce0da1e8d7e497ae4501c",
+      "index": 10,
+      "maximum_absolute_component_error_mm": 4.969210875844631e-11,
+      "native_producer": {
+        "core_commit": "772c003fe12e6f6cb7160b963fbb77a2b0f37be3",
+        "core_dirty": true,
+        "core_source_sha256": "eb1eca614b3b63690ec3251efc15f23d5e885951f131ee06724303ef96d91293"
+      },
+      "node_count": 1714,
+      "normalized_component_error": 4.2935643192855044e-07,
+      "reaction_relative_imbalance": 7.507208938812302e-10,
+      "reference_status": "PASS",
+      "result_sha256": "b7587cfbd4d3b8be5d9b152b4ed93792cae2bf89cd0eaa96935f817467787d5a",
+      "unchanged_limit": 1e-05,
+      "validation_counts": {
+        "FAIL": 0,
+        "PASS": 3,
+        "UNKNOWN": 8
+      },
+      "values": {
+        "elastic_E": 221559.62602171363,
+        "force_X": 128.21241530374732
+      },
+      "whole_maximum_vector_magnitude_mm": 0.0001190260050786638
+    }
+  ],
+  "new_CAD": 0,
+  "new_native_mesh": 10,
+  "new_provider": 0,
+  "new_solver": 10,
+  "next": [
+    "General observation/response-driven research using existing engines and approved reader",
+    "Original7part/84group assembly mechanics and remaining Phase2–7 gates",
+    "Provider reconnect, broader native/solver admission and result-read latency remain open."
+  ],
+  "original_source_files": {
+    "bytes": 15065282,
+    "count": 200,
+    "unchanged": true
+  },
+  "owned_main_prior_shutdown": {
+    "HTTP_idle_confirmed": true,
+    "LabExitCode": 0,
+    "RuntimeState": "STOPPED",
+    "run_name": "cae-native-workspace-20261006-02",
+    "scope": "Normal idle shutdown; not active provider cancellation/reconnect."
+  },
+  "physical": "UNKNOWN",
+  "plan_sha256": "4ae5cd49ce5515b4f9d77838ab2d1f91034bd133fe802dd108456f6586465e29",
+  "pre_direction_correction_source_files": {
+    "apps/lab/service.py": {
+      "bytes": 60326,
+      "sha256": "1dc6fd9e3be3ed3a35c762d85855824d6f567b13d99b718c4d2c63cbb7ed6674"
+    },
+    "apps/lab/static/app.js": {
+      "bytes": 246665,
+      "sha256": "948d24b42636b7eee8dd3b2ca4c7b4d9e98c25e68f9fe62a5d13994fb4b002d6"
+    },
+    "apps/lab/static/campaign-controls.js": {
+      "bytes": 20641,
+      "sha256": "9812ac84e945a13dfa14209905cb28df4315b78b57cdea21309f754c1a521cbf"
+    },
+    "apps/lab/static/comparison-research.js": {
+      "bytes": 26961,
+      "sha256": "bf2a256c628cf17ff1d824c2e24fb03f9a31457b2a158f4135296535bbcb4fbe"
+    },
+    "apps/lab/static/fixed-cad-campaign-controls.js": {
+      "bytes": 23785,
+      "sha256": "5d420f808034ab830a9825bfc0081670edaab698ac210d871033879df477ba4d"
+    },
+    "apps/lab/static/index.html": {
+      "bytes": 54794,
+      "sha256": "d9a0b1318725b4a85b851776f8f7ae7b406c60dd33cbe0dd7f581298b4a81a41"
+    },
+    "apps/lab/static/result-presentation.js": {
+      "bytes": 22005,
+      "sha256": "775bf78507923dba35e466139ea23eef19dfa1536033dcfa3ee8ba7316d92eb9"
+    },
+    "caelab/adapters/native_face_catalog.py": {
+      "bytes": 19416,
+      "sha256": "9e8c70375d1e6a7f240d6b4d8ffa0fc3dcdbeeed2c19d923288d63efa42ed598"
+    },
+    "caelab/adapters/native_structural.py": {
+      "bytes": 10833,
+      "sha256": "eb6d125a4ed62df7ab76858eba6e1dcd32cbfb9daf4434b42db7d2c6ef467f2c"
+    },
+    "caelab/adapters/native_structural_deck.py": {
+      "bytes": 7413,
+      "sha256": "b146ff68e24f54be13b3f6662f32334b6a5d2f096a4121cc5faa6a241d408467"
+    },
+    "caelab/adapters/native_structural_mesh_worker.py": {
+      "bytes": 8201,
+      "sha256": "7c15f7e04cac952df93be3a711f7bb19d0f65261a842a57d8d2de4b64b1225ba"
+    },
+    "caelab/condition_parameters.py": {
+      "bytes": 10131,
+      "sha256": "d3f2f8793e301d7155054a7cc3617db00486281042d5ddd6d7c7aaff246cc01f"
+    },
+    "caelab/engine.py": {
+      "bytes": 55419,
+      "sha256": "f3e5ba8cf3084c1436a7463f91ac86f42e94b2bcba14fe5433d88d7fd6c1d8ca"
+    },
+    "caelab/fixed_cad_optimization.py": {
+      "bytes": 7023,
+      "sha256": "c67f3a44eb36137691ca76466d2691c063a7f1cb1c841a1734768b9c933419e7"
+    },
+    "caelab/optimization.py": {
+      "bytes": 48351,
+      "sha256": "00d0624cb83d1fe066940671f9be00de4b0bf7d900c1a78c18899f48e89b49e2"
+    },
+    "caelab/optimizers/scipy_de.py": {
+      "bytes": 12774,
+      "sha256": "27ef1c683376cfc746bf7356960ed960ccead6a66a2233f7b860c27410552486"
+    },
+    "caelab/optimizers/scipy_lhs.py": {
+      "bytes": 3355,
+      "sha256": "b21fccd03462d92c79375868145d920d2e7899089196a0602824cc7e44b02a28"
+    },
+    "openscience/mcp_server.py": {
+      "bytes": 19731,
+      "sha256": "96cf995b9d99a0b16a02fb4bc1d43fbac74b31aed6485c08008332c0aa6149cc"
+    },
+    "plugins/elasticity/conditions.py": {
+      "bytes": 3213,
+      "sha256": "6760891114b0db3f2309f27459cfe7d1439285a5b19dfbb81bfa9fa1059f2d1c"
+    },
+    "plugins/elasticity/native_condition_inputs.py": {
+      "bytes": 7409,
+      "sha256": "2cab90a671d644c5f841a73e6dc5a5f99cf375c2f8796f79a79bf0a7697a01ab"
+    },
+    "plugins/elasticity/native_conditions.py": {
+      "bytes": 2736,
+      "sha256": "9ef4d482a56220ef958f23b77cb779871ebac3952ae86d2e78a391e28c7ad99d"
+    },
+    "schemas/analysis-conditions-request.schema.json": {
+      "bytes": 4598,
+      "sha256": "f36c69795a885ada4e87756679c8c73c6a21b5a3077ddcce55aa0f590708d821"
+    },
+    "schemas/optimization-plan.schema.json": {
+      "bytes": 3947,
+      "sha256": "507dda1151c57f1cde04cbffed226a123e51465e3ed9a053bd20a708f611c22a"
+    },
+    "schemas/optimization-result.schema.json": {
+      "bytes": 1909,
+      "sha256": "504ef2ff7895d9809e386ecf008b04a9997d511609d3c309458a1386edcd320b"
+    },
+    "tests/test_condition_campaign_workflow.js": {
+      "bytes": 36485,
+      "sha256": "0b6d8ebcf975d3f6b294cec3c499fe43cd61fceecc18e2ea56c167c911c28444"
+    },
+    "tests/test_condition_sampling.py": {
+      "bytes": 8579,
+      "sha256": "6d4716580739be30b9903456c8df7c08df752011bb281d17a8565df0393ecb57"
+    },
+    "tests/test_fixed_cad_campaign_controls.js": {
+      "bytes": 31258,
+      "sha256": "496f1ca5703018545b6ff4555e5a7ae3c49202e7bdfbe5b419eecc2c914baee1"
+    },
+    "tests/test_fixed_cad_optimization.py": {
+      "bytes": 10272,
+      "sha256": "602dcb30205b4d997a0ad66ac159a87ca6abdd34cc0dc00dbc2e645a7b99c588"
+    },
+    "tests/test_fixed_condition_mcp_admission.py": {
+      "bytes": 1066,
+      "sha256": "d140f06eff14ca3c13a7cc89351231b49ab746a45fc045552f5a36bd3c8de290"
+    },
+    "tests/test_native_condition_inputs.py": {
+      "bytes": 12885,
+      "sha256": "c78ab14c217a2874247b2607e8414ffe6da41885729eb16195f6e9aaef5c8e97"
+    },
+    "tests/test_result_presentation.js": {
+      "bytes": 35536,
+      "sha256": "3b3807b38861d91d31894d1c0c73c7b5bb7e53a9818b91ab8d478f28878f89f2"
+    }
+  },
+  "publication": "TESTED_REVIEWED_UNIT_READY_FOR_COMMIT_MAIN_FF_AND_REMOTE_PUSH; exact final commit/CI recorded after publication",
+  "read_seconds": 60.14384042005986,
+  "reader": {
+    "core_commit": "772c003fe12e6f6cb7160b963fbb77a2b0f37be3",
+    "core_dirty": true,
+    "core_source_sha256": "eb1eca614b3b63690ec3251efc15f23d5e885951f131ee06724303ef96d91293"
+  },
+  "recorded_source": {
+    "core_commit": "772c003fe12e6f6cb7160b963fbb77a2b0f37be3",
+    "core_dirty": true,
+    "core_source_sha256": "eb1eca614b3b63690ec3251efc15f23d5e885951f131ee06724303ef96d91293"
+  },
+  "report_zip_bytes": 815964,
+  "report_zip_sha256": "1e6da541a687fe03aba2cd910bd8035bf725c8f4e27f19ca99e1a3e377cab844",
+  "software_tests": {
+    "node_all_tests": {
+      "cancelled": 0,
+      "exit_code": 0,
+      "failed": 0,
+      "passed": 675,
+      "scope": "all tests/*.js on final production source; controlled DOM/source checks",
+      "seconds": 94.9613742
+    },
+    "node_new_presentation_cases": {
+      "cancelled": 0,
+      "failed": 0,
+      "passed": 24
+    },
+    "python_direction_correction": {
+      "failed": 0,
+      "passed": 63,
+      "scope": "Final Domain suite plus Core conflict registration, existing SciPy/historical replay and source drift3 cases; source-only native adapter.",
+      "seconds": 76.33
+    },
+    "python_http_mcp_boundary": {
+      "passed": 11,
+      "scope": "human HTTP and existing MCP boundary; no actual provider/native transport",
+      "seconds": 15.98
+    },
+    "python_source": {
+      "passed": 203,
+      "scope": "fixed conditions, Domain, SciPy input and existing model/condition campaigns; source-only native adapters; pre-direction-correction source pins retained separately",
+      "seconds": 647.24
+    }
+  },
+  "source_file_scope": "Final corrected bundle;10 native children retain their original pre-correction Domain producer. No native rerun is inferred.",
+  "source_files": {
+    "apps/lab/service.py": {
+      "bytes": 60326,
+      "sha256": "1dc6fd9e3be3ed3a35c762d85855824d6f567b13d99b718c4d2c63cbb7ed6674"
+    },
+    "apps/lab/static/app.js": {
+      "bytes": 246665,
+      "sha256": "948d24b42636b7eee8dd3b2ca4c7b4d9e98c25e68f9fe62a5d13994fb4b002d6"
+    },
+    "apps/lab/static/campaign-controls.js": {
+      "bytes": 20641,
+      "sha256": "9812ac84e945a13dfa14209905cb28df4315b78b57cdea21309f754c1a521cbf"
+    },
+    "apps/lab/static/comparison-research.js": {
+      "bytes": 26961,
+      "sha256": "bf2a256c628cf17ff1d824c2e24fb03f9a31457b2a158f4135296535bbcb4fbe"
+    },
+    "apps/lab/static/fixed-cad-campaign-controls.js": {
+      "bytes": 23785,
+      "sha256": "5d420f808034ab830a9825bfc0081670edaab698ac210d871033879df477ba4d"
+    },
+    "apps/lab/static/index.html": {
+      "bytes": 54794,
+      "sha256": "d9a0b1318725b4a85b851776f8f7ae7b406c60dd33cbe0dd7f581298b4a81a41"
+    },
+    "apps/lab/static/result-presentation.js": {
+      "bytes": 22005,
+      "sha256": "775bf78507923dba35e466139ea23eef19dfa1536033dcfa3ee8ba7316d92eb9"
+    },
+    "caelab/adapters/native_face_catalog.py": {
+      "bytes": 19416,
+      "sha256": "9e8c70375d1e6a7f240d6b4d8ffa0fc3dcdbeeed2c19d923288d63efa42ed598"
+    },
+    "caelab/adapters/native_structural.py": {
+      "bytes": 10833,
+      "sha256": "eb6d125a4ed62df7ab76858eba6e1dcd32cbfb9daf4434b42db7d2c6ef467f2c"
+    },
+    "caelab/adapters/native_structural_deck.py": {
+      "bytes": 7413,
+      "sha256": "b146ff68e24f54be13b3f6662f32334b6a5d2f096a4121cc5faa6a241d408467"
+    },
+    "caelab/adapters/native_structural_mesh_worker.py": {
+      "bytes": 8201,
+      "sha256": "7c15f7e04cac952df93be3a711f7bb19d0f65261a842a57d8d2de4b64b1225ba"
+    },
+    "caelab/condition_parameters.py": {
+      "bytes": 10131,
+      "sha256": "d3f2f8793e301d7155054a7cc3617db00486281042d5ddd6d7c7aaff246cc01f"
+    },
+    "caelab/engine.py": {
+      "bytes": 55419,
+      "sha256": "f3e5ba8cf3084c1436a7463f91ac86f42e94b2bcba14fe5433d88d7fd6c1d8ca"
+    },
+    "caelab/fixed_cad_optimization.py": {
+      "bytes": 7023,
+      "sha256": "c67f3a44eb36137691ca76466d2691c063a7f1cb1c841a1734768b9c933419e7"
+    },
+    "caelab/optimization.py": {
+      "bytes": 48351,
+      "sha256": "00d0624cb83d1fe066940671f9be00de4b0bf7d900c1a78c18899f48e89b49e2"
+    },
+    "caelab/optimizers/scipy_de.py": {
+      "bytes": 12774,
+      "sha256": "27ef1c683376cfc746bf7356960ed960ccead6a66a2233f7b860c27410552486"
+    },
+    "caelab/optimizers/scipy_lhs.py": {
+      "bytes": 3355,
+      "sha256": "b21fccd03462d92c79375868145d920d2e7899089196a0602824cc7e44b02a28"
+    },
+    "openscience/mcp_server.py": {
+      "bytes": 19731,
+      "sha256": "96cf995b9d99a0b16a02fb4bc1d43fbac74b31aed6485c08008332c0aa6149cc"
+    },
+    "plugins/elasticity/conditions.py": {
+      "bytes": 3213,
+      "sha256": "6760891114b0db3f2309f27459cfe7d1439285a5b19dfbb81bfa9fa1059f2d1c"
+    },
+    "plugins/elasticity/native_condition_inputs.py": {
+      "bytes": 9848,
+      "sha256": "a892d3973540d633d4470d0ccb65267c60158a655c479b58b3c6b15901ce3487"
+    },
+    "plugins/elasticity/native_conditions.py": {
+      "bytes": 2736,
+      "sha256": "9ef4d482a56220ef958f23b77cb779871ebac3952ae86d2e78a391e28c7ad99d"
+    },
+    "schemas/analysis-conditions-request.schema.json": {
+      "bytes": 4598,
+      "sha256": "f36c69795a885ada4e87756679c8c73c6a21b5a3077ddcce55aa0f590708d821"
+    },
+    "schemas/optimization-plan.schema.json": {
+      "bytes": 3947,
+      "sha256": "507dda1151c57f1cde04cbffed226a123e51465e3ed9a053bd20a708f611c22a"
+    },
+    "schemas/optimization-result.schema.json": {
+      "bytes": 1909,
+      "sha256": "504ef2ff7895d9809e386ecf008b04a9997d511609d3c309458a1386edcd320b"
+    },
+    "tests/test_condition_campaign_workflow.js": {
+      "bytes": 36485,
+      "sha256": "0b6d8ebcf975d3f6b294cec3c499fe43cd61fceecc18e2ea56c167c911c28444"
+    },
+    "tests/test_condition_sampling.py": {
+      "bytes": 8579,
+      "sha256": "6d4716580739be30b9903456c8df7c08df752011bb281d17a8565df0393ecb57"
+    },
+    "tests/test_fixed_cad_campaign_controls.js": {
+      "bytes": 31258,
+      "sha256": "496f1ca5703018545b6ff4555e5a7ae3c49202e7bdfbe5b419eecc2c914baee1"
+    },
+    "tests/test_fixed_cad_optimization.py": {
+      "bytes": 11821,
+      "sha256": "a65871584a229f4947645823442216a806a29a7bb445ee3b9e9e7710a1a665a9"
+    },
+    "tests/test_fixed_condition_mcp_admission.py": {
+      "bytes": 1066,
+      "sha256": "d140f06eff14ca3c13a7cc89351231b49ab746a45fc045552f5a36bd3c8de290"
+    },
+    "tests/test_native_condition_inputs.py": {
+      "bytes": 15836,
+      "sha256": "41e436b1b1127914c7b047f59873c086ac2ba20cf956f10b05ae8b35c9aa3bff"
+    },
+    "tests/test_result_presentation.js": {
+      "bytes": 35536,
+      "sha256": "3b3807b38861d91d31894d1c0c73c7b5bb7e53a9818b91ab8d478f28878f89f2"
+    }
+  },
+  "status": "PASS_BOUNDED_ACTUAL_NUMERICAL_SEARCH",
+  "store": "/mnt/c/Users/pikac/.codex/worktrees/generic-cad-mechanics/autonomous-cae-lab/runs/cae-fixed-cad-search-20261006-01",
+  "termination": {
+    "algorithm": {
+      "atol": 1e-12,
+      "bounds": [
+        [
+          180000.0,
+          240000.0
+        ],
+        [
+          100.0,
+          200.0
+        ]
+      ],
+      "constraint_convention": "dimensionless_residual_le_zero",
+      "constraint_count": 0,
+      "engine": "scipy.differential_evolution",
+      "initial_population": [
+        {
+          "elastic_E": 195972.34093384212,
+          "force_X": 172.3747480117702
+        },
+        {
+          "elastic_E": 237516.03715280397,
+          "force_X": 118.32094174927697
+        },
+        {
+          "elastic_E": 188542.49257310355,
+          "force_X": 193.47033705634578
+        },
+        {
+          "elastic_E": 214538.65710111483,
+          "force_X": 128.92957147224365
+        },
+        {
+          "elastic_E": 221559.62602171363,
+          "force_X": 158.83735050052542
+        }
+      ],
+      "initial_values": null,
+      "initialization": {
+        "engine": "scipy.stats.qmc.LatinHypercube",
+        "optimization": null,
+        "rng": "numpy.random.default_rng",
+        "scramble": true,
+        "seed": 13,
+        "strength": 1
+      },
+      "internal_availability_constraint": true,
+      "max_generations": 1,
+      "memoization": "exact_float_hex",
+      "mutation": [
+        0.5,
+        1.0
+      ],
+      "numpy_version": "2.3.5",
+      "parameter_order": [
+        "elastic_E",
+        "force_X"
+      ],
+      "polish": false,
+      "population_size": 5,
+      "recombination": 0.7,
+      "rng": "numpy.random.default_rng",
+      "seed": 13,
+      "strategy": "best1bin",
+      "tol": 1e-08,
+      "updating": "deferred",
+      "vectorized": false,
+      "version": "1.17.0",
+      "workers": 1
+    },
+    "candidate_values": {
+      "elastic_E": 237516.03715280397,
+      "force_X": 118.32094174927697
+    },
+    "constraint_residuals": [],
+    "converged": false,
+    "evaluation_count": 10,
+    "generations": 1,
+    "objective": 0.00010246391359383945,
+    "termination_reason": "MAX_GENERATIONS"
+  },
+  "whole_52_phase_1_7": "INCOMPLETE"
+}

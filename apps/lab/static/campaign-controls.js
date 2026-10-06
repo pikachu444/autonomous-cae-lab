@@ -239,6 +239,12 @@
     return { conditions_id: record.id, analysis_backend: record.request.backend };
   }
   function conditionTemplate(plan) {
+    if (mapping(plan) && jsonValue(plan) && plan.route === "fixed_cad_analysis") {
+      if (typeof root.fixedCadCampaignControls?.frozenPlan !== "function") {
+        throw new Error("고정 CAD 조건 계획을 읽을 입력 검증 도구가 로드되지 않았습니다.");
+      }
+      return root.fixedCadCampaignControls.frozenPlan(plan);
+    }
     requireValue(mapping(plan) && jsonValue(plan) && mapping(plan.analysis) && mapping(plan.analysis.conditions_template),
       "이 계획에는 고정한 저장 CAD 조건이 없습니다.");
     const template = plan.analysis.conditions_template, reference = template.reference, record = savedCondition(template.record);

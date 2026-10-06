@@ -32,6 +32,23 @@ class NativeStructuralAdapter:
     default_metrics = ['max_displacement', 'applied_force', 'reaction_force']
 
     @staticmethod
+    def condition_input_descriptors(catalog, declaration):
+        from plugins.elasticity.native_condition_inputs import describe
+        return describe(catalog, declaration)
+
+    @staticmethod
+    def bind_condition_inputs(catalog, declaration, assignments):
+        from plugins.elasticity.native_condition_inputs import apply
+        return apply(catalog, declaration, assignments)
+
+    @staticmethod
+    def condition_input_policy_identity():
+        root = Path(__file__).resolve().parents[2]
+        names = ['plugins/elasticity/native_condition_inputs.py', 'plugins/elasticity/native_conditions.py',
+                 'plugins/elasticity/conditions.py', 'schemas/analysis-conditions-request.schema.json']
+        return {name: hashlib.sha256((root/name).read_bytes()).hexdigest() for name in names}
+
+    @staticmethod
     def conditions_preflight(catalog, declaration):
         from plugins.elasticity.native_conditions import support
         return support(catalog, declaration)

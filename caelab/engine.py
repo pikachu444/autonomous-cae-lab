@@ -182,6 +182,18 @@ class Lab:
         from .analysis_conditions import list_records
         return list_records(self, experiment_id)
 
+    def discover_condition_parameters(self, conditions_id: str) -> dict:
+        from .condition_parameters import describe
+        return describe(self, conditions_id)
+
+    def register_condition_parameter(self, **arguments) -> dict:
+        from .condition_parameters import register
+        return register(self, **arguments)
+
+    def plan_condition_optimization(self, **arguments) -> dict:
+        from .optimization import plan_condition_optimization
+        return plan_condition_optimization(self, **arguments)
+
     @_registration_guard
     def registry(self, study_id: str) -> dict[str, Any]:
         return load_json(self.store / "studies" / check_id(study_id) / "parameters.json")

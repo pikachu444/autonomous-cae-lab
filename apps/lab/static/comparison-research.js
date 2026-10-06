@@ -170,6 +170,8 @@
       rows.every(row => mapping(row) && ordinal(row.index)) && new Set(rows.map(row => row.index)).size === rows.length,
     "실제 보존 후보 1~12개를 중복 없이 선택하세요.");
     const model = (record.route ?? plan.route) === "model_analysis";
+    const fixedCad = (record.route ?? plan.route) === "fixed_cad_analysis";
+    requireValue(!planned || !fixedCad, "현재 AI 실행 범위에는 고정 CAD 조건 탐색이 없습니다. 사람이 계획을 실행한 뒤 실제 후보 해석을 질문에 연결하세요.");
     const selected = indexes.map(index => rows.find(row => row.index === index));
     requireValue(selected.every(row => row && row.decision === "NOT_RELEASED" &&
       (model ? id(row.model_experiment_id) && digest(row.model_result_sha256) : id(row.cad_experiment_id) && digest(row.cad_result_sha256) &&
@@ -196,6 +198,28 @@
         `원 조건 해시 ${reference.record_sha256} · catalog 개정 ${reference.catalog_revision}`,
         ...declarationLines(saved.request.declaration),
         "각 실제 후보 CAD 개정에 정확한 대상 선택을 다시 연결한 정책: REVISION_REBIND_EXACT_SELECTIONS. 실제 자식 요약의 analysis_conditions_context에서 후보별 조건 ID·개정·동결 선언을 확인해 주세요."];
+    }
+    if (fixedCad) {
+      const frozen = plan.fixed_cad, saved = frozen?.record, reference = frozen?.reference, source = frozen?.source;
+      requireValue(mapping(frozen) && frozen.rebind_policy === "FIXED_CAD_NO_REBIND" && mapping(saved) && mapping(reference) &&
+        mapping(source) && source.study_id === studyId && id(source.experiment_id) && id(saved.id) &&
+        saved.id === frozen.conditions_id && saved.id === reference.id && saved.conditions_revision === frozen.conditions_revision &&
+        saved.conditions_revision === reference.revision && saved.catalog_revision === frozen.catalog_revision &&
+        saved.catalog_revision === reference.catalog_revision && frozen.backend === plan.analysis?.backend &&
+        source.backend === plan.backend && saved.source.experiment_id === source.experiment_id &&
+        saved.engineering === "UNKNOWN" && saved.decision === "NOT_RELEASED" &&
+        [source.cad_revision, source.result_sha256, source.proposal_sha256, source.thread_sha256,
+          reference.record_sha256, frozen.template_revision, frozen.condition_input_descriptors_sha256].every(digest) &&
+        selected.every(row => row.cad_experiment_id === source.experiment_id && id(row.conditions_id) &&
+          digest(row.condition_binding_sha256) && mapping(row.condition_declaration) && row.condition_input_rejection === null),
+      "고정 CAD·조건 template과 실제 후보의 새 조건·결과 연결을 확인할 수 없습니다.");
+      conditionsId = saved.id; sourceExperimentId = source.experiment_id;
+      context = [`원 CAD ${sourceExperimentId} · CAD 개정 ${source.cad_revision} · FIXED_CAD_NO_REBIND`,
+        `기준 조건 ${saved.id} · 조건 개정 ${saved.conditions_revision} · template ${frozen.template_revision}`,
+        ...declarationLines(saved.request.declaration),
+        "CAD·native 면·mesh 크기는 고정했습니다. CAD 형상 변수와 별개로 다음 재료·하중 연구 입력을 수치 엔진이 변경했습니다.",
+        ...selected.map(row => `후보 ${row.index}: ${JSON.stringify(row.values)} · 새 조건 ${row.conditions_id} · 바인딩 ${row.condition_binding_sha256}`),
+        "각 실제 자식 결과의 analysis_conditions_context에서 후보별 동결 조건·재료/하중의 ASSUMED 시나리오 출처를 확인하세요. 같은 CAD여도 서로 다른 메시의 절점 ID가 같은 위치를 뜻한다고 추정하지 마세요."];
     }
     const references = selected.map(row => ({ index: row.index, cadExperimentId: model ? null : row.cad_experiment_id,
       experimentId: model ? row.model_experiment_id : plan.analysis ? row.analysis_experiment_id : row.cad_experiment_id }));

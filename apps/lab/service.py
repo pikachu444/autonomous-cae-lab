@@ -34,10 +34,13 @@ OPERATIONS = {
     "model_parameters_discover": "discover_model_parameters",
     "model_parameters_register": "register_model_parameter",
     "model_optimization_plan": "plan_model_optimization",
+    "condition_parameters_discover": "discover_condition_parameters",
+    "condition_parameters_register": "register_condition_parameter",
+    "condition_optimization_plan": "plan_condition_optimization",
     "response_comparison_save": "save_response_comparison",
     "analysis_conditions_save": "save_analysis_conditions",
 }
-READ_OPERATIONS = frozenset({"parameter_discover", "native_inspect", "model_parameters_discover"})
+READ_OPERATIONS = frozenset({"parameter_discover", "native_inspect", "model_parameters_discover", "condition_parameters_discover"})
 REFERENCE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 
 
@@ -207,6 +210,9 @@ class LabService:
             "model_parameters_discover": ("해석 모델 변수 찾기", None, "IMPLEMENTED", "adapter가 선언한 수치 입력과 단위·범위"),
             "model_parameters_register": ("해석 모델 변수 등록", None, "IMPLEMENTED", "선택한 입력만 변경하고 나머지 모델 선언 보존"),
             "model_optimization_plan": ("해석 모델 최적화 계획", "scipy.differential_evolution", "IMPLEMENTED", "공통 수치 엔진과 model 기준 목적 함수·제약·재개 기록"),
+            "condition_parameters_discover": ("고정 CAD의 조건 입력 찾기", "structure.calculix.native", "EXPERIMENTAL", "같은 CAD 개정의 재료 E·ν와 명시한 힘 성분; engineering UNKNOWN"),
+            "condition_parameters_register": ("조건 연구 변수 등록", "structure.calculix.native", "EXPERIMENTAL", "원 CAD·면·조건 출처를 보존하는 선언 수치 입력"),
+            "condition_optimization_plan": ("고정 CAD 조건 탐색 계획", "scipy.differential_evolution", "EXPERIMENTAL", "CAD를 재생성하지 않고 조건 후보·실제 native 자식·결과 비교; AI 실행 admission은 별도"),
         }
         lab = self._selected().lab
         rows = [{"operation": operation, "label": label, "backend": backend,

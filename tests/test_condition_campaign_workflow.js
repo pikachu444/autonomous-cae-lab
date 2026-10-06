@@ -258,7 +258,7 @@ test("actual source workflow saves frozen plan, human-runs same campaign, reopen
   assert.equal(planned.intent, "RUN_SAVED_OPTIMIZATION"); assert.match(h.$("researchQuestion").value, /^작성 중인 가설 질문/);
   const run = h.all().find(node => Object.hasOwn(node.dataset, "campaignRun")); await click(run);
   assert.equal(completed, true); assert.equal(h.ui.state.selectedCampaign.record.status, "COMPLETED_REVIEW_REQUIRED");
-  assert.match(h.$("campaignDetail").textContent, /A-C-campaign-0001/); assert.match(h.$("campaignDetail").textContent, /FZ=-217.25 N/);
+  assert.match(h.$("campaignDetail").textContent, /A-C-campaign-0001/); assert.match(h.$("campaignDetail").textContent, /FX 0 \/ FY 0 \/ FZ -217.25 N/);
   const answerDraft = h.ui.prepareCampaignResearch(h.ui.state.selectedCampaign, [0, 1]);
   assert.equal(answerDraft.intent, "INTERPRET_SAVED_RESULTS"); assert.match(h.$("researchQuestion").value, /새 계산·최적화 실행 없이/);
   assert.equal((h.$("researchQuestion").value.match(/작성 중인 가설 질문/g) ?? []).length, 1);

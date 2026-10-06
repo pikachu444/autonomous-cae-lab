@@ -1,3 +1,20 @@
+## Fixed-CAD scalar condition research — ADR0047
+
+Core's existing numerical campaign route now supports `fixed_cad_analysis`:
+one verified CAD parent and frozen geometry parameters, adapter-advertised Domain
+material/load scalar mappings, new typed candidate conditions and native children,
+then the same immutable journal/results/field/report and approved result reader.
+Domain owns engineering admission and explicit ASSUMED scenario provenance; the
+adapter owns native syntax. Existing SciPy engines retain candidate generation.
+No CAD regeneration, native face rebinding, replacement optimizer or LLM search.
+
+Human HTTP executes this bounded route. Existing fixture-only AI execution scope
+does not inherit it from a campaign ID; OpenScience interprets actual native
+records through the existing approved reader. Source drift blocks new execution;
+Domain rejection preserves null feedback/no native child, completed history uses
+frozen snapshots. Original models, UNKNOWN/NOT_RELEASED and whole52/Phase gaps stay.
+
+---
 ## Native-face mechanics addition — ADR0046
 
 Core conditions/registry/parent provenance remain common. Domain owns single-solid isotropic/partial-DOF admission; adapter owns unique native-face geometry association, Gmsh/CCX syntax and complete native field. The UI reads the same revision/artifacts in outline, field viewport and properties. Existing fixture support is separate and now rejects partial base constraints.

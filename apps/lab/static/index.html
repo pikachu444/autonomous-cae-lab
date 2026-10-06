@@ -13,6 +13,7 @@
   <script src="/static/cad-controls.js" defer></script>
   <script src="/static/analysis-conditions-controls.js" defer></script>
   <script src="/static/native-upload-controls.js" defer></script>
+  <script src="/static/fixed-cad-campaign-controls.js" defer></script>
   <script src="/static/campaign-controls.js" defer></script>
   <script src="/static/imported-mesh-controls.js" defer></script>
   <script src="/static/pde-field-inspector.js" defer></script>
@@ -212,7 +213,25 @@
 
       <section id="explore" data-panel="explore" hidden>
         <div class="page-heading"><div><p class="eyebrow">04 / EXPLORE</p><h1>수치 엔진이 생성하는 후보.</h1><p class="lead">고정한 계획과 seed를 바탕으로 탐색하고, 실패한 설계도 기록에 남깁니다.</p></div><span class="outline-label">DOE / Numerical Optimization</span></div>
-        <article class="card model-card"><fieldset data-read-job><label>탐색 대상<select id="campaignTarget"><option value="cad">등록된 CAD 설계 변수</option><option value="model">선언한 해석 모델 입력 · 최적화</option></select></label></fieldset></article>
+        <article class="card model-card"><fieldset data-read-job><label>탐색 대상<select id="campaignTarget"><option value="cad">등록된 CAD 설계 변수</option><option value="analysis_conditions">같은 CAD · 저장 조건의 재료값·하중 탐색</option><option value="model">선언한 해석 모델 입력 · 최적화</option></select></label></fieldset></article>
+        <article id="fixedCadConditionsArea" class="card separated" hidden>
+          <fieldset data-read-job>
+            <div class="card-heading"><div><p class="eyebrow">FIXED CAD / CONDITIONS</p><h2>같은 형상에서 재료값·하중을 탐색</h2></div></div>
+            <div class="button-row"><button type="button" id="fixedCadUseConditionsBtn" class="button secondary" disabled>해석 화면의 저장 조건 연결</button><button type="button" id="fixedCadDiscoverBtn" class="button primary" data-operation="condition_parameters_discover" disabled>변경 가능한 입력 확인</button></div>
+            <div id="fixedCadConditionsSummary" class="context-readout">해석 화면에서 같은 native CAD의 저장 조건 C0를 연 뒤 연결하세요.</div>
+            <p id="fixedCadConditionsError" class="metric-reason" role="status" hidden></p>
+            <p class="hint">원 CAD와 native 면, 변위 경계·접촉·메시는 고정합니다. 선택한 재료값·명시된 합력 성분의 범위만 기존 수치 엔진이 탐색합니다.</p>
+          </fieldset>
+          <form id="fixedCadRegisterForm" class="separated"><fieldset data-write>
+            <h3>광고된 입력을 연구 변수로 등록</h3>
+            <label>변경할 입력<select id="fixedCadInputId" required disabled><option value="">먼저 변경 가능한 입력을 확인하세요</option></select></label>
+            <div id="fixedCadInputSummary" class="context-readout">입력을 선택하면 원 값·단위·등록 가능한 수치 범위가 나타납니다.</div>
+            <div class="form-grid"><label>연구 변수 ID<input id="fixedCadParameterId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,63}" autocomplete="off"></label><label>표시 이름<input id="fixedCadParameterName" required></label></div>
+            <div class="form-grid"><label>하한<input id="fixedCadParameterLower" type="number" step="any" required></label><label>상한<input id="fixedCadParameterUpper" type="number" step="any" required></label></div>
+            <div class="form-footer"><small>원 값을 포함하는 범위로 등록하세요. 자유 변수 · 연속 수치 입력.</small><button id="fixedCadRegisterBtn" class="button secondary" data-operation="condition_parameters_register" disabled>변수 등록</button></div>
+          </fieldset></form>
+          <p class="hint">목적 응답은 전체 솔리드 절점의 최대 |U| (mm)입니다. 계산 후보는 ASSUMED 수치 시나리오이며 실측값·유일한 원인·공학 승인이 아닙니다.</p>
+        </article>
         <article id="declaredModelArea" class="card separated" hidden>
           <fieldset data-read-job>
             <h2>해석 모델의 입력 변수</h2>

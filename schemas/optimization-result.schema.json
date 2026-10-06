@@ -6,7 +6,7 @@
   "required": ["schema_version", "campaign_id", "study_id", "status", "decision", "plan_sha256", "registry_sha256", "algorithm", "objective", "constraints", "evaluations", "incumbent", "termination", "provenance", "completed_utc"],
   "properties": {
     "schema_version": {"const": "1.0"}, "campaign_id": {"type": "string"}, "study_id": {"type": "string"},
-    "route": {"const": "model_analysis"},
+    "route": {"enum": ["model_analysis", "fixed_cad_analysis"]},
     "status": {"enum": ["COMPLETED_REVIEW_REQUIRED", "NO_FEASIBLE_DESIGN"]}, "decision": {"const": "NOT_RELEASED"},
     "plan_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "registry_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "algorithm": {"type": "object"}, "objective": {"type": "object"}, "constraints": {"type": "array"},

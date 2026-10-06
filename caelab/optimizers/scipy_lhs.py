@@ -13,20 +13,43 @@ ENGINE = "scipy.latin_hypercube"
 
 
 def sample(variables: list[dict], *, count: int, seed: int) -> tuple[list[dict[str, float]], dict]:
-    if not variables or type(count) is not int or not 2 <= count <= 32:
+    if not isinstance(variables, list) or not variables or type(count) is not int or not 2 <= count <= 32:
         raise ValueError("DOE requires 1+ variables and 2–32 samples")
     if type(seed) is not int or not 0 <= seed <= 2**32 - 1:
         raise ValueError("DOE seed must be an unsigned 32-bit integer")
-    names = [v["parameter_id"] for v in variables]
-    if len(set(names)) != len(names):
-        raise ValueError("DOE variables must be distinct")
+    names = []
     for variable in variables:
-        lower, upper = variable["lower_bound"], variable["upper_bound"]
-        if (variable["kind"] != "continuous" or variable["mode"] != "free" or
-                variable["geometry_effect"]["status"] != "PASS" or
-                not all(type(x) in (int, float) and math.isfinite(x) for x in (lower, upper)) or
-                lower >= upper):
-            raise ValueError("DOE variable requires finite continuous free bounds and CAD effect")
+        if not isinstance(variable, dict):
+            raise ValueError("DOE variables must be registry entries")
+        name = variable.get("parameter_id")
+        if not isinstance(name, str) or not name.strip() or name in names:
+            raise ValueError("DOE variable IDs must be nonempty and distinct")
+        target = variable.get("target", "cad")
+        if target == "cad":
+            effect = variable.get("geometry_effect")
+        elif target == "analysis_conditions":
+            effect = variable.get("input_effect")
+        else:
+            raise ValueError("DOE variable target must be CAD or analysis_conditions")
+        lower, upper = variable.get("lower_bound"), variable.get("upper_bound")
+        try:
+            finite_bounds = (all(type(x) in (int, float) and math.isfinite(x) for x in (lower, upper))
+                             and lower < upper and math.isfinite(upper - lower))
+        except (TypeError, OverflowError):
+            finite_bounds = False
+        if (variable.get("kind") != "continuous" or variable.get("mode") != "free" or
+                not isinstance(effect, dict) or effect.get("status") != "PASS" or not finite_bounds):
+            raise ValueError("DOE variable requires finite continuous free bounds and PASS registered binding effect")
+        if target == "analysis_conditions" and "current_value" in variable:
+            current = variable["current_value"]
+            try:
+                valid_current = (type(current) in (int, float) and math.isfinite(current)
+                                 and lower <= current <= upper)
+            except (TypeError, OverflowError):
+                valid_current = False
+            if not valid_current:
+                raise ValueError("DOE condition current value must be finite and within its bounds")
+        names.append(name)
     unit_cube = qmc.LatinHypercube(d=len(variables), strength=1, optimization=None,
                                    rng=numpy.random.default_rng(seed)).random(count)
     points = [{v["parameter_id"]: float(v["lower_bound"] +

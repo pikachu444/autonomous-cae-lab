@@ -362,7 +362,13 @@ def optimization_plan(study_id: str, campaign_id: str, backend: str, model: str,
 @_single_writer
 def optimization_run(campaign_id: str) -> dict:
     """Run or exactly replay adaptive numerical evaluations; preserve invalid evidence and stop backend failures."""
-    return _lab().run_optimization(campaign_id)
+    lab = _lab()
+    from caelab.optimization import _plan
+    plan, *_ = _plan(lab, campaign_id)
+    if plan.get('route') == 'fixed_cad_analysis':
+        from caelab.contracts import CapabilityUnavailable
+        raise CapabilityUnavailable('The existing AI execution profile does not admit fixed-CAD condition searches; use the human Lab control, then read retained candidate results.')
+    return lab.run_optimization(campaign_id)
 
 
 @mcp.tool()

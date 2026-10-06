@@ -160,7 +160,10 @@
     return "연결된 해석의 재료·하중·메시 조건을 확인한 뒤, 해석 화면에서 새 실험을 실행하세요.";
   }
   function recordedOperation(operation, result) {
-    if (!["doe_plan", "optimization_plan", "model_optimization_plan", "doe_run", "optimization_run"].includes(operation) && own(result, "status") !== undefined) return null;
+    if (!["doe_plan", "optimization_plan", "model_optimization_plan", "condition_optimization_plan", "doe_run", "optimization_run"].includes(operation) && own(result, "status") !== undefined) return null;
+    if (operation === 'condition_parameters_discover' && named(own(result, 'conditions_id')) &&
+        own(result, 'rebind_policy') === 'FIXED_CAD_NO_REBIND' && object(own(result, 'source')) && Array.isArray(own(result, 'candidates')) && result.candidates.length > 0)
+      return step('조건 입력 발견됨 · 해석 안 함', '변경할 재료·하중 입력과 연구 범위를 선택해 등록하세요.', 'recorded');
     const native = own(result, "native");
     if (["parameter_discover", "model_parameters_discover"].includes(operation) && Array.isArray(result) && result.every(item =>
       object(own(item, "native")) && ["backend", "document", "object", "path"].every(key => named(own(item.native, key)))))
@@ -176,12 +179,12 @@
         own(own(result, "support"), "native_runtime") === "NOT_CHECKED")
       return step("조건 저장됨 · 해석 안 함",
         "같은 CAD 개정의 입력과 solver 지원 판정을 확인하세요. 저장 조건은 실제 해석 실행이나 공학적 승인이 아닙니다.", "recorded");
-    if (["parameter_register", "model_parameters_register"].includes(operation) && named(own(result, "parameter_id")) && object(native) &&
+    if (["parameter_register", "model_parameters_register", "condition_parameters_register"].includes(operation) && named(own(result, "parameter_id")) && object(native) &&
       ["backend", "document", "object", "path"].every(key => named(own(native, key))))
       return step("연구 변수 등록됨", "등록된 변수의 단위·범위와 입력 조건을 확인한 뒤 실험을 준비하세요. 등록은 해석 실행이나 사용 승인이 아닙니다.", "recorded");
     if (operation === "registry_refresh" && Number.isInteger(own(result, "revision")) && result.revision >= 0 && Array.isArray(own(result, "entries")))
       return step("CAD 등록부 갱신됨", "갱신된 변수와 모델 입력 조건을 확인하세요. 기존 실험은 새로 실행된 결과가 아닙니다.", "recorded");
-    if (["doe_plan", "optimization_plan", "model_optimization_plan"].includes(operation) && named(own(result, "campaign_id")) && own(result, "status") === "PLANNED")
+    if (["doe_plan", "optimization_plan", "model_optimization_plan", "condition_optimization_plan"].includes(operation) && named(own(result, "campaign_id")) && own(result, "status") === "PLANNED")
       return step("수치 탐색 계획 저장됨", "계획의 변수·목적·제약 조건을 검토하세요. 후보 실험은 아직 실행되지 않았습니다.", "recorded");
     const imported = own(result, "native_import"), input = own(imported, "input");
     if (operation === "native_import" && fullMatch(/^[0-9a-f]{32}$/, own(result, "design")) &&

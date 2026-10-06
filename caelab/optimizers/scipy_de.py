@@ -42,7 +42,13 @@ def _validated_variables(variables: list[dict]) -> tuple[list[str], list[list[fl
         name = variable.get("parameter_id")
         if not isinstance(name, str) or not name.strip() or name in names:
             raise ValueError("Optimization variable IDs must be nonempty and distinct")
-        effect = variable.get("input_effect") if variable.get("target") == "model_analysis" else variable.get("geometry_effect")
+        target = variable.get("target", "cad")
+        if target == "cad":
+            effect = variable.get("geometry_effect")
+        elif target in ("model_analysis", "analysis_conditions"):
+            effect = variable.get("input_effect")
+        else:
+            raise ValueError("Optimization variable target must be CAD, model_analysis or analysis_conditions")
         if (variable.get("kind") != "continuous" or variable.get("mode") != "free" or
                 not isinstance(effect, dict) or effect.get("status") != "PASS"):
             raise ValueError("Optimization requires continuous free variables with PASS registered binding effect")
@@ -54,6 +60,11 @@ def _validated_variables(variables: list[dict]) -> tuple[list[str], list[list[fl
         # finite endpoints whose range would overflow that representation.
         if not math.isfinite(upper - lower) or not math.isfinite(upper + lower):
             raise ValueError("Optimization bounds must have a finite scaling range")
+        if target == "analysis_conditions" and "current_value" in variable:
+            current = variable["current_value"]
+            _finite_number(current, f"{name} current value")
+            if not variable["lower_bound"] <= current <= variable["upper_bound"]:
+                raise ValueError("Optimization condition current value must lie within its bounds")
         names.append(name)
         bounds.append([lower, upper])
     return names, bounds

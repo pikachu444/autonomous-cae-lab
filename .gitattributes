@@ -129,3 +129,19 @@ scripts/accept_native_structural.py -text
 
 # Retain the unmodified locally served mathematical renderer and license.
 apps/lab/static/vendor/** -text
+
+# Preserve tested fixed-CAD condition-search bytes and producer hashes.
+caelab/condition_parameters.py -text
+caelab/fixed_cad_optimization.py -text
+caelab/optimizers/scipy_de.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+caelab/optimizers/scipy_lhs.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+plugins/elasticity/native_condition_inputs.py -text
+schemas/optimization-plan.schema.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+schemas/optimization-result.schema.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+apps/lab/static/fixed-cad-campaign-controls.js -text
+tests/test_condition_sampling.py -text
+tests/test_fixed_cad_optimization.py -text
+tests/test_fixed_condition_mcp_admission.py -text
+tests/test_native_condition_inputs.py -text
+tests/test_fixed_cad_campaign_controls.js -text
+tests/test_result_presentation.js -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

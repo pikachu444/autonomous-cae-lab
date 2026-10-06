@@ -19,6 +19,7 @@ const state = {
   comparisonResearchDraft: "",
   comparisonResearchPrefix: "",
   campaignConditions: { selection: null, request: 0, loading: false, error: "" },
+  fixedCad: { selection: null, discovery: null, request: 0, loading: false },
   campaignResearchSelection: { key: "", indexes: new Set() },
   campaignResearchDraft: "", campaignResearchPrefix: "",
   observationRequest: 0,
@@ -35,11 +36,13 @@ const operationNames = {
   optimization_run: "수치 최적화 실행",
   model_parameters_discover: "모델 입력 발견·환경 확인", model_parameters_register: "모델 연구 변수 등록",
   model_optimization_plan: "해석 모델 최적화 계획 저장",
+  condition_parameters_discover: "고정 CAD의 조건 입력 발견", condition_parameters_register: "조건 연구 변수 등록",
+  condition_optimization_plan: "고정 CAD 조건 탐색 계획 저장",
   research_run: "AI 연구 질문",
   response_comparison_save: "관측·시험 기준 비교 저장",
   analysis_conditions_save: "같은 CAD 개정의 해석 조건 저장",
 };
-const readOperations = new Set(["parameter_discover", "native_inspect", "model_parameters_discover"]);
+const readOperations = new Set(["parameter_discover", "native_inspect", "model_parameters_discover", "condition_parameters_discover"]);
 const labels = {
   PASS: "통과", FAIL: "조건 미충족", UNKNOWN: "미확인", WARNING: "검토 필요",
   NOT_RELEASED: "공학적 사용 미승인", RELEASED: "공학적 사용 승인", VERIFIED: "기록·원본 일치",
@@ -191,6 +194,7 @@ function selectedEntries() {
     (item.native.document === model || item.native.document === `${model}.py`));
 }
 function isModelCampaign() { return $("campaignTarget").value === "model"; }
+function isFixedCadCampaign() { return $("campaignTarget").value === "analysis_conditions"; }
 function modelContext() {
   const preset = state.presets[$("modelCampaignPreset").value];
   if (!preset?.declared_inputs) throw new Error("선언된 입력 변수를 지원하는 모델을 선택하세요.");
@@ -467,6 +471,7 @@ function updateControls() {
   if (!observationReady()) $("observationSaveBtn").disabled = true;
   updateAnalysisConditionsControls();
   updateCampaignConditionsControls();
+  updateFixedCadControls();
   updateResearchControls();
   updateEngineeringWorkspace();
 }
@@ -785,6 +790,12 @@ function renderAnalysisConditionsRecord() {
   card.append(el("p", "네이티브 runtime NOT_CHECKED · 실제 실행은 새 해석 기록에서 확인", "hint"));
   if (conditions.recordDraft !== JSON.stringify(analysisConditionsFields())) card.append(el("p", "저장 후 작성 입력이 변경됐습니다. 새 조건 ID로 저장하거나 이 보존 조건을 다시 연 뒤 실행하세요.", "metric-reason"));
   const declaration = record.request.declaration;
+  card.append(table(["보존 조건", "입력·출처"], conditionReadoutRows(record)));
+  card.append(rawDetail("보존한 재료·구속·부호 하중·좌표계·단위·접촉·메시", declaration), rawDetail("같은 CAD 원본 해시·요청·서버 판정", record),
+    link("조건 원본 JSON 저장", `/api/analysis-conditions/${idPath(record.id)}`, "text-link", true));
+}
+function conditionReadoutRows(record) {
+  const declaration = record.request.declaration;
   const selectionName = id => {
     const target = list(record.catalog?.selections).find(item => item.id === id);
     return target?.native_name ? `${target.native_object} / ${target.native_name}` : target?.label ?? id;
@@ -794,9 +805,7 @@ function renderAnalysisConditionsRecord() {
   list(declaration.boundary_conditions).slice(0, 64).forEach(item => rows.push([`변위 구속 · ${selectionName(item.selection_id)}`, `${displacementCaption(item.components)} ${item.unit} · ${item.coordinate_system} · ${item.source}`]));
   list(declaration.loads).slice(0, 64).forEach(item => rows.push([`합력 · ${selectionName(item.selection_id)}`, `FX ${number(item.components?.FX)} / FY ${number(item.components?.FY)} / FZ ${number(item.components?.FZ)} ${item.unit} · ${item.coordinate_system} · ${item.source}`]));
   rows.push(["접촉 모델", `${declaration.contact?.mode} · ${declaration.contact?.source}`], ["선택 메시", `${number(declaration.mesh?.max_size_mm)} mm · ${declaration.mesh?.mode}`]);
-  card.append(table(["보존 조건", "입력·출처"], rows));
-  card.append(rawDetail("보존한 재료·구속·부호 하중·좌표계·단위·접촉·메시", declaration), rawDetail("같은 CAD 원본 해시·요청·서버 판정", record),
-    link("조건 원본 JSON 저장", `/api/analysis-conditions/${idPath(record.id)}`, "text-link", true));
+  return rows;
 }
 function renderAnalysisConditionsList() {
   if (!analysisConditionsEnabled()) return;
@@ -1043,21 +1052,24 @@ function renderRegistry() {
 function renderCampaignVariables() {
   if (state.campaignSelectionKey) state.campaignSelections.set(state.campaignSelectionKey,
     new Set([...document.querySelectorAll("[data-campaign-variable]:checked")].map((item) => item.value)));
-  const model = isModelCampaign();
-  const key = model ? state.modelContext : JSON.stringify([activeStore(), state.studyId, $("cadBackend").value, $("cadModel").value.trim()]);
+  const model = isModelCampaign(), fixed = isFixedCadCampaign();
+  const key = fixed ? JSON.stringify(["fixed", state.fixedCad.selection?.sourceKey]) : model ? state.modelContext : JSON.stringify([activeStore(), state.studyId, $("cadBackend").value, $("cadModel").value.trim()]);
   const selected = state.campaignSelections.get(key);
-  const free = model ? modelCampaignEntries() : campaignCadEntries();
+  const free = fixed ? fixedCadEntries() : model ? modelCampaignEntries() : campaignCadEntries();
   const variables = clear("campaignVariables");
   state.campaignSelectionKey = key;
   variables.classList.toggle("empty-state", !free.length);
-  if (!free.length) variables.append(el("p", model ? "현재 설정으로 변수를 발견하고, 연속·자유·입력 변경 PASS인 연구 변수를 등록하세요." : "이 모델에 연속·자유·형상 효과 PASS로 등록된 변수가 필요합니다."));
+  if (!free.length) variables.append(el("p", fixed ? "보존한 CAD 조건을 연결하고 변경 가능한 재료·하중을 연구 변수로 등록하세요." : model ? "현재 설정으로 변수를 발견하고, 연속·자유·입력 변경 PASS인 연구 변수를 등록하세요." : "이 모델에 연속·자유·형상 효과 PASS로 등록된 변수가 필요합니다."));
   free.forEach((entry, index) => {
     const label = el("label", undefined, "variable-option"); const input = el("input"); input.type = "checkbox"; input.value = entry.parameter_id; input.dataset.campaignVariable = "";
     input.checked = selected ? selected.has(entry.parameter_id) : index === 0;
     input.addEventListener("change", updateControls);
     label.append(input, el("strong", `${entry.display_name} · ${entry.parameter_id}`), el("small", `${number(entry.lower_bound)}–${number(entry.upper_bound)} ${entry.unit}`)); variables.append(label);
   });
-  if (model) {
+  if (fixed) {
+    const selected = state.fixedCad.selection;
+    $("campaignModel").textContent = selected ? `${state.studyId} · 원 CAD ${selected.record.source.experiment_id}\n같은 CAD 개정과 면을 유지하며 선언한 수치 입력만 변경합니다. 물리적 자격 UNKNOWN.` : "해석 화면에서 같은 native CAD의 저장 조건을 먼저 연결하세요.";
+  } else if (model) {
     const preset = state.presets[$("modelCampaignPreset").value];
     $("campaignModel").textContent = `${state.studyId || "연구 미선택"} · ${preset?.backend ?? "모델 미선택"}\n${state.modelDiscovery[0]?.native.document ?? "설정 확인·변수 발견 필요"}\n모델 설정·등록부·실행 환경을 고정합니다. 물리적 자격 UNKNOWN, NOT_RELEASED.`;
   } else $("campaignModel").textContent = `${state.studyId || "연구 미선택"} · ${$("cadBackend").value} · ${$("cadModel").value.trim()}\n설계 화면의 작업 모델과 등록부를 고정해 사용합니다.`;
@@ -1399,7 +1411,7 @@ function fixtureSimulationSettings() {
   return $("fixtureConditionFields").hidden ? settings : window.fixtureControls.validate(settings);
 }
 function campaignConditionsEnabled() { return Boolean(window.campaignControls?.conditionSelection && $("campaignAnalysisSource")); }
-function usesSavedCampaignConditions() { return campaignConditionsEnabled() && !isModelCampaign() && $("campaignAnalysisSource").value === "saved"; }
+function usesSavedCampaignConditions() { return campaignConditionsEnabled() && !isModelCampaign() && !isFixedCadCampaign() && $("campaignAnalysisSource").value === "saved"; }
 function campaignCadEntries() {
   if (!usesSavedCampaignConditions()) return selectedEntries().filter(entry => entry.mode === "free" && entry.kind === "continuous" && entry.geometry_effect?.status === "PASS");
   if (!campaignConditionsCurrent()) return [];
@@ -1502,15 +1514,108 @@ function campaignFormSignature() {
     ids.map(id => $(id)?.value ?? ""), [...document.querySelectorAll("[data-campaign-variable]:checked")].map(input => input.value),
     state.registry, usesSavedCampaignConditions() ? campaignConditionSignature() : null]);
 }
+function fixedCadElements() {
+  return { input: $("fixedCadInputId"), parameterId: $("fixedCadParameterId"), displayName: $("fixedCadParameterName"),
+    lower: $("fixedCadParameterLower"), upper: $("fixedCadParameterUpper"), summary: $("fixedCadInputSummary") };
+}
+function fixedCadSignature() {
+  return JSON.stringify([activeStore(), state.studyId, $("cadBackend").value, $("cadModel").value.trim(),
+    analysisConditionsEnabled() ? analysisConditionsCapture(true) : null, state.analysisConditions.record?.id,
+    state.analysisConditions.record?.conditions_revision]);
+}
+function fixedCadCurrent() {
+  const selected = state.fixedCad.selection;
+  if (!selected || state.storeSwitching || selected.sourceKey !== fixedCadSignature()) return false;
+  try {
+    const record = campaignConditionSource();
+    return window.fixedCadCampaignControls.sameContext(selected, { store: activeStore(), studyId: state.studyId,
+      backend: $("cadBackend").value, model: $("cadModel").value.trim(), conditionsId: record.id,
+      conditionsRevision: record.conditions_revision, cadRevision: record.source.cad_revision, catalogRevision: record.catalog_revision });
+  } catch { return false; }
+}
+function fixedCadEntries() {
+  if (!fixedCadCurrent() || !state.fixedCad.discovery) return [];
+  try { return window.fixedCadCampaignControls.eligibleEntries(list(state.registry.entries), state.fixedCad.discovery, state.fixedCad.selection); }
+  catch { return []; }
+}
+function fixedCadError(message = "") {
+  $("fixedCadConditionsError").textContent = message; $("fixedCadConditionsError").hidden = !message;
+}
+function withdrawFixedCad(message = "CAD·저장 조건 또는 작성 내용이 바뀌었습니다. 같은 원본 조건을 다시 연결하세요.") {
+  state.fixedCad.request++; state.fixedCad.loading = false; state.fixedCad.selection = null; state.fixedCad.discovery = null;
+  fixedCadError(message); clear("fixedCadInputId"); option($("fixedCadInputId"), "", "고정 CAD 조건을 다시 연결하세요");
+  $("fixedCadConditionsSummary").textContent = "현재 CAD·조건에 연결된 입력을 다시 확인하세요. 등록 입력 초안은 보존했습니다.";
+}
+function updateFixedCadControls() {
+  if (!window.fixedCadCampaignControls || !$("fixedCadConditionsArea")) return;
+  const fixed = state.fixedCad;
+  if (fixed.selection && !fixedCadCurrent()) withdrawFixedCad();
+  let sourceReady = false;
+  try { sourceReady = campaignConditionSource().request.backend === "structure.calculix.native"; } catch { /* Action reports missing conditions. */ }
+  const blocked = busy() || !writable() || fixed.loading || !state.studyId;
+  $("fixedCadUseConditionsBtn").disabled = blocked || !sourceReady;
+  $("fixedCadDiscoverBtn").disabled ||= blocked || !fixedCadCurrent();
+  $("fixedCadInputId").disabled = blocked || !fixed.discovery || !fixedCadCurrent();
+  $("fixedCadRegisterBtn").disabled ||= blocked || !fixed.discovery || !$("fixedCadInputId").value || !fixedCadCurrent();
+  if (isFixedCadCampaign() && (blocked || !fixedCadCurrent() || !fixed.discovery || !fixedCadEntries().length)) $("campaignPlanBtn").disabled = true;
+}
+async function prepareFixedCad(navigate = false) {
+  if (busy() || !writable() || state.fixedCad.loading) return;
+  const fixed = state.fixedCad;
+  let record;
+  try { record = campaignConditionSource(); } catch (error) { fixedCadError(error.message); return; }
+  if (!isFixedCadCampaign()) { $("campaignTarget").value = "analysis_conditions"; campaignTargetChanged(); }
+  const sourceKey = fixedCadSignature(), request = ++fixed.request;
+  const current = () => !state.storeSwitching && request === fixed.request && sourceKey === fixedCadSignature() && isFixedCadCampaign();
+  fixed.loading = true; fixed.selection = null; fixed.discovery = null; fixedCadError(); updateControls();
+  try {
+    const inspection = await api(`/api/experiments/${idPath(record.source.experiment_id)}`);
+    if (!current()) return;
+    const selected = window.fixedCadCampaignControls.selection(record, inspection, { store: activeStore(), studyId: state.studyId,
+      backend: $("cadBackend").value, model: $("cadModel").value.trim() });
+    fixed.selection = { ...selected, sourceKey };
+    const summary = clear("fixedCadConditionsSummary");
+    summary.append(el("strong", `원 CAD ${record.source.experiment_id} · 저장 조건 ${record.id}`), el("p", `CAD 개정 ${record.source.cad_revision.slice(0,16)}`, "mono"));
+    summary.append(table(["보존 조건", "입력·출처"], conditionReadoutRows(record)), rawDetail("원 CAD·조건 식별자·전체 해시", record));
+    summary.append(el("p", "같은 CAD와 native 면을 유지합니다. 재료·하중 성분만 변경하며, 변동 값은 가정 시나리오로 저장됩니다.", "hint"));
+    renderCampaignVariables();
+    if (navigate) { location.hash = "explore"; showArea("explore"); }
+  } catch (error) { if (current()) fixedCadError(error.message); }
+  finally { if (request === fixed.request) { fixed.loading = false; updateControls(); } }
+}
+async function discoverFixedCadInputs() {
+  if (!fixedCadCurrent() || busy() || !writable()) return;
+  const fixed = state.fixedCad, selected = fixed.selection, request = ++fixed.request;
+  const current = () => request === fixed.request && selected === fixed.selection && fixedCadCurrent();
+  try {
+    await runJob("condition_parameters_discover", { conditions_id: selected.record.id }, reply => {
+      if (!current()) return;
+      window.fixedCadCampaignControls.validateDiscovery(reply, selected); fixed.discovery = reply;
+      window.fixedCadCampaignControls.populateInputs(reply, selected, fixedCadElements());
+      renderCampaignVariables(); fixedCadError();
+    }, current);
+  } catch (error) { if (current()) fixedCadError(error.message); }
+}
+async function registerFixedCadInput(event) {
+  event.preventDefault();
+  if (!fixedCadCurrent() || !state.fixedCad.discovery || busy() || !writable()) return;
+  const fixed = state.fixedCad, selected = fixed.selection, discovered = fixed.discovery;
+  const current = () => selected === fixed.selection && discovered === fixed.discovery && fixedCadCurrent();
+  try {
+    const fields = window.fixedCadCampaignControls.readRegistration(fixedCadElements());
+    const args = window.fixedCadCampaignControls.registerArguments(fields, discovered, selected);
+    await runJob("condition_parameters_register", args, () => { if (current()) { renderCampaignVariables(); fixedCadError(); } }, current);
+  } catch (error) { if (current()) fixedCadError(error.message); }
+}
 function campaignArguments() {
-  const model = isModelCampaign();
+  const model = isModelCampaign(), fixed = isFixedCadCampaign();
   const args = { study_id: state.studyId, campaign_id: $("campaignId").value.trim(), parameter_ids: [...document.querySelectorAll("[data-campaign-variable]:checked")].map(input => input.value), seed: numeric("campaignSeed") };
-  if (!model) { args.backend = $("cadBackend").value; args.model = $("cadModel").value.trim(); }
+  if (!model && !fixed) { args.backend = $("cadBackend").value; args.model = $("cadModel").value.trim(); }
   if (!args.parameter_ids.length) throw new Error("등록된 자유 변수를 하나 이상 선택하세요.");
   if (usesSavedCampaignConditions()) {
     if (!campaignConditionsCurrent()) throw new Error("원 CAD·현재 등록 변수와 검증한 저장 조건을 다시 연결하세요. 직접 설정으로 대체하지 않습니다.");
     Object.assign(args, window.campaignControls.conditionPlanArguments(state.campaignConditions.selection, campaignConditionContext(), args.parameter_ids));
-  } else if (!model && $("campaignAnalysis").value) {
+  } else if (!model && !fixed && $("campaignAnalysis").value) {
     if (!window.cadControls.supportsBackend(state.presets.structural_linear, args.backend)) throw new Error("현재 CAD 모델에 연결된 후속 구조 해석이 없습니다. CAD만 실행할 수 있습니다.");
     args.analysis_backend = state.presets.structural_linear.backend; args.analysis_settings = parseField("campaignAnalysisSettings", "object");
   }
@@ -1519,7 +1624,11 @@ function campaignArguments() {
     args.constraints = parseField("optimizationConstraints", "array"); args.initial_values = parseField("optimizationInitial", "nullable-object"); args.required_validations = parseField("optimizationRequired", "object");
     args.max_generations = numeric("optimizationGenerations"); args.population_size = numeric("optimizationPopulation"); args.engine = "scipy.differential_evolution";
   } else { args.sample_count = numeric("campaignSamples"); args.engine = "scipy.latin_hypercube"; }
-  if (model) {
+  if (fixed) {
+    if (!fixedCadCurrent() || !state.fixedCad.discovery) throw new Error("같은 CAD의 보존 조건과 입력 변수를 다시 확인하세요.");
+    args.conditions_id = state.fixedCad.selection.record.id;
+    return window.fixedCadCampaignControls.planArguments(args, { selection: state.fixedCad.selection, discovery: state.fixedCad.discovery, entries: list(state.registry.entries) });
+  } else if (model) {
     if (!currentModelDiscovery() || $("campaignType").value !== "optimization") throw new Error("선언한 모델 입력은 현재 설정의 변수 발견을 거친 최적화 계획으로 실행합니다.");
     const context = modelContext();
     return window.campaignControls.modelPlanArguments(args, { backend: context.backend, settings: context.settings, entries: modelCampaignEntries() });
@@ -1540,10 +1649,10 @@ async function submitCampaignPlan() {
     }, current);
   } catch (error) { if (current()) notify(error.message); }
 }
-function campaignOperation() { return isModelCampaign() ? "model_optimization_plan" : $("campaignType").value === "optimization" ? "optimization_plan" : "doe_plan"; }
+function campaignOperation() { return isFixedCadCampaign() ? "condition_optimization_plan" : isModelCampaign() ? "model_optimization_plan" : $("campaignType").value === "optimization" ? "optimization_plan" : "doe_plan"; }
 function applyFixtureCampaignDefaults() {
   const note = $("fixtureCampaignNote"), previous = state.fixtureCampaignDefaults;
-  if (isModelCampaign()) { note.hidden = true; return; }
+  if (isModelCampaign() || isFixedCadCampaign()) { note.hidden = true; return; }
   if (usesSavedCampaignConditions()) { note.hidden = true; return; }
   const enabled = Boolean($("campaignAnalysis").value);
   $("campaignAnalysisDetails").hidden = !enabled;
@@ -1573,13 +1682,14 @@ function campaignTargetChanged() {
   state.campaignDrafts[previous] = Object.fromEntries(["objectiveSource", "objectiveDirection", "objectiveMetric", "objectiveUnit", "optimizationConstraints", "optimizationInitial", "optimizationRequired"].map((id) => [id, $(id).value]));
   if (previous === "cad") state.cadCampaignType = $("campaignType").value;
   state.campaignTarget = $("campaignTarget").value;
-  const model = isModelCampaign();
-  const draft = state.campaignDrafts[state.campaignTarget] ?? { objectiveSource: model ? "model" : "cad", objectiveDirection: "minimize", objectiveMetric: model ? "" : "cad_volume", objectiveUnit: model ? "" : "mm^3", optimizationConstraints: "[]", optimizationInitial: "null", optimizationRequired: model ? '{"model": []}' : '{"cad": [], "analysis": []}' };
+  const model = isModelCampaign(), fixed = isFixedCadCampaign();
+  const draft = state.campaignDrafts[state.campaignTarget] ?? { objectiveSource: fixed ? "analysis" : model ? "model" : "cad", objectiveDirection: "minimize", objectiveMetric: fixed ? "max_displacement" : model ? "" : "cad_volume", objectiveUnit: fixed ? "mm" : model ? "" : "mm^3", optimizationConstraints: "[]", optimizationInitial: "null", optimizationRequired: model ? '{"model": []}' : '{"cad": [], "analysis": []}' };
   Object.entries(draft).forEach(([id, value]) => { $(id).value = value; });
-  $("campaignType").value = model ? "optimization" : state.cadCampaignType;
-  $("campaignType").querySelector('[value="doe"]').disabled = model;
-  $("declaredModelArea").hidden = !model; $("campaignCadAnalysis").hidden = model;
-  $("objectiveSource").querySelectorAll("option").forEach((item) => { item.disabled = model ? item.value !== "model" : item.value === "model"; });
+  $("campaignType").value = model || fixed ? "optimization" : state.cadCampaignType;
+  $("campaignType").querySelector('[value="doe"]').disabled = model || fixed;
+  $("declaredModelArea").hidden = !model; $("campaignCadAnalysis").hidden = model || fixed;
+  $("fixedCadConditionsArea").hidden = !fixed;
+  $("objectiveSource").querySelectorAll("option").forEach((item) => { item.disabled = fixed ? item.value !== "analysis" : model ? item.value !== "model" : item.value === "model"; });
   campaignMode(); renderCampaignVariables();
   try { applyFixtureCampaignDefaults(); } catch (error) { notify(error.message); }
 }
@@ -1655,7 +1765,7 @@ function renderCampaignDetail() {
   const data = state.selectedCampaign; if (!data) return;
   const container = clear("campaignDetail"), record = data.record, plan = data.plan;
   data.conditionsVerified = true;
-  if (plan.analysis?.conditions_template) {
+  if (plan.analysis?.conditions_template || plan.route === 'fixed_cad_analysis') {
     try { window.campaignControls.conditionTemplate(plan); }
     catch { data.conditionsVerified = false; }
   }
@@ -1667,14 +1777,14 @@ function renderCampaignDetail() {
   if (algorithm) summary.append(el("p", `${algorithm.engine} ${algorithm.version} · seed ${algorithm.seed}`, "mono"));
   container.append(summary);
   if (!campaignViewCurrent(data)) container.append(el("p", "이 기록의 연구를 선택한 뒤 실행·결과·질문 연결을 사용하세요.", "hint"));
-  if (plan.analysis?.conditions_template) {
+  if (plan.analysis?.conditions_template || plan.route === 'fixed_cad_analysis') {
     try {
       const template = window.campaignControls.conditionTemplate(plan), source = template.record.source;
       const frozen = el("section", undefined, "context-readout separated");
       frozen.append(el("h3", `고정 조건 ${template.reference.id}`), el("p", `원 CAD ${source.experiment_id} · CAD 개정 ${source.cad_revision}`, "mono"));
-      window.comparisonResearch.declarationLines(template.record.request.declaration).forEach(line => frozen.append(el("p", line, "hint")));
+      frozen.append(table(["보존 조건", "입력·출처"], conditionReadoutRows(template.record)));
       frozen.append(el("p", "서버 지원 선언 · native runtime NOT_CHECKED · USER_DECLARED_UNVERIFIED · 공학 자격 UNKNOWN · NOT_RELEASED", "hint"),
-        el("p", "후보 개정마다 동일한 선택·좌표계 의미를 다시 확인하고 새 조건을 보존합니다. 실제 자식 결과에서 해당 개정의 동결 조건을 확인하세요.", "hint"), rawDetail("고정한 원 조건·선택 재연결 정책·참조 해시", template));
+        el("p", plan.route === 'fixed_cad_analysis' ? "같은 CAD 개정·native 면·메시 크기를 유지합니다. 선택한 재료·하중 성분과 가정 출처만 새 조건으로 보존하며 후보마다 실제 해석을 수행합니다." : "후보 개정마다 동일한 선택·좌표계 의미를 다시 확인하고 새 조건을 보존합니다. 실제 자식 결과에서 해당 개정의 동결 조건을 확인하세요.", "hint"), rawDetail("고정한 원 조건·선택 재연결 정책·참조 해시", template));
       container.append(frozen);
     } catch (error) { container.append(el("p", `고정 조건 확인 실패: ${error.message}`, "metric-reason")); }
   }
@@ -1713,7 +1823,10 @@ function renderCampaignDetail() {
         handoff.dataset.ready = String(ready()); updateControls();
       }); choose.append(input);
     } else choose.append(el("small", "실제 해석 확인 전"));
-    const values = el("div", row.index ?? row.id ?? "후보"); values.append(el("small", text(row.values), "mono"));
+    const values = el("div", row.index ?? row.id ?? "후보");
+    Object.entries(row.values ?? {}).forEach(([id, value]) => { const variable = plan.variables?.find(item => item.parameter_id === id); values.append(el("small", `${variable?.display_name ?? id}: ${number(value)} ${variable?.unit ?? ''}`)); });
+    if (row.objective?.valid) values.append(el("strong", `${row.objective.metric} = ${number(row.objective.value)} ${row.objective.unit}`));
+    if (row.condition_input_rejection) values.append(el("small", row.condition_input_rejection, "metric-reason"));
     const cad = el("div"); cad.append(campaignResultButton(data, row, "cad"), el("small", row.cad_status ?? "계획됨"));
     const analysis = el("div"); analysis.append(campaignResultButton(data, row, "analysis"), el("small", row.analysis_status ?? "미실행"));
     const verdict = el("div"); if (typeof row.numerically_feasible === "boolean") verdict.append(badge(row.numerically_feasible ? "PASS" : "FAIL", row.numerically_feasible ? "수치 조건 충족" : "수치 조건 미충족"));
@@ -2744,6 +2857,7 @@ async function switchStore(identifier) {
   // Invalidate pending parent/artifact reads before the server changes stores.
   state.storeSwitching = true; state.experimentRequest++; state.fixtureViewer?.destroy(); state.fixtureViewer = null; updateControls();
   invalidateAnalysisConditions();
+  withdrawFixedCad();
   withdrawCampaignConditions(); state.campaignRequest++;
   let overview;
   try { overview = await api("/api/store", { method: "POST", body: JSON.stringify({ id: identifier }) }); }
@@ -2818,7 +2932,7 @@ if (campaignConditionsEnabled()) {
     updateControls();
   });
   $("campaignUseConditionsBtn").addEventListener("click", () => prepareCampaignConditions(false));
-  $("analysisConditionsExploreBtn").addEventListener("click", () => prepareCampaignConditions(true));
+  $("analysisConditionsExploreBtn").addEventListener("click", () => state.analysisConditions.record?.request?.backend === "structure.calculix.native" ? prepareFixedCad(true) : prepareCampaignConditions(true));
 }
 bindForm("observationForm", "response_comparison_save", observationArguments, completeObservation, observationSubmissionContext);
 $("observationResponse").addEventListener("change", changeObservationResponse);
@@ -2859,6 +2973,15 @@ $("fixtureUseInCampaign").addEventListener("click", () => {
 });
 $("campaignType").addEventListener("change", campaignMode);
 $("campaignTarget").addEventListener("change", campaignTargetChanged);
+$("fixedCadUseConditionsBtn").addEventListener("click", () => prepareFixedCad());
+$("fixedCadDiscoverBtn").addEventListener("click", discoverFixedCadInputs);
+$("fixedCadRegisterForm").addEventListener("submit", registerFixedCadInput);
+$("fixedCadInputId").addEventListener("change", () => {
+  if (!fixedCadCurrent() || !state.fixedCad.discovery || !$("fixedCadInputId").value) return;
+  try { window.fixedCadCampaignControls.selectInput($("fixedCadInputId").value, state.fixedCad.discovery, state.fixedCad.selection, fixedCadElements()); fixedCadError(); }
+  catch (error) { fixedCadError(error.message); }
+  updateControls();
+});
 $("modelCampaignPreset").addEventListener("change", selectModelCampaignPreset);
 $("modelCampaignSettings").addEventListener("input", invalidateModelDiscovery);
 $("modelInputId").addEventListener("change", () => chooseModelCandidate($("modelInputId").value));

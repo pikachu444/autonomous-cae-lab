@@ -9,7 +9,9 @@
     "campaign_id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,57}$"},
     "study_id": {"type": "string"}, "status": {"const": "PLANNED"},
     "backend": {"type": "string"}, "model": {"type": "string"},
-    "route": {"const": "model_analysis"},
+    "route": {"enum": ["model_analysis", "fixed_cad_analysis"]},
+    "fixed_cad": {"type": "object", "required": ["source", "backend", "conditions_id", "conditions_revision", "catalog_revision", "template_revision", "descriptors", "condition_input_descriptors_sha256", "candidates", "fingerprint", "record", "reference", "rebind_policy"],
+      "properties": {"rebind_policy": {"const": "FIXED_CAD_NO_REBIND"}, "template_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "descriptors": {"type": "array", "minItems": 1, "maxItems": 32}}},
     "model_template": {"type": "object"},
     "model_template_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "model_input_descriptors": {"type": "array", "minItems": 1, "maxItems": 32},
@@ -29,17 +31,19 @@
     "analysis": {"type": ["object", "null"]}, "failure_policy": {"type": "object"}, "created_utc": {"type": "string"}
   },
   "allOf": [{
-    "if": {"required": ["route"]},
+    "if": {"required": ["route"], "properties": {"route": {"const": "model_analysis"}}},
     "then": {
       "required": ["model_template", "model_template_revision", "model_input_descriptors", "model_declaration", "model_source_fingerprint", "model_adapter_version"],
       "properties": {"required_validations": {"required": ["model"]}},
-      "not": {"anyOf": [{"required": ["model"]}, {"required": ["cad_adapter_version"]}, {"required": ["cad_source_fingerprint"]}, {"required": ["analysis_adapter_version"]}, {"required": ["analysis"]}]}
+      "not": {"anyOf": [{"required": ["fixed_cad"]}, {"required": ["model"]}, {"required": ["cad_adapter_version"]}, {"required": ["cad_source_fingerprint"]}, {"required": ["analysis_adapter_version"]}, {"required": ["analysis"]}]}
     },
     "else": {
       "required": ["model", "cad_adapter_version", "cad_source_fingerprint", "analysis_adapter_version", "analysis"],
       "properties": {"required_validations": {"required": ["cad", "analysis"]}},
       "not": {"anyOf": [{"required": ["model_template"]}, {"required": ["model_adapter_version"]}]}
     }
-  }],
+  }, {"if": {"required": ["route"], "properties": {"route": {"const": "fixed_cad_analysis"}}},
+      "then": {"required": ["fixed_cad"], "properties": {"analysis": {"type": "object"}, "analysis_adapter_version": {"type": "string"}}},
+      "else": {"not": {"required": ["fixed_cad"]}}}],
   "additionalProperties": false
 }

@@ -37,6 +37,9 @@ def _fingerprint(adapter):
 
 
 def _verify_sources(lab, plan, snapshot):
+    if plan.get("route") == "fixed_cad_analysis":
+        from .condition_parameters import verify_current
+        return verify_current(lab, plan, snapshot)
     if plan.get("route") == "model_analysis":
         from .model_parameters import verify_current
         return verify_current(lab, plan, snapshot)
@@ -222,6 +225,80 @@ def _plan(lab, identifier):
     return plan, folder, ledger_path, ledger, snapshot
 
 
+def plan_condition_optimization(lab, *, study_id, campaign_id, conditions_id, parameter_ids,
+                                objective, constraints, seed, max_generations, population_size,
+                                initial_values=None, required_validations=None,
+                                engine='scipy.differential_evolution'):
+    from .condition_parameters import describe
+    lab.inspect_study(study_id)
+    template = describe(lab, conditions_id)
+    if template['source']['study_id'] != study_id:
+        raise ValueError('Fixed CAD conditions belong to a different study')
+    if engine not in lab.optimization_adapters:
+        raise CapabilityUnavailable(f'No executable optimization engine for {engine}')
+    if (not isinstance(parameter_ids, list) or not parameter_ids or
+            any(not isinstance(name, str) or not name for name in parameter_ids) or
+            len(set(parameter_ids)) != len(parameter_ids)):
+        raise ValueError('Select distinct registered condition research parameter IDs')
+    if (type(max_generations) is not int or type(population_size) is not int or
+            not 1 <= max_generations <= 100 or not 5 <= population_size <= 64 or
+            population_size * (max_generations + 1) > 512):
+        raise ValueError('Optimization must have a positive bounded budget of at most 512 candidates')
+    backend = template['source']['backend']; analysis_backend = template['backend']
+    requirements = deepcopy(required_validations if required_validations is not None else {'cad': [], 'analysis': []})
+    _definitions(lab, backend, analysis_backend, objective, constraints, requirements)
+    if any(item['source'] != 'analysis' for item in [objective, *constraints]):
+        raise ValueError('Fixed CAD searches require explicit analysis response metrics')
+    registry = lab.registry(study_id)
+    available = {item['parameter_id']: item for item in registry['entries'] if
+        item.get('target') == 'analysis_conditions' and item.get('conditions_id') == conditions_id
+        and item.get('conditions_template_revision') == template['template_revision']
+        and item.get('condition_input_descriptors_sha256') == template['condition_input_descriptors_sha256']
+        and item['native']['backend'] == analysis_backend and item['native']['document'] == template['template_revision']}
+    if any(name not in available for name in parameter_ids):
+        raise ValueError('Optimization variable does not map to this fixed CAD/condition template')
+    variables = [deepcopy(available[name]) for name in parameter_ids]
+    advertised = {item['native']['path']: item for item in template['candidates']}
+    for variable in variables:
+        expected = advertised.get(variable['native']['path'])
+        if (expected is None or variable['native'] != expected['native']
+                or variable['unit'] != expected['unit']
+                or variable['source_sha256'] != expected['source_sha256']
+                or not expected['lower'] <= variable['lower_bound'] <= variable['upper_bound'] <= expected['upper']):
+            raise ValueError('Condition registry entry differs from its advertised scalar binding')
+    algorithm = lab.optimization_adapters[engine].describe(variables, seed=seed,
+        max_generations=max_generations, population_size=population_size,
+        initial_values=initial_values, constraint_count=len(constraints))
+    if algorithm.get('engine') != engine or algorithm.get('version') != lab.optimization_adapters[engine].version:
+        raise ValueError('Optimization engine returned inconsistent provenance')
+    cad_adapter = lab._adapter(backend)
+    proposal = load_json(lab.store/'experiments'/template['source']['experiment_id']/'proposal.json')
+    plan = {'schema_version': '1.0', 'route': 'fixed_cad_analysis', 'campaign_id': campaign_id,
+        'study_id': study_id, 'status': 'PLANNED', 'backend': backend,
+        'model': proposal['model']['geometry']['source'], 'fixed_cad': template,
+        'registry_revision': registry['revision'], 'registry_sha256': canonical_hash(registry),
+        'core_source_sha256': source_identity(Path(__file__).resolve().parents[1])['core_source_sha256'],
+        'cad_adapter_version': cad_adapter.version, 'cad_source_fingerprint': _fingerprint(cad_adapter),
+        'analysis_adapter_version': lab.analysis_adapters[analysis_backend].version,
+        'variables': variables, 'algorithm': algorithm, 'objective': deepcopy(objective),
+        'constraints': deepcopy(constraints), 'required_validations': requirements,
+        'analysis': {'backend': analysis_backend, 'settings': deepcopy(template['record']['adapter_binding']['settings'])},
+        'failure_policy': {'condition_rejected': 'UNUSABLE_NO_NATIVE_EXECUTION', 'numerical_rejected': 'UNUSABLE',
+            'invalid_metric': 'UNUSABLE', 'failed_execution': 'STOP', 'missing_feedback': 'INTERNAL_INFINITY_ONLY',
+            'restart': 'DETERMINISTIC_EXACT_EVALUATION_REPLAY'}, 'created_utc': utc_now()}
+    _verify_sources(lab, plan, registry)
+    validate_schema('optimization-plan', plan)
+    folder, ledger_path = _paths(lab, campaign_id)
+    if (lab.store/'campaigns'/campaign_id).exists():
+        raise ValueError('Campaign ID is already used by a DOE')
+    folder.mkdir(parents=True, exist_ok=False)
+    save_json(folder/'plan.json', plan)
+    save_json(folder/'registry_snapshot.json', registry)
+    save_json(ledger_path, {'campaign_id': campaign_id, 'plan_sha256': _sha(folder/'plan.json'),
+                          'registry_sha256': _sha(folder/'registry_snapshot.json'), 'created_utc': utc_now()})
+    return plan
+
+
 def _key(plan, values):
     names = [v["parameter_id"] for v in plan["variables"]]
     if (not isinstance(values, dict) or set(values) != set(names) or
@@ -290,12 +367,18 @@ def _binding(plan):
 
 def _item_fields(plan):
     common = ("index", "values", "key")
+    if plan.get('route') == 'fixed_cad_analysis':
+        from .fixed_cad_optimization import ITEM_FIELDS
+        return common + ITEM_FIELDS
     return common + (("model_experiment_id", "model_settings", "model_declaration", "model_revision")
                      if plan.get("route") == "model_analysis" else ("cad_experiment_id",))
 
 
 def _new_item(lab, plan, index, values):
     item = {"index": index, "values": deepcopy(values), "key": _key(plan, values)}
+    if plan.get('route') == 'fixed_cad_analysis':
+        from .fixed_cad_optimization import candidate
+        return {**item, **candidate(lab, plan, index, values)}
     identifier = f"E-{plan['campaign_id']}-{index:04d}"
     if plan.get("route") != "model_analysis":
         return {**item, "cad_experiment_id": identifier}
@@ -407,6 +490,8 @@ def _record(lab, plan, item, cad, analysis):
             "analysis_status": analysis["status"] if analysis else
                                "SKIPPED_CAD_FAILED_EXECUTION" if plan["analysis"] and cad["status"] == "FAILED_EXECUTION" else
                                "SKIPPED_CAD_REJECTED" if plan["analysis"] else "NOT_REQUESTED"})
+    if plan.get('route') == 'fixed_cad_analysis' and item['condition_input_rejection'] is not None:
+        identities['analysis_status'] = 'SKIPPED_DOMAIN_CONDITION_REJECTED'
     return {**deepcopy(item), **identities,
             "objective": objective, "constraints": constraints, "usable": bool(usable),
             "numerically_feasible": feasible, "failed_execution": failed_execution,
@@ -420,6 +505,14 @@ def _record(lab, plan, item, cad, analysis):
 
 def _checked_row(lab, plan, row, verified=None):
     item = {k: deepcopy(row[k]) for k in _item_fields(plan)}
+    if plan.get('route') == 'fixed_cad_analysis':
+        from .fixed_cad_optimization import experiments
+        if item['key'] != _key(plan, item['values']):
+            raise ValueError('Fixed CAD journal candidate values/key mismatch')
+        cad, analysis = experiments(lab, plan, item, False, verified if verified is not None else {})
+        if row != _record(lab, plan, item, cad, analysis):
+            raise ValueError('Fixed CAD journal differs from its verified native child')
+        return row
     if plan.get("route") == "model_analysis":
         if (item["key"] != _key(plan, item["values"]) or
                 item["model_experiment_id"] != f"E-{plan['campaign_id']}-{item['index']:04d}" or
@@ -561,7 +654,11 @@ def run_optimization(lab, identifier):
                             raise ValueError("Pending optimization candidate differs from deterministic replay")
                     else:
                         save_json(candidate, item)
-                    if plan.get("route") == "model_analysis":
+                    if plan.get('route') == 'fixed_cad_analysis':
+                        from .fixed_cad_optimization import experiments
+                        cad, analysis = experiments(lab, plan, item, True, verified)
+                        _verify_sources(lab, plan, snapshot)
+                    elif plan.get("route") == "model_analysis":
                         cad = None
                         analysis = _model_experiment(lab, plan, item, True, verified)
                         _verify_sources(lab, plan, snapshot)
@@ -598,8 +695,8 @@ def run_optimization(lab, identifier):
                                      "journal_sha256": {f"{r['index']:04d}.json": _sha(folder / "journal" / f"{r['index']:04d}.json") for r in rows},
                                      "checkpoint_sha256": {p.name: _sha(p) for p in sorted((folder / "checkpoints").glob("*.json"))}},
                       "completed_utc": utc_now()}
-            if plan.get("route") == "model_analysis":
-                result["route"] = "model_analysis"
+            if plan.get('route') in ('model_analysis', 'fixed_cad_analysis'):
+                result['route'] = plan['route']
             validate_schema("optimization-result", result)
             save_json(folder / "result.json", result)
             save_json(ledger_path, {**ledger, "result_sha256": _sha(folder / "result.json")})
