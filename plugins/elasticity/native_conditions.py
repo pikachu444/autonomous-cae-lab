@@ -10,6 +10,8 @@ from .conditions import validate_declaration
 def support(catalog, declaration):
     validate_declaration(catalog, declaration)
     reasons = []
+    if declaration['analysis_type'] != 'linear_static' or declaration['mesh']['mode'] != 'selected':
+        reasons.append('이 단일 솔리드 경로는 선택 메시의 선형 정적 해석만 지원합니다.')
     faces = {item['id']: item for item in catalog['selections'] if item.get('kind') == 'native_face'}
     if catalog.get('cad_backend') != 'fixture.freecad' or not faces:
         return {'status': 'UNSUPPORTED_FOR_MODEL', 'reasons': ['이 CAD 개정의 실제 native 면 카탈로그가 필요합니다.'],

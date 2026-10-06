@@ -589,7 +589,22 @@ function analysisConditionsFields() {
   const fields = Object.fromEntries(Object.entries(analysisConditionFieldIds()).map(([name, id]) =>
     [name, name.endsWith("Enabled") ? ($(id)?.type === "checkbox" ? $(id).checked : true) : $(id).value]));
   if (state.analysisConditions.additionalBoundaries?.length) fields.additionalBoundaries = state.analysisConditions.additionalBoundaries.map(row => ({ ...row }));
+  if (assemblyConditionsActive() && $("conditionsAssemblyFields")?.querySelector("[data-assembly-conditions-form]")) {
+    const rows = window.assemblyConditionsControls.readForm($("conditionsAssemblyFields"));
+    return { ...rows, ...Object.fromEntries(["conditionsId", "backend", "coordinateSystem", "lengthUnit", "forceUnit", "stressUnit"].map(key => [key, fields[key]])) };
+  }
   return fields;
+}
+function assemblyConditionsActive() {
+  return Boolean(window.assemblyConditionsControls && state.analysisConditions.catalog &&
+    window.assemblyConditionsControls.isAssembly(state.analysisConditions.catalog));
+}
+function analysisConditionsBuilder() {
+  return assemblyConditionsActive() ? window.assemblyConditionsControls : window.analysisConditionsControls;
+}
+function rememberAssemblyConditionsDraft() {
+  if (!assemblyConditionsActive() || !$("conditionsAssemblyFields")?.querySelector("[data-assembly-conditions-form]")) return;
+  state.analysisConditions.assemblyDraft = window.assemblyConditionsControls.readForm($("conditionsAssemblyFields"));
 }
 function analysisConditionsContext() {
   return JSON.stringify([activeStore(), state.studyId, $("conditionsParent").value,
@@ -622,8 +637,11 @@ function analysisConditionsError(message = "") {
 function invalidateAnalysisConditions() {
   if (!analysisConditionsEnabled()) return;
   const conditions = state.analysisConditions;
+  rememberAssemblyConditionsDraft();
   conditions.request++; conditions.catalog = null; conditions.context = ""; conditions.record = null; conditions.recordDraft = "";
   conditions.records = []; conditions.loading = false; analysisConditionsError();
+  if ($("conditionsAssemblyFields")) { clear("conditionsAssemblyFields"); $("conditionsAssemblyFields").hidden = true; }
+  if ($("conditionsSingleSolidFields")) { $("conditionsSingleSolidFields").hidden = false; $("conditionsSingleSolidFields").disabled = false; }
   clear("analysisConditionsCatalog").append(el("p", "CAD·연구·저장소 선택이 바뀌었습니다. 같은 개정의 대상·지원 범위를 다시 확인하세요. 작성한 수치·출처는 유지했습니다.", "hint"));
   clear("analysisConditionsRecord").append(el("p", "현재 선택에 연결된 저장 조건을 다시 열거나 새 조건으로 저장하세요.", "empty-state"));
   clear("analysisConditionsList").append(el("p", "현재 CAD의 목록을 불러오기 전입니다.", "empty-state"));
@@ -654,15 +672,20 @@ function updateAnalysisConditionsControls() {
   if (current) {
     try {
       const fields = analysisConditionsFields();
-      window.analysisConditionsControls.buildSave(conditions.catalog, fields);
+      analysisConditionsBuilder().buildSave(conditions.catalog, fields);
       saveReady = fields.conditionsId !== conditions.record?.id;
       if (conditions.record && conditions.recordDraft === JSON.stringify(fields)) {
-        window.analysisConditionsControls.buildRun(conditions.record, conditions.catalog, fields, $("conditionsExperimentId").value.trim()); runReady = true;
+        analysisConditionsBuilder().buildRun(conditions.record, conditions.catalog, fields, $("conditionsExperimentId").value.trim()); runReady = true;
       }
     } catch { /* Keep the explicit draft; submission displays its refusal. */ }
   }
   $("analysisConditionsSaveBtn").disabled = blocked || !saveReady || !available("analysis_conditions_save");
   $("analysisConditionsRunBtn").disabled = blocked || !runReady || !available("analysis_run");
+  if ($("conditionsSingleSolidFields")) $("conditionsSingleSolidFields").disabled = blocked || assemblyConditionsActive();
+  if (assemblyConditionsActive()) {
+    const form = $("conditionsAssemblyFields").querySelector("[data-assembly-conditions-form]");
+    if (form) form.disabled = blocked;
+  }
   for (const axis of ["x", "y", "z"]) {
     const input = $(`conditionsU${axis}`), enabled = $(`conditionsU${axis}Enabled`);
     if (enabled?.type === "checkbox") { input.disabled = blocked || !enabled.checked; input.required = enabled.checked; }
@@ -781,8 +804,19 @@ function fillAnalysisConditionsChoices() {
     select.value = [...select.options].some(item => item.value === old) ? old : "";
   }
   const old = $("conditionsBackend").value, select = clear("conditionsBackend"); option(select, "", "서버가 제공한 해석 경로를 선택하세요");
-  data.backends.forEach(item => option(select, item.backend, item.backend === "structure.calculix.native" ? "CalculiX · 사용자 CAD의 선형 구조해석" : `${item.label} · ${item.backend}`));
+  data.backends.forEach(item => option(select, item.backend, item.backend === "structure.calculix.native" ? "CalculiX · 사용자 CAD의 선형 구조해석" : item.backend === "fixture.assembly_mechanics.code_aster" ? "Code_Aster · 보존 조립체의 재료·구속·하중·접촉" : `${item.label} · ${item.backend}`));
   select.value = [...select.options].some(item => item.value === old) ? old : "";
+  const assembly = assemblyConditionsActive();
+  if ($("conditionsSingleSolidFields")) { $("conditionsSingleSolidFields").hidden = assembly; $("conditionsSingleSolidFields").disabled = assembly; }
+  if ($("conditionsAssemblyFields")) {
+    $("conditionsAssemblyFields").hidden = !assembly;
+    if (assembly) window.assemblyConditionsControls.renderForm($("conditionsAssemblyFields"), data, {
+      materialRows: [], boundaryRows: [], loadRows: [], contactRows: [], contactSource: "",
+      ...state.analysisConditions.assemblyDraft,
+      conditionsId: $("conditionsId").value, backend: $("conditionsBackend").value, analysisType: "nonlinear_static",
+      coordinateSystem: $("conditionsCoordinateSystem").value, lengthUnit: $("conditionsLengthUnit").value,
+      forceUnit: $("conditionsForceUnit").value, stressUnit: $("conditionsStressUnit").value });
+  }
   renderAdditionalBoundaries();
 }
 function renderAnalysisConditionsRecord() {
@@ -811,7 +845,9 @@ function conditionReadoutRows(record) {
   list(declaration.materials).slice(0, 64).forEach(item => rows.push([`재료 · ${selectionName(item.selection_id)}`, `등방성 선형 탄성 · E ${number(item.young_modulus_MPa)} MPa · ν ${number(item.poisson_ratio)} · ${item.source?.category}: ${item.source?.description}`]));
   list(declaration.boundary_conditions).slice(0, 64).forEach(item => rows.push([`변위 구속 · ${selectionName(item.selection_id)}`, `${displacementCaption(item.components)} ${item.unit} · ${item.coordinate_system} · ${item.source}`]));
   list(declaration.loads).slice(0, 64).forEach(item => rows.push([`합력 · ${selectionName(item.selection_id)}`, `FX ${number(item.components?.FX)} / FY ${number(item.components?.FY)} / FZ ${number(item.components?.FZ)} ${item.unit} · ${item.coordinate_system} · ${item.source}`]));
-  rows.push(["접촉 모델", `${declaration.contact?.mode} · ${declaration.contact?.source}`], ["선택 메시", `${number(declaration.mesh?.max_size_mm)} mm · ${declaration.mesh?.mode}`]);
+  rows.push(["접촉 모델", `${declaration.contact?.mode} · ${declaration.contact?.source}`],
+    ["메시", declaration.mesh?.mode === "retained" ? `보존 메시 ${declaration.mesh.mesh_revision} · 재메시 없음` : `${number(declaration.mesh?.max_size_mm)} mm · ${declaration.mesh?.mode}`]);
+  list(declaration.contact?.pairs).forEach((pair, i) => rows.push([`연결 ${i + 1}`, `${selectionName(pair.selection_a)} ↔ ${selectionName(pair.selection_b)} · ${pair.law ?? declaration.contact.mode} · master ${pair.master ?? "미지정"} · ${pair.source ?? declaration.contact.source}${pair.distance_max_mm === undefined ? "" : ` · 거리 ${number(pair.distance_max_mm)} mm`}`]));
   return rows;
 }
 function renderAnalysisConditionsList() {
@@ -840,6 +876,7 @@ async function loadAnalysisConditionsCatalog() {
   const parent = analysisConditionsParent();
   if (!parent) { analysisConditionsError("현재 연구의 완료한 CAD 실험을 선택하세요."); return; }
   const conditions = state.analysisConditions;
+  rememberAssemblyConditionsDraft();
   conditions.request++; conditions.loading = true; conditions.context = analysisConditionsContext(); conditions.catalog = null; conditions.record = null; conditions.recordDraft = ""; conditions.records = [];
   analysisConditionsError(); let context = analysisConditionsCapture(true); updateControls();
   clear("analysisConditionsCatalog").append(el("p", "선택한 CAD 개정·원본 해시와 대상 catalog를 확인하고 있습니다…", "hint"));
@@ -882,12 +919,14 @@ async function openAnalysisConditionsRecord(identifier) {
     if (record.id !== identifier) throw new Error("요청한 조건 ID와 원 기록이 다릅니다.");
     conditions.record = record; conditions.recordDraft = "";
     try {
-      const fields = window.analysisConditionsControls.fromRecord(record, conditions.catalog);
+      const fields = analysisConditionsBuilder().fromRecord(record, conditions.catalog);
       Object.entries(analysisConditionFieldIds()).forEach(([name, id]) => {
+        if (assemblyConditionsActive() && !["conditionsId", "backend", "coordinateSystem", "lengthUnit", "forceUnit", "stressUnit"].includes(name)) return;
         if (name.endsWith("Enabled")) $(id).checked = fields[name] !== false;
         else $(id).value = fields[name];
       });
       conditions.additionalBoundaries = (fields.additionalBoundaries ?? []).map(row => ({ ...row })); renderAdditionalBoundaries();
+      if (assemblyConditionsActive()) window.assemblyConditionsControls.renderForm($("conditionsAssemblyFields"), conditions.catalog, fields);
       conditions.recordDraft = JSON.stringify(analysisConditionsFields());
     } catch (error) { analysisConditionsError(error.message); }
     renderAnalysisConditionsRecord();
@@ -906,7 +945,7 @@ async function saveAnalysisConditions() {
   const conditions = state.analysisConditions, context = analysisConditionsCapture(true);
   try {
     if (!currentAnalysisConditionsCatalog() || conditions.loading) throw new Error("현재 CAD 개정의 catalog를 먼저 확인하세요.");
-    const args = window.analysisConditionsControls.buildSave(conditions.catalog, analysisConditionsFields());
+    const args = analysisConditionsBuilder().buildSave(conditions.catalog, analysisConditionsFields());
     if (args.conditions_id === conditions.record?.id) throw new Error("보존 조건 ID는 다시 저장할 수 없습니다. 새 조건 ID를 준비하세요.");
     await runJob("analysis_conditions_save", args, result => {
       if (!analysisConditionsCurrent(context)) return;
@@ -925,7 +964,7 @@ async function runAnalysisConditions() {
   const conditions = state.analysisConditions, context = analysisConditionsCapture(true, true);
   try {
     if (!currentAnalysisConditionsCatalog() || conditions.loading || conditions.recordDraft !== context.draft) throw new Error("현재 CAD 개정과 작성 입력에 일치하는 조건을 새로 저장하거나 다시 여세요.");
-    const args = window.analysisConditionsControls.buildRun(conditions.record, conditions.catalog, analysisConditionsFields(), $("conditionsExperimentId").value.trim());
+    const args = analysisConditionsBuilder().buildRun(conditions.record, conditions.catalog, analysisConditionsFields(), $("conditionsExperimentId").value.trim());
     await runJob("analysis_run", args, async result => {
       if (!analysisConditionsCurrent(context)) return;
       if (result?.experiment_id !== args.experiment_id || result?.cad_revision !== conditions.record.source.cad_revision || result?.study?.id !== state.studyId || result?.provenance?.adapter !== args.backend) {
@@ -1964,7 +2003,7 @@ function observationArguments() {
   const selected = historyObservationChannel();
   return selected ? window.historyControls.build(state.selectedExperiment, state.selectedHistories, {
     ...fields, channelId: selected.id, sampleIndex: $("observationHistorySample").value,
-    axisQuantity: "time", axisUnit: "s", axisValue: $("observationAxisValue").value,
+    axisQuantity: selected.axis.quantity, axisUnit: selected.axis.unit, axisValue: $("observationAxisValue").value,
   }) : window.observationControls.build(state.selectedExperiment, fields);
 }
 function historyObservationChannel() {
@@ -1975,8 +2014,11 @@ function historyObservationChannel() {
 function historyChannelCaption(channel) {
   const measure = {"infinitesimal Cauchy stress": "미소변형 응력", "internal branch stress": "점탄성 분기의 내부 응력",
     "reference-volume energy density": "기준 체적당 에너지"}[channel.measure] ?? channel.measure;
+  if (channel.origin.driver === "openradioss") return `${measure} · ${channel.location} · 전역 SI 좌표 · ${channel.axis.semantics === "NATIVE_HALF_STEP_VELOCITY_TIME" ? "반 증분 속도 시각" : "원 해석 시각"} (센서 정렬 미확인)`;
   return `${measure} · 균질 재료점 1개 · 모델 성분 기준 (센서·세계 좌표 정렬 미확인)`;
 }
+function historyAxisLabel(channel) { return channel.axis.quantity === "time" ? "시간 (s)" : "하중 계수 (무차원)"; }
+function historyAxisValue(channel, value) { return `${number(value)}${channel.axis.quantity === "time" ? " s" : " · 하중 계수"}`; }
 function observationResponseNote() {
   const history = historyObservationChannel();
   const field = fieldObservationSelection();
@@ -1992,7 +2034,7 @@ function observationResponseNote() {
   }
   if (history) {
     const sample = Number($("observationHistorySample").value), found = $("observationHistorySample").value !== "" && Number.isInteger(sample) && sample < history.values.length;
-    $("observationResponseNote").textContent = `${history.label} · ${historyChannelCaption(history)}${found ? ` · 기록값 ${number(history.values[sample])} ${history.unit}, 시각 ${number(history.axis.values[sample])} s` : " · 기록 시점을 선택하세요."} 관측 시각이 정확히 일치할 때만 차이를 계산합니다.`;
+    $("observationResponseNote").textContent = `${history.label} · ${historyChannelCaption(history)}${found ? ` · 기록값 ${number(history.values[sample])} ${history.unit}, ${historyAxisValue(history, history.axis.values[sample])}` : " · 기록 표본을 선택하세요."} 선언한 축 좌표·물리량·성분이 정확히 일치할 때만 차이를 계산합니다.`;
     return;
   }
   const choice = window.observationControls?.choices(state.selectedExperiment).find(item => item.key === $("observationResponse").value);
@@ -2004,8 +2046,9 @@ function changeObservationResponse() {
   const history = historyObservationChannel(), samples = clear("observationHistorySample");
   $("observationAxisValue").value = "";
   if (history) {
-    option(samples, "", "기록된 시점을 선택하세요");
-    history.axis.values.forEach((time, index) => option(samples, String(index), `${number(time)} s${index === 0 ? " · 초기 상태" : ""}`));
+    $("observationAxisLabel").textContent = `관측 ${historyAxisLabel(history)}`;
+    option(samples, "", "기록된 표본을 선택하세요");
+    history.axis.values.forEach((time, index) => option(samples, String(index), `${historyAxisValue(history, time)}${history.initial_state?.index === index ? " · 초기 상태" : ""}`));
   }
   observationResponseNote();
 }
@@ -2031,8 +2074,11 @@ function renderHistoryChannel() {
     .find(item => item.id === $("historyChannel").value);
   if (!channel) { $("historyPanel").hidden = true; return; }
   $("historyContext").textContent = `${channel.label} · ${historyChannelCaption(channel)}${channel.measure === "reference-volume energy density" ? " · MPa = MJ/m³ (기준 체적)" : ""}`;
+  $("historyHint").textContent = "기록된 표본·축·부호를 유지합니다. 선은 표본 순서이며 중간값을 계산하지 않습니다. " + (channel.origin.driver === "openradioss"
+    ? "속도는 반 증분 시각, 위치·에너지는 원 시각입니다. 스프링 일은 부호를 유지하며 벽의 FNZ는 누적 충격량입니다."
+    : "0초는 재료 적분 전의 수치 초기 상태입니다.");
   const select = clear("historySample");
-  channel.axis.values.forEach((time, index) => option(select, String(index), `${number(time)} s${index === 0 ? " · 초기 상태" : ""}`));
+  channel.axis.values.forEach((time, index) => option(select, String(index), `${historyAxisValue(channel, time)}${channel.initial_state?.index === index ? " · 초기 상태" : ""}`));
   select.value = String(channel.values.length - 1);
   const target = clear("historyPlot"), width = 720, height = 250, left = 85, right = 25, top = 30, bottom = 45;
   const xs = channel.axis.values, ys = channel.values, min = Math.min(...ys), max = Math.max(...ys);
@@ -2044,22 +2090,22 @@ function renderHistoryChannel() {
       if (label !== undefined) node.textContent = label;
       return node;
     };
-    const svg = svgNode("svg", { viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": `${channel.label}, 시간(s)에 따른 ${channel.unit}`, style: "display:block;width:100%;max-height:300px;background:var(--surface,#fff)" });
+    const svg = svgNode("svg", { viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": `${channel.label}, ${historyAxisLabel(channel)}에 따른 ${channel.unit}`, style: "display:block;width:100%;max-height:300px;background:var(--surface,#fff)" });
     const x = value => left + (value - xs[0]) / span * (width - left - right);
     const y = value => range > 0 ? top + (1 - (value - min) / range) * (height - top - bottom) : (height - bottom + top) / 2;
     svg.append(svgNode("path", { d: `M${left} ${top}V${height-bottom}H${width-right}`, stroke: "#9ca9b6", fill: "none" }),
       svgNode("polyline", { points: xs.map((value,index) => `${x(value)},${y(ys[index])}`).join(" "), fill: "none", stroke: "#376a83", "stroke-width": 2 }));
-    [[left, height-18, `${number(xs[0])} s`], [width-right-25,height-18,`${number(xs.at(-1))} s`],
+    [[left, height-18, historyAxisValue(channel, xs[0])], [width-right-25,height-18,historyAxisValue(channel, xs.at(-1))],
       [7,top+4,`${number(max)} ${channel.unit}`], [7,height-bottom,`${number(min)} ${channel.unit}`]].forEach(([a,b,label]) => svg.append(svgNode("text", {x:a,y:b,fill:"#526171","font-size":11},label)));
     xs.forEach((time,index) => {
-      const point = svgNode("circle", {cx:x(time),cy:y(ys[index]),r:5,fill:"#376a83",role:"button",tabindex:0,"aria-label":`${number(time)} s · ${number(ys[index])} ${channel.unit}`});
-      point.append(svgNode("title", {}, `${number(time)} s · ${number(ys[index])} ${channel.unit}`));
+      const point = svgNode("circle", {cx:x(time),cy:y(ys[index]),r:5,fill:"#376a83",role:"button",tabindex:0,"aria-label":`${historyAxisValue(channel, time)} · ${number(ys[index])} ${channel.unit}`});
+      point.append(svgNode("title", {}, `${historyAxisValue(channel, time)} · ${number(ys[index])} ${channel.unit}`));
       const choose = () => { select.value = String(index); renderHistorySample(); };
       point.addEventListener("click", choose); point.addEventListener("keydown", event => { if (["Enter"," "].includes(event.key)) { event.preventDefault(); choose(); } }); svg.append(point);
     });
     target.append(svg);
   } else target.append(el("p", "축 범위가 표시 한계를 초과합니다. 시점별 원래 값에서 확인하세요.", "hint"));
-  clear("historyTable").append(table(["시간 (s)", `${channel.label} (${channel.unit})`], xs.map((value,index) => [number(value),number(ys[index])])));
+  clear("historyTable").append(table([historyAxisLabel(channel), `${channel.label} (${channel.unit})`], xs.map((value,index) => [number(value),number(ys[index])])));
   clear("historyOrigin").append(rawDetail("채널·native 출처·원본 해시", channel));
   renderHistorySample();
 }
@@ -2149,6 +2195,7 @@ async function loadResponseComparisons(inspection = state.selectedExperiment) {
       details.append(el("p", `원 응답: ${field ? `절점 ${field.node_id} · ${field.component} · ${field.coordinate_frame} · 원 XYZ [${field.position_mm.join(" / ")}] ${field.position_unit} · ${field.value_origin === "DERIVED_MAGNITUDE" ? "저장 UX·UY·UZ의 벡터 크기" : "원본의 부호 있는 성분"}` : channel ? `${channel.label} · ${historyChannelCaption(channel)} · 기록 시각 ${number(comparison.response_axis.value)} ${comparison.response_axis.unit}` : sourceChoice?.label ?? window.resultPresentation.metricName(selected.metric)}${selected.component !== undefined && !sourceChoice ? ` · 사용자 지정 배열 항목 ${selected.component + 1} (물리 성분 미확인)` : ""}`));
       if (field) details.append(el("p", `정적 step ${field.static.step} / increment ${field.static.increment} · load parameter ${field.static.load_parameter} (시간 아님) · 전체 필드의 원 절점 선택이며 센서 위치와의 정렬은 미검증입니다.`, "hint"));
       if (comparison.declared_field_checks) details.append(table(["선언 항목", "관측 선언", "원 응답", "일치"], comparison.declared_field_checks.map(check => [check.property, check.declared, check.actual, check.matched ? "일치" : "불일치"])));
+      if (comparison.declared_history_checks) details.append(table(["이력 선언", "관측 선언", "원 채널", "일치"], comparison.declared_history_checks.map(check => [check.property, check.declared, check.actual, check.matched ? "일치" : "불일치"])));
       if (channel?.initial_state && channel.initial_state.index === selected.sample_index && channel.initial_state.kind === "UNPREPARED_INITIAL_CONDITION")
         details.append(el("p", "선택한 표본은 재료 적분 전의 수치 초기 상태이며 적분된 재료 응답의 근거가 아닙니다.", "hint"));
       if (comparison.declared_axis_check) details.append(el("p", `관측 시각: ${number(comparison.declared_axis_check.declared.value)} ${comparison.declared_axis_check.declared.unit} · ${comparison.declared_axis_check.matched ? "기록 시각과 정확히 일치" : "기록 시각과 불일치 · 보간하지 않음"}`));
@@ -2312,6 +2359,7 @@ function renderExperimentDetail(data) {
 }
 function renderFixtureFields(container, inspection) {
   const result = inspection.result;
+  if (result.provenance?.adapter === 'fixture.assembly_mechanics.code_aster') return renderAssemblyFields(container, inspection);
   const native = result.provenance?.adapter === "structure.calculix.native";
   if (!native && result.provenance?.adapter !== "fixture.calculix") return Promise.resolve(false);
   const card = panel(native ? "네이티브 구조해석 · 전체 절점 변위" : "같은 해석의 메시와 절점 변위", "NATIVE FEA FIELD · SAME RECORD"); card.classList.add("detail-wide", "fixture-field-card");
@@ -2384,6 +2432,45 @@ function renderFixtureFields(container, inspection) {
   }
   select.addEventListener("change", () => { void selectField(); }); choices.append(action("필드 다시 불러오기", selectField, "button secondary compact"));
   return selectField();
+}
+
+function renderAssemblyFields(container, inspection) {
+  const result = inspection.result, card = el('section', undefined, 'result-card fixture-field-card');
+  const detail = el('div'), controls = el('div', undefined, 'button-row');
+  card.append(el('h2','조립체 전체 결과장'), el('p','원본 7부품의 절점·요소·XYZ와 실제 변위·반력을 연결합니다. Gauss 응력을 절점 응력으로 바꾸지 않습니다.','hint'),controls,detail);
+  container.append(card);
+  const request = state.experimentRequest, store = activeStore(); let mounted = null, sequence = 0;
+  const current = () => request === state.experimentRequest && store === activeStore() && !state.storeSwitching &&
+    state.selectedExperiment === inspection && card.isConnected && detail.isConnected;
+  async function read() {
+    const epoch = ++sequence, selected = () => current() && sequence === epoch;
+    mounted?.destroy(); if (state.fixtureViewer === mounted) state.fixtureViewer = null; mounted = null;
+    if (state.selectedFieldObservation?.inspection === inspection) { state.selectedFieldObservation = null; observationResponseNote(); updateControls(); }
+    clear(detail).append(el('p','동일 기록의 전체 필드·원본 메시와 native ID 연결을 확인하고 있습니다…','hint'));
+    try {
+      const envelope = await api(`/api/response-fields/${idPath(result.experiment_id)}`);
+      if (!selected()) return false;
+      const model = window.fixtureFieldControls.verifyAssemblyField(inspection, envelope);
+      if (!selected()) return false;
+      mounted = window.fixtureFieldViewer.mount(detail, model, selected,
+        selection => prepareFieldObservation(inspection, model, selection, selected));
+      if (!mounted || !selected()) { mounted?.destroy(); return false; }
+      state.fixtureViewer = mounted;
+      const fields = model.field;
+      mounted.refs.provenance.append(el('p',`보존 메시 ${fields.mesh_revision} · ${fields.initial_state === 'NOT_STORED' ? '초기 하중 0 상태는 native에 저장되지 않았습니다.' : 'native에 저장한 초기 상태를 보존합니다.'}`,'hint'));
+      mounted.refs.provenance.append(el('p','표시는 원 TRIA6에서 유도한 4개 선형 삼각형입니다. 다른 부품의 같은 좌표 절점을 합치지 않으며 원 TETRA10 연결과 전체 native Gauss tensors는 원본 파일에 남습니다.','hint'));
+      mounted.refs.provenance.append(table(['부품','전체 절점','체적 요소','원 표면','Gauss 위치','native 에너지 상태'],
+        fields.bodies.map(body=>[body.component_id,body.node_count,body.element_count,body.boundary_face_count,body.gauss_count,body.native_energy?.status ?? 'UNKNOWN'])));
+      const downloads = el('div',undefined,'button-row separated');
+      downloads.append(link('전체 U/RF·Gauss 원본',artifactUrl(result.experiment_id,model.artifact.path),'text-link',true),
+        link('native MED 결과',artifactUrl(result.experiment_id,'simulation/native/fields.med'),'text-link',true));
+      mounted.refs.provenance.append(downloads);
+      return true;
+    } catch(error) { if (selected()) clear(detail).append(el('p',error.message,'metric-reason')); return false; }
+  }
+  controls.append(action('전체 결과 필드 불러오기',read,'button secondary compact'));
+  detail.append(el('p','버튼으로 이 기록의 전체 변위장을 엽니다. 실패·미수렴 기록의 원자료와 실행 기록은 상세 기록에 보존됩니다.','hint'));
+  return Promise.resolve(true);
 }
 function renderContactFields(container, inspection) {
   const result = inspection.result;
@@ -2974,6 +3061,7 @@ if (analysisConditionsEnabled()) {
   $("analysisConditionsForm").addEventListener("submit", event => { event.preventDefault(); if (event.currentTarget.reportValidity()) saveAnalysisConditions(); });
   $("analysisConditionsRunForm").addEventListener("submit", event => { event.preventDefault(); if (event.currentTarget.reportValidity()) runAnalysisConditions(); });
   document.querySelectorAll("[data-analysis-condition]").forEach(input => input.addEventListener(input.tagName === "SELECT" ? "change" : "input", changeAnalysisConditionsDraft));
+  $("conditionsAssemblyFields")?.addEventListener("input", changeAnalysisConditionsDraft);
   $("conditionsExperimentId").addEventListener("input", updateControls);
   $("analysisConditionsNewIdBtn").addEventListener("click", () => {
     if (!writable() || busy()) return;

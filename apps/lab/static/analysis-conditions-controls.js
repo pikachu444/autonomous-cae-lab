@@ -28,6 +28,44 @@
       (!own(item, "planar_normal_global") || vector(item.planar_normal_global)) &&
       item.roles.every(role => ["boundary", "load"].includes(role));
   }
+  function assemblyGeometry(item) {
+    return vector(item.center_mm) && vector(item.bounds_mm?.min_mm) && vector(item.bounds_mm?.max_mm) &&
+      vector(item.bounds_mm?.size_mm) && item.bounds_mm.min_mm.every((value, axis) => value <= item.bounds_mm.max_mm[axis]) &&
+      item.bounds_mm.size_mm.every(value => value >= 0) && item.coordinate_system === "global" &&
+      item.native_coordinate_system === "global_assembly_cartesian_mm";
+  }
+  function assemblyBody(item) {
+    return validId(item.component_id) && item.id === `B-${item.component_id}` && assemblyGeometry(item) &&
+      typeof item.volume_mm3 === "number" && Number.isFinite(item.volume_mm3) && item.volume_mm3 > 0 &&
+      item.roles.length === 1 && item.roles[0] === "material";
+  }
+  function assemblyFace(item, selections) {
+    const rawPrefix = `${item.component_id}:face:${item.native_ordinal}:`;
+    return validId(item.component_id) && Number.isSafeInteger(item.native_ordinal) && item.native_ordinal >= 0 &&
+      item.id === `S-${item.component_id}-${item.native_ordinal}` && nonempty(item.catalog_face_id, 256) &&
+      item.catalog_face_id.startsWith(rawPrefix) && validDigest(item.catalog_face_id.slice(rawPrefix.length)) &&
+      validDigest(item.native_geometry_sha256) && (!own(item, "local_ordinal") || item.local_ordinal === item.native_ordinal) &&
+      selections.some(body => body.kind === "native_assembly_body" && body.component_id === item.component_id) &&
+      assemblyGeometry(item) && typeof item.area_mm2 === "number" && Number.isFinite(item.area_mm2) && item.area_mm2 > 0 &&
+      item.roles.every(role => ["boundary", "load", "contact"].includes(role));
+  }
+  function assemblyInterior(item, data) {
+    const fullId = `S-${item.component_id}-${item.native_ordinal}`, mesh = data.catalog.retained_mesh;
+    const full = data.catalog.selections.find(face => face.kind === "native_assembly_face" && face.id === fullId);
+    const geometryKeys = ["component_id", "catalog_face_id", "native_ordinal", "local_ordinal", "native_geometry_sha256", "coordinate_system", "native_coordinate_system", "area_mm2", "center_mm", "bounds_mm", "geom_type", "orientation"];
+    return item.id === `I-${item.component_id}-${item.native_ordinal}` &&
+      item.node_scope === "FACE_INTERIOR_EXCLUDING_OTHER_FACE_BOUNDARIES" && item.roles.length === 2 && item.roles.every(role => ["boundary", "load"].includes(role)) &&
+      (!own(item, "geometry_metadata_scope") || item.geometry_metadata_scope === "ORIGINAL_SOURCE_FACE_NOT_SUBSET") &&
+      (!own(item, "cad_revision") || item.cad_revision === data.source.cad_revision) &&
+      full && (!own(full, "cad_revision") || full.cad_revision === data.source.cad_revision) &&
+      (!own(data.catalog, "cad_revision") || data.catalog.cad_revision === data.source.cad_revision) &&
+      assemblyFace({ ...item, id: fullId }, data.catalog.selections) &&
+      geometryKeys.every(key => stable(item[key]) === stable(full[key])) &&
+      mesh?.profile === "coarse3" && validDigest(mesh.mesh_revision) && mesh.cad_revision === data.source.cad_revision &&
+      Array.isArray(mesh.active_components) && mesh.active_components.length > 0 && mesh.active_components.length <= 64 &&
+      mesh.active_components.every(validId) && new Set(mesh.active_components).size === mesh.active_components.length &&
+      mesh.active_components.includes(item.component_id);
+  }
   function stable(value) {
     if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
     if (object(value)) return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stable(value[key])}`).join(",")}}`;
@@ -70,8 +108,11 @@
         !Array.isArray(selections) || selections.length < 1 || selections.length > 2048 ||
         selections.some(item => !validId(item?.id) || !nonempty(item.label, 512) || !nonempty(item.kind, 128) ||
           !Array.isArray(item.roles) || item.roles.length < 1 || item.roles.length > 3 ||
-          item.roles.some(role => !["material", "boundary", "load"].includes(role)) || new Set(item.roles).size !== item.roles.length ||
-          (item.kind === "native_face" && !nativeFace(item, selections))) ||
+          item.roles.some(role => !(item.kind === "native_assembly_face" ? ["boundary", "load", "contact"] : ["material", "boundary", "load"]).includes(role)) || new Set(item.roles).size !== item.roles.length ||
+          (item.kind === "native_face" && !nativeFace(item, selections)) ||
+          (item.kind === "native_assembly_body" && !assemblyBody(item)) ||
+          (item.kind === "native_assembly_face" && !assemblyFace(item, selections)) ||
+          (item.kind === "assembly_face_interior_nodes" && !assemblyInterior(item, data))) ||
         new Set(selections.map(item => item.id)).size !== selections.length ||
         !Array.isArray(frames) || frames.length < 1 || frames.length > 32 ||
         frames.filter(frame => frame?.id === "global").length !== 1 ||
@@ -88,6 +129,10 @@
   }
   function choices(data, role) { return data.catalog.selections.filter(item => item.roles.includes(role)); }
   function selectionLabel(item) {
+    const display = value => value.toLocaleString("ko-KR", { maximumSignificantDigits: 8 });
+    if (item.kind === "native_assembly_body") return `${item.label} · 부품 ${item.component_id} · ${item.id} · ${display(item.volume_mm3)} mm³`;
+    if (item.kind === "assembly_face_interior_nodes") return `${item.label} · 면 내부 절점·모서리 제외 · ${item.id} · 원 면 ${item.catalog_face_id} · 원 면적 ${display(item.area_mm2)} mm² · 원 중심 (${item.center_mm.map(display).join(", ")}) mm`;
+    if (item.kind === "native_assembly_face") return `${item.label} · ${item.id} · 원 면 ${item.catalog_face_id} · ${display(item.area_mm2)} mm² · 중심 (${item.center_mm.map(display).join(", ")}) mm`;
     if (item.kind !== "native_face") return `${item.label} · ${item.kind}`;
     return `${item.label} · ${item.native_object}/${item.native_name} · ${item.area_mm2.toLocaleString("ko-KR", { maximumSignificantDigits: 8 })} mm² · 중심 (${item.center_mm.map(value => value.toLocaleString("ko-KR", { maximumSignificantDigits: 8 })).join(", ")}) mm`;
   }

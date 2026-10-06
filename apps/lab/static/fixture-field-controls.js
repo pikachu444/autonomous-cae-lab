@@ -213,6 +213,117 @@
       nativeCatalogRevision:field.native_catalog_revision,totalForceVectorN:totals}});
     verified.add(model); return model;
   }
+  function verifyAssemblyField(inspection, envelope) {
+    const result = inspection?.result, proposal = inspection?.proposal, thread = inspection?.thread;
+    const field = envelope?.display, backend = 'fixture.assembly_mechanics.code_aster';
+    assert(inspection?.integrity === 'VERIFIED' && envelope?.integrity === 'VERIFIED' &&
+      result?.provenance?.adapter === backend && result.provenance.adapter_version === '1' &&
+      envelope.experiment_id === result.experiment_id && envelope.study_id === result.study.id &&
+      sha(inspection.hashes?.result_sha256) && envelope.result_sha256 === inspection.hashes.result_sha256 &&
+      result.solver_status === 'COMPLETED' && result.decision === 'NOT_RELEASED', '같은 조립체 결과·필드 원본 연결이 일치하지 않습니다.');
+    assert(field?.schema_version === '1.0' && field.kind === 'assembly_mechanics_nodal_displacement_display' &&
+      field.scope === 'BOUNDED_COMPLETE_NATIVE_ASSEMBLY_DISPLAY' && field.source_scope === 'COMPLETE_NATIVE_ASSEMBLY_MECHANICS_FIELDS' &&
+      field.backend === backend && field.adapter_version === '1' && field.experiment_id === result.experiment_id &&
+      field.parent_experiment_id === result.parent_experiment_id && field.cad_revision === result.cad_revision &&
+      field.proposal_revision === result.proposal_revision && sha(field.mesh_revision) &&
+      proposal?.id === result.experiment_id && proposal.physics?.backend === backend &&
+      proposal.parent_experiment_id === result.parent_experiment_id && proposal.model?.geometry?.cad_revision === result.cad_revision &&
+      equal(proposal.execution, result.provenance.execution_settings) &&
+      field.mesh_revision === proposal.execution?.mesh?.mesh_revision &&
+      thread?.experiment === result.experiment_id && thread.cad_revision === result.cad_revision &&
+      thread.parent_experiment === result.parent_experiment_id, 'CAD·메시·선언 조건·필드가 같은 개정을 참조하지 않습니다.');
+    assert(field.position_unit === 'mm' && field.displacement_unit === 'mm' && field.force_unit === 'N' &&
+      field.coordinate_frame === 'global_assembly_cartesian_mm' && field.coverage === 'ALL_ORIGINAL_MESH_NODES' &&
+      field.static?.axis_semantics === 'DIMENSIONLESS_STATIC_LOAD_PARAMETER_NOT_PHYSICAL_TIME' &&
+      Number.isSafeInteger(field.static.order) && field.static.order >= 1 && field.static.load_parameter === 1 &&
+      field.qualification === 'UNKNOWN' && field.engineering_valid === false && field.decision === 'NOT_RELEASED' &&
+      equal(field.metrics, result.metrics) && equal(field.validations, result.validations), '전체 필드의 축·단위·미확인 판정이 다릅니다.');
+    const manifest = new Map();
+    for (const entry of result.artifacts ?? []) {
+      assert(safePath(entry.path) && sha(entry.sha256) && !manifest.has(entry.path) &&
+        Number.isSafeInteger(entry.size_bytes) && entry.size_bytes >= 0 && entry.revision === result.cad_revision,
+        '원 조립체 산출물의 경로·해시·크기·개정이 불완전합니다.'); manifest.set(entry.path, entry);
+    }
+    assert(Array.isArray(field.source_artifacts) && field.source_artifacts.length >= 2 && field.source_artifacts.length <= 64,
+      '필드·원본 메시의 기록된 근거가 필요합니다.');
+    const sources = {};
+    for (const entry of field.source_artifacts) {
+      assert(equal(entry, manifest.get(entry.path)) && !Object.hasOwn(sources, entry.path), '화면 필드의 원본 근거가 manifest와 다릅니다.');
+      sources[entry.path] = {path: entry.path, bytes: entry.size_bytes, sha256: entry.sha256};
+    }
+    const artifact = manifest.get('simulation/admitted-fields.json');
+    assert(artifact && Object.hasOwn(sources, artifact.path) && Object.hasOwn(sources, 'simulation/mesh-reuse/mapping.json') &&
+      field.native_gauss?.artifact === artifact.path && field.native_gauss.sha256 === artifact.sha256 &&
+      field.native_gauss.location === 'NATIVE_TETRA10_FPG5_GAUSS_POINTS' && field.native_gauss.nodal_stress === 'NOT_CONSTRUCTED' &&
+      field.native_gauss.displayed === false, '원 Gauss 응력을 절점 응력으로 바꾸거나 원본 참조를 바꿀 수 없습니다.');
+    assert(Array.isArray(field.nodes) && field.nodes.length === field.node_count && field.node_count > 0 && field.node_count <= 100000 &&
+      Array.isArray(field.elements) && field.elements.length === field.element_count && field.element_count > 0 && field.element_count <= 60000 &&
+      Array.isArray(field.boundary_faces) && field.boundary_faces.length === field.boundary_face_count && field.boundary_face_count > 0 && field.boundary_face_count <= 25000 &&
+      Array.isArray(field.source_nodes) && field.source_nodes.length === field.node_count && Array.isArray(field.bodies) && field.bodies.length === 7,
+      '원 조립체 전체 절점·체적·표면 연결 또는 표시 범위가 다릅니다.');
+    assert(field.native_gauss.point_count === 5*field.element_count, '완전한 TETRA10 FPG5 응력의 원본 참조가 필요합니다.');
+    const original = new Map(), nodes = new Map(), bodies = new Map(field.bodies.map(body => [body.component_id, body]));
+    assert(bodies.size === 7 && bodies.size === new Set(proposal.execution.catalog.retained_mesh.active_components).size &&
+      proposal.execution.catalog.retained_mesh.active_components.every(body => bodies.has(body)), '활성 부품 범위가 선언 메시와 다릅니다.');
+    field.source_nodes.forEach(node => { assert(identifier(node.id) && vector(node.xyz_mm) && !original.has(node.id), '원본 절점 ID·XYZ가 불완전합니다.'); original.set(node.id,node); });
+    const indexMap = field.identity?.source_node_ids_by_native_index;
+    assert(field.identity?.status === 'PASS' && Array.isArray(indexMap) && indexMap.length === field.node_count &&
+      new Set(indexMap).size === field.node_count, '이번 native import와 원 ID 연결이 불완전합니다.');
+    for (const node of field.nodes) {
+      const source = original.get(node.node_id);
+      assert(source && !nodes.has(node.node_id) && bodies.has(node.component_id) && Number.isSafeInteger(node.native_index) &&
+        indexMap[node.native_index] === node.node_id && vector(node.position_mm) && vector(node.displacement_mm) && vector(node.reaction_n) &&
+        node.position_mm.every((v,i) => Math.abs(v-source.xyz_mm[i]) <= 1e-12), '동일 좌표의 다른 부품을 합치거나 실제 절점 응답을 추정할 수 없습니다.');
+      nodes.set(node.node_id,node);
+    }
+    const elements = new Map(), faces = new Map();
+    for (const [items,count,type] of [[field.elements,10,'TETRA10'],[field.boundary_faces,6,'TRIA6']]) for (const element of items) {
+      const target = type === 'TETRA10' ? elements : faces;
+      assert(identifier(element.element_id) && !target.has(element.element_id) && element.type === type && bodies.has(element.component_id) &&
+        Array.isArray(element.node_ids) && element.node_ids.length === count && new Set(element.node_ids).size === count &&
+        element.node_ids.every(n => nodes.get(n)?.component_id === element.component_id), '원본 요소 또는 부품별 연결이 불완전합니다.');
+      target.set(element.element_id, element);
+    }
+    assert(Array.isArray(field.display_triangles) && field.display_triangles.length === 4*field.boundary_face_count &&
+      field.display_triangles.length <= 100000 && field.display_geometry === 'FOUR_LINEAR_TRIANGLES_PER_TRIA6_WITH_DERIVED_OUTWARD_WINDING',
+      '표시 삼각형은 원 TRIA6의 명시적 선형 표시여야 합니다.');
+    for (const triangle of field.display_triangles) {
+      const face = faces.get(triangle.face_id), owner = elements.get(triangle.owner_element_id);
+      assert(face && owner && face.component_id === owner.component_id && triangle.component_id === face.component_id &&
+        Array.isArray(triangle.node_ids) && triangle.node_ids.length === 3 && new Set(triangle.node_ids).size === 3 &&
+        triangle.node_ids.every(n => face.node_ids.includes(n)), '표시 외곽면이 다른 부품·요소를 참조합니다.');
+    }
+    const application = result.provenance.adapter_details?.native_application;
+    assert(application && Array.isArray(application.boundary_conditions) && Array.isArray(application.loads), '실제 적용한 구속·하중 기록이 필요합니다.');
+    const prescribed = [], constrained = new Map(), forces = new Map();
+    application.boundary_conditions.forEach(row => row.source_node_ids.forEach(n => {
+      assert(nodes.has(n), '구속 원 절점이 필드에 없습니다.');
+      for (const [key,value] of Object.entries(row.components)) {
+        const component = ['DX','DY','DZ'].indexOf(key)+1; assert(component > 0 && finite(value), '원 지정 DOF·값이 필요합니다.');
+        prescribed.push({node_id:n,component,value_mm:value});
+        const dofs = constrained.get(n) ?? new Map(); assert(!dofs.has(component),'중복 native 구속입니다.'); dofs.set(component,value); constrained.set(n,dofs);
+      }
+    }));
+    application.loads.forEach(row => row.source_node_ids.forEach(n => {
+      assert(nodes.has(n) && vector(['FX','FY','FZ'].map(k=>row.per_node_components_N[k])), '실제 절점 하중·원 ID가 필요합니다.');
+      const force = forces.get(n) ?? [0,0,0]; ['FX','FY','FZ'].forEach((key,i)=> { force[i] += row.per_node_components_N[key]; }); forces.set(n,force);
+    }));
+    const normalized = copy(field); normalized.sources = sources; normalized.mesh_size_max_mm = 3;
+    normalized.fixed_node_ids = [...constrained].filter(([,dofs])=>dofs.size===3 && [...dofs.values()].every(v=>v===0)).map(([n])=>n);
+    normalized.loads = [...forces].map(([node_id,force_N])=>({node_id,force_N})); normalized.fixed_dofs = ['UX','UY','UZ'];
+    normalized.boundary_faces = normalized.boundary_faces.map(face=>({...face,group:face.physical_group}));
+    const peak = Math.max(...[...nodes.values()].map(node=>Math.hypot(...node.displacement_mm)));
+    assert(finite(peak) && result.metrics.max_displacement?.unit === 'mm' && result.metrics.max_displacement.valid === true &&
+      Math.abs(peak-result.metrics.max_displacement.value) <= 8*Number.EPSILON*Math.max(peak,Number.MIN_VALUE), '전체 |U| 최대값이 원 결과와 다릅니다.');
+    const total = [0,1,2].map(i=>[...forces.values()].reduce((sum,force)=>sum+force[i],0));
+    const model = freeze({field:normalized, rawNative:{prescribed_dofs:prescribed,loads:normalized.loads}, artifact:copy(artifact),
+      metadata:{family:'assembly', experimentId:result.experiment_id,parentId:result.parent_experiment_id,revision:result.cad_revision,
+        fieldProducer:'1',resultProducer:result.provenance.adapter_version,coreCommit:result.provenance.core_commit,
+        upstreamCommit:result.provenance.source_commit,unknownCount:result.validations.filter(v=>v.status==='UNKNOWN').length,
+        sensitivity:'NOT_ASSESSED',decision:'NOT_RELEASED',wholeMaximumMagnitude:peak,
+        nativeCatalogRevision:result.provenance.analysis_conditions?.catalog_revision,totalForceVectorN:total}});
+    verified.add(model); return model;
+  }
   function verify(field, ctx, entry) {
     const result = ctx.saved.result, version = result.provenance.adapter_version;
     assert(keys(field, ["schema_version", "kind", "backend", "adapter_version", "parent_experiment_id", "cad_revision", "mesh_index", "mesh_size_max_mm", "coordinate_frame", "position_unit", "displacement_unit", "force_unit", "static", "coverage", "qualification", "engineering_valid", "nodes", "elements", "boundary_faces", "fixed_node_ids", "fixed_dofs", "loads", "node_count", "element_count", "boundary_face_count", "sources"]), "FEA 필드 선언이 불완전합니다.");
@@ -350,6 +461,6 @@
     assert(finite(factor) && factor >= 0 && factor <= LIMITS.factor, "보기 배율은 0~1000의 유한한 수치여야 합니다.");
     const position = node.position_mm.map((value, i) => value + factor * node.displacement_mm[i]); assert(vector(position), "보기 좌표의 수치 범위를 넘었습니다."); return position;
   }
-  const api = { LIMITS, COMPONENTS, catalog, loadField, verifyField, requireVerified, scalar, displayPosition, responseSelection };
+  const api = { LIMITS, COMPONENTS, catalog, loadField, verifyField, verifyAssemblyField, requireVerified, scalar, displayPosition, responseSelection };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.fixtureFieldControls = api;
 })(globalThis);

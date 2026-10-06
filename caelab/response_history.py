@@ -7,13 +7,14 @@ from .response_comparison import _path, _source
 from .storage import check_id
 
 
-def _read_native(lab, result, relative):
+def _read_native(lab, result, relative, *, maximum_bytes=33554432):
     entries = [a for a in result["artifacts"] if a["path"] == relative]
     if len(entries) != 1:
         raise ValueError("Native history must have exactly one recorded artifact")
     entry = entries[0]
     path = _path(lab, f"experiments/{result['experiment_id']}/{relative}")
-    if type(entry["size_bytes"]) is not int or not 0 < entry["size_bytes"] <= 33554432:
+    if (type(maximum_bytes) is not int or not 0 < maximum_bytes <= 536870912
+            or type(entry["size_bytes"]) is not int or not 0 < entry["size_bytes"] <= maximum_bytes):
         raise ValueError("Retained history exceeds the declared native JSON bound")
     if path.stat().st_size != entry["size_bytes"]:
         raise ValueError("Native history size mismatch")
@@ -32,7 +33,7 @@ def _read_native(lab, result, relative):
     def invalid(value):
         raise ValueError("Nonfinite native history JSON constant: " + value)
 
-    raw = json.loads(payload, parse_constant=invalid, object_pairs_hook=unique)
+    raw = json.loads(payload.decode('utf-8'), parse_constant=invalid, object_pairs_hook=unique)
     if not isinstance(raw, dict):
         raise ValueError("Native history must be a JSON object")
     return raw, entry
@@ -47,6 +48,20 @@ def source_channels(lab, result, proposal):
             raise ValueError("Retained Maxwell native artifact identity is unsupported")
         raw, entry = _read_native(lab, result, relative)
         channels = maxwell_channels(result, proposal["execution"], raw, entry)
+    else:
+        reader = getattr(lab, "response_history_adapters", {}).get(result["provenance"]["adapter"])
+        resources_hook = getattr(reader, "history_response_resources", None)
+        channels_hook = getattr(reader, "response_history_channels", None)
+        if callable(resources_hook) and callable(channels_hook):
+            policy = resources_hook(result)
+            if type(policy) is not dict or not 0 < len(policy) <= 8:
+                raise ValueError("History adapter resources must have a bounded explicit contract")
+            resources = {}
+            for role, spec in policy.items():
+                if type(role) is not str or type(spec) is not dict or set(spec) != {"path", "maximum_bytes"}:
+                    raise ValueError("History adapter resource declaration differs")
+                resources[role] = _read_native(lab, result, spec["path"], maximum_bytes=spec["maximum_bytes"])
+            channels = channels_hook(result, proposal, resources)
     return channels
 
 
@@ -57,9 +72,14 @@ def history_catalog(lab, experiment_id):
     _, _, again = _source(lab, identifier)
     if again != hashes:
         raise ValueError("History source changed during inspection")
+    reader = getattr(lab, "response_history_adapters", {}).get(result["provenance"]["adapter"])
+    limitations = ["Exact recorded samples; no interpolation, resampling or unit conversion"]
+    if result["provenance"]["adapter"] == "material.mfront.viscoelastic":
+        limitations.extend(["t=0 is an unprepared numerical initial condition, not integrated material evidence",
+                            "Material point, not a spatial assembly; physical qualification remains UNKNOWN"])
+    else:
+        limitations.extend(getattr(reader, "history_limitations", []))
     return {"schema_version": "1.0", "integrity": "VERIFIED", "experiment_id": identifier,
             "study_id": result["study"]["id"], "result_sha256": hashes["result_sha256"],
             "channels": channels,
-            "limitations": ["Exact recorded samples; no interpolation, resampling or unit conversion",
-                             "t=0 is an unprepared numerical initial condition, not integrated material evidence",
-                             "Material point, not a spatial assembly; physical qualification remains UNKNOWN"]}
+            "limitations": limitations}

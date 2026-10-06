@@ -128,7 +128,8 @@ def _selected(lab, result, proposal, response):
         if type(index) is not int or not 0 <= index < len(channel["values"]):
             raise ValueError("Select an explicit recorded history sample index")
         return (channel["values"][index], channel["unit"], "EXACT_RECORDED_HISTORY_SAMPLE",
-                deepcopy(result["metrics"][channel["metric"]]), {"source_channel": channel,
+                deepcopy(result["metrics"][channel["metric"]]) if channel["metric"] is not None else None,
+                {"source_channel": channel,
                 "response_axis": {"quantity": channel["axis"]["quantity"], "unit": channel["axis"]["unit"],
                                   "value": channel["axis"]["values"][index]}})
     metric = result["metrics"].get(response["metric"])
@@ -191,6 +192,12 @@ def _evaluation(lab, request, result, proposal):
         for key in ("quantity", "component", "coordinate_frame"):
             field_checks.append({"property": key, "declared": observed[key],
                                  "actual": field[key], "matched": observed[key] == field[key]})
+    native_history = "source_channel" in channel_info and metric is None
+    if native_history:
+        channel = channel_info["source_channel"]
+        for key in ("quantity", "component", "coordinate_frame"):
+            field_checks.append({"property": key, "declared": observed[key],
+                                 "actual": channel[key], "matched": observed[key] == channel[key]})
     field_match = all(check["matched"] for check in field_checks)
     compatible = conditions_match and (axis_check is None or axis_check["matched"]) and field_match
     delta = actual - observed["value"] if compatible else None
@@ -211,12 +218,14 @@ def _evaluation(lab, request, result, proposal):
             "unit_policy": "Exact output-unit symbol; input-binding units are user declarations",
             "causal_verdict": "NOT_EVALUATED", **channel_info,
             **({"declared_axis_check": axis_check, "alignment_policy": "Exact recorded sample; no interpolation"} if axis_check else {}),
-            **({"declared_field_checks": field_checks,
+            **({"declared_history_checks" if native_history else "declared_field_checks": field_checks,
                 "alignment_policy": "Exact recorded node and declared component/frame; physical measurement alignment unverified"}
                if field_checks else {})}
 
 
-def _comparison_version(response):
+def _comparison_version(response, comparison):
+    if "history_channel" in response and "source_metric" not in comparison:
+        return "1.3"
     return "1.2" if "field" in response else "1.1" if "history_channel" in response else "1.0"
 
 
@@ -240,7 +249,7 @@ def save_comparison(lab, *, comparison_id, experiment_id, purpose, hypothesis, o
     result, proposal, hashes = _source(lab, experiment_id)
     comparison = _evaluation(lab, request, result, proposal)
     source = _source_info(result, proposal, hashes)
-    record = {"schema_version": _comparison_version(response), "id": comparison_id, "created_utc": utc_now(),
+    record = {"schema_version": _comparison_version(response, comparison), "id": comparison_id, "created_utc": utc_now(),
               "request": request, "source": source, "comparison": comparison,
               "provenance": source_identity(Path(__file__).resolve().parents[1])}
     # Recheck before appending: original result/source changes must not be silently
@@ -263,19 +272,20 @@ def inspect_comparison(lab, comparison_id):
     receipt, record = load_json(folder / "receipt.json"), load_json(record_path)
     if receipt.get("id") != comparison_id or receipt.get("record_sha256") != _sha(record_path):
         raise ValueError("Comparison record hash mismatch")
-    if record.get("schema_version") not in ("1.0", "1.1", "1.2") or record.get("id") != comparison_id:
+    if record.get("schema_version") not in ("1.0", "1.1", "1.2", "1.3") or record.get("id") != comparison_id:
         raise ValueError("Comparison record identity mismatch")
     request = record["request"]
     _finite_json(request)
     validate("response-comparison-request", request)
-    if record["schema_version"] != _comparison_version(request["response"]):
-        raise ValueError("Comparison version and response selection do not agree")
     if request["comparison_id"] != comparison_id:
         raise ValueError("Comparison request identity mismatch")
     result, proposal, hashes = _source(lab, check_id(request["experiment_id"]))
     if record["source"] != _source_info(result, proposal, hashes):
         raise ValueError("Comparison original source identity/metadata/hash mismatch")
-    if _evaluation(lab, request, result, proposal) != record["comparison"]:
+    calculated = _evaluation(lab, request, result, proposal)
+    if record["schema_version"] != _comparison_version(request["response"], calculated):
+        raise ValueError("Comparison version and response selection do not agree")
+    if calculated != record["comparison"]:
         raise ValueError("Comparison calculation mismatch")
     return record
 

@@ -61,7 +61,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["analysis_type", "units", "coordinate_system", "materials", "boundary_conditions", "loads", "contact", "mesh"],
       "properties": {
-        "analysis_type": {"const": "linear_static"},
+        "analysis_type": {"enum": ["linear_static", "nonlinear_static"]},
         "units": {
           "type": "object", "additionalProperties": false, "required": ["length", "force", "stress"],
           "properties": {"length": {"const": "mm"}, "force": {"const": "N"}, "stress": {"const": "MPa"}}
@@ -73,19 +73,32 @@
         "contact": {
           "type": "object", "additionalProperties": false, "required": ["mode", "source"],
           "properties": {
-            "mode": {"enum": ["none", "bonded", "frictionless"]}, "source": {"$ref": "#/$defs/text"},
+            "mode": {"enum": ["none", "bonded", "frictionless", "mixed"]}, "source": {"$ref": "#/$defs/text"},
+            "master_union_same_slave": {"type": "boolean"},
+            "initial_state": {"enum": ["OPEN", "GEOMETRIC", "CLOSED_ASSUMED"]},
             "pairs": {
               "type": "array", "maxItems": 64,
               "items": {
                 "type": "object", "additionalProperties": false, "required": ["selection_a", "selection_b"],
-                "properties": {"selection_a": {"$ref": "#/$defs/id"}, "selection_b": {"$ref": "#/$defs/id"}}
+                "properties": {
+                  "selection_a": {"$ref": "#/$defs/id"}, "selection_b": {"$ref": "#/$defs/id"},
+                  "law": {"enum": ["bonded", "frictionless"]}, "master": {"enum": ["a", "b"]},
+                  "source": {"$ref": "#/$defs/text"}, "distance_max_mm": {"type": "number", "exclusiveMinimum": 0}
+                }
               }
             }
-          }
+          },
+          "allOf": [{"if": {"properties": {"mode": {"const": "mixed"}}},
+                     "then": {"required": ["pairs"], "properties": {"pairs": {"minItems": 1,
+                              "items": {"required": ["law", "master", "source"]}}}}}]
         },
         "mesh": {
-          "type": "object", "additionalProperties": false, "required": ["mode", "max_size_mm"],
-          "properties": {"mode": {"const": "selected"}, "max_size_mm": {"type": "number"}}
+          "oneOf": [
+            {"type": "object", "additionalProperties": false, "required": ["mode", "max_size_mm"],
+             "properties": {"mode": {"const": "selected"}, "max_size_mm": {"type": "number"}}},
+            {"type": "object", "additionalProperties": false, "required": ["mode", "mesh_revision"],
+             "properties": {"mode": {"const": "retained"}, "mesh_revision": {"$ref": "#/$defs/sha"}}}
+          ]
         }
       }
     }

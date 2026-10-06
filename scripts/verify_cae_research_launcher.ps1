@@ -95,9 +95,10 @@ function Stop-OpenScienceLocalServer {
     return [pscustomobject]@{ State = 'stopped'; OwnerPath = $OwnerPath }
 }
 function Invoke-CaeResearchLocalLab {
-    param($Context, [int]$LabPort)
+    param($Context, [int]$LabPort, [string]$AssemblyMeshConfigPath)
     $script:taskTrace.Add('lab')
     $script:taskLabArguments = @{ RepoRoot = $Context.RepoRoot; StoreRoot = $Context.StoreRoot; OwnerPath = $Context.OwnerPath; Port = $LabPort }
+    if ($AssemblyMeshConfigPath) { $script:taskLabArguments.AssemblyMeshConfigPath = $AssemblyMeshConfigPath }
     if ($script:taskMode -in @('lab-failure', 'lab-and-stop-failure')) { throw 'ORIGINAL_LAB_FAILURE' }
     if ($script:taskMode -eq 'interrupted') { return 130 }
     return 0
@@ -140,8 +141,30 @@ Write-OpenScienceJson $taskProject @{ schema = 1; kind = 'autonomous-cae-lab.ope
 $taskValidSettings = [ordered]@{ schema = 1; runtime_prefix = $taskRuntime; auth_profile_root = $taskAuth; project_binding_path = $taskProject }
 Write-OpenScienceJson $taskSettings $taskValidSettings -CreateNew
 function Invoke-LauncherFixture {
-    param([string]$Run = ('control-' + [Guid]::NewGuid().ToString('N')), [string]$Config = $taskSettings, [switch]$Only, [string]$Profile = 'FixtureSelected')
-    Invoke-CaeResearchLocal -SourceRoot $taskFakeRepo -LocalSettingsPath $Config -ResearchRun $Run -LabPort 8782 -ResearchProfile $Profile -CheckOnly:$Only
+    param([string]$Run = ('control-' + [Guid]::NewGuid().ToString('N')), [string]$Config = $taskSettings, [switch]$Only, [string]$Profile = 'FixtureSelected', [string]$AssemblyConfig)
+    Invoke-CaeResearchLocal -SourceRoot $taskFakeRepo -LocalSettingsPath $Config -ResearchRun $Run -LabPort 8782 -ResearchProfile $Profile -AssemblyMeshConfigPath $AssemblyConfig -CheckOnly:$Only
+}
+
+# A trusted operator path is forwarded only to Lab. It must not alter the
+# approved provider/model, research tool scope, store or resident ownership.
+$taskAssemblyConfig = Join-Path $taskSetup 'assembly configuration.json'
+[IO.File]::WriteAllText($taskAssemblyConfig, '{"synthetic_operator_fixture":true}')
+Invoke-LauncherControl 'assembly_configuration_preserves_research_identity_and_is_forwarded_only_to_lab' {
+    $before = Get-OpenScienceHash $taskAssemblyConfig
+    $result = Invoke-LauncherFixture -AssemblyConfig $taskAssemblyConfig
+    Confirm-LauncherControl ($script:taskLabArguments.AssemblyMeshConfigPath -ceq $taskAssemblyConfig -and
+        $script:taskLabArguments.StoreRoot -ceq $script:taskContextArguments.StoreRoot -and
+        $script:taskLabArguments.OwnerPath -ceq $result.OwnerPath -and $script:taskLabArguments.Port -eq 8782 -and
+        $script:taskContextArguments.ModelId -ceq 'openai-codex/gpt-5.6-sol' -and
+        $script:taskContextArguments.ResearchProfile -ceq 'FixtureSelected' -and
+        -not $script:taskContextArguments.ContainsKey('AssemblyMeshConfigPath') -and
+        $result.RuntimeState -ceq 'STOPPED' -and (Get-OpenScienceHash $taskAssemblyConfig) -ceq $before) 'Assembly configuration changed research identity or original bytes.'
+}
+foreach ($taskBadAssembly in @((Join-Path $taskSetup 'missing-assembly.json'), 'relative/assembly.json', $taskSetup, "C:\Synthetic`nassembly.json")) {
+    Invoke-LauncherControl ('assembly_configuration_refused_before_runtime_' + $taskVerifyChecks.Count) {
+        $null = Get-LauncherRefusal { Invoke-LauncherFixture -AssemblyConfig $taskBadAssembly }
+        Confirm-LauncherControl ($script:taskTrace.Count -eq 0) 'An invalid assembly operator path reached runtime startup.'
+    }
 }
 
 Invoke-LauncherControl 'approved_model_profile_project_same_store_and_owned_normal_stop' {
@@ -307,6 +330,15 @@ Invoke-LauncherControl 'real_facade_composition_maps_same_windows_store_and_owne
     $argv = Read-OpenScienceJson (Join-Path $taskLabStubRoot 'lab-argv.json')
     $expectedStore = '/mnt/c/' + $context.StoreRoot.Substring(3).Replace('\', '/')
     Confirm-LauncherControl ($exit -eq 0 -and (@($argv) -join '|') -ceq "-m|apps.lab|--store|$expectedStore|--port|8785|--openscience-owner|/mnt/c/Synthetic Local/runtime-owner.json|--openscience-powershell|$taskExpectedHostBridgeWsl") 'Composed facade mixed store/owner/host executable identity or captured foreground output as exit code.'
+}
+Invoke-LauncherControl 'assembly_facade_preserves_same_store_port_owner_and_exact_operator_path' {
+    $context = [pscustomobject]@{ RepoRoot = $taskLabStubRoot; StoreRoot = (Join-Path $taskLabStubRoot 'runs/shared-new-store')
+        OwnerPath = 'C:\Synthetic Local\runtime-owner.json' }
+    $exit = & $taskRealLabCall -Context $context -LabPort 8785 -AssemblyMeshConfigPath $taskAssemblyConfig
+    $argv = Read-OpenScienceJson (Join-Path $taskLabStubRoot 'lab-argv.json')
+    $expectedStore = '/mnt/c/' + $context.StoreRoot.Substring(3).Replace('\', '/')
+    $expectedAssembly = '/mnt/c/' + $taskAssemblyConfig.Substring(3).Replace('\', '/')
+    Confirm-LauncherControl ($exit -eq 0 -and (@($argv) -join '|') -ceq "-m|apps.lab|--store|$expectedStore|--port|8785|--assembly-mesh-config|$expectedAssembly|--openscience-owner|/mnt/c/Synthetic Local/runtime-owner.json|--openscience-powershell|$taskExpectedHostBridgeWsl") 'Assembly path conversion clobbered foreground port/store or research ownership.'
 }
 Invoke-LauncherControl 'lab_facade_without_owner_preserves_default_saved_result_route' {
     & $taskVerifyLab -RepoRoot $taskLabStubRoot -Store 'runs/new-store' -Port 8783 -WithoutHistory | Out-Host

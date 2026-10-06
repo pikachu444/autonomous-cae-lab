@@ -39,6 +39,20 @@ test("native mechanics selector and first canvas both start at whole vector magn
   assert.match(tableRows(mounted)[0].textContent,/UX=0 mm/); assert.doesNotMatch(tableRows(mounted)[0].textContent,/XYZ 고정/);
 });
 function tableRows(mounted) { return walk(mounted.refs.rows).filter(item => item.tagName === "TR" && item.dataset.nodeId); }
+test("assembly numeric vectors render without invented native tokens and select the same original node", () => {
+  const data = require("./test_assembly_field_controls.js").assemblyFixture(), before = JSON.stringify(data);
+  const model = controls.verifyAssemblyField(data.inspection, data.envelope), doc = documentFixture(), container = doc.createElement("article"), selected = [];
+  const mounted = viewer.mount(container, model, () => true, value => selected.push(value));
+  assert.equal(mounted.refs.component.value, "MAGNITUDE"); assert.equal(mounted.refs.canvas.dataset.component, "MAGNITUDE");
+  assert.match(container.textContent, /TETRA10.*TRIA6/); assert.match(container.textContent, /물리 시간 아님/);
+  assert.equal(viewer.scene(model).triangles.length, 4*model.field.boundary_face_count);
+  mounted.refs.search.value = "601"; mounted.refs.search.emit("input");
+  assert.match(mounted.refs.probeBox.textContent, /-0.07 \/ 0.02 \/ -0.03/);
+  assert.match(tableRows(mounted)[0].textContent, /-0.07.*0.02.*-0.03/);
+  mounted.refs.component.value = "UZ"; mounted.update(); mounted.refs.compare.emit("click");
+  assert.deepEqual(selected, [controls.responseSelection(model, 601, "UZ")]);
+  assert.equal(JSON.stringify(data), before);
+});
 test("field comparison callback carries only exact original identity, without displayed positions or amplified U", () => {
   const data = fixture(), before = JSON.stringify(data), model = verify(data), doc = documentFixture(), container = doc.createElement("article"), selected = [];
   const mounted = viewer.mount(container, model, () => true, value => selected.push(value));

@@ -21,7 +21,7 @@ MAX_RECEIPT_BYTES = 4096
 MAX_DIAGNOSTICS = 24
 
 
-def analysis_conditions_context(lab, result):
+def analysis_conditions_context(lab, result, *, compact=False):
     """Read the executed child snapshot, never a mutable/current declaration.
 
     Core's normal inspection verifies the complete child/parent/manifest chain
@@ -39,13 +39,21 @@ def analysis_conditions_context(lab, result):
     if hashlib.sha256(raw).hexdigest() != reference['record_sha256']:
         raise ValueError('Executed conditions changed before research-context reading')
     record = _metadata(raw)
+    catalog = deepcopy(record['catalog'])
+    projection = None
+    if compact:
+        from .research_catalog import condition_catalog_summary
+        catalog, projection = condition_catalog_summary(catalog, record['request']['declaration'],
+            record['catalog_revision'], f'experiments/{identifier}/analysis_conditions.json')
     context = {'reference': deepcopy(reference),
                'source_experiment_id': record['source']['experiment_id'],
                'cad_revision': record['source']['cad_revision'],
                'declaration': deepcopy(record['request']['declaration']),
-               'catalog': deepcopy(record['catalog']),
+               'catalog': catalog,
                'engineering': 'UNKNOWN', 'scope': 'USER_DECLARED_UNVERIFIED',
                'decision': 'NOT_RELEASED'}
+    if projection is not None:
+        context['catalog_projection'] = projection
     if _bounded_bytes(path, MAX_RECORD_BYTES) != raw:
         raise ValueError('Executed conditions changed during research-context reading')
     return context

@@ -49,8 +49,12 @@
         "coordinate_frame": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "\\S"},
         "condition": {"type": "string", "minLength": 1, "maxLength": 2000, "pattern": "\\S"},
         "tolerance": {"type": "number", "minimum": 0},
-        "axis": {"type": "object", "additionalProperties": false, "required": ["quantity", "value", "unit"],
-          "properties": {"quantity": {"const": "time"}, "value": {"type": "number"}, "unit": {"const": "s"}}},
+        "axis": {"oneOf": [
+          {"type": "object", "additionalProperties": false, "required": ["quantity", "value", "unit"],
+            "properties": {"quantity": {"const": "time"}, "value": {"type": "number"}, "unit": {"const": "s"}}},
+          {"type": "object", "additionalProperties": false, "required": ["quantity", "value", "unit"],
+            "properties": {"quantity": {"const": "load_parameter"}, "value": {"type": "number"}, "unit": {"const": "1"}}}
+        ]},
         "conditions": {
           "type": "array", "maxItems": 16,
           "items": {

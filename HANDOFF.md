@@ -1,3 +1,26 @@
+## Current checkpoint — common controls preserved; Phase 3 development next
+
+The large native-conditions/field/history bundle is recorded in ADR0050 and
+benchmarks/records/20261006-common-native-controls-r01.json. Retained OpenRadioss
+histories now use the common reader and exact-axis comparisons; two exact samples
+and two explicit axis-mismatch records reopen without changing136 original files.
+The live owned native cancellation is actually verified across HTTP/Core/native
+receipts (12 checks). Force-driven contact failures and intentionally cancelled
+r04 are preserved; no successful contact result is claimed. Separate final source
+suites are275/64/112 Python and167 Node passes, not an aggregate or physics verdict.
+Final independent review follows the larger numerical integration, per the user.
+
+The user explicitly rejected continued assembly-example fixation. NEXT is Phase3
+common numerical research integration using the existing engines, then existing
+Phase4–7 code in order. Do not rerun contact/import/mesh examples as a prerequisite.
+Reuse adapters and existing execution/journal/result routes; do not add per-example
+scripts for product behavior. Whole52/Phases INCOMPLETE; UNKNOWN/NOT_RELEASED and
+original CAD/mesh/results/fine UNKNOWN/separate R2 drafts remain. Goal ACTIVE.
+Approved openai-codex/gpt-5.6-sol/ChatGPT OAuth is unchanged. Prior exactf216 CI is
+7SUCCESS/3FAIL; new publication CI must be checked for its own source commit.
+
+---
+
 ## Verified checkpoint — original assembly native field bridge
 
 Code_Aster S4a r03 on base51a92be+dirty reuse2 passed56 reference checks across the original7 bodies/84 groups; native exit0 and original/copied bytes unchanged. Main integrated4-source suite422 PASS. See [record](benchmarks/records/20261006-assembly-affine-actual-r03.json) and ADR0049 for exact source/run/hash/retention and final review. Native artifacts remain LOCAL_ONLY; synthetic affine/no contact or external load is not S4b.

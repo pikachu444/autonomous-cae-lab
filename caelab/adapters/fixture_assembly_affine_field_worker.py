@@ -94,19 +94,37 @@ def parse_native_fields(raw, mapping, catalog, quality, settings):
     """Join every actual decimal internal ID, order and FPG5 location exactly."""
     from plugins.fixture_design.assembly_field_reference import validate_settings
     settings = validate_settings(settings)
-    # The host repeats the worker's pre-MECA body/order/group guard independently.
-    comparison = importer.validate_native_catalog(mapping, catalog)
-    source, body_cells, boundary = body_layout(mapping, catalog, settings["components"])
+    source, _, boundary = body_layout(mapping, catalog, settings["components"])
     volumes = [source["bodies"][component] for component in settings["components"]]
     order = raw["order"]
     _context(raw, order, volumes)
     if raw.get("boundary") != boundary or raw.get("identity_verified_before_model") is not True:
         raise ValueError("Observed exterior-only boundary/pre-MECA identity differs")
-    mesh_volumes = qualified_volumes(quality, settings["components"])
+    fields = parse_complete_fields(raw, mapping, catalog, quality, settings["components"],
+                                   settings["limits"]["mesh_volume_relative"])
+    fields['scope'] = 'COMPLETE_NATIVE_AFFINE_FIELDS'
+    return fields
+
+
+def parse_complete_fields(raw, mapping, catalog, quality, components, geometry_weight_relative_limit):
+    """Shared complete native join, without an affine physics/time assumption.
+
+    Callers must separately verify actual result orders, declared conditions and
+    the original-to-oriented mesh receipt. Original body/volume connectivity is
+    the same for every supported mechanical family.
+    """
+    comparison = importer.validate_native_catalog(mapping, catalog)
+    source, _, boundary = body_layout(mapping, catalog, components)
+    order = raw['order']
+    if type(order) is not int or order < 1 or raw.get('identity_verified_before_model') is not True:
+        raise ValueError('Actual native field order and checked import required')
+    if not math.isfinite(geometry_weight_relative_limit) or geometry_weight_relative_limit <= 0:
+        raise ValueError('Declared native geometry identity tolerance required')
+    mesh_volumes = qualified_volumes(quality, components)
     xyz = catalog["coordinates_mm"]
     cells = {cell["index"]: cell for cell in catalog["cells"]}
     node_owner, cell_owner = {}, {}
-    for component in settings["components"]:
+    for component in components:
         group = source["bodies"][component]
         for node in catalog["group_node_indices"][group]:
             if node in node_owner:
@@ -167,7 +185,7 @@ def parse_native_fields(raw, mapping, catalog, quality, settings):
     body_results = {component: {"nodes": [], "gauss": [],
         "qualified_mesh_volume_mm3": mesh_volumes[component],
         "native_energy": _native_energy(raw.get("native_energy", {}).get(component),
-                                        source["bodies"][component], order)} for component in settings["components"]}
+                                        source["bodies"][component], order)} for component in components}
     exterior = {row["component_id"]: set(row["exterior_node_indices"]) for row in boundary}
     for index in range(len(xyz)):
         component = node_owner[index]
@@ -189,7 +207,7 @@ def parse_native_fields(raw, mapping, catalog, quality, settings):
             expected_weight = expected["native_expected_weight_mm3"]
             weight_error = abs(native_geom[3]-expected_weight) / abs(expected_weight)
             if (max(coordinate_error, metadata_error) > importer.COORDINATE_ABSOLUTE_MM or
-                    weight_error > settings["limits"]["mesh_volume_relative"]):
+                    weight_error > geometry_weight_relative_limit):
                 raise ValueError("Native spatial point order/curved geometry/signed weight differs from frozen source rule")
             maximum_xyz_error = max(maximum_xyz_error, coordinate_error, metadata_error)
             maximum_weight_error = max(maximum_weight_error, weight_error)
@@ -198,12 +216,12 @@ def parse_native_fields(raw, mapping, catalog, quality, settings):
                 "point": point, "subpoint": subpoint, "order": order,
                 "xyz_mm": native_geom[:3], "weight_mm3": native_geom[3], "stress6_mpa": native_stress[3:],
                 "derived_geometry_reference": expected})
-    return {"scope": "COMPLETE_NATIVE_AFFINE_FIELDS", "bodies": body_results,
+    return {"scope": "COMPLETE_NATIVE_FIELDS", "bodies": body_results,
             "order": order, "native_import_comparison": comparison,
             "geometry_checks": {"maximum_coordinate_error_mm": maximum_xyz_error,
                                 "coordinate_absolute_limit_mm": importer.COORDINATE_ABSOLUTE_MM,
                                 "maximum_point_weight_relative_error": maximum_weight_error,
-                                "point_weight_relative_limit": settings["limits"]["mesh_volume_relative"]},
+                                "point_weight_relative_limit": geometry_weight_relative_limit},
             "geometry_order_binding": raw["geometry_context"]["result_order_binding"]}
 
 

@@ -211,6 +211,7 @@ class LabHandler(BaseHTTPRequestHandler):
         for prefix, operation in (("/api/analysis-conditions/", service.analysis_conditions),
                                   ("/api/response-comparisons/", service.response_comparison),
                                   ("/api/response-histories/", service.response_histories),
+                                  ("/api/response-fields/", service.response_fields),
                                   ("/api/studies/", service.study), ("/api/experiments/", service.experiment),
                                   ("/api/campaigns/", service.campaign), ("/api/jobs/", service.job)):
             if path.startswith(prefix):
@@ -246,6 +247,8 @@ def main(argv=None):
     parser.add_argument("--store", type=Path, required=True)
     parser.add_argument("--port", type=int, default=8766)
     parser.add_argument("--library", action="append", default=[], metavar="ID=PATH")
+    parser.add_argument("--assembly-mesh-config", type=Path,
+                        help="Trusted local operator configuration for a retained qualified assembly mesh")
     parser.add_argument("--openscience-owner", type=Path,
                         help="Existing verified Research runtime ownership file; no model selection")
     parser.add_argument("--openscience-powershell", type=Path,
@@ -266,7 +269,12 @@ def main(argv=None):
         from .research import OpenScienceResearch
         research = OpenScienceResearch(args.openscience_owner, args.store,
                                        powershell=args.openscience_powershell)
-    server = LabHTTPServer(LabService(args.store, libraries=libraries, research=research,
+    from caelab import Lab
+    lab_factory = Lab
+    if args.assembly_mesh_config is not None:
+        from caelab.adapters.assembly_operator import AssemblyOperator
+        lab_factory = AssemblyOperator(args.assembly_mesh_config).lab
+    server = LabHTTPServer(LabService(args.store, libraries=libraries, research=research, lab_factory=lab_factory,
                                      http_journal=HTTPJobJournal(args.store)), args.port)
     print(f"Autonomous CAE Lab: http://127.0.0.1:{server.server_port}", flush=True)
     try:

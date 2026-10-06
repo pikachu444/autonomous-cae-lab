@@ -8,12 +8,13 @@ param(
     [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$RunName = ('cae-research-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff') + '-' + [Guid]::NewGuid().ToString('N').Substring(0, 8)),
     [ValidateRange(1024, 65535)][int]$Port = 8766,
     [ValidateSet('FixtureSelected','FixtureRefinement', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureSelected',
+    [string]$AssemblyMeshConfigPath,
     [switch]$ValidateOnly
 )
 
 # Runner parameters occupy a dot-sourcing caller's scope; preserve this facade.
 $taskCaeResearchOptions = @{ Library = [bool]$Library; RepoRoot = $RepoRoot; SettingsPath = $SettingsPath
-    RunName = $RunName; Port = $Port; ResearchProfile = $ResearchProfile; ValidateOnly = [bool]$ValidateOnly }
+    RunName = $RunName; Port = $Port; ResearchProfile = $ResearchProfile; AssemblyMeshConfigPath = $AssemblyMeshConfigPath; ValidateOnly = [bool]$ValidateOnly }
 . (Join-Path ([IO.Path]::GetFullPath($taskCaeResearchOptions.RepoRoot)) 'scripts/openscience-server-local.ps1') -Library
 
 function Assert-CaeResearchLocalPath {
@@ -109,11 +110,13 @@ function Assert-CaeResearchLocalBinding {
 }
 
 function Invoke-CaeResearchLocalLab {
-    param([Parameter(Mandatory)]$Context, [ValidateRange(1024, 65535)][int]$LabPort)
+    param([Parameter(Mandatory)]$Context, [ValidateRange(1024, 65535)][int]$LabPort, [string]$AssemblyMeshConfigPath)
     # local.ps1 invokes Python in WSL; keep its writable store identical to the
     # Windows-owned MCP context instead of passing a Windows path to Python.
     $labStore = ConvertTo-OpenScienceWslPath $Context.StoreRoot
-    & (Join-Path $Context.RepoRoot 'scripts/lab-local.ps1') -RepoRoot $Context.RepoRoot -Store $labStore -Port $LabPort -OpenScienceOwner $Context.OwnerPath | Out-Host
+    $labOptions = @{ RepoRoot = $Context.RepoRoot; Store = $labStore; Port = $LabPort; OpenScienceOwner = $Context.OwnerPath }
+    if ($AssemblyMeshConfigPath) { $labOptions.AssemblyMeshConfigPath = $AssemblyMeshConfigPath }
+    & (Join-Path $Context.RepoRoot 'scripts/lab-local.ps1') @labOptions | Out-Host
     return $LASTEXITCODE
 }
 
@@ -122,8 +125,12 @@ function Invoke-CaeResearchLocal {
     param([Parameter(Mandatory)][string]$SourceRoot, [Parameter(Mandatory)][string]$LocalSettingsPath,
         [Parameter(Mandatory)][ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ResearchRun,
         [ValidateRange(1024, 65535)][int]$LabPort = 8766,
-        [ValidateSet('FixtureSelected','FixtureRefinement', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureSelected', [switch]$CheckOnly)
+        [ValidateSet('FixtureSelected','FixtureRefinement', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureSelected', [string]$AssemblyMeshConfigPath, [switch]$CheckOnly)
     $plan = New-CaeResearchLocalPlan -SourceRoot $SourceRoot -LocalSettingsPath $LocalSettingsPath -ResearchRun $ResearchRun -ResearchProfile $ResearchProfile
+    if ($AssemblyMeshConfigPath) {
+        $AssemblyMeshConfigPath = Assert-CaeResearchLocalPath $AssemblyMeshConfigPath 'Trusted assembly mesh configuration'
+        Assert-OpenScienceCondition (Test-Path -LiteralPath $AssemblyMeshConfigPath -PathType Leaf) 'Trusted assembly mesh configuration is missing.'
+    }
     if ($CheckOnly) {
         return [pscustomobject]@{ State = 'PATHS_VALIDATED_NOT_STARTED'; RunName = $plan.RunName; StoreRoot = $plan.StoreRoot
             Model = 'openai-codex/gpt-5.6-sol'; ResearchProfile = $plan.ResearchProfile; Readiness = 'NOT_CHECKED' }
@@ -141,7 +148,8 @@ function Invoke-CaeResearchLocal {
         $attempted = $true
         $runtime = Start-OpenScienceLocalServer -Context $context -Port 0 -StartupTimeoutSeconds 120
         Assert-CaeResearchLocalBinding $runtime $plan
-        $labExit = Invoke-CaeResearchLocalLab $runtime $LabPort
+        if ($AssemblyMeshConfigPath) { $labExit = Invoke-CaeResearchLocalLab $runtime $LabPort -AssemblyMeshConfigPath $AssemblyMeshConfigPath }
+        else { $labExit = Invoke-CaeResearchLocalLab $runtime $LabPort }
         Assert-OpenScienceCondition ($labExit -in @(0, 130)) "The Lab exited with code $labExit. Existing research records are retained."
     } catch { $originalError = $_ }
     finally {
@@ -173,4 +181,4 @@ function Invoke-CaeResearchLocal {
 if ($taskCaeResearchOptions.Library) { return }
 $ErrorActionPreference = 'Stop'
 Invoke-CaeResearchLocal -SourceRoot $taskCaeResearchOptions.RepoRoot -LocalSettingsPath $taskCaeResearchOptions.SettingsPath `
-    -ResearchRun $taskCaeResearchOptions.RunName -LabPort $taskCaeResearchOptions.Port -ResearchProfile $taskCaeResearchOptions.ResearchProfile -CheckOnly:$taskCaeResearchOptions.ValidateOnly
+    -ResearchRun $taskCaeResearchOptions.RunName -LabPort $taskCaeResearchOptions.Port -ResearchProfile $taskCaeResearchOptions.ResearchProfile -AssemblyMeshConfigPath $taskCaeResearchOptions.AssemblyMeshConfigPath -CheckOnly:$taskCaeResearchOptions.ValidateOnly

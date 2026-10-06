@@ -6,6 +6,8 @@ param(
     [string]$OpenScienceOwner,
     # Host executable for the existing read-only owner/research facade.
     [string]$OpenSciencePowerShell,
+    # Optional trusted operator configuration; no browser-supplied mesh paths.
+    [string]$AssemblyMeshConfigPath,
     [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot)
 )
 
@@ -15,6 +17,16 @@ if ($OpenSciencePowerShell -and -not $OpenScienceOwner) {
     throw 'A research host PowerShell path requires the configured research owner.'
 }
 $arguments = @('-m', 'apps.lab', '--store', $Store, '--port', "$Port")
+if ($AssemblyMeshConfigPath) {
+    $configPath = [IO.Path]::GetFullPath($AssemblyMeshConfigPath)
+    if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) { throw 'The trusted assembly mesh configuration file is missing.' }
+    $configWsl = & {
+        param($AssemblySourceRoot, $AssemblyConfig)
+        . (Join-Path $AssemblySourceRoot 'scripts/openscience-server-local.ps1') -Library
+        ConvertTo-OpenScienceWslPath $AssemblyConfig
+    } $projectRoot $configPath
+    $arguments += @('--assembly-mesh-config', $configWsl)
+}
 if ($OpenScienceOwner) {
     # The Lab runs in WSL. Its existing bridge reads Windows owner bytes through
     # the host facade, so admit only absolute Windows or mounted-drive paths.

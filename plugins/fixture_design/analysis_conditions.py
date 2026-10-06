@@ -10,6 +10,8 @@ def support(catalog, declaration):
         return {'status': status, 'reasons': list(reasons), 'native_runtime': 'NOT_CHECKED'}
     if catalog.get('cad_backend') != 'fixture.cadquery' or catalog.get('model') != 'roller_support':
         return result('UNSUPPORTED_FOR_MODEL', '현재 이 해석 경로는 CadQuery 단일 지지대만 지원합니다. 가져온 CAD·조립체 해석은 아직 연결되지 않았습니다.')
+    if declaration['analysis_type'] != 'linear_static' or declaration['mesh']['mode'] != 'selected':
+        return result('UNSUPPORTED_FOR_CONDITIONS', '이 지지대 경로는 선택 메시의 선형 정적 해석만 지원합니다.')
     params = catalog.get('parameters', {})
     if params.get('roller_diameter_mm') != 8.3 or params.get('support_depth_mm', 0) < 24:
         return result('UNSUPPORTED_FOR_MODEL', '기존 새들 영역은 지름 8.3 mm와 깊이 24 mm 이상을 요구합니다.')

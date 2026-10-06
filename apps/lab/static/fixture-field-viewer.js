@@ -69,7 +69,8 @@
       const value = controls.scalar(node, component); positions.set(node.node_id, controls.displayPosition(node, factor)); values.set(node.node_id, value);
       min = Math.min(min, value); max = Math.max(max, value);
     }
-    return { component, factor, positions, values, min, max, triangles: field.boundary_faces.flatMap(face =>
+    return { component, factor, positions, values, min, max, triangles: model.metadata.family === 'assembly' ?
+      field.display_triangles.map(triangle=>({...triangle,group:triangle.component_id,face_id:triangle.face_id})) : field.boundary_faces.flatMap(face =>
       triangles.map(slots => ({ node_ids: slots.map(slot => face.node_ids[slot]), group: face.group, face_id: face.element_id }))) };
   }
   function createViewer(canvas, model, isCurrent, onProbe = () => {}, onDisplay = () => {}) {
@@ -79,7 +80,7 @@
     const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
     field.nodes.forEach(node => node.position_mm.forEach((value, i) => { lo[i] = Math.min(lo[i], value); hi[i] = Math.max(hi[i], value); }));
     const extent = Math.max(...hi.map((value, i) => value - lo[i])), maxForce = Math.max(...field.loads.map(load => Math.hypot(...load.force_N)));
-    let requested = { component: model.metadata.family === "native" ? "MAGNITUDE" : "UZ", factor: 0, yaw: -.65, pitch: -.55, zoom: 1, center: lo.map((value, i) => (value + hi[i]) / 2), selected: null, mode: "visible", layers: { edges: true, fixed: true, loads: true } };
+    let requested = { component: ['native','assembly'].includes(model.metadata.family) ? "MAGNITUDE" : "UZ", factor: 0, yaw: -.65, pitch: -.55, zoom: 1, center: lo.map((value, i) => (value + hi[i]) / 2), selected: null, mode: "visible", layers: { edges: true, fixed: true, loads: true } };
     let frame = null, context = null, destroyed = false, start = null, lastFailure = "", pendingConfiguration = null;
     const current = () => !destroyed && canvas.isConnected && isCurrent() === true;
     const size = () => ({ width: Math.max(240, canvas.clientWidth || 800), height: Math.max(240, canvas.clientHeight || 480) });
@@ -227,7 +228,7 @@
   function mount(container, model, isCurrent, onSelection = null) {
     controls.requireVerified(model); if (!container.isConnected || isCurrent() !== true) return null;
     const doc = container.ownerDocument || root.document, field = model.field, metadata = model.metadata;
-    const native = metadata.family === "native";
+    const assembly = metadata.family === 'assembly', native = assembly || metadata.family === "native";
     const constrained = new Map();
     if (native) for (const row of model.rawNative.prescribed_dofs) {
       const items = constrained.get(row.node_id) ?? [];
@@ -241,9 +242,9 @@
     container.replaceChildren();
     const workspace = node("div", undefined, "fixture-field-workspace"), viewport = node("div", undefined, "fixture-field-viewport"), properties = node("aside", undefined, "fixture-field-properties");
     properties.setAttribute("aria-label", "같은 해석의 필드 표시와 절점 정보"); workspace.append(viewport, properties);
-    container.append(node("p", `메시 ${field.mesh_size_max_mm} mm · 전체 ${field.node_count}절점 · ${field.element_count} C3D10 · ${field.boundary_face_count} CPS6`, "fixture-field-summary"), workspace);
-    properties.append(node("p", native ? "원본 좌표 mm · U mm · 하중 N · CAD_DOCUMENT_GLOBAL · world/sensor 정렬 UNKNOWN" : "원본 좌표 mm · U mm · 하중 N · SOLVER_GLOBAL_CARTESIAN (전체 XYZ 축)", "hint"),
-      node("p", `정적 step ${field.static.step} / increment ${field.static.increment} · load_parameter ${field.static.load_parameter} (시간 값 아님)`, "hint"),
+    container.append(node("p", `메시 ${field.mesh_size_max_mm} mm · 전체 ${field.node_count}절점 · ${field.element_count} ${assembly ? 'TETRA10' : 'C3D10'} · ${field.boundary_face_count} ${assembly ? 'TRIA6' : 'CPS6'}`, "fixture-field-summary"), workspace);
+    properties.append(node("p", assembly ? '원 조립체 전역 XYZ · mm / N · 부품별 원 ID 보존 · 센서/world 정렬 UNKNOWN' : native ? "원본 좌표 mm · U mm · 하중 N · CAD_DOCUMENT_GLOBAL · world/sensor 정렬 UNKNOWN" : "원본 좌표 mm · U mm · 하중 N · SOLVER_GLOBAL_CARTESIAN (전체 XYZ 축)", "hint"),
+      node("p", assembly ? `native order ${field.static.order} · 정적 하중 매개변수 ${field.static.load_parameter} · 물리 시간 아님` : `정적 step ${field.static.step} / increment ${field.static.increment} · load_parameter ${field.static.load_parameter} (시간 값 아님)`, "hint"),
       node("p", `UNKNOWN · ${metadata.decision} · 미확인 검사 ${metadata.unknownCount}개 · ${metadata.sensitivity === "NOT_ASSESSED" ? "선택 메시 민감도 미평가" : "메시 검사 판정은 위 원본 기록 참조"}`, "fixture-field-qualification"));
     const settings = node("div", undefined, "fixture-field-settings");
     const component = chooser("표시할 물리 변위 성분", controls.COMPONENTS.map(value => [value, `${label(value)} (mm)`])); component.item.value = native ? "MAGNITUDE" : "UZ";
@@ -275,7 +276,8 @@
     function probeText(value, selection) {
       const kind = { VISIBLE_SURFACE: "보이는 외곽 절점", HIDDEN_SURFACE: "앞면에 가려진 뒤쪽 외곽 절점", INTERIOR: "내부 절점", OFFSCREEN: "화면 밖 외곽 절점", UNAVAILABLE: "현재 위치 표시를 확인할 수 없음" }[selection.kind];
       const cue = selection.cueShown ? selection.mode === "xray" ? "X-ray 투과 위치 표시" : "보이는 위치 표시" : "원본 표로 확인 · canvas 위치 표시 안 함";
-      probeBox.textContent = `절점 ${value.node_id} · ${kind} · ${cue}${selection.onscreen === false ? " · 현재 화면 밖" : ""} · 원본 XYZ ${value.position_mm.join(" / ")} mm · U ${value.displacement_tokens.join(" / ")} mm · |U| ${Math.hypot(...value.displacement_mm)} mm${fixed.has(value.node_id) ? native ? ` · 변위 구속 ${constraintText(value.node_id)}` : " · 고정 XYZ" : ""}${loads.has(value.node_id) ? ` · 하중 ${loads.get(value.node_id).join(" / ")} N` : ""}`;
+      const components = assembly ? value.displacement_mm.map(String) : value.displacement_tokens;
+      probeBox.textContent = `절점 ${value.node_id} · ${kind} · ${cue}${selection.onscreen === false ? " · 현재 화면 밖" : ""} · 원본 XYZ ${value.position_mm.join(" / ")} mm · U ${components.join(" / ")} mm · |U| ${Math.hypot(...value.displacement_mm)} mm${fixed.has(value.node_id) ? native ? ` · 변위 구속 ${constraintText(value.node_id)}` : " · 고정 XYZ" : ""}${loads.has(value.node_id) ? ` · 하중 ${loads.get(value.node_id).join(" / ")} N` : ""}`;
     }
     function showProbe(value, selection) {
       if (!current() || destroyed) return; selectedNode = value; search.value = String(value.node_id); selectedRows = [value]; page = 0; probeText(value, selection);
@@ -307,7 +309,7 @@
       ["절점", "원본 X / Y / Z (mm)", "UX (mm)", "UY (mm)", "UZ (mm)", "|U| (mm)", native ? "명시한 변위 구속 (mm)" : "고정 XYZ", "실제 Fx / Fy / Fz (N)"].forEach(text => { const cell = node("th", text); cell.scope = "col"; head.append(cell); });
       const thead = node("thead"); thead.append(head); const body = node("tbody"), start = page * 50, visible = selectedRows.slice(start, start + 50);
       visible.forEach(value => { const row = node("tr"); row.dataset.nodeId = String(value.node_id);
-        [String(value.node_id), value.position_mm.join(" / "), ...value.displacement_tokens, String(Math.hypot(...value.displacement_mm)), constraintText(value.node_id), loads.get(value.node_id)?.join(" / ") ?? "—"].forEach(text => row.append(node("td", text))); body.append(row); });
+        [String(value.node_id), value.position_mm.join(" / "), ...(assembly ? value.displacement_mm.map(String) : value.displacement_tokens), String(Math.hypot(...value.displacement_mm)), constraintText(value.node_id), loads.get(value.node_id)?.join(" / ") ?? "—"].forEach(text => row.append(node("td", text))); body.append(row); });
       table.append(thead, body); const scroll = node("div", undefined, "table-scroll"); scroll.append(table); rows.replaceChildren(scroll);
       pageCaption.textContent = selectedRows.length ? `${start + 1}–${start + visible.length} / ${selectedRows.length}절점 (전체 원본 ${field.node_count}개)` : "이 메시의 절점 ID가 아닙니다.";
       previous.disabled = page === 0; next.disabled = start + 50 >= selectedRows.length;
@@ -330,7 +332,7 @@
       selectedNode = null; compareButton.disabled = true; probeBox.textContent = ""; if (selectedRows.length === 1) viewer.probe(selectedRows[0].node_id); else { viewer.clearProbe(); drawTable(); }
     });
     const fullRange = scene(model, "MAGNITUDE", 0);
-    container.append(node("p", native ? `전체 절점 최대 |U| ${fullRange.max} mm · 이 native 해석의 max_displacement는 전체 솔리드의 변위 벡터 크기입니다. 각 위치의 UX·UY·UZ는 원본 절점 표를 따릅니다.` : `전체 절점 최대 |U| ${fullRange.max} mm · 기존 max_displacement는 하중 안장의 |UZ| 통계 ${metadata.loadedMaximumUz ?? "미제공"} mm입니다. 두 값은 별도 범위이며 기존 metric을 바꾸지 않습니다.`, "fixture-field-statistic"));
+    container.append(node("p", native ? `전체 절점 최대 |U| ${fullRange.max} mm · ${assembly ? '7부품 전체의' : '전체 솔리드의'} 변위 벡터 크기입니다. 각 위치의 UX·UY·UZ는 원본 절점 표를 따릅니다.` : `전체 절점 최대 |U| ${fullRange.max} mm · 기존 max_displacement는 하중 안장의 |UZ| 통계 ${metadata.loadedMaximumUz ?? "미제공"} mm입니다. 두 값은 별도 범위이며 기존 metric을 바꾸지 않습니다.`, "fixture-field-statistic"));
     const provenance = node("details", undefined, "raw-detail fixture-field-source"); provenance.append(node("summary", "검증 상세 · 부모·개정·생산 버전·원본"),
       node("p", native ? "파란 사각형은 지정한 변위 성분을 구속한 절점입니다. 미지정 성분은 자유이며 값은 절점 표를 따릅니다. 붉은 화살표는 선택 면에 적분한 실제 절점 힘입니다. 방향은 원본을 따르고 길이는 보기용입니다." : "파란 사각형은 고정 XYZ, 붉은 화살표는 실제 saddle 하중입니다. 화살표는 실제 하중 방향으로 절점에 도달하며 길이는 보기용입니다. N 값은 절점 표를 따릅니다."),
       node("p", "외곽 CPS6의 6절점을 네 삼각형으로 표시합니다. 면 색은 세 절점 성분의 평균 표시이며, 선택 절점 표는 저장된 원본 U입니다."),

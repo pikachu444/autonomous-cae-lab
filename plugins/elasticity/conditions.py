@@ -48,14 +48,31 @@ def validate_declaration(catalog, declaration):
                     raise ValueError('Load/boundary source is required')
     contact = declaration['contact']
     pairs = contact.get('pairs', [])
+    if 'initial_state' in contact and (not isinstance(contact['initial_state'], str) or contact['mode'] not in {'frictionless', 'mixed'} or
+            contact['initial_state'] not in {'OPEN', 'GEOMETRIC', 'CLOSED_ASSUMED'}):
+        raise ValueError('Initial contact state requires an explicit supported frictionless declaration')
     if not contact['source'].strip() or (contact['mode'] == 'none' and pairs):
         raise ValueError('Contact-none must explicitly declare no contact pairs')
     if contact['mode'] != 'none' and not pairs:
         raise ValueError('A contact declaration needs named pairs')
     for pair in pairs:
         if (pair['selection_a'] == pair['selection_b'] or
-                any(key not in selections for key in pair.values())):
+                any(pair[key] not in selections for key in ('selection_a', 'selection_b'))):
             raise ValueError('Contact pair needs two distinct catalog selections')
-    size = declaration['mesh']['max_size_mm']
-    if not _finite(size) or size <= 0:
-        raise ValueError('Selected mesh size must be finite and positive')
+        if contact['mode'] == 'mixed':
+            if (pair.get('law') not in {'bonded', 'frictionless'} or pair.get('master') not in {'a', 'b'}
+                    or not isinstance(pair.get('source'), str) or not pair['source'].strip()):
+                raise ValueError('Mixed pairs need an explicit law, master side and source')
+        if 'distance_max_mm' in pair and (not _finite(pair['distance_max_mm']) or pair['distance_max_mm'] <= 0):
+            raise ValueError('Bonded search distance must be finite and positive')
+    mesh = declaration['mesh']
+    if mesh['mode'] == 'selected':
+        size = mesh['max_size_mm']
+        if not _finite(size) or size <= 0:
+            raise ValueError('Selected mesh size must be finite and positive')
+    elif mesh['mode'] == 'retained':
+        retained = catalog.get('retained_mesh')
+        if not isinstance(retained, dict) or retained.get('mesh_revision') != mesh['mesh_revision']:
+            raise ValueError('Retained mesh must be explicitly bound to this catalog')
+    else:
+        raise ValueError('Unknown declared mesh mode')

@@ -10,7 +10,7 @@ import zipfile
 from filelock import FileLock
 
 from .adapters.fixture_cadquery import FixtureCadQueryAdapter
-from .adapters.fixture_assembly import FixtureAssemblyAdapter
+from .adapters.fixture_assembly_conditions_catalog import AssemblyConditionsCADAdapter
 from .adapters.fixture_freecad import FixtureFreeCADAdapter
 from .contracts import (AnalysisAdapter, CADAdapter, DOEAdapter, OptimizationAdapter,
                         PDEAdapter, ModelAnalysisAdapter, CapabilityUnavailable, FileRevision)
@@ -39,7 +39,9 @@ class Lab:
                  doe_adapters: dict[str, DOEAdapter] | None = None,
                  optimization_adapters: dict[str, OptimizationAdapter] | None = None,
                  pde_adapters: dict[str, PDEAdapter] | None = None,
-                 model_analysis_adapters: dict[str, ModelAnalysisAdapter] | None = None):
+                 model_analysis_adapters: dict[str, ModelAnalysisAdapter] | None = None,
+                 response_field_adapters: dict[str, Any] | None = None,
+                 response_history_adapters: dict[str, Any] | None = None):
         self.store = Path(store).resolve()
         # Readers must not create control files inside immutable library stores.
         # Every cooperating Lab instance uses the same external lock identity.
@@ -51,7 +53,7 @@ class Lab:
         self._registration_file_lock = FileLock(str(lock_root / (lock_key + ".lock")), timeout=30)
         self.adapters = adapters if adapters is not None else {
             FixtureCadQueryAdapter.backend: FixtureCadQueryAdapter(),
-            FixtureAssemblyAdapter.backend: FixtureAssemblyAdapter(),
+            AssemblyConditionsCADAdapter.backend: AssemblyConditionsCADAdapter(),
             FixtureFreeCADAdapter.backend: FixtureFreeCADAdapter(self.store),
         }
         if analysis_adapters is None:
@@ -60,6 +62,14 @@ class Lab:
             analysis_adapters = {FixtureCalculiXAdapter.backend: FixtureCalculiXAdapter(),
                                  NativeStructuralAdapter.backend: NativeStructuralAdapter()}
         self.analysis_adapters = analysis_adapters
+        if response_field_adapters is None:
+            from .adapters.assembly_response_fields import AssemblyResponseFieldsAdapter
+            response_field_adapters = {AssemblyResponseFieldsAdapter.backend: AssemblyResponseFieldsAdapter()}
+        self.response_field_adapters = response_field_adapters
+        if response_history_adapters is None:
+            from .adapters.openradioss_history import OpenRadiossHistoryAdapter
+            response_history_adapters = {OpenRadiossHistoryAdapter.backend: OpenRadiossHistoryAdapter()}
+        self.response_history_adapters = response_history_adapters
         if doe_adapters is None:
             from .optimizers.scipy_lhs import ScipyLatinHypercube
             doe_adapters = {ScipyLatinHypercube.engine: ScipyLatinHypercube()}
@@ -165,6 +175,10 @@ class Lab:
     def describe_analysis_conditions(self, experiment_id: str) -> dict[str, Any]:
         from .analysis_conditions import describe
         return describe(self, experiment_id)
+
+    def response_fields(self, experiment_id: str) -> dict[str, Any]:
+        from .response_field import display_catalog
+        return display_catalog(self, check_id(experiment_id))
 
     def save_analysis_conditions(self, *, conditions_id: str, experiment_id: str,
                                  cad_revision: str, catalog_revision: str,
@@ -562,6 +576,8 @@ class Lab:
             proposal["model"]["materials"] = [deepcopy(settings["material"])]
         if conditions_record is not None:
             declaration = conditions_record["request"]["declaration"]
+            if declaration['analysis_type'] != adapter.analysis_type:
+                raise ValueError('Declared analysis type differs from the admitted adapter physics')
             proposal["model"]["materials"] = deepcopy(declaration["materials"])
             proposal["model"]["coordinate_systems"] = deepcopy(conditions_record["catalog"]["coordinate_systems"])
             proposal["model"]["contact"] = deepcopy(declaration["contact"].get("pairs", []))
@@ -750,12 +766,16 @@ class Lab:
                     raise ValueError("Parent CAD revision or result hash mismatch")
         return result
 
-    def _research_result_context(self, result: dict) -> dict:
+    def _research_result_context(self, result: dict, *, compact_conditions=False) -> dict:
         from .research_context import comparison_context, analysis_conditions_context
         context = comparison_context(self, result)
-        conditions = analysis_conditions_context(self, result)
-        adapter = self.analysis_adapters.get(result['provenance'].get('adapter'))
+        conditions = (analysis_conditions_context(self, result, compact=True) if compact_conditions
+                      else analysis_conditions_context(self, result))
+        backend = result['provenance'].get('adapter')
+        adapter = self.analysis_adapters.get(backend)
         semantics_hook = getattr(adapter, 'research_metric_semantics', None)
+        if not callable(semantics_hook):
+            semantics_hook = getattr(self.response_field_adapters.get(backend), 'research_metric_semantics', None)
         semantics = semantics_hook(result) if callable(semantics_hook) else None
         return {**({"comparison_context": context} if context is not None else {}),
                 **({'analysis_conditions_context': conditions} if conditions is not None else {}),
@@ -773,7 +793,7 @@ class Lab:
     def research_summary(self, experiment_id: str) -> dict[str, Any]:
         result = self.inspect_experiment(experiment_id)
         return {"experiment_id": result["experiment_id"], "study": result["study"],
-                **self._research_result_context(result),
+                **self._research_result_context(result, compact_conditions=True),
                 **({"parent_experiment_id": result["parent_experiment_id"]}
                    if "parent_experiment_id" in result else {}),
                 **({"campaign_id": result["campaign_id"]}

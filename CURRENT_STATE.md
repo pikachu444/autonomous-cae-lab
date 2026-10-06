@@ -1,3 +1,26 @@
+## Current checkpoint — common controls preserved; Phase 3 development next
+
+The large native-conditions/field/history bundle is recorded in ADR0050 and
+benchmarks/records/20261006-common-native-controls-r01.json. Retained OpenRadioss
+histories now use the common reader and exact-axis comparisons; two exact samples
+and two explicit axis-mismatch records reopen without changing136 original files.
+The live owned native cancellation is actually verified across HTTP/Core/native
+receipts (12 checks). Force-driven contact failures and intentionally cancelled
+r04 are preserved; no successful contact result is claimed. Separate final source
+suites are275/64/112 Python and167 Node passes, not an aggregate or physics verdict.
+Final independent review follows the larger numerical integration, per the user.
+
+The user explicitly rejected continued assembly-example fixation. NEXT is Phase3
+common numerical research integration using the existing engines, then existing
+Phase4–7 code in order. Do not rerun contact/import/mesh examples as a prerequisite.
+Reuse adapters and existing execution/journal/result routes; do not add per-example
+scripts for product behavior. Whole52/Phases INCOMPLETE; UNKNOWN/NOT_RELEASED and
+original CAD/mesh/results/fine UNKNOWN/separate R2 drafts remain. Goal ACTIVE.
+Approved openai-codex/gpt-5.6-sol/ChatGPT OAuth is unchanged. Prior exactf216 CI is
+7SUCCESS/3FAIL; new publication CI must be checked for its own source commit.
+
+---
+
 ## Current implementation — retained assembly native evidence
 
 ADR0049 separates immutable original qualification pins from explicit trusted current parent-verifier dependencies. Original source/CAD/topology checks remain; default public admission does not expand. Actual original7-body S4a full U/RF/Gauss/energy comparison passes56 checks with unchanged6limits, same coarse mesh and protected originals. Four integrated source files pass422 tests. Exact producer and LOCAL_ONLY artifact pins are in [record](benchmarks/records/20261006-assembly-affine-actual-r03.json).

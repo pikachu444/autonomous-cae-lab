@@ -1,3 +1,28 @@
+# 현재 실행 순서 — 전체 시스템 개발과 Phase 3 공통 수치 연구
+
+사용자의 최신 지시가 우선한다. 특정 조립체/접촉 예제를 반복하는 작업은 종료했다.
+기존 조건·실행·결과 경로와 실패/취소 기록을 보존하고, 그 수치 검증의 미완료를
+남은 전체 시스템 개발의 선행조건으로 강요하지 않는다. 일회성 예제 스크립트 대신
+기존 공통 엔진과 운영 경로를 확장한다.
+
+| 순서 | 개발 묶음 | 현재 작업 기준 |
+|---|---|---|
+| Phase 1 | Core·OpenScience·변수 등록·편집 가능한 CAD·저장 | 기존 구현과 실제 실행을 재사용한다. 일반화/외부 승인 미완료 범위는 원장에 유지한다. |
+| Phase 2 | 해석 조건·어댑터·전체 결과·보고서 | 큰 소스 묶음과 실제 취소/보존 이력을 정리한다. 실패한 접촉과 미검증 모델링은 OPEN이며 신규 반복 시험은 진행하지 않는다. |
+| **Phase 3 · 현재 개발** | 일반 연구 변수·목표/제약·DOE/최적화·후보 비교·재개 | 기존 수치 엔진과 공통 캠페인을 사용한다. 사용자가 자기 조건/연구 목표를 설정하고 같은 입력·결과로 탐색하는 누락 연결을 구현한다. |
+| Phase 4 | PDE/weak form·경계/초기조건·필드 | 기존 FEniCSx/PDE 구현의 일반 사용자 연결을 확장한다. 알려진 numerical FAIL을 기준 완화로 바꾸지 않는다. |
+| Phase 5 | 비선형 재료·접촉의 FE 연결·이력 | 기존 재료/접촉/MFront 코드를 재사용해 남은 FE 연계를 개발한다. |
+| Phase 6 | explicit 모델·초기조건·이력·결과 | 기존 OpenRadioss 실행과 공통 native 이력 읽기를 재사용한다. |
+| Phase 7 | inverse·UQ·감도·surrogate·다목적·multiphysics·HPC | 기존 엔진을 확장한다. 실제 측정/장비/SSH 입력이 필요한 검증은 외부 대기로 명시한다. |
+
+큰 기능 묶음 개발 → Root의 실행·수정·통합 → 마지막 독립 검수 순서로 진행한다.
+작은 변경마다 Astra 승인·새 보고서를 만들지 않는다. 예시는 검증 사례이며 시스템의
+범위를 제한하지 않는다. 의무 mesh-convergence sweep은 없다. 전체52 요구사항과
+Phase1–7의 완료는 아직 선언하지 않는다. UNKNOWN/invalid/NOT_RELEASED를 유지한다.
+
+---
+## 이전 계획과 실행 체크포인트 — 원문 보존
+
 ## Active next bundle — original assembly conditions and research
 
 S4a actual r03 is closed: original7body/84group mesh, Code_Aster full-field/reference56 checks PASS, originals unchanged; Main final4-source tests422 PASS. See [record](../benchmarks/records/20261006-assembly-affine-actual-r03.json)/ADR0049. This is disconnected synthetic affine, not physical contact/load transfer or public research admission.
