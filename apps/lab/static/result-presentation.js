@@ -18,6 +18,12 @@
     "pde.fenicsx.imported": "가져온 메시의 약형 해석",
   };
   const metricNames = {
+    final_displacement: "종료 시각의 중심 Z 변위", final_velocity: "마지막 원 반 증분 Z 속도",
+    final_current_velocity: "종료 시각의 Z 속도 · 전체 운동량에서 계산",
+    final_sample_time: "마지막 위치·에너지 기록 시각", final_velocity_sample_time: "마지막 원 속도 기록 시각",
+    final_kinetic_energy: "종료 시각의 전체 운동 에너지", final_internal_energy: "종료 시각의 부호 있는 내부 에너지",
+    final_external_work: "종료 시각의 원 외력 일", ground_impulse: "기록된 지지 충격량",
+    mechanical_energy_error: "기계 에너지의 참조 오차", peak_contact_force: "기록 표본의 최대 지지력 · 시간 해상도 미확인",
     cad_component_count: "부품 수", cad_bounds: "전체 크기", cad_volume: "형상 체적",
     maximum_displacement: "최대 변위", max_displacement: "최대 변위",
     maximum_von_mises: "최대 등가 응력", max_von_mises: "최대 등가 응력",

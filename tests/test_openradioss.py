@@ -52,7 +52,7 @@ def engine_text(s):
     return "TEST ONLY: no native executable has run\n" + f"FINAL TIME {s['end_time_s']}\n" + "\n".join(rows) + f"\nNORMAL TERMINATION\nTOTAL NUMBER OF CYCLES : {count+2}\n"
 
 
-def typed_stream(s, *, change=None, skip=None):
+def typed_stream(s, *, change=None, skip=None, observation=None):
     parts = ["dropT01 FORMAT"]
     def record(specs, value):
         parts.append("ZZZZZEOR " + " ".join(str(n) + kind for n, kind in specs))
@@ -86,10 +86,11 @@ def typed_stream(s, *, change=None, skip=None):
         record([(len(variables),"I")],variables)
     for index,t in enumerate(expected_history_times(s)):
         if index == skip: continue
-        ref=reference(s,t);dt=s["time_step_s"];h=s["center_height_m"]
+        ref=observation(index,t) if observation is not None else reference(s,t)
+        dt=s["time_step_s"];h=s["center_height_m"]
         hit=wall and t>=ref["impact_time_s"]
-        velocity=0 if hit else reference(s,max(0,t-dt/2))["velocity_m_s"]
-        a=0 if hit else -s["gravity_m_s2"]
+        velocity=ref["velocity_m_s"] if observation is not None else (0 if hit else reference(s,max(0,t-dt/2))["velocity_m_s"])
+        a=ref["acceleration_m_s2"] if observation is not None else (0 if hit else -s["gravity_m_s2"])
         if compliant:
             a=ref["acceleration_m_s2"]
             velocity=ref["velocity_m_s"] if t==0 else ref["velocity_m_s"]-.5*dt*a
@@ -539,3 +540,200 @@ def test_compliant_script_retains_aggregate_failed_admission_and_invalid_input_w
     for name in ["E-invalid-mass","E-invalid-stiffness"]:
         assert not (store/"experiments"/name/"simulation").exists()
     with pytest.raises(ValueError,match="fresh store"):benchmark.run(store)
+
+
+def selected_settings(compliant=False):
+    from plugins.explicit_dynamics.reference import selected_history_settings
+    s = selected_history_settings("rigid_cube_compliant_stop" if compliant else "rigid_cube_freefall")
+    s.update(end_time_s=.02, initial_velocity_m_s=.5)
+    s["acceleration_history"] = {"time_s": [0, .01, .02], "acceleration_z_m_s2": [-10, 20, -5]}
+    s["input_provenance"] = {"origin": "SYNTHETIC", "reference": "TEST ONLY transport/coverage samples, not a native trajectory"}
+    return s
+
+
+def selected_observation(s):
+    """TEST ONLY native-shaped channel data; no physical trajectory inference."""
+    def observe(index, time):
+        compliant = s["case"] == "rigid_cube_compliant_stop"
+        moving = s["mass_kg"] + (s["spring_mass_kg"] / 2 if compliant else 0)
+        z = s["center_height_m"] + s["initial_velocity_m_s"] * time
+        if compliant and (50 <= index <= 70 or 120 <= index <= 140):
+            z = s["edge_m"] / 2 - .001
+        force = s.get("spring_stiffness_n_m", 0) * max(0, s["edge_m"] / 2 - z)
+        work = -.0001 if compliant and index > 70 else 0
+        return {"z_m": z, "velocity_m_s": s["initial_velocity_m_s"], "acceleration_m_s2": 0,
+            "kinetic_energy_j": .5 * moving * s["initial_velocity_m_s"] ** 2, "ground_impulse_n_s": 0,
+            "spring_internal_energy_j": work, "spring_force_n": force,
+            "spring_length_change_m": z - s["center_height_m"], "moving_mass_kg": moving,
+            "total_mass_kg": s["mass_kg"] + s.get("spring_mass_kg", 0)}
+    return observe
+
+
+@pytest.mark.parametrize("compliant", [False, True])
+def test_selected_deck_is_exact_signed_piecewise_linear_body_load_and_original_topology(compliant):
+    s = selected_settings(compliant); before = deepcopy(s); starter, engine = decks(s)
+    curve = starter.split("/FUNCT/1\nDECLARED_GLOBAL_Z_BODY_ACCELERATION\n")[1].split("/GRAV/1")[0].splitlines()
+    assert [[float(row[:20]), float(row[20:])] for row in curve] == [[0, -10], [.01, 20], [.02, -5]]
+    grav = starter.split("/GRAV/1\nGRAVITY_ALL_NODES\n")[1].splitlines()[0]
+    assert int(grav[:10]) == 1 and grav[10:20] == "         Z"
+    assert [float(grav[start:start+20]) for start in (60, 80)] == [1, 1]
+    assert "/RWALL" not in starter and "/BRICK/1" in starter and "/DTIX" in engine
+    assert ("/PROP/SPRING/2" in starter) == compliant
+    assert s == before and "CONSTANT_GRAVITY" not in starter
+
+
+@pytest.mark.parametrize("compliant", [False, True])
+def test_selected_parser_preserves_full_native_layout_and_signed_work_without_oracle(tmp_path, monkeypatch, compliant):
+    from plugins.explicit_dynamics import reference as domain
+    s = selected_settings(compliant)
+    monkeypatch.setattr(domain, "reference", lambda *a, **k: pytest.fail("Selected parser needs no oracle"))
+    native_fixture(tmp_path, s, observation=selected_observation(s))
+    parsed = parse_history(tmp_path, s)
+    assert len(parsed["rows"]) == len(parsed["raw_samples"]) == 201
+    assert parsed["global_variable_ids"] == list(range(1, 23))
+    assert parsed["rows"][-1]["time_s"] == pytest.approx(.02)
+    assert parsed["rows"][-1]["velocity_time_s"] == pytest.approx(.01995)
+    assert "time-dependent" in parsed["external_work_policy"]
+    assert "no gravitational potential" in parsed["external_work_policy"]
+    result = domain.assess(s, parsed["rows"])
+    assert result["reference"] is None and all(item["status"] == "PASS" for item in result["checks"])
+    if compliant:
+        assert parsed["rows"][-1]["spring_internal_energy_j"] == -.0001
+        assert min(row["spring_axial_force_n"] for row in parsed["rows"]) == pytest.approx(-10)
+
+
+@pytest.mark.parametrize("damage", ["interior", "tail", "nan", "metadata", "mass"])
+def test_selected_typed_parser_refuses_corruption_and_mass_classification_is_not_exit_success(tmp_path, damage):
+    from plugins.explicit_dynamics import reference as domain
+    s = selected_settings()
+    def change(index, time, glob, channels):
+        if index == 20:
+            if damage == "nan": glob[8] = float("nan")
+            elif damage == "mass": glob[5] = 1.01
+    native_fixture(tmp_path, s, observation=selected_observation(s), change=change,
+        skip=50 if damage == "interior" else 200 if damage == "tail" else None)
+    if damage == "metadata":
+        path = tmp_path / "dropT01"
+        path.write_text(path.read_text().replace("3 6 9 18", "3 6 9 17"))
+    if damage == "mass":
+        # Coordinated mass/clock inconsistency may be refused by the parser;
+        # either result must never become valid numerical evidence.
+        with pytest.raises(ValueError): parse_history(tmp_path, s)
+    else:
+        with pytest.raises(ValueError): parse_history(tmp_path, s)
+
+
+def test_selected_native_schedule_missing_binary64_terminal_remains_unavailable(tmp_path):
+    from plugins.explicit_dynamics import reference as domain
+    s = selected_settings(); s.update(end_time_s=.002)
+    s["acceleration_history"] = {"time_s": [0, .002], "acceleration_z_m_s2": [0, 0]}
+    native_fixture(tmp_path, s, observation=selected_observation(s))
+    parsed = parse_history(tmp_path, s)
+    assert parsed["rows"][-1]["time_s"] < .002 - s["time_step_s"] / 2
+    with pytest.raises(ValueError, match="complete declared interval"):
+        domain.assess(s, parsed["rows"])
+
+
+def test_selected_unrecordable_terminal_is_refused_before_native_work(tmp_path, monkeypatch):
+    s = selected_settings(); s.update(end_time_s=.04, history_interval_s=.001)
+    s["acceleration_history"] = {"time_s": [0, .04], "acceleration_z_m_s2": [0, 0]}
+    monkeypatch.setattr(transport, "runtime", lambda: pytest.fail("Preflight cannot probe runtime"))
+    monkeypatch.setattr(transport, "run_owned_command", lambda *a, **k: pytest.fail("Preflight cannot start native"))
+    with pytest.raises(ValueError, match="HIST2 schedule"):
+        OpenRadiossAdapter().describe_model(s)
+    assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("returncode", [0, 7])
+def test_selected_owned_process_has_no_hidden_budget_preserves_parser_bytes_and_receipts(tmp_path, monkeypatch, returncode):
+    payload = b"TEST ONLY original stdout bytes\x00\xff"
+    def owned(command, cwd, label, *, timeout, env):
+        assert command == ["TEST_ONLY_EXECUTABLE"] and timeout is None and env == {"TEST_ONLY": "private"}
+        (cwd / f"{label}.stdout.log").write_bytes(payload)
+        (cwd / f"{label}.stderr.log").write_bytes(b"TEST ONLY stderr")
+        (cwd / f"{label}.execution.json").write_text('{"status":"TEST_ONLY"}')
+        return subprocess.CompletedProcess(command, returncode, "TEST ONLY stdout", "TEST ONLY stderr")
+    monkeypatch.setattr(transport, "run_owned_command", owned)
+    monkeypatch.setattr(transport, "_budget", lambda: pytest.fail("Selected must not set CPU/address cap"))
+    monkeypatch.setattr(transport.subprocess, "run", lambda *a, **k: pytest.fail("Selected must use owned live runner"))
+    if returncode:
+        with pytest.raises(RuntimeError, match="exited 7"):
+            transport.selected_process(["TEST_ONLY_EXECUTABLE"], tmp_path, "engine", {"TEST_ONLY": "private"})
+    else:
+        assert transport.selected_process(["TEST_ONLY_EXECUTABLE"], tmp_path, "engine", {"TEST_ONLY": "private"}) == "TEST ONLY stdout"
+    assert (tmp_path / "engine_stdout.log").read_bytes() == payload
+    assert (tmp_path / "engine_stderr.log").read_bytes() == b"TEST ONLY stderr"
+    command = load_json(tmp_path / "engine_command.json")
+    assert command["cpu_seconds"] is None and command["address_space_bytes"] is None and command["timeout_seconds"] is None
+    assert "env" not in command and "private" not in (tmp_path / "engine_command.json").read_text()
+    assert (tmp_path / "engine.execution.json").is_file()
+
+
+def test_selected_cancel_preserves_partial_owned_logs_and_propagates_to_common_core(tmp_path, monkeypatch):
+    from caelab.execution_control import ExecutionCancelled
+    from caelab import declared_model
+    monkeypatch.setattr(transport, "runtime", lambda: (tmp_path, {"TEST_ONLY": "yes"}, {"test_only": True}))
+    monkeypatch.setattr(declared_model, "source_identity", lambda root: {"core_commit": "0" * 40, "test_only": True})
+    def owned(command, cwd, label, **kwargs):
+        assert kwargs == {"env": {"TEST_ONLY": "yes"}, "timeout": None}
+        (cwd / f"{label}.stdout.log").write_bytes(b"TEST ONLY interrupted")
+        (cwd / f"{label}.stderr.log").write_bytes(b"")
+        (cwd / f"{label}.execution.json").write_text('{"status":"CANCELLED","pid":null}')
+        raise ExecutionCancelled("TEST ONLY cancellation")
+    monkeypatch.setattr(transport, "run_owned_command", owned)
+    adapter = OpenRadiossAdapter()
+    lab = Lab(tmp_path / "store", adapters={}, analysis_adapters={}, doe_adapters={}, optimization_adapters={},
+              pde_adapters={}, model_analysis_adapters={adapter.backend: adapter})
+    lab.create_study("S-selected", "TEST ONLY", "Cancellation", "Retained", "No native run")
+    result = lab.run_model_analysis(study_id="S-selected", experiment_id="E-cancel", backend=adapter.backend,
+                                    settings=selected_settings())
+    assert result["status"] == "CANCELLED" and result["solver_status"] == "CANCELLED"
+    assert result["decision"] == "NOT_RELEASED" and not any(item["valid"] for item in result["metrics"].values())
+    folder = lab.store / "experiments/E-cancel/simulation"
+    assert (folder / "starter_version_stdout.log").read_bytes() == b"TEST ONLY interrupted"
+    assert (folder / "starter_version.execution.json").is_file()
+    assert not (folder / "analytical_reference.json").exists()
+
+
+@pytest.mark.parametrize("compliant", [False, True])
+def test_selected_full_mock_native_route_preserves_source_scope_and_never_calls_legacy_process(tmp_path, monkeypatch, compliant):
+    s = selected_settings(compliant); before = deepcopy(s); calls = []
+    monkeypatch.setattr(transport, "runtime", lambda: (tmp_path, {"TEST_ONLY": "yes"}, {"test_only": True}))
+    monkeypatch.setattr(transport, "process", lambda *a: pytest.fail("Selected must not enter legacy budgeted process"))
+    def owned(command, cwd, label, **kwargs):
+        calls.append(label)
+        assert kwargs == {"env": {"TEST_ONLY": "yes"}, "timeout": None}
+        if label == "starter": (cwd / "drop_0000.out").write_text(starter_text(s))
+        if label == "engine": native_fixture(cwd, s, observation=selected_observation(s))
+        text = "NORMAL TERMINATION TEST ONLY"
+        (cwd / f"{label}.stdout.log").write_text(text)
+        (cwd / f"{label}.stderr.log").write_text("")
+        (cwd / f"{label}.execution.json").write_text('{"status":"TEST_ONLY"}')
+        return subprocess.CompletedProcess(command, 0, text, "")
+    monkeypatch.setattr(transport, "run_owned_command", owned)
+    result = OpenRadiossAdapter().solve(tmp_path / "simulation", s)
+    assert calls == ["starter_version", "engine_version", "starter", "engine"]
+    assert result["status"] == "COMPLETED" and result["solver_status"] == "COMPLETED"
+    assert result["mode"] == result["provenance"]["mode"] == "selected_history"
+    assert result["input_provenance"] == result["provenance"]["input_provenance"] == s["input_provenance"]
+    assert result["assessment"]["reference"] is None
+    assert not result["metrics"]["mechanical_energy_error"]["valid"]
+    assert {"reference_agreement", "time_step_sensitivity", "physical_validation"} <= set(result["pending_validations"])
+    assert not (tmp_path / "simulation/analytical_reference.json").exists()
+    assert load_json(tmp_path / "simulation/input.json") == s and s == before
+    assert result["provenance"]["resource_limits"]["cpu_seconds"] is None
+
+
+def test_declared_input_runtime_inspection_starts_no_native_and_pins_execution_control(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from caelab.model_parameters import describe
+    adapter = OpenRadiossAdapter()
+    monkeypatch.setattr(transport, "runtime", lambda: (tmp_path, {}, {"release": "TEST_ONLY_PINNED_IDENTITY"}))
+    monkeypatch.setattr(transport, "process", lambda *a: pytest.fail("Discovery cannot execute native commands"))
+    monkeypatch.setattr(transport, "run_owned_command", lambda *a, **k: pytest.fail("Discovery cannot execute native commands"))
+    lab = SimpleNamespace(model_analysis_adapters={adapter.backend: adapter}, adapters={})
+    description = describe(lab, adapter.backend, selected_settings(True))
+    assert [item.native["path"] for item in description["candidates"]] == [
+        "initial_velocity_m_s", "acceleration_z_0", "acceleration_z_1", "acceleration_z_2", "spring_stiffness_n_m"]
+    assert "caelab/execution_control.py" in description["fingerprint"]["source_files"]
+    assert description["fingerprint"]["runtime"] == {"release": "TEST_ONLY_PINNED_IDENTITY"}

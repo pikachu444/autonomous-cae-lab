@@ -6,7 +6,8 @@ import math
 import pytest
 
 from plugins.explicit_dynamics.reference import (assess, invalid_metrics, model_declaration,
-                                                reference, validate_settings)
+                                                reference, validate_settings, selected_history_settings,
+                                                describe_inputs, bind_inputs)
 from scripts.verify_openradioss import specification
 from scripts.verify_compliant_drop import specification as compliant_specification
 
@@ -196,3 +197,173 @@ def test_compliant_declaration_explicitly_accounts_mass_law_boundary_and_unknown
     assert declaration["boundary_conditions"][0]["location"] == [0,0,-1]
     assert {item["quantity"] for item in declaration["outputs"]["history"]} >= {"spring_axial_force","spring_internal_energy"}
     assert all(not m["valid"] and m["value"] is None for m in invalid_metrics("missing native channels",compliant=True).values())
+
+
+def selected_settings(case="rigid_cube_freefall"):
+    s = selected_history_settings(case)
+    s.update(end_time_s=.02, initial_velocity_m_s=.5)
+    s["acceleration_history"] = {"time_s": [0, .01, .02], "acceleration_z_m_s2": [-10, 20, -5]}
+    s["input_provenance"] = {"origin": "MEASURED_REPORTED", "reference": "  TEST ONLY reported input; unqualified  "}
+    return s
+
+
+def selected_rows(s):
+    """TEST ONLY finite native-shaped samples; no solve or trajectory proof.
+
+    Two separate synthetic spring compressions check topology/law semantics,
+    not the native dynamic evolution under the declared acceleration pulse.
+    """
+    compliant = s["case"] == "rigid_cube_compliant_stop"
+    moving = s["mass_kg"] + (s["spring_mass_kg"] / 2 if compliant else 0)
+    rows, impulse, previous_force = [], 0, 0
+    count = round(s["end_time_s"] / s["time_step_s"])
+    for index in range(count + 1):
+        t, dt = index * s["time_step_s"], s["time_step_s"]
+        z = s["center_height_m"] + s["initial_velocity_m_s"] * t
+        if compliant and (50 <= index <= 70 or 120 <= index <= 140):
+            z = s["edge_m"] / 2 - .001
+        force = s.get("spring_stiffness_n_m", 0) * max(0, s["edge_m"] / 2 - z)
+        if index:
+            impulse += .5 * (force + previous_force) * dt
+        previous_force = force
+        work = -.0001 if compliant and index > 70 else 0
+        row = {"time_s": t, "velocity_time_s": max(0, t - dt / 2), "z_m": z,
+            "velocity_m_s": s["initial_velocity_m_s"], "energy_velocity_m_s": s["initial_velocity_m_s"],
+            "acceleration_m_s2": 0, "kinetic_energy_j": .5 * moving * s["initial_velocity_m_s"] ** 2,
+            "internal_energy_j": work, "external_work_j": work, "mass_kg": s["mass_kg"] + s.get("spring_mass_kg", 0),
+            "added_mass_kg": 0, "time_step_s": dt, "ground_impulse_n_s": impulse}
+        if compliant:
+            row.update(moving_mass_kg=moving, fixed_mass_kg=.001, ground_force_n=force,
+                spring_axial_force_n=-force, spring_length_change_m=z - s["center_height_m"], spring_length_m=z + 1,
+                spring_internal_energy_j=work, spring_global_internal_energy_j=work, spring_off=1)
+        rows.append(row)
+    return rows
+
+
+@pytest.mark.parametrize("case", ["rigid_cube_freefall", "rigid_cube_compliant_stop"])
+def test_selected_factory_and_model_preserve_complete_signed_load_and_source_without_reference(case, monkeypatch):
+    from plugins.explicit_dynamics import reference as domain
+    monkeypatch.setattr(domain, "reference", lambda *a, **k: pytest.fail("Selected inputs must not request a reference"))
+    s = selected_settings(case); before = deepcopy(s)
+    model = model_declaration(s)
+    assert "gravity_m_s2" not in s
+    assert model["loads"][0]["acceleration_z_m_s2"] == [-10, 20, -5]
+    assert model["loads"][0]["time_s"] == [0, .01, .02]
+    assert model["loads"][0]["coordinate_system"] == "global"
+    assert "not prescribed" in model["loads"][0]["application"]
+    assert model["input_provenance"] == before["input_provenance"]
+    assert s == before and validate_settings(s) == before
+    model["loads"][0]["acceleration_z_m_s2"][0] = 99
+    assert s == before
+    if case == "rigid_cube_compliant_stop":
+        assert model["model"]["contact"][0]["restitution_reference"] is None
+    first = selected_history_settings(case); first["acceleration_history"]["time_s"][0] = 1
+    assert selected_history_settings(case)["acceleration_history"]["time_s"][0] == 0
+
+
+@pytest.mark.parametrize("mutate", [
+    lambda s: s.update(case="rigid_cube_ground_stop"),
+    lambda s: s.update(case=[]),
+    lambda s: s.update(mode="invented_mode"),
+    lambda s: s.update(gravity_m_s2=9.81),
+    lambda s: s.update(initial_velocity_m_s=10.1),
+    lambda s: s.update(initial_velocity_m_s=True),
+    lambda s: s.update(mass_kg=0),
+    lambda s: s.update(end_time_s=.02005),
+    lambda s: s.update(limits={"mass_relative": 1e-7}),
+    lambda s: s["limits"].update(energy_abs_j=.01),
+    lambda s: s["input_provenance"].update(origin="QUALIFIED"),
+    lambda s: s["input_provenance"].update(reference="  "),
+    lambda s: s["input_provenance"].update(reference="a" * 2001),
+    lambda s: s["input_provenance"].update(path="/native"),
+    lambda s: s["acceleration_history"].update(time_s=[0]),
+    lambda s: s["acceleration_history"].update(time_s=[0, .01, .01]),
+    lambda s: s["acceleration_history"].update(time_s=[.001, .01, .02]),
+    lambda s: s["acceleration_history"].update(time_s=[0, .01, .019]),
+    lambda s: s["acceleration_history"].update(acceleration_z_m_s2=[0, 1]),
+    lambda s: s["acceleration_history"].update(acceleration_z_m_s2=[0, True, 0]),
+    lambda s: s["acceleration_history"].update(acceleration_z_m_s2=[0, float("nan"), 0]),
+    lambda s: s["acceleration_history"].update(acceleration_z_m_s2=[0, float("inf"), 0]),
+    lambda s: s["acceleration_history"].update(acceleration_z_m_s2=[0, 100.1, 0]),
+    lambda s: s["acceleration_history"].update(acceleration_z_m_s2=[[0], 1, 0]),
+    lambda s: s["acceleration_history"].update(extra="native-card"),
+])
+def test_selected_invalid_inputs_refuse_before_any_native_call(mutate):
+    s = selected_settings(); mutate(s)
+    with pytest.raises(ValueError): validate_settings(s)
+
+
+def test_selected_bounds_resource_coverage_and_native_knot_representability():
+    s = selected_settings()
+    s["acceleration_history"] = {"time_s": [i * .02 / 15 for i in range(16)],
+                                 "acceleration_z_m_s2": [-100 + i * 200 / 15 for i in range(16)]}
+    s["initial_velocity_m_s"] = 10
+    assert len(validate_settings(s)["acceleration_history"]["time_s"]) == 16
+    s["acceleration_history"]["time_s"].insert(1, .0001)
+    s["acceleration_history"]["acceleration_z_m_s2"].insert(1, 0)
+    with pytest.raises(ValueError, match="sixteen"): validate_settings(s)
+    s = selected_settings(); s["acceleration_history"] = {"time_s": [0, .01, .0100000000000001, .02],
+        "acceleration_z_m_s2": [0, 0, 0, 0]}
+    with pytest.raises(ValueError, match="native card"): validate_settings(s)
+    s = selected_settings(); s["time_step_s"] = 1e-6; s["end_time_s"] = .3
+    s["acceleration_history"]["time_s"][-1] = .3
+    with pytest.raises(ValueError, match="cycle count"): validate_settings(s)
+    s = selected_settings(); s["history_interval_s"] = .01
+    with pytest.raises(ValueError, match="ten intervals"): validate_settings(s)
+    s = selected_settings("rigid_cube_compliant_stop"); s["history_interval_s"] = .0002
+    with pytest.raises(ValueError, match="every capped cycle"): validate_settings(s)
+    with pytest.raises(ValueError, match="no canonical"): reference(selected_settings(), .01)
+
+
+@pytest.mark.parametrize("case", ["rigid_cube_freefall", "rigid_cube_compliant_stop"])
+def test_selected_exact_leaf_bindings_match_common_context_and_do_not_change_units_mass_or_source(case):
+    from caelab.model_parameters import bind, expected_settings, expected_declaration
+    from caelab.adapters.openradioss import OpenRadiossAdapter
+    s = selected_settings(case); before = deepcopy(s); descriptors = describe_inputs(s)
+    assignments = {"initial_velocity_m_s": -.5, "acceleration_z_1": -25}
+    if case == "rigid_cube_compliant_stop": assignments["spring_stiffness_n_m"] = 20000
+    bound = bind(OpenRadiossAdapter(), s, assignments)
+    assert bound == expected_settings(s, descriptors, assignments)
+    assert model_declaration(bound) == expected_declaration(model_declaration(s), descriptors, assignments)
+    assert bound["input_provenance"] == s["input_provenance"]
+    assert bound["mass_kg"] == s["mass_kg"] and bound["edge_m"] == s["edge_m"]
+    assert s == before
+    for bad in ({"mass_kg": 2}, {"acceleration_z_3": 0}, {"initial_velocity_m_s": True}, {"acceleration_z_1": 101}):
+        with pytest.raises(ValueError): bind_inputs(s, bad)
+
+
+@pytest.mark.parametrize("case", ["rigid_cube_freefall", "rigid_cube_compliant_stop"])
+def test_selected_retains_actual_responses_two_clocks_signed_work_and_unknown_reference(case):
+    s = selected_settings(case); rows = selected_rows(s); original = deepcopy(rows)
+    result = assess(s, rows)
+    assert all(check["status"] == "PASS" for check in result["checks"])
+    assert result["reference"] is None and result["reference_qualification"] == "UNKNOWN"
+    assert {"reference_agreement", "time_step_sensitivity", "physical_validation", "material_qualification"} <= set(result["pending_validations"])
+    assert "mesh_convergence" not in result["pending_validations"]
+    assert result["metrics"]["final_velocity_sample_time"]["value"] == pytest.approx(.01995)
+    assert result["metrics"]["final_sample_time"]["value"] == .02
+    assert result["metrics"]["final_displacement"]["value"] == pytest.approx(.01)
+    for name in ("mechanical_energy_error", "impact_time") + (("release_time", "restitution") if case.endswith("compliant_stop") else ()):
+        assert result["metrics"][name]["value"] is None and not result["metrics"][name]["valid"]
+    if case.endswith("compliant_stop"):
+        assert result["metrics"]["minimum_signed_spring_work"]["value"] == -.0001
+        assert result["metrics"]["ground_impulse"]["value"] == rows[-1]["ground_impulse_n_s"]
+    assert rows == original
+
+
+@pytest.mark.parametrize("damage", ["tail", "interior", "clock", "nan", "missing", "mass", "added_mass"])
+def test_selected_complete_output_refuses_invalid_coverage_or_marks_native_mass_responses_invalid(damage):
+    s = selected_settings(); rows = selected_rows(s)
+    if damage == "tail": rows.pop()
+    elif damage == "interior": rows.pop(50)
+    elif damage == "clock": rows[30]["velocity_time_s"] += .001
+    elif damage == "nan": rows[30]["kinetic_energy_j"] = float("nan")
+    elif damage == "missing": del rows[30]["external_work_j"]
+    elif damage == "mass": rows[30]["mass_kg"] = 1.01
+    else: rows[30]["added_mass_kg"] = .01
+    if damage in {"mass", "added_mass"}:
+        result = assess(s, rows)
+        assert any(check["status"] == "FAIL" for check in result["checks"])
+        assert not any(metric["valid"] for metric in result["metrics"].values())
+    else:
+        with pytest.raises(ValueError): assess(s, rows)

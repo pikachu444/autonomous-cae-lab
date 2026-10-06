@@ -477,6 +477,7 @@ class LabService:
         from plugins.geometric_nonlinearity.reference import default_settings as geometric_specification
         from scripts.verify_openradioss import specification as explicit_specification
         from scripts.verify_compliant_drop import specification as compliant_specification
+        from plugins.explicit_dynamics.reference import selected_history_settings as explicit_history_specification
         from plugins.material_point.reference import canonical_settings as material_specification
         from plugins.material_point.inverse_reference import canonical_settings as inverse_specification
         from plugins.hyperelastic.reference import canonical_settings as hyperelastic_specification
@@ -551,6 +552,12 @@ class LabService:
             "material_viscoelastic": {"operation": "model_analysis_run", "backend": "material.mfront.viscoelastic", "label": "점탄성 재료의 하중·유지·제하",
                 "status": "EXPERIMENTAL", "scope": "합성 단일 Maxwell 가지의 응력·이력·에너지 비교; 실제 수치 검증 대기, 물성·강도·솔버 결합 UNKNOWN",
                 "settings": viscoelastic_specification()},
+            "explicit_selected": {"operation": "model_analysis_run", "backend": "explicit.openradioss", "label": "동적 연구 · 초기 상태·하중 이력 직접 입력",
+                "status": "USER_DECLARED_INPUTS", "scope": "전역 Z 체적력 이력의 비회전 강체 모델; 같은 원 위치·반 증분 속도·에너지 이력 보존, 변형체·표면 접촉·물리 자격 UNKNOWN",
+                "settings": explicit_history_specification()},
+            "explicit_selected_compliant": {"operation": "model_analysis_run", "backend": "explicit.openradioss", "label": "동적 연구 · 탄성 정지 장치·하중 이력",
+                "status": "USER_DECLARED_INPUTS", "scope": "기존 단방향 선형 스프링의 축약 강체 모델; 원 부호 힘·스프링 일·전체 이력, 일반 접촉·마찰·변형체 자격 UNKNOWN",
+                "settings": explicit_history_specification(case="rigid_cube_compliant_stop")},
             "explicit_freefall": {"operation": "model_analysis_run", "backend": "explicit.openradioss", "label": "강체 자유낙하 benchmark",
                 "status": "EXPERIMENTAL", "scope": "질량·중력·초기 속도·시간 간격에 대한 실제 자유낙하 검증; 충격·파손 자격 UNKNOWN",
                 "settings": explicit_specification(case="rigid_cube_freefall")},

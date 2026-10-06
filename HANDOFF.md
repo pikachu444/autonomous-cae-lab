@@ -1,3 +1,26 @@
+## Current checkpoint — selected explicit conditions and native history research
+
+ADR0053/record20261007-common-explicit-research-r01: typed signed PWL body load and
+initial velocity -> two actual OpenRadioss runs -> same201-sample/8-channel original
+histories -> condition reuse/observations/reopening. Full-axis independent synthetic
+position/current+half-step velocity/KE and changed-v0 differences pass predeclared
+feature tolerances. Original46scientific files/1298674B unchanged; each5PASS11UNKNOWN,
+invalid reference metrics and NOT_RELEASED retained. Unsupported HIST2 terminal
+schedule was refused before native; original writer/time/limits remain unchanged.
+
+Three comparisons distinguish exact0.00995s baseline/changed and mismatched.01s/null.
+Root391Python/803Node PASS. Native producer base0a1609a+dirty/source1b068438 and final
+UI source are recorded separately. Native2/provider0/newCAD0. New AI interpretation
+is NOT_RUN; physical data/cause/surface deformable FE and active cancel/reconnect OPEN.
+
+NEXT common Phase7: model/fixed-condition DOE, frozen observation objective, UQ/
+sensitivity/surrogate/Pareto analysis and reusable research report using existing
+numerical engines. Large development -> Root actual run/fix/integrate -> final review.
+No new CAD/assembly example, repeated known failure or obligatory mesh sweep. Goal
+ACTIVE and full52/Phase1-7 INCOMPLETE; approved5.6Sol/OAuth and old artifacts preserved.
+
+---
+
 ## Current checkpoint — actual selected material FE research
 
 ADR0052 and benchmarks/records/20261007-common-material-fe-research-r01.json

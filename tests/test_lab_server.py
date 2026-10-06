@@ -268,7 +268,7 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     assert set(presets) == {"structural_linear", "pde_selected", "pde_canonical", "pde_nonlinear", "pde_rectangle",
                             "pde_transient_mesh", "pde_transient_time", "pde_vector_lame", "pde_vector_harmonic", "pde_coupled_interface", "pde_coupled_harmonic", "pde_imported_l_shape", "pde_imported_harmonic", "codeaster_linear",
                             "codeaster_plasticity", "plasticity_selected", "codeaster_geometric", "material_point", "material_inverse", "material_hyperelastic", "material_viscoelastic", "explicit_freefall",
-                            "explicit_ground_stop", "explicit_compliant_stop"} | {
+                            "explicit_ground_stop", "explicit_compliant_stop", "explicit_selected", "explicit_selected_compliant"} | {
         f"family_{case}_{load}_{solver}" for case, load in (
             ("ansys_vmd1_regular", "Fx"), ("ansys_vmd1_regular", "Fy"), ("ansys_vmd1_regular", "Fz"),
             ("lame_cylinder_plane_strain", "pressure"), ("scordelis_lo_solid", "gravity"))
@@ -315,6 +315,13 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     assert all(preset["operation"] == "model_analysis_run" for key, preset in presets.items()
                if preset["operation"] != "pde_run" and key != "structural_linear")
     assert presets["explicit_ground_stop"]["status"] == "REJECTED"
+    from plugins.explicit_dynamics.reference import selected_history_settings
+    assert presets["explicit_selected"]["settings"] == selected_history_settings()
+    assert presets["explicit_selected_compliant"]["settings"] == selected_history_settings(case="rigid_cube_compliant_stop")
+    assert all(presets[name]["operation"] == "model_analysis_run" and
+               presets[name]["settings"]["mode"] == "selected_history" and
+               "gravity_m_s2" not in presets[name]["settings"]
+               for name in ("explicit_selected", "explicit_selected_compliant"))
     plan = client.job("doe_plan", {"study_id": "S-http", "campaign_id": "D-http",
         "backend": "fixture.cadquery", "model": "roller_support", "parameter_ids": ["support_width"],
         "sample_count": 2, "seed": 10})["result"]
@@ -443,12 +450,13 @@ def test_presets_advertise_complete_bindings_without_descriptor_or_runtime_calls
     def unexpected_call(*args, **kwargs):
         raise AssertionError("Preset metadata must not discover, admit or solve")
 
-    for backend in ("structural.code_aster", "material.mfront.inverse"):
+    for backend in ("structural.code_aster", "material.mfront.inverse", "explicit.openradioss"):
         for name in ("describe_model", "describe_inputs", "bind_inputs", "input_runtime_identity", "solve"):
             monkeypatch.setattr(adapters[backend], name, unexpected_call)
     presets = client.request("/api/presets")
     assert {key for key, value in presets.items() if value["declared_inputs"]} == {
-        "codeaster_linear", "material_inverse"}
+        "codeaster_linear", "material_inverse", "explicit_freefall", "explicit_ground_stop",
+        "explicit_compliant_stop", "explicit_selected", "explicit_selected_compliant"}
     # A source/runtime declaration alone is insufficient. A missing binding
     # must immediately withdraw the model from the UI's advertised choices.
     monkeypatch.setattr(adapters["material.mfront.inverse"], "bind_inputs", None)

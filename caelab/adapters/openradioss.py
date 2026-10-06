@@ -9,6 +9,7 @@ from pathlib import Path
 import subprocess
 
 from plugins.explicit_dynamics import reference as domain
+from ..execution_control import run_owned_command
 from ..storage import save_json
 
 
@@ -48,6 +49,14 @@ def decks(settings):
     """Only trusted card templates are accepted; settings are domain-validated."""
     s = domain.validate_settings(settings)
     compliant = s["case"] == domain.COMPLIANT_CASE
+    selected = s.get("mode") == "selected_history"
+    # /GRAV with positive function ID applies nodal F=m*f(t); this curve is
+    # a body load, not a prescribed acceleration boundary condition.
+    acceleration = (["/FUNCT/1", "DECLARED_GLOBAL_Z_BODY_ACCELERATION",
+        *[_real(time, value) for time, value in zip(s["acceleration_history"]["time_s"],
+                                                   s["acceleration_history"]["acceleration_z_m_s2"])]]
+        if selected else ["/FUNCT/1", "CONSTANT_GRAVITY", _real(0, -s["gravity_m_s2"]),
+                          _real(s["end_time_s"] + s["time_step_s"], -s["gravity_m_s2"])])
     half, height = s["edge_m"] / 2, s["center_height_m"]
     corners = [(-half, -half, -half), (half, -half, -half), (half, half, -half), (-half, half, -half),
                (-half, -half, half), (half, -half, half), (half, half, half), (-half, half, half)]
@@ -69,8 +78,7 @@ def decks(settings):
                "/GRNOD/NODE/2", "ALL_CUBE_NODES", _int(*moving_nodes),
                "/RBODY/1", "RIGID_CENTER9", _int(9, 0, 0, 2) + _real(0) + _int(1, 0, 3, 0),
                _real(0, 0, 0), _real(0, 0, 0), _int(0, 0, 0),
-               "/FUNCT/1", "CONSTANT_GRAVITY", _real(0, -s["gravity_m_s2"]),
-               _real(s["end_time_s"] + s["time_step_s"], -s["gravity_m_s2"]),
+               *acceleration,
                "/GRAV/1", "GRAVITY_ALL_NODES", _int(1) + "         Z" + _int(0, 0, 2) + " " * 10 + _real(1, 1),
                "/INIVEL/TRA/1", "DECLARED_INITIAL_VELOCITY", _real(0, 0, s["initial_velocity_m_s"]) + _int(2, 0)]
     if compliant:
@@ -167,20 +175,69 @@ def process(command, output, name, env):
     return run.stdout
 
 
+def selected_process(command, output, name, env):
+    """Live owned native process, with no selected wall/CPU/address-space cap."""
+    output = Path(output)
+    save_json(output / (name + "_command.json"), {"argv": command, "cwd": str(output), "threads": 2,
+        "mode": "selected_history", "address_space_bytes": None, "cpu_seconds": None, "timeout_seconds": None})
+    try:
+        run = run_owned_command(command, output, name, env=env, timeout=None)
+    finally:
+        # Preserve the original parser/log names byte-for-byte, including partial
+        # cancellation evidence. The owned runner's receipts/logs remain too.
+        for stream in ("stdout", "stderr"):
+            path = output / f"{name}.{stream}.log"
+            if path.is_file():
+                (output / f"{name}_{stream}.log").write_bytes(path.read_bytes())
+    if run.returncode:
+        raise RuntimeError(f"OpenRadioss {name} exited {run.returncode}: {(run.stderr or run.stdout)[-1500:]}")
+    return run.stdout
+
+
 class OpenRadiossAdapter:
     backend = "explicit.openradioss"
-    version = "1.1"
+    version = "1.2"
     domain = "explicit_dynamics"
     physics_domain = "structural"
     analysis_type = "explicit_drop"
     default_metrics = ["final_displacement", "final_velocity", "final_kinetic_energy", "ground_impulse"]
+    input_source_files = [DOMAIN_PATH, ADAPTER_PATH, ADAPTER_PATH.with_name("openradioss_worker.py"),
+                          ADAPTER_PATH.parents[1] / "execution_control.py"]
 
     def describe_model(self, settings):
-        return domain.model_declaration(settings)
+        declaration = domain.model_declaration(settings)
+        if settings.get("mode") == "selected_history":
+            from .openradioss_worker import expected_history_times
+            times = expected_history_times(settings)
+            end = settings["end_time_s"]
+            # HIST2 omits some terminal animation cycles on accumulated TIME.
+            # The selected coverage contract requires a retained terminal sample.
+            # Refuse this known schedule before any native process; keep the
+            # original writer, observations and coverage tolerance unchanged.
+            if not times or abs(times[-1] - end) > 1e-8 * max(1, end):
+                raise ValueError("Native HIST2 schedule cannot retain the declared terminal sample; choose a supported history schedule before execution")
+        return declaration
+
+    def describe_inputs(self, settings):
+        return domain.describe_inputs(settings)
+
+    def bind_inputs(self, settings, values):
+        return domain.bind_inputs(settings, values)
+
+    def input_runtime_identity(self):
+        from .openradioss_worker import SOURCE_PATH, SOURCE_SHA256
+        if (sha256(DOMAIN_PATH) != DOMAIN_SHA256 or sha256(ADAPTER_PATH) != ADAPTER_SHA256
+                or sha256(SOURCE_PATH) != SOURCE_SHA256):
+            raise RuntimeError("Declared input implementation changed; restart with frozen source")
+        # File/pin inspection only: discovering research inputs starts no native command.
+        return runtime()[2]
 
     def solve(self, output, settings):
         from .openradioss_worker import parse_history, starter_admission, SOURCE_PATH, SOURCE_BYTES, SOURCE_SHA256
         s = domain.validate_settings(settings)
+        selected = s.get("mode") == "selected_history"
+        run_process = selected_process if selected else process
+        pending = list(domain.SELECTED_PENDING if selected else domain.PENDING)
         if sha256(DOMAIN_PATH) != DOMAIN_SHA256 or sha256(ADAPTER_PATH) != ADAPTER_SHA256 or sha256(SOURCE_PATH) != SOURCE_SHA256:
             raise RuntimeError("Loaded implementation differs from current source bytes; restart with frozen source")
         output = Path(output)
@@ -188,7 +245,8 @@ class OpenRadiossAdapter:
         root, env, identity = runtime()
         save_json(output / "input.json", s)
         save_json(output / "model_declaration.json", self.describe_model(s))
-        save_json(output / "analytical_reference.json", domain.reference(s, s["end_time_s"]))
+        if not selected:
+            save_json(output / "analytical_reference.json", domain.reference(s, s["end_time_s"]))
         (output / "domain_reference.py").write_bytes(DOMAIN_BYTES)
         (output / "adapter_source.py").write_bytes(ADAPTER_BYTES)
         (output / "parser_source.py").write_bytes(SOURCE_BYTES)
@@ -200,11 +258,17 @@ class OpenRadiossAdapter:
         versions = {}
         for label in ("starter", "engine"):
             executable = root / f"exec/{label}_linux64_gf"
-            versions[label] = process([str(executable), "-version"], output, label + "_version", env).strip()
+            versions[label] = run_process([str(executable), "-version"], output, label + "_version", env).strip()
         identity.update(versions=versions, domain_source_sha256=DOMAIN_SHA256,
                         implementation_sha256=source_hashes,
-                        resource_limits={"omp_threads": 2, "address_space_bytes": 2 * 1024 ** 3, "cpu_seconds": 60})
-        process([str(root / "exec/starter_linux64_gf"), "-i", "drop_0000.rad", "-np", "1", "-nt", "2"], output, "starter", env)
+                        resource_limits={"omp_threads": 2, "address_space_bytes": None if selected else 2 * 1024 ** 3,
+                                         "cpu_seconds": None if selected else 60})
+        if selected:
+            identity.update(mode="selected_history", input_provenance=s["input_provenance"],
+                scope="Bounded SI nonrotating rigid flight/compliant topology under declared global Z body-acceleration history",
+                units={"length": "m", "mass": "kg", "time": "s", "force": "N", "energy": "J", "acceleration": "m/s^2"},
+                process_policy={"ownership": "LIVE_POPEN", "timeout_seconds": None, "cpu_seconds": None, "address_space_bytes": None})
+        run_process([str(root / "exec/starter_linux64_gf"), "-i", "drop_0000.rad", "-np", "1", "-nt", "2"], output, "starter", env)
         try:
             admission = starter_admission(output, s)
             if (output / "drop_0000.rad").read_text(encoding="ascii") != starter or (output / "drop_0001.rad").read_text(encoding="ascii") != engine:
@@ -212,13 +276,15 @@ class OpenRadiossAdapter:
         except (ValueError, OSError) as exc:
             outcome = {"status": "REJECTED", "solver_status": "NOT_RUN", "converged": None,
                        "checks": [{"code": "native_starter_admission", "status": "FAIL", "observed": str(exc)}],
-                       "metrics": domain.invalid_metrics(str(exc), compliant=s["case"] == domain.COMPLIANT_CASE), "pending_validations": list(domain.PENDING),
+                       "metrics": domain.invalid_metrics(str(exc), compliant=s["case"] == domain.COMPLIANT_CASE, selected=selected), "pending_validations": pending,
                        "provenance": {**identity, "starter_status": "COMPLETED", "engine_status": "NOT_RUN"},
                        "raw_result": "simulation/analysis_raw.json"}
+            if selected:
+                outcome.update(mode="selected_history", input_provenance=s["input_provenance"])
             save_json(output / "analysis_raw.json", outcome)
             return outcome
         save_json(output / "starter_admission.json", admission)
-        engine_log = process([str(root / "exec/engine_linux64_gf"), "-i", "drop_0001.rad", "-nt", "2"], output, "engine", env)
+        engine_log = run_process([str(root / "exec/engine_linux64_gf"), "-i", "drop_0001.rad", "-nt", "2"], output, "engine", env)
         if "NORMAL TERMINATION" not in engine_log:
             raise RuntimeError("Engine exit did not establish normal native termination")
         original_identity = {key: identity[key] for key in runtime()[2]}
@@ -233,7 +299,7 @@ class OpenRadiossAdapter:
             assessment = domain.assess(s, native["rows"])
         except (ValueError, OSError) as exc:
             assessment = {"checks": [{"code": "native_history_integrity", "status": "FAIL", "observed": str(exc)}],
-                          "metrics": domain.invalid_metrics(str(exc), compliant=s["case"] == domain.COMPLIANT_CASE), "pending_validations": domain.PENDING,
+                          "metrics": domain.invalid_metrics(str(exc), compliant=s["case"] == domain.COMPLIANT_CASE, selected=selected), "pending_validations": pending,
                           "limitations": ["Native history failed completeness/consistency; no response is usable"]}
         checks = assessment["checks"]
         outcome = {"status": "COMPLETED" if all(item["status"] == "PASS" for item in checks) else "REJECTED",
@@ -241,5 +307,7 @@ class OpenRadiossAdapter:
                    "metrics": assessment["metrics"], "pending_validations": assessment["pending_validations"],
                    "provenance": identity, "raw_result": "simulation/analysis_raw.json",
                    "assessment": assessment}
+        if selected:
+            outcome.update(mode="selected_history", input_provenance=s["input_provenance"])
         save_json(output / "analysis_raw.json", outcome)
         return outcome

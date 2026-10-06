@@ -136,16 +136,24 @@ def cancelled_outcome(folder, backend: str, error: ExecutionCancelled, namespace
             'provenance': {'execution_lifecycle': receipt}, 'raw_result': 'execution.json'}
 
 
-def run_owned_command(command, cwd, label, *, timeout=None):
+def run_owned_command(command, cwd, label, *, timeout=None, env=None):
     """Capture an adapter command using its live Popen ownership for cancellation.
 
     The adapter supplies all syntax and any existing budget. This helper does
     not reconnect to a recorded PID or treat a state file as a live handle.
     Logs and the termination receipt survive failure and requested cancellation.
+    Optional adapter-owned environment values are passed to the live child only;
+    credentials and the inherited environment are never copied into receipts.
     """
     from pathlib import Path
     from .storage import save_json, utc_now
     folder = Path(cwd)
+    if env is not None:
+        if (type(env) is not dict or any(type(key) is not str or not key or
+                '=' in key or '\x00' in key or type(value) is not str or
+                '\x00' in value for key, value in env.items())):
+            raise ValueError('Native environment requires explicit string names and values')
+        env = dict(env)
     if not isinstance(label, str) or not label or any(char not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-' for char in label):
         raise ValueError('Native log label must be a simple adapter-owned name')
     state = {'status': 'STARTING', 'started_utc': utc_now(), 'pid': None,
@@ -172,7 +180,7 @@ def run_owned_command(command, cwd, label, *, timeout=None):
     try:
         with (folder / state['stdout']).open('wb') as stdout, (folder / state['stderr']).open('wb') as stderr:
             process = subprocess.Popen(command, cwd=folder.resolve(), stdout=stdout, stderr=stderr,
-                                       start_new_session=os.name == 'posix')
+                                       start_new_session=os.name == 'posix', env=env)
             try:
                 state.update(status='RUNNING', pid=process.pid)
                 save_json(state_path, state)

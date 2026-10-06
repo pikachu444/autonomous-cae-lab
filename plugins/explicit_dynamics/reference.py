@@ -10,7 +10,7 @@ from copy import deepcopy
 import math
 
 
-__version__ = "1.1"
+__version__ = "1.2"
 KEYS = {"case", "edge_m", "mass_kg", "center_height_m", "gravity_m_s2",
         "initial_velocity_m_s", "end_time_s", "time_step_s", "history_interval_s", "limits"}
 LIMIT_KEYS = {"displacement_abs_m", "velocity_abs_m_s", "energy_abs_j", "mass_relative",
@@ -22,6 +22,87 @@ ANCHOR_Z_M = -1.0
 PENDING = ["model_qualification", "material_qualification", "static_strength",
            "physical_validation", "fatigue_durability", "failure_model",
            "contact_peak_force", "contact_peak_acceleration", "rotational_surface_contact"]
+SELECTED_KEYS = (KEYS - {"gravity_m_s2"}) | {"mode", "acceleration_history", "input_provenance"}
+SELECTED_PENDING = [*PENDING, "reference_agreement", "time_step_sensitivity"]
+SELECTED_REFERENCE_REASON = "Selected history has no canonical trajectory, energy-error, impact or restitution reference assessment"
+INPUT_ORIGINS = {"ASSUMED", "MEASURED_REPORTED", "PUBLISHED_REFERENCE", "SYNTHETIC"}
+
+
+def selected_history_settings(case="rigid_cube_freefall"):
+    """Independent general-input defaults, not a manufactured reference run."""
+    if type(case) is not str or case not in {"rigid_cube_freefall", COMPLIANT_CASE}:
+        raise ValueError("Selected history supports rigid flight or the declared compliant topology only")
+    end = .5 if case == COMPLIANT_CASE else .2
+    settings = {"mode": "selected_history", "case": case, "edge_m": .1, "mass_kg": 1,
+        "center_height_m": 1, "initial_velocity_m_s": 0, "end_time_s": end,
+        "time_step_s": .0001, "history_interval_s": .0001, "limits": {"mass_relative": 1e-8},
+        "acceleration_history": {"time_s": [0, end], "acceleration_z_m_s2": [-9.81, -9.81]},
+        "input_provenance": {"origin": "ASSUMED",
+            "reference": "User-declared rigid translation and body-acceleration inputs; physical qualification UNKNOWN"}}
+    if case == COMPLIANT_CASE:
+        settings.update(spring_stiffness_n_m=10000, spring_mass_kg=.002)
+    return settings
+
+
+def _selected_settings(settings):
+    compliant = settings.get("case") == COMPLIANT_CASE
+    keys = SELECTED_KEYS | COMPLIANT_KEYS if compliant else SELECTED_KEYS
+    if (set(settings) != keys or type(settings["case"]) is not str
+            or settings["case"] not in {"rigid_cube_freefall", COMPLIANT_CASE}):
+        raise ValueError("Selected history requires exactly the supported rigid flight/compliant fields")
+    s = deepcopy(settings)
+    for key in KEYS - {"case", "gravity_m_s2", "limits", "initial_velocity_m_s"}:
+        s[key] = number(s[key], key, True)
+    s["initial_velocity_m_s"] = number(s["initial_velocity_m_s"], "initial_velocity_m_s")
+    if (not .001 <= s["edge_m"] <= 1 or not .001 <= s["mass_kg"] <= 100
+            or not s["edge_m"] / 2 < s["center_height_m"] <= 10
+            or not -10 <= s["initial_velocity_m_s"] <= 10 or not .001 <= s["end_time_s"] <= 2
+            or not 1e-6 <= s["time_step_s"] <= 1e-3
+            or not s["time_step_s"] <= s["history_interval_s"] <= .01):
+        raise ValueError("Selected input exceeds the bounded SI rigid-translation range")
+    cycles = s["end_time_s"] / s["time_step_s"]
+    if cycles > 200000:
+        raise ValueError("Requested cycle count exceeds the 200000-cycle admission budget")
+    samples = s["end_time_s"] / s["history_interval_s"]
+    if not 10 <= samples < 20000:
+        raise ValueError("Selected history requires ten intervals and fewer than 20000 samples")
+    if abs(cycles - round(cycles)) > 1e-8:
+        raise ValueError("Selected terminal time must be an exact declared capped cycle")
+    if (type(s["limits"]) is not dict or set(s["limits"]) != {"mass_relative"}
+            or number(s["limits"]["mass_relative"], "mass_relative", True) != 1e-8):
+        raise ValueError("Selected limits contain only the unchanged native mass_relative 1e-8 tolerance")
+    provenance = s["input_provenance"]
+    if (type(provenance) is not dict or set(provenance) != {"origin", "reference"}
+            or type(provenance["origin"]) is not str or provenance["origin"] not in INPUT_ORIGINS
+            or type(provenance["reference"]) is not str or not provenance["reference"].strip()
+            or len(provenance["reference"]) > 2000):
+        raise ValueError("Selected input provenance requires an explicit supported origin and bounded nonempty reference")
+    history = s["acceleration_history"]
+    if (type(history) is not dict or set(history) != {"time_s", "acceleration_z_m_s2"}
+            or type(history["time_s"]) is not list or type(history["acceleration_z_m_s2"]) is not list
+            or not 2 <= len(history["time_s"]) <= 16
+            or len(history["time_s"]) != len(history["acceleration_z_m_s2"])):
+        raise ValueError("Acceleration history requires exactly two to sixteen time/acceleration pairs")
+    history["time_s"] = [number(value, "acceleration time_s") for value in history["time_s"]]
+    history["acceleration_z_m_s2"] = [number(value, "acceleration_z_m_s2") for value in history["acceleration_z_m_s2"]]
+    times = history["time_s"]
+    if (times[0] != 0 or times[-1] != s["end_time_s"]
+            or any(b <= a for a, b in zip(times, times[1:]))
+            or any(abs(value) > 100 for value in history["acceleration_z_m_s2"])):
+        raise ValueError("Acceleration history must increase from zero to end with finite signed global Z ordinates within 100 m/s^2")
+    # Native cards use twelve significant digits. Refuse indistinguishable knots,
+    # rather than silently merging or changing the declared load history.
+    native_times = [float(f"{value:.12g}") for value in times]
+    if any(b <= a for a, b in zip(native_times, native_times[1:])):
+        raise ValueError("Acceleration knots must remain distinct in the trusted native card representation")
+    if compliant:
+        for key in COMPLIANT_KEYS:
+            s[key] = number(s[key], key, True)
+        if s["spring_mass_kg"] != .002 or not 1000 <= s["spring_stiffness_n_m"] <= 1e6:
+            raise ValueError("Selected compliant topology requires spring mass .002 kg and bounded positive stiffness")
+        if s["history_interval_s"] != s["time_step_s"]:
+            raise ValueError("Selected compliant force/impulse coverage requires history on every capped cycle")
+    return s
 
 
 def number(value, label, positive=False):
@@ -37,6 +118,8 @@ def number(value, label, positive=False):
 
 
 def validate_settings(settings):
+    if isinstance(settings, dict) and settings.get("mode") == "selected_history":
+        return _selected_settings(settings)
     compliant = isinstance(settings, dict) and settings.get("case") == COMPLIANT_CASE
     expected_keys = KEYS | COMPLIANT_KEYS if compliant else KEYS
     if not isinstance(settings, dict) or set(settings) != expected_keys:
@@ -104,6 +187,8 @@ def validate_settings(settings):
 
 def reference(settings, time_s, *, validate=True):
     s = validate_settings(settings) if validate else settings
+    if s.get("mode") == "selected_history":
+        raise ValueError(SELECTED_REFERENCE_REASON)
     t = number(time_s, "reference time_s")
     if t < 0 or t > s["end_time_s"] + 1e-8:
         raise ValueError("Reference time lies outside the declared interval")
@@ -139,7 +224,13 @@ def model_declaration(settings):
                                    "effective_center_plane_z_m": s["edge_m"] / 2,
                                    "equivalence": "Reduced translation only: center>=edge/2 iff cube bottom>=0; rotating surface contact is unverified",
                                    "rebound": "No elastic restitution; ideal perfectly inelastic stop"}] if wall else []},
-            "loads": [{"type": "uniform_gravity", "value": [0, 0, -s["gravity_m_s2"]], "unit": "m/s^2"}],
+            "loads": ([{"type": "uniform_body_acceleration", "coordinate_system": "global", "direction": "Z",
+                        "time_s": deepcopy(s["acceleration_history"]["time_s"]),
+                        "acceleration_z_m_s2": deepcopy(s["acceleration_history"]["acceleration_z_m_s2"]),
+                        "time_unit": "s", "unit": "m/s^2", "interpolation": "piecewise_linear",
+                        "application": "Native nodal force F=m*a; this is a load, not prescribed kinematic acceleration"}]
+                      if s.get("mode") == "selected_history" else
+                      [{"type": "uniform_gravity", "value": [0, 0, -s["gravity_m_s2"]], "unit": "m/s^2"}]),
             "initial_conditions": [{"type": "velocity", "value": [0, 0, s["initial_velocity_m_s"]], "unit": "m/s"}],
             "boundary_conditions": [],
             "outputs": {"fields": [{"field": "nodal_displacement", "unit": "m"},
@@ -161,10 +252,58 @@ def model_declaration(settings):
         declaration["boundary_conditions"] = [{"type": "fixed_translation", "location": [0, 0, ANCHOR_Z_M], "unit": "m"}]
         declaration["outputs"]["history"].extend({"quantity": key, "unit": unit} for key, unit in
             (("spring_axial_force", "N"), ("spring_length_change", "m"), ("spring_internal_energy", "J")))
+    if s.get("mode") == "selected_history":
+        declaration.update(mode="selected_history", input_provenance=deepcopy(s["input_provenance"]),
+            scope="Bounded SI nonrotating rigid translation; declared acceleration is a body load; deformable FE, surface contact and physical qualification UNKNOWN")
+        declaration["outputs"]["history"] = [item for item in declaration["outputs"]["history"]
+                                                 if item["quantity"] != "mechanical_energy"]
+        declaration["outputs"]["history"].extend({"quantity": key, "unit": "J"} for key in
+            ("native_internal_energy", "native_external_work"))
+        if s["case"] == COMPLIANT_CASE:
+            declaration["model"]["contact"][0]["restitution_reference"] = None
     return declaration
 
 
-def invalid_metrics(reason, *, compliant=False):
+def describe_inputs(settings):
+    """Exact scalar leaves only; geometry, mass, time and provenance stay fixed."""
+    s = validate_settings(settings)
+    selected = s.get("mode") == "selected_history"
+    descriptors = [{"id": "initial_velocity_m_s", "label": "Initial signed global Z velocity", "unit": "m/s",
+        "value": s["initial_velocity_m_s"], "lower": -10, "upper": 10 if selected else 0,
+        "settings_path": ["initial_velocity_m_s"], "declaration_paths": [["initial_conditions", 0, "value", 2]]}]
+    if selected:
+        for index, value in enumerate(s["acceleration_history"]["acceleration_z_m_s2"]):
+            descriptors.append({"id": f"acceleration_z_{index}", "label": f"Global Z body acceleration ordinate {index}",
+                "unit": "m/s^2", "value": value, "lower": -100, "upper": 100,
+                "settings_path": ["acceleration_history", "acceleration_z_m_s2", index],
+                "declaration_paths": [["loads", 0, "acceleration_z_m_s2", index]]})
+    if s["case"] == COMPLIANT_CASE:
+        descriptors.append({"id": "spring_stiffness_n_m", "label": "Declared unilateral linear spring stiffness", "unit": "N/m",
+            "value": s["spring_stiffness_n_m"], "lower": 1000, "upper": 1e6,
+            "settings_path": ["spring_stiffness_n_m"], "declaration_paths": [["model", "contact", 0, "stiffness", "value"]]})
+    return descriptors
+
+
+def bind_inputs(settings, values):
+    validate_settings(settings)
+    s = deepcopy(settings)
+    descriptors = {item["id"]: item for item in describe_inputs(s)}
+    if type(values) is not dict or not set(values) <= set(descriptors):
+        raise ValueError("Assignments must contain only declared explicit scalar input IDs")
+    for identifier, value in values.items():
+        descriptor = descriptors[identifier]
+        finite_value = number(value, "bound " + identifier)
+        if not descriptor["lower"] <= finite_value <= descriptor["upper"]:
+            raise ValueError("Explicit input assignment exceeds declared scalar bounds")
+        cursor = s
+        for key in descriptor["settings_path"][:-1]:
+            cursor = cursor[key]
+        cursor[descriptor["settings_path"][-1]] = value
+    validate_settings(s)
+    return s
+
+
+def invalid_metrics(reason, *, compliant=False, selected=False):
     result = {name: {"value": None, "unit": unit, "valid": False, "reason": reason}
             for name, unit in (("final_displacement", "m"), ("final_velocity", "m/s"),
                                ("final_kinetic_energy", "J"), ("mechanical_energy_error", "J"),
@@ -172,11 +311,115 @@ def invalid_metrics(reason, *, compliant=False):
     if compliant:
         result.update({name: {"value": None, "unit": unit, "valid": False, "reason": reason} for name, unit in
             (("peak_contact_force", "N"), ("peak_spring_internal_energy", "J"), ("minimum_signed_spring_work", "J"), ("release_time", "s"), ("restitution", "1"))})
+    if selected:
+        result.update({name: {"value": None, "unit": unit, "valid": False, "reason": reason} for name, unit in
+            (("final_current_velocity", "m/s"), ("final_sample_time", "s"), ("final_velocity_sample_time", "s"),
+             ("final_internal_energy", "J"), ("final_external_work", "J"))})
     return result
+
+
+def assess_selected(s, rows):
+    """Assess native coverage/consistency only, without a trajectory oracle.
+
+    The adapter's typed parser establishes topology and exact native scheduling.
+    These checks retain original observations; they do not compare a general
+    load history with ballistic, contact-event or reference-energy estimates.
+    """
+    compliant = s["case"] == COMPLIANT_CASE
+    required = {"time_s", "velocity_time_s", "z_m", "velocity_m_s", "energy_velocity_m_s",
+                "acceleration_m_s2", "kinetic_energy_j", "internal_energy_j", "external_work_j",
+                "mass_kg", "added_mass_kg", "time_step_s", "ground_impulse_n_s"}
+    if compliant:
+        required |= {"moving_mass_kg", "fixed_mass_kg", "ground_force_n", "spring_axial_force_n",
+                     "spring_length_change_m", "spring_length_m", "spring_internal_energy_j",
+                     "spring_global_internal_energy_j", "spring_off"}
+    if (type(rows) is not list or not 10 <= len(rows) <= 20000
+            or any(type(row) is not dict or not required <= set(row) for row in rows)):
+        raise ValueError("Selected native history lacks complete time/field/mass/energy observations")
+    observed = [{key: number(row[key], "observed " + key) for key in required} for row in rows]
+    dt, end, interval = s["time_step_s"], s["end_time_s"], s["history_interval_s"]
+    eps = 1e-8 * max(1, end)
+    times = [row["time_s"] for row in observed]
+    if (abs(times[0]) > eps or abs(times[-1] - end) > eps
+            or any(b <= a or b - a > interval + dt + eps for a, b in zip(times, times[1:]))):
+        raise ValueError("Selected native history does not cover the complete declared interval")
+    if interval == dt and (len(rows) != round(end / dt) + 1
+            or any(abs(b - a - dt) > eps for a, b in zip(times, times[1:]))):
+        raise ValueError("Selected every-cycle history is missing a cycle or terminal coverage")
+    if any(abs(row["time_step_s"] - dt) > 1e-10 * dt or
+           abs(row["velocity_time_s"] - max(0, row["time_s"] - dt / 2)) > eps for row in observed):
+        raise ValueError("Selected native fixed-step/half-step clock differs from the declared convention")
+    if any(row["mass_kg"] <= 0 or row["kinetic_energy_j"] < -1e-12 for row in observed):
+        raise ValueError("Selected native mass/kinetic-energy observations are inconsistent")
+    checks = [
+        {"code": "native_history_coverage", "status": "PASS",
+         "observed": {"samples": len(rows), "start_s": times[0], "end_s": times[-1]},
+         "expected": "Complete declared interval; exact typed record schedule checked by native parser"},
+        {"code": "native_history_finite", "status": "PASS", "observed": len(rows)},
+        {"code": "native_clock", "status": "PASS", "observed": dt,
+         "expected": "Current-time position/global energy and original half-step incoming velocity"},
+    ]
+
+    def check(code, value, limit):
+        value = number(value, "consistency " + code)
+        checks.append({"code": code, "status": "PASS" if value <= limit else "FAIL",
+                       "observed": value, "limit": limit})
+
+    expected_mass = s["mass_kg"] + (s["spring_mass_kg"] if compliant else 0)
+    check("native_mass", max(abs(row["mass_kg"] - expected_mass) / expected_mass for row in observed),
+          s["limits"]["mass_relative"])
+    check("no_added_mass", max(abs(row["added_mass_kg"]) for row in observed), 1e-12)
+    if compliant:
+        moving, fixed = s["mass_kg"] + s["spring_mass_kg"] / 2, s["spring_mass_kg"] / 2
+        check("native_spring_mass", max(max(abs(row["moving_mass_kg"] - moving) / moving,
+                                            abs(row["fixed_mass_kg"] - fixed) / fixed) for row in observed), 1e-8)
+        check("native_spring_geometry", max(max(abs(row["spring_length_m"] - (row["z_m"] - ANCHOR_Z_M)),
+            abs(row["spring_length_change_m"] - (row["z_m"] - s["center_height_m"]))) for row in observed), 1e-8)
+        check("native_spring_orientation", max(max(0, ANCHOR_Z_M + 1e-6 - row["z_m"]) for row in observed), 0)
+        check("native_spring_state", max(max(abs(row["spring_off"] - 1),
+            abs(row["ground_force_n"] + row["spring_axial_force_n"]),
+            max(0, -row["ground_force_n"])) for row in observed), 1e-8)
+        check("native_spring_force_law", max(abs(row["ground_force_n"] - s["spring_stiffness_n_m"] *
+            max(0, s["edge_m"] / 2 - row["z_m"])) for row in observed), .001)
+        check("native_spring_global_work_consistency", max(max(abs(row["internal_energy_j"] - row["spring_internal_energy_j"]),
+            abs(row["spring_global_internal_energy_j"] - row["spring_internal_energy_j"])) for row in observed), 1e-7)
+    valid = all(item["status"] == "PASS" for item in checks)
+    final = observed[-1]
+    metrics = invalid_metrics(SELECTED_REFERENCE_REASON, compliant=compliant, selected=True)
+    actual = {"final_displacement": (final["z_m"] - s["center_height_m"], "m"),
+              "final_sample_time": (final["time_s"], "s"),
+              "final_velocity_sample_time": (final["velocity_time_s"], "s"),
+              "final_velocity": (final["velocity_m_s"], "m/s"),
+              "final_current_velocity": (final["energy_velocity_m_s"], "m/s"),
+              "final_kinetic_energy": (final["kinetic_energy_j"], "J"),
+              "final_internal_energy": (final["internal_energy_j"], "J"),
+              "final_external_work": (final["external_work_j"], "J")}
+    if compliant:
+        actual.update(ground_impulse=(final["ground_impulse_n_s"], "N s"),
+            peak_contact_force=(max(row["ground_force_n"] for row in observed), "N"),
+            peak_spring_internal_energy=(max(row["spring_internal_energy_j"] for row in observed), "J"),
+            minimum_signed_spring_work=(min(row["spring_internal_energy_j"] for row in observed), "J"))
+    for key, (value, unit) in actual.items():
+        metrics[key] = {"value": number(value, "response " + key), "unit": unit, "valid": valid,
+            **({} if valid else {"reason": "Selected native coverage/consistency checks failed"})}
+    if not compliant:
+        metrics["ground_impulse"]["reason"] = "Rigid flight declares no contact impulse channel"
+    return {"mode": "selected_history", "input_provenance": deepcopy(s["input_provenance"]),
+            "limits": deepcopy(s["limits"]), "checks": checks, "metrics": metrics, "reference": None,
+            "reference_qualification": "UNKNOWN", "pending_validations": list(SELECTED_PENDING),
+            "sample_count": len(rows), "limitations": [
+                "Native finite/coverage/clock/mass and declared topology consistency only; no trajectory or energy-error reference assessment",
+                "Final displacement is signed global Z; final_velocity is raw half-step V; final_current_velocity is native global momentum divided by moving mass at TIME",
+                "Selected acceleration is a piecewise-linear nodal mass load, not prescribed kinematic acceleration",
+                "Signed native spring/global IE is retained; sampled force maxima are not qualified physical impact peaks",
+                "Nonrotating rigid translation and the declared unilateral linear spring only; general surface contact, deformable FE, physical/material qualification and release UNKNOWN",
+                "Reference agreement, time-step sensitivity and model qualification have not been assessed"]}
 
 
 def assess(settings, rows):
     s = validate_settings(settings)
+    if s.get("mode") == "selected_history":
+        return assess_selected(s, rows)
     if s["case"] == COMPLIANT_CASE:
         return assess_compliant(s, rows)
     required = {"time_s", "velocity_time_s", "z_m", "velocity_m_s", "energy_velocity_m_s",
@@ -304,6 +547,8 @@ def compliant_reference(s, t):
     other half is fixed; its gravitational potential is an irrelevant constant.
     The axial coordinate stays positive relative to the fixed anchor.
     """
+    if s.get("mode") == "selected_history":
+        raise ValueError(SELECTED_REFERENCE_REASON)
     m = s["mass_kg"] + s["spring_mass_kg"] / 2
     g, h, v0, k = (s[key] for key in ("gravity_m_s2", "center_height_m", "initial_velocity_m_s", "spring_stiffness_n_m"))
     floor = s["edge_m"] / 2

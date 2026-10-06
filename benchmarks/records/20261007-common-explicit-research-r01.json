@@ -1,0 +1,763 @@
+{
+  "record_id": "20261007-common-explicit-research-r01",
+  "scope": "Phase6 selected explicit inputs, actual native history, condition reuse and observation user flow; whole Phase6 and52 incomplete",
+  "producer": {
+    "identity": {
+      "core_commit": "0a1609ac8ad04022f5748468487d6642d5c154ee",
+      "core_dirty": true,
+      "core_source_sha256": "1b068438d96efd39e7850057da450894258827eff4fe9dc714333f1d1cfb6de6"
+    },
+    "files": {
+      "apps/lab/service.py": "836a44cd3d09e9497d9a17466267fd679201c36d755e100c79e420fae927bdda",
+      "apps/lab/static/app.js": "fd41d90e60aa20fc7af2a3c2d4daf317f171c2297662ff811a8ff0f6d42522f1",
+      "apps/lab/static/index.html": "e5161cf8c5bf8932df6a43e01d5ac85b900ad52db66266c23d123de3692078b3",
+      "apps/lab/static/explicit-controls.js": "1a36aa709790ae62c67c4f9e80b4c414db84065334bce943b89df82eb9d8b4ce",
+      "apps/lab/static/experiment-draft.js": "f952eaa449fc4504eeda8312ec10b5c910a95933aeb17c5649139677fe13027c",
+      "apps/lab/static/result-presentation.js": "b4f0aa2d7e921c1fc32bcbf74bed17ee2f77ad2219b2a7b2f538a28da005ae04",
+      "caelab/execution_control.py": "c33cca1e19cbde36d79dedbe1376dc6263e877850591dbed18433dff94532580",
+      "caelab/adapters/openradioss.py": "7df4e33bb72485dbcd37c70467190fe60bc469071ed1e85a6c5709a999cd5d90",
+      "caelab/adapters/openradioss_worker.py": "2e1d26e01a69d6403ca4380e647d666f0345da35b846f0bbd904be758fa9c1b1",
+      "caelab/adapters/openradioss_history.py": "0f1cc30837a87c9b73b812efd70bf35cbea6407d892dbfbffbd1c028b4c1d969",
+      "plugins/explicit_dynamics/reference.py": "79d3c45062fd9860146e0e635a62b23719cd20eb22a075145f51f5e9f1f96c5c"
+    },
+    "note": "Frozen pre-native source; invocation-local PATH Linux Git probe; no process/runtime/auth configuration changed."
+  },
+  "final_tested_source_files": {
+    "apps/lab/service.py": {
+      "raw_sha256": "836a44cd3d09e9497d9a17466267fd679201c36d755e100c79e420fae927bdda",
+      "lf_sha256": "836a44cd3d09e9497d9a17466267fd679201c36d755e100c79e420fae927bdda"
+    },
+    "apps/lab/static/app.js": {
+      "raw_sha256": "ae6d0ddb1abb2dbbd69d2b96dba5a294c56ed0a19d414283793a2be9add6ebf5",
+      "lf_sha256": "ae6d0ddb1abb2dbbd69d2b96dba5a294c56ed0a19d414283793a2be9add6ebf5"
+    },
+    "apps/lab/static/experiment-draft.js": {
+      "raw_sha256": "f952eaa449fc4504eeda8312ec10b5c910a95933aeb17c5649139677fe13027c",
+      "lf_sha256": "f952eaa449fc4504eeda8312ec10b5c910a95933aeb17c5649139677fe13027c"
+    },
+    "apps/lab/static/index.html": {
+      "raw_sha256": "e5161cf8c5bf8932df6a43e01d5ac85b900ad52db66266c23d123de3692078b3",
+      "lf_sha256": "e5161cf8c5bf8932df6a43e01d5ac85b900ad52db66266c23d123de3692078b3"
+    },
+    "apps/lab/static/result-presentation.js": {
+      "raw_sha256": "b4f0aa2d7e921c1fc32bcbf74bed17ee2f77ad2219b2a7b2f538a28da005ae04",
+      "lf_sha256": "b4f0aa2d7e921c1fc32bcbf74bed17ee2f77ad2219b2a7b2f538a28da005ae04"
+    },
+    "caelab/adapters/openradioss.py": {
+      "raw_sha256": "7df4e33bb72485dbcd37c70467190fe60bc469071ed1e85a6c5709a999cd5d90",
+      "lf_sha256": "1180e5e3c18affc5537e2d34a4080ec32d68e0587a86181589a6839ddf20fc43"
+    },
+    "caelab/adapters/openradioss_history.py": {
+      "raw_sha256": "0f1cc30837a87c9b73b812efd70bf35cbea6407d892dbfbffbd1c028b4c1d969",
+      "lf_sha256": "0f1cc30837a87c9b73b812efd70bf35cbea6407d892dbfbffbd1c028b4c1d969"
+    },
+    "caelab/adapters/openradioss_worker.py": {
+      "raw_sha256": "2e1d26e01a69d6403ca4380e647d666f0345da35b846f0bbd904be758fa9c1b1",
+      "lf_sha256": "79194103de2b915489aa29dbe0c3ad908e405991b141986922633b46ead24cef"
+    },
+    "caelab/execution_control.py": {
+      "raw_sha256": "c33cca1e19cbde36d79dedbe1376dc6263e877850591dbed18433dff94532580",
+      "lf_sha256": "c33cca1e19cbde36d79dedbe1376dc6263e877850591dbed18433dff94532580"
+    },
+    "plugins/explicit_dynamics/reference.py": {
+      "raw_sha256": "79d3c45062fd9860146e0e635a62b23719cd20eb22a075145f51f5e9f1f96c5c",
+      "lf_sha256": "51dba3d850305ad98d90b6bbc947e324beb799c54b77ef0eb5c7390f10529fa9"
+    },
+    "tests/test_execution_control.py": {
+      "raw_sha256": "023f495b6b0e2f4ef07f0865380046f6fdc875326f829e36b7f4ab726299824c",
+      "lf_sha256": "023f495b6b0e2f4ef07f0865380046f6fdc875326f829e36b7f4ab726299824c"
+    },
+    "tests/test_experiment_draft.js": {
+      "raw_sha256": "d606b1dffc90bc6ca66433da31412297f157702c183ef20e4908ff4b9308d3b1",
+      "lf_sha256": "d606b1dffc90bc6ca66433da31412297f157702c183ef20e4908ff4b9308d3b1"
+    },
+    "tests/test_explicit_dynamics.py": {
+      "raw_sha256": "c3f64146194f50a9654da085a822cc2a7ff6be92253fce34aa0288cc6a539fb0",
+      "lf_sha256": "1dbc7355971eb87fd9e1dcd65eaf74b64667f782fa914732838e35b30bef0f88"
+    },
+    "tests/test_lab_server.py": {
+      "raw_sha256": "da05d3206dc6496388022384e0db7f3c0384141689c23d9525020985c8183601",
+      "lf_sha256": "da05d3206dc6496388022384e0db7f3c0384141689c23d9525020985c8183601"
+    },
+    "tests/test_openradioss.py": {
+      "raw_sha256": "f636294b72656d185bd9576e3fca6fe64b220a133f257d3c0341fd16f8fcfcd5",
+      "lf_sha256": "eda88ce4122091972d482676a62285236540a0b08b9420306b7fb485ab3bf795"
+    },
+    "tests/test_openradioss_history.py": {
+      "raw_sha256": "faccba1781f6538588f1fc09f9642585ad6cce78d95536d143775f03debffa1f",
+      "lf_sha256": "faccba1781f6538588f1fc09f9642585ad6cce78d95536d143775f03debffa1f"
+    },
+    "apps/lab/static/explicit-controls.js": {
+      "raw_sha256": "1a36aa709790ae62c67c4f9e80b4c414db84065334bce943b89df82eb9d8b4ce",
+      "lf_sha256": "1a36aa709790ae62c67c4f9e80b4c414db84065334bce943b89df82eb9d8b4ce"
+    },
+    "tests/test_explicit_controls.js": {
+      "raw_sha256": "f029f54fe5132ff9e315b36ced4dc034d61f4f44df3ffb085ce72d1f64b8426b",
+      "lf_sha256": "f029f54fe5132ff9e315b36ced4dc034d61f4f44df3ffb085ce72d1f64b8426b"
+    }
+  },
+  "store": "runs/cae-common-explicit-research-20261007-01",
+  "study": "S-general-explicit-20261007",
+  "actual": {
+    "predeclared": "predeclared-inputs02.json",
+    "scope": "INDEPENDENT_SYNTHETIC_INTEGRATION_FEATURE_CHECK_NOT_DOMAIN_OR_PHYSICAL_QUALIFICATION",
+    "cases": {
+      "baseline": {
+        "experiment_id": "E-explicit-selected-vminus-r01",
+        "status": "COMPLETED_REVIEW_REQUIRED",
+        "model_revision": "209e2203df1e334ba8db13320e8ff41b6f3a331172bef39ca7b47a3886908b76",
+        "native_samples": 201,
+        "last_time_s": 0.02,
+        "raw_velocity_time_s": 0.01995,
+        "native_cycle_count": 202,
+        "errors": {
+          "position_abs_m": 1.666666665789407e-08,
+          "current_velocity_abs_m_s": 2.7755575615628914e-17,
+          "raw_velocity_abs_m_s": 5.0000000000050004e-06,
+          "kinetic_energy_abs_j": 1.734723475976807e-18
+        },
+        "fixed_tolerances": {
+          "position_abs_m": 1e-06,
+          "velocity_abs_m_s": 2e-05,
+          "kinetic_energy_abs_j": 2e-05,
+          "changed_minus_baseline_position_abs_m": 1e-06,
+          "changed_minus_baseline_velocity_abs_m_s": 2e-05
+        },
+        "validation_counts": {
+          "PASS": 5,
+          "FAIL": 0,
+          "UNKNOWN": 11
+        },
+        "process_receipts": {
+          "starter_version": {
+            "finished_utc": "2026-10-06T18:21:06.596049+00:00",
+            "pid": 25811,
+            "return_code": 0,
+            "started_utc": "2026-10-06T18:21:06.544698+00:00",
+            "status": "COMPLETED",
+            "stderr": "starter_version.stderr.log",
+            "stdout": "starter_version.stdout.log",
+            "timeout_seconds": null
+          },
+          "engine_version": {
+            "finished_utc": "2026-10-06T18:21:06.733789+00:00",
+            "pid": 25812,
+            "return_code": 0,
+            "started_utc": "2026-10-06T18:21:06.689731+00:00",
+            "status": "COMPLETED",
+            "stderr": "engine_version.stderr.log",
+            "stdout": "engine_version.stdout.log",
+            "timeout_seconds": null
+          },
+          "starter": {
+            "finished_utc": "2026-10-06T18:21:07.636272+00:00",
+            "pid": 25813,
+            "return_code": 0,
+            "started_utc": "2026-10-06T18:21:06.827994+00:00",
+            "status": "COMPLETED",
+            "stderr": "starter.stderr.log",
+            "stdout": "starter.stdout.log",
+            "timeout_seconds": null
+          },
+          "engine": {
+            "finished_utc": "2026-10-06T18:21:08.075519+00:00",
+            "pid": 25817,
+            "return_code": 0,
+            "started_utc": "2026-10-06T18:21:07.767051+00:00",
+            "status": "COMPLETED",
+            "stderr": "engine.stderr.log",
+            "stdout": "engine.stdout.log",
+            "timeout_seconds": null
+          }
+        },
+        "result_sha256": "05e79cc5e5be80814a0f2127b8121d08cd53676b4c695894ef50c41d1337dfd6"
+      },
+      "changed": {
+        "experiment_id": "E-explicit-selected-vplus-r01",
+        "status": "COMPLETED_REVIEW_REQUIRED",
+        "model_revision": "8a4ec8e679dab89ee7d683991511e3c5ff929d9c7da2c3dc7feca5b35a2baad5",
+        "native_samples": 201,
+        "last_time_s": 0.02,
+        "raw_velocity_time_s": 0.01995,
+        "native_cycle_count": 202,
+        "errors": {
+          "position_abs_m": 1.666666665789407e-08,
+          "current_velocity_abs_m_s": 2.7755575615628914e-17,
+          "raw_velocity_abs_m_s": 5.000000000032756e-06,
+          "kinetic_energy_abs_j": 1.734723475976807e-18
+        },
+        "fixed_tolerances": {
+          "position_abs_m": 1e-06,
+          "velocity_abs_m_s": 2e-05,
+          "kinetic_energy_abs_j": 2e-05,
+          "changed_minus_baseline_position_abs_m": 1e-06,
+          "changed_minus_baseline_velocity_abs_m_s": 2e-05
+        },
+        "validation_counts": {
+          "PASS": 5,
+          "FAIL": 0,
+          "UNKNOWN": 11
+        },
+        "process_receipts": {
+          "starter_version": {
+            "finished_utc": "2026-10-06T18:23:19.012906+00:00",
+            "pid": 26270,
+            "return_code": 0,
+            "started_utc": "2026-10-06T18:23:18.968188+00:00",
+            "status": "COMPLETED",
+            "stderr": "starter_version.stderr.log",
+            "stdout": "starter_version.stdout.log",
+            "timeout_seconds": null
+          },
+          "engine_version": {
+            "finished_utc": "2026-10-06T18:23:19.149198+00:00",
+            "pid": 26272,
+            "return_code": 0,
+            "started_utc": "2026-10-06T18:23:19.105341+00:00",
+            "status": "COMPLETED",
+            "stderr": "engine_version.stderr.log",
+            "stdout": "engine_version.stdout.log",
+            "timeout_seconds": null
+          },
+          "starter": {
+            "finished_utc": "2026-10-06T18:23:20.042235+00:00",
+            "pid": 26273,
+            "return_code": 0,
+            "started_utc": "2026-10-06T18:23:19.237033+00:00",
+            "status": "COMPLETED",
+            "stderr": "starter.stderr.log",
+            "stdout": "starter.stdout.log",
+            "timeout_seconds": null
+          },
+          "engine": {
+            "finished_utc": "2026-10-06T18:23:20.504424+00:00",
+            "pid": 26276,
+            "return_code": 0,
+            "started_utc": "2026-10-06T18:23:20.166619+00:00",
+            "status": "COMPLETED",
+            "stderr": "engine.stderr.log",
+            "stdout": "engine.stdout.log",
+            "timeout_seconds": null
+          }
+        },
+        "result_sha256": "5b191a1ee80821e39ac992d3ab56b78b7cd7403b2c0f99f61270fb500bcd11d3"
+      }
+    },
+    "native_analyses": 2,
+    "provider_runs": 0,
+    "new_cad_or_mesh_generators": 0,
+    "same_axis_condition_difference": {
+      "position_error_m": 5.421010862427522e-17,
+      "velocity_error_m_s": 2.7755575615628914e-17,
+      "expected_position_delta": ".2 * original native TIME",
+      "expected_velocity_delta_m_s": 0.2
+    },
+    "original_retention": {
+      "scientific_files": 46,
+      "bytes": 1298674,
+      "unchanged": true
+    }
+  },
+  "comparisons": [
+    {
+      "id": "O-lab-mux0bvmi",
+      "source": {
+        "backend": "explicit.openradioss",
+        "cad_revision": null,
+        "execution": {
+          "acceleration_history": {
+            "acceleration_z_m_s2": [
+              0,
+              -10,
+              10,
+              0,
+              0
+            ],
+            "time_s": [
+              0,
+              0.005,
+              0.01,
+              0.015,
+              0.02
+            ]
+          },
+          "case": "rigid_cube_freefall",
+          "center_height_m": 0.3,
+          "edge_m": 0.1,
+          "end_time_s": 0.02,
+          "history_interval_s": 0.0001,
+          "initial_velocity_m_s": 0.1,
+          "input_provenance": {
+            "origin": "SYNTHETIC",
+            "reference": "Predeclared hypothetical signed piecewise-linear body-force input integration test. No measured product, surface collision or physical qualification."
+          },
+          "limits": {
+            "mass_relative": 1e-08
+          },
+          "mass_kg": 1,
+          "mode": "selected_history",
+          "time_step_s": 0.0001
+        },
+        "experiment_id": "E-explicit-selected-vplus-r01",
+        "model_revision": "8a4ec8e679dab89ee7d683991511e3c5ff929d9c7da2c3dc7feca5b35a2baad5",
+        "original_decision": "NOT_RELEASED",
+        "parameters": {},
+        "parent_experiment_id": null,
+        "proposal_sha256": "1731c847f288b7e1a2e318c8d9fd4b7caacdb635cfb07044cef9f472d9b04717",
+        "result_sha256": "5b191a1ee80821e39ac992d3ab56b78b7cd7403b2c0f99f61270fb500bcd11d3",
+        "solver_status": "COMPLETED",
+        "study_id": "S-general-explicit-20261007",
+        "thread_sha256": "a9e1f6cc4459befe4164c6df7d6b3274b75598177a169bf200f10f947d866fbd",
+        "validation_counts": {
+          "FAIL": 0,
+          "PASS": 5,
+          "UNKNOWN": 11,
+          "WARNING": 0
+        }
+      },
+      "comparison": {
+        "absolute_difference": 0.19999499999999998,
+        "alignment_policy": "Exact recorded node and declared component/frame; physical measurement alignment unverified",
+        "causal_verdict": "NOT_EVALUATED",
+        "condition_bindings_supplied": false,
+        "decision": "NOT_RELEASED",
+        "declared_absolute_tolerance": 2e-05,
+        "declared_axis_check": {
+          "actual": {
+            "quantity": "time",
+            "unit": "s",
+            "value": 0.00995
+          },
+          "declared": {
+            "quantity": "time",
+            "unit": "s",
+            "value": 0.00995
+          },
+          "matched": true
+        },
+        "declared_condition_checks": [],
+        "declared_history_checks": [
+          {
+            "actual": "velocity",
+            "declared": "velocity",
+            "matched": true,
+            "property": "quantity"
+          },
+          {
+            "actual": "Z",
+            "declared": "Z",
+            "matched": true,
+            "property": "component"
+          },
+          {
+            "actual": "global Cartesian SI; sensor/world alignment UNKNOWN",
+            "declared": "global Cartesian SI; sensor/world alignment UNKNOWN",
+            "matched": true,
+            "property": "coordinate_frame"
+          }
+        ],
+        "difference": 0.19999499999999998,
+        "observed_value": -0.125495,
+        "physical_validation": "UNKNOWN",
+        "response_axis": {
+          "quantity": "time",
+          "unit": "s",
+          "value": 0.00995
+        },
+        "response_value": 0.0745,
+        "scope_alignment": "USER_DECLARED_UNVERIFIED",
+        "selection_kind": "EXACT_RECORDED_HISTORY_SAMPLE",
+        "status": "NUMERIC_DIFFERENCE_ONLY",
+        "unit": "m/s",
+        "unit_policy": "Exact output-unit symbol; input-binding units are user declarations",
+        "within_declared_tolerance": false,
+        "source_channel_summary": {
+          "component": "Z",
+          "coordinate_frame": "global Cartesian SI; sensor/world alignment UNKNOWN",
+          "id": "radioss-center-vz",
+          "initial_state": {
+            "index": 0,
+            "kind": "NATIVE_DECLARED_INITIAL_STATE"
+          },
+          "label": "질량 중심 Z 속도",
+          "location": "main node 9",
+          "measure": "raw leapfrog velocity",
+          "metric": null,
+          "origin": {
+            "artifact": "simulation/parsed_history.json",
+            "driver": "openradioss",
+            "kind": "NATIVE",
+            "mapping": "EXACT_RETAINED_TH40_SAMPLE",
+            "native_artifact": "simulation/dropT01",
+            "native_field": "velocity_m_s",
+            "native_sha256": "db33cedc5f879197be11b0757f90632db35e5fc64b80b3f74c81987ec60a0d32",
+            "sha256": "bb3b147cc15eeaf0bd0af9898ceddf4ee1b9c9ce484d4b7364d168eb503c6f51"
+          },
+          "quantity": "velocity",
+          "unit": "m/s",
+          "axis": {
+            "quantity": "time",
+            "semantics": "NATIVE_HALF_STEP_VELOCITY_TIME",
+            "unit": "s"
+          },
+          "sample_count": 201
+        }
+      }
+    },
+    {
+      "id": "O-explicit-native-halfstep-baseline-r01",
+      "source": {
+        "experiment_id": "E-explicit-selected-vminus-r01",
+        "study_id": "S-general-explicit-20261007",
+        "result_sha256": "05e79cc5e5be80814a0f2127b8121d08cd53676b4c695894ef50c41d1337dfd6",
+        "proposal_sha256": "579116dc1147ff52306e61299faa317191af0b3858dbc6d69376184464bd7bd3",
+        "thread_sha256": "94c20218a45c740d9383e0fc6296b36298e9492f2b2ba684cdbf6b395703bb0f",
+        "cad_revision": null,
+        "model_revision": "209e2203df1e334ba8db13320e8ff41b6f3a331172bef39ca7b47a3886908b76",
+        "parent_experiment_id": null,
+        "backend": "explicit.openradioss",
+        "original_decision": "NOT_RELEASED",
+        "solver_status": "COMPLETED",
+        "parameters": {},
+        "execution": {
+          "acceleration_history": {
+            "acceleration_z_m_s2": [
+              0,
+              -10,
+              10,
+              0,
+              0
+            ],
+            "time_s": [
+              0,
+              0.005,
+              0.01,
+              0.015,
+              0.02
+            ]
+          },
+          "case": "rigid_cube_freefall",
+          "center_height_m": 0.3,
+          "edge_m": 0.1,
+          "end_time_s": 0.02,
+          "history_interval_s": 0.0001,
+          "initial_velocity_m_s": -0.1,
+          "input_provenance": {
+            "origin": "SYNTHETIC",
+            "reference": "Predeclared hypothetical signed piecewise-linear body-force input integration test. No measured product, surface collision or physical qualification."
+          },
+          "limits": {
+            "mass_relative": 1e-08
+          },
+          "mass_kg": 1,
+          "mode": "selected_history",
+          "time_step_s": 0.0001
+        },
+        "validation_counts": {
+          "PASS": 5,
+          "FAIL": 0,
+          "UNKNOWN": 11,
+          "WARNING": 0
+        }
+      },
+      "comparison": {
+        "status": "NUMERIC_DIFFERENCE_ONLY",
+        "response_value": -0.1255,
+        "observed_value": -0.125495,
+        "unit": "m/s",
+        "difference": -5.0000000000050004e-06,
+        "absolute_difference": 5.0000000000050004e-06,
+        "declared_absolute_tolerance": 2e-05,
+        "within_declared_tolerance": true,
+        "declared_condition_checks": [],
+        "condition_bindings_supplied": false,
+        "scope_alignment": "USER_DECLARED_UNVERIFIED",
+        "selection_kind": "EXACT_RECORDED_HISTORY_SAMPLE",
+        "physical_validation": "UNKNOWN",
+        "decision": "NOT_RELEASED",
+        "unit_policy": "Exact output-unit symbol; input-binding units are user declarations",
+        "causal_verdict": "NOT_EVALUATED",
+        "response_axis": {
+          "quantity": "time",
+          "unit": "s",
+          "value": 0.00995
+        },
+        "declared_axis_check": {
+          "declared": {
+            "quantity": "time",
+            "unit": "s",
+            "value": 0.00995
+          },
+          "actual": {
+            "quantity": "time",
+            "unit": "s",
+            "value": 0.00995
+          },
+          "matched": true
+        },
+        "alignment_policy": "Exact recorded node and declared component/frame; physical measurement alignment unverified",
+        "declared_history_checks": [
+          {
+            "property": "quantity",
+            "declared": "velocity",
+            "actual": "velocity",
+            "matched": true
+          },
+          {
+            "property": "component",
+            "declared": "Z",
+            "actual": "Z",
+            "matched": true
+          },
+          {
+            "property": "coordinate_frame",
+            "declared": "global Cartesian SI; sensor/world alignment UNKNOWN",
+            "actual": "global Cartesian SI; sensor/world alignment UNKNOWN",
+            "matched": true
+          }
+        ],
+        "source_channel_summary": {
+          "id": "radioss-center-vz",
+          "label": "질량 중심 Z 속도",
+          "metric": null,
+          "quantity": "velocity",
+          "component": "Z",
+          "measure": "raw leapfrog velocity",
+          "unit": "m/s",
+          "coordinate_frame": "global Cartesian SI; sensor/world alignment UNKNOWN",
+          "location": "main node 9",
+          "initial_state": {
+            "index": 0,
+            "kind": "NATIVE_DECLARED_INITIAL_STATE"
+          },
+          "origin": {
+            "kind": "NATIVE",
+            "driver": "openradioss",
+            "artifact": "simulation/parsed_history.json",
+            "sha256": "3b3a8c3aaf4273d34bfdc6ceaedac00b7de5482c848e1c3116202135b4dd5fa3",
+            "native_artifact": "simulation/dropT01",
+            "native_sha256": "4db3366bda1a41e07b284daa4a8a26115185df71e26ded1972538caabcc31fea",
+            "native_field": "velocity_m_s",
+            "mapping": "EXACT_RETAINED_TH40_SAMPLE"
+          },
+          "axis": {
+            "quantity": "time",
+            "unit": "s",
+            "semantics": "NATIVE_HALF_STEP_VELOCITY_TIME"
+          },
+          "sample_count": 201
+        }
+      }
+    },
+    {
+      "id": "O-explicit-native-halfstep-axis-mismatch-r01",
+      "source": {
+        "experiment_id": "E-explicit-selected-vminus-r01",
+        "study_id": "S-general-explicit-20261007",
+        "result_sha256": "05e79cc5e5be80814a0f2127b8121d08cd53676b4c695894ef50c41d1337dfd6",
+        "proposal_sha256": "579116dc1147ff52306e61299faa317191af0b3858dbc6d69376184464bd7bd3",
+        "thread_sha256": "94c20218a45c740d9383e0fc6296b36298e9492f2b2ba684cdbf6b395703bb0f",
+        "cad_revision": null,
+        "model_revision": "209e2203df1e334ba8db13320e8ff41b6f3a331172bef39ca7b47a3886908b76",
+        "parent_experiment_id": null,
+        "backend": "explicit.openradioss",
+        "original_decision": "NOT_RELEASED",
+        "solver_status": "COMPLETED",
+        "parameters": {},
+        "execution": {
+          "acceleration_history": {
+            "acceleration_z_m_s2": [
+              0,
+              -10,
+              10,
+              0,
+              0
+            ],
+            "time_s": [
+              0,
+              0.005,
+              0.01,
+              0.015,
+              0.02
+            ]
+          },
+          "case": "rigid_cube_freefall",
+          "center_height_m": 0.3,
+          "edge_m": 0.1,
+          "end_time_s": 0.02,
+          "history_interval_s": 0.0001,
+          "initial_velocity_m_s": -0.1,
+          "input_provenance": {
+            "origin": "SYNTHETIC",
+            "reference": "Predeclared hypothetical signed piecewise-linear body-force input integration test. No measured product, surface collision or physical qualification."
+          },
+          "limits": {
+            "mass_relative": 1e-08
+          },
+          "mass_kg": 1,
+          "mode": "selected_history",
+          "time_step_s": 0.0001
+        },
+        "validation_counts": {
+          "PASS": 5,
+          "FAIL": 0,
+          "UNKNOWN": 11,
+          "WARNING": 0
+        }
+      },
+      "comparison": {
+        "status": "DECLARED_AXIS_MISMATCH",
+        "response_value": -0.1255,
+        "observed_value": -0.125495,
+        "unit": "m/s",
+        "difference": null,
+        "absolute_difference": null,
+        "declared_absolute_tolerance": 2e-05,
+        "within_declared_tolerance": null,
+        "declared_condition_checks": [],
+        "condition_bindings_supplied": false,
+        "scope_alignment": "USER_DECLARED_UNVERIFIED",
+        "selection_kind": "EXACT_RECORDED_HISTORY_SAMPLE",
+        "physical_validation": "UNKNOWN",
+        "decision": "NOT_RELEASED",
+        "unit_policy": "Exact output-unit symbol; input-binding units are user declarations",
+        "causal_verdict": "NOT_EVALUATED",
+        "response_axis": {
+          "quantity": "time",
+          "unit": "s",
+          "value": 0.00995
+        },
+        "declared_axis_check": {
+          "declared": {
+            "quantity": "time",
+            "unit": "s",
+            "value": 0.01
+          },
+          "actual": {
+            "quantity": "time",
+            "unit": "s",
+            "value": 0.00995
+          },
+          "matched": false
+        },
+        "alignment_policy": "Exact recorded node and declared component/frame; physical measurement alignment unverified",
+        "declared_history_checks": [
+          {
+            "property": "quantity",
+            "declared": "velocity",
+            "actual": "velocity",
+            "matched": true
+          },
+          {
+            "property": "component",
+            "declared": "Z",
+            "actual": "Z",
+            "matched": true
+          },
+          {
+            "property": "coordinate_frame",
+            "declared": "global Cartesian SI; sensor/world alignment UNKNOWN",
+            "actual": "global Cartesian SI; sensor/world alignment UNKNOWN",
+            "matched": true
+          }
+        ],
+        "source_channel_summary": {
+          "id": "radioss-center-vz",
+          "label": "질량 중심 Z 속도",
+          "metric": null,
+          "quantity": "velocity",
+          "component": "Z",
+          "measure": "raw leapfrog velocity",
+          "unit": "m/s",
+          "coordinate_frame": "global Cartesian SI; sensor/world alignment UNKNOWN",
+          "location": "main node 9",
+          "initial_state": {
+            "index": 0,
+            "kind": "NATIVE_DECLARED_INITIAL_STATE"
+          },
+          "origin": {
+            "kind": "NATIVE",
+            "driver": "openradioss",
+            "artifact": "simulation/parsed_history.json",
+            "sha256": "3b3a8c3aaf4273d34bfdc6ceaedac00b7de5482c848e1c3116202135b4dd5fa3",
+            "native_artifact": "simulation/dropT01",
+            "native_sha256": "4db3366bda1a41e07b284daa4a8a26115185df71e26ded1972538caabcc31fea",
+            "native_field": "velocity_m_s",
+            "mapping": "EXACT_RETAINED_TH40_SAMPLE"
+          },
+          "axis": {
+            "quantity": "time",
+            "unit": "s",
+            "semantics": "NATIVE_HALF_STEP_VELOCITY_TIME"
+          },
+          "sample_count": 201
+        }
+      }
+    }
+  ],
+  "source_tests": {
+    "integrated_python": {
+      "passed": 391,
+      "failed": 0,
+      "elapsed_seconds": 440.4
+    },
+    "final_node": {
+      "passed": 803,
+      "failed": 0,
+      "cancelled": 0,
+      "elapsed_seconds": 11.826464
+    },
+    "independent_implementation_tests": {
+      "adapter_domain": 152,
+      "reader": 55,
+      "typed_controls": 13,
+      "scope": "source-only, counts not added to Root total"
+    }
+  },
+  "pre_native_attempts": [
+    {
+      "file": "predeclared-inputs.json",
+      "status": "REJECTED_SOURCE_PREFLIGHT_BEFORE_NATIVE",
+      "reason": "Pinned HIST2 schedule omits required terminal sample at .04/.001; native0, thresholds and writer unchanged",
+      "correction": "Adapter refuses unsupported schedule during model preflight. New predeclared02 uses .02/every-cycle output."
+    }
+  ],
+  "preserved_attempts": [
+    {
+      "source_smoke": "21PASS2FAIL stale preset expected lists",
+      "correction": "Advertise new explicit typed bindings and presets;23PASS"
+    },
+    {
+      "independent_test": "151PASS1FAIL TEST_ONLY core_commit mock missing",
+      "correction": "Required fake provenance pin;152PASS"
+    },
+    {
+      "http_test": "403 missing local anti-CSRF token",
+      "correction": "Used existing overview token only in request memory; protection retained"
+    }
+  ],
+  "provider": {
+    "configured": false,
+    "new_runs": 0,
+    "interpretation": "NOT_RUN; same-record question preparation only"
+  },
+  "limitations": [
+    "Rigid translation/PWL mass-proportional global Z body load only",
+    "General deformable spatial FE, rotation/surface/friction contact remain OPEN",
+    "No measured product, physical calibration or unique cause",
+    "Original5PASS11UNKNOWN/null invalid reference metrics/NOT_RELEASED preserved",
+    "Coverage does not qualify mesh/time-step sensitivity",
+    "Actual active native/provider cancel/reconnect remain OPEN; unit mocked cancellation is not that evidence"
+  ],
+  "next": "Phase7 common model/fixed-condition DOE, frozen observation objective, UQ/sensitivity/surrogate/Pareto analysis and research report. No new CAD example; final independent review after the larger bundle.",
+  "publication": {
+    "verify_after_commit": true,
+    "post_publication_file": "artifacts/common-explicit-research-20261007-01/post-publication.json"
+  },
+  "ci": {
+    "prior_exact_commit": "0a1609ac8ad04022f5748468487d6642d5c154ee",
+    "run_id": 37507179604,
+    "last_observation": "IN_PROGRESS; explicit official runtime download failed before solve",
+    "not_new_native_evidence": true
+  }
+}

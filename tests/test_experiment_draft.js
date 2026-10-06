@@ -104,6 +104,25 @@ test("PDE uses its explicit operation and preserves a free-form hypothesis strin
   assert.equal(draft.source.modelRevision, hash("f")); assert.equal(draft.source.cadRevision, null);
   assert.equal(Object.hasOwn(draft.arguments, "parent_experiment_id"), false);
 });
+
+test("explicit condition reuse matches both declared-history mode and actual topology, never a legacy benchmark", () => {
+  const record = saved("model_analysis", "explicit.openradioss");
+  const settings = { mode: "selected_history", case: "rigid_cube_compliant_stop",
+    initial_velocity_m_s: -0.25,
+    acceleration_history: { time_s: [0, .1], acceleration_z_m_s2: [-10, 5] },
+    input_provenance: { origin: "ASSUMED", reference: "TEST_ONLY retained signed history" } };
+  record.proposal.execution = structuredClone(settings);
+  record.result.provenance.execution_settings = structuredClone(settings);
+  const choices = {
+    benchmark: { backend: "explicit.openradioss", operation: "model_analysis_run", settings: { case: "rigid_cube_compliant_stop" } },
+    flight: { backend: "explicit.openradioss", operation: "model_analysis_run", settings: { mode: "selected_history", case: "rigid_cube_freefall" } },
+    compliant: { backend: "explicit.openradioss", operation: "model_analysis_run", settings: { mode: "selected_history", case: "rigid_cube_compliant_stop", example: "DO NOT COPY" } }
+  };
+  const original = structuredClone(record), draft = fromRecord(record, choices);
+  assert.equal(draft.available, true); assert.equal(draft.presetId, "compliant");
+  assert.deepEqual(draft.arguments.settings, settings); assert.deepEqual(record, original);
+  refused(record, "PRESET_UNAVAILABLE", { benchmark: choices.benchmark, flight: choices.flight });
+});
 test("fixture drafts keep the verified original CAD parent and never submit the source child ID", () => {
   const record = freeze(fixture()), draft = fromRecord(record, presets);
   assert.equal(draft.available, true); assert.equal(draft.operation, "analysis_run");

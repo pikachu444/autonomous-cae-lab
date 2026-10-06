@@ -386,7 +386,9 @@ def parse_history(output: Path, settings: dict) -> dict:
             "native_end_time_s": float(end[1]), "native_cycle_count": int(cycle_match[1]),
             "native_cycle_observations": progress,
             "units": "kg,m,s,N,J; raw cumulative RWALL impulse N s",
-            "external_work_policy": "Compliant: actual gravity work and global KE+IE balance; wall: gravity plus constraint work",
+            "external_work_policy": ("Selected: original native global external work from declared time-dependent mass-proportional global Z body force, including any native constraint/elastic work; no gravitational potential or reference-energy assessment"
+                                     if settings.get("mode") == "selected_history" else
+                                     "Compliant: actual gravity work and global KE+IE balance; wall: gravity plus constraint work"),
             "force_policy": "Compliant: actual current-time local FX, upward force=-FX, trapezoidal native-force impulse; wall: delta(-FNZ)/deltaTIME",
             "spring_energy_policy": "TYPE4 IE is signed native trapezoidal constitutive work; global10 is its category in totalIE1, never double-counted/clamped/replaced",
             "witness_policy": "Raw main/secondary V can differ at an impulse; V+DT12*A must agree. Original observations retained.",

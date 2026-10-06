@@ -13,7 +13,30 @@ import pytest
 
 from caelab.adapters.codeaster_elasticity import _process
 from caelab.execution_control import (CancellationToken, ExecutionCancelled, ExecutionCleanupFailed,
-    cancellation_scope, check_cancelled, stop_owned_process, wait_for_process)
+    cancellation_scope, check_cancelled, run_owned_command, stop_owned_process, wait_for_process)
+
+
+def test_owned_child_receives_adapter_environment_without_receipt_disclosure(tmp_path):
+    marker = 'TEST_ONLY_NOT_A_REAL_CREDENTIAL'
+    child_env = dict(os.environ, CAELAB_TEST_ADAPTER_VALUE=marker)
+    run = run_owned_command([sys.executable, '-c',
+        "import os; print(os.environ['CAELAB_TEST_ADAPTER_VALUE'])"],
+        tmp_path, 'environment', env=child_env)
+    assert run.returncode == 0 and run.stdout.strip() == marker
+    receipt = (tmp_path / 'environment.execution.json').read_text()
+    assert marker not in receipt and 'CAELAB_TEST_ADAPTER_VALUE' not in receipt
+    state = json.loads(receipt)
+    assert state['status'] == 'COMPLETED' and state['timeout_seconds'] is None
+    assert 'CAELAB_TEST_ADAPTER_VALUE' not in os.environ
+
+
+@pytest.mark.parametrize('environment', [[], {'': 'value'}, {'A=B': 'value'},
+    {'A': 1}, {'A': None}, {'A': 'invalid\x00value'}])
+def test_malformed_adapter_environment_is_rejected_before_child_creation(tmp_path, monkeypatch, environment):
+    monkeypatch.setattr(subprocess, 'Popen', lambda *args, **kwargs: pytest.fail('Invalid environment launched a child'))
+    with pytest.raises(ValueError, match='environment'):
+        run_owned_command([sys.executable, '-c', 'pass'], tmp_path, 'invalid', env=environment)
+    assert not list(tmp_path.iterdir())
 
 
 def wait_for(path):

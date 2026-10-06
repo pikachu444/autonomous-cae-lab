@@ -83,7 +83,8 @@
           own(operationEntry, "value") && operationEntry.value === operation) {
         // A selected single mesh and the retained benchmark use the same backend.
         // Select the matching editor, without copying its preset conditions.
-        if (["pde.fenicsx.rectangle", "structural.code_aster.plasticity"].includes(backend) && preset.settings?.mode !== settings?.mode) continue;
+        if (["pde.fenicsx.rectangle", "structural.code_aster.plasticity", "explicit.openradioss"].includes(backend) && preset.settings?.mode !== settings?.mode) continue;
+        if (backend === "explicit.openradioss" && preset.settings?.case !== settings?.case) continue;
         return presetId;
       }
     }

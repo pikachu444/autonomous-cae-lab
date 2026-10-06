@@ -7,18 +7,29 @@ reference substitution, implicit unit conversion or execution admission.
 
 from copy import deepcopy
 import math
+import re
 
-from plugins.explicit_dynamics.reference import validate_settings, COMPLIANT_CASE
+from plugins.explicit_dynamics import reference as domain
+
+validate_settings = domain.validate_settings
+COMPLIANT_CASE = domain.COMPLIANT_CASE
 
 
 BACKEND = "explicit.openradioss"
 PATH = "simulation/parsed_history.json"
 FRAME = "global Cartesian SI; sensor/world alignment UNKNOWN"
+RESOURCE_POLICY = {
+    "history": {"path": PATH, "maximum_bytes": 33554432},
+    "input": {"path": "simulation/input.json", "maximum_bytes": 1048576},
+    "outcome": {"path": "simulation/analysis_raw.json", "maximum_bytes": 1048576},
+}
+SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 LIMITATIONS = [
     "Recorded SI rigid-body histories; no deformable surface/body contact capability is implied",
     "Raw TH/NODE velocity uses TIME-DT/2, except the initial sample; position/energy use TIME",
     "RWALL FNZ is cumulative signed wall impulse in N s, never instantaneous force",
     "Native spring IE is signed work and is not clamped or replaced by reference energy",
+    "Selected acceleration histories retain native observations; reference agreement and time-step sensitivity remain UNKNOWN",
     "Physical model/material/contact/measurement alignment remain UNKNOWN; NOT_RELEASED",
 ]
 
@@ -26,10 +37,15 @@ LIMITATIONS = [
 def _producer(provenance, settings):
     # Original version-1 flight/wall records precede the version-1.1 spring
     # extension. They share the explicit TH40 raw/parsed contract checked below.
-    return provenance.get("adapter") == BACKEND and (
-        provenance.get("adapter_version") == "1.1" or
-        (provenance.get("adapter_version") == "1" and settings.get("case") in
-         ("rigid_cube_freefall", "rigid_cube_ground_stop")))
+    if type(provenance) is not dict or type(settings) is not dict or provenance.get("adapter") != BACKEND:
+        return False
+    version, case = provenance.get("adapter_version"), settings.get("case")
+    if "mode" in settings:
+        return (version == "1.2" and settings["mode"] == "selected_history"
+                and case in ("rigid_cube_freefall", COMPLIANT_CASE))
+    return ((version in ("1.1", "1.2") and case in
+             ("rigid_cube_freefall", "rigid_cube_ground_stop", COMPLIANT_CASE)) or
+            (version == "1" and case in ("rigid_cube_freefall", "rigid_cube_ground_stop")))
 
 
 def _need(condition, message):
@@ -50,6 +66,28 @@ def _vector(value, length):
     return value
 
 
+def _resources(result, resources):
+    """Join the Core-verified JSON tuples to their exact bounded manifest entries."""
+    _need(type(resources) is dict and set(resources) == set(RESOURCE_POLICY),
+          "OpenRadioss history requires exact retained history/input/outcome resources")
+    manifest = result["artifacts"]
+    _need(type(manifest) is list and all(type(item) is dict for item in manifest),
+          "Retained OpenRadioss artifacts require a typed manifest")
+    values = {}
+    for role, policy in RESOURCE_POLICY.items():
+        pair = resources[role]
+        _need(type(pair) in (tuple, list) and len(pair) == 2, "Malformed retained history resource tuple")
+        raw, entry = pair
+        _need(type(raw) is dict and type(entry) is dict
+              and [item for item in manifest if item.get("path") == policy["path"]] == [entry]
+              and type(entry.get("sha256")) is str and SHA256.fullmatch(entry["sha256"])
+              and type(entry.get("size_bytes")) is int
+              and 0 < entry["size_bytes"] <= policy["maximum_bytes"],
+              "History resource path/hash/size differs from its exact bounded manifest")
+        values[role] = pair
+    return values
+
+
 class OpenRadiossHistoryAdapter:
     backend = BACKEND
     history_limitations = LIMITATIONS
@@ -59,9 +97,7 @@ class OpenRadiossHistoryAdapter:
         p = result.get("provenance", {})
         _need(_producer(p, p.get("execution_settings", {})),
               "Unsupported retained OpenRadioss producer version")
-        return {"history": {"path": PATH, "maximum_bytes": 33554432},
-                "input": {"path": "simulation/input.json", "maximum_bytes": 1048576},
-                "outcome": {"path": "simulation/analysis_raw.json", "maximum_bytes": 1048576}}
+        return deepcopy(RESOURCE_POLICY)
 
     @staticmethod
     def response_history_channels(result, proposal, resources):
@@ -72,8 +108,7 @@ class OpenRadiossHistoryAdapter:
 
 
 def _channels(result, proposal, resources):
-    _need(type(resources) is dict and set(resources) == {"history", "input", "outcome"},
-          "OpenRadioss history requires exact retained history/input/outcome resources")
+    resources = _resources(result, resources)
     raw, entry = resources["history"]
     settings, _ = resources["input"]
     outcome, _ = resources["outcome"]
@@ -87,6 +122,8 @@ def _channels(result, proposal, resources):
           "Same completed unreleased OpenRadioss model/settings/result are required")
     _need(outcome["status"] == "COMPLETED" and outcome["solver_status"] == "COMPLETED"
           and outcome["converged"] is True and outcome["metrics"] == result["metrics"]
+          and outcome.get("raw_result") == RESOURCE_POLICY["outcome"]["path"]
+          and outcome.get("provenance") == result["provenance"].get("adapter_details")
           and type(outcome["checks"]) is list and outcome["checks"]
           and all(c["status"] == "PASS" for c in outcome["checks"]),
           "Retained native assessment must agree with the successful result")
@@ -100,6 +137,9 @@ def _channels(result, proposal, resources):
           and all(type(v) is int for v in raw["global_variable_ids"]),
           "Exact retained TH40 history/raw source/unit declarations are required")
     native_entry = native_entries[0]
+    _need(type(native_entry.get("sha256")) is str and SHA256.fullmatch(native_entry["sha256"])
+          and type(native_entry.get("size_bytes")) is int and native_entry["size_bytes"] > 0,
+          "Original TH40 raw artifact requires its recorded byte/hash identity")
     compliant = settings["case"] == COMPLIANT_CASE
     wall = settings["case"] == "rigid_cube_ground_stop"
     _need(raw["hierarchy"] == ([2, 2, 2, 1, 3, 22] if compliant else [1, 2, 1, 1, 3 if wall else 2, 22]),
@@ -159,6 +199,23 @@ def _channels(result, proposal, resources):
                   "Signed native spring force/length/work differs from raw TH samples")
         if wall:
             _need(row["ground_impulse_n_s"] == -by_id[3][0], "Native cumulative wall impulse sign changed")
+
+    if settings.get("mode") == "selected_history":
+        # Reuse the Domain's recorded-observation verdict; selected inputs do
+        # not inherit the older ballistic/compliant reference qualification.
+        assessed = domain.assess(settings, rows)
+        _need(type(result.get("model_revision")) is str and SHA256.fullmatch(result["model_revision"])
+              and proposal.get("model_revision") == result["model_revision"]
+              and outcome.get("mode") == settings["mode"]
+              and outcome.get("input_provenance") == settings["input_provenance"]
+              and outcome["provenance"].get("mode") == settings["mode"]
+              and outcome["provenance"].get("input_provenance") == settings["input_provenance"]
+              and outcome["checks"] == assessed["checks"] and outcome["metrics"] == assessed["metrics"]
+              and outcome.get("pending_validations") == assessed["pending_validations"]
+              and assessed.get("reference") is None,
+              "Selected native assessment/unknown reference differs from retained observations")
+        if "assessment" in outcome:
+            _need(outcome["assessment"] == assessed, "Selected retained Domain assessment differs")
 
     channels = []
 

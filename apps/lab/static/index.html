@@ -21,6 +21,7 @@
   <script src="/static/native-fe-field-inspector.js" defer></script>
   <script src="/static/pde-controls.js" defer></script>
   <script src="/static/plasticity-controls.js" defer></script>
+  <script src="/static/explicit-controls.js" defer></script>
   <script src="/static/contact-field-inspector.js" defer></script>
   <script src="/static/result-presentation.js" defer></script>
   <script src="/static/research-controls.js" defer></script>
@@ -209,6 +210,19 @@
             <label>입력 데이터의 출처<select data-plasticity-field="origin"><option value="ASSUMED">가정값 · 미측정</option><option value="MEASURED_REPORTED">사용자가 보고한 측정값 · 자격 미확인</option><option value="PUBLISHED_REFERENCE">공개 자료 · 적용 자격 미확인</option><option value="SYNTHETIC">가상 데이터 · 기능 확인</option></select></label>
             <label>재료·이력의 출처와 적용 범위<textarea data-plasticity-field="reference" rows="3"></textarea></label>
             <p id="plasticityConditionError" class="metric-reason" role="alert" hidden></p>
+          </section>
+          <section id="explicitConditionFields" class="separated" hidden>
+            <h3>동적 조건 · 초기 상태와 시간별 하중</h3>
+            <p class="hint">기존 비회전 강체 모델에 전역 Z 방향의 시간별 체적력을 적용합니다. 입력한 가속도 × 절점 질량이 하중입니다. 변형체·일반 표면 접촉은 아직 지원하지 않습니다.</p>
+            <div class="form-grid"><label>강체 한 변의 길이 (m)<input data-explicit-field="edge_m" inputmode="decimal"></label><label>강체 질량 (kg)<input data-explicit-field="mass_kg" inputmode="decimal"></label><label>초기 중심 높이 (m)<input data-explicit-field="center_height_m" inputmode="decimal"></label></div>
+            <div class="form-grid"><label>초기 Z 속도 (m/s)<input data-explicit-field="initial_velocity_m_s" inputmode="decimal"></label><label>해석 종료 시각 (s)<input data-explicit-field="end_time_s" inputmode="decimal"></label></div>
+            <div class="form-grid"><label>계산 시간 간격 (s)<input data-explicit-field="time_step_s" inputmode="decimal"></label><label>이력 출력 간격 (s)<input data-explicit-field="history_interval_s" inputmode="decimal"></label></div>
+            <div id="explicitSpringFields" hidden><label>탄성 정지 장치의 강성 (N/m)<input data-explicit-field="spring_stiffness_n_m" inputmode="decimal"></label><p class="hint">기존 단방향 선형 스프링, 스프링 질량 0.002 kg과 고정 앵커를 사용합니다. 마찰·감쇠·표면 접촉 자격은 미확인입니다.</p></div>
+            <label>시각 (s) · 전역 Z 체적력 가속도 (m/s²)<textarea data-explicit-field="history" rows="7" spellcheck="false" aria-label="시간과 Z 가속도 하중 이력"></textarea></label>
+            <p class="hint">각 행에 time_s,acceleration_z_m_s2를 입력하세요. 처음은 0초, 마지막은 종료 시각입니다. 원 솔버의 구간별 선형 하중을 적용하며 속도의 반 증분 시각은 이동하지 않습니다.</p>
+            <label>입력 데이터의 출처<select data-explicit-field="origin"><option value="ASSUMED">가정값 · 미측정</option><option value="MEASURED_REPORTED">사용자가 보고한 측정값 · 자격 미확인</option><option value="PUBLISHED_REFERENCE">공개 자료 · 적용 자격 미확인</option><option value="SYNTHETIC">가상 데이터 · 기능 확인</option></select></label>
+            <label>모델·하중·초기 상태의 출처와 적용 범위<textarea data-explicit-field="reference" rows="3"></textarea></label>
+            <p id="explicitConditionError" class="metric-reason" role="alert" hidden></p>
           </section>
           <div id="simulationDraftContext" class="preset-description" role="status" hidden></div>
           <div id="fixtureConditionFields" class="separated" hidden>

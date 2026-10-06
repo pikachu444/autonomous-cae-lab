@@ -1310,6 +1310,10 @@ function selectPreset() {
     $("plasticityConditionFields").hidden = preset?.backend !== "structural.code_aster.plasticity" || preset?.settings?.mode !== "selected_mesh";
     loadPlasticityConditions();
   }
+  if (window.explicitControls && $("explicitConditionFields")) {
+    $("explicitConditionFields").hidden = preset?.backend !== "explicit.openradioss" || preset?.settings?.mode !== "selected_history";
+    loadExplicitConditions();
+  }
   $("importedMeshFields").hidden = preset?.backend !== "pde.fenicsx.imported";
   state.importedRequest++; state.importedLoading = false; state.importedLevels = [];
   $("importedMeshFiles").value = ""; importedMeshError(null);
@@ -1357,6 +1361,7 @@ async function prepareExperimentDraft(record) {
   loadFixtureConditions();
   if (window.pdeControls) loadPdeConditions();
   if (window.plasticityControls) loadPlasticityConditions();
+  if (window.explicitControls) loadExplicitConditions();
   state.simulationDraft = { ...draft, store };
   const context = clear("simulationDraftContext"); context.hidden = false;
   context.append(el("strong", "원래 조건에서 새 가상 실험 준비"), el("p", `${draft.source.experimentId} · ${draft.source.studyId}`),
@@ -1463,9 +1468,11 @@ function fixtureSimulationSettings() {
   if (!$("fixtureConditionFields").hidden && state.fixtureConditionError) throw new Error(state.fixtureConditionError);
   if (window.pdeControls && !$("pdeConditionFields").hidden && state.pdeConditionError) throw new Error(state.pdeConditionError);
   if (window.plasticityControls && !$("plasticityConditionFields").hidden && state.plasticityConditionError) throw new Error(state.plasticityConditionError);
+  if (window.explicitControls && !$("explicitConditionFields").hidden && state.explicitConditionError) throw new Error(state.explicitConditionError);
   const settings = parseField("simulationSettings", "object");
   if (window.pdeControls && !$("pdeConditionFields").hidden) return window.pdeControls.validate(settings);
   if (window.plasticityControls && !$("plasticityConditionFields").hidden) return window.plasticityControls.validate(settings);
+  if (window.explicitControls && !$("explicitConditionFields").hidden) return window.explicitControls.validate(settings);
   if (!$("importedMeshFields").hidden) {
     if (state.importedMeshError || state.importedLoading) throw new Error(state.importedMeshError ?? "파일을 읽는 중입니다.");
     return window.importedMeshControls.settingsWithLevels(settings, state.importedLevels);
@@ -1520,6 +1527,38 @@ function changePlasticityConditions() {
     $("simulationSettings").value = pretty(window.plasticityControls.fromFields(fields, parseField("simulationSettings", "object")));
     plasticityConditionError(null);
   } catch (error) { plasticityConditionError(error.message); }
+  updateControls();
+}
+function explicitConditionError(message) {
+  state.explicitConditionError = message;
+  $("explicitConditionError").textContent = message ?? "";
+  $("explicitConditionError").hidden = !message;
+}
+function loadExplicitConditions() {
+  if (!$("explicitConditionFields") || $("explicitConditionFields").hidden) return;
+  try {
+    const fields = window.explicitControls.toFields(parseField("simulationSettings", "object"));
+    $("explicitSpringFields").hidden = !Object.hasOwn(fields, "spring_stiffness_n_m");
+    document.querySelectorAll("[data-explicit-field]").forEach(input => {
+      input.value = fields[input.dataset.explicitField] ?? "";
+      input.disabled = !Object.hasOwn(fields, input.dataset.explicitField);
+    });
+    explicitConditionError(null);
+  } catch (error) {
+    document.querySelectorAll("[data-explicit-field]").forEach(input => { input.disabled = true; });
+    explicitConditionError(`해석 설정 JSON을 확인하세요. ${error.message}`);
+  }
+}
+function changeExplicitConditions() {
+  try {
+    const base = parseField("simulationSettings", "object"), fields = {};
+    document.querySelectorAll("[data-explicit-field]").forEach(input => {
+      if (input.dataset.explicitField !== "spring_stiffness_n_m" || base.case === "rigid_cube_compliant_stop")
+        fields[input.dataset.explicitField] = input.value;
+    });
+    $("simulationSettings").value = pretty(window.explicitControls.fromFields(fields, base));
+    explicitConditionError(null);
+  } catch (error) { explicitConditionError(error.message); }
   updateControls();
 }
 function campaignConditionsEnabled() { return Boolean(window.campaignControls?.conditionSelection && $("campaignAnalysisSource")); }
@@ -2509,9 +2548,12 @@ function renderExperimentDetail(data) {
   const metrics = panel("결과값"); metrics.classList.add("detail-wide");
   const metricRows = Object.entries(result.metrics ?? {}), metricGrid = el("div", undefined, "result-metrics");
   const selectedMaterial = result.provenance?.adapter === "structural.code_aster.plasticity" && data.proposal?.execution?.mode === "selected_mesh";
+  const selectedExplicit = result.provenance?.adapter === "explicit.openradioss" && data.proposal?.execution?.mode === "selected_history";
+  const selectedWithoutReference = selectedMaterial || selectedExplicit;
   const inactiveMetrics = el("details", undefined, "advanced separated"), inactiveGrid = el("div", undefined, "result-metrics");
-  if (selectedMaterial) inactiveMetrics.append(el("summary", `이 실행에서 평가하지 않은 참조 응답 ${metricRows.filter(([,metric])=>metric.valid !== true).length}개`),
-    el("p", "선택 메시와 일반 이력으로 실행했습니다. 참조·메시 비교·에너지 판정은 미평가이며 원래 값과 사유를 보존합니다.", "hint"), inactiveGrid);
+  if (selectedWithoutReference) inactiveMetrics.append(el("summary", `이 실행에서 평가하지 않은 참조 응답 ${metricRows.filter(([,metric])=>metric.valid !== true).length}개`),
+    el("p", selectedExplicit ? "선언한 동적 하중 이력으로 실행했습니다. 참조·시간 민감도·물리 판정은 미평가이며 원래 값과 사유를 보존합니다."
+      : "선택 메시와 일반 이력으로 실행했습니다. 참조·메시 비교·에너지 판정은 미평가이며 원래 값과 사유를 보존합니다.", "hint"), inactiveGrid);
   metricRows.forEach(([name, metric], index) => {
     const metricLabel = name === "max_displacement" && result.provenance?.adapter === "fixture.calculix"
       && result.provenance?.adapter_details?.per_mesh_displacement?.response_metric === "loaded_saddle_min_global_uz"
@@ -2523,10 +2565,10 @@ function renderExperimentDetail(data) {
     const value = Array.isArray(metric.value) ? (name.endsWith("_history") ? "시점별 배열 · 이력 또는 원본 기록에서 확인" : name === "cad_bounds" ? metric.value.map(displayNumber).join(" × ") : text(metric.value)) : displayNumber(metric.value);
     card.append(label, el("strong", `${value} ${unit}`.trim(), `result-metric-value${metric.valid === true ? "" : " invalid-value"}`), badge(metric.valid === true ? "PASS" : "FAIL", metric.valid === true ? "수치 응답 유효" : "판단에 사용할 수 없는 값"));
     if (metric.reason) card.append(el("p", metric.reason, "metric-reason"));
-    (selectedMaterial && metric.valid !== true ? inactiveGrid : metricGrid).append(card);
+    (selectedWithoutReference && metric.valid !== true ? inactiveGrid : metricGrid).append(card);
   });
   if (metricRows.length) metrics.append(metricGrid, el("p", "표시값은 읽기 쉽게 반올림했습니다. 원래 수치·단위·판정은 상세 기록에 보존됩니다.", "hint separated")); else metrics.append(el("p", "이 실험은 사용할 수 있는 수치 결과를 제공하지 않았습니다.", "empty-state"));
-  if (selectedMaterial && inactiveGrid.childElementCount) metrics.append(inactiveMetrics);
+  if (selectedWithoutReference && inactiveGrid.childElementCount) metrics.append(inactiveMetrics);
   container.append(metrics);
 
   if (check.unresolved.length) {
@@ -3256,6 +3298,7 @@ async function runJob(operation, arguments_, handler, current = () => true) {
   if (!available(operation)) throw new Error("이 작업은 현재 실행 가능한 capability로 제공되지 않습니다.");
   const researchRequest = operation === "research_run" ? { ...arguments_, store: activeStore() } : null;
   if (researchRequest && (state.researchLoading || !window.researchControls.canRun(state.researchStatus, researchContext()))) throw new Error("AI 연구 연결과 작업 저장소 상태를 확인하세요.");
+  $("notice").hidden = true;
   state.submitting = true; updateControls();
   try {
     const body = operation === "pde_run" && arguments_.backend === "pde.fenicsx.imported"
@@ -3410,7 +3453,8 @@ $("importedMeshFiles").addEventListener("change", () => selectImportedFiles());
 document.querySelectorAll("[data-fixture-field]").forEach((input) => { input.addEventListener(input.tagName === "SELECT" ? "change" : "input", changeFixtureConditions); });
 document.querySelectorAll("[data-pde-field]").forEach(input => { input.addEventListener(input.tagName === "SELECT" ? "change" : "input", changePdeConditions); });
 document.querySelectorAll("[data-plasticity-field]").forEach(input => { input.addEventListener(input.tagName === "SELECT" ? "change" : "input", changePlasticityConditions); });
-$("simulationSettings").addEventListener("input", () => { loadFixtureConditions(); if (window.pdeControls) loadPdeConditions(); if (window.plasticityControls) loadPlasticityConditions(); updateControls(); });
+document.querySelectorAll("[data-explicit-field]").forEach(input => { input.addEventListener(input.tagName === "SELECT" ? "change" : "input", changeExplicitConditions); });
+$("simulationSettings").addEventListener("input", () => { loadFixtureConditions(); if (window.pdeControls) loadPdeConditions(); if (window.plasticityControls) loadPlasticityConditions(); if (window.explicitControls) loadExplicitConditions(); updateControls(); });
 $("fixtureUseInCampaign").addEventListener("click", () => {
   try {
     const settings = fixtureSimulationSettings();
