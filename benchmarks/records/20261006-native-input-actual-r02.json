@@ -1,0 +1,324 @@
+{
+  "schema_version": 1,
+  "unit": "G1 actual human FCStd input -> registered parameter -> editable CAD revision -> reopen",
+  "created_utc": "2026-10-05T23:49:29.208646+00:00",
+  "native_producer_commit": "ca6fa05350a9bf36dfbd1b5640e2065fd2285b32",
+  "native_producer_dirty": false,
+  "reader_ui_source": {
+    "base_commit": "ca6fa05350a9bf36dfbd1b5640e2065fd2285b32",
+    "dirty_presentation_correction_only": true,
+    "source_files": {
+      "apps/lab/native_input.py": {
+        "sha256": "5a49e938e010d967ec32901a729d63430a3c6456052df00358a08e027af912f0",
+        "size_bytes": 9549
+      },
+      "apps/lab/server.py": {
+        "sha256": "cd27c3f6eaa1d41dd94d33206ae9fa0548c7062f0619f69a42f60e3b73eea49d",
+        "size_bytes": 15019
+      },
+      "apps/lab/service.py": {
+        "sha256": "04e3235a355911f6d3b6c29ff5afc7b4dabc08318d33a1f66c9068d5f8072ce4",
+        "size_bytes": 57971
+      },
+      "apps/lab/static/app.js": {
+        "sha256": "dd4cd2e9beecbe6c10b053045df06965105e6f1fa8fb261b975aaa459ad463ce",
+        "size_bytes": 173445
+      },
+      "apps/lab/static/index.html": {
+        "sha256": "9127b391c900490fc513dc22c8c12f4ded9d9c51e748bf65b891649e83e0f927",
+        "size_bytes": 40209
+      },
+      "apps/lab/static/native-upload-controls.js": {
+        "sha256": "d094849ad8428d8aed11498dfb72877bedcba8203ffa8667c704256bc327de92",
+        "size_bytes": 3661
+      },
+      "apps/lab/static/result-presentation.js": {
+        "sha256": "cf6c8b6146597debc8322b410794f4ae4e1c6a6e2faace3adde99013f95456c6",
+        "size_bytes": 20416
+      },
+      "tests/test_native_import_http.py": {
+        "sha256": "b807e00fb0e3916503a6cf1a23e68db3da617fb1219b6b1aa34b0ac8d78fb648",
+        "size_bytes": 14544
+      },
+      "tests/test_native_upload_controls.js": {
+        "sha256": "312ae3c15694cebcb1b6957ccc01a9b56c2557249efd603c260faf0d38acf36e",
+        "size_bytes": 7394
+      },
+      "tests/test_research_handoff.js": {
+        "sha256": "20369d77b70ffeec99b1d7a9e191fb1d80b2a061c36ac4e48495927f6f6cf33a",
+        "size_bytes": 47419
+      },
+      "tests/test_result_workflow.js": {
+        "sha256": "aba5b6a9274ce7a2dae73db002860c4c69ead64086f03b13f278ae4618e952af",
+        "size_bytes": 35124
+      },
+      "tests/test_fixture_field_viewer.js": {
+        "sha256": "9fd1f6649b3e9962b42e61ec4777d6c882f635cd865d00e34272ccf294ea93f7",
+        "size_bytes": 51695
+      },
+      ".github/workflows/caelab-ci.yml": {
+        "sha256": "e3862aa5b74f75f971224b6a3a6dd2b33a5364dc7df6f19d953881df7cf796c7",
+        "size_bytes": 29887
+      }
+    }
+  },
+  "store": "runs/cae-native-input-20261006-02",
+  "study": "S-native-input-20261006-r02",
+  "input": "Ub2b0796172a44983b5fc49215d9a123d",
+  "native_model": "389fc221dcc74b04bf114214d86f87c9",
+  "experiment": "E-native-input-length16-20261006-r02",
+  "cad_revision": "40ce69d60311db1cb86dca7ff3c3aa589fac2d8f4c2c2d7633fc0b0baada55c3",
+  "jobs": [
+    {
+      "id": "J08638afcf3824053897cf9d29817e636",
+      "operation": "study_create",
+      "status": "COMPLETED",
+      "created_utc": "2026-10-05T23:35:37.894970+00:00",
+      "completed_utc": "2026-10-05T23:35:38.599408+00:00"
+    },
+    {
+      "id": "J597ca8e9cd8c48f9a2c6e10306620d06",
+      "operation": "native_import",
+      "status": "COMPLETED",
+      "created_utc": "2026-10-05T23:34:24.837333+00:00",
+      "completed_utc": "2026-10-05T23:34:54.214670+00:00"
+    },
+    {
+      "id": "J6d290d9936ff411ea6b5c8d5db640ab4",
+      "operation": "parameter_discover",
+      "status": "COMPLETED",
+      "created_utc": "2026-10-05T23:36:28.552072+00:00",
+      "completed_utc": "2026-10-05T23:36:38.197061+00:00"
+    },
+    {
+      "id": "J7847a21261104b7ab01b9c689d012bb1",
+      "operation": "parameter_register",
+      "status": "COMPLETED",
+      "created_utc": "2026-10-05T23:37:25.670185+00:00",
+      "completed_utc": "2026-10-05T23:38:01.649461+00:00"
+    },
+    {
+      "id": "Ja76081c6dc304f3fb3dad97dbe71bce6",
+      "operation": "cad_run",
+      "status": "COMPLETED",
+      "created_utc": "2026-10-05T23:38:34.472150+00:00",
+      "completed_utc": "2026-10-05T23:39:14.305358+00:00"
+    },
+    {
+      "id": "Jcbf8b178aa0646c484dc0cfbfd04dea9",
+      "operation": "native_inspect",
+      "status": "COMPLETED",
+      "created_utc": "2026-10-05T23:41:24.639398+00:00",
+      "completed_utc": "2026-10-05T23:41:35.327720+00:00"
+    }
+  ],
+  "original": {
+    "sha256": "7ab8a9d194150317d644c0312713d5e85b4878140f35a919b6753fd03a3ee415",
+    "size_bytes": 2723
+  },
+  "import_result": {
+    "sha256": "f43e8b80a8fa991e80de0ca94fe29b563af26739e750345ce0e33f120d1d5052",
+    "size_bytes": 2077
+  },
+  "completion_seal": {
+    "sha256": "da1353ef0a6aeb3d1919b010c104c6ff3d6a68d5ae500328645b6ca7f64f50ed",
+    "size_bytes": 275
+  },
+  "declared_reference": {
+    "file": "artifacts/native-input-20261006-01/declared-reference.json",
+    "pin": {
+      "sha256": "94f478ec680813ff48315bf62e050af87c63a03acd446ac712abec64457fe0c5",
+      "size_bytes": 704
+    },
+    "origin": "Existing synthetic Part::Box; no company CAD",
+    "initial_mm": [
+      12,
+      10,
+      8
+    ],
+    "new_mm": [
+      16,
+      10,
+      8
+    ],
+    "new_volume_mm3": 1280,
+    "absolute_tolerance": 1e-05
+  },
+  "numerical_comparison": {
+    "bounds_mm": [
+      16.0,
+      10.0,
+      8.0
+    ],
+    "absolute_bounds_errors_mm": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "volume_mm3": 1279.9999999999998,
+    "absolute_volume_error_mm3": 2.2737367544323206e-13,
+    "verdict": "PASS_GEOMETRY_ONLY"
+  },
+  "experiment_result": {
+    "sha256": "34bedea033a9d2f0917f2c684a68f62a4d13f3cff537562d589fb41360bf7732",
+    "size_bytes": 17778
+  },
+  "validation_counts": {
+    "PASS": 8,
+    "UNKNOWN": 6
+  },
+  "decision": "NOT_RELEASED",
+  "gui": {
+    "actual_filechooser_single_file": true,
+    "import": true,
+    "real_candidates": 3,
+    "registration": "Length as uploaded_length,10..24mm",
+    "new_experiment_length_mm": 16,
+    "after_reload_same_experiment": "VERIFIED/16x10x8mm/1280mm3/8PASS6UNKNOWN",
+    "after_reload_same_model": "Original independently reverified; registered baseline12mm distinct from frozen experiment16mm",
+    "screenshot": {
+      "sha256": "62c697ebcb2c2ea9ae464d77e039a450de9513300529f1afc987f542c4aa5713",
+      "size_bytes": 156165
+    },
+    "ax": {
+      "sha256": "fb39c5da07e0dd72e16307cfd4f513759c321493c081b5a80c0018063c423631",
+      "size_bytes": 5846
+    },
+    "presentation_correction": "Verified imported receipt gets named completion step; clearing model candidates is unqueried, not false zero-result",
+    "final_presentation_browser": "PASS: new source reloaded, same original/model reselected, unqueried caption confirmed, same frozen experiment reopened",
+    "final_model_ax": {
+      "sha256": "93d4e5a69b936e855f9c97b38949d23f8c917214179ccd3cade7649021a30793",
+      "size_bytes": 9578
+    },
+    "final_result_ax": {
+      "sha256": "cb13b7395166ca40735ae87756d48f4cf7fd1bc6c0d5e72cc72c20271eba0578",
+      "size_bytes": 6207
+    },
+    "final_result_screenshot": {
+      "sha256": "e16ee0f600c365e08e984802f391dad3f797ac00e253085dc370e6ccef5a9d8b",
+      "size_bytes": 166846
+    },
+    "final_presentation_reader_job": [
+      {
+        "id": "J257bad2f0d374b5a83f50b0b848413fe",
+        "operation": "native_inspect",
+        "status": "COMPLETED"
+      }
+    ],
+    "publication_source_reload": {
+      "status": "PASS_SAME_FROZEN_EXPERIMENT_READ_ONLY",
+      "ax_file": "artifacts/native-input-20261006-01/actual-publication-result-ax.txt",
+      "ax": {
+        "sha256": "fb39c5da07e0dd72e16307cfd4f513759c321493c081b5a80c0018063c423631",
+        "size_bytes": 5846
+      },
+      "screenshot_file": "artifacts/native-input-20261006-01/actual-publication-result.png",
+      "screenshot": {
+        "sha256": "62c697ebcb2c2ea9ae464d77e039a450de9513300529f1afc987f542c4aa5713",
+        "size_bytes": 156165
+      },
+      "new_native_calls": 0
+    }
+  },
+  "verification": {
+    "transport_http": {
+      "pass": 15,
+      "seconds": 16.8,
+      "scope": "source controls on ca6 transport; no new repeat"
+    },
+    "final_node": {
+      "pass": 524,
+      "fail": 0,
+      "cancelled": 0,
+      "seconds": 13.3631884,
+      "log": {
+        "sha256": "6f18743777d030655deb3ccf84d4ff39ab07b18c07e41439eaec0ed031e55314",
+        "size_bytes": 45389
+      },
+      "scope": "Full affected CI Node step; no native"
+    },
+    "initial_ui_control_failure": {
+      "pass": 523,
+      "fail": 1,
+      "cancelled": 0,
+      "scope": "New native-view test harness lacked campaign select options; mounted same two-option DOM seam, no product admission relaxation",
+      "log": {
+        "sha256": "eeacd499b15cfc0e757ca79a284e0c19ee3af0afe1b45cd325ef0f656938acac",
+        "size_bytes": 46350
+      }
+    },
+    "independent_actual_read": {
+      "reader": "field_kernel_publication_review",
+      "p1": 0,
+      "p2": 0,
+      "reference": "94f478ec680813ff48315bf62e050af87c63a03acd446ac712abec64457fe0c5",
+      "completion_seal": "da1353ef0a6aeb3d1919b010c104c6ff3d6a68d5ae500328645b6ca7f64f50ed",
+      "result": "34bedea033a9d2f0917f2c684a68f62a4d13f3cff537562d589fb41360bf7732",
+      "artifact_pins_checked": 12,
+      "document_pins_checked": 6,
+      "scope": "Retained files/analytical cuboid/reopen AX; no rerun"
+    },
+    "publication_node": {
+      "pass": 524,
+      "fail": 0,
+      "cancelled": 0,
+      "seconds": 13.3722784,
+      "log_file": "artifacts/native-input-20261006-01/source-node-actual-ui-publication.log",
+      "log": {
+        "sha256": "32c69434da129430fe7bb57c5102b037b240604dc20b8a24953a2c595983e7bd",
+        "size_bytes": 45390
+      },
+      "scope": "Full affected CI Node step after final manual-model clear caption correction; no native execution"
+    }
+  },
+  "retention": {
+    "failed_r01": {
+      "files": 11,
+      "bytes": 27275,
+      "unchanged": true,
+      "completion_seal": "ABSENT"
+    },
+    "historical_p1": {
+      "files": 211,
+      "bytes": 885545,
+      "unchanged": true
+    },
+    "new_store": {
+      "files": 79,
+      "bytes": 184645,
+      "manifest": {
+        "sha256": "8fc8e5d27400688c293d12ad49eb2333f6952750905c5bf945802c1ad738ab67",
+        "size_bytes": 15172
+      },
+      "excluded": "mutable *.lock files only",
+      "status": "LOCAL_ONLY",
+      "initial_manifest_preserved": true,
+      "final_files": 83,
+      "final_bytes": 190737,
+      "final_manifest": {
+        "sha256": "c41e16a0c9cb61be106dd795b67db123c6e95de64f44e78a0f45299714fa7a4b",
+        "size_bytes": 15914
+      }
+    }
+  },
+  "new_solver_runs": 0,
+  "provider_calls": 0,
+  "new_meshes": 0,
+  "physical": "UNKNOWN",
+  "release": "NOT_RELEASED",
+  "whole_52_phase_1_7": "INCOMPLETE",
+  "ci": {
+    "native_source": "ca6fa05350a9bf36dfbd1b5640e2065fd2285b32",
+    "run": 37389087820,
+    "last_observation": "Exact ca6 run37389087820: research-driver-source/core/doe SUCCESS, explicit FAILURE in official runtime installation before solve; other native/solver jobs still IN_PROGRESS at observation. Final publication CI pending.",
+    "not_new_solver_verification": true
+  },
+  "g2_read_only_inventory": {
+    "reader": "cae_reference_platforms",
+    "reuse": "Core verified CAD-parent chain and proposal fields, declared-model declaration/revision pattern, native/assembly catalog; no bypass of CAD parent via declared_model",
+    "gap": "General native face/group catalog, typed revision-bound conditions and actual solver capability admission/translation are missing",
+    "first_slice": "Revision-bound whole-final-solid conditions with explicit support/refusal, then native face/group and supported solver coupling",
+    "fixture_calculix": "Only declared CadQuery roller_support parent; imported FreeCAD remains unsupported"
+  },
+  "next": "G2 common same-revision selections/material/axes/load/BC/contact and supported native dispatch, then G3/G4 research/results/recovery; no mandatory mesh sweep or isolated assembly benchmark prerequisite"
+}

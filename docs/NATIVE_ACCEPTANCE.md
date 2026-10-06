@@ -1,3 +1,7 @@
+G1 actual bounded user workflow PASS: cleanca6fa053/newrun02, human filechooser/import/Length registration/new16mm editable revision/reopen; 16x10x8mm/1280mm3 reference matched under1e-5 tolerance,8PASS6UNKNOWN/NOT_RELEASED, independent0P1/P2. Native producer and final presentation sources remain separate. FirstFAILED/r01 retained; arbitrary CAD FEA and whole52 remain OPEN. See records/20261006-native-input-actual-r02.json.
+
+## Historical source and first-attempt records
+
 G1 actual r01 on clean37854c6 failed in the new model-ID transport after native import. The preserved numeric-prefix native UUID prompted the existing REFERENCE-contract correction; 15 HTTP/68 selected Node source controls PASS. Fresh clean-source r02 native workflow remains NEXT. See records/20261006-native-input-reference-correction-r02.json.
 
 # G1 human file input source qualification; actual browser/native next

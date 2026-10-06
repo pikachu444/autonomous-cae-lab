@@ -65,7 +65,7 @@ function harness({ writable = true, store = "local", researchStatus = status(), 
     fetch: async (path, options) => { paths.push({ path, options }); assert(fetchReply, "No uncontrolled HTTP is allowed"); return fetchReply(path, options); },
     setTimeout: (fn, delay) => { timers.push({ fn, delay }); return timers.length; }, clearTimeout: () => {} };
   vm.createContext(sandbox);
-  vm.runInContext(appSource.slice(0, boundary) + "\nglobalThis.ui = {state, updateControls, updateResearchControls, confirmedResearchSession, renderResearchConnection, loadResearchStatus, loadOverview, renderResearchAnswers, retainResearchJob, renderJob, submitResearchQuestion, runJob, pollJob, researchError, prepareComparisonResearch, loadNativeImports, openImportedModel, submitNativeImport};", sandbox);
+  vm.runInContext(appSource.slice(0, boundary) + "\nglobalThis.ui = {state, updateControls, updateResearchControls, confirmedResearchSession, renderResearchConnection, loadResearchStatus, loadOverview, renderResearchAnswers, retainResearchJob, renderJob, submitResearchQuestion, runJob, pollJob, researchError, prepareComparisonResearch, loadNativeImports, openImportedModel, submitNativeImport, renderNative, renderDiscovery};", sandbox);
   const ui = sandbox.ui;
   ui.state.overview = { active_store: store, stores: [{ id: store, writable }], token: "synthetic-token", capabilities: [], jobs: [] };
   ui.state.presets = { linear: { operation: "analysis_run", backend: "fixture.calculix", parent_backends: ["fixture.cadquery"] } };
@@ -148,6 +148,25 @@ test("incomplete native input keeps internal error in secondary detail and offer
   assert.equal(walk(container).filter(node => node.tagName === "BUTTON").length, 0);
   assert.match(walk(container).find(node => node.tagName === "DETAILS").textContent, /TEST_ONLY\/private/);
   assert.doesNotMatch(walk(container).filter(node => node.tagName === "P").map(node => node._text).join(""), /FileNotFoundError|private/);
+});
+
+test("selecting a different native model clears old candidates as unqueried rather than a false zero-result", () => {
+  const h = nativeHarness();
+  // The native view also refreshes the real campaign-select seam; mount its
+  // two options while keeping campaigns and all external operations disabled.
+  h.$("campaignAnalysis").options = [{value:""}, {value:"fixture.calculix"}];
+  h.$("campaignAnalysis").value = "";
+  h.$("cadBackend").value = "fixture.cadquery"; h.$("cadModel").value = "old-model";
+  h.ui.renderDiscovery([{label:"Old width", value:12, unit:"mm", native:{path:"old_width"}}]);
+  assert.equal(h.$("discoveryCount").textContent, "1개 후보");
+  h.ui.renderNative({design:"3".repeat(32), document:"editable", parameters:[], candidates:[], final_candidates:[]});
+  assert.equal(h.ui.state.discovery.length, 0); assert.equal(h.$("discoveryCount").textContent, "발견 전");
+  assert.match(h.$("discoveryList").textContent, /실제 후보를 조회하세요/);
+  assert.doesNotMatch(h.$("discoveryList").textContent, /후보가 발견되지 않았습니다/);
+  h.ui.renderDiscovery([]);
+  assert.equal(h.$("discoveryCount").textContent, "0개 후보");
+  assert.match(h.$("discoveryList").textContent, /후보가 발견되지 않았습니다/);
+  assert.equal(h.paths.length, 0);
 });
 
 test("late native upload completion preserves a newer CAD selection and retains the original job handler", async () => {

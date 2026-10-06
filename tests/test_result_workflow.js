@@ -403,6 +403,24 @@ test("actual cancel/cleanup button and busy guards survive stage rendering with 
   assert.deepEqual(h.prohibited, { http: 0, timers: 0 });
 });
 
+test("native import job names the retained step only for a paired original receipt and never admits structural analysis", () => {
+  const payload = {design:"3".repeat(32), parameters:[], candidates:[], final_candidates:[], source_sha256:"a".repeat(64),
+    native_import:{id:"U"+"b".repeat(32), kind:"FCStd", model:"3".repeat(32), original_integrity:"VERIFIED",
+      input:{sha256:"a".repeat(64),size_bytes:2723}}};
+  for (const change of [null, p => delete p.native_import, p => {p.native_import.model="4".repeat(32);},
+    p => {p.native_import.original_integrity="NOT_CHECKED";}, p => {p.native_import.input.sha256="c".repeat(64);},
+    p => {p.native_import.input.size_bytes=99;}, p => {p.native_import.id+="\n";}]) {
+    const h = harness({writable:false}), value = JSON.parse(JSON.stringify(payload));
+    if (change) change(value);
+    h.app.state.job = freeze({status:"COMPLETED", operation:"native_import", result:value}); h.app.renderJob();
+    assert.equal(h.$("jobStatus").textContent, change ? "현재 단계 미확인" : "원본 보존·모델 가져옴 · 해석 안 함");
+    assert.equal(h.$("jobPanel").classList.contains("finished"), !change);
+    assert.equal(h.$("simulationRunBtn").disabled, true); assert.equal(h.$("jobCancelBtn").hidden, true);
+    assert.doesNotMatch(h.$("jobMessage").textContent, /해석 완료|연구 완료|사용 승인됨/);
+    assert.deepEqual(h.prohibited,{http:0,timers:0});
+  }
+});
+
 test("untrusted labels/errors stay literal text or raw detail and never become HTML or guessed stage guidance", () => {
   const h = harness(), hostile = '<img src=x onerror="throw new Error()">' + "f".repeat(64);
   h.app.state.job = freeze({ status: "COMPLETED", operation: hostile, result: { status: hostile }, error: hostile });

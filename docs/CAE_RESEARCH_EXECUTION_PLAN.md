@@ -16,13 +16,17 @@ Phase7 합성 inverse의 코드와 실행 기록을 보존하되 임의 사용�
 
 | 순서 | 공통 사용자 기능과 재사용 코드 | 남은 연결과 완료 기준 |
 |---|---|---|
-| G1 **실제 r01 실패 교정 / 새 실행 다음** | 자기 모델 입력: 기존 Core/CLI/MCP `import_native_model`, FreeCAD adapter, registry와 editable CAD 재사용 | HTTP/UI에서 FCStd 파일 선택→새 보존 원본/모델ID→실제 후보 발견·등록→새 개정 재열람. 브라우저에 없는 업로드 연결을 추가한다. 임의 CAD의 구조해석 지원으로 확대하지 않는다 |
-| G2 | 같은 모델의 해석 조건: `describe_model`, Domain validator, qualified body/group catalog와 기존 adapter 재사용 | 모델 revision·부품/면/physical group에 재료/좌표계/하중/BC/contact를 명시적으로 연결. 지원 가능한 solver 경로만 실행하고 지원되지 않는 조합은 사전 거부. 대표 가상 모델에서 조건 편집→native 입력→같은 결과의 연결 확인 |
+| G1 **실제 사용자 입구 연결 PASS** | 자기 모델 입력: 기존 Core/CLI/MCP `import_native_model`, FreeCAD adapter, registry와 editable CAD 재사용 | HTTP/UI에서 FCStd 파일 선택→새 보존 원본/모델ID→실제 후보 발견·등록→새 개정 재열람을 실제 연결했다. 원본 보존과 새 editable CAD의 제한된 acceptance이며 일반 CAD 구조해석은 G2의 미완료 연결이다 |
+| G2 **다음 구현** | 같은 모델의 해석 조건: `describe_model`, Domain validator, qualified body/group catalog와 기존 adapter 재사용 | 모델 revision·부품/면/physical group에 재료/좌표계/하중/BC/contact를 명시적으로 연결. 지원 가능한 solver 경로만 실행하고 지원되지 않는 조합은 사전 거부. 대표 가상 모델에서 조건 편집→native 입력→같은 결과의 연결 확인 |
 | G3 | 목적과 가설의 연구 흐름: 기존 study/관측 comparison/context/LHS/DE/declared-input binding 재사용 | 가설별 바뀌는 입력·관측 위치/성분/단위/축·구별 응답을 연결하고 기존 numerical engine에 잔차/목표 전달. 질문→허용된 실행→비교→AI 해석을 같은 연구에 저장. 일반 관측 inverse는 아직 미구현 |
 | G4 | 공통 결과와 운용: 기존 full-field/history readers·report·HTTP journal/owned controller 재사용 | 지원 family별 field/curve와 원본 native를 같은 모델에서 읽기, export/reopen, 실제 소유 작업의 취소·재접속/부분 결과 보존. 라이브 핸들과 과거 기록을 구분 |
 | 이후 | S4b/S5–S9의 기존 Phase2–7 미완료 기능 | 일반 입구에 맞춰 실제 조립체 mechanics, PDE 확장, 재료FE coupling, 표면 explicit, 실측 inverse/UQ/다목적/HPC를 순차 추가. 실제 자료/환경 없는 물리·회사 gate는 UNKNOWN |
 
-G1 소스는 기존 Core native 가져오기를 HTTP/UI 파일 선택에 연결했다(ADR0042). 최신15HTTP source/67Node PASS이며 실제 FreeCAD·사람 화면·새 CAD 개정 acceptance는 다음 clean-source gate다. R2 별도8파일·기존 결과는 보존했다. [소스 기록](../benchmarks/records/20261006-native-input-source-r01.json).
+G1 actual gate: cleanca6fa053/run02에서 파일 선택·원본/모델ID 보존·실제 Length 등록·새16mm editable CAD·재열람을 실행했다. 16×10×8mm/1280mm³의 고정 해석식 기준,8PASS6UNKNOWN, 독립0P1/P2를 확인했다. 최종524Node source와 native producer를 구분한다. 임의 CAD의 구조해석이나 전체Phase 완료가 아니다. [실행 기록](../benchmarks/records/20261006-native-input-actual-r02.json).
+
+최초 G1 source gate는15HTTP/67Node로 남아 있다([과거 소스 기록](../benchmarks/records/20261006-native-input-source-r01.json)). 실제r01의 숫자 UUID 처리 실패는 보존·교정했고, 위 actualr02에서 사용자 입구를 닫았다. R2 별도8파일·기존 결과는 보존했다.
+
+G2의 개발 완료는 조건 JSON 저장만으로 판정하지 않는다. 기존 Core CAD-parent/result SHA와 개정 보호를 재사용하고, 개정에 종속된 선택 ID·재료 법칙/단위/출처·하중/BC 성분과 좌표계·접촉 쌍을 Domain에서 검증한다. catalog 없는 면/그룹과 미지원 solver 조합은 실행을 막는다. 그다음 지원 모델의 조건 편집→실제 native 입력/해석→같은 전체 결과·조건 재열람을 닫는다. G1 imported FCStd는 일반 면/group catalog와 backend translation 전까지 fixture.calculix에 강제 연결하지 않는다. Core 선언 모델 경로로 CAD-parent 보호를 우회하지 않는다. 일반 imported 모델 해석·조립체 mechanics는 별도 미완료 gate다.
 
 순서는 위 공통 연결의 의존성을 따른다. 새 optimizer를 만들거나 모든 solver 예제를 다시 푸는 일을
 G1의 선행조건으로 추가하지 않는다. S4a의 검토된 4개 NEW 파일은 SOURCE_ONLY로 보존하며

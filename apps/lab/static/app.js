@@ -594,13 +594,14 @@ function renderCampaignVariables() {
   } else $("campaignModel").textContent = `${state.studyId || "연구 미선택"} · ${$("cadBackend").value} · ${$("cadModel").value.trim()}\n설계 화면의 작업 모델과 등록부를 고정해 사용합니다.`;
   updateControls();
 }
-function renderDiscovery(candidates) {
+function renderDiscovery(candidates, { queried = true } = {}) {
   state.discovery = list(candidates);
-  $("discoveryCount").textContent = `${state.discovery.length}개 후보`;
+  $("discoveryCount").textContent = queried ? `${state.discovery.length}개 후보` : "발견 전";
   const select = clear("nativePath"); option(select, "", "발견한 후보를 선택하세요");
   state.discovery.forEach((candidate) => option(select, candidate.native?.path, `${candidate.label} · ${candidate.native?.path}`));
   const container = clear("discoveryList");
-  if (!state.discovery.length) container.append(el("p", "지원되는 실제 후보가 발견되지 않았습니다. 모델과 최종 솔리드를 확인하세요.", "empty-state"));
+  if (!queried) container.append(el("p", "선택한 모델의 ‘변수 발견’으로 실제 후보를 조회하세요. 이전 모델의 후보는 사용하지 않습니다.", "empty-state"));
+  else if (!state.discovery.length) container.append(el("p", "지원되는 실제 후보가 발견되지 않았습니다. 모델과 최종 솔리드를 확인하세요.", "empty-state"));
   else container.append(table(["후보", "현재 값", "선택"], state.discovery.map((candidate) => {
     const name = el("div", candidate.label); name.append(el("small", candidate.native?.path, "mono"));
     return [name, `${number(candidate.value)} ${candidate.unit}`, action("등록 후보", () => chooseCandidate(candidate.native.path))];
@@ -626,7 +627,7 @@ function renderNative(info) {
   if (identifier) {
     const changed = $("cadModel").value !== identifier || $("cadBackend").value !== "fixture.freecad";
     $("nativeModelId").value = identifier; $("cadModel").value = identifier; $("cadBackend").value = "fixture.freecad";
-    if (changed) { state.discovery = []; renderDiscovery([]); }
+    if (changed) { state.discovery = []; renderDiscovery([], { queried: false }); }
     renderRegistry();
   }
   const finals = clear("nativeFinal"); option(finals, "", "최종 솔리드를 선택하세요");
@@ -2018,7 +2019,7 @@ async function switchStore(identifier) {
   $("observationPanel").hidden = true; state.observationRequest++;
   clear("campaignDetail"); clear("comparisonDetail").hidden = true;
   const card = panel("저장소가 바뀌었습니다.", "RESULTS"); card.append(el("p", "목록에서 열 기록을 선택하세요.", "empty-state")); clear("experimentDetail").append(card);
-  $("selectedSource").textContent = "소스 버전: 기록 선택 후 확인"; renderDiscovery([]); renderOverview();
+  $("selectedSource").textContent = "소스 버전: 기록 선택 후 확인"; renderDiscovery([], { queried: false }); renderOverview();
   await loadNativeImports();
   if (state.studyId) await loadStudy(state.studyId); else { renderStudy(); renderRegistry(); }
 }
@@ -2080,8 +2081,8 @@ $("discoverBtn").addEventListener("click", () => runJob("parameter_discover", { 
 $("registryRefreshBtn").addEventListener("click", () => runJob("registry_refresh", { study_id: state.studyId, backend: $("cadBackend").value, model: $("cadModel").value.trim() }, () => loadStudy(state.studyId)).catch((error) => notify(error.message)));
 $("nativePath").addEventListener("change", () => chooseCandidate($("nativePath").value));
 $("nativeFinal").addEventListener("change", updateControls); $("nativeModelId").addEventListener("input", updateControls);
-$("cadBackend").addEventListener("change", () => { state.discovery = []; renderDiscovery([]); if ($("cadBackend").value === "fixture.cadquery") $("cadModel").value = "roller_support"; else if ($("cadBackend").value === "fixture.assembly") $("cadModel").value = "bending_assembly"; else { $("cadModel").value = $("nativeModelId").value; $("nativeArea").open = true; } renderRegistry(); });
-$("cadModel").addEventListener("change", () => { renderDiscovery([]); renderRegistry(); });
+$("cadBackend").addEventListener("change", () => { state.discovery = []; renderDiscovery([], { queried: false }); if ($("cadBackend").value === "fixture.cadquery") $("cadModel").value = "roller_support"; else if ($("cadBackend").value === "fixture.assembly") $("cadModel").value = "bending_assembly"; else { $("cadModel").value = $("nativeModelId").value; $("nativeArea").open = true; } renderRegistry(); });
+$("cadModel").addEventListener("change", () => { renderDiscovery([], { queried: false }); renderRegistry(); });
 $("studySelect").addEventListener("change", () => {
   state.studyId = $("studySelect").value; state.study = null; state.registry = { entries: [] };
   $("analysisParent").value = "";

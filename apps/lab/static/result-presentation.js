@@ -171,6 +171,15 @@
       return step("CAD 등록부 갱신됨", "갱신된 변수와 모델 입력 조건을 확인하세요. 기존 실험은 새로 실행된 결과가 아닙니다.", "recorded");
     if (["doe_plan", "optimization_plan", "model_optimization_plan"].includes(operation) && named(own(result, "campaign_id")) && own(result, "status") === "PLANNED")
       return step("수치 탐색 계획 저장됨", "계획의 변수·목적·제약 조건을 검토하세요. 후보 실험은 아직 실행되지 않았습니다.", "recorded");
+    const imported = own(result, "native_import"), input = own(imported, "input");
+    if (operation === "native_import" && fullMatch(/^[0-9a-f]{32}$/, own(result, "design")) &&
+        Array.isArray(own(result, "parameters")) && Array.isArray(own(result, "candidates")) && Array.isArray(own(result, "final_candidates")) &&
+        fullMatch(/^U[0-9a-f]{32}$/, own(imported, "id")) && own(imported, "kind") === "FCStd" &&
+        own(imported, "original_integrity") === "VERIFIED" && own(imported, "model") === result.design &&
+        revision(own(input, "sha256")) && own(input, "sha256") === own(result, "source_sha256") &&
+        Number.isInteger(own(input, "size_bytes")) && input.size_bytes >= 100 && input.size_bytes <= 25 * 1024 * 1024)
+      return step("원본 보존·모델 가져옴 · 해석 안 함",
+        "연구를 선택한 뒤 모델의 실제 변수를 발견하고 등록하세요. 모델을 다시 선택하면 보존 원본을 재검사합니다.", "recorded");
     if (["native_create", "native_inspect", "native_final"].includes(operation) && named(own(result, "design")) &&
       Array.isArray(own(result, "parameters")) && Array.isArray(own(result, "candidates")) && Array.isArray(own(result, "final_candidates")) &&
       (operation !== "native_final" || named(own(result, "final"))))
