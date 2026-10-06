@@ -41,15 +41,20 @@ function ConvertTo-OpenScienceProjectBinding {
     if ($Binding.source_directory -cne $RepoRoot -or $Binding.project_directory -cne (Join-Path $DataRoot 'projects/prj_test')) { throw 'The exact reusable project binding was not forwarded.' }
     return $Binding
 }
+function Read-OpenScienceQualifiedRuntimeBinding {
+    param([string]$Path,[string]$AuthProfileRoot)
+    if ($Path -cne $script:taskFakeQualifiedPath -or $AuthProfileRoot -cne $taskAuth) { throw 'Unowned synthetic qualification reference.' }
+    return [pscustomobject]@{Path=$Path;AuthPin=@{RuntimePrefix=$taskRuntime}}
+}
 function New-OpenScienceLocalContext {
     param([string]$RepoRoot, [string]$RunName, [string]$ProfileTag, [string]$StoreRoot, [string]$RuntimePrefix,
-        [string]$AuthProfileRoot, $ProjectBinding, [string]$ModelId, [string]$Transport, [string]$Purpose,
+        [string]$AuthProfileRoot, [string]$QualifiedRuntimeBindingPath, $ProjectBinding, [string]$ModelId, [string]$Transport, [string]$Purpose,
         [string]$ResearchProfile, [string[]]$AllowedTools, [int]$Steps)
     $script:taskTrace.Add('context')
     $script:taskContextArguments = $PSBoundParameters
     $profile = Join-Path $env:LOCALAPPDATA "AutonomousCAELab/profiles/$RunName-$ProfileTag-research"
     $script:taskContext = [pscustomobject]@{ RepoRoot = $RepoRoot; RunName = $RunName; StoreRoot = $StoreRoot
-        RuntimePrefix = $RuntimePrefix; AuthProfileRoot = $AuthProfileRoot; ProjectBinding = $ProjectBinding
+        RuntimePrefix = $RuntimePrefix; AuthProfileRoot = $AuthProfileRoot; QualifiedRuntimeBindingPath=$QualifiedRuntimeBindingPath; ProjectBinding = $ProjectBinding
         Model = $ModelId; ModelId = $ModelId; Transport = $Transport; Purpose = $Purpose
         ResearchDefinition = (New-OpenScienceResearchDefinition -Profile $ResearchProfile); AllowedTools = $AllowedTools
         ProfileRoot = $profile; OwnerPath = (Join-Path $profile 'runtime-owner.json'); IntentSha256 = 'mock-owned-intent' }
@@ -140,9 +145,21 @@ Write-OpenScienceJson $taskProject @{ schema = 1; kind = 'autonomous-cae-lab.ope
     project_directory = (Join-Path $taskAuth 'data/projects/prj_test'); source_directory = $taskFakeRepo; working_root = $taskFakeRepo; grant_id = 'fsg_test'; access = 'write' } -CreateNew
 $taskValidSettings = [ordered]@{ schema = 1; runtime_prefix = $taskRuntime; auth_profile_root = $taskAuth; project_binding_path = $taskProject }
 Write-OpenScienceJson $taskSettings $taskValidSettings -CreateNew
+$script:taskFakeQualifiedPath=Join-Path $taskSetup 'qualified-runtime.json'
+[IO.File]::WriteAllText($script:taskFakeQualifiedPath,'TEST_ONLY qualification placeholder')
 function Invoke-LauncherFixture {
     param([string]$Run = ('control-' + [Guid]::NewGuid().ToString('N')), [string]$Config = $taskSettings, [switch]$Only, [string]$Profile = 'FixtureSelected', [string]$AssemblyConfig)
     Invoke-CaeResearchLocal -SourceRoot $taskFakeRepo -LocalSettingsPath $Config -ResearchRun $Run -LabPort 8782 -ResearchProfile $Profile -AssemblyMeshConfigPath $AssemblyConfig -CheckOnly:$Only
+}
+
+Invoke-LauncherControl 'schema2_explicit_qualified_binding_is_forwarded_without_auth_or_model_override' {
+    $settings=@{};foreach($key in $taskValidSettings.Keys){$settings[$key]=$taskValidSettings[$key]}
+    $settings.schema=2;$settings.qualified_runtime_binding_path=$script:taskFakeQualifiedPath
+    $path=Join-Path $taskSetup 'settings-qualified.json';Write-OpenScienceJson $path $settings -CreateNew
+    $result=Invoke-LauncherFixture -Config $path -Profile NumericalReports
+    Confirm-LauncherControl ($script:taskContextArguments.QualifiedRuntimeBindingPath -ceq $script:taskFakeQualifiedPath -and
+        $script:taskContextArguments.RuntimePrefix -ceq $taskRuntime -and $script:taskContextArguments.ModelId -ceq 'openai-codex/gpt-5.6-sol' -and
+        $script:taskContextArguments.AllowedTools.Count -eq 7 -and $result.RuntimeState -ceq 'STOPPED') 'Qualified runtime selection changed original auth/model or read-only report scope.'
 }
 
 # A trusted operator path is forwarded only to Lab. It must not alter the

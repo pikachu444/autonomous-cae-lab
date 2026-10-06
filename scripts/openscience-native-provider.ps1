@@ -58,12 +58,18 @@ function Assert-OpenScienceNativeContext($Context, [switch]$LifecycleOnly) {
         $authMarker.profile_root -ceq $Context.AuthProfileRoot -and $authMarker.data_root -ceq $Context.Environment.OPENSCIENCE_DATA_DIR -and
         $authMarker.runtime_version -ceq $script:OpenSciencePinnedVersion -and $authMarker.source_commit -ceq $script:OpenSciencePinnedSource) 'Native transport authentication ownership changed.'
     $authPin = $authMarker.runtime_pin
-    $nativePin = @($authPin.NativeBinaries | Where-Object { $_.Path -ceq $Context.NativePath })
-    Assert-OpenScienceCondition ($nativePin.Count -eq 1 -and $Context.RuntimePrefix -ceq $authPin.RuntimePrefix -and
-        $Context.NodePath -ceq $authPin.NodePath -and $Context.NodeSha256 -ceq $authPin.NodeSha256 -and
-        $Context.LauncherPath -ceq $authPin.LauncherPath -and $Context.LauncherSha256 -ceq $authPin.LauncherSha256 -and
+    $executionPin = $authPin
+    if ($Context.QualifiedRuntimeBindingPath) {
+        $qualified = Read-OpenScienceQualifiedRuntimeBinding -Path $Context.QualifiedRuntimeBindingPath `
+            -ExpectedSha256 $Context.QualifiedRuntimeBindingSha256 -AuthProfileRoot $Context.AuthProfileRoot
+        $executionPin = $qualified.Pin
+    }
+    $nativePin = @($executionPin.NativeBinaries | Where-Object { $_.Path -ceq $Context.NativePath })
+    Assert-OpenScienceCondition ($nativePin.Count -eq 1 -and $Context.RuntimePrefix -ceq $executionPin.RuntimePrefix -and
+        $Context.NodePath -ceq $executionPin.NodePath -and $Context.NodeSha256 -ceq $executionPin.NodeSha256 -and
+        $Context.LauncherPath -ceq $executionPin.LauncherPath -and $Context.LauncherSha256 -ceq $executionPin.LauncherSha256 -and
         (Get-OpenScienceSourcePinSha256 -SourcePin @{ binaries = $Context.NativeBinaries }) -ceq
-        (Get-OpenScienceSourcePinSha256 -SourcePin @{ binaries = $authPin.NativeBinaries })) 'Native execution path/runtime differs from the independently owned authentication pin.'
+        (Get-OpenScienceSourcePinSha256 -SourcePin @{ binaries = $executionPin.NativeBinaries })) 'Native execution path/runtime differs from the original auth pin or explicit qualified binding.'
     foreach ($native in $authPin.NativeBinaries) {
         Assert-OpenScienceContainedPath $native.Path $authPin.RuntimePrefix | Out-Null
         Assert-OpenScienceContainedPath $native.PackagePath $authPin.RuntimePrefix | Out-Null
@@ -106,11 +112,11 @@ function Assert-OpenScienceNativeContext($Context, [switch]$LifecycleOnly) {
 function New-OpenScienceNativeContext {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$RepoRoot, [Parameter(Mandatory)][string]$RunName,
-        [string]$ProfileTag, [string]$StoreRoot, [string]$RuntimePrefix, [string]$ModelId, [string]$AuthProfileRoot,
+        [string]$ProfileTag, [string]$StoreRoot, [string]$RuntimePrefix, [string]$ModelId, [string]$AuthProfileRoot, [string]$QualifiedRuntimeBindingPath,
         [string]$WslDistro, [string]$WslPython, [AllowEmptyCollection()][string[]]$AllowedTools,
         [int]$OutputTokens, [int]$Steps, [int]$ProviderTimeoutSeconds, [Collections.IDictionary]$ProjectBinding,
         [ValidateSet('Acceptance', 'Research')][string]$Purpose = 'Acceptance',
-        [ValidateSet('FixtureScalar', 'FixtureRefinement', 'FixtureSelected', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', 'ContactPatches', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar')
+        [ValidateSet('FixtureScalar', 'FixtureRefinement', 'FixtureSelected', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', 'ContactPatches', 'NumericalReports', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar')
     Assert-OpenScienceCondition ($ModelId -cmatch '^openai-codex/[A-Za-z0-9._-]+$') 'Select a full official ChatGPT model ID explicitly. No default or fallback model is permitted.'
     Assert-OpenScienceCondition (-not [string]::IsNullOrWhiteSpace($AuthProfileRoot)) 'The separately authenticated external profile is required.'
     $authRoot = [IO.Path]::GetFullPath($AuthProfileRoot)
@@ -119,6 +125,11 @@ function New-OpenScienceNativeContext {
     Assert-OpenScienceCondition (Test-Path -LiteralPath $authFile -PathType Leaf) 'ChatGPT sign-in is not complete. No research profile, model request or credential copy was made.'
     $auth = New-OpenScienceChatGptContext -ProfileRoot $authRoot -RuntimePrefix $RuntimePrefix
     $authPin = (Read-OpenScienceJson (Join-Path $authRoot 'caelab-profile-owner.json')).runtime_pin
+    $executionPin = $authPin; $qualified = $null
+    if ($QualifiedRuntimeBindingPath) {
+        $qualified = Read-OpenScienceQualifiedRuntimeBinding -Path $QualifiedRuntimeBindingPath -AuthProfileRoot $authRoot
+        $executionPin = $qualified.Pin
+    }
     $RepoRoot = [IO.Path]::GetFullPath($RepoRoot)
     if ($ProjectBinding) { $ProjectBinding = ConvertTo-OpenScienceProjectBinding $ProjectBinding $RepoRoot $auth.DataRoot }
     if (-not $StoreRoot) { $StoreRoot = Join-Path $RepoRoot "runs/$RunName" }
@@ -146,10 +157,11 @@ function New-OpenScienceNativeContext {
     $sourceReader = Get-OpenScienceNativeSourceReaderSource
     $sourceReaderHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.UTF8Encoding]::new($false).GetBytes($sourceReader))).ToLowerInvariant()
     $intent = [ordered]@{ transport = 'ChatGPT'; repo_root = $RepoRoot; run_name = $RunName; profile_tag = $ProfileTag
-        store_root = $StoreRoot; auth_profile_root = $authRoot; runtime_prefix = $auth.RuntimePrefix; model = $ModelId
+        store_root = $StoreRoot; auth_profile_root = $authRoot; runtime_prefix = $executionPin.RuntimePrefix; model = $ModelId
         wsl_distro = $WslDistro; wsl_python = $WslPython; allowed_tools = @($AllowedTools); output_tokens = $OutputTokens
         steps = $Steps; provider_timeout_seconds = $ProviderTimeoutSeconds; mcp_git_transport = $mcpGit; plugin_sha256 = $pluginHash
         source_reader_sha256 = $sourceReaderHash }
+    if ($qualified) { $intent.qualified_runtime_binding = @{path=$qualified.Path;sha256=$qualified.Sha256} }
     if ($researchDefinition) {
         $intent.purpose = 'Research'; $intent.research_definition = $researchDefinition
         $intent.research_definition_sha256 = Get-OpenScienceSourcePinSha256 $researchDefinition
@@ -179,14 +191,19 @@ function New-OpenScienceNativeContext {
         ConfigPath = (Join-Path $profile 'config/openscience.json'); PluginPath = (Join-Path $profile 'native-guard.mjs')
         PluginSettingsPath = (Join-Path $profile 'native-guard-settings.json'); HookReceiptsPath = (Join-Path $profile 'hook-receipts')
         SourceReaderPath = (Join-Path $profile 'source-reader.mjs'); SourceReaderSha256 = $sourceReaderHash
-        PluginSha256 = $pluginHash; NodePath = $auth.NodePath; NodeSha256 = $authPin.NodeSha256; LauncherPath = $auth.LauncherPath
-        LauncherSha256 = $authPin.LauncherSha256; RuntimePrefix = $auth.RuntimePrefix; NativePath = $auth.NativePath
-        NativeBinaries = $authPin.NativeBinaries; Environment = $environment; RemoveEnvironment = @()
+        PluginSha256 = $pluginHash; NodePath = $executionPin.NodePath; NodeSha256 = $executionPin.NodeSha256; LauncherPath = $executionPin.LauncherPath
+        LauncherSha256 = $executionPin.LauncherSha256; RuntimePrefix = $executionPin.RuntimePrefix; NativePath = $(if($qualified){$executionPin.NativeBinaries[0].Path}else{$auth.NativePath})
+        NativeBinaries = $executionPin.NativeBinaries; Environment = $environment; RemoveEnvironment = @()
         Model = $ModelId; ModelId = $ModelId; AllowedTools = @($AllowedTools); OutputTokens = $OutputTokens; Steps = $Steps
         ProviderTimeoutSeconds = $ProviderTimeoutSeconds; SourceCommit = $script:OpenSciencePinnedSource; McpGitTransport = $mcpGit
         WslPythonCacheRoot = (Join-Path $profile 'wsl-pycache'); IntentSha256 = $intentHash
         OwnerPath = (Join-Path $profile 'runtime-owner.json'); GuardPath = (Join-Path $profile 'expected-tools.json')
         SandboxLimitation = 'Windows has no native OpenScience sandbox backend. warn fallback is explicit; application permissions are not OS containment.' }
+    if ($qualified) {
+        $context | Add-Member -NotePropertyName QualifiedRuntimeBindingPath -NotePropertyValue $qualified.Path
+        $context | Add-Member -NotePropertyName QualifiedRuntimeBindingSha256 -NotePropertyValue $qualified.Sha256
+        Assert-OpenScienceQualifiedRuntimeAdmission $context
+    }
     if ($researchDefinition) {
         $context | Add-Member -NotePropertyName Purpose -NotePropertyValue 'Research'
         $context | Add-Member -NotePropertyName ResearchDefinition -NotePropertyValue $researchDefinition

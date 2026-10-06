@@ -303,7 +303,8 @@ Assert-NativeCheck ($taskContactGuardSettings.schema -eq 3 -and $taskContactGuar
     (Get-OpenScienceSourcePinSha256 $taskContactGuardSettings.research) -ceq $taskContactContext.ResearchDefinitionSha256) 'contact_native_guard_schema3_carries_unchanged_schema6_descriptor'
 # CONTACT_PATCHES_SOURCE_GATE_END
 $taskNativeConfigBytes = [IO.File]::ReadAllBytes($taskNativeContext.ConfigPath)
-$taskNativeChangedConfig = $taskNativeConfig.Clone(); $taskNativeChangedConfig.model = 'openai-codex/other'
+$taskNativeChangedConfig = @{}; foreach ($taskKey in $taskNativeConfig.Keys) { $taskNativeChangedConfig[$taskKey] = $taskNativeConfig[$taskKey] }
+$taskNativeChangedConfig.model = 'openai-codex/other'
 Write-OpenScienceJson $taskNativeContext.ConfigPath $taskNativeChangedConfig
 Assert-NativeRefused { New-OpenScienceLocalProcessInfo $taskNativeContext @('--version') } 'tampered_native_model_config_blocks_launch'
 [IO.File]::WriteAllBytes($taskNativeContext.ConfigPath, $taskNativeConfigBytes)

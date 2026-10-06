@@ -9,10 +9,11 @@ param(
     [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ProfileTag = 'runtime',
     [string]$StoreRoot,
     [string]$RuntimePrefix,
+    [string]$QualifiedRuntimeBindingPath,
     [string]$ModelId,
     [ValidateSet('Ollama', 'ChatGPT')][string]$Transport = 'Ollama',
     [ValidateSet('Acceptance', 'Research')][string]$Purpose = 'Acceptance',
-    [ValidateSet('FixtureScalar', 'FixtureRefinement', 'FixtureSelected', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', 'ContactPatches', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar',
+    [ValidateSet('FixtureScalar', 'FixtureRefinement', 'FixtureSelected', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', 'ContactPatches', 'NumericalReports', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar',
     [string]$AuthProfileRoot,
     [string]$ProjectBindingPath,
     [string]$WslDistro = 'Ubuntu',
@@ -413,11 +414,11 @@ function New-OpenScienceLocalContext {
         [Parameter(Mandatory)][string]$RepoRoot,
         [Parameter(Mandatory)][ValidatePattern('^[A-Za-z0-9_-]+$')][string]$RunName,
         [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ProfileTag = 'runtime',
-        [string]$StoreRoot, [string]$RuntimePrefix,
+        [string]$StoreRoot, [string]$RuntimePrefix, [string]$QualifiedRuntimeBindingPath,
         [string]$ModelId,
         [ValidateSet('Ollama', 'ChatGPT')][string]$Transport = 'Ollama', [string]$AuthProfileRoot,
         [ValidateSet('Acceptance', 'Research')][string]$Purpose = 'Acceptance',
-        [ValidateSet('FixtureScalar', 'FixtureRefinement', 'FixtureSelected', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', 'ContactPatches', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar',
+        [ValidateSet('FixtureScalar', 'FixtureRefinement', 'FixtureSelected', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', 'ContactPatches', 'NumericalReports', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureScalar',
         [Collections.IDictionary]$ProjectBinding,
         [string]$WslDistro = 'Ubuntu',
         [string]$WslPython = '/home/pikachu444/.local/share/autonomous-cae-lab/venv-py312/bin/python',
@@ -437,9 +438,10 @@ function New-OpenScienceLocalContext {
     }
     if ($Transport -ceq 'ChatGPT') {
         return New-OpenScienceNativeContext -RepoRoot $RepoRoot -RunName $RunName -ProfileTag $ProfileTag -StoreRoot $StoreRoot -RuntimePrefix $RuntimePrefix `
-            -ModelId $ModelId -AuthProfileRoot $AuthProfileRoot -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools `
+            -ModelId $ModelId -AuthProfileRoot $AuthProfileRoot -QualifiedRuntimeBindingPath $QualifiedRuntimeBindingPath -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools `
             -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds -ProjectBinding $ProjectBinding -Purpose $Purpose -ResearchProfile $ResearchProfile
     }
+    Assert-OpenScienceCondition (-not $QualifiedRuntimeBindingPath) 'Qualified execution requires the explicit native ChatGPT transport.'
     Assert-OpenScienceCondition (-not $ProjectBinding) 'Managed project bindings currently require the explicitly selected native ChatGPT transport.'
     $RepoRoot = [IO.Path]::GetFullPath($RepoRoot)
     $wslRoot = ConvertTo-OpenScienceWslPath $RepoRoot
@@ -1288,6 +1290,7 @@ function Invoke-OpenScienceServeInternal([string]$ContextPath, [string]$LaunchTo
         $owner.config_sha256 = Get-OpenScienceHash $context.ConfigPath
         Assert-OpenScienceRepositorySourcePin $owner.boot_source (Get-OpenScienceRepositorySourcePin -Context $context -GitPath $owner.boot_source.git_path -GitSha256 $owner.boot_source.git_sha256)
         $arguments = @('serve', '--port', [string]$spec.port, '--format', 'json')
+        Assert-OpenScienceQualifiedRuntimeAdmission $context
         $serverLogged = Start-OpenScienceLoggedProcess (New-OpenScienceLocalProcessInfo $context $arguments) $directory 'server'
         $owner.launcher = $serverLogged.Identity; $owner.arguments = $arguments; Save-OpenScienceRuntimeOwner $owner
         $ready = $null
@@ -1811,6 +1814,7 @@ process.stdout.write('{}');
 }
 
 . (Join-Path $PSScriptRoot 'openscience-chatgpt-functions.ps1')
+. (Join-Path $PSScriptRoot 'openscience-runtime-binding.ps1')
 . (Join-Path $PSScriptRoot 'openscience-native-provider.ps1')
 . (Join-Path $PSScriptRoot 'openscience-project.ps1')
 if ($Library) { return }
@@ -1826,7 +1830,7 @@ switch ($Mode) {
     'Stop' { Stop-OpenScienceLocalServer -OwnerPath $OwnerPath }
     'Start' {
         $context = New-OpenScienceLocalContext -RepoRoot $RepoRoot -RunName $RunName -ProfileTag $ProfileTag -StoreRoot $StoreRoot -RuntimePrefix $RuntimePrefix `
-            -ModelId $ModelId -Transport $Transport -AuthProfileRoot $AuthProfileRoot -Purpose $Purpose -ResearchProfile $ResearchProfile -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds `
+            -ModelId $ModelId -Transport $Transport -AuthProfileRoot $AuthProfileRoot -QualifiedRuntimeBindingPath $QualifiedRuntimeBindingPath -Purpose $Purpose -ResearchProfile $ResearchProfile -WslDistro $WslDistro -WslPython $WslPython -AllowedTools $AllowedTools -OutputTokens $OutputTokens -Steps $Steps -ProviderTimeoutSeconds $ProviderTimeoutSeconds `
             -ProjectBinding $(if ($ProjectBindingPath) { Read-OpenScienceJson $ProjectBindingPath } else { $null })
         Start-OpenScienceLocalServer $context $Port $StartupTimeoutSeconds
     }

@@ -1,3 +1,14 @@
+## Current checkpoint — qualified OpenScience runtime and numerical interpretation (ADR0057)
+
+The preserved single-file Windows MCP lifetime fix actually connects and closes
+its registered jobs in auth-free r03. Original auth marker/install/data are not
+replaced. A separately qualified execution capsule and explicit schema2 setting
+now bind a new research run; NumericalReports admits seven original-record reads
+for DOE/optimization/UQ/epsilon tradeoffs. Source controls and exact611 CI
+corrections are recorded in20261007-qualified-runtime-source-r01. Approved5.6Sol
+provider execution is NEXT, not yet proven. Old run02/root normal-shutdown and
+general executor/cancel/reconnect remain OPEN;52/Phases remain incomplete.
+
 ## Current checkpoint — common read/control correction (ADR0056)
 
 The prior42-path feature bundle is published as a89947c. Request-local verified

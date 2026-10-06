@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "kind": "qualified-openscience-runtime-software-checkpoint",
+  "created_utc": "2026-10-06T23:15:49.792Z",
+  "base_commit": "611f1ec0fec22da383991d7e15a86c63b1fd5a20",
+  "producer_scope": "BASE_PLUS_DIRTY_SELECTED_IMPLEMENTATION",
+  "source_files": [
+    {
+      "path": ".gitattributes",
+      "sha256": "05e1a9e84eb15d9d063a6696e5a7b57299d1ce496a9542d173fa4eabc46c5ef3"
+    },
+    {
+      "path": "scripts/openscience-runtime-binding.ps1",
+      "sha256": "a157a31a8e786de1c6b3606c45afbca449ec6d88f0eda93fc76881319c278733"
+    },
+    {
+      "path": "scripts/openscience-native-provider.ps1",
+      "sha256": "bcb9c3f62411dce5d2c37852aff926e7ab84eaa5f0ef49d276c33cd230914db1"
+    },
+    {
+      "path": "scripts/openscience-server-local.ps1",
+      "sha256": "1c0b6c301f5ccb21e46bd6927aa29c6e171d038f7d827a0c87f24c1c9087f8b9"
+    },
+    {
+      "path": "scripts/openscience-local.ps1",
+      "sha256": "e079ab9f0f986fdf66cc4e4373e8ed8a05bde465d037df48ddd8452e8f9e8003"
+    },
+    {
+      "path": "scripts/openscience-research.ps1",
+      "sha256": "2b8eea96c7890e2913ef57e40b185f63e99c12562179ff1b4e9512c1484b77bc"
+    },
+    {
+      "path": "scripts/cae-research-local.ps1",
+      "sha256": "4a58ad8251d3b5635499512bf51e95a7923eb0673ad1b585180b78ebf3e5cf58"
+    },
+    {
+      "path": "scripts/verify_openscience_runtime_binding.ps1",
+      "sha256": "a7ee5b34c14efdad5808b8231881162315906cb93df7eb9c044f1fa1b11fbcbe"
+    },
+    {
+      "path": "scripts/verify_openscience_native.ps1",
+      "sha256": "f1b40a2d227d1117d8b3cf9f123bf2a8d6590623b9471eabf734155b92c6a2bf"
+    },
+    {
+      "path": "scripts/verify_cae_research_launcher.ps1",
+      "sha256": "7212e41fb6a53b289d0d43ed6bd218ca8071b1f137ec082b0afc642885c5e61b"
+    },
+    {
+      "path": "openscience/native_guard.mjs",
+      "sha256": "8c285b50daedc05ccdbb265583e10d93bac50fe5a611d87fb934baee5f7abb19"
+    },
+    {
+      "path": "openscience/tests/native_guard.test.mjs",
+      "sha256": "3f5c347ca59260c070c15fc059f5b1356dbff4b02e7d5e83f223d6118d6631e9"
+    },
+    {
+      "path": "openscience/patches/2.0.146-windows-mcp-release.patch",
+      "sha256": "b59256214d10fd118869119552c78cb22247fece0eb4968d22ec31186dd045d8"
+    },
+    {
+      "path": "tests/test_model_optimization.py",
+      "sha256": "917cac9febb42792062e76a82c5175dfbad320d188535df6ff9cdae07ab6133a"
+    }
+  ],
+  "adr": "ADR/0057-qualified-openscience-runtime-and-numerical-interpretation.md",
+  "vendor": {
+    "version": "2.0.146",
+    "source": "4082a2ecb73e166d4503963798228ba700f3840f",
+    "kind": "LOCAL_PATCHED_OFFICIAL_SOURCE_NOT_PUBLISHED_RELEASE",
+    "patch_sha256": "b59256214d10fd118869119552c78cb22247fece0eb4968d22ec31186dd045d8",
+    "exe_sha256": "fe731d7f7ecbf41b7f9900180f67d8af92a0905d885bccb4027d58f923b54d1b",
+    "map_sha256": "289c2fcc1eab9c3cff1e0abaee2d5d55f83269c0641f5ac44437677466ecc927"
+  },
+  "actual_transport": {
+    "run": "20261006T225145948-a7700a133b2d4523be73cb73def7f2c9",
+    "outcome": "MCP_ACTIVATION_AND_TRACKED_CLOSURE_CONFIRMED",
+    "tracked_closure": true,
+    "normal_root_shutdown": false,
+    "retained_own_root_handle_fallback": true,
+    "provider_requests": 0,
+    "tool_invocations": 0,
+    "solver_requests": 0,
+    "old_run02_cleanup": "UNKNOWN_UNCONFIRMED",
+    "failed_r01": "GIT_ANCESTOR_PROJECT_REFUSED_BEFORE_MCP",
+    "failed_r02": "MSIX_PHYSICAL_ALIAS_REFUSED_BEFORE_MCP"
+  },
+  "implementation": {
+    "original_auth_marker": "UNCHANGED",
+    "credentials": "NOT_COPIED_OR_MIGRATED",
+    "original_installed_runtime": "UNCHANGED",
+    "external_qualified_capsule": "CREATED_AND_VERIFIED",
+    "native_execution": "EXPLICIT_PER_RUN_PIN",
+    "shared_ledger": "STRICT_EMPTY_ARRAY_NEW_ADMISSION_ONLY_NOT_GLOBAL_CLOSURE",
+    "report_profile": "numerical-reports-v1",
+    "report_tools": 7,
+    "approved_model": "openai-codex/gpt-5.6-sol",
+    "schema1_default": "PRESERVED",
+    "schema2": "EXPLICIT_QUALIFIED_BINDING"
+  },
+  "verification": {
+    "binding_controls": {
+      "pass": 19,
+      "scope": "TEST_ONLY_SOURCE_AND_MOCK_PROOFS",
+      "receipt": "artifacts/qualified-runtime-controls-20261007-02/receipt.json"
+    },
+    "native_regression": {
+      "pass": 167,
+      "scope": "SOURCE_ONLY_NOT_PROVIDER",
+      "receipt": "artifacts/native-binding-regression-20261007-02/native-checks.json"
+    },
+    "launcher": {
+      "pass": 56,
+      "scope": "MOCKED_NOT_REAL_RUNTIME_OR_LAB",
+      "receipt": "artifacts/runtime-launcher-controls-20261007-02/RECEIPT.json"
+    },
+    "native_hooks": {
+      "pass": 347,
+      "fail": 0,
+      "skipped": 14,
+      "scope": "SOURCE_ONLY",
+      "log": "artifacts/phase7-extension-20261007-01/launcher-diagnostic/numerical-reports-node01.log"
+    },
+    "model_family_cancellation": {
+      "pass": 64,
+      "scope": "REAL_CORE_SCIPY_AND_OWNED_TEST_ONLY_CHILD_NOT_CAE_PROVIDER",
+      "log": "artifacts/phase7-extension-20261007-01/launcher-diagnostic/model-family-regression02.log"
+    },
+    "exact_611_ci": {
+      "run": 37542592599,
+      "conclusion": "FAILURE",
+      "failed": 2,
+      "passed": 6549,
+      "skipped": 10,
+      "cause": "STALE_SYNTHETIC_PDE_FIXTURES_MISSING_EXPLICIT_FAMILY_FLAG",
+      "fixture_correction": "pde_model_declaration=True; original PDE namespace expectations retained"
+    },
+    "approved_provider": "NOT_RUN_AT_THIS_CHECKPOINT"
+  },
+  "limitations": [
+    "NOT_COMPLETE_52_OR_PHASES",
+    "PHYSICAL_UNKNOWN",
+    "NOT_RELEASED",
+    "old run02 cleanup UNKNOWN_UNCONFIRMED",
+    "No global credential/WSL/native absence claim",
+    "Uncontrolled concurrent shared-ledger writers remain OPEN",
+    "Normal native serve-root shutdown not confirmed by auth-free r03"
+  ],
+  "evidence_retention": "LOCAL_ONLY; source patch and sanitized record tracked; binaries/auth/company data excluded",
+  "next": "Execute approved provider with this qualified binding and the same retained DOE/UQ/MOO/field records, then common executor/control; no new solver/example/remesh prerequisite"
+}

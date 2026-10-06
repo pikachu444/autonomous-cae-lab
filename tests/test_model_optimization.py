@@ -90,6 +90,7 @@ def test_declared_pde_family_uses_common_numerical_campaign_and_retains_namespac
     # TEST ONLY adapter observations; real Core, LHS/DE, storage and rereading.
     adapter = SyntheticParameterizedModel()
     adapter.domain = "pde"
+    adapter.pde_model_declaration = True
     lab, adapter = _lab(tmp_path, adapter)
     lab.pde_adapters[adapter.backend] = adapter
     if campaign_kind == "doe":

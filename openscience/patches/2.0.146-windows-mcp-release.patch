@@ -1,0 +1,57 @@
+--- a/backend/cli/src/mcp/index.ts
++++ b/backend/cli/src/mcp/index.ts
+@@ -1001,16 +1001,21 @@
+                   localClients.add(client)
+                   localSandboxes.set(client, sandbox)
+                   transport.start = async () => undefined
+-                  return { client, transport }
++                  return { client, transport, windowsRelease: process.platform === "win32" ? launcher.release : undefined }
+                 } catch (error) {
+                   Sandbox.cleanup(sandbox)
+                   await transport.close().catch(() => undefined)
+                   throw error
+                 } finally {
+                   await fsp.rm(ready, { force: true }).catch(() => undefined)
+-                  await fsp.rm(`${ready}.release`, { force: true }).catch(() => undefined)
+-                  if (launcher.release && launcher.release !== `${ready}.release`) {
+-                    await fsp.rm(launcher.release, { force: true }).catch(() => undefined)
++                  // The Windows proxy polls its release marker asynchronously.
++                  // Preserve it until initialization proves activation, or exact
++                  // owned teardown succeeds; registration alone is insufficient.
++                  if (process.platform !== "win32") {
++                    await fsp.rm(`${ready}.release`, { force: true }).catch(() => undefined)
++                    if (launcher.release && launcher.release !== `${ready}.release`) {
++                      await fsp.rm(launcher.release, { force: true }).catch(() => undefined)
++                    }
+                   }
+                 }
+               })()
+@@ -1022,8 +1027,10 @@
+           }),
+         )
+         const client = launched.client
++        let releaseCleanupPermitted = false
+         try {
+           await withTimeout(client.connect(launched.transport), connectTimeout)
++          releaseCleanupPermitted = true
+           registerNotificationHandlers(client, key)
+           mcpClient = client
+           releaseUpdate = launched.releaseUpdate
+@@ -1031,9 +1038,16 @@
+             status: "connected",
+           }
+         } catch (error) {
+-          await closeClient(client).catch(() => launched.transport.close().catch(() => undefined))
++          await closeClient(client)
++            .then(() => { releaseCleanupPermitted = true })
++            .catch(() => launched.transport.close().catch(() => undefined))
+           launched.releaseUpdate()
+           throw error
++        } finally {
++          // A local-handle fallback does not prove exact Job Object closure.
++          if (releaseCleanupPermitted && launched.windowsRelease) {
++            await fsp.rm(launched.windowsRelease, { force: true }).catch(() => undefined)
++          }
+         }
+       } catch (error) {
+         const message =

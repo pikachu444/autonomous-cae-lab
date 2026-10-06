@@ -14,7 +14,8 @@ const nativeLegacyResearchTools = Object.freeze([
   'caelab_analysis_run', 'caelab_optimization_plan', 'caelab_optimization_run',
   'caelab_optimization_inspect', 'caelab_pde_run',
 ]);
-const nativeKnownTools = Object.freeze([...nativeLegacyResearchTools, 'caelab_model_analysis_run']);
+const nativeKnownTools = Object.freeze([...nativeLegacyResearchTools, 'caelab_model_analysis_run',
+  'caelab_doe_inspect', 'caelab_campaign_report_inspect', 'caelab_multiobjective_inspect']);
 const nativeStructuralResearchTools = Object.freeze(['caelab_study_create', 'caelab_study_inspect',
   'caelab_model_analysis_run', 'caelab_experiment_inspect', 'caelab_experiment_summary', 'caelab_experiment_compare']);
 const nativeStructuralBackends = Object.freeze(['structural.families.calculix', 'structural.families.code_aster']);
@@ -76,6 +77,42 @@ const nativeFreeze = value => {
   }
   return value;
 };
+const nativeNumericalReportsDefinition = nativeFreeze({
+  "schema": 9,
+  "kind": "autonomous-cae-lab.openscience-research-definition",
+  "profile": "numerical-reports-v1",
+  "agent": "research",
+  "allowed_tools": [
+    "caelab_study_inspect",
+    "caelab_experiment_inspect",
+    "caelab_experiment_summary",
+    "caelab_doe_inspect",
+    "caelab_optimization_inspect",
+    "caelab_campaign_report_inspect",
+    "caelab_multiobjective_inspect"
+  ],
+  "runtime_environment": {},
+  "budgets": {
+    "steps": 24,
+    "mcp_timeout_seconds": 3600,
+    "command_timeout_seconds": 3600
+  },
+  "capabilities": [
+    {
+      "backend": "Core.retained-numerical-records",
+      "operations": [
+        "read-only-interpretation"
+      ],
+      "inputs": "Explicit original study/experiment/DOE/optimization/report/multiobjective IDs in the selected store. No path, solver invocation, report creation or numerical candidate generation.",
+      "responses": "Verified original samples, observed targets, distributions, uncertainty statistics, epsilon-child vectors and full stored qualification limits."
+    }
+  ],
+  "limitations": [
+    "Read-only interpretation of retained records; this scope does not create or execute campaigns, solvers, CAD or observations.",
+    "SYNTHETIC and assumed distributions remain declared. UNKNOWN, invalid metrics and NOT_RELEASED remain unchanged. A Pareto set, matching response or probability estimate is not a unique cause or engineering approval.",
+    "Native solver producers and current reader/provider source are distinct. No mandatory mesh convergence sweep is added."
+  ]
+});
 // Exact opt-in PS descriptor; schema1 and all historical profiles are unchanged.
 const nativeFixtureRefinementDefinition = nativeFreeze({
   "schema": 7,
@@ -492,10 +529,12 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
         !nativeSha(settings.config_sha256) || !nativeSha(settings.plugin_sha256) || !nativeSha(settings.boot_source_sha256)) nativeRefuse('SETTINGS_INVALID');
     if (Object.hasOwn(settings, 'research')) {
       const research = settings.research;
-      exactKeys(research, [3,4,5,6,7,8].includes(research.schema) ? [...nativeResearchKeys, 'profile'] :
+      exactKeys(research, [3,4,5,6,7,8,9].includes(research.schema) ? [...nativeResearchKeys, 'profile'] :
         research.schema === 2 ? [...nativeResearchKeys, 'profile', 'benchmark_definition'] : nativeResearchKeys,
         'RESEARCH_DEFINITION_INVALID');
-      if (research.schema === 8) {
+      if (research.schema === 9) {
+        if (nativeCanonical(research) !== nativeCanonical(nativeNumericalReportsDefinition)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
+      } else if (research.schema === 8) {
         if (nativeCanonical(research) !== nativeCanonical(nativeFixtureSelectedDefinition)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
       } else if (research.schema === 7) {
         if (nativeCanonical(research) !== nativeCanonical(nativeFixtureRefinementDefinition)) nativeRefuse('RESEARCH_DEFINITION_INVALID');
@@ -1118,6 +1157,19 @@ async function createNativeHooks(suppliedSettings, dependencies = {}) {
     if (!Object.hasOwn(settings, 'research')) return;
     if (!nativeRecord(args)) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
     const budget = settings.research.budgets;
+    if (settings.research.schema === 9) {
+      const keys = {caelab_study_inspect:'study_id', caelab_experiment_inspect:'experiment_id',
+        caelab_experiment_summary:'experiment_id', caelab_doe_inspect:'campaign_id',
+        caelab_optimization_inspect:'campaign_id', caelab_campaign_report_inspect:'report_id',
+        caelab_multiobjective_inspect:'parent_id'};
+      const id = keys[tool];
+      if (!id) nativeRefuse('RESEARCH_CAPABILITY_NOT_ADMITTED');
+      const compact = tool === 'caelab_optimization_inspect' && Object.hasOwn(args,'compact');
+      exactKeys(args,[id,...(compact?['compact']:[])],'RESEARCH_ARGUMENTS_REQUIRED');
+      if (typeof args[id] !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(args[id]) ||
+          (compact && typeof args.compact !== 'boolean')) nativeRefuse('RESEARCH_ARGUMENTS_REQUIRED');
+      return;
+    }
     if (settings.research.schema === 6) {
       contactArguments(tool, args);
       return;

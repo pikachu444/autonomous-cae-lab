@@ -13,7 +13,19 @@ $script:OpenSciencePdeResearchTools = @('caelab_study_create', 'caelab_study_ins
     'caelab_experiment_compare')
 
 function New-OpenScienceResearchDefinition {
-    param([ValidateSet('FixtureScalar', 'FixtureRefinement', 'FixtureSelected', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', 'ContactPatches', IgnoreCase=$false)][string]$Profile = 'FixtureScalar')
+    param([ValidateSet('FixtureScalar', 'FixtureRefinement', 'FixtureSelected', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', 'ContactPatches', 'NumericalReports', IgnoreCase=$false)][string]$Profile = 'FixtureScalar')
+    if ($Profile -ceq 'NumericalReports') {
+        return [ordered]@{schema=9;kind='autonomous-cae-lab.openscience-research-definition';profile='numerical-reports-v1';agent='research'
+            allowed_tools=@('caelab_study_inspect','caelab_experiment_inspect','caelab_experiment_summary','caelab_doe_inspect',
+                'caelab_optimization_inspect','caelab_campaign_report_inspect','caelab_multiobjective_inspect')
+            runtime_environment=[ordered]@{};budgets=[ordered]@{steps=24;mcp_timeout_seconds=3600;command_timeout_seconds=3600}
+            capabilities=@([ordered]@{backend='Core.retained-numerical-records';operations=@('read-only-interpretation')
+                inputs='Explicit original study/experiment/DOE/optimization/report/multiobjective IDs in the selected store. No path, solver invocation, report creation or numerical candidate generation.'
+                responses='Verified original samples, observed targets, distributions, uncertainty statistics, epsilon-child vectors and full stored qualification limits.'})
+            limitations=@('Read-only interpretation of retained records; this scope does not create or execute campaigns, solvers, CAD or observations.',
+                'SYNTHETIC and assumed distributions remain declared. UNKNOWN, invalid metrics and NOT_RELEASED remain unchanged. A Pareto set, matching response or probability estimate is not a unique cause or engineering approval.',
+                'Native solver producers and current reader/provider source are distinct. No mandatory mesh convergence sweep is added.')}
+    }
     if ($Profile -ceq 'FixtureSelected') {
         # Separate explicit practical scope; no historical descriptor is changed.
         $definition = New-OpenScienceResearchDefinition -Profile FixtureRefinement
@@ -250,7 +262,9 @@ function Get-OpenSciencePurposeTools($Context) {
 }
 
 function Assert-OpenScienceResearchDefinition($Definition) {
-    $profile = if ($Definition.schema -eq 8 -and $Definition.profile -ceq 'fixture-selected-mesh-v1') {
+    $profile = if ($Definition.schema -eq 9 -and $Definition.profile -ceq 'numerical-reports-v1') {
+        'NumericalReports'
+    } elseif ($Definition.schema -eq 8 -and $Definition.profile -ceq 'fixture-selected-mesh-v1') {
         'FixtureSelected'
     } elseif ($Definition.schema -eq 7 -and $Definition.profile -ceq 'fixture-refinement-v1') {
         'FixtureRefinement'
@@ -272,6 +286,11 @@ function Assert-OpenScienceResearchDefinition($Definition) {
 function Get-OpenScienceResearchPrompt($Definition) {
     Assert-OpenScienceResearchDefinition $Definition
     $scope = $Definition | ConvertTo-Json -Depth 12 -Compress
+    if ($Definition.schema -eq 9) {
+        return @"
+You are the research interpretation control plane for Autonomous CAE Lab. Read the explicit original IDs using the seven admitted read-only tools and answer the user's question in Korean with actual responses, units, declared conditions, parameter bounds/distributions, residuals, uncertainty and tradeoffs. Use campaign_report_inspect for a retained uncertainty report and multiobjective_inspect for retained epsilon children. Preserve original identities, assumptions, SOURCE versus native producer, invalid metrics, UNKNOWN and NOT_RELEASED. Never claim a tool was executed from metadata or supplied prose. Do not run/create a solver, CAD, campaign, report, observation or numerical candidate. Propose subsequent discriminating experiments as a plan; an LLM is not the numerical engine. Synthetic observations/distributions are not measurements, a matching curve is not a unique cause, and observed Pareto points are not global optimality or release approval. Use the declared supplied IDs exactly. Declared scope: $scope
+"@
+    }
     if ($Definition.schema -eq 8 -and $Definition.profile -ceq 'fixture-selected-mesh-v1') {
         return @"
 You are the research control plane for Autonomous CAE Lab. Follow the supplied question with the existing fourteen tools and selected provider/model. Explain the plan in ordinary language, create NEW experiment IDs, inspect the actual returned results, compare measured responses, and answer with values, units, checks, assumptions and same-record references. No invented results or model/backend fallback. Metadata is not current execution or release proof.

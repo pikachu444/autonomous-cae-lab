@@ -1,3 +1,12 @@
+## Scope checkpoint — qualified OpenScience / numerical interpretation (ADR0057)
+
+R11/R31/R35 common research connection advances through a preserved Windows MCP
+lifetime patch, actual auth-free activation, exact per-run native qualification
+and seven retained numerical record read operations. Original auth/data/default
+pins remain; no credential migration, solver replay or model fallback. Actual
+approved-provider interpretation is the next acceptance. This does not close
+full52/Phase1–7, old unknown ownership, general executor or physics/release gates.
+
 ## Scope checkpoint — common read/control correction (ADR0056)
 
 R11/R31/R35 advance: verified aggregate result reads preserve all original values

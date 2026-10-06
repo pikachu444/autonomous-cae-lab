@@ -5,7 +5,7 @@ param(
     [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot),
     [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$RunName = ('openscience-local-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmss')),
     [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ProfileTag = 'runtime',
-    [string]$StoreRoot, [string]$RuntimePrefix, [string]$OwnerPath, [string]$RequiredTool, [string]$ModelId, [string]$ProjectBindingPath,
+    [string]$StoreRoot, [string]$RuntimePrefix, [string]$QualifiedRuntimeBindingPath, [string]$OwnerPath, [string]$RequiredTool, [string]$ModelId, [string]$ProjectBindingPath,
     [ValidateSet('Ollama', 'ChatGPT')][string]$Transport = 'Ollama', [string]$AuthProfileRoot,
     [ValidateRange(30, 3600)][int]$TimeoutSeconds = 300,
     [string[]]$OpenScienceArgs = @('--version')
@@ -13,7 +13,7 @@ param(
 # A dot-sourced script's parameters occupy the caller scope.
 $taskFacade = @{
     Library=[bool]$Library; Install=[bool]$Install; ConfigureOnly=[bool]$ConfigureOnly
-    RepoRoot=$RepoRoot; RunName=$RunName; ProfileTag=$ProfileTag; StoreRoot=$StoreRoot; RuntimePrefix=$RuntimePrefix
+    RepoRoot=$RepoRoot; RunName=$RunName; ProfileTag=$ProfileTag; StoreRoot=$StoreRoot; RuntimePrefix=$RuntimePrefix; QualifiedRuntimeBindingPath=$QualifiedRuntimeBindingPath
     OwnerPath=$OwnerPath; RequiredTool=$RequiredTool; ModelId=$ModelId; Transport=$Transport; AuthProfileRoot=$AuthProfileRoot; ProjectBindingPath=$ProjectBindingPath; TimeoutSeconds=$TimeoutSeconds; Arguments=$OpenScienceArgs
 }
 . (Join-Path $PSScriptRoot 'openscience-server-local.ps1') -Library
@@ -479,6 +479,7 @@ $taskContext=if($taskFacade.OwnerPath){Get-OpenScienceLocalRuntime -OwnerPath $t
     $taskContextArgs=@{RepoRoot=$taskFacade.RepoRoot;RunName=$taskFacade.RunName;ProfileTag=$taskFacade.ProfileTag}
     if($taskFacade.StoreRoot){$taskContextArgs.StoreRoot=$taskFacade.StoreRoot}
     if($taskFacade.RuntimePrefix){$taskContextArgs.RuntimePrefix=$taskFacade.RuntimePrefix}
+    if($taskFacade.QualifiedRuntimeBindingPath){$taskContextArgs.QualifiedRuntimeBindingPath=$taskFacade.QualifiedRuntimeBindingPath}
     if($taskFacade.ModelId){$taskContextArgs.ModelId=$taskFacade.ModelId}
     $taskContextArgs.Transport=$taskFacade.Transport
     if($taskFacade.AuthProfileRoot){$taskContextArgs.AuthProfileRoot=$taskFacade.AuthProfileRoot}

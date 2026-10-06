@@ -1,3 +1,14 @@
+## Qualified runtime / common numerical interpretation checkpoint (ADR0057)
+
+Auth-free candidate r03 actually confirmed MCP activation and tracked Job/pipe
+closure; own retained root handle fallback is distinct from native normal exit.
+Git-ancestor r01 and MSIX-alias r02 failed before MCP and remain retained. New
+per-run qualified binding preserves original auth marker, installed runtime and
+data. Seven read-only numerical report tools connect retained DOE/UQ/MOO records
+to approved OpenScience interpretation; actual provider is NEXT. Record
+20261007-qualified-runtime-source-r01 separates source controls, transport proof,
+exact611 CI2 stale PDE fixture failures/correction and all unknown lifecycle scope.
+
 ## Verified common read/control checkpoint (ADR0056)
 
 Published Phase7 feature bundle a89947c is confirmed on remote main. Exact CI37540066531

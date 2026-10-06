@@ -1,5 +1,6 @@
 scripts/wsl-windows-git/git text eol=lf
 scripts/wsl-windows-git/empty.config text eol=lf
+openscience/patches/*.patch -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 tests/fixtures/calculix_221_structural_family/family.dat -text
 tests/fixtures/calculix_221_structural_family/family.frd -text
 tests/fixtures/calculix_221_structural_family/mesh.inc -text

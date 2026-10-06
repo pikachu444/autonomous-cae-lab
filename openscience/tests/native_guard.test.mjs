@@ -31,8 +31,8 @@ function assertRepositorySourcePin(expected,current) {
 }
 ${gitStateSource}
 `;
-const temporarySource = `${prefix}\n${source}\nexport { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeFixtureSelectedDefinition, nativeMaterialDefinition, nativeMaterialLimits, nativeViscoelasticDefinition, nativeViscoelasticLimits, nativeContactDefinition, nativeContactLimits };\n`;
-const { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeFixtureSelectedDefinition, nativeMaterialDefinition, nativeMaterialLimits, nativeViscoelasticDefinition, nativeViscoelasticLimits, nativeContactDefinition, nativeContactLimits } = await import(`data:text/javascript;base64,${Buffer.from(temporarySource).toString('base64')}`);
+const temporarySource = `${prefix}\n${source}\nexport { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeNumericalReportsDefinition, nativeFixtureSelectedDefinition, nativeMaterialDefinition, nativeMaterialLimits, nativeViscoelasticDefinition, nativeViscoelasticLimits, nativeContactDefinition, nativeContactLimits };\n`;
+const { createNativeHooks, NativeGuardRefusal, assertNativeGitState, nativeNumericalReportsDefinition, nativeFixtureSelectedDefinition, nativeMaterialDefinition, nativeMaterialLimits, nativeViscoelasticDefinition, nativeViscoelasticLimits, nativeContactDefinition, nativeContactLimits } = await import(`data:text/javascript;base64,${Buffer.from(temporarySource).toString('base64')}`);
 const tools = [
   'caelab_study_create', 'caelab_study_inspect', 'caelab_parameters_discover',
   'caelab_parameters_register', 'caelab_parameters_list', 'caelab_experiment_run',
@@ -262,6 +262,36 @@ function refinementAnalysis(mesh = [4,3,2]) {
       axes:'global CAD X/Y/Z',provenance:'Synthetic assumption',qualification:'UNKNOWN'},
     mesh:{max_sizes_mm:mesh}}};
 }
+
+test('numerical report interpretation admits original ID reads and forbids campaign/solver writes', async t => {
+  const f=refinementResearchFixture(t,nativeNumericalReportsDefinition), hooks=await f.hooks();
+  await hooks['chat.params'](f.request(),{});
+  for(const [tool,args] of [['caelab_doe_inspect',{campaign_id:'C-original'}],
+    ['caelab_campaign_report_inspect',{report_id:'R-original'}],['caelab_multiobjective_inspect',{parent_id:'M-original'}],
+    ['caelab_optimization_inspect',{campaign_id:'C-original',compact:true}]]) {
+    const before=structuredClone(args);await hooks['tool.execute.before']({tool,sessionID:f.sessionID},{args});
+    assert.deepEqual(args,before);assert.equal(f.receipts().at(-1).accepted,true);
+  }
+  for(const tool of ['caelab_model_analysis_run','caelab_optimization_run','caelab_multiobjective_run','caelab_study_create']) {
+    await assert.rejects(hooks['tool.execute.before']({tool,sessionID:f.sessionID},{args:{}}),NativeGuardRefusal);
+  }
+  for(const args of [{report_id:'../report'},{report_id:'R-original',path:'C:/elsewhere'},{report_id:''}]) {
+    await assert.rejects(hooks['tool.execute.before']({tool:'caelab_campaign_report_inspect',sessionID:f.sessionID},{args}),NativeGuardRefusal);
+  }
+});
+
+test('numerical report descriptor expansion is refused before admission', async t => {
+  const definition=structuredClone(nativeNumericalReportsDefinition);definition.allowed_tools.push('caelab_optimization_run');
+  const f=refinementResearchFixture(t,definition);
+  await assert.rejects(f.hooks(),NativeGuardRefusal);
+});
+
+test('numerical report PS descriptor matches independent native admission',
+  {skip:!process.env.CAELAB_NUMERICAL_REPORTS_DEFINITION_PATH && 'External PS definition was not supplied.'},async () => {
+    const definition=JSON.parse(fs.readFileSync(process.env.CAELAB_NUMERICAL_REPORTS_DEFINITION_PATH,'utf8'));
+    assert.equal(canonical(definition),canonical(nativeNumericalReportsDefinition));
+    assert.equal(definition.allowed_tools.length,7);assert.equal(definition.runtime_environment && Object.keys(definition.runtime_environment).length,0);
+  });
 test('fixture refinement actual PS definition exactly matches the copied native guard',
   {skip:!process.env.CAELAB_FIXTURE_REFINEMENT_DEFINITION_PATH && 'External actual PS definition was not supplied.'},async t => {
     const definition = JSON.parse(fs.readFileSync(process.env.CAELAB_FIXTURE_REFINEMENT_DEFINITION_PATH,'utf8'));

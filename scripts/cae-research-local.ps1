@@ -7,7 +7,7 @@ param(
     [string]$SettingsPath = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab/cae-research-settings.json'),
     [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$RunName = ('cae-research-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff') + '-' + [Guid]::NewGuid().ToString('N').Substring(0, 8)),
     [ValidateRange(1024, 65535)][int]$Port = 8766,
-    [ValidateSet('FixtureSelected','FixtureRefinement', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureSelected',
+    [ValidateSet('FixtureSelected','FixtureRefinement','NumericalReports', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureSelected',
     [string]$AssemblyMeshConfigPath,
     [switch]$ValidateOnly
 )
@@ -46,9 +46,10 @@ function Read-CaeResearchLocalSettings {
         Assert-OpenScienceCondition ($document.RootElement.ValueKind -eq 'Object') 'Local research settings must be a JSON object.'
         $settings = ConvertFrom-OpenScienceJsonElement $document.RootElement
     } finally { $document.Dispose() }
+    Assert-OpenScienceCondition ($settings.schema -is [long] -and $settings.schema -in @(1,2)) 'Local research settings require integer schema 1 or 2.'
     $fields = @('schema', 'runtime_prefix', 'auth_profile_root', 'project_binding_path')
-    Assert-OpenScienceCondition ($settings.Count -eq $fields.Count -and @($settings.Keys | Where-Object { $_ -cnotin $fields }).Count -eq 0) 'Local research settings allow exactly schema, runtime_prefix, auth_profile_root and project_binding_path; model and provider overrides are not accepted.'
-    Assert-OpenScienceCondition ($settings.schema -is [long] -and $settings.schema -eq 1) 'Local research settings require integer schema 1.'
+    if ($settings.schema -eq 2) { $fields += 'qualified_runtime_binding_path' }
+    Assert-OpenScienceCondition ($settings.Count -eq $fields.Count -and @($settings.Keys | Where-Object { $_ -cnotin $fields }).Count -eq 0) 'Local research settings allow the exact schema paths only; model and provider overrides are not accepted.'
     foreach ($field in $fields | Where-Object { $_ -cne 'schema' }) {
         Assert-OpenScienceCondition ($settings[$field] -is [string] -and -not [string]::IsNullOrWhiteSpace($settings[$field])) "Local research setting $field must be a nonblank path."
         $settings[$field] = Assert-CaeResearchLocalPath $settings[$field] $field
@@ -68,14 +69,20 @@ function Read-CaeResearchLocalSettings {
     # Credentials are never read or copied. The existing context factory checks
     # their owned profile and exact runtime pin immediately before startup.
     $binding = ConvertTo-OpenScienceProjectBinding (Read-OpenScienceJson $settings.project_binding_path) $SourceRoot (Join-Path $settings.auth_profile_root 'data')
+    $qualifiedPath = $null
+    if ($settings.schema -eq 2) {
+        $qualified = Read-OpenScienceQualifiedRuntimeBinding -Path $settings.qualified_runtime_binding_path -AuthProfileRoot $settings.auth_profile_root
+        Assert-OpenScienceCondition ($qualified.AuthPin.RuntimePrefix -ceq $settings.runtime_prefix) 'Qualified execution must retain the configured original authentication runtime.'
+        $qualifiedPath = $qualified.Path
+    }
     return [pscustomobject]@{ RuntimePrefix = $settings.runtime_prefix; AuthProfileRoot = $settings.auth_profile_root
-        ProjectBinding = $binding }
+        ProjectBinding = $binding; QualifiedRuntimeBindingPath = $qualifiedPath }
 }
 
 function New-CaeResearchLocalPlan {
     param([Parameter(Mandatory)][string]$SourceRoot, [Parameter(Mandatory)][string]$LocalSettingsPath,
         [Parameter(Mandatory)][ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ResearchRun,
-        [ValidateSet('FixtureSelected','FixtureRefinement', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureSelected')
+        [ValidateSet('FixtureSelected','FixtureRefinement','NumericalReports', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureSelected')
     $source = Assert-CaeResearchLocalPath $SourceRoot 'Research source'
     Assert-OpenScienceCondition (Test-Path -LiteralPath (Join-Path $source 'scripts/lab-local.ps1') -PathType Leaf) 'The selected research source has no Lab launcher.'
     $settings = Read-CaeResearchLocalSettings $LocalSettingsPath $source
@@ -89,9 +96,10 @@ function New-CaeResearchLocalPlan {
     }
     $definition = New-OpenScienceResearchDefinition -Profile $ResearchProfile
     Assert-OpenScienceResearchDefinition $definition
-    $expectedSchema = if ($ResearchProfile -ceq 'FixtureSelected') {8} else {7}
-    $expectedProfile = if ($ResearchProfile -ceq 'FixtureSelected') {'fixture-selected-mesh-v1'} else {'fixture-refinement-v1'}
-    Assert-OpenScienceCondition ($definition.schema -eq $expectedSchema -and $definition.profile -ceq $expectedProfile -and @($definition.allowed_tools).Count -eq 14) 'The selected trusted fourteen-tool fixture definition is required.'
+    $expectedSchema = if ($ResearchProfile -ceq 'NumericalReports') {9} elseif ($ResearchProfile -ceq 'FixtureSelected') {8} else {7}
+    $expectedProfile = if ($ResearchProfile -ceq 'NumericalReports') {'numerical-reports-v1'} elseif ($ResearchProfile -ceq 'FixtureSelected') {'fixture-selected-mesh-v1'} else {'fixture-refinement-v1'}
+    $expectedTools = if ($ResearchProfile -ceq 'NumericalReports') {7} else {14}
+    Assert-OpenScienceCondition ($definition.schema -eq $expectedSchema -and $definition.profile -ceq $expectedProfile -and @($definition.allowed_tools).Count -eq $expectedTools) 'The selected trusted research definition is required.'
     return [pscustomobject]@{ RepoRoot = $source; RunName = $ResearchRun; StoreRoot = $store; ProfileRoot = $profile
         OwnerPath = (Join-Path $profile 'runtime-owner.json'); Settings = $settings; Definition = $definition; ResearchProfile = $ResearchProfile }
 }
@@ -103,6 +111,7 @@ function Assert-CaeResearchLocalBinding {
         $Context.OwnerPath -ceq $Plan.OwnerPath -and $Context.Model -ceq 'openai-codex/gpt-5.6-sol' -and
         $Context.ModelId -ceq 'openai-codex/gpt-5.6-sol' -and $Context.Transport -ceq 'ChatGPT' -and
         $Context.Purpose -ceq 'Research') 'Research source, new store, owner or approved model binding changed.'
+    Assert-OpenScienceCondition ([string]$Context.QualifiedRuntimeBindingPath -ceq [string]$Plan.Settings.QualifiedRuntimeBindingPath) 'Explicit qualified execution binding changed.'
     Assert-OpenScienceResearchDefinition $Context.ResearchDefinition
     Assert-OpenScienceCondition ((Get-OpenScienceSourcePinSha256 $Context.ResearchDefinition) -ceq (Get-OpenScienceSourcePinSha256 $Plan.Definition) -and
         (@($Context.AllowedTools) -join "`n") -ceq (@($Plan.Definition.allowed_tools) -join "`n") -and
@@ -125,7 +134,7 @@ function Invoke-CaeResearchLocal {
     param([Parameter(Mandatory)][string]$SourceRoot, [Parameter(Mandatory)][string]$LocalSettingsPath,
         [Parameter(Mandatory)][ValidatePattern('^[A-Za-z0-9_-]+$')][string]$ResearchRun,
         [ValidateRange(1024, 65535)][int]$LabPort = 8766,
-        [ValidateSet('FixtureSelected','FixtureRefinement', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureSelected', [string]$AssemblyMeshConfigPath, [switch]$CheckOnly)
+        [ValidateSet('FixtureSelected','FixtureRefinement','NumericalReports', IgnoreCase=$false)][string]$ResearchProfile = 'FixtureSelected', [string]$AssemblyMeshConfigPath, [switch]$CheckOnly)
     $plan = New-CaeResearchLocalPlan -SourceRoot $SourceRoot -LocalSettingsPath $LocalSettingsPath -ResearchRun $ResearchRun -ResearchProfile $ResearchProfile
     if ($AssemblyMeshConfigPath) {
         $AssemblyMeshConfigPath = Assert-CaeResearchLocalPath $AssemblyMeshConfigPath 'Trusted assembly mesh configuration'
@@ -140,7 +149,7 @@ function Invoke-CaeResearchLocal {
     try {
         Write-Host 'AI 연구를 준비합니다. 승인된 연구 모델과 기존 인증 설정을 사용합니다.'
         $context = New-OpenScienceLocalContext -RepoRoot $plan.RepoRoot -RunName $plan.RunName -ProfileTag cae-research -StoreRoot $plan.StoreRoot `
-            -RuntimePrefix $plan.Settings.RuntimePrefix -AuthProfileRoot $plan.Settings.AuthProfileRoot -ProjectBinding $plan.Settings.ProjectBinding `
+            -RuntimePrefix $plan.Settings.RuntimePrefix -AuthProfileRoot $plan.Settings.AuthProfileRoot -QualifiedRuntimeBindingPath $plan.Settings.QualifiedRuntimeBindingPath -ProjectBinding $plan.Settings.ProjectBinding `
             -ModelId 'openai-codex/gpt-5.6-sol' -Transport ChatGPT -Purpose Research -ResearchProfile $plan.ResearchProfile `
             -AllowedTools @($plan.Definition.allowed_tools) -Steps 24
         Assert-CaeResearchLocalBinding $context $plan

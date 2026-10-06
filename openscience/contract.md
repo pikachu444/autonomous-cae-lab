@@ -1,3 +1,15 @@
+## Additive qualified runtime / NumericalReports contract (ADR0057)
+
+Default authentication/native pins remain strict. An explicit external qualified
+binding pins the original auth owner plus the reviewed same-version local MCP
+patch/build/actual activation and a separate native execution capsule. New
+admission refuses a nonempty/malformed shared credential ledger without mutation;
+array0 is not global/old shutdown. Schema2 local settings add only the explicit
+binding path. NumericalReports permits exactly seven original-ID record reads;
+no campaign/solver/CAD writes or numerical candidate generation. Approved model
+5.6Sol/OAuth and UNKNOWN/invalid/NOT_RELEASED remain. Actual provider execution
+must be recorded separately from source controls and auth-free transport proof.
+
 ## Additive common read/control contract (ADR0056)
 
 Request-local verified paths reduce repeated directory traversal while retaining
