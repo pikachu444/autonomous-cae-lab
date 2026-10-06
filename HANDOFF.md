@@ -1,3 +1,23 @@
+## Current checkpoint — Phase7 distribution/MOO/coupled-input bundle (ADR0055)
+
+Actual MOO17 native/3417 full history rows, selected coupled81-node sign conjugation,
+corrected common coupled DOE2 and original8-case declared-uniform report/reopening
+pass independent comparisons. Original1142 scientific files remain unchanged.
+The failed common PDE campaign/first native child and initial display refusal are
+preserved; new IDs and strict family/sampling checks correct the integration.
+Whole52/Phases remain incomplete; physical UNKNOWN/NOT_RELEASED.
+
+One final bundle review closed two P2 integration defects; publication is pending. Approved5.6Sol interpretation is
+NOT_RUN: official2.0.146 server starts but ownership activation times out. Direct
+MCP initialize/list/EOF succeeds with0 tool/provider calls; a separate ignored
+source-patched runtime candidate built and passed bounded source controls; actual
+activation and authentication-pin migration remain NOT_RUN. No permission/model/ownership
+relaxation. NEXT approved activation/interpretation, common executor/control and
+remaining Phase gates; no CAD/assembly/example restart or per-patch Astra gate.
+See record20261007-phase7-extension-r01 for exact producers/runs and limitations.
+
+---
+
 ## Current checkpoint — common numerical research bundle (ADR0054)
 
 Actual same-study workflow: declared model variable -> seeded DOE8 native ->

@@ -1,3 +1,21 @@
+## Additive declared UQ/MOO/coupled-input research contract (ADR0055)
+
+Core retains original seeded DOE samples, native signed responses/units/source
+pins and explicit distribution/threshold declarations. UQ ratios are finite
+valid-numerical-row propagation, not measured failure probability or confidence.
+MOO uses existing DE children and original-ID vectors/budgets; selected coupled
+PDE keeps its own family namespace, original fields and explicit mirrored bindings.
+Saved UQ source_sampling ties the exact original plan/result/sampler/seed.
+
+New public MCP MOO declarations do not expand the approved fourteen-tool research
+profile or selected openai-codex/gpt-5.6-sol/ChatGPT authentication. Human HTTP
+controls invoke the same Core operations. Runtime source fix/build and actual
+approved interpretation are separate gates: current interpretation NOT_RUN.
+UNKNOWN/NOT_RELEASED and all52/Phase1–7 scope remain unchanged. One final review
+corrected two integration findings; push pending at this checkpoint; exact run/source distinctions are in record20261007-phase7-extension-r01.
+
+---
+
 ## Additive common numerical report reads (ADR0054)
 
 Existing frozen model/condition LHS and DE retain original responses. Saved scalar

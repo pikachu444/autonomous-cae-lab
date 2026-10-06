@@ -468,6 +468,7 @@ function updateControls() {
   if (!state.presets[$("simulationPreset").value] || (simulationOperation() === "analysis_run" && !$("analysisParent").value)) $("simulationRunBtn").disabled = true;
   if (state.simulationDraft && (state.simulationDraft.store !== activeStore() || state.simulationDraft.source.studyId !== state.studyId)) $("simulationRunBtn").disabled = true;
   if (!$("fixtureConditionFields").hidden && state.fixtureConditionError) $("simulationRunBtn").disabled = true;
+  if (window.coupledControls && !$("coupledConditionFields").hidden && state.coupledConditionError) $("simulationRunBtn").disabled = true;
   if (!$("importedMeshFields").hidden && (state.importedMeshError || state.importedLoading)) $("simulationRunBtn").disabled = true;
   $("fixtureUseInCampaign").disabled = !writable() || busy() || Boolean(state.fixtureConditionError) || !window.cadControls.supportsBackend(state.presets.structural_linear, $("cadBackend").value);
   if (!document.querySelector("[data-campaign-variable]:checked")) $("campaignPlanBtn").disabled = true;
@@ -1315,6 +1316,10 @@ function selectPreset() {
     $("plasticityConditionFields").hidden = preset?.backend !== "structural.code_aster.plasticity" || preset?.settings?.mode !== "selected_mesh";
     loadPlasticityConditions();
   }
+  if (window.coupledControls && $("coupledConditionFields")) {
+    $("coupledConditionFields").hidden = preset?.backend !== "pde.fenicsx.coupled" || preset?.settings?.mode !== "selected_mesh";
+    loadCoupledConditions();
+  }
   if (window.explicitControls && $("explicitConditionFields")) {
     $("explicitConditionFields").hidden = preset?.backend !== "explicit.openradioss" || preset?.settings?.mode !== "selected_history";
     loadExplicitConditions();
@@ -1366,6 +1371,7 @@ async function prepareExperimentDraft(record) {
   loadFixtureConditions();
   if (window.pdeControls) loadPdeConditions();
   if (window.plasticityControls) loadPlasticityConditions();
+  if (window.coupledControls) loadCoupledConditions();
   if (window.explicitControls) loadExplicitConditions();
   state.simulationDraft = { ...draft, store };
   const context = clear("simulationDraftContext"); context.hidden = false;
@@ -1470,6 +1476,10 @@ function changeFixtureConditions() {
   updateControls();
 }
 function fixtureSimulationSettings() {
+  if (window.coupledControls && !$("coupledConditionFields").hidden) {
+    if (state.coupledConditionError) throw new Error(state.coupledConditionError);
+    return window.coupledControls.validate(parseField("simulationSettings", "object"));
+  }
   if (!$("fixtureConditionFields").hidden && state.fixtureConditionError) throw new Error(state.fixtureConditionError);
   if (window.pdeControls && !$("pdeConditionFields").hidden && state.pdeConditionError) throw new Error(state.pdeConditionError);
   if (window.plasticityControls && !$("plasticityConditionFields").hidden && state.plasticityConditionError) throw new Error(state.plasticityConditionError);
@@ -1507,6 +1517,38 @@ function changePdeConditions() {
     $("simulationSettings").value = pretty(window.pdeControls.fromFields(fields, parseField("simulationSettings", "object")));
     pdeConditionError(null);
   } catch (error) { pdeConditionError(error.message); }
+  updateControls();
+}
+function coupledConditionError(message) {
+  state.coupledConditionError = message;
+  $("coupledConditionError").textContent = message ?? "";
+  $("coupledConditionError").hidden = !message;
+}
+function loadCoupledConditions() {
+  if (!$("coupledConditionFields") || $("coupledConditionFields").hidden) return;
+  const host = clear("coupledConditionInputs");
+  try {
+    const fields = window.coupledControls.toFields(parseField("simulationSettings", "object"));
+    for (const definition of window.coupledControls.fieldDefinitions) {
+      const input = el(definition.type === "select" ? "select" : definition.type === "textarea" ? "textarea" : "input");
+      input.dataset.coupledField = definition.id; input.setAttribute("aria-label", definition.label);
+      if (definition.type === "select") for (const item of definition.options) option(input, item.value, item.label);
+      if (definition.type === "number") input.inputMode = "decimal";
+      if (definition.type === "textarea") input.rows = 2;
+      input.value = fields[definition.id];
+      input.addEventListener(definition.type === "select" ? "change" : "input", changeCoupledConditions);
+      const label = el("label", definition.label); label.append(input); host.append(label);
+    }
+    coupledConditionError(null);
+  } catch (error) { coupledConditionError(`해석 설정 JSON을 확인하세요. ${error.message}`); }
+}
+function changeCoupledConditions() {
+  const fields = {};
+  document.querySelectorAll("[data-coupled-field]").forEach(input => { fields[input.dataset.coupledField] = input.value; });
+  try {
+    $("simulationSettings").value = pretty(window.coupledControls.fromFields(fields, parseField("simulationSettings", "object")));
+    coupledConditionError(null);
+  } catch (error) { coupledConditionError(error.message); }
   updateControls();
 }
 function plasticityConditionError(message) {
@@ -1927,7 +1969,7 @@ function renderCampaignList() {
   if (!rows.length) { container.append(el("p", "저장한 계획이 나타납니다. 현재 라이브러리에 캠페인이 없을 수도 있습니다.", "empty-state")); return; }
   rows.forEach((row) => {
     const card = el("div", undefined, "campaign-row"); const textBlock = el("div");
-    textBlock.append(el("strong", row.type === "optimization" ? "수치 최적화" : "DOE"), el("div", row.id, "mono"), el("p", row.study_id));
+    textBlock.append(el("strong", row.type === "multiobjective" ? "다목적 절충 탐색" : row.type === "optimization" ? "수치 최적화" : "DOE"), el("div", row.id, "mono"), el("p", row.study_id));
     card.append(textBlock, action("계획·기록 열기", () => inspectCampaign(row.id))); container.append(card);
   });
 }
@@ -1941,7 +1983,8 @@ async function inspectCampaign(identifier, stillCurrent = () => true) {
     const data = await api(`/api/campaigns/${idPath(identifier)}`);
     if (!current()) return;
     const plan = data.plan ?? data.record?.plan ?? data.record;
-    if (!data.record || !plan || plan.campaign_id !== identifier || !["optimization", "doe"].includes(data.type)) throw new Error("서버가 요청한 고정 계획의 식별자를 확인하지 않았습니다.");
+    const planId = data.type === 'multiobjective' ? plan.parent_id : plan.campaign_id;
+    if (!data.record || !plan || planId !== identifier || !["optimization", "doe", "multiobjective"].includes(data.type)) throw new Error("서버가 요청한 고정 계획의 식별자를 확인하지 않았습니다.");
     state.selectedCampaign = { ...data, id: identifier, plan, viewStore: store, viewStudy: studyId, viewRequest: request }; renderCampaignDetail();
   } catch (error) { if (!current()) return; clear(container).append(el("p", `기록 확인 실패: ${error.message}`, "metric-reason")); throw error; }
 }
@@ -1951,7 +1994,7 @@ function experimentButton(identifier, label = identifier) {
 }
 function campaignViewCurrent(data) {
   return Boolean(data && state.selectedCampaign === data && data.viewStore === activeStore() && !state.storeSwitching &&
-    data.viewStudy === state.studyId && data.viewRequest === state.campaignRequest && data.plan?.study_id === state.studyId && data.conditionsVerified !== false);
+    data.viewStudy === state.studyId && data.viewRequest === state.campaignRequest && (data.plan?.study_id ?? data.plan?.template_plan?.study_id) === state.studyId && data.conditionsVerified !== false);
 }
 function campaignResultButton(data, row, kind) {
   const key = kind === "cad" ? "cad" : kind === "model" ? "model" : "analysis", identifier = row[`${key}_experiment_id`], digest = row[`${key}_result_sha256`];
@@ -1987,6 +2030,7 @@ function renderCampaignDetail() {
   const data = state.selectedCampaign; if (!data) return;
   const container = clear("campaignDetail"), record = data.record, plan = data.plan;
   data.conditionsVerified = true;
+  if (data.type === 'multiobjective') { renderMultiobjectiveRecord(container, data); return; }
   if (plan.analysis?.conditions_template || plan.route === 'fixed_cad_analysis') {
     try { window.campaignControls.conditionTemplate(plan); }
     catch { data.conditionsVerified = false; }
@@ -2075,10 +2119,78 @@ function renderCampaignDetail() {
   button.disabled ||= !current();
 }
 
+function renderMultiobjectiveControls(container, data) {
+  const plan = data.plan;
+  if (data.type !== 'optimization' || !['model_analysis', 'fixed_cad_analysis'].includes(plan.route)) return;
+  const section = el('section', undefined, 'context-readout separated');
+  section.append(el('h3', '다목적 절충 탐색'));
+  if (plan.observation_target || plan.objective?.direction === 'match') {
+    section.append(el('p', '관측값 일치 탐색은 별도의 연구 목표입니다. 다목적 탐색은 최소·최대 목표를 명시한 모델 계획에서 시작하세요.', 'hint'));
+    container.append(section); return;
+  }
+  const units = new Map([[plan.objective.metric, plan.objective.unit]]);
+  for (const row of data.record.evaluations ?? []) for (const [name,metric] of Object.entries(row.metrics?.model ?? row.metrics?.analysis ?? {}))
+    if (metric && typeof metric.unit === 'string') units.set(name,metric.unit);
+  for (const item of plan.constraints ?? []) units.set(item.metric,item.unit);
+  const secondary = el('select'), unit = el('input'), sense = el('select'); unit.required = true;
+  const names = new Set([...units.keys(), ...list(data.response_catalogue)]);
+  const secondaryNames = [...names].filter(name=>name!==plan.objective.metric);
+  for (const name of secondaryNames) option(secondary,name,window.resultPresentation.metricName(name));
+  if (!secondaryNames.length) { section.append(el('p','이 모델의 추가 scalar 응답을 확인한 뒤 절충 목표를 선택하세요.','hint')); container.append(section); return; }
+  const reflectUnit = () => { unit.value = units.get(secondary.value) ?? ''; }; secondary.addEventListener('change',reflectUnit); reflectUnit();
+  option(sense,'minimize','최소화'); option(sense,'maximize','최대화');
+  const limits = [el('input'),el('input')], scale = el('input'), generations = el('input'), budget = el('input');
+  for (const input of [...limits,scale,generations,budget]) { input.required=true; input.inputMode='decimal'; }
+  scale.placeholder='선택 응답과 같은 단위'; generations.value='1'; budget.value=String(2*5*Math.max(1,plan.variables.length)*2);
+  const form=el('form'), grid=el('div',undefined,'form-grid');
+  for (const [caption,input] of [['추가 목표 응답',secondary],['응답 단위',unit],['추가 목표 방향',sense],['허용 응답 한계 1',limits[0]],['허용 응답 한계 2',limits[1]],['제약 정규화 크기',scale],['자식 탐색당 최대 세대',generations],['전체 평가 예산',budget]]) {
+    const label=el('label',caption); input.setAttribute('aria-label',caption); label.append(input); grid.append(label);
+  }
+  form.append(grid,el('p',`기본 목표: ${plan.objective.metric} ${plan.objective.direction==='minimize'?'최소화':'최대화'} (${plan.objective.unit}). 같은 고정 모델에서 추가 목표의 두 한계를 각각 제약으로 두고 기존 수치 엔진을 실행합니다. 원래 제약과 검증 조건을 유지합니다.`, 'hint'));
+  const save=el('button','새 다목적 계획 저장','button secondary compact'); save.type='submit'; save.dataset.operation='multiobjective_plan'; form.append(save);
+  form.addEventListener('submit',async event=>{
+    event.preventDefault(); if (!campaignViewCurrent(data) || busy() || !form.reportValidity()) return;
+    const values=[...limits,scale,generations,budget].map(input=>Number(input.value));
+    if (values.some(value=>!Number.isFinite(value)) || values[2]<=0 || !Number.isSafeInteger(values[3]) || !Number.isSafeInteger(values[4])) throw new Error('한계·정규화·평가 예산의 수치를 확인하세요.');
+    const originalSource=plan.route==='model_analysis'?'model':'analysis', second={source:originalSource,metric:secondary.value,unit:unit.value.trim(),direction:sense.value};
+    await runJob('multiobjective_plan',{parent_id:makeId('M-epsilon'),template_campaign_id:data.id,
+      objectives:[plan.objective,second],primary_index:0,threshold_grid:values.slice(0,2).map(limit=>[{source:originalSource,metric:second.metric,unit:second.unit,limit,scale:values[2]}]),
+      child_budget:{max_generations:values[3],population_size:5},seed:plan.algorithm.seed,total_evaluation_budget:values[4]},
+      result=>inspectCampaign(result.parent_id),()=>campaignViewCurrent(data));
+  }); section.append(form,el('p','이 탐색은 제한한 예산의 절충 후보를 비교합니다. 전역 Pareto 최적해나 물리적 사용 승인을 의미하지 않습니다.','hint'));
+  container.append(section);
+}
+
+function renderMultiobjectiveRecord(container,data) {
+  const plan=data.plan,record=data.record,current=()=>campaignViewCurrent(data);
+  if (data.integrity!=='VERIFIED' || plan.parent_id!==data.id || record.parent_id!==data.id || record.parent_digest!==plan.digest || record.decision!=='NOT_RELEASED' || record.physical_qualification!=='UNKNOWN') throw new Error('같은 고정 모델의 검증된 다목적 기록을 확인할 수 없습니다.');
+  container.append(el('h3','다목적 절충 탐색'),badge(record.status,record.status==='PARTIAL'?(record.children.length?'일부 실행 · 후속 확인 필요':'계획됨'):undefined),el('p',`같은 모델 · ${plan.template_plan.backend} · ${plan.children.length}개 한계 조건 · 총 평가 예산 ${plan.total_evaluation_budget}`),el('p','기존 수치 엔진이 각 한계 조건에서 탐색한 원 후보를 비교합니다. UNKNOWN · NOT_RELEASED','hint'));
+  container.append(table(['목표 응답','방향','단위'],plan.objectives.map(item=>[window.resultPresentation.metricName(item.metric),item.direction==='minimize'?'최소화':'최대화',item.unit])));
+  const run=action('다목적 계획 실행 / 이어가기',async()=>{
+    if (!current() || busy() || !writable()) return;
+    await runJob('multiobjective_run',{parent_id:data.id},()=>inspectCampaign(data.id),current);
+  },'button primary compact'); run.dataset.operation='multiobjective_run'; container.append(run);
+  const archive=new Set(record.pareto?.nondominated_ids ?? []);
+  container.append(table(['한계 조건','실행 상태','평가 수'],record.children.map(child=>[child.receipt.campaign_id,child.status,child.evaluation_count])));
+  const excluded = {FAILED_EXECUTION:'솔버 실행 실패',ROW_UNUSABLE:'원 후보 응답 사용 불가',INVALID_OBJECTIVE_VECTOR:'목표 응답 무효',EPSILON_OR_ORIGINAL_CONSTRAINT_NOT_SATISFIED:'허용 응답 한계 또는 원 제약 미충족'};
+  const rows=record.evaluations.map(row=>{
+    const id=row.experiment_id,values=Object.entries(row.original_row.values??{}).map(([name,value])=>{const variable=plan.template_plan.variables.find(item=>item.parameter_id===name);return `${variable?.display_name??name}: ${number(value)} ${variable?.unit??''}`;}).join(' · ');
+    const result=id?experimentButton(id):el('span','원 결과 없음','hint');
+    return [result,values,...row.vector.map(item=>item.metric?metricCell(item.metric):el('span','사용 불가','hint')),archive.has(id)?'비지배 절충 후보':row.eligible?'비교 가능한 후보':'제외 · '+(excluded[row.exclusion]??'원 조건·응답 판정 확인 필요')];
+  }); if(rows.length) container.append(table(['원 실험','연구 입력',...plan.objectives.map(item=>`${window.resultPresentation.metricName(item.metric)} (${item.unit})`),'비교 결과'],rows));
+  container.append(link('검증한 다목적 기록 저장',`/api/campaigns/${idPath(data.id)}`,'text-link',true),rawDetail('고정 모델·수치 엔진·원 후보 전체 기록',{plan,record}));
+  if (record.evaluations.length) container.append(action('절충 결과를 연구 질문에 연결',()=>{
+    if (!current() || busy()) return;
+    const question=`Core VERIFIED 다목적 절충 탐색 ${data.id}를 한국어로 해석하세요. 선언한 ${plan.objectives.map(x=>`${x.metric} ${x.direction} (${x.unit})`).join(', ')}와 원래 제약을 구분하고, 비지배 원 실험·제외 이유·UNKNOWN·한정한 평가 예산을 설명하세요. 필요한 원 실험은 기존 experiment_summary로 읽으세요. 새 실험·수치 탐색을 실행하지 마세요. 물리적 원인이나 전역 최적해·승인을 확정하지 마세요.\n${JSON.stringify({objectives:plan.objectives,threshold_grid:plan.threshold_grid,pareto:record.pareto,unknown:record.unknown,limitations:record.limitations})}`;
+    window.researchControls.request(question); $('researchQuestion').value=question; location.hash='research'; showArea('research'); updateResearchControls();
+  },'button secondary compact'));
+}
+
 function renderCampaignReports(container, data) {
   const current = () => campaignViewCurrent(data), rows = list(data.record.evaluations ?? data.record.samples);
   const completed = typeof data.record.plan_sha256 === 'string' && rows.length >= 2;
   const section = el('section', undefined, 'context-readout separated'); section.append(el('h3', '표본 분석·연구 보고서'));
+  renderMultiobjectiveControls(container, data);
   const output = el('div');
   const expected = {campaign_id:data.id,study_id:data.plan.study_id,plan_sha256:data.record.plan_sha256};
   let reportRequest = 0;
@@ -2091,13 +2203,14 @@ function renderCampaignReports(container, data) {
     const envelope = await api(`/api/campaign-reports/${idPath(identifier)}`);
     if (!reportCurrent()) return;
     window.campaignAnalysisView.render(output, envelope, {...expected,report_id:identifier});
+    if (envelope.probability_analysis) { const probabilityPanel = el('div'); window.probabilityView.render(probabilityPanel,envelope,{...expected,report_id:identifier}); output.append(probabilityPanel); }
     output.append(link('검증한 보고서 JSON 저장', `/api/campaign-reports/${idPath(identifier)}`, 'text-link', true));
     output.append(action('이 보고서를 연구 질문에 연결', () => {
       if (!reportCurrent() || busy()) return;
       window.campaignAnalysisView.summary(envelope, {...expected,report_id:identifier});
       const draft = prepareCampaignResearch(data);
       const reportRead = data.type === 'optimization' ? `optimization_inspect(campaign_id="${data.id}", compact=true)의 report_context를 읽으세요.` : 'DOE 보고서의 Core 검증 요약은 아래에 첨부했습니다. 현재 승인 프로필에 DOE 전용 조회가 없으므로 이 캠페인을 optimization_inspect로 조회하지 마세요. 원 후보 응답은 허용된 experiment_summary/experiment_inspect로 확인하세요.';
-      const question = `${draft.question}\n\n같은 캠페인의 Core VERIFIED 표본 분석 보고서 ${identifier}를 해석하세요. ${reportRead} 원 응답·목표·잔차·보류 검증 오차를 구분하세요. 필요한 native 모델 상세만 원 실험 ID로 조회하세요. 아래 수치는 검증한 저장 보고서의 요약이며 실측이나 공학 승인으로 바꾸지 마세요.\n${JSON.stringify({source:envelope.source,declaration:envelope.declaration,analysis:envelope.analysis})}`;
+      const question = `${draft.question}\n\n같은 캠페인의 Core VERIFIED 표본 분석 보고서 ${identifier}를 해석하세요. ${reportRead} 원 응답·목표·잔차·보류 검증 오차를 구분하세요. 필요한 native 모델 상세만 원 실험 ID로 조회하세요. 아래 수치는 검증한 저장 보고서의 요약이며 실측이나 공학 승인으로 바꾸지 마세요.\n${JSON.stringify({source:envelope.source,declaration:envelope.declaration,analysis:envelope.analysis,...(envelope.probability_analysis?{probability_analysis:envelope.probability_analysis}:{})})}`;
       window.researchControls.request(question); $("researchQuestion").value = question;
       updateResearchControls();
     }, 'button secondary compact'));
@@ -2112,7 +2225,9 @@ function renderCampaignReports(container, data) {
       for (const value of [row.objective,...list(row.constraints)]) if (value?.metric && value.unit) definitions.set(value.metric,value.unit);
     }
     const select = el('div'), choices = [];
+    const admittedResponses = Array.isArray(data.response_catalogue) ? new Set(data.response_catalogue) : null;
     for (const [metric,unit] of definitions) {
+      if (admittedResponses && !admittedResponses.has(metric)) continue;
       const label = el('label', `${window.resultPresentation.metricName(metric)} (${unit})`), check = el('input'), direction = el('select'); check.type='checkbox'; check.checked=choices.length===0;
       check.dataset.reportMetric=metric; check.setAttribute('aria-label', `분석 응답 ${metric}`);
       option(direction,'minimize','작은 응답 선호'); option(direction,'maximize','큰 응답 선호');
@@ -2126,14 +2241,32 @@ function renderCampaignReports(container, data) {
     if (data.type==='doe') option(uncertainty,'USER_DECLARED_UNIFORM_INPUTS','등록 범위를 균일 불확실 입력으로 가정');
     for (const [label,input] of [['연구 목적',purpose],['원 표본·가정의 근거',reference],['자료 출처',origin],['통계의 해석 범위',uncertainty]]) {const field=el('label',label);field.append(input);form.append(field);}
     form.append(select,el('p','분위수는 표본 분포입니다. 회귀 감도는 인과나 Sobol 지수가 아니며 비지배 후보 모음은 새 다목적 최적화 실행이 아닙니다. 보류 표본의 오차를 확인하세요.','hint'));
+    const probabilityEnabled=el('input'), probabilityMetric=el('select'), probabilityOperator=el('select'), probabilityLimit=el('input'), distributionOrigin=el('select');
+    probabilityEnabled.type='checkbox'; probabilityLimit.inputMode='decimal';
+    probabilityEnabled.setAttribute('aria-label','선언한 독립 균등 분포의 응답 비율 분석');
+    for(const {metric,unit} of choices) option(probabilityMetric,metric,`${window.resultPresentation.metricName(metric)} (${unit})`);
+    for(const value of ['>','>=','<','<=']) option(probabilityOperator,value,value);
+    for(const [value,caption] of [['ASSUMED','가정한 분포'],['SYNTHETIC','가상 분포'],['MEASURED_REPORTED','사용자가 보고한 분포'],['PUBLISHED_REFERENCE','문헌에 제시한 분포']]) option(distributionOrigin,value,caption);
+    if(data.type==='doe'){
+      const details=el('details',undefined,'advanced separated'); details.append(el('summary','입력 불확실성 · 응답 한계의 표본 비율'));
+      const enable=el('label','등록 범위를 서로 독립인 균등 분포로 명시합니다.'); enable.append(probabilityEnabled);details.append(enable);
+      for(const [caption,input] of [['분포의 출처',distributionOrigin],['분석할 응답',probabilityMetric],['부호 있는 비교 조건',probabilityOperator],['응답 한계값',probabilityLimit]]){input.setAttribute('aria-label',caption);const label=el('label',caption);label.append(input);details.append(label);}
+      details.append(el('p','원 DOE의 동일한 입력·seed·모든 원 표본을 사용합니다. 이 가정과 수치 표본의 비율은 실측 불량 확률이나 신뢰 구간을 입증하지 않습니다. 제외된 응답은 미확인으로 보존합니다.','hint'));form.append(details);
+    }
     const save=el('button','새 표본 분석·보고서 저장','button primary compact');save.type='submit';save.dataset.operation='campaign_report_create'; form.append(save);
     form.addEventListener('submit', async event => {
       event.preventDefault(); if (!current() || busy() || !form.reportValidity()) return;
       const request = ++reportRequest;
       const args={campaign_id:data.id,report_id:makeId('R-campaign'),purpose:purpose.value.trim(),origin:origin.value,reference:reference.value.trim(),response_definitions:choices.filter(c=>c.check.checked).map(({metric,unit,direction})=>({metric,unit,direction:direction.value})),uncertainty:{interpretation:uncertainty.value,reference:reference.value.trim()},seed:13};
+      if(probabilityEnabled.checked){
+        const definition=args.response_definitions.find(item=>item.metric===probabilityMetric.value),value=Number(probabilityLimit.value);
+        if(!definition || !probabilityLimit.value.trim() || !Number.isFinite(value)) throw new Error('분석할 응답을 보고서에 선택하고 유한한 응답 한계값을 입력하세요.');
+        args.uncertainty.interpretation='USER_DECLARED_UNIFORM_INPUTS';
+        args.probability={marginals:data.plan.variables.map(v=>({parameter_id:v.parameter_id,unit:v.unit,distribution:'uniform',lower_bound:v.lower_bound,upper_bound:v.upper_bound})),independence:'INDEPENDENT_USER_DECLARED',source:{origin:distributionOrigin.value,reference:reference.value.trim()},thresholds:[{id:'T-user-declared',metric:definition.metric,unit:definition.unit,operator:probabilityOperator.value,value}]};
+      }
       await runJob('campaign_report_create',args,async envelope=>{
         if (!current()) return;
-        if (request === reportRequest) window.campaignAnalysisView.render(output,envelope,{...expected,report_id:args.report_id});
+        if (request === reportRequest) { window.campaignAnalysisView.render(output,envelope,{...expected,report_id:args.report_id}); if(envelope.probability_analysis){const probabilityPanel=el('div');window.probabilityView.render(probabilityPanel,envelope,{...expected,report_id:args.report_id});output.append(probabilityPanel);} }
         data.reports=[...list(data.reports),{report_id:args.report_id}];
         section.append(action(`저장 보고서 열기 · ${args.report_id}`,()=>showReport(args.report_id),'button secondary compact'));
       },current);
@@ -3546,7 +3679,7 @@ document.querySelectorAll("[data-fixture-field]").forEach((input) => { input.add
 document.querySelectorAll("[data-pde-field]").forEach(input => { input.addEventListener(input.tagName === "SELECT" ? "change" : "input", changePdeConditions); });
 document.querySelectorAll("[data-plasticity-field]").forEach(input => { input.addEventListener(input.tagName === "SELECT" ? "change" : "input", changePlasticityConditions); });
 document.querySelectorAll("[data-explicit-field]").forEach(input => { input.addEventListener(input.tagName === "SELECT" ? "change" : "input", changeExplicitConditions); });
-$("simulationSettings").addEventListener("input", () => { loadFixtureConditions(); if (window.pdeControls) loadPdeConditions(); if (window.plasticityControls) loadPlasticityConditions(); if (window.explicitControls) loadExplicitConditions(); updateControls(); });
+$("simulationSettings").addEventListener("input", () => { loadFixtureConditions(); if (window.pdeControls) loadPdeConditions(); if (window.coupledControls) loadCoupledConditions(); if (window.plasticityControls) loadPlasticityConditions(); if (window.explicitControls) loadExplicitConditions(); updateControls(); });
 $("fixtureUseInCampaign").addEventListener("click", () => {
   try {
     const settings = fixtureSimulationSettings();

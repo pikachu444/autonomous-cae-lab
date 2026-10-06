@@ -27,6 +27,13 @@ _FILES = {"adapter": Path(__file__), "worker": WORKER, "domain_reference": Path(
     "rectangle_domain_reference": Path(rectangle_domain.__file__), "expression_parser": Path(expression.__file__),
     "rectangle_adapter": Path(rectangle.__file__), "rectangle_worker": Path(helpers.__file__), "execution_control": Path(execution_control.__file__),
     "vector_worker_helper": Path(vector_helpers.__file__)}
+_LOADED_SOURCE_HASHES = {key: hashlib.sha256(path.read_bytes()).hexdigest() for key, path in _FILES.items()}
+
+
+def _verify_loaded_sources():
+    if any(hashlib.sha256(path.read_bytes()).hexdigest() != _LOADED_SOURCE_HASHES[key]
+           for key, path in _FILES.items()):
+        raise RuntimeError("Coupled binding/kernel source changed; restart with frozen source")
 
 
 def level_files(count):
@@ -40,6 +47,9 @@ def _raw_result(output, settings, spec_sha, manifest_sha):
             raw.get("spec_sha256") != spec_sha or raw.get("source_manifest_sha256") != manifest_sha or
             type(raw.get("mpi_size")) is not int or raw["mpi_size"] != 1 or raw.get("scalar_type") != "float64"):
         raise RuntimeError("Coupled execution/spec/source identity mismatch")
+    if settings.get("mode") == "selected_mesh" and (raw.get("mode") != "selected_mesh" or
+            raw.get("scope") != domain.SELECTED_SCOPE or raw.get("input_provenance") != settings["input_provenance"]):
+        raise RuntimeError("Coupled selected mode/scope/input provenance differs from the frozen request")
     versions = raw.get("versions")
     if (not isinstance(versions, dict) or not rectangle._VERSION_KEYS <= set(versions) or
             any(not isinstance(versions[key], str) or not versions[key].strip() for key in rectangle._VERSION_KEYS)):
@@ -74,18 +84,36 @@ def _raw_result(output, settings, spec_sha, manifest_sha):
 
 class FenicsxCoupledPDEAdapter:
     backend = "pde.fenicsx.coupled"
-    version = "1"
+    version = "1.1"
     pde_model_declaration = True
-    domain = "pde"
     physics_domain = "dimensionless_coupled_diffusion"
     analysis_type = "stationary_coupled_weak_form"
     default_metrics = [*rectangle.FenicsxRectanglePDEAdapter.default_metrics, "component_0_l2_error", "component_1_l2_error",
-                       "component_0_h1_seminorm_error", "component_1_h1_seminorm_error"]
+                       "component_0_h1_seminorm_error", "component_1_h1_seminorm_error", *domain.SELECTED_FIELD_METRICS]
+    domain = "pde"
+    input_source_files = tuple(_FILES.values())
 
     def describe_model(self, settings):
         return domain.model_declaration(settings)
 
+    def describe_inputs(self, settings):
+        return domain.describe_inputs(settings)
+
+    def bind_inputs(self, settings, values):
+        return domain.bind_inputs(settings, values)
+
+    def input_runtime_identity(self):
+        _verify_loaded_sources()
+        interpreter = os.environ.get("CAELAB_FENICSX_PYTHON", "/usr/bin/python3")
+        if not interpreter.strip(): raise ValueError("CAELAB_FENICSX_PYTHON must identify system Python")
+        # A pure configured execution identity, not a subprocess installation
+        # probe. Native versions are measured only by the isolated real worker.
+        return {"interpreter": interpreter, "python_isolation": "-I", "mpi_policy": "serial_real64",
+                "fixed_solver_policy": dict(helpers.NATIVE_OPTIONS), "timeout_seconds": rectangle._wall_timeout(),
+                "native_runtime_verified": False}
+
     def solve(self, output, settings):
+        _verify_loaded_sources()
         output = Path(output)
         if any(path.is_symlink() for path in (output, *output.parents)) or (output.exists() and (not output.is_dir() or any(output.iterdir()))):
             raise ValueError("Coupled output must be fresh/empty without symbolic links")
@@ -101,6 +129,7 @@ class FenicsxCoupledPDEAdapter:
                       "pending_validations": ["physical_validation", "model_qualification"], "provenance": provenance, "raw_result": "pde/result.json"}
             save_json(output / "result.json", result)
             return result
+        selected = settings.get("mode") == "selected_mesh"
         timeout = rectangle._wall_timeout()
         interpreter = os.environ.get("CAELAB_FENICSX_PYTHON", "/usr/bin/python3")
         if not interpreter.strip(): raise ValueError("CAELAB_FENICSX_PYTHON must identify system Python")
@@ -116,7 +145,8 @@ class FenicsxCoupledPDEAdapter:
             manifest["files"][key] = {"repository_path": repository_path, "copied_path": relative, "sha256": hashes[key]}
         save_json(output / "source_manifest.json", manifest)
         manifest_sha = helpers._sha(output / "source_manifest.json")
-        (output / "weak_form.txt").write_text("D acts on COMPONENT rows of grad(u).\na=sum_regions integral(inner(dot(D,grad(u)),grad(v))+inner(dot(R,u),v))dx(region)\nL=sum_regions integral(inner(f_region,v))dx(region)+sum_N_segments integral(inner(g,v))ds(segment)\nCG shared interface nodes; no dS load. g=D*grad(u)*outward_normal; not physical Fick flux.\nDimensionless mathematical operator; no material/physical qualification.\n", encoding="utf-8")
+        (output / "weak_form.txt").write_text("D acts on COMPONENT rows of grad(u).\na=sum_regions integral(inner(dot(D,grad(u)),grad(v))+inner(dot(R,u),v))dx(region)\nL=sum_regions integral(inner(f_region,v))dx(region)+sum_N_segments integral(inner(g,v))ds(segment)\nCG shared interface nodes; no dS load. g=D*grad(u)*outward_normal; not physical Fick flux.\nDimensionless mathematical operator; no material/physical qualification.\n"
+                                             + ("Selected one even mesh; reference/error/rate evaluation absent.\n" if selected else ""), encoding="utf-8")
         command = [interpreter, "-I", str((output / "worker.py").resolve()), str((output / "input.json").resolve())]
         save_json(output / "command.json", {"argv": command, "timeout_seconds": timeout, "python_isolated_mode": True, "fixed_solver_policy": helpers.NATIVE_OPTIONS})
         excluded = ["PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "PETSC_DIR", "PETSC_OPTIONS", "PETSC_OPTIONS_YAML"]
@@ -139,10 +169,16 @@ class FenicsxCoupledPDEAdapter:
         provenance.update(spec_sha256=spec_sha, source_manifest_sha256=manifest_sha, source_manifest="pde/source_manifest.json", versions=raw["versions"],
                           mpi_size=raw["mpi_size"], scalar_type=raw["scalar_type"], interpreter=interpreter, python_isolation={"mode": "-I", "excluded_environment_variables": excluded},
                           execution_policy={"timeout_seconds": timeout}, execution_artifact="pde/execution.json", progress_artifact="pde/progress.json",
-                          petsc_initialization=raw["petsc_initialization"], fixed_solver_policy=helpers.NATIVE_OPTIONS, error_quadrature_degree=8, assumptions=assessment["limitations"])
+                          petsc_initialization=raw["petsc_initialization"], fixed_solver_policy=helpers.NATIVE_OPTIONS,
+                          error_quadrature_degree=None if selected else 8, assumptions=assessment["limitations"])
+        if selected:
+            provenance.update(mode="selected_mesh", scope=domain.SELECTED_SCOPE,
+                              input_provenance=settings["input_provenance"])
         result = {"status": "COMPLETED" if all(row["status"] == "PASS" for row in checks) else "REJECTED", "checks": checks,
                   "metrics": assessment["metrics"], "solver_status": "COMPLETED", "converged": all(row["ksp_convergence_reason"] > 0 for row in raw["mesh_studies"]),
                   "pending_validations": assessment["pending_validations"], "provenance": provenance, "raw_result": "pde/result.json",
                   "mesh_studies": assessment["mesh_studies"], "reference": assessment["reference"], "limitations": assessment["limitations"]}
+        if selected:
+            result.update(mode="selected_mesh", scope=domain.SELECTED_SCOPE, input_provenance=settings["input_provenance"])
         save_json(output / "result.json", result)
         return result

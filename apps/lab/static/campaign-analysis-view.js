@@ -146,7 +146,8 @@
     return Object.keys(expected);
   }
   function summary(envelope, expected) {
-    demand(json(envelope) && exact(envelope, envelopeKeys) && envelope.schema_version === "1.0" && envelope.integrity === "VERIFIED" &&
+    const probability = object(envelope) && own(envelope, 'probability_analysis');
+    demand(json(envelope) && exact(envelope, [...envelopeKeys, ...(probability ? ['probability_analysis'] : [])]) && envelope.schema_version === "1.0" && envelope.integrity === "VERIFIED" &&
       [envelope.report_id, envelope.campaign_id, envelope.study_id].every(id) && digest(envelope.report_sha256) &&
       envelope.decision === "NOT_RELEASED" && envelope.engineering_qualification === "UNKNOWN" &&
       integer(envelope.seed) && envelope.seed <= 2 ** 32 - 1 && text(envelope.created_utc, 128) && object(envelope.provenance) && Object.keys(envelope.provenance).length > 0,
@@ -157,11 +158,12 @@
       uniqueIds(source.experiment_ids, new Set(source.sample_ids)) && exact(source.experiment_result_sha256, source.experiment_ids) &&
       Object.values(source.experiment_result_sha256).every(digest),
     "원 캠페인의 종류·계획/결과 SHA·표본 ID와 실제 native 실험/결과 SHA 연결이 필요합니다.");
-    demand(exact(declaration, ["purpose", "origin", "reference", "response_definitions", "uncertainty"]) && text(declaration.purpose, 4096) && text(declaration.reference, 2048) &&
+    demand(exact(declaration, ["purpose", "origin", "reference", "response_definitions", "uncertainty", ...(probability ? ['probability'] : [])]) && text(declaration.purpose, 4096) && text(declaration.reference, 2048) &&
       ["MEASURED_REPORTED", "PUBLISHED_REFERENCE", "SYNTHETIC", "DESIGN_EXPLORATION"].includes(declaration.origin) && definitions(declaration.response_definitions) &&
       exact(declaration.uncertainty, ["interpretation", "reference"]) && ["DESIGN_SPACE_ONLY", "USER_DECLARED_UNIFORM_INPUTS"].includes(declaration.uncertainty.interpretation) &&
       text(declaration.uncertainty.reference, 2048) && (declaration.uncertainty.interpretation !== "USER_DECLARED_UNIFORM_INPUTS" || source.type === "doe"),
     "원 연구 목적·출처·응답/단위/방향·불확실 입력의 사용자 선언을 확인하세요.");
+    if (probability) demand(source.type === 'doe' && object(envelope.probability_analysis) && object(declaration.probability), '선언 분포의 분석은 같은 DOE 보고서에 함께 보존해야 합니다.');
     demand(exact(analysis, ["statistics", "sensitivity", "surrogate", "pareto", "exclusions", "qualification", "decision", "limitations"]) &&
       analysis.qualification === "NUMERICAL_SAMPLE_ANALYSIS_ONLY" && analysis.decision === "NOT_RELEASED" && strings(analysis.limitations),
     "수치 표본 분석의 원 자격·미배포 판정·분석 한계가 필요합니다.");

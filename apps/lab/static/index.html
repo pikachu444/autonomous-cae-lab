@@ -31,6 +31,8 @@
   <script src="/static/history-controls.js" defer></script>
   <script src="/static/comparison-research.js" defer></script>
   <script src="/static/campaign-analysis-view.js" defer></script>
+  <script src="/static/probability-view.js" defer></script>
+  <script src="/static/coupled-controls.js" defer></script>
   <script src="/static/app.js" defer></script>
 </head>
 <body>
@@ -198,6 +200,13 @@
             <details class="advanced"><summary>수치 계산 조건</summary><label>선형 잔차 기준<input data-pde-field="residual" inputmode="decimal"></label></details>
             <p id="pdeConditionError" class="metric-reason" role="alert" hidden></p>
           </section>
+          <section id="coupledConditionFields" class="separated" hidden>
+            <h3>두 필드의 영역별 계수와 경계값</h3>
+            <p class="hint">−∇·(D∇u) + Ru = f. D는 좌표축이 아닌 u0·u1 성분을 연결하는 대칭 양정 행렬이며, R은 공통 대칭 반양정 행렬입니다. 좌우 영역은 x 중간에서 연결됩니다. 모든 좌표·필드 단위는 1(무차원)입니다.</p>
+            <div id="coupledConditionInputs" class="form-grid"></div>
+            <p class="hint">Neumann 값은 바깥 방향의 D∇u·n입니다. 한 메시의 원 u0·u1을 보존하며 열·구조 물리 연성이나 참조해를 추정하지 않습니다.</p>
+            <p id="coupledConditionError" class="metric-reason" role="alert" hidden></p>
+          </section>
           <section id="plasticityConditionFields" class="separated" hidden>
             <h3>재료와 변위 이력</h3>
             <p class="hint">등방성 J2 소변형 모델입니다. X=0, Y=0, Z=0의 해당 성분만 구속하고 X 최대 면에 입력한 축변형률 × X 길이의 변위를 적용합니다. 전체 절점의 변위·반력과 적분점의 응력·소성변형률을 원 시각으로 보존합니다.</p>
@@ -317,7 +326,8 @@
             <p class="hint">유효한 응답과 선언한 제약으로 판단합니다. 제한된 탐색 결과는 전역 최적해가 아닙니다.</p>
           </div>
           <p id="fixtureCampaignNote" class="hint" hidden></p><div id="campaignCadAnalysis"><label>후보 해석의 조건 출처<select id="campaignAnalysisSource"><option value="legacy">직접 입력한 기존 해석 설정 · 또는 CAD만</option><option value="saved">같은 CAD의 저장 조건</option></select></label><section id="campaignSavedConditions" hidden><div class="button-row"><button type="button" id="campaignUseConditionsBtn" class="button secondary" disabled>해석 화면에서 연 저장 조건 연결</button></div><div id="campaignConditionsSummary" class="context-readout">서버가 지원하는 저장 조건을 해석 화면에서 연 뒤 연결하세요.</div><p id="campaignConditionsError" class="metric-reason" role="status" hidden></p><p class="hint">원 CAD의 등록 변수로 새 후보를 만듭니다. 각 후보 개정의 동일한 대상·좌표계 의미를 Core와 Domain이 다시 확인하고, 새 조건과 실제 결과를 보존합니다. 지원되지 않는 조합은 중단됩니다. 직접 입력한 기존 설정은 별도 초안으로 유지합니다.</p></section><div id="campaignLegacyAnalysis"><label>후속 구조 해석<select id="campaignAnalysis"><option value="">CAD만 실행</option><option value="structural_linear">기존 fixture 선형 구조 screen</option></select></label><details id="campaignAnalysisDetails" class="advanced" hidden><summary>후속 해석의 명시적 설정</summary><textarea id="campaignAnalysisSettings" rows="12" class="json-input" spellcheck="false" aria-label="캠페인 해석 설정 JSON"></textarea></details></div></div><div class="form-footer"><small>계산 전에 계획·조건을 저장합니다. 기존 수치 엔진이 후보를 생성합니다.</small><button class="button primary" data-operation="doe_plan" id="campaignPlanBtn">새 계획 저장</button></div></fieldset></form></article>
-          <article class="card"><div class="card-heading"><div><p class="eyebrow">PERSISTED CAMPAIGNS</p><h2>계획·실행 기록</h2></div><span id="campaignCount" class="badge neutral">0</span></div><div id="campaignList" class="empty-state">저장한 계획이 나타납니다.</div><div id="campaignDetail" class="campaign-detail"></div></article></div>
+          <article class="card"><div class="card-heading"><div><p class="eyebrow">PERSISTED CAMPAIGNS</p><h2>계획·실행 기록</h2></div><span id="campaignCount" class="badge neutral">0</span></div><div id="campaignList" class="empty-state">저장한 계획이 나타납니다.</div></article></div>
+        <article id="campaignDetail" class="card campaign-detail"></article>
       </section>
 
       <section id="results" data-panel="results" hidden>

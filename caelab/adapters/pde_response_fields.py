@@ -1,9 +1,11 @@
 """Pure selectors for the five retained serial P1 PDE field contracts.
 
 Core supplies parsed, manifest-verified bytes and rechecks the immutable source
-before/after these hooks. Nothing here opens files, executes a solver, evaluates
-an expression or changes a Domain verdict. Native DOF IDs belong to one exact
-field artifact; coordinates and time are dimensionless model quantities.
+before/after these hooks. Nothing here opens files, executes a solver or runs
+supplied code. Coupled producer 1.1 declarations/traces reuse the bounded Domain
+AST checks; historical producer 1 is not reinterpreted through that validator.
+No Domain verdict changes. Native DOF IDs belong to one exact field artifact;
+coordinates and time are dimensionless model quantities.
 """
 
 from copy import deepcopy
@@ -81,7 +83,9 @@ def _json_tree(value, depth=0, active=None):
 def _manifest(result):
     _need(type(result) is dict and type(result.get("provenance")) is dict, "PDE result provenance required")
     backend = result["provenance"].get("adapter")
-    _need(backend in SUPPORTED_BACKENDS and result["provenance"].get("adapter_version") == "1",
+    version = result["provenance"].get("adapter_version")
+    _need(backend in SUPPORTED_BACKENDS and (version == "1" or
+          backend == "pde.fenicsx.coupled" and version == "1.1"),
           "Unsupported PDE field producer")
     _need(_sha(result.get("proposal_revision")) and _sha(result.get("model_revision")), "PDE result revisions required")
     _need(type(result.get("artifacts")) is list, "PDE artifact manifest required")
@@ -126,11 +130,12 @@ def _headers(result, proposal, resources):
     source, source_entry = _resource(resources, "source", manifest, _HEADERS["source"])
     worker, _ = _resource(resources, "worker", manifest, _HEADERS["worker"])
     provenance = result["provenance"]
+    version = provenance["adapter_version"]
     detail = provenance.get("adapter_details")
     _need(_same(input_, proposal.get("execution")) and _same(input_, provenance.get("execution_settings")),
           "PDE input differs from the immutable proposal/settings")
     _need(type(detail) is dict and detail.get("adapter") == provenance["adapter"] and
-          detail.get("adapter_version") == "1" and detail.get("domain_plugin_version") == "1" and
+          detail.get("adapter_version") == version and detail.get("domain_plugin_version") == version and
           detail.get("units") == "dimensionless" and detail.get("source_manifest") == _HEADERS["source"] and
           detail.get("spec_sha256") == spec_entry["sha256"] == worker.get("spec_sha256") and
           detail.get("source_manifest_sha256") == source_entry["sha256"] == worker.get("source_manifest_sha256"),
@@ -162,17 +167,34 @@ def _headers(result, proposal, resources):
     _need(type(input_.get("mesh")) is dict and type(input_["mesh"].get("degree")) is int and input_["mesh"]["degree"] == 1,
           "Only retained native P1 fields are supported")
     selected = input_.get("mode") == "selected_mesh"
+    coupled_domain = None
+    if kind == "coupled" and version == "1.1":
+        from plugins.pde_coupled import reference as coupled_domain
+        # Version 1.1 opts into this exact declaration contract. The original
+        # producer is joined by its preserved source capsule above, never by
+        # hashes of today's files or a new verdict for historical producer 1.
+        _need(_same(coupled_domain.validate_settings(input_), input_),
+              "Coupled 1.1 input differs from the declared contract")
+        _need(detail.get("error_quadrature_degree") == (None if selected else 8),
+              "Coupled reference quadrature scope differs")
     if selected:
-        _need(kind == "rectangle" and set(input_) == {"mode", "problem", "mesh", "validation"} and
-              input_["problem"].get("reference") is None and len(input_["mesh"].get("cell_counts", [])) == 1 and
-              worker.get("mode") == detail.get("mode") == "selected_mesh" and
-              worker.get("scope") == detail.get("scope") == "SELECTED_DIMENSIONLESS_SCALAR_RECTANGLE",
-              "Selected rectangle native scope differs")
+        if kind == "coupled":
+            _need(coupled_domain is not None and worker.get("mode") == detail.get("mode") == "selected_mesh" and
+                  worker.get("scope") == detail.get("scope") == coupled_domain.SELECTED_SCOPE and
+                  _same(worker.get("input_provenance"), input_["input_provenance"]) and
+                  _same(detail.get("input_provenance"), input_["input_provenance"]),
+                  "Selected coupled native scope/source differs")
+        else:
+            _need(kind == "rectangle" and set(input_) == {"mode", "problem", "mesh", "validation"} and
+                  input_["problem"].get("reference") is None and len(input_["mesh"].get("cell_counts", [])) == 1 and
+                  worker.get("mode") == detail.get("mode") == "selected_mesh" and
+                  worker.get("scope") == detail.get("scope") == "SELECTED_DIMENSIONLESS_SCALAR_RECTANGLE",
+                  "Selected rectangle native scope differs")
     else:
         _need("mode" not in input_ and "mode" not in worker and "mode" not in detail,
               "Unsupported PDE input/worker mode")
     return {"kind": kind, "manifest": manifest, "input": input_, "worker": worker, "detail": detail,
-            "result": result, "proposal": proposal, "selected": selected}
+            "result": result, "proposal": proposal, "selected": selected, "coupled_domain": coupled_domain}
 
 
 def _files(ctx, row, used):
@@ -269,6 +291,20 @@ def _entries(ctx):
                   (type(row.get("level")) is int and row["level"] == i if kind == "imported" else
                    _integer(level) and type(row.get("cells_per_axis")) is int and row["cells_per_axis"] == level),
                   "PDE native refinement/P1 triangle identity differs")
+            if ctx["coupled_domain"] is not None:
+                _need(row.get("global_nodes") == (level + 1)**2 and row.get("global_cells") == 2 * level**2 and
+                      type(row.get("interface_facets")) is int and row["interface_facets"] == level,
+                      "Coupled native full grid/interface count differs")
+                if ctx["selected"]:
+                    reference_names = ctx["coupled_domain"]._REFERENCE_METRICS
+                    components = row.get("components")
+                    _need(all(name in row and row[name] is None for name in reference_names) and
+                          type(components) is list and len(components) == 2 and all(
+                              type(component) is dict and type(component.get("index")) is int and
+                              component["index"] == j and component.get("field") == f"u{j}" and
+                              all(name in component and component[name] is None for name in reference_names)
+                              for j, component in enumerate(components)),
+                          "Selected coupled reference diagnostics must remain null")
             append(row, i, None, row)
             if kind == "imported":
                 _need(type(level) is dict and type(level.get("data")) is str and _sha(level.get("sha256")) and
@@ -462,12 +498,37 @@ def _coupled(ctx, row, field, binding, shape):
         _need(type(b) is dict and _ids(b.get("cell_ids"), "PDE regional cells") == cells and
               _ids(b.get("node_ids"), "PDE regional nodes") == nodes and b["node_ids"] == sorted(nodes), "PDE regional identity differs")
         _values(b.get("rhs_values"), len(nodes), True, "PDE regional RHS traces")
-        _values(b.get("reference_values"), len(nodes), True, "PDE regional reference traces")
+        if ctx["selected"]:
+            _need("reference_values" in b and b["reference_values"] is None,
+                  "Selected coupled reference traces must remain explicitly null")
+        else:
+            _values(b.get("reference_values"), len(nodes), True, "PDE regional reference traces")
         _values(b.get("diffusion"), 2, True, "PDE diffusion matrix")
         _values(b.get("reaction"), 2, True, "PDE reaction matrix")
         _need(_same(b["diffusion"], weak["diffusion"][region]) and _same(b["reaction"], weak["reaction"]) and
               _same(b["diffusion"], row.get("region_coefficients", {}).get(region)) and _same(b["reaction"], row.get("reaction_matrix")),
               "PDE native regional coefficient binding differs")
+    if ctx["coupled_domain"] is not None:
+        domain = ctx["coupled_domain"]
+        trees = domain._trees(ctx["input"]["problem"])
+        # Reuse full native grid/tag/side/interface and declared AST trace checks,
+        # without assessing reference errors, convergence or engineering release.
+        domain._retained_field(ctx["input"], row, field, trees)
+        domain._coefficient_observations(ctx["input"], row)
+        _need(_keys(binding, {"schema_version", "components", "regions"}), "Coupled binding schema differs")
+        points = dict(zip(field["node_ids"], field["coordinates"]))
+        for region in ("left", "right"):
+            b = binding["regions"][region]
+            _need(_keys(b, {"cell_ids", "node_ids", "diffusion", "reaction", "rhs_values", "reference_values"}),
+                  "Coupled regional binding schema differs")
+            pairs = [("rhs_values", trees["rhs"][region])]
+            if not ctx["selected"]:
+                pairs.append(("reference_values", trees["reference"][region]))
+            for name, parsed in pairs:
+                for node, values in zip(b["node_ids"], b[name]):
+                    for component in range(2):
+                        domain._same(values[component], domain._value(parsed[component], points[node]),
+                                     "Native coupled regional/interface input trace")
 
 
 def _imported(ctx, entry, field, binding, mapping):

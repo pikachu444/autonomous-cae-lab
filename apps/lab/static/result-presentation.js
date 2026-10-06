@@ -34,6 +34,8 @@
     stress_history: "응력 이력", branch_stress_history: "점탄성 분기 응력 이력",
     native_energy_history: "native 저장·소산 에너지 밀도 이력", reference_work_history: "해석식으로 계산한 일 (native 에너지 아님)",
     field_min: "전체 절점 필드의 최솟값", field_max: "전체 절점 필드의 최댓값",
+    component_0_field_min: "전체 절점 u0 최솟값", component_0_field_max: "전체 절점 u0 최댓값",
+    component_1_field_min: "전체 절점 u1 최솟값", component_1_field_max: "전체 절점 u1 최댓값",
     linear_residual_relative: "선형 시스템 상대 잔차", l2_error: "참조 필드와의 L² 오차",
     h1_seminorm_error: "참조 필드 기울기와의 H¹ 오차", l2_convergence_rate: "L² 오차의 메시 수렴률",
     h1_seminorm_convergence_rate: "H¹ 오차의 메시 수렴률",

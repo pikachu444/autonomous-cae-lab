@@ -77,7 +77,7 @@ def _validated_inputs(descriptors):
     names = set()
     for descriptor in descriptors:
         if (not isinstance(descriptor, dict) or
-                set(descriptor) != {"id", "label", "unit", "value", "lower", "upper",
+                set(descriptor) - {"settings_mirrors"} != {"id", "label", "unit", "value", "lower", "upper",
                                     "settings_path", "declaration_paths"} or
                 not isinstance(descriptor["id"], str) or not descriptor["id"] or
                 descriptor["id"] in names or
@@ -91,13 +91,19 @@ def _validated_inputs(descriptors):
         if not ID.fullmatch(descriptor["id"]):
             raise ValueError("Declared input names must be stable identifiers")
         _path(descriptor["settings_path"])
+        if 'settings_mirrors' in descriptor:
+            mirrors = descriptor['settings_mirrors']
+            if not isinstance(mirrors, list) or not 1 <= len(mirrors) <= 16:
+                raise ValueError('Mirrored model settings require bounded trusted locations')
+            for path in mirrors:
+                _path(path)
         paths = descriptor["declaration_paths"]
         if not isinstance(paths, list) or not 1 <= len(paths) <= 16:
             raise ValueError("Model input requires bounded declaration locations")
         for path in paths:
             _path(path)
         names.add(descriptor["id"])
-    for locations in ([item["settings_path"] for item in descriptors],
+    for locations in ([path for item in descriptors for path in [item['settings_path'], *item.get('settings_mirrors', [])]],
                       [path for item in descriptors for path in item["declaration_paths"]]):
         for index, path in enumerate(locations):
             if any(path[:len(other)] == other or other[:len(path)] == path
@@ -130,7 +136,7 @@ def _get(cursor, key):
 
 def _locations(descriptors, settings, model):
     for item in descriptors:
-        locations = [(settings, item["settings_path"]),
+        locations = [(settings, path) for path in [item['settings_path'], *item.get('settings_mirrors', [])]] + [
                      *((model, path) for path in item["declaration_paths"])]
         for target, path in locations:
             _, _, value = _leaf(target, path)
@@ -148,10 +154,11 @@ def expected_settings(settings, descriptors, assignments):
                 for name, value in assignments.items())):
         raise ValueError("Model assignments require advertised, finite, in-domain inputs")
     for name, value in assignments.items():
-        target, key, old = _leaf(bound, by_name[name]["settings_path"])
-        if not _finite(old):
-            raise ValueError("Input setting must be a finite scalar")
-        target[key] = value
+        for path in [by_name[name]['settings_path'], *by_name[name].get('settings_mirrors', [])]:
+            target, key, old = _leaf(bound, path)
+            if not _finite(old):
+                raise ValueError("Input setting must be a finite scalar")
+            target[key] = value
     canonical_hash(bound)
     return bound
 

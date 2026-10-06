@@ -27,7 +27,7 @@ def _verified_helpers(output):
     manifest_bytes = manifest_path.read_bytes()
     manifest = json.loads(manifest_bytes)
     if (not isinstance(manifest, dict) or set(manifest) != {"schema_version", "domain_plugin_version", "files"} or manifest["schema_version"] != "1" or
-            manifest["domain_plugin_version"] != "1" or not isinstance(manifest["files"], dict) or set(manifest["files"]) != set(SOURCE_PATHS)):
+            manifest["domain_plugin_version"] != "1.1" or not isinstance(manifest["files"], dict) or set(manifest["files"]) != set(SOURCE_PATHS)):
         raise RuntimeError("Coupled saved source manifest contract mismatch")
     for key, (repository_path, relative) in SOURCE_PATHS.items():
         row, path = manifest["files"][key], output / relative
@@ -107,10 +107,11 @@ def _native_forms(rectangle, space, tags, settings, trees, expression, helpers, 
     functions = {name: getattr(ufl, name) for name in expression.FUNCTION_NAMES}
     dx = ufl.Measure("dx", domain=rectangle, subdomain_data=tags["cell_tags"], metadata={"quadrature_degree": 8})
     ds = ufl.Measure("ds", domain=rectangle, subdomain_data=tags["facet_tags"], metadata={"quadrature_degree": 8})
-    a, L, references, side_expressions = None, None, {}, {}
+    a, L, references, side_expressions = None, None, None if trees["reference"] is None else {}, {}
     for region, tag in (("left", 1), ("right", 2)):
         rhs = vector._native_vector([expression.interpret_expression(tree, x, functions) for tree in trees["rhs"][region]], rectangle, fem, PETSc.ScalarType, ufl, helpers)
-        references[region] = ufl.as_vector([expression.interpret_expression(tree, x, functions) for tree in trees["reference"][region]])
+        if references is not None:
+            references[region] = ufl.as_vector([expression.interpret_expression(tree, x, functions) for tree in trees["reference"][region]])
         contribution = (ufl.inner(ufl.dot(diffusion[region], ufl.grad(u)), ufl.grad(v))+ufl.inner(ufl.dot(reaction, u), v))*dx(tag)
         load = ufl.inner(rhs, v)*dx(tag)
         a, L = (contribution, load) if a is None else (a+contribution, L+load)
@@ -153,6 +154,7 @@ def run_worker(input_path):
         def level_files(count):
             return {key: f"level_n{count}/{name}" for key, name in {"field": "field.xdmf", "field_data": "field.h5", "form_source": "forms.ufl.txt", "dofs": "dofs.json", "binding": "binding.json"}.items()}
     settings = domain.validate_settings(helpers._read_json(input_path))
+    selected = settings.get("mode") == "selected_mesh"
     for name in ("PETSC_OPTIONS", "PETSC_OPTIONS_YAML"): os.environ.pop(name, None)
     import petsc4py
     petsc4py.init(PETSC_INIT_ARGUMENTS)
@@ -230,25 +232,29 @@ def run_worker(input_path):
         residual_record = {"absolute": absolute, "rhs_norm": rhs_norm, "relative": checked(absolute/rhs_norm if rhs_norm else absolute, "relative residual", True), "normalization": "rhs_l2_norm" if rhs_norm else "absolute_for_zero_rhs"}
         component_rows = []
         for component in range(2):
-            l2_form, h1_form = None, None
-            for region, tag in (("left", 1), ("right", 2)):
-                error = uh[component]-forms["references"][region][component]
-                l2_part, h1_part = error*error*forms["dx"](tag), ufl.inner(ufl.grad(error), ufl.grad(error))*forms["dx"](tag)
-                l2_form, h1_form = (l2_part, h1_part) if l2_form is None else (l2_form+l2_part, h1_form+h1_part)
-            l2 = math.sqrt(checked(comm.allreduce(fem.assemble_scalar(fem.form(l2_form)), op=MPI.SUM), "component L2 square", True))
-            h1 = math.sqrt(checked(comm.allreduce(fem.assemble_scalar(fem.form(h1_form)), op=MPI.SUM), "component gradient square", True))
+            l2, h1 = None, None
+            if not selected:
+                l2_form, h1_form = None, None
+                for region, tag in (("left", 1), ("right", 2)):
+                    error = uh[component]-forms["references"][region][component]
+                    l2_part, h1_part = error*error*forms["dx"](tag), ufl.inner(ufl.grad(error), ufl.grad(error))*forms["dx"](tag)
+                    l2_form, h1_form = (l2_part, h1_part) if l2_form is None else (l2_form+l2_part, h1_form+h1_part)
+                l2 = math.sqrt(checked(comm.allreduce(fem.assemble_scalar(fem.form(l2_form)), op=MPI.SUM), "component L2 square", True))
+                h1 = math.sqrt(checked(comm.allreduce(fem.assemble_scalar(fem.form(h1_form)), op=MPI.SUM), "component gradient square", True))
             previous = studies[-1]["components"][component] if studies else None
             component_rows.append({"index": component, "field": domain.COMPONENTS[component], "l2_error": l2, "h1_seminorm_error": h1,
-                "l2_convergence_rate": expression.error_rate(previous["l2_error"], l2) if previous else None,
-                "h1_seminorm_convergence_rate": expression.error_rate(previous["h1_seminorm_error"], h1) if previous else None,
+                "l2_convergence_rate": expression.error_rate(previous["l2_error"], l2) if previous and not selected else None,
+                "h1_seminorm_convergence_rate": expression.error_rate(previous["h1_seminorm_error"], h1) if previous and not selected else None,
                 "boundary_value_error": checked(np.max(np.abs(native_values[union, component]-boundary_values[union, component])), "component boundary error", True)})
-        vector_l2, vector_h1 = None, None
-        for region, tag in (("left", 1), ("right", 2)):
-            error = uh-forms["references"][region]
-            lp, hp = ufl.inner(error, error)*forms["dx"](tag), ufl.inner(ufl.grad(error), ufl.grad(error))*forms["dx"](tag)
-            vector_l2, vector_h1 = (lp, hp) if vector_l2 is None else (vector_l2+lp, vector_h1+hp)
-        l2 = math.sqrt(checked(comm.allreduce(fem.assemble_scalar(fem.form(vector_l2)), op=MPI.SUM), "vector L2 square", True))
-        h1 = math.sqrt(checked(comm.allreduce(fem.assemble_scalar(fem.form(vector_h1)), op=MPI.SUM), "vector Frobenius-gradient square", True))
+        l2, h1 = None, None
+        if not selected:
+            vector_l2, vector_h1 = None, None
+            for region, tag in (("left", 1), ("right", 2)):
+                error = uh-forms["references"][region]
+                lp, hp = ufl.inner(error, error)*forms["dx"](tag), ufl.inner(ufl.grad(error), ufl.grad(error))*forms["dx"](tag)
+                vector_l2, vector_h1 = (lp, hp) if vector_l2 is None else (vector_l2+lp, vector_h1+hp)
+            l2 = math.sqrt(checked(comm.allreduce(fem.assemble_scalar(fem.form(vector_l2)), op=MPI.SUM), "vector L2 square", True))
+            h1 = math.sqrt(checked(comm.allreduce(fem.assemble_scalar(fem.form(vector_h1)), op=MPI.SUM), "vector Frobenius-gradient square", True))
         normal, boundaries = ufl.FacetNormal(rectangle), {}
         for side in domain.SIDES:
             boundaries[side] = {}
@@ -276,7 +282,7 @@ def run_worker(input_path):
             binding["regions"][region] = {"cell_ids": sorted(tags["cell_ids"][cell] for cell in cells), "node_ids": [int(ids[node]) for node in nodes],
                 "diffusion": diffusion_values[region], "reaction": reaction_values,
                 "rhs_values": [[checked(value, "regional RHS/interface trace") for value in row] for row in numeric(trees["rhs"][region], coordinates[nodes].T).T],
-                "reference_values": [[checked(value, "regional reference/interface trace") for value in row] for row in numeric(trees["reference"][region], coordinates[nodes].T).T]}
+                "reference_values": None if selected else [[checked(value, "regional reference/interface trace") for value in row] for row in numeric(trees["reference"][region], coordinates[nodes].T).T]}
         files = level_files(n)
         level = (output / files["dofs"]).parent
         level.mkdir()
@@ -285,12 +291,12 @@ def run_worker(input_path):
         with io.XDMFFile(comm, str(output / files["field"]), "w") as writer:
             writer.write_mesh(rectangle)
             writer.write_function(uh)
-        (output / files["form_source"]).write_text(f"a = {forms['a']}\nL = {forms['L']}\nreference = {forms['references']}\nD axis = component rows of grad(u)\nerror_quadrature_degree = 8\n", encoding="utf-8")
+        (output / files["form_source"]).write_text(f"a = {forms['a']}\nL = {forms['L']}\nreference = {forms['references']}\nD axis = component rows of grad(u)\nerror_quadrature_degree = {None if selected else 8}\n", encoding="utf-8")
         study = {"cells_per_axis": n, "nominal_h": math.hypot(lx, ly)/n, "degree": 1, "cell_type": "triangle", "global_cells": rectangle.topology.index_map(2).size_global,
             "global_nodes": space.dofmap.index_map.size_global, "global_dofs": 2*space.dofmap.index_map.size_global, "dirichlet_nodes": len(union), "dirichlet_dofs": 2*len(union), "block_size": 2,
             "solution_sync_error": synchronization, "boundary_value_error": max(row["boundary_value_error"] for row in component_rows), "l2_error": l2, "h1_seminorm_error": h1,
-            "l2_convergence_rate": expression.error_rate(studies[-1]["l2_error"], l2) if studies else None,
-            "h1_seminorm_convergence_rate": expression.error_rate(studies[-1]["h1_seminorm_error"], h1) if studies else None, "components": component_rows,
+            "l2_convergence_rate": expression.error_rate(studies[-1]["l2_error"], l2) if studies and not selected else None,
+            "h1_seminorm_convergence_rate": expression.error_rate(studies[-1]["h1_seminorm_error"], h1) if studies and not selected else None, "components": component_rows,
             "region_coefficients": diffusion_values, "reaction_matrix": reaction_values, "region_cell_counts": {region: len(tags["cell_indices"][region]) for region in domain.REGIONS},
             "interface_facets": len(tags["interface"]["facet_ids"]), "linear_residual": residual_record, "ksp_convergence_reason": int(linear.solver.getConvergedReason()),
             "ksp_iterations": int(linear.solver.getIterationNumber()), "solver_policy": policy, "files": files, "artifact_sha256": {key: helpers._sha(output / relative) for key, relative in files.items()}}
@@ -303,6 +309,8 @@ def run_worker(input_path):
     helpers._save_json(output / "progress.json", {"schema_version": "1", "status": "COMPLETED", "completed": completed})
     result = {"schema_version": "1", "status": "COMPLETED", "spec_sha256": spec_sha, "source_manifest_sha256": manifest_sha, "mpi_size": comm.size, "scalar_type": "float64", "versions": versions,
               "petsc_initialization": initialization, "petsc_initialization_sha256": helpers._sha(output / "petsc_initialization.json"), "mesh_studies": studies}
+    if selected:
+        result.update(mode="selected_mesh", scope=domain.SELECTED_SCOPE, input_provenance=settings["input_provenance"])
     helpers._save_json(output / "worker_result.json", result)
     print(json.dumps({"status": "COMPLETED", "mesh_levels": len(studies), "versions": versions}, allow_nan=False))
     return result

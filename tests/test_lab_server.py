@@ -266,7 +266,7 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     client, service, _, _ = real_flow
     presets = client.request("/api/presets")
     assert set(presets) == {"structural_linear", "pde_selected", "pde_canonical", "pde_nonlinear", "pde_rectangle",
-                            "pde_transient_mesh", "pde_transient_time", "pde_vector_lame", "pde_vector_harmonic", "pde_coupled_interface", "pde_coupled_harmonic", "pde_imported_l_shape", "pde_imported_harmonic", "codeaster_linear",
+                            "pde_transient_mesh", "pde_transient_time", "pde_vector_lame", "pde_vector_harmonic", "pde_coupled_selected", "pde_coupled_interface", "pde_coupled_harmonic", "pde_imported_l_shape", "pde_imported_harmonic", "codeaster_linear",
                             "codeaster_plasticity", "plasticity_selected", "codeaster_geometric", "material_point", "material_inverse", "material_hyperelastic", "material_viscoelastic", "explicit_freefall",
                             "explicit_ground_stop", "explicit_compliant_stop", "explicit_selected", "explicit_selected_compliant"} | {
         f"family_{case}_{load}_{solver}" for case, load in (
@@ -301,6 +301,10 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
                and presets[key]["declared_inputs"] is False and "UNKNOWN" in presets[key]["scope"]
                for key in ("pde_vector_lame", "pde_vector_harmonic"))
     from plugins.pde_coupled.reference import manufactured_settings as coupled_spec
+    from plugins.pde_coupled.reference import selected_settings as coupled_selected
+    assert presets["pde_coupled_selected"]["settings"] == coupled_selected()
+    assert presets["pde_coupled_selected"]["declared_inputs"] is True
+    assert presets["pde_coupled_selected"]["operation"] == "pde_run"
     assert presets["pde_coupled_interface"]["settings"] == coupled_spec()
     assert presets["pde_coupled_harmonic"]["settings"] == coupled_spec(case="harmonic")
     assert all(presets[key]["operation"] == "pde_run" and presets[key]["backend"] == "pde.fenicsx.coupled"
@@ -456,7 +460,7 @@ def test_presets_advertise_complete_bindings_without_descriptor_or_runtime_calls
     presets = client.request("/api/presets")
     assert {key for key, value in presets.items() if value["declared_inputs"]} == {
         "codeaster_linear", "material_inverse", "explicit_freefall", "explicit_ground_stop",
-        "explicit_compliant_stop", "explicit_selected", "explicit_selected_compliant"}
+        "explicit_compliant_stop", "explicit_selected", "explicit_selected_compliant", "pde_coupled_selected"}
     # A source/runtime declaration alone is insufficient. A missing binding
     # must immediately withdraw the model from the UI's advertised choices.
     monkeypatch.setattr(adapters["material.mfront.inverse"], "bind_inputs", None)

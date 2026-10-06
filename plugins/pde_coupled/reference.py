@@ -12,7 +12,7 @@ else:
     from plugins.pde_elliptic import reference as rectangle
     from caelab.adapters import fenicsx_worker as expression
 
-VERSION = "1"
+VERSION = "1.1"
 COMPONENTS = ["u0", "u1"]
 REGIONS = ("left", "right")
 SIDES = rectangle.SIDES
@@ -25,6 +25,19 @@ LIMITATIONS = ["Dimensionless stationary two-scalar-field, component-axis SPD di
                "Prescribed operator flux D*grad(u)*normal is not physical Fick flux, full physical balance or material qualification.",
                "Cellwise P1 flux jumps are not forced to zero; no added interface load or pointwise flux-jump acceptance gate.",
                "Time/nonlinear/MPI/imported/Robin/partial-component models and engineering release remain unsupported or UNKNOWN."]
+SELECTED_SCOPE = "SELECTED_DIMENSIONLESS_TWO_COMPONENT_REGION_RECTANGLE"
+SELECTED_PENDING = ["reference_agreement", "mesh_convergence", "physical_validation", "model_qualification"]
+SELECTED_LIMITATIONS = [
+    "Selected dimensionless stationary two-scalar-field rectangle with regional component-axis SPD diffusion and common PSD reaction.",
+    "One even conforming P1 mesh shares original nodes across the x midpoint interface; whole-vector side conditions only.",
+    "Native full fields, region/interface/split-side topology, operator input traces, solver synchronization and constrained residual are checked.",
+    "No reference solution or mesh sweep is declared; reference errors/rates are null and agreement/sensitivity remain UNKNOWN.",
+    "Signed component extrema are original nodal u0/u1 observations, not displacement, temperature or a physical Fick field.",
+    "Prescribed D*grad(u)*normal is mathematical operator flux, not complete physical balance or heat-structure/material coupling.",
+    "Time/nonlinear/MPI/imported/Robin/partial-component models and engineering release remain unsupported or UNKNOWN.",
+]
+_REFERENCE_METRICS = ("l2_error", "h1_seminorm_error", "l2_convergence_rate", "h1_seminorm_convergence_rate")
+SELECTED_FIELD_METRICS = [f"component_{component}_field_{kind}" for component in range(2) for kind in ("min", "max")]
 
 
 def touching(side):
@@ -67,7 +80,7 @@ def _vector(value, label):
 
 def _trees(problem):
     return {"rhs": {region: _vector(problem["weak_form"]["rhs"][region], "regional RHS") for region in REGIONS},
-            "reference": {region: _vector(problem["reference"]["solution"][region], "regional reference") for region in REGIONS},
+            "reference": None if problem["reference"] is None else {region: _vector(problem["reference"]["solution"][region], "regional reference") for region in REGIONS},
             "boundaries": {side: {region: _vector(problem["boundaries"][side]["value"][region], "side vector") for region in touching(side)} for side in SIDES}}
 
 
@@ -80,7 +93,16 @@ def _value(tree, point):
 
 
 def validate_settings(settings):
-    _keys(settings, {"problem", "mesh", "validation"}, "coupled settings")
+    selected = isinstance(settings, dict) and "mode" in settings
+    _keys(settings, {"mode", "problem", "mesh", "validation", "input_provenance"} if selected else
+          {"problem", "mesh", "validation"}, "coupled settings")
+    if selected:
+        if settings["mode"] != "selected_mesh": raise PDEInputError("Explicit coupled mode must be selected_mesh")
+        source = _keys(settings["input_provenance"], {"origin", "reference"}, "declared input provenance")
+        if source["origin"] not in ("ASSUMED", "MEASURED_REPORTED", "PUBLISHED_REFERENCE", "SYNTHETIC"):
+            raise PDEInputError("Selected input origin must be explicitly declared")
+        if not isinstance(source["reference"], str) or not source["reference"].strip() or len(source["reference"]) > 2000:
+            raise PDEInputError("Selected input source reference must be nonempty and bounded")
     problem = _keys(settings["problem"], {"domain", "weak_form", "boundaries", "reference"}, "coupled problem")
     geometry = _keys(problem["domain"], {"type", "lengths", "interface"}, "coupled rectangle")
     lengths = geometry["lengths"]
@@ -95,9 +117,12 @@ def validate_settings(settings):
     _keys(weak["rhs"], REGIONS, "regional source")
     for region in REGIONS: _matrix(weak["diffusion"][region], "regional diffusion", positive=True)
     _matrix(weak["reaction"], "reaction")
-    reference = _keys(problem["reference"], {"solution", "source"}, "coupled reference")
-    _keys(reference["solution"], REGIONS, "regional reference")
-    if not isinstance(reference["source"], str) or not reference["source"].strip() or len(reference["source"]) > 2000: raise PDEInputError("A bounded reference source is required")
+    if selected:
+        if problem["reference"] is not None: raise PDEInputError("Selected reference must be null; no reference is constructed")
+    else:
+        reference = _keys(problem["reference"], {"solution", "source"}, "coupled reference")
+        _keys(reference["solution"], REGIONS, "regional reference")
+        if not isinstance(reference["source"], str) or not reference["source"].strip() or len(reference["source"]) > 2000: raise PDEInputError("A bounded reference source is required")
     _keys(problem["boundaries"], SIDES, "coupled sides")
     for side, boundary in problem["boundaries"].items():
         _keys(boundary, {"type", "value"}, "whole side")
@@ -106,10 +131,13 @@ def validate_settings(settings):
     if not any(boundary["type"] == "dirichlet" for boundary in problem["boundaries"].values()): raise PDEInputError("Pure Neumann is unsupported")
     mesh = _keys(settings["mesh"], {"cell_counts", "degree"}, "P1 mesh")
     counts = mesh["cell_counts"]
-    if (type(mesh["degree"]) is not int or mesh["degree"] != 1 or not isinstance(counts, list) or not 3 <= len(counts) <= 8 or
-            any(type(n) is not int or not 2 <= n <= 128 or n % 2 for n in counts) or any(b != 2*a for a, b in zip(counts, counts[1:]))):
-        raise PDEInputError("Even P1 mesh counts2..128 require3..8 successive doublings")
-    thresholds = _keys(settings["validation"], rectangle._VALIDATIONS, "numerical validation")
+    if (type(mesh["degree"]) is not int or mesh["degree"] != 1 or not isinstance(counts, list) or
+            (len(counts) != 1 if selected else not 3 <= len(counts) <= 8) or
+            any(type(n) is not int or not 2 <= n <= 128 or n % 2 for n in counts) or
+            (not selected and any(b != 2*a for a, b in zip(counts, counts[1:])))):
+        raise PDEInputError("Selected mesh requires one even P1 count2..128" if selected else
+                            "Even P1 mesh counts2..128 require3..8 successive doublings")
+    thresholds = _keys(settings["validation"], {"max_residual_relative"} if selected else rectangle._VALIDATIONS, "numerical validation")
     if any(not finite_number(value, positive=True) for value in thresholds.values()): raise PDEInputError("All numerical thresholds must be finite and positive")
     trees, (lx, ly) = _trees(problem), lengths
     for count in counts:
@@ -119,7 +147,7 @@ def validate_settings(settings):
                 point = (lx*i/count, ly*j/count)
                 for region in REGIONS:
                     if (region == "left" and i <= count//2) or (region == "right" and i >= count//2):
-                        for tree in trees["rhs"][region]+trees["reference"][region]: _value(tree, point)
+                        for tree in trees["rhs"][region]+(trees["reference"][region] if trees["reference"] is not None else []): _value(tree, point)
                 for side, selected in (("xmin", i == 0), ("xmax", i == count), ("ymin", j == 0), ("ymax", j == count)):
                     if not selected: continue
                     for region in touching(side):
@@ -130,6 +158,21 @@ def validate_settings(settings):
                                 raise PDEInputError("Conflicting corner/interface Dirichlet component data")
                             prescribed[point] = values
     return json.loads(json.dumps(settings, allow_nan=False))
+
+
+def selected_settings():
+    """Editable mathematical inputs, independent of manufactured references."""
+    return validate_settings({"mode": "selected_mesh",
+        "problem": {"domain": {"type": "rectangle", "lengths": [2., 1.], "interface": {"axis": 0, "fraction": .5}},
+            "weak_form": {"family": "coupled_diffusion", "diffusion": {"left": [[2., .5], [.5, 1.]], "right": [[4., -.5], [-.5, 2.]]},
+                          "reaction": [[0., 0.], [0., 0.]], "rhs": {"left": ["1", "-0.5"], "right": ["2", "1"]}},
+            "boundaries": {"xmin": {"type": "dirichlet", "value": {"left": ["0", "0"]}},
+                           "xmax": {"type": "dirichlet", "value": {"right": ["0", "0"]}},
+                           "ymin": {"type": "neumann", "value": {"left": ["0", "0"], "right": ["0", "0"]}},
+                           "ymax": {"type": "neumann", "value": {"left": ["0", "0"], "right": ["0", "0"]}}},
+            "reference": None},
+        "mesh": {"cell_counts": [16], "degree": 1}, "validation": {"max_residual_relative": 1e-10},
+        "input_provenance": {"origin": "ASSUMED", "reference": "Editable assumed dimensionless mathematical inputs; no physical material interpretation"}})
 
 
 def manufactured_settings(case="polynomial", diffusions=None, reaction=None, lengths=(2., 1.)):
@@ -176,7 +219,7 @@ def manufactured_settings(case="polynomial", diffusions=None, reaction=None, len
 def model_declaration(settings):
     settings = validate_settings(settings)
     problem, weak = settings["problem"], settings["problem"]["weak_form"]
-    return {"case": "rectangle_coupled_diffusion", "version": VERSION,
+    declaration = {"case": "rectangle_coupled_diffusion", "version": VERSION,
             "model": {"geometry": {"type": "rectangle", "dimensions": copy.deepcopy(problem["domain"]["lengths"]), "origin": [0., 0.], "unit": "1",
                                     "interface": copy.deepcopy(problem["domain"]["interface"]), "regions": list(REGIONS)},
                       "mesh": {**copy.deepcopy(settings["mesh"]), "cell_type": "triangle", "space": "vector_lagrange", "components": list(COMPONENTS), "block_size": 2}},
@@ -186,6 +229,69 @@ def model_declaration(settings):
                     "expression": copy.deepcopy(problem["boundaries"][side]["value"]), "components": list(COMPONENTS), "unit": "1", "neumann_semantics": "D*grad(u)*outward_normal"} for side in SIDES],
             "loads": [{"type": "regional_source", "region": region, "expression": list(weak["rhs"][region]), "components": list(COMPONENTS), "unit": "1"} for region in REGIONS],
             "outputs": {"fields": [{"field": "u", "type": "vector", "components": list(COMPONENTS), "unit": "1"}]}, "reference": copy.deepcopy(problem["reference"])}
+    if settings.get("mode") == "selected_mesh":
+        declaration.update(mode="selected_mesh", scope=SELECTED_SCOPE,
+                           input_provenance=copy.deepcopy(settings["input_provenance"]))
+    return declaration
+
+
+def describe_inputs(settings):
+    """Bounded selected scalar locations; off-diagonal mirrors are explicit.
+
+    ``settings_mirrors`` is a candidate additive Core descriptor seam. Core
+    must independently apply/verify the frozen mirror locations before these
+    descriptors are admitted to public DOE/DE. Matrix bounds here are a
+    parameterization resource envelope, not SPD/PSD or engineering criteria;
+    full scientific admission is repeated after every simultaneous binding.
+    """
+    s = validate_settings(settings)
+    if s.get("mode") != "selected_mesh":
+        raise PDEInputError("Declared scalar bindings require the opt-in selected_mesh mode")
+    descriptors = [{"id": f"length_{axis}", "label": f"Dimensionless rectangle length {axis}", "unit": "1",
+        "value": value, "lower": .001, "upper": 1000., "settings_path": ["problem", "domain", "lengths", axis],
+        "declaration_paths": [["model", "geometry", "dimensions", axis]]}
+        for axis, value in enumerate(s["problem"]["domain"]["lengths"])]
+    for region in REGIONS:
+        for i, j in ((0, 0), (0, 1), (1, 1)):
+            value = s["problem"]["weak_form"]["diffusion"][region][i][j]
+            item = {"id": f"diffusion_{region}_{i}{j}", "label": f"{region} component diffusion D{i}{j}" + (" = D10" if i != j else ""),
+                "unit": "1", "value": value, "lower": 1e-6 if i == j else -1e6, "upper": 1e6,
+                "settings_path": ["problem", "weak_form", "diffusion", region, i, j],
+                "declaration_paths": [["constitutive_law", "diffusion", region, "value", i, j]]}
+            if i != j:
+                item["settings_mirrors"] = [["problem", "weak_form", "diffusion", region, j, i]]
+                item["declaration_paths"].append(["constitutive_law", "diffusion", region, "value", j, i])
+            descriptors.append(item)
+    for i, j in ((0, 0), (0, 1), (1, 1)):
+        item = {"id": f"reaction_{i}{j}", "label": f"Common component reaction R{i}{j}" + (" = R10" if i != j else ""),
+            "unit": "1", "value": s["problem"]["weak_form"]["reaction"][i][j], "lower": 0. if i == j else -1e6, "upper": 1e6,
+            "settings_path": ["problem", "weak_form", "reaction", i, j],
+            "declaration_paths": [["constitutive_law", "reaction", "value", i, j]]}
+        if i != j:
+            item["settings_mirrors"] = [["problem", "weak_form", "reaction", j, i]]
+            item["declaration_paths"].append(["constitutive_law", "reaction", "value", j, i])
+        descriptors.append(item)
+    if any(not item["lower"] <= item["value"] <= item["upper"] for item in descriptors):
+        raise PDEInputError("Selected input lies outside the bounded scalar binding envelope")
+    return descriptors
+
+
+def bind_inputs(settings, values):
+    s = copy.deepcopy(validate_settings(settings))
+    descriptors = {item["id"]: item for item in describe_inputs(s)}
+    if type(values) is not dict or not values or not set(values) <= set(descriptors):
+        raise PDEInputError("Assignments must name advertised selected scalar inputs")
+    for identifier, value in values.items():
+        item = descriptors[identifier]
+        _number(value, "bound " + identifier)
+        if not item["lower"] <= value <= item["upper"]: raise PDEInputError("Assignment exceeds the scalar input envelope")
+        for path in [item["settings_path"], *item.get("settings_mirrors", [])]:
+            cursor = s
+            for key in path[:-1]: cursor = cursor[key]
+            cursor[path[-1]] = value
+    # Do not repair/clamp a matrix or manufacture reference/RHS terms after a
+    # change. The simultaneous declared inputs must still establish SPD/PSD.
+    return validate_settings(s)
 
 
 def _directed_rows(rows, count, label):
@@ -298,6 +404,7 @@ def _coefficient_observations(settings, study):
 
 def assess(settings, studies, native_fields, bindings):
     settings = validate_settings(settings)
+    selected = settings.get("mode") == "selected_mesh"
     counts, trees = settings["mesh"]["cell_counts"], _trees(settings["problem"])
     if not all(isinstance(rows, list) and len(rows) == len(counts) for rows in (studies, native_fields, bindings)): raise PDEInputError("Complete coupled mesh history/fields/bindings required")
     observed, boundary_pass, sync, residuals, reasons = copy.deepcopy(studies), [], [], [], []
@@ -317,15 +424,20 @@ def assess(settings, studies, native_fields, bindings):
         for component, row in enumerate(components):
             _keys(row, {"index", "field", "l2_error", "h1_seminorm_error", "l2_convergence_rate", "h1_seminorm_convergence_rate", "boundary_value_error"}, "component diagnostic")
             if type(row["index"]) is not int or row["index"] != component or row["field"] != COMPONENTS[component]: raise PDEInputError("Component diagnostic order mismatch")
-            for name in ("l2_error", "h1_seminorm_error", "boundary_value_error"): _number(row[name], name, nonnegative=True)
+            _number(row["boundary_value_error"], "boundary_value_error", nonnegative=True)
+            if selected:
+                if any(row[name] is not None for name in _REFERENCE_METRICS): raise PDEInputError("Selected component reference diagnostics must all be null")
+            else:
+                for name in ("l2_error", "h1_seminorm_error"): _number(row[name], name, nonnegative=True)
             _same(row["boundary_value_error"], errors[component], "native/independent component boundary error")
-            for name, rate in (("l2_error", "l2_convergence_rate"), ("h1_seminorm_error", "h1_seminorm_convergence_rate")):
+            for name, rate in (() if selected else (("l2_error", "l2_convergence_rate"), ("h1_seminorm_error", "h1_seminorm_convergence_rate"))):
                 expected = expression.error_rate(observed[index-1]["components"][component][name], row[name]) if index else None
                 if expected is None:
                     if row[rate] is not None: raise PDEInputError("First/zero component error cannot establish rate")
                 else: _same(row[rate], expected, "component refinement rate")
         _same(study["boundary_value_error"], max(errors), "aggregate boundary error")
-        for name, rate in (("l2_error", "l2_convergence_rate"), ("h1_seminorm_error", "h1_seminorm_convergence_rate")):
+        if selected and any(study[name] is not None for name in _REFERENCE_METRICS): raise PDEInputError("Selected aggregate reference diagnostics must all be null")
+        for name, rate in (() if selected else (("l2_error", "l2_convergence_rate"), ("h1_seminorm_error", "h1_seminorm_convergence_rate"))):
             _number(study[name], name, nonnegative=True)
             _same(study[name], math.hypot(*(row[name] for row in components)), "component/aggregate norm")
             expected = expression.error_rate(observed[index-1][name], study[name]) if index else None
@@ -341,7 +453,8 @@ def assess(settings, studies, native_fields, bindings):
             _ordered_ids(row["cell_ids"], region_cells[region], "bound region cells", 2*n*n)
             _ordered_ids(row["node_ids"], region_nodes[region], "bound region nodes", (n+1)**2)
             if _matrix(row["diffusion"], "bound diffusion", positive=True) != settings["problem"]["weak_form"]["diffusion"][region] or _matrix(row["reaction"], "bound reaction") != settings["problem"]["weak_form"]["reaction"]: raise PDEInputError("Bound input matrix differs from declaration")
-            for key, parsed in (("rhs_values", trees["rhs"][region]), ("reference_values", trees["reference"][region])):
+            if selected and row["reference_values"] is not None: raise PDEInputError("Selected reference binding must be null, not invented values")
+            for key, parsed in (("rhs_values", trees["rhs"][region]),) if selected else (("rhs_values", trees["rhs"][region]), ("reference_values", trees["reference"][region])):
                 rows = _directed_rows(row[key], len(row["node_ids"]), "regional source/reference")
                 for node, values in zip(row["node_ids"], rows):
                     for component in range(2): _same(values[component], _value(parsed[component], xyz[node]), "regional/interface RHS/reference trace")
@@ -355,6 +468,31 @@ def assess(settings, studies, native_fields, bindings):
         if residual["normalization"] != ("rhs_l2_norm" if residual["rhs_norm"] else "absolute_for_zero_rhs") or not finite_number(expected) or not math.isclose(residual["relative"], expected, rel_tol=1e-12, abs_tol=0.): raise PDEInputError("Actual constrained residual normalization inconsistent")
         residuals.append(expected)
     fine, limits = observed[-1], settings["validation"]
+    if selected:
+        numerical = [("pde_boundary_and_mesh", all(boundary_pass), None, "Complete region/interface/split-side geometry and directed Dirichlet data"),
+            ("pde_solution_sync", all(sync), [row["solution_sync_error"] for row in observed], "Actual scalar-DOF x/Function abs/rel1e-12"),
+            ("pde_solver_convergence", all(reason > 0 for reason in reasons), reasons, "Positive KSP reason"),
+            ("pde_linear_residual", max(residuals) <= limits["max_residual_relative"], residuals, limits["max_residual_relative"])]
+        checks = [{"code": code, "status": "PASS" if passed else "FAIL", "observed": value, "limit": limit} for code, passed, value, limit in numerical]
+        passed = all(row["status"] == "PASS" for row in checks)
+        failures = ", ".join(row["code"] for row in checks if row["status"] == "FAIL")
+        actual = {"linear_residual_relative": max(residuals)}
+        for component in range(2):
+            values = [row[component] for row in native_fields[0]["values"]]
+            actual[f"component_{component}_field_min"] = min(values)
+            actual[f"component_{component}_field_max"] = max(values)
+        metrics = {name: {"value": value, "unit": "1", "valid": passed,
+                   **({"reason": f"Selected coupled numerical validation failed: {failures}"} if not passed else {})} for name, value in actual.items()}
+        metrics.update({name: {"value": None, "unit": "1", "valid": False,
+                       "reason": "Not evaluated: selected_mesh supplies no reference solution or mesh sweep"}
+                       for name in (*_REFERENCE_METRICS, *[f"component_{component}_{name}" for component in range(2) for name in ("l2_error", "h1_seminorm_error")])})
+        return {"checks": checks, "metrics": metrics, "mesh_studies": observed,
+            "reference": {"status": "UNKNOWN", "solution": None, "source": None, "components": list(COMPONENTS),
+                          "family": "coupled_diffusion", "error_quadrature_degree": None,
+                          "diffusion_axis": "component_rows_of_grad_u", "h1_semantics": None,
+                          "interface_semantics": "CG shared value and natural operator-flux continuity; no dS load"},
+            "pending_validations": list(SELECTED_PENDING), "limitations": list(SELECTED_LIMITATIONS),
+            "scope": SELECTED_SCOPE, "input_provenance": copy.deepcopy(settings["input_provenance"])}
     rates = {name: [value for study in observed[1:] for value in [study[name], *[row[name] for row in study["components"]]]] for name in ("l2_convergence_rate", "h1_seminorm_convergence_rate")}
     conditions = [("pde_boundary_and_mesh", all(boundary_pass), None, "Complete region/interface/split-side geometry and directed Dirichlet data"),
         ("pde_solution_sync", all(sync), [row["solution_sync_error"] for row in observed], "Actual scalar-DOF x/Function abs/rel1e-12"),

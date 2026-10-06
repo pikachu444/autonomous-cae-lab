@@ -433,7 +433,15 @@ def _model_experiment(lab, plan, item, allow_run, verified):
         if verified is not None:
             verified[identifier] = result
     proposal = load_json(folder / "proposal.json")
-    extension = proposal["extensions"].get("model_analysis", {})
+    # Declared PDE models retain their native family namespace.  Both records
+    # must identify the same, unambiguous declared-model context; do not infer
+    # it from whichever adapter happens to be installed during a later read.
+    namespaces = set(proposal["extensions"]) & {"model_analysis", "pde"}
+    if (len(namespaces) != 1 or
+            namespaces != (set(result["extensions"]) & {"model_analysis", "pde"})):
+        raise ValueError("Model experiment has an ambiguous or changed family context")
+    namespace = next(iter(namespaces))
+    extension = proposal["extensions"][namespace]
     if (result.get("campaign_id") != plan["campaign_id"] or result["input_parameters"] != item["values"] or
             result.get("registry_revision") != plan["registry_revision"] or
             result["provenance"].get("registry_sha256") != plan["registry_sha256"] or
@@ -442,7 +450,7 @@ def _model_experiment(lab, plan, item, allow_run, verified):
             result["provenance"].get("core_source_sha256") != plan["core_source_sha256"] or
             result.get("parent_experiment_id") is not None or result["cad_revision"] is not None or
             result.get("model_revision") != item["model_revision"] or
-            result["extensions"].get("model_analysis", {}).get("declaration", {}) != item["model_declaration"] or
+            result["extensions"][namespace].get("declaration", {}) != item["model_declaration"] or
             proposal["study_id"] != plan["study_id"] or proposal.get("campaign_id") != plan["campaign_id"] or
             proposal.get("parent_experiment_id") is not None or proposal["parameters"] != item["values"] or
             canonical_hash(proposal["execution"]) != canonical_hash(item["model_settings"]) or

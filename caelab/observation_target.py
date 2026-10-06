@@ -14,13 +14,13 @@ def _numeric_template(settings, descriptors):
     from .model_parameters import _finite, _leaf, _validated_inputs
     value = deepcopy(settings)
     for descriptor in _validated_inputs(deepcopy(descriptors)):
-        parent, key, scalar = _leaf(value, descriptor['settings_path'])
-        if not _finite(scalar) or not descriptor['lower'] <= scalar <= descriptor['upper']:
-            raise ValueError('Observed model template has an invalid advertised scalar')
-        # Converting an integral float to int preserves its exact numeric value.
-        # Converting arbitrary ints to float could silently round large values.
-        if type(scalar) is float and scalar.is_integer():
-            parent[key] = int(scalar)
+        for path in [descriptor['settings_path'], *descriptor.get('settings_mirrors', [])]:
+            parent, key, scalar = _leaf(value, path)
+            if not _finite(scalar) or not descriptor['lower'] <= scalar <= descriptor['upper']:
+                raise ValueError('Observed model template has an invalid advertised scalar')
+            # Integral-float normalization never rounds arbitrary large ints.
+            if type(scalar) is float and scalar.is_integer():
+                parent[key] = int(scalar)
     return canonical_hash(value)
 
 
@@ -53,7 +53,8 @@ def freeze(lab, plan, comparison_id):
             'numeric_value_sha256': planned_template,
             'scope': 'Finite advertised scalar int/integral-float leaves only; no unit, axis or other setting conversion'}
         selected = {v['native']['path'] for v in plan['variables']}
-        varied = [[str(k) for k in d['settings_path']] for d in plan['model_input_descriptors'] if d['id'] in selected]
+        varied = [[str(k) for k in path] for d in plan['model_input_descriptors'] if d['id'] in selected
+                  for path in [d['settings_path'], *d.get('settings_mirrors', [])]]
         for condition in request['observation']['conditions']:
             path = condition['path']
             if (condition['source'] == 'input_parameters' and path[0] in {v['parameter_id'] for v in plan['variables']}

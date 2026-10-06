@@ -406,6 +406,30 @@ def campaign_report_inspect(report_id: str) -> dict:
 
 
 @mcp.tool()
+def multiobjective_inspect(parent_id: str) -> dict:
+    """Read verified epsilon-child results, original vectors and retained UNKNOWNs."""
+    return _lab().inspect_multiobjective(parent_id)
+
+
+@mcp.tool()
+@_single_writer
+def multiobjective_plan(parent_id: str, template_campaign_id: str, objectives: list[dict],
+                        primary_index: int, threshold_grid: list[list[dict]], child_budget: dict,
+                        seed: int, total_evaluation_budget: int) -> dict:
+    """Coordinate explicit epsilon constraints with the existing frozen Core/DE engine."""
+    return _lab().plan_multiobjective(parent_id=parent_id, template_campaign_id=template_campaign_id,
+        objectives=objectives, primary_index=primary_index, threshold_grid=threshold_grid,
+        child_budget=child_budget, seed=seed, total_evaluation_budget=total_evaluation_budget)
+
+
+@mcp.tool()
+@_single_writer
+def multiobjective_run(parent_id: str) -> dict:
+    """Run or resume only original owned epsilon children; preserve invalid/excluded rows."""
+    return _lab().run_multiobjective(parent_id)
+
+
+@mcp.tool()
 @_single_writer
 def model_doe_plan(study_id: str, campaign_id: str, backend: str, settings: dict,
                    parameter_ids: list[str], sample_count: int, seed: int) -> dict:

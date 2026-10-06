@@ -1,3 +1,19 @@
+## Scope status — bounded Phase7 extensions (ADR0055)
+
+| Requirement group | Current advance | Remaining scope |
+|---|---|---|
+| R18/R31 distribution/UQ | Actual original8-native declared uniform threshold/report/reopening; signed4/8 and moments independently match | Measured distribution/physical probability, wider designs and Sobol remain OPEN |
+| R31 multiobjective | Actual17 native epsilon-constraint search via existing DE; original vectors, budget and finite Pareto archive | Wider objective families/global convergence/physical acceptance remain OPEN |
+| R16/R31 coupling ports | Selected two-field native/full-field comparison and corrected generic DOE2 with symmetric input mirrors | General solver-to-solver/physical multiphysics remain OPEN |
+| R11/R31/R35 execution | Source-only executor candidate retained; actual Windows atomic-record controls pass | Native official activation, reconnect/general cancellation, actual SSH/HPC remain OPEN |
+
+These are bounded software advances, not complete requirement-group or Phase
+verdicts. Original52 sections/history remain below. Whole52/Phase1–7 incomplete;
+physical/material/strength/durability/company UNKNOWN/NOT_RELEASED. New interpretation
+NOT_RUN; final bundle review corrected two integration P2 findings; publication pending. See record20261007-phase7-extension-r01.
+
+---
+
 ## Current checkpoint — common numerical research bundle (ADR0054)
 
 Actual same-study workflow: declared model variable -> seeded DOE8 native ->

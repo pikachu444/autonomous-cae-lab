@@ -36,6 +36,7 @@ OPERATIONS = {
     "model_optimization_plan": "plan_model_optimization",
     "model_doe_plan": "plan_model_doe", "condition_doe_plan": "plan_condition_doe",
     "campaign_report_create": "create_campaign_report",
+    "multiobjective_plan": "plan_multiobjective", "multiobjective_run": "run_multiobjective",
     "condition_parameters_discover": "discover_condition_parameters",
     "condition_parameters_register": "register_condition_parameter",
     "condition_optimization_plan": "plan_condition_optimization",
@@ -215,6 +216,8 @@ class LabService:
             "model_doe_plan": ("해석 모델 DOE 계획", "scipy.latin_hypercube", "IMPLEMENTED", "같은 모델 선언·native 입력·환경을 동결한 조건 표본"),
             "condition_doe_plan": ("고정 CAD 조건 DOE 계획", "scipy.latin_hypercube", "IMPLEMENTED", "원 CAD와 면을 유지한 재료·하중 표본"),
             "campaign_report_create": ("탐색 연구 보고서", "NumPy / SciPy", "IMPLEMENTED", "원 응답·표본 통계·회귀 감도·보류 검증 surrogate·비지배 후보 archive"),
+            "multiobjective_plan": ("다목적 절충 계획", "scipy.differential_evolution", "EXPERIMENTAL", "같은 고정 모델의 명시한 목표·epsilon 한계·전체 예산"),
+            "multiobjective_run": ("다목적 절충 탐색", "scipy.differential_evolution", "EXPERIMENTAL", "기존 수치 엔진의 실제 자식 탐색·원 응답·비지배 후보; 전역 최적해나 release 아님"),
             "condition_parameters_discover": ("고정 CAD의 조건 입력 찾기", "structure.calculix.native", "EXPERIMENTAL", "같은 CAD 개정의 재료 E·ν와 명시한 힘 성분; engineering UNKNOWN"),
             "condition_parameters_register": ("조건 연구 변수 등록", "structure.calculix.native", "EXPERIMENTAL", "원 CAD·면·조건 출처를 보존하는 선언 수치 입력"),
             "condition_optimization_plan": ("고정 CAD 조건 탐색 계획", "scipy.differential_evolution", "EXPERIMENTAL", "CAD를 재생성하지 않고 조건 후보·실제 native 자식·결과 비교; AI 실행 admission은 별도"),
@@ -268,13 +271,13 @@ class LabService:
             except Exception as exc:
                 row["error"] = self._error(exc)
             experiments.append(row)
-        for namespace, kind in (("campaigns", "doe"), ("optimizations", "optimization")):
+        for namespace, kind in (("campaigns", "doe"), ("optimizations", "optimization"), ("multiobjective", "multiobjective")):
             for folder in self._folders(selected, namespace):
                 row = {"id": folder.name, "type": kind, "study_id": None}
                 try:
                     check_id(folder.name)
                     plan = load_json(contained(selected.path, f"{namespace}/{folder.name}/plan.json"))
-                    row["study_id"] = plan["study_id"]
+                    row["study_id"] = (plan['template_plan']['study_id'] if kind == 'multiobjective' else plan['study_id'])
                 except Exception as exc:
                     row["error"] = self._error(exc)
                 campaigns.append(row)
@@ -373,7 +376,7 @@ class LabService:
     def _campaign(self, selected: Store, identifier: str) -> tuple[str, Path]:
         check_id(identifier)
         matches = [(kind, contained(selected.path, f"{namespace}/{identifier}"))
-                   for namespace, kind in (("campaigns", "doe"), ("optimizations", "optimization"))]
+                   for namespace, kind in (("campaigns", "doe"), ("optimizations", "optimization"), ("multiobjective", "multiobjective"))]
         matches = [(kind, path) for kind, path in matches if path.is_dir()]
         if len(matches) != 1:
             raise ServiceError(404 if not matches else 409, "Campaign is missing or its ID is ambiguous")
@@ -410,6 +413,10 @@ class LabService:
 
     def campaign(self, identifier: str) -> dict:
         selected = self._selected()
+        kind, _ = self._campaign(selected, identifier)
+        if kind == 'multiobjective':
+            verified = selected.lab.inspect_multiobjective(identifier)
+            return {'type': kind, **verified, 'response_catalogue': []}
         from .reporting import recheck_records
         kind, records = self._campaign_preflight(selected, identifier, with_records=True)
         _kind, folder = self._campaign(selected, identifier)
@@ -423,7 +430,12 @@ class LabService:
                 or ('plan' in record and record['plan'] != plan)
                 or ('plan_sha256' in record and record['plan_sha256'] != hashlib.sha256(plan_raw).hexdigest())):
             raise ValueError('Campaign plan changed while reopening the verified results')
+        adapters = {**selected.lab.adapters, **selected.lab.analysis_adapters, **selected.lab.model_analysis_adapters}
+        response_backend = (plan['backend'] if plan.get('route') == 'model_analysis'
+                            else plan['analysis']['backend'] if plan.get('analysis') else plan['backend'])
+        adapter = adapters.get(response_backend)
         return {"type": kind, "record": record, 'plan': plan,
+                'response_catalogue': list(adapter.default_metrics) if adapter else [],
                 'reports': selected.lab.campaign_reports(identifier)}
 
     def campaign_report(self, identifier: str) -> dict:
@@ -482,7 +494,7 @@ class LabService:
         from plugins.pde_elliptic.reference import manufactured_settings as rectangle_pde_specification, selected_settings as selected_pde_specification
         from plugins.pde_transient.reference import manufactured_settings as transient_pde_specification
         from plugins.pde_vector.reference import manufactured_settings as vector_pde_specification
-        from plugins.pde_coupled.reference import manufactured_settings as coupled_pde_specification
+        from plugins.pde_coupled.reference import manufactured_settings as coupled_pde_specification, selected_settings as selected_coupled_specification
         from caelab.adapters.fenicsx_imported import manufactured_settings as imported_pde_specification
         from scripts.verify_codeaster import specification as codeaster_specification
         from scripts.verify_plasticity import specification as plasticity_specification
@@ -529,6 +541,9 @@ class LabService:
             "pde_vector_harmonic": {"operation": "pde_run", "backend": "pde.fenicsx.vector", "label": "두 성분 벡터 약형 — 원항 없는 기준식",
                 "status": "EXPERIMENTAL", "scope": "원항이 없는 기준식으로 벡터 방향·전체 필드·수렴을 확인; 실제 연구 연결과 물리 자격 UNKNOWN",
                 "settings": vector_pde_specification(case="harmonic")},
+            "pde_coupled_selected": {"operation": "pde_run", "backend": "pde.fenicsx.coupled", "label": "두 필드 연계 · 영역 계수·경계값 직접 입력",
+                "status": "USER_DECLARED_INPUTS", "scope": "무차원 정상 두 필드의 영역별 확산·공통 반응·경계값과 선택 메시 하나; 열·구조 연성이나 물리 자격을 부여하지 않음",
+                "settings": selected_coupled_specification()},
             "pde_coupled_interface": {"operation": "pde_run", "backend": "pde.fenicsx.coupled", "label": "두 영역의 결합 방정식 — 재료 경계",
                 "status": "EXPERIMENTAL", "scope": "두 변수의 결합과 재료 경계 양쪽의 필드·하중을 보존; 실제 연구 연결과 물리 자격 UNKNOWN",
                 "settings": coupled_pde_specification()},
@@ -600,7 +615,9 @@ class LabService:
         adapters = self._selected().lab.model_analysis_adapters
         for preset in presets.values():
             adapter = adapters.get(preset["backend"])
-            preset["declared_inputs"] = (preset["operation"] == "model_analysis_run" and
+            supported_entry = preset["operation"] == "model_analysis_run" or (
+                preset["operation"] == "pde_run" and preset["settings"].get("mode") == "selected_mesh")
+            preset["declared_inputs"] = (supported_entry and
                 adapter is not None and all(callable(getattr(adapter, name, None)) for name in
                     ("describe_model", "describe_inputs", "bind_inputs", "input_runtime_identity")) and
                 isinstance(getattr(adapter, "input_source_files", None), (list, tuple)) and
@@ -733,14 +750,17 @@ class LabService:
             if value is not None and (not isinstance(value, str) or not value or len(value) > 512
                                       or any(char in value for char in ("/", "\\", "\x00", ":"))):
                 raise ValueError(f"{key} must be an existing native object/dimension name")
-        for key in ("study_id", "experiment_id", "parent_experiment_id", "campaign_id", "parameter_id", "hypothesis_id", "comparison_id", "conditions_id", "report_id"):
+        for key in ("study_id", "experiment_id", "parent_experiment_id", "campaign_id", "parameter_id", "hypothesis_id", "comparison_id", "conditions_id", "report_id", "parent_id", "template_campaign_id"):
             if arguments.get(key) is not None:
                 check_id(arguments[key])
-        for namespace in ("studies", "experiments", "ledger", "campaigns", "optimizations", "native_designs", "response_comparisons", "native_imports", "analysis_conditions", "campaign_reports"):
+        for namespace in ("studies", "experiments", "ledger", "campaigns", "optimizations", "native_designs", "response_comparisons", "native_imports", "analysis_conditions", "campaign_reports", "multiobjective"):
             contained(selected.path, namespace)
         for key, namespace in (("study_id", "studies"), ("experiment_id", "experiments"),
                                ("parent_experiment_id", "experiments"), ("comparison_id", "response_comparisons"),
                                ("conditions_id", "analysis_conditions"), ("report_id", "campaign_reports")):
+            if arguments.get(key):
+                contained(selected.path, f"{namespace}/{arguments[key]}")
+        for key, namespace in (("parent_id", "multiobjective"), ("template_campaign_id", "optimizations")):
             if arguments.get(key):
                 contained(selected.path, f"{namespace}/{arguments[key]}")
         if arguments.get("campaign_id"):
@@ -770,6 +790,8 @@ class LabService:
                     verified_record(selected.lab, arguments["parent_experiment_id"])
                 elif operation in {"doe_run", "optimization_run", "campaign_report_create"}:
                     self._campaign_preflight(selected, arguments["campaign_id"])
+                elif operation == 'multiobjective_plan':
+                    self._campaign_preflight(selected, arguments['template_campaign_id'])
                 check_cancelled()
                 if operation == "research_run":
                     options = {"cancellation_requested": lambda: token.requested}

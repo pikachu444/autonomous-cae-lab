@@ -117,6 +117,11 @@ class Lab:
                     MFrontMaterialAdapter, MFrontInverseAdapter, MFrontHyperelasticAdapter,
                     MFrontViscoelasticAdapter, OpenRadiossAdapter)
             }
+            # Explicit parameterized PDE opt-ins use the same frozen numerical
+            # bindings while retaining their PDE native artifact namespace.
+            model_analysis_adapters.update({key: adapter for key, adapter in pde_adapters.items()
+                if getattr(adapter, 'pde_model_declaration', False) is True and all(
+                    callable(getattr(adapter, method, None)) for method in ('describe_inputs', 'bind_inputs', 'input_runtime_identity'))})
         self.model_analysis_adapters = model_analysis_adapters
 
     @_registration_guard
@@ -904,6 +909,18 @@ class Lab:
         from .campaign_report import list_reports
         return list_reports(self, campaign_id)
 
+    def plan_multiobjective(self, **arguments) -> dict:
+        from .multiobjective import create
+        return create(self, **arguments)
+
+    def run_multiobjective(self, parent_id: str) -> dict:
+        from .multiobjective import run
+        return run(self, parent_id)
+
+    def inspect_multiobjective(self, parent_id: str) -> dict:
+        from .multiobjective import inspect
+        return inspect(self, parent_id)
+
     def inspect_optimization(self, campaign_id: str) -> dict:
         from .optimization import inspect_optimization
         return inspect_optimization(self, campaign_id)
@@ -920,9 +937,10 @@ class Lab:
                            objectives: list | None = None, constraints: list | None = None,
                            binding: dict | None = None) -> dict:
         from .declared_model import run_declared_model
+        pde = backend in self.pde_adapters and backend in self.model_analysis_adapters
         return run_declared_model(self, study_id=study_id, experiment_id=experiment_id,
                                   backend=backend, settings=settings, hypothesis_id=hypothesis_id,
-                                  adapters=self.model_analysis_adapters, namespace="model_analysis",
-                                  output_directory="simulation", description=True,
+                                  adapters=self.model_analysis_adapters, namespace="pde" if pde else "model_analysis",
+                                  output_directory="pde" if pde else "simulation", description=True,
                                   campaign_id=campaign_id, values=values,
                                   objectives=objectives, constraints=constraints, binding=binding)

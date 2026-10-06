@@ -61,7 +61,26 @@ function Write-OpenScienceJson([string]$Path, $Value, [switch]$CreateNew) {
         $temporary = "$Path.$([Guid]::NewGuid().ToString('N')).tmp"
         try {
             Write-OpenScienceJson -Path $temporary -Value $Value -CreateNew
-            [IO.File]::Move($temporary, $Path, $true)
+            $publication = [Diagnostics.Stopwatch]::StartNew()
+            while ($true) {
+                $replacing = [IO.File]::Exists($Path)
+                try {
+                    # Windows Move(overwrite) can deny access even when a reader
+                    # shares Delete. Replace preserves that reader's old handle.
+                    if ($replacing) { [IO.File]::Replace($temporary, $Path, [NullString]::Value) }
+                    else { [IO.File]::Move($temporary, $Path) }
+                    break
+                } catch {
+                    $failure = $_.Exception.GetBaseException()
+                    $code = $failure.HResult -band 0xffff
+                    $sharing = $IsWindows -and $failure -is [IO.IOException] -and $code -in @(32, 33)
+                    $appeared = -not $replacing -and $failure -is [IO.IOException] -and $code -in @(80, 183) -and [IO.File]::Exists($Path)
+                    $disappeared = $replacing -and $failure -is [IO.IOException] -and $code -eq 2 -and
+                        [IO.File]::Exists($temporary) -and -not [IO.File]::Exists($Path)
+                    if (-not ($sharing -or $appeared -or $disappeared) -or $publication.ElapsedMilliseconds -ge 2000) { throw }
+                    [Threading.Thread]::Sleep(25)
+                }
+            }
         } finally { if ([IO.File]::Exists($temporary)) { [IO.File]::Delete($temporary) } }
     }
 }
@@ -97,12 +116,32 @@ function ConvertFrom-OpenScienceJsonElement([Text.Json.JsonElement]$Element) {
 }
 
 function Read-OpenScienceJson([string]$Path) {
-    $content = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop
-    if ((Get-Command ConvertFrom-Json -CommandType Cmdlet).Parameters.ContainsKey('DateKind')) {
-        return $content | ConvertFrom-Json -AsHashtable -Depth 40 -DateKind String -ErrorAction Stop
+    $opening = [Diagnostics.Stopwatch]::StartNew()
+    while ($true) {
+        try {
+            $stream = [IO.FileStream]::new($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read,
+                ([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete))
+            break
+        } catch {
+            $failure = $_.Exception.GetBaseException()
+            $code = $failure.HResult -band 0xffff
+            # Windows replacement can briefly race a name-open (code 2).
+            # Persistent missing, sharing and lock errors still fail at the bound.
+            if (-not ($IsWindows -and $failure -is [IO.IOException] -and $code -in @(2, 32, 33)) -or
+                $opening.ElapsedMilliseconds -ge 2000) { throw }
+            [Threading.Thread]::Sleep(25)
+        }
     }
-    $document = [Text.Json.JsonDocument]::Parse($content)
-    try { return ConvertFrom-OpenScienceJsonElement $document.RootElement } finally { $document.Dispose() }
+    try {
+        # Parse the same opened generation; never reopen a path mid-read. The
+        # converter retains exact strings and refuses duplicate property names.
+        $options = [Text.Json.JsonDocumentOptions]::new()
+        $options.MaxDepth = 40
+        $document = [Text.Json.JsonDocument]::Parse($stream, $options)
+        try { return ConvertFrom-OpenScienceJsonElement $document.RootElement } finally { $document.Dispose() }
+    } finally {
+        $stream.Dispose()
+    }
 }
 
 function Get-OpenScienceRepositoryPinSource {

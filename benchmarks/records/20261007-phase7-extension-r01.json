@@ -1,0 +1,316 @@
+{
+  "schema_version": "1.0",
+  "scope": "BOUNDED_DECLARED_UNIFORM_UQ_EPSILON_MOO_AND_SELECTED_COUPLED_INPUT_RESEARCH_SOFTWARE",
+  "parent_commit": "a74d4d1e01caee89e8db45823ae4c327e17d57a0",
+  "store": "runs/cae-phase7-extension-20261007-01",
+  "implementation": [
+    "Optional explicit independent-uniform distribution/threshold propagation over a completed exact seeded LHS report",
+    "Durable epsilon-constraint parents and existing DE children with whole evaluation budget, original vectors and original-ID Pareto archive",
+    "Selected dimensionless two-component PDE conditions, full fields, symmetric registered input mirrors and common DOE route",
+    "Native family namespace retained in frozen campaign checks; historical artifact readers remain source-specific"
+  ],
+  "native_producers": {
+    "primary": {
+      "core_commit": "a74d4d1e01caee89e8db45823ae4c327e17d57a0",
+      "core_dirty": true,
+      "core_source_sha256": "554d5f88d177ac13c99a9f9f1123c03377c069d6092eeb028732755704055da3"
+    },
+    "corrected_coupled_doe": {
+      "core_commit": "a74d4d1e01caee89e8db45823ae4c327e17d57a0",
+      "core_dirty": true,
+      "core_source_sha256": "848c76064096c9dca798d3ffea7bda95fc3f4143a74254533456a62a0cff3719"
+    },
+    "local_source_capsules": [
+      "artifacts/phase7-extension-20261007-01/source-capsule",
+      "artifacts/phase7-extension-20261007-01/source-capsule02"
+    ]
+  },
+  "actual": {
+    "multiobjective": {
+      "global_pareto": "NOT_ESTABLISHED",
+      "maximum_full_history_closed_reference_errors": {
+        "current_velocity_m_s": 3.4859051756264137e-10,
+        "displacement_m": 1.7143520233292055e-8,
+        "kinetic_energy_J": 5.008006509488183e-11,
+        "raw_half_step_velocity_m_s": 0.000005000348590522563
+      },
+      "native_history_rows": 3417,
+      "original_eligible": 6,
+      "original_pareto_ids": [
+        "E-M-epsilon-lab-mux65b4e-e0001-0001",
+        "E-M-epsilon-lab-mux65b4e-e0001-0005",
+        "E-M-epsilon-lab-mux65b4e-e0002-0001",
+        "E-M-epsilon-lab-mux65b4e-e0002-0004",
+        "E-M-epsilon-lab-mux65b4e-e0002-0007"
+      ],
+      "parent_id": "M-epsilon-lab-mux65b4e",
+      "physical": "UNKNOWN",
+      "unique_native_evaluations": 17,
+      "whole_budget": 20
+    },
+    "coupled_sign_conjugation": {
+      "cells": 128,
+      "components": [
+        "u0",
+        "u1"
+      ],
+      "maximum_full_field_errors": [
+        0,
+        0
+      ],
+      "nodes": 81,
+      "physical": "UNKNOWN",
+      "reference_agreement": "UNKNOWN",
+      "same_topology_and_coordinates": true,
+      "tolerance": 1e-10
+    },
+    "coupled_doe": {
+      "status": "PASS",
+      "campaign_id": "C-extension-coupled-doe-r02",
+      "source": {
+        "core_commit": "a74d4d1e01caee89e8db45823ae4c327e17d57a0",
+        "core_dirty": true,
+        "core_source_sha256": "848c76064096c9dca798d3ffea7bda95fc3f4143a74254533456a62a0cff3719"
+      },
+      "rows": [
+        {
+          "experiment_id": "E-C-extension-coupled-doe-r02-0001",
+          "value": -0.21847811356933888,
+          "model_revision": "d686d15f0ef267e0e5117c9b99e638348ec22fafd7add9eaf293a6a9fbdfaf3f",
+          "result_sha256": "8d434526e6066354ab4b1633b63a51f61c1d4a68b6a7e3f7e70ca714ce9c86d3",
+          "native_input_sha256": "8dbf50693d8d83c29b55b23567524731065ab43f19672d9529d6b095baef1faa",
+          "field_sha256": "ebe5994dc297a7eef70476a0c928fd21085ead2c320cce820ba9c96fc5a21329",
+          "nodes": 81,
+          "cells": 128,
+          "components": 2
+        },
+        {
+          "experiment_id": "E-C-extension-coupled-doe-r02-0002",
+          "value": 0.1358053820764903,
+          "model_revision": "2c8727a06be39acd5ae0d5a96348914340ae09e83ea058592a9a5cfa8abed630",
+          "result_sha256": "d83b5911d4d860f1530a6a88c81e9a00d5e4efdce266cb31e2464c14a900e98e",
+          "native_input_sha256": "c433c7d8fd6448294b6387f76746f08cd37ba89a3eaa91a9bd13a36fd1e4abe8",
+          "field_sha256": "8badab82edd7845260b86d3f61d5dce1ffe0b55ded49d38cb3066f13f4744b52",
+          "nodes": 81,
+          "cells": 128,
+          "components": 2
+        }
+      ],
+      "topology": "ALL_NONVALUE_FIELD_PROPERTIES_IDENTICAL_TO_POSITIVE_NATIVE",
+      "registered_mirrors": "R01_AND_R10_BOTH_MATCH_FROZEN_LHS_ASSIGNMENT",
+      "signed_metrics": "EXACT_NATIVE_FULL_FIELD_EXTREMA",
+      "native_executed": 2,
+      "analytical_reference": null,
+      "physical": "UNKNOWN",
+      "decision": "NOT_RELEASED"
+    },
+    "probability": {
+      "status": "PASS",
+      "report_id": "R-campaign-lab-mux7bgp9",
+      "source_campaign": "C-general-model-doe-r01",
+      "raw_native_ids": [
+        "E-C-general-model-doe-r01-0001",
+        "E-C-general-model-doe-r01-0002",
+        "E-C-general-model-doe-r01-0003",
+        "E-C-general-model-doe-r01-0004",
+        "E-C-general-model-doe-r01-0005",
+        "E-C-general-model-doe-r01-0006",
+        "E-C-general-model-doe-r01-0007",
+        "E-C-general-model-doe-r01-0008"
+      ],
+      "report_sha256": "88375addfe9d2edf0e130577c7a0d2a31a119166b0ed8763bc307a1a9260132c",
+      "counts": {
+        "valid": 8,
+        "exceedances": 4,
+        "excluded": 0
+      },
+      "declared_distribution": "SYNTHETIC_INDEPENDENT_UNIFORM",
+      "threshold": "original signed final_displacement > 0 m",
+      "finite_design_ratio": 0.5,
+      "independent_moment_errors": {
+        "mean": 2.710505431213761e-20,
+        "std": 4.336808689942018e-19,
+        "q05": 0,
+        "q50": 2.710505431213761e-20,
+        "q95": 4.336808689942018e-19
+      },
+      "confidence_interval": null,
+      "source_wire_check": "PASS",
+      "physical": "UNKNOWN",
+      "decision": "NOT_RELEASED",
+      "new_native": 0,
+      "limitations": [
+        "Finite declared numerical design; no measured failure probability, causal verdict or population confidence interval.",
+        "Receipt/wire checks are separate from actual HTTP Core artifact verification and browser reopening."
+      ]
+    },
+    "total_new_native": 22,
+    "successful_moo_native": 17,
+    "direct_coupled_native": 2,
+    "failed_orchestration_retained_native": 1,
+    "corrected_coupled_doe_native": 2,
+    "new_cad": 0,
+    "provider_questions": 0,
+    "probability_job": "Jdbe7675dd8324918a3acf2e60490b653",
+    "corrected_coupled_doe_job": "Jbb19aad81b07495999bbcb7512022e96",
+    "browser_probability_reopened": "PASS_AFTER_REPORT_AND_CURRENT_SAMPLING_BINDING_DISPLAY_CORRECTION",
+    "fresh_core_http_reopening": [
+      {
+        "integrity": "VERIFIED",
+        "label": "coupled-doe01-fields-current",
+        "seconds": 10.154697250000027
+      },
+      {
+        "integrity": "VERIFIED",
+        "label": "coupled-doe02-fields-current",
+        "seconds": 9.525221680999948
+      },
+      {
+        "integrity": "VERIFIED",
+        "label": "probability-current-http",
+        "seconds": 94.84548296200023
+      }
+    ],
+    "browser_multiobjective_reopened": {
+      "status": "PASS",
+      "parent_id": "M-epsilon-lab-mux65b4e",
+      "reader": {
+        "core_commit": "a74d4d1e01caee89e8db45823ae4c327e17d57a0",
+        "core_dirty": true,
+        "core_source_sha256": "1a8bcd64122e898e5947bb1e2ac798591b0e56e68912a6a9b07e8888de39c26e"
+      },
+      "evaluations": 17,
+      "eligible": 6,
+      "pareto": 5,
+      "child_evaluations": [
+        9,
+        8
+      ],
+      "no_new_native": true,
+      "no_new_provider": true,
+      "dom_sha256": "d5b3cb608178888cdbd06178f81d8c7246cb9cf40cdd462bbda8b14cd1069447",
+      "screenshot_sha256": "c80d3dbed2d07141efaf184d8705b6e51a6601eb64d89ebda350378928efbb94"
+    },
+    "browser_probability_final_wide": {
+      "status": "PASS",
+      "report_id": "R-campaign-lab-mux7bgp9",
+      "screenshot_sha256": "0a257c116d690938d9b3d1db656c8baff9af1bf46d9e6f8696aa7bf154fdafcd",
+      "dom_sha256": "573bb195badf87ccbbc904db90e2180de5ead00b98f3c6962a944c6d6e8a4312",
+      "no_new_native": true,
+      "no_new_provider": true
+    }
+  },
+  "retention": {
+    "status": "PASS",
+    "original_files": 1142,
+    "original_and_copied_science": "UNCHANGED",
+    "runtime_journal": "EXCLUDED_FROM_SCIENCE",
+    "new_science": "APPENDED_WITH_NEW_IDS"
+  },
+  "tests": {
+    "source_controls": "TEST_ONLY adapters/fixtures are distinct from actual native/HTTP runs",
+    "node_bundle08": "859_PASS_BEFORE_FINAL_DISPLAY_BINDING_CORRECTIONS",
+    "final_ui09": "88_PASS",
+    "probability_campaign_display_final": "30_PASS",
+    "model_namespace_regression": "DOE and DE passed in separate corrected runs; first two fixture failures preserved in tool outputs",
+    "source_sampling_mirrors": "84_PASS",
+    "probability_core": "71_PASS",
+    "reader_selected_and_legacy": "141_PASS",
+    "windows_atomic_records": "20_ACTUAL_FILESYSTEM_CONTROLS_PASS",
+    "full_new_exact_ci": "NOT_RUN",
+    "epsilon_family_final": "65_SOURCE_CONTROLS_PASS",
+    "fixed_cad_native_response_selector": "1_TEST_ONLY_VERIFIED_PLAN_AND_LAB_SERVICE_CONTROL_PASS"
+  },
+  "failed_attempts": [
+    {
+      "job": "Ja8fcf5cef74a46feb520d1029c9254b1",
+      "campaign": "C-extension-coupled-doe-r01",
+      "status": "FAILED",
+      "cause": "Frozen common campaign verifier hardcoded model_analysis while actual declared PDE preserved pde namespace",
+      "native_child": "E-C-extension-coupled-doe-r01-0001",
+      "native_child_status": "COMPLETED_REVIEW_REQUIRED_PRESERVED",
+      "recovery": "New C-extension-coupled-doe-r02 under corrected Core; original campaign not replayed or relabeled"
+    },
+    {
+      "report": "R-campaign-lab-mux7bgp9",
+      "status": "CORE_COMPLETED_BUT_INITIAL_BROWSER_FOLLOWUP_FAILED",
+      "cause": "Display contract omitted actual Core source_sampling binding",
+      "recovery": "Strict source_sampling validation added; original report reopened; no replacement or native execution"
+    },
+    {
+      "status": "OBSERVER_CONNECTION_LOST_BEFORE_PREVIOUS_DOE_SUBMISSION",
+      "cause": "UNKNOWN",
+      "recovery": "All retained jobs terminal; fresh owned metadata observer; no PID adoption, native replay or original output rewrite"
+    },
+    {
+      "status": "TEST_ONLY_FIXTURE_FAILED_AFTER_NEW_SELECTOR_ASSERTIONS",
+      "cause": "Root placed original tamper-test tail in the new test, causing UnboundLocalError",
+      "evidence": "fixed-cad-response-final11.log",
+      "recovery": "Restored original test tail; final12 control passed; no native/provider"
+    }
+  ],
+  "provider": {
+    "model": "openai-codex/gpt-5.6-sol",
+    "authentication": "EXISTING_APPROVED_CHATGPT",
+    "selected_runtime_version": "2.0.146",
+    "new_interpretation": "NOT_RUN",
+    "startup": "SERVER_READY_THEN_MCP_CONNECTION_CLOSED",
+    "direct_failure": "Timed out waiting for Windows Job Object ownership",
+    "official_source_finding": "Parent deletes ready.release in finally before asynchronous child necessarily observes activation; exact timing in failed run remains inference",
+    "configured_stdio_diagnostic": "initialize + list37 definitions + own stdin EOF/exit0; 0 tool invocations/0 provider calls; does not verify official Job gate recovery",
+    "runtime_candidate": "BUILT_SOURCE_CONTROLS_PASSED_NOT_ACTIVATED",
+    "approved_tool_profile": "UNCHANGED_14_TOOL_ADMISSION",
+    "old_teardown": "UNCONFIRMED",
+    "runtime_candidate_evidence": "launcher-diagnostic/candidate-build-01/RECEIPT.json",
+    "authentication_pin_migration": "NOT_PERFORMED",
+    "candidate_controls": "3_SOURCE_CONTROLS_PASS_WITH_TEST_ONLY_STDIO_PEER_AND_OWN_JOB_NOT_REAL_CANDIDATE_EXE_ACTIVATION"
+  },
+  "source_distinction": {
+    "probability": "Report generated by metadata observer started before the family-namespace patch; recorded current Core hash and prior loaded optimization code must not be treated as a single clean producer. Fresh corrected observer verifies the preserved report and browser reopening.",
+    "native": "Primary MOO/direct coupled producers and corrected coupled DOE producer are separately frozen.",
+    "final_ui": "Later source_sampling display and full-width layout edits are reader/UI work, not new native results.",
+    "final_reader": "reader03 Core1a8bcd64122e898e5947bb1e2ac798591b0e56e68912a6a9b07e8888de39c26e reopened original MOO with corrected family collector; later native-response selector changes were tested with verified TEST_ONLY plan/Service controls, not a new native producer."
+  },
+  "base_exact_ci": {
+    "commit": "a74d4d1e01caee89e8db45823ae4c327e17d57a0",
+    "run": 37526824434,
+    "status": "FAILURE",
+    "research_driver_source": "SUCCESS",
+    "core": "FAILURE_OUTDATED_LHS_REFUSAL_TEST_EXPECTATION_CORRECTED_LOCALLY",
+    "downstream": "8_SKIPPED",
+    "current_source_pass": "NOT_INFERRED"
+  },
+  "limitations": [
+    "Entire52/Phase1-7 incomplete",
+    "Declared synthetic finite numerical propagation, not measured failure probability or physical confidence",
+    "Limited epsilon archive, not global Pareto or convergence",
+    "Dimensionless two-component regional rectangle, not arbitrary thermo-structural coupling",
+    "No measured inverse/unique cause, Sobol design or actual SSH/HPC acceptance",
+    "Read latency OPEN; report create took about175 seconds in the retained observation",
+    "Original fine1.5 UNKNOWN and separate R2 drafts/stashes preserved"
+  ],
+  "decision": "NOT_RELEASED",
+  "physical_material_strength_durability_company": "UNKNOWN",
+  "review": {
+    "status": "TWO_P2_CORRECTED_IN_ONE_FINAL_BUNDLE_REVIEW",
+    "evidence": "artifacts/phase7-extension-20261007-01/final-review",
+    "findings": [
+      {
+        "severity": "P2",
+        "issue": "MOO collector hardcoded model_analysis namespace",
+        "resolution": "Exactly one typed model_analysis/pde family; original frozen declaration/source retained",
+        "independent_control": "epsilon-pde-namespace-after.json"
+      },
+      {
+        "severity": "P2",
+        "issue": "Fixed-CAD MOO objective gate and report catalogue selected CAD instead of native response backend",
+        "resolution": "Frozen analysis.backend for response admission/catalogue; original CAD and source pins unchanged",
+        "independent_control": "fixed-cad-selector-after.json"
+      }
+    ],
+    "final_pin_receipt": "final-review/RECEIPT.json"
+  },
+  "publication": "MAIN_COMMIT_AND_PUSH_NOT_YET_CONFIRMED_AT_RECORD_CREATION",
+  "next": "Complete approved runtime activation and same-record research interpretation; integrate common executor/control transport and remaining Phase gates without CAD/assembly/example restart",
+  "local_evidence": "artifacts/phase7-extension-20261007-01"
+}

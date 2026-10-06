@@ -42,7 +42,7 @@ def run_declared_model(lab, *, study_id: str, experiment_id: str, backend: str,
         from .model_parameters import (describe, bind as bind_inputs,
                                        expected_settings, expected_declaration, ModelInputRejected)
         from .registry import validate_assignments
-        if (namespace != "model_analysis" or not isinstance(binding, dict) or
+        if (namespace not in ("model_analysis", "pde") or not isinstance(binding, dict) or
                 set(binding) != {"template_settings", "template_revision", "input_ids", "source_fingerprint"} or
                 not isinstance(binding["input_ids"], dict) or set(binding["input_ids"]) != set(parameters)):
             raise ValueError("Research assignments require frozen, declared model bindings")

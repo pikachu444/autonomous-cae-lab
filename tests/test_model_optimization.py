@@ -85,6 +85,42 @@ def _sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+@pytest.mark.parametrize("campaign_kind", ["doe", "optimization"])
+def test_declared_pde_family_uses_common_numerical_campaign_and_retains_namespace(tmp_path, campaign_kind):
+    # TEST ONLY adapter observations; real Core, LHS/DE, storage and rereading.
+    adapter = SyntheticParameterizedModel()
+    adapter.domain = "pde"
+    lab, adapter = _lab(tmp_path, adapter)
+    lab.pde_adapters[adapter.backend] = adapter
+    if campaign_kind == "doe":
+        from caelab.optimizers.scipy_lhs import ScipyLatinHypercube
+        lab.doe_adapters["scipy.latin_hypercube"] = ScipyLatinHypercube()
+        lab.plan_model_doe(study_id=STUDY, campaign_id=CAMPAIGN,
+            backend=adapter.backend, settings=template_settings(),
+            parameter_ids=["research_x", "research_y"], sample_count=2, seed=13,
+            required_validations={"model": ["synthetic_check"]})
+        result = lab.run_doe(CAMPAIGN)
+        rows = result["samples"]
+        read = lambda: lab.inspect_doe(CAMPAIGN)
+    else:
+        _plan(lab)
+        result = lab.run_optimization(CAMPAIGN)
+        rows = result["evaluations"]
+        read = lambda: lab.inspect_optimization(CAMPAIGN)
+    assert rows
+    for row in rows:
+        original = lab.inspect_experiment(row["model_experiment_id"])
+        assert set(original["extensions"]) == {"pde"}
+        assert original["input_parameters"] == row["values"]
+        assert original["model_revision"] == row["model_revision"]
+        assert original["decision"] == "NOT_RELEASED"
+        if row["usable"]:
+            assert (lab.store / "experiments" / row["model_experiment_id"] / "pde/input.json").is_file()
+    calls, retained = adapter.calls, _files(lab.store)
+    assert read() == result
+    assert adapter.calls == calls and _files(lab.store) == retained
+
+
 class InterruptedEvaluation(RuntimeError):
     pass
 

@@ -121,8 +121,9 @@ def test_de_existing_model_inputs_keep_the_same_seeded_population():
     for entry in model:
         entry["target"] = "model_analysis"
     assert _admit("de", model) == _admit("de", conditions)
-    with pytest.raises(ValueError, match="target"):
-        _admit("lhs", model)
+    # Model-input DOE now uses the same admitted binding effect and the same
+    # seeded sampler. The Domain target cannot alter points or their order.
+    assert _admit("lhs", model) == _admit("lhs", conditions)
 
 
 @pytest.mark.parametrize("engine", ["lhs", "de"])
