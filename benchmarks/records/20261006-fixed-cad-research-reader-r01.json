@@ -1,0 +1,262 @@
+{
+  "schema": 1,
+  "record_id": "20261006-fixed-cad-research-reader-r01",
+  "acceptance": "Approved interpretation of the implemented fixed-CAD condition-search bundle",
+  "reader": {
+    "observed_utc": "2026-10-06T06:12:59.138021Z",
+    "reader_source_commit": "45fb00a8a7b0c394169a8a60cfe2f1c3df61ddcd",
+    "reader_source_clean": true,
+    "job_id": "Jf995ea8525104bbbaf9933a3b99085a2",
+    "http_status": "COMPLETED",
+    "session_id": "ses_ef02e6921ffeVJKOVBUAmuQ9uv",
+    "model": "openai-codex/gpt-5.6-sol",
+    "profile": "fixture-selected-mesh-v1",
+    "tool_count": 4,
+    "tools": [
+      {
+        "tool": "caelab_experiment_inspect",
+        "status": "completed"
+      },
+      {
+        "tool": "caelab_experiment_summary",
+        "status": "COMPLETED_REVIEW_REQUIRED",
+        "tool_status": "completed",
+        "experiment_id": "E-C-fixed-native-search-r01-0001"
+      },
+      {
+        "tool": "caelab_experiment_summary",
+        "status": "COMPLETED_REVIEW_REQUIRED",
+        "tool_status": "completed",
+        "experiment_id": "E-C-fixed-native-search-r01-0002"
+      },
+      {
+        "tool": "caelab_experiment_inspect",
+        "status": "completed"
+      }
+    ],
+    "native_origin": "Preserved original base772+dirty producer, not native-executed by reader45",
+    "store": "runs/cae-fixed-cad-research-20261006-03",
+    "original_files": 520,
+    "original_bytes": 50250636,
+    "changed_files": [],
+    "added_non_controller_files": [],
+    "http_execution": {
+      "state": "IDLE",
+      "idle_confirmed": true,
+      "accepting_jobs": true,
+      "scope": "HTTP_JOB_CONTROL"
+    },
+    "recovery_required": false,
+    "provider_state": "READY",
+    "provider_configured": true,
+    "metrics": [
+      {
+        "experiment_id": "E-C-fixed-native-search-r01-0001",
+        "whole_U_mm": 0.0001809177054461572,
+        "applied_force_N": [
+          172.3747480117705,
+          0.0,
+          0.0
+        ],
+        "signed_reaction_N": [
+          -172.37475479999998,
+          7.654738298999999E-14,
+          2.04080886224E-13
+        ],
+        "displayed_U_mm": "0.000180917705",
+        "answer_matches_saved_rounded_U": true,
+        "result_sha256": "fcddfbcebcd76507aa3f506e4e55b8c49c8f3b2fff9ef6bb42f3b48e28e9af1a"
+      },
+      {
+        "experiment_id": "E-C-fixed-native-search-r01-0002",
+        "whole_U_mm": 0.00010246391359383945,
+        "applied_force_N": [
+          118.32094174927293,
+          0.0,
+          0.0
+        ],
+        "signed_reaction_N": [
+          -118.32094379999998,
+          -2.718125341E-13,
+          8.515305900000013E-15
+        ],
+        "displayed_U_mm": "0.000102463914",
+        "answer_matches_saved_rounded_U": true,
+        "result_sha256": "154154d616da0b8081439573be30d356a8a2d4ce883c056a74cc22dcf40ee776"
+      }
+    ],
+    "new_CAD": 0,
+    "new_mesh": 0,
+    "new_solver": 0,
+    "actual_provider_questions": 1,
+    "causal_identification": "NOT_IDENTIFIED",
+    "physical_qualification": "UNKNOWN",
+    "decision": "NOT_RELEASED",
+    "ui_reloaded": true,
+    "answer_table_rows": 14,
+    "answer_table_columns": 3,
+    "math_elements": 30,
+    "math_fallback": 0,
+    "ui_validation": "Actual CUA same-answer reload, both result IDs, same norms, 14x3 table and 30 MathML elements. Not a new numerical run.",
+    "startup_prior_attempt": "run02 HTTP500 Credential invalidation / credential-processes.json.lock EPERM; root cause not confirmed. Approved auth/model unchanged; one new owned run03 succeeded.",
+    "job-final.json": {
+      "sha256": "3e6f3ce1fe47a2620d4209ec67d038163e7994c64552d3a751faff604472fe00",
+      "bytes": 13382
+    },
+    "answer-final.md": {
+      "sha256": "0c228778aca1ff2b512ade50bcce32d59da8a100cba2794980eb698242a943cb",
+      "bytes": 5899
+    },
+    "submitted-question.txt": {
+      "sha256": "8ed03583ba22f42b87a49551c169cba84b37091ae791da2836603cd9629d730f",
+      "bytes": 4700
+    },
+    "preparation.json": {
+      "sha256": "d259bc220766e3108ee05bb1a5973730908513c748b0cb57374cf5e7d0474df0",
+      "bytes": 96193
+    },
+    "actual-research-answer.png": {
+      "sha256": "85d0e23d3c9143035323c2ad92ef80615c47b116184f87979a0753bb890f55a0",
+      "bytes": 91692
+    }
+  },
+  "native_acceptance_record": "benchmarks/records/20261006-fixed-cad-search-actual-r01.json",
+  "source_publication": {
+    "production_changes": "35-file implemented, tested and reviewed feature bundle already pushed",
+    "commit": "45fb00a8a7b0c394169a8a60cfe2f1c3df61ddcd",
+    "main_remote_verified": true,
+    "current_record": "Later evidence checkpoint, not a new native solver producer"
+  },
+  "startup": {
+    "recovery": {
+      "outcome": "READY_THEN_ACTUAL_RESEARCH_COMPLETED",
+      "run": "cae-fixed-cad-research-20261006-03",
+      "auth_modified": false,
+      "provider_fallback": false,
+      "runtime_reinstalled": false,
+      "model": "openai-codex/gpt-5.6-sol",
+      "attempts": 1,
+      "auth": "Existing approved ChatGPT OAuth"
+    },
+    "first_attempt": {
+      "origin": "Existing official OpenScience 2.0.146 startup",
+      "error": "Credential invalidation did not complete",
+      "outcome": "HTTP500_BEFORE_MODEL",
+      "root_cause": "NOT_CONFIRMED",
+      "new_provider_questions": 0,
+      "run": "cae-fixed-cad-research-20261006-02",
+      "underlying_error": "EPERM opening credential-processes.json.lock",
+      "owned_startup_receipt": "failed/cleanup fields preserved; outer exit1 not a clean provider cancellation"
+    }
+  },
+  "actual_answer_review": {
+    "preserved_whole_U_semantics": true,
+    "basis": "Actual four-tool native-record reads, stored raw answer, same-record metrics and CUA rendering/reload",
+    "owner": "Root",
+    "next_conditions": "Hold applied force fixed to vary E; hold material fixed to vary measured force; physical-location displacement/strain and signed reactions with qualified measurement inputs",
+    "preserved_signed_reactions": true,
+    "limitation": "Aggregate scalar interpretation only. No pointwise inverse identification, actual measured product failure, jig approval or broader native AI solver execution was established.",
+    "explicit_confounding": "Both E and force changed; smaller U is not a material-only identification or a design-improvement verdict"
+  },
+  "owned_idle_shutdown": {
+    "cleanup_failure": null,
+    "claim": "Normal foreground stop after completed research. Not active-provider cancellation/reconnection proof.",
+    "lab_exit": 0,
+    "http_idle_before_stop": true,
+    "launcher_exit": 0,
+    "runtime_state": "stopped",
+    "proxy_cleanup_failure": null
+  },
+  "exact_source_ci": {
+    "jobs": [
+      {
+        "name": "research-driver-source",
+        "status": "completed",
+        "conclusion": "success",
+        "job_id": 112127761170
+      },
+      {
+        "name": "core",
+        "status": "completed",
+        "conclusion": "success",
+        "job_id": 112127761310
+      },
+      {
+        "name": "native-registration",
+        "status": "completed",
+        "conclusion": "success",
+        "job_id": 112131085993
+      },
+      {
+        "name": "pde",
+        "status": "completed",
+        "conclusion": "failure",
+        "job_id": 112131086013
+      },
+      {
+        "name": "optimization",
+        "status": "completed",
+        "conclusion": "success",
+        "job_id": 112131086044
+      },
+      {
+        "name": "doe",
+        "status": "completed",
+        "conclusion": "success",
+        "job_id": 112131086046
+      },
+      {
+        "name": "explicit",
+        "status": "completed",
+        "conclusion": "failure",
+        "job_id": 112131086051
+      },
+      {
+        "name": "native",
+        "status": "completed",
+        "conclusion": "success",
+        "job_id": 112131086054
+      },
+      {
+        "name": "structural",
+        "status": "completed",
+        "conclusion": "success",
+        "job_id": 112131086098
+      },
+      {
+        "name": "codeaster",
+        "status": "completed",
+        "conclusion": "failure",
+        "job_id": 112131086129
+      }
+    ],
+    "head_sha": "45fb00a8a7b0c394169a8a60cfe2f1c3df61ddcd",
+    "claim": "7 successful jobs and 3 retained failures on exact45. No numerical threshold changed. No gratuitous local rerun of these known failures.",
+    "observed_utc": "2026-10-06T06:15:55.6039670Z",
+    "run_id": 37420246149,
+    "status": "completed",
+    "conclusion": "failure",
+    "failures": {
+      "pde": "Wrong vector numerical classification",
+      "explicit": "Official pinned runtime download HTTP404, exit22, before solver",
+      "codeaster": "Native numerical checks failed: E-ansys_vmd1_regular-Fz-aster"
+    }
+  },
+  "retained_artifacts": {
+    "path": "artifacts/cae-fixed-cad-research-20261006-03",
+    "credentials_in_record": false,
+    "company_CAD": false,
+    "policy": "LOCAL_ONLY"
+  },
+  "requirement_impact": "Bounded G3/G4 integration advances existing R02/R09-R13/R19-R21/R25/R43/R46/R48/R51 evidence; no complete requirement or whole Phase promotion",
+  "remaining": [
+    "General physical-location and history observation/response research across supported models",
+    "Original seven-part assembly native mechanics",
+    "Remaining Phase4-7 extension gates",
+    "Native execution profile admission and provider reconnect",
+    "Full-record verification latency and normal persistent research reopening"
+  ],
+  "whole_52_phase_1_7": "INCOMPLETE",
+  "physical_qualification": "UNKNOWN",
+  "decision": "NOT_RELEASED"
+}
