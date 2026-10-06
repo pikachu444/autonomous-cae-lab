@@ -27,6 +27,10 @@ class FixtureFreeCADAdapter:
     def document_id(self, model: str) -> str:
         return model
 
+    def conditions_catalog(self, parent_root: Path, parent: dict, proposal: dict) -> dict:
+        from .cad_condition_catalog import final_solid_catalog
+        return final_solid_catalog(parent_root, parent, backend=self.backend)
+
     def _call(self, action: str, **kwargs) -> dict[str, Any]:
         if not (os.environ.get("FREECAD_CMD") or shutil.which("FreeCADCmd") or shutil.which("freecadcmd")):
             raise CapabilityUnavailable("FreeCADCmd is required; set FREECAD_CMD to its executable")

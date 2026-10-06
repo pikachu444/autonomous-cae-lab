@@ -63,6 +63,28 @@ class AnalysisAdapter(Protocol):
               output: Path, settings: dict[str, Any]) -> dict[str, Any]: ...
 
 
+class ConditionCatalogAdapter(CADAdapter, Protocol):
+    """Optional adapter-owned revision-local body/region catalog, no native run."""
+
+    def conditions_catalog(self, parent_root: Path, parent_result: dict, proposal: dict) -> dict: ...
+
+
+class ConditionAnalysisAdapter(AnalysisAdapter, Protocol):
+    """Optional pure Domain admission and native-settings projection hooks.
+
+    Existing CAD-parent analysis, native preflight and execution remain the
+    authority. Supported input is not runtime/engineering qualification.
+    """
+
+    conditions_version: str
+
+    def conditions_policy_identity(self) -> dict: ...
+
+    def conditions_preflight(self, catalog: dict, declaration: dict) -> dict: ...
+
+    def settings_from_conditions(self, catalog: dict, declaration: dict) -> dict: ...
+
+
 class DOEAdapter(Protocol):
     """Deterministic numerical design generator; no CAD or solver calls."""
 

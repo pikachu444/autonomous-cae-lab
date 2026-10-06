@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://caelab.local/schemas/analysis-conditions-request/1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["conditions_id", "experiment_id", "cad_revision", "catalog_revision", "backend", "declaration"],
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,79}$"},
+    "sha": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "text": {"type": "string", "minLength": 1, "maxLength": 2048},
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["category", "description"],
+      "properties": {
+        "category": {"enum": ["ASSUMED", "MEASURED_REPORTED", "PUBLISHED_REFERENCE"]},
+        "description": {"$ref": "#/$defs/text"}
+      }
+    },
+    "material": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "selection_id", "law", "young_modulus_MPa", "poisson_ratio", "source"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "selection_id": {"$ref": "#/$defs/id"},
+        "law": {"const": "isotropic_linear_elastic"},
+        "young_modulus_MPa": {"type": "number"}, "poisson_ratio": {"type": "number"},
+        "source": {"$ref": "#/$defs/source"}
+      }
+    },
+    "boundary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "selection_id", "type", "components", "unit", "coordinate_system", "source"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "selection_id": {"$ref": "#/$defs/id"},
+        "type": {"const": "displacement"}, "unit": {"const": "mm"},
+        "coordinate_system": {"const": "global"}, "source": {"$ref": "#/$defs/text"},
+        "components": {
+          "type": "object", "additionalProperties": false, "required": ["UX", "UY", "UZ"],
+          "properties": {"UX": {"type": "number"}, "UY": {"type": "number"}, "UZ": {"type": "number"}}
+        }
+      }
+    },
+    "load": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "selection_id", "type", "components", "unit", "coordinate_system", "source"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "selection_id": {"$ref": "#/$defs/id"},
+        "type": {"const": "resultant_force"}, "unit": {"const": "N"},
+        "coordinate_system": {"const": "global"}, "source": {"$ref": "#/$defs/text"},
+        "components": {
+          "type": "object", "additionalProperties": false, "required": ["FX", "FY", "FZ"],
+          "properties": {"FX": {"type": "number"}, "FY": {"type": "number"}, "FZ": {"type": "number"}}
+        }
+      }
+    }
+  },
+  "properties": {
+    "conditions_id": {"$ref": "#/$defs/id"}, "experiment_id": {"$ref": "#/$defs/id"},
+    "cad_revision": {"$ref": "#/$defs/sha"}, "catalog_revision": {"$ref": "#/$defs/sha"},
+    "backend": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$"},
+    "declaration": {
+      "type": "object", "additionalProperties": false,
+      "required": ["analysis_type", "units", "coordinate_system", "materials", "boundary_conditions", "loads", "contact", "mesh"],
+      "properties": {
+        "analysis_type": {"const": "linear_static"},
+        "units": {
+          "type": "object", "additionalProperties": false, "required": ["length", "force", "stress"],
+          "properties": {"length": {"const": "mm"}, "force": {"const": "N"}, "stress": {"const": "MPa"}}
+        },
+        "coordinate_system": {"const": "global"},
+        "materials": {"type": "array", "minItems": 1, "maxItems": 64, "items": {"$ref": "#/$defs/material"}},
+        "boundary_conditions": {"type": "array", "maxItems": 64, "items": {"$ref": "#/$defs/boundary"}},
+        "loads": {"type": "array", "maxItems": 64, "items": {"$ref": "#/$defs/load"}},
+        "contact": {
+          "type": "object", "additionalProperties": false, "required": ["mode", "source"],
+          "properties": {
+            "mode": {"enum": ["none", "bonded", "frictionless"]}, "source": {"$ref": "#/$defs/text"},
+            "pairs": {
+              "type": "array", "maxItems": 64,
+              "items": {
+                "type": "object", "additionalProperties": false, "required": ["selection_a", "selection_b"],
+                "properties": {"selection_a": {"$ref": "#/$defs/id"}, "selection_b": {"$ref": "#/$defs/id"}}
+              }
+            }
+          }
+        },
+        "mesh": {
+          "type": "object", "additionalProperties": false, "required": ["mode", "max_size_mm"],
+          "properties": {"mode": {"const": "selected"}, "max_size_mm": {"type": "number"}}
+        }
+      }
+    }
+  }
+}

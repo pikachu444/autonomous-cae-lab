@@ -232,29 +232,30 @@
     const button = (text, handler) => { const item = node("button", text, "button subtle compact"); item.type = "button"; item.addEventListener("click", () => { if (current()) handler(); }); return item; };
     const chooser = (caption, values) => { const item = node("select"), wrapper = node("label", caption); values.forEach(([value, text]) => { const option = node("option", text); option.value = value; item.append(option); }); wrapper.append(item); return { item, wrapper }; };
     container.replaceChildren();
-    container.append(node("p", `메시 ${field.mesh_size_max_mm} mm · 전체 ${field.node_count}절점 · ${field.element_count} C3D10 · ${field.boundary_face_count} CPS6`, "fixture-field-summary"),
-      node("p", "원본 좌표 mm · U mm · 하중 N · SOLVER_GLOBAL_CARTESIAN (전체 XYZ 축)", "hint"),
+    const workspace = node("div", undefined, "fixture-field-workspace"), viewport = node("div", undefined, "fixture-field-viewport"), properties = node("aside", undefined, "fixture-field-properties");
+    properties.setAttribute("aria-label", "같은 해석의 필드 표시와 절점 정보"); workspace.append(viewport, properties);
+    container.append(node("p", `메시 ${field.mesh_size_max_mm} mm · 전체 ${field.node_count}절점 · ${field.element_count} C3D10 · ${field.boundary_face_count} CPS6`, "fixture-field-summary"), workspace);
+    properties.append(node("p", "원본 좌표 mm · U mm · 하중 N · SOLVER_GLOBAL_CARTESIAN (전체 XYZ 축)", "hint"),
       node("p", `정적 step ${field.static.step} / increment ${field.static.increment} · load_parameter ${field.static.load_parameter} (시간 값 아님)`, "hint"),
       node("p", `UNKNOWN · ${metadata.decision} · 미확인 검사 ${metadata.unknownCount}개 · ${metadata.sensitivity === "NOT_ASSESSED" ? "선택 메시 민감도 미평가" : "메시 검사 판정은 위 원본 기록 참조"}`, "fixture-field-qualification"));
     const settings = node("div", undefined, "fixture-field-settings");
     const component = chooser("표시할 물리 변위 성분", controls.COMPONENTS.map(value => [value, `${label(value)} (mm)`])); component.item.value = "UZ";
     const mode = chooser("형상 표시", [["undeformed", "미변형 원본 메시"], ["deformed", "변형 표시 (보기 배율)"]]); mode.item.value = "undeformed";
     const scale = node("input"), scaleLabel = node("label", "변형 보기 배율 · display-only"); scale.type = "number"; scale.min = "0"; scale.max = String(controls.LIMITS.factor); scale.step = "any"; scale.value = "100"; scale.disabled = true; scaleLabel.append(scale);
-    settings.append(component.wrapper, mode.wrapper, scaleLabel); container.append(settings);
+    settings.append(component.wrapper, mode.wrapper, scaleLabel); properties.append(settings);
     const layers = node("div", undefined, "fixture-field-layers"), checks = {};
     for (const [key, text] of [["edges", "메시 선"], ["fixed", "고정 XYZ"], ["loads", "saddle 하중"]]) {
       const wrapper = node("label", text), input = node("input"); input.type = "checkbox"; input.checked = true; wrapper.append(input); layers.append(wrapper); checks[key] = input;
     }
     const visibility = chooser("표시·클릭 가림 정책", [["visible", "보이는 외곽면만 (기본)"], ["xray", "X-ray 투과 검사 (숨은 외곽절점 포함)"]]); visibility.item.value = "visible"; layers.append(visibility.wrapper);
-    const policy = node("p", undefined, "fixture-field-visibility"); policy.setAttribute("aria-live", "polite"); container.append(layers, policy);
+    const policy = node("p", undefined, "fixture-field-visibility"); policy.setAttribute("aria-live", "polite"); properties.append(layers, policy);
     const deformationNote = node("p", undefined, "fixture-field-display-note"), error = node("p", "", "fixture-field-error"), legend = node("p", undefined, "fixture-field-legend"); error.hidden = true;
     const canvas = node("canvas", undefined, "fixture-field-canvas"); canvas.setAttribute("aria-label", "같은 해석 기록의 실제 CPS6 외곽 메시와 절점 변위. 드래그로 회전하고 절점을 선택하세요."); canvas.tabIndex = 0;
-    const tools = node("div", undefined, "button-row separated fixture-field-view-actions"), fitButton = button("현재 표시 맞추기", () => update(true)), homeButton = button("기본 시점", () => update(true, true)); tools.append(fitButton, homeButton);
-    container.append(deformationNote, error, tools, canvas, legend, node("p", "드래그로 회전 · 휠로 확대 · 외곽 절점 클릭 또는 아래 ID 검색. 파란 사각형은 고정 XYZ, 붉은 화살표는 실제 saddle 하중입니다. 화살표는 실제 하중 방향으로 절점에 도달하며 길이는 보기용입니다. N 값은 절점 표를 따릅니다.", "hint separated"),
-      node("p", "외곽 CPS6의 6절점을 네 삼각형으로 표시합니다. 면 색은 세 절점 성분의 평균 표시이며, 선택 절점 표는 저장된 원본 U입니다.", "hint"));
+    const tools = node("div", undefined, "button-row fixture-field-view-actions"), fitButton = button("현재 표시 맞추기", () => update(true)), homeButton = button("기본 시점", () => update(true, true)); tools.append(fitButton, homeButton);
+    viewport.append(error, tools, canvas, legend, node("p", "드래그로 회전 · 휠로 확대 · 외곽 절점을 클릭해 원본 값을 확인합니다.", "hint")); properties.append(deformationNote);
     const probeBox = node("div", undefined, "fixture-field-probe"), searchLabel = node("label", "실제 절점 ID로 찾기"), search = node("input"); search.type = "number"; search.min = "1"; search.step = "1"; search.placeholder = "빈칸이면 전체 절점"; searchLabel.append(search);
     const rows = node("div", undefined, "fixture-field-rows"), pager = node("div", undefined, "button-row separated"), pageCaption = node("span", undefined, "hint");
-    container.append(searchLabel, probeBox, rows, pager);
+    properties.append(searchLabel, probeBox); container.append(rows, pager);
     let page = 0, selectedRows = field.nodes, destroyed = false;
     const fixed = new Set(field.fixed_node_ids), loads = new Map(field.loads.map(load => [load.node_id, load.force_N]));
     let selectedNode = null;
@@ -317,6 +318,8 @@
     const fullRange = scene(model, "MAGNITUDE", 0);
     container.append(node("p", `전체 절점 최대 |U| ${fullRange.max} mm · 기존 max_displacement는 하중 안장의 |UZ| 통계 ${metadata.loadedMaximumUz ?? "미제공"} mm입니다. 두 값은 별도 범위이며 기존 metric을 바꾸지 않습니다.`, "fixture-field-statistic"));
     const provenance = node("details", undefined, "raw-detail fixture-field-source"); provenance.append(node("summary", "검증 상세 · 부모·개정·생산 버전·원본"),
+      node("p", "파란 사각형은 고정 XYZ, 붉은 화살표는 실제 saddle 하중입니다. 화살표는 실제 하중 방향으로 절점에 도달하며 길이는 보기용입니다. N 값은 절점 표를 따릅니다."),
+      node("p", "외곽 CPS6의 6절점을 네 삼각형으로 표시합니다. 면 색은 세 절점 성분의 평균 표시이며, 선택 절점 표는 저장된 원본 U입니다."),
       node("p", `실험 ${metadata.experimentId} · 부모 CAD ${metadata.parentId}`), node("p", `CAD revision ${metadata.revision}`, "mono"),
       node("p", `필드 adapter ${metadata.fieldProducer} · 결과 adapter ${metadata.resultProducer} · Core producer ${metadata.coreCommit ?? "미기록"}`, "mono"),
       node("p", `Pinned source ${metadata.upstreamCommit ?? "미기록"} · ${metadata.saddleGroup} · 총 하중 ${metadata.totalForceN} N`, "mono"),

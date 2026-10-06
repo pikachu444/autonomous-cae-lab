@@ -52,3 +52,31 @@ openscience/native_guard.mjs -text whitespace=blank-at-eol,blank-at-eof,space-be
 openscience/tests/native_guard.test.mjs -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 scripts/verify_openscience_native.ps1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 benchmarks/records/20261004-contact-research-source-r01.json -text
+
+# Conditions provenance pins the tested Core/Domain/adapter/reader bytes.
+# Retain the same bytes in Windows and Linux checkouts.
+caelab/analysis_conditions.py -text
+caelab/engine.py -text
+caelab/schema.py -text
+caelab/contracts.py -text
+caelab/cli.py -text
+caelab/adapters/cad_condition_catalog.py -text
+caelab/adapters/fixture_cadquery.py -text
+caelab/adapters/fixture_freecad.py -text
+caelab/adapters/fixture_calculix.py -text
+plugins/elasticity/conditions.py -text
+plugins/fixture_design/analysis_conditions.py -text
+schemas/analysis-conditions-request.schema.json -text
+apps/lab/service.py -text
+apps/lab/server.py -text
+apps/lab/static/app.js -text
+apps/lab/static/index.html -text
+apps/lab/static/style.css -text
+apps/lab/static/result-presentation.js -text
+apps/lab/static/analysis-conditions-controls.js -text
+apps/lab/static/fixture-field-viewer.js -text
+tests/test_analysis_conditions.py -text
+tests/test_analysis_conditions_http.py -text
+tests/test_analysis_conditions_controls.js -text
+tests/test_analysis_conditions_ui.js -text
+tests/test_fixture_field_viewer.js -text

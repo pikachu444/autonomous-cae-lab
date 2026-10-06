@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 
 from .engine import Lab
+from .storage import load_json
 
 
 def _json(value):
@@ -78,8 +79,17 @@ def parser():
     solve.add_argument("--parent", required=True, help="Validated CAD experiment ID")
     solve.add_argument("--experiment", required=True, help="New, immutable solver run ID")
     solve.add_argument("--backend", default="fixture.calculix")
-    solve.add_argument("--settings", required=True,
-                       help="JSON material, load and mesh settings; no solver deck syntax")
+    solve_input = solve.add_mutually_exclusive_group(required=True)
+    solve_input.add_argument("--settings", help="JSON material, load and mesh settings; no solver deck syntax")
+    solve_input.add_argument("--conditions", help="Saved revision-bound condition ID")
+
+    conditions = sub.add_parser("conditions", help="Revision-bound mechanical declarations")
+    condition_actions = conditions.add_subparsers(dest="action", required=True)
+    for action in ("describe", "list"):
+        condition_actions.add_parser(action).add_argument("experiment")
+    condition_actions.add_parser("inspect").add_argument("conditions_id")
+    condition_actions.add_parser("save").add_argument("request", type=Path,
+        help="JSON request containing CAD/catalog revisions and explicit conditions")
     doe = sub.add_parser("doe")
     doe_sub = doe.add_subparsers(dest="action", required=True)
     plan = doe_sub.add_parser("plan")
@@ -200,7 +210,17 @@ def main(argv=None):
         elif args.command == "solve":
             _json(lab.run_analysis(parent_experiment_id=args.parent,
                                    experiment_id=args.experiment, backend=args.backend,
-                                   settings=json.loads(args.settings)))
+                                   settings=json.loads(args.settings) if args.settings else None,
+                                   conditions_id=args.conditions))
+        elif args.command == "conditions":
+            if args.action == "describe":
+                _json(lab.describe_analysis_conditions(args.experiment))
+            elif args.action == "list":
+                _json(lab.list_analysis_conditions(args.experiment))
+            elif args.action == "inspect":
+                _json(lab.inspect_analysis_conditions(args.conditions_id))
+            else:
+                _json(lab.save_analysis_conditions(**load_json(args.request)))
         elif args.command == "doe":
             if args.action == "plan":
                 _json(lab.plan_doe(study_id=args.study, campaign_id=args.campaign,

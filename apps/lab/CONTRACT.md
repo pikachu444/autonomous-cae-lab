@@ -1,5 +1,19 @@
 # Local Lab application contract
 
+## CAD-bound mechanical conditions (ADR0043)
+
+GET analysis-conditions/catalog and analysis-conditions require exactly one
+experiment_id. GET analysis-conditions/C-id verifies a separate immutable
+record/receipt and source. The existing POST jobs operation analysis_conditions_save
+stores explicit revision-owned selections/material/units/frame/BC/signed-force/
+contact/selected-mesh input with declared support; analysis_run accepts its
+conditions_id without competing settings. Existing store/recovery/write/path/job
+fences and real CAD-parent native gates remain. The child freezes exact record
+bytes so its full conditions can be read and exported with the same results.
+Imported final-solid declarations can be saved but the current fixture solver
+refuses them. General face/group/contact/backends and G3/G4 are still incomplete.
+Input support, native completion and engineering release are separate verdicts.
+
 ## User questions through official OpenScience (ADR0033)
 
 The optional trusted `--openscience-owner PATH` startup setting binds the Lab

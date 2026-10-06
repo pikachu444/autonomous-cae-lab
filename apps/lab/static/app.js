@@ -4,7 +4,7 @@
 const $ = (id) => document.getElementById(id);
 const state = {
   overview: null, presets: {}, studyId: "", study: null, registry: { entries: [] },
-  discovery: [], job: null, submitting: false, pollTimer: null, handlers: new Map(),
+  discovery: [], job: null, submitting: false, pollTimer: null, handlers: new Map(), handlerGuards: new Map(),
   selectedExperiment: null, selectedHistories: null, selectedCampaign: null, comparison: new Set(), studyRequest: 0,
   experimentRequest: 0, campaignRequest: 0, viewer: null, fixtureViewer: null, fixtureConditionError: null, storeSwitching: false,
   modelDiscovery: [], modelContext: "", modelRequest: 0,
@@ -21,6 +21,7 @@ const state = {
   observationRequest: 0,
   observationId: "",
   nativeImportRequest: 0, nativeFileSelection: 0,
+  analysisConditions: { request: 0, catalog: null, context: "", record: null, recordDraft: "", records: [], loading: false, error: "" },
 };
 const operationNames = {
   study_create: "연구 만들기", parameter_discover: "CAD 변수 발견", parameter_register: "연구 변수 등록",
@@ -33,6 +34,7 @@ const operationNames = {
   model_optimization_plan: "해석 모델 최적화 계획 저장",
   research_run: "AI 연구 질문",
   response_comparison_save: "관측·시험 기준 비교 저장",
+  analysis_conditions_save: "같은 CAD 개정의 해석 조건 저장",
 };
 const readOperations = new Set(["parameter_discover", "native_inspect", "model_parameters_discover"]);
 const labels = {
@@ -450,7 +452,255 @@ function updateControls() {
   $("compareCount").textContent = `${state.comparison.size}개 선택 · 최대 12개`;
   document.querySelectorAll("[data-experiment-draft]").forEach((item) => { item.disabled = blocked || !available(item.dataset.experimentDraft); });
   if (!observationReady()) $("observationSaveBtn").disabled = true;
+  updateAnalysisConditionsControls();
   updateResearchControls();
+}
+
+function analysisConditionsEnabled() { return Boolean(window.analysisConditionsControls && $("analysisConditionsForm")); }
+function analysisConditionFieldIds() {
+  return { conditionsId: "conditionsId", backend: "conditionsBackend", materialSelection: "conditionsMaterialSelection",
+    materialLaw: "conditionsMaterialLaw", youngModulus: "conditionsYoungModulus", poissonRatio: "conditionsPoissonRatio",
+    materialCategory: "conditionsMaterialCategory", materialSource: "conditionsMaterialSource",
+    coordinateSystem: "conditionsCoordinateSystem", lengthUnit: "conditionsLengthUnit", forceUnit: "conditionsForceUnit", stressUnit: "conditionsStressUnit",
+    boundarySelection: "conditionsBoundarySelection", ux: "conditionsUx", uy: "conditionsUy", uz: "conditionsUz", boundarySource: "conditionsBoundarySource",
+    loadSelection: "conditionsLoadSelection", fx: "conditionsFx", fy: "conditionsFy", fz: "conditionsFz", loadSource: "conditionsLoadSource",
+    contactMode: "conditionsContactMode", contactSource: "conditionsContactSource", meshSize: "conditionsMeshSize" };
+}
+function analysisConditionsFields() {
+  return Object.fromEntries(Object.entries(analysisConditionFieldIds()).map(([name, id]) => [name, $(id).value]));
+}
+function analysisConditionsContext() {
+  return JSON.stringify([activeStore(), state.studyId, $("conditionsParent").value,
+    $("cadBackend").value, $("cadModel").value, $("nativeModelId").value]);
+}
+function analysisConditionsParent() {
+  return window.analysisConditionsControls.parents(list(state.overview?.experiments), state.studyId).find(item => item.id === $("conditionsParent").value);
+}
+function currentAnalysisConditionsCatalog() {
+  if (!analysisConditionsEnabled()) return false;
+  const conditions = state.analysisConditions, parent = analysisConditionsParent();
+  return Boolean(!state.storeSwitching && conditions.catalog && conditions.context === analysisConditionsContext() && parent &&
+    parent.cad_revision === conditions.catalog.source.cad_revision && parent.backend === conditions.catalog.source.backend);
+}
+function analysisConditionsCapture(draft = false, experiment = false) {
+  return { key: analysisConditionsContext(), request: state.analysisConditions.request,
+    ...(draft ? { draft: JSON.stringify(analysisConditionsFields()) } : {}),
+    ...(experiment ? { experimentId: $("conditionsExperimentId").value } : {}) };
+}
+function analysisConditionsCurrent(context) {
+  return Boolean(analysisConditionsEnabled() && !state.storeSwitching && context && context.key === analysisConditionsContext() &&
+    context.request === state.analysisConditions.request && (!Object.hasOwn(context, "draft") || context.draft === JSON.stringify(analysisConditionsFields())) &&
+    (!Object.hasOwn(context, "experimentId") || context.experimentId === $("conditionsExperimentId").value));
+}
+function analysisConditionsError(message = "") {
+  if (!analysisConditionsEnabled()) return;
+  state.analysisConditions.error = message;
+  $("analysisConditionsError").textContent = message; $("analysisConditionsError").hidden = !message;
+}
+function invalidateAnalysisConditions() {
+  if (!analysisConditionsEnabled()) return;
+  const conditions = state.analysisConditions;
+  conditions.request++; conditions.catalog = null; conditions.context = ""; conditions.record = null; conditions.recordDraft = "";
+  conditions.records = []; conditions.loading = false; analysisConditionsError();
+  clear("analysisConditionsCatalog").append(el("p", "CAD·연구·저장소 선택이 바뀌었습니다. 같은 개정의 대상·지원 범위를 다시 확인하세요. 작성한 수치·출처는 유지했습니다.", "hint"));
+  clear("analysisConditionsRecord").append(el("p", "현재 선택에 연결된 저장 조건을 다시 열거나 새 조건으로 저장하세요.", "empty-state"));
+  clear("analysisConditionsList").append(el("p", "현재 CAD의 목록을 불러오기 전입니다.", "empty-state"));
+  for (const id of ["conditionsBackend", "conditionsMaterialSelection", "conditionsBoundarySelection", "conditionsLoadSelection"]) {
+    const select = clear(id); option(select, "", "같은 개정의 catalog를 확인하세요");
+  }
+}
+function renderAnalysisConditionsParents() {
+  if (!analysisConditionsEnabled()) return;
+  const oldParent = $("conditionsParent").value, select = clear("conditionsParent");
+  option(select, "", "현재 연구의 CAD 실험을 선택하세요");
+  window.analysisConditionsControls.parents(list(state.overview?.experiments), state.studyId)
+    .forEach(item => option(select, item.id, `${item.id} · ${item.backend} · 개정 ${item.cad_revision.slice(0, 12)}`));
+  select.value = [...select.options].some(item => item.value === oldParent) ? oldParent : "";
+  if (state.analysisConditions.catalog && !currentAnalysisConditionsCatalog()) invalidateAnalysisConditions();
+}
+function updateAnalysisConditionsControls() {
+  if (!analysisConditionsEnabled()) return;
+  const conditions = state.analysisConditions;
+  if ((conditions.loading && conditions.context !== analysisConditionsContext()) || (conditions.catalog && !currentAnalysisConditionsCatalog())) invalidateAnalysisConditions();
+  const current = currentAnalysisConditionsCatalog(), blocked = !writable() || busy() || conditions.loading;
+  $("conditionsParent").disabled = viewBusy() || conditions.loading || !state.overview;
+  $("analysisConditionsLoadBtn").disabled = viewBusy() || conditions.loading || !analysisConditionsParent();
+  $("analysisConditionsRefreshBtn").disabled = viewBusy() || conditions.loading || !current;
+  $("analysisConditionsNewIdBtn").disabled = blocked;
+  let saveReady = false, runReady = false;
+  if (current) {
+    try {
+      const fields = analysisConditionsFields();
+      window.analysisConditionsControls.buildSave(conditions.catalog, fields);
+      saveReady = fields.conditionsId !== conditions.record?.id;
+      if (conditions.record && conditions.recordDraft === JSON.stringify(fields)) {
+        window.analysisConditionsControls.buildRun(conditions.record, conditions.catalog, fields, $("conditionsExperimentId").value.trim()); runReady = true;
+      }
+    } catch { /* Keep the explicit draft; submission displays its refusal. */ }
+  }
+  $("analysisConditionsSaveBtn").disabled = blocked || !saveReady || !available("analysis_conditions_save");
+  $("analysisConditionsRunBtn").disabled = blocked || !runReady || !available("analysis_run");
+  document.querySelectorAll("[data-analysis-conditions-open]").forEach(item => { item.disabled = viewBusy() || conditions.loading || !current; });
+}
+function renderAnalysisConditionsCatalog() {
+  if (!currentAnalysisConditionsCatalog()) return;
+  const data = state.analysisConditions.catalog, card = clear("analysisConditionsCatalog");
+  card.append(el("p", `CAD ${data.source.experiment_id} · 연구 ${data.source.study_id}`), el("p", `CAD 개정 ${data.source.cad_revision}`, "mono"),
+    el("p", "전역 X·Y·Z의 Cartesian 좌표계 · 길이/변위 mm · 합력 N · E/응력 MPa. 아래 대상은 adapter가 선언한 범위이며 화면 삼각형이나 일반 네이티브 면 선택이 아닙니다.", "hint"));
+  data.backends.forEach(item => card.append(el("p", `${item.label} · ${item.backend}: ${item.scope}`, "hint")));
+  card.append(el("p", "위 목록은 선언 입력 경로입니다. 네이티브 runtime 설치·실행 여부는 NOT_CHECKED이며 물리·강도 자격은 UNKNOWN입니다.", "hint"));
+  const selections = data.catalog.selections.slice(0, 64);
+  card.append(table(["선택 ID", "대상·종류", "허용 역할"], selections.map(item => [item.id, `${item.label} · ${item.kind}`, item.roles.join(" · ")])));
+  if (data.catalog.selections.length > selections.length) card.append(el("p", "첫 64개 대상만 요약했습니다. 실제 선택 목록과 catalog 원본에서 나머지 대상을 확인하세요.", "hint"));
+  data.catalog.limitations.forEach(item => card.append(el("p", item, "hint")));
+  card.append(rawDetail("catalog와 원본 해시 확인", data));
+}
+function fillAnalysisConditionsChoices() {
+  const data = state.analysisConditions.catalog;
+  for (const [id, role] of [["conditionsMaterialSelection", "material"], ["conditionsBoundarySelection", "boundary"], ["conditionsLoadSelection", "load"]]) {
+    const old = $(id).value, select = clear(id); option(select, "", "같은 개정의 대상을 명시적으로 선택하세요");
+    window.analysisConditionsControls.choices(data, role).forEach(item => option(select, item.id, `${item.label} · ${item.id} · ${item.kind}`));
+    select.value = [...select.options].some(item => item.value === old) ? old : "";
+  }
+  const old = $("conditionsBackend").value, select = clear("conditionsBackend"); option(select, "", "서버가 제공한 해석 경로를 선택하세요");
+  data.backends.forEach(item => option(select, item.backend, `${item.label} · ${item.backend}`));
+  select.value = [...select.options].some(item => item.value === old) ? old : "";
+}
+function renderAnalysisConditionsRecord() {
+  if (!analysisConditionsEnabled()) return;
+  const conditions = state.analysisConditions, record = conditions.record, card = clear("analysisConditionsRecord");
+  if (!record) { card.append(el("p", "현재 CAD에 연결된 조건을 저장하거나 보존 기록을 다시 여세요.", "empty-state")); return; }
+  const supported = record.support.status === "SUPPORTED_DECLARED_INPUTS";
+  card.append(el("h3", `저장 조건 ${record.id}`), badge("VERIFIED"), badge("UNKNOWN", "공학 자격 UNKNOWN"), badge("NOT_RELEASED"));
+  card.append(el("p", `원 CAD ${record.source.experiment_id} · 연구 ${record.source.study_id} · ${record.request.backend}`),
+    el("p", `CAD 개정 ${record.source.cad_revision}`, "mono"), el("p", `조건 개정 ${record.conditions_revision}`, "mono"),
+    el("p", `${supported ? "서버가 이 모델·조건의 선언 입력을 지원합니다." : "이 모델·조건은 현재 해석 경로에서 실행할 수 없습니다."} ${record.support.status}`));
+  record.support.reasons.forEach(reason => card.append(el("p", reason, "hint")));
+  card.append(el("p", "네이티브 runtime NOT_CHECKED · 설치나 실제 실행 성공은 위 호환 판정으로 확인되지 않습니다.", "hint"));
+  if (conditions.recordDraft !== JSON.stringify(analysisConditionsFields())) card.append(el("p", "저장 후 작성 입력이 변경됐습니다. 새 조건 ID로 저장하거나 이 보존 조건을 다시 연 뒤 실행하세요.", "metric-reason"));
+  const declaration = record.request.declaration;
+  const rows = [["선언 해석", declaration.analysis_type], ["좌표계·단위", `${declaration.coordinate_system} · ${declaration.units?.length} / ${declaration.units?.force} / ${declaration.units?.stress}`]];
+  list(declaration.materials).slice(0, 64).forEach(item => rows.push([`재료 · ${item.selection_id}`, `${item.law} · E ${number(item.young_modulus_MPa)} MPa · ν ${number(item.poisson_ratio)} · ${item.source?.category}: ${item.source?.description}`]));
+  list(declaration.boundary_conditions).slice(0, 64).forEach(item => rows.push([`변위 구속 · ${item.selection_id}`, `UX ${number(item.components?.UX)} / UY ${number(item.components?.UY)} / UZ ${number(item.components?.UZ)} ${item.unit} · ${item.coordinate_system} · ${item.source}`]));
+  list(declaration.loads).slice(0, 64).forEach(item => rows.push([`합력 · ${item.selection_id}`, `FX ${number(item.components?.FX)} / FY ${number(item.components?.FY)} / FZ ${number(item.components?.FZ)} ${item.unit} · ${item.coordinate_system} · ${item.source}`]));
+  rows.push(["접촉 모델", `${declaration.contact?.mode} · ${declaration.contact?.source}`], ["선택 메시", `${number(declaration.mesh?.max_size_mm)} mm · ${declaration.mesh?.mode}`]);
+  card.append(table(["보존 조건", "입력·출처"], rows));
+  card.append(rawDetail("보존한 재료·구속·부호 하중·좌표계·단위·접촉·메시", declaration), rawDetail("같은 CAD 원본 해시·요청·서버 판정", record),
+    link("조건 원본 JSON 저장", `/api/analysis-conditions/${idPath(record.id)}`, "text-link", true));
+}
+function renderAnalysisConditionsList() {
+  if (!analysisConditionsEnabled()) return;
+  const card = clear("analysisConditionsList"), records = state.analysisConditions.records;
+  if (!records.length) { card.append(el("p", "이 CAD 실험에 저장된 조건이 없습니다. 새 조건은 원 결과와 별도로 보존됩니다.", "empty-state")); return; }
+  records.slice(0, 100).forEach(value => {
+    try {
+      const record = window.analysisConditionsControls.saved(value, state.analysisConditions.catalog);
+      const button = action(`조건 ${record.id} 다시 열기`, () => openAnalysisConditionsRecord(record.id)); button.dataset.analysisConditionsOpen = "";
+      card.append(el("p", `${record.id} · ${record.request.backend} · ${record.support.status}`, "hint"), button);
+    } catch (error) {
+      card.append(el("p", `${value?.id ?? value?.record?.id ?? "식별자 미확인"} · 보존 기록 UNKNOWN · ${value?.error ?? error.message}`, "metric-reason"));
+    }
+  });
+  if (records.length > 100) card.append(el("p", "첫 100개 조건을 표시합니다. 모든 원 기록은 저장소에 보존되어 있습니다.", "hint"));
+}
+async function readAnalysisConditionsList(context) {
+  const data = await api(`/api/analysis-conditions?${new URLSearchParams({ experiment_id: $("conditionsParent").value })}`);
+  if (!analysisConditionsCurrent(context)) return;
+  if (!Array.isArray(data.records) || data.records.length > 4096) throw new Error("보존 조건 목록의 응답 범위를 확인할 수 없습니다.");
+  state.analysisConditions.records = data.records; renderAnalysisConditionsList();
+}
+async function loadAnalysisConditionsCatalog() {
+  if (!analysisConditionsEnabled() || viewBusy() || state.analysisConditions.loading) return;
+  const parent = analysisConditionsParent();
+  if (!parent) { analysisConditionsError("현재 연구의 완료한 CAD 실험을 선택하세요."); return; }
+  const conditions = state.analysisConditions;
+  conditions.request++; conditions.loading = true; conditions.context = analysisConditionsContext(); conditions.catalog = null; conditions.record = null; conditions.recordDraft = ""; conditions.records = [];
+  analysisConditionsError(); let context = analysisConditionsCapture(true); updateControls();
+  clear("analysisConditionsCatalog").append(el("p", "선택한 CAD 개정·원본 해시와 대상 catalog를 확인하고 있습니다…", "hint"));
+  renderAnalysisConditionsRecord(); clear("analysisConditionsList").append(el("p", "같은 CAD의 보존 조건을 확인하고 있습니다…", "hint"));
+  try {
+    const data = await api(`/api/analysis-conditions/catalog?${new URLSearchParams({ experiment_id: parent.id })}`);
+    if (!analysisConditionsCurrent(context)) return;
+    conditions.catalog = window.analysisConditionsControls.catalog(data, { experimentId: parent.id, studyId: state.studyId, cadRevision: parent.cad_revision, backend: parent.backend });
+    conditions.context = analysisConditionsContext(); fillAnalysisConditionsChoices(); renderAnalysisConditionsCatalog();
+    // Populating advertised options changes the draft intentionally; later list
+    // replies remain tied to these exact populated inputs and the same CAD.
+    context = analysisConditionsCapture(true); await readAnalysisConditionsList(context);
+  } catch (error) {
+    if (!analysisConditionsCurrent(context)) return;
+    analysisConditionsError(error.message);
+  } finally {
+    if (context.request === conditions.request && context.key === analysisConditionsContext() && !state.storeSwitching) { conditions.loading = false; updateControls(); }
+  }
+}
+async function refreshAnalysisConditionsList() {
+  if (!analysisConditionsEnabled() || !currentAnalysisConditionsCatalog() || viewBusy() || state.analysisConditions.loading) return;
+  const conditions = state.analysisConditions; conditions.request++; conditions.loading = true; analysisConditionsError();
+  const context = analysisConditionsCapture(true); updateControls();
+  try { await readAnalysisConditionsList(context); }
+  catch (error) { if (analysisConditionsCurrent(context)) analysisConditionsError(error.message); }
+  finally { if (analysisConditionsCurrent(context)) { conditions.loading = false; updateControls(); } }
+}
+async function openAnalysisConditionsRecord(identifier) {
+  if (!analysisConditionsEnabled() || !currentAnalysisConditionsCatalog() || viewBusy() || state.analysisConditions.loading) return;
+  const conditions = state.analysisConditions; conditions.request++; conditions.loading = true; analysisConditionsError();
+  const context = analysisConditionsCapture(true); updateControls();
+  try {
+    const payload = await api(`/api/analysis-conditions/${idPath(identifier)}`);
+    if (!analysisConditionsCurrent(context)) return;
+    const record = window.analysisConditionsControls.saved(payload, conditions.catalog);
+    if (record.id !== identifier) throw new Error("요청한 조건 ID와 원 기록이 다릅니다.");
+    conditions.record = record; conditions.recordDraft = "";
+    try {
+      const fields = window.analysisConditionsControls.fromRecord(record, conditions.catalog);
+      Object.entries(analysisConditionFieldIds()).forEach(([name, id]) => { $(id).value = fields[name]; });
+      conditions.recordDraft = JSON.stringify(analysisConditionsFields());
+    } catch (error) { analysisConditionsError(error.message); }
+    renderAnalysisConditionsRecord();
+  } catch (error) { if (analysisConditionsCurrent(context)) analysisConditionsError(error.message); }
+  finally {
+    if (context.request === conditions.request && context.key === analysisConditionsContext() && !state.storeSwitching) { conditions.loading = false; updateControls(); }
+  }
+}
+function changeAnalysisConditionsDraft() {
+  if (!analysisConditionsEnabled()) return;
+  state.analysisConditions.request++; state.analysisConditions.loading = false; analysisConditionsError();
+  renderAnalysisConditionsRecord(); updateControls();
+}
+async function saveAnalysisConditions() {
+  if (!analysisConditionsEnabled()) return;
+  const conditions = state.analysisConditions, context = analysisConditionsCapture(true);
+  try {
+    if (!currentAnalysisConditionsCatalog() || conditions.loading) throw new Error("현재 CAD 개정의 catalog를 먼저 확인하세요.");
+    const args = window.analysisConditionsControls.buildSave(conditions.catalog, analysisConditionsFields());
+    if (args.conditions_id === conditions.record?.id) throw new Error("보존 조건 ID는 다시 저장할 수 없습니다. 새 조건 ID를 준비하세요.");
+    await runJob("analysis_conditions_save", args, result => {
+      if (!analysisConditionsCurrent(context)) return;
+      try {
+        const record = window.analysisConditionsControls.saved({ record: result, integrity: "VERIFIED" }, conditions.catalog, args);
+        conditions.record = record; conditions.recordDraft = context.draft; analysisConditionsError();
+        conditions.records = [{ record, integrity: "VERIFIED" }, ...conditions.records.filter(value => value.record?.id !== record.id)];
+        renderAnalysisConditionsRecord(); renderAnalysisConditionsList(); updateControls();
+        notify("같은 CAD 개정의 조건을 새 기록으로 보존했습니다. 서버 지원 판정과 미확인 runtime·공학 자격을 확인하세요.", true);
+      } catch (error) { if (analysisConditionsCurrent(context)) analysisConditionsError(error.message); }
+    }, () => analysisConditionsCurrent(context));
+  } catch (error) { if (analysisConditionsCurrent(context)) analysisConditionsError(error.message); }
+}
+async function runAnalysisConditions() {
+  if (!analysisConditionsEnabled()) return;
+  const conditions = state.analysisConditions, context = analysisConditionsCapture(true, true);
+  try {
+    if (!currentAnalysisConditionsCatalog() || conditions.loading || conditions.recordDraft !== context.draft) throw new Error("현재 CAD 개정과 작성 입력에 일치하는 조건을 새로 저장하거나 다시 여세요.");
+    const args = window.analysisConditionsControls.buildRun(conditions.record, conditions.catalog, analysisConditionsFields(), $("conditionsExperimentId").value.trim());
+    await runJob("analysis_run", args, async result => {
+      if (!analysisConditionsCurrent(context)) return;
+      if (result?.experiment_id !== args.experiment_id || result?.cad_revision !== conditions.record.source.cad_revision || result?.study?.id !== state.studyId || result?.provenance?.adapter !== args.backend) {
+        analysisConditionsError("새 해석의 실험·연구·CAD 개정 연결을 확인할 수 없습니다. 원 결과를 확인하세요."); return;
+      }
+      await inspectExperiment(args.experiment_id, () => analysisConditionsCurrent(context));
+      if (analysisConditionsCurrent(context)) $("conditionsExperimentId").value = makeId("E-conditions");
+    }, () => analysisConditionsCurrent(context));
+  } catch (error) { if (analysisConditionsCurrent(context)) analysisConditionsError(error.message); }
 }
 
 function renderAnalysisParents() {
@@ -504,6 +754,7 @@ function renderOverview() {
   });
   if (!capabilities.children.length) capabilities.append(el("p", "서버에서 capability 정보를 제공하지 않았습니다.", "empty-state"));
   renderAnalysisParents();
+  renderAnalysisConditionsParents();
   renderExperimentList(); renderCampaignList(); updateControls();
 }
 async function loadOverview({ followJobs = true } = {}) {
@@ -535,7 +786,7 @@ async function loadStudy(identifier) {
     const data = await api(`/api/studies/${idPath(identifier)}`);
     if (request !== state.studyRequest || store !== activeStore()) return;
     state.studyId = identifier; state.study = data.study; state.registry = data.registry ?? { entries: [] };
-    $("studySelect").value = identifier; renderStudy(); renderRegistry(); renderAnalysisParents(); updateControls();
+    $("studySelect").value = identifier; renderStudy(); renderRegistry(); renderAnalysisParents(); renderAnalysisConditionsParents(); updateControls();
   } catch (error) {
     if (request !== state.studyRequest) return;
     state.study = null; state.registry = { entries: [] }; renderStudy(); renderRegistry(); throw error;
@@ -1049,7 +1300,8 @@ function renderExperimentList() {
   })));
   updateControls();
 }
-async function inspectExperiment(identifier) {
+async function inspectExperiment(identifier, stillCurrent = () => true) {
+  if (!stillCurrent()) return;
   if (state.storeSwitching) throw new Error("저장소를 바꾸고 있습니다. 전환 후 기록을 열어 주세요.");
   if (!window.resultPresentation.safeExperimentId(identifier)) throw new Error("실험 식별자를 확인할 수 없습니다.");
   location.hash = "results"; const request = ++state.experimentRequest, store = activeStore();
@@ -1061,14 +1313,14 @@ async function inspectExperiment(identifier) {
   $("selectedSource").textContent = "기록 확인 중";
   try {
     const data = await api(`/api/experiments/${idPath(identifier)}`);
-    if (request !== state.experimentRequest || store !== activeStore()) return;
+    if (request !== state.experimentRequest || store !== activeStore() || !stillCurrent()) return;
     if (data.integrity !== "VERIFIED" || data.result?.experiment_id !== identifier) throw new Error("서버가 요청한 기록의 식별자와 검증 완료를 확인하지 않았습니다.");
     state.selectedExperiment = data; renderExperimentDetail(data); renderObservation(data);
     loadResponseHistories(data).catch(error => {
-      if (state.selectedExperiment === data && store === activeStore()) notify(error.message);
+      if (state.selectedExperiment === data && store === activeStore() && stillCurrent()) notify(error.message);
     });
   } catch (error) {
-    if (request !== state.experimentRequest) return;
+    if (request !== state.experimentRequest || store !== activeStore() || !stillCurrent()) return;
     const card = panel("이 실험의 기록을 확인할 수 없습니다."); card.classList.add("detail-error"); card.append(el("p", error.message), el("p", "파일과 기록의 일치를 확인한 후 결과를 표시합니다."));
     clear("experimentDetail").append(card); $("selectedSource").textContent = "기록 확인 실패"; throw error;
   }
@@ -1316,6 +1568,7 @@ function renderExperimentDetail(data) {
   const downloads = el("div", undefined, "button-row");
   downloads.append(link("보고서 열기", `/api/report/${idPath(identifier)}.html`, "button secondary compact"), link("원본 묶음 저장", `/api/report/${idPath(identifier)}.zip`, "button subtle compact", true)); header.append(downloads); container.append(header);
 
+  renderFixtureFields(container, data);
   const overview = el("div", undefined, "result-overview");
   const visual = panel("모델 형상"); visual.classList.add("result-visual");
   const artifactsList = list(result.artifacts);
@@ -1342,6 +1595,22 @@ function renderExperimentDetail(data) {
     const original = el("details", undefined, "advanced separated");
     original.append(el("summary", "원래 해석의 전체 조건"), el("pre", pretty(data.proposal.execution))); inputs.append(original);
   }
+  if (data.integrity === "VERIFIED" && result.provenance?.analysis_conditions) {
+    const reference = result.provenance.analysis_conditions, declaration = data.proposal;
+    const frozen = el("details", undefined, "advanced separated");
+    frozen.append(el("summary", "이 결과에 보존된 영역·재료·구속·하중"));
+    list(declaration.boundary_conditions).forEach(item => frozen.append(el("p",
+      `${item.selection_id}: UX ${number(item.components?.UX)} / UY ${number(item.components?.UY)} / UZ ${number(item.components?.UZ)} ${item.unit} · ${item.coordinate_system}`, "hint")));
+    list(declaration.loads).forEach(item => frozen.append(el("p",
+      `${item.selection_id}: FX ${number(item.components?.FX)} / FY ${number(item.components?.FY)} / FZ ${number(item.components?.FZ)} ${item.unit} · ${item.coordinate_system}`, "hint")));
+    frozen.append(el("p", `조건 ${reference.id} · 물성·적용 자격 미확인`, "hint"),
+      rawDetail("보존한 공통 조건과 출처", { materials: declaration.model?.materials,
+        coordinate_systems: declaration.model?.coordinate_systems,
+        boundary_conditions: declaration.boundary_conditions, loads: declaration.loads,
+        contact: declaration.model?.contact_declaration, conditions_reference: reference }),
+      link("실행 시 보존한 조건 원본 저장", artifactUrl(identifier, "analysis_conditions.json"), "text-link", true));
+    inputs.append(frozen);
+  }
   const draft = window.experimentDraft?.fromRecord(data, state.presets);
   if (draft?.available) {
     const reuse = action("이 조건에서 새 실험 준비", () => prepareExperimentDraft(data), "button secondary compact");
@@ -1355,7 +1624,6 @@ function renderExperimentDetail(data) {
   checks.append(checkCounts, el("p", `이 실험 기록에 포함된 검사 ${check.total}개 기준입니다.`, "hint"));
   checks.append(el("p", result.decision === "NOT_RELEASED" ? "강도·실물 사용 승인에 필요한 확인이 남아 있습니다." : "사용 승인 여부는 기록의 판정과 근거를 따릅니다.", "check-note")); side.append(checks);
   overview.append(visual, side); container.append(overview);
-  renderFixtureFields(container, data);
 
   const metrics = panel("결과값"); metrics.classList.add("detail-wide");
   const metricRows = Object.entries(result.metrics ?? {}), metricGrid = el("div", undefined, "result-metrics");
@@ -1420,8 +1688,7 @@ function renderFixtureFields(container, inspection) {
   const result = inspection.result;
   if (result.provenance?.adapter !== "fixture.calculix") return Promise.resolve(false);
   const card = panel("같은 해석의 메시와 절점 변위", "NATIVE FEA FIELD · SAME RECORD"); card.classList.add("detail-wide", "fixture-field-card");
-  card.append(el("p", "해석에 사용한 실제 메시·고정·하중과 저장된 전체 U를 확인합니다. 이 관측은 정확도·강도·실물 사용 승인이 아닙니다.", "hint separated"));
-  const choices = el("div", undefined, "button-row separated"), detail = el("div", undefined, "fixture-field-detail separated"); card.append(choices, detail); container.append(card);
+  const choices = el("div", undefined, "button-row fixture-field-choices"), detail = el("div", undefined, "fixture-field-detail"); card.append(choices, detail); container.append(card);
   const request = state.experimentRequest, store = activeStore(); let sequence = 0, mounted = null;
   const current = () => card.isConnected && detail.isConnected && request === state.experimentRequest && store === activeStore()
     && !state.storeSwitching && state.selectedExperiment === inspection;
@@ -1467,6 +1734,7 @@ function renderFixtureFields(container, inspection) {
       if (!selected()) return false; mounted = window.fixtureFieldViewer.mount(detail, model, selected); if (!mounted || !selected()) { mounted?.destroy(); return false; }
       state.fixtureViewer = mounted;
       const downloads = el("div", undefined, "button-row separated"); downloads.append(link("전체 절점 U JSON", artifactUrl(result.experiment_id, entry.path), "text-link", true));
+      mounted.refs.provenance.append(el("p", "해석에 사용한 실제 메시·고정·하중과 저장된 전체 U를 확인합니다. 이 관측은 정확도·강도·실물 사용 승인이 아닙니다.", "hint"));
       const prefix = entry.path.slice(0, entry.path.lastIndexOf("/") + 1);
       Object.values(model.field.sources).forEach(source => downloads.append(link(source.path, artifactUrl(result.experiment_id, prefix + source.path), "text-link artifact-path", true))); mounted.refs.provenance.append(downloads);
       return true;
@@ -1931,6 +2199,7 @@ function schedulePoll(delay = 1200) {
 }
 async function pollJob() {
   const identifier = state.job?.id; if (!identifier || !activeJob(state.job)) return;
+  const current = state.handlerGuards.get(identifier) ?? (() => true);
   try {
     const job = await api(`/api/jobs/${idPath(identifier)}`);
     if (identifier !== state.job?.id) return;
@@ -1938,19 +2207,19 @@ async function pollJob() {
     if (activeJob(job)) { schedulePoll(); return; }
     await loadOverview({ followJobs: false });
     if (job.operation === "research_run") await loadResearchStatus();
-    const handler = state.handlers.get(identifier); state.handlers.delete(identifier);
+    const handler = state.handlers.get(identifier); state.handlers.delete(identifier); state.handlerGuards.delete(identifier);
     if (job.status === "COMPLETED" && handler) await handler(job.result);
-    if (job.status === "FAILED") { if (job.operation === "research_run") researchError(new Error(text(job.error))); else notify(`작업이 실패했습니다: ${text(job.error)}`); }
-    if (job.status === "CANCELLED") notify("작업 취소가 완료됐습니다. 부분 기록은 보존됩니다.", true);
+    if (job.status === "FAILED" && current()) { if (job.operation === "research_run") researchError(new Error(text(job.error))); else notify(`작업이 실패했습니다: ${text(job.error)}`); }
+    if (job.status === "CANCELLED" && current()) notify("작업 취소가 완료됐습니다. 부분 기록은 보존됩니다.", true);
   } catch (error) {
     if (activeJob(state.job)) {
       $("jobMessage").textContent = state.job?.operation === "research_run" ? "작업 상태 연결을 확인할 수 없습니다. 종료를 단정하지 않고 다시 확인합니다."
         : `상태 연결을 확인할 수 없습니다: ${error.message} · 실행 실패로 단정하지 않고 다시 확인합니다.`; schedulePoll(4000);
-    } else if (state.job?.operation === "research_run") researchError(error);
-    else notify(`작업 상태는 ${labels[state.job?.status] ?? state.job?.status}입니다. 후속 기록 읽기 실패: ${error.message}`);
+    } else if (current() && state.job?.operation === "research_run") researchError(error);
+    else if (current()) notify(`작업 상태는 ${labels[state.job?.status] ?? state.job?.status}입니다. 후속 기록 읽기 실패: ${error.message}`);
   }
 }
-async function runJob(operation, arguments_, handler) {
+async function runJob(operation, arguments_, handler, current = () => true) {
   if (!writable() && !readOperations.has(operation)) throw new Error("읽기 전용 라이브러리에서는 새 작업을 실행할 수 없습니다. 작업 저장소로 전환하세요.");
   if (busy()) throw new Error("이미 실행 중인 작업이 있습니다. 종료 상태를 확인한 뒤 다음 작업을 시작하세요.");
   if (!available(operation)) throw new Error("이 작업은 현재 실행 가능한 capability로 제공되지 않습니다.");
@@ -1962,13 +2231,14 @@ async function runJob(operation, arguments_, handler) {
       ? window.importedMeshControls.requestBody(operation, arguments_) : JSON.stringify({ operation, arguments: arguments_ });
     const job = await api("/api/jobs", { method: "POST", body });
     if (researchRequest) state.researchContexts.set(job.id, researchRequest);
-    state.job = job; if (handler) state.handlers.set(job.id, handler); renderJob();
+    state.job = job; if (handler) { state.handlers.set(job.id, handler); state.handlerGuards.set(job.id, current); } renderJob();
     if (activeJob(job)) schedulePoll();
     else {
       await loadOverview({ followJobs: false });
       if (operation === "research_run") await loadResearchStatus();
-      if (job.status === "COMPLETED" && handler) { state.handlers.delete(job.id); await handler(job.result); }
-      else if (job.status === "FAILED") { if (operation === "research_run") researchError(new Error(text(job.error))); else notify(text(job.error)); }
+      state.handlers.delete(job.id); state.handlerGuards.delete(job.id);
+      if (job.status === "COMPLETED" && handler) await handler(job.result);
+      else if (job.status === "FAILED" && current()) { if (operation === "research_run") researchError(new Error(text(job.error))); else notify(text(job.error)); }
     }
   } finally { state.submitting = false; updateControls(); }
 }
@@ -2002,6 +2272,7 @@ async function switchStore(identifier) {
   if (state.storeSwitching) throw new Error("저장소 전환을 확인하고 있습니다.");
   // Invalidate pending parent/artifact reads before the server changes stores.
   state.storeSwitching = true; state.experimentRequest++; state.fixtureViewer?.destroy(); state.fixtureViewer = null; updateControls();
+  invalidateAnalysisConditions();
   let overview;
   try { overview = await api("/api/store", { method: "POST", body: JSON.stringify({ id: identifier }) }); }
   catch (error) {
@@ -2050,6 +2321,23 @@ $("nativeImportFile").addEventListener("change", () => { state.nativeFileSelecti
 bindForm("nativeInspectForm", "native_inspect", () => ({ model: $("nativeModelId").value.trim() }), renderNative);
 bindForm("nativeFinalForm", "native_final", () => ({ model: $("nativeModelId").value.trim(), final: $("nativeFinal").value }), renderNative);
 bindForm("simulationForm", simulationOperation, simulationArguments, completeSimulation, simulationSubmissionContext);
+if (analysisConditionsEnabled()) {
+  $("conditionsId").value = makeId("C-conditions"); $("conditionsExperimentId").value = makeId("E-conditions");
+  $("conditionsParent").addEventListener("change", () => { invalidateAnalysisConditions(); updateControls(); });
+  $("analysisConditionsLoadBtn").addEventListener("click", loadAnalysisConditionsCatalog);
+  $("analysisConditionsRefreshBtn").addEventListener("click", refreshAnalysisConditionsList);
+  $("analysisConditionsForm").addEventListener("submit", event => { event.preventDefault(); if (event.currentTarget.reportValidity()) saveAnalysisConditions(); });
+  $("analysisConditionsRunForm").addEventListener("submit", event => { event.preventDefault(); if (event.currentTarget.reportValidity()) runAnalysisConditions(); });
+  document.querySelectorAll("[data-analysis-condition]").forEach(input => input.addEventListener(input.tagName === "SELECT" ? "change" : "input", changeAnalysisConditionsDraft));
+  $("conditionsExperimentId").addEventListener("input", updateControls);
+  $("analysisConditionsNewIdBtn").addEventListener("click", () => {
+    if (!writable() || busy()) return;
+    $("conditionsId").value = makeId("C-conditions"); changeAnalysisConditionsDraft();
+  });
+  for (const id of ["cadBackend", "cadModel", "nativeModelId"]) {
+    $(id).addEventListener(id === "cadBackend" ? "change" : "input", () => { invalidateAnalysisConditions(); updateControls(); });
+  }
+}
 bindForm("observationForm", "response_comparison_save", observationArguments, completeObservation, observationSubmissionContext);
 $("observationResponse").addEventListener("change", changeObservationResponse);
 $("observationHistorySample").addEventListener("change", observationResponseNote);

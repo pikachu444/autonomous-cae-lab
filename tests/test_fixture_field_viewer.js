@@ -402,8 +402,9 @@ test("unavailable layout never collapses or retries a fallback READY; explicit f
   width = 430; height = 400; assert.equal(observers[0].emit(), false); assert.equal(canvas.clientWidth, 430); assert.equal(canvas.clientHeight, 400);
   assert.equal(canvas.paint.length, paints); assertUnavailable(mounted, /stable viewport/); assert.equal(tableRows(mounted).length, 10);
   assert.equal(mounted.viewer.fit(), true); assertReady(mounted); assert.equal(canvas.width, 430); assert.equal(canvas.height, 400); assert.equal(canvas.dataset.component, "UY"); assert.equal(canvas.dataset.displayFactor, "100");
-  const fitIndex = container.children.findIndex(item => walk(item).includes(mounted.refs.fit)), canvasIndex = container.children.indexOf(canvas), rowsIndex = container.children.indexOf(mounted.refs.rows);
-  assert(fitIndex >= 0 && fitIndex < canvasIndex && canvasIndex < rowsIndex); assert.equal(mounted.refs.fit.parentNode, mounted.refs.home.parentNode);
+  const viewport = canvas.parentNode, fitIndex = viewport.children.findIndex(item => walk(item).includes(mounted.refs.fit)), canvasIndex = viewport.children.indexOf(canvas);
+  const workspaceIndex = container.children.findIndex(item => walk(item).includes(canvas)), rowsIndex = container.children.indexOf(mounted.refs.rows);
+  assert(fitIndex >= 0 && fitIndex < canvasIndex && workspaceIndex >= 0 && workspaceIndex < rowsIndex); assert.equal(mounted.refs.fit.parentNode, mounted.refs.home.parentNode);
   assert.equal(observers[0].emit(), true, "normal automatic resize resumes only after an accepted frame"); assert.equal(JSON.stringify(data), before);
 }));
 

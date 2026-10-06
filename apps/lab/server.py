@@ -181,6 +181,12 @@ class LabHandler(BaseHTTPRequestHandler):
             if set(query) != {"study_id"} or len(query["study_id"]) != 1:
                 raise ServiceError(400, "Observation comparisons require one study_id")
             return self._json(200, service.response_comparisons(query["study_id"][0]))
+        if path in {"/api/analysis-conditions/catalog", "/api/analysis-conditions"}:
+            if set(query) != {"experiment_id"} or len(query["experiment_id"]) != 1:
+                raise ServiceError(400, "Analysis conditions require one experiment_id")
+            operation = (service.analysis_conditions_catalog if path.endswith("/catalog")
+                         else service.analysis_conditions_list)
+            return self._json(200, operation(query["experiment_id"][0]))
         if path.startswith("/api/artifacts/"):
             if set(query) != {"path"} or len(query["path"]) != 1:
                 raise ServiceError(400, "Artifact requires one relative path argument")
@@ -202,7 +208,8 @@ class LabHandler(BaseHTTPRequestHandler):
             return self._json(200, service.native_imports())
         if path.startswith("/api/native-imports/"):
             return self._json(200, service.native_import(path.removeprefix("/api/native-imports/")))
-        for prefix, operation in (("/api/response-comparisons/", service.response_comparison),
+        for prefix, operation in (("/api/analysis-conditions/", service.analysis_conditions),
+                                  ("/api/response-comparisons/", service.response_comparison),
                                   ("/api/response-histories/", service.response_histories),
                                   ("/api/studies/", service.study), ("/api/experiments/", service.experiment),
                                   ("/api/campaigns/", service.campaign), ("/api/jobs/", service.job)):

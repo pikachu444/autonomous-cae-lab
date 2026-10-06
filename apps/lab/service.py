@@ -35,6 +35,7 @@ OPERATIONS = {
     "model_parameters_register": "register_model_parameter",
     "model_optimization_plan": "plan_model_optimization",
     "response_comparison_save": "save_response_comparison",
+    "analysis_conditions_save": "save_analysis_conditions",
 }
 READ_OPERATIONS = frozenset({"parameter_discover", "native_inspect", "model_parameters_discover"})
 REFERENCE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
@@ -187,6 +188,7 @@ class LabService:
         descriptions = {
             "study_create": ("연구 만들기", None, "IMPLEMENTED", "Core 연구 질문·가설·목표 기록"),
             "response_comparison_save": ("관측·시험 기준과 비교 기록", None, "IMPLEMENTED", "사용자가 선언한 관측값과 보존된 수치 응답의 차이; 원인·물리 검증 또는 사용 승인 아님"),
+            "analysis_conditions_save": ("CAD 개정에 해석 조건 저장", None, "EXPERIMENTAL", "영역·재료·하중·구속의 명시적 선언과 solver 지원 여부; 입력 지원은 실행·물성 검증 아님"),
             "parameter_discover": ("설계 변수 찾기", "fixture.cadquery / fixture.freecad / fixture.assembly", "IMPLEMENTED", "기존 CAD adapter의 native 변수"),
             "parameter_register": ("설계 변수 등록", "fixture.cadquery / fixture.freecad / fixture.assembly", "IMPLEMENTED", "기존 Core의 범위·형상 효과 검증"),
             "registry_refresh": ("변수 매핑 갱신", None, "IMPLEMENTED", "기존 Core의 native 개정 확인"),
@@ -320,6 +322,16 @@ class LabService:
 
     def response_comparison(self, identifier: str) -> dict:
         return self._response_comparison(self._selected(), check_id(identifier))
+
+    def analysis_conditions_catalog(self, experiment_id: str) -> dict:
+        return self._selected().lab.describe_analysis_conditions(check_id(experiment_id))
+
+    def analysis_conditions(self, identifier: str) -> dict:
+        return {"record": self._selected().lab.inspect_analysis_conditions(check_id(identifier)),
+                "integrity": "VERIFIED"}
+
+    def analysis_conditions_list(self, experiment_id: str) -> dict:
+        return {"records": self._selected().lab.list_analysis_conditions(check_id(experiment_id))}
 
     def response_comparisons(self, study_id: str) -> list[dict]:
         selected = self._selected()
@@ -672,13 +684,14 @@ class LabService:
             if value is not None and (not isinstance(value, str) or not value or len(value) > 512
                                       or any(char in value for char in ("/", "\\", "\x00", ":"))):
                 raise ValueError(f"{key} must be an existing native object/dimension name")
-        for key in ("study_id", "experiment_id", "parent_experiment_id", "campaign_id", "parameter_id", "hypothesis_id", "comparison_id"):
+        for key in ("study_id", "experiment_id", "parent_experiment_id", "campaign_id", "parameter_id", "hypothesis_id", "comparison_id", "conditions_id"):
             if arguments.get(key) is not None:
                 check_id(arguments[key])
-        for namespace in ("studies", "experiments", "ledger", "campaigns", "optimizations", "native_designs", "response_comparisons", "native_imports"):
+        for namespace in ("studies", "experiments", "ledger", "campaigns", "optimizations", "native_designs", "response_comparisons", "native_imports", "analysis_conditions"):
             contained(selected.path, namespace)
         for key, namespace in (("study_id", "studies"), ("experiment_id", "experiments"),
-                               ("parent_experiment_id", "experiments"), ("comparison_id", "response_comparisons")):
+                               ("parent_experiment_id", "experiments"), ("comparison_id", "response_comparisons"),
+                               ("conditions_id", "analysis_conditions")):
             if arguments.get(key):
                 contained(selected.path, f"{namespace}/{arguments[key]}")
         if arguments.get("campaign_id"):

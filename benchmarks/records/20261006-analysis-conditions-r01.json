@@ -1,0 +1,419 @@
+{
+  "schema_version": 1,
+  "id": "20261006-analysis-conditions-r01",
+  "recorded_utc": "2026-10-06T00:59:24.668994+00:00",
+  "unit": "G2 revision-bound conditions -> native execution -> same field and frozen conditions; engineering workspace",
+  "outcome": "PASS_BOUNDED_SUPPORTED_MODEL",
+  "scope": {
+    "all_52_Phase1_7": "INCOMPLETE",
+    "arbitrary_FCStd_FEA": "OPEN",
+    "physical_material_strength_durability": "UNKNOWN",
+    "decision": "NOT_RELEASED",
+    "independent_bundle_review": "PENDING_AFTER_DEVELOPMENT_PER_USER"
+  },
+  "source": {
+    "native_producer_commit": "2909048487266f5893fcec1a02281e1bfd822ac7",
+    "native_producer_dirty": true,
+    "native_core_sha256": "cdff01872b9cf03c0e43b57258da418c446138e06c627f107fafac5ba02c9059",
+    "native_domain_adapter_policy": {
+      "caelab/adapters/fixture_calculix.py": "0249024f5b6c1b6a00234c00f02a7bafc938640c9ef5b8db483f69eb2f130b21",
+      "plugins/elasticity/conditions.py": "6760891114b0db3f2309f27459cfe7d1439285a5b19dfbb81bfa9fa1059f2d1c",
+      "plugins/fixture_design/analysis_conditions.py": "d8c4139135d48a1839de30bdc372417b2ce87e444db6c854cbc55b43c814f8ac",
+      "plugins/fixture_design/upstream/scripts/run_structural_screen.py": "b15833214dee277b8a6bd0a46984918b8862a9b44ffe39ac9e7ea52d78a4eeea"
+    },
+    "native_source_files": {
+      "caelab/analysis_conditions.py": {
+        "sha256": "10d48eaf4b9432a42d3cf99927a29898bc647830c74f4dffc2dab115944bac7e",
+        "size_bytes": 14671
+      },
+      "caelab/engine.py": {
+        "sha256": "20f4e041ccbcfeb596cf5a3f2be8c657a97c077d66bf3dd3b992102539ce693b",
+        "size_bytes": 52354
+      },
+      "caelab/schema.py": {
+        "sha256": "5c5982b500ebdeeef0b742ed6d70c3d2cfbafd5837443444300e890964c6c581",
+        "size_bytes": 697
+      },
+      "caelab/contracts.py": {
+        "sha256": "4a47fba86d7f3cda0468d4d16fd4e836e476825655e4f31721b7d17ff23cd98d",
+        "size_bytes": 5216
+      },
+      "caelab/cli.py": {
+        "sha256": "47b55b616c45a57c0b16b0359197539598d6849b0d51c23e65ae0abb6df9a499",
+        "size_bytes": 17882
+      },
+      "caelab/adapters/cad_condition_catalog.py": {
+        "sha256": "10a10a228f644d0ee6f26a20d623e1aa83e61dbfad83cf2fa86faf87d5e179a0",
+        "size_bytes": 4756
+      },
+      "caelab/adapters/fixture_cadquery.py": {
+        "sha256": "ee9399b1d4daaf6073bed32f8e5b427d96f0a9344abf64978dba2c9f032a8bd5",
+        "size_bytes": 7693
+      },
+      "caelab/adapters/fixture_freecad.py": {
+        "sha256": "016250df5a43373dcc17477360761de70bb54f99e7f3578b162f234aa576c052",
+        "size_bytes": 5998
+      },
+      "caelab/adapters/fixture_calculix.py": {
+        "sha256": "0249024f5b6c1b6a00234c00f02a7bafc938640c9ef5b8db483f69eb2f130b21",
+        "size_bytes": 45733
+      },
+      "plugins/elasticity/conditions.py": {
+        "sha256": "6760891114b0db3f2309f27459cfe7d1439285a5b19dfbb81bfa9fa1059f2d1c",
+        "size_bytes": 3213
+      },
+      "plugins/fixture_design/analysis_conditions.py": {
+        "sha256": "d8c4139135d48a1839de30bdc372417b2ce87e444db6c854cbc55b43c814f8ac",
+        "size_bytes": 2910
+      },
+      "schemas/analysis-conditions-request.schema.json": {
+        "sha256": "f8fe355dd9945dd026f56194180ead2cb6f91b4b9ec1d78d195caca5672507cf",
+        "size_bytes": 4610
+      },
+      "apps/lab/service.py": {
+        "sha256": "18cb85136bc118f36950bbe9029c778aa25ba259803b8dc5ba79fd313eba2b54",
+        "size_bytes": 58901
+      },
+      "apps/lab/server.py": {
+        "sha256": "8f81b524867be1c0e9b1b0ab433fdf5cc355ecb02e7d06e015cefcf8f9dfd66d",
+        "size_bytes": 15598
+      },
+      "apps/lab/static/app.js": {
+        "sha256": "eb6552ac8e8696be812205c73bfecc84e9e91913f016a5b16907e01e14be959b",
+        "size_bytes": 196854
+      },
+      "apps/lab/static/index.html": {
+        "sha256": "5c45f2a0a0c26956840c8253d4c84445ea36ada9ebc22f380f5ec937619181fe",
+        "size_bytes": 48724
+      },
+      "apps/lab/static/style.css": {
+        "sha256": "083a4cb855e879bf15920816472d98f63eb4728658d74c0c5356e4bda977bc30",
+        "size_bytes": 36687
+      },
+      "apps/lab/static/result-presentation.js": {
+        "sha256": "0807e96b235aa98f31be3c7caa27c26ec24326f4a91689335e887b4b24c8301a",
+        "size_bytes": 20998
+      },
+      "apps/lab/static/analysis-conditions-controls.js": {
+        "sha256": "bfbf2c4ae2b3c620bf3ff26f89a6fedb74509a8837e1a75cb3fc5f9226c9786e",
+        "size_bytes": 14846
+      },
+      "tests/test_analysis_conditions.py": {
+        "sha256": "174525e5b1f02c62ca28253981b3cee1d6594475b6faff768007f4cd7a7e314d",
+        "size_bytes": 15455
+      },
+      "tests/test_analysis_conditions_http.py": {
+        "sha256": "f9adf23b7c46e770b271b629a7b4ff56d3b3c5c11dc6fe5c3ab6d8b7c09c5d84",
+        "size_bytes": 5263
+      },
+      "tests/test_analysis_conditions_controls.js": {
+        "sha256": "478498eef8d6141c3603271ed512b076080d269a7ebcd46af1ff47f52eddc187",
+        "size_bytes": 13452
+      },
+      "tests/test_analysis_conditions_ui.js": {
+        "sha256": "69a76a7c1bd77d44f2bdb47d811d08ba86ce0c923942fa32ac7bb4ecf1639e6d",
+        "size_bytes": 27964
+      }
+    },
+    "final_reader_source_files": {
+      "caelab/analysis_conditions.py": {
+        "sha256": "10d48eaf4b9432a42d3cf99927a29898bc647830c74f4dffc2dab115944bac7e",
+        "size_bytes": 14671
+      },
+      "caelab/engine.py": {
+        "sha256": "20f4e041ccbcfeb596cf5a3f2be8c657a97c077d66bf3dd3b992102539ce693b",
+        "size_bytes": 52354
+      },
+      "caelab/schema.py": {
+        "sha256": "5c5982b500ebdeeef0b742ed6d70c3d2cfbafd5837443444300e890964c6c581",
+        "size_bytes": 697
+      },
+      "caelab/contracts.py": {
+        "sha256": "4a47fba86d7f3cda0468d4d16fd4e836e476825655e4f31721b7d17ff23cd98d",
+        "size_bytes": 5216
+      },
+      "caelab/cli.py": {
+        "sha256": "47b55b616c45a57c0b16b0359197539598d6849b0d51c23e65ae0abb6df9a499",
+        "size_bytes": 17882
+      },
+      "caelab/adapters/cad_condition_catalog.py": {
+        "sha256": "10a10a228f644d0ee6f26a20d623e1aa83e61dbfad83cf2fa86faf87d5e179a0",
+        "size_bytes": 4756
+      },
+      "caelab/adapters/fixture_cadquery.py": {
+        "sha256": "ee9399b1d4daaf6073bed32f8e5b427d96f0a9344abf64978dba2c9f032a8bd5",
+        "size_bytes": 7693
+      },
+      "caelab/adapters/fixture_freecad.py": {
+        "sha256": "016250df5a43373dcc17477360761de70bb54f99e7f3578b162f234aa576c052",
+        "size_bytes": 5998
+      },
+      "caelab/adapters/fixture_calculix.py": {
+        "sha256": "0249024f5b6c1b6a00234c00f02a7bafc938640c9ef5b8db483f69eb2f130b21",
+        "size_bytes": 45733
+      },
+      "plugins/elasticity/conditions.py": {
+        "sha256": "6760891114b0db3f2309f27459cfe7d1439285a5b19dfbb81bfa9fa1059f2d1c",
+        "size_bytes": 3213
+      },
+      "plugins/fixture_design/analysis_conditions.py": {
+        "sha256": "d8c4139135d48a1839de30bdc372417b2ce87e444db6c854cbc55b43c814f8ac",
+        "size_bytes": 2910
+      },
+      "schemas/analysis-conditions-request.schema.json": {
+        "sha256": "f8fe355dd9945dd026f56194180ead2cb6f91b4b9ec1d78d195caca5672507cf",
+        "size_bytes": 4610
+      },
+      "apps/lab/service.py": {
+        "sha256": "18cb85136bc118f36950bbe9029c778aa25ba259803b8dc5ba79fd313eba2b54",
+        "size_bytes": 58901
+      },
+      "apps/lab/server.py": {
+        "sha256": "8f81b524867be1c0e9b1b0ab433fdf5cc355ecb02e7d06e015cefcf8f9dfd66d",
+        "size_bytes": 15598
+      },
+      "apps/lab/static/app.js": {
+        "sha256": "93932cf53749ec97834aa261390b3f4f04270c75be068bb1c7c55c0280ff4697",
+        "size_bytes": 198326
+      },
+      "apps/lab/static/index.html": {
+        "sha256": "5c45f2a0a0c26956840c8253d4c84445ea36ada9ebc22f380f5ec937619181fe",
+        "size_bytes": 48724
+      },
+      "apps/lab/static/style.css": {
+        "sha256": "96190e5f7dbdd85b9f3942eb57bc77c760372dfd51594d991b03010b6c93fb1a",
+        "size_bytes": 38960
+      },
+      "apps/lab/static/result-presentation.js": {
+        "sha256": "0807e96b235aa98f31be3c7caa27c26ec24326f4a91689335e887b4b24c8301a",
+        "size_bytes": 20998
+      },
+      "apps/lab/static/analysis-conditions-controls.js": {
+        "sha256": "bfbf2c4ae2b3c620bf3ff26f89a6fedb74509a8837e1a75cb3fc5f9226c9786e",
+        "size_bytes": 14846
+      },
+      "tests/test_analysis_conditions.py": {
+        "sha256": "174525e5b1f02c62ca28253981b3cee1d6594475b6faff768007f4cd7a7e314d",
+        "size_bytes": 15455
+      },
+      "tests/test_analysis_conditions_http.py": {
+        "sha256": "f9adf23b7c46e770b271b629a7b4ff56d3b3c5c11dc6fe5c3ab6d8b7c09c5d84",
+        "size_bytes": 5263
+      },
+      "tests/test_analysis_conditions_controls.js": {
+        "sha256": "478498eef8d6141c3603271ed512b076080d269a7ebcd46af1ff47f52eddc187",
+        "size_bytes": 13452
+      },
+      "tests/test_analysis_conditions_ui.js": {
+        "sha256": "69a76a7c1bd77d44f2bdb47d811d08ba86ce0c923942fa32ac7bb4ecf1639e6d",
+        "size_bytes": 27964
+      },
+      "apps/lab/static/fixture-field-viewer.js": {
+        "sha256": "fd42de49f2387603c317b18afe209e4da9d196638dcd1f09e774e2ce4aae76ec",
+        "size_bytes": 36804
+      },
+      "tests/test_fixture_field_viewer.js": {
+        "sha256": "07e48cc3715318ec5ba089ef56fe8155e69cbecd320bcf4d347d2ac2a08202fa",
+        "size_bytes": 51841
+      }
+    },
+    "publication_is_solver_rerun": false,
+    "upstream_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8"
+  },
+  "actual": {
+    "store": "runs/cae-conditions-20261006-01",
+    "study_id": "study_single_support_width_20261005_sesef3f",
+    "parent": "cad_width38_20261005_sesef3f",
+    "cad_revision": "77f549d9e3721b6a3b11cbf6b6ca0c3b26537c55a743b81304fb71eb99c1a389",
+    "conditions_id": "C-explicit-200N-20261006-r01",
+    "conditions_revision": "7e0e01495e1c4538a16c621e0f011110c2c012a890b538315fb17f23ede6a5e7",
+    "catalog_revision": "3a54880a9c16797d2247104d7355fb5a1ba33e655539029f7d2454fa1f54844e",
+    "child": "E-explicit-200N-20261006-r01",
+    "conditions_job": "Ja5404f92459b4697a6bcded3301f6546",
+    "analysis_job": "J21ff9e6e240d47278240910daf468531",
+    "jobs": [
+      {
+        "id": "Ja5404f92459b4697a6bcded3301f6546",
+        "operation": "analysis_conditions_save",
+        "status": "COMPLETED",
+        "created_utc": "2026-10-06T09:39:27.275862+09:00",
+        "completed_utc": "2026-10-06T09:39:49.468344+09:00"
+      },
+      {
+        "id": "J21ff9e6e240d47278240910daf468531",
+        "operation": "analysis_run",
+        "status": "COMPLETED",
+        "created_utc": "2026-10-06T09:40:15.967925+09:00",
+        "completed_utc": "2026-10-06T09:40:32.71618+09:00"
+      }
+    ],
+    "versions": {
+      "ccx": "This is Version 2.21",
+      "gmsh": "4.12.1"
+    },
+    "provider_calls": 0,
+    "solver_calls": 1,
+    "assumptions": {
+      "E_MPa": 210000,
+      "nu": 0.3,
+      "material": "ASSUMED isotropic linear elastic",
+      "units": [
+        "mm",
+        "N",
+        "MPa"
+      ],
+      "frame": "SOLVER_GLOBAL_CARTESIAN",
+      "load_N": [
+        0,
+        0,
+        -200
+      ],
+      "boundary": "S-base UX=UY=UZ=0",
+      "contact": "none; single support",
+      "selected_mesh_mm": 4,
+      "selections": "B-final whole solid; S-base/S-saddle adapter-derived regions, not native face IDs"
+    },
+    "full_field": {
+      "nodes": 9155,
+      "solid_elements_C3D10": 5319,
+      "boundary_faces_CPS6": 2090,
+      "component": "MAGNITUDE",
+      "new_max_U_mm": 5.17010210747225e-05,
+      "validations": {
+        "PASS": 6,
+        "UNKNOWN": 7
+      },
+      "invalid_peak_stress_retained": true,
+      "single_selected_mesh_no_mandatory_sweep": true,
+      "static_axis": "step1/increment1/load_parameter1; not physical time"
+    },
+    "same_record_browser_reopen": true,
+    "signed_condition_snapshot_reopen": true,
+    "http_state": {
+      "state": "IDLE",
+      "idle_confirmed": true,
+      "accepting_jobs": true,
+      "scope": "HTTP_JOB_CONTROL"
+    },
+    "provider_state": "NOT_CONFIGURED"
+  },
+  "comparison": {
+    "kind": "Existing fixed-linear-model load scaling; serialization check, not physical qualification",
+    "reference_force_N": 150,
+    "new_force_N": 200,
+    "expected_ratio": 1.3333333333333333,
+    "serialization_comparison_tolerance": 1e-05,
+    "tolerance_source": "benchmarks/records/20261006-condition-reuse-r01.json",
+    "node_count": 9155,
+    "components_compared": 27465,
+    "normalized_max_error": 2.1804417285741554e-06,
+    "normalized_l2_error": 1.9781540236621885e-06,
+    "reference_max_magnitude_mm": 3.8775799507734316e-05,
+    "new_max_magnitude_mm": 5.17010210747225e-05,
+    "max_magnitude_ratio": 1.3333321744767657,
+    "fixed_max_abs_U_mm": 0.0,
+    "applied_force_vector_N": [
+      0.0,
+      0.0,
+      -200.00000000003317
+    ],
+    "reaction_vector_N": [
+      -1.1879860002015582e-07,
+      3.443436995187046e-08,
+      199.99999955125
+    ],
+    "reaction_balance_ratio": 2.3274202260331547e-09,
+    "mesh_content_after_path_heading_identical": true,
+    "raw_mesh_new": {
+      "bytes": 893662,
+      "path": "gmsh.inp",
+      "sha256": "af6416f3c09b032cdefd75ce643b73d6c8689322c6c7e80235ae58178067b5a0"
+    },
+    "raw_mesh_reference": {
+      "bytes": 893692,
+      "path": "gmsh.inp",
+      "sha256": "b00ca0637cebf1a3b106d511160e63daf866f47309a2a73fc77c28d55c506980"
+    },
+    "deck_sha256": "535211430feb84dd98e18b4e8cda2696fda68c4a19dc2bf02d11614481836598"
+  },
+  "implementation": {
+    "core": "immutable conditions/receipt; existing CAD-parent chain; copied child snapshot and read checks",
+    "domain": "elasticity semantics and fixture-model restrictions",
+    "adapter": "native region catalog, backend admission and syntax/settings projection",
+    "http_cli_ui": "catalog/save/inspect/list; existing async run consumes conditions_id; typed forms and signed snapshots",
+    "gui": "compact engineering workspace; full field beside component/layer/property controls; scrollable native table",
+    "preserved": [
+      "legacy settings-only analyses",
+      "MCP/provider admission",
+      "original editable CAD",
+      "separate R2 drafts"
+    ]
+  },
+  "verification": {
+    "python_source": {
+      "passed": 109,
+      "native_solver": "TEST_ONLY CaptureSolver",
+      "CAD_Core_HTTP": "real source paths",
+      "log": "core-http-source-tests.log"
+    },
+    "node_full_before_final_layout": {
+      "passed": 595,
+      "failed": 0,
+      "cancelled": 0,
+      "log": "node-final-source-tests.log"
+    },
+    "node_affected_final_layout": {
+      "passed": 124,
+      "failed": 0,
+      "cancelled": 0,
+      "log": "node-workspace-final-tests.log"
+    },
+    "actual": "Root raw snapshot/deck/field/source/reference/retention comparison; no separate per-fix review",
+    "earlier_failures": [
+      "Source fixture used obsolete model_adapters key, missing list wrapper, absent temporary-library directory; corrected before native run",
+      "Root comparison helper initially used incorrect metadata keys and assumed raw mesh equality; only output-path Heading differs, full remaining mesh and topology equal",
+      "Layout harness assumed direct canvas child; adjusted to new viewport nesting without weakening unavailable-frame/numerical controls"
+    ],
+    "ci_before_unit": {
+      "head_sha": "2909048487266f5893fcec1a02281e1bfd822ac7",
+      "run_id": 37391866914,
+      "outcome": "7SUCCESS/3FAIL",
+      "failed_jobs": [
+        "pde",
+        "codeaster",
+        "explicit"
+      ],
+      "new_source_verification": false,
+      "failure_causes_this_observation": "NOT_REISOLATED"
+    },
+    "unit_ci": "PENDING_PUBLICATION_EXACT_SOURCE_CHECK"
+  },
+  "retention": {
+    "original_files": 145,
+    "original_bytes": 35472247,
+    "original_unchanged": true,
+    "cloned_files_unchanged": 42,
+    "raw_artifacts": "LOCAL_ONLY"
+  },
+  "artifacts": {
+    "local_proof_directory": "artifacts/analysis-conditions-20261006-01",
+    "raw_native": "LOCAL_ONLY",
+    "screenshots_and_AX": "LOCAL_ONLY",
+    "references": [
+      "actual-preparation.json",
+      "actual-verification.json",
+      "actual-runtime.json",
+      "actual-field-workspace.jpg",
+      "actual-field-reopened.ax.txt",
+      "actual-conditions-reopened.ax.txt"
+    ]
+  },
+  "limitations": [
+    "No general face/physical-group catalog or imported-FCStd mechanical translation; blocked unsupported combinations",
+    "Catalog/native runtime checks are not a physical/strength/material qualification",
+    "No contact assembly mechanics, provider study, active native/provider cancellation or reconnection proved here",
+    "Repeated strong-integrity field re-opening still needs a measured latency improvement; no user-interface performance qualification",
+    "Common G3/G4 and broader Phase2-7 gates remain; no small independent approval loop"
+  ],
+  "next_acceptance": "Develop G3-G4 common research/engine/results/owned-recovery connections as a larger bundle, Root debug then final independent review; reuse completed examples and preserve arbitrary-model admission gates."
+}

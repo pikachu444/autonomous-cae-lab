@@ -53,6 +53,10 @@ class FixtureCadQueryAdapter:
     def document_id(self, model: str) -> str:
         return model + ".py"
 
+    def conditions_catalog(self, parent_root: Path, parent: dict, proposal: dict) -> dict:
+        from .cad_condition_catalog import final_solid_catalog
+        return final_solid_catalog(parent_root, parent, backend=self.backend)
+
     def discover(self, model: str) -> list[Candidate]:
         info, _, _ = _upstream().definition(model)
         return [Candidate(

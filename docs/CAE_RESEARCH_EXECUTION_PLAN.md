@@ -1,5 +1,19 @@
 # 실제 CAE 연구 실행 계획과 현재 작업
 
+## 작업 방식 — 사용자 재지시, 2026-10-06
+
+**큰 기능 묶음을 먼저 개발하고 → Root가 통합·실행하며 버그를 고치고 → 묶음의 마지막에 독립 검수한다.**
+사용자는 같은 지시를 세 번 이상 했으며, 작은 수정마다 리뷰를 기다리는 방식과 비어 있는 카탈로그형 화면을 다시 지적했다.
+G2 구현 중의 별도 독립 reader는 중단했다. G2–G4 공통 연결을 개발하는 동안 매 작은 변경에 새 Astra/검수 승인 단계를 만들지 않는다.
+Root의 직접 실행·필요한 회귀 검사·버그 수정은 개발 안에서 수행한다. 의미 있는 단위를 커밋/push하며,
+종료 코드·테스트 숫자·조건 JSON만으로 사용자 acceptance나 전체 완료를 선언하지 않는다.
+화면은 실제 모델·조건·실행·필드가 중심인 공학 작업 공간으로 고친다. 없는 기능/면 선택/솔버 지원은 화면에 꾸며 넣지 않는다.
+
+Goal은 2026-10-06 00:28 UTC 부근 재조회에서 **ACTIVE**였다. 이전 BLOCKED 관측을 덮어쓰거나 원인을 추정하지 않는다.
+새 Goal을 복제하지 않는다. 기존 목표의 전체 52/Phase1–7 범위와 이 실행 계획을 계속 따른다.
+현재 원장 분류는 IMPLEMENTED 표시5(R02/R09/R22/R24/R50), PARTIAL34, ONGOING10, 제한된 실행/미완료3이다.
+이 분류는 전 범위 최종 acceptance 수나 완성률이 아니다. Phase1–7 전체 완료는 미확인/미완료다.
+
 현재 계획의 단일 기준입니다. 기존 52개 요구사항·Phase 1–7·ADR은 계속 적용됩니다.
 독립 Astra/high의 [감사 보고서](reviews/20261005-astra-high/READONLY-AUDIT.md)와
 [상세 개선 계획](reviews/20261005-astra-high/IMPROVEMENT-PLAN.md)을 Root가 읽고 아래 순서를 채택했습니다.
@@ -17,7 +31,7 @@ Phase7 합성 inverse의 코드와 실행 기록을 보존하되 임의 사용�
 | 순서 | 공통 사용자 기능과 재사용 코드 | 남은 연결과 완료 기준 |
 |---|---|---|
 | G1 **실제 사용자 입구 연결 PASS** | 자기 모델 입력: 기존 Core/CLI/MCP `import_native_model`, FreeCAD adapter, registry와 editable CAD 재사용 | HTTP/UI에서 FCStd 파일 선택→새 보존 원본/모델ID→실제 후보 발견·등록→새 개정 재열람을 실제 연결했다. 원본 보존과 새 editable CAD의 제한된 acceptance이며 일반 CAD 구조해석은 G2의 미완료 연결이다 |
-| G2 **다음 구현** | 같은 모델의 해석 조건: `describe_model`, Domain validator, qualified body/group catalog와 기존 adapter 재사용 | 모델 revision·부품/면/physical group에 재료/좌표계/하중/BC/contact를 명시적으로 연결. 지원 가능한 solver 경로만 실행하고 지원되지 않는 조합은 사전 거부. 대표 가상 모델에서 조건 편집→native 입력→같은 결과의 연결 확인 |
+| G2 **지원 모델 조건 연결 PASS · 일반 CAD 확장 OPEN** | 같은 모델의 해석 조건: `describe_model`, Domain validator, qualified body/group catalog와 기존 adapter 재사용 | 모델 revision·부품/면/physical group에 재료/좌표계/하중/BC/contact를 명시적으로 연결. 지원 가능한 solver 경로만 실행하고 지원되지 않는 조합은 사전 거부. 대표 가상 모델에서 조건 편집→native 입력→같은 결과의 연결 확인 |
 | G3 | 목적과 가설의 연구 흐름: 기존 study/관측 comparison/context/LHS/DE/declared-input binding 재사용 | 가설별 바뀌는 입력·관측 위치/성분/단위/축·구별 응답을 연결하고 기존 numerical engine에 잔차/목표 전달. 질문→허용된 실행→비교→AI 해석을 같은 연구에 저장. 일반 관측 inverse는 아직 미구현 |
 | G4 | 공통 결과와 운용: 기존 full-field/history readers·report·HTTP journal/owned controller 재사용 | 지원 family별 field/curve와 원본 native를 같은 모델에서 읽기, export/reopen, 실제 소유 작업의 취소·재접속/부분 결과 보존. 라이브 핸들과 과거 기록을 구분 |
 | 이후 | S4b/S5–S9의 기존 Phase2–7 미완료 기능 | 일반 입구에 맞춰 실제 조립체 mechanics, PDE 확장, 재료FE coupling, 표면 explicit, 실측 inverse/UQ/다목적/HPC를 순차 추가. 실제 자료/환경 없는 물리·회사 gate는 UNKNOWN |
@@ -25,6 +39,8 @@ Phase7 합성 inverse의 코드와 실행 기록을 보존하되 임의 사용�
 G1 actual gate: cleanca6fa053/run02에서 파일 선택·원본/모델ID 보존·실제 Length 등록·새16mm editable CAD·재열람을 실행했다. 16×10×8mm/1280mm³의 고정 해석식 기준,8PASS6UNKNOWN, 독립0P1/P2를 확인했다. 최종524Node source와 native producer를 구분한다. 임의 CAD의 구조해석이나 전체Phase 완료가 아니다. [실행 기록](../benchmarks/records/20261006-native-input-actual-r02.json).
 
 최초 G1 source gate는15HTTP/67Node로 남아 있다([과거 소스 기록](../benchmarks/records/20261006-native-input-source-r01.json)). 실제r01의 숫자 UUID 처리 실패는 보존·교정했고, 위 actualr02에서 사용자 입구를 닫았다. R2 별도8파일·기존 결과는 보존했다.
+
+G2 actual: base2909048+dirty/new cae-conditions-20261006-01에서 사용자가 편집하는 재료·부위·전역 하중·바닥 구속을 조건ID로 저장하고, 실제 CalculiX child와 같은 전체U/부호 조건을 재열람했다. 200/150N 전체27465성분 최대 정규화 차이2.18e-6(기존1e-5), 반력199.99999955125N, 원145파일 unchanged. Core/Domain/adapter와 HTTP/CLI/UI를 연결했으며 새 provider호출0, 일반 FCStd FEA/조립체는 OPEN이다. [실행 기록](../benchmarks/records/20261006-analysis-conditions-r01.json). 큰 기능 묶음 개발·버그 수정 후 마지막 독립 검수라는 사용자 지시를 유지한다.
 
 G2의 개발 완료는 조건 JSON 저장만으로 판정하지 않는다. 기존 Core CAD-parent/result SHA와 개정 보호를 재사용하고, 개정에 종속된 선택 ID·재료 법칙/단위/출처·하중/BC 성분과 좌표계·접촉 쌍을 Domain에서 검증한다. catalog 없는 면/그룹과 미지원 solver 조합은 실행을 막는다. 그다음 지원 모델의 조건 편집→실제 native 입력/해석→같은 전체 결과·조건 재열람을 닫는다. G1 imported FCStd는 일반 면/group catalog와 backend translation 전까지 fixture.calculix에 강제 연결하지 않는다. Core 선언 모델 경로로 CAD-parent 보호를 우회하지 않는다. 일반 imported 모델 해석·조립체 mechanics는 별도 미완료 gate다.
 

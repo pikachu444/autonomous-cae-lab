@@ -1,3 +1,17 @@
+## Revision-bound human analysis conditions (ADR0043; G2)
+
+Core describe/save/inspect/list conditions bind exact CAD/result/catalog hashes,
+explicit material/selection/frame/units/BC/signed-force/contact declarations and
+adapter/Domain policy source. Existing run_analysis accepts a verified condition
+ID mutually exclusively with legacy settings and freezes the record in its child
+proposal/result/thread/manifest. Unsupported models or conditions do not execute;
+input support alone reports native runtime NOT_CHECKED and engineering UNKNOWN.
+This HTTP/CLI/human seam adds no MCP descriptor/profile/provider permission.
+G3's larger research connection remains pending; the approved5.6Sol/OAuth stays
+unchanged. Whole52/Phase1–7 is not complete. Per the owner's repeated direction,
+large common features are developed/debugged before final independent bundle
+review; a small correction is not a new Astra approval stage.
+
 ## Retained comparison interpretation (ADR0040; B3)
 
 The existing experiment summary adds an optional separate `comparison_context`

@@ -400,6 +400,37 @@ class FixtureCalculiXAdapter:
                        "applied_force_per_support", "reaction_force", "reaction_balance_ratio",
                        "mesh_size_max_mm", "loaded_saddle_min_global_uz"]
 
+    conditions_version = "1"
+
+    @staticmethod
+    def conditions_policy_identity() -> dict:
+        root = Path(__file__).resolve().parents[2]
+        return {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in (
+            "caelab/adapters/fixture_calculix.py", "plugins/fixture_design/analysis_conditions.py",
+            "plugins/elasticity/conditions.py", "plugins/fixture_design/upstream/scripts/run_structural_screen.py")}
+
+    @staticmethod
+    def conditions_preflight(catalog: dict, declaration: dict) -> dict:
+        from plugins.fixture_design.analysis_conditions import support
+        return support(catalog, declaration)
+
+    def settings_from_conditions(self, catalog: dict, declaration: dict) -> dict:
+        if self.conditions_preflight(catalog, declaration)["status"] != "SUPPORTED_DECLARED_INPUTS":
+            raise ValueError("Unsupported declared conditions cannot be projected to solver settings")
+        material = declaration["materials"][0]
+        settings = {
+            "load": {"force_per_support_N": -declaration["loads"][0]["components"]["FZ"],
+                     "source": declaration["loads"][0]["source"]},
+            "material": {"model": "isotropic", "elastic_modulus_MPa": material["young_modulus_MPa"],
+                         "poisson_ratio": material["poisson_ratio"],
+                         "provenance": material["source"]["category"] + ": " + material["source"]["description"],
+                         "qualification": "USER_DECLARED_UNVERIFIED"},
+            "mesh": {"mode": "selected", "max_sizes_mm": [declaration["mesh"]["max_size_mm"]]}
+        }
+        # Keep the pinned upstream material admission authoritative as well.
+        _screen().elastic_material_lines(settings["material"])
+        return settings
+
     def solve(self, parent_result: dict, parent_root: Path, output: Path,
               settings: dict) -> dict:
         """Screen one printed roller support, preserving every mesh/solver file.

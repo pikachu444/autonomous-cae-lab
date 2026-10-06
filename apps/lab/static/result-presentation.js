@@ -164,6 +164,12 @@
     if (operation === "response_comparison_save" && named(own(result, "id")) && object(own(result, "comparison")) &&
         own(result.comparison, "scope_alignment") === "USER_DECLARED_UNVERIFIED" && own(result.comparison, "decision") === "NOT_RELEASED")
       return step("관측·시험 기준과의 비교 기록됨", "입력한 조건과 수치 차이를 확인하세요. 기록은 원인 확정·물리 검증·사용 승인이 아닙니다.", "recorded");
+    if (operation === "analysis_conditions_save" && named(own(result, "id")) &&
+        revision(own(result, "conditions_revision")) && revision(own(result, "catalog_revision")) &&
+        own(result, "decision") === "NOT_RELEASED" && own(result, "engineering") === "UNKNOWN" &&
+        own(own(result, "support"), "native_runtime") === "NOT_CHECKED")
+      return step("조건 저장됨 · 해석 안 함",
+        "같은 CAD 개정의 입력과 solver 지원 판정을 확인하세요. 저장 조건은 실제 해석 실행이나 공학적 승인이 아닙니다.", "recorded");
     if (["parameter_register", "model_parameters_register"].includes(operation) && named(own(result, "parameter_id")) && object(native) &&
       ["backend", "document", "object", "path"].every(key => named(own(native, key))))
       return step("연구 변수 등록됨", "등록된 변수의 단위·범위와 입력 조건을 확인한 뒤 실험을 준비하세요. 등록은 해석 실행이나 사용 승인이 아닙니다.", "recorded");

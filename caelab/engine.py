@@ -159,6 +159,26 @@ class Lab:
         from .response_history import history_catalog
         return history_catalog(self, experiment_id)
 
+    def describe_analysis_conditions(self, experiment_id: str) -> dict[str, Any]:
+        from .analysis_conditions import describe
+        return describe(self, experiment_id)
+
+    def save_analysis_conditions(self, *, conditions_id: str, experiment_id: str,
+                                 cad_revision: str, catalog_revision: str,
+                                 backend: str, declaration: dict) -> dict[str, Any]:
+        from .analysis_conditions import save
+        return save(self, conditions_id=conditions_id, experiment_id=experiment_id,
+                    cad_revision=cad_revision, catalog_revision=catalog_revision,
+                    backend=backend, declaration=declaration)
+
+    def inspect_analysis_conditions(self, conditions_id: str) -> dict[str, Any]:
+        from .analysis_conditions import inspect
+        return inspect(self, conditions_id)
+
+    def list_analysis_conditions(self, experiment_id: str) -> list[dict[str, Any]]:
+        from .analysis_conditions import list_records
+        return list_records(self, experiment_id)
+
     @_registration_guard
     def registry(self, study_id: str) -> dict[str, Any]:
         return load_json(self.store / "studies" / check_id(study_id) / "parameters.json")
@@ -464,12 +484,20 @@ class Lab:
         return result
 
     def run_analysis(self, *, parent_experiment_id: str, experiment_id: str,
-                     backend: str, settings: dict[str, Any]) -> dict[str, Any]:
+                     backend: str, settings: dict[str, Any] | None = None,
+                     conditions_id: str | None = None) -> dict[str, Any]:
         """Create a child solver run on a verified, immutable CAD revision."""
         check_id(experiment_id)
         parent_id = check_id(parent_experiment_id)
         if parent_id == experiment_id:
             raise ValueError("An analysis must have a distinct experiment ID")
+        conditions_record = conditions_reference = conditions_raw = None
+        if conditions_id is not None:
+            if settings is not None:
+                raise ValueError("Saved conditions and competing settings cannot both define an analysis")
+            from .analysis_conditions import execution
+            conditions_record, settings, conditions_reference, conditions_raw = execution(
+                self, parent_id, backend, conditions_id)
         if not isinstance(settings, dict):
             raise ValueError("Analysis settings must be a mapping")
         if backend not in self.analysis_adapters:
@@ -506,14 +534,33 @@ class Lab:
             proposal["campaign_id"] = parent["campaign_id"]
         if "material" in settings:
             proposal["model"]["materials"] = [deepcopy(settings["material"])]
+        if conditions_record is not None:
+            declaration = conditions_record["request"]["declaration"]
+            proposal["model"]["materials"] = deepcopy(declaration["materials"])
+            proposal["model"]["coordinate_systems"] = deepcopy(conditions_record["catalog"]["coordinate_systems"])
+            proposal["model"]["contact"] = deepcopy(declaration["contact"].get("pairs", []))
+            proposal["model"]["contact_declaration"] = deepcopy(declaration["contact"])
+            proposal["model"]["conditions_mesh"] = deepcopy(declaration["mesh"])
+            proposal["loads"] = deepcopy(declaration["loads"])
+            proposal["boundary_conditions"] = deepcopy(declaration["boundary_conditions"])
+            proposal["provenance"] = {"analysis_conditions": deepcopy(conditions_reference)}
         validate_schema("experiment", proposal)
         canonical_hash(proposal)
 
         folder = self.store / "experiments" / experiment_id
+        parent_result_hash = hashlib.sha256((parent_root / "result.json").read_bytes()).hexdigest()
+        if conditions_record is not None:
+            from .analysis_conditions import _path
+            folder = _path(self, f"experiments/{experiment_id}")
+            _path(self, f"ledger/{experiment_id}.json")
+            if (conditions_record["source"]["result_sha256"] != parent_result_hash
+                    or conditions_record["source"]["cad_revision"] != parent["cad_revision"]):
+                raise ValueError("Conditions CAD source changed before native execution")
         folder.mkdir(parents=True, exist_ok=False)
         save_json(folder / "proposal.json", proposal)
         save_json(folder / "registry_snapshot.json", registry)
-        parent_result_hash = hashlib.sha256((parent_root / "result.json").read_bytes()).hexdigest()
+        if conditions_record is not None:
+            (folder / "analysis_conditions.json").write_bytes(conditions_raw)
         save_json(folder / "parent_reference.json", {
             "experiment_id": parent_id, "cad_revision": parent["cad_revision"],
             "result_sha256": parent_result_hash})
@@ -623,6 +670,9 @@ class Lab:
                   "solver_deck": outcome["provenance"].get("solver_deck"),
                   "run": experiment_id, "result": "result.json",
                   "evidence": [e["id"] for e in evidence], "decision": result["decision"]}
+        if conditions_reference is not None:
+            result["provenance"]["analysis_conditions"] = deepcopy(conditions_reference)
+            thread["analysis_conditions"] = deepcopy(conditions_reference)
         if "campaign_id" in parent:
             thread["campaign"] = parent["campaign_id"]
         validate_schema("result", result)
@@ -647,6 +697,9 @@ class Lab:
             corrupt = check_artifacts(folder, result["artifacts"])
             if corrupt:
                 raise ValueError("Artifact hash mismatch: " + ", ".join(corrupt))
+            if result["provenance"].get("analysis_conditions") is not None:
+                from .analysis_conditions import verify_child
+                verify_child(folder, result)
             if result.get("model_revision") is not None:
                 proposal = load_json(folder / "proposal.json")
                 thread = load_json(folder / "thread.json")

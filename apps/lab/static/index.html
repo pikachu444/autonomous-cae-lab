@@ -11,6 +11,7 @@
   <script src="/static/fixture-field-controls.js" defer></script>
   <script src="/static/fixture-field-viewer.js" defer></script>
   <script src="/static/cad-controls.js" defer></script>
+  <script src="/static/analysis-conditions-controls.js" defer></script>
   <script src="/static/native-upload-controls.js" defer></script>
   <script src="/static/campaign-controls.js" defer></script>
   <script src="/static/imported-mesh-controls.js" defer></script>
@@ -129,6 +130,36 @@
 
       <section id="simulation" data-panel="simulation" hidden>
         <div class="page-heading"><div><p class="eyebrow">03 / SIMULATION</p><h1>같은 개정에서 실행하는 해석.</h1><p class="lead">검증한 CAD 부모 또는 명시한 모델을 기존 adapter로 실행합니다.</p></div><span class="outline-label">원본 · 설정 · 결과 보존</span></div>
+        <article id="analysisConditionsArea" class="card separated">
+          <div class="card-heading"><div><p class="eyebrow">SAME CAD · EXPLICIT CONDITIONS</p><h2>내 CAD의 해석 조건</h2></div></div>
+          <p class="hint">현재 연구의 완료한 CAD 개정을 선택하고, 그 개정에 실제 제공된 대상에 조건을 연결하세요. 서버의 선언 입력 지원과 실제 실행·공학적 승인은 별도로 확인합니다. 일반 면·physical group·접촉 쌍 연결은 아직 준비 중입니다.</p>
+          <div class="form-grid separated"><label>조건을 연결할 CAD 실험<select id="conditionsParent"><option value="">현재 연구의 CAD 실험을 선택하세요</option></select></label><div class="button-row"><button type="button" id="analysisConditionsLoadBtn" class="button secondary">이 개정의 대상·지원 범위 확인</button><button type="button" id="analysisConditionsRefreshBtn" class="button subtle">저장 조건 목록 새로고침</button></div></div>
+          <div id="analysisConditionsCatalog" class="preset-description" role="status"><p class="empty-state">CAD 실험을 선택한 뒤 대상·지원 범위를 확인하세요. 화면 삼각형 번호를 네이티브 면 ID로 사용하지 않습니다.</p></div>
+          <form id="analysisConditionsForm"><fieldset data-write id="analysisConditionsWriteFields">
+            <div class="form-grid"><label>새 조건 ID<input id="conditionsId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,79}" autocomplete="off" data-analysis-condition="conditionsId"></label><label>해석 경로 · 설치 여부 미확인<select id="conditionsBackend" required data-analysis-condition="backend"><option value="">catalog를 먼저 확인하세요</option></select></label></div>
+            <div class="form-grid"><label>재료 대상<select id="conditionsMaterialSelection" required data-analysis-condition="materialSelection"><option value="">같은 개정의 재료 대상</option></select></label><label>재료 법칙<select id="conditionsMaterialLaw" data-analysis-condition="materialLaw"><option value="isotropic_linear_elastic">등방성 선형 탄성</option></select></label></div>
+            <div class="form-grid"><label>E (MPa)<input id="conditionsYoungModulus" type="number" step="any" required value="210000" data-analysis-condition="youngModulus"></label><label>ν<input id="conditionsPoissonRatio" type="number" step="any" required value="0.3" data-analysis-condition="poissonRatio"></label></div>
+            <label>재료 값의 출처 구분<select id="conditionsMaterialCategory" data-analysis-condition="materialCategory"><option value="ASSUMED">ASSUMED · 미측정 가정값</option><option value="MEASURED_REPORTED">MEASURED_REPORTED · 사용자가 보고한 측정값, 자격 미확인</option><option value="PUBLISHED_REFERENCE">PUBLISHED_REFERENCE · 공개 자료의 값, 적용 자격 미확인</option></select></label>
+            <label>재료 값의 출처·적용 한계<textarea id="conditionsMaterialSource" rows="2" required maxlength="2000" data-analysis-condition="materialSource">ASSUMED: 위 E·ν는 미측정 등방성 재료의 가정값. 실제 재료·강도 자격은 미확인.</textarea></label>
+            <div class="form-grid"><label>좌표계<select id="conditionsCoordinateSystem" data-analysis-condition="coordinateSystem"><option value="global">global · CAD 전역 X·Y·Z</option></select></label><label>길이·변위 단위<select id="conditionsLengthUnit" data-analysis-condition="lengthUnit"><option value="mm">mm</option></select></label><label>하중 단위<select id="conditionsForceUnit" data-analysis-condition="forceUnit"><option value="N">N</option></select></label><label>탄성 계수·응력 단위<select id="conditionsStressUnit" data-analysis-condition="stressUnit"><option value="MPa">MPa</option></select></label></div>
+            <h3 class="separated">변위 구속 · 세 성분을 명시</h3>
+            <label>구속 대상<select id="conditionsBoundarySelection" required data-analysis-condition="boundarySelection"><option value="">같은 개정의 구속 대상</option></select></label>
+            <div class="form-grid"><label>UX (mm)<input id="conditionsUx" type="number" step="any" required value="0" data-analysis-condition="ux"></label><label>UY (mm)<input id="conditionsUy" type="number" step="any" required value="0" data-analysis-condition="uy"></label><label>UZ (mm)<input id="conditionsUz" type="number" step="any" required value="0" data-analysis-condition="uz"></label></div>
+            <label>구속의 출처·가정<textarea id="conditionsBoundarySource" rows="2" required maxlength="2000" data-analysis-condition="boundarySource">ASSUMED: 위 전역 X·Y·Z 변위 성분으로 구속하는 이상화. 실제 장착·체결은 미확인.</textarea></label>
+            <h3 class="separated">합력 하중 · 부호와 세 성분을 명시</h3>
+            <label>하중 대상<select id="conditionsLoadSelection" required data-analysis-condition="loadSelection"><option value="">같은 개정의 하중 대상</option></select></label>
+            <div class="form-grid"><label>FX (N)<input id="conditionsFx" type="number" step="any" required value="0" data-analysis-condition="fx"></label><label>FY (N)<input id="conditionsFy" type="number" step="any" required value="0" data-analysis-condition="fy"></label><label>FZ (N)<input id="conditionsFz" type="number" step="any" required value="-150" data-analysis-condition="fz"></label></div>
+            <label>하중의 출처·가정<textarea id="conditionsLoadSource" rows="2" required maxlength="2000" data-analysis-condition="loadSource">ASSUMED: 위 전역 X·Y·Z 성분의 합력. 실제 하중·분포의 적용 자격은 미확인.</textarea></label>
+            <div class="form-grid"><label>접촉 모델<select id="conditionsContactMode" data-analysis-condition="contactMode"><option value="none">none · 접촉을 모델링하지 않음</option></select></label><label>선택 메시 크기 하나 (mm)<input id="conditionsMeshSize" type="number" step="any" required value="4" data-analysis-condition="meshSize"></label></div>
+            <label>접촉 모델의 출처·가정<textarea id="conditionsContactSource" rows="2" required maxlength="2000" data-analysis-condition="contactSource">ASSUMED: 접촉 쌍 없음. 단일 솔리드의 제한된 해석이며 실제 조립체·롤러 접촉을 표현하지 않음.</textarea></label>
+            <p class="hint">초기 수치는 모두 ASSUMED 가정입니다. 제공된 대상 ID만 사용하며, 지원되지 않는 방향·값·대상은 서버 판정에 그대로 남습니다. 실제 입력을 지원하는 조건만 새 해석에 연결합니다.</p>
+            <div class="button-row"><button id="analysisConditionsSaveBtn" class="button primary" data-operation="analysis_conditions_save">새 조건 저장·호환 여부 확인</button><button type="button" id="analysisConditionsNewIdBtn" class="button subtle">새 조건 ID 준비</button></div>
+          </fieldset></form>
+          <p id="analysisConditionsError" class="metric-reason" role="alert" hidden></p>
+          <div id="analysisConditionsRecord" class="preset-description separated" role="status"><p class="empty-state">저장한 입력·같은 CAD 개정·서버 판정이 여기 나타납니다. 입력을 수정하면 새 조건으로 저장해야 합니다.</p></div>
+          <form id="analysisConditionsRunForm"><fieldset data-write><div class="form-grid"><label>새 해석 실험 ID<input id="conditionsExperimentId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,79}" autocomplete="off"></label><div class="button-row"><button id="analysisConditionsRunBtn" class="button primary" data-operation="analysis_run">이 저장 조건으로 새 해석 실행</button></div></div><p class="hint">같은 저장소·연구·CAD 개정과 저장 입력을 다시 확인합니다. 실행 뒤 실제 자식 실험의 전체 결과·원본 파일을 결과 화면에서 엽니다. UNKNOWN·NOT_RELEASED는 유지됩니다.</p></fieldset></form>
+          <details class="advanced separated"><summary>같은 CAD 개정에 저장한 조건 다시 열기</summary><div id="analysisConditionsList"><p class="empty-state">대상·지원 범위 확인 또는 목록 새로고침으로 보존 기록을 불러오세요.</p></div></details>
+        </article>
         <div class="two-column simulation-columns"><article class="card"><form id="simulationForm"><fieldset data-write><div class="card-heading"><div><p class="eyebrow">ANALYSIS INPUTS</p><h2>해석 시작</h2></div></div><label>해석 예제<select id="simulationPreset" required><option value="">예제를 불러오는 중…</option></select></label><div id="presetDescription" class="preset-description"></div><div id="parentField"><label>CAD 부모 실험 · 실행 전 해시 재검사<select id="analysisParent"><option value="">완료한 CAD 실험을 선택하세요</option></select></label><p class="hint">부모를 실제 검증한 뒤 정확한 STEP과 CAD 개정으로 새 자식 실험을 만듭니다. 목록 선택만으로 검증 완료를 주장하지 않습니다.</p></div><label>새 해석 실험 ID<input id="simulationId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,79}" autocomplete="off"></label>
           <div id="simulationDraftContext" class="preset-description" role="status" hidden></div>
           <div id="fixtureConditionFields" class="separated" hidden>
@@ -204,6 +235,7 @@
           <p class="hint">기록된 시점과 부호를 유지합니다. 점을 선택하면 해당 표본을 확인합니다. 선은 표본의 순서를 보여주며 중간 시점의 값은 계산하지 않습니다. 0초는 재료 적분 전의 수치 초기 상태입니다.</p>
           <details class="advanced"><summary>시점별 원래 값과 채널 출처</summary><div id="historyTable"></div><div id="historyOrigin"></div></details>
         </article>
+        <div id="experimentDetail"><article class="card empty-detail"><span class="empty-icon" aria-hidden="true">↗</span><h2>확인할 실험을 선택하세요.</h2><p>기록의 ‘열기’를 선택하면 형상, 입력 조건과 결과를 볼 수 있습니다.<br>상세 검사와 원본 파일도 같은 화면에서 확인할 수 있습니다.</p></article></div>
         <article id="observationPanel" class="card" hidden>
           <div class="card-heading"><div><p class="eyebrow">관측과 해석 응답</p><h2>관측·시험 기준 비교</h2></div></div>
           <p id="observationContext" class="hint"></p>
@@ -226,7 +258,6 @@
             </fieldset></form>
           </details>
         </article>
-        <div id="experimentDetail"><article class="card empty-detail"><span class="empty-icon" aria-hidden="true">↗</span><h2>확인할 실험을 선택하세요.</h2><p>기록의 ‘열기’를 선택하면 형상, 입력 조건과 결과를 볼 수 있습니다.<br>상세 검사와 원본 파일도 같은 화면에서 확인할 수 있습니다.</p></article></div>
       </section>
     </main>
     <footer class="workspace-footer"><span>Autonomous CAE Lab · 로컬 인터페이스</span><span id="footerStore">저장소 연결 중</span><span>수치 검증은 공학적 사용 승인과 구분합니다.</span></footer>
