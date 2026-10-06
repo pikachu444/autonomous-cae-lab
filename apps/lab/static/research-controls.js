@@ -126,9 +126,31 @@
   }
   // Small presentation subset. No HTML, link resolution or numeric conversion.
   // The exact raw string remains available even when syntax is formatted.
+  function mathRanges(value) {
+    const spans = new Map(); let opening = null, closing = null;
+    for (const token of value.matchAll(/\\[()[\]]/g)) {
+      let slashes = 0;
+      for (let index = token.index - 1; index >= 0 && value[index] === "\\"; index--) slashes++;
+      if (slashes % 2) continue;
+      const delimiter = token[0][1];
+      if (opening === null && (delimiter === "(" || delimiter === "[")) {
+        opening = token.index; closing = delimiter === "(" ? ")" : "]";
+      } else if (opening !== null && delimiter === closing) {
+        spans.set(opening, { end: token.index + 2, display: closing === "]" });
+        opening = closing = null;
+      }
+    }
+    return spans;
+  }
   function answerInline(value, depth = 0) {
-    const parts = []; let start = 0, position = 0;
+    const parts = [], math = mathRanges(value); let start = 0, position = 0;
     while (position < value.length) {
+      const expression = math.get(position);
+      if (expression) {
+        if (start < position) parts.push({ type: "text", text: value.slice(start, position) });
+        parts.push({ type: "math", text: value.slice(position + 2, expression.end - 2), display: expression.display });
+        position = start = expression.end; continue;
+      }
       const marker = value[position] === "`" && value[position - 1] !== "`" && value[position + 1] !== "`" ? "`"
         : value.startsWith("**", position) ? "**" : value[position] === "*" ? "*" : null;
       if (!marker || (marker !== "`" && position > 0 && !/[\s([{]/.test(value[position - 1]))) { position++; continue; }
@@ -152,7 +174,7 @@
     const fenced = line => /^\s*(`{3,}|~{3,})([^`]*)$/.exec(line);
     const cells = line => {
       if (!line.includes("|")) return null;
-      const body = line.trim(), ticks = [...body.matchAll(/`+/g)], closes = new Map(), next = new Map();
+      const body = line.trim(), math = mathRanges(body), ticks = [...body.matchAll(/`+/g)], closes = new Map(), next = new Map();
       // Exact backtick-run matches, prepared once, keep each row linear-time.
       // Unmatched or escaped opening runs are literal, not a guessed code span.
       for (let index = ticks.length - 1; index >= 0; index--) {
@@ -163,6 +185,10 @@
       const values = []; let value = [], slashes = 0, firstSeparator = -1, lastSeparator = -1;
       for (let position = 0; position < body.length;) {
         const character = body[position], close = closes.get(position);
+        const expression = math.get(position);
+        if (expression && slashes % 2 === 0) {
+          value.push(body.slice(position, expression.end)); position = expression.end; slashes = 0; continue;
+        }
         if (character === "`" && slashes % 2 === 0 && close !== undefined) {
           value.push(body.slice(position, close)); position = close; slashes = 0; continue;
         }

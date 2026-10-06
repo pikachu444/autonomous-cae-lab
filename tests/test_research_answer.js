@@ -70,6 +70,59 @@ function harness({ writable = true, store = "local" } = {}) {
   return { ui, $, counters };
 }
 
+test("native mechanics table keeps norm pipes inside paired TeX, four columns and original numeric meaning", () => {
+  // Public aggregate rows from the completed approved native-result reader.
+  const raw = String.raw`| 항목 | E-native-ui-r03 | E-native-ui-r04 | E-native-box-r05 |
+|---|---|---|---|
+| 전체 최대 \(|U|\) | **0.00014691769428104635 mm** | **0.0001542636237905748 mm** | **0.00014691769428104635 mm** |
+| 면 합력 | \([F_X,F_Y,F_Z]=[150,0,0]\) N | 동일 | 동일 |
+| 총 반력 | \([-149.9999983,-3.1042523657\times10^{-13},2.1455166432\times10^{-13}]\) N | 동일 | 동일 |
+| 결정 | NOT_RELEASED | NOT_RELEASED | NOT_RELEASED |`;
+  const parsed = controls.answerBlocks(raw), table = parsed.blocks[0];
+  assert.equal(parsed.raw, raw); assert.equal(table.type, "table");
+  assert.equal(table.header.length, 4); assert.equal(table.rows.length, 4);
+  assert(table.rows.every(row => row.length === 4));
+  assert(table.rows[0][0].some(part => part.type === "math" && part.text === "|U|"));
+  const h = harness(), card = new TinyNode(); h.ui.appendResearchAnswer(card, raw, "empty");
+  const nodes = walk(card.children[0]); assert.equal(nodes.filter(node => node.tagName === "TABLE").length, 1);
+  assert.equal(nodes.filter(node => node.tagName === "TD").length, 16);
+  for (const literal of ["0.00014691769428104635", "0.0001542636237905748", "-149.9999983", "NOT_RELEASED", "150,0,0"])
+    assert(card.textContent.includes(literal), literal);
+  assert.equal(walk(card).find(node => node.tagName === "PRE").textContent, raw);
+  assert.deepEqual(h.counters, { http: 0, timers: 0 });
+});
+
+test("paired TeX preserves code and escaped/unclosed delimiters instead of guessing table cells", () => {
+  const raw = String.raw`| response | source |
+|---|---|
+| \(|U|\) | \[\frac{210000}{200000}=1.05\] |
+| ` + "`\\(|code|\\)`" + String.raw` | literal\|pipe |`;
+  const parsed = controls.answerBlocks(raw), table = parsed.blocks[0];
+  assert.equal(table.type, "table"); assert.equal(table.rows[0][0][0].text, "|U|");
+  assert.equal(table.rows[0][1][0].display, true);
+  assert.equal(table.rows[1][0][0].type, "code");
+  assert.equal(table.rows[1][0][0].text, String.raw`\(|code|\)`);
+  for (const partial of [String.raw`|a|b|
+|---|---|
+|\(|U| UNKNOWN|`, String.raw`|a|b|
+|---|---|
+|\\(|U|\\)|UNKNOWN|`]) assert.equal(controls.answerBlocks(partial).blocks[0].type, "paragraph");
+});
+
+test("local MathML renderer keeps signed equations and refuses remote/HTML effects", () => {
+  const katex = require("../apps/lab/static/vendor/katex-0.19.0/katex.min.js");
+  const options = { output: "mathml", trust: false, strict: "error", throwOnError: true, maxExpand: 500, maxSize: 12, macros: {} };
+  const equation = katex.renderToString(String.raw`\frac{210000}{200000}=1.05\quad [-150,0,0]\ {\rm N}`, options);
+  assert.match(equation, /<math/); assert.match(equation, /<mfrac>/); assert.match(equation, /210000/);
+  assert.doesNotMatch(equation, /<svg|<img|<script|href=/);
+  for (const tex of [String.raw`\href{https://example.invalid}{x}`, String.raw`\includegraphics{https://example.invalid/a.png}`, String.raw`\htmlClass{unsafe}{x}`]) {
+    let output; try { output = katex.renderToString(tex, options); } catch { continue; }
+    assert.doesNotMatch(output, /<(?:a|img|script|iframe)\b|href=|src=|class="unsafe"/);
+  }
+  assert.throws(() => katex.renderToString(String.raw`\def\loop{\loop}\loop`, options), /expansions/);
+  assert.doesNotMatch(appSource, /https:\/\/.*katex/);
+});
+
 test("retained first answer becomes paragraphs/lists/emphasis while keeping numeric/unit/verdict strings and exact original", () => {
   assert.equal(typeof FIRST_ANSWER, "string"); const model = controls.answerBlocks(FIRST_ANSWER), text = model.blocks.map(blockText).join("\n");
   assert.equal(model.raw, FIRST_ANSWER); assert.deepEqual(model.blocks.filter(block => block.type === "list").map(block => block.items.length), [5, 4, 2]);
@@ -234,7 +287,7 @@ test("retained human-07 headings and escaped equations become inert readable pro
   const h = harness(), card = new TinyNode(); h.ui.appendResearchAnswer(card, raw, "empty");
   const body = card.children[0], nodes = walk(body), header = nodes.find(node => node.tagName === "H4");
   assert(header); assert.equal(header.textContent, "안장 하중 절점의 최소 signed Z 변위"); assert(!body.textContent.includes("###"));
-  assert.match(body.textContent, /수식은 원문 식을 텍스트로 표시합니다/); assert.match(body.textContent, /전역 U_Z의 최솟값/);
+  assert.match(body.textContent, /수식은 저장된 원문을 조판해 표시합니다/); assert.match(body.textContent, /전역 U_Z의 최솟값/);
   assert(!body.textContent.includes(String.raw`\(U_Z\)`)); assert.equal(nodes.filter(node => node.tagName === "TABLE").length, 1);
   for (const literal of ["−0.005642080", "−0.005730928", "−0.005827884", "+1.550%", "+1.664%", "4 mm", "3 mm", "2 mm", "(mm)", "≤5%", "0.01663657 = 1.663657%", "−Z"])
     assert(body.textContent.includes(literal), `Preserve original response: ${literal}`);

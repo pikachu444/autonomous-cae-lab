@@ -377,7 +377,7 @@ def test_adapter_returns_generic_file_revision_and_preserves_existing_bind(stage
     monkeypatch.setattr(adapter, "_call", call)
     revision = adapter.prepare_bind("model", candidate, "support_width", "Support width", 12.0, 36.0, stage.output)
     assert isinstance(revision, FileRevision) and revision.target == stage.live
-    assert revision.prepared == stage.output / "editable.FCStd" and adapter.version == "3"
+    assert revision.prepared == stage.output / "editable.FCStd" and adapter.version == "4"
     assert revision.after_sha256 == digest(revision.prepared.read_bytes())
     assert calls[0][1]["source_sha256"] == candidate.source_sha256
     assert adapter.bind("model", candidate, "support_width", "Support width", 12.0, 36.0) == "f" * 64

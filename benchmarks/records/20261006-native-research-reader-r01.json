@@ -1,0 +1,204 @@
+{
+  "schema_version": "1.0",
+  "id": "20261006-native-research-reader-r01",
+  "status": "BOUNDED_ACTUAL_APPROVED_READER_AND_UI_CORRECTION",
+  "reader_source_commit": "950f1accc9e4b5ecc215e76a07053c2fd3a46654",
+  "job_id": "J747b1b5d74e141f8bd06a250be8fec23",
+  "store": "runs/cae-native-research-20261006-01",
+  "model": "openai-codex/gpt-5.6-sol",
+  "authentication": "EXISTING_APPROVED_CHATGPT_OAUTH",
+  "profile": "FixtureSelected",
+  "actual": {
+    "all_protected_unchanged": true,
+    "answer": {
+      "bytes": 8791,
+      "sha256": "4758b4741637ea19aa7d5a3fd746ce6ae1addea5001a17c5597f697c0849f0ee"
+    },
+    "answer_limitations": [
+      "r05 material category remains ASSUMED; ANALYTICAL_REFERENCE is its description",
+      "this read uses aggregate metrics/condition context; point values are available in the human full-field UI, not queried here",
+      "no new analysis capability/profile admission or optimization authority was added",
+      "no physical cause, stress/strength, contact/assembly or full Phase approval"
+    ],
+    "approved_model": "openai-codex/gpt-5.6-sol",
+    "checkout_raw_byte_identity": {
+      "cause": "ONLY_LF_CRLF",
+      "paths": [
+        "caelab/adapters/codeaster_elasticity.py",
+        "caelab/adapters/codeaster_execution.py",
+        "caelab/adapters/codeaster_geometric.py",
+        "caelab/adapters/codeaster_geometric_worker.py",
+        "caelab/adapters/codeaster_plasticity.py",
+        "caelab/adapters/codeaster_worker.py",
+        "caelab/adapters/fenicsx_coupled.py",
+        "caelab/adapters/fenicsx_coupled_worker.py",
+        "caelab/adapters/fenicsx_gmsh.py",
+        "caelab/adapters/fenicsx_imported.py",
+        "caelab/adapters/fenicsx_imported_worker.py",
+        "caelab/adapters/fenicsx_nonlinear.py",
+        "caelab/adapters/fenicsx_pde.py",
+        "caelab/adapters/fenicsx_rectangle.py",
+        "caelab/adapters/fenicsx_rectangle_worker.py",
+        "caelab/adapters/fenicsx_time_expression.py",
+        "caelab/adapters/fenicsx_transient.py",
+        "caelab/adapters/fenicsx_transient_worker.py",
+        "caelab/adapters/fenicsx_vector.py",
+        "caelab/adapters/fenicsx_vector_worker.py",
+        "caelab/adapters/fenicsx_worker.py",
+        "caelab/adapters/fixture_assembly.py",
+        "caelab/adapters/fixture_assembly_affine_field.py",
+        "caelab/adapters/fixture_assembly_affine_field_worker.py",
+        "caelab/adapters/fixture_assembly_field_geometry.py",
+        "caelab/adapters/fixture_assembly_mesh.py",
+        "caelab/adapters/fixture_assembly_mesh_reuse.py",
+        "caelab/adapters/fixture_assembly_mesh_worker.py",
+        "caelab/adapters/fixture_assembly_native_import.py",
+        "caelab/adapters/fixture_assembly_native_import_worker.py",
+        "caelab/adapters/fixture_assembly_worker.py",
+        "caelab/adapters/fixture_field.py",
+        "caelab/adapters/freecad_parameter_worker.py",
+        "caelab/adapters/freecad_parameters.py",
+        "caelab/adapters/mfront_history.py",
+        "caelab/adapters/mfront_hyperelastic.py",
+        "caelab/adapters/mfront_hyperelastic_worker.py",
+        "caelab/adapters/native_bridge.py",
+        "caelab/adapters/structural_family_calculix.py",
+        "caelab/adapters/structural_family_codeaster.py",
+        "caelab/adapters/structural_family_codeaster_worker.py",
+        "caelab/adapters/structural_family_mesh.py",
+        "caelab/outcomes.py",
+        "caelab/pde.py",
+        "caelab/registration_transaction.py",
+        "caelab/response_comparison.py",
+        "caelab/response_history.py",
+        "schemas/experiment.schema.json",
+        "schemas/response-comparison-request.schema.json"
+      ]
+    },
+    "completed_tools": 6,
+    "decision": "NOT_RELEASED",
+    "failed_tools": 0,
+    "http_idle_confirmed": true,
+    "job_id": "J747b1b5d74e141f8bd06a250be8fec23",
+    "job_sha256": "b7ddc1d266d7b5c66d4479d8a28556fa7f1abd8435a3f1ffed2092cc3ddd30f3",
+    "material_change_maximum_ratio": 1.0500003049018456,
+    "native_producer_source": "base bbf698d+dirty, r03/r04 aac5d8a7 and r05 04b30952; unchanged original records",
+    "new_CAD": 0,
+    "new_solvers": 0,
+    "physical": "UNKNOWN",
+    "profile": "fixture-selected-mesh-v1",
+    "protected_bytes": 15065282,
+    "protected_files": 200,
+    "quantity_interpretation": "WHOLE_SOLID_VECTOR_MAGNITUDE_ALL_MESH_NODES",
+    "ratio_relative_error": 2.903827100997347e-07,
+    "reader_source": {
+      "core_commit": "950f1accc9e4b5ecc215e76a07053c2fd3a46654",
+      "core_dirty": false,
+      "core_source_sha256": "70f8eb908ec68016a41fb9b08379a9ce4ba43f47bdc64819968b21ef29e2d585"
+    },
+    "retained_reference_limit": 1e-05,
+    "retention": "LOCAL_ONLY_IGNORED",
+    "source_pins_match": 18,
+    "status": "PASS_BOUNDED_ACTUAL_APPROVED_READER",
+    "store": "runs/cae-native-research-20261006-01",
+    "tools": {
+      "caelab_experiment_inspect": 3,
+      "caelab_experiment_summary": 3
+    }
+  },
+  "native_producer": "base bbf698d+dirty, r03/r04 aac5d8a7; final r05 04b30952; unchanged original records",
+  "owned_shutdown": {
+    "exec_session": 8641,
+    "lab_exit_code": 0,
+    "runtime_state": "STOPPED",
+    "job_completed_before_shutdown": true
+  },
+  "ui_source": {
+    "base_commit": "950f1accc9e4b5ecc215e76a07053c2fd3a46654",
+    "dirty": true,
+    "files": {
+      "apps/lab/static/app.js": {
+        "bytes": 236650,
+        "sha256": "a2b96f502e2e59894bfa5db2efab29dc020624170c867b49151afba620c5e0cb"
+      },
+      "apps/lab/static/research-controls.js": {
+        "bytes": 21015,
+        "sha256": "c7f946d62f4ccc4290f9a8d4a2a8499259d4b3106fb660cf3499f9dbc8b9644e"
+      },
+      "apps/lab/static/index.html": {
+        "bytes": 52040,
+        "sha256": "f363b497bdea1ec5a880d5a1ffa5ac8d182c1cfd676eae31e3ee09cc1cbccd90"
+      },
+      "apps/lab/static/style.css": {
+        "bytes": 50512,
+        "sha256": "0e7146ac3386d53f8d50bc6587b77aa11c82046abf899766e86fc29e809ca985"
+      },
+      "apps/lab/static/vendor/katex-0.19.0/katex.min.js": {
+        "bytes": 272868,
+        "sha256": "103a53763cc033bba8d175bf3f0ba597c3505c9b6747dd3f2c7bc2a6bfcc8ae7"
+      },
+      "apps/lab/static/vendor/katex-0.19.0/LICENSE": {
+        "bytes": 1107,
+        "sha256": "766ccc1f306c885aa45542a9846bbd0a505b27a0374f146778171c2254ce18e3"
+      }
+    }
+  },
+  "actual_browser": {
+    "provider_calls_in_rerender": 0,
+    "table_columns": 4,
+    "table_rows_including_header": 21,
+    "rendered_mathml_expressions": 33,
+    "math_fallbacks": 0,
+    "answer_reloaded_from_same_job": true,
+    "native_result_link": "E-native-box-r05",
+    "screenshot": {
+      "path": "artifacts/native-research-20261006-01/answer-ui-corrected.png",
+      "bytes": 93255,
+      "sha256": "497811c7423ca1689c91c4d98f5f0aa816544ee0147e9fb12de853e15d84e7d4"
+    }
+  },
+  "tests": {
+    "research_display_and_handoff_node": {
+      "passed": 72,
+      "failed": 0,
+      "cancelled": 0
+    },
+    "native_binding_source_file": {
+      "passed": 55,
+      "failed": 0,
+      "seconds": 11.81,
+      "exec_session": 31297,
+      "native_runs": 0
+    }
+  },
+  "exact_ci": {
+    "source_commit": "950f1accc9e4b5ecc215e76a07053c2fd3a46654",
+    "run_id": 37411703055,
+    "status": "COMPLETED_FAILURE",
+    "core": {
+      "passed": 4873,
+      "failed": 1,
+      "skipped": 10
+    },
+    "failure": "stale native binding test adapter.version=3; catalog adapter is version4",
+    "correction": "test expected version4; production binding, numeric limits and source pins unchanged",
+    "downstream_jobs": "SKIPPED_AFTER_CORE_FAILURE",
+    "corrected_source_ci": "NOT_YET_RUN"
+  },
+  "verification_helper_corrections": [
+    "first aggregate checkout SHA expectation incorrectly ignored LF/CRLF; exact18native source pins and200store bytes remain equal",
+    "initial ratio helper used unadvertised1e-12 precision; retained native analytical reference comparison limit is unchanged1e-5",
+    "tool_status completed is distinct from domain COMPLETED_REVIEW_REQUIRED"
+  ],
+  "read_limitations": [
+    "r05 material category remains ASSUMED; ANALYTICAL_REFERENCE is its description",
+    "this read uses aggregate metrics/condition context; point values are available in the human full-field UI, not queried here",
+    "no new analysis capability/profile admission or optimization authority was added",
+    "no physical cause, stress/strength, contact/assembly or full Phase approval"
+  ],
+  "scope": "native single-solid linear static stored result reading; no fresh solver/CAD/optimization and no expanded execution/profile authority",
+  "physical": "UNKNOWN",
+  "decision": "NOT_RELEASED",
+  "entire_52_and_phase_1_to_7": "INCOMPLETE",
+  "retention": "LOCAL_ONLY_IGNORED_PROOFS_PUBLIC_SANITIZED_RECORD"
+}

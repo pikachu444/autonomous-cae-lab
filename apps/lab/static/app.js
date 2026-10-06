@@ -358,15 +358,23 @@ function appendResearchAnswer(card, answer, emptyMessage) {
   const body = el("div", undefined, "research-answer-text research-answer-formatted");
   function inline(target, parts) {
     parts.forEach(part => {
-      // Remove only paired math delimiters in prose. Keep expression text,
-      // signs, units and code unchanged; there is no equation evaluator.
-      const value = part.type !== "code" && typeof part.text === "string"
-        ? part.text.replace(/\\\(([\s\S]*?)\\\)/g, "$1").replace(/\\\[([\s\S]*?)\\\]/g, "$1") : part.text;
+      const value = part.text;
       const item = el(part.type === "strong" ? "strong" : part.type === "em" ? "em" : part.type === "code" ? "code" : "span", value);
+      if (part.type === "math") {
+        item.className = part.display ? "research-math research-math-display" : "research-math";
+        if (typeof window.katex?.render === "function" && value.length <= 8192) {
+          try {
+            // Self-hosted KaTeX emits MathML; URLs, HTML extensions and macro
+            // state sharing are disabled. The raw answer stays unchanged.
+            window.katex.render(value, item, { output: "mathml", displayMode: part.display,
+              trust: false, strict: "error", throwOnError: true, maxExpand: 500, maxSize: 12, macros: {} });
+          } catch { item.textContent = value; item.classList.add("research-math-fallback"); }
+        }
+      }
       if (part.parts) inline(item, part.parts); target.append(item);
     });
   }
-  if (answer && /\\(?:\(|\[)/.test(answer)) body.append(el("p", "수식은 원문 식을 텍스트로 표시합니다. 첨자·지수 표기와 정확한 원문은 ‘AI 답변 원문’에서 확인할 수 있습니다.", "hint research-equation-note"));
+  if (answer && /\\(?:\(|\[)/.test(answer)) body.append(el("p", "수식은 저장된 원문을 조판해 표시합니다. 정확한 답변과 수식 원문은 ‘AI 답변 원문’에서 확인할 수 있습니다.", "hint research-equation-note"));
   if (!answer) body.append(el("p", emptyMessage));
   else researchAnswerBlocks(answer).forEach(block => {
     if (block.type === "paragraph") { const paragraph = el("p"); inline(paragraph, block.parts); body.append(paragraph); }

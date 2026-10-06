@@ -126,3 +126,6 @@ caelab/adapters/native_structural_mesh_worker.py -text
 plugins/elasticity/native_conditions.py -text
 apps/lab/static/fixture-field-controls.js -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 scripts/accept_native_structural.py -text
+
+# Retain the unmodified locally served mathematical renderer and license.
+apps/lab/static/vendor/** -text

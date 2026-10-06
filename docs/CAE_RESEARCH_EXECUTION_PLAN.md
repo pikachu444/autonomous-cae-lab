@@ -1,3 +1,8 @@
+## Latest checkpoint — approved native-result research and actual UI correction
+
+The approved5.6Sol/OAuth actually read the three native mechanics records via6 tools on clean950f1ac. All200 persistent files/15065282B stayed unchanged; no new CAD/solver. Owned launcher exited0/runtime STOPPED. Root corrected native AI norm-pipe table parsing and self-hosted MathML presentation; actual reload has4 columns/21 rows/33 expressions/0 fallback. 72 display/handoff tests pass. Exact950 CI had1 stale native adapter-version expectation after4873 passes; the corrected affected file55PASS is source-only, new exactCI pending. See 20261006-native-research-reader-r01. Whole52/Phases remain incomplete, UNKNOWN/NOT_RELEASED; aggregate-only AI answer limitations remain explicit. NEXT: large fixed-CAD material/load numerical campaign bundle using existing LHS/DE; then general observation research and original assembly/remainingPhase gaps. Goal ACTIVE; no new per-fix Astra approval.
+
+---
 ## Latest G1–G4 bundle — actual native CAD mechanics
 
 Actual imported single-solid CAD now connects verified native faces, editable material/partial DOF/vector force conditions, Gmsh/CalculiX, whole U/RF fields, same-model UI and report reopening. Final corrected producer is base bbf698d+dirty CoreSHA 04b30952610ef7e91e30df072947416676a65f2403df18d2b1ab5cb7dacaae51; E-native-box-r05 passed the full affine reference at 3.498262499449477e-7 against unchanged 1e-5. Earlier r03/r04 UI material-change runs and their distinct source remain retained.
