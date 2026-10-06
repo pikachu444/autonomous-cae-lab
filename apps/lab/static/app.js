@@ -24,6 +24,7 @@ const state = {
   campaignResearchDraft: "", campaignResearchPrefix: "",
   observationRequest: 0,
   observationId: "",
+  selectedFieldObservation: null,
   nativeImportRequest: 0, nativeFileSelection: 0,
   analysisConditions: { request: 0, catalog: null, context: "", record: null, recordDraft: "", records: [], additionalBoundaries: [], loading: false, error: "" },
 };
@@ -162,6 +163,12 @@ function workflowContext(value, kind = "experiment", integrity = "NOT_CHECKED") 
 }
 function option(select, value, label) { const item = el("option", label); item.value = value; select.append(item); }
 function researchPurpose(purpose) {
+  if (purpose === "general") return {
+    name: "CAE 조건·응답 연구",
+    question: "연구 대상과 해결할 문제: [입력]\nCAD/해석 모델과 입력 데이터의 출처: [입력]\n비교할 조건과 관측 근거: [입력]\n질문: 어떤 입력이 목적 응답에 영향을 주며, 대안 또는 가설을 어떻게 구별할 수 있는가?",
+    hypothesis: "가설/대안 A: [모델에서 바꿀 입력과 예상 응답]\n가설/대안 B: [경쟁 설명 또는 대안]\n구별할 위치·성분·시간/하중 조건: [입력]",
+    objective: "목적 응답과 참조를 같은 위치·성분·좌표계·단위·조건에서 비교한다. 수치 탐색 범위와 목적별 허용값의 출처는 [입력]. 설명하지 못한 응답과 다음 비교를 남긴다.",
+  };
   if (purpose === "defect") return {
     name: "제품 불량 재현 연구",
     question: "관찰한 불량의 위치·형태: [입력]\n발생 조건과 정상 조건의 차이: [입력]\n측정/사진/시험의 출처와 단위: [입력]\n질문: 어떤 조건과 메커니즘이 이 현상을 재현하고 다른 원인 가설과 구별되는가?",
@@ -1868,6 +1875,7 @@ async function inspectExperiment(identifier, stillCurrent = () => true, expected
   const request = ++state.experimentRequest, store = activeStore();
   state.fixtureViewer?.destroy(); state.fixtureViewer = null;
   state.selectedExperiment = null;
+  state.selectedFieldObservation = null;
   resetEngineeringProperties();
   state.selectedHistories = null; $("historyPanel").hidden = true;
   $("observationPanel").hidden = true; state.observationRequest++;
@@ -1905,7 +1913,32 @@ function observationReady() {
   const record = state.selectedExperiment;
   return Boolean(!state.storeSwitching && record?.result?.status === "COMPLETED_REVIEW_REQUIRED"
     && record.result.study?.id === state.studyId && (window.observationControls?.choices(record).length
-      || window.historyControls?.channels(record, state.selectedHistories).length));
+      || window.historyControls?.channels(record, state.selectedHistories).length || fieldObservationSelection()));
+}
+function fieldObservationSelection() {
+  const selected = state.selectedFieldObservation;
+  return selected && selected.inspection === state.selectedExperiment && selected.store === activeStore()
+    && selected.request === state.experimentRequest && !state.storeSwitching && selected.current()
+    && $("observationResponse").value === selected.key ? selected : null;
+}
+function prepareFieldObservation(inspection, model, selection, current) {
+  if (!current() || state.selectedExperiment !== inspection || inspection.result.study.id !== state.studyId)
+    throw new Error("같은 연구의 현재 해석 기록과 절점을 선택하세요.");
+  const key = JSON.stringify(["field", selection.artifact, selection.node_id, selection.component]);
+  const response = $("observationResponse");
+  [...response.options].filter(item => item.dataset.fieldObservation).forEach(item => item.remove());
+  option(response, key, `절점 ${selection.node_id} · ${selection.component === "MAGNITUDE" ? "|U|" : selection.component} · mm · ${model.artifact.path}`);
+  response.options[response.options.length - 1].dataset.fieldObservation = "true";
+  response.value = key;
+  state.selectedFieldObservation = { inspection, model, selection, current, key, store: activeStore(), request: state.experimentRequest };
+  $("observationPanel").hidden = false; $("observationEditor").open = true;
+  if (!$("observationPurpose").value) $("observationPurpose").value = "GENERAL_CAE_RESEARCH";
+  if (!$("observationUnit").value) $("observationUnit").value = "mm";
+  for (const [id, value] of Object.entries({ observationQuantity: "DISPLACEMENT", observationComponent: selection.component,
+    observationFrame: model.field.coordinate_frame })) if (!$(id).value) $(id).value = value;
+  changeObservationResponse(); updateControls();
+  location.hash = "results"; showArea("results"); $("observationEditor").scrollIntoView({ block: "start", behavior: "smooth" });
+  notify("원 절점과 성분을 선택했습니다. 관측값·출처·위치·좌표계를 입력해 비교하세요. 센서의 물리적 정렬은 확인 전입니다.", true);
 }
 function observationSubmissionContext() {
   if (!observationReady()) throw new Error("현재 연구에 속한 검증된 실험과 유효한 응답을 먼저 선택하세요.");
@@ -1922,7 +1955,12 @@ function observationArguments() {
     location: $("observationLocation").value, coordinateFrame: $("observationFrame").value,
     condition: $("observationCondition").value, tolerance: $("observationTolerance").value,
     conditions: parseField("observationConditions", "array"),
+    unit: $("observationUnit").value,
   };
+  const field = fieldObservationSelection();
+  if (field) return window.observationControls.buildField(state.selectedExperiment, fields, field.selection);
+  if ($("observationResponse").selectedOptions?.[0]?.dataset.fieldObservation)
+    throw new Error("선택한 필드가 바뀌었습니다. 현재 메시에서 절점을 다시 연결하세요.");
   const selected = historyObservationChannel();
   return selected ? window.historyControls.build(state.selectedExperiment, state.selectedHistories, {
     ...fields, channelId: selected.id, sampleIndex: $("observationHistorySample").value,
@@ -1941,8 +1979,17 @@ function historyChannelCaption(channel) {
 }
 function observationResponseNote() {
   const history = historyObservationChannel();
+  const field = fieldObservationSelection();
+  $("observationFieldFields").hidden = !field;
+  $("observationUnit").required = Boolean(field);
   $("observationHistoryFields").hidden = !history;
   $("observationHistorySample").required = $("observationAxisValue").required = Boolean(history);
+  if (field) {
+    const raw = field.model.field, selected = field.selection, node = raw.nodes.find(value => value.node_id === selected.node_id);
+    const value = window.fixtureFieldControls.scalar(node, selected.component);
+    $("observationResponseNote").textContent = `절점 ${node.node_id} · 원본 XYZ [${node.position_mm.join(" / ")}] mm · ${selected.component} ${number(value)} mm · ${raw.coordinate_frame}. 선언 물리량 DISPLACEMENT·성분 ${selected.component}·좌표계 ${raw.coordinate_frame}가 정확히 일치할 때만 차이를 계산합니다. 정적 load parameter ${raw.static.load_parameter}는 시간이 아닙니다.`;
+    return;
+  }
   if (history) {
     const sample = Number($("observationHistorySample").value), found = $("observationHistorySample").value !== "" && Number.isInteger(sample) && sample < history.values.length;
     $("observationResponseNote").textContent = `${history.label} · ${historyChannelCaption(history)}${found ? ` · 기록값 ${number(history.values[sample])} ${history.unit}, 시각 ${number(history.axis.values[sample])} s` : " · 기록 시점을 선택하세요."} 관측 시각이 정확히 일치할 때만 차이를 계산합니다.`;
@@ -2035,7 +2082,10 @@ function prepareComparisonResearch(rows, context) {
       || context.inspection !== state.selectedExperiment || context.studyId !== context.inspection.result.study.id
       || activeStore() !== "local" || !writable())
     throw new Error("같은 작업 저장소의 결과와 비교 기록을 선택한 뒤 연구 질문에 연결하세요.");
-  const draft = window.comparisonResearch.draft(rows, context.studyId);
+  const study = state.study?.record ?? state.study;
+  const original = study?.id === context.studyId ? { question: study.research_question, hypothesis: study.hypothesis, objective: study.objective } : null;
+  const draft = window.comparisonResearch.draft(rows, context.studyId,
+    original && Object.values(original).every(value => typeof value === "string" && value.length <= 2000) ? original : undefined);
   const previous = $("researchQuestion").value;
   const prefix = previous === state.comparisonResearchDraft ? state.comparisonResearchPrefix : previous;
   const question = prefix.trim() ? `${prefix}\n\n${draft.question}` : draft.question;
@@ -2052,6 +2102,7 @@ function renderObservation(data) {
   const choices = window.observationControls?.choices(data) ?? [];
   const panel = $("observationPanel"); panel.hidden = !choices.length || data.result.status !== "COMPLETED_REVIEW_REQUIRED";
   state.observationRequest++; clear("observationRecords");
+  state.selectedFieldObservation = null;
   if (data.result.status !== "COMPLETED_REVIEW_REQUIRED") return;
   state.observationId = makeId("O");
   $("observationContext").textContent = `선택한 ${observationSourceCaption({ backend: data.result.provenance.adapter, execution: data.proposal.execution })} 결과에 관측을 연결합니다. 원래 모델과 응답은 그대로 보존합니다.`;
@@ -2059,7 +2110,8 @@ function renderObservation(data) {
   const response = clear("observationResponse"); option(response, "", "유효한 응답을 선택하세요");
   choices.forEach(choice => option(response, choice.key, `${choice.label} · ${choice.unit}`));
   for (const id of ["observationPurpose", "observationHypothesis", "observationName", "observationSourceKind", "observationSource",
-    "observationValue", "observationTolerance", "observationQuantity", "observationComponent", "observationLocation", "observationFrame", "observationCondition"]) $(id).value = "";
+    "observationValue", "observationTolerance", "observationQuantity", "observationComponent", "observationLocation", "observationFrame", "observationCondition", "observationUnit"]) $(id).value = "";
+  $("observationPurpose").value = "GENERAL_CAE_RESEARCH";
   $("observationConditions").value = "[]"; response.value = ""; clear("observationHistorySample"); $("observationAxisValue").value = ""; observationResponseNote(); updateControls();
   loadResponseComparisons(data).catch(error => notify(error.message));
 }
@@ -2084,23 +2136,27 @@ async function loadResponseComparisons(inspection = state.selectedExperiment) {
       const observation = record.request.observation, details = el("details", undefined, "advanced separated");
       const kind = { MEASURED_REPORTED: "사용자 보고 측정값", SPECIFICATION: "규격·목표값", SYNTHETIC: "가상 데이터" }[observation.source_kind];
       const mismatch = comparison.status !== "NUMERIC_DIFFERENCE_ONLY";
-      details.append(el("summary", `${observation.name} · ${kind} · ${mismatch ? "조건·시각 불일치 · 차이 계산 보류" : "수치 차이 기록됨"}`));
+      const mismatchCaption = record.request.response.field ? "조건·성분·좌표계 불일치 · 차이 계산 보류" : "조건·시각 불일치 · 차이 계산 보류";
+      details.append(el("summary", `${observation.name} · ${kind} · ${mismatch ? mismatchCaption : "수치 차이 기록됨"}`));
       details.append(el("p", record.request.hypothesis, "separated"), el("p", `해석 조건: ${observationSourceCaption(record.source)}`),
         el("p", `출처: ${observation.source}`), el("p", `관측 범위: ${observation.quantity} · ${observation.component} · ${observation.location} · ${observation.coordinate_frame}`),
         el("p", `관측 조건: ${observation.condition}`));
       const selected = record.request.response;
-      const sourceChoice = !selected.history_channel && record.source.experiment_id === inspection.result.experiment_id
+      const sourceChoice = !selected.history_channel && !selected.field && record.source.experiment_id === inspection.result.experiment_id
         ? window.observationControls?.choices(inspection).find(choice => choice.metric === selected.metric && choice.component === selected.component) : null;
       const channel = comparison.source_channel;
-      details.append(el("p", `원 응답: ${channel ? `${channel.label} · ${historyChannelCaption(channel)} · 기록 시각 ${number(comparison.response_axis.value)} ${comparison.response_axis.unit}` : sourceChoice?.label ?? window.resultPresentation.metricName(selected.metric)}${selected.component !== undefined && !sourceChoice ? ` · 사용자 지정 배열 항목 ${selected.component + 1} (물리 성분 미확인)` : ""}`));
+      const field = comparison.source_field;
+      details.append(el("p", `원 응답: ${field ? `절점 ${field.node_id} · ${field.component} · ${field.coordinate_frame} · 원 XYZ [${field.position_mm.join(" / ")}] ${field.position_unit} · ${field.value_origin === "DERIVED_MAGNITUDE" ? "저장 UX·UY·UZ의 벡터 크기" : "원본의 부호 있는 성분"}` : channel ? `${channel.label} · ${historyChannelCaption(channel)} · 기록 시각 ${number(comparison.response_axis.value)} ${comparison.response_axis.unit}` : sourceChoice?.label ?? window.resultPresentation.metricName(selected.metric)}${selected.component !== undefined && !sourceChoice ? ` · 사용자 지정 배열 항목 ${selected.component + 1} (물리 성분 미확인)` : ""}`));
+      if (field) details.append(el("p", `정적 step ${field.static.step} / increment ${field.static.increment} · load parameter ${field.static.load_parameter} (시간 아님) · 전체 필드의 원 절점 선택이며 센서 위치와의 정렬은 미검증입니다.`, "hint"));
+      if (comparison.declared_field_checks) details.append(table(["선언 항목", "관측 선언", "원 응답", "일치"], comparison.declared_field_checks.map(check => [check.property, check.declared, check.actual, check.matched ? "일치" : "불일치"])));
       if (channel?.initial_state && channel.initial_state.index === selected.sample_index && channel.initial_state.kind === "UNPREPARED_INITIAL_CONDITION")
         details.append(el("p", "선택한 표본은 재료 적분 전의 수치 초기 상태이며 적분된 재료 응답의 근거가 아닙니다.", "hint"));
       if (comparison.declared_axis_check) details.append(el("p", `관측 시각: ${number(comparison.declared_axis_check.declared.value)} ${comparison.declared_axis_check.declared.unit} · ${comparison.declared_axis_check.matched ? "기록 시각과 정확히 일치" : "기록 시각과 불일치 · 보간하지 않음"}`));
       details.append(table(["관측·기준", "해석 응답", "해석 − 관측", "절대 허용 차이"], [[
         `${number(comparison.observed_value)} ${comparison.unit}`, `${number(comparison.response_value)} ${comparison.unit}`,
-        comparison.difference === null ? "조건·시각 불일치 · 계산 보류" : `${number(comparison.difference)} ${comparison.unit}`,
+        comparison.difference === null ? mismatchCaption : `${number(comparison.difference)} ${comparison.unit}`,
         `${number(comparison.declared_absolute_tolerance)} ${comparison.unit}`]]));
-      details.append(el("p", comparison.within_declared_tolerance === null ? "명시적으로 연결한 입력 조건 또는 관측 시각이 일치하지 않습니다."
+      details.append(el("p", comparison.within_declared_tolerance === null ? field ? "명시적으로 연결한 입력 조건·성분·좌표계가 일치하지 않습니다." : "명시적으로 연결한 입력 조건 또는 관측 시각이 일치하지 않습니다."
         : comparison.within_declared_tolerance ? "입력한 허용 차이 이내입니다." : "입력한 허용 차이를 초과합니다."));
       details.append(el("p", "위치·성분·좌표계·조건의 물리적 일치는 사용자 선언이며 독립 확인 전입니다. 수치가 맞아도 원인 확정·물리 검증·사용 승인으로 판정하지 않습니다.", "hint"));
       if (!comparison.condition_bindings_supplied) details.append(el("p", "저장된 입력과의 명시적 조건 연결은 제공되지 않았습니다.", "hint"));
@@ -2275,6 +2331,7 @@ function renderFixtureFields(container, inspection) {
     if (!current()) return false; const epoch = ++sequence, entry = record.entries[Number(select.value)];
     const selected = () => current() && epoch === sequence;
     mounted?.destroy(); if (state.fixtureViewer === mounted) state.fixtureViewer = null; mounted = null;
+    if (state.selectedFieldObservation?.inspection === inspection) { state.selectedFieldObservation = null; observationResponseNote(); updateControls(); }
     clear(detail).append(el("p", "같은 기록의 필드 바이트·원본 연결·전체 절점과 외곽면을 확인하고 있습니다…", "hint"));
     try {
       if (!entry) throw new Error("이 기록의 메시 레벨을 선택하세요.");
@@ -2304,7 +2361,8 @@ function renderFixtureFields(container, inspection) {
       const model = await window.fixtureFieldControls.loadField(record, entry, fetchFieldBytes, selected);
       if (!selected()) return false;
       if (native && model.metadata.family !== "native") throw new Error("네이티브 구조해석 전체장 계약을 확인할 수 없습니다.");
-      if (!selected()) return false; mounted = window.fixtureFieldViewer.mount(detail, model, selected); if (!mounted || !selected()) { mounted?.destroy(); return false; }
+      if (!selected()) return false; mounted = window.fixtureFieldViewer.mount(detail, model, selected,
+        selection => prepareFieldObservation(inspection, model, selection, selected)); if (!mounted || !selected()) { mounted?.destroy(); return false; }
       state.fixtureViewer = mounted;
       const downloads = el("div", undefined, "button-row separated"); downloads.append(link("전체 절점 U JSON", artifactUrl(result.experiment_id, entry.path), "text-link", true));
       mounted.refs.provenance.append(el("p", native ? "CAD 문서 전역 좌표계 · 저장된 전체 U · 지정 성분 구속과 합력. 실제 사용 승인은 결과 판정을 따릅니다."
@@ -2872,7 +2930,7 @@ async function switchStore(identifier) {
   $("nativeModelId").value = ""; clear("nativeDetail"); clear("nativeFinal");
   state.researchSession = null; $("researchContinue").checked = false; renderResearchAnswers();
   invalidateModelDiscovery(); state.campaignSelections.clear(); state.campaignSelectionKey = "";
-  state.selectedExperiment = null; state.selectedHistories = null; $("historyPanel").hidden = true; state.selectedCampaign = null; state.comparison.clear(); state.studyRequest++; state.experimentRequest++; state.campaignRequest++;
+  state.selectedExperiment = null; state.selectedFieldObservation = null; state.selectedHistories = null; $("historyPanel").hidden = true; state.selectedCampaign = null; state.comparison.clear(); state.studyRequest++; state.experimentRequest++; state.campaignRequest++;
   $("observationPanel").hidden = true; state.observationRequest++;
   clear("campaignDetail"); clear("comparisonDetail").hidden = true;
   const card = panel("저장소가 바뀌었습니다.", "RESULTS"); card.append(el("p", "목록에서 열 기록을 선택하세요.", "empty-state")); clear("experimentDetail").append(card);

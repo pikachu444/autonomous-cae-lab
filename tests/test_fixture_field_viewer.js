@@ -39,7 +39,37 @@ test("native mechanics selector and first canvas both start at whole vector magn
   assert.match(tableRows(mounted)[0].textContent,/UX=0 mm/); assert.doesNotMatch(tableRows(mounted)[0].textContent,/XYZ 고정/);
 });
 function tableRows(mounted) { return walk(mounted.refs.rows).filter(item => item.tagName === "TR" && item.dataset.nodeId); }
-async function spin(predicate) { for (let tick = 0; tick < 150 && !predicate(); tick++) await new Promise(resolve => setImmediate(resolve)); assert(predicate(), "bounded TEST_ONLY async condition"); }
+test("field comparison callback carries only exact original identity, without displayed positions or amplified U", () => {
+  const data = fixture(), before = JSON.stringify(data), model = verify(data), doc = documentFixture(), container = doc.createElement("article"), selected = [];
+  const mounted = viewer.mount(container, model, () => true, value => selected.push(value));
+  assert.equal(mounted.refs.compare.disabled, true);
+  mounted.refs.search.value = "43"; mounted.refs.search.emit("input");
+  mounted.refs.mode.value = "deformed"; mounted.refs.scale.value = "100"; mounted.update();
+  mounted.refs.component.value = "UY"; mounted.update(); mounted.refs.compare.emit("click");
+  assert.deepEqual(selected, [{ artifact: data.path, sha256: model.artifact.sha256, cad_revision: model.metadata.revision, node_id: 43, component: "UY" }]);
+  assert.equal(JSON.stringify(data), before); assert.equal(Object.isFrozen(selected[0]), true);
+  mounted.refs.component.value = "MAGNITUDE"; mounted.update(); mounted.refs.compare.emit("click");
+  assert.equal(selected[1].component, "MAGNITUDE");
+  mounted.refs.search.value = "210"; mounted.refs.search.emit("input"); mounted.refs.compare.emit("click");
+  assert.equal(mounted.refs.compare.disabled, true); assert.equal(selected.length, 2);
+});
+test("retired or detached field comparisons cannot reach the observation callback", () => {
+  const data = fixture(), model = verify(data), doc = documentFixture(), container = doc.createElement("article"), selected = []; let current = true;
+  const mounted = viewer.mount(container, model, () => current, value => selected.push(value));
+  mounted.refs.search.value = "43"; mounted.refs.search.emit("input"); current = false; mounted.refs.compare.emit("click");
+  current = true; container.isConnected = false; mounted.refs.compare.emit("click");
+  container.isConnected = true; mounted.destroy(); mounted.refs.compare.emit("click");
+  assert.deepEqual(selected, []); assert.equal(mounted.refs.compare.disabled, true);
+  assert.throws(() => controls.responseSelection(JSON.parse(JSON.stringify(model)), 43, "UZ"));
+  assert.throws(() => controls.responseSelection(model, 210, "UZ"));
+});
+async function spin(predicate) {
+  // WebCrypto completion comes from the worker pool. Event-loop turn counts
+  // can expire before its callback under CI load; wait for the actual predicate.
+  const deadline = performance.now() + 5000;
+  while (!predicate() && performance.now() < deadline) await new Promise(resolve => setTimeout(resolve, 1));
+  assert(predicate(), "bounded TEST_ONLY async condition");
+}
 
 test("only a complete verified native field is rendered; CAD and unbranded lookalikes refuse", () => {
   const data = fixture(), model = verify(data), scene = viewer.scene(model); assert.equal(scene.positions.size, 10);

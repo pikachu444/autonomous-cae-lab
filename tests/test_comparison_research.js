@@ -200,3 +200,117 @@ test("browser/CommonJS API makes the same pure question without providers, sessi
   const result = vm.runInContext("window.comparisonResearch.draft(JSON.parse(rowsJson), 'S-test')", context);
   assert.deepEqual(JSON.parse(JSON.stringify(result)), draft(rows, "S-test"));
 });
+
+function field(id = "C-field", component = "UZ") {
+  const row = scalar(id, "E-native"), { request, comparison } = row.record;
+  row.record.schema_version = "1.2"; row.record.source.cad_revision = hash("f"); request.purpose = "GENERAL_CAE_RESEARCH";
+  request.observation.quantity = "DISPLACEMENT"; request.observation.component = component; request.observation.coordinate_frame = "CAD_DOCUMENT_GLOBAL";
+  request.observation.unit = comparison.unit = "mm"; request.observation.value = comparison.observed_value = component === "MAGNITUDE" ? 0.0032 : -0.0022;
+  request.observation.tolerance = comparison.declared_absolute_tolerance = 0.0004;
+  request.response = { field: { artifact: "simulation/field.json", sha256: hash("d"), cad_revision: hash("f"), node_id: 17, component } };
+  comparison.selection_kind = "EXACT_RECORDED_FIELD_NODE"; delete comparison.source_metric;
+  comparison.response_value = component === "MAGNITUDE" ? 0.003 : -0.002;
+  comparison.difference = comparison.response_value - comparison.observed_value; comparison.absolute_difference = Math.abs(comparison.difference);
+  comparison.within_declared_tolerance = comparison.absolute_difference <= comparison.declared_absolute_tolerance;
+  comparison.source_field = { ...request.response.field, quantity: "DISPLACEMENT", position_mm: [16, 5, 4], position_unit: "mm",
+    coordinate_frame: "CAD_DOCUMENT_GLOBAL", value_origin: component === "MAGNITUDE" ? "DERIVED_MAGNITUDE" : "NATIVE_COMPONENT",
+    static: { step: 1, increment: 1, load_parameter: 1 }, coverage: "ALL_MESH_NODES" };
+  comparison.field_qualification = "UNKNOWN";
+  comparison.declared_field_checks = ["quantity", "component", "coordinate_frame"].map(property => ({ property,
+    declared: request.observation[property], actual: comparison.source_field[property], matched: true }));
+  return row;
+}
+function fieldMismatch(property = "coordinate_frame") {
+  const row = field("C-field-mismatch"), { request, comparison } = row.record;
+  request.observation[property] = `USER_DECLARED_OTHER_${property}`;
+  const check = comparison.declared_field_checks.find(item => item.property === property); check.declared = request.observation[property]; check.matched = false;
+  nullDifference(comparison, "DECLARED_FIELD_MISMATCH"); return row;
+}
+
+test("1.2 field research draft retains exact original node, coordinates, signed component and field source without a metric", () => {
+  const row = freeze(field()), before = JSON.stringify(row), result = draft([row], "S-test"), question = result.question;
+  assert.deepEqual(result.comparisonIds, ["C-field"]); assert.deepEqual(result.experimentIds, ["E-native"]);
+  for (const text of ["simulation/field.json", hash("d"), hash("f"), "원 절점 17", "[16, 5, 4] mm", "CAD_DOCUMENT_GLOBAL",
+      "DISPLACEMENT/UZ = -0.002 mm", "NATIVE_COMPONENT", "EXACT_RECORDED_FIELD_NODE", "field 자격 UNKNOWN", "USER_DECLARED_UNVERIFIED", "NOT_RELEASED"]) {
+    assert.equal(question.includes(text), true, text);
+  }
+  assert.match(question, /load_parameter=1/); assert.match(question, /정적 step\/increment\/load_parameter를 시간축으로 쓰지/);
+  assert.match(question, /센서\/world 정렬.*같은 절점 ID.*검증된 물리 위치 대응이 아닙니다/);
+  assert.equal(question.includes("source_metric"), false); assert.equal(Object.hasOwn(row.record.comparison, "source_metric"), false);
+  assert.equal(question.includes("지그"), false); assert.equal(JSON.stringify(row), before);
+});
+
+test("derived magnitude and signed native components remain distinct alongside legacy scalar/history records", () => {
+  const rows = [field("C-vector", "MAGNITUDE"), field("C-signed"), scalar(), history()], original = structuredClone(rows);
+  const result = draft(freeze(rows), "S-test");
+  assert.deepEqual(result.comparisonIds, ["C-vector", "C-signed", "C-scalar", "C-history"]);
+  assert.match(result.question, /DISPLACEMENT\/MAGNITUDE = 0\.003 mm · DERIVED_MAGNITUDE/);
+  assert.match(result.question, /DISPLACEMENT\/UZ = -0\.002 mm · NATIVE_COMPONENT/);
+  assert.match(result.question, /벡터에서 계산한 크기/);
+  assert.match(result.question, /이력이 있으면 원본 driver/);
+  assert.deepEqual(rows, original);
+  const generalScalar = scalar(); generalScalar.record.request.purpose = "GENERAL_CAE_RESEARCH";
+  const generalHistory = history(); generalHistory.record.request.purpose = "GENERAL_CAE_RESEARCH";
+  assert.doesNotThrow(() => draft([generalScalar, generalHistory], "S-test"));
+});
+
+test("declared field quantity/component/frame mismatches preserve null and condition mismatch has its original priority", () => {
+  for (const property of ["quantity", "component", "coordinate_frame"]) {
+    const row = fieldMismatch(property), before = JSON.stringify(row), question = draft([freeze(row)], "S-test").question;
+    assert.match(question, /DECLARED_FIELD_MISMATCH.*차이 null.*허용 차이 판정 null/);
+    assert.equal(question.includes(`USER_DECLARED_OTHER_${property}`), true); assert.equal(JSON.stringify(row), before);
+  }
+  const both = fieldMismatch(), condition = { source: "execution", path: ["force_N"], value: 100, unit: "N" };
+  both.record.request.observation.conditions = [condition]; both.record.comparison.condition_bindings_supplied = true;
+  both.record.comparison.declared_condition_checks = [{ declared: structuredClone(condition), actual: 150, matched: false }];
+  both.record.comparison.status = "DECLARED_CONDITION_MISMATCH";
+  assert.match(draft([both], "S-test").question, /DECLARED_CONDITION_MISMATCH.*차이 null/);
+  for (const patch of [{ difference: 0 }, { absolute_difference: 0 }, { within_declared_tolerance: true }, { status: "NUMERIC_DIFFERENCE_ONLY" }]) {
+    const row = fieldMismatch(); Object.assign(row.record.comparison, patch); assert.throws(() => draft([row], "S-test"));
+  }
+});
+
+test("field identity tamper, conflicting source kinds, forged origin and mismatched check receipts refuse the complete draft", () => {
+  const changes = [
+    row => { row.record.comparison.source_field.sha256 = hash("e"); },
+    row => { row.record.comparison.source_field.node_id = 18; },
+    row => { row.record.source.cad_revision = hash("a"); },
+    row => { row.record.request.response.field.artifact = row.record.comparison.source_field.artifact = "../field.json"; },
+    row => { row.record.comparison.source_metric = { value: -0.002, unit: "mm", valid: true }; },
+    row => { row.record.request.observation.axis = { quantity: "time", value: 1, unit: "s" }; },
+    row => { row.record.comparison.source_field.value_origin = "DERIVED_MAGNITUDE"; },
+    row => { row.record.comparison.source_field.position_mm = [1, 2]; },
+    row => { row.record.comparison.field_qualification = "PASS"; },
+    row => { row.record.comparison.declared_field_checks[2].matched = false; },
+    row => { row.record.comparison.difference = -0.002; }
+  ];
+  for (const mutate of changes) { const row = field(); mutate(row); assert.throws(() => draft([scalar(), row], "S-test")); }
+  const forgedMatch = fieldMismatch(); forgedMatch.record.comparison.declared_field_checks[2].matched = true;
+  assert.throws(() => draft([forgedMatch], "S-test"));
+  const mixed = scalar(); mixed.record.comparison.source_field = field().record.comparison.source_field;
+  assert.throws(() => draft([mixed], "S-test"));
+  const wrongMagnitude = field("C-magnitude", "MAGNITUDE"); wrongMagnitude.record.comparison.source_field.value_origin = "NATIVE_COMPONENT";
+  assert.throws(() => draft([wrongMagnitude], "S-test"));
+});
+
+test("optional human research context includes general question/hypothesis/objective and leaves two-argument legacy output unchanged", () => {
+  const rows = [scalar()], before = draft(rows, "S-test").question;
+  const context = freeze({ question: "측정 위치의 부호 있는 변위가 하중 가설을 구별하는가?", hypothesis: "동일 형상에서 재료 강성 또는 하중 성분이 응답을 바꾼다",
+    objective: "정확 위치·성분의 응답과 잔차를 비교하고 다음 관측을 정한다" });
+  const result = draft([field()], "S-test", context);
+  for (const value of Object.values(context)) assert.equal(result.question.includes(value), true);
+  assert.equal(draft(rows, "S-test", undefined).question, before); assert.equal(draft(rows, "S-test").question, before);
+  for (const value of [null, { ...context, extra: "unsupported" }, { ...context, question: 10 }, { ...context, objective: "x".repeat(2001) }]) {
+    assert.throws(() => draft([field()], "S-test", value), /context/);
+  }
+  let reads = 0; const active = { ...context }; Object.defineProperty(active, "question", { enumerable: true, get() { reads++; return "question"; } });
+  assert.throws(() => draft([field()], "S-test", active), /context/); assert.equal(reads, 0);
+});
+
+test("browser/CommonJS field draft and human context preserve the same exact source semantics", () => {
+  const rows = [field(), field("C-magnitude", "MAGNITUDE")], human = { question: "General research question", hypothesis: "Compare response hypotheses", objective: "Compare signed components with derived magnitude" };
+  const context = vm.createContext({ window: {}, TextEncoder, rowsJson: JSON.stringify(rows), contextJson: JSON.stringify(human) });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "../apps/lab/static/comparison-research.js"), "utf8"), context);
+  const result = vm.runInContext("window.comparisonResearch.draft(JSON.parse(rowsJson), 'S-test', JSON.parse(contextJson))", context);
+  assert.deepEqual(JSON.parse(JSON.stringify(result)), draft(rows, "S-test", human));
+});

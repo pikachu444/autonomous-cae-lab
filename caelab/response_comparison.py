@@ -1,8 +1,8 @@
-"""Append-only declared scalar comparisons; no Domain verdict or inverse engine.
+"""Append-only scalar, native-history and exact field-node comparisons.
 
 Measurement provenance and physical scope are user declarations. Matching numbers
 do not establish a cause, independently qualified alignment, or engineering release.
-Native syntax/history interpretation belongs to adapters, never this common module.
+Native interpretation belongs to adapters, never this common module.
 """
 
 from copy import deepcopy
@@ -111,6 +111,12 @@ def _source(lab, experiment_id):
 
 
 def _selected(lab, result, proposal, response):
+    if "field" in response:
+        from .response_field import selected_response
+        field = selected_response(lab, result, proposal, response["field"])
+        return (field["value"], field["unit"], "EXACT_RECORDED_FIELD_NODE", None,
+                {"source_field": field["source_field"],
+                 "field_qualification": field["qualification"]})
     if "history_channel" in response:
         from .response_history import source_channels
         channels = source_channels(lab, result, proposal)
@@ -169,21 +175,30 @@ def _evaluation(lab, request, result, proposal):
         matched = found and same_type and value == expected
         checks.append({"declared": deepcopy(declared), "actual": deepcopy(value), "matched": matched})
     axis_check = None
-    if channel_info:
+    if "response_axis" in channel_info:
         axis = observed.get("axis")
         response_axis = channel_info["response_axis"]
         if not isinstance(axis, dict) or any(axis.get(k) != response_axis[k] for k in ("quantity", "unit")):
             raise ValueError("History observation requires the exact declared axis quantity and unit")
         axis_check = {"declared": deepcopy(axis), "actual": response_axis, "matched": axis["value"] == response_axis["value"]}
     elif "axis" in observed:
-        raise ValueError("A scalar response has no qualified history axis")
+        raise ValueError("A static field response has no qualified history axis" if "source_field" in channel_info
+                         else "A scalar response has no qualified history axis")
     conditions_match = all(check["matched"] for check in checks)
-    compatible = conditions_match and (axis_check is None or axis_check["matched"])
+    field_checks = []
+    if "source_field" in channel_info:
+        field = channel_info["source_field"]
+        for key in ("quantity", "component", "coordinate_frame"):
+            field_checks.append({"property": key, "declared": observed[key],
+                                 "actual": field[key], "matched": observed[key] == field[key]})
+    field_match = all(check["matched"] for check in field_checks)
+    compatible = conditions_match and (axis_check is None or axis_check["matched"]) and field_match
     delta = actual - observed["value"] if compatible else None
     if delta is not None and not _number(delta):
         raise ValueError("Comparison difference is outside finite numeric range")
     status = ("NUMERIC_DIFFERENCE_ONLY" if compatible else
-              "DECLARED_CONDITION_MISMATCH" if not conditions_match else "DECLARED_AXIS_MISMATCH")
+              "DECLARED_CONDITION_MISMATCH" if not conditions_match else
+              "DECLARED_FIELD_MISMATCH" if not field_match else "DECLARED_AXIS_MISMATCH")
     return {"status": status,
             "response_value": actual, "observed_value": observed["value"], "unit": unit,
             "difference": delta, "absolute_difference": abs(delta) if delta is not None else None,
@@ -191,10 +206,18 @@ def _evaluation(lab, request, result, proposal):
             "within_declared_tolerance": abs(delta) <= observed["tolerance"] if delta is not None else None,
             "declared_condition_checks": checks, "condition_bindings_supplied": bool(checks),
             "scope_alignment": "USER_DECLARED_UNVERIFIED", "selection_kind": selection,
-            "source_metric": metric, "physical_validation": "UNKNOWN", "decision": "NOT_RELEASED",
+            **({"source_metric": metric} if metric is not None else {}),
+            "physical_validation": "UNKNOWN", "decision": "NOT_RELEASED",
             "unit_policy": "Exact output-unit symbol; input-binding units are user declarations",
             "causal_verdict": "NOT_EVALUATED", **channel_info,
-            **({"declared_axis_check": axis_check, "alignment_policy": "Exact recorded sample; no interpolation"} if axis_check else {})}
+            **({"declared_axis_check": axis_check, "alignment_policy": "Exact recorded sample; no interpolation"} if axis_check else {}),
+            **({"declared_field_checks": field_checks,
+                "alignment_policy": "Exact recorded node and declared component/frame; physical measurement alignment unverified"}
+               if field_checks else {})}
+
+
+def _comparison_version(response):
+    return "1.2" if "field" in response else "1.1" if "history_channel" in response else "1.0"
 
 
 def _source_info(result, proposal, hashes):
@@ -217,7 +240,7 @@ def save_comparison(lab, *, comparison_id, experiment_id, purpose, hypothesis, o
     result, proposal, hashes = _source(lab, experiment_id)
     comparison = _evaluation(lab, request, result, proposal)
     source = _source_info(result, proposal, hashes)
-    record = {"schema_version": "1.1" if "history_channel" in response else "1.0", "id": comparison_id, "created_utc": utc_now(),
+    record = {"schema_version": _comparison_version(response), "id": comparison_id, "created_utc": utc_now(),
               "request": request, "source": source, "comparison": comparison,
               "provenance": source_identity(Path(__file__).resolve().parents[1])}
     # Recheck before appending: original result/source changes must not be silently
@@ -240,12 +263,12 @@ def inspect_comparison(lab, comparison_id):
     receipt, record = load_json(folder / "receipt.json"), load_json(record_path)
     if receipt.get("id") != comparison_id or receipt.get("record_sha256") != _sha(record_path):
         raise ValueError("Comparison record hash mismatch")
-    if record.get("schema_version") not in ("1.0", "1.1") or record.get("id") != comparison_id:
+    if record.get("schema_version") not in ("1.0", "1.1", "1.2") or record.get("id") != comparison_id:
         raise ValueError("Comparison record identity mismatch")
     request = record["request"]
     _finite_json(request)
     validate("response-comparison-request", request)
-    if record["schema_version"] != ("1.1" if "history_channel" in request["response"] else "1.0"):
+    if record["schema_version"] != _comparison_version(request["response"]):
         raise ValueError("Comparison version and response selection do not agree")
     if request["comparison_id"] != comparison_id:
         raise ValueError("Comparison request identity mismatch")

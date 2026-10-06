@@ -1,3 +1,13 @@
+## Current implementation — general exact-field research
+
+ADR0048 adds additive response comparison1.2 for exact retained field/node/component; oldscalar1.0/history1.1 remain. Core verifies immutable envelopes/artifacts; adapter owns native syntax and original signed values; declared quantity/component/frame mismatch is null rather than an automatic physical match. General CAE research is additive to the earlier examples. Existing verified summary exposes the same record for approved interpretation without new provider/tool/native-execution authority.
+
+Actual base64+dirty comparison producer and original native/fixture producers remain distinct in benchmarks/records/20261006-general-field-observation-r01.json. Two failed HTTP jobs/no comparison are retained: Root initially missed the existing five-key native nodal-load schema, then corrected its integration value and serialized token checks after reading actual producer/data. All644 source/copy files85646701B unchanged, no new solver. Final184 adapter and688Node PASS; previous270Python has separate source. Whole52/Phases incomplete, UNKNOWN/NOT_RELEASED. Next original qualified assembly reuse/current-source admission and existing Code_Aster full-field execution; generic multi-solver selection/admission, reconnect and read latency remain open.
+
+---
+
+Final closure: actual GUI O-lab-muwcep5p/J4eedb20bacd14a8095216978d6e6ddf1 saved signedUY, same3-record research question and reload; final independent18-file review0P1/P2. Original644 files unchanged after GUI; newprovider interpretation remains NOT_RUN pending clean publication.
+
 ## Verified checkpoint — native numerical search with actual OpenScience interpretation
 
 Main45fb00a/origin-main match is confirmed. Its implemented fixed-CAD material/load research bundle now has actual approved GPT-5.6 Sol/ChatGPT OAuth interpretation on clean45: two selected native candidates, four completed record reads, Korean 14x3 comparison table and30 rendered expressions, same-answer reload. Jf995ea8525104bbbaf9933a3b99085a2 completed in runs/cae-fixed-cad-research-20261006-03. All520 persistent files/50250636B remain unchanged; newCAD/mesh/solver0. Native10-child results keep their original base772+dirty producer. The answer distinguishes whole U, signed force/reaction, assumed inputs and simultaneous E/load changes; it does not identify a unique cause or approve a design.

@@ -1,0 +1,665 @@
+{
+  "schema": 1,
+  "record_id": "20261006-general-field-observation-r01",
+  "acceptance": "General purpose, exact recorded structural field location/component comparison and same-record reopening",
+  "producer": {
+    "core_commit": "64d5d9356332c367c641ec4c8d3803043e1d811a",
+    "core_dirty": true,
+    "core_source_sha256": "f9ce48e192f987a8495a4f0f87321a10a0c368a78849244af8e2ecf1caa210f7"
+  },
+  "final_source_files": {
+    "apps/lab/static/app.js": {
+      "sha256": "a8b476a6011f64e0855a6016e57c081b168c907facb93830d01b3dc29eb8b0e2",
+      "bytes": 252725
+    },
+    "apps/lab/static/comparison-research.js": {
+      "sha256": "c9fdd331bdb5d0444404306e8dca7047b7a9026a6636d617315c51459585e602",
+      "bytes": 34529
+    },
+    "apps/lab/static/fixture-field-controls.js": {
+      "sha256": "8805407b0bd47bdfb240b062f298363d2fdd18aa76da5e59e38c972fe0af7980",
+      "bytes": 34856
+    },
+    "apps/lab/static/fixture-field-viewer.js": {
+      "sha256": "57596ceed69d033cfc354c5cdc5235290d987dd63029d51853d42221027a1ac9",
+      "bytes": 38903
+    },
+    "apps/lab/static/history-controls.js": {
+      "sha256": "f1a05a4c377edfd449f5812ca15d9d40e60be0e823d11109e898d2403ccbe3d6",
+      "bytes": 10989
+    },
+    "apps/lab/static/index.html": {
+      "sha256": "b4e2e64bb42b6d9a62830a93cfaf080d93c9f43470107fc77bc0ddac9f9afbd3",
+      "bytes": 55416
+    },
+    "apps/lab/static/observation-controls.js": {
+      "sha256": "ade70a6c47f1ef68e90b2641f95c1a0c773c853921278cbb7a5d9ed9c51e9d03",
+      "bytes": 11530
+    },
+    "caelab/research_context.py": {
+      "sha256": "2ebf2e0731fb6dccfd7bb4bb0ae27ba8781cd3262ed781b49fde1641d4c635e9",
+      "bytes": 9072
+    },
+    "caelab/response_comparison.py": {
+      "sha256": "3bf880d7791895c28aa931289e8ec46f12dbefd462708de07a94b0937ef4174e",
+      "bytes": 16106
+    },
+    "caelab/response_field.py": {
+      "sha256": "ed02dbe5efa62ffa2262ae6df7bba1073fb04684207c31d46ef2a37ea67b3578",
+      "bytes": 707
+    },
+    "caelab/adapters/structural_response_fields.py": {
+      "sha256": "0d8c53230a7017682f6949f0d0043c4764dd14a4ce5ac279e576bbe4f2b257c1",
+      "bytes": 24390
+    },
+    "schemas/response-comparison-request.schema.json": {
+      "sha256": "d07c21e34d0922f4274ab1b45e23544dc6d8b3623bb49e20b57c092448a84785",
+      "bytes": 4187
+    },
+    "tests/test_comparison_research.js": {
+      "sha256": "3a74c55a4d4609bb914cbd3aacbf62a625483d7eb5d7bd322cd89258ec36efe5",
+      "bytes": 26423
+    },
+    "tests/test_fixture_field_viewer.js": {
+      "sha256": "055c52cdebcc19baed257af9706851b1609edbe024a5b3c878092370db6de99c",
+      "bytes": 55025
+    },
+    "tests/test_history_controls.js": {
+      "sha256": "b76e54bcef12bfc52cf26b084a79455a9f68bc38e05532c99d36be81a0ca04cc",
+      "bytes": 19345
+    },
+    "tests/test_observation_controls.js": {
+      "sha256": "c56081b045265aa43ea95a30280aad05b051762b54603db0a2f08f69794c2330",
+      "bytes": 23033
+    },
+    "tests/test_response_comparison.py": {
+      "sha256": "16f1323e7384590b361ad8ee567bd60504d9f6ba614e78cfad24c5b42430bf42",
+      "bytes": 19377
+    },
+    "tests/test_structural_response_fields.py": {
+      "sha256": "28258835178a5a6ff04909f598dbd1c2ac0fc439aab4d8b12e50042ef4f24612",
+      "bytes": 25376
+    }
+  },
+  "native": {
+    "schema_version": "1.2",
+    "id": "O-native-887-magnitude-r03",
+    "request": {
+      "comparison_id": "O-native-887-magnitude-r03",
+      "experiment_id": "E-C-fixed-native-search-r01-0002",
+      "hypothesis": "Affine point-vector reference",
+      "observation": {
+        "component": "MAGNITUDE",
+        "condition": "Recorded static step1/increment1/load parameter1, not time",
+        "conditions": [],
+        "coordinate_frame": "CAD_DOCUMENT_GLOBAL",
+        "location": "Model-native point [9.5, 2.598076211353, 8.0]",
+        "name": "Affine point-vector reference",
+        "quantity": "DISPLACEMENT",
+        "source": "SYNTHETIC independent uniform-traction solution U=(e*x,-nu*e*y,-nu*e*z), e=FX/(80E); assumed box, no measurement",
+        "source_kind": "SYNTHETIC",
+        "tolerance": 1E-08,
+        "unit": "mm",
+        "value": 6.120777464221596E-05
+      },
+      "purpose": "GENERAL_CAE_RESEARCH",
+      "response": {
+        "field": {
+          "artifact": "simulation/field.json",
+          "cad_revision": "15d8a785c3add49b01b78498e9c9eae953aafa04930519f1076397995f0ffc58",
+          "component": "MAGNITUDE",
+          "node_id": 887,
+          "sha256": "5b32c266144747111c27d6fc886b4df3f426720244fc6da02031c9853bdc90ee"
+        }
+      }
+    },
+    "source": {
+      "backend": "structure.calculix.native",
+      "cad_revision": "15d8a785c3add49b01b78498e9c9eae953aafa04930519f1076397995f0ffc58",
+      "experiment_id": "E-C-fixed-native-search-r01-0002",
+      "model_revision": null,
+      "original_decision": "NOT_RELEASED",
+      "parameters": {
+        "length": 16
+      },
+      "parent_experiment_id": "E-native-box16",
+      "proposal_sha256": "28feffb48f3d8ffe9fdbd4e847409d674d8c690d438555282e20d3b6fd3979ec",
+      "result_sha256": "154154d616da0b8081439573be30d356a8a2d4ce883c056a74cc22dcf40ee776",
+      "solver_status": "COMPLETED",
+      "study_id": "S-native-mechanics",
+      "thread_sha256": "05b3651495354fa1eec846049e7260dc2051b989296f9bd8da9396419ae292e7",
+      "validation_counts": {
+        "FAIL": 0,
+        "PASS": 3,
+        "UNKNOWN": 8,
+        "WARNING": 0
+      },
+      "execution_retention": "Frozen original proposal/result hashes; full execution preserved in LOCAL_ONLY actual-verification.json and immutable source records"
+    },
+    "provenance": {
+      "core_commit": "64d5d9356332c367c641ec4c8d3803043e1d811a",
+      "core_dirty": true,
+      "core_source_sha256": "f9ce48e192f987a8495a4f0f87321a10a0c368a78849244af8e2ecf1caa210f7"
+    },
+    "comparison": {
+      "absolute_difference": 2.534657542446056E-12,
+      "alignment_policy": "Exact recorded node and declared component/frame; physical measurement alignment unverified",
+      "causal_verdict": "NOT_EVALUATED",
+      "condition_bindings_supplied": false,
+      "decision": "NOT_RELEASED",
+      "declared_absolute_tolerance": 1E-08,
+      "declared_condition_checks": [],
+      "declared_field_checks": [
+        {
+          "actual": "DISPLACEMENT",
+          "declared": "DISPLACEMENT",
+          "matched": true,
+          "property": "quantity"
+        },
+        {
+          "actual": "MAGNITUDE",
+          "declared": "MAGNITUDE",
+          "matched": true,
+          "property": "component"
+        },
+        {
+          "actual": "CAD_DOCUMENT_GLOBAL",
+          "declared": "CAD_DOCUMENT_GLOBAL",
+          "matched": true,
+          "property": "coordinate_frame"
+        }
+      ],
+      "difference": 2.534657542446056E-12,
+      "field_qualification": "UNKNOWN",
+      "observed_value": 6.120777464221596E-05,
+      "physical_validation": "UNKNOWN",
+      "response_value": 6.12077771768735E-05,
+      "scope_alignment": "USER_DECLARED_UNVERIFIED",
+      "selection_kind": "EXACT_RECORDED_FIELD_NODE",
+      "source_field": {
+        "artifact": "simulation/field.json",
+        "cad_revision": "15d8a785c3add49b01b78498e9c9eae953aafa04930519f1076397995f0ffc58",
+        "component": "MAGNITUDE",
+        "coordinate_frame": "CAD_DOCUMENT_GLOBAL",
+        "coverage": "ALL_MESH_NODES",
+        "node_id": 887,
+        "position_mm": [
+          9.5,
+          2.598076211353,
+          8.0
+        ],
+        "position_unit": "mm",
+        "quantity": "DISPLACEMENT",
+        "sha256": "5b32c266144747111c27d6fc886b4df3f426720244fc6da02031c9853bdc90ee",
+        "static": {
+          "increment": 1,
+          "load_parameter": 1.0,
+          "step": 1
+        },
+        "value_origin": "DERIVED_MAGNITUDE"
+      },
+      "status": "NUMERIC_DIFFERENCE_ONLY",
+      "unit": "mm",
+      "unit_policy": "Exact output-unit symbol; input-binding units are user declarations",
+      "within_declared_tolerance": true
+    }
+  },
+  "frame_mismatch": {
+    "schema_version": "1.2",
+    "id": "O-native-887-frame-mismatch-r03",
+    "request": {
+      "comparison_id": "O-native-887-frame-mismatch-r03",
+      "experiment_id": "E-C-fixed-native-search-r01-0002",
+      "hypothesis": "Affine point-vector reference",
+      "observation": {
+        "component": "MAGNITUDE",
+        "condition": "Recorded static step1/increment1/load parameter1, not time",
+        "conditions": [],
+        "coordinate_frame": "SENSOR_GLOBAL",
+        "location": "Model-native point [9.5, 2.598076211353, 8.0]",
+        "name": "Affine point-vector reference",
+        "quantity": "DISPLACEMENT",
+        "source": "SYNTHETIC independent uniform-traction solution U=(e*x,-nu*e*y,-nu*e*z), e=FX/(80E); assumed box, no measurement",
+        "source_kind": "SYNTHETIC",
+        "tolerance": 1E-08,
+        "unit": "mm",
+        "value": 6.120777464221596E-05
+      },
+      "purpose": "GENERAL_CAE_RESEARCH",
+      "response": {
+        "field": {
+          "artifact": "simulation/field.json",
+          "cad_revision": "15d8a785c3add49b01b78498e9c9eae953aafa04930519f1076397995f0ffc58",
+          "component": "MAGNITUDE",
+          "node_id": 887,
+          "sha256": "5b32c266144747111c27d6fc886b4df3f426720244fc6da02031c9853bdc90ee"
+        }
+      }
+    },
+    "source": {
+      "backend": "structure.calculix.native",
+      "cad_revision": "15d8a785c3add49b01b78498e9c9eae953aafa04930519f1076397995f0ffc58",
+      "experiment_id": "E-C-fixed-native-search-r01-0002",
+      "model_revision": null,
+      "original_decision": "NOT_RELEASED",
+      "parameters": {
+        "length": 16
+      },
+      "parent_experiment_id": "E-native-box16",
+      "proposal_sha256": "28feffb48f3d8ffe9fdbd4e847409d674d8c690d438555282e20d3b6fd3979ec",
+      "result_sha256": "154154d616da0b8081439573be30d356a8a2d4ce883c056a74cc22dcf40ee776",
+      "solver_status": "COMPLETED",
+      "study_id": "S-native-mechanics",
+      "thread_sha256": "05b3651495354fa1eec846049e7260dc2051b989296f9bd8da9396419ae292e7",
+      "validation_counts": {
+        "FAIL": 0,
+        "PASS": 3,
+        "UNKNOWN": 8,
+        "WARNING": 0
+      },
+      "execution_retention": "Frozen original proposal/result hashes; full execution preserved in LOCAL_ONLY actual-verification.json and immutable source records"
+    },
+    "provenance": {
+      "core_commit": "64d5d9356332c367c641ec4c8d3803043e1d811a",
+      "core_dirty": true,
+      "core_source_sha256": "f9ce48e192f987a8495a4f0f87321a10a0c368a78849244af8e2ecf1caa210f7"
+    },
+    "comparison": {
+      "absolute_difference": null,
+      "alignment_policy": "Exact recorded node and declared component/frame; physical measurement alignment unverified",
+      "causal_verdict": "NOT_EVALUATED",
+      "condition_bindings_supplied": false,
+      "decision": "NOT_RELEASED",
+      "declared_absolute_tolerance": 1E-08,
+      "declared_condition_checks": [],
+      "declared_field_checks": [
+        {
+          "actual": "DISPLACEMENT",
+          "declared": "DISPLACEMENT",
+          "matched": true,
+          "property": "quantity"
+        },
+        {
+          "actual": "MAGNITUDE",
+          "declared": "MAGNITUDE",
+          "matched": true,
+          "property": "component"
+        },
+        {
+          "actual": "CAD_DOCUMENT_GLOBAL",
+          "declared": "SENSOR_GLOBAL",
+          "matched": false,
+          "property": "coordinate_frame"
+        }
+      ],
+      "difference": null,
+      "field_qualification": "UNKNOWN",
+      "observed_value": 6.120777464221596E-05,
+      "physical_validation": "UNKNOWN",
+      "response_value": 6.12077771768735E-05,
+      "scope_alignment": "USER_DECLARED_UNVERIFIED",
+      "selection_kind": "EXACT_RECORDED_FIELD_NODE",
+      "source_field": {
+        "artifact": "simulation/field.json",
+        "cad_revision": "15d8a785c3add49b01b78498e9c9eae953aafa04930519f1076397995f0ffc58",
+        "component": "MAGNITUDE",
+        "coordinate_frame": "CAD_DOCUMENT_GLOBAL",
+        "coverage": "ALL_MESH_NODES",
+        "node_id": 887,
+        "position_mm": [
+          9.5,
+          2.598076211353,
+          8.0
+        ],
+        "position_unit": "mm",
+        "quantity": "DISPLACEMENT",
+        "sha256": "5b32c266144747111c27d6fc886b4df3f426720244fc6da02031c9853bdc90ee",
+        "static": {
+          "increment": 1,
+          "load_parameter": 1.0,
+          "step": 1
+        },
+        "value_origin": "DERIVED_MAGNITUDE"
+      },
+      "status": "DECLARED_FIELD_MISMATCH",
+      "unit": "mm",
+      "unit_policy": "Exact output-unit symbol; input-binding units are user declarations",
+      "within_declared_tolerance": null
+    }
+  },
+  "unit_rejection_job": "J43ef15b55207469eae664f0231b3c22f",
+  "fixture": {
+    "schema_version": "1.2",
+    "id": "O-fixture-signed-150N-r01",
+    "request": {
+      "comparison_id": "O-fixture-signed-150N-r01",
+      "experiment_id": "fea_width38_150N_mesh4_condition_reuse_20261006_r01",
+      "hypothesis": "Same model and exact-coordinate signed load-scaling response",
+      "observation": {
+        "component": "UZ",
+        "condition": "Recorded static step1/increment1/load parameter1, not time",
+        "conditions": [
+          {
+            "path": [
+              "load",
+              "force_per_support_N"
+            ],
+            "source": "execution",
+            "unit": "N",
+            "value": 150
+          }
+        ],
+        "coordinate_frame": "SOLVER_GLOBAL_CARTESIAN",
+        "location": "Model-native point [-4.15, 0.0, 26.0]",
+        "name": "Same model and exact-coordinate signed load-scaling response",
+        "quantity": "DISPLACEMENT",
+        "source": "SYNTHETIC 1.5 times retained fea_width38_100N_mesh4_corrected_20261005_sesef3f signed UZ at exactly identical original XYZ; not a physical measurement",
+        "source_kind": "SYNTHETIC",
+        "tolerance": 1E-06,
+        "unit": "mm",
+        "value": -3.4396650000000005E-05
+      },
+      "purpose": "GENERAL_CAE_RESEARCH",
+      "response": {
+        "field": {
+          "artifact": "simulation/support_0/fea_field.json",
+          "cad_revision": "77f549d9e3721b6a3b11cbf6b6ca0c3b26537c55a743b81304fb71eb99c1a389",
+          "component": "UZ",
+          "node_id": 149,
+          "sha256": "75d61eda63c9953fc1c037e40cf645816d1d4edf403aa4fb28c7297572591b6f"
+        }
+      }
+    },
+    "source": {
+      "backend": "fixture.calculix",
+      "cad_revision": "77f549d9e3721b6a3b11cbf6b6ca0c3b26537c55a743b81304fb71eb99c1a389",
+      "experiment_id": "fea_width38_150N_mesh4_condition_reuse_20261006_r01",
+      "model_revision": null,
+      "original_decision": "NOT_RELEASED",
+      "parameters": {
+        "support_width_mm": 38.0
+      },
+      "parent_experiment_id": "cad_width38_20261005_sesef3f",
+      "proposal_sha256": "fa78085abb4476a8e363953d50750d1e2be96b00b3263a51962ace9e669b0397",
+      "result_sha256": "56b3ecc55358dc4ee0948f89903a3de7dbacdda8f3ea4418010700720d07163f",
+      "solver_status": "COMPLETED",
+      "study_id": "study_single_support_width_20261005_sesef3f",
+      "thread_sha256": "aa5450a4cbcf0d06a0dc4f7eb21fc04f5a2a1bef306a7278cb7532f63c31c58c",
+      "validation_counts": {
+        "FAIL": 0,
+        "PASS": 6,
+        "UNKNOWN": 7,
+        "WARNING": 0
+      },
+      "execution_retention": "Frozen original proposal/result hashes; full execution preserved in LOCAL_ONLY actual-verification.json and immutable source records"
+    },
+    "provenance": {
+      "core_commit": "64d5d9356332c367c641ec4c8d3803043e1d811a",
+      "core_dirty": true,
+      "core_source_sha256": "f9ce48e192f987a8495a4f0f87321a10a0c368a78849244af8e2ecf1caa210f7"
+    },
+    "comparison": {
+      "absolute_difference": 4.9999999996721504E-11,
+      "alignment_policy": "Exact recorded node and declared component/frame; physical measurement alignment unverified",
+      "causal_verdict": "NOT_EVALUATED",
+      "condition_bindings_supplied": true,
+      "decision": "NOT_RELEASED",
+      "declared_absolute_tolerance": 1E-06,
+      "declared_condition_checks": [
+        {
+          "actual": 150,
+          "declared": {
+            "path": [
+              "load",
+              "force_per_support_N"
+            ],
+            "source": "execution",
+            "unit": "N",
+            "value": 150
+          },
+          "matched": true
+        }
+      ],
+      "declared_field_checks": [
+        {
+          "actual": "DISPLACEMENT",
+          "declared": "DISPLACEMENT",
+          "matched": true,
+          "property": "quantity"
+        },
+        {
+          "actual": "UZ",
+          "declared": "UZ",
+          "matched": true,
+          "property": "component"
+        },
+        {
+          "actual": "SOLVER_GLOBAL_CARTESIAN",
+          "declared": "SOLVER_GLOBAL_CARTESIAN",
+          "matched": true,
+          "property": "coordinate_frame"
+        }
+      ],
+      "difference": -4.9999999996721504E-11,
+      "field_qualification": "UNKNOWN",
+      "observed_value": -3.4396650000000005E-05,
+      "physical_validation": "UNKNOWN",
+      "response_value": -3.43967E-05,
+      "scope_alignment": "USER_DECLARED_UNVERIFIED",
+      "selection_kind": "EXACT_RECORDED_FIELD_NODE",
+      "source_field": {
+        "artifact": "simulation/support_0/fea_field.json",
+        "cad_revision": "77f549d9e3721b6a3b11cbf6b6ca0c3b26537c55a743b81304fb71eb99c1a389",
+        "component": "UZ",
+        "coordinate_frame": "SOLVER_GLOBAL_CARTESIAN",
+        "coverage": "ALL_MESH_NODES",
+        "node_id": 149,
+        "position_mm": [
+          -4.15,
+          0.0,
+          26.0
+        ],
+        "position_unit": "mm",
+        "quantity": "DISPLACEMENT",
+        "sha256": "75d61eda63c9953fc1c037e40cf645816d1d4edf403aa4fb28c7297572591b6f",
+        "static": {
+          "increment": 1,
+          "load_parameter": 1.0,
+          "step": 1
+        },
+        "value_origin": "NATIVE_COMPONENT"
+      },
+      "status": "NUMERIC_DIFFERENCE_ONLY",
+      "unit": "mm",
+      "unit_policy": "Exact output-unit symbol; input-binding units are user declarations",
+      "within_declared_tolerance": true
+    }
+  },
+  "fixture_reference": {
+    "coordinate_association": "EXACT_ORIGINAL_XYZ",
+    "original_experiment": "fea_width38_100N_mesh4_corrected_20261005_sesef3f",
+    "original_node_id": 149,
+    "reference_signed_uz_mm": -3.4396650000000005E-05
+  },
+  "independent_native_affine_u_mm": [
+    5.915647634221556E-05,
+    -4.85346422943716E-06,
+    -1.494479402329656E-05
+  ],
+  "retention": {
+    "fixture": {
+      "all_unchanged": true,
+      "bytes": 35396065,
+      "original_files": 124
+    },
+    "native": {
+      "all_unchanged": true,
+      "bytes": 50250636,
+      "original_files": 520
+    }
+  },
+  "actual_new_CAD": 0,
+  "actual_new_mesh": 0,
+  "actual_new_solver": 0,
+  "actual_new_provider": 0,
+  "source_checks": {
+    "python_control_before_final_native_load_fix": {
+      "pass": 270,
+      "log": "python-core-final.log"
+    },
+    "final_native_contract": {
+      "pass": 184,
+      "log": "python-native-contract-final.log"
+    },
+    "final_all_Node": {
+      "pass": 688,
+      "fail": 0,
+      "cancel": 0,
+      "log": "node-frozen-final.log"
+    }
+  },
+  "failed_attempts": [
+    {
+      "job": "Jce833c1dde2d4a3396192554160f784e",
+      "status": "FAILED",
+      "reason": "New reader required four-key nodal load, existing producer retains integration_force_N as a fifth field"
+    },
+    {
+      "job": "Jc4ed9f685d674b18bd84988e3645c0e9",
+      "status": "FAILED",
+      "reason": "First correction assumed zero nodal weight; exact actual load schema mismatch remained; no record created"
+    }
+  ],
+  "correction": "Retain all five actual load fields; finite original integration force, exact .12e serialized token and original signed total check. Native producer/deck/reference unchanged.",
+  "gui": {
+    "source": {
+      "core_commit": "64d5d9356332c367c641ec4c8d3803043e1d811a",
+      "core_dirty": true,
+      "core_source_sha256": "f9ce48e192f987a8495a4f0f87321a10a0c368a78849244af8e2ecf1caa210f7"
+    },
+    "comparison_id": "O-lab-muwcep5p",
+    "job_id": "J4eedb20bacd14a8095216978d6e6ddf1",
+    "browser_file_selection": "Earlier G1 native import, preserved; not a new native solve here",
+    "browser_steps": [
+      "same actual full-field result",
+      "UY and original node887 selected",
+      "general purpose and explicit synthetic reference",
+      "saved comparison",
+      "research question from same3 records",
+      "browser reload and same-source comparison reopened"
+    ],
+    "delta_mm": 2.294371603581255E-13,
+    "retention_after_GUI": "all644 prepared source/copy files unchanged",
+    "screenshot": {
+      "sha256": "98abdc7ba604596760d2bfbbc594c9a6eec47561f2b1edf69a6a6646480e8a86",
+      "bytes": 81950
+    },
+    "question": {
+      "sha256": "269402702cac885e3b18325e93f963d1f7a2897c8b1311adce03b39d5927b97b",
+      "bytes": 4620
+    },
+    "new_solver": 0,
+    "new_provider": 0,
+    "decision": "NOT_RELEASED"
+  },
+  "independent_review": {
+    "status": "PASS_BOUNDED_READ_ONLY",
+    "open_P1": 0,
+    "open_P2": 0,
+    "report": {
+      "sha256": "128cc28214d2de6a85315941b831f1a165824820cbfd43bb086d877c7ff29b31",
+      "bytes": 3691
+    },
+    "manifest": {
+      "sha256": "1d271b0c1773de50d45318d903195c940eea93d00e5da85794b76712baa6690b",
+      "bytes": 16416
+    },
+    "source_files": 18,
+    "scope": "One final read-only bundle review; GUI closure subsequently Root-owned; provider new context still NOT_RUN"
+  },
+  "exact_prior_CI": {
+    "commit": "64d5d9356332c367c641ec4c8d3803043e1d811a",
+    "run": 37422867356,
+    "research_driver_source": "SUCCESS",
+    "Core": "FAILURE: TEST_ONLY setImmediate poll raced WebCrypto digest",
+    "remaining8": "SKIPPED",
+    "source_correction": "Wait the actual test predicate up to5s; solver/numerical limits unchanged"
+  },
+  "limits": [
+    "Exact node within its own artifact, no cross-run node identity or nearest-node/interpolation mapping",
+    "Signed native component distinct from derived norm",
+    "Static load parameter is not physical time",
+    "Observation location/frame user-declared unverified",
+    "Existing fixture loaded-saddle UZ metric is not renamed whole U",
+    "Other solver field families require their own typed adapter; this bridge is not arbitrary-solver support",
+    "Approved OpenScience interpretation of this new context NOT_RUN at this checkpoint",
+    "Whole52 and Phases1-7 INCOMPLETE"
+  ],
+  "next": "Original qualified7part/84group assembly: separately pin original capsule and current verifier; existing Code_Aster S4a full-field execution then revision-bound Domain conditions/public research admission, no re-mesh",
+  "physical_validation": "UNKNOWN",
+  "causal_verdict": "NOT_EVALUATED",
+  "decision": "NOT_RELEASED",
+  "raw_proof_retention": "LOCAL_ONLY; no company CAD/credentials",
+  "actual_job_outcomes": [
+    {
+      "id": "Jc4ed9f685d674b18bd84988e3645c0e9",
+      "operation": "response_comparison_save",
+      "status": "FAILED",
+      "comparison_id": null,
+      "error": "ValueError: Native signed load DOF/source token differs"
+    },
+    {
+      "id": "Jce833c1dde2d4a3396192554160f784e",
+      "operation": "response_comparison_save",
+      "status": "FAILED",
+      "comparison_id": null,
+      "error": "ValueError: Native signed load DOF/source token differs"
+    },
+    {
+      "id": "J03f9aa8bb9704ebab31cb5656daf9f04",
+      "operation": "response_comparison_save",
+      "status": "COMPLETED",
+      "comparison_id": "O-native-887-magnitude-r03",
+      "error": null
+    },
+    {
+      "id": "Je5c5318345324e4382df35f1e1884cc3",
+      "operation": "response_comparison_save",
+      "status": "COMPLETED",
+      "comparison_id": "O-native-887-frame-mismatch-r03",
+      "error": null
+    },
+    {
+      "id": "J43ef15b55207469eae664f0231b3c22f",
+      "operation": "response_comparison_save",
+      "status": "FAILED",
+      "comparison_id": null,
+      "error": "ValueError: Observation and response units must match exactly; no conversion is inferred"
+    },
+    {
+      "id": "J4eedb20bacd14a8095216978d6e6ddf1",
+      "operation": "response_comparison_save",
+      "status": "COMPLETED",
+      "comparison_id": "O-lab-muwcep5p",
+      "error": null
+    }
+  ],
+  "public_proof_pins": {
+    "actual-verification.json": {
+      "sha256": "8281e9b408ba1d5ca868f56f490202ee2a3ca251f5c647be68fe26ff30b9aa2a",
+      "bytes": 57645
+    },
+    "gui-verification.json": {
+      "sha256": "ffa7bf9e7902c704acd3228429de42b78455a2d1fb8c9c93bbc7ff8b13dbbdb7",
+      "bytes": 1092
+    },
+    "source-pins.json": {
+      "sha256": "f6928367002e0d755d3ae6b1e0e4bd9024c2be4ffc8e710e14da4330f96802cc",
+      "bytes": 3090
+    },
+    "research-question.txt": {
+      "sha256": "269402702cac885e3b18325e93f963d1f7a2897c8b1311adce03b39d5927b97b",
+      "bytes": 4620
+    }
+  }
+}

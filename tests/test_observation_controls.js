@@ -126,7 +126,7 @@ test("array response selection is explicit with no default item, physical compon
 });
 test("source kind and research purpose are preserved exactly without fabricating defaults", () => {
   for (const sourceKind of ["MEASURED_REPORTED", "SPECIFICATION", "SYNTHETIC"]) {
-    for (const purpose of ["DEFECT_REPRODUCTION", "JIG_FEASIBILITY"]) {
+    for (const purpose of ["GENERAL_CAE_RESEARCH", "DEFECT_REPRODUCTION", "JIG_FEASIBILITY"]) {
       const request = controls.build(record(), { ...fields(), sourceKind, purpose });
       assert.equal(request.observation.source_kind, sourceKind); assert.equal(request.purpose, purpose);
     }
@@ -219,4 +219,64 @@ test("browser and CommonJS APIs use existing presentation names without a DOM, p
   assert.equal(available[3].label.split(" · ")[0], presentation.metricName("reaction_force"));
   const request = vm.runInContext("window.observationControls.build(JSON.parse(recordJson), JSON.parse(fieldsJson))", context);
   assert.deepEqual(JSON.parse(JSON.stringify(request)), controls.build(record(), fields()));
+});
+
+function fieldSelection() { return { artifact: "simulation/field.json", sha256: "a".repeat(64), cad_revision: "b".repeat(64), node_id: 17, component: "UZ" }; }
+function fieldRecord() { const data = record(); data.result.cad_revision = "b".repeat(64); data.result.metrics = {}; return data; }
+function fieldFields() { return { ...fields(), purpose: "GENERAL_CAE_RESEARCH", unit: "mm", quantity: "DISPLACEMENT", component: "UZ",
+  location: "TEST_ONLY declared sensor point", coordinateFrame: "USER_DECLARED_SENSOR_FRAME", hypothesis: "Compare local response under different load hypotheses" }; }
+
+test("exact field identity builds a general observation without source values, coordinates, fake metrics or time", () => {
+  const saved = freeze(fieldRecord()), input = freeze({ ...fieldFields(), responseValue: 999, position_mm: [100, 200, 300],
+    axis: { quantity: "time", value: 1, unit: "s" } }), selected = freeze(fieldSelection());
+  const before = JSON.stringify([saved, input, selected]), request = controls.buildField(saved, input, selected);
+  assert.deepEqual(request.response, { field: selected }); assert.notStrictEqual(request.response.field, selected);
+  assert.equal(request.purpose, "GENERAL_CAE_RESEARCH"); assert.equal(request.observation.value, -0.0022); assert.equal(request.observation.unit, "mm");
+  assert.equal(request.observation.coordinate_frame, "USER_DECLARED_SENSOR_FRAME");
+  assert.equal(Object.hasOwn(request.observation, "axis"), false);
+  assert.equal(Object.hasOwn(request.response, "metric"), false); assert.equal(Object.hasOwn(request.response.field, "value"), false);
+  assert.equal(JSON.stringify(request).includes("position_mm"), false); assert.equal(JSON.stringify(request).includes("999"), false);
+  assert.equal(JSON.stringify([saved, input, selected]), before);
+  const magnitude = controls.buildField(saved, { ...fieldFields(), component: "MAGNITUDE", value: "-0" }, { ...selected, component: "MAGNITUDE" });
+  assert.equal(magnitude.response.field.component, "MAGNITUDE"); assert.equal(Object.is(magnitude.observation.value, -0), true);
+});
+
+test("field selection rejects changed CAD identity, ambiguous keys, unsafe paths and noncanonical hashes or node IDs", () => {
+  const changes = [
+    { artifact: "../field.json" }, { artifact: "/simulation/field.json" }, { artifact: "simulation//field.json" },
+    { artifact: "simulation\\field.json" }, { artifact: "simulation/%2e%2e/field.json" },
+    { artifact: "simulation/field.json\n" }, { artifact: "x".repeat(1025) },
+    { cad_revision: "c".repeat(64) }, { sha256: "A".repeat(64) }, { sha256: "a".repeat(64) + "\n" },
+    { node_id: 0 }, { node_id: "17" }, { node_id: 17.5 }, { component: "Z" }, { component: "ROTATION" },
+    { value: -0.001 }, { position_mm: [1, 2, 3] }
+  ];
+  for (const patch of changes) assert.throws(() => controls.buildField(fieldRecord(), fieldFields(), { ...fieldSelection(), ...patch }), /정확한 field/);
+  const wrong = fieldRecord(); wrong.proposal.id = "E-other";
+  assert.throws(() => controls.buildField(wrong, fieldFields(), fieldSelection()), /VERIFIED/);
+  assert.doesNotThrow(() => controls.buildField(fieldRecord(), fieldFields(), { ...fieldSelection(), artifact: "x".repeat(1024) }));
+  // A well-formed SHA is an identity request; the persisted manifest is verified by Core/adapter.
+  assert.doesNotThrow(() => controls.buildField(fieldRecord(), fieldFields(), { ...fieldSelection(), sha256: "c".repeat(64) }));
+});
+
+test("field observations need explicit original mm and preserve user declarations without certifying alignment", () => {
+  for (const unit of [undefined, "", "m", " mm "]) assert.throws(() => controls.buildField(fieldRecord(), { ...fieldFields(), unit }, fieldSelection()));
+  const conditions = [{ source: "execution", path: ["load", "FX"], value: -25, unit: "N" }];
+  const request = controls.buildField(fieldRecord(), { ...fieldFields(), quantity: "user-reported quantity", component: "sensor Z",
+    coordinateFrame: "unqualified world/sensor alignment", conditions }, fieldSelection());
+  assert.equal(request.observation.quantity, "user-reported quantity"); assert.equal(request.observation.component, "sensor Z");
+  assert.deepEqual(request.observation.conditions, conditions); assert.equal(Object.hasOwn(request, "scope_alignment"), false);
+  let reads = 0; const active = fieldSelection(); Object.defineProperty(active, "component", { enumerable: true, get() { reads++; return "UZ"; } });
+  assert.throws(() => controls.buildField(fieldRecord(), fieldFields(), active)); assert.equal(reads, 0);
+});
+
+test("field builder has the same browser payload and index keeps optional templates plus explicit unit input", () => {
+  const context = vm.createContext({ window: {}, recordJson: JSON.stringify(fieldRecord()), fieldsJson: JSON.stringify(fieldFields()), selectionJson: JSON.stringify(fieldSelection()) });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "../apps/lab/static/observation-controls.js"), "utf8"), context);
+  const request = vm.runInContext("window.observationControls.buildField(JSON.parse(recordJson), JSON.parse(fieldsJson), JSON.parse(selectionJson))", context);
+  assert.deepEqual(JSON.parse(JSON.stringify(request)), controls.buildField(fieldRecord(), fieldFields(), fieldSelection()));
+  const html = fs.readFileSync(path.join(__dirname, "../apps/lab/static/index.html"), "utf8");
+  for (const purpose of ["GENERAL_CAE_RESEARCH", "DEFECT_REPRODUCTION", "JIG_FEASIBILITY"]) assert.match(html, new RegExp(`<option value="${purpose}">`));
+  for (const purpose of ["general", "defect", "jig"]) assert.match(html, new RegExp(`data-research-purpose="${purpose}"`));
+  assert.equal([...html.matchAll(/id="observationUnit"/g)].length, 1); assert.match(html, /id="observationFieldFields"[^>]*hidden/);
+  assert.match(html, /id="observationUnit"[^>]*placeholder="원 변위 단위 mm/);
 });

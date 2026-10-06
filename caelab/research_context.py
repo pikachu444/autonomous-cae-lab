@@ -171,4 +171,6 @@ def comparison_context(lab, result):
             "causal_verdict": "NOT_EVALUATED", "decision": "NOT_RELEASED",
             "interpretation_policy": "Read the retained request/source/comparison. SYNTHETIC is not a measurement. "
                 "Null differences remain null; exact axes/units, native measures/drivers and initial-state warnings remain. "
+                "Field node/component, original coordinates/frame, artifact/CAD pins and native/derived origin remain. "
+                "Static increments are not time; numerical node selection is not physical sensor alignment. "
                 "Unverified/omitted records are not evidence. A match does not establish a unique cause or jig approval."}

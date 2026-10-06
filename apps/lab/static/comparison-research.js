@@ -53,8 +53,41 @@
       ["MEASURED_REPORTED", "SPECIFICATION", "SYNTHETIC"].includes(value.source_kind) &&
       Array.isArray(value.conditions) && value.conditions.length <= 16 && value.conditions.every(condition);
   }
+  function relativeArtifact(value) {
+    return text(value, 1024) && value === value.trim() && !/[\\:%\u0000-\u001f\u007f]/.test(value) &&
+      value.split("/").every(part => text(part) && part === part.trim() && ![".", ".."].includes(part) && !dangerous.has(part));
+  }
+  function fieldSelection(record) {
+    const { request, comparison, source } = record, field = request.response.field, original = comparison.source_field;
+    const identityKeys = ["artifact", "sha256", "cad_revision", "node_id", "component"];
+    requireValue(exact(request.response, ["field"]) && exact(field, identityKeys) && relativeArtifact(field.artifact) && digest(field.sha256) &&
+      digest(field.cad_revision) && field.cad_revision === source.cad_revision && Number.isSafeInteger(field.node_id) && field.node_id > 0 &&
+      ["UX", "UY", "UZ", "MAGNITUDE"].includes(field.component) && comparison.selection_kind === "EXACT_RECORDED_FIELD_NODE" &&
+      comparison.field_qualification === "UNKNOWN" && comparison.unit === "mm" &&
+      exact(original, [...identityKeys, "quantity", "position_mm", "position_unit", "coordinate_frame", "value_origin", "static", "coverage"]) &&
+      identityKeys.every(key => original[key] === field[key]) && original.quantity === "DISPLACEMENT" && original.position_unit === "mm" &&
+      Array.isArray(original.position_mm) && original.position_mm.length === 3 && original.position_mm.every(finite) &&
+      text(original.coordinate_frame, 128) && text(original.coverage, 128) &&
+      original.value_origin === (field.component === "MAGNITUDE" ? "DERIVED_MAGNITUDE" : "NATIVE_COMPONENT") &&
+      (field.component !== "MAGNITUDE" || comparison.response_value >= 0) &&
+      exact(original.static, ["step", "increment", "load_parameter"]) && Number.isSafeInteger(original.static.step) && original.static.step > 0 &&
+      Number.isSafeInteger(original.static.increment) && original.static.increment > 0 && finite(original.static.load_parameter) &&
+      !own(request.observation, "axis") && !own(comparison, "source_metric") && !own(comparison, "source_channel") &&
+      !own(comparison, "response_axis") && !own(comparison, "declared_axis_check"),
+    "정확한 원 field·SHA·CAD 개정·절점·좌표·성분·정적 증분과 미확인 자격의 연결을 확인할 수 없습니다.");
+    const checks = comparison.declared_field_checks, properties = ["quantity", "component", "coordinate_frame"];
+    requireValue(Array.isArray(checks) && checks.length === properties.length && checks.every((check, index) =>
+      exact(check, ["property", "declared", "actual", "matched"]) && check.property === properties[index] &&
+      check.declared === request.observation[check.property] && check.actual === original[check.property] &&
+      typeof check.matched === "boolean" && check.matched === (check.declared === check.actual)),
+    "필드의 원 물리량·성분·좌표계와 사용자 선언의 확인 기록이 일치하지 않습니다.");
+    return checks;
+  }
   function selection(record) {
+    if (record.schema_version === "1.2") return fieldSelection(record);
     const { request, comparison } = record, response = request.response, metric = comparison.source_metric;
+    requireValue(!own(comparison, "source_field") && !own(comparison, "field_qualification") && !own(comparison, "declared_field_checks"),
+      "scalar 또는 이력 비교에 다른 field 선택 근거가 섞여 있습니다.");
     requireValue(has(metric, ["value", "unit", "valid"]) && metric.valid === true && metric.unit === comparison.unit,
       "비교에 연결된 원 수치 응답의 유효 상태와 단위를 확인할 수 없습니다.");
     if (record.schema_version === "1.0") {
@@ -91,19 +124,20 @@
   function verify(row, studyId) {
     requireValue(has(row, ["integrity", "record"]) && row.integrity === "VERIFIED", "모든 비교 기록의 원본 검증이 VERIFIED여야 합니다. 미확인 행을 제외해 진행하지 않습니다.");
     const record = row.record;
-    requireValue(has(record, ["schema_version", "id", "request", "source", "comparison"]) && ["1.0", "1.1"].includes(record.schema_version),
-      "지원되는 저장 비교 기록 1.0 또는 1.1이 필요합니다.");
+    requireValue(has(record, ["schema_version", "id", "request", "source", "comparison"]) && ["1.0", "1.1", "1.2"].includes(record.schema_version),
+      "지원되는 저장 비교 기록 1.0, 1.1 또는 1.2가 필요합니다.");
     const { request, source, comparison } = record;
     requireValue(exact(request, ["comparison_id", "experiment_id", "purpose", "hypothesis", "observation", "response"]) &&
       has(source, ["experiment_id", "study_id", "result_sha256", "proposal_sha256", "thread_sha256"]) &&
       id(record.id) && request.comparison_id === record.id && id(request.experiment_id) && request.experiment_id === source.experiment_id &&
       source.study_id === studyId && [source.result_sha256, source.proposal_sha256, source.thread_sha256].every(digest),
     "비교 기록과 원 실험·선택한 연구의 식별자 또는 저장 문서 해시가 일치하지 않습니다.");
-    requireValue(["DEFECT_REPRODUCTION", "JIG_FEASIBILITY"].includes(request.purpose) && text(request.hypothesis, 2000) &&
+    requireValue(["GENERAL_CAE_RESEARCH", "DEFECT_REPRODUCTION", "JIG_FEASIBILITY"].includes(request.purpose) && text(request.hypothesis, 2000) &&
       observation(request.observation) && mapping(request.response), "저장된 연구 목적·가설·관측 입력이 불완전합니다.");
     requireValue(has(comparison, ["status", "response_value", "observed_value", "unit", "difference", "absolute_difference", "declared_absolute_tolerance",
-      "within_declared_tolerance", "declared_condition_checks", "condition_bindings_supplied", "scope_alignment", "selection_kind", "source_metric", "physical_validation", "decision", "causal_verdict"]) &&
-      ["NUMERIC_DIFFERENCE_ONLY", "DECLARED_CONDITION_MISMATCH", "DECLARED_AXIS_MISMATCH"].includes(comparison.status) &&
+      "within_declared_tolerance", "declared_condition_checks", "condition_bindings_supplied", "scope_alignment", "selection_kind", "physical_validation", "decision", "causal_verdict",
+      ...(record.schema_version === "1.2" ? ["source_field", "field_qualification", "declared_field_checks"] : ["source_metric"])]) &&
+      ["NUMERIC_DIFFERENCE_ONLY", "DECLARED_CONDITION_MISMATCH", "DECLARED_AXIS_MISMATCH", "DECLARED_FIELD_MISMATCH"].includes(comparison.status) &&
       finite(comparison.response_value) && finite(comparison.observed_value) && comparison.observed_value === request.observation.value &&
       text(comparison.unit, 64) && comparison.unit === request.observation.unit && finite(comparison.declared_absolute_tolerance) &&
       comparison.declared_absolute_tolerance === request.observation.tolerance && comparison.scope_alignment === "USER_DECLARED_UNVERIFIED" &&
@@ -113,30 +147,66 @@
     requireValue(Array.isArray(checks) && checks.length === request.observation.conditions.length && checks.every((check, index) =>
       has(check, ["declared", "actual", "matched"]) && typeof check.matched === "boolean" && equalJson(check.declared, request.observation.conditions[index])) &&
       comparison.condition_bindings_supplied === (checks.length > 0), "선언한 조건과 보존된 조건 확인 기록이 일치하지 않습니다.");
-    const axisCheck = selection(record), conditionMismatch = checks.some((check) => !check.matched);
-    const expectedStatus = conditionMismatch ? "DECLARED_CONDITION_MISMATCH" : axisCheck && !axisCheck.matched ? "DECLARED_AXIS_MISMATCH" : "NUMERIC_DIFFERENCE_ONLY";
+    const selectedCheck = selection(record), conditionMismatch = checks.some((check) => !check.matched);
+    const fieldMismatch = record.schema_version === "1.2" && selectedCheck.some(check => !check.matched);
+    const axisMismatch = record.schema_version === "1.1" && selectedCheck && !selectedCheck.matched;
+    const expectedStatus = conditionMismatch ? "DECLARED_CONDITION_MISMATCH" : fieldMismatch ? "DECLARED_FIELD_MISMATCH" : axisMismatch ? "DECLARED_AXIS_MISMATCH" : "NUMERIC_DIFFERENCE_ONLY";
     requireValue(comparison.status === expectedStatus && (expectedStatus === "NUMERIC_DIFFERENCE_ONLY"
       ? finite(comparison.difference) && finite(comparison.absolute_difference) && comparison.absolute_difference >= 0 && typeof comparison.within_declared_tolerance === "boolean"
       : comparison.difference === null && comparison.absolute_difference === null && comparison.within_declared_tolerance === null),
-    "조건·시간 불일치의 null 차이·판정 또는 유한한 수치 비교 상태가 일치하지 않습니다.");
+    "조건·시간·필드 불일치의 null 차이·판정 또는 유한한 수치 비교 상태가 일치하지 않습니다.");
+    if (record.schema_version === "1.2" && expectedStatus === "NUMERIC_DIFFERENCE_ONLY") requireValue(
+      comparison.difference === comparison.response_value - comparison.observed_value &&
+      comparison.absolute_difference === Math.abs(comparison.difference) &&
+      comparison.within_declared_tolerance === (comparison.absolute_difference <= comparison.declared_absolute_tolerance),
+      "보존된 필드 응답의 부호와 차이·허용 차이 판정이 일치하지 않습니다.");
     return { comparisonId: record.id, experimentId: source.experiment_id };
   }
-  function draft(rows, studyId) {
+  function fieldLines(rows) {
+    const value = item => Object.is(item, -0) ? "-0" : String(item);
+    return rows.filter(row => row.record.schema_version === "1.2").flatMap(row => {
+      const { request, comparison } = row.record, original = comparison.source_field;
+      return [
+        `비교 ${row.record.id}: 원 field ${original.artifact} · SHA256 ${original.sha256} · CAD 개정 ${original.cad_revision}`,
+        `정확한 원 절점 ${original.node_id} · 좌표 [${original.position_mm.map(value).join(", ")}] ${original.position_unit} · 원 좌표계 ${original.coordinate_frame} · ${original.quantity}/${original.component} = ${value(comparison.response_value)} ${comparison.unit} · ${original.value_origin}`,
+        `정적 원 증분 step=${original.static.step}, increment=${original.static.increment}, load_parameter=${value(original.static.load_parameter)} · 원 coverage ${original.coverage} · field 자격 ${comparison.field_qualification}`,
+        `사용자 선언: ${request.observation.quantity}/${request.observation.component} · ${request.observation.coordinate_frame}; 비교 상태 ${comparison.status} · 차이 ${value(comparison.difference)} · 절대 차이 ${value(comparison.absolute_difference)} · 허용 차이 판정 ${value(comparison.within_declared_tolerance)}`
+      ];
+    });
+  }
+  function draft(rows, studyId, context) {
     requireValue(id(studyId) && Array.isArray(rows) && rows.length >= 1 && rows.length <= 12, "같은 연구의 저장 비교 기록 1~12개와 안전한 연구 식별자가 필요합니다.");
     requireValue(jsonValue(rows), "비교 행은 위험 키·순환 참조·실행 가능한 속성 없이 유한한 JSON 데이터여야 합니다.");
     const references = rows.map((row) => verify(row, studyId));
     const comparisonIds = references.map((item) => item.comparisonId);
     requireValue(new Set(comparisonIds).size === comparisonIds.length, "같은 비교 기록을 중복 선택할 수 없습니다.");
     const experimentIds = [...new Set(references.map((item) => item.experimentId))];
+    const general = rows.some(row => row.record.request.purpose === "GENERAL_CAE_RESEARCH"), hasField = rows.some(row => row.record.schema_version === "1.2");
+    const humanContext = [];
+    if (context !== undefined) {
+      requireValue(exact(context, ["question", "hypothesis", "objective"]) && jsonValue(context) &&
+        Object.values(context).every(value => text(value, 2000) && !value.includes("\u0000")),
+        "연구 context는 질문·가설·목적을 각각 2000자 이내의 자체 JSON 문자열로 명시해야 합니다.");
+      humanContext.push(`사용자가 기록한 연구 질문: ${context.question}`, `비교할 가설: ${context.hypothesis}`, `연구 목적·응답: ${context.objective}`);
+    }
     const question = [
       `연구 ${studyId}에 저장된 비교 근거를 해석해 주세요.`,
       `비교 기록: ${comparisonIds.join(", ")}`,
       `원 실험: ${experimentIds.join(", ")}`,
+      ...humanContext,
       "각 원 실험의 저장된 결과 요약과 함께 제공된 comparison_context(비교 기록)를 먼저 읽고, 위 기록만을 근거로 가설별 응답을 비교해 주세요. 사용자가 선언한 조건·위치·성분·좌표계·시간축·단위가 어떤 비교를 허용하는지 설명해 주세요.",
       "SYNTHETIC(가상값), MEASURED_REPORTED(자격이 확인되지 않은 사용자 측정 보고), SPECIFICATION(규격)을 구분해 주세요. 조건이나 시각 불일치로 차이와 허용 차이 판정이 null이면 비교 불가로 유지하고, 0이나 통과로 바꾸지 마세요. 원 단위와 부호를 보존해 주세요.",
       "이력이 있으면 원본 driver와 응력·가지 응력·참조 체적당 에너지의 의미를 구분해 주세요. t=0의 준비되지 않은 수치 초기 상태를 재료 적분 증거로 해석하지 마세요. 표본 사이 값을 보간하거나 없는 수치를 만들지 마세요.",
-      "물리 검증 UNKNOWN, 사용자 선언 범위 USER_DECLARED_UNVERIFIED, 사용 미승인 NOT_RELEASED, 원인 판정 NOT_EVALUATED를 유지해 주세요. 수치가 맞는다는 이유로 원인을 하나로 확정하거나 지그 제작·사용 적합성을 승인하지 마세요.",
-      "새 계산이나 최적화 없이 저장된 근거를 해석해 주세요. 가설을 구별할 다음 실험과 필요한 측정·입력 자료를 제안하고, 어떤 관측이 각 가설을 구별할 수 있는지 설명해 주세요. 제작 전 지그 판단에 남은 요건도 밝혀 주세요."
+      ...(hasField ? [
+        ...fieldLines(rows),
+        "필드는 EXACT_RECORDED_FIELD_NODE에 연결된 원 절점·좌표·원 SHA·CAD 개정을 유지해 주세요. UX/UY/UZ의 NATIVE_COMPONENT는 부호 있는 원 변위이며, MAGNITUDE의 DERIVED_MAGNITUDE는 벡터에서 계산한 크기입니다. 두 의미를 바꾸지 마세요. 정적 step/increment/load_parameter를 시간축으로 쓰지 마세요. 센서/world 정렬과 서로 다른 메시의 같은 절점 ID는 검증된 물리 위치 대응이 아닙니다. DECLARED_FIELD_MISMATCH이면 차이·허용 차이 판정 null을 보존해 주세요."
+      ] : []),
+      general ?
+        "물리 검증 UNKNOWN, 사용자 선언 범위 USER_DECLARED_UNVERIFIED, 사용 미승인 NOT_RELEASED, 원인 판정 NOT_EVALUATED를 유지해 주세요. 수치가 맞는다는 이유로 유일한 원인이나 공학적 사용 적합성을 확정하지 마세요." :
+        "물리 검증 UNKNOWN, 사용자 선언 범위 USER_DECLARED_UNVERIFIED, 사용 미승인 NOT_RELEASED, 원인 판정 NOT_EVALUATED를 유지해 주세요. 수치가 맞는다는 이유로 원인을 하나로 확정하거나 지그 제작·사용 적합성을 승인하지 마세요.",
+      general ?
+        "새 계산이나 최적화 없이 저장된 근거를 해석해 주세요. 연구 질문과 가설을 구별할 다음 실험·필요한 측정·입력 자료와 응답·잔차를 제안해 주세요. 모델링 가정과 수치·물리 검증에 남은 확인 사항도 밝혀 주세요." :
+        "새 계산이나 최적화 없이 저장된 근거를 해석해 주세요. 가설을 구별할 다음 실험과 필요한 측정·입력 자료를 제안하고, 어떤 관측이 각 가설을 구별할 수 있는지 설명해 주세요. 제작 전 지그 판단에 남은 요건도 밝혀 주세요."
     ].join("\n\n");
     requireValue(new TextEncoder().encode(question).length <= 16384, "연구 질문이 기존 16 KiB 입력 범위를 넘었습니다.");
     return { question, studyId, comparisonIds, experimentIds };

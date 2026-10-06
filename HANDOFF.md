@@ -1,3 +1,13 @@
+## Current checkpoint — general field observation bundle (ADR0048)
+
+Actual native and fixture fields now support exact original node UX/UY/UZ or derived magnitude, a general CAE research purpose, explicit reference/location/unit/frame/conditions, immutable comparison storage and verified reopening. Native887 norm versus independent affine reference differs2.534657542446056e-12mm (tolerance1e-8); fixture signedUZ versus1.5 times exact-original-XYZ100N response differs-4.9999999996721504e-11mm (tolerance1e-6). Frame mismatch preserves values with null difference/verdict; unit mismatch creates no comparison. Original520+124 files/85646701B unchanged; newsolver/provider0. Final184 adapter/688Node checks pass; older270Python preceded the native-load correction. Actual provider interpretation and final GUI/review/publication are recorded separately, never inferred.
+
+NEXT is the original7part/84group assembly's existing Code_Aster path. Its original qualification capsule must remain intact: current contracts/execution-control hashes differ, so add explicit current-source reuse admission rather than replace original pins, remesh or rerun fine1.5. S4a is a synthetic disconnected affine field bridge; S4b materials/contact/loadpath and public conditions/results/OpenScience remain open. Whole52/Phase1–7 INCOMPLETE, physical UNKNOWN/NOT_RELEASED. Goal ACTIVE; approved5.6Sol/OAuth unchanged. Exact64 CI: research-sourceSUCCESS/Core test-harness raceFAIL/remaining8SKIPPED; fixed test predicate waiting is not new solver evidence. See20261006-general-field-observation-r01.
+
+---
+
+Final closure: actual GUI O-lab-muwcep5p/J4eedb20bacd14a8095216978d6e6ddf1 saved signedUY, same3-record research question and reload; final independent18-file review0P1/P2. Original644 files unchanged after GUI; newprovider interpretation remains NOT_RUN pending clean publication.
+
 ## Verified checkpoint — native numerical search with actual OpenScience interpretation
 
 Main45fb00a/origin-main match is confirmed. Its implemented fixed-CAD material/load research bundle now has actual approved GPT-5.6 Sol/ChatGPT OAuth interpretation on clean45: two selected native candidates, four completed record reads, Korean 14x3 comparison table and30 rendered expressions, same-answer reload. Jf995ea8525104bbbaf9933a3b99085a2 completed in runs/cae-fixed-cad-research-20261006-03. All520 persistent files/50250636B remain unchanged; newCAD/mesh/solver0. Native10-child results keep their original base772+dirty producer. The answer distinguishes whole U, signed force/reaction, assumed inputs and simultaneous E/load changes; it does not identify a unique cause or approve a design.

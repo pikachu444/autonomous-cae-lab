@@ -337,11 +337,19 @@
     const ctx=contexts.get(record); return (ctx.family === "native" ? verifyNative : verify)(field, ctx, entry);
   }
   function requireVerified(model) { assert(verified.has(model), "완전한 같은 기록 필드 검증 후에만 표시합니다."); return model; }
+  function responseSelection(model, nodeId, component) {
+    requireVerified(model);
+    assert(identifier(nodeId) && COMPONENTS.includes(component), "정확한 원 절점 ID와 변위 성분을 선택하세요.");
+    const selected = model.field.nodes.find(node => node.node_id === nodeId);
+    assert(selected && finite(scalar(selected, component)), "같은 메시의 실제 절점 응답이 아닙니다.");
+    return Object.freeze({ artifact: model.artifact.path, sha256: model.artifact.sha256,
+      cad_revision: model.metadata.revision, node_id: nodeId, component });
+  }
   function scalar(node, component) { assert(COMPONENTS.includes(component), "지원하는 U 성분을 선택하세요."); return component === "MAGNITUDE" ? Math.hypot(...node.displacement_mm) : node.displacement_mm[COMPONENTS.indexOf(component)]; }
   function displayPosition(node, factor) {
     assert(finite(factor) && factor >= 0 && factor <= LIMITS.factor, "보기 배율은 0~1000의 유한한 수치여야 합니다.");
     const position = node.position_mm.map((value, i) => value + factor * node.displacement_mm[i]); assert(vector(position), "보기 좌표의 수치 범위를 넘었습니다."); return position;
   }
-  const api = { LIMITS, COMPONENTS, catalog, loadField, verifyField, requireVerified, scalar, displayPosition };
+  const api = { LIMITS, COMPONENTS, catalog, loadField, verifyField, requireVerified, scalar, displayPosition, responseSelection };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.fixtureFieldControls = api;
 })(globalThis);

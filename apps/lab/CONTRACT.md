@@ -322,3 +322,8 @@ inspection. They declare scope and UNKNOWN qualification; preset presence is
 not numerical or human-GUI proof. Native FRD/MED remain retained artifacts.
 Integrated field postprocessing is still PLANNED. Actual new-source native,
 connected OpenScience and same-record GUI checks are separate acceptance gates.
+
+
+## General field observation — ADR0048
+
+Same verified field viewport exports only artifact, SHA256, CAD revision, original node ID and UX/UY/UZ/MAGNITUDE. Probe/display scale supplies no physical value. Core reads immutable native values. Human explicitly declares reference source/unit/frame/location/conditions; exact physical selector mismatch returns null difference/verdict, units refuse. General purpose is additive. Store/study/record/field lifetime checks and stale/readonly refusal remain; comparison1.2 reopens exact source while oldscalar/history remain readable. No provider or solver authority expansion.

@@ -8,7 +8,7 @@
   "properties": {
     "comparison_id": {"$ref": "#/$defs/id"},
     "experiment_id": {"$ref": "#/$defs/id"},
-    "purpose": {"enum": ["DEFECT_REPRODUCTION", "JIG_FEASIBILITY"]},
+    "purpose": {"enum": ["GENERAL_CAE_RESEARCH", "DEFECT_REPRODUCTION", "JIG_FEASIBILITY"]},
     "hypothesis": {"type": "string", "minLength": 1, "maxLength": 2000, "pattern": "\\S"},
     "response": {
       "oneOf": [
@@ -19,7 +19,19 @@
         {"type": "object", "additionalProperties": false, "required": ["history_channel", "sample_index"],
           "properties": {
             "history_channel": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "\\S"},
-            "sample_index": {"type": "integer", "minimum": 0}}}
+            "sample_index": {"type": "integer", "minimum": 0}}},
+        {"type": "object", "additionalProperties": false, "required": ["field"],
+          "properties": {"field": {
+            "type": "object", "additionalProperties": false,
+            "required": ["artifact", "sha256", "cad_revision", "node_id", "component"],
+            "properties": {
+              "artifact": {"type": "string", "minLength": 1, "maxLength": 1024},
+              "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "cad_revision": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "node_id": {"type": "integer", "minimum": 1},
+              "component": {"enum": ["UX", "UY", "UZ", "MAGNITUDE"]}
+            }
+          }}}
       ]
     },
     "observation": {

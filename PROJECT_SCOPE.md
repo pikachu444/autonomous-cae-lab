@@ -1,3 +1,11 @@
+## Acceptance inventory update — general field research, ADR0048
+
+The existing general research/evidence/native-model/result requirements advance within two supported structural field families: exact original node and signed component or derived magnitude; explicit observation source/unit/frame/conditions; stored comparison and same-record reopening. GENERAL_CAE_RESEARCH removes example-only purpose restriction. Analytical native-point and retained exact-coordinate fixture scaling checks pass; physical location alignment, causal identification, arbitrary solver admission and full requirement completion remain UNKNOWN/open. Record20261006-general-field-observation-r01 preserves separate producer versions, failed attempts and unchanged644 original files. No requirement or Phase is removed or promoted to full completion. NEXT original7body/84group mechanics and common multi-backend conditions/results/research; whole52/Phase1–7 INCOMPLETE.
+
+---
+
+Final closure: actual GUI O-lab-muwcep5p/J4eedb20bacd14a8095216978d6e6ddf1 saved signedUY, same3-record research question and reload; final independent18-file review0P1/P2. Original644 files unchanged after GUI; newprovider interpretation remains NOT_RUN pending clean publication.
+
 ## Verified checkpoint — native numerical search with actual OpenScience interpretation
 
 Main45fb00a/origin-main match is confirmed. Its implemented fixed-CAD material/load research bundle now has actual approved GPT-5.6 Sol/ChatGPT OAuth interpretation on clean45: two selected native candidates, four completed record reads, Korean 14x3 comparison table and30 rendered expressions, same-answer reload. Jf995ea8525104bbbaf9933a3b99085a2 completed in runs/cae-fixed-cad-research-20261006-03. All520 persistent files/50250636B remain unchanged; newCAD/mesh/solver0. Native10-child results keep their original base772+dirty producer. The answer distinguishes whole U, signed force/reaction, assumed inputs and simultaneous E/load changes; it does not identify a unique cause or approve a design.

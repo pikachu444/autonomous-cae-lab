@@ -1419,3 +1419,8 @@ This adds no MCP tool, profile, solver admission or arbitrary CAD-parent FEA.
 Source qualification and actual human/native acceptance are recorded separately
 in benchmarks/records/20261006-native-input-source-r01.json. G2 general model
 conditions, G3 hypotheses/observations and G4 owned operational recovery remain.
+
+
+## General exact-field comparison context — ADR0048
+
+Existing verified experiment inspection/summary expose stored field1.2 comparisons with original artifact/CAD/node/component/XYZ/frame/static and observation source/condition/difference/limits. Approved5.6Sol/OAuth and tool/profile authority are unchanged. A prepared question or summary read is not a completed provider run. No new native execution admission; general purpose extends earlier examples. Unknown alignment/physical/causal judgments remain unverified/NOT_RELEASED.

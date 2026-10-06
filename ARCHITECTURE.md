@@ -339,3 +339,8 @@ research/numerical approval.
 ## Parallel research
 
 Independent agents may research candidate backends or verify tests. One owner changes each common schema/API/registry at a time; another reviewer checks boundary leakage, benchmark evidence and failure handling. Accepted/rejected decisions and evidence land in an ADR or research note. The root integrator owns cross-domain consistency and end-to-end acceptance.
+
+
+## ADR0048 — exact recorded field observations
+
+Core verifies and stores additive comparison1.2; a pure structural adapter selects retained node/component values and native source contracts. UI transports original identity only. Signed native values and derived magnitudes remain separate; static load parameter is not time. Quantity/component/frame mismatches remain null, sensor alignment unverified. General research purpose is solver independent; current field admission supports only the two declared structural producer families. Other native families need typed readers, not a generic XYZ/array inference.

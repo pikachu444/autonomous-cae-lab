@@ -224,7 +224,7 @@
     return { draw: () => render(), set, configure, probe, clearProbe, overlay, pick, fit, home,
       destroy: () => { destroyed = true; frame = null; try { observer?.disconnect(); } catch { /* No current owner remains. */ } }, snapshot: () => scene(model, requested.component, requested.factor) };
   }
-  function mount(container, model, isCurrent) {
+  function mount(container, model, isCurrent, onSelection = null) {
     controls.requireVerified(model); if (!container.isConnected || isCurrent() !== true) return null;
     const doc = container.ownerDocument || root.document, field = model.field, metadata = model.metadata;
     const native = metadata.family === "native";
@@ -266,6 +266,12 @@
     let page = 0, selectedRows = field.nodes, destroyed = false;
     const fixed = new Set(field.fixed_node_ids), loads = new Map(field.loads.map(load => [load.node_id, load.force_N]));
     let selectedNode = null;
+    const compareButton = button("선택한 절점·성분을 관측 비교에 연결", () => {
+      if (!current() || destroyed || !selectedNode || typeof onSelection !== "function") return;
+      onSelection(controls.responseSelection(model, selectedNode.node_id, component.item.value));
+    });
+    compareButton.disabled = true;
+    if (typeof onSelection === "function") properties.append(compareButton);
     function probeText(value, selection) {
       const kind = { VISIBLE_SURFACE: "보이는 외곽 절점", HIDDEN_SURFACE: "앞면에 가려진 뒤쪽 외곽 절점", INTERIOR: "내부 절점", OFFSCREEN: "화면 밖 외곽 절점", UNAVAILABLE: "현재 위치 표시를 확인할 수 없음" }[selection.kind];
       const cue = selection.cueShown ? selection.mode === "xray" ? "X-ray 투과 위치 표시" : "보이는 위치 표시" : "원본 표로 확인 · canvas 위치 표시 안 함";
@@ -273,6 +279,7 @@
     }
     function showProbe(value, selection) {
       if (!current() || destroyed) return; selectedNode = value; search.value = String(value.node_id); selectedRows = [value]; page = 0; probeText(value, selection);
+      compareButton.disabled = false;
       drawTable();
     }
     function showPolicy(status) {
@@ -292,7 +299,7 @@
       policy.className = `fixture-field-visibility${status.mode === "xray" ? " xray" : ""}`;
       policy.textContent = `${status.mode === "xray" ? "X-ray 투과 검사: 뒤쪽 외곽 절점도 표시·클릭 후보입니다. 내부 절점은 ID 검색으로 확인합니다." : "보이는 외곽면만 표시·클릭합니다. 뒤쪽 및 내부 절점은 숨기며 ID 검색으로 원본을 확인할 수 있습니다."} 고정 표시 ${status.fixed.drawn} / 원본 ${status.fixed.total} (현재 보이는 ${status.fixed.visible}) · 하중 표시 ${status.loads.drawn} / 원본 ${status.loads.total} (현재 보이는 ${status.loads.visible}). 가려진 화살표 구간은 기본 보기에서 숨깁니다. 표시 개수는 전체 원본 개수가 아닙니다.`;
       if (selectedNode && status.selected?.node_id === selectedNode.node_id) probeText(selectedNode, status.selected);
-      else if (selectedNode && status.selected === null) { selectedNode = null; probeBox.textContent = ""; }
+      else if (selectedNode && status.selected === null) { selectedNode = null; probeBox.textContent = ""; compareButton.disabled = true; }
     }
     const viewer = createViewer(canvas, model, () => current() && !destroyed, showProbe, showPolicy);
     function drawTable() {
@@ -320,7 +327,7 @@
     Object.values(checks).forEach(input => input.addEventListener("change", updateOverlay)); visibility.item.addEventListener("change", updateOverlay);
     search.addEventListener("input", () => {
       if (!current() || destroyed) return; page = 0; const raw = search.value.trim(); selectedRows = raw ? field.nodes.filter(value => String(value.node_id) === raw) : field.nodes;
-      selectedNode = null; probeBox.textContent = ""; if (selectedRows.length === 1) viewer.probe(selectedRows[0].node_id); else { viewer.clearProbe(); drawTable(); }
+      selectedNode = null; compareButton.disabled = true; probeBox.textContent = ""; if (selectedRows.length === 1) viewer.probe(selectedRows[0].node_id); else { viewer.clearProbe(); drawTable(); }
     });
     const fullRange = scene(model, "MAGNITUDE", 0);
     container.append(node("p", native ? `전체 절점 최대 |U| ${fullRange.max} mm · 이 native 해석의 max_displacement는 전체 솔리드의 변위 벡터 크기입니다. 각 위치의 UX·UY·UZ는 원본 절점 표를 따릅니다.` : `전체 절점 최대 |U| ${fullRange.max} mm · 기존 max_displacement는 하중 안장의 |UZ| 통계 ${metadata.loadedMaximumUz ?? "미제공"} mm입니다. 두 값은 별도 범위이며 기존 metric을 바꾸지 않습니다.`, "fixture-field-statistic"));
@@ -332,8 +339,8 @@
       node("p", native ? `Pinned CAD source ${metadata.upstreamCommit ?? "미기록"} · native catalog ${metadata.nativeCatalogRevision} · 합력 [${metadata.totalForceVectorN.join(" / ")}] N` : `Pinned source ${metadata.upstreamCommit ?? "미기록"} · ${metadata.saddleGroup} · 총 하중 ${metadata.totalForceN} N`, "mono"),
       node("p", `필드 ${model.artifact.size_bytes} bytes · SHA-256 ${model.artifact.sha256}`, "mono"));
     Object.values(field.sources).forEach(source => provenance.append(node("p", `${source.path} · ${source.bytes} bytes · SHA-256 ${source.sha256}`, "mono"))); container.append(provenance);
-    drawTable(); return { viewer, update, updateOverlay, refs: { component: component.item, mode: mode.item, scale, canvas, legend, error, search, rows, probeBox, pageCaption, previous, next, deformationNote, provenance, checks, visibility: visibility.item, policy, fit: fitButton, home: homeButton },
-      destroy: () => { destroyed = true; viewer.destroy(); } };
+    drawTable(); return { viewer, update, updateOverlay, refs: { component: component.item, mode: mode.item, scale, canvas, legend, error, search, rows, probeBox, pageCaption, previous, next, deformationNote, provenance, checks, visibility: visibility.item, policy, fit: fitButton, home: homeButton, compare: compareButton },
+      destroy: () => { destroyed = true; compareButton.disabled = true; viewer.destroy(); } };
   }
   const api = { scene, createViewer, mount, depthIndex, DISPLAY };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.fixtureFieldViewer = api;

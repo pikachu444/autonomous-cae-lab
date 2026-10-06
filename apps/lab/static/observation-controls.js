@@ -1,11 +1,13 @@
 "use strict";
 
 // Numeric comparison inputs only. Core checks persisted identities and declared
-// bindings; a selected scalar does not verify physical alignment or release.
+// bindings; scalar/field selections do not verify physical alignment or release.
 (function (root) {
   const presentation = typeof module !== "undefined" && module.exports ? require("./result-presentation.js") : null;
   const storeId = /^[A-Za-z][A-Za-z0-9_-]{0,79}$/;
   const decimal = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
+  const sha256 = /^[0-9a-f]{64}$/;
+  const purposes = ["GENERAL_CAE_RESEARCH", "DEFECT_REPRODUCTION", "JIG_FEASIBILITY"];
   const dangerous = new Set(["__proto__", "prototype", "constructor"]);
   const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
   const mapping = (value) => value !== null && typeof value === "object" &&
@@ -95,28 +97,56 @@
       return { source, path: path.slice(), value, unit };
     });
   }
-  function build(record, fields) {
+  function comparisonInput(record, fields) {
     if (!mapping(fields) || !jsonValue(fields)) throw new Error("관측 입력에는 자체 JSON 값만 사용할 수 있으며 위험 키·참조 순환·실행 가능한 속성은 허용하지 않습니다.");
     const result = joinedResult(record), experimentId = data(result, "experiment_id"), comparisonId = data(fields, "comparisonId");
     if (!result || !id(experimentId) || !id(comparisonId)) throw new Error("VERIFIED 기록의 실험·연구 연결과 새 비교 식별자를 확인하세요.");
     const purpose = data(fields, "purpose"), sourceKind = data(fields, "sourceKind");
-    if (!["DEFECT_REPRODUCTION", "JIG_FEASIBILITY"].includes(purpose)) throw new Error("불량 재현 또는 제작 전 지그 시험 가능성의 연구 목적을 선택하세요.");
+    if (!purposes.includes(purpose)) throw new Error("일반 CAE 연구, 불량 재현 또는 지그 시험 검토의 연구 목적을 선택하세요.");
     if (!["MEASURED_REPORTED", "SPECIFICATION", "SYNTHETIC"].includes(sourceKind)) throw new Error("관측 출처의 측정 보고·규격·가상 데이터 구분을 명시하세요.");
-    const choice = choices(record).find((item) => item.key === data(fields, "responseKey"));
-    if (!choice) throw new Error("유효한 저장 응답 또는 사용자 지정 배열 항목을 명시적으로 선택하세요.");
+    return { result, experimentId, comparisonId, purpose, sourceKind };
+  }
+  function observationInput(fields, unit, sourceKind) {
     const tolerance = numberInput(fields, "tolerance", "허용 차이");
     if (tolerance < 0) throw new Error("허용 차이는 0 이상의 유한한 수치로 입력하세요.");
-    const observation = { name: requiredText(fields, "name", 256, "관측 이름"), value: numberInput(fields, "value", "관측값"),
-      unit: choice.unit, source_kind: sourceKind, source: requiredText(fields, "source", 2000, "관측 출처"),
+    return { name: requiredText(fields, "name", 256, "관측 이름"), value: numberInput(fields, "value", "관측값"),
+      unit, source_kind: sourceKind, source: requiredText(fields, "source", 2000, "관측 출처"),
       quantity: requiredText(fields, "quantity", 128, "관측 물리량"), component: requiredText(fields, "component", 128, "관측 성분"),
       location: requiredText(fields, "location", 512, "관측 위치"), coordinate_frame: requiredText(fields, "coordinateFrame", 128, "좌표계"),
       condition: requiredText(fields, "condition", 2000, "관측 조건"), tolerance, conditions: declaredConditions(fields) };
-    const response = { metric: choice.metric };
+  }
+  function build(record, fields) {
+    const { experimentId, comparisonId, purpose, sourceKind } = comparisonInput(record, fields);
+    const choice = choices(record).find((item) => item.key === data(fields, "responseKey"));
+    if (!choice) throw new Error("유효한 저장 응답 또는 사용자 지정 배열 항목을 명시적으로 선택하세요.");
+    const observation = observationInput(fields, choice.unit, sourceKind), response = { metric: choice.metric };
     if (own(choice, "component")) response.component = choice.component;
     return { comparison_id: comparisonId, experiment_id: experimentId, purpose,
       hypothesis: requiredText(fields, "hypothesis", 2000, "원인 가설"), observation, response };
   }
-  const api = { choices, build };
+  function relativeArtifact(value) {
+    return typeof value === "string" && value.length >= 1 && value.length <= 1024 && value === value.trim() &&
+      !/[\\:%\u0000-\u001f\u007f]/.test(value) && value.split("/").every(part => part.length >= 1 &&
+        part === part.trim() && ![".", ".."].includes(part) && !dangerous.has(part));
+  }
+  function buildField(record, fields, selection) {
+    const { result, experimentId, comparisonId, purpose, sourceKind } = comparisonInput(record, fields);
+    const keys = ["artifact", "sha256", "cad_revision", "node_id", "component"], revision = data(result, "cad_revision");
+    if (!mapping(selection) || !jsonValue(selection) || Object.keys(selection).length !== keys.length || !keys.every(key => own(selection, key)) ||
+        !relativeArtifact(selection.artifact) || typeof selection.sha256 !== "string" || selection.sha256.length !== 64 || !sha256.test(selection.sha256) ||
+        typeof revision !== "string" || revision.length !== 64 || !sha256.test(revision) || selection.cad_revision !== revision ||
+        !Number.isSafeInteger(selection.node_id) || selection.node_id < 1 || !["UX", "UY", "UZ", "MAGNITUDE"].includes(selection.component)) {
+      throw new Error("같은 VERIFIED CAD 개정의 정확한 field 경로·SHA·양의 정수 절점·변위 성분을 선택하세요.");
+    }
+    if (data(fields, "unit") !== "mm") throw new Error("필드 관측 단위는 원 변위 단위 mm로 명시하세요. 자동 단위 변환은 없습니다.");
+    // Copy selection identity only. Core/adapter read the original value and
+    // coordinates; user-supplied response values, positions and axes are ignored.
+    const field = Object.fromEntries(keys.map(key => [key, selection[key]]));
+    return { comparison_id: comparisonId, experiment_id: experimentId, purpose,
+      hypothesis: requiredText(fields, "hypothesis", 2000, "비교 가설 또는 연구 목적"),
+      observation: observationInput(fields, "mm", sourceKind), response: { field } };
+  }
+  const api = { choices, build, buildField };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.observationControls = api;
 })(typeof window !== "undefined" ? window : globalThis);

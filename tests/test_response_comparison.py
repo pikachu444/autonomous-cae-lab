@@ -276,3 +276,80 @@ def test_http_preserves_expected_source_hashes_across_core_call(lab, monkeypatch
         assert rows[0]["integrity"] == "UNKNOWN"
     # Partial/changed evidence remains retained, never converted to a successful fit.
     assert (lab.store / "response_comparisons/C-test/record.json").exists()
+
+
+@pytest.fixture
+def field_request(lab, monkeypatch):
+    """Core-only TEST fixture; pure adapter contract is tested independently.
+
+    Real contained manifest bytes still pass through the production field reader.
+    The patched native interpreter explicitly supplies a nonphysical test point.
+    """
+    from caelab.adapters import structural_response_fields
+    result = lab.inspect_experiment("E-test")
+    artifact = next(a for a in result["artifacts"] if a["path"] == "simulation/test-only.json")
+    selector = {"artifact": artifact["path"], "sha256": artifact["sha256"],
+                "cad_revision": "a" * 64, "node_id": 17, "component": "UZ"}
+
+    def test_only_interpreter(result, proposal, raw, artifact, selection):
+        assert raw["test_only"] is True and raw["settings"]["force_N"] == 150.
+        if selection != selector:
+            raise ValueError("TEST_ONLY selector differs from the explicit original point")
+        return {"value": -0.125, "unit": "mm", "qualification": "UNKNOWN", "source_field": {
+            **selection, "quantity": "DISPLACEMENT", "position_mm": [1., 2., 3.], "position_unit": "mm",
+            "coordinate_frame": "TEST_ONLY_UNQUALIFIED", "value_origin": "NATIVE_COMPONENT",
+            "static": {"step": 1, "increment": 1, "load_parameter": 1}, "coverage": "ALL_MESH_NODES"}}
+
+    monkeypatch.setattr(structural_response_fields, "select_field_response", test_only_interpreter)
+    body = request(purpose="GENERAL_CAE_RESEARCH", response={"field": selector})
+    body["observation"].update(value=-0.125, unit="mm", quantity="DISPLACEMENT", component="UZ",
+                               coordinate_frame="TEST_ONLY_UNQUALIFIED", tolerance=0.)
+    return body
+
+
+def test_field_comparison_roundtrip_and_research_context_keep_the_exact_point(lab, field_request):
+    before = originals(lab)
+    saved = lab.save_response_comparison(**field_request)
+    assert saved["schema_version"] == "1.2"
+    assert saved["comparison"]["difference"] == 0.
+    assert saved["comparison"]["response_value"] == -.125
+    assert "source_metric" not in saved["comparison"] and "response_axis" not in saved["comparison"]
+    assert saved["comparison"]["selection_kind"] == "EXACT_RECORDED_FIELD_NODE"
+    assert saved["comparison"]["source_field"]["position_mm"] == [1., 2., 3.]
+    assert lab.inspect_response_comparison("C-test") == saved
+    context = lab.research_summary("E-test")["comparison_context"]
+    assert context["records"][0]["record"] == saved
+    assert context["physical_validation"] == "UNKNOWN" and context["decision"] == "NOT_RELEASED"
+    assert originals(lab) == before
+
+
+@pytest.mark.parametrize("key,value", [("quantity", "STRESS"), ("component", "UY"), ("coordinate_frame", "SENSOR_GLOBAL")])
+def test_field_declaration_mismatch_retains_signed_response_with_null_verdict(lab, field_request, key, value):
+    field_request["observation"][key] = value
+    saved = lab.save_response_comparison(**field_request)
+    actual = saved["comparison"]
+    assert actual["status"] == "DECLARED_FIELD_MISMATCH"
+    assert actual["response_value"] == -.125 and actual["observed_value"] == -.125
+    assert actual["difference"] is None and actual["within_declared_tolerance"] is None
+    assert sum(check["matched"] is False for check in actual["declared_field_checks"]) == 1
+    assert lab.inspect_response_comparison("C-test") == saved
+
+
+def test_field_rejects_stale_hash_implicit_time_and_wrong_unit_before_append(lab, field_request):
+    for damage in ("hash", "time", "unit"):
+        body = deepcopy(field_request)
+        if damage == "hash":
+            body["response"]["field"]["sha256"] = "0" * 64
+        elif damage == "time":
+            body["observation"]["axis"] = {"quantity": "time", "value": 1., "unit": "s"}
+        else:
+            body["observation"]["unit"] = "m"
+        with pytest.raises(ValueError):
+            lab.save_response_comparison(**body)
+        assert not (lab.store / "response_comparisons/C-test").exists()
+    saved = lab.save_response_comparison(**field_request)
+    assert lab.inspect_response_comparison("C-test") == saved
+    raw = lab.store / "experiments/E-test/simulation/test-only.json"
+    raw.write_bytes(raw.read_bytes() + b" ")
+    with pytest.raises(ValueError):
+        lab.inspect_response_comparison("C-test")

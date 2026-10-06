@@ -224,3 +224,14 @@ test("browser and CommonJS exports agree using existing observation controls wit
   const request = vm.runInContext("window.historyControls.build(JSON.parse(inspectionJson), JSON.parse(envelopeJson), JSON.parse(fieldsJson))", context);
   assert.deepEqual(JSON.parse(JSON.stringify(request)), controls.build(data.inspection, data.envelope, fields()));
 });
+
+test("general CAE purpose preserves the exact retained history sample and explicit measured axis contract", () => {
+  const data = fixture(), input = { ...fields(), purpose: "GENERAL_CAE_RESEARCH", hypothesis: "Compare signed stress relaxation under alternative constitutive hypotheses" };
+  const original = structuredClone(data), request = controls.build(freeze(data.inspection), freeze(data.envelope), freeze(input));
+  assert.equal(request.purpose, "GENERAL_CAE_RESEARCH"); assert.equal(request.hypothesis, input.hypothesis);
+  assert.deepEqual(request.response, { history_channel: "mgis-stress-xz", sample_index: 1 });
+  assert.deepEqual(request.observation.axis, { quantity: "time", value: 0.75, unit: "s" });
+  assert.equal(request.observation.unit, "MPa"); assert.equal(request.observation.value, -18.5);
+  assert.equal(Object.hasOwn(request.response, "field"), false); assert.equal(Object.hasOwn(request.response, "metric"), false);
+  assert.deepEqual(data, original);
+});

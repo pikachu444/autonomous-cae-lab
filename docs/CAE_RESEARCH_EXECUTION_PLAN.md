@@ -1,3 +1,13 @@
+## Active next bundle — original assembly and multi-backend admission
+
+General observation bridge now selects exact native/fixture field location and component, stores explicit reference/conditions and reopens the same comparison (ADR0048/record20261006-general-field-observation-r01). General CAE purpose is not restricted to defect/jig examples. Complete final GUI/review/approved interpretation at their actual source, then move to the existing original assembly code; do not extend another CalculiX example or UI redesign.
+
+Next integrated bundle: preserve qualified7part/84group source capsule and pins, explicitly bind a separately trusted current parent-verifier version, reuse the original mesh in existing Code_Aster S4a actual full-field path, then connect revision-bound material/BC/load/contact declarations, supported backend admission and family-owned results/research. S4a alone is synthetic affine/no-contact and does not prove S4b load transfer. No remesh/fine replay or threshold changes. Following existing PDE/material/contact/explicit/inverse/UQ/multiobjective/HPC gaps remain in original Phase order. Develop the complete bundle, Root runs/fixes/integrates, then one final independent review; no Astra perfix/report clones. Whole52/Phases INCOMPLETE, UNKNOWN/NOT_RELEASED.
+
+---
+
+Final closure: actual GUI O-lab-muwcep5p/J4eedb20bacd14a8095216978d6e6ddf1 saved signedUY, same3-record research question and reload; final independent18-file review0P1/P2. Original644 files unchanged after GUI; newprovider interpretation remains NOT_RUN pending clean publication.
+
 ## Verified checkpoint — native numerical search with actual OpenScience interpretation
 
 Main45fb00a/origin-main match is confirmed. Its implemented fixed-CAD material/load research bundle now has actual approved GPT-5.6 Sol/ChatGPT OAuth interpretation on clean45: two selected native candidates, four completed record reads, Korean 14x3 comparison table and30 rendered expressions, same-answer reload. Jf995ea8525104bbbaf9933a3b99085a2 completed in runs/cae-fixed-cad-research-20261006-03. All520 persistent files/50250636B remain unchanged; newCAD/mesh/solver0. Native10-child results keep their original base772+dirty producer. The answer distinguishes whole U, signed force/reaction, assumed inputs and simultaneous E/load changes; it does not identify a unique cause or approve a design.

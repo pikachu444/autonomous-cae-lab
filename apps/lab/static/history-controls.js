@@ -1,7 +1,8 @@
 "use strict";
 
-// Read exact retained Maxwell samples. Core owns native extraction, file checks,
-// condition/axis alignment and persistence; this module never interpolates.
+// Read exact supported retained histories (current native projection: Maxwell).
+// Core owns extraction, file checks and alignment. Research purposes come from
+// the common observation builder; no new history family or interpolation here.
 (function (root) {
   const observation = typeof module !== "undefined" && module.exports ? require("./observation-controls.js") : null;
   const storeId = /^[A-Za-z][A-Za-z0-9_-]{0,79}$/;

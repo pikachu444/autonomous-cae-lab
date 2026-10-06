@@ -66,9 +66,9 @@
             <div id="researchConnection" class="research-connection" role="status">AI 연구 연결을 확인하고 있습니다.</div>
             <details class="advanced research-support"><summary>연결 모델·지원 도구·한계</summary><div id="researchScope" class="research-scope"></div>
             <p class="hint">전체 조립체의 하중·접촉 해석은 아직 준비되지 않았습니다. 지원되는 모델과 도구 범위에서 질문하세요.</p></details>
-            <div class="button-row"><button type="button" class="button secondary compact" data-research-purpose="defect">제품 불량 재현 연구</button><button type="button" class="button secondary compact" data-research-purpose="jig">제작 전 지그 검토</button></div>
-            <p class="hint">작성 틀을 넣습니다. 제출 전 질문을 직접 수정할 수 있습니다.</p>
-            <form id="researchQuestionForm"><label for="researchQuestion">연구 질문<textarea id="researchQuestion" rows="6" required placeholder="불량의 관찰 내용·발생 조건, 또는 시험 목적·지그 조건과 알고 싶은 점을 적어 주세요."></textarea></label>
+            <div class="button-row"><button type="button" class="button secondary compact" data-research-purpose="general">일반 CAE 연구</button><button type="button" class="button secondary compact" data-research-purpose="defect">제품 불량 재현 연구</button><button type="button" class="button secondary compact" data-research-purpose="jig">제작 전 지그 검토</button></div>
+            <p class="hint">연구 목적에 맞는 작성 틀을 선택하거나 질문을 직접 입력하세요. 제출 전 문구를 수정할 수 있습니다.</p>
+            <form id="researchQuestionForm"><label for="researchQuestion">연구 질문<textarea id="researchQuestion" rows="6" required placeholder="연구 질문, 비교할 가설, 알고 싶은 응답·위치·조건을 적어 주세요."></textarea></label>
               <label class="check-line"><input id="researchContinue" type="checkbox" disabled>확인된 대화에서 계속 질문</label><p id="researchSessionState" class="hint">새 대화로 질문합니다.</p>
               <div class="form-footer"><button type="button" id="researchResetBtn" class="button subtle">새 대화 시작</button><button id="researchRunBtn" class="button primary" data-operation="research_run" disabled>AI에게 질문하기</button></div>
               <p id="researchInputState" class="hint" role="status"></p>
@@ -82,10 +82,10 @@
         <div class="two-column research-columns">
           <article class="card"><div class="card-heading"><div><p class="eyebrow">NEW STUDY</p><h2>새 연구 만들기</h2></div><span class="step-tag">시작하기</span></div>
             <form id="studyForm"><fieldset data-write>
-              <div class="form-grid"><label>연구 ID<input id="studyId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,79}" autocomplete="off"></label><label>연구 이름<input id="studyName" placeholder="예: 편측 변형 불량의 재현 조건 연구" required></label></div>
-              <label>관찰·시험 목적과 연구 질문<textarea id="studyQuestion" rows="4" required placeholder="관찰한 불량·발생 조건·측정, 또는 만들려는 지그와 시험 목적"></textarea></label>
-              <label>비교할 가설<textarea id="studyHypothesis" rows="4" required placeholder="서로 다른 원인 또는 설계 가설과 각 가설을 확인할 조건"></textarea></label>
-              <label>비교할 응답과 연구 목적<textarea id="studyObjective" rows="4" required placeholder="불량 위치·형태·하중–변위 등 비교할 응답, 시험 가능성을 판단할 조건"></textarea></label>
+              <div class="form-grid"><label>연구 ID<input id="studyId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,79}" autocomplete="off"></label><label>연구 이름<input id="studyName" placeholder="예: 재료·하중 조건에 따른 국부 변위 연구" required></label></div>
+              <label>관측·실험 조건과 연구 질문<textarea id="studyQuestion" rows="4" required placeholder="모델·관측·실험 조건과 이 연구에서 확인하려는 질문"></textarea></label>
+              <label>비교할 가설<textarea id="studyHypothesis" rows="4" required placeholder="서로 다른 모델·조건·원인 가설과 각 가설을 구별할 응답"></textarea></label>
+              <label>비교할 응답과 연구 목적<textarea id="studyObjective" rows="4" required placeholder="응답의 물리량·위치·성분·단위와 연구에서 확인하려는 관계"></textarea></label>
               <div class="form-footer"><small>새 ID로 기록합니다. 기존 연구는 상단에서 선택하세요.</small><button class="button primary" data-operation="study_create">연구 기록 저장</button></div>
             </fieldset></form>
           </article>
@@ -276,12 +276,13 @@
           <p id="observationContext" class="hint"></p>
           <div id="observationRecords"></div>
           <details id="observationEditor" class="advanced separated"><summary>새 관측값 또는 시험 기준 연결</summary>
-            <p class="hint separated">같은 위치·성분·조건의 응답을 직접 선택하세요. 비교는 수치 차이를 기록하며, 불량 원인 확정이나 지그 제작 승인은 별도의 근거가 필요합니다.</p>
+            <p class="hint separated">연구에서 비교할 위치·성분·조건의 응답을 직접 선택하세요. 수치 차이는 관측 근거이며, 원인 확정이나 공학적 사용 승인에는 별도의 근거가 필요합니다.</p>
             <form id="observationForm"><fieldset data-write>
-              <div class="form-grid"><label>연구 목적<select id="observationPurpose" required><option value="">목적을 선택하세요</option><option value="DEFECT_REPRODUCTION">제품 불량 재현 · 원인 가설 비교</option><option value="JIG_FEASIBILITY">지그 제작 전 · 시험 가능성 검토</option></select></label><label>비교할 해석 응답<select id="observationResponse" required><option value="">유효한 응답을 선택하세요</option></select></label></div>
+              <div class="form-grid"><label>연구 목적<select id="observationPurpose" required><option value="">목적을 선택하세요</option><option value="GENERAL_CAE_RESEARCH">일반 CAE 연구 · 가설·조건·응답 비교</option><option value="DEFECT_REPRODUCTION">제품 불량 재현 · 원인 가설 비교</option><option value="JIG_FEASIBILITY">지그 제작 전 · 시험 가능성 검토</option></select></label><label>비교할 해석 응답<select id="observationResponse" required><option value="">유효한 응답을 선택하세요</option></select></label></div>
               <p id="observationResponseNote" class="hint"></p>
               <div id="observationHistoryFields" class="form-grid" hidden><label>비교할 기록 시점<select id="observationHistorySample"></select></label><label>관측 시각 (초)<input id="observationAxisValue" inputmode="decimal" placeholder="측정·기준의 시각을 직접 입력하세요"></label></div>
-              <label>비교할 원인 가설 또는 시험 목적<textarea id="observationHypothesis" rows="2" maxlength="2000" required placeholder="예: 지지부 강성이 낮아 관측 위치의 변형이 커졌는가?"></textarea></label>
+              <div id="observationFieldFields" class="form-grid" hidden><label>필드 관측 단위<input id="observationUnit" maxlength="64" placeholder="원 변위 단위 mm를 명시하세요"></label><p class="hint">정확한 원 절점·성분을 비교합니다. 관측 위치와 센서/world 좌표계의 물리적 정렬은 사용자 선언이며 미검증입니다.</p></div>
+              <label>비교할 가설 또는 연구 목적<textarea id="observationHypothesis" rows="2" maxlength="2000" required placeholder="조건·모델이 바뀌면 이 위치·성분의 응답이 어떻게 달라지는가?"></textarea></label>
               <div class="form-grid"><label>관측·기준 이름<input id="observationName" maxlength="256" required placeholder="예: 하중부 수직 변위"></label><label>출처 구분<select id="observationSourceKind" required><option value="">출처를 선택하세요</option><option value="MEASURED_REPORTED">측정값 · 사용자가 보고한 값</option><option value="SPECIFICATION">시험 규격·목표값</option><option value="SYNTHETIC">가상 데이터 · 기능 확인·가정</option></select></label></div>
               <label>출처·파일·측정 또는 기준의 근거<textarea id="observationSource" rows="2" maxlength="2000" required></textarea></label>
               <div class="form-grid"><label>관측값<input id="observationValue" inputmode="decimal" required></label><label>절대 허용 차이<input id="observationTolerance" inputmode="decimal" required></label></div>
