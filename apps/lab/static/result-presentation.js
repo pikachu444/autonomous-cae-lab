@@ -5,6 +5,7 @@
   const backendNames = {
     "fixture.assembly": "굽힘 시험 치구", "fixture.cadquery": "치구 부품",
     "fixture.freecad": "편집 가능한 CAD 모델", "fixture.calculix": "치구 구조 해석",
+    "structure.calculix.native": "사용자 CAD · 선형 구조해석",
     "material.mfront.viscoelastic": "점탄성 재료점 해석",
   };
   const metricNames = {
@@ -13,7 +14,7 @@
     maximum_von_mises: "최대 등가 응력", max_von_mises: "최대 등가 응력",
     applied_force_per_support: "지지대별 하중", displacement_mesh_change_ratio: "마지막 두 메시의 변위 변화율 (상대비)",
     peak_stress: "절점 평균 응력 (진단용)", reaction_balance_ratio: "반력 상대 불평형 (상대비)",
-    reaction_force: "지지대 반력 (X, Y, Z)",
+    reaction_force: "반력 (X, Y, Z)", applied_force: "합력 (X, Y, Z)",
     mesh_size_max_mm: "메시별 최대 크기", loaded_saddle_min_global_uz: "메시별 하중 안장 Z 변위 (최솟값)",
     stress_history: "응력 이력", branch_stress_history: "점탄성 분기 응력 이력",
     native_energy_history: "native 저장·소산 에너지 밀도 이력", reference_work_history: "해석식으로 계산한 일 (native 에너지 아님)",
@@ -33,6 +34,11 @@
     fatigue_durability: "피로와 내구성", corporate_license_security: "회사 사용·보안 승인",
     joint_and_contact: "체결·접촉", material_qualification: "재료 물성 검증", stress_convergence: "응력 수렴",
     displacement_mesh_trend: "마지막 두 메시의 변위 변화 검사",
+    native_complete_displacement: "전체 절점 변위 기록",
+    native_positive_tetrahedral_jacobian: "사면체 요소의 Jacobian",
+    native_signed_reaction_equilibrium: "부호를 유지한 하중·반력 평형",
+    model_idealization: "모델링 이상화의 적용 범위",
+    domain_clearance: "모델의 공학적 간섭·간격", manufacturability: "제작 가능성",
   };
   const componentNames = {
     printed_base: "바닥판", printed_support_left: "왼쪽 받침", printed_support_right: "오른쪽 받침",

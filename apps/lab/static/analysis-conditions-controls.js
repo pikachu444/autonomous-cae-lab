@@ -16,6 +16,18 @@
   const validId = value => typeof value === "string" && identifier.exec(value)?.[0] === value;
   const validDigest = value => typeof value === "string" && digest.exec(value)?.[0] === value;
   const validBackend = value => typeof value === "string" && backendName.exec(value)?.[0] === value;
+  const vector = value => Array.isArray(value) && value.length === 3 && value.every(item => typeof item === "number" && Number.isFinite(item));
+  function nativeFace(item, selections) {
+    return nonempty(item.native_object, 512) && /^Face[1-9]\d*$/.test(item.native_name) &&
+      validId(item.body_id) && selections.some(body => body.id === item.body_id && body.kind === "whole_final_solid") &&
+      typeof item.area_mm2 === "number" && Number.isFinite(item.area_mm2) && item.area_mm2 > 0 &&
+      vector(item.center_mm) && vector(item.bounds_mm?.min) && vector(item.bounds_mm?.max) &&
+      item.bounds_mm.min.every((value, axis) => value <= item.bounds_mm.max[axis]) &&
+      nonempty(item.surface_type, 128) && item.unit === "mm" && item.coordinate_system === "global" &&
+      item.native_coordinate_system === "cad_document_global" && validDigest(item.geometry_sha256) &&
+      (!own(item, "planar_normal_global") || vector(item.planar_normal_global)) &&
+      item.roles.every(role => ["boundary", "load"].includes(role));
+  }
   function stable(value) {
     if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
     if (object(value)) return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stable(value[key])}`).join(",")}}`;
@@ -58,7 +70,8 @@
         !Array.isArray(selections) || selections.length < 1 || selections.length > 2048 ||
         selections.some(item => !validId(item?.id) || !nonempty(item.label, 512) || !nonempty(item.kind, 128) ||
           !Array.isArray(item.roles) || item.roles.length < 1 || item.roles.length > 3 ||
-          item.roles.some(role => !["material", "boundary", "load"].includes(role)) || new Set(item.roles).size !== item.roles.length) ||
+          item.roles.some(role => !["material", "boundary", "load"].includes(role)) || new Set(item.roles).size !== item.roles.length ||
+          (item.kind === "native_face" && !nativeFace(item, selections))) ||
         new Set(selections.map(item => item.id)).size !== selections.length ||
         !Array.isArray(frames) || frames.length < 1 || frames.length > 32 ||
         frames.filter(frame => frame?.id === "global").length !== 1 ||
@@ -74,6 +87,10 @@
     return data;
   }
   function choices(data, role) { return data.catalog.selections.filter(item => item.roles.includes(role)); }
+  function selectionLabel(item) {
+    if (item.kind !== "native_face") return `${item.label} · ${item.kind}`;
+    return `${item.label} · ${item.native_object}/${item.native_name} · ${item.area_mm2.toLocaleString("ko-KR", { maximumSignificantDigits: 8 })} mm² · 중심 (${item.center_mm.map(value => value.toLocaleString("ko-KR", { maximumSignificantDigits: 8 })).join(", ")}) mm`;
+  }
   function required(fields, key, label, maximum = 2000) {
     const value = fields[key];
     if (!nonempty(value, maximum)) throw new Error(`${label}을(를) 비어 있지 않은 ${maximum}자 이내로 입력하세요.`);
@@ -91,6 +108,21 @@
     if (!selected) throw new Error("이 CAD 개정의 catalog에 실제로 제공된 재료·구속·하중 대상을 선택하세요.");
     return selected.id;
   }
+  function displacement(fields) {
+    const components = {};
+    for (const axis of ["x", "y", "z"]) {
+      const enabled = fields[`u${axis}Enabled`];
+      if (enabled !== undefined && typeof enabled !== "boolean") throw new Error("변위 구속 성분의 지정 여부를 확인하세요.");
+      if (enabled !== false) components[`U${axis.toUpperCase()}`] = numeric(fields, `u${axis}`, `U${axis.toUpperCase()} (mm)`);
+    }
+    if (!Object.keys(components).length) throw new Error("변위 구속 성분을 하나 이상 명시하세요. 미지정 성분은 0으로 바꾸지 않습니다.");
+    return components;
+  }
+  function boundary(data, fields, id = "BC1") {
+    return { id, selection_id: selection(data, fields, "boundarySelection", "boundary"), type: "displacement",
+      components: displacement(fields), unit: fields.lengthUnit, coordinate_system: fields.coordinateSystem,
+      source: required(fields, "boundarySource", "구속의 출처·가정") };
+  }
   function buildSave(data, fields) {
     catalog(data);
     if (!object(fields) || !json(fields) || !validId(fields.conditionsId)) throw new Error("새 조건 ID와 명시적 입력을 확인하세요.");
@@ -101,14 +133,18 @@
     if (fields.materialLaw !== "isotropic_linear_elastic" || !sourceCategories.includes(fields.materialCategory) || fields.contactMode !== "none") {
       throw new Error("재료 법칙·출처와 명시적 접촉 없음 조건을 확인하세요. 다른 법칙·접촉은 이 폼에서 지원되지 않습니다.");
     }
+    const additional = fields.additionalBoundaries ?? [];
+    if (!Array.isArray(additional) || additional.length > 127 || additional.some(item => !object(item) || !validId(item.id) || item.id === "BC1") ||
+        new Set(additional.map(item => item.id)).size !== additional.length) throw new Error("추가 구속 행의 고유 ID와 목록을 확인하세요.");
+    const boundaries = [boundary(data, fields), ...additional.map(item => boundary(data, { ...fields,
+      boundarySelection: item.selectionId, ux: item.ux, uy: item.uy, uz: item.uz,
+      uxEnabled: item.uxEnabled, uyEnabled: item.uyEnabled, uzEnabled: item.uzEnabled, boundarySource: item.source }, item.id))];
     const declaration = { analysis_type: "linear_static", units: { length: fields.lengthUnit, force: fields.forceUnit, stress: fields.stressUnit },
       coordinate_system: fields.coordinateSystem,
       materials: [{ id: "M1", selection_id: selection(data, fields, "materialSelection", "material"), law: fields.materialLaw,
         young_modulus_MPa: numeric(fields, "youngModulus", "E (MPa)"), poisson_ratio: numeric(fields, "poissonRatio", "ν"),
         source: { category: fields.materialCategory, description: required(fields, "materialSource", "재료 값의 출처") } }],
-      boundary_conditions: [{ id: "BC1", selection_id: selection(data, fields, "boundarySelection", "boundary"), type: "displacement",
-        components: { UX: numeric(fields, "ux", "UX (mm)"), UY: numeric(fields, "uy", "UY (mm)"), UZ: numeric(fields, "uz", "UZ (mm)") },
-        unit: fields.lengthUnit, coordinate_system: fields.coordinateSystem, source: required(fields, "boundarySource", "구속의 출처·가정") }],
+      boundary_conditions: boundaries,
       loads: [{ id: "L1", selection_id: selection(data, fields, "loadSelection", "load"), type: "resultant_force",
         components: { FX: numeric(fields, "fx", "FX (N)"), FY: numeric(fields, "fy", "FY (N)"), FZ: numeric(fields, "fz", "FZ (N)") },
         unit: fields.forceUnit, coordinate_system: fields.coordinateSystem, source: required(fields, "loadSource", "하중의 출처·가정") }],
@@ -138,10 +174,10 @@
   }
   function fromRecord(record, data) {
     const value = record.request.declaration, material = value.materials?.[0], boundary = value.boundary_conditions?.[0], load = value.loads?.[0];
-    if (value.analysis_type !== "linear_static" || value.materials?.length !== 1 || value.boundary_conditions?.length !== 1 || value.loads?.length !== 1 ||
+    if (value.analysis_type !== "linear_static" || value.materials?.length !== 1 || !Array.isArray(value.boundary_conditions) || value.boundary_conditions.length < 1 || value.boundary_conditions.length > 128 || value.loads?.length !== 1 ||
         material?.id !== "M1" || boundary?.id !== "BC1" || load?.id !== "L1" || boundary?.type !== "displacement" || load?.type !== "resultant_force" ||
         value.mesh?.mode !== "selected" || value.contact?.mode !== "none" || own(value.contact, "pairs") ||
-        stable(Object.keys(boundary?.components ?? {}).sort()) !== stable(["UX", "UY", "UZ"]) ||
+        !object(boundary?.components) || Object.keys(boundary.components).length < 1 || Object.keys(boundary.components).some(key => !["UX", "UY", "UZ"].includes(key)) ||
         stable(Object.keys(load?.components ?? {}).sort()) !== stable(["FX", "FY", "FZ"])) {
       throw new Error("원 조건을 보존했습니다. 현재 폼이 표현할 수 없는 여러 대상·법칙·접촉 입력은 자동으로 바꾸거나 실행하지 않습니다.");
     }
@@ -150,9 +186,24 @@
       materialCategory: material.source?.category, materialSource: material.source?.description,
       youngModulus: String(material.young_modulus_MPa), poissonRatio: String(material.poisson_ratio),
       coordinateSystem: value.coordinate_system, lengthUnit: value.units?.length, forceUnit: value.units?.force, stressUnit: value.units?.stress,
-      ux: String(boundary.components.UX), uy: String(boundary.components.UY), uz: String(boundary.components.UZ), boundarySource: boundary.source,
+      ux: own(boundary.components, "UX") ? String(boundary.components.UX) : "", uy: own(boundary.components, "UY") ? String(boundary.components.UY) : "", uz: own(boundary.components, "UZ") ? String(boundary.components.UZ) : "", boundarySource: boundary.source,
       fx: String(load.components.FX), fy: String(load.components.FY), fz: String(load.components.FZ), loadSource: load.source,
       contactMode: value.contact.mode, contactSource: value.contact.source, meshSize: String(value.mesh.max_size_mm) };
+    if (Object.keys(boundary.components).length !== 3) {
+      for (const axis of ["x", "y", "z"]) fields[`u${axis}Enabled`] = own(boundary.components, `U${axis.toUpperCase()}`);
+    }
+    if (value.boundary_conditions.length > 1) fields.additionalBoundaries = value.boundary_conditions.slice(1).map(item => {
+      if (!object(item.components) || Object.keys(item.components).length < 1 || Object.keys(item.components).some(key => !["UX", "UY", "UZ"].includes(key)) ||
+          item.type !== "displacement" || item.unit !== fields.lengthUnit || item.coordinate_system !== fields.coordinateSystem) {
+        throw new Error("추가 구속의 성분·좌표계·단위를 현재 폼으로 정확히 재현할 수 없습니다.");
+      }
+      const row = { id: item.id, selectionId: item.selection_id, source: item.source };
+      for (const axis of ["x", "y", "z"]) {
+        const key = `U${axis.toUpperCase()}`; row[`u${axis}`] = own(item.components, key) ? String(item.components[key]) : "";
+        row[`u${axis}Enabled`] = own(item.components, key);
+      }
+      return row;
+    });
     if (boundary.unit !== fields.lengthUnit || load.unit !== fields.forceUnit ||
         boundary.coordinate_system !== fields.coordinateSystem || load.coordinate_system !== fields.coordinateSystem ||
         stable(buildSave(data, fields)) !== stable(record.request)) {
@@ -167,7 +218,7 @@
     if (!validId(experimentId)) throw new Error("새 해석 실험 ID를 입력하세요.");
     return { parent_experiment_id: record.source.experiment_id, experiment_id: experimentId, backend: record.request.backend, conditions_id: record.id };
   }
-  const api = { parents, catalog, choices, sameSource, buildSave, saved, fromRecord, buildRun };
+  const api = { parents, catalog, choices, selectionLabel, sameSource, buildSave, saved, fromRecord, buildRun };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.analysisConditionsControls = api;
 })(typeof window !== "undefined" ? window : globalThis);

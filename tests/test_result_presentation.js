@@ -201,7 +201,7 @@ test("retained fixture result labels preserve exact scalars, units, invalid diag
   const before = JSON.stringify(record);
   const metricRows = Object.entries(record.metrics).map(([name, metric], index) => ({ name: presentation.metricName(name, index), metric }));
   assert.deepEqual(metricRows.map(row => row.name), ["지지대별 하중", "마지막 두 메시의 변위 변화율 (상대비)", "최대 변위",
-    "절점 평균 응력 (진단용)", "반력 상대 불평형 (상대비)", "지지대 반력 (X, Y, Z)"]);
+    "절점 평균 응력 (진단용)", "반력 상대 불평형 (상대비)", "반력 (X, Y, Z)"]);
   metricRows.forEach((row, index) => assert.equal(row.metric, Object.values(record.metrics)[index]));
   assert.deepEqual(metricRows.map(row => row.metric.unit), ["N", "1", "mm", "MPa", "1", "N"]);
   assert.equal(metricRows[1].metric.value, 0.016636569979773187); assert.equal(metricRows[4].metric.value, 9.377174045109376e-9);

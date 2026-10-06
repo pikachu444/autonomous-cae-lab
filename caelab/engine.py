@@ -56,7 +56,9 @@ class Lab:
         }
         if analysis_adapters is None:
             from .adapters.fixture_calculix import FixtureCalculiXAdapter
-            analysis_adapters = {FixtureCalculiXAdapter.backend: FixtureCalculiXAdapter()}
+            from .adapters.native_structural import NativeStructuralAdapter
+            analysis_adapters = {FixtureCalculiXAdapter.backend: FixtureCalculiXAdapter(),
+                                 NativeStructuralAdapter.backend: NativeStructuralAdapter()}
         self.analysis_adapters = analysis_adapters
         if doe_adapters is None:
             from .optimizers.scipy_lhs import ScipyLatinHypercube

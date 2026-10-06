@@ -25,6 +25,7 @@ plugins/hyperelastic/reference.py text eol=lf
 /caelab/adapters/mfront_single_branch_maxwell.mfront text eol=lf
 benchmarks/input-data/codeaster/*.mmed -text
 benchmarks/input-data/codeaster/*.mesh.json -text
+benchmarks/specifications/contact-patch-ssnp121a-v1.json -text
 benchmarks/records/20261004-contact-native-r01-qualified.json -text
 benchmarks/records/20261004-contact-calculix-pilot-r01-failed.json -text
 plugins/contact_patch/reference.py text eol=lf
@@ -114,3 +115,14 @@ apps/lab/static/experiment-draft.js -text
 tests/test_fixture_stress_field.py -text
 tests/test_core_cancelled_result.py -text
 tests/test_experiment_draft.js -text
+
+# Native mechanics source/canonical fixture bytes are retained across hosts.
+tests/fixtures/native_single_solid/public_box.FCStd -text
+caelab/adapters/native_face_catalog.py -text
+caelab/adapters/freecad_face_catalog_worker.py -text
+caelab/adapters/native_structural.py -text
+caelab/adapters/native_structural_deck.py -text
+caelab/adapters/native_structural_mesh_worker.py -text
+plugins/elasticity/native_conditions.py -text
+apps/lab/static/fixture-field-controls.js -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+scripts/accept_native_structural.py -text

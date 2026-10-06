@@ -37,7 +37,7 @@
       <a href="#explore" data-nav="explore" class="nav-item"><span class="nav-number">04</span><span>탐색<small>Explore</small></span></a>
       <a href="#results" data-nav="results" class="nav-item"><span class="nav-number">05</span><span>결과·근거<small>Results</small></span></a>
     </nav>
-    <div class="sidebar-note"><span class="eyebrow">ONE DIGITAL THREAD</span><p>연구 질문에서 원본 모델,<br>수치 결과와 검증 근거까지.</p><small>OpenScience가 연구를 이끌고,<br>Lab이 실행과 기록을 관리합니다.</small></div>
+    <div class="sidebar-note"><span class="eyebrow">LOCAL WORKSPACE</span><p>모델 · 조건 · 실험 기록</p><small>현재 저장소의 실제 기록을 사용합니다.</small></div>
   </aside>
 
   <div class="workspace">
@@ -58,14 +58,14 @@
 
     <main id="main" tabindex="-1">
       <section id="research" data-panel="research">
-        <div class="page-heading"><div><p class="eyebrow">01 / RESEARCH</p><h1>질문에서 시작하는 연구.</h1><p class="lead">하고 싶은 연구를 질문하세요. 연결된 AI의 답변과 실제 실험을 같은 저장소에서 확인합니다.</p></div><span class="outline-label">OpenScience → Lab → Evidence</span></div>
+        <div class="page-heading"><div><p class="eyebrow">RESEARCH</p><h1>연구 질문</h1><p class="lead">질문, 실제 답변과 연결된 실험을 확인합니다.</p></div></div>
         <div class="two-column research-question-columns">
-          <article class="card research-question-card"><h2>어떤 문제를 연구하고 싶나요?</h2>
+          <article class="card research-question-card"><h2>질문 작성</h2>
             <div id="researchConnection" class="research-connection" role="status">AI 연구 연결을 확인하고 있습니다.</div>
-            <div id="researchScope" class="research-scope"></div>
-            <p class="hint">전체 조립체의 하중·접촉 해석은 아직 준비되지 않았습니다. 지원되는 모델과 도구 범위에서 질문하세요.</p>
+            <details class="advanced research-support"><summary>연결 모델·지원 도구·한계</summary><div id="researchScope" class="research-scope"></div>
+            <p class="hint">전체 조립체의 하중·접촉 해석은 아직 준비되지 않았습니다. 지원되는 모델과 도구 범위에서 질문하세요.</p></details>
             <div class="button-row"><button type="button" class="button secondary compact" data-research-purpose="defect">제품 불량 재현 연구</button><button type="button" class="button secondary compact" data-research-purpose="jig">제작 전 지그 검토</button></div>
-            <p class="hint">선택하면 관찰·가설·비교할 응답의 작성 틀을 넣습니다. 직접 작성한 내용은 유지하며 해석을 바로 실행하지 않습니다.</p>
+            <p class="hint">작성 틀을 넣습니다. 제출 전 질문을 직접 수정할 수 있습니다.</p>
             <form id="researchQuestionForm"><label for="researchQuestion">연구 질문<textarea id="researchQuestion" rows="6" required placeholder="불량의 관찰 내용·발생 조건, 또는 시험 목적·지그 조건과 알고 싶은 점을 적어 주세요."></textarea></label>
               <label class="check-line"><input id="researchContinue" type="checkbox" disabled>확인된 대화에서 계속 질문</label><p id="researchSessionState" class="hint">새 대화로 질문합니다.</p>
               <div class="form-footer"><button type="button" id="researchResetBtn" class="button subtle">새 대화 시작</button><button id="researchRunBtn" class="button primary" data-operation="research_run" disabled>AI에게 질문하기</button></div>
@@ -73,7 +73,7 @@
             </form>
             <details class="raw-detail"><summary>연결 기술 정보</summary><pre id="researchConnectionJson"></pre></details>
           </article>
-          <article class="card research-answer-card"><h2>AI 답변과 실행 기록</h2><p class="hint">AI의 답변을 받은 뒤에도 각 실험의 검증 판정을 확인하세요. 미확인 요구사항은 공학적 사용 승인으로 바뀌지 않습니다.</p><div id="researchAnswers" aria-live="polite"><p class="empty-state">질문을 보내면 실제 답변, 도구 상태와 연결된 실험이 여기에 나타납니다.</p></div></article>
+          <article class="card research-answer-card"><h2>답변 · 연결된 실험</h2><div id="researchAnswers" aria-live="polite"><p class="empty-state">질문을 보내면 실제 답변과 실행 기록이 나타납니다.</p></div></article>
         </div>
         <details class="research-records"><summary class="large-summary">연구 기록만 저장 <span class="summary-note">질문·가설·목적을 직접 기록</span></summary><p class="hint">이 양식은 연구 기록만 저장합니다. AI에게 질문하거나 해석을 실행하지 않습니다.</p>
         <div class="stats-grid" id="overviewStats"></div>
@@ -91,25 +91,35 @@
             <article class="card quiet-card"><p class="eyebrow">연결된 연구 흐름</p><ol class="workflow-list"><li><strong>설계</strong><span>실제 CAD 변수를 발견하고 연구 ID로 등록</span></li><li><strong>해석</strong><span>검증한 CAD 개정 또는 선언한 수학 모델 실행</span></li><li><strong>탐색</strong><span>수치 엔진이 후보를 생성하고 실행 기록을 보존</span></li><li><strong>결과·근거</strong><span>유효성, 검증 상태와 원본 파일을 함께 확인</span></li></ol></article></div>
         </div>
         </details>
-        <article class="card capability-card"><div class="card-heading"><div><p class="eyebrow">CAPABILITY MAP</p><h2>현재 가능한 작업</h2></div><small>구현 상태와 이 컴퓨터의 실행 가능 여부는 별개입니다.</small></div><div id="capabilities" class="capability-grid"></div><div class="gap-note"><strong>열린 범위</strong><p>전체 시스템과 전체 조립체의 하중·접촉 해석, 통합 후처리·애니메이션, 물리 시험과 기업 배포 승인은 이어갈 작업입니다. AI 연구 연결은 위의 실제 연결 상태와 지원 범위를 따르며, 각 실험의 수치·공학 검증은 별도 판정입니다.</p></div></article>
+        <details class="card capability-card technical-support"><summary>기술·지원 정보</summary><p class="hint separated">Core 작업 목록과 실행 환경 정보입니다. 구현 상태와 이 컴퓨터의 실행 가능 여부는 별개입니다.</p><div id="capabilities" class="capability-grid"></div><div class="gap-note"><strong>열린 범위</strong><p>전체 시스템과 조립체의 하중·접촉, 물리 시험과 기업 배포 승인은 미완료입니다. 각 실험의 수치·공학 검증은 기록의 판정을 따릅니다.</p></div></details>
       </section>
 
       <section id="design" data-panel="design" hidden>
-        <div class="page-heading"><div><p class="eyebrow">02 / DESIGN</p><h1>내 모델과 연구 변수를 연결합니다.</h1><p class="lead">편집 가능한 FreeCAD 파일을 가져오거나 기존 모델을 선택하고, 연구 변수로 새 개정을 만듭니다.</p></div><span id="registryRevision" class="outline-label">등록부 미선택</span></div>
-        <article class="card model-card"><h2>내 CAD 가져오기</h2>
+        <div class="page-heading"><div><p class="eyebrow">DESIGN</p><h1>CAD 작업 공간</h1></div><span id="registryRevision" class="outline-label">등록부 미선택</span></div>
+        <div class="engineering-workspace">
+          <aside id="designOutlinePane" class="engineering-outline" aria-label="작업 모델과 보존 개정">
+            <article class="card"><h2>모델 · 개정</h2><label class="separated">보존한 CAD<select id="designCadRecord"><option value="">보존한 CAD 개정 선택</option></select></label><button id="designOpenRecordBtn" type="button" class="button secondary wide" disabled>이 개정 열기</button><div id="designModelOutline" class="separated"><p class="empty-state">CAD 기록을 열어 실제 형상과 개정을 확인하세요.</p></div></article>
+          </aside>
+          <div class="engineering-stage">
+            <div class="engineering-toolbar"><strong>실제 모델 · 선택한 기록</strong><div class="button-row"><button id="designConditionsBtn" type="button" class="button secondary compact">같은 CAD의 조건 작성</button><a class="button subtle compact" href="#results">실험 기록</a></div></div>
+            <div id="designModelViewport" data-engineering-viewport="design" class="engineering-viewport"><p id="designViewportEmpty" class="viewport-empty">보존한 CAD 개정을 열거나 새 CAD 실험을 실행하세요.</p></div>
+          </div>
+          <aside id="designPropertiesPane" class="engineering-properties" aria-label="CAD 입력과 연구 변수"><details id="designResultProperties" class="card workspace-result-properties" open hidden><summary>표시 기록의 입력·판정</summary><div id="designResultPropertiesBody"></div></details></aside>
+        </div>
+        <article id="designImportCard" class="card model-card"><details><summary>CAD 파일 가져오기</summary>
           <form id="nativeImportForm"><fieldset data-write><label>편집 가능한 FreeCAD 파일<input id="nativeImportFile" type="file" accept=".FCStd,.fcstd" required></label>
             <p id="nativeImportFileState" class="hint" role="status">FCStd 파일 하나를 선택하세요. 원본은 별도로 보존합니다.</p>
             <button id="nativeImportBtn" type="submit" class="button primary" data-operation="native_import">원본 보존하고 모델 가져오기</button>
           </fieldset></form>
-          <p class="hint separated">100바이트~25 MiB의 FCStd를 지원합니다. 실제 feature·sketch와 최종 솔리드를 기존 FreeCAD에서 검사합니다. 가져온 CAD의 임의 하중·접촉 해석은 아직 연결할 작업입니다.</p>
+          <p class="hint separated">FCStd 100바이트~25 MiB. 원본 feature·sketch와 최종 솔리드를 검사합니다. 해석 경로는 해당 개정의 대상 catalog와 서버 판정에서 확인합니다.</p>
           <h3>이 저장소에서 가져온 모델</h3><div id="nativeImportList"><p class="empty-state">가져온 모델을 불러오는 중입니다.</p></div>
-        </article>
-        <article class="card model-card"><div class="card-heading"><div><h2>작업 모델</h2><p class="hint">원본 CAD 경로는 등록 경계에서만 사용합니다. 실행 입력은 연구 변수 ID입니다.</p></div></div>
+        </details></article>
+        <article id="designSourceCard" class="card model-card"><div class="card-heading"><div><h2>작업 모델 입력</h2></div></div>
           <div class="form-grid model-grid"><label>CAD 방식<select id="cadBackend"><option value="fixture.cadquery">CadQuery · 편집 가능한 Python 모델</option><option value="fixture.freecad">FreeCAD · 편집 가능한 네이티브 모델</option><option value="fixture.assembly">원본 굽힘 치구 · 전체 조립체 CAD</option></select></label><label>모델 이름 / 네이티브 모델 ID<input id="cadModel" value="roller_support" required autocomplete="off"></label><button type="button" id="discoverBtn" class="button primary align-end" data-operation="parameter_discover">변수 발견</button></div>
-          <p class="hint">단일 지지부는 <code>roller_support</code>, 원본 전체 조립체는 <code>bending_assembly</code>입니다. 전체 조립체의 하중·접촉 해석은 별도 연결이 필요합니다. FreeCAD 모델은 아래에서 만들거나 기존 모델 ID를 입력하세요.</p>
+          <details class="advanced"><summary>모델 입력 안내</summary><p class="hint">기존 모델 <code>roller_support</code>와 <code>bending_assembly</code>, 또는 이 저장소의 네이티브 모델 ID를 사용합니다. 원본 CAD 경로는 등록 경계에서만 사용하고 실행 입력은 연구 변수 ID입니다.</p></details>
         </article>
-        <div class="two-column design-columns">
-          <article class="card"><div class="card-heading"><div><p class="eyebrow">DISCOVER → REGISTER</p><h2>실제 CAD 변수</h2></div><span id="discoveryCount" class="badge neutral">발견 전</span></div><div id="discoveryList" class="empty-state">‘변수 발견’으로 모델의 실제 후보를 조회하세요. 형상 효과는 등록할 때 다시 검증합니다.</div>
+        <div id="designLegacyColumns" class="two-column design-columns">
+          <article id="designDiscoveryCard" class="card"><div class="card-heading"><div><h2>CAD 변수 등록</h2></div><span id="discoveryCount" class="badge neutral">발견 전</span></div><div id="discoveryList" class="empty-state">‘변수 발견’으로 실제 후보를 조회하세요.</div>
             <form id="registerForm" class="separated"><fieldset data-write><h3>선택한 후보 등록</h3><label>발견한 원본 속성<select id="nativePath" required><option value="">먼저 변수를 발견하세요</option></select></label>
               <div class="form-grid"><label>연구 변수 ID<input id="parameterId" value="support_width" required pattern="[A-Za-z][A-Za-z0-9_-]{0,63}"></label><label>표시 이름<input id="parameterName" value="지지부 폭" required></label></div>
               <div class="form-grid"><label>하한<input id="parameterLower" type="number" step="any" required></label><label>상한<input id="parameterUpper" type="number" step="any" required></label></div>
@@ -117,11 +127,11 @@
               <p class="hint">범위 안의 값도 CAD 관계나 기하 검증에서 거절될 수 있습니다.</p><button class="button primary" data-operation="parameter_register">형상 효과 확인 후 등록</button>
             </fieldset></form>
           </article>
-          <div class="card-stack"><article class="card"><div class="card-heading"><div><p class="eyebrow">RESEARCH PARAMETER REGISTRY</p><h2>등록된 연구 변수</h2></div><button type="button" id="registryRefreshBtn" class="button subtle compact" data-operation="registry_refresh">원본 편집 후 갱신</button></div><div id="registryList" class="empty-state">연구를 선택하고 변수를 등록해 주세요.</div></article>
-            <article class="card"><div class="card-heading"><div><p class="eyebrow">NEW CAD REVISION</p><h2>CAD 실험 실행</h2></div></div><form id="cadForm"><fieldset data-write><label>새 실험 ID<input id="cadExperimentId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,79}" autocomplete="off"></label><div id="cadValues" class="empty-state">이 모델에 등록된 연구 변수가 나타납니다.</div><div class="form-footer"><small>입력·형상 검증 실패 시 내보내기와 후속 솔버가 차단됩니다.</small><button class="button primary" data-operation="cad_run">새 CAD 실험 실행</button></div></fieldset></form></article>
+          <div class="card-stack"><article id="designRegistryCard" class="card"><div class="card-heading"><div><h2>연구 변수</h2></div><button type="button" id="registryRefreshBtn" class="button subtle compact" data-operation="registry_refresh">원본 편집 후 갱신</button></div><div id="registryList" class="empty-state">연구를 선택하고 변수를 등록해 주세요.</div></article>
+            <article id="designRunCard" class="card"><div class="card-heading"><div><h2>새 CAD 개정</h2></div></div><form id="cadForm"><fieldset data-write><label>새 실험 ID<input id="cadExperimentId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,79}" autocomplete="off"></label><div id="cadValues" class="empty-state">이 모델에 등록된 연구 변수가 나타납니다.</div><div class="form-footer"><button class="button primary" data-operation="cad_run">새 CAD 실험 실행</button></div></fieldset></form></article>
           </div>
         </div>
-        <article class="card"><details id="nativeArea"><summary class="large-summary">FreeCAD 네이티브 모델 관리 <span class="summary-note">원본 feature / sketch 유지</span></summary><div class="native-grid">
+        <article id="designNativeCard" class="card"><details id="nativeArea"><summary>네이티브 모델 관리</summary><div class="native-grid">
           <form id="nativeCreateForm"><fieldset data-write><h3>편집 가능한 예제 만들기</h3><label>예제<select id="nativeTemplate"><option value="roller_support">롤러 지지부 · Part</option><option value="sketch_locator">원형 로케이터 · Sketcher</option></select></label><button class="button primary" data-operation="native_create">네이티브 모델 만들기</button></fieldset></form>
           <div><form id="nativeInspectForm"><fieldset data-read-job><h3>기존 모델 확인</h3><label>모델 ID<input id="nativeModelId" required autocomplete="off" placeholder="이 저장소의 네이티브 모델 ID"></label><button class="button secondary" data-operation="native_inspect">모델·후보 확인</button></fieldset></form><form id="nativeFinalForm" class="separated"><fieldset data-write><label>최종 솔리드<select id="nativeFinal" required><option value="">모델을 먼저 확인하세요</option></select></label><button class="button secondary" data-operation="native_final">최종 솔리드 선택</button></fieldset></form></div>
           <div id="nativeDetail" class="native-detail"><p class="empty-state">모델의 최종 솔리드와 실제 후보를 확인합니다.</p></div>
@@ -129,38 +139,43 @@
       </section>
 
       <section id="simulation" data-panel="simulation" hidden>
-        <div class="page-heading"><div><p class="eyebrow">03 / SIMULATION</p><h1>같은 개정에서 실행하는 해석.</h1><p class="lead">검증한 CAD 부모 또는 명시한 모델을 기존 adapter로 실행합니다.</p></div><span class="outline-label">원본 · 설정 · 결과 보존</span></div>
+        <div class="page-heading"><div><p class="eyebrow">SIMULATION</p><h1>해석 작업 공간</h1></div></div>
+        <div class="engineering-workspace">
+          <aside class="engineering-outline" aria-label="CAD 개정과 조건 대상"><article class="card"><h2>모델 · 대상</h2><div id="simulationSourceControls"></div><button id="simulationOpenRecordBtn" type="button" class="button secondary wide" disabled>선택한 CAD 형상 열기</button><div id="simulationModelOutline" class="separated"><p class="empty-state">보존 기록을 열어 실제 모델과 개정을 확인하세요.</p></div></article></aside>
+          <div class="engineering-stage"><div id="simulationExecutionToolbar" class="engineering-toolbar"><strong>실행 · 같은 CAD 개정</strong><a class="button subtle compact" href="#results">실험 기록·비교</a></div><div id="simulationModelViewport" data-engineering-viewport="simulation" class="engineering-viewport"><p id="simulationViewportEmpty" class="viewport-empty">같은 CAD의 형상을 열거나 저장 조건으로 해석을 실행하세요.</p></div></div>
+          <aside id="simulationPropertiesPane" class="engineering-properties" aria-label="해석 조건과 서버 판정"><details id="simulationResultProperties" class="card workspace-result-properties" open hidden><summary>표시 기록의 입력·판정</summary><div id="simulationResultPropertiesBody"></div></details></aside>
+        </div>
         <article id="analysisConditionsArea" class="card separated">
-          <div class="card-heading"><div><p class="eyebrow">SAME CAD · EXPLICIT CONDITIONS</p><h2>내 CAD의 해석 조건</h2></div></div>
-          <p class="hint">현재 연구의 완료한 CAD 개정을 선택하고, 그 개정에 실제 제공된 대상에 조건을 연결하세요. 서버의 선언 입력 지원과 실제 실행·공학적 승인은 별도로 확인합니다. 일반 면·physical group·접촉 쌍 연결은 아직 준비 중입니다.</p>
-          <div class="form-grid separated"><label>조건을 연결할 CAD 실험<select id="conditionsParent"><option value="">현재 연구의 CAD 실험을 선택하세요</option></select></label><div class="button-row"><button type="button" id="analysisConditionsLoadBtn" class="button secondary">이 개정의 대상·지원 범위 확인</button><button type="button" id="analysisConditionsRefreshBtn" class="button subtle">저장 조건 목록 새로고침</button></div></div>
+          <div class="card-heading"><div><h2>조건 · Properties</h2></div></div>
+          <div id="conditionsSourceControls" class="separated"><label>조건을 연결할 CAD 개정<select id="conditionsParent"><option value="">현재 연구의 CAD 실험을 선택하세요</option></select></label><div class="button-row"><button type="button" id="analysisConditionsLoadBtn" class="button secondary">대상·해석 경로 불러오기</button><button type="button" id="analysisConditionsRefreshBtn" class="button subtle compact">조건 목록 갱신</button></div></div>
           <div id="analysisConditionsCatalog" class="preset-description" role="status"><p class="empty-state">CAD 실험을 선택한 뒤 대상·지원 범위를 확인하세요. 화면 삼각형 번호를 네이티브 면 ID로 사용하지 않습니다.</p></div>
           <form id="analysisConditionsForm"><fieldset data-write id="analysisConditionsWriteFields">
             <div class="form-grid"><label>새 조건 ID<input id="conditionsId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,79}" autocomplete="off" data-analysis-condition="conditionsId"></label><label>해석 경로 · 설치 여부 미확인<select id="conditionsBackend" required data-analysis-condition="backend"><option value="">catalog를 먼저 확인하세요</option></select></label></div>
-            <div class="form-grid"><label>재료 대상<select id="conditionsMaterialSelection" required data-analysis-condition="materialSelection"><option value="">같은 개정의 재료 대상</option></select></label><label>재료 법칙<select id="conditionsMaterialLaw" data-analysis-condition="materialLaw"><option value="isotropic_linear_elastic">등방성 선형 탄성</option></select></label></div>
+            <div class="form-grid"><label>재료 대상<select id="conditionsMaterialSelection" required data-analysis-condition="materialSelection"><option value="">같은 개정의 재료 대상</option></select></label><label>재료 법칙<select id="conditionsMaterialLaw" data-analysis-condition="materialLaw"><option value="isotropic_linear_elastic">등방성 선형 탄성</option></select></label></div><div id="conditionsMaterialDetail"></div>
             <div class="form-grid"><label>E (MPa)<input id="conditionsYoungModulus" type="number" step="any" required value="210000" data-analysis-condition="youngModulus"></label><label>ν<input id="conditionsPoissonRatio" type="number" step="any" required value="0.3" data-analysis-condition="poissonRatio"></label></div>
             <label>재료 값의 출처 구분<select id="conditionsMaterialCategory" data-analysis-condition="materialCategory"><option value="ASSUMED">ASSUMED · 미측정 가정값</option><option value="MEASURED_REPORTED">MEASURED_REPORTED · 사용자가 보고한 측정값, 자격 미확인</option><option value="PUBLISHED_REFERENCE">PUBLISHED_REFERENCE · 공개 자료의 값, 적용 자격 미확인</option></select></label>
             <label>재료 값의 출처·적용 한계<textarea id="conditionsMaterialSource" rows="2" required maxlength="2000" data-analysis-condition="materialSource">ASSUMED: 위 E·ν는 미측정 등방성 재료의 가정값. 실제 재료·강도 자격은 미확인.</textarea></label>
             <div class="form-grid"><label>좌표계<select id="conditionsCoordinateSystem" data-analysis-condition="coordinateSystem"><option value="global">global · CAD 전역 X·Y·Z</option></select></label><label>길이·변위 단위<select id="conditionsLengthUnit" data-analysis-condition="lengthUnit"><option value="mm">mm</option></select></label><label>하중 단위<select id="conditionsForceUnit" data-analysis-condition="forceUnit"><option value="N">N</option></select></label><label>탄성 계수·응력 단위<select id="conditionsStressUnit" data-analysis-condition="stressUnit"><option value="MPa">MPa</option></select></label></div>
-            <h3 class="separated">변위 구속 · 세 성분을 명시</h3>
+            <h3 class="separated">변위 구속 · 지정한 성분만 적용</h3>
             <label>구속 대상<select id="conditionsBoundarySelection" required data-analysis-condition="boundarySelection"><option value="">같은 개정의 구속 대상</option></select></label>
-            <div class="form-grid"><label>UX (mm)<input id="conditionsUx" type="number" step="any" required value="0" data-analysis-condition="ux"></label><label>UY (mm)<input id="conditionsUy" type="number" step="any" required value="0" data-analysis-condition="uy"></label><label>UZ (mm)<input id="conditionsUz" type="number" step="any" required value="0" data-analysis-condition="uz"></label></div>
+            <div id="conditionsBoundaryDetail"></div><div class="component-grid"><div><label class="check-line"><input id="conditionsUxEnabled" type="checkbox" checked data-analysis-condition="uxEnabled">UX 지정</label><input id="conditionsUx" type="number" step="any" required value="0" aria-label="지정한 UX mm" data-analysis-condition="ux"></div><div><label class="check-line"><input id="conditionsUyEnabled" type="checkbox" checked data-analysis-condition="uyEnabled">UY 지정</label><input id="conditionsUy" type="number" step="any" required value="0" aria-label="지정한 UY mm" data-analysis-condition="uy"></div><div><label class="check-line"><input id="conditionsUzEnabled" type="checkbox" checked data-analysis-condition="uzEnabled">UZ 지정</label><input id="conditionsUz" type="number" step="any" required value="0" aria-label="지정한 UZ mm" data-analysis-condition="uz"></div></div><p class="hint">mm · 미지정 성분은 0으로 바꾸지 않습니다. 허용 성분은 서버가 확인합니다.</p>
             <label>구속의 출처·가정<textarea id="conditionsBoundarySource" rows="2" required maxlength="2000" data-analysis-condition="boundarySource">ASSUMED: 위 전역 X·Y·Z 변위 성분으로 구속하는 이상화. 실제 장착·체결은 미확인.</textarea></label>
+            <div id="conditionsAdditionalBoundaryArea" hidden><div id="conditionsAdditionalBoundaries" data-boundary-rows="native"></div><button id="conditionsAddBoundaryBtn" type="button" class="button secondary compact" disabled>다른 면의 변위 구속 추가</button><p class="hint">각 면에 지정한 성분만 적용합니다. 행을 추가해 다른 면의 UX·UY·UZ를 각각 선언할 수 있습니다.</p></div>
             <h3 class="separated">합력 하중 · 부호와 세 성분을 명시</h3>
             <label>하중 대상<select id="conditionsLoadSelection" required data-analysis-condition="loadSelection"><option value="">같은 개정의 하중 대상</option></select></label>
-            <div class="form-grid"><label>FX (N)<input id="conditionsFx" type="number" step="any" required value="0" data-analysis-condition="fx"></label><label>FY (N)<input id="conditionsFy" type="number" step="any" required value="0" data-analysis-condition="fy"></label><label>FZ (N)<input id="conditionsFz" type="number" step="any" required value="-150" data-analysis-condition="fz"></label></div>
+            <div id="conditionsLoadDetail"></div><div class="component-grid"><label>FX (N)<input id="conditionsFx" type="number" step="any" required value="0" data-analysis-condition="fx"></label><label>FY (N)<input id="conditionsFy" type="number" step="any" required value="0" data-analysis-condition="fy"></label><label>FZ (N)<input id="conditionsFz" type="number" step="any" required value="-150" data-analysis-condition="fz"></label></div>
             <label>하중의 출처·가정<textarea id="conditionsLoadSource" rows="2" required maxlength="2000" data-analysis-condition="loadSource">ASSUMED: 위 전역 X·Y·Z 성분의 합력. 실제 하중·분포의 적용 자격은 미확인.</textarea></label>
             <div class="form-grid"><label>접촉 모델<select id="conditionsContactMode" data-analysis-condition="contactMode"><option value="none">none · 접촉을 모델링하지 않음</option></select></label><label>선택 메시 크기 하나 (mm)<input id="conditionsMeshSize" type="number" step="any" required value="4" data-analysis-condition="meshSize"></label></div>
             <label>접촉 모델의 출처·가정<textarea id="conditionsContactSource" rows="2" required maxlength="2000" data-analysis-condition="contactSource">ASSUMED: 접촉 쌍 없음. 단일 솔리드의 제한된 해석이며 실제 조립체·롤러 접촉을 표현하지 않음.</textarea></label>
-            <p class="hint">초기 수치는 모두 ASSUMED 가정입니다. 제공된 대상 ID만 사용하며, 지원되지 않는 방향·값·대상은 서버 판정에 그대로 남습니다. 실제 입력을 지원하는 조건만 새 해석에 연결합니다.</p>
+            <p class="hint">초기값은 ASSUMED. 저장하면 같은 CAD의 입력 지원 여부를 확인합니다.</p>
             <div class="button-row"><button id="analysisConditionsSaveBtn" class="button primary" data-operation="analysis_conditions_save">새 조건 저장·호환 여부 확인</button><button type="button" id="analysisConditionsNewIdBtn" class="button subtle">새 조건 ID 준비</button></div>
           </fieldset></form>
           <p id="analysisConditionsError" class="metric-reason" role="alert" hidden></p>
           <div id="analysisConditionsRecord" class="preset-description separated" role="status"><p class="empty-state">저장한 입력·같은 CAD 개정·서버 판정이 여기 나타납니다. 입력을 수정하면 새 조건으로 저장해야 합니다.</p></div>
-          <form id="analysisConditionsRunForm"><fieldset data-write><div class="form-grid"><label>새 해석 실험 ID<input id="conditionsExperimentId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,79}" autocomplete="off"></label><div class="button-row"><button id="analysisConditionsRunBtn" class="button primary" data-operation="analysis_run">이 저장 조건으로 새 해석 실행</button><button type="button" id="analysisConditionsExploreBtn" class="button secondary" disabled>이 저장 조건으로 탐색 준비</button></div></div><p class="hint">같은 저장소·연구·CAD 개정과 저장 입력을 다시 확인합니다. 실행 뒤 실제 자식 실험의 전체 결과·원본 파일을 결과 화면에서 엽니다. 탐색 준비는 원 CAD와 등록 변수를 확인해 계획 양식에 연결하며 계산을 시작하지 않습니다. UNKNOWN·NOT_RELEASED는 유지됩니다.</p></fieldset></form>
+          <form id="analysisConditionsRunForm"><fieldset data-write><div class="form-grid"><label>새 해석 실험 ID<input id="conditionsExperimentId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,79}" autocomplete="off"></label><div class="button-row"><button id="analysisConditionsRunBtn" class="button primary" data-operation="analysis_run">저장 조건으로 실행</button><button type="button" id="analysisConditionsExploreBtn" class="button secondary" disabled>탐색 준비</button></div></div></fieldset></form>
           <details class="advanced separated"><summary>같은 CAD 개정에 저장한 조건 다시 열기</summary><div id="analysisConditionsList"><p class="empty-state">대상·지원 범위 확인 또는 목록 새로고침으로 보존 기록을 불러오세요.</p></div></details>
         </article>
-        <div class="two-column simulation-columns"><article class="card"><form id="simulationForm"><fieldset data-write><div class="card-heading"><div><p class="eyebrow">ANALYSIS INPUTS</p><h2>해석 시작</h2></div></div><label>해석 예제<select id="simulationPreset" required><option value="">예제를 불러오는 중…</option></select></label><div id="presetDescription" class="preset-description"></div><div id="parentField"><label>CAD 부모 실험 · 실행 전 해시 재검사<select id="analysisParent"><option value="">완료한 CAD 실험을 선택하세요</option></select></label><p class="hint">부모를 실제 검증한 뒤 정확한 STEP과 CAD 개정으로 새 자식 실험을 만듭니다. 목록 선택만으로 검증 완료를 주장하지 않습니다.</p></div><label>새 해석 실험 ID<input id="simulationId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,79}" autocomplete="off"></label>
+        <details class="technical-support separated"><summary>기존 모델·해석 설정</summary><div class="two-column simulation-columns"><article class="card"><form id="simulationForm"><fieldset data-write><div class="card-heading"><div><h2>기존 해석 입력</h2></div></div><label>모델·해석 경로<select id="simulationPreset" required><option value="">설정을 불러오는 중…</option></select></label><div id="presetDescription" class="preset-description"></div><div id="parentField"><label>CAD 부모 실험 · 실행 전 해시 재검사<select id="analysisParent"><option value="">완료한 CAD 실험을 선택하세요</option></select></label><p class="hint">부모를 실제 검증한 뒤 정확한 STEP과 CAD 개정으로 새 자식 실험을 만듭니다. 목록 선택만으로 검증 완료를 주장하지 않습니다.</p></div><label>새 해석 실험 ID<input id="simulationId" required pattern="[A-Za-z][A-Za-z0-9_-]{0,79}" autocomplete="off"></label>
           <div id="simulationDraftContext" class="preset-description" role="status" hidden></div>
           <div id="fixtureConditionFields" class="separated" hidden>
             <h3>치구의 해석 조건</h3>
@@ -191,7 +206,7 @@
           <div id="importedMeshFields" hidden><h3>가져올 메시</h3><label>메시 파일 선택<input id="importedMeshFiles" type="file" accept=".msh" multiple></label><p class="hint">성긴 메시부터 촘촘한 메시 순서로 3~8개를 고르세요. MSH2.2 ASCII, 합계 96 KiB까지 지원합니다. 선택 후에도 순서를 바꿀 수 있습니다.</p><div id="importedMeshSummary" class="table-scroll"></div><p id="importedMeshError" class="hint" role="alert" hidden></p></div>
           <details class="advanced"><summary>명시적 해석 설정 검토·수정</summary><p class="hint">예제의 가정, 단위와 검증 한계를 확인하세요. 수정값은 새 실험에 그대로 기록됩니다. 기준 입력을 고르는 것은 이 컴퓨터에서의 새 실행 검증이 아닙니다.</p><textarea id="simulationSettings" rows="16" class="json-input" spellcheck="false" aria-label="해석 설정 JSON"></textarea></details><button class="button primary wide" data-operation="analysis_run" id="simulationRunBtn">새 해석 실행</button></fieldset></form></article>
           <div class="card-stack"><article class="card quiet-card"><p class="eyebrow">해석의 의미</p><h2>실행 성공과 검증 판정</h2><div class="meaning-row"><span class="badge neutral">COMPLETED</span><p>솔버가 실행을 끝냈습니다. 수치 검증의 결과는 별도로 확인합니다.</p></div><div class="meaning-row"><span class="badge unknown">UNKNOWN</span><p>확인하지 못한 재료·강도·물리 요구사항입니다. PASS로 대체하지 않습니다.</p></div><div class="meaning-row"><span class="badge unknown">NOT_RELEASED</span><p>현재 근거로 제품 출시·사용 승인을 부여하지 않았습니다.</p></div></article><article class="card"><p class="eyebrow">RESULTS</p><h2>실행 뒤 확인할 근거</h2><ul class="plain-list"><li>단위와 유효성이 있는 수치 응답</li><li>해석해·메시·반력 등 독립 검증</li><li>솔버 버전, 설정, 원본 메시·결과 파일</li><li>CAD 또는 선언 모델 개정과 소스 버전</li></ul><a class="text-link" href="#results">결과·근거로 이동 →</a></article></div>
-        </div>
+        </div></details>
       </section>
 
       <section id="explore" data-panel="explore" hidden>
@@ -227,6 +242,7 @@
         <div class="page-heading"><div><p class="eyebrow">05 / 결과</p><h1>형상과 결과를 확인하세요.</h1><p class="lead">실험을 선택하면 입력 조건, 결과와 남은 확인 사항을 함께 볼 수 있습니다.</p></div><span id="selectedSource" class="outline-label">실험 선택 대기</span></div>
         <details class="card result-browser" id="resultBrowser" open><summary>실험 선택·비교</summary><div class="card-heading"><h2>실험 기록</h2><div class="button-row"><span id="compareCount" class="hint">0개 선택</span><button type="button" id="compareBtn" class="button secondary compact">선택 결과 비교</button></div></div><div class="form-grid filter-grid"><label class="search-label">기록 검색<input id="experimentSearch" type="search" placeholder="실험 이름, 연구, 실행 프로그램"></label><label>상태<select id="experimentFilter"><option value="">모든 상태</option><option value="COMPLETED_REVIEW_REQUIRED">실행 완료 · 검토 필요</option><option value="REJECTED">조건 미충족</option><option value="FAILED_EXECUTION">실행 실패</option></select></label></div><div id="experimentList" class="table-scroll"><p class="empty-state">실험을 실행하거나 읽기 전용 라이브러리를 선택하세요.</p></div></details>
         <div id="comparisonDetail" hidden></div>
+        <div id="resultsModelViewport"><div id="experimentDetail"><article class="card empty-detail"><h2>확인할 실험을 선택하세요.</h2><p>기록의 ‘열기’에서 실제 형상·조건·결과와 원본 파일을 확인합니다.</p></article></div></div>
         <article id="historyPanel" class="card" hidden>
           <div class="card-heading"><div><p class="eyebrow">RESPONSE HISTORY</p><h2>응답 이력</h2></div><span class="badge neutral">원래 해석 결과</span></div>
           <p id="historyContext" class="hint"></p>
@@ -235,7 +251,6 @@
           <p class="hint">기록된 시점과 부호를 유지합니다. 점을 선택하면 해당 표본을 확인합니다. 선은 표본의 순서를 보여주며 중간 시점의 값은 계산하지 않습니다. 0초는 재료 적분 전의 수치 초기 상태입니다.</p>
           <details class="advanced"><summary>시점별 원래 값과 채널 출처</summary><div id="historyTable"></div><div id="historyOrigin"></div></details>
         </article>
-        <div id="experimentDetail"><article class="card empty-detail"><span class="empty-icon" aria-hidden="true">↗</span><h2>확인할 실험을 선택하세요.</h2><p>기록의 ‘열기’를 선택하면 형상, 입력 조건과 결과를 볼 수 있습니다.<br>상세 검사와 원본 파일도 같은 화면에서 확인할 수 있습니다.</p></article></div>
         <article id="observationPanel" class="card" hidden>
           <div class="card-heading"><div><p class="eyebrow">관측과 해석 응답</p><h2>관측·시험 기준 비교</h2></div></div>
           <p id="observationContext" class="hint"></p>

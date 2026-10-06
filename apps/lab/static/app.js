@@ -24,7 +24,7 @@ const state = {
   observationRequest: 0,
   observationId: "",
   nativeImportRequest: 0, nativeFileSelection: 0,
-  analysisConditions: { request: 0, catalog: null, context: "", record: null, recordDraft: "", records: [], loading: false, error: "" },
+  analysisConditions: { request: 0, catalog: null, context: "", record: null, recordDraft: "", records: [], additionalBoundaries: [], loading: false, error: "" },
 };
 const operationNames = {
   study_create: "연구 만들기", parameter_discover: "CAD 변수 발견", parameter_register: "연구 변수 등록",
@@ -415,6 +415,7 @@ function researchError(error) {
 
 function showArea(name) {
   const selected = ["research", "design", "simulation", "explore", "results"].includes(name) ? name : "research";
+  state.activeArea = selected;
   document.querySelectorAll("[data-panel]").forEach((item) => { item.hidden = item.dataset.panel !== selected; });
   document.querySelectorAll("[data-nav]").forEach((item) => {
     const active = item.dataset.nav === selected;
@@ -422,6 +423,7 @@ function showArea(name) {
     if (active) item.setAttribute("aria-current", "page"); else item.removeAttribute("aria-current");
   });
   document.title = `${{ research: "연구", design: "설계", simulation: "해석", explore: "탐색", results: "결과·근거" }[selected]} · Autonomous CAE Lab`;
+  mountExperimentInspector(selected);
 }
 function updateControls() {
   for (const identifier of ["cadBackend", "cadModel", "nativeModelId"]) $(identifier).disabled = busy();
@@ -458,6 +460,98 @@ function updateControls() {
   updateAnalysisConditionsControls();
   updateCampaignConditionsControls();
   updateResearchControls();
+  updateEngineeringWorkspace();
+}
+
+// One actual inspector follows the active engineering pane. Its source leases,
+// artifact hashes and viewer remain the same; no duplicate model is constructed.
+function engineeringWorkspaceEnabled() { return Boolean(window.analysisConditionsControls && $("designModelViewport")?.dataset.engineeringViewport === "design"); }
+function mountExperimentInspector(area) {
+  if (!engineeringWorkspaceEnabled()) return;
+  const selected = ["design", "simulation"].includes(area) ? area : "results";
+  const inspector = $("experimentDetail"), host = $(`${selected}ModelViewport`);
+  if (inspector && host && inspector.parentNode !== host) host.append(inspector);
+  for (const pane of ["design", "simulation"]) $(`${pane}ViewportEmpty`).hidden = inspector?.parentNode === $(`${pane}ModelViewport`);
+  if (state.experimentProperties && state.experimentOverview) {
+    const propertyHost = selected === "results" ? state.experimentOverview : $(`${selected}ResultPropertiesBody`);
+    if (state.experimentProperties.parentNode !== propertyHost) propertyHost.append(state.experimentProperties);
+    for (const pane of ["design", "simulation"]) $(`${pane}ResultProperties`).hidden = selected !== pane;
+  }
+}
+function initializeEngineeringWorkspace() {
+  if (!engineeringWorkspaceEnabled()) return;
+  $("designOutlinePane").append($("designSourceCard"), $("designImportCard"), $("designNativeCard"));
+  $("designPropertiesPane").append($("designRunCard"), $("designRegistryCard"), $("designDiscoveryCard"));
+  $("designLegacyColumns").hidden = true;
+  $("simulationPropertiesPane").append($("analysisConditionsArea"));
+  $("analysisConditionsArea").classList.remove("separated");
+  $("simulationExecutionToolbar").append($("analysisConditionsRunForm"));
+  $("simulationSourceControls").append($("conditionsSourceControls"), $("analysisConditionsCatalog"));
+  $("designCadRecord").addEventListener("change", updateControls);
+  $("designOpenRecordBtn").addEventListener("click", () => openEngineeringRecord("design").catch(error => notify(error.message)));
+  $("simulationOpenRecordBtn").addEventListener("click", () => openEngineeringRecord("simulation").catch(error => notify(error.message)));
+  $("designConditionsBtn").addEventListener("click", () => {
+    if (viewBusy()) return;
+    const data = state.selectedExperiment, parent = window.analysisConditionsControls.parents(list(state.overview?.experiments), state.studyId)
+      .find(item => item.id === data?.result?.experiment_id && item.cad_revision === data.result.cad_revision);
+    if (parent && $("conditionsParent").value !== parent.id) { $("conditionsParent").value = parent.id; invalidateAnalysisConditions(); }
+    location.hash = "simulation"; showArea("simulation"); updateControls();
+  });
+}
+function updateEngineeringWorkspace() {
+  if (!engineeringWorkspaceEnabled()) return;
+  const parents = window.analysisConditionsControls.parents(list(state.overview?.experiments), state.studyId), select = $("designCadRecord");
+  const old = select.value; clear(select); option(select, "", "보존한 CAD 개정 선택");
+  parents.forEach(item => option(select, item.id, `${item.id} · ${item.cad_revision.slice(0, 10)}`));
+  select.value = [...select.options].some(item => item.value === old) ? old : "";
+  $("designOpenRecordBtn").disabled = viewBusy() || !parents.some(item => item.id === select.value);
+  $("simulationOpenRecordBtn").disabled = viewBusy() || state.analysisConditions.loading || !analysisConditionsParent();
+  $("designConditionsBtn").disabled = viewBusy() || !state.studyId;
+  const data = state.selectedExperiment, result = data?.result;
+  if (!result || !state.overview) resetEngineeringProperties();
+  for (const pane of ["design", "simulation"]) {
+    const outline = clear(`${pane}ModelOutline`);
+    if (!result || data.integrity !== "VERIFIED") {
+      outline.append(el("p", "보존한 CAD 또는 해석 기록을 열면 실제 모델과 개정이 표시됩니다.", "empty-state"));
+      continue;
+    }
+    const facts = el("dl", undefined, "workspace-facts");
+    [["표시 기록", result.experiment_id], ["연구", result.study?.id ?? result.study?.study_id],
+      ["CAD 개정", result.cad_revision ? result.cad_revision.slice(0, 16) : "없음"],
+      ["경로", result.provenance?.adapter], ["원 CAD", result.parent_experiment_id ?? result.experiment_id],
+      ["저장 조건", result.provenance?.analysis_conditions?.id ?? "없음"]]
+      .forEach(([label, value]) => facts.append(el("dt", label), el("dd", text(value))));
+    outline.append(facts, badge(data.integrity), badge(result.solver_status ?? "NOT_RUN"), badge(result.decision ?? "NOT_RELEASED"));
+    if (window.resultPresentation.safeExperimentId(result.experiment_id)) {
+      const exports = el("div", undefined, "button-row");
+      exports.append(link("보고서", `/api/report/${idPath(result.experiment_id)}.html`, "button secondary compact"),
+        link("원본 묶음", `/api/report/${idPath(result.experiment_id)}.zip`, "button subtle compact", true));
+      outline.append(exports);
+    }
+    if ((result.study?.id ?? result.study?.study_id) !== state.studyId) outline.append(el("p", "다른 연구의 보존 기록을 표시 중입니다.", "hint"));
+    if (pane === "simulation" && $("conditionsParent").value && (result.parent_experiment_id ?? result.experiment_id) !== $("conditionsParent").value)
+      outline.append(el("p", "표시 기록과 작성 중인 조건의 CAD 부모가 다릅니다.", "metric-reason"));
+  }
+  renderConditionSelectionDetails();
+}
+function resetEngineeringProperties() {
+  if (!engineeringWorkspaceEnabled()) return;
+  state.experimentProperties?.remove(); state.experimentProperties = null; state.experimentOverview = null;
+  for (const pane of ["design", "simulation"]) $(`${pane}ResultProperties`).hidden = true;
+}
+async function openEngineeringRecord(area) {
+  if (!engineeringWorkspaceEnabled() || viewBusy() || (area === "simulation" && state.analysisConditions.loading)) return;
+  const parent = area === "simulation" ? analysisConditionsParent()
+    : window.analysisConditionsControls.parents(list(state.overview?.experiments), state.studyId).find(item => item.id === $("designCadRecord").value);
+  if (!parent) throw new Error("같은 연구의 보존한 CAD 개정을 선택하세요.");
+  const source = JSON.stringify([activeStore(), state.studyId, nativeCadSelection(), area === "simulation" ? $("conditionsParent").value : $("designCadRecord").value]);
+  const current = () => !state.storeSwitching && source === JSON.stringify([activeStore(), state.studyId, nativeCadSelection(), area === "simulation" ? $("conditionsParent").value : $("designCadRecord").value]);
+  const catalog = area === "simulation" && currentAnalysisConditionsCatalog() ? state.analysisConditions.catalog : null;
+  await inspectExperiment(parent.id, current, { studyId: parent.study_id, cadRevision: parent.cad_revision,
+    backend: parent.backend, ...(catalog ? { resultSha256: catalog.source.result_sha256 } : {}) }, area);
+}
+function displacementCaption(components) {
+  return ["UX", "UY", "UZ"].map(axis => `${axis} ${Object.hasOwn(components ?? {}, axis) ? number(components[axis]) : "미지정"}`).join(" / ");
 }
 
 function analysisConditionsEnabled() { return Boolean(window.analysisConditionsControls && $("analysisConditionsForm")); }
@@ -466,12 +560,16 @@ function analysisConditionFieldIds() {
     materialLaw: "conditionsMaterialLaw", youngModulus: "conditionsYoungModulus", poissonRatio: "conditionsPoissonRatio",
     materialCategory: "conditionsMaterialCategory", materialSource: "conditionsMaterialSource",
     coordinateSystem: "conditionsCoordinateSystem", lengthUnit: "conditionsLengthUnit", forceUnit: "conditionsForceUnit", stressUnit: "conditionsStressUnit",
-    boundarySelection: "conditionsBoundarySelection", ux: "conditionsUx", uy: "conditionsUy", uz: "conditionsUz", boundarySource: "conditionsBoundarySource",
+    boundarySelection: "conditionsBoundarySelection", ux: "conditionsUx", uy: "conditionsUy", uz: "conditionsUz",
+    uxEnabled: "conditionsUxEnabled", uyEnabled: "conditionsUyEnabled", uzEnabled: "conditionsUzEnabled", boundarySource: "conditionsBoundarySource",
     loadSelection: "conditionsLoadSelection", fx: "conditionsFx", fy: "conditionsFy", fz: "conditionsFz", loadSource: "conditionsLoadSource",
     contactMode: "conditionsContactMode", contactSource: "conditionsContactSource", meshSize: "conditionsMeshSize" };
 }
 function analysisConditionsFields() {
-  return Object.fromEntries(Object.entries(analysisConditionFieldIds()).map(([name, id]) => [name, $(id).value]));
+  const fields = Object.fromEntries(Object.entries(analysisConditionFieldIds()).map(([name, id]) =>
+    [name, name.endsWith("Enabled") ? ($(id)?.type === "checkbox" ? $(id).checked : true) : $(id).value]));
+  if (state.analysisConditions.additionalBoundaries?.length) fields.additionalBoundaries = state.analysisConditions.additionalBoundaries.map(row => ({ ...row }));
+  return fields;
 }
 function analysisConditionsContext() {
   return JSON.stringify([activeStore(), state.studyId, $("conditionsParent").value,
@@ -512,6 +610,7 @@ function invalidateAnalysisConditions() {
   for (const id of ["conditionsBackend", "conditionsMaterialSelection", "conditionsBoundarySelection", "conditionsLoadSelection"]) {
     const select = clear(id); option(select, "", "같은 개정의 catalog를 확인하세요");
   }
+  renderAdditionalBoundaries();
 }
 function renderAnalysisConditionsParents() {
   if (!analysisConditionsEnabled()) return;
@@ -544,31 +643,127 @@ function updateAnalysisConditionsControls() {
   }
   $("analysisConditionsSaveBtn").disabled = blocked || !saveReady || !available("analysis_conditions_save");
   $("analysisConditionsRunBtn").disabled = blocked || !runReady || !available("analysis_run");
+  for (const axis of ["x", "y", "z"]) {
+    const input = $(`conditionsU${axis}`), enabled = $(`conditionsU${axis}Enabled`);
+    if (enabled?.type === "checkbox") { input.disabled = blocked || !enabled.checked; input.required = enabled.checked; }
+  }
+  updateAdditionalBoundaryControls();
   document.querySelectorAll("[data-analysis-conditions-open]").forEach(item => { item.disabled = viewBusy() || conditions.loading || !current; });
 }
 function renderAnalysisConditionsCatalog() {
   if (!currentAnalysisConditionsCatalog()) return;
   const data = state.analysisConditions.catalog, card = clear("analysisConditionsCatalog");
-  card.append(el("p", `CAD ${data.source.experiment_id} · 연구 ${data.source.study_id}`), el("p", `CAD 개정 ${data.source.cad_revision}`, "mono"),
-    el("p", "전역 X·Y·Z의 Cartesian 좌표계 · 길이/변위 mm · 합력 N · E/응력 MPa. 아래 대상은 adapter가 선언한 범위이며 화면 삼각형이나 일반 네이티브 면 선택이 아닙니다.", "hint"));
-  data.backends.forEach(item => card.append(el("p", `${item.label} · ${item.backend}: ${item.scope}`, "hint")));
-  card.append(el("p", "위 목록은 선언 입력 경로입니다. 네이티브 runtime 설치·실행 여부는 NOT_CHECKED이며 물리·강도 자격은 UNKNOWN입니다.", "hint"));
+  card.append(el("h3", `대상 · ${data.source.experiment_id}`), el("p", `개정 ${data.source.cad_revision.slice(0, 16)} · global X/Y/Z · mm / N / MPa`, "hint"));
+  const details = el("details", undefined, "advanced"); details.append(el("summary", "해석 경로·원본·지원 한계"));
+  data.backends.forEach(item => details.append(el("p", `${item.label} · ${item.backend}: ${item.scope}`, "hint")));
+  details.append(el("p", "네이티브 runtime NOT_CHECKED · 물리·강도 자격 UNKNOWN. 일반 면은 서버가 이 개정에 제공한 native_face만 사용합니다.", "hint"));
   const selections = data.catalog.selections.slice(0, 64);
-  card.append(table(["선택 ID", "대상·종류", "허용 역할"], selections.map(item => [item.id, `${item.label} · ${item.kind}`, item.roles.join(" · ")])));
+  for (const item of selections) {
+    const row = el("div", undefined, "selection-outline");
+    row.append(el("strong", item.label), el("p", window.analysisConditionsControls.selectionLabel(item), "hint"));
+    if (item.kind === "native_face") row.append(el("p", `${item.surface_type} · global · ${item.roles.includes("boundary") ? "구속" : ""}${item.roles.includes("load") ? " / 합력" : ""}`, "hint"));
+    const actions = el("div", undefined, "button-row");
+    for (const [role, target, label] of [["material", "conditionsMaterialSelection", "재료 대상"], ["boundary", "conditionsBoundarySelection", "구속 대상"], ["load", "conditionsLoadSelection", "하중 대상"]]) {
+      if (!item.roles.includes(role)) continue;
+      const context = state.analysisConditions.context;
+      const button = action(label, () => {
+        if (!currentAnalysisConditionsCatalog() || context !== state.analysisConditions.context || !writable() || busy() || state.analysisConditions.loading) return;
+        $(target).value = item.id; changeAnalysisConditionsDraft(); $(target).focus?.();
+      }, "button subtle compact");
+      button.dataset.conditionsSelection = ""; actions.append(button);
+    }
+    row.append(actions); card.append(row);
+  }
   if (data.catalog.selections.length > selections.length) card.append(el("p", "첫 64개 대상만 요약했습니다. 실제 선택 목록과 catalog 원본에서 나머지 대상을 확인하세요.", "hint"));
-  data.catalog.limitations.forEach(item => card.append(el("p", item, "hint")));
-  card.append(rawDetail("catalog와 원본 해시 확인", data));
+  data.catalog.limitations.forEach(item => details.append(el("p", item, "hint")));
+  details.append(rawDetail("catalog와 원본 해시 확인", data)); card.append(details);
+}
+function renderConditionSelectionDetails() {
+  if (!engineeringWorkspaceEnabled()) return;
+  const data = currentAnalysisConditionsCatalog() ? state.analysisConditions.catalog : null;
+  for (const [role, selectId] of [["Material", "conditionsMaterialSelection"], ["Boundary", "conditionsBoundarySelection"], ["Load", "conditionsLoadSelection"]]) {
+    const target = clear(`conditions${role}Detail`), item = data?.catalog.selections.find(value => value.id === $(selectId).value);
+    if (!item) { target.append(el("p", "같은 CAD 개정의 대상을 선택하세요.", "hint")); continue; }
+    target.append(el("p", window.analysisConditionsControls.selectionLabel(item), "selection-geometry"));
+    if (item.kind === "native_face") target.append(el("p", `${item.surface_type} · global X/Y/Z · ${item.unit}`, "hint"));
+  }
+  document.querySelectorAll("[data-conditions-selection]").forEach(item => { item.disabled = !writable() || busy() || state.analysisConditions.loading || !data; });
+}
+function additionalBoundariesEnabled() { return Boolean($("conditionsAdditionalBoundaries")?.dataset.boundaryRows === "native"); }
+function renderAdditionalBoundaries() {
+  if (!additionalBoundariesEnabled()) return;
+  const container = clear("conditionsAdditionalBoundaries"), data = currentAnalysisConditionsCatalog() ? state.analysisConditions.catalog : null;
+  for (const row of state.analysisConditions.additionalBoundaries) {
+    const card = el("div", undefined, "boundary-row"), heading = el("div", undefined, "card-heading");
+    const remove = action("구속 삭제", () => {
+      if (!writable() || busy()) return;
+      state.analysisConditions.additionalBoundaries = state.analysisConditions.additionalBoundaries.filter(item => item !== row);
+      renderAdditionalBoundaries(); changeAnalysisConditionsDraft();
+    }, "button subtle compact"); remove.dataset.boundaryRemove = "";
+    heading.append(el("h3", `변위 구속 ${row.id}`), remove); card.append(heading);
+    const label = el("label", "같은 개정의 구속 면"), select = el("select"); select.required = true; select.setAttribute("aria-label", `${row.id} 구속 대상`);
+    option(select, "", "구속 대상을 선택하세요");
+    const choices = data ? window.analysisConditionsControls.choices(data, "boundary") : [];
+    choices.forEach(item => option(select, item.id, window.analysisConditionsControls.selectionLabel(item)));
+    if (row.selectionId && !choices.some(item => item.id === row.selectionId)) option(select, row.selectionId, `현재 catalog에 없는 대상 · ${row.selectionId}`);
+    select.value = row.selectionId;
+    select.addEventListener("change", () => { row.selectionId = select.value; geometry(); changeAnalysisConditionsDraft(); });
+    label.append(select); card.append(label);
+    const detail = el("p", undefined, "selection-geometry"); card.append(detail);
+    function geometry() {
+      const selection = choices.find(item => item.id === row.selectionId);
+      detail.textContent = selection ? window.analysisConditionsControls.selectionLabel(selection) : "이 개정의 catalog에서 대상을 다시 선택하세요.";
+    }
+    geometry(); const components = el("div", undefined, "component-grid");
+    for (const axis of ["x", "y", "z"]) {
+      const group = el("div"), enabledLabel = el("label", undefined, "check-line"), enabled = el("input"), value = el("input");
+      enabled.type = "checkbox"; enabled.checked = row[`u${axis}Enabled`] !== false;
+      enabled.setAttribute("aria-label", `${row.id} U${axis.toUpperCase()} 지정`);
+      value.type = "number"; value.step = "any"; value.value = row[`u${axis}`]; value.required = enabled.checked;
+      value.setAttribute("aria-label", `${row.id} U${axis.toUpperCase()} mm`); value.dataset.boundaryComponent = "";
+      value.dataset.boundaryEnabled = `u${axis}Enabled`; value.dataset.boundaryId = row.id;
+      enabled.addEventListener("change", () => { row[`u${axis}Enabled`] = enabled.checked; changeAnalysisConditionsDraft(); });
+      value.addEventListener("input", () => { row[`u${axis}`] = value.value; changeAnalysisConditionsDraft(); });
+      enabledLabel.append(enabled, el("span", `U${axis.toUpperCase()} 지정`)); group.append(enabledLabel, value); components.append(group);
+    }
+    card.append(components);
+    const sourceLabel = el("label", "구속의 출처·가정"), source = el("textarea"); source.rows = 2; source.required = true; source.maxLength = 2000; source.value = row.source;
+    source.setAttribute("aria-label", `${row.id} 구속 출처`); source.addEventListener("input", () => { row.source = source.value; changeAnalysisConditionsDraft(); });
+    sourceLabel.append(source); card.append(sourceLabel); container.append(card);
+  }
+  updateAdditionalBoundaryControls();
+}
+function updateAdditionalBoundaryControls() {
+  if (!additionalBoundariesEnabled()) return;
+  const blocked = !writable() || busy() || state.analysisConditions.loading;
+  const native = currentAnalysisConditionsCatalog() && $("conditionsBackend").value === "structure.calculix.native" &&
+    state.analysisConditions.catalog.backends.some(item => item.backend === "structure.calculix.native");
+  $("conditionsAdditionalBoundaryArea").hidden = !native && !state.analysisConditions.additionalBoundaries.length;
+  $("conditionsAddBoundaryBtn").disabled = blocked || !native || state.analysisConditions.additionalBoundaries.length >= 127;
+  document.querySelectorAll("[data-boundary-remove]").forEach(item => { item.disabled = blocked; });
+  document.querySelectorAll("[data-boundary-component]").forEach(input => {
+    const row = state.analysisConditions.additionalBoundaries.find(item => item.id === input.dataset.boundaryId);
+    const enabled = row?.[input.dataset.boundaryEnabled] !== false; input.disabled = blocked || !enabled; input.required = enabled;
+  });
+}
+function addAnalysisBoundary() {
+  if (!additionalBoundariesEnabled() || !currentAnalysisConditionsCatalog() || $("conditionsBackend").value !== "structure.calculix.native" || !writable() || busy() || state.analysisConditions.loading || state.analysisConditions.additionalBoundaries.length >= 127) return;
+  let index = 2; while (state.analysisConditions.additionalBoundaries.some(row => row.id === `BC${index}`)) index++;
+  state.analysisConditions.additionalBoundaries.push({ id: `BC${index}`, selectionId: "", ux: "0", uy: "0", uz: "0",
+    uxEnabled: false, uyEnabled: false, uzEnabled: false, source: "ASSUMED: 선택한 면의 지정 성분 변위로 구속하는 이상화. 실제 체결은 미확인." });
+  renderAdditionalBoundaries(); changeAnalysisConditionsDraft();
 }
 function fillAnalysisConditionsChoices() {
   const data = state.analysisConditions.catalog;
   for (const [id, role] of [["conditionsMaterialSelection", "material"], ["conditionsBoundarySelection", "boundary"], ["conditionsLoadSelection", "load"]]) {
     const old = $(id).value, select = clear(id); option(select, "", "같은 개정의 대상을 명시적으로 선택하세요");
-    window.analysisConditionsControls.choices(data, role).forEach(item => option(select, item.id, `${item.label} · ${item.id} · ${item.kind}`));
+    window.analysisConditionsControls.choices(data, role).forEach(item => option(select, item.id, window.analysisConditionsControls.selectionLabel(item)));
     select.value = [...select.options].some(item => item.value === old) ? old : "";
   }
   const old = $("conditionsBackend").value, select = clear("conditionsBackend"); option(select, "", "서버가 제공한 해석 경로를 선택하세요");
-  data.backends.forEach(item => option(select, item.backend, `${item.label} · ${item.backend}`));
+  data.backends.forEach(item => option(select, item.backend, item.backend === "structure.calculix.native" ? "CalculiX · 사용자 CAD의 선형 구조해석" : `${item.label} · ${item.backend}`));
   select.value = [...select.options].some(item => item.value === old) ? old : "";
+  renderAdditionalBoundaries();
 }
 function renderAnalysisConditionsRecord() {
   if (!analysisConditionsEnabled()) return;
@@ -577,16 +772,19 @@ function renderAnalysisConditionsRecord() {
   const supported = record.support.status === "SUPPORTED_DECLARED_INPUTS";
   card.append(el("h3", `저장 조건 ${record.id}`), badge("VERIFIED"), badge("UNKNOWN", "공학 자격 UNKNOWN"), badge("NOT_RELEASED"));
   card.append(el("p", `원 CAD ${record.source.experiment_id} · 연구 ${record.source.study_id} · ${record.request.backend}`),
-    el("p", `CAD 개정 ${record.source.cad_revision}`, "mono"), el("p", `조건 개정 ${record.conditions_revision}`, "mono"),
-    el("p", `${supported ? "서버가 이 모델·조건의 선언 입력을 지원합니다." : "이 모델·조건은 현재 해석 경로에서 실행할 수 없습니다."} ${record.support.status}`));
+    el("p", `개정 ${record.source.cad_revision.slice(0, 16)} · ${supported ? "선언 입력 지원" : "현재 실행 불가"} · ${record.support.status}`, "hint"));
   record.support.reasons.forEach(reason => card.append(el("p", reason, "hint")));
-  card.append(el("p", "네이티브 runtime NOT_CHECKED · 설치나 실제 실행 성공은 위 호환 판정으로 확인되지 않습니다.", "hint"));
+  card.append(el("p", "네이티브 runtime NOT_CHECKED · 실제 실행은 새 해석 기록에서 확인", "hint"));
   if (conditions.recordDraft !== JSON.stringify(analysisConditionsFields())) card.append(el("p", "저장 후 작성 입력이 변경됐습니다. 새 조건 ID로 저장하거나 이 보존 조건을 다시 연 뒤 실행하세요.", "metric-reason"));
   const declaration = record.request.declaration;
+  const selectionName = id => {
+    const target = list(record.catalog?.selections).find(item => item.id === id);
+    return target?.native_name ? `${target.native_object} / ${target.native_name}` : target?.label ?? id;
+  };
   const rows = [["선언 해석", declaration.analysis_type], ["좌표계·단위", `${declaration.coordinate_system} · ${declaration.units?.length} / ${declaration.units?.force} / ${declaration.units?.stress}`]];
-  list(declaration.materials).slice(0, 64).forEach(item => rows.push([`재료 · ${item.selection_id}`, `${item.law} · E ${number(item.young_modulus_MPa)} MPa · ν ${number(item.poisson_ratio)} · ${item.source?.category}: ${item.source?.description}`]));
-  list(declaration.boundary_conditions).slice(0, 64).forEach(item => rows.push([`변위 구속 · ${item.selection_id}`, `UX ${number(item.components?.UX)} / UY ${number(item.components?.UY)} / UZ ${number(item.components?.UZ)} ${item.unit} · ${item.coordinate_system} · ${item.source}`]));
-  list(declaration.loads).slice(0, 64).forEach(item => rows.push([`합력 · ${item.selection_id}`, `FX ${number(item.components?.FX)} / FY ${number(item.components?.FY)} / FZ ${number(item.components?.FZ)} ${item.unit} · ${item.coordinate_system} · ${item.source}`]));
+  list(declaration.materials).slice(0, 64).forEach(item => rows.push([`재료 · ${selectionName(item.selection_id)}`, `등방성 선형 탄성 · E ${number(item.young_modulus_MPa)} MPa · ν ${number(item.poisson_ratio)} · ${item.source?.category}: ${item.source?.description}`]));
+  list(declaration.boundary_conditions).slice(0, 64).forEach(item => rows.push([`변위 구속 · ${selectionName(item.selection_id)}`, `${displacementCaption(item.components)} ${item.unit} · ${item.coordinate_system} · ${item.source}`]));
+  list(declaration.loads).slice(0, 64).forEach(item => rows.push([`합력 · ${selectionName(item.selection_id)}`, `FX ${number(item.components?.FX)} / FY ${number(item.components?.FY)} / FZ ${number(item.components?.FZ)} ${item.unit} · ${item.coordinate_system} · ${item.source}`]));
   rows.push(["접촉 모델", `${declaration.contact?.mode} · ${declaration.contact?.source}`], ["선택 메시", `${number(declaration.mesh?.max_size_mm)} mm · ${declaration.mesh?.mode}`]);
   card.append(table(["보존 조건", "입력·출처"], rows));
   card.append(rawDetail("보존한 재료·구속·부호 하중·좌표계·단위·접촉·메시", declaration), rawDetail("같은 CAD 원본 해시·요청·서버 판정", record),
@@ -630,6 +828,10 @@ async function loadAnalysisConditionsCatalog() {
     // Populating advertised options changes the draft intentionally; later list
     // replies remain tied to these exact populated inputs and the same CAD.
     context = analysisConditionsCapture(true); await readAnalysisConditionsList(context);
+    if (engineeringWorkspaceEnabled() && analysisConditionsCurrent(context)) {
+      await inspectExperiment(parent.id, () => analysisConditionsCurrent(context), { resultSha256: data.source.result_sha256,
+        studyId: data.source.study_id, cadRevision: data.source.cad_revision, backend: data.source.backend }, "simulation");
+    }
   } catch (error) {
     if (!analysisConditionsCurrent(context)) return;
     analysisConditionsError(error.message);
@@ -657,7 +859,11 @@ async function openAnalysisConditionsRecord(identifier) {
     conditions.record = record; conditions.recordDraft = "";
     try {
       const fields = window.analysisConditionsControls.fromRecord(record, conditions.catalog);
-      Object.entries(analysisConditionFieldIds()).forEach(([name, id]) => { $(id).value = fields[name]; });
+      Object.entries(analysisConditionFieldIds()).forEach(([name, id]) => {
+        if (name.endsWith("Enabled")) $(id).checked = fields[name] !== false;
+        else $(id).value = fields[name];
+      });
+      conditions.additionalBoundaries = (fields.additionalBoundaries ?? []).map(row => ({ ...row })); renderAdditionalBoundaries();
       conditions.recordDraft = JSON.stringify(analysisConditionsFields());
     } catch (error) { analysisConditionsError(error.message); }
     renderAnalysisConditionsRecord();
@@ -701,7 +907,7 @@ async function runAnalysisConditions() {
       if (result?.experiment_id !== args.experiment_id || result?.cad_revision !== conditions.record.source.cad_revision || result?.study?.id !== state.studyId || result?.provenance?.adapter !== args.backend) {
         analysisConditionsError("새 해석의 실험·연구·CAD 개정 연결을 확인할 수 없습니다. 원 결과를 확인하세요."); return;
       }
-      await inspectExperiment(args.experiment_id, () => analysisConditionsCurrent(context));
+      await inspectExperiment(args.experiment_id, () => analysisConditionsCurrent(context), null, engineeringWorkspaceEnabled() ? "simulation" : "results");
       if (analysisConditionsCurrent(context)) $("conditionsExperimentId").value = makeId("E-conditions");
     }, () => analysisConditionsCurrent(context));
   } catch (error) { if (analysisConditionsCurrent(context)) analysisConditionsError(error.message); }
@@ -1532,13 +1738,16 @@ function renderExperimentList() {
   })));
   updateControls();
 }
-async function inspectExperiment(identifier, stillCurrent = () => true, expected = null) {
+async function inspectExperiment(identifier, stillCurrent = () => true, expected = null, area = "results") {
   if (!stillCurrent()) return;
   if (state.storeSwitching) throw new Error("저장소를 바꾸고 있습니다. 전환 후 기록을 열어 주세요.");
   if (!window.resultPresentation.safeExperimentId(identifier)) throw new Error("실험 식별자를 확인할 수 없습니다.");
-  location.hash = "results"; const request = ++state.experimentRequest, store = activeStore();
+  const pane = engineeringWorkspaceEnabled() && ["design", "simulation"].includes(area) ? area : "results";
+  location.hash = pane; if (engineeringWorkspaceEnabled()) showArea(pane);
+  const request = ++state.experimentRequest, store = activeStore();
   state.fixtureViewer?.destroy(); state.fixtureViewer = null;
   state.selectedExperiment = null;
+  resetEngineeringProperties();
   state.selectedHistories = null; $("historyPanel").hidden = true;
   $("observationPanel").hidden = true; state.observationRequest++;
   const loading = panel("실험을 불러오고 있습니다."); loading.append(el("p", "저장된 기록과 원본 파일의 일치를 확인하고 있습니다.", "hint separated")); clear("experimentDetail").append(loading);
@@ -1547,8 +1756,10 @@ async function inspectExperiment(identifier, stillCurrent = () => true, expected
     const data = await api(`/api/experiments/${idPath(identifier)}`);
     if (request !== state.experimentRequest || store !== activeStore() || !stillCurrent()) return;
     if (data.integrity !== "VERIFIED" || data.result?.experiment_id !== identifier) throw new Error("서버가 요청한 기록의 식별자와 검증 완료를 확인하지 않았습니다.");
-    if (expected && (data.hashes?.result_sha256 !== expected.resultSha256 || data.result.study?.id !== expected.studyId ||
-        expected.parentId && data.result.parent_experiment_id !== expected.parentId)) throw new Error("후보의 보존 결과 해시·연구·CAD 부모가 고정한 캠페인 행과 다릅니다.");
+    if (expected && (expected.resultSha256 && data.hashes?.result_sha256 !== expected.resultSha256 || data.result.study?.id !== expected.studyId ||
+        expected.parentId && data.result.parent_experiment_id !== expected.parentId ||
+        expected.cadRevision && data.result.cad_revision !== expected.cadRevision || expected.backend && data.result.provenance?.adapter !== expected.backend))
+      throw new Error("보존 결과 해시·연구·CAD 개정·경로가 선택한 원 기록과 다릅니다.");
     state.selectedExperiment = data; renderExperimentDetail(data); renderObservation(data);
     loadResponseHistories(data).catch(error => {
       if (state.selectedExperiment === data && store === activeStore() && stillCurrent()) notify(error.message);
@@ -1557,6 +1768,8 @@ async function inspectExperiment(identifier, stillCurrent = () => true, expected
     if (request !== state.experimentRequest || store !== activeStore() || !stillCurrent()) return;
     const card = panel("이 실험의 기록을 확인할 수 없습니다."); card.classList.add("detail-error"); card.append(el("p", error.message), el("p", "파일과 기록의 일치를 확인한 후 결과를 표시합니다."));
     clear("experimentDetail").append(card); $("selectedSource").textContent = "기록 확인 실패"; throw error;
+  } finally {
+    if (request === state.experimentRequest && store === activeStore() && stillCurrent()) updateEngineeringWorkspace();
   }
 }
 function metricCell(metric) {
@@ -1795,10 +2008,11 @@ function renderExperimentDetail(data) {
   const header = panel(presentation.title(backend), "실험 결과"); header.classList.add("result-header");
   const workflow = presentation.workflow(result, workflowContext(result, "experiment", data.integrity));
   const verdicts = el("div", undefined, "status-title"); verdicts.append(badge(result.status, workflow.stage), badge(data.integrity), badge(result.decision)); header.append(verdicts);
-  header.append(el("p", workflow.next, "hint"));
   const context = result.solver_status === "NOT_RUN" ? "이 기록에는 해석 실행 결과가 없습니다."
     : `해석 실행: ${labels[result.solver_status] ?? "상세 기록에서 확인"} · ${presentation.numericalCaption(result)}`;
-  header.append(el("p", context, "result-context"));
+  const stage = el("details", undefined, "result-stage-details");
+  stage.append(el("summary", "실행 상태·다음 확인"), el("p", workflow.next, "hint"), el("p", context, "result-context"));
+  header.append(stage);
   const downloads = el("div", undefined, "button-row");
   downloads.append(link("보고서 열기", `/api/report/${idPath(identifier)}.html`, "button secondary compact"), link("원본 묶음 저장", `/api/report/${idPath(identifier)}.zip`, "button subtle compact", true)); header.append(downloads); container.append(header);
 
@@ -1834,7 +2048,7 @@ function renderExperimentDetail(data) {
     const frozen = el("details", undefined, "advanced separated");
     frozen.append(el("summary", "이 결과에 보존된 영역·재료·구속·하중"));
     list(declaration.boundary_conditions).forEach(item => frozen.append(el("p",
-      `${item.selection_id}: UX ${number(item.components?.UX)} / UY ${number(item.components?.UY)} / UZ ${number(item.components?.UZ)} ${item.unit} · ${item.coordinate_system}`, "hint")));
+      `${item.selection_id}: ${displacementCaption(item.components)} ${item.unit} · ${item.coordinate_system}`, "hint")));
     list(declaration.loads).forEach(item => frozen.append(el("p",
       `${item.selection_id}: FX ${number(item.components?.FX)} / FY ${number(item.components?.FY)} / FZ ${number(item.components?.FZ)} ${item.unit} · ${item.coordinate_system}`, "hint")));
     frozen.append(el("p", `조건 ${reference.id} · 물성·적용 자격 미확인`, "hint"),
@@ -1915,13 +2129,15 @@ function renderExperimentDetail(data) {
   $("selectedSource").textContent = "기록·원본 확인됨";
   $("selectedSource").title = text(commit);
   $("resultBrowser").open = false;
+  if (engineeringWorkspaceEnabled()) { state.experimentProperties = side; state.experimentOverview = overview; mountExperimentInspector(state.activeArea); }
   if (window.cadControls.eligibleParent(state.presets[$("simulationPreset").value], { ...result, backend: result.provenance?.adapter })) $("analysisParent").value = identifier;
   updateControls();
 }
 function renderFixtureFields(container, inspection) {
   const result = inspection.result;
-  if (result.provenance?.adapter !== "fixture.calculix") return Promise.resolve(false);
-  const card = panel("같은 해석의 메시와 절점 변위", "NATIVE FEA FIELD · SAME RECORD"); card.classList.add("detail-wide", "fixture-field-card");
+  const native = result.provenance?.adapter === "structure.calculix.native";
+  if (!native && result.provenance?.adapter !== "fixture.calculix") return Promise.resolve(false);
+  const card = panel(native ? "네이티브 구조해석 · 전체 절점 변위" : "같은 해석의 메시와 절점 변위", "NATIVE FEA FIELD · SAME RECORD"); card.classList.add("detail-wide", "fixture-field-card");
   const choices = el("div", undefined, "button-row fixture-field-choices"), detail = el("div", undefined, "fixture-field-detail"); card.append(choices, detail); container.append(card);
   const request = state.experimentRequest, store = activeStore(); let sequence = 0, mounted = null;
   const current = () => card.isConnected && detail.isConnected && request === state.experimentRequest && store === activeStore()
@@ -1932,7 +2148,7 @@ function renderFixtureFields(container, inspection) {
     record = window.fixtureFieldControls.catalog(inspection);
     if (!record.entries.length) { detail.append(el("p", record.reason, "empty-state")); return Promise.resolve(false); }
   } catch (error) { if (current()) detail.append(el("p", error.message, "metric-reason")); return Promise.resolve(false); }
-  const label = el("label", "해석 메시 레벨"), select = el("select"); label.append(select); choices.append(label);
+  const label = el("label", native ? "선택한 해석 메시" : "해석 메시 레벨"), select = el("select"); label.append(select); choices.append(label);
   record.entries.forEach((entry, i) => option(select, String(i), `${entry.size_mm} mm · 원본 레벨 ${entry.index}`)); select.value = String(record.entries.length - 1);
   async function selectField() {
     if (!current()) return false; const epoch = ++sequence, entry = record.entries[Number(select.value)];
@@ -1965,10 +2181,23 @@ function renderFixtureFields(container, inspection) {
         const bytes = new Uint8Array(size); let offset = 0; chunks.forEach(chunk => { bytes.set(chunk, offset); offset += chunk.byteLength; }); return bytes;
       }
       const model = await window.fixtureFieldControls.loadField(record, entry, fetchFieldBytes, selected);
+      if (!selected()) return false;
+      if (native && model.metadata.family !== "native") throw new Error("네이티브 구조해석 전체장 계약을 확인할 수 없습니다.");
       if (!selected()) return false; mounted = window.fixtureFieldViewer.mount(detail, model, selected); if (!mounted || !selected()) { mounted?.destroy(); return false; }
       state.fixtureViewer = mounted;
       const downloads = el("div", undefined, "button-row separated"); downloads.append(link("전체 절점 U JSON", artifactUrl(result.experiment_id, entry.path), "text-link", true));
-      mounted.refs.provenance.append(el("p", "해석에 사용한 실제 메시·고정·하중과 저장된 전체 U를 확인합니다. 이 관측은 정확도·강도·실물 사용 승인이 아닙니다.", "hint"));
+      mounted.refs.provenance.append(el("p", native ? "CAD 문서 전역 좌표계 · 저장된 전체 U · 지정 성분 구속과 합력. 실제 사용 승인은 결과 판정을 따릅니다."
+        : "해석에 사용한 실제 메시·고정·하중과 저장된 전체 U를 확인합니다. 이 관측은 정확도·강도·실물 사용 승인이 아닙니다.", "hint"));
+      if (native) {
+        const prescribed = model.rawNative.prescribed_dofs, loads = model.rawNative.loads;
+        const dofs = el("details", undefined, "advanced"), forces = el("details", undefined, "advanced");
+        dofs.append(el("summary", `실제 지정 변위 · ${prescribed.length}개 DOF`), table(["절점", "지정 성분", "변위 (mm)"],
+          prescribed.slice(0, 50).map(row => [row.node_id, [null, "UX", "UY", "UZ"][row.component], number(row.value_mm)])));
+        forces.append(el("summary", `실제 절점 하중 · ${loads.length}개 성분`), table(["절점", "하중 성분", "하중 (N)"],
+          loads.slice(0, 50).map(row => [row.node_id, [null, "FX", "FY", "FZ"][row.component], number(row.force_N)])));
+        if (prescribed.length > 50 || loads.length > 50) forces.append(el("p", "각 목록의 첫 50개를 표시합니다. 전체 성분·값은 원본 U JSON에 보존되어 있습니다.", "hint"));
+        mounted.refs.provenance.append(dofs, forces);
+      }
       const prefix = entry.path.slice(0, entry.path.lastIndexOf("/") + 1);
       Object.values(model.field.sources).forEach(source => downloads.append(link(source.path, artifactUrl(result.experiment_id, prefix + source.path), "text-link artifact-path", true))); mounted.refs.provenance.append(downloads);
       return true;
@@ -2549,7 +2778,7 @@ bindForm("cadForm", "cad_run", () => {
   const values = {};
   document.querySelectorAll("[data-cad-parameter]").forEach((input) => { const value = Number(input.value); if (!input.value || !Number.isFinite(value)) throw new Error("연구 변수의 유한한 값을 입력하세요."); values[input.dataset.cadParameter] = value; });
   return { study_id: state.studyId, experiment_id: $("cadExperimentId").value.trim(), backend: $("cadBackend").value, model: $("cadModel").value.trim(), values };
-}, async (result, args) => { $("cadExperimentId").value = makeId("E-cad"); await inspectExperiment(result.experiment_id ?? args.experiment_id); });
+}, async (result, args) => { $("cadExperimentId").value = makeId("E-cad"); await inspectExperiment(result.experiment_id ?? args.experiment_id, () => true, null, engineeringWorkspaceEnabled() ? "design" : "results"); });
 bindForm("nativeCreateForm", "native_create", () => ({ template: $("nativeTemplate").value }), renderNative);
 $("nativeImportForm").addEventListener("submit", event => { event.preventDefault(); submitNativeImport().catch(error => notify(error.message)); });
 $("nativeImportFile").addEventListener("change", () => { state.nativeFileSelection++; $("nativeImportFileState").textContent = $("nativeImportFile").files?.length === 1 ? $("nativeImportFile").files[0].name : "FCStd 파일 하나를 선택하세요."; updateControls(); });
@@ -2561,6 +2790,7 @@ if (analysisConditionsEnabled()) {
   $("conditionsParent").addEventListener("change", () => { invalidateAnalysisConditions(); updateControls(); });
   $("analysisConditionsLoadBtn").addEventListener("click", loadAnalysisConditionsCatalog);
   $("analysisConditionsRefreshBtn").addEventListener("click", refreshAnalysisConditionsList);
+  if (additionalBoundariesEnabled()) $("conditionsAddBoundaryBtn").addEventListener("click", addAnalysisBoundary);
   $("analysisConditionsForm").addEventListener("submit", event => { event.preventDefault(); if (event.currentTarget.reportValidity()) saveAnalysisConditions(); });
   $("analysisConditionsRunForm").addEventListener("submit", event => { event.preventDefault(); if (event.currentTarget.reportValidity()) runAnalysisConditions(); });
   document.querySelectorAll("[data-analysis-condition]").forEach(input => input.addEventListener(input.tagName === "SELECT" ? "change" : "input", changeAnalysisConditionsDraft));
@@ -2648,7 +2878,7 @@ $("compareBtn").addEventListener("click", () => compareExperiments().catch((erro
 $("jobDetailsBtn").addEventListener("click", () => { $("jobDetails").hidden = !$("jobDetails").hidden; $("jobDetails").open = true; });
 window.addEventListener("hashchange", () => showArea(location.hash.slice(1)));
 $("studyId").value = makeId("S"); $("cadExperimentId").value = makeId("E-cad"); $("campaignId").value = makeId("C-doe");
-showArea(location.hash.slice(1)); updateControls();
+initializeEngineeringWorkspace(); showArea(location.hash.slice(1)); updateControls();
 Promise.allSettled([loadOverview(), api("/api/presets").then(renderPresets), loadResearchStatus()]).then((results) => {
   results.forEach((result) => { if (result.status === "rejected") notify(result.reason.message); }); updateControls();
 });

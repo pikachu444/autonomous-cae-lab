@@ -31,6 +31,7 @@
   }
   const contexts = new WeakMap(), verified = new WeakSet();
   function catalog(inspection) {
+    if (inspection?.result?.provenance?.adapter === "structure.calculix.native") return nativeCatalog(inspection);
     assert(inspection?.integrity === "VERIFIED", "기록 검증이 완료된 실험만 필드를 표시합니다.");
     const saved = copy(inspection), result = saved.result;
     assert(object(result) && result.provenance?.adapter === "fixture.calculix" && id(result.experiment_id) &&
@@ -82,6 +83,136 @@
     return { corners: [...ids.slice(0, 3)].sort((a, b) => a - b).join(","), edges: JSON.stringify(edges) };
   }
   function vector(value, length = 3) { return Array.isArray(value) && value.length === length && value.every(finite); }
+  function nativeCatalog(inspection) {
+    assert(inspection?.integrity === "VERIFIED", "검증된 같은 CAD 해석만 표시합니다.");
+    const saved = copy(inspection), result = saved.result, proposal = saved.proposal, thread = saved.thread;
+    assert(result?.provenance?.adapter === "structure.calculix.native" && result.provenance.adapter_version === "1" &&
+      id(result.experiment_id) && id(result.parent_experiment_id) && sha(result.cad_revision) &&
+      result.solver_status === "COMPLETED" && result.decision === "NOT_RELEASED" && Array.isArray(result.validations) &&
+      proposal?.id === result.experiment_id && proposal.parent_experiment_id === result.parent_experiment_id &&
+      proposal.physics?.backend === "structure.calculix.native" && proposal.model?.geometry?.source_experiment_id === result.parent_experiment_id &&
+      proposal.model.geometry.cad_revision === result.cad_revision && equal(proposal.execution, result.provenance.execution_settings) &&
+      thread?.experiment === result.experiment_id && thread.parent_experiment === result.parent_experiment_id && thread.cad_revision === result.cad_revision,
+    "native 모델·CAD 개정·입력·결과·thread가 일치하지 않습니다.");
+    assert(equal(proposal.boundary_conditions, proposal.execution.declaration?.boundary_conditions) &&
+      equal(proposal.loads, proposal.execution.declaration?.loads) &&
+      equal(proposal.model.materials, proposal.execution.declaration?.materials), "같은 기록의 명시적 조건이 일치하지 않습니다.");
+    const manifest = new Map();
+    for (const artifact of result.artifacts ?? []) {
+      assert(safePath(artifact.path) && sha(artifact.sha256) && !manifest.has(artifact.path) &&
+        Number.isSafeInteger(artifact.size_bytes) && artifact.size_bytes >= 0 && artifact.revision === result.cad_revision,
+      "native 산출물의 경로·해시·크기·개정이 불완전합니다."); manifest.set(artifact.path, artifact);
+    }
+    const artifact = manifest.get("simulation/field.json");
+    if (!artifact) return freeze({status:"unavailable",entries:[],reason:"이 native 기록에는 완료된 전체 절점 변위장이 없습니다."});
+    assert(artifact.mime_type === "application/json" && artifact.size_bytes <= LIMITS.bytes, "화면의 native 필드 범위를 넘습니다. 원본 파일을 확인하세요.");
+    const size = proposal.execution.declaration.mesh.max_size_mm;
+    assert(finite(size) && size > 0, "native 선택 메시 크기가 누락됐습니다.");
+    const output = freeze({status:"available",entries:[{path:artifact.path,sha256:artifact.sha256,size_bytes:artifact.size_bytes,index:0,size_mm:size}]});
+    contexts.set(output, {saved,manifest,family:"native"}); return output;
+  }
+  function verifyNative(field, ctx, entry) {
+    const result = ctx.saved.result, execution = ctx.saved.proposal.execution, native = execution.native_catalog;
+    assert(field?.schema_version === "1.0" && field.kind === "native_structural_nodal_displacement" &&
+      field.backend === "structure.calculix.native" && field.adapter_version === "1" &&
+      field.parent_experiment_id === result.parent_experiment_id && field.cad_revision === result.cad_revision &&
+      field.native_catalog_revision === native?.native_catalog_revision && sha(field.native_catalog_revision) &&
+      field.coordinate_frame === "CAD_DOCUMENT_GLOBAL" && field.position_unit === "mm" && field.displacement_unit === "mm" &&
+      field.force_unit === "N" && field.coverage === "ALL_MESH_NODES" && field.qualification === "UNKNOWN" && field.engineering_valid === false &&
+      equal(field.static,{step:1,increment:1,load_parameter:1}) && field.mesh_size_max_mm === entry.size_mm,
+    "native 전체장의 부모·개정·단위·좌표계·단계·미확인 자격이 일치하지 않습니다.");
+    const names = {mesh:"mesh.json",deck:"native.inp",boundary:"boundary.json",frd:"native.frd",dat:"native.dat"};
+    assert(keys(field.sources,Object.keys(names)), "native 전체장의 5개 원본 연결이 필요합니다.");
+    for (const [name,filename] of Object.entries(names)) {
+      const source=field.sources[name], artifact=ctx.manifest.get("simulation/"+filename);
+      assert(keys(source,["path","sha256","bytes"]) && source.path===filename && artifact && source.sha256===artifact.sha256 &&
+        source.bytes===artifact.size_bytes && source.bytes>0, "native 원본 해시·크기·개정이 필드와 다릅니다.");
+    }
+    assert(field.deck_sha256===field.sources.deck.sha256 && field.parent_step_sha256===result.provenance.adapter_details?.parent_step_sha256,
+      "native deck 또는 부모 STEP 원본이 결과와 다릅니다.");
+    for (const [rows,count,limit] of [[field.nodes,field.node_count,LIMITS.nodes],[field.elements,field.element_count,LIMITS.elements],
+      [field.boundary_faces,field.boundary_face_count,LIMITS.faces]]) assert(Array.isArray(rows) && Number.isSafeInteger(count) &&
+        count>0 && count===rows.length && count<=limit, "native 전체 절점·요소·외곽면 개수 또는 화면 범위를 확인할 수 없습니다.");
+    const nodes=new Map(), elements=new Set(), faces=new Map(), used=new Set(); let last=0;
+    for (const node of field.nodes) {
+      assert(identifier(node.node_id) && node.node_id>last && vector(node.position_mm) && vector(node.displacement_mm) &&
+        finite(Math.hypot(...node.displacement_mm)) && Array.isArray(node.displacement_tokens) && node.displacement_tokens.length===3 &&
+        node.displacement_tokens.every((value,i)=>typeof value==="string" && /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[EeDd][-+]?\d+)?$/.test(value) &&
+          Number(value.replace(/[Dd]/,"E"))===node.displacement_mm[i]), "native 절점 ID·좌표·변위·DAT 수치가 불완전합니다.");
+      nodes.set(node.node_id,node); last=node.node_id;
+    }
+    last=0;
+    for(const element of field.elements) {
+      assert(identifier(element.element_id) && element.element_id>last && element.type==="C3D10" &&
+        Array.isArray(element.node_ids) && element.node_ids.length===10 && new Set(element.node_ids).size===10 &&
+        element.node_ids.every(n=>nodes.has(n)), "native C3D10 원본 연결이 불완전합니다.");
+      last=element.element_id; elements.add(last); element.node_ids.forEach(n=>used.add(n));
+      for(const slots of FACES) { const key=faceKey(slots.map(slot=>element.node_ids[slot])), old=faces.get(key.corners);
+        assert(!old || old.edges===key.edges,"native 이웃 midside 연결이 다릅니다."); const count=(old?.count??0)+1;
+        assert(count<=2,"native 비다양체 요소 면입니다."); faces.set(key.corners,{edges:key.edges,count}); }
+    }
+    assert(used.size===nodes.size,"native 전체 절점 집합과 요소 연결이 다릅니다.");
+    const exterior=new Map([...faces].filter(([,f])=>f.count===1)), nativeFaces=new Map((native.selections??[])
+      .filter(f=>f.kind==="native_face").map(f=>[f.id,f])), boundary=new Set(), groups=new Map(), boundaryIds=new Set(); last=0;
+    for(const face of field.boundary_faces) {
+      assert(identifier(face.element_id) && face.element_id>last && !elements.has(face.element_id) && face.type==="CPS6" &&
+        nativeFaces.has(face.selection_id) && Array.isArray(face.node_ids) && face.node_ids.length===6 &&
+        new Set(face.node_ids).size===6 && face.node_ids.every(n=>nodes.has(n)),"native 외곽면 ID·FaceN·6절점 연결이 다릅니다.");
+      last=face.element_id; const key=faceKey(face.node_ids), actual=exterior.get(key.corners);
+      assert(actual?.edges===key.edges && !boundary.has(key.corners),"native 외곽면이 실제 C3D10 면과 다릅니다.");
+      boundary.add(key.corners); const group=groups.get(face.selection_id)??new Set();
+      face.node_ids.forEach(n=>{boundaryIds.add(n);group.add(n);}); groups.set(face.selection_id,group);
+    }
+    assert(boundary.size===exterior.size && groups.size===nativeFaces.size,"native 전체 외곽면 또는 catalog 면이 누락됐습니다.");
+    const expectedDOF=new Map(), dofs=new Map();
+    for(const bc of execution.declaration.boundary_conditions) for(const node of groups.get(bc.selection_id)??[]) {
+      for(const [name,value] of Object.entries(bc.components)) { const component=["UX","UY","UZ"].indexOf(name)+1, key=node+":"+component;
+        assert(component>0 && (!expectedDOF.has(key)||expectedDOF.get(key)===value),"native 선언 구속 성분이 충돌합니다."); expectedDOF.set(key,value); }
+    }
+    assert(Array.isArray(field.prescribed_dofs) && field.prescribed_dofs.length>0,"native 구속 원본이 없습니다.");
+    for(const row of field.prescribed_dofs) { const key=row.node_id+":"+row.component;
+      assert(boundaryIds.has(row.node_id) && [1,2,3].includes(row.component) && finite(row.value_mm) && !dofs.has(key) &&
+        expectedDOF.get(key)===row.declared_value_mm && typeof row.value_token==="string" && row.value_token.length<=20 &&
+        /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][-+]?\d+)?$/.test(row.value_token) && Number(row.value_token)===row.value_mm &&
+        Math.abs(row.value_mm-row.declared_value_mm)<=5e-13*Math.abs(row.declared_value_mm),
+      "native 부분 구속 성분·선언값·실제 직렬화 수치가 저장 조건과 다릅니다."); dofs.set(key,row.value_mm); }
+    assert(dofs.size===expectedDOF.size,"선언된 native 구속 DOF 일부가 빠졌습니다.");
+    const permittedLoadDOFs=new Set();
+    for (const load of execution.declaration.loads) for (const node of groups.get(load.selection_id)??[]) {
+      for (const [name,value] of Object.entries(load.components)) if (value!==0)
+        permittedLoadDOFs.add(node+":"+(["FX","FY","FZ"].indexOf(name)+1));
+    }
+    const loads=new Map(), loadDOFs=new Set(), totals=[0,0,0];
+    assert(Array.isArray(field.loads)&&field.loads.length>0,"native 절점 합력 원본이 없습니다.");
+    for(const row of field.loads) { const key=row.node_id+":"+row.component;
+      assert(boundaryIds.has(row.node_id) && [1,2,3].includes(row.component) && finite(row.force_N) && row.force_N!==0 &&
+        !dofs.has(key) && !loadDOFs.has(key) && permittedLoadDOFs.has(key) &&
+        typeof row.force_token==="string" && row.force_token.length<=20 &&
+        /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][-+]?\d+)?$/.test(row.force_token) && Number(row.force_token)===row.force_N,
+      "native 절점 하중 성분·수치 token·선택 면·구속 연결이 다릅니다.");
+      loadDOFs.add(key); const force=loads.get(row.node_id)??[0,0,0]; force[row.component-1]=row.force_N;
+      totals[row.component-1]+=row.force_N; loads.set(row.node_id,force);
+    }
+    const target=["FX","FY","FZ"].map(name=>execution.declaration.loads.reduce((sum,row)=>sum+row.components[name],0));
+    assert(totals.every((v,i)=>Math.abs(v-target[i])<=1e-10*Math.max(1,Math.abs(target[i]))),"native 절점 합력이 선언 성분과 다릅니다.");
+    const peak=Math.max(...field.nodes.map(node=>Math.hypot(...node.displacement_mm)));
+    assert(nodes.has(field.peak_node_id) && Math.abs(Math.hypot(...nodes.get(field.peak_node_id).displacement_mm)-peak)<=
+      8*Number.EPSILON*Math.max(peak,Number.MIN_VALUE), "native 최대 변위 절점 ID가 전체장과 다릅니다.");
+    const recordedPeak=result.metrics?.max_displacement?.value;
+    assert(finite(peak) && finite(recordedPeak) && Math.abs(recordedPeak-peak)<=8*Number.EPSILON*Math.max(peak,recordedPeak,Number.MIN_VALUE) && result.metrics.max_displacement.unit==="mm",
+      "native 전체 |U| 최대값이 같은 결과의 관측값과 다릅니다.");
+    const normalized=copy(field); normalized.mesh_index=0;
+    normalized.boundary_faces=field.boundary_faces.map(face=>({...copy(face),group:nativeFaces.get(face.selection_id).native_name}));
+    normalized.fixed_node_ids=[...new Set(field.prescribed_dofs.map(row=>row.node_id))].sort((a,b)=>a-b);
+    normalized.loads=[...loads].sort((a,b)=>a[0]-b[0]).map(([node_id,force_N])=>({node_id,force_N}));
+    const model=freeze({field:normalized,rawNative:copy(field),artifact:copy(entry),metadata:{family:"native",experimentId:result.experiment_id,
+      parentId:result.parent_experiment_id,revision:result.cad_revision,fieldProducer:field.adapter_version,
+      resultProducer:result.provenance.adapter_version,coreCommit:result.provenance.core_commit??null,
+      upstreamCommit:result.provenance.source_commit??null,unknownCount:result.validations.filter(v=>v.status==="UNKNOWN").length,
+      sensitivity:"NOT_ASSESSED",decision:result.decision,wholeMaximumMagnitude:peak,
+      nativeCatalogRevision:field.native_catalog_revision,totalForceVectorN:totals}});
+    verified.add(model); return model;
+  }
   function verify(field, ctx, entry) {
     const result = ctx.saved.result, version = result.provenance.adapter_version;
     assert(keys(field, ["schema_version", "kind", "backend", "adapter_version", "parent_experiment_id", "cad_revision", "mesh_index", "mesh_size_max_mm", "coordinate_frame", "position_unit", "displacement_unit", "force_unit", "static", "coverage", "qualification", "engineering_valid", "nodes", "elements", "boundary_faces", "fixed_node_ids", "fixed_dofs", "loads", "node_count", "element_count", "boundary_face_count", "sources"]), "FEA 필드 선언이 불완전합니다.");
@@ -199,10 +330,11 @@
     assert(crypto?.subtle, "원본 SHA-256 검사를 사용할 수 없습니다.");
     const hash = await crypto.subtle.digest("SHA-256", bytes); current(isCurrent);
     assert(Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("") === entry.sha256, "필드 원본 SHA-256이 manifest와 다릅니다.");
-    const model = verify(strictJSON(bytes), ctx, entry); current(isCurrent); return model;
+    const model = (ctx.family === "native" ? verifyNative : verify)(strictJSON(bytes), ctx, entry); current(isCurrent); return model;
   }
   function verifyField(field, inspection, path) {
-    const record = catalog(inspection), entry = record.entries.find(item => item.path === path); assert(entry, "manifest의 필드 경로가 필요합니다."); return verify(field, contexts.get(record), entry);
+    const record = catalog(inspection), entry = record.entries.find(item => item.path === path); assert(entry, "manifest의 필드 경로가 필요합니다.");
+    const ctx=contexts.get(record); return (ctx.family === "native" ? verifyNative : verify)(field, ctx, entry);
   }
   function requireVerified(model) { assert(verified.has(model), "완전한 같은 기록 필드 검증 후에만 표시합니다."); return model; }
   function scalar(node, component) { assert(COMPONENTS.includes(component), "지원하는 U 성분을 선택하세요."); return component === "MAGNITUDE" ? Math.hypot(...node.displacement_mm) : node.displacement_mm[COMPONENTS.indexOf(component)]; }

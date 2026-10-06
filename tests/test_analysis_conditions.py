@@ -159,6 +159,24 @@ def test_valid_but_unsupported_vectors_are_preserved_and_never_executed(conditio
     assert not conditions_lab.analysis_adapters['fixture.calculix'].calls
 
 
+@pytest.mark.parametrize('components', [
+    {'UX': 0}, {'UY': 0}, {'UZ': 0},
+    {'UX': 0, 'UY': 0}, {'UX': 0, 'UZ': 0}, {'UY': 0, 'UZ': 0}])
+def test_fixture_partial_constraints_are_preserved_without_silent_fixity(conditions_lab, components):
+    request = condition_request(conditions_lab)
+    request['declaration']['boundary_conditions'][0]['components'] = components
+    saved = conditions_lab.save_analysis_conditions(**request)
+    assert saved['request'] == request
+    assert saved['support']['status'] == 'UNSUPPORTED_FOR_CONDITIONS'
+    assert saved['adapter_binding'] is None
+    assert conditions_lab.inspect_analysis_conditions(saved['id']) == saved
+    with pytest.raises(CapabilityUnavailable):
+        conditions_lab.run_analysis(parent_experiment_id='E-cad', experiment_id='E-refused',
+                                    backend='fixture.calculix', conditions_id=saved['id'])
+    assert not (conditions_lab.store / 'experiments/E-refused').exists()
+    assert not conditions_lab.analysis_adapters['fixture.calculix'].calls
+
+
 def test_foreign_model_uses_unsupported_admission_without_syntax_bypass(conditions_lab, monkeypatch):
     lab = conditions_lab
     hook = lab.adapters['fixture.cadquery'].conditions_catalog

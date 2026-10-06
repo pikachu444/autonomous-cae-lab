@@ -160,7 +160,7 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m pytest -q
       - name: Check forms, imported meshes and retained PDE/contact fields
-        run: node --test tests/test_experiment_draft.js tests/test_fixture_controls.js tests/test_fixture_field_controls.js tests/test_fixture_field_viewer.js tests/test_cad_controls.js tests/test_native_upload_controls.js tests/test_analysis_conditions_controls.js tests/test_analysis_conditions_ui.js tests/test_campaign_controls.js tests/test_condition_campaign_workflow.js tests/test_comparison_research.js tests/test_fixture_optimization_handoff.js tests/test_imported_mesh_controls.js tests/test_pde_field_inspector.js tests/test_contact_field_inspector.js tests/test_result_presentation.js tests/test_result_workflow.js tests/test_research_handoff.js tests/test_research_answer.js
+        run: node --test tests/test_experiment_draft.js tests/test_fixture_controls.js tests/test_fixture_field_controls.js tests/test_native_structural_field.js tests/test_fixture_field_viewer.js tests/test_cad_controls.js tests/test_native_upload_controls.js tests/test_analysis_conditions_controls.js tests/test_analysis_conditions_ui.js tests/test_campaign_controls.js tests/test_condition_campaign_workflow.js tests/test_comparison_research.js tests/test_fixture_optimization_handoff.js tests/test_imported_mesh_controls.js tests/test_pde_field_inspector.js tests/test_contact_field_inspector.js tests/test_result_presentation.js tests/test_result_workflow.js tests/test_research_handoff.js tests/test_research_answer.js
       - run: python scripts/verify_mcp.py
       - name: Verify native OpenScience source and tool guards without model calls
         run: |
@@ -212,6 +212,13 @@ jobs:
         run: python -m scripts.verify_native --store artifacts/native-lab
       - name: Imported native Part and reordered named Sketcher acceptance
         run: python -m scripts.verify_native_edits --store artifacts/native-edits-lab
+      - name: Native face mechanics dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y calculix-ccx libglu1-mesa
+          python -m pip install -r requirements-native-mechanics.txt
+      - name: Native faces and partial DOFs compared with the full affine reference
+        run: python -m scripts.accept_native_structural --store artifacts/native-mechanics-lab
       - name: Preserve CAD revisions and evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -220,6 +227,7 @@ jobs:
           path: |
             artifacts/native-lab/
             artifacts/native-edits-lab/
+            artifacts/native-mechanics-lab/
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30

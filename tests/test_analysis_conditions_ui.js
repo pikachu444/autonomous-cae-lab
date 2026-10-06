@@ -49,17 +49,19 @@ class Node {
       toggle: (value, enabled) => { const on = enabled ?? !this.classList.contains(value); this.classList.remove(value); if (on) this.classList.add(value); return on; } };
   }
   get options() { return this.children.filter(node => node.tagName === "OPTION"); }
-  set textContent(value) { this._text = String(value ?? ""); this.children = []; }
+  set textContent(value) { this._text = String(value ?? ""); this.children.forEach(node => { node.parentNode = null; }); this.children = []; }
   get textContent() { return this._text + this.children.map(node => node.textContent).join(""); }
   set innerHTML(_value) { throw new Error("Untrusted catalog/record text must use textContent"); }
-  append(...items) { for (const item of items) { const node = item instanceof Node ? item : new Node("#text"); if (!(item instanceof Node)) node.textContent = item; this.children.push(node); } }
-  replaceChildren(...items) { this._text = ""; this.children = []; this.append(...items); }
+  append(...items) { for (const item of items) { const node = item instanceof Node ? item : new Node("#text"); if (!(item instanceof Node)) node.textContent = item; node.remove(); node.parentNode = this; this.children.push(node); } }
+  replaceChildren(...items) { this.textContent = ""; this.append(...items); }
+  remove() { if (this.parentNode) this.parentNode.children = this.parentNode.children.filter(node => node !== this); this.parentNode = null; }
   setAttribute(key, value) { this.attributes[key] = String(value); }
+  removeAttribute(key) { delete this.attributes[key]; }
   addEventListener(name, fn) { (this.listeners ??= new Map()).set(name, fn); }
   querySelector(selector) { return walk(this).slice(1).find(node => selector.startsWith(".") ? node.classList.contains(selector.slice(1)) : node.tagName === selector.toUpperCase()) ?? null; }
 }
 function walk(node) { return [node, ...node.children.flatMap(walk)]; }
-function harness({ backend = "fixture.cadquery", writable = true, moduleAvailable = true, fetchReply } = {}) {
+function harness({ backend = "fixture.cadquery", writable = true, moduleAvailable = true, workspace = false, fetchReply } = {}) {
   const nodes = new Map(), operations = [], writes = [], paths = [], timers = [];
   const $ = id => { if (!nodes.has(id)) nodes.set(id, new Node(/Selection$|Backend$|Unit$|Parent$|System$|Law$|Category$|Mode$/.test(id) ? "select" : "div")); return nodes.get(id); };
   for (const match of html.matchAll(/<button\b[^>]*>/g)) {
@@ -69,7 +71,11 @@ function harness({ backend = "fixture.cadquery", writable = true, moduleAvailabl
   for (const match of html.matchAll(/<fieldset\b[^>]*data-write[^>]*>/g)) { const id = /\bid="([^"]+)"/.exec(match[0])?.[1]; writes.push(id ? $(id) : new Node("fieldset")); }
   const document = { getElementById: $, createElement: tag => new Node(tag),
     querySelectorAll: selector => selector === "[data-operation]" ? operations : selector === "fieldset[data-write]" ? writes :
-      selector === "[data-analysis-conditions-open]" ? walk($("analysisConditionsList")).filter(node => Object.hasOwn(node.dataset, "analysisConditionsOpen")) : [],
+      selector === "[data-analysis-conditions-open]" ? walk($("analysisConditionsList")).filter(node => Object.hasOwn(node.dataset, "analysisConditionsOpen")) :
+      ["[data-conditions-selection]", "[data-boundary-remove]", "[data-boundary-component]"].includes(selector) ?
+        [...nodes.values()].filter(node => Object.hasOwn(node.dataset, selector.slice(6, -1).replace(/-([a-z])/g, (_, c) => c.toUpperCase())) ||
+          walk(node).some(child => Object.hasOwn(child.dataset, selector.slice(6, -1).replace(/-([a-z])/g, (_, c) => c.toUpperCase()))))
+          .flatMap(walk).filter((node, index, all) => all.indexOf(node) === index && Object.hasOwn(node.dataset, selector.slice(6, -1).replace(/-([a-z])/g, (_, c) => c.toUpperCase()))) : [],
     querySelector: selector => operations.find(node => selector === `[data-operation="${node.dataset.operation}"]`) ?? null };
   $("cadBackend").value = backend; $("cadModel").value = backend === "fixture.cadquery" ? "roller_support" : "native_TEST_ONLY"; $("nativeModelId").value = "";
   $("simulationPreset").value = "linear"; $("fixtureConditionFields").hidden = true; $("importedMeshFields").hidden = true;
@@ -81,12 +87,18 @@ function harness({ backend = "fixture.cadquery", writable = true, moduleAvailabl
     conditionsLoadSelection: backend === "fixture.cadquery" ? "S-saddle" : "B-final", conditionsFx: "0", conditionsFy: "0", conditionsFz: "-150", conditionsLoadSource: "ASSUMED: 합력 <TEST_ONLY>",
     conditionsContactMode: "none", conditionsContactSource: "ASSUMED: 접촉 없음", conditionsMeshSize: "4", conditionsExperimentId: "E-child" };
   Object.entries(defaults).forEach(([id, value]) => { $(id).value = value; });
+  if (workspace) {
+    $("designModelViewport").dataset.engineeringViewport = "design";
+    $("conditionsAdditionalBoundaries").dataset.boundaryRows = "native";
+    for (const axis of ["x", "y", "z"]) { $(`conditionsU${axis}Enabled`).type = "checkbox"; $(`conditionsU${axis}Enabled`).checked = true; }
+    $("resultsModelViewport").append($("experimentDetail"));
+  }
   const sandbox = { document, Node, window: { ...(moduleAvailable ? { analysisConditionsControls: analysisControls } : {}), cadControls, resultPresentation: presentation, researchControls },
     location: { hash: "simulation" }, Intl, TextEncoder, URL, URLSearchParams, console,
     fetch: async (path, options) => { paths.push({ path, options }); assert(fetchReply, `No uncontrolled HTTP: ${path}`); return fetchReply(path, options); },
     setTimeout: (fn, delay) => { timers.push({ fn, delay }); return timers.length; }, clearTimeout: () => {} };
   vm.createContext(sandbox);
-  vm.runInContext(source.slice(0, boundary) + "\nglobalThis.ui = {state, updateControls, renderAnalysisConditionsParents, currentAnalysisConditionsCatalog, analysisConditionsFields, loadAnalysisConditionsCatalog, refreshAnalysisConditionsList, openAnalysisConditionsRecord, saveAnalysisConditions, runAnalysisConditions, changeAnalysisConditionsDraft, invalidateAnalysisConditions, renderAnalysisConditionsRecord, loadOverview, runJob, pollJob, inspectExperiment};", sandbox);
+  vm.runInContext(source.slice(0, boundary) + "\nglobalThis.ui = {state, updateControls, renderAnalysisConditionsParents, currentAnalysisConditionsCatalog, analysisConditionsFields, loadAnalysisConditionsCatalog, refreshAnalysisConditionsList, openAnalysisConditionsRecord, saveAnalysisConditions, runAnalysisConditions, changeAnalysisConditionsDraft, invalidateAnalysisConditions, renderAnalysisConditionsRecord, loadOverview, runJob, pollJob, inspectExperiment, initializeEngineeringWorkspace, showArea, mountExperimentInspector, openEngineeringRecord, renderAnalysisConditionsCatalog, renderAdditionalBoundaries, addAnalysisBoundary, renderJob, renderFixtureFields};", sandbox);
   const ui = sandbox.ui;
   const overview = { active_store: "local", stores: [{ id: "local", writable }], token: "TEST_ONLY", capabilities: [], jobs: [],
     studies: [{ id: "S-study" }, { id: "S-other" }], experiments: [parent("E-cad", backend), parent("E-import", "fixture.freecad"), parent("E-assembly", "fixture.assembly")] };
@@ -305,4 +317,186 @@ test("absent new helper degrades harmlessly in older controlled-DOM harnesses", 
   const h = harness({ moduleAvailable: false });
   assert.doesNotThrow(() => { h.ui.renderAnalysisConditionsParents(); h.ui.updateControls(); h.ui.invalidateAnalysisConditions(); });
   assert.equal(h.paths.length, 0); assert.equal(h.ui.state.analysisConditions.catalog, null);
+});
+
+function nativeCatalog() {
+  const data = catalog("fixture.freecad");
+  data.catalog.selections = [{ id: "B-final", label: "최종 솔리드", kind: "whole_final_solid", roles: ["material"] },
+    ...[1, 2, 3, 4].map(index => ({ id: `F-${"1".repeat(64)}-Face${index}`, label: `면 ${index} <TEST_ONLY>`, kind: "native_face", roles: ["boundary", "load"],
+      native_object: "FinalPad", native_name: `Face${index}`, body_id: "B-final", area_mm2: 80 + index, center_mm: [index, -2.5, 4],
+      bounds_mm: { min: [0, -5, 0], max: [10, 5, 8] }, surface_type: "Plane", unit: "mm", coordinate_system: "global", native_coordinate_system: "cad_document_global", geometry_sha256: "2".repeat(64) }))];
+  data.backends = [{ backend: "structure.calculix.native", label: "Native CalculiX", scope: "단일 final solid · 선언 입력 · 설치 미확인" }];
+  return data;
+}
+function nativeReady(h) {
+  const data = ready(h, nativeCatalog());
+  h.$("conditionsBackend").value = "structure.calculix.native"; h.$("conditionsBoundarySelection").value = data.catalog.selections[1].id;
+  h.$("conditionsLoadSelection").value = data.catalog.selections[4].id;
+  h.$("conditionsUyEnabled").checked = false; h.$("conditionsUzEnabled").checked = false;
+  h.ui.renderAnalysisConditionsCatalog(); h.ui.updateControls(); return data;
+}
+async function event(node, name) { assert(node.listeners?.has(name), `${name} listener is connected`); await node.listeners.get(name)({ target: node, currentTarget: node }); }
+function cadInspection(backend = "fixture.freecad") {
+  return { integrity: "VERIFIED", hashes: { result_sha256: "b".repeat(64) }, result: { experiment_id: "E-cad", study: { id: "S-study" },
+    cad_revision: "a".repeat(64), provenance: { adapter: backend }, solver_status: "NOT_RUN", status: "COMPLETED_REVIEW_REQUIRED", decision: "NOT_RELEASED" } };
+}
+
+test("Research starts with question/answer and collapsed technical support while every existing control ID remains unique", () => {
+  assert.match(html, /<details\b[^>]*class="[^"]*technical-support"[^>]*><summary>기술·지원 정보<\/summary>/);
+  const capabilityStart = html.indexOf('<details class="card capability-card');
+  assert(capabilityStart > html.indexOf('id="researchAnswers"'));
+  assert.equal(/\bopen\b/.test(html.slice(capabilityStart, html.indexOf(">", capabilityStart))), false);
+  for (const id of ["capabilities", "researchScope", "researchQuestionForm", "jobCancelBtn", "historyPanel", "conditionsParent", "analysisConditionsForm", "simulationForm", "experimentDetail"])
+    assert.equal([...html.matchAll(new RegExp(`id="${id}"`, "g"))].length, 1, id);
+  const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]); assert.equal(ids.length, new Set(ids).size);
+});
+
+test("engineering panes move the original controls, inspector and result properties instead of cloning any model or run form", () => {
+  const h = harness({ workspace: true }), inspector = h.$("experimentDetail"), runForm = h.$("analysisConditionsRunForm");
+  h.ui.initializeEngineeringWorkspace(); h.ui.showArea("design");
+  assert.equal(h.$("designRunCard").parentNode, h.$("designPropertiesPane"));
+  assert.equal(h.$("designSourceCard").parentNode, h.$("designOutlinePane"));
+  assert.equal(h.$("analysisConditionsArea").parentNode, h.$("simulationPropertiesPane"));
+  assert.equal(runForm.parentNode, h.$("simulationExecutionToolbar"));
+  assert.equal(h.$("conditionsSourceControls").parentNode, h.$("simulationSourceControls"));
+  assert.equal(inspector.parentNode, h.$("designModelViewport"));
+  const originalProperties = new Node(), overview = new Node(); originalProperties.textContent = "ORIGINAL SIGNED INPUTS";
+  h.ui.state.experimentProperties = originalProperties; h.ui.state.experimentOverview = overview;
+  h.ui.showArea("simulation"); assert.equal(inspector.parentNode, h.$("simulationModelViewport")); assert.equal(originalProperties.parentNode, h.$("simulationResultPropertiesBody"));
+  h.ui.showArea("results"); assert.equal(inspector.parentNode, h.$("resultsModelViewport")); assert.equal(originalProperties.parentNode, overview);
+  assert.equal(originalProperties.textContent, "ORIGINAL SIGNED INPUTS"); assert.equal(runForm, h.$("analysisConditionsRunForm")); assert.equal(h.paths.length, 0);
+});
+
+test("explicit engineering parent open checks actual study/revision/backend/result hash and readonly can inspect without a write", async () => {
+  const h = harness({ workspace: true, writable: false, backend: "fixture.freecad", fetchReply: path => { assert.equal(path, "/api/experiments/E-cad"); return reply(cadInspection()); } });
+  nativeReady(h); h.ui.initializeEngineeringWorkspace(); await h.ui.openEngineeringRecord("simulation");
+  assert.equal(h.ui.state.selectedExperiment.result.experiment_id, "E-cad"); assert.equal(h.sandbox.location.hash, "simulation");
+  assert.equal(h.$("experimentDetail").parentNode, h.$("simulationModelViewport")); assert.match(h.$("simulationModelOutline").textContent, /E-cad/);
+  assert.equal(h.$("analysisConditionsSaveBtn").disabled, true); assert.equal(h.$("conditionsAddBoundaryBtn").disabled, true);
+  for (const mutate of [value => { value.hashes.result_sha256 = "3".repeat(64); }, value => { value.result.cad_revision = "3".repeat(64); },
+      value => { value.result.provenance.adapter = "fixture.assembly"; }, value => { value.result.study.id = "S-other"; }]) {
+    const wrong = cadInspection(); mutate(wrong);
+    const other = harness({ workspace: true, backend: "fixture.freecad", fetchReply: () => reply(wrong) }); nativeReady(other);
+    await assert.rejects(other.ui.openEngineeringRecord("simulation")); assert.equal(other.ui.state.selectedExperiment, null);
+  }
+});
+
+test("engineering parent late success/error is discarded after store, study, model or selected revision changes", async () => {
+  for (const change of [h => { h.overview.active_store = "other"; }, h => { h.ui.state.studyId = "S-other"; },
+      h => { h.$("cadModel").value = "different-native-model"; }, h => { h.$("conditionsParent").value = "E-import"; }]) for (const fail of [false, true]) {
+    let complete; const h = harness({ workspace: true, backend: "fixture.freecad", fetchReply: () => new Promise(resolve => { complete = resolve; }) }); nativeReady(h);
+    const pending = h.ui.openEngineeringRecord("simulation"); change(h); h.$("experimentDetail").textContent = "CURRENT MODEL SENTINEL";
+    complete(reply(fail ? { error: "LATE MODEL ERROR" } : cadInspection(), !fail)); await pending;
+    assert.equal(h.ui.state.selectedExperiment, null); assert.equal(h.$("experimentDetail").textContent, "CURRENT MODEL SENTINEL"); assert.equal(h.paths.length, 1);
+  }
+});
+
+test("explicit native catalog action opens its pinned CAD while overview alone adds no model/catalog/provider reads", async () => {
+  const data = nativeCatalog(); const h = harness({ workspace: true, backend: "fixture.freecad", fetchReply: path => {
+    if (path === "/api/overview") return reply(h.overview);
+    if (path === "/api/analysis-conditions/catalog?experiment_id=E-cad") return reply(data);
+    if (path === "/api/analysis-conditions?experiment_id=E-cad") return reply({ records: [] });
+    assert.equal(path, "/api/experiments/E-cad"); return reply(cadInspection());
+  } });
+  h.ui.initializeEngineeringWorkspace(); h.$("conditionsFz").value = "-237.75";
+  await h.ui.loadOverview(); assert.deepEqual(h.paths.map(value => value.path), ["/api/overview"]);
+  await h.ui.loadAnalysisConditionsCatalog();
+  assert.deepEqual(h.paths.slice(1).map(value => value.path), ["/api/analysis-conditions/catalog?experiment_id=E-cad", "/api/analysis-conditions?experiment_id=E-cad", "/api/experiments/E-cad"]);
+  assert.equal(h.$("conditionsFz").value, "-237.75"); assert.equal(h.$("experimentDetail").parentNode, h.$("simulationModelViewport"));
+  assert.equal(h.$("conditionsBoundarySelection").options[1].value, data.catalog.selections[1].id);
+  assert.equal(h.$("conditionsBackend").value, "", "Never substitute the native backend automatically");
+});
+
+test("native face row editing saves three independent boundary components, reopens them and runs only the saved C-ID", async () => {
+  let savedValue, data;
+  const h = harness({ workspace: true, backend: "fixture.freecad", fetchReply: (path, options) => {
+    if (path === "/api/overview") return reply(h.overview);
+    if (path === "/api/analysis-conditions/C-conditions") return reply({ record: savedValue, integrity: "VERIFIED" });
+    if (path === "/api/experiments/E-child") { const result = child(); result.provenance.adapter = "structure.calculix.native"; return reply({ integrity: "VERIFIED", result }); }
+    assert.equal(path, "/api/jobs"); assert.equal(options.headers["X-CAE-Token"], "TEST_ONLY");
+    const body = JSON.parse(options.body);
+    if (body.operation === "analysis_conditions_save") {
+      assert.deepEqual(body.arguments.declaration.boundary_conditions.map(item => item.components), [{ UX: 0 }, { UY: -0.125 }, { UZ: 0 }]);
+      assert.deepEqual(body.arguments.declaration.boundary_conditions.map(item => item.selection_id), data.catalog.selections.slice(1, 4).map(item => item.id));
+      savedValue = record(data, body.arguments); return reply({ id: "J-save", operation: body.operation, status: "COMPLETED", result: savedValue });
+    }
+    assert.equal(body.operation, "analysis_run"); assert.deepEqual(body.arguments, { parent_experiment_id: "E-cad", experiment_id: "E-child", backend: "structure.calculix.native", conditions_id: "C-conditions" });
+    const result = child(); result.provenance.adapter = "structure.calculix.native"; return reply({ id: "J-run", operation: body.operation, status: "COMPLETED", result });
+  } });
+  data = nativeReady(h); h.ui.initializeEngineeringWorkspace();
+  assert.match(h.$("analysisConditionsCatalog").textContent, /FinalPad\/Face1/); assert.match(h.$("analysisConditionsCatalog").textContent, /81 mm²/);
+  for (const [faceIndex, axis, value] of [[2, "Y", "-0.125"], [3, "Z", "0"]]) {
+    h.ui.addAnalysisBoundary(); const cards = h.$("conditionsAdditionalBoundaries").children, card = cards.at(-1);
+    const nodes = walk(card), select = nodes.find(node => node.tagName === "SELECT"); select.value = data.catalog.selections[faceIndex].id; await event(select, "change");
+    const enabled = nodes.find(node => node.attributes["aria-label"]?.endsWith(`U${axis} 지정`)); enabled.checked = true; await event(enabled, "change");
+    const numeric = nodes.find(node => node.attributes["aria-label"]?.endsWith(`U${axis} mm`)); numeric.value = value; await event(numeric, "input");
+  }
+  await h.ui.saveAnalysisConditions(); const original = JSON.stringify(savedValue);
+  assert.match(h.$("analysisConditionsRecord").textContent, /UX 0 \/ UY 미지정 \/ UZ 미지정/);
+  assert.equal(h.$("analysisConditionsRunBtn").disabled, false);
+  h.ui.state.analysisConditions.additionalBoundaries[0].uy = "9"; h.ui.changeAnalysisConditionsDraft(); assert.equal(h.$("analysisConditionsRunBtn").disabled, true);
+  await h.ui.openAnalysisConditionsRecord("C-conditions"); assert.equal(h.ui.state.analysisConditions.additionalBoundaries[0].uy, "-0.125");
+  assert.equal(h.$("conditionsUyEnabled").checked, false); assert.equal(h.$("conditionsUy").disabled, true); assert.equal(h.$("conditionsUy").required, false);
+  assert.equal(h.$("conditionsAdditionalBoundaries").children.length, 2);
+  await h.ui.runAnalysisConditions(); assert.equal(h.ui.state.selectedExperiment.result.provenance.adapter, "structure.calculix.native");
+  assert.equal(h.$("experimentDetail").parentNode, h.$("simulationModelViewport")); assert.equal(JSON.stringify(savedValue), original);
+});
+
+test("extra native boundaries retain unsaved sources across catalog withdrawal and cannot edit or POST while readonly or busy", async () => {
+  const h = harness({ workspace: true, backend: "fixture.freecad" }); nativeReady(h); h.ui.addAnalysisBoundary();
+  const row = h.ui.state.analysisConditions.additionalBoundaries[0]; row.selectionId = nativeCatalog().catalog.selections[2].id; row.source = "USER RAW SOURCE SENTINEL";
+  h.$("cadModel").value = "new model"; h.ui.invalidateAnalysisConditions(); h.ui.updateControls();
+  assert.equal(h.ui.state.analysisConditions.additionalBoundaries[0].source, "USER RAW SOURCE SENTINEL"); assert.match(h.$("conditionsAdditionalBoundaries").textContent, /현재 catalog에 없는 대상/);
+  assert.equal(h.$("analysisConditionsSaveBtn").disabled, true); await h.ui.saveAnalysisConditions(); assert.equal(h.paths.length, 0);
+  nativeReady(h); const remove = walk(h.$("conditionsAdditionalBoundaries")).find(node => Object.hasOwn(node.dataset, "boundaryRemove"));
+  h.overview.stores[0].writable = false; h.ui.updateControls(); assert.equal(remove.disabled, true); await event(remove, "click"); h.ui.addAnalysisBoundary();
+  assert.equal(h.ui.state.analysisConditions.additionalBoundaries.length, 1);
+  h.overview.stores[0].writable = true; h.ui.state.job = { id: "J-active", status: "RUNNING", operation: "analysis_run" }; h.ui.updateControls();
+  assert.equal(h.$("conditionsAddBoundaryBtn").disabled, true); await event(remove, "click"); h.ui.addAnalysisBoundary(); assert.equal(h.ui.state.analysisConditions.additionalBoundaries.length, 1);
+});
+
+test("native field controller passes the same verified-family model through the common byte loader/viewer and retains partial DOF/load rows", async () => {
+  // The trusted loader and renderer are composition doubles here; their hash,
+  // mesh and native physics admission are covered by their own source suites.
+  const payload = new Uint8Array([123, 125]), entry = { path: "simulation/field.json", size_bytes: 2, size_mm: 4, index: 0 }, models = [];
+  const h = harness({ workspace: true, fetchReply: path => {
+    assert.equal(path, "/api/artifacts/E-native-field?path=simulation%2Ffield.json");
+    return { ok: true, headers: { get: () => "2" }, arrayBuffer: async () => payload.buffer };
+  } });
+  const inspection = { result: { experiment_id: "E-native-field", provenance: { adapter: "structure.calculix.native" } } }, model = {
+    metadata: { family: "native" }, field: { sources: {} }, rawNative: {
+      prescribed_dofs: [{ node_id: 7, component: 1, value_mm: -0.125 }], loads: [{ node_id: 8, component: 3, force_N: -150 }] } };
+  h.ui.state.selectedExperiment = inspection;
+  h.sandbox.window.fixtureFieldControls = { LIMITS: { bytes: 32 }, catalog: data => { assert.equal(data, inspection); return { entries: [entry] }; },
+    loadField: async (_record, selectedEntry, fetchBytes, isCurrent) => { assert.equal(selectedEntry, entry); assert(isCurrent()); assert.deepEqual(Array.from(await fetchBytes(entry.path, 2)), Array.from(payload)); return model; } };
+  const provenance = new Node(); h.sandbox.window.fixtureFieldViewer = { mount: (_detail, value, current) => { assert(current()); models.push(value); return { destroy: () => {}, refs: { provenance } }; } };
+  const host = new Node(); assert.equal(await h.ui.renderFixtureFields(host, inspection), true, host.textContent);
+  assert.equal(models[0], model); assert.match(host.textContent, /네이티브 구조해석/); assert.match(provenance.textContent, /UX-0.125/); assert.match(provenance.textContent, /FZ-150/);
+  assert.equal(provenance.textContent.includes("UY0"), false); assert.equal(provenance.textContent.includes("안장"), false);
+  assert.equal(h.paths.length, 1); assert.equal(h.ui.state.fixtureViewer.refs.provenance, provenance);
+});
+
+test("native field late load and incorrect family never mount or reuse fixture fallback under another selected record", async () => {
+  for (const stale of [false, true]) {
+    let complete, mounts = 0; const h = harness({ workspace: true });
+    const inspection = { result: { experiment_id: "E-native-field", provenance: { adapter: "structure.calculix.native" } } };
+    h.ui.state.selectedExperiment = inspection;
+    h.sandbox.window.fixtureFieldControls = { catalog: () => ({ entries: [{ path: "simulation/field.json", size_mm: 4, index: 0 }] }),
+      loadField: () => new Promise(resolve => { complete = resolve; }) };
+    h.sandbox.window.fixtureFieldViewer = { mount: () => { mounts++; return { destroy: () => {} }; } };
+    const host = new Node(), pending = h.ui.renderFixtureFields(host, inspection);
+    if (stale) { h.ui.state.experimentRequest++; host.textContent = "CURRENT FIELD SENTINEL"; }
+    complete({ metadata: { family: "fixture" } }); assert.equal(await pending, false); assert.equal(mounts, 0);
+    if (stale) assert.equal(host.textContent, "CURRENT FIELD SENTINEL"); else assert.match(host.textContent, /전체장 계약을 확인할 수 없습니다/);
+  }
+});
+
+test("workspace keeps the existing owned-job cancel and cleanup controls while typed native writes stay blocked", () => {
+  const h = harness({ workspace: true, backend: "fixture.freecad" }); nativeReady(h);
+  for (const [status, disabled, label] of [["RUNNING", false, "작업 취소"], ["CANCEL_REQUESTED", true, "작업 취소"], ["CLEANUP_PENDING", false, "종료 재시도"]]) {
+    h.ui.state.job = { id: "J-owned", operation: "analysis_run", status }; h.ui.renderJob();
+    assert.equal(h.$("jobCancelBtn").hidden, false); assert.equal(h.$("jobCancelBtn").disabled, disabled); assert.equal(h.$("jobCancelBtn").textContent, label);
+    assert.equal(h.$("analysisConditionsSaveBtn").disabled, true); assert.equal(h.$("analysisConditionsRunBtn").disabled, true); assert.equal(h.$("conditionsAddBoundaryBtn").disabled, true);
+  }
+  assert.equal(h.paths.length, 0);
 });

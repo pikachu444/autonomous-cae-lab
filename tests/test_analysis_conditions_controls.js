@@ -159,3 +159,68 @@ test("browser and CommonJS contracts agree without deriving an engineering or ru
   const value = record(); assert.equal(controls.saved(envelope(value), catalog()).support.native_runtime, "NOT_CHECKED");
   assert.equal(value.engineering, "UNKNOWN"); assert.equal(value.decision, "NOT_RELEASED");
 });
+
+function nativeCatalog() {
+  const data = catalog("fixture.freecad");
+  data.catalog.selections = [{ id: "B-final", label: "Final solid", kind: "whole_final_solid", roles: ["material"] },
+    ...[1, 2, 3, 4].map((index) => ({ id: `F-${"1".repeat(64)}-Face${index}`, label: `조건 면 ${index} <TEST_ONLY>`, kind: "native_face", roles: ["boundary", "load"],
+      native_object: "FinalPad", native_name: `Face${index}`, body_id: "B-final", area_mm2: 80 + index, center_mm: [index, -2.5, 4],
+      bounds_mm: { min: [0, -5, 0], max: [10, 5, 8] }, surface_type: "Plane", unit: "mm", coordinate_system: "global", native_coordinate_system: "cad_document_global",
+      geometry_sha256: "2".repeat(64), planar_normal_global: [1, 0, 0] }))];
+  data.backends = [{ backend: "structure.calculix.native", label: "Native CalculiX", scope: "Server-declared native syntax; not a runtime proof" }];
+  return data;
+}
+function nativeFields(data) {
+  return fields({ backend: "structure.calculix.native", boundarySelection: data.catalog.selections[1].id, loadSelection: data.catalog.selections[4].id,
+    uxEnabled: true, uyEnabled: false, uzEnabled: false, uy: "", uz: "",
+    additionalBoundaries: [
+      { id: "BC2", selectionId: data.catalog.selections[2].id, uxEnabled: false, uyEnabled: true, uzEnabled: false, ux: "", uy: "-0.125", uz: "", source: "ASSUMED: Y symmetry" },
+      { id: "BC3", selectionId: data.catalog.selections[3].id, uxEnabled: false, uyEnabled: false, uzEnabled: true, ux: "", uy: "", uz: "0", source: "ASSUMED: Z symmetry" } ] });
+}
+
+test("native catalog exposes actual FaceN geometry and independent roles without deriving targets from display triangles", () => {
+  const data = nativeCatalog(), before = copy(data); controls.catalog(data);
+  assert.deepEqual(controls.choices(data, "material").map(item => item.id), ["B-final"]);
+  assert.equal(controls.choices(data, "boundary").length, 4);
+  const label = controls.selectionLabel(data.catalog.selections[1]);
+  assert.match(label, /FinalPad\/Face1/); assert.match(label, /81 mm²/); assert.match(label, /중심 \(1, -2.5, 4\) mm/);
+  assert.equal(controls.buildSave(data, nativeFields(data)).declaration.boundary_conditions[0].selection_id, data.catalog.selections[1].id);
+  assert.throws(() => controls.buildSave(data, { ...nativeFields(data), boundarySelection: "display-triangle-0" }));
+  assert.throws(() => controls.buildSave(data, { ...nativeFields(data), boundarySelection: "B-final" }));
+  assert.deepEqual(data, before);
+});
+
+test("unverified native frame, incomplete geometry and wrong face/body role are refused before form admission", () => {
+  for (const mutate of [face => { delete face.geometry_sha256; }, face => { face.area_mm2 = 0; }, face => { face.center_mm = [1, 2]; },
+      face => { face.bounds_mm.min[0] = 20; }, face => { face.native_name = "triangle-12"; }, face => { face.body_id = "B-other"; },
+      face => { face.unit = "m"; }, face => { face.coordinate_system = "world"; }, face => { face.native_coordinate_system = "unknown"; },
+      face => { face.roles.push("material"); }, face => { face.planar_normal_global = [0, 1]; }]) {
+    const data = nativeCatalog(); mutate(data.catalog.selections[1]); assert.throws(() => controls.catalog(data));
+  }
+});
+
+test("multiple native symmetry boundaries save/reopen exactly with omitted DOFs, signed loads and original face IDs", () => {
+  const data = nativeCatalog(), input = nativeFields(data), request = controls.buildSave(data, input), value = record(data);
+  value.request = copy(request); value.adapter_binding.backend = request.backend;
+  assert.deepEqual(request.declaration.boundary_conditions.map(item => item.components), [{ UX: 0 }, { UY: -0.125 }, { UZ: 0 }]);
+  const before = copy(value); controls.saved(envelope(value), data);
+  const restored = controls.fromRecord(value, data);
+  assert.deepEqual(controls.buildSave(data, restored), request);
+  assert.equal(restored.additionalBoundaries[0].uxEnabled, false); assert.equal(restored.additionalBoundaries[0].ux, "");
+  assert.deepEqual(controls.buildRun(value, data, restored, "E-native-child"), { parent_experiment_id: "E-cad", experiment_id: "E-native-child", backend: "structure.calculix.native", conditions_id: value.id });
+  assert.deepEqual(value, before); assert.equal(value.engineering, "UNKNOWN"); assert.equal(value.support.native_runtime, "NOT_CHECKED");
+});
+
+test("empty, duplicated, unknown or changed-revision native DOFs/targets cannot be simplified into runnable conditions", () => {
+  const data = nativeCatalog(), input = nativeFields(data);
+  for (const patch of [{ uxEnabled: false }, { uxEnabled: "true" }, { additionalBoundaries: [{ ...input.additionalBoundaries[0], id: "BC1" }] },
+      { additionalBoundaries: [input.additionalBoundaries[0], copy(input.additionalBoundaries[0])] },
+      { additionalBoundaries: [{ ...input.additionalBoundaries[0], uyEnabled: false }] },
+      { additionalBoundaries: [{ ...input.additionalBoundaries[0], uy: "Infinity" }] }]) assert.throws(() => controls.buildSave(data, { ...input, ...patch }));
+  const value = record(data); value.request = controls.buildSave(data, input); value.adapter_binding.backend = value.request.backend;
+  const altered = copy(value); altered.request.declaration.boundary_conditions[1].components.URX = 0;
+  assert.throws(() => controls.fromRecord(altered, data)); assert.equal(altered.request.declaration.boundary_conditions[1].components.URX, 0);
+  const next = copy(data); next.source.cad_revision = "3".repeat(64); next.catalog_revision = "4".repeat(64);
+  next.catalog.selections.slice(1).forEach(face => { face.id = face.id.replace("1".repeat(64), "5".repeat(64)); });
+  assert.throws(() => controls.buildSave(next, input)); assert.throws(() => controls.saved(envelope(value), next));
+});

@@ -1,0 +1,2 @@
+# Optional API for native single-solid CAD mechanics. Core remains solver-independent.
+gmsh==4.12.1

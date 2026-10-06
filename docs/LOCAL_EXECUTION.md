@@ -1,3 +1,12 @@
+## Native CAD mechanics — local optional runtime and current flow
+
+The existing Python3.12 WSL environment now also has gmsh==4.12.1 from requirements-native-mechanics.txt. FreeCAD1.1.4 and CalculiX2.21 were reused. On a fresh local environment Root installs that optional dependency and existing native tools; user Git/SHA work is not required.
+
+Start the approved connected service with `./scripts/cae-research-local.ps1`. In Design choose an FCStd and create an editable CAD revision; in Simulation load its verified targets, choose CalculiX user CAD, enter explicit material/partial DOFs/face vectors, save conditions and run a new experiment. Reopen Results or the same Simulation field; report/evidence exports belong to that exact experiment. Current native scope is one solid, isotropic linear static, no contact; arbitrary assembly qualification is open.
+
+NEXT: connect the same native records to approved OpenScience, then general CAD numerical/observation research and original assembly/remaining Phase2-7 gaps. Whole52/entirePhases are incomplete. Physical UNKNOWN/NOT_RELEASED, original meshes/fine UNKNOWN and separate R2 stash remain. Goal ACTIVE. Full-record verification latency11-19s and provider reconnect are open; no new per-fix Astra gate.
+
+---
 # Current approved CAE research launcher — bounded actual connection verified
 
 Root prepared the existing approved local settings outside this public repository.

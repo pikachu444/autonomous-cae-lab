@@ -15,7 +15,7 @@ from .freecad_parameters import unique_paths
 
 class FixtureFreeCADAdapter:
     backend = "fixture.freecad"
-    version = "3"
+    version = "4"
     domain = "fixture_design"
     physics_domain = "structural"
     analysis_type = "cad_preflight"
@@ -28,8 +28,8 @@ class FixtureFreeCADAdapter:
         return model
 
     def conditions_catalog(self, parent_root: Path, parent: dict, proposal: dict) -> dict:
-        from .cad_condition_catalog import final_solid_catalog
-        return final_solid_catalog(parent_root, parent, backend=self.backend)
+        from .cad_condition_catalog import native_final_solid_catalog
+        return native_final_solid_catalog(parent_root, parent, backend=self.backend)
 
     def _call(self, action: str, **kwargs) -> dict[str, Any]:
         if not (os.environ.get("FREECAD_CMD") or shutil.which("FreeCADCmd") or shutil.which("freecadcmd")):
@@ -94,6 +94,8 @@ class FixtureFreeCADAdapter:
         result = self._call("regenerate", model=model, values=native_values, output=str(output))
         metrics: dict[str, dict[str, Any]] = {}
         if result["cad_generated"]:
+            from .native_face_catalog import build_face_catalog
+            build_face_catalog(output)
             metrics = {
                 "cad_bounds": {"value": result["bounds_mm"], "unit": "mm", "valid": True},
                 "cad_volume": {"value": result["bom"][0]["volume_mm3"], "unit": "mm^3", "valid": True},

@@ -1,3 +1,10 @@
+## Native CAD engineering workspace — ADR0046
+
+Existing upload/editable CAD now has real native face targets, partial displacement DOFs, material/vector force editor and actual native mechanics. Simulation shares one verified inspector with Results; whole |U|/component selectors, complete mesh, DOF/load values and exact experiment report exports retain original provenance. No arbitrary triangle-to-face selection or unsupported assembly authority is implied.
+
+NEXT: connect the same native records to approved OpenScience, then general CAD numerical/observation research and original assembly/remaining Phase2-7 gaps. Whole52/entirePhases are incomplete. Physical UNKNOWN/NOT_RELEASED, original meshes/fine UNKNOWN and separate R2 stash remain. Goal ACTIVE. Full-record verification latency11-19s and provider reconnect are open; no new per-fix Astra gate.
+
+---
 ## Cancellation lifecycle and consistent research read context (ADR0045)
 
 Common result schema1.0 additively admits CANCELLED after confirmed live-owned

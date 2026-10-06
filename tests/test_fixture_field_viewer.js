@@ -30,6 +30,14 @@ class TinyNode {
 function walk(node) { return [node, ...node.children.flatMap(walk)]; }
 function documentFixture() { const ids = new Map(), doc = { createElement: tag => new TinyNode(tag, doc), getElementById: id => { if (!ids.has(id)) ids.set(id, new TinyNode("div", doc)); return ids.get(id); } }; return doc; }
 function mountFixture(isCurrent = () => true) { const data = fixture(), model = verify(data), doc = documentFixture(), container = doc.createElement("article"), mounted = viewer.mount(container, model, isCurrent); return { data, model, container, mounted }; }
+test("native mechanics selector and first canvas both start at whole vector magnitude with partial DOF labels", () => {
+  const data=require("./test_native_structural_field.js").nativeFixture(),
+    model=require("../apps/lab/static/fixture-field-controls.js").verifyField(data.field,data.inspection,data.path),
+    doc=documentFixture(),container=doc.createElement("article"), mounted=viewer.mount(container,model,()=>true);
+  assert.equal(mounted.refs.component.value,"MAGNITUDE"); assert.equal(mounted.refs.canvas.dataset.component,"MAGNITUDE");
+  assert.match(mounted.refs.legend.textContent,/\|U\|/); assert.match(container.textContent,/CAD_DOCUMENT_GLOBAL/);
+  assert.match(tableRows(mounted)[0].textContent,/UX=0 mm/); assert.doesNotMatch(tableRows(mounted)[0].textContent,/XYZ 고정/);
+});
 function tableRows(mounted) { return walk(mounted.refs.rows).filter(item => item.tagName === "TR" && item.dataset.nodeId); }
 async function spin(predicate) { for (let tick = 0; tick < 150 && !predicate(); tick++) await new Promise(resolve => setImmediate(resolve)); assert(predicate(), "bounded TEST_ONLY async condition"); }
 

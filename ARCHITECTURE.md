@@ -1,3 +1,10 @@
+## Native-face mechanics addition — ADR0046
+
+Core conditions/registry/parent provenance remain common. Domain owns single-solid isotropic/partial-DOF admission; adapter owns unique native-face geometry association, Gmsh/CCX syntax and complete native field. The UI reads the same revision/artifacts in outline, field viewport and properties. Existing fixture support is separate and now rejects partial base constraints.
+
+NEXT: connect the same native records to approved OpenScience, then general CAD numerical/observation research and original assembly/remaining Phase2-7 gaps. Whole52/entirePhases are incomplete. Physical UNKNOWN/NOT_RELEASED, original meshes/fine UNKNOWN and separate R2 stash remain. Goal ACTIVE. Full-record verification latency11-19s and provider reconnect are open; no new per-fix Astra gate.
+
+---
 ## Cancellation lifecycle and consistent research read context (ADR0045)
 
 Common result schema1.0 additively admits CANCELLED after confirmed live-owned

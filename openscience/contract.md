@@ -1,3 +1,10 @@
+## Native CAD result context — ADR0046
+
+No tools, profiles, approved model or provider authority are added. Core experiment inspection/summary expose the same frozen native conditions and adapter-owned whole-vector maximum semantics. Generic native execution by the existing fixture-only research profile is not admitted. The separate bbf actual 19-read corrected answer/native cancellation gate is now closed; reconnect is unverified.
+
+NEXT: connect the same native records to approved OpenScience, then general CAD numerical/observation research and original assembly/remaining Phase2-7 gaps. Whole52/entirePhases are incomplete. Physical UNKNOWN/NOT_RELEASED, original meshes/fine UNKNOWN and separate R2 stash remain. Goal ACTIVE. Full-record verification latency11-19s and provider reconnect are open; no new per-fix Astra gate.
+
+---
 ## Cancellation lifecycle and consistent research read context (ADR0045)
 
 Common result schema1.0 additively admits CANCELLED after confirmed live-owned

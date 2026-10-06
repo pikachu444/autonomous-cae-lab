@@ -34,7 +34,7 @@
         "type": {"const": "displacement"}, "unit": {"const": "mm"},
         "coordinate_system": {"const": "global"}, "source": {"$ref": "#/$defs/text"},
         "components": {
-          "type": "object", "additionalProperties": false, "required": ["UX", "UY", "UZ"],
+          "type": "object", "additionalProperties": false, "minProperties": 1,
           "properties": {"UX": {"type": "number"}, "UY": {"type": "number"}, "UZ": {"type": "number"}}
         }
       }

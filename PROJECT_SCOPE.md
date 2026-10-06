@@ -1,3 +1,12 @@
+## Latest acceptance inventory — native CAD mechanics bundle
+
+Actual imported single-solid CAD now connects verified native faces, editable material/partial DOF/vector force conditions, Gmsh/CalculiX, whole U/RF fields, same-model UI and report reopening. Final corrected producer is base bbf698d+dirty CoreSHA 04b30952610ef7e91e30df072947416676a65f2403df18d2b1ab5cb7dacaae51; E-native-box-r05 passed the full affine reference at 3.498262499449477e-7 against unchanged 1e-5. Earlier r03/r04 UI material-change runs and their distinct source remain retained.
+
+R02/R09–R13/R19–R21/R25/R43/R46/R48/R51 advance in this bounded flow; existing 52 requirement statuses are not promoted to full completion.
+
+NEXT: connect the same native records to approved OpenScience, then general CAD numerical/observation research and original assembly/remaining Phase2-7 gaps. Whole52/entirePhases are incomplete. Physical UNKNOWN/NOT_RELEASED, original meshes/fine UNKNOWN and separate R2 stash remain. Goal ACTIVE. Full-record verification latency11-19s and provider reconnect are open; no new per-fix Astra gate.
+
+---
 ## Current checkpoint: actual connected numerical campaign; integration defects corrected in source
 
 Clean8731cfd9/new cae-condition-research-20261006-01 actually used the human saved

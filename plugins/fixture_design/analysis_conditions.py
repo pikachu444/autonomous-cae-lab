@@ -21,6 +21,7 @@ def support(catalog, declaration):
         return result('UNSUPPORTED_FOR_CONDITIONS', '기존 솔버 adapter의 범위는 0<E<1e7 MPa, 0≤ν<0.49입니다. 입력값은 변경하지 않습니다.')
     boundaries = declaration['boundary_conditions']
     if (len(boundaries) != 1 or boundaries[0]['selection_id'] != 'S-base'
+            or set(boundaries[0]['components']) != {'UX', 'UY', 'UZ'}
             or any(value != 0 for value in boundaries[0]['components'].values())):
         return result('UNSUPPORTED_FOR_CONDITIONS', '현재 바닥 전체 UX/UY/UZ=0 구속만 지원합니다. 다른 구속값은 대체하지 않습니다.')
     loads = declaration['loads']
