@@ -76,9 +76,18 @@ def _definitions(lab, backend, analysis_backend, objective, constraints, require
 
 def plan_optimization(lab, *, study_id, campaign_id, backend, model, parameter_ids,
                       objective, constraints, seed, max_generations, population_size,
-                      initial_values, analysis_backend, analysis_settings, required_validations, engine):
+                      initial_values, analysis_backend, analysis_settings, required_validations, engine,
+                      conditions_id=None):
     lab.inspect_study(study_id)
     cad_adapter = lab._adapter(backend)
+    template, conditions_raw = None, None
+    if conditions_id is not None:
+        if analysis_settings is not None or analysis_backend is None:
+            raise ValueError('Saved conditions require an analysis backend and no competing settings')
+        from .campaign_conditions import freeze
+        template, analysis_settings, conditions_raw = freeze(
+            lab, conditions_id, study_id=study_id, backend=backend, model=model,
+            analysis_backend=analysis_backend)
     if engine not in lab.optimization_adapters:
         raise CapabilityUnavailable(f"No executable optimization engine for {engine}")
     if ((analysis_backend is None) != (analysis_settings is None) or
@@ -124,12 +133,16 @@ def plan_optimization(lab, *, study_id, campaign_id, backend, model, parameter_i
                                "invalid_metric": "UNUSABLE", "failed_execution": "STOP",
                                "missing_feedback": "INTERNAL_INFINITY_ONLY",
                                "restart": "DETERMINISTIC_EXACT_EVALUATION_REPLAY"}, "created_utc": utc_now()}
+    if template is not None:
+        plan['analysis']['conditions_template'] = template
     _verify_sources(lab, plan, registry)
     validate_schema("optimization-plan", plan)
     canonical_hash(plan)
     folder.mkdir(parents=True, exist_ok=False)
     save_json(folder / "plan.json", plan)
     save_json(folder / "registry_snapshot.json", registry)
+    if conditions_raw is not None:
+        (folder / 'analysis_conditions_template.json').write_bytes(conditions_raw)
     save_json(ledger_path, {"campaign_id": campaign_id, "plan_sha256": _sha(folder / "plan.json"),
                             "registry_sha256": _sha(folder / "registry_snapshot.json"), "created_utc": utc_now()})
     return plan
@@ -200,6 +213,8 @@ def _plan(lab, identifier):
         raise ValueError("Optimization plan or registry snapshot hash mismatch")
     plan = load_json(folder / "plan.json")
     validate_schema("optimization-plan", plan)
+    from .campaign_conditions import verify
+    verify(plan, folder)
     snapshot = load_json(folder / "registry_snapshot.json")
     if (plan["campaign_id"] != identifier or canonical_hash(snapshot) != plan["registry_sha256"] or
             snapshot["revision"] != plan["registry_revision"]):
@@ -247,12 +262,18 @@ def _experiment(lab, plan, item, analysis, allow_run, verified=None):
                     proposal.get("parent_experiment_id") != item["cad_experiment_id"] or
                     proposal["physics"]["backend"] != expected_backend):
                 raise ValueError("Optimization solver child has the wrong parent/backend")
+            from .campaign_conditions import verify_child
+            verify_child(plan, item, folder, result)
         elif proposal["model"]["geometry"] != {"backend": plan["backend"], "source": plan["model"]}:
             raise ValueError("Optimization CAD model changed")
         return result
     if not allow_run:
         raise ValueError("Optimization journal references a missing experiment")
     if analysis:
+        if plan['analysis'].get('conditions_template') is not None:
+            from .campaign_conditions import bind
+            return lab.run_analysis(parent_experiment_id=item['cad_experiment_id'], experiment_id=identifier,
+                                    backend=plan['analysis']['backend'], conditions_id=bind(lab, plan, item))
         return lab.run_analysis(parent_experiment_id=item["cad_experiment_id"], experiment_id=identifier,
                                 backend=plan["analysis"]["backend"], settings=plan["analysis"]["settings"])
     return lab.run_experiment(study_id=plan["study_id"], experiment_id=identifier, backend=plan["backend"],

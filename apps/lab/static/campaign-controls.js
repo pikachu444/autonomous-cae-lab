@@ -162,7 +162,96 @@
         "0.0065 mm는 과거 가상 비교용 기준이며 실제 지그의 허용 변위나 제작 승인이 아닙니다. 기존 메시 추세·반력 검사는 유지합니다.",
     };
   }
-  const api = { validateDiscovery, eligibleModelEntries, modelPlanArguments, fixtureOptimizationDefaults };
+  function requireValue(condition, message) { if (!condition) throw new Error(message); }
+  function savedCondition(record) {
+    requireValue(mapping(record) && jsonValue(record) && typeof record.id === "string" && storeId.test(record.id) &&
+      mapping(record.source) && mapping(record.request) && record.request.conditions_id === record.id &&
+      record.request.experiment_id === record.source.experiment_id && record.request.cad_revision === record.source.cad_revision &&
+      record.request.catalog_revision === record.catalog_revision &&
+      [record.source.cad_revision, record.source.result_sha256, record.source.proposal_sha256, record.source.thread_sha256,
+        record.conditions_revision, record.catalog_revision].every(digest) &&
+      typeof record.source.experiment_id === "string" && storeId.test(record.source.experiment_id) &&
+      typeof record.source.study_id === "string" && storeId.test(record.source.study_id) && nonempty(record.source.backend) &&
+      mapping(record.request.declaration) && mapping(record.catalog) && record.engineering === "UNKNOWN" && record.decision === "NOT_RELEASED",
+    "저장 조건의 CAD·연구·개정·원본 해시와 미승인 상태를 확인할 수 없습니다.");
+    requireValue(record.support?.status === "SUPPORTED_DECLARED_INPUTS" && record.support.native_runtime === "NOT_CHECKED" &&
+      mapping(record.adapter_binding) && record.adapter_binding.backend === record.request.backend &&
+      mapping(record.adapter_binding.settings) && nonempty(record.request.backend),
+    "이 모델·조건의 서버 지원 판정이 필요합니다. 다른 설정이나 해석 경로로 대체하지 않습니다.");
+    return record;
+  }
+  function nativeAnchor(entry) {
+    return mapping(entry) && mapping(entry.native) && nonempty(entry.native.backend) && nonempty(entry.native.document) &&
+      nonempty(entry.native.object) && nonempty(entry.native.path) && digest(entry.source_sha256) && nonempty(entry.unit) &&
+      typeof entry.parameter_id === "string" && inputId.test(entry.parameter_id) &&
+      entry.mode === "free" && entry.kind === "continuous" && entry.geometry_effect?.status === "PASS";
+  }
+  function sameAnchor(entry, original) {
+    return nativeAnchor(entry) && nativeAnchor(original) && entry.parameter_id === original.parameter_id &&
+      entry.source_sha256 === original.source_sha256 && entry.unit === original.unit &&
+      JSON.stringify(Object.entries(entry.native).sort()) === JSON.stringify(Object.entries(original.native).sort());
+  }
+  function conditionContext(selection, context) {
+    requireValue(mapping(context) && jsonValue(context) && nonempty(context.store) && Array.isArray(context.entries) &&
+      selection.store === context.store && selection.studyId === context.studyId && selection.backend === context.backend &&
+      selection.model === context.model && context.studyId === selection.record.source.study_id,
+    "저장 조건의 저장소·연구·CAD 모델이 현재 탐색 대상과 다릅니다. 같은 원본 조건을 다시 연결하세요.");
+    const eligible = context.entries.filter(entry => selection.sourceEntries.some(original => sameAnchor(entry, original)));
+    requireValue(eligible.length > 0, "조건의 원 CAD와 같은 네이티브 문서·소스에 등록된 자유 변수가 필요합니다.");
+    return eligible;
+  }
+  function conditionSelection(record, inspection, context) {
+    savedCondition(record);
+    requireValue(mapping(inspection) && jsonValue(inspection) && inspection.integrity === "VERIFIED" &&
+      mapping(inspection.result) && mapping(inspection.proposal) && mapping(inspection.hashes) &&
+      inspection.result.experiment_id === record.source.experiment_id && inspection.result.study?.id === record.source.study_id &&
+      inspection.result.cad_revision === record.source.cad_revision && inspection.result.provenance?.adapter === record.source.backend &&
+      inspection.result.solver_status === "NOT_RUN" && inspection.result.status === "COMPLETED_REVIEW_REQUIRED" &&
+      ["result_sha256", "proposal_sha256", "thread_sha256"].every(key => inspection.hashes[key] === record.source[key]) &&
+      inspection.proposal.id === record.source.experiment_id && inspection.proposal.study_id === record.source.study_id &&
+      inspection.proposal.model?.geometry?.backend === context?.backend && inspection.proposal.model.geometry.source === context?.model &&
+      context?.backend === record.source.backend && context?.studyId === record.source.study_id,
+    "조건이 가리키는 VERIFIED 원 CAD의 모델·개정·저장 문서 해시가 현재 선택과 일치해야 합니다.");
+    const sourceEntries = listEntries(inspection.registry_snapshot?.entries).filter(entry => nativeAnchor(entry) && entry.native.backend === record.source.backend &&
+      mapping(inspection.proposal.parameters) && own(inspection.proposal.parameters, entry.parameter_id));
+    requireValue(sourceEntries.length > 0 && new Set(sourceEntries.map(entry => entry.native.document)).size === 1,
+      "원 CAD의 등록부에서 하나의 네이티브 모델 문서와 형상 효과를 확인할 수 없습니다.");
+    const selection = { store: context.store, studyId: record.source.study_id, backend: context.backend, model: context.model,
+      record: cloneJson(record), sourceEntries: cloneJson(sourceEntries) };
+    conditionContext(selection, context);
+    return selection;
+  }
+  function listEntries(value) { return Array.isArray(value) ? value : []; }
+  function equalJson(left, right) {
+    if (Object.is(left, right)) return true;
+    if (Array.isArray(left) || Array.isArray(right)) return Array.isArray(left) && Array.isArray(right) &&
+      left.length === right.length && left.every((value, index) => equalJson(value, right[index]));
+    return mapping(left) && mapping(right) && Object.keys(left).length === Object.keys(right).length &&
+      Object.keys(left).every(key => own(right, key) && equalJson(left[key], right[key]));
+  }
+  function conditionPlanArguments(selection, context, parameterIds) {
+    requireValue(mapping(selection) && jsonValue(selection) && Array.isArray(selection.sourceEntries), "현재 검증한 저장 조건을 먼저 연결하세요.");
+    const record = savedCondition(selection.record), entries = conditionContext(selection, context);
+    requireValue(Array.isArray(parameterIds) && parameterIds.length > 0 && new Set(parameterIds).size === parameterIds.length &&
+      parameterIds.every(name => entries.some(entry => entry.parameter_id === name)),
+    "원 CAD와 같은 네이티브 문서·소스에서 등록된 자유 변수만 선택할 수 있습니다.");
+    // Core performs Domain admission and exact selection rebinding for each new revision.
+    return { conditions_id: record.id, analysis_backend: record.request.backend };
+  }
+  function conditionTemplate(plan) {
+    requireValue(mapping(plan) && jsonValue(plan) && mapping(plan.analysis) && mapping(plan.analysis.conditions_template),
+      "이 계획에는 고정한 저장 CAD 조건이 없습니다.");
+    const template = plan.analysis.conditions_template, reference = template.reference, record = savedCondition(template.record);
+    requireValue(template.rebind_policy === "REVISION_REBIND_EXACT_SELECTIONS" && mapping(reference) && reference.id === record.id &&
+      reference.revision === record.conditions_revision && reference.catalog_revision === record.catalog_revision &&
+      digest(reference.record_sha256) && digest(template.record_canonical_sha256) && reference.scope === "USER_DECLARED_UNVERIFIED" &&
+      plan.study_id === record.source.study_id && plan.backend === record.source.backend &&
+      plan.analysis.backend === record.request.backend && equalJson(plan.analysis.settings, record.adapter_binding.settings),
+    "고정한 조건 참조·연구·CAD 경로와 정확한 선택 재연결 정책이 일치하지 않습니다.");
+    return template;
+  }
+  const api = { validateDiscovery, eligibleModelEntries, modelPlanArguments, fixtureOptimizationDefaults,
+    conditionSelection, conditionPlanArguments, conditionTemplate };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.campaignControls = api;
 })(typeof window !== "undefined" ? window : globalThis);

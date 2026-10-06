@@ -18,6 +18,9 @@ const state = {
   researchPurposeDraft: {},
   comparisonResearchDraft: "",
   comparisonResearchPrefix: "",
+  campaignConditions: { selection: null, request: 0, loading: false, error: "" },
+  campaignResearchSelection: { key: "", indexes: new Set() },
+  campaignResearchDraft: "", campaignResearchPrefix: "",
   observationRequest: 0,
   observationId: "",
   nativeImportRequest: 0, nativeFileSelection: 0,
@@ -453,6 +456,7 @@ function updateControls() {
   document.querySelectorAll("[data-experiment-draft]").forEach((item) => { item.disabled = blocked || !available(item.dataset.experimentDraft); });
   if (!observationReady()) $("observationSaveBtn").disabled = true;
   updateAnalysisConditionsControls();
+  updateCampaignConditionsControls();
   updateResearchControls();
 }
 
@@ -828,7 +832,7 @@ function renderCampaignVariables() {
   const model = isModelCampaign();
   const key = model ? state.modelContext : JSON.stringify([activeStore(), state.studyId, $("cadBackend").value, $("cadModel").value.trim()]);
   const selected = state.campaignSelections.get(key);
-  const free = model ? modelCampaignEntries() : selectedEntries().filter((entry) => entry.mode === "free" && entry.kind === "continuous" && entry.geometry_effect?.status === "PASS");
+  const free = model ? modelCampaignEntries() : campaignCadEntries();
   const variables = clear("campaignVariables");
   state.campaignSelectionKey = key;
   variables.classList.toggle("empty-state", !free.length);
@@ -1180,10 +1184,153 @@ function fixtureSimulationSettings() {
   }
   return $("fixtureConditionFields").hidden ? settings : window.fixtureControls.validate(settings);
 }
+function campaignConditionsEnabled() { return Boolean(window.campaignControls?.conditionSelection && $("campaignAnalysisSource")); }
+function usesSavedCampaignConditions() { return campaignConditionsEnabled() && !isModelCampaign() && $("campaignAnalysisSource").value === "saved"; }
+function campaignCadEntries() {
+  if (!usesSavedCampaignConditions()) return selectedEntries().filter(entry => entry.mode === "free" && entry.kind === "continuous" && entry.geometry_effect?.status === "PASS");
+  if (!campaignConditionsCurrent()) return [];
+  return list(state.registry?.entries).filter(entry => {
+    try { window.campaignControls.conditionPlanArguments(state.campaignConditions.selection, campaignConditionContext(), [entry.parameter_id]); return true; }
+    catch { return false; }
+  });
+}
+function campaignConditionContext() {
+  return { store: activeStore(), studyId: state.studyId, backend: $("cadBackend").value, model: $("cadModel").value.trim(), entries: list(state.registry?.entries) };
+}
+function campaignConditionSource() {
+  if (!analysisConditionsEnabled() || !currentAnalysisConditionsCatalog() || state.analysisConditions.loading ||
+      !state.analysisConditions.record || state.analysisConditions.recordDraft !== JSON.stringify(analysisConditionsFields()))
+    throw new Error("해석 화면에서 현재 CAD의 보존 조건을 다시 여세요. 편집한 조건은 새 ID로 먼저 저장하세요.");
+  const record = window.analysisConditionsControls.saved({ integrity: "VERIFIED", record: state.analysisConditions.record }, state.analysisConditions.catalog);
+  if (record.support.status !== "SUPPORTED_DECLARED_INPUTS") throw new Error("이 모델·조건은 서버 지원 판정이 없어 탐색 해석에 연결할 수 없습니다.");
+  return record;
+}
+function campaignConditionSignature() {
+  return JSON.stringify([analysisConditionsEnabled() ? analysisConditionsCapture(true) : null,
+    state.analysisConditions.record?.id, state.analysisConditions.record?.conditions_revision, campaignConditionContext()]);
+}
+function campaignConditionsCurrent() {
+  const selection = state.campaignConditions.selection;
+  if (!selection || state.storeSwitching || isModelCampaign()) return false;
+  try {
+    const source = campaignConditionSource();
+    if (source.id !== selection.record.id || source.conditions_revision !== selection.record.conditions_revision ||
+        selection.sourceKey !== campaignConditionSignature()) return false;
+    window.campaignControls.conditionPlanArguments(selection, campaignConditionContext(), [selection.sourceEntries[0].parameter_id]);
+    return true;
+  } catch { return false; }
+}
+function campaignConditionsMessage(message = "") {
+  state.campaignConditions.error = message;
+  if (!campaignConditionsEnabled()) return;
+  $("campaignConditionsError").textContent = message; $("campaignConditionsError").hidden = !message;
+}
+function withdrawCampaignConditions(message = "CAD·연구·저장소 또는 보존 조건이 바뀌었습니다. 같은 원 CAD를 확인해 다시 연결하세요.") {
+  state.campaignConditions.request++; state.campaignConditions.loading = false; state.campaignConditions.selection = null;
+  if (!campaignConditionsEnabled()) return;
+  campaignConditionsMessage(message); renderCampaignConditionsSummary();
+}
+function renderCampaignConditionsSummary() {
+  if (!campaignConditionsEnabled()) return;
+  const target = clear("campaignConditionsSummary"), selection = state.campaignConditions.selection;
+  if (!selection) { target.append(el("p", "같은 원 CAD의 지원되는 저장 조건을 연결하세요. 저장 조건 모드에서는 연결 전 계획을 저장할 수 없습니다.", "hint")); return; }
+  const record = selection.record;
+  target.append(el("strong", `저장 조건 ${record.id}`), el("p", `원 CAD ${record.source.experiment_id} · ${selection.backend} / ${selection.model}`),
+    el("p", `CAD 개정 ${record.source.cad_revision}`, "mono"), badge("VERIFIED"), badge("UNKNOWN", "공학 자격 UNKNOWN"), badge("NOT_RELEASED"));
+  window.comparisonResearch.declarationLines(record.request.declaration).forEach(line => target.append(el("p", line, "hint")));
+  target.append(el("p", `${record.request.backend} · 서버 판정 ${record.support.status} · native runtime NOT_CHECKED`, "hint"),
+    el("p", "같은 대상 선택을 새 CAD 개정에 다시 확인합니다. 재료·하중·구속의 선언은 USER_DECLARED_UNVERIFIED입니다.", "hint"));
+}
+function updateCampaignConditionsControls() {
+  if (!campaignConditionsEnabled()) return;
+  const conditions = state.campaignConditions, saved = usesSavedCampaignConditions();
+  if (conditions.selection && !campaignConditionsCurrent()) withdrawCampaignConditions();
+  $("campaignSavedConditions").hidden = !saved; $("campaignLegacyAnalysis").hidden = saved;
+  if (saved) $("fixtureCampaignNote").hidden = true;
+  let sourceReady = false;
+  try { campaignConditionSource(); sourceReady = true; } catch { /* Explicit action explains the missing source. */ }
+  const blocked = !writable() || busy() || conditions.loading || !state.studyId;
+  $("campaignUseConditionsBtn").disabled = blocked || !sourceReady || isModelCampaign();
+  if ($("analysisConditionsExploreBtn")) $("analysisConditionsExploreBtn").disabled = blocked || !sourceReady;
+  if (saved && (blocked || !campaignConditionsCurrent())) $("campaignPlanBtn").disabled = true;
+  document.querySelectorAll("[data-campaign-research]").forEach(item => {
+    item.disabled = busy() || !writable() || activeStore() !== "local" || !campaignViewCurrent(state.selectedCampaign) || item.dataset.ready !== "true";
+  });
+  document.querySelectorAll("[data-campaign-candidate]").forEach(item => { item.disabled = viewBusy() || !campaignViewCurrent(state.selectedCampaign); });
+  document.querySelectorAll("[data-campaign-run]").forEach(item => { item.disabled ||= !campaignViewCurrent(state.selectedCampaign); });
+  document.querySelectorAll("[data-campaign-result]").forEach(item => { item.disabled = viewBusy() || !campaignViewCurrent(state.selectedCampaign); });
+}
+async function prepareCampaignConditions(navigate = false) {
+  if (!campaignConditionsEnabled() || busy() || !writable() || state.campaignConditions.loading) return;
+  const conditions = state.campaignConditions;
+  let record, sourceKey;
+  try { record = campaignConditionSource(); sourceKey = campaignConditionSignature(); }
+  catch (error) { campaignConditionsMessage(error.message); if (navigate) notify(error.message); return; }
+  if (isModelCampaign()) { $("campaignTarget").value = "cad"; campaignTargetChanged(); }
+  const draft = campaignFormSignature(), request = ++conditions.request;
+  const current = () => !state.storeSwitching && request === conditions.request && sourceKey === campaignConditionSignature() && !isModelCampaign() && draft === campaignFormSignature();
+  conditions.loading = true; conditions.selection = null; campaignConditionsMessage(); updateControls();
+  try {
+    const inspection = await api(`/api/experiments/${idPath(record.source.experiment_id)}`);
+    if (!current()) return;
+    const selection = window.campaignControls.conditionSelection(record, inspection, campaignConditionContext());
+    conditions.selection = { ...selection, sourceKey }; $("campaignAnalysisSource").value = "saved";
+    renderCampaignConditionsSummary(); renderCampaignVariables();
+    if (navigate) { location.hash = "explore"; showArea("explore"); }
+    notify("원 CAD·등록 변수와 저장 조건을 탐색 계획에 연결했습니다. 계획을 저장한 뒤 실행하세요.", true);
+  } catch (error) { if (current()) { campaignConditionsMessage(error.message); if (navigate) notify(error.message); } }
+  finally { if (request === conditions.request) { conditions.loading = false; updateControls(); } }
+}
+function campaignFormSignature() {
+  const ids = ["campaignTarget", "campaignType", "campaignId", "campaignSeed", "campaignSamples", "objectiveSource", "objectiveMetric", "objectiveUnit", "objectiveDirection",
+    "optimizationConstraints", "optimizationInitial", "optimizationRequired", "optimizationGenerations", "optimizationPopulation", "campaignAnalysisSource", "campaignAnalysis", "campaignAnalysisSettings", "modelCampaignPreset", "modelCampaignSettings"];
+  return JSON.stringify([activeStore(), state.studyId, state.storeSwitching, $("cadBackend").value, $("cadModel").value, $("nativeModelId").value,
+    ids.map(id => $(id)?.value ?? ""), [...document.querySelectorAll("[data-campaign-variable]:checked")].map(input => input.value),
+    state.registry, usesSavedCampaignConditions() ? campaignConditionSignature() : null]);
+}
+function campaignArguments() {
+  const model = isModelCampaign();
+  const args = { study_id: state.studyId, campaign_id: $("campaignId").value.trim(), parameter_ids: [...document.querySelectorAll("[data-campaign-variable]:checked")].map(input => input.value), seed: numeric("campaignSeed") };
+  if (!model) { args.backend = $("cadBackend").value; args.model = $("cadModel").value.trim(); }
+  if (!args.parameter_ids.length) throw new Error("등록된 자유 변수를 하나 이상 선택하세요.");
+  if (usesSavedCampaignConditions()) {
+    if (!campaignConditionsCurrent()) throw new Error("원 CAD·현재 등록 변수와 검증한 저장 조건을 다시 연결하세요. 직접 설정으로 대체하지 않습니다.");
+    Object.assign(args, window.campaignControls.conditionPlanArguments(state.campaignConditions.selection, campaignConditionContext(), args.parameter_ids));
+  } else if (!model && $("campaignAnalysis").value) {
+    if (!window.cadControls.supportsBackend(state.presets.structural_linear, args.backend)) throw new Error("현재 CAD 모델에 연결된 후속 구조 해석이 없습니다. CAD만 실행할 수 있습니다.");
+    args.analysis_backend = state.presets.structural_linear.backend; args.analysis_settings = parseField("campaignAnalysisSettings", "object");
+  }
+  if ($("campaignType").value === "optimization") {
+    args.objective = { source: $("objectiveSource").value, metric: $("objectiveMetric").value.trim(), unit: $("objectiveUnit").value.trim(), direction: $("objectiveDirection").value };
+    args.constraints = parseField("optimizationConstraints", "array"); args.initial_values = parseField("optimizationInitial", "nullable-object"); args.required_validations = parseField("optimizationRequired", "object");
+    args.max_generations = numeric("optimizationGenerations"); args.population_size = numeric("optimizationPopulation"); args.engine = "scipy.differential_evolution";
+  } else { args.sample_count = numeric("campaignSamples"); args.engine = "scipy.latin_hypercube"; }
+  if (model) {
+    if (!currentModelDiscovery() || $("campaignType").value !== "optimization") throw new Error("선언한 모델 입력은 현재 설정의 변수 발견을 거친 최적화 계획으로 실행합니다.");
+    const context = modelContext();
+    return window.campaignControls.modelPlanArguments(args, { backend: context.backend, settings: context.settings, entries: modelCampaignEntries() });
+  }
+  return args;
+}
+async function submitCampaignPlan() {
+  if (!writable() || busy() || state.campaignConditions.loading) return;
+  const signature = campaignFormSignature(), current = () => !state.storeSwitching && campaignFormSignature() === signature;
+  try {
+    const args = campaignArguments(), operation = campaignOperation();
+    await runJob(operation, args, async () => {
+      if (!current()) return;
+      await inspectCampaign(args.campaign_id, current);
+      if (!current()) return;
+      $("campaignId").value = makeId($("campaignType").value === "optimization" ? "C-opt" : "C-doe");
+      notify("고정한 탐색 계획을 저장했습니다. 원 조건과 후보 범위를 확인한 뒤 실행하거나 연구 질문에 연결하세요.", true);
+    }, current);
+  } catch (error) { if (current()) notify(error.message); }
+}
 function campaignOperation() { return isModelCampaign() ? "model_optimization_plan" : $("campaignType").value === "optimization" ? "optimization_plan" : "doe_plan"; }
 function applyFixtureCampaignDefaults() {
   const note = $("fixtureCampaignNote"), previous = state.fixtureCampaignDefaults;
   if (isModelCampaign()) { note.hidden = true; return; }
+  if (usesSavedCampaignConditions()) { note.hidden = true; return; }
   const enabled = Boolean($("campaignAnalysis").value);
   $("campaignAnalysisDetails").hidden = !enabled;
   note.hidden = !enabled;
@@ -1238,22 +1385,66 @@ function renderCampaignList() {
     card.append(textBlock, action("계획·기록 열기", () => inspectCampaign(row.id))); container.append(card);
   });
 }
-async function inspectCampaign(identifier) {
-  const request = ++state.campaignRequest, store = activeStore(); const container = clear("campaignDetail");
+async function inspectCampaign(identifier, stillCurrent = () => true) {
+  if (!stillCurrent() || state.storeSwitching) return;
+  const request = ++state.campaignRequest, store = activeStore(), studyId = state.studyId;
+  const current = () => request === state.campaignRequest && store === activeStore() && studyId === state.studyId && !state.storeSwitching && stillCurrent();
+  state.selectedCampaign = null; const container = clear("campaignDetail");
   container.append(el("p", "계획과 journal을 검사하고 있습니다…", "hint"));
   try {
     const data = await api(`/api/campaigns/${idPath(identifier)}`);
-    if (request !== state.campaignRequest || store !== activeStore()) return;
-    state.selectedCampaign = { id: identifier, ...data }; renderCampaignDetail();
-  } catch (error) { if (request === state.campaignRequest) { clear(container).append(el("p", `기록 확인 실패: ${error.message}`, "metric-reason")); } throw error; }
+    if (!current()) return;
+    const plan = data.plan ?? data.record?.plan ?? data.record;
+    if (!data.record || !plan || plan.campaign_id !== identifier || !["optimization", "doe"].includes(data.type)) throw new Error("서버가 요청한 고정 계획의 식별자를 확인하지 않았습니다.");
+    state.selectedCampaign = { ...data, id: identifier, plan, viewStore: store, viewStudy: studyId, viewRequest: request }; renderCampaignDetail();
+  } catch (error) { if (!current()) return; clear(container).append(el("p", `기록 확인 실패: ${error.message}`, "metric-reason")); throw error; }
 }
 function experimentButton(identifier, label = identifier) {
   if (!identifier) return el("span", "—", "hint");
   return action(label, async () => { location.hash = "results"; await inspectExperiment(identifier); }, "record-id");
 }
+function campaignViewCurrent(data) {
+  return Boolean(data && state.selectedCampaign === data && data.viewStore === activeStore() && !state.storeSwitching &&
+    data.viewStudy === state.studyId && data.viewRequest === state.campaignRequest && data.plan?.study_id === state.studyId && data.conditionsVerified !== false);
+}
+function campaignResultButton(data, row, kind) {
+  const key = kind === "cad" ? "cad" : kind === "model" ? "model" : "analysis", identifier = row[`${key}_experiment_id`], digest = row[`${key}_result_sha256`];
+  if (!identifier || !/^[0-9a-f]{64}$/.test(digest ?? "")) return el("span", identifier ? `${identifier} · 실제 결과 확인 전` : "—", "hint");
+  const current = () => campaignViewCurrent(data);
+  const button = action(identifier, () => {
+    if (!current() || viewBusy()) return;
+    return inspectExperiment(identifier, current, { resultSha256: digest, studyId: data.plan.study_id,
+      ...(key === "analysis" ? { parentId: row.cad_experiment_id } : {}) });
+  }, "record-id");
+  button.dataset.campaignResult = ""; button.disabled = !current() || viewBusy(); return button;
+}
+function campaignResearchRows(data) {
+  const plan = data.plan, record = data.record, model = (record.route ?? plan.route) === "model_analysis";
+  return list(record.evaluations ?? record.samples).filter(row => row.decision === "NOT_RELEASED" && Number.isSafeInteger(row.index) && row.index >= 0 &&
+    (model ? row.model_experiment_id && /^[0-9a-f]{64}$/.test(row.model_result_sha256 ?? "") : row.cad_experiment_id && /^[0-9a-f]{64}$/.test(row.cad_result_sha256 ?? "") &&
+      (!plan.analysis || row.analysis_experiment_id && /^[0-9a-f]{64}$/.test(row.analysis_result_sha256 ?? ""))));
+}
+function prepareCampaignResearch(data, indexes = [...state.campaignResearchSelection.indexes]) {
+  if (!campaignViewCurrent(data) || busy() || activeStore() !== "local" || !writable()) throw new Error("같은 작업 저장소·연구의 캠페인을 다시 연 뒤 질문에 연결하세요.");
+  if (data.plan.analysis?.conditions_template) window.campaignControls.conditionTemplate(data.plan);
+  const draft = window.comparisonResearch.campaignDraft(data, state.studyId, indexes);
+  const previous = $("researchQuestion").value, prefix = previous === state.campaignResearchDraft ? state.campaignResearchPrefix : previous;
+  const question = prefix.trim() ? `${prefix}\n\n${draft.question}` : draft.question;
+  window.researchControls.request(question);
+  $("researchQuestion").value = question; state.campaignResearchDraft = question; state.campaignResearchPrefix = prefix;
+  state.researchSession = null; $("researchContinue").checked = false;
+  location.hash = "research"; showArea("research"); updateResearchControls(); $("researchQuestion").focus?.();
+  notify(draft.intent === "RUN_SAVED_OPTIMIZATION" ? "저장한 계획 하나의 실행을 요청하는 질문을 준비했습니다. 연결 범위를 확인하고 직접 질문을 보내세요." : "선택한 실제 후보와 고정 조건을 해석할 질문을 준비했습니다. 편집 후 직접 질문을 보내세요.", true);
+  return draft;
+}
 function renderCampaignDetail() {
   const data = state.selectedCampaign; if (!data) return;
-  const container = clear("campaignDetail"), record = data.record, plan = record.plan ?? record;
+  const container = clear("campaignDetail"), record = data.record, plan = data.plan;
+  data.conditionsVerified = true;
+  if (plan.analysis?.conditions_template) {
+    try { window.campaignControls.conditionTemplate(plan); }
+    catch { data.conditionsVerified = false; }
+  }
   container.append(el("h3", data.id, "mono"));
   const summary = el("div", undefined, "campaign-summary"); summary.append(badge(record.status), badge(record.decision ?? "NOT_RELEASED"));
   if (record.termination) summary.append(el("p", `종료: ${labels[record.termination.termination_reason] ?? record.termination.termination_reason} · ${record.termination.generations}세대 · ${record.termination.evaluation_count}개 평가`));
@@ -1261,23 +1452,64 @@ function renderCampaignDetail() {
   const algorithm = record.algorithm ?? plan.algorithm;
   if (algorithm) summary.append(el("p", `${algorithm.engine} ${algorithm.version} · seed ${algorithm.seed}`, "mono"));
   container.append(summary);
+  if (!campaignViewCurrent(data)) container.append(el("p", "이 기록의 연구를 선택한 뒤 실행·결과·질문 연결을 사용하세요.", "hint"));
+  if (plan.analysis?.conditions_template) {
+    try {
+      const template = window.campaignControls.conditionTemplate(plan), source = template.record.source;
+      const frozen = el("section", undefined, "context-readout separated");
+      frozen.append(el("h3", `고정 조건 ${template.reference.id}`), el("p", `원 CAD ${source.experiment_id} · CAD 개정 ${source.cad_revision}`, "mono"));
+      window.comparisonResearch.declarationLines(template.record.request.declaration).forEach(line => frozen.append(el("p", line, "hint")));
+      frozen.append(el("p", "서버 지원 선언 · native runtime NOT_CHECKED · USER_DECLARED_UNVERIFIED · 공학 자격 UNKNOWN · NOT_RELEASED", "hint"),
+        el("p", "후보 개정마다 동일한 선택·좌표계 의미를 다시 확인하고 새 조건을 보존합니다. 실제 자식 결과에서 해당 개정의 동결 조건을 확인하세요.", "hint"), rawDetail("고정한 원 조건·선택 재연결 정책·참조 해시", template));
+      container.append(frozen);
+    } catch (error) { container.append(el("p", `고정 조건 확인 실패: ${error.message}`, "metric-reason")); }
+  }
   const operation = data.type === "optimization" ? "optimization_run" : "doe_run";
-  const button = action("계획 실행 / 이어가기", () => runJob(operation, { campaign_id: data.id }, () => inspectCampaign(data.id)), "button primary compact");
-  button.dataset.operation = operation; container.append(button);
+  const current = () => campaignViewCurrent(data);
+  const button = action("계획 실행 / 이어가기", async () => {
+    if (!current() || busy() || !writable()) return;
+    try { await runJob(operation, { campaign_id: data.id }, () => current() ? inspectCampaign(data.id, () => data.viewStore === activeStore() && data.viewStudy === state.studyId && !state.storeSwitching) : undefined, current); }
+    catch (error) { if (current()) throw error; }
+  }, "button primary compact");
+  button.dataset.operation = operation; button.dataset.campaignRun = ""; container.append(button);
   const rows = list(record.evaluations ?? record.samples ?? plan.samples);
   const model = (record.route ?? plan.route) === "model_analysis";
   if (model) container.append(el("p", `${typeof plan.backend === "string" ? plan.backend : "선언한 모델 입력의 수치 탐색"} · 물리적 자격 UNKNOWN`, "hint"));
-  if (rows.length) container.append(table(model ? ["후보 / 연구 변수", "모델 해석", "판정"] : ["후보 / 연구 변수", "CAD", "해석", "판정"], rows.map((row) => {
+  const actual = campaignResearchRows(data), selectionKey = JSON.stringify([data.viewStore, plan.study_id, data.id]);
+  if (state.campaignResearchSelection.key !== selectionKey) state.campaignResearchSelection = { key: selectionKey, indexes: new Set(actual.length <= 12 ? actual.map(row => row.index) : []) };
+  else state.campaignResearchSelection.indexes = new Set([...state.campaignResearchSelection.indexes].filter(index => actual.some(row => row.index === index)));
+  const handoff = action(record.status === "PLANNED" && data.type === "optimization" ? "이 저장 계획 실행을 AI 질문에 준비" : "선택한 실제 후보를 연구 질문에 연결", () => prepareCampaignResearch(data), "button secondary compact");
+  handoff.dataset.campaignResearch = "";
+  const ready = () => {
+    try { window.comparisonResearch.campaignDraft(data, plan.study_id, [...state.campaignResearchSelection.indexes]); return true; } catch { return false; }
+  };
+  handoff.dataset.ready = String(ready());
+  const researchNote = el("p", "실제 결과가 있는 후보 최대 12개를 질문에 연결합니다. 실패·미확인 기록과 기존 질문은 보존합니다. 질문은 편집 후 직접 보내며 승인된 연결 범위에서 실행됩니다.", "hint separated");
+  if (data.type === "doe") researchNote.append(el("span", " DOE 실행은 위의 사람이 조작하는 실행 버튼을 사용하세요. 현재 승인 AI 범위에 DOE 실행을 추가하지 않습니다."));
+  container.append(handoff, researchNote);
+  if (rows.length) container.append(table(model ? ["질문", "후보 / 연구 변수", "모델 해석", "판정"] : ["질문", "후보 / 연구 변수", "CAD", "해석", "판정"], rows.slice(0, 512).map((row) => {
+    const choose = el("div");
+    if (actual.some(candidate => candidate.index === row.index)) {
+      const input = el("input"); input.type = "checkbox"; input.checked = state.campaignResearchSelection.indexes.has(row.index);
+      input.dataset.campaignCandidate = ""; input.setAttribute("aria-label", `후보 ${row.index} 실제 결과를 연구 질문에 포함`);
+      input.addEventListener("change", () => {
+        if (!current()) return;
+        if (input.checked && state.campaignResearchSelection.indexes.size >= 12) { input.checked = false; notify("연구 질문에는 최대 12개 실제 후보를 선택하세요."); return; }
+        if (input.checked) state.campaignResearchSelection.indexes.add(row.index); else state.campaignResearchSelection.indexes.delete(row.index);
+        handoff.dataset.ready = String(ready()); updateControls();
+      }); choose.append(input);
+    } else choose.append(el("small", "실제 해석 확인 전"));
     const values = el("div", row.index ?? row.id ?? "후보"); values.append(el("small", text(row.values), "mono"));
-    const cad = el("div"); cad.append(experimentButton(row.cad_experiment_id, row.cad_experiment_id ?? "—"), el("small", row.cad_status ?? "계획됨"));
-    const analysis = el("div"); analysis.append(experimentButton(row.analysis_experiment_id), el("small", row.analysis_status ?? "미실행"));
+    const cad = el("div"); cad.append(campaignResultButton(data, row, "cad"), el("small", row.cad_status ?? "계획됨"));
+    const analysis = el("div"); analysis.append(campaignResultButton(data, row, "analysis"), el("small", row.analysis_status ?? "미실행"));
     const verdict = el("div"); if (typeof row.numerically_feasible === "boolean") verdict.append(badge(row.numerically_feasible ? "PASS" : "FAIL", row.numerically_feasible ? "수치 조건 충족" : "수치 조건 미충족"));
     verdict.append(el("small", `UNKNOWN ${list(row.unknown).length}개`));
-    if (model) { const result = el("div"); result.append(experimentButton(row.model_experiment_id), el("small", row.model_status ?? "미실행")); return [values, result, verdict]; }
-    return [values, cad, analysis, verdict];
+    if (model) { const result = el("div"); result.append(campaignResultButton(data, row, "model"), el("small", row.model_status ?? "미실행")); return [choose, values, result, verdict]; }
+    return [choose, values, cad, analysis, verdict];
   })));
   if (record.incumbent) container.append(rawDetail("현재 최선의 유효 후보 · optimum 승인 아님", record.incumbent));
-  container.append(rawDetail("고정한 계획·algorithm·journal 기록", record)); updateControls();
+  container.append(rawDetail("고정 계획 · 원 조건·algorithm·변수·예산", plan), rawDetail("실제 평가 · 실패·미확인·journal 기록", record)); updateControls();
+  button.disabled ||= !current();
 }
 
 function renderExperimentList() {
@@ -1300,7 +1532,7 @@ function renderExperimentList() {
   })));
   updateControls();
 }
-async function inspectExperiment(identifier, stillCurrent = () => true) {
+async function inspectExperiment(identifier, stillCurrent = () => true, expected = null) {
   if (!stillCurrent()) return;
   if (state.storeSwitching) throw new Error("저장소를 바꾸고 있습니다. 전환 후 기록을 열어 주세요.");
   if (!window.resultPresentation.safeExperimentId(identifier)) throw new Error("실험 식별자를 확인할 수 없습니다.");
@@ -1315,6 +1547,8 @@ async function inspectExperiment(identifier, stillCurrent = () => true) {
     const data = await api(`/api/experiments/${idPath(identifier)}`);
     if (request !== state.experimentRequest || store !== activeStore() || !stillCurrent()) return;
     if (data.integrity !== "VERIFIED" || data.result?.experiment_id !== identifier) throw new Error("서버가 요청한 기록의 식별자와 검증 완료를 확인하지 않았습니다.");
+    if (expected && (data.hashes?.result_sha256 !== expected.resultSha256 || data.result.study?.id !== expected.studyId ||
+        expected.parentId && data.result.parent_experiment_id !== expected.parentId)) throw new Error("후보의 보존 결과 해시·연구·CAD 부모가 고정한 캠페인 행과 다릅니다.");
     state.selectedExperiment = data; renderExperimentDetail(data); renderObservation(data);
     loadResponseHistories(data).catch(error => {
       if (state.selectedExperiment === data && store === activeStore() && stillCurrent()) notify(error.message);
@@ -2273,6 +2507,7 @@ async function switchStore(identifier) {
   // Invalidate pending parent/artifact reads before the server changes stores.
   state.storeSwitching = true; state.experimentRequest++; state.fixtureViewer?.destroy(); state.fixtureViewer = null; updateControls();
   invalidateAnalysisConditions();
+  withdrawCampaignConditions(); state.campaignRequest++;
   let overview;
   try { overview = await api("/api/store", { method: "POST", body: JSON.stringify({ id: identifier }) }); }
   catch (error) {
@@ -2338,32 +2573,21 @@ if (analysisConditionsEnabled()) {
     $(id).addEventListener(id === "cadBackend" ? "change" : "input", () => { invalidateAnalysisConditions(); updateControls(); });
   }
 }
+if (campaignConditionsEnabled()) {
+  $("campaignAnalysisSource").addEventListener("change", () => {
+    renderCampaignVariables();
+    try { applyFixtureCampaignDefaults(); } catch (error) { notify(error.message); }
+    updateControls();
+  });
+  $("campaignUseConditionsBtn").addEventListener("click", () => prepareCampaignConditions(false));
+  $("analysisConditionsExploreBtn").addEventListener("click", () => prepareCampaignConditions(true));
+}
 bindForm("observationForm", "response_comparison_save", observationArguments, completeObservation, observationSubmissionContext);
 $("observationResponse").addEventListener("change", changeObservationResponse);
 $("observationHistorySample").addEventListener("change", observationResponseNote);
 $("historyChannel").addEventListener("change", renderHistoryChannel);
 $("historySample").addEventListener("change", renderHistorySample);
-bindForm("campaignForm", campaignOperation, () => {
-  const model = isModelCampaign();
-  const args = { study_id: state.studyId, campaign_id: $("campaignId").value.trim(), parameter_ids: [...document.querySelectorAll("[data-campaign-variable]:checked")].map((input) => input.value), seed: numeric("campaignSeed") };
-  if (!model) { args.backend = $("cadBackend").value; args.model = $("cadModel").value.trim(); }
-  if (!args.parameter_ids.length) throw new Error("등록된 자유 변수를 하나 이상 선택하세요.");
-  if (!model && $("campaignAnalysis").value) {
-    if (!window.cadControls.supportsBackend(state.presets.structural_linear, args.backend)) throw new Error("현재 CAD 모델에 연결된 후속 구조 해석이 없습니다. CAD만 실행할 수 있습니다.");
-    args.analysis_backend = state.presets.structural_linear.backend; args.analysis_settings = parseField("campaignAnalysisSettings", "object");
-  }
-  if ($("campaignType").value === "optimization") {
-    args.objective = { source: $("objectiveSource").value, metric: $("objectiveMetric").value.trim(), unit: $("objectiveUnit").value.trim(), direction: $("objectiveDirection").value };
-    args.constraints = parseField("optimizationConstraints", "array"); args.initial_values = parseField("optimizationInitial", "nullable-object"); args.required_validations = parseField("optimizationRequired", "object");
-    args.max_generations = numeric("optimizationGenerations"); args.population_size = numeric("optimizationPopulation"); args.engine = "scipy.differential_evolution";
-  } else { args.sample_count = numeric("campaignSamples"); args.engine = "scipy.latin_hypercube"; }
-  if (model) {
-    if (!currentModelDiscovery() || $("campaignType").value !== "optimization") throw new Error("선언한 모델 입력은 현재 설정의 변수 발견을 거친 최적화 계획으로 실행합니다.");
-    const context = modelContext();
-    return window.campaignControls.modelPlanArguments(args, { backend: context.backend, settings: context.settings, entries: modelCampaignEntries() });
-  }
-  return args;
-}, async (_result, args) => { $("campaignId").value = makeId($("campaignType").value === "optimization" ? "C-opt" : "C-doe"); await inspectCampaign(args.campaign_id); notify("수치 후보의 계획을 저장했습니다. 계획을 검토한 뒤 실행하거나 이어가세요.", true); });
+$("campaignForm").addEventListener("submit", event => { event.preventDefault(); if (event.currentTarget.reportValidity()) submitCampaignPlan(); });
 
 $("discoverBtn").addEventListener("click", () => runJob("parameter_discover", { backend: $("cadBackend").value, model: $("cadModel").value.trim() }, renderDiscovery).catch((error) => notify(error.message)));
 $("registryRefreshBtn").addEventListener("click", () => runJob("registry_refresh", { study_id: state.studyId, backend: $("cadBackend").value, model: $("cadModel").value.trim() }, () => loadStudy(state.studyId)).catch((error) => notify(error.message)));
@@ -2389,6 +2613,7 @@ $("fixtureUseInCampaign").addEventListener("click", () => {
   try {
     const settings = fixtureSimulationSettings();
     if (isModelCampaign()) { $("campaignTarget").value = "cad"; campaignTargetChanged(); }
+    if (campaignConditionsEnabled()) $("campaignAnalysisSource").value = "legacy";
     $("campaignAnalysisSettings").value = pretty(settings); $("campaignAnalysis").value = "structural_linear";
     $("campaignAnalysis").dispatchEvent(new Event("change"));
     notify("같은 재료·하중·메시를 새 탐색 계획의 후속 해석 설정에 넣었습니다. 계획을 검토한 뒤 저장하세요.", true);

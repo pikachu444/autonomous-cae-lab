@@ -1,0 +1,220 @@
+{
+  "schema_version": 1,
+  "id": "20261006-condition-research-source-r01",
+  "recorded_utc": "2026-10-06T01:44:38.427764+00:00",
+  "unit": "G3/G4 frozen human conditions -> existing numerical campaigns -> same child context/report/research handoff and owned native command control",
+  "outcome": "PASS_SOURCE_BUNDLE_ACTUAL_PENDING",
+  "source": {
+    "core_commit": "8f3a76021eaa70ee8866acd1837d864a68648543",
+    "core_dirty": true,
+    "core_source_sha256": "b1be145f30af67c599460305ea6980b5c33204fca518f08521f87afbae541462"
+  },
+  "source_files": {
+    "caelab/campaign_conditions.py": {
+      "sha256": "7cca518e0df1e7ec74020d1e58b07a0fe5a057548d54de34b807a9c741879238",
+      "bytes": 8944
+    },
+    "caelab/campaign.py": {
+      "sha256": "5bba199070411759fe80b500e79c51cfe83e11f18383d014f0ed8a2a44c2ebf5",
+      "bytes": 20961
+    },
+    "caelab/optimization.py": {
+      "sha256": "2754a240a2d04cbb01e56956ada44a33a1656d0d47dabd5746fac991e7e8d4a7",
+      "bytes": 41265
+    },
+    "caelab/engine.py": {
+      "sha256": "790438f6f67758b6ba5a38fb36df15e61a0755f2e784ced9a82e2848df0b88b7",
+      "bytes": 53085
+    },
+    "caelab/cli.py": {
+      "sha256": "0239935d957bd1a001ae805004b72c60e3c6c88130542677c3891478f72aedbd",
+      "bytes": 18411
+    },
+    "caelab/execution_control.py": {
+      "sha256": "e42c7e2e85138d0906a895c4d14e1e160501a17f77211a8dee940355edc287ce",
+      "bytes": 9797
+    },
+    "caelab/research_context.py": {
+      "sha256": "2d16a1ebefe9320095d01e8d42ea93154f232538c917b6d97a6c6e4d00cc4dc3",
+      "bytes": 8841
+    },
+    "caelab/adapters/fixture_calculix.py": {
+      "sha256": "136f34e19c083c2088f5880b34db14f21b04c373567c6baa601fbbe9d6f6f320",
+      "bytes": 46247
+    },
+    "apps/lab/service.py": {
+      "sha256": "612256926bca881995e646c79049af42b953292c03b8e379f73e3b2408031c16",
+      "bytes": 59442
+    },
+    "apps/lab/reporting.py": {
+      "sha256": "fe28c1c3d70f76c36fd7f8f6a91e3ab0891237f0abb29d4c9bad81170f14e422",
+      "bytes": 32602
+    },
+    "apps/lab/static/app.js": {
+      "sha256": "3dcb19d7d70250d8fc055171241534f78871b636fb125c0f8878304182536c37",
+      "bytes": 217290
+    },
+    "apps/lab/static/index.html": {
+      "sha256": "6eedf211efd8bdbe17adde214dabc5638aeebb929038c3ce3cd590eb5ff08da4",
+      "bytes": 50093
+    },
+    "apps/lab/static/campaign-controls.js": {
+      "sha256": "f86d87dd6396cec660d1f1b4a09698b53988e53ee32de47a6d9f54d6ee34fa78",
+      "bytes": 20289
+    },
+    "apps/lab/static/comparison-research.js": {
+      "sha256": "d9e9930f0b5f97fd735fada07c9961164df0abd148b1e8e7d3b870338229053e",
+      "bytes": 24236
+    },
+    "tests/test_campaign_conditions.py": {
+      "sha256": "bd1f8aa39f7a4cfdd434753e73de0e2c942d8dbaf6e610fa79f557e33069f80a",
+      "bytes": 8545
+    },
+    "tests/test_owned_command.py": {
+      "sha256": "6714c8384b5d262f773603e59b1daa705bbba2bfcdb965b129b13acde36d62fe",
+      "bytes": 4885
+    },
+    "tests/test_lab_reporting.py": {
+      "sha256": "b118bc284cd5c616c8ea56a54412d79193dcabe2f0929c3657396f46ea8080d9",
+      "bytes": 46235
+    },
+    "tests/test_lab_server.py": {
+      "sha256": "c31567ea57a6f6487fab32e7c2c3b88602f38a9012a385453e2886508932bb25",
+      "bytes": 40151
+    },
+    "tests/test_campaign_controls.js": {
+      "sha256": "b7a50b7a3a1b66ed1cf7038d909ca5ae9335c9a4c6e0ef2e62df88efd71eab61",
+      "bytes": 19843
+    },
+    "tests/test_condition_campaign_workflow.js": {
+      "sha256": "7340262ad677e4d84f44c402f3a54d769db657af2b44f966de929410fcda8302",
+      "bytes": 36469
+    }
+  },
+  "verification": {
+    "root_condition_owned_command_source": {
+      "passed": 68,
+      "failed": 0,
+      "exit_code": 0,
+      "command": "scripts/local.ps1 -PythonArgs @('-m','pytest','tests/test_campaign_conditions.py','tests/test_owned_command.py','tests/test_execution_control.py','tests/test_analysis_conditions.py','tests/test_analysis_conditions_http.py','-q','-p','no:cacheprovider','--basetemp','/tmp/caelab-g3-bundle-03')"
+    },
+    "root_existing_campaign_HTTP_adapter_regressions": {
+      "passed": 166,
+      "failed": 0,
+      "exit_code": 0,
+      "command": "scripts/local.ps1 -PythonArgs @('-m','pytest','tests/test_optimization.py','tests/test_campaign.py','tests/test_lab_server.py','tests/test_fixture_calculix.py','-q','-p','no:cacheprovider','--basetemp','/tmp/caelab-g3-regression-04')"
+    },
+    "report_implementation_agent_entire_file": {
+      "passed": 98,
+      "failed": 0,
+      "exit_code": 0,
+      "root_final_raw_hash_match": true,
+      "command": "scripts/local.ps1 -PythonArgs @('-m','pytest','tests/test_lab_reporting.py','-q','-p','no:cacheprovider','--basetemp','/tmp/caelab-g4-report-01')",
+      "initial_attempt": "Windows:94PASS/4FAIL; three symlink permission setup failures and one corrected test expectation. Full WSL file then98PASS."
+    },
+    "root_all_Lab_Node_source": {
+      "passed": 613,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "exit_code": 0,
+      "command": "node --test (all tests/test_*.js, sorted filenames)"
+    },
+    "UI_implementation_agent_bound_subset": {
+      "passed": 205,
+      "failed": 0,
+      "cancelled": 0,
+      "subset_of_root_all_Node": true,
+      "root_final_six_raw_hash_match": true
+    },
+    "initial_new_campaign_attempt": "9PASS/1FAIL: test used old location for termination.converged. Corrected test assertion; final source68PASS.",
+    "meaning": "Real CAD and LHS/DE; explicitly TEST_ONLY C-response adapters. Owned process controls use real Python child handles. These are not live CAE/provider/browser acceptance.",
+    "new_native_solver_runs": 0,
+    "new_provider_calls": 0,
+    "new_actual_browser_runs": 0,
+    "independent_bundle_review": "PENDING_AFTER_ROOT_ACTUAL_INTEGRATION_PER_USER"
+  },
+  "local_evidence": {
+    "core": {
+      "path": "artifacts/g3-bundle-source-20261006-03.log",
+      "sha256": "21fec52f4ed4196f79348100838492c7feef316e08f16efdb61e420d98c67c29",
+      "bytes": 705,
+      "retention": "LOCAL_ONLY"
+    },
+    "regression": {
+      "path": "artifacts/g3-bundle-regression-20261006-04.log",
+      "sha256": "c31eefbc7d25e1cc8091111a43dd22d40f9905a1262b9b4bee215d1bec6521a9",
+      "bytes": 855,
+      "retention": "LOCAL_ONLY"
+    },
+    "node": {
+      "path": "artifacts/research-condition-workflow-20261006-01/all-lab-node-source.log",
+      "sha256": "39850667e98bc4f580d1b414d34a1ad10177ac52d02c4d791a4face3baec5092",
+      "bytes": 55828,
+      "retention": "LOCAL_ONLY"
+    }
+  },
+  "document_history": {
+    "all_seven_raw_suffixes_preserved": true,
+    "pins": {
+      "PROJECT_SCOPE.md": {
+        "bytes": 193649,
+        "sha256": "e2e2a94f3ab7b034697db055ac63272a726bdf7fca4565698ed6cc369b5b0925"
+      },
+      "HANDOFF.md": {
+        "bytes": 218512,
+        "sha256": "c37e85d3c4e3f2d0008acf71894bb9ed1962cae051eb6dc426d26d95bba497fb"
+      },
+      "CURRENT_STATE.md": {
+        "bytes": 214595,
+        "sha256": "2d8865f2e8d23b4cf9ac5a10e87ef56de9c1c0b2138eb3a1734a399feaab0fd8"
+      },
+      "openscience/contract.md": {
+        "bytes": 96280,
+        "sha256": "a83614761a84e87240e01c81ccf51ec6c49bcc1b6114299b210479c383b8750c"
+      },
+      "apps/lab/CONTRACT.md": {
+        "bytes": 17279,
+        "sha256": "95d2b5c7cd2bf640d69430538d257e7444953cce8d97e1029320d98bbbbf9fd8"
+      },
+      "ARCHITECTURE.md": {
+        "bytes": 22515,
+        "sha256": "5ee14ecf425f399ac1ce8594093718e33e1860a9a286db48b15dc06544e552df"
+      },
+      "docs/CAE_RESEARCH_EXECUTION_PLAN.md": {
+        "bytes": 37140,
+        "sha256": "f12db2a2c6226f03b14add61b6370063743920c8f2f42fc942b46b8d24be56c3"
+      }
+    }
+  },
+  "preservation": {
+    "R2_separate_eight_drafts": "PRESERVED_NOT_INCLUDED",
+    "old_stores_and_qualified_meshes": "UNCHANGED_BY_THIS_UNIT",
+    "old_fine_running_no_handle": "UNKNOWN"
+  },
+  "previous_exact_CI": {
+    "commit": "8f3a76021eaa70ee8866acd1837d864a68648543",
+    "run_id": 37397277385,
+    "status": "COMPLETED",
+    "conclusion": "FAILURE",
+    "jobs_success": 7,
+    "jobs_failure": 3,
+    "failed_jobs": [
+      "pde",
+      "codeaster",
+      "explicit"
+    ],
+    "new_source_CI": "PENDING_PUBLICATION"
+  },
+  "scope": {
+    "whole52_Phase1_7": "INCOMPLETE",
+    "generic_FCStd_FEA": "OPEN",
+    "assembly_mechanics": "OPEN",
+    "general_observation_inverse_UQ_multiobjective_HPC": "OPEN",
+    "provider_native_reconnect": "OPEN",
+    "physical_material_strength_durability_deployment": "UNKNOWN",
+    "decision": "NOT_RELEASED",
+    "invalid_metrics": "PRESERVED"
+  },
+  "next": "Clean published source/new cae-condition-research-20261006-01: human saved C and plan -> approved5.6Sol existing optimization_run -> actual CAD/native children/full fields/report/reopen/owned cancel; one final independent larger-bundle review."
+}

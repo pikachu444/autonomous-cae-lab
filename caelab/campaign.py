@@ -29,10 +29,18 @@ def _paths(lab, campaign_id: str) -> tuple[Path, Path]:
 def plan_doe(lab, *, study_id: str, campaign_id: str, backend: str, model: str,
              parameter_ids: list[str], sample_count: int, seed: int,
              analysis_backend: str | None, analysis_settings: dict[str, Any] | None,
-             engine: str) -> dict:
+             engine: str, conditions_id: str | None = None) -> dict:
     lab.inspect_study(study_id)
     adapter = lab._adapter(backend)
     registry = lab.registry(study_id)
+    template, conditions_raw = None, None
+    if conditions_id is not None:
+        if analysis_settings is not None or analysis_backend is None:
+            raise ValueError('Saved conditions require an analysis backend and no competing settings')
+        from .campaign_conditions import freeze
+        template, analysis_settings, conditions_raw = freeze(
+            lab, conditions_id, study_id=study_id, backend=backend, model=model,
+            analysis_backend=analysis_backend)
     if (not isinstance(parameter_ids, list) or not parameter_ids or
             any(not isinstance(p, str) or not p for p in parameter_ids) or
             len(set(parameter_ids)) != len(parameter_ids)):
@@ -88,11 +96,15 @@ def plan_doe(lab, *, study_id: str, campaign_id: str, backend: str, model: str,
             "analysis": {"backend": analysis_backend, "settings": deepcopy(analysis_settings)}
                         if analysis_backend else None,
             "created_utc": utc_now()}
+    if template is not None:
+        plan['analysis']['conditions_template'] = template
     validate_schema("campaign-plan", plan)
     canonical_hash(plan)
     folder.mkdir(parents=True, exist_ok=False)
     save_json(folder / "plan.json", plan)
     save_json(folder / "registry_snapshot.json", registry)
+    if conditions_raw is not None:
+        (folder / 'analysis_conditions_template.json').write_bytes(conditions_raw)
     save_json(ledger, {"campaign_id": campaign_id, "plan_sha256": _sha(folder / "plan.json"),
                        "registry_sha256": _sha(folder / "registry_snapshot.json"),
                        "created_utc": utc_now()})
@@ -108,6 +120,8 @@ def _verified_plan(lab, campaign_id: str) -> tuple[dict, Path, Path, dict]:
         raise ValueError("Campaign plan or registry snapshot hash mismatch")
     plan = load_json(folder / "plan.json")
     validate_schema("campaign-plan", plan)
+    from .campaign_conditions import verify
+    verify(plan, folder)
     registry = load_json(folder / "registry_snapshot.json")
     if (plan["campaign_id"] != campaign_id or
             canonical_hash(registry) != plan["registry_sha256"] or
@@ -149,6 +163,8 @@ def _existing_or_run(lab, plan: dict, item: dict, *, analysis: bool,
                     geometry.get("source_experiment_id") != item["cad_experiment_id"] or
                     geometry.get("cad_revision") != result["cad_revision"]):
                 raise ValueError("Existing analysis settings or parent differ from DOE plan")
+            from .campaign_conditions import verify_child
+            verify_child(plan, item, root, result)
         else:
             geometry = proposal.get("model", {}).get("geometry", {})
             if (geometry != {"backend": plan["backend"], "source": plan["model"]} or
@@ -160,6 +176,10 @@ def _existing_or_run(lab, plan: dict, item: dict, *, analysis: bool,
     if not allow_run:
         raise ValueError("Planned experiment is missing from the DOE journal")
     if analysis:
+        if plan['analysis'].get('conditions_template') is not None:
+            from .campaign_conditions import bind
+            return lab.run_analysis(parent_experiment_id=item['cad_experiment_id'], experiment_id=identifier,
+                                    backend=plan['analysis']['backend'], conditions_id=bind(lab, plan, item))
         return lab.run_analysis(parent_experiment_id=item["cad_experiment_id"],
                                 experiment_id=identifier, backend=plan["analysis"]["backend"],
                                 settings=plan["analysis"]["settings"])
@@ -202,6 +222,8 @@ def _record(lab, plan: dict, item: dict, cad: dict, analysis: dict | None) -> di
 def _verify_current_model(lab, plan: dict, snapshot: dict) -> None:
     if source_identity(Path(__file__).resolve().parents[1])["core_source_sha256"] != plan["core_source_sha256"]:
         raise ValueError("Core source changed since DOE planning")
+    from .campaign_conditions import current
+    current(lab, plan)
     if canonical_hash(lab.registry(plan["study_id"])) != plan["registry_sha256"]:
         raise ValueError("Study registry changed since DOE planning")
     adapter = lab._adapter(plan["backend"])

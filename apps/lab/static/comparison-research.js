@@ -141,7 +141,81 @@
     requireValue(new TextEncoder().encode(question).length <= 16384, "연구 질문이 기존 16 KiB 입력 범위를 넘었습니다.");
     return { question, studyId, comparisonIds, experimentIds };
   }
-  const api = { draft };
+  function declarationLines(declaration) {
+    requireValue(mapping(declaration) && jsonValue(declaration), "보존한 선언 조건이 필요합니다.");
+    const value = item => typeof item === "number" ? Object.is(item, -0) ? "-0" : String(item) : String(item ?? "미확인");
+    const excerpt = item => String(item ?? "미확인").slice(0, 256);
+    const lines = [`해석 ${excerpt(declaration.analysis_type)} · 좌표계 ${excerpt(declaration.coordinate_system)} · 길이 ${excerpt(declaration.units?.length)} / 힘 ${excerpt(declaration.units?.force)} / 응력 ${excerpt(declaration.units?.stress)}`];
+    for (const material of (declaration.materials ?? []).slice(0, 64)) lines.push(
+      `재료 ${excerpt(material.selection_id)}: ${excerpt(material.law)}, E=${value(material.young_modulus_MPa)} MPa, ν=${value(material.poisson_ratio)}, 출처 ${excerpt(material.source?.category)} · ${excerpt(material.source?.description)}`);
+    for (const bc of (declaration.boundary_conditions ?? []).slice(0, 64)) lines.push(
+      `구속 ${excerpt(bc.selection_id)}: ${Object.entries(bc.components ?? {}).map(([key, item]) => `${key}=${value(item)}`).join(" / ")} ${excerpt(bc.unit)} · ${excerpt(bc.coordinate_system)} · ${excerpt(bc.source)}`);
+    for (const load of (declaration.loads ?? []).slice(0, 64)) lines.push(
+      `하중 ${excerpt(load.selection_id)}: ${Object.entries(load.components ?? {}).map(([key, item]) => `${key}=${value(item)}`).join(" / ")} ${excerpt(load.unit)} · ${excerpt(load.coordinate_system)} · ${excerpt(load.source)}`);
+    lines.push(`접촉 ${excerpt(declaration.contact?.mode)} · ${excerpt(declaration.contact?.source)}; 메시 ${excerpt(declaration.mesh?.mode)} / ${value(declaration.mesh?.max_size_mm)} mm`);
+    return lines;
+  }
+  function campaignDraft(data, studyId, indexes) {
+    requireValue(mapping(data) && jsonValue(data) && id(studyId) && id(data.id) && ["optimization", "doe"].includes(data.type) &&
+      mapping(data.record), "현재 저장소에서 다시 확인한 캠페인 기록이 필요합니다.");
+    const record = data.record, plan = data.plan ?? record.plan ?? record;
+    requireValue(mapping(plan) && plan.campaign_id === data.id && plan.study_id === studyId &&
+      (!own(record, "campaign_id") || record.campaign_id === data.id) && (!own(record, "study_id") || record.study_id === studyId) &&
+      (!own(record, "plan_sha256") || digest(record.plan_sha256)) &&
+      (!own(record, "decision") || record.decision === "NOT_RELEASED"), "선택한 연구와 고정 계획·원 실행 기록이 일치하지 않습니다.");
+    const rows = record.evaluations ?? record.samples ?? [];
+    const planned = data.type === "optimization" && record.status === "PLANNED" && rows.length === 0 && Array.isArray(indexes) && indexes.length === 0;
+    requireValue(Array.isArray(rows) && rows.length <= 512 && Array.isArray(indexes) && (planned || indexes.length >= 1 && indexes.length <= 12) &&
+      indexes.every(ordinal) && new Set(indexes).size === indexes.length &&
+      rows.every(row => mapping(row) && ordinal(row.index)) && new Set(rows.map(row => row.index)).size === rows.length,
+    "실제 보존 후보 1~12개를 중복 없이 선택하세요.");
+    const model = (record.route ?? plan.route) === "model_analysis";
+    const selected = indexes.map(index => rows.find(row => row.index === index));
+    requireValue(selected.every(row => row && row.decision === "NOT_RELEASED" &&
+      (model ? id(row.model_experiment_id) && digest(row.model_result_sha256) : id(row.cad_experiment_id) && digest(row.cad_result_sha256) &&
+        (plan.analysis ? id(row.analysis_experiment_id) && digest(row.analysis_result_sha256) : true))),
+    "미실행·건너뛴 해석은 연구 근거로 연결할 수 없습니다. 실제 결과와 해시가 있는 후보를 선택하세요.");
+    const template = plan.analysis?.conditions_template;
+    let conditionsId = null, sourceExperimentId = null, context = [];
+    if (template !== undefined) {
+      const reference = template?.reference, saved = template?.record, source = saved?.source;
+      requireValue(mapping(template) && template.rebind_policy === "REVISION_REBIND_EXACT_SELECTIONS" &&
+        mapping(reference) && id(reference.id) && [reference.revision, reference.record_sha256, reference.catalog_revision, template.record_canonical_sha256].every(digest) &&
+        reference.scope === "USER_DECLARED_UNVERIFIED" && mapping(saved) && saved.id === reference.id &&
+        saved.conditions_revision === reference.revision && saved.catalog_revision === reference.catalog_revision &&
+        saved.engineering === "UNKNOWN" && saved.decision === "NOT_RELEASED" &&
+        saved.support?.status === "SUPPORTED_DECLARED_INPUTS" && mapping(source) && id(source.experiment_id) && source.study_id === studyId &&
+        [source.cad_revision, source.result_sha256, source.proposal_sha256, source.thread_sha256].every(digest) &&
+        saved.request?.conditions_id === saved.id && saved.request?.experiment_id === source.experiment_id &&
+        saved.request?.cad_revision === source.cad_revision && saved.request?.catalog_revision === saved.catalog_revision &&
+        saved.request?.backend === plan.analysis?.backend && source.backend === plan.backend,
+      "고정한 원 조건·CAD 개정·해시·사용자 선언 범위가 불완전합니다.");
+      conditionsId = reference.id; sourceExperimentId = source.experiment_id;
+      context = [`원 저장 조건 ${conditionsId} · 조건 개정 ${reference.revision}`,
+        `원 CAD ${sourceExperimentId} · CAD 개정 ${source.cad_revision}`,
+        `원 조건 해시 ${reference.record_sha256} · catalog 개정 ${reference.catalog_revision}`,
+        ...declarationLines(saved.request.declaration),
+        "각 실제 후보 CAD 개정에 정확한 대상 선택을 다시 연결한 정책: REVISION_REBIND_EXACT_SELECTIONS. 실제 자식 요약의 analysis_conditions_context에서 후보별 조건 ID·개정·동결 선언을 확인해 주세요."];
+    }
+    const references = selected.map(row => ({ index: row.index, cadExperimentId: model ? null : row.cad_experiment_id,
+      experimentId: model ? row.model_experiment_id : plan.analysis ? row.analysis_experiment_id : row.cad_experiment_id }));
+    const question = [
+      planned ? `연구 ${studyId}의 이미 저장된 최적화 캠페인 ${data.id} 실행을 요청합니다.` : `연구 ${studyId}의 저장 캠페인 ${data.id}에서 선택한 실제 후보를 해석해 주세요.`,
+      ...(context.length ? [context.join("\n")] : []),
+      planned ? "아직 실제 후보 결과가 없습니다. 실행에서 반환된 실제 ID를 근거로 사용해 주세요." : `선택한 후보:\n${references.map(item => `후보 ${item.index}: ${item.cadExperimentId ? `CAD ${item.cadExperimentId} · ` : ""}결과 ${item.experimentId}`).join("\n")}`,
+      `고정 목적 함수: ${JSON.stringify(plan.objective ?? null)}\n고정 제약: ${JSON.stringify(plan.constraints ?? [])}`,
+      "각 원 실험의 저장 결과 요약과 제공된 analysis_conditions_context를 먼저 읽고, 실제 변수·재료·구속·하중·좌표계·관측 위치·성분·단위와 지표의 의미를 보존해 주세요. 하중 영역의 최대 |UZ|와 전체 필드 최대 |U|는 다른 관측량입니다. signed 값과 시간·하중 축을 바꾸거나 없는 관측을 만들지 마세요.",
+      "ASSUMED, MEASURED_REPORTED(자격이 확인되지 않은 사용자 보고), PUBLISHED_REFERENCE와 SYNTHETIC 근거를 구분해 주세요. invalid 지표·null 잔차·실패·UNKNOWN은 원 상태로 유지해 주세요. 수치적으로 유효한 후보와 물리·강도·내구·장비 자격 UNKNOWN, 사용자 선언 USER_DECLARED_UNVERIFIED, 사용 미승인 NOT_RELEASED를 구분해 주세요.",
+      planned ?
+        `현재 연결에서 optimization_inspect와 optimization_run을 지원하는지 먼저 확인해 주세요. 지원된다면 optimization_inspect로 이미 저장된 캠페인 ${data.id}의 고정 계획을 읽고 optimization_run({campaign_id: "${data.id}"})으로 이 계획 하나를 실행해 주세요. 후보는 기존 수치 엔진이 생성합니다. 새 계획·원시 설정·변수·하중·재료를 만들거나 대체하지 마세요. 지원되지 않으면 실행하지 말고 필요한 연결 범위를 설명해 주세요. 실제 반환한 후보 CAD·해석 ID와 각 analysis_conditions_context를 읽고, 실패·미확인 항목과 가설을 구별할 응답을 설명해 주세요.` :
+        "선택하지 않은 후보도 실패·미확인 기록이 남아 있음을 고려하고, 수치 탐색의 완료를 전역 최적해나 유일한 원인 또는 제작 승인으로 해석하지 마세요. 새 계산·최적화 실행 없이 저장된 근거에서 가설을 구별할 응답·잔차와 다음 실험에 필요한 측정·조건을 제안해 주세요.",
+      "수치 탐색의 완료를 전역 최적해·유일한 원인·제작 승인으로 바꾸지 마세요."
+    ].join("\n\n");
+    requireValue(new TextEncoder().encode(question).length <= 16384, "연구 질문이 기존 16 KiB 입력 범위를 넘었습니다. 후보 수와 조건 설명을 줄이세요.");
+    return { question, studyId, campaignId: data.id, conditionsId, sourceExperimentId, intent: planned ? "RUN_SAVED_OPTIMIZATION" : "INTERPRET_SAVED_RESULTS",
+      candidateIndexes: [...indexes], experimentIds: [...new Set(references.map(item => item.experimentId))] };
+  }
+  const api = { draft, declarationLines, campaignDraft };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.comparisonResearch = api;
 })(typeof window !== "undefined" ? window : globalThis);

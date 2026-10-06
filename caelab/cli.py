@@ -102,7 +102,9 @@ def parser():
     plan.add_argument("--seed", type=int, required=True)
     plan.add_argument("--engine", default="scipy.latin_hypercube")
     plan.add_argument("--analysis-backend")
-    plan.add_argument("--analysis-settings", help="JSON load, material and mesh inputs")
+    doe_analysis = plan.add_mutually_exclusive_group()
+    doe_analysis.add_argument("--analysis-settings", help="JSON load, material and mesh inputs")
+    doe_analysis.add_argument("--conditions-id", help="Saved CAD conditions rebound and checked for each candidate")
     doe_sub.add_parser("run").add_argument("--campaign", required=True)
     doe_sub.add_parser("inspect").add_argument("--campaign", required=True)
     optimize = sub.add_parser("optimize")
@@ -120,7 +122,9 @@ def parser():
     opt_plan.add_argument("--population", type=int, default=5)
     opt_plan.add_argument("--initial-values", help="JSON research parameter values")
     opt_plan.add_argument("--analysis-backend")
-    opt_plan.add_argument("--analysis-settings")
+    optimization_analysis = opt_plan.add_mutually_exclusive_group()
+    optimization_analysis.add_argument("--analysis-settings")
+    optimization_analysis.add_argument("--conditions-id", help="Saved CAD conditions rebound and checked for each candidate")
     opt_plan.add_argument("--required-validations", help="JSON cad/analysis check names")
     opt_plan.add_argument("--engine", default="scipy.differential_evolution")
     opt_sub.add_parser("run").add_argument("--campaign", required=True)
@@ -228,6 +232,7 @@ def main(argv=None):
                                    parameter_ids=args.variables, sample_count=args.samples,
                                    seed=args.seed, engine=args.engine,
                                    analysis_backend=args.analysis_backend,
+                                   conditions_id=args.conditions_id,
                                    analysis_settings=(json.loads(args.analysis_settings)
                                                       if args.analysis_settings else None)))
             elif args.action == "run":
@@ -251,6 +256,7 @@ def main(argv=None):
                                            max_generations=args.generations, population_size=args.population,
                                            initial_values=json.loads(args.initial_values) if args.initial_values else None,
                                            analysis_backend=args.analysis_backend,
+                                           conditions_id=args.conditions_id,
                                            analysis_settings=json.loads(args.analysis_settings) if args.analysis_settings else None,
                                            required_validations=json.loads(args.required_validations) if args.required_validations else None,
                                            engine=args.engine))

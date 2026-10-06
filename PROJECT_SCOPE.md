@@ -1,3 +1,25 @@
+## Current checkpoint: condition-bound numerical research and reporting source bundle
+
+G3/G4 reuses the existing LHS/DE engines: a human saved C record is frozen in a
+plan, each new CAD candidate receives its own verified revision-owned conditions,
+and executed-child summaries/reports retain the full declaration and response
+meaning. The Explore screen selects explicit supported conditions, reopens the
+verified plan/results and prepares an editable same-campaign research question.
+Existing optimization_run/inspect and approved5.6Sol/OAuth are unchanged; DOE
+remains human-run. Native Gmsh/CalculiX use live owned cancellation handles and
+retained output/termination receipts. No PID adoption or old-run replay authority.
+
+Record benchmarks/records/20261006-condition-research-source-r01.json pins final
+source controls separately from actual native/provider/browser acceptance, which
+is NEXT in a fresh clean-source store. Root integrates/debugs the whole bundle
+before its final independent review, per the user's repeated direction. General
+FCStd FEA, assembly mechanics, broader Phase1-7, active reconnect and general
+inverse/UQ/multiobjective/HPC remain OPEN. All52 remain INCOMPLETE and physical
+UNKNOWN/invalid metrics/NOT_RELEASED persist. Exact8f3 CI37397277385 finalized
+7SUCCESS/3FAIL(pde/codeaster/explicit); it is not new-source proof. Eight separate
+R2 drafts and prior stores/messages are preserved outside this unit. Goal ACTIVE.
+
+---
 ## Current checkpoint: G2 conditions connected to actual native execution and an engineering workspace
 
 Record `benchmarks/records/20261006-analysis-conditions-r01.json` pins native base2909048487266f5893fcec1a02281e1bfd822ac7+dirty Core cdff01872b9cf03c0e43b57258da418c446138e06c627f107fafac5ba02c9059 and the final reader source separately. New `runs/cae-conditions-20261006-01`: browser-selected parent cad_width38_20261005_sesef3f -> typed B-final/S-base/S-saddle, ASSUMED E210000MPa/nu0.3/global FZ-200N/XYZ fixed/selected4mm/no contact -> C-explicit-200N-20261006-r01 (Ja5404f92459b4697a6bcded3301f6546) -> native E-explicit-200N-20261006-r01 (J21ff9e6e240d47278240910daf468531) -> 9155-node U and frozen signed conditions reopened. CCX2.21/Gmsh4.12.1 completed; 6PASS7UNKNOWN/invalid stress/NOT_RELEASED retained. Against preserved150N, all27465 components have normalized max error2.1804417285741554e-6 under unchanged1e-5 serialization tolerance; max|U| ratio1.3333321744767657 and reaction199.99999955125N. Original145files/35472247B and cloned42files unchanged. Gmsh raw hashes differ only in the output-path Heading; the complete remaining mesh and field topology are identical. Raw native/GUI proof LOCAL_ONLY, no provider calls.

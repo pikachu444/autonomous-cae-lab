@@ -16,6 +16,8 @@ import re
 import zipfile
 
 from caelab.storage import canonical_hash, check_id
+from caelab.schema import validate as validate_schema
+from jsonschema.exceptions import ValidationError
 
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -297,13 +299,161 @@ def _detail(label, value):
     return f"<details><summary>{_text(label)}</summary><pre>{_text(value)}</pre></details>"
 
 
+def _summary_matches(record):
+    result, summary = record["result"], record.get("summary")
+    return (record.get("integrity") == "VERIFIED" and isinstance(summary, dict)
+            and all(summary.get(key) == result.get(key) for key in (
+                "experiment_id", "study", "status", "decision", "cad_revision", "parent_experiment_id", "metrics")))
+
+
+def _conditions_context(record):
+    """Join the inspected child's immutable projection; never read a listing namespace."""
+    if not _summary_matches(record):
+        return None
+    result, proposal = record["result"], record["proposal"]
+    context = record["summary"].get("analysis_conditions_context")
+    if not isinstance(context, dict):
+        return None
+    try:
+        parent = check_id(result["parent_experiment_id"])
+        reference, catalog, declaration = context["reference"], context["catalog"], context["declaration"]
+        check_id(reference["id"])
+        for key in ("revision", "record_sha256", "catalog_revision"):
+            _expected_hash(reference[key])
+        if (context["source_experiment_id"] != parent or context["cad_revision"] != result["cad_revision"]
+                or context["engineering"] != "UNKNOWN" or context["decision"] != "NOT_RELEASED"
+                or context["scope"] != "USER_DECLARED_UNVERIFIED" or reference["scope"] != context["scope"]
+                or reference != result["provenance"].get("analysis_conditions")
+                or reference != proposal.get("provenance", {}).get("analysis_conditions")
+                or reference != record["thread"].get("analysis_conditions")
+                or proposal["id"] != result["experiment_id"] or proposal["study_id"] != result["study"]["id"]
+                or proposal.get("parent_experiment_id") != parent
+                or proposal["model"]["geometry"] != {"source_experiment_id": parent, "cad_revision": result["cad_revision"]}
+                or proposal["physics"]["backend"] != result["provenance"]["adapter"]
+                or canonical_hash(catalog) != reference["catalog_revision"]
+                or proposal["model"].get("materials") != declaration["materials"]
+                or proposal.get("loads") != declaration["loads"]
+                or proposal.get("boundary_conditions") != declaration["boundary_conditions"]
+                or proposal["physics"]["analysis_type"] != declaration["analysis_type"]
+                or proposal["model"].get("coordinate_systems") != catalog["coordinate_systems"]
+                or proposal["model"].get("conditions_mesh") != declaration["mesh"]
+                or proposal["model"].get("contact_declaration") != declaration["contact"]
+                or proposal["execution"] != result["provenance"].get("execution_settings")):
+            return None
+        snapshots = [item for item in result["artifacts"] if item["path"] == "analysis_conditions.json"]
+        if len(snapshots) != 1 or snapshots[0]["sha256"] != reference["record_sha256"]:
+            return None
+        # Reuse the public typed shape, without rerunning support/engineering policy.
+        validate_schema("analysis-conditions-request", {
+            "conditions_id": reference["id"], "experiment_id": parent, "cad_revision": result["cad_revision"],
+            "catalog_revision": reference["catalog_revision"], "backend": proposal["physics"]["backend"],
+            "declaration": declaration})
+        json.dumps(context, allow_nan=False)
+        selections = {check_id(item["id"]): item for item in catalog["selections"]}
+        frames = {check_id(item["id"]): item for item in catalog["coordinate_systems"]}
+        if (len(selections) != len(catalog["selections"]) or len(frames) != len(catalog["coordinate_systems"])
+                or declaration["coordinate_system"] not in frames):
+            return None
+        for group, role in (("materials", "material"), ("loads", "load"), ("boundary_conditions", "boundary")):
+            for item in declaration[group]:
+                if item["selection_id"] not in selections or role not in selections[item["selection_id"]].get("roles", []):
+                    return None
+                if group != "materials" and item["coordinate_system"] not in frames:
+                    return None
+        for pair in declaration["contact"].get("pairs", []):
+            if pair["selection_a"] == pair["selection_b"] or any(value not in selections for value in pair.values()):
+                return None
+    except (KeyError, TypeError, ValueError, AttributeError, ValidationError):
+        return None
+    return context
+
+
+def _report_table(headers, rows):
+    return ("<table><thead><tr>" + "".join(f"<th>{_text(value)}</th>" for value in headers)
+            + "</tr></thead><tbody>" + "".join("<tr>" + "".join(f"<td>{_text(value)}</td>" for value in row)
+                                              + "</tr>" for row in rows) + "</tbody></table>")
+
+
+def _conditions_html(record):
+    context = _conditions_context(record)
+    if context is None:
+        return ('<section><h2>선언형 실행 조건</h2><p>이 기록에 결합된 선언형 실행 조건을 확인할 수 없습니다. '
+                'CAD 부모 기록의 조건은 자식 해석에 자동 적용되지 않습니다. 원 실행 입력은 아래 상세에 보존됩니다.</p></section>')
+    declaration, catalog = context["declaration"], context["catalog"]
+    selections = {item["id"]: item for item in catalog["selections"]}
+    frames = {item["id"]: item for item in catalog["coordinate_systems"]}
+
+    def selection(identifier):
+        item = selections[identifier]
+        return " · ".join(str(value) for value in (item.get("label", identifier), identifier, item.get("kind"),
+                                                    item.get("definition")) if value is not None)
+
+    def frame(identifier):
+        item = frames[identifier]
+        return f'{item.get("label", identifier)} [{identifier}]'
+
+    def components(item):
+        return " · ".join(f"{key} = {json.dumps(value, allow_nan=False)}" for key, value in item["components"].items())
+
+    units = declaration["units"]
+    sections = ['<section class="conditions"><h2>이 해석에 사용한 선언 조건</h2>', _report_table(("연결", "보존된 값"), [
+        ("해석 실험", record["result"]["experiment_id"]), ("부모 CAD", context["source_experiment_id"]),
+        ("CAD 개정", context["cad_revision"]), ("조건 기록", context["reference"]["id"]),
+        ("해석 종류", declaration["analysis_type"]),
+        ("기본 단위", f'길이 {units["length"]} · 힘 {units["force"]} · 응력 {units["stress"]}'),
+        ("재료 좌표계", frame(declaration["coordinate_system"])),
+        ("좌표계 원점·기저", {key: frames[declaration["coordinate_system"]].get(key)
+                         for key in ("type", "unit", "origin", "basis")}),
+        ("공학적 자격", "UNKNOWN · NOT_RELEASED · USER_DECLARED_UNVERIFIED")]),
+        '<p>실행 시 자식 실험에 보존한 선언입니다. 물성·실제 하중·접촉·강도 또는 제작 승인이 아닙니다.</p>',
+        '<h3>재료</h3>', _report_table(("ID", "적용 영역", "재료 법칙", "E (MPa)", "ν (1)", "출처"), [
+            (item["id"], selection(item["selection_id"]), item["law"], item["young_modulus_MPa"], item["poisson_ratio"],
+             f'{item["source"]["category"]} · {item["source"]["description"]}') for item in declaration["materials"]]),
+        '<h3>부호 있는 하중</h3>', _report_table(("ID", "선택 영역", "유형", "성분", "단위", "좌표계", "출처"), [
+            (item["id"], selection(item["selection_id"]), item["type"], components(item), item["unit"],
+             frame(item["coordinate_system"]), item["source"]) for item in declaration["loads"]]),
+        '<h3>변위 구속</h3><p>0으로 선언한 성분은 고정 구속입니다. 원 성분값을 변환하지 않습니다.</p>',
+        _report_table(("ID", "선택 영역", "성분", "단위", "좌표계", "출처"), [
+            (item["id"], selection(item["selection_id"]), components(item), item["unit"],
+             frame(item["coordinate_system"]), item["source"]) for item in declaration["boundary_conditions"]]),
+        '<h3>메시와 접촉</h3>', _report_table(("조건", "선언값"), [
+            ("메시 모드", declaration["mesh"]["mode"]), ("선택 메시 최대 크기 (mm)", declaration["mesh"]["max_size_mm"]),
+            ("접촉 모드", declaration["contact"]["mode"]), ("접촉 출처", declaration["contact"]["source"]),
+            ("접촉쌍", " / ".join(f'{selection(pair["selection_a"])} ↔ {selection(pair["selection_b"])}'
+                                  for pair in declaration["contact"].get("pairs", [])) or "선언한 접촉쌍 없음")]),
+        '<p>선택 메시의 크기는 실행 입력입니다. 메시 독립성이나 접촉 검증을 뜻하지 않습니다.</p>']
+    if catalog.get("limitations"):
+        sections.append("<ul>" + "".join(f"<li>{_text(value)}</li>" for value in catalog["limitations"]) + "</ul>")
+    sections.append("</section>")
+    return "".join(sections)
+
+
+def _metric_label(record, name, fallback):
+    if not _summary_matches(record):
+        return fallback
+    declared = record["summary"].get("metric_semantics")
+    semantics = declared.get(name) if isinstance(declared, dict) else None
+    if (not isinstance(semantics, dict) or not isinstance(semantics.get("label"), str) or not semantics["label"].strip()
+            or semantics.get("source") != "ADAPTER_DECLARED_RESPONSE"
+            or semantics.get("unit") != record["result"]["metrics"][name].get("unit")):
+        return fallback
+    if name == "max_displacement":
+        provenance = record["result"]["provenance"]
+        expected = {"quantity": "displacement", "component": "UZ", "reduction": "MAX_ABSOLUTE",
+                    "selection_id": "S-saddle", "coordinate_system": "global", "unit": "mm"}
+        if (provenance.get("adapter") != "fixture.calculix" or provenance.get("adapter_version") != "6"
+                or any(semantics.get(key) != value for key, value in expected.items())):
+            return fallback
+    return semantics["label"]
+
+
 def render_html(record):
     """Render exact observations; validity and release remain separate verdicts."""
     result = record["result"]
     metric_names = {"cad_bounds": "전체 크기", "cad_component_count": "부품 수", "cad_volume": "형상 체적"}
     metrics = "".join(
         "<tr>" + "".join(f"<td>{_text(value)}</td>" for value in (
-            metric_names.get(name, f"결과값 {index + 1}"), metric.get("value"), metric.get("unit"),
+            _metric_label(record, name, metric_names.get(name, f"결과값 {index + 1}")), metric.get("value"), metric.get("unit"),
             "수치 응답 유효" if metric.get("valid") is True else "판단에 사용할 수 없음", metric.get("reason"))) + "</tr>"
         for index, (name, metric) in enumerate(result["metrics"].items()))
     artifacts = "".join(
@@ -321,8 +471,9 @@ def render_html(record):
                      for code in (result.get("status"), result.get("decision"), record["integrity"]))
     solver = "이 기록에는 해석 실행 결과가 없습니다." if result.get("solver_status") == "NOT_RUN" else (
         f'해석 실행: {status_names.get(result.get("solver_status"), result.get("solver_status"))} · '
-        f'수치 수렴: {"확인됨" if result.get("converged") is True else "미수렴" if result.get("converged") is False else "미확인"}')
+        f'기록된 converged: {json.dumps(result.get("converged"))} · 메시 독립성이나 공학적 승인과는 별개입니다.')
     sections = [
+        _conditions_html(record),
         '<section><h2>결과값</h2><table><thead><tr><th>측정값</th><th>값</th><th>단위</th>'
         '<th>수치 유효성</th><th>무효 사유</th></tr></thead><tbody>' + metrics + '</tbody></table>'
         + ('<p>이 실험은 수치 결과를 제공하지 않았습니다.</p>' if not result["metrics"] else '') + '</section>',

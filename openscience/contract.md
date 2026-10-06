@@ -1,3 +1,19 @@
+## Frozen condition campaigns and executed-child context (ADR0044; G3/G4)
+
+The common Python/CLI/HTTP DOE/optimization planners optionally accept a saved
+conditions_id mutually exclusively with raw analysis_settings. Numerical engines
+own candidates and feedback; Core owns the frozen original declaration and each
+candidate's new revision-bound conditions. Unsupported or changed regions/policy
+stop new work. Completed reads verify immutable snapshots without current policy.
+Existing experiment_summary adds verified analysis_conditions_context and optional
+adapter-owned metric_semantics; no scientific verdict or metric is substituted.
+The existing approved5.6Sol/OAuth optimization_run/inspect may execute/read a human
+prepared compatible plan by its ID. There is no new MCP argument/tool/profile,
+provider/auth/model, AI DOE admission or generic optimizer capability. The human
+draft preserves study/CAD/C-ID/campaign and actual child identities and requires
+explicit Research submission. Source checks precede fresh actual acceptance;
+general inverse, whole52/Phase1-7 and physical release remain OPEN/UNKNOWN.
+
 ## Revision-bound human analysis conditions (ADR0043; G2)
 
 Core describe/save/inspect/list conditions bind exact CAD/result/catalog hashes,

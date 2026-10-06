@@ -115,6 +115,68 @@ def check_cancelled() -> None:
         token.check()
 
 
+def run_owned_command(command, cwd, label, *, timeout=None):
+    """Capture an adapter command using its live Popen ownership for cancellation.
+
+    The adapter supplies all syntax and any existing budget. This helper does
+    not reconnect to a recorded PID or treat a state file as a live handle.
+    Logs and the termination receipt survive failure and requested cancellation.
+    """
+    from pathlib import Path
+    from .storage import save_json, utc_now
+    folder = Path(cwd)
+    if not isinstance(label, str) or not label or any(char not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-' for char in label):
+        raise ValueError('Native log label must be a simple adapter-owned name')
+    state = {'status': 'STARTING', 'started_utc': utc_now(), 'pid': None,
+             'timeout_seconds': timeout, 'return_code': None,
+             'stdout': f'{label}.stdout.log', 'stderr': f'{label}.stderr.log'}
+    state_path = folder / f'{label}.execution.json'
+    save_json(state_path, state)
+    def finish(status, **details):
+        state.update(status=status, finished_utc=utc_now(), **details)
+        save_json(state_path, state)
+    def stop(process, reason):
+        try:
+            stop_owned_process(process, isolated_group=os.name == 'posix')
+        except ExecutionCleanupFailed:
+            state.update(status='CLEANUP_PENDING', return_code=process.returncode,
+                         termination_reason=reason, cleanup_observed_utc=utc_now())
+            save_json(state_path, state)
+            raise
+    try:
+        check_cancelled()
+    except ExecutionCancelled:
+        finish('CANCELLED', reason='USER_REQUEST')
+        raise
+    try:
+        with (folder / state['stdout']).open('wb') as stdout, (folder / state['stderr']).open('wb') as stderr:
+            process = subprocess.Popen(command, cwd=folder.resolve(), stdout=stdout, stderr=stderr,
+                                       start_new_session=os.name == 'posix')
+            try:
+                state.update(status='RUNNING', pid=process.pid)
+                save_json(state_path, state)
+                wait_for_process(process, timeout=timeout)
+            except ExecutionCancelled:
+                stop(process, 'USER_REQUEST')
+                finish('CANCELLED', reason='USER_REQUEST', return_code=process.returncode)
+                raise
+            except subprocess.TimeoutExpired:
+                stop(process, 'WALL_TIME_BUDGET')
+                finish('BUDGET_EXHAUSTED', reason='WALL_TIME_BUDGET', return_code=process.returncode)
+                raise
+            except BaseException:
+                stop(process, 'INTERRUPTED')
+                finish('INTERRUPTED', return_code=process.returncode)
+                raise
+    except OSError as error:
+        finish('FAILED_EXECUTION', reason='PROCESS_START_ERROR', error_type=type(error).__name__)
+        raise
+    finish('COMPLETED' if process.returncode == 0 else 'FAILED_EXECUTION', return_code=process.returncode)
+    output = (folder / state['stdout']).read_text(encoding='utf-8', errors='replace')
+    error = (folder / state['stderr']).read_text(encoding='utf-8', errors='replace')
+    return subprocess.CompletedProcess(command, process.returncode, output, error)
+
+
 def wait_for_process(process: subprocess.Popen, timeout: float | None = None) -> int:
     """Observe cancellation while waiting, without imposing a new wall budget."""
     token = _current.get()

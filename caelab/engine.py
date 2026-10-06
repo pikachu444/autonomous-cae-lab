@@ -720,10 +720,16 @@ class Lab:
 
     def research_summary(self, experiment_id: str) -> dict[str, Any]:
         result = self.inspect_experiment(experiment_id)
-        from .research_context import comparison_context
+        from .research_context import comparison_context, analysis_conditions_context
         context = comparison_context(self, result)
+        conditions = analysis_conditions_context(self, result)
+        adapter = self.analysis_adapters.get(result['provenance'].get('adapter'))
+        semantics_hook = getattr(adapter, 'research_metric_semantics', None)
+        semantics = semantics_hook(result) if callable(semantics_hook) else None
         return {"experiment_id": result["experiment_id"], "study": result["study"],
                 **({"comparison_context": context} if context is not None else {}),
+                **({'analysis_conditions_context': conditions} if conditions is not None else {}),
+                **({'metric_semantics': semantics} if semantics else {}),
                 **({"parent_experiment_id": result["parent_experiment_id"]}
                    if "parent_experiment_id" in result else {}),
                 **({"campaign_id": result["campaign_id"]}
@@ -744,12 +750,14 @@ class Lab:
                  parameter_ids: list[str], sample_count: int, seed: int,
                  analysis_backend: str | None = None,
                  analysis_settings: dict[str, Any] | None = None,
+                 conditions_id: str | None = None,
                  engine: str = "scipy.latin_hypercube") -> dict[str, Any]:
         from .campaign import plan_doe
         return plan_doe(self, study_id=study_id, campaign_id=campaign_id,
                         backend=backend, model=model, parameter_ids=parameter_ids,
                         sample_count=sample_count, seed=seed,
                         analysis_backend=analysis_backend, analysis_settings=analysis_settings,
+                        conditions_id=conditions_id,
                         engine=engine)
 
     def run_doe(self, campaign_id: str) -> dict[str, Any]:
@@ -766,6 +774,7 @@ class Lab:
                           population_size: int = 5, initial_values: dict | None = None,
                           analysis_backend: str | None = None,
                           analysis_settings: dict | None = None,
+                          conditions_id: str | None = None,
                           required_validations: dict | None = None,
                           engine: str = "scipy.differential_evolution") -> dict:
         from .optimization import plan_optimization
@@ -775,6 +784,7 @@ class Lab:
                                  max_generations=max_generations, population_size=population_size,
                                  initial_values=initial_values, analysis_backend=analysis_backend,
                                  analysis_settings=analysis_settings,
+                                 conditions_id=conditions_id,
                                  required_validations=required_validations, engine=engine)
 
     def run_optimization(self, campaign_id: str) -> dict:

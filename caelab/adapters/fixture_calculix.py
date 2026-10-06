@@ -26,6 +26,7 @@ from .fixture_saddle_load import saddle_nodal_forces
 from .fixture_field import (capture_fixture_field_inputs, extract_fixture_field,
                             request_complete_displacement)
 from ..storage import save_json
+from ..execution_control import run_owned_command
 
 
 UPSTREAM = Path(__file__).resolve().parents[2] / "plugins/fixture_design/upstream"
@@ -402,6 +403,15 @@ class FixtureCalculiXAdapter:
 
     conditions_version = "1"
 
+    def research_metric_semantics(self, result):
+        if (result['provenance'].get('adapter') != self.backend
+                or result['provenance'].get('adapter_version') != '6'):
+            return None
+        return {'max_displacement': {
+            'label': '하중 새들 절점 최대 |UZ|', 'quantity': 'displacement',
+            'component': 'UZ', 'reduction': 'MAX_ABSOLUTE', 'selection_id': 'S-saddle',
+            'coordinate_system': 'global', 'unit': 'mm', 'source': 'ADAPTER_DECLARED_RESPONSE'}}
+
     @staticmethod
     def conditions_policy_identity() -> dict:
         root = Path(__file__).resolve().parents[2]
@@ -637,7 +647,7 @@ class FixtureCalculiXAdapter:
                         "-o", str(mesh.resolve()), "-clmin", str(size / 2), "-clmax", str(size),
                         "-setnumber", "Mesh.SecondOrderLinear", "1", "-nopopup", "-v", "2"]
             save_json(folder / "commands.json", {"gmsh": gmsh_cmd, "ccx": ["ccx", job]})
-            gmsh = subprocess.run(gmsh_cmd, cwd=folder, text=True, capture_output=True, timeout=180)
+            gmsh = run_owned_command(gmsh_cmd, folder, 'gmsh', timeout=180)
             (folder / "gmsh.log").write_text(gmsh.stdout + "\n" + gmsh.stderr)
             if gmsh.returncode or not mesh.is_file():
                 raise RuntimeError(f"Gmsh failed: {folder / 'gmsh.log'}")
@@ -664,7 +674,7 @@ class FixtureCalculiXAdapter:
             field_inputs = capture_fixture_field_inputs(folder, index)
             checks.append({"code": f"mesh_{index}_cad_volume", "status": "PASS",
                            "observed": boundary["mesh_volume_relative_error"], "limit": .08})
-            ccx = subprocess.run(["ccx", job], cwd=folder, text=True, capture_output=True, timeout=300)
+            ccx = run_owned_command(["ccx", job], folder, 'ccx', timeout=300)
             (folder / "ccx.log").write_text(ccx.stdout + "\n" + ccx.stderr)
             frd, dat = folder / f"{job}.frd", folder / f"{job}.dat"
             if ccx.returncode or not frd.is_file() or not dat.is_file():

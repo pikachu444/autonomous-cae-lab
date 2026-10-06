@@ -80,3 +80,28 @@ tests/test_analysis_conditions_http.py -text
 tests/test_analysis_conditions_controls.js -text
 tests/test_analysis_conditions_ui.js -text
 tests/test_fixture_field_viewer.js -text
+
+# Preserve the tested condition-campaign and report source bytes.
+caelab/campaign_conditions.py -text
+caelab/campaign.py -text
+caelab/optimization.py -text
+caelab/execution_control.py -text
+caelab/research_context.py -text
+apps/lab/reporting.py -text
+apps/lab/static/campaign-controls.js -text
+apps/lab/static/comparison-research.js -text
+tests/test_campaign_conditions.py -text
+tests/test_owned_command.py -text
+tests/test_lab_reporting.py -text
+tests/test_lab_server.py -text
+tests/test_campaign_controls.js -text
+tests/test_condition_campaign_workflow.js -text
+
+# Preserve cumulative document history at the connected research checkpoint.
+PROJECT_SCOPE.md -text
+HANDOFF.md -text
+CURRENT_STATE.md -text
+ARCHITECTURE.md -text
+openscience/contract.md -text
+apps/lab/CONTRACT.md -text
+docs/CAE_RESEARCH_EXECUTION_PLAN.md -text

@@ -1,3 +1,19 @@
+## Frozen campaign conditions and engineering reports (ADR0044)
+
+Existing campaign jobs accept conditions_id through Core, with no competing raw
+settings. GET campaigns/{id} returns the verified original plan separately from
+its partial/completed record and rechecks plan bytes. Explore explicitly selects
+supported saved conditions, pins original CAD/registry/source, freezes declarations
+and opens actual returned candidate IDs. Context drift withdraws the selection.
+Editable planned-optimization questions use existing Research inspect/run only;
+DOE remains human-run. Reports project verified executed-child immutable conditions
+with signed components/units/frame/source and adapter-owned response labels;
+missing/mismatched context has no inferred declaration. Raw evidence/ZIP is retained.
+Core owned-command cancellation uses live handles and preserves partial logs;
+stored receipts/PIDs grant no recovery authority. Existing token/Origin/Host/store,
+single-writer/recovery/source/read-only gates and UNKNOWN/NOT_RELEASED remain.
+Source controls are separate from actual browser/provider/native acceptance.
+
 # Local Lab application contract
 
 ## CAD-bound mechanical conditions (ADR0043)

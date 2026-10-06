@@ -476,6 +476,7 @@ def test_http_model_campaign_run_exposes_verified_model_records_and_reuses_them(
         assert result["decision"] == "NOT_RELEASED" and result["termination"]["evaluation_count"] > 5
         inspected = client.request("/api/campaigns/" + plan["campaign_id"])
         assert inspected["record"] == result
+        assert inspected['plan'] == plan
         for row in result["evaluations"]:
             assert not {"cad_experiment_id", "analysis_experiment_id"}.intersection(row)
             experiment = client.request("/api/experiments/" + row["model_experiment_id"])

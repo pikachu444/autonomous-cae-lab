@@ -21,6 +21,36 @@ MAX_RECEIPT_BYTES = 4096
 MAX_DIAGNOSTICS = 24
 
 
+def analysis_conditions_context(lab, result):
+    """Read the executed child snapshot, never a mutable/current declaration.
+
+    Core's normal inspection verifies the complete child/parent/manifest chain
+    before calling this projection. Recheck the exact bytes after projection.
+    """
+    reference = result['provenance'].get('analysis_conditions')
+    if reference is None:
+        return None
+    from .analysis_conditions import verify_child
+    identifier = check_id(result['experiment_id'])
+    folder = _path(lab, f'experiments/{identifier}')
+    verify_child(folder, result)
+    path = _path(lab, f'experiments/{identifier}/analysis_conditions.json')
+    raw = _bounded_bytes(path, MAX_RECORD_BYTES)
+    if hashlib.sha256(raw).hexdigest() != reference['record_sha256']:
+        raise ValueError('Executed conditions changed before research-context reading')
+    record = _metadata(raw)
+    context = {'reference': deepcopy(reference),
+               'source_experiment_id': record['source']['experiment_id'],
+               'cad_revision': record['source']['cad_revision'],
+               'declaration': deepcopy(record['request']['declaration']),
+               'catalog': deepcopy(record['catalog']),
+               'engineering': 'UNKNOWN', 'scope': 'USER_DECLARED_UNVERIFIED',
+               'decision': 'NOT_RELEASED'}
+    if _bounded_bytes(path, MAX_RECORD_BYTES) != raw:
+        raise ValueError('Executed conditions changed during research-context reading')
+    return context
+
+
 def _bounded_bytes(path, maximum):
     with path.open("rb") as stream:
         data = stream.read(maximum + 1)

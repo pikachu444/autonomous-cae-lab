@@ -393,10 +393,18 @@ class LabService:
         selected = self._selected()
         from .reporting import recheck_records
         kind, records = self._campaign_preflight(selected, identifier, with_records=True)
+        _kind, folder = self._campaign(selected, identifier)
+        plan_path = contained(folder, 'plan.json')
+        plan_raw = plan_path.read_bytes()
+        plan = json.loads(plan_raw)
         method = selected.lab.inspect_doe if kind == "doe" else selected.lab.inspect_optimization
         record = method(identifier)
         recheck_records(selected.lab, records)
-        return {"type": kind, "record": record}
+        if (contained(folder, 'plan.json').read_bytes() != plan_raw
+                or ('plan' in record and record['plan'] != plan)
+                or ('plan_sha256' in record and record['plan_sha256'] != hashlib.sha256(plan_raw).hexdigest())):
+            raise ValueError('Campaign plan changed while reopening the verified results')
+        return {"type": kind, "record": record, 'plan': plan}
 
     def compare(self, identifiers: list[str]) -> list[dict]:
         from .reporting import verified_record

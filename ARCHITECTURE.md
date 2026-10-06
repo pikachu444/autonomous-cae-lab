@@ -1,3 +1,16 @@
+## Frozen human conditions in numerical campaigns (ADR0044)
+
+Core freezes the declared condition record in existing DOE/DE plans and binds a
+new record to each candidate CAD revision only after unchanged region/frame/policy
+checks and Domain/adapter admission. Completed reads use immutable child snapshots.
+Numerical engines still own all candidates; OpenScience uses existing approved
+tools to run/read a compatible human plan and interpret the same condition context.
+Adapters retain command syntax/budgets and response semantics. Common live-handle
+cancellation captures native output/termination receipts without PID reconnection.
+Human reports and field links refer to the same executed child, CAD and conditions.
+No new provider/profile/optimizer or arbitrary-CAD FEA is implied. Actual connected
+acceptance and final larger-bundle independent review follow source integration.
+
 # Architecture
 
 ## Retained comparison interpretation (ADR0040)

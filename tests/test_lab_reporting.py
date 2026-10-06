@@ -624,3 +624,257 @@ def test_memory_casefold_exact_shared_sources_remain_unchanged():
             assert files[path]["revision"] == artifact["revision"]
     shared = f"studies/{STUDY}/study.json"
     assert sources[0][1][shared]["sha256"] == sources[1][1][shared]["sha256"]
+
+
+class ReportConditionsCAD(ReportCAD):
+    """An explicit TEST_ONLY selection catalog, with no CAD kernel lookup."""
+
+    def conditions_catalog(self, parent_root, parent_result, proposal):
+        return {"schema_version": "1.0", "cad_backend": self.backend, "model": "TEST_ONLY",
+                "selections": [
+                    {"id": "B-final", "label": "TEST ONLY 전체 솔리드 " + INJECTION,
+                     "kind": "whole_final_solid", "roles": ["material"]},
+                    {"id": "S-base", "label": "TEST ONLY 바닥", "kind": "adapter_region", "roles": ["boundary"]},
+                    {"id": "S-saddle", "label": "TEST ONLY 새들", "kind": "adapter_region", "roles": ["load"]}],
+                "coordinate_systems": [{"id": "global", "label": "TEST ONLY 전역 직교 좌표계",
+                    "type": "cartesian", "unit": "mm", "origin": [0, 0, 0],
+                    "basis": [[1, 0, 0], [0, 1, 0], [0, 0, 1]]}],
+                "limitations": ["TEST ONLY: 영역과 원본 전달 검사이며 물리 검증이 아닙니다. " + INJECTION]}
+
+
+class ReportConditionsAnalysis(ReportAnalysis):
+    conditions_version = "TEST_ONLY"
+
+    @staticmethod
+    def conditions_preflight(catalog, declaration):
+        return {"status": "SUPPORTED_DECLARED_INPUTS", "reasons": ["TEST ONLY transfer"],
+                "native_runtime": "NOT_CHECKED"}
+
+    @staticmethod
+    def conditions_policy_identity():
+        return {"TEST_ONLY": "a" * 64}
+
+    @staticmethod
+    def settings_from_conditions(catalog, declaration):
+        # No mechanics: preserve exact inputs for report/immutable snapshot tests.
+        return {"test_only_declaration": deepcopy(declaration)}
+
+
+@pytest.fixture(scope="module")
+def conditions_report_record(tmp_path_factory):
+    cad, analysis = ReportConditionsCAD(), ReportConditionsAnalysis("complete")
+    lab = Lab(tmp_path_factory.mktemp("report-test-only-conditions"), adapters={cad.backend: cad},
+              analysis_adapters={analysis.backend: analysis}, model_analysis_adapters={},
+              pde_adapters={}, doe_adapters={}, optimization_adapters={})
+    lab.create_study(STUDY, "TEST ONLY readable conditions", "Retain exact declared inputs?", "TEST ONLY", "No physics")
+    lab.run_experiment(study_id=STUDY, experiment_id="E-conditions-cad", backend=cad.backend,
+                       model="TEST_ONLY", values={})
+    described = lab.describe_analysis_conditions("E-conditions-cad")
+    declaration = {
+        "analysis_type": "linear_static", "units": {"length": "mm", "force": "N", "stress": "MPa"},
+        "coordinate_system": "global",
+        "materials": [{"id": "M-declared", "selection_id": "B-final", "law": "isotropic_linear_elastic",
+            "young_modulus_MPa": 210000.0, "poisson_ratio": .3,
+            "source": {"category": "ASSUMED", "description": "TEST ONLY 명시한 가정 " + INJECTION}}],
+        "loads": [{"id": "L-signed", "selection_id": "S-saddle", "type": "resultant_force",
+            "components": {"FX": -2.5, "FY": 0.0, "FZ": -150.0}, "unit": "N", "coordinate_system": "global",
+            "source": "TEST ONLY signed vector " + INJECTION}],
+        "boundary_conditions": [{"id": "BC-fixed", "selection_id": "S-base", "type": "displacement",
+            "components": {"UX": 0, "UY": 0.0, "UZ": -0.0}, "unit": "mm", "coordinate_system": "global",
+            "source": "TEST ONLY exact fixed components " + INJECTION}],
+        "mesh": {"mode": "selected", "max_size_mm": 4.0},
+        "contact": {"mode": "none", "source": "TEST ONLY no contact " + INJECTION}}
+    saved = lab.save_analysis_conditions(conditions_id="C-report", experiment_id="E-conditions-cad",
+        cad_revision=described["source"]["cad_revision"], catalog_revision=described["catalog_revision"],
+        backend=analysis.backend, declaration=declaration)
+    lab.run_analysis(parent_experiment_id="E-conditions-cad", experiment_id="E-conditions-child",
+                     backend=analysis.backend, conditions_id=saved["id"])
+    return lab, reporting.verified_record(lab, "E-conditions-child")
+
+
+def _readable_html(document):
+    class Visible(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.depth = 0
+            self.values = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag in ("details", "style"):
+                self.depth += 1
+
+        def handle_endtag(self, tag):
+            if tag in ("details", "style"):
+                self.depth -= 1
+
+        def handle_data(self, value):
+            if not self.depth:
+                self.values.append(value)
+
+    parser = Visible()
+    parser.feed(document)
+    return " ".join(parser.values)
+
+
+def test_declared_conditions_are_readable_exact_escaped_and_unqualified(conditions_report_record):
+    _, record = conditions_report_record
+    before = deepcopy(record)
+    document = reporting.render_html(record)
+    readable = _readable_html(document)
+    for token in ("이 해석에 사용한 선언 조건", "E-conditions-child", "E-conditions-cad", "C-report",
+                  record["result"]["cad_revision"], "isotropic_linear_elastic", "210000.0", "0.3", "ASSUMED",
+                  "B-final", "S-base", "S-saddle", "FX = -2.5", "FY = 0.0", "FZ = -150.0", "N",
+                  "UX = 0", "UY = 0.0", "UZ = -0.0", "mm", "MPa", "global", "cartesian",
+                  "selected", "4.0", "none", "UNKNOWN", "NOT_RELEASED", "USER_DECLARED_UNVERIFIED"):
+        assert token in readable
+    assert "재료" in readable and "0으로 선언한 성분은 고정 구속" in readable
+    assert "메시 독립성이나 접촉 검증을 뜻하지 않습니다" in readable
+    assert INJECTION in readable and escape(INJECTION, quote=True) in document
+    assert "<script" not in document and "<img" not in document
+    assert "기록된 converged: true" in readable and "수치 수렴: 확인됨" not in readable
+    assert record == before
+
+
+@pytest.mark.parametrize("path,value", [
+    (("integrity",), "UNKNOWN"),
+    (("summary", "experiment_id"), "E-other"),
+    (("summary", "metrics"), {}),
+    (("summary", "analysis_conditions_context", "source_experiment_id"), "E-template-baseline"),
+    (("summary", "analysis_conditions_context", "cad_revision"), "0" * 64),
+    (("summary", "analysis_conditions_context", "reference", "record_sha256"), "f" * 64),
+    (("summary", "analysis_conditions_context", "engineering"), "PASS"),
+    (("summary", "analysis_conditions_context", "catalog", "selections", 0, "label"), "Other model"),
+    (("proposal", "study_id"), "S-other"),
+    (("proposal", "parent_experiment_id"), "E-other"),
+    (("proposal", "model", "geometry", "source_experiment_id"), "E-other"),
+    (("proposal", "physics", "backend"), "other.backend"),
+    (("proposal", "execution"), {}),
+    (("proposal", "model", "materials", 0, "young_modulus_MPa"), 1800),
+    (("proposal", "loads", 0, "components", "FZ"), 150.0),
+    (("proposal", "boundary_conditions", 0, "components", "UZ"), 1.0),
+    (("proposal", "model", "conditions_mesh", "max_size_mm"), 2.0),
+    (("proposal", "model", "contact_declaration", "mode"), "bonded"),
+    (("thread", "analysis_conditions"), {}),
+    (("summary", "analysis_conditions_context", "declaration", "loads", 0, "unit"), "kN")])
+def test_context_mismatch_never_presents_active_conditions(conditions_report_record, path, value):
+    _, original = conditions_report_record
+    before = deepcopy(original)
+    record = deepcopy(original)
+    target = record
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+    document = reporting.render_html(record)
+    readable = _readable_html(document)
+    assert "이 기록에 결합된 선언형 실행 조건을 확인할 수 없습니다" in readable
+    assert "이 해석에 사용한 선언 조건" not in readable and "E-template-baseline" not in readable
+    assert "원 실행 입력은 아래 상세에 보존됩니다" in readable
+    assert "실행 입력과 공통 모델 선언" in document
+    assert original == before
+
+
+def test_missing_snapshot_and_parent_only_do_not_borrow_active_conditions(conditions_report_record):
+    lab, original = conditions_report_record
+    missing = deepcopy(original)
+    missing["result"]["artifacts"] = [item for item in missing["result"]["artifacts"]
+                                       if item["path"] != "analysis_conditions.json"]
+    assert "이 해석에 사용한 선언 조건" not in _readable_html(reporting.render_html(missing))
+    parent = reporting.verified_record(lab, "E-conditions-cad")
+    assert "analysis_conditions_context" not in parent["summary"]
+    parent["summary"]["analysis_conditions_context"] = deepcopy(original["summary"]["analysis_conditions_context"])
+    assert "이 기록에 결합된 선언형 실행 조건을 확인할 수 없습니다" in _readable_html(reporting.render_html(parent))
+
+
+def test_named_contact_pairs_are_reported_as_declarations_only(conditions_report_record):
+    _, original = conditions_report_record
+    record = deepcopy(original)
+    contact = {"mode": "frictionless", "source": "TEST ONLY declared pair " + INJECTION,
+               "pairs": [{"selection_a": "B-final", "selection_b": "S-saddle"}]}
+    record["summary"]["analysis_conditions_context"]["declaration"]["contact"] = deepcopy(contact)
+    record["proposal"]["model"]["contact_declaration"] = deepcopy(contact)
+    # In-memory presentation probe only: no physical native/contact evidence.
+    readable = _readable_html(reporting.render_html(record))
+    assert "frictionless" in readable and "↔" in readable
+    assert "B-final" in readable and "S-saddle" in readable
+    assert "접촉 검증을 뜻하지 않습니다" in readable
+
+
+def test_conditions_bundle_keeps_snapshot_and_all_native_test_bytes_without_current_namespace(conditions_report_record):
+    lab, record = conditions_report_record
+    snapshot = lab.store / "experiments/E-conditions-child/analysis_conditions.json"
+    raw = snapshot.read_bytes()
+    # This TEST_ONLY mutable namespace is deliberately no longer readable.
+    (lab.store / "analysis_conditions/C-report/record.json").write_bytes(b"TEST ONLY changed current namespace")
+    before = _originals(lab.store)
+    exported = reporting.bundle_bytes(lab, "E-conditions-child")
+    with zipfile.ZipFile(io.BytesIO(exported)) as archive:
+        assert archive.read("experiments/E-conditions-child/analysis_conditions.json") == raw
+        assert record["result"]["provenance"]["analysis_conditions"]["record_sha256"] == _sha(raw)
+        for path in ("experiments/E-conditions-cad/cad/native.FCStd", "experiments/E-conditions-cad/cad/assembly.step",
+                     "experiments/E-conditions-child/simulation/native.inp", "experiments/E-conditions-child/simulation/raw.log"):
+            assert archive.read(path) == before[path]
+        assert not any(path.startswith("analysis_conditions/") for path in archive.namelist())
+        manifest = json.loads(archive.read("bundle_manifest.json"))
+        for entry in manifest["files"]:
+            payload = archive.read(entry["path"])
+            assert _sha(payload) == entry["sha256"] and len(payload) == entry["size_bytes"]
+        restored = json.loads(archive.read("report.json"))
+        assert restored == record
+        assert "FZ = -150.0" in _readable_html(archive.read("report.html").decode("utf-8"))
+    assert _originals(lab.store) == before
+
+
+def _loaded_displacement_record(original):
+    """TEST_ONLY in-memory semantic envelope; no fake saved/native result."""
+    record = deepcopy(original)
+    record["result"]["provenance"].update(adapter="fixture.calculix", adapter_version="6")
+    metric = {"value": .00002355013, "unit": "mm", "valid": True}
+    record["result"]["metrics"] = {"max_displacement": metric,
+        "peak_stress": {"value": None, "unit": "MPa", "valid": False, "reason": REASON}}
+    record["summary"]["metrics"] = deepcopy(record["result"]["metrics"])
+    record["summary"]["metric_semantics"] = {"max_displacement": {
+        "label": "하중 새들 절점 최대 |UZ|", "quantity": "displacement", "component": "UZ", "reduction": "MAX_ABSOLUTE",
+        "selection_id": "S-saddle", "coordinate_system": "global", "unit": "mm", "source": "ADAPTER_DECLARED_RESPONSE"}}
+    return record
+
+
+def test_metric_labels_use_exact_declared_scope_and_keep_invalid_observations(conditions_report_record):
+    record = _loaded_displacement_record(conditions_report_record[1])
+    before = deepcopy(record)
+    readable = _readable_html(reporting.render_html(record))
+    assert "하중 새들 절점 최대 |UZ|" in readable and "최대 변위 크기" not in readable
+    assert "전체 |U|" not in readable and "2.355013e-05" in readable
+    assert "판단에 사용할 수 없음" in readable and "MPa" in readable and REASON in readable
+    assert "미확인" in readable and "공학적 사용 미승인" in readable
+    assert record == before
+
+
+@pytest.mark.parametrize("path,value", [
+    (("result", "provenance", "adapter_version"), "5"),
+    (("result", "provenance", "adapter"), "other.backend"),
+    (("summary", "experiment_id"), "E-other"),
+    (("summary", "metric_semantics"), None),
+    (("summary", "metric_semantics"), []),
+    (("summary", "metric_semantics", "max_displacement", "unit"), "m"),
+    (("summary", "metric_semantics", "max_displacement", "component"), "norm"),
+    (("summary", "metric_semantics", "max_displacement", "selection_id"), "B-final"),
+    (("summary", "metric_semantics", "max_displacement", "source"), "INFERRED"),
+    (("summary", "metric_semantics", "max_displacement", "label"), "")])
+def test_incomplete_or_foreign_semantics_do_not_infer_loaded_response_label(conditions_report_record, path, value):
+    record = _loaded_displacement_record(conditions_report_record[1])
+    target = record
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+    readable = _readable_html(reporting.render_html(record))
+    assert "하중 새들 절점 최대 |UZ|" not in readable and "최대 변위 크기" not in readable
+    assert "결과값 1" in readable and "2.355013e-05" in readable and REASON in readable
+
+
+def test_custom_declared_metric_text_is_escaped(conditions_report_record):
+    record = deepcopy(conditions_report_record[1])
+    record["summary"]["metric_semantics"] = {"test_response": {
+        "label": "TEST ONLY response " + INJECTION, "unit": "mm", "source": "ADAPTER_DECLARED_RESPONSE"}}
+    document = reporting.render_html(record)
+    assert "<script" not in document and escape(INJECTION, quote=True) in document
+    assert "TEST ONLY response " + INJECTION in _readable_html(document)
