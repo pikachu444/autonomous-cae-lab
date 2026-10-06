@@ -49,19 +49,21 @@ def test_separate_changed_case_is_frozen_before_native_with_independent_nonzero_
         changed_nonzero_reference(failed_case)
 
 
-def convergence_fixture():
+def convergence_fixture(request=None):
+    request = request or settings()
     return "\n".join(f"Instant de calcul: {instant:.12e}\n"
         "|                 | RESI_GLOB_RELA | RESI_GLOB_MAXI | OPTION |\n"
         "| 0             X | 1.0          X | 1.0          X | TANG   |\n"
         "| 1               | 1.0E-13        | 1.0E-11        | TANG   |\n"
         "Le résidu de type <RESI_GLOB_RELA> vaut 1.000000000000e-13 au noeud\n"
         "Le résidu de type <RESI_GLOB_MAXI> vaut 1.000000000000e-11 au noeud"
-        for instant in settings()["history"]["times_s"][1:])
+        for instant in request["history"]["times_s"][1:])
 
 
-def measure_fixture():
+def measure_fixture(request=None):
+    request = request or settings()
     return ", ,Count,Time,Count, ,Memory,\n,INST,Newt_Iter,Solve,Solve,State,VmPeak,\n" + "\n".join(
-        f",{instant:.5E},2,1.0E-3,2,CONV,793," for instant in settings()["history"]["times_s"][1:])
+        f",{instant:.5E},2,1.0E-3,2,CONV,793," for instant in request["history"]["times_s"][1:])
 
 
 def test_native_iteration_history_is_separate_from_measure_statistics_and_initial_state():
@@ -144,14 +146,27 @@ def history_fixture(mesh, request=None):
     groups = catalog["group_node_ids"]
     states = []
     peak_plastic = 0.
+    signed_plastic = 0.
+    selected = request.get("mode") == "selected_mesh"
     for index, (instant, strain) in enumerate(zip(request["history"]["times_s"], request["history"]["axial_strain"])):
         # Independent scalar fixture arithmetic rather than calling the plugin.
         material = request["material"]
         young, hardening, yield_stress = material["youngs_modulus_mpa"], material["plastic_modulus_mpa"], material["yield_stress_mpa"]
-        peak_plastic = max(peak_plastic, (young * strain - yield_stress) / (young + hardening))
-        stress = young * (strain - peak_plastic)
-        gradient = [strain, -material["poisson_ratio"] * stress / young - .5 * peak_plastic,
-                    -material["poisson_ratio"] * stress / young - .5 * peak_plastic]
+        if selected:
+            # TEST_ONLY signed scalar return map for complete synthetic tables.
+            # It never calls the product analytical reference or a native solver.
+            trial = young * (strain - signed_plastic)
+            increment = max(0., (abs(trial) - yield_stress - hardening * peak_plastic) / (young + hardening))
+            signed_plastic += (-1. if trial < 0. else 1.) * increment
+            peak_plastic += increment
+            stress = young * (strain - signed_plastic)
+            axial_plastic = signed_plastic
+        else:
+            peak_plastic = max(peak_plastic, (young * strain - yield_stress) / (young + hardening))
+            stress = young * (strain - peak_plastic)
+            axial_plastic = peak_plastic
+        gradient = [strain, -material["poisson_ratio"] * stress / young - .5 * axial_plastic,
+                    -material["poisson_ratio"] * stress / young - .5 * axial_plastic]
         force = stress * request["dimensions_mm"][1] * request["dimensions_mm"][2]
         order = index * 3
         tables = deepcopy(base["tables"])
@@ -184,11 +199,14 @@ def history_fixture(mesh, request=None):
                 post[component].append(sum(nodal_reactions[node][axis] for node in groups[group]))
         tables["BOUNDARY_RESULTANTS"] = post
         states.append({"order": order, "time_s": float(instant), "tables": tables})
-    return {"schema_version": "1", "solver_status": "COMPLETED", "converged": True,
+    raw = {"schema_version": "1", "solver_status": "COMPLETED", "converged": True,
             "available_orders": [state["order"] for state in states],
             "access_parameters": {"NUME_ORDRE": [state["order"] for state in states],
                                   "INST": [state["time_s"] for state in states]},
             "mesh": catalog, "states": states}
+    if selected:
+        raw.update(mode="selected_mesh", input_provenance=deepcopy(request["input_provenance"]))
+    return raw
 
 
 def test_complete_actual_histories_keep_initial_zero_and_component_specific_reactions(tmp_path):
@@ -274,7 +292,8 @@ def configure_process_mock(tmp_path, monkeypatch, mutate=None):
         if label == "container_version":
             return "singularity 4.1.1 TEST ONLY"
         if label == "gmsh":
-            (folder / "mesh.msh").write_text(brick_msh(settings()["dimensions_mm"]), encoding="utf-8")
+            request = load_json(folder.parent / "input.json")
+            (folder / "mesh.msh").write_text(brick_msh(request["dimensions_mm"]), encoding="utf-8")
             return "MOCK meshing"
         assert label == "solver"
         assert "OMP_NUM_THREADS=2" in command
@@ -300,8 +319,8 @@ def configure_process_mock(tmp_path, monkeypatch, mutate=None):
         save_json(folder / "native_material.json", raw["native_material"])
         for name in ("results.med", "aster.mess", "convergence.measure"):
             (folder / name).write_text("TEST ONLY no native solver", encoding="utf-8")
-        (folder / "aster.mess").write_text(convergence_fixture(), encoding="utf-8")
-        (folder / "convergence.measure").write_text(measure_fixture(), encoding="utf-8")
+        (folder / "aster.mess").write_text(convergence_fixture(config["settings"]), encoding="utf-8")
+        (folder / "convergence.measure").write_text(measure_fixture(config["settings"]), encoding="utf-8")
         if mutate:
             mutate(raw, folder)
         save_json(folder / "worker_result.json", raw)
@@ -458,3 +477,183 @@ def test_reused_native_guard_blocks_material_and_nonlinear_commands_on_wrong_imp
         worker.solve_level(str(tmp_path / "input.json"))
     assert started == ["DEBUT"]
     assert load_json(tmp_path / "native_mesh_checks.json")["status"] == "FAIL"
+
+
+def selected_request(count=7):
+    request = domain.selected_settings()
+    request["history"] = {"times_s": [index * .25 for index in range(count)],
+                          "axial_strain": [0., *([.003, .003, -.003, -.003, .002, 0.][(index - 1) % 6]
+                                                for index in range(1, count))]}
+    request["input_provenance"] = {"origin": "MEASURED_REPORTED", "reference": "  TEST_ONLY reported signed history; no native/physical qualification  "}
+    return request
+
+
+@pytest.mark.parametrize("count", [2, 32])
+def test_selected_common_core_mock_executes_one_mesh_and_preserves_full_signed_history_and_unknowns(tmp_path, monkeypatch, count):
+    request = selected_request(count)
+    before = deepcopy(request)
+    adapter = CodeAsterPlasticityAdapter()
+    original_defaults = list(adapter.default_metrics)
+    declaration = adapter.describe_model(request)
+    calls = configure_process_mock(tmp_path, monkeypatch)
+    monkeypatch.setattr(domain, "_reference", lambda *a: pytest.fail("selected FE must not invoke the tensile oracle"))
+    lab = Lab(tmp_path / "store", adapters={}, analysis_adapters={}, pde_adapters={}, doe_adapters={},
+              optimization_adapters={}, model_analysis_adapters={adapter.backend: adapter},
+              response_field_adapters={}, response_history_adapters={})
+    lab.create_study("S-selected-j2", "TEST_ONLY selected J2", "Does the signed source persist?", "Numerical metadata only", "No native execution")
+    result = lab.run_model_analysis(study_id="S-selected-j2", experiment_id="E-selected-j2", backend=adapter.backend, settings=request)
+    assert result["status"] == "COMPLETED_REVIEW_REQUIRED", result["validations"]
+    assert result["decision"] == "NOT_RELEASED" and result["cad_revision"] is None and "parent_experiment_id" not in result
+    assert result["model_revision"] == canonical_hash({"settings": request, "declaration": declaration})
+    folder = lab.store / "experiments/E-selected-j2"
+    proposal = load_json(folder / "proposal.json")
+    assert proposal["execution"] == before and request == before
+    assert adapter.default_metrics == original_defaults and "stress_xx_min" not in adapter.default_metrics
+    assert "stress_xx_min" in proposal["outputs"]["metrics"]
+    raw = load_json(folder / "simulation/analysis_raw.json")
+    native = load_json(folder / "simulation/level_0/worker_result.json")
+    parsed = load_json(folder / "simulation/level_0/parsed_history.json")
+    assert raw["mode"] == native["mode"] == "selected_mesh"
+    for output in (raw, native, raw["provenance"]):
+        assert output["input_provenance"] == before["input_provenance"]
+    assert raw["provenance"]["declared_limits"] == request["limits"]
+    assert raw["provenance"]["units"] == {"time": "s", "strain": "1", "displacement": "mm", "stress": "MPa", "reaction": "N"}
+    assert raw["provenance"]["nonlinear_policy"] == worker.NONLINEAR_POLICY
+    assert [state["time_s"] for state in parsed["states"]] == request["history"]["times_s"]
+    assert [state["actual_result_order"] for state in parsed["states"]] == [index * 3 for index in range(count)]
+    assert len(raw["mesh_records"]) == len(raw["mesh_studies"]) == 1
+    assert all(len(state["displacements_mm"]) == len(parsed["node_ids"]) for state in parsed["states"])
+    assert all(len(state["nodal_reactions_n"]) == len(parsed["node_ids"]) for state in parsed["states"])
+    assert all(len(state["stresses_mpa"]) == len(state["eq_plastic_strain"]) == 5 * parsed["element_count"] for state in parsed["states"])
+    assert not (folder / "simulation/analytical_reference.json").exists() and not (folder / "simulation/level_1").exists()
+    assert len([call for call in calls if call[2] == "solver"]) == 1
+    assert len([call for call in calls if call[2] == "gmsh"]) == 1
+    assert len(parsed["nonlinear_convergence"]["increments"]) == count - 1
+    assert raw["reference"]["status"] == "UNKNOWN" and raw["reference"]["history"] is None
+    assert raw["derived_energy"]["method"] is None and raw["derived_energy"]["native_energy_field"] is False
+    assert result["metrics"]["final_stress"]["valid"] is True
+    assert result["metrics"]["stress_xx_min"]["value"] <= 0.0
+    assert result["metrics"]["stress_xx_max"]["value"] >= 0.0
+    for name in ("peak_stress", "peak_eq_plastic_strain", "mesh_agreement_relative", "plastic_work_density", "reaction_relative_error"):
+        assert result["metrics"][name]["value"] is None and result["metrics"][name]["valid"] is False
+    unknown = {item["type"] for item in result["validations"] if item["status"] == "UNKNOWN"}
+    assert {"reference_agreement", "mesh_convergence", "material_qualification", "model_qualification",
+            "physical_validation", "static_strength", "fatigue_durability"} <= unknown
+    assert lab.inspect_experiment("E-selected-j2") == result
+
+
+@pytest.mark.parametrize("mutation", [
+    lambda request: request.pop("input_provenance"),
+    lambda request: request["input_provenance"].update(origin="QUALIFIED"),
+    lambda request: request["input_provenance"].update(reference=" "),
+    lambda request: request.update(mesh_sizes_mm=[2., 1.]),
+    lambda request: request["history"].update(times_s=[0.], axial_strain=[0.]),
+    lambda request: request["history"]["axial_strain"].__setitem__(1, -.01001),
+    lambda request: request["history"]["times_s"].__setitem__(1, 0.),
+    lambda request: request["material"].update(plastic_modulus_mpa=False),
+])
+def test_selected_invalid_input_never_reaches_native_runtime_or_mesher(tmp_path, monkeypatch, mutation):
+    monkeypatch.setattr(elastic, "_image_identity", lambda *a: pytest.fail("Invalid selected input must not inspect runtime"))
+    monkeypatch.setattr(elastic, "_process", lambda *a, **kw: pytest.fail("Invalid selected input must not start a process"))
+    request = selected_request()
+    mutation(request)
+    before = deepcopy(request)
+    outcome = CodeAsterPlasticityAdapter().solve(tmp_path / "simulation", request)
+    assert outcome["status"] == "REJECTED" and outcome["solver_status"] == "NOT_RUN" and outcome["metrics"] == {}
+    assert request == before and "reference_agreement" in outcome["pending_validations"]
+
+
+@pytest.mark.parametrize("identity", ["mode", "input_provenance"])
+def test_selected_native_source_identity_must_exactly_match_the_request(tmp_path, monkeypatch, identity):
+    def corrupt(raw, folder):
+        if identity == "mode":
+            raw.pop("mode")
+        else:
+            raw["input_provenance"]["reference"] = "different source"
+    configure_process_mock(tmp_path, monkeypatch, corrupt)
+    with pytest.raises(RuntimeError, match="selected mode/input provenance"):
+        CodeAsterPlasticityAdapter().solve(tmp_path / "simulation", selected_request())
+    assert (tmp_path / "simulation/level_0/worker_result.json").is_file()
+    assert not (tmp_path / "simulation/analysis_raw.json").exists()
+
+
+@pytest.mark.parametrize("field,column", [("DEPL", "DZ"), ("REAC_NODA", "DY"),
+                                          ("SIEF_ELGA", "SIXZ"), ("VARI_ELGA", "V1")])
+def test_selected_full_native_coverage_is_required_at_every_interior_time(tmp_path, monkeypatch, field, column):
+    def corrupt(raw, folder):
+        raw["states"][3]["tables"][field].pop(column)
+    configure_process_mock(tmp_path, monkeypatch, corrupt)
+    with pytest.raises(RuntimeError, match="missing required columns"):
+        CodeAsterPlasticityAdapter().solve(tmp_path / "simulation", selected_request())
+
+
+def test_selected_failed_native_residual_retains_values_and_does_not_validate_absent_references(tmp_path, monkeypatch):
+    def corrupt(raw, folder):
+        text = (folder / "aster.mess").read_text(encoding="utf-8")
+        text = text.replace("1.0E-13", "7.30000E-1", 1).replace("1.000000000000e-13", "7.300000000000e-1", 1)
+        (folder / "aster.mess").write_text(text, encoding="utf-8")
+    configure_process_mock(tmp_path, monkeypatch, corrupt)
+    outcome = CodeAsterPlasticityAdapter().solve(tmp_path / "simulation", selected_request())
+    assert outcome["status"] == "REJECTED" and outcome["solver_status"] == "COMPLETED" and outcome["converged"] is True
+    assert outcome["metrics"]["final_stress"]["value"] is not None and outcome["metrics"]["final_stress"]["valid"] is False
+    assert outcome["metrics"]["plastic_work_density"]["value"] is None
+    assert "Not evaluated" in outcome["metrics"]["plastic_work_density"]["reason"]
+    assert outcome["mesh_records"][0]["nonlinear_convergence"]["checks"][0]["observed"]["value"] == .73
+
+
+def test_selected_real_worker_wires_original_signed_history_and_source_with_mocked_commands(tmp_path, monkeypatch):
+    request = selected_request()
+    mesh = mesh_fixture(tmp_path, request)
+    raw = history_fixture(mesh, request)
+    native = GuardNativeMesh(mesh, {"mesh": raw["mesh"]})
+    save_json(tmp_path / "expected_mesh.json", elastic._expected_mesh(mesh))
+    save_json(tmp_path / "input.json", {"settings": request, "mesh_sha256": elastic._sha256(tmp_path / "mesh.msh"),
+                                      "expected_mesh_sha256": elastic._sha256(tmp_path / "expected_mesh.json")})
+    monkeypatch.chdir(tmp_path)
+    captured = {}
+    commands = types.ModuleType("code_aster.Commands")
+    result = types.SimpleNamespace(getAccessParameters=lambda: deepcopy(raw["access_parameters"]),
+                                   getIndexes=lambda: list(raw["available_orders"]))
+
+    def table(values):
+        return types.SimpleNamespace(EXTR_TABLE=lambda: types.SimpleNamespace(values=lambda: deepcopy(values)))
+
+    def debut():
+        (tmp_path / "fort.20").write_bytes((tmp_path / "mesh.msh").read_bytes())
+
+    def record(name, value):
+        captured[name] = deepcopy(value)
+        return value
+
+    commands.DEBUT = debut
+    commands.LIRE_MAILLAGE = lambda **kw: native
+    commands.DEFI_GROUP = lambda **kw: native
+    commands.AFFE_MODELE = lambda **kw: kw
+    commands.DEFI_MATERIAU = lambda **kw: record("material", kw)
+    commands.AFFE_MATERIAU = lambda **kw: kw
+    commands.AFFE_CHAR_MECA = lambda **kw: kw
+    commands.DEFI_FONCTION = lambda **kw: record("history", kw)
+    commands.DEFI_LIST_REEL = lambda **kw: record("instants", kw)
+    commands.STAT_NON_LINE = lambda **kw: result
+    commands.CALC_CHAMP = lambda **kw: result
+    commands.CREA_TABLE = lambda **kw: table(next(state for state in raw["states"] if state["order"] == kw["RESU"]["NUME_ORDRE"])["tables"][kw["RESU"]["NOM_CHAM"]])
+    commands.POST_RELEVE_T = lambda **kw: table(next(state for state in raw["states"] if state["order"] == kw["ACTION"][0]["NUME_ORDRE"])["tables"]["BOUNDARY_RESULTANTS"])
+    commands.IMPR_RESU = lambda **kw: captured.update(archived=kw["RESU"]["TOUT_ORDRE"])
+    commands.FIN = lambda: captured.update(finished=True)
+    syntax = types.ModuleType("code_aster.Cata.Syntax")
+    syntax._F = lambda **kw: kw
+    monkeypatch.setitem(sys.modules, "code_aster.Commands", commands)
+    monkeypatch.setitem(sys.modules, "code_aster.Cata.Syntax", syntax)
+    monkeypatch.setattr(worker, "_runtime_versions", lambda: ({"code_aster": "17.4.0"}, {"version": "17.4.0"}))
+    worker.solve_level(str(tmp_path / "input.json"))
+    saved = load_json(tmp_path / "worker_result.json")
+    assert captured["history"]["ABSCISSE"] == request["history"]["times_s"]
+    assert captured["history"]["ORDONNEE"] == request["history"]["axial_strain"]
+    assert captured["history"]["INTERPOL"] == "LIN" and captured["history"]["PROL_DROITE"] == "EXCLU"
+    assert captured["instants"]["VALE"] == request["history"]["times_s"]
+    assert captured["material"]["ECRO_LINE"]["D_SIGM_EPSI"] == 210000. * (1000. / 211000.)
+    assert saved["mode"] == "selected_mesh" and saved["input_provenance"] == request["input_provenance"]
+    assert saved["nonlinear_policy"] == worker.NONLINEAR_POLICY and captured["archived"] == "OUI" and captured["finished"]
+    parsed = worker.parse_history_tables(saved, request["mesh_sizes_mm"][0], request["history"]["times_s"])
+    assert len(parsed["states"]) == len(request["history"]["times_s"])
+    assert any(state["stresses_mpa"][0][0] < 0 for state in parsed["states"])

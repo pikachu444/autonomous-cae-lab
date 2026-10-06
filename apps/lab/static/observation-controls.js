@@ -165,7 +165,33 @@
       hypothesis:requiredText(fields,"hypothesis",2000,"비교 가설 또는 연구 목적"),observation,
       response:{field:Object.fromEntries(keys.map(key=>[key,selection[key]]))}};
   }
-  const api = { choices, build, buildField, buildPdeField };
+  function buildFeField(record, fields, selection) {
+    const { result, experimentId, comparisonId, purpose, sourceKind } = comparisonInput(record, fields);
+    const nodal = selection?.kind === "fe_nodal", gauss = selection?.kind === "fe_gauss";
+    const keys = ["kind", "artifact", "sha256", "model_revision", "mesh_index", "time_index", "component",
+      ...(nodal ? ["node_id"] : ["element_id", "point", "subpoint"])];
+    const components = nodal ? ["DEPL.DX","DEPL.DY","DEPL.DZ","REAC_NODA.DX","REAC_NODA.DY","REAC_NODA.DZ"]
+      : ["SIEF_ELGA.SIXX","SIEF_ELGA.SIYY","SIEF_ELGA.SIZZ","SIEF_ELGA.SIXY","SIEF_ELGA.SIXZ","SIEF_ELGA.SIYZ","VARI_ELGA.V1"];
+    if ((!nodal && !gauss) || !mapping(selection) || !jsonValue(selection) || Object.keys(selection).length !== keys.length ||
+      !keys.every(key=>own(selection,key)) || !relativeArtifact(selection.artifact) || !sha256.test(selection.sha256) ||
+      selection.model_revision !== result.model_revision || !sha256.test(selection.model_revision) ||
+      ![selection.mesh_index,selection.time_index].every(v=>Number.isSafeInteger(v)&&v>=0) ||
+      !components.includes(selection.component) ||
+      (nodal ? !Number.isSafeInteger(selection.node_id) || selection.node_id < 1 :
+        !Number.isSafeInteger(selection.element_id) || selection.element_id < 1 || !Number.isSafeInteger(selection.point) || selection.point < 1 ||
+        !Number.isSafeInteger(selection.subpoint) || selection.subpoint < 0))
+      throw new Error("같은 FE 모델·메시·시점의 정확한 native 절점 또는 적분점과 성분을 선택하세요.");
+    const unit = selection.component.startsWith("DEPL.") ? "mm" : selection.component.startsWith("REAC_NODA.") ? "N" :
+      selection.component.startsWith("SIEF_ELGA.") ? "MPa" : "1";
+    if (data(fields,"unit") !== unit || fields.axisQuantity !== "time" || fields.axisUnit !== "s")
+      throw new Error("원 FE 필드 단위와 관측 시각의 time/s를 명시하세요. 단위 변환이나 보간은 없습니다.");
+    const observation = observationInput(fields,unit,sourceKind);
+    observation.axis = {quantity:"time",unit:"s",value:numberInput(fields,"axisValue","관측 시각")};
+    return {comparison_id:comparisonId,experiment_id:experimentId,purpose,
+      hypothesis:requiredText(fields,"hypothesis",2000,"연구 가설"),observation,
+      response:{field:Object.fromEntries(keys.map(key=>[key,selection[key]]))}};
+  }
+  const api = { choices, build, buildField, buildPdeField, buildFeField };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.observationControls = api;
 })(typeof window !== "undefined" ? window : globalThis);

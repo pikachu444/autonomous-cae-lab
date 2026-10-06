@@ -322,5 +322,9 @@ def solve_level(input_path: str) -> None:
         "native_mesh_checks": guard, "native_material": material_spec, "nonlinear_policy": NONLINEAR_POLICY,
         "convergence_evidence": "Native .mess/stdout iteration histories and MESURE unit81, plus complete actual archived orders",
         "measured_linear_residual": None}
+    if settings.get("mode") == "selected_mesh":
+        # Declare the exact user source, independently checked by the host;
+        # the native material law, history tables and solver policy stay unchanged.
+        raw.update(mode="selected_mesh", input_provenance=settings["input_provenance"])
     _save(output / "worker_result.json", raw)
     FIN()

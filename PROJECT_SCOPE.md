@@ -1,3 +1,32 @@
+## Current checkpoint — actual selected material FE research
+
+ADR0052 and benchmarks/records/20261007-common-material-fe-research-r01.json
+record the Phase5 user-input/FE/field/history/observation bundle. Typed dimensions,
+J2 material, signed load/unload history, origin and one selected mesh feed the
+existing Code_Aster adapter. Two actual native runs change only yield250->300MPa.
+Each retains506 nodes/221TETRA10/1105Gauss points at4times and11history channels.
+Complete native stress/plastic/displacement/reaction errors are below the fixed,
+predeclared synthetic-reference tolerances; original8PASS/7UNKNOWN/NOT_RELEASED
+and null invalid reference/energy/mesh metrics are unchanged.
+
+Two stored exact Gauss-point comparisons use the sameSYNTHETIC observation:
+baseline difference1.3074e-12MPa, changed difference49.7630331754MPa. Source mesh,
+time/order, Cauchy component/sign/unit and native point are preserved. No sensor
+alignment, measured material, causal or release verdict is inferred. Original74
+scientific files/13357633B stayed unchanged. The UI shows full point data, history,
+condition reuse and comparison reopening; the same-record Korean research question
+is prepared. Provider NOT_CONFIGURED/new provider0: interpretation is NOT_RUN.
+Final integrated547Python/789Node PASS. Native producer base57910c9+dirty and final
+UI source are distinct in the record; publication/CI is not new native evidence.
+
+NEXT Phase6 common explicit inputs/history/owned execution, then Phase7 observation
+and model numerical research. No new CAD/assembly/contact example or obligatory
+mesh sweep. Large bundle -> Root run/fix/integrate -> final independent review;
+no tiny Astra approval gates. Broader Phase5 FE laws/contact and all52/Phases remain
+OPEN/INCOMPLETE. Goal ACTIVE, approved5.6Sol/OAuth and original artifacts unchanged.
+
+---
+
 ## Current checkpoint — numerical targets and actual selected PDE research
 
 ADR0051 and benchmarks/records/20261007-common-numerical-pde-research-r01.json

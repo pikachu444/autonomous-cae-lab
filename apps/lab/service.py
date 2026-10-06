@@ -473,6 +473,7 @@ class LabService:
         from caelab.adapters.fenicsx_imported import manufactured_settings as imported_pde_specification
         from scripts.verify_codeaster import specification as codeaster_specification
         from scripts.verify_plasticity import specification as plasticity_specification
+        from plugins.elasticity.plasticity_reference import selected_settings as selected_plasticity_specification
         from plugins.geometric_nonlinearity.reference import default_settings as geometric_specification
         from scripts.verify_openradioss import specification as explicit_specification
         from scripts.verify_compliant_drop import specification as compliant_specification
@@ -529,6 +530,9 @@ class LabService:
             "codeaster_linear": {"operation": "model_analysis_run", "backend": "structural.code_aster", "label": "독립적인 선형 elasticity benchmark",
                 "status": "EXPERIMENTAL", "scope": "가정된 solid block의 affine analytical reference; 비선형·접촉 및 물리·강도 검증 UNKNOWN",
                 "settings": codeaster_specification()},
+            "plasticity_selected": {"operation": "model_analysis_run", "backend": "structural.code_aster.plasticity", "label": "소성 FE · 물성·변위 이력 직접 입력",
+                "status": "EXPERIMENTAL", "scope": "등방성 J2 소변형 block, 선택 메시 하나와 명시한 시간·변형률; native 이력·수렴 검사, 재료·물리 자격 미확인",
+                "settings": selected_plasticity_specification()},
             "codeaster_plasticity": {"operation": "model_analysis_run", "backend": "structural.code_aster.plasticity", "label": "소성 재료의 하중·제하 benchmark",
                 "status": "EXPERIMENTAL", "scope": "J2 small-strain 전체 이력·해석해 검증; 접촉·기하 비선형·재료 자격 UNKNOWN",
                 "settings": plasticity_specification()},

@@ -428,3 +428,72 @@ def test_pde_field_rejects_implicit_units_foreign_selection_and_caller_value_bef
     with pytest.raises((ValueError, ValidationError)):
         lab.save_response_comparison(**body)
     assert not (lab.store / 'response_comparisons/C-test').exists()
+
+
+@pytest.fixture(params=['fe_nodal', 'fe_gauss'])
+def fe_field_request(lab, request):
+    """Common exact FE selectors, independent from adapter's native parsing tests."""
+    from types import SimpleNamespace
+    result = lab.inspect_experiment('E-test')
+    artifact = next(a for a in result['artifacts'] if a['path'] == 'simulation/test-only.json')
+    nodal = request.param == 'fe_nodal'
+    selector = {'kind': request.param, 'artifact': artifact['path'], 'sha256': artifact['sha256'],
+                'model_revision': result['model_revision'], 'mesh_index': 0, 'time_index': 1,
+                'component': 'REAC_NODA.DX' if nodal else 'SIEF_ELGA.SIXX',
+                **({'node_id': 1} if nodal else {'element_id': 2, 'point': 1, 'subpoint': 0})}
+    quantity, unit = ('NODAL_REACTION', 'N') if nodal else ('STRESS', 'MPa')
+    frame = 'global Cartesian model; sensor/world alignment UNKNOWN'
+    def selected(r, p, resources, selection):
+        if selection != selector:
+            raise ValueError('TEST_ONLY native FE selector differs')
+        return {'value': -12.5, 'unit': unit, 'source_field': {**selector, 'quantity': quantity,
+                'coordinate_frame': frame, 'coordinates_mm': [1., 0., 0.], 'coordinates_unit': 'mm',
+                'actual_result_order': 1, 'time_s': .5},
+                'response_axis': {'quantity': 'time', 'unit': 's', 'value': .5},
+                'qualification': {'numeric': 'RECORDED_NATIVE_VALUE', 'reference': 'UNKNOWN',
+                                  'physical': 'UNKNOWN', 'decision': 'NOT_RELEASED'}}
+    lab.response_field_adapters[result['provenance']['adapter']] = SimpleNamespace(
+        field_response_resources=lambda r: {'field': {'path': selector['artifact'], 'maximum_bytes': 1024}},
+        select_response_fields=selected)
+    # Access module-level request builder because pytest's request fixture is the
+    # selector parameter here, not an observed engineering reference.
+    body = globals()['request'](purpose='GENERAL_CAE_RESEARCH', response={'field': selector})
+    body['observation'].update(value=-12.5, unit=unit, quantity=quantity, component=selector['component'],
+        coordinate_frame=frame, tolerance=0., axis={'quantity': 'time', 'unit': 's', 'value': .5})
+    return body
+
+
+def test_exact_fe_point_roundtrip_retains_signed_value_axis_and_independent_location_kind(lab, fe_field_request):
+    before = originals(lab)
+    saved = lab.save_response_comparison(**fe_field_request)
+    assert saved['schema_version'] == '1.5'
+    comparison = saved['comparison']
+    assert comparison['response_value'] == -12.5 and comparison['difference'] == 0.
+    assert comparison['response_axis'] == {'quantity': 'time', 'unit': 's', 'value': .5}
+    assert comparison['selection_kind'] == ('EXACT_RECORDED_FE_NODE' if fe_field_request['response']['field']['kind'] == 'fe_nodal'
+                                             else 'EXACT_RECORDED_FE_INTEGRATION_POINT')
+    assert comparison['physical_validation'] == 'UNKNOWN' and comparison['decision'] == 'NOT_RELEASED'
+    assert lab.inspect_response_comparison('C-test') == saved
+    assert originals(lab) == before
+
+
+def test_fe_declared_time_mismatch_keeps_response_and_null_verdict(lab, fe_field_request):
+    fe_field_request['observation']['axis']['value'] = .75
+    saved = lab.save_response_comparison(**fe_field_request)
+    assert saved['comparison']['status'] == 'DECLARED_AXIS_MISMATCH'
+    assert saved['comparison']['response_value'] == -12.5
+    assert saved['comparison']['difference'] is None and saved['comparison']['within_declared_tolerance'] is None
+    assert lab.inspect_response_comparison('C-test') == saved
+
+
+@pytest.mark.parametrize('damage', ['missing_axis', 'axis_unit', 'component', 'revision', 'caller_value'])
+def test_fe_foreign_selector_or_implicit_axis_is_refused_without_append(lab, fe_field_request, damage):
+    body = deepcopy(fe_field_request)
+    if damage == 'missing_axis': body['observation'].pop('axis')
+    elif damage == 'axis_unit': body['observation']['axis']['unit'] = '1'
+    elif damage == 'component': body['response']['field']['component'] = 'UX'
+    elif damage == 'revision': body['response']['field']['model_revision'] = '0' * 64
+    else: body['response']['field']['value'] = -12.5
+    with pytest.raises((ValueError, ValidationError)):
+        lab.save_response_comparison(**body)
+    assert not (lab.store / 'response_comparisons/C-test').exists()

@@ -116,9 +116,44 @@
     }
     return {fields:checks,axis:axisCheck};
   }
+  function feFieldSelection(record) {
+    const {request,comparison,source}=record, field=request.response.field, original=comparison.source_field;
+    const nodal=field?.kind === "fe_nodal", keys=["kind","artifact","sha256","model_revision","mesh_index","time_index",
+      ...(nodal ? ["node_id"] : ["element_id","point","subpoint"]),"component"];
+    const spec={"DEPL":["DISPLACEMENT","mm"],"REAC_NODA":["NODAL_REACTION","N"],
+      "SIEF_ELGA":["STRESS","MPa"],"VARI_ELGA":["EQUIVALENT_PLASTIC_STRAIN","1"]}[field?.component?.split(".")[0]];
+    const allowed=nodal ? /^(DEPL|REAC_NODA)\.D[XYZ]$/ : /^(SIEF_ELGA\.SI(XX|YY|ZZ|XY|XZ|YZ)|VARI_ELGA\.V1)$/;
+    requireValue(exact(request.response,["field"]) && exact(field,keys) && ["fe_nodal","fe_gauss"].includes(field.kind) &&
+      relativeArtifact(field.artifact) && digest(field.sha256) && digest(field.model_revision) && field.model_revision === source.model_revision &&
+      source.backend === "structural.code_aster.plasticity" && ordinal(field.mesh_index) && ordinal(field.time_index) &&
+      (nodal ? Number.isSafeInteger(field.node_id) && field.node_id > 0 : Number.isSafeInteger(field.element_id) && field.element_id > 0 &&
+        Number.isSafeInteger(field.point) && field.point >= 1 && field.point <= 5 && ordinal(field.subpoint)) && allowed.test(field.component) && spec &&
+      comparison.unit === spec[1] && comparison.selection_kind === (nodal ? "EXACT_RECORDED_FE_NODE" : "EXACT_RECORDED_FE_INTEGRATION_POINT") &&
+      has(original,[...keys,"quantity","measure","coordinates_mm","coordinates_unit","coordinate_frame","actual_result_order","time_s",
+        "raw_artifact","raw_sha256","value_origin"]) && keys.every(key=>original[key] === field[key]) && original.quantity === spec[0] &&
+      original.coordinates_unit === "mm" && Array.isArray(original.coordinates_mm) && original.coordinates_mm.length === 3 && original.coordinates_mm.every(finite) &&
+      original.coordinate_frame === "global Cartesian model; sensor/world alignment UNKNOWN" && text(original.measure) &&
+      ordinal(original.actual_result_order) && finite(original.time_s) && original.value_origin === "NATIVE_COMPONENT" &&
+      relativeArtifact(original.raw_artifact) && digest(original.raw_sha256) &&
+      has(comparison.field_qualification,["numeric","reference","physical","decision"]) &&
+      comparison.field_qualification.numeric === (field.time_index === 0 ? "INITIAL_STATE_NO_NEWTON_INCREMENT" : "RECORDED_NATIVE_VALUE") &&
+      comparison.field_qualification.reference === "RECORDED_DOMAIN_VERDICT_UNCHANGED" && comparison.field_qualification.physical === "UNKNOWN" &&
+      comparison.field_qualification.decision === "NOT_RELEASED" && !own(comparison,"source_metric") && !own(comparison,"source_channel"),
+      "原 FE 모델·메시·절점/적분점·성분·단위·native 시각과 미검증 자격을 확인할 수 없습니다.");
+    const checks=comparison.declared_field_checks;
+    requireValue(Array.isArray(checks) && checks.length === 3 && ["quantity","component","coordinate_frame"].every((key,i)=>
+      exact(checks[i],["property","declared","actual","matched"]) && checks[i].property === key && checks[i].declared === request.observation[key] &&
+      checks[i].actual === original[key] && checks[i].matched === (checks[i].declared === checks[i].actual)),"FE 관측의 물리량·성분·좌표 확인이 다릅니다.");
+    const actual=comparison.response_axis, declared=request.observation.axis, check=comparison.declared_axis_check;
+    requireValue(axis(actual) && axis(declared) && actual.value === original.time_s && exact(check,["declared","actual","matched"]) &&
+      equalJson(check.actual,actual) && equalJson(check.declared,declared) && check.matched === (actual.value === declared.value),
+      "원 FE 시각과 사용자가 명시한 관측 시간을 확인할 수 없습니다.");
+    return {fields:checks,axis:check};
+  }
   function selection(record) {
     if (record.schema_version === "1.2") return fieldSelection(record);
     if (record.schema_version === "1.4") return pdeFieldSelection(record);
+    if (record.schema_version === "1.5") return feFieldSelection(record);
     const { request, comparison } = record, response = request.response, metric = comparison.source_metric;
     requireValue(!own(comparison, "source_field") && !own(comparison, "field_qualification") && !own(comparison, "declared_field_checks"),
       "scalar 또는 이력 비교에 다른 field 선택 근거가 섞여 있습니다.");
@@ -168,8 +203,8 @@
   function verify(row, studyId) {
     requireValue(has(row, ["integrity", "record"]) && row.integrity === "VERIFIED", "모든 비교 기록의 원본 검증이 VERIFIED여야 합니다. 미확인 행을 제외해 진행하지 않습니다.");
     const record = row.record;
-    requireValue(has(record, ["schema_version", "id", "request", "source", "comparison"]) && ["1.0", "1.1", "1.2", "1.3", "1.4"].includes(record.schema_version),
-      "지원되는 저장 비교 기록 1.0, 1.1 또는 1.2가 필요합니다.");
+    requireValue(has(record, ["schema_version", "id", "request", "source", "comparison"]) && ["1.0", "1.1", "1.2", "1.3", "1.4", "1.5"].includes(record.schema_version),
+      "지원되는 저장 비교 기록 1.0–1.5가 필요합니다.");
     const { request, source, comparison } = record;
     requireValue(exact(request, ["comparison_id", "experiment_id", "purpose", "hypothesis", "observation", "response"]) &&
       has(source, ["experiment_id", "study_id", "result_sha256", "proposal_sha256", "thread_sha256"]) &&
@@ -180,7 +215,7 @@
       observation(request.observation) && mapping(request.response), "저장된 연구 목적·가설·관측 입력이 불완전합니다.");
     requireValue(has(comparison, ["status", "response_value", "observed_value", "unit", "difference", "absolute_difference", "declared_absolute_tolerance",
       "within_declared_tolerance", "declared_condition_checks", "condition_bindings_supplied", "scope_alignment", "selection_kind", "physical_validation", "decision", "causal_verdict",
-      ...(["1.2","1.4"].includes(record.schema_version) ? ["source_field", "field_qualification", "declared_field_checks"] : record.schema_version === "1.3" ? ["source_channel", "declared_history_checks"] : ["source_metric"])]) &&
+      ...(["1.2","1.4","1.5"].includes(record.schema_version) ? ["source_field", "field_qualification", "declared_field_checks"] : record.schema_version === "1.3" ? ["source_channel", "declared_history_checks"] : ["source_metric"])]) &&
       ["NUMERIC_DIFFERENCE_ONLY", "DECLARED_CONDITION_MISMATCH", "DECLARED_AXIS_MISMATCH", "DECLARED_FIELD_MISMATCH"].includes(comparison.status) &&
       finite(comparison.response_value) && finite(comparison.observed_value) && comparison.observed_value === request.observation.value &&
       text(comparison.unit, 64) && comparison.unit === request.observation.unit && finite(comparison.declared_absolute_tolerance) &&
@@ -192,15 +227,15 @@
       has(check, ["declared", "actual", "matched"]) && typeof check.matched === "boolean" && equalJson(check.declared, request.observation.conditions[index])) &&
       comparison.condition_bindings_supplied === (checks.length > 0), "선언한 조건과 보존된 조건 확인 기록이 일치하지 않습니다.");
     const selectedCheck = selection(record), conditionMismatch = checks.some((check) => !check.matched);
-    const fieldMismatch = record.schema_version === "1.4" ? selectedCheck.fields.some(check=>!check.matched) : record.schema_version === "1.2" ? selectedCheck.some(check => !check.matched)
+    const fieldMismatch = ["1.4","1.5"].includes(record.schema_version) ? selectedCheck.fields.some(check=>!check.matched) : record.schema_version === "1.2" ? selectedCheck.some(check => !check.matched)
       : record.schema_version === "1.3" && comparison.declared_history_checks.some(check => !check.matched);
-    const axisMismatch = record.schema_version === "1.4" ? selectedCheck.axis && !selectedCheck.axis.matched : ["1.1", "1.3"].includes(record.schema_version) && selectedCheck && !selectedCheck.matched;
+    const axisMismatch = ["1.4","1.5"].includes(record.schema_version) ? selectedCheck.axis && !selectedCheck.axis.matched : ["1.1", "1.3"].includes(record.schema_version) && selectedCheck && !selectedCheck.matched;
     const expectedStatus = conditionMismatch ? "DECLARED_CONDITION_MISMATCH" : fieldMismatch ? "DECLARED_FIELD_MISMATCH" : axisMismatch ? "DECLARED_AXIS_MISMATCH" : "NUMERIC_DIFFERENCE_ONLY";
     requireValue(comparison.status === expectedStatus && (expectedStatus === "NUMERIC_DIFFERENCE_ONLY"
       ? finite(comparison.difference) && finite(comparison.absolute_difference) && comparison.absolute_difference >= 0 && typeof comparison.within_declared_tolerance === "boolean"
       : comparison.difference === null && comparison.absolute_difference === null && comparison.within_declared_tolerance === null),
     "조건·시간·필드 불일치의 null 차이·판정 또는 유한한 수치 비교 상태가 일치하지 않습니다.");
-    if (["1.2","1.4"].includes(record.schema_version) && expectedStatus === "NUMERIC_DIFFERENCE_ONLY") requireValue(
+    if (["1.2","1.4","1.5"].includes(record.schema_version) && expectedStatus === "NUMERIC_DIFFERENCE_ONLY") requireValue(
       comparison.difference === comparison.response_value - comparison.observed_value &&
       comparison.absolute_difference === Math.abs(comparison.difference) &&
       comparison.within_declared_tolerance === (comparison.absolute_difference <= comparison.declared_absolute_tolerance),
@@ -209,8 +244,14 @@
   }
   function fieldLines(rows) {
     const value = item => Object.is(item, -0) ? "-0" : String(item);
-    return rows.filter(row => ["1.2","1.4"].includes(row.record.schema_version)).flatMap(row => {
+    return rows.filter(row => ["1.2","1.4","1.5"].includes(row.record.schema_version)).flatMap(row => {
       const { request, comparison } = row.record, original = comparison.source_field;
+      if (row.record.schema_version === "1.5") return [
+        `비교 ${row.record.id}: 원 FE 모델 ${original.model_revision} · 메시 ${original.mesh_index} · 시점 ${original.time_index} · ${original.artifact}`,
+        `원 ${original.kind === "fe_nodal" ? `절점 ${original.node_id}` : `요소/적분점/하위점 ${original.element_id}/${original.point}/${original.subpoint}`} · XYZ [${original.coordinates_mm.map(value).join(", ")}] mm · ${original.quantity}/${original.component}=${value(comparison.response_value)} ${comparison.unit} · ${original.coordinate_frame}`,
+        `원 시간 ${value(comparison.response_axis.value)} s · native order ${original.actual_result_order} · ${original.measure}; 계산 자격 ${JSON.stringify(comparison.field_qualification)}; 사용자 출처 ${request.observation.source_kind}`,
+        `선언한 관측 ${value(request.observation.value)} ${request.observation.unit} · 상태 ${comparison.status} · 차이 ${value(comparison.difference)}; 참조·물리·원인 확정 UNKNOWN/NOT_EVALUATED/NOT_RELEASED`
+      ];
       if (row.record.schema_version === "1.4") return [
         `비교 ${row.record.id}: 원 PDE 모델 ${original.model_revision} · 메시 ${original.study_index} · 단계 ${original.step_index ?? "정적"} · ${original.artifact}`,
         `원 절점 ${original.node_id} · XY [${original.coordinates.map(value).join(", ")}] (1) · ${original.quantity}/${original.component}=${value(comparison.response_value)} (1) · ${original.coordinate_frame}`,
@@ -243,6 +284,7 @@
     const general = rows.some(row => row.record.request.purpose === "GENERAL_CAE_RESEARCH");
     const hasStructuralField = rows.some(row => row.record.schema_version === "1.2"),
       hasPdeField = rows.some(row => row.record.schema_version === "1.4"),
+      hasFeField = rows.some(row => row.record.schema_version === "1.5"),
       hasHistory = rows.some(row => ["1.1", "1.3"].includes(row.record.schema_version));
     const humanContext = [];
     if (context !== undefined) {
@@ -265,6 +307,7 @@
         "필드는 EXACT_RECORDED_FIELD_NODE에 연결된 원 절점·좌표·원 SHA·CAD 개정을 유지해 주세요. UX/UY/UZ의 NATIVE_COMPONENT는 부호 있는 원 변위이며, MAGNITUDE의 DERIVED_MAGNITUDE는 벡터에서 계산한 크기입니다. 두 의미를 바꾸지 마세요. 정적 step/increment/load_parameter를 시간축으로 쓰지 마세요. 센서/world 정렬과 서로 다른 메시의 같은 절점 ID는 검증된 물리 위치 대응이 아닙니다. DECLARED_FIELD_MISMATCH이면 차이·허용 차이 판정 null을 보존해 주세요."
       ] : []),
       ...(hasPdeField ? ["PDE는 원 model_revision·메시·단계·절점과 u/u0/u1 성분을 유지해 주세요. 좌표·필드·저장된 모델 시간의 단위 1을 mm나 초로 바꾸지 마세요. 정적 필드에는 시간축이 없습니다. UNINTEGRATED_INITIAL_CONDITION/NOT_RUN은 초기 선언값이며 적분 성공이 아닙니다. 다른 메시의 같은 절점 ID를 같은 물리 위치로 추정하지 마세요. DECLARED_FIELD_MISMATCH/DECLARED_AXIS_MISMATCH의 null 판정을 보존하고 보간하거나 없는 참조 오차를 만들지 마세요."] : []),
+      ...(hasFeField || rows.some(row=>row.record.source.backend === "structural.code_aster.plasticity") ? ["재료 FE는 원 model_revision·메시·시간/order·절점 또는 요소/적분점/하위점·native 성분을 유지해 주세요. DEPL(mm), REAC_NODA(N), SIEF_ELGA의 small-strain Cauchy 응력(MPa), VARI_ELGA.V1(1)을 구분하세요. 원 적분점을 절점으로 외삽하거나 센서 위치로 추정하지 마세요. 시간은 선언한 준정적 이력의 초이며 물성·속도 의존성 검증이 아닙니다. INITIAL_STATE_NO_NEWTON_INCREMENT는 초기 선언 상태입니다. 파생 Gauss 산술평균은 UNWEIGHTED이고 체적 평균이나 특정 적분점의 원 값이 아닙니다. 조건·성분·좌표·시간 불일치의 null 판정과 물리 UNKNOWN을 보존하세요."] : []),
       general ?
         "물리 검증 UNKNOWN, 사용자 선언 범위 USER_DECLARED_UNVERIFIED, 사용 미승인 NOT_RELEASED, 원인 판정 NOT_EVALUATED를 유지해 주세요. 수치가 맞는다는 이유로 유일한 원인이나 공학적 사용 적합성을 확정하지 마세요." :
         "물리 검증 UNKNOWN, 사용자 선언 범위 USER_DECLARED_UNVERIFIED, 사용 미승인 NOT_RELEASED, 원인 판정 NOT_EVALUATED를 유지해 주세요. 수치가 맞는다는 이유로 원인을 하나로 확정하거나 지그 제작·사용 적합성을 승인하지 마세요.",

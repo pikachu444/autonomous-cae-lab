@@ -220,6 +220,45 @@ function field(id = "C-field", component = "UZ") {
     declared: request.observation[property], actual: comparison.source_field[property], matched: true }));
   return row;
 }
+
+function feField(nodal=false) {
+  const row=scalar(nodal?"C-fe-node":"C-fe-gauss"), {request,comparison,source}=row.record;
+  row.record.schema_version="1.5"; source.backend="structural.code_aster.plasticity"; source.model_revision=hash("f");
+  request.purpose="GENERAL_CAE_RESEARCH";
+  const field={kind:nodal?"fe_nodal":"fe_gauss",artifact:"simulation/level_0/parsed_history.json",sha256:hash("e"),
+    model_revision:source.model_revision,mesh_index:0,time_index:1,component:nodal?"REAC_NODA.DX":"SIEF_ELGA.SIXX",
+    ...(nodal?{node_id:3}:{element_id:7,point:2,subpoint:0})};
+  request.response={field}; const quantity=nodal?"NODAL_REACTION":"STRESS",unit=nodal?"N":"MPa";
+  const coordinate_frame="global Cartesian model; sensor/world alignment UNKNOWN";
+  Object.assign(request.observation,{quantity,unit,component:field.component,coordinate_frame,value:-15.5,axis:{quantity:"time",unit:"s",value:.5}});
+  delete comparison.source_metric;
+  Object.assign(comparison,{unit,response_value:-16,observed_value:-15.5,difference:-.5,absolute_difference:.5,
+    selection_kind:nodal?"EXACT_RECORDED_FE_NODE":"EXACT_RECORDED_FE_INTEGRATION_POINT",
+    source_field:{...field,quantity,coordinate_frame,coordinates_mm:[1,2,3],coordinates_unit:"mm",actual_result_order:1,time_s:.5,
+      measure:nodal?"signed native nodal reaction":"small-strain Cauchy stress",raw_artifact:"simulation/level_0/worker_result.json",raw_sha256:hash("d"),value_origin:"NATIVE_COMPONENT"},
+    field_qualification:{numeric:"RECORDED_NATIVE_VALUE",reference:"RECORDED_DOMAIN_VERDICT_UNCHANGED",physical:"UNKNOWN",decision:"NOT_RELEASED"},
+    response_axis:{quantity:"time",unit:"s",value:.5},declared_axis_check:{declared:{...request.observation.axis},actual:{quantity:"time",unit:"s",value:.5},matched:true},
+    declared_field_checks:["quantity","component","coordinate_frame"].map(property=>({property,declared:request.observation[property],actual:request.observation[property],matched:true}))});
+  return row;
+}
+test("FE saved point interpretation preserves native tensor/node distinction, time, units and UNKNOWN",()=>{
+  const rows=[feField(),feField(true)], before=structuredClone(rows), result=draft(rows,"S-test");
+  assert.match(result.question,/요소\/적분점\/하위점 7\/2\/0/); assert.match(result.question,/원 절점 3/);
+  for (const item of ["원 시간 0.5 s","small-strain Cauchy","UNWEIGHTED","체적 평균","INITIAL_STATE_NO_NEWTON_INCREMENT","NOT_RELEASED"]) assert.ok(result.question.includes(item));
+  assert.deepEqual(rows,before);
+  const mismatch=feField(); mismatch.record.request.observation.axis.value=.75;
+  mismatch.record.comparison.declared_axis_check.declared.value=.75; mismatch.record.comparison.declared_axis_check.matched=false;
+  nullDifference(mismatch.record.comparison,"DECLARED_AXIS_MISMATCH");
+  assert.match(draft([mismatch],"S-test").question,/차이 null/);
+});
+test("foreign FE revision or identity, native component/unit/axis corruption and disguised qualification refuse interpretation",()=>{
+  for (const mutate of [r=>{r.record.source.model_revision=hash("b");},r=>{r.record.comparison.source_field.point=4;},
+    r=>{r.record.request.response.field.node_id=3;},r=>{r.record.comparison.response_axis.unit="1";},
+    r=>{r.record.comparison.source_field.time_s=.75;},r=>{r.record.comparison.field_qualification.physical="PASS";},
+    r=>{r.record.request.response.field.component="PK1.XX";},r=>{r.record.comparison.difference=.5;}]) {
+    const row=feField(); mutate(row); assert.throws(()=>draft([row],"S-test"));
+  }
+});
 function fieldMismatch(property = "coordinate_frame") {
   const row = field("C-field-mismatch"), { request, comparison } = row.record;
   request.observation[property] = `USER_DECLARED_OTHER_${property}`;

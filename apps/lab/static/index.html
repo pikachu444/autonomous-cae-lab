@@ -18,7 +18,9 @@
   <script src="/static/campaign-controls.js" defer></script>
   <script src="/static/imported-mesh-controls.js" defer></script>
   <script src="/static/pde-field-inspector.js" defer></script>
+  <script src="/static/native-fe-field-inspector.js" defer></script>
   <script src="/static/pde-controls.js" defer></script>
+  <script src="/static/plasticity-controls.js" defer></script>
   <script src="/static/contact-field-inspector.js" defer></script>
   <script src="/static/result-presentation.js" defer></script>
   <script src="/static/research-controls.js" defer></script>
@@ -193,6 +195,20 @@
             <div class="form-grid"><label>Y 최소 경계<select data-pde-field="ymin_type"><option value="dirichlet">Dirichlet · 필드 값</option><option value="neumann">Neumann · 바깥 유량</option></select><input data-pde-field="ymin_value" aria-label="Y 최소 경계 식" spellcheck="false"></label><label>Y 최대 경계<select data-pde-field="ymax_type"><option value="dirichlet">Dirichlet · 필드 값</option><option value="neumann">Neumann · 바깥 유량</option></select><input data-pde-field="ymax_value" aria-label="Y 최대 경계 식" spellcheck="false"></label></div>
             <details class="advanced"><summary>수치 계산 조건</summary><label>선형 잔차 기준<input data-pde-field="residual" inputmode="decimal"></label></details>
             <p id="pdeConditionError" class="metric-reason" role="alert" hidden></p>
+          </section>
+          <section id="plasticityConditionFields" class="separated" hidden>
+            <h3>재료와 변위 이력</h3>
+            <p class="hint">등방성 J2 소변형 모델입니다. X=0, Y=0, Z=0의 해당 성분만 구속하고 X 최대 면에 입력한 축변형률 × X 길이의 변위를 적용합니다. 전체 절점의 변위·반력과 적분점의 응력·소성변형률을 원 시각으로 보존합니다.</p>
+            <div class="form-grid"><label>X 길이 (mm)<input data-plasticity-field="length_x" inputmode="decimal"></label><label>Y 길이 (mm)<input data-plasticity-field="length_y" inputmode="decimal"></label><label>Z 길이 (mm)<input data-plasticity-field="length_z" inputmode="decimal"></label></div>
+            <div class="form-grid"><label>탄성 계수 E (MPa)<input data-plasticity-field="youngs_modulus" inputmode="decimal"></label><label>포아송 비 ν<input data-plasticity-field="poisson_ratio" inputmode="decimal"></label></div>
+            <div class="form-grid"><label>초기 항복응력 (MPa)<input data-plasticity-field="yield_stress" inputmode="decimal"></label><label>소성 경화 계수 H (MPa)<input data-plasticity-field="plastic_modulus" inputmode="decimal"></label></div>
+            <p class="hint">H는 등가 소성변형률에 따른 항복응력의 기울기입니다. 전체 변형률에 대한 인장 곡선의 기울기와 다릅니다.</p>
+            <label>선택 메시 크기 하나 (mm)<input data-plasticity-field="mesh_size" inputmode="decimal"></label>
+            <label>시간 · 축변형률 이력<textarea data-plasticity-field="history" rows="9" spellcheck="false" aria-label="시간 초와 축변형률 이력"></textarea></label>
+            <p class="hint">각 행에 시간(s), 축변형률(1)을 입력하세요. 첫 행은 0, 0이며 2–32개 시점, 증가하는 시간과 |변형률| ≤ 0.01을 지원합니다. 유지·제하·역변형의 부호를 그대로 사용합니다.</p>
+            <label>입력 데이터의 출처<select data-plasticity-field="origin"><option value="ASSUMED">가정값 · 미측정</option><option value="MEASURED_REPORTED">사용자가 보고한 측정값 · 자격 미확인</option><option value="PUBLISHED_REFERENCE">공개 자료 · 적용 자격 미확인</option><option value="SYNTHETIC">가상 데이터 · 기능 확인</option></select></label>
+            <label>재료·이력의 출처와 적용 범위<textarea data-plasticity-field="reference" rows="3"></textarea></label>
+            <p id="plasticityConditionError" class="metric-reason" role="alert" hidden></p>
           </section>
           <div id="simulationDraftContext" class="preset-description" role="status" hidden></div>
           <div id="fixtureConditionFields" class="separated" hidden>

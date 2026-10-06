@@ -65,12 +65,16 @@ class Lab:
         if response_field_adapters is None:
             from .adapters.assembly_response_fields import AssemblyResponseFieldsAdapter
             from .adapters.pde_response_fields import PDEResponseFieldsAdapter, SUPPORTED_BACKENDS
+            from .adapters.plasticity_response_fields import PlasticityResponseFieldsAdapter
             response_field_adapters = {AssemblyResponseFieldsAdapter.backend: AssemblyResponseFieldsAdapter()}
             response_field_adapters.update({backend: PDEResponseFieldsAdapter(backend) for backend in SUPPORTED_BACKENDS})
+            response_field_adapters[PlasticityResponseFieldsAdapter.backend] = PlasticityResponseFieldsAdapter()
         self.response_field_adapters = response_field_adapters
         if response_history_adapters is None:
             from .adapters.openradioss_history import OpenRadiossHistoryAdapter
+            from .adapters.plasticity_response_fields import PlasticityResponseFieldsAdapter
             response_history_adapters = {OpenRadiossHistoryAdapter.backend: OpenRadiossHistoryAdapter()}
+            response_history_adapters[PlasticityResponseFieldsAdapter.backend] = PlasticityResponseFieldsAdapter()
         self.response_history_adapters = response_history_adapters
         if doe_adapters is None:
             from .optimizers.scipy_lhs import ScipyLatinHypercube

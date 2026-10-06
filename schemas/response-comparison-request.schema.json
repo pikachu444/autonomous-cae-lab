@@ -44,6 +44,34 @@
               "node_id": {"type": "integer", "minimum": 0},
               "component": {"enum": ["u", "u0", "u1"]}
             }
+          }, {
+            "type": "object", "additionalProperties": false,
+            "required": ["kind", "artifact", "sha256", "model_revision", "mesh_index", "time_index", "node_id", "component"],
+            "properties": {
+              "kind": {"const": "fe_nodal"},
+              "artifact": {"type": "string", "minLength": 1, "maxLength": 1024},
+              "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "model_revision": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "mesh_index": {"type": "integer", "minimum": 0},
+              "time_index": {"type": "integer", "minimum": 0},
+              "node_id": {"type": "integer", "minimum": 1},
+              "component": {"enum": ["DEPL.DX", "DEPL.DY", "DEPL.DZ", "REAC_NODA.DX", "REAC_NODA.DY", "REAC_NODA.DZ"]}
+            }
+          }, {
+            "type": "object", "additionalProperties": false,
+            "required": ["kind", "artifact", "sha256", "model_revision", "mesh_index", "time_index", "element_id", "point", "subpoint", "component"],
+            "properties": {
+              "kind": {"const": "fe_gauss"},
+              "artifact": {"type": "string", "minLength": 1, "maxLength": 1024},
+              "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "model_revision": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "mesh_index": {"type": "integer", "minimum": 0},
+              "time_index": {"type": "integer", "minimum": 0},
+              "element_id": {"type": "integer", "minimum": 1},
+              "point": {"type": "integer", "minimum": 1},
+              "subpoint": {"type": "integer", "minimum": 0},
+              "component": {"enum": ["SIEF_ELGA.SIXX", "SIEF_ELGA.SIYY", "SIEF_ELGA.SIZZ", "SIEF_ELGA.SIXY", "SIEF_ELGA.SIXZ", "SIEF_ELGA.SIYZ", "VARI_ELGA.V1"]}
+            }
           }]}}}
       ]
     },

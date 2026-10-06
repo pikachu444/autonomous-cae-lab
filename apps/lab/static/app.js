@@ -1306,6 +1306,10 @@ function selectPreset() {
     $("pdeConditionFields").hidden = preset?.backend !== "pde.fenicsx.rectangle" || preset?.settings?.mode !== "selected_mesh";
     loadPdeConditions();
   }
+  if (window.plasticityControls && $("plasticityConditionFields")) {
+    $("plasticityConditionFields").hidden = preset?.backend !== "structural.code_aster.plasticity" || preset?.settings?.mode !== "selected_mesh";
+    loadPlasticityConditions();
+  }
   $("importedMeshFields").hidden = preset?.backend !== "pde.fenicsx.imported";
   state.importedRequest++; state.importedLoading = false; state.importedLevels = [];
   $("importedMeshFiles").value = ""; importedMeshError(null);
@@ -1352,6 +1356,7 @@ async function prepareExperimentDraft(record) {
   }
   loadFixtureConditions();
   if (window.pdeControls) loadPdeConditions();
+  if (window.plasticityControls) loadPlasticityConditions();
   state.simulationDraft = { ...draft, store };
   const context = clear("simulationDraftContext"); context.hidden = false;
   context.append(el("strong", "원래 조건에서 새 가상 실험 준비"), el("p", `${draft.source.experimentId} · ${draft.source.studyId}`),
@@ -1457,8 +1462,10 @@ function changeFixtureConditions() {
 function fixtureSimulationSettings() {
   if (!$("fixtureConditionFields").hidden && state.fixtureConditionError) throw new Error(state.fixtureConditionError);
   if (window.pdeControls && !$("pdeConditionFields").hidden && state.pdeConditionError) throw new Error(state.pdeConditionError);
+  if (window.plasticityControls && !$("plasticityConditionFields").hidden && state.plasticityConditionError) throw new Error(state.plasticityConditionError);
   const settings = parseField("simulationSettings", "object");
   if (window.pdeControls && !$("pdeConditionFields").hidden) return window.pdeControls.validate(settings);
+  if (window.plasticityControls && !$("plasticityConditionFields").hidden) return window.plasticityControls.validate(settings);
   if (!$("importedMeshFields").hidden) {
     if (state.importedMeshError || state.importedLoading) throw new Error(state.importedMeshError ?? "파일을 읽는 중입니다.");
     return window.importedMeshControls.settingsWithLevels(settings, state.importedLevels);
@@ -1488,6 +1495,31 @@ function changePdeConditions() {
     $("simulationSettings").value = pretty(window.pdeControls.fromFields(fields, parseField("simulationSettings", "object")));
     pdeConditionError(null);
   } catch (error) { pdeConditionError(error.message); }
+  updateControls();
+}
+function plasticityConditionError(message) {
+  state.plasticityConditionError = message;
+  $("plasticityConditionError").textContent = message ?? "";
+  $("plasticityConditionError").hidden = !message;
+}
+function loadPlasticityConditions() {
+  if (!$("plasticityConditionFields") || $("plasticityConditionFields").hidden) return;
+  try {
+    const fields = window.plasticityControls.toFields(parseField("simulationSettings", "object"));
+    document.querySelectorAll("[data-plasticity-field]").forEach(input => { input.value = fields[input.dataset.plasticityField]; input.disabled = false; });
+    plasticityConditionError(null);
+  } catch (error) {
+    document.querySelectorAll("[data-plasticity-field]").forEach(input => { input.disabled = true; });
+    plasticityConditionError(`해석 설정 JSON을 확인하세요. ${error.message}`);
+  }
+}
+function changePlasticityConditions() {
+  const fields = {};
+  document.querySelectorAll("[data-plasticity-field]").forEach(input => { fields[input.dataset.plasticityField] = input.value; });
+  try {
+    $("simulationSettings").value = pretty(window.plasticityControls.fromFields(fields, parseField("simulationSettings", "object")));
+    plasticityConditionError(null);
+  } catch (error) { plasticityConditionError(error.message); }
   updateControls();
 }
 function campaignConditionsEnabled() { return Boolean(window.campaignControls?.conditionSelection && $("campaignAnalysisSource")); }
@@ -2109,6 +2141,24 @@ function observationSubmissionContext() {
   if (!observationReady()) throw new Error("현재 연구에 속한 검증된 실험과 유효한 응답을 먼저 선택하세요.");
   return { store: activeStore(), studyId: state.studyId, record: state.selectedExperiment };
 }
+function prepareFeFieldObservation(inspection, field, choice, current) {
+  if (!current() || state.selectedExperiment !== inspection || inspection.result.study.id !== state.studyId)
+    throw new Error("같은 연구의 현재 FE 기록과 원 절점·적분점을 선택하세요.");
+  const selection = choice.selector, key = JSON.stringify(["fe_field", selection]);
+  const response = $("observationResponse");
+  [...response.options].filter(item=>item.dataset.fieldObservation).forEach(item=>item.remove());
+  const pointName = selection.kind === "fe_nodal" ? `절점 ${selection.node_id}` : `요소 ${selection.element_id} · 적분점 ${selection.point}/${selection.subpoint}`;
+  option(response,key,`${pointName} · ${selection.component} · t=${number(choice.row.time_s)} s`);
+  response.options[response.options.length-1].dataset.fieldObservation="true"; response.value=key;
+  state.selectedFieldObservation={family:"fe",inspection,field,choice,selection,current,key,store:activeStore(),request:state.experimentRequest};
+  $("observationPanel").hidden=false; $("observationEditor").open=true;
+  if (!$("observationPurpose").value) $("observationPurpose").value="GENERAL_CAE_RESEARCH";
+  for (const [id,value] of Object.entries({observationUnit:choice.row.unit,observationQuantity:choice.row.quantity,
+    observationComponent:selection.component,observationFrame:field.coordinate_frame})) if (!$(id).value) $(id).value=value;
+  changeObservationResponse(); updateControls(); location.hash="results"; showArea("results");
+  $("observationEditor").scrollIntoView({block:"start",behavior:"smooth"});
+  notify("원 FE 위치·성분·시각을 연결했습니다. 관측값·출처·관측 시각을 명시하세요. 측정 위치 정렬은 미확인입니다.",true);
+}
 function observationArguments() {
   observationSubmissionContext();
   const fields = {
@@ -2125,6 +2175,8 @@ function observationArguments() {
   const field = fieldObservationSelection();
   if (field?.family === "pde") return window.observationControls.buildPdeField(state.selectedExperiment,
     {...fields,axisValue:$("observationAxisValue").value},field.selection);
+  if (field?.family === "fe") return window.observationControls.buildFeField(state.selectedExperiment,
+    {...fields,axisQuantity:"time",axisUnit:"s",axisValue:$("observationAxisValue").value},field.selection);
   if (field) return window.observationControls.buildField(state.selectedExperiment, fields, field.selection);
   if ($("observationResponse").selectedOptions?.[0]?.dataset.fieldObservation)
     throw new Error("선택한 필드가 바뀌었습니다. 현재 메시에서 절점을 다시 연결하세요.");
@@ -2143,6 +2195,7 @@ function historyChannelCaption(channel) {
   const measure = {"infinitesimal Cauchy stress": "미소변형 응력", "internal branch stress": "점탄성 분기의 내부 응력",
     "reference-volume energy density": "기준 체적당 에너지"}[channel.measure] ?? channel.measure;
   if (channel.origin?.driver === "openradioss") return `${measure} · ${channel.location} · 전역 SI 좌표 · ${channel.axis.semantics === "NATIVE_HALF_STEP_VELOCITY_TIME" ? "반 증분 속도 시각" : "원 해석 시각"} (센서 정렬 미확인)`;
+  if (channel.origin?.driver === "code_aster") return `${channel.origin.kind === "DERIVED" ? "전체 적분점의 산술평균 · 가중 없음 · 체적 평균 아님" : "경계 그룹의 부호 있는 원 반력"} · 선택 메시 ${channel.origin.mesh_index} · 전역 모델 좌표 (센서 정렬 미확인)`;
   if (channel.origin?.driver === "mgis") return `${measure} · 균질 재료점 1개 · 모델 성분 기준 (센서·세계 좌표 정렬 미확인)`;
   return `${measure ?? channel.label ?? "보존한 응답"} · ${channel.location ?? "위치 미확인"} · 좌표 정렬 미확인`;
 }
@@ -2153,9 +2206,17 @@ function observationResponseNote() {
   const field = fieldObservationSelection();
   $("observationFieldFields").hidden = !field;
   $("observationUnit").required = Boolean(field);
-  const pdeTime = field?.family === "pde" && field.selection.step_index !== null;
-  $("observationHistoryFields").hidden = !history && !pdeTime;
-  $("observationHistorySample").required = $("observationAxisValue").required = Boolean(history || pdeTime);
+  const pdeTime = field?.family === "pde" && field.selection.step_index !== null, feTime = field?.family === "fe";
+  $("observationHistoryFields").hidden = !history && !pdeTime && !feTime;
+  $("observationHistorySample").required = Boolean(history);
+  $("observationHistorySample").parentElement.hidden = Boolean(pdeTime || feTime);
+  $("observationAxisValue").required = Boolean(history || pdeTime || feTime);
+  if (field?.family === "fe") {
+    const row = field.choice.row;
+    $("observationResponseNote").textContent=`${row.kind === "fe_nodal" ? `원 절점 ${row.native}` : `원 요소 ${row.native.element_id} · 적분점 ${row.native.point}/${row.native.subpoint}`} · XYZ [${row.coordinates_mm.join(" / ")}] mm · ${row.component} ${number(row.value)} ${row.unit} · t=${number(row.time_s)} s / order ${row.actual_result_order}. ${row.initial_state ? "초기 상태이며 새 Newton 증분이 아닙니다." : "같은 native 기록의 부호 있는 성분입니다."} 다른 메시·시각·성분의 값으로 대체하지 않습니다.`;
+    $("observationAxisLabel").textContent="관측 시각 (s)";
+    return;
+  }
   if (field?.family === "pde") {
     const raw = field.field, node = raw.nodes.find(value=>value.id === field.selection.node_id), axis = raw.components.indexOf(field.selection.component);
     $("observationResponseNote").textContent=`PDE 원 절점 ${node.id} · XY [${node.coordinates.join(" / ")}] (1) · ${field.selection.component} ${number(node.values[axis])} (1) · PDE 모델 좌표. ${pdeTime ? `기록 축 t=${number(raw.selection.time)} (1) · ${raw.selection.solverStatus === "NOT_RUN" ? "미적분 초기조건" : "계산 단계"}. 시간 단위는 초로 변환하지 않습니다.` : "정적 필드입니다."} 참조·물리 자격은 원래 판정을 유지합니다.`;
@@ -2216,6 +2277,7 @@ function renderHistoryChannel() {
   $("historyContext").textContent = `${channel.label} · ${historyChannelCaption(channel)}${channel.measure === "reference-volume energy density" ? " · MPa = MJ/m³ (기준 체적)" : ""}`;
   $("historyHint").textContent = "기록된 표본·축·부호를 유지합니다. 선은 표본 순서이며 중간값을 계산하지 않습니다. " + (channel.origin.driver === "openradioss"
     ? "속도는 반 증분 시각, 위치·에너지는 원 시각입니다. 스프링 일은 부호를 유지하며 벽의 FNZ는 누적 충격량입니다."
+    : channel.origin.driver === "code_aster" ? "0초는 새 Newton 증분이 없는 선언 초기 상태입니다. 준정적 이력의 시각과 원 native order를 유지하며 가중 없는 적분점 평균은 체적 평균이 아닙니다."
     : "0초는 재료 적분 전의 수치 초기 상태입니다.");
   const select = clear("historySample");
   channel.axis.values.forEach((time, index) => option(select, String(index), `${historyAxisValue(channel, time)}${channel.initial_state?.index === index ? " · 초기 상태" : ""}`));
@@ -2262,6 +2324,11 @@ function observationSourceCaption(source) {
     } catch { /* Preserve the exact source in the expandable record. */ }
   }
   return caption;
+}
+function responseFieldCaption(field) {
+  if (["fe_nodal", "fe_gauss"].includes(field.kind)) return `${field.kind === "fe_nodal" ? `절점 ${field.node_id}` : `요소/적분점/하위점 ${field.element_id}/${field.point}/${field.subpoint}`} · ${field.component} · 원 XYZ [${field.coordinates_mm.join(" / ")}] mm · ${field.coordinate_frame} · 부호 있는 원 native 성분`;
+  if (field.model_revision) return `PDE 절점 ${field.node_id} · ${field.component} · 원 XY [${field.coordinates.join(" / ")}] (${field.coordinates_unit}) · ${field.coordinate_frame} · 부호 있는 원 성분`;
+  return `절점 ${field.node_id} · ${field.component} · ${field.coordinate_frame} · 원 XYZ [${field.position_mm.join(" / ")}] ${field.position_unit} · ${field.value_origin === "DERIVED_MAGNITUDE" ? "저장 UX·UY·UZ의 벡터 크기" : "원본의 부호 있는 성분"}`;
 }
 function prepareComparisonResearch(rows, context) {
   if (busy() || state.storeSwitching || !context || context.store !== activeStore()
@@ -2332,8 +2399,9 @@ async function loadResponseComparisons(inspection = state.selectedExperiment) {
         ? window.observationControls?.choices(inspection).find(choice => choice.metric === selected.metric && choice.component === selected.component) : null;
       const channel = comparison.source_channel;
       const field = comparison.source_field;
-      details.append(el("p", `원 응답: ${field ? field.model_revision ? `PDE 절점 ${field.node_id} · ${field.component} · 원 XY [${field.coordinates.join(" / ")}] (${field.coordinates_unit}) · ${field.coordinate_frame} · 부호 있는 원 성분` : `절점 ${field.node_id} · ${field.component} · ${field.coordinate_frame} · 원 XYZ [${field.position_mm.join(" / ")}] ${field.position_unit} · ${field.value_origin === "DERIVED_MAGNITUDE" ? "저장 UX·UY·UZ의 벡터 크기" : "원본의 부호 있는 성분"}` : channel ? `${channel.label} · ${historyChannelCaption(channel)} · 기록 시각 ${number(comparison.response_axis.value)} ${comparison.response_axis.unit}` : sourceChoice?.label ?? window.resultPresentation.metricName(selected.metric)}${selected.component !== undefined && !sourceChoice ? ` · 사용자 지정 배열 항목 ${selected.component + 1} (물리 성분 미확인)` : ""}`));
-      if (field?.model_revision) details.append(el("p", `PDE 메시 ${field.study_index} · ${field.step_index === null ? "정적 필드" : `원 단계 ${field.step_index}`} · 참조·물리 자격은 원 기록을 유지합니다.`, "hint"));
+      details.append(el("p", `원 응답: ${field ? responseFieldCaption(field) : channel ? `${channel.label} · ${historyChannelCaption(channel)} · 기록 시각 ${number(comparison.response_axis.value)} ${comparison.response_axis.unit}` : sourceChoice?.label ?? window.resultPresentation.metricName(selected.metric)}${selected.component !== undefined && !sourceChoice ? ` · 사용자 지정 배열 항목 ${selected.component + 1} (물리 성분 미확인)` : ""}`));
+      if (["fe_nodal", "fe_gauss"].includes(field?.kind)) details.append(el("p", `FE 메시 ${field.mesh_index} · 원 시간 ${field.time_s} s / order ${field.actual_result_order} · ${field.measure} · ${field.time_index === 0 ? "선언한 초기 상태 (새 Newton 증분 아님)" : "기록된 native 계산 상태"}; 센서 위치 정렬·물리 자격은 미확인입니다.`, "hint"));
+      else if (field?.model_revision) details.append(el("p", `PDE 메시 ${field.study_index} · ${field.step_index === null ? "정적 필드" : `원 단계 ${field.step_index}`} · 참조·물리 자격은 원 기록을 유지합니다.`, "hint"));
       else if (field) details.append(el("p", `정적 step ${field.static.step} / increment ${field.static.increment} · load parameter ${field.static.load_parameter} (시간 아님) · 전체 필드의 원 절점 선택이며 센서 위치와의 정렬은 미검증입니다.`, "hint"));
       if (comparison.declared_field_checks) details.append(table(["선언 항목", "관측 선언", "원 응답", "일치"], comparison.declared_field_checks.map(check => [check.property, check.declared, check.actual, check.matched ? "일치" : "불일치"])));
       if (comparison.declared_history_checks) details.append(table(["이력 선언", "관측 선언", "원 채널", "일치"], comparison.declared_history_checks.map(check => [check.property, check.declared, check.actual, check.matched ? "일치" : "불일치"])));
@@ -2440,6 +2508,10 @@ function renderExperimentDetail(data) {
 
   const metrics = panel("결과값"); metrics.classList.add("detail-wide");
   const metricRows = Object.entries(result.metrics ?? {}), metricGrid = el("div", undefined, "result-metrics");
+  const selectedMaterial = result.provenance?.adapter === "structural.code_aster.plasticity" && data.proposal?.execution?.mode === "selected_mesh";
+  const inactiveMetrics = el("details", undefined, "advanced separated"), inactiveGrid = el("div", undefined, "result-metrics");
+  if (selectedMaterial) inactiveMetrics.append(el("summary", `이 실행에서 평가하지 않은 참조 응답 ${metricRows.filter(([,metric])=>metric.valid !== true).length}개`),
+    el("p", "선택 메시와 일반 이력으로 실행했습니다. 참조·메시 비교·에너지 판정은 미평가이며 원래 값과 사유를 보존합니다.", "hint"), inactiveGrid);
   metricRows.forEach(([name, metric], index) => {
     const metricLabel = name === "max_displacement" && result.provenance?.adapter === "fixture.calculix"
       && result.provenance?.adapter_details?.per_mesh_displacement?.response_metric === "loaded_saddle_min_global_uz"
@@ -2450,9 +2522,12 @@ function renderExperimentDetail(data) {
       ? new Intl.NumberFormat("ko-KR", { maximumSignificantDigits: 6 }).format(value) : text(value);
     const value = Array.isArray(metric.value) ? (name.endsWith("_history") ? "시점별 배열 · 이력 또는 원본 기록에서 확인" : name === "cad_bounds" ? metric.value.map(displayNumber).join(" × ") : text(metric.value)) : displayNumber(metric.value);
     card.append(label, el("strong", `${value} ${unit}`.trim(), `result-metric-value${metric.valid === true ? "" : " invalid-value"}`), badge(metric.valid === true ? "PASS" : "FAIL", metric.valid === true ? "수치 응답 유효" : "판단에 사용할 수 없는 값"));
-    if (metric.reason) card.append(el("p", metric.reason, "metric-reason")); metricGrid.append(card);
+    if (metric.reason) card.append(el("p", metric.reason, "metric-reason"));
+    (selectedMaterial && metric.valid !== true ? inactiveGrid : metricGrid).append(card);
   });
-  if (metricRows.length) metrics.append(metricGrid, el("p", "표시값은 읽기 쉽게 반올림했습니다. 원래 수치·단위·판정은 상세 기록에 보존됩니다.", "hint separated")); else metrics.append(el("p", "이 실험은 사용할 수 있는 수치 결과를 제공하지 않았습니다.", "empty-state")); container.append(metrics);
+  if (metricRows.length) metrics.append(metricGrid, el("p", "표시값은 읽기 쉽게 반올림했습니다. 원래 수치·단위·판정은 상세 기록에 보존됩니다.", "hint separated")); else metrics.append(el("p", "이 실험은 사용할 수 있는 수치 결과를 제공하지 않았습니다.", "empty-state"));
+  if (selectedMaterial && inactiveGrid.childElementCount) metrics.append(inactiveMetrics);
+  container.append(metrics);
 
   if (check.unresolved.length) {
     const pending = panel("남은 확인 사항"); pending.classList.add("detail-wide", "result-pending");
@@ -2500,6 +2575,7 @@ function renderExperimentDetail(data) {
 }
 function renderFixtureFields(container, inspection) {
   const result = inspection.result;
+  if (result.provenance?.adapter === "structural.code_aster.plasticity") return renderNativeFeFields(container, inspection);
   if (result.provenance?.adapter === 'fixture.assembly_mechanics.code_aster') return renderAssemblyFields(container, inspection);
   const native = result.provenance?.adapter === "structure.calculix.native";
   if (!native && result.provenance?.adapter !== "fixture.calculix") return Promise.resolve(false);
@@ -2612,6 +2688,83 @@ function renderAssemblyFields(container, inspection) {
   controls.append(action('전체 결과 필드 불러오기',read,'button secondary compact'));
   detail.append(el('p','버튼으로 이 기록의 전체 변위장을 엽니다. 실패·미수렴 기록의 원자료와 실행 기록은 상세 기록에 보존됩니다.','hint'));
   return Promise.resolve(true);
+}
+function renderNativeFeFields(container, inspection) {
+  const result = inspection.result, card = el("section",undefined,"result-card fixture-field-card");
+  const controls = el("div",undefined,"button-row"), detail = el("div");
+  card.append(el("p","NATIVE FE · SAME RECORD","eyebrow"),el("h2","시각별 전체 절점·적분점 결과"),
+    el("p","변위·반력은 원 절점, 응력·소성변형률은 원 적분점에 표시합니다. 메시·시각·원 성분을 선택하고 같은 위치의 관측과 비교할 수 있습니다.","hint"),controls,detail);
+  container.append(card);
+  const request = state.experimentRequest, store = activeStore(); let loadSequence=0, renderSequence=0;
+  const current = ()=>request === state.experimentRequest && store === activeStore() && state.selectedExperiment === inspection && card.isConnected && !state.storeSwitching;
+  const names={"DEPL.DX":"변위 X (mm)","DEPL.DY":"변위 Y (mm)","DEPL.DZ":"변위 Z (mm)",
+    "REAC_NODA.DX":"절점 반력 X (N)","REAC_NODA.DY":"절점 반력 Y (N)","REAC_NODA.DZ":"절점 반력 Z (N)",
+    "SIEF_ELGA.SIXX":"적분점 응력 XX (MPa)","SIEF_ELGA.SIYY":"적분점 응력 YY (MPa)","SIEF_ELGA.SIZZ":"적분점 응력 ZZ (MPa)",
+    "SIEF_ELGA.SIXY":"적분점 응력 XY (MPa)","SIEF_ELGA.SIXZ":"적분점 응력 XZ (MPa)","SIEF_ELGA.SIYZ":"적분점 응력 YZ (MPa)","VARI_ELGA.V1":"적분점 등가 소성변형률 (1)"};
+  const resetSelection=()=> {
+    if (state.selectedFieldObservation?.family !== "fe" || state.selectedFieldObservation.inspection !== inspection) return;
+    state.selectedFieldObservation=null;
+    [...$("observationResponse").options].filter(o=>o.dataset.fieldObservation).forEach(o=>o.remove());
+    observationResponseNote(); updateControls();
+  };
+  async function read() {
+    const epoch=++loadSequence, active=()=>current()&&epoch===loadSequence;
+    resetSelection(); clear(detail).append(el("p","같은 결과의 FE 원본과 전체 이력을 확인하고 있습니다…","hint"));
+    try {
+      const envelope=await api(`/api/response-fields/${idPath(result.experiment_id)}`);
+      if (!active()) return;
+      const catalog=window.nativeFeFieldInspector.catalog(inspection,envelope);
+      clear(controls); const meshLabel=el("label","메시"), mesh=el("select"); meshLabel.append(mesh); controls.append(meshLabel);
+      catalog.meshes.forEach(entry=>option(mesh,String(entry.mesh_index),`${entry.mesh_size_mm} mm · ${entry.times_s.length}개 원 시각`));
+      mesh.value=String(catalog.meshes[catalog.meshes.length-1].mesh_index);
+      async function chooseMesh() {
+        const fieldEpoch=++loadSequence, selected=()=>current()&&fieldEpoch===loadSequence;
+        resetSelection(); clear(detail).append(el("p","선택한 원본 필드의 크기·해시·전체 point 연결을 확인하고 있습니다…","hint"));
+        try {
+          const entry=catalog.meshes.find(m=>m.mesh_index===Number(mesh.value));
+          const fetchBytes=async(relative,expectedBytes)=> {
+            if (!selected()) throw new Error("선택한 실험 또는 메시가 바뀌었습니다.");
+            const response=await fetch(artifactUrl(result.experiment_id,relative),{cache:"no-store",headers:{Accept:"application/octet-stream"}});
+            if (!selected() || !response.ok) throw new Error("원 FE 파일을 읽을 수 없습니다.");
+            const length=response.headers.get("Content-Length");
+            if (length!==null && Number(length)!==expectedBytes) throw new Error("원 FE 파일 크기가 다릅니다.");
+            return new Uint8Array(await response.arrayBuffer());
+          };
+          const field=await window.nativeFeFieldInspector.loadField(inspection,envelope,entry,fetchBytes,selected);
+          if (!selected()) return;
+          clear(detail); const toolbar=el("div",undefined,"button-row"), timeLabel=el("label","원 해석 시각"), time=el("select"), componentLabel=el("label","결과 성분"),component=el("select");
+          field.raw.states.forEach((s,i)=>option(time,String(i),`${number(s.time_s)} s · order ${s.actual_result_order}${i===0 ? " · 초기 상태" : ""}`));
+          time.value=String(field.raw.states.length-1); timeLabel.append(time);
+          field.components.forEach(c=>option(component,c,names[c]??c)); component.value="SIEF_ELGA.SIXX"; componentLabel.append(component);
+          toolbar.append(timeLabel,componentLabel); detail.append(toolbar);
+          const pointLabel=el("label","원 절점 ID 또는 요소/적분점/하위점"),point=el("input"), pointRow=el("div",undefined,"button-row"), context=el("p",undefined,"hint"), valuesHost=el("div",undefined,"table-scroll");
+          point.placeholder="절점: 1 / 적분점: 1/1/0"; pointLabel.append(point); pointRow.append(pointLabel); detail.append(pointRow,context,valuesHost);
+          let page=0;
+          function show() {
+            if (!selected()) return; resetSelection(); const drawEpoch=++renderSequence, live=()=>selected()&&drawEpoch===renderSequence;
+            const timeIndex=Number(time.value), rows=window.nativeFeFieldInspector.rows(field,timeIndex,component.value),start=page*50;
+            clear(valuesHost); context.textContent=`${rows.length}개 원 ${rows[0].kind === "fe_nodal" ? "절점" : "적분점"} · ${names[component.value]} · 모델 전역 XYZ (mm) · ${timeIndex===0 ? "초기 상태 / 새 Newton 증분 아님" : "native 계산 시각"} · 측정 위치·실물 자격 미확인`;
+            valuesHost.append(table(["절점 / 요소·적분점","XYZ (mm)",`원 값 (${rows[0].unit})`,"관측 연결"],rows.slice(start,start+50).map((r,i)=>[
+              r.kind === "fe_nodal" ? r.native : `${r.native.element_id}/${r.native.point}/${r.native.subpoint}`,
+              r.coordinates_mm.map(number).join(" / "),number(r.value),action("이 위치·시각에 관측 연결",()=>prepareFeFieldObservation(inspection,field,
+                window.nativeFeFieldInspector.selection(field,timeIndex,component.value,start+i),live),"button secondary compact")])));
+            const pages=el("div",undefined,"button-row separated"), prev=action("이전 50개",()=>{page--;show();}),next=action("다음 50개",()=>{page++;show();});
+            prev.disabled=page===0; next.disabled=start+50>=rows.length; pages.append(prev,el("span",`${start+1}–${Math.min(start+50,rows.length)} / ${rows.length}`),next); valuesHost.append(pages);
+          }
+          pointRow.append(action("원 ID로 찾기",()=> {
+            const rows=window.nativeFeFieldInspector.rows(field,Number(time.value),component.value),needle=point.value.trim();
+            const found=rows.findIndex(r=>needle===(r.kind === "fe_nodal" ? String(r.native) : `${r.native.element_id}/${r.native.point}/${r.native.subpoint}`));
+            if (found<0) {notify("현재 메시·성분의 정확한 원 ID를 입력하세요.");return;} page=Math.floor(found/50);show();
+          },"button secondary compact"));
+          time.addEventListener("change",()=>{page=0;show();});component.addEventListener("change",()=>{page=0;show();});show();
+          detail.append(link("선택 메시의 전체 이력 원본",artifactUrl(result.experiment_id,entry.artifact),"text-link",true));
+        } catch(error) { if(selected())clear(detail).append(el("p",error.message,"metric-reason")); }
+      }
+      mesh.addEventListener("change",()=>void chooseMesh()); await chooseMesh();
+    } catch(error) { if(current())clear(detail).append(el("p",error.message,"metric-reason")); }
+  }
+  controls.append(action("원 FE 필드 열기",read,"button secondary"));
+  return read();
 }
 function renderContactFields(container, inspection) {
   const result = inspection.result;
@@ -3256,7 +3409,8 @@ $("simulationPreset").addEventListener("change", selectPreset); $("analysisParen
 $("importedMeshFiles").addEventListener("change", () => selectImportedFiles());
 document.querySelectorAll("[data-fixture-field]").forEach((input) => { input.addEventListener(input.tagName === "SELECT" ? "change" : "input", changeFixtureConditions); });
 document.querySelectorAll("[data-pde-field]").forEach(input => { input.addEventListener(input.tagName === "SELECT" ? "change" : "input", changePdeConditions); });
-$("simulationSettings").addEventListener("input", () => { loadFixtureConditions(); if (window.pdeControls) loadPdeConditions(); updateControls(); });
+document.querySelectorAll("[data-plasticity-field]").forEach(input => { input.addEventListener(input.tagName === "SELECT" ? "change" : "input", changePlasticityConditions); });
+$("simulationSettings").addEventListener("input", () => { loadFixtureConditions(); if (window.pdeControls) loadPdeConditions(); if (window.plasticityControls) loadPlasticityConditions(); updateControls(); });
 $("fixtureUseInCampaign").addEventListener("click", () => {
   try {
     const settings = fixtureSimulationSettings();

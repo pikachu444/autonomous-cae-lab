@@ -10,8 +10,8 @@
 | Phase 1–2 | 공통 기반·모델/조건·실행·결과 | 기존 Core·OpenScience·CAD·조건·전체 필드·이력·보고서를 재사용한다. 미완료 자격과 lifecycle 예외는 보존하고 나머지 개발의 선행조건으로 강요하지 않는다. |
 | Phase 3 | 공통 DOE/최적화·목표 응답·제약 | 기존 LHS/Scipy DE에 명시한 목표값·정규화·출처와 원 응답 보존을 연결했다. 실제 baseline 수치 인코딩 회귀를 통과했다. 새 CAD 목표 사례의 actual acceptance는 NOT_RUN으로 남기며 반복하지 않는다. |
 | Phase 4 · 선택 PDE 실제 연결 완료 | 일반 PDE·경계·필드·관측 비교 | 해석해 없이 단일 selected mesh로 영역/계수/원항/혼합 경계를 입력하고 기존 FEniCSx를 실행한다. 같은 절점·부호·모델·단위/원 시간축을 관측 비교와 기존 연구 해석에 연결한다. 실제 조건 변경→새 실험→전체 필드→관측 비교→재열람을 완료했다. 승인 provider의 새 해석과 넓은 PDE 사용 범위는 OPEN이다. 기존 benchmark 기준은 보존한다. |
-| **Phase 5 · 현재 개발** | 재료 법칙·경계/하중 이력·FE 연계 | 기존 재료점·점탄성/소성·접촉 구현을 읽고 사용자 입력의 남은 FE 연결을 개발한다. 특정 조립체 접촉의 수렴을 전체 시스템 개발 gate로 강요하지 않는다. |
-| Phase 6 | explicit 모델·초기조건·전체 이력 | 기존 OpenRadioss와 native 이력 reader를 재사용해 사용자 모델/조건 연결을 보완한다. 반 증분 속도축·단위·원 solver 판정은 보존한다. |
+| Phase 5 · 선택 J2 FE 실제 연결 완료 | 재료 법칙·경계/하중 이력·FE 연계 | typed 물성·부호 이력·출처·한 메시 → 실제 두 native 실행 → 전체 절점/적분점·11채널 → 조건 재사용·관측 비교·재열람을 완료했다. 넓은 재료 FE/contact/provider 자격은 OPEN이다. |
+| **Phase 6 · 현재 개발** | explicit 모델·초기조건·전체 이력 | 기존 OpenRadioss와 native 이력 reader를 재사용해 사용자 모델/조건 연결을 보완한다. 반 증분 속도축·단위·원 solver 판정은 보존한다. |
 | Phase 7 | inverse·UQ·감도·surrogate·다목적·multiphysics·HPC | 기존 numerical engines와 model bindings로 가설별 입력·관측·잔차를 연결한다. 실제 측정/장비/SSH가 없는 외부 검증은 UNKNOWN으로 남기고 개발 가능한 공통 기능을 먼저 완성한다. |
 
 큰 기능 묶음 개발 → Root 실행·오류 수정·통합 → 마지막 독립 검수 순서를 지킨다.

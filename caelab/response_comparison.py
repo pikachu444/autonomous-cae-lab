@@ -114,7 +114,10 @@ def _selected(lab, result, proposal, response):
     if "field" in response:
         from .response_field import selected_response
         field = selected_response(lab, result, proposal, response["field"])
-        return (field["value"], field["unit"], "EXACT_RECORDED_FIELD_NODE", None,
+        selector_kind = response["field"].get("kind")
+        selection_kind = ("EXACT_RECORDED_FE_INTEGRATION_POINT" if selector_kind == "fe_gauss" else
+                          "EXACT_RECORDED_FE_NODE" if selector_kind == "fe_nodal" else "EXACT_RECORDED_FIELD_NODE")
+        return (field["value"], field["unit"], selection_kind, None,
                 {"source_field": field["source_field"],
                  "field_qualification": field["qualification"],
                  **({"response_axis": field["response_axis"]} if "response_axis" in field else {})})
@@ -220,13 +223,17 @@ def _evaluation(lab, request, result, proposal):
             "causal_verdict": "NOT_EVALUATED", **channel_info,
             **({"declared_axis_check": axis_check, "alignment_policy": "Exact recorded sample; no interpolation"} if axis_check else {}),
             **({"declared_history_checks" if native_history else "declared_field_checks": field_checks,
-                "alignment_policy": ("Exact recorded node, component/frame and original PDE time; no interpolation; physical measurement alignment unverified"
+                "alignment_policy": ("Exact recorded mesh, native point, tensor measure/component/frame and time; no interpolation; physical measurement alignment unverified"
+                                     if request["response"].get("field", {}).get("kind") in ("fe_nodal", "fe_gauss") else
+                                     "Exact recorded node, component/frame and original PDE time; no interpolation; physical measurement alignment unverified"
                                      if request["response"].get("field", {}).get("kind") == "pde_nodal" and axis_check else
                                      "Exact recorded node and declared component/frame; physical measurement alignment unverified")}
                if field_checks else {})}
 
 
 def _comparison_version(response, comparison):
+    if response.get("field", {}).get("kind") in ("fe_nodal", "fe_gauss"):
+        return "1.5"
     if response.get("field", {}).get("kind") == "pde_nodal":
         return "1.4"
     if "history_channel" in response and "source_metric" not in comparison:
@@ -277,7 +284,7 @@ def inspect_comparison(lab, comparison_id):
     receipt, record = load_json(folder / "receipt.json"), load_json(record_path)
     if receipt.get("id") != comparison_id or receipt.get("record_sha256") != _sha(record_path):
         raise ValueError("Comparison record hash mismatch")
-    if record.get("schema_version") not in ("1.0", "1.1", "1.2", "1.3", "1.4") or record.get("id") != comparison_id:
+    if record.get("schema_version") not in ("1.0", "1.1", "1.2", "1.3", "1.4", "1.5") or record.get("id") != comparison_id:
         raise ValueError("Comparison record identity mismatch")
     request = record["request"]
     _finite_json(request)

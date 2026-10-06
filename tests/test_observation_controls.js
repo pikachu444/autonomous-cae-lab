@@ -51,6 +51,23 @@ test("PDE observations retain zero-based native IDs, model revision and dimensio
   assert.equal(Object.hasOwn(controls.buildPdeField(data,input,staticSelection).observation,"axis"),false);
 });
 
+test("FE observation binds native integration point and independently declared time without copying its value",()=>{
+  const data=record(); data.result.provenance.adapter="structural.code_aster.plasticity"; data.result.model_revision="a".repeat(64);
+  const selector={kind:"fe_gauss",artifact:"simulation/level_0/parsed_history.json",sha256:"b".repeat(64),model_revision:data.result.model_revision,
+    mesh_index:0,time_index:1,element_id:7,point:3,subpoint:0,component:"SIEF_ELGA.SIXX"};
+  const input={...fields(),unit:"MPa",axisValue:"0.75",axisQuantity:"time",axisUnit:"s",conditions:[]};
+  const request=controls.buildFeField(data,input,selector);
+  assert.deepEqual(request.response.field,selector); assert.deepEqual(request.observation.axis,{quantity:"time",unit:"s",value:.75});
+  assert.equal(Object.hasOwn(request.response.field,"value"),false);
+  for (const changed of [{...selector,model_revision:"c".repeat(64)},{...selector,node_id:7},{...selector,point:0},
+    {...selector,component:"PK1.XX"},{...selector,value:12}]) assert.throws(()=>controls.buildFeField(data,input,changed));
+  assert.throws(()=>controls.buildFeField(data,{...input,unit:"Pa"},selector));
+  assert.throws(()=>controls.buildFeField(data,{...input,axisValue:""},selector));
+  const nodal={kind:"fe_nodal",artifact:selector.artifact,sha256:selector.sha256,model_revision:selector.model_revision,
+    mesh_index:0,time_index:1,node_id:7,component:"DEPL.DX"};
+  assert.deepEqual(controls.buildFeField(data,{...input,unit:"mm"},nodal).response.field,nodal);
+});
+
 test("choices expose original finite scalars and explicit signed flat-array items without norm, abs or unit conversion", () => {
   const choices = controls.choices(record());
   assert.equal(choices.length, 6);

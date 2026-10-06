@@ -40,6 +40,12 @@ _LIMITATIONS = [
     "No assembled linear matrix/vector residual is exported; nonlinear native convergence and independent reference errors are distinct.",
     "The pinned solver-only vendor image includes an MPI rank compatibility patch.",
 ]
+_SELECTED_LIMITATIONS = [
+    *domain.SELECTED_LIMITATIONS,
+    "Native full nodal/Gauss tables and residual histories support numerical inspection, not analytical, mesh or engineering qualification.",
+    "reaction_x is the signed final X0.DX support reaction in global X; the driven XL.DX reaction is recorded separately.",
+    "The pinned solver-only vendor image includes an MPI rank compatibility patch.",
+]
 
 
 def _assert_sources(output: Path) -> None:
@@ -175,6 +181,9 @@ def _checked_worker(level: Path, mesh: dict, size: float, input_sha: str, settin
     try:
         raw = json.loads((level / "worker_result.json").read_text(encoding="utf-8"))
         json.dumps(raw, allow_nan=False)
+        if settings.get("mode") == "selected_mesh" and (
+                raw.get("mode") != "selected_mesh" or raw.get("input_provenance") != settings["input_provenance"]):
+            raise ValueError("Native selected mode/input provenance differs from the frozen request")
         versions, runtime = raw["versions"], raw["code_aster_runtime"]
         guard = raw["native_mesh_checks"]
         if (raw["input_sha256"] != input_sha or elastic._sha256(level / "input.json") != input_sha or
@@ -252,6 +261,8 @@ class CodeAsterPlasticityAdapter:
         for name, data in _SOURCE_BYTES.items():
             (output / name).write_bytes(data)
         _assert_sources(output)
+        selected = isinstance(settings, dict) and settings.get("mode") == "selected_mesh"
+        limitations = _SELECTED_LIMITATIONS if selected else _LIMITATIONS
         provenance = {"adapter": self.backend, "adapter_version": self.version,
             "captured_source_sha256": dict(_SOURCE_SHA),
             "domain_plugin": {"module": domain.__name__, "version": domain.__version__,
@@ -259,13 +270,13 @@ class CodeAsterPlasticityAdapter:
                               "source_artifact": "simulation/domain_reference.py"},
             "reused_native_guard": "caelab.adapters.codeaster_worker.validate_native_mesh",
             "oci_manifest_sha256": elastic.OCI_MANIFEST_SHA256,
-            "nonlinear_policy": worker.NONLINEAR_POLICY, "assumptions": _LIMITATIONS}
+            "nonlinear_policy": worker.NONLINEAR_POLICY, "assumptions": limitations}
         checks = []
 
         def reject(code, observation, limit="Declared bounded uniaxial J2 load/unload history"):
             checks.append({"code": code, "status": "FAIL", "observed": observation, "limit": limit})
             outcome = {"status": "REJECTED", "solver_status": "NOT_RUN", "converged": None,
-                "checks": checks, "metrics": {}, "pending_validations": _PENDING,
+                "checks": checks, "metrics": {}, "pending_validations": domain._SELECTED_PENDING if selected else _PENDING,
                 "provenance": provenance, "raw_result": "simulation/analysis_raw.json"}
             save_json(output / "analysis_raw.json", outcome)
             return outcome
@@ -274,8 +285,14 @@ class CodeAsterPlasticityAdapter:
             settings = domain.validate_settings(settings)
         except ValueError as exc:
             return reject("plasticity_preflight", str(exc))
+        if selected:
+            provenance.update(mode="selected_mesh", scope=domain.SELECTED_SCOPE,
+                              input_provenance=settings["input_provenance"],
+                              declared_limits=settings["limits"],
+                              units={"time": "s", "strain": "1", "displacement": "mm", "stress": "MPa", "reaction": "N"})
         save_json(output / "input.json", settings)
-        save_json(output / "analytical_reference.json", domain.analytical_reference(settings))
+        if not selected:
+            save_json(output / "analytical_reference.json", domain.analytical_reference(settings))
         save_json(output / "model_declaration.json", self.describe_model(settings))
         try:
             workload = elastic._mesh_workload(settings)
@@ -380,7 +397,10 @@ class CodeAsterPlasticityAdapter:
         if not completed:
             failures = ", ".join(check["code"] for check in checks if check["status"] == "FAIL")
             for metric in assessment["metrics"].values():
-                metric.update(valid=False, reason="Plasticity numerical validation failed: " + failures)
+                # Unassessed selected reference/energy/mesh quantities stay
+                # explicitly unavailable even when a native numerical gate fails.
+                if metric["value"] is not None:
+                    metric.update(valid=False, reason="Plasticity numerical validation failed: " + failures)
         provenance["versions"].update(native[0]["versions"])
         provenance.update({"code_aster_runtime": native[0]["code_aster_runtime"],
             "numerical_libraries": native[0].get("numerical_libraries"),
@@ -396,6 +416,9 @@ class CodeAsterPlasticityAdapter:
             "provenance": provenance, "raw_result": "simulation/analysis_raw.json", "reference": assessment["reference"],
             "mesh_studies": assessment["mesh_studies"], "mesh_records": records,
             "mesh_response": assessment["mesh_response"], "derived_energy": assessment["derived_energy"],
-            "limitations": [*assessment["limitations"], *_LIMITATIONS]}
+            "limitations": [*assessment["limitations"], *limitations]}
+        if selected:
+            outcome.update(mode="selected_mesh", scope=domain.SELECTED_SCOPE,
+                           input_provenance=settings["input_provenance"])
         save_json(output / "analysis_raw.json", outcome)
         return outcome

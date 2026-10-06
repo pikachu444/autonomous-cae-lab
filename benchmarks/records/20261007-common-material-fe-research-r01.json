@@ -1,0 +1,1342 @@
+{
+  "record_id": "20261007-common-material-fe-research-r01",
+  "created_utc": "2026-10-06T17:53:48.515446+00:00",
+  "scope": "SELECTED_J2_FE_INPUT_FULL_NATIVE_FIELDS_HISTORY_AND_OBSERVATION_RESEARCH",
+  "producer": {
+    "core_commit": "57910c93dcc41c3356c6dcbfb72b8482ca70f6a9",
+    "core_dirty": true,
+    "core_source_sha256": "28580d599eea5282acb04e48360953df70578d0992cbb421d1e3226709404f1a",
+    "publication_commit": "READ_THIS_RECORD_AT_ITS_GIT_COMMIT",
+    "final_source_raw_sha256": {
+      "apps/lab/service.py": "a6b513fac58035a5f29cd7673bbc96c6b375f0af88137c9153931a85e2abbbc7",
+      "apps/lab/static/app.js": "4c341ef07ce0affbd81f295123068e722fb6995fa048d84748703a6b27fe4b5a",
+      "apps/lab/static/comparison-research.js": "8a2182586b0bd853a26ae9ca0f89bdc97a8b03ab97a995103986729a1532e2db",
+      "apps/lab/static/experiment-draft.js": "b80c190b32da97372a213f0722265463f7336b93f249e56686782e991a151627",
+      "apps/lab/static/history-controls.js": "57deb3414203ebf886c1a00d1d4c15bef00ff8cf6df68178bb5125536d3ff2c6",
+      "apps/lab/static/index.html": "5813f4475c7f92381d8f97dcec5e64f7d995a8247abb13b3b4bcf265041423b6",
+      "apps/lab/static/observation-controls.js": "7b0fe3b6af0373c8e231280e64e96b0f5195e530b3b45ac8cd74d72476514a97",
+      "apps/lab/static/result-presentation.js": "d5ba6ac5d7a9a30cc096867d89e858c3fb4ddc76cca5889f33fe6355ce0923e6",
+      "apps/lab/static/native-fe-field-inspector.js": "fb9826630fcfe069a3f5ccbebd7868c9192459ad6e6e0ecd0a5548ee78b720a8",
+      "apps/lab/static/plasticity-controls.js": "9064b5695e43c3e81535e1b74ae173245c2a17b06f2cc038d7a766872e40c0d4",
+      "caelab/adapters/codeaster_plasticity.py": "6a188abcbca8be21931fba05fe5a48b5ff7d5282010b532dbae8b34dec1cfced",
+      "caelab/adapters/codeaster_plasticity_worker.py": "89d0e190356bac12047db0c732e63daac48be8cd21b1e548f5044ec4d77c378d",
+      "caelab/adapters/plasticity_response_fields.py": "a806c22a4aac693dbeed6251c7d0b8abc2c62738fe191d7e341f59b46788c3ba",
+      "caelab/engine.py": "42a94b7488d2bd134ee3f41998d041e052d473623ecec6a888faad6f3432cb61",
+      "caelab/response_comparison.py": "27a7d4bca17d0d31c8801225f40a2374428a1eb89527a4a73ad7244b79cc88e6",
+      "plugins/elasticity/plasticity_reference.py": "b708438b4b16fe2ea0e0a6fa2b393c7f13504e9ea42989fa6f0e1a8ec2a0e47d",
+      "schemas/response-comparison-request.schema.json": "ae56c59ea960bbad899964054ecd3230da699b642eecf3a572c8cdce4b09c7ca",
+      "tests/test_codeaster_plasticity.py": "a81bb83005d80ca3701dcbd930cd1fe96d13c239a9690c9d36b7f4d58f63156c",
+      "tests/test_comparison_research.js": "4e05ac9446060c2123061a704bce8a17ab76a7f066c6810fb46f2e763d21432a",
+      "tests/test_history_controls.js": "3fd2b8a12a14ebe7c701c3c9284b0acf8910c2f35d8f66ed60ccfa6c1fa22736",
+      "tests/test_lab_server.py": "aad67d6505dad34fd528c62c97ad790ad84184ee7c473505df2b0196ab46d945",
+      "tests/test_observation_controls.js": "e78bd14e1004a011ea6e18f3b25cb952fa4151aa543708786058a548efcd91d8",
+      "tests/test_plasticity_reference.py": "78d67198e640425247926bdfd8e54b769e67b8fb31ce601e5d73ebdf30ca77d3",
+      "tests/test_response_comparison.py": "df13dca83af138d34be3f170246ed0be938d23ab3ce35312b27c6e6596e18352",
+      "tests/test_native_fe_field_inspector.js": "a3d230a0ffd708f5ebc95af6e3ae4cb89e8b8be206a912a99def9739516eea41",
+      "tests/test_plasticity_controls.js": "e18ab97d33e5c4bc06c8ee6867a3c736e5cc030e59bda3a17b5d2fe1f6c4e90d",
+      "tests/test_plasticity_response_fields.py": "9a25ddb87264f5a21f261cc7c75f63c14a50912b5b33184ff793b3b59bfacc05",
+      "ADR/0052-selected-material-fe-research.md": "049d46e1c4eb7e64e95685e3ecf011a40b93089119853874b8976196211d348e"
+    }
+  },
+  "store": "runs/cae-common-material-fe-research-20261007-01",
+  "study_id": "S-general-material-fe-20261007",
+  "actual_native": {
+    "E-material-selected-yield250-r01": {
+      "actual_result_orders": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "complete_field_reference_errors": {
+        "displacement_mm": 4.753142324176451e-16,
+        "plastic_strain": 1.196959198423997e-16,
+        "stress_mpa": 1.0857093002414331e-11,
+        "support_reaction_n": 1.6143530956469476e-11
+      },
+      "elements": 221,
+      "gauss_points_per_instant": 1105,
+      "history_channels": 11,
+      "mesh_sha256": "50364985bb97ee76b58faaf7e8a2081a23ba7dfd114f4624850e72c023c9a731",
+      "mesh_size_mm": 2.0,
+      "metrics": {
+        "displacement_relative_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        },
+        "final_stress": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 146.80094786729873
+        },
+        "hardening_energy_density": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "MPa",
+          "valid": false,
+          "value": null
+        },
+        "max_component_displacement_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "mm",
+          "valid": false,
+          "value": null
+        },
+        "max_component_stress_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "MPa",
+          "valid": false,
+          "value": null
+        },
+        "max_eq_plastic_strain": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0018009478672986968
+        },
+        "max_eq_plastic_strain_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        },
+        "max_unload_residual_strain_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        },
+        "mesh_agreement_relative": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        },
+        "peak_eq_plastic_strain": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        },
+        "peak_stress": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "MPa",
+          "valid": false,
+          "value": null
+        },
+        "plastic_dissipation_absolute_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "MPa",
+          "valid": false,
+          "value": null
+        },
+        "plastic_dissipation_density": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "MPa",
+          "valid": false,
+          "value": null
+        },
+        "plastic_work_density": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "MPa",
+          "valid": false,
+          "value": null
+        },
+        "reaction_absolute_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "N",
+          "valid": false,
+          "value": null
+        },
+        "reaction_relative_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        },
+        "reaction_x": {
+          "unit": "N",
+          "valid": true,
+          "value": -1174.4075829383896
+        },
+        "stress_relative_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        },
+        "stress_xx_max": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 251.8009478673054
+        },
+        "stress_xx_min": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 0.0
+        },
+        "unload_residual_strain": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        }
+      },
+      "model_revision": "c1bbc883f1e7887b1010292d87eec84cb83d03266ad07bc8bf8f07edbfef4e32",
+      "nodes": 506,
+      "source": {
+        "core_commit": "57910c93dcc41c3356c6dcbfb72b8482ca70f6a9",
+        "core_dirty": true,
+        "core_source_sha256": "28580d599eea5282acb04e48360953df70578d0992cbb421d1e3226709404f1a"
+      },
+      "times_s": [
+        0.0,
+        0.25,
+        0.5,
+        0.75
+      ],
+      "validation_counts": {
+        "PASS": 8,
+        "UNKNOWN": 7
+      }
+    },
+    "E-material-selected-yield300-r01": {
+      "actual_result_orders": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "complete_field_reference_errors": {
+        "displacement_mm": 5.100087019371813e-16,
+        "plastic_strain": 9.562663161322149e-17,
+        "stress_mpa": 1.0857093002414331e-11,
+        "support_reaction_n": 1.6143530956469476e-11
+      },
+      "elements": 221,
+      "gauss_points_per_instant": 1105,
+      "history_channels": 11,
+      "mesh_sha256": "50364985bb97ee76b58faaf7e8a2081a23ba7dfd114f4624850e72c023c9a731",
+      "mesh_size_mm": 2.0,
+      "metrics": {
+        "displacement_relative_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        },
+        "final_stress": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 196.56398104265418
+        },
+        "hardening_energy_density": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "MPa",
+          "valid": false,
+          "value": null
+        },
+        "max_component_displacement_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "mm",
+          "valid": false,
+          "value": null
+        },
+        "max_component_stress_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "MPa",
+          "valid": false,
+          "value": null
+        },
+        "max_eq_plastic_strain": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.001563981042654124
+        },
+        "max_eq_plastic_strain_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        },
+        "max_unload_residual_strain_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        },
+        "mesh_agreement_relative": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        },
+        "peak_eq_plastic_strain": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        },
+        "peak_stress": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "MPa",
+          "valid": false,
+          "value": null
+        },
+        "plastic_dissipation_absolute_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "MPa",
+          "valid": false,
+          "value": null
+        },
+        "plastic_dissipation_density": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "MPa",
+          "valid": false,
+          "value": null
+        },
+        "plastic_work_density": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "MPa",
+          "valid": false,
+          "value": null
+        },
+        "reaction_absolute_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "N",
+          "valid": false,
+          "value": null
+        },
+        "reaction_relative_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        },
+        "reaction_x": {
+          "unit": "N",
+          "valid": true,
+          "value": -1572.511848341233
+        },
+        "stress_relative_error": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        },
+        "stress_xx_max": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 301.56398104265963
+        },
+        "stress_xx_min": {
+          "unit": "MPa",
+          "valid": true,
+          "value": 0.0
+        },
+        "unload_residual_strain": {
+          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference",
+          "unit": "1",
+          "valid": false,
+          "value": null
+        }
+      },
+      "model_revision": "68dc7e9bb1926eb00ce3d0008a60852e796c4b833be91405f4163f1e30f75c31",
+      "nodes": 506,
+      "source": {
+        "core_commit": "57910c93dcc41c3356c6dcbfb72b8482ca70f6a9",
+        "core_dirty": true,
+        "core_source_sha256": "28580d599eea5282acb04e48360953df70578d0992cbb421d1e3226709404f1a"
+      },
+      "times_s": [
+        0.0,
+        0.25,
+        0.5,
+        0.75
+      ],
+      "validation_counts": {
+        "PASS": 8,
+        "UNKNOWN": 7
+      }
+    }
+  },
+  "jobs": [
+    "Jdaf685aad8ce412db1e0dfd82cb1ce1c",
+    "Jcc2a71514bbc4528addc1c6e9fa7913c"
+  ],
+  "comparisons": [
+    {
+      "id": "O-lab-muwy9vys",
+      "source": {
+        "backend": "structural.code_aster.plasticity",
+        "cad_revision": null,
+        "execution": {
+          "case": "uniaxial_j2_isotropic_hardening",
+          "dimensions_mm": [
+            20,
+            4,
+            2
+          ],
+          "history": {
+            "axial_strain": [
+              0,
+              0.001,
+              0.003,
+              0.0025
+            ],
+            "times_s": [
+              0,
+              0.25,
+              0.5,
+              0.75
+            ]
+          },
+          "input_provenance": {
+            "origin": "SYNTHETIC",
+            "reference": "Predeclared hypothetical J2 load/unload integration test, not measured material or a physical validation"
+          },
+          "limits": {
+            "displacement_absolute_mm": 1e-10,
+            "displacement_relative": 1e-07,
+            "mesh_agreement_relative": 1e-07,
+            "plastic_dissipation_absolute_mpa": 1e-08,
+            "plastic_dissipation_relative": 1e-06,
+            "plastic_strain_absolute": 1e-09,
+            "reaction_absolute_n": 1e-08,
+            "reaction_relative": 1e-07,
+            "stress_absolute_mpa": 1e-08,
+            "stress_relative": 1e-07
+          },
+          "material": {
+            "plastic_modulus_mpa": 1000,
+            "poisson_ratio": 0.3,
+            "yield_stress_mpa": 250,
+            "youngs_modulus_mpa": 210000
+          },
+          "mesh_sizes_mm": [
+            2
+          ],
+          "mode": "selected_mesh"
+        },
+        "experiment_id": "E-material-selected-yield250-r01",
+        "model_revision": "c1bbc883f1e7887b1010292d87eec84cb83d03266ad07bc8bf8f07edbfef4e32",
+        "original_decision": "NOT_RELEASED",
+        "parameters": {},
+        "parent_experiment_id": null,
+        "proposal_sha256": "1699e9c78b7b993dcd5ba11f309f96706e349c83b3a390da2a2648798f6c85da",
+        "result_sha256": "ce2b8f8d734aadaa98f84f2e232a5f0e558104888691fdc12f653d3d62a49cbc",
+        "solver_status": "COMPLETED",
+        "study_id": "S-general-material-fe-20261007",
+        "thread_sha256": "467eb634c77b98127b2e7a925f8035a6c04993574a178d8c11031494d433d6ed",
+        "validation_counts": {
+          "FAIL": 0,
+          "PASS": 8,
+          "UNKNOWN": 7,
+          "WARNING": 0
+        }
+      },
+      "request": {
+        "comparison_id": "O-lab-muwy9vys",
+        "experiment_id": "E-material-selected-yield250-r01",
+        "hypothesis": "같은 항복 응력 250 MPa와 하중·제하 이력에서 원 Gauss 응력 XX가 사전 선언한 가상 단축 참조와 수치적으로 일치하는지 확인한다.",
+        "observation": {
+          "axis": {
+            "quantity": "time",
+            "unit": "s",
+            "value": 0.75
+          },
+          "component": "SIEF_ELGA.SIXX",
+          "condition": "같은 E=210000 MPa, nu=0.3, yield=250 MPa, H=1000 MPa, 20×4×2 mm, mesh2 mm; t=0.75 s, 축변형률0.0025. SYNTHETIC.",
+          "conditions": [],
+          "coordinate_frame": "global Cartesian model; sensor/world alignment UNKNOWN",
+          "location": "선언한 가상 균질 block의 원 요소 103 / 적분점 1 / 하위점 1. 센서 정렬은 미확인.",
+          "name": "가상 단축 제하 0.75초 응력 XX",
+          "quantity": "STRESS",
+          "source": "실행 전 고정한 독립 단축 J2 선형 경화 산술식. 측정 자료가 아니며 물성·실물 자격은 UNKNOWN.",
+          "source_kind": "SYNTHETIC",
+          "tolerance": 0.0001,
+          "unit": "MPa",
+          "value": 146.8009478672986
+        },
+        "purpose": "GENERAL_CAE_RESEARCH",
+        "response": {
+          "field": {
+            "artifact": "simulation/level_0/parsed_history.json",
+            "component": "SIEF_ELGA.SIXX",
+            "element_id": 103,
+            "kind": "fe_gauss",
+            "mesh_index": 0,
+            "model_revision": "c1bbc883f1e7887b1010292d87eec84cb83d03266ad07bc8bf8f07edbfef4e32",
+            "point": 1,
+            "sha256": "d869746b8088e53e1e0a2e0f1ad7901c7072b7f0b9eef72c3da8fb06d0876a02",
+            "subpoint": 1,
+            "time_index": 3
+          }
+        }
+      },
+      "comparison": {
+        "absolute_difference": 1.3073986337985843e-12,
+        "alignment_policy": "Exact recorded mesh, native point, tensor measure/component/frame and time; no interpolation; physical measurement alignment unverified",
+        "causal_verdict": "NOT_EVALUATED",
+        "condition_bindings_supplied": false,
+        "decision": "NOT_RELEASED",
+        "declared_absolute_tolerance": 0.0001,
+        "declared_axis_check": {
+          "actual": {
+            "quantity": "time",
+            "unit": "s",
+            "value": 0.75
+          },
+          "declared": {
+            "quantity": "time",
+            "unit": "s",
+            "value": 0.75
+          },
+          "matched": true
+        },
+        "declared_condition_checks": [],
+        "declared_field_checks": [
+          {
+            "actual": "STRESS",
+            "declared": "STRESS",
+            "matched": true,
+            "property": "quantity"
+          },
+          {
+            "actual": "SIEF_ELGA.SIXX",
+            "declared": "SIEF_ELGA.SIXX",
+            "matched": true,
+            "property": "component"
+          },
+          {
+            "actual": "global Cartesian model; sensor/world alignment UNKNOWN",
+            "declared": "global Cartesian model; sensor/world alignment UNKNOWN",
+            "matched": true,
+            "property": "coordinate_frame"
+          }
+        ],
+        "difference": 1.3073986337985843e-12,
+        "field_qualification": {
+          "decision": "NOT_RELEASED",
+          "numeric": "RECORDED_NATIVE_VALUE",
+          "physical": "UNKNOWN",
+          "reference": "RECORDED_DOMAIN_VERDICT_UNCHANGED"
+        },
+        "observed_value": 146.8009478672986,
+        "physical_validation": "UNKNOWN",
+        "response_axis": {
+          "quantity": "time",
+          "unit": "s",
+          "value": 0.75
+        },
+        "response_value": 146.8009478672999,
+        "scope_alignment": "USER_DECLARED_UNVERIFIED",
+        "selection_kind": "EXACT_RECORDED_FE_INTEGRATION_POINT",
+        "source_field": {
+          "actual_result_order": 3,
+          "artifact": "simulation/level_0/parsed_history.json",
+          "axis_semantics": "NATIVE_INST_DECLARED_QUASI_STATIC_HISTORY_SECONDS",
+          "component": "SIEF_ELGA.SIXX",
+          "coordinate_frame": "global Cartesian model; sensor/world alignment UNKNOWN",
+          "coordinates_mm": [
+            10.25121404574125,
+            3.0007137407047737,
+            0.25
+          ],
+          "coordinates_unit": "mm",
+          "coverage": "ALL_BODY_TETRA10_FIVE_RIGI_POINTS",
+          "element_id": 103,
+          "expected_mesh_sha256": "f4d680a8d516a94003810cce3198b9dbcdda2053ac2d70c71d8acc38cff37297",
+          "kind": "fe_gauss",
+          "location": "native BODY TETRA10 103 point 1 subpoint 1 on recorded mesh 0",
+          "measure": "small-strain Cauchy stress at native Gauss point",
+          "mesh_index": 0,
+          "mesh_sha256": "50364985bb97ee76b58faaf7e8a2081a23ba7dfd114f4624850e72c023c9a731",
+          "model_revision": "c1bbc883f1e7887b1010292d87eec84cb83d03266ad07bc8bf8f07edbfef4e32",
+          "point": 1,
+          "quantity": "STRESS",
+          "raw_artifact": "simulation/level_0/worker_result.json",
+          "raw_sha256": "5508fd9c48d6749f2de6bb497a9794055c0f70406353376e105533a50e746f57",
+          "sha256": "d869746b8088e53e1e0a2e0f1ad7901c7072b7f0b9eef72c3da8fb06d0876a02",
+          "subpoint": 1,
+          "time_index": 3,
+          "time_s": 0.75,
+          "topology": {
+            "expected_mesh_binding": "RECORDED_PRE_MODEL_NATIVE_IMPORT_GUARD",
+            "native_body_ids": [
+              103,
+              104,
+              105,
+              106,
+              107,
+              108,
+              109,
+              110,
+              111,
+              112,
+              113,
+              114,
+              115,
+              116,
+              117,
+              118,
+              119,
+              120,
+              121,
+              122,
+              123,
+              124,
+              125,
+              126,
+              127,
+              128,
+              129,
+              130,
+              131,
+              132,
+              133,
+              134,
+              135,
+              136,
+              137,
+              138,
+              139,
+              140,
+              141,
+              142,
+              143,
+              144,
+              145,
+              146,
+              147,
+              148,
+              149,
+              150,
+              151,
+              152,
+              153,
+              154,
+              155,
+              156,
+              157,
+              158,
+              159,
+              160,
+              161,
+              162,
+              163,
+              164,
+              165,
+              166,
+              167,
+              168,
+              169,
+              170,
+              171,
+              172,
+              173,
+              174,
+              175,
+              176,
+              177,
+              178,
+              179,
+              180,
+              181,
+              182,
+              183,
+              184,
+              185,
+              186,
+              187,
+              188,
+              189,
+              190,
+              191,
+              192,
+              193,
+              194,
+              195,
+              196,
+              197,
+              198,
+              199,
+              200,
+              201,
+              202,
+              203,
+              204,
+              205,
+              206,
+              207,
+              208,
+              209,
+              210,
+              211,
+              212,
+              213,
+              214,
+              215,
+              216,
+              217,
+              218,
+              219,
+              220,
+              221,
+              222,
+              223,
+              224,
+              225,
+              226,
+              227,
+              228,
+              229,
+              230,
+              231,
+              232,
+              233,
+              234,
+              235,
+              236,
+              237,
+              238,
+              239,
+              240,
+              241,
+              242,
+              243,
+              244,
+              245,
+              246,
+              247,
+              248,
+              249,
+              250,
+              251,
+              252,
+              253,
+              254,
+              255,
+              256,
+              257,
+              258,
+              259,
+              260,
+              261,
+              262,
+              263,
+              264,
+              265,
+              266,
+              267,
+              268,
+              269,
+              270,
+              271,
+              272,
+              273,
+              274,
+              275,
+              276,
+              277,
+              278,
+              279,
+              280,
+              281,
+              282,
+              283,
+              284,
+              285,
+              286,
+              287,
+              288,
+              289,
+              290,
+              291,
+              292,
+              293,
+              294,
+              295,
+              296,
+              297,
+              298,
+              299,
+              300,
+              301,
+              302,
+              303,
+              304,
+              305,
+              306,
+              307,
+              308,
+              309,
+              310,
+              311,
+              312,
+              313,
+              314,
+              315,
+              316,
+              317,
+              318,
+              319,
+              320,
+              321,
+              322,
+              323
+            ],
+            "native_connectivity": "NOT_REEXPORTED"
+          },
+          "value_origin": "NATIVE_COMPONENT"
+        },
+        "status": "NUMERIC_DIFFERENCE_ONLY",
+        "unit": "MPa",
+        "unit_policy": "Exact output-unit symbol; input-binding units are user declarations",
+        "within_declared_tolerance": true
+      }
+    },
+    {
+      "id": "O-lab-muwyuev5",
+      "source": {
+        "backend": "structural.code_aster.plasticity",
+        "cad_revision": null,
+        "execution": {
+          "case": "uniaxial_j2_isotropic_hardening",
+          "dimensions_mm": [
+            20,
+            4,
+            2
+          ],
+          "history": {
+            "axial_strain": [
+              0,
+              0.001,
+              0.003,
+              0.0025
+            ],
+            "times_s": [
+              0,
+              0.25,
+              0.5,
+              0.75
+            ]
+          },
+          "input_provenance": {
+            "origin": "SYNTHETIC",
+            "reference": "Predeclared hypothetical J2 load/unload integration test, not measured material or a physical validation"
+          },
+          "limits": {
+            "displacement_absolute_mm": 1e-10,
+            "displacement_relative": 1e-07,
+            "mesh_agreement_relative": 1e-07,
+            "plastic_dissipation_absolute_mpa": 1e-08,
+            "plastic_dissipation_relative": 1e-06,
+            "plastic_strain_absolute": 1e-09,
+            "reaction_absolute_n": 1e-08,
+            "reaction_relative": 1e-07,
+            "stress_absolute_mpa": 1e-08,
+            "stress_relative": 1e-07
+          },
+          "material": {
+            "plastic_modulus_mpa": 1000,
+            "poisson_ratio": 0.3,
+            "yield_stress_mpa": 300,
+            "youngs_modulus_mpa": 210000
+          },
+          "mesh_sizes_mm": [
+            2
+          ],
+          "mode": "selected_mesh"
+        },
+        "experiment_id": "E-material-selected-yield300-r01",
+        "model_revision": "68dc7e9bb1926eb00ce3d0008a60852e796c4b833be91405f4163f1e30f75c31",
+        "original_decision": "NOT_RELEASED",
+        "parameters": {},
+        "parent_experiment_id": null,
+        "proposal_sha256": "1ade0ca00cf4202cc812d0aae0ee3fb2a467c7a7eaeb511bd0aab95f329c89ab",
+        "result_sha256": "325e57bcabca092daac9071cef6dcad738533327c63b0cf549f98bee4d8a2629",
+        "solver_status": "COMPLETED",
+        "study_id": "S-general-material-fe-20261007",
+        "thread_sha256": "5d51a333c1e762c37b050792e4918c0aee4af07deb8d4cd065df18d5e1591fbb",
+        "validation_counts": {
+          "FAIL": 0,
+          "PASS": 8,
+          "UNKNOWN": 7,
+          "WARNING": 0
+        }
+      },
+      "request": {
+        "comparison_id": "O-lab-muwyuev5",
+        "experiment_id": "E-material-selected-yield300-r01",
+        "hypothesis": "같은 변형률 이력에서 항복 응력을 300 MPa로 바꾸면 기준 250 MPa 모델의 응력 관측과 얼마나 달라지는지 비교한다.",
+        "observation": {
+          "axis": {
+            "quantity": "time",
+            "unit": "s",
+            "value": 0.75
+          },
+          "component": "SIEF_ELGA.SIXX",
+          "condition": "SYNTHETIC 250 MPa 기준. 후보만 300 MPa로 변경; 나머지 E, nu, H, 형상, mesh2 mm와 시간·변형률 이력을 그대로 유지.",
+          "conditions": [],
+          "coordinate_frame": "global Cartesian model; sensor/world alignment UNKNOWN",
+          "location": "가상 균질 block의 원 요소 103 / 적분점 1 / 하위점 1; 물리 측정 위치 대응은 미확인.",
+          "name": "동일 가상 관측에 대한 항복 300 MPa 후보",
+          "quantity": "STRESS",
+          "source": "실행 전 고정한 250 MPa 기준의 독립 단축 J2 산술식. 가상 응력 목표이며 실제 측정이 아니다.",
+          "source_kind": "SYNTHETIC",
+          "tolerance": 0.0001,
+          "unit": "MPa",
+          "value": 146.8009478672986
+        },
+        "purpose": "GENERAL_CAE_RESEARCH",
+        "response": {
+          "field": {
+            "artifact": "simulation/level_0/parsed_history.json",
+            "component": "SIEF_ELGA.SIXX",
+            "element_id": 103,
+            "kind": "fe_gauss",
+            "mesh_index": 0,
+            "model_revision": "68dc7e9bb1926eb00ce3d0008a60852e796c4b833be91405f4163f1e30f75c31",
+            "point": 1,
+            "sha256": "5ca6b023386d87b987ac0c5bc59384792b22157f22c0976f7739a1a4c5bf4f32",
+            "subpoint": 1,
+            "time_index": 3
+          }
+        }
+      },
+      "comparison": {
+        "absolute_difference": 49.7630331753565,
+        "alignment_policy": "Exact recorded mesh, native point, tensor measure/component/frame and time; no interpolation; physical measurement alignment unverified",
+        "causal_verdict": "NOT_EVALUATED",
+        "condition_bindings_supplied": false,
+        "decision": "NOT_RELEASED",
+        "declared_absolute_tolerance": 0.0001,
+        "declared_axis_check": {
+          "actual": {
+            "quantity": "time",
+            "unit": "s",
+            "value": 0.75
+          },
+          "declared": {
+            "quantity": "time",
+            "unit": "s",
+            "value": 0.75
+          },
+          "matched": true
+        },
+        "declared_condition_checks": [],
+        "declared_field_checks": [
+          {
+            "actual": "STRESS",
+            "declared": "STRESS",
+            "matched": true,
+            "property": "quantity"
+          },
+          {
+            "actual": "SIEF_ELGA.SIXX",
+            "declared": "SIEF_ELGA.SIXX",
+            "matched": true,
+            "property": "component"
+          },
+          {
+            "actual": "global Cartesian model; sensor/world alignment UNKNOWN",
+            "declared": "global Cartesian model; sensor/world alignment UNKNOWN",
+            "matched": true,
+            "property": "coordinate_frame"
+          }
+        ],
+        "difference": 49.7630331753565,
+        "field_qualification": {
+          "decision": "NOT_RELEASED",
+          "numeric": "RECORDED_NATIVE_VALUE",
+          "physical": "UNKNOWN",
+          "reference": "RECORDED_DOMAIN_VERDICT_UNCHANGED"
+        },
+        "observed_value": 146.8009478672986,
+        "physical_validation": "UNKNOWN",
+        "response_axis": {
+          "quantity": "time",
+          "unit": "s",
+          "value": 0.75
+        },
+        "response_value": 196.5639810426551,
+        "scope_alignment": "USER_DECLARED_UNVERIFIED",
+        "selection_kind": "EXACT_RECORDED_FE_INTEGRATION_POINT",
+        "source_field": {
+          "actual_result_order": 3,
+          "artifact": "simulation/level_0/parsed_history.json",
+          "axis_semantics": "NATIVE_INST_DECLARED_QUASI_STATIC_HISTORY_SECONDS",
+          "component": "SIEF_ELGA.SIXX",
+          "coordinate_frame": "global Cartesian model; sensor/world alignment UNKNOWN",
+          "coordinates_mm": [
+            10.25121404574125,
+            3.0007137407047737,
+            0.25
+          ],
+          "coordinates_unit": "mm",
+          "coverage": "ALL_BODY_TETRA10_FIVE_RIGI_POINTS",
+          "element_id": 103,
+          "expected_mesh_sha256": "f4d680a8d516a94003810cce3198b9dbcdda2053ac2d70c71d8acc38cff37297",
+          "kind": "fe_gauss",
+          "location": "native BODY TETRA10 103 point 1 subpoint 1 on recorded mesh 0",
+          "measure": "small-strain Cauchy stress at native Gauss point",
+          "mesh_index": 0,
+          "mesh_sha256": "50364985bb97ee76b58faaf7e8a2081a23ba7dfd114f4624850e72c023c9a731",
+          "model_revision": "68dc7e9bb1926eb00ce3d0008a60852e796c4b833be91405f4163f1e30f75c31",
+          "point": 1,
+          "quantity": "STRESS",
+          "raw_artifact": "simulation/level_0/worker_result.json",
+          "raw_sha256": "9977205c52f0845b39b3c6bfadb77655fdb74b95a454dd69c31c26299b78ed14",
+          "sha256": "5ca6b023386d87b987ac0c5bc59384792b22157f22c0976f7739a1a4c5bf4f32",
+          "subpoint": 1,
+          "time_index": 3,
+          "time_s": 0.75,
+          "topology": {
+            "expected_mesh_binding": "RECORDED_PRE_MODEL_NATIVE_IMPORT_GUARD",
+            "native_body_ids": [
+              103,
+              104,
+              105,
+              106,
+              107,
+              108,
+              109,
+              110,
+              111,
+              112,
+              113,
+              114,
+              115,
+              116,
+              117,
+              118,
+              119,
+              120,
+              121,
+              122,
+              123,
+              124,
+              125,
+              126,
+              127,
+              128,
+              129,
+              130,
+              131,
+              132,
+              133,
+              134,
+              135,
+              136,
+              137,
+              138,
+              139,
+              140,
+              141,
+              142,
+              143,
+              144,
+              145,
+              146,
+              147,
+              148,
+              149,
+              150,
+              151,
+              152,
+              153,
+              154,
+              155,
+              156,
+              157,
+              158,
+              159,
+              160,
+              161,
+              162,
+              163,
+              164,
+              165,
+              166,
+              167,
+              168,
+              169,
+              170,
+              171,
+              172,
+              173,
+              174,
+              175,
+              176,
+              177,
+              178,
+              179,
+              180,
+              181,
+              182,
+              183,
+              184,
+              185,
+              186,
+              187,
+              188,
+              189,
+              190,
+              191,
+              192,
+              193,
+              194,
+              195,
+              196,
+              197,
+              198,
+              199,
+              200,
+              201,
+              202,
+              203,
+              204,
+              205,
+              206,
+              207,
+              208,
+              209,
+              210,
+              211,
+              212,
+              213,
+              214,
+              215,
+              216,
+              217,
+              218,
+              219,
+              220,
+              221,
+              222,
+              223,
+              224,
+              225,
+              226,
+              227,
+              228,
+              229,
+              230,
+              231,
+              232,
+              233,
+              234,
+              235,
+              236,
+              237,
+              238,
+              239,
+              240,
+              241,
+              242,
+              243,
+              244,
+              245,
+              246,
+              247,
+              248,
+              249,
+              250,
+              251,
+              252,
+              253,
+              254,
+              255,
+              256,
+              257,
+              258,
+              259,
+              260,
+              261,
+              262,
+              263,
+              264,
+              265,
+              266,
+              267,
+              268,
+              269,
+              270,
+              271,
+              272,
+              273,
+              274,
+              275,
+              276,
+              277,
+              278,
+              279,
+              280,
+              281,
+              282,
+              283,
+              284,
+              285,
+              286,
+              287,
+              288,
+              289,
+              290,
+              291,
+              292,
+              293,
+              294,
+              295,
+              296,
+              297,
+              298,
+              299,
+              300,
+              301,
+              302,
+              303,
+              304,
+              305,
+              306,
+              307,
+              308,
+              309,
+              310,
+              311,
+              312,
+              313,
+              314,
+              315,
+              316,
+              317,
+              318,
+              319,
+              320,
+              321,
+              322,
+              323
+            ],
+            "native_connectivity": "NOT_REEXPORTED"
+          },
+          "value_origin": "NATIVE_COMPONENT"
+        },
+        "status": "NUMERIC_DIFFERENCE_ONLY",
+        "unit": "MPa",
+        "unit_policy": "Exact output-unit symbol; input-binding units are user declarations",
+        "within_declared_tolerance": false
+      }
+    }
+  ],
+  "feature_reference": {
+    "origin": "SYNTHETIC",
+    "predeclared_before_native": true,
+    "stress_absolute_mpa": 0.0001,
+    "plastic_strain_absolute": 1e-09,
+    "displacement_absolute_mm": 1e-09,
+    "reaction_absolute_n": 0.0008,
+    "meaning": "Independent Root uniform J2 load/unload arithmetic; not measured or stored qualification"
+  },
+  "retention": {
+    "bytes": 13357633,
+    "files": 74,
+    "status": "UNCHANGED"
+  },
+  "source_checks": [
+    {
+      "suite": "Integrated Core/HTTP/native J2/reader/comparison",
+      "passed": 547,
+      "failed": 0,
+      "warnings": 1,
+      "seconds": 508.28
+    },
+    {
+      "suite": "Final all Node UI/helper suites",
+      "passed": 789,
+      "failed": 0,
+      "cancelled": 0,
+      "seconds": 11.8565219
+    }
+  ],
+  "actual_user_flow": [
+    "typed material/dimensions/signed history/source/one mesh",
+    "native J2 run",
+    "all 506 nodes and 1105 Gauss points at four times",
+    "11 signed native/derived history channels",
+    "immutable condition reuse with yield 250 to 300 MPa only",
+    "exact same native point/time against same synthetic observation",
+    "stored 1.5 comparisons reopened",
+    "same-study Korean question prepared; provider not executed"
+  ],
+  "new_native_runs": 2,
+  "new_provider_runs": 0,
+  "new_cad_runs": 0,
+  "prior_attempts": [
+    "Selected preflight refused a benchmark-only analytical reference before native; preserved and corrected with separate predeclared Root arithmetic",
+    "Root proof export used two wrong list method/wrapper assumptions after numerical checks; corrected existing API, no native rerun",
+    "History UI falsely required absent CAD revision; corrected CAD-free proposal contract and actual 11-channel metadata"
+  ],
+  "source_review": "Root integration and execution completed; final independent combined bundle review follows Phase6/7 development, no per-patch gate",
+  "local_artifacts": {
+    "native-producer-source.json": {
+      "sha256": "9e012bddc4df8f323eb5e71608ad60d0a2e2ad56cfb26991eb1882ef8c38662d",
+      "bytes": 178
+    },
+    "predeclared-inputs.json": {
+      "sha256": "510dac4ea1bbba8c331ca7f5d8dd9516325f4c950b46d730dc552ee43df5ea9c",
+      "bytes": 4290
+    },
+    "actual-native-field-proof.json": {
+      "sha256": "96c83f65946523cc1f4dfd7d6c3d801f6907d068e5c2d983f3128763f82ecdec",
+      "bytes": 26661
+    },
+    "final-comparisons-http.json": {
+      "sha256": "f253bffcf360487ec557266263277ee7210cac207338b024bacc7d5af20e8903",
+      "bytes": 26383
+    },
+    "prepared-research-question.txt": {
+      "sha256": "548735005b7600cf5c0431209f74c24fe8171e5888e9eaa8e8ce078ed96f823f",
+      "bytes": 4302
+    },
+    "material-fe-final.png": {
+      "sha256": "a285e163f24f3edd56adb3aec56d81ed8c9b8849e3e0144fd42f229af4f3621a",
+      "bytes": 70510
+    },
+    "python-integration-01.log": {
+      "sha256": "ded04b3c8869c0a1a9f39235f652e796d7cdcde7c8a2d14dfcba110ceed25e0a",
+      "bytes": 1230
+    },
+    "python-integration-01.exit.json": {
+      "sha256": "ef30e5581f0182c5c024bb670ae4989991a07a1342637f113c8afceb5699d5cc",
+      "bytes": 85
+    },
+    "node-all-03.log": {
+      "sha256": "6dcfaa890040a2b907ba77e2a2f01746ab9d98191abeb926b08ddde54e431e97",
+      "bytes": 74855
+    },
+    "baseline-retention-before.json": {
+      "sha256": "c806c0f6a1f9ee9a7cd0eee178e1b3d45a0e718348e0ac7c6e0986952b8527ee",
+      "bytes": 19330
+    },
+    "verification-recovery.json": {
+      "sha256": "255de9a54fb7a036a5f752793901e240793bc9e23942c9b2892e4bcfd92fd15b",
+      "bytes": 284
+    }
+  },
+  "artifact_retention": "LOCAL_ONLY; raw native and company-capable stores are not public Git artifacts",
+  "limitations": [
+    "Bounded whole-solid J2 family, not arbitrary imported FCStd FEA",
+    "No new MGIS material-law FE coupling or arbitrary contact qualification",
+    "Unweighted derived Gauss means are not volume averages",
+    "User-declared sensor/frame/conditions remain unverified; no explicit comparison condition bindings supplied",
+    "No interpolation, extrapolation or stress/tensor substitution",
+    "Native selected reference/energy/mesh errors remain null invalid",
+    "No actual provider interpretation or active cancellation/reconnect in this unit",
+    "Exact publication CI must be checked separately; known older numerical/download failures are not rerun"
+  ],
+  "physical_validation": "UNKNOWN",
+  "causal_verdict": "NOT_EVALUATED",
+  "decision": "NOT_RELEASED",
+  "whole_52_and_phases": "INCOMPLETE",
+  "next": "Phase6 common explicit user inputs/history/owned execution; Phase7 model DOE and observation-bound numerical research using existing engines"
+}

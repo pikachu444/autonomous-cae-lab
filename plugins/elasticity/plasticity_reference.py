@@ -4,8 +4,9 @@ The origin-aligned block has symmetry restraints on x=0, y=0 and z=0 and
 prescribed axial displacement on x=L. Free lateral faces permit the affine
 Poisson/plastic contraction. The admitted history is monotonic tension into
 plasticity followed by elastic unloading, possibly into negative stress, but
-without reverse yielding. No native solver command or constitutive integration
-routine is used here.
+without reverse yielding. A separate selected-mesh mode admits declared signed
+histories without evaluating this tensile reference. No native solver command
+or constitutive integration routine is used here.
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ import sys
 __version__ = "1"
 
 _SETTING_KEYS = {"case", "dimensions_mm", "material", "history", "mesh_sizes_mm", "limits"}
+_SELECTED_SETTING_KEYS = _SETTING_KEYS | {"mode", "input_provenance"}
 _MATERIAL_KEYS = {"youngs_modulus_mpa", "poisson_ratio", "yield_stress_mpa", "plastic_modulus_mpa"}
 _HISTORY_KEYS = {"times_s", "axial_strain"}
 _LIMIT_KEYS = {"displacement_relative", "displacement_absolute_mm", "stress_relative",
@@ -29,6 +31,25 @@ _STATE_KEYS = {"time_s", "displacements_mm", "stresses_mpa", "eq_plastic_strain"
 _COMPONENTS = ["xx", "yy", "zz", "xy", "xz", "yz"]
 _PENDING = ["static_strength", "material_qualification", "model_qualification",
             "physical_validation", "fatigue_durability"]
+_SELECTED_PENDING = ["reference_agreement", "mesh_convergence", *_PENDING]
+SELECTED_SCOPE = "SELECTED_SMALL_STRAIN_J2_BLOCK_HISTORY"
+SELECTED_LIMITATIONS = [
+    "Selected homogeneous block, small-strain J2 isotropic linear hardening and declared axial displacement history only.",
+    "Loading, plateaus, unloading and reversal are native observations; no analytical history agreement is evaluated.",
+    "One selected mesh gives no mesh agreement or convergence evidence.",
+    "Plastic work, hardening energy and dissipation references are not evaluated for general signed histories; no native global energy is inferred.",
+    "Seconds label the declared quasi-static load history; inertia and rate-dependent material behavior are not modeled.",
+    "Input sources are user declarations, not material, model, physical, strength or fatigue qualification.",
+]
+SELECTED_METRICS = ["final_stress", "reaction_x", "stress_xx_min", "stress_xx_max", "max_eq_plastic_strain"]
+_UNASSESSED_METRIC_UNITS = {
+    "peak_stress": "MPa", "peak_eq_plastic_strain": "1", "unload_residual_strain": "1",
+    "plastic_work_density": "MPa", "hardening_energy_density": "MPa", "plastic_dissipation_density": "MPa",
+    "max_component_displacement_error": "mm", "displacement_relative_error": "1",
+    "max_component_stress_error": "MPa", "stress_relative_error": "1", "max_eq_plastic_strain_error": "1",
+    "reaction_absolute_error": "N", "reaction_relative_error": "1", "max_unload_residual_strain_error": "1",
+    "plastic_dissipation_absolute_error": "MPa", "mesh_agreement_relative": "1",
+}
 
 
 def _keys(value: object, expected: set[str], label: str) -> dict:
@@ -66,6 +87,8 @@ def _mean(values: list[float]) -> float:
 
 
 def _reference(settings: dict) -> dict:
+    if settings.get("mode") == "selected_mesh":
+        raise ValueError("No analytical reference is evaluated for selected_mesh signed histories")
     young = settings["material"]["youngs_modulus_mpa"]
     poisson = settings["material"]["poisson_ratio"]
     yield_stress = settings["material"]["yield_stress_mpa"]
@@ -152,7 +175,15 @@ def validate_settings(settings: dict) -> dict:
     H is d(yield stress)/d(equivalent plastic strain), not the uniaxial tangent
     d(stress)/d(total strain). Inputs and historical records are never changed.
     """
-    _keys(settings, _SETTING_KEYS, "Plasticity settings")
+    selected = isinstance(settings, dict) and settings.get("mode") == "selected_mesh"
+    _keys(settings, _SELECTED_SETTING_KEYS if selected else _SETTING_KEYS, "Plasticity settings")
+    if selected:
+        source = _keys(settings["input_provenance"], {"origin", "reference"}, "Input provenance")
+        if (not isinstance(source["origin"], str) or
+                source["origin"] not in {"ASSUMED", "MEASURED_REPORTED", "PUBLISHED_REFERENCE", "SYNTHETIC"} or
+                not isinstance(source["reference"], str) or not source["reference"].strip() or
+                len(source["reference"]) > 2000):
+            raise ValueError("Input provenance needs a declared origin and a nonempty reference of at most 2000 characters")
     if settings["case"] != "uniaxial_j2_isotropic_hardening":
         raise ValueError("Plasticity case must be uniaxial_j2_isotropic_hardening")
     dimensions = _vector(settings["dimensions_mm"], 3, "dimensions_mm")
@@ -166,23 +197,28 @@ def validate_settings(settings: dict) -> dict:
     history = _keys(settings["history"], _HISTORY_KEYS, "Plasticity history")
     times, strains = history["times_s"], history["axial_strain"]
     if (not isinstance(times, list) or not isinstance(strains, list) or
-            not 6 <= len(times) <= 32 or len(strains) != len(times)):
-        raise ValueError("History requires 6 to 32 corresponding time and strain entries")
+            not (2 if selected else 6) <= len(times) <= 32 or len(strains) != len(times)):
+        raise ValueError(f"History requires {2 if selected else 6} to 32 corresponding time and strain entries")
     times = [_number(value, "times_s") for value in times]
     strains = [_number(value, "axial_strain") for value in strains]
     if (times[0] != 0.0 or strains[0] != 0.0 or
             any(previous >= current for previous, current in zip(times, times[1:]))):
         raise ValueError("History must start at time=0/strain=0 with strictly increasing times")
-    if any(value < 0.0 or value > 0.01 for value in strains):
-        raise ValueError("axial_strain must be nonnegative and <= 0.01")
-    peak_index = strains.index(max(strains))
-    if (peak_index < 1 or peak_index > len(strains) - 3 or
-            any(previous >= current for previous, current in zip(strains[:peak_index], strains[1:peak_index + 1])) or
-            any(previous <= current for previous, current in zip(strains[peak_index:-1], strains[peak_index + 1:]))):
-        raise ValueError("History must strictly load to one peak then strictly unload for at least two steps")
+    if selected:
+        if any(abs(value) > 0.01 for value in strains):
+            raise ValueError("selected_mesh axial_strain must be in [-0.01,0.01]")
+    else:
+        if any(value < 0.0 or value > 0.01 for value in strains):
+            raise ValueError("axial_strain must be nonnegative and <= 0.01")
+        peak_index = strains.index(max(strains))
+        if (peak_index < 1 or peak_index > len(strains) - 3 or
+                any(previous >= current for previous, current in zip(strains[:peak_index], strains[1:peak_index + 1])) or
+                any(previous <= current for previous, current in zip(strains[peak_index:-1], strains[peak_index + 1:]))):
+            raise ValueError("History must strictly load to one peak then strictly unload for at least two steps")
     sizes = settings["mesh_sizes_mm"]
-    if not isinstance(sizes, list) or not 2 <= len(sizes) <= 3:
-        raise ValueError("mesh_sizes_mm requires two or three descending distinct sizes")
+    if not isinstance(sizes, list) or not ((len(sizes) == 1) if selected else (2 <= len(sizes) <= 3)):
+        raise ValueError("selected_mesh requires one mesh size" if selected else
+                         "mesh_sizes_mm requires two or three descending distinct sizes")
     sizes = [_number(value, "mesh_sizes_mm", positive=True) for value in sizes]
     if (any(coarse <= fine for coarse, fine in zip(sizes, sizes[1:])) or
             any(value > min(dimensions) for value in sizes)):
@@ -192,8 +228,17 @@ def validate_settings(settings: dict) -> dict:
     normalized.update({"dimensions_mm": dimensions, "material": material,
                        "history": {"times_s": times, "axial_strain": strains}, "mesh_sizes_mm": sizes,
                        "limits": {name: _number(limits[name], name, positive=True) for name in sorted(_LIMIT_KEYS)}})
-    reference = _reference(normalized)
-    _tolerances(normalized, _scales(normalized, reference))
+    if selected:
+        # Check representability of the existing native material translation and
+        # prescribed displacement, without a tensile/reverse-history oracle.
+        young, hardening = material["youngs_modulus_mpa"], material["plastic_modulus_mpa"]
+        total = _number(young + hardening, "Native E+H", positive=True)
+        _number(young * (hardening / total), "Native total-strain tangent", positive=True)
+        for strain in strains:
+            _number(strain * dimensions[0], "Declared axial displacement")
+    else:
+        reference = _reference(normalized)
+        _tolerances(normalized, _scales(normalized, reference))
     return normalized
 
 
@@ -202,13 +247,30 @@ def analytical_reference(settings: dict) -> dict:
     return _reference(validate_settings(settings))
 
 
+def selected_settings() -> dict:
+    """Editable assumed inputs; no manufactured history/reference or sweep."""
+    return validate_settings({
+        "mode": "selected_mesh", "case": "uniaxial_j2_isotropic_hardening",
+        "dimensions_mm": [20.0, 4.0, 2.0],
+        "material": {"youngs_modulus_mpa": 210000.0, "poisson_ratio": 0.3,
+                     "yield_stress_mpa": 250.0, "plastic_modulus_mpa": 1000.0},
+        "history": {"times_s": [0.0, 1.0], "axial_strain": [0.0, 0.001]}, "mesh_sizes_mm": [2.0],
+        "limits": {"displacement_relative": 1e-7, "displacement_absolute_mm": 1e-10,
+                   "stress_relative": 1e-7, "stress_absolute_mpa": 1e-8, "plastic_strain_absolute": 1e-9,
+                   "reaction_relative": 1e-7, "reaction_absolute_n": 1e-8, "mesh_agreement_relative": 1e-7,
+                   "plastic_dissipation_relative": 1e-6, "plastic_dissipation_absolute_mpa": 1e-8},
+        "input_provenance": {"origin": "ASSUMED", "reference":
+            "User-editable hypothetical J2 material and axial displacement history; material/physical qualification UNKNOWN"},
+    })
+
+
 def model_declaration(settings: dict) -> dict:
     """Flat common declaration; native constitutive and history syntax stays in adapters."""
     normalized = validate_settings(settings)
     material = normalized["material"]
     times = normalized["history"]["times_s"]
     length = normalized["dimensions_mm"][0]
-    return {"case": normalized["case"],
+    declaration = {"case": normalized["case"],
             "geometry": {"type": "block", "dimensions_mm": list(normalized["dimensions_mm"]),
                          "unit": "mm", "origin": [0.0, 0.0, 0.0]},
             "materials": [{"model": "j2_isotropic_linear_hardening", "kinematics": "small_strain",
@@ -233,6 +295,19 @@ def model_declaration(settings: dict) -> dict:
                                    {"field": "stress", "unit": "MPa", "components": list(_COMPONENTS)},
                                    {"field": "eq_plastic_strain", "unit": "1"},
                                    {"field": "reactions", "unit": "N"}]}}
+    if normalized.get("mode") == "selected_mesh":
+        declaration.update(mode="selected_mesh", scope=SELECTED_SCOPE,
+                           input_provenance=copy.deepcopy(normalized["input_provenance"]))
+        declaration["mesh"]["mode"] = "selected_mesh"
+        declaration["outputs"]["metrics"] = [*SELECTED_METRICS, *_UNASSESSED_METRIC_UNITS]
+        declaration["outputs"]["metric_semantics"] = {
+            "final_stress": "Final archived SIXX UNWEIGHTED arithmetic mean over every native Gauss point; MPa",
+            "reaction_x": "Final signed X0.DX support reaction sum in global X; N",
+            "stress_xx_min": "Minimum signed SIXX over every native Gauss point and archived instant; MPa",
+            "stress_xx_max": "Maximum signed SIXX over every native Gauss point and archived instant; MPa",
+            "max_eq_plastic_strain": "Maximum native VARI_ELGA.V1 over every Gauss point and archived instant; 1",
+        }
+    return declaration
 
 
 def _validated_record(record: dict, size: float, settings: dict) -> dict:
@@ -285,6 +360,93 @@ def _validated_record(record: dict, size: float, settings: dict) -> dict:
             "element_count": elements, "right_nodes": right_nodes, "states": states}
 
 
+def _selected_assessment(settings: dict, mesh_records: list[dict]) -> dict:
+    """Check complete tables and declared BCs, without a constitutive oracle.
+
+    Native order/node/Gauss joins and full nodal reactions are proved by the
+    adapter's existing parser. This pure assessment keeps every signed native
+    response and checks only the imposed displacement and cumulative V1 rules.
+    """
+    record = _validated_record(mesh_records[0], settings["mesh_sizes_mm"][0], settings)
+    coordinates, dimensions = record["coordinates_mm"], settings["dimensions_mm"]
+    coordinate_tolerance = 64.0 * sys.float_info.epsilon * max(1.0, *dimensions)
+    fixed = [[index for index, row in enumerate(coordinates) if abs(row[axis]) <= coordinate_tolerance]
+             for axis in range(3)]
+    if any(len(nodes) < 3 for nodes in fixed):
+        raise ValueError("Selected observations must cover all three support planes")
+    prescribed = [_number(strain * dimensions[0], "Declared axial displacement")
+                  for strain in settings["history"]["axial_strain"]]
+    scale = max(abs(value) for value in prescribed)
+    boundary_limit = _number(settings["limits"]["displacement_absolute_mm"] +
+                             settings["limits"]["displacement_relative"] * scale,
+                             "Declared displacement tolerance", positive=True)
+    boundary_error = 0.0
+    drop = 0.0
+    previous_q = None
+    summaries = []
+    all_stress, all_q = [], []
+    for state, strain, drive in zip(record["states"], settings["history"]["axial_strain"], prescribed):
+        displacements, stress, q = state["displacements_mm"], state["stresses_mpa"], state["eq_plastic_strain"]
+        error = max(abs(displacements[node][0] - drive) for node in record["right_nodes"])
+        error = max(error, *(abs(displacements[node][axis]) for axis, nodes in enumerate(fixed) for node in nodes))
+        boundary_error = max(boundary_error, _number(error, "Native prescribed-displacement error"))
+        if previous_q is not None:
+            drop = max(drop, *(_number(a - b, "Native cumulative V1 decrease") for a, b in zip(previous_q, q)))
+        previous_q = q
+        stress_x = [row[0] for row in stress]
+        all_stress.extend(stress_x)
+        all_q.extend(q)
+        summaries.append({"time_s": state["time_s"], "axial_strain": strain,
+                          "right_face_axial_displacement_mm": _mean([displacements[node][0] for node in record["right_nodes"]]),
+                          "mean_stress_xx_mpa": _mean(stress_x), "mean_eq_plastic_strain": _mean(q),
+                          "min_eq_plastic_strain": min(q), "reaction_n": list(state["reaction_n"]),
+                          "prescribed_displacement_error_mm": error})
+    checks = [
+        {"code": "selected_field_coverage", "status": "PASS",
+         "observed": {"states": len(record["states"]), "nodes_per_state": len(record["node_ids"]),
+                      "gauss_points_per_state": 5 * record["element_count"]},
+         "limit": "Every requested instant, every node DX/DY/DZ, every TETRA10 point SIXX/SIYY/SIZZ/SIXY/SIXZ/SIYZ/V1; native identities checked by adapter"},
+        {"code": "selected_prescribed_displacement", "status": "PASS" if boundary_error <= boundary_limit else "FAIL",
+         "observed": boundary_error, "limit": {"absolute_mm": settings["limits"]["displacement_absolute_mm"],
+             "relative": settings["limits"]["displacement_relative"], "declared_drive_scale_mm": scale,
+             "combined_absolute_mm": boundary_limit}},
+        {"code": "plastic_strain_nonnegative", "status": "PASS" if min(all_q) >= 0.0 else "FAIL",
+         "observed": min(all_q), "limit": {"minimum": 0.0}},
+        {"code": "plastic_strain_monotonic", "status": "PASS" if drop <= settings["limits"]["plastic_strain_absolute"] else "FAIL",
+         "observed": drop, "limit": settings["limits"]["plastic_strain_absolute"]},
+    ]
+    passed = all(check["status"] == "PASS" for check in checks)
+    failures = ", ".join(check["code"] for check in checks if check["status"] == "FAIL")
+
+    def metric(value: float, unit: str) -> dict:
+        return {"value": value, "unit": unit, "valid": passed,
+                **({"reason": "Selected J2 numerical validation failed: " + failures} if not passed else {})}
+
+    metrics = {"final_stress": metric(summaries[-1]["mean_stress_xx_mpa"], "MPa"),
+               "reaction_x": metric(record["states"][-1]["reaction_n"][0], "N"),
+               "stress_xx_min": metric(min(all_stress), "MPa"),
+               "stress_xx_max": metric(max(all_stress), "MPa"),
+               "max_eq_plastic_strain": metric(max(all_q), "1")}
+    metrics.update({name: {"value": None, "unit": unit, "valid": False,
+                          "reason": "Not evaluated: selected_mesh has no tensile reference, input-peak benchmark statistic, mesh comparison or signed-history energy reference"}
+                    for name, unit in _UNASSESSED_METRIC_UNITS.items()})
+    return {"mode": "selected_mesh", "scope": SELECTED_SCOPE,
+            "input_provenance": copy.deepcopy(settings["input_provenance"]),
+            "checks": checks, "metrics": metrics, "pending_validations": list(_SELECTED_PENDING),
+            "reference": {"status": "UNKNOWN", "history": None, "peak_index": None, "source": None,
+                          "units": {"time": "s", "strain": "1", "displacement": "mm", "stress": "MPa", "reaction": "N"}},
+            "mesh_studies": [{"mesh_size_mm": record["mesh_size_mm"], "node_count": len(record["node_ids"]),
+                              "element_count": record["element_count"], "stress_point_count": 5 * record["element_count"],
+                              "right_face_node_count": len(record["right_nodes"]), "states": summaries}],
+            "mesh_response": {"fields": ["right_face_axial_displacement_mm", "mean_stress_xx_mpa", "mean_eq_plastic_strain", "reaction_x_n"],
+                              "times_s": list(settings["history"]["times_s"]), "agreement_by_field": None,
+                              "statistic": "UNWEIGHTED arithmetic mean of native right-face DX or native Gauss field; signed X0.DX support reaction sum",
+                              "normalization": None, "agreement_statistic": None},
+            "derived_energy": {"status": "UNKNOWN", "method": None, "native_energy_field": False,
+                               "physical_energy_balance": False, "reason": "No derived plastic-energy reference evaluated for general signed histories"},
+            "limitations": list(SELECTED_LIMITATIONS)}
+
+
 def assess(settings: dict, mesh_records: list[dict]) -> dict:
     """Compare every finite point, component and requested time to the reference.
 
@@ -300,6 +462,8 @@ def assess(settings: dict, mesh_records: list[dict]) -> dict:
     normalized = validate_settings(settings)
     if not isinstance(mesh_records, list) or len(mesh_records) != len(normalized["mesh_sizes_mm"]):
         raise ValueError("A complete observation is required for every requested mesh")
+    if normalized.get("mode") == "selected_mesh":
+        return _selected_assessment(normalized, mesh_records)
     reference = _reference(normalized)
     scales = _scales(normalized, reference)
     tolerances = _tolerances(normalized, scales)

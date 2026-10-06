@@ -63,6 +63,23 @@ def _check(result, code):
     return next(item for item in result["checks"] if item["code"] == code)
 
 
+def _selected():
+    request = reference.selected_settings()
+    request["history"] = {"times_s": [0.0, .25, 1.0, 2.0, 3.0],
+                          "axial_strain": [0.0, .002, -.003, .001, .001]}
+    request["input_provenance"] = {"origin": "SYNTHETIC", "reference": "TEST_ONLY signed reversal/plateau parser input"}
+    return request
+
+
+def _selected_records(request=None):
+    """TEST_ONLY finite response tables; no constitutive integration/evidence."""
+    request = _selected() if request is None else request
+    count = len(request["history"]["times_s"])
+    q = [0.0, *(.001 * index for index in range(1, count))]
+    stresses = [0.0, *(140.0 if index % 2 else -300.0 for index in range(1, count))]
+    return _records(request, plastic=q, stress=stresses)
+
+
 def _assert_invalid(result, code):
     assert _check(result, code)["status"] == "FAIL"
     assert all(not item["valid"] and code in item["reason"] for item in result["metrics"].values())
@@ -92,6 +109,179 @@ def test_closed_reference_known_peak_and_negative_elastic_unload():
             state["hardening_energy_density_mpa"] + state["plastic_dissipation_density_mpa"])
     assert result["units"]["energy_density"] == "MPa"
     json.dumps(result, allow_nan=False)
+
+
+def test_selected_factory_is_independent_and_does_not_require_yielding_or_sweep():
+    first, second = reference.selected_settings(), reference.selected_settings()
+    assert set(first) == {"mode", "case", "dimensions_mm", "material", "history", "mesh_sizes_mm", "limits", "input_provenance"}
+    assert first["mode"] == "selected_mesh" and first["mesh_sizes_mm"] == [2.0]
+    assert first["history"] == {"times_s": [0.0, 1.0], "axial_strain": [0.0, .001]}
+    assert first["material"]["youngs_modulus_mpa"] * first["history"]["axial_strain"][-1] < first["material"]["yield_stress_mpa"]
+    first["history"]["axial_strain"][-1] = -.001
+    first["input_provenance"]["reference"] = "changed"
+    first["limits"]["stress_relative"] = .1
+    assert second == reference.selected_settings()
+    with pytest.raises(ValueError, match="No analytical reference"):
+        reference.analytical_reference(second)
+
+
+@pytest.mark.parametrize("count", [2, 32])
+def test_selected_accepts_complete_signed_boundary_histories_without_analytical_call(monkeypatch, count):
+    request = reference.selected_settings()
+    request["history"] = {"times_s": [index * .125 for index in range(count)],
+                          "axial_strain": [0.0, *([-.01, -.01, .01, 0.0][(index - 1) % 4] for index in range(1, count))]}
+    before = copy.deepcopy(request)
+    monkeypatch.setattr(reference, "_reference", lambda *args: pytest.fail("selected history must not run the tensile oracle"))
+    normalized = reference.validate_settings(request)
+    declaration = reference.model_declaration(request)
+    result = reference.assess(request, _selected_records(request))
+    assert normalized["history"] == request["history"] and request == before
+    assert declaration["history"] == request["history"]
+    assert len(result["mesh_studies"]) == 1 and len(result["mesh_studies"][0]["states"]) == count
+    assert all(check["status"] == "PASS" for check in result["checks"])
+    assert result["reference"]["history"] is None and result["reference"]["status"] == "UNKNOWN"
+    assert result["mesh_response"]["agreement_by_field"] is None
+
+
+@pytest.mark.parametrize("origin", ["ASSUMED", "MEASURED_REPORTED", "PUBLISHED_REFERENCE", "SYNTHETIC"])
+def test_selected_provenance_preserves_original_text_and_does_not_grant_engineering_qualification(origin):
+    request = _selected()
+    request["input_provenance"] = {"origin": origin, "reference": "  사용자 출처 / E·H 가정\n시험 자격 미확인  "}
+    before = copy.deepcopy(request)
+    normalized = reference.validate_settings(request)
+    declaration = reference.model_declaration(request)
+    result = reference.assess(request, _selected_records(request))
+    for value in (normalized, declaration, result):
+        assert value["input_provenance"] == before["input_provenance"]
+    assert {"reference_agreement", "mesh_convergence", "static_strength", "material_qualification", "model_qualification",
+            "physical_validation", "fatigue_durability"} == set(result["pending_validations"])
+    normalized["input_provenance"]["reference"] = "normalized mutation"
+    declaration["input_provenance"]["reference"] = "declaration mutation"
+    result["input_provenance"]["reference"] = "result mutation"
+    assert request == before
+
+
+def test_selected_summaries_use_all_signed_actual_points_and_leave_reference_energy_unavailable(monkeypatch):
+    request, records = _selected(), _selected_records()
+    final = records[0]["states"][-1]
+    final["stresses_mpa"][0][0] = -700.0
+    records[0]["states"][1]["stresses_mpa"][-1][0] = 550.0
+    final["eq_plastic_strain"][-1] = .009
+    original = copy.deepcopy(records)
+    monkeypatch.setattr(reference, "_reference", lambda *a: pytest.fail("no reference for signed user history"))
+    result = reference.assess(request, records)
+    metrics = result["metrics"]
+    assert metrics["stress_xx_min"] == {"value": -700.0, "unit": "MPa", "valid": True}
+    assert metrics["stress_xx_max"] == {"value": 550.0, "unit": "MPa", "valid": True}
+    assert metrics["final_stress"]["value"] == pytest.approx((-700.0 + 9 * -300.0) / 10)
+    assert metrics["reaction_x"]["value"] == 2400.0
+    assert metrics["max_eq_plastic_strain"] == {"value": .009, "unit": "1", "valid": True}
+    for name in ("peak_stress", "peak_eq_plastic_strain", "unload_residual_strain", "plastic_work_density",
+                 "hardening_energy_density", "plastic_dissipation_density", "max_component_displacement_error",
+                 "max_component_stress_error", "reaction_relative_error", "mesh_agreement_relative"):
+        assert metrics[name]["value"] is None and metrics[name]["valid"] is False
+        assert "Not evaluated" in metrics[name]["reason"]
+    assert result["derived_energy"]["status"] == "UNKNOWN" and result["derived_energy"]["method"] is None
+    assert result["derived_energy"]["native_energy_field"] is False
+    assert result["derived_energy"]["physical_energy_balance"] is False
+    assert records == original
+    json.dumps(result, allow_nan=False)
+
+
+@pytest.mark.parametrize("path,value", [
+    (("mode",), "benchmark"), (("mode",), None), (("mode",), True),
+    (("input_provenance",), {"origin": "ASSUMED"}),
+    (("input_provenance",), {"origin": "ASSUMED", "reference": "source", "path": "native"}),
+    (("input_provenance", "origin"), "QUALIFIED"), (("input_provenance", "origin"), True),
+    (("input_provenance", "origin"), {}), (("input_provenance", "reference"), " "),
+    (("input_provenance", "reference"), "x" * 2001), (("input_provenance", "reference"), []),
+    (("mesh_sizes_mm",), []), (("mesh_sizes_mm",), [2.0, 1.0]), (("mesh_sizes_mm",), [True]),
+    (("mesh_sizes_mm",), [0]), (("mesh_sizes_mm",), [3]), (("mesh_sizes_mm",), [math.inf]),
+    (("history", "times_s"), [0.0]), (("history", "times_s"), list(range(33))),
+    (("history", "times_s"), [0.0, .25, .25, 2.0, 3.0]),
+    (("history", "times_s"), [1.0, 2.0, 3.0, 4.0, 5.0]),
+    (("history", "times_s"), [0.0, .25, math.inf, 2.0, 3.0]),
+    (("history", "times_s"), [0.0, .25, True, 2.0, 3.0]),
+    (("history", "axial_strain"), [.001, .002, -.003, .001, .001]),
+    (("history", "axial_strain"), [0.0, -.01001, -.003, .001, .001]),
+    (("history", "axial_strain"), [0.0, .002, .01001, .001, .001]),
+    (("history", "axial_strain"), [0.0, .002, math.nan, .001, .001]),
+    (("history", "axial_strain"), [0.0, .002, False, .001, .001]),
+    (("material", "youngs_modulus_mpa"), True), (("material", "poisson_ratio"), .5),
+    (("material", "yield_stress_mpa"), 0.0), (("material", "plastic_modulus_mpa"), -1.0),
+    (("limits", "displacement_relative"), 0.0),
+])
+def test_selected_invalid_mode_provenance_history_and_material_are_refused_without_mutation(path, value):
+    request = _selected()
+    parent = request
+    for key in path[:-1]:
+        parent = parent[key]
+    parent[path[-1]] = value
+    before = repr(request)
+    with pytest.raises(ValueError):
+        reference.validate_settings(request)
+    assert repr(request) == before
+
+
+def test_selected_exact_keys_and_finite_native_translation_are_checked_before_execution():
+    for key in ("mode", "input_provenance"):
+        request = _selected()
+        request.pop(key)
+        with pytest.raises(ValueError, match="exactly"):
+            reference.validate_settings(request)
+    request = _selected()
+    request["input_provenance"]["reference"] = "x" * 2000
+    assert reference.validate_settings(request)["input_provenance"]["reference"] == "x" * 2000
+    request["material"].update(youngs_modulus_mpa=1e308, plastic_modulus_mpa=1e308)
+    with pytest.raises(ValueError, match="Native E\\+H"):
+        reference.validate_settings(request)
+
+
+@pytest.mark.parametrize("corrupt", [
+    lambda rows: rows.append(copy.deepcopy(rows[0])),
+    lambda rows: rows[0]["states"].pop(),
+    lambda rows: rows[0]["states"][-1].update(time_s=99),
+    lambda rows: rows[0]["states"][-1]["displacements_mm"].pop(),
+    lambda rows: rows[0]["states"][-1]["stresses_mpa"].pop(),
+    lambda rows: rows[0]["states"][-1]["eq_plastic_strain"].pop(),
+    lambda rows: rows[0]["states"][2]["stresses_mpa"][0].__setitem__(5, math.nan),
+])
+def test_selected_never_filters_missing_or_nonfinite_full_history_tables(corrupt):
+    rows = _selected_records()
+    corrupt(rows)
+    with pytest.raises(ValueError):
+        reference.assess(_selected(), rows)
+
+
+@pytest.mark.parametrize("kind,code", [("boundary", "selected_prescribed_displacement"),
+                                       ("negative_q", "plastic_strain_nonnegative"),
+                                       ("decreased_q", "plastic_strain_monotonic")])
+def test_selected_finite_numerical_failures_keep_raw_values_without_reference_substitution(kind, code):
+    rows = _selected_records()
+    if kind == "boundary":
+        rows[0]["states"][2]["displacements_mm"][0][0] = 1e-4
+    elif kind == "negative_q":
+        rows[0]["states"][0]["eq_plastic_strain"][0] = -1e-5
+    else:
+        rows[0]["states"][-1]["eq_plastic_strain"][0] = .001
+    before = copy.deepcopy(rows)
+    result = reference.assess(_selected(), rows)
+    assert _check(result, code)["status"] == "FAIL"
+    for name in ("final_stress", "reaction_x", "stress_xx_min", "stress_xx_max", "max_eq_plastic_strain"):
+        assert result["metrics"][name]["valid"] is False and result["metrics"][name]["value"] is not None
+    assert result["metrics"]["plastic_work_density"]["value"] is None
+    assert rows == before and result["reference"]["history"] is None
+
+
+def test_selected_metadata_preserves_H_meaning_signed_displacement_and_existing_benchmark_declaration():
+    selected = reference.model_declaration(_selected())
+    assert selected["materials"][0]["plastic_modulus"]["meaning"] == "d_yield_stress_d_equivalent_plastic_strain"
+    assert selected["loads"][0]["values_mm"] == [0.0, .04, -.06, .02, .02]
+    assert "signed X0.DX" in selected["outputs"]["metric_semantics"]["reaction_x"]
+    assert "UNWEIGHTED" in selected["outputs"]["metric_semantics"]["final_stress"]
+    baseline = reference.model_declaration(_settings())
+    assert "mode" not in baseline and "input_provenance" not in baseline and "metric_semantics" not in baseline["outputs"]
+    assert baseline["mesh"] == {"sizes_mm": [2.0, 1.0], "order": 2, "element_type": "TETRA10"}
 
 
 def test_exact_canonical_observations_pass_with_scalar_metrics_and_unknown_release_gates():
