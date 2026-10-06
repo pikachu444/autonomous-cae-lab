@@ -69,7 +69,14 @@ def test_frozen_nine_sources_directed_interface_bindings_and_unknowns_survive_tr
     assert original == settings == load_json(output / "input.json")
     assert result["status"] == "COMPLETED" and result["converged"] is True and all(row["status"] == "PASS" for row in result["checks"])
     assert result["pending_validations"] == ["physical_validation", "model_qualification"]
-    assert len(result["metrics"]) == len(adapter.FenicsxCoupledPDEAdapter.default_metrics) == 9
+    canonical_metrics = {"l2_error", "h1_seminorm_error", "l2_convergence_rate", "h1_seminorm_convergence_rate",
+                         "linear_residual_relative", "component_0_l2_error", "component_1_l2_error",
+                         "component_0_h1_seminorm_error", "component_1_h1_seminorm_error"}
+    assert set(result["metrics"]) == canonical_metrics
+    # The public catalogue also admits four selected-mesh signed extrema;
+    # that mode does not change this canonical nine-response benchmark.
+    assert set(adapter.FenicsxCoupledPDEAdapter.default_metrics) == canonical_metrics | {
+        "component_0_field_min", "component_0_field_max", "component_1_field_min", "component_1_field_max"}
     assert calls == [(load_json(output / "command.json")["argv"], None)]
     manifest = load_json(output / "source_manifest.json")
     assert len(manifest["files"]) == 9 and set(manifest["files"]) == set(worker.SOURCE_PATHS) == set(adapter.SOURCE_PATHS)

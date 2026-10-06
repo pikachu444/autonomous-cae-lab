@@ -1,3 +1,15 @@
+## Additive common read/control contract (ADR0056)
+
+Request-local verified paths reduce repeated directory traversal while retaining
+file/hash/schema/source checks and final selected-store/path identity checks.
+No persistent verdict or byte cache. Model-to-PDE namespace selection requires
+the explicit adapter PDE contract, not a shared registry key. Original numerical
+responses/bounds and approved14-tool5.6Sol/ChatGPT scope remain unchanged.
+These actual result reads are metadata only, not provider interpretation or
+new solver qualification. Whole52/Phases and UNKNOWN/NOT_RELEASED remain.
+
+---
+
 ## Additive declared UQ/MOO/coupled-input research contract (ADR0055)
 
 Core retains original seeded DOE samples, native signed responses/units/source

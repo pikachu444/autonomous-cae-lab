@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .response_comparison import _guard_source_paths, _path, _sha
 from .storage import canonical_hash, check_id, load_json, save_json, source_identity, utc_now
+from .read_paths import guarded_reader
 
 
 def _campaign(lab, campaign_id):
@@ -171,6 +172,7 @@ def _probability_analysis(kind, plan, record, declaration, samples, source):
     return analysis
 
 
+@guarded_reader
 def _calculate(lab, campaign_id, declaration, seed, *, require_advertised=True):
     from .optimizers.campaign_analysis import summarize
     kind, folder, plan, record = _campaign(lab, campaign_id)
@@ -250,6 +252,7 @@ def _envelope(record, sha):
     return {**deepcopy(record), 'integrity': 'VERIFIED', 'report_sha256': sha}
 
 
+@guarded_reader
 def inspect(lab, report_id):
     folder = _path(lab, f'campaign_reports/{check_id(report_id)}')
     record_path = _path(lab, f'campaign_reports/{report_id}/record.json')

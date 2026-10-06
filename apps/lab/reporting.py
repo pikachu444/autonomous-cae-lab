@@ -68,6 +68,10 @@ def _casefold_paths(paths, *, reserved=()):
 
 
 def _inside(root, path, *, directory=False):
+    from caelab.read_paths import active_bounded_path
+    verified = active_bounded_path(root, path, directory=directory)
+    if verified is not None:
+        return verified
     resolved = path.resolve(strict=True)
     if not resolved.is_relative_to(root):
         raise ValueError(f"Path escapes verified root: {path.name}")

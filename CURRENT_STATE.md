@@ -1,3 +1,15 @@
+## Verified common read/control checkpoint (ADR0056)
+
+Published Phase7 feature bundle a89947c is confirmed on remote main. Exact CI37540066531
+failed: one Core shared-registry routing defect and two stale inventory tests; the
+corrected56 controls pass with original cancellation/reference bounds unchanged.
+Request-local directory verification preserves byte/source checks. Same saved UQ
+HTTP read is26.8219s (prior94.8455s), MOO27.6029s; original envelopes/vectors exactly
+match and new solver/provider0. Whole52/Phases incomplete; UNKNOWN/NOT_RELEASED.
+See record20261007-common-read-control-r01; old checkpoint suffixes remain intact.
+
+---
+
 ## Verified development checkpoint — Phase7 common extensions (ADR0055)
 
 MOO uses existing DE and explicit epsilon children/whole budget. Actual17 native

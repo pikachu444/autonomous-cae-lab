@@ -937,7 +937,8 @@ class Lab:
                            objectives: list | None = None, constraints: list | None = None,
                            binding: dict | None = None) -> dict:
         from .declared_model import run_declared_model
-        pde = backend in self.pde_adapters and backend in self.model_analysis_adapters
+        pde = (backend in self.pde_adapters and
+               getattr(self.model_analysis_adapters.get(backend), 'pde_model_declaration', False) is True)
         return run_declared_model(self, study_id=study_id, experiment_id=experiment_id,
                                   backend=backend, settings=settings, hypothesis_id=hypothesis_id,
                                   adapters=self.model_analysis_adapters, namespace="pde" if pde else "model_analysis",

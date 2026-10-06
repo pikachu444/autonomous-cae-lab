@@ -1,3 +1,15 @@
+## Scope checkpoint — common read/control correction (ADR0056)
+
+R11/R31/R35 advance: verified aggregate result reads preserve all original values
+and reject observed redirects/replacements; explicit adapter family selection
+repairs shared-registry model routing. Actual same-record HTTP UQ/MOO reopening
+and final56 controls pass. Prior a89947c feature bundle is pushed, but its exactCI
+failed three isolated integration checks; the correction is not a new native
+verification. Latency/provider lifecycle/executor/wider Phase gates remain OPEN.
+All52 sections/history remain below; whole52/Phases INCOMPLETE, UNKNOWN/NOT_RELEASED.
+
+---
+
 ## Scope status — bounded Phase7 extensions (ADR0055)
 
 | Requirement group | Current advance | Remaining scope |

@@ -14,7 +14,7 @@ BACKENDS = {"structural.code_aster", "structural.code_aster.plasticity", "struct
 PDE_BACKENDS = {"pde.fenicsx", "pde.fenicsx.nonlinear", "pde.fenicsx.rectangle", "pde.fenicsx.transient", "pde.fenicsx.vector", "pde.fenicsx.coupled", "pde.fenicsx.imported"}
 # Contact is registered for its source/native acceptance. Its GUI/Research
 # preset is admitted after actual native qualification, as a separate gate.
-DEFAULT_MODEL_BACKENDS = BACKENDS | {"structural.code_aster.contact_patch"}
+DEFAULT_MODEL_BACKENDS = BACKENDS | {"structural.code_aster.contact_patch", "pde.fenicsx.coupled"}
 
 
 def test_default_model_registry_constructs_without_native_commands_and_preserves_explicit_mapping(tmp_path, monkeypatch):
@@ -35,6 +35,20 @@ def test_default_model_registry_constructs_without_native_commands_and_preserves
     assert Lab(tmp_path / "empty-pde", pde_adapters={}).pde_adapters == {}
     custom_pde = {"test.pde": object()}
     assert Lab(tmp_path / "custom-pde", pde_adapters=custom_pde).pde_adapters is custom_pde
+
+
+@pytest.mark.parametrize('declaration', [True, False, None, 1])
+def test_shared_backend_key_does_not_reroute_model_without_an_explicit_pde_contract(tmp_path, monkeypatch, declaration):
+    from types import SimpleNamespace
+    from caelab import declared_model
+    adapter = SimpleNamespace(pde_model_declaration=declaration)
+    lab = Lab(tmp_path, model_analysis_adapters={'test.shared': adapter},
+              pde_adapters={'test.shared': adapter})
+    monkeypatch.setattr(declared_model, 'run_declared_model', lambda _lab, **arguments: arguments)
+    request = lab.run_model_analysis(study_id='S-route', experiment_id='E-route',
+                                    backend='test.shared', settings={})
+    assert request['namespace'] == ('pde' if declaration is True else 'model_analysis')
+    assert request['output_directory'] == ('pde' if declaration is True else 'simulation')
 
 
 @pytest.mark.parametrize("backend", sorted(DEFAULT_MODEL_BACKENDS))

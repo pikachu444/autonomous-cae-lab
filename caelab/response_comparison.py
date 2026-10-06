@@ -40,6 +40,10 @@ def _finite_json(value):
 
 
 def _path(lab, relative):
+    from .read_paths import active_relative_path
+    verified = active_relative_path(lab, relative)
+    if verified is not None:
+        return verified
     root = Path(lab.store).resolve()
     candidate = root / relative
     if not candidate.resolve().is_relative_to(root):
@@ -77,7 +81,9 @@ def _guard_source_paths(lab, experiment_id):
                     or any(part in ("", ".", "..") for part in relative.split("/"))):
                 raise ValueError("Comparison source artifact path is invalid")
             candidate = _path(lab, f"experiments/{current}/{relative}")
-            if not candidate.resolve().is_relative_to(folder.resolve()):
+            from .read_paths import active_bounded_path
+            bounded = active_bounded_path(folder, candidate)
+            if bounded is None and not candidate.resolve().is_relative_to(folder.resolve()):
                 raise ValueError("Comparison source artifact escapes its experiment")
         current = result.get("parent_experiment_id")
 

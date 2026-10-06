@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "kind": "common-request-read-and-family-control-acceptance",
+  "created_utc": "2026-10-06T22:43:57.128Z",
+  "source": {
+    "base_commit": "a89947cef1e90f4a5e00ff4b3677bfb24c3dc5c3",
+    "worktree": "DIRTY_FROZEN_CODE_AND_TEST_PATHS",
+    "final_paths": {
+      "caelab/read_paths.py": "8860bd1c260d93d0f1524a6e6dbb91df541693d50cd804b06e7e288c792f1793",
+      "caelab/response_comparison.py": "a6825ce93d6fc3de37e7793bd4061ebabbb38dd9e95b6824d71f7a90e3d5ecf5",
+      "caelab/campaign_report.py": "a876270d864c8dafb35c8dd1c5a1c9b63e82e81dfd525f6d5eccde4f594319c8",
+      "caelab/engine.py": "c273cf0735d8335d460c4c71937a0f3ce305d623b44e3ed17632a9a617bc58a1",
+      "apps/lab/reporting.py": "df4a747133ae10a2d86446963dc70e1251e4d4655da371649a384c41b162b6f3",
+      "apps/lab/service.py": "7333591a5c7223600e3642bc3a775356f77a49a2f931bc3bccb61523fae330d3",
+      "tests/test_read_paths.py": "c2049eeb483e74e55b95628210f5ae23782b42101017e4c32bc5f85a24999cc1",
+      "tests/test_backend_integration.py": "af9cdee5ffbad59364a19e27a8c0c494031a47b63e225a3d6d656572f3d5246c",
+      "tests/test_pde_coupled.py": "44f3fa75ec111d7b07e5ebd458c121caff9f6e39edb222f39fb20310ade92c5a"
+    },
+    "actual_reader": {
+      "caelab/read_paths.py": "8860bd1c260d93d0f1524a6e6dbb91df541693d50cd804b06e7e288c792f1793",
+      "caelab/response_comparison.py": "a6825ce93d6fc3de37e7793bd4061ebabbb38dd9e95b6824d71f7a90e3d5ecf5",
+      "caelab/campaign_report.py": "a876270d864c8dafb35c8dd1c5a1c9b63e82e81dfd525f6d5eccde4f594319c8",
+      "apps/lab/reporting.py": "df4a747133ae10a2d86446963dc70e1251e4d4655da371649a384c41b162b6f3",
+      "apps/lab/service.py": "7333591a5c7223600e3642bc3a775356f77a49a2f931bc3bccb61523fae330d3",
+      "tests/test_read_paths.py": "c2049eeb483e74e55b95628210f5ae23782b42101017e4c32bc5f85a24999cc1"
+    },
+    "actual_reader_engine": "a89947c; later explicit-family routing correction is source/control verified separately"
+  },
+  "actual": {
+    "store": "runs/cae-phase7-extension-20261007-01",
+    "reads": [
+      {
+        "family": "uq",
+        "url": "/api/campaign-reports/R-campaign-lab-mux7bgp9",
+        "integrity": "VERIFIED",
+        "seconds": 26.821946674999708,
+        "existing_result_exact_equal": true,
+        "native_calls": 0,
+        "provider_calls": 0
+      },
+      {
+        "family": "moo",
+        "url": "/api/campaigns/M-epsilon-lab-mux65b4e",
+        "integrity": "VERIFIED",
+        "seconds": 27.602896141999736,
+        "existing_result_exact_equal": true,
+        "native_calls": 0,
+        "provider_calls": 0
+      }
+    ],
+    "core_uq_before_seconds": 39.622832895999636,
+    "core_uq_after_seconds": 14.781946652999977,
+    "original_http_uq_seconds": 94.8455,
+    "actual_metadata_controller_terminal": 99391,
+    "url": "http://127.0.0.1:8797",
+    "new_native_solver_calls": 0,
+    "new_provider_calls": 0,
+    "new_cad_or_mesh_acceptance": 0,
+    "browser_reopen": {
+      "original_campaign": "M-epsilon-lab-mux65b4e",
+      "dom_sha256": "4b184fc20147ff1878db368adecddbb47f6916166818b3665c823bdb51521e53",
+      "screenshot_sha256": "0162ea217a688a3950c6f15c9c6c09728c005f58bd84a455d3f999c6c4305d56",
+      "retention": "LOCAL_ONLY"
+    }
+  },
+  "controls": [
+    {
+      "log": "read-scope-source13.log",
+      "passed": 97,
+      "scope": "read/UQ/report source-only; earlier14 path controls",
+      "sha256": "a72f020fd532f4829b70ecb0c57c5829d8de92bf38adc15049fdc6adfabdcfcf"
+    },
+    {
+      "log": "read-scope-source14.log",
+      "passed": 15,
+      "scope": "final real-filesystem path controls including independent append",
+      "sha256": "6d7b3220bcc9aa92fb411b24e9d0694c6e0ba2b8abca6b6db01d66c2e3da8eee"
+    },
+    {
+      "log": "read-scope-http15.log",
+      "passed": 1,
+      "scope": "common HTTP restart/report test fixture",
+      "sha256": "1f6fb02d8e72f3253f3d85a707f24ba4f0d6cd1c1a3746c90de7d631fbae387e"
+    },
+    {
+      "log": "ci-integration-corrections17.log",
+      "passed": 56,
+      "scope": "final registry/family/canonical transport and actual owned TEST_ONLY child cancellation; no physical solver proof",
+      "sha256": "c60263b61e6cd18b278d7a130f8c5ffc8443ca7d629ac232b5224f37b7e98b0e"
+    }
+  ],
+  "retained_failed_attempt": {
+    "log": "ci-integration-corrections16.log",
+    "failed": 1,
+    "passed": 51,
+    "diagnosis": "Backend-entry event did not repair wrong output-family selection; discarded harness change and corrected Core explicit adapter contract",
+    "original_readiness_and_cleanup_bounds": "UNCHANGED",
+    "sha256": "a5e48f2c522296cb637957d1019ebc4382e47f1552c0c38f5377ec555759959b"
+  },
+  "ci": {
+    "exact_commit": "a89947cef1e90f4a5e00ff4b3677bfb24c3dc5c3",
+    "run_id": 37540066531,
+    "conclusion": "FAILURE",
+    "core": {
+      "passed": 6528,
+      "failed": 3,
+      "skipped": 10
+    },
+    "research_driver_source": "SUCCESS",
+    "downstream_jobs": "8 SKIPPED",
+    "isolated_causes": [
+      "Missing additive coupled model-registry expectation",
+      "Core shared-key family misrouting",
+      "Canonical metric inventory compared with expanded catalogue"
+    ],
+    "new_exact_source": "NOT_YET_AVAILABLE"
+  },
+  "prior_feature_bundle": {
+    "commit": "a89947cef1e90f4a5e00ff4b3677bfb24c3dc5c3",
+    "main_push": "CONFIRMED",
+    "single_final_review": "0 OPEN P1/P2; applies to the prior42-path bundle",
+    "record": "20261007-phase7-extension-r01.json"
+  },
+  "important_limits": [
+    "Timing is one local Windows/WSL observation, not a performance guarantee",
+    "Aggregate read latency remains OPEN",
+    "Actual authenticated provider interpretation/old run02 cleanup remain NOT_CONFIRMED",
+    "No new numerical/physical validation or full requirement completion"
+  ],
+  "qualification": {
+    "whole_52": "INCOMPLETE",
+    "phase_1_to_7": "INCOMPLETE",
+    "physical": "UNKNOWN",
+    "decision": "NOT_RELEASED"
+  },
+  "next": [
+    "Fresh auth-free candidate EXE MCP activation and exact tracked closure",
+    "Safe approved runtime/auth transition and same-record interpretation",
+    "Common executor/control and remaining Phase gates; preserve existing source/records"
+  ]
+}

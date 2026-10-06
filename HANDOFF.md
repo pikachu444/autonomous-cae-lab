@@ -1,3 +1,18 @@
+## Current checkpoint — common read/control correction (ADR0056)
+
+The prior42-path feature bundle is published as a89947c. Request-local verified
+reads reopen the same UQ/MOO scientific results in roughly27s with exact originals
+and retained byte/source checks; latency remains OPEN. Final routing controls56
+PASS correct the exactCI shared-backend misrouting without relaxing cancellation
+bounds or canonical responses. Retained failed diagnosis and exact source pins:
+record20261007-common-read-control-r01. Provider/native acceptance is separate.
+NEXT execute the frozen auth-free candidate EXE/ownership diagnostic on clean
+Main, then restore approved5.6Sol interpretation and common executor/control.
+No old PID adoption, auth pin bypass, new example, remesh or per-patch Astra gate.
+Whole52/Phase1–7 incomplete, physical UNKNOWN/NOT_RELEASED.
+
+---
+
 ## Current checkpoint — Phase7 distribution/MOO/coupled-input bundle (ADR0055)
 
 Actual MOO17 native/3417 full history rows, selected coupled81-node sign conjugation,

@@ -413,6 +413,11 @@ class LabService:
 
     def campaign(self, identifier: str) -> dict:
         selected = self._selected()
+        from caelab.read_paths import verified_read_paths
+        with verified_read_paths(selected.lab):
+            return self._read_campaign(selected, identifier)
+
+    def _read_campaign(self, selected, identifier: str) -> dict:
         kind, _ = self._campaign(selected, identifier)
         if kind == 'multiobjective':
             verified = selected.lab.inspect_multiobjective(identifier)
@@ -440,6 +445,11 @@ class LabService:
 
     def campaign_report(self, identifier: str) -> dict:
         selected = self._selected()
+        from caelab.read_paths import verified_read_paths
+        with verified_read_paths(selected.lab):
+            return self._read_campaign_report(selected, identifier)
+
+    def _read_campaign_report(self, selected, identifier: str) -> dict:
         folder = contained(selected.path, f'campaign_reports/{check_id(identifier)}')
         record = load_json(contained(folder, 'record.json'))
         self._campaign_preflight(selected, check_id(record['campaign_id']))
