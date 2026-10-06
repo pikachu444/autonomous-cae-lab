@@ -466,7 +466,7 @@ class LabService:
     def presets(self) -> dict:
         from scripts.verify_pde import specification as pde_specification
         from plugins.pde_nonlinear.reference import manufactured_settings as nonlinear_pde_specification
-        from plugins.pde_elliptic.reference import manufactured_settings as rectangle_pde_specification
+        from plugins.pde_elliptic.reference import manufactured_settings as rectangle_pde_specification, selected_settings as selected_pde_specification
         from plugins.pde_transient.reference import manufactured_settings as transient_pde_specification
         from plugins.pde_vector.reference import manufactured_settings as vector_pde_specification
         from plugins.pde_coupled.reference import manufactured_settings as coupled_pde_specification
@@ -490,6 +490,9 @@ class LabService:
                 "settings": {"load": {"force_per_support_N": 100.0,
                     "source": "Illustrative 100 N screen per support; unqualified, not measured"},
                     "material": load_json(material_path), "mesh": {"max_sizes_mm": [4.0, 3.0, 2.0]}}},
+            "pde_selected": {"operation": "pde_run", "backend": "pde.fenicsx.rectangle", "label": "일반 PDE · 확산·반응·혼합 경계",
+                "status": "EXPERIMENTAL", "scope": "직사각형의 원항과 경계를 직접 입력해 선택 메시 하나로 계산; 무차원 scalar P1, 참조 오차·메시 수렴·물리 자격 미평가",
+                "settings": selected_pde_specification()},
             "pde_canonical": {"operation": "pde_run", "backend": "pde.fenicsx", "label": "Canonical Poisson 약형 benchmark",
                 "status": "EXPERIMENTAL", "scope": "dimensionless unit square의 해석해·오차·수렴 검증; 물리 검증 UNKNOWN",
                 "settings": pde_specification()},

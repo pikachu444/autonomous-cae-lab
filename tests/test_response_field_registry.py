@@ -21,6 +21,61 @@ def test_default_reader_is_separate_from_solver_admission(tmp_path):
         'mapping': {'path': 'simulation/mesh-reuse/mapping.json', 'maximum_bytes': 134217728}}
 
 
+def test_default_pde_readers_do_not_admit_a_solver_or_change_native_node_ids(tmp_path):
+    from caelab.adapters.pde_response_fields import PDEResponseFieldsAdapter, SUPPORTED_BACKENDS
+    lab = Lab(tmp_path / 'store', adapters={}, analysis_adapters={}, pde_adapters={},
+              model_analysis_adapters={}, doe_adapters={}, optimization_adapters={})
+    assert len(SUPPORTED_BACKENDS) == 5
+    for backend in SUPPORTED_BACKENDS:
+        reader = lab.response_field_adapters[backend]
+        assert type(reader) is PDEResponseFieldsAdapter
+        assert not hasattr(reader, 'solve')
+        assert backend not in lab.pde_adapters and backend not in lab.analysis_adapters
+
+
+def test_selected_field_reader_gets_verified_headers_before_additional_native_bytes(monkeypatch):
+    calls = []
+    selection = {'kind': 'pde_nodal', 'node_id': 0}
+    result = {'provenance': {'adapter': 'TEST_ONLY'}}
+
+    def additional(r, s, resources):
+        assert r is result and s is selection
+        assert resources == {'header': ({'TEST_ONLY': 'header.json'}, {'TEST_ONLY': 'manifest'})}
+        calls.append(('selection', 0))
+        return {'field': {'path': 'field.json', 'maximum_bytes': 32}}
+
+    reader = SimpleNamespace(field_response_resources=lambda r: {
+        'header': {'path': 'header.json', 'maximum_bytes': 16}}, field_selection_resources=additional)
+    lab = SimpleNamespace(analysis_adapters={}, response_field_adapters={'TEST_ONLY': reader})
+
+    def read(l, r, path, *, maximum_bytes):
+        assert l is lab and r is result
+        calls.append((path, maximum_bytes))
+        return {'TEST_ONLY': path}, {'TEST_ONLY': 'manifest'}
+
+    monkeypatch.setattr(response_field, '_read_native', read)
+    actual, resources = response_field._adapter_resources(lab, result, selection)
+    assert actual is reader and set(resources) == {'header', 'field'}
+    assert calls == [('header.json', 16), ('selection', 0), ('field.json', 32)]
+
+
+@pytest.mark.parametrize('additional', [{}, {'header': {'path': 'overwrite.json', 'maximum_bytes': 1}},
+    {'field': {'path': 'field.json', 'maximum_bytes': 1, 'extra': True}}])
+def test_selected_resource_contract_refuses_header_replacement_before_field_read(monkeypatch, additional):
+    reader = SimpleNamespace(field_response_resources=lambda r: {
+        'header': {'path': 'header.json', 'maximum_bytes': 16}},
+        field_selection_resources=lambda r, s, resources: additional)
+    lab = SimpleNamespace(analysis_adapters={}, response_field_adapters={'TEST_ONLY': reader})
+    calls = []
+    def read(l, r, path, *, maximum_bytes):
+        calls.append(path)
+        return {}, {}
+    monkeypatch.setattr(response_field, '_read_native', read)
+    with pytest.raises(ValueError):
+        response_field._adapter_resources(lab, {'provenance': {'adapter': 'TEST_ONLY'}}, {'TEST_ONLY': True})
+    assert calls == ['header.json']
+
+
 def test_readonly_research_metric_semantics_do_not_require_solver_admission(tmp_path, monkeypatch):
     lab = Lab(tmp_path / 'store', doe_adapters={}, optimization_adapters={},
               pde_adapters={}, model_analysis_adapters={})

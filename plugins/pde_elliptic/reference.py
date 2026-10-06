@@ -19,6 +19,8 @@ VERSION = "1"
 SIDES = ("xmin", "xmax", "ymin", "ymax")
 ATOL = 1e-12
 _VALIDATIONS = {"max_l2_error", "min_l2_rate", "max_h1_seminorm_error", "min_h1_rate", "max_residual_relative"}
+_REFERENCE_METRICS = ("l2_error", "h1_seminorm_error", "l2_convergence_rate", "h1_seminorm_convergence_rate")
+_SELECTED_PENDING = ["reference_agreement", "mesh_convergence", "physical_validation", "model_qualification"]
 _FIELD_KEYS = {"schema_version", "coordinates_unit", "field_unit", "node_ids", "coordinates", "values",
                "cell_node_ids", "dirichlet_node_ids", "boundaries"}
 _SIDE_KEYS = {"facet_ids", "facet_node_ids", "dof_ids", "measure", "normal_integral", "prescribed_values", "prescribed_integral"}
@@ -33,6 +35,15 @@ LIMITATIONS = [
     "Domain independently checks native grid/topology/boundaries, Dirichlet field error, residual normalization and every mesh-pair rate.",
     "Prescribed Neumann-side integrals are not the complete boundary-flux balance; Dirichlet-side physical flux is not measured here.",
     "Mathematical reference agreement is not NAFEMS, physical validation or engineering model qualification.",
+]
+SELECTED_LIMITATIONS = [
+    "Selected dimensionless scalar rectangle; one declared real P1 triangular mesh, constant positive diffusion and nonnegative reaction.",
+    "Four whole named sides admit Dirichlet or outward diffusive Neumann data; at least one side is Dirichlet.",
+    "Pure Neumann, Robin, imported geometry, vector/coupled/time-dependent models and MPI execution are unsupported.",
+    "Native solver convergence, constrained residual and complete mesh/boundary fields are checked; field extrema retain signed nodal values.",
+    "No analytical/reference solution or mesh sweep is supplied; reference agreement and mesh convergence remain UNKNOWN.",
+    "Prescribed Neumann-side integrals are not the complete boundary-flux balance; Dirichlet-side physical flux is not measured here.",
+    "Numerical completion does not qualify physical use or an engineering model; UNKNOWN and NOT_RELEASED remain.",
 ]
 
 
@@ -64,21 +75,40 @@ def expression_value(source, x, y):
 
 
 def validate_settings(settings):
-    _keys(settings, {"problem", "mesh", "validation"}, "rectangle settings")
+    selected = isinstance(settings, dict) and "mode" in settings
+    _keys(settings, {"mode", "problem", "mesh", "validation"} if selected else
+          {"problem", "mesh", "validation"}, "rectangle settings")
+    if selected and settings["mode"] != "selected_mesh":
+        raise PDEInputError("The explicit rectangle mode must be selected_mesh")
     problem = _keys(settings["problem"], {"domain", "weak_form", "boundaries", "reference"}, "problem")
     rectangle = _keys(problem["domain"], {"type", "lengths"}, "domain")
     lengths = rectangle["lengths"]
     if (rectangle["type"] != "rectangle" or not isinstance(lengths, list) or len(lengths) != 2 or
             any(not finite_number(value) or not .001 <= value <= 1000 for value in lengths)):
         raise PDEInputError("Rectangle lengths must be finite numbers between 0.001 and 1000")
-    thresholds = _keys(settings["validation"], _VALIDATIONS, "validation")
+    thresholds = _keys(settings["validation"], {"max_residual_relative"} if selected else _VALIDATIONS, "validation")
     if any(not finite_number(value, positive=True) for value in thresholds.values()):
         raise PDEInputError("All numerical thresholds must be finite and strictly positive")
-    # Reuse the existing complete expression/material/mesh/reference validator.
-    _linear_settings({"problem": {"domain": "unit_square", "weak_form": problem["weak_form"],
-                                  "dirichlet": "0.0", "reference": problem["reference"]},
-                      "mesh": settings["mesh"], "validation": {key: thresholds[key] for key in
-                      ("max_l2_error", "min_l2_rate", "max_residual_relative")}})
+    if selected:
+        # Admission is independent of the benchmark's reference/sweep contract.
+        # No reference or additional meshes are constructed to pass that validator.
+        if problem["reference"] is not None:
+            raise PDEInputError("Selected-mesh reference must be null; reference agreement is not evaluated")
+        weak = _keys(problem["weak_form"], {"diffusion", "reaction", "rhs"}, "weak form")
+        _number(weak["diffusion"], "diffusion", positive=True)
+        _number(weak["reaction"], "reaction", nonnegative=True)
+        parse_expression(weak["rhs"])
+        mesh = _keys(settings["mesh"], {"cell_counts", "degree"}, "mesh")
+        counts = mesh["cell_counts"]
+        if (not isinstance(counts, list) or len(counts) != 1 or type(counts[0]) is not int or
+                not 1 <= counts[0] <= 128 or type(mesh["degree"]) is not int or mesh["degree"] != 1):
+            raise PDEInputError("Selected mesh requires exactly one integer count1..128 and degree1")
+    else:
+        # Preserve the existing complete expression/material/mesh/reference validator.
+        _linear_settings({"problem": {"domain": "unit_square", "weak_form": problem["weak_form"],
+                                      "dirichlet": "0.0", "reference": problem["reference"]},
+                          "mesh": settings["mesh"], "validation": {key: thresholds[key] for key in
+                          ("max_l2_error", "min_l2_rate", "max_residual_relative")}})
     boundaries = _keys(problem["boundaries"], SIDES, "boundaries")
     for side, boundary in boundaries.items():
         _keys(boundary, {"type", "value"}, f"boundary {side}")
@@ -94,6 +124,21 @@ def validate_settings(settings):
             if len(values) == 2 and not math.isclose(values[0], values[1], rel_tol=ATOL, abs_tol=ATOL):
                 raise PDEInputError(f"Conflicting adjacent Dirichlet data at {xs}/{ys}")
     return json.loads(json.dumps(settings, allow_nan=False))
+
+
+def selected_settings():
+    """Independent editable dimensionless defaults, without a manufactured reference."""
+    return validate_settings({
+        "mode": "selected_mesh",
+        "problem": {"domain": {"type": "rectangle", "lengths": [2., 1.]},
+                    "weak_form": {"diffusion": 1., "reaction": 0., "rhs": "1"},
+                    "boundaries": {"xmin": {"type": "dirichlet", "value": "0"},
+                                   "xmax": {"type": "dirichlet", "value": "0"},
+                                   "ymin": {"type": "neumann", "value": "0"},
+                                   "ymax": {"type": "neumann", "value": "0"}},
+                    "reference": None},
+        "mesh": {"cell_counts": [16], "degree": 1},
+        "validation": {"max_residual_relative": 1e-10}})
 
 
 def manufactured_settings(reaction=0.0, lengths=(2.0, 1.0), diffusion=1.0):
@@ -142,7 +187,7 @@ def boundary_value(k, side, x, y):
 def model_declaration(settings):
     normalized = validate_settings(settings)
     problem, weak = normalized["problem"], normalized["problem"]["weak_form"]
-    return {"case": "rectangle_scalar_elliptic", "version": VERSION,
+    declaration = {"case": "rectangle_scalar_elliptic", "version": VERSION,
             "model": {"geometry": {"type": "rectangle", "dimensions": problem["domain"]["lengths"],
                                    "origin": [0., 0.], "unit": "1"},
                       "mesh": {**normalized["mesh"], "cell_type": "triangle", "space": "scalar_lagrange"}},
@@ -155,6 +200,10 @@ def model_declaration(settings):
             "loads": [{"type": "source", "expression": weak["rhs"], "unit": "1"}],
             "outputs": {"fields": [{"field": "u", "type": "scalar", "unit": "1"}]},
             "reference": copy.deepcopy(problem["reference"])}
+    if normalized.get("mode") == "selected_mesh":
+        declaration.update(mode="selected_mesh", scope="SELECTED_DIMENSIONLESS_SCALAR_RECTANGLE")
+        declaration["outputs"]["metrics"] = [*_REFERENCE_METRICS, "linear_residual_relative", "field_min", "field_max"]
+    return declaration
 
 
 def _ids(value, label, *, size=None):
@@ -289,6 +338,7 @@ def _field_check(settings, study, field):
 
 def assess(settings, studies, native_fields):
     normalized = validate_settings(settings)
+    selected = normalized.get("mode") == "selected_mesh"
     counts = normalized["mesh"]["cell_counts"]
     if (not isinstance(studies, list) or not isinstance(native_fields, list) or
             len(studies) != len(counts) or len(native_fields) != len(counts)):
@@ -304,8 +354,10 @@ def assess(settings, studies, native_fields):
         if study["cells_per_axis"] != count or study["degree"] != 1 or study["cell_type"] != "triangle":
             raise PDEInputError("Native mesh identity differs from the frozen request")
         _same(study["nominal_h"], math.hypot(*normalized["problem"]["domain"]["lengths"]) / count, "nominal rectangular mesh h")
-        for key in ("boundary_value_error", "l2_error", "h1_seminorm_error"):
+        for key in ("boundary_value_error",) if selected else ("boundary_value_error", "l2_error", "h1_seminorm_error"):
             _number(study[key], key, nonnegative=True)
+        if selected and any(study[key] is not None for key in _REFERENCE_METRICS):
+            raise PDEInputError("Selected-mesh reference errors and rates must all be null")
         error, limit, pointwise_passed = _field_check(normalized, study, field)
         study["recomputed_boundary_value_error"] = error
         boundaries.append({"n": count, "observed": study["boundary_value_error"], "recomputed": error,
@@ -318,13 +370,42 @@ def assess(settings, studies, native_fields):
                 not finite_number(expected) or not math.isclose(residual["relative"], expected, rel_tol=ATOL, abs_tol=0.0)):
             raise PDEInputError("Inconsistent constrained linear residual normalization")
         residuals.append(max(residual["relative"], expected))
-        for metric, rate in (("l2_error", "l2_convergence_rate"), ("h1_seminorm_error", "h1_seminorm_convergence_rate")):
+        for metric, rate in (() if selected else (("l2_error", "l2_convergence_rate"), ("h1_seminorm_error", "h1_seminorm_convergence_rate"))):
             expected_rate = error_rate(observed[index - 1][metric], study[metric]) if index else None
             if ((expected_rate is None and study[rate] is not None) or
                     (expected_rate is not None and (not finite_number(study[rate]) or
                      not math.isclose(study[rate], expected_rate, rel_tol=ATOL, abs_tol=ATOL)))):
                 raise PDEInputError(f"Inconsistent native/recomputed {rate}")
     limits, fine = normalized["validation"], observed[-1]
+    if selected:
+        numerical = [("pde_solver_convergence", fine["ksp_convergence_reason"] > 0,
+                      [fine["ksp_convergence_reason"]], "Positive native PETSc KSP reason"),
+                     ("pde_boundary_and_mesh", all(row["pointwise_passed"] for row in boundaries), boundaries,
+                      "Complete rectangle/side topology and pointwise Dirichlet absolute/relative tolerance 1e-12"),
+                     ("pde_linear_residual", max(residuals) <= limits["max_residual_relative"], residuals,
+                      limits["max_residual_relative"])]
+        checks = [{"code": code, "status": "PASS" if passed else "FAIL", "observed": value, "limit": limit}
+                  for code, passed, value, limit in numerical]
+        passed = all(check["status"] == "PASS" for check in checks)
+        failed = ", ".join(check["code"] for check in checks if check["status"] == "FAIL")
+        # Use the admitted complete native field, without abs/norm or a reference substitution.
+        metric_values = {"linear_residual_relative": max(residuals),
+                         "field_min": min(native_fields[0]["values"]), "field_max": max(native_fields[0]["values"])}
+        metrics = {name: {"value": value, "unit": "1", "valid": passed,
+                   **({"reason": f"Selected rectangle numerical validation failed: {failed}"} if not passed else {})}
+                   for name, value in metric_values.items()}
+        metrics.update({name: {"value": None, "unit": "1", "valid": False,
+                        "reason": "Not evaluated: selected_mesh supplies no analytical/reference solution or mesh sweep"}
+                        for name in _REFERENCE_METRICS})
+        return {"checks": checks, "metrics": metrics,
+                "reference": {"status": "UNKNOWN", "solution": None, "source": None,
+                              "domain": copy.deepcopy(normalized["problem"]["domain"]),
+                              "diffusion": normalized["problem"]["weak_form"]["diffusion"],
+                              "reaction": normalized["problem"]["weak_form"]["reaction"],
+                              "neumann_semantics": "diffusion*grad(u).outward_normal", "units": "dimensionless",
+                              "error_quadrature_degree": None, "h1_semantics": None, "rate_semantics": None},
+                "mesh_studies": observed, "pending_validations": list(_SELECTED_PENDING),
+                "scope": "SELECTED_DIMENSIONLESS_SCALAR_RECTANGLE", "limitations": list(SELECTED_LIMITATIONS)}
     l2_rates, h1_rates = [row["l2_convergence_rate"] for row in observed[1:]], [row["h1_seminorm_convergence_rate"] for row in observed[1:]]
     numerical = [("pde_solver_convergence", all(row["ksp_convergence_reason"] > 0 for row in observed),
                   [row["ksp_convergence_reason"] for row in observed], "Positive native PETSc KSP reason"),

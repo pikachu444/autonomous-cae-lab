@@ -116,7 +116,8 @@ def _selected(lab, result, proposal, response):
         field = selected_response(lab, result, proposal, response["field"])
         return (field["value"], field["unit"], "EXACT_RECORDED_FIELD_NODE", None,
                 {"source_field": field["source_field"],
-                 "field_qualification": field["qualification"]})
+                 "field_qualification": field["qualification"],
+                 **({"response_axis": field["response_axis"]} if "response_axis" in field else {})})
     if "history_channel" in response:
         from .response_history import source_channels
         channels = source_channels(lab, result, proposal)
@@ -219,11 +220,15 @@ def _evaluation(lab, request, result, proposal):
             "causal_verdict": "NOT_EVALUATED", **channel_info,
             **({"declared_axis_check": axis_check, "alignment_policy": "Exact recorded sample; no interpolation"} if axis_check else {}),
             **({"declared_history_checks" if native_history else "declared_field_checks": field_checks,
-                "alignment_policy": "Exact recorded node and declared component/frame; physical measurement alignment unverified"}
+                "alignment_policy": ("Exact recorded node, component/frame and original PDE time; no interpolation; physical measurement alignment unverified"
+                                     if request["response"].get("field", {}).get("kind") == "pde_nodal" and axis_check else
+                                     "Exact recorded node and declared component/frame; physical measurement alignment unverified")}
                if field_checks else {})}
 
 
 def _comparison_version(response, comparison):
+    if response.get("field", {}).get("kind") == "pde_nodal":
+        return "1.4"
     if "history_channel" in response and "source_metric" not in comparison:
         return "1.3"
     return "1.2" if "field" in response else "1.1" if "history_channel" in response else "1.0"
@@ -272,7 +277,7 @@ def inspect_comparison(lab, comparison_id):
     receipt, record = load_json(folder / "receipt.json"), load_json(record_path)
     if receipt.get("id") != comparison_id or receipt.get("record_sha256") != _sha(record_path):
         raise ValueError("Comparison record hash mismatch")
-    if record.get("schema_version") not in ("1.0", "1.1", "1.2", "1.3") or record.get("id") != comparison_id:
+    if record.get("schema_version") not in ("1.0", "1.1", "1.2", "1.3", "1.4") or record.get("id") != comparison_id:
         raise ValueError("Comparison record identity mismatch")
     request = record["request"]
     _finite_json(request)

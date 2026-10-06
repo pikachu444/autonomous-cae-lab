@@ -78,6 +78,26 @@ def retained(folder):
     return {p.relative_to(folder).as_posix(): p.read_bytes() for p in folder.rglob('*') if p.is_file() and not p.name.endswith('.lock')}
 
 
+def test_fixed_cad_target_matching_keeps_raw_response_constraints_and_parent(lab):
+    before = retained(lab.store/'experiments/E-cad')
+    register(lab)
+    target = 150 / 210000
+    objective = {'source': 'analysis', 'metric': 'max_displacement', 'unit': 'mm', 'direction': 'match',
+        'target': target, 'scale': 0.001, 'origin': 'SYNTHETIC', 'reference': 'TEST ONLY scalar response'}
+    frozen = plan(lab, objective=objective, initial_values={'elastic_E': 210000}, constraints=[
+        {'source': 'analysis', 'metric': 'max_displacement', 'unit': 'mm', 'operator': '<=', 'limit': 0.001, 'scale': 0.001}])
+    result = lab.run_optimization(frozen['campaign_id'])
+    assert retained(lab.store/'experiments/E-cad') == before
+    for row in result['evaluations']:
+        if row['usable']:
+            raw = 150 / row['values']['elastic_E']
+            assert row['objective']['value'] == pytest.approx(raw)
+            assert row['feedback']['objective'] == pytest.approx(((raw-target)/0.001)**2)
+            assert row['constraints'][0]['value'] == pytest.approx(raw)
+    assert result['incumbent']['feedback']['objective'] == pytest.approx(0)
+    assert lab.inspect_optimization(frozen['campaign_id']) == result
+
+
 def test_discovery_registration_and_real_de_keep_one_cad_and_historical_reads(lab):
     before = retained(lab.store/'experiments/E-cad')
     template = lab.discover_condition_parameters('C-conditions')

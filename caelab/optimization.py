@@ -59,9 +59,18 @@ def _definitions(lab, backend, analysis_backend, objective, constraints, require
                    else lab.analysis_adapters.get(analysis_backend))
         if adapter is None or item["metric"] not in adapter.default_metrics:
             raise ValueError("Optimization metric is not advertised by the selected adapter")
-    selector(objective, {"source", "metric", "unit", "direction"})
-    if objective["direction"] not in ("minimize", "maximize"):
-        raise ValueError("Objective direction must be minimize or maximize")
+    matching = isinstance(objective, dict) and objective.get("direction") == "match"
+    selector(objective, {"source", "metric", "unit", "direction"} |
+             ({"target", "scale", "origin", "reference"} if matching else set()))
+    if objective["direction"] not in ("minimize", "maximize", "match"):
+        raise ValueError("Objective direction must be minimize, maximize or match")
+    if matching and (not _number(objective["target"]) or not _number(objective["scale"])
+                     or objective["scale"] <= 0
+                     or objective["origin"] not in ("DESIGN_TARGET", "MEASURED_REPORTED",
+                                                    "PUBLISHED_REFERENCE", "SYNTHETIC")
+                     or not isinstance(objective["reference"], str)
+                     or not objective["reference"].strip() or len(objective["reference"]) > 2048):
+        raise ValueError("Target matching requires a finite target, positive scale and explicit reference origin")
     if not isinstance(constraints, list) or len(constraints) > 16:
         raise ValueError("Constraints must be a list with at most 16 entries")
     for item in constraints:
@@ -455,6 +464,37 @@ def _metric(definition, results):
             "reason": None if valid else "Missing, invalid, non-scalar, nonfinite or wrong-unit metric"}
 
 
+def _objective_feedback(definition, observation):
+    """Normalize an explicit scalar target without changing native observations.
+
+    Scale is a user-declared normalization in the response's exact unit, not a
+    tolerance/measurement qualification. No implicit conversions or fitting of
+    locations, tensor components or histories occurs here.
+    """
+    if definition["direction"] != "match":
+        score = observation["value"] if observation["valid"] else None
+        return -score if score is not None and definition["direction"] == "maximize" else score
+    difference = residual = score = None
+    if observation["valid"]:
+        try:
+            difference = observation["value"] - definition["target"]
+            residual = difference / definition["scale"]
+            score = residual * residual
+        except (OverflowError, ZeroDivisionError):
+            score = None
+    valid = all(_number(v) for v in (difference, residual, score))
+    observation["target_comparison"] = {
+        "target": definition["target"], "scale": definition["scale"],
+        "unit": definition["unit"], "origin": definition["origin"],
+        "reference": definition["reference"],
+        "difference": difference if _number(difference) else None,
+        "normalized_residual": residual if _number(residual) else None,
+        "score": score if valid else None, "score_unit": "1", "valid": valid,
+        "reason": None if valid else "Unavailable native scalar or nonfinite target normalization",
+        "scope": "USER_DECLARED_SCALAR_TARGET", "physical_qualification": "UNKNOWN"}
+    return score if valid else None
+
+
 def _record(lab, plan, item, cad, analysis):
     model_route = plan.get("route") == "model_analysis"
     results = {"model": analysis} if model_route else {"cad": cad, "analysis": analysis}
@@ -463,6 +503,7 @@ def _record(lab, plan, item, cad, analysis):
     if not model_route and plan["analysis"]:
         usable &= _usable(analysis, plan["required_validations"]["analysis"], analysis=True)
     objective = _metric(plan["objective"], results)
+    objective_score = _objective_feedback(plan["objective"], objective)
     constraints = []
     for definition in plan["constraints"]:
         observation = _metric(definition, results)
@@ -475,10 +516,8 @@ def _record(lab, plan, item, cad, analysis):
         constraints.append({**observation, "operator": definition["operator"], "limit": definition["limit"],
                             "scale": definition["scale"], "residual": residual,
                             "satisfied": residual <= 0 if residual is not None else None})
-    usable &= objective["valid"] and all(c["residual"] is not None for c in constraints)
-    score = objective["value"] if usable else None
-    if score is not None and plan["objective"]["direction"] == "maximize":
-        score = -score
+    usable &= objective["valid"] and _number(objective_score) and all(c["residual"] is not None for c in constraints)
+    score = objective_score if usable else None
     failed_execution = any(r and r["status"] == "FAILED_EXECUTION" for r in results.values())
     feasible = bool(usable and all(c["satisfied"] for c in constraints))
     identities = ({"model_status": analysis["status"],

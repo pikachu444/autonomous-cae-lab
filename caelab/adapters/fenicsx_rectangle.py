@@ -103,6 +103,9 @@ def _raw_result(output, settings, specification_sha, manifest_sha):
             raw.get("spec_sha256") != specification_sha or raw.get("source_manifest_sha256") != manifest_sha or
             type(raw.get("mpi_size")) is not int or raw["mpi_size"] != 1 or raw.get("scalar_type") != "float64"):
         raise RuntimeError("Rectangle native execution/spec/source identity differs from its frozen request")
+    if settings.get("mode") == "selected_mesh" and (raw.get("mode") != "selected_mesh" or
+            raw.get("scope") != "SELECTED_DIMENSIONLESS_SCALAR_RECTANGLE"):
+        raise RuntimeError("Rectangle selected-mesh native mode/scope differs from its frozen request")
     versions = raw.get("versions")
     if (not isinstance(versions, dict) or not _VERSION_KEYS <= set(versions) or
             any(not isinstance(versions[key], str) or not versions[key].strip() for key in _VERSION_KEYS)):
@@ -181,13 +184,16 @@ class FenicsxRectanglePDEAdapter:
         save_json(output / "source_manifest.json", manifest)
         manifest_sha = _sha(output / "source_manifest.json")
         problem, weak = settings["problem"], settings["problem"]["weak_form"]
+        selected = settings.get("mode") == "selected_mesh"
+        reference = problem["reference"]
         mathematical_source = ("-div(k*grad(u))+c*u=f on the dimensionless declared rectangle\n"
                                "a(u,v)=integral(k*inner(grad(u),grad(v))+c*u*v) dx\n"
                                "L(v)=integral(f*v) dx+sum_N integral(g*v) ds; g=k*grad(u).outward_normal\n"
                                f"lengths = {problem['domain']['lengths']}\ndiffusion = {weak['diffusion']}\nreaction = {weak['reaction']}\n"
-                               f"rhs = {weak['rhs']}\nreference = {problem['reference']['solution']}\n"
-                               f"reference source = {problem['reference']['source']}\nboundaries = {json.dumps(problem['boundaries'], sort_keys=True)}\n"
-                               "P1 triangles; symbolic degree8 L2/gradient-H1 error; exact union of named Dirichlet DOFs.\n")
+                               f"rhs = {weak['rhs']}\nreference = {reference['solution'] if reference is not None else None}\n"
+                               f"reference source = {reference['source'] if reference is not None else None}\nboundaries = {json.dumps(problem['boundaries'], sort_keys=True)}\n"
+                               + ("P1 triangles; selected mesh; no reference-error or mesh-rate evaluation; exact union of named Dirichlet DOFs.\n"
+                                  if selected else "P1 triangles; symbolic degree8 L2/gradient-H1 error; exact union of named Dirichlet DOFs.\n"))
         (output / "weak_form.txt").write_text(mathematical_source, encoding="utf-8")
         command = [interpreter, "-I", str((output / "worker.py").resolve()), str((output / "input.json").resolve())]
         excluded = ["PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "PETSC_DIR", "PETSC_OPTIONS", "PETSC_OPTIONS_YAML"]
@@ -221,12 +227,15 @@ class FenicsxRectanglePDEAdapter:
                            "petsc_initialization": raw["petsc_initialization"], "petsc_initialization_artifact": "pde/petsc_initialization.json",
                            "fixed_solver_policy": NATIVE_OPTIONS, "weak_form": {"source": mathematical_source, "artifact": "pde/weak_form.txt",
                            "ufl_source": ["pde/" + row["files"]["form_source"] for row in studies]},
-                           "reference_source": problem["reference"]["source"], "error_quadrature_degree": 8,
+                           "reference_source": reference["source"] if reference is not None else None,
+                           "error_quadrature_degree": None if selected else 8,
                            "mesh": ["pde/" + row["files"]["field"] for row in studies], "field_data": ["pde/" + row["files"]["field_data"] for row in studies],
                            "dof_fields": ["pde/" + row["files"]["dofs"] for row in studies], "assumptions": assessment["limitations"]})
+        if selected:
+            provenance.update(mode="selected_mesh", scope=assessment["scope"])
         result = {"status": "COMPLETED" if all(check["status"] == "PASS" for check in checks) else "REJECTED", "checks": checks,
                   "metrics": assessment["metrics"], "solver_status": "COMPLETED", "converged": all(row["ksp_convergence_reason"] > 0 for row in studies),
-                  "pending_validations": list(_PENDING), "provenance": provenance, "raw_result": "pde/result.json",
+                  "pending_validations": list(assessment["pending_validations"]), "provenance": provenance, "raw_result": "pde/result.json",
                   "mesh_studies": studies, "reference": assessment["reference"], "limitations": assessment["limitations"]}
         save_json(output / "result.json", result)
         return result

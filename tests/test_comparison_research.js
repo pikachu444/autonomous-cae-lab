@@ -227,6 +227,42 @@ function fieldMismatch(property = "coordinate_frame") {
   nullDifference(comparison, "DECLARED_FIELD_MISMATCH"); return row;
 }
 
+function pdeField(timed=false) {
+  const row=scalar("C-pde","E-pde"), {request,source,comparison}=row.record;
+  row.record.schema_version="1.4"; source.model_revision=hash("f");
+  request.response={field:{kind:"pde_nodal",artifact:"pde/level_n16/dofs.json",sha256:hash("e"),model_revision:source.model_revision,
+    study_index:0,step_index:timed?1:null,node_id:0,component:"u"}};
+  Object.assign(request.observation,{unit:"1",quantity:"PDE_SCALAR_FIELD",component:"u",coordinate_frame:"PDE_MODEL_CARTESIAN",value:1});
+  delete comparison.source_metric;
+  Object.assign(comparison,{unit:"1",response_value:-2,observed_value:1,difference:-3,absolute_difference:3,
+    within_declared_tolerance:false,selection_kind:"EXACT_RECORDED_FIELD_NODE",
+    source_field:{...request.response.field,quantity:"PDE_SCALAR_FIELD",coordinates:[0,0],coordinates_unit:"1",coordinate_frame:"PDE_MODEL_CARTESIAN"},
+    field_qualification:{numeric:"RECORDED_NATIVE_VALUE",physical:"UNKNOWN",decision:"NOT_RELEASED"}});
+  comparison.declared_field_checks=["quantity","component","coordinate_frame"].map(property=>({property,
+    declared:request.observation[property],actual:comparison.source_field[property],matched:true}));
+  if (timed) {
+    request.observation.axis={quantity:"time",unit:"1",value:.125};
+    comparison.response_axis={...request.observation.axis};
+    comparison.declared_axis_check={declared:{...request.observation.axis},actual:{...comparison.response_axis},matched:true};
+  }
+  return row;
+}
+test("common research accepts the exact PDE model/mesh/node and signed field, retaining dimensionless time", () => {
+  const row=pdeField(true), question=draft([row],"S-test").question;
+  assert.match(question,/PDE/); assert.match(question,/원 절점 0/); assert.match(question,/time=0.125 \(1\)/);
+  assert.match(question,/-2/); assert.match(question,/UNKNOWN/);
+  assert.doesNotMatch(question,/CAD 개정|UX\/UY\/UZ|원 TH 속도/);
+  assert.match(question,/UNINTEGRATED_INITIAL_CONDITION\/NOT_RUN/);
+  const mismatch=pdeField(true); mismatch.record.request.observation.axis.value=.13;
+  const check=mismatch.record.comparison.declared_axis_check; check.declared.value=.13; check.matched=false;
+  Object.assign(mismatch.record.comparison,{status:"DECLARED_AXIS_MISMATCH",difference:null,absolute_difference:null,within_declared_tolerance:null});
+  assert.match(draft([mismatch],"S-test").question,/DECLARED_AXIS_MISMATCH/);
+  for (const mutate of [r=>{r.record.source.model_revision=hash("a");},r=>{r.record.comparison.source_field.node_id=1;},
+    r=>{r.record.comparison.response_axis.unit="s";},r=>{r.record.comparison.field_qualification.physical="PASS";}]) {
+    const changed=pdeField(true); mutate(changed); assert.throws(()=>draft([changed],"S-test"));
+  }
+});
+
 test("1.2 field research draft retains exact original node, coordinates, signed component and field source without a metric", () => {
   const row = freeze(field()), before = JSON.stringify(row), result = draft([row], "S-test"), question = result.question;
   assert.deepEqual(result.comparisonIds, ["C-field"]); assert.deepEqual(result.experimentIds, ["E-native"]);

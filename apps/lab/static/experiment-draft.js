@@ -69,7 +69,7 @@
     "INCOMPLETE_RECORD", "검증 응답의 저장 문서 해시 연결이 불완전하거나 일치하지 않습니다.");
     return { result, proposal, thread, experimentId, studyId, hypothesisId };
   }
-  function presetFor(presets, backend, operation) {
+  function presetFor(presets, backend, operation, settings) {
     requireValue(mapping(presets), "INVALID_PRESETS", "기존 해석 경로 목록을 확인할 수 없습니다.");
     for (const presetId of Reflect.ownKeys(presets)) {
       const descriptor = Object.getOwnPropertyDescriptor(presets, presetId);
@@ -80,7 +80,12 @@
       const backendEntry = Object.getOwnPropertyDescriptor(preset, "backend"), operationEntry = Object.getOwnPropertyDescriptor(preset, "operation");
       // Read only routing metadata. Example settings must never replace saved settings.
       if (backendEntry && own(backendEntry, "value") && backendEntry.value === backend && operationEntry &&
-          own(operationEntry, "value") && operationEntry.value === operation) return presetId;
+          own(operationEntry, "value") && operationEntry.value === operation) {
+        // A selected single mesh and the retained benchmark use the same backend.
+        // Select the matching editor, without copying its preset conditions.
+        if (backend === "pde.fenicsx.rectangle" && preset.settings?.mode !== settings?.mode) continue;
+        return presetId;
+      }
     }
     throw new Refusal("PRESET_UNAVAILABLE", "같은 backend와 명시된 operation을 가진 기존 해석 경로가 없습니다.");
   }
@@ -143,7 +148,7 @@
         "REVISION_MISMATCH", "저장된 독립 모델 개정이 일치하지 않습니다.");
         operation = namespace === "pde" ? "pde_run" : "model_analysis_run";
       }
-      const presetId = presetFor(presets, backend, operation);
+      const presetId = presetFor(presets, backend, operation, proposal.execution);
       const args = { backend, settings: cloneJson(proposal.execution) };
       if (operation === "analysis_run") args.parent_experiment_id = parentExperimentId;
       else { args.study_id = studyId; args.hypothesis_id = hypothesisId; }

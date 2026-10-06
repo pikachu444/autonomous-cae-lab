@@ -2,6 +2,7 @@
 
 // Human preparation only. Core verifies hashes/admission; the existing engine generates candidates.
 (function (root) {
+  const common = typeof module !== "undefined" && module.exports ? require("./campaign-controls.js") : null;
   const solver = "structure.calculix.native";
   const id = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
   const storeId = /^[A-Za-z][A-Za-z0-9_-]{0,79}$/;
@@ -225,12 +226,15 @@
         entries.filter(entry => entry.parameter_id === name).length === 1) &&
       new Set(fields.parameter_ids.map(name => entries.find(entry => entry.parameter_id === name).native.path)).size === fields.parameter_ids.length,
     "같은 C0·template에서 등록한 서로 다른 연속 자유 변수를 선택하세요.");
-    requireValue(exact(fields.objective, ["source", "metric", "unit", "direction"]) && fields.objective.source === "analysis" &&
-      fields.objective.metric === "max_displacement" && fields.objective.unit === "mm" && ["minimize", "maximize"].includes(fields.objective.direction) &&
-      Array.isArray(fields.constraints) && fields.constraints.length === 0 && fields.initial_values === null &&
+    (common ?? root.campaignControls).validateObjective(fields.objective, ["analysis"]);
+    requireValue(fields.objective.metric === "max_displacement" && fields.objective.unit === "mm" &&
+      Array.isArray(fields.constraints) && fields.constraints.length <= 16 && fields.constraints.every(constraint =>
+        exact(constraint, ["source", "metric", "unit", "operator", "limit", "scale"]) && constraint.source === "analysis" &&
+        constraint.metric === "max_displacement" && constraint.unit === "mm" && ["<=", ">="].includes(constraint.operator) &&
+        finite(constraint.limit) && finite(constraint.scale) && constraint.scale > 0) && fields.initial_values === null &&
       exact(fields.required_validations, ["cad", "analysis"]) && Array.isArray(fields.required_validations.cad) &&
       Array.isArray(fields.required_validations.analysis) && fields.required_validations.cad.length === 0 && fields.required_validations.analysis.length === 0,
-    "이 경로는 전체 솔리드 최대 |U| (mm), 빈 제약·필수 검사와 초기값 null을 명시합니다.");
+    "이 경로는 전체 솔리드 최대 |U| (mm)의 목표·제약, 빈 필수 검사와 초기값 null을 명시합니다.");
     return clone(fields);
   }
   function frozenPlan(plan) {

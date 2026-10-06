@@ -16,7 +16,16 @@ $projectRoot = [IO.Path]::GetFullPath($RepoRoot)
 if ($OpenSciencePowerShell -and -not $OpenScienceOwner) {
     throw 'A research host PowerShell path requires the configured research owner.'
 }
-$arguments = @('-m', 'apps.lab', '--store', $Store, '--port', "$Port")
+if ($Store -match '[\r\n\x00]') { throw 'The experiment store must be a single local path.' }
+$storeWslPath = $Store
+if ($Store -match '^[A-Za-z]:[\\/]') {
+    $storeWslPath = & {
+        param([string]$LabStorePath, [string]$LabStoreSourceRoot)
+        . (Join-Path $LabStoreSourceRoot 'scripts/openscience-server-local.ps1') -Library
+        ConvertTo-OpenScienceWslPath $LabStorePath
+    } $Store $projectRoot
+}
+$arguments = @('-m', 'apps.lab', '--store', $storeWslPath, '--port', "$Port")
 if ($AssemblyMeshConfigPath) {
     $configPath = [IO.Path]::GetFullPath($AssemblyMeshConfigPath)
     if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) { throw 'The trusted assembly mesh configuration file is missing.' }

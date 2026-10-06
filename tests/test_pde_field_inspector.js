@@ -134,8 +134,18 @@ function cleared(result, status = "error") {
   assert.deepEqual(result.nodes, []); assert.deepEqual(result.cells, []);
 }
 
-test("browser/CommonJS expose only the two async APIs", () => {
-  assert.deepEqual(Object.keys(reader), ["loadCatalog", "loadField"]); assert.deepEqual(Object.keys(browser()), Object.keys(reader));
+test("browser/CommonJS expose retained-field reads and exact observation identity", () => {
+  assert.deepEqual(Object.keys(reader), ["loadCatalog", "loadField", "observationSelection"]); assert.deepEqual(Object.keys(browser()), Object.keys(reader));
+});
+test("PDE observation selection binds the original DOF bytes, model/level and native node zero", async () => {
+  const {field}=await opened();
+  const selected=reader.observationSelection(field,0,"u");
+  assert.equal(selected.node_id,0); assert.equal(selected.model_revision,field.metadata.modelRevision);
+  assert.equal(selected.artifact,field.source.artifact); assert.equal(selected.sha256,field.source.sha256);
+  assert.equal(selected.study_index,field.selection.studyIndex); assert.equal(selected.step_index,field.selection.stepIndex);
+  assert.equal(Object.hasOwn(selected,"value"),false);
+  assert.throws(()=>reader.observationSelection(field,999,"u"));
+  assert.throws(()=>reader.observationSelection(field,0,"UX"));
 });
 for (const kind of ["rectangle", "vector", "coupled", "imported"]) test(`${kind}: exact native layout, zero/sparse IDs and original UNKNOWN/rejected verdicts`, async () => {
   const f = fixture(kind, true), before = JSON.stringify(f.inspection), { catalog, field } = await opened(f);

@@ -7,7 +7,7 @@ from copy import deepcopy
 
 
 FULL_SELECTION_LIMIT = 64
-_REFERENCE_KEYS = frozenset(('selection_id', 'surface_a', 'surface_b'))
+_REFERENCE_KEYS = frozenset(('selection_id', 'selection_a', 'selection_b', 'surface_a', 'surface_b'))
 
 
 def condition_catalog_summary(catalog, declaration, catalog_revision, record_ref):

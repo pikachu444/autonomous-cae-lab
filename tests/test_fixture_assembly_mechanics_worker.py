@@ -8,6 +8,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import shutil
 import sys
 from types import ModuleType, SimpleNamespace
 
@@ -599,3 +600,87 @@ def test_stored_orientation_receipt_comes_from_final_generated_group_validation(
     witness = {"nodes": sorted(application["node_groups"]), "cells": sorted(application["cell_groups"])}
     assert raw["orientation_receipt"]["TEST_ONLY_FINAL_GROUP_WITNESS"] == witness
     assert json.loads((f.native / "orientation-receipt.json").read_bytes()) == raw["orientation_receipt"]
+
+
+@pytest.mark.parametrize('late_output', [None, 'native/worker-result.json',
+    'native/runtime-before.json', 'native/native-catalog.json', 'native/oriented-catalog.json',
+    'native/nodal-application-receipt.json', 'native/orientation-receipt.json',
+    'native/depl.table.json', 'native/depl-all-orders.table.json',
+    'native/contact-001-lags_c.table.json', 'admitted-fields.json', 'comparison.json', 'energy'])
+def test_host_keeps_first_observed_output_pins_through_final_guard(tmp_path, monkeypatch, e, late_output):
+    """Run the real host admission on fake worker output, then inject late drift.
+
+    No installed solver/image or original assembly run is involved. The control
+    distinguishes retained first observations from a new hash of changed bytes.
+    """
+    from caelab.adapters import fixture_assembly_mechanics as host
+
+    fake_root = tmp_path / 'fake-worker'
+    fake_root.mkdir()
+    fixture = fake_run(fake_root, monkeypatch, e)
+    w.run_mechanics(fixture.input, fixture.modules)
+    bundle = object.__new__(host.transport.QualifiedAssemblyMeshBundle)
+    output = tmp_path / 'host-admission'
+    catalog = {'TEST_ONLY': True}
+    settings = {'catalog': catalog, 'declaration': {}, 'solver_policy': deepcopy(w._POLICY)}
+    original_packet = packet(e, interfaces=True)
+    adapter = host.FixtureAssemblyMechanicsAdapter(bundle, {'mesh_revision': 'a' * 64}, {})
+    monkeypatch.setattr(host.AssemblyConditionsCADAdapter, 'conditions_catalog', lambda *args: deepcopy(catalog))
+    monkeypatch.setattr(adapter, 'settings_from_conditions', lambda *args: deepcopy(settings))
+    monkeypatch.setattr(host, 'compile_packet', lambda *args, **kwargs: (deepcopy(original_packet), {}))
+
+    def capture(self, parent, parent_root, root):
+        assert self is bundle
+        root.mkdir()
+        (root / 'mesh.msh').write_bytes(e.original)
+        entries = {'mesh.msh': pin(e.original), 'mapping.json': save(root / 'mapping.json', e.mapping),
+            'quality.json': save(root / 'quality.json', e.quality)}
+        receipt = {'mesh_revision': 'a' * 64,
+            'parent': {'experiment_id': 'E-test-only', 'cad_revision': 'b' * 64},
+            'profile': {'name': 'coarse3', 'mesh_size_mm': 3.}, 'output_files': entries}
+        return {'receipt': {'path': 'receipt.json', **save(root / 'receipt.json', receipt)}}
+
+    def recheck(self, root):
+        assert self is bundle and (root / 'mesh.msh').read_bytes() == e.original
+        if late_output and (output / 'admitted-fields.json').is_file():
+            relative = ('native/energy-' + original_packet['components'][0] + '.table.json'
+                if late_output == 'energy' else late_output)
+            changed = output / relative
+            changed.write_bytes(changed.read_bytes() + b'\n')
+
+    monkeypatch.setattr(host.transport.QualifiedAssemblyMeshBundle, 'capture', capture)
+    monkeypatch.setattr(host.transport.QualifiedAssemblyMeshBundle, 'recheck', recheck)
+    image, executable = tmp_path / 'fake-image', tmp_path / 'fake-runtime'
+    image.write_bytes(b'SYNTHETIC inert image'); executable.write_bytes(b'SYNTHETIC inert runtime')
+    monkeypatch.setattr(host.transport, '_image_identity', lambda: (image, pin(image.read_bytes()),
+        executable, pin(executable.read_bytes())))
+    monkeypatch.setattr(host.transport, '_budgets', lambda: {'solver_memory_mb': 1024,
+        'solver_time_seconds': 86400, 'subprocess_timeout_seconds': None})
+
+    def process(command, native, label, *, timeout):
+        assert timeout is None
+        if label == 'container-version':
+            return 'SYNTHETIC source control'
+        assert label == 'native-mechanics'
+        config = json.loads((native / 'input.json').read_bytes())
+        raw = json.loads((fixture.native / 'worker-result.json').read_bytes())
+        for path in fixture.native.glob('*.json'):
+            if path.name not in ('input.json', 'worker-result.json'):
+                shutil.copyfile(path, native / path.name)
+        raw['input_entry'] = pin((native / 'input.json').read_bytes())
+        for key in ('native_sources', 'mesh_revision', 'parent', 'profile', 'transport_entry'):
+            raw[key] = deepcopy(config[key])
+        save(native / 'worker-result.json', raw)
+        return 'SYNTHETIC; no native solver execution'
+
+    monkeypatch.setattr(host.transport, '_owned_process', process)
+    result = adapter.solve({'cad_revision': 'b' * 64}, tmp_path / 'fake-cad', output, settings)
+    if late_output:
+        assert result['status'] == 'REJECTED' and result['solver_status'] == 'UNKNOWN'
+        assert result['converged'] is None and result['metrics'] == {}
+        assert 'pin drift' in json.loads((output / 'failure.json').read_bytes())['error'].lower()
+        assert not (output / 'adapter-outcome.json').exists()
+    else:
+        assert result['solver_status'] == 'COMPLETED'
+        assert result['provenance']['admitted_native_observation_entries']
+        assert (output / 'adapter-outcome.json').is_file()

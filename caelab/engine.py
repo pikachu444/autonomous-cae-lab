@@ -64,7 +64,9 @@ class Lab:
         self.analysis_adapters = analysis_adapters
         if response_field_adapters is None:
             from .adapters.assembly_response_fields import AssemblyResponseFieldsAdapter
+            from .adapters.pde_response_fields import PDEResponseFieldsAdapter, SUPPORTED_BACKENDS
             response_field_adapters = {AssemblyResponseFieldsAdapter.backend: AssemblyResponseFieldsAdapter()}
+            response_field_adapters.update({backend: PDEResponseFieldsAdapter(backend) for backend in SUPPORTED_BACKENDS})
         self.response_field_adapters = response_field_adapters
         if response_history_adapters is None:
             from .adapters.openradioss_history import OpenRadiossHistoryAdapter

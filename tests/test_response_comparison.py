@@ -353,3 +353,78 @@ def test_field_rejects_stale_hash_implicit_time_and_wrong_unit_before_append(lab
     raw.write_bytes(raw.read_bytes() + b" ")
     with pytest.raises(ValueError):
         lab.inspect_response_comparison("C-test")
+
+
+@pytest.fixture
+def pde_field_request(lab):
+    """Core-only fake native interpreter, with real manifest/persistence guards.
+
+    The five-family native layout parser is tested in test_pde_response_fields;
+    these tests exercise additive schema1.4 routing and exact axis semantics.
+    """
+    from types import SimpleNamespace
+    result = lab.inspect_experiment('E-test')
+    artifact = next(a for a in result['artifacts'] if a['path'] == 'simulation/test-only.json')
+    selector = {'kind': 'pde_nodal', 'artifact': artifact['path'], 'sha256': artifact['sha256'],
+                'model_revision': result['model_revision'], 'study_index': 0, 'step_index': 1,
+                'node_id': 0, 'component': 'u'}
+
+    def selected(r, p, resources, selection):
+        if selection != selector:
+            raise ValueError('TEST_ONLY native node/field/revision selection differs')
+        raw, entry = resources['field']
+        assert raw['test_only'] is True and entry['sha256'] == selector['sha256']
+        return {'value': -.125, 'unit': '1', 'source_field': {**selector,
+                    'quantity': 'PDE_SCALAR_FIELD', 'coordinates': [0., 1.],
+                    'coordinates_unit': '1', 'coordinate_frame': 'PDE_MODEL_CARTESIAN'},
+                'response_axis': {'quantity': 'time', 'unit': '1', 'value': .25},
+                'qualification': {'numeric': 'RECORDED_NATIVE_VALUE', 'reference': 'UNKNOWN',
+                                  'physical': 'UNKNOWN', 'decision': 'NOT_RELEASED'}}
+
+    lab.response_field_adapters[result['provenance']['adapter']] = SimpleNamespace(
+        field_response_resources=lambda r: {'header': {'path': selector['artifact'], 'maximum_bytes': 1024}},
+        field_selection_resources=lambda r, s, resources: {'field': {'path': selector['artifact'], 'maximum_bytes': 1024}},
+        select_response_fields=selected)
+    body = request(purpose='GENERAL_CAE_RESEARCH', response={'field': selector})
+    body['observation'].update(value=-.125, unit='1', quantity='PDE_SCALAR_FIELD', component='u',
+        coordinate_frame='PDE_MODEL_CARTESIAN', tolerance=0., axis={'quantity': 'time', 'unit': '1', 'value': .25})
+    return body
+
+
+def test_pde_node_zero_comparison_roundtrip_keeps_signed_value_original_axis_and_unknowns(lab, pde_field_request):
+    before = originals(lab)
+    saved = lab.save_response_comparison(**pde_field_request)
+    assert saved['schema_version'] == '1.4'
+    comparison = saved['comparison']
+    assert comparison['response_value'] == -.125 and comparison['difference'] == 0.
+    assert comparison['source_field']['node_id'] == 0
+    assert comparison['response_axis'] == {'quantity': 'time', 'unit': '1', 'value': .25}
+    assert comparison['physical_validation'] == 'UNKNOWN' and comparison['decision'] == 'NOT_RELEASED'
+    assert 'source_metric' not in comparison and 'source_channel' not in comparison
+    assert lab.inspect_response_comparison('C-test') == saved
+    assert lab.research_summary('E-test')['comparison_context']['records'][0]['record'] == saved
+    assert originals(lab) == before
+
+
+def test_pde_time_mismatch_preserves_original_response_with_null_comparison(lab, pde_field_request):
+    pde_field_request['observation']['axis']['value'] = .5
+    saved = lab.save_response_comparison(**pde_field_request)
+    comparison = saved['comparison']
+    assert comparison['status'] == 'DECLARED_AXIS_MISMATCH'
+    assert comparison['response_value'] == -.125 and comparison['response_axis']['value'] == .25
+    assert comparison['difference'] is None and comparison['within_declared_tolerance'] is None
+    assert lab.inspect_response_comparison('C-test') == saved
+
+
+@pytest.mark.parametrize('damage', ['unit', 'axis_unit', 'missing_axis', 'foreign_node', 'wrong_revision', 'caller_value'])
+def test_pde_field_rejects_implicit_units_foreign_selection_and_caller_value_before_append(lab, pde_field_request, damage):
+    body = deepcopy(pde_field_request)
+    if damage == 'unit': body['observation']['unit'] = 'mm'
+    elif damage == 'axis_unit': body['observation']['axis']['unit'] = 's'
+    elif damage == 'missing_axis': body['observation'].pop('axis')
+    elif damage == 'foreign_node': body['response']['field']['node_id'] = 1
+    elif damage == 'wrong_revision': body['response']['field']['model_revision'] = '0' * 64
+    else: body['response']['field']['value'] = -.125
+    with pytest.raises((ValueError, ValidationError)):
+        lab.save_response_comparison(**body)
+    assert not (lab.store / 'response_comparisons/C-test').exists()

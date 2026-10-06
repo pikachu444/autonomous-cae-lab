@@ -1,3 +1,36 @@
+## Current checkpoint — numerical targets and actual selected PDE research
+
+ADR0051 and benchmarks/records/20261007-common-numerical-pde-research-r01.json
+record the large Phase3/4 integration. Existing numerical engines accept explicit
+target/unit/scale/origin, preserve raw response and constraints, and pass the actual
+fixed-context baseline regression after int/float encoding correction. The new
+target CAD workflow remains NOT_RUN; do not restart it as a prerequisite.
+
+Actual selected FEniCSx runs in runs/cae-common-pde-research-20261007-01 accept a
+typed problem without an analytical input or mandatory mesh sweep. Two declared
+boundary values produced full289-node fields and exact native-point comparisons;
+maximum independent affine error1.0481e-13 <1e-10 and field scaling error2.2204e-15.
+Both original records remain4PASS/4UNKNOWN/NOT_RELEASED, reference metrics invalid.
+Original27 files unchanged; units/time/model/node0 and source identity preserved.
+Two invalid unit/revision requests fail without appending a comparison. Browser
+reload reopens both records; the PDE-specific research question is prepared.
+Provider NOT_CONFIGURED/new provider0: interpretation is NOT_RUN. Five-family
+reader source exists; other four new actual reader integrations remain NOT_RUN.
+Final source suites762 Node/270 integrated Python pass; pure reader75 is separate.
+The numerical source review is bounded; final combined review follows development.
+
+NEXT: Phase5 existing material/history/J2 FE user input and common fields/history,
+then existing Phase6/7 in order. No new CAD/assembly/contact-convergence example
+or mesh sweep as a prerequisite. Develop large bundle -> Root run/fix/integrate ->
+final review. All52/Phases incomplete, approved5.6Sol/OAuth unchanged, Goal ACTIVE.
+Original CAD/results/qualified meshes/fine UNKNOWN/separateR2 drafts retained.
+WSL interoperability cause remains NOT_ISOLATED; invocation-local Linux Git read
+was used in this primary checkout, with no production launcher transport change.
+Read the public record for exact native producer versus final UI/source/CI; a new
+publication/document commit is not a new native or physical verification.
+
+---
+
 ## Current checkpoint — common controls preserved; Phase 3 development next
 
 The large native-conditions/field/history bundle is recorded in ADR0050 and

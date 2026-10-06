@@ -1,0 +1,278 @@
+{
+  "record_id": "20261007-common-numerical-pde-research-r01",
+  "created_utc": "2026-10-06T16:51:16.059338+00:00",
+  "scope": "COMMON_TARGET_OBJECTIVES_AND_SELECTED_SCALAR_PDE_RESEARCH",
+  "producer": {
+    "core_commit": "26871cb54deebeb70f22547b12bafdbe507fd9f2",
+    "core_dirty": true,
+    "core_source_sha256": "375cba7e8f64380b47d00308f9c2ac421ed74d0eaa6f33170eab887c7bb44ebb",
+    "publication_commit": "READ_THIS_RECORD_AT_ITS_GIT_COMMIT",
+    "final_source_raw_sha256": {
+      "apps/lab/service.py": "0263265d385a99c4cb375d3800a2bdf0fc9ab360f6ee5e504aa5ab58f343a775",
+      "apps/lab/static/app.js": "e284053d6dc4bae59439d4eed1104297014decd0d137f96130ba76e64757cf21",
+      "apps/lab/static/campaign-controls.js": "aa13db0992986d4c15c368f078bc877e2ed8996eaa3b53420f7977d5b1c64c9b",
+      "apps/lab/static/comparison-research.js": "13279d4ecbeb0ab0ee3c4d6ae50a17f2bbd0221f41353e95d52831c6509235d8",
+      "apps/lab/static/experiment-draft.js": "4eb77cac78c9850d6c0b5907f9b8d0a44e133de18601a547892b944b0d4b3665",
+      "apps/lab/static/fixed-cad-campaign-controls.js": "f1bc4e00c04f52745585fdfd251bfcc62e07cda894ca9b2f070bca7ad723d586",
+      "apps/lab/static/index.html": "9f6061a394c1c40780283927da76d10c247e9f876e574a452a64f42087b42661",
+      "apps/lab/static/observation-controls.js": "a9c5cdacaaa47108f5c12f3250aef27df8fad0ad75be8dd4d25581807533f455",
+      "apps/lab/static/pde-controls.js": "bbcdb5490be90038652e08157b1ea49d8b714cc340ecd39f502d0ea7d943f8ac",
+      "apps/lab/static/pde-field-inspector.js": "02e2572e4624834270a874269334afca8b01f184a6def2169ada3b3236196976",
+      "apps/lab/static/result-presentation.js": "65ede776072a6cf59888548af8ac0c0ec5a1ba8fd233b1e68628bcc15a53b989",
+      "caelab/adapters/fenicsx_rectangle.py": "1153e1973866ed8bbacc20ef594f92f0566adaea5d21ee0f218a35cd7f67403a",
+      "caelab/adapters/fenicsx_rectangle_worker.py": "2455a9bb72bebb90df123933ca00d98ff97eec10188baf2d2d0d6845f88b39e6",
+      "caelab/adapters/fixture_assembly_mechanics.py": "518ea5e8a08d8423a25267c472371e07b9e782a9cc0e0e7eada22f7ec4487532",
+      "caelab/adapters/pde_response_fields.py": "2809a796f15ff931833ee73714ff70018ff9d3c2c47bea372756ea1932118efb",
+      "caelab/condition_parameters.py": "442d715485b3a1e63747b031d17b9a6e6a17959ec5f9cea00ad88be85cc2f2cf",
+      "caelab/engine.py": "db7cd86ea9dc62bf3b6911bac4c15c4634c76390ef0ffa3be8c892b42edb2456",
+      "caelab/optimization.py": "56336050c6fd6f36102ee28bd11c4f711b1317fb23768930d83166f4856fa6c7",
+      "caelab/research_catalog.py": "c1a3c8c8476c5da6958ce48af312af64b9ec3d823102b83c030947a0a054395b",
+      "caelab/response_comparison.py": "9a9c00ee0082e6576008c98cd3879a200bd29d3169851a1200521c350880617c",
+      "caelab/response_field.py": "b707f7074fa4dede658f1bfc8038a56ae1077e2f4e71df04d3ab2cfb40115d69",
+      "plugins/pde_elliptic/reference.py": "df32f3dbb8b477858927fff8626663f24926831059568efad7330a3145f4dbf4",
+      "schemas/optimization-plan.schema.json": "dc62fc95f1fac9a7a7c7cb0a6f31c930cb926f95b1c8bbfb4a9b89104816dfe1",
+      "schemas/response-comparison-request.schema.json": "507d9e5c0d87c00b0c4c56ad2f5038c3f135f475abab40983de8076d473bb66d",
+      "scripts/lab-local.ps1": "5096c0b2639652804c1e5798ab74d33640bde984c7b104e104128e3b52c6466f",
+      "scripts/verify_cae_research_launcher.ps1": "55d1da8dafeeca3b19fb0829e99e149e2ddc0c9c9fbfb9c794edd2d19c54cf51",
+      "tests/test_campaign_controls.js": "735ffa2bb8252ea27e4eb669237e67986734c5f73d296b93bd9aa9f0f73e624e",
+      "tests/test_comparison_research.js": "e10887c2a144985fcd369adae3a67aa766c539b9c3f4cb88111f72c31b9405f6",
+      "tests/test_experiment_draft.js": "413d9b0a525da288d8bc56137a5d6129747356daa87e2ef88348d8a4ef5c2ded",
+      "tests/test_fixed_cad_campaign_controls.js": "8d524c46e4a28655d3e01a4f4672c63e8bf089c75585b2cffdb30caf3b38cf44",
+      "tests/test_fixed_cad_optimization.py": "4a62ee65a689d827b74d82cf69bb612d896342f48cb66bc69c79668fff9d62c7",
+      "tests/test_fixture_assembly_mechanics_worker.py": "eb0baa4ba36aed6cac830194fa386eb85acfd33f6fb3d54c86448771264f2ed1",
+      "tests/test_fixture_optimization_handoff.js": "6b987bb458ec7ac06b1efaa9c438f431f565af09375eda3aa6ead300925cc0db",
+      "tests/test_lab_server.py": "1b53c2d6a6a0cae2b092c69cbff281058a1fada5e970450b6249dbce90dc6532",
+      "tests/test_model_optimization.py": "894c2cbbab5f6a19e7d2c471d048e7d10172c0cb3b61d727b6d31de9a8e7cb9d",
+      "tests/test_observation_controls.js": "bed25d8b73db8898d54a3cd3754ded4c831facf95d4f3b1eb543643678af5c57",
+      "tests/test_optimization.py": "ec2d0762fa3729836458c065c4c188770d299a6d6ca9927f79c42c608bcb89d1",
+      "tests/test_pde_controls.js": "b1413ad7ff7a355708e4ea60372d75e0ac616df92c573eed0f773b35ea0b2af4",
+      "tests/test_pde_field_inspector.js": "6865ebdee83399ec5be275dc32e19e799d4e1bcdeea49d050f28e4a41b6c249f",
+      "tests/test_pde_rectangle.py": "b0a59e1ff9c33def2a12a5a9b5b4d12db6b2d134171b358591c114ef37a8996f",
+      "tests/test_pde_rectangle_reference.py": "8935985df4ecc7c3a09f8a6f923a8a9b5a3173236c5fc774421330945521471d",
+      "tests/test_pde_response_fields.py": "eb555f137b154a4b51ceba013f0a76ef870eccade30efcc1723598e5f7bf50b0",
+      "tests/test_rectangle_pde_runner.py": "d82ddb739d53a607b9c863ca0aef043c514c08f9efe768beff17fe62863467b6",
+      "tests/test_research_catalog.py": "dce30be5e8b750a5dbcae1e7948393601dba18927f348bfb72cf03a56391cea1",
+      "tests/test_response_comparison.py": "bcd057adc3439c4b460a4582924bd1d6f5a338b0f26cee9776d986a7867b0b44",
+      "tests/test_response_field_registry.py": "65374683159e3665809c49338037efe639611d2cd88e92af05a03dd96bebf384"
+    }
+  },
+  "implementation": [
+    "Explicit target response/unit/scale/origin in the existing numerical engines; raw response and constraints retained",
+    "Canonical equal baseline numeric encoding preserved",
+    "Single selected rectangle diffusion/reaction problem with four declared mixed boundary conditions and no analytical input",
+    "Verified bounded-resource common retained PDE field readers; exact node/component/revision/axis comparison 1.4",
+    "Typed input, immutable condition reuse, whole field inspection, observation storage/reopening and family-specific research question preparation"
+  ],
+  "source_checks": [
+    {
+      "suite": "Final all Node source suites",
+      "passed": 762,
+      "failed": 0,
+      "cancelled": 0,
+      "seconds": 11.3897143,
+      "local_log": "artifacts/common-pde-research-20261007-01/node-all-03.log"
+    },
+    {
+      "suite": "Integrated Core/HTTP/PDE and real UFL form suites",
+      "passed": 270,
+      "warnings": 1,
+      "seconds": 423.58,
+      "local_log": "artifacts/common-pde-research-20261007-01/python-common-core-01.log"
+    },
+    {
+      "suite": "Numerical target controls before baseline correction",
+      "passed": 12,
+      "failed": 1,
+      "deselected": 99,
+      "failure": "Equal 200000 int/float canonical encoding drift falsely rejected fixed context",
+      "status": "PRESERVED_FAILED_ATTEMPT"
+    },
+    {
+      "suite": "Actual corrected fixed-context target regression",
+      "passed": 1,
+      "failed": 0,
+      "seconds": 174.32,
+      "local_log": "artifacts/common-numerical-research-20261007-01/python-fixed-target-06.log"
+    },
+    {
+      "suite": "Independent PDE pure retained reader",
+      "passed": 75,
+      "seconds": 0.78,
+      "actual_five_family_integration": "NOT_RUN"
+    },
+    {
+      "suite": "PDE Domain/worker agent source",
+      "passed": 136,
+      "deselected": 1,
+      "scope": "Earlier source checks; excluded real UFL check subsequently passed in integrated 270 suite"
+    }
+  ],
+  "actual": {
+    "store": "runs/cae-common-pde-research-20261007-01",
+    "study_id": "S-general-pde-20261007",
+    "jobs": [
+      "Jcbefbb504f144c33a4f5d21e2090982e",
+      "J14f7343556c84986ab6e2c39f7b9e190"
+    ],
+    "original_input_reference": null,
+    "changed_input": "Only xmax Dirichlet expression 2 to 3; same 2x1 rectangle, k=1, c=0, rhs=0 and one n16 P1 mesh",
+    "feature_reference": {
+      "origin": "SYNTHETIC",
+      "baseline": "u=x",
+      "changed": "u=1.5*x",
+      "absolute_tolerance": 1e-10,
+      "qualified_physical_reference": false
+    },
+    "cases": [
+      {
+        "experiment_id": "E-pde-selected-boundary2-r01",
+        "model_revision": "94cee5979e8b8e38e2b29f2338e62fec7df4ebd56d4efc6b46d61e526905ed20",
+        "nodes": 289,
+        "triangles": 512,
+        "whole_field_absolute_error": 6.972200594645983e-14,
+        "fixed_reference_tolerance": 1e-10,
+        "native_node0": 1.8749999999999805,
+        "relative_residual": 1.7175641094785733e-15,
+        "validation_counts": {
+          "PASS": 4,
+          "FAIL": 0,
+          "UNKNOWN": 4
+        },
+        "native_versions": {
+          "basix": "0.11.0",
+          "dolfinx": "0.11.0.post0",
+          "ffcx": "0.11.0",
+          "mpi4py": "3.1.5",
+          "numpy": "1.26.4",
+          "petsc": "3.19.6",
+          "petsc4py": "3.19.6",
+          "python": "3.12.3",
+          "ufl": "2026.1.0"
+        },
+        "decision": "NOT_RELEASED",
+        "native_source_sha256": {
+          "adapter": "1153e1973866ed8bbacc20ef594f92f0566adaea5d21ee0f218a35cd7f67403a",
+          "domain_reference": "df32f3dbb8b477858927fff8626663f24926831059568efad7330a3145f4dbf4",
+          "execution_control": "574bb6a9c521776658f4e82da4e6913e600cd1b987bf5d1f8b669258cebda72e",
+          "expression_parser": "2e1cd29a71e4a216be6677e44b841205193ef72658d7a29d010dca7253d57301",
+          "worker": "2455a9bb72bebb90df123933ca00d98ff97eec10188baf2d2d0d6845f88b39e6"
+        }
+      },
+      {
+        "experiment_id": "E-pde-selected-boundary3-r01",
+        "model_revision": "58ed4c8a72439227c21e1151698954b980a2024ade6f5b893adea6e345e5feda",
+        "nodes": 289,
+        "triangles": 512,
+        "whole_field_absolute_error": 1.0480505352461478e-13,
+        "fixed_reference_tolerance": 1e-10,
+        "native_node0": 2.81249999999997,
+        "relative_residual": 1.4915154137035484e-15,
+        "validation_counts": {
+          "PASS": 4,
+          "FAIL": 0,
+          "UNKNOWN": 4
+        },
+        "native_versions": {
+          "basix": "0.11.0",
+          "dolfinx": "0.11.0.post0",
+          "ffcx": "0.11.0",
+          "mpi4py": "3.1.5",
+          "numpy": "1.26.4",
+          "petsc": "3.19.6",
+          "petsc4py": "3.19.6",
+          "python": "3.12.3",
+          "ufl": "2026.1.0"
+        },
+        "decision": "NOT_RELEASED",
+        "native_source_sha256": {
+          "adapter": "1153e1973866ed8bbacc20ef594f92f0566adaea5d21ee0f218a35cd7f67403a",
+          "domain_reference": "df32f3dbb8b477858927fff8626663f24926831059568efad7330a3145f4dbf4",
+          "execution_control": "574bb6a9c521776658f4e82da4e6913e600cd1b987bf5d1f8b669258cebda72e",
+          "expression_parser": "2e1cd29a71e4a216be6677e44b841205193ef72658d7a29d010dca7253d57301",
+          "worker": "2455a9bb72bebb90df123933ca00d98ff97eec10188baf2d2d0d6845f88b39e6"
+        }
+      }
+    ],
+    "whole_field_scaling_absolute_error": 2.220446049250313e-15,
+    "comparisons": [
+      {
+        "id": "O-lab-muww2gu3",
+        "version": "1.4",
+        "native_node_id": 0,
+        "declared_value": 1.875,
+        "unit": "1",
+        "origin": "SYNTHETIC",
+        "difference": -1.9539925233402755e-14,
+        "within_tolerance": true
+      },
+      {
+        "id": "O-lab-muww6r1s",
+        "version": "1.4",
+        "native_node_id": 0,
+        "declared_value": 2.8125,
+        "unit": "1",
+        "origin": "SYNTHETIC",
+        "difference": -3.019806626980426e-14,
+        "within_tolerance": true
+      }
+    ],
+    "negative_admission": [
+      {
+        "kind": "unit",
+        "job_id": "J5ab64395053d4257953b2b7ff3484559",
+        "status": "FAILED",
+        "comparison_appended": false,
+        "error": "ValueError: Observation and response units must match exactly; no conversion is inferred"
+      },
+      {
+        "kind": "revision",
+        "job_id": "Jbb83e1768d814b88a928d4968a998545",
+        "status": "FAILED",
+        "comparison_appended": false,
+        "error": "ValueError: Exact PDE nodal selector/revision/index required"
+      }
+    ],
+    "baseline_files_unchanged": 27,
+    "gui": "Actual study/preset/typed problem -> native solve -> whole field/node 0 -> observation compare -> original-condition reuse -> changed native solve -> second compare -> browser reload -> reopened same records -> PDE-specific research question",
+    "final_ui": {
+      "reload": true,
+      "study": "S-general-pde-20261007",
+      "experiment": "E-pde-selected-boundary3-r01",
+      "comparisons": [
+        "O-lab-muww2gu3",
+        "O-lab-muww6r1s"
+      ],
+      "family_specific_question": true,
+      "selected_pde_hides_cad_workspace": true,
+      "provider": "NOT_CONFIGURED",
+      "question_execution": "NOT_RUN"
+    },
+    "new_native_runs": 2,
+    "new_provider_runs": 0,
+    "new_cad_or_assembly_runs": 0,
+    "reference_metrics": "Original four L2/H1/rate metrics remain null and invalid; original UNKNOWN verdicts unchanged",
+    "comparison_conditions": "Human declaration preserved; no condition bindings supplied, so physical equivalence is not verified",
+    "local_artifact_root": "artifacts/common-pde-research-20261007-01",
+    "artifact_retention": "LOCAL_ONLY"
+  },
+  "review": {
+    "numerical_source_bundle": "Independent read-only review closed 3 P2, open P1/P2 0; scoped before new PDE bundle",
+    "combined_final_review": "PENDING_AFTER_LARGER_DEVELOPMENT",
+    "authority": "Root owns integration and execution; no new per-patch Astra gate"
+  },
+  "limitations": [
+    "Selected PDE admission is dimensionless scalar rectangular P1 with constant coefficients; pure Neumann/Robin/general imported geometry or MPI user mode unsupported",
+    "New five-family reader source is implemented; only selected rectangle actual common-reader integration ran here",
+    "New target CAD acceptance NOT_RUN; preserved and not a prerequisite",
+    "Family-specific question preparation is not approved-provider interpretation; provider NOT_CONFIGURED here",
+    "WSL Windows-executable interoperability intermittently failed; tests/native proof used invocation-local native Linux Git read in the primary checkout, not a production transport fix",
+    "Full 52/Phase1-7 incomplete; physical/material/strength/durability/company deployment UNKNOWN/NOT_RELEASED"
+  ],
+  "ci": {
+    "base_commit": "26871cb54deebeb70f22547b12bafdbe507fd9f2",
+    "run_id": 37483418967,
+    "observed": "Research source SUCCESS; Core FAILURE from legacy history-caption fixture, corrected and source-tested in this bundle; eight skipped",
+    "publication_exact_ci": "CHECK_AFTER_PUSH"
+  },
+  "next": "Existing Phase5 typed material/history -> selected actual J2 FE -> native field/history comparisons, then existing Phase6 and Phase7 in order; no new CAD/assembly/mesh examples"
+}

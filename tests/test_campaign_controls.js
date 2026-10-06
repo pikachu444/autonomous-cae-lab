@@ -9,6 +9,47 @@ const { validateDiscovery, eligibleModelEntries, modelPlanArguments, fixtureOpti
 const backend = "test.declared_model";
 const revision = "a".repeat(64), source = "d".repeat(64);
 const copy = (value) => structuredClone(value);
+
+test("common target preparation preserves signed response, origin and user normalization for every existing source", () => {
+  for (const source of ["cad", "analysis", "model"]) {
+    const objective = controls.objectiveFromFields({ source, metric: "signed_response", unit: "mm", direction: "match",
+      target: "-2.5", scale: "0.25", origin: "MEASURED_REPORTED", reference: "reported sensor Z at fixed load" });
+    assert.deepEqual(objective, { source, metric: "signed_response", unit: "mm", direction: "match", target: -2.5,
+      scale: 0.25, origin: "MEASURED_REPORTED", reference: "reported sensor Z at fixed load" });
+  }
+  const legacy = controls.objectiveFromFields({ source: "model", metric: "response", unit: "N", direction: "minimize",
+    target: "", scale: "", origin: "", reference: "" });
+  assert.deepEqual(legacy, { source: "model", metric: "response", unit: "N", direction: "minimize" });
+});
+
+test("target preparation rejects blanks, implicit conversions, false qualification and accessors", () => {
+  const fields = { source: "model", metric: "response", unit: "N", direction: "match", target: "0", scale: "1",
+    origin: "DESIGN_TARGET", reference: "User target" };
+  for (const patch of [{ target: "" }, { target: " " }, { target: "0x10" }, { target: "1 N" }, { scale: "0" },
+    { scale: "Infinity" }, { target: true }, { reference: " " }, { origin: "VERIFIED_MEASUREMENT" }]) {
+    assert.throws(() => controls.objectiveFromFields({ ...fields, ...patch }));
+  }
+  let reads = 0;
+  const unsafe = { ...fields }; Object.defineProperty(unsafe, "direction", { enumerable: true, get() { reads++; return "match"; } });
+  assert.throws(() => controls.objectiveFromFields(unsafe)); assert.equal(reads, 0);
+  assert.throws(() => controls.validateObjective(unsafe)); assert.equal(reads, 0);
+});
+
+test("human constraints preserve signed bounds and require exact unit and positive scale", () => {
+  const fields = { source: "analysis", metric: "signed_reaction", unit: "N", operator: ">=", limit: "-100", scale: "20" };
+  assert.deepEqual(controls.constraintFromFields(fields), { source: "analysis", metric: "signed_reaction", unit: "N", operator: ">=", limit: -100, scale: 20 });
+  for (const patch of [{ limit: "" }, { scale: "" }, { scale: "0" }, { unit: "" }, { operator: "=" }, { limit: "NaN" }, { scale: "0x10" }]) {
+    assert.throws(() => controls.constraintFromFields({ ...fields, ...patch }));
+  }
+});
+
+test("declared-model target uses the same frozen numerical payload", () => {
+  const input = fields(); input.objective = { ...input.objective, direction: "match", target: -0.5, scale: 2,
+    origin: "SYNTHETIC", reference: "Explicit test target" };
+  const payload = modelPlanArguments(input, context());
+  assert.deepEqual(payload.objective, input.objective); assert.notStrictEqual(payload.objective, input.objective);
+  assert.deepEqual(payload.constraints, input.constraints); assert.equal(payload.engine, "scipy.differential_evolution");
+});
 function freeze(value) {
   if (value && typeof value === "object") { Object.values(value).forEach(freeze); Object.freeze(value); }
   return value;
@@ -48,7 +89,7 @@ test("actual Candidate shape is returned unchanged through Node and browser UMD 
   const candidates = freeze(discovery()), before = JSON.stringify(candidates);
   assert.strictEqual(validateDiscovery(candidates, backend), candidates);
   assert.equal(JSON.stringify(candidates), before);
-  assert.deepEqual(Object.keys(controls).sort(), ["conditionPlanArguments", "conditionSelection", "conditionTemplate", "eligibleModelEntries", "fixtureOptimizationDefaults", "modelPlanArguments", "validateDiscovery"]);
+  assert.deepEqual(Object.keys(controls).sort(), ["conditionPlanArguments", "conditionSelection", "conditionTemplate", "constraintFromFields", "eligibleModelEntries", "fixtureOptimizationDefaults", "modelPlanArguments", "objectiveFromFields", "validateDiscovery", "validateObjective"]);
   const browser = { window: {} };
   vm.runInNewContext(readFileSync(require.resolve("../apps/lab/static/campaign-controls.js"), "utf8"), browser);
   assert.deepEqual(Object.keys(browser.window.campaignControls).sort(), Object.keys(controls).sort());

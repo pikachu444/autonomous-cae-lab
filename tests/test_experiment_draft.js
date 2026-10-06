@@ -269,3 +269,13 @@ test("cancelled declared inputs can prepare a new experiment without copying par
   assert.equal(Object.hasOwn(draft.arguments, "metrics"), false);
   assert.equal(JSON.stringify(record), before);
 });
+test("same rectangle backend chooses the saved selected/benchmark editor while retaining original conditions", () => {
+  const routes={selected:{operation:"pde_run",backend:"pde.fenicsx.rectangle",settings:{mode:"selected_mesh"}},
+    benchmark:{operation:"pde_run",backend:"pde.fenicsx.rectangle",settings:{}}};
+  const record=saved("pde","pde.fenicsx.rectangle");
+  let result=fromRecord(record,routes); assert.equal(result.available,true); assert.equal(result.presetId,"benchmark");
+  record.proposal.execution.mode="selected_mesh";
+  record.result.provenance.execution_settings=structuredClone(record.proposal.execution);
+  result=fromRecord(record,routes); assert.equal(result.available,true); assert.equal(result.presetId,"selected");
+  assert.deepEqual(result.arguments.settings,record.proposal.execution);
+});

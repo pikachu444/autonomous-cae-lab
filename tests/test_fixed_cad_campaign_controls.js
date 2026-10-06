@@ -223,6 +223,16 @@ test("fixed-CAD DE plan uses exact existing numerical controls and no CAD regene
   assert.deepEqual(controls.planArguments({ ...fields(), objective: { ...fields().objective, direction: "maximize" } }, planContext()).objective.direction, "maximize");
 });
 
+test("fixed-CAD target and explicit response bounds reuse common objective semantics", () => {
+  const input = fields();
+  input.objective = { ...input.objective, direction: "match", target: 0.001, scale: 0.002,
+    origin: "DESIGN_TARGET", reference: "Declared target under the retained load" };
+  input.constraints = [{ source: "analysis", metric: "max_displacement", unit: "mm", operator: "<=", limit: 0.003, scale: 0.003 }];
+  assert.deepEqual(controls.planArguments(input, planContext()), input);
+  const invalid = structuredClone(input); invalid.constraints[0].unit = "m";
+  assert.throws(() => controls.planArguments(invalid, planContext()));
+});
+
 test("fixed plan rejects legacy/raw routes, wrong response semantics, hidden constraints and changed registry IDs", () => {
   rejectChanges(fields, [
     value => { value.backend = "fixture.freecad"; }, value => { value.model = "native/N-model"; }, value => { value.analysis_settings = {}; },

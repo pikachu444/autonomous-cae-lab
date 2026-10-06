@@ -3,7 +3,7 @@
 from .response_history import _read_native
 
 
-def _adapter_resources(lab, result):
+def _adapter_resources(lab, result, selection=None):
     backend = result['provenance']['adapter']
     adapter = lab.analysis_adapters.get(backend)
     if not callable(getattr(adapter, 'field_response_resources', None)):
@@ -19,6 +19,16 @@ def _adapter_resources(lab, result):
         if not isinstance(role, str) or not isinstance(resource, dict) or set(resource) != {'path', 'maximum_bytes'}:
             raise ValueError('Adapter field resource declaration differs')
         resources[role] = _read_native(lab, result, resource['path'], maximum_bytes=resource['maximum_bytes'])
+    selected_hook = getattr(adapter, 'field_selection_resources', None)
+    if selection is not None and callable(selected_hook):
+        additional = selected_hook(result, selection, resources)
+        if (not isinstance(additional, dict) or not additional or len(resources) + len(additional) > 8
+                or resources.keys() & additional.keys()):
+            raise ValueError('Selected field resources must be bounded and preserve verified header roles')
+        for role, resource in additional.items():
+            if not isinstance(role, str) or not isinstance(resource, dict) or set(resource) != {'path', 'maximum_bytes'}:
+                raise ValueError('Selected field resource declaration differs')
+            resources[role] = _read_native(lab, result, resource['path'], maximum_bytes=resource['maximum_bytes'])
     return adapter, resources
 
 
@@ -42,7 +52,7 @@ def display_catalog(lab, identifier):
 def selected_response(lab, result, proposal, selection):
     from .adapters.structural_response_fields import select_field_response
 
-    adapter, resources = _adapter_resources(lab, result)
+    adapter, resources = _adapter_resources(lab, result, selection)
     if adapter is not None:
         hook = getattr(adapter, 'select_response_fields', None)
         if not callable(hook):

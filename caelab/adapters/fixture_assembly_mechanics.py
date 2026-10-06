@@ -190,37 +190,45 @@ class FixtureAssemblyMechanicsAdapter:
             transport._owned_process(command, native, 'native-mechanics', timeout=budgets['subprocess_timeout_seconds'])
             returned = True
             recheck()
-            raw_pin = transport._entry(native / 'worker-result.json')
-            raw = reuse._json(transport._bytes(native, 'worker-result.json', raw_pin))
+            observed_outputs = {}
+
+            def read_output(name, pin=None):
+                pin = reuse._pin(pin if pin is not None else transport._entry(native / name)).value()
+                data = transport._bytes(native, name, pin)
+                observed_outputs[name] = pin
+                return reuse._json(data)
+
+            raw = read_output('worker-result.json')
+            raw_pin = observed_outputs['worker-result.json']
             if (raw.get('schema_version') != 1 or raw.get('status') != 'ASSEMBLY_MECHANICS_NATIVE_OBSERVED'
                     or raw.get('input_entry') != input_pin or raw.get('native_sources') != native_sources
                     or any(raw.get(key) != config[key] for key in ('mesh_revision', 'parent', 'profile', 'transport_entry'))
                     or raw.get('decision') != 'NOT_RELEASED'):
                 raise ValueError('Actual worker input/native source/CAD/mesh identity differs')
-            before, after = (reuse._json((native / name).read_bytes()) for name in ('runtime-before.json', 'runtime-after.json'))
+            before, after = (read_output(name) for name in ('runtime-before.json', 'runtime-after.json'))
             if (before != raw['runtime_before'] or after != raw['runtime_after'] or before != after
                     or before.get('versions', {}).get('code_aster') != '17.4.0'):
                 raise ValueError('Actual Code_Aster runtime drift')
-            original_catalog = reuse._json(transport._bytes(native, 'native-catalog.json', raw['pre_catalog_entry']))
-            oriented = reuse._json(transport._bytes(native, 'oriented-catalog.json', raw['oriented_catalog_entry']))
+            original_catalog = read_output('native-catalog.json', raw['pre_catalog_entry'])
+            oriented = read_output('oriented-catalog.json', raw['oriented_catalog_entry'])
             from .fixture_assembly_mechanics_worker import validate_orientation, validate_conditions, validate_nodal_history
             application = validate_conditions(packet, mapping, original_catalog, packet['components'])
             if application != raw['nodal_application_receipt']:
                 raise ValueError('Native condition/force/tie projection differs from exact original groups')
-            if reuse._json(transport._bytes(native, 'nodal-application-receipt.json', raw['nodal_application_receipt_entry'])) != application:
+            if read_output('nodal-application-receipt.json', raw['nodal_application_receipt_entry']) != application:
                 raise ValueError('Saved native application differs from embedded receipt')
             orientation = validate_orientation(original_catalog, oriented, application['node_groups'], application['cell_groups'])
             if orientation != raw['orientation_receipt']:
                 raise ValueError('Actual original/oriented mesh transformation receipt differs')
-            if reuse._json(transport._bytes(native, 'orientation-receipt.json', raw['orientation_receipt_entry'])) != orientation:
+            if read_output('orientation-receipt.json', raw['orientation_receipt_entry']) != orientation:
                 raise ValueError('Saved native orientation differs from embedded receipt')
             for name in ('DEPL', 'REAC_NODA', 'SIEF_ELGA', 'COOR_ELGA'):
-                if reuse._json(transport._bytes(native, name.lower() + '.table.json', raw['table_entries'][name])) != raw['tables'][name]:
+                if read_output(name.lower() + '.table.json', raw['table_entries'][name]) != raw['tables'][name]:
                     raise ValueError('Embedded full field differs from original table')
             if set(raw['history_tables']) != {'DEPL', 'REAC_NODA'} or set(raw['history_table_entries']) != {'DEPL', 'REAC_NODA'}:
                 raise ValueError('Complete native displacement/reaction histories required')
             for name in ('DEPL', 'REAC_NODA'):
-                table = reuse._json(transport._bytes(native, name.lower() + '-all-orders.table.json', raw['history_table_entries'][name]))
+                table = read_output(name.lower() + '-all-orders.table.json', raw['history_table_entries'][name])
                 if table != raw['history_tables'][name]:
                     raise ValueError('Embedded native history differs from original table')
                 validate_nodal_history(table, original_catalog, raw['available_orders'], name + ' history')
@@ -233,7 +241,7 @@ class FixtureAssemblyMechanicsAdapter:
                     raise ValueError('Native contact channel identity differs')
                 for channel, suffix in (('DEPL.LAGS_C', 'lags_c'), ('CONT_NOEU', 'cont_noeu')):
                     filename = f'contact-{number:03d}-{suffix}.table.json'
-                    observed = reuse._json(transport._bytes(native, filename, raw['contact_table_entries'][filename]))
+                    observed = read_output(filename, raw['contact_table_entries'][filename])
                     if observed != observations[channel] or observed['status'] not in {'OBSERVED', 'UNKNOWN'}:
                         raise ValueError('Saved native contact observation differs')
                     expected_contacts[filename] = raw['contact_table_entries'][filename]
@@ -242,17 +250,20 @@ class FixtureAssemblyMechanicsAdapter:
             if set(raw['native_energy']) != set(packet['components']) or set(raw['energy_table_entries']) != set(packet['components']):
                 raise ValueError('Native body-energy scope differs')
             for component in packet['components']:
-                energy = reuse._json(transport._bytes(native, 'energy-' + component + '.table.json', raw['energy_table_entries'][component]))
+                energy = read_output('energy-' + component + '.table.json', raw['energy_table_entries'][component])
                 if energy != raw['native_energy'][component] or energy['status'] not in {'OBSERVED', 'UNKNOWN'}:
                     raise ValueError('Saved native energy observation differs')
             fields = parse_fields(raw, mapping, original_catalog, quality, packet)
             comparison = numerical_summary(fields, packet)
-            transport._save(root, 'admitted-fields.json', fields)
-            transport._save(root, 'comparison.json', comparison)
+            known['admitted-fields.json'] = transport._save(root, 'admitted-fields.json', fields)
+            known['comparison.json'] = transport._save(root, 'comparison.json', comparison)
             self.bundle.recheck(capture)
             checked = True
             recheck()
+            for name, pin in observed_outputs.items():
+                transport._bytes(native, name, pin)
             provenance.update(native_runtime=before, worker_result_entry=raw_pin,
+                admitted_native_observation_entries=observed_outputs,
                 native_catalog_entry=raw['pre_catalog_entry'], oriented_catalog_entry=raw['oriented_catalog_entry'],
                 orientation_receipt=orientation, geometry_checks=fields['geometry_checks'],
                 native_application=raw['nodal_application_receipt'], actual_load_parameters=raw['access_parameters']['INST'],

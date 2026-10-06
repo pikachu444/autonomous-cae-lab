@@ -7,6 +7,15 @@
     "fixture.freecad": "편집 가능한 CAD 모델", "fixture.calculix": "치구 구조 해석",
     "structure.calculix.native": "사용자 CAD · 선형 구조해석",
     "material.mfront.viscoelastic": "점탄성 재료점 해석",
+    "material.mfront": "탄성 재료점 해석", "material.mfront.hyperelastic": "초탄성 재료점 해석",
+    "material.mfront.inverse": "재료 입력의 역추정 평가",
+    "structural.code_aster.plasticity": "소성 재료 유한요소 해석",
+    "explicit.openradioss": "Explicit 동해석",
+    "pde.fenicsx": "Poisson 약형 해석", "pde.fenicsx.nonlinear": "비선형 확산 해석",
+    "pde.fenicsx.rectangle": "직사각형의 확산·반응 해석",
+    "pde.fenicsx.transient": "시간에 따른 확산·반응 해석",
+    "pde.fenicsx.vector": "벡터 약형 해석", "pde.fenicsx.coupled": "두 영역의 결합 방정식 해석",
+    "pde.fenicsx.imported": "가져온 메시의 약형 해석",
   };
   const metricNames = {
     cad_component_count: "부품 수", cad_bounds: "전체 크기", cad_volume: "형상 체적",
@@ -18,6 +27,10 @@
     mesh_size_max_mm: "메시별 최대 크기", loaded_saddle_min_global_uz: "메시별 하중 안장 Z 변위 (최솟값)",
     stress_history: "응력 이력", branch_stress_history: "점탄성 분기 응력 이력",
     native_energy_history: "native 저장·소산 에너지 밀도 이력", reference_work_history: "해석식으로 계산한 일 (native 에너지 아님)",
+    field_min: "전체 절점 필드의 최솟값", field_max: "전체 절점 필드의 최댓값",
+    linear_residual_relative: "선형 시스템 상대 잔차", l2_error: "참조 필드와의 L² 오차",
+    h1_seminorm_error: "참조 필드 기울기와의 H¹ 오차", l2_convergence_rate: "L² 오차의 메시 수렴률",
+    h1_seminorm_convergence_rate: "H¹ 오차의 메시 수렴률",
   };
   const parameterNames = {
     "specimen.length": "시편 길이", "specimen.width": "시편 폭",
@@ -39,6 +52,8 @@
     native_signed_reaction_equilibrium: "부호를 유지한 하중·반력 평형",
     model_idealization: "모델링 이상화의 적용 범위",
     domain_clearance: "모델의 공학적 간섭·간격", manufacturability: "제작 가능성",
+    reference_agreement: "독립 참조와의 일치", mesh_convergence: "메시 변화의 영향",
+    physical_validation: "실제 현상과의 검증", model_qualification: "선언한 모델의 적용 적합성",
   };
   const componentNames = {
     printed_base: "바닥판", printed_support_left: "왼쪽 받침", printed_support_right: "오른쪽 받침",

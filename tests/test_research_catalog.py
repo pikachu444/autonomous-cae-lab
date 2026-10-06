@@ -41,6 +41,18 @@ def test_all_material_boundary_load_and_contact_regions_retained_exactly():
     assert (original, declared) == before
 
 
+def test_canonical_contact_pair_keeps_contact_only_regions():
+    original = catalog()
+    declared = {'materials': [{'selection_id': 'S-1'}],
+        'contact': {'pairs': [{'selection_a': 'S-107', 'selection_b': 'S-208'}]}}
+    before = deepcopy((original, declared))
+    shown, scope = project(original, declared)
+    assert shown['selections'] == [original['selections'][i] for i in (1, 107, 208)]
+    assert scope['returned_selection_count'] == 3
+    assert scope['omitted_selection_count'] == 206
+    assert (original, declared) == before
+
+
 @pytest.mark.parametrize('size', [0, 1, FULL_SELECTION_LIMIT])
 def test_existing_small_context_is_unchanged(size):
     original = catalog(size)
@@ -55,7 +67,7 @@ def test_no_recognized_selection_contract_cannot_silently_omit_whole_catalog(dec
     assert shown == original and scope is None
 
 
-@pytest.mark.parametrize('key', ['selection_id', 'surface_a', 'surface_b'])
+@pytest.mark.parametrize('key', ['selection_id', 'selection_a', 'selection_b', 'surface_a', 'surface_b'])
 @pytest.mark.parametrize('value', ['S-missing', None, ['S-1']])
 def test_missing_or_malformed_frozen_reference_is_refused(key, value):
     with pytest.raises(ValueError, match='missing catalog selection'):

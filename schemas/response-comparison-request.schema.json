@@ -21,7 +21,7 @@
             "history_channel": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "\\S"},
             "sample_index": {"type": "integer", "minimum": 0}}},
         {"type": "object", "additionalProperties": false, "required": ["field"],
-          "properties": {"field": {
+          "properties": {"field": {"oneOf": [{
             "type": "object", "additionalProperties": false,
             "required": ["artifact", "sha256", "cad_revision", "node_id", "component"],
             "properties": {
@@ -31,7 +31,20 @@
               "node_id": {"type": "integer", "minimum": 1},
               "component": {"enum": ["UX", "UY", "UZ", "MAGNITUDE"]}
             }
-          }}}
+          }, {
+            "type": "object", "additionalProperties": false,
+            "required": ["kind", "artifact", "sha256", "model_revision", "study_index", "step_index", "node_id", "component"],
+            "properties": {
+              "kind": {"const": "pde_nodal"},
+              "artifact": {"type": "string", "minLength": 1, "maxLength": 1024},
+              "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "model_revision": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "study_index": {"type": "integer", "minimum": 0},
+              "step_index": {"type": ["integer", "null"], "minimum": 0},
+              "node_id": {"type": "integer", "minimum": 0},
+              "component": {"enum": ["u", "u0", "u1"]}
+            }
+          }]}}}
       ]
     },
     "observation": {
@@ -51,7 +64,7 @@
         "tolerance": {"type": "number", "minimum": 0},
         "axis": {"oneOf": [
           {"type": "object", "additionalProperties": false, "required": ["quantity", "value", "unit"],
-            "properties": {"quantity": {"const": "time"}, "value": {"type": "number"}, "unit": {"const": "s"}}},
+            "properties": {"quantity": {"const": "time"}, "value": {"type": "number"}, "unit": {"enum": ["s", "1"]}}},
           {"type": "object", "additionalProperties": false, "required": ["quantity", "value", "unit"],
             "properties": {"quantity": {"const": "load_parameter"}, "value": {"type": "number"}, "unit": {"const": "1"}}}
         ]},

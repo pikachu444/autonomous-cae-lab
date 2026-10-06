@@ -78,6 +78,18 @@ def _native_scalar(value, rectangle, fem, scalar_type, ufl):
     return value
 
 
+def _reference_errors(reference, solution, dx, fem, ufl, comm, mpi, checked):
+    """A missing declared reference never constructs or assembles error forms."""
+    if reference is None:
+        return None, None
+    error = solution - reference
+    l2_squared = checked(comm.allreduce(fem.assemble_scalar(fem.form(error * error * dx)), op=mpi.SUM),
+                         "L2 square", nonnegative=True)
+    h1_squared = checked(comm.allreduce(fem.assemble_scalar(fem.form(ufl.inner(ufl.grad(error), ufl.grad(error)) * dx)), op=mpi.SUM),
+                         "H1 square", nonnegative=True)
+    return math.sqrt(l2_squared), math.sqrt(h1_squared)
+
+
 def run_worker(input_path):
     input_path = Path(input_path).resolve()
     output = input_path.parent
@@ -93,6 +105,7 @@ def run_worker(input_path):
         from fenicsx_expression import finite_number, interpret_expression, parse_expression, error_rate
         from domain_reference import SIDES, validate_settings
     settings = validate_settings(_read_json(input_path))
+    selected = settings.get("mode") == "selected_mesh"
     for name in ("PETSC_OPTIONS", "PETSC_OPTIONS_YAML"):
         os.environ.pop(name, None)
     import petsc4py
@@ -181,7 +194,7 @@ def run_worker(input_path):
         weak = problem_spec["weak_form"]
         rhs = interpret_expression(parse_expression(weak["rhs"]), x, ufl_functions)
         rhs = _native_scalar(rhs, rectangle, fem, PETSc.ScalarType, ufl)
-        reference = interpret_expression(parse_expression(problem_spec["reference"]["solution"]), x, ufl_functions)
+        reference = None if selected else interpret_expression(parse_expression(problem_spec["reference"]["solution"]), x, ufl_functions)
         trial, test = ufl.TrialFunction(space), ufl.TestFunction(space)
         a = (weak["diffusion"] * ufl.inner(ufl.grad(trial), ufl.grad(test)) + weak["reaction"] * trial * test) * dx
         L = rhs * test * dx
@@ -196,9 +209,7 @@ def run_worker(input_path):
         policy = {"ksp_type": problem.solver.getType(), "pc_type": problem.solver.getPC().getType()}
         if policy != {"ksp_type": "preonly", "pc_type": "lu"}:
             raise RuntimeError("Effective rectangle KSP/PC differs from the fixed solver policy")
-        error = uh - reference
-        l2_squared = checked(comm.allreduce(fem.assemble_scalar(fem.form(error * error * dx)), op=MPI.SUM), "L2 square", nonnegative=True)
-        h1_squared = checked(comm.allreduce(fem.assemble_scalar(fem.form(ufl.inner(ufl.grad(error), ufl.grad(error)) * dx)), op=MPI.SUM), "H1 square", nonnegative=True)
+        l2, h1 = _reference_errors(reference, uh, dx, fem, ufl, comm, MPI, checked)
         residual = problem.b.duplicate()
         problem.A.mult(problem.x, residual)
         residual.axpy(-1., problem.b)
@@ -241,16 +252,15 @@ def run_worker(input_path):
         with io.XDMFFile(comm, str(level / "field.xdmf"), "w") as writer:
             writer.write_mesh(rectangle)
             writer.write_function(uh)
-        (level / "forms.ufl.txt").write_text(f"a = {a}\nL = {L}\nreference = {reference}\nerror_quadrature_degree = 8\n", encoding="utf-8")
+        (level / "forms.ufl.txt").write_text(f"a = {a}\nL = {L}\nreference = {reference}\nerror_quadrature_degree = {None if selected else 8}\n", encoding="utf-8")
         files = {key: f"level_n{count}/{name}" for key, name in
                  {"field": "field.xdmf", "field_data": "field.h5", "form_source": "forms.ufl.txt", "dofs": "dofs.json"}.items()}
-        l2, h1 = math.sqrt(l2_squared), math.sqrt(h1_squared)
         studies.append({"cells_per_axis": count, "nominal_h": math.hypot(lx, ly) / count, "degree": 1, "cell_type": "triangle",
                         "global_cells": rectangle.topology.index_map(2).size_global, "global_dofs": space.dofmap.index_map.size_global,
                         "dirichlet_dofs": len(union), "boundary_value_error": checked(boundary_error, "Dirichlet field error", nonnegative=True),
                         "l2_error": l2, "h1_seminorm_error": h1,
-                        "l2_convergence_rate": error_rate(studies[-1]["l2_error"], l2) if studies else None,
-                        "h1_seminorm_convergence_rate": error_rate(studies[-1]["h1_seminorm_error"], h1) if studies else None,
+                        "l2_convergence_rate": error_rate(studies[-1]["l2_error"], l2) if studies and not selected else None,
+                        "h1_seminorm_convergence_rate": error_rate(studies[-1]["h1_seminorm_error"], h1) if studies and not selected else None,
                         "linear_residual": {"absolute": absolute, "rhs_norm": rhs_norm, "relative": relative,
                                             "normalization": "rhs_l2_norm" if rhs_norm > 0 else "absolute_for_zero_rhs"},
                         "ksp_convergence_reason": int(problem.solver.getConvergedReason()), "ksp_iterations": int(problem.solver.getIterationNumber()),
@@ -261,6 +271,8 @@ def run_worker(input_path):
               "source_manifest_sha256": manifest_sha, "mpi_size": comm.size, "scalar_type": "float64", "versions": versions,
               "petsc_initialization": initialization, "petsc_initialization_sha256": _sha(output / "petsc_initialization.json"),
               "mesh_studies": studies}
+    if selected:
+        result.update(mode="selected_mesh", scope="SELECTED_DIMENSIONLESS_SCALAR_RECTANGLE")
     _save_json(output / "worker_result.json", result)
     print(json.dumps({"status": "COMPLETED", "mesh_levels": len(studies), "versions": versions}, allow_nan=False))
     return result

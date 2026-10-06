@@ -25,7 +25,7 @@
     "cad_source_fingerprint": {"type": "object", "required": ["commit"]},
     "variables": {"type": "array", "minItems": 1},
     "algorithm": {"type": "object", "required": ["engine", "version", "seed", "initial_population", "max_generations", "population_size"]},
-    "objective": {"type": "object", "required": ["source", "metric", "unit", "direction"]},
+    "objective": {"$ref": "#/$defs/objective"},
     "constraints": {"type": "array", "items": {"type": "object", "required": ["source", "metric", "unit", "operator", "limit", "scale"]}},
     "required_validations": {"type": "object"},
     "analysis": {"type": ["object", "null"]}, "failure_policy": {"type": "object"}, "created_utc": {"type": "string"}
@@ -45,5 +45,23 @@
   }, {"if": {"required": ["route"], "properties": {"route": {"const": "fixed_cad_analysis"}}},
       "then": {"required": ["fixed_cad"], "properties": {"analysis": {"type": "object"}, "analysis_adapter_version": {"type": "string"}}},
       "else": {"not": {"required": ["fixed_cad"]}}}],
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$defs": {
+    "objective": {
+      "type": "object", "required": ["source", "metric", "unit", "direction"],
+      "properties": {
+        "source": {"enum": ["cad", "analysis", "model"]},
+        "metric": {"type": "string", "minLength": 1},
+        "unit": {"type": "string", "minLength": 1},
+        "direction": {"enum": ["minimize", "maximize", "match"]},
+        "target": {"type": "number"}, "scale": {"type": "number", "exclusiveMinimum": 0},
+        "origin": {"enum": ["DESIGN_TARGET", "MEASURED_REPORTED", "PUBLISHED_REFERENCE", "SYNTHETIC"]},
+        "reference": {"type": "string", "minLength": 1, "maxLength": 2048}
+      },
+      "if": {"properties": {"direction": {"const": "match"}}},
+      "then": {"required": ["target", "scale", "origin", "reference"]},
+      "else": {"not": {"anyOf": [{"required": ["target"]}, {"required": ["scale"]}, {"required": ["origin"]}, {"required": ["reference"]}]}},
+      "additionalProperties": false
+    }
+  }
 }

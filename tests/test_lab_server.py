@@ -265,7 +265,7 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     from scripts.verify_codeaster import specification as aster_spec
     client, service, _, _ = real_flow
     presets = client.request("/api/presets")
-    assert set(presets) == {"structural_linear", "pde_canonical", "pde_nonlinear", "pde_rectangle",
+    assert set(presets) == {"structural_linear", "pde_selected", "pde_canonical", "pde_nonlinear", "pde_rectangle",
                             "pde_transient_mesh", "pde_transient_time", "pde_vector_lame", "pde_vector_harmonic", "pde_coupled_interface", "pde_coupled_harmonic", "pde_imported_l_shape", "pde_imported_harmonic", "codeaster_linear",
                             "codeaster_plasticity", "codeaster_geometric", "material_point", "material_inverse", "material_hyperelastic", "material_viscoelastic", "explicit_freefall",
                             "explicit_ground_stop", "explicit_compliant_stop"} | {
@@ -283,6 +283,11 @@ def test_existing_presets_and_core_campaign_inspection(real_flow):
     assert presets["pde_rectangle"]["settings"] == manufactured_settings()
     assert presets["pde_rectangle"]["operation"] == "pde_run"
     assert presets["pde_rectangle"]["declared_inputs"] is False
+    from plugins.pde_elliptic.reference import selected_settings
+    assert presets["pde_selected"]["settings"] == selected_settings()
+    assert presets["pde_selected"]["operation"] == "pde_run"
+    assert presets["pde_selected"]["backend"] == "pde.fenicsx.rectangle"
+    assert presets["pde_selected"]["settings"]["problem"]["reference"] is None
     from plugins.pde_transient.reference import manufactured_settings as transient_settings
     assert presets["pde_transient_mesh"]["settings"] == transient_settings()
     assert presets["pde_transient_time"]["settings"] == transient_settings(axis="time", case="temporal")

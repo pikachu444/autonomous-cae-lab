@@ -146,6 +146,46 @@ def _files(folder):
             for p in folder.rglob("*") if p.is_file()}
 
 
+def test_target_matching_replays_existing_numerical_engine_without_changing_native_metric(tmp_path, monkeypatch):
+    lab, adapter = _lab(tmp_path)
+    objective = {"source": "analysis", "metric": "test_response", "unit": "mm", "direction": "match",
+                 "target": 1.0, "scale": 0.5, "origin": "SYNTHETIC", "reference": "TEST ONLY scalar reference"}
+    frozen = _plan(lab, objective=objective)
+    objective["target"] = 999  # A later form edit cannot change the saved target.
+    _interrupt_after_first(lab, monkeypatch)
+    partial = lab.inspect_optimization(CAMPAIGN)
+    assert partial["evaluations"][0]["objective"]["value"] == 1.0
+    assert partial["evaluations"][0]["feedback"]["objective"] == 0.0
+    assert frozen["objective"]["target"] == 1.0
+    first = _files(lab.store / "experiments" / f"E-{CAMPAIGN}-0001-solve")
+    result = lab.run_optimization(CAMPAIGN)
+    assert _files(lab.store / "experiments" / f"E-{CAMPAIGN}-0001-solve") == first
+    for row in result["evaluations"]:
+        match = row["objective"]["target_comparison"]
+        assert match["physical_qualification"] == "UNKNOWN"
+        if row["usable"]:
+            assert row["feedback"]["objective"] == pytest.approx(((row["objective"]["value"] - 1.0) / 0.5) ** 2)
+            native = lab.inspect_experiment(row["analysis_experiment_id"])
+            assert native["metrics"]["test_response"]["value"] == row["objective"]["value"]
+    assert result["incumbent"]["objective"]["target_comparison"]["difference"] == 0
+    assert result["decision"] == "NOT_RELEASED"
+    calls = adapter.calls
+    assert lab.inspect_optimization(CAMPAIGN) == result == lab.run_optimization(CAMPAIGN)
+    assert adapter.calls == calls
+
+
+@pytest.mark.parametrize("value,target,scale", [(1e308, -1e308, 1.0), (1.0, 0.0, 1e-320)])
+def test_nonfinite_target_normalization_never_changes_valid_native_scalar(value, target, scale):
+    from caelab.optimization import _objective_feedback
+    definition = {"direction": "match", "target": target, "scale": scale, "unit": "mm",
+                  "origin": "DESIGN_TARGET", "reference": "Explicit extreme scalar test"}
+    native = {"value": value, "valid": True}
+    assert _objective_feedback(definition, native) is None
+    assert native["value"] == value and native["valid"] is True
+    assert native["target_comparison"]["valid"] is False
+    assert native["target_comparison"]["score"] is None
+
+
 def test_real_de_invalid_cad_skips_analysis_and_completed_replay_is_immutable(tmp_path, monkeypatch):
     lab, analysis = _lab(tmp_path)
     plan = _plan(lab, initial_pitch=40.0)

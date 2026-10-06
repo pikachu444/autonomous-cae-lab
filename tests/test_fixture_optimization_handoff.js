@@ -16,13 +16,56 @@ function harness() {
     querySelector: () => ({}), querySelectorAll: () => [{value:"cad"},{value:"analysis"},{value:"model"}] }); return ids.get(id); };
   const context = { window: {}, document: { getElementById: $ }, TextEncoder, URL, URLSearchParams, Intl };
   vm.createContext(context); vm.runInContext(helper, context);
-  vm.runInContext(source.slice(0, boundary) + "\ncampaignMode = () => {}; renderCampaignVariables = () => {}; globalThis.ui = { state, applyFixtureCampaignDefaults, campaignTargetChanged };", context);
+  // This harness tests draft preservation; the real constraint DOM is exercised
+  // through the browser acceptance and the shared field-parser controls.
+  vm.runInContext(source.slice(0, boundary) + "\ncampaignMode = () => {}; renderCampaignVariables = () => {}; renderConstraintEditor = () => {}; writable = () => true; busy = () => false; globalThis.ui = { state, applyFixtureCampaignDefaults, campaignTargetChanged, syncConstraintEditor, prepareFixedCad };", context);
   vm.runInContext(source.split("\n").filter(line => line.startsWith('$("optimizationConstraints").addEventListener("input"') || line.startsWith('$("optimizationRequired").addEventListener("input"')).join("\n"), context);
+  const addStart = source.indexOf('$("optimizationAddConstraint").addEventListener("click"');
+  const addEnd = source.indexOf('$("optimizationRequired").addEventListener("input"', addStart);
+  assert(addStart > boundary && addEnd > addStart); vm.runInContext(source.slice(addStart, addEnd), context);
   $("campaignTarget").value = "cad"; $("campaignAnalysis").value = "structural_linear";
   $("optimizationConstraints").value = "[]"; $("optimizationRequired").value = '{"cad":[],"analysis":[]}';
   const setMesh = mesh => { $("campaignAnalysisSettings").value = JSON.stringify({mesh, load:{force_per_support_N:150}, material:{qualification:"UNKNOWN"}}); };
-  return { $, setMesh, ui: context.ui, apply: () => context.ui.applyFixtureCampaignDefaults() };
+  return { $, setMesh, ui: context.ui, context, apply: () => context.ui.applyFixtureCampaignDefaults() };
 }
+
+for (const failure of ['source', 'verified-model-pairing']) test(`fixed CAD ${failure} refusal is visible on the invoking simulation screen`, async () => {
+  const h = harness(); h.$('campaignTarget').value = 'analysis_conditions';
+  h.context.failureAtSource = failure === 'source';
+  vm.runInContext(`
+    campaignConditionSource = () => { if (failureAtSource) throw new Error('Source not ready'); return {source:{experiment_id:'E-parent'}}; };
+    fixedCadSignature = () => 'frozen-context'; activeStore = () => 'local'; updateControls = () => {};
+    api = async () => ({integrity:'VERIFIED'});
+    window.fixedCadCampaignControls = { selection: () => { throw new Error('Verified model does not pair'); } };
+    analysisConditionsError = message => { $('analysisConditionsError').textContent = message; $('analysisConditionsError').hidden = !message; };
+    notify = message => { $('notice').textContent = message; };
+  `, h.context);
+  await h.ui.prepareFixedCad(true);
+  const expected = failure === 'source' ? 'Source not ready' : 'Verified model does not pair';
+  assert.equal(h.$('analysisConditionsError').hidden, false);
+  assert.equal(h.$('analysisConditionsError').textContent, expected);
+  assert.equal(h.$('fixedCadConditionsError').textContent, expected);
+  assert.equal(h.$('notice').textContent, expected);
+  assert.equal(h.ui.state.fixedCad.loading, false);
+});
+
+for (const target of ["model", "analysis_conditions"]) test(`${target} structured add/edit cannot freeze an untouched CAD automatic guide`, () => {
+  const h = harness(); h.setMesh({max_sizes_mm:[4,3]}); h.apply();
+  assert.equal(JSON.parse(h.$("optimizationConstraints").value)[0].limit, 0.0065);
+  h.$("campaignTarget").value = target; h.ui.campaignTargetChanged();
+  h.$("objectiveSource").value = target === "model" ? "model" : "analysis";
+  h.$("objectiveMetric").value = "test_response"; h.$("objectiveUnit").value = "mm";
+  h.$("optimizationAddConstraint").listeners.click();
+  assert.equal(h.ui.state.fixtureCampaignEdited.constraints, false);
+  h.$("optimizationConstraintRows").querySelectorAll = () => [{querySelectorAll: () =>
+    Object.entries({source: target === "model" ? "model" : "analysis", metric:"test_response", unit:"mm", operator:"<=", limit:"2", scale:"1"})
+      .map(([key, value]) => ({dataset:{constraintField:key}, value}))}];
+  h.ui.syncConstraintEditor();
+  assert.equal(h.ui.state.fixtureCampaignEdited.constraints, false);
+  h.$("campaignTarget").value = "cad"; h.ui.campaignTargetChanged();
+  h.setMesh({mode:"selected",max_sizes_mm:[4]}); h.apply();
+  assert.deepEqual(JSON.parse(h.$("optimizationConstraints").value), []);
+});
 test("selected settings reach the actual Lab draft without a trend or physical limit", () => {
   const h = harness(); h.setMesh({mode:"selected",max_sizes_mm:[4]}); h.apply();
   assert.deepEqual(JSON.parse(h.$("optimizationConstraints").value), []);

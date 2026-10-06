@@ -439,11 +439,21 @@
       return freeze({ status: "available", reason: null, metadata: ctx.metadata,
         selection: { entryId: entry.id, studyIndex: entry.studyIndex, stepIndex: entry.stepIndex, time: entry.time,
           cellsPerAxis: entry.cellsPerAxis, level: entry.level, solverStatus: entry.solverStatus },
+        source: { artifact: entry.files.dofs, sha256: ctx.manifest.get(entry.files.dofs).sha256 },
         components: entry.components, nodes, cells, boundaries: field.boundaries, interface: field.interface ?? null, mapping, binding,
         downloads: ctx.downloads.filter((d) => Object.values(entry.files).includes(d.path)) });
     } catch (error) { return fail(error, ctx?.metadata || null, ctx?.downloads || []); }
   }
-  const api = Object.freeze({ loadCatalog, loadField });
+  function observationSelection(field, nodeId, component) {
+    demand(field?.status === "available" && SHA.test(field.metadata?.modelRevision) &&
+      SHA.test(field.source?.sha256) && typeof field.source.artifact === "string" &&
+      integer(nodeId) && field.nodes.some(node => node.id === nodeId) && field.components.includes(component),
+      "Select a node/component from this verified native PDE field");
+    return freeze({kind:"pde_nodal",artifact:field.source.artifact,sha256:field.source.sha256,
+      model_revision:field.metadata.modelRevision,study_index:field.selection.studyIndex,
+      step_index:field.selection.stepIndex,node_id:nodeId,component});
+  }
+  const api = Object.freeze({ loadCatalog, loadField, observationSelection });
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.pdeFieldInspector = api;
 })(typeof window !== "undefined" ? window : globalThis);

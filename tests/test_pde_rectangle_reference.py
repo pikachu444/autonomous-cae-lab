@@ -12,12 +12,13 @@ from plugins.pde_elliptic import reference as domain
 def synthetic_observations(settings=None):
     """Complete contract fixture; its declared norm errors are not solved observations."""
     settings = settings or domain.manufactured_settings()
+    selected = settings.get("mode") == "selected_mesh"
     lx, ly = settings["problem"]["domain"]["lengths"]
     fields, studies = [], []
     for index, n in enumerate(settings["mesh"]["cell_counts"]):
         coordinates = [[lx * i / n, ly * j / n] for i in range(n + 1) for j in range(n + 1)]
         ids = list(range(len(coordinates)))
-        values = [x*x*y*y+x+2*y+1 for x, y in coordinates]
+        values = [x - 2*y if selected else x*x*y*y+x+2*y+1 for x, y in coordinates]
         cells = []
         for i in range(n):
             for j in range(n):
@@ -37,14 +38,18 @@ def synthetic_observations(settings=None):
                               "prescribed_integral": 0.}  # Synthetic finite metadata, not a native quadrature claim.
             if settings["problem"]["boundaries"][side]["type"] == "dirichlet":
                 union.update(nodes)
+                if selected:
+                    for node, value in zip(nodes, boundary[side]["prescribed_values"]):
+                        values[node] = value
         fields.append({"schema_version": "1", "coordinates_unit": "1", "field_unit": "1", "node_ids": ids,
                        "coordinates": coordinates, "values": values, "cell_node_ids": cells,
                        "dirichlet_node_ids": sorted(union), "boundaries": boundary})
         l2, h1 = .024 / 4**index, .4 / 2**index
         studies.append({"cells_per_axis": n, "nominal_h": math.hypot(lx, ly) / n, "degree": 1, "cell_type": "triangle",
                         "global_cells": 2*n*n, "global_dofs": (n+1)**2, "dirichlet_dofs": len(union), "boundary_value_error": 0.,
-                        "l2_error": l2, "h1_seminorm_error": h1, "l2_convergence_rate": 2. if index else None,
-                        "h1_seminorm_convergence_rate": 1. if index else None,
+                        "l2_error": None if selected else l2, "h1_seminorm_error": None if selected else h1,
+                        "l2_convergence_rate": None if selected else 2. if index else None,
+                        "h1_seminorm_convergence_rate": None if selected else 1. if index else None,
                         "linear_residual": {"absolute": 1e-13, "rhs_norm": 2., "relative": 5e-14, "normalization": "rhs_l2_norm"},
                         "ksp_convergence_reason": 4, "ksp_iterations": 1})
     return studies, fields
@@ -201,3 +206,147 @@ def test_zero_reference_errors_do_not_invent_rates_and_zero_rhs_normalization_is
     assessment = domain.assess(settings, studies, fields)
     assert next(check for check in assessment["checks"] if check["code"] == "pde_l2_convergence_rate")["status"] == "FAIL"
     assert next(check for check in assessment["checks"] if check["code"] == "pde_linear_residual")["status"] == "PASS"
+
+
+def test_selected_factory_has_independent_editable_defaults_without_benchmark_validation(monkeypatch):
+    def forbidden(*args, **kwargs):
+        pytest.fail("Selected input must not construct a reference or benchmark sweep")
+    monkeypatch.setattr(domain, "_linear_settings", forbidden)
+    monkeypatch.setattr(domain, "manufactured_settings", forbidden)
+    settings = domain.selected_settings()
+    assert settings == {
+        "mode": "selected_mesh",
+        "problem": {"domain": {"type": "rectangle", "lengths": [2., 1.]},
+                    "weak_form": {"diffusion": 1., "reaction": 0., "rhs": "1"},
+                    "boundaries": {"xmin": {"type": "dirichlet", "value": "0"},
+                                   "xmax": {"type": "dirichlet", "value": "0"},
+                                   "ymin": {"type": "neumann", "value": "0"},
+                                   "ymax": {"type": "neumann", "value": "0"}}, "reference": None},
+        "mesh": {"cell_counts": [16], "degree": 1}, "validation": {"max_residual_relative": 1e-10}}
+    original = deepcopy(settings)
+    declaration = domain.model_declaration(settings)
+    normalized = domain.validate_settings(settings)
+    normalized["mesh"]["cell_counts"][0] = 3
+    declaration["model"]["geometry"]["dimensions"][0] = 3.
+    declaration["outputs"]["metrics"].clear()
+    assert settings == original == domain.selected_settings()
+    assert declaration["reference"] is None and declaration["mode"] == "selected_mesh"
+
+
+@pytest.mark.parametrize("count", [1, 16, 128])
+def test_selected_accepts_one_bounded_mesh_and_arbitrary_safe_rhs_mixed_boundary_data(count):
+    settings = domain.selected_settings()
+    settings["mesh"]["cell_counts"] = [count]
+    settings["problem"]["weak_form"].update(diffusion=2., reaction=3., rhs="exp(x[0])-2*sin(x[1])")
+    settings["problem"]["boundaries"]["xmin"]["value"] = "-2*x[1]"
+    settings["problem"]["boundaries"]["xmax"]["value"] = "1-2*x[1]"
+    settings["problem"]["boundaries"]["ymin"]["value"] = "-3*x[0]"
+    before = deepcopy(settings)
+    assert domain.validate_settings(settings) == before
+    declaration = domain.model_declaration(settings)
+    assert settings == before and declaration["reference"] is None
+    assert declaration["model"]["mesh"]["cell_counts"] == [count]
+    assert declaration["loads"][0]["expression"] == "exp(x[0])-2*sin(x[1])"
+    assert declaration["boundary_conditions"][2]["expression"] == "-3*x[0]"
+    assert declaration["outputs"]["metrics"][-2:] == ["field_min", "field_max"]
+
+
+@pytest.mark.parametrize("path,value", [
+    (("mode",), "benchmark"), (("mode",), True),
+    (("mesh", "cell_counts"), []), (("mesh", "cell_counts"), [2, 4, 8]),
+    (("mesh", "cell_counts"), [0]), (("mesh", "cell_counts"), [129]),
+    (("mesh", "cell_counts"), [True]), (("mesh", "cell_counts"), [16.]),
+    (("mesh", "degree"), True), (("mesh", "degree"), 2),
+    (("validation",), {"max_residual_relative": 1e-10, "min_l2_rate": 1.8}),
+    (("validation", "max_residual_relative"), 0.), (("validation", "max_residual_relative"), True),
+    (("validation", "max_residual_relative"), float("nan")),
+    (("problem", "reference"), {"solution": "0", "source": "fake reference"}),
+    (("problem", "weak_form", "diffusion"), False), (("problem", "weak_form", "diffusion"), float("inf")),
+    (("problem", "weak_form", "reaction"), -1.),
+    (("problem", "weak_form", "rhs"), "__import__('os').system('x')"),
+    (("problem", "weak_form", "rhs"), "x[2]"),
+    (("problem", "boundaries", "xmin", "type"), "robin"),
+    (("problem", "domain", "lengths"), [True, 1.]),
+])
+def test_selected_rejects_unsupported_modes_references_meshes_and_unsafe_values(path, value):
+    settings = domain.selected_settings()
+    target = settings
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+    with pytest.raises(PDEInputError):
+        domain.validate_settings(settings)
+
+
+@pytest.mark.parametrize("kind", ["missing_mode", "extra_top", "missing_reference", "extra_weak", "extra_mesh", "pure_neumann", "corner"])
+def test_selected_requires_exact_keys_and_consistent_anchored_whole_sides(kind):
+    settings = domain.selected_settings()
+    if kind == "missing_mode": settings.pop("mode")
+    elif kind == "extra_top": settings["python"] = "forbidden"
+    elif kind == "missing_reference": settings["problem"].pop("reference")
+    elif kind == "extra_weak": settings["problem"]["weak_form"]["ufl"] = "forbidden"
+    elif kind == "extra_mesh": settings["mesh"]["path"] = "/untrusted"
+    elif kind == "pure_neumann":
+        for boundary in settings["problem"]["boundaries"].values(): boundary["type"] = "neumann"
+    else: settings["problem"]["boundaries"]["ymin"] = {"type": "dirichlet", "value": "1"}
+    with pytest.raises(PDEInputError):
+        domain.validate_settings(settings)
+
+
+def test_selected_complete_fields_keep_signed_extrema_without_reference_or_accuracy_claim(monkeypatch):
+    settings = domain.selected_settings()
+    settings["mesh"]["cell_counts"] = [2]
+    studies, fields = synthetic_observations(settings)
+    before = deepcopy((settings, studies, fields))
+    monkeypatch.setattr(domain, "error_rate", lambda *args: pytest.fail("Selected mode must not evaluate mesh rates"))
+    assessment = domain.assess(settings, studies, fields)
+    assert (settings, studies, fields) == before
+    assert {check["code"] for check in assessment["checks"]} == {"pde_solver_convergence", "pde_boundary_and_mesh", "pde_linear_residual"}
+    assert all(check["status"] == "PASS" for check in assessment["checks"])
+    assert assessment["metrics"]["field_min"] == {"value": -1., "unit": "1", "valid": True}
+    assert assessment["metrics"]["field_max"] == {"value": 1., "unit": "1", "valid": True}
+    for name in ("l2_error", "h1_seminorm_error", "l2_convergence_rate", "h1_seminorm_convergence_rate"):
+        assert assessment["metrics"][name]["value"] is None and not assessment["metrics"][name]["valid"]
+        assert "Not evaluated" in assessment["metrics"][name]["reason"]
+    assert assessment["reference"]["status"] == "UNKNOWN"
+    assert assessment["reference"]["solution"] is assessment["reference"]["source"] is assessment["reference"]["error_quadrature_degree"] is None
+    assert assessment["pending_validations"] == ["reference_agreement", "mesh_convergence", "physical_validation", "model_qualification"]
+
+
+@pytest.mark.parametrize("kind", ["reference_error", "reference_rate", "missing_reference_metadata", "nonfinite_field", "missing_node", "boundary", "residual", "ksp"])
+def test_selected_field_and_reference_metadata_refusal_preserves_finite_numerical_failures(kind):
+    settings = domain.selected_settings()
+    settings["mesh"]["cell_counts"] = [2]
+    studies, fields = synthetic_observations(settings)
+    study, field = studies[0], fields[0]
+    if kind == "reference_error": study["l2_error"] = 0.
+    elif kind == "reference_rate": study["h1_seminorm_convergence_rate"] = False
+    elif kind == "missing_reference_metadata": study.pop("l2_error")
+    elif kind == "nonfinite_field": field["values"][1] = float("inf")
+    elif kind == "missing_node": field["node_ids"].pop()
+    elif kind == "boundary": field["values"][0] = .1; study["boundary_value_error"] = .1
+    elif kind == "residual": study["linear_residual"].update(absolute=1e-8, relative=5e-9)
+    else: study["ksp_convergence_reason"] = -5
+    if kind not in {"boundary", "residual", "ksp"}:
+        with pytest.raises(PDEInputError): domain.assess(settings, studies, fields)
+    else:
+        assessment = domain.assess(settings, studies, fields)
+        assert any(check["status"] == "FAIL" for check in assessment["checks"])
+        assert all(not metric["valid"] for metric in assessment["metrics"].values())
+        assert assessment["metrics"]["field_min"]["value"] == min(field["values"])
+        assert assessment["metrics"]["field_max"]["value"] == max(field["values"])
+
+
+def test_benchmark_three_key_contract_still_requires_reference_and_sweep():
+    settings = domain.manufactured_settings()
+    assert set(settings) == {"problem", "mesh", "validation"}
+    assert settings["mesh"] == {"cell_counts": [8, 16, 32], "degree": 1}
+    assert settings["validation"] == {"max_l2_error": .03, "min_l2_rate": 1.8, "max_h1_seminorm_error": .5,
+                                      "min_h1_rate": .9, "max_residual_relative": 1e-10}
+    assert "metrics" not in domain.model_declaration(settings)["outputs"]
+    for change in (lambda request: request["mesh"].update(cell_counts=[16]),
+                   lambda request: request["problem"].update(reference=None),
+                   lambda request: request.update(mode="selected_mesh")):
+        broken = deepcopy(settings)
+        change(broken)
+        with pytest.raises(PDEInputError): domain.validate_settings(broken)

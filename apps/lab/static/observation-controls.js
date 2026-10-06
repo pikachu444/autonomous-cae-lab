@@ -146,7 +146,26 @@
       hypothesis: requiredText(fields, "hypothesis", 2000, "비교 가설 또는 연구 목적"),
       observation: observationInput(fields, "mm", sourceKind), response: { field } };
   }
-  const api = { choices, build, buildField };
+  function buildPdeField(record, fields, selection) {
+    const {result,experimentId,comparisonId,purpose,sourceKind} = comparisonInput(record,fields);
+    const keys = ["kind","artifact","sha256","model_revision","study_index","step_index","node_id","component"];
+    if (!mapping(selection) || !jsonValue(selection) || Object.keys(selection).length !== keys.length || !keys.every(key=>own(selection,key)) ||
+      selection.kind !== "pde_nodal" || !relativeArtifact(selection.artifact) || !sha256.test(selection.sha256) ||
+      !sha256.test(selection.model_revision) || selection.model_revision !== result.model_revision ||
+      !Number.isSafeInteger(selection.study_index) || selection.study_index < 0 ||
+      !(selection.step_index === null || Number.isSafeInteger(selection.step_index) && selection.step_index >= 0) ||
+      !Number.isSafeInteger(selection.node_id) || selection.node_id < 0 || !["u","u0","u1"].includes(selection.component) ||
+      !["pde.fenicsx.rectangle","pde.fenicsx.transient","pde.fenicsx.vector","pde.fenicsx.coupled","pde.fenicsx.imported"].includes(result.provenance.adapter)) {
+      throw new Error("같은 VERIFIED PDE 모델 개정의 메시·단계·원 절점·성분을 선택하세요.");
+    }
+    if (data(fields,"unit") !== "1") throw new Error("이 PDE의 원 필드 단위는 1(무차원)입니다. 자동 단위 변환은 없습니다.");
+    const observation = observationInput(fields,"1",sourceKind);
+    if (selection.step_index !== null) observation.axis = {quantity:"time",unit:"1",value:numberInput(fields,"axisValue","관측 축 좌표")};
+    return {comparison_id:comparisonId,experiment_id:experimentId,purpose,
+      hypothesis:requiredText(fields,"hypothesis",2000,"비교 가설 또는 연구 목적"),observation,
+      response:{field:Object.fromEntries(keys.map(key=>[key,selection[key]]))}};
+  }
+  const api = { choices, build, buildField, buildPdeField };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.observationControls = api;
 })(typeof window !== "undefined" ? window : globalThis);

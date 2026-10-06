@@ -112,8 +112,8 @@ def verify_bound(template, assignments, bound):
     expected = deepcopy(original); changed_items = set()
     for name, value in assignments.items():
         path = descriptors[name]['declaration_path']; target, key, old = _leaf(expected, path)
-        target[key] = value
         if old != value:
+            target[key] = value
             changed_items.add((path[0], path[1]))
     for group, index in changed_items:
         # Only the source of a changed item may receive Domain scenario text.

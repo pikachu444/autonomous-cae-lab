@@ -35,6 +35,22 @@ function freeze(value) {
   return value;
 }
 
+test("PDE observations retain zero-based native IDs, model revision and dimensionless time without copying a response value", () => {
+  const data=record(); data.result.provenance.adapter="pde.fenicsx.transient"; data.result.model_revision="a".repeat(64);
+  const selection={kind:"pde_nodal",artifact:"pde/study_0/step_1/dofs.json",sha256:"b".repeat(64),
+    model_revision:data.result.model_revision,study_index:0,step_index:1,node_id:0,component:"u"};
+  const input={...fields(),unit:"1",axisValue:"0.125",conditions:[]};
+  const built=controls.buildPdeField(data,input,selection);
+  assert.deepEqual(built.response.field,selection); assert.deepEqual(built.observation.axis,{quantity:"time",unit:"1",value:.125});
+  assert.equal(Object.hasOwn(built.response.field,"value"),false);
+  assert.throws(()=>controls.buildPdeField(data,{...input,unit:"s"},selection));
+  assert.throws(()=>controls.buildPdeField(data,{...input,axisValue:""},selection));
+  for (const changed of [{...selection,node_id:-1},{...selection,model_revision:"c".repeat(64)},
+    {...selection,component:"UX"},{...selection,value:9}]) assert.throws(()=>controls.buildPdeField(data,input,changed));
+  const staticSelection={...selection,step_index:null};
+  assert.equal(Object.hasOwn(controls.buildPdeField(data,input,staticSelection).observation,"axis"),false);
+});
+
 test("choices expose original finite scalars and explicit signed flat-array items without norm, abs or unit conversion", () => {
   const choices = controls.choices(record());
   assert.equal(choices.length, 6);
@@ -278,5 +294,5 @@ test("field builder has the same browser payload and index keeps optional templa
   for (const purpose of ["GENERAL_CAE_RESEARCH", "DEFECT_REPRODUCTION", "JIG_FEASIBILITY"]) assert.match(html, new RegExp(`<option value="${purpose}">`));
   for (const purpose of ["general", "defect", "jig"]) assert.match(html, new RegExp(`data-research-purpose="${purpose}"`));
   assert.equal([...html.matchAll(/id="observationUnit"/g)].length, 1); assert.match(html, /id="observationFieldFields"[^>]*hidden/);
-  assert.match(html, /id="observationUnit"[^>]*placeholder="원 변위 단위 mm/);
+  assert.match(html, /id="observationUnit"[^>]*placeholder="선택한 원 필드의 단위/);
 });

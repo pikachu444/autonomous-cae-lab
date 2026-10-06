@@ -46,6 +46,36 @@ def _plan(lab, **changes):
     return lab.plan_model_optimization(**options)
 
 
+def test_declared_model_target_and_constraints_share_existing_engine_and_immutable_results(tmp_path):
+    lab, adapter = _lab(tmp_path)
+    objective = {"source": "model", "metric": "synthetic_objective", "unit": "1", "direction": "match",
+                 "target": 0.625, "scale": 2.0, "origin": "SYNTHETIC", "reference": "TEST ONLY (x,y)=(1,1) response"}
+    plan = _plan(lab, objective=objective)
+    result = lab.run_optimization(CAMPAIGN)
+    for row in result["evaluations"]:
+        if row["usable"]:
+            match = row["objective"]["target_comparison"]
+            assert match["difference"] == pytest.approx(row["objective"]["value"] - plan["objective"]["target"])
+            assert row["feedback"]["objective"] == pytest.approx((match["difference"] / 2.0) ** 2)
+            assert row["feedback"]["constraint_residuals"] == pytest.approx([(row["values"]["research_x"] + row["values"]["research_y"] - 3.5) / 2.0])
+    assert result["incumbent"]["feedback"]["objective"] == pytest.approx(0)
+    assert result["decision"] == "NOT_RELEASED"
+    calls = adapter.calls
+    assert lab.inspect_optimization(CAMPAIGN) == result
+    assert lab.run_optimization(CAMPAIGN) == result and adapter.calls == calls
+
+
+@pytest.mark.parametrize("change", [{"target": True}, {"target": float("inf")}, {"scale": 0}, {"scale": -1},
+    {"origin": "VERIFIED_MEASUREMENT"}, {"reference": " "}, {"reference": "x" * 2049}, {"direction": "minimize"}])
+def test_invalid_matching_declaration_stops_before_campaign_or_adapter(tmp_path, change):
+    lab, adapter = _lab(tmp_path)
+    objective = {"source": "model", "metric": "synthetic_objective", "unit": "1", "direction": "match",
+                 "target": 1.0, "scale": 1.0, "origin": "DESIGN_TARGET", "reference": "Test target"}
+    with pytest.raises(ValueError):
+        _plan(lab, objective={**objective, **change})
+    assert not (lab.store / "optimizations" / CAMPAIGN).exists() and adapter.calls == 0
+
+
 def _files(folder):
     return {path.relative_to(folder).as_posix(): path.read_bytes()
             for path in folder.rglob("*") if path.is_file() and path.name != "execution.lock"}

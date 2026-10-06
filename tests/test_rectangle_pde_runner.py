@@ -7,6 +7,7 @@ import pytest
 
 from caelab.storage import save_json
 from scripts import verify_rectangle_pde as runner
+from plugins.pde_elliptic.reference import selected_settings
 
 
 @pytest.fixture
@@ -73,3 +74,26 @@ def test_native_copy_manifest_cannot_mix_or_omit_frozen_sources(tmp_path, frozen
     save_json(root / "pde/source_manifest.json", {"files": records})
     with pytest.raises(AssertionError, match="source manifest"):
         runner._verify_source(pin, {"provenance": pin["core"]}, root)
+
+
+def test_selected_input_uses_existing_per_call_source_gate_without_reference_or_sweep(tmp_path, frozen):
+    repository, pin, _ = frozen
+    request = selected_settings()
+    before = deepcopy(request)
+    store = tmp_path / "selected-store"
+    calls = []
+
+    class SourceFaultLab:
+        def run_pde(self, **arguments):
+            calls.append(deepcopy(arguments))
+            output = store / "experiments" / arguments["experiment_id"]
+            output.mkdir(parents=True)
+            (output / "result.json").write_bytes(b"TEST ONLY retained selected observation\n")
+            (repository / "caelab/adapters/fenicsx_rectangle_worker.py").write_text("# CHANGED worker\n")
+            return {"provenance": pin["core"]}
+
+    with pytest.raises(AssertionError, match="source changed"):
+        runner._run_fixed(SourceFaultLab(), store, pin, "S-selected", "test_only", "E-selected", request)
+    assert len(calls) == 1 and calls[0]["settings"] == before == request
+    assert request["problem"]["reference"] is None and request["mesh"]["cell_counts"] == [16]
+    assert (store / "experiments/E-selected/result.json").read_bytes() == b"TEST ONLY retained selected observation\n"

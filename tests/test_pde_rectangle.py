@@ -16,7 +16,7 @@ from caelab import execution_control
 from caelab.adapters import fenicsx_rectangle as adapter
 from caelab.adapters import fenicsx_rectangle_worker as worker
 from caelab.storage import load_json, save_json
-from plugins.pde_elliptic.reference import manufactured_settings
+from plugins.pde_elliptic.reference import manufactured_settings, selected_settings
 from test_pde_rectangle_reference import synthetic_observations
 
 
@@ -37,10 +37,13 @@ def synthetic_worker(output):
     initialization = {"argv": worker.PETSC_INIT_ARGUMENTS, "options": {"skip_petscrc": None}, "petsc_rc_disabled": True,
                       "ambient_options_removed": ["PETSC_OPTIONS", "PETSC_OPTIONS_YAML"]}
     save_json(output / "petsc_initialization.json", initialization)
-    return {"schema_version": "1", "status": "COMPLETED", "spec_sha256": adapter._sha(output / "input.json"),
+    raw = {"schema_version": "1", "status": "COMPLETED", "spec_sha256": adapter._sha(output / "input.json"),
             "source_manifest_sha256": adapter._sha(output / "source_manifest.json"), "mpi_size": 1, "scalar_type": "float64",
             "versions": {key: "SYNTHETIC-NOT-NATIVE" for key in adapter._VERSION_KEYS}, "petsc_initialization": initialization,
             "petsc_initialization_sha256": adapter._sha(output / "petsc_initialization.json"), "mesh_studies": studies}
+    if settings.get("mode") == "selected_mesh":
+        raw.update(mode="selected_mesh", scope="SELECTED_DIMENSIONLESS_SCALAR_RECTANGLE")
+    return raw
 
 
 def mock_process(monkeypatch, mutate=None):
@@ -220,7 +223,9 @@ def test_optional_local_wall_budget_is_separate_from_physical_settings(tmp_path,
 def test_core_artifact_ledger_preserves_complete_raw_fields_and_unknowns(tmp_path, monkeypatch):
     mock_process(monkeypatch)
     backend = adapter.FenicsxRectanglePDEAdapter()
-    lab = Lab(tmp_path / "store", pde_adapters={backend.backend: backend})
+    # This control owns PDE result/ledger admission, independently of other field-reader registrations.
+    lab = Lab(tmp_path / "store", pde_adapters={backend.backend: backend},
+              response_field_adapters={}, response_history_adapters={})
     lab.create_study("S-rectangle", "Synthetic transport", "Question", "Hypothesis", "No native solve in this test")
     result = lab.run_pde(study_id="S-rectangle", experiment_id="E-rectangle", backend=backend.backend, settings=manufactured_settings())
     assert result["status"] == "COMPLETED_REVIEW_REQUIRED" and result["decision"] == "NOT_RELEASED"
@@ -355,3 +360,125 @@ print("form rank PASS; no solve; DOLFINx="+dolfinx.__version__+" UFL="+ufl.__ver
         pytest.skip("Distribution FEniCSx form runtime unavailable; no native form assertion")
     assert process.returncode == 0, process.stderr
     assert "form rank PASS; no solve" in process.stdout
+
+
+def test_selected_mocked_run_preserves_single_mesh_signed_fields_and_unknown_reference(tmp_path, monkeypatch):
+    calls = mock_process(monkeypatch)
+    request = selected_settings()
+    request["mesh"]["cell_counts"] = [2]
+    request["problem"]["weak_form"]["rhs"] = "sin(x[0])+3*x[1]-2"
+    before = deepcopy(request)
+    output = tmp_path / "selected"
+    result = adapter.FenicsxRectanglePDEAdapter().solve(output, request)
+    assert len(calls) == 1 and request == before == load_json(output / "input.json")
+    assert result["status"] == result["solver_status"] == "COMPLETED" and result["converged"] is True
+    assert [path.name for path in output.glob("level_n*")] == ["level_n2"]
+    assert len(result["mesh_studies"]) == 1
+    assert result["provenance"]["mode"] == "selected_mesh"
+    assert result["provenance"]["scope"] == "SELECTED_DIMENSIONLESS_SCALAR_RECTANGLE"
+    assert result["provenance"]["reference_source"] is result["provenance"]["error_quadrature_degree"] is None
+    assert result["reference"]["status"] == "UNKNOWN" and result["reference"]["solution"] is None
+    assert result["metrics"]["field_min"] == {"value": -1., "unit": "1", "valid": True}
+    assert result["metrics"]["field_max"] == {"value": 1., "unit": "1", "valid": True}
+    for name in ("l2_error", "h1_seminorm_error", "l2_convergence_rate", "h1_seminorm_convergence_rate"):
+        assert result["metrics"][name]["value"] is None and result["metrics"][name]["valid"] is False
+        assert result["mesh_studies"][0][name] is None
+    assert result["pending_validations"] == ["reference_agreement", "mesh_convergence", "physical_validation", "model_qualification"]
+    assert "no reference-error or mesh-rate evaluation" in (output / "weak_form.txt").read_text()
+    manifest = load_json(output / "source_manifest.json")
+    assert set(manifest["files"]) == set(worker.SOURCE_PATHS)
+    assert all((output / pin["copied_path"]).read_bytes() == adapter._FILES[key].read_bytes()
+               for key, pin in manifest["files"].items())
+    assert load_json(output / "result.json") == result
+    assert adapter.FenicsxRectanglePDEAdapter.default_metrics == ["l2_error", "h1_seminorm_error", "l2_convergence_rate",
+                                                              "h1_seminorm_convergence_rate", "linear_residual_relative"]
+
+
+@pytest.mark.parametrize("kind", ["reference", "multiple_meshes", "mode", "unsafe", "corner", "pure_neumann"])
+def test_selected_invalid_input_does_not_launch_worker(tmp_path, monkeypatch, kind):
+    monkeypatch.setattr(adapter, "_run_process", lambda *args: pytest.fail("Invalid selected input must not start native work"))
+    request = selected_settings()
+    if kind == "reference": request["problem"]["reference"] = {"solution": "0", "source": "fake"}
+    elif kind == "multiple_meshes": request["mesh"]["cell_counts"] = [2, 4, 8]
+    elif kind == "mode": request["mode"] = "default"
+    elif kind == "unsafe": request["problem"]["weak_form"]["rhs"] = "__import__('os').getcwd()"
+    elif kind == "corner": request["problem"]["boundaries"]["ymin"] = {"type": "dirichlet", "value": "1"}
+    else:
+        for boundary in request["problem"]["boundaries"].values(): boundary["type"] = "neumann"
+    output = tmp_path / "rejected"
+    result = adapter.FenicsxRectanglePDEAdapter().solve(output, request)
+    assert result["status"] == "REJECTED" and result["solver_status"] == "NOT_RUN" and result["metrics"] == {}
+    assert sorted(path.name for path in output.iterdir()) == ["result.json"]
+
+
+@pytest.mark.parametrize("kind", ["missing_mode", "wrong_scope", "reference_error", "reference_rate", "field_hash", "rehashed_field"])
+def test_selected_native_identity_and_unexpected_reference_or_field_data_are_refused(tmp_path, monkeypatch, kind):
+    def mutate(raw, output):
+        study = raw["mesh_studies"][0]
+        if kind == "missing_mode": raw.pop("mode")
+        elif kind == "wrong_scope": raw["scope"] = "BENCHMARK"
+        elif kind == "reference_error": study["l2_error"] = 0.
+        elif kind == "reference_rate": study["h1_seminorm_convergence_rate"] = 2.
+        else:
+            path = output / study["files"]["dofs"]
+            field = load_json(path)
+            field["values"].pop()
+            save_json(path, field)
+            if kind == "rehashed_field": study["artifact_sha256"]["dofs"] = adapter._sha(path)
+    mock_process(monkeypatch, mutate)
+    request = selected_settings()
+    request["mesh"]["cell_counts"] = [2]
+    output = tmp_path / "invalid"
+    with pytest.raises(RuntimeError): adapter.FenicsxRectanglePDEAdapter().solve(output, request)
+    assert (output / "worker_result.json").is_file() and (output / "level_n2/dofs.json").is_file()
+    assert not (output / "result.json").exists()
+
+
+def test_missing_reference_worker_does_not_touch_error_forms_or_reductions():
+    class ForbiddenNative:
+        def __getattr__(self, name): pytest.fail("Reference-free mode must not evaluate native error forms: " + name)
+        def __sub__(self, other): pytest.fail("Reference-free mode must not subtract a fabricated reference")
+    forbidden = ForbiddenNative()
+    assert worker._reference_errors(None, forbidden, forbidden, forbidden, forbidden, forbidden, forbidden,
+                                    lambda *args, **kwargs: pytest.fail("No reference error value may be checked")) == (None, None)
+
+
+def test_zero_benchmark_reference_still_assembles_both_error_norms():
+    """Synthetic algebra only: numerical zero is a supplied reference, unlike None."""
+    forms, reductions, checked_values = [], [], []
+
+    class SyntheticFEM:
+        def form(self, value): forms.append(value); return value
+        def assemble_scalar(self, value): return value
+
+    class SyntheticUFL:
+        def grad(self, value): assert value == -2.; return 3.
+        def inner(self, left, right): return left * right
+
+    class SyntheticMPI:
+        SUM = "TEST_ONLY_SUM"
+
+    class SyntheticComm:
+        def allreduce(self, value, op):
+            assert op == SyntheticMPI.SUM
+            reductions.append(value)
+            return value
+
+    def checked(value, label, nonnegative):
+        assert nonnegative and value >= 0
+        checked_values.append((label, value))
+        return value
+
+    assert worker._reference_errors(0., -2., 1., SyntheticFEM(), SyntheticUFL(), SyntheticComm(), SyntheticMPI, checked) == (2., 3.)
+    assert forms == reductions == [4., 9.]
+    assert checked_values == [("L2 square", 4.), ("H1 square", 9.)]
+
+
+def test_selected_declaration_advertises_only_actual_extra_responses_and_keeps_benchmark_outputs():
+    backend = adapter.FenicsxRectanglePDEAdapter()
+    selected = backend.describe_model(selected_settings())
+    benchmark = backend.describe_model(manufactured_settings())
+    assert selected["outputs"]["metrics"] == [*backend.default_metrics, "field_min", "field_max"]
+    assert selected["reference"] is None and selected["model"]["mesh"]["cell_counts"] == [16]
+    assert benchmark["outputs"] == {"fields": [{"field": "u", "type": "scalar", "unit": "1"}]}
+    assert benchmark["reference"]["source"] == manufactured_settings()["problem"]["reference"]["source"]

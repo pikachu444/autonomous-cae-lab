@@ -345,6 +345,20 @@ Invoke-LauncherControl 'lab_facade_without_owner_preserves_default_saved_result_
     $argv = Read-OpenScienceJson (Join-Path $taskLabStubRoot 'lab-argv.json')
     Confirm-LauncherControl ((@($argv) -join '|') -ceq '-m|apps.lab|--store|runs/new-store|--port|8783') 'Owner-free Lab behavior changed.'
 }
+foreach ($taskStoreCase in @(@('C:\Synthetic Store\new run', '/mnt/c/Synthetic Store/new run'),
+    @('D:/Synthetic Store/new-run', '/mnt/d/Synthetic Store/new-run'),
+    @('/home/user/local-store', '/home/user/local-store'))) {
+    Invoke-LauncherControl ('lab_store_path_transport_' + $taskVerifyChecks.Count) {
+        & $taskVerifyLab -RepoRoot $taskLabStubRoot -Store $taskStoreCase[0] -Port 8790 -WithoutHistory | Out-Host
+        $argv = Read-OpenScienceJson (Join-Path $taskLabStubRoot 'lab-argv.json')
+        Confirm-LauncherControl ((@($argv) -join '|') -ceq "-m|apps.lab|--store|$($taskStoreCase[1])|--port|8790") 'The local store became a relative Linux name or changed the port.'
+    }
+}
+Invoke-LauncherControl 'lab_multiline_store_is_refused_before_execution' {
+    $before = Get-OpenScienceHash (Join-Path $taskLabStubRoot 'lab-argv.json')
+    $null = Get-LauncherRefusal { & $taskVerifyLab -RepoRoot $taskLabStubRoot -Store "C:\Synthetic`nStore" -Port 8790 -WithoutHistory }
+    Confirm-LauncherControl ((Get-OpenScienceHash (Join-Path $taskLabStubRoot 'lab-argv.json')) -ceq $before) 'Invalid store reached the local runner.'
+}
 foreach ($case in @(@('windows_owner_with_spaces_is_mapped_without_port_clobber', 'C:\Synthetic Local\runtime-owner.json', '/mnt/c/Synthetic Local/runtime-owner.json'),
     @('mounted_owner_with_spaces_is_forwarded_exactly', '/mnt/c/Synthetic Local/runtime-owner.json', '/mnt/c/Synthetic Local/runtime-owner.json'))) {
     $label = $case[0]; $path = $case[1]; $expected = $case[2]

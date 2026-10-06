@@ -106,10 +106,7 @@
       throw new Error("발견·등록된 서로 다른 모델 연구 변수 ID를 선택하세요.");
     }
     const objective = fields.objective;
-    if (!exactKeys(objective, ["source", "metric", "unit", "direction"]) || objective.source !== "model" ||
-        !nonempty(objective.metric) || !nonempty(objective.unit) || !["minimize", "maximize"].includes(objective.direction)) {
-      throw new Error("목적 함수의 출처는 model이며 지표·단위·최소화 또는 최대화를 명시해야 합니다.");
-    }
+    validateObjective(objective, ["model"]);
     if (!Array.isArray(fields.constraints) || fields.constraints.length > 16 || fields.constraints.some((constraint) =>
       !exactKeys(constraint, ["source", "metric", "unit", "operator", "limit", "scale"]) || constraint.source !== "model" ||
       !nonempty(constraint.metric) || !nonempty(constraint.unit) || !["<=", ">="].includes(constraint.operator) ||
@@ -127,6 +124,47 @@
       throw new Error("초기값은 선택한 모든 변수의 등록 범위 안에 있어야 합니다.");
     }
     return { ...cloneJson(fields), backend: context.backend, settings: cloneJson(context.settings) };
+  }
+  function validateObjective(objective, sources = ["cad", "analysis", "model"]) {
+    if (!mapping(objective) || !jsonValue(objective)) throw new Error("목표에는 유한한 JSON 값만 사용할 수 있습니다.");
+    const match = mapping(objective) && objective.direction === "match";
+    const keys = ["source", "metric", "unit", "direction", ...(match ? ["target", "scale", "origin", "reference"] : [])];
+    if (!exactKeys(objective, keys) || !jsonValue(objective) || !sources.includes(objective.source) ||
+        !nonempty(objective.metric) || !nonempty(objective.unit) || !["minimize", "maximize", "match"].includes(objective.direction) ||
+        (match && (!finite(objective.target) || !finite(objective.scale) || objective.scale <= 0 ||
+          !["DESIGN_TARGET", "MEASURED_REPORTED", "PUBLISHED_REFERENCE", "SYNTHETIC"].includes(objective.origin) ||
+          !nonempty(objective.reference) || objective.reference.length > 2048))) {
+      throw new Error("응답 출처·지표·정확한 단위를 확인하세요. 목표값 맞추기에는 유한한 목표값, 양수인 정규화 크기와 출처 설명이 필요합니다.");
+    }
+    return cloneJson(objective);
+  }
+  function objectiveFromFields(fields) {
+    if (!exactKeys(fields, ["source", "metric", "unit", "direction", "target", "scale", "origin", "reference"]) || !jsonValue(fields) ||
+        ["source", "metric", "unit", "direction", "reference"].some(key => typeof fields[key] !== "string")) throw new Error("목표 입력 필드를 확인하세요.");
+    const objective = { source: fields.source, metric: fields.metric.trim(), unit: fields.unit.trim(), direction: fields.direction };
+    if (fields.direction === "match") {
+      for (const key of ["target", "scale"]) {
+        if (typeof fields[key] !== "string" || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(fields[key].trim())) throw new Error("목표값과 정규화 크기를 숫자로 입력하세요.");
+        objective[key] = Number(fields[key]);
+      }
+      objective.origin = fields.origin;
+      objective.reference = fields.reference.trim();
+    }
+    return validateObjective(objective);
+  }
+  function constraintFromFields(fields) {
+    if (!exactKeys(fields, ["source", "metric", "unit", "operator", "limit", "scale"]) || !jsonValue(fields) ||
+        ["source", "metric", "unit", "operator"].some(key => typeof fields[key] !== "string")) throw new Error("제약 입력 필드를 확인하세요.");
+    const value = { source: fields.source, metric: fields.metric.trim(), unit: fields.unit.trim(), operator: fields.operator };
+    for (const key of ["limit", "scale"]) {
+      if (typeof fields[key] !== "string" || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(fields[key].trim())) throw new Error("제약의 한계값과 정규화 크기를 숫자로 입력하세요.");
+      value[key] = Number(fields[key]);
+    }
+    if (!["cad", "analysis", "model"].includes(value.source) || !value.metric || !value.unit ||
+        !["<=", ">="].includes(value.operator) || !finite(value.limit) || !finite(value.scale) || value.scale <= 0) {
+      throw new Error("제약의 응답·단위·한계값과 양수인 정규화 크기를 확인하세요.");
+    }
+    return value;
   }
   function fixtureOptimizationDefaults(analysisSettings) {
     if (!mapping(analysisSettings) || !jsonValue(analysisSettings) || !own(analysisSettings, "mesh")) {
@@ -256,7 +294,7 @@
     "고정한 조건 참조·연구·CAD 경로와 정확한 선택 재연결 정책이 일치하지 않습니다.");
     return template;
   }
-  const api = { validateDiscovery, eligibleModelEntries, modelPlanArguments, fixtureOptimizationDefaults,
+  const api = { validateObjective, objectiveFromFields, constraintFromFields, validateDiscovery, eligibleModelEntries, modelPlanArguments, fixtureOptimizationDefaults,
     conditionSelection, conditionPlanArguments, conditionTemplate };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.campaignControls = api;
