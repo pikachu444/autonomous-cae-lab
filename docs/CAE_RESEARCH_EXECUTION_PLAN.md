@@ -12,7 +12,7 @@
 | Phase 4 · 선택 PDE 실제 연결 완료 | 일반 PDE·경계·필드·관측 비교 | 해석해 없이 단일 selected mesh로 영역/계수/원항/혼합 경계를 입력하고 기존 FEniCSx를 실행한다. 같은 절점·부호·모델·단위/원 시간축을 관측 비교와 기존 연구 해석에 연결한다. 실제 조건 변경→새 실험→전체 필드→관측 비교→재열람을 완료했다. 승인 provider의 새 해석과 넓은 PDE 사용 범위는 OPEN이다. 기존 benchmark 기준은 보존한다. |
 | Phase 5 · 선택 J2 FE 실제 연결 완료 | 재료 법칙·경계/하중 이력·FE 연계 | typed 물성·부호 이력·출처·한 메시 → 실제 두 native 실행 → 전체 절점/적분점·11채널 → 조건 재사용·관측 비교·재열람을 완료했다. 넓은 재료 FE/contact/provider 자격은 OPEN이다. |
 | Phase 6 · 선택 explicit 실제 연결 완료 | explicit 모델·초기조건·전체 이력 | typed 초기 상태·signed PWL 하중을 실제 두 native 실행과 201표본/8채널·관측 비교에 연결했다. 원 반 증분 축·단위·UNKNOWN·invalid reference를 보존한다. 넓은 변형체/표면 접촉/provider는 OPEN이다. |
-| **Phase 7 · 현재 개발** | inverse·UQ·감도·surrogate·다목적·multiphysics·HPC | 기존 numerical engines와 model bindings로 가설별 입력·관측·잔차를 연결한다. 실제 측정/장비/SSH가 없는 외부 검증은 UNKNOWN으로 남기고 개발 가능한 공통 기능을 먼저 완성한다. |
+| **Phase 7 · 공통 DOE/관측목표/보고서 실제 연결 완료, 확장 개발 중** | inverse·UQ·감도·surrogate·다목적·multiphysics·HPC | 기존 numerical engines와 model bindings로 가설별 입력·관측·잔차를 연결한다. 실제 측정/장비/SSH가 없는 외부 검증은 UNKNOWN으로 남기고 개발 가능한 공통 기능을 먼저 완성한다. |
 
 큰 기능 묶음 개발 → Root 실행·오류 수정·통합 → 마지막 독립 검수 순서를 지킨다.
 작은 패치마다 Astra 승인·보고서 복제를 만들지 않는다. 제품 동작을 사례별 Python

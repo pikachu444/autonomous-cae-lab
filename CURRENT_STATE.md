@@ -1,3 +1,29 @@
+## Current checkpoint — common numerical research bundle (ADR0054)
+
+Actual same-study workflow: declared model variable -> seeded DOE8 native ->
+empirical sensitivity/heldout surrogate/Pareto report -> saved SYNTHETIC scalar
+observation -> existing DE13 unique native evaluations -> original residuals and
+same stored report. Whole-step and native half-step axes remain separate. Full
+1608+2613 history samples and original scalar/feedback match independent checks.
+DE stopped at two generations without target tolerance: no convergence/physics
+claim. Original baseline47 files, DOE/report378 files and full/compact inverse
+1142 files remain unchanged. Read latency stays OPEN; integrity checks are retained.
+
+Root regression union283 and compact MCP2 pass after three retained fixture/seam
+failures; final Node834 pass. Final bundle review closed three report read/source
+P2 findings; sealed-history12 and mixed-response/wire controls pass with no new solve. Native producer hashes/stores and final UI/control
+are distinct in record20261007-common-numerical-research-r01. NewCAD0 and new
+example mesh0. Approved5.6Sol/OAuth interpretation is NOT_RUN at this source
+checkpoint. Whole52/Phase1-7 INCOMPLETE; actual physics/company UNKNOWN/NOT_RELEASED.
+
+NEXT close the same report's approved interpretation; then R18/R31 distribution
+UQ and epsilon-constraint MOO with existing engines, R16/R31 coupled-input ports,
+R11/R31/R35 executor transport. Actual SSH/device/measurement remain separate
+UNKNOWN gates. No CAD/assembly/mesh/example restart or per-patch Astra approval.
+Goal ACTIVE; original R2 drafts, stores and fine UNKNOWN preserved.
+
+---
+
 ## Current checkpoint — selected explicit conditions and native history research
 
 ADR0053/record20261007-common-explicit-research-r01: typed signed PWL body load and

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://caelab.local/schemas/model-doe-plan/1.0",
+  "title": "CAE-Lab declared-model or fixed-condition DOE plan",
+  "type": "object",
+  "required": ["schema_version", "type", "route", "campaign_id", "study_id", "status", "backend", "variables", "registry_revision", "registry_sha256", "core_source_sha256", "objective", "constraints", "required_validations", "sample_count", "seed", "algorithm", "samples", "failure_policy", "created_utc"],
+  "properties": {
+    "schema_version": {"const": "1.0"}, "type": {"const": "doe"},
+    "route": {"enum": ["model_analysis", "fixed_cad_analysis"]},
+    "campaign_id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,57}$"},
+    "study_id": {"type": "string", "minLength": 1}, "status": {"const": "PLANNED"},
+    "backend": {"type": "string", "minLength": 1}, "model": {"type": "string"},
+    "variables": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"type": "object", "required": ["parameter_id", "unit", "native", "lower_bound", "upper_bound", "kind", "mode", "source_sha256"], "properties": {
+      "parameter_id": {"type": "string", "minLength": 1}, "unit": {"type": "string", "minLength": 1},
+      "lower_bound": {"type": "number"}, "upper_bound": {"type": "number"},
+      "kind": {"const": "continuous"}, "mode": {"const": "free"},
+      "target": {"enum": ["model_analysis", "analysis_conditions"]}, "native": {"type": "object"}, "source_sha256": {"$ref": "#/$defs/sha"}
+    }}},
+    "registry_revision": {"type": "integer", "minimum": 1}, "registry_sha256": {"$ref": "#/$defs/sha"}, "core_source_sha256": {"$ref": "#/$defs/sha"},
+    "objective": {"type": "null"}, "constraints": {"type": "array", "maxItems": 0},
+    "required_validations": {"type": "object"}, "sample_count": {"type": "integer", "minimum": 2, "maximum": 32},
+    "seed": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+    "algorithm": {"type": "object", "required": ["engine", "version", "seed"], "properties": {
+      "engine": {"const": "scipy.latin_hypercube"}, "version": {"type": "string"},
+      "seed": {"type": "integer", "minimum": 0, "maximum": 4294967295}
+    }},
+    "samples": {"type": "array", "minItems": 2, "maxItems": 32, "items": {"$ref": "#/$defs/sample"}},
+    "model_template": {"type": "object"}, "model_template_revision": {"$ref": "#/$defs/sha"},
+    "model_input_descriptors": {"type": "array", "minItems": 1, "maxItems": 32},
+    "model_declaration": {"type": "object"},
+    "model_source_fingerprint": {"type": "object", "required": ["adapter", "version", "source_files", "runtime"]},
+    "model_adapter_version": {"type": "string"},
+    "fixed_cad": {"type": "object", "required": ["source", "backend", "conditions_id", "conditions_revision", "catalog_revision", "template_revision", "descriptors", "condition_input_descriptors_sha256", "candidates", "fingerprint", "record", "reference", "rebind_policy"], "properties": {"rebind_policy": {"const": "FIXED_CAD_NO_REBIND"}}},
+    "cad_adapter_version": {"type": "string"}, "cad_source_fingerprint": {"type": "object"}, "analysis_adapter_version": {"type": "string"},
+    "analysis": {"type": "object", "required": ["backend", "settings"], "properties": {"backend": {"type": "string"}, "settings": {"type": "object"}}, "additionalProperties": false},
+    "failure_policy": {"type": "object"}, "created_utc": {"type": "string"}
+  },
+  "allOf": [{"if": {"properties": {"route": {"const": "model_analysis"}}}, "then": {
+    "required": ["model_template", "model_template_revision", "model_input_descriptors", "model_declaration", "model_source_fingerprint", "model_adapter_version"],
+    "properties": {"required_validations": {"type": "object", "required": ["model"], "properties": {"model": {"$ref": "#/$defs/checks"}}, "additionalProperties": false},
+                   "samples": {"items": {"required": ["model_experiment_id", "model_settings", "model_declaration", "model_revision"], "not": {"required": ["cad_experiment_id"]}}}},
+    "not": {"anyOf": [{"required": ["model"]}, {"required": ["fixed_cad"]}, {"required": ["cad_adapter_version"]}, {"required": ["cad_source_fingerprint"]}, {"required": ["analysis_adapter_version"]}, {"required": ["analysis"]}]}
+  }, "else": {
+    "required": ["model", "fixed_cad", "cad_adapter_version", "cad_source_fingerprint", "analysis_adapter_version", "analysis"],
+    "properties": {"required_validations": {"type": "object", "required": ["cad", "analysis"], "properties": {"cad": {"$ref": "#/$defs/checks"}, "analysis": {"$ref": "#/$defs/checks"}}, "additionalProperties": false},
+                   "samples": {"items": {"required": ["cad_experiment_id", "analysis_experiment_id", "conditions_id", "condition_declaration", "condition_input_rejection", "condition_binding_sha256"], "not": {"required": ["model_experiment_id"]}}}},
+    "not": {"anyOf": [{"required": ["model_template"]}, {"required": ["model_adapter_version"]}]}
+  }}],
+  "additionalProperties": false,
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "checks": {"type": "array", "maxItems": 32, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "sample": {"type": "object", "required": ["index", "values", "key"], "properties": {
+      "index": {"type": "integer", "minimum": 1, "maximum": 32},
+      "values": {"type": "object", "minProperties": 1, "maxProperties": 32, "additionalProperties": {"type": "number"}},
+      "key": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"type": "string"}},
+      "model_experiment_id": {"type": "string"}, "model_settings": {"type": "object"}, "model_declaration": {"type": "object"}, "model_revision": {"$ref": "#/$defs/sha"},
+      "cad_experiment_id": {"type": "string"}, "analysis_experiment_id": {"type": ["string", "null"]}, "conditions_id": {"type": ["string", "null"]},
+      "condition_declaration": {"type": ["object", "null"]}, "condition_input_rejection": {"type": ["string", "null"]}, "condition_binding_sha256": {"$ref": "#/$defs/sha"}
+    }, "additionalProperties": false}
+  }
+}

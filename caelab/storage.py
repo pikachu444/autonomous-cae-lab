@@ -65,6 +65,16 @@ def check_id(identifier: str) -> str:
     return identifier
 
 
+def core_source_hash(root: Path) -> str:
+    """Re-read every Core/schema byte without querying unrelated Git state."""
+    files = [*sorted((root / "caelab").rglob("*.py")), *sorted((root / "schemas").glob("*.json"))]
+    digest = hashlib.sha256()
+    for path in files:
+        digest.update(path.relative_to(root).as_posix().encode())
+        digest.update(hashlib.sha256(path.read_bytes()).digest())
+    return digest.hexdigest()
+
+
 def source_identity(root: Path) -> dict[str, Any]:
     try:
         commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root,
@@ -73,9 +83,4 @@ def source_identity(root: Path) -> dict[str, Any]:
                                              cwd=root, text=True, stderr=subprocess.DEVNULL).strip())
     except (OSError, subprocess.CalledProcessError):
         commit, dirty = "unavailable", None
-    files = [*sorted((root / "caelab").rglob("*.py")), *sorted((root / "schemas").glob("*.json"))]
-    digest = hashlib.sha256()
-    for path in files:
-        digest.update(path.relative_to(root).as_posix().encode())
-        digest.update(hashlib.sha256(path.read_bytes()).digest())
-    return {"core_commit": commit, "core_dirty": dirty, "core_source_sha256": digest.hexdigest()}
+    return {"core_commit": commit, "core_dirty": dirty, "core_source_sha256": core_source_hash(root)}

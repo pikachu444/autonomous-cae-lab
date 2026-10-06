@@ -89,7 +89,7 @@ test("actual Candidate shape is returned unchanged through Node and browser UMD 
   const candidates = freeze(discovery()), before = JSON.stringify(candidates);
   assert.strictEqual(validateDiscovery(candidates, backend), candidates);
   assert.equal(JSON.stringify(candidates), before);
-  assert.deepEqual(Object.keys(controls).sort(), ["conditionPlanArguments", "conditionSelection", "conditionTemplate", "constraintFromFields", "eligibleModelEntries", "fixtureOptimizationDefaults", "modelPlanArguments", "objectiveFromFields", "validateDiscovery", "validateObjective"]);
+  assert.deepEqual(Object.keys(controls).sort(), ["conditionPlanArguments", "conditionSelection", "conditionTemplate", "constraintFromFields", "eligibleModelEntries", "fixtureOptimizationDefaults", "modelDoeArguments", "modelPlanArguments", "objectiveFromFields", "validateDiscovery", "validateObjective"]);
   const browser = { window: {} };
   vm.runInNewContext(readFileSync(require.resolve("../apps/lab/static/campaign-controls.js"), "utf8"), browser);
   assert.deepEqual(Object.keys(browser.window.campaignControls).sort(), Object.keys(controls).sort());

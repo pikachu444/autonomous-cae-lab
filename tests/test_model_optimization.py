@@ -346,9 +346,7 @@ def test_frozen_source_template_runtime_registry_and_algorithm_block_new_evaluat
     lab, adapter = _lab(tmp_path)
     _plan(lab)
     if change == "core_source":
-        original = model_parameters.source_identity
-        monkeypatch.setattr(model_parameters, "source_identity", lambda root: {
-            **original(root), "core_source_sha256": "0" * 64})
+        monkeypatch.setattr(model_parameters, "core_source_hash", lambda root: "0" * 64)
     elif change == "binding_source":
         monkeypatch.setattr(adapter, "input_source_files", [Path(__file__).resolve()])
     elif change == "runtime":

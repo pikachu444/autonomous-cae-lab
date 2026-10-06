@@ -26,6 +26,7 @@
     "variables": {"type": "array", "minItems": 1},
     "algorithm": {"type": "object", "required": ["engine", "version", "seed", "initial_population", "max_generations", "population_size"]},
     "objective": {"$ref": "#/$defs/objective"},
+    "observation_target": {"type": "object", "required": ["comparison_id", "record_sha256", "source", "observation", "response", "objective", "scope", "normalization", "physical_qualification", "causal_verdict"]},
     "constraints": {"type": "array", "items": {"type": "object", "required": ["source", "metric", "unit", "operator", "limit", "scale"]}},
     "required_validations": {"type": "object"},
     "analysis": {"type": ["object", "null"]}, "failure_policy": {"type": "object"}, "created_utc": {"type": "string"}

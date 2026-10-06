@@ -209,6 +209,7 @@ class LabHandler(BaseHTTPRequestHandler):
         if path.startswith("/api/native-imports/"):
             return self._json(200, service.native_import(path.removeprefix("/api/native-imports/")))
         for prefix, operation in (("/api/analysis-conditions/", service.analysis_conditions),
+                                  ("/api/campaign-reports/", service.campaign_report),
                                   ("/api/response-comparisons/", service.response_comparison),
                                   ("/api/response-histories/", service.response_histories),
                                   ("/api/response-fields/", service.response_fields),

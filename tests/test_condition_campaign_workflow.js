@@ -393,3 +393,56 @@ test("late candidate success/error after a new campaign or study cannot render o
     assert.equal(h.$("noticeText").textContent.includes("LATE CHILD"), false);
   }
 });
+
+test("same-campaign report reads use the last selected report for display and question even when replies reverse", async () => {
+  for (const lateError of [false, true]) {
+    const first = deferred(), second = deferred(), data = campaign();
+    data.reports = [{report_id: "R-first"}, {report_id: "R-second"}];
+    const rendered = []; let h;
+    h = harness({fetchReply: path => path === "/api/campaigns/C-campaign" ? h.reply(data) :
+      path === "/api/campaign-reports/R-first" ? first.promise : second.promise});
+    h.sandbox.window.campaignAnalysisView = {
+      render(output, envelope, pins) { assert.equal(envelope.report_id, pins.report_id); rendered.push(pins.report_id); output.textContent = `REPORT ${pins.report_id}`; },
+      summary(envelope, pins) { assert.equal(envelope.report_id, pins.report_id); }
+    };
+    h.sandbox.prepareCampaignResearch = () => ({question: "KEEP ORIGINAL QUESTION"});
+    await h.ui.inspectCampaign("C-campaign");
+    const open = id => h.all().find(node => node.tagName === "BUTTON" && node.textContent === `저장 보고서 열기 · ${id}`);
+    await click(open("R-first")); await click(open("R-second"));
+    second.resolve(h.reply({report_id: "R-second", source: {}, declaration: {}, analysis: {}}));
+    await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve));
+    if (lateError) first.reject(new Error("LATE REPORT ERROR"));
+    else first.resolve(h.reply({report_id: "R-first", source: {}, declaration: {}, analysis: {}}));
+    await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(rendered, ["R-second"]); assert.equal(h.$("noticeText").textContent.includes("LATE REPORT"), false);
+    const handoff = h.all().find(node => node.tagName === "BUTTON" && node.textContent === "이 보고서를 연구 질문에 연결");
+    await click(handoff); assert.match(h.$("researchQuestion").value, /R-second/); assert(!h.$("researchQuestion").value.includes("R-first"));
+  }
+});
+
+test("a retained old report question handler cannot replace a draft while another report is selected", async () => {
+  const pending = deferred(), data = campaign(); data.reports = [{report_id: "R-first"}, {report_id: "R-second"}];
+  let h; h = harness({fetchReply: path => path === "/api/campaigns/C-campaign" ? h.reply(data) :
+    path === "/api/campaign-reports/R-first" ? h.reply({report_id: "R-first"}) : pending.promise});
+  h.sandbox.window.campaignAnalysisView = {render(output, envelope) { output.textContent = envelope.report_id; }, summary() { throw new Error("Stale report reached summary"); }};
+  await h.ui.inspectCampaign("C-campaign");
+  const open = id => h.all().find(node => node.tagName === "BUTTON" && node.textContent === `저장 보고서 열기 · ${id}`);
+  await click(open("R-first")); const old = h.all().find(node => node.tagName === "BUTTON" && node.textContent === "이 보고서를 연구 질문에 연결");
+  await click(open("R-second")); await click(old);
+  assert.equal(h.$("researchQuestion").value, "작성 중인 가설 질문");
+  pending.resolve(h.reply({report_id: "R-second"})); await new Promise(resolve => setImmediate(resolve));
+});
+
+test("DOE report handoff uses the verified inline report and original experiment reads without asking the optimizer to inspect a DOE", async () => {
+  const data = campaign('doe'); data.reports = [{report_id: 'R-doe'}]; let h;
+  h = harness({fetchReply: path => path === '/api/campaigns/C-campaign' ? h.reply(data) : h.reply({report_id:'R-doe',source:{type:'doe'},analysis:{retained:true}})});
+  h.sandbox.window.campaignAnalysisView = {render(output) { output.textContent='DOE REPORT'; }, summary() {}};
+  h.sandbox.prepareCampaignResearch = () => ({question:'READ ORIGINAL EXPERIMENTS'});
+  await h.ui.inspectCampaign('C-campaign');
+  await click(h.all().find(node => node.tagName==='BUTTON' && node.textContent==='저장 보고서 열기 · R-doe'));
+  await click(h.all().find(node => node.tagName==='BUTTON' && node.textContent==='이 보고서를 연구 질문에 연결'));
+  const question=h.$('researchQuestion').value;
+  assert.match(question,/R-doe/); assert.match(question,/experiment_summary\/experiment_inspect/);
+  assert.match(question,/optimization_inspect로 조회하지 마세요/); assert(!question.includes('optimization_inspect(campaign_id='));
+  assert.match(question,/"retained":true/);
+});

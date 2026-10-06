@@ -374,12 +374,7 @@ def test_changed_source_or_algorithm_blocks_new_evaluations(tmp_path, monkeypatc
     partial = _interrupt_after_first(lab, monkeypatch)
     if change == "core_source":
         from caelab import campaign
-        original = campaign.source_identity
-
-        def changed_identity(root):
-            return {**original(root), "core_source_sha256": "0" * 64}
-
-        monkeypatch.setattr(campaign, "source_identity", changed_identity)
+        monkeypatch.setattr(campaign, "core_source_hash", lambda root: "0" * 64)
     elif change == "cad_source":
         original = lab.adapters[CAD].discover
         monkeypatch.setattr(lab.adapters[CAD], "discover", lambda model: [

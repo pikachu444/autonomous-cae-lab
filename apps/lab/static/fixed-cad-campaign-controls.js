@@ -237,6 +237,17 @@
     "이 경로는 전체 솔리드 최대 |U| (mm)의 목표·제약, 빈 필수 검사와 초기값 null을 명시합니다.");
     return clone(fields);
   }
+  function doeArguments(fields, context) {
+    const keys = ["study_id", "campaign_id", "conditions_id", "parameter_ids", "seed", "sample_count", "engine"];
+    requireValue(exact(fields, keys) && json(fields) && mapping(context) && json(context), "고정 CAD 조건 DOE 입력이 필요합니다.");
+    const item = selected(context.selection), entries = eligibleEntries(context.entries, context.discovery, item);
+    requireValue(fields.study_id === item.studyId && fields.conditions_id === item.record.id && identity(fields.campaign_id) &&
+      fields.campaign_id.length <= 58 && fields.engine === "scipy.latin_hypercube" && Number.isSafeInteger(fields.seed) && fields.seed >= 0 && fields.seed <= 2**32-1 &&
+      Number.isSafeInteger(fields.sample_count) && fields.sample_count >= 2 && fields.sample_count <= 32 &&
+      Array.isArray(fields.parameter_ids) && fields.parameter_ids.length > 0 && new Set(fields.parameter_ids).size === fields.parameter_ids.length &&
+      fields.parameter_ids.every(id => entries.filter(entry => entry.parameter_id === id).length === 1), "같은 조건의 변수·표본 수·seed를 확인하세요.");
+    return clone(fields);
+  }
   function frozenPlan(plan) {
     requireValue(mapping(plan) && json(plan) && plan.route === "fixed_cad_analysis" && mapping(plan.fixed_cad), "이 계획에는 고정 CAD 조건 template이 없습니다.");
     const template = plan.fixed_cad; validateTemplate(template, template.record);
@@ -282,7 +293,7 @@
     return { input_id: elements.input.value, parameter_id: elements.parameterId.value.trim(), display_name: elements.displayName.value.trim(),
       lower: number(elements.lower), upper: number(elements.upper), mode: "free" };
   }
-  const api = { selection, sameContext, contextKey, validateDiscovery, eligibleEntries, registerArguments, planArguments,
+  const api = { selection, sameContext, contextKey, validateDiscovery, eligibleEntries, registerArguments, planArguments, doeArguments,
     frozenPlan, inputSummary, populateInputs, selectInput, readRegistration };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.fixedCadCampaignControls = api;

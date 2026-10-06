@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://caelab.local/schemas/model-doe-result/1.0",
+  "title": "CAE-Lab retained declared-model or fixed-condition DOE observations",
+  "type": "object",
+  "required": ["schema_version", "type", "route", "campaign_id", "study_id", "status", "decision", "plan_sha256", "registry_sha256", "algorithm", "samples", "provenance", "completed_utc"],
+  "properties": {
+    "schema_version": {"const": "1.0"}, "type": {"const": "doe"}, "route": {"enum": ["model_analysis", "fixed_cad_analysis"]},
+    "campaign_id": {"type": "string"}, "study_id": {"type": "string"}, "status": {"const": "COMPLETED_REVIEW_REQUIRED"}, "decision": {"const": "NOT_RELEASED"},
+    "plan_sha256": {"$ref": "#/$defs/sha"}, "registry_sha256": {"$ref": "#/$defs/sha"},
+    "algorithm": {"type": "object", "required": ["engine", "version", "seed"], "properties": {"engine": {"const": "scipy.latin_hypercube"}}},
+    "samples": {"type": "array", "minItems": 2, "maxItems": 32, "items": {"$ref": "#/$defs/sample"}},
+    "provenance": {"type": "object", "required": ["solver_versions", "journal_sha256", "checkpoint_sha256"]}, "completed_utc": {"type": "string"}
+  },
+  "allOf": [{"if": {"properties": {"route": {"const": "model_analysis"}}}, "then": {"properties": {"samples": {"items": {
+    "required": ["model_experiment_id", "model_settings", "model_declaration", "model_revision", "model_status", "model_result_sha256"],
+    "not": {"required": ["cad_experiment_id"]}, "properties": {"metrics": {"type": "object", "required": ["model"], "properties": {"model": {"type": "object"}}, "additionalProperties": false}}
+  }}}}, "else": {"properties": {"samples": {"items": {
+    "required": ["cad_experiment_id", "analysis_experiment_id", "conditions_id", "condition_declaration", "condition_input_rejection", "condition_binding_sha256", "cad_status", "cad_result_sha256", "analysis_status", "analysis_result_sha256"],
+    "not": {"required": ["model_experiment_id"]}, "properties": {"metrics": {"type": "object", "required": ["cad", "analysis"], "properties": {"cad": {"type": "object"}, "analysis": {"type": ["object", "null"]}}, "additionalProperties": false}}
+  }}}}}],
+  "additionalProperties": false,
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "sample": {"type": "object", "required": ["index", "values", "key", "status", "metrics", "failures", "unknown", "usable", "failed_execution", "decision"], "properties": {
+      "index": {"type": "integer", "minimum": 1, "maximum": 32}, "values": {"type": "object", "additionalProperties": {"type": "number"}},
+      "key": {"type": "array", "items": {"type": "string"}}, "status": {"type": "string"},
+      "model_experiment_id": {"type": "string"}, "model_settings": {"type": "object"}, "model_declaration": {"type": "object"}, "model_revision": {"$ref": "#/$defs/sha"},
+      "model_status": {"type": "string"}, "model_result_sha256": {"$ref": "#/$defs/sha"},
+      "cad_experiment_id": {"type": "string"}, "analysis_experiment_id": {"type": ["string", "null"]}, "conditions_id": {"type": ["string", "null"]},
+      "condition_declaration": {"type": ["object", "null"]}, "condition_input_rejection": {"type": ["string", "null"]}, "condition_binding_sha256": {"$ref": "#/$defs/sha"},
+      "cad_status": {"type": "string"}, "cad_result_sha256": {"$ref": "#/$defs/sha"}, "analysis_status": {"type": "string"}, "analysis_result_sha256": {"type": ["string", "null"]},
+      "metrics": {"type": "object"}, "failures": {"type": "array", "items": {"type": "object", "required": ["experiment_id", "type", "evidence_ids"]}},
+      "unknown": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}, "usable": {"type": "boolean"}, "failed_execution": {"type": "boolean"}, "decision": {"const": "NOT_RELEASED"}
+    }, "additionalProperties": false}
+  }
+}

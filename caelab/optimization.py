@@ -37,6 +37,8 @@ def _fingerprint(adapter):
 
 
 def _verify_sources(lab, plan, snapshot):
+    from .observation_target import verify
+    verify(lab, plan)
     if plan.get("route") == "fixed_cad_analysis":
         from .condition_parameters import verify_current
         return verify_current(lab, plan, snapshot)
@@ -162,7 +164,7 @@ def plan_optimization(lab, *, study_id, campaign_id, backend, model, parameter_i
 
 def plan_model_optimization(lab, *, study_id, campaign_id, backend, settings, parameter_ids,
                             objective, constraints, seed, max_generations, population_size,
-                            initial_values, required_validations, engine):
+                            initial_values, required_validations, engine, comparison_id=None):
     from .model_parameters import describe
     lab.inspect_study(study_id)
     description = describe(lab, backend, settings)
@@ -206,6 +208,9 @@ def plan_model_optimization(lab, *, study_id, campaign_id, backend, settings, pa
                                "numerical_rejected": "UNUSABLE", "invalid_metric": "UNUSABLE",
                                "failed_execution": "STOP", "missing_feedback": "INTERNAL_INFINITY_ONLY",
                                "restart": "DETERMINISTIC_EXACT_EVALUATION_REPLAY"}, "created_utc": utc_now()}
+    if comparison_id is not None:
+        from .observation_target import freeze
+        plan['observation_target'] = freeze(lab, plan, comparison_id)
     _verify_sources(lab, plan, registry)
     validate_schema("optimization-plan", plan)
     canonical_hash(plan)
@@ -225,6 +230,8 @@ def _plan(lab, identifier):
         raise ValueError("Optimization plan or registry snapshot hash mismatch")
     plan = load_json(folder / "plan.json")
     validate_schema("optimization-plan", plan)
+    from .observation_target import verify
+    verify(lab, plan)
     from .campaign_conditions import verify
     verify(plan, folder)
     snapshot = load_json(folder / "registry_snapshot.json")
@@ -237,7 +244,7 @@ def _plan(lab, identifier):
 def plan_condition_optimization(lab, *, study_id, campaign_id, conditions_id, parameter_ids,
                                 objective, constraints, seed, max_generations, population_size,
                                 initial_values=None, required_validations=None,
-                                engine='scipy.differential_evolution'):
+                                engine='scipy.differential_evolution', comparison_id=None):
     from .condition_parameters import describe
     lab.inspect_study(study_id)
     template = describe(lab, conditions_id)
@@ -295,6 +302,9 @@ def plan_condition_optimization(lab, *, study_id, campaign_id, conditions_id, pa
         'failure_policy': {'condition_rejected': 'UNUSABLE_NO_NATIVE_EXECUTION', 'numerical_rejected': 'UNUSABLE',
             'invalid_metric': 'UNUSABLE', 'failed_execution': 'STOP', 'missing_feedback': 'INTERNAL_INFINITY_ONLY',
             'restart': 'DETERMINISTIC_EXACT_EVALUATION_REPLAY'}, 'created_utc': utc_now()}
+    if comparison_id is not None:
+        from .observation_target import freeze
+        plan['observation_target'] = freeze(lab, plan, comparison_id)
     _verify_sources(lab, plan, registry)
     validate_schema('optimization-plan', plan)
     folder, ledger_path = _paths(lab, campaign_id)
@@ -415,7 +425,7 @@ def _model_experiment(lab, plan, item, allow_run, verified):
             raise ValueError("Optimization journal references a missing model experiment")
         lab.run_model_analysis(study_id=plan["study_id"], experiment_id=identifier, backend=plan["backend"],
                                settings=item["model_settings"], values=item["values"],
-                               campaign_id=plan["campaign_id"], objectives=[plan["objective"]],
+                               campaign_id=plan["campaign_id"], objectives=([plan["objective"]] if plan.get('objective') else []),
                                constraints=plan["constraints"], binding=_binding(plan))
     result = verified.get(identifier) if verified is not None else None
     if result is None:
@@ -437,7 +447,7 @@ def _model_experiment(lab, plan, item, allow_run, verified):
             proposal.get("parent_experiment_id") is not None or proposal["parameters"] != item["values"] or
             canonical_hash(proposal["execution"]) != canonical_hash(item["model_settings"]) or
             proposal["physics"]["backend"] != plan["backend"] or
-            proposal["objectives"] != [plan["objective"]] or proposal["constraints"] != plan["constraints"] or
+            proposal["objectives"] != ([plan["objective"]] if plan.get('objective') else []) or proposal["constraints"] != plan["constraints"] or
             extension.get("parameter_binding") != _binding(plan)):
         raise ValueError("Existing model experiment differs from its frozen optimization proposal")
     return result

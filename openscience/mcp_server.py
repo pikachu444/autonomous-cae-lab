@@ -371,10 +371,56 @@ def optimization_run(campaign_id: str) -> dict:
     return lab.run_optimization(campaign_id)
 
 
+def _compact_optimization_record(record: dict) -> dict:
+    """Keep all evidence/feedback, omit repeated native context from this read view."""
+    from copy import deepcopy
+    value = deepcopy(record)
+    def row_view(row):
+        return {key: item for key, item in row.items()
+                if key not in {'model_settings', 'model_declaration'}}
+    value['evaluations'] = [row_view(row) for row in value.get('evaluations', [])]
+    if isinstance(value.get('incumbent'), dict):
+        value['incumbent'] = row_view(value['incumbent'])
+    value['view'] = {'kind': 'VERIFIED_RETAINED_RECORD_COMPACT_VIEW',
+                     'omitted_row_fields': ['model_settings', 'model_declaration'],
+                     'full_context': 'Use optimization_inspect(compact=false) or experiment_inspect with the retained native experiment ID',
+                     'scope': 'Presentation only; original records, scalar responses, residuals, validity, constraints, hashes and UNKNOWN verdicts unchanged'}
+    return value
+
+
 @mcp.tool()
-def optimization_inspect(campaign_id: str) -> dict:
+def optimization_inspect(campaign_id: str, compact: bool = False) -> dict:
     """Read checked optimizer state, valid incumbent, metric semantics and every immutable evaluation."""
-    return _lab().inspect_optimization(campaign_id)
+    lab = _lab()
+    record = lab.inspect_optimization(campaign_id)
+    # The same admitted retained-record read now includes append-only research
+    # reports. Each report still passes Core's original-source and receipt checks.
+    reports = [lab.inspect_campaign_report(row['report_id']) for row in lab.campaign_reports(campaign_id)]
+    return {**(_compact_optimization_record(record) if compact else record), 'report_context': reports}
+
+
+@mcp.tool()
+def campaign_report_inspect(report_id: str) -> dict:
+    """Read verified numerical samples/statistics/holdout errors and retained UNKNOWN limitations."""
+    return _lab().inspect_campaign_report(report_id)
+
+
+@mcp.tool()
+@_single_writer
+def model_doe_plan(study_id: str, campaign_id: str, backend: str, settings: dict,
+                   parameter_ids: list[str], sample_count: int, seed: int) -> dict:
+    """Freeze admitted model inputs and an existing seeded LHS DOE; no LLM candidate generation."""
+    return _lab().plan_model_doe(study_id=study_id,campaign_id=campaign_id,backend=backend,settings=settings,
+                                  parameter_ids=parameter_ids,sample_count=sample_count,seed=seed)
+
+
+@mcp.tool()
+@_single_writer
+def condition_doe_plan(study_id: str, campaign_id: str, conditions_id: str,
+                       parameter_ids: list[str], sample_count: int, seed: int) -> dict:
+    """Freeze one immutable CAD and selected scalar conditions for seeded LHS samples."""
+    return _lab().plan_condition_doe(study_id=study_id,campaign_id=campaign_id,conditions_id=conditions_id,
+                                      parameter_ids=parameter_ids,sample_count=sample_count,seed=seed)
 
 
 @mcp.tool()
@@ -417,12 +463,13 @@ def model_optimization_plan(study_id: str, campaign_id: str, backend: str, setti
                             parameter_ids: list[str], objective: dict, constraints: list[dict],
                             seed: int, max_generations: int = 1, population_size: int = 5,
                             initial_values: dict | None = None, required_validations: dict | None = None,
-                            engine: str = "scipy.differential_evolution") -> dict:
+                            engine: str = "scipy.differential_evolution", comparison_id: str | None = None) -> dict:
     """Freeze declared-model input bindings and runtime for the existing numerical search engine."""
     return _lab().plan_model_optimization(study_id=study_id, campaign_id=campaign_id, backend=backend,
              settings=settings, parameter_ids=parameter_ids, objective=objective, constraints=constraints,
              seed=seed, max_generations=max_generations, population_size=population_size,
-             initial_values=initial_values, required_validations=required_validations, engine=engine)
+             initial_values=initial_values, required_validations=required_validations, engine=engine,
+             comparison_id=comparison_id)
 
 
 if __name__ == "__main__":

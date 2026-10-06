@@ -11,7 +11,7 @@ import math
 from pathlib import Path
 
 from .contracts import Candidate, CapabilityUnavailable
-from .storage import canonical_hash, source_identity
+from .storage import canonical_hash, core_source_hash, source_identity
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -264,7 +264,7 @@ def probe(adapter, settings, input_id, lower, upper):
 
 
 def verify_current(lab, plan, snapshot):
-    if source_identity(ROOT)["core_source_sha256"] != plan["core_source_sha256"]:
+    if core_source_hash(ROOT) != plan["core_source_sha256"]:
         raise ValueError("Core source changed since model optimization planning")
     if canonical_hash(lab.registry(plan["study_id"])) != plan["registry_sha256"]:
         raise ValueError("Study registry changed since model optimization planning")

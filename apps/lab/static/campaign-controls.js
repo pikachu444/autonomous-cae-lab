@@ -125,6 +125,21 @@
     }
     return { ...cloneJson(fields), backend: context.backend, settings: cloneJson(context.settings) };
   }
+  function modelDoeArguments(fields, context) {
+    const keys = ["study_id", "campaign_id", "parameter_ids", "seed", "sample_count", "engine"];
+    if (!exactKeys(fields, keys) || !exactKeys(context, ["backend", "settings", "entries"]) ||
+        !jsonValue(fields) || !jsonValue(context) || !nonempty(context.backend) || !mapping(context.settings) ||
+        !storeId.test(fields.study_id) || !storeId.test(fields.campaign_id) || fields.campaign_id.length > 58 ||
+        fields.engine !== "scipy.latin_hypercube" || !Number.isSafeInteger(fields.seed) || fields.seed < 0 || fields.seed > 2**32-1 ||
+        !Number.isSafeInteger(fields.sample_count) || fields.sample_count < 2 || fields.sample_count > 32 ||
+        !Array.isArray(fields.parameter_ids) || !fields.parameter_ids.length || new Set(fields.parameter_ids).size !== fields.parameter_ids.length ||
+        !Array.isArray(context.entries) || fields.parameter_ids.some(id => context.entries.filter(entry => entry.parameter_id === id && validEntry(entry, context.backend)).length !== 1)) {
+      throw new Error("같은 모델의 등록된 자유 변수·명시한 표본 수·seed가 필요합니다.");
+    }
+    const entries = fields.parameter_ids.map(id => context.entries.find(entry => entry.parameter_id === id));
+    if (new Set(entries.map(entry => entry.native.document)).size !== 1 || new Set(entries.map(entry => entry.native.path)).size !== entries.length || new Set(entries.map(entry => entry.source_sha256)).size !== 1) throw new Error("같은 모델 개정의 서로 다른 입력만 선택하세요.");
+    return {...cloneJson(fields), backend:context.backend, settings:cloneJson(context.settings)};
+  }
   function validateObjective(objective, sources = ["cad", "analysis", "model"]) {
     if (!mapping(objective) || !jsonValue(objective)) throw new Error("목표에는 유한한 JSON 값만 사용할 수 있습니다.");
     const match = mapping(objective) && objective.direction === "match";
@@ -294,7 +309,7 @@
     "고정한 조건 참조·연구·CAD 경로와 정확한 선택 재연결 정책이 일치하지 않습니다.");
     return template;
   }
-  const api = { validateObjective, objectiveFromFields, constraintFromFields, validateDiscovery, eligibleModelEntries, modelPlanArguments, fixtureOptimizationDefaults,
+  const api = { validateObjective, objectiveFromFields, constraintFromFields, validateDiscovery, eligibleModelEntries, modelPlanArguments, modelDoeArguments, fixtureOptimizationDefaults,
     conditionSelection, conditionPlanArguments, conditionTemplate };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.campaignControls = api;

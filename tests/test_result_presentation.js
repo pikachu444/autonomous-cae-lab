@@ -132,6 +132,8 @@ test("metadata and plan jobs describe their actual persisted step without promot
     ["model_parameters_register", { parameter_id: "P-E", ...candidate() }, "연구 변수 등록됨"],
     ["registry_refresh", { revision: 2, entries: [] }, "CAD 등록부 갱신됨"],
     ["doe_plan", { campaign_id: "C-display", status: "PLANNED" }, "수치 탐색 계획 저장됨"],
+    ["model_doe_plan", { campaign_id: "C-display", status: "PLANNED" }, "수치 탐색 계획 저장됨"],
+    ["condition_doe_plan", { campaign_id: "C-display", status: "PLANNED" }, "수치 탐색 계획 저장됨"],
     ["optimization_plan", { campaign_id: "C-display", status: "PLANNED" }, "수치 탐색 계획 저장됨"],
     ["model_optimization_plan", { campaign_id: "C-display", status: "PLANNED" }, "수치 탐색 계획 저장됨"],
     ["condition_optimization_plan", { campaign_id: "C-display", status: "PLANNED" }, "수치 탐색 계획 저장됨"],
@@ -151,6 +153,15 @@ test("metadata and plan jobs describe their actual persisted step without promot
   }
   assert.equal(presentation.workflow(completed("parameter_discover", [{}]), { kind: "job" }).stage, "현재 단계 미확인");
   assert.equal(presentation.workflow(completed("doe_plan", { campaign_id: "C-display", status: "FUTURE_STATE" }), { kind: "job" }).stage, "현재 단계 미확인");
+});
+
+test("saved campaign report caption needs the retained source and qualification envelope", () => {
+  const result = {report_id:"R-display",campaign_id:"C-display",integrity:"VERIFIED",report_sha256:"a".repeat(64),
+    source:{plan_sha256:"b".repeat(64),result_sha256:"c".repeat(64)},samples:[{id:"E-display"}],analysis:{},
+    decision:"NOT_RELEASED",engineering_qualification:"UNKNOWN"};
+  assert.equal(presentation.workflow(completed("campaign_report_create",frozen(result)),{kind:"job"}).stage,"표본 분석·연구 보고서 저장됨");
+  for (const change of [{integrity:"NOT_CHECKED"},{report_sha256:""},{source:{}},{samples:[]},{decision:"RELEASED"}])
+    assert.equal(presentation.workflow(completed("campaign_report_create",{...result,...change}),{kind:"job"}).stage,"현재 단계 미확인");
 });
 
 test("candidate campaign completion asks for candidate review and never guarantees an optimum or release", () => {

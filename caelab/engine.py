@@ -831,10 +831,18 @@ class Lab:
                         engine=engine)
 
     def run_doe(self, campaign_id: str) -> dict[str, Any]:
+        plan = load_json(self.store / 'campaigns' / check_id(campaign_id) / 'plan.json')
+        if plan.get('route') in ('model_analysis', 'fixed_cad_analysis'):
+            from .model_doe import run_doe
+            return run_doe(self, campaign_id)
         from .campaign import run_doe
         return run_doe(self, campaign_id)
 
     def inspect_doe(self, campaign_id: str) -> dict[str, Any]:
+        plan = load_json(self.store / 'campaigns' / check_id(campaign_id) / 'plan.json')
+        if plan.get('route') in ('model_analysis', 'fixed_cad_analysis'):
+            from .model_doe import inspect_doe
+            return inspect_doe(self, campaign_id)
         from .campaign import inspect_doe
         return inspect_doe(self, campaign_id)
 
@@ -867,14 +875,34 @@ class Lab:
                                 max_generations: int = 1, population_size: int = 5,
                                 initial_values: dict | None = None,
                                 required_validations: dict | None = None,
-                                engine: str = "scipy.differential_evolution") -> dict:
+                                engine: str = "scipy.differential_evolution", comparison_id: str | None = None) -> dict:
         from .optimization import plan_model_optimization
         return plan_model_optimization(self, study_id=study_id, campaign_id=campaign_id,
                                        backend=backend, settings=settings, parameter_ids=parameter_ids,
                                        objective=objective, constraints=constraints, seed=seed,
                                        max_generations=max_generations, population_size=population_size,
                                        initial_values=initial_values, required_validations=required_validations,
-                                       engine=engine)
+                                       engine=engine, comparison_id=comparison_id)
+
+    def plan_model_doe(self, **arguments) -> dict:
+        from .model_doe import plan_model_doe
+        return plan_model_doe(self, **arguments)
+
+    def plan_condition_doe(self, **arguments) -> dict:
+        from .model_doe import plan_condition_doe
+        return plan_condition_doe(self, **arguments)
+
+    def create_campaign_report(self, **arguments) -> dict:
+        from .campaign_report import create
+        return create(self, **arguments)
+
+    def inspect_campaign_report(self, report_id: str) -> dict:
+        from .campaign_report import inspect
+        return inspect(self, report_id)
+
+    def campaign_reports(self, campaign_id: str) -> list[dict]:
+        from .campaign_report import list_reports
+        return list_reports(self, campaign_id)
 
     def inspect_optimization(self, campaign_id: str) -> dict:
         from .optimization import inspect_optimization

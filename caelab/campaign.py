@@ -12,7 +12,7 @@ from filelock import FileLock
 from .contracts import CapabilityUnavailable
 from .execution_control import check_cancelled
 from .schema import validate as validate_schema
-from .storage import canonical_hash, check_id, load_json, save_json, source_identity, utc_now
+from .storage import canonical_hash, check_id, core_source_hash, load_json, save_json, source_identity, utc_now
 
 
 def _sha(path: Path) -> str:
@@ -220,7 +220,7 @@ def _record(lab, plan: dict, item: dict, cad: dict, analysis: dict | None) -> di
 
 
 def _verify_current_model(lab, plan: dict, snapshot: dict) -> None:
-    if source_identity(Path(__file__).resolve().parents[1])["core_source_sha256"] != plan["core_source_sha256"]:
+    if core_source_hash(Path(__file__).resolve().parents[1]) != plan["core_source_sha256"]:
         raise ValueError("Core source changed since DOE planning")
     from .campaign_conditions import current
     current(lab, plan)

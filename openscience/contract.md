@@ -1,3 +1,15 @@
+## Additive common numerical report reads (ADR0054)
+
+Existing frozen model/condition LHS and DE retain original responses. Saved scalar
+observation targets are checked against their original record; scale is not
+tolerance. Reports describe empirical samples/holdout errors/associations/original
+non-dominated IDs, not physical qualification or probability. Existing
+optimization_inspect adds verified report_context; compact=true omits duplicate
+per-row model context only. Full reads and the approved14-tool/model/auth scope
+remain unchanged. Human DOE/report controls add no AI execution admission.
+
+---
+
 ## Current checkpoint — selected explicit conditions and native history research
 
 ADR0053/record20261007-common-explicit-research-r01: typed signed PWL body load and

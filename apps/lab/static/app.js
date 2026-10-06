@@ -3,7 +3,7 @@
 // Human controls over the allowlisted Core API. All record text is untrusted.
 const $ = (id) => document.getElementById(id);
 const state = {
-  overview: null, presets: {}, studyId: "", study: null, registry: { entries: [] },
+  overview: null, overviewLoading: 0, presets: {}, studyId: "", study: null, registry: { entries: [] },
   discovery: [], job: null, submitting: false, pollTimer: null, handlers: new Map(), handlerGuards: new Map(),
   selectedExperiment: null, selectedHistories: null, selectedCampaign: null, comparison: new Set(), studyRequest: 0,
   experimentRequest: 0, campaignRequest: 0, viewer: null, fixtureViewer: null, fixtureConditionError: null, storeSwitching: false,
@@ -37,6 +37,8 @@ const operationNames = {
   optimization_run: "수치 최적화 실행",
   model_parameters_discover: "모델 입력 발견·환경 확인", model_parameters_register: "모델 연구 변수 등록",
   model_optimization_plan: "해석 모델 최적화 계획 저장",
+  model_doe_plan: "해석 모델 DOE 계획 저장", condition_doe_plan: "고정 CAD 조건 DOE 계획 저장",
+  campaign_report_create: "표본 분석·연구 보고서 저장",
   condition_parameters_discover: "고정 CAD의 조건 입력 발견", condition_parameters_register: "조건 연구 변수 등록",
   condition_optimization_plan: "고정 CAD 조건 탐색 계획 저장",
   research_run: "AI 연구 질문",
@@ -148,7 +150,7 @@ function writable() {
 function activeStore() { return typeof state.overview?.active_store === "object" ? state.overview.active_store.id : state.overview?.active_store; }
 function activeJob(job) { return ["RUNNING", "CANCEL_REQUESTED", "CLEANUP_PENDING"].includes(job?.status); }
 function recoveryRequired() { return state.overview?.execution?.state === "RECOVERY_REQUIRED" || state.job?.status === "RECOVERY_REQUIRED"; }
-function busy() { return state.submitting || state.storeSwitching || activeJob(state.job) || recoveryRequired() || state.overview?.execution?.accepting_jobs === false; }
+function busy() { return state.submitting || state.overviewLoading > 0 || state.storeSwitching || activeJob(state.job) || recoveryRequired() || state.overview?.execution?.accepting_jobs === false; }
 function viewBusy() { return state.submitting || activeJob(state.job) || state.storeSwitching; }
 function available(operation) {
   const matching = list(state.overview?.capabilities).filter((item) => item.operation === operation);
@@ -1031,6 +1033,7 @@ function renderOverview() {
   renderExperimentList(); renderCampaignList(); updateControls();
 }
 async function loadOverview({ followJobs = true } = {}) {
+  state.overviewLoading++; updateControls();
   try {
     state.overview = await api("/api/overview");
     $("connectionState").textContent = state.overview.execution?.state === "RECOVERY_REQUIRED"
@@ -1050,6 +1053,8 @@ async function loadOverview({ followJobs = true } = {}) {
   } catch (error) {
     $("connectionState").textContent = `연결을 확인할 수 없습니다 · ${error.message}`;
     $("connectionState").classList.add("offline"); updateControls(); throw error;
+  } finally {
+    state.overviewLoading--; updateControls();
   }
 }
 async function loadStudy(identifier) {
@@ -1078,10 +1083,10 @@ function renderRegistry() {
   $("registryRevision").textContent = state.studyId ? `등록부 revision ${state.registry.revision ?? "미확인"}` : "등록부 미선택";
   const container = clear("registryList");
   if (!entries.length) container.append(el("p", "현재 연구·모델에 등록된 변수가 없습니다. 실제 후보를 발견하고 등록해 주세요.", "empty-state"));
-  else container.append(table(["연구 변수", "현재 값 / 범위", "형상 효과"], entries.map((entry) => {
+  else container.append(table(["연구 변수", "현재 값 / 범위", "등록 입력 효과"], entries.map((entry) => {
     const name = el("div", entry.display_name); name.append(el("small", entry.parameter_id, "mono"));
     const value = el("div", `${number(entry.current_value)} ${entry.unit}`); value.append(el("small", `${number(entry.lower_bound)} – ${number(entry.upper_bound)} · ${entry.kind} / ${entry.mode}`));
-    return [name, value, badge(entry.geometry_effect?.status)];
+    return [name, value, badge((entry.input_effect ?? entry.geometry_effect)?.status)];
   })));
   const values = clear("cadValues");
   values.classList.toggle("empty-state", !entries.length);
@@ -1785,11 +1790,17 @@ function campaignArguments() {
   if (fixed) {
     if (!fixedCadCurrent() || !state.fixedCad.discovery) throw new Error("같은 CAD의 보존 조건과 입력 변수를 다시 확인하세요.");
     args.conditions_id = state.fixedCad.selection.record.id;
-    return window.fixedCadCampaignControls.planArguments(args, { selection: state.fixedCad.selection, discovery: state.fixedCad.discovery, entries: list(state.registry.entries) });
+    const context = { selection: state.fixedCad.selection, discovery: state.fixedCad.discovery, entries: list(state.registry.entries) };
+    const result = $("campaignType").value === 'doe' ? window.fixedCadCampaignControls.doeArguments(args, context) : window.fixedCadCampaignControls.planArguments(args, context);
+    if ($("campaignType").value === 'optimization' && $("objectiveComparison").value.trim()) result.comparison_id = $("objectiveComparison").value.trim();
+    return result;
   } else if (model) {
-    if (!currentModelDiscovery() || $("campaignType").value !== "optimization") throw new Error("선언한 모델 입력은 현재 설정의 변수 발견을 거친 최적화 계획으로 실행합니다.");
+    if (!currentModelDiscovery()) throw new Error("현재 모델 설정의 변수를 다시 발견하고 등록하세요.");
     const context = modelContext();
-    return window.campaignControls.modelPlanArguments(args, { backend: context.backend, settings: context.settings, entries: modelCampaignEntries() });
+    const captured = { backend: context.backend, settings: context.settings, entries: modelCampaignEntries() };
+    const result = $("campaignType").value === 'doe' ? window.campaignControls.modelDoeArguments(args, captured) : window.campaignControls.modelPlanArguments(args, captured);
+    if ($("campaignType").value === 'optimization' && $("objectiveComparison").value.trim()) result.comparison_id = $("objectiveComparison").value.trim();
+    return result;
   }
   return args;
 }
@@ -1807,7 +1818,7 @@ async function submitCampaignPlan() {
     }, current);
   } catch (error) { if (current()) notify(error.message); }
 }
-function campaignOperation() { return isFixedCadCampaign() ? "condition_optimization_plan" : isModelCampaign() ? "model_optimization_plan" : $("campaignType").value === "optimization" ? "optimization_plan" : "doe_plan"; }
+function campaignOperation() { const optimization = $("campaignType").value === "optimization"; return isFixedCadCampaign() ? optimization ? "condition_optimization_plan" : "condition_doe_plan" : isModelCampaign() ? optimization ? "model_optimization_plan" : "model_doe_plan" : optimization ? "optimization_plan" : "doe_plan"; }
 function applyFixtureCampaignDefaults() {
   const note = $("fixtureCampaignNote"), previous = state.fixtureCampaignDefaults;
   if (isModelCampaign() || isFixedCadCampaign()) { note.hidden = true; return; }
@@ -1894,8 +1905,8 @@ function campaignTargetChanged() {
   const model = isModelCampaign(), fixed = isFixedCadCampaign();
   const draft = state.campaignDrafts[state.campaignTarget] ?? { objectiveSource: fixed ? "analysis" : model ? "model" : "cad", objectiveDirection: "minimize", objectiveMetric: fixed ? "max_displacement" : model ? "" : "cad_volume", objectiveUnit: fixed ? "mm" : model ? "" : "mm^3", objectiveTarget: "", objectiveScale: "1", objectiveOrigin: "DESIGN_TARGET", objectiveReference: "", optimizationConstraints: "[]", optimizationInitial: "null", optimizationRequired: model ? '{"model": []}' : '{"cad": [], "analysis": []}' };
   Object.entries(draft).forEach(([id, value]) => { $(id).value = value; });
-  $("campaignType").value = model || fixed ? "optimization" : state.cadCampaignType;
-  $("campaignType").querySelector('[value="doe"]').disabled = model || fixed;
+  if (!model && !fixed) $("campaignType").value = state.cadCampaignType;
+  $("campaignType").querySelector('[value="doe"]').disabled = false;
   $("declaredModelArea").hidden = !model; $("campaignCadAnalysis").hidden = model || fixed;
   $("fixedCadConditionsArea").hidden = !fixed;
   $("objectiveSource").querySelectorAll("option").forEach((item) => { item.disabled = fixed ? item.value !== "analysis" : model ? item.value !== "model" : item.value === "model"; });
@@ -2053,14 +2064,82 @@ function renderCampaignDetail() {
     if (row.condition_input_rejection) values.append(el("small", row.condition_input_rejection, "metric-reason"));
     const cad = el("div"); cad.append(campaignResultButton(data, row, "cad"), el("small", row.cad_status ?? "계획됨"));
     const analysis = el("div"); analysis.append(campaignResultButton(data, row, "analysis"), el("small", row.analysis_status ?? "미실행"));
-    const verdict = el("div"); if (typeof row.numerically_feasible === "boolean") verdict.append(badge(row.numerically_feasible ? "PASS" : "FAIL", row.numerically_feasible ? "수치 조건 충족" : "수치 조건 미충족"));
+    const verdict = el("div"); if (typeof row.numerically_feasible === "boolean") verdict.append(badge(row.numerically_feasible ? "PASS" : "FAIL", row.numerically_feasible ? "응답·제약 유효" : "응답·제약 미충족"));
     verdict.append(el("small", `UNKNOWN ${list(row.unknown).length}개`));
     if (model) { const result = el("div"); result.append(campaignResultButton(data, row, "model"), el("small", row.model_status ?? "미실행")); return [choose, values, result, verdict]; }
     return [choose, values, cad, analysis, verdict];
   })));
   if (record.incumbent) container.append(rawDetail("현재 최선의 유효 후보 · optimum 승인 아님", record.incumbent));
+  renderCampaignReports(container, data);
   container.append(rawDetail("고정 계획 · 원 조건·algorithm·변수·예산", plan), rawDetail("실제 평가 · 실패·미확인·journal 기록", record)); updateControls();
   button.disabled ||= !current();
+}
+
+function renderCampaignReports(container, data) {
+  const current = () => campaignViewCurrent(data), rows = list(data.record.evaluations ?? data.record.samples);
+  const completed = typeof data.record.plan_sha256 === 'string' && rows.length >= 2;
+  const section = el('section', undefined, 'context-readout separated'); section.append(el('h3', '표본 분석·연구 보고서'));
+  const output = el('div');
+  const expected = {campaign_id:data.id,study_id:data.plan.study_id,plan_sha256:data.record.plan_sha256};
+  let reportRequest = 0;
+  async function showReport(identifier) {
+    if (!current()) return;
+    const request = ++reportRequest;
+    const reportCurrent = () => current() && request === reportRequest;
+    clear(output).append(el('p', '원 후보·응답과 저장 보고서를 확인하고 있습니다…', 'hint'));
+    try {
+    const envelope = await api(`/api/campaign-reports/${idPath(identifier)}`);
+    if (!reportCurrent()) return;
+    window.campaignAnalysisView.render(output, envelope, {...expected,report_id:identifier});
+    output.append(link('검증한 보고서 JSON 저장', `/api/campaign-reports/${idPath(identifier)}`, 'text-link', true));
+    output.append(action('이 보고서를 연구 질문에 연결', () => {
+      if (!reportCurrent() || busy()) return;
+      window.campaignAnalysisView.summary(envelope, {...expected,report_id:identifier});
+      const draft = prepareCampaignResearch(data);
+      const reportRead = data.type === 'optimization' ? `optimization_inspect(campaign_id="${data.id}", compact=true)의 report_context를 읽으세요.` : 'DOE 보고서의 Core 검증 요약은 아래에 첨부했습니다. 현재 승인 프로필에 DOE 전용 조회가 없으므로 이 캠페인을 optimization_inspect로 조회하지 마세요. 원 후보 응답은 허용된 experiment_summary/experiment_inspect로 확인하세요.';
+      const question = `${draft.question}\n\n같은 캠페인의 Core VERIFIED 표본 분석 보고서 ${identifier}를 해석하세요. ${reportRead} 원 응답·목표·잔차·보류 검증 오차를 구분하세요. 필요한 native 모델 상세만 원 실험 ID로 조회하세요. 아래 수치는 검증한 저장 보고서의 요약이며 실측이나 공학 승인으로 바꾸지 마세요.\n${JSON.stringify({source:envelope.source,declaration:envelope.declaration,analysis:envelope.analysis})}`;
+      window.researchControls.request(question); $("researchQuestion").value = question;
+      updateResearchControls();
+    }, 'button secondary compact'));
+    } catch (error) { if (reportCurrent()) throw error; }
+  }
+  for (const row of list(data.reports)) section.append(action(`저장 보고서 열기 · ${row.report_id}`, () => showReport(row.report_id), 'button secondary compact'));
+  if (completed) {
+    const form = el('form'), definitions = new Map();
+    for (const row of rows) {
+      const metrics = row.metrics?.model ?? row.metrics?.analysis ?? row.metrics;
+      for (const [metric,value] of Object.entries(metrics ?? {})) if (value && typeof value.unit === 'string' && (typeof value.value === 'number' || value.value === null)) definitions.set(metric,value.unit);
+      for (const value of [row.objective,...list(row.constraints)]) if (value?.metric && value.unit) definitions.set(value.metric,value.unit);
+    }
+    const select = el('div'), choices = [];
+    for (const [metric,unit] of definitions) {
+      const label = el('label', `${window.resultPresentation.metricName(metric)} (${unit})`), check = el('input'), direction = el('select'); check.type='checkbox'; check.checked=choices.length===0;
+      check.dataset.reportMetric=metric; check.setAttribute('aria-label', `분석 응답 ${metric}`);
+      option(direction,'minimize','작은 응답 선호'); option(direction,'maximize','큰 응답 선호');
+      label.append(check,direction); select.append(label); choices.push({check,direction,metric,unit});
+    }
+    const purpose=el('input'), reference=el('input'), origin=el('select'), uncertainty=el('select');
+    purpose.required=true; purpose.value='선택한 조건 범위의 응답·감도·후보 비교'; reference.required=true;
+    purpose.setAttribute('aria-label','보고서 연구 목적'); reference.setAttribute('aria-label','보고서 표본 출처');
+    for (const [value,caption] of [['DESIGN_EXPLORATION','설계 공간 탐색'],['SYNTHETIC','합성 모델/기준'],['MEASURED_REPORTED','사용자 보고 자료'],['PUBLISHED_REFERENCE','문헌 참조']]) option(origin,value,caption);
+    option(uncertainty,'DESIGN_SPACE_ONLY','설계 범위의 표본 통계');
+    if (data.type==='doe') option(uncertainty,'USER_DECLARED_UNIFORM_INPUTS','등록 범위를 균일 불확실 입력으로 가정');
+    for (const [label,input] of [['연구 목적',purpose],['원 표본·가정의 근거',reference],['자료 출처',origin],['통계의 해석 범위',uncertainty]]) {const field=el('label',label);field.append(input);form.append(field);}
+    form.append(select,el('p','분위수는 표본 분포입니다. 회귀 감도는 인과나 Sobol 지수가 아니며 비지배 후보 모음은 새 다목적 최적화 실행이 아닙니다. 보류 표본의 오차를 확인하세요.','hint'));
+    const save=el('button','새 표본 분석·보고서 저장','button primary compact');save.type='submit';save.dataset.operation='campaign_report_create'; form.append(save);
+    form.addEventListener('submit', async event => {
+      event.preventDefault(); if (!current() || busy() || !form.reportValidity()) return;
+      const request = ++reportRequest;
+      const args={campaign_id:data.id,report_id:makeId('R-campaign'),purpose:purpose.value.trim(),origin:origin.value,reference:reference.value.trim(),response_definitions:choices.filter(c=>c.check.checked).map(({metric,unit,direction})=>({metric,unit,direction:direction.value})),uncertainty:{interpretation:uncertainty.value,reference:reference.value.trim()},seed:13};
+      await runJob('campaign_report_create',args,async envelope=>{
+        if (!current()) return;
+        if (request === reportRequest) window.campaignAnalysisView.render(output,envelope,{...expected,report_id:args.report_id});
+        data.reports=[...list(data.reports),{report_id:args.report_id}];
+        section.append(action(`저장 보고서 열기 · ${args.report_id}`,()=>showReport(args.report_id),'button secondary compact'));
+      },current);
+    }); section.append(form);
+  } else section.append(el('p','계획을 실행한 뒤 실제 후보 응답으로 보고서를 만드세요.','hint'));
+  section.append(output); container.append(section);
 }
 
 function renderExperimentList() {
@@ -2455,6 +2534,19 @@ async function loadResponseComparisons(inspection = state.selectedExperiment) {
         : comparison.within_declared_tolerance ? "입력한 허용 차이 이내입니다." : "입력한 허용 차이를 초과합니다."));
       details.append(el("p", "위치·성분·좌표계·조건의 물리적 일치는 사용자 선언이며 독립 확인 전입니다. 수치가 맞아도 원인 확정·물리 검증·사용 승인으로 판정하지 않습니다.", "hint"));
       if (!comparison.condition_bindings_supplied) details.append(el("p", "저장된 입력과의 명시적 조건 연결은 제공되지 않았습니다.", "hint"));
+      if (comparison.selection_kind === 'SCALAR_METRIC' && comparison.status === 'NUMERIC_DIFFERENCE_ONLY') {
+        details.append(action('이 관측값을 수치 탐색 목표로 준비', () => {
+          if (!current() || busy()) return;
+          const observed = record.request.observation;
+          $("campaignType").value = 'optimization'; $("objectiveDirection").value = 'match';
+          $("objectiveMetric").value = record.request.response.metric; $("objectiveUnit").value = observed.unit;
+          $("objectiveTarget").value = String(observed.value);
+          $("objectiveOrigin").value = observed.source_kind === 'SPECIFICATION' ? 'DESIGN_TARGET' : observed.source_kind;
+          $("objectiveReference").value = observed.source; $("objectiveComparison").value = record.id;
+          campaignMode(); location.hash = 'explore'; showArea('explore');
+          notify('관측값·단위·출처를 준비했습니다. 같은 모델의 등록 변수와 정규화 크기를 선택하면 서버가 원 기록을 고정합니다.', true);
+        }, 'button secondary compact'));
+      }
       details.append(experimentButton(record.source.experiment_id, "이 비교의 원 해석 결과 보기 →"),
         action("이 비교를 AI 질문에 연결", () => prepareComparisonResearch([value], researchContext)),
         link("비교 원본 저장", `/api/response-comparisons/${idPath(record.id)}`, "text-link", true), rawDetail("입력·선택 응답·원본 해시·조건 검사", record));

@@ -14,7 +14,7 @@ from . import registration_transaction as registration
 from .analysis_conditions import execution, _path
 from .contracts import Candidate, CapabilityUnavailable
 from .registry import register_parameter
-from .storage import canonical_hash, check_id, load_json, save_json, source_identity
+from .storage import canonical_hash, check_id, core_source_hash, load_json, save_json, source_identity
 
 
 class ConditionInputRejected(ValueError):
@@ -167,6 +167,6 @@ def verify_current(lab, plan, snapshot):
         raise ValueError('Fixed CAD/conditions/input policy changed after planning')
     if (canonical_hash(lab.registry(plan['study_id'])) != plan['registry_sha256'] or
             canonical_hash(snapshot) != plan['registry_sha256'] or
-            source_identity(Path(__file__).resolve().parents[1])['core_source_sha256'] != plan['core_source_sha256']):
+            core_source_hash(Path(__file__).resolve().parents[1]) != plan['core_source_sha256']):
         raise ValueError('Fixed CAD campaign registry/Core source changed')
     return template

@@ -27,10 +27,10 @@ def sample(variables: list[dict], *, count: int, seed: int) -> tuple[list[dict[s
         target = variable.get("target", "cad")
         if target == "cad":
             effect = variable.get("geometry_effect")
-        elif target == "analysis_conditions":
+        elif target in ("analysis_conditions", "model_analysis"):
             effect = variable.get("input_effect")
         else:
-            raise ValueError("DOE variable target must be CAD or analysis_conditions")
+            raise ValueError("DOE variable target must be CAD, model_analysis or analysis_conditions")
         lower, upper = variable.get("lower_bound"), variable.get("upper_bound")
         try:
             finite_bounds = (all(type(x) in (int, float) and math.isfinite(x) for x in (lower, upper))
@@ -40,7 +40,7 @@ def sample(variables: list[dict], *, count: int, seed: int) -> tuple[list[dict[s
         if (variable.get("kind") != "continuous" or variable.get("mode") != "free" or
                 not isinstance(effect, dict) or effect.get("status") != "PASS" or not finite_bounds):
             raise ValueError("DOE variable requires finite continuous free bounds and PASS registered binding effect")
-        if target == "analysis_conditions" and "current_value" in variable:
+        if target in ("analysis_conditions", "model_analysis") and "current_value" in variable:
             current = variable["current_value"]
             try:
                 valid_current = (type(current) in (int, float) and math.isfinite(current)

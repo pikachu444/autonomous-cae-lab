@@ -34,6 +34,8 @@ OPERATIONS = {
     "model_parameters_discover": "discover_model_parameters",
     "model_parameters_register": "register_model_parameter",
     "model_optimization_plan": "plan_model_optimization",
+    "model_doe_plan": "plan_model_doe", "condition_doe_plan": "plan_condition_doe",
+    "campaign_report_create": "create_campaign_report",
     "condition_parameters_discover": "discover_condition_parameters",
     "condition_parameters_register": "register_condition_parameter",
     "condition_optimization_plan": "plan_condition_optimization",
@@ -210,6 +212,9 @@ class LabService:
             "model_parameters_discover": ("해석 모델 변수 찾기", None, "IMPLEMENTED", "adapter가 선언한 수치 입력과 단위·범위"),
             "model_parameters_register": ("해석 모델 변수 등록", None, "IMPLEMENTED", "선택한 입력만 변경하고 나머지 모델 선언 보존"),
             "model_optimization_plan": ("해석 모델 최적화 계획", "scipy.differential_evolution", "IMPLEMENTED", "공통 수치 엔진과 model 기준 목적 함수·제약·재개 기록"),
+            "model_doe_plan": ("해석 모델 DOE 계획", "scipy.latin_hypercube", "IMPLEMENTED", "같은 모델 선언·native 입력·환경을 동결한 조건 표본"),
+            "condition_doe_plan": ("고정 CAD 조건 DOE 계획", "scipy.latin_hypercube", "IMPLEMENTED", "원 CAD와 면을 유지한 재료·하중 표본"),
+            "campaign_report_create": ("탐색 연구 보고서", "NumPy / SciPy", "IMPLEMENTED", "원 응답·표본 통계·회귀 감도·보류 검증 surrogate·비지배 후보 archive"),
             "condition_parameters_discover": ("고정 CAD의 조건 입력 찾기", "structure.calculix.native", "EXPERIMENTAL", "같은 CAD 개정의 재료 E·ν와 명시한 힘 성분; engineering UNKNOWN"),
             "condition_parameters_register": ("조건 연구 변수 등록", "structure.calculix.native", "EXPERIMENTAL", "원 CAD·면·조건 출처를 보존하는 선언 수치 입력"),
             "condition_optimization_plan": ("고정 CAD 조건 탐색 계획", "scipy.differential_evolution", "EXPERIMENTAL", "CAD를 재생성하지 않고 조건 후보·실제 native 자식·결과 비교; AI 실행 admission은 별도"),
@@ -418,7 +423,15 @@ class LabService:
                 or ('plan' in record and record['plan'] != plan)
                 or ('plan_sha256' in record and record['plan_sha256'] != hashlib.sha256(plan_raw).hexdigest())):
             raise ValueError('Campaign plan changed while reopening the verified results')
-        return {"type": kind, "record": record, 'plan': plan}
+        return {"type": kind, "record": record, 'plan': plan,
+                'reports': selected.lab.campaign_reports(identifier)}
+
+    def campaign_report(self, identifier: str) -> dict:
+        selected = self._selected()
+        folder = contained(selected.path, f'campaign_reports/{check_id(identifier)}')
+        record = load_json(contained(folder, 'record.json'))
+        self._campaign_preflight(selected, check_id(record['campaign_id']))
+        return selected.lab.inspect_campaign_report(identifier)
 
     def compare(self, identifiers: list[str]) -> list[dict]:
         from .reporting import verified_record
@@ -720,14 +733,14 @@ class LabService:
             if value is not None and (not isinstance(value, str) or not value or len(value) > 512
                                       or any(char in value for char in ("/", "\\", "\x00", ":"))):
                 raise ValueError(f"{key} must be an existing native object/dimension name")
-        for key in ("study_id", "experiment_id", "parent_experiment_id", "campaign_id", "parameter_id", "hypothesis_id", "comparison_id", "conditions_id"):
+        for key in ("study_id", "experiment_id", "parent_experiment_id", "campaign_id", "parameter_id", "hypothesis_id", "comparison_id", "conditions_id", "report_id"):
             if arguments.get(key) is not None:
                 check_id(arguments[key])
-        for namespace in ("studies", "experiments", "ledger", "campaigns", "optimizations", "native_designs", "response_comparisons", "native_imports", "analysis_conditions"):
+        for namespace in ("studies", "experiments", "ledger", "campaigns", "optimizations", "native_designs", "response_comparisons", "native_imports", "analysis_conditions", "campaign_reports"):
             contained(selected.path, namespace)
         for key, namespace in (("study_id", "studies"), ("experiment_id", "experiments"),
                                ("parent_experiment_id", "experiments"), ("comparison_id", "response_comparisons"),
-                               ("conditions_id", "analysis_conditions")):
+                               ("conditions_id", "analysis_conditions"), ("report_id", "campaign_reports")):
             if arguments.get(key):
                 contained(selected.path, f"{namespace}/{arguments[key]}")
         if arguments.get("campaign_id"):
@@ -755,7 +768,7 @@ class LabService:
                 if operation == "analysis_run":
                     from .reporting import verified_record
                     verified_record(selected.lab, arguments["parent_experiment_id"])
-                elif operation in {"doe_run", "optimization_run"}:
+                elif operation in {"doe_run", "optimization_run", "campaign_report_create"}:
                     self._campaign_preflight(selected, arguments["campaign_id"])
                 check_cancelled()
                 if operation == "research_run":
