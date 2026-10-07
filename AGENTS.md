@@ -1,5 +1,23 @@
 # Autonomous CAE Lab — development instructions
 
+## Active task: local integration recovery
+
+For the current post-merge work, read `docs/WORKBENCH_RECOVERY.md` and the updated
+`CODEX_START.txt` before selecting implementation work. Start from the current
+remote main while preserving local changes, not the old unmerged PR #1 branch.
+The recovery document supplements the existing W1–W5 design and use cases; it
+specifies the concrete remaining native runtime, response, expert and UI work.
+Previous implementation/test counts are not proof of live user-flow completion.
+
+Work on the user's local Windows/WSL environment. Do not substitute Codex Cloud
+or GitHub Actions runtime results for readiness of that local installation.
+Reuse the existing code and agent roles. The lead owns shared interfaces and
+integration; delegate disjoint native/numerical and expert/UI tasks, with at most
+two helper threads, then obtain independent review of important integrations.
+Use the recovery document's R1–R5 tasks and A–F user outcomes as the current
+completion criteria. Missing credentials or native execution remain incomplete,
+not whole-system success. Continue independent work without fabricating results.
+
 ## Product and current direction
 
 Build a lightweight engineering research workbench, not a CAD-demo framework or
