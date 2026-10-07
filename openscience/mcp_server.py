@@ -16,6 +16,13 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+# Existing launch commands can join the shared workbench without constructing
+# the historical Study service or importing its CAD adapters.
+if __name__ == '__main__' and os.environ.get('CAELAB_SERVICE_URL'):
+    from openscience.workbench_mcp import mcp as shared_mcp
+    shared_mcp.run(transport='stdio')
+    sys.exit(0)
+
 from mcp.server.fastmcp import FastMCP
 
 from caelab import Lab
@@ -362,13 +369,7 @@ def optimization_plan(study_id: str, campaign_id: str, backend: str, model: str,
 @_single_writer
 def optimization_run(campaign_id: str) -> dict:
     """Run or exactly replay adaptive numerical evaluations; preserve invalid evidence and stop backend failures."""
-    lab = _lab()
-    from caelab.optimization import _plan
-    plan, *_ = _plan(lab, campaign_id)
-    if plan.get('route') == 'fixed_cad_analysis':
-        from caelab.contracts import CapabilityUnavailable
-        raise CapabilityUnavailable('The existing AI execution profile does not admit fixed-CAD condition searches; use the human Lab control, then read retained candidate results.')
-    return lab.run_optimization(campaign_id)
+    return _lab().run_optimization(campaign_id)
 
 
 def _compact_optimization_record(record: dict) -> dict:

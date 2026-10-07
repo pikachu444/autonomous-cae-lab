@@ -9,9 +9,6 @@ from typing import Any
 import zipfile
 from filelock import FileLock
 
-from .adapters.fixture_cadquery import FixtureCadQueryAdapter
-from .adapters.fixture_assembly_conditions_catalog import AssemblyConditionsCADAdapter
-from .adapters.fixture_freecad import FixtureFreeCADAdapter
 from .contracts import (AnalysisAdapter, CADAdapter, DOEAdapter, OptimizationAdapter,
                         PDEAdapter, ModelAnalysisAdapter, CapabilityUnavailable, FileRevision)
 from . import registration_transaction as registration
@@ -51,78 +48,23 @@ class Lab:
         lock_root.mkdir(parents=True, mode=0o700, exist_ok=True)
         lock_key = hashlib.sha256(self.store.as_posix().casefold().encode("utf-8")).hexdigest()
         self._registration_file_lock = FileLock(str(lock_root / (lock_key + ".lock")), timeout=30)
-        self.adapters = adapters if adapters is not None else {
-            FixtureCadQueryAdapter.backend: FixtureCadQueryAdapter(),
-            AssemblyConditionsCADAdapter.backend: AssemblyConditionsCADAdapter(),
-            FixtureFreeCADAdapter.backend: FixtureFreeCADAdapter(self.store),
-        }
-        if analysis_adapters is None:
-            from .adapters.fixture_calculix import FixtureCalculiXAdapter
-            from .adapters.native_structural import NativeStructuralAdapter
-            analysis_adapters = {FixtureCalculiXAdapter.backend: FixtureCalculiXAdapter(),
-                                 NativeStructuralAdapter.backend: NativeStructuralAdapter()}
-        self.analysis_adapters = analysis_adapters
-        if response_field_adapters is None:
-            from .adapters.assembly_response_fields import AssemblyResponseFieldsAdapter
-            from .adapters.pde_response_fields import PDEResponseFieldsAdapter, SUPPORTED_BACKENDS
-            from .adapters.plasticity_response_fields import PlasticityResponseFieldsAdapter
-            response_field_adapters = {AssemblyResponseFieldsAdapter.backend: AssemblyResponseFieldsAdapter()}
-            response_field_adapters.update({backend: PDEResponseFieldsAdapter(backend) for backend in SUPPORTED_BACKENDS})
-            response_field_adapters[PlasticityResponseFieldsAdapter.backend] = PlasticityResponseFieldsAdapter()
-        self.response_field_adapters = response_field_adapters
-        if response_history_adapters is None:
-            from .adapters.openradioss_history import OpenRadiossHistoryAdapter
-            from .adapters.plasticity_response_fields import PlasticityResponseFieldsAdapter
-            response_history_adapters = {OpenRadiossHistoryAdapter.backend: OpenRadiossHistoryAdapter()}
-            response_history_adapters[PlasticityResponseFieldsAdapter.backend] = PlasticityResponseFieldsAdapter()
-        self.response_history_adapters = response_history_adapters
-        if doe_adapters is None:
-            from .optimizers.scipy_lhs import ScipyLatinHypercube
-            doe_adapters = {ScipyLatinHypercube.engine: ScipyLatinHypercube()}
-        self.doe_adapters = doe_adapters
-        if optimization_adapters is None:
-            from .optimizers.scipy_de import ScipyDifferentialEvolution
-            optimization_adapters = {ScipyDifferentialEvolution.engine: ScipyDifferentialEvolution()}
-        self.optimization_adapters = optimization_adapters
-        if pde_adapters is None:
-            from .adapters.fenicsx_pde import FenicsxPDEAdapter
-            from .adapters.fenicsx_nonlinear import FenicsxNonlinearPDEAdapter
-            from .adapters.fenicsx_rectangle import FenicsxRectanglePDEAdapter
-            from .adapters.fenicsx_transient import FenicsxTransientPDEAdapter
-            from .adapters.fenicsx_vector import FenicsxVectorPDEAdapter
-            from .adapters.fenicsx_coupled import FenicsxCoupledPDEAdapter
-            from .adapters.fenicsx_imported import FenicsxImportedPDEAdapter
-            pde_adapters = {adapter.backend: adapter() for adapter in
-                            (FenicsxPDEAdapter, FenicsxNonlinearPDEAdapter, FenicsxRectanglePDEAdapter,
-                             FenicsxTransientPDEAdapter, FenicsxVectorPDEAdapter, FenicsxCoupledPDEAdapter,
-                             FenicsxImportedPDEAdapter)}
-        self.pde_adapters = pde_adapters
-        if model_analysis_adapters is None:
-            from .adapters.codeaster_elasticity import CodeAsterElasticityAdapter
-            from .adapters.codeaster_plasticity import CodeAsterPlasticityAdapter
-            from .adapters.codeaster_geometric import CodeAsterGeometricAdapter
-            from .adapters.codeaster_contact import CodeAsterContactPatchAdapter
-            from .adapters.structural_family_calculix import StructuralFamilyCalculiXAdapter
-            from .adapters.structural_family_codeaster import StructuralFamilyCodeAsterAdapter
-            from .adapters.mfront_material import MFrontMaterialAdapter
-            from .adapters.mfront_inverse import MFrontInverseAdapter
-            from .adapters.mfront_hyperelastic import MFrontHyperelasticAdapter
-            from .adapters.mfront_viscoelastic import MFrontViscoelasticAdapter
-            from .adapters.openradioss import OpenRadiossAdapter
-            model_analysis_adapters = {
-                adapter.backend: adapter() for adapter in (
-                    CodeAsterElasticityAdapter, CodeAsterPlasticityAdapter, CodeAsterGeometricAdapter,
-                    CodeAsterContactPatchAdapter,
-                    StructuralFamilyCalculiXAdapter, StructuralFamilyCodeAsterAdapter,
-                    MFrontMaterialAdapter, MFrontInverseAdapter, MFrontHyperelasticAdapter,
-                    MFrontViscoelasticAdapter, OpenRadiossAdapter)
-            }
-            # Explicit parameterized PDE opt-ins use the same frozen numerical
-            # bindings while retaining their PDE native artifact namespace.
-            model_analysis_adapters.update({key: adapter for key, adapter in pde_adapters.items()
+        from .backends import LazyAdapters
+        self.adapters = adapters if adapters is not None else LazyAdapters("cad", store=self.store)
+        self.analysis_adapters = analysis_adapters if analysis_adapters is not None else LazyAdapters("analysis")
+        from .backends import reader_adapters
+        self.response_field_adapters = (response_field_adapters if response_field_adapters is not None
+                                        else reader_adapters("field"))
+        self.response_history_adapters = (response_history_adapters if response_history_adapters is not None
+                                          else reader_adapters("history"))
+        self.doe_adapters = doe_adapters if doe_adapters is not None else LazyAdapters("doe")
+        self.optimization_adapters = optimization_adapters if optimization_adapters is not None else LazyAdapters("optimizer")
+        self.pde_adapters = pde_adapters if pde_adapters is not None else LazyAdapters("pde")
+        self.model_analysis_adapters = (model_analysis_adapters if model_analysis_adapters is not None
+                                       else LazyAdapters("model"))
+        if model_analysis_adapters is None and pde_adapters is not None:
+            self.model_analysis_adapters.update({key: adapter for key, adapter in pde_adapters.items()
                 if getattr(adapter, 'pde_model_declaration', False) is True and all(
                     callable(getattr(adapter, method, None)) for method in ('describe_inputs', 'bind_inputs', 'input_runtime_identity'))})
-        self.model_analysis_adapters = model_analysis_adapters
 
     @_registration_guard
     def create_native_model(self, *, template: str = "roller_support") -> dict[str, Any]:

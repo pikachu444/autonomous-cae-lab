@@ -1,3 +1,17 @@
-# Autonomous CAE Lab research procedure
+# CAE research workbench tools
 
-Use CAE-Lab tools to record a study, discover and register a specific CAD variable, then run uniquely named experiments. Read the returned result and evidence IDs before interpreting a design. Keep unknown machine, strength and physical checks unknown. Use numerical DOE/optimizer tools when installed; do not pick a long series of numeric candidates from intuition. Ask an engineer to inspect the native CAD iteration when the geometry or engineering verdict is ambiguous.
+Connect to the already running shared CAE service. Read supported backend inputs,
+existing results and authorized sources before proposing a fit, DOE, optimization
+or solver run. A study and CAD are optional. Keep native execution, imported
+results and external file exchange distinct. Missing results remain unknown.
+
+Use the numerical libraries for samples, residuals, search and influence. Preserve
+units, components, locations and event meaning. Submit only within the user's
+approved input ranges, evaluation budget, resources and data transmission scope.
+Read the shared job ID and actual result before claiming completion. Cancellation
+is a request until the shared controller confirms a terminal state.
+
+The user's host selects its model and authentication independently. This example
+sets no model, fixed expert/domain list or tool count. Optional expert roles are
+configured separately; absent internal inference remains NOT_CONFIGURED. A
+numerical fit or expert agreement does not establish physical qualification.

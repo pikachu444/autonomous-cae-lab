@@ -1,111 +1,221 @@
 # Autonomous CAE Lab
 
-A local-first engineering research workbench: use existing numerical tools,
-material models, solvers and data analysis through a common working environment.
-CAD-based design is one use case, not the definition of the product. Optional
-expert assistance combines project knowledge, literature and engineering tools.
+A local engineering research workbench for material histories, parameter fitting,
+numerical studies, existing solver results and optional expert assistance. Python
+calculations do not require CAD, an AI account, OpenScience or MCP.
 
-## Codex 개발 시작 — 아래 프롬프트만 전달
+## Install and start
 
-Codex에서 주 담당 모델을 **GPT-6 Astra**, 추론 수준을 **High**로 선택한다.
-개발에 필요한 설계 원문, 사용 사례, 운영 지침, 스킬 원문과 프로젝트 설정은
-이 저장소에 있다. 이전 대화의 첨부파일이나 긴 프롬프트를 다시 업로드하지 않는다.
-현재 인계 기준은 PR #1의 브랜치 `redesign/research-workbench-20261007`이다.
-PR이 이미 병합됐다면 현재 병합된 내용을 사용하고, 작업 중인 로컬 변경은 보존한다.
+Python 3.12+ is required. From a source checkout:
 
-```text
-pikachu444/autonomous-cae-lab의 PR #1 최신 내용을 기준으로,
-CODEX_START.txt와 연결된 문서·스킬·설정을 읽고 W1–W5를 구현해.
-기존 작업은 보존하고, 검토와 필요한 검사를 마친 변경은 PR을 통해 main에 병합해.
-주 담당은 Astra High로 시작해.
+```bash
+git submodule update --init --recursive
+python -m venv .venv
+# Linux/macOS; on Windows use .venv\Scripts\Activate.ps1
+source .venv/bin/activate
+python -m pip install -e '.[numerical,material]'
+caelab doctor --backend material.felupe
+caelab serve --store ./runs/my-research --port 8766
 ```
 
-위 예시는 구현과 검토 후 병합까지 맡기는 지시다. 저장소에 영구적인 병합 금지
-정책은 없다. 문서 검토 당시의 미병합 상태와 이후 개발의 병합 권한을 구분한다.
-현재 사용자 지시가 병합까지 포함하면 같은 범위의 매 작은 변경마다 재승인을
-요구하지 않는다. 보호 규칙과 필수 검사는 지키고, 부분 기능의 병합을 전체 완료로
-표시하지 않는다. 병합을 맡기지 않은 세션에서는 PR 제출로 종료한다.
+Open **http://127.0.0.1:8766/workbench**. Upload a table, declare its channels and
+units, edit a material loading history, fit independent experimental curves or
+run a DOE. The same page shows execution history, cancellation, actual response
+curves, comparisons and downloadable HTML reports. Synthetic teaching inputs are
+explicitly labeled. The original `/` interface remains available for existing
+CAD records and workflows.
 
-[CODEX_START.txt](CODEX_START.txt)가 상세 시작 지시다. 필요한 문서는 아래처럼
-역할을 나눠 보관한다. 같은 제품 설계를 새 문서로 다시 작성하지 않는다.
+| Extra | Adds | Optional runtime/license consideration |
+| --- | --- | --- |
+| none | NumPy, direct API, retained-result reading, local service | No CAD/AI import on discovery |
+| `numerical` | SciPy fitting, DOE, search, statistics, RBF surrogate | BSD; no solver or model account |
+| `material` | FELUPE material-point laws and tangent responses | FELUPE GPL-3.0; review distribution obligations |
+| `cad` | Existing CadQuery fixture integration | Native FreeCAD remains separately installed |
+| `native-mechanics` | Gmsh Python dependency | CalculiX/other native solver runtimes installed separately |
+| `sensitivity` | SALib matched Sobol sampling/analysis | Separate from ordinary DOE regression influence |
+| `assist` | Haystack retrieval/agent integration and PDF text | Explicit model/runtime configuration; no fallback |
+| `mcp` | Official MCP SDK transport | Connects to an existing service |
+| `dev` | Pytest, browser testing and PDF test dependencies | Chromium separately installed |
 
-| 참조 | 역할 |
-|---|---|
-| [AGENTS.md](AGENTS.md) | 전체 목표, 개발 원칙과 문서 진입점 |
-| [WORKBENCH_REDESIGN.md](docs/WORKBENCH_REDESIGN.md) | 개정 4: 기존 W1–W5 유지, 외부 파일 응답·LLM 연구 반복의 공통 연결 보강 |
-| [WORKBENCH_USE_CASES.md](docs/WORKBENCH_USE_CASES.md) | 기존 16개 사용처 + 외부 파일 기반 연구의 공통 사용 패턴 UC17 |
-| [CODEX_WORKFLOW.md](docs/CODEX_WORKFLOW.md) | 모델·추론·토큰·분업·통합·진행·세션 재개 |
-| [DEVELOPMENT_SKILLS.md](docs/DEVELOPMENT_SKILLS.md) | 기존 스킬의 원본·의존성·호출 시점과 선택 도구 |
-| [.codex/config.toml](.codex/config.toml), [.codex/agents](.codex/agents/) | 개발 모델 기본값과 조사·구현·검토 역할 |
-| [.agents/skills](.agents/skills/) | research, grill-me, grilling 원문과 라이선스 |
+A wheel can be built with `python -m pip wheel --no-deps .`. A separate clean
+installation of the base wheel was tested without CAD, SciPy, FELUPE or MCP.
+For preserved native backends use the source checkout and their documented
+runtime settings; a Python extra does not install or qualify every native solver.
+Existing native runtime instructions are in [local execution](docs/LOCAL_EXECUTION.md).
 
-기본 개발 구성은 주 담당 Astra High, 보조 Sol High, 동시에 열린 보조 최대
-2개다. 필요할 때만 분업한다. 제품 안의 연구용 모델·솔버 설정과 혼동하지 않는다.
+## Direct calculation and saved results
 
-설정을 보관한 것과 사용자 PC에서 실제 활성화한 것은 다르다. 첫 세션은
-선택된 모델·추론, 프로젝트 신뢰, 스킬·역할 발견 상태를 짧게 확인한다.
-빈 폴더에서 저장소를 가져온 뒤 설정 재로딩이 필요한 경우에는 그 사실과
-재개 위치만 안내한다. 자동 적용을 가장하거나 사용자의 인증·전역 권한을
-변경하지 않는다. 스킬이 목록에 없으면 지침에 지정된 원문 경로를 읽는다.
-필수 접근 승인은 사용자에게 요청하되 설정 확인을 별도 개발 프로젝트로
-늘리거나 자료를 다시 업로드하도록 요구하지 않는다.
+```python
+from caelab import evaluate, prepare, run, read_result
 
-이 시작 지시는 제품 구현을 시작하기 위한 것이다. 설명용 HTML·영상의 수치
-예시나 규칙 기반 자문은 실제 제품 솔버·LLM 연결의 완료 증거가 아니다.
-이전 PDF/HTML/영상은 개정 3 시점의 설명 자료이며, 개정 4의 구현 기준은
-저장소 Markdown이다.
+settings = {
+    "model": "linear_elastic", "parameters": {"E": 1500., "nu": .29},
+    "stress_unit": "MPa", "time_unit": "s", "time": [0., 1.],
+    "deformation_gradient": [
+        [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]],
+        [[1.002, 0., 0.], [0., 1., 0.], [0., 0., 1.]],
+    ],
+}
+response = evaluate("material.felupe", settings)
+with prepare("material.felupe", settings) as model:
+    first = model.evaluate({"E": 1200.})
+    second = model.evaluate({"E": 1800.})
+run("material.felupe", settings, output="runs/material-result")
+restored = read_result("runs/material-result", selection=["stress_xx"])
+```
 
-## External solver results and AI-assisted research
+`evaluate`/`prepare` perform no mandatory recording. A trusted Python callable
+`function(values, settings)` returning named responses can use the same numerical
+APIs without registration. Each prepared resource is owned by one caller; process
+workers prepare their own resources. `run` requires a new output directory.
+`read_result` reads retained JSON/NumPy arrays without the originating solver or AI.
+It supports response selection, component/location filters, row/time ranges and
+selected/all hash verification. Units, component, location, reduction and axis
+meaning stay attached to responses. Missing values are never substituted with zero.
 
-LS-OPT is unavailable and is not a dependency or fallback. Keep existing solver
-inputs and execution/extraction tools. Read separate ASCII/CSV/text outputs into
-the same response, DOE, optimization and sensitivity interfaces. Results-only
-analysis does not require the source solver. Automated new evaluations require
-an actual execution connection; missing results are not fabricated.
+CLI equivalents:
 
-An optional expert helps choose variables, ranges, objectives and a DOE plan.
-Numerical libraries generate candidates and calculate responses and sensitivity.
-The expert reads those results and proposes the next search, experiment or stop.
-The chip-impact identification example must not define all supported variables,
-file names or physical domains. The same path supports thermal, structural,
-material and numerical studies. See redesign sections 4.4, 7.1 and 12.8.
+```bash
+caelab backends
+caelab evaluate --backend material.felupe --settings my-history.json
+caelab run --backend material.felupe --settings my-history.json --output runs/result-01
+caelab read runs/result-01 --response stress_xx
+caelab fit --backend material.felupe --plan my-fit.json --output runs/fit-01
+caelab submit --operation doe --arguments my-managed-doe.json --request-id study-01
+caelab job J_REPLACE_WITH_RETURNED_ID
+```
 
-Build the generic file/execution boundary during W1–W5. Add specific commercial
-solver cards, native output formats and company execution environments as domain
-connections. Do not block the first workbench on LS-DYNA access or convert all
-models to OpenRadioss. This is target behavior, not a claim of a working LS-DYNA
-adapter or a completed AI optimization loop.
+## Numerical research
 
-## Current development direction
+`caelab.numerical` exposes `fit_model`, `run_doe`, `optimize`, `analyze_candidates`,
+`run_uq`, `fit_surrogate`, `epsilon_optimize`, `sample_sensitivity`,
+`analyze_sensitivity`, `compare_curves` and `detect_event`/`compare_events`.
+Variables declare names, units, bounds, initial values and linear/log transforms.
+Fit experiments separately declare loading settings, response, observations,
+weight, residual scale, mask and `fit`/`holdout` role. Holdout histories never tune
+coefficients. Series objectives require an explicit reduction such as `max` or
+`final`; response labels alone do not perform a reduction.
 
-Read [the workbench redesign and implementation plan](docs/WORKBENCH_REDESIGN.md).
-It separates verified implementation from target behavior and identifies the
-next coherent improvement bundle. [AGENTS.md](AGENTS.md) is the development entry
-point; cumulative historical records are no longer mandatory startup reading.
+```bash
+python examples/workbench_numerical.py --output runs/numerical-example
+```
 
-Python/API and CLI are the primary computation interfaces. OpenScience and MCP
-are optional integrations in the target architecture. Existing code already has
-CAD-free model/PDE interfaces and SciPy-based search, but portable installation,
-extension, runtime admission and performance still need work. This documentation
-change does not claim that those improvements have been implemented.
+This runnable example produces a real FELUPE multi-history fit and holdout plot,
+SciPy search/DOE/statistics, uncertainty results, RBF confirmation, epsilon/Pareto
+results, identified file exchange and measured timing/I/O. Its observations are
+synthetic; fitting them is an integration check, not material qualification.
+Measured results and limitations are in [the current progress record](docs/WORKBENCH_PROGRESS.md).
 
-## Existing code and usage
+`execution={"mode": "process", "workers": 2, "threads": 1,
+"max_evaluations": 100}` requests separate prepared workers and a hard total
+model-evaluation cap. Fit finite differences and holdout consume that same cap.
+A whole finite-difference group may stop with unused budget when it cannot fit.
+Serial and explicitly supported batch evaluation are also available. Memory is a
+reservation hint, not OS isolation. Small material calculations can be faster
+without processes; measured timings make no general speedup claim.
 
-- `caelab/`: Python API, CLI, experiments, numerical drivers and backend adapters.
-- `plugins/`: domain-specific models/checks and the reused fixture implementation.
-- `apps/lab/`: local human interface and existing job coordination.
-- `openscience/`: current MCP and OpenScience integration; not the intended owner
-  of the numerical core.
-- `tests/`, `scripts/`, `benchmarks/`: existing checks and recorded examples.
+Recorded native numerical studies use
+`caelab.adapters.native_evaluation.NativeEvaluationFactory(backend, output)` and
+the existing checked `describe_inputs`/`bind_inputs` boundary. The managed service
+selects this explicit file path for parameterized native adapters. Adapters
+without declared mutable inputs support their existing single-run API; they do
+not silently become parameterized. Actual native runtime availability remains
+backend-specific.
 
-Existing environment instructions remain in [local execution](docs/LOCAL_EXECUTION.md)
-and [OpenScience use](docs/OPENSCIENCE_USE.md). They describe specific historical
-installations; confirm applicable paths, dependencies and current code before use.
-The CAD demo is not the complete product. No universal clean-install or current
-native-solver qualification is asserted here.
+## Existing results and external solvers
 
-Older status histories, architecture decisions and execution records remain
-available for targeted reference. They must not override the current owner-approved
-direction or be mistaken for measurements from the latest checkout.
+`files.table` imports CSV, whitespace/fixed-width text (including Fortran D
+exponents) and named one-dimensional arrays in NPZ. Declare `columns` with
+`column`, `unit`, `component`, `location` and optional axis mapping. Scaling and
+offset are explicit. Repeated/restarted axes need separately selected segments;
+unknown native block formats need an operator-supplied extractor.
 
-Do not commit credentials, company models, private reports or experimental data.
+Three modes are distinct:
+
+- Import and analyze already generated results, without running their solver.
+- `export_batch`/`import_batch` exchange candidates and match actual returned
+  candidate ID, case ID and parameter values. Missing candidates stay unevaluated.
+- Register an operator-owned external command, optional extraction command,
+  templates, numeric bounds and output mapping. Each real candidate gets an owned
+  directory and cancellation-aware process. HTTP/MCP cannot supply executable
+  paths or arbitrary commands. Workspace registrations stay workspace-local.
+
+`caelab.adapters.external_files.register_external_backend` is available to trusted
+Python callers. Managed registration uses `external_backends` in the operator
+configuration passed to `caelab serve --workbench-config config.json`. Each entry
+contains `variables`, `command` (argv list), `result` (path and mapping), optional
+`templates` (`source`, `destination`), `extractor`, `threads` and `timeout`.
+A template uses `$variable` placeholders; source inputs are preserved. LS-OPT is
+not required or used. This is a generic connection, not a qualified commercial
+solver card or a claimed company LS-DYNA execution.
+
+## One managed workspace and optional experts
+
+A workspace has one controller process. HTTP, CLI and MCP share job IDs,
+idempotent request IDs, result references and cancellation. Restarted unfinished
+jobs become `INTERRUPTED`; they are neither replayed nor adopted by recorded PID.
+Cancellation remains requested until a safe checkpoint/owned process exit.
+Unconfirmed cleanup retains the controller reservation. Direct synchronous Python
+runs remain independent and use their own result paths.
+
+For optional retrieval and experts:
+
+```bash
+python -m pip install -e '.[assist,mcp]'
+caelab serve --store runs/research --workbench-config examples/workbench_config.json
+```
+
+The example config enables named expert roles with **no configured model**.
+Documents can be uploaded, archived/versioned, indexed and searched using Haystack
+BM25; source locators reopen original excerpts. Revoked documents are excluded
+from subsequent contexts. PDF extraction is text-only: scanned text, equations,
+tables and figures may remain unread. Literature search currently uses Crossref;
+metadata discovery, actual public-text reading and knowledge import are separate.
+
+To connect an approved OpenAI-compatible endpoint, set `runtime.provider`,
+`model`, `api_base_url` and `credential_env` in an operator-local config. Keep the
+credential itself in that environment variable. Explicit `transmission` policy
+controls external questions, collections, result data and public literature.
+The caller's selected documents/results and transmission scope must also permit
+the transfer. No provider fallback, purchasing or automatic account login occurs.
+Per-role `expert_models` can choose separately configured models without expanding
+access. See `RuntimeConfig` in `caelab/assist/experts.py` for bounded call/tool/time
+settings and `examples/workbench_experts.json` for roles.
+
+Experts use the real Haystack tool loop to retrieve, interpret actual results,
+consult an explicitly permitted second expert and propose editable numerical
+plans. Authorized execution additionally requires backend, variable/range,
+evaluation and resource scopes. Planning is not execution. A missing model
+returns `NOT_CONFIGURED`. Live model/host verification was unavailable in this
+cloud session; mocked generator tests are labeled accordingly.
+
+For MCP set `CAELAB_SERVICE_URL=http://127.0.0.1:8766` and run
+`python -m openscience.workbench_mcp`. Use the official SDK client configuration
+in [workbench.json.example](openscience/workbench.json.example), or the generic
+[OpenScience example](openscience/openscience.json.example). The transport does not
+construct another controller. Old generated ResearchProfile launchers, copied
+scenario guards and fixed model/tool-count restrictions were removed. The older
+Study-oriented stdio entry remains an explicitly isolated compatibility API;
+setting `CAELAB_SERVICE_URL` delegates that entry to the shared workbench too.
+
+## Checks and development
+
+```bash
+python -m pip install -r requirements-dev.txt
+python -m pip install -e '.[numerical,material,assist,sensitivity,mcp,dev]'
+python -m pytest -q
+node --test tests/*.js openscience/tests/native_git_state.test.mjs
+python scripts/verify_mcp.py
+python scripts/verify_workbench_ui.py --help
+```
+
+The browser script starts/stops its own service and tests material fit/holdout,
+DOE, actual influence, CSV mapping and report download. Chromium must be installed
+(or pass `--browser-executable`). Native CI jobs retain their scientific reference
+checks; no local mock certifies a native solver or actual product-host connection.
+
+Development starts with [CODEX_START.txt](CODEX_START.txt), [AGENTS.md](AGENTS.md),
+[W1–W5 design](docs/WORKBENCH_REDESIGN.md), [use cases](docs/WORKBENCH_USE_CASES.md)
+and [workflow](docs/CODEX_WORKFLOW.md). Historical execution records remain intact.
+The single current implementation/progress record is
+[WORKBENCH_PROGRESS.md](docs/WORKBENCH_PROGRESS.md).

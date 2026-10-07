@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autonomous-cae-lab"
+version = "0.2.0"
+description = "Independent engineering calculations, numerical research and optional expert assistance"
+requires-python = ">=3.12"
+dependencies = ["jsonschema==4.26.0", "filelock==3.32.7", "numpy==2.3.5"]
+
+[project.optional-dependencies]
+numerical = ["scipy==1.17.0"]
+material = ["felupe==11.1.3", "scipy==1.17.0"]
+cad = ["cadquery==2.7.0", "trimesh==5.1.0", "matplotlib==3.10.8", "Pillow==11.3.0"]
+native-mechanics = ["gmsh==4.12.1"]
+mcp = ["mcp==1.30.0"]
+assist = ["haystack-ai==3.3.0", "pypdf==6.10.0"]
+sensitivity = ["SALib==1.5.2"]
+dev = ["pytest==8.4.2", "playwright==1.55.0", "reportlab==4.4.9", "pypdf==6.10.0"]
+
+[project.scripts]
+caelab = "caelab.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["caelab*", "apps*", "openscience*", "plugins*", "schemas*"]
+exclude = ["plugins.fixture_design.upstream.tests*", "plugins.fixture_design.upstream.artifacts*"]
+
+[tool.setuptools.package-data]
+schemas = ["*.json"]
+"apps.lab" = ["static/**/*"]
+"plugins.fixture_design.upstream" = ["models/*", "fixturelab/*.js", "scripts/*"]

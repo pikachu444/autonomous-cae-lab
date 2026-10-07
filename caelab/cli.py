@@ -5,7 +5,6 @@ import json
 from pathlib import Path
 import sys
 
-from .engine import Lab
 from .storage import load_json
 
 
@@ -168,7 +167,12 @@ def parser():
 
 
 def main(argv=None):
-    args = parser().parse_args(argv)
+    from .workbench_cli import COMMANDS, main as workbench_main
+    effective = list(argv) if argv is not None else sys.argv[1:]
+    if effective and effective[0] in COMMANDS:
+        return workbench_main(effective)
+    args = parser().parse_args(effective)
+    from .engine import Lab
     lab = Lab(args.store)
     try:
         if args.command == "study":
