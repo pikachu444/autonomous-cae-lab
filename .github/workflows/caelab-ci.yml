@@ -291,7 +291,12 @@ jobs:
       - name: Verify complete initial and transient histories with separate time and mesh refinement
         run: python -m scripts.verify_transient_pde --store artifacts/transient-pde-lab
       - name: Verify coupled vector directions, blocked DOFs and independent full-field error integration
-        run: python -m scripts.verify_vector_pde --store artifacts/vector-pde-lab
+        id: vector_acceptance
+        shell: bash
+        run: python -m scripts.verify_vector_pde --store artifacts/vector-pde-lab 2>&1 | tee "$RUNNER_TEMP/vector-pde-check.log"
+      - name: Annotate vector acceptance failure
+        if: ${{ failure() && steps.vector_acceptance.outcome == 'failure' }}
+        run: python scripts/ci_annotate_failure.py "$RUNNER_TEMP/vector-pde-check.log"
       - name: Verify two coupled scalar fields across a conforming material interface
         if: ${{ !cancelled() && steps.pde_runtime.outcome == 'success' }}
         run: python -m scripts.verify_coupled_pde --store artifacts/coupled-pde-lab
@@ -349,7 +354,12 @@ jobs:
       - name: Compare independent declared elasticity with analytical fields and signed reactions
         run: python -m scripts.verify_codeaster --store artifacts/codeaster-lab
       - name: Compare complete beam, pressure cylinder and curved roof fields across two native solvers
-        run: python -m scripts.verify_structural_families --store artifacts/structural-family-lab --source-commit "${GITHUB_SHA}"
+        id: family_acceptance
+        shell: bash
+        run: python -m scripts.verify_structural_families --store artifacts/structural-family-lab --source-commit "${GITHUB_SHA}" 2>&1 | tee "$RUNNER_TEMP/structural-family-check.log"
+      - name: Annotate structural family acceptance failure
+        if: ${{ failure() && steps.family_acceptance.outcome == 'failure' }}
+        run: python scripts/ci_annotate_failure.py "$RUNNER_TEMP/structural-family-check.log"
       - name: Verify complete native J2 load and unload histories on two meshes
         run: python -m scripts.verify_plasticity --store artifacts/plasticity-lab
       - name: Verify real MGIS and MTest stress histories and consistent tangents
