@@ -29,19 +29,16 @@ jobs:
         run: python -m pytest tests/test_workbench_evaluation.py tests/test_workbench_jobs.py tests/test_workbench_numerical.py tests/test_workbench_assist.py -q --junitxml=artifacts/workbench-tests.xml
       - name: Annotate workbench failures
         if: failure()
-        shell: python
+        shell: pwsh
         run: |
-          from pathlib import Path
-          import xml.etree.ElementTree as ET
-          report = Path('artifacts/workbench-tests.xml')
-          if report.exists():
-              def escape(value):
-                  return value.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-              for case in ET.parse(report).iter('testcase'):
-                  for failure in list(case.findall('failure')) + list(case.findall('error')):
-                      title = escape(case.get('name', 'Workbench test')).replace(',', '%2C').replace(':', '%3A')
-                      detail = escape((failure.text or failure.get('message', 'Test failed'))[-12000:])
-                      print(f'::error title={title}::{detail}')
+          if (Test-Path 'artifacts/workbench-tests.xml') {
+            [xml]$report = Get-Content 'artifacts/workbench-tests.xml' -Raw -Encoding UTF8
+            foreach ($failure in $report.SelectNodes('//testcase/failure | //testcase/error')) {
+              $title = $failure.ParentNode.GetAttribute('name')
+              $detail = $failure.InnerText.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+              Write-Output "::error title=$title::$detail"
+            }
+          }
       - name: Check editable workbench forms
         run: node --test tests/test_workbench_ui.js
 
