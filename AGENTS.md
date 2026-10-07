@@ -23,6 +23,32 @@ obsolete profiles, prompt bytes, exact model choices or development ceremonies.
 They remain useful sources for earlier requirements and numerical observations;
 this redesign does not certify or erase those observations.
 
+## Development setup and orchestration
+
+Read `docs/CODEX_WORKFLOW.md` for model/reasoning, usage control, task ownership,
+W1–W5 integration and session handoff. Read `docs/DEVELOPMENT_SKILLS.md` for the
+existing skills, their sources, dependencies and explicit invocation conditions.
+These documents supplement, not replace, the product design and use cases.
+The tracked launch instruction is `CODEX_START.txt`; do not depend on chat history
+or an older attached prompt for missing decisions.
+
+Use `.codex/config.toml` and `.codex/agents/` as project development defaults,
+subject to the actual client, account, trust and user overrides. Verify effective
+settings once; do not claim repository files have changed the user's running app.
+The normal lead is Astra High, helpers are Sol High, and at most two helper
+threads are open. Use Extra High only for a difficult bounded decision. Do not
+spawn recursively or auto-enable paid speed modes, purchases or API fallback.
+
+The vendored `research`, `grill-me` and `grilling` are explicit-use development
+skills under `.agents/skills/`. Select `research` for substantial reuse/API
+questions. Select the interview skills only for genuinely unsettled user
+choices. Do not restart the agreed product interview. Follow the skill-use
+catalog rather than installing every previously mentioned tool.
+
+Keep one current progress record. After a feature bundle, return to the whole
+W1–W5 and use-case outcomes. Close finished helpers and carry forward the next
+implementation location, not another full audit or duplicated history document.
+
 ## How to work
 
 - Begin a substantive bundle with the user-visible outcome and its place in the
