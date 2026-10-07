@@ -36,7 +36,7 @@ jobs:
             foreach ($failure in $report.SelectNodes('//testcase/failure | //testcase/error')) {
               $title = $failure.ParentNode.GetAttribute('name')
               $detail = $failure.InnerText.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
-              Write-Output "::error title=$title::$detail"
+              Write-Output "::error title=${title}::${detail}"
             }
           }
       - name: Check editable workbench forms
