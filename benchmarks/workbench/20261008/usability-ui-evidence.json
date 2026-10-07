@@ -1,0 +1,680 @@
+[
+  {
+    "port": 8777,
+    "runtime": "WSL Python3.12",
+    "jobs": [
+      {
+        "id": "Jefe2e9d4aa92483080d5b73c610d699f",
+        "operation": "import_table",
+        "state": "SUCCEEDED",
+        "arguments": {
+          "data_id": "D48945fad612f492bb8cab7473fcb277f",
+          "mapping": {
+            "columns": {
+              "하중": {
+                "column": 1,
+                "unit": "N",
+                "component": "Y",
+                "location": "loadcell",
+                "scale": 1,
+                "offset": 0,
+                "axis": {
+                  "column": 0,
+                  "name": "time",
+                  "unit": "s"
+                },
+                "reduction": "none"
+              }
+            },
+            "delimiter": ",",
+            "skip_header": 1
+          }
+        },
+        "responses": {
+          "하중": {
+            "axes": [
+              {
+                "name": "time",
+                "unit": "s",
+                "values": [
+                  0.0,
+                  0.1,
+                  0.2,
+                  0.3,
+                  0.4
+                ]
+              }
+            ],
+            "component": "Y",
+            "coordinate_system": "UNSPECIFIED",
+            "kind": "series",
+            "location": "loadcell",
+            "mapping": {
+              "axis": {
+                "column": 0,
+                "name": "time",
+                "unit": "s"
+              },
+              "column": 1,
+              "component": "Y",
+              "location": "loadcell",
+              "offset": 0,
+              "reduction": "none",
+              "scale": 1,
+              "unit": "N"
+            },
+            "reduction": "none",
+            "source_selector": {
+              "axis": {
+                "column": 0,
+                "name": "time",
+                "unit": "s"
+              },
+              "column": 1,
+              "file": "source.csv"
+            },
+            "unit": "N",
+            "value": [
+              0.0,
+              2.0,
+              4.0,
+              3.0,
+              1.0
+            ]
+          }
+        },
+        "method": null,
+        "rmse": null,
+        "mae": null,
+        "count": 1
+      },
+      {
+        "id": "Jb4aa9bb5b13a4ba682d6fc705cfca42f",
+        "operation": "import_table",
+        "state": "SUCCEEDED",
+        "arguments": {
+          "data_id": "Df68a7b0a28774e4b8472846053be3e0e",
+          "mapping": {
+            "columns": {
+              "하중": {
+                "column": 1,
+                "unit": "N",
+                "component": "Y",
+                "location": "loadcell",
+                "scale": 1,
+                "offset": 0,
+                "axis": {
+                  "column": 0,
+                  "name": "time",
+                  "unit": "s"
+                },
+                "reduction": "none"
+              }
+            },
+            "delimiter": ",",
+            "skip_header": 1
+          }
+        },
+        "responses": {
+          "하중": {
+            "axes": [
+              {
+                "name": "time",
+                "unit": "s",
+                "values": [
+                  0.0,
+                  0.1,
+                  0.2,
+                  0.3,
+                  0.4
+                ]
+              }
+            ],
+            "component": "Y",
+            "coordinate_system": "UNSPECIFIED",
+            "kind": "series",
+            "location": "loadcell",
+            "mapping": {
+              "axis": {
+                "column": 0,
+                "name": "time",
+                "unit": "s"
+              },
+              "column": 1,
+              "component": "Y",
+              "location": "loadcell",
+              "offset": 0,
+              "reduction": "none",
+              "scale": 1,
+              "unit": "N"
+            },
+            "reduction": "none",
+            "source_selector": {
+              "axis": {
+                "column": 0,
+                "name": "time",
+                "unit": "s"
+              },
+              "column": 1,
+              "file": "source.csv"
+            },
+            "unit": "N",
+            "value": [
+              0.0,
+              2.2,
+              4.1,
+              2.9,
+              1.0
+            ]
+          }
+        },
+        "method": null,
+        "rmse": null,
+        "mae": null,
+        "count": 1
+      },
+      {
+        "id": "J842ff29e5d764a00a7dcbd739dc97ac3",
+        "operation": "compare",
+        "state": "SUCCEEDED",
+        "arguments": {
+          "prediction_job": "Jb4aa9bb5b13a4ba682d6fc705cfca42f",
+          "prediction_response": "하중",
+          "observation_job": "Jefe2e9d4aa92483080d5b73c610d699f",
+          "observation_response": "하중",
+          "options": {
+            "weight": 1,
+            "scale": 1
+          }
+        },
+        "responses": {
+          "observation": {
+            "axes": [
+              {
+                "name": "time",
+                "unit": "s",
+                "values": [
+                  0.0,
+                  0.1,
+                  0.2,
+                  0.3,
+                  0.4
+                ]
+              }
+            ],
+            "component": "Y",
+            "coordinate_system": "UNSPECIFIED",
+            "kind": "series",
+            "location": "loadcell",
+            "mapping": {
+              "axis": {
+                "column": 0,
+                "name": "time",
+                "unit": "s"
+              },
+              "column": 1,
+              "component": "Y",
+              "location": "loadcell",
+              "offset": 0,
+              "reduction": "none",
+              "scale": 1,
+              "unit": "N"
+            },
+            "reduction": "none",
+            "source_selector": {
+              "axis": {
+                "column": 0,
+                "name": "time",
+                "unit": "s"
+              },
+              "column": 1,
+              "file": "source.csv"
+            },
+            "unit": "N",
+            "value": [
+              0.0,
+              2.0,
+              4.0,
+              3.0,
+              1.0
+            ],
+            "mask": [
+              true,
+              true,
+              true,
+              true,
+              true
+            ]
+          },
+          "prediction": {
+            "axes": [
+              {
+                "name": "time",
+                "unit": "s",
+                "values": [
+                  0.0,
+                  0.1,
+                  0.2,
+                  0.3,
+                  0.4
+                ]
+              }
+            ],
+            "component": "Y",
+            "kind": "series",
+            "location": "loadcell",
+            "unit": "N",
+            "mask": [
+              true,
+              true,
+              true,
+              true,
+              true
+            ],
+            "coordinate_system": "UNSPECIFIED",
+            "mapping": {
+              "axis": {
+                "column": 0,
+                "name": "time",
+                "unit": "s"
+              },
+              "column": 1,
+              "component": "Y",
+              "location": "loadcell",
+              "offset": 0,
+              "reduction": "none",
+              "scale": 1,
+              "unit": "N"
+            },
+            "reduction": "none",
+            "source_selector": {
+              "axis": {
+                "column": 0,
+                "name": "time",
+                "unit": "s"
+              },
+              "column": 1,
+              "file": "source.csv"
+            },
+            "value": [
+              0.0,
+              2.2,
+              4.1,
+              2.9,
+              1.0
+            ],
+            "alignment": "linear interpolation onto observation axis"
+          }
+        },
+        "method": "linear_axis_alignment",
+        "rmse": 0.10954451150103324,
+        "mae": 0.07999999999999999,
+        "count": 5
+      }
+    ]
+  },
+  {
+    "port": 8779,
+    "runtime": "native Windows managed CPython 3.12.14",
+    "jobs": [
+      {
+        "id": "J4ec76c7afa814387bec546ce578e3744",
+        "operation": "evaluate",
+        "state": "SUCCEEDED",
+        "arguments": {
+          "backend": "material.felupe",
+          "settings": {
+            "time": [
+              0,
+              1,
+              2
+            ],
+            "deformation_gradient": [
+              [
+                [
+                  1,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ],
+              [
+                [
+                  1.001,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ],
+              [
+                [
+                  1.002,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ]
+            ],
+            "stress_unit": "MPa",
+            "model": "linear_elastic",
+            "parameters": {
+              "E": 1000,
+              "nu": 0.25
+            }
+          }
+        },
+        "responses": {
+          "stress_xx": {
+            "axes": [
+              {
+                "name": "time",
+                "unit": "s",
+                "values": [
+                  0.0,
+                  1.0,
+                  2.0
+                ]
+              }
+            ],
+            "component": "xx",
+            "frame": "material_cartesian",
+            "kind": "series",
+            "location": "material_point",
+            "measure": "infinitesimal_Cauchy",
+            "reduction": "none",
+            "unit": "MPa",
+            "value": [
+              0.0,
+              1.1999999999998678,
+              2.400000000000002
+            ]
+          }
+        },
+        "method": null,
+        "rmse": null,
+        "mae": null,
+        "count": 1
+      },
+      {
+        "id": "J101ac3d8972940d0aa59dbe2b00955b6",
+        "operation": "evaluate",
+        "state": "SUCCEEDED",
+        "arguments": {
+          "backend": "material.felupe",
+          "settings": {
+            "model": "linear_elastic",
+            "parameters": {
+              "E": 1500,
+              "nu": 0.25
+            },
+            "stress_unit": "MPa",
+            "time_unit": "s",
+            "time": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "deformation_gradient": [
+              [
+                [
+                  1,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ],
+              [
+                [
+                  1.001,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ],
+              [
+                [
+                  1.002,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ],
+              [
+                [
+                  1.003,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ]
+            ]
+          }
+        },
+        "responses": {
+          "stress_xx": {
+            "axes": [
+              {
+                "name": "time",
+                "unit": "s",
+                "values": [
+                  0.0,
+                  1.0,
+                  2.0,
+                  3.0
+                ]
+              }
+            ],
+            "component": "xx",
+            "frame": "material_cartesian",
+            "kind": "series",
+            "location": "material_point",
+            "measure": "infinitesimal_Cauchy",
+            "reduction": "none",
+            "unit": "MPa",
+            "value": [
+              0.0,
+              1.7999999999998018,
+              3.600000000000003,
+              5.399999999999805
+            ]
+          }
+        },
+        "method": null,
+        "rmse": null,
+        "mae": null,
+        "count": 1
+      },
+      {
+        "id": "Ja80b7371342148b0b23ad678a1fc6a6f",
+        "operation": "evaluate",
+        "state": "SUCCEEDED",
+        "arguments": {
+          "backend": "material.felupe",
+          "settings": {
+            "model": "linear_elastic",
+            "parameters": {
+              "E": 1500,
+              "nu": 0.25
+            },
+            "stress_unit": "MPa",
+            "time_unit": "s",
+            "time": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "deformation_gradient": [
+              [
+                [
+                  1,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ],
+              [
+                [
+                  1.001,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ],
+              [
+                [
+                  1.002,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ],
+              [
+                [
+                  1.003,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ]
+            ]
+          },
+          "label": "Windows 단독 실행 · E=1500 MPa"
+        },
+        "responses": {
+          "stress_xx": {
+            "axes": [
+              {
+                "name": "time",
+                "unit": "s",
+                "values": [
+                  0.0,
+                  1.0,
+                  2.0,
+                  3.0
+                ]
+              }
+            ],
+            "component": "xx",
+            "frame": "material_cartesian",
+            "kind": "series",
+            "location": "material_point",
+            "measure": "infinitesimal_Cauchy",
+            "reduction": "none",
+            "unit": "MPa",
+            "value": [
+              0.0,
+              1.7999999999998018,
+              3.600000000000003,
+              5.399999999999805
+            ]
+          }
+        },
+        "method": null,
+        "rmse": null,
+        "mae": null,
+        "count": 1
+      }
+    ]
+  }
+]

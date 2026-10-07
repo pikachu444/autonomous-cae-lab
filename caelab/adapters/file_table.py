@@ -6,6 +6,72 @@ import numpy as np
 from ..evaluation import PreparedEvaluation, file_hash
 
 
+def preview_table(text, *, truncated=False):
+    """Suggest a bounded table layout, never physical meaning or a parsed result.
+
+    Column indices deliberately avoid NumPy's header-name normalization. The
+    user still confirms every mapping and unit before the existing reader runs.
+    Complex native blocks remain the responsibility of their registered reader.
+    """
+    import csv
+    lines = text.lstrip('\ufeff').splitlines(keepends=True)
+    if truncated and lines and not lines[-1].endswith(('\n', '\r')):
+        lines.pop()  # Do not present a cut record as a complete sample.
+    # Match genfromtxt's comment/quoting rules. Other solver block formats are
+    # deliberately not given a layout suggestion by this simple table reader.
+    if any(line.lstrip().startswith(('!', '$')) or '"' in line for line in lines):
+        return None
+    candidates = [(i, line.split('#', 1)[0]) for i, line in enumerate(lines)
+                  if line.split('#', 1)[0].strip()]
+    if not candidates:
+        return None
+    sample = '\n'.join(line.rstrip('\r\n') for _, line in candidates[:12])
+    try:
+        delimiter = csv.Sniffer().sniff(sample, delimiters=',;\t').delimiter
+    except csv.Error:
+        delimiter = None
+    try:
+        rows = [(i, next(csv.reader([line], delimiter=delimiter)) if delimiter
+                 else line.split()) for i, line in candidates[:12]]
+    except (csv.Error, StopIteration):
+        return None
+
+    def numeric(row):
+        try:
+            # NaN/Inf are numeric records, not a header that may be skipped.
+            # The actual reader rejects their nonfinite values explicitly.
+            for value in row:
+                float(value.replace('D', 'E').replace('d', 'e'))
+            return bool(row)
+        except ValueError:
+            return False
+
+    first_index, first = rows[0]
+    if not first or len(first) > 128:
+        return None
+    has_header = not numeric(first)
+    if has_header:
+        # A mixed numeric/broken first record must not silently disappear.
+        for value in first:
+            try:
+                float(value.replace('D', 'E').replace('d', 'e'))
+            except ValueError:
+                continue
+            return None
+    if has_header and (len(rows) < 2 or len(rows[1][1]) != len(first) or not numeric(rows[1][1])):
+        return None
+    data = rows[1:] if has_header else rows
+    if not data:
+        return None
+    return {'delimiter': {None: 'space', '\t': 'tab'}.get(delimiter, delimiter),
+            'headers': [value.strip() for value in first] if has_header else
+                       [f'열 {i + 1}' for i in range(len(first))],
+            'column_keys': list(range(len(first))), 'has_header': has_header,
+            'skip_rows': first_index + int(has_header),
+            'rows': [values for _, values in data[:8]],
+            'truncated': bool(truncated or len(data) > 8)}
+
+
 def read_table(path, mapping):
     source = Path(path).resolve()
     if not source.is_file() or not source.stat().st_size:
@@ -27,7 +93,7 @@ def read_table(path, mapping):
     else:
         # Explicitly support Fortran scientific exponents in numeric text.
         import re
-        with source.open(encoding='utf-8') as stream:
+        with source.open(encoding='utf-8-sig') as stream:
             lines=(re.sub(r'(?<=\d)[dD](?=[+-]?\d)', 'E', line) for line in stream)
             data = np.genfromtxt(lines, delimiter=delimiter, names=True if named else None,
                              dtype=float, encoding='utf-8', skip_header=int(mapping.get('skip_header', 0)),

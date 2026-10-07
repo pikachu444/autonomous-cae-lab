@@ -136,8 +136,17 @@ class Workbench:
         path=self.input_path(identifier)
         if path.suffix in {'.pdf','.npz'}:
             return {'id':identifier,'kind':path.suffix,'preview':'Binary input; select a document or numeric reader'}
-        with path.open(encoding='utf-8') as stream:
-            return {'id':identifier,'text':stream.read(16384)}
+        with path.open(encoding='utf-8-sig') as stream:
+            sample=stream.read(16385)
+        truncated=len(sample)>16384
+        text=sample[:16384]
+        result={'id':identifier,'text':text,'truncated':truncated}
+        if path.suffix in {'.csv','.txt','.dat','.asc'}:
+            from .adapters.file_table import preview_table
+            table=preview_table(text,truncated=truncated)
+            if table is not None:
+                result['table_preview']=table
+        return result
 
     def backends(self):
         return list_backends()+[{'id':identifier,'roles':['external'],'native_runtime':config.get('label','Operator-registered program'),
@@ -192,6 +201,8 @@ class Workbench:
     def submit(self, operation, arguments, *, request_id=None, resources=None):
         if operation not in OPERATIONS or not isinstance(arguments,dict):
             raise ValueError('Select a registered operation with JSON arguments')
+        if 'label' in arguments and (not isinstance(arguments['label'],str) or len(arguments['label'])>160):
+            raise ValueError('Research name must be text of at most 160 characters')
         if set(arguments)&{'output','record','runtime','command','factory','module','source_roots'}:
             raise ValueError('Output, runtime and execution registrations are operator-owned')
         if isinstance(arguments.get('backend'),str) and arguments['backend'] not in {row['id'] for row in self.backends()}:
@@ -304,6 +315,7 @@ class Workbench:
 
     def _execute(self, operation, arguments, identifier):
         args=deepcopy(arguments)
+        args.pop('label',None)  # Retained job metadata, never a solver parameter.
         backend=args.get('backend')
         if backend is not None:
             args['settings']=self._settings(backend,args.get('settings',{}))

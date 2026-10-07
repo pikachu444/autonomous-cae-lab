@@ -1,5 +1,80 @@
 # Current workbench implementation
 
+## Windows installation and usability continuation — 2026-10-08
+
+Product source `6d9909f830b50f924d17ff8e3278dad9a491bd50` adds the actual
+online Windows path and guided workflows after PR #3 was merged as `59577ed`.
+The user's priority is Windows without WSL, then a future Linux server connection.
+Offline distribution is a design consideration only: no bundle was implemented.
+[Windows quick start](WINDOWS_QUICKSTART.md) gives the double-click entry and scope.
+
+- `Start-CAE-Lab.cmd` reuses fixed, hash-verified uv to install private Python3.12
+  and numerical/material packages. Actual stock PowerShell5.1 tests cover a fresh
+  managed interpreter, a source ZIP without the upstream submodule, spaced/trailing
+  paths, same-store reopening, different-store rejection and an owned explicit stop.
+  No WSL, preinstalled Python, Git or admin rights were used by this bootstrap.
+  uv's minor-version junction check failed on this host after unpacking Python;
+  the completed private interpreter was verified and used directly. There is no
+  silent fallback to system Python. Exact uv0.12.19/Python3.12.14 receipts remain.
+- Root reran the final script and real HTTP FELUPE job
+  `J0ec1660e55614a24bef499ba902de25e`: 1.2MPa agrees with the analytical constrained
+  Hooke response for E1000MPa, nu.25, strain.001. An independent installed-wheel
+  test outside the checkout also passed CSV/FELUPE/SciPy LHS/HTTP. That immutable
+  wheel predates final UI edits; it is packaging evidence, not a new solver result.
+- The Windows browser actually changed E to1500MPa and submitted named job
+  `Ja80b7371342148b0b23ad678a1fc6a6f`; stress_xx is [0,1.8,3.6,5.4]MPa. The final
+  source was restarted and the same result reopened. Expert follow-up selection
+  opens the proper panel with that result selected; no model call was made in this
+  fresh, deliberately unconfigured installation.
+- Actual file chooser uploads of two Korean-header CSVs in a fresh store used
+  explicit axis/units/component/location, produced two real imports and comparison
+  `J842ff29e5d764a00a7dcbd739dc97ac3`: RMSE .1095445115N and MAE .08N. Both curves
+  overlay; a selected three-row report window contains three samples per curve.
+  The UI explicitly says error metrics belong to the whole five-sample comparison.
+- Independent review caught a first-row NaN/Inf being guessed as a header. The
+  corrected preview preserves numeric invalid rows, rejects ambiguous mixed rows
+  as a suggestion, aligns BOM/`#` comments with NumPy and declines unsupported
+  quoting/solver-block formats. The real reader remains authoritative and rejects
+  invalid values. Units are never guessed. File names and user research names now
+  distinguish jobs; internal IDs/raw values remain available in details.
+- CAD linkage was separately exercised using the existing integration: an editable
+  public FCStd length changed12→16mm, new revision `E-native-box-revision-r01`,
+  volume1280mm3, 905 C3D10 elements/1714 retained nodes, actual Gmsh/CalculiX solve,
+  matching native revision/export/input, analytical normalized error3.4983e-7
+  under the unchanged1e-5 gate. This is one supported solid, not arbitrary CAD
+  feature reconstruction or generic-CAD shape optimization qualification.
+
+Final Windows repeat: actual two-file comparison `J2026025f383c4dfea14e61e312bff955` reproduces the same errors and five samples in the private Windows store. Browser inspection found grid min-content overflow; the CSS follow-up permits columns to shrink. Measured document width now equals viewport width (1265px), with both curves visible. The extra public screenshot records this final view.
+
+Validation: **121 Python workbench tests and19 Node UI tests passed**. Independent
+UI/parser and Windows launcher reviews closed their bounded findings. Windows CI
+now includes table-preview regressions and the actual private-runtime HTTP smoke.
+CI for this new commit is separate from the previous source verification below.
+The merged59577ed run37674032477 finished9 successful jobs and Code_Aster failed;
+no new canonical solver success is claimed by this UI/installation change.
+
+Final product source is `a06b747729cce7cec169281747bcfc2b248a0f13` (the
+`6d9909f` implementation plus the bounded grid correction).
+[PR #4](https://github.com/pikachu444/autonomous-cae-lab/pull/4) carries this increment.
+Exact [CI 37696870570](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37696870570)
+completed **Core PASS: 6590 Python tests, 10 skipped**, and **Windows PASS: 121
+Python / 19 Node tests plus fresh private-runtime HTTP calculation**, before this
+documentation checkpoint. CI job `J5954f8a33ae6498a9c52449a80418b68` produced
+1.2MPa. Tested PR merge `02717bc83a7270b56547a8a73ad574499b3f4349` and the source
+head have identical tree `d8cefb53e6e5aa2e6c191030ce42c6188450170d`.
+Native jobs were still running at this checkpoint; no overall workflow or new
+canonical solver PASS is claimed. Subsequent evidence/documentation commits do
+not change the tested product source or constitute another solver verification.
+
+Evidence, hashes, precise limitations and retained stores:
+[`20261008-windows-usability.json`](../benchmarks/records/20261008-windows-usability.json).
+The public UI snapshot and three screenshots contain only synthetic verification
+data. Private install logs and original run artifacts remain local. The existing
+52-section requirements and Code_Aster F05/physical/company release gates remain
+open as previously recorded. Basic Windows installation does not certify every
+native backend on Windows. Continue with those explicit gaps; a merged usability
+bundle is not whole-system completion.
+
 ## Scope status for the R1–R5 continuation
 
 | Area | Actual status and boundary |

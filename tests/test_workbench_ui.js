@@ -129,3 +129,46 @@ test('Explicit session refresh obtains a new token before reloading without resu
  await assert.rejects(ui.refreshSession(async()=>({token:''}),()=>order.push('changed'),async()=>order.push('reload-again')),/Session token/);
  assert.deepEqual(order,['overview','token:new-session-token','reload']);
 });
+
+test('Numeric file preview proposes actual zero-based columns without inventing units',()=>{
+ const preview={id:'D1',text:'time,force\n0,10',table_preview:{delimiter:',',headers:['time','force'],column_keys:[0,1],has_header:true,skip_rows:1,rows:[['0','10']],truncated:false}};
+ const proposal=ui.tablePreviewProposal(preview);
+ assert.deepEqual(proposal.keys,[0,1]);assert.equal(proposal.axis,0);assert.equal(proposal.response,1);
+ assert.equal(proposal.responseName,'force');assert.equal(proposal.skipRows,1);
+ assert.equal(Object.hasOwn(proposal,'unit'),false);
+ assert.equal(ui.tablePreviewProposal({text:'plain document'}),null);
+ assert.equal(ui.tablePreviewProposal({table_preview:{...preview.table_preview,column_keys:['time','force']}}),null);
+});
+
+test('Korean job and result summaries use retained values and explicit statuses',()=>{
+ const job={id:'J1',operation:'analyze',state:'SUCCEEDED',created_utc:'2026-10-08T00:00:00Z',arguments:{job_id:'Jdoe'}};
+ assert.match(ui.jobLabel(job),/후보 영향도 분석/);
+ assert.match(ui.jobLabel(job),/저장된 후보 분석/);
+ const result={candidate_count:8,candidates:[{execution_status:'SUCCEEDED'},{execution_status:'FAILED'}],statistics:[{metric:'peak_force',unit:'N',count:1,min:12.34,max:12.34}],decision:'NOT_RELEASED'};
+ const summary=ui.resultSummary(result,job).join(' ');
+ assert.match(summary,/후보 영향도 분석 · 완료/);assert.match(summary,/후보 2개 중 1개 계산 완료/);
+ assert.match(summary,/peak_force: 유효 표본 1개/);assert.match(summary,/12\.34 N/);
+ assert.match(summary,/NOT_RELEASED/);
+ assert.equal(ui.formatNumber(Number.NaN,'N'),'값 없음');
+});
+
+test('Expert proposal summary distinguishes a bounded draft from an executed action',()=>{
+ const action={executed:false,plan:{purpose:'힘 영향 확인',operation:'doe',inputs:{backend:'external.oscillator',variables:[{id:'mass_kg',unit:'kg',lower:1,upper:2}]},budget:{evaluations:8}}};
+ const summary=ui.proposalSummary(action);
+ assert.equal(summary.purpose,'힘 영향 확인');assert.equal(summary.operation,'조건 탐색 DOE');
+ assert.equal(summary.evaluations,8);assert.equal(summary.executed,false);
+ assert.deepEqual(summary.variables,[{name:'mass_kg',unit:'kg',lower:1,upper:2}]);
+ assert.equal(ui.proposalSummary({answer:'just prose'}),null);
+});
+
+test('Comparison report overlays the retained window and labels whole-comparison errors',()=>{
+ const response=value=>({kind:'series',value,unit:'N',component:'Y',location:'sensor',axes:[{name:'time',unit:'s',values:[1,2,3]}]});
+ const result={method:'linear_axis_alignment',count:5,rmse:.10954,mae:.08,
+  observation:response([99,99,99]),prediction:[99,99,99],
+  responses:{observation:response([2,4,3]),prediction:response([2.2,4.1,2.9])}};
+ const report=ui.reportHTML(result,{operation:'compare',state:'SUCCEEDED'});
+ assert.equal((report.match(/<svg /g)||[]).length,1);
+ assert.equal((report.match(/<polyline /g)||[]).length,2);
+ assert.match(report,/관측·예측 곡선 비교/);assert.match(report,/전체 비교 표본 5개 기준/);
+ assert.match(report,/3 retained samples/);assert.doesNotMatch(report,/99\.00/);
+});
