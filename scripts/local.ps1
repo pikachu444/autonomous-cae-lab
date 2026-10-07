@@ -53,12 +53,24 @@ if ((Get-OpenScienceMcpGitTransportMode -RepoRoot $projectRoot) -cne 'NATIVE_WSL
         -not $labOriginalWslPath -or $labOriginalWslPath -match '[\r\n]') { throw 'Could not read the existing one-line WSL command path.' }
     $labGitEnvironment = @("PATH=${labGitBridgeDirectory}:$labOriginalWslPath", "CAELAB_HOST_GIT=$labHostGitWsl", "CAELAB_GIT_CONFIG=$labGitConfigWsl")
 }
+$labOptionalEnvironment = @()
+$labNativeConfig = "$RuntimeRoot/native-environment.json"
+& wsl.exe -d $Distribution -- test -f $labNativeConfig
+if ($LASTEXITCODE -eq 0) {
+    $labNativeValues = (& wsl.exe -d $Distribution -- cat $labNativeConfig) | ConvertFrom-Json -AsHashtable
+    foreach ($labNativeKey in $labNativeValues.Keys) {
+        if ($labNativeKey -notin @('CAELAB_MFRONT_PREPARED_LIBRARY','CAELAB_MFRONT_PREPARED_LIBRARY_SHA256')) {
+            throw 'Unknown operator native runtime registration.'
+        }
+        $labOptionalEnvironment += "$labNativeKey=$($labNativeValues[$labNativeKey])"
+    }
+}
 & wsl.exe -d $Distribution --cd $projectWslPath -- env `
     MPLBACKEND=Agg OMP_NUM_THREADS=2 QT_QPA_PLATFORM=offscreen `
     "FREECAD_APPIMAGE=$RuntimeRoot/FreeCAD_1.1.4-Linux-x86_64-py311.AppImage" `
     "FREECAD_CMD=$RuntimeRoot/freecad_cmd.sh" `
     "CAELAB_CODEASTER_IMAGE=$RuntimeRoot/code_aster_17.4.0-oci.sif" `
     CAELAB_CODEASTER_IMAGE_SHA256=f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64 `
-    "CAELAB_OPENRADIOSS_ROOT=$RuntimeRoot/openradioss-latest-20260728/OpenRadioss" `
-    CAELAB_FENICSX_PYTHON=/usr/bin/python3 @labGitEnvironment $pythonPath @PythonArgs
+    "CAELAB_OPENRADIOSS_ROOT=$RuntimeRoot/opencourant-latest-20261006/OpenCourant" `
+    CAELAB_FENICSX_PYTHON=/usr/bin/python3 @labGitEnvironment @labOptionalEnvironment $pythonPath @PythonArgs
 exit $LASTEXITCODE

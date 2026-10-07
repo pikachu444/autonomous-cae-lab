@@ -17,6 +17,17 @@ RELEASE = "latest-20260728"
 SOURCE_COMMIT = "a62b27e6baa555d222a580d6218867d0be4d70b5"
 ARCHIVE_SHA256 = "598ed7b2905a7bacc8d1781470c250ac79d7558c39ba962768edf3644644fe33"
 CONFIGURATION_SHA256 = "201fbbf6a17fa97e1a7ce301d215ad4712c0aab7bc88b31d566b46cfb0a89433"
+OPENCOURANT_RELEASE = "latest-20261006"
+OPENCOURANT_SOURCE_COMMIT = "33e685176cccf0c539a3ce07aa2096985a284e2a"
+OPENCOURANT_ARCHIVE_SHA256 = "9d67531de156dd9beba05fbfe710dcdc2bcecbdf3dc3a12642cf85dcece80081"
+OPENCOURANT_CONFIGURATION_SHA256 = "eb3da6fefb68d156460f06d1132afe5275492b8c32df54b0b3cebd9723c0a90f"
+OPENCOURANT_RUNTIME_HASHES = {
+    "exec/starter_linux64_gf": "122c09311ecf6155fb998cd980d4c478c01734fdd1d4287e6f7a817b62e39db8",
+    "exec/engine_linux64_gf": "9e2a9c0a674765c20d997f2205431477ad871839268f26b46b700bca3d2b20df",
+    "extlib/hm_reader/linux64/libhm_reader_linux64.so": "8df18883dc50bb29295f87c669d7ede95c8bc3de856c402c2daa741f272d1676",
+    "extlib/hm_reader/linux64/libapr-1.so.0": "f76d9796e59b675cb374fc3f3403f7878bdcb348e4c6f8af017c3dc3046be89c",
+    "extlib/h3d/lib/linux64/libh3dwriter.so": "9975a8faf57853a06237a370cd3b8c76479ebf59fb41edc9ff95b6e1fd8bb675",
+}
 RUNTIME_HASHES = {
     "exec/starter_linux64_gf": "65f1bd91c1b1dcad18234aca7797fa9e2c53a1a2cf1a4b3f5d6be4154c62c8e4",
     "exec/engine_linux64_gf": "7fdedddbcf5753a53d7c8d8872aa6ead3b4e9983237997f6dd3b8cdd8375e3ed",
@@ -123,31 +134,46 @@ def decks(settings):
 def runtime():
     value = os.environ.get("CAELAB_OPENRADIOSS_ROOT")
     if not value:
-        raise RuntimeError("Set CAELAB_OPENRADIOSS_ROOT to the isolated pinned official runtime")
+        raise RuntimeError("Set CAELAB_OPENRADIOSS_ROOT to an isolated pinned native runtime")
     root = Path(value).resolve()
-    archive = root.parent / "OpenRadioss_linux64.zip"
-    if sha256(archive) != ARCHIVE_SHA256:
-        raise RuntimeError("Preserved official OpenRadioss archive does not match its published SHA256")
-    hashes = {name: sha256(root / name) for name in RUNTIME_HASHES}
-    if hashes != RUNTIME_HASHES:
-        raise RuntimeError("OpenRadioss executable/library bytes do not match the pinned official release")
+    if root.name == "OpenCourant":
+        archive = root.parent / "OpenCourant_linux64.zip"
+        expected_archive_sha = OPENCOURANT_ARCHIVE_SHA256
+        expected_hashes = OPENCOURANT_RUNTIME_HASHES
+        expected_configuration_sha = OPENCOURANT_CONFIGURATION_SHA256
+        release, source_commit = OPENCOURANT_RELEASE, OPENCOURANT_SOURCE_COMMIT
+    elif root.name == "OpenRadioss":
+        archive = root.parent / "OpenRadioss_linux64.zip"
+        expected_archive_sha = ARCHIVE_SHA256
+        expected_hashes = RUNTIME_HASHES
+        expected_configuration_sha = CONFIGURATION_SHA256
+        release, source_commit = RELEASE, SOURCE_COMMIT
+    else:
+        raise RuntimeError("Unqualified native runtime root")
+    if sha256(archive) != expected_archive_sha:
+        raise RuntimeError("Pinned native archive does not match its published SHA256")
+    hashes = {name: sha256(root / name) for name in expected_hashes}
+    if hashes != expected_hashes:
+        raise RuntimeError("Native executable/library bytes do not match the pinned release")
     configuration = hashlib.sha256()
     for path in sorted(p for p in (root / "hm_cfg_files").rglob("*") if p.is_file()):
         configuration.update(path.relative_to(root).as_posix().encode())
         configuration.update(hashlib.sha256(path.read_bytes()).digest())
     if not (root / "hm_cfg_files").is_dir():
         raise RuntimeError("Pinned native reader configurations are required")
-    if configuration.hexdigest() != CONFIGURATION_SHA256:
-        raise RuntimeError("Native reader configurations differ from the pinned official archive")
+    if configuration.hexdigest() != expected_configuration_sha:
+        raise RuntimeError("Native reader configurations differ from the pinned archive")
     env = dict(os.environ)
     # Each native child receives isolated library/configuration paths; no shell activation.
     env.update(OPENRADIOSS_PATH=str(root), RAD_CFG_PATH=str(root / "hm_cfg_files"),
                RAD_H3D_PATH=str(root / "extlib/h3d/lib/linux64"), OMP_NUM_THREADS="2", OMP_STACKSIZE="64m",
                LD_LIBRARY_PATH=os.pathsep.join(str(root / p) for p in ("extlib/hm_reader/linux64", "extlib/h3d/lib/linux64")),
                LC_ALL="C", LANG="C")
-    return root, env, {"release": RELEASE, "release_source_commit": SOURCE_COMMIT,
-                       "archive_sha256": ARCHIVE_SHA256, "critical_file_sha256": hashes,
-                       "configuration_sha256": configuration.hexdigest(), "license": "AGPL-3.0; bundled library terms also require deployment review"}
+    if root.name == "OpenCourant":
+        env["OPENCOURANT_PATH"] = str(root)
+    return root, env, {"release": release, "release_source_commit": source_commit,
+                       "archive_sha256": expected_archive_sha, "critical_file_sha256": hashes,
+                       "configuration_sha256": configuration.hexdigest(), "license": "AGPL-3.0-or-later; bundled library terms also require deployment review"}
 
 
 def _budget():
@@ -294,7 +320,7 @@ class OpenRadiossAdapter:
                 or (output / "drop_0001.rad").read_text(encoding="ascii") != engine):
             raise RuntimeError("Domain/runtime source changed during execution; evidence retained")
         try:
-            native = parse_history(output, s)
+            native = parse_history(output, s, identity)
             save_json(output / "parsed_history.json", native)
             assessment = domain.assess(s, native["rows"])
         except (ValueError, OSError) as exc:

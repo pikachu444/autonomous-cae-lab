@@ -1,4 +1,20 @@
-## New-session handoff — qualified startup / closure contradiction
+## 2026-10-08 — Local R1–R5 integration checkpoint
+
+PR #3 carries `codex/workbench-local-integration`; check its remote state before
+continuing. Keep this managed worktree: the configured local service uses it.
+Primary checkout user edits are preserved. `docs/WORKBENCH_PROGRESS.md` is the
+single current progress record; do not restart W1–W5 or the historical startup
+audit below. Native histories, multi-property fit/holdout, real external research,
+GUI DOE editing/analysis and live authorized research/testing experts are proven.
+Actual host reads after restart, interpretation and cancellation-continuation
+checks passed. Source is `9d0aeed`; exact CI run `37665791166` and PR#3 are
+recorded in the progress record. Raw paths/hashes are recorded in
+`benchmarks/records/20261008-local-workbench-integration.json`.
+Run `scripts/cae-research-local.ps1` to resume private local port8776/store.
+Canonical Code_Aster reaction and physical/company qualification remain open.
+---
+
+## Historical new-session handoff — qualified startup / closure contradiction
 
 A copyable full-scope prompt is in docs/NEXT_SESSION_PROMPT.md.
 User correction: recover and concretize the single roadmap and implementation

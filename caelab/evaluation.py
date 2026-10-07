@@ -140,7 +140,7 @@ def execute_model(adapter, output, settings):
     return outcome
 
 
-def _outcome_evaluation(outcome):
+def _outcome_evaluation(outcome, *, backend=None, output=None):
     responses = {}
     for name, metric in outcome.get('metrics', {}).items():
         if metric.get('valid'):
@@ -152,8 +152,13 @@ def _outcome_evaluation(outcome):
     solver_status = outcome.get('solver_status')
     status = ('CANCELLED' if solver_status == 'CANCELLED' else 'FAILED' if solver_status == 'FAILED_EXECUTION'
               else 'SUCCEEDED' if outcome.get('status') == 'COMPLETED' else 'REJECTED')
-    return {'execution_status': status, 'responses': responses, 'checks': outcome.get('checks', []),
-            'diagnostics': {'native_outcome': outcome, 'decision': 'NOT_RELEASED'}}
+    result = {'execution_status': status, 'responses': responses, 'checks': outcome.get('checks', []),
+              'diagnostics': {'native_outcome': outcome, 'decision': 'NOT_RELEASED'}}
+    if backend and output is not None and solver_status == 'COMPLETED':
+        from .adapters.native_responses import catalog_native_responses
+        result['native_channels'] = catalog_native_responses(backend, outcome, output)
+        result['native_result'] = {'backend':backend, 'directory':Path(output).name}
+    return result
 
 
 def save_evaluation(result, output, *, existing=False):
@@ -163,19 +168,31 @@ def save_evaluation(result, output, *, existing=False):
     folder.mkdir(parents=True, exist_ok=existing)
     if (folder / 'result.json').exists():
         raise FileExistsError('A result already exists; choose a new output')
-    arrays = []
+    arrays, shared = [], {}
     def pack(value):
-        if isinstance(value, np.ndarray) or (isinstance(value, list) and value and
-                all(isinstance(item, (int, float)) for item in value)):
-            array = np.asarray(value)
+        array = None
+        if isinstance(value, np.ndarray):
+            array = value
+        elif isinstance(value, list) and value and isinstance(value[0], (int, float, list)):
+            try:
+                candidate = np.asarray(value)
+                if candidate.dtype.kind in 'biuf':
+                    array = candidate
+            except (TypeError, ValueError):
+                pass
+        if array is not None:
             if array.dtype.kind not in 'biuf':
                 raise ValueError('Only numeric arrays can be persisted')
+            fingerprint = (array.dtype.str,array.shape,hashlib.sha256(np.ascontiguousarray(array).tobytes()).hexdigest())
+            if fingerprint in shared:
+                return {'data_ref': shared[fingerprint]}
             relative = f'arrays/a{len(arrays):06d}.npy'
             target = folder / relative
             target.parent.mkdir(exist_ok=True)
             with target.open('xb') as stream:
                 np.save(stream, array, allow_pickle=False)
             arrays.append({'path': relative, 'sha256': file_hash(target), 'shape': list(array.shape)})
+            shared[fingerprint] = arrays[-1]
             return {'data_ref': arrays[-1]}
         if isinstance(value, dict):
             return {key: pack(item) for key, item in value.items()}
@@ -192,7 +209,7 @@ def save_evaluation(result, output, *, existing=False):
     return packed
 
 
-def run(backend, settings, *, output, runtime=None, parent=None):
+def run(backend, settings, *, output, runtime=None, parent=None, selection=None):
     from .backends import get_backend
     from .execution_control import ExecutionCancelled, ExecutionCleanupFailed
     adapter = get_backend(backend)
@@ -216,7 +233,7 @@ def run(backend, settings, *, output, runtime=None, parent=None):
                                         native_folder, deepcopy(settings))
                 from .outcomes import validate_outcome
                 validate_outcome(outcome)
-            result = _outcome_evaluation(outcome)
+            result = _outcome_evaluation(outcome, backend=getattr(adapter,'backend',backend), output=native_folder)
         else:
             raise CapabilityUnavailable(f'{backend}: no file execution or prepared capability')
         result = normalize_evaluation(result)
@@ -231,6 +248,8 @@ def run(backend, settings, *, output, runtime=None, parent=None):
     result['backend'] = backend if isinstance(backend, str) else getattr(adapter, 'backend', 'trusted.python')
     result['settings'] = deepcopy(settings)
     save_evaluation(result, folder, existing=True)
+    if selection is not None:
+        return read_result(folder, selection=selection)
     return result
 
 
@@ -260,13 +279,7 @@ def read_result(path, *, verify='selected', selection=None):
                 verify_refs(item)
     if verify == 'all':
         verify_refs(result)
-    if selection is not None:
-        names = selection.get('responses') if isinstance(selection, dict) else selection
-        if names is not None:
-            if not set(names) <= result.get('responses', {}).keys():
-                raise ValueError('Unknown response selection')
-            result['responses'] = {name: result['responses'][name] for name in names}
-    def unpack(value):
+    def array_value(value):
         if isinstance(value, dict) and set(value) == {'data_ref'}:
             ref = value['data_ref']
             target = (root / ref['path']).resolve()
@@ -275,18 +288,60 @@ def read_result(path, *, verify='selected', selection=None):
             if verify != 'none' and file_hash(target) != ref['sha256']:
                 raise ValueError('Saved response array hash differs')
             import numpy as np
-            return np.load(target, allow_pickle=False).tolist()
+            return np.load(target, allow_pickle=False, mmap_mode='r')
+        return value
+    def unpack(value):
+        if isinstance(value, dict) and set(value) == {'data_ref'}:
+            return array_value(value).tolist()
         if isinstance(value, dict):
             return {key: unpack(item) for key, item in value.items()}
         if isinstance(value, list):
             return [unpack(item) for item in value]
         return value
+    if selection is not None:
+        # Fit and comparison records store curves outside the model-response
+        # map. Expose references to those same arrays for bounded UI/tool reads.
+        views=result.setdefault('responses',{})
+        def curve_views(observation, prediction, observed_name, predicted_name, mask=None, prediction_metadata=None):
+            if not isinstance(observation,dict) or observation.get('kind')!='series':
+                return
+            observed=deepcopy(observation)
+            if mask is not None:
+                observed['mask']=mask
+            views.setdefault(observed_name,observed)
+            if prediction is not None:
+                predicted={k:deepcopy(v) for k,v in observed.items() if k in ('kind','unit','component','location','axes','mask')}
+                predicted.update(deepcopy(prediction_metadata or {'source':{'status':'UNKNOWN_LEGACY_PREDICTION_PROVENANCE'}}))
+                predicted.update(value=prediction,alignment='linear interpolation onto observation axis')
+                views.setdefault(predicted_name,predicted)
+        curve_views(result.get('observation'),result.get('prediction'),'observation','prediction',result.get('mask'),result.get('prediction_metadata'))
+        for curve in result.get('curves',[]):
+            prefix=f"{curve.get('role')}: {curve.get('experiment_id')}"
+            curve_views(curve.get('observations'),curve.get('prediction'),
+                        prefix+' observed',prefix+' predicted',curve.get('mask'),curve.get('prediction_metadata'))
+    if selection is not None:
+        names = selection.get('responses') if isinstance(selection, dict) else selection
+        if names is not None:
+            if not isinstance(names,(list,tuple)) or not all(isinstance(name,str) for name in names):
+                raise ValueError('Response selection must be a list of names')
+            native = [name for name in names if name not in result.get('responses',{})]
+            if native:
+                # The saved outcome itself can contain packed numeric arrays.
+                # Restore and verify them before the reader compares identities.
+                outcome = unpack(result.get('diagnostics',{}).get('native_outcome',{}))
+                _select_native(result,root,native,outcome)
+            result['responses'] = {name: result['responses'][name] for name in names}
     if verify == 'all':
         for record in result.get('artifacts', []):
             artifact = (root / record['path']).resolve()
             if not artifact.is_relative_to(root) or file_hash(artifact) != record['sha256']:
                 raise ValueError('Saved native artifact hash differs')
-    result = unpack(result)
+    if isinstance(selection,dict) and 'native_channels' in result:
+        # Node IDs/coordinates form the selector catalog, not response fields.
+        # Clients need these descriptors to select a retained native location.
+        result['native_channels'] = unpack(result['native_channels'])
+    if isinstance(selection,dict) and selection.get('metadata_only'):
+        return result
     if isinstance(selection, dict):
         import numpy as np
         for name, response in list(result.get('responses', {}).items()):
@@ -295,7 +350,7 @@ def read_result(path, *, verify='selected', selection=None):
                 continue
             if response.get('kind') != 'series':
                 continue
-            values = np.asarray(response['value'])
+            values = np.asarray(array_value(response['value']))
             selected = np.arange(len(values))
             if 'rows' in selection:
                 start, stop = selection['rows']
@@ -305,9 +360,39 @@ def read_result(path, *, verify='selected', selection=None):
                 if axis is None:
                     raise ValueError('Selected response has no time axis')
                 lower, upper = selection['time_range']
-                coordinates = np.asarray(axis['values'])
+                coordinates = np.asarray(array_value(axis['values']))
                 selected = selected[(coordinates[selected] >= lower) & (coordinates[selected] <= upper)]
             response['value'] = values[selected].tolist()
             for axis in response.get('axes', []):
-                axis['values'] = np.asarray(axis['values'])[selected].tolist()
+                axis['values'] = np.asarray(array_value(axis['values']))[selected].tolist()
+            if response.get('mask') is not None:
+                response['mask'] = np.asarray(array_value(response['mask']))[selected].tolist()
+    if isinstance(selection, dict):
+        # A response selection must not hydrate unrelated, potentially huge
+        # diagnostics or saved native fields into an interactive response.
+        # Their hashed references remain available for a separate full read.
+        result['responses'] = unpack(result.get('responses', {}))
+    else:
+        result = unpack(result)
     return result
+
+
+def _select_native(result, root, names, outcome):
+    """Resolve only named native channels from this direct run's own directory."""
+    native=result.get('native_result',{})
+    directory=native.get('directory')
+    catalog=result.get('native_channels',{})
+    if not directory or not isinstance(directory,str):
+        raise ValueError(f'Unknown response selection; available: {list(result.get("responses",{}))}')
+    output=(root/directory).resolve()
+    if not output.is_relative_to(root) or not output.is_dir():
+        raise ValueError('Native result directory is unavailable or outside this result')
+    from .adapters.native_responses import read_native_response
+    for name in names:
+        group=name.split('@',1)[0]
+        if group not in catalog:
+            raise ValueError(f'Unknown native channel {name!r}; available: {list(catalog)}')
+        response=read_native_response(native['backend'],outcome,output,name)
+        if response['source']['sha256']!=catalog[group]['source']['sha256']:
+            raise ValueError('Native channel source hash differs from the saved result')
+        result['responses'][name]=response

@@ -1,0 +1,247 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>CAE research report</title><style>body{font:16px system-ui;max-width:1000px;margin:40px auto;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f4ef;padding:20px}svg{width:100%;height:auto;max-height:350px;border:1px solid #ddd}figure{margin:25px 0}figcaption{font-weight:600;margin:10px 0}</style><h1>CAE research report</h1><p>Actual recorded numerical results. When a saved row window is listed below, figures show only that consecutive window without downsampling; other arrays remain as hashed references. Units and conditions are retained below. Software verification and a numerical fit do not establish physical qualification. Raw research documents and conversation content are excluded.</p><pre>{
+  &quot;operation&quot;: &quot;analyze&quot;,
+  &quot;job_id&quot;: &quot;Jcabf6666d9e24925b5135d747fe43ab7&quot;,
+  &quot;state&quot;: &quot;SUCCEEDED&quot;,
+  &quot;input&quot;: {
+    &quot;job_id&quot;: &quot;J8bbbc7942c9046f9aed41babedbb9193&quot;,
+    &quot;responses&quot;: [
+      {
+        &quot;direction&quot;: &quot;minimize&quot;,
+        &quot;reduction&quot;: &quot;abs_max&quot;,
+        &quot;response&quot;: &quot;force&quot;,
+        &quot;unit&quot;: &quot;N&quot;
+      }
+    ]
+  },
+  &quot;source_candidate_input&quot;: {
+    &quot;backend&quot;: &quot;external.oscillator&quot;,
+    &quot;settings&quot;: {
+      &quot;conditions&quot;: {
+        &quot;duration_s&quot;: 1,
+        &quot;initial_displacement_m&quot;: 0.01,
+        &quot;initial_velocity_m_s&quot;: 0.05,
+        &quot;mass_kg&quot;: 1.2,
+        &quot;samples&quot;: 201
+      }
+    },
+    &quot;variables&quot;: [
+      {
+        &quot;id&quot;: &quot;stiffness&quot;,
+        &quot;lower&quot;: 40,
+        &quot;transform&quot;: &quot;linear&quot;,
+        &quot;unit&quot;: &quot;N/m&quot;,
+        &quot;upper&quot;: 130
+      },
+      {
+        &quot;id&quot;: &quot;damping&quot;,
+        &quot;lower&quot;: 0.8,
+        &quot;transform&quot;: &quot;linear&quot;,
+        &quot;unit&quot;: &quot;N s/m&quot;,
+        &quot;upper&quot;: 5
+      }
+    ],
+    &quot;count&quot;: 8,
+    &quot;seed&quot;: 41,
+    &quot;execution&quot;: {
+      &quot;max_evaluations&quot;: 8,
+      &quot;memory_mb&quot;: 2048,
+      &quot;mode&quot;: &quot;serial&quot;,
+      &quot;on_failure&quot;: &quot;stop&quot;,
+      &quot;threads&quot;: 1,
+      &quot;workers&quot;: 1
+    }
+  },
+  &quot;method&quot;: {
+    &quot;coordinates&quot;: [
+      &quot;linear&quot;,
+      &quot;linear&quot;
+    ],
+    &quot;count&quot;: 8,
+    &quot;method&quot;: &quot;scipy.latin_hypercube&quot;,
+    &quot;scipy_version&quot;: &quot;1.17.0&quot;,
+    &quot;seed&quot;: 41
+  },
+  &quot;responses&quot;: {},
+  &quot;candidate_count&quot;: 8,
+  &quot;failure_count&quot;: 0,
+  &quot;exclusions&quot;: [],
+  &quot;statistics&quot;: [
+    {
+      &quot;count&quot;: 8,
+      &quot;max&quot;: 1.352774335192987,
+      &quot;mean&quot;: 1.022229910802018,
+      &quot;metric&quot;: &quot;force&quot;,
+      &quot;min&quot;: 0.7353048127085515,
+      &quot;quantiles&quot;: {
+        &quot;q05&quot;: 0.7634932363224014,
+        &quot;q50&quot;: 1.030100171496149,
+        &quot;q95&quot;: 1.3197098212389256
+      },
+      &quot;std&quot;: 0.22135838443441302,
+      &quot;unit&quot;: &quot;N&quot;
+    }
+  ],
+  &quot;sensitivity&quot;: [
+    {
+      &quot;coefficients&quot;: [
+        {
+          &quot;coefficient&quot;: 1.0990343106274354,
+          &quot;parameter_id&quot;: &quot;stiffness&quot;,
+          &quot;parameter_unit&quot;: &quot;N/m&quot;,
+          &quot;unit&quot;: &quot;1&quot;
+        },
+        {
+          &quot;coefficient&quot;: 0.14650535617348448,
+          &quot;parameter_id&quot;: &quot;damping&quot;,
+          &quot;parameter_unit&quot;: &quot;N s/m&quot;,
+          &quot;unit&quot;: &quot;1&quot;
+        }
+      ],
+      &quot;condition_number&quot;: 2.461274446528984,
+      &quot;intercept&quot;: -1.570092458683775e-16,
+      &quot;method&quot;: &quot;NORMALIZED_MULTIVARIATE_LEAST_SQUARES&quot;,
+      &quot;metric&quot;: &quot;force&quot;,
+      &quot;rank&quot;: 3,
+      &quot;reason&quot;: null,
+      &quot;response_mean&quot;: 1.022229910802018,
+      &quot;response_std&quot;: 0.22135838443441302,
+      &quot;sample_ids&quot;: [
+        &quot;C000000&quot;,
+        &quot;C000001&quot;,
+        &quot;C000002&quot;,
+        &quot;C000003&quot;,
+        &quot;C000004&quot;,
+        &quot;C000005&quot;,
+        &quot;C000006&quot;,
+        &quot;C000007&quot;
+      ],
+      &quot;unit&quot;: &quot;N&quot;,
+      &quot;valid&quot;: true
+    }
+  ],
+  &quot;surrogate&quot;: [
+    {
+      &quot;coefficients&quot;: [
+        {
+          &quot;feature_id&quot;: &quot;F0&quot;,
+          &quot;unit&quot;: &quot;N&quot;,
+          &quot;value&quot;: 1.017773543965007
+        },
+        {
+          &quot;feature_id&quot;: &quot;F1&quot;,
+          &quot;unit&quot;: &quot;N&quot;,
+          &quot;value&quot;: 0.4562678478802898
+        },
+        {
+          &quot;feature_id&quot;: &quot;F2&quot;,
+          &quot;unit&quot;: &quot;N&quot;,
+          &quot;value&quot;: 0.055577875814564415
+        },
+        {
+          &quot;feature_id&quot;: &quot;F3&quot;,
+          &quot;unit&quot;: &quot;N&quot;,
+          &quot;value&quot;: -0.0006909156033366759
+        },
+        {
+          &quot;feature_id&quot;: &quot;F4&quot;,
+          &quot;unit&quot;: &quot;N&quot;,
+          &quot;value&quot;: 0.024352864892482434
+        },
+        {
+          &quot;feature_id&quot;: &quot;F5&quot;,
+          &quot;unit&quot;: &quot;N&quot;,
+          &quot;value&quot;: -0.002261324876718126
+        }
+      ],
+      &quot;condition_number&quot;: 20.864754532997626,
+      &quot;features&quot;: [
+        {
+          &quot;id&quot;: &quot;F0&quot;,
+          &quot;powers&quot;: {}
+        },
+        {
+          &quot;id&quot;: &quot;F1&quot;,
+          &quot;powers&quot;: {
+            &quot;stiffness&quot;: 1
+          }
+        },
+        {
+          &quot;id&quot;: &quot;F2&quot;,
+          &quot;powers&quot;: {
+            &quot;damping&quot;: 1
+          }
+        },
+        {
+          &quot;id&quot;: &quot;F3&quot;,
+          &quot;powers&quot;: {
+            &quot;stiffness&quot;: 2
+          }
+        },
+        {
+          &quot;id&quot;: &quot;F4&quot;,
+          &quot;powers&quot;: {
+            &quot;damping&quot;: 2
+          }
+        },
+        {
+          &quot;id&quot;: &quot;F5&quot;,
+          &quot;powers&quot;: {
+            &quot;damping&quot;: 1,
+            &quot;stiffness&quot;: 1
+          }
+        }
+      ],
+      &quot;limitations&quot;: [
+        &quot;The seed splits canonical original sample IDs into 75% training and 25% test (rounded up). Held-out responses never select the polynomial degree.&quot;,
+        &quot;Feature coordinates use the declared bounds, z=2*(x-lower)/(upper-lower)-1; coefficients retain the response unit. Degree selection uses training residual only.&quot;,
+        &quot;Held-out error is descriptive, with no accuracy acceptance threshold. No extrapolation or physical qualification is granted.&quot;
+      ],
+      &quot;method&quot;: &quot;SEEDED_HOLDOUT_LEAST_SQUARES&quot;,
+      &quot;metric&quot;: &quot;force&quot;,
+      &quot;model&quot;: &quot;quadratic&quot;,
+      &quot;normalization&quot;: [
+        {
+          &quot;lower_bound&quot;: 40,
+          &quot;parameter_id&quot;: &quot;stiffness&quot;,
+          &quot;unit&quot;: &quot;N/m&quot;,
+          &quot;upper_bound&quot;: 130
+        },
+        {
+          &quot;lower_bound&quot;: 0.8,
+          &quot;parameter_id&quot;: &quot;damping&quot;,
+          &quot;unit&quot;: &quot;N s/m&quot;,
+          &quot;upper_bound&quot;: 5
+        }
+      ],
+      &quot;rank&quot;: 6,
+      &quot;reason&quot;: null,
+      &quot;seed&quot;: 13,
+      &quot;test_ids&quot;: [
+        &quot;C000000&quot;,
+        &quot;C000007&quot;
+      ],
+      &quot;test_mae&quot;: 0.003037063827649493,
+      &quot;test_max_error&quot;: 0.005152119107888101,
+      &quot;test_rmse&quot;: 0.0037009749434010236,
+      &quot;train_ids&quot;: [
+        &quot;C000001&quot;,
+        &quot;C000002&quot;,
+        &quot;C000003&quot;,
+        &quot;C000004&quot;,
+        &quot;C000005&quot;,
+        &quot;C000006&quot;
+      ],
+      &quot;unit&quot;: &quot;N&quot;,
+      &quot;valid&quot;: true
+    }
+  ],
+  &quot;limitations&quot;: [
+    &quot;Statistics describe the eligible empirical DOE samples only; no population probability, confidence interval, failure probability or input origin is inferred.&quot;,
+    &quot;Normalized multivariate least-squares coefficients describe conditional sample associations, not causal effects or Sobol sensitivity indices.&quot;,
+    &quot;Surrogate validity means a supported finite fit with separate held-out error only; it is not an accuracy verdict or an extrapolation qualification.&quot;,
+    &quot;Pareto membership compares only eligible saved sample responses with their declared directions and exact units; it is not global optimality or physical feasibility.&quot;,
+    &quot;Failed or invalid rows are excluded as a common cohort without zero substitution. Material, model and physical qualification remain outside this analysis.&quot;
+  ],
+  &quot;qualification&quot;: &quot;NUMERICAL_SAMPLE_ANALYSIS_ONLY&quot;,
+  &quot;decision&quot;: &quot;NOT_RELEASED&quot;
+}</pre></html>

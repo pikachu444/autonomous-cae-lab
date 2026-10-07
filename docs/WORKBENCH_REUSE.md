@@ -101,6 +101,33 @@ MGIS/FELUPE/hyperelastic were absent from the current venv. Hyperelastic 0.10.2
 is another GPL3+ option but adds matplotlib and supplies no advantage for this
 minimal first path.
 
+### 2026-10-08 local native material follow-up
+
+The WSL SIF runtime actually ran pinned MFront/MTest Elasticity with independently
+varied E and Poisson ratio. The native two-property candidate record is
+`/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-mfront-2property-20261008-01`.
+For E=200 MPa, nu=.25, prescribed axial strain .001, MGIS returned physical
+stress xx=.24 MPa, yy=.08 MPa and energy .00012 MPa. For E=300 MPa, nu=.30,
+prescribed engineering shear .002, it returned stress xy=.23076923 MPa and
+energy .00023076923 MPa. Both completed fixed native checks. These are
+prescribed computational probes, not identified or qualified material data.
+
+`material.mfront.prepared` now implements an optional reusable native resource:
+an operator-registered compiled Elasticity library with a verified SHA-256,
+then one owned MGIS child process. The general evaluator does not rerun the
+fixed MFront/MTest qualification. Each candidate supplies both E and nu and receives a
+fresh material-state manager; history advances only inside that candidate.
+Source, library, input, output and candidate IDs are retained and checked.
+The A(E200,nu.25)→B(E300,nu.30)→A sequence at
+`.../runs/workbench-mfront-prepared-20261008-02` returned axial stresses
+.24→.4038461538→.24 MPa and shear stresses .16→.23076923→.16 MPa. This
+supports independent candidate reset and two-coefficient response changes.
+The backend is deliberately limited to the tested Elasticity law and fixed
+history per preparation; it does not yet admit arbitrary MFront behavior laws,
+or machine material qualification. Actual two-coefficient inverse fitting with
+two synthetic histories and an independent mixed-history holdout subsequently
+passed in `workbench-mfront-fit-20261008-01`; see WORKBENCH_PROGRESS.md.
+
 ## W4: optional Haystack and public literature
 
 **Haystack AI 3.3.0** (released 2026-10-01, Apache-2.0, Python >=3.10) is current.

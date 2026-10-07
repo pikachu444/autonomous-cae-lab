@@ -52,7 +52,7 @@ def engine_text(s):
     return "TEST ONLY: no native executable has run\n" + f"FINAL TIME {s['end_time_s']}\n" + "\n".join(rows) + f"\nNORMAL TERMINATION\nTOTAL NUMBER OF CYCLES : {count+2}\n"
 
 
-def typed_stream(s, *, change=None, skip=None, observation=None):
+def typed_stream(s, *, change=None, skip=None, observation=None, global_count=22):
     parts = ["dropT01 FORMAT"]
     def record(specs, value):
         parts.append("ZZZZZEOR " + " ".join(str(n) + kind for n, kind in specs))
@@ -66,8 +66,8 @@ def typed_stream(s, *, change=None, skip=None, observation=None):
     record([(80,"C")], "TEST ONLY parser data; no native execution".ljust(80))
     wall = s["case"] == "rigid_cube_ground_stop"
     compliant = s["case"] == "rigid_cube_compliant_stop"
-    record([(6,"I")], [2,2,2,1,3,22] if compliant else [1,2,1,1,3 if wall else 2,22])
-    record([(22,"I")], list(range(1,23)))
+    record([(6,"I")], [2,2,2,1,3,global_count] if compliant else [1,2,1,1,3 if wall else 2,global_count])
+    record([(global_count,"I")], list(range(1,global_count+1)))
     record([(1,"I"),(40,"C"),(4,"I")], entity(1,"RIGID_CUBE") + "".join(f"{v:5}" for v in [0,1,1,0]))
     if compliant:
         record([(1,"I"),(40,"C"),(4,"I")], entity(2,"STOP_SPRING") + "".join(f"{v:5}" for v in [0,2,2,0]))
@@ -94,7 +94,7 @@ def typed_stream(s, *, change=None, skip=None, observation=None):
         if compliant:
             a=ref["acceleration_m_s2"]
             velocity=ref["velocity_m_s"] if t==0 else ref["velocity_m_s"]-.5*dt*a
-        glob=[0.0]*22;glob[1]=ref["kinetic_energy_j"];glob[4]=s["mass_kg"]*ref["velocity_m_s"]
+        glob=[0.0]*global_count;glob[1]=ref["kinetic_energy_j"];glob[4]=s["mass_kg"]*ref["velocity_m_s"]
         glob[5]=s["mass_kg"];glob[6]=dt;glob[8]=glob[1]-.5*s["mass_kg"]*s["initial_velocity_m_s"]**2
         if compliant:
             glob[0]=ref["spring_internal_energy_j"];glob[9]=glob[0];glob[4]=ref["moving_mass_kg"]*ref["velocity_m_s"]
@@ -105,8 +105,10 @@ def typed_stream(s, *, change=None, skip=None, observation=None):
             channels[1] += [0,0,0,-1]
             channels[1] += [ref["z_m"]-h,velocity,a,ref["z_m"]]
             channels[4]=[1,-ref["spring_force_n"],0,0,0,0,0,ref["spring_length_change_m"],ref["spring_internal_energy_j"]]
+        if global_count == 23:
+            glob[22] = sum(glob[i] for i in (0,1,7,10,11)) - glob[8] + glob[20] + glob[21]
         if change: change(index,t,glob,channels)
-        record([(1,"R")],[t]);record([(22,"R")],glob)
+        record([(1,"R")],[t]);record([(global_count,"R")],glob)
         for identifier,_,ids,variables,_ in groups:record([(len(ids)*len(variables),"R")],channels[identifier])
     return "\n".join(parts)+"\n"
 
@@ -151,6 +153,27 @@ def test_typed_metadata_channels_raw_observations_and_cumulative_impulse(tmp_pat
     for a,b in zip(parsed["rows"],parsed["rows"][1:]):
         assert b["ground_force_interval_average_n"] == pytest.approx(
             (b["ground_impulse_n_s"]-a["ground_impulse_n_s"])/(b["time_s"]-a["time_s"]))
+
+
+def test_opencourant_23rd_global_requires_exact_runtime_and_energy_balance(tmp_path):
+    s=small_settings()
+    identity={"archive_sha256":transport.OPENCOURANT_ARCHIVE_SHA256,
+              "release_source_commit":transport.OPENCOURANT_SOURCE_COMMIT}
+    native_fixture(tmp_path,s,global_count=23)
+    parsed=parse_history(tmp_path,s,identity)
+    assert parsed["hierarchy"] == [1,2,1,1,2,23]
+    assert all(len(sample["globals"]) == 23 for sample in parsed["raw_samples"])
+    with pytest.raises(ValueError,match="hierarchy"):
+        parse_history(tmp_path,s)
+    with pytest.raises(ValueError,match="Unqualified"):
+        parse_history(tmp_path,s,{**identity,"archive_sha256":"unknown"})
+
+    def corrupt(index,time_s,globals_,channels):
+        if index == 3:
+            globals_[22] += .01
+    native_fixture(tmp_path,s,global_count=23,change=corrupt)
+    with pytest.raises(ValueError,match="energy-balance channel"):
+        parse_history(tmp_path,s,identity)
 
 
 def test_constraint_witness_preserves_raw_incoming_child_v_and_correct_advance(tmp_path):
@@ -698,7 +721,9 @@ def test_selected_cancel_preserves_partial_owned_logs_and_propagates_to_common_c
 @pytest.mark.parametrize("compliant", [False, True])
 def test_selected_full_mock_native_route_preserves_source_scope_and_never_calls_legacy_process(tmp_path, monkeypatch, compliant):
     s = selected_settings(compliant); before = deepcopy(s); calls = []
-    monkeypatch.setattr(transport, "runtime", lambda: (tmp_path, {"TEST_ONLY": "yes"}, {"test_only": True}))
+    mock_identity = {"test_only": True, "archive_sha256": transport.ARCHIVE_SHA256,
+                     "release_source_commit": transport.SOURCE_COMMIT}
+    monkeypatch.setattr(transport, "runtime", lambda: (tmp_path, {"TEST_ONLY": "yes"}, mock_identity))
     monkeypatch.setattr(transport, "process", lambda *a: pytest.fail("Selected must not enter legacy budgeted process"))
     def owned(command, cwd, label, **kwargs):
         calls.append(label)

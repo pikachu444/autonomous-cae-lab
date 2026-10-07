@@ -49,6 +49,7 @@ for _id, _module, _name, _roles, _dep, _native in (
     ("material.mfront.inverse", "mfront_inverse", "MFrontInverseAdapter", ("model",), None, "MFront/MGIS"),
     ("material.mfront.hyperelastic", "mfront_hyperelastic", "MFrontHyperelasticAdapter", ("model",), None, "MFront/MGIS"),
     ("material.mfront.viscoelastic", "mfront_viscoelastic", "MFrontViscoelasticAdapter", ("model",), None, "MFront/MGIS"),
+    ("material.mfront.prepared", "mfront_prepared", "MFrontElasticityPreparedAdapter", ("prepared",), None, "MFront/MGIS"),
     ("explicit.openradioss", "openradioss", "OpenRadiossAdapter", ("model",), None, "OpenRadioss"),
     ("material.felupe", "felupe_material", "FelupeMaterialAdapter", ("prepared",), "felupe", None),
     ("files.table", "file_table", "TableReaderAdapter", ("reader", "prepared"), "numpy", None),
