@@ -1,0 +1,131 @@
+{
+  "date": "2026-10-08",
+  "source_commit": "6d9909f830b50f924d17ff8e3278dad9a491bd50",
+  "base_commit": "59577ed58ee4980a3b0c574125219e417e469b4a",
+  "decision": "NOT_RELEASED",
+  "scope": "Online native Windows base/numerical/material installation and guided user flows; no offline bundle or remote Linux execution implementation",
+  "tests": {
+    "workbench_python": 121,
+    "workbench_ui_node": 19,
+    "independent_review": "UI/table-preview and installer review findings corrected; no remaining blockers in bounded review"
+  },
+  "native_windows": {
+    "final_smoke": {
+      "reference": "Hooke constrained axial strain 0.001, E=1000MPa, nu=.25",
+      "job_id": "J0ec1660e55614a24bef499ba902de25e",
+      "log_sha256": "9f4207ba6597c942ba83af3e6a49a1187d622386839b6b8cc490972a7a5b64fe",
+      "stopped_after_completion": true,
+      "store": "verification-store-f1e57643c34d49d4bfd5a167dba4fab3",
+      "stress_xx_mpa": 1.2,
+      "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify-windows-install.ps1 -RuntimeRoot <private-runtime> -Port 8786"
+    },
+    "bootstrap": {
+      "same_store_reuse": "PASS",
+      "zip_install_receipt_sha256": "c77bd55cdba0212fd1803c8f3cb0f52ca2a520eb2f79324712a3336967ed320e",
+      "uv_zip_sha256": "6dbb02d79e419522f1c500f0adb1cddcff0cda7d59b0d66ea7f5e3b4a1b2f5f0",
+      "uv": "0.12.19",
+      "zip_source_no_upstream": true,
+      "source_zip_sha256": "d5acf32a21552082da63a77e09f9b2bc7e34e3e0ce26e65a157196bc336bb8f0",
+      "no_admin_required": true,
+      "no_system_python_used": true,
+      "no_wsl": true,
+      "shell": "Windows PowerShell 5.1",
+      "different_store_reuse": "REJECTED",
+      "owned_stop": "PASS",
+      "spaced_trailing_store": "PASS",
+      "spaced_runtime_receipt_sha256": "da66cd5b9fe00d080081da3c22a04793835c71a4763643a4d6d24abf2577eb1a",
+      "observed_issue": "uv minor-version junction check failed after download; verified private CPython interpreter was reused explicitly, no system fallback",
+      "python": "3.12.14"
+    },
+    "gui": {
+      "reference": "Hooke constrained axial strain [0,.001,.002,.003], nu=.25",
+      "job_id": "Ja80b7371342148b0b23ad678a1fc6a6f",
+      "followup_selection": "actual click exposed expert section and selected result; no model call",
+      "port": 8779,
+      "final_source_restart_and_result_reopen": "PASS",
+      "name": "Windows 단독 실행 · E=1500 MPa",
+      "stress_xx_mpa": [
+        0,
+        1.8,
+        3.6,
+        5.4
+      ]
+    },
+    "editable_probe": {
+      "sha256": "5055730f4699823661e0a6dd1d55a78071cc59e663cfdc7abf0dfd700b4f84be",
+      "receipt": "windows-base-20261008-01/windows-probe-receipt.json",
+      "python": "3.13.5",
+      "scope": "fresh editable environment, CSV/FELUPE/SciPy LHS and HTTP jobs; earlier dirty source snapshot"
+    },
+    "installed_wheel": {
+      "scope": "actual installed wheel outside checkout, static/schema/CSV/FELUPE/LHS/HTTP; immutable wheel predates final UI corrections",
+      "receipt": "windows-base-20261008-01/wheel-smoke/windows-probe-receipt.json",
+      "sha256": "c918056e5127b12f3b8db439eaa8fca1c5e93d530dfa9dbdfac234bffae00bd3",
+      "receipt_sha256": "8a86a98c8003cff14dddeec44233a34c39e9fb954f439f5a379b092014a299e5"
+    }
+  },
+  "gui_comparison": {
+    "mae_N": 0.08,
+    "runtime": "WSL Python3.12",
+    "compare_job": "J842ff29e5d764a00a7dcbd739dc97ac3",
+    "rmse_N": 0.109544511501033,
+    "store": "workbench-usability-ui-20261008-01",
+    "observed_job": "Jefe2e9d4aa92483080d5b73c610d699f",
+    "sample_count": 5,
+    "solver_execution": "NOT_PERFORMED",
+    "predicted_job": "Jb4aa9bb5b13a4ba682d6fc705cfca42f",
+    "interactions": "actual CUA upload, Korean headers, explicit units/component/location, import, comparison, overlaid curves, report preview, 3-sample window"
+  },
+  "native_cad_revision": {
+    "element_count": 905,
+    "runtime": "existing WSL FreeCAD/Gmsh4.12.1/CalculiX2.21",
+    "volume_mm3": 1280,
+    "analytical_max_normalized_error": 3.498262499449477E-07,
+    "source_commit": "59577ed58ee4980a3b0c574125219e417e469b4a with unrelated dirty UI work",
+    "native_model_revision_and_solver_input": "PASS",
+    "revision": "E-native-box-revision-r01",
+    "full_nodes": 1714,
+    "limitation": "single supported solid; not arbitrary feature recovery or generic-CAD shape optimization qualification",
+    "sha256": "10996e9637c36a6866514fd181d30bfd5a2329caff4d420a028e3936ab0c6e85",
+    "receipt": "flow-audit-revision-r01.json",
+    "length_mm": [
+      12,
+      16
+    ],
+    "unchanged_limit": 1E-05,
+    "store": "user-cad-revision-flow-20261008-01"
+  },
+  "corrected_findings": [
+    "Nonfinite/mixed first records must never be discarded as header",
+    "BOM and NumPy comment handling must agree between preview and read",
+    "Do not propose unsupported quoted or solver block layouts",
+    "Follow-up navigation must reveal its target section",
+    "Compare both retained response windows and state whole-comparison metric scope",
+    "Verify uv hash before execution and bind server reuse to actual owned process/store/source/dependencies"
+  ],
+  "remaining": [
+    "Code_Aster canonical F05 reaction remains OPEN with unchanged numerical gates",
+    "General native Windows solver/CAD backend qualification remains separate",
+    "Linux remote execution and offline bundle are future scope only",
+    "Physical/material/durability/company deployment approval remains UNKNOWN"
+  ],
+  "retention": "Raw receipts/logs/unique experiment stores retained locally; public snapshots below contain synthetic verification data only. No remote raw archive is claimed.",
+  "public_artifact_hash_basis": "Exact Git blob bytes (LF-normalized JSON); checkout line endings may differ",
+  "public_artifacts": [
+    {
+      "path": "benchmarks/workbench/20261008/usability-ui-evidence.json",
+      "bytes": 15938,
+      "sha256": "62c0e034689b35a52a8a2cb3755b8a49791aa93ff8194225e6668ac50c704a2d"
+    },
+    {
+      "path": "benchmarks/workbench/20261008/usability-comparison.jpg",
+      "bytes": 47338,
+      "sha256": "91b682c84b84ac527af779f92a76cef1eb3b9b9ccdc4febaa3203c933e08fe29"
+    },
+    {
+      "path": "benchmarks/workbench/20261008/windows-material-result.jpg",
+      "bytes": 44035,
+      "sha256": "aa8a72803fdc97467d218466306d053a16fedaf94be24021d4bc8fd9b31c0919"
+    }
+  ]
+}

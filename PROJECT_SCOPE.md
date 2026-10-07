@@ -1,3 +1,14 @@
+## Scope checkpoint — 2026-10-08 Windows/usability
+
+Installation and usability advance at source6d9909f: actual Windows without WSL
+base/numerical/material bootstrap and GUI computation are verified; guided file
+mapping, comparison overlays/report and result-to-expert navigation are improved.
+Remote Linux execution is a future extension; offline packaging is consideration
+only by explicit user request. This does not complete native Windows solver
+qualification, Code_Aster F05 or physical/company release. Existing52 requirements
+remain. Evidence and exact scope are in `docs/WORKBENCH_PROGRESS.md` and
+`benchmarks/records/20261008-windows-usability.json`.
+
 ## Scope checkpoint — 2026-10-08 local workbench continuation
 
 R1–R5 advances the existing numerical research, response/provenance, native

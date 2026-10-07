@@ -1,3 +1,15 @@
+## 2026-10-08 — Windows and usability continuation
+
+PR#3 is merged59577ed. New product source6d9909f on `codex/workbench-usability`
+adds guided file/material/expert entry, safe table previews, comparison overlays,
+named jobs and online Windows install/start/owned-stop scripts. Actual native
+Windows bootstrap, installed-wheel and GUI material jobs passed;121 Python and19
+Node tests passed. See `docs/WINDOWS_QUICKSTART.md`, the current
+`docs/WORKBENCH_PROGRESS.md` and record20261008-windows-usability for exact proof.
+Online Windows without WSL is first; remote Linux comes later; offline is design
+only, explicitly not implemented. Native Windows backend qualification and
+Code_Aster F05 remain open. Preserve the primary checkout and private stores.
+
 ## 2026-10-08 — Local R1–R5 integration checkpoint
 
 PR #3 carries `codex/workbench-local-integration`; check its remote state before

@@ -1,3 +1,14 @@
+## 2026-10-08 — Windows and usability verified increment
+
+Source6d9909f follows merged59577ed. Windows online bootstrap and actual named
+FELUPE GUI job work without WSL; source ZIP, installed wheel, repeat/start/stop
+and matching-store rules were checked. File preview/units→real imports→overlaid
+comparison/report were exercised. Corrected independent findings and exact hashes
+are in `docs/WORKBENCH_PROGRESS.md` and record20261008-windows-usability.
+121 Python tests and19 Node tests passed. No offline or Linux-remote feature was
+implemented. Canonical Code_Aster, general native Windows qualification and
+physical/company release remain incomplete; no historical requirement is erased.
+
 ## 2026-10-08 — Native/common workbench integration
 
 Current R1–R5 implementation extends latest-main base `afcfd27` in an isolated
