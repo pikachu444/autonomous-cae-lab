@@ -27,12 +27,11 @@ _WEIGHTS = (.2369268850561891, .4786286704993665, .5688888888888889, .4786286704
 _QUADRATURE = tuple(((node+1)/2, weight/2) for node, weight in zip(_NODES, _WEIGHTS))
 
 
-def specification(*, reaction=0.0):
-    # The polynomial P1 family, including reaction=3, is not yet in its
-    # asymptotic L2 range on the original 8->16 pair. Keep the same analytical
-    # references and numerical limits; verify both measured variants on the
-    # 16->32->64 sequence. The original failures remain retained.
-    settings = manufactured_settings(reaction=reaction)
+def specification(**options):
+    # Several P1 variants are not yet in their asymptotic L2 range on the
+    # original 8->16 pair. Keep analytical references and numerical limits;
+    # measure every accepted variant on the verified 16->32->64 sequence.
+    settings = manufactured_settings(**options)
     settings["mesh"]["cell_counts"] = [16, 32, 64]
     return settings
 
@@ -42,10 +41,10 @@ def cases():
     accepted = {
         "E-vector-mixed": specification(),
         "E-vector-reaction": specification(reaction=3.0),
-        "E-vector-domain": manufactured_settings(lengths=(1.5, .75), lame_lambda=3.0, lame_mu=.5, reaction=2.0),
-        "E-vector-lambda-zero": manufactured_settings(lame_lambda=0.0),
+        "E-vector-domain": specification(lengths=(1.5, .75), lame_lambda=3.0, lame_mu=.5, reaction=2.0),
+        "E-vector-lambda-zero": specification(lame_lambda=0.0),
         "E-vector-all-dirichlet": specification(),
-        "E-vector-harmonic-zero-source": manufactured_settings(case="harmonic"),
+        "E-vector-harmonic-zero-source": specification(case="harmonic"),
     }
     request = accepted["E-vector-all-dirichlet"]
     request["problem"]["boundaries"] = {
