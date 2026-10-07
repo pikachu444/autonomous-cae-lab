@@ -1,4 +1,31 @@
-## Native CAD mechanics — local optional runtime and current flow
+## Current workbench launcher — 2026-10-08
+
+Run `scripts/cae-research-local.ps1` from PowerShell. It reads the private
+`%LOCALAPPDATA%/AutonomousCAELab/workbench-local.json` deployment settings and
+starts the shared HTTP workbench; CLI and MCP use that same controller/store.
+The configured installation uses WSL Ubuntu, the existing Python 3.12 venv,
+port 8776 and the private `runs/workbench-service-20261008-01` store. The source
+is the isolated `workbench-local-integration` worktree, preserving primary edits.
+Windows source paths are translated with `wslpath`; Linux runtime/store paths
+are retained. `scripts/local.ps1` supplies separately installed native runtimes.
+Stop the foreground controller with Ctrl+C and use the same launcher to resume.
+
+The operator workbench configuration registers trusted external programs,
+approved local input roots, expert roles and optional model policy. It contains
+no credential copied from a development session. The optional OpenScience
+provider uses the existing official signed-in CLI profile. Native readiness and
+live expert acceptance are separate; current evidence and gaps are tracked in
+[WORKBENCH_PROGRESS.md](WORKBENCH_PROGRESS.md).
+
+MFront preparation additionally reads the operator's private
+`native-environment.json`: only `CAELAB_MFRONT_PREPARED_LIBRARY` and
+`CAELAB_MFRONT_PREPARED_LIBRARY_SHA256` are accepted there. The library is copied
+and verified inside each owned preparation. Never set a request's output path.
+
+The sections below are earlier deployment records. Their old launcher options,
+stores and READY claims do not describe the current workbench launcher.
+
+## Historical native CAD mechanics — local optional runtime and flow
 
 The existing Python3.12 WSL environment now also has gmsh==4.12.1 from requirements-native-mechanics.txt. FreeCAD1.1.4 and CalculiX2.21 were reused. On a fresh local environment Root installs that optional dependency and existing native tools; user Git/SHA work is not required.
 
@@ -36,6 +63,31 @@ The actual fixture adapter still requires2–8 mesh levels; opt-in selected-mesh
 ---
 
 # Primary Windows / WSL execution — 2026-09-30
+
+## Optional local backend diagnostics — 2026-10-08
+
+In the WSL Python 3.12 environment, `python -m caelab doctor
+--backend <name>` reports discovery and runtime identity without calling a
+solver. Add `--execute --output <new-directory>` to run the backend's fixed
+smoke input in a fresh directory. The result separates `discovery`,
+`dependencies`, `execution`, and `numerical_status`; only the latter two are
+actual solve evidence. Existing directories are refused to preserve history.
+Discovery is intentionally narrow to the installed DOLFINx, OpenRadioss,
+Code_Aster and MFront native runtimes; unsupported backend names say so.
+
+Actual doctor runs in this local WSL session: OpenRadioss freeflight at
+`/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-doctor-explicit-20261008-01`
+and Code_Aster affine block at
+`.../runs/workbench-doctor-aster-affine-20261008-01`, plus MFront/MGIS
+Elasticity at `.../runs/workbench-doctor-mfront-20261008-01`, all reported
+`execution=COMPLETED,numerical_status=COMPLETED`. PDE discovery reported the
+system DOLFINx 0.11.0.post0/PETSc environment; its actual manufactured
+transient solve is retained separately at
+`.../runs/workbench-native-local-20261008-02`. Its response reader retrieved
+33 nodal samples. The same run's explicit solve supplied 200 velocity samples;
+the saved-response reader also reproduced bounded slices after native runtime
+environment variables were removed. These are numerical/local readiness
+checks, not physical or release qualification.
 
 The primary session uses `C:\SourceCodes\autonomous-cae-lab`. The folder was
 empty before cloning current main `16fba8cbff0ab8619ea50c6591121992f07fd32c`

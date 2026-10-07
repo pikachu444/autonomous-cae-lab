@@ -1,4 +1,16 @@
-## Scope checkpoint — actual startup, research/lifecycle still open
+## Scope checkpoint — 2026-10-08 local workbench continuation
+
+R1–R5 advances the existing numerical research, response/provenance, native
+execution and optional expert/UI scope. Actual evidence and remaining gates
+are tracked in `docs/WORKBENCH_PROGRESS.md` and the 20261008 integration record.
+Two-coefficient multi-history native fit, solver-free history reads, real
+external-process searches and candidate cancellation are verified; live D/E,
+canonical Aster reaction and final source CI remain open. No ledger requirement
+is removed and whole52/physical release remains incomplete/NOT_RELEASED.
+
+---
+
+## Historical scope checkpoint — actual startup, research/lifecycle still open
 
 R11/R31/R35 qualified startup admission advances at published e10bb028 with
 existing approved5.6Sol/OAuth and retained numerical-record tools. Provider

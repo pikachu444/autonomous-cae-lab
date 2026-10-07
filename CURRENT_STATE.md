@@ -1,4 +1,16 @@
-## Actual startup and new-session checkpoint
+## 2026-10-08 — Native/common workbench integration
+
+The current continuation implements R1–R5 on latest-main base `afcfd27` in an
+isolated local worktree. Actual WSL native histories, external SciPy→ASCII
+research, MFront two-coefficient fit/holdout, true process workers and owned
+cancellation have been verified. See `docs/WORKBENCH_PROGRESS.md` for the single
+current status and failed attempts, and the 20261008 local workbench evidence
+record for retained raw receipt hashes. Live expert/host flow and full CI remain
+in progress; Code_Aster canonical reaction and whole52/physical gates stay open.
+
+---
+
+## Historical actual startup and new-session checkpoint
 
 User identifies inadequate roadmap/spec-driven development and repeated example
 generation/verification as a work-process failure. New prompt requires explicit

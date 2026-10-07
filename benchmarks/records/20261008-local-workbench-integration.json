@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-08",
+  "base_commit": "afcfd27f2ff60c7fac77bbb12c750819702391bf",
+  "execution_source": "local integration working tree; each retained run includes its own source/resource identities",
+  "runtime": "WSL Ubuntu / Python3.12 / existing local native installations",
+  "retention": "Raw original files retained in private local runtime runs; no remote raw archive claimed",
+  "decision": "NOT_RELEASED",
+  "evidence": {
+    "native-flow": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-native-flow-20261008-04/native_flow_receipt.json",
+      "sha256": "0cce9ec222e2caa5d66639aeace95c18935497e2216b42305f24cf483bea3549",
+      "raw_files": 776,
+      "raw_bytes": 20958781
+    },
+    "external-study": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-external-20261008-01/acceptance.json",
+      "sha256": "387fc1b55989140591626ffd552a7021ea730aa6c4f45c47d3229408aa902214",
+      "raw_files": 825,
+      "raw_bytes": 2020196
+    },
+    "external-exchange": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-exchange-20261008-01/receipt.json",
+      "sha256": "3f80e4cdc19709d04594c7b7d3f32c416b10e1e994e24cc43af76269cfcb6f06",
+      "raw_files": 30,
+      "raw_bytes": 66397
+    },
+    "mfront-fit": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-mfront-fit-20261008-01/mfront_fit_receipt.json",
+      "sha256": "aff46521d5697f6f996d1e51c61774d213253e9a5d6dba0a2067e280d6b50bf0",
+      "raw_files": 151,
+      "raw_bytes": 806616
+    },
+    "mfront-parallel-cancel": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-mfront-parallel-20261008-02/parallel_receipt.json",
+      "sha256": "cf5a3ba3f2b870502b9ae125317c1137b427def3a4741284e95f9fea2c321f68",
+      "raw_files": 137,
+      "raw_bytes": 1238466
+    },
+    "mfront-cost": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-mfront-prepared-cost-20261008-01/cost_receipt.json",
+      "sha256": "4090baf67b877e57d945fde916ae4af4121a0cddc291510b4093e4d97ef3a372",
+      "raw_files": 12,
+      "raw_bytes": 119260
+    }
+  },
+  "remaining": [
+    "Live expert D/E and actual-host continuity acceptance",
+    "Canonical Code_Aster Fz reaction gate",
+    "Full regression/exact source CI",
+    "Physical/material/strength/durability/company deployment qualification"
+  ]
+}

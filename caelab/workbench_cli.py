@@ -25,6 +25,9 @@ def main(argv=None):
         command = sub.add_parser(name)
         command.add_argument('--probe', action='store_true', help='Check selected Python dependencies; never start every native solver')
         command.add_argument('--backend')
+        if name == 'doctor':
+            command.add_argument('--execute', action='store_true', help='Run a selected native calculation; requires --backend and a new --output')
+            command.add_argument('--output', help='New directory for native doctor input, logs, and results')
     for name in ('evaluate', 'run', 'fit', 'doe', 'search'):
         command = sub.add_parser(name)
         command.add_argument('--backend', required=True)
@@ -58,6 +61,11 @@ def main(argv=None):
             result = [row for row in result if row['id'] == args.backend]
             if not result:
                 parser.error('Unknown backend')
+            if args.command == 'doctor':
+                from .adapters.native_doctor import doctor_native_backend
+                result[0]['native_diagnostic'] = doctor_native_backend(args.backend, execute=args.execute, output=args.output)
+        elif args.command == 'doctor' and args.execute:
+            parser.error('--execute requires one --backend; doctor never starts every native solver')
     elif args.command == 'read':
         from .evaluation import read_result
         result = read_result(args.path, verify=args.verify, selection=args.response)

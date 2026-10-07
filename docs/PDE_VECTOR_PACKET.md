@@ -186,3 +186,23 @@ Pinned primary sources: [blocked coordinates](https://github.com/FEniCS/dolfinx/
 [LinearProblem](https://github.com/FEniCS/dolfinx/blob/v0.11.0.post0/python/dolfinx/fem/petsc.py#L808),
 [Lamé stress](https://github.com/FEniCS/dolfinx/blob/v0.11.0.post0/python/demo/demo_elasticity.py#L116).
 Independent investigation made no native/provider/Core/runtime/file calls.
+
+## 2026-10-08 local vector convergence continuation
+
+The frozen n8/16/32 manufactured polynomial specification was executed in the
+installed DOLFINx 0.11.0.post0/PETSc 3.19.6 runtime at
+`/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-vector-convergence-20261008-01`.
+It was **REJECTED** without changing any numerical limit: observed total vector
+L2 rates were 1.7950984425 and 1.9114360942, with first u0 rate
+1.7796221489 below the 1.8 requirement. The constrained relative residual
+was 3.715e-15. The failed raw fields and criterion evidence remain intact.
+
+A separate, finer n16/32/64 specification in the same parent run directory
+completed under the same 1.8 rate threshold: total vector L2 rates
+1.91143609 and 1.96809876; u0 1.89946421 and 1.96425377; u1 1.91628136
+and 1.96967907. All component gradient-H1 rates exceeded 1.0 and the
+largest constrained relative residual was 6.289e-15. This demonstrates the
+specified asymptotic behavior on the finer mesh sequence; it does not turn
+the rejected coarse sequence into a pass. The local smoke runner now requests
+16/32/64 for this particular manufactured control. Other geometry,
+coefficients, physical material and mesh adequacy remain separate gates.

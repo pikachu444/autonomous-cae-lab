@@ -404,6 +404,9 @@ def _scalar(evaluation, definition):
     name = definition.get('response', definition.get('metric'))
     response = evaluation.get('responses', {}).get(name)
     if response is None:
+        response = next((entry for entry in evaluation.get('response_reductions', [])
+                         if entry.get('response') == name and entry.get('reduction') == definition.get('reduction')), None)
+    if response is None:
         raise EvaluationFailed(f'{name} is not an available scalar response')
     if response.get('unit') != definition.get('unit'):
         raise ValueError(f'{name} response unit differs from the declared unit')
@@ -451,23 +454,28 @@ def optimize(evaluator_or_factory, variables, objective, *, settings=None, const
         if _number(constraint.get('scale', 1), 'constraint scale') <= 0:
             raise ValueError("Constraint scale must be positive")
     opts = dict(options or {})
-    if set(opts) - {'max_generations', 'population_size', 'initial_values'}:
+    if set(opts) - {'max_generations', 'population_size', 'initial_values', 'retain_responses'}:
         raise ValueError("Unknown DE options")
+    retention = opts.get('retain_responses', 'summary')
+    if retention not in {'summary', 'all'}:
+        raise ValueError('retain_responses must be summary or all')
     physical_initial = opts.get('initial_values')
     initial = _initial(variables) if physical_initial is None else {
         v['id']: math.log(physical_initial[v['id']]) if v['transform'] == 'log' else physical_initial[v['id']] for v in variables}
     rows, cache, termination, algorithm = [], {}, None, None
     started = perf_counter()
     with _Evaluators(evaluator_or_factory, [settings or {}], execution) as models:
-        def feedback(encoded_values):
+        prefetched, best_response = {}, None
+        def feedback(encoded_values, *, journal_only=False):
+            nonlocal best_response
             values = _decode(encoded_values, variables)
             key = tuple(values[v['id']].hex() for v in variables)
             if key in cache:
                 return cache[key]
-            if models.cancelled():
+            if not journal_only and models.cancelled():
                 raise StudyCancelled('USER_CANCELLED')
             try:
-                evaluation = models.one(values)[0]
+                evaluation = prefetched.pop(key) if key in prefetched else models.one(values)[0]
             except EvaluationBudgetExceeded:
                 rows.append(dict(_row(f'C{len(rows):06d}', values,
                                       _failure('EVALUATION_BUDGET_EXHAUSTED', 'REJECTED')),
@@ -476,7 +484,7 @@ def optimize(evaluator_or_factory, variables, objective, *, settings=None, const
             row = _row(f'C{len(rows):06d}', values, evaluation)
             row.update(objective=None, constraint_residuals=[None] * len(constraints), feasible=False)
             rows.append(row)
-            if evaluation.get('execution_status') == 'CANCELLED':
+            if evaluation.get('execution_status') == 'CANCELLED' and not journal_only:
                 raise StudyCancelled(str(row['failure_reason']))
             try:
                 value = _scalar(evaluation, objective)
@@ -487,22 +495,81 @@ def optimize(evaluator_or_factory, variables, objective, *, settings=None, const
                 row['failure_reason'] = str(error)
                 numeric, residuals = None, [None] * len(constraints)
             cache[key] = {'objective': numeric, 'constraint_residuals': residuals}
+            if row['feasible'] and (best_response is None or numeric < best_response[0]):
+                best_response = (numeric, row['candidate_id'], deepcopy(row['responses']))
+            if retention == 'summary':
+                row['response_reductions']=[]
+                if evaluation.get('execution_status')=='SUCCEEDED':
+                    for declaration in [objective]+constraints:
+                        name=declaration.get('response',declaration.get('metric'))
+                        original=row['responses'].get(name,{})
+                        if original.get('kind') in {'series','field'}:
+                            try:
+                                reduced=_scalar(evaluation,declaration)
+                            except EvaluationFailed:
+                                continue
+                            row['response_reductions'].append({
+                                **{key:deepcopy(original[key]) for key in ('unit','component','location','source','coordinate_system') if key in original},
+                                'response':name,'kind':'scalar','value':reduced,'reduction':declaration['reduction'],
+                                'original_kind':original['kind']})
+                row['responses'] = {name: response for name, response in row['responses'].items()
+                                    if response.get('kind') in {'scalar', 'event'}}
+            if not journal_only and row['execution_status'] != 'SUCCEEDED' and models.options['on_failure'] == 'stop':
+                raise EvaluationFailed(row['failure_reason'])
             return cache[key]
+        def feedback_many(points):
+            # Bound outstanding native handles/results to one worker-width
+            # group, while preserving deterministic journal order.
+            width = models.options['workers'] if models.options['mode'] == 'process' else len(points)
+            answers = []
+            for offset in range(0, len(points), max(1, width)):
+                group = points[offset:offset + width]
+                pending = {}
+                for point in group:
+                    values = _decode(point, variables)
+                    key = tuple(values[v['id']].hex() for v in variables)
+                    if key not in cache:
+                        pending[key] = values
+                if pending:
+                    try:
+                        outputs = models.many(list(pending.values()))
+                    except EvaluationBudgetExceeded:
+                        for values in pending.values():
+                            rows.append(dict(_row(f'C{len(rows):06d}', values,
+                                _failure('EVALUATION_BUDGET_EXHAUSTED', 'REJECTED')),
+                                objective=None, constraint_residuals=[None] * len(constraints), feasible=False))
+                        raise
+                    prefetched.update((key, output[0]) for key, output in zip(pending, outputs))
+                first_row=len(rows)
+                answers.extend(feedback(point,journal_only=True) for point in group)
+                completed_rows=rows[first_row:]
+                if any(row['execution_status']=='CANCELLED' for row in completed_rows) or models.cancelled():
+                    raise StudyCancelled('USER_CANCELLED')
+                if models.options['on_failure']=='stop' and any(row['execution_status']!='SUCCEEDED' for row in completed_rows):
+                    raise EvaluationFailed('Completed candidate group contains a failed evaluation')
+            return answers
         try:
             result = ScipyDifferentialEvolution().run(
                 _encoded(variables), feedback, seed=seed,
                 max_generations=opts.get('max_generations', 40), population_size=opts.get('population_size', 12),
-                initial_values=initial, constraint_count=len(constraints))
+                initial_values=initial, constraint_count=len(constraints),
+                evaluate_many=feedback_many if models.options['mode'] in {'process', 'batch'} else None)
             termination, algorithm = result['termination_reason'], result['algorithm']
         except (StudyCancelled, EvaluationBudgetExceeded) as error:
             termination = 'USER_CANCELLED' if isinstance(error, StudyCancelled) else 'EVALUATION_BUDGET_EXHAUSTED'
+        except EvaluationFailed:
+            termination = 'STOPPED_AFTER_FAILURE'
         timing = models.timing()
     eligible = [row for row in rows if row['feasible'] and row['objective'] is not None]
     best = min(eligible, key=lambda row: row['objective'] * (1 if direction == 'minimize' else -1)) if eligible else None
+    best = deepcopy(best)
+    if best is not None and best_response is not None:
+        best['responses'] = best_response[2]
     timing['total_seconds'] = perf_counter() - started
     return _record({'kind': 'optimization', 'variables': variables, 'objective_definition': deepcopy(objective),
-                    'constraint_definitions': constraints, 'algorithm': algorithm, 'candidates': rows, 'best': deepcopy(best),
-                    'execution_status': 'CANCELLED' if termination == 'USER_CANCELLED' else ('REJECTED' if termination == 'EVALUATION_BUDGET_EXHAUSTED' else ('SUCCEEDED' if best else 'FAILED')),
+                    'constraint_definitions': constraints, 'algorithm': algorithm, 'candidates': rows, 'best': best,
+                    'response_retention': {'candidates': retention, 'best': 'all', 'native_originals': 'retained'},
+                    'execution_status': 'CANCELLED' if termination == 'USER_CANCELLED' else ('REJECTED' if termination == 'EVALUATION_BUDGET_EXHAUSTED' else ('PARTIAL_FAILURE' if termination == 'STOPPED_AFTER_FAILURE' else ('SUCCEEDED' if best else 'FAILED'))),
                     'termination_reason': termination, 'timing': timing,
                     'limitations': ['Termination does not prove global optimality; a warm start is a new optimization run.']}, record)
 
@@ -608,7 +675,7 @@ def _aligned(evaluation, experiment):
     for key in ('kind', 'unit', 'component', 'location', 'reduction'):
         if pred.get(key) != obs[key]:
             raise ValueError(f"Experiment {experiment['id']} response {key} mismatch")
-    for key in ('measure', 'frame'):
+    for key in ('measure', 'frame', 'coordinate_system', 'coordinate_frame'):
         if key in obs and pred.get(key) != obs[key]:
             raise ValueError(f"Experiment {experiment['id']} response {key} mismatch")
     values = np.asarray(pred['value'], dtype=float)
@@ -787,6 +854,7 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
     if penalty is not None and _number(penalty, 'failure penalty') <= 0:
         raise ValueError("Explicit failure penalty must be positive and finite")
     rows, cache, best_values, termination, failure_reason = [], {}, None, None, None
+    candidate_status = {}
     names = [v['id'] for v in variables]
     encoded = _encoded(variables)
     x0 = np.asarray([_initial(variables)[name] for name in names])
@@ -795,7 +863,9 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
     budget = _Budget(_execution(execution).get('max_evaluations'))
     with _Evaluators(evaluator_or_factory, [e.get('settings', {}) for e in fitted], execution, budget=budget) as models:
         prefetched = {}
-        def residual_at(x):
+        best_cached = None
+        def residual_at(x, *, journal_only=False):
+            nonlocal best_cached
             values = _decode(dict(zip(names, x)), variables)
             key = tuple(values[name].hex() for name in names)
             if key in cache:
@@ -806,10 +876,15 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
                 rows.append({'candidate_id': f'C{len(rows):06d}', 'values': values, 'responses': {},
                              'execution_status': 'REJECTED', 'failure_reason': 'EVALUATION_BUDGET_EXHAUSTED', 'objective': None})
                 raise
-            if any(output.get('execution_status') == 'CANCELLED' for output in outputs):
+            cancelled = any(output.get('execution_status') == 'CANCELLED' for output in outputs)
+            if cancelled:
                 rows.append({'candidate_id': f'C{len(rows):06d}', 'values': values, 'responses': {},
                              'execution_status': 'CANCELLED', 'failure_reason': 'USER_CANCELLED', 'objective': None})
-                raise StudyCancelled('USER_CANCELLED')
+                candidate_status[key]='CANCELLED'
+                cache[key]=None,outputs
+                if not journal_only:
+                    raise StudyCancelled('USER_CANCELLED')
+                return None
             residuals, reasons = [], []
             for experiment, evaluation in zip(fitted, outputs):
                 try:
@@ -820,11 +895,12 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
                    'execution_status': 'FAILED' if reasons else 'SUCCEEDED',
                    'failure_reason': '; '.join(reasons) if reasons else None, 'objective': None}
             rows.append(row)
+            candidate_status[key]=row['execution_status']
             if reasons:
                 if penalty is not None:
                     residual = np.full(sum(int(e['_mask'].sum()) for e in fitted), penalty)
                     row['penalty_applied'] = penalty
-                elif method == 'least_squares':
+                elif method == 'least_squares' and not journal_only:
                     raise EvaluationFailed(row['failure_reason'])
                 else:
                     residual = None
@@ -832,7 +908,22 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
                 residual = np.concatenate(residuals)
                 row['objective'] = float(residual @ residual)
             cache[key] = residual, outputs
+            if not reasons and (best_cached is None or row['objective'] < best_cached[1]):
+                best_cached = (key, row['objective'], residual, outputs)
+            # Keep a small finite-difference neighborhood and the best actual
+            # curves. A long fit must not retain every full native history.
+            while len(cache)>8:
+                del cache[next(iter(cache))]
+            if reasons and not journal_only and models.options['on_failure']=='stop':
+                raise EvaluationFailed(row['failure_reason'])
             return residual
+        def check_group(first_row):
+            completed_rows=rows[first_row:]
+            if any(row['execution_status']=='CANCELLED' for row in completed_rows) or models.cancelled():
+                raise StudyCancelled('USER_CANCELLED')
+            failed=any(row['execution_status']!='SUCCEEDED' for row in completed_rows)
+            if failed and (models.options['on_failure']=='stop' or (method=='least_squares' and penalty is None)):
+                raise EvaluationFailed('Completed candidate group contains a failed evaluation')
         try:
             if method == 'least_squares':
                 allowed = {'jac', 'ftol', 'xtol', 'gtol', 'x_scale', 'loss', 'f_scale', 'diff_step', 'max_nfev', 'verbose'}
@@ -861,6 +952,17 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
                                          'execution_status': 'REJECTED', 'failure_reason': 'EVALUATION_BUDGET_EXHAUSTED', 'objective': None}
                                         for i, value in enumerate(pending_values))
                             raise
+                    first_row=len(rows)
+                    completed=[residual_at(point,journal_only=True) for point in points]
+                    check_group(first_row)
+                    # SciPy's callable may apply its shape checks around our
+                    # residual. Retain this bounded derivative group while it
+                    # consumes it, even when the general curve cache is small.
+                    for point,residual in zip(points,completed):
+                        values=_decode(dict(zip(names,point)),variables)
+                        key=tuple(values[name].hex() for name in names)
+                        if key not in cache:
+                            cache[key]=(residual,None)
                     return [fun(point) for point in points]
                 worker_map = derivative_map if models.options['mode'] in ('batch', 'process') else None
                 result = least_squares(residual_at, x0, bounds=(lower, upper), workers=worker_map, **opts)
@@ -877,9 +979,36 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
                 def feedback(values):
                     residual = residual_at([values[name] for name in names])
                     return {'objective': None if residual is None else float(residual @ residual), 'constraint_residuals': []}
+                def feedback_many(points):
+                    width = models.options['workers'] if models.options['mode'] == 'process' else len(points)
+                    answers = []
+                    for offset in range(0, len(points), max(1, width)):
+                        group = points[offset:offset + width]
+                        pending = {}
+                        for point in group:
+                            values = _decode(point, variables)
+                            key = tuple(values[name].hex() for name in names)
+                            if key not in cache:
+                                pending[key] = values
+                        if pending:
+                            try:
+                                prefetched.update(zip(pending, models.many(list(pending.values()))))
+                            except EvaluationBudgetExceeded:
+                                for values in pending.values():
+                                    rows.append({'candidate_id': f'C{len(rows):06d}', 'values': values, 'responses': {},
+                                                 'execution_status': 'REJECTED', 'failure_reason': 'EVALUATION_BUDGET_EXHAUSTED', 'objective': None})
+                                raise
+                        first_row=len(rows)
+                        for point in group:
+                            residual=residual_at([point[name] for name in names],journal_only=True)
+                            answers.append({'objective':None if residual is None else float(residual @ residual),
+                                            'constraint_residuals':[]})
+                        check_group(first_row)
+                    return answers
                 result = ScipyDifferentialEvolution().run(encoded, feedback, seed=opts.get('seed', 0),
                     max_generations=opts.get('max_generations', 40), population_size=opts.get('population_size', 12),
-                    initial_values=_initial(variables), constraint_count=0)
+                    initial_values=_initial(variables), constraint_count=0,
+                    evaluate_many=feedback_many if models.options['mode'] in {'batch', 'process'} else None)
                 best_values = _decode(result['candidate_values'], variables) if result['objective'] is not None else None
                 termination, convergence, identification = result['termination_reason'], result['converged'], {}
         except (StudyCancelled, EvaluationFailed, EvaluationBudgetExceeded) as error:
@@ -887,9 +1016,11 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
                            'EVALUATION_BUDGET_EXHAUSTED' if isinstance(error, EvaluationBudgetExceeded) else 'EVALUATION_FAILED')
             failure_reason, convergence, identification = str(error), False, {}
         eligible = [r for r in rows if r['execution_status'] == 'SUCCEEDED' and r['objective'] is not None]
+        if best_cached is not None:
+            cache[best_cached[0]] = best_cached[2], best_cached[3]
         if best_values is not None:
             key = tuple(best_values[name].hex() for name in names)
-            if key in cache and cache[key][0] is not None and any(output.get('execution_status') != 'SUCCEEDED' for output in cache[key][1]):
+            if candidate_status.get(key) != 'SUCCEEDED':
                 best_values = None
                 failure_reason = 'Optimizer selected an explicitly penalized failed candidate'
                 convergence = False
@@ -899,9 +1030,12 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
         if best_values is not None:
             # Fit outputs already cached at the final candidate are reused.
             key = tuple(best_values[name].hex() for name in names)
-            outputs = cache[key][1] if key in cache else models.one(best_values)
+            outputs = cache[key][1] if key in cache and cache[key][1] is not None else models.one(best_values)
             for e, output in zip(fitted, outputs):
                 curves.append(_fit_curve(e, output))
+            if any(curve['execution_status']!='SUCCEEDED' for curve in curves):
+                failure_reason='Final candidate could not reproduce successful fit responses'
+                convergence=False
         timing = models.timing()
     holdout = [e for e in experiments if e['role'] == 'holdout']
     if best_values is not None and holdout:
@@ -962,6 +1096,8 @@ def analyze_candidates(table, responses, *, seed=13):
         name = declaration.get('response', declaration.get('metric'))
         declaration['response'] = name
         available = [row['responses'][name] for row in table['candidates'] if name in row.get('responses', {})]
+        available += [entry for row in table['candidates'] for entry in row.get('response_reductions',[])
+                      if entry['response']==name and entry['reduction']==declaration.get('reduction')]
         if isinstance(requested, str) and any(r.get('kind') != 'scalar' for r in available):
             raise ValueError(f'{name}: non-scalar analysis requires a declared reduction')
         if 'unit' not in declaration:
@@ -1238,12 +1374,15 @@ def epsilon_optimize(evaluator_or_factory, variables, objectives, *, threshold_g
 def export_batch(variables, candidates, directory, *, case_id, settings=None):
     """Export explicit candidate/case exchange identities; this performs no solve."""
     from .evaluation import save_evaluation
+    from uuid import uuid4
     variables = _variables(variables)
     rows = _candidates(candidates, variables)
     if not isinstance(case_id, str) or not case_id:
         raise ValueError("A file exchange requires an explicit case_id")
-    manifest = {'kind': 'file_batch', 'case_id': case_id, 'variables': variables, 'settings': deepcopy(settings or {}),
-                'candidates': [dict(row, case_id=case_id, execution_status='NOT_EVALUATED', responses={}, failure_reason='Awaiting real external evaluation') for row in rows]}
+    exchange_id = 'X' + uuid4().hex
+    manifest = {'kind': 'file_batch', 'case_id': case_id, 'exchange_id':exchange_id,
+                'variables': variables, 'settings': deepcopy(settings or {}),
+                'candidates': [dict(row, case_id=case_id, exchange_id=exchange_id, execution_status='NOT_EVALUATED', responses={}, failure_reason='Awaiting real external evaluation') for row in rows]}
     directory = Path(directory)
     save_evaluation(manifest, directory)
     return manifest
@@ -1259,6 +1398,8 @@ def import_batch(manifest, results):
         identifier = result.get('candidate_id')
         if identifier not in expected or identifier in received or result.get('case_id') != manifest['case_id']:
             raise ValueError("External result has unknown/duplicate candidate or mismatched case identity")
+        if manifest.get('exchange_id') and result.get('exchange_id') != manifest['exchange_id']:
+            raise ValueError('External result has missing or stale exchange identity')
         if result.get('values') != expected[identifier]['values']:
             raise ValueError("External result parameter values differ from exported candidate")
         if result.get('execution_status') not in ('SUCCEEDED', 'FAILED', 'REJECTED', 'CANCELLED'):
@@ -1267,6 +1408,7 @@ def import_batch(manifest, results):
         received[identifier] = normalize_evaluation(result)
     rows = []
     for identifier, original in expected.items():
-        rows.append(dict(_row(identifier, original['values'], received[identifier]), case_id=manifest['case_id']) if identifier in received else deepcopy(original))
+        rows.append(dict(_row(identifier, original['values'], received[identifier]), case_id=manifest['case_id'], exchange_id=manifest.get('exchange_id')) if identifier in received else deepcopy(original))
     return dict(manifest, kind='imported_batch', candidates=rows,
+                identity_assurance='EXCHANGE_CASE_VALUES' if manifest.get('exchange_id') else 'LEGACY_CASE_VALUES_ONLY',
                 imported_count=len(received), missing_count=len(rows) - len(received))

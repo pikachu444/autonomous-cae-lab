@@ -29,6 +29,9 @@ class JobManager:
             self._owner.release()
             raise ValueError('workers must fit the declared CPU budget')
         self._pool = ThreadPoolExecutor(max_workers=workers, thread_name_prefix='caelab-job')
+        # A model turn may submit/poll numerical children. Keep one orchestration
+        # thread outside the solver pool so it cannot occupy the last child slot.
+        self._assist_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix='caelab-expert')
         self._lock = threading.RLock()
         self._condition = threading.Condition(self._lock)
         self._reserved_cpus = 0
@@ -76,12 +79,13 @@ class JobManager:
             job={'id':identifier,'job_id':identifier,'workspace_id':workspace_id,'operation':operation,
                  'arguments':deepcopy(arguments),'request_id':request_id,'request_hash':signature,
                  'state':'QUEUED','phase':'QUEUED','created_utc':utc_now(),'resources':resources,
-                 'resource_enforcement':{'cpu':'controller_concurrency_budget','memory':'HINT_ONLY'},
+                 'resource_enforcement':{'cpu':'child_jobs_reserved_separately' if operation=='experts.ask' else 'controller_concurrency_budget','memory':'HINT_ONLY'},
                  'result_refs':[], 'cancel_requested':False}
             self._jobs[identifier]=job
             self._tokens[identifier]=CancellationToken()
             self._persist(job)
-            self._futures[identifier]=self._pool.submit(self._run,identifier)
+            executor=self._assist_pool if operation=='experts.ask' else self._pool
+            self._futures[identifier]=executor.submit(self._run,identifier)
             return deepcopy(job)
 
     def _run(self, identifier):
@@ -91,7 +95,7 @@ class JobManager:
         try:
             with self._condition:
                 job=self._jobs[identifier]
-                threads=job['resources'].get('threads',1)
+                threads=0 if job['operation']=='experts.ask' else job['resources'].get('threads',1)
                 while self._reserved_cpus+threads>self.cpu_budget:
                     token.check()
                     self._condition.wait(.1)
@@ -187,6 +191,7 @@ class JobManager:
             except TimeoutError:
                 break
         self._pool.shutdown(wait=False)
+        self._assist_pool.shutdown(wait=False)
         pending=[job['id'] for job in self.list() if job['state'] not in TERMINAL]
         if not pending:
             self._owner.release()

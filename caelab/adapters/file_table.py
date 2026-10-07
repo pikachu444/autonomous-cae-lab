@@ -27,11 +27,12 @@ def read_table(path, mapping):
     else:
         # Explicitly support Fortran scientific exponents in numeric text.
         import re
-        content = re.sub(r'(?<=\d)[dD](?=[+-]?\d)', 'E', source.read_text(encoding='utf-8'))
-        data = np.genfromtxt(io.StringIO(content), delimiter=delimiter, names=True if named else None,
-                         dtype=float, encoding='utf-8', skip_header=int(mapping.get('skip_header', 0)),
-                         invalid_raise=True, ndmin=1 if named else 2,
-                         converters={})
+        with source.open(encoding='utf-8') as stream:
+            lines=(re.sub(r'(?<=\d)[dD](?=[+-]?\d)', 'E', line) for line in stream)
+            data = np.genfromtxt(lines, delimiter=delimiter, names=True if named else None,
+                             dtype=float, encoding='utf-8', skip_header=int(mapping.get('skip_header', 0)),
+                             invalid_raise=True, ndmin=1 if named else 2,
+                             converters={})
     def column(spec):
         index = spec['column']
         try:
@@ -57,7 +58,10 @@ def read_table(path, mapping):
         responses[name] = {'kind': 'series' if axes else 'field', 'value': values,
                            'unit': spec['unit'], 'component': spec['component'], 'location': spec['location'],
                            'reduction': spec.get('reduction', 'none'), 'axes': axes,
-                           'mapping': deepcopy(spec)}
+                           'mapping': deepcopy(spec),
+                           'coordinate_system':spec.get('coordinate_system','UNSPECIFIED'),
+                           'source_selector':{'file':source.name,'column':spec['column'],
+                                              'axis':deepcopy(axis_spec)}}
     after = source.stat()
     if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
         raise ValueError('Input table changed during reading; wait for a completed extraction')

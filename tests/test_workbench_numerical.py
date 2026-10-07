@@ -351,7 +351,7 @@ def test_explicit_file_exchange_preserves_unknown_missing_candidates(tmp_path):
     manifest = export_batch(VARIABLES, [{'x': .1}, {'x': .2}], tmp_path / 'export', case_id='specimen-A')
     assert all(r['execution_status'] == 'NOT_EVALUATED' for r in manifest['candidates'])
     actual = quadratic({'x': .1}, {})
-    actual.update(candidate_id='C000000', case_id='specimen-A', values={'x': .1})
+    actual.update(candidate_id='C000000', case_id='specimen-A', exchange_id=manifest['exchange_id'], values={'x': .1})
     imported = import_batch(manifest, [actual])
     assert imported['imported_count'] == 1
     assert imported['missing_count'] == 1
@@ -361,6 +361,11 @@ def test_explicit_file_exchange_preserves_unknown_missing_candidates(tmp_path):
         import_batch(manifest, [dict(actual, case_id='different')])
     with pytest.raises(ValueError, match='parameter values'):
         import_batch(manifest, [dict(actual, values={'x': .3})])
+    second=export_batch(VARIABLES,[{'x':.1},{'x':.2}],tmp_path/'second-export',case_id='specimen-A')
+    with pytest.raises(ValueError,match='stale exchange identity'):
+        import_batch(second,[actual])
+    with pytest.raises(ValueError,match='duplicate candidate'):
+        import_batch(manifest,[actual,actual])
 
 
 def test_csv_npz_mapping_and_missing_values_are_not_zero_filled(tmp_path):

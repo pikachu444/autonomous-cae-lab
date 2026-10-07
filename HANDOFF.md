@@ -1,4 +1,18 @@
-## New-session handoff — qualified startup / closure contradiction
+## 2026-10-08 — Local R1–R5 integration checkpoint
+
+Current work is on `codex/workbench-local-integration`, based on current main
+`afcfd27`. Primary checkout edits are preserved. Continue from
+`docs/WORKBENCH_PROGRESS.md`, the single current progress record; do not restart
+W1–W5 or the historical startup audit below. Actual local native response,
+external-process research, two-property MFront parallel fit/cancellation and
+bounded result reads are verified. Live model D/E and final CI/PR gates remain
+in progress. Raw receipts/hashes: `benchmarks/records/20261008-local-workbench-integration.json`.
+The private deployment configuration and `scripts/cae-research-local.ps1`
+resume the same workbench/store on port 8776. No physical release is claimed.
+
+---
+
+## Historical new-session handoff — qualified startup / closure contradiction
 
 A copyable full-scope prompt is in docs/NEXT_SESSION_PROMPT.md.
 User correction: recover and concretize the single roadmap and implementation

@@ -1,5 +1,83 @@
 # Current workbench implementation
 
+## 2026-10-08 local R1–R5 continuation — integration in progress
+
+Latest-main base is `afcfd27f2ff60c7fac77bbb12c750819702391bf`; exact-base CI
+`37643454243` failed. Work is isolated on `codex/workbench-local-integration`;
+the original checkout's user edits are preserved. The evidence below was produced
+from the dirty integration source and is not exact-commit CI or release approval.
+
+- Actual WSL FEniCSx/OpenRadioss managed jobs, selected common responses, changed
+  gravity comparison and solver-free restart passed in
+  `workbench-native-flow-20261008-04`: PDE 33 samples and explicit 200 samples,
+  explicit changed-gravity comparison and PDE identity comparison.
+  The preceding `-01` harness status mistake and `-02` packed-outcome reader
+  identity failure are retained; the reader identity defect was corrected.
+- Real external SciPy DOP853 process → ASCII → two-coefficient/multiple-history
+  fit, independent-history holdout, DOE8 and DE17 passed in
+  `workbench-external-20261008-01`. Independent analytical history errors were
+  below `3.58e-12 m`; observations are explicitly synthetic from the same law.
+- Actual MGIS prepared-library fit through jobs passed in
+  `workbench-mfront-fit-20261008-01`: E=274.99999999999994 MPa,
+  nu=0.2800000000000008, two fitted histories and separate mixed-history holdout;
+  37 updates, 8.52 s preparation and 0.092 s summed candidate execution.
+  The prepared product route now uses an operator-registered library/hash and
+  does not rerun the fixed package-fingerprint benchmark. Current law coverage
+  remains infinitesimal isotropic Elasticity with zero initial state.
+- Actual two-worker prepared MFront fit/cancellation passed in
+  `workbench-mfront-parallel-20261008-02`: E=275 MPa, nu=.28, 37 model calls,
+  independent six-component stress error <=4.44e-16 MPa; 20.37 s fit wall.
+  Active DOE cancellation retained 4 successful and 508 cancelled rows and
+  closed every owned MGIS child. Five active fit resources and two DOE
+  resources were isolated. Peak sum RSS was 387508 KiB (shared pages counted
+  repeatedly); child maxrss was 121416 KiB. Verified saved fit/DOE reads took
+  .128/.036 s. The preceding `-01` verifier watched the wrong directory and
+  missed cancellation; its completed 512-candidate DOE is retained.
+  `workbench-mfront-prepared-cost-20261008-01` measured 3.262 s preparation
+  and A/B/A calls of 56.3/2.71/1.82 ms, with exact A reproduction.
+- Actual external exchange passed in `workbench-exchange-20261008-01`:
+  two real program outputs imported, one missing candidate stayed unknown;
+  duplicate, changed-value and stale same-case exports were rejected. New
+  manifests bind returned rows to an exchange nonce as well as case/values.
+  Historical manifests remain readable with explicitly weaker legacy identity.
+- Native doctor actual small calculations passed separately for OpenRadioss,
+  Code_Aster affine and MFront. Vector PDE finer meshes [16,32,64] pass unchanged
+  thresholds; original [8,16,32] remains rejected. Canonical Aster Fz remains
+  unresolved: changing essential-condition enforcement did not repair fine-grid
+  MUMPS precision or MULT_FRONT reaction balance. GCPC/LDLT_DP with tighter
+  1e-12 solver residual also failed the unchanged 1e-7 reaction gate. The
+  retained nodal reaction audit shows summed free-node residual explains the
+  support imbalance; parser summation is not its cause. No limit was loosened.
+- Actual GUI registered an external CSV, mapped units/component/location and
+  plotted its 201 samples. It also streamed a Korean-named 25,239,040-byte file
+  from an approved root and read 300001 samples. GUI now loads an explicit
+  2000-row window, preserving unsliced arrays on disk. Actual GUI PDE run,
+  node544 selection (33 samples), explicit run and edited gravity rerun passed.
+  Screenshots are under local `output/ui/` (not remotely archived).
+- OpenScience 2.0.146 with the existing authorized ChatGPT OAuth profile has
+  executed actual MCP tools, local archive lookup and accepted citations.
+  First GUI research turn timed out after real literature reads and plan
+  creation because nested consultation hit a 60 s MCP timeout. This failed
+  turn is preserved. Later runs exposed final-text concatenation, a rejected
+  MCP root schema, and a metadata-only citation; all failed runs remain.
+  Canonical DOE planning now succeeds through real tools, but full D/E are
+  not yet accepted. No credentials were extracted.
+- Independent Astra High review reproduced and root fixed: penalized failed fit
+  reported as success; completed batch results lost on failure/cancellation;
+  compact response retention breaking follow-up numerical analysis. Reviewer
+  reran all reproductions successfully. Eight new regression cases pass.
+
+All named raw run directories above are under the private local runtime's
+`runs/` directory. The private deployment file selects WSL Ubuntu, the existing
+py312 environment, service port8776 and `workbench-service-20261008-01`.
+`scripts/cae-research-local.ps1` restarts it without manually combining paths.
+Service is running; full regression is in progress. Still required: finish
+D/E and external MCP-host acceptance, final GUI comparison/cancellation/report,
+final independent integration review, checkpoints and verified PR integration.
+Numerical checks never establish physical/material/strength/durability release.
+
+## Prior W1–W5 record
+
 2026-10-07. Based on PR #1 head `90952c5bc1c55da81c4c80b5e266c13339755263`.
 This is the single current progress record; historical results and design files
 remain intact. W1–W5 code is integrated below. Live model/host/native qualification
