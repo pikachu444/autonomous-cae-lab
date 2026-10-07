@@ -1,5 +1,45 @@
 # Current workbench implementation
 
+## Scope status for the R1–R5 continuation
+
+| Area | Actual status and boundary |
+|---|---|
+| R1 local runtimes | Actual small computations run for each configured backend. OpenCourant download/qualification and PDE convergence are repaired. Canonical Code_Aster F05 remains OPEN under unchanged gates. |
+| R2 shared responses | Native transient fields/histories and real external ASCII feed selection, comparison and numerical research; retained results reopen without the original solver. |
+| R3 research/expert | Actual authorized OpenScience host reads, editable bounded DOE, numerical interpretation, limited testing consultation and follow-up comparison are proven below. Model errors and their corrections remain recorded. |
+| R4 numerical execution | Real two-property/multiple-history MFront fit and holdout, two-worker execution/cancellation and measured preparation/read costs are retained. Broader material-law qualification is not implied. |
+| R5 user path | Actual file/native/expert screens, restart, result reopening and report preview are exercised. IAB download delivery itself remains unconfirmed. |
+
+This is a partial project completion with the listed connections verified;
+canonical Code_Aster and engineering/company release remain open. A–F describe
+bounded real user workflows, not support for every material law or file format.
+
+## Exact source validation and integration
+
+Product source is `9d0aeed3cef9c7f353bb2c907a5f789b65d88f63`.
+CI run [37665791166](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37665791166)
+finished with **9 successful jobs and Code_Aster failed**. Core passed 6575 tests
+(10 skipped); Windows workbench passed 106. The tested PR merge commit was
+`f9a5abfe72fe0309fec8b27d3b32d533c4160563`; its tree
+`843650e54e8977cde216d8f636e5fe4c012f2ad0` exactly equals the source-head tree.
+The Code_Aster worker is unchanged from base `afcfd27`; canonical Fz remains
+rejected, so this is not an overall green workflow or engineering approval.
+
+Optimization's first runner was cancelled after about 22 minutes in package
+index update, before any solver execution. Its isolated retry completed the
+actual numerical benchmark successfully. The same local benchmark also passed
+in fresh `workbench-optimization-9d0aeed-20261008-01`: 9 evaluations, 8 structural
+children, 2 saved evaluations resumed without rerun, invalid CAD blocked and
+unchanged CAD/solver input identity checked. Baseline volume 36783.82988 mm3
+reduced to 28185.59319 mm3 under the declared displacement screen; this bounded
+one-generation search is not a global optimum or physical release. Original
+receipt/hash and 1.337 GB of local artifacts are retained. Its dirty flag records
+staged documentation/evidence; product source remained identical to 9d0aeed.
+
+[PR #3](https://github.com/pikachu444/autonomous-cae-lab/pull/3) is the publication
+and integration pointer. Subsequent documentation/evidence commits are not new
+solver verification. Raw runs are local; CI artifacts have 30-day retention.
+
 ## Verified live research chain — 2026-10-08
 
 The optional OpenScience 2.0.146 provider uses the existing approved ChatGPT
@@ -97,7 +137,71 @@ Current targeted workbench tests: **106 passed**; UI Node tests: **15 passed**.
 Committed public synthetic screenshots and standalone HTML report are under
 `benchmarks/workbench/20261008/`. Raw provider logs, full result artifacts and
 private configuration remain local. Frozen-source replay regressions, final
-review conclusion and exact PR-head CI are recorded after they finish.
+review conclusion and exact source CI are recorded above and below.
+
+
+Code_Aster additional isolated probes also retained their failures: exact
+Lagrange elimination requires SuperLU absent from the pinned PETSc runtime;
+nonsymmetric/full-dual MUMPS estimates were3.69293e-6/3.42181e-6 versus1e-6.
+Physically coherent kN/mm and MN/mm scratch variants still failed at finest
+mesh (2.90616e-6/2.76773e-6); coarse/middle reaction-resultant drift also exceeded
+the original1e-7 gate. No unit rewrite entered the product. The subsequent K/u/b diagnostic below narrows the GCPC reaction failure;
+MUMPS conditioning remains a separate unresolved cause.
+Exact scratch paths/hashes are in the integration record. F05 remains OPEN.
+One further same-mesh GCPC solve captured the actual native assembled K/u/b
+(6675 DOFs, 870351 nonzeros) and `REAC_NODA`. Across 2160 free DZ DOFs,
+`REAC_NODA` summed to -8.16885e-7 N; assembled residual sums were -1.40610e-7 N
+with ordinary sparse float64 matvec, -5.15927e-10 N with row-wise `math.fsum`,
+and -8.98256e-9 N with 80-bit longdouble accumulation. Thus ordinary diagnostic
+matvec itself has substantial cancellation error. Better accumulation narrows
+the dominant GCPC discrepancy to native reaction postprocessing/aggregation;
+it does not prove the separate MUMPS FACTOR_57 cause. Code_Aster documents
+`REAC_NODA` as Gauss-stress-derived nodal forces minus external loading
+([U4.81.04](https://code-aster.org/doc/v17/manuals/man_u/u4/u4.81.04/Operandes_forces_reactions.html)).
+The scratch capture and 17.9 MB raw evidence are in `workbench-aster-kub-20261008-01`
+with hashes in the integration record. No alternate reaction replaced the
+native acceptance value. Next: diagnose/qualify the native reaction accumulation
+path and separately resolve MUMPS conditioning, then rerun all original
+fields/reactions at unchanged limits. F05 remains OPEN.
+### Reproduce on this configured PC
+
+Start `scripts/cae-research-local.ps1`, then open
+`http://127.0.0.1:8776/workbench`. The private deployment file restores the same
+WSL interpreter, solver roots, store and approved model profile; no credentials
+are committed. Direct Python/file workflows do not require an AI/MCP/CAD setup.
+
+The committed `benchmarks/workbench/20261008/live-research-api-snapshot.json`
+contains the actual public synthetic job arguments, DOE candidate values,
+analysis results, model answers and tool-event summaries. The original public
+input document is next to it. Its suggested mass1 kg is not the executed
+condition: the operator edited both actual DOE runs to1.2 kg. Original raw
+result hashes/paths remain in the integration record. To reopen, choose the
+saved job in Results; use row/channel controls for native/large histories.
+The same conversation can read its generated jobs through retained grants.
+For a new expert run, select the documents/results, allow their transmission,
+review its plan in the editable form, and only then enable a bounded calculation.
+Exact model wording is nondeterministic and must be checked against the records.
+
+Independent numerical replay commands (each timestamp creates a new store):
+
+```powershell
+$tag = Get-Date -Format 'yyyyMMdd-HHmmss'
+./scripts/local.ps1 -PythonArgs @('-m','scripts.verify_workbench_external','--output',"artifacts/workbench-external-$tag")
+./scripts/local.ps1 -PythonArgs @('-m','scripts.verify_workbench_native_flow','--store',"artifacts/workbench-native-$tag")
+./scripts/local.ps1 -PythonArgs @('-m','scripts.verify_workbench_mfront_fit','--store',"artifacts/workbench-mfront-$tag")
+./scripts/local.ps1 -PythonArgs @('-m','scripts.verify_workbench_exchange','--output',"artifacts/workbench-exchange-$tag")
+```
+
+These programs execute numerical producers and compare actual saved outputs;
+they do not replay a scripted model answer. Use a new tag for every rerun and
+retain failed stores. Raw local runs are not a managed remote archive.
+
+Frozen-source recheck at `9d0aeed`: all20 failures from the concurrent-edit full
+run passed (568.49 s, one CadQuery deprecation warning). The base-only wheel was
+built (SHA256 d8a8160df0e58dfaa5889bb9d051419bbe0260214ead3e7f971e4aecbbb27b02)
+and installed in a fresh environment without CAD/SciPy/MCP/Haystack/FELUPE;
+file registration and bounded result reread passed, and the optional PowerShell
+host helper is packaged. This is separate from actual native/model acceptance.
 
 ## Earlier 2026-10-08 local integration evidence
 
@@ -159,8 +263,9 @@ from the dirty integration source and is not exact-commit CI or release approval
   creation because nested consultation hit a 60 s MCP timeout. This failed
   turn is preserved. Later runs exposed final-text concatenation, a rejected
   MCP root schema, and a metadata-only citation; all failed runs remain.
-  Canonical DOE planning now succeeds through real tools, but full D/E are
-  not yet accepted. No credentials were extracted.
+  At this earlier checkpoint, canonical DOE planning succeeded but full D/E
+  remained pending; the verified later chain above supersedes that status.
+  No credentials were extracted.
 - Independent Astra High review reproduced and root fixed: penalized failed fit
   reported as success; completed batch results lost on failure/cancellation;
   compact response retention breaking follow-up numerical analysis. Reviewer
@@ -170,9 +275,10 @@ All named raw run directories above are under the private local runtime's
 `runs/` directory. The private deployment file selects WSL Ubuntu, the existing
 py312 environment, service port8776 and `workbench-service-20261008-01`.
 `scripts/cae-research-local.ps1` restarts it without manually combining paths.
-Service is running; full regression is in progress. Still required: finish
-D/E and external MCP-host acceptance, final GUI comparison/cancellation/report,
-final independent integration review, checkpoints and verified PR integration.
+At this earlier checkpoint, D/E, external host acceptance, GUI comparison/
+cancellation/report and final review were still pending. The verified chain
+above supersedes those pending statuses; exact source CI/publication is tracked
+separately.
 Numerical checks never establish physical/material/strength/durability release.
 
 ## Prior W1–W5 record

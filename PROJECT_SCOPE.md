@@ -1,7 +1,7 @@
 ## Scope checkpoint — 2026-10-08 local workbench continuation
 
 R1–R5 advances the existing numerical research, response/provenance, native
-execution and optional expert/UI scope. Actual A–E workbench flows, native
+execution and optional expert/UI scope. Actual A–F workbench flows, native
 solver-free rereads and external OpenScience host result reads now ran locally.
 Exact runs, final source CI/PR verification
 are in `docs/WORKBENCH_PROGRESS.md`, the single progress record. No requirement

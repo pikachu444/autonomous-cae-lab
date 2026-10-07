@@ -140,11 +140,125 @@
       "expected_numerical_rejections": 3,
       "status": "PASS_BOUNDED_MATHEMATICAL",
       "native_meshes": 27
+    },
+    "fixture-optimization-final": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-optimization-9d0aeed-20261008-01/optimization_acceptance.json",
+      "sha256": "37525afeb2d586aa97c71fc7031a9b7ab854a8f1945fa28e5fdab92a908b4789",
+      "raw_files": 622,
+      "raw_bytes": 1336949732,
+      "status": "PASS",
+      "decision": "NOT_RELEASED",
+      "evaluations": 9,
+      "solver_children": 8,
+      "replayed": 2,
+      "baseline": {
+        "displacement_mm": 0.005758587,
+        "volume_mm3": 36783.829878355966,
+        "width_mm": 38
+      },
+      "best": {
+        "analysis_experiment_id": "E-C-opt-0002-solve",
+        "cad_experiment_id": "E-C-opt-0002",
+        "displacement_mm": 0.005961796,
+        "values": {
+          "support_width": 29.73246472164783
+        },
+        "volume_mm3": 28185.593188869716
+      },
+      "source": {
+        "core_commit": "9d0aeed3cef9c7f353bb2c907a5f789b65d88f63",
+        "core_dirty": true,
+        "core_source_sha256": "75191c5b925f55a5690db915d04c0dc49056e8994798c6a5ac0ce51969a5bce3",
+        "source_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8"
+      },
+      "source_note": "Same product source as9d0aeed; only documentation/public evidence changed, hence core_dirty=true"
+    },
+    "aster-free-reaction-audit": {
+      "sha256": "b3b37ab20219b9d98f2c8abd0465b3af143f9fec79583b36d27dcbba2a094ebf",
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-aster-reaction-audit-20261008-01.json",
+      "interpretation": "REAC_NODA is recomputed from Gauss stresses minus external forces; not yet proven equivalent to assembled K*u-b",
+      "all_z_sum_n": -4.448221615260521,
+      "classification": "source_node_ids_by_native_index maps NOEUD to expected_mesh supports node_id/components",
+      "free_z_sum_n": -8.168848536768617E-07
+    },
+    "aster-free-reaction-spatial-bins": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-aster-residual-bins-20261008-01.jsonl",
+      "sha256": "606bb74ed154e4594c365da9026b14eb438fea23dd8eaf8379fd602def017156",
+      "script_sha256": "c7834266425c3e718ecbd930e0341f534c7159f4a704645f9f190df1231396bb",
+      "script": "C:/Users/pikac/.codex/worktrees/opencourant-qualification/audit_aster_residual_bins.py"
+    },
+    "aster-kub-diagnostic": {
+      "path": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-aster-kub-20261008-01",
+      "hashes": {
+        "structural_family_codeaster_worker.py": "400395770581ed7b9729397337f2bfe8c2a17dcb3a46e5fa4c7984356d28a220",
+        "level_2/input.json": "2dfcb20cf6e4ccb2e3db0df2a05ef984409255ee48abe735368c697244b0f809",
+        "level_2/aster.mess": "abca33eea3f918dc7e6caecb9d752c100b34c75fb7518216947045002179a0b7",
+        "level_2/assembly_raw.npz": "a4c449eb4f347d7916b9670b699d6ce9d7aa76bd744a7b3be60f43f5982a65b3",
+        "level_2/assembly_diagnostic.json": "be3a42533a5008e592eb73f1f0818fe84f3e1112a5155f1bee0d42611967ef9a",
+        "level_2/assembly_residual_summary.json": "6c7b5e32858f629e6f051b63c349f39a89872f284bbe18430d23965427bdadd6"
+      },
+      "summary": {
+        "components": {
+          "DX": {
+            "float64_sum_n": -1.937834781529091E-09,
+            "free_count": 2160,
+            "fsum_sum_n": -6.700477987091786E-10,
+            "longdouble_sum_n": "-2.3735530121221648514e-10",
+            "max_abs_float64_n": 2.9103830456733704E-10,
+            "max_abs_fsum_n": 2.111860971902563E-10,
+            "max_abs_longdouble_n": "1.9394974515307694674e-10",
+            "max_abs_reac_minus_float64_n": 3.6178005036191507E-10,
+            "max_abs_reac_minus_fsum_n": 3.4812708673200397E-10,
+            "max_abs_reac_minus_longdouble_n": "3.1660019050860910284e-10",
+            "max_abs_reac_n": 3.6215064280753495E-10,
+            "reac_sum_n": 1.4020099794662122E-10
+          },
+          "DY": {
+            "float64_sum_n": 1.260697501948016E-08,
+            "free_count": 2160,
+            "fsum_sum_n": 2.5494150686620635E-08,
+            "longdouble_sum_n": "2.657240562081632923e-08",
+            "max_abs_float64_n": 2.2992026060819626E-09,
+            "max_abs_fsum_n": 2.1253874834103757E-09,
+            "max_abs_longdouble_n": "2.3997192687835733338e-09",
+            "max_abs_reac_minus_float64_n": 2.7473732802651973E-09,
+            "max_abs_reac_minus_fsum_n": 1.7670820221145307E-09,
+            "max_abs_reac_minus_longdouble_n": "1.6264785208768006708e-09",
+            "max_abs_reac_n": 2.8567437998505696E-09,
+            "reac_sum_n": 5.0445456321873485E-09
+          },
+          "DZ": {
+            "float64_sum_n": -1.4060966363124705E-07,
+            "free_count": 2160,
+            "fsum_sum_n": -5.159268454621542E-10,
+            "longdouble_sum_n": "-8.982564188991792875e-09",
+            "max_abs_float64_n": 2.962769940495491E-08,
+            "max_abs_fsum_n": 2.1284504229085297E-08,
+            "max_abs_longdouble_n": "2.1362211555242538452e-08",
+            "max_abs_reac_minus_float64_n": 3.3999505121007356E-08,
+            "max_abs_reac_minus_fsum_n": 1.757149381356731E-08,
+            "max_abs_reac_minus_longdouble_n": "1.8727270088836345252e-08",
+            "max_abs_reac_n": 2.5919367957483175E-08,
+            "reac_sum_n": -8.168848536768617E-07
+          }
+        },
+        "longdouble_eps": "1.084202172485504434e-19",
+        "matched_dof_count": 6675,
+        "matrix_dim": 6675,
+        "matrix_nnz": 870351,
+        "source": {
+          "diagnostic_sha256": "be3a42533a5008e592eb73f1f0818fe84f3e1112a5155f1bee0d42611967ef9a",
+          "matrix_sha256": "a4c449eb4f347d7916b9670b699d6ce9d7aa76bd744a7b3be60f43f5982a65b3"
+        }
+      },
+      "files": 24,
+      "bytes": 17923289,
+      "interpretation": "Single same-mesh GCPC solve points to native reaction postprocessing/aggregation as dominant summed free-DZ discrepancy; does not establish the separate MUMPS FACTOR_57 conditioning cause; F05 OPEN, no product or threshold change"
     }
   },
   "remaining": [
     "Canonical Code_Aster Fz reaction gate",
-    "Frozen-source regression/exact source CI and PR integration",
+    "IAB report download delivery unconfirmed; displayed standalone HTML retained",
     "Physical/material/strength/durability/company deployment qualification"
   ],
   "review": {
@@ -153,5 +267,193 @@
     "verified_receipt_hashes": 16,
     "status": "No remaining actionable blockers after actual automatic-resumption fix",
     "ui_tests": 15
-  }
+  },
+  "frozen_source_validation": {
+    "wheel_sha256": "d8a8160df0e58dfaa5889bb9d051419bbe0260214ead3e7f971e4aecbbb27b02",
+    "optional_helper_packaged": true,
+    "base_only_fresh_install": "PASS",
+    "targeted_workbench_passed": 106,
+    "elapsed_seconds": 568.49,
+    "commit": "9d0aeed3cef9c7f353bb2c907a5f789b65d88f63",
+    "replayed_prior_failures_passed": 20,
+    "ui_passed": 15,
+    "ci_core_python_passed": 6575,
+    "ci_core_skipped": 10,
+    "ci_windows_workbench_passed": 106,
+    "ci_run": 37665791166,
+    "ci_tested_merge_commit": "f9a5abfe72fe0309fec8b27d3b32d533c4160563",
+    "ci_tested_tree": "843650e54e8977cde216d8f636e5fe4c012f2ad0",
+    "ci_tested_tree_equals_source_head": true,
+    "ci_conclusion": "failure",
+    "ci_attempt": 2,
+    "ci_jobs": [
+      {
+        "job_id": 112959546798,
+        "conclusion": "success",
+        "name": "optimization"
+      },
+      {
+        "job_id": 112959549499,
+        "conclusion": "success",
+        "name": "core"
+      },
+      {
+        "job_id": 112959549815,
+        "conclusion": "success",
+        "name": "native-registration"
+      },
+      {
+        "job_id": 112959551462,
+        "conclusion": "success",
+        "name": "doe"
+      },
+      {
+        "job_id": 112959598629,
+        "conclusion": "success",
+        "name": "native"
+      },
+      {
+        "job_id": 112959602212,
+        "conclusion": "success",
+        "name": "pde"
+      },
+      {
+        "job_id": 112959602736,
+        "conclusion": "success",
+        "name": "explicit"
+      },
+      {
+        "job_id": 112959604533,
+        "conclusion": "success",
+        "name": "structural"
+      },
+      {
+        "job_id": 112959610718,
+        "conclusion": "success",
+        "name": "research-driver-source"
+      },
+      {
+        "job_id": 112959612761,
+        "conclusion": "failure",
+        "name": "codeaster"
+      }
+    ],
+    "optimization_retry": "First attempt cancelled after about22 minutes in apt-get update with no solver execution; retry installed solvers and passed actual optimization"
+  },
+  "public_artifacts": [
+    {
+      "path": "benchmarks/workbench/20261008/actual-influence.jpg",
+      "bytes": 98748,
+      "sha256": "f0ea8ae917b5882a812b626aff1bcac324be0fc5fdc47c65307fcf25509ec60c"
+    },
+    {
+      "path": "benchmarks/workbench/20261008/explicit-comparison.jpg",
+      "bytes": 87068,
+      "sha256": "ec53d98bb3e7697a530359203ffd994e625435b27a071584967f88c745b65eee"
+    },
+    {
+      "path": "benchmarks/workbench/20261008/followup-research-report.html",
+      "bytes": 9450,
+      "sha256": "d6b06dac1f8fbb13aa84545e27859d6732c69c1fe12049cfbbf8730eb6b84d35"
+    },
+    {
+      "path": "benchmarks/workbench/20261008/live-expert-comparison.jpg",
+      "bytes": 115256,
+      "sha256": "923193bc6165b2a8f635132812468d6f0cfffbac4a5c686d688abd7e55329d29"
+    },
+    {
+      "path": "benchmarks/workbench/20261008/live-research-api-snapshot.json",
+      "bytes": 81509,
+      "sha256": "e687d800d4f6f64d70e2b535b55b4566b326f791df58a3f264d1a57eead89ef5"
+    },
+    {
+      "path": "benchmarks/workbench/20261008/native-pde-node544.jpg",
+      "bytes": 89438,
+      "sha256": "9f0d7cff0ae6b976571a5ed87b4b1517f4cb495c4fe49611773927de53bf47c4"
+    },
+    {
+      "path": "benchmarks/workbench/20261008/public-oscillator-source.md",
+      "bytes": 1092,
+      "sha256": "d4036e781165499c21c8b63d77704809559a708b4c9dd19f666c6ebc8b3299be"
+    },
+    {
+      "path": "benchmarks/workbench/20261008/reopened-influence.jpg",
+      "bytes": 121464,
+      "sha256": "fc519c2f49b66041566d55c56e1bcc29315381d8d526a8994d8b5b5cdb044877"
+    }
+  ],
+  "aster_remaining_probes": {
+    "outcome": "ALL_FAILED_OR_INSUFFICIENT",
+    "source_basis": "f64584fdebf6a75e1c651debc599e090456a1362",
+    "scope": "scratch worker variants, no production source changes or qualification claim",
+    "runs": {
+      "workbench-aster-elimlagr-20261008-02": {
+        "path": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-aster-elimlagr-20261008-02",
+        "files": 55,
+        "bytes": 3235413,
+        "sha256": {
+          "source_identity.json": "5048fc6016296cf589259227ba4e4b0a558fe8d7e64c818fe611634a95b01a0c",
+          "structural_family_codeaster_worker.py": "bd042d3e526e982ada811b54c8a246d264ee6bb4c87ad2bf464454292aa7c69b",
+          "level_0/solver.stdout.log": "fe1fac208ae988dcd9d49a52c2a06f0336a02241df04f622096b450b200330df",
+          "level_0/aster.mess": "19e52da699a71127eb4051819603e20204bcb24d7a88a07883fb49c39c58bd18",
+          "level_0/input.json": "c5a5d7786599fb41dbe375b32199baf91789683b3a152842770fa566868c3288",
+          "level_0/model.comm": "2dfa40d12b53b6922e34f46ddb3ad53fc21c8fa4a467464a26943f3ce856e233"
+        }
+      },
+      "workbench-aster-nonsym-20261008-01": {
+        "path": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-aster-nonsym-20261008-01",
+        "files": 91,
+        "bytes": 7407099,
+        "sha256": {
+          "source_identity.json": "4df560d78e278165a9eeaf2f11f3864710b9d6e52e6e0b264125dc4bb752fe29",
+          "structural_family_codeaster_worker.py": "a514651b91dabf04d88536aed530985f60605dde34936133b6cb2a0686d320c8",
+          "level_2/solver.stdout.log": "41bd6da64ed4299c843fe437d2895f6b238f25bd46351bed5fa343334f099564",
+          "level_2/aster.mess": "8afe7110ff4af83e815853eb7c63793fb293150e4355b307f7061b4872390c44",
+          "level_2/input.json": "9120a1afe6cbc60b07cfc4898ee8c9dcd8a76a8ca163a01dd0b38ed65be866b7",
+          "level_2/model.comm": "0199c7358c1b957ef5781a822251d301e2bd0ae7fca20f246a557bea4849dec2"
+        }
+      },
+      "workbench-aster-fulldual-20261008-01": {
+        "path": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-aster-fulldual-20261008-01",
+        "files": 91,
+        "bytes": 7411353,
+        "sha256": {
+          "source_identity.json": "c74ac7e9c327e7c3235602004ec773a39171174fb684ad4aa338ffe5bcfc2dce",
+          "structural_family_codeaster_worker.py": "83341161bff2fea0b8366b72088df669e950b49589f8b39d9a4af0e076038a17",
+          "level_2/solver.stdout.log": "d246d32ddd148e86436209073122e69f9241e8a587acd228ca76105975710606",
+          "level_2/aster.mess": "2d8a55838143eac1569c7e697ce0b0c6ba3b382cd35c6a616edfdfca30af336b",
+          "level_2/input.json": "d6980f5487d0f52334bfcbfaba83b0945df36c2511fa0c4f75ff41408ec93ce2",
+          "level_2/model.comm": "0199c7358c1b957ef5781a822251d301e2bd0ae7fca20f246a557bea4849dec2"
+        }
+      },
+      "workbench-aster-knscale-20261008-01": {
+        "path": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-aster-knscale-20261008-01",
+        "files": 91,
+        "bytes": 8130158,
+        "sha256": {
+          "source_identity.json": "747b7b6614f3ce9c5f5a6b8090433b1e2eb802a068363ed91ff86b539c12aef3",
+          "structural_family_codeaster_worker.py": "8ed93995e6e12aae4ad4c00c7b33a72400cfd2fbef3e65658a7f4c93f8f105ed",
+          "level_2/solver.stdout.log": "acd903ec231b49e0057ba303255db2adf17a1ff140f47ef0425bdc6454476b73",
+          "level_2/aster.mess": "4cb7dee1994233547713a1f5181b8721b3e21ab6b5c501e4d3407038cda85561",
+          "level_2/input.json": "fca3bc5d466869161e183f6404817dc9c023be0f2c74fe54780dda5e20e14cb5",
+          "level_2/model.comm": "0199c7358c1b957ef5781a822251d301e2bd0ae7fca20f246a557bea4849dec2"
+        }
+      },
+      "workbench-aster-mnscale-20261008-01": {
+        "path": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-aster-mnscale-20261008-01",
+        "files": 91,
+        "bytes": 8138768,
+        "sha256": {
+          "source_identity.json": "bff97d8bd224bc509d46d3cb511469d72d090623415466b050658225ac6c54ae",
+          "structural_family_codeaster_worker.py": "d0b313a99dc63299bf00cd4000385b6af812a4defa79f95f067166a3cb9bccb3",
+          "level_2/solver.stdout.log": "529b5645c423d519472b32a07b9e8cadf7dcc8481bae705e2187d9c521d451ea",
+          "level_2/aster.mess": "9f821c4f64732386af869ffd549b469f85906b81563e3332611d01c11016f0cd",
+          "level_2/input.json": "f7bbb2ac47f7785abe553d02bccbef9115dcea66f069fb61887a977e49024243",
+          "level_2/model.comm": "0199c7358c1b957ef5781a822251d301e2bd0ae7fca20f246a557bea4849dec2"
+        }
+      }
+    }
+  },
+  "public_artifact_hash_basis": "Exact Git blob bytes; text artifacts are stored with LF and a Windows checkout may use CRLF",
+  "pull_request": "https://github.com/pikachu444/autonomous-cae-lab/pull/3"
 }

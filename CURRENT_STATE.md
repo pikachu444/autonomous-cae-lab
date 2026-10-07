@@ -6,8 +6,10 @@ SciPy/ASCII fit and search, MFront E/nu fit/holdout and owned cancellation ran.
 Actual OpenScience with existing approved OAuth read local/public sources,
 proposed an editable DOE, interpreted computed coefficients, consulted testing,
 and submitted a bounded follow-up DOE. `docs/WORKBENCH_PROGRESS.md` preserves
-exact IDs, failed attempts and remaining verification. Broad local regression
-and exact source CI are distinct. Code_Aster canonical reaction and whole52 /
+exact IDs, failed attempts and remaining verification. Frozen source `9d0aeed`
+passes all 20 replay regressions; exact CI core passes 6575 tests and Windows
+workbench 106. The progress record distinguishes CI run 37665791166 and PR #3 from
+local solver evidence. Code_Aster canonical reaction and whole52 /
 physical/company release remain open, with unchanged engineering limits.
 ---
 
