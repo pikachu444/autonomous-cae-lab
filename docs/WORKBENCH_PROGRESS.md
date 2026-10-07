@@ -44,6 +44,8 @@ Offline distribution is a design consideration only: no bundle was implemented.
   under the unchanged1e-5 gate. This is one supported solid, not arbitrary CAD
   feature reconstruction or generic-CAD shape optimization qualification.
 
+Final Windows repeat: actual two-file comparison `J2026025f383c4dfea14e61e312bff955` reproduces the same errors and five samples in the private Windows store. Browser inspection found grid min-content overflow; the CSS follow-up permits columns to shrink. Measured document width now equals viewport width (1265px), with both curves visible. The extra public screenshot records this final view.
+
 Validation: **121 Python workbench tests and19 Node UI tests passed**. Independent
 UI/parser and Windows launcher reviews closed their bounded findings. Windows CI
 now includes table-preview regressions and the actual private-runtime HTTP smoke.

@@ -62,6 +62,19 @@
       "receipt": "windows-base-20261008-01/wheel-smoke/windows-probe-receipt.json",
       "sha256": "c918056e5127b12f3b8db439eaa8fca1c5e93d530dfa9dbdfac234bffae00bd3",
       "receipt_sha256": "8a86a98c8003cff14dddeec44233a34c39e9fb954f439f5a379b092014a299e5"
+    },
+    "gui_comparison": {
+      "mae_N": 0.08,
+      "compare_job": "J2026025f383c4dfea14e61e312bff955",
+      "sample_count": 5,
+      "predicted_job": "Je788a5026b6f4b87bd7a39ad67c89b6c",
+      "interactions": "Actual file chooser upload, explicit mapping, import, comparison and retained result reopening after CSS grid overflow correction",
+      "runtime": "native Windows private CPython3.12.14",
+      "rmse_N": 0.109544511501033,
+      "store": "research-store-test-20261008",
+      "viewport_width": 1265,
+      "document_scroll_width": 1265,
+      "observed_job": "Jcfe5a48dfc204e7395360a6e199e6990"
     }
   },
   "gui_comparison": {
@@ -126,6 +139,11 @@
       "path": "benchmarks/workbench/20261008/windows-material-result.jpg",
       "bytes": 44035,
       "sha256": "aa8a72803fdc97467d218466306d053a16fedaf94be24021d4bc8fd9b31c0919"
+    },
+    {
+      "path": "benchmarks/workbench/20261008/windows-comparison-result.jpg",
+      "sha256": "5ff95ac426c33ae0d50883087e215db32c71b76937b531d37945f30e7762257a",
+      "bytes": 53332
     }
   ]
 }
