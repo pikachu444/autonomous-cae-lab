@@ -95,6 +95,10 @@ qualification that did not run.
   deprecation warning (538.57 seconds).
 - Workbench targeted suites: **70 passed** after the final registered-callable
   dispatch fix; that fix and its regression test followed the full-suite run.
+- A non-UTF-8 locale reproduced a Korean knowledge archive decoding failure.
+  Explicit UTF-8 reads now cover document archives, literature caches and expert
+  sessions; all **70 workbench tests passed** with Python UTF-8 mode and locale
+  coercion disabled. Hosted Windows checks are tracked separately below.
 - Node suites: **877 passed**, including 9 current workbench UI tests.
 - Actual existing MCP smoke: **passed**, including CAD, DOE/search and native
   preflight refusal. The earlier `report_context` comparison mismatch was fixed

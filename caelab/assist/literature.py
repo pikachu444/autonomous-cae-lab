@@ -70,7 +70,7 @@ class Literature:
         if self.root:
             self.root.mkdir(parents=True, exist_ok=True)
         cache = self.root / 'papers.json' if self.root else None
-        self._papers = json.loads(cache.read_text()) if cache and cache.exists() else {}
+        self._papers = json.loads(cache.read_text(encoding='utf-8')) if cache and cache.exists() else {}
 
     def _persist(self):
         if self.root:
@@ -137,7 +137,7 @@ class Literature:
             archive_id = locator['archive_id']
             if not self.root or not re.fullmatch(r'[a-f0-9]{64}', archive_id):
                 raise ValueError('Invalid or unavailable literature archive')
-            result = json.loads((self.root / (archive_id + '.json')).read_text())
+            result = json.loads((self.root / (archive_id + '.json')).read_text(encoding='utf-8'))
             if result['paper_id'] != paper_id:
                 raise ValueError('Literature archive belongs to another paper')
             selected = {key: value for key, value in locator.items() if key != 'archive_id'}

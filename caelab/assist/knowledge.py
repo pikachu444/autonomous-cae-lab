@@ -56,7 +56,7 @@ class KnowledgeStore:
         self._store = None
         self._index_generation = None
         self._manifest = self.root / 'documents.json'
-        self._data = json.loads(self._manifest.read_text()) if self._manifest.exists() else {'documents': {}}
+        self._data = json.loads(self._manifest.read_text(encoding='utf-8')) if self._manifest.exists() else {'documents': {}}
 
     def _save(self):
         temporary = self._manifest.with_suffix('.tmp')
@@ -116,7 +116,7 @@ class KnowledgeStore:
             revision = document['latest_revision'] if revision is None else int(revision)
             if revision < 1 or revision > document['latest_revision']:
                 raise ValueError('Unknown document revision')
-            archive = json.loads((self.root / document_id / str(revision) / 'segments.json').read_text())
+            archive = json.loads((self.root / document_id / str(revision) / 'segments.json').read_text(encoding='utf-8'))
             rows = archive['segments']
             if locator:
                 rows = [r for r in rows if all(r['locator'].get(k) == v for k, v in locator.items())]
@@ -147,7 +147,7 @@ class KnowledgeStore:
             for document_id, doc in self._data['documents'].items():
                 if doc.get('revoked'):
                     continue
-                archive = json.loads((self.root / document_id / str(doc['latest_revision']) / 'segments.json').read_text())
+                archive = json.loads((self.root / document_id / str(doc['latest_revision']) / 'segments.json').read_text(encoding='utf-8'))
                 for row in archive['segments']:
                     documents.append(Document(id=f"{document_id}:{row['revision']}:{row['segment_id']}",
                                               content=row['text'], meta={k: v for k, v in row.items() if k != 'text'}))

@@ -150,7 +150,7 @@ class ExpertRuntime:
         if not __import__('re').fullmatch(r'[A-Za-z0-9_-]{1,128}', session_id):
             raise ValueError('Invalid session ID')
         path = self.session_root / (session_id + '.json')
-        session = json.loads(path.read_text()) if path.exists() else {
+        session = json.loads(path.read_text(encoding='utf-8')) if path.exists() else {
             'session_id': session_id, 'workspace_id': workspace_id, 'expert_id': expert_id, 'turns': []}
         if session['workspace_id'] != workspace_id or session['expert_id'] != expert_id:
             raise PermissionError('Session belongs to another workspace or expert')
