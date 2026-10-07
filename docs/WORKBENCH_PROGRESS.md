@@ -114,9 +114,11 @@ configuration rather than returning a fabricated expert answer. PDF tables,
 figures/OCR, arbitrary native formats, distributed/HPC recovery and additional
 constitutive laws are outside this implemented first boundary.
 
-Git HTTPS reads work, and PR #1's remote head was unchanged when rechecked.
-GitHub API requests returned `Forbidden`, preventing hosted required-check/PR
-state inspection. The environment draft preserves package-manager presets and
+Reviewed implementation was pushed to PR #1's existing branch without rewriting
+its earlier commits. GitHub API requests initially returned `Forbidden`; access
+became available after delivery, and hosted checks were confirmed running.
+Their completion and merge are verified separately from the local results above.
+The environment draft preserves package-manager presets and
 adds `api.github.com` and `api.crossref.org`, plus updated tested install/start
 instructions. Draft persistence is confirmed; application/publication and
 fresh-task restoration are not. Review/save and publication are user actions in
