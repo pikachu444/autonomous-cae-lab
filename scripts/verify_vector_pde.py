@@ -27,12 +27,12 @@ _WEIGHTS = (.2369268850561891, .4786286704993665, .5688888888888889, .4786286704
 _QUADRATURE = tuple(((node+1)/2, weight/2) for node, weight in zip(_NODES, _WEIGHTS))
 
 
-def specification():
-    # The manufactured P1 solution is not yet in its asymptotic L2 range on
-    # the original 8->16 pair (measured 1.7951; u0 1.7796).  Keep the same
-    # analytical reference and numerical limits, and verify convergence on
-    # the measured 16->32->64 sequence.  The original failure remains retained.
-    settings = manufactured_settings()
+def specification(*, reaction=0.0):
+    # The polynomial P1 family, including reaction=3, is not yet in its
+    # asymptotic L2 range on the original 8->16 pair. Keep the same analytical
+    # references and numerical limits; verify both measured variants on the
+    # 16->32->64 sequence. The original failures remain retained.
+    settings = manufactured_settings(reaction=reaction)
     settings["mesh"]["cell_counts"] = [16, 32, 64]
     return settings
 
@@ -41,7 +41,7 @@ def cases():
     """All fixed controls exist before the first native call or output."""
     accepted = {
         "E-vector-mixed": specification(),
-        "E-vector-reaction": manufactured_settings(reaction=3.0),
+        "E-vector-reaction": specification(reaction=3.0),
         "E-vector-domain": manufactured_settings(lengths=(1.5, .75), lame_lambda=3.0, lame_mu=.5, reaction=2.0),
         "E-vector-lambda-zero": manufactured_settings(lame_lambda=0.0),
         "E-vector-all-dirichlet": specification(),
