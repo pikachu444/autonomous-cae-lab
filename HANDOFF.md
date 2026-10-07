@@ -1,6 +1,6 @@
 ## 2026-10-08 — Windows and usability continuation
 
-PR#3 is merged59577ed. New product source6d9909f on `codex/workbench-usability`
+PR#3 is merged59577ed. New product source6d9909f plus layout correction a06b747 on `codex/workbench-usability`
 adds guided file/material/expert entry, safe table previews, comparison overlays,
 named jobs and online Windows install/start/owned-stop scripts. Actual native
 Windows bootstrap, installed-wheel and GUI material jobs passed;121 Python and19

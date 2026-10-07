@@ -53,9 +53,22 @@ CI for this new commit is separate from the previous source verification below.
 The merged59577ed run37674032477 finished9 successful jobs and Code_Aster failed;
 no new canonical solver success is claimed by this UI/installation change.
 
+Final product source is `a06b747729cce7cec169281747bcfc2b248a0f13` (the
+`6d9909f` implementation plus the bounded grid correction).
+[PR #4](https://github.com/pikachu444/autonomous-cae-lab/pull/4) carries this increment.
+Exact [CI 37696870570](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/37696870570)
+completed **Core PASS: 6590 Python tests, 10 skipped**, and **Windows PASS: 121
+Python / 19 Node tests plus fresh private-runtime HTTP calculation**, before this
+documentation checkpoint. CI job `J5954f8a33ae6498a9c52449a80418b68` produced
+1.2MPa. Tested PR merge `02717bc83a7270b56547a8a73ad574499b3f4349` and the source
+head have identical tree `d8cefb53e6e5aa2e6c191030ce42c6188450170d`.
+Native jobs were still running at this checkpoint; no overall workflow or new
+canonical solver PASS is claimed. Subsequent evidence/documentation commits do
+not change the tested product source or constitute another solver verification.
+
 Evidence, hashes, precise limitations and retained stores:
 [`20261008-windows-usability.json`](../benchmarks/records/20261008-windows-usability.json).
-The public UI snapshot and two screenshots contain only synthetic verification
+The public UI snapshot and three screenshots contain only synthetic verification
 data. Private install logs and original run artifacts remain local. The existing
 52-section requirements and Code_Aster F05/physical/company release gates remain
 open as previously recorded. Basic Windows installation does not certify every

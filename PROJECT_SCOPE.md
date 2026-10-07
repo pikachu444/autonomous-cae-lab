@@ -1,6 +1,6 @@
 ## Scope checkpoint — 2026-10-08 Windows/usability
 
-Installation and usability advance at source6d9909f: actual Windows without WSL
+Installation and usability advance at source6d9909f plus layout correction a06b747: actual Windows without WSL
 base/numerical/material bootstrap and GUI computation are verified; guided file
 mapping, comparison overlays/report and result-to-expert navigation are improved.
 Remote Linux execution is a future extension; offline packaging is consideration

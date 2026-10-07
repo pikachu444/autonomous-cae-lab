@@ -1,6 +1,6 @@
 ## 2026-10-08 — Windows and usability verified increment
 
-Source6d9909f follows merged59577ed. Windows online bootstrap and actual named
+Source6d9909f plus layout correction a06b747 follows merged59577ed. Windows online bootstrap and actual named
 FELUPE GUI job work without WSL; source ZIP, installed wheel, repeat/start/stop
 and matching-store rules were checked. File preview/units→real imports→overlaid
 comparison/report were exercised. Corrected independent findings and exact hashes

@@ -74,7 +74,9 @@
       "store": "research-store-test-20261008",
       "viewport_width": 1265,
       "document_scroll_width": 1265,
-      "observed_job": "Jcfe5a48dfc204e7395360a6e199e6990"
+      "observed_job": "Jcfe5a48dfc204e7395360a6e199e6990",
+      "server_source_fingerprint": "6996efb56b754bfa5fdc84b9db37edcd92f651310166b8be8ce7840cd0b5515c",
+      "final_source_restart": "PASS; retained results preserved, same owned store"
     }
   },
   "gui_comparison": {
@@ -145,5 +147,25 @@
       "sha256": "5ff95ac426c33ae0d50883087e215db32c71b76937b531d37945f30e7762257a",
       "bytes": 53332
     }
-  ]
+  ],
+  "layout_followup_commit": "a06b747729cce7cec169281747bcfc2b248a0f13",
+  "ci": {
+    "windows_tests": 121,
+    "tested_merge_commit": "02717bc83a7270b56547a8a73ad574499b3f4349",
+    "windows_job": 113050802293,
+    "windows_ui_tests": 19,
+    "core_status": "PASS",
+    "scope": "Exact-source Windows bootstrap/workbench and core verification; separate from native engineering acceptance",
+    "windows_stress_xx_mpa": 1.2,
+    "windows_actual_job": "J5954f8a33ae6498a9c52449a80418b68",
+    "source_commit": "a06b747729cce7cec169281747bcfc2b248a0f13",
+    "identical_source_and_merge_tree": "d8cefb53e6e5aa2e6c191030ce42c6188450170d",
+    "run_id": 37696870570,
+    "windows_status": "PASS",
+    "core_job": 113050802582,
+    "core_python_passed": 6590,
+    "core_python_skipped": 10,
+    "whole_workflow": "NOT_CLAIMED; native jobs still running at publication checkpoint"
+  },
+  "pull_request": "https://github.com/pikachu444/autonomous-cae-lab/pull/4"
 }
