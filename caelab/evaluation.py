@@ -299,6 +299,27 @@ def read_result(path, *, verify='selected', selection=None):
             return [unpack(item) for item in value]
         return value
     if selection is not None:
+        # Fit and comparison records store curves outside the model-response
+        # map. Expose references to those same arrays for bounded UI/tool reads.
+        views=result.setdefault('responses',{})
+        def curve_views(observation, prediction, observed_name, predicted_name, mask=None, prediction_metadata=None):
+            if not isinstance(observation,dict) or observation.get('kind')!='series':
+                return
+            observed=deepcopy(observation)
+            if mask is not None:
+                observed['mask']=mask
+            views.setdefault(observed_name,observed)
+            if prediction is not None:
+                predicted={k:deepcopy(v) for k,v in observed.items() if k in ('kind','unit','component','location','axes','mask')}
+                predicted.update(deepcopy(prediction_metadata or {'source':{'status':'UNKNOWN_LEGACY_PREDICTION_PROVENANCE'}}))
+                predicted.update(value=prediction,alignment='linear interpolation onto observation axis')
+                views.setdefault(predicted_name,predicted)
+        curve_views(result.get('observation'),result.get('prediction'),'observation','prediction',result.get('mask'),result.get('prediction_metadata'))
+        for curve in result.get('curves',[]):
+            prefix=f"{curve.get('role')}: {curve.get('experiment_id')}"
+            curve_views(curve.get('observations'),curve.get('prediction'),
+                        prefix+' observed',prefix+' predicted',curve.get('mask'),curve.get('prediction_metadata'))
+    if selection is not None:
         names = selection.get('responses') if isinstance(selection, dict) else selection
         if names is not None:
             if not isinstance(names,(list,tuple)) or not all(isinstance(name,str) for name in names):
@@ -344,6 +365,8 @@ def read_result(path, *, verify='selected', selection=None):
             response['value'] = values[selected].tolist()
             for axis in response.get('axes', []):
                 axis['values'] = np.asarray(array_value(axis['values']))[selected].tolist()
+            if response.get('mask') is not None:
+                response['mask'] = np.asarray(array_value(response['mask']))[selected].tolist()
     if isinstance(selection, dict):
         # A response selection must not hydrate unrelated, potentially huge
         # diagnostics or saved native fields into an interactive response.

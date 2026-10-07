@@ -1,6 +1,105 @@
 # Current workbench implementation
 
-## 2026-10-08 local R1–R5 continuation — integration in progress
+## Verified live research chain — 2026-10-08
+
+The optional OpenScience 2.0.146 provider uses the existing approved ChatGPT
+OAuth profile and `openai-codex/gpt-5.6-sol`. It now connects through the official
+SDK's authenticated, ephemeral loopback Streamable HTTP MCP server. A Windows
+stdio host startup race was reproduced; the installed runtime was not patched
+or its process ownership checks bypassed. Temporary configuration exposes only
+scoped tools and disables unrelated deliverable/acceptance/review continuation
+harnesses. Exact result/document scope remains enforced by Core callbacks.
+
+- D: GUI expert job `Jba9efaca329c4ba7a5baae3213de7d99` read the selected local
+  document and one actual public abstract (doi:10.2478/sgem-2025-0008), inspected
+  registered inputs, and proposed DOE8 through five real tools. The operator
+  edited mass to 1.2 kg, stiffness upper bound to 130 N/m and seed to 41 in the
+  form, then ran `Jaad26b66365245399a1fb91113c779b8` (8 real external DOP853
+  evaluations). Analysis `J29e8f4c5acc747b28312a62886ebcfc7` computed force
+  abs_max 0.5044949266–1.1935027409 N, normalized stiffness/damping regression
+  coefficients 1.0000000000 / 3.14e-16, and two-point holdout RMSE 2.15e-16 N.
+- E: `Jd9657039f35a4b9099c58c1cbcec0825` actually read both saved results and
+  consulted the authorized testing expert once. It explained the initial-force
+  confound, limited holdout and lack of causal/physical proof, then proposed
+  the same DOE with initial velocity 0.05 m/s. After bounded GUI authorization,
+  `J50df681fd4aa42e79a44cd7e6e8a9ec9` submitted the actual eight-evaluation
+  job `J8bbbc7942c9046f9aed41babedbb9193`. Analysis
+  `Jcabf6666d9e24925b5135d747fe43ab7` computed force range
+  0.7353048127–1.3527743352 N, stiffness/damping coefficients
+  1.0990343106 / 0.1465053562, and two-point holdout RMSE 0.00370097494 N.
+  These are conditional sample statistics, not invented model influence scores.
+- F transport/recovery: after service restart, the same conversation
+  `f18e42c48dfd43f187f45ef54ab1528f` used the actual external OpenScience host
+  to read the generated DOE through its persisted grant, without adding it to
+  the new selected list. `Jdf79a382e204427c99cc833672c71186` made six real
+  status/result calls. Its final answer lost useful claims during strict
+  citation repair; this failed interpretation is retained. Follow-up
+  `J6cd084f4d2cf435db9c7f5f3e1b28a7c` copied the true numbers but wrongly
+  claimed mass had changed. Selecting the original DOE as well let
+  `J757e599719804e189c3bf5ec11d310bd` reread both conditions and correct
+  that claim: both mass1.2 kg, identical eight candidate pairs/seed41, only
+  initial velocity0→0.05 m/s changed. Five real tool calls, no new calculation
+  or consultation, accepted exact citations and correct coefficient/RMSE
+  comparison. SDK-only tests are separate from this actual external-host proof.
+- Current remote-host cancellation: GUI job
+  `Jaad4a1c294ef496796531e4fbf3adf9c` transitioned RUNNING → CANCEL_REQUESTED
+  → CANCELLED (18:06:22–18:06:36 UTC). Owned Windows CLI PID101776 was observed
+  before cancellation and absent afterwards; structured host cleanup was
+  confirmed. Receipt: local `output/gui-model-cancel-remote.json`.
+- B rerun with the newly qualified OpenCourant pin: fresh
+  `workbench-native-flow-20261008-06` passed actual PDE33 and explicit200
+  selected samples, changed-gravity comparison, PDE self-comparison and
+  solver-free restart. PDE `Jcd0169062ba04feb84d0eda001631d98`, explicit
+  `Je927911d3989472995e531034a9c9387`, changed gravity
+  `Je159c0b46d074f47a3eeb1ee3acd0904`. Previous OpenRadioss22-channel output
+  remains readable; the new runtime's23-channel format is separately admitted.
+- Actual GUI displays influence statistics, conditional coefficients, heldout
+  error and limitations. Report preview uses the same standalone HTML as the
+  download action and includes selected study arguments. Saved local evidence:
+  `output/ui/actual-influence.jpg`, `research-report-preview.jpg`,
+  `followup-research-report.html`, native and file/curve screenshots.
+  IAB download delivery itself was not confirmed; displayed report HTML was
+  saved directly and visually checked.
+
+The upstream OpenRadioss release URL now returns404. New official community
+successor OpenCourant source/runtime pins and clean-source analytical flight
+and compliant-contact qualification are documented in
+`OPENCOURANT_RUNTIME_QUALIFICATION_20261008.md` / ADR0059. Two rigid-wall tests
+remain rejected; unknown physics is not promoted to approval. No republished
+third-party release was created. Canonical Code_Aster Fz remains rejected;
+MUMPS iterative-refinement probe also failed FACTOR_57 (3.07939e-6 > 1e-6).
+
+Full local regression during concurrent integration: 6541 passed,20 failed,
+4 skipped. Failures included source drift during edits, Windows/WSL Git setup,
+CRLF-only source fingerprint, a missing ignored artifact folder and process
+startup timing. Focused repairs passed; final frozen-source checks and exact
+PR-head CI are tracked below. Prior `acbe38c` CI `37656946351`: seven jobs
+passed; explicit failed on upstream404, PDE on reaction-case preasymptotic
+convergence, Code_Aster on the retained canonical reaction gate. The download
+and PDE issues have been corrected without changing numerical limits. Clean
+`f64584f` full vector verification passed all6 accepted,3 expected numerical
+rejections and5 preflight refusals over27 meshes; exact hashes and retained
+coarse failures are in `PDE_VECTOR_PACKET.md`. Independent final Astra High
+review reports no remaining actionable blockers after the continuation fix.
+
+
+Final review also reproduced an upstream continuation issue: the next CLI
+invocation automatically resumed the cancelled internal session. The official
+`harness.durable-jobs=false` overlay now gates bootstrap `resumeInterrupted()`.
+A following actual turn left the still-eligible interrupted session untouched;
+its own answer/tool calls completed. No runtime/auth patch or history deletion
+was used. Cancellation means owned process cleanup plus no later automatic
+revival through this host, not simply a CANCELLED label. The erroneous earlier
+mass interpretation and initial citation-repair failure remain visible evidence
+that model interpretation needs checking against source conditions.
+
+Current targeted workbench tests: **106 passed**; UI Node tests: **15 passed**.
+Committed public synthetic screenshots and standalone HTML report are under
+`benchmarks/workbench/20261008/`. Raw provider logs, full result artifacts and
+private configuration remain local. Frozen-source replay regressions, final
+review conclusion and exact PR-head CI are recorded after they finish.
+
+## Earlier 2026-10-08 local integration evidence
 
 Latest-main base is `afcfd27f2ff60c7fac77bbb12c750819702391bf`; exact-base CI
 `37643454243` failed. Work is isolated on `codex/workbench-local-integration`;

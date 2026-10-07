@@ -1,13 +1,14 @@
 ## 2026-10-08 — Native/common workbench integration
 
-The current continuation implements R1–R5 on latest-main base `afcfd27` in an
-isolated local worktree. Actual WSL native histories, external SciPy→ASCII
-research, MFront two-coefficient fit/holdout, true process workers and owned
-cancellation have been verified. See `docs/WORKBENCH_PROGRESS.md` for the single
-current status and failed attempts, and the 20261008 local workbench evidence
-record for retained raw receipt hashes. Live expert/host flow and full CI remain
-in progress; Code_Aster canonical reaction and whole52/physical gates stay open.
-
+Current R1–R5 implementation extends latest-main base `afcfd27` in an isolated
+worktree. Real native response selection, solver-free restart, external
+SciPy/ASCII fit and search, MFront E/nu fit/holdout and owned cancellation ran.
+Actual OpenScience with existing approved OAuth read local/public sources,
+proposed an editable DOE, interpreted computed coefficients, consulted testing,
+and submitted a bounded follow-up DOE. `docs/WORKBENCH_PROGRESS.md` preserves
+exact IDs, failed attempts and remaining verification. Broad local regression
+and exact source CI are distinct. Code_Aster canonical reaction and whole52 /
+physical/company release remain open, with unchanged engineering limits.
 ---
 
 ## Historical actual startup and new-session checkpoint

@@ -7,7 +7,11 @@ The configured installation uses WSL Ubuntu, the existing Python 3.12 venv,
 port 8776 and the private `runs/workbench-service-20261008-01` store. The source
 is the isolated `workbench-local-integration` worktree, preserving primary edits.
 Windows source paths are translated with `wslpath`; Linux runtime/store paths
-are retained. `scripts/local.ps1` supplies separately installed native runtimes.
+are retained. `scripts/local.ps1` supplies separately installed native runtimes,
+including the new hash-pinned OpenCourant 20261006 explicit solver under
+`$RuntimeRoot/opencourant-latest-20261006/OpenCourant`; its
+[qualification record](OPENCOURANT_RUNTIME_QUALIFICATION_20261008.md) preserves
+the separate historical 20260728 runtime and results.
 Stop the foreground controller with Ctrl+C and use the same launcher to resume.
 
 The operator workbench configuration registers trusted external programs,

@@ -730,6 +730,7 @@ def compare_curves(prediction, observation, *, weight=1, scale=1, mask=None):
     difference = aligned[retained] - experiment['observations']['value'][retained]
     return {'method': 'linear_axis_alignment', 'unit': observation['unit'], 'weight': weight, 'scale': scale,
             'prediction': _nullable(aligned), 'observation': _nullable(experiment['observations']),
+            'prediction_metadata': _nullable({k: v for k, v in prediction.items() if k not in ('value','axes','mask')}),
             'mask': retained.tolist(), 'residual': residual,
             'rmse': float(np.sqrt(np.mean(difference ** 2))), 'mae': float(np.mean(abs(difference))),
             'count': int(retained.sum()), 'objective': float(residual @ residual)}
@@ -1079,6 +1080,7 @@ def _fit_curve(experiment, evaluation):
                                         weight=experiment['weight'], scale=experiment['scale'])
             curve.update(prediction=deepcopy(predicted_event), residual=residual, rmse=abs(comparison['difference']))
         else:
+            curve['prediction_metadata'] = {k: v for k, v in evaluation['responses'][experiment['response']].items() if k not in ('value','axes','mask')}
             curve.update(prediction=prediction, residual=residual, rmse=float(np.sqrt(np.mean((prediction[experiment['_mask']] - experiment['observations']['value'][experiment['_mask']]) ** 2))))
     except EvaluationFailed as error:
         curve.update(execution_status='FAILED', failure_reason=str(error))

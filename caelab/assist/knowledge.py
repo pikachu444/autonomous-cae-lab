@@ -120,7 +120,7 @@ class KnowledgeStore:
             rows = archive['segments']
             if locator:
                 rows = [r for r in rows if all(r['locator'].get(k) == v for k, v in locator.items())]
-            return {'status': 'AVAILABLE', 'document_id': document_id, 'revision': revision,
+            return {'status': 'AVAILABLE' if rows else 'NO_MATCHING_SEGMENTS', 'document_id': document_id, 'revision': revision,
                     'segments': rows, 'failed_segments': archive['failed_segments']}
 
     def list(self, *, workspace_id='local', collections=None):

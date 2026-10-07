@@ -115,7 +115,7 @@ def _pde_catalog(outcome, output):
             "source": {"backend": _PDE, "artifact": "worker_result.json", "sha256": raw_hash,
                        "settings_artifact": "input.json", "field_artifact_template":
                        f"study_{index}_n{study['cells_per_axis']}_N{study['step_count']}/step_<index>/dofs.json"},
-            "model_conditions": {"cells_per_axis": study["cells_per_axis"], "step_count": study["step_count"],
+            "model_conditions": {**settings,"cells_per_axis": study["cells_per_axis"], "step_count": study["step_count"],
                                  "time": settings["time"]},
         }
     return catalog
@@ -129,7 +129,7 @@ def _explicit_context(outcome, output):
     from plugins.explicit_dynamics import reference as domain
     _need(domain.validate_settings(settings) == settings and
           outcome.get("raw_result") == "simulation/analysis_raw.json" and
-          raw == parse_history(Path(output), settings),
+          raw == parse_history(Path(output), settings, outcome.get('provenance')),
           "Retained OpenRadioss parsed history differs from original typed output")
     rows = raw.get("rows")
     expected_times = expected_history_times(settings)
@@ -165,8 +165,7 @@ def _explicit_catalog(outcome, output):
                          "source": {"backend": _EXPLICIT, "artifact": "parsed_history.json", "sha256": digest,
                                     "native_artifact": "dropT01", "native_field": field,
                                     "selector": name},
-                         "model_conditions": {"case": settings["case"], "end_time_s": settings["end_time_s"],
-                                              "time_step_s": settings["time_step_s"]}}
+                         "model_conditions": dict(settings)}
     return catalog
 
 

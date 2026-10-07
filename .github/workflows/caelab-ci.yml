@@ -26,7 +26,7 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -e ".[numerical,material,mcp,assist,sensitivity,dev]"
       - name: Exercise current shared calculation, access and cancellation contracts
-        run: python -m pytest tests/test_workbench_evaluation.py tests/test_workbench_jobs.py tests/test_workbench_numerical.py tests/test_workbench_assist.py -q --junitxml=artifacts/workbench-tests.xml
+        run: python -m pytest tests/test_workbench_evaluation.py tests/test_workbench_jobs.py tests/test_workbench_numerical.py tests/test_workbench_assist.py tests/test_workbench_recovery.py tests/test_workbench_review_regressions.py -q --junitxml=artifacts/workbench-tests.xml
       - name: Annotate workbench failures
         if: failure()
         shell: pwsh
@@ -405,17 +405,19 @@ jobs:
             requirements-core.txt
             plugins/fixture_design/upstream/requirements.txt
       - run: python -m pip install -r requirements-dev.txt
-      - name: Install the digest-pinned official OpenRadioss runtime outside the repository
+      - name: Install the digest-pinned OpenCourant successor runtime outside the repository
         run: |
-          lab_radioss_dir="$RUNNER_TEMP/caelab-openradioss-latest-20260728"
+          lab_radioss_dir="$RUNNER_TEMP/caelab-opencourant-latest-20261006"
           mkdir -p "$lab_radioss_dir"
+          # The original OpenRadioss 20260728 release endpoint was removed.
+          # This is a newly qualified successor build; historical pins stay in evidence.
           curl --fail --location --retry 3 \
-            https://github.com/OpenRadioss/OpenRadioss/releases/download/latest-20260728/OpenRadioss_linux64.zip \
-            -o "$lab_radioss_dir/OpenRadioss_linux64.zip"
-          echo "598ed7b2905a7bacc8d1781470c250ac79d7558c39ba962768edf3644644fe33  $lab_radioss_dir/OpenRadioss_linux64.zip" | sha256sum --check --strict
-          unzip -q "$lab_radioss_dir/OpenRadioss_linux64.zip" -d "$lab_radioss_dir"
-          chmod +x "$lab_radioss_dir"/OpenRadioss/exec/*
-          echo "CAELAB_OPENRADIOSS_ROOT=$lab_radioss_dir/OpenRadioss" >> "$GITHUB_ENV"
+            https://github.com/OpenCourant/OpenCourant/releases/download/latest-20261006/OpenCourant_linux64.zip \
+            -o "$lab_radioss_dir/OpenCourant_linux64.zip"
+          echo "9d67531de156dd9beba05fbfe710dcdc2bcecbdf3dc3a12642cf85dcece80081  $lab_radioss_dir/OpenCourant_linux64.zip" | sha256sum --check --strict
+          unzip -q "$lab_radioss_dir/OpenCourant_linux64.zip" -d "$lab_radioss_dir"
+          chmod +x "$lab_radioss_dir"/OpenCourant/exec/*
+          echo "CAELAB_OPENRADIOSS_ROOT=$lab_radioss_dir/OpenCourant" >> "$GITHUB_ENV"
       - name: Verify flight prerequisites and preserve full-history wall rejection
         run: |
           python -m scripts.verify_openradioss --store artifacts/explicit-lab || test "$?" -eq 2

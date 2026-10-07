@@ -1,15 +1,15 @@
 ## 2026-10-08 — Local R1–R5 integration checkpoint
 
-Current work is on `codex/workbench-local-integration`, based on current main
-`afcfd27`. Primary checkout edits are preserved. Continue from
-`docs/WORKBENCH_PROGRESS.md`, the single current progress record; do not restart
-W1–W5 or the historical startup audit below. Actual local native response,
-external-process research, two-property MFront parallel fit/cancellation and
-bounded result reads are verified. Live model D/E and final CI/PR gates remain
-in progress. Raw receipts/hashes: `benchmarks/records/20261008-local-workbench-integration.json`.
-The private deployment configuration and `scripts/cae-research-local.ps1`
-resume the same workbench/store on port 8776. No physical release is claimed.
-
+Continue `codex/workbench-local-integration` in the managed local worktree.
+Primary checkout user edits are preserved. `docs/WORKBENCH_PROGRESS.md` is the
+single current progress record; do not restart W1–W5 or the historical startup
+audit below. Native histories, multi-property fit/holdout, real external research,
+GUI DOE editing/analysis and live authorized research/testing experts are proven.
+Actual host reads after restart work; interpretation and cancellation-continuation checks passed; source CI/PR
+gates are being completed. Raw paths/hashes are recorded in
+`benchmarks/records/20261008-local-workbench-integration.json`.
+Run `scripts/cae-research-local.ps1` to resume private local port8776/store.
+Canonical Code_Aster reaction and physical/company qualification remain open.
 ---
 
 ## Historical new-session handoff — qualified startup / closure contradiction

@@ -1,5 +1,12 @@
 # Bounded OpenRadioss explicit-dynamics acceptance
 
+The 20260728 runtime and all results below are historical evidence; its vendor
+download URL became unavailable. Current local/CI installation selects the
+separately pinned OpenCourant 20261006 successor, qualified with unchanged
+numerical gates in [the new runtime record](OPENCOURANT_RUNTIME_QUALIFICATION_20261008.md).
+The original ZIP, hashes, source identity and rejected contact histories remain
+unchanged.
+
 This packet uses the existing declared-model `Lab.run_model_analysis` operation
 with an injected `explicit.openradioss` adapter. It has no invented CAD parent.
 The pure domain plugin owns SI input bounds and independent analytical equations;

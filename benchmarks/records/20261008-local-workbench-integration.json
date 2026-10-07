@@ -41,12 +41,117 @@
       "sha256": "4090baf67b877e57d945fde916ae4af4121a0cddc291510b4093e4d97ef3a372",
       "raw_files": 12,
       "raw_bytes": 119260
+    },
+    "native-flow-opencourant": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-native-flow-20261008-06/native_flow_receipt.json",
+      "sha256": "2044f6fd9aa0f009369c1ca2f7187bddb019c6029916b7f10de4e25fce6006de",
+      "raw_files": 778,
+      "raw_bytes": 21037648
+    },
+    "live-plan": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/results/Jba9efaca329c4ba7a5baae3213de7d99/result.json",
+      "sha256": "d4a1151dc87c2d353bbb6917e3f5a1c8065d4affa6faf5fabf313cd8fb35ad4c",
+      "raw_files": 2,
+      "raw_bytes": 10081
+    },
+    "edited-doe": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/results/Jaad26b66365245399a1fb91113c779b8/result.json",
+      "sha256": "274031709323a654e27071ff88f4753071cf9dce5a453225daf020234eba2c49",
+      "raw_files": 19,
+      "raw_bytes": 64851
+    },
+    "original-analysis": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/results/J29e8f4c5acc747b28312a62886ebcfc7/result.json",
+      "sha256": "e4ba45a83d30df2c1bdc24fdbe9c8360ce22172bb03198d6a5d3c95610fcfab4",
+      "raw_files": 2,
+      "raw_bytes": 5440
+    },
+    "testing-consult": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/results/Jd9657039f35a4b9099c58c1cbcec0825/result.json",
+      "sha256": "cfe5cdca7796bb0dcfc7fbaca0bae5596841c5a493923931fe3f8d264644783c",
+      "raw_files": 2,
+      "raw_bytes": 11614
+    },
+    "live-submit": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/results/J50df681fd4aa42e79a44cd7e6e8a9ec9/result.json",
+      "sha256": "de0bc8911b3ae92b0703a3dac6d5427945bfc3d26cf53c26155aa015d90cbccc",
+      "raw_files": 2,
+      "raw_bytes": 3216
+    },
+    "followup-doe": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/results/J8bbbc7942c9046f9aed41babedbb9193/result.json",
+      "sha256": "2b4917f4da590a72b7556ab4bd48ebdd8fecc2aa5c74069791840f40b9321bf9",
+      "raw_files": 19,
+      "raw_bytes": 64875
+    },
+    "followup-analysis": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/results/Jcabf6666d9e24925b5135d747fe43ab7/result.json",
+      "sha256": "dac6c3a95f981e6fb627a0d90a9b954cfaa14f6d0392184e5fb1c4a2672717e5",
+      "raw_files": 2,
+      "raw_bytes": 6148
+    },
+    "restart-initial-answer": {
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/results/Jdf79a382e204427c99cc833672c71186/result.json",
+      "sha256": "b0c1f5611833051dcb3878dfa5d20aeee7aaa85e5f915672eb2878dc5f345bc3",
+      "raw_files": 2,
+      "raw_bytes": 4388
+    },
+    "gui-remote-host-cancel": {
+      "sha256": "a7fddc85b2cce3d50b6345bab596618cecb56e9bc444856a0294bb5d489d2253",
+      "receipt": "output/gui-model-cancel-remote.json",
+      "owned_cli_absent_after": true,
+      "owned_windows_pid": 101776,
+      "status": "CANCELLED",
+      "job_id": "Jaad4a1c294ef496796531e4fbf3adf9c"
+    },
+    "verified-restart-condition-comparison": {
+      "status": "ANSWERED",
+      "consultations": 0,
+      "evaluations": 0,
+      "sha256": "abd5e4e1732a05108bd88bb116a0ae55bbdcb1f8dec381a871485f55471c446c",
+      "actual_tool_calls": 5,
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/results/J757e599719804e189c3bf5ec11d310bd/result.json",
+      "job_id": "J757e599719804e189c3bf5ec11d310bd"
+    },
+    "cancelled-session-no-revival": {
+      "provider_log_sha256": "dcb15ca0489ed2373d5e1a0c66753384e720b354314fa2d3bc4ab6ccee02cb0e",
+      "interrupted_message": "msg_1178f385a0019U308GSdnq4o9e.json",
+      "eligibility_checked_utc": "2026-10-07T18:15:00.326774Z",
+      "profile_study_database_counts": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "still_eligible": true,
+      "research_sessions": 1,
+      "resume_events": 0,
+      "interrupted_message_sha256": "ce1ad5d8c40ceb176de950aa330686b6a5dcd3178ad8dbb015c183699abfaeb7",
+      "configuration": "harness.durable-jobs=false",
+      "provider_log": "official local OpenScience log 2026-10-07T181316"
+    },
+    "vector-all-cases": {
+      "decision": "NOT_RELEASED",
+      "receipt": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-vector-full-f64584f-20261008-01/acceptance.json",
+      "source_commit": "f64584fdebf6a75e1c651debc599e090456a1362",
+      "accepted_cases": 6,
+      "preflight_refusals": 5,
+      "sha256": "01a2eca5e777a5e6660d36d505cb9c9d51fa2e47c02c8280fa23803e94ebd0e6",
+      "expected_numerical_rejections": 3,
+      "status": "PASS_BOUNDED_MATHEMATICAL",
+      "native_meshes": 27
     }
   },
   "remaining": [
-    "Live expert D/E and actual-host continuity acceptance",
     "Canonical Code_Aster Fz reaction gate",
-    "Full regression/exact source CI",
+    "Frozen-source regression/exact source CI and PR integration",
     "Physical/material/strength/durability/company deployment qualification"
-  ]
+  ],
+  "review": {
+    "python_tests": 54,
+    "reviewer": "independent Astra high",
+    "verified_receipt_hashes": 16,
+    "status": "No remaining actionable blockers after actual automatic-resumption fix",
+    "ui_tests": 15
+  }
 }

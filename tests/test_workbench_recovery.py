@@ -53,6 +53,15 @@ def test_expert_turn_cannot_starve_its_child_with_one_solver_slot(tmp_path):
 
 
 def timed_candidate(values, settings):
+    if settings.get('worker_readiness') and values['x'] != .5:
+        from pathlib import Path
+        directory=Path(settings['worker_readiness'])
+        (directory/str(os.getpid())).touch()
+        deadline=time.monotonic()+30
+        while len(list(directory.iterdir()))<2:
+            if time.monotonic()>deadline:
+                raise RuntimeError('Both requested worker processes did not start')
+            time.sleep(.01)
     start=time.monotonic_ns()
     time.sleep(.12)
     x=values['x']
@@ -62,13 +71,16 @@ def timed_candidate(values, settings):
         'diagnostics':{'pid':os.getpid(),'start_ns':start,'end_ns':time.monotonic_ns()}}
 
 
-def test_de_dispatches_constraints_and_objective_in_overlapping_workers():
+def test_de_dispatches_constraints_and_objective_in_overlapping_workers(tmp_path):
     variables=[{'id':'x','unit':'1','lower':0.,'upper':1.,'value':.5}]
     objective={'response':'cost','unit':'1'}
     constraints=[{'response':'limit','unit':'1','operator':'<=','limit':.8}]
     common=dict(constraints=constraints,seed=41,options={'max_generations':2,'population_size':6})
     serial=optimize(timed_candidate,variables,objective,**common)
-    parallel=optimize(timed_candidate,variables,objective,execution={'mode':'process','workers':2},**common)
+    # Spawn startup is uneven under suite load; synchronize readiness while
+    # still requiring two actual PIDs and overlapping candidate intervals.
+    parallel=optimize(timed_candidate,variables,objective,settings={'worker_readiness':str(tmp_path)},
+                      execution={'mode':'process','workers':2},**common)
     a,b=serial['candidates'],parallel['candidates']
     assert [r['values'] for r in b]==[r['values'] for r in a]
     assert [r['objective'] for r in b]==[r['objective'] for r in a]
@@ -175,3 +187,35 @@ def test_metadata_restores_native_selector_catalog_without_response_arrays(tmp_p
     assert result['native_channels']['u']['node_ids']==[0,544]
     assert result['native_channels']['u']['coordinates']==[[0.,0.],[1.,.5]]
     assert 'data_ref' in result['diagnostics']['field']
+
+
+def test_fit_comparison_aliases_read_bounded_saved_curves(tmp_path):
+    from caelab.evaluation import save_evaluation, read_result
+    observation={'kind':'series','unit':'m','value':[1.,2.,3.,4.],
+                 'axes':[{'name':'time','unit':'s','values':[0.,1.,2.,3.]}]}
+    save_evaluation({'observation':observation,'prediction':[2.,3.,4.,5.],
+        'mask':[True,True,False,True],
+        'curves':[{'experiment_id':'axial','role':'holdout','observations':observation,
+                   'prediction':[3.,4.,5.,6.]}]},tmp_path,existing=True)
+    catalog=read_result(tmp_path,selection={'metadata_only':True})
+    assert set(catalog['responses'])=={'observation','prediction','holdout: axial observed','holdout: axial predicted'}
+    chosen=read_result(tmp_path,selection={'responses':['prediction','holdout: axial predicted'],'rows':[1,3]})
+    assert chosen['responses']['prediction']['value']==[3.,4.]
+    assert chosen['responses']['prediction']['mask']==[True,False]
+    assert chosen['responses']['holdout: axial predicted']['value']==[4.,5.]
+    assert 'data_ref' in chosen['observation']['value']
+    assert chosen['responses']['prediction']['source']['status']=='UNKNOWN_LEGACY_PREDICTION_PROVENANCE'
+
+
+def test_comparison_prediction_keeps_own_source_when_read_as_curve(tmp_path):
+    from caelab.numerical import compare_curves
+    from caelab.evaluation import save_evaluation, read_result
+    observation={'kind':'series','unit':'m','component':'X','location':'mass','reduction':'none','value':[1.,2.],
+                 'source':{'sha256':'observed'},'axes':[{'name':'time','unit':'s','values':[0.,1.]}]}
+    prediction={**observation,'value':[2.,4.],'source':{'sha256':'predicted'},'model_conditions':{'mass_kg':2.}}
+    save_evaluation(compare_curves(prediction,observation),tmp_path,existing=True)
+    selected=read_result(tmp_path,selection={'responses':['prediction'],'rows':[0,1]})['responses']['prediction']
+    assert selected['value']==[2.]
+    assert selected['source']=={'sha256':'predicted'}
+    assert selected['model_conditions']=={'mass_kg':2.}
+    assert selected['axes'][0]['values']==[0.]

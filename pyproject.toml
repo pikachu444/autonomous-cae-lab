@@ -29,4 +29,5 @@ exclude = ["plugins.fixture_design.upstream.tests*", "plugins.fixture_design.ups
 [tool.setuptools.package-data]
 schemas = ["*.json"]
 "apps.lab" = ["static/**/*"]
+"caelab.assist" = ["*.ps1"]
 "plugins.fixture_design.upstream" = ["models/*", "fixturelab/*.js", "scripts/*"]

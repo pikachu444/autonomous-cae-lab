@@ -71,6 +71,6 @@ if ($LASTEXITCODE -eq 0) {
     "FREECAD_CMD=$RuntimeRoot/freecad_cmd.sh" `
     "CAELAB_CODEASTER_IMAGE=$RuntimeRoot/code_aster_17.4.0-oci.sif" `
     CAELAB_CODEASTER_IMAGE_SHA256=f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64 `
-    "CAELAB_OPENRADIOSS_ROOT=$RuntimeRoot/openradioss-latest-20260728/OpenRadioss" `
+    "CAELAB_OPENRADIOSS_ROOT=$RuntimeRoot/opencourant-latest-20261006/OpenCourant" `
     CAELAB_FENICSX_PYTHON=/usr/bin/python3 @labGitEnvironment @labOptionalEnvironment $pythonPath @PythonArgs
 exit $LASTEXITCODE

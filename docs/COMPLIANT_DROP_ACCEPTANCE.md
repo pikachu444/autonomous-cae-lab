@@ -1,5 +1,10 @@
 # Separate reduced conservative-stop native acceptance
 
+This packet records the original 20260728 campaign. The separately pinned
+OpenCourant 20261006 successor passed a fresh three-case native campaign with
+the same limits; its exact source, report hashes and unresolved gates are in
+[the successor qualification record](OPENCOURANT_RUNTIME_QUALIFICATION_20261008.md).
+
 This benchmark extends the injected `explicit.openradioss` declared-model path
 with `rigid_cube_compliant_stop`. Existing freeflight proof and both REJECTED
 ideal-wall runs remain in their original stores. This is a reduced nonrotating

@@ -206,3 +206,33 @@ specified asymptotic behavior on the finer mesh sequence; it does not turn
 the rejected coarse sequence into a pass. The local smoke runner now requests
 16/32/64 for this particular manufactured control. Other geometry,
 coefficients, physical material and mesh adequacy remain separate gates.
+
+## 2026-10-08 committed-source acceptance
+
+The exact source commit `acbe38c` CI run `37656946351` rejected
+`E-vector-reaction` on its 8/16/32 mesh sequence: first vector L2 rate
+1.7780528281, component u0 rate 1.6952523031, below the unchanged 1.8
+criterion. A fresh local n16/32/64 native solve passed reaction with vector
+rates 1.8926771037 and 1.9578879979. The first full verifier run at
+`7ed87ca` then exposed another retained coarse-mesh rejection:
+`E-vector-domain` first vector L2 rate 1.6465674793. Separate native
+n16/32/64 probes passed the domain, lambda-zero, and harmonic controls
+without changing reference expressions or thresholds. Original failed
+stores remain at `workbench-vector-reaction-convergence-20261008-01` and
+`workbench-vector-full-7ed87ca-20261008-01` under the local run root.
+
+Source commit `f64584fdebf6a75e1c651debc599e090456a1362` measures all six
+accepted controls on 16/32/64. Its clean-source, fresh-store full native
+verifier `workbench-vector-full-f64584f-20261008-01` returned
+`PASS_BOUNDED_MATHEMATICAL`: six accepted, three expected numerical
+rejections, five preflight refusals, nine native processes and 27 verified
+meshes. Final accepted vector L2 rates range from 1.9393149844 to
+1.9999979111, gradient-H1 rates from 0.9998310888 to 1.0499261537, and
+relative linear residuals from 3.18e-15 to 7.15e-15. The `acceptance.json`
+SHA-256 is `01a2eca5e777a5e6660d36d505cb9c9d51fa2e47c02c8280fa23803e94ebd0e6`;
+the frozen `acceptance_plan.json` SHA-256 is
+`004958b0fb8f953c993a48af26e6f6c6e6e7d499787ccd61a952abd7f93715f5`.
+The corresponding source tests passed 19/19. This is a bounded mathematical
+acceptance; model qualification and physical validation remain UNKNOWN,
+engineering decision NOT_RELEASED, and official research admission
+NOT_ADMITTED.
