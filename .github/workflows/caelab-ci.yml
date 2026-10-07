@@ -26,7 +26,22 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -e ".[numerical,material,mcp,assist,sensitivity,dev]"
       - name: Exercise current shared calculation, access and cancellation contracts
-        run: python -m pytest tests/test_workbench_evaluation.py tests/test_workbench_jobs.py tests/test_workbench_numerical.py tests/test_workbench_assist.py -q
+        run: python -m pytest tests/test_workbench_evaluation.py tests/test_workbench_jobs.py tests/test_workbench_numerical.py tests/test_workbench_assist.py -q --junitxml=artifacts/workbench-tests.xml
+      - name: Annotate workbench failures
+        if: failure()
+        shell: python
+        run: |
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          report = Path('artifacts/workbench-tests.xml')
+          if report.exists():
+              def escape(value):
+                  return value.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              for case in ET.parse(report).iter('testcase'):
+                  for failure in list(case.findall('failure')) + list(case.findall('error')):
+                      title = escape(case.get('name', 'Workbench test')).replace(',', '%2C').replace(':', '%3A')
+                      detail = escape((failure.text or failure.get('message', 'Test failed'))[-12000:])
+                      print(f'::error title={title}::{detail}')
       - name: Check editable workbench forms
         run: node --test tests/test_workbench_ui.js
 
