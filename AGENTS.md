@@ -23,6 +23,30 @@ obsolete profiles, prompt bytes, exact model choices or development ceremonies.
 They remain useful sources for earlier requirements and numerical observations;
 this redesign does not certify or erase those observations.
 
+## External results and LLM-assisted research
+
+LS-OPT is unavailable for this project. Do not make it a dependency, fallback or
+new procurement prerequisite. OpenRadioss is not the only permitted backend.
+Use existing commercial/external solver inputs, registered execution/extraction
+tools and separate ASCII/CSV/text outputs through the same response and numerical
+interfaces. Reading imported results must not require the original solver.
+The chip impact experiment is an example, not a new product boundary or profile.
+
+Read redesign sections 4.4, 7.1 and 12.8 together with all W1–W5 work packages.
+The LLM proposes variables, justified ranges, objectives, DOE and follow-up work.
+Existing numerical libraries generate samples, evaluate candidates and compute
+sensitivity. The LLM interprets these actual results and proposes the next study
+step. Do not reduce this to an optimizer button plus a fixed answer, and do not
+use an LLM as a per-candidate numeric parser or objective evaluator.
+
+Separate imported-results analysis, file-based batch exchange and registered
+automated execution. Unknown candidate values, missing outputs and unperformed
+runs remain unknown. New candidates need real evaluations; surrogate predictions
+are labeled separately. Keep physical channel meaning, units and event definitions.
+Build the generic connection during the first workbench; specific commercial
+cards, native formats and company runtimes can follow. Do not pause all work for
+LS-DYNA access or replace the wider research scope with this one application.
+
 ## Development setup and orchestration
 
 Read `docs/CODEX_WORKFLOW.md` for model/reasoning, usage control, task ownership,

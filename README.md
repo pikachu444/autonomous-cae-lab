@@ -32,8 +32,8 @@ CODEX_START.txt와 연결된 문서·스킬·설정을 읽고 W1–W5를 구현�
 | 참조 | 역할 |
 |---|---|
 | [AGENTS.md](AGENTS.md) | 전체 목표, 개발 원칙과 문서 진입점 |
-| [WORKBENCH_REDESIGN.md](docs/WORKBENCH_REDESIGN.md) | 기존 개정 3의 W1–W5 구성·API·구현 순서·완료 조건 |
-| [WORKBENCH_USE_CASES.md](docs/WORKBENCH_USE_CASES.md) | 16개 연구 사용처와 실제 사용자 산출물 |
+| [WORKBENCH_REDESIGN.md](docs/WORKBENCH_REDESIGN.md) | 개정 4: 기존 W1–W5 유지, 외부 파일 응답·LLM 연구 반복의 공통 연결 보강 |
+| [WORKBENCH_USE_CASES.md](docs/WORKBENCH_USE_CASES.md) | 기존 16개 사용처 + 외부 파일 기반 연구의 공통 사용 패턴 UC17 |
 | [CODEX_WORKFLOW.md](docs/CODEX_WORKFLOW.md) | 모델·추론·토큰·분업·통합·진행·세션 재개 |
 | [DEVELOPMENT_SKILLS.md](docs/DEVELOPMENT_SKILLS.md) | 기존 스킬의 원본·의존성·호출 시점과 선택 도구 |
 | [.codex/config.toml](.codex/config.toml), [.codex/agents](.codex/agents/) | 개발 모델 기본값과 조사·구현·검토 역할 |
@@ -52,6 +52,29 @@ CODEX_START.txt와 연결된 문서·스킬·설정을 읽고 W1–W5를 구현�
 
 이 시작 지시는 제품 구현을 시작하기 위한 것이다. 설명용 HTML·영상의 수치
 예시나 규칙 기반 자문은 실제 제품 솔버·LLM 연결의 완료 증거가 아니다.
+이전 PDF/HTML/영상은 개정 3 시점의 설명 자료이며, 개정 4의 구현 기준은
+저장소 Markdown이다.
+
+## External solver results and AI-assisted research
+
+LS-OPT is unavailable and is not a dependency or fallback. Keep existing solver
+inputs and execution/extraction tools. Read separate ASCII/CSV/text outputs into
+the same response, DOE, optimization and sensitivity interfaces. Results-only
+analysis does not require the source solver. Automated new evaluations require
+an actual execution connection; missing results are not fabricated.
+
+An optional expert helps choose variables, ranges, objectives and a DOE plan.
+Numerical libraries generate candidates and calculate responses and sensitivity.
+The expert reads those results and proposes the next search, experiment or stop.
+The chip-impact identification example must not define all supported variables,
+file names or physical domains. The same path supports thermal, structural,
+material and numerical studies. See redesign sections 4.4, 7.1 and 12.8.
+
+Build the generic file/execution boundary during W1–W5. Add specific commercial
+solver cards, native output formats and company execution environments as domain
+connections. Do not block the first workbench on LS-DYNA access or convert all
+models to OpenRadioss. This is target behavior, not a claim of a working LS-DYNA
+adapter or a completed AI optimization loop.
 
 ## Current development direction
 
