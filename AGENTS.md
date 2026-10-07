@@ -49,6 +49,20 @@ Keep one current progress record. After a feature bundle, return to the whole
 W1–W5 and use-case outcomes. Close finished helpers and carry forward the next
 implementation location, not another full audit or duplicated history document.
 
+## Integration and merge decisions
+
+There is no permanent ban on merging into main. Earlier "do not merge" wording
+protected the document-review stage; it is not a product or architecture constraint.
+If the user assigns implementation and merging, that authorization covers the
+reviewed feature bundles in that assignment. The lead may merge their PRs after
+reviewing the changes, checking the relevant behavior and satisfying required
+repository checks. Do not request redundant approval for each small commit.
+A merged feature is not proof that all of W1–W5 is complete. Report unfinished or
+untested capabilities accurately. Do not bypass branch protection, force-push,
+discard user work or merge unrelated changes. If merging was not assigned, submit
+the PR for approval; do not interpret this document as authorization by itself.
+This interpretation also applies to older merge cautions in the referenced plans.
+
 ## How to work
 
 - Begin a substantive bundle with the user-visible outcome and its place in the
