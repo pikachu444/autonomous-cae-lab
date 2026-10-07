@@ -16,128 +16,31 @@ concurrency:
 jobs:
   research-driver-source:
     runs-on: windows-2025
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Check structural research source and refusal gates without runtime calls
-        shell: pwsh
-        run: |
-          $taskReceiptPath = Join-Path $env:GITHUB_WORKSPACE 'artifacts/p2-structural-research-failure-flow-20261002-01/ci-source-checks.json'
-          $null = & ./scripts/verify_structural_research_source.ps1 -RepoRoot $env:GITHUB_WORKSPACE -OutputPath $taskReceiptPath
-          $taskReceipt = Get-Content -LiteralPath $taskReceiptPath -Raw | ConvertFrom-Json -Depth 60
-          if ($taskReceipt.status -cne 'PASS_SOURCE_ONLY' -or @($taskReceipt.checks).Count -ne 127 -or
-              @($taskReceipt.checks | Where-Object status -CNE 'PASS').Count -ne 0 -or
-              $taskReceipt.model_calls -ne 0 -or $taskReceipt.native_solver_calls -ne 0 -or
-              $taskReceipt.actual_runtime_calls -ne 0 -or $taskReceipt.core_calls -ne 0) {
-            throw 'Cold research source gate did not produce the expected bounded evidence.'
-          }
-          Write-Host '127 cold checks PASS; actual model/runtime/Core/solver calls0.'
-      - name: Verify actual PDE research descriptor parity and source guards
-        shell: pwsh
-        run: |
-          $taskPdeSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'artifacts/pde-research-source-ci'
-          & ./scripts/verify_pde_research_source.ps1 -RepoRoot $env:GITHUB_WORKSPACE -OutputPath $taskPdeSourceRoot
-          $taskPdeSourceReceipt = Get-Content -LiteralPath (Join-Path $taskPdeSourceRoot 'receipt.json') -Raw | ConvertFrom-Json -Depth 60
-          if ($taskPdeSourceReceipt.status -cne 'PASS_SOURCE_DEFINITION_AND_GUARD' -or
-              $taskPdeSourceReceipt.source_check_count -ne 4 -or $taskPdeSourceReceipt.guard_exit_code -ne 0 -or
-              @($taskPdeSourceReceipt.side_effect_counters.PSObject.Properties | Where-Object Value -NE 0).Count -ne 0) {
-            throw 'PDE research source parity did not produce the expected bounded evidence.'
-          }
-      - name: Verify explicit fixture refinement scope and preserve original profiles
-        shell: pwsh
-        run: |
-          $taskRefinementRoot = Join-Path $env:GITHUB_WORKSPACE 'artifacts/fixture-refinement-source-ci'
-          & ./scripts/verify_fixture_refinement_research_source.ps1 -RepoRoot $env:GITHUB_WORKSPACE -OutputPath $taskRefinementRoot
-          $taskRefinementReceipt = Get-Content -LiteralPath (Join-Path $taskRefinementRoot 'receipt.json') -Raw | ConvertFrom-Json -Depth 60
-          if ($taskRefinementReceipt.status -cne 'PASS_FIXTURE_REFINEMENT_SOURCE_ONLY' -or
-              $taskRefinementReceipt.check_count -ne 11 -or $taskRefinementReceipt.guard_exit_code -ne 0 -or
-              $taskRefinementReceipt.actual_auth_model_Core_solver_HTTP_GUI_calls -ne 0) {
-            throw 'Fixture refinement source checks did not produce the expected bounded evidence.'
-          }
-      - name: Check explicit selected-mesh research scope without runtime calls
-        shell: pwsh
-        run: |
-          $taskSelectedSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'artifacts/fixture-selected-source-ci'
-          $null = & ./scripts/verify_fixture_selected_research_source.ps1 -RepoRoot $env:GITHUB_WORKSPACE -OutputPath $taskSelectedSourceRoot
-          $taskSelectedReceipt = Get-Content -LiteralPath (Join-Path $taskSelectedSourceRoot 'receipt.json') -Raw | ConvertFrom-Json -Depth 60
-          if ($taskSelectedReceipt.status -cne 'PASS_FIXTURE_SELECTED_RESEARCH_SOURCE_ONLY' -or
-              $taskSelectedReceipt.check_count -ne @($taskSelectedReceipt.checks).Count -or $taskSelectedReceipt.check_count -le 0 -or
-              $taskSelectedReceipt.guard_exit_code -ne 0 -or
-              $taskSelectedReceipt.actual_auth_readiness_context_runtime_model_Core_solver_HTTP_GUI_calls -ne 0) {
-            throw 'Selected-mesh research source checks did not produce bounded source-only evidence.'
-          }
-      - name: Check Windows checkout Git transport and pinned refusal gates
-        shell: pwsh
-        run: |
-          $taskGitSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'artifacts/mcp-git-transport-source-ci'
-          $null = & ./scripts/verify_mcp_git_transport_source.ps1 -RepoRoot $env:GITHUB_WORKSPACE -OutputPath $taskGitSourceRoot -SkipWslDiagnostic
-          $taskGitReceipt = Get-Content -LiteralPath (Join-Path $taskGitSourceRoot 'receipt.json') -Raw | ConvertFrom-Json -Depth 60
-          if ($taskGitReceipt.status -cne 'PASS_SOURCE_TRANSPORT_CHECKS' -or
-              $taskGitReceipt.check_count -ne @($taskGitReceipt.checks).Count -or $taskGitReceipt.check_count -le 0 -or
-              $taskGitReceipt.actual_read_only_wsl.status -cne 'NOT_RUN' -or -not $taskGitReceipt.actual_read_only_wsl.skipped -or
-              @($taskGitReceipt.side_effects.PSObject.Properties | Where-Object Value -NE 0).Count -ne 0) {
-            throw 'Cold Git transport checks did not produce the expected source-only evidence.'
-          }
-      - name: Check owned startup progress without admitting a runtime
-        shell: pwsh
-        run: |
-          $null = & ./scripts/verify_openscience_startup_poll.ps1 -RepoRoot $env:GITHUB_WORKSPACE -OutputPath (Join-Path $env:GITHUB_WORKSPACE 'artifacts/startup-progress-source-ci')
-      - name: Check Lab question handoff and cleanup without provider calls
-        shell: pwsh
-        run: |
-          $taskLabReceiptPath = Join-Path $env:GITHUB_WORKSPACE 'artifacts/lab-research-source-ci/receipt.json'
-          New-Item -ItemType Directory -Path (Split-Path -Parent $taskLabReceiptPath) -ErrorAction Stop | Out-Null
-          $null = & ./scripts/verify_lab_research.ps1 -RepoRoot $env:GITHUB_WORKSPACE -OutputPath $taskLabReceiptPath
-          $taskLabReceipt = Get-Content -LiteralPath $taskLabReceiptPath -Raw | ConvertFrom-Json -Depth 60
-          if ($taskLabReceipt.status -cne 'PASS_CONTROLLED_SOURCE_ONLY' -or
-              $taskLabReceipt.check_count -ne @($taskLabReceipt.checks).Count -or $taskLabReceipt.check_count -le 0 -or
-              @($taskLabReceipt.checks | Where-Object status -CNE 'PASS').Count -ne 0 -or
-              $taskLabReceipt.actual_provider_auth_solver_GUI_Git_install_calls -ne 0) {
-            throw 'Lab handoff did not produce the expected source-only evidence.'
-          }
-      - name: Check authoritative Windows owner byte transport
-        shell: pwsh
-        run: |
-          $taskOwnerIoReceiptPath = Join-Path $env:GITHUB_WORKSPACE 'artifacts/lab-research-source-ci/owner-io.json'
-          $null = & ./scripts/verify_lab_research.ps1 -RepoRoot $env:GITHUB_WORKSPACE -OwnerIoOnly -OutputPath $taskOwnerIoReceiptPath
-          $taskOwnerIoReceipt = Get-Content -LiteralPath $taskOwnerIoReceiptPath -Raw | ConvertFrom-Json -Depth 60
-          if ($taskOwnerIoReceipt.status -cne 'PASS_CONTROLLED_OWNER_IO_ONLY' -or
-              $taskOwnerIoReceipt.check_count -ne @($taskOwnerIoReceipt.checks).Count -or $taskOwnerIoReceipt.check_count -le 0 -or
-              @($taskOwnerIoReceipt.checks | Where-Object status -CNE 'PASS').Count -ne 0 -or
-              $taskOwnerIoReceipt.actual_runtime_provider_auth_HTTP_solver_GUI_Git_install_calls -ne 0) {
-            throw 'Windows owner byte checks did not produce the expected read-only evidence.'
-          }
-      - name: Check actual research waiting phases without runtime calls
-        shell: pwsh
-        run: |
-          $taskProgressReceiptPath = Join-Path $env:GITHUB_WORKSPACE 'artifacts/lab-research-source-ci/progress.json'
-          $null = & ./scripts/verify_lab_research.ps1 -RepoRoot $env:GITHUB_WORKSPACE -ProgressOnly -OutputPath $taskProgressReceiptPath
-          $taskProgressReceipt = Get-Content -LiteralPath $taskProgressReceiptPath -Raw | ConvertFrom-Json -Depth 60
-          if ($taskProgressReceipt.status -cne 'PASS_CONTROLLED_SOURCE_ONLY' -or
-              $taskProgressReceipt.selection -cne 'BOUNDED_PROGRESS_PHASE_AND_EXISTING_TERMINAL_CONTROLS' -or
-              $taskProgressReceipt.check_count -ne 54 -or
-              @($taskProgressReceipt.checks | Where-Object status -CNE 'PASS').Count -ne 0 -or
-              $taskProgressReceipt.actual_runtime_HTTP_provider_GUI_solver_Git_calls -ne 0) {
-            throw 'Research phase controls did not produce the expected bounded source evidence.'
-          }
-      - name: Preserve source-only checks and public synthetic refusal fixtures
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          name: research-driver-source-${{ github.sha }}
-          path: |
-            artifacts/p2-structural-research-failure-flow-20261002-01/
-            artifacts/pde-research-source-ci/
-            artifacts/fixture-refinement-source-ci/
-            artifacts/fixture-selected-source-ci/
-            artifacts/mcp-git-transport-source-ci/
-            artifacts/lab-research-source-ci/
-            artifacts/development-human-workflow-20261004-01/bridge-source-01/
-            artifacts/development-human-workflow-20261004-01/owner-io-source-01/
-            artifacts/development-human-workflow-20261004-01/research-progress-candidate-01/
-          include-hidden-files: true
-          if-no-files-found: warn
-          retention-days: 30
+          submodules: true
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e ".[numerical,material,mcp,assist,sensitivity,dev]"
+      - name: Exercise current shared calculation, access and cancellation contracts
+        run: python -m pytest tests/test_workbench_evaluation.py tests/test_workbench_jobs.py tests/test_workbench_numerical.py tests/test_workbench_assist.py -q --junitxml=artifacts/workbench-tests.xml
+      - name: Annotate workbench failures
+        if: failure()
+        shell: pwsh
+        run: |
+          if (Test-Path 'artifacts/workbench-tests.xml') {
+            [xml]$report = Get-Content 'artifacts/workbench-tests.xml' -Raw -Encoding UTF8
+            foreach ($failure in $report.SelectNodes('//testcase/failure | //testcase/error')) {
+              $title = $failure.ParentNode.GetAttribute('name')
+              $detail = $failure.InnerText.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+              Write-Output "::error title=${title}::${detail}"
+            }
+          }
+      - name: Check editable workbench forms
+        run: node --test tests/test_workbench_ui.js
 
   core:
     runs-on: ubuntu-24.04
@@ -158,14 +61,14 @@ jobs:
             plugins/fixture_design/upstream/requirements.txt
             plugins/fixture_design/upstream/requirements-dev.txt
       - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pip install -e ".[numerical,material,assist,sensitivity,mcp,dev]"
       - run: python -m pytest -q
       - name: Check forms, imported meshes and retained PDE/contact fields
         run: node --test tests/test_experiment_draft.js tests/test_fixture_controls.js tests/test_fixture_field_controls.js tests/test_native_structural_field.js tests/test_fixture_field_viewer.js tests/test_cad_controls.js tests/test_native_upload_controls.js tests/test_analysis_conditions_controls.js tests/test_analysis_conditions_ui.js tests/test_campaign_controls.js tests/test_condition_campaign_workflow.js tests/test_comparison_research.js tests/test_fixture_optimization_handoff.js tests/test_imported_mesh_controls.js tests/test_pde_field_inspector.js tests/test_contact_field_inspector.js tests/test_result_presentation.js tests/test_result_workflow.js tests/test_research_handoff.js tests/test_research_answer.js
       - run: python scripts/verify_mcp.py
-      - name: Verify native OpenScience source and tool guards without model calls
+      - name: Check current UI and generic Git identity reader
         run: |
-          node --version
-          node --test openscience/tests/native_guard.test.mjs openscience/tests/source_pin.test.mjs
+          node --test tests/test_workbench_ui.js
           node --test openscience/tests/native_git_state.test.mjs
       - name: Connect the local HTTP research, CAD gates and verified evidence exports
         run: python -m scripts.verify_lab_ui --store artifacts/http-core-lab --skip-pde
@@ -388,7 +291,12 @@ jobs:
       - name: Verify complete initial and transient histories with separate time and mesh refinement
         run: python -m scripts.verify_transient_pde --store artifacts/transient-pde-lab
       - name: Verify coupled vector directions, blocked DOFs and independent full-field error integration
-        run: python -m scripts.verify_vector_pde --store artifacts/vector-pde-lab
+        id: vector_acceptance
+        shell: bash
+        run: python -m scripts.verify_vector_pde --store artifacts/vector-pde-lab 2>&1 | tee "$RUNNER_TEMP/vector-pde-check.log"
+      - name: Annotate vector acceptance failure
+        if: ${{ failure() && steps.vector_acceptance.outcome == 'failure' }}
+        run: python scripts/ci_annotate_failure.py "$RUNNER_TEMP/vector-pde-check.log"
       - name: Verify two coupled scalar fields across a conforming material interface
         if: ${{ !cancelled() && steps.pde_runtime.outcome == 'success' }}
         run: python -m scripts.verify_coupled_pde --store artifacts/coupled-pde-lab
@@ -446,7 +354,12 @@ jobs:
       - name: Compare independent declared elasticity with analytical fields and signed reactions
         run: python -m scripts.verify_codeaster --store artifacts/codeaster-lab
       - name: Compare complete beam, pressure cylinder and curved roof fields across two native solvers
-        run: python -m scripts.verify_structural_families --store artifacts/structural-family-lab --source-commit "${GITHUB_SHA}"
+        id: family_acceptance
+        shell: bash
+        run: python -m scripts.verify_structural_families --store artifacts/structural-family-lab --source-commit "${GITHUB_SHA}" 2>&1 | tee "$RUNNER_TEMP/structural-family-check.log"
+      - name: Annotate structural family acceptance failure
+        if: ${{ failure() && steps.family_acceptance.outcome == 'failure' }}
+        run: python scripts/ci_annotate_failure.py "$RUNNER_TEMP/structural-family-check.log"
       - name: Verify complete native J2 load and unload histories on two meshes
         run: python -m scripts.verify_plasticity --store artifacts/plasticity-lab
       - name: Verify real MGIS and MTest stress histories and consistent tangents

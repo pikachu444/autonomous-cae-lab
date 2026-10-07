@@ -43,14 +43,20 @@ def _validated_variables(variables: list[dict]) -> tuple[list[str], list[list[fl
         if not isinstance(name, str) or not name.strip() or name in names:
             raise ValueError("Optimization variable IDs must be nonempty and distinct")
         target = variable.get("target", "cad")
-        if target == "cad":
+        if target == "numerical":
+            # Direct callable/library evaluations have no CAD registration.
+            # Their declared numeric bounds are validated below; no binding
+            # effect observation is invented to enter this numerical engine.
+            effect = None
+        elif target == "cad":
             effect = variable.get("geometry_effect")
         elif target in ("model_analysis", "analysis_conditions"):
             effect = variable.get("input_effect")
         else:
-            raise ValueError("Optimization variable target must be CAD, model_analysis or analysis_conditions")
+            raise ValueError("Optimization variable target must be CAD, model_analysis, analysis_conditions or numerical")
         if (variable.get("kind") != "continuous" or variable.get("mode") != "free" or
-                not isinstance(effect, dict) or effect.get("status") != "PASS"):
+                (target != "numerical" and
+                 (not isinstance(effect, dict) or effect.get("status") != "PASS"))):
             raise ValueError("Optimization requires continuous free variables with PASS registered binding effect")
         lower = _finite_number(variable.get("lower_bound"), f"{name} lower bound")
         upper = _finite_number(variable.get("upper_bound"), f"{name} upper bound")

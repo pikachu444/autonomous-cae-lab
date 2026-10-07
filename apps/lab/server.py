@@ -26,9 +26,19 @@ class LabHTTPServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
-    def __init__(self, service: LabService, port: int = 8766):
+    def __init__(self, service: LabService, port: int = 8766, *, workbench_config=None):
         self.service = service
-        super().__init__(("127.0.0.1", port), LabHandler)
+        from caelab.workbench import Workbench
+        self.workbench = Workbench(service._stores["local"].path, configuration=workbench_config)
+        try:
+            super().__init__(("127.0.0.1", port), LabHandler)
+        except BaseException:
+            self.workbench.shutdown()
+            raise
+
+    def server_close(self):
+        self.workbench.shutdown()
+        super().server_close()
 
 
 class LabHandler(BaseHTTPRequestHandler):
@@ -118,7 +128,7 @@ class LabHandler(BaseHTTPRequestHandler):
         self.wfile.write(payload)
 
     def _json(self, status: int, value):
-        self._send(status, json.dumps(value, ensure_ascii=False, allow_nan=False).encode("utf-8"),
+        self._send(status, json.dumps(value, ensure_ascii=False, allow_nan=False, default=lambda value: value.tolist()).encode("utf-8"),
                    "application/json; charset=utf-8")
 
     def _request(self, method: str):
@@ -130,6 +140,9 @@ class LabHandler(BaseHTTPRequestHandler):
             path = unquote(parsed.path, errors="strict")
             query = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True,
                              max_num_fields=16)
+            if path.startswith("/api/workbench"):
+                from .workbench_routes import handle
+                return handle(self, method, path, query)
             if method == "POST":
                 if path == "/api/native-import":
                     if query:
@@ -228,7 +241,9 @@ class LabHandler(BaseHTTPRequestHandler):
                               filename=f"{identifier}-evidence.zip" if format == "zip" else None)
         if path == "/upstream/surface_viewer.js":
             return self._send(200, UPSTREAM_VIEWER.read_bytes(), "text/javascript; charset=utf-8")
-        if path in {"/", "/index.html"}:
+        if path == "/workbench":
+            target = contained(STATIC, "workbench.html")
+        elif path in {"/", "/index.html"}:
             target = contained(STATIC, "index.html")
         elif path.startswith("/static/"):
             relative = path.removeprefix("/static/")
@@ -250,13 +265,8 @@ def main(argv=None):
     parser.add_argument("--library", action="append", default=[], metavar="ID=PATH")
     parser.add_argument("--assembly-mesh-config", type=Path,
                         help="Trusted local operator configuration for a retained qualified assembly mesh")
-    parser.add_argument("--openscience-owner", type=Path,
-                        help="Existing verified Research runtime ownership file; no model selection")
-    parser.add_argument("--openscience-powershell", type=Path,
-                        help="Trusted host PowerShell executable for the configured Research bridge")
+    parser.add_argument("--workbench-config", type=Path, help="Trusted operator configuration, never a client request")
     args = parser.parse_args(argv)
-    if args.openscience_powershell is not None and args.openscience_owner is None:
-        parser.error("--openscience-powershell requires --openscience-owner")
     libraries = {}
     for item in args.library:
         identifier, separator, path = item.partition("=")
@@ -265,18 +275,14 @@ def main(argv=None):
         libraries[identifier] = Path(path)
     if not 0 <= args.port <= 65535:
         parser.error("Port must be between 0 and 65535")
-    research = None
-    if args.openscience_owner is not None:
-        from .research import OpenScienceResearch
-        research = OpenScienceResearch(args.openscience_owner, args.store,
-                                       powershell=args.openscience_powershell)
     from caelab import Lab
     lab_factory = Lab
     if args.assembly_mesh_config is not None:
         from caelab.adapters.assembly_operator import AssemblyOperator
         lab_factory = AssemblyOperator(args.assembly_mesh_config).lab
-    server = LabHTTPServer(LabService(args.store, libraries=libraries, research=research, lab_factory=lab_factory,
-                                     http_journal=HTTPJobJournal(args.store)), args.port)
+    options = {'workbench_config': json.loads(args.workbench_config.read_text())} if args.workbench_config else {}
+    server = LabHTTPServer(LabService(args.store, libraries=libraries, lab_factory=lab_factory,
+                                     http_journal=HTTPJobJournal(args.store)), args.port, **options)
     print(f"Autonomous CAE Lab: http://127.0.0.1:{server.server_port}", flush=True)
     try:
         server.serve_forever()
