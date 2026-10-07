@@ -256,9 +256,10 @@ def test_registered_callable_remains_an_in_memory_managed_evaluator(tmp_path):
     register_backend('test.callable.managed',lambda:function,roles=('prepared',))
     wb=Workbench(tmp_path)
     try:
-        job=wb.submit('doe',{'backend':'test.callable.managed',
+        job=wb.submit('doe',{'backend':'test.callable.managed','label':'실제 조건 비교',
             'variables':[{'id':'x','unit':'1','lower':0,'upper':1,'value':.5}], 'candidates':[{'x':.2},{'x':.8}]})
         assert finished(wb.manager,job['id'])['state']=='SUCCEEDED'
+        assert wb.manager.status(job['id'])['arguments']['label']=='실제 조건 비교'
         result=wb.manager.result(job['id'])
         assert [r['responses']['cost']['value'] for r in result['candidates']]==pytest.approx([.04,.64])
         assert not (wb.root/'native').exists()
