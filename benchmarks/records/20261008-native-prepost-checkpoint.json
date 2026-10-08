@@ -1,0 +1,212 @@
+{
+  "record_id": "20261008-native-prepost-checkpoint",
+  "status": "PROTOTYPE_CHECKPOINT_NOT_PRODUCT_ACCEPTANCE",
+  "original_native_producer": {
+    "base_commit": "4843c66e482ded31c59604d7cc19d1800be388f4",
+    "dirty_native_sources": true,
+    "exact_all_file_producer_pin_available": false
+  },
+  "published_source_commit_before_documentation": "fdbc9e9001f3a1ae189736d8aa6d6c98539e36b0",
+  "native_source_commit": "1571cdf",
+  "integrated_remote_main": "fc7c82dfcf4a6155ff18b7ebd5b91388916e6a9e",
+  "pinned_fixture_submodule": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "source_files": [
+    {
+      "path": "apps/desktop_post/README.md",
+      "bytes": 6425,
+      "sha256": "67c19f7c41ca7535f25cb38a88417d2bbfb19b63cad799261d0f3e7248f421b4"
+    },
+    {
+      "path": "apps/desktop_post/build_workspace.py",
+      "bytes": 8835,
+      "sha256": "17a559eeb2caa105e5f4cbce285a97afd216f324d68b10dfa3770ebdc8a71b0d"
+    },
+    {
+      "path": "apps/desktop_post/commands.py",
+      "bytes": 9889,
+      "sha256": "0ff7c04924aac85f46ed58e40950f684700bc2147102af87d58ce276914858e0"
+    },
+    {
+      "path": "apps/desktop_post/macros/CAE 01 Result.py",
+      "bytes": 368,
+      "sha256": "da3b3bad8bd4c13e097d24e4bbe951ca3c28d83e7da9c904f91edd2686b5a019"
+    },
+    {
+      "path": "apps/desktop_post/macros/CAE 02 U magnitude.py",
+      "bytes": 127,
+      "sha256": "5b23fff2cca208e19f5c00ed65bc031e11ef2e31a3d12645fd2b45386b95567e"
+    },
+    {
+      "path": "apps/desktop_post/macros/CAE 03 U Z.py",
+      "bytes": 120,
+      "sha256": "35757a8973d7651d72c6a0e7e5639db7c446406b9e31f54fe26d919471f21a38"
+    },
+    {
+      "path": "apps/desktop_post/macros/CAE 04 Section.py",
+      "bytes": 106,
+      "sha256": "3d313751a31908f35da0fdb3eff504a74afb5c6eb062f7f6d397df9c8db753da"
+    },
+    {
+      "path": "apps/desktop_post/macros/CAE 05 Exact peak probe.py",
+      "bytes": 120,
+      "sha256": "21d0976e314d3062d14efa9d9fac3d832bdcce8034e8fa955b2766e579d85cfd"
+    },
+    {
+      "path": "apps/desktop_post/macros/CAE 06 Save project.py",
+      "bytes": 112,
+      "sha256": "3ca8f4b296a40287abde5749298b376c2dff383607a0968fd07a653fd807889c"
+    },
+    {
+      "path": "apps/desktop_post/prepare.py",
+      "bytes": 11173,
+      "sha256": "68967fdd77f59f0c33c04a642ec3123c17d321daca37053d91f846587af358fe"
+    },
+    {
+      "path": "apps/desktop_post/startup.py",
+      "bytes": 1176,
+      "sha256": "7d6ae483919b13aa13de64875d9fb819b6cdae86b17e7a84cd4182bfdc398f23"
+    },
+    {
+      "path": "apps/desktop_post/verify_workspace.py",
+      "bytes": 9811,
+      "sha256": "67517c5c9d1d8ab0864e0b3534d97acf59238767eb2e70114cc0d861dacab8a4"
+    },
+    {
+      "path": "apps/desktop_pre/README.md",
+      "bytes": 2781,
+      "sha256": "95b81414e1326666fbc3f40d15b9186b6c5217ce78ee19d7e83c2518e5acb208"
+    },
+    {
+      "path": "apps/desktop_pre/cae_prep.py",
+      "bytes": 13809,
+      "sha256": "ccabe103871270e6d5a821cc5cbcf515d39da808fc903d731f8144e2ccb995c9"
+    },
+    {
+      "path": "apps/desktop_pre/verify_native.py",
+      "bytes": 4259,
+      "sha256": "935b46b4123bd7459593cbfe17c423262d536aa0346a2eddbd15b172440fa520"
+    },
+    {
+      "path": "scripts/start_cae_post.ps1",
+      "bytes": 2642,
+      "sha256": "f302dbfbd9ea2a77ad0c42d5b17316477dc11f839ae7c8eeb4594c569449a316"
+    },
+    {
+      "path": "scripts/start_cae_pre.ps1",
+      "bytes": 2387,
+      "sha256": "5ce26ecf9ae9e185f2013203471e49442222cdcbba21005d97b074f0c50bdcff"
+    },
+    {
+      "path": "tests/test_desktop_prototype_guards.py",
+      "bytes": 2358,
+      "sha256": "6e362e4e3323574f0f85411664ff980aedbc1283c048c1d1cf7e84928928117a"
+    }
+  ],
+  "portable_verification": {
+    "command": "python -m pytest tests/test_desktop_prototype_guards.py tests/test_structural_response_fields.py -q",
+    "passed": 187,
+    "source_commit": "fdbc9e9001f3a1ae189736d8aa6d6c98539e36b0",
+    "new_solver_calls": 0,
+    "new_gui_calls": 0
+  },
+  "retained_observations": {
+    "freecad": "1.1.4",
+    "mesh_nodes": 31729,
+    "mesh_volume_elements": 20297,
+    "paraview": "6.2.0",
+    "each_post_source_nodes": 9155,
+    "each_post_source_elements": 5319,
+    "max_original_displacement_component_error_mm": 0.0,
+    "exact_probe_node": 331,
+    "separate_gui_observed": [
+      "original field and section",
+      "A/B common range",
+      "difference",
+      "native node probe",
+      "editable slice",
+      "save and reopen"
+    ],
+    "full_gui_acceptance": false
+  },
+  "retained_artifacts": [
+    {
+      "path": "runs/pre-native-verify-20261008-162023/verification.json",
+      "bytes": 890,
+      "sha256": "e5f652beb0c74beddc902e22c5c1d2af3a1d068922b4fad5cd9471b71a2a7c1f"
+    },
+    {
+      "path": "runs/desktop-post-20261008-03/native_reader_verification.json",
+      "bytes": 572,
+      "sha256": "c0f289713bf26ce1ad99447f780de0e6782f6496f8556917d655f0d792fcbc7e"
+    },
+    {
+      "path": "runs/desktop-post-20261008-03/verification-20261008T075108Z-aa1608/report.json",
+      "bytes": 1009,
+      "sha256": "c67d953742140b4008a97cac1790f6447aa17bf23d2a644c196c2f54836defa6"
+    },
+    {
+      "path": "runs/desktop-post-20261008-03/saved/20261008T081551Z-9b18c7/project.json",
+      "bytes": 10788,
+      "sha256": "8306acd242586794e9081eb54d232b47e86caf8b7d2fccafcb9c1d262f787370"
+    },
+    {
+      "path": "runs/desktop-post-20261008-03/gui/compare-ab.png",
+      "bytes": 350999,
+      "sha256": "069f90f4913c3fc8004f55836a5026f99c700130583a9d13ae8a632a84e02528"
+    },
+    {
+      "path": "runs/desktop-post-20261008-03/gui/difference.png",
+      "bytes": 296140,
+      "sha256": "a229b1ce82d5d74d2bbc57aff66bc9df5091a14d5bc82d14a2020cc44f032e00"
+    },
+    {
+      "path": "runs/desktop-post-20261008-03/gui/editable-section.png",
+      "bytes": 344034,
+      "sha256": "94c4d95d6cffca0ce0cbfd77a04d153863b8c7ff470d012847688e14738af3e4"
+    },
+    {
+      "path": "runs/desktop-post-20261008-03/gui/native-node-331.png",
+      "bytes": 240167,
+      "sha256": "5082893a84ec6c11190eda7aaf6b97e926bd13b8562b1027d4e51055ee30a476"
+    },
+    {
+      "path": "runs/desktop-post-20261008-03/gui/reopened-node-331.png",
+      "bytes": 248090,
+      "sha256": "e75bcd36062f1dcfc6795ef7b7ce45a1b7c14434f0f2054e9fdf69e6c11471d3"
+    },
+    {
+      "path": "runs/desktop-post-20261008-03/gui/reopened-uz.png",
+      "bytes": 394272,
+      "sha256": "876fbcc1c3e5704ac8069c747df401c106f2b3345d9ca8580b9bb91227e1064c"
+    },
+    {
+      "path": "runs/desktop-post-20261008-03/gui/result-inspection.png",
+      "bytes": 343105,
+      "sha256": "c1f7910e0ca256872fad5f1ab6b3de264ffd4cbb479540860c3e2349a420d696"
+    }
+  ],
+  "retention": "Original run01/run02/run03 diagnostics, input CAD and native results retained locally without overwrite. Runtime binaries and raw solver/CAD files are not in Git. Selected receipts/screenshots accompany the Space review packet.",
+  "review_corrections": [
+    "Write FreeCAD failure receipt only after reserving a fresh output directory",
+    "Reject source metadata inconsistent with the bounded fixed ParaView fixture labels"
+  ],
+  "new_native_verification_after_review_corrections": "NOT_RUN",
+  "ci": {
+    "original_local_head_run": "37547439489",
+    "original_local_head_status": "core and research-source failed; eight skipped",
+    "remote_main_run": "37698069804",
+    "remote_main_status": "nine passed; Code_Aster failed",
+    "publication_commit_status": "CHECK_SEPARATE_EXACT_HEAD"
+  },
+  "remaining": [
+    "whole-product changed design",
+    "native GUI/MCP command and Core revision integration",
+    "connected sketch/assembly/motion save/reopen",
+    "CAD-free data/material/PDE application workflows",
+    "general remesh and condition reference validation",
+    "large-model performance and distribution",
+    "engineering and corporate qualification"
+  ],
+  "decision": "NOT_RELEASED",
+  "review_space": "https://chatgpt.com/space/page_6ac79c9b17c48191a63e2775c75fa1d2"
+}
