@@ -1,3 +1,19 @@
+## 2026-10-08 native pre and post design review checkpoint
+
+The current remote-main Workbench remains intact. Separate FreeCAD/ParaView
+integration prototypes and draft requirements are preserved for a whole-product
+design review. Five independent apps plus Workbench, optional expert assistance,
+CAD-free work and the continuing 52-section inventory remain in scope. No final
+backend selection, complete native MCP integration or product acceptance is
+claimed. See docs/PREPOST_VERIFICATION.md and the source-pinned record
+benchmarks/records/20261008-native-prepost-checkpoint.json for actual observations,
+187 portable passing checks and remaining gates. Older entries below retain
+their original scope; they are not the latest native prototype status.
+
+Review materials: [Space](https://chatgpt.com/space/page_6ac79c9b17c48191a63e2775c75fa1d2).
+Next: reconcile the changed design against current main, not the obsolete local
+4843c66 implementation. Preserve original data and UNKNOWN/NOT_RELEASED.
+
 ## 2026-10-08 — Windows and usability continuation
 
 PR#3 is merged59577ed. New product source6d9909f plus layout correction a06b747 on `codex/workbench-usability`
