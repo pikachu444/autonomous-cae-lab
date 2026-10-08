@@ -1,14 +1,16 @@
 # 기능에서 구현과 검증까지
 
-2026-10-08. 본 구현 착수용 작업 분해. 제품 상세 설계는 `PLANNING_DESIGN.md`, 화면은 `PLANNING_SCREENS.md`, 데이터는 `PLANNING_CONTRACTS.md`, 코드와 재사용 근거는 `PLANNING_CODE_REUSE.md`다. 아래 작업은 이번 시안과 실제 제품의 차이를 닫는 단위다. 시안의 존재가 이 작업의 완료는 아니다.
+2026-10-08. **사용자 거부 후 재검토 중인 작업 분해이며 승인된 구현 기준이 아니다.** 제품 상세 설계는 `PLANNING_DESIGN.md`, 화면은 `PLANNING_SCREENS.md`, 데이터는 `PLANNING_CONTRACTS.md`, 코드와 재사용 근거는 `PLANNING_CODE_REUSE.md`다. 아래 작업은 시안과 실제 제품의 차이를 닫는 단위다. 기술 검사나 독립 리뷰를 사용자 수용으로 확대하지 않는다.
+
+실행 경로 변경: 이전 `apps/lab/static/` GUI 제안을 철회하고 아래 개발 경로를 네이티브 앱 기준으로 교체했다. Windows 앱의 후속 구현 위치는 신규 `apps/desktop/`이며 공통 창/문서 명령은 `apps/desktop/shell.py`, 전처리·실행기·후처리·최적화·전문가·Workbench는 각각 하위 모듈로 분리한다. 현재 검토 시안은 `prototypes/desktop-lab/`에 있고 아래 엔진/어댑터 파일은 그대로 재사용한다. HTTP는 선택적 서비스 전송이며 GUI 실행의 필수 조건이 아니다.
 
 ## 구현 순서와 완료 행동
 
 | 작업 | 선행조건 | 기능 → 화면/명령 | 데이터/API → 변경 위치 | 완료 기준 |
 |---|---|---|---|---|
-| D01 문서 수명·직접 실행 | 상세 계약 검토 | 6개 시작 항목, 파일 열기/저장/닫기/재개 | revision/expected_revision, LaunchRequest → `scripts/start-windows.ps1`, `apps/lab/server.py`, 신규 `caelab/documents.py`, `apps/lab/static/documents/` | Workbench 종료 상태에서 각 앱 launch. 다른 파일 두 개 작업·저장·종료·서버재기동·재열기. 두 창 충돌409, 한글 경로, schema major 진단 |
-| D02 선택·뷰어 공통 경계 | D01, 실제 선택 가능한 reader | tree/central/property 같은 객체, 표시/숨김·rename | selection `{document,id,kind}`, stable entity map → `adapters/native_face_catalog.py`, `analysis_conditions.py`, `apps/lab/static/viewers/` | 동일 dataset의 면/cell/절점 또는 구간 선택이 양방향 일치하고 저장 후 ID 유지. topology 변경 시 끊어진 조건을 진단 |
-| D03 실험/재료 전처리 | D01 | 가져오기 매핑, 곡선/구간, 단위·가중치, 재료점 이력 | `file_table.preview_table/read_table`, prep→Case → `adapters/file_table.py`, `model_parameters.py`, 신규 `apps/lab/static/preprocessor/` | 다른 CSV 2개(비정상행 포함), 단위 변환과 제외 구간의 원본 보존, Undo, 검증→실행기 전달. CAD/AI 없음 |
+| D01 문서 수명·직접 실행 | 상세 계약 검토 | 6개 시작 항목, 파일 열기/저장/닫기/재개 | revision/expected_revision, LaunchRequest → 신규 `apps/desktop/launch.py`, `apps/desktop/shell.py`, `caelab/documents.py`, `apps/desktop/documents/` | Workbench 종료 상태에서 각 앱 launch. 다른 파일 두 개 작업·저장·종료·앱재기동·재열기. 두 창 버전 충돌, 한글 경로, schema major 진단 |
+| D02 선택·뷰어 공통 경계 | D01, 실제 선택 가능한 reader | tree/central/property 같은 객체, 표시/숨김·rename | selection `{document,id,kind}`, stable entity map → `adapters/native_face_catalog.py`, `analysis_conditions.py`, `apps/desktop/viewers/` | 동일 dataset의 면/cell/절점 또는 구간 선택이 양방향 일치하고 저장 후 ID 유지. topology 변경 시 끊어진 조건을 진단 |
+| D03 실험/재료 전처리 | D01 | 가져오기 매핑, 곡선/구간, 단위·가중치, 재료점 이력 | `file_table.preview_table/read_table`, prep→Case → `adapters/file_table.py`, `model_parameters.py`, 신규 `apps/desktop/preprocessor/` | 다른 CSV 2개(비정상행 포함), 단위 변환과 제외 구간의 원본 보존, Undo, 검증→실행기 전달. CAD/AI 없음 |
 | D04 PDE/mesh/조건 전처리 | D02 | 영역/식/약형식/mesh set, 재료·하중·구속 배정 | adapter `describe_inputs/bind_inputs`, condition target IDs → `pde.py`, `analysis_conditions.py`, `condition_parameters.py`, native adapters | 면 선택→조건 적용→표시/트리→Undo→저장/재열기. 미지원 카드/식 사전 거절. 범용 solver 덱 자동 변환 약속 금지 |
 | D05 솔버 실행기 | D01,D03 또는 D04 | 입력검사, queue/run/cancel, 로그·수렴, 실패 위치, 재실행 | `JobManager.submit/status/cancel/result`, 고정 input revision → `jobs.py`, `execution_control.py`, `apps/lab/workbench_routes.py`, 신규 runner UI | 실제 지원 backend 1개 실행, 틀린 입력·취소·프로세스 실패 각각 관찰. 앱 종료에도 job 유지, 재기동 INTERRUPTED 처리, 재실행 새 ID |
 | D06 후처리·외부 ASCII | D01,D02,D05 선택 | component/frame/location/legend, curve overlay/probe/export | `read_result`, `response_history/field/comparison` → 기존 response 파일, `native_responses.py`, 신규 post UI | solver 없는 환경에서 저장 결과+ASCII 읽기; 두 run 시간 동기/비동기 비교; 단위/좌표계 불일치 경고; 추출값과 원 수치 일치 |
@@ -17,7 +19,7 @@
 | D09 실제 전문가 채팅 | D01, 승인된 endpoint 별도 | 세션/발언/reply/중간개입/진행자/논점/근거 | `ExpertRuntime`, message sequence, session evidence → `assist/experts.py`, `knowledge.py`, `literature.py`, 신규 expert UI | 자유 질문→2관점 발언→사용자 추가 관측→그 내용 참조한 후속 발언→세션 재개. 모델 미설정과 생성실패 별도. 고정 문장으로 통과 불가 |
 | D10 전문가 실행 제안 왕복 | D07,D09 | 계획 검토·수정·실행, 완료결과 대화로 돌리기 | scope/proposal/job refs → `research_context.py`, `workbench.py`, experts와 study UI | 제출영수증/실제결과 구분. 허용 범위 변경시에만 재검토. 긴 job 동안 대화 대기로 worker 교착 없음 |
 | D11 Workbench 연결 | D01,D05,D07 | typed-port 연결, 객체 버전 열기, stale/영향/재연결 | document.saved/dependency graph → 신규 `caelab/project_graph.py`, `workbench_routes.py`, Workbench UI | 단독 저장물 등록→정확 버전→상위수정→해당 하위만 stale→수동 새 실행→이전결과 보존→프로젝트 재개. 순환/단위/파일오류 표시 |
-| D12 배포·검증·이관 | D01~11 | 설치, 시작, 도움말, 지원능력 진단 | capability/health endpoint → 기존 install/start/doctor 및 `docs/LOCAL_EXECUTION.md` | stock Windows 계정에서 6앱 시작. 선택 solver/LLM 미설정에도 독립도구 완결. 실제 화면 1440×900 및 작은 창 검토. 네이티브/웹 이중 GUI 없음 |
+| D12 배포·검증·이관 | D01~11 | 설치, 시작, 도움말, 지원능력 진단 | capability/health endpoint → 기존 install/start/doctor 및 `docs/LOCAL_EXECUTION.md` | stock Windows 계정에서 6앱 시작. 선택 solver/LLM 미설정에도 독립도구 완결. 실제 화면 1480×940 및 작은 창 검토. 네이티브/웹 이중 GUI 없음 |
 
 신규 경로는 제안된 구현 위치이며 이미 코드가 있다는 의미가 아니다. D03/06은 CAD·native 솔버 자원 없이 먼저 완결할 수 있다. D09 실제 모델 조건이 없어도 D01~08·11을 진행한다. 기존 R1–R5 수치/네이티브 문제는 해당 backend 작업과 같이 추적하고 GUI 시연으로 완료 처리하지 않는다.
 

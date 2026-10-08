@@ -1,6 +1,12 @@
 Autonomous CAE Lab — 상세 기획과 로컬 화면 검토
 
 CURRENT DIRECTIVE — 2026-10-08 detailed planning and local screen review
+The user rejected the web prototype. Prior planning/UI completion claims are
+withdrawn. Review the native Windows Qt Widgets prototype under
+prototypes/desktop-lab with PRODUCT.md and DESIGN.md. Separate native processes,
+engineering command groups, central objects and inspectors must be verified in
+real windows. Offscreen startup is not visual acceptance. PR #5 stays Draft;
+user acceptance of the redesigned experience is still pending.
 Read the existing Space at https://chatgpt.com/space/page_6ac6e5e8d7688191a58c5760fda2d2d9
 and the current docs/PLANNING_DESIGN.md, PLANNING_SCREENS.md,
 PLANNING_CONTRACTS.md, PLANNING_CODE_REUSE.md and WORKBENCH_PROGRESS.md.

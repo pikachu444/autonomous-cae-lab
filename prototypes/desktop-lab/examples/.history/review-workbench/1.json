@@ -1,0 +1,83 @@
+{
+  "id": "review-workbench",
+  "kind": "workbench",
+  "name": "재료·구조 연구 프로젝트",
+  "revision": 1,
+  "schema": 1,
+  "nodes": [
+    {
+      "id": "review-pre",
+      "kind": "pre",
+      "name": "박판 인장 · 모델과 시험 데이터",
+      "revision": 1,
+      "latest": 1,
+      "path": "pre.caeprep",
+      "content_hash": "fb35aab15526657fbbd1b06055fef46eabe1e9db63a8185c68aa4c4e97a3b3d3",
+      "state": "최신"
+    },
+    {
+      "id": "review-runner",
+      "kind": "runner",
+      "name": "박판 인장 · 실행 검토",
+      "revision": 1,
+      "latest": 1,
+      "path": "runner.caerun",
+      "content_hash": "a69fddcb7695c440f918cec1560b18ba3e9ba4b5739cd1f948f0331f6753f72b",
+      "state": "최신"
+    },
+    {
+      "id": "review-post",
+      "kind": "post",
+      "name": "온도장과 외부 응답 · 결과 검토",
+      "revision": 1,
+      "latest": 1,
+      "path": "post.caepost",
+      "content_hash": "af5d1a5077289dce3a0f3898ad90e3eae4733cb8320ef3bf5712270e76766bb9",
+      "state": "최신"
+    },
+    {
+      "id": "review-opt",
+      "kind": "opt",
+      "name": "브래킷 · 변수와 설계 후보",
+      "revision": 1,
+      "latest": 1,
+      "path": "opt.caestudy",
+      "content_hash": "0ab05955b39f0ebf0809a6bada084483f6d700a446c297b1dc92f3720128a4b2",
+      "state": "최신"
+    },
+    {
+      "id": "review-expert",
+      "kind": "expert",
+      "name": "충격 응답 차이 · 전문가 공동 검토",
+      "revision": 1,
+      "latest": 1,
+      "path": "expert.caechat",
+      "content_hash": "f94516f383b49d9f8ced97bea6b78b7a092a9568b97875f3beaa9253033f1ff5",
+      "state": "최신"
+    }
+  ],
+  "links": [
+    {
+      "from": "review-pre",
+      "to": "review-runner",
+      "input_revision": 1
+    },
+    {
+      "from": "review-runner",
+      "to": "review-post",
+      "input_revision": 1
+    },
+    {
+      "from": "review-pre",
+      "to": "review-opt",
+      "input_revision": 1
+    },
+    {
+      "from": "review-expert",
+      "to": "review-opt",
+      "input_revision": 1
+    }
+  ],
+  "selected": "review-pre",
+  "content_hash": "15b14556af7278a7e5c116a37a5acb4da4e8dc4ed32daa0965ff333581c1f612"
+}

@@ -85,3 +85,14 @@
 | 실제 HTTP MCP 호출 | `127.0.0.1:8765`의 streamable HTTP 서버를 직접 띄워 Python MCP 2.0 클라이언트로 `initialize`/`list_tools`를 호출했다. `ouroboros-mcp` `0.1.dev1`, 도구 36개를 실제 반환했다. 이어 읽기 전용 `ouroboros_query_events(limit=1,offset=0)`가 `is_error=false`로 응답했다. 이는 **설치+호스트 접속+제한 호출 성공**이다. 실제 Codex 모델의 Ouroboros 작업 실행, seed/interview/evaluate/ralph, 유료 API 호출, 제품 AI 기능은 수행하지 않았다. 시험 스크립트는 `work/verify-ouroboros-mcp.py`. |
 
 검증 시 HTTP host는 작업 폴더의 격리 venv로 `127.0.0.1:8765/mcp`에서 실행했다. 600초 무호출 시 종료하므로 이후에도 계속 떠 있다고 보장하지 않는다. 영구 서비스 등록은 없다. 다음에 재현하려면 작업 폴더에서 `work/ouroboros-venv/Scripts/python.exe -m ouroboros mcp serve --runtime codex --llm-backend codex --transport streamable-http --host 127.0.0.1 --port 8765 --workspace-root work`로 서버를 시작하고, 새 Codex 세션에서 사용한다. native Windows의 stdio MCP는 공식 지침상 사용하지 않는다. HTTP host는 로컬 loopback 전용이고 이번 시험에서는 모델 호출 권한을 쓰지 않았다.
+
+## 6. Windows 공학 앱 시안을 위한 UI 스킬 평가와 설치
+
+기존 웹 시안이 거부된 뒤, 두 공개 원본의 `SKILL.md`를 실제로 읽고 시스템 `skill-installer`로 전역 설치했다. 설치본은 다음 Codex 턴부터 검색될 수 있다. 저장소의 `.agents/skills` 복사본이나 제품 runtime에는 추가하지 않았으며 자동 hook도 설치하지 않았다. 아래 커밋은 **원본 식별**을 위한 것으로 향후 업데이트를 막는 버전 고정 규칙이 아니다.
+
+| 설치본과 정확한 원본 | 이번 Qt Widgets 시안에 적용 | 적용하지 않을 부분 |
+|---|---|---|
+| `C:\Users\pikac\.codex\skills\frontend-design`, [Anthropic `frontend-design/SKILL.md`](https://github.com/anthropics/skills/blob/683bc88e56f3e09ba94f7055977f3d3aa499f202/skills/frontend-design/SKILL.md), 라이선스는 [같은 폴더의 LICENSE.txt](https://github.com/anthropics/skills/blob/683bc88e56f3e09ba94f7055977f3d3aa499f202/skills/frontend-design/LICENSE.txt) | 실제 해석·시험 대상에 맞춘 화면 내용; 구조선·레이블·번호는 의미를 전달할 때만 사용; 버튼 이름과 완료/오류 문구 일치; 오류에는 복구 방법 명시; 스크린샷 자기 검토. | 웹 랜딩의 hero, 마케팅 타이포, 스크롤 연출, 모바일 breakpoint와 큰 여백을 이 고밀도 데스크톱 작업화면에 기계적으로 적용하지 않는다. |
+| `C:\Users\pikac\.codex\skills\impeccable`, [pbakaus `.agents/skills/impeccable/SKILL.md`](https://github.com/pbakaus/impeccable/blob/778c8a7b71ccd5bfe3ca6ac68c15d9d872d0f87d/.agents/skills/impeccable/SKILL.md), [Apache-2.0](https://github.com/pbakaus/impeccable/blob/778c8a7b71ccd5bfe3ca6ac68c15d9d872d0f87d/LICENSE) | [`reference/operate.md`](https://github.com/pbakaus/impeccable/blob/778c8a7b71ccd5bfe3ca6ac68c15d9d872d0f87d/skill/reference/operate.md)의 **Operate** 모드: 과업 중심 탐색, 익숙한 기본 조작, 밀도 있는 표/패널 허용, 선택·집중·진행·실패 상태 구분, 일관된 control/shortcut. [`craft-floor.md`](https://github.com/pbakaus/impeccable/blob/778c8a7b71ccd5bfe3ca6ac68c15d9d872d0f87d/skill/reference/craft-floor.md)의 실제 작동·키보드 focus·오류 복구 점검. | Persuade/Experience형 시각 과시, 장식용 카드·배경·애니메이션은 적용하지 않는다. 스킬의 `audit.native.md`는 iOS/Android/adaptive용이라 Windows Qt 검증 근거로 쓰지 않는다. 웹용 detector/hook도 Qt 검증 결과로 주장하지 않는다. |
+
+두 설치본의 `SKILL.md`는 각각 지정 커밋 checkout과 **줄바꿈 정규화 후 동일**했다. Impeccable의 `impeccable.cmd context --target prototypes/desktop-lab/desktop.py`는 저장소에서 exit 0으로 실행됐다. 대상 파일 존재와 `PRODUCT.md`/`DESIGN.md` 부재, 시각 구현 미판정을 보고했다. 이 설정 출력은 후속 새 화면 작업 시 제품 문맥을 기록하라고 안내한다. 현재 상세 기획의 제품 사실을 되풀이해 새 요구로 바꾸거나, Windows Qt 화면을 웹 detector 통과로 표시하지 않는다.

@@ -2,6 +2,15 @@
 
 ## Active task: detailed product planning and local screen review
 
+The initial web prototype was explicitly rejected by the user on 2026-10-08.
+Its completion and UI acceptance claims are withdrawn. The current review
+prototype uses Windows Qt Widgets with separate native processes, grouped
+engineering commands, central editable objects and dense inspectors. Browser
+URLs and command scripts opening a browser do not meet standalone-app intent.
+Read PRODUCT.md and DESIGN.md for the corrected interaction and visual rules.
+Keep PR #5 in Draft. Actual native interaction and user review remain separate
+gates; an internal reviewer or offscreen check cannot approve on the user's behalf.
+
 2026-10-08 planning directive supersedes the implementation-first interpretation
 of the recovery notes. Complete and review the five independent applications
 and Workbench design before broad product implementation. Build interactive
