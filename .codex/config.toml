@@ -1,0 +1,14 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+# Development-only, project-scoped defaults. Read docs/CODEX_WORKFLOW.md.
+# Active only in a trusted project and a compatible client/account.
+# No authentication, permissions, global settings, or product runtime changes.
+# High is the normal mode. Select xhigh only for the hard task in scope.
+# Speed is intentionally not overridden; Standard is recommended.
+model = "gpt-6-astra"
+model_reasoning_effort = "high"
+
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 2
+default_subagent_model = "gpt-6.1-sol"
+default_subagent_reasoning_effort = "high"

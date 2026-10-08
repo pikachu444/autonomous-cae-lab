@@ -1,4 +1,26 @@
-## Scope checkpoint — actual startup, research/lifecycle still open
+## Scope checkpoint — 2026-10-08 Windows/usability
+
+Installation and usability advance at source6d9909f plus layout correction a06b747: actual Windows without WSL
+base/numerical/material bootstrap and GUI computation are verified; guided file
+mapping, comparison overlays/report and result-to-expert navigation are improved.
+Remote Linux execution is a future extension; offline packaging is consideration
+only by explicit user request. This does not complete native Windows solver
+qualification, Code_Aster F05 or physical/company release. Existing52 requirements
+remain. Evidence and exact scope are in `docs/WORKBENCH_PROGRESS.md` and
+`benchmarks/records/20261008-windows-usability.json`.
+
+## Scope checkpoint — 2026-10-08 local workbench continuation
+
+R1–R5 advances the existing numerical research, response/provenance, native
+execution and optional expert/UI scope. Actual A–F workbench flows, native
+solver-free rereads and external OpenScience host result reads now ran locally.
+Exact runs, final source CI/PR verification
+are in `docs/WORKBENCH_PROGRESS.md`, the single progress record. No requirement
+is removed; canonical Code_Aster reaction, whole52 and physical/company release
+remain incomplete/UNKNOWN/NOT_RELEASED.
+---
+
+## Historical scope checkpoint — actual startup, research/lifecycle still open
 
 R11/R31/R35 qualified startup admission advances at published e10bb028 with
 existing approved5.6Sol/OAuth and retained numerical-record tools. Provider

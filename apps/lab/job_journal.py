@@ -35,7 +35,7 @@ class JournalError(ValueError):
 def http_source_binding() -> dict:
     root = Path(__file__).resolve().parents[2]
     names = ["apps/lab/job_journal.py", "apps/lab/service.py", "apps/lab/server.py",
-             "apps/lab/research.py"]
+             "caelab/workbench.py", "caelab/jobs.py"]
     return {"repo_root": str(root), "http_source_sha256": canonical_hash([
         [name, hashlib.sha256((root / name).read_bytes()).hexdigest()] for name in names])}
 

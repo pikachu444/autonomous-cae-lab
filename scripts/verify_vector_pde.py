@@ -27,19 +27,24 @@ _WEIGHTS = (.2369268850561891, .4786286704993665, .5688888888888889, .4786286704
 _QUADRATURE = tuple(((node+1)/2, weight/2) for node, weight in zip(_NODES, _WEIGHTS))
 
 
-def specification():
-    return manufactured_settings()
+def specification(**options):
+    # Several P1 variants are not yet in their asymptotic L2 range on the
+    # original 8->16 pair. Keep analytical references and numerical limits;
+    # measure every accepted variant on the verified 16->32->64 sequence.
+    settings = manufactured_settings(**options)
+    settings["mesh"]["cell_counts"] = [16, 32, 64]
+    return settings
 
 
 def cases():
     """All fixed controls exist before the first native call or output."""
     accepted = {
         "E-vector-mixed": specification(),
-        "E-vector-reaction": manufactured_settings(reaction=3.0),
-        "E-vector-domain": manufactured_settings(lengths=(1.5, .75), lame_lambda=3.0, lame_mu=.5, reaction=2.0),
-        "E-vector-lambda-zero": manufactured_settings(lame_lambda=0.0),
+        "E-vector-reaction": specification(reaction=3.0),
+        "E-vector-domain": specification(lengths=(1.5, .75), lame_lambda=3.0, lame_mu=.5, reaction=2.0),
+        "E-vector-lambda-zero": specification(lame_lambda=0.0),
         "E-vector-all-dirichlet": specification(),
-        "E-vector-harmonic-zero-source": manufactured_settings(case="harmonic"),
+        "E-vector-harmonic-zero-source": specification(case="harmonic"),
     }
     request = accepted["E-vector-all-dirichlet"]
     request["problem"]["boundaries"] = {

@@ -1,0 +1,2099 @@
+{
+  "kind": "READ_ONLY_PUBLIC_SYNTHETIC_GUI_API_SNAPSHOT",
+  "source_commit": "9d0aeed3cef9c7f353bb2c907a5f789b65d88f63",
+  "limitations": "These are selected API fields, not raw original result bytes. Exact original result SHA256/path is in the integration record. Company data and credentials are absent.",
+  "jobs": [
+    {
+      "job_id": "Jba9efaca329c4ba7a5baae3213de7d99",
+      "operation": "experts.ask",
+      "status": "SUCCEEDED",
+      "arguments": {
+        "budget": {
+          "seconds": 300
+        },
+        "context": {
+          "consult_experts": [],
+          "selected_document_ids": [
+            "b2c7a1a72322477c8e3cb9bd2b273efe"
+          ],
+          "selected_result_ids": [],
+          "transmission_scope": {
+            "allow_generated_results": true,
+            "allow_public_search": true,
+            "allow_question": true,
+            "collections": [
+              "project-current"
+            ],
+            "result_ids": []
+          }
+        },
+        "expert_id": "research",
+        "question": "도구 연결이 복구되었습니다. 선택한 로컬 진동계 자료와 공개 논문 abstract 1개를 읽고 강성·감쇠 영향 연구를 제안해주세요. 원문 locator를 정확히 복사하고 읽지 못한 자료는 인용하지 마세요. external.oscillator 지원 입력을 확인해 stiffness 40~140 N/m, damping 0.8~5 N s/m의 LHS DOE 8회를 calculations.plan으로 제안하세요. force 응답 abs_max 영향 비교용입니다. 아직 실행하지 마세요. 최종 답변은 간단한 한국어와 실제 인용을 담은 요구된 JSON 객체로 마무리하세요.",
+        "session_id": "f18e42c48dfd43f187f45ef54ab1528f"
+      },
+      "result": {
+        "answer": "편집 가능한 LHS DOE 8회 계획을 생성했으며 실행하지 않았습니다. 모델 조건은 질량 1 kg, 초기변위 0.01 m, 초기속도 0 m/s, 해석시간 1 s, 201개 표본입니다. stiffness 40~140 N/m와 damping 0.8~5 N s/m을 선형 표본화하며 seed는 20261008입니다. 완료 후 force 시간 이력의 abs_max를 계산해 두 변수의 영향도를 비교하는 연구입니다. 로컬 자료는 이 설정과 목적을 직접 명시합니다. 읽은 논문 abstract는 시간영역 입력·출력 이력으로 질량·감쇠·강성을 식별할 수 있으며, 질량을 알거나 알려진 질량 변경이 필요할 수 있음을 보여줍니다. 다만 이 논문은 다자유도 운동학적 가진 연구이므로 본 1자유도 자유진동 DOE의 직접 검증 자료는 아닙니다.",
+        "assumptions": [
+          "force는 external.oscillator가 제공하는 restoring_force_N 시간 이력입니다.",
+          "abs_max는 DOE 실행 후 각 force 이력에서 후처리하고 numerical.analyze로 영향도를 비교합니다.",
+          "초기값 stiffness=80 N/m, damping=2 N s/m은 기준값이며 LHS 범위와 8회 예산은 요청값을 따릅니다.",
+          "설계 범위는 확률분포나 실제 부품 물성 승인 범위로 해석하지 않습니다."
+        ],
+        "budget_used": {
+          "consultations": 0,
+          "evaluations_requested": 0,
+          "model_call_accounting": "reserved_cli_agent_steps",
+          "model_calls": 11,
+          "model_host_invocations": 1,
+          "provider_auxiliary_requests_counted": false,
+          "tool_calls": 5
+        },
+        "created_utc": "2026-10-08T02:51:31.415426+09:00",
+        "exit_reason": "text",
+        "expert_id": "research",
+        "format": "caelab.evaluation/1",
+        "model": "openai-codex/gpt-5.6-sol",
+        "proposed_actions": [
+          {
+            "editable": true,
+            "executed": false,
+            "plan": {
+              "budget": {
+                "evaluations": 8
+              },
+              "inputs": {
+                "backend": "external.oscillator",
+                "count": 8,
+                "execution": {
+                  "max_evaluations": 8,
+                  "mode": "serial",
+                  "on_failure": "stop",
+                  "threads": 1,
+                  "workers": 1
+                },
+                "seed": 20261008,
+                "settings": {
+                  "conditions": {
+                    "duration_s": 1,
+                    "initial_displacement_m": 0.01,
+                    "initial_velocity_m_s": 0,
+                    "mass_kg": 1,
+                    "samples": 201
+                  }
+                },
+                "variables": [
+                  {
+                    "id": "stiffness",
+                    "lower": 40,
+                    "transform": "linear",
+                    "unit": "N/m",
+                    "upper": 140,
+                    "value": 80
+                  },
+                  {
+                    "id": "damping",
+                    "lower": 0.8,
+                    "transform": "linear",
+                    "unit": "N s/m",
+                    "upper": 5,
+                    "value": 2
+                  }
+                ]
+              },
+              "operation": "doe",
+              "purpose": "외부 1자유도 자유진동 모델에서 stiffness와 damping이 force 시간 이력의 abs_max에 미치는 영향을 비교하기 위한 2변수 Latin hypercube sampling(LHS) DOE 8회 계획. 계산 완료 후 numerical.analyze로 주효과와 상대 영향도를 평가한다. 현재는 계획만 만들고 실행하지 않는다."
+            },
+            "status": "PLANNED",
+            "supported_inputs": {
+              "backend": "external.oscillator",
+              "input_mode": "external_files",
+              "numerical_inputs": "Use count and seed directly in DOE inputs, not a design object; use settings.conditions for test conditions. Analyze the completed job separately.",
+              "responses": {
+                "displacement": {
+                  "axis": {
+                    "column": "time_s",
+                    "name": "time",
+                    "unit": "s"
+                  },
+                  "column": "displacement_m",
+                  "component": "x",
+                  "location": "mass",
+                  "unit": "m"
+                },
+                "force": {
+                  "axis": {
+                    "column": "time_s",
+                    "name": "time",
+                    "unit": "s"
+                  },
+                  "column": "restoring_force_N",
+                  "component": "x",
+                  "location": "mass",
+                  "unit": "N"
+                }
+              },
+              "settings_example": {
+                "conditions": {
+                  "duration_s": 1,
+                  "initial_displacement_m": 0.01,
+                  "initial_velocity_m_s": 0,
+                  "mass_kg": 1,
+                  "samples": 201
+                },
+                "values": {
+                  "damping": 2.4,
+                  "stiffness": 90
+                }
+              },
+              "settings_schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "case_id": {
+                    "type": "string"
+                  },
+                  "conditions": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "duration_s": {
+                        "default": 1,
+                        "exclusiveMinimum": 0,
+                        "type": "number"
+                      },
+                      "initial_displacement_m": {
+                        "default": 0.01,
+                        "type": "number"
+                      },
+                      "initial_velocity_m_s": {
+                        "default": 0,
+                        "type": "number"
+                      },
+                      "mass_kg": {
+                        "default": 1,
+                        "exclusiveMinimum": 0,
+                        "type": "number"
+                      },
+                      "samples": {
+                        "default": 201,
+                        "maximum": 1000000,
+                        "minimum": 2,
+                        "type": "integer"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "values": {
+                    "description": "Exact registered variable values; numerical studies populate these from each candidate.",
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              },
+              "variables": {
+                "damping": {
+                  "lower": 0.2,
+                  "unit": "N s/m",
+                  "upper": 8.0
+                },
+                "stiffness": {
+                  "lower": 20.0,
+                  "unit": "N/m",
+                  "upper": 200.0
+                }
+              }
+            }
+          },
+          {
+            "executed": false,
+            "proposal": "생성된 편집 가능 계획을 검토한 뒤 별도 요청으로 DOE를 실행합니다.",
+            "status": "PROPOSED"
+          },
+          {
+            "executed": false,
+            "proposal": "완료된 결과를 읽은 후 force/abs_max를 산출하고 numerical.analyze로 강성과 감쇠의 실제 영향도를 비교합니다.",
+            "status": "PROPOSED"
+          },
+          {
+            "executed": false,
+            "proposal": "질량 변경 원인을 조사할 경우 동일 DOE를 별도 질량 조건에서 반복하고 독립 시간 이력으로 확인합니다.",
+            "status": "PROPOSED"
+          }
+        ],
+        "session_id": "f18e42c48dfd43f187f45ef54ab1528f",
+        "sources": [
+          {
+            "document_id": "b2c7a1a72322477c8e3cb9bd2b273efe",
+            "locator": {
+              "line_end": 5,
+              "line_start": 1,
+              "section": "공개 합성 진동계 연구 자료",
+              "segment_id": "0"
+            },
+            "revision": 1
+          },
+          {
+            "locator": {
+              "archive_id": "8d2acc9bb6bc0ae5bc973bfad18841ced73e1f7b7e8162f7bec6cc854e898814",
+              "kind": "abstract"
+            },
+            "paper_id": "doi:10.2478/sgem-2025-0008"
+          }
+        ],
+        "status": "ANSWERED",
+        "tool_events": [
+          {
+            "status": "AVAILABLE",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": null,
+              "segments": 1
+            },
+            "tool": "knowledge.source"
+          },
+          {
+            "status": "OK",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": null,
+              "paper_count": 5,
+              "paper_id": null
+            },
+            "tool": "literature.search"
+          },
+          {
+            "status": "RETURNED",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": null
+            },
+            "tool": "calculations.inputs"
+          },
+          {
+            "status": "abstract_only",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": null,
+              "paper_count": 0,
+              "paper_id": "doi:10.2478/sgem-2025-0008"
+            },
+            "tool": "literature.read"
+          },
+          {
+            "status": "PLANNED",
+            "summary": {
+              "executed": false,
+              "hits": 0,
+              "job_id": null,
+              "request": {
+                "budget": {
+                  "evaluations": 8
+                },
+                "inputs": {
+                  "backend": "external.oscillator",
+                  "count": 8,
+                  "execution": {
+                    "max_evaluations": 8,
+                    "mode": "serial",
+                    "on_failure": "stop",
+                    "threads": 1,
+                    "workers": 1
+                  },
+                  "seed": 20261008,
+                  "settings": {
+                    "conditions": {
+                      "duration_s": 1,
+                      "initial_displacement_m": 0.01,
+                      "initial_velocity_m_s": 0,
+                      "mass_kg": 1,
+                      "samples": 201
+                    }
+                  },
+                  "variables": [
+                    {
+                      "id": "stiffness",
+                      "lower": 40,
+                      "transform": "linear",
+                      "unit": "N/m",
+                      "upper": 140,
+                      "value": 80
+                    },
+                    {
+                      "id": "damping",
+                      "lower": 0.8,
+                      "transform": "linear",
+                      "unit": "N s/m",
+                      "upper": 5,
+                      "value": 2
+                    }
+                  ]
+                },
+                "operation": "doe",
+                "purpose": "외부 1자유도 자유진동 모델에서 stiffness와 damping이 force 시간 이력의 abs_max에 미치는 영향을 비교하기 위한 2변수 Latin hypercube sampling(LHS) DOE 8회 계획. 계산 완료 후 numerical.analyze로 주효과와 상대 영향도를 평가한다. 현재는 계획만 만들고 실행하지 않는다."
+              }
+            },
+            "tool": "calculations.plan"
+          }
+        ]
+      }
+    },
+    {
+      "job_id": "Jaad26b66365245399a1fb91113c779b8",
+      "operation": "doe",
+      "status": "SUCCEEDED",
+      "arguments": {
+        "backend": "external.oscillator",
+        "count": 8,
+        "execution": {
+          "max_evaluations": 8
+        },
+        "seed": 41,
+        "settings": {
+          "conditions": {
+            "duration_s": 1,
+            "initial_displacement_m": 0.01,
+            "initial_velocity_m_s": 0,
+            "mass_kg": 1.2,
+            "samples": 201
+          }
+        },
+        "variables": [
+          {
+            "id": "stiffness",
+            "lower": 40,
+            "transform": "linear",
+            "unit": "N/m",
+            "upper": 130,
+            "value": 80
+          },
+          {
+            "id": "damping",
+            "lower": 0.8,
+            "transform": "linear",
+            "unit": "N s/m",
+            "upper": 5,
+            "value": 2
+          }
+        ]
+      },
+      "result": {
+        "sampling": {
+          "coordinates": [
+            "linear",
+            "linear"
+          ],
+          "count": 8,
+          "method": "scipy.latin_hypercube",
+          "scipy_version": "1.17.0",
+          "seed": 41
+        },
+        "candidates": [
+          {
+            "candidate_id": "C000000",
+            "values": {
+              "damping": 4.616197722147784,
+              "stiffness": 50.449492660116235
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-c3805a055fb64eb3be6e4fa79f94cfde",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-c3805a055fb64eb3be6e4fa79f94cfde/response.csv",
+              "source_sha256": "1e736d1e138774fec3edde6490f1be7f49357d9acb06e43c7cfab155049d8ac3",
+              "values": {
+                "damping": 4.616197722147784,
+                "stiffness": 50.449492660116235
+              }
+            }
+          },
+          {
+            "candidate_id": "C000001",
+            "values": {
+              "damping": 2.3268380808978733,
+              "stiffness": 119.35027408937292
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-dba6fddd1e0e45d6b172a223bfc3bc96",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-dba6fddd1e0e45d6b172a223bfc3bc96/response.csv",
+              "source_sha256": "bb7f4ae4df4b49c819d4ff6166d70a265d04a86d00f6c86c733078f6f5da33ab",
+              "values": {
+                "damping": 2.3268380808978733,
+                "stiffness": 119.35027408937292
+              }
+            }
+          },
+          {
+            "candidate_id": "C000002",
+            "values": {
+              "damping": 4.071137860917791,
+              "stiffness": 90.05176854817306
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-6e865c8074a84828b33d7218705f3b8b",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-6e865c8074a84828b33d7218705f3b8b/response.csv",
+              "source_sha256": "f306b79065cdecf0a85f8c0f399ec7ea040cb1194514da8fde52dfcb307a3d91",
+              "values": {
+                "damping": 4.071137860917791,
+                "stiffness": 90.05176854817306
+              }
+            }
+          },
+          {
+            "candidate_id": "C000003",
+            "values": {
+              "damping": 3.7753812407902307,
+              "stiffness": 62.35255290229517
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-c5bc14b918b3459c9df4620ef317ecfb",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-c5bc14b918b3459c9df4620ef317ecfb/response.csv",
+              "source_sha256": "3be0513acd1d3d80a290d0abd25b961694051dae1d54cf4ca949b95631241813",
+              "values": {
+                "damping": 3.7753812407902307,
+                "stiffness": 62.35255290229517
+              }
+            }
+          },
+          {
+            "candidate_id": "C000004",
+            "values": {
+              "damping": 2.9073021926627973,
+              "stiffness": 78.57278801865425
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-1545cd0980b547cda9bbcee9e3986c28",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-1545cd0980b547cda9bbcee9e3986c28/response.csv",
+              "source_sha256": "6146d0a45a9acb977742ab39b19895f6fafbf7faf29876c481b92f11541da895",
+              "values": {
+                "damping": 2.9073021926627973,
+                "stiffness": 78.57278801865425
+              }
+            }
+          },
+          {
+            "candidate_id": "C000005",
+            "values": {
+              "damping": 2.4285077001974047,
+              "stiffness": 68.76277515555869
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-e6e3a5e407ca4f73ba75126fa0eed21c",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-e6e3a5e407ca4f73ba75126fa0eed21c/response.csv",
+              "source_sha256": "71cbe5966ee25614b26be4d171544b269d286d43dec445277a09c573c6d4b1f4",
+              "values": {
+                "damping": 2.4285077001974047,
+                "stiffness": 68.76277515555869
+              }
+            }
+          },
+          {
+            "candidate_id": "C000006",
+            "values": {
+              "damping": 1.1016335135850082,
+              "stiffness": 111.56635035392222
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-2747d1ea1fbc4b098abac487e209b6c8",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-2747d1ea1fbc4b098abac487e209b6c8/response.csv",
+              "source_sha256": "9488e272b6e1e40abfa88527218aac5a572bb1aef6ed0a9fe21d76a333337690",
+              "values": {
+                "damping": 1.1016335135850082,
+                "stiffness": 111.56635035392222
+              }
+            }
+          },
+          {
+            "candidate_id": "C000007",
+            "values": {
+              "damping": 1.5510003375631682,
+              "stiffness": 96.87643941652587
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-58df8d18096549cc82a5c9a982038aad",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/Jaad26b66365245399a1fb91113c779b8/candidate-58df8d18096549cc82a5c9a982038aad/response.csv",
+              "source_sha256": "97b386d61a812ebcc4616988109c27967c39db706ce8b95b425798ce533e047d",
+              "values": {
+                "damping": 1.5510003375631682,
+                "stiffness": 96.87643941652587
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "job_id": "J29e8f4c5acc747b28312a62886ebcfc7",
+      "operation": "analyze",
+      "status": "SUCCEEDED",
+      "arguments": {
+        "job_id": "Jaad26b66365245399a1fb91113c779b8",
+        "responses": [
+          {
+            "direction": "minimize",
+            "reduction": "abs_max",
+            "response": "force",
+            "unit": "N"
+          }
+        ]
+      },
+      "result": {
+        "candidate_count": 8,
+        "created_utc": "2026-10-08T02:54:14.649463+09:00",
+        "decision": "NOT_RELEASED",
+        "exclusions": [],
+        "failure_count": 0,
+        "format": "caelab.evaluation/1",
+        "limitations": [
+          "Statistics describe the eligible empirical DOE samples only; no population probability, confidence interval, failure probability or input origin is inferred.",
+          "Normalized multivariate least-squares coefficients describe conditional sample associations, not causal effects or Sobol sensitivity indices.",
+          "Surrogate validity means a supported finite fit with separate held-out error only; it is not an accuracy verdict or an extrapolation qualification.",
+          "Pareto membership compares only eligible saved sample responses with their declared directions and exact units; it is not global optimality or physical feasibility.",
+          "Failed or invalid rows are excluded as a common cohort without zero substitution. Material, model and physical qualification remain outside this analysis."
+        ],
+        "pareto": {
+          "method": "EXACT_COMPONENTWISE_NONDOMINANCE",
+          "nondominated_ids": [],
+          "reason": "REQUIRES_TWO_RESPONSES",
+          "response_definitions": [
+            {
+              "direction": "minimize",
+              "metric": "force",
+              "unit": "N"
+            }
+          ],
+          "valid": false
+        },
+        "qualification": "NUMERICAL_SAMPLE_ANALYSIS_ONLY",
+        "response_definitions": [
+          {
+            "direction": "minimize",
+            "reduction": "abs_max",
+            "response": "force",
+            "unit": "N"
+          }
+        ],
+        "sampling": {
+          "coordinates": [
+            "linear",
+            "linear"
+          ],
+          "count": 8,
+          "method": "scipy.latin_hypercube",
+          "scipy_version": "1.17.0",
+          "seed": 41
+        },
+        "sensitivity": [
+          {
+            "coefficients": [
+              {
+                "coefficient": 1.0000000000000004,
+                "parameter_id": "stiffness",
+                "parameter_unit": "N/m",
+                "unit": "1"
+              },
+              {
+                "coefficient": 3.14018491736755E-16,
+                "parameter_id": "damping",
+                "parameter_unit": "N s/m",
+                "unit": "1"
+              }
+            ],
+            "condition_number": 2.461274446528984,
+            "intercept": 0.0,
+            "method": "NORMALIZED_MULTIVARIATE_LEAST_SQUARES",
+            "metric": "force",
+            "rank": 3,
+            "reason": null,
+            "response_mean": 0.847478051430773,
+            "response_std": 0.24093195849934296,
+            "sample_ids": [
+              "C000000",
+              "C000001",
+              "C000002",
+              "C000003",
+              "C000004",
+              "C000005",
+              "C000006",
+              "C000007"
+            ],
+            "unit": "N",
+            "valid": true
+          }
+        ],
+        "statistics": [
+          {
+            "count": 8,
+            "max": 1.193502740893729,
+            "mean": 0.847478051430773,
+            "metric": "force",
+            "min": 0.5044949266011624,
+            "quantiles": {
+              "q05": 0.5461556374487887,
+              "q50": 0.8431227828341366,
+              "q95": 1.1662590078196515
+            },
+            "std": 0.24093195849934296,
+            "unit": "N"
+          }
+        ],
+        "surrogate": [
+          {
+            "coefficients": [
+              {
+                "feature_id": "F0",
+                "unit": "N",
+                "value": 0.8500000000000001
+              },
+              {
+                "feature_id": "F1",
+                "unit": "N",
+                "value": 0.45
+              },
+              {
+                "feature_id": "F2",
+                "unit": "N",
+                "value": 2.6317779516901973E-16
+              }
+            ],
+            "condition_number": 3.285182619258077,
+            "features": [
+              {
+                "id": "F0",
+                "powers": {}
+              },
+              {
+                "id": "F1",
+                "powers": {
+                  "stiffness": 1
+                }
+              },
+              {
+                "id": "F2",
+                "powers": {
+                  "damping": 1
+                }
+              }
+            ],
+            "limitations": [
+              "The seed splits canonical original sample IDs into 75% training and 25% test (rounded up). Held-out responses never select the polynomial degree.",
+              "Feature coordinates use the declared bounds, z=2*(x-lower)/(upper-lower)-1; coefficients retain the response unit. Degree selection uses training residual only.",
+              "Held-out error is descriptive, with no accuracy acceptance threshold. No extrapolation or physical qualification is granted."
+            ],
+            "method": "SEEDED_HOLDOUT_LEAST_SQUARES",
+            "metric": "force",
+            "model": "affine",
+            "normalization": [
+              {
+                "lower_bound": 40.0,
+                "parameter_id": "stiffness",
+                "unit": "N/m",
+                "upper_bound": 130.0
+              },
+              {
+                "lower_bound": 0.8,
+                "parameter_id": "damping",
+                "unit": "N s/m",
+                "upper_bound": 5.0
+              }
+            ],
+            "rank": 3,
+            "reason": null,
+            "seed": 13,
+            "test_ids": [
+              "C000000",
+              "C000007"
+            ],
+            "test_mae": 2.1510890716786218E-16,
+            "test_max_error": 2.1510890716786218E-16,
+            "test_rmse": 2.1510890716786218E-16,
+            "train_ids": [
+              "C000001",
+              "C000002",
+              "C000003",
+              "C000004",
+              "C000005",
+              "C000006"
+            ],
+            "unit": "N",
+            "valid": true
+          }
+        ],
+        "variable_ranges": [
+          {
+            "id": "stiffness",
+            "lower": 40.0,
+            "transform": "linear",
+            "unit": "N/m",
+            "upper": 130.0,
+            "value": 80.0
+          },
+          {
+            "id": "damping",
+            "lower": 0.8,
+            "transform": "linear",
+            "unit": "N s/m",
+            "upper": 5.0,
+            "value": 2.0
+          }
+        ]
+      }
+    },
+    {
+      "job_id": "Jd9657039f35a4b9099c58c1cbcec0825",
+      "operation": "experts.ask",
+      "status": "SUCCEEDED",
+      "arguments": {
+        "budget": {
+          "seconds": 300
+        },
+        "context": {
+          "consult_experts": [
+            "testing"
+          ],
+          "selected_document_ids": [
+            "b2c7a1a72322477c8e3cb9bd2b273efe"
+          ],
+          "selected_result_ids": [
+            "J29e8f4c5acc747b28312a62886ebcfc7",
+            "Jaad26b66365245399a1fb91113c779b8"
+          ],
+          "transmission_scope": {
+            "allow_generated_results": true,
+            "allow_public_search": false,
+            "allow_question": true,
+            "collections": [
+              "project-current"
+            ],
+            "result_ids": [
+              "J29e8f4c5acc747b28312a62886ebcfc7",
+              "Jaad26b66365245399a1fb91113c779b8"
+            ]
+          }
+        },
+        "expert_id": "research",
+        "question": "제안한 DOE를 화면에서 수정해 실행했습니다. 선택한 DOE와 수치 영향도 결과를 실제로 읽어 해석해 주세요. 실행 조건은 calculations.status에서도 확인하세요. stiffness 상한을 130 N/m, 질량을 1.2 kg, seed를 41로 바꿨고 8회 모두 완료했습니다. force abs_max 영향도와 holdout 오차는 수치 도구가 계산한 값만 인용하세요. testing 전문가에게 이 지표가 감쇠 영향 식별에 충분한지 한정 자문을 구하고 근거·반론·불일치를 정리하세요. 그 다음 같은 force abs_max 지표를 유지하면서 초기속도 0.05 m/s의 추가 DOE 8회를 편집 가능한 계획으로 제안하세요. 아직 실행하지 마세요. 마지막은 요구된 JSON으로 답하세요.",
+        "session_id": "f18e42c48dfd43f187f45ef54ab1528f"
+      },
+      "result": {
+        "answer": "사실: 두 작업은 calculations.status에서 모두 SUCCEEDED이며, DOE 8회가 전부 완료되었습니다. 실행 조건은 질량 1.2 kg, 초기변위 0.01 m, 초기속도 0 m/s, 1 s, 201표본, stiffness 40~130 N/m, damping 0.8~5 N s/m, LHS seed 41입니다 [Jaad26b66365245399a1fb91113c779b8]. 수치 영향도는 stiffness 1.0000000000000004, damping 3.14018491736755e-16이며, holdout 2점의 MAE·RMSE·최대오차는 모두 2.1510890716786218e-16 N입니다 [J29e8f4c5acc747b28312a62886ebcfc7]. 해석: 현재 force abs_max는 사실상 stiffness만 반영하며 damping 식별에는 불충분합니다. testing 전문가는 작은 오차와 full-rank, 조건수 2.461이 현재 조건의 제한적 결론을 지지하지만, 8점 중 holdout 2점이고 단일 scalar 축약이므로 감쇠의 물리적 무영향으로 일반화할 수 없다고 판단했습니다. 반론은 현재 설계영역에서 damping 영향이 없다는 증거 자체는 매우 강하다는 점입니다. 불일치·주의: 정규화 계수는 물리 단위 민감도나 인과효과가 아니며, 극소 holdout 오차도 독립 실험 검증이 아닙니다. 로컬 자료 역시 합성 모델 결과가 물성 승인이 아니라고 명시합니다 [b2c7a1a72322477c8e3cb9bd2b273efe, rev.1, 지정 locator]. 초기속도 0.05 m/s의 추가 DOE 8회는 동일 seed 41과 동일 LHS 범위로 편집 가능하게 계획했으며 실행하지 않았습니다.",
+        "assumptions": [
+          "후속 DOE에서 seed 41을 유지하면 기존 DOE와 동일한 LHS 좌표를 사용해 초기속도 효과를 paired 비교할 수 있다고 보았습니다.",
+          "force abs_max는 201개 시간 표본과 t=0을 포함해 계산되는 것으로 보았습니다.",
+          "초기 탄성력이 최대값을 지배한다는 설명은 수치 결과와 초기조건에 근거한 추론이며, 최대 발생 시각을 직접 확인한 사실은 아닙니다.",
+          "force는 결과에 기록된 restoring_force_N을 뜻하지만, 탄성력과 감쇠력의 구체적 조합은 읽은 근거에서 별도로 확인되지 않았습니다."
+        ],
+        "budget_used": {
+          "consultations": 1,
+          "evaluations_requested": 0,
+          "model_call_accounting": "reserved_cli_agent_steps",
+          "model_calls": 11,
+          "model_host_invocations": 2,
+          "provider_auxiliary_requests_counted": false,
+          "tool_calls": 10
+        },
+        "created_utc": "2026-10-08T02:58:39.137313+09:00",
+        "exit_reason": "text",
+        "expert_id": "research",
+        "format": "caelab.evaluation/1",
+        "model": "openai-codex/gpt-5.6-sol",
+        "proposed_actions": [
+          {
+            "editable": true,
+            "executed": false,
+            "plan": {
+              "budget": {
+                "evaluations": 8
+              },
+              "inputs": {
+                "backend": "external.oscillator",
+                "count": 8,
+                "execution": {
+                  "max_evaluations": 8,
+                  "mode": "serial",
+                  "on_failure": "continue",
+                  "threads": 1,
+                  "workers": 1
+                },
+                "seed": 41,
+                "settings": {
+                  "conditions": {
+                    "duration_s": 1,
+                    "initial_displacement_m": 0.01,
+                    "initial_velocity_m_s": 0.05,
+                    "mass_kg": 1.2,
+                    "samples": 201
+                  }
+                },
+                "variables": [
+                  {
+                    "id": "stiffness",
+                    "lower": 40,
+                    "transform": "linear",
+                    "unit": "N/m",
+                    "upper": 130,
+                    "value": 80
+                  },
+                  {
+                    "id": "damping",
+                    "lower": 0.8,
+                    "transform": "linear",
+                    "unit": "N s/m",
+                    "upper": 5,
+                    "value": 2
+                  }
+                ]
+              },
+              "operation": "doe",
+              "purpose": "기존 완료 DOE와 동일한 LHS 좌표 및 force 시간 이력의 abs_max 영향도 분석 목적을 유지하면서, 초기속도만 0.05 m/s로 변경하여 stiffness와 damping 영향 변화를 paired 비교한다. 이 요청은 편집 가능한 계획이며 아직 실행하지 않는다."
+            },
+            "status": "PLANNED",
+            "supported_inputs": {
+              "backend": "external.oscillator",
+              "input_mode": "external_files",
+              "numerical_inputs": "Use count and seed directly in DOE inputs, not a design object; use settings.conditions for test conditions. Analyze the completed job separately.",
+              "responses": {
+                "displacement": {
+                  "axis": {
+                    "column": "time_s",
+                    "name": "time",
+                    "unit": "s"
+                  },
+                  "column": "displacement_m",
+                  "component": "x",
+                  "location": "mass",
+                  "unit": "m"
+                },
+                "force": {
+                  "axis": {
+                    "column": "time_s",
+                    "name": "time",
+                    "unit": "s"
+                  },
+                  "column": "restoring_force_N",
+                  "component": "x",
+                  "location": "mass",
+                  "unit": "N"
+                }
+              },
+              "settings_example": {
+                "conditions": {
+                  "duration_s": 1,
+                  "initial_displacement_m": 0.01,
+                  "initial_velocity_m_s": 0,
+                  "mass_kg": 1,
+                  "samples": 201
+                },
+                "values": {
+                  "damping": 2.4,
+                  "stiffness": 90
+                }
+              },
+              "settings_schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "case_id": {
+                    "type": "string"
+                  },
+                  "conditions": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "duration_s": {
+                        "default": 1,
+                        "exclusiveMinimum": 0,
+                        "type": "number"
+                      },
+                      "initial_displacement_m": {
+                        "default": 0.01,
+                        "type": "number"
+                      },
+                      "initial_velocity_m_s": {
+                        "default": 0,
+                        "type": "number"
+                      },
+                      "mass_kg": {
+                        "default": 1,
+                        "exclusiveMinimum": 0,
+                        "type": "number"
+                      },
+                      "samples": {
+                        "default": 201,
+                        "maximum": 1000000,
+                        "minimum": 2,
+                        "type": "integer"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "values": {
+                    "description": "Exact registered variable values; numerical studies populate these from each candidate.",
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              },
+              "variables": {
+                "damping": {
+                  "lower": 0.2,
+                  "unit": "N s/m",
+                  "upper": 8.0
+                },
+                "stiffness": {
+                  "lower": 20.0,
+                  "unit": "N/m",
+                  "upper": 200.0
+                }
+              }
+            }
+          },
+          {
+            "executed": false,
+            "proposal": "편집 가능한 DOE 계획 생성: external.oscillator, mass 1.2 kg, initial_displacement 0.01 m, initial_velocity 0.05 m/s, duration 1 s, samples 201.",
+            "status": "PROPOSED"
+          },
+          {
+            "executed": false,
+            "proposal": "stiffness 40~130 N/m와 damping 0.8~5 N s/m을 선형 LHS 8회, seed 41로 비교하며 force abs_max 지표를 유지합니다.",
+            "status": "PROPOSED"
+          },
+          {
+            "executed": false,
+            "proposal": "계획 상태는 PLANNED, editable=true, executed=false이며 계산은 실행하지 않았습니다.",
+            "status": "PROPOSED"
+          },
+          {
+            "executed": false,
+            "proposal": "실행 후 numerical.analyze로 동일 영향도와 holdout 오차를 산출하고 기존 초기속도 0 결과와 paired 비교합니다.",
+            "status": "PROPOSED"
+          }
+        ],
+        "session_id": "f18e42c48dfd43f187f45ef54ab1528f",
+        "sources": [
+          {
+            "document_id": "b2c7a1a72322477c8e3cb9bd2b273efe",
+            "locator": {
+              "line_end": 5,
+              "line_start": 1,
+              "section": "공개 합성 진동계 연구 자료",
+              "segment_id": "0"
+            },
+            "revision": 1
+          },
+          {
+            "response_selection": [],
+            "run_id": "Jaad26b66365245399a1fb91113c779b8"
+          },
+          {
+            "response_selection": [],
+            "run_id": "J29e8f4c5acc747b28312a62886ebcfc7"
+          }
+        ],
+        "status": "ANSWERED",
+        "tool_events": [
+          {
+            "status": "SUCCEEDED",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": "J29e8f4c5acc747b28312a62886ebcfc7"
+            },
+            "tool": "calculations.status"
+          },
+          {
+            "status": "SUCCEEDED",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": "Jaad26b66365245399a1fb91113c779b8"
+            },
+            "tool": "calculations.status"
+          },
+          {
+            "status": "RETURNED",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": null,
+              "response_channels": [],
+              "selection": {}
+            },
+            "tool": "results.read"
+          },
+          {
+            "status": "RETURNED",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": null,
+              "response_channels": [],
+              "selection": {}
+            },
+            "tool": "results.read"
+          },
+          {
+            "status": "AVAILABLE",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": null,
+              "segments": 1
+            },
+            "tool": "knowledge.source"
+          },
+          {
+            "status": "RETURNED",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": null
+            },
+            "tool": "calculations.inputs"
+          },
+          {
+            "status": "ANSWERED",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": null
+            },
+            "tool": "experts.consult"
+          },
+          {
+            "status": "PLANNED",
+            "summary": {
+              "executed": false,
+              "hits": 0,
+              "job_id": null,
+              "request": {
+                "budget": {
+                  "evaluations": 8
+                },
+                "inputs": {
+                  "backend": "external.oscillator",
+                  "count": 8,
+                  "execution": {
+                    "max_evaluations": 8,
+                    "mode": "serial",
+                    "on_failure": "continue",
+                    "threads": 1,
+                    "workers": 1
+                  },
+                  "seed": 41,
+                  "settings": {
+                    "conditions": {
+                      "duration_s": 1,
+                      "initial_displacement_m": 0.01,
+                      "initial_velocity_m_s": 0.05,
+                      "mass_kg": 1.2,
+                      "samples": 201
+                    }
+                  },
+                  "variables": [
+                    {
+                      "id": "stiffness",
+                      "lower": 40,
+                      "transform": "linear",
+                      "unit": "N/m",
+                      "upper": 130,
+                      "value": 80
+                    },
+                    {
+                      "id": "damping",
+                      "lower": 0.8,
+                      "transform": "linear",
+                      "unit": "N s/m",
+                      "upper": 5,
+                      "value": 2
+                    }
+                  ]
+                },
+                "operation": "doe",
+                "purpose": "기존 완료 DOE와 동일한 LHS 좌표 및 force 시간 이력의 abs_max 영향도 분석 목적을 유지하면서, 초기속도만 0.05 m/s로 변경하여 stiffness와 damping 영향 변화를 paired 비교한다. 이 요청은 편집 가능한 계획이며 아직 실행하지 않는다."
+              }
+            },
+            "tool": "calculations.plan"
+          }
+        ]
+      }
+    },
+    {
+      "job_id": "J50df681fd4aa42e79a44cd7e6e8a9ec9",
+      "operation": "experts.ask",
+      "status": "SUCCEEDED",
+      "arguments": {
+        "budget": {
+          "seconds": 300
+        },
+        "context": {
+          "calculation_scope": {
+            "allow_execution": true,
+            "backends": [
+              "external.oscillator"
+            ],
+            "max_evaluations": 8,
+            "resources": {
+              "memory_mb": 2048,
+              "threads": 1
+            },
+            "variables": {
+              "damping": [
+                0.8,
+                5
+              ],
+              "stiffness": [
+                40,
+                130
+              ]
+            }
+          },
+          "consult_experts": [
+            "testing"
+          ],
+          "selected_document_ids": [
+            "b2c7a1a72322477c8e3cb9bd2b273efe"
+          ],
+          "selected_result_ids": [
+            "J29e8f4c5acc747b28312a62886ebcfc7",
+            "Jaad26b66365245399a1fb91113c779b8"
+          ],
+          "transmission_scope": {
+            "allow_generated_results": true,
+            "allow_public_search": false,
+            "allow_question": true,
+            "collections": [
+              "project-current"
+            ],
+            "result_ids": [
+              "J29e8f4c5acc747b28312a62886ebcfc7",
+              "Jaad26b66365245399a1fb91113c779b8"
+            ]
+          }
+        },
+        "expert_id": "research",
+        "question": "제안한 초기속도 0.05 m/s 추가 DOE 계획을 화면에 적용했습니다. 현재 편집한 external.oscillator와 stiffness 40~130, damping 0.8~5 범위, 질량 1.2 kg, 동일 seed 41, 8회 한도·1 CPU thread를 승인합니다. calculations.submit으로 이 DOE 8회만 실행하세요. 이번에는 전문가 자문을 추가로 부르지 마세요. 각 후보마다 재승인을 요청하지 마세요. 제출 뒤 job ID와 실제 확인한 상태만 보고하고 아직 끝나지 않았으면 완료 결과처럼 해석하지 마세요. 다음 대화에서 저장 결과를 비교하겠습니다.",
+        "session_id": "f18e42c48dfd43f187f45ef54ab1528f"
+      },
+      "result": {
+        "answer": "DOE 8회만 제출했습니다. Job ID는 J8bbbc7942c9046f9aed41babedbb9193이며, 실제 확인 상태는 RUNNING(CALCULATING)입니다. 아직 완료 결과로 해석하지 않았습니다.",
+        "assumptions": [
+          "승인된 질량 1.2 kg, 초기속도 0.05 m/s, stiffness 40~130 N/m, damping 0.8~5 N s/m, seed 41, 8회, 1 CPU thread를 적용했습니다."
+        ],
+        "budget_used": {
+          "consultations": 0,
+          "evaluations_requested": 8,
+          "model_call_accounting": "reserved_cli_agent_steps",
+          "model_calls": 9,
+          "model_host_invocations": 1,
+          "provider_auxiliary_requests_counted": false,
+          "tool_calls": 3
+        },
+        "created_utc": "2026-10-08T03:00:40.651344+09:00",
+        "exit_reason": "text",
+        "expert_id": "research",
+        "format": "caelab.evaluation/1",
+        "model": "openai-codex/gpt-5.6-sol",
+        "proposed_actions": [
+          {
+            "executed": false,
+            "proposal": "다음 대화에서 작업 완료 상태를 확인한 뒤 저장 결과를 읽어 이전 DOE와 비교합니다.",
+            "status": "PROPOSED"
+          }
+        ],
+        "session_id": "f18e42c48dfd43f187f45ef54ab1528f",
+        "sources": [
+          {
+            "response_selection": [],
+            "run_id": "J8bbbc7942c9046f9aed41babedbb9193"
+          }
+        ],
+        "status": "ANSWERED",
+        "tool_events": [
+          {
+            "status": "RETURNED",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": null
+            },
+            "tool": "calculations.inputs"
+          },
+          {
+            "status": "QUEUED",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": "J8bbbc7942c9046f9aed41babedbb9193",
+              "request": {
+                "budget": {
+                  "evaluations": 8
+                },
+                "inputs": {
+                  "backend": "external.oscillator",
+                  "count": 8,
+                  "execution": {
+                    "max_evaluations": 8,
+                    "memory_mb": 2048,
+                    "mode": "serial",
+                    "on_failure": "stop",
+                    "threads": 1,
+                    "workers": 1
+                  },
+                  "seed": 41,
+                  "settings": {
+                    "conditions": {
+                      "duration_s": 1,
+                      "initial_displacement_m": 0.01,
+                      "initial_velocity_m_s": 0.05,
+                      "mass_kg": 1.2,
+                      "samples": 201
+                    }
+                  },
+                  "variables": [
+                    {
+                      "id": "stiffness",
+                      "lower": 40,
+                      "transform": "linear",
+                      "unit": "N/m",
+                      "upper": 130
+                    },
+                    {
+                      "id": "damping",
+                      "lower": 0.8,
+                      "transform": "linear",
+                      "unit": "N s/m",
+                      "upper": 5
+                    }
+                  ]
+                },
+                "operation": "doe",
+                "resources": {
+                  "memory_mb": 2048,
+                  "threads": 1
+                }
+              }
+            },
+            "tool": "calculations.submit"
+          },
+          {
+            "status": "RUNNING",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": "J8bbbc7942c9046f9aed41babedbb9193"
+            },
+            "tool": "calculations.status"
+          }
+        ]
+      }
+    },
+    {
+      "job_id": "J8bbbc7942c9046f9aed41babedbb9193",
+      "operation": "doe",
+      "status": "SUCCEEDED",
+      "arguments": {
+        "backend": "external.oscillator",
+        "count": 8,
+        "execution": {
+          "max_evaluations": 8,
+          "memory_mb": 2048,
+          "mode": "serial",
+          "on_failure": "stop",
+          "threads": 1,
+          "workers": 1
+        },
+        "seed": 41,
+        "settings": {
+          "conditions": {
+            "duration_s": 1,
+            "initial_displacement_m": 0.01,
+            "initial_velocity_m_s": 0.05,
+            "mass_kg": 1.2,
+            "samples": 201
+          }
+        },
+        "variables": [
+          {
+            "id": "stiffness",
+            "lower": 40,
+            "transform": "linear",
+            "unit": "N/m",
+            "upper": 130
+          },
+          {
+            "id": "damping",
+            "lower": 0.8,
+            "transform": "linear",
+            "unit": "N s/m",
+            "upper": 5
+          }
+        ]
+      },
+      "result": {
+        "sampling": {
+          "coordinates": [
+            "linear",
+            "linear"
+          ],
+          "count": 8,
+          "method": "scipy.latin_hypercube",
+          "scipy_version": "1.17.0",
+          "seed": 41
+        },
+        "candidates": [
+          {
+            "candidate_id": "C000000",
+            "values": {
+              "damping": 4.616197722147784,
+              "stiffness": 50.449492660116235
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-f9a87a1812d84ddf87411b2f443ee272",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0.05,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-f9a87a1812d84ddf87411b2f443ee272/response.csv",
+              "source_sha256": "8957e1459201ecb367f235ba295ab99510af62d00729c9f0adb6b2772cf5aee0",
+              "values": {
+                "damping": 4.616197722147784,
+                "stiffness": 50.449492660116235
+              }
+            }
+          },
+          {
+            "candidate_id": "C000001",
+            "values": {
+              "damping": 2.3268380808978733,
+              "stiffness": 119.35027408937292
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-9dcb45802d654d9c884c0892f530f080",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0.05,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-9dcb45802d654d9c884c0892f530f080/response.csv",
+              "source_sha256": "3cc2c7fcbf5c797c747f787c9c1807789568c81909e92541229be750b48d6218",
+              "values": {
+                "damping": 2.3268380808978733,
+                "stiffness": 119.35027408937292
+              }
+            }
+          },
+          {
+            "candidate_id": "C000002",
+            "values": {
+              "damping": 4.071137860917791,
+              "stiffness": 90.05176854817306
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-d6c67f4c32cf4e52905e123b8b23518f",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0.05,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-d6c67f4c32cf4e52905e123b8b23518f/response.csv",
+              "source_sha256": "7f0c8c9d4d8891d2793bdedafac72f5bef358359a491b7d4837723723a8cf234",
+              "values": {
+                "damping": 4.071137860917791,
+                "stiffness": 90.05176854817306
+              }
+            }
+          },
+          {
+            "candidate_id": "C000003",
+            "values": {
+              "damping": 3.7753812407902307,
+              "stiffness": 62.35255290229517
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-82e23d61531d420a9c9a38dba1aeb1af",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0.05,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-82e23d61531d420a9c9a38dba1aeb1af/response.csv",
+              "source_sha256": "f9c3176637f7bc899504f58877ddc4df3ae5fd644e4d749100ae10ea9686ad8b",
+              "values": {
+                "damping": 3.7753812407902307,
+                "stiffness": 62.35255290229517
+              }
+            }
+          },
+          {
+            "candidate_id": "C000004",
+            "values": {
+              "damping": 2.9073021926627973,
+              "stiffness": 78.57278801865425
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-7d95c7ea4800487abaa705e77c98e473",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0.05,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-7d95c7ea4800487abaa705e77c98e473/response.csv",
+              "source_sha256": "0863cb208a4c3fff20e5dcb58988b99a4d50a2f63205409bb7bbcdcead7449c9",
+              "values": {
+                "damping": 2.9073021926627973,
+                "stiffness": 78.57278801865425
+              }
+            }
+          },
+          {
+            "candidate_id": "C000005",
+            "values": {
+              "damping": 2.4285077001974047,
+              "stiffness": 68.76277515555869
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-84629b0273904c0387933a4000587f8f",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0.05,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-84629b0273904c0387933a4000587f8f/response.csv",
+              "source_sha256": "b031e787110b64cc15beda878a54866bfea4ccfaadb45890125fdb40c88190e4",
+              "values": {
+                "damping": 2.4285077001974047,
+                "stiffness": 68.76277515555869
+              }
+            }
+          },
+          {
+            "candidate_id": "C000006",
+            "values": {
+              "damping": 1.1016335135850082,
+              "stiffness": 111.56635035392222
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-76b93a19ea52425abbc1a146dd75f7b9",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0.05,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-76b93a19ea52425abbc1a146dd75f7b9/response.csv",
+              "source_sha256": "085d1d81ba351a97e16779e29c65235e5376a4a6ad1174f9ef9ce332a946ef54",
+              "values": {
+                "damping": 1.1016335135850082,
+                "stiffness": 111.56635035392222
+              }
+            }
+          },
+          {
+            "candidate_id": "C000007",
+            "values": {
+              "damping": 1.5510003375631682,
+              "stiffness": 96.87643941652587
+            },
+            "status": null,
+            "diagnostics": {
+              "backend": "external.oscillator",
+              "candidate_directory": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-69604fa6857e40dab12814376304b7ca",
+              "candidate_id": null,
+              "case_id": null,
+              "conditions": {
+                "duration_s": 1,
+                "initial_displacement_m": 0.01,
+                "initial_velocity_m_s": 0.05,
+                "mass_kg": 1.2,
+                "samples": 201
+              },
+              "evaluation_mode": "FILE_BASED",
+              "inputs": [],
+              "mode": "REGISTERED_EXTERNAL_EXECUTION",
+              "solver_execution": "COMPLETED",
+              "source": "/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-service-20261008-01/workbench/native/J8bbbc7942c9046f9aed41babedbb9193/candidate-69604fa6857e40dab12814376304b7ca/response.csv",
+              "source_sha256": "ff017131dd6b6d24221d6fdb2bb10f6984ad5c4ea475ffbaab74f3e8c361a858",
+              "values": {
+                "damping": 1.5510003375631682,
+                "stiffness": 96.87643941652587
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "job_id": "Jcabf6666d9e24925b5135d747fe43ab7",
+      "operation": "analyze",
+      "status": "SUCCEEDED",
+      "arguments": {
+        "job_id": "J8bbbc7942c9046f9aed41babedbb9193",
+        "responses": [
+          {
+            "direction": "minimize",
+            "reduction": "abs_max",
+            "response": "force",
+            "unit": "N"
+          }
+        ]
+      },
+      "result": {
+        "candidate_count": 8,
+        "created_utc": "2026-10-08T03:01:30.847885+09:00",
+        "decision": "NOT_RELEASED",
+        "exclusions": [],
+        "failure_count": 0,
+        "format": "caelab.evaluation/1",
+        "limitations": [
+          "Statistics describe the eligible empirical DOE samples only; no population probability, confidence interval, failure probability or input origin is inferred.",
+          "Normalized multivariate least-squares coefficients describe conditional sample associations, not causal effects or Sobol sensitivity indices.",
+          "Surrogate validity means a supported finite fit with separate held-out error only; it is not an accuracy verdict or an extrapolation qualification.",
+          "Pareto membership compares only eligible saved sample responses with their declared directions and exact units; it is not global optimality or physical feasibility.",
+          "Failed or invalid rows are excluded as a common cohort without zero substitution. Material, model and physical qualification remain outside this analysis."
+        ],
+        "pareto": {
+          "method": "EXACT_COMPONENTWISE_NONDOMINANCE",
+          "nondominated_ids": [],
+          "reason": "REQUIRES_TWO_RESPONSES",
+          "response_definitions": [
+            {
+              "direction": "minimize",
+              "metric": "force",
+              "unit": "N"
+            }
+          ],
+          "valid": false
+        },
+        "qualification": "NUMERICAL_SAMPLE_ANALYSIS_ONLY",
+        "response_definitions": [
+          {
+            "direction": "minimize",
+            "reduction": "abs_max",
+            "response": "force",
+            "unit": "N"
+          }
+        ],
+        "sampling": {
+          "coordinates": [
+            "linear",
+            "linear"
+          ],
+          "count": 8,
+          "method": "scipy.latin_hypercube",
+          "scipy_version": "1.17.0",
+          "seed": 41
+        },
+        "sensitivity": [
+          {
+            "coefficients": [
+              {
+                "coefficient": 1.0990343106274354,
+                "parameter_id": "stiffness",
+                "parameter_unit": "N/m",
+                "unit": "1"
+              },
+              {
+                "coefficient": 0.14650535617348448,
+                "parameter_id": "damping",
+                "parameter_unit": "N s/m",
+                "unit": "1"
+              }
+            ],
+            "condition_number": 2.461274446528984,
+            "intercept": -1.570092458683775E-16,
+            "method": "NORMALIZED_MULTIVARIATE_LEAST_SQUARES",
+            "metric": "force",
+            "rank": 3,
+            "reason": null,
+            "response_mean": 1.022229910802018,
+            "response_std": 0.22135838443441302,
+            "sample_ids": [
+              "C000000",
+              "C000001",
+              "C000002",
+              "C000003",
+              "C000004",
+              "C000005",
+              "C000006",
+              "C000007"
+            ],
+            "unit": "N",
+            "valid": true
+          }
+        ],
+        "statistics": [
+          {
+            "count": 8,
+            "max": 1.352774335192987,
+            "mean": 1.022229910802018,
+            "metric": "force",
+            "min": 0.7353048127085515,
+            "quantiles": {
+              "q05": 0.7634932363224014,
+              "q50": 1.030100171496149,
+              "q95": 1.3197098212389256
+            },
+            "std": 0.22135838443441302,
+            "unit": "N"
+          }
+        ],
+        "surrogate": [
+          {
+            "coefficients": [
+              {
+                "feature_id": "F0",
+                "unit": "N",
+                "value": 1.017773543965007
+              },
+              {
+                "feature_id": "F1",
+                "unit": "N",
+                "value": 0.4562678478802898
+              },
+              {
+                "feature_id": "F2",
+                "unit": "N",
+                "value": 0.055577875814564415
+              },
+              {
+                "feature_id": "F3",
+                "unit": "N",
+                "value": -0.0006909156033366759
+              },
+              {
+                "feature_id": "F4",
+                "unit": "N",
+                "value": 0.024352864892482434
+              },
+              {
+                "feature_id": "F5",
+                "unit": "N",
+                "value": -0.002261324876718126
+              }
+            ],
+            "condition_number": 20.864754532997626,
+            "features": [
+              {
+                "id": "F0",
+                "powers": {}
+              },
+              {
+                "id": "F1",
+                "powers": {
+                  "stiffness": 1
+                }
+              },
+              {
+                "id": "F2",
+                "powers": {
+                  "damping": 1
+                }
+              },
+              {
+                "id": "F3",
+                "powers": {
+                  "stiffness": 2
+                }
+              },
+              {
+                "id": "F4",
+                "powers": {
+                  "damping": 2
+                }
+              },
+              {
+                "id": "F5",
+                "powers": {
+                  "damping": 1,
+                  "stiffness": 1
+                }
+              }
+            ],
+            "limitations": [
+              "The seed splits canonical original sample IDs into 75% training and 25% test (rounded up). Held-out responses never select the polynomial degree.",
+              "Feature coordinates use the declared bounds, z=2*(x-lower)/(upper-lower)-1; coefficients retain the response unit. Degree selection uses training residual only.",
+              "Held-out error is descriptive, with no accuracy acceptance threshold. No extrapolation or physical qualification is granted."
+            ],
+            "method": "SEEDED_HOLDOUT_LEAST_SQUARES",
+            "metric": "force",
+            "model": "quadratic",
+            "normalization": [
+              {
+                "lower_bound": 40.0,
+                "parameter_id": "stiffness",
+                "unit": "N/m",
+                "upper_bound": 130.0
+              },
+              {
+                "lower_bound": 0.8,
+                "parameter_id": "damping",
+                "unit": "N s/m",
+                "upper_bound": 5.0
+              }
+            ],
+            "rank": 6,
+            "reason": null,
+            "seed": 13,
+            "test_ids": [
+              "C000000",
+              "C000007"
+            ],
+            "test_mae": 0.003037063827649493,
+            "test_max_error": 0.005152119107888101,
+            "test_rmse": 0.0037009749434010236,
+            "train_ids": [
+              "C000001",
+              "C000002",
+              "C000003",
+              "C000004",
+              "C000005",
+              "C000006"
+            ],
+            "unit": "N",
+            "valid": true
+          }
+        ],
+        "variable_ranges": [
+          {
+            "id": "stiffness",
+            "lower": 40.0,
+            "transform": "linear",
+            "unit": "N/m",
+            "upper": 130.0,
+            "value": 85.0
+          },
+          {
+            "id": "damping",
+            "lower": 0.8,
+            "transform": "linear",
+            "unit": "N s/m",
+            "upper": 5.0,
+            "value": 2.9
+          }
+        ]
+      }
+    },
+    {
+      "job_id": "J757e599719804e189c3bf5ec11d310bd",
+      "operation": "experts.ask",
+      "status": "SUCCEEDED",
+      "arguments": {
+        "expert_id": "research",
+        "question": "이전 답변에서 추가 DOE는 질량도 바뀌었다고 했습니다. 이제 원래 DOE Jaad26b66365245399a1fb91113c779b8도 선택했습니다. 원래 DOE와 당신이 제출한 추가 DOE J8bbbc7942c9046f9aed41babedbb9193의 저장된 후보 조건을 실제로 읽어 질량·초기변위·초기속도·변수범위·seed를 비교하고, 틀린 설명이 있으면 정정하세요. 선택한 두 분석 J29e8f4c5acc747b28312a62886ebcfc7, Jcabf6666d9e24925b5135d747fe43ab7도 읽어 동일 force abs_max의 강성/감쇠 계수와 holdout 오차를 간결히 비교하세요. 새 계산이나 자문은 실행하지 마세요. 읽은 결과의 citation_markers를 그대로 인용하세요.",
+        "context": {
+          "selected_document_ids": [
+            "b2c7a1a72322477c8e3cb9bd2b273efe"
+          ],
+          "selected_result_ids": [
+            "J29e8f4c5acc747b28312a62886ebcfc7",
+            "Jaad26b66365245399a1fb91113c779b8",
+            "Jcabf6666d9e24925b5135d747fe43ab7"
+          ],
+          "consult_experts": [],
+          "transmission_scope": {
+            "allow_question": true,
+            "collections": [
+              "project-current"
+            ],
+            "result_ids": [
+              "J29e8f4c5acc747b28312a62886ebcfc7",
+              "Jaad26b66365245399a1fb91113c779b8",
+              "Jcabf6666d9e24925b5135d747fe43ab7"
+            ],
+            "allow_public_search": false,
+            "allow_generated_results": true
+          }
+        },
+        "budget": {
+          "seconds": 300
+        },
+        "session_id": "f18e42c48dfd43f187f45ef54ab1528f"
+      },
+      "result": {
+        "answer": "정정: 추가 DOE에서 질량이 바뀌었다는 이전 설명은 틀렸습니다. 두 DOE 모두 질량 1.2 kg, 초기변위 0.01 m, stiffness 40~130 N/m, damping 0.8~5 N s/m, LHS seed 41입니다. 8개 stiffness·damping 후보쌍도 모두 동일합니다. 달라진 실행 조건은 초기속도뿐이며, 원래 DOE는 0 m/s, 추가 DOE는 0.05 m/s입니다. 참고로 메타데이터의 변수 기준값은 원래 80 N/m·2 N s/m, 추가 85 N/m·2.9 N s/m이지만 실제 LHS 후보는 같습니다. force abs_max의 정규화 계수는 원래 강성 1.0000000000000004, 감쇠 3.14018491736755e-16이고, 추가 DOE는 강성 1.0990343106274354, 감쇠 0.14650535617348448입니다. holdout RMSE는 각각 2.1510890716786218e-16 N과 0.0037009749434010236 N입니다. 따라서 저장된 조건 기준으로 계수와 오차 차이는 질량 변경이 아니라 초기속도 변경과 대응합니다.",
+        "assumptions": [
+          "계수는 결과에 명시된 정규화 다변량 최소제곱 계수이며 물리 단위 민감도나 인과계수가 아닙니다.",
+          "holdout RMSE는 각 분석의 동일한 2개 시험 후보에 대한 기술적 오차입니다."
+        ],
+        "budget_used": {
+          "consultations": 0,
+          "evaluations_requested": 0,
+          "model_call_accounting": "reserved_cli_agent_steps",
+          "model_calls": 11,
+          "model_host_invocations": 1,
+          "provider_auxiliary_requests_counted": false,
+          "tool_calls": 5
+        },
+        "created_utc": "2026-10-08T03:13:56.583229+09:00",
+        "exit_reason": "text",
+        "expert_id": "research",
+        "format": "caelab.evaluation/1",
+        "model": "openai-codex/gpt-5.6-sol",
+        "proposed_actions": [],
+        "session_id": "f18e42c48dfd43f187f45ef54ab1528f",
+        "sources": [
+          {
+            "response_selection": [],
+            "run_id": "Jaad26b66365245399a1fb91113c779b8"
+          },
+          {
+            "response_selection": [],
+            "run_id": "J8bbbc7942c9046f9aed41babedbb9193"
+          },
+          {
+            "response_selection": [],
+            "run_id": "J29e8f4c5acc747b28312a62886ebcfc7"
+          },
+          {
+            "response_selection": [],
+            "run_id": "Jcabf6666d9e24925b5135d747fe43ab7"
+          }
+        ],
+        "status": "ANSWERED",
+        "tool_events": [
+          {
+            "status": "SUCCEEDED",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": "J8bbbc7942c9046f9aed41babedbb9193"
+            },
+            "tool": "calculations.status"
+          },
+          {
+            "status": "RETURNED",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": null,
+              "response_channels": [],
+              "selection": {}
+            },
+            "tool": "results.read"
+          },
+          {
+            "status": "RETURNED",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": null,
+              "response_channels": [],
+              "selection": {}
+            },
+            "tool": "results.read"
+          },
+          {
+            "status": "RETURNED",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": null,
+              "response_channels": [],
+              "selection": {}
+            },
+            "tool": "results.read"
+          },
+          {
+            "status": "RETURNED",
+            "summary": {
+              "executed": null,
+              "hits": 0,
+              "job_id": null,
+              "response_channels": [],
+              "selection": {}
+            },
+            "tool": "results.read"
+          }
+        ]
+      }
+    }
+  ]
+}

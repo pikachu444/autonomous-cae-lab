@@ -1,4 +1,30 @@
-## Actual startup and new-session checkpoint
+## 2026-10-08 — Windows and usability verified increment
+
+Source6d9909f plus layout correction a06b747 follows merged59577ed. Windows online bootstrap and actual named
+FELUPE GUI job work without WSL; source ZIP, installed wheel, repeat/start/stop
+and matching-store rules were checked. File preview/units→real imports→overlaid
+comparison/report were exercised. Corrected independent findings and exact hashes
+are in `docs/WORKBENCH_PROGRESS.md` and record20261008-windows-usability.
+121 Python tests and19 Node tests passed. No offline or Linux-remote feature was
+implemented. Canonical Code_Aster, general native Windows qualification and
+physical/company release remain incomplete; no historical requirement is erased.
+
+## 2026-10-08 — Native/common workbench integration
+
+Current R1–R5 implementation extends latest-main base `afcfd27` in an isolated
+worktree. Real native response selection, solver-free restart, external
+SciPy/ASCII fit and search, MFront E/nu fit/holdout and owned cancellation ran.
+Actual OpenScience with existing approved OAuth read local/public sources,
+proposed an editable DOE, interpreted computed coefficients, consulted testing,
+and submitted a bounded follow-up DOE. `docs/WORKBENCH_PROGRESS.md` preserves
+exact IDs, failed attempts and remaining verification. Frozen source `9d0aeed`
+passes all 20 replay regressions; exact CI core passes 6575 tests and Windows
+workbench 106. The progress record distinguishes CI run 37665791166 and PR #3 from
+local solver evidence. Code_Aster canonical reaction and whole52 /
+physical/company release remain open, with unchanged engineering limits.
+---
+
+## Historical actual startup and new-session checkpoint
 
 User identifies inadequate roadmap/spec-driven development and repeated example
 generation/verification as a work-process failure. New prompt requires explicit

@@ -1,0 +1,6 @@
+# Project invocation metadata; the upstream SKILL.md is unchanged.
+interface:
+  display_name: "Primary-source research"
+  short_description: "Use only within the scope in DEVELOPMENT_SKILLS.md."
+policy:
+  allow_implicit_invocation: false

@@ -45,6 +45,12 @@ def _sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _source_sha(path):
+    # Git stores this Python source with LF. Windows worktrees may check it out
+    # with CRLF, so pin the canonical source bytes rather than checkout EOLs.
+    return hashlib.sha256(path.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
+
+
 def _files(root):
     return {p.relative_to(root).as_posix(): p.read_bytes() for p in root.rglob('*')
             if p.is_file() and not p.name.endswith('.lock')}
@@ -111,7 +117,7 @@ def _arguments(plan, **changes):
 
 
 def test_pure_uq_module_reuses_the_exact_frozen_candidate_bytes():
-    assert _sha(Path(uq.__file__)) == PURE_MODULE_PIN
+    assert _source_sha(Path(uq.__file__)) == PURE_MODULE_PIN
 
 
 @pytest.mark.parametrize('origin', ['ASSUMED', 'SYNTHETIC', 'PUBLISHED_REFERENCE', 'MEASURED_REPORTED'])

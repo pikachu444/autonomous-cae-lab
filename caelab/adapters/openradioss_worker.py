@@ -11,6 +11,8 @@ from plugins.explicit_dynamics.reference import ANCHOR_Z_M, COMPLIANT_CASE
 SOURCE_PATH = Path(__file__).resolve()
 SOURCE_BYTES = SOURCE_PATH.read_bytes()
 SOURCE_SHA256 = hashlib.sha256(SOURCE_BYTES).hexdigest()
+OPENCOURANT_SOURCE_COMMIT = "33e685176cccf0c539a3ce07aa2096985a284e2a"
+OPENCOURANT_ARCHIVE_SHA256 = "9d67531de156dd9beba05fbfe710dcdc2bcecbdf3dc3a12642cf85dcece80081"
 
 
 class ASCIIHistory:
@@ -205,7 +207,7 @@ def starter_admission(output: Path, settings: dict) -> dict:
     return admitted
 
 
-def parse_history(output: Path, settings: dict) -> dict:
+def parse_history(output: Path, settings: dict, runtime_identity: dict | None = None) -> dict:
     output = Path(output)
     admission = starter_admission(output, settings)
     engine = (output / "drop_0001.out").read_text(encoding="ascii")
@@ -225,7 +227,21 @@ def parse_history(output: Path, settings: dict) -> dict:
     n_part, n_mat, n_prop, n_subset, n_group, n_global = hierarchy
     wall = settings["case"] == "rigid_cube_ground_stop"
     compliant = settings["case"] == COMPLIANT_CASE
-    expected_hierarchy = [2, 2, 2, 1, 3, 22] if compliant else [1, 2, 1, 1, 3 if wall else 2, 22]
+    # OpenCourant source 33e6851 engine/source/output/th/hist1.F declares 23
+    # globals. hist2.F adds energy balance at channel 23; channels 1-22 retain
+    # their original positions. Unknown runtime identities never select it.
+    if runtime_identity is None:
+        expected_globals = 22  # Historical direct-parser fixture contract.
+    elif (runtime_identity.get("archive_sha256") == OPENCOURANT_ARCHIVE_SHA256
+          and runtime_identity.get("release_source_commit") == OPENCOURANT_SOURCE_COMMIT):
+        expected_globals = 23
+    elif (runtime_identity.get("archive_sha256") == "598ed7b2905a7bacc8d1781470c250ac79d7558c39ba962768edf3644644fe33"
+          and runtime_identity.get("release_source_commit") == "a62b27e6baa555d222a580d6218867d0be4d70b5"):
+        expected_globals = 22
+    else:
+        raise ValueError("Unqualified native runtime cannot select a history schema")
+    expected_hierarchy = ([2, 2, 2, 1, 3, expected_globals] if compliant else
+                          [1, 2, 1, 1, 3 if wall else 2, expected_globals])
     if hierarchy != expected_hierarchy:
         raise ValueError("Native hierarchy does not cover the exact declared rigid-cube model/history")
     global_ids = history.record([(n_global, "I")])
@@ -287,6 +303,13 @@ def parse_history(output: Path, settings: dict) -> dict:
             raise ValueError("Native history exceeds the bounded 20000-sample parser budget")
         time_s = history.record([(1, "R")])[0]
         global_values = history.record([(n_global, "R")])
+        if expected_globals == 23:
+            # Exact source expression in OpenCourant hist2.F; allow only the
+            # precision lost when the TH40 ASCII writer rounds each channel.
+            components = [global_values[i] for i in (0, 1, 7, 10, 11, 8, 20, 21)]
+            balance = sum(components[:5]) - components[5] + sum(components[6:])
+            if abs(global_values[22] - balance) > 1e-7 * max(1.0, sum(abs(v) for v in components)):
+                raise ValueError("Native energy-balance channel differs from its declared components")
         group_values = [history.record([(group["width"], "R")]) for group in groups]
         by_id = {group["id"]: values for group, values in zip(groups, group_values)}
         dz_bottom, v_bottom, a_bottom, z_bottom, dz, velocity, acceleration, z = by_id[1][:8]

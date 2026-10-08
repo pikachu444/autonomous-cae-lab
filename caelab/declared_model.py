@@ -138,7 +138,8 @@ def run_declared_model(lab, *, study_id: str, experiment_id: str, backend: str,
                        "pending_validations": ["model_qualification", "physical_validation"],
                        "provenance": {}, "raw_result": None}
         else:
-            outcome = adapter.solve(folder / output_directory, deepcopy(settings))
+            from .evaluation import execute_model
+            outcome = execute_model(adapter, folder / output_directory, settings)
         validate_outcome(outcome)
         failed_execution = outcome["solver_status"] == "FAILED_EXECUTION"
     except ExecutionCleanupFailed:

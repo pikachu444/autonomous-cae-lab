@@ -1604,3 +1604,28 @@ conditions, G3 hypotheses/observations and G4 owned operational recovery remain.
 ## General exact-field comparison context — ADR0048
 
 Existing verified experiment inspection/summary expose stored field1.2 comparisons with original artifact/CAD/node/component/XYZ/frame/static and observation source/condition/difference/limits. Approved5.6Sol/OAuth and tool/profile authority are unchanged. A prepared question or summary read is not a completed provider run. No new native execution admission; general purpose extends earlier examples. Unknown alignment/physical/causal judgments remain unverified/NOT_RELEASED.
+
+## Optional local workbench expert host — ADR0058
+
+The workbench's scoped expert tools now share its existing job controller and
+saved results. Input descriptions and explicit response selections use the same
+Core operations as direct/GUI use. A model may propose a plan before execution;
+execution requires a current user scope covering backend, bounds and cumulative
+budget. Future public queries/papers may be discovered within an approved public
+search scope, without granting access to unrelated private documents.
+
+The optional official OpenScience CLI provider reuses its approved signed-in
+profile through a temporary authenticated loopback MCP bridge. Only selected
+tools are visible and callable; no raw credential transfer or shell tool is
+provided. Tools return actual submission/status/result distinctions, and result
+reads use original job IDs after restart. This route does not alter earlier
+fixture profile/schema gates or their historical lifecycle claims. Current
+live acceptance and remaining limitations are in WORKBENCH_PROGRESS.md.
+
+This provider uses official SDK Streamable HTTP on authenticated loopback,
+propagates controller cancellation into callbacks, and requires a structured
+owned-process cleanup receipt before recording CANCELLED. Missing cleanup
+confirmation remains failure. Budget `model_calls` reserves CLI agent steps,
+not exact billed API calls; host auxiliary requests are explicitly uncounted.
+Parent/consultation/one optional no-tool repair share that reservation. The
+original result/document citation markers must match actually read evidence.

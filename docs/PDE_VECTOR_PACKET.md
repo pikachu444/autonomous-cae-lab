@@ -186,3 +186,53 @@ Pinned primary sources: [blocked coordinates](https://github.com/FEniCS/dolfinx/
 [LinearProblem](https://github.com/FEniCS/dolfinx/blob/v0.11.0.post0/python/dolfinx/fem/petsc.py#L808),
 [Lamé stress](https://github.com/FEniCS/dolfinx/blob/v0.11.0.post0/python/demo/demo_elasticity.py#L116).
 Independent investigation made no native/provider/Core/runtime/file calls.
+
+## 2026-10-08 local vector convergence continuation
+
+The frozen n8/16/32 manufactured polynomial specification was executed in the
+installed DOLFINx 0.11.0.post0/PETSc 3.19.6 runtime at
+`/home/pikachu444/.local/share/autonomous-cae-lab/runs/workbench-vector-convergence-20261008-01`.
+It was **REJECTED** without changing any numerical limit: observed total vector
+L2 rates were 1.7950984425 and 1.9114360942, with first u0 rate
+1.7796221489 below the 1.8 requirement. The constrained relative residual
+was 3.715e-15. The failed raw fields and criterion evidence remain intact.
+
+A separate, finer n16/32/64 specification in the same parent run directory
+completed under the same 1.8 rate threshold: total vector L2 rates
+1.91143609 and 1.96809876; u0 1.89946421 and 1.96425377; u1 1.91628136
+and 1.96967907. All component gradient-H1 rates exceeded 1.0 and the
+largest constrained relative residual was 6.289e-15. This demonstrates the
+specified asymptotic behavior on the finer mesh sequence; it does not turn
+the rejected coarse sequence into a pass. The local smoke runner now requests
+16/32/64 for this particular manufactured control. Other geometry,
+coefficients, physical material and mesh adequacy remain separate gates.
+
+## 2026-10-08 committed-source acceptance
+
+The exact source commit `acbe38c` CI run `37656946351` rejected
+`E-vector-reaction` on its 8/16/32 mesh sequence: first vector L2 rate
+1.7780528281, component u0 rate 1.6952523031, below the unchanged 1.8
+criterion. A fresh local n16/32/64 native solve passed reaction with vector
+rates 1.8926771037 and 1.9578879979. The first full verifier run at
+`7ed87ca` then exposed another retained coarse-mesh rejection:
+`E-vector-domain` first vector L2 rate 1.6465674793. Separate native
+n16/32/64 probes passed the domain, lambda-zero, and harmonic controls
+without changing reference expressions or thresholds. Original failed
+stores remain at `workbench-vector-reaction-convergence-20261008-01` and
+`workbench-vector-full-7ed87ca-20261008-01` under the local run root.
+
+Source commit `f64584fdebf6a75e1c651debc599e090456a1362` measures all six
+accepted controls on 16/32/64. Its clean-source, fresh-store full native
+verifier `workbench-vector-full-f64584f-20261008-01` returned
+`PASS_BOUNDED_MATHEMATICAL`: six accepted, three expected numerical
+rejections, five preflight refusals, nine native processes and 27 verified
+meshes. Final accepted vector L2 rates range from 1.9393149844 to
+1.9999979111, gradient-H1 rates from 0.9998310888 to 1.0499261537, and
+relative linear residuals from 3.18e-15 to 7.15e-15. The `acceptance.json`
+SHA-256 is `01a2eca5e777a5e6660d36d505cb9c9d51fa2e47c02c8280fa23803e94ebd0e6`;
+the frozen `acceptance_plan.json` SHA-256 is
+`004958b0fb8f953c993a48af26e6f6c6e6e7d499787ccd61a952abd7f93715f5`.
+The corresponding source tests passed 19/19. This is a bounded mathematical
+acceptance; model qualification and physical validation remain UNKNOWN,
+engineering decision NOT_RELEASED, and official research admission
+NOT_ADMITTED.

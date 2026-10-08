@@ -29,11 +29,27 @@ def _service() -> LabService:
     global _resident, _bound_store, _bound_setting
     from apps.lab.service import LabService, ServiceError
 
+    if os.environ.get('CAELAB_SERVICE_URL'):
+        raise ServiceError(409, 'Shared mode uses the workbench service; a second resident is forbidden')
+
     setting = os.environ.get("CAELAB_STORE")
     store = Path(setting if setting is not None else
                  Path(__file__).resolve().parents[1] / "runs").resolve()
     if _resident is None:
-        service = LabService(store)
+        from filelock import FileLock, Timeout
+        control = store / 'workbench'
+        control.mkdir(parents=True, exist_ok=True)
+        owner = FileLock(control / 'controller.lock', timeout=0)
+        try:
+            owner.acquire()
+        except Timeout as error:
+            raise ServiceError(409, 'Workspace already has a controller; set CAELAB_SERVICE_URL') from error
+        try:
+            service = LabService(store)
+            service._standalone_owner = owner
+        except BaseException:
+            owner.release()
+            raise
         _bound_store, _bound_setting, _resident = store, setting, service
     elif setting != _bound_setting or store != _bound_store:
         raise ServiceError(409, "CAELAB_STORE changed; a new resident is required to preserve existing jobs")
@@ -105,7 +121,10 @@ def shutdown(timeout: float = 5.0) -> dict:
     with _lock:
         if _resident is None:
             return {"accepting_jobs": False, "pending": [], "joined": True}
-        return _resident.shutdown(timeout=timeout)
+        result = _resident.shutdown(timeout=timeout)
+        if result['joined'] and not result['pending']:
+            _resident._standalone_owner.release()
+        return result
 
 
 @contextmanager

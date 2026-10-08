@@ -43,14 +43,20 @@ def _validated_variables(variables: list[dict]) -> tuple[list[str], list[list[fl
         if not isinstance(name, str) or not name.strip() or name in names:
             raise ValueError("Optimization variable IDs must be nonempty and distinct")
         target = variable.get("target", "cad")
-        if target == "cad":
+        if target == "numerical":
+            # Direct callable/library evaluations have no CAD registration.
+            # Their declared numeric bounds are validated below; no binding
+            # effect observation is invented to enter this numerical engine.
+            effect = None
+        elif target == "cad":
             effect = variable.get("geometry_effect")
         elif target in ("model_analysis", "analysis_conditions"):
             effect = variable.get("input_effect")
         else:
-            raise ValueError("Optimization variable target must be CAD, model_analysis or analysis_conditions")
+            raise ValueError("Optimization variable target must be CAD, model_analysis, analysis_conditions or numerical")
         if (variable.get("kind") != "continuous" or variable.get("mode") != "free" or
-                not isinstance(effect, dict) or effect.get("status") != "PASS"):
+                (target != "numerical" and
+                 (not isinstance(effect, dict) or effect.get("status") != "PASS"))):
             raise ValueError("Optimization requires continuous free variables with PASS registered binding effect")
         lower = _finite_number(variable.get("lower_bound"), f"{name} lower bound")
         upper = _finite_number(variable.get("upper_bound"), f"{name} upper bound")
@@ -144,7 +150,8 @@ class ScipyDifferentialEvolution:
 
     def run(self, variables: list[dict], evaluate: Callable, *, seed: int,
             max_generations: int, population_size: int,
-            initial_values: dict[str, float] | None = None, constraint_count: int) -> dict:
+            initial_values: dict[str, float] | None = None, constraint_count: int,
+            evaluate_many: Callable | None = None) -> dict:
         """Search using feedback; convergence is not proof of a global optimum.
 
         Repeat calls with the same frozen configuration and feedback regenerate
@@ -156,6 +163,15 @@ class ScipyDifferentialEvolution:
                                   constraint_count=constraint_count)
         if not callable(evaluate):
             raise ValueError("Optimization evaluate must be callable")
+        if evaluate_many is not None and not callable(evaluate_many):
+            raise ValueError("Optimization evaluate_many must be callable")
+        # SciPy's workers map covers objectives, but constraints are otherwise
+        # evaluated serially first. Its public vectorized boundary lets the
+        # caller compute both in one worker-local candidate batch.
+        batched = evaluate_many is not None
+        algorithm["vectorized"] = batched
+        if batched:
+            algorithm["evaluation_dispatch"] = "caller_batch_objective_and_constraints"
         names = algorithm["parameter_order"]
         cache: dict[tuple[str, ...], dict] = {}
         callback_error: BaseException | None = None
@@ -176,10 +192,16 @@ class ScipyDifferentialEvolution:
             return cache[key]
 
         def objective(x) -> float:
+            if numpy.ndim(x) == 2:
+                batch_feedback(x)
+                return numpy.asarray([objective(column) for column in x.T], dtype=float)
             value = feedback_for(x)["objective"]
             return numpy.inf if value is None else value
 
         def constraints(x):
+            if numpy.ndim(x) == 2:
+                batch_feedback(x)
+                return numpy.asarray([constraints(column) for column in x.T], dtype=float).T.reshape(constraint_count + 1, -1)
             feedback = feedback_for(x)
             residuals = feedback["constraint_residuals"]
             available = feedback["objective"] is not None and all(
@@ -189,6 +211,27 @@ class ScipyDifferentialEvolution:
             # an engineering constraint and is not returned as public evidence.
             return numpy.asarray([numpy.inf if value is None else value for value in residuals]
                                  + [0.0 if available else numpy.inf], dtype=float)
+
+        def batch_feedback(points):
+            nonlocal callback_error
+            pending = {}
+            for column in points.T:
+                values = {name: _finite_number(float(value), f"{name} candidate value")
+                          for name, value in zip(names, column)}
+                key = tuple(values[name].hex() for name in names)
+                if key not in cache:
+                    pending[key] = values
+            if not pending:
+                return
+            try:
+                outputs = list(evaluate_many(list(pending.values())))
+                if len(outputs) != len(pending):
+                    raise ValueError("Batch feedback count differs from candidate count")
+                for key, feedback in zip(pending, outputs):
+                    cache[key] = _validated_feedback(feedback, constraint_count)
+            except BaseException as error:
+                callback_error = error
+                raise
 
         population = numpy.asarray([[point[name] for name in names]
                                     for point in algorithm["initial_population"]], dtype=float)
@@ -200,7 +243,7 @@ class ScipyDifferentialEvolution:
                 maxiter=max_generations, tol=algorithm["tol"], atol=algorithm["atol"],
                 mutation=tuple(algorithm["mutation"]), recombination=algorithm["recombination"],
                 rng=numpy.random.default_rng(seed), polish=False, init=population, x0=x0,
-                updating="deferred", workers=1, vectorized=False,
+                updating="deferred", workers=1, vectorized=batched,
                 constraints=NonlinearConstraint(constraints, -numpy.inf, 0.0))
         except BaseException:
             if callback_error is not None:
