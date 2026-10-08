@@ -275,7 +275,7 @@ class PostWorkspace(Workspace):
         self.component = QComboBox(); bar.addWidget(self.component)
         bar.addWidget(QLabel("프레임")); self.frame = QSpinBox(); self.frame.setRange(0, 99); bar.addWidget(self.frame)
         bar.addWidget(QLabel("범례")); self.legend = QComboBox(); self.legend.addItems(["자동", "고정 0–50", "중앙 기준"]); bar.addWidget(self.legend)
-        bar.addWidget(_button("표시 적용", self._apply_view)); c.addLayout(bar)
+        self.apply_view_button = _button("표시 적용", self._apply_view); bar.addWidget(self.apply_view_button); c.addLayout(bar)
         self.tabs = QTabWidget()
         self.scene = QGraphicsScene(); self.field_view = QGraphicsView(self.scene); self.field_view.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.field_view.viewport().installEventFilter(self)
@@ -302,16 +302,20 @@ class PostWorkspace(Workspace):
     def refresh(self):
         if not hasattr(self, "tree"): return
         self._loading = True; d = self.data
+        has_field = bool(d["field"])
         self.tree.clear(); result = QTreeWidgetItem([f"결과 · {d['source']}"]); self.tree.addTopLevelItem(result)
-        field = QTreeWidgetItem([f"필드 · {d['component']}"]); result.addChild(field)
+        if has_field:
+            field = QTreeWidgetItem([f"필드 · {d['component']}"]); result.addChild(field)
         curve = QTreeWidgetItem([f"응답 · {len(d['points'])}개 표본"]); result.addChild(curve)
         if d.get("compare"): result.addChild(QTreeWidgetItem([f"비교 · {d['compare']['source']}"]))
         result.setExpanded(True)
         self.component.clear()
-        self.component.addItems(list(self.demo_units) if d["source_type"] == "demo" and d["field"] else [d["component"]])
+        self.component.addItems(list(self.demo_units) if d["source_type"] == "demo" and has_field else [d["component"]])
         self.component.setCurrentText(d["component"])
-        self.frame.setRange(0, max(0, d.get("frame_count", 1) - 1 if d["field"] else 0))
+        self.frame.setRange(0, max(0, d.get("frame_count", 1) - 1 if has_field else 0))
         self.frame.setValue(d["frame"]); self.legend.setCurrentText(d["legend"])
+        for control in (self.component, self.frame, self.legend, self.apply_view_button):
+            control.setEnabled(has_field)
         self._draw_field()
         lines = [(d["source"], d["points"])]
         if d.get("compare"): lines.append((d["compare"]["source"], d["compare"]["points"]))
@@ -319,11 +323,20 @@ class PostWorkspace(Workspace):
         self.tabs.removeTab(1)
         self.plot.deleteLater(); self.plot = _chart(lines, f"{d['x_name']} [{d['x_unit']}]", d["component"] + " [" + d["unit"] + "]")
         self.tabs.addTab(self.plot, "응답 곡선")
-        self.tabs.setCurrentIndex(1 if not d['field'] else active_tab)
+        self.tabs.setTabText(0, "필드·셀" if has_field else "필드 없음")
+        self.tabs.setTabEnabled(0, has_field)
+        self.tabs.setCurrentIndex(1 if not has_field else active_tab)
         selected = d.get("selection")
         field = self._field_values()
-        self.info.setText(f"셀 {selected[0]},{selected[1]} · {field[selected[1]][selected[0]]:g} {d['unit']}" if selected and field else "필드 셀을 선택하면 값이 표시됩니다.")
-        self.provenance.setText(f"출처: {d['source']}\n형식: {d['source_type']}" + ("\n시연 값" if d["source_type"].startswith("demo") else "\n가져온 값"))
+        if has_field:
+            self.info.setText(f"셀 {selected[0]},{selected[1]} · {field[selected[1]][selected[0]]:g} {d['unit']}" if selected and field else "필드 셀을 선택하면 값이 표시됩니다.")
+        elif d["points"]:
+            xs = [point[0] for point in d["points"]]; ys = [point[1] for point in d["points"]]
+            self.info.setText(f"응답 곡선 · {len(xs)}개 표본\n{d['x_name']}: {min(xs):.5g}–{max(xs):.5g} {d['x_unit']}\n{d['component']}: {min(ys):.5g}–{max(ys):.5g} {d['unit']}")
+        else:
+            self.info.setText("응답 곡선 표본이 없습니다.")
+        source_type = {"demo": "시연 필드", "demo_run": "시연 실행 결과", "csv": "가져온 CSV"}.get(d["source_type"], d["source_type"])
+        self.provenance.setText(f"출처: {d['source']}\n형식: {source_type}")
         self._loading = False
 
     def _field_values(self):
@@ -337,8 +350,7 @@ class PostWorkspace(Workspace):
     def _draw_field(self):
         scene = self.scene; scene.clear(); field = self._field_values()
         if not field:
-            scene.addText("이 결과에는 필드가 없습니다. 응답 곡선을 확인하세요.")
-            self.tabs.setCurrentIndex(1); return
+            return
         values = [v for row in field for v in row]; low, high = min(values), max(values)
         if self.data["legend"] == "고정 0–50": low, high = 0, 50
         elif self.data["legend"] == "중앙 기준":
@@ -516,9 +528,15 @@ class OptWorkspace(Workspace):
         objective_root = QTreeWidgetItem(["목적·제약"]); root.addChild(objective_root)
         for item in d["objectives"] + d["constraints"]: objective_root.addChild(QTreeWidgetItem([item["name"]]))
         candidate_root = QTreeWidgetItem([f"후보 · {len(d['candidates'])}"]); root.addChild(candidate_root)
+        selected_index = d.get("selected")
+        selected_item = None
         for i, candidate in enumerate(d["candidates"]):
             item = QTreeWidgetItem([candidate["id"]]); item.setData(0, Qt.ItemDataRole.UserRole, i); candidate_root.addChild(item)
+            if i == selected_index: selected_item = item
         root.setExpanded(True); candidate_root.setExpanded(True)
+        if selected_item is not None:
+            self.tree.setCurrentItem(selected_item)
+            self.tree.scrollToItem(selected_item)
         self.variables.setRowCount(len(d["variables"]))
         for i, variable in enumerate(d["variables"]):
             for j, key in enumerate(("name", "low", "high", "unit")): self.variables.setItem(i, j, _table_item(variable[key], True))
@@ -557,9 +575,14 @@ class OptWorkspace(Workspace):
         parent = self.pareto.parentWidget().layout()
         new, series = _scatter_chart(plot_points, plot_keys[0] if plot_keys else "목적 1", plot_keys[1] if len(plot_keys) > 1 else "목적 2")
         series.sigClicked.connect(lambda _item, points, _event: self._pareto_selected(points[0].pos(), plot_candidates, plot_keys) if points else None)
+        selected = d.get("selected")
+        candidate = d["candidates"][selected] if isinstance(selected, int) and 0 <= selected < len(d["candidates"]) else None
+        if candidate and len(plot_keys) == 2 and candidate in plot_candidates:
+            new.plot([candidate[plot_keys[0]]], [candidate[plot_keys[1]]], pen=None,
+                     symbol="o", symbolSize=17, symbolBrush=pg.mkBrush("#e0792d"),
+                     symbolPen=pg.mkPen("#713b17", width=2))
         parent.replaceWidget(self.pareto, new)
         self.pareto.deleteLater(); self.pareto = new
-        selected = d.get("selected"); candidate = d["candidates"][selected] if isinstance(selected, int) and selected < len(d["candidates"]) else None
         node = d.get("selected_node")
         if self.tabs.currentIndex() == 0 and node:
             node_details = {"Variables": f"범위 지정 변수 {len(d['variables'])}개",
@@ -569,7 +592,20 @@ class OptWorkspace(Workspace):
                             "Objectives": f"목적 {len(d['objectives'])}개 / 제약 {len(d['constraints'])}개"}
             self.detail.setText(f"{self.node_labels.get(node, node)}\n{node_details.get(node, '')}")
         else:
-            self.detail.setText("\n".join(f"{key}: {value}" for key, value in candidate.items()) if candidate else "후보를 선택하면 응답과 제약을 볼 수 있습니다.")
+            if candidate:
+                status = {"feasible": "적합", "constraint": "제약 위반", "imported": "가져옴"}.get(candidate.get("status"), candidate.get("status", "미정"))
+                lines = [f"후보 {candidate.get('id', '미지정')}", f"상태: {status}"]
+                for variable in d["variables"]:
+                    name = variable["name"]; lines.append(f"변수 {name}: {candidate.get(name, '—')} {variable['unit']}")
+                for objective in d["objectives"]:
+                    name = objective["name"]; direction = "최소" if objective["sense"] == "min" else "최대"
+                    lines.append(f"목적 {name} ({direction}): {candidate.get(name, '—')} {objective['unit']}")
+                for constraint in d["constraints"]:
+                    name = constraint["name"]
+                    lines.append(f"제약 {name}: {candidate.get(name, '—')} {constraint['unit']} · 상한 {constraint['limit']} {constraint['unit']}")
+                self.detail.setText("\n".join(lines))
+            else:
+                self.detail.setText("후보를 선택하면 응답과 제약을 볼 수 있습니다.")
         source_label = {"demo": "시연 후보 값", "proposal": "자문 제안 · 미검증 초안", "csv": "가져온 후보 값"}
         self.provenance.setText(source_label.get(d["source_type"], d["source_type"]))
         proposal = self._doc.get("proposal")

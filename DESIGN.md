@@ -16,7 +16,7 @@ Malgun Gothic / Windows system sans: 12px controls, 13px conversation body, 15px
 
 Document commands occupy a compact first toolbar; domain commands occupy the second. App-specific menus divide real actions. The central engineering object is dominant: model/curve, execution queue/logs, field/history, procedure/design-space, conversation/article, or system connection cells. Dense tables share selection with views; irrelevant properties do not remain visible after selection changes.
 
-Each app runs in a separate native window/process and reads its own file document. Window size 1480×940 and 1100×760 must be inspected before visual acceptance; the latest native build has not passed that gate. Resizable panes and contained scroll areas are intended to preserve controls. User-selected values, document versions, evidence provenance and actual/demo state must remain visible.
+Each app runs in a separate native window/process and reads its own file document. All six default windows were operated at 1480×940 and Expert was also inspected at 1100×760. Final selection/display corrections and the other five small-window inspections await restored desktop access; the latest build has not passed that complete visual gate. Resizable panes and contained scroll areas are intended to preserve controls. User-selected values, document versions, evidence provenance and actual/demo state must remain visible.
 
 ## Review standard
 

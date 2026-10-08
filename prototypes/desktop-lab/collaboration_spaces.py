@@ -216,7 +216,7 @@ class WorkbenchWorkspace(QWidget):
         for i,n in enumerate(self.d['nodes']):
             x=35+(i%3)*285;y=45+(i//3)*245;positions[n['id']]=(x,y)
             title=self.scene.addRect(x,y,215,34,QPen(QColor('#557b9b')),QBrush(QColor('#dbe8f3')));title.setZValue(1)
-            label=self.scene.addSimpleText(f'{chr(65+i)}  {APPNAMES[n["kind"]]}');label.setPos(x+9,y+8);label.setBrush(QColor('#204a6d'))
+            label=self.scene.addSimpleText(f'{chr(65+i)}  {APPNAMES[n["kind"]]}');label.setPos(x+9,y+8);label.setBrush(QColor('#204a6d'));label.setZValue(2)
             for j,t in enumerate(PORTS[n['kind']]):
                 cell=Cell(self,n,j,x,y+34+j*33,f'{j+1}   {t}');self.scene.addItem(cell);self.cells[(n['id'],j)]=cell
             note=self.scene.addSimpleText(f'r{n.get("revision",0)}   '+n.get('state','未保存').replace('未保存','미저장'));note.setPos(x+4,y+140);note.setBrush(QColor('#9a5b17' if n.get('state')=='갱신 필요' else '#567185'))
@@ -277,6 +277,12 @@ class WorkbenchWorkspace(QWidget):
         node=next((x for x in self.d['nodes'] if x['id']==nid),None)
         if not node:return
         self.d['selected']=nid
+        for index in range(self.tree.topLevelItemCount()):
+            item=self.tree.topLevelItem(index)
+            if item.data(0,Qt.ItemDataRole.UserRole)==nid:
+                self.tree.blockSignals(True);self.tree.setCurrentItem(item);self.tree.blockSignals(False)
+                self.objects.blockSignals(True);self.objects.selectRow(index);self.objects.blockSignals(False)
+                break
         for (id,j),cell in self.cells.items():cell.setBrush(QColor('#cfe5f8' if id==nid and row==j else 'white'))
         props=[('프로그램',APPNAMES[node['kind']]),('선택 셀',PORTS[node['kind']][row]),('고정 버전',f'r{node["revision"]}'),('현재 파일',f'r{node.get("latest",node["revision"])}'),('상태',node.get('state','')),
                ('문서',node.get('name','')),('ID',node['id'][:12])]

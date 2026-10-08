@@ -197,6 +197,14 @@ class NativePreWorkspace(Workspace):
         mesh = d["mesh"]
         mesh_item = QTreeWidgetItem([f"메시 · {len(mesh['vertices'])}절점 / {len(mesh['faces'])}면"])
         mesh_item.setData(0, Qt.ItemDataRole.UserRole, ["mesh", 0]); model.addChild(mesh_item)
+        faces_group = QTreeWidgetItem([f"면 · {len(mesh['faces'])}개 (현재 선택 면)"])
+        mesh_item.addChild(faces_group)
+        if selection and selection[0] == "face" and 0 <= selection[1] < len(mesh["faces"]):
+            face_index = selection[1]
+            face_item = QTreeWidgetItem([f"F{face_index + 1:03d} · 노드 " + ", ".join(map(str, mesh["faces"][face_index]))])
+            face_item.setData(0, Qt.ItemDataRole.UserRole, ["face", face_index])
+            faces_group.addChild(face_item)
+            mesh_item.setExpanded(True); faces_group.setExpanded(True)
         sets = QTreeWidgetItem([f"명명된 영역 · {len(mesh['sets'])}"]); model.addChild(sets)
         for name, faces in mesh["sets"].items():
             item = QTreeWidgetItem([f"{name} · {len(faces)}면"])
@@ -212,7 +220,7 @@ class NativePreWorkspace(Workspace):
             candidate_item = QTreeWidgetItem([f"후보 · {d['candidate'].get('id', '외부')}"])
             candidate_item.setData(0, Qt.ItemDataRole.UserRole, ["candidate", 0])
             self.tree.addTopLevelItem(candidate_item)
-        if selection and selection[0] != "point" and selection[0] != "face":
+        if selection and selection[0] != "point":
             def find(item):
                 if item.data(0, Qt.ItemDataRole.UserRole) == selection: return item
                 for child_index in range(item.childCount()):
@@ -221,7 +229,10 @@ class NativePreWorkspace(Workspace):
                 return None
             for top_index in range(self.tree.topLevelItemCount()):
                 found = find(self.tree.topLevelItem(top_index))
-                if found: self.tree.setCurrentItem(found); break
+                if found:
+                    self.tree.setCurrentItem(found)
+                    if selection[0] == "face": self.tree.scrollToItem(found)
+                    break
         demo_note = " · 시연 모델 · 후보 미적용" if d.get("candidate") else ""
         self.curve_title.setText(f"{d['source']}{demo_note}   ·   {d['x_name']} [{d['x_unit']}] → {d['y_name']} [{d['y_unit']}]")
         self.x_name.setText(d["x_name"]); self.x_unit.setText(d["x_unit"])
@@ -300,7 +311,9 @@ class NativePreWorkspace(Workspace):
             right = self.scene.addText(f"→ 하중 {bc['value']:g} {bc['unit']}")
             right.setDefaultTextColor(QColor("#c05d11")); right.setPos(width * scale - 90, -34)
         self.scene.setSceneRect(self.scene.itemsBoundingRect().adjusted(-25, -30, 25, 25))
-        self.mesh_view.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+        # Keep scene coordinates at a fixed pixel scale. fitInView on a hidden
+        # tab uses its temporary viewport size and makes the mesh jump on click.
+        self.mesh_view.resetTransform()
 
     def eventFilter(self, obj, event):
         if hasattr(self, "mesh_view") and obj is self.mesh_view.viewport() and event.type() == QEvent.Type.MouseButtonPress:
@@ -327,10 +340,10 @@ class NativePreWorkspace(Workspace):
         item = self.tree.currentItem(); selection = item.data(0, Qt.ItemDataRole.UserRole) if item else None
         if selection:
             self._select(selection)
-            if selection[0] in ("mesh", "set"): self.tabs.setCurrentIndex(1)
+            if selection[0] in ("mesh", "set", "face"): self.tabs.setCurrentIndex(1)
             elif selection[0] == "mp": self.tabs.setCurrentIndex(2)
             elif selection[0] == "pde": self.tabs.setCurrentIndex(3)
-            else: self.tabs.setCurrentIndex(0)
+            elif selection[0] in ("point", "interval", "channel"): self.tabs.setCurrentIndex(0)
 
     def _point_selected(self):
         if not self._loading and self.points.currentRow() >= 0: self._select(["point", self.points.currentRow()])
