@@ -17,7 +17,7 @@
 | Codex 기본 review / 검토 에이전트 | 기존 도구를 사용. 새 리뷰 스킬 불필요 | 의미 있는 기능 묶음의 오류·수치·실사용 검토 | 매 수정마다 최고 모델 리뷰, 근거 없는 형식 지적 |
 | GitHub 검색 | 사용 가능한 연결/CLI/공개 검색 활용 | 저장소·구현·테스트·유지보수 확인 | 스킬 설치만 하고 실제 소스는 안 읽음 |
 | Context7 | 필요 시 선택할 문서 도구, 이번에 설치하지 않음 | 선택 라이브러리의 현재 API/버전 확인 | 도입을 모든 개발의 선행 조건으로 설정 |
-| Ouroboros | 외부 개발 하네스 후보, 이번에 설치하지 않음 | 기존 도구로 해결 못 하는 분업/재개 문제가 생길 때 재평가 | 제품 runtime 의존성, 전체 재인터뷰·seed 재작성 강제 |
+| Ouroboros | 아래 2026-10-08 제한 설치·호스트 호출 확인. 제품과 별도 개발 도구 | 실제 분업/재개 문제가 생기고 명시적으로 호출할 때만 | 제품 runtime 의존성, 전체 재인터뷰·seed 재작성 강제 |
 
 **등록·발견·실행은 다르다.** GitHub에 스킬 파일이 있다는 사실은 사용자 PC의 Codex가 이미 읽었다는 증거가 아니다. 최초 세션은 로컬 파일 존재와 스킬 목록을 확인한다. 같은 이름의 전역 스킬이 있으면 경로를 보고 프로젝트의 원본을 선택한다. 스킬이 목록에 없으면 원문 경로를 명시해 읽는다. 스킬 활성화 시험을 못 했으면 못 했다고 보고한다. [S0]
 
@@ -70,4 +70,18 @@
 
 세 SKILL.md, Codex 명시 호출 메타데이터, 라이선스, 개발 역할·모델 설정은 이 저장소의 개발 파일이다. 제품 Python 패키지, 배포 의존성, 전문가 수, 솔버 권한에 포함하지 않는다.
 
-이 저장 작업에서 새 스킬 엔진, 강제 hook, 자동 인터뷰 봇, 토큰 사용량 감시 서비스를 만들지 않았다. 사용자 PC에서 실제 Codex 스킬 선택·보조 에이전트·모델 로그인은 실행하지 않았다. 시작 세션이 필요한 발견 상태를 짧게 확인한 뒤 구현으로 넘어간다. 설치 확인만 하고 작업을 끝내지 않는다. 개정 4 보완에서는 스킬 원문·설정은 그대로 두고 기존 스킬이 조사할 외부 파일 연구 문맥만 이 문서에 추가했다.
+초기의 저장 작업에서는 새 스킬 엔진, 강제 hook, 자동 인터뷰 봇, 토큰 사용량 감시 서비스를 만들지 않았다. 아래 설치 검증은 나중에 사용자 지시로 별도 수행한 것이며, 제품 실행 조건을 바꾸지 않는다. 개정 4 보완에서는 스킬 원문·설정은 그대로 두고 기존 스킬이 조사할 외부 파일 연구 문맥만 이 문서에 추가했다.
+
+## 5. 2026-10-08 로컬 설치·호스트 발견·제한 호출 결과
+
+요청에 따라 이 PC의 **개발 환경**만 확인했다. 기준 원본은 `mattpocock/skills`의 `f3fc5632f401156837ee3872f14fe33ccf1024ea`와 `Q00/ouroboros`의 `f587795674999a09b51530779640730eda55b174`이다. 기존 저장소의 2026-10-07 스킬 복사본은 덮지 않고 최신 원문을 별도 전역 위치에 설치했다. 실행 중인 Codex Desktop 세션에 새 스킬이 즉시 검색되는지는 확인하지 않았다. Codex의 [스킬 개념](https://developers.openai.com/plugins/concepts/skills)과 [MCP 등록 방식](https://developers.openai.com/learn/docs-mcp)은 별도 경계다.
+
+| 단계 | 실제 확인과 남은 한계 |
+|---|---|
+| 스킬 로컬 설치 | 시스템 `skill-installer`의 `install-skill-from-github.py`로 `research`, `grill-me`, `grilling`을 `C:\Users\pikac\.codex\skills\`에 설치. 세 `SKILL.md` 모두 위 최신 clone과 줄바꿈 정규화 후 본문 일치. 기존 설치 항목이 없음을 확인하고 설치했다. 새 세션에서의 자동 발견은 별도 확인 대상이며, 현재 살아 있는 세션의 자동 발견을 증명하지 않았다. `grill-me` 원문은 `Skill` 도구로 `grilling`을 부르므로, 해당 도구가 없는 호스트에서는 `grilling/SKILL.md`를 직접 읽어 적용한다. |
+| Ouroboros 패키지 | `work/ouroboros-venv`에 cloned source의 `ouroboros-ai[mcp]`를 private Python 3.12.14와 uv 0.12.5로 설치했다. 실제 `ouroboros --help`, `setup --help`, `mcp serve --help`가 실행됐고 버전은 `0.1.dev1`. 설치는 이 작업 폴더 안에 한정된다. [공식 Codex runtime 지침](https://github.com/Q00/ouroboros/blob/f587795674999a09b51530779640730eda55b174/docs/runtime-guides/codex.md)은 native Windows를 experimental로 표시하고 `--mcp-mode http`를 요구한다. |
+| Ouroboros 등록 | `ouroboros setup --runtime codex --mcp-mode http --non-interactive`가 종료 코드 0으로 마치고 `~/.codex/config.toml`에 `http://127.0.0.1:8765/mcp` URL, 관리 규칙 1개, `ouroboros-*` 스킬 23개 및 worker profile을 등록했다. `~/.ouroboros/config.yaml`은 runtime=codex와 기본 역할 effort를 기록한다. 설치 stdout에 별도 `subprocess` reader thread의 Windows cp949 `UnicodeDecodeError`가 있었으므로 완전 무오류 실행이라고 부르지 않는다. 그러나 설치된 파일과 HTTP host를 각각 다시 확인했다. 제품의 모델/솔버 인증 또는 장기 자동 작업은 설정하지 않았다. |
+| Codex CLI 호환 | 사용자 Desktop의 `codex-cli 0.146.1`은 기존 `~/.codex/config.toml`의 `[features.context_management]` map을 boolean으로 기대하며 `codex mcp list`에서 실패했다. 기존 사용자 설정을 삭제·완화하지 않았다. 최신 `@openai/codex 0.161.0`을 **전역 npm 업데이트 없이** `work/codex-cli`에 설치했고, 그 CLI의 `mcp list`는 Ouroboros를 enabled URL로 표시하고 `login status`는 기존 ChatGPT 로그인 경로를 사용한다고 반환했다. `~/.ouroboros/config.yaml`의 `orchestrator.codex_cli_path`만 이 로컬 0.161.0 실행 파일로 바꿨다. 기존 Codex 모델과 자격 증명은 변경하지 않았다. 작업 폴더를 지우면 이 지정 경로도 사라지므로 그때 재설치/경로 갱신이 필요하다. |
+| 실제 HTTP MCP 호출 | `127.0.0.1:8765`의 streamable HTTP 서버를 직접 띄워 Python MCP 2.0 클라이언트로 `initialize`/`list_tools`를 호출했다. `ouroboros-mcp` `0.1.dev1`, 도구 36개를 실제 반환했다. 이어 읽기 전용 `ouroboros_query_events(limit=1,offset=0)`가 `is_error=false`로 응답했다. 이는 **설치+호스트 접속+제한 호출 성공**이다. 실제 Codex 모델의 Ouroboros 작업 실행, seed/interview/evaluate/ralph, 유료 API 호출, 제품 AI 기능은 수행하지 않았다. 시험 스크립트는 `work/verify-ouroboros-mcp.py`. |
+
+검증 시 HTTP host는 작업 폴더의 격리 venv로 `127.0.0.1:8765/mcp`에서 실행했다. 600초 무호출 시 종료하므로 이후에도 계속 떠 있다고 보장하지 않는다. 영구 서비스 등록은 없다. 다음에 재현하려면 작업 폴더에서 `work/ouroboros-venv/Scripts/python.exe -m ouroboros mcp serve --runtime codex --llm-backend codex --transport streamable-http --host 127.0.0.1 --port 8765 --workspace-root work`로 서버를 시작하고, 새 Codex 세션에서 사용한다. native Windows의 stdio MCP는 공식 지침상 사용하지 않는다. HTTP host는 로컬 loopback 전용이고 이번 시험에서는 모델 호출 권한을 쓰지 않았다.

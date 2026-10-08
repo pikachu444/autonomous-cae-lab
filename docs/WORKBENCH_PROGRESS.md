@@ -1,5 +1,46 @@
 # Current workbench implementation
 
+## 상세 기획과 로컬 화면 검토 — 2026-10-08
+
+현재 작업 브랜치 `design/local-workspaces`, 기준 remote main `fc7c82d`. Space 4개 페이지 원문을 실제 읽었고 인계 ZIP의 context/references/rejected-prototype를 비교했다. ZIP의 시작 지시는 개정2이므로 Space 개정3의 기획 우선 지시를 적용한다. 전체 제품 본 구현은 이번 범위가 아니다.
+
+현재 설계: `PLANNING_DESIGN.md`, `PLANNING_SCREENS.md`, `PLANNING_CONTRACTS.md`, `PLANNING_CODE_REUSE.md`, `PLANNING_HANDOFF.md`. 첫 전체 구성안과 보완 명세는 기존 Space 상세 기준 페이지의 현재 상세 설계 절에서 관리한다. Space와 Git 자동 동기화는 없다.
+
+### 이번에 직접 확인한 실행과 화면
+
+| 기록 | 환경·행동 | 기대와 실제 관찰 | 증거와 남은 문제 |
+|---|---|---|---|
+| V00 기존 앱 시작 | Windows native Python3.12 private venv, loopback8766 `/workbench`. 실제 Codex 내장 브라우저 기본1021×1244 | 메뉴·시작 카드가 렌더됨. 서버 `/api/overview` 200 | 로컬 PC 실행이며 Cloud 아님. 기존 앱은 여섯 독립 프로그램이 아님 |
+| V01 기존 파일 작업 클릭 | 시작의 시험·해석 파일 읽고 비교 클릭 | 파일/열 매핑·작업기록·결과가 긴 세로 구역으로 함께 나타남. 중앙 대상/객체 트리 없음 | [기존 화면](../prototypes/design-lab/evidence/current-data.jpg). 응답열 속성에 가로 스크롤, 결과가 화면 아래. 이 구조를 새 시안에서 교체 |
+| V02 실제 입력 반영 | 축 이름 `time`을 `strain`으로 입력 | 화면 입력값과 포커스 변화를 캡처 이미지로 확인 | [입력](../prototypes/design-lab/evidence/current-input.jpg). 파일을 계산한 증거는 아니며 화면 접근·입력 시험 |
+| E01 CSV reader | 한글 헤더 시간/하중, axis s·force N·z·support 명시 | 실제 `[0,10,20] N` 읽기 | `work/code-reuse-smoke/`, 재사용 문서에 입력·API 기록 |
+| E02 FELUPE 저장·재열람 | E1000MPa, nu.25, constrained strain.001 | 실제 stress_xx `[0,1.2] MPa`, save/read_result 동일 | 재료점 연결 시험. native FE 전체 검증 아님 |
+
+### 핵심 시안의 조작·수정·재검증
+
+시안은 Windows의 Python 표준 라이브러리 서버 `127.0.0.1:8791`에서 실행했다. 다섯 앱을 Workbench보다 먼저 직접 열어 문서를 만들고 작업·저장·닫기·최근 문서 재개를 수행했다. URL 개수가 아니라 이 행동과 디스크 파일로 독립 문서 수명을 확인했다. 서비스 재시작 후에도 저장 문서를 열었다. 대규모 계산/LLM은 아래처럼 명시한 시연이며 제품 엔진 연결 시험 E01/E02와 다르다.
+
+| 기록 | 실제 조작 → 기대 | 이미지와 관찰·수정 |
+|---|---|---|
+| V03 전처리 | 새 문서→점3 Y .41→.46→저장r3→닫기/재개. 구간 .2~.6 생성→조건 연결. 중앙 점5 클릭 | [전처리](../prototypes/design-lab/evidence/pre-selection.jpg). tree·curve·property 값 일치, 실제 디스크 재열기 확인. native prompt 미지원, input 저장 누락, blur 포커스 소실을 발견해 HTML dialog/입력 반영/부분 렌더로 수정 후 재시험. 조건 기본 대상도 현재 구간으로 변경 |
+| V04 실행기 | 전처리r4를 케이스 전달→입력검증→시연 실행→고정 r4·수렴/로그→닫기/재개→후처리 | [실행기](../prototypes/design-lab/evidence/runner-result.jpg). run-iawyo50과 입력r4 보존. solver 호출 안 함을 화면 표시. 실제 job 취소/실패·checkpoint는 D05 구현 합격행동으로 유지 |
+| V05 외부 결과 | 한글 `시험_힘.csv` 실제 파일 선택→시간/하중, s/N 매핑→0/10/20 곡선→저장·닫기·재개→CSV 추출 | [외부 결과](../prototypes/design-lab/evidence/post-import.jpg). 원 solver 없이 값 보존. 잘못 남던 σxx/범례0..1을 실제 채널·표본3·범위0..20N으로 수정·재검증. 추출값도 0/10/20 일치 |
+| V06 필드 | 내장 시연 field→σyy/frame2→중앙 셀8 선택→저장 | [필드](../prototypes/design-lab/evidence/post-field.jpg). 위치8·σyy 0.469MPa 선택과 트리/속성 일치 확인. σxx 값이 그대로 보이던 문제를 시연 성분별 값으로 고쳤고, 실제 데이터가 없는 온도/변위 옵션을 제거했다. 실제 solver field reader 연결을 증명하지 않음 |
+| V07 최적화 | E 범위650~1550 편집→시연DOE→저장/닫기/재개→c-03 선택 | [후보](../prototypes/design-lab/evidence/opt-candidate.jpg). 후보/속성 연동. 처음에는 절차 아래에 후보가 가려져 평가절차/설계공간/비교 탭으로 수정. 시연/가져온 값 출처 구분. 산점도 눈금·겹친 라벨은 후속 가독성 개선 |
+| V08 전문가 | 일시중지→'속도2배 때 피크차이, 온도동일' 사용자 개입→이어가기→시연응답→저장/닫기/재개 | [대화](../prototypes/design-lab/evidence/expert-chat.jpg), [작은 창](../prototypes/design-lab/evidence/expert-small.jpg). 사용자 메시지m-gustkga→reply m-lexowsg 보존. 입력란이 진단 아래 가려지는 문제를 timeline 내부 스크롤로 수정. 1440×900 및 실제1100×760에서 입력/전송 노출 재검증. 고정 응답·실LLM 미연결 명시 |
+| V09 Workbench | 별도 프로젝트 생성→전처리r4/실행기r4 등록·연결→저장→전처리수정r5→영향확인→정확r4 열기→프로젝트닫기/재개 | [연결](../prototypes/design-lab/evidence/workbench-stale.jpg). 해당 연결 stale, 이전결과 보존. 과거r4 문서 값.46·읽기전용, 현재r5 값.49 구별. 자동 새 실행 없음. 시안은 수동 영향확인, 제품 저장이벤트 반영은 D11 |
+| V10 충돌 | 동일 전처리r5 두 창→첫창r6 .50 저장→둘째창 .48 저장 | [충돌](../prototypes/design-lab/evidence/save-conflict.jpg). 409 대화상자에 편집r5/디스크r6 표시, 둘째 편집 보존·저장중단. 디스크 재열기 복구 확인 |
+
+주 담당이 위 조작과 실제 이미지 확인을 수행했다. 보조 A는 코드·재사용·개발 도구, B는 화면명세와 시안을 작성했다. A 완료 후 별도 독립 검토자(Astra High)가 요구·명세와 6개 도구의 실제 캡처를 대조했다. PDE/재료점/UQ/대리/비교/전문가 권한·단독 bundle 위치 명세 누락 및 V05/V07/V08 화면 결함을 지적했고 수정본을 다시 읽고 이미지로 확인했다. 중대 잔여 결함 없음이라는 판정은 **이 기획·핵심 시안 범위**이며 검토자가 동일 UI 조작을 재실행했다는 주장은 아니다. 보조 동시2개 이내, 파일 소유 분리, 재귀 위임 없음.
+
+### 완료 범위와 다음 구현
+
+전체 구성, 화면별 명령/상태, 독립 저장/연결 계약, 재사용 결정, 조작 가능한 핵심 시안과 위 관찰, D01–D12 코드경로별 인계를 작성·검토했다. 실제 제품 전체는 미완성이다. 제품 bundle 저장/파일 연결, VTK 등 실제 mesh/field reader, native solver 자격 검증, live LLM, 모든 UQ/약형식 GUI는 후속 본 구현 대상이다. 시안의 단일 JSON·SVG·고정 응답과 제품 목표의 차이는 README/화면명세에 남긴다. 미지원 기능을 실행 가능으로 가장하지 않는다.
+
+추가 검사: B의 짧은 API 시험에서 저장·409·과거 revision·표시만 바뀐 내용 지문 동일·잘못된 ID/경로 거부를 확인했다. JS/Python/PowerShell 구문 검사와 다른 데이터 폴더를 사용하는 서버에 런처 연결을 거부하는 실제 시험이 통과했다. UI 관찰을 이 검사 수로 대체하지 않는다.
+
+요청 개발 도구는 별도 `DEVELOPMENT_SKILLS.md` 5절에 설치·호스트 발견·호출을 구분했다. research/grill-me/grilling 원문 설치, Ouroboros HTTP MCP 36도구와 읽기 조회 성공을 확인했다. 기존 CLI 호환 문제는 작업 폴더의 새 CLI로 우회했다. 현재 Desktop의 새 스킬 자동 발견, 실제 모델 작업, 네이티브 Windows 실험 상태는 성공 범위를 넘어가지 않는다.
+
 ## Windows installation and usability continuation — 2026-10-08
 
 Product source `6d9909f830b50f924d17ff8e3278dad9a491bd50` adds the actual

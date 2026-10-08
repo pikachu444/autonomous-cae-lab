@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CAE Design Lab</title><link rel="stylesheet" href="/style.css"></head>
+<body data-app="__APP_KIND__">
+<div id="shell">
+  <header class="titlebar"><div class="brandmark">CL</div><div class="brand"><b id="app-name"></b><span>Autonomous CAE Lab · 설계 검증 시안</span></div><div id="document-title"></div><div class="title-actions"><button id="open-launcher" title="시작 화면">⌂ 시작</button><button id="app-switch" title="다른 프로그램">▦ 도구</button></div></header>
+  <nav id="menubar" aria-label="메뉴"></nav>
+  <div id="toolbar"></div>
+  <div id="tabs" aria-label="열린 문서"></div>
+  <div id="workspace"><aside id="tree-pane"><div class="pane-heading"><span id="tree-title">객체</span><button id="tree-collapse" class="icon-button" title="객체 패널 접기">◀</button></div><div id="tree"></div></aside><main id="stage"><div id="stage-head"></div><div id="stage-content"></div></main><aside id="inspector-pane"><div class="pane-heading"><span>속성</span><button id="inspector-collapse" class="icon-button" title="속성 패널 접기">▶</button></div><div id="inspector"></div></aside></div>
+  <div id="dock"><div id="dock-head"><b id="dock-title">진단 / 기록</b><button id="dock-toggle" title="하단 패널 접기">⌄</button></div><div id="dock-content"></div></div>
+  <footer id="statusbar"><span id="status-left"></span><span id="status-right"></span></footer>
+</div>
+<dialog id="dialog"><div id="dialog-content"></div></dialog>
+<script src="/app.js"></script>
+</body></html>

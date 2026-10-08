@@ -1,4 +1,14 @@
-Autonomous CAE Lab — 로컬 최신 main에서 통합 완성
+Autonomous CAE Lab — 상세 기획과 로컬 화면 검토
+
+CURRENT DIRECTIVE — 2026-10-08 detailed planning and local screen review
+Read the existing Space at https://chatgpt.com/space/page_6ac6e5e8d7688191a58c5760fda2d2d9
+and the current docs/PLANNING_DESIGN.md, PLANNING_SCREENS.md,
+PLANNING_CONTRACTS.md, PLANNING_CODE_REUSE.md and WORKBENCH_PROGRESS.md.
+The current task is detailed product design, interactive prototypes and bounded
+real integration checks. Do not begin the entire product implementation before
+this planning review. Five independent tool workspaces and the connecting
+Workbench must support actual objects, document save/reopen and visual review.
+Older implementation requirements below preserve the future product scope.
 
 사용자가 선택한 로컬 폴더에서 pikachu444/autonomous-cae-lab의 원격 최신 main을 가져오고, 로컬 변경을 보존한 구현 브랜치에서 작업하라. 과거 PR #1에서 다시 시작하지 마라. Git 작업은 직접 수행하라. 이번 작업은 Codex Cloud가 아닌 사용자 로컬 Windows/WSL 환경에서 실제 앱·솔버를 연결하는 작업이다.
 

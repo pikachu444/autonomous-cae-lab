@@ -1,6 +1,18 @@
 # Autonomous CAE Lab — development instructions
 
-## Active task: local integration recovery
+## Active task: detailed product planning and local screen review
+
+2026-10-08 planning directive supersedes the implementation-first interpretation
+of the recovery notes. Complete and review the five independent applications
+and Workbench design before broad product implementation. Build interactive
+planning prototypes and bounded real integration experiments now. Canonical
+planning lives in the existing Space pages; implementation handoff is in
+`docs/PLANNING_DESIGN.md`, `PLANNING_SCREENS.md`, `PLANNING_CONTRACTS.md`, and
+`PLANNING_CODE_REUSE.md`. Maintain observed status in `WORKBENCH_PROGRESS.md`.
+Do not treat a URL, menu tab, fake tree, generated response, or DOM-only test as
+proof of an independent engineering application or visual acceptance.
+
+The following recovery requirements remain the subsequent implementation scope.
 
 For the current post-merge work, read `docs/WORKBENCH_RECOVERY.md` and the updated
 `CODEX_START.txt` before selecting implementation work. Start from the current
