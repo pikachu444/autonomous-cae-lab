@@ -102,7 +102,11 @@ async def main():
                 assert search["evaluations"][0]["cad_status"] == "REJECTED"
                 assert search["evaluations"][0]["feedback"]["objective"] is None
                 optimized_inspect = await call("optimization_inspect", {"campaign_id": "C-MCP-opt"})
-                assert (optimized_inspect.structuredContent or json.loads(optimized_inspect.content[0].text)) == search
+                inspected_search = optimized_inspect.structuredContent or json.loads(optimized_inspect.content[0].text)
+                # The retained result is unchanged; research report context is
+                # an additive read view and no reports were created in this run.
+                assert inspected_search.pop("report_context") == []
+                assert inspected_search == search
                 # A real preflight rejection is portable without a FEniCSx installation.
                 rejected = await call("pde_run", {"study_id": "S-MCP", "experiment_id": "E-MCP-pde-reject",
                                       "backend": "pde.fenicsx", "settings": {}})

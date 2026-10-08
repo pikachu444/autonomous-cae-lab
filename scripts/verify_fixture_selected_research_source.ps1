@@ -151,12 +151,12 @@ try {
     $researchAst = Read-SelectedSourceAst (Join-Path $taskSelectedRoot 'scripts/openscience-research.ps1')
     $nativeAst = Read-SelectedSourceAst (Join-Path $taskSelectedRoot 'scripts/openscience-native-provider.ps1')
     $facadeAst = Read-SelectedSourceAst (Join-Path $taskSelectedRoot 'scripts/cae-research-local.ps1')
-    $lowerChoices = @('FixtureScalar', 'FixtureRefinement', 'FixtureSelected', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', 'ContactPatches')
+    $lowerChoices = @('FixtureScalar', 'FixtureRefinement', 'FixtureSelected', 'StructuralFamilies', 'PDEFields', 'MaterialPoints', 'ViscoelasticPoints', 'ContactPatches', 'NumericalReports')
     Assert-SelectedProfileParameter (Get-SelectedSourceFunction $researchAst 'New-OpenScienceResearchDefinition').Body.ParamBlock.Parameters 'Profile' 'FixtureScalar' $lowerChoices 'definition_factory'
     Assert-SelectedProfileParameter $taskSelectedServerAst.ParamBlock.Parameters 'ResearchProfile' 'FixtureScalar' $lowerChoices 'server_entrypoint'
     Assert-SelectedProfileParameter (Get-SelectedSourceFunction $taskSelectedServerAst 'New-OpenScienceLocalContext').Body.ParamBlock.Parameters 'ResearchProfile' 'FixtureScalar' $lowerChoices 'local_factory'
     Assert-SelectedProfileParameter (Get-SelectedSourceFunction $nativeAst 'New-OpenScienceNativeContext').Body.ParamBlock.Parameters 'ResearchProfile' 'FixtureScalar' $lowerChoices 'native_factory'
-    $humanChoices = @('FixtureSelected', 'FixtureRefinement')
+    $humanChoices = @('FixtureSelected', 'FixtureRefinement', 'NumericalReports')
     Assert-SelectedProfileParameter $facadeAst.ParamBlock.Parameters 'ResearchProfile' 'FixtureSelected' $humanChoices 'human_entrypoint'
     foreach ($name in @('New-CaeResearchLocalPlan', 'Invoke-CaeResearchLocal')) {
         Assert-SelectedProfileParameter (Get-SelectedSourceFunction $facadeAst $name).Body.ParamBlock.Parameters 'ResearchProfile' 'FixtureSelected' $humanChoices $name

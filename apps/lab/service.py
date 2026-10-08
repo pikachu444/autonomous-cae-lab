@@ -231,15 +231,24 @@ class LabService:
                      "backend": "OpenScience", "status": "EXPERIMENTAL",
                      "scope": "연결한 공식 모델이 허용된 도구로 연구하고 같은 기록을 해석합니다.",
                      "callable": self._research is not None})
-        for operation, label, backend, scope in (
-            ("nonlinear_contact", "비선형·접촉", "Code_Aster / CalculiX", "다음 독립 reference benchmark 필요"),
-            ("physical_validation", "실물·내구 시험", None, "측정·시험 근거가 필요하며 UNKNOWN 유지"),
-            ("uncertainty_inverse", "역문제·불확실성", None, "추가 numerical engine 및 관측 자료 연결 필요"),
-            ("hpc", "원격·병렬 계산", "MPI / SSH / Slurm / PBS", "실제 환경과 작업·증거 추적 검증 필요"),
-            ("field_postprocessing", "해석 필드·애니메이션 화면", None, "원본 field 파일은 보존; 통합 field viewer는 미구현"),
+        for operation, label, backend, status, available, scope in (
+            ("nonlinear_contact", "비선형·접촉", "Code_Aster / CalculiX", "EXPERIMENTAL",
+             callable(getattr(lab, 'run_model_analysis', None)) and bool(lab.model_analysis_adapters),
+             "보존된 J2·큰 회전 보·재료점·접촉 patch 지원 범위; 임의 조립 접촉/재료 FE 구성은 별도이며 실행 환경·물리 자격 UNKNOWN"),
+            ("physical_validation", "실물·내구 시험", None, "PLANNED", False,
+             "측정·시험 근거가 필요하며 UNKNOWN 유지"),
+            ("uncertainty_inverse", "역문제·불확실성", "NumPy / SciPy", "EXPERIMENTAL",
+             callable(getattr(lab, 'create_campaign_report', None)) and callable(getattr(lab, 'plan_model_optimization', None)),
+             "보존된 scalar 관측 잔차·선언 분포/유한 DOE 분석·다목적 절충; field/history 식별·Sobol·실측 확률은 별도"),
+            ("hpc", "원격·병렬 계산", "MPI / SSH / Slurm / PBS", "PLANNED", False,
+             "실제 환경과 작업·증거 추적 검증 필요"),
+            ("field_postprocessing", "전체 필드·응답 이력", None, "EXPERIMENTAL",
+             callable(getattr(lab, 'response_fields', None)) and callable(getattr(lab, 'response_histories', None)),
+             "같은 기록의 지원 native/PDE/J2 field와 Maxwell/explicit history·관측 비교; 없는 성분·임의 좌표 정렬·전체 family 애니메이션은 별도"),
         ):
             rows.append({"operation": operation, "label": label, "backend": backend,
-                         "status": "PLANNED", "scope": scope, "callable": False})
+                         "status": status, "scope": scope, "callable": available,
+                         "native_readiness": "UNKNOWN", "scope_is_universal": False})
         return rows
 
     def overview(self) -> dict:
