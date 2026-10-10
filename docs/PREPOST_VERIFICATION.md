@@ -1,5 +1,47 @@
 # 전처리와 후처리 검증 기록
 
+## 2026-10-11 제품 기획과 클라우드 native 재사용 확인
+
+[PRODUCT_PLAN](PRODUCT_PLAN.md)에 실제 참조 화면, 두 업무와 A/B/C 연구 사례,
+첫 서비스 연결과 수용 장면을 정리했다. 실제 Pro 협의와 읽기 전용 정합성 검토를
+거쳤으며 새로운 제품 GUI·Core·MCP 구현 완료로 처리하지 않는다.
+
+로컬 FreeCAD 1.1.4 새 문서에서 원점 구속·지름20mm 스케치, Pad10→12mm,
+Undo10mm·Redo12mm를 실제 확인했다. 저장은 확인하지 못했고 사용자 지시로
+로컬 화면 조작을 중단했다. 캡처는 `runs/freecad-workflow-20261011-01/`에 있다.
+
+사용자가 승인한 클라우드 검증은 실제 FreeCAD 전체 앱을 Ubuntu24.04/Xvfb에서
+native API로 구동했다. AppImage SHA와 소스를 고정했고 Gmsh4.12.1을 사용했다.
+주요 결과는 두 실행에서 같다.
+
+| 범위 | 실제 결과 | 판정의 한계 |
+|---|---|---|
+| Body/Sketch/Pad | Ø20×12mm, 체적3769.9111843077512mm³, 독립 해석값과 오차4.55e−13mm³, 형상 FCStd 저장 | 일반 형상 편집·Windows 조작성의 수용이 아님 |
+| Assembly 회전 | 고정 Link·회전 관절·시간 식, 6 frames, 끝 상대각0.5000000000019023rad. 기준0.5rad, 오차1.90e−12rad < 사전 허용1e−6rad | prescribed kinematics. 접촉력/관성/탄성·직동·결합 기구 미검증 |
+| FEM 객체 |1250절점/646체적 요소, 바닥 면 고정·윗면1000N, 실제 Face3 선택과 화면 | 품질/수렴·구조 solve·국부 재메시·일반 조건 재연결 미검증 |
+| 통합 저장/재열기 | 검증 코드 오류로 도달하지 못함 | FreeCAD 저장 기능 자체의 실패라는 근거가 아님 |
+| 재열기 후 변경 | NOT_RUN | geometry/mesh/조건 revision 연결 수용이 다음에 필요 |
+
+첫 [run38068685523](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38068685523)
+(source1b837a3)은 motion link tuple 조회 오류로 실패했다. 한 번 수정한
+[run38068833629](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38068833629)
+(source21e9924)은 document `Material` 속성을 FEM 객체로 잘못 조회해 실패했다.
+전체 workflow는 둘 다 FAIL, 내부 보고서는 PARTIAL이다. 총60분/최초+한 수정
+종료선에 따라 추가 실행은 중단했다. 통합 FCStd와 mesh 파일은 저장 전에 실패했으며,
+형상 전용 FCStd·운동 기록·조립/FEM 화면·로그만 두 새 경로에 보존했다.
+
+공개 branch는 `codex/cad-reuse-cloud-20261011`; 원 product/UI source와 공학
+threshold는 바뀌지 않았다. 다운로드한6개 FCStd/PNG 해시를 보고서와 대조했다.
+GitHub 보존은30일, 로컬 경로·모든 파일 해시·실패 원문·정확한 source/run은
+`benchmarks/records/20261011-product-plan-cloud-reuse.json`에 있다.
+
+Page 본문6/부록11을 재조회해 수정 receipt hash와 비수정314/120개 블록,
+기존 media 참조를 확인했다. 저장된 Markdown 검증이며 렌더 preview는 확인하지
+못했다. 관련 기록은 ignored `artifacts/product-plan-20261011/page-changes.json`
+(SHA256 `d08bdfeab3b991154c84e95e5099b0237c7a711c5ae361e0f65018eeab436d3a`)이다.
+FreeCAD 재사용 방향을 유지하되 통합 저장/재개, Windows 및 같은 GUI/MCP 문서
+연결은 다음 제품 구현의 수용 게이트로 남긴다.
+
 ## 2026-10-11 — 독립 연구 문서 경계 교정
 
 Data/Material/PDE를 한 Pre 문서·두 host에 넣는 설계를 철회했다. P10/P11→Data,

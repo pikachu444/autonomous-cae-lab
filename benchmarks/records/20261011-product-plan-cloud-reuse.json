@@ -1,0 +1,424 @@
+{
+  "schema_version": 1,
+  "record_type": "product_plan_and_bounded_native_reuse",
+  "date": "2026-10-11",
+  "timezone": "Asia/Seoul",
+  "status": "PLAN_UPDATED_CLOUD_PARTIAL_PRODUCT_ACCEPTANCE_OPEN",
+  "source": {
+    "planning_parent": "a8708927d3d7cd952c4208f8a782e38a6e282061",
+    "unchanged_product_ui_source": "af2f084dea20562b9036976a9945ee09a3994236",
+    "cloud_base_remote_main": "a10f2023a2084512839b5e0af8ab0adc0aeb9293",
+    "upstream_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "cloud_branch": "codex/cad-reuse-cloud-20261011",
+    "cloud_remote_head_verified": "21e9924ce030733163a09d29ac27fba9e5a293a3",
+    "planning_branch_pushed": false,
+    "merge_performed": false,
+    "unchanged_ui_exact_ci": {
+      "observed_at_utc": "2026-10-10T16:50:44Z",
+      "runs": [],
+      "meaning": "No exact-source CI evidence; cloud reuse workflows are separate and both failed."
+    }
+  },
+  "purpose": "Plan the connected product for defect hypotheses and pre-build fixture research using concrete reference applications and existing services; bound native CAD reuse verification.",
+  "planning_decisions": [
+    "Independent Data/Material/PDE documents, shared Numerical Plan, existing numerical/Runner/Expert services",
+    "Reference Origin/MCalibration/COMSOL/HyperStudy/Co-STORM/native FreeCAD/ParaView work screens; no new presentation-only mockup",
+    "Windows without WSL first; three execution-host candidates do not limit independent tool entry",
+    "A material-model/yield comparison, B fixture/measurement confounding, C thermal/interface hypotheses with independent references and UNKNOWN preserved",
+    "First implementation joins real import/evaluate/fit/holdout/failure/adoption/reopen plus same Runner job and Expert evidence; current service limits remain explicit"
+  ],
+  "review": {
+    "actual_pro_conversation": "https://chatgpt.com/c/6aca5116-b90c-83ee-82fb-1b0299a87fd3",
+    "shared_url": "https://chatgpt.com/share/6aca678e-c51c-83e8-a646-6881929f3ff5?ogimg=plain",
+    "scope": "Actual planning exchange and immediate progress advice; not Pro execution or product acceptance",
+    "adopted_stop_rule": "Cloud setup/run/decision max 60min from 2026-10-10T16:30Z, first run plus one simple repair; no further run after two failures",
+    "scheduled_reviews": "10 requested at 30min intervals; actual counts remain in runs/pro-progress-review-20261011/state.json; not all completed at this checkpoint",
+    "independent_readonly": "checkpoint_review read current PRODUCT_PLAN/PREPOST/ADR0060/OpenScience and relevant definitions; no material inconsistency found in assigned planning scope; no edits/tests/native execution"
+  },
+  "local_gui_observation": {
+    "freecad": "1.1.4",
+    "executed": "New constrained circle diameter20mm; Pad10->12mm, Undo10mm, Redo12mm",
+    "saved_native_file_confirmed": false,
+    "stopped_by_user_instruction": true,
+    "evidence_directory": "runs/freecad-workflow-20261011-01",
+    "existing_user_documents_replaced": false
+  },
+  "cloud": {
+    "host": "GitHub-hosted ubuntu-24.04 with Xvfb, full GUI FreeCAD through native APIs",
+    "freecad_appimage_sha256": "f6dc6ba676e5ac96a565ebc8d657232f94c6158e85b4352141bd1a46f6b43434",
+    "gmsh_version": "4.12.1",
+    "runs": [
+      {
+        "run_id": 38068685523,
+        "source_commit": "1b837a3029e81563165eae10acd7c47e7bb6abfc",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38068685523",
+        "workflow_conclusion": "failure",
+        "artifact_id": 11675338686,
+        "remote_archive_digest_sha256": "471e266163de0c317049f033d02a70e03a445dd3e4e80c078586beaf9b5823c3",
+        "remote_expires_at": "2026-11-09T16:42:17Z",
+        "remote_digest_locally_reverified": false,
+        "retained_files": [
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-01/cad-reuse-1b837a3029e81563165eae10acd7c47e7bb6abfc-38068685523-1/cad-reuse-38068685523-1/01-editable-source.FCStd",
+            "bytes": 11682,
+            "sha256": "015f4c26bb0b02316250e7df5d3e854447edc43c95d1e9ec0a26236c2c9fb154"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-01/cad-reuse-1b837a3029e81563165eae10acd7c47e7bb6abfc-38068685523-1/cad-reuse-38068685523-1/02-native-assembly.png",
+            "bytes": 86720,
+            "sha256": "08a3417b3cc4235e0c2c11916fe3261e77373259b3a9910d9a16b6ac14867cde"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-01/cad-reuse-1b837a3029e81563165eae10acd7c47e7bb6abfc-38068685523-1/cad-reuse-38068685523-1/03-native-fem.png",
+            "bytes": 171384,
+            "sha256": "f50ea77bb9746e24d3c79e32bab487126e6c1da67e61b531026340c86e024558"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-01/cad-reuse-1b837a3029e81563165eae10acd7c47e7bb6abfc-38068685523-1/cad-reuse-38068685523-1/freecad.log",
+            "bytes": 827,
+            "sha256": "46e77c8dcc53cafc12c4cfa9e29e6d987d53fcdb7a5cd4da818581d1c78bcd53"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-01/cad-reuse-1b837a3029e81563165eae10acd7c47e7bb6abfc-38068685523-1/cad-reuse-38068685523-1/gmsh-version.txt",
+            "bytes": 7,
+            "sha256": "70a3b684cc320124145418c905fda56557274b96514dc628dde42ed095d5a954"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-01/cad-reuse-1b837a3029e81563165eae10acd7c47e7bb6abfc-38068685523-1/cad-reuse-38068685523-1/macro-sha256.txt",
+            "bytes": 98,
+            "sha256": "c8bf6fb77670f061523293633b7e81a489be6e02a8bba04de75e78192a6d7e85"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-01/cad-reuse-1b837a3029e81563165eae10acd7c47e7bb6abfc-38068685523-1/cad-reuse-38068685523-1/motion-frames.json",
+            "bytes": 845,
+            "sha256": "dadd0045ddda63a52bb48698cba75202870039a9e8d2d7d33ab507a3279137f7"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-01/cad-reuse-1b837a3029e81563165eae10acd7c47e7bb6abfc-38068685523-1/cad-reuse-38068685523-1/report.json",
+            "bytes": 3457,
+            "sha256": "06637cead7684f5a387a64b183565566e0766dbe18c6b16ed6bf43c132634f61"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-01/cad-reuse-1b837a3029e81563165eae10acd7c47e7bb6abfc-38068685523-1/cad-reuse-38068685523-1/source-commit.txt",
+            "bytes": 41,
+            "sha256": "c8a67e6074de9d15cbafb05f6dfb22cffa353417ff2a34e21e4d05b7c479282c"
+          }
+        ],
+        "native_report": {
+          "schema": 1,
+          "source_commit": "1b837a3029e81563165eae10acd7c47e7bb6abfc",
+          "freecad_version": [
+            "1",
+            "1",
+            "4",
+            "20260928 (Git shallow)",
+            "Unknown",
+            "2026/09/28 13:46:34",
+            "(HEAD detached at 4fd3bf320)",
+            "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+          ],
+          "started_utc": "2026-10-10T16:42:12.276956+00:00",
+          "purpose": "Map native document objects, commands and persistence to Lab integration",
+          "limitations": [
+            "Full GUI application driven through native APIs, not a human mouse interaction test.",
+            "Ubuntu cloud reuse evidence does not qualify Windows deployment or GUI/MCP identity.",
+            "Joint motion is kinematic; no contact, load transfer, stress or engineering release verdict.",
+            "Mesh existence and persistence do not establish element quality or convergence.",
+            "No product controller, common schema, original source model or solver threshold is changed."
+          ],
+          "steps": [
+            {
+              "name": "editable_native_geometry",
+              "status": "PASS",
+              "details": {
+                "native_types": [
+                  "PartDesign::Body",
+                  "Sketcher::SketchObject",
+                  "PartDesign::Pad"
+                ],
+                "diameter_mm": 20,
+                "length_mm": 12,
+                "volume_mm3": 3769.9111843077512,
+                "expected_volume_mm3": 3769.9111843077517
+              }
+            },
+            {
+              "name": "native_assembly_and_motion",
+              "status": "PASS",
+              "details": {
+                "frames": 6,
+                "final_angle_rad": 0.5000000000019023,
+                "expected_angle_rad": 0.5,
+                "absolute_error_rad": 1.9022561303927432e-12,
+                "tolerance_rad": 1e-06,
+                "joint_reference": "Link origins; not a physical contact model",
+                "frame_cache": "Must regenerate after reopening; saved motion definition is authoritative"
+              }
+            },
+            {
+              "name": "native_mesh_and_face_conditions",
+              "status": "PASS",
+              "details": {
+                "fixed_face": [
+                  2,
+                  0.0
+                ],
+                "force_face": [
+                  3,
+                  12.0
+                ],
+                "force_N": 1000.0,
+                "nodes": 1250,
+                "volume_elements": 646,
+                "selection": [
+                  [
+                    "Pad",
+                    [
+                      "Face3"
+                    ]
+                  ]
+                ]
+              }
+            },
+            {
+              "name": "save_close_reopen_definitions_and_motion",
+              "status": "FAIL",
+              "error": "'tuple' object has no attribute 'Name'",
+              "traceback": "Traceback (most recent call last):\n  File \"scripts/cad_reuse_cloud.FCMacro\", line 46, in check\n    details = action()\n              ^^^^^^^^\n  File \"scripts/cad_reuse_cloud.FCMacro\", line 223, in reopen\n    BEFORE = snapshot()\n             ^^^^^^^^^^\n  File \"scripts/cad_reuse_cloud.FCMacro\", line 70, in snapshot\n    \"motion_joint\": DOC.Motion.Joint.Name,\n                    ^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'tuple' object has no attribute 'Name'\n"
+            }
+          ],
+          "status": "PARTIAL",
+          "artifacts": [
+            {
+              "path": "01-editable-source.FCStd",
+              "bytes": 11682,
+              "sha256": "015f4c26bb0b02316250e7df5d3e854447edc43c95d1e9ec0a26236c2c9fb154"
+            },
+            {
+              "path": "02-native-assembly.png",
+              "bytes": 86720,
+              "sha256": "08a3417b3cc4235e0c2c11916fe3261e77373259b3a9910d9a16b6ac14867cde"
+            },
+            {
+              "path": "03-native-fem.png",
+              "bytes": 171384,
+              "sha256": "f50ea77bb9746e24d3c79e32bab487126e6c1da67e61b531026340c86e024558"
+            }
+          ],
+          "completed_utc": "2026-10-10T16:42:17.365426+00:00"
+        }
+      },
+      {
+        "run_id": 38068833629,
+        "source_commit": "21e9924ce030733163a09d29ac27fba9e5a293a3",
+        "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38068833629",
+        "workflow_conclusion": "failure",
+        "artifact_id": 11676461241,
+        "remote_archive_digest_sha256": "06e2674262cb793a67c2c869d1db2beb8b38013de5ea2b79b083680629b7ff45",
+        "remote_expires_at": "2026-11-09T16:44:40Z",
+        "remote_digest_locally_reverified": false,
+        "retained_files": [
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-02/cad-reuse-21e9924ce030733163a09d29ac27fba9e5a293a3-38068833629-1/cad-reuse-38068833629-1/01-editable-source.FCStd",
+            "bytes": 11696,
+            "sha256": "2cdb425916c2d8ec8ce1fe891e038fa5207d7245046d304b0680060798a029be"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-02/cad-reuse-21e9924ce030733163a09d29ac27fba9e5a293a3-38068833629-1/cad-reuse-38068833629-1/02-native-assembly.png",
+            "bytes": 88393,
+            "sha256": "42a98125ee5cce6f039afd47d0d261d215926abf895540c69636129c4a9c0286"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-02/cad-reuse-21e9924ce030733163a09d29ac27fba9e5a293a3-38068833629-1/cad-reuse-38068833629-1/03-native-fem.png",
+            "bytes": 171467,
+            "sha256": "0a16e9c540d4105e3a6eda42dd0b78a10b39d6088b6dc95aa6fd11be67c8115f"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-02/cad-reuse-21e9924ce030733163a09d29ac27fba9e5a293a3-38068833629-1/cad-reuse-38068833629-1/freecad.log",
+            "bytes": 833,
+            "sha256": "2677af44026c3a0b2d3570707afa9bd5660d6000716d2a2bec293da467c4f5d1"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-02/cad-reuse-21e9924ce030733163a09d29ac27fba9e5a293a3-38068833629-1/cad-reuse-38068833629-1/gmsh-version.txt",
+            "bytes": 7,
+            "sha256": "70a3b684cc320124145418c905fda56557274b96514dc628dde42ed095d5a954"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-02/cad-reuse-21e9924ce030733163a09d29ac27fba9e5a293a3-38068833629-1/cad-reuse-38068833629-1/macro-sha256.txt",
+            "bytes": 98,
+            "sha256": "d265b357ea4d91b86b969576f010bc8dd3cddf2a7faa4477c97122a0a985c27b"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-02/cad-reuse-21e9924ce030733163a09d29ac27fba9e5a293a3-38068833629-1/cad-reuse-38068833629-1/motion-frames.json",
+            "bytes": 845,
+            "sha256": "dadd0045ddda63a52bb48698cba75202870039a9e8d2d7d33ab507a3279137f7"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-02/cad-reuse-21e9924ce030733163a09d29ac27fba9e5a293a3-38068833629-1/cad-reuse-38068833629-1/report.json",
+            "bytes": 3466,
+            "sha256": "aa8dcebd178058e9b5821d516288696e780706c35a6752fa24787fe16cedd2ce"
+          },
+          {
+            "path": "runs/cad-reuse-cloud-20261011/attempt-02/cad-reuse-21e9924ce030733163a09d29ac27fba9e5a293a3-38068833629-1/cad-reuse-38068833629-1/source-commit.txt",
+            "bytes": 41,
+            "sha256": "6d60c4ac8389748af2458cbd894d08746863a67816ccea9ed53c997c7cd5a4af"
+          }
+        ],
+        "native_report": {
+          "schema": 1,
+          "source_commit": "21e9924ce030733163a09d29ac27fba9e5a293a3",
+          "freecad_version": [
+            "1",
+            "1",
+            "4",
+            "20260928 (Git shallow)",
+            "Unknown",
+            "2026/09/28 13:46:34",
+            "(HEAD detached at 4fd3bf320)",
+            "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+          ],
+          "started_utc": "2026-10-10T16:44:35.791287+00:00",
+          "purpose": "Map native document objects, commands and persistence to Lab integration",
+          "limitations": [
+            "Full GUI application driven through native APIs, not a human mouse interaction test.",
+            "Ubuntu cloud reuse evidence does not qualify Windows deployment or GUI/MCP identity.",
+            "Joint motion is kinematic; no contact, load transfer, stress or engineering release verdict.",
+            "Mesh existence and persistence do not establish element quality or convergence.",
+            "No product controller, common schema, original source model or solver threshold is changed."
+          ],
+          "steps": [
+            {
+              "name": "editable_native_geometry",
+              "status": "PASS",
+              "details": {
+                "native_types": [
+                  "PartDesign::Body",
+                  "Sketcher::SketchObject",
+                  "PartDesign::Pad"
+                ],
+                "diameter_mm": 20,
+                "length_mm": 12,
+                "volume_mm3": 3769.9111843077512,
+                "expected_volume_mm3": 3769.9111843077517
+              }
+            },
+            {
+              "name": "native_assembly_and_motion",
+              "status": "PASS",
+              "details": {
+                "frames": 6,
+                "final_angle_rad": 0.5000000000019023,
+                "expected_angle_rad": 0.5,
+                "absolute_error_rad": 1.9022561303927432e-12,
+                "tolerance_rad": 1e-06,
+                "joint_reference": "Link origins; not a physical contact model",
+                "frame_cache": "Must regenerate after reopening; saved motion definition is authoritative"
+              }
+            },
+            {
+              "name": "native_mesh_and_face_conditions",
+              "status": "PASS",
+              "details": {
+                "fixed_face": [
+                  2,
+                  0.0
+                ],
+                "force_face": [
+                  3,
+                  12.0
+                ],
+                "force_N": 1000.0,
+                "nodes": 1250,
+                "volume_elements": 646,
+                "selection": [
+                  [
+                    "Pad",
+                    [
+                      "Face3"
+                    ]
+                  ]
+                ]
+              }
+            },
+            {
+              "name": "save_close_reopen_definitions_and_motion",
+              "status": "FAIL",
+              "error": "'dict' object has no attribute 'Material'",
+              "traceback": "Traceback (most recent call last):\n  File \"scripts/cad_reuse_cloud.FCMacro\", line 46, in check\n    details = action()\n              ^^^^^^^^\n  File \"scripts/cad_reuse_cloud.FCMacro\", line 223, in reopen\n    BEFORE = snapshot()\n             ^^^^^^^^^^\n  File \"scripts/cad_reuse_cloud.FCMacro\", line 79, in snapshot\n    \"material\": dict(DOC.Material.Material),\n                     ^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'dict' object has no attribute 'Material'\n"
+            }
+          ],
+          "status": "PARTIAL",
+          "artifacts": [
+            {
+              "path": "01-editable-source.FCStd",
+              "bytes": 11696,
+              "sha256": "2cdb425916c2d8ec8ce1fe891e038fa5207d7245046d304b0680060798a029be"
+            },
+            {
+              "path": "02-native-assembly.png",
+              "bytes": 88393,
+              "sha256": "42a98125ee5cce6f039afd47d0d261d215926abf895540c69636129c4a9c0286"
+            },
+            {
+              "path": "03-native-fem.png",
+              "bytes": 171467,
+              "sha256": "0a16e9c540d4105e3a6eda42dd0b78a10b39d6088b6dc95aa6fd11be67c8115f"
+            }
+          ],
+          "completed_utc": "2026-10-10T16:44:40.097029+00:00"
+        }
+      }
+    ],
+    "stopped_at_utc": "2026-10-10T16:44:42Z",
+    "repair_count": 1,
+    "further_run": false,
+    "interpretation": "Native geometry, prescribed revolute motion, mesh and face-condition APIs ran. Integrated project persistence/change-after-reopen NOT_RUN because the test harness failed before save; this is not a demonstrated FreeCAD save defect.",
+    "last_failure": "DOC.Material resolves a dict-valued document property, not the named FEM object; future integration must use explicit getObject/native references. No second repair was made.",
+    "retention_limit": "Only geometry-only FCStd, screenshots, frame record, logs and JSON reports were retained. Assembly/FEM native project and mesh files were not saved before the harness failure."
+  },
+  "pages": [
+    {
+      "page_id": "page_d99abd5a046c8191b16263e448c8d8ee",
+      "sequence_before": 5,
+      "sequence_after": 6,
+      "applied_operations": 2,
+      "bad_receipts": [],
+      "untouched_count": 314,
+      "bad_untouched": [],
+      "missing_media": [],
+      "title_unchanged": true,
+      "preview_checked": false
+    },
+    {
+      "page_id": "page_e314876e22bc8191b562de881de7f3b6",
+      "sequence_before": 10,
+      "sequence_after": 11,
+      "applied_operations": 2,
+      "bad_receipts": [],
+      "untouched_count": 120,
+      "bad_untouched": [],
+      "missing_media": [],
+      "title_unchanged": true,
+      "preview_checked": false
+    }
+  ],
+  "page_evidence": {
+    "path": "artifacts/product-plan-20261011/page-changes.json",
+    "sha256": "d08bdfeab3b991154c84e95e5099b0237c7a711c5ae361e0f65018eeab436d3a",
+    "git_ignored": true,
+    "preview_verified": false
+  },
+  "limits": [
+    "No new product editor/common schema/Core API implemented",
+    "No structural/contact solver or physical engineering release qualification",
+    "Cloud API-driven GUI check is not Windows installation, human interaction or GUI/MCP identity acceptance",
+    "Mesh counts are not quality/convergence evidence",
+    "All original requirements and later user needs remain in scope; UNKNOWN/NOT_RELEASED unchanged"
+  ],
+  "next_gates": [
+    "Implement actual connected independent document/edit/evaluate/save/reopen path with existing services",
+    "Complete native integrated save/reopen and geometry-change dependency checks in that implementation",
+    "Verify Windows host, same open GUI/MCP owner, invalid drafts, conflicts and reference UI interactions",
+    "A/B/C model-specific benchmark and eventual user-input engineering acceptance"
+  ]
+}

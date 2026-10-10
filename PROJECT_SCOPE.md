@@ -1,3 +1,19 @@
+## 2026-10-11 — Product flow and bounded native reuse evidence
+
+[PRODUCT_PLAN](docs/PRODUCT_PLAN.md) adds the concrete reference screens,
+service-to-editor work, and A/B/C defect/fixture research cases. The requirement
+inventory is a continuing ledger, not a cap on further real workflow needs.
+The plan covers both defect research and pre-build fixture review; first connected
+Data/Material/Numerical/Runner/Expert work does not complete either whole workflow.
+
+Cloud FreeCAD geometry, prescribed revolute motion and mesh/face conditions have
+bounded execution evidence. Two exact workflows failed in the verification harness
+before integrated save/reopen. R02/R03/R05/R08–R13/R16/R17/R29/R31/R33/R51/R52 and
+the native document/GUI/MCP gates remain IMPLEMENTATION AND ACCEPTANCE OPEN.
+See `benchmarks/records/20261011-product-plan-cloud-reuse.json`; neither Pro's
+agreement nor the native subset promotes a solver or engineering release verdict.
+All original requirements, thresholds and UNKNOWN states remain intact.
+
 ## 2026-10-11 — Independent research workspace design correction
 
 The user identified that Data/material-point/PDE work is separate from CAD and

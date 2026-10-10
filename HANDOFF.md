@@ -1,3 +1,34 @@
+## 2026-10-11 — Product plan and bounded cloud reuse handoff
+
+Read [PRODUCT_PLAN](docs/PRODUCT_PLAN.md) first for the agreed product flow,
+reference applications, A/B/C research cases and concrete first implementation.
+Existing numerical/evaluation/Runner/Expert services are reused. Independent
+Data/Material/Plan editing, persistence and live GUI/MCP ownership remain new work.
+The plan is reflected in the main design Page / appendix at sequences 6 / 11;
+affected hashes and unrelated content/media were checked after saving.
+
+The user stopped local FreeCAD operation and authorized cloud verification.
+Do not resume local GUI experiments or request monitor activation. Cloud branch
+`codex/cad-reuse-cloud-20261011` is published at `21e9924ce030733163a09d29ac27fba9e5a293a3`.
+Runs `38068685523` / `38068833629` both ended workflow FAIL / report PARTIAL.
+Native geometry, revolute motion and mesh/face conditions ran; the test harness
+failed before integrated save/reopen. Do not describe that as a FreeCAD save defect.
+The first run plus one repair allowance is exhausted; further native test rounds stop.
+
+Exact reports, retained hashes, limitations and next gates:
+`benchmarks/records/20261011-product-plan-cloud-reuse.json`. Only the cloud-check
+branch was pushed; the current planning/UI branch remains local and unmerged.
+No new product GUI, Core interface, structural solver or release acceptance is claimed.
+
+The active user-requested progress checks continue: actual Pro every 30 minutes,
+10 scheduled reviews from 2026-10-10 16:24:57 UTC. Check
+[PROGRESS_TASKS](docs/PROGRESS_TASKS.md) and ignored
+`runs/pro-progress-review-20261011/state.json` at each work bundle. Initial progress
+advice was received separately; do not count it as one of the scheduled ten.
+The user rejected more scheduling-tool work; no automation creation is confirmed.
+Next: maintain the concrete implementation plan through those reviews, not further
+FreeCAD button tests or another synthetic web mockup. Preserve user attachments.
+
 ## 2026-10-11 — Domain boundary correction handoff
 
 Latest design: [ADR0060](ADR/0060-independent-research-workspaces.md) and

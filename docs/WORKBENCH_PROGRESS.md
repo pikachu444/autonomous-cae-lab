@@ -1,5 +1,23 @@
 # Current workbench implementation
 
+## 2026-10-11 concrete product plan and reuse checkpoint
+
+[PRODUCT_PLAN](PRODUCT_PLAN.md) maps real import/evaluation/numerical/Runner/Expert
+services to the first independent document workflow. The new Data/Material/Plan
+owners, semantic Undo, invalid drafts, saved editing state and live GUI/MCP command
+identity are not implemented by this planning update. Existing FELUPE laws,
+MFront runtime limits, missing per-candidate curves and INTERRUPTED job behavior
+are explicit; no optimizer, scheduler or current calculation behavior is replaced.
+
+The isolated cloud native check is published at21e9924; both exact workflows are
+FAIL/PARTIAL with successful geometry/motion/mesh subsets and a harness error
+before integrated save. Native persistence, human interaction, Windows and
+GUI/MCP acceptance remain open. The bounded check has stopped after one repair.
+See `../benchmarks/records/20261011-product-plan-cloud-reuse.json` and
+[PREPOST_VERIFICATION](PREPOST_VERIFICATION.md). Main/appendix Pages6/11 contain
+the plan and actual limits. Current planning/UI branch remains unpushed; historical
+product and engineering verdicts below retain their original scope.
+
 ## 2026-10-11 independent research workspace design correction
 
 Data/Material/PDE are independent input-document owners, connected to shared

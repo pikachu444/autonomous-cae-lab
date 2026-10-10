@@ -1,3 +1,35 @@
+## 2026-10-11 — Concrete product plan and cloud reuse boundary
+
+[PRODUCT_PLAN](docs/PRODUCT_PLAN.md) now fixes the reference work screens,
+independent tool entry and shared Numerical Plan, Windows without WSL, the defect
+and fixture goals, and three research cases: material law, fixture/measurement
+confounding, and thermal/interface effects. It maps the first connected workflow
+to actual existing code and distinguishes missing document owners/Undo/persistence
+from existing input/job/result storage. A read-only consistency review found no
+material contradiction in its assigned scope; this is not product acceptance.
+
+Local native interaction reached a constrained Ø20mm sketch and Pad10→12mm,
+Undo10/Redo12. Saving was not confirmed and local operation stopped at the user's
+request. The authorized cloud check ran FreeCAD1.1.4/Gmsh4.12.1 under Ubuntu/Xvfb.
+Geometry matched analytical volume, prescribed revolute motion matched0.5rad
+(error1.90e-12rad under1e-6rad), and a1250-node/646-volume-element mesh plus face
+conditions were generated. No structural solve or mesh-quality verdict followed.
+
+Cloud sources `1b837a3029e81563165eae10acd7c47e7bb6abfc` and
+`21e9924ce030733163a09d29ac27fba9e5a293a3` have exact runs38068685523/38068833629,
+both FAIL/PARTIAL. The first harness error treated a motion link tuple as an object;
+the one repair fixed it. The second accessed the document's Material dictionary
+instead of the named FEM object. Both failed before integrated save/reopen, so
+that capability and subsequent change-impact checks remain unverified. Native
+feature failure is not established. Further runs stopped within the agreed bound.
+
+Cloud code is remotely preserved on its isolated branch; current product/UI source
+`af2f084dea20562b9036976a9945ee09a3994236` is unchanged. Pages6/11 and retained
+artifacts are recorded in `benchmarks/records/20261011-product-plan-cloud-reuse.json`.
+The planning branch remains local. Original scope, historical results and
+UNKNOWN/NOT_RELEASED are preserved. Scheduled Pro review counts are separate in
+`docs/PROGRESS_TASKS.md` and the referenced execution state.
+
 ## 2026-10-11 — Independent research boundaries and Pro review
 
 The user's correction is now reflected in repository specifications and both
