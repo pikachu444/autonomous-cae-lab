@@ -18,6 +18,9 @@ designs through adoption/hold. Unknown engineering criteria still block approval
 Review4 makes candidate coverage/scoring and common-basis comparison gates
 explicit. Existing numerical policies remain; actual GUI/missing-data/tensor
 comparison acceptance is still open.
+Review5 adds identifiability, holdout-reuse and numerical-error checks to case A's
+existing P2 model discrimination. This is planned acceptance; no new material
+model, UQ engine, solver qualification or product completion is claimed.
 
 Cloud FreeCAD geometry, prescribed revolute motion and mesh/face conditions have
 bounded execution evidence. Two exact workflows failed in the verification harness

@@ -48,6 +48,12 @@ vector/tensor comparison. Existing fit mask/finite-response/failure-penalty sour
 was inspected and retained; general product comparison remains to implement.
 Pages11/16 preserve all330/130 prior blocks. The missing-error-segment and rotated
 same-tensor acceptance scenes are planned checks, not new numerical evidence.
+Review5/10 adds parameter-identifiability and numerical-error gates to case A:
+distinguish fitted/fixed/unidentified coefficients and contaminated holdout, and
+defer model-family ranking when coefficient choices or mesh/increment refinement
+change the conclusion. Existing fit rank/condition and separate holdout behavior
+remain; an affine two-mesh J2 patch does not qualify general DP comparison.
+Pages12/17 preserve all332/132 prior blocks. No new solver or product execution.
 The planning branch remains local. Original scope, historical results and
 UNKNOWN/NOT_RELEASED are preserved. Scheduled Pro review counts are separate in
 `docs/PROGRESS_TASKS.md` and the referenced execution state.
