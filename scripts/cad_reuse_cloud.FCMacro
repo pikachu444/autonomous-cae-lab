@@ -67,7 +67,7 @@ def snapshot():
         "joint_type": str(DOC.Joint.JointType),
         "joint_references": references([DOC.Joint.Reference1, DOC.Joint.Reference2]),
         "simulation_members": [o.Name for o in DOC.Simulation.Group],
-        "motion_joint": DOC.Motion.Joint.Name,
+        "motion_joint": references([DOC.Motion.Joint])[0],
         "motion_formula": DOC.Motion.Formula,
         "mesh_shape": DOC.Mesh.Shape.Name,
         "mesh_nodes": mesh.NodeCount,
