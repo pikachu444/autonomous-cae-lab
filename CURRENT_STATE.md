@@ -60,6 +60,12 @@ retain the same physical measurement interval. Sensor re-zeroing must preserve
 clamping stress/state/contact history within a candidate, while candidates remain
 isolated. Current fixture evidence leaves preload/fasteners undefined. Pages13/18
 preserve all334/133 prior blocks; staged mechanics remain future acceptance.
+Review7/10 adds case C's opening/reclosure/reopening and observation-time gates.
+Irreversible cohesive damage must survive reclosure with the declared compressive
+response; delayed recovery in a recoverable viscoelastic reference is separate
+from permanent deformation and time-specific tolerance failure. Primary Abaqus
+cohesive/time-viscoelastic definitions support these planned checks. Pages14/19
+preserve all336/134 prior blocks; no new thermal/interface runtime was executed.
 The planning branch remains local. Original scope, historical results and
 UNKNOWN/NOT_RELEASED are preserved. Scheduled Pro review counts are separate in
 `docs/PROGRESS_TASKS.md` and the referenced execution state.

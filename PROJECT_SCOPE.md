@@ -24,6 +24,9 @@ model, UQ engine, solver qualification or product completion is claimed.
 Review6 makes case B's sensor extraction and mounting/clamping state continuity
 explicit in P2. Current fixture CAD and contact evidence do not close staged
 preload mechanics or their planned physical acceptance.
+Review7 adds reclosure/damage-history and delayed-recovery/observation-time gates
+to case C. The existing thermal/interface implementation and physical acceptance
+remain open; no new support or simulation result is inferred from this plan.
 
 Cloud FreeCAD geometry, prescribed revolute motion and mesh/face conditions have
 bounded execution evidence. Two exact workflows failed in the verification harness

@@ -4,7 +4,7 @@ Read [PRODUCT_PLAN](docs/PRODUCT_PLAN.md) first for the agreed product flow,
 reference applications, A/B/C research cases and concrete first implementation.
 Existing numerical/evaluation/Runner/Expert services are reused. Independent
 Data/Material/Plan editing, persistence and live GUI/MCP ownership remain new work.
-The plan is reflected in the main design Page / appendix at sequences 13 / 18;
+The plan is reflected in the main design Page / appendix at sequences 14 / 19;
 affected hashes and unrelated content/media were checked after saving.
 Scheduled Pro review1/10 is received and incorporated: the first implementation
 unit and three handoff tasks are fixed in PRODUCT_PLAN §6. Do not reopen the whole
@@ -43,6 +43,12 @@ clamping cases must retain mounting/clamping/loading/unloading state history eve
 when sensors are re-zeroed, with justified equivalent initial states and isolated
 candidates. Save/reopen preserves these definitions, not automatic solver restart.
 The existing fixture CAD prerequisite does not qualify undefined bolt preload.
+Review7/10 adds case C's opening/reclosure/reopening path, damage-history and
+compression rules, plus time-labelled delayed-recovery/remaining-warpage checks.
+Use a recoverable undamaged viscoelastic reference and preserve the distinction
+between a temporary residual, permanent change and tolerance failure at use time.
+Unsupported reclosure stays unsupported; primary constitutive references do not
+qualify the current product's thermal/interface execution.
 
 The user stopped local FreeCAD operation and authorized cloud verification.
 Do not resume local GUI experiments or request monitor activation. Cloud branch
