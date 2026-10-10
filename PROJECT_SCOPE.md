@@ -27,6 +27,10 @@ preload mechanics or their planned physical acceptance.
 Review7 adds reclosure/damage-history and delayed-recovery/observation-time gates
 to case C. The existing thermal/interface implementation and physical acceptance
 remain open; no new support or simulation result is inferred from this plan.
+Review8 separates selected-job and whole-fit/DOE cancellation in the existing P1
+acceptance. Late results retain their original inputs without restarting search;
+the Plan and unrelated runs remain intact. Existing cooperative cancellation is
+reused. Product GUI/MCP execution of these scenes remains NOT_RUN.
 
 Cloud FreeCAD geometry, prescribed revolute motion and mesh/face conditions have
 bounded execution evidence. Two exact workflows failed in the verification harness

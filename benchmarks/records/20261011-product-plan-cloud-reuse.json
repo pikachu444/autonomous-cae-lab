@@ -766,6 +766,58 @@
         "product_execution_performed": false
       },
       "product_execution_added": false
+    },
+    {
+      "round": 8,
+      "sent_observed_at_utc": "2026-10-10T20:25:34.189247Z",
+      "reply_recorded_at_utc": "2026-10-10T20:30:21.788572Z",
+      "review_scope": "Report-based planning review only; Pro did not newly verify current documents, code or execution.",
+      "adopted_findings": [
+        "Distinguish selected candidate job cancellation from cancellation of the current fit/DOE execution; whole-execution cancellation stops new submissions, tracks pending/running cleanup and preserves late results without restarting search or adoption."
+      ],
+      "integration_status": "INCORPORATED_IN_PLAN_AND_PAGES",
+      "pages": [
+        {
+          "page_id": "page_d99abd5a046c8191b16263e448c8d8ee",
+          "sequence_before": 14,
+          "sequence_after": 15,
+          "applied_operations": 1,
+          "bad_receipts": [],
+          "preserved_existing_blocks": 338,
+          "changed_or_missing_existing": [],
+          "receipt_hash_mismatches": [],
+          "preview_checked": false
+        },
+        {
+          "page_id": "page_e314876e22bc8191b562de881de7f3b6",
+          "sequence_before": 19,
+          "sequence_after": 20,
+          "applied_operations": 1,
+          "bad_receipts": [],
+          "preserved_existing_blocks": 135,
+          "changed_or_missing_existing": [],
+          "receipt_hash_mismatches": [],
+          "preview_checked": false
+        }
+      ],
+      "evidence": {
+        "path": "artifacts/product-plan-20261011/page-changes-pro08.json",
+        "sha256": "dbb6ec25b081ca167f2ae5fc8712477397a084c52c38636d4ed3bb00c474e456",
+        "git_ignored": true
+      },
+      "source_readback": {
+        "source_commit": "af2f084dea20562b9036976a9945ee09a3994236",
+        "functions": [
+          "caelab.numerical._Evaluators",
+          "caelab.numerical.run_doe",
+          "caelab.numerical.fit_model",
+          "caelab.jobs.JobManager",
+          "caelab.workbench.Workbench.submit"
+        ],
+        "limits": "Existing outer jobs and cooperative cancellation are reuse points; separate durable jobs per objective call are not required. Actual new GUI/MCP cancellation acceptance remains NOT_RUN.",
+        "execution_performed": false
+      },
+      "product_execution_added": false
     }
   ]
 }

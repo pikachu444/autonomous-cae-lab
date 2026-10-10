@@ -4,7 +4,7 @@ Read [PRODUCT_PLAN](docs/PRODUCT_PLAN.md) first for the agreed product flow,
 reference applications, A/B/C research cases and concrete first implementation.
 Existing numerical/evaluation/Runner/Expert services are reused. Independent
 Data/Material/Plan editing, persistence and live GUI/MCP ownership remain new work.
-The plan is reflected in the main design Page / appendix at sequences 14 / 19;
+The plan is reflected in the main design Page / appendix at sequences 15 / 20;
 affected hashes and unrelated content/media were checked after saving.
 Scheduled Pro review1/10 is received and incorporated: the first implementation
 unit and three handoff tasks are fixed in PRODUCT_PLAN §6. Do not reopen the whole
@@ -49,6 +49,13 @@ Use a recoverable undamaged viscoelastic reference and preserve the distinction
 between a temporary residual, permanent change and tolerance failure at use time.
 Unsupported reclosure stays unsupported; primary constitutive references do not
 qualify the current product's thermal/interface execution.
+Review8/10 closes Numerical/Runner/Expert connection planning with explicit
+selected-job versus whole-fit/DOE cancellation. Stop new work for the cancelled
+execution, track its in-flight work through confirmed termination/cleanup, preserve
+late results without search restart or adoption, and leave the Plan/other runs intact.
+Reuse the current outer job/cooperative cancellation; do not require a new durable
+job per objective call. Verify the scope through actual GUI/MCP implementation.
+Do not reopen these contracts without a concrete counterexample or execution finding.
 
 The user stopped local FreeCAD operation and authorized cloud verification.
 Do not resume local GUI experiments or request monitor activation. Cloud branch

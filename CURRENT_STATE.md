@@ -66,6 +66,14 @@ response; delayed recovery in a recoverable viscoelastic reference is separate
 from permanent deformation and time-specific tolerance failure. Primary Abaqus
 cohesive/time-viscoelastic definitions support these planned checks. Pages14/19
 preserve all336/134 prior blocks; no new thermal/interface runtime was executed.
+Review8/10 distinguishes cancellation of a selected candidate job from the current
+fit/DOE execution. Whole-execution cancellation stops new generation/submission,
+tracks queued/running work and cleanup, and retains late results without restarting
+search or adoption. The saved Plan and unrelated executions remain intact. Current
+outer jobs, cooperative cancellation and cleanup states are reuse points; a durable
+job per objective call is not required. Pages15/20 preserve all338/135 prior blocks.
+This closes connection planning; actual GUI/MCP cancellation remains to implement
+and accept. Pro reviewed the report; source reading added no runtime evidence.
 The planning branch remains local. Original scope, historical results and
 UNKNOWN/NOT_RELEASED are preserved. Scheduled Pro review counts are separate in
 `docs/PROGRESS_TASKS.md` and the referenced execution state.
