@@ -1,0 +1,772 @@
+.abq-app {
+  position: relative;
+}
+.abq-viewport-caption.result {
+  left: auto;
+  right: 15px;
+  text-align: right;
+}
+.abq-xy-page {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 10px;
+}
+.abq-xy-page button {
+  background: #f1f5f8;
+  border: 1px solid #a9b9c4;
+  padding: 3px 9px;
+}
+.abq-xy-page span:last-child {
+  margin-left: auto;
+}
+.abq-app {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  font:
+    11px Arial,
+    "Segoe UI",
+    sans-serif;
+  color: #303237;
+  background: #eeefec;
+  overflow: hidden;
+  min-width: 950px;
+}
+.abq-app * {
+  box-sizing: border-box;
+}
+.abq-app button,
+.abq-app input,
+.abq-app select {
+  font: inherit;
+}
+.abq-app button {
+  cursor: pointer;
+  color: inherit;
+}
+.abq-app button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.abq-app button:focus-visible,
+.abq-app input:focus-visible,
+.abq-app select:focus-visible,
+.abq-app [tabindex]:focus-visible {
+  outline: 1px solid #476d9f;
+  outline-offset: -1px;
+}
+.abq-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 23px;
+  flex: none;
+  background: linear-gradient(#f6f8fa, #e8edf4);
+  padding: 0 6px;
+  font-size: 10px;
+  border-bottom: 1px solid #cdd0d4;
+}
+.abq-window-buttons {
+  margin-left: auto;
+  color: #5f6267;
+  font-size: 12px;
+}
+.abq-menubar {
+  height: 23px;
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding: 0 5px;
+  background: #f3f3ee;
+  border-bottom: 1px solid #dadbd4;
+  z-index: 20;
+}
+.abq-menu {
+  position: relative;
+}
+.abq-menu > button {
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 3px 8px;
+  height: 22px;
+}
+.abq-menu > button:hover,
+.abq-menu > button.open {
+  background: #dce8f3;
+  border-color: #a5b9cc;
+}
+.abq-menu-popup,
+.abq-context-popup {
+  position: absolute;
+  background: #f5f5f1;
+  border: 1px solid #929995;
+  box-shadow: 2px 3px 6px #0003;
+  padding: 3px;
+  min-width: 230px;
+  z-index: 60;
+}
+.abq-menu-popup {
+  top: 22px;
+  left: 0;
+}
+.abq-menu-popup button,
+.abq-context-popup button {
+  background: transparent;
+  border: 0;
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  padding: 7px 16px;
+  font-size: 11px;
+}
+.abq-menu-popup button:hover,
+.abq-context-popup button:hover {
+  background: #c9dff2;
+}
+.abq-menu-popup small {
+  font-size: 10px;
+  color: #727877;
+  margin-left: 20px;
+}
+.abq-context-popup {
+  position: fixed;
+  min-width: 150px;
+}
+.abq-toolbar-row {
+  height: 29px;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  background: linear-gradient(#f7f7f3, #eeefe9);
+  border-bottom: 1px solid #d9ddd5;
+  white-space: nowrap;
+}
+.abq-tool-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 0 5px 0 0;
+  border-right: 1px solid #c7cbc4;
+  margin-right: 3px;
+  height: 24px;
+}
+.abq-tool {
+  width: 25px;
+  height: 24px;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background: transparent;
+  border-radius: 1px;
+  flex: none;
+}
+.abq-tool:hover {
+  background: #e0e8ec;
+  border-color: #99abbc;
+}
+.abq-tool.active {
+  background: #cbddeb;
+  border-color: #839cb4;
+  box-shadow: inset 1px 1px 2px #8ea0aa5c;
+}
+.abq-toolbar-row select,
+.abq-contextbar select,
+.abq-tree-source select {
+  height: 21px;
+  border: 1px solid #b9bfb9;
+  border-radius: 1px;
+  background: white;
+  padding: 1px 4px;
+  color: #303b42;
+  font-size: 10px;
+}
+.abq-toolbar-row label {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 10px;
+}
+.abq-toolbar-row input[type="range"] {
+  width: 82px;
+  accent-color: #6588aa;
+  height: 15px;
+}
+.abq-contextbar {
+  height: 29px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 2px 8px 2px 284px;
+  flex: none;
+  border-bottom: 1px solid #bcc3c8;
+  background: #f2f3ed;
+  white-space: nowrap;
+}
+.abq-contextbar label {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  font-size: 10px;
+}
+.abq-contextbar select {
+  max-width: 215px;
+}
+.abq-contextbar input {
+  width: 64px;
+  height: 21px;
+  background: white;
+  border: 1px solid #b9bfb9;
+  padding: 2px;
+}
+.abq-main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.abq-tree {
+  flex: none;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #bbc3c6;
+  background: #fff;
+  overflow: hidden;
+}
+.abq-tree-tabs {
+  height: 25px;
+  display: flex;
+  align-items: end;
+  gap: 2px;
+  background: #f1f1ec;
+  border-bottom: 1px solid #b8c2cb;
+  padding: 0 4px;
+  flex: none;
+}
+.abq-tree-tabs button {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 4px 9px;
+  height: 24px;
+}
+.abq-tree-tabs button.active {
+  background: white;
+  border-color: #b8c2cb;
+  border-bottom-color: white;
+  margin-bottom: -1px;
+}
+.abq-tree-source {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 27px;
+  padding: 2px 4px;
+  background: #f9faf6;
+  border-bottom: 1px solid #e0e3dd;
+  flex: none;
+}
+.abq-tree-source select {
+  flex: 1;
+  min-width: 0;
+}
+.abq-tree-source .abq-tool {
+  width: 21px;
+}
+.abq-tree-scroll {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  padding: 5px 3px 10px;
+}
+.abq-tree-children {
+  padding-left: 12px;
+}
+.abq-tree-line {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 21px;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  padding: 2px 2px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.abq-tree-line svg {
+  flex: none;
+}
+.abq-tree-line span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.abq-tree-line:hover {
+  background: #eaf2f8;
+}
+.abq-tree-line.selected {
+  background: #2b73b0;
+  color: #fff;
+}
+.abq-tree-line.hidden {
+  opacity: 0.5;
+}
+.abq-tree-line b {
+  font-weight: 600;
+}
+.abq-object {
+  padding-left: 10px;
+}
+.abq-eye {
+  margin-left: auto;
+  min-width: 14px;
+  padding: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #697b87;
+}
+.abq-object.selected .abq-eye {
+  color: #fff;
+}
+.abq-tree-create {
+  color: #46718c !important;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-size: 10px;
+  padding: 2px 3px 2px 20px;
+  min-height: 19px;
+  width: 100%;
+}
+.abq-tree-create:hover {
+  background: #edf2f6;
+}
+.abq-result-summary {
+  font:
+    10px/1.6 Arial,
+    sans-serif;
+  color: #606f7b;
+  padding: 6px 5px;
+  overflow-wrap: anywhere;
+}
+.abq-splitter {
+  width: 5px;
+  flex: none;
+  background: #edf0eb;
+  border-left: 1px solid #d4d8d2;
+  border-right: 1px solid #cdd3d0;
+  cursor: col-resize;
+  touch-action: none;
+}
+.abq-splitter:hover,
+.abq-console-splitter:hover {
+  background: #a9c3da;
+}
+.abq-workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.abq-view-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.abq-toolbox {
+  width: 56px;
+  flex: none;
+  background: linear-gradient(90deg, #eff1e9, #f8f8f2);
+  border-right: 1px solid #c2c8c7;
+  padding: 4px 2px;
+  overflow-y: auto;
+}
+.abq-toolbox-grid {
+  display: grid;
+  grid-template-columns: 24px 24px;
+  gap: 3px 1px;
+  align-content: start;
+}
+.abq-toolbox .abq-tool {
+  width: 24px;
+  height: 25px;
+}
+.abq-viewport {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: linear-gradient(#222f47 0%, #34435a 48%, #a0abba 100%);
+  overflow: hidden;
+}
+.abq-viewport > div:first-child {
+  width: 100%;
+  height: 100%;
+}
+.abq-viewport-caption {
+  position: absolute;
+  top: 13px;
+  left: 15px;
+  color: #dbe4e9;
+  font:
+    10px/1.6 Arial,
+    sans-serif;
+  pointer-events: none;
+  text-shadow: 0 1px 1px #203249;
+}
+.abq-viewport-caption.result {
+  left: auto;
+  right: 15px;
+  text-align: right;
+}
+.abq-prompt {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 7px;
+  flex: none;
+  background: #f4f5ef;
+  border-top: 1px solid #bbc4cc;
+  font-size: 10px;
+}
+.abq-prompt > span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.abq-prompt button {
+  font-size: 10px;
+  padding: 2px 7px;
+  border: 1px solid #b3bab9;
+  background: #fdfdfb;
+  border-radius: 1px;
+}
+.abq-prompt strong {
+  font-size: 13px;
+  letter-spacing: -0.8px;
+  color: #244b87;
+  font-style: italic;
+  margin-left: 6px;
+}
+.abq-console-splitter {
+  height: 5px;
+  background: #e2e7e6;
+  border-top: 1px solid #bac5cc;
+  border-bottom: 1px solid #bdc4c6;
+  flex: none;
+  cursor: row-resize;
+  touch-action: none;
+}
+.abq-console {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #fbfcf6;
+  border-top: 1px solid #fff;
+}
+.abq-console-tabs {
+  height: 22px;
+  display: flex;
+  flex: none;
+  gap: 2px;
+  padding-left: 5px;
+  background: #eef1eb;
+  border-bottom: 1px solid #b7c0c7;
+}
+.abq-console-tabs button {
+  padding: 2px 11px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 10px;
+}
+.abq-console-tabs button.active {
+  background: #fcfdf8;
+  border-color: #b7c0c7;
+  border-bottom-color: #fcfdf8;
+}
+.abq-console-tabs .abq-console-clear {
+  margin-left: auto;
+  font-size: 9px;
+  color: #697581;
+}
+.abq-console-content {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  padding: 4px 9px;
+}
+.abq-console pre {
+  font:
+    10px/1.5 Consolas,
+    monospace;
+  margin: 0;
+  white-space: pre-wrap;
+}
+.abq-query-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 0 5px;
+  font-size: 10px;
+}
+.abq-query-row input {
+  width: 80px;
+  border: 1px solid #b3c0ca;
+  height: 22px;
+  padding: 2px 4px;
+}
+.abq-query-row button {
+  background: #edf2f3;
+  border: 1px solid #aab7c2;
+  padding: 3px 7px;
+}
+.abq-query-row button.active {
+  background: #d1e5f4;
+}
+.abq-query-row span {
+  color: #677789;
+}
+.abq-query-table {
+  font:
+    10px Arial,
+    sans-serif;
+  width: 100%;
+  border-collapse: collapse;
+}
+.abq-query-table th {
+  font-weight: 400;
+  background: #e7ebeb;
+  text-align: left;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.abq-query-table td,
+.abq-query-table th {
+  padding: 3px 9px;
+  border: 1px solid #c7d1d6;
+  font-variant-numeric: tabular-nums;
+}
+.abq-query-table tbody tr {
+  cursor: pointer;
+}
+.abq-query-table tbody tr:hover,
+.abq-query-table tr.selected {
+  background: #cee4f7;
+}
+.abq-statusbar {
+  height: 20px;
+  padding: 2px 7px;
+  background: #e9eee9;
+  border-top: 1px solid #c5cdc6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 9px;
+  color: #556473;
+  flex: none;
+}
+.abq-modal-shade {
+  position: absolute;
+  inset: 0;
+  background: #17232f35;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.abq-dialog {
+  width: 420px;
+  max-height: calc(100% - 45px);
+  display: flex;
+  flex-direction: column;
+  background: #eef0eb;
+  border: 1px solid #8698a5;
+  box-shadow: 3px 6px 20px #0004;
+  font-size: 11px;
+}
+.abq-dialog.wide {
+  width: 720px;
+}
+.abq-dialog-title {
+  height: 27px;
+  flex: none;
+  padding: 5px 7px 5px 10px;
+  background: linear-gradient(#e7eff9, #c8d9ee);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #263d57;
+  font-size: 11px;
+}
+.abq-dialog-title button {
+  display: flex;
+  border: 0;
+  background: transparent;
+  padding: 2px;
+}
+.abq-dialog-body {
+  padding: 14px;
+  overflow: auto;
+  min-height: 0;
+  line-height: 1.6;
+}
+.abq-dialog-body p {
+  margin: 0 0 8px;
+}
+.abq-form-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.abq-form-row > span {
+  width: 145px;
+  flex: none;
+  font-size: 11px;
+}
+.abq-form-row input,
+.abq-form-row select {
+  min-width: 0;
+  flex: 1;
+  height: 24px;
+  background: #fff;
+  border: 1px solid #a9b7bf;
+  padding: 3px 5px;
+}
+.abq-dialog fieldset {
+  border: 1px solid #b8c4c9;
+  padding: 10px;
+  margin: 12px 0;
+}
+.abq-dialog legend {
+  color: #586d7a;
+  font-size: 10px;
+  padding: 0 5px;
+}
+.abq-dialog fieldset .abq-form-row > span {
+  width: 132px;
+}
+.abq-dialog-tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 14px;
+  border-bottom: 1px solid #b3bec3;
+  font-size: 10px;
+}
+.abq-dialog-tabs span {
+  padding: 4px 10px;
+}
+.abq-dialog-tabs .active {
+  background: #fff;
+  border: 1px solid #aebcc4;
+  border-bottom-color: #fff;
+  margin-bottom: -1px;
+}
+.abq-form-note {
+  font-size: 10px;
+  color: #66747c;
+  line-height: 1.6;
+}
+.abq-form-error {
+  background: #f7e5df;
+  border: 1px solid #d2a396;
+  color: #8f4438;
+  padding: 7px;
+  font-size: 10px;
+}
+.abq-dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid #c1cac8;
+  padding: 9px 12px;
+  flex: none;
+  background: #e8ece6;
+}
+.abq-dialog-buttons button {
+  min-width: 65px;
+  border: 1px solid #9aa9b4;
+  background: #f7fafb;
+  border-radius: 2px;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+.abq-dialog-buttons .primary {
+  background: #e0eefb;
+  border-color: #6e94b3;
+}
+.abq-xy-plot {
+  display: block;
+  background: #fff;
+  border: 1px solid #b9c8d2;
+  width: 100%;
+  height: 180px;
+  margin: 8px 0;
+}
+.abq-xy-plot circle {
+  cursor: pointer;
+}
+.abq-xy-table {
+  height: 245px;
+  overflow: auto;
+  background: #fff;
+}
+.abq-app input[type="file"][hidden] {
+  display: none;
+}
+@media (max-width: 1250px) {
+  .abq-contextbar {
+    gap: 9px;
+  }
+  .abq-toolbar-row {
+    gap: 2px;
+  }
+  .abq-tool-group {
+    padding-right: 3px;
+    margin-right: 1px;
+  }
+  .abq-tool {
+    width: 23px;
+  }
+  .abq-toolbar-row input[type="range"] {
+    width: 60px;
+  }
+}
+@media print {
+  .abq-menubar,
+  .abq-toolbar-row,
+  .abq-contextbar,
+  .abq-tree,
+  .abq-toolbox,
+  .abq-console,
+  .abq-statusbar,
+  .abq-titlebar,
+  .abq-prompt,
+  .abq-splitter,
+  .abq-console-splitter {
+    display: none;
+  }
+  .abq-app {
+    min-width: 0;
+    height: 100vh;
+  }
+  .abq-viewport {
+    height: 95vh;
+  }
+}

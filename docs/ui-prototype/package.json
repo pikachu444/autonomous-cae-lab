@@ -2,10 +2,11 @@
   "name": "cae-interaction-design",
   "private": true,
   "version": "0.1.0",
-  "description": "Synthetic, offline interaction prototype; not a solver or native CAD application.",
+  "description": "Offline CAE interface studies with synthetic examples and separately sourced retained CAD/results; not a solver.",
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
+    "build:references": "node reference-build.mjs",
     "check": "tsc --noEmit"
   },
   "dependencies": {

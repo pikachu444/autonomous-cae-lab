@@ -1,9 +1,28 @@
-# CAE Lab interaction study
+# CAE Lab browser interface studies
+
+## Abaqus 2026 / HyperMesh 2026 화면 시안
+
+`npm run build:references`로 `dist/abaqus.html`과 `dist/hypermesh.html`을
+만듭니다. 각각 스크립트·스타일·표시 데이터를 포함하는 독립 HTML이며,
+아래 로컬 서버에서는 `/abaqus.html`, `/hypermesh.html`로 엽니다.
+메뉴·도구 영역·모델 트리·엔티티 편집·뷰포트는 제품별 공식 화면을
+기준으로 구성했습니다. 근거와 기능 경계는 [REFERENCE_BRIEF.md](REFERENCE_BRIEF.md)에 있습니다.
+
+이 두 화면은 기존 CAD 15개 부품과 보존된 CalculiX 결과 9,155개 절점의
+실제 좌표·변위를 읽습니다. 원본 경로와 해시는 `src/replicas/data-origin.json`에
+있으며, `prepare-reference-data.py`는 원본을 바꾸거나 solver를 실행하지 않습니다.
+표시·선택·단면·변형 배율·조회는 조작할 수 있고, 재료·조건·메시 설정은
+편집 가능한 초안입니다. 저장 파일은 브라우저 시안용 JSON입니다.
+Abaqus/HyperMesh의 native 파일, 새 CAD 연산·재메시·solver 실행과 전체 기능
+동등성을 구현했다는 뜻은 아닙니다.
+
+## 이전 6개 앱 상호작용 시안
 
 2026-10-10에 만든 조작 가능한 UI 설계 시안입니다. 제품 소스 기준은
 `a10f2023a2084512839b5e0af8ab0adc0aeb9293`이며, 기존 앱을 교체하거나
 Core·solver·FreeCAD·ParaView·LLM에 연결하지 않습니다. 모든 형상, 결과,
-대화, 실행 상태는 합성 예시입니다.
+대화, 실행 상태는 합성 예시입니다. 이 설명은 `index.html`에 해당하며,
+위 두 제품 참조 화면의 실제 보존 데이터와 구분합니다.
 
 ## 열기
 
