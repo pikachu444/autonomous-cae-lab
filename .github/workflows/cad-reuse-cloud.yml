@@ -1,0 +1,59 @@
+name: CAD reuse in a virtual desktop
+
+on:
+  push:
+    branches: [codex/cad-reuse-cloud-20261011]
+    paths:
+      - .github/workflows/cad-reuse-cloud.yml
+      - scripts/cad_reuse_cloud.FCMacro
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-reuse:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      APPIMAGE_EXTRACT_AND_RUN: '1'
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      QT_QPA_PLATFORM: xcb
+      CAE_REUSE_OUTPUT: ${{ github.workspace }}/artifacts/cad-reuse-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Prepare a virtual display and the existing pinned FreeCAD build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xauth libglu1-mesa libxcb-xinerama0 libxcb-cursor0 gmsh
+          curl --fail --location --retry 3 --silent --show-error \
+            https://github.com/FreeCAD/FreeCAD/releases/download/1.1.4/FreeCAD_1.1.4-Linux-x86_64-py311.AppImage \
+            --output "$RUNNER_TEMP/FreeCAD.AppImage"
+          printf '%s  %s\n' f6dc6ba676e5ac96a565ebc8d657232f94c6158e85b4352141bd1a46f6b43434 "$RUNNER_TEMP/FreeCAD.AppImage" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/FreeCAD.AppImage"
+          mkdir -p "$CAE_REUSE_OUTPUT"
+          git rev-parse HEAD > "$CAE_REUSE_OUTPUT/source-commit.txt"
+          gmsh --version > "$CAE_REUSE_OUTPUT/gmsh-version.txt" 2>&1
+          sha256sum scripts/cad_reuse_cloud.FCMacro > "$CAE_REUSE_OUTPUT/macro-sha256.txt"
+      - name: Run the connected native document check in full FreeCAD
+        run: |
+          set -o pipefail
+          timeout 360s xvfb-run -a -s '-screen 0 1440x900x24' \
+            "$RUNNER_TEMP/FreeCAD.AppImage" scripts/cad_reuse_cloud.FCMacro \
+            2>&1 | tee "$CAE_REUSE_OUTPUT/freecad.log"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = json.loads((Path(os.environ['CAE_REUSE_OUTPUT']) / 'report.json').read_text())
+          for step in report['steps']:
+              print(step['name'], step['status'], step.get('error', ''))
+          assert report['status'] == 'PASS', report
+          PY
+      - name: Preserve native documents, results and view captures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cad-reuse-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/cad-reuse-*/
+          if-no-files-found: error
+          retention-days: 30

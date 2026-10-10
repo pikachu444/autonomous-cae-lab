@@ -1,0 +1,286 @@
+"""Bounded native-object reuse check; run in full FreeCAD on a fresh cloud runner."""
+from datetime import datetime, timezone
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import traceback
+
+import FreeCAD as App
+import FreeCADGui as Gui
+import Part
+import Sketcher
+from PySide import QtCore, QtGui
+try:
+    from PySide import QtWidgets
+except ImportError:
+    QtWidgets = QtGui
+
+OUT = Path(os.environ["CAE_REUSE_OUTPUT"])
+REPORT = {
+    "schema": 1,
+    "source_commit": os.environ.get("GITHUB_SHA"),
+    "freecad_version": App.Version(),
+    "started_utc": datetime.now(timezone.utc).isoformat(),
+    "purpose": "Map native document objects, commands and persistence to Lab integration",
+    "limitations": [
+        "Full GUI application driven through native APIs, not a human mouse interaction test.",
+        "Ubuntu cloud reuse evidence does not qualify Windows deployment or GUI/MCP identity.",
+        "Joint motion is kinematic; no contact, load transfer, stress or engineering release verdict.",
+        "Mesh existence and persistence do not establish element quality or convergence.",
+        "No product controller, common schema, original source model or solver threshold is changed.",
+    ],
+    "steps": [],
+}
+DOC = None
+BEFORE = None
+
+
+def record():
+    (OUT / "report.json").write_text(json.dumps(REPORT, indent=2, default=str) + "\n")
+
+
+def check(name, action):
+    try:
+        details = action()
+        REPORT["steps"].append({"name": name, "status": "PASS", "details": details})
+    except Exception as exc:
+        REPORT["steps"].append({"name": name, "status": "FAIL", "error": str(exc),
+                                "traceback": traceback.format_exc()})
+        App.Console.PrintError(traceback.format_exc())
+    record()
+
+
+def references(value):
+    return [[obj.Name if obj else None, list(names)] for obj, names in value]
+
+
+def snapshot():
+    mesh = DOC.Mesh.FemMesh
+    return {
+        "sketch_constraints": DOC.Sketch.ConstraintCount,
+        "pad_length_mm": DOC.Pad.Length.Value,
+        "pad_volume_mm3": DOC.Pad.Shape.Volume,
+        "link_sources": [DOC.LinkA.LinkedObject.Name, DOC.LinkB.LinkedObject.Name],
+        "ground": DOC.GroundedJoint.ObjectToGround.Name,
+        "joint_type": str(DOC.Joint.JointType),
+        "joint_references": references([DOC.Joint.Reference1, DOC.Joint.Reference2]),
+        "simulation_members": [o.Name for o in DOC.Simulation.Group],
+        "motion_joint": DOC.Motion.Joint.Name,
+        "motion_formula": DOC.Motion.Formula,
+        "mesh_shape": DOC.Mesh.Shape.Name,
+        "mesh_nodes": mesh.NodeCount,
+        "mesh_volumes": mesh.VolumeCount,
+        "fixed": references(DOC.Fixed.References),
+        "force": references(DOC.Force.References),
+        "force_N": float(DOC.Force.Force),
+        "force_reversed": DOC.Force.Reversed,
+        "material": dict(DOC.Material.Material),
+    }
+
+
+def capture(filename):
+    Gui.activeDocument().activeView().viewAxonometric()
+    Gui.activeDocument().activeView().fitAll()
+    Gui.updateGui()
+    assert Gui.getMainWindow().grab().save(str(OUT / filename))
+
+
+def geometry():
+    global DOC
+    DOC = App.newDocument("CloudNativeReuse")
+    DOC.UndoMode = 1
+    Gui.getMainWindow().resize(1440, 900)
+    Gui.activateWorkbench("PartDesignWorkbench")
+    body = DOC.addObject("PartDesign::Body", "Body")
+    sketch = body.newObject("Sketcher::SketchObject", "Sketch")
+    sketch.addGeometry(Part.Circle(App.Vector(0, 0, 0), App.Vector(0, 0, 1), 10), False)
+    sketch.addConstraint(Sketcher.Constraint("Coincident", 0, 3, -1, 1))
+    sketch.addConstraint(Sketcher.Constraint("Diameter", 0, 20.0))
+    pad = body.newObject("PartDesign::Pad", "Pad")
+    pad.Profile = sketch
+    pad.Length = 12.0
+    DOC.recompute()
+    assert pad.Shape.isValid() and len(pad.Shape.Solids) == 1
+    assert abs(pad.Shape.Volume - math.pi * 100 * 12) < 1e-5
+    sketch.Visibility = False
+    DOC.saveAs(str(OUT / "01-editable-source.FCStd"))
+    return {"native_types": [body.TypeId, sketch.TypeId, pad.TypeId],
+            "diameter_mm": 20, "length_mm": 12, "volume_mm3": pad.Shape.Volume,
+            "expected_volume_mm3": math.pi * 100 * 12}
+
+
+def assembly_motion():
+    Gui.activateWorkbench("AssemblyWorkbench")
+    import JointObject
+    import UtilsAssembly
+    from CommandCreateSimulation import Simulation, ViewProviderSimulation, Motion, ViewProviderMotion
+    arm = DOC.addObject("Part::Box", "Arm")
+    arm.Length, arm.Width, arm.Height = 30, 4, 4
+    assembly = DOC.addObject("Assembly::AssemblyObject", "Assembly")
+    assembly.Type = "Assembly"
+    group = assembly.newObject("Assembly::JointGroup", "Joints")
+    link_a = assembly.newObject("App::Link", "LinkA")
+    link_a.LinkedObject = DOC.Body
+    link_b = assembly.newObject("App::Link", "LinkB")
+    link_b.LinkedObject = arm
+    ground = group.newObject("App::FeaturePython", "GroundedJoint")
+    JointObject.GroundedJoint(ground, link_a)
+    JointObject.ViewProviderGroundedJoint(ground.ViewObject)
+    joint = group.newObject("App::FeaturePython", "Joint")
+    JointObject.Joint(joint, 1)
+    JointObject.ViewProviderJoint(joint.ViewObject)
+    joint.Proxy.setJointConnectors(joint, [(link_a, [""]), (link_b, [""])])
+    DOC.recompute()
+    assert assembly.solve() == 0
+    sim = UtilsAssembly.getSimulationGroup(assembly).newObject("App::FeaturePython", "Simulation")
+    Simulation(sim)
+    ViewProviderSimulation(sim.ViewObject)
+    sim.aTimeStart, sim.bTimeEnd, sim.cTimeStepOutput = 0, 1, 0.25
+    motion = assembly.newObject("App::FeaturePython", "Motion")
+    Motion(motion, "Angular", joint, "0.5*time")
+    ViewProviderMotion(motion.ViewObject)
+    sim.Group = [motion]
+    DOC.recompute()
+    assert assembly.generateSimulation(sim) == 0
+    count = assembly.numberOfFrames()
+    assert count > 1
+    assembly.updateForFrame(0)
+    initial = App.Rotation(link_b.Placement.Rotation)
+    path = []
+    for frame in range(count):
+        assembly.updateForFrame(frame)
+        relative = link_b.Placement.Rotation.multiply(initial.inverted())
+        tip = link_b.Placement.multVec(App.Vector(30, 0, 0))
+        path.append({"frame": frame, "relative_angle_rad": relative.Angle,
+                     "tip_mm": [tip.x, tip.y, tip.z]})
+    # FreeCAD angular motion formulas use radians. This prescribed motion has
+    # an analytical end rotation of 0.5 rad at t=1 s.
+    expected_angle = 0.5
+    angle_error = abs(path[-1]["relative_angle_rad"] - expected_angle)
+    assert angle_error < 1e-6, {"expected_rad": expected_angle, "error_rad": angle_error}
+    DOC.Body.Visibility = False
+    arm.Visibility = False
+    capture("02-native-assembly.png")
+    assembly.updateForFrame(0)
+    (OUT / "motion-frames.json").write_text(json.dumps(path, indent=2) + "\n")
+    return {"frames": count, "final_angle_rad": path[-1]["relative_angle_rad"],
+            "expected_angle_rad": expected_angle, "absolute_error_rad": angle_error,
+            "tolerance_rad": 1e-6,
+            "joint_reference": "Link origins; not a physical contact model",
+            "frame_cache": "Must regenerate after reopening; saved motion definition is authoritative"}
+
+
+def mesh_conditions():
+    Gui.activateWorkbench("FemWorkbench")
+    import ObjectsFem
+    from femmesh.gmshtools import GmshTools
+    solid = DOC.Pad
+    caps = [(i + 1, f.CenterOfMass.z) for i, f in enumerate(solid.Shape.Faces)
+            if isinstance(f.Surface, Part.Plane) and abs(f.normalAt(0, 0).z) > 0.99]
+    assert len(caps) == 2
+    bottom, top = sorted(caps, key=lambda item: item[1])
+    analysis = ObjectsFem.makeAnalysis(DOC, "Analysis")
+    material = ObjectsFem.makeMaterialSolid(DOC, "Material")
+    material.Material = {"Name": "Synthetic elastic input", "YoungsModulus": "200000 MPa",
+                         "PoissonRatio": "0.30", "Density": "7900 kg/m^3"}
+    analysis.addObject(material)
+    fixed = ObjectsFem.makeConstraintFixed(DOC, "Fixed")
+    fixed.References = [(solid, "Face" + str(bottom[0]))]
+    analysis.addObject(fixed)
+    force = ObjectsFem.makeConstraintForce(DOC, "Force")
+    force.References = [(solid, "Face" + str(top[0]))]
+    force.Force = 1000.0
+    force.Reversed = True
+    analysis.addObject(force)
+    mesh = ObjectsFem.makeMeshGmsh(DOC, "Mesh")
+    mesh.Shape = solid
+    mesh.CharacteristicLengthMax, mesh.CharacteristicLengthMin = 4.0, 2.0
+    mesh.ElementOrder = "2nd"
+    analysis.addObject(mesh)
+    folder = OUT / "gmsh"
+    folder.mkdir()
+    DOC.recompute()
+    App.ParamGet("User parameter:BaseApp/Preferences/Mod/Fem/Gmsh").SetString("gmshBinaryPath", "/usr/bin/gmsh")
+    mesher = GmshTools(mesh)
+    mesher.obj.WorkingDirectory = str(folder)
+    mesher.run(blocking=True)
+    assert mesher.process.exitCode() == 0
+    assert mesh.FemMesh.NodeCount > 0 and mesh.FemMesh.VolumeCount > 0
+    Gui.Selection.clearSelection()
+    Gui.Selection.addSelection(solid, "Face" + str(top[0]))
+    mesh.Visibility = True
+    capture("03-native-fem.png")
+    return {"fixed_face": bottom, "force_face": top, "force_N": float(force.Force),
+            "nodes": mesh.FemMesh.NodeCount, "volume_elements": mesh.FemMesh.VolumeCount,
+            "selection": [(s.ObjectName, list(s.SubElementNames)) for s in Gui.Selection.getSelectionEx()]}
+
+
+def reopen():
+    global DOC, BEFORE
+    DOC.recompute()
+    BEFORE = snapshot()
+    path = OUT / "04-native-project.FCStd"
+    DOC.saveAs(str(path))
+    App.closeDocument(DOC.Name)
+    DOC = App.openDocument(str(path))
+    after = snapshot()
+    assert BEFORE == after, {"before": BEFORE, "after": after}
+    assert DOC.Assembly.generateSimulation(DOC.Simulation) == 0
+    frames = DOC.Assembly.numberOfFrames()
+    assert frames > 1
+    DOC.Assembly.updateForFrame(0)
+    initial = App.Rotation(DOC.LinkB.Placement.Rotation)
+    DOC.Assembly.updateForFrame(frames - 1)
+    angle = DOC.LinkB.Placement.Rotation.multiply(initial.inverted()).Angle
+    assert abs(angle - 0.5) < 1e-6, {"expected_rad": 0.5, "actual_rad": angle}
+    DOC.Assembly.updateForFrame(0)
+    return {"same_saved_definition": after, "regenerated_frames": frames,
+            "reopened_relative_rotation_rad": angle, "expected_angle_rad": 0.5,
+            "absolute_error_rad": abs(angle - 0.5), "tolerance_rad": 1e-6}
+
+
+def change_after_reopen():
+    old_mesh_z = max(v.z for v in DOC.Mesh.FemMesh.Nodes.values())
+    DOC.Pad.Length = 14.0
+    DOC.recompute()
+    new_volume = DOC.Pad.Shape.Volume
+    assert abs(new_volume - math.pi * 100 * 14) < 1e-5
+    nodes = DOC.Mesh.FemMesh.Nodes
+    new_mesh_z = max((v.z for v in nodes.values()), default=None)
+    DOC.saveAs(str(OUT / "05-changed-project.FCStd"))
+    return {"cad_length_mm": DOC.Pad.Length.Value, "cad_volume_mm3": new_volume,
+            "mesh_before_max_z_mm": old_mesh_z, "mesh_after_max_z_mm": new_mesh_z,
+            "mesh_nodes_after": len(nodes), "current_native_references": references(DOC.Force.References),
+            "integration_requirement": "Lab must bind mesh/condition acceptance to the geometry revision; surviving native references alone are insufficient"}
+
+
+def run():
+    try:
+        assert OUT.is_dir() and not (OUT / "report.json").exists(), "Use a fresh output directory"
+        check("editable_native_geometry", geometry)
+        if DOC is not None and DOC.getObject("Pad"):
+            check("native_assembly_and_motion", assembly_motion)
+            check("native_mesh_and_face_conditions", mesh_conditions)
+        if all(s["status"] == "PASS" for s in REPORT["steps"]):
+            check("save_close_reopen_definitions_and_motion", reopen)
+        if BEFORE is not None:
+            check("edit_reopened_geometry_and_observe_mesh_reference", change_after_reopen)
+        REPORT["status"] = "PASS" if len(REPORT["steps"]) == 5 and all(s["status"] == "PASS" for s in REPORT["steps"]) else "PARTIAL"
+        REPORT["artifacts"] = [{"path": str(p.relative_to(OUT)), "bytes": p.stat().st_size,
+                                 "sha256": hashlib.sha256(p.read_bytes()).hexdigest()}
+                                for p in sorted(OUT.rglob("*")) if p.is_file() and p.suffix.lower() in (".fcstd", ".png")]
+        REPORT["completed_utc"] = datetime.now(timezone.utc).isoformat()
+        record()
+    except Exception:
+        REPORT["status"] = "FAIL"
+        REPORT["fatal_error"] = traceback.format_exc()
+        record()
+    finally:
+        for name in list(App.listDocuments()):
+            App.closeDocument(name)
+        QtCore.QTimer.singleShot(0, QtWidgets.QApplication.instance().quit)
+
+
+QtCore.QTimer.singleShot(1000, run)
