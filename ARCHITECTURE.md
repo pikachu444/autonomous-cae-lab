@@ -1,3 +1,22 @@
+## Current input-workspace boundary — ADR0060 (2026-10-11)
+
+CAD/FE Pre, Data, Material Research and PDE Research own separate editable
+documents. Data/material-point/PDE work is not a Pre mode and does not change
+host when CAD is installed. A project pins document/artifact revisions; it is
+not one mutable PrepDocument. Shared readers, evaluation, numerical research,
+Runner, Post and optional Expert/Workbench retain their existing implementations.
+The domain owns model/discretization/numerical solve settings; Runner owns
+execution resources and lifecycle. GUI and optional MCP use the same owner
+commands. This is a design correction, not a new Core schema or native GUI
+implementation. Packaging remains a proposal. See
+[ADR0060](ADR/0060-independent-research-workspaces.md) and
+[the current input/Post specification](docs/PREPOST_APP_SPEC.md).
+Its §2.1 defines recipe/mask ownership, material protocol and numerical plans,
+mesh meaning, runtime receipts, staged multi-owner adoption and composite
+evaluation/coupling ownership. Existing Study/Experiment remains the common
+research record; optional Workbench is its view, not the sole state owner.
+Historical evidence below retains its original source and bounded scope.
+
 ## Fixed-CAD scalar condition research — ADR0047
 
 Core's existing numerical campaign route now supports `fixed_cad_analysis`:

@@ -1,5 +1,33 @@
 # 전처리와 후처리 검증 기록
 
+## 2026-10-11 — 독립 연구 문서 경계 교정
+
+Data/Material/PDE를 한 Pre 문서·두 host에 넣는 설계를 철회했다. P10/P11→Data,
+P12→Material, P13→PDE, V06/V13a/V13b의 owner를 재배치하고 V01/V07/V08의
+독립 열기·저장·재개·충돌을 각각 요구한다. 상세 이유·대안·계약 영향은
+[ADR0060](../ADR/0060-independent-research-workspaces.md)에 있다.
+
+기존 W1 비CAD 패널/브라우저 저장 관찰과 FreeCAD/ParaView native 시안은 당시
+자료로 보존한다. 새 경계의 제품 수용은 **NOT_RUN**이다. CAD 없는 Data→Post,
+Material/PDE 직접 평가, 관측→동정→owner의 새 revision, mesh→PDE와 GUI/MCP
+동일성·실패/재개를 새 입력/실험 경로에서 확인해야 한다. 기존 기준 문제의
+수치 허용치를 유지하고 원본/invalid/UNKNOWN을 보존한다. 문서 검토·정합성
+확인은 solver·GUI·물리 수용과 별개다.
+
+실제 ChatGPT Pro가 기존 두 설계 Page와 공개 기준 명세를 검토했고 책임 분리와
+다섯 연결 계약의 보완을 권고했다. Root가 §2.1/§7/§8에 반영했으며 Pro가 이
+로컬 수정본이나 구현을 재검증했다는 뜻은 아니다. 별도 읽기 전용 정합성
+검토에서 발견한 P14 소유권 잔여 문구도 FE 전용으로 교정했다.
+
+Page 본문 sequence 4, 부록 sequence 9를 다시 읽어 수정 receipt의 모든 hash,
+255/74개 비수정 블록, 원 R52/UC17/E14/N12 행, 부록 첨부 참조 8개를 확인했다.
+원/수정 Page와 receipt는 ignored `artifacts/domain-boundary-20261011/page-evidence.json`
+(SHA-256 `be793861813f1410d0661bd5d5fcb9006c7cc55e76ea1a10283dea7a4baf9ca8`)에
+로컬 보존한다. 계정 metadata가 포함된 원본 JSON은 공개 Git에 올리지 않는다.
+설계 검토의 공개 기록은 `benchmarks/records/20261011-independent-workspaces-design.json`이다.
+기존 실제 소스 `af2f084dea20562b9036976a9945ee09a3994236`의 CI 조회는 빈 목록이다.
+문서 갱신을 새 solver 검증으로 세지 않는다.
+
 2026-10-08 · **기획 미완료. 이전 HTML GUI 구조안은 철회했으며, 이후 FreeCAD/ParaView native 연결 시안을 별도로 보존했다.** 요구사항·설계 초안은 [PREPOST_APP_SPEC](PREPOST_APP_SPEC.md), 재사용 근거는 [PREPOST_REUSE](PREPOST_REUSE.md). 사용자 수용 및 제품 전체 완료는 미확인이다.
 
 ## Native 시안 보존 체크포인트

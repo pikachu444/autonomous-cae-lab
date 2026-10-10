@@ -1,3 +1,26 @@
+## Current design boundary: independent research documents — ADR0060
+
+Data, Material Research and PDE Research have their own document owners; CAD/FE
+Pre owns geometry/assembly/mesh/FE assignments and conditions. Optional AI/MCP
+must target the appropriate owner, exact revision and command target rather than
+route every input edit through PrepDocument or an active FreeCAD document.
+Numerical candidates remain engine-generated. Applying a candidate creates a
+revision/branch through its domain owner; interpreting results cannot modify
+source models. Model and numerical solve settings belong to that domain;
+Runner controls execution resources/lifecycle of frozen supported inputs.
+
+This 2026-10-11 documentation correction adds no tool, schema or authority and
+does not claim live GUI/MCP integration. Existing declared-model/response/job
+contracts and historical source evidence remain. CAD-free use and direct APIs
+remain available without an AI host. New owner-specific GUI/MCP, draft/reopen
+and real evaluation acceptance is required by
+[ADR0060](../ADR/0060-independent-research-workspaces.md).
+The detailed proposed owner/transaction rules are PREPOST_APP_SPEC §2.1/§8:
+multi-owner candidate adoption publishes only a complete prepared reference set;
+GUI/MCP target and revision rules preserve invalid drafts, reject stale requests
+and late responses, and keep numerical policies separate from resource settings.
+These are future live-command acceptance requirements, not newly exposed tools.
+
 ## Qualified production startup / handoff contract evidence
 
 Actual e10bb028 startup admits existing approved5.6Sol/OAuth and the seven

@@ -4,7 +4,11 @@
 
 ## 1. 이 부록의 목적
 
+2026-10-10 작업공간 경계 교정: Data·Material·PDE는 CAD/FE Pre의 모드가 아니다. 아래 17개 사례와 W1–W5 기능 범위를 유지하며 진입 owner를 구분한다. UC01–03은 Data/Material, UC04는 PDE, UC09는 CAD/FE, UC10은 Data/Post, UC11–13은 수치 연구, UC14는 Expert에서 직접 시작할 수 있다. UC05/07/08은 실제 모델 종류에 맞는 domain/외부 모델 입력과 Runner/Post를, UC06/15/16은 필요한 domain과 Expert를 선택한다. UC17은 Data·외부 평가 연결·수치 연구·Expert를 함께 사용하며 CAD가 필수 경로가 아니다. 이 매핑은 고정 순서나 사례별 새 프로필을 만들지 않는다. [현재 경계와 수용](PREPOST_APP_SPEC.md), [ADR0060](../ADR/0060-independent-research-workspaces.md).
+
 구현의 결과는 사용자가 수행할 수 있는 연구 작업이다. API 이름, 검사 개수, 문서 분량은 그 결과를 대신하지 못한다. 직접 계산과 결과 조회에는 OpenScience·MCP·AI·CAD·Study 등록이 필요하지 않아야 한다. 전문가를 쓰면 같은 자료와 결과를 읽고 같은 계산 경로를 호출한다.
+
+Pro 검토 후 보완한 연결 책임은 PREPOST_APP_SPEC §2.1/§8을 따른다. UC01–03의 법칙 구현/build·protocol·상태·접선, UC10/12의 시편·센서/교정·불확실성과 실제 시험 대응, UC06/16의 field 전달·스케일/평균화·반복 수렴·원격 receipt를 보존한다. 공통 Study/Experiment와 재사용 복합 평가가 이 근거와 결합 정의를 연결하고 선택 Workbench 화면에만 종속시키지 않는다. 모든 UC를 새 앱에 구현했다는 판정은 아직 하지 않는다.
 
 아래 공식 문서와 원논문은 방법의 적용 근거다. 현재 저장소가 모든 기능을 지원한다는 증거가 아니다. 회사 자료가 없는 예시 수치는 합성임을 표시한다. 브라우저 수치 예시, 규칙 기반 자문, 실제 native solver 또는 LLM 실행을 구분한다.
 

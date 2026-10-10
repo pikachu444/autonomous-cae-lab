@@ -1,5 +1,18 @@
 # Current workbench implementation
 
+## 2026-10-11 independent research workspace design correction
+
+Data/Material/PDE are independent input-document owners, connected to shared
+evaluation, numerical research, Runner, Post and optional Expert/Workbench.
+The old five-app/dual-Pre-host assumption no longer constrains these boundaries.
+Actual ChatGPT Pro review of the previous design exposed additional ownership
+gaps now covered by PREPOST_APP_SPEC §2.1 and ADR0060. All 17 use cases remain.
+Two shared design Pages were updated and verified; all new product acceptance
+remains NOT_RUN. The change is documentation only, locally preserved without
+push/merge. See `../benchmarks/records/20261011-independent-workspaces-design.json`
+and the latest HANDOFF for source pins, review scope and next implementation gate.
+Older entries below retain their original context rather than current authority.
+
 ## 2026-10-08 native pre and post design review checkpoint
 
 The current remote-main Workbench remains intact. Separate FreeCAD/ParaView

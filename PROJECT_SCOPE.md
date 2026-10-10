@@ -1,3 +1,14 @@
+## 2026-10-11 — Independent research workspace design correction
+
+The user identified that Data/material-point/PDE work is separate from CAD and
+meshing. ADR0060 and the current Pre/Post/workbench specifications now separate
+those document owners, retain CAD-free direct use, and replace the dual-Pre-host
+acceptance assumption with independent editing/evaluation/reopen flows. All
+R01–R52 and UC01–UC17 remain in scope; boundary mapping especially affects
+R02/R03/R05/R08–R13/R16/R17/R29/R31/R33/R51/R52. These statuses remain DESIGN /
+IMPLEMENTATION AND ACCEPTANCE OPEN. This documentation change performs no new
+solver run and does not promote historical prototype or numerical verdicts.
+
 ## 2026-10-10 — Reference UI fidelity correction
 
 R02 source `af2f084dea20562b9036976a9945ee09a3994236` corrects the rejected first

@@ -1,3 +1,29 @@
+## 2026-10-11 — Independent research boundaries and Pro review
+
+The user's correction is now reflected in repository specifications and both
+design Pages: Data, Material and PDE own independent documents; CAD/FE Pre owns
+CAD/assembly/mesh/FE preparation. The earlier non-CAD dual-Pre-host requirement
+is withdrawn. ADR0060 and PREPOST_APP_SPEC §2.1 define recipe/mask ownership,
+Material protocol versus Numerical Plan, mesh semantics, domain numerics versus
+Runner resources, multi-owner adoption and composite evaluation responsibility.
+Physical packaging remains a proposal; no new editor or Core API was implemented.
+
+An actual ChatGPT Pro review read the previous two Pages and public baseline
+specification. Root incorporated its findings; a separate read-only consistency
+review found one residual P14 contradiction, now corrected. This is design
+review, not Pro validation of this local patch or numerical/GUI acceptance.
+Pages were saved and read back at sequences 4/9, preserving all 52 R rows,
+17 UC rows, 14 E rows, 12 N rows and all eight appendix media references.
+Evidence: `benchmarks/records/20261011-independent-workspaces-design.json`.
+
+Product/UI source remains `af2f084dea20562b9036976a9945ee09a3994236`; its exact
+CI query returned no runs. Base checkpoint is `b24fd0a`. No new solver or native
+GUI execution occurred. All new acceptance gates are NOT_RUN. Changes are local;
+no push/merge or remote durability is claimed. Preserve user attachments.
+Next implement a bounded CAD-free document/evaluation/reopen slice against
+these contracts, including a real benchmark and GUI/MCP identity; do not revive
+the rejected Pre ownership or a fixed five-executable requirement.
+
 ## 2026-10-10 — Reference UI R02 shown to user
 
 Source `af2f084dea20562b9036976a9945ee09a3994236` improves toolbar artwork/density,

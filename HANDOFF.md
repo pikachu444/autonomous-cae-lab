@@ -1,3 +1,25 @@
+## 2026-10-11 — Domain boundary correction handoff
+
+Latest design: [ADR0060](ADR/0060-independent-research-workspaces.md) and
+[PREPOST_APP_SPEC](docs/PREPOST_APP_SPEC.md) §2.1/§7/§8. Data, Material and PDE
+are independent document owners; CAD/FE remains the same-window CAD/assembly/
+mesh/conditions workspace. A common Research shell is a candidate, not a final
+executable count/framework. Existing numerical/Core/adapters remain in use.
+
+The requested actual ChatGPT Pro review completed; its previous-design findings
+are incorporated in the repository and the [main design Page](https://chatgpt.com/space/page_d99abd5a046c8191b16263e448c8d8ee)
+and [screen/flow appendix](https://chatgpt.com/space/page_e314876e22bc8191b562de881de7f3b6).
+Readback sequences 4/9 preserve unrelated blocks, requirements and attachments.
+Review scope, hashes and future gates are in
+`benchmarks/records/20261011-independent-workspaces-design.json`.
+
+No implementation/solver/GUI acceptance was added. Source remains
+`af2f084dea20562b9036976a9945ee09a3994236`, exact-source CI has no runs, and no
+push or merge was performed. Next: a real CAD-free Data/Material/PDE flow with
+owner-specific commands, fixed references, invalid-draft recovery and benchmark;
+separate CAD/FE and Post native gates remain open. Preserve historical input and
+results, UNKNOWN and user-owned `.codex-remote-attachments/`.
+
 ## 2026-10-10 — R02 reference UI handoff
 
 Current source is `af2f084dea20562b9036976a9945ee09a3994236`, locally committed and
