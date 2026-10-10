@@ -12,6 +12,9 @@ Review2 fixes the existing local service as the first Material document owner
 and requires complete retained assets before publication plus owner-process
 restart for durable reopen acceptance. This closes that unit's planning, not its
 implementation or GUI/MCP/persistence acceptance.
+Review3 prevents narrowing Numerical to fit or fixture work to measurement-error
+explanation: P1 must show actual DOE/influence; P2 must modify and compare fixture
+designs through adoption/hold. Unknown engineering criteria still block approval.
 
 Cloud FreeCAD geometry, prescribed revolute motion and mesh/face conditions have
 bounded execution evidence. Two exact workflows failed in the verification harness

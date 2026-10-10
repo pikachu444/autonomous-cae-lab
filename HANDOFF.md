@@ -4,7 +4,7 @@ Read [PRODUCT_PLAN](docs/PRODUCT_PLAN.md) first for the agreed product flow,
 reference applications, A/B/C research cases and concrete first implementation.
 Existing numerical/evaluation/Runner/Expert services are reused. Independent
 Data/Material/Plan editing, persistence and live GUI/MCP ownership remain new work.
-The plan is reflected in the main design Page / appendix at sequences 9 / 14;
+The plan is reflected in the main design Page / appendix at sequences 10 / 15;
 affected hashes and unrelated content/media were checked after saving.
 Scheduled Pro review1/10 is received and incorporated: the first implementation
 unit and three handoff tasks are fixed in PRODUCT_PLAN §6. Do not reopen the whole
@@ -17,6 +17,12 @@ before publishing document references, preserve the prior commit on failed save,
 and terminate/restart the owner to verify reopen. This first unit is planning
 complete, implementation not started. Verify these behaviors in the implementation;
 do not substitute another round of broad planning. See ADR0060 and PRODUCT_PLAN.
+Review3/10 makes two existing-scope pass scenes explicit: P1 real multi-variable
+DOE/failures/influence, separate from fit and imported-results analysis; P2 direct
+fixture design/support/clamping changes, remesh/revalidate, and baseline/changed
+design comparison leading to adopt/hold. Reuse current regression influence with
+its sample/range/rank/condition limits; do not label it global Sobol sensitivity.
+These are planned product acceptance gates, not new executed benchmarks.
 
 The user stopped local FreeCAD operation and authorized cloud verification.
 Do not resume local GUI experiments or request monitor activation. Cloud branch

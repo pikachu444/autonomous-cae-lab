@@ -37,6 +37,12 @@ are serialized and old sessions fail after restart. Required retained assets
 precede committed references, and reopen acceptance must restart the owner process.
 Pages9/14 were read back with all326/126 prior blocks unchanged. The first unit is
 planning complete and implementation not started; no new runtime test was made.
+Review3/10 explicitly adds P1 real multi-variable DOE and influence inspection,
+separate from fit/holdout, and P2 fixture modification/remesh/revalidation and
+baseline/design comparison through adopt/hold. The existing run_doe and
+analyze_candidates source was inspected; normalized least-squares influence is
+not global Sobol sensitivity or causal proof. Pages10/15 were read back with all
+328/128 previous blocks preserved. No product code or new numerical run was added.
 The planning branch remains local. Original scope, historical results and
 UNKNOWN/NOT_RELEASED are preserved. Scheduled Pro review counts are separate in
 `docs/PROGRESS_TASKS.md` and the referenced execution state.
