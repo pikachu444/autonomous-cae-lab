@@ -4,8 +4,12 @@ Read [PRODUCT_PLAN](docs/PRODUCT_PLAN.md) first for the agreed product flow,
 reference applications, A/B/C research cases and concrete first implementation.
 Existing numerical/evaluation/Runner/Expert services are reused. Independent
 Data/Material/Plan editing, persistence and live GUI/MCP ownership remain new work.
-The plan is reflected in the main design Page / appendix at sequences 6 / 11;
+The plan is reflected in the main design Page / appendix at sequences 7 / 12;
 affected hashes and unrelated content/media were checked after saving.
+Scheduled Pro review1/10 is received and incorporated: the first implementation
+unit and three handoff tasks are fixed in PRODUCT_PLAN §6. Do not reopen the whole
+plan. Comparison/adoption/holdout inputs, curves and diagnostics are retained at use;
+elastic connection checks do not qualify J2/DP yield research. No product code was added.
 
 The user stopped local FreeCAD operation and authorized cloud verification.
 Do not resume local GUI experiments or request monitor activation. Cloud branch
@@ -26,7 +30,7 @@ The active user-requested progress checks continue: actual Pro every 30 minutes,
 `runs/pro-progress-review-20261011/state.json` at each work bundle. Initial progress
 advice was received separately; do not count it as one of the scheduled ten.
 The user rejected more scheduling-tool work; no automation creation is confirmed.
-Next: maintain the concrete implementation plan through those reviews, not further
+Next: assess remaining implementation decisions through those reviews, not further
 FreeCAD button tests or another synthetic web mockup. Preserve user attachments.
 
 ## 2026-10-11 — Domain boundary correction handoff

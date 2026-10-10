@@ -26,6 +26,10 @@ feature failure is not established. Further runs stopped within the agreed bound
 Cloud code is remotely preserved on its isolated branch; current product/UI source
 `af2f084dea20562b9036976a9945ee09a3994236` is unchanged. Pages6/11 and retained
 artifacts are recorded in `benchmarks/records/20261011-product-plan-cloud-reuse.json`.
+Scheduled Pro review1/10 closed the first Material edit/evaluate/compare/reopen
+unit, GUI/MCP ownership/Undo/invalid-draft boundary, three implementation tasks,
+result retention at use and separate J2/DP qualification. These were added to the
+existing plan and Pages7/12; this is implementation handoff, not executed product work.
 The planning branch remains local. Original scope, historical results and
 UNKNOWN/NOT_RELEASED are preserved. Scheduled Pro review counts are separate in
 `docs/PROGRESS_TASKS.md` and the referenced execution state.

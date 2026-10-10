@@ -5,6 +5,9 @@ service-to-editor work, and A/B/C defect/fixture research cases. The requirement
 inventory is a continuing ledger, not a cap on further real workflow needs.
 The plan covers both defect research and pre-build fixture review; first connected
 Data/Material/Numerical/Runner/Expert work does not complete either whole workflow.
+The first Material editing/evaluation/reopen unit now has fixed ownership, code
+targets, retention rules and pass scenes. It remains planned implementation and
+does not defer the rest of P1 or satisfy the J2/DP research case.
 
 Cloud FreeCAD geometry, prescribed revolute motion and mesh/face conditions have
 bounded execution evidence. Two exact workflows failed in the verification harness

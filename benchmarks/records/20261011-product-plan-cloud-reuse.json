@@ -420,5 +420,50 @@
     "Complete native integrated save/reopen and geometry-change dependency checks in that implementation",
     "Verify Windows host, same open GUI/MCP owner, invalid drafts, conflicts and reference UI interactions",
     "A/B/C model-specific benchmark and eventual user-input engineering acceptance"
+  ],
+  "planning_followups": [
+    {
+      "round": 1,
+      "sent_observed_at_utc": "2026-10-10T16:56:09.428498+00:00",
+      "reply_observed_at_utc": "2026-10-10T17:02:29.328341+00:00",
+      "review_scope": "Advice based on supplied report; Pro explicitly did not freshly verify links, commits or runs.",
+      "adopted_findings": [
+        "Stop cloud test; retain harness name/type collision as handoff and persistence as unverified.",
+        "Close remaining first-unit decisions in existing plan rather than restart planning.",
+        "First unit: Material parameters/history -> direct evaluate -> previous-result comparison -> save/reopen, with one owner/common GUI-MCP commands/Undo/invalid draft.",
+        "Elastic and Neo-Hooke are connection checks, not yield-case acceptance; retain J2/DP extension and qualification gates.",
+        "Pin exact input, curve and diagnostics used for comparison/adoption/holdout; do not retain every exploratory curve forever.",
+        "Handoff three tasks: document/common commands, result persistence, reference UI connection; INTERRUPTED reexecution is a new attempt."
+      ],
+      "integration_status": "INCORPORATED_IN_PLAN_AND_PAGES",
+      "pages": [
+        {
+          "page_id": "page_d99abd5a046c8191b16263e448c8d8ee",
+          "sequence_before": 6,
+          "sequence_after": 7,
+          "applied_operations": 1,
+          "bad_receipts": [],
+          "preserved_existing_blocks": 321,
+          "changed_or_missing_existing": [],
+          "preview_checked": false
+        },
+        {
+          "page_id": "page_e314876e22bc8191b562de881de7f3b6",
+          "sequence_before": 11,
+          "sequence_after": 12,
+          "applied_operations": 1,
+          "bad_receipts": [],
+          "preserved_existing_blocks": 124,
+          "changed_or_missing_existing": [],
+          "preview_checked": false
+        }
+      ],
+      "evidence": {
+        "path": "artifacts/product-plan-20261011/page-changes-pro01.json",
+        "sha256": "b31efa6c6a381f9d2e9490570bc978ce91ab7cd43d69dc89f9dcf85407ea53d6",
+        "git_ignored": true
+      },
+      "product_execution_added": false
+    }
   ]
 }

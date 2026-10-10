@@ -263,6 +263,46 @@ Elasticity E/ν·영 초기상태·Linux `.so`/Singularity 경로이므로 Windo
 6. GUI와 MCP가 같은 열린 문서에 순차 명령을 보내 같은 값·진단을 읽는다. 오래된
    generation의 변경은 충돌로 남고, GUI에서 invalid draft를 고쳐 다시 평가한다.
 
+### 첫 작업 단위와 구현 인계
+
+P1 전체 중 가장 먼저 끝낼 단위는 **Material 계수·이력 편집→직접 평가→이전 결과
+비교→저장·재열기**다. 아래 세 작업으로 인계한다. Data/Numerical/Runner/Expert와
+두 업무의 범위를 없애거나 마지막으로 미루는 뜻이 아니다. 첫 단위를 연결한 뒤 같은
+P1에서 앞 절의 자료·동정·실패·채택·실행·자문 흐름을 이어서 완성한다.
+
+| 순서 | 구현 책임과 코드 대상 | 종료 장면과 판정 |
+|---|---|---|
+| 1 문서와 공통 명령 | 신규 제안 `caelab/material_document.py`에 Material owner와 draft/revision 저장, `caelab/document_commands.py`에 대상·generation·중복 명령/충돌 관문. 기존 `storage.py`의 atomic JSON 쓰기를 재사용하되 여러 산출물의 일괄 게시를 이미 지원한다고 가정하지 않음. HTTP·MCP는 기존 `workbench_routes.py`/`workbench_client.py`/`workbench_mcp.py`를 같은 owner로 연결 | GUI와 MCP가 같은 계수·이력 변경을 읽음. stale 명령은 거절. invalid 원문과 진단을 저장·재열기하고 수정/Undo 가능. 잘못된 필수 입력의 실행은 차단 |
+| 2 평가와 결과 보존 | 기존 `evaluation.prepare/evaluate/save_evaluation/read_result`와 `material.felupe` 호출. 평가 시작의 정확한 law/settings/values·입력 revision과 producer를 고정. 기존 `JobManager`/Workbench 제출·조회와 연결하고 새 scheduler를 만들지 않음 | E를 바꾼 실제 두 응답과 이전 입력을 함께 확인. 편집 도중 도착한 결과는 자기 입력에 연결되고 현재 결과로 자동 채택하지 않음. 비교/채택/holdout에 쓴 입력·곡선·진단은 다시 열 수 있음 |
+| 3 참조 화면에 연결 | 신규 후보 `apps/research/material_window.py`: MCalibration의 시험 목록·계수표·큰 관측/예측 곡선·실행 출력을 유지하고 위 공통 명령만 호출. 기존 Windows 설치/시작·수치 패키지를 재사용하고 Research UI 의존성과 직접 진입은 추가 검증 | 실제 계수/이력 입력·선택·오류 위치·Undo·Run Once·결과 비교·File Save/Close/Open을 이어 수행. 같은 문서를 MCP로 수정했을 때 같은 화면 값. 캡처만 비슷한 mockup은 통과하지 않음 |
+
+첫 입력은 기존 탄성 기준을 사용한다. `material.felupe/linear_elastic`, E=1000MPa,
+ν=0.25, 시간 [0,1,2]s, F=diag(1+ε,1,1), ε=[0,0.001,0.002]에서 σxx는
+[0,1.2,2.4]MPa다. E=1500MPa로 바꾸면 [0,1.8,3.6]MPa다. 기존 기준의 허용치를
+유지한다. **횡변형이 구속된 규정 변형 이력**이며 측면 자유 인장이나 항복 검증으로
+표시하지 않는다. 다른 열 배치·시간/이력의 두 번째 자료는 P1 전체 통과에 필수다.
+
+Material owner가 `set_parameters`, `set_history`, `undo/redo`, `evaluate`,
+`retain_result`, `save/open`의 의미를 소유한다. 이름은 구현할 공통 명령의 제안이며
+현재 노출된 MCP 도구가 아니다. 계수/이력 변경과 후보 채택을 Undo할 수 있지만
+계산 결과·job을 삭제하거나 재실행하지 않는다. invalid draft는 원 편집값과 진단을
+보존하고 실행 입력은 유효한 snapshot만 사용한다. 저장 후 열기 자체로 계산하지 않는다.
+결과 비교는 단위·성분·위치·frame·응력 measure와 축 의미를 확인한다. 현재 linear
+elastic의 infinitesimal Cauchy와 neo-Hooke의 first Piola 응력을 이름이 같다는 이유로
+겹쳐 차이를 계산하지 않는다. 변환은 명시된 분석으로 별도 기록해야 한다.
+
+가벼운 직접 평가는 기존 메모리 API를 유지한다. 비교·채택·holdout·보고의 근거가 된
+결과는 그 시점의 입력, 실제 곡선, 진단, adapter/library 버전과 hash를 **사용하는 시점에
+보존**하고 문서가 정확한 참조를 갖는다. 단순 탐색 후보는 기존 요약/실패 원장을 유지하며
+모든 곡선을 무조건 영구 저장하지 않는다. 상세 곡선이 없는 후보의 추가 평가는 별도
+evaluation/attempt로 표시하고 원 후보 실행을 재현한 결과와 혼동하지 않는다.
+
+J2/DP는 기존 registry→adapter의 law/상태/접선/응답 계약에 연결할 확장이다. 지원을
+등록하기 전에는 명시적 미지원이며 탄성 계산으로 자동 대체하지 않는다. 사례 A의
+정확한 variant·부호/유동/경화·재료점 경로/제하 기준·동일 FE 비교를 별도로 통과해야
+한다. 첫 탄성 연결의 성공은 A의 항복/불량 검증이 아니다. Runner의 `INTERRUPTED`는
+기존 입력·로그·부분 결과를 여는 상태로 남기고 명시 재실행은 새 attempt로 기록한다.
+
 ## 7. 검토와 현재 상태
 
 이 기획은 [실제 ChatGPT Pro 대화](https://chatgpt.com/c/6aca5116-b90c-83ee-82fb-1b0299a87fd3)에서
