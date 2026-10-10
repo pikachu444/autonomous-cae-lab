@@ -1,3 +1,12 @@
+## 2026-10-10 — R02 reference UI handoff
+
+Current source is `af2f084dea20562b9036976a9945ee09a3994236`, locally committed and
+unpushed, with no exact-source CI run. The two URLs below now serve R02. Copies,
+source ZIP and actual captures are in `artifacts/engineering-ui-20261010-r02/`;
+bounded evidence is `benchmarks/records/20261010-engineering-browser-studies-r02.json`.
+The user asked to see the capability demonstration and was explicitly told it is
+a browser study; a desktop executable has not been built. Preserve both R01/R02.
+
 ## 2026-10-10 — Current browser UI handoff
 
 Source `cf06f39c490b8602d3115ba3e976852dfd1ed74d` implements separate Abaqus and

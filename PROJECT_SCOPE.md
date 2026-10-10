@@ -1,3 +1,11 @@
+## 2026-10-10 — Reference UI fidelity correction
+
+R02 source `af2f084dea20562b9036976a9945ee09a3994236` corrects the rejected first
+screens and two HyperMesh state defects. Actual browser checks and independent
+source/reference review are recorded in `benchmarks/records/20261010-engineering-browser-studies-r02.json`.
+This remains a local web demonstration, not desktop packaging or completion of
+the 52 requirements. Native/product acceptance and engineering release remain open.
+
 ## 2026-10-10 — Reference application UI status
 
 The requested Abaqus 2026 / HyperMesh 2026 browser studies are implemented and

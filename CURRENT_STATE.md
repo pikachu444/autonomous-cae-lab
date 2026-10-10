@@ -1,3 +1,15 @@
+## 2026-10-10 — Reference UI R02 shown to user
+
+Source `af2f084dea20562b9036976a9945ee09a3994236` improves toolbar artwork/density,
+trees and HyperMesh split views after the user's rejection of the first screens.
+It also fixes cross-dataset selection, saved result components, compact legend/query
+clipping and camera inertia. TypeScript/build/design scan pass; Root performed the
+browser checks, and independent review confirmed its two source findings resolved.
+Exact-source CI has no runs; source is unpushed. Input hashes are unchanged, with
+zero new solver runs. See `benchmarks/records/20261010-engineering-browser-studies-r02.json`.
+Both live studies and actual images were shown. Desktop packaging and native
+product/engineering acceptance remain unfinished; this is a capability demonstration.
+
 ## 2026-10-10 — Abaqus / HyperMesh browser studies
 
 The user's two-product browser UI request is implemented at local source commit

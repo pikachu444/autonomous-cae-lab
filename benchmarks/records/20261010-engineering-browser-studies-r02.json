@@ -1,0 +1,193 @@
+{
+  "record_id": "20261010-engineering-browser-studies-r02",
+  "date": "2026-10-10",
+  "source_commit": "af2f084dea20562b9036976a9945ee09a3994236",
+  "branch": "codex/ui-interaction-design-20261010",
+  "publication": "LOCAL_UNPUSHED",
+  "predecessor": "20261010-engineering-browser-studies-r01",
+  "exact_source_ci": null,
+  "upstream_submodule": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "scope": "Visual fidelity correction of two local browser studies following user rejection of R01; not desktop executables or native product acceptance.",
+  "changes": [
+    "Original reference icon regions inside working controls; no full-screen reference image overlay",
+    "Abaqus compact three-row toolbar, classic tree, module-specific menus, camera-linked axes and compass",
+    "HyperMesh Assembly ribbon, full-height browser, independent assembly/result viewports and retained spatial scatter",
+    "Aspect-correct framing and unlit contour colors",
+    "Cross-dataset selection/Isolate corrected; resultField saved and restored by browser reload and Undo/Redo",
+    "Compact legend and query table fully visible; orbit inertia cleared before exact camera presets"
+  ],
+  "checks": {
+    "typescript": "PASS npm run check",
+    "bundle": "PASS npm run build:references",
+    "scoped_design_detector": "PASS exit 0",
+    "diff_check": "PASS",
+    "first_pass_sizes": [
+      "1280x720",
+      "1440x900",
+      "1920x1080"
+    ],
+    "final_confirmation": "1280x720 both studies; HyperMesh 1440x900",
+    "browser_console_errors_warnings": [],
+    "actual_browser_flows": [
+      "HyperMesh node331 Uz -0.00004583890 mm",
+      "Abaqus node331 Uz -0.00004583890 mm",
+      "HyperMesh left camera drag leaves right result camera unchanged",
+      "HyperMesh pane width475/477 to544/408 and result height241 to277",
+      "HyperMesh Support Left hide and restore",
+      "Abaqus material count1 to2 thenUndo to1",
+      "HyperMesh assembly selection then right Fit clears cross-dataset selection; Isolate disabled",
+      "HyperMesh Ux then assembly select then reload retains Ux; Uy Undo toUx Redo toUy",
+      "Abaqus query area expands64 to132px; query row bottom657.5 within720px viewport",
+      "HyperMesh 1280 legend scale bottom379 within result pane bottom431",
+      "Abaqus drag then compass reset returns exact original visible XYZ axis endpoints"
+    ],
+    "final_sizes_limit": "No whole-page overflow observed at tested desktop dimensions; smaller/mobile sizes not accepted"
+  },
+  "independent_review": {
+    "reviewer": "ui_correction_review",
+    "scope": "Read-only source and official references versus four first-pass1440/1920 screenshots",
+    "initial_p2": [
+      "Cross-dataset stale selection",
+      "Retained field lost after assembly/reload"
+    ],
+    "confirmation": "Both corrected in source; no additional browser/build run by reviewer",
+    "visual_assessment": "Materially improved and recognizable against both references, with different actual example data and low-resolution Abaqus icon artwork remaining"
+  },
+  "data_origin": {
+    "source_sha256": {
+      "runs\\cae-assembly-conditions-20261006-01\\experiments\\E-assembly-default\\cad\\surface.json": "936d1527a5feb510b25167b7a08f554bf6043adec717fd2c9d60de71d28b16c6",
+      "runs\\desktop-post-20261008-03\\B_200N_U.vtu": "5d451cdb629b1e007356a8e3f0c9997033971ac82da9a810baf9c2d6d039fcbc"
+    },
+    "component_count": 15,
+    "display_triangles": 13532,
+    "result_nodes": 9155,
+    "result_elements": 5319,
+    "result_boundary_triangles": 8360,
+    "solver_executions": 0,
+    "engineering_verdict": "UNKNOWN_NOT_RELEASED"
+  },
+  "input_checks": [
+    {
+      "path": "runs\\cae-assembly-conditions-20261006-01\\experiments\\E-assembly-default\\cad\\surface.json",
+      "sha256": "936d1527a5feb510b25167b7a08f554bf6043adec717fd2c9d60de71d28b16c6",
+      "unchanged": true
+    },
+    {
+      "path": "runs\\desktop-post-20261008-03\\B_200N_U.vtu",
+      "sha256": "5d451cdb629b1e007356a8e3f0c9997033971ac82da9a810baf9c2d6d039fcbc",
+      "unchanged": true
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/abaqus-1280-first.jpg",
+      "bytes": 90280,
+      "sha256": "8a79c4b8b6e55f86e17deca89b2f2e1b04f5b899b2bb66b6ca7a002569509a13"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/abaqus-1440-first.jpg",
+      "bytes": 104635,
+      "sha256": "365ee5978723cc5d450769beb02cf862ef9f9bcbe19a9ceb59f6e9fdefdd12c9"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/abaqus-1920-first.jpg",
+      "bytes": 75108,
+      "sha256": "1fb79142b91991557552a52de4349b5c41cd45ed713b15e17f9548cb9996f768"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/abaqus-before.jpg",
+      "bytes": 102465,
+      "sha256": "3494d259d37392c92f42b59a473126069f01b5899614c6ba2592ec98bfa7e1eb"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/abaqus-final.jpg",
+      "bytes": 90280,
+      "sha256": "8a79c4b8b6e55f86e17deca89b2f2e1b04f5b899b2bb66b6ca7a002569509a13"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/abaqus-query-final.jpg",
+      "bytes": 111141,
+      "sha256": "187cc7f42dc9d1d2a11d17d2930bf2ac4c77c69083edbcae33e62cc091babb73"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/abaqus-query-first.jpg",
+      "bytes": 113906,
+      "sha256": "b065f5dc820fec521bc3e6294a2d68b9dbe46283ceca551db2a1bf7f7001dfcb"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/abaqus-reference-image",
+      "bytes": 70576,
+      "sha256": "4f505eb064656ae9ab0e4d4ad087a5bd4f58d33348040c96a32d8bccf55399aa"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/abaqus.html",
+      "bytes": 6840861,
+      "sha256": "15c53c4538b2e63986d41fd3a9279a9e8b94e01d3e3a8d1f3e33106ca6d63915"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/hypermesh-1280-final.jpg",
+      "bytes": 108541,
+      "sha256": "24fec8d1edb6f32fd01fa72e4c5555cd027291d0c86434d766075c2b73eb0378"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/hypermesh-1280-first.jpg",
+      "bytes": 134452,
+      "sha256": "49991a793310a155a8de9d822f5f1564f4cb9947a50478b51b2eb4f9007a71fd"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/hypermesh-1440-final.jpg",
+      "bytes": 125717,
+      "sha256": "6c8730ff9002e6ad4ba748e41fba0be8590e16d644a017153db917765979797f"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/hypermesh-1440-first.jpg",
+      "bytes": 155895,
+      "sha256": "db793b7478ee73fc237ac672bdcfebb80ce4f86cf81bd41c35d9f72b0546b36a"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/hypermesh-1920-first.jpg",
+      "bytes": 202793,
+      "sha256": "683db28280c25ea13205e7169c4b28cc094f26dbd963d36e84f19105a1dd35cd"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/hypermesh-before.jpg",
+      "bytes": 215034,
+      "sha256": "9e6241828f1f1beb9d91570843044240335925d1c912bacb31d6f71769fa3816"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/hypermesh-final.jpg",
+      "bytes": 154802,
+      "sha256": "4a02871edfa87744e46ecdad1e3043bebda3ebd976c12096dc7c6ae7b3e1afb0"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/hypermesh-reference.png",
+      "bytes": 421154,
+      "sha256": "05393e3b55da634728243153dfbee3f491f2d7564cdb174842c76a8ac5526261"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/hypermesh.html",
+      "bytes": 6840864,
+      "sha256": "7b931baafc5ff21efd015666725b2b96b572abe67c6e22f90b5dd48609cacfa1"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010-r02/reference-ui-source-r02.zip",
+      "bytes": 1180807,
+      "sha256": "6783b02b5afafb5825297de9fee39f1aeb256b2b4cf23f8b7cc406d79e3d1cbe"
+    }
+  ],
+  "retention": "Local ignored artifacts directory; R01 retained separately; source and vendor reference assets committed; no remote durability claimed",
+  "untested": [
+    "Full native CAD/mesh/solver and product engineering acceptance",
+    "R02 export/reimport of new resultField path reviewed in source; full file roundtrip remains R01 evidence",
+    "Full commercial feature parity",
+    "Desktop executable packaging"
+  ],
+  "solver_executions": 0,
+  "engineering_verdict": "UNKNOWN_NOT_RELEASED",
+  "preview": {
+    "port": 8941,
+    "bound_host": "127.0.0.1",
+    "owned_server_pid": 42728
+  },
+  "user_delivery": "Actual images shown and both interactive browser tabs made visible; user explicitly clarified current work is only a capability demonstration."
+}
