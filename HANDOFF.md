@@ -4,7 +4,7 @@ Read [PRODUCT_PLAN](docs/PRODUCT_PLAN.md) first for the agreed product flow,
 reference applications, A/B/C research cases and concrete first implementation.
 Existing numerical/evaluation/Runner/Expert services are reused. Independent
 Data/Material/Plan editing, persistence and live GUI/MCP ownership remain new work.
-The plan is reflected in the main design Page / appendix at sequences 12 / 17;
+The plan is reflected in the main design Page / appendix at sequences 13 / 18;
 affected hashes and unrelated content/media were checked after saving.
 Scheduled Pro review1/10 is received and incorporated: the first implementation
 unit and three handoff tasks are fixed in PRODUCT_PLAN §6. Do not reopen the whole
@@ -36,6 +36,13 @@ material-point increments and FE meshes/increments before attributing difference
 to the law. If coefficient choice or numerical error changes the verdict, defer
 model-family ranking. Preserve existing fit diagnostics and benchmark thresholds;
 the new acceptance scenes have not been run.
+Review6/10 fixes gauge reference points/direction/length or averaging interval and
+zero definition; identical gauge-point translation must give zero extension.
+Keep the physical measurement region consistent across fixture designs. Supported
+clamping cases must retain mounting/clamping/loading/unloading state history even
+when sensors are re-zeroed, with justified equivalent initial states and isolated
+candidates. Save/reopen preserves these definitions, not automatic solver restart.
+The existing fixture CAD prerequisite does not qualify undefined bolt preload.
 
 The user stopped local FreeCAD operation and authorized cloud verification.
 Do not resume local GUI experiments or request monitor activation. Cloud branch

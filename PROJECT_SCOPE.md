@@ -21,6 +21,9 @@ comparison acceptance is still open.
 Review5 adds identifiability, holdout-reuse and numerical-error checks to case A's
 existing P2 model discrimination. This is planned acceptance; no new material
 model, UQ engine, solver qualification or product completion is claimed.
+Review6 makes case B's sensor extraction and mounting/clamping state continuity
+explicit in P2. Current fixture CAD and contact evidence do not close staged
+preload mechanics or their planned physical acceptance.
 
 Cloud FreeCAD geometry, prescribed revolute motion and mesh/face conditions have
 bounded execution evidence. Two exact workflows failed in the verification harness

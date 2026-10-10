@@ -54,6 +54,12 @@ defer model-family ranking when coefficient choices or mesh/increment refinement
 change the conclusion. Existing fit rank/condition and separate holdout behavior
 remain; an affine two-mesh J2 patch does not qualify general DP comparison.
 Pages12/17 preserve all332/132 prior blocks. No new solver or product execution.
+Review6/10 fixes case B's physical gauge definition and mounting/clamping history.
+Rigid translation of both gauge points must produce zero extension; comparisons
+retain the same physical measurement interval. Sensor re-zeroing must preserve
+clamping stress/state/contact history within a candidate, while candidates remain
+isolated. Current fixture evidence leaves preload/fasteners undefined. Pages13/18
+preserve all334/133 prior blocks; staged mechanics remain future acceptance.
 The planning branch remains local. Original scope, historical results and
 UNKNOWN/NOT_RELEASED are preserved. Scheduled Pro review counts are separate in
 `docs/PROGRESS_TASKS.md` and the referenced execution state.
