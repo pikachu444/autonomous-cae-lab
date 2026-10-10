@@ -4,7 +4,7 @@ Read [PRODUCT_PLAN](docs/PRODUCT_PLAN.md) first for the agreed product flow,
 reference applications, A/B/C research cases and concrete first implementation.
 Existing numerical/evaluation/Runner/Expert services are reused. Independent
 Data/Material/Plan editing, persistence and live GUI/MCP ownership remain new work.
-The plan is reflected in the main design Page / appendix at sequences 10 / 15;
+The plan is reflected in the main design Page / appendix at sequences 11 / 16;
 affected hashes and unrelated content/media were checked after saving.
 Scheduled Pro review1/10 is received and incorporated: the first implementation
 unit and three handoff tasks are fixed in PRODUCT_PLAN §6. Do not reopen the whole
@@ -23,6 +23,12 @@ fixture design/support/clamping changes, remesh/revalidate, and baseline/changed
 design comparison leading to adopt/hold. Reuse current regression influence with
 its sample/range/rank/condition limits; do not label it global Sobol sensitivity.
 These are planned product acceptance gates, not new executed benchmarks.
+Review4/10 fixes the ranking cohort/mask/weight/normalization and missing-response
+policy before evaluation, preserving existing fit behavior and explicit penalty
+semantics. It also requires a validated common basis/location/association before
+vector/tensor differences. Test a candidate missing its largest-error segment and
+the same tensor expressed in two bases; missing transform information must block
+differences. Product/source behavior was not changed or newly executed.
 
 The user stopped local FreeCAD operation and authorized cloud verification.
 Do not resume local GUI experiments or request monitor activation. Cloud branch

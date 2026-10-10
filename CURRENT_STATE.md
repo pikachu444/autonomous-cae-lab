@@ -43,6 +43,11 @@ baseline/design comparison through adopt/hold. The existing run_doe and
 analyze_candidates source was inspected; normalized least-squares influence is
 not global Sobol sensitivity or causal proof. Pages10/15 were read back with all
 328/128 previous blocks preserved. No product code or new numerical run was added.
+Review4/10 clarifies fixed scoring cohorts and coordinate-basis admission for
+vector/tensor comparison. Existing fit mask/finite-response/failure-penalty source
+was inspected and retained; general product comparison remains to implement.
+Pages11/16 preserve all330/130 prior blocks. The missing-error-segment and rotated
+same-tensor acceptance scenes are planned checks, not new numerical evidence.
 The planning branch remains local. Original scope, historical results and
 UNKNOWN/NOT_RELEASED are preserved. Scheduled Pro review counts are separate in
 `docs/PROGRESS_TASKS.md` and the referenced execution state.
