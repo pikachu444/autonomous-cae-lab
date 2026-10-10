@@ -1,3 +1,13 @@
+## 2026-10-10 — Current browser UI handoff
+
+Source `cf06f39c490b8602d3115ba3e976852dfd1ed74d` implements separate Abaqus and
+HyperMesh reference workspaces. Current evidence and next gates are recorded in
+`CURRENT_STATE.md` and `benchmarks/records/20261010-engineering-browser-studies-r01.json`.
+Owned preview server PID 42728 serves `docs/ui-prototype/dist` on 127.0.0.1:8941.
+`npm run build:references` regenerates the two offline HTML files. These are
+locally committed browser studies; native execution and product acceptance are
+unfinished. No push, merge or new numerical verification was performed.
+
 ## 2026-10-10 UI design correction checkpoint
 
 Interactive synthetic UI source is preserved at `85c1c00c396e992263a41f883dd6883ff5c3eb79`

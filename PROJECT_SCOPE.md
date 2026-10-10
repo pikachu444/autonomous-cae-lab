@@ -1,3 +1,11 @@
+## 2026-10-10 — Reference application UI status
+
+The requested Abaqus 2026 / HyperMesh 2026 browser studies are implemented and
+checked at source `cf06f39c490b8602d3115ba3e976852dfd1ed74d`. See the bounded UI
+acceptance record `benchmarks/records/20261010-engineering-browser-studies-r01.json`.
+This does not complete the 52-section product inventory or replace native/Core
+acceptance. All original requirements remain; engineering status is UNKNOWN/NOT_RELEASED.
+
 ## 2026-10-10 UI design correction checkpoint
 
 Interactive synthetic UI source is preserved at `85c1c00c396e992263a41f883dd6883ff5c3eb79`

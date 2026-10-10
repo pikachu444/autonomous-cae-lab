@@ -1,0 +1,203 @@
+{
+  "record_id": "20261010-engineering-browser-studies-r01",
+  "date": "2026-10-10",
+  "source_commit": "cf06f39c490b8602d3115ba3e976852dfd1ed74d",
+  "branch": "codex/ui-interaction-design-20261010",
+  "publication": "LOCAL_UNPUSHED",
+  "product_baseline": "a10f2023a2084512839b5e0af8ab0adc0aeb9293",
+  "upstream_submodule": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "scope": "Two separately navigable browser interface studies following Abaqus 2026.HF2 and HyperMesh 2026 official screens; not commercial feature parity or product release.",
+  "reference_sources": [
+    "https://3dswym.3dexperience.3ds.com/post/simulia-community/eroding-contact-defined-in-abaqus-cae_ImFO0rT6SOmN10CCcKq8Sw",
+    "https://help.altair.com/hwdesktop/hwx/topics/chapter_heads/workspace_r.htm"
+  ],
+  "data_origin": {
+    "source_sha256": {
+      "runs\\cae-assembly-conditions-20261006-01\\experiments\\E-assembly-default\\cad\\surface.json": "936d1527a5feb510b25167b7a08f554bf6043adec717fd2c9d60de71d28b16c6",
+      "runs\\desktop-post-20261008-03\\B_200N_U.vtu": "5d451cdb629b1e007356a8e3f0c9997033971ac82da9a810baf9c2d6d039fcbc"
+    },
+    "component_count": 15,
+    "display_triangles": 13532,
+    "result_nodes": 9155,
+    "result_elements": 5319,
+    "result_boundary_triangles": 8360,
+    "solver_executions": 0,
+    "engineering_verdict": "UNKNOWN_NOT_RELEASED"
+  },
+  "checks": {
+    "typescript": "PASS npm run check",
+    "bundle": "PASS npm run build:references",
+    "scoped_design_detector": "PASS []",
+    "browser_viewports": [
+      [
+        1280,
+        720
+      ],
+      [
+        1440,
+        900
+      ],
+      [
+        1920,
+        1080
+      ]
+    ],
+    "whole_page_overflow": "none observed",
+    "console_errors_warnings": "none observed",
+    "source_hashes": "unchanged",
+    "new_solver_executions": 0,
+    "native_cad_edits": 0,
+    "native_mesh_generations": 0
+  },
+  "browser_observations": [
+    "Abaqus module-specific toolbar/menu changes; invalid material input blocks Apply; valid material Undo/Redo.",
+    "Abaqus base U1 condition draft saved without arbitrary load arrows; JSON save/new/reopen restores material and condition.",
+    "Abaqus tree panel pointer resize 228 to 293 px; exploded display 0.55 and z section clipping visibly change assembly display.",
+    "Abaqus Submit Job reports missing connection without fabricating a run.",
+    "HyperMesh selected component hide/restore; actual Support Left bounds x[-48,-16], y[-20,20], z[12,38] mm; browser width 254 to 314 px.",
+    "HyperMesh three materials and two conditions remain separate; draft target SupportRight persists after selecting Base.",
+    "HyperMesh JSON save/new/reopen restores definitions; materials:[null] and names:null imports each rejected while three existing materials remain.",
+    "Both apps queried node331 Uz=-4.58389e-5 mm; direct HyperMesh viewport click selected node2957 Uz=-8.17496e-7 mm. Both match original VTU arrays.",
+    "Abaqus node302 table selection creates a distinct plot marker outside the background sampled scatter.",
+    "HyperMesh Query preserves the already selected Uz field and deformation settings after final correction."
+  ],
+  "independent_review": {
+    "method": "Read-only source and screenshots, not independently executed browser actions",
+    "initial_material_findings": 5,
+    "findings_corrected": 5,
+    "remaining_in_reviewed_scope": 0,
+    "scope": "Final four 1440/1920 assembly screenshots and three result/query screenshots; no native/commercial parity verdict.",
+    "later_root_check": "Same-dataset Query field reset fixed and browser-confirmed after independent correction closure."
+  },
+  "ci": {
+    "exact_source_runs": [],
+    "source_ci_verdict": "NOT_RUN_LOCAL_UNPUSHED",
+    "baseline_run_id": 37789173095,
+    "baseline_conclusion": "failure",
+    "baseline_is_new_solver_evidence": false
+  },
+  "bundles": [
+    {
+      "path": "artifacts/engineering-ui-20261010/abaqus.html",
+      "bytes": 6162339,
+      "sha256": "637d934c5e5ca3b93ff4517400542021b7d72d9850109ea95d8aafc59af4fc43"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/hypermesh.html",
+      "bytes": 6162342,
+      "sha256": "dc1f4eb77a3a9029d7e022566e42c576a1fa38d218b7d02ece4e8493fcaca16e"
+    }
+  ],
+  "archive": {
+    "path": "artifacts/engineering-ui-20261010/Abaqus-HyperMesh-2026-browser-studies.zip",
+    "bytes": 4359305,
+    "sha256": "057ede4abd40027edd360fc46320629e52cffb7adc259c862cc5dabb39a93354"
+  },
+  "screenshots": [
+    {
+      "path": "artifacts/engineering-ui-20261010/abaqus-assembly-1440-final.jpg",
+      "bytes": 102465,
+      "sha256": "3494d259d37392c92f42b59a473126069f01b5899614c6ba2592ec98bfa7e1eb"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/abaqus-assembly-1440.jpg",
+      "bytes": 102450,
+      "sha256": "56e4920d7f8a8b6d0a116081d6068c38cab58beda969450dfb419f622ccea634"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/abaqus-assembly-1920-final.jpg",
+      "bytes": 127680,
+      "sha256": "79ee25563d0b42f3239f88c99fc4120bcf8887ea4eb2f5419181e3e9a3c3c45e"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/abaqus-assembly-1920.jpg",
+      "bytes": 127801,
+      "sha256": "464f52a87776fde3851b756b5f01e41fe839eb02a6d4faee825f26105abd449c"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/abaqus-default-1280-final.jpg",
+      "bytes": 83961,
+      "sha256": "a416c501cb7ceecbbde57aee477f435138494a13cdcd5ef07b4b380dedbda5ae"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/abaqus-official-reference.jpg",
+      "bytes": 68751,
+      "sha256": "e6ceee56db9ce39969db41649a4a6ffc918c0a38a876544677d91dcc129cfedf"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/abaqus-result-query-1440.jpg",
+      "bytes": 163922,
+      "sha256": "6ad56b874c4f79e04a448475f4a707a5224b873ef01a43a81e88b111d58b8872"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/abaqus-section-explode-1440.jpg",
+      "bytes": 106051,
+      "sha256": "c491d8238f80773ebee6b4d62812efc3a09b5ea27e2e606b0cbc9b01223bf0da"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/abaqus-xy-selection-1440.jpg",
+      "bytes": 137278,
+      "sha256": "05809031d16912a1a567e44a2d341fb4d573d42d33eae23ae416a24c7324bcc9"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/hypermesh-assembly-1440-final.jpg",
+      "bytes": 92325,
+      "sha256": "dd4e125af200e111db767f57c89b494b662e260fb2e60465f5d187449a5d75fb"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/hypermesh-assembly-1440.jpg",
+      "bytes": 92039,
+      "sha256": "5e4b7aeb539118ccaa6a3a705ecc4a0c70bbcc5c3ec3bb3b4347706ea5d49641"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/hypermesh-assembly-1920-final.jpg",
+      "bytes": 106215,
+      "sha256": "341e4f6fc18f4b35cd8b6d890a389911c955c8fc4a800e14ab1efa62ea6617e1"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/hypermesh-assembly-1920.jpg",
+      "bytes": 106076,
+      "sha256": "9b6596d677756c3ed6838316ba657c0be0d0205774b1004bb8bbdfcce38c8c4e"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/hypermesh-default-1280-final.jpg",
+      "bytes": 157840,
+      "sha256": "e5aff309cabf3ae5a7d7c9119fddd8984c2b5ff0c29f4c990af618032f099d8d"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/hypermesh-official-reference.jpg",
+      "bytes": 96127,
+      "sha256": "6483cbacd96aef041cb2b2da136446baa716ded3d2ec06a9373c53054f9633de"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/hypermesh-result-1440-final.jpg",
+      "bytes": 215034,
+      "sha256": "9e6241828f1f1beb9d91570843044240335925d1c912bacb31d6f71769fa3816"
+    },
+    {
+      "path": "artifacts/engineering-ui-20261010/hypermesh-result-query-1440.jpg",
+      "bytes": 214310,
+      "sha256": "2bdb478d387474d3408b7538c212a485c386f3a476d4846a3b5b72e2d4ff4476"
+    }
+  ],
+  "retention": {
+    "source": "Git local commit",
+    "bundles_screenshots": "Local artifacts/engineering-ui-20261010, ignored by Git",
+    "owned_preview_server": {
+      "pid": 42728,
+      "address": "127.0.0.1",
+      "port": 8941,
+      "directory": "docs/ui-prototype/dist"
+    },
+    "pages_changed": false
+  },
+  "limitations": [
+    "Abaqus full 2026 manual URL unavailable; actual official 2026.HF2 screen used.",
+    "Native CAD kernel, remeshing, commercial solver, full command set and shortcut parity not implemented.",
+    "Model and result are retained files; draft definitions never recalculate the retained result.",
+    "Plots are node/spatial displays, not invented time histories.",
+    "Browser JSON is not native .cae or .hm; no whole-product or engineering acceptance."
+  ],
+  "next_acceptance_gate": "Connect reviewed product functions to existing native/Core operations and verify complete engineering workflows separately.",
+  "engineering_verdict": "UNKNOWN_NOT_RELEASED"
+}

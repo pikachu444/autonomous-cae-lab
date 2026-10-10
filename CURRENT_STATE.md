@@ -1,3 +1,14 @@
+## 2026-10-10 — Abaqus / HyperMesh browser studies
+
+The user's two-product browser UI request is implemented at local source commit
+`cf06f39c490b8602d3115ba3e976852dfd1ed74d` (not pushed). Open
+`http://127.0.0.1:8941/abaqus.html` and `/hypermesh.html`, or the self-contained
+HTML files in `artifacts/engineering-ui-20261010/`. Source, actual browser checks,
+five corrected review findings, retained input hashes, exact CI status and
+limitations are in `benchmarks/records/20261010-engineering-browser-studies-r01.json`.
+No new solver/CAD/remesh operation ran. The earlier six-app prototype is not
+product acceptance. Core/native workflows and engineering release remain open.
+
 ## 2026-10-10 UI design correction checkpoint
 
 Interactive synthetic UI source is preserved at `85c1c00c396e992263a41f883dd6883ff5c3eb79`
