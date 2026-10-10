@@ -31,6 +31,11 @@ Review8 separates selected-job and whole-fit/DOE cancellation in the existing P1
 acceptance. Late results retain their original inputs without restarting search;
 the Plan and unrelated runs remain intact. Existing cooperative cancellation is
 reused. Product GUI/MCP execution of these scenes remains NOT_RUN.
+Reviews9/10 close planning handoff after ten actual scheduled Pro replies. The
+product remains a general engineering research toolset; the two first practical
+acceptance workflows include defect research and actual fixture design/change/
+review. They do not cap the ledger or general research scope. First Material
+implementation is NOT_STARTED; all product/physical gates below remain open.
 
 Cloud FreeCAD geometry, prescribed revolute motion and mesh/face conditions have
 bounded execution evidence. Two exact workflows failed in the verification harness

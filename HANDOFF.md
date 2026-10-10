@@ -4,7 +4,7 @@ Read [PRODUCT_PLAN](docs/PRODUCT_PLAN.md) first for the agreed product flow,
 reference applications, A/B/C research cases and concrete first implementation.
 Existing numerical/evaluation/Runner/Expert services are reused. Independent
 Data/Material/Plan editing, persistence and live GUI/MCP ownership remain new work.
-The plan is reflected in the main design Page / appendix at sequences 15 / 20;
+The plan is reflected in the main design Page / appendix at sequences 16 / 21;
 affected hashes and unrelated content/media were checked after saving.
 Scheduled Pro review1/10 is received and incorporated: the first implementation
 unit and three handoff tasks are fixed in PRODUCT_PLAN §6. Do not reopen the whole
@@ -61,6 +61,11 @@ planning changes. Use the fixed MCalibration reference and existing interaction
 acceptance during implementation, including committed table values reaching Run
 Once and preserved input/result correspondence after a new-process reopen.
 No Page or product-source change followed this report-based review.
+Review10/10 closes planning handoff. The product is a general engineering research
+toolset; defect research and pre-build fixture design/modification/review are the
+first practical acceptance workflows, not a scope ceiling. The first Material
+unit remains NOT_STARTED. Follow the three already-defined implementation tasks;
+future changes need implementation findings or a concrete new requirement.
 
 The user stopped local FreeCAD operation and authorized cloud verification.
 Do not resume local GUI experiments or request monitor activation. Cloud branch
@@ -75,14 +80,15 @@ Exact reports, retained hashes, limitations and next gates:
 branch was pushed; the current planning/UI branch remains local and unmerged.
 No new product GUI, Core interface, structural solver or release acceptance is claimed.
 
-The active user-requested progress checks continue: actual Pro every 30 minutes,
-10 scheduled reviews from 2026-10-10 16:24:57 UTC. Check
-[PROGRESS_TASKS](docs/PROGRESS_TASKS.md) and ignored
-`runs/pro-progress-review-20261011/state.json` at each work bundle. Initial progress
-advice was received separately; do not count it as one of the scheduled ten.
-The user rejected more scheduling-tool work; no automation creation is confirmed.
-Next: assess remaining implementation decisions through those reviews, not further
-FreeCAD button tests or another synthetic web mockup. Preserve user attachments.
+The user-requested 30-minute review cycle is complete: ten actual Pro sends and
+replies, from the 2026-10-10 16:24:57 UTC request through review10 at21:25 UTC.
+[PROGRESS_TASKS](docs/PROGRESS_TASKS.md), the public acceptance record and ignored
+`runs/pro-progress-review-20261011/state.json` retain each review and integration.
+Initial progress advice is separate from these ten. No further review is scheduled;
+the user rejected scheduling-tool work and no automation creation is confirmed.
+Next authorized implementation should start the Material tasks in PRODUCT_PLAN §6.
+Preserve all broader requirements and user attachments. Planning completion does
+not complete the product or authorize resuming the stopped local FreeCAD session.
 
 ## 2026-10-11 — Domain boundary correction handoff
 

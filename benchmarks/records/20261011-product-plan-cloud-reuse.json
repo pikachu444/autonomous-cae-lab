@@ -837,6 +837,101 @@
       ],
       "pages_changed": false,
       "product_execution_added": false
+    },
+    {
+      "round": 10,
+      "sent_observed_at_utc": "2026-10-10T21:25:11.732895Z",
+      "reply_recorded_at_utc": "2026-10-10T21:28:39.045823Z",
+      "review_scope": "Final handoff verdict from the supplied report only; Pro did not newly verify files, Pages, CI, execution or UI.",
+      "adopted_findings": [
+        "Describe the product as a general engineering research toolset whose first practical acceptance covers defect-hypothesis research and pre-build fixture design, modification and review; do not narrow its purpose to only two workflows or fixture test feasibility."
+      ],
+      "planning_verdict": "Planning can close and the first Material unit can proceed through the three defined implementation tasks; no redesign blocker found.",
+      "integration_status": "INCORPORATED_IN_PLAN_AND_PAGES",
+      "pages": [
+        {
+          "page_id": "page_d99abd5a046c8191b16263e448c8d8ee",
+          "sequence_before": 15,
+          "sequence_after": 16,
+          "applied_operations": 2,
+          "bad_receipts": [],
+          "preserved_existing_blocks": 337,
+          "changed_or_missing_existing": [],
+          "receipt_hash_mismatches": [],
+          "target_text_mismatches": [],
+          "preview_checked": false
+        },
+        {
+          "page_id": "page_e314876e22bc8191b562de881de7f3b6",
+          "sequence_before": 20,
+          "sequence_after": 21,
+          "applied_operations": 1,
+          "bad_receipts": [],
+          "preserved_existing_blocks": 135,
+          "changed_or_missing_existing": [],
+          "receipt_hash_mismatches": [],
+          "target_text_mismatches": [],
+          "preview_checked": false
+        }
+      ],
+      "evidence": {
+        "path": "artifacts/product-plan-20261011/page-changes-pro10.json",
+        "sha256": "815bdcae7adf28ce6c37e02db8b37ed2b29f139ddc1ebce9887658ce14a477a5",
+        "git_ignored": true
+      },
+      "product_execution_added": false
     }
-  ]
+  ],
+  "final_review_cycle": {
+    "status": "COMPLETE_PLANNING_HANDOFF_READY",
+    "requested_at_utc": "2026-10-10T16:24:57Z",
+    "interval_minutes": 30,
+    "target_reviews": 10,
+    "actual_sends": 10,
+    "actual_replies": 10,
+    "completed_at_utc": "2026-10-10T21:31:34.731176Z",
+    "initial_progress_advice_counted": false,
+    "supersedes_initial_schedule_status_only": true,
+    "planning_parent_commit": "1769bed538c43ead9f75a29efe493a2c6e9a5580",
+    "scope": "General engineering research toolset; first practical acceptance covers defect-hypothesis research and pre-build fixture design, modification and review.",
+    "first_material_implementation": "NOT_STARTED",
+    "next_implementation_tasks": [
+      "Service-owned Material document and common GUI/MCP commands with draft/Undo",
+      "Existing real FELUPE evaluation and retained input/curve/diagnostic results",
+      "MCalibration-reference Material UI connected to the same owner"
+    ],
+    "pages": [
+      {
+        "page_id": "page_d99abd5a046c8191b16263e448c8d8ee",
+        "sequence": 16,
+        "readback_verified": true,
+        "render_preview_verified": false
+      },
+      {
+        "page_id": "page_e314876e22bc8191b562de881de7f3b6",
+        "sequence": 21,
+        "readback_verified": true,
+        "render_preview_verified": false
+      }
+    ],
+    "product_ui_source_unchanged": "af2f084dea20562b9036976a9945ee09a3994236",
+    "publication_and_ci_readback": {
+      "observed_utc_date": "2026-10-10",
+      "exact_product_ci_runs": [],
+      "latest_cloud_run_id": 38068833629,
+      "latest_cloud_run_commit": "21e9924ce030733163a09d29ac27fba9e5a293a3",
+      "latest_cloud_workflow_conclusion": "failure",
+      "cloud_branch_remote_head": "21e9924ce030733163a09d29ac27fba9e5a293a3",
+      "planning_branch_remote_ref_found": false
+    },
+    "product_execution_added": false,
+    "engineering_release": "UNKNOWN/NOT_RELEASED",
+    "remaining_acceptance": [
+      "First Material document/GUI/MCP and continuous user workflow",
+      "Integrated FreeCAD save/reopen and post-change reference integrity",
+      "Windows native usability and deployment",
+      "Full product, physical and engineering acceptance"
+    ],
+    "further_progress_review_scheduled": false
+  }
 }
