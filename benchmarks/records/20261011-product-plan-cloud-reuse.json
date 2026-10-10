@@ -464,6 +464,50 @@
         "git_ignored": true
       },
       "product_execution_added": false
+    },
+    {
+      "round": 2,
+      "sent_observed_at_utc": "2026-10-10T17:25:37.942524Z",
+      "reply_recorded_at_utc": "2026-10-10T17:35:04.840053Z",
+      "review_scope": "Advice from supplied report and algebraic check only; Pro did not newly inspect links, code, GUI or solver execution.",
+      "adopted_findings": [
+        "Existing local service owns one active Material session per document; GUI and HTTP/MCP attach to that same owner instead of constructing separate editable copies.",
+        "Serialize generation checks and mutations per document, and reject old service sessions after restart.",
+        "Complete required retained assets before publishing committed document references; partial save retains the previous commit and recovery state.",
+        "Durable reopen acceptance terminates the owner process and loads the saved document in a new process without implicit evaluation.",
+        "First unit is planning complete and implementation not started; runtime cross-client edit/Undo and save/restart acceptance remain open."
+      ],
+      "integration_status": "INCORPORATED_IN_PLAN_ADR_CONTRACT_AND_PAGES",
+      "pages": [
+        {
+          "page_id": "page_d99abd5a046c8191b16263e448c8d8ee",
+          "sequence_before": 7,
+          "sequence_after": 9,
+          "applied_operations": 2,
+          "bad_receipts": [],
+          "preserved_existing_blocks": 326,
+          "changed_or_missing_existing": [],
+          "receipt_hash_mismatches": [],
+          "preview_checked": false
+        },
+        {
+          "page_id": "page_e314876e22bc8191b562de881de7f3b6",
+          "sequence_before": 12,
+          "sequence_after": 14,
+          "applied_operations": 3,
+          "bad_receipts": [],
+          "preserved_existing_blocks": 126,
+          "changed_or_missing_existing": [],
+          "receipt_hash_mismatches": [],
+          "preview_checked": false
+        }
+      ],
+      "evidence": {
+        "path": "artifacts/product-plan-20261011/page-changes-pro02.json",
+        "sha256": "81258d716ceb21c4031bee4ba6241d323361cc635c96a31dda1cca31242345cd",
+        "git_ignored": true
+      },
+      "product_execution_added": false
     }
   ]
 }

@@ -262,6 +262,18 @@ PostDocument도 source manifest·의미 metadata·분석 operation·PVSM을 같�
 
 열기 전달은 `{document_uri,document_id,kind,revision,optional_object_id}`로 정확한 저장본을 요청한다. app mismatch·revision 없음·hash mismatch를 숨기지 않는다. 오래된 revision은 읽기전용 열기와 새 working copy 분기를 구분한다. 문서 작성자는 해당 앱, 결과 작성자는 Runner/import adapter, Workbench는 연결만 소유한다.
 
+첫 Material 구현은 기존 로컬 서비스가 문서 owner를 보유하고 GUI와 HTTP/MCP가
+같은 활성 문서/session에 접속한다. 시작기는 동일 store·source·설정의 서비스를
+시작/재사용하며 별도 편집 owner를 GUI/MCP 안에 만들지 않는다. generation 확인과
+변경은 문서별 직렬 처리하고 서비스 재시작 전 session의 명령은 거절한다.
+Workbench 화면과 AI 계정은 필수가 아니다. 이는 ADR0060의 첫 구현 결정이며
+현 서비스가 이미 편집 문서를 공유한다는 뜻이 아니다.
+
+이 단위의 저장 수용은 관련 결과 파일을 완성한 뒤 committed 참조를 게시하고,
+중간 실패 시 이전 저장본/dirty를 유지하는지 확인한다. owner 프로세스를 종료한 뒤
+새 프로세스에서 invalid draft·이전 결과·참조를 재계산 없이 복원해야 한다. 같은
+메모리 owner에 창만 다시 연결하는 것으로 V01/V07/V08의 영속성을 통과시키지 않는다.
+
 ## 8. 실제 검증 시나리오와 수용 기준
 
 V01/V07/V08의 독립 열기·저장·재개·충돌 검사는 각 문서 owner에 적용한다. V06은 Data, V13a는 Material, V13b는 PDE 수용이다. 동일 프로젝트에 CAD 참조가 있어도 독립 연구 문서는 CAD host 없이 편집·저장할 수 있어야 한다. 필요한 참조가 없는 특정 평가만 제한한다. native CAD 왕복은 V02/V11/V12이며 비CAD 문서를 FreeCAD로 이동시키는 검증으로 대체하지 않는다.

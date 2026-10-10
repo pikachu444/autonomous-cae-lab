@@ -21,6 +21,16 @@ GUI/MCP target and revision rules preserve invalid drafts, reject stale requests
 and late responses, and keep numerical policies separate from resource settings.
 These are future live-command acceptance requirements, not newly exposed tools.
 
+For the first Material editor, the existing local service is the proposed sole
+active owner per document; GUI and HTTP/MCP attach to its same document/session.
+Check generation and apply changes serially per document, and reject requests
+from an earlier service session after restart. Do not create a second editable
+owner in the MCP or GUI process. Retained assets must be complete before the
+committed document references are published; partial save must preserve the prior
+commit and report failure. Reopen acceptance terminates the owner and reads the
+saved draft/results in a new process without evaluation. ADR0060 records this
+implementation decision; no new public MCP operation or authority is added.
+
 ## Qualified production startup / handoff contract evidence
 
 Actual e10bb028 startup admits existing approved5.6Sol/OAuth and the seven

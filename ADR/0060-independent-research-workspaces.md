@@ -133,3 +133,31 @@ PREPOST_APP_SPEC §2.1 and §8, including:
 Native CAD/FE and Post plus a shared Research shell is the first packaging
 candidate to test. Executable count/framework remain unselected. No new user
 decision is needed to specify these responsibility and acceptance boundaries.
+
+## First Material implementation: shared owner and durable reopen
+
+The first Material editor will attach to the existing local service, which owns
+one active Material session per document. The Research launcher starts or reuses the
+service for the same store/source/configuration; GUI and HTTP/MCP are clients of
+that same owner. Generation checks and mutations are serialized per document;
+requests from an old service session are rejected after restart. The Workbench
+window and an AI account remain optional. Reuse the current server and thin
+loopback client instead of introducing another transport framework.
+
+Separate GUI/MCP owners with equal document IDs were rejected because they can
+diverge in draft and Undo state. The existing command identifiers alone do not
+prevent that divergence. Current shared job control is a reuse point, not proof
+that editable document ownership already exists.
+
+Required retained input/curve/diagnostic assets are completed and checked before
+publishing the committed document manifest. Partial failure preserves the old
+commit and recoverable draft, and must not report successful save. Reopen
+acceptance terminates the owner process and loads the saved document into a new
+process without implicit evaluation. Reopening a window against the same owner
+is insufficient. Verify cross-client edits/Undo, invalid draft restoration,
+unchanged old results, and save interruption before publication.
+
+This bounded decision follows scheduled Pro review2/10 based on the supplied
+report, not an independent code or runtime test. It refines the implementation
+handoff and GUI/MCP/save gates; no new tool/schema, product code, numerical
+threshold, native acceptance or engineering verdict is introduced.

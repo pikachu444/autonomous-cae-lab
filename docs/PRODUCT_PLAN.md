@@ -276,6 +276,24 @@ P1에서 앞 절의 자료·동정·실패·채택·실행·자문 흐름을 이
 | 2 평가와 결과 보존 | 기존 `evaluation.prepare/evaluate/save_evaluation/read_result`와 `material.felupe` 호출. 평가 시작의 정확한 law/settings/values·입력 revision과 producer를 고정. 기존 `JobManager`/Workbench 제출·조회와 연결하고 새 scheduler를 만들지 않음 | E를 바꾼 실제 두 응답과 이전 입력을 함께 확인. 편집 도중 도착한 결과는 자기 입력에 연결되고 현재 결과로 자동 채택하지 않음. 비교/채택/holdout에 쓴 입력·곡선·진단은 다시 열 수 있음 |
 | 3 참조 화면에 연결 | 신규 후보 `apps/research/material_window.py`: MCalibration의 시험 목록·계수표·큰 관측/예측 곡선·실행 출력을 유지하고 위 공통 명령만 호출. 기존 Windows 설치/시작·수치 패키지를 재사용하고 Research UI 의존성과 직접 진입은 추가 검증 | 실제 계수/이력 입력·선택·오류 위치·Undo·Run Once·결과 비교·File Save/Close/Open을 이어 수행. 같은 문서를 MCP로 수정했을 때 같은 화면 값. 캡처만 비슷한 mockup은 통과하지 않음 |
 
+**첫 단위의 접속과 저장 계약:** 기존 로컬 서비스가 문서마다 활성 Material owner 하나를
+보유한다. Research 시작기는 같은 store·source·설정의 서비스를 시작하거나 재사용하고,
+GUI와 HTTP/MCP는 그 서비스의 동일 문서/session에 연결한다. GUI/MCP 프로세스가
+편집 owner나 Undo를 별도로 만들지 않는다. 문서별 generation 확인과 변경은 서비스에서
+직렬 처리하며 서비스 재시작 후 이전 session의 명령은 거절한다. 이 서비스 사용은
+Workbench 화면이나 AI 계정의 사용을 요구하지 않는다. 기존 `apps/lab/server.py`,
+`caelab/workbench_client.py`, `openscience/workbench_mcp.py`를 확장하는 계획이며
+새 통신 framework나 현재 구현된 문서 명령을 뜻하지 않는다.
+
+저장에는 보존 대상으로 고정한 입력·곡선·진단과 그 참조가 함께 포함된다. 필요한
+파일을 완성·검증한 뒤 committed 문서 manifest를 마지막에 게시한다. 중간 실패는
+저장 성공으로 반환하지 않고 이전 저장본과 dirty/recovery를 유지한다. 통과 장면은
+**owner 프로세스 종료→새 프로세스에서 저장본 열기**까지 포함한다. 같은 메모리 owner에
+창만 다시 연결하는 시험으로 대신하지 않는다. invalid draft·이전 결과·정확한 참조가
+복원되고, 열기 자체로 재계산하지 않아야 한다. 두 계약까지 반영한 첫 단위는
+**기획 완료·구현 미착수**이며, 실제 GUI/MCP 교차 편집·Undo와 저장 중 실패·재시작
+검증이 다음 구현의 수용 조건이다.
+
 첫 입력은 기존 탄성 기준을 사용한다. `material.felupe/linear_elastic`, E=1000MPa,
 ν=0.25, 시간 [0,1,2]s, F=diag(1+ε,1,1), ε=[0,0.001,0.002]에서 σxx는
 [0,1.2,2.4]MPa다. E=1500MPa로 바꾸면 [0,1.8,3.6]MPa다. 기존 기준의 허용치를

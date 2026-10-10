@@ -30,6 +30,13 @@ Scheduled Pro review1/10 closed the first Material edit/evaluate/compare/reopen
 unit, GUI/MCP ownership/Undo/invalid-draft boundary, three implementation tasks,
 result retention at use and separate J2/DP qualification. These were added to the
 existing plan and Pages7/12; this is implementation handoff, not executed product work.
+Scheduled review2/10 then closed the concrete service-owner and durable-save
+contracts in ADR0060, PRODUCT_PLAN, PREPOST_APP_SPEC and the contract explanation.
+GUI/MCP must attach to the same service-owned Material session; document changes
+are serialized and old sessions fail after restart. Required retained assets
+precede committed references, and reopen acceptance must restart the owner process.
+Pages9/14 were read back with all326/126 prior blocks unchanged. The first unit is
+planning complete and implementation not started; no new runtime test was made.
 The planning branch remains local. Original scope, historical results and
 UNKNOWN/NOT_RELEASED are preserved. Scheduled Pro review counts are separate in
 `docs/PROGRESS_TASKS.md` and the referenced execution state.

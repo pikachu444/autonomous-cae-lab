@@ -8,6 +8,10 @@ Data/Material/Numerical/Runner/Expert work does not complete either whole workfl
 The first Material editing/evaluation/reopen unit now has fixed ownership, code
 targets, retention rules and pass scenes. It remains planned implementation and
 does not defer the rest of P1 or satisfy the J2/DP research case.
+Review2 fixes the existing local service as the first Material document owner
+and requires complete retained assets before publication plus owner-process
+restart for durable reopen acceptance. This closes that unit's planning, not its
+implementation or GUI/MCP/persistence acceptance.
 
 Cloud FreeCAD geometry, prescribed revolute motion and mesh/face conditions have
 bounded execution evidence. Two exact workflows failed in the verification harness
