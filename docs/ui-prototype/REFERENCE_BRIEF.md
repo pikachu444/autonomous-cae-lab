@@ -85,7 +85,44 @@ findings in one batch, then confirm. Inspect the two official references beside
 the actual renders. Record actual observations and untested boundaries without
 turning basic interaction checks into a claim of professional feature parity.
 
-## Observed result — 2026-10-10
+## Visual fidelity correction — 2026-10-10
+
+The user rejected the first delivered screens as insufficiently similar. The
+earlier interaction checks and five corrected findings were not visual approval.
+The correction uses the original public reference images above, including exact
+icon regions displayed inside working controls. It aligns toolbar rows, native
+tree density, pane hierarchy and viewport layout with those references.
+
+HyperMesh's reference uses one menu/workspace-tab row, an Assembly ribbon, a
+full-height browser and multiple views. The corrected study retains actual
+assembly and single-support result datasets in separate views. Its plot is an
+actual coordinate/displacement scatter; it does not borrow the reference's
+unrelated crash animation or acceleration histories. Abaqus keeps the classic
+colored toolbar rows, narrow toolbox, recessed controls and compact message area.
+
+These changes improve the requested resemblance without implying full commercial
+functionality. Abaqus source artwork is a 960x510 reference and has limited icon
+resolution. Artifact ownership and URLs are in `src/replicas/reference-assets/README.md`.
+
+The R02 review compared both original images with the actual 1440/1920 renders.
+It found the interfaces recognizably closer and identified two HyperMesh state
+defects: cross-dataset selection affecting Isolate, and result component loss
+after activating the assembly and reloading. Both were corrected and independently
+confirmed in source. Root confirmed the disabled cross-dataset Isolate, Ux
+preservation after assembly selection/reload, and component Undo/Redo in the browser.
+Root also corrected clipped compact legends/query rows and residual camera inertia
+after Fit. The 1280x720 confirmation shows the complete legend and node 331 row.
+
+R02 uses the same retained geometry/displacements. Actual checks covered independent
+view rotation, pane resizing, hide/restore, exact node 331 query in both studies,
+material creation/Undo, TypeScript/build and the scoped design detector. No browser
+errors/warnings were observed. R01 remains the earlier save/reopen and malformed-file
+test evidence; those complete flows were not repeated for R02. The new field's
+file-import path was reviewed in source, with browser reload/Undo tested separately.
+Current artifacts and bounded evidence are under `artifacts/engineering-ui-20261010-r02/`
+and `benchmarks/records/20261010-engineering-browser-studies-r02.json`.
+
+## First delivery observations — 2026-10-10
 
 Two self-contained HTML files build successfully. TypeScript and the scoped
 design detector pass. Actual browser inspection covered 1280x720, 1440x900 and

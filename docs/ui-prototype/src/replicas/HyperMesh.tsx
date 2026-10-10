@@ -47,6 +47,7 @@ import {
   componentBounds,
   resultBounds,
 } from "./model";
+import workspaceReference from "./reference-assets/hypermesh-workspace.png";
 import "./HyperMesh.css";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -91,6 +92,7 @@ type Study = {
   explode: number;
   clip: { enabled: boolean; axis: "x" | "y" | "z"; position: number };
   field: "none" | "magnitude" | "ux" | "uy" | "uz";
+  resultField?: "none" | "magnitude" | "ux" | "uy" | "uz";
   deformation: number;
   showLoads: boolean;
 };
@@ -121,6 +123,7 @@ const fresh = (): Study => ({
   explode: 0,
   clip: { enabled: false, axis: "x", position: 0.5 },
   field: "none",
+  resultField: "uz",
   deformation: 0,
   showLoads: false,
 });
@@ -186,6 +189,7 @@ const isStudy = (v: any): v is Study =>
   typeof v.showLoads === "boolean" &&
   ["shaded", "edges", "wireframe", "transparent"].includes(v.representation) &&
   ["none", "magnitude", "ux", "uy", "uz"].includes(v.field) &&
+  (v.resultField === undefined || ["none", "magnitude", "ux", "uy", "uz"].includes(v.resultField)) &&
   Number.isFinite(v.explode) &&
   v.explode >= 0 &&
   v.explode <= 1 &&
@@ -198,10 +202,14 @@ const isStudy = (v: any): v is Study =>
   Number.isFinite(v.clip.position) &&
   v.clip.position >= 0 &&
   v.clip.position <= 1;
+const withRetainedField = (study: Study): Study => ({
+  ...study,
+  resultField: study.resultField ?? (study.dataset === "result" ? study.field : "uz"),
+});
 const load = () => {
   try {
     const parsed = JSON.parse(localStorage.getItem(key) || "null");
-    return isStudy(parsed) ? parsed : fresh();
+    return isStudy(parsed) ? withRetainedField(parsed) : fresh();
   } catch {
     return fresh();
   }
@@ -235,7 +243,7 @@ const command = (
   shape = 0,
 ): Command => ({ name, action, color, shape });
 const groups: Record<string, Group[]> = {
-  Model: [
+  Assembly: [
     {
       title: "Home",
       commands: [
@@ -385,7 +393,7 @@ const groups: Record<string, Group[]> = {
       ],
     },
   ],
-  Assembly: [
+  Model: [
     {
       title: "Assembly",
       commands: [
@@ -507,270 +515,31 @@ const defaultGroups: Group[] = [
     ],
   },
 ];
-function Glyph({
-  name,
-  color = "#9b9786",
-  shape = 0,
-}: {
-  name: string;
-  color?: string;
-  shape?: number;
-}) {
-  const icons: Record<string, ReactNode> = {
-    Files: (
-      <>
-        <path d="M10 4h19l5 6v23H10z" fill="#edece1" />
-        <path d="M6 12h12l4 4h15l-4 19H4z" fill="#b9a66f" />
-        <path d="M11 21h19M10 26h17" fill="none" />
-      </>
-    ),
-    Measure: (
-      <>
-        <path d="m6 28 25-21 6 7-25 21z" fill="#d6c99f" />
-        <path d="m12 25 3 4m2-8 3 4m2-8 3 4m2-8 3 4" fill="none" />
-        <path d="M4 11h12M4 7v8M16 7v8" stroke="#ae5c4c" />
-      </>
-    ),
-    Move: (
-      <>
-        <path d="M20 21V5m0 16 15 9M20 21 6 28" fill="none" strokeWidth="3" />
-        <path d="m20 3-4 7h8zM38 32l-4-8-4 7zM3 30l9 1-4-7z" fill="#b56951" />
-        <circle cx="20" cy="21" r="4" fill="#d7ceac" />
-      </>
-    ),
-    Organize: (
-      <>
-        <path d="M20 12v8H7v7m13-7h14v7" fill="none" strokeWidth="2" />
-        <rect x="13" y="3" width="15" height="10" fill="#c1b68d" />
-        <rect x="2" y="27" width="12" height="10" fill="#9cb1aa" />
-        <rect x="27" y="27" width="12" height="10" fill="#b47f6a" />
-      </>
-    ),
-    Libraries: (
-      <>
-        <path d="M4 10 20 3l17 8M5 34h32" fill="none" strokeWidth="2" />
-        <path d="M7 12v20h6V12z" fill="#ad7568" />
-        <path d="M16 9v23h6V9z" fill="#a5a783" />
-        <path d="m26 11 6-2 6 21-6 2z" fill="#899eac" />
-      </>
-    ),
-    Renumber: (
-      <>
-        <rect x="3" y="5" width="22" height="17" rx="1" fill="#e0d8bd" />
-        <rect x="16" y="20" width="23" height="16" rx="1" fill="#a2b6b1" />
-        <path d="M7 24v9h5" fill="none" stroke="#b35d4b" strokeWidth="2" />
-        <text x="8" y="18" stroke="none" fill="#5c625c" fontSize="11">
-          12
-        </text>
-        <text x="20" y="32" stroke="none" fill="#354d54" fontSize="11">
-          34
-        </text>
-      </>
-    ),
-    "ID Manager": (
-      <>
-        <rect x="5" y="5" width="31" height="31" fill="#e6e4d9" />
-        <path d="M5 5h31v7H5z" fill="#8da0a4" />
-        <text
-          x="10"
-          y="29"
-          stroke="none"
-          fill="#687c84"
-          fontSize="16"
-          fontWeight="bold"
-        >
-          ID
-        </text>
-      </>
-    ),
-    Match: (
-      <>
-        <path d="M3 9h13v8h7v14H3z" fill="#b87d6b" />
-        <path d="M38 9H25v8h-7v14h20z" fill="#b3b497" />
-        <path d="M10 35h23m-3-3 4 3-4 3" fill="none" stroke="#777f7a" />
-      </>
-    ),
-    Classify: (
-      <>
-        <circle cx="10" cy="11" r="7" fill="#ba8d71" />
-        <rect x="23" y="4" width="14" height="14" fill="#9caeae" />
-        <path d="m11 23 8 14H3z" fill="#a1ad89" />
-        <circle cx="30" cy="29" r="7" fill="#b9a684" />
-        <path d="M20 2v36M2 21h38" stroke="#9ba6a5" strokeDasharray="2 2" />
-      </>
-    ),
-    Parts: (
-      <>
-        <path d="m4 12 17-8 17 8-17 8z" fill="#ccd1c5" />
-        <path d="M4 12v20l17 6V20z" fill="#899ba9" />
-        <path d="m21 20 17-8v20l-17 6z" fill="#657782" />
-        <path d="m16 17 8-4 7 4-7 4z" fill="#eff0e6" />
-        <path d="M24 21v10l7-3V17" fill="#c5c6ba" />
-      </>
-    ),
-    Subsystems: (
-      <>
-        <path d="M20 9v20M8 20h25" fill="none" strokeWidth="2" />
-        <path
-          d="m14 3 7-3 7 4-7 4zM14 3v8l7 4V8M21 8l7-4v8l-7 3"
-          fill="#aab49c"
-        />
-        <rect x="2" y="24" width="13" height="12" fill="#b78272" />
-        <rect x="27" y="24" width="13" height="12" fill="#8fa4ae" />
-      </>
-    ),
-    Mechanism: (
-      <>
-        <path
-          d="M8 31 17 10l17 15"
-          fill="none"
-          stroke="#b18966"
-          strokeWidth="6"
-        />
-        <circle cx="8" cy="31" r="5" fill="#9babb1" />
-        <circle cx="17" cy="10" r="5" fill="#d2cec0" />
-        <circle cx="34" cy="25" r="5" fill="#9babb1" />
-        <path d="M2 38h15M27 32h13" strokeWidth="2" />
-      </>
-    ),
-    Reps: (
-      <>
-        <path d="m4 27 17-8 17 8-17 9z" fill="#849393" />
-        <path d="m4 19 17-8 17 8-17 9z" fill="#b08f7d" />
-        <path d="m4 11 17-8 17 8-17 9z" fill="#d9d7be" />
-      </>
-    ),
-    Controls: (
-      <>
-        <path d="M5 8h32M5 20h32M5 32h32" strokeWidth="2" />
-        <rect x="11" y="3" width="6" height="10" fill="#b87768" />
-        <rect x="27" y="15" width="6" height="10" fill="#a9b29d" />
-        <rect x="15" y="27" width="6" height="10" fill="#8da7ad" />
-      </>
-    ),
-    Scenario: (
-      <>
-        <path d="m3 27 17-7 18 8-17 8z" fill="#a1ac9d" />
-        <path d="M12 2v20M29 2v20" stroke="#ba6954" strokeWidth="3" />
-        <path d="m8 17 4 7 4-7m9 0 4 7 4-7" fill="#ba6954" stroke="#ba6954" />
-        <path d="M6 34v4m8-2v4m13-5v4m8-7v5" />
-      </>
-    ),
-    "Model Update": (
-      <>
-        <path
-          d="m10 14 11-5 11 6-11 6zM10 14v14l11 6V21M21 21l11-6v14l-11 5"
-          fill="#ae9c81"
-        />
-        <path
-          d="M4 23C-1 8 16-1 29 4m8 13c7 14-9 25-22 20"
-          fill="none"
-          stroke="#80998e"
-          strokeWidth="3"
-        />
-        <path d="m25 1 7 5-9 2M18 33l-7 3 6 4" fill="#80998e" />
-      </>
-    ),
-    Verification: (
-      <>
-        <rect x="7" y="5" width="29" height="32" fill="#e4e1cf" />
-        <rect x="14" y="2" width="14" height="6" fill="#98a397" />
-        <path
-          d="m11 23 6 6 14-15"
-          fill="none"
-          stroke="#688a70"
-          strokeWidth="4"
-        />
-      </>
-    ),
-    Comparison: (
-      <>
-        <rect x="2" y="6" width="17" height="28" fill="#d4dcd9" />
-        <rect x="23" y="6" width="17" height="28" fill="#e3d2bf" />
-        <path d="m5 24 5-12 6 7m10 5 5-8 6 3" fill="none" strokeWidth="2" />
-        <path d="M19 17h4m-4 8h4" stroke="#b16b51" strokeWidth="3" />
-      </>
-    ),
+// These crops contain only the original shaded ribbon glyphs, never the workspace.
+const ribbonCrops: Record<string, [number, number]> = {
+  Files: [26, 53], Measure: [98, 53], Move: [162, 53],
+  Organize: [238, 53], Libraries: [307, 53], Renumber: [373, 53],
+  "ID Manager": [438, 53], Match: [507, 53], Classify: [575, 53],
+  Parts: [650, 53], Subsystems: [715, 53], Mechanism: [779, 53],
+  Reps: [858, 53], Controls: [924, 53], Scenario: [997, 53],
+  "Model Update": [1065, 53], Verification: [1162, 53], Comparison: [1234, 53],
+};
+function Glyph({ name }: { name: string; color?: string; shape?: number }) {
+  const aliases: Record<string, string> = {
+    "Open Study": "Files", "Save Study": "Files", "Node Data": "Libraries",
+    Components: "Parts", "Entity Review": "Organize", "Model Checker": "Verification",
+    Materials: "Libraries", Boundary: "Scenario", Display: "Reps",
+    "Table / Plot": "Comparison", Contour: "Comparison", Deform: "Controls",
+    Undeformed: "Reps", Section: "Controls", "View Mesh": "ID Manager",
   };
-  if (icons[name])
-    return (
-      <svg
-        className="hm-ribbon-glyph"
-        viewBox="0 0 42 40"
-        fill="none"
-        stroke="#687772"
-        strokeWidth="1.15"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        {icons[name]}
-      </svg>
-    );
-  return (
-    <svg className="hm-ribbon-glyph" viewBox="0 0 42 40">
-      <defs>
-        <linearGradient
-          id={`hm-${color.replace("#", "")}-${shape}`}
-          x2="1"
-          y2="1"
-        >
-          <stop stopColor="#f6f6e9" />
-          <stop offset="1" stopColor={color} />
-        </linearGradient>
-      </defs>
-      {shape === 3 ? (
-        <>
-          <path
-            d="M7 30 21 18 33 27"
-            fill="none"
-            stroke={color}
-            strokeWidth="4"
-          />
-          <path
-            d="M21 18V5M21 18 5 13M21 18 35 11"
-            stroke="#697b78"
-            strokeWidth="2"
-          />
-          <path d="m21 4-3 6h6zM3 13l6-2-2 6M37 10l-6-1 3 6" fill="#b35245" />
-        </>
-      ) : shape === 2 ? (
-        <>
-          <circle
-            cx="20"
-            cy="20"
-            r="14"
-            fill={`url(#hm-${color.replace("#", "")}-${shape})`}
-            stroke="#6c787b"
-            strokeWidth="2"
-          />
-          <circle cx="20" cy="20" r="6" fill="#fafafa" stroke="#89948f" />
-          <path d="M7 30 34 4" stroke="#b35044" strokeWidth="3" />
-        </>
-      ) : (
-        <>
-          <path
-            d="m6 11 17-7 14 8-17 7z"
-            fill={`url(#hm-${color.replace("#", "")}-${shape})`}
-            stroke="#6f7771"
-          />
-          <path d="M6 11v20l14 7V19z" fill={color} stroke="#626e68" />
-          <path d="M20 19 37 12v19l-17 7z" fill="#67726d" stroke="#606b65" />
-          {shape === 1 ? (
-            <>
-              <path
-                d="m11 9 5-2v27l-5-3zM26 9l5 2v24l-5 2z"
-                fill="#b24f46"
-                stroke="#f6c7b4"
-                strokeWidth=".4"
-              />
-            </>
-          ) : (
-            <path d="m13 17 5 2v9l-5-2zM24 21l7-3v9l-7 3z" fill="#d6d8cc" />
-          )}
-        </>
-      )}
-    </svg>
-  );
+  const crop = ribbonCrops[name] || ribbonCrops[aliases[name]];
+  return crop ? <span aria-hidden="true" className="hm-ribbon-glyph hm-reference-glyph"
+    style={{ backgroundImage: `url(${workspaceReference})`, backgroundPosition: `-${crop[0]}px -${crop[1]}px` }} />
+    : <span aria-hidden="true" className="hm-ribbon-glyph hm-tool-glyph"><Box size={32} strokeWidth={1} /></span>;
+}
+function TreeGlyph({ category }: { category: string }) {
+  const rows: Record<string, number> = { components: 298, materials: 280, conditions: 425, outputs: 459 };
+  return <span className="hm-tree-glyph" aria-hidden="true" style={{ backgroundImage: `url(${workspaceReference})`, backgroundPosition: `-43px -${rows[category] ?? 298}px` }} />;
 }
 function Label({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -812,7 +581,7 @@ function NodePlot({
         customdata: resultNodes.map((n) => n.id),
         type: "scatter",
         mode: "markers",
-        marker: { size: 3, color: "#2275a2" },
+        marker: { size: 2.5, color: "#245ad8", opacity: 0.65 },
         name: "Retained nodes",
         hovertemplate:
           "Node %{customdata}<br>x %{x:.6g}<br>Uz %{y:.6g}<extra></extra>",
@@ -835,13 +604,16 @@ function NodePlot({
         paper_bgcolor: "#fff",
         plot_bgcolor: "#fff",
         font: { family: "Arial", size: 10 },
-        margin: { l: 57, r: 12, t: 17, b: 37 },
+        title: { text: `Retained nodal displacement [${resultInfo.unit}]`, font: { size: 16 } },
+        margin: { l: 62, r: 18, t: 42, b: 47 },
         xaxis: {
-          title: { text: "x · retained coordinate" },
+          title: { text: "Node coordinate x [mm]" },
+          linecolor: "#333", showline: true, mirror: true, zeroline: false,
           gridcolor: "#e0e4e7",
         },
         yaxis: {
-          title: { text: `Uz [${resultInfo.unit}]` },
+          title: { text: `Displacement Uz [${resultInfo.unit}]` },
+          linecolor: "#333", showline: true, mirror: true, zeroline: false,
           gridcolor: "#e0e4e7",
         },
         showlegend: false,
@@ -873,14 +645,20 @@ function NodePlot({
 
 export default function HyperMesh() {
   const [study, setStudy] = useState<Study>(load),
-    [tab, setTab] = useState("Model"),
+    [tab, setTab] = useState("Assembly"),
     [panel, setPanel] = useState<Panel>("properties"),
     [search, setSearch] = useState(""),
     [filter, setFilter] = useState("All"),
     [menu, setMenu] = useState<string | null>(null),
-    [browserWidth, setBrowserWidth] = useState(254),
+    [browserWidth, setBrowserWidth] = useState(() => Math.min(340, Math.max(220, Math.round(window.innerWidth * 0.167)))),
     [browserHeight, setBrowserHeight] = useState(320),
     [resultsOpen, setResultsOpen] = useState(false),
+    [workspaceMode, setWorkspaceMode] = useState<"single" | "split">("split"),
+    [editorOpen, setEditorOpen] = useState(false),
+    [lowerView, setLowerView] = useState<"plot" | "table">("plot"),
+    [splitWidth, setSplitWidth] = useState(50),
+    [resultHeight, setResultHeight] = useState(50),
+    [resultCamera, setResultCamera] = useState<{name: "fit" | "iso" | "front" | "top" | "right" | "zoomIn" | "zoomOut"; tick: number}>({ name: "iso", tick: 0 }),
     [node, setNode] = useState<NodeData | null>(null),
     [nodeId, setNodeId] = useState(""),
     [probeMode, setProbeMode] = useState(false),
@@ -949,8 +727,18 @@ export default function HyperMesh() {
       setMessage("Redo");
     }
   };
-  const view = (name: typeof camera.name) =>
-    setCamera((previous) => ({ name, tick: previous.tick + 1 }));
+  const resultField = study.resultField ?? "uz";
+  const view = (name: typeof camera.name, dataset = study.dataset) =>
+    (workspaceMode === "split" && dataset === "result" ? setResultCamera : setCamera)
+      ((previous) => ({ name, tick: previous.tick + 1 }));
+  const activate = (dataset: Study["dataset"]) => {
+    // Selection follows its dataset; definition targets remain pinned separately.
+    if (study.dataset !== dataset) change((s) => ({
+      ...s, dataset,
+      selected: s.selected.filter((id) => (id === "result-support") === (dataset === "result")),
+      field: dataset === "result" ? resultField : "none",
+    }));
+  };
   const select = (id: string, additive = false) => {
     if (!id) {
       change((s) => ({ ...s, selected: [] }));
@@ -965,6 +753,7 @@ export default function HyperMesh() {
           : [...previous.selected, id]
         : [id],
     }));
+    setEditorOpen(true);
     if (panel !== "material" && panel !== "condition") setPanel("properties");
     setMessage(`Selected ${id}`);
   };
@@ -973,7 +762,7 @@ export default function HyperMesh() {
       ? components.map((c) => c.id)
       : ["result-support"];
   const entities =
-    study.dataset === "assembly"
+    workspaceMode === "split" || study.dataset === "assembly"
       ? components
       : [
           {
@@ -985,7 +774,8 @@ export default function HyperMesh() {
             triangles: 0,
           },
         ];
-  const selectedEntity = entities.find((c) => c.id === study.selected[0]);
+  const retainedEntity = { id: "result-support", name: "Retained support mesh", color: "#80999a", kind: "retained finite element result", faces: 0, triangles: 0 };
+  const selectedEntity = [...components, retainedEntity].find((c) => c.id === study.selected[0]);
   const switchDataset = (dataset: Study["dataset"]) => {
     if(dataset === study.dataset) return;
     change((previous) => ({
@@ -993,7 +783,7 @@ export default function HyperMesh() {
       dataset,
       selected: [],
       hidden: [],
-      field: dataset === "result" ? "magnitude" : "none",
+      field: dataset === "result" ? resultField : "none",
       explode: 0,
     }));
     setNode(null);
@@ -1002,7 +792,7 @@ export default function HyperMesh() {
         ? "Retained support only. Assembly components are not this result source."
         : "Assembly tessellation loaded.",
     );
-    view("fit");
+    view("fit", dataset);
   };
   const download = (name: string, text: string, type = "application/json") => {
     const url = URL.createObjectURL(new Blob([text], { type }));
@@ -1031,7 +821,8 @@ export default function HyperMesh() {
       ]);
       if ([...data.selected, ...data.hidden].some((id) => !allowed.has(id)))
         throw Error("The study references an unavailable component.");
-      change(() => data);
+      change(() => withRetainedField(data));
+      setEditorOpen(data.selected.length > 0);
       setPanel("properties");
       setDefinitionTargets([]);
       setNode(null);
@@ -1046,6 +837,7 @@ export default function HyperMesh() {
     }
   };
   const showPanel = (next: Panel, title: string) => {
+    setEditorOpen(true);
     setPanel(next);
     setGuide(title);
     setMessage(title);
@@ -1110,7 +902,10 @@ export default function HyperMesh() {
       setResultsOpen(false);
       setSearch("");
       setFilter("All");
-      setTab("Model");
+      setTab("Assembly");
+      setEditorOpen(false);
+      setWorkspaceMode("split");
+      setLowerView("plot");
       setClosedGroups([]);
       view("fit");
       setGuide(
@@ -1132,13 +927,16 @@ export default function HyperMesh() {
       return;
     }
     if (action === "isolate") {
-      if (!study.selected.length) {
+      if (!study.selected.some((id) => allIds.includes(id))) {
         setGuide("Select one or more components to isolate.");
         return;
       }
       change((s) => ({
         ...s,
-        hidden: allIds.filter((id) => !s.selected.includes(id)),
+        hidden: [
+          ...s.hidden.filter((id) => !allIds.includes(id)),
+          ...allIds.filter((id) => !s.selected.includes(id)),
+        ],
       }));
       setMessage("Selected components isolated");
       return;
@@ -1169,6 +967,7 @@ export default function HyperMesh() {
       return;
     }
     if (action === "table") {
+      setLowerView("table");
       switchDataset("result");
       setResultsOpen(true);
       setMessage(
@@ -1278,6 +1077,9 @@ export default function HyperMesh() {
     );
   };
   const probe = (picked: NodeData) => {
+    activate("result");
+    setEditorOpen(true);
+    if (panel !== "material" && panel !== "condition") setPanel("properties");
     setNode(picked);
     setNodeId(String(picked.id));
     setResultsOpen(true);
@@ -1291,6 +1093,16 @@ export default function HyperMesh() {
     row?.setSelected(true);
     if (row) gridApi.current.ensureNodeVisible(row, "middle");
   }, [node]);
+  const resizePane = (axis: "x" | "y", event: React.PointerEvent) => {
+    event.preventDefault();
+    const rect = event.currentTarget.parentElement!.getBoundingClientRect();
+    const move = (e: PointerEvent) => axis === "x"
+      ? setSplitWidth(Math.min(68, Math.max(30, (rect.right - e.clientX) / rect.width * 100)))
+      : setResultHeight(Math.min(73, Math.max(25, (e.clientY - rect.top) / rect.height * 100)));
+    const stop = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", stop); };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop, { once: true });
+  };
   const resize = (axis: "x" | "y", event: React.PointerEvent) => {
     event.preventDefault();
     const initial = axis === "x" ? browserWidth : browserHeight,
@@ -1693,6 +1505,7 @@ export default function HyperMesh() {
                   change((s) => ({
                     ...s,
                     field: e.target.value as Study["field"],
+                    resultField: e.target.value as Study["field"],
                   }))
                 }
               >
@@ -1846,6 +1659,7 @@ export default function HyperMesh() {
                 onChange={(e) => setNodeId(e.target.value)}
               />
               <button
+                aria-label="Find exact node"
                 onClick={() => {
                   const found = resultNodes.find(
                     (n) => n.id === Number(nodeId),
@@ -1895,7 +1709,7 @@ export default function HyperMesh() {
         ) : (
           <ChevronDown size={11} />
         )}
-        <Layers size={12} />
+        <TreeGlyph category={id} />
         {title} ({count})
       </button>
       {!closedGroups.includes(id) && children}
@@ -1973,37 +1787,6 @@ export default function HyperMesh() {
             )}
           </div>
         ))}
-        <div className="hm-quick-actions">
-          <button title="Open study" onClick={() => runCommand("open")}>
-            <FolderOpen size={12} />
-          </button>
-          <button title="Save study" onClick={save}>
-            <Save size={12} />
-          </button>
-          <button
-            title="Undo"
-            disabled={!undo.current.length}
-            onClick={undoChange}
-          >
-            <Undo2 size={12} />
-          </button>
-          <button
-            title="Redo"
-            disabled={!redo.current.length}
-            onClick={redoChange}
-          >
-            <Redo2 size={12} />
-          </button>
-        </div>
-        <span className="hm-search-command">
-          <Search size={12} />
-          <input
-            placeholder="Search model"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </span>
-      </div>
       <div className="hm-ribbon-tabs">
         {tabs.map((name) => (
           <button
@@ -2017,6 +1800,15 @@ export default function HyperMesh() {
             {name}
           </button>
         ))}
+      </div>
+        <span className="hm-search-command">
+          <Search size={12} />
+          <input
+            placeholder="Search model"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </span>
       </div>
       <div className="hm-ribbon">
         {(groups[tab] || defaultGroups).map((group) => (
@@ -2055,7 +1847,7 @@ export default function HyperMesh() {
               <PanelLeftClose size={11} />
             </button>
           </div>
-          <div className="hm-browser-upper" style={{ height: browserHeight }}>
+          <div className={`hm-browser-upper ${editorOpen ? "" : "hm-browser-full"}`} style={editorOpen ? { height: browserHeight } : undefined}>
             <div className="hm-tree-search">
               <input
                 placeholder="Search"
@@ -2111,7 +1903,7 @@ export default function HyperMesh() {
                       </button>
                       <button
                         className="hm-entity-name"
-                        onClick={(e) => select(c.id, e.ctrlKey || e.shiftKey)}
+                        onClick={(e) => { activate(c.id === "result-support" ? "result" : "assembly"); select(c.id, e.ctrlKey || e.shiftKey); }}
                       >
                         <span
                           style={{ background: c.color }}
@@ -2122,6 +1914,11 @@ export default function HyperMesh() {
                     </div>
                   )),
               )}
+              {grouped("Output Blocks", "outputs", 1,
+                <button className={`hm-tree-definition ${study.selected.includes("result-support") ? "active" : ""}`}
+                  onClick={() => { activate("result"); select("result-support"); }}>
+                  <span className="hm-color" style={{ background: "#245ad8" }} />Retained support mesh
+                </button>)}
               {grouped(
                 "Materials",
                 "materials",
@@ -2194,6 +1991,7 @@ export default function HyperMesh() {
               </button>
             </div>
           </div>
+          {editorOpen && <>
           <div
             className="hm-horizontal-split"
             onPointerDown={(e) => resize("y", e)}
@@ -2201,6 +1999,7 @@ export default function HyperMesh() {
           <div className="hm-editor">
             <div className="hm-editor-title">
               Entity Editor{" "}
+              <button className="hm-editor-close" title="Close Entity Editor" onClick={() => setEditorOpen(false)}><X size={12} /></button>
               <select
                 aria-label="Entity editor mode"
                 value={panel}
@@ -2228,12 +2027,14 @@ export default function HyperMesh() {
             </div>
             <div className="hm-editor-scroll">{editor}</div>
           </div>
+          </>}
         </aside>
         <div
           className="hm-vertical-split"
           onPointerDown={(e) => resize("x", e)}
         />
-        <main className="hm-workspace">
+        <div className="hm-viewports">
+        <main className={`hm-workspace ${study.dataset === "assembly" || workspaceMode === "single" ? "hm-active-pane" : ""}`}>
           <div className="hm-selector-strip">
             <select
               aria-label="Entity selector"
@@ -2274,6 +2075,8 @@ export default function HyperMesh() {
               <Target size={13} />
             </button>
             <span />
+            <button aria-label="Single viewport" title="Single viewport" className={workspaceMode === "single" ? "active" : ""} onClick={() => setWorkspaceMode("single")}><svg viewBox="0 0 16 14" width="14" height="12" aria-hidden="true"><rect x="1" y="1" width="14" height="12" fill="none" stroke="currentColor" /></svg></button>
+            <button aria-label="Split assembly and retained results" title="Split assembly / retained results" className={workspaceMode === "split" ? "active" : ""} onClick={() => setWorkspaceMode("split")}><svg viewBox="0 0 16 14" width="14" height="12" aria-hidden="true"><path d="M1 1h14v12H1zM8 1v12M8 7h7" fill="none" stroke="currentColor" /></svg></button>
             <button
               className={study.dataset === "assembly" ? "active" : ""}
               onClick={() => switchDataset("assembly")}
@@ -2296,54 +2099,51 @@ export default function HyperMesh() {
               </button>
             </div>
           )}
-          <div className="hm-scene-wrap">
-            <Scene
-              theme="hypermesh"
-              dataset={study.dataset}
-              representation={study.representation}
-              selected={study.selected}
-              hidden={study.hidden}
-              onSelect={select}
-              onProbe={probe}
-              command={camera}
-              explode={study.explode}
-              clip={study.clip}
-              field={study.field}
-              deformation={study.deformation}
-              showLoads={study.showLoads}
-              probeMode={probeMode}
-              probeId={node?.id}
-            />
-            <div
-              className={
-                study.dataset === "result"
-                  ? "hm-view-caption hm-result-caption"
-                  : "hm-view-caption"
-              }
-            >
-              {study.dataset === "assembly"
+          <div className="hm-scene-wrap" onPointerDownCapture={() => activate(workspaceMode === "split" ? "assembly" : study.dataset)}>
+            <Scene theme="hypermesh" dataset={workspaceMode === "split" ? "assembly" : study.dataset}
+              representation={study.representation} selected={study.selected} hidden={study.hidden}
+              onSelect={select} onProbe={probe} command={camera} explode={study.explode}
+              clip={study.clip} field={workspaceMode === "split" ? "none" : study.field}
+              deformation={study.deformation} showLoads={study.showLoads}
+              probeMode={workspaceMode === "single" && probeMode} probeId={node?.id} />
+            <div className={workspaceMode === "single" && study.dataset === "result" ? "hm-view-caption hm-result-caption" : "hm-view-caption"}>
+              {workspaceMode === "split" || study.dataset === "assembly"
                 ? `${components.length} component assembly`
                 : `Displacement (${study.field === "magnitude" ? "Magnitude" : study.field}) [${resultInfo.unit}]`}
-              {study.dataset === "result" && (
-                <small>Retained support mesh · single frame</small>
-              )}
+              {workspaceMode === "single" && study.dataset === "result" && <small>Retained support mesh · single frame</small>}
             </div>
             <div className="hm-view-cube">
-              <span className="hm-axis-z">Z</span>
-              <span className="hm-axis-y">Y</span>
-              <span className="hm-axis-x">X</span>
-              <button className="hm-cube-top" onClick={() => view("top")}>
-                TOP
-              </button>
-              <button className="hm-cube-front" onClick={() => view("front")}>
-                FRONT
-              </button>
-              <button className="hm-cube-right" onClick={() => view("right")}>
-                RIGHT
-              </button>
+              <span className="hm-axis-z">Z</span><span className="hm-axis-y">Y</span><span className="hm-axis-x">X</span>
+              <i className="hm-axis-line-z" /><i className="hm-axis-line-y" /><i className="hm-axis-line-x" />
+              <button aria-label="Top view" className="hm-cube-top" onClick={() => view("top", workspaceMode === "split" ? "assembly" : study.dataset)}>TOP</button>
+              <button aria-label="Front view" className="hm-cube-front" onClick={() => view("front", workspaceMode === "split" ? "assembly" : study.dataset)}>FRONT</button>
+              <button aria-label="Right view" className="hm-cube-right" onClick={() => view("right", workspaceMode === "split" ? "assembly" : study.dataset)}>RIGHT</button>
             </div>
           </div>
           <div className="hm-view-toolbar">
+        <div className="hm-quick-actions">
+          <button title="Open study" onClick={() => runCommand("open")}>
+            <FolderOpen size={12} />
+          </button>
+          <button title="Save study" onClick={save}>
+            <Save size={12} />
+          </button>
+          <button
+            title="Undo"
+            disabled={!undo.current.length}
+            onClick={undoChange}
+          >
+            <Undo2 size={12} />
+          </button>
+          <button
+            title="Redo"
+            disabled={!redo.current.length}
+            onClick={redoChange}
+          >
+            <Redo2 size={12} />
+          </button>
+        </div>
+
             {[
               [Maximize, "fit", "Fit"],
               [RotateCcw, "iso", "Isometric"],
@@ -2369,35 +2169,50 @@ export default function HyperMesh() {
               );
             })}
             <span />
-            <button onClick={() => setResultsOpen(!resultsOpen)}>
-              <FileText size={12} />
-              {resultsOpen ? "Close table / plot" : "Table / plot"}
-            </button>
+            <button title="Show exact retained node table" onClick={() => { setResultsOpen(true); setLowerView("table"); }}><FileText size={12} />Nodes</button>
             {probeMode && (
-              <button className="active" onClick={() => setProbeMode(false)}>
+              <button className="active" onClick={() => { setProbeMode(false); setGuide(""); setMessage("Query ended"); }}>
                 End query
               </button>
             )}
           </div>
         </main>
-        {resultsOpen && (
-          <section className="hm-results">
-            <div className="hm-results-title">
-              Retained support · exact nodal U
-              <button onClick={() => setResultsOpen(false)}>
-                <X size={12} />
-              </button>
-            </div>
-            <div className="hm-results-source">
-              {resultInfo.nodes.toLocaleString()} nodes ·{" "}
-              {resultInfo.elements.toLocaleString()} elements
-              <br />
-              {resultInfo.source}
-            </div>
-            <NodePlot selected={node} onSelect={probe} />
-            <div className="hm-profile-caption">
-              Spatial scatter: x → Uz. No time history is available.
-            </div>
+        {(workspaceMode === "split" || resultsOpen) && <>
+          <div className="hm-vertical-split hm-pane-divider" role="separator" aria-label="Resize viewports" onPointerDown={(e) => resizePane("x", e)} />
+          <section className={`hm-results ${workspaceMode === "split" ? "hm-split-result" : ""}`}
+            style={workspaceMode === "split" ? { width: `${splitWidth}%` } : undefined}>
+            {workspaceMode === "split" && <>
+              <div className={`hm-result-viewport ${study.dataset === "result" ? "hm-active-pane" : ""}`}
+                style={{ height: `${resultHeight}%` }} onPointerDownCapture={() => activate("result")}>
+                <div className="hm-result-controls">
+                  <span>Retained support · single static result</span>
+                  <select aria-label="Retained displacement component" value={resultField} onChange={(e) => {
+                    const field = e.target.value as Study["field"];
+                    change((s) => ({ ...s, dataset: "result", field, resultField: field,
+                      selected: s.selected.filter((id) => id === "result-support") }));
+                  }}>
+                    <option value="none">No contour</option><option value="magnitude">U magnitude</option><option value="ux">U x</option><option value="uy">U y</option><option value="uz">U z</option>
+                  </select>
+                  <button title="Fit retained mesh" onClick={() => view("fit", "result")}><Maximize size={12} /></button>
+                  <button title="Query retained nodes" className={probeMode ? "active" : ""} onClick={() => runCommand("query")}><Crosshair size={12} /></button>
+                </div>
+                <div className="hm-scene-wrap">
+                  <Scene theme="hypermesh" dataset="result" representation={study.representation}
+                    selected={study.selected} hidden={study.hidden} onSelect={select} onProbe={probe}
+                    command={resultCamera} explode={0} clip={study.clip} field={resultField}
+                    deformation={study.deformation} showLoads={study.showLoads} probeMode={probeMode} probeId={node?.id} />
+                </div>
+              </div>
+              <div className="hm-horizontal-split hm-pane-divider" role="separator" aria-label="Resize result and plot" onPointerDown={(e) => resizePane("y", e)} />
+            </>}
+            <div className="hm-result-analysis">
+              <div className="hm-results-title">
+                <span title={resultInfo.source}>{resultInfo.nodes.toLocaleString()} retained nodes · {resultInfo.elements.toLocaleString()} elements</span>
+                <button className={lowerView === "plot" ? "active" : ""} onClick={() => setLowerView("plot")}>Plot</button>
+                <button className={lowerView === "table" ? "active" : ""} onClick={() => setLowerView("table")}>Table</button>
+                {workspaceMode === "single" && <button aria-label="Close results table and plot" onClick={() => setResultsOpen(false)}><X size={12} /></button>}
+              </div>
+              {lowerView === "plot" ? <NodePlot selected={node} onSelect={probe} /> : (
             <div className="hm-node-table">
               <AgGridReact
                 theme={gridTheme}
@@ -2426,20 +2241,27 @@ export default function HyperMesh() {
                 }}
                 onGridReady={(e) => {
                   gridApi.current = e.api;
+                  if (node) {
+                    const row = e.api.getRowNode(String(node.id));
+                    row?.setSelected(true);
+                    if (row) e.api.ensureNodeVisible(row, "middle");
+                  }
                 }}
+                onGridPreDestroyed={() => { gridApi.current = null; }}
                 onRowClicked={(e) => {
                   if (e.data) probe(e.data);
                 }}
                 animateRows={false}
               />
             </div>
-            <div className="hm-results-footer">
-              {node
-                ? `Selected node ${node.id} · Uz ${node.uz.toPrecision(7)} ${resultInfo.unit}`
-                : "Select a table row or a plotted node."}
+              )}
+              <div className="hm-results-footer">
+                {node ? `Node ${node.id} · Uz ${node.uz.toPrecision(7)} ${resultInfo.unit}` : "Spatial node data: x → Uz · select a point or table row"}
+              </div>
             </div>
           </section>
-        )}
+        </>}
+        </div>
       </div>
       <footer className="hm-status">
         <span>{message}</span>

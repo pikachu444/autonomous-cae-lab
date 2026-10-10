@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import { Scene } from "./Scene";
 import { components, resultNodes, resultInfo } from "./model";
+import nativeWorkspace from "./reference-assets/abaqus-workspace.webp";
 import "./Abaqus.css";
 
 const modules = [
@@ -161,6 +162,51 @@ function initialDraft() {
   } catch {}
   return emptyDraft;
 }
+const nativeSprites = {
+  axisX:[5,31], axisY:[22,31], axisZ:[39,31], axisXY:[56,31], axisXZ:[73,31], axisYZ:[90,31],
+  view1:[125,31], view2:[142,31], view3:[159,31], view4:[176,31],
+  file:[233,31], folder:[250,31], save:[267,31], print:[284,31], job:[303,31], submit:[317,31],
+  fit:[5,49], rotate:[22,49], zoom:[39,49], zoomBox:[56,49], pan:[73,49], undoView:[90,49],
+  mesh:[109,49], bluePart:[126,49], greenPart:[144,49], screen:[163,49], viewport:[181,49],
+  import:[21,66], query:[38,66], assembly:[145,66], instance:[163,66], cut:[181,66],
+  section:[199,66], material:[230,66], shaded:[247,66], transparent:[263,66], select:[280,66],
+  undo:[297,66], redo:[314,66], copy:[333,66], manager:[349,66],
+  part:[116,84], edges:[134,84], wire:[151,84], info:[184,84],
+  tool1:[196,124], tool2:[214,124], tool3:[196,145], tool4:[214,145],
+  tool5:[196,166], tool6:[214,166], tool7:[196,187], tool8:[214,187],
+  tool9:[196,208], tool10:[214,208], tool11:[196,229], tool12:[214,229],
+  tool13:[196,250], tool14:[214,250], tool15:[196,271], tool16:[214,271],
+  tool17:[196,292], tool18:[214,292], tool19:[196,313], tool20:[214,313],
+  tool21:[196,334], tool22:[214,334], tool23:[196,355], tool24:[214,355],
+  treeAssembly:[34,140], treeStep:[34,153], treeOutput:[34,166], treeBC:[34,330], treeJob:[24,414],
+  treeHistory:[34,179], treeTime:[34,191], treeInteraction:[34,215], treeInteractionProperty:[34,227],
+  treeContact:[34,239], treeConstraint:[34,274], treeConnector:[34,287], treeField:[34,299],
+  treeAmplitude:[34,311], treeLoad:[34,323], treePredefined:[34,347], treeSketch:[34,383],
+} as const;
+type NativeSprite = keyof typeof nativeSprites;
+const categorySprites: Record<string, { sprite: NativeSprite; crop: number }> = {
+  Models:{sprite:'greenPart',crop:16}, Parts:{sprite:'part',crop:16}, Materials:{sprite:'material',crop:16},
+  Sections:{sprite:'section',crop:16}, Assembly:{sprite:'treeAssembly',crop:12}, Instances:{sprite:'instance',crop:16},
+  Steps:{sprite:'treeStep',crop:12}, Interactions:{sprite:'treeInteraction',crop:12},
+  'Interaction Properties':{sprite:'treeInteractionProperty',crop:12}, 'Contact Controls':{sprite:'treeContact',crop:12},
+  Constraints:{sprite:'treeConstraint',crop:12}, 'Connector Sections':{sprite:'treeConnector',crop:12},
+  Fields:{sprite:'treeField',crop:12}, Amplitudes:{sprite:'treeAmplitude',crop:12}, Loads:{sprite:'treeLoad',crop:12},
+  BCs:{sprite:'treeBC',crop:12}, 'Predefined Fields':{sprite:'treePredefined',crop:12},
+  'Field Output Requests':{sprite:'treeOutput',crop:12}, 'History Output Requests':{sprite:'treeHistory',crop:12},
+  'Time Points':{sprite:'treeTime',crop:12}, Sketches:{sprite:'treeSketch',crop:12},
+  Analysis:{sprite:'job',crop:16}, Jobs:{sprite:'treeJob',crop:12}, 'Retained output':{sprite:'screen',crop:16},
+};
+const iconSprites = new Map<LucideIcon, NativeSprite>([
+  [File,'file'],[FolderOpen,'folder'],[Save,'save'],[Printer,'print'],[Undo2,'undo'],[Redo2,'redo'],
+  [MousePointer2,'select'],[Crosshair,'query'],[Maximize,'fit'],[Rotate3D,'rotate'],[Move,'pan'],[ZoomIn,'zoom'],[ZoomOut,'zoomBox'],
+  [Box,'shaded'],[Cuboid,'edges'],[Grid3X3,'wire'],[Layers,'transparent'],[EyeOff,'section'],[Eye,'manager'],[Focus,'assembly'],
+  [Scissors,'cut'],[Boxes,'instance'],[Thermometer,'material'],[Magnet,'tool5'],[ArrowDownToLine,'tool17'],[Network,'mesh'],
+  [CircleDot,'tool21'],[Plus,'tool19'],[Settings2,'tool9'],[Play,'submit'],[ChartNoAxesCombined,'screen'],
+]);
+function NativeIcon({ sprite, size=18, crop=16 }: { sprite: NativeSprite; size?: number; crop?: number }) {
+  const [x,y] = nativeSprites[sprite], scale=size/crop;
+  return <i className="abq-native-icon" aria-hidden="true" style={{width:size,height:size,backgroundImage:`url(${nativeWorkspace})`,backgroundSize:`${960*scale}px ${510*scale}px`,backgroundPosition:`${-x*scale}px ${-y*scale}px`}}/>;
+}
 function Tool({
   icon: Icon,
   title,
@@ -168,6 +214,7 @@ function Tool({
   color = "#376ca5",
   active,
   disabled,
+  sprite,
 }: {
   icon: LucideIcon;
   title: string;
@@ -175,6 +222,7 @@ function Tool({
   color?: string;
   active?: boolean;
   disabled?: boolean;
+  sprite?: NativeSprite;
 }) {
   return (
     <button
@@ -184,7 +232,7 @@ function Tool({
       onClick={onClick}
       disabled={disabled}
     >
-      <Icon size={18} strokeWidth={1.65} color={color} />
+      <NativeIcon sprite={sprite || iconSprites.get(Icon) || 'tool1'} />
     </button>
   );
 }
@@ -204,11 +252,12 @@ function Branch({
   toggle: () => void;
   children?: ReactNode;
 }) {
+  const glyph=categorySprites[title] || {sprite:'manager' as NativeSprite,crop:16};
   return (
     <div className="abq-branch">
       <button className="abq-tree-line" onClick={toggle}>
-        {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-        <FolderOpen size={13} color="#978944" />
+        <i className={`abq-tree-expander ${open ? 'expanded' : ''}`} aria-hidden="true"/>
+        <NativeIcon sprite={glyph.sprite} size={12} crop={glyph.crop}/>
         <span>
           {title}
           {count !== undefined ? ` (${count})` : ""}
@@ -251,7 +300,7 @@ export default function Abaqus() {
     model: true,
     parts: false,
     assembly: true,
-    instances: true,
+    instances: false,
     analysis: true,
     jobs: true,
   });
@@ -268,7 +317,10 @@ export default function Abaqus() {
     "Select an instance in the viewport or Model Tree.",
   );
   const [sidebarWidth, setSidebarWidth] = useState(228);
-  const [consoleHeight, setConsoleHeight] = useState(106);
+  const [consoleHeight, setConsoleHeight] = useState(64);
+  useEffect(() => {
+    if (consoleTab !== "Messages") setConsoleHeight((height) => Math.max(height, 132));
+  }, [consoleTab]);
   const [context, setContext] = useState<{
     x: number;
     y: number;
@@ -667,7 +719,7 @@ export default function Abaqus() {
         setContext({ x: e.clientX, y: e.clientY, id });
       }}
     >
-      <Cuboid size={13} color={kind === "result" ? "#ac724b" : "#527aaf"} />
+      <NativeIcon sprite={kind === "result" ? "mesh" : "part"} size={12}/>
       <span>{name}</span>
       <span
         className="abq-eye"
@@ -784,6 +836,14 @@ export default function Abaqus() {
       },
     ],
   };
+  menuItems.Constraint = [{ label:'Create…', action:()=>unavailable('Create native constraint') }, { label:'Manager…', action:()=>unavailable('Native constraint manager') }];
+  menuItems.Connector = [{ label:'Section…', action:()=>unavailable('Create native connector section') }, { label:'Assignment…', action:()=>unavailable('Assign native connector section') }];
+  menuItems.Special = [{ label:'Reference Point…', action:()=>unavailable('Create native reference point') }, { label:'Set…', action:()=>unavailable('Create native set') }];
+  menuItems.Feature = [{ label:'Regenerate', action:()=>unavailable('Regenerate native features') }, { label:'Copy…', action:()=>unavailable('Copy native feature') }];
+  menuItems.Shape = [{label:'Solid → Extrude…',action:()=>unavailable('Create native extruded solid')},{label:'Shell → Extrude…',action:()=>unavailable('Create native extruded shell')}];
+  menuItems.Instance = [{label:'Create…',action:()=>unavailable('Create native instance')},{label:'Hide Selected',action:()=>hide()},{label:'Restore All',action:()=>setHidden([])}];
+  menuItems.Animate = [{label:'Time History…',action:()=>unavailable('Animate time history: only a single retained static result is available')}];
+  menuItems.Report = [{label:'Field Output → Probe…',action:()=>{setProbeMode(true);setConsoleTab('Query');}},{label:'XY Data…',action:()=>openDialog('xy')}];
   const moduleActions: Record<
     Module,
     { label: string; icon: LucideIcon; action: () => void; color: string }[]
@@ -991,6 +1051,7 @@ export default function Abaqus() {
     "Viewport",
     "View",
     moduleMenu,
+    ...(module === 'Interaction' ? ['Constraint','Connector','Special','Feature'] : module === 'Part' ? ['Shape','Feature','Special'] : module === 'Assembly' ? ['Instance','Constraint','Feature'] : module === 'Visualization' ? ['Animate','Report'] : []),
     "Tools",
     "Plug_ins",
     "Help",
@@ -1022,9 +1083,9 @@ export default function Abaqus() {
       }}
     >
       <div className="abq-titlebar">
-        <Box size={12} color="#586fa4" />
+        <NativeIcon sprite="axisX" size={12}/>
         <span>
-          Abaqus/CAE 2026 — Model Database: RollerFixture [Viewport: 1]
+          Abaqus/CAE 2026.HF2 — Model Database: RollerFixture [Viewport: 1]
         </span>
         <span className="abq-window-buttons">—　□　×</span>
       </div>
@@ -1062,250 +1123,38 @@ export default function Abaqus() {
           </div>
         ))}
       </div>
-      <div className="abq-toolbar-row">
-        <Group>
-          <Tool
-            icon={File}
-            title="New browser study"
-            color="#629455"
-            onClick={() => openDialog("new")}
-          />
-          <Tool
-            icon={FolderOpen}
-            title="Open browser study JSON"
-            color="#a89440"
-            onClick={() => openFile.current?.click()}
-          />
-          <Tool icon={Save} title="Save browser study JSON" onClick={save} />
-          <Tool
-            icon={Printer}
-            title="Print viewport"
-            color="#555d76"
-            onClick={() => window.print()}
-          />
-        </Group>
-        <Group>
-          <Tool
-            icon={Undo2}
-            title="Undo definition"
-            color="#aa864c"
-            disabled={!undo.length}
-            onClick={() => {
-              setRedo((p) => [...p, draft]);
-              setDraft(undo[undo.length - 1]);
-              setUndo((p) => p.slice(0, -1));
-              log("Definition edit undone.");
-            }}
-          />
-          <Tool
-            icon={Redo2}
-            title="Redo definition"
-            color="#aa864c"
-            disabled={!redo.length}
-            onClick={() => {
-              setUndo((p) => [...p, draft]);
-              setDraft(redo[redo.length - 1]);
-              setRedo((p) => p.slice(0, -1));
-              log("Definition edit redone.");
-            }}
-          />
-        </Group>
-        <Group>
-          <Tool
-            icon={MousePointer2}
-            title="Select instance"
-            color="#54585c"
-            active={!probeMode}
-            onClick={() => setProbeMode(false)}
-          />
-          <Tool
-            icon={Crosshair}
-            title="Query retained result node"
-            color="#8d5353"
-            active={probeMode}
-            onClick={() => {
-              changeModule("Visualization");
-              setProbeMode(true);
-              setConsoleTab("Query");
-            }}
-          />
-          <select
-            aria-label="Selection filter"
-            value={probeMode ? "Nodes (retained result)" : "Part instances"}
-            onChange={(e) => {
-              if (e.target.value === "Nodes (retained result)") {
-                changeModule("Visualization");
-                setProbeMode(true);
-                setConsoleTab("Query");
-              } else {
-                setProbeMode(false);
-                changeModule("Assembly");
-              }
-            }}
-          >
-            <option>Part instances</option>
-            <option>Nodes (retained result)</option>
-          </select>
-        </Group>
-        <Group>
-          <Tool
-            icon={Maximize}
-            title="Fit view"
-            onClick={() => command("fit")}
-          />
-          <Tool
-            icon={Rotate3D}
-            title="Isometric view"
-            color="#879344"
-            onClick={() => command("iso")}
-          />
-          <Tool
-            icon={ZoomIn}
-            title="Zoom in"
-            onClick={() => command("zoomIn")}
-          />
-          <Tool
-            icon={ZoomOut}
-            title="Zoom out"
-            onClick={() => command("zoomOut")}
-          />
-        </Group>
-        <Group>
-          <Tool
-            icon={Box}
-            title="Front view"
-            onClick={() => command("front")}
-          />
-          <Tool
-            icon={Grid3X3}
-            title="Top view"
-            onClick={() => command("top")}
-          />
-          <Tool
-            icon={Cuboid}
-            title="Right view"
-            onClick={() => command("right")}
-          />
-        </Group>
+      <div className="abq-toolbar-row abq-native-row1">
+        <Group>{(['axisX','axisY','axisZ','axisXY','axisXZ','axisYZ'] as NativeSprite[]).map((sprite,i)=><Tool key={sprite} icon={Box} sprite={sprite} title={['Front view','Top view','Right view','Isometric view','Fit model','Rotate to isometric'][i]} onClick={()=>command((['front','top','right','iso','fit','iso'] as Camera[])[i])}/>)}</Group>
+        <Group>{(['view1','view2','view3','view4'] as NativeSprite[]).map((sprite,i)=><Tool key={sprite} icon={Box} sprite={sprite} title={`View ${i+1}: ${['isometric','front','top','right'][i]}`} onClick={()=>command((['iso','front','top','right'] as Camera[])[i])}/>)}</Group>
+        <Group><Tool icon={File} title="New browser study" onClick={()=>openDialog('new')}/><Tool icon={FolderOpen} title="Open browser study JSON" onClick={()=>openFile.current?.click()}/><Tool icon={Save} title="Save browser study JSON" onClick={save}/><Tool icon={Printer} title="Print viewport" onClick={()=>window.print()}/><Tool icon={File} sprite="job" title="Create job" onClick={()=>openDialog('job')}/><Tool icon={Play} title="Submit Abaqus job" onClick={()=>unavailable('Submit Abaqus job')}/></Group>
       </div>
-      <div className="abq-toolbar-row">
-        <Group>
-          <Tool
-            icon={Box}
-            title="Shaded"
-            color="#a99155"
-            active={representation === "shaded"}
-            onClick={() => setRepresentation("shaded")}
-          />
-          <Tool
-            icon={Cuboid}
-            title="Shaded with edges"
-            color="#aaa065"
-            active={representation === "edges"}
-            onClick={() => setRepresentation("edges")}
-          />
-          <Tool
-            icon={Grid3X3}
-            title="Wireframe"
-            color="#4e8b87"
-            active={representation === "wireframe"}
-            onClick={() => setRepresentation("wireframe")}
-          />
-          <Tool
-            icon={Layers}
-            title="Translucency"
-            color="#8a77a0"
-            active={representation === "transparent"}
-            onClick={() => setRepresentation("transparent")}
-          />
-        </Group>
-        <Group>
-          <Tool
-            icon={EyeOff}
-            title="Hide selected"
-            color="#808454"
-            onClick={() => hide()}
-          />
-          <Tool
-            icon={Focus}
-            title="Isolate selected"
-            color="#5c969b"
-            onClick={() => isolate()}
-          />
-          <Tool
-            icon={Eye}
-            title="Restore all instances"
-            color="#778f45"
-            onClick={() => setHidden([])}
-          />
-          <Tool
-            icon={Scissors}
-            title="Section cut"
-            color="#a96c4b"
-            active={clip.enabled}
-            onClick={() => setClip((p) => ({ ...p, enabled: !p.enabled }))}
-          />
-        </Group>
-        <Group>
-          <Tool
-            icon={Move}
-            title="Exploded assembly display"
-            color="#597d98"
-            active={explode > 0}
-            onClick={() => setExplode((v) => (v ? 0 : 0.55))}
-          />
-          <label>
-            Explode{" "}
-            <input
-              aria-label="Exploded display"
-              type="range"
-              min="0"
-              max="1"
-              step=".05"
-              value={explode}
-              onChange={(e) => setExplode(Number(e.target.value))}
-            />
-          </label>
-        </Group>
-        <Group>
-          <label>
-            Section{" "}
-            <select
-              aria-label="Section axis"
-              value={clip.axis}
-              onChange={(e) =>
-                setClip((p) => ({
-                  ...p,
-                  axis: e.target.value as "x" | "y" | "z",
-                }))
-              }
-            >
-              <option>x</option>
-              <option>y</option>
-              <option>z</option>
-            </select>
-            <input
-              aria-label="Section cut position"
-              type="range"
-              min="0"
-              max="1"
-              step=".01"
-              value={clip.position}
-              onChange={(e) =>
-                setClip((p) => ({
-                  ...p,
-                  position: Number(e.target.value),
-                  enabled: true,
-                }))
-              }
-            />
-          </label>
-        </Group>
+      <div className="abq-toolbar-row abq-native-row2">
+        <Group><Tool icon={Maximize} title="Fit view" onClick={()=>command('fit')}/><Tool icon={Rotate3D} title="Isometric view" onClick={()=>command('iso')}/><Tool icon={ZoomIn} title="Zoom in" onClick={()=>command('zoomIn')}/><Tool icon={ZoomOut} title="Zoom out" onClick={()=>command('zoomOut')}/><Tool icon={Move} title="Pan / orbit with mouse" onClick={()=>setPrompt('Drag to orbit; Shift+drag or middle mouse to pan; wheel to zoom.')}/><Tool icon={Undo2} sprite="undoView" title="Restore isometric camera" onClick={()=>command('iso')}/></Group>
+        <Group><Tool icon={Grid3X3} sprite="mesh" title="Display existing tessellation" active={representation==='wireframe'} onClick={()=>setRepresentation('wireframe')}/><Tool icon={Cuboid} sprite="bluePart" title="Part module" onClick={()=>changeModule('Part')}/><Tool icon={Box} sprite="greenPart" title="Property module" onClick={()=>changeModule('Property')}/><Tool icon={Layers} sprite="screen" title="Visualization module" onClick={()=>changeModule('Visualization')}/><Tool icon={Grid3X3} sprite="viewport" title="Viewport settings" onClick={()=>unavailable('Create additional native viewport')}/></Group>
+        <Group><NativeIcon sprite="material"/><select aria-label="Selection filter" value={probeMode ? 'Nodes (retained result)' : 'Part instances'} onChange={e=>{if(e.target.value==='Nodes (retained result)'){changeModule('Visualization');setProbeMode(true);setConsoleTab('Query');}else{setProbeMode(false);changeModule('Assembly');}}}><option>Part instances</option><option>Nodes (retained result)</option></select><Tool icon={MousePointer2} title="Select instance" active={!probeMode} onClick={()=>setProbeMode(false)}/></Group>
+        <Group><Tool icon={Box} sprite="bluePart" title="Front view" onClick={()=>command('front')}/><Tool icon={Grid3X3} sprite="screen" title="Top view" onClick={()=>command('top')}/><Tool icon={Cuboid} sprite="viewport" title="Right view" onClick={()=>command('right')}/><Tool icon={Crosshair} sprite="query" title="Query retained result node" active={probeMode} onClick={()=>{changeModule('Visualization');setProbeMode(true);setConsoleTab('Query');}}/><Tool icon={ChartNoAxesCombined} title="XY data manager" onClick={()=>openDialog('xy')}/></Group>
+      </div>
+      <div className="abq-toolbar-row abq-native-row3">
+        <Group><Tool icon={FolderOpen} sprite="import" title="Import native part" onClick={()=>unavailable('Import native CAD part')}/><Tool icon={Crosshair} sprite="query" title="Query retained node values" onClick={()=>{changeModule('Visualization');setConsoleTab('Query');setProbeMode(true);}}/><select aria-label="Display group" value={hidden.length ? 'Custom' : 'All'} onChange={e=>{if(e.target.value==='All')setHidden([]);else isolate();}}><option>All</option><option>Custom</option></select><Tool icon={Eye} sprite="assembly" title="Restore all instances" onClick={()=>setHidden([])}/><Tool icon={Focus} sprite="instance" title="Isolate selected" onClick={()=>isolate()}/><Tool icon={EyeOff} sprite="section" title="Hide selected" onClick={()=>hide()}/><Tool icon={Scissors} title="Section cut" active={clip.enabled} onClick={()=>setClip(p=>({...p,enabled:!p.enabled}))}/></Group>
+        <Group><Tool icon={Box} sprite="material" title="Shaded" active={representation==='shaded'} onClick={()=>setRepresentation('shaded')}/><Tool icon={Cuboid} sprite="shaded" title="Shaded with edges" active={representation==='edges'} onClick={()=>setRepresentation('edges')}/><Tool icon={Grid3X3} sprite="transparent" title="Wireframe" active={representation==='wireframe'} onClick={()=>setRepresentation('wireframe')}/><Tool icon={Layers} sprite="part" title="Translucency" active={representation==='transparent'} onClick={()=>setRepresentation('transparent')}/><Tool icon={MousePointer2} title="Selection mode" onClick={()=>setProbeMode(false)}/></Group>
+        <Group><Tool icon={Undo2} title="Undo definition" disabled={!undo.length} onClick={()=>{setRedo(p=>[...p,draft]);setDraft(undo[undo.length-1]);setUndo(p=>p.slice(0,-1));log('Definition edit undone.');}}/><Tool icon={Redo2} title="Redo definition" disabled={!redo.length} onClick={()=>{setUndo(p=>[...p,draft]);setDraft(redo[redo.length-1]);setRedo(p=>p.slice(0,-1));log('Definition edit redone.');}}/><Tool icon={Copy} sprite="copy" title="Copy native feature" onClick={()=>unavailable('Copy native feature')}/><Tool icon={Settings2} sprite="manager" title="Mesh seed manager" onClick={()=>openDialog('mesh')}/></Group>
+        <Group><label>Explode <input aria-label="Exploded display" type="range" min="0" max="1" step=".05" value={explode} onChange={e=>setExplode(Number(e.target.value))}/></label><label>Section <select aria-label="Section axis" value={clip.axis} onChange={e=>setClip(p=>({...p,axis:e.target.value as 'x'|'y'|'z'}))}><option>x</option><option>y</option><option>z</option></select><input aria-label="Section cut position" type="range" min="0" max="1" step=".01" value={clip.position} onChange={e=>setClip(p=>({...p,position:Number(e.target.value),enabled:true}))}/></label></Group>
       </div>
       <div
         className="abq-contextbar"
-        style={{ paddingLeft: sidebarWidth + 61 }}
+        style={{ paddingLeft: sidebarWidth + 51 }}
       >
+          <div className="abq-tree-tabs">
+            {["Model", "Results"].map((t) => (
+              <button
+                key={t}
+                className={treeTab === t ? "active" : ""}
+                onClick={() => setTreeTab(t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         <label>
           Module:{" "}
           <select
@@ -1393,17 +1242,6 @@ export default function Abaqus() {
       </div>
       <div className="abq-main">
         <aside className="abq-tree" style={{ width: sidebarWidth }}>
-          <div className="abq-tree-tabs">
-            {["Model", "Results"].map((t) => (
-              <button
-                key={t}
-                className={treeTab === t ? "active" : ""}
-                onClick={() => setTreeTab(t)}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
           <div className="abq-tree-source">
             <select aria-label="Tree source">
               <option>
@@ -1426,7 +1264,7 @@ export default function Abaqus() {
                   toggle={() => toggle("model")}
                 >
                   <div className="abq-tree-line">
-                    <Box size={12} color="#738ba5" />
+                    <NativeIcon sprite="treeAssembly" size={12} crop={12}/>
                     <b>Model-1</b>
                   </div>
                   <Branch
@@ -1449,7 +1287,7 @@ export default function Abaqus() {
                         className="abq-tree-line"
                         onClick={() => openDialog("material", m)}
                       >
-                        <Thermometer size={12} color="#b16e60" />
+                        <NativeIcon sprite="material" size={12}/>
                         {m.name}
                       </button>
                     ))}
@@ -1490,7 +1328,7 @@ export default function Abaqus() {
                       className="abq-tree-line"
                       onClick={() => unavailable("Native assembly constraints")}
                     >
-                      <Magnet size={12} />
+                      <NativeIcon sprite="treeBC" size={12} crop={12}/>
                       Constraints
                     </button>
                   </Branch>
@@ -1511,7 +1349,7 @@ export default function Abaqus() {
                           )
                         }
                       >
-                        <Layers size={12} />
+                        <NativeIcon sprite="treeStep" size={12} crop={12}/>
                         {s}
                       </button>
                     ))}
@@ -1532,8 +1370,8 @@ export default function Abaqus() {
                       key={s}
                       onClick={() => unavailable(s)}
                     >
-                      <ChevronRight size={11} />
-                      <File size={12} color="#7489a1" />
+                      <i className="abq-tree-expander" aria-hidden="true"/>
+                      <NativeIcon sprite={categorySprites[s].sprite} size={12} crop={12}/>
                       {s}
                     </button>
                   ))}
@@ -1545,7 +1383,7 @@ export default function Abaqus() {
                   >
                     {draft.interactions.map((s) => (
                       <div key={s} className="abq-tree-line">
-                        <Magnet size={12} />
+                        <NativeIcon sprite="treeBC" size={12} crop={12}/>
                         {s}
                       </div>
                     ))}
@@ -1560,7 +1398,7 @@ export default function Abaqus() {
                     className="abq-tree-line"
                     onClick={() => unavailable("Native load manager")}
                   >
-                    <ArrowDownToLine size={12} color="#be7359" />
+                    <NativeIcon sprite="tool17" size={12}/>
                     Loads (0)
                   </button>
                   <Branch
@@ -1575,7 +1413,7 @@ export default function Abaqus() {
                         className="abq-tree-line"
                         onClick={() => openDialog("bc", b)}
                       >
-                        <Magnet size={12} color="#6e97b4" />
+                        <NativeIcon sprite="treeBC" size={12} crop={12}/>
                         {b.name}
                       </button>
                     ))}
@@ -1590,7 +1428,7 @@ export default function Abaqus() {
                     className="abq-tree-line"
                     onClick={() => openDialog("mesh")}
                   >
-                    <Network size={12} color="#86974d" />
+                    <NativeIcon sprite="mesh" size={12}/>
                     Mesh · seed {draft.mesh.size}
                   </button>
                 </Branch>
@@ -1611,7 +1449,7 @@ export default function Abaqus() {
                         className="abq-tree-line"
                         onClick={() => unavailable(`Submit job '${j}'`)}
                       >
-                        <File size={12} color="#849643" />
+                        <NativeIcon sprite="treeJob" size={12} crop={12}/>
                         {j} (Draft)
                       </button>
                     ))}
@@ -1655,75 +1493,29 @@ export default function Abaqus() {
           <div className="abq-view-row">
             <div className="abq-toolbox">
               <div className="abq-toolbox-grid">
-                {toolAction.map((a) => (
-                  <Tool
-                    key={a.label}
-                    icon={a.icon}
-                    title={a.label}
-                    color={a.color}
-                    onClick={a.action}
-                  />
-                ))}
-                <Tool
-                  icon={MousePointer2}
-                  title="Select"
-                  color="#586271"
-                  onClick={() => setProbeMode(false)}
-                />
-                <Tool
-                  icon={EyeOff}
-                  title="Hide selected"
-                  color="#809155"
-                  onClick={() => hide()}
-                />
-                <Tool
-                  icon={Focus}
-                  title="Isolate selected"
-                  color="#688d8a"
-                  onClick={() => isolate()}
-                />
-                <Tool
-                  icon={Eye}
-                  title="Restore display group"
-                  color="#8a9657"
-                  onClick={() => setHidden([])}
-                />
-                <Tool
-                  icon={Scissors}
-                  title="Section cut"
-                  color="#ad7762"
-                  onClick={() =>
-                    setClip((p) => ({ ...p, enabled: !p.enabled }))
-                  }
-                />
-                <Tool
-                  icon={Rotate3D}
-                  title="Isometric view"
-                  color="#698fb7"
-                  onClick={() => command("iso")}
-                />
-                <Tool
-                  icon={Maximize}
-                  title="Fit view"
-                  color="#6990b4"
-                  onClick={() => command("fit")}
-                />
-                <Tool
-                  icon={Grid3X3}
-                  title="Existing tessellation"
-                  color="#9081b2"
-                  onClick={() => setRepresentation("wireframe")}
-                />
-                <Tool
-                  icon={Crosshair}
-                  title="Query node"
-                  color="#a56363"
-                  onClick={() => {
-                    changeModule("Visualization");
-                    setProbeMode(true);
-                    setConsoleTab("Query");
-                  }}
-                />
+                {toolAction.map((a,index)=><Tool key={a.label} sprite={`tool${index+1}` as NativeSprite} icon={a.icon} title={a.label} onClick={a.action}/>)}
+                <Tool icon={MousePointer2} sprite="tool3" title="Select instance" onClick={()=>setProbeMode(false)}/>
+                <Tool icon={EyeOff} sprite="tool4" title="Hide selected" onClick={()=>hide()}/>
+                <Tool icon={Focus} sprite="tool5" title="Isolate selected" onClick={()=>isolate()}/>
+                <Tool icon={Eye} sprite="tool6" title="Restore all instances" onClick={()=>setHidden([])}/>
+                <Tool icon={Scissors} sprite="tool7" title="Section cut" active={clip.enabled} onClick={()=>setClip(p=>({...p,enabled:!p.enabled}))}/>
+                <Tool icon={Rotate3D} sprite="tool8" title="Isometric camera" onClick={()=>command('iso')}/>
+                <Tool icon={Maximize} sprite="tool9" title="Fit model" onClick={()=>command('fit')}/>
+                <Tool icon={Grid3X3} sprite="tool10" title="Display existing tessellation" onClick={()=>setRepresentation('wireframe')}/>
+                <Tool icon={Crosshair} sprite="tool11" title="Query retained node" onClick={()=>{changeModule('Visualization');setProbeMode(true);setConsoleTab('Query');}}/>
+                <Tool icon={ChartNoAxesCombined} sprite="tool12" title="XY data manager" onClick={()=>openDialog('xy')}/>
+                <Tool icon={Thermometer} sprite="tool13" title="Create material draft" onClick={()=>openDialog('material')}/>
+                <Tool icon={Magnet} sprite="tool14" title="Boundary condition draft" onClick={()=>openDialog('bc')}/>
+                <Tool icon={CircleDot} sprite="tool15" title="Global seeds / mesh controls" onClick={()=>openDialog('mesh')}/>
+                <Tool icon={Layers} sprite="tool16" title="Create step draft" onClick={()=>openDialog('step')}/>
+                <Tool icon={Magnet} sprite="tool17" title="Create interaction draft" onClick={()=>openDialog('interaction')}/>
+                <Tool icon={Network} sprite="tool18" title="Native surface pairing" onClick={()=>unavailable('Native surface pairing')}/>
+                <Tool icon={Plus} sprite="tool19" title="Create native reference point" onClick={()=>unavailable('Create native reference point')}/>
+                <Tool icon={Box} sprite="tool20" title="Create native set" onClick={()=>unavailable('Create native set')}/>
+                <Tool icon={Grid3X3} sprite="tool21" title="Generate native mesh" onClick={()=>unavailable('Generate native finite-element mesh')}/>
+                <Tool icon={Settings2} sprite="tool22" title="Edit native mesh" onClick={()=>unavailable('Edit native mesh')}/>
+                <Tool icon={Box} sprite="tool23" title="Front camera" onClick={()=>command('front')}/>
+                <Tool icon={Box} sprite="tool24" title="Top camera" onClick={()=>command('top')}/>
               </div>
             </div>
             <div className="abq-viewport">

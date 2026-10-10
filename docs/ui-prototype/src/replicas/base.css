@@ -53,7 +53,7 @@ textarea {
   overflow: hidden;
 }
 .scene-abaqus {
-  background: linear-gradient(#25334e 0%, #2e3e58 36%, #aebccb 100%);
+  background: linear-gradient(#1f2e48 0%, #2d3e58 52%, #aeb8c9 100%);
   color: #fff;
 }
 .scene-hypermesh {
@@ -74,6 +74,7 @@ textarea {
   position: absolute;
   left: 18px;
   top: 18px;
+  bottom: 32px;
   pointer-events: none;
   display: flex;
   flex-direction: column;
@@ -94,6 +95,19 @@ textarea {
   height: 16px;
   align-items: center;
   gap: 6px;
+}
+.scene-scale {
+  min-height: 0;
+  flex: 0 1 192px;
+  display: flex;
+  flex-direction: column;
+}
+.scene-scale > div {
+  flex: 1;
+  min-height: 0;
+}
+.scene-scale > div > i {
+  height: 100%;
 }
 .scene-scale i {
   width: 18px;
@@ -130,6 +144,23 @@ textarea {
 .scene-axes path {
   stroke-width: 2;
 }
+.scene-axes line { stroke-width: 2; }
+.scene-orientation { pointer-events: none; }
+.scene-compass {
+  position: absolute;
+  top: 13px;
+  right: 20px;
+  width: 95px;
+  height: 95px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  pointer-events: auto;
+}
+.scene-compass svg { width: 100%; height: 100%; overflow: visible; }
+.scene-compass polygon { stroke: #d4d8ed; stroke-width: 0.7; }
+.scene-compass text { fill: #dce9a6; font: 10px Arial, sans-serif; }
+.scene-compass:focus-visible { outline: 1px dotted #d7e4ed; }
 .scene-axes text {
   fill: currentColor;
   font: 12px Arial;

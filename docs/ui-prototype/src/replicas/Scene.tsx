@@ -54,6 +54,7 @@ function spectrum(value: number) {
 
 export function Scene(props: SceneProps) {
   const host = useRef<HTMLDivElement>(null);
+  const orientation = useRef<HTMLDivElement>(null);
   const current = useRef(props);
   current.current = props;
   const handle = useRef<SceneHandle | null>(null);
@@ -97,12 +98,14 @@ export function Scene(props: SceneProps) {
     ) => {
       geometry.computeVertexNormals();
       geometry.computeBoundingBox();
-      const material = new THREE.MeshStandardMaterial({
-        color,
-        metalness: 0.08,
-        roughness: 0.65,
-        side: THREE.DoubleSide,
-      });
+      const material = resultMode
+        ? new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide })
+        : new THREE.MeshStandardMaterial({
+            color,
+            metalness: 0.08,
+            roughness: 0.65,
+            side: THREE.DoubleSide,
+          });
       const mesh = new THREE.Mesh(geometry, material);
       mesh.userData = {
         id,
@@ -164,7 +167,61 @@ export function Scene(props: SceneProps) {
     const extent = Math.max(size.x, size.y, size.z);
     controls.target.copy(center);
     let fitted = false;
+    const frameBounds = () => {
+      const width = parent.clientWidth, height = parent.clientHeight;
+      if (!width || !height) return;
+      camera.updateMatrixWorld();
+      const projectedBounds = new THREE.Box3();
+      for (const x of [bounds.min.x, bounds.max.x])
+        for (const y of [bounds.min.y, bounds.max.y])
+          for (const z of [bounds.min.z, bounds.max.z])
+            projectedBounds.expandByPoint(
+              new THREE.Vector3(x, y, z).applyMatrix4(camera.matrixWorldInverse),
+            );
+      const projectedSize = projectedBounds.getSize(new THREE.Vector3());
+      const aspect = width / height;
+      const half = Math.max(projectedSize.y, projectedSize.x / aspect) * (resultMode ? 0.76 : 0.71);
+      camera.left = -half * aspect;
+      camera.right = half * aspect;
+      camera.top = half;
+      camera.bottom = -half;
+      camera.updateProjectionMatrix();
+    };
+    const updateOrientation = () => {
+      camera.updateMatrixWorld();
+      orientation.current?.querySelectorAll<SVGSVGElement>("svg[data-orientation]").forEach((svg) => {
+        const compass = svg.dataset.orientation === "compass";
+        const cx = compass ? 50 : 40, cy = compass ? 52 : 42;
+        const radius = compass ? 33 : 26;
+        const ends: Record<string, [number, number]> = {};
+        for (const [axis, vector] of [
+          ["x", new THREE.Vector3(1, 0, 0)],
+          ["y", new THREE.Vector3(0, 1, 0)],
+          ["z", new THREE.Vector3(0, 0, 1)],
+        ] as const) {
+          vector.transformDirection(camera.matrixWorldInverse);
+          const dx = vector.x * radius, dy = -vector.y * radius;
+          ends[axis] = [cx + dx, cy + dy];
+          const group = svg.querySelector(`[data-axis="${axis}"]`)!;
+          group.querySelector("line")?.setAttribute("x2", String(cx + dx));
+          group.querySelector("line")?.setAttribute("y2", String(cy + dy));
+          const length = Math.hypot(dx, dy) || 1;
+          const ux = dx / length, uy = dy / length;
+          group.querySelector("path")?.setAttribute("d", `M${cx+dx-ux*6-uy*2.5},${cy+dy-uy*6+ux*2.5} L${cx+dx},${cy+dy} L${cx+dx-ux*6+uy*2.5},${cy+dy-uy*6-ux*2.5}`);
+          group.querySelector("text")?.setAttribute("x", String(cx + dx + ux * 10));
+          group.querySelector("text")?.setAttribute("y", String(cy + dy + uy * 10 + 3));
+        }
+        for (const axes of ["xy", "yz", "zx"]) {
+          const [a, b] = [ends[axes[0]], ends[axes[1]]];
+          svg.querySelector(`[data-plane="${axes}"]`)?.setAttribute("points", `${cx},${cy} ${a[0]},${a[1]} ${a[0]+b[0]-cx},${a[1]+b[1]-cy} ${b[0]},${b[1]}`);
+        }
+      });
+    };
+    controls.addEventListener("change", updateOrientation);
     const fit = (direction: "iso" | "front" | "top" | "right" = "iso") => {
+      // Finish any orbit inertia before applying an exact preset direction.
+      controls.enableDamping = false;
+      controls.update();
       const delta =
         direction === "front"
           ? new THREE.Vector3(0, -2, 0.0001)
@@ -178,6 +235,9 @@ export function Scene(props: SceneProps) {
       camera.updateProjectionMatrix();
       controls.target.copy(center);
       controls.update();
+      controls.enableDamping = true;
+      frameBounds();
+      updateOrientation();
       fitted = true;
     };
     const loads = new THREE.Group();
@@ -283,13 +343,8 @@ export function Scene(props: SceneProps) {
         h = parent.clientHeight;
       if (!w || !h) return;
       renderer.setSize(w, h);
-      const half = extent * (resultMode ? 0.74 : 0.63);
-      camera.left = (-half * w) / h;
-      camera.right = (half * w) / h;
-      camera.top = half;
-      camera.bottom = -half;
-      camera.updateProjectionMatrix();
       if (!fitted) fit();
+      else frameBounds();
     });
     observer.observe(parent);
     let frame = 0;
@@ -317,6 +372,7 @@ export function Scene(props: SceneProps) {
       handle.current = null;
       cancelAnimationFrame(frame);
       observer.disconnect();
+      controls.removeEventListener("change", updateOrientation);
       controls.dispose();
       renderer.domElement.removeEventListener("pointerdown", pointerDown);
       renderer.domElement.removeEventListener("pointerup", pointerUp);
@@ -357,7 +413,7 @@ export function Scene(props: SceneProps) {
     for (const mesh of h.meshes) {
       const id = String(mesh.userData.id);
       mesh.visible = !(props.hidden ?? []).includes(id);
-      const material = mesh.material as THREE.MeshStandardMaterial;
+      const material = mesh.material as THREE.MeshStandardMaterial | THREE.MeshBasicMaterial;
       const selected = (props.selected ?? []).includes(id);
       material.color.set(
         selected
@@ -507,26 +563,38 @@ export function Scene(props: SceneProps) {
           <small>Retained static result</small>
         </div>
       )}
-      <div className="scene-axes" aria-hidden="true">
-        <svg viewBox="0 0 80 72">
-          <path d="M30 49L63 58" stroke="#e8554e" />
-          <path d="M30 49L9 62" stroke="#49b15f" />
-          <path d="M30 49L30 13" stroke="#4e7df0" />
-          <path
-            d="M59 53L63 58L56 60M15 56L9 62L18 64M26 21L30 13L34 21"
-            fill="none"
-            stroke="currentColor"
-          />
-          <text x="66" y="65">
-            X
-          </text>
-          <text x="0" y="72">
-            Y
-          </text>
-          <text x="27" y="10">
-            Z
-          </text>
-        </svg>
+      <div ref={orientation} className="scene-orientation">
+        <div className="scene-axes" aria-hidden="true">
+          <svg viewBox="0 0 80 80" data-orientation="triad">
+            {[["x", "#ed2829"], ["y", "#23b92a"], ["z", "#3854f4"]].map(([axis, color]) => (
+              <g key={axis} data-axis={axis}>
+                <line x1="40" y1="42" x2="40" y2="42" stroke={color} />
+                <path fill="none" stroke={color} />
+                <text textAnchor="middle">{axis.toUpperCase()}</text>
+              </g>
+            ))}
+            <circle cx="40" cy="42" r="2.5" fill="#ddd" />
+          </svg>
+        </div>
+        {props.theme === "abaqus" && (
+          <button className="scene-compass" aria-label="Reset orientation to isometric" title="Isometric view" onClick={() => handle.current?.fit("iso")}>
+            <svg viewBox="0 0 100 100" data-orientation="compass" aria-hidden="true">
+              <ellipse cx="50" cy="87" rx="20" ry="5" fill="#758ba0" stroke="#d7e4ed" />
+              <path d="M50 52V87" stroke="#dce4ea" />
+              <polygon data-plane="xy" fill="#3f386f" />
+              <polygon data-plane="yz" fill="#322473" />
+              <polygon data-plane="zx" fill="#504286" />
+              {[["x", "#dce9a6"], ["y", "#dce9a6"], ["z", "#dce9a6"]].map(([axis, color]) => (
+                <g key={axis} data-axis={axis}>
+                  <line x1="50" y1="52" x2="50" y2="52" stroke={color} />
+                  <path fill="none" stroke={color} />
+                  <text textAnchor="middle">{axis.toUpperCase()}</text>
+                </g>
+              ))}
+              <rect x="47" y="83" width="6" height="6" fill="#e11d21" />
+            </svg>
+          </button>
+        )}
       </div>
       <div className="scene-caption">
         {resultMode

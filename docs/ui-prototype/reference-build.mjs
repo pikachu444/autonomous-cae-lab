@@ -7,6 +7,7 @@ await build({
   format: "iife",
   minify: true,
   sourcemap: false,
+  loader: { ".png": "dataurl", ".webp": "dataurl" },
   outfile: "dist/reference/app.js",
   define: { "process.env.NODE_ENV": '"production"' },
   legalComments: "eof",

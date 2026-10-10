@@ -770,3 +770,47 @@
     height: 95vh;
   }
 }
+
+/* Abaqus 2026 reference: fixed, compact native chrome and cropped icon regions. */
+.abq-app{font:11px Tahoma,Arial,sans-serif;color:#242629;background:#f0f1eb}
+.abq-native-icon{display:block;flex:none;background-repeat:no-repeat;image-rendering:auto;pointer-events:none}
+.abq-titlebar{height:19px;font:10px Tahoma,Arial,sans-serif;background:linear-gradient(#f8fafc,#edf0f7);border-bottom:1px solid #d5d9e0}
+.abq-menubar{height:20px;padding:0 4px;background:#f4f5ef;border-bottom:1px solid #dfe2db}
+.abq-menu>button{height:19px;padding:1px 7px;font-size:11px;border-radius:0}
+.abq-menu-popup{top:19px;border:1px solid #9dabae;box-shadow:2px 2px 3px #0003;background:#f7f7f3}
+.abq-toolbar-row{height:24px;padding:1px 5px;gap:3px;background:linear-gradient(#f8f9f3,#eff1e9);border:0}
+.abq-tool-group{height:21px;border-right:1px solid #c7ccc5;padding-right:4px;margin-right:2px;gap:0}
+.abq-tool{width:21px;height:21px;padding:1px;border-radius:0;position:relative}
+.abq-tool:hover{border-color:#7b9daf;background:#dae8ee;box-shadow:inset 1px 1px #fff}
+.abq-tool.active{border-color:#8c9b9d;background:#e4e8da;box-shadow:inset 1px 1px 2px #899294}
+.abq-native-row1 .abq-tool-group:nth-child(2){margin-right:28px}
+.abq-native-row2 .abq-tool-group:nth-child(2){margin-right:145px}
+.abq-native-row3 .abq-tool-group:first-child{padding-left:15px}
+.abq-toolbar-row select,.abq-contextbar select,.abq-tree-source select{height:20px;border:1px solid #a7b0b0;box-shadow:inset 1px 1px #c4cac7,inset -1px -1px #fff;background:#fafbf7;border-radius:0;padding:0 3px;font:10px Tahoma,Arial,sans-serif}
+.abq-toolbar-row label{font:10px Tahoma,Arial,sans-serif;gap:3px}.abq-toolbar-row input[type=range]{width:58px;height:12px;accent-color:#a0b6ba}
+.abq-native-row2 select{width:135px}.abq-native-row3 select{width:77px}
+.abq-contextbar{position:relative;height:27px;gap:10px;border-bottom:1px solid #c3c8cc;background:linear-gradient(#fafbf7,#f1f2ed);padding-top:3px;padding-bottom:3px}
+.abq-contextbar .abq-tree-tabs{position:absolute;left:2px;bottom:0;height:24px;border:0;background:transparent;padding:0;gap:0;align-items:center}
+.abq-contextbar .abq-tree-tabs button{height:22px;padding:3px 7px;font-size:10px;border:1px solid transparent;background:transparent;margin:0}
+.abq-contextbar .abq-tree-tabs button.active{background:#edf1ed;border-color:#e4e8e5;box-shadow:inset 1px 1px #fff}
+.abq-contextbar label{font-size:10px;gap:4px}.abq-contextbar input{height:20px;border-radius:0;box-shadow:inset 1px 1px #bec6c8}
+.abq-tree{border-right:1px solid #aebbc3;background:#fff}.abq-tree-source{height:24px;background:#f3f5ef;border-bottom:1px solid #ced5d3;padding:2px 3px;gap:2px}
+.abq-tree-scroll{padding:3px 2px 8px;font:11px Tahoma,Arial,sans-serif}.abq-tree-line{min-height:17px;height:17px;line-height:15px;gap:3px;padding:0 1px;font:10px Tahoma,Arial,sans-serif}
+.abq-tree-children{padding-left:12px;margin-left:5px;border-left:1px dotted #adb4b7;position:relative}
+.abq-tree-children>.abq-tree-line:before,.abq-tree-children>.abq-branch>.abq-tree-line:before{content:'';position:absolute;left:-12px;top:8px;width:10px;border-top:1px dotted #adb4b7}
+.abq-tree-children>.abq-tree-line,.abq-tree-children>.abq-branch>.abq-tree-line{position:relative}
+.abq-tree-expander{position:relative;display:block;width:8px;height:8px;border:1px solid #9ba5ad;background:#fff;flex:none;margin:0 2px 0 0}
+.abq-tree-expander:before{content:'';position:absolute;left:1px;right:1px;top:3px;border-top:1px solid #6c7d88}
+.abq-tree-expander:not(.expanded):after{content:'';position:absolute;top:1px;bottom:1px;left:3px;border-left:1px solid #6c7d88}
+.abq-object{padding-left:1px}.abq-object:before{width:8px!important;left:-10px!important}.abq-eye{opacity:0;width:13px;height:15px;margin-left:auto}.abq-object:hover .abq-eye,.abq-object.selected .abq-eye,.abq-object.hidden .abq-eye{opacity:1}
+.abq-tree-create{min-height:17px;height:17px;padding-top:0;padding-bottom:0;font-size:10px}.abq-tree-line.selected{background:#2578bd;color:white}
+.abq-splitter{width:4px;background:#e4e9e8;border-left:1px solid #fafcf9;border-right:1px solid #aab8bb}
+.abq-toolbox{width:46px;padding:4px 1px;background:linear-gradient(90deg,#eff2e8,#f5f7ee);border-right:1px solid #c3c9c0}
+.abq-toolbox-grid{grid-template-columns:21px 21px;gap:2px 1px}.abq-toolbox .abq-tool{width:21px;height:24px;padding:1px}
+.abq-viewport-caption{top:7px;left:8px;font:10px/1.4 Tahoma,Arial,sans-serif;color:#d0dae5}.abq-viewport-caption.result{top:auto;bottom:35px;right:10px;left:auto}
+.abq-prompt{height:24px;padding:2px 5px;gap:5px;font:10px Tahoma,Arial,sans-serif;background:#f4f6ee;border-top:1px solid #b9c3c6}
+.abq-prompt button{height:19px;font:10px Tahoma,Arial,sans-serif;padding:0 5px;border-radius:0;border-color:#9cafb8;box-shadow:inset 1px 1px #fff;background:#f8faf7}
+.abq-console-splitter{height:3px;background:#edf1eb;border-top:1px solid #c3cbd0;border-bottom:1px solid #f9faf6}
+.abq-console{background:#fbfcf7}.abq-console-tabs{height:18px;background:#f0f3ed}.abq-console-tabs button{height:18px;font:9px Tahoma,Arial,sans-serif;padding:1px 9px}.abq-console-content{padding:2px 6px}.abq-console pre{font:10px/1.3 'Courier New',monospace}
+.abq-statusbar{height:17px;font:9px Tahoma,Arial,sans-serif;background:#e8eee8;padding:1px 5px}
+@media(max-width:1250px){.abq-native-row2 .abq-tool-group:nth-child(2){margin-right:70px}.abq-toolbar-row{gap:2px}.abq-tool{width:21px}.abq-tool-group{margin-right:2px}.abq-toolbar-row input[type=range]{width:45px}}

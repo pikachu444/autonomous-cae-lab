@@ -8,6 +8,10 @@
 메뉴·도구 영역·모델 트리·엔티티 편집·뷰포트는 제품별 공식 화면을
 기준으로 구성했습니다. 근거와 기능 경계는 [REFERENCE_BRIEF.md](REFERENCE_BRIEF.md)에 있습니다.
 
+R02는 공식 화면의 아이콘 영역, 도구 행 밀도와 트리 배치, HyperMesh의
+조립체·결과·그래프 분할을 반영한 수정본입니다. 웹 브라우저 시안이며
+데스크톱 실행 파일은 아닙니다. 참조 이미지의 출처는 `src/replicas/reference-assets/README.md`에 있습니다.
+
 이 두 화면은 기존 CAD 15개 부품과 보존된 CalculiX 결과 9,155개 절점의
 실제 좌표·변위를 읽습니다. 원본 경로와 해시는 `src/replicas/data-origin.json`에
 있으며, `prepare-reference-data.py`는 원본을 바꾸거나 solver를 실행하지 않습니다.
