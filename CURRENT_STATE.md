@@ -1,3 +1,22 @@
+## 2026-10-10 UI design correction checkpoint
+
+Interactive synthetic UI source is preserved at `85c1c00c396e992263a41f883dd6883ff5c3eb79`
+on `codex/ui-interaction-design-20261010` (local commit, not pushed). Six distinct
+workspace layouts replace the earlier static wireframes. Root exercised actual
+browser controls; independent review inspected source and all 18 screenshots after
+six material findings were corrected. TypeScript/build pass. See
+`docs/ui-prototype/README.md`, `docs/ui-prototype/REVIEW.md` and the exact artifact
+hashes, Page sequences 3/8, CI and limitations in
+`benchmarks/records/20261010-ui-interaction-design-r01.json`.
+
+This is a design prototype only: no product Core/adapter/native/solver/LLM change.
+Product baseline `a10f202` CI run 37789173095 is failure; new prototype commit has no CI
+run. All 52 requirements, native host/document integration, actual provider/solver acceptance
+and engineering/company release remain incomplete/UNKNOWN/NOT_RELEASED. The
+Pages screen appendix contains the runnable HTML, source/capture/review ZIP and
+six real screenshots. Next implement and accept the preserved product contracts;
+do not reinterpret this UI review as native or numerical approval.
+
 ## 2026-10-08 native pre and post design review checkpoint
 
 The current remote-main Workbench remains intact. Separate FreeCAD/ParaView
