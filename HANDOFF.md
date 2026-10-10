@@ -56,6 +56,11 @@ late results without search restart or adoption, and leave the Plan/other runs i
 Reuse the current outer job/cooperative cancellation; do not require a new durable
 job per objective call. Verify the scope through actual GUI/MCP implementation.
 Do not reopen these contracts without a concrete counterexample or execution finding.
+Review9/10 confirms the first Material UI can be handed off without further
+planning changes. Use the fixed MCalibration reference and existing interaction
+acceptance during implementation, including committed table values reaching Run
+Once and preserved input/result correspondence after a new-process reopen.
+No Page or product-source change followed this report-based review.
 
 The user stopped local FreeCAD operation and authorized cloud verification.
 Do not resume local GUI experiments or request monitor activation. Cloud branch
