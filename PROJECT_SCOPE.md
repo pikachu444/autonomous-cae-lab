@@ -1,4 +1,14 @@
-## 2026-10-12 — Native F05 diagnostic fails; preserve the original acceptance scope
+## 2026-10-12 — CI coverage repair ready for exact-source hosted acceptance
+
+The reviewed S5 follow-up prevents one failed native acceptance from skipping
+four independent native stages. Setup/cancellation guards and every numerical
+failure remain enforced. Bounded local workflow/exit checks pass; actual hosted
+execution is still pending. [The integration record](benchmarks/records/20261012-stabilization-s5-ci-continuation.json)
+separates that CI repair from the unresolved original F05/failed AMD diagnostic.
+No solver policy or engineering threshold changes; the full requirement ledger,
+UNKNOWN/NOT_RELEASED gates and paused feature/local-FreeCAD scope are preserved.
+
+## Earlier 2026-10-12 — Native F05 diagnostic fails; preserve the original acceptance scope
 
 One reviewed AMD fine-mesh diagnostic reaches actual pinned MUMPS but still
 fails the unchanged native accuracy gate: `3.45549e-6 > 1e-6`. No product solver

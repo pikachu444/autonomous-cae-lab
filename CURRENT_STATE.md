@@ -1,4 +1,21 @@
-## 2026-10-12 — S5 AMD diagnostic reaches MUMPS but fails the original gate
+## 2026-10-12 — CI preserves independent native coverage after an acceptance failure
+
+The S5 follow-up adds only one runtime step id and four workflow conditions.
+After successful runtime setup, independent J2, material-point, model-optimization
+and material-inverse acceptances may run despite earlier acceptance failure.
+Cancellation or failed setup blocks them; the overall failed result is preserved.
+Runtime pins, commands, time budgets, stores, artifacts and numerical gates do not
+change. No product or test source changes and no new native trial are included.
+
+Actual Root validation passes YAML/full-byte invariants, nine shell syntax checks
+and five controlled nonzero exits, with independent read-only review also passing.
+[The receipt](benchmarks/records/20261012-stabilization-s5-ci-continuation.json)
+records the Pro archive and exact workflow hash. Hosted scheduling and completion
+remain pending the new published source run; old CI cannot establish them.
+F05 is still unqualified after both original and AMD accuracy failures. No known
+supported numerical correction is adopted. Features/local FreeCAD stay paused.
+
+## Earlier 2026-10-12 — S5 AMD diagnostic reaches MUMPS but fails the original gate
 
 Pro delivered diagnosis and a preparation script, with no product/test/CI patch.
 Root and an independent reviewer checked the archive, source pins and exact

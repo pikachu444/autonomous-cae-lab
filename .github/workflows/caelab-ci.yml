@@ -375,6 +375,7 @@ jobs:
             plugins/fixture_design/upstream/requirements.txt
       - run: python -m pip install -r requirements-dev.txt
       - name: Install the external pinned solver runtime without replacing Lab Python
+        id: codeaster_runtime
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y singularity-container=4.1.1+ds2-1ubuntu0.3 gmsh calculix-ccx
@@ -393,12 +394,16 @@ jobs:
         if: ${{ failure() && steps.family_acceptance.outcome == 'failure' }}
         run: python scripts/ci_annotate_failure.py "$RUNNER_TEMP/structural-family-check.log"
       - name: Verify complete native J2 load and unload histories on two meshes
+        if: ${{ !cancelled() && steps.codeaster_runtime.outcome == 'success' }}
         run: python -m scripts.verify_plasticity --store artifacts/plasticity-lab
       - name: Verify real MGIS and MTest stress histories and consistent tangents
+        if: ${{ !cancelled() && steps.codeaster_runtime.outcome == 'success' }}
         run: python -m scripts.verify_material_point --store artifacts/material-point-lab
       - name: Search declared modulus using measured native fields with interruption and replay
+        if: ${{ !cancelled() && steps.codeaster_runtime.outcome == 'success' }}
         run: python -m scripts.verify_model_optimization --store artifacts/model-optimization-lab
       - name: Verify synthetic material inverse after sealed OCI runtime admission
+        if: ${{ !cancelled() && steps.codeaster_runtime.outcome == 'success' }}
         env:
           CAELAB_MFRONT_INVERSE_RUNTIME_PROFILE: SEALED_OCI
         run: python -m scripts.verify_material_inverse --store artifacts/material-inverse-lab

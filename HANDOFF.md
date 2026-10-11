@@ -1,4 +1,25 @@
-## 2026-10-12 — S5 local AMD trial failed; CI continuation correction is with Pro
+## 2026-10-12 — Independent native CI continuation verified locally; hosted run next
+
+Pro's five-line workflow correction is applied once over `f953c451ff3f29390267cd2db4c0f255f8b13a4c`.
+It identifies successful Code_Aster runtime setup and guards four independent
+acceptance steps with `!cancelled()` plus that runtime outcome. Earlier acceptance
+failure no longer hides J2, material-point, model-optimization or material-inverse;
+failed setup/cancellation still blocks them, and any acceptance failure remains fatal.
+
+Root's bounded WSL check passes YAML/byte invariants, all nine shell syntax checks
+and five controlled exit-code checks (each retains 23). Independent review passes
+store independence and source-cleanliness admission. No native solver was rerun.
+[The integration receipt](benchmarks/records/20261012-stabilization-s5-ci-continuation.json)
+pins the delivered archive, workflow, local result and limits. Publish this source
+and inspect its exact full CI, including all four later native stages and artifacts.
+The prior nine-pass/one-fail run is not verification of this workflow change.
+
+F05 remains unresolved: the original and AMD failures stand, with no qualified
+solver change. Do not reapply this patch or repeat AMD/ordering sweeps. Pro remains
+the sole product/test/CI writer; Root owns review/integration. Features and the
+local FreeCAD desktop remain paused. All original failed experiments are retained.
+
+## Earlier 2026-10-12 — S5 local AMD trial failed; CI continuation correction is with Pro
 
 Source remains `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8`. Docs-only checkpoint
 `9c321f5522fccbdd37aefb87502af87641a09b0d` is pushed and remote/PR7-confirmed.

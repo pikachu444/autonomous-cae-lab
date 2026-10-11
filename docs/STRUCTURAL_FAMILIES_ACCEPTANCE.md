@@ -1,6 +1,18 @@
 # Connected structural family acceptance
 
-## 2026-10-12 — Reviewed AMD trial fails the same native solution-error gate
+## 2026-10-12 — CI continuation repair does not change the failed family verdict
+
+The reviewed S5 follow-up changes only five workflow lines so four independent
+native acceptance stages can run after a family failure, provided runtime setup
+succeeded and the job is not cancelled. Family exit failure, native numerical
+limits, original response definitions and overall CI failure remain intact.
+Local YAML/shell/controlled-exit checks and independent dependency review pass;
+actual scheduling and later-stage outcomes await the new exact-source CI.
+[The integration receipt](../benchmarks/records/20261012-stabilization-s5-ci-continuation.json)
+is workflow evidence only. Original F05 and AMD `FACTOR_57` failures below remain
+unresolved; no native solver policy or engineering acceptance is changed.
+
+## Earlier 2026-10-12 — Reviewed AMD trial fails the same native solution-error gate
 
 Pro supplied a diagnostic preparation script with no production patch. After
 hash and independent scope review, Root ran the exact original fine F05 input

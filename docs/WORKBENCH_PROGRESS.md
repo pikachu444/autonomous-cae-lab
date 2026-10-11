@@ -1,6 +1,28 @@
 # Current workbench implementation
 
-## 2026-10-12 S5 diagnostic completed without a qualified F05 fix
+## 2026-10-12 S5 follow-up CI correction passes bounded integration checks
+
+Pro delivered an 18,747-byte archive, SHA256
+`6afbbb61cfc742308a1970b12b19f55306268af9305db833628ed3ca4dd08281`.
+Root verified its inventory, manifests, before/after bytes and exact five-line
+patch, then applied it once. Only `.github/workflows/caelab-ci.yml` changes source:
+one runtime step id and four guards preserve independent native acceptance
+coverage after earlier acceptance failure. Failed setup/cancellation prevents
+execution; no failure exit is masked and all numerical gates remain unchanged.
+
+Root's actual Python 3.12.3/PyYAML 6.0.3 WSL check passes full YAML/byte invariants,
+nine `bash -n` commands and five controlled failure exits (23), including the
+family pipeline's `tee` log. Independent source review passes the four separate
+stores and inverse clean-source admission. No native acceptance or hosted runner
+was executed by these local checks. [The integration receipt](../benchmarks/records/20261012-stabilization-s5-ci-continuation.json)
+contains exact hashes, reports, provenance and local-retention limitations.
+
+Publish and observe the new exact-source CI before claiming scheduler behavior
+or results for the four downstream stages. Prior CI `38153395166` remains nine
+passed/one failed on `3fd8bc4`; F05 and the failed bounded AMD trial remain open.
+No qualified numerical correction was supplied. Features/local FreeCAD stay paused.
+
+## Earlier 2026-10-12 S5 diagnostic completed without a qualified F05 fix
 
 Pro delivered a 284,251-byte diagnosis ZIP, SHA256
 `018ec12a576441c42b061bf4e589246e23b9ccb6739bddbf3a5cba0a0a8eb07d`.

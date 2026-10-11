@@ -1,0 +1,253 @@
+{
+  "schema_version": 1,
+  "checkpoint": "S5-followup independent native CI continuation",
+  "created_at_utc": "2026-10-11T17:23:33.266161+00:00",
+  "status": "BOUNDED_LOCAL_PASS_HOSTED_PENDING",
+  "integration": {
+    "parent_commit": "f953c451ff3f29390267cd2db4c0f255f8b13a4c",
+    "previous_product_source": "3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8",
+    "pro_base_tree": "e0f35bbb64554b3842806e5f7f4d5fbd36bcfc26",
+    "pro_result_tree": "5f1b2e62aece6334b82cca6acf331b7c39a7e518",
+    "source_commit": "Commit containing this record; resolve exact published SHA in subsequent CI receipt.",
+    "fixture_submodule": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "patch_applied_once": true,
+    "changes": [
+      {
+        "path": ".github/workflows/caelab-ci.yml",
+        "before_sha256": "aa2007110269dca9181d7e167160b1e41a313fdd252bae252405026964737570",
+        "after_sha256": "75b150889f6a9976e0529dc8e53d94ff8e437537339dc0c4ff11c33082707dd2",
+        "before_bytes": 25129,
+        "after_bytes": 25479,
+        "mode": "100644"
+      }
+    ],
+    "only_source_change": "One runtime step id and four step if guards in the existing workflow; five inserted lines.",
+    "product_numerical_test_source_changes": [],
+    "source_and_ci_writer": "Actual browser Pro; Root reviewed and applied supplied patch.",
+    "root_ownership": "Integration, operational validation, evidence and checkpoint documents."
+  },
+  "bundle": {
+    "archive": "runs\\pro-code-received-20261011-r01\\stabilization-s5-followup\\autonomous-cae-S5-followup-ci.zip",
+    "bytes": 18747,
+    "sha256": "6afbbb61cfc742308a1970b12b19f55306268af9305db833628ed3ca4dd08281",
+    "members": [
+      {
+        "path": "README.md",
+        "bytes": 12669,
+        "sha256": "714ca9b933d08cc6ddeab3bc7f4f84db60797e41501628b533b126384cd8765e"
+      },
+      {
+        "path": "S5-followup-from-S4a.patch",
+        "bytes": 1977,
+        "sha256": "e52e677cd3de39c5ec8c8af38da038453f34cf3b24225a6ee74ff0a6389039f3"
+      },
+      {
+        "path": "SHA256SUMS",
+        "bytes": 659,
+        "sha256": "08521c60dd2b7ca887dacf61f1d7cb2b62231bfe3608347ec4ee26599ebcf508"
+      },
+      {
+        "path": "changed_files/.github/workflows/caelab-ci.yml",
+        "bytes": 25479,
+        "sha256": "75b150889f6a9976e0529dc8e53d94ff8e437537339dc0c4ff11c33082707dd2"
+      },
+      {
+        "path": "manifest.json",
+        "bytes": 2264,
+        "sha256": "123609895a670917ffd1f266de9c7bb74c6c5cd3ffa0c94af4bfe6b36fdcc087"
+      },
+      {
+        "path": "verification/source-and-patch.json",
+        "bytes": 900,
+        "sha256": "03af9fe44ec495b8af561b38901ccaca31c3890b12b887d573fd5790dfbcc501"
+      },
+      {
+        "path": "verification/verify_workflow.py",
+        "bytes": 5754,
+        "sha256": "a65358e652d4fe74fb2591baf0b9303d0bde8a8c612bdc94e51bee54baac3782"
+      },
+      {
+        "path": "verification/workflow-check.json",
+        "bytes": 2299,
+        "sha256": "93d0a88076ec8a4cc8f2a27fe596676838a0e11c0b49ef05ab50412af12fcd51"
+      }
+    ]
+  },
+  "verification": {
+    "archive": "Safe ZIP inventory, all seven SHA256SUMS entries and all six manifest file hashes/sizes checked.",
+    "source": "Before/after LF hashes checked; removing exactly the five new lines reproduces the prior workflow bytes.",
+    "pro_report": {
+      "status": "PASS",
+      "base_tree": "e0f35bbb64554b3842806e5f7f4d5fbd36bcfc26",
+      "workflow_before_sha256": "aa2007110269dca9181d7e167160b1e41a313fdd252bae252405026964737570",
+      "workflow_after_sha256": "75b150889f6a9976e0529dc8e53d94ff8e437537339dc0c4ff11c33082707dd2",
+      "python": "3.12.14",
+      "pyyaml": "6.0.3",
+      "changed_source_files": [
+        ".github/workflows/caelab-ci.yml"
+      ],
+      "unchanged_except_runtime_id_and_four_conditions": true,
+      "unchanged_pins_commands_budgets_stores_artifacts_numerical_and_product_files": true,
+      "shell_syntax_checked": [
+        "python -m pip install -r requirements-dev.txt",
+        "Install the external pinned solver runtime without replacing Lab Python",
+        "Compare independent declared elasticity with analytical fields and signed reactions",
+        "Compare complete beam, pressure cylinder and curved roof fields across two native solvers",
+        "Annotate structural family acceptance failure",
+        "Verify complete native J2 load and unload histories on two meshes",
+        "Verify real MGIS and MTest stress histories and consistent tangents",
+        "Search declared modulus using measured native fields with interruption and replay",
+        "Verify synthetic material inverse after sealed OCI runtime admission"
+      ],
+      "controlled_acceptance_exit_checks": [
+        {
+          "command": "python -m scripts.verify_structural_families --store artifacts/structural-family-lab --source-commit \"${GITHUB_SHA}\" 2>&1 | tee \"$RUNNER_TEMP/structural-family-check.log\"",
+          "returncode": 23
+        },
+        {
+          "command": "python -m scripts.verify_plasticity --store artifacts/plasticity-lab",
+          "returncode": 23
+        },
+        {
+          "command": "python -m scripts.verify_material_point --store artifacts/material-point-lab",
+          "returncode": 23
+        },
+        {
+          "command": "python -m scripts.verify_model_optimization --store artifacts/model-optimization-lab",
+          "returncode": 23
+        },
+        {
+          "command": "python -m scripts.verify_material_inverse --store artifacts/material-inverse-lab",
+          "returncode": 23
+        }
+      ],
+      "native_solver_provider_executions": 0,
+      "github_hosted_execution": "NOT_PERFORMED",
+      "condition_review": "Official GitHub status-function semantics plus exact existing PDE pattern; see README table. Not a scheduler simulation."
+    },
+    "root_report": {
+      "provenance": "Retained structured summary of observed Root exec stdout; not a raw redirected log and not a rerun.",
+      "observed_at_utc": "2026-10-11T17:20:30Z",
+      "command": "./scripts/local.ps1 -PythonArgs @('runs/pro-code-received-20261011-r01/stabilization-s5-followup/root_verify_workflow.py', '--repo', '.')",
+      "exit_code": 0,
+      "wall_seconds": 6.1472336,
+      "result": {
+        "status": "PASS",
+        "base_tree": "f953c451ff3f29390267cd2db4c0f255f8b13a4c",
+        "workflow_before_sha256": "aa2007110269dca9181d7e167160b1e41a313fdd252bae252405026964737570",
+        "workflow_after_sha256": "75b150889f6a9976e0529dc8e53d94ff8e437537339dc0c4ff11c33082707dd2",
+        "python": "3.12.3",
+        "pyyaml": "6.0.3",
+        "changed_source_files": [
+          ".github/workflows/caelab-ci.yml"
+        ],
+        "unchanged_except_runtime_id_and_four_conditions": true,
+        "unchanged_pins_commands_budgets_stores_artifacts_numerical_and_product_files": true,
+        "shell_syntax_checked": [
+          "python -m pip install -r requirements-dev.txt",
+          "Install the external pinned solver runtime without replacing Lab Python",
+          "Compare independent declared elasticity with analytical fields and signed reactions",
+          "Compare complete beam, pressure cylinder and curved roof fields across two native solvers",
+          "Annotate structural family acceptance failure",
+          "Verify complete native J2 load and unload histories on two meshes",
+          "Verify real MGIS and MTest stress histories and consistent tangents",
+          "Search declared modulus using measured native fields with interruption and replay",
+          "Verify synthetic material inverse after sealed OCI runtime admission"
+        ],
+        "controlled_acceptance_exit_checks": [
+          {
+            "command": "python -m scripts.verify_structural_families --store artifacts/structural-family-lab --source-commit \"${GITHUB_SHA}\" 2>&1 | tee \"$RUNNER_TEMP/structural-family-check.log\"",
+            "returncode": 23
+          },
+          {
+            "command": "python -m scripts.verify_plasticity --store artifacts/plasticity-lab",
+            "returncode": 23
+          },
+          {
+            "command": "python -m scripts.verify_material_point --store artifacts/material-point-lab",
+            "returncode": 23
+          },
+          {
+            "command": "python -m scripts.verify_model_optimization --store artifacts/model-optimization-lab",
+            "returncode": 23
+          },
+          {
+            "command": "python -m scripts.verify_material_inverse --store artifacts/material-inverse-lab",
+            "returncode": 23
+          }
+        ],
+        "native_solver_provider_executions": 0,
+        "github_hosted_execution": "NOT_PERFORMED",
+        "condition_review": "Official GitHub status-function semantics plus exact existing PDE pattern; see README table. Not a scheduler simulation."
+      }
+    },
+    "root_harness_adaptations": [
+      "Use actual local parent commit f953c451ff3f29390267cd2db4c0f255f8b13a4c instead of the Pro-only base object.",
+      "Normalize CRLF when reading the Windows worktree workflow; supplied verifier remains preserved."
+    ],
+    "independent_read_only_review": {
+      "reviewer": "reuse_a",
+      "verdict": "BOUNDED_PASS",
+      "findings": [
+        "Explicit cancelled status function permits execution after a prior failed acceptance; runtime outcome success still required.",
+        "All four verifiers own separate fresh stores; model optimization imports only the pure specification.",
+        "Material inverse owns its frozen inputs and scratch; ignored artifacts do not violate clean-source admission.",
+        "No continue-on-error or exit masking; family pipefail and all Python nonzero exits retained.",
+        "45-minute job budget, runtime pins, numerical gates, failure annotation and always artifact upload/30-day retention unchanged."
+      ]
+    },
+    "primary_references": [
+      "https://docs.github.com/en/actions/reference/workflows-and-actions/expressions#status-check-functions",
+      "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#exit-codes-and-error-action-preference"
+    ],
+    "receipts": [
+      {
+        "path": "runs/pro-code-received-20261011-r01/stabilization-s5-followup/archive-receipt.json",
+        "bytes": 1515,
+        "sha256": "61ca66f3cf475744d2499d75ee73bf20fc97457c73dcf39f26767207443524d1"
+      },
+      {
+        "path": "runs/pro-code-received-20261011-r01/stabilization-s5-followup/root_verify_workflow.py",
+        "bytes": 5778,
+        "sha256": "10cfedfe7a0c9a4d29ba23ea6b0269ea8447660f7bc6b838d376d4995665fd77"
+      },
+      {
+        "path": "runs/pro-code-received-20261011-r01/stabilization-s5-followup/root-observed-workflow-check.json",
+        "bytes": 2775,
+        "sha256": "ab8ba782713b5becec1260a6f0014cc5dd8a394904fb7c76309f1cb43ecf4ead"
+      }
+    ]
+  },
+  "acceptance_and_limits": {
+    "setup_failure": "Failed/skipped runtime setup blocks all four later native steps.",
+    "cancellation": "cancelled() blocks later native steps; actual hosted behavior still requires CI evidence.",
+    "earlier_acceptance_failure": "Independent J2, material-point, model-optimization and material-inverse are eligible to execute.",
+    "failure_status": "Any prior or later failed acceptance still fails the Code_Aster job and workflow.",
+    "scheduler_emulation": false,
+    "native_executions_in_this_followup": 0,
+    "new_hosted_ci": "PENDING_PUBLICATION_AND_EXACT_SOURCE_RUN",
+    "unchanged_prior_ci": {
+      "run_id": 38153395166,
+      "source_commit": "3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8",
+      "conclusion": "FAILURE",
+      "jobs_passed": 9,
+      "jobs_failed": 1
+    },
+    "F05": "UNRESOLVED. Original FACTOR_57 3.32295e-6 > 1e-6 and bounded AMD 3.45549e-6 > 1e-6 retained. No qualified numerical fix or further blind ordering trial adopted.",
+    "pro_followup_numeric_evidence_limit": "Pro reviewed Root-reported AMD diagnostics; no new raw AMD log attachment/direct reread or native rerun in this follow-up.",
+    "engineering": "UNKNOWN / NOT_RELEASED; no response replacement, threshold relaxation or release approval.",
+    "contract_architecture": "No Core/domain/adapter/OpenScience contract or ADR change.",
+    "paused_scope": "New features, local FreeCAD desktop, exhausted cloud trial and unrelated providers."
+  },
+  "retention": {
+    "local_raw": "runs/pro-code-received-20261011-r01/stabilization-s5-followup",
+    "local_raw_ignored_by_git": true,
+    "raw_remote_backup": "NOT_ESTABLISHED",
+    "tracked_record": "benchmarks/records/20261012-stabilization-s5-ci-continuation.json",
+    "previous_failure_records": [
+      "benchmarks/records/20261012-stabilization-s4-ci-native-failure.json",
+      "benchmarks/records/20261012-stabilization-s5-f05-diagnostic.json"
+    ]
+  },
+  "next_gate": "Publish exact source, observe full hosted CI, and inspect actual outcomes/artifacts of all four newly eligible native acceptance stages. Preserve any new failures."
+}
