@@ -11,9 +11,9 @@ The latest verified product unit is `327b7b3d935bea293781f59c2c753a90a5ce7115`
 Actions lookup returned no run; its actual bounded evidence is in
 `docs/WORKBENCH_PROGRESS.md`.
 
-`unfinished-source.patch` contains all 12 in-progress source/test files relative
+`unfinished-source.patch` contains all 13 in-progress source/test files relative
 to that base, including new files. SHA256:
-`bb9d4c5e25a50b0937c1949061b531107a8c46b1ad2203f8ec9be0a77538e2d5`.
+`0fe31cbb98e8056053544a88586819a983960dfefbc58edafae548a2874269ea`.
 It can be applied to the published tree; the source itself remains unfinished.
 No credentials, user attachments, local runs or company CAD are included.
 
@@ -38,7 +38,7 @@ No credentials, user attachments, local runs or company CAD are included.
 - DataDocuments draft owns mapping/source/Undo/save/import and source preview;
   its new owner has no tests yet. The table reader now preserves explicitly
   declared frame/measure (focused legacy/metadata checks ran before the stop).
-  No DataWindow or Data owner tests were written. No Numerical Plan or adoption
+  DataWindow was written at the stop boundary and remains untested; no Data owner/UI tests were written. No Numerical Plan or adoption
   implementation was written. HTTP/client source-preview and Data routing are
   drafted, not an accepted product flow.
 
