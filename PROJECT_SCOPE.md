@@ -1,3 +1,15 @@
+## 2026-10-11 — Implemented subset: external native result/Post workflow
+
+Approved local VTU/PVD dependency registration, shared HTTP/CLI/MCP input identity,
+registered-input ParaView opening, and native save/cold reopen are now implemented
+and locally verified at source `1f0338466d04fea8312aa943b5545b61fc858b50`.
+[The acceptance record](docs/PREPOST_VERIFICATION.md) retains the exact limits.
+General Post and file workflows remain PARTIAL: visible GUI actions, native owner
+commands, source relocation/repair and other formats are open. CAD/FE, independent
+document editors and integrated research outcomes retain their existing scope.
+No numerical threshold, engineering verdict, historical requirement or result is
+removed by this bounded software acceptance.
+
 ## 2026-10-11 — Whole-product plan and validity of the historical requirement list
 
 The user rejected the earlier first-Material planning closure as an inadequate

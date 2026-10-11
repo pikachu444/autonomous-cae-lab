@@ -1,0 +1,246 @@
+{
+  "record_type": "implemented_native_input_and_post_acceptance",
+  "recorded_at_utc": "2026-10-11T04:07:02.423169+00:00",
+  "source_commit": "1f0338466d04fea8312aa943b5545b61fc858b50",
+  "verification_source": "Local working files subsequently committed as source_commit; SHA256 values below pin the source. Final launcher macro-directory choice was parsed, not exercised in visible GUI.",
+  "repository_publish_status": "local_commit_only_not_pushed",
+  "ci": {
+    "exact_commit": "1f0338466d04fea8312aa943b5545b61fc858b50",
+    "github_run_list": [],
+    "status": "NO_RUN_FOUND"
+  },
+  "pinned_submodule": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "scope": [
+    "approved-root VTU/PVD dependency snapshot",
+    "shared HTTP/CLI/stdio MCP registration and resolution",
+    "registered input ID to native ParaView reader",
+    "native array/time inspection and append-only save/cold reopen"
+  ],
+  "native_run": {
+    "run_directory": "runs/product-post-integration-20261011-8c71",
+    "input_id": "D8678cc3a388f4920bd0a60be20af3f80",
+    "input_file_count": 3,
+    "inspection_pid": 83496,
+    "cold_reopen_pid": 42016,
+    "runtime": "ParaView 6.2.0 Windows Python 3.12 portable pvpython, offscreen",
+    "status": "PASS",
+    "http_cli_stdio_mcp_same_input": true,
+    "reference": "Synthetic tetrahedron: point response = 1+x+2y+3z+0.25*time; times 0 and 1. Cell association selection is exercised separately.",
+    "point_reference_tolerance": 1e-12,
+    "line_reference_tolerance": 1e-10,
+    "point_and_cell_selection_verified": true,
+    "saved_time_and_point_array_restored": true,
+    "original_identity_arrays_absent_from_spatial_interpolation": true,
+    "source_and_snapshot_hashes_unchanged": true,
+    "service_shutdown": {
+      "joined": true,
+      "pending": []
+    }
+  },
+  "software_checks": [
+    {
+      "command": "pytest -q tests/test_workbench_native_inputs.py tests/test_desktop_post_external.py tests/test_desktop_prototype_guards.py tests/test_workbench_jobs.py -o faulthandler_timeout=6 --tb=short",
+      "passed": 51,
+      "note": "Before four additional PVD timestep admission cases."
+    },
+    {
+      "command": "pytest -q tests/test_workbench_recovery.py tests/test_workbench_table_preview.py tests/test_workbench_review_regressions.py --tb=short",
+      "passed": 34
+    },
+    {
+      "command": "pytest -q tests/test_workbench_native_inputs.py --tb=short",
+      "passed": 18,
+      "note": "Final native-input suite includes the four added timestep cases; overlaps 14 tests in first check."
+    },
+    {
+      "command": "node --test tests/test_workbench_ui.js",
+      "passed": 19
+    },
+    {
+      "command": "compileall of changed Python modules; PowerShell Parser.ParseFile(start_cae_post.ps1); git diff --cached --check",
+      "status": "PASS"
+    }
+  ],
+  "distinct_python_tests": 89,
+  "versions": {
+    "Python": "3.13.5",
+    "pytest": "9.1.1",
+    "mcp": "1.30.0",
+    "numpy": "2.5.2",
+    "scipy": "1.18.0",
+    "node": "24.18.0"
+  },
+  "environment": "Declared MCP SDK installed in isolated runs/product-post-integration-20261011-8c71/sdk-venv; global interpreter packages unchanged.",
+  "review": {
+    "initial_finding": "Independent input path plus input ID could mislabel a result.",
+    "correction": "Registered mode derives ID, verified entry and complete dependency pins together from existing service; direct mode has no ID option.",
+    "followup": "Read-only reviewer found no further actionable issue in the bounded integration. Root ran native integration separately."
+  },
+  "failed_attempts": [
+    "Initial tests: MCP SDK retained a pytest captured stderr without a usable fileno; explicit current stderr and FD capture corrected test transport setup.",
+    "Initial combined test run hit external-candidate startup wait before a child marker. Standalone diagnostic started the actual child at 4.46 s, isolated test passed, and corrected combined suite passed without threshold changes.",
+    "Browser test unavailable: in-app browser attach timeout; Edge reported ERR_BLOCKED_BY_CLIENT and local GET /workbench returned 403. No browser policy or application access guard was disabled."
+  ],
+  "limits": [
+    "Visible browser and ParaView GUI interaction NOT_VERIFIED",
+    "No live native owner/session command bridge, semantic Undo, source relocation repair or portable bundle",
+    "Only VTU and PVD with contained relative VTU dependencies; PVD metadata <=8 MiB and <=1024 datasets",
+    "Data/Material/Plan document owners and full CAD/FE-Runner-Post round trip remain open",
+    "No new FreeCAD, solver, physical-material or engineering approval run; units and qualification remain UNKNOWN"
+  ],
+  "retention": "Detailed native states, logs and snapshots remain local under ignored runs directories. This record and verification source are committed; local native artifacts have not been published remotely.",
+  "artifacts": [
+    {
+      "path": "runs/product-post-integration-20261011-8c71/report.json",
+      "bytes": 1761,
+      "sha256": "4ea9eb7a379cfecfbc005213fb2186aa014df18edcbb272a7ef2bc4c5333000c"
+    },
+    {
+      "path": "runs/product-post-integration-20261011-8c71/inspection.json",
+      "bytes": 1600,
+      "sha256": "e88ff540454977e9322583ccc6c594383fd5d3f0d3a964aa552fc945841af344"
+    },
+    {
+      "path": "runs/product-post-integration-20261011-8c71/registered.json",
+      "bytes": 1188,
+      "sha256": "a9c64f547147750bc00273e800aed4f80d637dadb96c8e6259ff348b1ada90db"
+    },
+    {
+      "path": "runs/product-post-integration-20261011-8c71/registered-analysis/project.json",
+      "bytes": 4560,
+      "sha256": "6b35cf031f6bcc3fee5b196608c5293e82bbce44c76a4f0b1b67cccb892c5253"
+    },
+    {
+      "path": "runs/product-post-integration-20261011-8c71/registered-analysis/saved/20261011T040029Z-309fda/project.json",
+      "bytes": 4669,
+      "sha256": "22725f8861ddac93e9b5cba833f575743963505e266cf07ddc06d7f36aba3e09"
+    },
+    {
+      "path": "runs/product-post-integration-20261011-8c71/registered-analysis/saved/20261011T040029Z-309fda/analysis.pvsm",
+      "bytes": 241692,
+      "sha256": "556179d451f46f4929d98f19759003979c7ee4c78c9618bbe2569c43bdb3e9cd"
+    },
+    {
+      "path": "runs/product-post-integration-20261011-8c71/serve_fixture.py",
+      "bytes": 1198,
+      "sha256": "c5ced28556d835622dc543bfa1cfb4c974d82fa4277e9277a823c64d143f2c22"
+    },
+    {
+      "path": "runs/product-post-integration-20261011-8c71/register_fixture.py",
+      "bytes": 1909,
+      "sha256": "5157dd3cfb5d1891a00c824cee3f2e3aac26d14ef741c6e7ee7823bfaa0069eb"
+    },
+    {
+      "path": "runs/product-post-integration-20261011-8c71/inspect_registered.py",
+      "bytes": 2846,
+      "sha256": "743a3d6fca83a16e34e9ed718f8ba04cd2cc0c4148d5ea045dbd11cab255ba4e"
+    },
+    {
+      "path": "runs/desktop-post-external-20261011-0346-7c49/report.json",
+      "bytes": 1656,
+      "sha256": "570bb48eea82aae75b4c56e46babf1bad2f6f08642bb695ce82ec3a28122daf9"
+    },
+    {
+      "path": "runs/product-post-integration-20261011-8c71/store/workbench/inputs/D8678cc3a388f4920bd0a60be20af3f80/files/series.pvd",
+      "bytes": 236,
+      "sha256": "6a279b772672cb0faa314ce1dca5b9c62ff0138b9db97130848a12e0f9a1c1c4"
+    },
+    {
+      "path": "runs/product-post-integration-20261011-8c71/store/workbench/inputs/D8678cc3a388f4920bd0a60be20af3f80/files/frames/frame-0.vtu",
+      "bytes": 905,
+      "sha256": "dbe82963ab7582bb8196fe4619ce6dabd428661e84d926daa1d95a922551ab6d"
+    },
+    {
+      "path": "runs/product-post-integration-20261011-8c71/store/workbench/inputs/D8678cc3a388f4920bd0a60be20af3f80/files/frames/frame-1.vtu",
+      "bytes": 910,
+      "sha256": "2ea102db4f0caac328eb4220853e1a0b128c5d54e26f9f92a21ee7100a311f1b"
+    }
+  ],
+  "source_files": [
+    {
+      "path": "apps/desktop_post/README.md",
+      "bytes": 10847,
+      "sha256": "9e08097e0ddf28752adf81008086e13d5d84cfffd90d704df43711ac246c352a"
+    },
+    {
+      "path": "apps/desktop_post/commands.py",
+      "bytes": 10551,
+      "sha256": "b09bb6ca4d78a2a0931e56626eccd5f806e52a7fbb47607afbab91e4f177a578"
+    },
+    {
+      "path": "apps/desktop_post/external.py",
+      "bytes": 15651,
+      "sha256": "3c0aa30ea90df7393c159237ef8dd9b82fdea9ae0d0bf37bf4b9a8dca93c64b2"
+    },
+    {
+      "path": "apps/desktop_post/macros_external/CAE Save project.py",
+      "bytes": 112,
+      "sha256": "3ca8f4b296a40287abde5749298b376c2dff383607a0968fd07a653fd807889c"
+    },
+    {
+      "path": "apps/desktop_post/verify_external.py",
+      "bytes": 6206,
+      "sha256": "c3cce8cb067d14aadb73ab116e3f03d8c3c780a19517298a08e7b3dccbb4f114"
+    },
+    {
+      "path": "apps/lab/static/workbench.html",
+      "bytes": 19049,
+      "sha256": "c56c095d9bce8a591d4807385c7306df022b5a844f03ba7ba3099ba65caffb84"
+    },
+    {
+      "path": "apps/lab/static/workbench.js",
+      "bytes": 73725,
+      "sha256": "0747a7b3f56de0f76d264baa7360489c0e927ab913cce92b561310ecd97ac7a9"
+    },
+    {
+      "path": "apps/lab/workbench_routes.py",
+      "bytes": 4522,
+      "sha256": "705db2fed9c5ae714215018b0a0a6eaa81fc8fb82a41d1ee271991077e21cbc3"
+    },
+    {
+      "path": "caelab/native_inputs.py",
+      "bytes": 6374,
+      "sha256": "4c852cae9f13fc9948d3e0baa59a38923d9fa30b9918ec151d99b3e26144d628"
+    },
+    {
+      "path": "caelab/workbench.py",
+      "bytes": 28876,
+      "sha256": "d78f933ec930b6c604e2a8a9fd155af31a1187fcbc285cee70b488b58d26031f"
+    },
+    {
+      "path": "caelab/workbench_cli.py",
+      "bytes": 7363,
+      "sha256": "7de66521910aed9c8f6f4ae4f90e79022a9fa8335e18bccc769318ae49e4e9c4"
+    },
+    {
+      "path": "caelab/workbench_client.py",
+      "bytes": 2643,
+      "sha256": "7d45ebf043f34b757dacbcb334ea2f10df86bb7207b7bc8c76c193e0f0b005ea"
+    },
+    {
+      "path": "openscience/workbench_mcp.py",
+      "bytes": 4860,
+      "sha256": "ed40cbf396ecc56a489cc846706b7462557799f70a1a62e53cfecedfe54660ef"
+    },
+    {
+      "path": "scripts/start_cae_post.ps1",
+      "bytes": 3684,
+      "sha256": "5154e5c47dcfe2c9ac232d3275c4ea0db647bc73d66ded6ebe7214356205e9d6"
+    },
+    {
+      "path": "tests/test_desktop_post_external.py",
+      "bytes": 14973,
+      "sha256": "e773cddfd440e4e9948bdd116bfe55eb008c8351caebce3bed8b3b590f38b727"
+    },
+    {
+      "path": "tests/test_workbench_jobs.py",
+      "bytes": 13554,
+      "sha256": "635ffe250adbc644696131e86c002df78b9f5a6a0188116e7f397dbfa7b28ecb"
+    },
+    {
+      "path": "tests/test_workbench_native_inputs.py",
+      "bytes": 9810,
+      "sha256": "9d74ab62c7ea31f2d22674d15b331dce35594716087b38ab1eaeec7d83a9a876"
+    }
+  ]
+}

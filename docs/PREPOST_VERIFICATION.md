@@ -1,5 +1,44 @@
 # 전처리와 후처리 검증 기록
 
+## 2026-10-11 외부 결과 등록 → native Post → 저장·새 프로세스 재열기
+
+구현 소스는 `1f0338466d04fea8312aa943b5545b61fc858b50`이다. 기존 서비스의 허용
+폴더에서 VTU 또는 PVD와 상대 VTU 의존 파일을 별도 사본으로 등록한다. 파일 세트가
+완성되고 해시가 확인된 뒤에만 등록 ID를 게시한다. 누락·변경·경로 이탈·지원하지 않는
+의존 파일은 등록을 막는다. PVD 메타데이터는 8 MiB/1024 dataset 한도이며 전체 용량은
+운영자의 local-input 설정을 따른다. 목록의 다음/이전 페이지와 native 메타데이터 표시를
+기존 화면 코드에 연결했지만 아래 브라우저 제약 때문에 화면 조작 통과로 기록하지 않는다.
+
+새 실행 `runs/product-post-integration-20261011-8c71`에서 실제 stdio MCP로
+`D8678cc3a388f4920bd0a60be20af3f80`을 등록했다. HTTP·CLI·MCP가 동일 PVD와 2개
+VTU 프레임의 경로·해시를 반환했다. PowerShell `-InputId … -PrepareOnly`로 등록
+세트를 열었고 ParaView 6.2.0의 별도 프로세스 PID 83496에서 검사·저장, PID 42016에서
+재열기를 수행했다. 새 파일·저장 개정으로 실행했으며 원본과 등록 사본은 변경되지 않았다.
+
+독립 합성 기준 `response = 1+x+2y+3z+0.25*time`을 실제 tetrahedron의 시간 0/1
+점 데이터와 비교했다(오차 1e-12 미만). 실제 PlotOverLine 5개 보간점도 같은 식과
+비교했다(오차 1e-10 미만). Point/Cell association 선택을 수행하고, 보간 결과에 원본
+절점/요소 ID가 들어가지 않는지 확인했다. 새 프로세스에서 저장한 시간 1과 POINTS 배열
+선택·원 수치·선 보간·입력 해시를 확인했다. 단위와 물리적 적합성은 UNKNOWN이다.
+
+관련 Python 검사는 중복을 제외해 89개, 기존 JavaScript 검사는 19개 통과했다.
+실제 stdio 검사 초기에 pytest stderr 수명 문제를 발견해 현재 stderr를 명시하도록
+검사 환경을 수정했다. 초기 후보 프로세스 시작 대기도 실패한 적이 있으며 별도 진단과
+수정된 전체 조합 검사에서 통과했다. 수치 기준이나 대기 한도를 완화하지 않았다.
+독립 코드 검토에서 발견한 ‘입력 A의 ID에 B 경로를 붙일 수 있음’은 등록 ID만 받는
+서비스 조회와 완전한 파일 pin 재검사로 수정했고 재검토에서 종결했다.
+
+**미검증 범위:** 인앱 브라우저 연결은 timeout, Edge는 ERR_BLOCKED_BY_CLIENT였고
+로컬 `/workbench` 요청도 403을 반환했다. 접근 제한을 바꾸지 않았으며 visible GUI
+통과를 주장하지 않는다. ParaView GUI·native owner 명령·Undo·source repair·다른 형식·
+Data/Material/Plan 편집 및 전체 CAD/FE→Runner→Post 수용은 남아 있다. 새 FreeCAD나
+solver를 실행하지 않았고 공학 승인은 추가하지 않았다.
+
+[기계 판독 기록](../benchmarks/records/20261011-native-input-post.json)에 버전·명령·
+소스와 파일 hash·원 실패·보존 위치를 저장했다. 상세 상태와 사본은 로컬 `runs/`에만
+있으며 원격 게시하지 않았다. 구현 커밋은 로컬 보존이고 exact-SHA Actions 조회는
+실행 없음이었다. 다음 문서 커밋을 새 native/solver 실행으로 해석하지 않는다.
+
 ## 2026-10-11 전체 제품·UI·MCP 기획 보완본 검토
 
 실제 Pro 대화에서 전체 상세기획 v2와 22쪽 UI PDF를 받았다.

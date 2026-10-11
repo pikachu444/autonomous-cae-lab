@@ -1,3 +1,21 @@
+## 2026-10-11 — Resume from implemented native input/Post connection
+
+Source `1f0338466d04fea8312aa943b5545b61fc858b50` is a verified local code commit,
+not a new plan. VTU/PVD dependency registration, HTTP/CLI/stdio MCP identity,
+registered-ID ParaView opening and native save/cold reopen are implemented.
+See [PREPOST_VERIFICATION](docs/PREPOST_VERIFICATION.md) for the actual run and
+remaining limits; [Post README](apps/desktop_post/README.md) gives the commands.
+The isolated service is stopped. Its saved analyses and SDK environment remain
+in `runs/product-post-integration-20261011-8c71`; do not overwrite that run.
+No push or exact-source CI run was performed/found.
+
+Continue implementation from these connections, without another planning-review
+cycle. The next Post connection is the actual native owner/session command bridge
+and consuming GUI actions; independent Data/Material/Plan document editing remains
+a parallel product outcome. Keep the existing local FreeCAD execution stop in
+effect. Visible browser acceptance was blocked by the automation connection;
+native headless evidence is not visible GUI acceptance or a whole-product finish.
+
 ## 2026-10-11 — Latest full-product plan and requirement-validity correction
 
 The previous first-Material planning closure does not satisfy the user's requested

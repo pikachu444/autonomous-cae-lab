@@ -1,3 +1,23 @@
+## 2026-10-11 — Native input registration and independent Post implemented
+
+Implementation source `1f0338466d04fea8312aa943b5545b61fc858b50` now registers a
+VTU or a PVD plus its relative VTU dependencies through the existing service.
+HTTP, CLI and real stdio MCP resolve the same immutable input ID and hashes.
+CAE Post opens that verified snapshot, inspects real arrays/times, and appends a
+native state that was reopened in a separate ParaView process with the same
+values, time/array selection and source hashes. This is actual code and local
+native execution. [Acceptance and limits](docs/PREPOST_VERIFICATION.md) and the
+[machine-readable record](benchmarks/records/20261011-native-input-post.json)
+pin source, run, input ID, versions and artifacts.
+
+Distinct checks: 89 Python cases and 19 JavaScript cases passed. Visible browser
+automation was blocked; visible ParaView interaction and the live GUI/MCP native
+owner bridge are not accepted. Data/Material/Plan editing owners and the full
+CAD/FE→Runner→Post workflow remain open. No new solver or FreeCAD execution,
+physical validation or release approval is claimed. The code commit is local,
+unpushed, and exact-SHA GitHub Actions lookup returned no run. Native evidence is
+retained locally under `runs/`; the temporary integration service has shut down.
+
 ## 2026-10-11 — Whole-product plan and requirement-validity corrections applied
 
 The user rejected treating ten progress questions and a first-Material handoff as

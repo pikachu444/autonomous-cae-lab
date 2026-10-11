@@ -1,5 +1,23 @@
 # Current workbench implementation
 
+## 2026-10-11 native result registration and Post connection
+
+The existing workbench now snapshots VTU/PVD result sets, including contained
+relative VTU dependencies, with complete-set hashes and append-only input IDs.
+File listing is paged; partial or changing sets are not published. HTTP, CLI and
+actual MCP use the same service. `start_cae_post.ps1 -InputId <ID> -ServiceUrl ...`
+resolves and rechecks that exact snapshot before its native reader opens it.
+Direct external paths remain available without service/AI and carry no arbitrary
+registration ID. Native array/time inspection and saved-state cold reopening are
+implemented. [Usage](../apps/desktop_post/README.md) and
+[verification](PREPOST_VERIFICATION.md) identify the exact inputs and limitations.
+
+Source `1f0338466d04fea8312aa943b5545b61fc858b50` is local and unpushed; exact-source
+CI has no run. This bundle does not implement a live native command bridge,
+independent document owners, general product GUI or the whole research workflow.
+Browser interaction was not verified. Next work consumes these real connections
+from the native session/GUI and continues the independent research editor lane.
+
 ## 2026-10-11 concrete product plan and reuse checkpoint
 
 [PRODUCT_PLAN](PRODUCT_PLAN.md) maps real import/evaluation/numerical/Runner/Expert

@@ -5,6 +5,11 @@
 용도: 구현 작업 분담, UI 설계 대조, 기존 코드와의 차이 검토  
 상태: 제품 설계 제안. 제품 구현·배포·수치 검증·사용자 업무 수용·공학 승인을 뜻하지 않는다.
 
+구현 현황(2026-10-11): 허용 폴더의 VTU/PVD 의존 세트 등록, 동일 HTTP/CLI/MCP ID,
+그 ID로 native Post 열기 및 저장·별도 프로세스 재열기를 구현했다. 전체 화면·native
+owner 명령 구현은 남아 있다. 구체적 실행과 미검증 범위는
+[검증 기록](PREPOST_VERIFICATION.md)에서 관리하며 아래 요구와 UI 목표를 축소하지 않는다.
+
 2026-10-11 적용 안내: 이 파일은 실제 Pro의 [v2 원문](design/20261011-product-ui-mcp/Autonomous_CAE_Lab_Detailed_Plan_v2.md)에
 [요구 타당성 검토](REQUIREMENTS_VALIDITY_REVIEW.md)의 지정 수정 문구를 Codex가 반영한 현재 계획이다.
 원 v1/v2 파일과 [22쪽 PDF](design/20261011-product-ui-mcp/Autonomous_CAE_Lab_UI_Plan_v2.pdf)는 그대로 보존한다.
