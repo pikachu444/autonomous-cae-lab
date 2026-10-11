@@ -1,4 +1,22 @@
-## 2026-10-11 — Current continuation
+## 2026-10-11 — Continue from integrated Pro code
+
+Source `584971df8ae64de08beaf1120febe4a9c994aa56` is committed and confirmed on
+`origin/codex/ui-interaction-design-20261010`; exact-source CI lookup returned no
+runs. Pro's original delivery and correction r1 are integrated. Root verified the
+actual independent Data/fit/DOE/adoption/reopen flow; see
+[WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md) for the bounded native review,
+retained run paths and one remaining transient native polling/completion defect.
+
+Pro is still the product-code writer and is continuing PDE and discussion Expert
+owners/screens, Runner/MCP/direct-entry integration and the small native correction.
+Root reviews and integrates the returned source. Continue those implementations;
+do not stop at this checkpoint, restart planning or repeat the accepted nonlinear
+fit. Local FreeCAD remains stopped and the exhausted cloud trial is not resumed.
+All temporary Root review services have shut down. Preserve the user's untracked
+`.codex-remote-attachments/` and the earlier failed runs. No new approval question
+is needed for the already authorized development and branch publication.
+
+## Earlier 2026-10-11 — Current continuation
 
 Resume the connected native Pre/Runner/Post and independent Data/Numerical work
 from [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md). Actual Pro's repository

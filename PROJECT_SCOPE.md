@@ -1,4 +1,17 @@
-## 2026-10-11 — Current connection priority
+## 2026-10-11 — Connected Data/Numerical implementation received and integrated
+
+Source `584971df8ae64de08beaf1120febe4a9c994aa56` is published on the current
+development branch. Independent Data mapping/transform editing, retained-source
+reimport, Material-linked fit/DOE, explicit candidate adoption and Undo now run
+through the same GUI/HTTP/MCP owners. Root exercised nonlinear material data,
+actual fit/DOE and saved-work reopening. Native FEM export/Runner/Post return is
+implemented with bounded portable review; the local native execution stop remains.
+See [the current implementation record](docs/WORKBENCH_PROGRESS.md) for results
+and limits. PDE and discussion Expert implementation continues with Pro writing
+and Root reviewing/integrating. This advances real workflows; historical section
+counts are not completion criteria and no substantive scope is removed.
+
+## Earlier 2026-10-11 — Current connection priority
 
 Runner/Material navigation and shared manual/MCP Post save advance at `327b7b3`.
 The [current progress record](docs/WORKBENCH_PROGRESS.md) and actual Pro repository

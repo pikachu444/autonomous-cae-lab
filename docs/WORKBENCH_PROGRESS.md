@@ -1,5 +1,72 @@
 # Current workbench implementation
 
+## 2026-10-11 integrated source and actual research flow
+
+Source `584971df8ae64de08beaf1120febe4a9c994aa56` integrates Pro's original ZIP
+and correction r1. It is pushed to `codex/ui-interaction-design-20261010`, with
+the exact remote ref confirmed; exact-source GitHub Actions lookup returned `[]`.
+No CI or new native solver success is claimed. Pro continues the independent PDE
+and discussion Expert implementation while Root reviews and integrates.
+
+The working product now supports Data channel/axis declarations and explicit
+Scale/Offset editing, retained source preview/reimport, saved mappings and Undo;
+Material-linked fit/DOE plans, actual candidate/curve reading and explicit
+undoable coefficient adoption; and job navigation to the originating document.
+The native Pre freeze/Runner/Post/design return source is also integrated, with
+the admitted linear C3D10 scope described in the delivery section below.
+
+Root used a synthetic nonlinear first-Piola reference in Pa with an explicit
+`1e-6` conversion to MPa. The independent formula was
+`Pxx = mu*(s - 1/s) + lambda*log(s)/s` for `F=diag(s,1,1)` and
+`s=[1,.88,1.08,1.24,1.4]`. Actual FELUPE fitting recovered
+`mu=320.0000000000001`, `lambda=509.99999999999943` MPa, rank 2, with maximum
+curve error `8.526512829121202e-14` MPa against the prior `1e-7` MPa bound.
+This is a synthetic elastic constitutive check, not J2/DP or physical calibration.
+A nine-candidate, two-variable DOE matched the independent curves within
+`5.684341886080802e-14` MPa. Its existing influence analysis had rank 3 and
+condition 1.796571; it is regression influence, not Sobol sensitivity.
+
+The first fast-poll GUI adoption attempt failed and remains in
+`runs/pro-review-nonlinear-20261011-r02`. Its already computed fit was reused.
+The continuation in `runs/pro-review-nonlinear-20261011-r03` verified adoption,
+Undo/Redo, stale-input refusal, incompatible stress-measure refusal before a
+calculation, saved results, and a separate-process reopen. Real stdio MCP read the
+same retained source/results, adopted once through Material, rejected an old
+session, and reused the same command receipt. No original solver job was rerun.
+
+After correction r1, `runs/pro-review-corrections-20261011-r01` copied the saved
+review store and moved only its copied global input folder aside. Actual HTTP/Qt
+Scale/Offset edits and Undo/Redo produced the expected changed values from the
+retained raw bytes. A fresh three-candidate DOE supported the GUI race check:
+the confirmation stayed open 3.33 seconds, generated exactly one HTTP adoption,
+and Material Undo restored the old coefficients. Both temporary service owners
+shut down cleanly. Qt used offscreen rendering with an explicitly loaded Segoe UI
+font; these are widget interactions, not visible human/native GUI acceptance.
+
+Environment: Python 3.13.5, PySide6 6.9.1, FELUPE 11.1.3, NumPy 2.3.5,
+SciPy 1.17.0 and MCP SDK 1.30.0. Local retained receipts and SHA256:
+
+| Receipt | SHA256 |
+| --- | --- |
+| `runs/pro-review-nonlinear-20261011-r03/acceptance.json` | `ea60864a5779e7494340a541c90af63ae9fe32dc89a3c0c1bf3da065d8dbd004` |
+| `runs/pro-review-nonlinear-20261011-r03/cold-reopen-mcp-acceptance.json` | `62c93cd1f752dbf3eb6baa4d8514ec2db520a4ab908411ec5d21638810e14876` |
+| `runs/pro-review-corrections-20261011-r01/acceptance.json` | `ac28371811f8c4b33c1751aaa110a8cccb88556745fddd0728fc63d61d90d58c` |
+
+The stores, scripts, original failed receipt, corrected interaction captures and
+downloaded code remain under ignored `runs/`; their bytes are not hosted by this
+documentation commit. Original/correction ZIP hashes are respectively
+`02c9b20d729b3c5c5a8ba4d7b7a2da8acca16767b384b2dafe79a3d2f6c357fb` and
+`a86b55935f414e9e676cdc0a81c46b95773b08af0c77b444c9b4c51847355322`.
+
+Focused portable review accepts the actual FreeCAD editor-mode list semantics,
+normal long-command acknowledgement/completion, adoption polling and UTF-8
+corrections. One remaining P2 is sent to Pro: a transient `/commands/next` error
+can stop the I/O sender while a native command is APPLYING, stranding its later
+completion. No native application was launched to reproduce it. Local FreeCAD
+and the exhausted cloud trial remain stopped. The next work is the returned
+PDE/Expert source and this correction, followed by the remaining real Post and
+research connections; this checkpoint is not a whole-product finish.
+
 ## 2026-10-11 Pro coding delivery: native round trip and independent research
 
 This source change starts from published `3d75c4bf997f477ae17bc87ccbfb9a2021845ba1`

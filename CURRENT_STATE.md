@@ -1,4 +1,21 @@
-## 2026-10-11 — Current connected-workflow implementation
+## 2026-10-11 — Pro implementation and Root integration
+
+Published source `584971df8ae64de08beaf1120febe4a9c994aa56` integrates independent
+Data/Numerical owners and Qt editors, native FEM snapshot execution/return, and
+the received correction r1. Root's real HTTP/Qt nonlinear flow recovered both
+Neo-Hooke coefficients, evaluated a two-variable DOE, adopted through the same
+Material owner, and reopened saved work in a new process with actual stdio MCP.
+Saved-source reimport and a delayed GUI adoption confirmation are also verified.
+[WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md) records exact runs and limits.
+
+Native FreeCAD/CalculiX/ParaView execution was not repeated. One transient polling
+failure can still strand an already-started native completion; Pro has the
+reproduction and is correcting it with the next PDE/Expert delivery. Those
+independent editors and the wider Post/research connections remain active work.
+The branch push is confirmed; exact-source CI has no run. The historical entries
+below retain their original source/date and do not override this current state.
+
+## Earlier 2026-10-11 — Current connected-workflow implementation
 
 Source `327b7b3` connects retained-job Runner navigation and the manual Post save
 macro to the shared owner. The actual Pro source review and bounded Qt evidence

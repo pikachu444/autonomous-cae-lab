@@ -1,3 +1,12 @@
+## Current implementation of independent owners — 2026-10-11
+
+Source `584971d` extends the existing Material document lifecycle to independent
+Data and Numerical owners. Native Pre exports through the existing FreeCAD FEM
+writer and submits its frozen editable model/deck through the existing JobManager;
+Post and Runner resolve those exact results and design origins. No numerical
+optimizer or Core physics schema is replaced. The implementation decision and
+remaining native boundary are recorded in [ADR0061](ADR/0061-shared-material-owner-and-native-commands.md).
+
 ## Current input-workspace boundary — ADR0060 (2026-10-11)
 
 CAD/FE Pre, Data, Material Research and PDE Research own separate editable

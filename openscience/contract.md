@@ -1,4 +1,23 @@
-## Implemented file operations — 2026-10-11
+## Connected document and native-result tools — 2026-10-11
+
+Source `584971df8ae64de08beaf1120febe4a9c994aa56` adds optional
+`data_source_preview`, `job_navigation`, `native_analysis_submit` and
+`numerical_candidate_adopt` wrappers through the existing HTTP Client. Existing
+document commands now route Data and Numerical documents to their service-owned
+draft/Undo/save lifecycle. GUI, CLI and MCP use the same handlers and retain
+explicit document/session/generation targets. Data import pins registered or
+document-retained source bytes before submission; preview is not an import.
+
+Candidate adoption applies one actually evaluated candidate through the original
+Material owner, rejects changed input/generation, and leaves the prior results
+intact. Native submission consumes a successful typed freeze receipt and reuses
+its JobManager request identity. It does not grant arbitrary native Python,
+filesystem roots or solver syntax. Numerical engines still generate candidates.
+Actual stdio MCP reads/adoption were exercised independently of the GUI, as
+recorded in [WORKBENCH_PROGRESS](../docs/WORKBENCH_PROGRESS.md). Native execution
+and the wider PDE/Expert/Post connections have their separately stated limits.
+
+## Earlier implemented file operations — 2026-10-11
 
 The workbench MCP now exposes `local_roots_list`, `local_files_list`,
 `local_input_register`, `input_preview` and `native_input_resolve`. These delegate

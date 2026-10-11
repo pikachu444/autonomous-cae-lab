@@ -2,6 +2,52 @@
 
 Status: implemented, bounded acceptance; 2026-10-11.
 
+## 2026-10-11 extension: Data/Numerical and native FEM round trip
+
+Source `584971df8ae64de08beaf1120febe4a9c994aa56` extends the existing lifecycle
+through small owner hooks. Independent Data and Numerical documents have their
+own draft, Undo/Redo and saved revisions; they share lifecycle code rather than
+one mutable document. Data owns raw-source retention and explicit mapping/
+transform declarations. Numerical owns variables, experiments, fit/DOE settings
+and candidate history. Existing readers, FELUPE evaluators, numerical engines and
+JobManager continue to calculate. A candidate is adopted as one Material edit
+only against its original unchanged input and current owner generation.
+
+The native FreeCAD document remains the CAD/FE owner. Its existing FEM writer
+produces the frozen deck alongside editable FCStd and mesh metadata. The adapter
+admits a single solid, C3D10, static linear isotropic material and Fixed/Force
+conditions, validates the retained inputs and publishes declared displacement
+results for Post. Runner resolves the exact job; design return activates the
+original live document or a labelled retained editable copy. Existing current
+edits and saved Post state are preserved. No general nonlinear/contact/material
+law support is inferred from this bounded adapter.
+
+Alternatives rejected: generating a second deck from GUI values, duplicating the
+numerical engines, keeping a second GUI draft owner, or importing a retained Data
+source by searching current filesystem paths. The chosen implementation reuses
+native syntax and source associations, and pins the registered or saved source
+before each import. Invalid edits remain saveable but cannot run. The established
+absolute Jacobian floor is retained alongside the added normalized check; it is
+not requalified as a universal engineering criterion by this software change.
+
+Native start acknowledgement now precedes GUI application. Authenticated I/O
+contact during an already-started command is distinct from GUI responsiveness;
+late exact completion cannot overwrite a replacement owner. One transient poll
+failure can still strand completion and remains assigned to Pro for correction.
+Idle expiry, service restart and credential rejection retain their boundaries.
+
+This advances ADR0060's independent Data/Numerical and GUI/MCP edit/save/reopen
+outcomes, plus the native Run/Runner/Post/design connection. Core wire physics
+schemas, domain qualification and engineering verdicts are unchanged. Optional
+MCP gains source preview, job navigation, frozen-analysis submission and explicit
+candidate adoption wrappers over the same service; no provider or filesystem
+authority expands. Actual nonlinear fit/DOE, retained-source reimport, Qt adoption,
+new-process reopen and real stdio MCP checks are recorded in
+[WORKBENCH_PROGRESS](../docs/WORKBENCH_PROGRESS.md). Native event-loop/export/solver
+acceptance remains separate; no stopped local/cloud native run was resumed.
+
+The initial implementation decision below retains its earlier, narrower scope.
+
 ## Decision and responsibility
 
 Implement ADR0060 in the existing Workbench service. `MaterialDocuments` owns
