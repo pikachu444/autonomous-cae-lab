@@ -5,6 +5,88 @@ fields, editable native readers/filters, four analysis layouts, and CAE commands
 It is a working native prototype, not a replacement canvas or a completed custom
 application shell. Root performs the visible Windows GUI acceptance separately.
 
+## Independent external-result analysis
+
+The independent entry accepts an exact local VTU or a PVD collection with relative
+VTU dependencies. It opens a native reader in one Render View, without retained
+A/B experiments, CAD, the original solver, a service, or an AI provider:
+
+```powershell
+& '<ParaViewHome>/bin/pvpython.exe' --force-offscreen-rendering `
+    apps/desktop_post/external.py 'C:/results/series.pvd' 'C:/analysis/new-study'
+
+# Open the emitted analysis in the native desktop application.
+./scripts/start_cae_post.ps1 -Project 'C:/analysis/new-study/project.json'
+```
+
+The output directory must be new. Registered opening resolves the entry and all
+source pins from the same local service receipt; an arbitrary file path cannot
+be combined with an input ID:
+
+```powershell
+& '<ParaViewHome>/bin/pvpython.exe' --force-offscreen-rendering `
+    apps/desktop_post/external.py 'C:/analysis/new-managed-study' `
+    --registered-input '<registered-ID>' --service-url 'http://127.0.0.1:8000'
+```
+
+Managed Python callers use `open_registered(input_id, new_directory, service_url)`.
+For an existing workbench service with an operator-configured `results` input
+root, the same workflow is available through the repository CLI and launcher:
+
+```powershell
+python -m caelab files list --root results --url http://127.0.0.1:8766
+python -m caelab files register series.pvd --root results --url http://127.0.0.1:8766
+./scripts/start_cae_post.ps1 -InputId '<returned-ID>' -ServiceUrl http://127.0.0.1:8766
+# Add -PrepareOnly to create the native project without showing a GUI.
+```
+
+`files roots`, `files inspect <ID>` and `files native <ID>` inspect the same
+service. Registration does not grant access to another folder. PVD metadata is
+limited to 8 MiB and 1024 datasets; the configured local-input byte limit applies
+to the whole snapshot. Missing, changing or unsupported dependencies prevent a
+registration receipt from being published.
+
+The registered PVD retains its relative dependency names. The low-level
+`open_result` accepts an ID only with matching complete source pins. Direct
+local use records the original file references and checks their hashes; it does
+not copy or modify those originals. Both initial and appended analysis manifests
+work with the existing startup and **CAE Save project** macro.
+
+External-result projects offer only **CAE Save project** from `macros_external`.
+Use native Properties, array/component/time controls and native filters for these
+sources. The retained A/B experiment's U, section and exact-probe macros are
+offered only for its original workspace.
+
+Native Information/Properties show actual arrays and timesteps. The Python
+`inspect_result` and `select_array` helpers require explicit point/cell association
+and an exact native timestep. Coordinate, time and field units remain undeclared;
+array names do not certify units, physical meaning or engineering qualification.
+No implicit point/cell conversion or nearest-time substitution is performed.
+Use `external.physical_input(source, [("POINTS", "response")])` before spatial
+sampling to select response arrays and remove original identity/classification
+arrays. Arbitrary native filters created directly are still the user's pipeline.
+
+Save records the PVSM and every native reader input hash, including PVD frames;
+reopen validates dependencies and the restored reader paths. A changed or missing
+dependency is an error. Relocation repair, pending native edit persistence,
+native command bridging/Undo, managed Ctrl+S and other file formats remain outside
+this bounded entry. Analysis manifests reference existing files and are not a
+portable data bundle.
+
+The fresh local synthetic verification checks actual VTU/PVD data, an independent
+affine line reference, original hashes and restored native time/field selection:
+
+```powershell
+& '<ParaViewHome>/bin/pvpython.exe' --force-offscreen-rendering `
+    apps/desktop_post/verify_external.py create 'C:/analysis/new-verification'
+# Run as a separate process for cold reopening.
+& '<ParaViewHome>/bin/pvpython.exe' --force-offscreen-rendering `
+    apps/desktop_post/verify_external.py reopen 'C:/analysis/new-verification'
+```
+
+This produces `report.json`; it verifies native computation and persistence,
+not visible GUI interactions or physical validation of a solver.
+
 ```powershell
 # Prepare a fresh append-only project and open it.
 ./scripts/start_cae_post.ps1
@@ -100,3 +182,34 @@ the absence of original identity/classification arrays after spatial sampling.
 Implementation sources: ParaView's official command-line `--script` and PVSM APIs,
 and `Qt/Python/pqPythonMacroSupervisor.cxx` in v6.2.0 (`PV_MACRO_PATH`). No external
 Qt binding is loaded into the bundled ParaView process.
+
+## Shared native commands
+
+Start an external-result project with the service URL to attach its actual native
+session to the running Workbench:
+
+```powershell
+./scripts/start_cae_post.ps1 -Project 'C:/analysis/project.json' -ServiceUrl http://127.0.0.1:8766 -ConnectService
+```
+
+Registered `-InputId` opening also connects
+to that same service. Without these options the native application remains
+independent. The launcher does not start a second service or use a headless copy
+to edit the open window.
+
+`documents_list` / `hosts_list` expose the actual document/session/proxy IDs.
+Submit `post.inspect`, `post.select_array` or `document.save` through
+`document_command` with the read session/generation and a fresh command ID.
+Selection requires `arguments.target.source_id` and `arguments.target.view_id`,
+plus `association`, `array`, optional `component` and exact `time`. Read the
+returned ID with `command_status`; only queued commands support `command_cancel`.
+The document listing is the last owner report; `post.inspect` returns a fresh
+owner-thread snapshot. Save appends a native analysis revision.
+
+The bridge uses the existing GUI QVTK timer and starts only after its first
+callback. A stopped timer, lost service or invalid session stops dispatch;
+commands are never automatically replayed. Pending native property edits block
+mutations. GUI main-thread integration still needs actual visible/native
+acceptance; headless protocol tests explicitly advertise `execution_mode=headless`
+and cannot control an unrelated GUI. Filters, native Undo/Redo and general source
+repair are not advertised by this bounded bridge.

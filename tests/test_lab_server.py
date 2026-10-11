@@ -383,15 +383,19 @@ def test_dispatch_rejects_unknown_operations_extra_keywords_and_client_paths(cli
     (b'[]', {}, 400), (b'{"operation": "study_create", "operation": "cad_run"}', {}, 400),
     (b'{"value": NaN}', {}, 400), (b'{"value": 1e999}', {}, 400),
     (b'{}', {"Content-Type": "text/plain"}, 415), (b' ' * (MAX_BODY + 1), {}, 413),
-])
+], ids=["array-root", "duplicate-operation", "nonfinite-nan", "nonfinite-overflow",
+        "wrong-content-type", "oversized-body"])
 def test_post_requires_bounded_unambiguous_json(client, body, headers, status):
     client.request("/api/jobs", body, headers=headers, expected=status)
     assert client.request("/api/overview")["jobs"] == []
 
 
-def file_hashes(root):
+def file_hashes(root, *, live_lock=None):
+    # Only a caller-supplied live controller handle is outside the retained
+    # artifact snapshot. Lock-named artifacts and all read errors remain visible.
+    live_lock = None if live_lock is None else Path(live_lock)
     return {path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
-            for path in root.rglob("*") if path.is_file()}
+            for path in root.rglob("*") if path != live_lock and path.is_file()}
 
 
 def test_configured_library_is_read_only_and_path_selection_is_rejected(client):
@@ -454,13 +458,20 @@ def test_presets_advertise_complete_bindings_without_descriptor_or_runtime_calls
     def unexpected_call(*args, **kwargs):
         raise AssertionError("Preset metadata must not discover, admit or solve")
 
-    for backend in ("structural.code_aster", "material.mfront.inverse", "explicit.openradioss"):
+    for backend in adapters:
         for name in ("describe_model", "describe_inputs", "bind_inputs", "input_runtime_identity", "solve"):
-            monkeypatch.setattr(adapters[backend], name, unexpected_call)
+            if callable(getattr(adapters[backend], name, None)):
+                monkeypatch.setattr(adapters[backend], name, unexpected_call)
     presets = client.request("/api/presets")
     assert {key for key, value in presets.items() if value["declared_inputs"]} == {
         "codeaster_linear", "material_inverse", "explicit_freefall", "explicit_ground_stop",
-        "explicit_compliant_stop", "explicit_selected", "explicit_selected_compliant", "pde_coupled_selected"}
+        "explicit_compliant_stop", "explicit_selected", "explicit_selected_compliant", "pde_coupled_selected",
+        "codeaster_geometric", "codeaster_plasticity", "plasticity_selected",
+        "material_point", "material_hyperelastic", "material_viscoelastic",
+        *{f"family_ansys_vmd1_regular_{direction}_{solver}" for direction in ("Fx", "Fy", "Fz")
+          for solver in ("calculix", "code_aster")},
+        *{f"family_{case}_{solver}" for case in ("lame_cylinder_plane_strain_pressure", "scordelis_lo_solid_gravity")
+          for solver in ("calculix", "code_aster")}}
     # A source/runtime declaration alone is insufficient. A missing binding
     # must immediately withdraw the model from the UI's advertised choices.
     monkeypatch.setattr(adapters["material.mfront.inverse"], "bind_inputs", None)
@@ -500,12 +511,13 @@ def test_http_model_campaign_run_exposes_verified_model_records_and_reuses_them(
             assert experiment["integrity"] == "VERIFIED"
             assert experiment["result"]["campaign_id"] == plan["campaign_id"]
             assert experiment["result"]["decision"] == "NOT_RELEASED"
-        before = file_hashes(lab.store)
+        live_lock = client.server.workbench.manager._owner.lock_file
+        before = file_hashes(lab.store, live_lock=live_lock)
         calls = adapter.calls
         replay = client.request("/api/jobs", {"operation": "optimization_run",
             "arguments": {"campaign_id": plan["campaign_id"]}}, expected=202)
         assert client.finish(replay["id"], observation_timeout=300, poll_interval=.2)["result"] == result
-        assert adapter.calls == calls and file_hashes(lab.store) == before
+        assert adapter.calls == calls and file_hashes(lab.store, live_lock=live_lock) == before
 
 
 def test_single_writer_blocks_second_job_and_store_switch_while_reads_work(tmp_path):
@@ -582,7 +594,8 @@ def test_artifact_path_and_manifest_restrictions(real_flow, relative, status):
 def test_verified_artifact_downloads_reports_bundles_and_tamper_refusal(real_flow):
     client, service, _, _ = real_flow
     root = service._selected().path
-    before = file_hashes(root)
+    live_lock = client.server.workbench.manager._owner.lock_file
+    before = file_hashes(root, live_lock=live_lock)
     artifact, headers = client.request("/api/artifacts/E-valid?path=cad%2Freport.html", raw=True)
     assert headers["Content-Disposition"].startswith("attachment")
     assert headers["Content-Type"] == "application/octet-stream"
@@ -599,7 +612,7 @@ def test_verified_artifact_downloads_reports_bundles_and_tamper_refusal(real_flo
             data = archive.read(row["path"])
             assert len(data) == row["size_bytes"]
             assert hashlib.sha256(data).hexdigest() == row["sha256"]
-    assert file_hashes(root) == before
+    assert file_hashes(root, live_lock=live_lock) == before
     report = root / "experiments/E-valid/cad/report.html"
     original = report.read_bytes()
     try:

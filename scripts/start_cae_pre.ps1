@@ -1,40 +1,49 @@
+# Start an editable native Pre document through the shared private runtime.
+[CmdletBinding()]
 param(
     [string]$FreeCADRoot,
+    [string]$FreeCADExe,
     [string]$Source,
+    [string]$InputId,
     [string]$Assembly,
     [string]$Output,
+    [string]$Gmsh,
+    [string]$ServiceUrl,
+    [string]$Python,
+    [string]$RuntimeRoot = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\windows-runtime'),
+    [ValidateRange(1024,65535)][int]$Port = 8766,
+    [string]$Store = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\research-store'),
     [switch]$PrepareOnly
 )
 $ErrorActionPreference = 'Stop'
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-if (-not $FreeCADRoot) { $FreeCADRoot = Join-Path $repoRoot 'runs/prepost-session-20261008-01/tools/FreeCAD_1.1.4-Windows-x86_64-py311' }
-if (-not $Source) { $Source = Join-Path $repoRoot 'runs/p1-native-edit-baseline-20261001-01/experiments/E-native-width38/cad/editable.FCStd' }
-if (-not $Assembly) { $Assembly = Join-Path $repoRoot 'runs/cae-assembly-conditions-20261006-01/experiments/E-assembly-default/cad/assembly.step' }
-if (-not $Output) { $Output = Join-Path $repoRoot ('runs/pre-desktop-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0,6)) }
-$exePath = Join-Path $FreeCADRoot 'FreeCAD.exe'
-foreach ($requiredPath in @($exePath, $Source, $Assembly)) {
-    if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) { throw "Missing required file: $requiredPath" }
+$repository = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+if ($FreeCADRoot -and $FreeCADExe) { throw 'Choose -FreeCADRoot or -FreeCADExe.' }
+if ($FreeCADRoot) { $FreeCADExe = Join-Path $FreeCADRoot 'FreeCAD.exe' }
+if (-not $ServiceUrl) {
+    & (Join-Path $PSScriptRoot 'start-windows.ps1') -NoBrowser -ResearchUI -RuntimeRoot $RuntimeRoot -Port $Port -Store $Store
+    if (-not $?) { throw 'The shared research service could not be started or verified.' }
+    $ServiceUrl = "http://127.0.0.1:$Port"
+} elseif (-not $Python) {
+    # An explicit existing service stays authoritative; install its desktop
+    # client runtime without starting a second controller.
+    & (Join-Path $PSScriptRoot 'install-windows.ps1') -ResearchUI -RuntimeRoot $RuntimeRoot
+    if (-not $?) { throw 'The private desktop client Python could not be installed.' }
 }
-if ((Test-Path -LiteralPath $Output) -and (Get-ChildItem -LiteralPath $Output -Force | Select-Object -First 1)) {
-    throw 'Output must be a new or empty directory; existing execution records are preserved.'
+if (-not $Python) {
+    $Python = Join-Path ([IO.Path]::GetFullPath($RuntimeRoot)) 'venv\Scripts\python.exe'
+    $installation = Get-Content -Raw -LiteralPath (Join-Path $RuntimeRoot 'install-receipt.json') | ConvertFrom-Json
+    $repository = $installation.source_root
 }
-New-Item -ItemType Directory -Path $Output -Force | Out-Null
-$Output = (Resolve-Path -LiteralPath $Output).Path
-$configPath = Join-Path $Output 'config.json'
-$config = @{ output=$Output; source=(Resolve-Path -LiteralPath $Source).Path; assembly=(Resolve-Path -LiteralPath $Assembly).Path; gmsh=(Join-Path $FreeCADRoot 'bin/gmsh.exe') }
-$config | ConvertTo-Json | Set-Content -LiteralPath $configPath -Encoding utf8
-$modulePath = (Join-Path $repoRoot 'apps/desktop_pre') | ConvertTo-Json -Compress
-$jsonPath = $configPath | ConvertTo-Json -Compress
-$macroPath = Join-Path $Output 'start.FCMacro'
-@"
-import sys
-sys.path.insert(0, $modulePath)
-import cae_prep
-cae_prep.start($jsonPath)
-"@ | Set-Content -LiteralPath $macroPath -Encoding utf8
-$userCfg = Join-Path $Output 'user.cfg'
-$systemCfg = Join-Path $Output 'system.cfg'
-if ($PrepareOnly) { $Output; return }
-$nativeArgs = @('-u', ('"' + $userCfg + '"'), '-s', ('"' + $systemCfg + '"'), ('"' + $macroPath + '"'))
-$process = Start-Process -FilePath $exePath -ArgumentList $nativeArgs -PassThru -WindowStyle Normal
-@{pid=$process.Id; output=$Output; exe=$exePath} | ConvertTo-Json
+$arguments = @('-m','apps.research.desktop','--service',$ServiceUrl,'pre')
+if ($FreeCADExe) { $arguments += @('--executable',[IO.Path]::GetFullPath($FreeCADExe)) }
+if ($Source) { $arguments += @('--source',(Resolve-Path -LiteralPath $Source).Path) }
+if ($InputId) { $arguments += @('--input-id',$InputId) }
+if ($Assembly) { $arguments += @('--assembly',(Resolve-Path -LiteralPath $Assembly).Path) }
+if ($Output) { $arguments += @('--output',[IO.Path]::GetFullPath($Output)) }
+if ($Gmsh) { $arguments += @('--gmsh',(Resolve-Path -LiteralPath $Gmsh).Path) }
+if ($PrepareOnly) { $arguments += '--prepare-only' }
+Push-Location -LiteralPath $repository
+try {
+    & $Python @arguments
+    if ($LASTEXITCODE -ne 0) { throw "Pre launch helper exited with code $LASTEXITCODE" }
+} finally { Pop-Location }

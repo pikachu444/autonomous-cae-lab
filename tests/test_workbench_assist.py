@@ -246,14 +246,34 @@ def test_editable_plan_then_registered_real_calculation_result_and_followup(tmp_
 
 
 def test_facade_and_unapproved_execution(tmp_path):
-    generator = mock_generator([('calculations_submit', {'backend': 'test', 'budget': {'evaluations': 1}})])
+    request = {'purpose': 'Attempt an unapproved calculation', 'operation': 'evaluate',
+               'inputs': {'backend': 'test', 'settings': {}}, 'budget': {'evaluations': 1}}
+    generator = mock_generator([('calculations_submit', request)])
     invoked = []
     assistance = Assistance(tmp_path / 'assist', experts=definitions(['calculations.submit']),
         runtime=RuntimeConfig(generator=generator, external_model=False), source_roots=[tmp_path],
         callbacks={'calculations.submit': lambda request: invoked.append(request)})
     result = assistance.call('experts.ask', {'expert_id': 'materials', 'question': 'run'})
     assert result['status'] == 'FAILED' and invoked == []
+    assert 'Calculation execution is not authorized' in result['reason']
     assert assistance.call('experts.describe', {'expert_id': 'testing'})['id'] == 'testing'
+
+
+def test_backend_free_batch_export_does_not_expand_expert_execution_authorization(tmp_path):
+    from jsonschema import Draft202012Validator
+    from caelab.assist.experts import _TOOL_INPUTS
+    request = {'purpose': 'Export explicitly selected existing candidates', 'operation': 'batch_export',
+               'inputs': {'variables': [{'id': 'x', 'unit': '1', 'lower': 0, 'upper': 1}],
+                          'candidates': [{'x': 0.2}, {'x': 0.8}], 'case_id': 'TEST_ONLY'},
+               'budget': {'evaluations': 1}}
+    Draft202012Validator(_TOOL_INPUTS['calculations.submit']).validate(request)
+    callbacks = []
+    _, runtime = runtime_for(tmp_path, mock_generator([('calculations_submit', request)]),
+        tools=['calculations.submit'], callbacks={'calculations.submit': lambda value: callbacks.append(value)})
+    result = runtime.ask('materials', 'Export', {'calculation_scope': {
+        'allow_execution': True, 'max_evaluations': 1, 'backends': ['test'], 'variables': {'x': [0, 1]}}})
+    assert result['status'] == 'FAILED' and callbacks == []
+    assert 'Backend is outside the authorized calculation scope' in result['reason']
 
 
 def test_pdf_actual_extracted_text_and_public_literature_archive(tmp_path):
@@ -374,9 +394,9 @@ def test_selected_status_omits_stored_arguments_and_analysis_carries_actual_prov
 @pytest.mark.parametrize('tool,nested',[('numerical.doe',False),('calculations.submit',True)])
 def test_effective_numerical_workers_obey_expert_resource_scope(tmp_path,tool,nested):
     calls=[]
-    inputs={'backend':'test','variables':[{'id':'E','unit':'MPa','lower':1,'upper':2}],
+    inputs={'backend':'test','settings':{},'count':2,'variables':[{'id':'E','unit':'MPa','lower':1,'upper':2}],
             'execution':{'mode':'process','workers':8,'threads':1}}
-    request={'operation':'doe','inputs':inputs} if nested else inputs
+    request={'purpose':'Submit an explicit process resource request','operation':'doe','inputs':inputs} if nested else inputs
     request={**request,'budget':{'evaluations':2}}
     generator=mock_generator([(tool.replace('.','_'),request)])
     _,runtime=runtime_for(tmp_path,generator,tools=[tool],callbacks={tool:lambda value:calls.append(value) or {'status':'SUCCEEDED'}})
@@ -422,8 +442,8 @@ def test_scoped_tool_name_cannot_be_rebound_by_mcp_arguments(tmp_path, monkeypat
     observed = []
     def fake_host(_prompt, tools, _budget, _model, **_kwargs):
         observed.append(tools['knowledge_search']['call'](
-            _name='calculations.submit', operation='evaluate',
-            inputs={'backend': 'test'}, budget={'evaluations': 1}))
+            _name='calculations.submit', purpose='TEST ONLY rebinding attempt', operation='evaluate',
+            inputs={'backend': 'test', 'settings': {}}, budget={'evaluations': 1}))
         return json.dumps({'answer': 'Rejected an invalid search request.', 'sources': []})
     monkeypatch.setattr(host, 'run_openscience', fake_host)
     runtime = ExpertRuntime(store(tmp_path), Literature(),
@@ -751,10 +771,11 @@ def test_plan_rejects_noncanonical_operation_keys_and_backend_settings(tmp_path)
     assert runtime.plan(base)['status'] == 'PLANNED'
     malformed = json.loads(json.dumps(base))
     malformed['inputs']['design'] = {'count': 4, 'method': 'LHS'}
-    with pytest.raises(ValueError, match='Additional properties'):
+    with pytest.raises(ValueError, match='Invalid doe plan input inputs') as rejected:
         runtime.plan(malformed)
+    assert 'design' in str(rejected.value)
     malformed = json.loads(json.dumps(base))
-    malformed['inputs']['settings'] = {'conditions': {'unexpected': 1}}
+    malformed['inputs']['settings']['conditions']['unexpected'] = 1
     with pytest.raises(ValueError, match='Invalid backend settings'):
         runtime.plan(malformed)
     malformed = json.loads(json.dumps(base))
@@ -771,7 +792,8 @@ def test_generated_job_grant_survives_restart_and_rechecks_workspace(tmp_path):
                                                 'state': 'SUCCEEDED', 'result_refs': ['result.json']},
         'results.read': lambda request: {'responses': {'stress': {'value': 3, 'unit': 'MPa'}}},
     }
-    generator = mock_generator([('calculations_submit', {'operation': 'evaluate', 'inputs': {'backend': 'test'},
+    generator = mock_generator([('calculations_submit', {'purpose': 'Submit an authorized calculation',
+                                                          'operation': 'evaluate', 'inputs': {'backend': 'test', 'settings': {}},
                                                           'budget': {'evaluations': 1}}),
                                 {'answer': 'Submitted a managed job.', 'sources': []}])
     knowledge, runtime = runtime_for(tmp_path, generator, tools=['calculations.submit'], callbacks=callbacks)

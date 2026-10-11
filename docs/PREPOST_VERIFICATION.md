@@ -1,5 +1,261 @@
 # 전처리와 후처리 검증 기록
 
+## 2026-10-11 r5 실제 Post 수정과 Pre 저장 결함
+
+r5 소스는 MAIN/REVIEW에 한 번씩 통합됐으며 누적 구현은
+`1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3`으로 푸시하고
+[Draft PR7](https://github.com/pikachu444/autonomous-cae-lab/pull/7)을 열었다.
+아래 실행 당시에는 미커밋 소스였으며 게시 자체는 새 native 실행이 아니다. 실제 ParaView
+6.2.0에서 제품 우회 없이 비교·필터·측정·Apply/Undo·저장·새 프로세스 재열기를
+통과했다. 원본 ID에는 NativeNodeID만 남으며 Response가 섞이지 않는다.
+독립 affine 기준과 기존 `1e-10 mm` 허용값을 유지했다.
+`runs/post-product-workflow-20261011-r06-r5`에 보존한다.
+
+별도 엄격 검사 `runs/post-history-repair-20261011-r02-r5`에서는 이력·Undo/Redo·
+새 분기 뒤 B를 이 검사의 저장소 안에서만 이동해 부분 복구했다. 정상 A와 과거
+결과를 읽고 Owner 경로로 저장했으며, 그 부분 저장본에서 B를 수리하고 다시 새
+프로세스로 열었다. ID·이전 값·원본 해시가 모두 유지됐고 소유 프로세스와 서비스는
+종료했다. 일반 수동 Save의 `commands.save_project`는 아직 모든 원본을 먼저
+검사하므로 B 누락 시 Owner에 도달하기 전에 실패한다. 이 경로는 미해결이다.
+
+독립 VTK/controlled-owner 검사에서 실제 reader 파일 변조 차단, 시간 의미 불일치
+거부와 정상 입력별 metadata 조회도 확인했다. 실제 HTTP 열→구조 실행의 원
+HDF5/캡처/VTK 온도·변위·요소 응력 값은 일치한다. 저장한 결과 재조회는 기본
+Client의 30초를 넘으며, 별도의 긴 제한 진단이 원 실패를 대체하지 않는다.
+Linux-owner 필드 전달을 Windows ParaView·운영체제 간 경로 수용으로 확대하지 않는다.
+
+Pre는 설치된 FreeCAD 1.1.4 API와 pinned worker를 읽고 portable/Qt 검사를 했다.
+Windows에서 archive의 read-only handle에 fsync하여 관리형 Save가 실패한다.
+외부 의존 문서의 후속 변경이 부모의 미저장/닫기 판단에서 빠지는 문제도 재현했다.
+FreeCAD 자체는 실행하지 않았으며 native 저장·Assembly·FEM 수용으로 기록하지 않는다.
+상세 결과와 미해결 항목은 [현재 진행 기록](WORKBENCH_PROGRESS.md) 및
+[r5 검증 기록](../benchmarks/records/20261011-connected-research-r5.json)에 있다.
+
+## 2026-10-11 r4 실제 Post 이력·부분 복구와 남은 결함
+
+현재 로컬에 통합된 Pro r2/r3/r4는 아직 미커밋이다. 실제 ParaView 6.2.0에서
+필터 수정, 여러 번 Undo/Redo, Undo 후 새 분기, 과거 downstream 결과 보존,
+저장, 입력 하나가 없는 상태의 정상 분기 열기, 동일 내용의 입력 위치 수리,
+별도 프로세스 재열기를 실행했다. 원본 affine 값과 결과는 유지했다.
+`runs/post-history-repair-20261011-r01-r4`에 각 단계와 원 실패를 보존한다.
+
+검사는 남은 ID 배열 오분류를 기록하며 통과로 바꾸지 않았다. 부분 복구 상태의
+공통 Save는 아직 누락 입력 때문에 실패한다. 저장 후 retained reader 경로와
+검사 대상 파일 pin 불일치, 시간 선언 연결도 수정 중이다. 원 r4 전체 흐름의
+실패는 `runs/post-product-workflow-20261011-r05-r4`에 별도로 남아 있다.
+UI·서비스·실제 열해석/구조해석 및 field 전달 결과는
+[현재 진행 기록](WORKBENCH_PROGRESS.md)과
+[연결 연구 검증 기록](../benchmarks/records/20261011-connected-research-r4.json)에
+모았다. native headless 실행을 사람이 조작한 GUI 수용으로 확대하지 않는다.
+FreeCAD 로컬 실행과 소진된 기존 cloud 시험은 계속 중지 상태다.
+
+## 2026-10-11 Runner 연결과 Post 저장 owner 수정
+
+소스 `327b7b3`의 실제 HTTP/Qt retained-job 열기·원래 응답 확인·미적용 Material
+값 보존과 Post 수동 저장 상태 수정은 [현재 진행 기록](WORKBENCH_PROGRESS.md)에
+보존한다. 새 solver 실행은 0이며 visible GUI와 native Pre 전체 연결은 미검증이다.
+기존 수치·물리 검증 상태와 FreeCAD 로컬 실행 중지는 바뀌지 않는다.
+
+## 2026-10-11 외부 결과 등록 → native Post → 저장·새 프로세스 재열기
+
+구현 소스는 `1f0338466d04fea8312aa943b5545b61fc858b50`이다. 기존 서비스의 허용
+폴더에서 VTU 또는 PVD와 상대 VTU 의존 파일을 별도 사본으로 등록한다. 파일 세트가
+완성되고 해시가 확인된 뒤에만 등록 ID를 게시한다. 누락·변경·경로 이탈·지원하지 않는
+의존 파일은 등록을 막는다. PVD 메타데이터는 8 MiB/1024 dataset 한도이며 전체 용량은
+운영자의 local-input 설정을 따른다. 목록의 다음/이전 페이지와 native 메타데이터 표시를
+기존 화면 코드에 연결했지만 아래 브라우저 제약 때문에 화면 조작 통과로 기록하지 않는다.
+
+새 실행 `runs/product-post-integration-20261011-8c71`에서 실제 stdio MCP로
+`D8678cc3a388f4920bd0a60be20af3f80`을 등록했다. HTTP·CLI·MCP가 동일 PVD와 2개
+VTU 프레임의 경로·해시를 반환했다. PowerShell `-InputId … -PrepareOnly`로 등록
+세트를 열었고 ParaView 6.2.0의 별도 프로세스 PID 83496에서 검사·저장, PID 42016에서
+재열기를 수행했다. 새 파일·저장 개정으로 실행했으며 원본과 등록 사본은 변경되지 않았다.
+
+독립 합성 기준 `response = 1+x+2y+3z+0.25*time`을 실제 tetrahedron의 시간 0/1
+점 데이터와 비교했다(오차 1e-12 미만). 실제 PlotOverLine 5개 보간점도 같은 식과
+비교했다(오차 1e-10 미만). Point/Cell association 선택을 수행하고, 보간 결과에 원본
+절점/요소 ID가 들어가지 않는지 확인했다. 새 프로세스에서 저장한 시간 1과 POINTS 배열
+선택·원 수치·선 보간·입력 해시를 확인했다. 단위와 물리적 적합성은 UNKNOWN이다.
+
+관련 Python 검사는 중복을 제외해 89개, 기존 JavaScript 검사는 19개 통과했다.
+실제 stdio 검사 초기에 pytest stderr 수명 문제를 발견해 현재 stderr를 명시하도록
+검사 환경을 수정했다. 초기 후보 프로세스 시작 대기도 실패한 적이 있으며 별도 진단과
+수정된 전체 조합 검사에서 통과했다. 수치 기준이나 대기 한도를 완화하지 않았다.
+독립 코드 검토에서 발견한 ‘입력 A의 ID에 B 경로를 붙일 수 있음’은 등록 ID만 받는
+서비스 조회와 완전한 파일 pin 재검사로 수정했고 재검토에서 종결했다.
+
+**미검증 범위:** 인앱 브라우저 연결은 timeout, Edge는 ERR_BLOCKED_BY_CLIENT였고
+로컬 `/workbench` 요청도 403을 반환했다. 접근 제한을 바꾸지 않았으며 visible GUI
+통과를 주장하지 않는다. ParaView GUI·native owner 명령·Undo·source repair·다른 형식·
+Data/Material/Plan 편집 및 전체 CAD/FE→Runner→Post 수용은 남아 있다. 새 FreeCAD나
+solver를 실행하지 않았고 공학 승인은 추가하지 않았다.
+
+[기계 판독 기록](../benchmarks/records/20261011-native-input-post.json)에 버전·명령·
+소스와 파일 hash·원 실패·보존 위치를 저장했다. 상세 상태와 사본은 로컬 `runs/`에만
+있으며 원격 게시하지 않았다. 구현 커밋은 로컬 보존이고 exact-SHA Actions 조회는
+실행 없음이었다. 다음 문서 커밋을 새 native/solver 실행으로 해석하지 않는다.
+
+## 2026-10-11 전체 제품·UI·MCP 기획 보완본 검토
+
+실제 Pro 대화에서 전체 상세기획 v2와 22쪽 UI PDF를 받았다.
+[Pro 상세기획 원문](design/20261011-product-ui-mcp/Autonomous_CAE_Lab_Detailed_Plan_v2.md)과 [도면](design/20261011-product-ui-mcp/Autonomous_CAE_Lab_UI_Plan_v2.pdf)은
+다운로드 원본과 SHA256이 같은 파일로 보존한다. v1 원본도 같은 design 폴더에 남긴다.
+
+문서 검토로 찾은 누락은 native 명령 조회/취소, 파일·의존 세트 등록/수리, 등록된 기능과
+실제 설치 확인의 구별, 운동 종료 후 설계 배치 복원, 다른 메시 비교의 실제 성공 경로,
+독립 연성 평가의 단계·전달·수렴·취소·저장이다. Pro가 한 번의 보완으로 본문·명령·작업표에
+연결했고 두 읽기 전용 검토에서 해당 누락과 새 중대 모순이 없음을 확인했다.
+
+v1의 22쪽을 모두 렌더링해 읽었다. v2는 변경된 2·3·4·5·9·10·13쪽을 다시 보았고
+나머지 15쪽의 렌더 PNG 해시가 v1과 일치한다. 한글, 표/문구 배치와 5쪽 B - A 표기를 확인했다.
+Pages17/22의 새 파일·그림 참조, 수정 블록 hash와 나머지 330/127개 블록·기존 media 보존을
+읽어 확인했다. 이후 실제 Pro의 [요구 타당성 검토](REQUIREMENTS_VALIDITY_REVIEW.md)를
+받아 본문·작업 선행을 수정했다. 원 번호별 현재 효력과 이유를 남겼으며 원 v2 MD/PDF는
+별도 보존한다. PDE/Expert 독립 착수, 첫 저장/재열기, CLI/Python 동일 명령,
+변수 의미/탐색 선택, 후보 기록과 시험 자료 환류를 현재 상세기획에 반영했다.
+Pages18/23에도 현재 기획과 검토 원문, 변경 이유를 저장했다. 첨부 파일과 로컬 파일의
+SHA256이 일치하며 수정 블록·나머지 339/145개 블록·기존 media 보존을 다시 확인했다.
+원본 보존과 수정된 현재 기획의 hash는
+[검토 기록](../benchmarks/records/20261011-full-product-ui-mcp-plan-review.json)에서 구별한다.
+
+이것은 기획·도면 검토다. 새 제품 코드·GUI·MCP·solver를 실행하지 않았다. 기존 cloud
+FAIL/PARTIAL, Windows/native 동일 문서 연결 및 전체 저장/재열기 미검증 상태는 유지한다.
+제품 소스 af2f084dea20562b9036976a9945ee09a3994236의 exact-SHA GitHub 조회는 실행 없음이었다.
+문서 저장이나 도면의 읽기 성공을 새 solver 검증으로 해석하지 않는다.
+
+## 이전 2026-10-11 제품 기획과 클라우드 native 재사용 확인
+
+정시 Pro 점검1/10 후 첫 Material 연결 단위·공통 명령·결과 보존·세 구현 작업을
+기존 계획에 확정했다. 첫 기준은 횡변형 구속 탄성 이력이며 항복 검증이 아니다.
+Page7/12의 새 블록 hash와 이전321/124개 블록의 무변경을 확인했다.
+원 cloud 결과/실패는 아래 그대로이며 새 제품 실행·수치 수용은 추가하지 않았다.
+
+정시 점검2/10은 기존 로컬 서비스의 단일 Material owner에 GUI/MCP가 접속하는
+계약과 필수 파일 완성 후 committed 참조 게시, owner 프로세스 종료/재시작 후
+재열기를 추가로 고정했다. ADR0060과 명세·계약 설명에 반영했다. Page9/14의 새
+hash와 이전326/126개 블록 보존을 확인했다. 기획 완료·구현 미착수이며 실제 편집,
+저장 중 실패, 재시작 복원은 구현 수용에 남는다. Pro는 제공 보고와 식을 검토했으며
+코드·GUI·solver를 새로 실행하거나 확인하지 않았다.
+
+정시 점검3/10은 P1의 실제 복수 변수 DOE·실패·영향도와 P2의 실제 지그 수정·
+재메시·조건 재검사·기준/변경안 비교·채택/보류를 통과 장면으로 명시했다.
+기존 `run_doe`/`analyze_candidates` 코드를 읽어 표준화 다변수 최소제곱의 표본·
+rank/condition 한계를 확인했으며 새 실행은 하지 않았다. Page10/15와 이전328/128개
+블록 보존을 확인했다. 지그 변경안 연구용 선택과 제작/사용 승인은 구별한다.
+
+정시 점검4/10은 후보 평가 전 관측/mask·가중치·정규화·누락 정책 고정과 벡터/텐서의
+공통 기저·위치·association 대응 후 차분을 명시했다. 현재 fit의 `_experiment`,
+`_aligned`, `fit_model` 소스에서 고정 mask·필수 응답과 명시 penalty 경계를 확인했다.
+최대 오차 구간 누락 후보와 동일 텐서의 기저 변환/정보 누락은 향후 실제 수용 장면이며
+이번에 실행하지 않았다. Page11/16과 이전330/130개 블록 보존을 확인했다.
+
+정시 점검5/10은 사례 A에서 미식별 계수와 모델군 실패를 구별하고 holdout의 보정
+사용을 새 Plan revision에 남기는 조건을 추가했다. 대표 경로의 메시·증분 세분화로
+모델 차이와 수치오차를 구별해야 한다. 기존 fit의 rank/condition·holdout 분리와
+J2 affine patch의 두 메시 일치 한계를 확인했다. Page12/17과 이전332/132개 블록을
+보존했으며 새 코드·GUI·수치 실행 없이 P2의 실제 수용 조건으로 남긴다.
+
+정시 점검6/10은 사례 B의 실제 센서와 같은 게이지 응답 정의 및 체결 후 상태와
+계측 영점의 분리를 명시했다. 두 게이지점의 동일 병진은 신장 0이어야 하며, 지원하는
+연속 단계는 체결 응력·내부변수·접촉 이력을 유지해야 한다. 기존 fixture 기록은
+볼트 체결력·나사/너트·바닥 고정 조건이 미정인 CAD 선행 수용이다. 이를 체결 역학 검증으로 확대하지
+않았다. Page13/18과 이전334/133개 블록 보존을 확인했고 새 실행은 하지 않았다.
+
+정시 점검7/10은 사례 C의 개구·재닫힘·재개구에서 압축 전달과 손상 이력을 확인하고,
+점탄성 지연 회복과 영구 잔류·사용 시점 공차를 구별하는 수용 조건을 추가했다.
+Abaqus의 cohesive 손상/압축 및 시간 의존 점탄성 정의를 확인해 근거 링크를 남겼다.
+이는 제품 구현이나 실제 열/계면 수치 검증이 아니다. Page14/19의 새 내용과 이전
+336/134개 블록 보존을 확인했다. 재닫힘 등 미지원 경로는 지원 확장·검증에 남는다.
+
+정시 점검8/10은 선택 후보 job과 현재 fit/DOE 실행 전체의 취소 범위를 구별했다.
+전체 취소는 새 생성·제출을 멈추고 해당 실행의 대기/진행 작업 종료·정리를 추적한다.
+늦은 결과는 원 입력에 남기되 탐색·자동 채택을 재개하지 않고 Plan·다른 실행을 보존한다.
+기존 `numerical._Evaluators/run_doe/fit_model`, `JobManager`, `Workbench.submit`의
+상위 job·협력적 취소·미확인 정리 상태를 읽어 재사용 경계를 확인했다. 매 평가의
+별도 durable job은 요구하지 않는다. Page15/20과 이전338/135개 블록을 보존했다.
+Pro의 보고 검토와 Root의 소스 확인이며 실제 GUI/MCP 취소 수용은 아직 실행하지 않았다.
+
+정시 점검9/10은 첫 Material UI의 실제 MCalibration 참조 설명과 연속 조작 기준을
+검토해 추가 기획 수정 없이 구현 인계 가능하다고 판단했다. 표 편집값의 Run Once 전달,
+Undo/오류 위치, 현재 입력·이전 결과·비교 선택의 재열기 후 대응은 기존 구현 수용에
+남는다. 기획·Page15/20은 변경하지 않았다. Pro는 PDF/Pages/코드/실행 화면을 이번에
+직접 확인하지 않았고 새 GUI 실행·수용 증거도 추가하지 않았다.
+
+정시 점검10/10까지 실제 전송·답변 수신을 마쳤다. 최종 보고에서 범용 공학 연구
+도구군의 첫 실사용 수용을 불량 연구와 지그 설계·변경·검토 두 업무로 표현하도록
+고쳤다. 전체 목적을 두 업무나 시험 가능성 검토로 한정하지 않는다. Page16/21의
+수정 hash와 비수정337/135개 블록을 확인했다. 첫 Material의 세 작업으로 구현 인계
+가능하다는 보고 기반 판정이며 첫 구현은 미착수, 제품/공학 수용은 미통과다.
+Pro가 현재 파일·Pages·CI·실행·화면을 직접 확인한 검증으로 기록하지 않는다.
+
+[PRODUCT_PLAN](PRODUCT_PLAN.md)에 실제 참조 화면, 두 업무와 A/B/C 연구 사례,
+첫 서비스 연결과 수용 장면을 정리했다. 실제 Pro 협의와 읽기 전용 정합성 검토를
+거쳤으며 새로운 제품 GUI·Core·MCP 구현 완료로 처리하지 않는다.
+
+로컬 FreeCAD 1.1.4 새 문서에서 원점 구속·지름20mm 스케치, Pad10→12mm,
+Undo10mm·Redo12mm를 실제 확인했다. 저장은 확인하지 못했고 사용자 지시로
+로컬 화면 조작을 중단했다. 캡처는 `runs/freecad-workflow-20261011-01/`에 있다.
+
+사용자가 승인한 클라우드 검증은 실제 FreeCAD 전체 앱을 Ubuntu24.04/Xvfb에서
+native API로 구동했다. AppImage SHA와 소스를 고정했고 Gmsh4.12.1을 사용했다.
+주요 결과는 두 실행에서 같다.
+
+| 범위 | 실제 결과 | 판정의 한계 |
+|---|---|---|
+| Body/Sketch/Pad | Ø20×12mm, 체적3769.9111843077512mm³, 독립 해석값과 오차4.55e−13mm³, 형상 FCStd 저장 | 일반 형상 편집·Windows 조작성의 수용이 아님 |
+| Assembly 회전 | 고정 Link·회전 관절·시간 식, 6 frames, 끝 상대각0.5000000000019023rad. 기준0.5rad, 오차1.90e−12rad < 사전 허용1e−6rad | prescribed kinematics. 접촉력/관성/탄성·직동·결합 기구 미검증 |
+| FEM 객체 |1250절점/646체적 요소, 바닥 면 고정·윗면1000N, 실제 Face3 선택과 화면 | 품질/수렴·구조 solve·국부 재메시·일반 조건 재연결 미검증 |
+| 통합 저장/재열기 | 검증 코드 오류로 도달하지 못함 | FreeCAD 저장 기능 자체의 실패라는 근거가 아님 |
+| 재열기 후 변경 | NOT_RUN | geometry/mesh/조건 revision 연결 수용이 다음에 필요 |
+
+첫 [run38068685523](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38068685523)
+(source1b837a3)은 motion link tuple 조회 오류로 실패했다. 한 번 수정한
+[run38068833629](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38068833629)
+(source21e9924)은 document `Material` 속성을 FEM 객체로 잘못 조회해 실패했다.
+전체 workflow는 둘 다 FAIL, 내부 보고서는 PARTIAL이다. 총60분/최초+한 수정
+종료선에 따라 추가 실행은 중단했다. 통합 FCStd와 mesh 파일은 저장 전에 실패했으며,
+형상 전용 FCStd·운동 기록·조립/FEM 화면·로그만 두 새 경로에 보존했다.
+
+공개 branch는 `codex/cad-reuse-cloud-20261011`; 원 product/UI source와 공학
+threshold는 바뀌지 않았다. 다운로드한6개 FCStd/PNG 해시를 보고서와 대조했다.
+GitHub 보존은30일, 로컬 경로·모든 파일 해시·실패 원문·정확한 source/run은
+`benchmarks/records/20261011-product-plan-cloud-reuse.json`에 있다.
+
+Page 본문6/부록11을 재조회해 수정 receipt hash와 비수정314/120개 블록,
+기존 media 참조를 확인했다. 저장된 Markdown 검증이며 렌더 preview는 확인하지
+못했다. 관련 기록은 ignored `artifacts/product-plan-20261011/page-changes.json`
+(SHA256 `d08bdfeab3b991154c84e95e5099b0237c7a711c5ae361e0f65018eeab436d3a`)이다.
+FreeCAD 재사용 방향을 유지하되 통합 저장/재개, Windows 및 같은 GUI/MCP 문서
+연결은 다음 제품 구현의 수용 게이트로 남긴다.
+
+## 2026-10-11 — 독립 연구 문서 경계 교정
+
+Data/Material/PDE를 한 Pre 문서·두 host에 넣는 설계를 철회했다. P10/P11→Data,
+P12→Material, P13→PDE, V06/V13a/V13b의 owner를 재배치하고 V01/V07/V08의
+독립 열기·저장·재개·충돌을 각각 요구한다. 상세 이유·대안·계약 영향은
+[ADR0060](../ADR/0060-independent-research-workspaces.md)에 있다.
+
+기존 W1 비CAD 패널/브라우저 저장 관찰과 FreeCAD/ParaView native 시안은 당시
+자료로 보존한다. 새 경계의 제품 수용은 **NOT_RUN**이다. CAD 없는 Data→Post,
+Material/PDE 직접 평가, 관측→동정→owner의 새 revision, mesh→PDE와 GUI/MCP
+동일성·실패/재개를 새 입력/실험 경로에서 확인해야 한다. 기존 기준 문제의
+수치 허용치를 유지하고 원본/invalid/UNKNOWN을 보존한다. 문서 검토·정합성
+확인은 solver·GUI·물리 수용과 별개다.
+
+실제 ChatGPT Pro가 기존 두 설계 Page와 공개 기준 명세를 검토했고 책임 분리와
+다섯 연결 계약의 보완을 권고했다. Root가 §2.1/§7/§8에 반영했으며 Pro가 이
+로컬 수정본이나 구현을 재검증했다는 뜻은 아니다. 별도 읽기 전용 정합성
+검토에서 발견한 P14 소유권 잔여 문구도 FE 전용으로 교정했다.
+
+Page 본문 sequence 4, 부록 sequence 9를 다시 읽어 수정 receipt의 모든 hash,
+255/74개 비수정 블록, 원 R52/UC17/E14/N12 행, 부록 첨부 참조 8개를 확인했다.
+원/수정 Page와 receipt는 ignored `artifacts/domain-boundary-20261011/page-evidence.json`
+(SHA-256 `be793861813f1410d0661bd5d5fcb9006c7cc55e76ea1a10283dea7a4baf9ca8`)에
+로컬 보존한다. 계정 metadata가 포함된 원본 JSON은 공개 Git에 올리지 않는다.
+설계 검토의 공개 기록은 `benchmarks/records/20261011-independent-workspaces-design.json`이다.
+기존 실제 소스 `af2f084dea20562b9036976a9945ee09a3994236`의 CI 조회는 빈 목록이다.
+문서 갱신을 새 solver 검증으로 세지 않는다.
+
 2026-10-08 · **기획 미완료. 이전 HTML GUI 구조안은 철회했으며, 이후 FreeCAD/ParaView native 연결 시안을 별도로 보존했다.** 요구사항·설계 초안은 [PREPOST_APP_SPEC](PREPOST_APP_SPEC.md), 재사용 근거는 [PREPOST_REUSE](PREPOST_REUSE.md). 사용자 수용 및 제품 전체 완료는 미확인이다.
 
 ## Native 시안 보존 체크포인트
@@ -128,3 +384,11 @@ V01–V15는 새 GUI/manifest로 아직 통과를 주장하지 않는다. FreeCA
 HyperMesh Model Browser/Entity Editor 및 ANSYS Mechanical의 공식 인터페이스 자료를 읽고 개체 조작·표시·속성 편집·선택·맥락 명령 측면의 결손을 초안에 기록했다. 상용 앱의 실제 실행 또는 새로운 CAD/mesh/result GUI 검증을 수행한 것은 아니다. 새 Seed 생성, 기획 수용, 전체 V01–V15 통과도 여전히 없다. 다음 설계는 실제 엔지니어링 작업과 native 도구 재사용 근거로 보완해야 하며, 방금 시안에 외형만 추가해 완료 처리하지 않는다.
 
 impeccable의 bounded 검토를 적용했고 detect는 task 구분선의 좌측 padding warning 2건을 반환했다. 실제 캡처에서 해당 영역은 위쪽 구분선과 충분한 상단 간격을 가지므로 화면 결함으로 승격하지 않았다. 전체 app·native host 통합 성공이나 접근성 전체 합격은 주장하지 않는다.
+## 2026-10-11 — Typed Post bridge and independent Material editing
+
+Source `97f1a45136d9ac456a9d74344b52ea2edd439d6e` adds actual Material GUI/MCP
+editing/evaluation/save and native Post command transport. The current bounded
+acceptance and its run paths are recorded once in [WORKBENCH_PROGRESS](WORKBENCH_PROGRESS.md).
+Headless Post commands/reopen do not verify visible GUI dispatch. The complete
+Pre→Runner→Post and independent Data/Plan research workflows remain open. Prior
+failed attempts and physical UNKNOWN/NOT_RELEASED are preserved.

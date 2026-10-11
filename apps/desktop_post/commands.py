@@ -12,6 +12,22 @@ import uuid
 
 from paraview import simple as p, servermanager
 
+_save_owner = None
+
+
+def set_save_owner(owner):
+    """Connect the explicit CAE save macro to this native session's owner."""
+    owner.assert_thread()
+    global _save_owner
+    _save_owner = owner
+
+
+def clear_save_owner(owner):
+    owner.assert_thread()
+    global _save_owner
+    if _save_owner is owner:
+        _save_owner = None
+
 
 def sha(path):
     with Path(path).open("rb") as stream:
@@ -19,12 +35,34 @@ def sha(path):
 
 
 def project():
+    if _save_owner is not None and hasattr(_save_owner, 'current_project'):
+        return _save_owner.current_project()
     path = Path(os.environ["CAE_POST_PROJECT"]).resolve(strict=True)
     return path, json.loads(path.read_text(encoding="utf-8"))
 
 
+def return_to_design():
+    """Keep this Post document open; activate its recorded editable CAD owner."""
+    from apps.desktop_post.navigation import return_to_design as navigate
+    _, document = project()
+    result = navigate(document)
+    print('DESIGN NAVIGATION REQUESTED ' + result['job_id'])
+    return result
+
+
+def open_analysis_editor():
+    """Open editing controls for this exact owner; the native canvas stays here."""
+    if _save_owner is None:
+        raise RuntimeError('The native document bridge must be connected before opening analysis controls')
+    from apps.desktop_post.navigation import open_analysis_editor as navigate
+    _, document = project()
+    return navigate(document, _save_owner.document_id, _save_owner.session_id)
+
+
 def verify_sources():
     path, doc = project()
+    if doc.get("kind") == "external-result":
+        return external_module().verify_sources(path, doc)
     for source in doc["sources"].values():
         for pin in source["source_pins"]:
             source_path = Path(pin["path"])
@@ -183,7 +221,14 @@ def exact_peak_probe():
 
 
 def save_project():
+    # Managed owners verify their exact document, native edits and healthy
+    # sources while retaining unavailable branches for explicit repair. The
+    # standalone macro still requires the complete original source checks.
+    if _save_owner is not None:
+        return _save_owner.save_project()
     path, doc = verify_sources()
+    if doc.get("kind") == "external-result":
+        return external_module().save_project(path, doc)
     verify_retained_readers(path, doc)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6]
     root = Path(doc.get("project_root", path.parent))
@@ -211,8 +256,10 @@ def save_project():
     return output / "project.json"
 
 
-def restore_workspace():
+def restore_workspace(*, allow_repair=False):
     path, doc = verify_sources()
+    if doc.get("kind") == "external-result":
+        return external_module().restore_workspace(path, doc, allow_repair=allow_repair)
     if "workspace_sha256" in doc and sha(path.parent / doc["workspace_file"]) != doc["workspace_sha256"]:
         raise RuntimeError("Saved analysis state hash mismatch")
     for file, expected in doc.get("native_reader_files", {}).items():
@@ -224,3 +271,11 @@ def restore_workspace():
     view = next(v for v in p.GetViews() if v.GetXMLName() == "RenderView")
     p.SetActiveView(view)
     print("CAE Post loaded. Macros: CAE Save project / Section / Probe / U components. Ctrl+S remains native data export in this prototype.")
+
+
+def external_module():
+    if __package__:
+        from . import external
+    else:
+        import external
+    return external

@@ -1,0 +1,13 @@
+{
+  "source_sha256": {
+    "runs\\cae-assembly-conditions-20261006-01\\experiments\\E-assembly-default\\cad\\surface.json": "936d1527a5feb510b25167b7a08f554bf6043adec717fd2c9d60de71d28b16c6",
+    "runs\\desktop-post-20261008-03\\B_200N_U.vtu": "5d451cdb629b1e007356a8e3f0c9997033971ac82da9a810baf9c2d6d039fcbc"
+  },
+  "component_count": 15,
+  "display_triangles": 13532,
+  "result_nodes": 9155,
+  "result_elements": 5319,
+  "result_boundary_triangles": 8360,
+  "solver_executions": 0,
+  "engineering_verdict": "UNKNOWN_NOT_RELEASED"
+}

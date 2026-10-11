@@ -11,20 +11,79 @@ from caelab.numerical import optimize, fit_model
 from caelab.workbench import Workbench
 
 
-def test_expert_submission_caps_uq_and_rejects_other_operations(tmp_path, monkeypatch):
+def test_expert_submission_uses_actual_tool_contract_and_enforces_uq_budget(tmp_path, monkeypatch):
+    from copy import deepcopy
+    from jsonschema import Draft202012Validator
+    from caelab import backends
+    from caelab.assist.experts import _TOOL_INPUTS
+    from test_workbench_assist import mock_generator, runtime_for
+
+    monkeypatch.setattr(backends, '_registry', dict(backends._registry))
+    backend = 'test.uq.request.contract'
+    def evaluator(values, settings):
+        pytest.fail('This request-routing test must not evaluate a numerical candidate')
+    backends.register_backend(backend, lambda: evaluator, roles=('prepared',))
     bench=Workbench(tmp_path/'workspace')
     submissions=[]
-    monkeypatch.setattr(bench,'submit',lambda operation,args,**kwargs: submissions.append((operation,args)))
+    def submit(operation, args, **kwargs):
+        submissions.append((operation, deepcopy(args), deepcopy(kwargs)))
+        return {'id': 'Jaccepted', 'state': 'QUEUED'}
+    monkeypatch.setattr(bench,'submit',submit)
+    schema = Draft202012Validator(_TOOL_INPUTS['calculations.submit'])
+    base = {'purpose': 'TEST ONLY request-budget routing', 'operation': 'uq',
+        'inputs': {'backend': backend, 'settings': {},
+            'variables': [{'id': 'x', 'unit': '1', 'lower': 0, 'upper': 1}],
+            'distributions': {'x': {'distribution': 'uniform', 'unit': '1', 'lower': 0, 'upper': 1}},
+            'source': {'origin': 'SYNTHETIC', 'reference': 'TEST ONLY request contract'},
+            'independence': 'INDEPENDENT_USER_DECLARED'},
+        'budget': {'evaluations': 2}}
     try:
-        with pytest.raises(ValueError,match='budget'):
-            bench._proposed_submit({'operation':'uq','inputs':{'backend':'test','count':100},'budget':{'evaluations':1}})
-        with pytest.raises(ValueError,match='budget'):
-            bench._proposed_submit({'operation':'uq','inputs':{'backend':'test'},'budget':{'evaluations':16}})
-        with pytest.raises(ValueError,match='not supported'):
-            bench._proposed_submit({'operation':'batch_export','inputs':{},'budget':{'evaluations':1}})
+        too_many = deepcopy(base)
+        too_many['inputs']['count'], too_many['budget']['evaluations'] = 100, 1
+        schema.validate(too_many)  # Not an accidental missing-purpose/inputs rejection.
+        with pytest.raises(ValueError, match='sample count exceeds the evaluation budget'):
+            bench._proposed_submit(too_many)
+        defaults = deepcopy(base)
+        defaults['budget']['evaluations'] = 16
+        schema.validate(defaults)  # Omitted UQ count means the existing default 128.
+        with pytest.raises(ValueError, match='Sampling exceeds the allowed evaluation budget'):
+            bench._proposed_submit(defaults)
         assert not submissions
-        bench._proposed_submit({'operation':'uq','inputs':{'backend':'test','count':2},'budget':{'evaluations':2}})
-        assert submissions[0][1]['execution']['max_evaluations']==2
+
+        accepted = deepcopy(base)
+        accepted['inputs']['count'] = 2
+        accepted['resources'] = {'threads': 1}
+        schema.validate(accepted)
+        missing_purpose = deepcopy(accepted)
+        del missing_purpose['purpose']
+        assert list(schema.iter_errors(missing_purpose))
+        callback_requests = []
+        def callback(request):
+            schema.validate(request)
+            callback_requests.append(deepcopy(request))
+            return bench._proposed_submit(request)
+        generator = mock_generator([('calculations_submit', accepted),
+                                    {'answer': 'The managed request was submitted.', 'sources': []}])
+        _, runtime = runtime_for(tmp_path/'expert', generator, tools=['calculations.submit'],
+                                 callbacks={'calculations.submit': callback})
+        result = runtime.ask('materials', 'Submit the selected test-only UQ request', {
+            'calculation_scope': {'allow_execution': True, 'max_evaluations': 2,
+                'backends': [backend], 'variables': {'x': [0, 1]}, 'resources': {'threads': 1}}})
+        assert result['status'] == 'ANSWERED', result
+        assert callback_requests == [accepted] and len(submissions) == 1
+        assert submissions[0][0] == 'uq' and submissions[0][1]['execution']['max_evaluations'] == 2
+        assert submissions[0][2] == {'resources': {'threads': 1}}
+        assert result['tool_events'][0]['summary']['request'] == accepted
+        assert result['budget_used']['evaluations_requested'] == 2
+
+        # Exporting an existing candidate definition is supported and does not
+        # pretend to evaluate it. Keep its complete operation-specific inputs.
+        batch = {'purpose': 'Export existing test-only candidate definitions', 'operation': 'batch_export',
+            'inputs': {'variables': base['inputs']['variables'], 'candidates': [{'x': 0.2}, {'x': 0.8}],
+                       'case_id': 'TEST_ONLY'}, 'budget': {'evaluations': 1}}
+        schema.validate(batch)
+        bench._proposed_submit(batch)
+        assert submissions[-1] == ('batch_export', batch['inputs'], {'resources': None})
     finally:
         bench.shutdown()
 
@@ -149,10 +208,14 @@ def test_native_style_deck_fixed_width_and_unchanged_include(tmp_path):
 def test_native_selection_restores_packed_outcome_identity(tmp_path, monkeypatch):
     from caelab.evaluation import save_evaluation, read_result
     from caelab.adapters import native_responses
+    from hashlib import sha256
     output=tmp_path/'native'
     output.mkdir()
     outcome={'times':[0.,1.,2.], 'solver_status':'COMPLETED'}
-    source={'sha256':'retained-source'}
+    captured=b'TEST ONLY retained reader source; no native execution\n'
+    (output/'parsed_history.json').write_bytes(captured)
+    source={'backend':'explicit.openradioss', 'artifact':'parsed_history.json',
+            'sha256':sha256(captured).hexdigest()}
     def selected(backend, restored, folder, name):
         assert restored==outcome and folder==output
         return {'kind':'series','value':[0.,2.,4.],'unit':'m',

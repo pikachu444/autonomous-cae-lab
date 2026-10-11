@@ -292,10 +292,22 @@ def _reason(evaluation):
 
 
 def _row(identifier, values, evaluation):
-    return {'candidate_id': identifier, 'values': deepcopy(values),
+    result = {'candidate_id': identifier, 'values': deepcopy(values),
             'execution_status': evaluation.get('execution_status', 'FAILED'),
             'failure_reason': _reason(evaluation), 'responses': deepcopy(evaluation.get('responses', {})),
             'checks': deepcopy(evaluation.get('checks', [])), 'diagnostics': deepcopy(evaluation.get('diagnostics', {}))}
+    # An exchange may have completed successfully while its values were only
+    # predicted. Preserve that distinction at the first row-construction boundary.
+    for key in ('prediction_status', 'out_of_range', 'source', 'prediction_source', 'evaluation_refs'):
+        if key in evaluation:
+            result[key] = deepcopy(evaluation[key])
+    return result
+
+
+def _experiment_evaluations(experiments, evaluations):
+    return [{**deepcopy(reference), 'experiment_id': experiment['id'], 'role': experiment['role']}
+            for experiment, evaluation in zip(experiments, evaluations)
+            for reference in evaluation.get('evaluation_refs', [])]
 
 
 def _record(result, record):
@@ -399,6 +411,8 @@ def run_doe(evaluator_or_factory, variables, *, settings=None, candidates=None, 
 
 
 def _scalar(evaluation, definition):
+    if evaluation.get('prediction_status') == 'PREDICTED' or evaluation.get('execution_status') == 'PREDICTED':
+        raise EvaluationFailed('PREDICTED: this response is not an actual evaluation')
     if evaluation.get('execution_status') != 'SUCCEEDED':
         raise EvaluationFailed(str(_reason(evaluation)))
     name = definition.get('response', definition.get('metric'))
@@ -410,7 +424,7 @@ def _scalar(evaluation, definition):
         raise EvaluationFailed(f'{name} is not an available scalar response')
     if response.get('unit') != definition.get('unit'):
         raise ValueError(f'{name} response unit differs from the declared unit')
-    for key in ('component', 'location'):
+    for key in ('component', 'location', 'measure', 'frame', 'coordinate_system', 'coordinate_frame'):
         if key in definition and response.get(key) != definition[key]:
             raise ValueError(f'{name} response {key} differs from declaration')
     if response.get('kind') == 'scalar':
@@ -509,7 +523,7 @@ def optimize(evaluator_or_factory, variables, objective, *, settings=None, const
                             except EvaluationFailed:
                                 continue
                             row['response_reductions'].append({
-                                **{key:deepcopy(original[key]) for key in ('unit','component','location','source','coordinate_system') if key in original},
+                                **{key:deepcopy(original[key]) for key in ('unit','component','location','source','measure','frame','coordinate_system','coordinate_frame') if key in original},
                                 'response':name,'kind':'scalar','value':reduced,'reduction':declaration['reduction'],
                                 'original_kind':original['kind']})
                 row['responses'] = {name: response for name, response in row['responses'].items()
@@ -676,7 +690,10 @@ def _aligned(evaluation, experiment):
         if pred.get(key) != obs[key]:
             raise ValueError(f"Experiment {experiment['id']} response {key} mismatch")
     for key in ('measure', 'frame', 'coordinate_system', 'coordinate_frame'):
-        if key in obs and pred.get(key) != obs[key]:
+        if key in obs and not (key == 'coordinate_system' and obs[key] == 'UNSPECIFIED'
+                               and obs.get('frame') == pred.get('frame')
+                               and obs.get('measure') == pred.get('measure')
+                               and bool(obs.get('frame')) and bool(obs.get('measure'))) and pred.get(key) != obs[key]:
             raise ValueError(f"Experiment {experiment['id']} response {key} mismatch")
     values = np.asarray(pred['value'], dtype=float)
     if obs['kind'] == 'scalar':
@@ -697,7 +714,13 @@ def _aligned(evaluation, experiment):
         if used[0] < axis[0] or used[-1] > axis[-1]:
             raise ValueError("Observation axis lies outside prediction support; extrapolation is forbidden")
         aligned = np.full(target.shape, np.nan)
-        aligned[experiment['_mask']] = np.interp(used, axis, values)
+        if obs.get('has_calculation_gaps') or pred.get('has_calculation_gaps'):
+            positions=np.searchsorted(axis,used)
+            if np.any(positions>=len(axis)) or not np.array_equal(axis[positions],used):
+                raise ValueError('Calculation gaps require exact prediction samples; interpolation across a gap is unsupported')
+            aligned[experiment['_mask']]=values[positions]
+        else:
+            aligned[experiment['_mask']] = np.interp(used, axis, values)
     used_values = aligned[experiment['_mask']]
     if not np.all(np.isfinite(used_values)):
         raise EvaluationFailed("Predictions are nonfinite at retained observations")
@@ -880,7 +903,8 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
             cancelled = any(output.get('execution_status') == 'CANCELLED' for output in outputs)
             if cancelled:
                 rows.append({'candidate_id': f'C{len(rows):06d}', 'values': values, 'responses': {},
-                             'execution_status': 'CANCELLED', 'failure_reason': 'USER_CANCELLED', 'objective': None})
+                             'execution_status': 'CANCELLED', 'failure_reason': 'USER_CANCELLED', 'objective': None,
+                             'evaluation_refs': _experiment_evaluations(fitted, outputs)})
                 candidate_status[key]='CANCELLED'
                 cache[key]=None,outputs
                 if not journal_only:
@@ -894,7 +918,8 @@ def fit_model(evaluator_or_factory, variables, experiments, *, method='least_squ
                     reasons.append(f"{experiment['id']}: {error}")
             row = {'candidate_id': f'C{len(rows):06d}', 'values': values, 'responses': {},
                    'execution_status': 'FAILED' if reasons else 'SUCCEEDED',
-                   'failure_reason': '; '.join(reasons) if reasons else None, 'objective': None}
+                   'failure_reason': '; '.join(reasons) if reasons else None, 'objective': None,
+                   'evaluation_refs': _experiment_evaluations(fitted, outputs)}
             rows.append(row)
             candidate_status[key]=row['execution_status']
             if reasons:
@@ -1071,6 +1096,10 @@ def _fit_curve(experiment, evaluation):
              'observations': deepcopy(experiment['observations']), 'mask': experiment['_mask'].tolist(),
              'weight': experiment['weight'], 'scale': experiment['scale'],
              'execution_status': evaluation.get('execution_status', 'FAILED')}
+    if experiment.get('observation_source') is not None:
+        curve['observation_source'] = deepcopy(experiment['observation_source'])
+    if evaluation.get('evaluation_refs'):
+        curve['evaluation_refs'] = _experiment_evaluations([experiment], [evaluation])
     try:
         prediction, residual = _aligned(evaluation, experiment)
         if experiment['observations']['kind'] == 'event':
@@ -1087,20 +1116,50 @@ def _fit_curve(experiment, evaluation):
     return _nullable(curve)
 
 
+def _named_responses(responses):
+    """Stable metric identities distinguish reductions of the same channel."""
+    from .storage import canonical_hash
+    result = [({'response': item} if isinstance(item, str) else deepcopy(item)) for item in responses]
+    used = set()
+    names = [item.get('response', item.get('metric')) for item in result]
+    for item, name in zip(result, names):
+        if not isinstance(name, str) or not name:
+            raise ValueError('Each metric requires an actual response name')
+        item['response'] = name
+        identity = item.get('id')
+        if 'id' not in item:
+            identity = name
+            if names.count(name) > 1:
+                identity = name + '@' + item.get('reduction', 'none')
+                # Explicit component/position/measure may also distinguish metrics.
+                peers = [row for row in result if row.get('response', row.get('metric')) == name
+                         and row.get('reduction', 'none') == item.get('reduction', 'none')]
+                if len(peers) > 1:
+                    meaning = {k: item.get(k) for k in ('response', 'unit', 'reduction', 'component',
+                        'location', 'measure', 'frame', 'coordinate_system', 'coordinate_frame')}
+                    identity += '-' + canonical_hash(meaning)[:12]
+        if not isinstance(identity, str) or not identity.strip() or len(identity) > 200 or identity in used:
+            raise ValueError('Declare distinct metric IDs for distinct response/reduction definitions')
+        item['id'] = identity
+        used.add(identity)
+    return result
+
+
 def analyze_candidates(table, responses, *, seed=13):
     """Reuse existing statistics, regression influence, holdout fit and Pareto IDs."""
     variables = _variables(table['variables'])
     if type(seed) is not int or not 0 <= seed <= 2**32 - 1:
         raise ValueError("Analysis seed must be an unsigned 32-bit integer")
     declarations = []
-    for requested in responses:
+    named = _named_responses(responses)
+    for requested, original in zip(named, responses):
         declaration = {'response': requested} if isinstance(requested, str) else dict(requested)
         name = declaration.get('response', declaration.get('metric'))
         declaration['response'] = name
         available = [row['responses'][name] for row in table['candidates'] if name in row.get('responses', {})]
         available += [entry for row in table['candidates'] for entry in row.get('response_reductions',[])
                       if entry['response']==name and entry['reduction']==declaration.get('reduction')]
-        if isinstance(requested, str) and any(r.get('kind') != 'scalar' for r in available):
+        if isinstance(original, str) and any(r.get('kind') != 'scalar' for r in available):
             raise ValueError(f'{name}: non-scalar analysis requires a declared reduction')
         if 'unit' not in declaration:
             units = {r.get('unit') for r in available}
@@ -1125,8 +1184,10 @@ def analyze_candidates(table, responses, *, seed=13):
             metrics[name] = {'value': value, 'unit': definition['unit'], 'valid': valid}
             if not valid:
                 metrics[name]['reason'] = row.get('failure_reason') or 'Missing scalar response'
+        predicted = row.get('prediction_status') == 'PREDICTED' or row.get('execution_status') == 'PREDICTED'
         samples.append({'id': row['candidate_id'], 'values': row['values'], 'responses': metrics,
-                        'usable': row.get('execution_status') == 'SUCCEEDED'})
+                        'usable': row.get('execution_status') == 'SUCCEEDED' and not predicted,
+                        'exclusion_reason': 'PREDICTED' if predicted else 'ROW_UNUSABLE'})
     # Reuse the numerical routines without the old saved-campaign schema's
     # arbitrary 512-row/16-variable caps. This bridge validates ordinary numeric
     # rows above; the regression/Pareto/surrogate mathematics has one owner.
@@ -1142,7 +1203,7 @@ def analyze_candidates(table, responses, *, seed=13):
               'sensitivity': [analysis._sensitivity(x, y[:, i], var_defs, d, ids) for i, d in enumerate(definitions)],
               'surrogate': [analysis._surrogate(x, y[:, i], var_defs, d, ids, seed, train, test) for i, d in enumerate(definitions)],
               'pareto': analysis._pareto(y, definitions, ids),
-              'exclusions': [{'id': s['id'], 'reason': 'ROW_UNUSABLE' if not s['usable'] else 'INVALID_RESPONSE'} for s in samples if s['id'] not in set(ids)],
+              'exclusions': [{'id': s['id'], 'reason': s['exclusion_reason'] if not s['usable'] else 'INVALID_RESPONSE'} for s in samples if s['id'] not in set(ids)],
               'qualification': 'NUMERICAL_SAMPLE_ANALYSIS_ONLY', 'decision': 'NOT_RELEASED',
               'limitations': analysis._LIMITATIONS[:]}
     result.update(candidate_count=len(samples), failure_count=sum(not row['usable'] for row in samples),
@@ -1329,6 +1390,8 @@ def epsilon_optimize(evaluator_or_factory, variables, objectives, *, threshold_g
                      settings=None, constraints=None, seed=0, options=None, total_evaluation_budget=1000,
                      execution=None, record=None):
     """Epsilon child searches reuse the existing DE and Pareto numerical modules."""
+    # Validate/assign all metric identities before the first costly candidate.
+    objectives = _named_responses(objectives)
     if not 0 <= primary_index < len(objectives) or len(objectives) < 2:
         raise ValueError("Select a primary objective among at least two objectives")
     secondary = [o for i, o in enumerate(objectives) if i != primary_index]

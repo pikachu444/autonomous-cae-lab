@@ -1,51 +1,51 @@
+# Open an exact native project or VTU/PVD input; no example or solver is selected.
+[CmdletBinding()]
 param(
     [string]$Project,
+    [string]$InputPath,
+    [string]$InputId,
+    [string]$OriginJobId,
     [string]$ParaViewHome,
+    [string]$ParaViewExe,
     [string]$OutputDirectory,
-    [string]$Python = 'python',
+    [string]$ServiceUrl,
+    [string]$Python,
+    [switch]$ConnectService,
+    [string]$RuntimeRoot = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\windows-runtime'),
+    [ValidateRange(1024,65535)][int]$Port = 8766,
+    [string]$Store = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\research-store'),
     [switch]$PrepareOnly
 )
 $ErrorActionPreference = 'Stop'
-$repoRoot = Split-Path -Parent $PSScriptRoot
-$postHome = Join-Path $repoRoot 'apps/desktop_post'
-if (-not $ParaViewHome) {
-    $ParaViewHome = Join-Path $repoRoot 'runs/prepost-session-20261008-01/tools/ParaView-6.2.0-Windows-Python3.12-msvc2017-AMD64'
+$repository = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+if (@($Project, $InputPath, $InputId).Where({ $_ }).Count -gt 1) { throw 'Choose one of -Project, -InputPath or -InputId.' }
+if ($ParaViewHome -and $ParaViewExe) { throw 'Choose -ParaViewHome or -ParaViewExe.' }
+if ($ParaViewHome) { $ParaViewExe = Join-Path $ParaViewHome 'bin\paraview.exe' }
+if (-not $ServiceUrl) {
+    & (Join-Path $PSScriptRoot 'start-windows.ps1') -NoBrowser -ResearchUI -RuntimeRoot $RuntimeRoot -Port $Port -Store $Store
+    if (-not $?) { throw 'The shared research service could not be started or verified.' }
+    $ServiceUrl = "http://127.0.0.1:$Port"
+} elseif (-not $Python) {
+    # An explicit existing service stays authoritative; install its desktop
+    # client runtime without starting a second controller.
+    & (Join-Path $PSScriptRoot 'install-windows.ps1') -ResearchUI -RuntimeRoot $RuntimeRoot
+    if (-not $?) { throw 'The private desktop client Python could not be installed.' }
 }
-$nativeGui = Join-Path $ParaViewHome 'bin/paraview.exe'
-$nativePython = Join-Path $ParaViewHome 'bin/pvpython.exe'
-if (-not (Test-Path -LiteralPath $nativeGui) -or -not (Test-Path -LiteralPath $nativePython)) {
-    throw 'ParaView 6.2 portable runtime is missing. Pass -ParaViewHome with its extracted directory.'
+if (-not $Python) {
+    $Python = Join-Path ([IO.Path]::GetFullPath($RuntimeRoot)) 'venv\Scripts\python.exe'
+    $installation = Get-Content -Raw -LiteralPath (Join-Path $RuntimeRoot 'install-receipt.json') | ConvertFrom-Json
+    $repository = $installation.source_root
 }
-if (-not $Project) {
-    if (-not $OutputDirectory) {
-        $runId = 'desktop-post-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + ([guid]::NewGuid().ToString('N').Substring(0, 6))
-        $OutputDirectory = Join-Path $repoRoot ('runs/' + $runId)
-    }
-    & $Python (Join-Path $postHome 'prepare.py') --output $OutputDirectory
-    if ($LASTEXITCODE -ne 0) { throw 'Retained source preparation failed.' }
-    $Project = Join-Path $OutputDirectory 'project.json'
-    & $nativePython --force-offscreen-rendering (Join-Path $postHome 'build_workspace.py') $Project
-    if ($LASTEXITCODE -ne 0) { throw 'Native ParaView workspace build failed.' }
-}
-$Project = (Resolve-Path -LiteralPath $Project).Path
-$document = Get-Content -Raw -LiteralPath $Project | ConvertFrom-Json
-$projectFolder = Split-Path -Parent $Project
-$state = Join-Path $projectFolder $document.workspace_file
-if (-not (Test-Path -LiteralPath $state)) { throw 'The project has no prepared ParaView state.' }
-if ($PrepareOnly) {
-    Write-Output $Project
-    return
-}
-# Only this child receives the app's command directory and project. User settings
-# and retained source directories are never edited by the launcher.
-if (-not (Get-Command Start-Process).Parameters.ContainsKey('Environment')) {
-    throw 'Launching CAE Post requires PowerShell 7.4 or later for child-only environment values.'
-}
-$nativeArgs = '--disable-registry --script="{0}" --log="{1}"' -f (Join-Path $postHome 'startup.py'), (Join-Path $projectFolder 'native_gui.log')
-$childEnvironment = @{
-    PV_MACRO_PATH = Join-Path $postHome 'macros'
-    CAE_POST_HOME = $postHome
-    CAE_POST_PROJECT = $Project
-}
-$process = Start-Process -FilePath $nativeGui -ArgumentList $nativeArgs -WorkingDirectory $projectFolder -Environment $childEnvironment -PassThru -WindowStyle Normal
-Write-Output ([pscustomobject]@{ProcessId=$process.Id;Project=$Project;State=$state})
+$arguments = @('-m','apps.research.desktop','--service',$ServiceUrl,'post')
+if ($ParaViewExe) { $arguments += @('--executable',[IO.Path]::GetFullPath($ParaViewExe)) }
+if ($Project) { $arguments += @('--project',(Resolve-Path -LiteralPath $Project).Path) }
+if ($InputPath) { $arguments += @('--input-path',(Resolve-Path -LiteralPath $InputPath).Path) }
+if ($InputId) { $arguments += @('--input-id',$InputId) }
+if ($OriginJobId) { $arguments += @('--job-id',$OriginJobId) }
+if ($OutputDirectory) { $arguments += @('--output',[IO.Path]::GetFullPath($OutputDirectory)) }
+if ($PrepareOnly) { $arguments += '--prepare-only' }
+Push-Location -LiteralPath $repository
+try {
+    & $Python @arguments
+    if ($LASTEXITCODE -ne 0) { throw "Post launch helper exited with code $LASTEXITCODE" }
+} finally { Pop-Location }

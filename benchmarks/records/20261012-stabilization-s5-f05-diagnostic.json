@@ -1,0 +1,483 @@
+{
+  "schema_version": 1,
+  "recorded_utc": "2026-10-11T17:07:08.917005+00:00",
+  "record_date_local": "2026-10-12",
+  "scope": "S5 original regular-Fz/F05 diagnosis and one local pinned-SIF AMD trial; no product correction",
+  "product_source_commit": "3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8",
+  "documentation_head_at_run": "9c321f5522fccbdd37aefb87502af87641a09b0d",
+  "pro_base_and_result_tree": "e0f35bbb64554b3842806e5f7f4d5fbd36bcfc26",
+  "source_disposition": "Product, tests and CI unchanged; scratch-only diagnostic must not be applied to MAIN",
+  "original_ci": {
+    "run_id": 38153395166,
+    "source_commit": "3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8",
+    "conclusion": "FAILURE",
+    "passed_jobs": 9,
+    "failed_job": "codeaster",
+    "skipped_subsequent_acceptances": [
+      "J2 histories",
+      "MGIS/MTest material point",
+      "model optimization",
+      "material inverse"
+    ],
+    "evidence_record": "benchmarks/records/20261012-stabilization-s4-ci-native-failure.json"
+  },
+  "pro_delivery": {
+    "archive": {
+      "path": "runs/pro-code-received-20261011-r01/stabilization-s5/autonomous-cae-S5-f05-diagnosis.zip",
+      "bytes": 284251,
+      "sha256": "018ec12a576441c42b061bf4e589246e23b9ccb6739bddbf3a5cba0a0a8eb07d"
+    },
+    "archive_receipt": {
+      "path": "runs/pro-code-received-20261011-r01/stabilization-s5/archive-receipt.json",
+      "bytes": 7127,
+      "sha256": "01e6e20f8fc1223db3e889bf3f021797a94549f830b64c25c9586c789449a5ef"
+    },
+    "member_count": 41,
+    "sha256sums_entries_independently_verified": 40,
+    "manifest": {
+      "actual_native_starts": 1,
+      "bundle_kind": "S5_DIAGNOSIS_NO_VALIDATED_PRODUCT_FIX",
+      "completed_utc": "2026-10-11T16:54:39.400314+00:00",
+      "engineering_state": "UNKNOWN_NOT_RELEASED",
+      "f05_state": "UNRESOLVED_ORIGINAL_FACTOR_57",
+      "mumps_solves_this_bundle": 0,
+      "native_attempt_state": "FAILED_AT_DEBUT_PROC_STATUS_BEFORE_MUMPS",
+      "ordering_effectiveness": "NOT_TESTED",
+      "original_zip": {
+        "artifact_id": 11708616490,
+        "bytes": 27243646,
+        "sha256": "2eae12b899b980b25ad67de8ef80bdf41c26e35cf42c9a0d70662088e051daf2"
+      },
+      "patch_disposition": "No verified correction; diagnostic_only patch must NOT be applied to MAIN",
+      "pinned_oci": {
+        "host_launch_differs_from_container": true,
+        "manifest_file_sha256": "d8d19ea91989eac0d38195bc5795c54c69f530f7196f53d67697ffa57c9106d5",
+        "reference": "simvia/code_aster@sha256:d8d19ea91989eac0d38195bc5795c54c69f530f7196f53d67697ffa57c9106d5",
+        "spack_layer_sha256": "a3323a1a9b0aa32bbea7d516c3711a752792ab9d86297e360c5a2db4100d2e50"
+      },
+      "product_before_after_hashes": {
+        ".github/workflows/caelab-ci.yml": {
+          "after_sha256": "aa2007110269dca9181d7e167160b1e41a313fdd252bae252405026964737570",
+          "before_sha256": "aa2007110269dca9181d7e167160b1e41a313fdd252bae252405026964737570"
+        },
+        "benchmarks/specifications/structural-families-v1.json": {
+          "after_sha256": "4ebca41ae97498cba18fe876a72ef128e0b671c3f7f6f809853514c94d5e12e0",
+          "before_sha256": "4ebca41ae97498cba18fe876a72ef128e0b671c3f7f6f809853514c94d5e12e0"
+        },
+        "caelab/adapters/structural_family_codeaster_worker.py": {
+          "after_sha256": "09fd3ddc4dbb4f90fb0be27c411d545905d29d61e1c791b514c65be0e40d48e0",
+          "before_sha256": "09fd3ddc4dbb4f90fb0be27c411d545905d29d61e1c791b514c65be0e40d48e0"
+        }
+      },
+      "product_changed_files": [],
+      "product_patch": null,
+      "requested_base_tree": "e0f35bbb64554b3842806e5f7f4d5fbd36bcfc26",
+      "result_tree": "e0f35bbb64554b3842806e5f7f4d5fbd36bcfc26",
+      "root_documents_modified": false,
+      "root_published_source": "3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8"
+    },
+    "original_attempt": {
+      "argv": [
+        "/opt/spack/var/spack/environments/simvia_env/.spack-env/view/bin/run_aster",
+        "--wrkdir",
+        "/workspace/scratch/e7e4575635bd/pro_s5_evidence/amd-r01/scratch",
+        "/workspace/scratch/e7e4575635bd/pro_s5_evidence/amd-r01/level_2/model.export"
+      ],
+      "cwd": "/workspace/scratch/e7e4575635bd/pro_s5_evidence/amd-r01",
+      "OMP_NUM_THREADS": "2",
+      "wall_timeout_seconds": 300,
+      "started_utc": "2026-10-11T16:47:31.642528+00:00",
+      "pinned_oci": "simvia/code_aster@sha256:d8d19ea91989eac0d38195bc5795c54c69f530f7196f53d67697ffa57c9106d5",
+      "launch": "native unpacked Spack prefix, not SIF",
+      "status": "FAILED_EXECUTION",
+      "return_code": 6,
+      "finished_utc": "2026-10-11T16:47:35.320375+00:00",
+      "elapsed_s": 3.6776896320006927,
+      "output_hashes": {
+        "stdout.log": "ab800ad984720ee27c8a7a3f7a752c5d984655bc63ce7491a32946a28342a07b",
+        "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "original_attempt_interpretation": "Unpacked pinned binary failed at DEBUT /proc status initialization before MUMPS; does not test AMD effectiveness",
+    "controlled_tests": {
+      "argv": [
+        "/workspace/scratch/e7e4575635bd/ci_qt_691_venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "tests/test_structural_family_codeaster.py::test_native_command_contract_compiles_exact_nodal_forces_and_supported_dofs",
+        "tests/test_structural_family_codeaster.py::test_failed_solver_keeps_predeclared_budget_and_no_completed_verdict",
+        "tests/test_structural_family_codeaster.py::test_complete_fields_use_actual_internal_indices_all27points_and_mask_restrained_dofs",
+        "tests/test_structural_families_reference.py::test_only_exact_two_beam_nodes_and_load_component_define_response",
+        "tests/test_structural_families_reference.py::test_signed_force_and_moment_check_every_grid_even_when_finest_is_correct",
+        "tests/test_structural_families_reference.py::test_finest_reference_and_last_pair_trend_are_distinct_and_all_errors_retained"
+      ],
+      "cwd": "/workspace/scratch/e7e4575635bd/pro_s5_aster_fix",
+      "return_code": 0,
+      "elapsed_s": 0.8639445070002694,
+      "kind": "Existing pure/controlled guards only; no native solve",
+      "completed_utc": "2026-10-11T16:49:27.257271+00:00"
+    },
+    "controlled_tests_interpretation": "Seven passing cases from six selected existing pure/controlled test nodes; not native numerical acceptance"
+  },
+  "prelaunch_review": {
+    "root": "Read helper, patch, README, manifest and native launch; checked every archive hash, unchanged product/workflow/spec pins and helper AST",
+    "independent_read_only_review": "PASS: exact one-call AMD/INFO change, eleven original source/input hashes, source repinning, unchanged physics/gates and original container paths/resources",
+    "preparation": {
+      "base_tree": "e0f35bbb64554b3842806e5f7f4d5fbd36bcfc26",
+      "destination": "/mnt/c/SourceCodes/autonomous-cae-lab/runs/s5-f05-amd-local-20261012-r01",
+      "only_numerical_change": "MUMPS RENUM AUTO to AMD; INFO=2 adds logging",
+      "original_sha256": {
+        "codeaster_worker.py": "856219f47b0410c68d3163d8e1206f3cf1627d421accfefb14eada5b57b627dc",
+        "level_2/expected_mesh.json": "372bb4bf9b5d6fba1fc5a61f086d0d04224443578b3c7ea53eec2447a9209da5",
+        "level_2/gmsh_metadata.json": "1ac6f00754813ae28efd3288a15a8d001e26d548d18e201cca37ced18d1ba6f1",
+        "level_2/input.json": "fb5d4ff7ac7694b76f7cf4941be356d79cfc881c11d122be711aea0777c686de",
+        "level_2/mesh.msh": "0d3b6a498b5fc3ab14866ba99610922d21b103d3c6da129c82399f0c1153a89e",
+        "level_2/mesh_catalogue.json": "1bef24a144aef2024cd33f9e9526dbdcc568214bc737af56e9649dffd8a98ddb",
+        "level_2/mesh_checks.json": "3f8136d17aef8d2a509f6fa303d45f0978df90ef64fad5c6be119f3cfb90d3d0",
+        "level_2/nodal_loads.json": "c711998d25b2612465981f6002c6855a73f5c41526092c3854dd9d901cdca740",
+        "structural-families-v1.json": "4ebca41ae97498cba18fe876a72ef128e0b671c3f7f6f809853514c94d5e12e0",
+        "structural_family_codeaster_worker.py": "09fd3ddc4dbb4f90fb0be27c411d545905d29d61e1c791b514c65be0e40d48e0",
+        "structural_family_mesh.py": "5ef0a2c81f2344bc7cbdc39639c711f3f7c08b4b9948780b4b490d2c8eea19a9"
+      },
+      "original_simulation": "/mnt/c/SourceCodes/autonomous-cae-lab/runs/pr7-ci-38153395166/codeaster-evidence/structural-family-lab/experiments/E-ansys_vmd1_regular-Fz-aster/simulation",
+      "physical_input_unchanged": true,
+      "prepared_sha256": {
+        "codeaster_worker.py": "856219f47b0410c68d3163d8e1206f3cf1627d421accfefb14eada5b57b627dc",
+        "level_2/expected_mesh.json": "372bb4bf9b5d6fba1fc5a61f086d0d04224443578b3c7ea53eec2447a9209da5",
+        "level_2/gmsh_metadata.json": "1ac6f00754813ae28efd3288a15a8d001e26d548d18e201cca37ced18d1ba6f1",
+        "level_2/input.json": "c0a1075847dac33cff735edffc153ea9c24aecd62a5e89e78972a584560c0e22",
+        "level_2/mesh.msh": "0d3b6a498b5fc3ab14866ba99610922d21b103d3c6da129c82399f0c1153a89e",
+        "level_2/mesh_catalogue.json": "1bef24a144aef2024cd33f9e9526dbdcc568214bc737af56e9649dffd8a98ddb",
+        "level_2/mesh_checks.json": "3f8136d17aef8d2a509f6fa303d45f0978df90ef64fad5c6be119f3cfb90d3d0",
+        "level_2/nodal_loads.json": "c711998d25b2612465981f6002c6855a73f5c41526092c3854dd9d901cdca740",
+        "structural-families-v1.json": "4ebca41ae97498cba18fe876a72ef128e0b671c3f7f6f809853514c94d5e12e0",
+        "structural_family_codeaster_worker.py": "1f59050b42e025ae0f71180310afce43bbe06f356831216aa15c62398f3b0c25",
+        "structural_family_mesh.py": "5ef0a2c81f2344bc7cbdc39639c711f3f7c08b4b9948780b4b490d2c8eea19a9"
+      },
+      "required_native_defaults": {
+        "NPREC": 8,
+        "POSTTRAITEMENTS": "AUTO",
+        "PRETRAITEMENTS": "AUTO",
+        "RESI_RELA": 1e-06,
+        "STOP_SINGULIER": "OUI"
+      },
+      "status": "PREPARED_NOT_EXECUTED_NOT_PRODUCT_FIX",
+      "stop": "Do not search more orderings after FACTOR_57; do not publish a product fix from exit 0 alone"
+    },
+    "production_patch_applied": false
+  },
+  "local_runtime_admission": {
+    "ci_sif_sha256": "61e93d6b434d51aad7e4db432e264ea5d2ae108ffa77bf416f585ec0c6bbb4b0",
+    "ci_source": "3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8",
+    "local_runtime": {
+      "binaries": {
+        "gmsh": {
+          "path": "/usr/bin/gmsh",
+          "sha256": "08d91cc9ce7244999950c4fa1165b42ec9132e21194faec32e4f2dc109e1682c"
+        },
+        "prlimit": {
+          "path": "/usr/bin/prlimit",
+          "sha256": "17064f67e650d6152a6902b013aab496b54c87587c8eea6f5023aafee6154069"
+        },
+        "singularity": {
+          "path": "/usr/bin/singularity",
+          "sha256": "994f404350a92a919264e16e1239f409ac550b3fa8118e80cdee1634fc36ff0a"
+        }
+      },
+      "image_bytes": 1526157312,
+      "image_sha256": "f4d9a7bfdd9c20ebba1fde3a710ead56b2041d16efc22425ecc84c4866e08e64",
+      "oci_manifest_sha256": "d8d19ea91989eac0d38195bc5795c54c69f530f7196f53d67697ffa57c9106d5",
+      "omp_num_threads": "2",
+      "process_budgets": {
+        "qualification": "UNKNOWN",
+        "solver_memory_mb": 1024,
+        "solver_time_seconds": 86400,
+        "solver_time_source": "PINNED_RUN_ASTER_DEFAULT",
+        "subprocess_timeout_seconds": null,
+        "wall_time_source": "NO_WALL_TIME_LIMIT"
+      }
+    },
+    "native_resources_and_accuracy_limits_unchanged": true,
+    "outer_wall_budget_seconds": 600,
+    "production_patch_applied": false,
+    "recorded_utc": "2026-10-11T17:01:51.936783+00:00",
+    "root_documentation_head": "9c321f5522fccbdd37aefb87502af87641a09b0d",
+    "scope": "One unchanged fine F05 input with Pro's RENUM=AMD and INFO=2 scratch worker"
+  },
+  "local_runtime_versions": {
+    "host": {
+      "singularity": "singularity-ce version 4.1.1",
+      "python": "3.12.3"
+    },
+    "native": {
+      "code_aster_runtime": {
+        "branch": "v17.4.0",
+        "parentid": "spack-local",
+        "uncommitted": [
+          "built with Spack"
+        ],
+        "version": "17.4.0"
+      },
+      "versions": {
+        "code_aster": "17.4.0",
+        "mpi4py": "3.1.5",
+        "numpy": "1.26.4",
+        "petsc": "3.24.0",
+        "petsc4py": "3.24.1",
+        "python": "3.11.14",
+        "scipy": "1.15.2"
+      }
+    },
+    "mumps": "5.6.2"
+  },
+  "native_execution": {
+    "finished_utc": "2026-10-11T17:02:14.633511+00:00",
+    "pid": 418,
+    "reason": "NONZERO_EXIT",
+    "return_code": 1,
+    "started_utc": "2026-10-11T17:01:51.975998+00:00",
+    "status": "FAILED_EXECUTION",
+    "stderr": "solver.stderr.log",
+    "stdout": "solver.stdout.log",
+    "timeout_seconds": 600
+  },
+  "elapsed_seconds": 22.657513,
+  "actual_native_observations": {
+    "case": "ansys_vmd1_regular/Fz",
+    "cells": [
+      24,
+      4,
+      4
+    ],
+    "elements_HEXA20": 384,
+    "nodes": 2225,
+    "physical_dofs": 6675,
+    "lagrange_dofs": 390,
+    "total_dofs": 7065,
+    "solver": "MUMPS",
+    "ordering": "AMD",
+    "INFO": 2,
+    "accuracy_and_controls": {
+      "RESI_RELA": 1e-06,
+      "NPREC": 8,
+      "POSTTRAITEMENTS": "AUTO",
+      "PRETRAITEMENTS": "AUTO",
+      "STOP_SINGULIER": "OUI",
+      "TYPE_RESOL": "AUTO"
+    },
+    "ICNTL8_effective_scaling": 7,
+    "INFOG13_delayed_pivots": 0,
+    "iterative_refinement_steps_performed": 0,
+    "printed_rounded_diagnostics": {
+      "residual_max_norm": 2.36e-08,
+      "residual_2_norm": 1.48e-07,
+      "RINFOG4_matrix_max_norm": 17100000.0,
+      "RINFOG5_solution_max_norm": 10.9,
+      "RINFOG6_scaled_residual": 1.27e-16,
+      "RINFOG7_componentwise_W1": 3.76e-16,
+      "RINFOG8_componentwise_W2": 7.16e-19,
+      "RINFOG9_error_upper_bound": 3.46e-06,
+      "RINFOG10_condition_number_1": 9200000000.0,
+      "RINFOG11_condition_number_2": 662.0
+    },
+    "failure": {
+      "code": "FACTOR_57",
+      "estimated_error_printed": 3.45549e-06,
+      "unchanged_limit": 1e-06,
+      "log_lines": [
+        7132,
+        7137
+      ]
+    },
+    "worker_result_present": false,
+    "interpretation": "Actual MUMPS solve reached but AMD still fails unchanged native solution-error gate; no complete native fields or domain verdict",
+    "not_established": [
+      "Qualified F05 repair",
+      "Reference/mesh/force/moment acceptance",
+      "Cross-solver full-field agreement",
+      "Independent algebraic residual with verified dual representation",
+      "Engineering or GUI acceptance"
+    ]
+  },
+  "upstream_interpretation": {
+    "pro_sources": {
+      "source_files": [
+        {
+          "commit": "50ebc13c70ee9df62faf93ddcb746a3757b3042a",
+          "path": "bibfor/third_party_interf/amumpd.F90",
+          "url": "https://gitlab.com/codeaster/src/-/blob/50ebc13c70ee9df62faf93ddcb746a3757b3042a/bibfor/third_party_interf/amumpd.F90",
+          "raw_url": "https://gitlab.com/codeaster/src/-/raw/50ebc13c70ee9df62faf93ddcb746a3757b3042a/bibfor/third_party_interf/amumpd.F90",
+          "sha256": "1a89949efea6c6837e497372ad92f44ae690fa3d326e7039c9f44c34b3138af8",
+          "bytes": 24306,
+          "relevant_lines": [
+            164,
+            168,
+            536,
+            548
+          ],
+          "directly_read": true,
+          "finding": "FACTOR_57 compares RINFOG(9) to RESI_RELA before amumpp solution postprocessing"
+        },
+        {
+          "commit": "50ebc13c70ee9df62faf93ddcb746a3757b3042a",
+          "path": "bibfor/third_party_interf/amumpi.F90",
+          "url": "https://gitlab.com/codeaster/src/-/blob/50ebc13c70ee9df62faf93ddcb746a3757b3042a/bibfor/third_party_interf/amumpi.F90",
+          "raw_url": "https://gitlab.com/codeaster/src/-/raw/50ebc13c70ee9df62faf93ddcb746a3757b3042a/bibfor/third_party_interf/amumpi.F90",
+          "sha256": "b6bd4228a9c48b4600e8fc4d50b1742b4c8b4737a00aa6c3fc26611e9d016aad",
+          "bytes": 21899,
+          "relevant_lines": [
+            386,
+            410,
+            616,
+            637
+          ],
+          "directly_read": true,
+          "finding": "Existing AUTO preprocessing; AMD mapping; AUTO/FORCE/MINI refinement and analysis switches"
+        },
+        {
+          "commit": "50ebc13c70ee9df62faf93ddcb746a3757b3042a",
+          "path": "code_aster/Cata/Commons/c_solveur.py",
+          "url": "https://gitlab.com/codeaster/src/-/blob/50ebc13c70ee9df62faf93ddcb746a3757b3042a/code_aster/Cata/Commons/c_solveur.py",
+          "raw_url": "https://gitlab.com/codeaster/src/-/raw/50ebc13c70ee9df62faf93ddcb746a3757b3042a/code_aster/Cata/Commons/c_solveur.py",
+          "sha256": "821211d23271348676ce6dce0ccc4a8488fba53dbd9dcd56c1d33130e6bb2a4e",
+          "bytes": 19592,
+          "relevant_lines": [
+            207,
+            235,
+            275,
+            315
+          ],
+          "directly_read": true,
+          "finding": "Public MUMPS ordering/preprocessing contract and native linear RESI_RELA=1e-6 default"
+        }
+      ],
+      "official_documents": [
+        {
+          "url": "https://codeaster.gitlab.io/doc/docaster/manuals/man_r/r6/r6.02.03/Le_package_MUMPS.html",
+          "sections": [
+            "2.3.2",
+            "2.3.3"
+          ],
+          "finding": "Iterative refinement and forward error bound from condition estimates/backward errors"
+        },
+        {
+          "url": "https://codeaster.gitlab.io/doc/docaster/manuals/man_r/r6/r6.02.03/Implantation_dans_Code_Aster.html",
+          "sections": [
+            "3.4",
+            "3.6.1",
+            "3.6.2"
+          ],
+          "finding": "Dual representation, existing solver controls and INFO=2 monitoring"
+        }
+      ]
+    },
+    "root_directly_read": {
+      "url": "https://gitlab.com/codeaster/src/-/raw/50ebc13c70ee9df62faf93ddcb746a3757b3042a/bibfor/third_party_interf/amumpd.F90",
+      "finding": "FACTOR_57 compares rinfog(9) with epsmax before amumpp postprocessing; MINI excludes that branch",
+      "limitation": "Source branch and native INFO=2 observations do not independently prove a curative formulation or compiled coefficient equivalence"
+    }
+  },
+  "preservation_and_cleanup": {
+    "original_simulation_files": 91,
+    "original_hashes_unchanged": true,
+    "prepared_inputs_unchanged": true,
+    "scratch_retention": "PRESERVED_AFTER_FAILURE",
+    "owned_native_pid_and_process_group": 418,
+    "process_group_present_after_completion": false,
+    "group_verification": "Read-only os.killpg(418, 0) returned ProcessLookupError",
+    "pro_native_and_test_processes": "Reported stopped in delivery"
+  },
+  "local_evidence": [
+    {
+      "path": "runs/s5-f05-amd-local-20261012-r01/preparation.json",
+      "bytes": 3039,
+      "sha256": "8641be77b60e94fa8155401e1d17d97b63d4b2c04c791a662b6336952df27971"
+    },
+    {
+      "path": "runs/s5-f05-amd-local-20261012-r01/diagnostic-worker.diff",
+      "bytes": 803,
+      "sha256": "27b554f27b140b90b3716ca095277fe94d2a55d3345e5937eb174c0943f49085"
+    },
+    {
+      "path": "runs/s5-f05-amd-local-20261012-r01/root_launch.py",
+      "bytes": 3669,
+      "sha256": "ae9eb0084dc1115c1488385771feff6cf7c9db31a9898c153bb8c22564aee9b5"
+    },
+    {
+      "path": "runs/s5-f05-amd-local-20261012-r01/root-runtime-admission.json",
+      "bytes": 1516,
+      "sha256": "4dfbfb76b746991a5aff4ff6470169fb5bfd44ef0c788ee8210aa028504f3770"
+    },
+    {
+      "path": "runs/s5-f05-amd-local-20261012-r01/root-original-before.json",
+      "bytes": 8968,
+      "sha256": "1ea24b011de513f7960e99302f6ec152bbef71bf48818737afc5f20c222e7e7a"
+    },
+    {
+      "path": "runs/s5-f05-amd-local-20261012-r01/root-original-after.json",
+      "bytes": 8968,
+      "sha256": "1ea24b011de513f7960e99302f6ec152bbef71bf48818737afc5f20c222e7e7a"
+    },
+    {
+      "path": "runs/s5-f05-amd-local-20261012-r01/root-launch-summary.json",
+      "bytes": 697,
+      "sha256": "5fb4447d01256071a0683b5e2e11288c6b7b9936c68274e73adf039c03cdcda4"
+    },
+    {
+      "path": "runs/s5-f05-amd-local-20261012-r01/level_2/input.json",
+      "bytes": 883,
+      "sha256": "c0a1075847dac33cff735edffc153ea9c24aecd62a5e89e78972a584560c0e22"
+    },
+    {
+      "path": "runs/s5-f05-amd-local-20261012-r01/level_2/solver.command.json",
+      "bytes": 805,
+      "sha256": "021b65371edc6884a852f0ad3ad2369bbd4ae22bda874f6957277c01a71d7806"
+    },
+    {
+      "path": "runs/s5-f05-amd-local-20261012-r01/level_2/solver.execution.json",
+      "bytes": 296,
+      "sha256": "892fb72f98d6cb75bc08181b68beedea135c38fe58bf13a86b564f41e84dc806"
+    },
+    {
+      "path": "runs/s5-f05-amd-local-20261012-r01/level_2/solver.stdout.log",
+      "bytes": 423687,
+      "sha256": "8bbd2a99f2c433fc68a30201efdc2c75f4e34f6958d3eaab8a43c7e27c6c341e"
+    },
+    {
+      "path": "runs/s5-f05-amd-local-20261012-r01/level_2/solver.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "runs/s5-f05-amd-local-20261012-r01/level_2/aster.mess",
+      "bytes": 421109,
+      "sha256": "ac1ad516f6c6a477e1e21fbbf907141363b4dafc4c4ecbac1ce57398d274accf"
+    },
+    {
+      "path": "runs/s5-f05-amd-local-20261012-r01/level_2/runtime.json",
+      "bytes": 358,
+      "sha256": "35bb73672f11784818317413a900f30380a140cba7f7062d2f5c698a3b552406"
+    },
+    {
+      "path": "runs/s5-f05-amd-local-20261012-r01/level_2/native_mesh_checks.json",
+      "bytes": 320070,
+      "sha256": "b55225d201110d69ba7316cb370b914be612fd872bc8ac1a19d004882c2ef8e8"
+    }
+  ],
+  "retention": {
+    "raw_files": "Present locally under runs/ and excluded from Git",
+    "persistent_remote_raw_backup": "NOT_ESTABLISHED",
+    "original_ci_artifacts": "Separate existing thirty-day GitHub artifacts; see S4 record for exact expiry"
+  },
+  "followup": {
+    "status": "DISPATCHED_TO_PRO_NO_NEW_PATCH_ACCEPTED",
+    "numerical_scope": "Review new AMD failure; no ordering sweep, repeat of failed approaches, relaxed limits, or replacement responses/reactions",
+    "ci_scope": "Check dependency independence and expose the four later native acceptance stages after earlier numerical failure while preserving job failure and guarding setup failure/cancellation",
+    "native_execution": "Another experiment requires a concrete reviewed proposal; no unbounded native loop",
+    "roles": "Pro writes source/tests/CI; Root reviews, integrates and performs admitted local validation"
+  },
+  "engineering_decision": "UNKNOWN_NOT_RELEASED"
+}

@@ -39,6 +39,9 @@ for _id, _module, _name, _roles, _dep, _native in (
     ("fixture.assembly", "fixture_assembly_conditions_catalog", "AssemblyConditionsCADAdapter", ("cad",), None, None),
     ("fixture.calculix", "fixture_calculix", "FixtureCalculiXAdapter", ("analysis",), None, "Gmsh/CalculiX"),
     ("structure.calculix.native", "native_structural", "NativeStructuralAdapter", ("analysis",), "gmsh", "CalculiX/FreeCAD"),
+    # An already frozen native input is executed by evaluation.run/Workbench.
+    # It does not implement Lab's declared-model/solve interface.
+    ("structure.calculix.frozen", "frozen_fem", "FrozenFemCalculixAdapter", ("evaluation",), None, "CalculiX"),
     ("structural.code_aster", "codeaster_elasticity", "CodeAsterElasticityAdapter", ("model",), None, "Code_Aster"),
     ("structural.code_aster.plasticity", "codeaster_plasticity", "CodeAsterPlasticityAdapter", ("model",), None, "Code_Aster"),
     ("structural.code_aster.geometric_nonlinearity", "codeaster_geometric", "CodeAsterGeometricAdapter", ("model",), None, "Code_Aster"),
@@ -62,6 +65,8 @@ for _suffix, _class in (("", "FenicsxPDEAdapter"), (".nonlinear", "FenicsxNonlin
     _builtin("pde.fenicsx" + _suffix, "adapters.fenicsx_" + (_suffix[1:] or "pde"), _class,
              ("pde", "model") if _suffix=='.coupled' else ("pde",), native="FEniCSx")
 _builtin("scipy.latin_hypercube", "optimizers.scipy_lhs", "ScipyLatinHypercube", ("doe",), "scipy")
+_builtin('thermal.fenicsx.rectangle', 'adapters.thermoelastic_fenicsx', 'ThermalFenicsxAdapter', ('stage',), native='FEniCSx')
+_builtin('structural.fenicsx.thermoelastic_rectangle', 'adapters.thermoelastic_fenicsx', 'ThermoelasticFenicsxAdapter', ('stage',), native='FEniCSx')
 _builtin("scipy.differential_evolution", "optimizers.scipy_de", "ScipyDifferentialEvolution", ("optimizer",), "scipy")
 
 def _extensions():

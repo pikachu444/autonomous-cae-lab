@@ -1,3 +1,179 @@
+## Existing-workflow corrections — 2026-10-11
+
+`calculations.plan`, `calculations.submit` and the Plan editor share the same
+required `purpose`, `operation`, operation-specific `inputs` and `budget`
+contract. Submission can additionally request the existing bounded `resources`.
+Workbench retains execution, backend authorization and resource/budget gates;
+the correction grants no new provider or execution authority.
+
+`document_response_locations` reads one retained document/job/channel through
+the same owner over GUI, HTTP and MCP. Its page starts at a nonnegative index,
+contains 1–1024 locations (128 by default), and accepts at most 240 search
+characters. The complete location catalog remains available beyond its preview;
+stale or foreign identities are refused. Reading a location or saved response
+does not submit a calculation. Named artifact hashes, dependency-manifest hashes
+and native-source hashes retain their separate meanings.
+
+Result verification reuses work only inside the current request/read. A later
+request rechecks bytes and containment; mappings are released on return or
+error. Maxwell compatibility preserves frozen input/threshold coefficients,
+native records and saved verdicts while checking narrowly identified analytical
+representations. It does not rewrite old evidence or change a physical limit.
+The [repair evidence](../docs/WORKBENCH_PROGRESS.md) records the exact reviewed
+source and remaining acceptance boundaries. Engineering release remains separate.
+
+## Earlier native research connections — 2026-10-11 r5
+
+This source is published at `1de8a69` in Draft PR7. Subsequent CI triage found an
+open Expert tool/Plan mismatch: `calculations.submit` forbids a `purpose` key
+which Workbench now requires. Do not infer successful provider-driven numerical
+submission from the independently verified HTTP/MCP document operations below.
+
+R5 keeps GUI, HTTP and MCP on the same document/session/generation owners.
+Typed Pre commands expose actual native parameter, Assembly, FEM and managed
+save actions; they do not authorize arbitrary native Python or native paths.
+An export timeout retains the exact command ID for completion recovery rather
+than resubmitting an export or solve. Material-native requests use the existing
+MFront adapters, their admitted settings, advertised bindings and retained
+response selectors. Unsupported constitutive state transfer remains unsupported.
+Candidate/observation/comparison reads resolve retained saved references and do
+not execute the original jobs. Readiness discovery is not installation or a
+claim that a backend has been exercised.
+
+Actual HTTP/SDK stdio refusal messages now preserve the owner's specific reason.
+Only the exact pre-effect authentication-token 403 guard retries identical bytes
+once; stale sessions/generations and other refusals do not become implicit
+retries. Actual Qt/HTTP/MCP review and remaining Pre, retained-reader, Plan-save
+and cold-result latency defects are in
+[WORKBENCH_PROGRESS](../docs/WORKBENCH_PROGRESS.md). No new provider credentials,
+inference authority, default LLM optimizer or release authority is introduced.
+
+## Earlier connected research documents and results — 2026-10-11
+
+Locally integrated r2/r3/r4 adds optional wrappers over the same service owners:
+PDE editing/evaluation and Plan creation; discussion editing/Ask/Pause/Continue
+and explicit proposal-to-Plan creation; Data comparison/follow-up; typed native
+Post source/analysis/sample/repair commands; Simulation and EvaluationDefinition
+editing/execution; retained stage/candidate result reads; and Study editing,
+exact-reference inspection and follow-up drafts. `document_open`, `document_read`
+and `document_command` retain per-owner document/session/generation identities.
+Creating or reading a draft does not execute a calculation or provider request.
+
+`evaluation_definition_run` uses the existing JobManager and evaluator. Its
+ordered stages pin saved domain revisions, supported ports and explicit transfer/
+iteration declarations. `evaluation_progress`, `evaluation_stage_result` and
+`numerical_evaluation_result` read the selected retained attempts rather than
+submitting them again. Domain candidate adoption stages changed domain branches
+before changing the Evaluation reference set. The previous saved inputs/results
+remain intact; no LLM becomes a numerical optimizer or engineering validator.
+
+Post commands retain native owner targeting and registered-input boundaries;
+these tools do not grant arbitrary Python, filesystem access or native syntax.
+Configured Expert inference remains optional and was not exercised in the r4
+review. Actual SDK stdio MCP reads matched HTTP Evaluation/Study records and
+shared the same edit/Undo/idempotence and stale-target guards without executing
+new jobs. Error bodies are lost behind generic HTTP 400 messages in the client;
+this remaining recovery-guidance defect is with Pro. Known r4 native-field, Post and UI
+defects are listed in [WORKBENCH_PROGRESS](../docs/WORKBENCH_PROGRESS.md).
+See [ADR0062](../ADR/0062-connected-research-owners-and-fields.md). This working
+source is not yet committed and does not expand provider credentials or release
+authority.
+
+## Earlier connected document and native-result tools — 2026-10-11
+
+Source `584971df8ae64de08beaf1120febe4a9c994aa56` adds optional
+`data_source_preview`, `job_navigation`, `native_analysis_submit` and
+`numerical_candidate_adopt` wrappers through the existing HTTP Client. Existing
+document commands now route Data and Numerical documents to their service-owned
+draft/Undo/save lifecycle. GUI, CLI and MCP use the same handlers and retain
+explicit document/session/generation targets. Data import pins registered or
+document-retained source bytes before submission; preview is not an import.
+
+Candidate adoption applies one actually evaluated candidate through the original
+Material owner, rejects changed input/generation, and leaves the prior results
+intact. Native submission consumes a successful typed freeze receipt and reuses
+its JobManager request identity. It does not grant arbitrary native Python,
+filesystem roots or solver syntax. Numerical engines still generate candidates.
+Actual stdio MCP reads/adoption were exercised independently of the GUI, as
+recorded in [WORKBENCH_PROGRESS](../docs/WORKBENCH_PROGRESS.md). Native execution
+and the wider PDE/Expert/Post connections have their separately stated limits.
+
+## Earlier implemented file operations — 2026-10-11
+
+The workbench MCP now exposes `local_roots_list`, `local_files_list`,
+`local_input_register`, `input_preview` and `native_input_resolve`. These delegate
+to the existing HTTP service through the same Client used by CLI; they do not
+construct another controller or grant new filesystem roots. Listing returns
+bounded pages and an optional next cursor. Native registration copies a VTU or
+a PVD with supported contained relative VTU dependencies; a complete receipt is
+published only after all copied sources are checked. Resolution rechecks all
+retained files and returns the input ID, exact local entry and dependency pins.
+The native Post registered opener obtains its path and pins only from that
+resolution. Direct path opening cannot attach an arbitrary registration ID.
+
+These operations resolve/register immutable inputs; they are not a live ParaView
+session command bridge, domain editing owner or engineering approval. Units and
+qualification are not inferred. Source `1f0338466d04fea8312aa943b5545b61fc858b50`
+has local HTTP/CLI/stdio/native persistence evidence in
+[PREPOST_VERIFICATION](../docs/PREPOST_VERIFICATION.md). Subsequent design sections
+describe the remaining owner commands and acceptance requirements.
+
+## Current design boundary: independent research documents — ADR0060
+
+Data, Material Research and PDE Research have their own document owners; CAD/FE
+Pre owns geometry/assembly/mesh/FE assignments and conditions. Optional AI/MCP
+must target the appropriate owner, exact revision and command target rather than
+route every input edit through PrepDocument or an active FreeCAD document.
+Numerical candidates remain engine-generated. Applying a candidate creates a
+revision/branch through its domain owner; interpreting results cannot modify
+source models. Model and numerical solve settings belong to that domain;
+Runner controls execution resources/lifecycle of frozen supported inputs.
+
+This 2026-10-11 documentation correction adds no tool, schema or authority and
+does not claim live GUI/MCP integration. Existing declared-model/response/job
+contracts and historical source evidence remain. CAD-free use and direct APIs
+remain available without an AI host. New owner-specific GUI/MCP, draft/reopen
+and real evaluation acceptance is required by
+[ADR0060](../ADR/0060-independent-research-workspaces.md).
+The detailed proposed owner/transaction rules are PREPOST_APP_SPEC §2.1/§8:
+multi-owner candidate adoption publishes only a complete prepared reference set;
+GUI/MCP target and revision rules preserve invalid drafts, reject stale requests
+and late responses, and keep numerical policies separate from resource settings.
+These are future live-command acceptance requirements, not newly exposed tools.
+
+For the first Material editor, the existing local service is the proposed sole
+active owner per document; GUI and HTTP/MCP attach to its same document/session.
+Check generation and apply changes serially per document, and reject requests
+from an earlier service session after restart. Do not create a second editable
+owner in the MCP or GUI process. Retained assets must be complete before the
+committed document references are published; partial save must preserve the prior
+commit and report failure. Reopen acceptance terminates the owner and reads the
+saved draft/results in a new process without evaluation. ADR0060 records this
+implementation decision; no new public MCP operation or authority is added.
+
+The whole-product UI/MCP plan extends the design to the actual native owners:
+FreeCAD document and ParaView session bridges dispatch typed commands on their
+GUI threads through the existing local service. Native command status/cancel is
+distinct from calculation job status/cancel. File listing and bounded VTU/PVD
+dependency snapshots are implemented above; source repair, other native formats
+and explicit backend probing remain proposed extensions. Current backends_list may return NOT_PROBED and does not certify an
+installed executable. Same-document targeting, generation/session checks,
+response-loss recovery, native Undo and cold reopen require actual acceptance.
+The reusable composite evaluation owns transfer/alignment/convergence; Numerical
+Plan owns search. Except for the implemented file operations above, these native
+owner commands remain design only. Qualified profiles, existing source pins and
+solver execution authority remain intact.
+See ADR0060 and the detailed product UI/MCP plan for the proposed implementation
+and acceptance scenes. No newly registered tool or successful solver run follows
+from this documentation change.
+
+The same planned handlers serve direct GUI/CLI/Python without an AI account.
+OpenScience is an optional research entry, not the exclusive owner of every
+domain/Plan/Study/Discussion document. Historical phase/provider records below
+are scoped evidence, not universal gates on current work. The detailed plan and
+REQUIREMENTS_VALIDITY_REVIEW clarify dependencies and retention without changing
+numerical criteria or certifying new runtime behavior.
+
 ## Qualified production startup / handoff contract evidence
 
 Actual e10bb028 startup admits existing approved5.6Sol/OAuth and the seven
@@ -1629,3 +1805,30 @@ confirmation remains failure. Budget `model_calls` reserves CLI agent steps,
 not exact billed API calls; host auxiliary requests are explicitly uncounted.
 Parent/consultation/one optional no-tool repair share that reservation. The
 original result/document citation markers must match actually read evidence.
+## Implemented Material owner and native command transport — ADR0061
+
+`documents_list`, `document_open`, `document_read`, `document_command` and
+`document_result_read` delegate to the same Workbench owner used by the Qt
+Material editor and CLI. Material commands are `material.update`,
+`material.evaluate`, `document.undo`, `document.redo` and `document.save`.
+Every mutation requires the exact session and input generation. Reusing a command
+ID is an identical-request retry, not a new edit. Invalid drafts remain visible
+and saveable but cannot evaluate. Evaluation uses the existing numerical job
+controller; old results keep their original input identity through later edits.
+Saved original results and terminal failures can be reopened without calculation.
+
+`hosts_list`, `command_status` and `command_cancel` expose native host identity
+and durable native command outcomes. ParaView owns actual proxies and accepts
+typed `post.inspect`, `post.select_array` and `document.save` commands. A document
+read is its last reported state; use `post.inspect` for a fresh owner response.
+GUI execution requires a live native QVTK timer, and HTTP polling cannot act as
+its heartbeat. Private registration credentials are never returned by public
+reads. Cancellation is supported only before native dispatch; an interrupted
+dispatched command is application-unconfirmed and is not automatically replayed.
+These commands do not permit arbitrary Python or native shell execution.
+
+HTTP/CLI/MCP parity and real Material evaluation/reopen are locally verified.
+Native typed commands/save/reopen have headless evidence; visible GUI dispatch
+remains unverified. Data/PDE/Numerical editors and wider native operations remain
+open. The design-only statements in earlier dated sections below are historical;
+this section supersedes them only for the operations explicitly listed here.

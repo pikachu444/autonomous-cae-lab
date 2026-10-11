@@ -1,0 +1,35 @@
+{
+  "new_solver_runs": 0,
+  "visible_human_gui": "NOT_RUN",
+  "qt_platform": "offscreen",
+  "source": {
+    "apps/research/material_window.py": "8cbec4a74d051ee41eef4ed29b74bf1890eb32b1b55f809c1b47930ad0a7518a",
+    "apps/research/runner_window.py": "1aaa7eedd79cad657220669c9f5b1783526b0b9adefeaa63337c9f88a46a8d77",
+    "caelab/workbench_client.py": "418d9679cc7a88d3b6963148dd7ac87ef42eb3dd69d5931e025ae95edc87f4af",
+    "caelab/jobs.py": "2255d2a5dce43377f4cfa29b3c06cf8dc3f9a8265a68c8f84b793f99ad25f6d2"
+  },
+  "verdict": "PASS",
+  "document_id": "Md956611597d74bfe952b328da3f9e641",
+  "job_id": "Je1dee81a0cfa4622a10d05596291d768",
+  "retained_stress_xx_MPa": [
+    0.0,
+    1.7999999999998018,
+    3.600000000000003
+  ],
+  "frozen_E_MPa": 1500,
+  "unapplied_editor_E_MPa": "1777",
+  "original_job_ids_unchanged": [
+    "J1c9365354ab84eb7b78bf727a3d6088d",
+    "Je1dee81a0cfa4622a10d05596291d768"
+  ],
+  "workbench_shutdown": {
+    "joined": true,
+    "pending": [],
+    "accepting_jobs": false
+  },
+  "service_shutdown": {
+    "accepting_jobs": false,
+    "pending": [],
+    "joined": true
+  }
+}

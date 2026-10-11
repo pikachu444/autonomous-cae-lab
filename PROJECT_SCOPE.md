@@ -1,3 +1,288 @@
+## 2026-10-12 — CI coverage repair verified; numerical and release gates retained
+
+Source `385818b` completes exact CI `38159523618`: nine jobs pass and the original
+F05 failure keeps the Code_Aster job failed. The four formerly skipped independent
+native stages now all execute and pass: J2, MGIS/MTest, declared-model search and
+sealed OCI synthetic inverse. Core passes 7,540 tests with 12 skips; Windows and
+the other native job gates pass. [The exact-run evidence](benchmarks/records/20261012-stabilization-s5-ci-native-continuation.json)
+records source/merge identities, actual comparisons, retained raw artifacts and
+bounded scope. The pending hosted CI-continuation gate below is now verified.
+
+F05 remains `FAILED_EXECUTION`: native solution-error estimate `3.32295e-6`
+exceeds unchanged `1e-6`. No solver fix or engineering acceptance is asserted.
+The synthetic inverse and one-generation searches do not qualify physical
+materials or global optima. The complete 52-section ledger remains in scope;
+unknown physical, material, strength, durability and corporate requirements still
+block release. Feature and local FreeCAD desktop work remain paused.
+
+## Earlier 2026-10-12 — CI coverage repair ready for exact-source hosted acceptance
+
+The reviewed S5 follow-up prevents one failed native acceptance from skipping
+four independent native stages. Setup/cancellation guards and every numerical
+failure remain enforced. Bounded local workflow/exit checks pass; actual hosted
+execution is still pending. [The integration record](benchmarks/records/20261012-stabilization-s5-ci-continuation.json)
+separates that CI repair from the unresolved original F05/failed AMD diagnostic.
+No solver policy or engineering threshold changes; the full requirement ledger,
+UNKNOWN/NOT_RELEASED gates and paused feature/local-FreeCAD scope are preserved.
+
+## Earlier 2026-10-12 — Native F05 diagnostic fails; preserve the original acceptance scope
+
+One reviewed AMD fine-mesh diagnostic reaches actual pinned MUMPS but still
+fails the unchanged native accuracy gate: `3.45549e-6 > 1e-6`. No product solver
+change is adopted, no failed metric is replaced and no engineering gate closes.
+[S5 evidence](benchmarks/records/20261012-stabilization-s5-f05-diagnostic.json)
+preserves the original inputs, local runtime identity and complete failure.
+
+The existing CI/unresolved-defect repair continues through Pro. The follow-up
+also addresses four independent native acceptance stages skipped by the earlier
+family failure; their execution must preserve setup/cancellation guards and the
+overall CI failure. This is a CI verification repair, not a relaxation of F05.
+The full ledger remains in scope; new features and local FreeCAD remain paused.
+
+## Earlier 2026-10-12 — CI repair reaches nine passing jobs; native F05 still fails
+
+Corrected source `3fd8bc4` completes exact CI `38153395166`: nine jobs pass and
+`codeaster` fails. Core passes 7,540 tests with 12 skips; Windows, native CAD,
+registration recovery, structural, DOE, optimization, PDE and explicit job gates
+pass. The original regular-Fz/F05 finest-mesh MUMPS failure is confirmed from
+the downloaded native artifact: `3.32295e-6 > 1e-6`, with execution failure
+before Domain assessment. Four later material/model stages remain unrun.
+
+The remaining bounded correction is with Pro. Preserve every original model,
+measurement, numerical limit and failed result; features remain paused.
+[Exact-run evidence and retention](benchmarks/records/20261012-stabilization-s4-ci-native-failure.json)
+separate CI workflow passes from explicit ideal-wall rejection, unconverged
+optimization and engineering `UNKNOWN/NOT_RELEASED`. The complete requirement
+ledger remains in scope; this checkpoint does not mark the whole product done.
+
+## Earlier 2026-10-11 — CI and unresolved-defect repair authorized
+
+The owner resumed correction of CI and recorded defects. Existing requirements
+remain, while new feature development remains paused. The stabilization repairs
+existing save/reopen, retained responses, request contracts, method drafts and
+result-reading performance, plus their CI/test environment. It does not add a
+new material engine or silently change any numerical or release requirement.
+The [current repair record](docs/WORKBENCH_PROGRESS.md) distinguishes baseline
+failures, corrections and verification. S1 passes bounded Pre/Post/UI and
+retained SVK/J2/OpenRadioss checks. S2 passes genuine Maxwell rereading,
+deterministic mapped-file release, narrow Windows test portability and fresh
+default-deadline result reads. Their reviewed 51-file union is integrated into
+MAIN and published as `04104f5dad133239cd00b504080684a1b971c354` in Draft PR7.
+Exact-source CI `38148178940` failed at Linux test collection because the Qt EGL
+runtime is missing. Windows passed; eight downstream jobs were skipped. The
+2026-10-12 bounded CI dependency/preflight correction is published as
+`52d36b5ab743b2cb0302d6f23cd9f83baa9b183d`, with every existing test retained.
+Its exact-source CI `38149573568` passes fresh Qt startup and Windows, but full
+Linux pytest reveals seven failures (7,525 passed) in Data Save sequencing and
+curve comparison UI contracts; the eight downstream jobs were skipped. S4
+now corrects exact-location refresh and real UI readiness/selection checks in
+three files. Independent Windows review passes 34 checks and exposes one initial
+modal-load race in the new test driver. After its one-file correction, all 18
+affected comparison tests pass in a cold Windows process; the unchanged Data and
+adjacent checks retain their earlier passes. Corrected source `3fd8bc4` is now
+published and remote/PR-confirmed. Exact-source CI `38153395166` passes Core
+(7,540 tests, 12 skips) and Windows; its eight downstream jobs now run. Their
+complete result remains required.
+These software checks do not close native FreeCAD or physical release gates.
+
+## Earlier 2026-10-11 — Paused for a current-state review
+
+The owner requested that current work be preserved and organized, then
+development stop for assessment. The substantive scope remains; this pause is
+not completion or cancellation of requirements. No new feature, upstream
+integration or verification campaign is authorized by older continuation text.
+Published r5 source is `1de8a69` in Draft PR7; CI has failed and it is not merged.
+Received r6 work is archived locally without application or acceptance. The
+[pause receipt](benchmarks/records/20261011-paused-work-snapshot.json) records
+its exact ZIP and source-manifest hashes. Existing J2/DP implementations must
+be assessed before any unnecessary new constitutive engine is adopted.
+See the current inventory and pause record in
+[WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md).
+
+## Earlier 2026-10-11 — Native Pre and existing material research source integrated
+
+Pro r5 adds native CAD/Assembly/FEM editing and managed-save paths, existing
+MFront Material owners, declared native input bindings, retained native response
+selection and candidate/comparison retention to the locally integrated product.
+Actual ParaView analysis/history/partial Owner Save/repair and the HTTP
+Heat-to-Structure field-publication path have bounded evidence. Windows managed
+Pre Save, external-dependency dirty tracking, general Post partial Save, retained
+reader/picker compatibility, Plan method drafts and cold-result latency still
+need correction. See [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md).
+
+The research protocol, comparison, calibration and holdout flow continues with
+Pro writing and Root reviewing/integrating. The owner's latest question requires
+checking established J2/DP implementation reuse before adopting any new
+constitutive engine, and an honest account of delivered versus ongoing work.
+Existing constitutive results do not establish missing DP or mixed-control
+support. Source is published as `1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3` in
+[Draft PR7](https://github.com/pikachu444/autonomous-cae-lab/pull/7); CI has a
+Windows failure and merge remains open. Original requirements, numerical limits,
+retained failures and `UNKNOWN/NOT_RELEASED` remain. Counts and procedures are
+not completion criteria for the continuing product.
+
+## Earlier 2026-10-11 — Independent and connected research implementation continues
+
+Locally integrated Pro r2/r3/r4 extends independent PDE/Expert/Data/Numerical
+editing, native Post analysis, saved Simulation/Evaluation/Study workflows and
+explicit candidate adoption. Actual Windows/Qt/ParaView and bounded thermal/
+structural comparisons are recorded in [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md).
+Known save/metadata/field-publication/UI defects remain open with Pro, alongside
+the live CAD/Assembly/mesh/condition/save implementation now in progress.
+This working tree is uncommitted; no new CI, whole-product or engineering verdict
+is claimed. The existing ledger remains history and substantive scope, not a
+feature-count target. No requirement or numerical threshold is removed.
+
+## Earlier 2026-10-11 — Connected Data/Numerical implementation received and integrated
+
+Source `584971df8ae64de08beaf1120febe4a9c994aa56` is published on the current
+development branch. Independent Data mapping/transform editing, retained-source
+reimport, Material-linked fit/DOE, explicit candidate adoption and Undo now run
+through the same GUI/HTTP/MCP owners. Root exercised nonlinear material data,
+actual fit/DOE and saved-work reopening. Native FEM export/Runner/Post return is
+implemented with bounded portable review; the local native execution stop remains.
+See [the current implementation record](docs/WORKBENCH_PROGRESS.md) for results
+and limits. PDE and discussion Expert implementation continues with Pro writing
+and Root reviewing/integrating. This advances real workflows; historical section
+counts are not completion criteria and no substantive scope is removed.
+
+## Earlier 2026-10-11 — Current connection priority
+
+Runner/Material navigation and shared manual/MCP Post save advance at `327b7b3`.
+The [current progress record](docs/WORKBENCH_PROGRESS.md) and actual Pro repository
+review prioritize native Pre → Runner → Post → design return and independent
+Data → Numerical → Material adoption. Both remain active, incomplete workflows;
+original requirements, UNKNOWN states and numerical thresholds remain intact.
+
+## Earlier 2026-10-11 — Implemented subset: external native result/Post workflow
+
+Approved local VTU/PVD dependency registration, shared HTTP/CLI/MCP input identity,
+registered-input ParaView opening, and native save/cold reopen are now implemented
+and locally verified at source `1f0338466d04fea8312aa943b5545b61fc858b50`.
+[The acceptance record](docs/PREPOST_VERIFICATION.md) retains the exact limits.
+General Post and file workflows remain PARTIAL: visible GUI actions, native owner
+commands, source relocation/repair and other formats are open. CAD/FE, independent
+document editors and integrated research outcomes retain their existing scope.
+No numerical threshold, engineering verdict, historical requirement or result is
+removed by this bounded software acceptance.
+
+## 2026-10-11 — Whole-product plan and validity of the historical requirement list
+
+The user rejected the earlier first-Material planning closure as an inadequate
+response to requested product progress. The complete whole-product/UI/MCP v2 plan
+and 22-page PDF are received and preserved in [PRODUCT_UI_MCP_PLAN](docs/PRODUCT_UI_MCP_PLAN.md)
+and [the UI reference files](docs/design/20261011-product-ui-mcp/Autonomous_CAE_Lab_UI_Plan_v2.pdf).
+Ten historical progress reviews are not product implementation or acceptance.
+CAD/FE, Post and the independent research workspaces remain implementation and
+acceptance work; no numerical threshold, release verdict or retained result changes.
+
+The user's latest direction explicitly challenges whether the old numbered list
+is valid. Its 52 numbers record sections of the original request, not 52 independent
+equally weighted product features. The list mixes user outcomes, design principles,
+technology investigations, historical sequencing and development operating rules.
+Do not use its count, all-open status, or old phase order as the product goal or as
+a prerequisite for useful work. Actual Pro reviewed the full descriptions and
+current directions. Its [validity review](docs/REQUIREMENTS_VALIDITY_REVIEW.md)
+retains substantive research and trust/edit/save principles while separating
+conditional support, backend investigation, developer rules and historical
+sequencing. The appendix gives each original number's current effect and reason.
+Its designated changes are applied in [the detailed plan](docs/PRODUCT_UI_MCP_PLAN.md).
+Retain the original ledger as traceable history, while applying later user decisions
+and judging completion by real research/design/edit/compare/save/resume workflows.
+
+## 2026-10-11 — Product flow and bounded native reuse evidence
+
+[PRODUCT_PLAN](docs/PRODUCT_PLAN.md) adds the concrete reference screens,
+service-to-editor work, and A/B/C defect/fixture research cases. The requirement
+inventory is a continuing ledger, not a cap on further real workflow needs.
+The plan covers both defect research and pre-build fixture review; first connected
+Data/Material/Numerical/Runner/Expert work does not complete either whole workflow.
+The first Material editing/evaluation/reopen unit now has fixed ownership, code
+targets, retention rules and pass scenes. It remains planned implementation and
+does not defer the rest of P1 or satisfy the J2/DP research case.
+Review2 fixes the existing local service as the first Material document owner
+and requires complete retained assets before publication plus owner-process
+restart for durable reopen acceptance. This closes that unit's planning, not its
+implementation or GUI/MCP/persistence acceptance.
+Review3 prevents narrowing Numerical to fit or fixture work to measurement-error
+explanation: P1 must show actual DOE/influence; P2 must modify and compare fixture
+designs through adoption/hold. Unknown engineering criteria still block approval.
+Review4 makes candidate coverage/scoring and common-basis comparison gates
+explicit. Existing numerical policies remain; actual GUI/missing-data/tensor
+comparison acceptance is still open.
+Review5 adds identifiability, holdout-reuse and numerical-error checks to case A's
+existing P2 model discrimination. This is planned acceptance; no new material
+model, UQ engine, solver qualification or product completion is claimed.
+Review6 makes case B's sensor extraction and mounting/clamping state continuity
+explicit in P2. Current fixture CAD and contact evidence do not close staged
+preload mechanics or their planned physical acceptance.
+Review7 adds reclosure/damage-history and delayed-recovery/observation-time gates
+to case C. The existing thermal/interface implementation and physical acceptance
+remain open; no new support or simulation result is inferred from this plan.
+Review8 separates selected-job and whole-fit/DOE cancellation in the existing P1
+acceptance. Late results retain their original inputs without restarting search;
+the Plan and unrelated runs remain intact. Existing cooperative cancellation is
+reused. Product GUI/MCP execution of these scenes remains NOT_RUN.
+Reviews9/10 close planning handoff after ten actual scheduled Pro replies. The
+product remains a general engineering research toolset; the two first practical
+acceptance workflows include defect research and actual fixture design/change/
+review. They do not cap the ledger or general research scope. First Material
+implementation is NOT_STARTED; all product/physical gates below remain open.
+
+Cloud FreeCAD geometry, prescribed revolute motion and mesh/face conditions have
+bounded execution evidence. Two exact workflows failed in the verification harness
+before integrated save/reopen. R02/R03/R05/R08–R13/R16/R17/R29/R31/R33/R51/R52 and
+the native document/GUI/MCP gates remain IMPLEMENTATION AND ACCEPTANCE OPEN.
+See `benchmarks/records/20261011-product-plan-cloud-reuse.json`; neither Pro's
+agreement nor the native subset promotes a solver or engineering release verdict.
+All original requirements, thresholds and UNKNOWN states remain intact.
+
+## 2026-10-11 — Independent research workspace design correction
+
+The user identified that Data/material-point/PDE work is separate from CAD and
+meshing. ADR0060 and the current Pre/Post/workbench specifications now separate
+those document owners, retain CAD-free direct use, and replace the dual-Pre-host
+acceptance assumption with independent editing/evaluation/reopen flows. All
+R01–R52 and UC01–UC17 remain in scope; boundary mapping especially affects
+R02/R03/R05/R08–R13/R16/R17/R29/R31/R33/R51/R52. These statuses remain DESIGN /
+IMPLEMENTATION AND ACCEPTANCE OPEN. This documentation change performs no new
+solver run and does not promote historical prototype or numerical verdicts.
+
+## 2026-10-10 — Reference UI fidelity correction
+
+R02 source `af2f084dea20562b9036976a9945ee09a3994236` corrects the rejected first
+screens and two HyperMesh state defects. Actual browser checks and independent
+source/reference review are recorded in `benchmarks/records/20261010-engineering-browser-studies-r02.json`.
+This remains a local web demonstration, not desktop packaging or completion of
+the 52 requirements. Native/product acceptance and engineering release remain open.
+
+## 2026-10-10 — Reference application UI status
+
+The requested Abaqus 2026 / HyperMesh 2026 browser studies are implemented and
+checked at source `cf06f39c490b8602d3115ba3e976852dfd1ed74d`. See the bounded UI
+acceptance record `benchmarks/records/20261010-engineering-browser-studies-r01.json`.
+This does not complete the 52-section product inventory or replace native/Core
+acceptance. All original requirements remain; engineering status is UNKNOWN/NOT_RELEASED.
+
+## 2026-10-10 UI design correction checkpoint
+
+Interactive synthetic UI source is preserved at `85c1c00c396e992263a41f883dd6883ff5c3eb79`
+on `codex/ui-interaction-design-20261010` (local commit, not pushed). Six distinct
+workspace layouts replace the earlier static wireframes. Root exercised actual
+browser controls; independent review inspected source and all 18 screenshots after
+six material findings were corrected. TypeScript/build pass. See
+`docs/ui-prototype/README.md`, `docs/ui-prototype/REVIEW.md` and the exact artifact
+hashes, Page sequences 3/8, CI and limitations in
+`benchmarks/records/20261010-ui-interaction-design-r01.json`.
+
+This is a design prototype only: no product Core/adapter/native/solver/LLM change.
+Product baseline `a10f202` CI run 37789173095 is failure; new prototype commit has no CI
+run. All 52 requirements, native host/document integration, actual provider/solver acceptance
+and engineering/company release remain incomplete/UNKNOWN/NOT_RELEASED. The
+Pages screen appendix contains the runnable HTML, source/capture/review ZIP and
+six real screenshots. Next implement and accept the preserved product contracts;
+do not reinterpret this UI review as native or numerical approval.
+
 ## 2026-10-08 native pre and post design review checkpoint
 
 The current remote-main Workbench remains intact. Separate FreeCAD/ParaView
@@ -1855,22 +2140,32 @@ P2.2/beam accuracy/full52 stay OPEN and all NOT_RELEASED; earlier records retain
 
 ## Authority and use
 
-This is a normalized, numbered record of **all 52 sections of the user's
-original project request** in this conversation. It preserves the intended
-scope; it is not a verbatim archive of Project chats. Prior OpenScience and
-fixture chats not retrievable in this environment remain a disclosed recovery
-gap. Recovered sources and executed code take precedence over an invented
-history; see `CURRENT_STATE.md`.
+The R numbers below summarize sections of the original project request. They
+preserve request history, not a verbatim chat archive or equally weighted product
+features. Unavailable prior OpenScience/fixture conversations remain a disclosed
+recovery gap. Recovered code and evidence take precedence over invented history.
+Original descriptions and executed results remain unchanged.
 
-Read this together with `AGENTS.md`, `HANDOFF.md`, `ARCHITECTURE.md`, ADRs and
-the actual tests. Future agents must update status/evidence as work progresses,
-not redefine the project as only the most recently implemented solver slice.
-The user's later explicit instructions can change scope and should be recorded.
+Current effect follows later user directions and [PRODUCT_PLAN](docs/PRODUCT_PLAN.md),
+[the detailed plan](docs/PRODUCT_UI_MCP_PLAN.md), and the
+[actual Pro validity review](docs/REQUIREMENTS_VALIDITY_REVIEW.md). Its appendix
+distinguishes user outcomes and accuracy/edit/save principles, conditional support,
+backend investigations, developer operating rules and historical one-time work.
+Historical execution status does not automatically certify current implementation.
 
-The goal is a general **Autonomous CAE Laboratory**, with OpenScience managing
-research reasoning and human engineers able to inspect/edit native models.
-The loop is research definition → stable Core operations → adapters/plugins →
-experiments → evidence/validation → research interpretation and next campaign.
+Judge progress by a user's input, edit, calculation/analysis, comparison, saved
+work, reopening and failure recovery. Do not manufacture one feature or test per
+R row, sum the rows into a completion percentage, or require every candidate
+backend before a useful workflow can run. Later needs remain valid without an old
+number. Retiring a sequence does not delete its research function or declare it
+implemented. Record replacement of outdated implementation choices explicitly.
+
+The goal remains a general **Autonomous CAE Laboratory** with direct engineer
+GUI/CLI/Python use and optional AI assistance through the same supported behavior.
+OpenScience can support questions, hypotheses, plans and interpretation; numerical
+engines generate and evaluate candidates. Document ownership follows the accepted
+domain/Plan/Study/Discussion boundaries. Old OpenScience-first wording is not a
+mandatory product entry or exclusive ownership of every research document.
 
 ## Current verified checkpoint
 
@@ -2269,6 +2564,13 @@ Broader physics and engineering release gates remain open.
 
 ## Original section ledger
 
+**Historical trace, not the current completion checklist.** Read each original
+description with [its current effect and reason](docs/REQUIREMENTS_VALIDITY_REVIEW.md#부록-a-원-번호별-현재-효력).
+The status column retains dated observations and superseded work orders; whole52,
+OPEN and Phase wording in those records do not impose a new global gate. Product
+outcomes, operating rules, investigations and one-time historical tasks have
+different meanings. Current work follows the plans above.
+
 Current verified numerical baseline is `33ea11d` with all8 jobs successful in
 CI36722365195 and independently inspected native evidence. The current P1.1
 system unit and ordered remaining gates are in
@@ -2497,3 +2799,11 @@ numerical engine and replay, with 224 frozen-source regressions, actual MCP
 metadata checks and a clean-source native nine-candidate/eighteen-mesh campaign
 at `9330055`. Four adaptive trials did not improve the best initial-population
 member. This does not establish convergence or complete Phase3.
+## 2026-10-11 — Implemented editing is a step toward connected research
+
+The shared Material editor and typed Post commands are implemented at
+`97f1a45136d9ac456a9d74344b52ea2edd439d6e`; [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md)
+states exactly what a user can do and where the research/design flow still breaks.
+The latest user instruction requires judging development by those intended
+workflows, not regression counts or repeated verification. Original requirements
+and numerical meaning remain; this bounded unit does not close the product scope.

@@ -4,6 +4,8 @@
 
 ## 1. 결론과 근거의 수준
 
+2026-10-10 적용 범위 교정: 아래 FreeCAD 후보 평가는 **CAD/FE 전처리**의 CAD·조립·메시·조건 작업에 한정한다. Data, Material Research, PDE Research는 독립 문서 작업공간이며 FreeCAD 설치에 따라 host를 변경하지 않는다. 공통 reader·표/곡선·수치 서비스는 재사용하되 비CAD 문서의 경량↔FreeCAD 왕복을 채택 조건으로 삼지 않는다. [현재 책임 경계](PREPOST_APP_SPEC.md#2-앱-경계와-첫-전체-구성), [ADR0060](../ADR/0060-independent-research-workspaces.md) 참조. 아래 날짜·버전·실행 수치는 원 조사 기록이며 이번에 재실행한 값이 아니다.
+
 전처리는 **FreeCAD 기존 앱 + 전용 workbench + 현재 pinned adapter**, 후처리는 **ParaView 기존 앱 + reader/plugin + 결과·상태 묶음**을 우선 검증할 가치가 가장 높다. 이 경로는 이미 있는 CAD 편집기와 결과 탐색기를 실제 제품 기반으로 재사용한다. 별도 PySide6 창 안에 Gmsh·PyVista만 넣는 경로는 뷰포트를 빨리 만들지만, 문서 수명주기·모델 트리·선택 동기화·undo·프로젝트 저장·결과 탐색 명령을 추가로 구현해야 한다. 아래 비교는 이 기능 차이에 따른 판단이며 일정이나 비용 숫자를 산정한 것이 아니다.
 
 두 앱은 각각 파일만으로 시작하고 저장·재개할 수 있어야 한다. Core의 공통 데이터 계약과 검증은 재사용하되, 연구 에이전트 또는 실행 중인 솔버가 파일 열기·CAD 편집·기존 결과 읽기의 필수 조건이 되면 안 된다. 과거 ADR의 OpenScience 필수 진입점/하나의 Lab 화면이라는 제품 전제는 최신 독립 앱 방향에 맞춰 갱신해야 한다. Core/도메인/adapter 소유권, 결정적 수치 탐색, 원본 보존, 명시 단위, UNKNOWN 판정은 그대로 유효하다.
@@ -196,6 +198,8 @@ python -B -m pytest -q -p no:cacheprovider tests/test_native_face_catalog.py tes
 remote ADR: [0058](https://github.com/pikachu444/autonomous-cae-lab/blob/fc7c82dfcf4a6155ff18b7ebd5b91388916e6a9e/ADR/0058-local-workbench-native-responses-and-expert-host.md), [0059](https://github.com/pikachu444/autonomous-cae-lab/blob/fc7c82dfcf4a6155ff18b7ebd5b91388916e6a9e/ADR/0059-pinned-explicit-solver-successor.md). 이 조사 문서는 ADR를 변경하거나 제품 방향 변경을 최종 승인하지 않는다.
 
 ## 9. 다음 구현 결정에 필요한 구체 수락
+
+Data의 원본·변환·관측, Material의 구성법칙/재료점 평가, PDE의 식·domain·이산화/해법을 각각 CAD 미설치에서 열기·편집·저장·재개한다. 실제 지원 평가기를 통해 결과를 얻고 Post/수치 연구에서 동일 원본·단위·revision으로 다시 읽는 수용을 별도로 둔다. 아래 native Pre/Post 검증 성공은 이 독립 연구 수용을 대신하지 않는다.
 
 1. **전처리:** FreeCAD에서 실제 STEP/native CAD 열기→형상 편집→face 선택→typed 조건→Gmsh volumetric mesh→node/element/face group 점검→editable CAD+mesh+manifest 저장→종료/재열기. 화면 선택과 저장된 ID/좌표/단위를 대조한다.
 2. **변경 실패 경로:** geometry revision 변경 후 stale face/mesh 조건을 표시하고 export/solver submission을 차단한다. 잘못된 형상·mesh·단위·unsupported 조건·중간 저장 실패에서 이전 revision/result를 보존한다.

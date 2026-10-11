@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-12",
+  "purpose": "Preserve remaining assertions after Linux Qt runtime repair",
+  "source_commit": "52d36b5ab743b2cb0302d6f23cd9f83baa9b183d",
+  "pr_merge_commit": "66cde28841e37c2b9a598fd7482dc0f506b35c7f",
+  "base_commit": "a10f2023a2084512839b5e0af8ab0adc0aeb9293",
+  "run": {
+    "databaseId": 38149573568,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38149573568",
+    "status": "completed",
+    "conclusion": "failure",
+    "createdAt": "2026-10-11T15:01:43Z",
+    "updatedAt": "2026-10-11T15:23:46Z"
+  },
+  "jobs": [
+    {
+      "name": "core",
+      "databaseId": 114500021012,
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38149573568/job/114500021012",
+      "startedAt": "2026-10-11T15:01:46Z",
+      "completedAt": "2026-10-11T15:23:45Z"
+    },
+    {
+      "name": "research-driver-source",
+      "databaseId": 114500021173,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38149573568/job/114500021173",
+      "startedAt": "2026-10-11T15:01:47Z",
+      "completedAt": "2026-10-11T15:04:59Z"
+    },
+    {
+      "name": "doe",
+      "databaseId": 114504525252,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38149573568/job/114504525252",
+      "startedAt": "2026-10-11T15:23:46Z",
+      "completedAt": "2026-10-11T15:23:46Z"
+    },
+    {
+      "name": "optimization",
+      "databaseId": 114504525490,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38149573568/job/114504525490",
+      "startedAt": "2026-10-11T15:23:46Z",
+      "completedAt": "2026-10-11T15:23:46Z"
+    },
+    {
+      "name": "pde",
+      "databaseId": 114504525537,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38149573568/job/114504525537",
+      "startedAt": "2026-10-11T15:23:46Z",
+      "completedAt": "2026-10-11T15:23:46Z"
+    },
+    {
+      "name": "structural",
+      "databaseId": 114504525602,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38149573568/job/114504525602",
+      "startedAt": "2026-10-11T15:23:46Z",
+      "completedAt": "2026-10-11T15:23:46Z"
+    },
+    {
+      "name": "native-registration",
+      "databaseId": 114504525664,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38149573568/job/114504525664",
+      "startedAt": "2026-10-11T15:23:46Z",
+      "completedAt": "2026-10-11T15:23:46Z"
+    },
+    {
+      "name": "explicit",
+      "databaseId": 114504525764,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38149573568/job/114504525764",
+      "startedAt": "2026-10-11T15:23:46Z",
+      "completedAt": "2026-10-11T15:23:46Z"
+    },
+    {
+      "name": "codeaster",
+      "databaseId": 114504525971,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38149573568/job/114504525971",
+      "startedAt": "2026-10-11T15:23:46Z",
+      "completedAt": "2026-10-11T15:23:46Z"
+    },
+    {
+      "name": "native",
+      "databaseId": 114504526131,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38149573568/job/114504526131",
+      "startedAt": "2026-10-11T15:23:46Z",
+      "completedAt": "2026-10-11T15:23:46Z"
+    }
+  ],
+  "linux_qt_install": "PASS on fresh GitHub runner",
+  "linux_qt_preflight": "PASS imports, offscreen widget capture, font availability and event loop",
+  "core_pytest": {
+    "failed": 7,
+    "passed": 7525,
+    "skipped": 12,
+    "warnings": 2,
+    "elapsed_seconds": 1222.35,
+    "failed_node_ids": [
+      "tests/test_connected_research_http_ui.py::test_qt_edit_http_reader_import_and_invalid_draft_share_one_owner",
+      "tests/test_curve_comparison_ui.py::test_actual_catalog_and_selected_comparison_gap_table",
+      "tests/test_curve_comparison_ui.py::test_foreign_reply_keeps_previous_view",
+      "tests/test_curve_comparison_ui.py::test_late_selected_response_reply_ignored_and_foreground_locked",
+      "tests/test_curve_comparison_ui.py::test_late_origin_owner_reply_ignored",
+      "tests/test_curve_comparison_ui.py::test_owner_session_change_blocks_new_comparison",
+      "tests/test_curve_comparison_ui.py::test_refresh_preserves_explicit_b_job_and_response"
+    ]
+  },
+  "windows": {
+    "pytest_passed": 124,
+    "pytest_elapsed_seconds": 33.5,
+    "node_tests_passed": 19,
+    "private_python_http_bootstrap": "PASS; stress_xx[1]=1.2 MPa; owned server stopped"
+  },
+  "downstream_skipped_count": 8,
+  "evidence_files": [
+    {
+      "path": "runs/pr7-ci-38149573568/completed.json",
+      "bytes": 11693,
+      "sha256": "f8a5a9ea0ed23641e4c984875802216b20e202ada53a1a85364f987aa95602de",
+      "retention": "LOCAL_ONLY; not committed"
+    },
+    {
+      "path": "runs/pr7-ci-38149573568/core.log",
+      "bytes": 126549,
+      "sha256": "a981005b77ae18ef031da4eff954a6497efaaea2becc3c35f37664f87ab9b483",
+      "retention": "LOCAL_ONLY; not committed"
+    },
+    {
+      "path": "runs/pr7-ci-38149573568/core-failures.txt",
+      "bytes": 14123,
+      "sha256": "1a513507dde058fe4324c28ccb38948fb5775f84f652a8ba3762855f07632ac2",
+      "retention": "LOCAL_ONLY; not committed"
+    },
+    {
+      "path": "runs/pr7-ci-38149573568/research-driver-source.log",
+      "bytes": 62460,
+      "sha256": "f78685f8cedb6bf4452eed45d7d05d81a263cd77a0180e4b9ef6c5185ba866e8",
+      "retention": "LOCAL_ONLY; not committed"
+    }
+  ],
+  "github_artifact_count": 0,
+  "next_gate": "Pro bounded correction of Data Qt/HTTP save sequencing and comparison test/UI selection contracts; Root independent Windows reproduction/review, then new exact-source CI.",
+  "limitations": [
+    "No downstream native acceptance ran in this CI.",
+    "Linux failure details must distinguish stale tests from product bugs; no skip/guard weakening is authorized.",
+    "Original S1/S2 data, numerical limits and UNKNOWN/NOT_RELEASED remain unchanged.",
+    "General feature work and stopped r6 remain paused."
+  ]
+}

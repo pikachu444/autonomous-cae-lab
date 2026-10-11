@@ -1,6 +1,90 @@
 # Connected structural family acceptance
 
-## Current source-control checkpoint: cancellation is not numerical acceptance
+## 2026-10-12 — Exact CI preserves F05 failure and completes independent native stages
+
+Published source `385818bab785bfbf2c1e5880371970e475c90d68`, actual clean checkout
+`6dca0ddb94f340252299aec8a0d656ca1b44df83`, completes CI `38159523618`.
+The original `E-ansys_vmd1_regular-Fz-aster` again fails its finest `[24,4,4]`
+mesh at `FACTOR_57`: calculated `3.32295e-6` exceeds unchanged `RESI_RELA=1e-6`.
+Coarser levels exit 0; level 2 exits 1 with no complete worker result. Preserve
+`FAILED_EXECUTION`, null convergence, empty metrics and `NOT_RELEASED`.
+
+The downloaded raw log and actual runtime are pinned in
+[the exact-run record](../benchmarks/records/20261012-stabilization-s5-ci-native-continuation.json).
+This run uses SIF `956ad88234b53d4e8dfa76d7e067332059279cd7e5d7ccb6f09ebe4e46e978a4`
+from the unchanged OCI manifest, distinct from the earlier CI and local images.
+The four later independent native steps all run and pass; the failed family
+step and overall failed CI result remain. Their successes do not qualify F05.
+
+No demonstrated load/support/mesh implementation error or qualified numerical
+correction was found. A future correction needs evidence connecting the original
+physical equations to the actual constrained/scaled/permuted MUMPS system and
+solver-variable representation. Small backward error is insufficient; the
+postprocessed dual `DEPL` values are not established as that algebraic solution.
+Neither physical accuracy nor an unavoidable physical limit is proven by these
+diagnostics. Retain all prior failures and avoid repeated blind option sweeps.
+
+## Earlier 2026-10-12 — CI continuation repair does not change the failed family verdict
+
+The reviewed S5 follow-up changes only five workflow lines so four independent
+native acceptance stages can run after a family failure, provided runtime setup
+succeeded and the job is not cancelled. Family exit failure, native numerical
+limits, original response definitions and overall CI failure remain intact.
+Local YAML/shell/controlled-exit checks and independent dependency review pass;
+actual scheduling and later-stage outcomes await the new exact-source CI.
+[The integration receipt](../benchmarks/records/20261012-stabilization-s5-ci-continuation.json)
+is workflow evidence only. Original F05 and AMD `FACTOR_57` failures below remain
+unresolved; no native solver policy or engineering acceptance is changed.
+
+## Earlier 2026-10-12 — Reviewed AMD trial fails the same native solution-error gate
+
+Pro supplied a diagnostic preparation script with no production patch. After
+hash and independent scope review, Root ran the exact original fine F05 input
+with scratch-only `RENUM=AMD` and `INFO=2`. Local admitted Code_Aster 17.4.0 /
+MUMPS 5.6.2 reaches the solve and fails `FACTOR_57`: `3.45549e-6 > 1e-6`.
+Native `RESI_RELA`, `NPREC`, preprocessing, postprocessing, singularity checks,
+mesh, material, loads, supports and response definitions remain unchanged.
+
+The log reports condition estimate `9.20e9`, scaled residual `1.27e-16` and
+solution-error upper bound `3.46e-6`. The native failure tests the error bound;
+the small scaled residual does not establish a pass. No complete DEPL/stress/
+reaction result is admitted and no Domain reference/mesh/cross-solver assessment
+is reached. Do not adopt AMD or repeat an ordering sweep from this evidence.
+
+[The S5 record](../benchmarks/records/20261012-stabilization-s5-f05-diagnostic.json)
+pins the actual local SIF separately from CI, original-input preservation,
+diagnostic source hash, native logs, bounded execution and process cleanup.
+This local failure is distinct from Pro's host `/proc` initialization failure.
+The original F05 acceptance, reaction and engineering requirements stay open.
+
+## Earlier 2026-10-12 — Exact CI reproduces original regular-Fz/F05 native failure
+
+Source `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8` runs as PR merge
+`2852fc3d4a78a93ff1e24a282b7f3ac3b82cb22a` in CI `38153395166`.
+Nine workflow jobs pass; `codeaster` fails at
+`E-ansys_vmd1_regular-Fz-aster` after the earlier declared elasticity, Fx/Fy
+and Fz/CalculiX cases. The original downloaded artifact confirms the same
+finest-mesh `FACTOR_57` found in prior records: estimated error
+`3.32295e-6 > RESI_RELA 1e-6`. Native Code_Aster 17.4.0/MUMPS 5.6.2 exits 1
+at `MECA_STATIQUE`; the `[24,4,4]` mesh contains 384 HEXA20/2,225 nodes.
+The two coarser levels exit 0.
+
+Failure occurs before finest-field admission and the Domain response/reference/
+mesh assessment. Core therefore correctly retains `FAILED_EXECUTION`, empty
+metrics, null convergence and `NOT_RELEASED`. The partial family acceptance
+stays `FAILED_OR_PARTIAL`; four later material/model CI stages are skipped.
+This is not a numerical pass or a new roof-case result. Exact identities,
+original ZIP/log hashes and retention are in
+[the run record](../benchmarks/records/20261012-stabilization-s4-ci-native-failure.json).
+
+Pro is investigating a bounded correction over the verified S4a source.
+Previous FORCE and equivalent CINE trials failed the same accuracy gate;
+ELIM_LAGR lacked a required runtime capability. GCPC/native-reaction and
+augmented-system diagnostics have separate recorded limitations. None is a
+qualified F05 repair. Original benchmark definitions, meshes, measured responses,
+accuracy and engineering limits remain unchanged; new native evidence is required.
+
+## Historical source-control checkpoint: cancellation is not numerical acceptance
 
 Code_Aster/structural-family CCX use common observed cancellation and owned-group
 cleanup. Failed cleanup retains ownership/CLEANUP_PENDING and blocks subsequent

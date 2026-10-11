@@ -1,0 +1,30 @@
+{
+  "name": "cae-interaction-design",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Offline CAE interface studies with synthetic examples and separately sourced retained CAD/results; not a solver.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "build:references": "node reference-build.mjs",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.0.0",
+    "ag-grid-community": "^36.0.0",
+    "ag-grid-react": "^36.0.0",
+    "dockview": "^5.0.0",
+    "lucide-react": "^0.468.0",
+    "plotly.js-basic-dist-min": "^3.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.180.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.0"
+  }
+}

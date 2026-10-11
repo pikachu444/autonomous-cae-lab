@@ -1,0 +1,3081 @@
+{
+  "schema_version": "1",
+  "recorded_utc": "2026-10-11T18:14:20.488758+00:00",
+  "record_date_local": "2026-10-12 Asia/Seoul",
+  "scope": "CI and existing-defect stabilization; no new feature or numerical-policy change",
+  "source_commit": "385818bab785bfbf2c1e5880371970e475c90d68",
+  "actual_ci_checkout": "6dca0ddb94f340252299aec8a0d656ca1b44df83",
+  "pr_base_commit": "a10f2023a2084512839b5e0af8ab0adc0aeb9293",
+  "fixture_pin": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "source_publication": "Source was pushed and remote/PR7-confirmed before this exact run; later documentation commits are not new solver verification",
+  "pro_supplied_tree": "5f1b2e62aece6334b82cca6acf331b7c39a7e518",
+  "integration_record": "benchmarks/records/20261012-stabilization-s5-ci-continuation.json",
+  "ci": {
+    "conclusion": "failure",
+    "createdAt": "2026-10-11T17:24:38Z",
+    "databaseId": 38159523618,
+    "headSha": "385818bab785bfbf2c1e5880371970e475c90d68",
+    "status": "completed",
+    "updatedAt": "2026-10-11T18:03:34Z",
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618"
+  },
+  "conclusion": "FAILURE: nine jobs pass; original F05 fails. All four independent later native acceptance steps now execute and PASS.",
+  "jobs": [
+    {
+      "name": "research-driver-source",
+      "databaseId": 114529331806,
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-11T17:24:42Z",
+      "completedAt": "2026-10-11T17:27:56Z",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/job/114529331806",
+      "log": {
+        "path": "runs/pr7-ci-38159523618/research-driver-source.log",
+        "bytes": 62459,
+        "sha256": "ab37ae135d5ba7e6addd5b4d86bfafd756a025d671583f00ac3b7a29fc3a534b"
+      },
+      "failed_steps": [],
+      "skipped_steps": [
+        "Annotate workbench failures"
+      ]
+    },
+    {
+      "name": "core",
+      "databaseId": 114529332146,
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-11T17:24:41Z",
+      "completedAt": "2026-10-11T17:45:17Z",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/job/114529332146",
+      "log": {
+        "path": "runs/pr7-ci-38159523618/core.log",
+        "bytes": 382368,
+        "sha256": "571116cf26609293a5a6567f23cc63880e8f73143793505cc178440634b64212"
+      },
+      "failed_steps": [],
+      "skipped_steps": []
+    },
+    {
+      "name": "native-registration",
+      "databaseId": 114533579034,
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-11T17:45:19Z",
+      "completedAt": "2026-10-11T17:50:04Z",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/job/114533579034",
+      "log": {
+        "path": "runs/pr7-ci-38159523618/native-registration.log",
+        "bytes": 61566,
+        "sha256": "212aeac6f136028a10c7af6aa682196665e30aa8b9b7700ff555d3a5fef4d04e"
+      },
+      "failed_steps": [],
+      "skipped_steps": []
+    },
+    {
+      "name": "native",
+      "databaseId": 114533579056,
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-11T17:45:19Z",
+      "completedAt": "2026-10-11T17:59:00Z",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/job/114533579056",
+      "log": {
+        "path": "runs/pr7-ci-38159523618/native.log",
+        "bytes": 86098,
+        "sha256": "68a99aedb01eabe5d47103d4b8a0a5691590c98f5e28c3bbdff4314676606985"
+      },
+      "failed_steps": [],
+      "skipped_steps": []
+    },
+    {
+      "name": "pde",
+      "databaseId": 114533579060,
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-11T17:45:19Z",
+      "completedAt": "2026-10-11T17:50:46Z",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/job/114533579060",
+      "log": {
+        "path": "runs/pr7-ci-38159523618/pde.log",
+        "bytes": 252662,
+        "sha256": "32b4abe09dc12f098e18dd7bd0b4a7924729c1fe198610b79daa13e963a232d6"
+      },
+      "failed_steps": [],
+      "skipped_steps": [
+        "Annotate vector acceptance failure"
+      ]
+    },
+    {
+      "name": "structural",
+      "databaseId": 114533579079,
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-11T17:45:19Z",
+      "completedAt": "2026-10-11T17:49:13Z",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/job/114533579079",
+      "log": {
+        "path": "runs/pr7-ci-38159523618/structural.log",
+        "bytes": 96030,
+        "sha256": "988bad47564476e5024ef4407cf72c06268c858f1abcf931724de2cdf1be3806"
+      },
+      "failed_steps": [],
+      "skipped_steps": []
+    },
+    {
+      "name": "optimization",
+      "databaseId": 114533579083,
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-11T17:45:19Z",
+      "completedAt": "2026-10-11T17:59:02Z",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/job/114533579083",
+      "log": {
+        "path": "runs/pr7-ci-38159523618/optimization.log",
+        "bytes": 95685,
+        "sha256": "66fdf057bdf321a91873a5206d42defcb45690f59f1ee9e124e9760fbba20da7"
+      },
+      "failed_steps": [],
+      "skipped_steps": []
+    },
+    {
+      "name": "doe",
+      "databaseId": 114533579118,
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-11T17:45:19Z",
+      "completedAt": "2026-10-11T17:48:14Z",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/job/114533579118",
+      "log": {
+        "path": "runs/pr7-ci-38159523618/doe.log",
+        "bytes": 91153,
+        "sha256": "33d7baaacf34952703ddc1fee9e395f73605aab0dbac0cbcb4e18ff28c1ed875"
+      },
+      "failed_steps": [],
+      "skipped_steps": []
+    },
+    {
+      "name": "codeaster",
+      "databaseId": 114533579129,
+      "status": "completed",
+      "conclusion": "failure",
+      "startedAt": "2026-10-11T17:45:19Z",
+      "completedAt": "2026-10-11T18:03:33Z",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/job/114533579129",
+      "log": {
+        "path": "runs/pr7-ci-38159523618/codeaster.log",
+        "bytes": 112390,
+        "sha256": "6a561700e9a51b407942fe58b0081ce9fefbfc7f8222fa6d05a6d77e5073f277"
+      },
+      "failed_steps": [
+        "Compare complete beam, pressure cylinder and curved roof fields across two native solvers"
+      ],
+      "skipped_steps": [
+        "Post Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065"
+      ]
+    },
+    {
+      "name": "explicit",
+      "databaseId": 114533579191,
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-11T17:45:19Z",
+      "completedAt": "2026-10-11T17:46:40Z",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/job/114533579191",
+      "log": {
+        "path": "runs/pr7-ci-38159523618/explicit.log",
+        "bytes": 64833,
+        "sha256": "51e82a2ce846969acb3f14ab9d5d1de010430f877cb5a097b4a132cad67f4657"
+      },
+      "failed_steps": [],
+      "skipped_steps": []
+    }
+  ],
+  "workflow_behavior": {
+    "actual_continuation_steps": [
+      {
+        "completedAt": "2026-10-11T17:55:19Z",
+        "conclusion": "success",
+        "name": "Verify complete native J2 load and unload histories on two meshes",
+        "number": 9,
+        "startedAt": "2026-10-11T17:54:05Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-11T17:55:35Z",
+        "conclusion": "success",
+        "name": "Verify real MGIS and MTest stress histories and consistent tangents",
+        "number": 10,
+        "startedAt": "2026-10-11T17:55:19Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-11T17:59:13Z",
+        "conclusion": "success",
+        "name": "Search declared modulus using measured native fields with interruption and replay",
+        "number": 11,
+        "startedAt": "2026-10-11T17:55:35Z",
+        "status": "completed"
+      },
+      {
+        "completedAt": "2026-10-11T18:03:16Z",
+        "conclusion": "success",
+        "name": "Verify synthetic material inverse after sealed OCI runtime admission",
+        "number": 12,
+        "startedAt": "2026-10-11T17:59:13Z",
+        "status": "completed"
+      }
+    ],
+    "upstream_family_failure_preserved": true,
+    "runtime_setup": "PASS in this run; setup-failure/cancellation behavior is supported by reviewed conditions, not a hosted fault-injection claim",
+    "guards": "!cancelled() && steps.codeaster_runtime.outcome == 'success'",
+    "scope": "One runtime step id plus four conditions; no continue-on-error, commands, stores, pins, thresholds or timeout changes",
+    "job_cache_post_step": "setup-python cache post-step was skipped after failure; no native acceptance step among the four was skipped"
+  },
+  "software_validation": {
+    "core_pytest": {
+      "passed": 7540,
+      "skipped": 12,
+      "warnings": 2,
+      "seconds": 1087.42,
+      "skip_reasons": "Not emitted by the captured -q log; not inferred",
+      "warning_details": [
+        "Existing CadQuery ast.NameConstant deprecation",
+        "Existing offscreen Matplotlib constrained_layout axes collapse warning"
+      ],
+      "python": "3.12.15",
+      "pyside6": "6.9.1",
+      "qt": "6.9.1"
+    },
+    "core_node_groups": [
+      {
+        "passed": 651,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "passed": 19,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "passed": 8,
+        "failed": 0,
+        "skipped": 0
+      }
+    ],
+    "core_mcp_http": "PASS actual integration; browser rendering not checked by this CI",
+    "windows": {
+      "pytest_passed": 124,
+      "pytest_seconds": 33.16,
+      "node_passed": 19,
+      "private_python": "3.12.14",
+      "private_python_http": "PASS actual stress_xx[1]=1.2MPa; owned server and children stopped",
+      "job_id": "J7792ef8eed2b46e49be225f3ea736354"
+    }
+  },
+  "independent_native_acceptance": {
+    "j2": {
+      "acceptance_file": {
+        "artifact_id": 11711072239,
+        "path_in_zip": "plasticity-lab/acceptance.json",
+        "bytes": 35013,
+        "sha256": "f4b6f8473fbba5125b2e68cdd323ce8a65e021b7917a7492e427f2f5ac2f2aa0"
+      },
+      "status": "PASS",
+      "decision": "NOT_RELEASED",
+      "source": {
+        "core_commit": "6dca0ddb94f340252299aec8a0d656ca1b44df83",
+        "core_dirty": false,
+        "core_source_sha256": "afd941fdcd3f1dc3075ef5a2fc9c96d8c52669735fa93adc1677799c99779366"
+      },
+      "cases": {
+        "E-j2-canonical": {
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "decision": "NOT_RELEASED",
+          "model_revision": "9ce5ad13f3bf4fd68b5c27ee0d5ffed8f71947aa125b3db3a608f3944b94c9ae",
+          "metrics": {
+            "displacement_relative_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 2.7570538444858056e-13
+            },
+            "final_stress": {
+              "unit": "MPa",
+              "valid": true,
+              "value": -60.21327014217991
+            },
+            "hardening_energy_density": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 0.011456391365872282
+            },
+            "max_component_displacement_error": {
+              "unit": "mm",
+              "valid": true,
+              "value": 3.3084646133829665e-14
+            },
+            "max_component_stress_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 4.75353090223507e-11
+            },
+            "max_eq_plastic_strain_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 7.310124727766265e-15
+            },
+            "max_unload_residual_strain_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 2.6020852139652106e-18
+            },
+            "mesh_agreement_relative": {
+              "unit": "1",
+              "valid": true,
+              "value": 3.968308767396647e-14
+            },
+            "peak_eq_plastic_strain": {
+              "unit": "1",
+              "valid": true,
+              "value": 0.0047867298578199045
+            },
+            "peak_stress": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 254.7867298578204
+            },
+            "plastic_dissipation_absolute_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 1.87871940227069e-12
+            },
+            "plastic_dissipation_density": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 1.1966824644549772
+            },
+            "plastic_work_density": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 1.2081388558208495
+            },
+            "reaction_absolute_error": {
+              "unit": "N",
+              "valid": true,
+              "value": 3.803384551460775e-11
+            },
+            "reaction_relative_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 1.865964798079947e-14
+            },
+            "reaction_x": {
+              "unit": "N",
+              "valid": true,
+              "value": 481.70616113745047
+            },
+            "stress_relative_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 1.8656901420602676e-13
+            },
+            "unload_residual_strain": {
+              "unit": "1",
+              "valid": true,
+              "value": 0.004786729857819904
+            }
+          },
+          "failures": [],
+          "unknown": [
+            "static_strength",
+            "material_qualification",
+            "model_qualification",
+            "physical_validation",
+            "fatigue_durability"
+          ]
+        },
+        "E-j2-changed": {
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "decision": "NOT_RELEASED",
+          "model_revision": "ab7ff0571dba0fcfdde390f0599d97272eaeeb7eaf02c3258db5c2fcf84cb61e",
+          "metrics": {
+            "displacement_relative_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 1.2917907484440624e-13
+            },
+            "final_stress": {
+              "unit": "MPa",
+              "valid": true,
+              "value": -82.65957446808525
+            },
+            "hardening_energy_density": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 0.01796061566319539
+            },
+            "max_component_displacement_error": {
+              "unit": "mm",
+              "valid": true,
+              "value": 1.5501488981328748e-14
+            },
+            "max_component_stress_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 4.445155354915187e-11
+            },
+            "max_eq_plastic_strain_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 5.159934979293013e-15
+            },
+            "max_unload_residual_strain_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 2.6020852139652106e-18
+            },
+            "mesh_agreement_relative": {
+              "unit": "1",
+              "valid": true,
+              "value": 3.101760997806356e-14
+            },
+            "peak_eq_plastic_strain": {
+              "unit": "1",
+              "valid": true,
+              "value": 0.00489361702127651
+            },
+            "peak_stress": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 232.34042553191458
+            },
+            "plastic_dissipation_absolute_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 1.2179146580137967e-12
+            },
+            "plastic_dissipation_density": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 1.1010638297872144
+            },
+            "plastic_work_density": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 1.11902444545041
+            },
+            "reaction_absolute_error": {
+              "unit": "N",
+              "valid": true,
+              "value": 3.65145403218245e-11
+            },
+            "reaction_relative_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 1.9644956446036524e-14
+            },
+            "reaction_x": {
+              "unit": "N",
+              "valid": true,
+              "value": 661.2765957446928
+            },
+            "stress_relative_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 1.9132078908517735e-13
+            },
+            "unload_residual_strain": {
+              "unit": "1",
+              "valid": true,
+              "value": 0.004893617021276596
+            }
+          },
+          "failures": [],
+          "unknown": [
+            "static_strength",
+            "material_qualification",
+            "model_qualification",
+            "physical_validation",
+            "fatigue_durability"
+          ]
+        },
+        "E-j2-history-reject": {
+          "status": "REJECTED",
+          "decision": "NOT_RELEASED",
+          "model_revision": "99f40de5a8c5be40d47a645b788d03056ef3ece3165dedd53daf0368613562fb",
+          "metrics": {},
+          "failures": [
+            {
+              "evidence_ids": [
+                "EV-E-j2-history-reject-001"
+              ],
+              "type": "model_declaration"
+            }
+          ],
+          "unknown": [
+            "model_qualification",
+            "physical_validation"
+          ]
+        },
+        "E-j2-material-reject": {
+          "status": "REJECTED",
+          "decision": "NOT_RELEASED",
+          "model_revision": "7619f85b7792a13ddd0b167f5099706558307a9faaae0a58847c1a8cfd1a9ce3",
+          "metrics": {},
+          "failures": [
+            {
+              "evidence_ids": [
+                "EV-E-j2-material-reject-001"
+              ],
+              "type": "model_declaration"
+            }
+          ],
+          "unknown": [
+            "model_qualification",
+            "physical_validation"
+          ]
+        }
+      },
+      "limits": {
+        "displacement_absolute_mm": 1e-10,
+        "displacement_relative": 1e-07,
+        "mesh_agreement_relative": 1e-07,
+        "plastic_dissipation_absolute_mpa": 1e-08,
+        "plastic_dissipation_relative": 1e-06,
+        "plastic_strain_absolute": 1e-09,
+        "reaction_absolute_n": 1e-08,
+        "reaction_relative": 1e-07,
+        "stress_absolute_mpa": 1e-08,
+        "stress_relative": 1e-07
+      },
+      "reference": "Independent E/yield/H scalar closed return map",
+      "scope": "Canonical and predeclared changed material, each two meshes and ten archived states; full component fields and signed reactions",
+      "limitations": [
+        "Material nonlinear benchmark only; contact/geometric nonlinearity remain open",
+        "No physical calibration, strength, fatigue or release qualification",
+        "No assembled matrix residual/global energy balance"
+      ]
+    },
+    "material_point": {
+      "acceptance_file": {
+        "artifact_id": 11711072239,
+        "path_in_zip": "material-point-lab/acceptance.json",
+        "bytes": 58774,
+        "sha256": "e15bfec5add6a76d08478ea066d7cea92e8071173f6e27ef3cfc36ae5bf96fe4"
+      },
+      "status": "PASS",
+      "decision": "NOT_RELEASED",
+      "source": {
+        "core_commit": "6dca0ddb94f340252299aec8a0d656ca1b44df83",
+        "core_dirty": false,
+        "core_source_sha256": "afd941fdcd3f1dc3075ef5a2fc9c96d8c52669735fa93adc1677799c99779366"
+      },
+      "cases": {
+        "canonical": {
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "decision": "NOT_RELEASED",
+          "model_revision": "99c1c965b1faf82eb9e9a822b2f7ca3fc0c37652af0a1e8cd68a07c4f2d1c98b",
+          "failures": [],
+          "unknown": [
+            "model_qualification",
+            "material_qualification",
+            "physical_validation",
+            "static_strength",
+            "fatigue_durability",
+            "solver_coupling",
+            "corporate_license_approval",
+            "corporate_security_approval"
+          ],
+          "scalar_metrics": {
+            "analytical_tangent_relative_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 0.0
+            },
+            "cross_driver_stress_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 8.526512829121202e-14
+            },
+            "fd_tangent_relative_error_1e-07": {
+              "unit": "1",
+              "valid": true,
+              "value": 9.256443578977975e-13
+            },
+            "fd_tangent_relative_error_1e-08": {
+              "unit": "1",
+              "valid": true,
+              "value": 1.540887454638676e-11
+            },
+            "fd_tangent_relative_error_1e-09": {
+              "unit": "1",
+              "valid": true,
+              "value": 1.5048129598096927e-10
+            },
+            "max_energy_density_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 2.7755575615628914e-17
+            },
+            "max_kelvin_stress_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 7.105427357601002e-14
+            },
+            "max_physical_stress_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 7.105427357601002e-14
+            }
+          }
+        },
+        "changed_modulus": {
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "decision": "NOT_RELEASED",
+          "model_revision": "11948e02ad81c3f9ba3d1a8c8279fbfed388806bf019b2a0367917f9214bccc6",
+          "failures": [],
+          "unknown": [
+            "model_qualification",
+            "material_qualification",
+            "physical_validation",
+            "static_strength",
+            "fatigue_durability",
+            "solver_coupling",
+            "corporate_license_approval",
+            "corporate_security_approval"
+          ],
+          "scalar_metrics": {
+            "analytical_tangent_relative_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 0.0
+            },
+            "cross_driver_stress_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 4.263256414560601e-14
+            },
+            "fd_tangent_relative_error_1e-07": {
+              "unit": "1",
+              "valid": true,
+              "value": 9.256443578977975e-13
+            },
+            "fd_tangent_relative_error_1e-08": {
+              "unit": "1",
+              "valid": true,
+              "value": 1.540887454638676e-11
+            },
+            "fd_tangent_relative_error_1e-09": {
+              "unit": "1",
+              "valid": true,
+              "value": 1.5048129598096927e-10
+            },
+            "max_energy_density_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 1.3877787807814457e-17
+            },
+            "max_kelvin_stress_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 3.552713678800501e-14
+            },
+            "max_physical_stress_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 3.552713678800501e-14
+            }
+          }
+        },
+        "invalid_input": {
+          "status": "REJECTED",
+          "decision": "NOT_RELEASED",
+          "model_revision": "948ed544a19487dcdc13dd0314069508038bfd50d72a4fd2dd51ce943a64f62b",
+          "failures": [
+            {
+              "evidence_ids": [
+                "EV-E-material-input-reject-001"
+              ],
+              "type": "model_declaration"
+            }
+          ],
+          "unknown": [
+            "model_qualification",
+            "physical_validation"
+          ],
+          "scalar_metrics": {}
+        }
+      },
+      "scope": "Two elastic cases; each 407 MGIS integrations including 396 FD probes and 12 complete MTest states",
+      "reference": "Independent Hooke tensor and MGIS/MTest cross-driver comparison; tangent limit 1e-8",
+      "limitations": [
+        "model_qualification",
+        "material_qualification",
+        "physical_validation",
+        "static_strength",
+        "fatigue_durability",
+        "solver_coupling",
+        "corporate_license_approval",
+        "corporate_security_approval"
+      ]
+    },
+    "declared_model_optimization": {
+      "acceptance_file": {
+        "artifact_id": 11711072239,
+        "path_in_zip": "model-optimization-lab/acceptance.json",
+        "bytes": 8644,
+        "sha256": "b821fc8b74ef4516152366e07346f127a0796ba3e17428ac11532272a208c7d9"
+      },
+      "best": {
+        "distance_to_reference_bound_mm": 4.0652242475526816e-05,
+        "measured_mm": 0.0009593477575244732,
+        "values": {
+          "modulus": 208474.97524367843
+        }
+      },
+      "campaign_id": "C-model-optimization",
+      "completed_reuse_without_adapter_or_optimizer": "PASS",
+      "decision": "NOT_RELEASED",
+      "evaluations": 9,
+      "frozen": {
+        "constraints": [
+          {
+            "limit": 0.001,
+            "metric": "axial_tip_displacement",
+            "operator": "<=",
+            "scale": 0.001,
+            "source": "model",
+            "unit": "mm"
+          }
+        ],
+        "initial_values": {
+          "modulus": 210000.0
+        },
+        "interruption": "Before third candidate native execution, replay first two immutable evaluations",
+        "max_generations": 1,
+        "max_unique_evaluations": 10,
+        "objective": {
+          "direction": "maximize",
+          "metric": "axial_tip_displacement",
+          "source": "model",
+          "unit": "mm"
+        },
+        "population_size": 5,
+        "reference": {
+          "constrained_reference_value_mm": 0.001,
+          "equation": "u_x(L)=traction*L/E",
+          "feasible_modulus_lower_mpa": 200000.0,
+          "numerator_mpa_mm": 200.0,
+          "scope": "Affine mathematical verification; no material allowable or engineering optimum"
+        },
+        "required_validations": {
+          "model": [
+            "analytical_displacement",
+            "analytical_stress",
+            "signed_reaction_balance",
+            "mesh_agreement"
+          ]
+        },
+        "script_sha256": "fb4f75465f35c15d48018398333768f37f0da079fb66a1026567d222c9a89201",
+        "seed": 13,
+        "settings": {
+          "case": "uniaxial_block",
+          "dimensions_mm": [
+            20.0,
+            4.0,
+            2.0
+          ],
+          "limits": {
+            "displacement_absolute_mm": 1e-12,
+            "displacement_relative": 1e-08,
+            "mesh_agreement_relative": 1e-08,
+            "reaction_relative": 1e-08,
+            "stress_relative": 1e-08
+          },
+          "material": {
+            "poisson_ratio": 0.3,
+            "youngs_modulus_mpa": 210000.0
+          },
+          "mesh_sizes_mm": [
+            2.0,
+            1.0
+          ],
+          "traction_mpa": 10.0
+        },
+        "source": {
+          "core_commit": "6dca0ddb94f340252299aec8a0d656ca1b44df83",
+          "core_dirty": false,
+          "core_source_sha256": "afd941fdcd3f1dc3075ef5a2fc9c96d8c52669735fa93adc1677799c99779366"
+        },
+        "variable": {
+          "id": "modulus",
+          "input_id": "youngs_modulus_mpa",
+          "lower": 100000,
+          "unit": "MPa",
+          "upper": 300000
+        }
+      },
+      "limitations": [
+        "One bounded generation does not prove convergence or a global optimum.",
+        "Declared modulus is a research variable, not a qualified material choice.",
+        "No assembled matrix residual is measured; physical/strength validation remains UNKNOWN."
+      ],
+      "native_mesh_solves": 18,
+      "observations": [
+        {
+          "absolute_reference_error_mm": 2.7972416050126014e-17,
+          "analytical_mm": 0.0009523809523809524,
+          "experiment_id": "E-C-model-optimization-0001",
+          "feasible": true,
+          "measured_mm": 0.0009523809523809244,
+          "model_revision": "2aee6a662bdcf00aae3afc44d543da3cc4397958a4e5c720f33e60533f90eac0",
+          "values": {
+            "modulus": 210000.0
+          }
+        },
+        {
+          "absolute_reference_error_mm": 2.3201926491189795e-17,
+          "analytical_mm": 0.0016032128896317122,
+          "experiment_id": "E-C-model-optimization-0002",
+          "feasible": false,
+          "measured_mm": 0.001603212889631689,
+          "model_revision": "e0a68f6a467d39d9eaa60659bd125a7ffc3a27e1913267aca080198977d5e78a",
+          "values": {
+            "modulus": 124749.4960235404
+          }
+        },
+        {
+          "absolute_reference_error_mm": 1.0408340855860843e-17,
+          "analytical_mm": 0.001164685859318553,
+          "experiment_id": "E-C-model-optimization-0003",
+          "feasible": false,
+          "measured_mm": 0.0011646858593185427,
+          "model_revision": "848aae4829ea316884376a8e578c283568ec09f72322b7a8d0cc346b52b0391e",
+          "values": {
+            "modulus": 171720.1238426799
+          }
+        },
+        {
+          "absolute_reference_error_mm": 3.3610267347050637e-18,
+          "analytical_mm": 0.0007792960263289484,
+          "experiment_id": "E-C-model-optimization-0004",
+          "feasible": true,
+          "measured_mm": 0.0007792960263289451,
+          "model_revision": "3c1451fa9ea37c09fde6a7faf5f8330f0dff2247c8bb4f51b74984aa3cefdc81",
+          "values": {
+            "modulus": 256641.88349855394
+          }
+        },
+        {
+          "absolute_reference_error_mm": 3.371868756429919e-17,
+          "analytical_mm": 0.0009593477575245069,
+          "experiment_id": "E-C-model-optimization-0005",
+          "feasible": true,
+          "measured_mm": 0.0009593477575244732,
+          "model_revision": "de6e695c2e323c710d00f0788e0fdc18037d61a31e31055e5b3f9cc52bbef17d",
+          "values": {
+            "modulus": 208474.97524367843
+          }
+        },
+        {
+          "absolute_reference_error_mm": 2.949029909160572e-17,
+          "analytical_mm": 0.0006952751014630455,
+          "experiment_id": "E-C-model-optimization-0006",
+          "feasible": true,
+          "measured_mm": 0.000695275101463016,
+          "model_revision": "387fc48e73047e1bdb941a38be40f19cda14a1020bfed9c458deb9036eef0a39",
+          "values": {
+            "modulus": 287655.9214894166
+          }
+        },
+        {
+          "absolute_reference_error_mm": 5.5294310796760726e-18,
+          "analytical_mm": 0.0007893103933768441,
+          "experiment_id": "E-C-model-optimization-0007",
+          "feasible": true,
+          "measured_mm": 0.0007893103933768496,
+          "model_revision": "fa63697571574ce28dae81687885642ad1111d56b6bd019a2c25891676178581",
+          "values": {
+            "modulus": 253385.74238754902
+          }
+        },
+        {
+          "absolute_reference_error_mm": 1.1167282376600696e-17,
+          "analytical_mm": 0.0006979815847470263,
+          "experiment_id": "E-C-model-optimization-0008",
+          "feasible": true,
+          "measured_mm": 0.0006979815847470151,
+          "model_revision": "10b7affaf9b599ab75a5b62ffe56526f5fbf7ae4f110ea88287d03e7493fcee8",
+          "values": {
+            "modulus": 286540.51105443883
+          }
+        },
+        {
+          "absolute_reference_error_mm": 1.0842021724855044e-18,
+          "analytical_mm": 0.0011575221890027807,
+          "experiment_id": "E-C-model-optimization-0009",
+          "feasible": false,
+          "measured_mm": 0.0011575221890027796,
+          "model_revision": "76e1d50526c15acaa4b2e46eb9528eeb97f7946ddb68b23d79c41a67811565d0",
+          "values": {
+            "modulus": 172782.86489894628
+          }
+        }
+      ],
+      "plan_sha256": "2789c4eb8e8379a0c47a886b82e87f818d831bc218bd0d775dc203a69f50be2e",
+      "replayed_without_native_rerun": 2,
+      "result_sha256": "63e4522719f4c3976cf259b4478de7bb21e914df4e9f6e3a27a1b49831481975",
+      "retained_bytes": 155895001,
+      "retained_file_count": 766,
+      "solver_versions": {
+        "code_aster": "17.4.0",
+        "gmsh": "4.12.1",
+        "mpi4py": "3.1.5",
+        "numpy": "1.26.4",
+        "petsc": "3.24.0",
+        "petsc4py": "3.24.1",
+        "python": "3.11.14",
+        "scipy": "1.15.2",
+        "singularity": "singularity-ce version 4.1.1"
+      },
+      "status": "PASS",
+      "termination": {
+        "algorithm": {
+          "atol": 1e-12,
+          "bounds": [
+            [
+              100000.0,
+              300000.0
+            ]
+          ],
+          "constraint_convention": "dimensionless_residual_le_zero",
+          "constraint_count": 1,
+          "engine": "scipy.differential_evolution",
+          "initial_population": [
+            {
+              "modulus": 210000.0
+            },
+            {
+              "modulus": 124749.4960235404
+            },
+            {
+              "modulus": 171720.1238426799
+            },
+            {
+              "modulus": 256641.88349855394
+            },
+            {
+              "modulus": 208474.97524367843
+            }
+          ],
+          "initial_values": {
+            "modulus": 210000.0
+          },
+          "initialization": {
+            "engine": "scipy.stats.qmc.LatinHypercube",
+            "optimization": null,
+            "rng": "numpy.random.default_rng",
+            "scramble": true,
+            "seed": 13,
+            "strength": 1
+          },
+          "internal_availability_constraint": true,
+          "max_generations": 1,
+          "memoization": "exact_float_hex",
+          "mutation": [
+            0.5,
+            1.0
+          ],
+          "numpy_version": "2.3.5",
+          "parameter_order": [
+            "modulus"
+          ],
+          "polish": false,
+          "population_size": 5,
+          "recombination": 0.7,
+          "rng": "numpy.random.default_rng",
+          "seed": 13,
+          "strategy": "best1bin",
+          "tol": 1e-08,
+          "updating": "deferred",
+          "vectorized": false,
+          "version": "1.17.0",
+          "workers": 1
+        },
+        "candidate_values": {
+          "modulus": 208474.97524367843
+        },
+        "constraint_residuals": [
+          -0.04065224247552682
+        ],
+        "converged": false,
+        "evaluation_count": 9,
+        "generations": 1,
+        "objective": -0.0009593477575244732,
+        "termination_reason": "MAX_GENERATIONS"
+      }
+    },
+    "synthetic_material_inverse": {
+      "acceptance_file": {
+        "artifact_id": 11711072239,
+        "path_in_zip": "material-inverse-lab/acceptance.json",
+        "bytes": 34654,
+        "sha256": "49502aecc7a67f607eb62f0433e0555ac16c0629d86bc0bda061974eb3fa1a5c"
+      },
+      "status": "PASS",
+      "decision": "NOT_RELEASED",
+      "source_kind": "SYNTHETIC_REFERENCE",
+      "source_identity": {
+        "core_commit": "6dca0ddb94f340252299aec8a0d656ca1b44df83",
+        "core_dirty": false,
+        "core_source_sha256": "afd941fdcd3f1dc3075ef5a2fc9c96d8c52669735fa93adc1677799c99779366"
+      },
+      "baseline": {
+        "artifact_count": 83,
+        "experiment_id": "E-C-material-inverse-0001",
+        "index": 1,
+        "integration_count": 407,
+        "model_revision": "9d95a71e6228ebfdb1c890cee97f58b99715721446a3b8a6ddad7e41fbcaf289",
+        "modulus_mpa": 210000.0,
+        "native_library_sha256": "da2be94e6ce95c76bb9ca20efb118efba4bd67043a72ddaa54b86e890de9c35f",
+        "native_raw_sha256": "ff1239d0706e189050e11799731cd9d57982adfb13a384449f89531e24dac8b2",
+        "objective": 0.002013477975016451,
+        "observed_stress_xx_mpa": 282.69230769230774,
+        "oracle_objective_error": 1.691355389077387e-17,
+        "result_sha256": "af053490489c21e6cd221af58d63ea61647790fe7ed939368861e9adc06b6abe",
+        "unknown": [
+          "corporate_license_approval",
+          "corporate_security_approval",
+          "fatigue_durability",
+          "identification_qualification",
+          "material_qualification",
+          "model_qualification",
+          "physical_validation",
+          "solver_coupling",
+          "static_strength"
+        ]
+      },
+      "best_observed": {
+        "artifact_count": 83,
+        "experiment_id": "E-C-material-inverse-0005",
+        "index": 5,
+        "integration_count": 407,
+        "model_revision": "3fb97b097759bc915636b1f5555faa430dfa985f0921b2947f0f9ae37bb1d582",
+        "modulus_mpa": 208474.97524367843,
+        "native_library_sha256": "da2be94e6ce95c76bb9ca20efb118efba4bd67043a72ddaa54b86e890de9c35f",
+        "native_raw_sha256": "7ecfd6b207d313b644893c73d1bf0c71854290af14b6c2e0aae932aefa566b2d",
+        "objective": 0.0014461846908559938,
+        "observed_stress_xx_mpa": 280.63938975110557,
+        "oracle_objective_error": 1.4094628242311558e-17,
+        "result_sha256": "ad805ed5391cdfc121174401af3ee633a5893617742f83f4c5e48580bd304105",
+        "unknown": [
+          "corporate_license_approval",
+          "corporate_security_approval",
+          "fatigue_durability",
+          "identification_qualification",
+          "material_qualification",
+          "model_qualification",
+          "physical_validation",
+          "solver_coupling",
+          "static_strength"
+        ]
+      },
+      "improvement_fraction": 0.28174794619038335,
+      "completed_replay_immutable": true,
+      "oracle_used_for_feedback": false,
+      "termination": {
+        "algorithm": {
+          "atol": 1e-12,
+          "bounds": [
+            [
+              100000.0,
+              300000.0
+            ]
+          ],
+          "constraint_convention": "dimensionless_residual_le_zero",
+          "constraint_count": 0,
+          "engine": "scipy.differential_evolution",
+          "initial_population": [
+            {
+              "young_E": 210000.0
+            },
+            {
+              "young_E": 124749.4960235404
+            },
+            {
+              "young_E": 171720.1238426799
+            },
+            {
+              "young_E": 256641.88349855394
+            },
+            {
+              "young_E": 208474.97524367843
+            }
+          ],
+          "initial_values": {
+            "young_E": 210000.0
+          },
+          "initialization": {
+            "engine": "scipy.stats.qmc.LatinHypercube",
+            "optimization": null,
+            "rng": "numpy.random.default_rng",
+            "scramble": true,
+            "seed": 13,
+            "strength": 1
+          },
+          "internal_availability_constraint": true,
+          "max_generations": 1,
+          "memoization": "exact_float_hex",
+          "mutation": [
+            0.5,
+            1.0
+          ],
+          "numpy_version": "2.3.5",
+          "parameter_order": [
+            "young_E"
+          ],
+          "polish": false,
+          "population_size": 5,
+          "recombination": 0.7,
+          "rng": "numpy.random.default_rng",
+          "seed": 13,
+          "strategy": "best1bin",
+          "tol": 1e-08,
+          "updating": "deferred",
+          "vectorized": false,
+          "version": "1.17.0",
+          "workers": 1
+        },
+        "candidate_values": {
+          "young_E": 208474.97524367843
+        },
+        "constraint_residuals": [],
+        "converged": false,
+        "evaluation_count": 9,
+        "generations": 1,
+        "objective": 0.0014461846908559938,
+        "termination_reason": "MAX_GENERATIONS"
+      },
+      "limitations": [
+        "model_qualification",
+        "material_qualification",
+        "physical_validation",
+        "static_strength",
+        "fatigue_durability",
+        "solver_coupling",
+        "corporate_license_approval",
+        "corporate_security_approval",
+        "identification_qualification"
+      ],
+      "evaluation_count": 9,
+      "max_pointwise_objective_oracle_error": 1.3877787807814457e-16,
+      "oracle_error_limit": 1e-12,
+      "frozen_packet_file": {
+        "artifact_id": 11711072239,
+        "path_in_zip": "material-inverse-lab/frozen_inverse_acceptance.json",
+        "bytes": 19458,
+        "sha256": "8045142808435a958c6bde996b6234f2a987254337e0409ec2625e4aa99c9566"
+      },
+      "runtime_identity": {
+        "behavior_source_sha256": "61714d5b29544090f15e94f083969fb1cc85726ece94806996f151ff49711312",
+        "binary_inventory_basis": "Unchanged measured native08 inventory; explicit SEALED_OCI remeasures before admission",
+        "compiler_policy": "TFEL_oflags0_portable_O2_no_architecture_specific_flags",
+        "deployment_configuration": {
+          "CAELAB_CODEASTER_IMAGE": "/tmp/caelab-codeaster.sif",
+          "CAELAB_CODEASTER_IMAGE_SHA256": "956ad88234b53d4e8dfa76d7e067332059279cd7e5d7ccb6f09ebe4e46e978a4",
+          "CAELAB_MFRONT_IMAGE": null,
+          "CAELAB_MFRONT_IMAGE_SHA256": null,
+          "CAELAB_MFRONT_INVERSE_RUNTIME_PROFILE": "SEALED_OCI",
+          "CAELAB_SINGULARITY_COMMAND": null
+        },
+        "image_path": "/tmp/caelab-codeaster.sif",
+        "image_sha256": "956ad88234b53d4e8dfa76d7e067332059279cd7e5d7ccb6f09ebe4e46e978a4",
+        "kind": "sealed_mfront_oci",
+        "oci_definition": {
+          "definition": "bootstrap: docker\nfrom: simvia/code_aster@sha256:d8d19ea91989eac0d38195bc5795c54c69f530f7196f53d67697ffa57c9106d5",
+          "oci_manifest_sha256": "d8d19ea91989eac0d38195bc5795c54c69f530f7196f53d67697ffa57c9106d5",
+          "stdout_sha256": "805be25ad368e1ed15a5d294140dc9c2b1b86fdbd1c54d633dfb4b31cf72a3bc"
+        },
+        "preflight_probe": {
+          "bootstrap": "source /opt/activate.sh; export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1; exec python3 -B -I /probe/mfront_inverse_runtime_probe.py",
+          "fresh_scratch": true,
+          "limits": {
+            "address_space_bytes": 4294967296,
+            "cpu_seconds": 30,
+            "file_bytes": 65536,
+            "stderr_bytes": 32768,
+            "stdout_bytes": 32768,
+            "threads": 1,
+            "timeout_seconds": 45
+          },
+          "measurements": {
+            "bindings": {
+              "mgis_binding": {
+                "loaded_path": "/opt/spack/var/spack/environments/simvia_env/.spack-env/view/lib/python3.11/site-packages/mgis/behaviour.so",
+                "resolved_path": "/opt/spack/opt/spack/linux-zen2/mgis-3.0-dfpytmkwj5iza5npkbvk5hils7heaxad/lib/python3.11/site-packages/mgis/behaviour.so",
+                "sha256": "60f70796a3d575a678891425d096d2fd5832ed1d4f9f5dcd9a7cd79d926aa8be"
+              },
+              "mtest_binding": {
+                "loaded_path": "/opt/spack/var/spack/environments/simvia_env/.spack-env/view/lib/python3.11/site-packages/mtest/_mtest.so",
+                "resolved_path": "/opt/spack/opt/spack/linux-zen2/tfel-5.0.0-flantzxx3vcxkf4qlpwnl7midzoe33ma/lib/python3.11/site-packages/mtest/_mtest.so",
+                "sha256": "88ab5619cc5cbf8ec82ca0f97e0f71f0f6785000f3398c31f64d53028d8a0f21"
+              }
+            },
+            "executables": {
+              "compiler": {
+                "path": "/usr/bin/x86_64-linux-gnu-g++-12",
+                "sha256": "dd91977c184e327710578363ad93ebb175c3a457b6236b874fd3911b7c055c65"
+              },
+              "mfront": {
+                "path": "/opt/spack/opt/spack/linux-zen2/tfel-5.0.0-flantzxx3vcxkf4qlpwnl7midzoe33ma/bin/mfront",
+                "sha256": "a2131b191d41dcf7bf8b71ecce4e35e61d43713062ead58affd4f1e30468713f"
+              },
+              "mtest": {
+                "path": "/opt/spack/opt/spack/linux-zen2/tfel-5.0.0-flantzxx3vcxkf4qlpwnl7midzoe33ma/bin/mtest",
+                "sha256": "988522d0665c78104ac8ecc714ed158383999fd31b311e81db219328bdb042a6"
+              },
+              "tfel_config": {
+                "path": "/opt/spack/opt/spack/linux-zen2/tfel-5.0.0-flantzxx3vcxkf4qlpwnl7midzoe33ma/bin/tfel-config",
+                "sha256": "9ed8dd6fcb9b958b4e376ea7c69d2fe2162bbbae46a2b7750f7ac6bcc5e7be9b"
+              }
+            },
+            "probe_sha256": "99ebb8ab554bdd79aa106fda1365ee802182d40788bbcb474acc264a18476613",
+            "python": {
+              "executable": "/opt/spack/opt/spack/linux-zen2/python-3.11.14-crxgllx4ijrk74sukxvebk3ulzuavesl/bin/python3.11",
+              "version": "3.11.14"
+            },
+            "schema_version": "1"
+          },
+          "read_only_probe_mount": true,
+          "stdout_sha256": "6984e619c1d11667bc5e4977ff6c7fe877619875d3763e32ad3f7d402d793425"
+        },
+        "prlimit": {
+          "path": "/usr/bin/prlimit",
+          "sha256": "17064f67e650d6152a6902b013aab496b54c87587c8eea6f5023aafee6154069"
+        },
+        "profile": "SEALED_OCI",
+        "profile_contract_version": "2",
+        "sealed_installed_native_binaries": {
+          "compiler": {
+            "sha256": "dd91977c184e327710578363ad93ebb175c3a457b6236b874fd3911b7c055c65"
+          },
+          "mfront": {
+            "sha256": "a2131b191d41dcf7bf8b71ecce4e35e61d43713062ead58affd4f1e30468713f"
+          },
+          "mgis_binding": {
+            "sha256": "60f70796a3d575a678891425d096d2fd5832ed1d4f9f5dcd9a7cd79d926aa8be"
+          },
+          "mtest": {
+            "sha256": "988522d0665c78104ac8ecc714ed158383999fd31b311e81db219328bdb042a6"
+          },
+          "mtest_binding": {
+            "sha256": "88ab5619cc5cbf8ec82ca0f97e0f71f0f6785000f3398c31f64d53028d8a0f21"
+          },
+          "tfel_config": {
+            "sha256": "9ed8dd6fcb9b958b4e376ea7c69d2fe2162bbbae46a2b7750f7ac6bcc5e7be9b"
+          }
+        },
+        "singularity": {
+          "path": "/usr/bin/singularity",
+          "sha256": "994f404350a92a919264e16e1239f409ac550b3fa8118e80cdee1634fc36ff0a"
+        },
+        "source_files": {
+          "caelab/adapters/mfront_inverse.py": "dfa90b9cde8f544e72deff5c2994e5d55fbac0bde1f4a1944e048c35091bedc0",
+          "caelab/adapters/mfront_inverse_runtime_probe.py": "99ebb8ab554bdd79aa106fda1365ee802182d40788bbcb474acc264a18476613",
+          "caelab/adapters/mfront_material.py": "2d5fc92923f4b891183a1be61bd2aeddfc8bcc51cb19a7d73a904ec9399fd521",
+          "caelab/adapters/mfront_material_worker.py": "3d909f2e68a29807a6e9333817b6eed3308c51bca126a029465f347f61b71c99",
+          "plugins/material_point/inverse_reference.py": "672895563072afd482a9c38da8cd0756d19cbbef5e371faaa653c814377e29f6",
+          "plugins/material_point/reference.py": "fc06840f0d36c5a94db4c09123d53c9355bceb38027d6e4b5a5f908c07391762"
+        },
+        "upstream_binary_source_commits": "UNKNOWN"
+      },
+      "admission": "Explicit SEALED_OCI, actual alternate SIF SHA recorded; all six installed native binary hashes remeasured and equal sealed inventory",
+      "scope": "Synthetic target, one generation, no physical fit or final parameter-identification tolerance claim"
+    }
+  },
+  "other_native_validation": {
+    "native_cad": {
+      "part_sketch_edit_cases": 24,
+      "registration_cases": 8,
+      "freecad_version": [
+        "1",
+        "1",
+        "4",
+        "20260928 (Git shallow)",
+        "Unknown",
+        "2026/09/28 13:46:34",
+        "(HEAD detached at 4fd3bf320)",
+        "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+      ],
+      "registration_file": {
+        "artifact_id": 11710257409,
+        "path_in_zip": "native_registration_acceptance.json",
+        "bytes": 181790,
+        "sha256": "2f533b002c3a8876ff5c4211e012728ac62176137259e18a9a275c26b6cb64c7"
+      },
+      "scope": "Headless CI native/STEP/editable parameter and named-constraint checks; local desktop GUI acceptance remains paused"
+    },
+    "native_affine_field": {
+      "type": "affine_uniaxial_3D_elasticity",
+      "source": "sigma_x=F/A; U=[sigma_x*x/E,-nu*sigma_x*y/E,-nu*sigma_x*z/E]",
+      "material": "ASSUMED_NOT_QUALIFIED",
+      "node_count": 1710,
+      "element_count": 898,
+      "maximum_absolute_component_error_mm": 4.989428572447878e-11,
+      "maximum_normalized_component_error": 3.4926000007135145e-07,
+      "limit": 1e-05,
+      "status": "PASS",
+      "mesh_sweep": "NOT_REQUIRED",
+      "physical": "UNKNOWN",
+      "decision": "NOT_RELEASED",
+      "producer": {
+        "core_commit": "6dca0ddb94f340252299aec8a0d656ca1b44df83",
+        "core_dirty": false,
+        "core_source_sha256": "afd941fdcd3f1dc3075ef5a2fc9c96d8c52669735fa93adc1677799c99779366"
+      }
+    },
+    "structural": {
+      "acceptance_file": {
+        "artifact_id": 11710292308,
+        "path_in_zip": "finer-lab/finer_acceptance.json",
+        "bytes": 14711,
+        "sha256": "10017334512a9f83d2cabdaa740d3838221aa22fab5e833a13a4bda150b9dfb4"
+      },
+      "status": "PASS",
+      "decision": "NOT_RELEASED",
+      "mesh_change_ratio": 0.008817093498804473,
+      "limits": {
+        "displacement_last_pair": 0.05,
+        "reaction_balance": 0.01
+      },
+      "reference": "Analytical half-cylinder patch area; no exact structural solution claimed",
+      "limitations": [
+        "Fixed bottom substitutes for actual fasteners and base.",
+        "Distributed nodal load substitutes for roller contact.",
+        "Tessellated surface-area loading approximates a uniform vertical traction, not measured roller contact.",
+        "Averaged nodal peak stress is diagnostic only.",
+        "Material allowables and physical evidence remain unknown."
+      ],
+      "solver_versions": {
+        "ccx": "This is Version 2.21",
+        "gmsh": "4.12.1"
+      }
+    },
+    "doe": {
+      "acceptance_file": {
+        "artifact_id": 11710646661,
+        "path_in_zip": "doe_acceptance.json",
+        "bytes": 1631,
+        "sha256": "5920a4eac374447d49f45ebcfa8f893ce4a17ea7746e2e9750fff4c2a74745ac"
+      },
+      "status": "PASS",
+      "solver_runs": 3,
+      "numerical_rejections": [],
+      "rejected_before_solver": "E-C-pitch-002",
+      "algorithm": {
+        "engine": "scipy.latin_hypercube",
+        "numpy_version": "2.3.5",
+        "optimization": null,
+        "seed": 13,
+        "strength": 1,
+        "version": "1.17.0"
+      },
+      "decision": "NOT_RELEASED"
+    },
+    "cad_optimization": {
+      "acceptance_file": {
+        "artifact_id": 11710218570,
+        "path_in_zip": "optimization_acceptance.json",
+        "bytes": 4830,
+        "sha256": "fa288d04985eea776f3242846a5ecf32c1163f74044575532c8920351990519a"
+      },
+      "status": "PASS",
+      "decision": "NOT_RELEASED",
+      "evaluations": 9,
+      "solver_children": 8,
+      "replayed_evaluations_without_rerun": 2,
+      "termination": {
+        "algorithm": {
+          "atol": 1e-12,
+          "bounds": [
+            [
+              28.0,
+              42.0
+            ]
+          ],
+          "constraint_convention": "dimensionless_residual_le_zero",
+          "constraint_count": 1,
+          "engine": "scipy.differential_evolution",
+          "initial_population": [
+            {
+              "support_width": 28.0
+            },
+            {
+              "support_width": 29.73246472164783
+            },
+            {
+              "support_width": 33.02040866898759
+            },
+            {
+              "support_width": 38.96493184489878
+            },
+            {
+              "support_width": 35.59324826705749
+            }
+          ],
+          "initial_values": {
+            "support_width": 28.0
+          },
+          "initialization": {
+            "engine": "scipy.stats.qmc.LatinHypercube",
+            "optimization": null,
+            "rng": "numpy.random.default_rng",
+            "scramble": true,
+            "seed": 13,
+            "strength": 1
+          },
+          "internal_availability_constraint": true,
+          "max_generations": 1,
+          "memoization": "exact_float_hex",
+          "mutation": [
+            0.5,
+            1.0
+          ],
+          "numpy_version": "2.3.5",
+          "parameter_order": [
+            "support_width"
+          ],
+          "polish": false,
+          "population_size": 5,
+          "recombination": 0.7,
+          "rng": "numpy.random.default_rng",
+          "seed": 13,
+          "strategy": "best1bin",
+          "tol": 1e-08,
+          "updating": "deferred",
+          "vectorized": false,
+          "version": "1.17.0",
+          "workers": 1
+        },
+        "candidate_values": {
+          "support_width": 29.73246472164783
+        },
+        "constraint_residuals": [
+          -0.08280061538461532
+        ],
+        "converged": false,
+        "evaluation_count": 9,
+        "generations": 1,
+        "objective": 28185.593188869716,
+        "termination_reason": "MAX_GENERATIONS"
+      },
+      "best": {
+        "analysis_experiment_id": "E-C-opt-0002-solve",
+        "cad_experiment_id": "E-C-opt-0002",
+        "displacement_mm": 0.005961796,
+        "values": {
+          "support_width": 29.73246472164783
+        },
+        "volume_mm3": 28185.593188869716
+      },
+      "maximum_cad_volume_reference_error": 7.771561172376096e-16,
+      "reference": "Analytical support volume; constrained quadratic engine regression has a known optimum",
+      "limitations": [
+        "One bounded generation does not establish a global or converged fixture optimum.",
+        "The displacement bound is a research screen, not a strength allowable.",
+        "Material/contact/fasteners/physical qualification remains UNKNOWN."
+      ]
+    },
+    "pde": {
+      "acceptance_file": {
+        "artifact_id": 11710377384,
+        "path_in_zip": "pde-lab/pde_acceptance.json",
+        "bytes": 7734,
+        "sha256": "4144f3ab4926294b010b8350b8d9e90dae989df2abe44b9312ede2c8ed06d1f5"
+      },
+      "versions": {
+        "basix": "0.11.0",
+        "dolfinx": "0.11.0.post0",
+        "ffcx": "0.11.0",
+        "mpi4py": "3.1.5",
+        "numpy": "1.26.4",
+        "petsc": "3.19.6",
+        "petsc4py": "3.19.6",
+        "python": "3.12.3",
+        "ufl": "2026.1.0"
+      },
+      "linear_metrics": {
+        "h1_seminorm_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.10897542351921931
+        },
+        "l2_convergence_rate": {
+          "unit": "1",
+          "valid": true,
+          "value": 1.9934926491266785
+        },
+        "l2_error": {
+          "unit": "1",
+          "valid": true,
+          "value": 0.0013504362485536208
+        },
+        "linear_residual_relative": {
+          "unit": "1",
+          "valid": true,
+          "value": 3.8917060164593486e-14
+        }
+      },
+      "linear_limits": {
+        "max_l2_error": 0.003,
+        "max_residual_relative": 1e-10,
+        "min_l2_rate": 1.8
+      },
+      "scope": "Eight bounded native mathematical/HTTP reports pass; no physical qualification or official research admission inferred"
+    },
+    "explicit": {
+      "job": "success",
+      "original_acceptance": "PARTIAL",
+      "ideal_ground_stop": "REJECTED",
+      "freefall_sensitivity": "PASS",
+      "reduced_compliant_contact": "PASS",
+      "decision": "NOT_RELEASED",
+      "scope": "Reduced 1DOF compliant-stop benchmark does not qualify general surface contact"
+    },
+    "core_http": {
+      "acceptance_file": {
+        "artifact_id": 11711055004,
+        "path_in_zip": "http_acceptance.json",
+        "bytes": 1419,
+        "sha256": "cf2fc90be2bb4229604995adb5fae3601df69608aa3c2771ca6bcd43ec22e2d2"
+      },
+      "status": "PASS",
+      "decision": "NOT_RELEASED",
+      "limitations": [
+        "HTTP integration is separate from browser rendering and live OpenScience agent acceptance.",
+        "Local ZIP export does not establish remote durability, a signature or engineering release.",
+        "Existing library numerical results retain their own original source/run identities."
+      ]
+    }
+  },
+  "remaining_f05": {
+    "experiment": "E-ansys_vmd1_regular-Fz-aster",
+    "case": "Original ansys_vmd1_regular/Fz (not curved roof)",
+    "earlier_declared_elasticity": {
+      "status": "PASS",
+      "acceptance_file": {
+        "artifact_id": 11711072239,
+        "path_in_zip": "codeaster-lab/acceptance.json",
+        "bytes": 29217,
+        "sha256": "1e85d99c597222a0e780737deb0d536fee831ad5d7dc72ee66116f1373b39ef8"
+      }
+    },
+    "family": {
+      "status": "FAILED_OR_PARTIAL",
+      "failure": {
+        "message": "Native numerical checks failed: E-ansys_vmd1_regular-Fz-aster",
+        "type": "AssertionError"
+      },
+      "acceptance_file": {
+        "artifact_id": 11711072239,
+        "path_in_zip": "structural-family-lab/acceptance.json",
+        "bytes": 236514,
+        "sha256": "595553e6278196744b11034caf90243ed58d889a865c6cd55e91f81a0fd0833c"
+      }
+    },
+    "result": {
+      "status": "FAILED_EXECUTION",
+      "solver_status": "FAILED_EXECUTION",
+      "converged": null,
+      "metrics": {},
+      "decision": "NOT_RELEASED"
+    },
+    "result_file": {
+      "artifact_id": 11711072239,
+      "path_in_zip": "structural-family-lab/experiments/E-ansys_vmd1_regular-Fz-aster/result.json",
+      "bytes": 37122,
+      "sha256": "660e7acfc8a3c740b9d6af0244b5ab21423ab2cfae11881db27f86fc3fd325aa"
+    },
+    "finest_mesh_cells": [
+      24,
+      4,
+      4
+    ],
+    "levels": [
+      {
+        "level": 0,
+        "execution": {
+          "finished_utc": "2026-10-11T17:53:41.459419+00:00",
+          "pid": 4767,
+          "return_code": 0,
+          "started_utc": "2026-10-11T17:53:36.109594+00:00",
+          "status": "COMPLETED",
+          "stderr": "solver.stderr.log",
+          "stdout": "solver.stdout.log",
+          "timeout_seconds": null
+        },
+        "execution_file": {
+          "artifact_id": 11711072239,
+          "path_in_zip": "structural-family-lab/experiments/E-ansys_vmd1_regular-Fz-aster/simulation/level_0/solver.execution.json",
+          "bytes": 263,
+          "sha256": "9a3ef5e357f9192d81572c77eefaf51a008cfce54b4fb396d45e1ed63fdc1bcd"
+        },
+        "runtime": {
+          "code_aster_runtime": {
+            "branch": "v17.4.0",
+            "parentid": "spack-local",
+            "uncommitted": [
+              "built with Spack"
+            ],
+            "version": "17.4.0"
+          },
+          "versions": {
+            "code_aster": "17.4.0",
+            "mpi4py": "3.1.5",
+            "numpy": "1.26.4",
+            "petsc": "3.24.0",
+            "petsc4py": "3.24.1",
+            "python": "3.11.14",
+            "scipy": "1.15.2"
+          }
+        },
+        "runtime_file": {
+          "artifact_id": 11711072239,
+          "path_in_zip": "structural-family-lab/experiments/E-ansys_vmd1_regular-Fz-aster/simulation/level_0/runtime.json",
+          "bytes": 358,
+          "sha256": "35bb73672f11784818317413a900f30380a140cba7f7062d2f5c698a3b552406"
+        }
+      },
+      {
+        "level": 1,
+        "execution": {
+          "finished_utc": "2026-10-11T17:53:50.060552+00:00",
+          "pid": 4828,
+          "return_code": 0,
+          "started_utc": "2026-10-11T17:53:43.839870+00:00",
+          "status": "COMPLETED",
+          "stderr": "solver.stderr.log",
+          "stdout": "solver.stdout.log",
+          "timeout_seconds": null
+        },
+        "execution_file": {
+          "artifact_id": 11711072239,
+          "path_in_zip": "structural-family-lab/experiments/E-ansys_vmd1_regular-Fz-aster/simulation/level_1/solver.execution.json",
+          "bytes": 263,
+          "sha256": "6a5ebad217d72fbd9fb1e750b919b67a4a8d494c7ea16a002199c4fb6eb1685d"
+        },
+        "runtime": {
+          "code_aster_runtime": {
+            "branch": "v17.4.0",
+            "parentid": "spack-local",
+            "uncommitted": [
+              "built with Spack"
+            ],
+            "version": "17.4.0"
+          },
+          "versions": {
+            "code_aster": "17.4.0",
+            "mpi4py": "3.1.5",
+            "numpy": "1.26.4",
+            "petsc": "3.24.0",
+            "petsc4py": "3.24.1",
+            "python": "3.11.14",
+            "scipy": "1.15.2"
+          }
+        },
+        "runtime_file": {
+          "artifact_id": 11711072239,
+          "path_in_zip": "structural-family-lab/experiments/E-ansys_vmd1_regular-Fz-aster/simulation/level_1/runtime.json",
+          "bytes": 358,
+          "sha256": "35bb73672f11784818317413a900f30380a140cba7f7062d2f5c698a3b552406"
+        }
+      },
+      {
+        "level": 2,
+        "execution": {
+          "finished_utc": "2026-10-11T17:54:05.676128+00:00",
+          "pid": 4889,
+          "reason": "NONZERO_EXIT",
+          "return_code": 1,
+          "started_utc": "2026-10-11T17:53:52.627335+00:00",
+          "status": "FAILED_EXECUTION",
+          "stderr": "solver.stderr.log",
+          "stdout": "solver.stdout.log",
+          "timeout_seconds": null
+        },
+        "execution_file": {
+          "artifact_id": 11711072239,
+          "path_in_zip": "structural-family-lab/experiments/E-ansys_vmd1_regular-Fz-aster/simulation/level_2/solver.execution.json",
+          "bytes": 298,
+          "sha256": "e48633e185cb3c8e4263d79e64cb3ef43122c914fd346209f086341db427909e"
+        },
+        "runtime": {
+          "code_aster_runtime": {
+            "branch": "v17.4.0",
+            "parentid": "spack-local",
+            "uncommitted": [
+              "built with Spack"
+            ],
+            "version": "17.4.0"
+          },
+          "versions": {
+            "code_aster": "17.4.0",
+            "mpi4py": "3.1.5",
+            "numpy": "1.26.4",
+            "petsc": "3.24.0",
+            "petsc4py": "3.24.1",
+            "python": "3.11.14",
+            "scipy": "1.15.2"
+          }
+        },
+        "runtime_file": {
+          "artifact_id": 11711072239,
+          "path_in_zip": "structural-family-lab/experiments/E-ansys_vmd1_regular-Fz-aster/simulation/level_2/runtime.json",
+          "bytes": 358,
+          "sha256": "35bb73672f11784818317413a900f30380a140cba7f7062d2f5c698a3b552406"
+        }
+      }
+    ],
+    "native_failure_log": {
+      "artifact_id": 11711072239,
+      "path_in_zip": "structural-family-lab/experiments/E-ansys_vmd1_regular-Fz-aster/simulation/level_2/aster.mess",
+      "bytes": 406583,
+      "sha256": "77031f3b1856e192784c6230778be5978f8dc1babaef449e77b3857f49a5414e"
+    },
+    "native_exception": "FACTOR_57",
+    "native_error_estimate": 3.32295e-06,
+    "unchanged_RESI_RELA": 1e-06,
+    "ci_sif_sha256": "956ad88234b53d4e8dfa76d7e067332059279cd7e5d7ccb6f09ebe4e46e978a4",
+    "oci_manifest_sha256": "d8d19ea91989eac0d38195bc5795c54c69f530f7196f53d67697ffa57c9106d5",
+    "code_aster": "17.4.0",
+    "mumps": "5.6.2",
+    "domain_assessment_reached": false,
+    "finest_worker_result_present": false,
+    "interpretation": "Native solution-error estimate fails before finest field admission/Domain assessment; empty metrics cannot be relabeled as passing responses",
+    "failed_amd_diagnostic": "benchmarks/records/20261012-stabilization-s5-f05-diagnostic.json",
+    "next_gate": "Establish the actual constrained/scaled/permuted MUMPS system and solver-variable representation, then justify one mechanism-specific correction preserving the original equations and every numerical gate. No blind ordering/refinement/scaling sweep.",
+    "diagnostic_limits": "Small backward error and poor conditioning neither prove accurate physical displacement nor prove an unavoidable physical limit; postprocessed dual DEPL is not established as the exported algebraic solution"
+  },
+  "independent_review": {
+    "file": {
+      "path": "runs/pr7-ci-38159523618/independent-native-review.json",
+      "bytes": 25616,
+      "sha256": "b61b8996b9e4d5d63a4d5b3a69186d0ea534bdf198dc22bbaee751bfd915e39e"
+    },
+    "report": {
+      "schema_version": 1,
+      "recorded_utc": "2026-10-11T18:13:59.122967+00:00",
+      "verdict": "PASS_BOUNDED_EVIDENCE_REVIEW",
+      "scope": "Independent retained-evidence review of four newly unskipped Code_Aster-job acceptances and this exact run F05 failure. No tests, native/provider calls, product imports, source/doc edits or ZIP extraction. Only fresh ignored audit JSON files written.",
+      "run": {
+        "id": 38159523618,
+        "source_commit": "385818bab785bfbf2c1e5880371970e475c90d68",
+        "actual_merge_commit": "6dca0ddb94f340252299aec8a0d656ca1b44df83",
+        "base_commit": "a10f2023a2084512839b5e0af8ab0adc0aeb9293",
+        "status": "completed",
+        "conclusion": "failure",
+        "jobs_success": 9,
+        "jobs_failure": 1,
+        "codeaster_steps": [
+          {
+            "number": 5,
+            "name": "Install the external pinned solver runtime without replacing Lab Python",
+            "conclusion": "success"
+          },
+          {
+            "number": 6,
+            "name": "Compare independent declared elasticity with analytical fields and signed reactions",
+            "conclusion": "success"
+          },
+          {
+            "number": 7,
+            "name": "Compare complete beam, pressure cylinder and curved roof fields across two native solvers",
+            "conclusion": "failure"
+          },
+          {
+            "number": 8,
+            "name": "Annotate structural family acceptance failure",
+            "conclusion": "success"
+          },
+          {
+            "number": 9,
+            "name": "Verify complete native J2 load and unload histories on two meshes",
+            "conclusion": "success"
+          },
+          {
+            "number": 10,
+            "name": "Verify real MGIS and MTest stress histories and consistent tangents",
+            "conclusion": "success"
+          },
+          {
+            "number": 11,
+            "name": "Search declared modulus using measured native fields with interruption and replay",
+            "conclusion": "success"
+          },
+          {
+            "number": 12,
+            "name": "Verify synthetic material inverse after sealed OCI runtime admission",
+            "conclusion": "success"
+          },
+          {
+            "number": 13,
+            "name": "Preserve native inputs, guarded mesh, MED fields and analytical evidence",
+            "conclusion": "success"
+          }
+        ],
+        "checkout_log_lines": [
+          96,
+          123,
+          152
+        ]
+      },
+      "archive": {
+        "artifact_id": 11711072239,
+        "path": "runs\\pr7-ci-38159523618\\artifact-11711072239.zip",
+        "bytes": 109511741,
+        "sha256": "353e08d5f713145a8711cc72a49b196368b6c6f9ad66c4a9eccd5d91215c3b99",
+        "api_digest_matches": true,
+        "member_paths_safe": true,
+        "verification_basis": "Root download receipt establishes full archive digest; review reads actual ZIP directly and computes selected member hashes.",
+        "expires_at": "2026-11-10T18:03:17Z"
+      },
+      "local_evidence_pins": [
+        {
+          "path": "runs\\pr7-ci-38159523618\\completed.json",
+          "bytes": 40646,
+          "sha256": "f2504279af4959a0ac64b4875c527b0225a8d53690c8652b0984aa8d9a90e0f0"
+        },
+        {
+          "path": "runs\\pr7-ci-38159523618\\codeaster.log",
+          "bytes": 112390,
+          "sha256": "6a561700e9a51b407942fe58b0081ce9fefbfc7f8222fa6d05a6d77e5073f277"
+        },
+        {
+          "path": "runs\\pr7-ci-38159523618\\artifact-11711072239-receipt.json",
+          "bytes": 491615,
+          "sha256": "3ca121c19b0dcee1ab9251bd525d3189d3344aa2690d04064fe2df704ba90bd6"
+        },
+        {
+          "path": "runs\\pr7-ci-38159523618\\reuse-a-model-f05-evidence-review-01.json",
+          "bytes": 26027,
+          "sha256": "66986fe0be99737e9b8507d27629f0771c4278e015babc8bc93aebf05b53d244"
+        },
+        {
+          "path": "runs\\pr7-ci-38159523618\\j2-independent-evidence-review-01.json",
+          "bytes": 31190,
+          "sha256": "54629bf50fdc930b96c10d0d93b3b1b063402e34dcd592edbc9515a04580f0ae"
+        },
+        {
+          "path": "runs\\pr7-ci-38159523618\\material-independent-evidence-review.json",
+          "bytes": 38186,
+          "sha256": "32eb39eb418d0cd825295bfd697adc15d511c33938d7556ed47638dbf39ee8c1"
+        }
+      ],
+      "selected_zip_member_pins": [
+        {
+          "member": "codeaster-lab/acceptance.json",
+          "bytes": 29217,
+          "sha256": "1e85d99c597222a0e780737deb0d536fee831ad5d7dc72ee66116f1373b39ef8"
+        },
+        {
+          "member": "structural-family-lab/acceptance.json",
+          "bytes": 236514,
+          "sha256": "595553e6278196744b11034caf90243ed58d889a865c6cd55e91f81a0fd0833c"
+        },
+        {
+          "member": "plasticity-lab/acceptance.json",
+          "bytes": 35013,
+          "sha256": "f4b6f8473fbba5125b2e68cdd323ce8a65e021b7917a7492e427f2f5ac2f2aa0"
+        },
+        {
+          "member": "material-point-lab/acceptance.json",
+          "bytes": 58774,
+          "sha256": "e15bfec5add6a76d08478ea066d7cea92e8071173f6e27ef3cfc36ae5bf96fe4"
+        },
+        {
+          "member": "model-optimization-lab/acceptance.json",
+          "bytes": 8644,
+          "sha256": "b821fc8b74ef4516152366e07346f127a0796ba3e17428ac11532272a208c7d9"
+        },
+        {
+          "member": "material-inverse-lab/acceptance.json",
+          "bytes": 34654,
+          "sha256": "49502aecc7a67f607eb62f0433e0555ac16c0629d86bc0bda061974eb3fa1a5c"
+        },
+        {
+          "member": "model-optimization-lab/frozen_acceptance.json",
+          "bytes": 1929,
+          "sha256": "c1029fe7a42af249e1e9292faf236af20cc553478b14df02d1faa58f40026aac"
+        },
+        {
+          "member": "model-optimization-lab/optimizations/C-model-optimization/result.json",
+          "bytes": 54817,
+          "sha256": "63e4522719f4c3976cf259b4478de7bb21e914df4e9f6e3a27a1b49831481975"
+        },
+        {
+          "member": "model-optimization-lab/optimizations/C-model-optimization/checkpoints/0002.json",
+          "bytes": 481,
+          "sha256": "b17c1900967344464bfc82ffae3d200eabfce2c10da9bb79314739d562cbd1fd"
+        },
+        {
+          "member": "material-inverse-lab/frozen_inverse_acceptance.json",
+          "bytes": 19458,
+          "sha256": "8045142808435a958c6bde996b6234f2a987254337e0409ec2625e4aa99c9566"
+        },
+        {
+          "member": "structural-family-lab/experiments/E-ansys_vmd1_regular-Fz-aster/result.json",
+          "bytes": 37122,
+          "sha256": "660e7acfc8a3c740b9d6af0244b5ab21423ab2cfae11881db27f86fc3fd325aa"
+        },
+        {
+          "member": "structural-family-lab/experiments/E-ansys_vmd1_regular-Fz-aster/simulation/structural_family_codeaster_worker.py",
+          "bytes": 35014,
+          "sha256": "09fd3ddc4dbb4f90fb0be27c411d545905d29d61e1c791b514c65be0e40d48e0"
+        },
+        {
+          "member": "structural-family-lab/experiments/E-ansys_vmd1_regular-Fz-aster/simulation/level_2/aster.mess",
+          "bytes": 406583,
+          "sha256": "77031f3b1856e192784c6230778be5978f8dc1babaef449e77b3857f49a5414e"
+        },
+        {
+          "member": "structural-family-lab/experiments/E-ansys_vmd1_regular-Fz-aster/simulation/level_2/input.json",
+          "bytes": 883,
+          "sha256": "fb5d4ff7ac7694b76f7cf4941be356d79cfc881c11d122be711aea0777c686de"
+        },
+        {
+          "member": "structural-family-lab/experiments/E-ansys_vmd1_regular-Fz-aster/simulation/level_2/solver.execution.json",
+          "bytes": 298,
+          "sha256": "e48633e185cb3c8e4263d79e64cb3ef43122c914fd346209f086341db427909e"
+        },
+        {
+          "member": "structural-family-lab/experiments/E-ansys_vmd1_regular-Fz-aster/simulation/level_2/runtime.json",
+          "bytes": 358,
+          "sha256": "35bb73672f11784818317413a900f30380a140cba7f7062d2f5c698a3b552406"
+        }
+      ],
+      "source_runtime": {
+        "core_commit": "6dca0ddb94f340252299aec8a0d656ca1b44df83",
+        "core_dirty": false,
+        "core_source_sha256": "afd941fdcd3f1dc3075ef5a2fc9c96d8c52669735fa93adc1677799c99779366",
+        "source_identity_basis": "Actual merge checkout is explicit in codeaster.log123/152 and native/frozen receipts. Inspected verifier/source hashes match frozen records after CRLF-to-LF normalization; no local merge-tree object comparison.",
+        "current_sif_sha256": "956ad88234b53d4e8dfa76d7e067332059279cd7e5d7ccb6f09ebe4e46e978a4",
+        "oci_manifest_sha256": "d8d19ea91989eac0d38195bc5795c54c69f530f7196f53d67697ffa57c9106d5",
+        "code_aster": "17.4.0",
+        "mumps": "5.6.2",
+        "mumps_native_log_line": 30,
+        "native_python": "3.11.14",
+        "native_numpy": "1.26.4",
+        "native_scipy": "1.15.2",
+        "singularity": "4.1.1",
+        "host_python": "3.12.15",
+        "host_optimizer_scipy": "1.17.0",
+        "host_optimizer_numpy": "2.3.5",
+        "sif_distinction": "Current956ad882 SIF is distinct from earlier61e93d CI SIF and f4d9a7 local diagnostic SIF.",
+        "sealed_oci_admission_checks": {
+          "profile": true,
+          "sif": true,
+          "clean_source": true,
+          "returncodes": true,
+          "probe_stdout_hash": true,
+          "definition_stdout_hash": true,
+          "measured_inventory": true,
+          "campaign_hash": true,
+          "plan_hash": true
+        },
+        "material_source_LF_hash_checks": {
+          "caelab/adapters/mfront_inverse.py": {
+            "recorded_sha256": "dfa90b9cde8f544e72deff5c2994e5d55fbac0bde1f4a1944e048c35091bedc0",
+            "local_lf_sha256": "dfa90b9cde8f544e72deff5c2994e5d55fbac0bde1f4a1944e048c35091bedc0",
+            "match": true
+          },
+          "caelab/adapters/mfront_inverse_runtime_probe.py": {
+            "recorded_sha256": "99ebb8ab554bdd79aa106fda1365ee802182d40788bbcb474acc264a18476613",
+            "local_lf_sha256": "99ebb8ab554bdd79aa106fda1365ee802182d40788bbcb474acc264a18476613",
+            "match": true
+          },
+          "caelab/adapters/mfront_material.py": {
+            "recorded_sha256": "2d5fc92923f4b891183a1be61bd2aeddfc8bcc51cb19a7d73a904ec9399fd521",
+            "local_lf_sha256": "2d5fc92923f4b891183a1be61bd2aeddfc8bcc51cb19a7d73a904ec9399fd521",
+            "match": true
+          },
+          "caelab/adapters/mfront_material_worker.py": {
+            "recorded_sha256": "3d909f2e68a29807a6e9333817b6eed3308c51bca126a029465f347f61b71c99",
+            "local_lf_sha256": "3d909f2e68a29807a6e9333817b6eed3308c51bca126a029465f347f61b71c99",
+            "match": true
+          },
+          "plugins/material_point/inverse_reference.py": {
+            "recorded_sha256": "672895563072afd482a9c38da8cd0756d19cbbef5e371faaa653c814377e29f6",
+            "local_lf_sha256": "672895563072afd482a9c38da8cd0756d19cbbef5e371faaa653c814377e29f6",
+            "match": true
+          },
+          "plugins/material_point/reference.py": {
+            "recorded_sha256": "fc06840f0d36c5a94db4c09123d53c9355bceb38027d6e4b5a5f908c07391762",
+            "local_lf_sha256": "fc06840f0d36c5a94db4c09123d53c9355bceb38027d6e4b5a5f908c07391762",
+            "match": true
+          },
+          "scripts/verify_material_inverse.py": {
+            "recorded_sha256": "47fbff3b84dc1e5cd07b76ff2109590eb264f85921195c3fe4ec6881880f97ef",
+            "local_lf_sha256": "47fbff3b84dc1e5cd07b76ff2109590eb264f85921195c3fe4ec6881880f97ef",
+            "match": true
+          },
+          "scripts/verify_material_point.py": {
+            "recorded_sha256": "846aacd1a967b1d85dca6cfc2010d6e6f1113b594d6ddc689a5f4ecf45b5b3ca",
+            "local_lf_sha256": "846aacd1a967b1d85dca6cfc2010d6e6f1113b594d6ddc689a5f4ecf45b5b3ca",
+            "match": true
+          }
+        }
+      },
+      "j2": {
+        "verdict": "PASS_BOUNDED_CI_EVIDENCE",
+        "cases": {
+          "E-j2-canonical": {
+            "status": "COMPLETED_REVIEW_REQUIRED",
+            "solver_status": "COMPLETED",
+            "converged": true,
+            "decision": "NOT_RELEASED",
+            "validation_counts": {
+              "PASS": 19,
+              "FAIL": 0,
+              "UNKNOWN": 5
+            },
+            "material": {
+              "plastic_modulus_mpa": 1000.0,
+              "poisson_ratio": 0.3,
+              "yield_stress_mpa": 250.0,
+              "youngs_modulus_mpa": 210000.0
+            },
+            "peak_stress_mpa": 254.7867298578204,
+            "final_stress_mpa": -60.21327014217991,
+            "retained_plastic_strain": 0.004786729857819904,
+            "mesh_agreement_relative": 3.968308767396647e-14
+          },
+          "E-j2-changed": {
+            "status": "COMPLETED_REVIEW_REQUIRED",
+            "solver_status": "COMPLETED",
+            "converged": true,
+            "decision": "NOT_RELEASED",
+            "validation_counts": {
+              "PASS": 19,
+              "FAIL": 0,
+              "UNKNOWN": 5
+            },
+            "material": {
+              "plastic_modulus_mpa": 1500.0,
+              "poisson_ratio": 0.3,
+              "yield_stress_mpa": 225.0,
+              "youngs_modulus_mpa": 210000.0
+            },
+            "peak_stress_mpa": 232.34042553191458,
+            "final_stress_mpa": -82.65957446808525,
+            "retained_plastic_strain": 0.004893617021276596,
+            "mesh_agreement_relative": 3.101760997806356e-14
+          }
+        },
+        "native_mesh_runs": 4,
+        "instants_per_mesh": 10,
+        "increments_per_mesh": 9,
+        "mesh_node_element_gauss_counts": [
+          [
+            506,
+            221,
+            1105
+          ],
+          [
+            2063,
+            1032,
+            5160
+          ]
+        ],
+        "verified_artifact_hashes": 372,
+        "raw_parsed_components_equal": true,
+        "maximum_independent_errors": {
+          "displacement_mm": 3.3084646133829665e-14,
+          "stress_mpa": 4.75353090223507e-11,
+          "plastic_strain": 7.310124727766265e-15,
+          "support_reaction_n": 3.803384551460775e-11
+        },
+        "limits": {
+          "displacement_absolute_mm": 1e-10,
+          "displacement_relative": 1e-07,
+          "mesh_agreement_relative": 1e-07,
+          "plastic_dissipation_absolute_mpa": 1e-08,
+          "plastic_dissipation_relative": 1e-06,
+          "plastic_strain_absolute": 1e-09,
+          "reaction_absolute_n": 1e-08,
+          "reaction_relative": 1e-07,
+          "stress_absolute_mpa": 1e-08,
+          "stress_relative": 1e-07
+        },
+        "changed_input_only": {
+          "material_changes": {
+            "plastic_modulus_mpa": [
+              1000.0,
+              1500.0
+            ],
+            "yield_stress_mpa": [
+              250.0,
+              225.0
+            ]
+          },
+          "all_other_settings_equal": true,
+          "model_revisions_differ": true,
+          "peak_stress_difference_mpa": 22.446304325905828
+        },
+        "limitations": "Homogeneous J2 tension and elastic unloading; no reverse plastic yield, native energy balance, convergence-order or physical qualification claim."
+      },
+      "material_point": {
+        "verdict": "PASS_BOUNDED_CI_EVIDENCE",
+        "comparison": {
+          "invalid_input_rejected_without_simulation": true,
+          "changed_modulus_half_stress_error_mpa": 0.0,
+          "canonical_scalar_metrics": {
+            "analytical_tangent_relative_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 0.0
+            },
+            "cross_driver_stress_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 8.526512829121202e-14
+            },
+            "fd_tangent_relative_error_1e-07": {
+              "unit": "1",
+              "valid": true,
+              "value": 9.256443578977975e-13
+            },
+            "fd_tangent_relative_error_1e-08": {
+              "unit": "1",
+              "valid": true,
+              "value": 1.540887454638676e-11
+            },
+            "fd_tangent_relative_error_1e-09": {
+              "unit": "1",
+              "valid": true,
+              "value": 1.5048129598096927e-10
+            },
+            "max_energy_density_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 2.7755575615628914e-17
+            },
+            "max_kelvin_stress_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 7.105427357601002e-14
+            },
+            "max_physical_stress_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 7.105427357601002e-14
+            }
+          },
+          "changed_scalar_metrics": {
+            "analytical_tangent_relative_error": {
+              "unit": "1",
+              "valid": true,
+              "value": 0.0
+            },
+            "cross_driver_stress_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 4.263256414560601e-14
+            },
+            "fd_tangent_relative_error_1e-07": {
+              "unit": "1",
+              "valid": true,
+              "value": 9.256443578977975e-13
+            },
+            "fd_tangent_relative_error_1e-08": {
+              "unit": "1",
+              "valid": true,
+              "value": 1.540887454638676e-11
+            },
+            "fd_tangent_relative_error_1e-09": {
+              "unit": "1",
+              "valid": true,
+              "value": 1.5048129598096927e-10
+            },
+            "max_energy_density_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 1.3877787807814457e-17
+            },
+            "max_kelvin_stress_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 3.552713678800501e-14
+            },
+            "max_physical_stress_error": {
+              "unit": "MPa",
+              "valid": true,
+              "value": 3.552713678800501e-14
+            }
+          },
+          "limits": {
+            "finite_difference_steps": [
+              1e-07,
+              1e-08,
+              1e-09
+            ],
+            "stress_absolute_mpa": 1e-10,
+            "stress_relative": 1e-08,
+            "tangent_relative": 1e-08
+          },
+          "canonical_settings_material": {
+            "poisson_ratio": 0.3,
+            "youngs_modulus_mpa": 210000.0
+          },
+          "history_times_seconds": [
+            0.0,
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            5.0,
+            6.0,
+            7.0,
+            8.0,
+            9.0,
+            10.0,
+            11.0
+          ],
+          "comparison_scope": "Isotropic infinitesimal strain, MGIS/MTest same generated behavior. Independent Hooke-law/FD comparisons. Elastic energy postprocessed from observed stress, not native stored-energy output."
+        },
+        "counts_per_case": {
+          "nominal_mgis_integrations": 11,
+          "fd_probes": 396,
+          "total_mgis_integrations": 407,
+          "mtest_states": 12
+        },
+        "maximum_fd_relative_error_all11material_and_inverse_cases": 1.8320081507341172e-10,
+        "limits_of_claim": "MGIS/MTest use same compiled behavior; analytical Hooke-law and FD comparisons provide independent references. Elastic energy is derived from observed fields, not native stored-energy output."
+      },
+      "model_optimization": {
+        "verdict": "PASS",
+        "unique_evaluations": 9,
+        "native_mesh_solves": 18,
+        "interrupted_then_replayed_evaluations": 2,
+        "replay_evidence": "Exact committed verifier snapshots first two experiment files across resume, and all store files across completed adapterless/optimizerless reuse; hosted PASS records those guards. Retained checkpoint0002, journal/result hash links and exactly18 native records corroborate this bounded claim. No native rerun here.",
+        "checks": {
+          "acceptance_pass": true,
+          "acceptance_not_released": true,
+          "result_hash_bound": true,
+          "plan_hash_bound": true,
+          "source_is_exact_clean_merge": true,
+          "verifier_source_hash_matches_checkout_LF": true,
+          "termination_one_generation_unconverged": true,
+          "journal_hashes_match": true,
+          "checkpoint_hashes_match": true,
+          "first_two_checkpoint_retained": true,
+          "completed_reuse_guard_reported_pass": true,
+          "nine_unique_experiments_and_eighteen_mesh_execution_records": true
+        },
+        "all_evaluation_checks_pass": true,
+        "all_raw_native_and_comparison_checks_pass": true,
+        "maximum_recomputed_errors": {
+          "max_displacement_error_mm": 3.8272336688738307e-17,
+          "max_stress_relative_error": 1.2061462939527702e-13,
+          "reaction_relative_error": 3.925748615074554e-14
+        },
+        "limits": {
+          "displacement_absolute_mm": 1e-12,
+          "displacement_relative": 1e-08,
+          "mesh_agreement_relative": 1e-08,
+          "reaction_relative": 1e-08,
+          "stress_relative": 1e-08
+        },
+        "best": {
+          "distance_to_reference_bound_mm": 4.0652242475526816e-05,
+          "measured_mm": 0.0009593477575244732,
+          "values": {
+            "modulus": 208474.97524367843
+          }
+        },
+        "termination": {
+          "reason": "MAX_GENERATIONS",
+          "generations": 1,
+          "converged": false
+        },
+        "limitations": [
+          "One bounded generation does not prove convergence or a global optimum.",
+          "Declared modulus is a research variable, not a qualified material choice.",
+          "No assembled matrix residual is measured; physical/strength validation remains UNKNOWN."
+        ]
+      },
+      "material_inverse": {
+        "verdict": "PASS_BOUNDED_CI_EVIDENCE",
+        "runtime_profile": "SEALED_OCI",
+        "unique_candidates": 9,
+        "native_integrations": 3663,
+        "baseline_objective": 0.002013477975016451,
+        "best_objective": 0.0014461846908559938,
+        "improvement_fraction": 0.28174794619038335,
+        "best_modulus_mpa": 208474.97524367843,
+        "measurement_definition": "Actual MGIS physical sigma_xx at t=1s; ((sigma_xx-269.2307692307692MPa)/300MPa)^2; synthetic E=200000MPa reference; nu/temperature/history fixed.",
+        "objectives_recomputed": true,
+        "oracle_used_for_feedback": false,
+        "termination": {
+          "reason": "MAX_GENERATIONS",
+          "generations": 1,
+          "converged": false
+        },
+        "completed_replay_immutable_reported": true,
+        "completed_replay_evidence": "Acceptance verifier checks equality and before/after whole-store hashes (source reviewed); archive alone cannot independently observe absence of process execution.",
+        "limits_of_claim": "Synthetic E-only, fixed nu/history/temperature, serial one-generation prerequisite. No experimental identification or convergence."
+      },
+      "f05": {
+        "status": "FAILED_EXECUTION",
+        "solver_status": "FAILED_EXECUTION",
+        "converged": null,
+        "metrics": {},
+        "decision": "NOT_RELEASED",
+        "fresh_native_log_evidence": [
+          {
+            "line_1based": 6844,
+            "text": "\u2551 <EXCEPTION> <FACTOR_57>                                                                        \u2551"
+          },
+          {
+            "line_1based": 6848,
+            "text": "\u2551   Erreur calcul\u00e9e   : 3.32295e-06                                                              \u2551"
+          },
+          {
+            "line_1based": 6849,
+            "text": "\u2551   Erreur acceptable : 1e-06   (RESI_RELA)                                                      \u2551"
+          },
+          {
+            "line_1based": 6891,
+            "text": "\u2551 <EXCEPTION> <FACTOR_57>                                                                        \u2551"
+          },
+          {
+            "line_1based": 6895,
+            "text": "\u2551   Erreur calcul\u00e9e   : 3.32295e-06                                                              \u2551"
+          },
+          {
+            "line_1based": 6896,
+            "text": "\u2551   Erreur acceptable : 1e-06   (RESI_RELA)                                                      \u2551"
+          }
+        ],
+        "fine_worker_result_present": false,
+        "levels": [
+          {
+            "finished_utc": "2026-10-11T17:53:41.459419+00:00",
+            "pid": 4767,
+            "return_code": 0,
+            "started_utc": "2026-10-11T17:53:36.109594+00:00",
+            "status": "COMPLETED",
+            "stderr": "solver.stderr.log",
+            "stdout": "solver.stdout.log",
+            "timeout_seconds": null
+          },
+          {
+            "finished_utc": "2026-10-11T17:53:50.060552+00:00",
+            "pid": 4828,
+            "return_code": 0,
+            "started_utc": "2026-10-11T17:53:43.839870+00:00",
+            "status": "COMPLETED",
+            "stderr": "solver.stderr.log",
+            "stdout": "solver.stdout.log",
+            "timeout_seconds": null
+          },
+          {
+            "finished_utc": "2026-10-11T17:54:05.676128+00:00",
+            "pid": 4889,
+            "reason": "NONZERO_EXIT",
+            "return_code": 1,
+            "started_utc": "2026-10-11T17:53:52.627335+00:00",
+            "status": "FAILED_EXECUTION",
+            "stderr": "solver.stderr.log",
+            "stdout": "solver.stdout.log",
+            "timeout_seconds": null
+          }
+        ]
+      },
+      "qualification": {
+        "decision": "NOT_RELEASED",
+        "engineering": "UNKNOWN",
+        "overall_ci_failure_preserved": true,
+        "f05_repaired": false,
+        "four_stage_pass_is_bounded_not_physical_release": true,
+        "unknown_gates_retained": [
+          "CI evidence does not establish readiness of user local Windows/WSL installation.",
+          "Completed replay no-rerun claim is supported by verifier source + PASS + one retained record per candidate, not independent process observation.",
+          "MGIS/MTest use same generated behavior binary; their agreement is cross-driver consistency, not independent constitutive validation.",
+          "One E-only synthetic-target generation; no measured-material fit, convergence, global optimum, parallel candidate evaluation or general material-law qualification.",
+          "corporate_license_approval",
+          "corporate_security_approval",
+          "fatigue_durability",
+          "identification_qualification",
+          "material_qualification",
+          "model_qualification",
+          "physical_validation",
+          "solver_coupling",
+          "static_strength"
+        ],
+        "local_installation_readiness": "NOT_ESTABLISHED_BY_HOSTED_CI",
+        "matrix_residual": "No independently verified assembled algebraic residual claimed for F05 or linear model cases.",
+        "replay_limitation": "Hosted completed snapshot guards plus hash-bound records support replay claims; static archive alone is not an independent process trace.",
+        "retention": "Ignored local ZIP plus dated GitHub artifact; persistent remote backup beyond artifact retention not established."
+      },
+      "discrepancies": [],
+      "superseded_preliminary": "material-readonly-independent-review.json raw Windows byte mismatches are resolved in canonical material-independent-evidence-review.json by all8 LF source comparisons. Do not use preliminary file as final verdict."
+    },
+    "preceding_f05_review_file": {
+      "path": "runs/pr7-ci-38159523618/f05-followup-review.json",
+      "bytes": 1828,
+      "sha256": "474f96c46a6fc05ac116d83112aa225be7f75f0efd1ed6c97357c42439327729"
+    }
+  },
+  "artifacts": [
+    {
+      "id": 11711072239,
+      "name": "codeaster-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "size_in_bytes": 109511741,
+      "digest": "sha256:353e08d5f713145a8711cc72a49b196368b6c6f9ad66c4a9eccd5d91215c3b99",
+      "created_at": "2026-10-11T18:03:32Z",
+      "expires_at": "2026-11-10T18:03:17Z",
+      "expired": false,
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/artifacts/11711072239",
+      "local_zip": {
+        "path": "runs/pr7-ci-38159523618/artifact-11711072239.zip",
+        "bytes": 109511741,
+        "sha256": "353e08d5f713145a8711cc72a49b196368b6c6f9ad66c4a9eccd5d91215c3b99"
+      },
+      "receipt": {
+        "path": "runs/pr7-ci-38159523618/artifact-11711072239-receipt.json",
+        "bytes": 491615,
+        "sha256": "3ca121c19b0dcee1ab9251bd525d3189d3344aa2690d04064fe2df704ba90bd6"
+      },
+      "member_count": 2857,
+      "api_digest_matches": true,
+      "member_paths_safe": true
+    },
+    {
+      "id": 11711056141,
+      "name": "native-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "size_in_bytes": 1972244,
+      "digest": "sha256:507205539450f735ccee32a38c97898d0caa9787c9fa1189599e9f2c060c48a5",
+      "created_at": "2026-10-11T17:58:58Z",
+      "expires_at": "2026-11-10T17:58:57Z",
+      "expired": false,
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/artifacts/11711056141",
+      "local_zip": {
+        "path": "runs/pr7-ci-38159523618/artifact-11711056141.zip",
+        "bytes": 1972244,
+        "sha256": "507205539450f735ccee32a38c97898d0caa9787c9fa1189599e9f2c060c48a5"
+      },
+      "receipt": {
+        "path": "runs/pr7-ci-38159523618/artifact-11711056141-receipt.json",
+        "bytes": 109664,
+        "sha256": "45ee9a40dadad4a532340708cdc4f13807fe17dadad1e2e17d2eece1bca1c388"
+      },
+      "member_count": 666,
+      "api_digest_matches": true,
+      "member_paths_safe": true
+    },
+    {
+      "id": 11711055004,
+      "name": "http-core-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "size_in_bytes": 389508,
+      "digest": "sha256:37e78881fe6f39e76fe0cc43319c1f78143143326e7c9a3f25e223986acde30e",
+      "created_at": "2026-10-11T17:45:15Z",
+      "expires_at": "2026-11-10T17:45:14Z",
+      "expired": false,
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/artifacts/11711055004",
+      "local_zip": {
+        "path": "runs/pr7-ci-38159523618/artifact-11711055004.zip",
+        "bytes": 389508,
+        "sha256": "37e78881fe6f39e76fe0cc43319c1f78143143326e7c9a3f25e223986acde30e"
+      },
+      "receipt": {
+        "path": "runs/pr7-ci-38159523618/artifact-11711055004-receipt.json",
+        "bytes": 10952,
+        "sha256": "b4de3a685eaad4835deb58b0e3f8e2e4424a0a16ed377ce93d3651b3d5f95d52"
+      },
+      "member_count": 72,
+      "api_digest_matches": true,
+      "member_paths_safe": true
+    },
+    {
+      "id": 11710646661,
+      "name": "doe-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "size_in_bytes": 44180573,
+      "digest": "sha256:64dfc6fc5edcea5576575bdecf45ebe94bd3426d89b5a099cea372c459ccf562",
+      "created_at": "2026-10-11T17:48:13Z",
+      "expires_at": "2026-11-10T17:48:06Z",
+      "expired": false,
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/artifacts/11710646661",
+      "local_zip": {
+        "path": "runs/pr7-ci-38159523618/artifact-11710646661.zip",
+        "bytes": 44180573,
+        "sha256": "64dfc6fc5edcea5576575bdecf45ebe94bd3426d89b5a099cea372c459ccf562"
+      },
+      "receipt": {
+        "path": "runs/pr7-ci-38159523618/artifact-11710646661-receipt.json",
+        "bytes": 32607,
+        "sha256": "3d8033725560f6eac96f45019db90adba9e3d31336ae7adaee60b557243350c1"
+      },
+      "member_count": 231,
+      "api_digest_matches": true,
+      "member_paths_safe": true
+    },
+    {
+      "id": 11710377384,
+      "name": "pde-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "size_in_bytes": 28071475,
+      "digest": "sha256:8a94bb1003c4266c5c45772d22c0572ade9dbb32c378e07150323c8ed1c67563",
+      "created_at": "2026-10-11T17:50:44Z",
+      "expires_at": "2026-11-10T17:50:40Z",
+      "expired": false,
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/artifacts/11710377384",
+      "local_zip": {
+        "path": "runs/pr7-ci-38159523618/artifact-11710377384.zip",
+        "bytes": 28071475,
+        "sha256": "8a94bb1003c4266c5c45772d22c0572ade9dbb32c378e07150323c8ed1c67563"
+      },
+      "receipt": {
+        "path": "runs/pr7-ci-38159523618/artifact-11710377384-receipt.json",
+        "bytes": 1228861,
+        "sha256": "cb67505aaa6f411064392a8706d135b2aea7d39f0179fb3608b9834012449e6d"
+      },
+      "member_count": 7378,
+      "api_digest_matches": true,
+      "member_paths_safe": true
+    },
+    {
+      "id": 11710292308,
+      "name": "structural-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "size_in_bytes": 63188264,
+      "digest": "sha256:ccf2aa609f98969016af091773491254fdbdf38991a90480150e615fdc906d2f",
+      "created_at": "2026-10-11T17:49:10Z",
+      "expires_at": "2026-11-10T17:49:02Z",
+      "expired": false,
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/artifacts/11710292308",
+      "local_zip": {
+        "path": "runs/pr7-ci-38159523618/artifact-11710292308.zip",
+        "bytes": 63188264,
+        "sha256": "ccf2aa609f98969016af091773491254fdbdf38991a90480150e615fdc906d2f"
+      },
+      "receipt": {
+        "path": "runs/pr7-ci-38159523618/artifact-11710292308-receipt.json",
+        "bytes": 31622,
+        "sha256": "1b662e45dcdb5025b5ed54254c0d792a3e2193496719f880b96e778553838c41"
+      },
+      "member_count": 208,
+      "api_digest_matches": true,
+      "member_paths_safe": true
+    },
+    {
+      "id": 11710257409,
+      "name": "native-registration-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "size_in_bytes": 528175,
+      "digest": "sha256:923c001a64532a9205f2017e51587bd2f0754c39720b1e195fd720d066011c69",
+      "created_at": "2026-10-11T17:50:01Z",
+      "expires_at": "2026-11-10T17:50:00Z",
+      "expired": false,
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/artifacts/11710257409",
+      "local_zip": {
+        "path": "runs/pr7-ci-38159523618/artifact-11710257409.zip",
+        "bytes": 528175,
+        "sha256": "923c001a64532a9205f2017e51587bd2f0754c39720b1e195fd720d066011c69"
+      },
+      "receipt": {
+        "path": "runs/pr7-ci-38159523618/artifact-11710257409-receipt.json",
+        "bytes": 80845,
+        "sha256": "0d0cb7730e7090b50dcf3daa7ab97d62bc6f106212497abb17c0446c91695e91"
+      },
+      "member_count": 506,
+      "api_digest_matches": true,
+      "member_paths_safe": true
+    },
+    {
+      "id": 11710242008,
+      "name": "explicit-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "size_in_bytes": 9340155,
+      "digest": "sha256:19426689460b522a738e6768ab9cf00cd7948916c163be7347aa8ddd1d744be5",
+      "created_at": "2026-10-11T17:46:39Z",
+      "expires_at": "2026-11-10T17:46:36Z",
+      "expired": false,
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/artifacts/11710242008",
+      "local_zip": {
+        "path": "runs/pr7-ci-38159523618/artifact-11710242008.zip",
+        "bytes": 9340155,
+        "sha256": "19426689460b522a738e6768ab9cf00cd7948916c163be7347aa8ddd1d744be5"
+      },
+      "receipt": {
+        "path": "runs/pr7-ci-38159523618/artifact-11710242008-receipt.json",
+        "bytes": 101917,
+        "sha256": "e11a6797491656362b5596388c4224ea80f0f2a16a4260a20521fd3ec236e0b9"
+      },
+      "member_count": 675,
+      "api_digest_matches": true,
+      "member_paths_safe": true
+    },
+    {
+      "id": 11710218570,
+      "name": "optimization-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "size_in_bytes": 307212829,
+      "digest": "sha256:297ee2eae6043fc7123106759fb3bd36f75adfc3938a01d7a10c2026d4563dc4",
+      "created_at": "2026-10-11T17:58:59Z",
+      "expires_at": "2026-11-10T17:58:22Z",
+      "expired": false,
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618/artifacts/11710218570",
+      "local_zip": {
+        "path": "runs/pr7-ci-38159523618/artifact-11710218570.zip",
+        "bytes": 307212829,
+        "sha256": "297ee2eae6043fc7123106759fb3bd36f75adfc3938a01d7a10c2026d4563dc4"
+      },
+      "receipt": {
+        "path": "runs/pr7-ci-38159523618/artifact-11710218570-receipt.json",
+        "bytes": 85975,
+        "sha256": "05d7cd7bc87ba2b3755758c200399162a444b8577b27e184faaaf46e3c068065"
+      },
+      "member_count": 622,
+      "api_digest_matches": true,
+      "member_paths_safe": true
+    }
+  ],
+  "acceptance_report_pins": [
+    {
+      "artifact_id": 11710218570,
+      "artifact_name": "optimization-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "acceptance_reports": [
+        {
+          "path_in_zip": "optimization_acceptance.json",
+          "bytes": 4830,
+          "sha256": "fa288d04985eea776f3242846a5ecf32c1163f74044575532c8920351990519a",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "artifact_id": 11710242008,
+      "artifact_name": "explicit-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "acceptance_reports": [
+        {
+          "path_in_zip": "explicit-lab/acceptance.json",
+          "bytes": 62331,
+          "sha256": "8e255a31a05dc61c3fdf5f9c93c44d729f1b2ca6fbfee24ae6822e3b28cc602f",
+          "status": "PARTIAL",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "explicit-lab/acceptance_plan.json",
+          "bytes": 1476,
+          "sha256": "aedb97d1b2fbbb5f6444d0f6a76d30f3bf56d732611f12b04a349954f2c191ec",
+          "status": null,
+          "decision": null,
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "compliant-drop-lab/acceptance.json",
+          "bytes": 53285,
+          "sha256": "210495df991dc461139e27229fd17f912e1681756f832902634c80d14f26b7e4",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "compliant-drop-lab/acceptance_plan.json",
+          "bytes": 7384,
+          "sha256": "3131082c737cc77b552c6432732ea28f6783329b93980eef4e4b93264f0a1b3a",
+          "status": null,
+          "decision": null,
+          "error": null,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "artifact_id": 11710257409,
+      "artifact_name": "native-registration-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "acceptance_reports": [
+        {
+          "path_in_zip": "native_registration_acceptance.json",
+          "bytes": 181790,
+          "sha256": "2f533b002c3a8876ff5c4211e012728ac62176137259e18a9a275c26b6cb64c7",
+          "status": null,
+          "decision": null,
+          "error": null,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "artifact_id": 11710292308,
+      "artifact_name": "structural-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "acceptance_reports": [
+        {
+          "path_in_zip": "linear-lab/linear_acceptance.json",
+          "bytes": 497,
+          "sha256": "c5a8c82ad036f6b4b9a3e8dc00790d0178538ed566f99f5aa46884836f5b42ac",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "finer-lab/finer_acceptance.json",
+          "bytes": 14711,
+          "sha256": "10017334512a9f83d2cabdaa740d3838221aa22fab5e833a13a4bda150b9dfb4",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "artifact_id": 11710377384,
+      "artifact_name": "pde-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "acceptance_reports": [
+        {
+          "path_in_zip": "pde-lab/pde_acceptance.json",
+          "bytes": 7734,
+          "sha256": "4144f3ab4926294b010b8350b8d9e90dae989df2abe44b9312ede2c8ed06d1f5",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "nonlinear-pde-lab/nonlinear_pde_acceptance.json",
+          "bytes": 45592,
+          "sha256": "c3957d82c6b68e555b6aa2a9cd97c912d23f4a129fb5321b7cbe40984aafc828",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "rectangle-pde-lab/rectangle_pde_acceptance.json",
+          "bytes": 54505,
+          "sha256": "9fdd30b80bd4d89b5c7096f3d522d3dd9ac9911a683a4a7591da8adca25c22e0",
+          "status": "PASS_BOUNDED_MATHEMATICAL",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "transient-pde-lab/transient_pde_acceptance.json",
+          "bytes": 2623459,
+          "sha256": "ae43554274268df04a3858fb6aa3bc5baf4b6a44f1b2b7b210afbde235f706e5",
+          "status": "PASS_BOUNDED_MATHEMATICAL",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "vector-pde-lab/acceptance.json",
+          "bytes": 97842,
+          "sha256": "8ea25d8deeae78c765a473a6aed9f1022cdbf5e2f6f63ab0bd8d440874e4d3eb",
+          "status": "PASS_BOUNDED_MATHEMATICAL",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "vector-pde-lab/acceptance_plan.json",
+          "bytes": 29982,
+          "sha256": "bdebedb91952fe882d59b6e8398b355001949efdcb9264c43d31723c3626c599",
+          "status": null,
+          "decision": null,
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "vector-pde-lab/acceptance_progress.json",
+          "bytes": 45854,
+          "sha256": "0ec82fe9103eae3a9084eaf40d09d7c146e9509f3ec9b40086d04b68c18e2800",
+          "status": "COMPLETED",
+          "decision": null,
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "coupled-pde-lab/acceptance.json",
+          "bytes": 89979,
+          "sha256": "f2e42278c662416205027c0148d2576f2320ecd1256c2509192f9d8ddf33f0d7",
+          "status": "PASS_BOUNDED_MATHEMATICAL",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "coupled-pde-lab/acceptance_plan.json",
+          "bytes": 62242,
+          "sha256": "55b22d49e872ee28e1208e3bcbb0ca6380a79c823cde873bde46f30c0d3941bb",
+          "status": null,
+          "decision": null,
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "coupled-pde-lab/acceptance_progress.json",
+          "bytes": 34484,
+          "sha256": "aeb640d34a2e624741490e27091425b6a283d4a011feee3772b0bd6146804d76",
+          "status": "COMPLETED",
+          "decision": null,
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "imported-pde-lab/acceptance_plan.json",
+          "bytes": 1345774,
+          "sha256": "e18ede209c479eb78b6091e8357c3c777cf03e6aac9ce1c2390dad3bb4231237",
+          "status": null,
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "imported-pde-lab/acceptance.json",
+          "bytes": 76189,
+          "sha256": "b1ac2a6692eff4068936333ff972aa8b6ce13515bd05579c40d9c984dcde945a",
+          "status": "PASS_BOUNDED_MATHEMATICAL",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "imported-pde-lab/acceptance_progress.json",
+          "bytes": 22226,
+          "sha256": "92cfcc787efa3fe6b80266624fcb360c8e9c7d21789271018e1756a29d91b04e",
+          "status": "COMPLETED",
+          "decision": null,
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "http-pde-lab/http_acceptance.json",
+          "bytes": 2763,
+          "sha256": "f2ea5680d0d91785375d9f2c2bea72f82ad2b895f89ede8fe0a439934d2e6285",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "artifact_id": 11710646661,
+      "artifact_name": "doe-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "acceptance_reports": [
+        {
+          "path_in_zip": "doe_acceptance.json",
+          "bytes": 1631,
+          "sha256": "5920a4eac374447d49f45ebcfa8f893ce4a17ea7746e2e9750fff4c2a74745ac",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "artifact_id": 11711055004,
+      "artifact_name": "http-core-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "acceptance_reports": [
+        {
+          "path_in_zip": "http_acceptance.json",
+          "bytes": 1419,
+          "sha256": "cf2fc90be2bb4229604995adb5fae3601df69608aa3c2771ca6bcd43ec22e2d2",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "artifact_id": 11711056141,
+      "artifact_name": "native-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "acceptance_reports": [
+        {
+          "path_in_zip": "native-lab/native_acceptance.json",
+          "bytes": 484,
+          "sha256": "e224f889ffffdb3489ae8cad3a58e5e7e8b382b98ddc27e3a8f1b0b449d62a59",
+          "status": "PASS",
+          "decision": null,
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "native-edits-lab/native_edit_acceptance.json",
+          "bytes": 36708,
+          "sha256": "fb4d80fa7f561c66299d9fd28c437a5e5f8fde1773e141d8b115e7df4be2c13e",
+          "status": null,
+          "decision": null,
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "native-mechanics-lab/acceptance-preparation.json",
+          "bytes": 554,
+          "sha256": "0e5230a47bb15d732a5f5d4b8c3561a950458966fa8590010bf85908d4a3bdc0",
+          "status": null,
+          "decision": null,
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "native-mechanics-lab/acceptance-reference-r01.json",
+          "bytes": 662,
+          "sha256": "1ab8e227c4bfb53bde073d19a0f1f42c14c8612c598f0a3b462c00a4975f1311",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "native-mechanics-lab/acceptance-run-r01.json",
+          "bytes": 839,
+          "sha256": "a284b11f00d0681a336738558ab833fe48ec194a13c572eac6ff53307d8cb802",
+          "status": "COMPLETED_REVIEW_REQUIRED",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "artifact_id": 11711072239,
+      "artifact_name": "codeaster-cae-lab-6dca0ddb94f340252299aec8a0d656ca1b44df83",
+      "acceptance_reports": [
+        {
+          "path_in_zip": "codeaster-lab/acceptance.json",
+          "bytes": 29217,
+          "sha256": "1e85d99c597222a0e780737deb0d536fee831ad5d7dc72ee66116f1373b39ef8",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "structural-family-lab/acceptance.json",
+          "bytes": 236514,
+          "sha256": "595553e6278196744b11034caf90243ed58d889a865c6cd55e91f81a0fd0833c",
+          "status": "FAILED_OR_PARTIAL",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": {
+            "message": "Native numerical checks failed: E-ansys_vmd1_regular-Fz-aster",
+            "type": "AssertionError"
+          }
+        },
+        {
+          "path_in_zip": "plasticity-lab/acceptance.json",
+          "bytes": 35013,
+          "sha256": "f4b6f8473fbba5125b2e68cdd323ce8a65e021b7917a7492e427f2f5ac2f2aa0",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "plasticity-lab/acceptance_progress.json",
+          "bytes": 35013,
+          "sha256": "f4b6f8473fbba5125b2e68cdd323ce8a65e021b7917a7492e427f2f5ac2f2aa0",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "material-point-lab/acceptance.json",
+          "bytes": 58774,
+          "sha256": "e15bfec5add6a76d08478ea066d7cea92e8071173f6e27ef3cfc36ae5bf96fe4",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "material-point-lab/frozen_acceptance.json",
+          "bytes": 3213,
+          "sha256": "1d782d995935b14f2e1336dd08b7a5bf380a9cc177486ec0357bff9626b801f6",
+          "status": null,
+          "decision": null,
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "model-optimization-lab/acceptance.json",
+          "bytes": 8644,
+          "sha256": "b821fc8b74ef4516152366e07346f127a0796ba3e17428ac11532272a208c7d9",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "model-optimization-lab/frozen_acceptance.json",
+          "bytes": 1929,
+          "sha256": "c1029fe7a42af249e1e9292faf236af20cc553478b14df02d1faa58f40026aac",
+          "status": null,
+          "decision": null,
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "material-inverse-lab/acceptance.json",
+          "bytes": 34654,
+          "sha256": "49502aecc7a67f607eb62f0433e0555ac16c0629d86bc0bda061974eb3fa1a5c",
+          "status": "PASS",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        },
+        {
+          "path_in_zip": "material-inverse-lab/frozen_inverse_acceptance.json",
+          "bytes": 19458,
+          "sha256": "8045142808435a958c6bde996b6234f2a987254337e0409ec2625e4aa99c9566",
+          "status": "CONTRACT_PREPARED_NOT_EXECUTED",
+          "decision": "NOT_RELEASED",
+          "error": null,
+          "failure": null
+        }
+      ]
+    }
+  ],
+  "metadata_files": [
+    {
+      "path": "runs/pr7-ci-38159523618/completed.json",
+      "bytes": 40646,
+      "sha256": "f2504279af4959a0ac64b4875c527b0225a8d53690c8652b0984aa8d9a90e0f0"
+    },
+    {
+      "path": "runs/pr7-ci-38159523618/artifacts-final.json",
+      "bytes": 7037,
+      "sha256": "2eaf2db1fa21da0fde0df3661d621c510b3d03426a9bd3970e520bdf3a5f3bca"
+    },
+    {
+      "path": "runs/pr7-ci-38159523618/acceptance-report-inventory-final.json",
+      "bytes": 27511,
+      "sha256": "7193916d197b2fabf2d860c0523a3037b241d6bf9e39d97b53a73c5539590da3"
+    }
+  ],
+  "retention": {
+    "local": "runs/pr7-ci-38159523618",
+    "zip_count": 9,
+    "zip_bytes": 564394964,
+    "all_api_sizes_and_digests_verified": true,
+    "github_policy_days": 30,
+    "expiry": "Exact UTC expiry is recorded for each artifact; all currently expire 2026-11-10",
+    "durability": "This tracked summary becomes durable after its checkpoint is pushed; raw ZIPs/logs remain ignored local files plus expiring GitHub artifacts, not content in a fresh Git clone"
+  },
+  "engineering_status": "UNKNOWN / NOT_RELEASED; no physical material, strength, fatigue, corporate approval or whole-product acceptance",
+  "contract_impact": "No Core/schema/ADR/OpenScience contract change; OpenScience remains research control plane",
+  "prior_evidence": [
+    "benchmarks/records/20261012-stabilization-s4-ci-native-failure.json",
+    "benchmarks/records/20261012-stabilization-s5-f05-diagnostic.json",
+    "benchmarks/records/20261012-stabilization-s5-ci-continuation.json"
+  ]
+}

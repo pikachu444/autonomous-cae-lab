@@ -1,0 +1,632 @@
+{
+  "schema_version": "1",
+  "recorded_utc": "2026-10-11",
+  "scope": "CI and recorded existing defects only; new features remain paused",
+  "source": {
+    "review_delivery_tree": "8057ace8ecb672246f92b343be3d4970841f2750",
+    "base_s1_tree": "f443818a5e2eafa0efd41678ca1eb1d36a6de41c",
+    "baseline_product_commit": "1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3",
+    "baseline_docs_head": "837df13bf1703ac30438ea5206a077f4f98063f9",
+    "s2_zip_sha256": "25986405a16ca50caae85bb7fb85067948661863ab5b9affb0300b56a7d7c30c",
+    "s2_patch_sha256": "1ecb91e6d5880781d62bce4463e66842ca04d3b47da7c6423f4253f02d820dff",
+    "s2_changed_files": 8,
+    "cumulative_changed_files": 51,
+    "pinned_upstream": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "main_files": [
+      {
+        "path": ".github/workflows/caelab-ci.yml",
+        "action": "M",
+        "expected_sha256": "32b273dec46427c90364799141067f3d9fca930e7e2c4f47aba5946304d566eb",
+        "main_raw_sha256": "ed21a7c6c1b5decb3db41242467e0ab277994d0992488c4f703e34b6a2955fe1",
+        "main_lf_sha256": "32b273dec46427c90364799141067f3d9fca930e7e2c4f47aba5946304d566eb",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "apps/desktop_post/commands.py",
+        "action": "M",
+        "expected_sha256": "93f772d541ed4acbe266d440aa484e5711cca31735d66a6c66e912f5fea2afde",
+        "main_raw_sha256": "9a8fbc0f7c93c8daaf34d18d3d229a08b009e841cd2ab7d661a190d5239622a7",
+        "main_lf_sha256": "93f772d541ed4acbe266d440aa484e5711cca31735d66a6c66e912f5fea2afde",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "apps/desktop_pre/bridge.py",
+        "action": "M",
+        "expected_sha256": "b1e0e82384298930e68a83911023e5a0fa8b2c69102abad838c5bf363f883410",
+        "main_raw_sha256": "78f38c452acc6baa304a40ceee9455ce64b145087537da8481850f6c3b050d7e",
+        "main_lf_sha256": "b1e0e82384298930e68a83911023e5a0fa8b2c69102abad838c5bf363f883410",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "apps/desktop_pre/connection.py",
+        "action": "M",
+        "expected_sha256": "e1af177bd3727323d85bb8ef81e8d35a43d39a96da2f7f589794ad55ba9e0b09",
+        "main_raw_sha256": "d58e7153b671b877144705330b32e31760c12e8b04e7cdda72c3c221db717d9b",
+        "main_lf_sha256": "e1af177bd3727323d85bb8ef81e8d35a43d39a96da2f7f589794ad55ba9e0b09",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "apps/desktop_pre/native_controls.py",
+        "action": "M",
+        "expected_sha256": "93b9263120bb9a3ace115dcb9fb5b86b694b7783433f86bda6fcc8111c2985df",
+        "main_raw_sha256": "14ab763d07d54f4a95ca45103e2baec9a32c6567c20b3feb299c8b9cb8f8364a",
+        "main_lf_sha256": "93b9263120bb9a3ace115dcb9fb5b86b694b7783433f86bda6fcc8111c2985df",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "apps/desktop_pre/projects.py",
+        "action": "M",
+        "expected_sha256": "7517c1d58268d5fa53504061d25f16905caa425b72c1badcb38d5d1bed761638",
+        "main_raw_sha256": "c98c3296e5b2fdfe2b98112b7e1347882933274822a48d6108cde2b59247ccd2",
+        "main_lf_sha256": "7517c1d58268d5fa53504061d25f16905caa425b72c1badcb38d5d1bed761638",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "apps/lab/workbench_routes.py",
+        "action": "M",
+        "expected_sha256": "e45c7806b1c6b8453427b3028efb8f9b57d9765c2fd5f0d194a5b30d9db4dafe",
+        "main_raw_sha256": "265a6361cf32842b60871d274458e82afa7c1d62099fdb5bf62db31c5b18ecdd",
+        "main_lf_sha256": "e45c7806b1c6b8453427b3028efb8f9b57d9765c2fd5f0d194a5b30d9db4dafe",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "apps/research/candidate_results_window.py",
+        "action": "M",
+        "expected_sha256": "b13709cdec5cfe11c8858b15843b44581caa571e5a5487d2e6f30fd398012d18",
+        "main_raw_sha256": "4a22e207151dfa2db107f3e9b9ece3a4fbc511b3a3263bfadf9690f0af774f8e",
+        "main_lf_sha256": "b13709cdec5cfe11c8858b15843b44581caa571e5a5487d2e6f30fd398012d18",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "apps/research/curve_comparison_window.py",
+        "action": "M",
+        "expected_sha256": "f9ff97c8731fe8b1e6c9b5f8bb4100d64e3e0801c57f310e907de61790461a0d",
+        "main_raw_sha256": "9782ab89d06f926245724057ac769c3ce38f12f4050ebb6ca57f7638e27dc1a1",
+        "main_lf_sha256": "f9ff97c8731fe8b1e6c9b5f8bb4100d64e3e0801c57f310e907de61790461a0d",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "apps/research/request_plan_window.py",
+        "action": "M",
+        "expected_sha256": "17258b8e9395dcca11028ac446fea907d5d433f6cc133367cae8b5c1a87572a1",
+        "main_raw_sha256": "3fa4a6aa32aaffde90735285c05dd6f0808a2591f93f553b955b17ff9a0473ed",
+        "main_lf_sha256": "17258b8e9395dcca11028ac446fea907d5d433f6cc133367cae8b5c1a87572a1",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "apps/research/response_selection.py",
+        "action": "M",
+        "expected_sha256": "781cc750b05aac3bc4fb59465f3dd8f3dcc840f5ddd856bc25c3dc451a3f6a11",
+        "main_raw_sha256": "32174e91e4d42081a69e5e5862e36ef39e8d734a72c99c080564b8aadf90c9f2",
+        "main_lf_sha256": "781cc750b05aac3bc4fb59465f3dd8f3dcc840f5ddd856bc25c3dc451a3f6a11",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "caelab/adapters/native_responses.py",
+        "action": "M",
+        "expected_sha256": "af5736a9c3735fee74290066e54b37b55a19e923fc37cec66c75cdf3c2ebbd4e",
+        "main_raw_sha256": "aa42edf4b2b0d798740525a0d881c1ea196c0aa5996462222aede2b196a3529e",
+        "main_lf_sha256": "af5736a9c3735fee74290066e54b37b55a19e923fc37cec66c75cdf3c2ebbd4e",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "caelab/adapters/retained_law_responses.py",
+        "action": "M",
+        "expected_sha256": "1c7f9821e0a88488ab324bd27cc9894c1c5dca17c0e68aa37b3dac93fd56446b",
+        "main_raw_sha256": "e7dc980cc67e23d1a639de2e7219ecfd5d6071b1cb32abfdf8255465b2d05ff4",
+        "main_lf_sha256": "1c7f9821e0a88488ab324bd27cc9894c1c5dca17c0e68aa37b3dac93fd56446b",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "caelab/assist/experts.py",
+        "action": "M",
+        "expected_sha256": "7f348289381adee05345e423f9b2cf4ba16ddc5836cf247fe06f395d89ba25ea",
+        "main_raw_sha256": "4c3543cfca330ba60781c569e860c71230eab6b53d15b0668733715c51b8f333",
+        "main_lf_sha256": "7f348289381adee05345e423f9b2cf4ba16ddc5836cf247fe06f395d89ba25ea",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "caelab/backends.py",
+        "action": "M",
+        "expected_sha256": "7734cb67345db1ff78546d00765973d30b1b5160c68660a0e9c08160b851d55d",
+        "main_raw_sha256": "5e59a63bd7ba49ef02cb42acf7ffacabdcd960fb84f0b024975942604f5d0a23",
+        "main_lf_sha256": "7734cb67345db1ff78546d00765973d30b1b5160c68660a0e9c08160b851d55d",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "caelab/evaluation.py",
+        "action": "M",
+        "expected_sha256": "0ed92349a28bdb4ded2055f9dee0d1018c68ea0e84bee41b66d0adc8949052f8",
+        "main_raw_sha256": "568a6ba7fb2753f8a0148dbfb9aa55ff32c8face957ec30c5a3388d3762ee5f9",
+        "main_lf_sha256": "0ed92349a28bdb4ded2055f9dee0d1018c68ea0e84bee41b66d0adc8949052f8",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "caelab/material_document.py",
+        "action": "M",
+        "expected_sha256": "61dcfcf41da790ce30bfb59d8c5ae4d3f485c17ec8b3f7d075414150413e00c7",
+        "main_raw_sha256": "5bcf6349f1ff1b8f80c0fca6e7c00ca050024d8d4a89c65b851607ef15dffffb",
+        "main_lf_sha256": "61dcfcf41da790ce30bfb59d8c5ae4d3f485c17ec8b3f7d075414150413e00c7",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "caelab/native_cad.py",
+        "action": "M",
+        "expected_sha256": "2c1a43842882b6381c0dca99bc1335bfcb0a5230b7363890601bd0e9f9125f4d",
+        "main_raw_sha256": "c9999374de5958cbe970efdfadd0e3848c39b1db91de4ae7bbda136e3b58b3d0",
+        "main_lf_sha256": "2c1a43842882b6381c0dca99bc1335bfcb0a5230b7363890601bd0e9f9125f4d",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "caelab/numerical_document.py",
+        "action": "M",
+        "expected_sha256": "890ef1fba4a1d525f37dd9c7bde6a53182de1f9b8ff2458e8cabc17250accf0c",
+        "main_raw_sha256": "e943976dd80d6d6d01a8ac26f5243a9f866fa43449c4f98cec4abb843f337502",
+        "main_lf_sha256": "890ef1fba4a1d525f37dd9c7bde6a53182de1f9b8ff2458e8cabc17250accf0c",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "caelab/research_operations.py",
+        "action": "M",
+        "expected_sha256": "57ba7821d09cfceff7eb06c223bd5c9c9361aaf9b92457f2a39be79d6cc0a26d",
+        "main_raw_sha256": "a1b1cdd66d12ca77491ce9ae8a77e8012250249e958c809853d45839dd7cc378",
+        "main_lf_sha256": "57ba7821d09cfceff7eb06c223bd5c9c9361aaf9b92457f2a39be79d6cc0a26d",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "caelab/research_workflows.py",
+        "action": "M",
+        "expected_sha256": "5923eec76c0bb6bffb1e1922ca8b94ada3182f397177cb005cebf570880840d0",
+        "main_raw_sha256": "abe2bc3f15fbd7966e69d7abddb6ca64d79a583d110e2d8260cb14846a53b159",
+        "main_lf_sha256": "5923eec76c0bb6bffb1e1922ca8b94ada3182f397177cb005cebf570880840d0",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "caelab/storage.py",
+        "action": "M",
+        "expected_sha256": "42b42c51f2bf6922da0a10cc5f5502e74ab34c5163a1e662bbaf016e3b144406",
+        "main_raw_sha256": "051db7a6e12ee74f10ee3aaeba5b02b644d559aca8e8c9b011fa34e86742c6c4",
+        "main_lf_sha256": "42b42c51f2bf6922da0a10cc5f5502e74ab34c5163a1e662bbaf016e3b144406",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "caelab/workbench.py",
+        "action": "M",
+        "expected_sha256": "30d15f08fb2e48a2f237dd45617c3fd990b829cb2af38dff6d149bf5db49fe11",
+        "main_raw_sha256": "3309af6def0a10a9883abf0a1586d1c76d547599709433681e8c916bc4ebb10a",
+        "main_lf_sha256": "30d15f08fb2e48a2f237dd45617c3fd990b829cb2af38dff6d149bf5db49fe11",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "caelab/workbench_client.py",
+        "action": "M",
+        "expected_sha256": "2e5aaa04e462ddb26ee2e49c2634629708a463cce4d3c81234121294888cc88a",
+        "main_raw_sha256": "e5aa6fdfc2fc9af7e1b460eeb669b0e189995bd45d5d6ee8c73252c84ba7e7e9",
+        "main_lf_sha256": "2e5aaa04e462ddb26ee2e49c2634629708a463cce4d3c81234121294888cc88a",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "openscience/workbench_mcp.py",
+        "action": "M",
+        "expected_sha256": "0ac7305ded1772e25296f3b3705ea900917a0db2c52dc4847706b29cb1fcaa29",
+        "main_raw_sha256": "9a11a876378ada82f5c45f73b6c9657df03938be154bfc553275a2955ca2550c",
+        "main_lf_sha256": "0ac7305ded1772e25296f3b3705ea900917a0db2c52dc4847706b29cb1fcaa29",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_backend_integration.py",
+        "action": "M",
+        "expected_sha256": "cbdbe27003c35e9d9de67db3f7b9b52b28e041f5e610036b0be347a43b2a1287",
+        "main_raw_sha256": "7e82fb8241b32b001ab3d0716a48082436b9552a21463b649932a3920633889d",
+        "main_lf_sha256": "cbdbe27003c35e9d9de67db3f7b9b52b28e041f5e610036b0be347a43b2a1287",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_candidate_native_curves_ui.py",
+        "action": "M",
+        "expected_sha256": "f6506fa6a2f902e2ca5691afa71b8653feeb7809e1fd8b63766f8743f2af4ffe",
+        "main_raw_sha256": "1b7d526e7cb0a7945d26d6260d9369146050a8e30b19d204eed62c054d844ec1",
+        "main_lf_sha256": "f6506fa6a2f902e2ca5691afa71b8653feeb7809e1fd8b63766f8743f2af4ffe",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_geometric_integration.py",
+        "action": "M",
+        "expected_sha256": "658104f3a68e4c11f548fb0fcda8052302c39fd82416548f8956b8326a8c1b4a",
+        "main_raw_sha256": "f63176943e015bd7e6d66e046e863c1673b6482eec63a3e75b20ad223fe63aeb",
+        "main_lf_sha256": "658104f3a68e4c11f548fb0fcda8052302c39fd82416548f8956b8326a8c1b4a",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_hyperelastic_integration.py",
+        "action": "M",
+        "expected_sha256": "e5814b695de254d4dbe0724df8c4a2c027866cacade9fa33da97606c99a42ae9",
+        "main_raw_sha256": "77133dc8b105d6a0aca59617e3b35b4d4c9e42a1e8f41c316e9b96c03d75e3e1",
+        "main_lf_sha256": "e5814b695de254d4dbe0724df8c4a2c027866cacade9fa33da97606c99a42ae9",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_lab_server.py",
+        "action": "M",
+        "expected_sha256": "9ba81ed87d1fdae08e07b6fc38064f0b946f90dda4f24c94137676ef6dbec986",
+        "main_raw_sha256": "9ba81ed87d1fdae08e07b6fc38064f0b946f90dda4f24c94137676ef6dbec986",
+        "main_lf_sha256": "9ba81ed87d1fdae08e07b6fc38064f0b946f90dda4f24c94137676ef6dbec986",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_post_analysis.py",
+        "action": "M",
+        "expected_sha256": "cdd799d699cdbac7c76adaaccb5b2ed8cd37b6aa6dfe0844b03e970d854d5c58",
+        "main_raw_sha256": "e6624e8a70d35dd11972131db5e9a7165f7e6e0fb0c6e271bbbf0059a4375489",
+        "main_lf_sha256": "cdd799d699cdbac7c76adaaccb5b2ed8cd37b6aa6dfe0844b03e970d854d5c58",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_pre_bridge.py",
+        "action": "M",
+        "expected_sha256": "a6bef46a8991dcc9919dff333b88ed06f3fe937564243ab6aad97cdb3a828c1a",
+        "main_raw_sha256": "46ebd6838566765b17fc54c2b87c2b3f0ded3559561e5c7643616a09ba87e720",
+        "main_lf_sha256": "a6bef46a8991dcc9919dff333b88ed06f3fe937564243ab6aad97cdb3a828c1a",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_pre_dependency_save.py",
+        "action": "A",
+        "expected_sha256": "44b8a7ae38229915086759f381af8521e895de3d69c779c1775c8d967b0a40a5",
+        "main_raw_sha256": "2cd4e492870d458b4cff51e3c5ce4443c65f7d802ff87c8ecd012816fcf7ab32",
+        "main_lf_sha256": "44b8a7ae38229915086759f381af8521e895de3d69c779c1775c8d967b0a40a5",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_pre_live_parameters.py",
+        "action": "M",
+        "expected_sha256": "2e3d287687af5d6ecaaa331dca9ac8e6577c06ff70314d37fd7d006e0b8bf44a",
+        "main_raw_sha256": "4ec6ff98e4c7b2f27a71c8b8e72bb9001673617150d16c353a9fb9b97fc2df22",
+        "main_lf_sha256": "2e3d287687af5d6ecaaa331dca9ac8e6577c06ff70314d37fd7d006e0b8bf44a",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_r5_result_ui.py",
+        "action": "M",
+        "expected_sha256": "186ea4a5c7c5c8950c266736f7927f6db0a17cceb16cbcc5569a07f431e53c97",
+        "main_raw_sha256": "c8c0d418d837c46500e8e155d3432db169ddf07c8862c27b8d9e2f6713920bae",
+        "main_lf_sha256": "186ea4a5c7c5c8950c266736f7927f6db0a17cceb16cbcc5569a07f431e53c97",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_research_comparison_context.py",
+        "action": "M",
+        "expected_sha256": "9c18f71cf85e91e79ecab666f3c1606a8b196af3c287e461b242e4d3536a3a88",
+        "main_raw_sha256": "c5324df42bfef915d8ea3cd71a67768ad3b5124f24fc0cbfa6297e53c227c401",
+        "main_lf_sha256": "9c18f71cf85e91e79ecab666f3c1606a8b196af3c287e461b242e4d3536a3a88",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_research_request_plan_ui.py",
+        "action": "M",
+        "expected_sha256": "d51e5f406e13ed0069a38205c6b90a27d5e9058416cd035e4bde0912b974206c",
+        "main_raw_sha256": "d127ef6dd8943ca01b22801a911eacb3f6858160e008b445b8179d91f3898f67",
+        "main_lf_sha256": "d51e5f406e13ed0069a38205c6b90a27d5e9058416cd035e4bde0912b974206c",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_retained_law_responses.py",
+        "action": "M",
+        "expected_sha256": "9dce1c18a113182db035621927e1b763ec4d2eb49afbd68800db65ccc6dbf9c4",
+        "main_raw_sha256": "3df5e0e08fe104c42f9d0cf3a04aa1f610c86bf10feacdbfc9090484906f277f",
+        "main_lf_sha256": "9dce1c18a113182db035621927e1b763ec4d2eb49afbd68800db65ccc6dbf9c4",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_retained_location_pages.py",
+        "action": "A",
+        "expected_sha256": "a2da22861a318f9f1550341d570aeeb038ed8b50eb4603643cca3e3492773632",
+        "main_raw_sha256": "1c8e38a956b52523bc3b3642b9182aadec0cab86b8fdd0200659e414d00e90ff",
+        "main_lf_sha256": "1c8e38a956b52523bc3b3642b9182aadec0cab86b8fdd0200659e414d00e90ff",
+        "root_whitespace_only": "Removed extra blank line at EOF only; review/delivery kept unchanged."
+      },
+      {
+        "path": "tests/test_retained_native_and_post_save.py",
+        "action": "A",
+        "expected_sha256": "6788b0f373fed1fbef5c06a9acf7afb8231a015bceb3339f320a3d7af1150e4b",
+        "main_raw_sha256": "80ab9f58ac3d7dfb9556da258432b7da40a0663af2339cacfbba336a7a669979",
+        "main_lf_sha256": "6788b0f373fed1fbef5c06a9acf7afb8231a015bceb3339f320a3d7af1150e4b",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_retained_response_identity.py",
+        "action": "A",
+        "expected_sha256": "c4aff0a06ef0c47cc38dc852d9aea55c4d3c7ab631499b4fffc44922747e98a1",
+        "main_raw_sha256": "21f2ec0ca3c2536b4286ecbe5998e8196d5ddebe8f858d947f929361d2130184",
+        "main_lf_sha256": "c4aff0a06ef0c47cc38dc852d9aea55c4d3c7ab631499b4fffc44922747e98a1",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_stabilization_read_scope.py",
+        "action": "A",
+        "expected_sha256": "61dd1649def379ebe2b6ba4dcc955d107d152dabfaacd4f69fe6459381c255eb",
+        "main_raw_sha256": "449c551fa461549387e8bf60bdddd81962f6d5f8bcf2c13bf6423faabfd48acf",
+        "main_lf_sha256": "61dd1649def379ebe2b6ba4dcc955d107d152dabfaacd4f69fe6459381c255eb",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_stabilization_research_ui.py",
+        "action": "A",
+        "expected_sha256": "5794394e1d0c18444137868e7dee5daab4e222046721b547afa28d964fd6adf7",
+        "main_raw_sha256": "6c5b4d6d9495291f87101ebbc8dac0999831cb5fab779dca281f92657955e512",
+        "main_lf_sha256": "5794394e1d0c18444137868e7dee5daab4e222046721b547afa28d964fd6adf7",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_storage_publication.py",
+        "action": "M",
+        "expected_sha256": "4268d8c84ab361e4c8e03834b2abc526900c8ec3ad9408fe7fb9976923dd7207",
+        "main_raw_sha256": "a5f00dc6ad8c26d98a3c4dd146fa9fd2d71818ad1ca5fbfff888fc53da36cae9",
+        "main_lf_sha256": "4268d8c84ab361e4c8e03834b2abc526900c8ec3ad9408fe7fb9976923dd7207",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_viscoelastic_integration.py",
+        "action": "M",
+        "expected_sha256": "7894aae06be2e6f7ef2321940a855a84301b13f2a01ab5658c0278b9d829f334",
+        "main_raw_sha256": "da2c8be92c7c71fb966ba8ed452554304b8f1baabf8a5d397e28e8857d1bb151",
+        "main_lf_sha256": "7894aae06be2e6f7ef2321940a855a84301b13f2a01ab5658c0278b9d829f334",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_workbench_assist.py",
+        "action": "M",
+        "expected_sha256": "14bfc6eb5bb570b6a6f75145b056ce9c9893825bca34cfbafa56234fbee3d94e",
+        "main_raw_sha256": "c0af22d8b85890034880f37d7fbeea42f4c6f19948b3d8889a43d8e4ff8bd145",
+        "main_lf_sha256": "14bfc6eb5bb570b6a6f75145b056ce9c9893825bca34cfbafa56234fbee3d94e",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_workbench_jobs.py",
+        "action": "M",
+        "expected_sha256": "492c508f54a0e153a4ea2d48ef7ef1cc79cfcc04ead21c16844481c5c7991f4d",
+        "main_raw_sha256": "d594b232ff7fe3fa67b7913207d94a5302d005fa13e8a58db686f8aca953281e",
+        "main_lf_sha256": "492c508f54a0e153a4ea2d48ef7ef1cc79cfcc04ead21c16844481c5c7991f4d",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_workbench_recovery.py",
+        "action": "M",
+        "expected_sha256": "395a5148a58ddd37149a9a7743d370922a2cbe53a9d84723dea714afb75ee2cc",
+        "main_raw_sha256": "26a086ea060c217ae859f25f897e82f9947c407ca880c4acbfde9bb9da4665af",
+        "main_lf_sha256": "395a5148a58ddd37149a9a7743d370922a2cbe53a9d84723dea714afb75ee2cc",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_evaluation_mapping_lifetime.py",
+        "action": "A",
+        "expected_sha256": "d7f479b7b17380089d65d32d80db746eefb4aa3afe2e61c9f7478eeba8970365",
+        "main_raw_sha256": "ff30d165dd514183ccc675ae691e40b86358be187185e5437ab137fc18e8f6a2",
+        "main_lf_sha256": "d7f479b7b17380089d65d32d80db746eefb4aa3afe2e61c9f7478eeba8970365",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_live_lock_snapshots.py",
+        "action": "A",
+        "expected_sha256": "979f8043e51b04950e72a6378bd7e97f4da5b5c68ba0ec7b54c75cb578c4d062",
+        "main_raw_sha256": "db777ca86eada922ce7687f1601d13d8bcd423dd4aac710473900bdbfd2d0373",
+        "main_lf_sha256": "979f8043e51b04950e72a6378bd7e97f4da5b5c68ba0ec7b54c75cb578c4d062",
+        "root_whitespace_only": null
+      },
+      {
+        "path": "tests/test_maxwell_retained_rounding.py",
+        "action": "A",
+        "expected_sha256": "c1c6f1a2b635c8d2b6581ae803f71d7593adb27740572d56db0b677ded4b045e",
+        "main_raw_sha256": "a93bfe370385967bc0a46d4edb7e2077922895e773ade904061ade70a500b3a3",
+        "main_lf_sha256": "c1c6f1a2b635c8d2b6581ae803f71d7593adb27740572d56db0b677ded4b045e",
+        "root_whitespace_only": null
+      }
+    ],
+    "root_product_change": "Removed extra blank line at EOF in tests/test_retained_location_pages.py only. Other normalized product/test/workflow bytes match Pro delivery.",
+    "publication": "PENDING_SOURCE_COMMIT_AND_PUSH"
+  },
+  "verification": {
+    "windows_focused": {
+      "runtime": "Python 3.12.14; pytest 8.4.2; isolated pinned QA environment",
+      "files": 7,
+      "passed": 111,
+      "skipped": 8,
+      "failures": 0,
+      "errors": 0,
+      "pytest_seconds": 118.91,
+      "junit": {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "8",
+        "tests": "119",
+        "time": "118.895",
+        "timestamp": "2026-10-11T23:29:25.050950+09:00"
+      },
+      "skip_reason": "Explicit Windows symlink creation privilege limitation; actual outside-root symlink refusal independently exercised on WSL."
+    },
+    "windows_original_mmap_probe": {
+      "gc_disabled": true,
+      "live_mappings_after_return": 0,
+      "immediate_disposable_file_overwrite": "PASS",
+      "next_read_hash_refusal": "PASS",
+      "source_values": "EXACT",
+      "all_return_and_error_paths": "PASS in focused mmap tests, including a retained exception traceback"
+    },
+    "genuine_maxwell": {
+      "original": "E-viscoelastic-r-01-tau1",
+      "channels": 16,
+      "samples_per_channel": 9,
+      "original_values_times_metadata_assessment_fixed_limits": "EXACT",
+      "negative_cases": 10,
+      "direct_helper_refusals": 9,
+      "direct_helper_accepted_redundant_probe_physical_sample_one_ulp": 1,
+      "accepted_case_classification": "PREEXISTING_UNPINNED_HELPER_BOUNDARY_NOT_S2_REGRESSION_NOT_RETAINED_OWNER_BYPASS",
+      "original_and_mutated_domain_assessment_exact_equal": true,
+      "assessment_canonical_sha256": "a9e301da00fa0d4a265a3a9034622a05b1f89336d47ce35cd051e7290b84a2ed",
+      "saved_source_pin_refusal_for_accepted_direct_helper_case": "PASS",
+      "genuine_svk_smoke": "11 original derived Cauchy xy samples pass",
+      "originals_unchanged": "Maxwell94 + SVK15 files and S1 evidence; exact source files unchanged",
+      "final_verdict": "PASS_BOUNDED_MAXWELL_CORRECTION; original REVIEW_REQUIRED report retained and classified by summary/boundary records"
+    },
+    "cold_read": {
+      "runtime": "Existing WSL Ubuntu Python 3.12",
+      "warmup": false,
+      "unchanged_client_deadline_seconds": 30,
+      "first_heat_get_seconds": 10.171,
+      "structure_get_seconds": 8.3936,
+      "restored_valid_get_seconds": 8.4699,
+      "old_values_saved_refs_three_post_pins": "EXACT",
+      "next_request_guards": {
+        "same_size_same_mtime_mutation": 400,
+        "missing_native_artifact": 400,
+        "identical_bytes_outside_symlink": 400
+      },
+      "original_files_unchanged": 230,
+      "copied_immutable_files_unchanged": 217,
+      "original_native_receipts_unchanged": 2,
+      "new_native_or_provider_executions": 0,
+      "owned_cleanup": "joined=true; pending=[]; HTTP thread false; final owned process count0"
+    },
+    "independent_code_review": "No actionable S2 mapping-lifetime or test-contract finding; saved read preserves original error and all cleanup paths.",
+    "s1_evidence_reused": "Pre51/Owner/Qt actual writable fsync; actual ParaView6.2 general partial Save/repair/reopen; HTTP/Qt method drafts and plots; genuine SVK/J2/OpenRadioss. Relevant source files unchanged by S2; no duplicated native runs."
+  },
+  "retained_reader_boundary": {
+    "direct_helper": "A direct unpinned native catalog computes fresh source pins; it cannot establish identity to an external original artifact manifest. A redundant physical FD-probe sample at one ULP passes the preexisting mapping check and leaves domain.assess exactly unchanged.",
+    "legacy_owner": "response_history._read_native checks original result.artifacts size/SHA before catalog.",
+    "document_owner": "MaterialDocuments.result verifies the saved revision assets and then read_result(verify=all). Metadata uses the saved catalog. Native response selection compares saved source pins before exposure.",
+    "engineering_limits": "All original fixed coefficients, domain/worker/physics sources, saved assessments and original experiments remain unchanged."
+  },
+  "historical_s1_review": "benchmarks/records/20261011-stabilization-s1-review.json",
+  "ci": {
+    "new_source": "PENDING",
+    "baseline_run_id": 38138994614,
+    "baseline_conclusion": "FAILURE",
+    "baseline_source_commit": "1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3",
+    "pull_request": "https://github.com/pikachu444/autonomous-cae-lab/pull/7",
+    "draft": true,
+    "merged": false
+  },
+  "limitations": [
+    "Focused software checks are not whole-product completion or engineering release.",
+    "Native FreeCAD acceptance, configured provider flow and broader physical requirements remain unverified.",
+    "Timing is a bounded retained-case observation, not a general performance guarantee or controlled S1/S2 benchmark.",
+    "Concurrency and adversarial within-request mutation are not established by the bounded cold-read harness.",
+    "Raw run evidence/ZIPs are local-only; committed hash receipts do not make those payloads remotely retained.",
+    "New J2/DP/protocol/upstream feature work and stopped r6 remain paused."
+  ],
+  "qualification": {
+    "physical": "UNKNOWN",
+    "decision": "NOT_RELEASED"
+  },
+  "evidence": [
+    {
+      "path": "runs/pro-code-received-20261011-r01/stabilization-s2/root-receipt.json",
+      "bytes": 2642,
+      "sha256": "620e57571139d222a0a2a057b6438f551e84fdeb1f0fc18b65257513db1f06bb",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/pro-code-received-20261011-r01/stabilization-s2/application-receipt.json",
+      "bytes": 415,
+      "sha256": "4c4e798beb637d523b5857fad17b12994c43756a441383b07093e5df7bd74a2b",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/stabilization-qa-20261011-a1/runtime-receipt.json",
+      "bytes": 4244,
+      "sha256": "a1f83ecd65215039db1a5c68321648fed0cc8cab487301eaa1d7329c203a5b48",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/stabilization-qa-20261011-a1/s2-main-integration.json",
+      "bytes": 21048,
+      "sha256": "9d1c51b44157da6da0c0f7328d0ac4532328e9a45db616e08c35622184bc5bb0",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/stabilization-qa-20261011-a1/s2-focused-86c137a093/command.json",
+      "bytes": 919,
+      "sha256": "d4d0c8bd7addafc874e16480847df1e2d167322b17f677a3002a82cb2381ab88",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/stabilization-qa-20261011-a1/s2-focused-86c137a093/junit.xml",
+      "bytes": 25833,
+      "sha256": "518657acb12191b60e97639920cc6cff70185cbf5200d25f8723ca12eda80101",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/stabilization-qa-20261011-a1/s2-focused-86c137a093/pytest.log",
+      "bytes": 896,
+      "sha256": "13224a2c2dffc9db959c70d16b9f914de56e097f27ffd502586001f1f44ca763",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/stabilization-qa-20261011-a1/s2-focused-86c137a093/completion.json",
+      "bytes": 175,
+      "sha256": "8f97c0b60edaad546feb926096ddf82a52a54ba26a07be3bd3885efe10853eac",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/stabilization-qa-20261011-a1/mapped-array-diagnostic-22bd5db2bac1433ab6987778ba00fa41/report.json",
+      "bytes": 690,
+      "sha256": "5c588160c6d57f99ac3ad11a935f858ac8c0689685bf0a3a8ed3cbe4e7fc0e65",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/reviewer-stabilization-s2-bf373b7b120f4666913e36f761242507/audit.json",
+      "bytes": 2419,
+      "sha256": "f4cdbd3af2efba3ee3e025fd1416bac6cfb22b7508e833be46eb7282bf43ffe0",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/stabilization-s2-cold-read-acceptance-20261011-runner01/report.json",
+      "bytes": 7267,
+      "sha256": "118f220a7020d039295836415bf551df786b1b935a03a6e336821a9b72b40fe5",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/stabilization-s2-cold-read-acceptance-20261011-runner01/source-identity.json",
+      "bytes": 1233,
+      "sha256": "4483e9b005d6a4138a7f6fa4931adca36e3cc575da2e10d433f27218b4ed96a5",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/stabilization-s2-cold-read-acceptance-20261011-runner01/preserved-fields-and-results.json",
+      "bytes": 46682,
+      "sha256": "7eedaeef2f4e60e7c4f0c42a4ad076575c7856757f44f8d937fdef06ce07c99e",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/stabilization-s2-cold-read-acceptance-20261011-runner01/cold-cleanup.json",
+      "bytes": 207,
+      "sha256": "580befd603b0b2fa5f144eaf6f5030e5962b71162deded71140265b4bbe97a8e",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/reviewer-retained-s2-20261011-c948e/report.json",
+      "bytes": 28852,
+      "sha256": "31ee0a0b5e06fb983e3407d5ebe95b00dc80ffa2771a04a05e01e6d4facf75dd",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/reviewer-retained-s2-classification-20261011-02d8c/report.json",
+      "bytes": 5777,
+      "sha256": "aa6aee14fef3a401fe2ea748dec1416a86adb43a775f14cac736d44ab693067d",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/reviewer-retained-s2-20261011-c948e/summary.json",
+      "bytes": 2809,
+      "sha256": "4c076c2854d60009265cd2fcab562c4a9f537bec5b2b466d1f18f3d1b9efd654",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    },
+    {
+      "path": "runs/reviewer-retained-s2-20261011-c948e/probe-helper-boundary.json",
+      "bytes": 3873,
+      "sha256": "8e2ea5b2a6e57b1a3ac363f96dcd5ef8e76753db0b334ffefb0d727c28c92e5b",
+      "retention": "LOCAL_ONLY_IGNORED_RUN_DIRECTORY"
+    }
+  ]
+}

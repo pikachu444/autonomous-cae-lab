@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-11",
+  "purpose": "Preserve exact-source CI failure after accepted S1/S2 product correction",
+  "source_commit": "04104f5dad133239cd00b504080684a1b971c354",
+  "pr_merge_commit": "4e8c5e3e4ece145bd1976f8e834e7f77cd51413b",
+  "base_commit": "a10f2023a2084512839b5e0af8ab0adc0aeb9293",
+  "pinned_upstream_commit": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+  "run": {
+    "databaseId": 38148178940,
+    "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38148178940",
+    "status": "completed",
+    "conclusion": "failure",
+    "createdAt": "2026-10-11T14:41:03Z",
+    "updatedAt": "2026-10-11T14:43:32Z"
+  },
+  "jobs": [
+    {
+      "name": "research-driver-source",
+      "databaseId": 114495829861,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38148178940/job/114495829861",
+      "startedAt": "2026-10-11T14:41:06Z",
+      "completedAt": "2026-10-11T14:43:31Z"
+    },
+    {
+      "name": "core",
+      "databaseId": 114495830153,
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38148178940/job/114495830153",
+      "startedAt": "2026-10-11T14:41:06Z",
+      "completedAt": "2026-10-11T14:42:18Z"
+    },
+    {
+      "name": "doe",
+      "databaseId": 114496080121,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38148178940/job/114496080121",
+      "startedAt": "2026-10-11T14:42:18Z",
+      "completedAt": "2026-10-11T14:42:18Z"
+    },
+    {
+      "name": "native-registration",
+      "databaseId": 114496080232,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38148178940/job/114496080232",
+      "startedAt": "2026-10-11T14:42:18Z",
+      "completedAt": "2026-10-11T14:42:18Z"
+    },
+    {
+      "name": "structural",
+      "databaseId": 114496080326,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38148178940/job/114496080326",
+      "startedAt": "2026-10-11T14:42:18Z",
+      "completedAt": "2026-10-11T14:42:18Z"
+    },
+    {
+      "name": "codeaster",
+      "databaseId": 114496080423,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38148178940/job/114496080423",
+      "startedAt": "2026-10-11T14:42:18Z",
+      "completedAt": "2026-10-11T14:42:18Z"
+    },
+    {
+      "name": "explicit",
+      "databaseId": 114496080447,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38148178940/job/114496080447",
+      "startedAt": "2026-10-11T14:42:18Z",
+      "completedAt": "2026-10-11T14:42:18Z"
+    },
+    {
+      "name": "optimization",
+      "databaseId": 114496080475,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38148178940/job/114496080475",
+      "startedAt": "2026-10-11T14:42:18Z",
+      "completedAt": "2026-10-11T14:42:18Z"
+    },
+    {
+      "name": "native",
+      "databaseId": 114496080709,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38148178940/job/114496080709",
+      "startedAt": "2026-10-11T14:42:18Z",
+      "completedAt": "2026-10-11T14:42:18Z"
+    },
+    {
+      "name": "pde",
+      "databaseId": 114496080755,
+      "status": "completed",
+      "conclusion": "skipped",
+      "url": "https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38148178940/job/114496080755",
+      "startedAt": "2026-10-11T14:42:18Z",
+      "completedAt": "2026-10-11T14:42:18Z"
+    }
+  ],
+  "diagnosis": {
+    "core": {
+      "runner": "ubuntu-24.04",
+      "runner_image_version": "20261004.327.1",
+      "pyside6_version": "6.9.1",
+      "phase": "pytest collection",
+      "errors": 25,
+      "skipped": 3,
+      "warnings": 3,
+      "pytest_elapsed_seconds": 18.41,
+      "cause": "ImportError: libEGL.so.1: cannot open shared object file: No such file or directory",
+      "product_assertions_executed": false
+    },
+    "research_driver_source": {
+      "runner": "windows-2025",
+      "runner_image": "windows-2025-vs2026",
+      "runner_image_version": "20260925.250.1",
+      "tests_passed": 124,
+      "pytest_elapsed_seconds": 25.53,
+      "node_forms": "PASS",
+      "private_python_http_bootstrap": "PASS"
+    },
+    "downstream_skipped_count": 8
+  },
+  "evidence_files": [
+    {
+      "path": "runs/pr7-ci-38148178940/completed.json",
+      "bytes": 11128,
+      "sha256": "eaa63d5a13049dd9d8d3ddeac973ec94c10db68922b1bf5de90327df4446a7f1",
+      "retention": "LOCAL_ONLY; not committed"
+    },
+    {
+      "path": "runs/pr7-ci-38148178940/core.log",
+      "bytes": 164746,
+      "sha256": "0f3edeb504c65770fa63842389d32273a14ad1798926f41e9763495527b3e392",
+      "retention": "LOCAL_ONLY; not committed"
+    },
+    {
+      "path": "runs/pr7-ci-38148178940/research-driver-source.log",
+      "bytes": 118034,
+      "sha256": "e0c2ea41e121c0d2d5a26f174c09f35e15d620eacd1c55a773f1f2a8ee1e4961",
+      "retention": "LOCAL_ONLY; not committed"
+    }
+  ],
+  "next_gate": "Review bounded Linux Qt runtime dependency and offscreen preflight correction; publish new source and inspect all 10 jobs. Do not rerun unchanged failed source.",
+  "limitations": [
+    "This CI failure did not execute downstream native acceptance.",
+    "Local S1/S2 acceptance remains bounded as recorded separately.",
+    "General feature work and stopped r6 remain paused.",
+    "UNKNOWN/NOT_RELEASED and numerical thresholds remain unchanged."
+  ]
+}

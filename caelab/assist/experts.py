@@ -32,9 +32,11 @@ _BUDGET_INPUT = _object({'evaluations': _POSITIVE}, ['evaluations'])
 _EXECUTION = _object({'mode': {'enum': ['serial', 'batch', 'process']},
                       'workers': _POSITIVE, 'threads': _POSITIVE, 'memory_mb': _POSITIVE,
                       'on_failure': {'enum': ['continue', 'stop']}, 'max_evaluations': _POSITIVE})
-_SCALAR_REFERENCE = _object({'response': _STRING, 'unit': _STRING,
+_SCALAR_REFERENCE = _object({'id': _STRING, 'response': _STRING, 'unit': _STRING,
                              'reduction': {'enum': ['none', 'max', 'min', 'final', 'mean', 'abs_max']},
-                             'component': _STRING, 'location': _STRING},
+                             'component': _STRING, 'location': _STRING,
+                             'measure': _STRING, 'frame': _STRING,
+                             'coordinate_system': _STRING, 'coordinate_frame': _STRING},
                             ['response', 'unit', 'reduction'])
 _OBJECTIVE = _object({**_SCALAR_REFERENCE['properties'],
                       'direction': {'enum': ['minimize', 'maximize']}, 'scale': _NUMBER},
@@ -44,6 +46,8 @@ _CONSTRAINT = _object({**_SCALAR_REFERENCE['properties'],
                       ['response', 'unit', 'reduction', 'operator', 'limit'])
 _OBSERVATIONS = _object({'kind': {'enum': ['scalar', 'series', 'event']}, 'unit': _STRING,
                          'component': {'type': 'string'}, 'location': {'type': 'string'},
+                         'measure': _STRING, 'frame': _STRING, 'coordinate_system': _STRING,
+                         'coordinate_frame': _STRING, 'quantity': _STRING,
                          'reduction': {'type': 'string'}, 'value': {}, 'axes': {'type': 'array', 'items': _OBJECT},
                          'state': {'enum': ['OCCURRED', 'NOT_OBSERVED', 'UNKNOWN']},
                          'event_definition': _OBJECT},
@@ -77,16 +81,11 @@ _TOOL_INPUTS = {
         _object({'archive_id': {'type': 'string', 'pattern': '^[a-f0-9]{64}$'},
                  'kind': {'const': 'abstract'}, 'url': _STRING, 'page': _POSITIVE}, ['archive_id'])]}}, ['paper_id']),
     'calculations.inputs': _object({'backend': _STRING, 'settings': _OBJECT}, ['backend']),
-    'calculations.plan': _object({'purpose': _STRING, 'operation': {'enum': ['fit', 'doe', 'optimize', 'uq', 'analyze', 'evaluate']},
-                                  'inputs': _OBJECT, 'budget': _BUDGET_INPUT},
-                                 ['purpose', 'operation', 'inputs', 'budget']),
-    'calculations.submit': _object({'operation': _STRING, 'inputs': _OBJECT,
-                                    'budget': _BUDGET_INPUT, 'resources': _object({'threads': _POSITIVE, 'memory_mb': _POSITIVE})},
-                                   ['operation', 'inputs', 'budget']),
     'calculations.status': _object({'job_id': _STRING}, ['job_id']),
     'results.read': _object({'job_id': _STRING, 'selection': _SELECTION}, ['job_id']),
     'numerical.doe': _object({'backend': _STRING, 'settings': _OBJECT,
                               'variables': _VARIABLES,
+                              'responses': _STRINGS,
                               'candidates': {'type': 'array', 'items': _object({'values': _OBJECT, 'candidate_id': _STRING}, ['values'])},
                               'count': _POSITIVE, 'seed': {'type': 'integer'},
                               'execution': _EXECUTION, 'budget': _BUDGET_INPUT}, ['backend', 'variables', 'budget']),
@@ -99,6 +98,7 @@ _TOOL_INPUTS = {
                               'budget': _BUDGET_INPUT}, ['backend', 'variables', 'experiments', 'budget']),
     'numerical.optimize': _object({'backend': _STRING, 'settings': _OBJECT,
                                    'variables': _VARIABLES,
+                                   'seed': {'type': 'integer'},
                                    'objective': _OBJECTIVE, 'constraints': {'type': 'array', 'items': _CONSTRAINT},
                                    'options': _object({'max_generations': _POSITIVE, 'population_size': _POSITIVE,
                                                        'initial_values': _OBJECT,
@@ -126,16 +126,141 @@ _PLAN_INPUTS = {
     'fit': _plan_input_shape('numerical.fit'),
     'optimize': _plan_input_shape('numerical.optimize'),
     'uq': _object({'backend': _STRING, 'settings': _OBJECT, 'variables': _VARIABLES,
+                   'responses': _STRINGS,
                    'distributions': _OBJECT, 'count': _POSITIVE, 'seed': {'type': 'integer'},
-                   'source': _OBJECT, 'independence': _STRING, 'execution': _EXECUTION},
+                   'source': _OBJECT, 'independence': _STRING, 'execution': _EXECUTION,
+                   'thresholds': {'type': 'array', 'items': _object({**_SCALAR_REFERENCE['properties'],
+                       'limit': _NUMBER, 'operator': {'enum': ['<=', '>=', '<', '>']}}, _SCALAR_REFERENCE['required'])}},
                   ['backend', 'variables', 'distributions', 'source', 'independence']),
     'analyze': _object({'job_id': _STRING, 'responses': {'type': 'array', 'items': _OBJECT, 'minItems': 1}},
                        ['job_id', 'responses']),
 }
-_TOOL_INPUTS['calculations.plan'] = _object({
-    'purpose': _STRING, 'operation': {'enum': list(_PLAN_INPUTS)},
-    'inputs': {'oneOf': list(_PLAN_INPUTS.values())}, 'budget': _BUDGET_INPUT},
-    ['purpose', 'operation', 'inputs', 'budget'])
+from ..research_operations import RESULT_REF_SCHEMA
+
+# A selected saved observation uses its existing owner/result reader, including
+# native component selectors. It is not an unpinned global job or copied table.
+_EXPERIMENT['properties']['observation_ref'] = _object(
+    {'result': deepcopy(RESULT_REF_SCHEMA), 'response': _STRING}, ['result', 'response'])
+_EXPERIMENT['anyOf'].append({'required': ['observation_ref']})
+# The fit Plan was copied before the reference extension above.
+_PLAN_INPUTS['fit']['properties']['experiments']['items'] = deepcopy(_EXPERIMENT)
+
+
+def _retained_roles(*names):
+    return _object({name: deepcopy(RESULT_REF_SCHEMA) for name in names}, names)
+
+
+_PLAN_INPUTS['epsilon'] = _object({
+    'backend': _STRING, 'settings': _OBJECT, 'variables': _VARIABLES,
+    'objectives': {'type': 'array', 'items': _OBJECTIVE, 'minItems': 2},
+    'threshold_grid': {'type': 'array', 'items': {'type': 'array', 'items': _NUMBER, 'minItems': 1}, 'minItems': 1},
+    'primary_index': {'type': 'integer', 'minimum': 0},
+    'constraints': {'type': 'array', 'items': _CONSTRAINT}, 'seed': {'type': 'integer'},
+    'options': deepcopy(_PLAN_INPUTS['optimize']['properties']['options']),
+    'total_evaluation_budget': _POSITIVE, 'execution': _EXECUTION},
+    ['backend', 'variables', 'objectives', 'threshold_grid'])
+_PLAN_INPUTS['sample_sensitivity'] = _object({'variables':_VARIABLES,'count':_POSITIVE,
+    'seed':{'type':'integer'},'second_order':{'type':'boolean'}},['variables','count'])
+_PLAN_INPUTS['doe'] = {'oneOf':[_PLAN_INPUTS['doe'],_object({
+    'backend':_STRING,'settings':_OBJECT,'variables':_VARIABLES,
+    'responses': _STRINGS,
+    'result_refs':_retained_roles('candidates'),'execution':_EXECUTION},['backend','result_refs'])]}
+_PLAN_INPUTS['analyze'] = {'oneOf': [
+    _PLAN_INPUTS['analyze'],
+    _object({'result_refs': _retained_roles('table'),
+             'responses': {'type': 'array', 'items': _OBJECTIVE, 'minItems': 1}}, ['result_refs', 'responses'])]}
+_PLAN_INPUTS['surrogate'] = {'oneOf': [
+    _object({'training_job': _STRING, 'holdout_job': _STRING, 'response': _SCALAR_REFERENCE,
+             'points': {'type': 'array', 'items': _OBJECT}, 'variables': _VARIABLES, 'options': _OBJECT},
+            ['training_job', 'holdout_job', 'response', 'points']),
+    _object({'result_refs': _retained_roles('training', 'holdout'), 'response': _SCALAR_REFERENCE,
+             'points': {'type': 'array', 'items': _OBJECT}, 'variables': _VARIABLES, 'options': _OBJECT},
+            ['result_refs', 'response', 'points'])]}
+_PLAN_INPUTS['sensitivity'] = {'oneOf': [
+    _object({'job_id': _STRING, 'plan': _OBJECT, 'response': _SCALAR_REFERENCE}, ['job_id', 'plan', 'response']),
+    _object({'result_refs': _retained_roles('table'), 'plan': _OBJECT, 'response': _SCALAR_REFERENCE},
+            ['result_refs', 'plan', 'response']),
+    _object({'result_refs': _retained_roles('table', 'plan'), 'response': _SCALAR_REFERENCE},
+            ['result_refs', 'response'])]}
+_PLAN_INPUTS['batch_export'] = {'oneOf': [
+    _object({'variables': _VARIABLES, 'candidates': {'type': 'array', 'items': _OBJECT},
+             'case_id': _STRING, 'settings': _OBJECT}, ['variables', 'candidates', 'case_id']),
+    _object({'result_refs': _retained_roles('candidates'), 'variables': _VARIABLES,
+             'case_id': _STRING, 'settings': _OBJECT}, ['result_refs', 'case_id'])]}
+_PLAN_INPUTS['batch_import'] = {'oneOf': [
+    _object({'batch_job': _STRING, 'results': {'type': 'array', 'items': _OBJECT}}, ['batch_job', 'results']),
+    _object({'result_refs': _retained_roles('batch'), 'results': {'type': 'array', 'items': _OBJECT}},
+            ['result_refs', 'results']),
+    _object({'result_refs': _retained_roles('batch', 'results')}, ['result_refs'])]}
+def calculation_request_schema(*, operation=None, submission=False):
+    """One request contract for the editor, proposed Plan and authorized submit.
+
+    The operation selects its input shape. Several operations share fields, so
+    an unqualified oneOf over all shapes would reject valid overlapping inputs.
+    Submission only adds the existing, separately authorized resource request.
+    """
+    properties = {'purpose': _STRING, 'operation': {'enum': list(_PLAN_INPUTS)},
+                  'inputs': _OBJECT, 'budget': _BUDGET_INPUT}
+    if submission:
+        properties['resources'] = _object({'threads': _POSITIVE, 'memory_mb': _POSITIVE})
+    schema = _object(deepcopy(properties), ['purpose', 'operation', 'inputs', 'budget'])
+    if operation in _PLAN_INPUTS:
+        schema['properties']['operation'] = {'const': operation}
+        schema['properties']['inputs'] = deepcopy(_PLAN_INPUTS[operation])
+    else:
+        schema['allOf'] = [
+            {'if': {'properties': {'operation': {'const': name}}, 'required': ['operation']},
+             'then': {'properties': {'inputs': deepcopy(shape)}}}
+            for name, shape in _PLAN_INPUTS.items()]
+    return schema
+
+
+_TOOL_INPUTS['calculations.plan'] = calculation_request_schema()
+_TOOL_INPUTS['calculations.submit'] = calculation_request_schema(submission=True)
+
+
+def validate_plan_request(request, *, describe_inputs=None, submission=False):
+    """Reuse the actual Expert calculation contract without inference or execution."""
+    if not isinstance(request, dict):
+        raise ValueError('Calculation plan must be an object')
+    plan = deepcopy(request)
+    required = {'purpose', 'operation', 'inputs', 'budget'}
+    if required - plan.keys():
+        raise ValueError('Plan requires purpose, operation, actual inputs and budget')
+    if plan['operation'] not in _PLAN_INPUTS:
+        raise ValueError('Unsupported numerical operation')
+    if not isinstance(plan['inputs'], dict) or not isinstance(plan['budget'], dict):
+        raise ValueError('inputs and budget must be objects')
+    evaluations = plan['budget'].get('evaluations')
+    if not isinstance(evaluations, int) or isinstance(evaluations, bool) or evaluations < 1:
+        raise ValueError('A positive evaluation budget is required')
+    from jsonschema import Draft202012Validator
+    envelope = calculation_request_schema(operation=plan['operation'], submission=submission)
+    # Validate envelope and operation-specific inputs together, including
+    # purpose and closed top-level/resource fields used by actual tool calls.
+    failure = next(iter(Draft202012Validator(envelope).iter_errors(plan)), None)
+    if failure:
+        field = '.'.join(str(part) for part in failure.absolute_path) or '$'
+        raise ValueError(f'Invalid {plan["operation"]} plan input {field}: {failure.message}')
+    if plan['operation'] in {'doe', 'uq'} and plan['inputs'].get('count', 0) > evaluations:
+        raise ValueError('Planned sample count exceeds the evaluation budget')
+    if plan['operation'] == 'sample_sensitivity':
+        inputs = plan['inputs']
+        dimensions = len(inputs['variables'])
+        factor = 2 * dimensions + 2 if inputs.get('second_order', False) else dimensions + 2
+        if inputs['count'] * factor > evaluations:
+            raise ValueError('Matched Sobol sample count exceeds the declared downstream evaluation budget')
+    if describe_inputs is not None:
+        supported = describe_inputs(deepcopy(plan['inputs']))
+    else:
+        supported = {'status': 'UNVERIFIED', 'reason': 'Backend input-description callback is not registered'}
+    if isinstance(supported, dict) and isinstance(supported.get('settings_schema'), dict):
+        failure = next(iter(Draft202012Validator(supported['settings_schema']).iter_errors(plan['inputs'].get('settings', {}))), None)
+        if failure:
+            field = '.'.join(str(part) for part in failure.absolute_path) or 'settings'
+            raise ValueError(f'Invalid backend settings {field}: {failure.message}')
+    return {'status': 'PLANNED', 'executed': False, 'editable': True, 'plan': plan,
+            'supported_inputs': supported}
 
 
 class _UnverifiedCitation(ValueError):
@@ -180,6 +305,8 @@ class RuntimeConfig:
             return self.generator
         if not self.model or self.provider != 'openai-compatible':
             return None
+        from .readiness import require_features
+        require_features('expert_agent','openai_compatible_generator')
         from haystack.components.generators.chat import OpenAIChatGenerator
         from haystack.utils import Secret
         credential = os.environ.get(self.credential_env) if self.credential_env else None
@@ -257,7 +384,13 @@ class ExpertRuntime:
         self._lock = threading.RLock()
 
     def list(self):
-        return {'status': 'OK', 'experts': [self.describe(key) for key in self.definitions]}
+        from .readiness import package_readiness
+        return {'status': 'OK', 'experts': [self.describe(key) for key in self.definitions],
+                'packages':package_readiness(),
+                'runtime':{'provider':self.runtime.provider, 'model':self.runtime.model,
+                    'status':'CONFIGURED_NOT_EXECUTED' if self.runtime.generator is not None or
+                        self.runtime.provider in ('openscience','openai-compatible') and self.runtime.model else 'NOT_CONFIGURED',
+                    'inference_performed':False}}
 
     def describe(self, expert_id):
         if expert_id not in self.definitions:
@@ -291,38 +424,8 @@ class ExpertRuntime:
             raise ValueError('Model payload exceeds the configured transmission bound')
 
     def plan(self, request, *, workspace_id='local'):
-        """An editable W2 request; plan creation never executes a calculation."""
-        if not isinstance(request, dict):
-            raise ValueError('Calculation plan must be an object')
-        plan = deepcopy(request)
-        required = {'purpose', 'operation', 'inputs', 'budget'}
-        if required - plan.keys():
-            raise ValueError('Plan requires purpose, operation, actual inputs and budget')
-        if plan['operation'] not in _PLAN_INPUTS:
-            raise ValueError('Unsupported numerical operation')
-        if not isinstance(plan['inputs'], dict) or not isinstance(plan['budget'], dict):
-            raise ValueError('inputs and budget must be objects')
-        evaluations = plan['budget'].get('evaluations')
-        if not isinstance(evaluations, int) or isinstance(evaluations, bool) or evaluations < 1:
-            raise ValueError('A positive evaluation budget is required')
-        from jsonschema import Draft202012Validator
-        failure = next(iter(Draft202012Validator(_PLAN_INPUTS[plan['operation']]).iter_errors(plan['inputs'])), None)
-        if failure:
-            field = '.'.join(str(part) for part in failure.absolute_path) or 'inputs'
-            raise ValueError(f'Invalid {plan["operation"]} plan input {field}: {failure.message}')
-        if plan['operation'] in {'doe', 'uq'} and plan['inputs'].get('count', 0) > evaluations:
-            raise ValueError('Planned sample count exceeds the evaluation budget')
-        if 'calculations.inputs' in self.callbacks:
-            supported = self.callbacks['calculations.inputs'](deepcopy(plan['inputs']))
-        else:
-            supported = {'status': 'UNVERIFIED', 'reason': 'Backend input-description callback is not registered'}
-        if isinstance(supported, dict) and isinstance(supported.get('settings_schema'), dict):
-            failure = next(iter(Draft202012Validator(supported['settings_schema']).iter_errors(plan['inputs'].get('settings', {}))), None)
-            if failure:
-                field = '.'.join(str(part) for part in failure.absolute_path) or 'settings'
-                raise ValueError(f'Invalid backend settings {field}: {failure.message}')
-        return {'status': 'PLANNED', 'executed': False, 'editable': True, 'plan': plan,
-                'supported_inputs': supported}
+        """An editable request; plan creation never executes a calculation."""
+        return validate_plan_request(request, describe_inputs=self.callbacks.get('calculations.inputs'))
 
     def _session(self, session_id, workspace_id, expert_id):
         session_id = session_id or uuid.uuid4().hex
@@ -342,9 +445,17 @@ class ExpertRuntime:
         definition = self.describe(expert_id)
         context = deepcopy(context or {})
         session, path = self._session(session_id, workspace_id, expert_id)
-        generator = 'openscience' if self.runtime.provider == 'openscience' and self.runtime.model else self.runtime.configured_generator(expert_id)
         base = {'expert_id': expert_id, 'session_id': session['session_id'], 'sources': [], 'assumptions': [],
                 'tool_events': [], 'proposed_actions': []}
+        try:
+            generator = 'openscience' if self.runtime.provider == 'openscience' and self.runtime.model else self.runtime.configured_generator(expert_id)
+            if generator is not None:
+                from .readiness import require_features
+                require_features('expert_agent')
+        except (ImportError,RuntimeError) as error:
+            from .readiness import package_readiness
+            return {**base,'status':'MISSING_DEPENDENCIES','execution_status':'FAILED','answer':None,
+                    'reason':str(error),'packages':package_readiness(),'inference_performed':False}
         if generator is None:
             return {**base, 'status': 'NOT_CONFIGURED', 'answer': None,
                     'reason': 'Configure an approved tool-capable model and credentials; no inference was performed.'}
@@ -601,10 +712,9 @@ class ExpertRuntime:
                 try:
                     from jsonschema import Draft202012Validator
                     schema = _TOOL_INPUTS[tool_name]
-                    if tool_name == 'calculations.plan' and request.get('operation') in _PLAN_INPUTS:
-                        schema = _object({'purpose': _STRING, 'operation': {'const': request['operation']},
-                                          'inputs': _PLAN_INPUTS[request['operation']], 'budget': _BUDGET_INPUT},
-                                         ['purpose', 'operation', 'inputs', 'budget'])
+                    if tool_name in {'calculations.plan', 'calculations.submit'}:
+                        schema = calculation_request_schema(operation=request.get('operation'),
+                            submission=tool_name == 'calculations.submit')
                     validator = Draft202012Validator(schema)
                     failure = next(iter(validator.iter_errors(request)), None)
                     if failure:

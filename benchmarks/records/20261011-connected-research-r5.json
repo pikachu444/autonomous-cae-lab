@@ -1,0 +1,444 @@
+{
+  "schema_version": 1,
+  "record_id": "20261011-connected-research-r5",
+  "date_utc": "2026-10-11",
+  "status": "REVIEWED_INTEGRATION_CHECKPOINT_WITH_OPEN_PRODUCT_DEFECTS",
+  "engineering_release": "NOT_RELEASED",
+  "source": {
+    "integration_base_commit": "9e7b5a5e08c37dfcc01cf6fb27490ec1db1bdd18",
+    "at_review_uncommitted": true,
+    "current_commit": "1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3",
+    "delivery_base_tree": "efaaf395705b6a09cab4c156e1a6350d36bd9b15",
+    "delivery_result_tree": "9efb9363de8569ce269976fddcce8594fa403cbf",
+    "zip_sha256": "d78c2bcc4635ece101189c52db1acb120de248c99d0e06dd0c9b6bbf2dd8f8b4",
+    "patch_sha256": "6db14e3b68f7ed3ee4d341802f24b6ec34feb789ff582a8103199444154f9075",
+    "pinned_upstream": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "normalization": "CRLF/LF and inherited PDE trailing-space cleanup only; all supplied content matches MAIN",
+    "actual_thermo_source_sha256": {
+      "caelab/adapters/thermoelastic_fenicsx.py": "d7336d9cf92b2d234d73ee7ff8c7736d1cc8cc53d97516b9802f1328c4728a17",
+      "caelab/adapters/thermoelastic_fenicsx_worker.py": "3763cd3e176bae7c659ef067ab50625fffc8aa40516961d43de4ea55da454e77",
+      "plugins/thermoelastic/reference.py": "501b419417406ea7f363578329b80be91c86884dc7818f13b6f60d75d29c11c8",
+      "caelab/physical_fields.py": "69bc62c0409d85aee37d3f867520c5506ce7223deca63680d3355fa1f75baaf1",
+      "caelab/research_execution.py": "2be8b945582c12fd49c360e841ab157304a9a2714d7e1987c563e1939e979cff",
+      "caelab/evaluation_definition.py": "3fab999f6b4236febf4fed761a24155cb82fabdbdf89dc7faf6fc743bbaaf649",
+      "caelab/research_workflows.py": "67bc5ca1fd11907bb84a4061c9f0ab1e990b1a4a8c24271cc8861d3858072554",
+      "caelab/evaluation.py": "4749870b60d9a1221217acec7d86e097ed0992fc12bb755571318cbc948e98dc",
+      "caelab/native_inputs.py": "9258cfec11528eee0368e9d5fb1d18dda1521b83ef59d16c63eace8c0c78cdef",
+      "caelab/workbench.py": "20f9c705292969799f78ed557b2b3e3eaddbdd5fb23622eefd7d1527db499ec5",
+      "caelab/jobs.py": "2255d2a5dce43377f4cfa29b3c06cf8dc3f9a8265a68c8f84b793f99ad25f6d2",
+      "apps/lab/server.py": "3dbd8348e258be32364250ed69c2b031b80659e8ecbc351ef82c23c619942abe",
+      "apps/lab/workbench_routes.py": "2622bfce3e2d5a5d1e172191d296a1203630963dd2ee47753931a83641cb7d74",
+      "caelab/adapters/fenicsx_rectangle.py": "1eea035b6d6d6f4bab4ba94e03ecc7813f666424fb13f53e0ab86b62c2e78264",
+      "caelab/adapters/fenicsx_rectangle_worker.py": "c28cdbbfeb51bf2557a8717d953c2fb68ecc230b8cc0c38722651e4087e1e0bd",
+      "caelab/execution_control.py": "c33cca1e19cbde36d79dedbe1376dc6263e877850591dbed18433dff94532580"
+    }
+  },
+  "verified_flows": {
+    "post_native": "Actual ParaView6.2 owner/HTTP comparison, filter, extraction, measurement, save and cold reopen; no monkeypatch. Original NativeNodeID and affine values with unchanged1e-10mm bound.",
+    "post_history": "Actual repeated Undo/Redo, branch, partial B-missing recovery, Owner Save, same-content repair using partial saved project, new-process reopen. No identity findings; originals unchanged; services/processes stopped.",
+    "post_portable": "Actual VTK data with controlled owners reject retained-file mutation and mismatched clock semantics; selected healthy-source inspect works. Human commands.save_project remains blocked before Owner.",
+    "evaluation_mcp": "Actual HTTP, MCP SDK1.30 stdio and Qt: pending structural edits protected, edited binding saved into Plan, fieldless error visible, exact refusal details and narrow auth403 retry. No calculation or provider; old result hashes unchanged.",
+    "native_material_ui": "Actual HTTP/Qt with TEST_ONLY native-shaped evaluator (2 total calls): law selection/Save/advertised inputs, native response/fit+holdout refs, candidate curve/adoption/Undo/Redo, saved curve comparison and cold reopen after own temporary global outputs moved. No native constitutive solver claim.",
+    "retained_readers": "Old public Maxwell/J2/OpenRadioss histories and actual J2/OpenRadioss direct values/times/units plus selected node/Gauss histories match originals. Maxwell direct fails; see findings. 224 original files unchanged."
+  },
+  "thermal_structural": {
+    "job_id": "J31f2d068fc3347398e301d29626a2afe",
+    "evaluation_id": "Ea2ca75e341e54970b0983bdcf0dd8de0",
+    "environment": "Existing Ubuntu WSL service Python3.12 and system DOLFINx0.11.0.post0/UFL2026.1/PETSc3.19.6 real64",
+    "actual_native_stages": 2,
+    "native_cleanup_pending": false,
+    "transfer": "EXACT_SAME_MESH_KELVIN",
+    "field_publication": {
+      "temperature": "POINTS K",
+      "displacement": "POINTS m",
+      "stress": "CELLS Pa",
+      "raw_hdf5_to_capture_to_vtk_max_difference": 0.0,
+      "snapshot_time_s": 0.125,
+      "clock_semantics": "acceptance_steady_snapshot"
+    },
+    "reference": {
+      "description": "0.8x0.3m, P1 12x6, constant363.15K, traction-free plane-stress expansion with rigid anchors; u=alpha*(T-Tref)*(x,y)",
+      "displacement_error_m": 2.0535111087250035e-17,
+      "unchanged_bound_m": 1e-10,
+      "temperature_error_K": 5.684341886080801e-13,
+      "stress_roundoff_linf_Pa": 1.22487545013428e-05
+    },
+    "cold_read": {
+      "default_client_timeout_s": 30,
+      "default_outcome": "FAILED_TIMEOUT",
+      "longer_deadline_read": "EXACT_WITH_NATIVE_IMPORTS_DISABLED_NO_RERUN",
+      "heat_seconds": 34.565279769012704,
+      "structure_seconds": 36.54813789797481
+    },
+    "limits": [
+      "No reactions or unspecified-thickness force relabeling",
+      "No Windows ParaView or cross-OS path acceptance",
+      "No new five-stage native campaign",
+      "No physical material or engineering release"
+    ]
+  },
+  "open_findings": [
+    {
+      "priority": 1,
+      "code": "WINDOWS_PRE_SAVE_FSYNC",
+      "detail": "Read-only archive handle fsync raises EBADF in actual Windows3.13; five Project portable tests fail at same line."
+    },
+    {
+      "priority": 2,
+      "code": "PRE_EXTERNAL_DEPENDENCY_DIRTY",
+      "detail": "Actual Project/Qt guard with controlled documents fails to detect dependency change after parent saved; no native FreeCAD claim."
+    },
+    {
+      "priority": 2,
+      "code": "POST_HUMAN_PARTIAL_SAVE",
+      "detail": "commands.save_project globally verifies missing B before corrected Owner can save healthy partial state."
+    },
+    {
+      "priority": 1,
+      "code": "MAXWELL_RETAINED_REASSESSMENT_EQUALITY",
+      "detail": "Pinned original/domain unchanged;198 derived floating-point last-bit differences with no status/validity differences cause dict equality rejection."
+    },
+    {
+      "priority": 2,
+      "code": "SVK_INPUT_ENVELOPE",
+      "detail": "Source-only: reader validates full settings envelope rather than contained settings."
+    },
+    {
+      "priority": 2,
+      "code": "J2_PICKER_TRUNCATION",
+      "detail": "Actual506-node catalog loses reaction/Gauss choices behind component and overall enumeration caps."
+    },
+    {
+      "priority": 2,
+      "code": "RESPONSE_SOURCE_METADATA",
+      "detail": "J2 artifact/hash pair incorrectly uses manifest fingerprint; OpenRadioss measure/native-derived origin missing."
+    },
+    {
+      "priority": 2,
+      "code": "REQUESTPLAN_OTHER_METHOD_DRAFT",
+      "detail": "DOE-to-fit-to-Save-to-DOE loses earlier response/candidate edits; plain switching is preserved."
+    },
+    {
+      "priority": 2,
+      "code": "COLD_STAGE_READ_LATENCY",
+      "detail": "Default30s timeout; same read repeats revision verification and path resolution on drvfs. One copied-store profile25.54s; Path.resolve20.52s/769calls. No timeout or admission relaxation."
+    },
+    {
+      "priority": 3,
+      "code": "CANDIDATE_CURVE_LAYOUT",
+      "detail": "Default1180x820 window shows roughly40px axes because long provenance takes layout space."
+    },
+    {
+      "priority": 1,
+      "code": "EXPERT_SUBMIT_PURPOSE_CONTRACT",
+      "detail": "CI diagnosis reproduced the actual tool-schema/callback conflict: calculations.submit forbids purpose, but shared Workbench Plan validator requires it. Valid numerical budgets and retained native candidate artifacts are separately confirmed."
+    }
+  ],
+  "portable_tests": {
+    "pre": {
+      "passed": 141,
+      "failed": 5,
+      "failure": "Windows archive fsync; no FreeCAD/native launch"
+    },
+    "other_changed": {
+      "passed": 119,
+      "failed": 3,
+      "deselected_prior_passed_nodes": 6,
+      "failures": [
+        "Windows symlink privilege1314 before product assertion",
+        "Synthetic20ms retry budget expired",
+        "Test bypasses product load_json with Path.read_text"
+      ]
+    },
+    "source_files_unchanged": true,
+    "tests_are_not_native_engineering_approval": true
+  },
+  "next_work": "Paused at owner request. Pro r6 WIP is preserved locally without application. Await a new user direction; do not resume implementation or verification automatically.",
+  "publication_at_review": "Not committed/pushed at review time. Subsequently committed and remote-confirmed as 1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3. Artifacts in runs remain local.",
+  "publication": {
+    "branch": "codex/ui-interaction-design-20261010",
+    "remote_confirmed_commit": "1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3",
+    "pull_request": "https://github.com/pikachu444/autonomous-cae-lab/pull/7",
+    "draft": true,
+    "merged": false,
+    "ci_run_id": 38138994614,
+    "ci_source_head": "1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3",
+    "ci_executed_merge": "a938901e315f2892693ed9ca4f39dcb78c962867",
+    "ci_merge_base": "a10f2023a2084512839b5e0af8ab0adc0aeb9293",
+    "ci_initial_status": "Windows research-driver-source FAILED; core still running at initial inspection",
+    "ci_driver_log": "runs/pr7-ci-38138994614/research-driver-source.log",
+    "ci_additional_finding": "Expert calculations.submit schema forbids purpose while Workbench shared Plan validation requires it; correction open",
+    "ci_driver_diagnosis": {
+      "report": "runs/reviewer-ci-contract-d6b149e2ab9640618ed8c5b4e07ec573/report.json",
+      "artifact_retention": "Actual result references and all 12 synthetic candidate artifact hashes match; old native directory glob obsolete",
+      "input_validation": "Extra operation keys, backend settings and complete-input budget violations rejected; message-only mismatch",
+      "expert_submission": "P1 tool schema/callback mismatch reproduced without provider",
+      "native_solver_executed": false
+    },
+    "ci_final_status": "COMPLETED_FAILURE",
+    "ci_final_jobs": {
+      "core": "FAILURE",
+      "research-driver-source": "FAILURE",
+      "structural": "SKIPPED",
+      "native-registration": "SKIPPED",
+      "explicit": "SKIPPED",
+      "native": "SKIPPED",
+      "codeaster": "SKIPPED",
+      "doe": "SKIPPED",
+      "pde": "SKIPPED",
+      "optimization": "SKIPPED"
+    },
+    "ci_core_reported": {
+      "passed": 7201,
+      "failed": 19,
+      "errors": 5,
+      "skipped": 52,
+      "seconds": 825.55,
+      "triage": "Not fully triaged; preset expectations, Post SimpleNamespace doubles, missing PySide6 setup and three known workbench failures"
+    }
+  },
+  "receipts": [
+    {
+      "path": "runs/pro-code-received-20261011-r01/connected-research-r5/root-receipt.json",
+      "bytes": 4938,
+      "sha256": "67dfa95a409285fb68e34e6d2cecac649744d2afc7e1347cbd6a653e2f46e5f1",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/pro-code-received-20261011-r01/connected-research-r5/unpacked/delivery.json",
+      "bytes": 666,
+      "sha256": "ef7d797f226a0f3d3af86f9131489273d80916abfe797dd835456d1ae67d4c07",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/pro-code-received-20261011-r01/connected-research-r5/unpacked/files.json",
+      "bytes": 22071,
+      "sha256": "d64ee32efc03885ac1d5de9c7b9d4ee751048dd5ab1ffb337ab2c358cf15aac5",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/pro-code-received-20261011-r01/main-r5-integration.json",
+      "bytes": 10847,
+      "sha256": "0562399be3555125a480403787e1a00a5bf2735ae444f993badd420c2cf9bd2c",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/post-product-workflow-20261011-r06-r5/created.json",
+      "bytes": 24777,
+      "sha256": "d60a3b4281523e3365a7b79a6562489b90da58d6e9390d7888e15093c1cbff10",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/post-product-workflow-20261011-r06-r5/reopened.json",
+      "bytes": 465,
+      "sha256": "60fa97af9913cd645cee579f7a4544e5098cdd90467a9935d800a369dfb3e329",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/post-product-workflow-20261011-r06-r5/supervisor.json",
+      "bytes": 551,
+      "sha256": "96a636ea01c523067bab710fe7c26af7d501133d0f8612b126ff1b934342f07f",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/post-history-repair-20261011-r02-r5/create.json",
+      "bytes": 12664,
+      "sha256": "cbfd929feb53e341499391e95d970cc28797547d0217eae28c5dec203b701a0a",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/post-history-repair-20261011-r02-r5/partial.json",
+      "bytes": 2662,
+      "sha256": "e52aa4bf9ad7321181cb2277ae05ae4c24d8a6f7c84b7eea21953043c357bcf9",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/post-history-repair-20261011-r02-r5/repair.json",
+      "bytes": 2620,
+      "sha256": "04ef16ba7cd30cde58c100e883c1c50e6af2520899bfe94a16283fe11e40da62",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/post-history-repair-20261011-r02-r5/reopen.json",
+      "bytes": 500,
+      "sha256": "ecd84225fc40f6b724a1dfd51bbee0c8b37bf1953f18a6fe58d6785ced1704c4",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/post-history-repair-20261011-r02-r5/supervisor.json",
+      "bytes": 720,
+      "sha256": "da0002fb202cf4c7da68076620f1ccaae6a1babc583e834a088082b7fb1ddef1",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/post-r5-readonly-review-20261013-7dd948/repro.py",
+      "bytes": 3435,
+      "sha256": "ce32b4250f55fe11c4edde9507f5e71053fde28a6d93b654b936802f143dfa1b",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-pre-r5-20261011/REVIEW.md",
+      "bytes": 5675,
+      "sha256": "b9f4ecebc5504e09236b10ed1f7b8c21802da568e9ca374ef804da1188d3f318",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-pre-r5-20261011/check_dependency_close.py",
+      "bytes": 2762,
+      "sha256": "51dacb5f4a06be4dd5be208f9f741ed7f0885cbc37b56d6deb54e828428e48bb",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/r5-thermo-http-acceptance-20261011-runner01/report.json",
+      "bytes": 291694,
+      "sha256": "2c4481a2994baf1ec4888cba00efa4361f11fbd3630ce394260b2f6a56cb3067",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/r5-thermo-http-acceptance-20261011-runner01/native-evidence.json",
+      "bytes": 5832,
+      "sha256": "b9ecba02180495442d41f51056e0c994cfc6b29f35caab4418e4cd0ad911999b",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/r5-thermo-http-acceptance-20261011-runner01/cold-continuation.json",
+      "bytes": 8786,
+      "sha256": "b9b79709458a8d054deb8f7a87aaf10800036fd6ce4c566aaf56252118ee6d27",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/r5-thermo-http-acceptance-20261011-runner01/README.md",
+      "bytes": 7673,
+      "sha256": "d981b659b5909367c4f27a952b76e258ba7f302b8ddaa823b8586b9c5b3f2b6d",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/r5-cold-read-diagnostic-20261011-runner01/report.json",
+      "bytes": 4279,
+      "sha256": "cc6d5989956f780fa7b7a070226f0284f20b01d186fe851fdd8bdc6ecc3d0cf8",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/r5-cold-read-diagnostic-20261011-runner01/profile.json",
+      "bytes": 6641,
+      "sha256": "42765728a321c48539b6bd6168dc36df23c2b67fa031a7e2b8fdb80c9ec161f1",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-r5-evaluation-mcp-20261011-b61d/review.json",
+      "bytes": 3330,
+      "sha256": "58970ce8a4ab7ff1d1de5b2a932a5ae61ecd26a8f71d791a3cd8570b5ff04585",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-r5-evaluation-mcp-20261011-b61d/acceptance.json",
+      "bytes": 9179,
+      "sha256": "4ae24600a152402019c44383f3e145d7dc44fea3737b2f7ea353034ab41f5f35",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-r5-auth-20261011-b61e/acceptance.json",
+      "bytes": 1590,
+      "sha256": "c5a1269c61cb49a06569a4b03f4e6ad19a8208a9223e6bd00dbb027739e036d2",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-retained-r5-20261011-d75ec/summary.json",
+      "bytes": 6137,
+      "sha256": "b01e94f03ac3e0ec1cf1dd901e002d29e7f7056269b2d00ef1cda4217a4151f9",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-retained-r5-20261011-d75ea/report.json",
+      "bytes": 56045,
+      "sha256": "ea588a82aebc5046ddcb26f894d55a4ba93009d4d0d33618ac99ff96ed43dbec",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-retained-r5-20261011-d75eb/report.json",
+      "bytes": 38901,
+      "sha256": "899e3f1f81d21197789b18c2069d4362e4b79d7fb7dad9ce6686a3c6e64218e3",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-retained-r5-20261011-d75ec/report.json",
+      "bytes": 1887889,
+      "sha256": "6579f8d81163d11be5236cef09707d5dd5ef8f2cb122606ac86626efeab15592",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/pro-code-review-20261011/runs/reviewer-r5-material-20261011-f19b/attempt-785bb444/report.json",
+      "bytes": 14632,
+      "sha256": "26423bb501397d3806da8b93458a7245ee2db2ae18bb0ec5805e49bf80208c66",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/pro-code-review-20261011/runs/reviewer-r5-material-20261011-f19b/attempt-cda22743/report.json",
+      "bytes": 12809,
+      "sha256": "3e2f913dd19f355e84c563a2424065fb9e6cf028eb38e38c0a82731d9e4a0d97",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-r5-portable-gate-9449302e36fa4cafb77ba8ad3f86809d/receipt.json",
+      "bytes": 33038,
+      "sha256": "adecf8dc211fe732b87f471e853a7526590af5ecd46b76d60ba979bc46a98172",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-r5-portable-gate-9449302e36fa4cafb77ba8ad3f86809d/summary.json",
+      "bytes": 4953,
+      "sha256": "1a4b7b8b8f7c45a54acadd187ae87638f1473e5df0582ad263f6f4e78a1389f6",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-r5-portable-gate-9449302e36fa4cafb77ba8ad3f86809d/pytest.log",
+      "bytes": 7642,
+      "sha256": "d998a0185513fa7145efb6b94ca256964c43c5e37e806159d081b290c3004037",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-model-discrimination-20261011-c632e/findings.md",
+      "bytes": 15102,
+      "sha256": "d309a875990ba246431fbfe7803d1c1a406f74154d5c2bf60613e56bb0c73736",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/pr7-ci-38138994614/research-driver-source.log",
+      "bytes": 77999,
+      "sha256": "fd0bf50be65052dbbd4d4b4aecfb08d4b4e06d0010ab80ce4acec1d9e9525977",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-ci-contract-d6b149e2ab9640618ed8c5b4e07ec573/report.json",
+      "bytes": 10347,
+      "sha256": "bcda149717cc24f430a98135a657153e80ba40d9161f020190122bf7df797dda",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-ci-contract-d6b149e2ab9640618ed8c5b4e07ec573/reproduce.py",
+      "bytes": 6705,
+      "sha256": "e01c5397ba07ede0af07db6156fe40c08da5bed8c7a4b1d0242d46941daee26e",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/pr7-ci-38138994614/core.log",
+      "bytes": 205995,
+      "sha256": "36715bb77e62aaefb55be70107a906d0f416c871a2887e4bf53c9f21bb1cf1a1",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/pr7-ci-38138994614/completed.json",
+      "bytes": 7694,
+      "sha256": "eeb042f9bb9eebb1d826bece9ba5f4096b4eb4e525958f581abb44d01fe60757",
+      "retention": "LOCAL_ONLY"
+    }
+  ],
+  "work_status": "PAUSED_BY_OWNER_AFTER_PRESERVATION",
+  "preserved_external_work": {
+    "status": "UNREVIEWED_UNAPPLIED_LOCAL_ARCHIVE",
+    "record": "benchmarks/records/20261011-paused-work-snapshot.json",
+    "record_sha256": "876b5006641e9c400f9fe42753468174e2b4e53b6caeaada2461ad89cf71dc01",
+    "accepted_r6": false,
+    "upstream_plasticity_replacement_started": false
+  }
+}

@@ -1,3 +1,65 @@
+## Existing-workflow stabilization — 2026-10-11
+
+S1/S2 correct publication, dependency dirty tracking, managed Post Save,
+retained-result reading, request contracts and UI state within the accepted
+owner/adapter boundaries. The shared request schema aligns editor, Plan and
+authorized submit. Request-local read reuse retains later-request byte/path
+validation; owned mappings close before return or error. Native artifact,
+dependency-manifest and original native-source pins remain distinct.
+
+No solver, constitutive protocol, execution authority or physical acceptance
+threshold is added. This is a bounded correction of existing contracts, not a
+replacement architecture; ADR0060–0062 remain applicable. Source and verification
+identities, including limitations, are in
+[WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md).
+
+## Earlier connected research owners — 2026-10-11
+
+The r2/r3/r4/r5 source, published at `1de8a69`, implements independent PDE, Discussion,
+Simulation, EvaluationDefinition and Study editing through the existing document
+lifecycle. EvaluationDefinition composes saved domain inputs and declared field
+ports under the existing JobManager; deterministic numerical engines still own
+search. Study records questions/evidence/judgments separately from execution plans
+and does not replace historical experiment records. Native Post owns analysis
+recipes and retained results. [ADR0062](ADR/0062-connected-research-owners-and-fields.md)
+records the decision, alternatives, contract impact and remaining verification.
+
+R5 extends Material through existing MFront evaluators and explicitly advertised
+native input bindings; retained native responses feed the existing numerical
+engines and comparison owners. It adds no implicit constitutive state transfer.
+Native Pre keeps the same FreeCAD document, native Assembly/FEM APIs and pinned
+parameter worker. Managed `.caepre` revisions retain editable `.FCStd` dependency
+graphs and research/result references. Windows publication and dependency dirty
+tracking defects remain open; source support is not native FreeCAD acceptance.
+
+## Earlier implementation of independent owners — 2026-10-11
+
+Source `584971d` extends the existing Material document lifecycle to independent
+Data and Numerical owners. Native Pre exports through the existing FreeCAD FEM
+writer and submits its frozen editable model/deck through the existing JobManager;
+Post and Runner resolve those exact results and design origins. No numerical
+optimizer or Core physics schema is replaced. The implementation decision and
+remaining native boundary are recorded in [ADR0061](ADR/0061-shared-material-owner-and-native-commands.md).
+
+## Current input-workspace boundary — ADR0060 (2026-10-11)
+
+CAD/FE Pre, Data, Material Research and PDE Research own separate editable
+documents. Data/material-point/PDE work is not a Pre mode and does not change
+host when CAD is installed. A project pins document/artifact revisions; it is
+not one mutable PrepDocument. Shared readers, evaluation, numerical research,
+Runner, Post and optional Expert/Workbench retain their existing implementations.
+The domain owns model/discretization/numerical solve settings; Runner owns
+execution resources and lifecycle. GUI and optional MCP use the same owner
+commands. This is a design correction, not a new Core schema or native GUI
+implementation. Packaging remains a proposal. See
+[ADR0060](ADR/0060-independent-research-workspaces.md) and
+[the current input/Post specification](docs/PREPOST_APP_SPEC.md).
+Its §2.1 defines recipe/mask ownership, material protocol and numerical plans,
+mesh meaning, runtime receipts, staged multi-owner adoption and composite
+evaluation/coupling ownership. Existing Study/Experiment remains the common
+research record; optional Workbench is its view, not the sole state owner.
+Historical evidence below retains its original source and bounded scope.
+
 ## Fixed-CAD scalar condition research — ADR0047
 
 Core's existing numerical campaign route now supports `fixed_cad_analysis`:
@@ -344,3 +406,18 @@ Independent agents may research candidate backends or verify tests. One owner ch
 ## ADR0048 — exact recorded field observations
 
 Core verifies and stores additive comparison1.2; a pure structural adapter selects retained node/component values and native source contracts. UI transports original identity only. Signed native values and derived magnitudes remain separate; static load parameter is not time. Quantity/component/frame mismatches remain null, sensor alignment unverified. General research purpose is solver independent; current field admission supports only the two declared structural producer families. Other native families need typed readers, not a generic XYZ/array inference.
+## Service-owned research drafts and native commands — ADR0061
+
+The existing Workbench service now owns Material documents for the independent
+Qt editor, CLI and MCP. Generation-checked commands share Undo/Redo and preserve
+invalid drafts; evaluation freezes the input into the existing JobManager.
+Append-only saved revisions retain original inputs, job outcomes and available
+results before publishing the document pointer. Reopen does not run a solver.
+
+ParaView owns its native document and proxy identities. The service brokers
+typed inspect, array/time selection and save commands; a native QVTK timer
+dispatches GUI work on the owner thread. Command status and queued cancellation
+are distinct from numerical job lifecycle. Dispatched work is never silently
+replayed after a disconnect. Actual native command acceptance is currently
+headless; visible GUI timer dispatch remains unverified. See ADR0061 and the
+current WORKBENCH_PROGRESS entry for the precise acceptance boundary.

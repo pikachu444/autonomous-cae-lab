@@ -1,5 +1,26 @@
 # Bounded small-strain J2 material acceptance
 
+## 2026-10-12 — Current-source hosted native acceptance
+
+Exact CI `38159523618` at source `385818bab785bfbf2c1e5880371970e475c90d68`
+and clean PR checkout `6dca0ddb94f340252299aec8a0d656ca1b44df83` executes this
+stage after the independent structural-family failure. The bounded J2 acceptance
+is **PASS / NOT_RELEASED** for both canonical and predeclared changed materials,
+each with two meshes and ten archived states. Invalid material/history cases
+remain rejected before execution. This resolves the historical pending-CI gate
+for this current source; it does not alter the earlier local record below.
+
+Independent return-map comparisons include complete displacement/stress fields,
+plastic strain and signed reactions. Canonical relative displacement, stress,
+reaction and mesh errors are `2.75705e-13`, `1.86569e-13`, `1.86596e-14` and
+`3.96831e-14`, against their unchanged `1e-7` relative bounds. Changed-material
+checks also pass. Retained native histories and the exact acceptance hash are in
+[the CI record](../benchmarks/records/20261012-stabilization-s5-ci-native-continuation.json).
+Contact, finite strain, physical calibration, global energy balance and release
+qualification remain unverified. The overall CI still fails original F05.
+
+## Historical local acceptance — 2026-09-30
+
 The actual local acceptance in `artifacts/local-20260930-plasticity-draft-03`
 passed on 2026-09-30 at 07:38:37 UTC. The canonical material and a separately
 predeclared changed material each ran on two native meshes with ten archived

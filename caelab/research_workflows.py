@@ -1,0 +1,185 @@
+"""Exact research document/result navigation and reusable stage execution.
+
+Transport wrappers call these functions; they never own a second document,
+queue or optimizer. Source revisions are read through their existing owners.
+"""
+from copy import deepcopy
+from pathlib import Path
+
+from .storage import canonical_hash, check_id, load_json, revision_read_scope
+from .evaluation import read_result, file_hash
+
+
+def result_folder(wb, document_id, job_id):
+    owner = wb._document_owner(check_id(document_id))
+    if owner is wb.native_commands:
+        raise ValueError('Choose an exact research document result')
+    document = owner.read(document_id)
+    row = next((row for row in document.get('runs', []) if row['job_id'] == check_id(job_id)), None)
+    if row is None:
+        raise ValueError('The selected job does not belong to this document')
+    retained = row.get('retained_result')
+    if retained:
+        owner._verify_revision(document_id, retained['revision'])
+        folder = owner._folder(document_id) / 'revisions' / retained['revision'] / 'results' / job_id
+    else:
+        folder = wb.root / 'results' / job_id
+    return folder, row
+
+
+@revision_read_scope()
+def evaluation_progress(wb, document_id, job_id):
+    if wb._document_owner(document_id) is not wb.evaluation_documents:
+        raise ValueError('Stage progress belongs to an EvaluationDefinition document')
+    folder, row = result_folder(wb, document_id, job_id)
+    if (folder / 'result.json').exists():
+        result = wb.document_result(document_id, job_id, selection={'responses': []})
+        result['phase'] = 'FINISHED'
+    elif (folder / 'progress.json').exists():
+        result = load_json(folder / 'progress.json')
+    else:
+        result = {'phase': wb.desktop.job_record(job_id).get('phase', 'QUEUED'), 'stages': [], 'iterations': [], 'transfers': []}
+    # progress.json records the last worker observation. After a controller
+    # restart it is evidence of that attempt, not a claim that it is still live.
+    # Overlay controller state only in the response; never rewrite old evidence.
+    result = deepcopy(result)
+    job = wb.desktop.job_record(job_id)
+    state = job['state']
+    result.update(job_state=state, controller_phase=job.get('phase'),
+                  cancel_requested=job.get('cancel_requested', False))
+    if state in {'INTERRUPTED', 'CLEANUP_PENDING', 'CANCEL_REQUESTED'}:
+        result['recorded_phase'] = result.get('phase')
+        result['phase'] = state
+    elif state in {'FAILED', 'CANCELLED'} and result.get('phase') != 'FINISHED':
+        result['recorded_phase'] = result.get('phase')
+        result['phase'] = state
+    if state in {'INTERRUPTED', 'FAILED', 'CANCELLED', 'CLEANUP_PENDING'}:
+        for stage in result.get('stages', []):
+            if stage.get('state') == 'RUNNING':
+                stage.update(recorded_state='RUNNING', state=state,
+                             completion_confirmed=False)
+    return {key: deepcopy(value) for key, value in result.items() if key not in {'responses', 'artifacts'}} | {
+        'document_id': document_id, 'job_id': job_id, 'input_revision': row['input_revision'],
+        'input_sha256': row['input_sha256']}
+
+
+@revision_read_scope()
+def evaluation_stage_result(wb, document_id, job_id, attempt_id, selection=None):
+    check_id(attempt_id)
+    if wb._document_owner(document_id) is not wb.evaluation_documents:
+        raise ValueError('Stage results belong to an EvaluationDefinition document')
+    folder, _ = result_folder(wb, document_id, job_id)
+    if (folder / 'result.json').exists():
+        progress = read_result(folder, verify='all', selection={'metadata_only': True})
+    elif (folder / 'progress.json').exists():
+        progress = load_json(folder / 'progress.json')
+    else:
+        raise ValueError('This evaluation has no recorded stage attempt yet')
+    stage = next((row for row in progress['stages'] if row['attempt_id'] == attempt_id), None)
+    if stage is None:
+        raise ValueError('Choose an actual attempt from this exact evaluation')
+    from .workbench import contained
+    stage_folder = contained(folder, stage['result_directory'])
+    if not (stage_folder / 'result.json').exists():
+        raise ValueError('This stage has no completed retained result; inspect progress/failure')
+    result = read_result(stage_folder, verify='all', selection=selection)
+    # A failed parent does not erase independently completed stage results.
+    return {**result, 'stage_attempt': deepcopy(stage), 'parent_job_id': job_id}
+
+
+@revision_read_scope()
+def numerical_evaluation_result(wb, document_id, job_id, candidate_id, *,
+                                evaluation_index=None, attempt_id=None, selection=None):
+    """Follow a selected row to its actual saved stage receipts, never a path supplied by a caller."""
+    from .workbench import contained
+    if wb._document_owner(document_id) is not wb.numerical_documents:
+        raise ValueError('Select a Numerical Plan and its actual candidate')
+    check_id(candidate_id)
+    folder, _ = result_folder(wb, document_id, job_id)
+    parent = read_result(folder, selection={'metadata_only': True})
+    candidate = next((row for row in parent.get('candidates', []) if row['candidate_id'] == candidate_id), None)
+    if candidate is None or candidate.get('prediction_status') == 'PREDICTED' or candidate.get('execution_status') == 'PREDICTED':
+        raise ValueError('Choose an actual candidate evaluation, not a predicted or absent row')
+    references = candidate.get('evaluation_refs', [])
+    identity = dict(document_id=document_id, job_id=job_id, candidate_id=candidate_id)
+    if evaluation_index is None:
+        if attempt_id is not None or selection is not None:
+            raise ValueError('Select an evaluation index before its stage or response')
+        return {**identity, 'evaluations': [{**{k: deepcopy(v) for k, v in ref.items()
+            if k not in {'relative', 'result_sha256'}}, 'evaluation_index': i} for i, ref in enumerate(references)]}
+    if type(evaluation_index) is not int or not 0 <= evaluation_index < len(references):
+        raise ValueError('Select an actual retained evaluation index from this candidate')
+    reference = references[evaluation_index]
+    directory = contained(folder, reference['relative'])
+    if file_hash(directory / 'result.json') != reference['result_sha256']:
+        raise ValueError('Candidate evaluation metadata differs from its retained row')
+    result = read_result(directory, verify='all',
+                         selection={'metadata_only': True} if attempt_id is not None else selection)
+    identity['evaluation_index'] = evaluation_index
+    if attempt_id is not None:
+        check_id(attempt_id)
+        stage = next((row for row in result.get('stages', []) if row['attempt_id'] == attempt_id), None)
+        if stage is None:
+            raise ValueError('Choose an attempt from this exact candidate evaluation')
+        stage_directory = contained(directory, stage['result_directory'])
+        result = read_result(stage_directory, verify='all', selection=selection)
+        result['stage_attempt'] = deepcopy(stage)
+    return {**result, **identity}
+
+
+def execute_definition(wb, arguments, job_id):
+    from .evaluation_definition import compile_definition, execute
+    from .research_operations import _resolve
+    from .research_execution import run_domain
+    if set(arguments) != {'definition', 'snapshots', 'definition_source'}:
+        raise ValueError('Evaluation execution requires its prepared definition and exact stage snapshots')
+    compiled = compile_definition(arguments['definition'], arguments['snapshots'])
+    # Workbench.submit verified these snapshots against this definition owner
+    # before admission. The queue executes those frozen bytes; editing or losing
+    # the original domain document cannot substitute another stage after submit.
+    reuse = compiled['definition'].get('reuse')
+    retained, folder = None, None
+    if reuse and reuse['stages']:
+        retained = _resolve(reuse['source'], wb.document_read, wb.document_result)
+        folder, _ = result_folder(wb, reuse['source']['document_id'], reuse['source']['job_id'])
+    return execute(compiled, wb.root / 'results' / check_id(job_id),
+        lambda model, output: run_domain(wb, model, output), reuse_result=retained, reuse_folder=folder)
+
+
+def resolve_reference(wb, reference):
+    """Read the requested immutable evidence, never the current draft instead."""
+    from .study_document import reference_error
+    from .research_operations import _resolve, RESULT_REF_KEYS, result_metadata
+    error = reference_error(reference)
+    if error:
+        raise ValueError(error)
+    kind = reference['kind']
+    if kind == 'document':
+        owner = wb._document_owner(reference['document_id'])
+        if owner is wb.native_commands:
+            raise ValueError('Select a saved research document reference; native source references remain in their projects')
+        saved = owner._verify_revision(reference['document_id'], reference['saved_revision'])
+        if (saved['kind'] != reference['document_kind'] or saved['input_revision'] != reference['input_revision']
+                or canonical_hash(saved['draft']) != reference['input_sha256']):
+            raise ValueError('Saved document input identity differs')
+        return {'status': 'AVAILABLE', 'kind': kind, 'reference': deepcopy(reference),
+                'document': {key: deepcopy(saved[key]) for key in ('id', 'kind', 'title', 'input_revision', 'draft')}}
+    if kind == 'result':
+        exact = {key: reference[key] for key in RESULT_REF_KEYS}
+        result = _resolve(exact, wb.document_read, wb.document_result)
+        selection = reference.get('selection', [reference['response']] if reference.get('response') else {'metadata_only': True})
+        actual = wb.document_result(exact['document_id'], exact['job_id'], selection=selection)
+        return {'status': 'AVAILABLE', 'kind': kind, 'reference': deepcopy(reference),
+                'metadata': result_metadata(result), 'result': actual}
+    owner = wb.discussion_documents
+    saved = owner._verify_revision(reference['discussion_id'], reference['saved_revision'])
+    turn = next((row for row in saved.get('discussion', {}).get('turns', []) if row['id'] == reference['turn_id']), None)
+    if turn is None or canonical_hash(turn) != reference['turn_sha256']:
+        raise ValueError('Saved discussion turn differs from its exact reference')
+    return {'status': 'AVAILABLE', 'kind': kind, 'reference': deepcopy(reference), 'turn': deepcopy(turn)}
+
+
+def reference_metadata(wb, reference):
+    result = resolve_reference(wb, reference)
+    result.pop('document', None); result.pop('result', None); result.pop('turn', None)
+    return result

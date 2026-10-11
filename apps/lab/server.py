@@ -280,7 +280,7 @@ def main(argv=None):
     if args.assembly_mesh_config is not None:
         from caelab.adapters.assembly_operator import AssemblyOperator
         lab_factory = AssemblyOperator(args.assembly_mesh_config).lab
-    options = {'workbench_config': json.loads(args.workbench_config.read_text())} if args.workbench_config else {}
+    options = {'workbench_config': json.loads(args.workbench_config.read_text(encoding='utf-8-sig'))} if args.workbench_config else {}
     server = LabHTTPServer(LabService(args.store, libraries=libraries, lab_factory=lab_factory,
                                      http_journal=HTTPJobJournal(args.store)), args.port, **options)
     print(f"Autonomous CAE Lab: http://127.0.0.1:{server.server_port}", flush=True)

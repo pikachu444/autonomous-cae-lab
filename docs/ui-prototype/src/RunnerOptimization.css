@@ -1,0 +1,185 @@
+.ro-toolbar-context {
+  margin-left: 8px;
+  margin-right: auto;
+  white-space: nowrap;
+}
+.ro-strip {
+  padding: 7px 10px;
+  border-bottom: 1px solid #dce1e6;
+  background: #f5f6f8;
+  font-size: 12px;
+  flex: none;
+}
+.ro-grid-fill,
+.ro-chart-fill {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.ro-chart-fill {
+  position: relative;
+}
+.ro-heading {
+  margin-bottom: 12px;
+  gap: 10px;
+}
+.ro-progress {
+  height: 5px;
+  background: #e6eaf0;
+  margin: 12px 0;
+  overflow: hidden;
+}
+.ro-progress span {
+  display: block;
+  height: 100%;
+  background: #3f7ebb;
+  transition: width 0.25s;
+}
+.ro-wrap {
+  overflow-wrap: anywhere;
+}
+.ro-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 14px 0;
+}
+.ro-log {
+  margin: 0;
+  background: #f9fafb;
+  color: #37465a;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.ro-run-steps {
+  display: flex;
+  gap: 5px;
+  margin: 12px 0 18px;
+}
+.ro-run-steps span {
+  flex: 1;
+  background: #eff1f4;
+  border-bottom: 2px solid #ccd3dc;
+  padding: 9px 12px;
+  color: #7b8490;
+}
+.ro-run-steps .active {
+  background: #eaf2fb;
+  border-color: #347fc3;
+  color: #1e578b;
+}
+.ro-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 10px;
+  background: #f4f6f8;
+  border-top: 1px solid #d8dfe6;
+  flex: none;
+}
+.ro-range-footer {
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+}
+.ro-range-actions {
+  display: flex;
+  gap: 7px;
+}
+.ro-range-actions > button {
+  flex: 1;
+}
+.ro-range-error {
+  color: #a5413a;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.ro-draft-body {
+  max-width: 100%;
+}
+.ro-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.ro-instructions {
+  padding-left: 21px;
+  line-height: 1.8;
+}
+.ro-evaluation-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 18px;
+}
+.ro-evaluation-steps li {
+  display: flex;
+  gap: 10px;
+  align-items: start;
+  padding: 9px 0;
+  border-bottom: 1px solid #e6e9ee;
+}
+.ro-evaluation-steps li > span {
+  background: #e6edf5;
+  color: #376187;
+  width: 23px;
+  height: 23px;
+  text-align: center;
+  line-height: 23px;
+  font-weight: 600;
+}
+.ro-evaluation-steps small {
+  display: block;
+  color: #697585;
+  margin-top: 3px;
+}
+.ro-range-grid {
+  display: flex;
+  flex-direction: column;
+  height: 164px;
+  min-width: 0;
+}
+.ro-full {
+  width: 100%;
+}
+.ro-empty {
+  flex: 1;
+  min-height: 130px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+  color: #5a6675;
+  background: repeating-linear-gradient(
+    45deg,
+    #f9fafb,
+    #f9fafb 8px,
+    #f6f7f9 8px,
+    #f6f7f9 16px
+  );
+}
+.ro-prediction,
+.ro-cell-predicted {
+  color: #99631b;
+}
+.ro-cell-error {
+  color: #a5413a;
+}
+@media (max-width: 1150px) {
+  .ro-toolbar-context {
+    font-size: 12px;
+  }
+  .ro-strip {
+    white-space: normal;
+  }
+  .ro-run-steps span {
+    padding: 8px;
+  }
+}

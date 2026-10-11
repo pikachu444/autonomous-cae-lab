@@ -29,6 +29,7 @@ def test_confirmed_preview_indices_read_original_numeric_data(tmp_path, body, de
         actual=read_table(bench.input_path(receipt['id']),mapping)['responses']['force']
         assert actual['value'].tolist()==[1.,2.,3.]
         assert actual['axes'][0]['values'].tolist()==[0.,1.,2.]
+        assert not {'frame','measure'} & actual.keys()
     finally:
         bench.shutdown()
 
@@ -75,3 +76,25 @@ def test_nonfinite_first_record_is_never_discarded_as_header(tmp_path, invalid):
 ])
 def test_unsupported_or_broken_records_receive_no_automatic_layout(body):
     assert preview_table(body) is None
+
+
+@pytest.mark.parametrize('key,other', [('frame','spatial_cartesian'), ('measure','first_Piola')])
+def test_declared_frame_and_measure_reach_curve_comparison(tmp_path, key, other):
+    from copy import deepcopy
+    from caelab.numerical import compare_curves
+
+    path=tmp_path/'stress.csv'
+    path.write_text('0,1\n1,2\n',encoding='utf-8')
+    spec={'column':1,'unit':'MPa','component':'xx','location':'material_point',
+          'frame':'material_cartesian','measure':'infinitesimal_Cauchy',
+          'axis':{'column':0,'name':'time','unit':'s'}}
+    response=read_table(path,{'columns':{'stress_xx':spec}})['responses']['stress_xx']
+    assert response['frame']==spec['frame']
+    assert response['measure']==spec['measure']
+    assert response['mapping']==spec
+    assert response['value'].tolist()==[1.,2.]
+    assert compare_curves(response,response)['rmse']==0.
+    observation=deepcopy(response)
+    observation[key]=other
+    with pytest.raises(ValueError,match=f'{key} mismatch'):
+        compare_curves(response,observation)

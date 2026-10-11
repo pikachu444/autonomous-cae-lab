@@ -1,7 +1,48 @@
 """Material-point histories evaluated by optional FELUPE, not a new material solver."""
 from copy import deepcopy
+from numbers import Real
 import numpy as np
 from ..evaluation import PreparedEvaluation
+
+
+def validate_parameters(model, parameters):
+    names = {'E', 'nu'} if model == 'linear_elastic' else {'mu', 'lmbda'}
+    if not isinstance(parameters, dict) or set(parameters) != names:
+        raise ValueError(f'{model} requires parameters {sorted(names)}')
+    if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not np.isfinite(v) for v in parameters.values()):
+        raise ValueError('Material parameters must be finite numbers')
+    if model == 'linear_elastic':
+        if parameters['E'] <= 0 or not -1 < parameters['nu'] < .5:
+            raise ValueError('Linear elasticity requires E > 0 and -1 < nu < 0.5')
+    elif parameters['mu'] <= 0 or parameters['lmbda'] + 2 * parameters['mu'] / 3 <= 0:
+        raise ValueError('Neo-Hooke shear and bulk moduli must be positive')
+
+
+def validate_settings(settings, *, parameters=True):
+    """Validate editable inputs without importing or executing the optional solver."""
+    model = settings.get('model', 'linear_elastic')
+    if model not in {'linear_elastic', 'neo_hooke'}:
+        raise ValueError('Choose FELUPE linear_elastic or neo_hooke; other laws require a registered adapter')
+    for key in ('time', 'deformation_gradient'):
+        raw = np.asarray(settings[key], dtype=object)
+        if any(isinstance(value, (bool, np.bool_)) or not isinstance(value, Real) for value in raw.flat):
+            raise ValueError('History values must be finite numbers, not booleans or text')
+    time = np.asarray(settings['time'], dtype=float)
+    gradients = np.asarray(settings['deformation_gradient'], dtype=float)
+    if time.ndim != 1 or not len(time) or not np.isfinite(time).all() or np.any(np.diff(time) <= 0):
+        raise ValueError('History time must be finite and strictly increasing')
+    if gradients.shape != (len(time), 3, 3) or not np.isfinite(gradients).all() or np.any(np.linalg.det(gradients) <= 0):
+        raise ValueError('A positive-determinant 3x3 deformation gradient is required at each time')
+    if not isinstance(settings.get('stress_unit'), str) or not settings['stress_unit'].strip():
+        raise ValueError('An explicit stress_unit is required; all moduli use that unit')
+    if not isinstance(settings.get('time_unit', 's'), str) or not settings.get('time_unit', 's').strip():
+        raise ValueError('An explicit time_unit is required')
+    names = {'E', 'nu'} if model == 'linear_elastic' else {'mu', 'lmbda'}
+    if not isinstance(settings.get('parameters'), dict) or set(settings['parameters']) != names:
+        raise ValueError(f'{model} requires parameters {sorted(names)}')
+    if parameters:
+        validate_parameters(model, settings['parameters'])
+    return model, time, gradients
 
 
 class FelupeMaterialAdapter:
@@ -12,18 +53,8 @@ class FelupeMaterialAdapter:
         import felupe
         if runtime and set(runtime)-{'threads','memory_mb'}:
             raise ValueError('Unsupported FELUPE runtime options')
-        model = settings.get('model', 'linear_elastic')
-        if model not in {'linear_elastic', 'neo_hooke'}:
-            raise ValueError('Choose FELUPE linear_elastic or neo_hooke; other laws require a registered adapter')
-        time = np.asarray(settings['time'], dtype=float)
-        gradients = np.asarray(settings['deformation_gradient'], dtype=float)
-        if time.ndim != 1 or not len(time) or not np.isfinite(time).all() or np.any(np.diff(time) <= 0):
-            raise ValueError('History time must be finite and strictly increasing')
-        if gradients.shape != (len(time), 3, 3) or not np.isfinite(gradients).all() or np.any(np.linalg.det(gradients) <= 0):
-            raise ValueError('A positive-determinant 3x3 deformation gradient is required at each time')
-        unit = settings.get('stress_unit')
-        if not isinstance(unit, str) or not unit:
-            raise ValueError('An explicit stress_unit is required; all moduli use that unit')
+        model, time, gradients = validate_settings(settings, parameters=False)
+        unit = settings['stress_unit']
         parameters = deepcopy(settings.get('parameters', {}))
         names = {'E', 'nu'} if model == 'linear_elastic' else {'mu', 'lmbda'}
         if set(parameters) != names:
@@ -35,15 +66,10 @@ class FelupeMaterialAdapter:
             if not set(values) <= names:
                 raise ValueError('Unknown material parameter')
             p = {**parameters, **values}
-            if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not np.isfinite(v) for v in p.values()):
-                raise ValueError('Material parameters must be finite numbers')
+            validate_parameters(model, p)
             if model == 'linear_elastic':
-                if p['E'] <= 0 or not -1 < p['nu'] < .5:
-                    raise ValueError('Linear elasticity requires E > 0 and -1 < nu < 0.5')
                 material = felupe.LinearElastic(**p)
             else:
-                if p['mu'] <= 0 or p['lmbda'] + 2 * p['mu'] / 3 <= 0:
-                    raise ValueError('Neo-Hooke shear and bulk moduli must be positive')
                 material = felupe.NeoHookeCompressible(**p)
             # Every candidate starts from its own zero state. Elastic laws have no
             # internal history; the library remains the stress/tangent authority.

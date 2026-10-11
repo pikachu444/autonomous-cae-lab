@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-12",
+  "purpose": "Correct the missing Linux Qt runtime in existing CI",
+  "base_source_commit": "04104f5dad133239cd00b504080684a1b971c354",
+  "failed_run": 38148178940,
+  "failed_run_record": "benchmarks/records/20261011-stabilization-s2-ci-failure.json",
+  "pro_base_tree": "8057ace8ecb672246f92b343be3d4970841f2750",
+  "pro_result_tree": "be12656db8eb98b306804f9d3a48e472d54fabd5",
+  "root_review": {
+    "archive": "runs/pro-code-received-20261011-r01/stabilization-s3/autonomous-cae-pro-s2-linux-qt-ci-fix.zip",
+    "zip_sha256": "8860e30cda7da82d8600c7a34d1a9271b7784e7ab079366c3b47840017b40e66",
+    "members": [
+      {
+        "path": "README.md",
+        "bytes": 5213,
+        "sha256": "51ac8f9abb232bf08056a8284bea6a923b291d48894b6dae8b4aa5721d67f3a3"
+      },
+      {
+        "path": "S2-linux-qt-ci.patch",
+        "bytes": 2804,
+        "sha256": "d4bcafe46f9e9398716f6758d5e1afac2440efc9ac5308b11a1ad33385522945"
+      },
+      {
+        "path": "SHA256SUMS",
+        "bytes": 432,
+        "sha256": "c0e3702d7e52524fa73d69665cce3bab7dba2eb59de1e25d9e5787566144dcb4"
+      },
+      {
+        "path": "changed-files.json",
+        "bytes": 371,
+        "sha256": "97a6d8aa810d1d59050692b1635431f277edd6a908e71b233955446fa2c0a51a"
+      },
+      {
+        "path": "delivery.json",
+        "bytes": 630,
+        "sha256": "da904b513ce98e056325eb213932e8402ed5d58c8ebeb62f140b242e48d85716"
+      },
+      {
+        "path": "files/.github/workflows/caelab-ci.yml",
+        "bytes": 25129,
+        "sha256": "aa2007110269dca9181d7e167160b1e41a313fdd252bae252405026964737570"
+      }
+    ],
+    "safe_paths": true,
+    "all_manifest_hashes_match": true,
+    "before_workflow_sha256": "32b273dec46427c90364799141067f3d9fca930e7e2c4f47aba5946304d566eb",
+    "after_workflow_sha256": "aa2007110269dca9181d7e167160b1e41a313fdd252bae252405026964737570",
+    "patch_sha256": "d4bcafe46f9e9398716f6758d5e1afac2440efc9ac5308b11a1ad33385522945",
+    "changed_files": [
+      ".github/workflows/caelab-ci.yml"
+    ],
+    "all_9_other_jobs_unchanged": true,
+    "all_original_core_steps_and_metadata_unchanged": true,
+    "added_steps": [
+      "Install Linux Qt shared-library runtime",
+      "Preflight Qt imports and an offscreen QApplication"
+    ],
+    "yaml_parse": "PASS",
+    "bash_syntax": "PASS",
+    "preflight_python_ast": "PASS",
+    "git_apply_check": "PASS",
+    "pro_runtime_claim": "Ubuntu 24.04.3/Python 3.12.14/PySide6 6.9.1 preflight PASS; system libraries already present; not a fresh GitHub install",
+    "new_source_ci": "PENDING"
+  },
+  "applied_to_main": true,
+  "product_and_test_source_changed": false,
+  "research_ui_and_all_test_commands_retained": true,
+  "runtime_packages": [
+    "libegl1",
+    "libgl1",
+    "libxkbcommon0",
+    "libfontconfig1",
+    "libdbus-1-3",
+    "libglib2.0-0t64",
+    "libx11-6"
+  ],
+  "preflight": [
+    "Qt imports",
+    "QApplication platform equals offscreen",
+    "QLabel show and event processing",
+    "System font availability",
+    "Non-null offscreen capture",
+    "Timer-driven event loop exits normally within 30 seconds"
+  ],
+  "retention": "Delivery ZIP, extracted files and root receipt are LOCAL_ONLY under runs/; hashes are preserved here. Pro runtime result is reported evidence, not a Root fresh-runner test.",
+  "publication": "This record is prepared before the new source commit. Its subsequent exact GitHub run is the required final environment and regression gate.",
+  "limitations": [
+    "No new native solver run or physical qualification is claimed by this source correction.",
+    "No numerical threshold or retained result was changed.",
+    "General feature work and stopped r6 remain paused.",
+    "UNKNOWN/NOT_RELEASED remains unchanged."
+  ]
+}

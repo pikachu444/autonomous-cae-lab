@@ -1,3 +1,523 @@
+## 2026-10-12 — Exact CI proves independent native continuation without masking F05
+
+Source `385818bab785bfbf2c1e5880371970e475c90d68` is published in Draft PR7.
+Exact CI `38159523618`, clean PR merge
+`6dca0ddb94f340252299aec8a0d656ca1b44df83`, finishes with nine passing jobs and
+one failed Code_Aster job. Core has 7,540 passed/12 skipped; Windows has 124
+passed plus 19 Node checks and the private-runtime HTTP calculation. Earlier
+Qt collection and Data Save/comparison test failures no longer block this run.
+
+The five-line S5 workflow repair is effective: all four native stages after the
+family failure run and pass. J2 compares two materials on two meshes with ten
+states; material-point checks full MGIS/MTest histories and tangents. Declared
+modulus search records nine evaluations/18 mesh solves with two immutable
+replays. Synthetic inverse records nine native evaluations and actual sealed
+OCI admission on SIF `956ad88234b53d4e8dfa76d7e067332059279cd7e5d7ccb6f09ebe4e46e978a4`.
+Neither bounded search converges; no physical material fit is claimed.
+
+The remaining original regular-Fz/F05 finest mesh fails `FACTOR_57` at
+`3.32295e-6 > 1e-6`; its empty metrics and failed execution remain intact.
+No numerical policy, response or threshold has changed. Independent raw-evidence
+review and the complete native/retention limits are recorded in
+[the exact-run checkpoint](benchmarks/records/20261012-stabilization-s5-ci-native-continuation.json).
+Ten logs and nine ZIPs are downloaded and digest-verified; raw files remain local
+and in expiring GitHub artifacts. This evidence-only checkpoint is not a new
+solver run. F05, engineering release, physical calibration and general contact
+remain open; features/local FreeCAD stay paused.
+
+## Earlier 2026-10-12 — CI preserves independent native coverage after an acceptance failure
+
+The S5 follow-up adds only one runtime step id and four workflow conditions.
+After successful runtime setup, independent J2, material-point, model-optimization
+and material-inverse acceptances may run despite earlier acceptance failure.
+Cancellation or failed setup blocks them; the overall failed result is preserved.
+Runtime pins, commands, time budgets, stores, artifacts and numerical gates do not
+change. No product or test source changes and no new native trial are included.
+
+Actual Root validation passes YAML/full-byte invariants, nine shell syntax checks
+and five controlled nonzero exits, with independent read-only review also passing.
+[The receipt](benchmarks/records/20261012-stabilization-s5-ci-continuation.json)
+records the Pro archive and exact workflow hash. Hosted scheduling and completion
+remain pending the new published source run; old CI cannot establish them.
+F05 is still unqualified after both original and AMD accuracy failures. No known
+supported numerical correction is adopted. Features/local FreeCAD stay paused.
+
+## Earlier 2026-10-12 — S5 AMD diagnostic reaches MUMPS but fails the original gate
+
+Pro delivered diagnosis and a preparation script, with no product/test/CI patch.
+Root and an independent reviewer checked the archive, source pins and exact
+single-call change before executing one fresh fine F05 trial in the existing
+pinned WSL/Singularity environment. Actual Code_Aster 17.4.0/MUMPS 5.6.2 reaches
+the solve, then fails `FACTOR_57`: `3.45549e-6 > 1e-6`. The AMD candidate is not
+a qualified fix. Native fields and Domain acceptance remain unavailable.
+
+The native log records scaled residual `1.27e-16` but estimated solution-error
+bound `3.46e-6` and condition estimate `9.20e9`. These are different quantities;
+the small residual does not clear the failed native gate. Original simulation
+files (91) and prepared inputs remain hash-identical, scratch is preserved and
+the owned native process group has exited. The local SIF pin differs from the
+CI-generated SIF and is recorded separately in
+[the S5 evidence](benchmarks/records/20261012-stabilization-s5-f05-diagnostic.json).
+
+Product source remains `3fd8bc4`; documentation checkpoint `9c321f5` is published.
+Exact CI `38153395166` remains nine passed/one failed. Pro has the actual AMD
+failure and a bounded follow-up: review justified F05 recovery and repair the
+CI conditions that skipped four independent native stages after family failure,
+without changing the overall failure or numerical gates. No follow-up patch is
+accepted yet. Features, local FreeCAD desktop and unrelated providers stay paused.
+
+## Earlier 2026-10-12 — Full S4 CI: nine jobs pass; original Code_Aster F05 remains open
+
+Exact source `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8` completed CI
+`38153395166` with **nine successful jobs and one failure**. Actual checkout is
+PR merge `2852fc3d4a78a93ff1e24a282b7f3ac3b82cb22a`, against main `a10f202`.
+Core passes 7,540 tests with 12 skips and two warnings, followed by all Node,
+MCP and HTTP stages. Windows passes 124 Python/19 Node checks and private-Python
+HTTP calculation/shutdown. Native, native-registration, structural, DOE,
+optimization, PDE and explicit jobs also pass. The overall run is FAILURE.
+
+Code_Aster's original regular-Fz/F05 finest mesh reproduces native `FACTOR_57`:
+MUMPS estimates `3.32295e-6`, exceeding unchanged `RESI_RELA=1e-6`. The original
+ZIP confirms level 0/1 native success and level 2 execution failure, before
+Domain assessment. Core correctly retains `FAILED_EXECUTION`, null convergence,
+empty metrics and `NOT_RELEASED`; no failed response is replaced or approved.
+The later J2, material-point, model-optimization and material-inverse steps did
+not run in this job. All original failures remain available.
+
+The headless native CAD/STEP/edit/recovery and affine-field CI evidence is
+separate from the paused local FreeCAD desktop workflow. The explicit benchmark
+still records PARTIAL/ideal-wall REJECTED; its reduced compliant case passes.
+Optimization's one generation passes workflow checks but remains unconverged.
+No GUI, global optimum or engineering release is inferred from these CI passes.
+
+[The exact-run record](benchmarks/records/20261012-stabilization-s4-ci-native-failure.json)
+pins job/log/artifact identities, retention, measured results and limitations.
+Pro has one bounded S5 correction request including the actual native failure
+and previous unsuccessful recovery approaches. No S5 patch is accepted yet.
+Root owns review/integration and the next exact-source acceptance. Features,
+local FreeCAD, the exhausted cloud trial and unrelated provider calls stay paused.
+
+## Earlier 2026-10-12 — Exact retained location and Qt regression corrections verified
+
+Pro S4 plus its single-test S4a correction is integrated in MAIN over published
+`52d36b5`. Only the comparison window and the two failed UI test files change.
+Final supplied tree is `e0f35bbb64554b3842806e5f7f4d5fbd36bcfc26`. Root verified
+archive manifests, every before/after source hash, Python syntax, patch application
+and unchanged workflow bytes. [The integration record](benchmarks/records/20261012-stabilization-ui-ci-corrections.json)
+retains both archives, the original failure and independent reports.
+
+The comparison window revalidates an explicitly selected native location against
+its retained document/session/job/input and source before restoring it after
+refresh. Missing or changed identities require reselection and preserve the prior
+comparison. The Data regression now waits for real HTTP result delivery and
+editable controls, then types, saves and reopens invalid text while old results
+remain intact. Existing deadlines and numerical/owner guards remain unchanged.
+
+Independent Windows S4 review found 34 passing tests and one initial modal-load
+race in the new test driver. After its bounded readiness correction, the affected
+file passes all 18 tests in one cold process (7.87 seconds), including the former
+failure's actual compare/value/gap checks. Unchanged Data and adjacent 16 checks
+retain their earlier pass evidence. Qt workers/windows/threads and owned Python
+processes are closed. The verified correction is ready for full CI. Source `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8` is now published
+and confirmed on the remote branch and Draft PR7. Exact-source CI `38153395166`
+passes Core and Windows. Core passes 7,540 tests with 12 skips and two retained
+warnings, followed by 651 + 19 + 8 Node checks and actual MCP/HTTP integration.
+The eight downstream jobs now run; their complete result remains required.
+No full CI or engineering approval is claimed. Features remain paused.
+
+## Earlier 2026-10-12 — Qt environment fixed; seven assertions remain
+
+Exact-source CI `38149573568` at `52d36b5` completed FAILURE. Qt runtime install
+and the actual offscreen preflight pass on GitHub; Windows passes 124 Python and
+19 Node tests plus the private-Python real HTTP calculation. Linux full pytest
+now runs: 7 failed, 7,525 passed, 12 skipped, 2 warnings in 1222.35 seconds. Eight
+downstream jobs were skipped and no acceptance artifact was uploaded.
+
+The remaining failures are one real HTTP/Qt Data Save completion check and six
+curve comparison UI selection/guard checks. Pro is correcting this bounded
+set; Root independently reproduces the two files on Windows. Old flat-selector
+fixtures and async-idle assumptions must be assessed without weakening actual
+saved-draft/identity/session/late-response/location checks. The
+[failure record](benchmarks/records/20261012-stabilization-s3-ci-failure.json)
+retains all test names, exact source/merge/job IDs and local full-log hashes.
+General features remain paused. New corrected source CI remains required.
+
+## Earlier 2026-10-12 — Linux Qt CI correction published
+
+Pro's one-file Linux Qt runtime/preflight correction is integrated in MAIN.
+Its full file matches SHA256
+`aa2007110269dca9181d7e167160b1e41a313fdd252bae252405026964737570`.
+Root verifies all archive hashes, YAML/shell syntax and preservation of every
+original Core step and the other nine jobs. Pro's Ubuntu offscreen preflight
+passed; its installed-library environment is not a fresh GitHub runner check.
+Source `52d36b5ab743b2cb0302d6f23cd9f83baa9b183d` is published and confirmed on
+the remote branch and Draft PR7. Exact-source CI `38149573568` later failed as
+recorded above. This environment correction leaves product/test code unchanged;
+new features remain paused. See
+[the correction record](benchmarks/records/20261012-stabilization-linux-qt-ci.json).
+
+## Earlier 2026-10-11 — Stabilization published; Linux environment failure
+
+Corrected source `04104f5dad133239cd00b504080684a1b971c354` is remotely durable
+on the development branch and Draft PR7. Exact-source CI `38148178940` completed
+FAILURE. Windows research-driver-source passed 124 tests, Node form checks and
+the private-Python HTTP bootstrap. Linux core stopped at collection with 25
+missing-`libEGL.so.1` errors; eight downstream jobs were skipped. Pro supplied
+the bounded Linux Qt dependency/preflight correction. No CI pass is claimed.
+
+Pro S1 plus S2 is integrated into MAIN after source/hash checks and bounded
+independent verification. The delivered final tree is
+`8057ace8ecb672246f92b343be3d4970841f2750`; its 51 changed files are preserved
+except one recorded EOF-whitespace cleanup. No new engine/protocol/upstream
+feature is included. All earlier failed runs and the stopped r6 archive remain.
+
+Windows Pre, actual offscreen ParaView general Save/repair/reopen, HTTP/Qt method
+drafts and plot layout, and retained SVK/J2/OpenRadioss passed S1 review. S2 adds
+genuine Maxwell tau1 rereading, deterministic mapping release on Windows, 111
+passing focused tests and a fresh default-deadline Heat read of 10.1710 seconds.
+Eight Windows symlink-permission skips remain explicit; WSL exercises the actual
+outside-symlink refusal. The [integration record](benchmarks/records/20261011-stabilization-s2-integration.json)
+pins reports and read-time provenance boundaries. Native/physical release is
+not implied; fixed limits and saved verdicts are preserved.
+
+Reviewing and publishing that CI correction, then checking every job of its
+new exact-source run, is the next gate. Earlier product
+`1de8a69`, docs `837df13` and failed run `38138994614` remain historical evidence.
+General feature work remains paused;
+Draft PR7 is not merged. See [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md).
+
+## Earlier 2026-10-11 — Paused for product and reuse assessment
+
+The owner requested a stop after current work is preserved and organized.
+Implementation and new verification are paused, not complete. Existing source
+`1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3` is remotely durable in Draft PR7.
+CI `38138994614` completed FAILURE (core/research-driver-source; downstream
+native jobs skipped). Its failed logs and exact merge/source identities are
+retained. The known Expert submit schema/callback mismatch remains unfixed.
+
+Pro's actual answer confirms that its r6 work had a new NumPy/SciPy J2/DP
+integrator rather than a call to upstream plasticity. It withdrew ordinary
+backend/menu exposure while preserving its prototype. Its final critique
+identifies early small-task/repeated-planning instructions as a real problem,
+but notes recent explicit reuse instructions and accepts responsibility for
+the integrator choice. Root owns the missed integration-direction check.
+
+All local reviewers are idle/completed. Pro confirmed the stop and returned
+only a current-work snapshot: 39 changed files, archived without application in
+`runs/pro-code-received-20261011-r01/paused-r6-20261011/`. Root verified archive
+and source-manifest hashes; the exact local-retention receipt is
+`benchmarks/records/20261011-paused-work-snapshot.json`.
+There is no accepted r6 or upstream J2/DP comparison flow. See the current
+workbench inventory. Do not follow the historical continuation directions
+below until the user resumes work.
+
+## Earlier 2026-10-11 — R5 research workspaces published; backend reuse review continues
+
+Pro r2/r3/r4/r5 is committed and remote-confirmed at
+`1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3`, with open
+[Draft PR7](https://github.com/pikachu444/autonomous-cae-lab/pull/7).
+R5 was integrated once in MAIN and REVIEW from supplied tree
+`9efb9363de8569ce269976fddcce8594fa403cbf`. Root documents/user attachments
+are preserved. Actual ParaView comparison/history/partial Owner Save/repair and
+cold reopen now preserve the correct IDs and original values. Actual HTTP
+Heat-to-Structure execution publishes exact native temperature, displacement
+and cell stress. Its saved result is intact, but cold stage reads exceed the
+default Client deadline. Actual Qt/MCP verifies pending-edit protection,
+fieldless-result guidance and specific HTTP refusal messages.
+
+Managed Pre Save has an actual Windows fsync failure and does not track later
+external-document revisions in its parent dirty/close decision. General Post
+Save still blocks before Owner during partial recovery. Native reader/picker
+compatibility and other-method draft loss after Plan Save remain open. Source,
+original failures and bounded evidence are in
+[WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md) and the
+[r5 record](benchmarks/records/20261011-connected-research-r5.json).
+
+Pro continues the constitutive comparison/calibration/holdout and saved research
+flow on r5, including these corrections. The owner questioned unnecessary
+J2/DP reimplementation and Root's delegation; the actual Pro conversation now
+has the direct request to assess upstream reuse, identify any new numerical
+kernel, and separate delivered r5 from unreceived r6. Pro has confirmed a new
+NumPy/SciPy integrator and reports removing its ordinary backend/menu exposure
+while retaining the prototype; this correction has not been received. Root integrates/reviews
+concurrently. No r6 source or new plasticity result is accepted by this state.
+Native FreeCAD and the old cloud trial stay stopped; unknown physical
+requirements still prevent release.
+
+CI run `38138994614` refers to source head `1de8a69`; its actual PR checkout is
+merge `a938901e315f2892693ed9ca4f39dcb78c962867`. Windows research-driver-source
+failed and core was still running at the first inspection. The first two
+failures concern retained-path and error-message expectations. Read-only
+triage also found an actual Expert submission contract mismatch: the tool
+schema forbids `purpose` while Workbench now requires it. This remains open;
+no CI pass or merge is claimed. See the current workbench record.
+
+## Earlier 2026-10-11 — Independent research and connected evaluation integrated locally
+
+Pro deliveries r2/r3/r4 are integrated on `9e7b5a5`, currently uncommitted.
+PDE and Expert editors, multichannel Data, retained-result numerical operations,
+Post analysis recipes, Simulation/Evaluation/Study documents and candidate
+adoption use the existing service owners and execution machinery. Root's actual
+Windows/Qt/native checks and remaining defects are recorded in
+[WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md) and the
+[connected-research record](benchmarks/records/20261011-connected-research-r4.json).
+
+The real 2D thermal/free-expansion calculation matches independent references;
+temperature Post delivery works, but displacement/stress delivery still fails.
+Native Post history/repair retains original results, with identity metadata and
+partial Save/pin defects still open. The actual Windows storage overlap repair
+works; the original intermittent handle owners remain unknown. These are bounded
+results, not full product, visible native GUI or engineering acceptance.
+
+Pro continues Pre editing/motion/mesh/save connections and the reported fixes.
+Root reviews and integrates concurrently. Existing native FreeCAD/cloud stops,
+UNKNOWN/NOT_RELEASED states and all original artifacts remain. Published source
+is still `584971df8ae64de08beaf1120febe4a9c994aa56`; its exact CI query returned no
+runs. A future documentation/source commit is not another solver verification.
+
+## Earlier 2026-10-11 — Pro implementation and Root integration
+
+Published source `584971df8ae64de08beaf1120febe4a9c994aa56` integrates independent
+Data/Numerical owners and Qt editors, native FEM snapshot execution/return, and
+the received correction r1. Root's real HTTP/Qt nonlinear flow recovered both
+Neo-Hooke coefficients, evaluated a two-variable DOE, adopted through the same
+Material owner, and reopened saved work in a new process with actual stdio MCP.
+Saved-source reimport and a delayed GUI adoption confirmation are also verified.
+[WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md) records exact runs and limits.
+
+Native FreeCAD/CalculiX/ParaView execution was not repeated. One transient polling
+failure can still strand an already-started native completion; Pro has the
+reproduction and is correcting it with the next PDE/Expert delivery. Those
+independent editors and the wider Post/research connections remain active work.
+The branch push is confirmed; exact-source CI has no run. The historical entries
+below retain their original source/date and do not override this current state.
+
+## Earlier 2026-10-11 — Current connected-workflow implementation
+
+Source `327b7b3` connects retained-job Runner navigation and the manual Post save
+macro to the shared owner. The actual Pro source review and bounded Qt evidence
+are in [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md). Native Pre/Runner/Post
+and Data/Numerical/adoption remain active implementation work. No new solver,
+visible GUI, physical or release acceptance follows from this checkpoint.
+
+## Earlier 2026-10-11 — Native input registration and independent Post implemented
+
+Implementation source `1f0338466d04fea8312aa943b5545b61fc858b50` now registers a
+VTU or a PVD plus its relative VTU dependencies through the existing service.
+HTTP, CLI and real stdio MCP resolve the same immutable input ID and hashes.
+CAE Post opens that verified snapshot, inspects real arrays/times, and appends a
+native state that was reopened in a separate ParaView process with the same
+values, time/array selection and source hashes. This is actual code and local
+native execution. [Acceptance and limits](docs/PREPOST_VERIFICATION.md) and the
+[machine-readable record](benchmarks/records/20261011-native-input-post.json)
+pin source, run, input ID, versions and artifacts.
+
+Distinct checks: 89 Python cases and 19 JavaScript cases passed. Visible browser
+automation was blocked; visible ParaView interaction and the live GUI/MCP native
+owner bridge are not accepted. Data/Material/Plan editing owners and the full
+CAD/FE→Runner→Post workflow remain open. No new solver or FreeCAD execution,
+physical validation or release approval is claimed. The code commit is local,
+unpushed, and exact-SHA GitHub Actions lookup returned no run. Native evidence is
+retained locally under `runs/`; the temporary integration service has shut down.
+
+## 2026-10-11 — Whole-product plan and requirement-validity corrections applied
+
+The user rejected treating ten progress questions and a first-Material handoff as
+completion of the requested product work. The root agent's planning-only framing
+was wrong; the original request called for progress during development. The ten
+actual reviews below remain historical facts, not evidence of product completion.
+The combined whole-product/UI/MCP request was sent to the existing actual Pro
+conversation at approximately 2026-10-11 01:54 UTC. The complete v2 plan is now
+preserved as [PRODUCT_UI_MCP_PLAN](docs/PRODUCT_UI_MCP_PLAN.md), with the
+[22-page UI PDF](docs/design/20261011-product-ui-mcp/Autonomous_CAE_Lab_UI_Plan_v2.pdf).
+Six missing connections were repaired in one follow-up and independently checked
+in the document. Root inspected every v1 PDF page and all seven changed v2 pages;
+the other fifteen rendered images match v1 exactly. Original v1 files are retained.
+Main/UI Pages are saved and read back at sequences 17/22, including attachment
+hashes and preservation of unrelated blocks/media.
+
+The user then challenged the validity of the numbered requirement ledger itself.
+Its numbers track original request sections; they are not equally weighted product
+features, a completion denominator or a reason to repeat obsolete work. The full
+descriptions and later user instructions were reviewed by actual Pro. The
+[review](docs/REQUIREMENTS_VALIDITY_REVIEW.md) records each original section's
+current effect. Its concrete changes are applied to the detailed plan: independent
+PDE editing and Expert discussion, minimal save/reopen from the first connection,
+CLI/Python parity, domain versus Plan parameter ownership, candidate retention and
+real test-data feedback. Conditional support and developer rules are not global
+product gates. Original v2 text/PDF and all executed history are retained.
+After this correction, main/UI Pages are at sequences 18/23. Attached current
+plan and review hashes match local files; affected hashes and all 339/145 untouched
+blocks plus old media were confirmed. The preceding full-plan unit is local commit
+`124d51e55cd45f9c1e0d434f31915c6d6978f281`. Existing implementation and numerical
+acceptance are retained; neither unit is pushed by this work.
+Local FreeCAD operation remains stopped at the user's request. Product source is
+still `af2f084dea20562b9036976a9945ee09a3994236`; an exact-full-SHA GitHub run query
+on 2026-10-11 returned no runs. No new product or solver execution is implied by
+the replanning or source inspection. The global Material-first sequence is replaced
+by the first CAD/FE→Runner→Post round trip and parallel independent research work.
+
+## Earlier 2026-10-11 — Concrete product plan and cloud reuse boundary
+
+[PRODUCT_PLAN](docs/PRODUCT_PLAN.md) now fixes the reference work screens,
+independent tool entry and shared Numerical Plan, Windows without WSL, the defect
+and fixture goals, and three research cases: material law, fixture/measurement
+confounding, and thermal/interface effects. It maps the first connected workflow
+to actual existing code and distinguishes missing document owners/Undo/persistence
+from existing input/job/result storage. A read-only consistency review found no
+material contradiction in its assigned scope; this is not product acceptance.
+
+Local native interaction reached a constrained Ø20mm sketch and Pad10→12mm,
+Undo10/Redo12. Saving was not confirmed and local operation stopped at the user's
+request. The authorized cloud check ran FreeCAD1.1.4/Gmsh4.12.1 under Ubuntu/Xvfb.
+Geometry matched analytical volume, prescribed revolute motion matched0.5rad
+(error1.90e-12rad under1e-6rad), and a1250-node/646-volume-element mesh plus face
+conditions were generated. No structural solve or mesh-quality verdict followed.
+
+Cloud sources `1b837a3029e81563165eae10acd7c47e7bb6abfc` and
+`21e9924ce030733163a09d29ac27fba9e5a293a3` have exact runs38068685523/38068833629,
+both FAIL/PARTIAL. The first harness error treated a motion link tuple as an object;
+the one repair fixed it. The second accessed the document's Material dictionary
+instead of the named FEM object. Both failed before integrated save/reopen, so
+that capability and subsequent change-impact checks remain unverified. Native
+feature failure is not established. Further runs stopped within the agreed bound.
+
+Cloud code is remotely preserved on its isolated branch; current product/UI source
+`af2f084dea20562b9036976a9945ee09a3994236` is unchanged. Pages6/11 and retained
+artifacts are recorded in `benchmarks/records/20261011-product-plan-cloud-reuse.json`.
+Scheduled Pro review1/10 closed the first Material edit/evaluate/compare/reopen
+unit, GUI/MCP ownership/Undo/invalid-draft boundary, three implementation tasks,
+result retention at use and separate J2/DP qualification. These were added to the
+existing plan and Pages7/12; this is implementation handoff, not executed product work.
+Scheduled review2/10 then closed the concrete service-owner and durable-save
+contracts in ADR0060, PRODUCT_PLAN, PREPOST_APP_SPEC and the contract explanation.
+GUI/MCP must attach to the same service-owned Material session; document changes
+are serialized and old sessions fail after restart. Required retained assets
+precede committed references, and reopen acceptance must restart the owner process.
+Pages9/14 were read back with all326/126 prior blocks unchanged. The first unit is
+planning complete and implementation not started; no new runtime test was made.
+Review3/10 explicitly adds P1 real multi-variable DOE and influence inspection,
+separate from fit/holdout, and P2 fixture modification/remesh/revalidation and
+baseline/design comparison through adopt/hold. The existing run_doe and
+analyze_candidates source was inspected; normalized least-squares influence is
+not global Sobol sensitivity or causal proof. Pages10/15 were read back with all
+328/128 previous blocks preserved. No product code or new numerical run was added.
+Review4/10 clarifies fixed scoring cohorts and coordinate-basis admission for
+vector/tensor comparison. Existing fit mask/finite-response/failure-penalty source
+was inspected and retained; general product comparison remains to implement.
+Pages11/16 preserve all330/130 prior blocks. The missing-error-segment and rotated
+same-tensor acceptance scenes are planned checks, not new numerical evidence.
+Review5/10 adds parameter-identifiability and numerical-error gates to case A:
+distinguish fitted/fixed/unidentified coefficients and contaminated holdout, and
+defer model-family ranking when coefficient choices or mesh/increment refinement
+change the conclusion. Existing fit rank/condition and separate holdout behavior
+remain; an affine two-mesh J2 patch does not qualify general DP comparison.
+Pages12/17 preserve all332/132 prior blocks. No new solver or product execution.
+Review6/10 fixes case B's physical gauge definition and mounting/clamping history.
+Rigid translation of both gauge points must produce zero extension; comparisons
+retain the same physical measurement interval. Sensor re-zeroing must preserve
+clamping stress/state/contact history within a candidate, while candidates remain
+isolated. Current fixture evidence leaves preload/fasteners undefined. Pages13/18
+preserve all334/133 prior blocks; staged mechanics remain future acceptance.
+Review7/10 adds case C's opening/reclosure/reopening and observation-time gates.
+Irreversible cohesive damage must survive reclosure with the declared compressive
+response; delayed recovery in a recoverable viscoelastic reference is separate
+from permanent deformation and time-specific tolerance failure. Primary Abaqus
+cohesive/time-viscoelastic definitions support these planned checks. Pages14/19
+preserve all336/134 prior blocks; no new thermal/interface runtime was executed.
+Review8/10 distinguishes cancellation of a selected candidate job from the current
+fit/DOE execution. Whole-execution cancellation stops new generation/submission,
+tracks queued/running work and cleanup, and retains late results without restarting
+search or adoption. The saved Plan and unrelated executions remain intact. Current
+outer jobs, cooperative cancellation and cleanup states are reuse points; a durable
+job per objective call is not required. Pages15/20 preserve all338/135 prior blocks.
+This closes connection planning; actual GUI/MCP cancellation remains to implement
+and accept. Pro reviewed the report; source reading added no runtime evidence.
+Review9/10 found no additional first-Material-UI planning blocker in the supplied
+reference/interaction report. The existing plan and Pages15/20 are unchanged.
+Next evaluate actual reference-state fidelity and the continuous edit/Undo/evaluate/
+compare/save/reopen flow. This is handoff readiness, not product UI acceptance;
+Pro did not newly inspect the PDF, Pages, code or running UI.
+Review10/10 closes the requested review cycle: ten actual sends and replies.
+The final report-based verdict permits planning handoff to the three defined
+Material tasks. Wording now identifies a general engineering research toolset,
+with defect research and pre-build fixture design/modification/review as its first
+practical acceptance workflows, not the whole scope. Pages16/21 were read back;
+all337/135 unrelated blocks are unchanged. First-unit implementation remains
+NOT_STARTED and new GUI/MCP, integrated native persistence and engineering
+acceptance remain open. No further planning cycle is scheduled.
+The planning branch remains local. Original scope, historical results and
+UNKNOWN/NOT_RELEASED are preserved. Scheduled Pro review counts are separate in
+`docs/PROGRESS_TASKS.md` and the referenced execution state.
+
+## 2026-10-11 — Independent research boundaries and Pro review
+
+The user's correction is now reflected in repository specifications and both
+design Pages: Data, Material and PDE own independent documents; CAD/FE Pre owns
+CAD/assembly/mesh/FE preparation. The earlier non-CAD dual-Pre-host requirement
+is withdrawn. ADR0060 and PREPOST_APP_SPEC §2.1 define recipe/mask ownership,
+Material protocol versus Numerical Plan, mesh semantics, domain numerics versus
+Runner resources, multi-owner adoption and composite evaluation responsibility.
+Physical packaging remains a proposal; no new editor or Core API was implemented.
+
+An actual ChatGPT Pro review read the previous two Pages and public baseline
+specification. Root incorporated its findings; a separate read-only consistency
+review found one residual P14 contradiction, now corrected. This is design
+review, not Pro validation of this local patch or numerical/GUI acceptance.
+Pages were saved and read back at sequences 4/9, preserving all 52 R rows,
+17 UC rows, 14 E rows, 12 N rows and all eight appendix media references.
+Evidence: `benchmarks/records/20261011-independent-workspaces-design.json`.
+
+Product/UI source remains `af2f084dea20562b9036976a9945ee09a3994236`; its exact
+CI query returned no runs. Base checkpoint is `b24fd0a`. No new solver or native
+GUI execution occurred. All new acceptance gates are NOT_RUN. Changes are local;
+no push/merge or remote durability is claimed. Preserve user attachments.
+Next implement a bounded CAD-free document/evaluation/reopen slice against
+these contracts, including a real benchmark and GUI/MCP identity; do not revive
+the rejected Pre ownership or a fixed five-executable requirement.
+
+## 2026-10-10 — Reference UI R02 shown to user
+
+Source `af2f084dea20562b9036976a9945ee09a3994236` improves toolbar artwork/density,
+trees and HyperMesh split views after the user's rejection of the first screens.
+It also fixes cross-dataset selection, saved result components, compact legend/query
+clipping and camera inertia. TypeScript/build/design scan pass; Root performed the
+browser checks, and independent review confirmed its two source findings resolved.
+Exact-source CI has no runs; source is unpushed. Input hashes are unchanged, with
+zero new solver runs. See `benchmarks/records/20261010-engineering-browser-studies-r02.json`.
+Both live studies and actual images were shown. Desktop packaging and native
+product/engineering acceptance remain unfinished; this is a capability demonstration.
+
+## 2026-10-10 — Abaqus / HyperMesh browser studies
+
+The user's two-product browser UI request is implemented at local source commit
+`cf06f39c490b8602d3115ba3e976852dfd1ed74d` (not pushed). Open
+`http://127.0.0.1:8941/abaqus.html` and `/hypermesh.html`, or the self-contained
+HTML files in `artifacts/engineering-ui-20261010/`. Source, actual browser checks,
+five corrected review findings, retained input hashes, exact CI status and
+limitations are in `benchmarks/records/20261010-engineering-browser-studies-r01.json`.
+No new solver/CAD/remesh operation ran. The earlier six-app prototype is not
+product acceptance. Core/native workflows and engineering release remain open.
+
+## 2026-10-10 UI design correction checkpoint
+
+Interactive synthetic UI source is preserved at `85c1c00c396e992263a41f883dd6883ff5c3eb79`
+on `codex/ui-interaction-design-20261010` (local commit, not pushed). Six distinct
+workspace layouts replace the earlier static wireframes. Root exercised actual
+browser controls; independent review inspected source and all 18 screenshots after
+six material findings were corrected. TypeScript/build pass. See
+`docs/ui-prototype/README.md`, `docs/ui-prototype/REVIEW.md` and the exact artifact
+hashes, Page sequences 3/8, CI and limitations in
+`benchmarks/records/20261010-ui-interaction-design-r01.json`.
+
+This is a design prototype only: no product Core/adapter/native/solver/LLM change.
+Product baseline `a10f202` CI run 37789173095 is failure; new prototype commit has no CI
+run. All 52 requirements, native host/document integration, actual provider/solver acceptance
+and engineering/company release remain incomplete/UNKNOWN/NOT_RELEASED. The
+Pages screen appendix contains the runnable HTML, source/capture/review ZIP and
+six real screenshots. Next implement and accept the preserved product contracts;
+do not reinterpret this UI review as native or numerical approval.
+
 ## 2026-10-08 native pre and post design review checkpoint
 
 The current remote-main Workbench remains intact. Separate FreeCAD/ParaView
@@ -3161,3 +3681,13 @@ The full original scope is retained in `PROJECT_SCOPE.md` (all 52 section IDs), 
 1. The CadQuery vertical slice is executed here: discover actual source variables, register selected variables and bounds, regenerate 32→38 mm, reject invalid inputs before export, record hashes/evidence/validation, return a research summary.
 2. The sample Part/Sketcher Core bridge passed locally and in CI. Verify imported, arbitrary FCStd models and edit/reorder Sketcher constraints in a GUI, then refresh registry without ambiguous discovery.
 3. Finer 1.5 mm, actual numerical optimization and canonical weak-form PDE now passed locally and in exact-source CI; see the continuation record above. Continue Code_Aster reference benchmarks, GUI-edited native refresh/transactions, live OpenScience acceptance and durable evidence retention, then contact/bolt/material and broader phases. Keep every unverified release requirement `UNKNOWN`.
+## 2026-10-11 — Shared Material editor/native commands; product connections open
+
+Published source `97f1a45136d9ac456a9d74344b52ea2edd439d6e` implements the
+Material coefficient/history editor, real evaluation, shared GUI/MCP editing
+and retained save, plus typed native Post inspect/select/save. Exact observations
+and limitations are in [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md).
+Data/Plan/Runner research and native Pre→Runner→Post are not completed by this
+unit. User-requested Pro review must judge this actual source against intended
+workflows and correct unproductive validation/review repetition. The current
+branch is pushed with user authorization; main is unchanged.

@@ -17,6 +17,86 @@ def handle(handler,method,path,query):
                 name=unquote(name,encoding='utf-8',errors='strict')
             return handler._json(201,workbench.upload(name,payload))
         body=handler._json_body()
+        if path=='/api/workbench/backend-readiness':
+            if set(body)!={'backend'}:
+                raise ServiceError(400,'Dependency discovery accepts a registered backend only; no execution/configuration arguments')
+            return handler._json(200,workbench.backend_readiness(body['backend']))
+        if path=='/api/workbench/research-reference':
+            if set(body)!={'reference'}:
+                raise ServiceError(400,'Select the exact saved evidence reference')
+            return handler._json(200,workbench.research_reference(body['reference']))
+        if path=='/api/workbench/domain-plan':
+            if set(body)!={'document_id','session_id','expected_generation','command_id'}:
+                raise ServiceError(400,'Select the exact source owner generation')
+            return handler._json(200,workbench.desktop.domain_plan(**body))
+        if path=='/api/workbench/study-followup':
+            if set(body)!={'context','kind','session_id','command_id'}:
+                raise ServiceError(400,'Select a saved Study issue and target editor')
+            return handler._json(200,workbench.desktop.study_followup(**body))
+        if path=='/api/workbench/document-compare':
+            if set(body)!={'source','prediction_source'}:
+                raise ServiceError(400,'Choose the two explicit retained curve references')
+            return handler._json(200,workbench.document_compare(**body))
+        if path=='/api/workbench/data-followup':
+            if set(body)-{'source','kind','session_id','command_id','material_document_id'}:
+                raise ServiceError(400,'Unknown follow-up field')
+            return handler._json(200,workbench.desktop.data_followup(**body))
+        if path=='/api/workbench/result-followup':
+            if set(body)-{'source_ref','kind','session_id','command_id','request'}:
+                raise ServiceError(400,'Unknown result follow-up field')
+            return handler._json(200,workbench.desktop.result_followup(**body))
+        if path=='/api/workbench/native-submit':
+            if set(body)!={'command_id'}:
+                raise ServiceError(400,'Native submit requires the exact completed export command_id')
+            return handler._json(202,workbench.desktop.submit_frozen(body['command_id']))
+        if path=='/api/workbench/numerical-adopt':
+            if set(body)!={'plan_id','job_id','candidate_id','material_document_id','session_id','expected_generation','command_id'}:
+                raise ServiceError(400,'Adoption requires the selected candidate and exact target generation')
+            return handler._json(200,workbench.desktop.adopt(**body))
+        if path=='/api/workbench/pde-candidate-preview':
+            if set(body)!={'plan_id','job_id','candidate_id'}:
+                raise ServiceError(400,'Select the exact Plan, retained run and PDE candidate')
+            return handler._json(200,workbench.desktop.pde_candidate_preview(**body))
+        if path=='/api/workbench/domain-candidate-preview':
+            if set(body)!={'plan_id','job_id','candidate_id'}:
+                raise ServiceError(400,'Select the exact Plan, retained run and domain candidate')
+            return handler._json(200,workbench.domain_candidate_preview(**body))
+        if path=='/api/workbench/domain-candidate-adopt':
+            if set(body)!={'plan_id','job_id','candidate_id','target_document_id','session_id','expected_generation','command_id'}:
+                raise ServiceError(400,'Domain adoption requires the reviewed candidate and exact target generation')
+            return handler._json(200,workbench.domain_candidate_adopt(**body))
+        if path=='/api/workbench/pde-adopt':
+            if set(body)!={'plan_id','job_id','candidate_id','pde_document_id','session_id','expected_generation','command_id'}:
+                raise ServiceError(400,'PDE adoption requires the bound candidate and exact target generation')
+            return handler._json(200,workbench.desktop.pde_adopt(**body))
+        if path=='/api/workbench/discussion-plan':
+            if set(body)!={'discussion_id','turn_id','proposal_index','session_id','command_id'}:
+                raise ServiceError(400,'Select the exact actual discussion proposal and service session')
+            return handler._json(200,workbench.desktop.discussion_plan(**body))
+        if path=='/api/workbench/pde-plan':
+            if set(body)!={'document_id','session_id','expected_generation','command_id'}:
+                raise ServiceError(400,'Select the PDE owner, session and exact input generation')
+            return handler._json(200,workbench.desktop.pde_plan(**body))
+        if path=='/api/workbench/documents/open':
+            if set(body)-{'kind','title','draft','document_id'}:
+                raise ServiceError(400,'Unknown document field')
+            return handler._json(200,workbench.document_open(**body))
+        match=re.fullmatch(r'/api/workbench/documents/([^/]+)/commands',path)
+        if match:
+            if set(body)-{'operation','arguments','session_id','expected_generation','command_id'}:
+                raise ServiceError(400,'Unknown document command field')
+            return handler._json(200,workbench.document_command(match.group(1),**body))
+        if path=='/api/workbench/hosts/register':
+            return handler._json(200,workbench.native_commands.register(**body))
+        match=re.fullmatch(r'/api/workbench/hosts/([^/]+)/(commands/next|events)',path)
+        if match:
+            operation=workbench.native_commands.next if match.group(2)=='commands/next' else workbench.native_commands.event
+            return handler._json(200,operation(match.group(1),**body))
+        match=re.fullmatch(r'/api/workbench/commands/([^/]+)/cancel',path)
+        if match:
+            if body:
+                raise ServiceError(400,'Command cancellation requires empty JSON')
+            return handler._json(200,workbench.native_commands.cancel(match.group(1)))
         if path=='/api/workbench/jobs':
             if set(body)-{'operation','arguments','request_id','resources'}:
                 raise ServiceError(400,'Unknown job field')
@@ -41,15 +121,106 @@ def handle(handler,method,path,query):
         raise ServiceError(404,'Unknown workbench route')
     if path=='/api/workbench':
         return handler._json(200,workbench.overview())
+    match=re.fullmatch(r'/api/workbench/numerical/([^/]+)/jobs/([^/]+)/candidates/([^/]+)/evaluations',path)
+    if match:
+        if set(query)-{'evaluation_index','attempt_id','selection'} or any(len(value)!=1 for value in query.values()):
+            raise ServiceError(400,'Choose one exact candidate evaluation/stage and response selection')
+        index=int(query['evaluation_index'][0]) if 'evaluation_index' in query else None
+        selection=json.loads(query['selection'][0]) if 'selection' in query else None
+        return handler._json(200,workbench.numerical_evaluation_result(*match.groups(),evaluation_index=index,
+            attempt_id=query.get('attempt_id',[None])[0],selection=selection))
+    match=re.fullmatch(r'/api/workbench/(evaluations|studies)/([^/]+)/(inspect|references)',path)
+    if match:
+        if query or (match.group(1),match.group(3)) not in {('evaluations','inspect'),('studies','references')}:
+            raise ServiceError(400,'Unknown research inspection request')
+        method=workbench.evaluation_inspect if match.group(1)=='evaluations' else workbench.study_references
+        return handler._json(200,method(match.group(2)))
+    match=re.fullmatch(r'/api/workbench/evaluations/([^/]+)/jobs/([^/]+)(?:/stages/([^/]+))?',path)
+    if match:
+        if set(query)-{'selection'} or any(len(value)!=1 for value in query.values()) or query and not match.group(3):
+            raise ServiceError(400,'Stage results accept only an explicit response selection')
+        if match.group(3):
+            selection=json.loads(query['selection'][0]) if 'selection' in query else None
+            return handler._json(200,workbench.evaluation_stage_result(*match.groups(),selection=selection))
+        return handler._json(200,workbench.evaluation_progress(match.group(1),match.group(2)))
+    if path=='/api/workbench/desktop':
+        if query:
+            raise ServiceError(400,'Desktop context does not accept query arguments')
+        return handler._json(200,workbench.desktop.context())
+    match=re.fullmatch(r'/api/workbench/jobs/([^/]+)/navigation',path)
+    if match:
+        if query:
+            raise ServiceError(400,'Job navigation does not accept query arguments')
+        return handler._json(200,workbench.desktop.navigation(match.group(1)))
+    if path in {'/api/workbench/documents','/api/workbench/hosts'}:
+        if query:
+            raise ServiceError(400,'Listing does not accept query arguments')
+        return handler._json(200,workbench.documents() if path.endswith('/documents') else workbench.native_commands.hosts())
+    match=re.fullmatch(r'/api/workbench/documents/([^/]+)/source-preview',path)
+    if match:
+        if query:
+            raise ServiceError(400,'Source preview does not accept query arguments')
+        return handler._json(200,workbench.document_source_preview(match.group(1)))
+    match=re.fullmatch(r'/api/workbench/documents/([^/]+)/comparisons/([^/]+)',path)
+    if match:
+        if set(query)-{'start','count'} or any(len(value)!=1 for value in query.values()):
+            raise ServiceError(400,'Unknown comparison page field')
+        start,count=(query.get(key,[default])[0] for key,default in (('start','0'),('count','4096')))
+        if not start.isascii() or not start.isdigit() or not count.isascii() or not count.isdigit():
+            raise ServiceError(400,'Comparison page requires nonnegative integers')
+        owner=workbench._document_owner(match.group(1))
+        if getattr(owner,'kind',None) not in {'data','material','pde','simulation'}:
+            raise ServiceError(400,'Select the owning research document for this saved curve comparison')
+        return handler._json(200,owner.comparison(*match.groups(),start=int(start),count=int(count)))
+    match=re.fullmatch(r'/api/workbench/documents/([^/]+)/results/([^/]+)',path)
+    if match:
+        if set(query)-{'selection'} or any(len(value)!=1 for value in query.values()):
+            raise ServiceError(400,'Unknown document result selection')
+        selection=json.loads(query['selection'][0]) if 'selection' in query else None
+        return handler._json(200,workbench.document_result(match.group(1),match.group(2),selection=selection))
+    match=re.fullmatch(r'/api/workbench/documents/([^/]+)/response-locations/([^/]+)',path)
+    if match:
+        if set(query)-{'channel','start','count','search'} or any(len(value)!=1 for value in query.values()) or 'channel' not in query:
+            raise ServiceError(400,'Location lookup requires one exact channel and page')
+        start, count = query.get('start',['0'])[0], query.get('count',['128'])[0]
+        if not start.isascii() or not start.isdigit() or not count.isascii() or not count.isdigit():
+            raise ServiceError(400,'Location page requires nonnegative integer indexes')
+        return handler._json(200,workbench.document_response_locations(*match.groups(),query['channel'][0],
+            start=int(start),count=int(count),search=query.get('search',[''])[0]))
+    match=re.fullmatch(r'/api/workbench/documents/([^/]+)/(result-reference|result-metadata)/([^/]+)',path)
+    if match:
+        if query:
+            raise ServiceError(400,'Result identity/catalog lookup does not accept query arguments')
+        method=workbench.document_result_reference if match.group(2)=='result-reference' else workbench.document_result_metadata
+        return handler._json(200,method(match.group(1),match.group(3)))
+    match=re.fullmatch(r'/api/workbench/(documents|commands)/([^/]+)',path)
+    if match:
+        if query:
+            raise ServiceError(400,'Document/command read does not accept query arguments')
+        operation=workbench.document_read if match.group(1)=='documents' else workbench.native_commands.status
+        try:
+            result=operation(match.group(2))
+        except KeyError:
+            if match.group(1)=='commands':
+                raise ServiceError(404,'Native command ID has not been registered in this service')
+            raise
+        return handler._json(200,result)
+    if path=='/api/workbench/local-roots':
+        if query:
+            raise ServiceError(400,'Root listing does not accept query arguments')
+        return handler._json(200,workbench.local_roots())
     if path=='/api/workbench/local-inputs':
-        if set(query)-{'root_id','relative'}:
+        if set(query)-{'root_id','relative','cursor'} or any(len(values)!=1 for values in query.values()):
             raise ServiceError(400,'Unknown local input query')
         root=query.get('root_id',[''])[0]
         relative=query.get('relative',[''])[0]
-        return handler._json(200,workbench.local_inputs(root,relative))
+        cursor=query.get('cursor',['0'])[0]
+        if not cursor.isascii() or not cursor.isdigit():
+            raise ServiceError(400,'File cursor must be a nonnegative integer')
+        return handler._json(200,workbench.local_inputs(root,relative,cursor=int(cursor)))
     match=re.fullmatch(r'/api/workbench/jobs/([^/]+)',path)
     if match:
-        return handler._json(200,workbench.manager.status(match.group(1)))
+        return handler._json(200,workbench.desktop.job_record(match.group(1)))
     match=re.fullmatch(r'/api/workbench/results/([^/]+)',path)
     if match:
         if set(query)-{'responses','selection'} or ('responses' in query and 'selection' in query):
@@ -59,6 +230,11 @@ def handle(handler,method,path,query):
         if isinstance(selection,dict) and set(selection)-{'responses','component','location','rows','time_range','metadata_only'}:
             raise ServiceError(400,'Unknown response selection')
         return handler._json(200,workbench.result(match.group(1),selection=selection))
+    match=re.fullmatch(r'/api/workbench/inputs/([^/]+)/native',path)
+    if match:
+        if query:
+            raise ServiceError(400,'Native input lookup does not accept query arguments')
+        return handler._json(200,workbench.native_input(match.group(1)))
     match=re.fullmatch(r'/api/workbench/inputs/([^/]+)',path)
     if match:
         return handler._json(200,workbench.input_preview(match.group(1)))

@@ -94,7 +94,7 @@ def test_http_and_actual_stdio_share_job(tmp_path):
     async def exercise():
         params=StdioServerParameters(command=sys.executable,args=['-m','openscience.workbench_mcp'],
                     env={**os.environ,'CAELAB_SERVICE_URL':client.url})
-        async with stdio_client(params) as (reader,writer):
+        async with stdio_client(params,errlog=sys.stderr) as (reader,writer):
             async with ClientSession(reader,writer) as session:
                 await session.initialize()
                 names={tool.name for tool in (await session.list_tools()).tools}
@@ -220,7 +220,9 @@ def test_partial_failure_and_native_thread_reservation(tmp_path,monkeypatch):
 def test_existing_declared_native_binding_joins_managed_doe(tmp_path):
     from test_model_parameters import SyntheticParameterizedModel,template_settings
     from caelab.backends import register_backend
+    from caelab.evaluation import file_hash, read_result
     adapter=SyntheticParameterizedModel()
+    adapter.backend='test.native.binding'
     register_backend('test.native.binding',lambda:adapter,roles=('model',),replace=True)
     wb=Workbench(tmp_path)
     try:
@@ -231,7 +233,29 @@ def test_existing_declared_native_binding_joins_managed_doe(tmp_path):
         result=wb.manager.result(job['id'])
         assert len(result['candidates'])==2 and adapter.calls==2
         assert all(row['diagnostics']['evaluation_mode']=='FILE_BASED_NATIVE' for row in result['candidates'])
-        assert len(list(wb.root.glob('native/*/*/simulation/raw.log')))==2
+        folder = wb.root / 'results' / job['id']
+        artifacts = {item['path']: item['sha256'] for item in result['artifacts']}
+        assert len(artifacts) == len(result['artifacts'])
+        for relative, expected in artifacts.items():
+            path = (folder / relative).resolve()
+            assert path.is_relative_to(folder.resolve()) and file_hash(path) == expected
+        logs = []
+        for row in result['candidates']:
+            assert len(row['evaluation_refs']) == 1
+            reference = row['evaluation_refs'][0]
+            candidate = (folder / reference['relative']).resolve()
+            assert candidate.is_relative_to(folder.resolve())
+            assert file_hash(candidate / 'result.json') == reference['result_sha256']
+            saved = read_result(candidate)
+            assert saved['settings']['inputs']['x'] == row['values']['input_x']
+            assert reference['backend'] == saved['backend'] == adapter.backend
+            native = candidate / saved['native_result']['directory']
+            relative = (native / 'raw.log').relative_to(folder).as_posix()
+            assert relative in artifacts
+            expected_log = ('TEST ONLY: synthetic observation; no native solver executed' + os.linesep).encode('ascii')
+            assert (folder / relative).read_bytes() == expected_log
+            logs.append(relative)
+        assert len(set(logs)) == 2
     finally:
         wb.shutdown()
 
