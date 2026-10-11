@@ -1,4 +1,40 @@
-## 2026-10-12 — Independent native CI continuation verified locally; hosted run next
+## 2026-10-12 — Hosted CI continuation verified; original F05 remains unresolved
+
+Published source `385818bab785bfbf2c1e5880371970e475c90d68` completed exact
+[CI 38159523618](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618):
+nine jobs pass and `codeaster` fails. The actual clean PR checkout is
+`6dca0ddb94f340252299aec8a0d656ca1b44df83` against
+`a10f2023a2084512839b5e0af8ab0adc0aeb9293`. Later documentation commits do not
+constitute another native verification. The watcher and downloads are finished.
+
+The CI coverage repair is now demonstrated on the hosted runner. Despite the
+family failure, J2 histories, MGIS/MTest, declared-model optimization and sealed
+OCI synthetic inverse all execute and pass their existing bounded acceptances.
+The failed family step and overall failure remain visible. Core passes 7,540
+tests with 12 skips; Windows passes 124 tests, 19 Node checks and its actual
+private-runtime HTTP calculation. Native CAD, registration, structural, DOE,
+CAD optimization, PDE and explicit job gates also pass within their stated limits.
+
+Original `E-ansys_vmd1_regular-Fz-aster` still fails level 2 at native
+`FACTOR_57`: `3.32295e-6 > 1e-6`. Coarser levels exit 0; the finest level exits 1
+without a complete worker result. Preserve `FAILED_EXECUTION`, empty metrics,
+null convergence and `NOT_RELEASED`. The separate local AMD trial also failed;
+no qualified numerical correction has been adopted. A future proposal must
+establish the actual constrained/scaled MUMPS system and solution representation,
+then identify a specific correction preserving the original equations and gates.
+Do not repeat the already failed option sweeps or infer accuracy from tiny residuals.
+
+[The exact-run record](benchmarks/records/20261012-stabilization-s5-ci-native-continuation.json)
+pins all ten job logs, nine downloaded ZIPs, native reports, runtime inventory,
+independent review and limitations. Raw files are in ignored
+`runs/pr7-ci-38159523618/`; GitHub artifacts expire on 2026-11-10 at the recorded
+UTC times. They are not included in a fresh Git clone. The bounded searches remain
+unconverged after one generation; the inverse target is synthetic. Engineering
+and corporate qualification remain `UNKNOWN/NOT_RELEASED`. Pro remains the
+product/test/CI writer; Root owns review/integration. Features and local FreeCAD
+desktop work remain paused. Do not reapply the already published patch.
+
+## Earlier 2026-10-12 — Independent native CI continuation verified locally; hosted run next
 
 Pro's five-line workflow correction is applied once over `f953c451ff3f29390267cd2db4c0f255f8b13a4c`.
 It identifies successful Code_Aster runtime setup and guards four independent

@@ -1,5 +1,28 @@
 # Explicit sealed OCI runtime profile for the synthetic inverse prerequisite
 
+## 2026-10-12 — Alternate-SIF hosted inverse admission and execution verified
+
+Exact CI `38159523618` at source `385818bab785bfbf2c1e5880371970e475c90d68`
+and clean merge `6dca0ddb94f340252299aec8a0d656ca1b44df83` explicitly selects
+`SEALED_OCI`, admits its actual runtime, and completes the bounded synthetic
+inverse acceptance. Actual SIF SHA256 is
+`956ad88234b53d4e8dfa76d7e067332059279cd7e5d7ccb6f09ebe4e46e978a4`, distinct
+from the historical local `f4d9` image. Its OCI manifest remains
+`d8d19ea91989eac0d38195bc5795c54c69f530f7196f53d67697ffa57c9106d5`.
+
+The retained admission probe remeasures all six installed compiler/tool/binding
+hashes and matches the sealed inventory before the nine native evaluations.
+The frozen packet records actual deployment configuration, probe, source hashes,
+limits and image identity. [The exact-run record](../benchmarks/records/20261012-stabilization-s5-ci-native-continuation.json)
+pins those bytes and the independently reviewed result. This closes the formerly
+pending alternate-image/exact-source CI prerequisite for this measured image.
+It does not admit arbitrary images or change the default `LOCAL_EXACT_SIF`.
+Upstream binary source commits and the cause of SIF byte differences remain
+unknown. Synthetic inverse is **PASS / NOT_RELEASED**, unconverged after one
+generation; overall CI still fails original F05.
+
+## Historical local profile acceptance — 2026-09-30
+
 Date: 2026-09-30. The explicit SEALED_OCI native prerequisite is **PASS** in
 fresh `runs/material-inverse-sealed-oci-native-01` at clean numerical source
 `f0b5fa39e72580e930e886ee13f3a8347e08e826`. Independent static and actual

@@ -1,6 +1,30 @@
 # Connected structural family acceptance
 
-## 2026-10-12 — CI continuation repair does not change the failed family verdict
+## 2026-10-12 — Exact CI preserves F05 failure and completes independent native stages
+
+Published source `385818bab785bfbf2c1e5880371970e475c90d68`, actual clean checkout
+`6dca0ddb94f340252299aec8a0d656ca1b44df83`, completes CI `38159523618`.
+The original `E-ansys_vmd1_regular-Fz-aster` again fails its finest `[24,4,4]`
+mesh at `FACTOR_57`: calculated `3.32295e-6` exceeds unchanged `RESI_RELA=1e-6`.
+Coarser levels exit 0; level 2 exits 1 with no complete worker result. Preserve
+`FAILED_EXECUTION`, null convergence, empty metrics and `NOT_RELEASED`.
+
+The downloaded raw log and actual runtime are pinned in
+[the exact-run record](../benchmarks/records/20261012-stabilization-s5-ci-native-continuation.json).
+This run uses SIF `956ad88234b53d4e8dfa76d7e067332059279cd7e5d7ccb6f09ebe4e46e978a4`
+from the unchanged OCI manifest, distinct from the earlier CI and local images.
+The four later independent native steps all run and pass; the failed family
+step and overall failed CI result remain. Their successes do not qualify F05.
+
+No demonstrated load/support/mesh implementation error or qualified numerical
+correction was found. A future correction needs evidence connecting the original
+physical equations to the actual constrained/scaled/permuted MUMPS system and
+solver-variable representation. Small backward error is insufficient; the
+postprocessed dual `DEPL` values are not established as that algebraic solution.
+Neither physical accuracy nor an unavoidable physical limit is proven by these
+diagnostics. Retain all prior failures and avoid repeated blind option sweeps.
+
+## Earlier 2026-10-12 — CI continuation repair does not change the failed family verdict
 
 The reviewed S5 follow-up changes only five workflow lines so four independent
 native acceptance stages can run after a family failure, provided runtime setup

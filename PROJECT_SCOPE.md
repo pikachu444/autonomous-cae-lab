@@ -1,4 +1,21 @@
-## 2026-10-12 — CI coverage repair ready for exact-source hosted acceptance
+## 2026-10-12 — CI coverage repair verified; numerical and release gates retained
+
+Source `385818b` completes exact CI `38159523618`: nine jobs pass and the original
+F05 failure keeps the Code_Aster job failed. The four formerly skipped independent
+native stages now all execute and pass: J2, MGIS/MTest, declared-model search and
+sealed OCI synthetic inverse. Core passes 7,540 tests with 12 skips; Windows and
+the other native job gates pass. [The exact-run evidence](benchmarks/records/20261012-stabilization-s5-ci-native-continuation.json)
+records source/merge identities, actual comparisons, retained raw artifacts and
+bounded scope. The pending hosted CI-continuation gate below is now verified.
+
+F05 remains `FAILED_EXECUTION`: native solution-error estimate `3.32295e-6`
+exceeds unchanged `1e-6`. No solver fix or engineering acceptance is asserted.
+The synthetic inverse and one-generation searches do not qualify physical
+materials or global optima. The complete 52-section ledger remains in scope;
+unknown physical, material, strength, durability and corporate requirements still
+block release. Feature and local FreeCAD desktop work remain paused.
+
+## Earlier 2026-10-12 — CI coverage repair ready for exact-source hosted acceptance
 
 The reviewed S5 follow-up prevents one failed native acceptance from skipping
 four independent native stages. Setup/cancellation guards and every numerical

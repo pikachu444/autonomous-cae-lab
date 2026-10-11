@@ -1,5 +1,25 @@
 # MFront material-point acceptance
 
+## 2026-10-12 — Current-source hosted native acceptance
+
+Source `385818bab785bfbf2c1e5880371970e475c90d68`, clean PR merge
+`6dca0ddb94f340252299aec8a0d656ca1b44df83`, passes this stage in CI `38159523618`
+after the independent family failure. Canonical and changed-modulus cases each
+retain 407 MGIS integrations, including 396 finite-difference probes, and twelve
+MTest states. The independent Hooke tensor and native cross-driver comparisons
+pass. Canonical stress error is `7.10543e-14 MPa`, MGIS/MTest discrepancy is
+`8.52651e-14 MPa`, and the largest finite-difference tangent error is
+`1.50481e-10`, below unchanged `1e-8`. Invalid input remains rejected.
+
+The [exact-run receipt](../benchmarks/records/20261012-stabilization-s5-ci-native-continuation.json)
+pins the full acceptance and native artifact, with actual image/source identities
+and independent review. This is bounded constitutive **PASS / NOT_RELEASED**,
+not coupled-solver or physical-material qualification. The historical statement
+below about unrun CI belongs to the 2026-09-30 checkpoint. Overall current CI
+remains failed by original F05; those failures are not replaced by this pass.
+
+## Historical local acceptance — 2026-09-30
+
 Date: 2026-09-30. `material.mfront` has passed the bounded native constitutive
 benchmark in a fresh local store. This verifies the declared isotropic
 infinitesimal-strain material point, its tensor mapping, actual reported

@@ -1,4 +1,31 @@
-## 2026-10-12 — CI preserves independent native coverage after an acceptance failure
+## 2026-10-12 — Exact CI proves independent native continuation without masking F05
+
+Source `385818bab785bfbf2c1e5880371970e475c90d68` is published in Draft PR7.
+Exact CI `38159523618`, clean PR merge
+`6dca0ddb94f340252299aec8a0d656ca1b44df83`, finishes with nine passing jobs and
+one failed Code_Aster job. Core has 7,540 passed/12 skipped; Windows has 124
+passed plus 19 Node checks and the private-runtime HTTP calculation. Earlier
+Qt collection and Data Save/comparison test failures no longer block this run.
+
+The five-line S5 workflow repair is effective: all four native stages after the
+family failure run and pass. J2 compares two materials on two meshes with ten
+states; material-point checks full MGIS/MTest histories and tangents. Declared
+modulus search records nine evaluations/18 mesh solves with two immutable
+replays. Synthetic inverse records nine native evaluations and actual sealed
+OCI admission on SIF `956ad88234b53d4e8dfa76d7e067332059279cd7e5d7ccb6f09ebe4e46e978a4`.
+Neither bounded search converges; no physical material fit is claimed.
+
+The remaining original regular-Fz/F05 finest mesh fails `FACTOR_57` at
+`3.32295e-6 > 1e-6`; its empty metrics and failed execution remain intact.
+No numerical policy, response or threshold has changed. Independent raw-evidence
+review and the complete native/retention limits are recorded in
+[the exact-run checkpoint](benchmarks/records/20261012-stabilization-s5-ci-native-continuation.json).
+Ten logs and nine ZIPs are downloaded and digest-verified; raw files remain local
+and in expiring GitHub artifacts. This evidence-only checkpoint is not a new
+solver run. F05, engineering release, physical calibration and general contact
+remain open; features/local FreeCAD stay paused.
+
+## Earlier 2026-10-12 — CI preserves independent native coverage after an acceptance failure
 
 The S5 follow-up adds only one runtime step id and four workflow conditions.
 After successful runtime setup, independent J2, material-point, model-optimization

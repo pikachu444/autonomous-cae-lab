@@ -1,5 +1,31 @@
 # Adaptive numerical search acceptance
 
+## 2026-10-12 — Current-source hosted CAD and declared-model searches
+
+Source `385818bab785bfbf2c1e5880371970e475c90d68`, clean PR checkout
+`6dca0ddb94f340252299aec8a0d656ca1b44df83`, completes both bounded search
+acceptances in CI `38159523618`. CAD optimization passes nine evaluations,
+eight solver children and two replays without rerunning completed evaluations.
+Its best measured displacement is `0.005961796 mm` under the unchanged
+`0.0065 mm` research screen; analytical CAD-volume comparison also passes.
+
+Declared-model search now runs after the independent family failure. It passes
+nine evaluations/18 native mesh solves and replays two immutable evaluations.
+The independent reference remains `u_x(L)=traction*L/E`; all displacement,
+stress, signed-reaction and mesh checks pass. The best observed modulus is
+`208474.97524367843 MPa`, with measured displacement
+`0.0009593477575244732 mm` and distance `4.0652242475526816e-5 mm` from the
+`0.001 mm` constrained reference bound. Reopening the completed result requires
+neither adapter nor optimizer execution.
+
+Both searches terminate at `MAX_GENERATIONS`, `converged=false`, after the
+declared one-generation budget. Their **PASS / NOT_RELEASED** decisions do not
+establish global optima or qualified material choices. Exact frozen definitions,
+native comparisons, source/runtime pins and independent review are in
+[the CI record](../benchmarks/records/20261012-stabilization-s5-ci-native-continuation.json).
+Overall CI still fails original F05. The separate synthetic inverse prerequisite
+is described in [its acceptance](MATERIAL_INVERSE_ACCEPTANCE.md).
+
 ## Human declared-model integration — development checkpoint2026-10-02
 
 Explore now connects existing input discovery/registration and model planning

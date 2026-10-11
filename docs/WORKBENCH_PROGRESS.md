@@ -1,6 +1,31 @@
 # Current workbench implementation
 
-## 2026-10-12 S5 follow-up CI correction passes bounded integration checks
+## 2026-10-12 S5 follow-up completes hosted CI and all four later native stages
+
+Reviewed source `385818b` is pushed. [CI 38159523618](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38159523618)
+checks clean merge `6dca0ddb94f340252299aec8a0d656ca1b44df83` and finishes with
+nine passing jobs and one failed Code_Aster job. Core reports 7,540 passed,
+12 skipped and two existing warnings in 1,087.42 seconds. Windows reports 124
+passed in 33.16 seconds, 19 Node checks and the real private-runtime HTTP solve.
+This verifies the corrected Qt environment and Data Save/comparison contracts
+on the actual published source; the skips' reasons are not emitted by `-q`.
+
+After the original family failure, J2, material-point, declared-model optimization
+and material-inverse steps all pass. Downloaded native evidence confirms their
+reference comparisons, unchanged limits, clean source and explicit runtime
+admission. Model search uses nine evaluations/18 mesh solves and replays two
+completed evaluations without rerunning them. Inverse search uses nine native
+evaluations and a synthetic target. Both stop at `MAX_GENERATIONS`, unconverged.
+
+F05 remains a real native failure: `3.32295e-6 > 1e-6`, before finest-field
+admission or Domain assessment. The independent CI stages no longer disappear
+behind it, and the overall failure is preserved. No `continue-on-error`, solver
+policy or numerical threshold was introduced. The
+[final exact-run receipt](../benchmarks/records/20261012-stabilization-s5-ci-native-continuation.json)
+contains all ten logs, nine ZIP digests/expiry times and independent review.
+Features/local FreeCAD remain paused; engineering release remains blocked.
+
+## Earlier 2026-10-12 S5 follow-up CI correction passes bounded integration checks
 
 Pro delivered an 18,747-byte archive, SHA256
 `6afbbb61cfc742308a1970b12b19f55306268af9305db833628ed3ca4dd08281`.

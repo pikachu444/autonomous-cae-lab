@@ -1,5 +1,29 @@
 # Bounded synthetic material inverse prerequisite
 
+## 2026-10-12 — Current-source hosted synthetic inverse acceptance
+
+CI `38159523618` at source `385818bab785bfbf2c1e5880371970e475c90d68` and
+clean PR merge `6dca0ddb94f340252299aec8a0d656ca1b44df83` completes nine native
+evaluations after explicit sealed OCI admission. The unchanged target remains
+**SYNTHETIC_REFERENCE**, physical `xx` stress `269.2307692307692 MPa` at one
+second. Feedback comes from actual MGIS observations; the analytical oracle
+is used only for post-run checking.
+
+The initial objective `0.002013477975016451` improves to
+`0.0014461846908559938` at observed modulus `208474.97524367843 MPa`
+(28.17% residual-objective improvement). Maximum pointwise oracle error is
+`1.38778e-16`, below unchanged `1e-12`. Completed replay preserves earlier
+results. Acceptance is **PASS / NOT_RELEASED**, while search termination is
+`MAX_GENERATIONS`, `converged=false`; this is neither a converged material fit
+nor physical identification. All nine engineering/corporate unknowns remain.
+
+[The exact-run record](../benchmarks/records/20261012-stabilization-s5-ci-native-continuation.json)
+pins actual runtime admission, native results, frozen target, source and review.
+See [runtime acceptance](MATERIAL_INVERSE_RUNTIME_ACCEPTANCE.md) for the measured
+alternate SIF. The overall CI remains failed by the separate original F05 gate.
+
+## Historical local prerequisite — 2026-09-30
+
 Date: 2026-09-30. The bounded native inverse prerequisite has **PASS**
 in fresh `runs/material-inverse-native-01` at clean implementation source
 `0457af3716a0abb5f3a5fcb87c81b99d0d9766df`. This is a synthetic-reference
