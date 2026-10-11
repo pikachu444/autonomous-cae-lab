@@ -22,6 +22,31 @@ def backends_list() -> dict:
     return {'backends':data['backends'],'operations':data['operations'],'workspace_id':data['workspace_id']}
 
 @mcp.tool()
+def local_roots_list() -> dict:
+    """List existing approved read/snapshot roots; this grants no new file access."""
+    return client().local_roots()
+
+@mcp.tool()
+def local_files_list(root_id: str, relative: str='', cursor: int=0) -> dict:
+    """List a bounded page in an approved root; next_cursor continues the listing."""
+    return client().local_inputs(root_id,relative,cursor=cursor)
+
+@mcp.tool()
+def local_input_register(root_id: str, relative: str) -> dict:
+    """Snapshot a selected file; VTU/PVD registration includes supported dependencies."""
+    return client().register_local_input(root_id,relative)
+
+@mcp.tool()
+def input_preview(input_id: str) -> dict:
+    """Inspect registered data or native-set metadata after checking retained files."""
+    return client().input_preview(input_id)
+
+@mcp.tool()
+def native_input_resolve(input_id: str) -> dict:
+    """Resolve a registered native result's verified local path and dependency pins."""
+    return client().native_input(input_id)
+
+@mcp.tool()
 def calculation_submit(operation: str, arguments: dict, request_id: str | None=None, resources: dict | None=None) -> dict:
     """Submit a registered calculation/DOE/fit/import/analysis to the shared controller."""
     return client().submit(operation,arguments,request_id=request_id,resources=resources)

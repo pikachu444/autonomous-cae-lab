@@ -22,6 +22,19 @@ class Client:
             return json.load(response)
     def submit(self,operation,arguments,*,request_id=None,resources=None):
         return self.request('/api/workbench/jobs',{'operation':operation,'arguments':arguments,'request_id':request_id,'resources':resources})
+    def local_roots(self):
+        return self.request('/api/workbench/local-roots')
+    def local_inputs(self,root_id,relative='',*,cursor=0):
+        from urllib.parse import urlencode
+        return self.request('/api/workbench/local-inputs?'+urlencode({'root_id':root_id,'relative':relative,'cursor':cursor}))
+    def register_local_input(self,root_id,relative):
+        return self.request('/api/workbench/local-inputs',{'root_id':root_id,'relative':relative})
+    def input_preview(self,identifier):
+        from .storage import check_id
+        return self.request('/api/workbench/inputs/'+check_id(identifier))
+    def native_input(self,identifier):
+        from .storage import check_id
+        return self.request('/api/workbench/inputs/'+check_id(identifier)+'/native')
     def status(self,identifier):
         from .storage import check_id
         return self.request('/api/workbench/jobs/'+check_id(identifier))

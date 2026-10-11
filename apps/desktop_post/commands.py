@@ -25,6 +25,8 @@ def project():
 
 def verify_sources():
     path, doc = project()
+    if doc.get("kind") == "external-result":
+        return external_module().verify_sources(path, doc)
     for source in doc["sources"].values():
         for pin in source["source_pins"]:
             source_path = Path(pin["path"])
@@ -184,6 +186,8 @@ def exact_peak_probe():
 
 def save_project():
     path, doc = verify_sources()
+    if doc.get("kind") == "external-result":
+        return external_module().save_project(path, doc)
     verify_retained_readers(path, doc)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6]
     root = Path(doc.get("project_root", path.parent))
@@ -213,6 +217,8 @@ def save_project():
 
 def restore_workspace():
     path, doc = verify_sources()
+    if doc.get("kind") == "external-result":
+        return external_module().restore_workspace(path, doc)
     if "workspace_sha256" in doc and sha(path.parent / doc["workspace_file"]) != doc["workspace_sha256"]:
         raise RuntimeError("Saved analysis state hash mismatch")
     for file, expected in doc.get("native_reader_files", {}).items():
@@ -224,3 +230,11 @@ def restore_workspace():
     view = next(v for v in p.GetViews() if v.GetXMLName() == "RenderView")
     p.SetActiveView(view)
     print("CAE Post loaded. Macros: CAE Save project / Section / Probe / U components. Ctrl+S remains native data export in this prototype.")
+
+
+def external_module():
+    if __package__:
+        from . import external
+    else:
+        import external
+    return external

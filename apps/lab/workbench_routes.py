@@ -41,12 +41,19 @@ def handle(handler,method,path,query):
         raise ServiceError(404,'Unknown workbench route')
     if path=='/api/workbench':
         return handler._json(200,workbench.overview())
+    if path=='/api/workbench/local-roots':
+        if query:
+            raise ServiceError(400,'Root listing does not accept query arguments')
+        return handler._json(200,workbench.local_roots())
     if path=='/api/workbench/local-inputs':
-        if set(query)-{'root_id','relative'}:
+        if set(query)-{'root_id','relative','cursor'} or any(len(values)!=1 for values in query.values()):
             raise ServiceError(400,'Unknown local input query')
         root=query.get('root_id',[''])[0]
         relative=query.get('relative',[''])[0]
-        return handler._json(200,workbench.local_inputs(root,relative))
+        cursor=query.get('cursor',['0'])[0]
+        if not cursor.isascii() or not cursor.isdigit():
+            raise ServiceError(400,'File cursor must be a nonnegative integer')
+        return handler._json(200,workbench.local_inputs(root,relative,cursor=int(cursor)))
     match=re.fullmatch(r'/api/workbench/jobs/([^/]+)',path)
     if match:
         return handler._json(200,workbench.manager.status(match.group(1)))
@@ -59,6 +66,11 @@ def handle(handler,method,path,query):
         if isinstance(selection,dict) and set(selection)-{'responses','component','location','rows','time_range','metadata_only'}:
             raise ServiceError(400,'Unknown response selection')
         return handler._json(200,workbench.result(match.group(1),selection=selection))
+    match=re.fullmatch(r'/api/workbench/inputs/([^/]+)/native',path)
+    if match:
+        if query:
+            raise ServiceError(400,'Native input lookup does not accept query arguments')
+        return handler._json(200,workbench.native_input(match.group(1)))
     match=re.fullmatch(r'/api/workbench/inputs/([^/]+)',path)
     if match:
         return handler._json(200,workbench.input_preview(match.group(1)))

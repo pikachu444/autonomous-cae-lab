@@ -3,7 +3,7 @@ import argparse
 import json
 from pathlib import Path
 
-COMMANDS = {'backends', 'doctor', 'evaluate', 'run', 'read', 'fit', 'doe', 'search', 'serve', 'submit', 'job'}
+COMMANDS = {'backends', 'doctor', 'evaluate', 'run', 'read', 'fit', 'doe', 'search', 'serve', 'submit', 'job', 'files'}
 
 
 def json_value(value):
@@ -53,6 +53,18 @@ def main(argv=None):
     command.add_argument('id')
     command.add_argument('--url', default='http://127.0.0.1:8766')
     command.add_argument('--cancel', action='store_true')
+    command = sub.add_parser('files', help='Use the shared service to register approved local inputs')
+    actions = command.add_subparsers(dest='action', required=True)
+    for name in ('roots', 'list', 'register', 'inspect', 'native'):
+        action = actions.add_parser(name)
+        action.add_argument('--url', default='http://127.0.0.1:8766')
+        if name in {'list', 'register'}:
+            action.add_argument('--root', required=True)
+            action.add_argument('relative', nargs='?' if name == 'list' else None, default='')
+        if name == 'list':
+            action.add_argument('--cursor', type=int, default=0)
+        if name in {'inspect', 'native'}:
+            action.add_argument('id')
     args = parser.parse_args(argv)
     if args.command in {'backends', 'doctor'}:
         from .backends import list_backends
@@ -75,6 +87,19 @@ def main(argv=None):
         if args.workbench_config:
             options+=['--workbench-config',args.workbench_config]
         return serve(options)
+    elif args.command == 'files':
+        from .workbench_client import Client
+        client = Client(args.url)
+        if args.action == 'roots':
+            result = client.local_roots()
+        elif args.action == 'list':
+            result = client.local_inputs(args.root, args.relative, cursor=args.cursor)
+        elif args.action == 'register':
+            result = client.register_local_input(args.root, args.relative)
+        elif args.action == 'native':
+            result = client.native_input(args.id)
+        else:
+            result = client.input_preview(args.id)
     elif args.command in {'submit', 'job'}:
         from .workbench_client import Client
         client = Client(args.url)

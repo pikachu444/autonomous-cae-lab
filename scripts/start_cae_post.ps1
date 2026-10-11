@@ -1,5 +1,8 @@
 param(
     [string]$Project,
+    [string]$InputPath,
+    [string]$InputId,
+    [string]$ServiceUrl = 'http://127.0.0.1:8766',
     [string]$ParaViewHome,
     [string]$OutputDirectory,
     [string]$Python = 'python',
@@ -8,6 +11,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $postHome = Join-Path $repoRoot 'apps/desktop_post'
+if (@($Project, $InputPath, $InputId).Where({ $_ }).Count -gt 1) {
+    throw 'Choose exactly one of -Project, -InputPath or -InputId.'
+}
 if (-not $ParaViewHome) {
     $ParaViewHome = Join-Path $repoRoot 'runs/prepost-session-20261008-01/tools/ParaView-6.2.0-Windows-Python3.12-msvc2017-AMD64'
 }
@@ -21,11 +27,24 @@ if (-not $Project) {
         $runId = 'desktop-post-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + ([guid]::NewGuid().ToString('N').Substring(0, 6))
         $OutputDirectory = Join-Path $repoRoot ('runs/' + $runId)
     }
-    & $Python (Join-Path $postHome 'prepare.py') --output $OutputDirectory
-    if ($LASTEXITCODE -ne 0) { throw 'Retained source preparation failed.' }
-    $Project = Join-Path $OutputDirectory 'project.json'
-    & $nativePython --force-offscreen-rendering (Join-Path $postHome 'build_workspace.py') $Project
-    if ($LASTEXITCODE -ne 0) { throw 'Native ParaView workspace build failed.' }
+    if ($InputPath -or $InputId) {
+        $externalArguments = @('--force-offscreen-rendering', (Join-Path $postHome 'external.py'))
+        if ($InputId) {
+            $externalArguments += @($OutputDirectory, '--registered-input', $InputId, '--service-url', $ServiceUrl)
+        } else {
+            $InputPath = (Resolve-Path -LiteralPath $InputPath).Path
+            $externalArguments += @($InputPath, $OutputDirectory)
+        }
+        & $nativePython @externalArguments
+        if ($LASTEXITCODE -ne 0) { throw 'External result preparation failed.' }
+        $Project = Join-Path $OutputDirectory 'project.json'
+    } else {
+        & $Python (Join-Path $postHome 'prepare.py') --output $OutputDirectory
+        if ($LASTEXITCODE -ne 0) { throw 'Retained source preparation failed.' }
+        $Project = Join-Path $OutputDirectory 'project.json'
+        & $nativePython --force-offscreen-rendering (Join-Path $postHome 'build_workspace.py') $Project
+        if ($LASTEXITCODE -ne 0) { throw 'Native ParaView workspace build failed.' }
+    }
 }
 $Project = (Resolve-Path -LiteralPath $Project).Path
 $document = Get-Content -Raw -LiteralPath $Project | ConvertFrom-Json
@@ -42,8 +61,9 @@ if (-not (Get-Command Start-Process).Parameters.ContainsKey('Environment')) {
     throw 'Launching CAE Post requires PowerShell 7.4 or later for child-only environment values.'
 }
 $nativeArgs = '--disable-registry --script="{0}" --log="{1}"' -f (Join-Path $postHome 'startup.py'), (Join-Path $projectFolder 'native_gui.log')
+$macroDirectory = if ($document.kind -eq 'external-result') { 'macros_external' } else { 'macros' }
 $childEnvironment = @{
-    PV_MACRO_PATH = Join-Path $postHome 'macros'
+    PV_MACRO_PATH = Join-Path $postHome $macroDirectory
     CAE_POST_HOME = $postHome
     CAE_POST_PROJECT = $Project
 }

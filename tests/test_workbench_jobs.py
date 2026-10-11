@@ -94,7 +94,7 @@ def test_http_and_actual_stdio_share_job(tmp_path):
     async def exercise():
         params=StdioServerParameters(command=sys.executable,args=['-m','openscience.workbench_mcp'],
                     env={**os.environ,'CAELAB_SERVICE_URL':client.url})
-        async with stdio_client(params) as (reader,writer):
+        async with stdio_client(params,errlog=sys.stderr) as (reader,writer):
             async with ClientSession(reader,writer) as session:
                 await session.initialize()
                 names={tool.name for tool in (await session.list_tools()).tools}

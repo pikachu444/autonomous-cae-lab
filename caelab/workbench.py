@@ -12,6 +12,9 @@ from .backends import list_backends, get_backend
 from .evaluation import evaluate, run, read_result, file_hash
 from .jobs import JobManager
 from .storage import save_json, load_json, check_id, utc_now
+from .native_inputs import NATIVE_EXTENSIONS, register_native_input
+
+INPUT_EXTENSIONS = {'.csv','.txt','.dat','.asc','.npz','.json','.md','.pdf'}
 
 OPERATIONS = {'evaluate','run','import_table','fit','doe','optimize','uq','analyze','compare','event',
               'batch_export','batch_import','surrogate','epsilon','sensitivity',
@@ -53,7 +56,7 @@ class Workbench:
                 or any(char in '/\\:\x00' or unicodedata.category(char).startswith('C') for char in name)):
             raise ValueError('A plain filename is required')
         suffix=Path(name).suffix.lower()
-        if suffix not in {'.csv','.txt','.dat','.asc','.npz','.json','.md','.pdf'}:
+        if suffix not in INPUT_EXTENSIONS:
             raise ValueError('Unsupported data/document extension')
         identifier='D'+uuid.uuid4().hex
         folder=self.root/'inputs'/identifier
@@ -77,7 +80,15 @@ class Workbench:
         save_json(folder/'input.json',receipt)
         return receipt
 
-    def local_inputs(self, root_id, relative=''):
+    def local_roots(self):
+        return {'workspace_id': self.workspace_id, 'roots': [
+            {'id': identifier, 'access': 'read_and_snapshot',
+             'extensions': sorted(INPUT_EXTENSIONS | NATIVE_EXTENSIONS)}
+            for identifier in self.config.get('input_roots', {})]}
+
+    def local_inputs(self, root_id, relative='', *, cursor=0):
+        if type(cursor) is not int or cursor < 0:
+            raise ValueError('File cursor must be a nonnegative integer')
         roots=self.config.get('input_roots',{})
         if root_id not in roots:
             raise ValueError('Select an operator-approved input root')
@@ -86,15 +97,21 @@ class Workbench:
         if not directory.is_dir():
             raise ValueError('Input directory is unavailable')
         entries=[]
+        skipped=0
         for item in sorted(directory.iterdir(),key=lambda p:(not p.is_dir(),p.name.casefold())):
             if not item.resolve().is_relative_to(root):
                 continue
-            if item.is_dir() or item.suffix.lower() in {'.csv','.txt','.dat','.asc','.npz','.json','.md','.pdf'}:
+            if item.is_dir() or item.suffix.lower() in INPUT_EXTENSIONS | NATIVE_EXTENSIONS:
+                if skipped < cursor:
+                    skipped+=1
+                    continue
                 entries.append({'name':item.name,'relative':item.relative_to(root).as_posix(),
-                                'directory':item.is_dir(),'bytes':None if item.is_dir() else item.stat().st_size})
-            if len(entries)>=200:
+                                'directory':item.is_dir(),'bytes':None if item.is_dir() else item.stat().st_size,
+                                'modified_ns':item.stat().st_mtime_ns})
+            if len(entries)>200:
                 break
-        return {'root_id':root_id,'relative':relative,'entries':entries,'limit':200}
+        return {'root_id':root_id,'relative':relative,'entries':entries[:200],'limit':200,
+                'next_cursor':cursor+200 if len(entries)>200 else None}
 
     def register_local_input(self, root_id, relative):
         roots=self.config.get('input_roots',{})
@@ -104,6 +121,9 @@ class Workbench:
         limit=self.config.get('local_input_max_bytes',2*1024**3)
         if type(limit) is not int or limit<1:
             raise ValueError('local_input_max_bytes must be a positive integer')
+        if source.suffix.lower() in NATIVE_EXTENSIONS:
+            return register_native_input(self.root, roots[root_id], source, 'D'+uuid.uuid4().hex,
+                root_id=root_id, relative=relative, limit=limit)
         with source.open('rb') as stream:
             import os
             before=os.fstat(stream.fileno())
@@ -130,10 +150,36 @@ class Workbench:
         path=contained(self.root,receipt['file'])
         if file_hash(path)!=receipt['sha256']:
             raise ValueError('Uploaded source changed')
+        if receipt.get('kind') == 'native_result':
+            folder=(self.root/'inputs'/identifier).resolve()
+            files=receipt.get('files',[])
+            if not files or not any(item.get('file')==receipt['file'] and item.get('sha256')==receipt['sha256'] for item in files):
+                raise ValueError('Native input set has no pinned entry file')
+            for item in files:
+                dependency=contained(self.root,item['file'])
+                if not dependency.is_relative_to(folder) or dependency.stat().st_size!=item['bytes'] or file_hash(dependency)!=item['sha256']:
+                    raise ValueError('Registered native input or dependency changed')
         return path
+
+    def native_input(self, identifier):
+        """Resolve a registered native set for a local reader after verification."""
+        path = self.input_path(identifier)
+        receipt = load_json(self.root/'inputs'/identifier/'input.json')
+        if receipt.get('kind') != 'native_result':
+            raise ValueError('Select a registered VTU/PVD native input')
+        return {'id': identifier, 'path': str(path), 'format': receipt['format'],
+                'source_pins': [{'path': str(contained(self.root, item['file'])),
+                                 'bytes': item['bytes'], 'sha256': item['sha256']}
+                                for item in receipt['files']]}
 
     def input_preview(self,identifier):
         path=self.input_path(identifier)
+        if path.suffix.lower() in NATIVE_EXTENSIONS:
+            receipt=load_json(self.root/'inputs'/identifier/'input.json')
+            return {'id':identifier,'kind':'native_result','format':receipt['format'],
+                    'name':receipt['name'],'file_count':len(receipt['files']),
+                    'bytes':receipt['total_bytes'],'sha256':receipt['sha256'],
+                    'preview':'Native result snapshot; open in Post to inspect fields and time steps'}
         if path.suffix in {'.pdf','.npz'}:
             return {'id':identifier,'kind':path.suffix,'preview':'Binary input; select a document or numeric reader'}
         with path.open(encoding='utf-8-sig') as stream:
