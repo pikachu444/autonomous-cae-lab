@@ -50,6 +50,7 @@ jobs:
     timeout-minutes: 45
     env:
       MPLBACKEND: Agg
+      QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -64,7 +65,7 @@ jobs:
             plugins/fixture_design/upstream/requirements.txt
             plugins/fixture_design/upstream/requirements-dev.txt
       - run: python -m pip install -r requirements-dev.txt
-      - run: python -m pip install -e ".[numerical,material,assist,sensitivity,mcp,dev]"
+      - run: python -m pip install -e ".[numerical,material,assist,sensitivity,mcp,research-ui,dev]"
       - run: python -m pytest -q
       - name: Check forms, imported meshes and retained PDE/contact fields
         run: node --test tests/test_experiment_draft.js tests/test_fixture_controls.js tests/test_fixture_field_controls.js tests/test_native_structural_field.js tests/test_fixture_field_viewer.js tests/test_cad_controls.js tests/test_native_upload_controls.js tests/test_analysis_conditions_controls.js tests/test_analysis_conditions_ui.js tests/test_campaign_controls.js tests/test_condition_campaign_workflow.js tests/test_comparison_research.js tests/test_fixture_optimization_handoff.js tests/test_imported_mesh_controls.js tests/test_pde_field_inspector.js tests/test_contact_field_inspector.js tests/test_result_presentation.js tests/test_result_workflow.js tests/test_research_handoff.js tests/test_research_answer.js

@@ -221,10 +221,13 @@ def exact_peak_probe():
 
 
 def save_project():
+    # Managed owners verify their exact document, native edits and healthy
+    # sources while retaining unavailable branches for explicit repair. The
+    # standalone macro still requires the complete original source checks.
+    if _save_owner is not None:
+        return _save_owner.save_project()
     path, doc = verify_sources()
     if doc.get("kind") == "external-result":
-        if _save_owner is not None:
-            return _save_owner.save_project()
         return external_module().save_project(path, doc)
     verify_retained_readers(path, doc)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6]

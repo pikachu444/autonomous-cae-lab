@@ -171,6 +171,12 @@ def document_result_metadata(document_id: str, job_id: str) -> dict:
     return client().document_result_metadata(document_id,job_id)
 
 @mcp.tool()
+def document_response_locations(document_id: str, job_id: str, channel: str,
+                                start: int = 0, count: int = 128, search: str = '') -> dict:
+    """Page/search every advertised node or Gauss location of one exact retained channel, without sending field arrays."""
+    return client().document_response_locations(document_id,job_id,channel,start=start,count=count,search=search)
+
+@mcp.tool()
 def result_followup(source_ref: dict, kind: str, session_id: str, command_id: str,
                     request: dict | None=None) -> dict:
     """Create a saved-result discussion or explicit editable request; creation performs no inference/evaluation."""

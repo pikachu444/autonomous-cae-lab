@@ -110,13 +110,21 @@ class MaterialDocuments(RetainedComparisons):
         return load_json(path) if path.exists() else None
 
     def _verify_revision(self, identifier, revision):
-        folder = self._folder(identifier) / 'revisions' / check_id(revision)
+        from .storage import revision_read_cache
+        cache = revision_read_cache()
+        key = (id(self), check_id(identifier), check_id(revision))
+        if cache is not None and key in cache:
+            return deepcopy(cache[key])
+        folder = (self._folder(identifier) / 'revisions' / revision).resolve()
         manifest = load_json(folder / 'revision.json')
         for item in manifest['files']:
             path = (folder / item['path']).resolve()
-            if not path.is_relative_to(folder.resolve()) or not path.is_file() or file_hash(path) != item['sha256']:
+            if not path.is_relative_to(folder) or not path.is_file() or file_hash(path) != item['sha256']:
                 raise ValueError('A retained Material revision asset changed or is missing')
-        return load_json(folder / 'document.json')
+        document = load_json(folder / 'document.json')
+        if cache is not None:
+            cache[key] = deepcopy(document)
+        return document
 
     def open(self, *, title='Material research', draft=None, document_id=None, _new_id=None):
         # Internal, deterministic creation identity supports cross-owner handoff

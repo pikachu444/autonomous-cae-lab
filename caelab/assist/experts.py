@@ -81,12 +81,6 @@ _TOOL_INPUTS = {
         _object({'archive_id': {'type': 'string', 'pattern': '^[a-f0-9]{64}$'},
                  'kind': {'const': 'abstract'}, 'url': _STRING, 'page': _POSITIVE}, ['archive_id'])]}}, ['paper_id']),
     'calculations.inputs': _object({'backend': _STRING, 'settings': _OBJECT}, ['backend']),
-    'calculations.plan': _object({'purpose': _STRING, 'operation': {'enum': ['fit', 'doe', 'optimize', 'uq', 'analyze', 'evaluate']},
-                                  'inputs': _OBJECT, 'budget': _BUDGET_INPUT},
-                                 ['purpose', 'operation', 'inputs', 'budget']),
-    'calculations.submit': _object({'operation': _STRING, 'inputs': _OBJECT,
-                                    'budget': _BUDGET_INPUT, 'resources': _object({'threads': _POSITIVE, 'memory_mb': _POSITIVE})},
-                                   ['operation', 'inputs', 'budget']),
     'calculations.status': _object({'job_id': _STRING}, ['job_id']),
     'results.read': _object({'job_id': _STRING, 'selection': _SELECTION}, ['job_id']),
     'numerical.doe': _object({'backend': _STRING, 'settings': _OBJECT,
@@ -198,13 +192,34 @@ _PLAN_INPUTS['batch_import'] = {'oneOf': [
     _object({'result_refs': _retained_roles('batch'), 'results': {'type': 'array', 'items': _OBJECT}},
             ['result_refs', 'results']),
     _object({'result_refs': _retained_roles('batch', 'results')}, ['result_refs'])]}
-_TOOL_INPUTS['calculations.plan'] = _object({
-    'purpose': _STRING, 'operation': {'enum': list(_PLAN_INPUTS)},
-    'inputs': {'oneOf': list(_PLAN_INPUTS.values())}, 'budget': _BUDGET_INPUT},
-    ['purpose', 'operation', 'inputs', 'budget'])
+def calculation_request_schema(*, operation=None, submission=False):
+    """One request contract for the editor, proposed Plan and authorized submit.
+
+    The operation selects its input shape. Several operations share fields, so
+    an unqualified oneOf over all shapes would reject valid overlapping inputs.
+    Submission only adds the existing, separately authorized resource request.
+    """
+    properties = {'purpose': _STRING, 'operation': {'enum': list(_PLAN_INPUTS)},
+                  'inputs': _OBJECT, 'budget': _BUDGET_INPUT}
+    if submission:
+        properties['resources'] = _object({'threads': _POSITIVE, 'memory_mb': _POSITIVE})
+    schema = _object(deepcopy(properties), ['purpose', 'operation', 'inputs', 'budget'])
+    if operation in _PLAN_INPUTS:
+        schema['properties']['operation'] = {'const': operation}
+        schema['properties']['inputs'] = deepcopy(_PLAN_INPUTS[operation])
+    else:
+        schema['allOf'] = [
+            {'if': {'properties': {'operation': {'const': name}}, 'required': ['operation']},
+             'then': {'properties': {'inputs': deepcopy(shape)}}}
+            for name, shape in _PLAN_INPUTS.items()]
+    return schema
 
 
-def validate_plan_request(request, *, describe_inputs=None):
+_TOOL_INPUTS['calculations.plan'] = calculation_request_schema()
+_TOOL_INPUTS['calculations.submit'] = calculation_request_schema(submission=True)
+
+
+def validate_plan_request(request, *, describe_inputs=None, submission=False):
     """Reuse the actual Expert calculation contract without inference or execution."""
     if not isinstance(request, dict):
         raise ValueError('Calculation plan must be an object')
@@ -220,9 +235,12 @@ def validate_plan_request(request, *, describe_inputs=None):
     if not isinstance(evaluations, int) or isinstance(evaluations, bool) or evaluations < 1:
         raise ValueError('A positive evaluation budget is required')
     from jsonschema import Draft202012Validator
-    failure = next(iter(Draft202012Validator(_PLAN_INPUTS[plan['operation']]).iter_errors(plan['inputs'])), None)
+    envelope = calculation_request_schema(operation=plan['operation'], submission=submission)
+    # Validate envelope and operation-specific inputs together, including
+    # purpose and closed top-level/resource fields used by actual tool calls.
+    failure = next(iter(Draft202012Validator(envelope).iter_errors(plan)), None)
     if failure:
-        field = '.'.join(str(part) for part in failure.absolute_path) or 'inputs'
+        field = '.'.join(str(part) for part in failure.absolute_path) or '$'
         raise ValueError(f'Invalid {plan["operation"]} plan input {field}: {failure.message}')
     if plan['operation'] in {'doe', 'uq'} and plan['inputs'].get('count', 0) > evaluations:
         raise ValueError('Planned sample count exceeds the evaluation budget')
@@ -694,10 +712,9 @@ class ExpertRuntime:
                 try:
                     from jsonschema import Draft202012Validator
                     schema = _TOOL_INPUTS[tool_name]
-                    if tool_name == 'calculations.plan' and request.get('operation') in _PLAN_INPUTS:
-                        schema = _object({'purpose': _STRING, 'operation': {'const': request['operation']},
-                                          'inputs': _PLAN_INPUTS[request['operation']], 'budget': _BUDGET_INPUT},
-                                         ['purpose', 'operation', 'inputs', 'budget'])
+                    if tool_name in {'calculations.plan', 'calculations.submit'}:
+                        schema = calculation_request_schema(operation=request.get('operation'),
+                            submission=tool_name == 'calculations.submit')
                     validator = Draft202012Validator(schema)
                     failure = next(iter(validator.iter_errors(request)), None)
                     if failure:

@@ -6,7 +6,7 @@ queue or optimizer. Source revisions are read through their existing owners.
 from copy import deepcopy
 from pathlib import Path
 
-from .storage import canonical_hash, check_id, load_json
+from .storage import canonical_hash, check_id, load_json, revision_read_scope
 from .evaluation import read_result, file_hash
 
 
@@ -27,6 +27,7 @@ def result_folder(wb, document_id, job_id):
     return folder, row
 
 
+@revision_read_scope()
 def evaluation_progress(wb, document_id, job_id):
     if wb._document_owner(document_id) is not wb.evaluation_documents:
         raise ValueError('Stage progress belongs to an EvaluationDefinition document')
@@ -62,13 +63,21 @@ def evaluation_progress(wb, document_id, job_id):
         'input_sha256': row['input_sha256']}
 
 
+@revision_read_scope()
 def evaluation_stage_result(wb, document_id, job_id, attempt_id, selection=None):
     check_id(attempt_id)
-    progress = evaluation_progress(wb, document_id, job_id)
+    if wb._document_owner(document_id) is not wb.evaluation_documents:
+        raise ValueError('Stage results belong to an EvaluationDefinition document')
+    folder, _ = result_folder(wb, document_id, job_id)
+    if (folder / 'result.json').exists():
+        progress = read_result(folder, verify='all', selection={'metadata_only': True})
+    elif (folder / 'progress.json').exists():
+        progress = load_json(folder / 'progress.json')
+    else:
+        raise ValueError('This evaluation has no recorded stage attempt yet')
     stage = next((row for row in progress['stages'] if row['attempt_id'] == attempt_id), None)
     if stage is None:
         raise ValueError('Choose an actual attempt from this exact evaluation')
-    folder, _ = result_folder(wb, document_id, job_id)
     from .workbench import contained
     stage_folder = contained(folder, stage['result_directory'])
     if not (stage_folder / 'result.json').exists():
@@ -78,6 +87,7 @@ def evaluation_stage_result(wb, document_id, job_id, attempt_id, selection=None)
     return {**result, 'stage_attempt': deepcopy(stage), 'parent_job_id': job_id}
 
 
+@revision_read_scope()
 def numerical_evaluation_result(wb, document_id, job_id, candidate_id, *,
                                 evaluation_index=None, attempt_id=None, selection=None):
     """Follow a selected row to its actual saved stage receipts, never a path supplied by a caller."""

@@ -1,4 +1,33 @@
-## 2026-10-11 — Development paused at the owner's request
+## 2026-10-11 — Stabilization integrated; exact-source CI pending
+
+The owner's scope is CI and existing defect correction. General feature work,
+new J2/DP/protocol development and upstream material integration remain paused.
+Pro supplied S1 and S2; Root reviewed and integrated their explicit 51-file union.
+The final supplied tree is `8057ace8ecb672246f92b343be3d4970841f2750`.
+Root removed one extra EOF blank line in the new location test; all other
+normalized source bytes match delivery. The immutable review checkout and both
+archives remain under `runs/`. Do not reapply either patch or stopped r6.
+
+The [S1 review record](benchmarks/records/20261011-stabilization-s1-review.json)
+preserves its failures and the actual Pre/Post/UI/SVK/J2/OpenRadioss checks.
+The [S2 integration record](benchmarks/records/20261011-stabilization-s2-integration.json)
+adds genuine Maxwell tau1 16-channel/9-sample rereading, the corrected Windows
+mapping lifetime, exact live-lock snapshot exclusions and short pytest IDs.
+The S2 Windows suite passes 111 tests, with eight explicit symlink-permission
+skips. WSL separately passes the outside-symlink guard. A fresh Heat GET takes
+10.1710 seconds at the unchanged 30-second deadline; old fields/pins, next-request
+mutation/missing/path refusals and restoration pass. All original evidence is
+preserved. The direct retained-reader pin boundary is recorded explicitly.
+
+Next: commit/push the reviewed integration and inspect every job of the exact
+new source CI. Until then the remote baseline remains product `1de8a69`, docs
+head `837df13`, failed CI `38138994614`; it is not a new-source verdict. Draft
+PR7 remains open, not merged. Record the published source and CI identities in
+the follow-up checkpoint rather than treating a documentation commit as new
+solver verification. Local FreeCAD, the exhausted cloud trial and new provider
+calls remain stopped. UNKNOWN/NOT_RELEASED and the stopped r6 archive remain.
+
+## Earlier 2026-10-11 — Development paused at the owner's request
 
 The owner explicitly requested preserving and organizing the current work,
 then stopping to assess the state. This supersedes every older instruction

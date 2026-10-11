@@ -79,13 +79,23 @@ def exact_catalog():
 
 
 def test_exact_catalog_history_reads_without_node_and_preserves_channel(app, monkeypatch):
-    from caelab.adapters import native_responses
+    from caelab.adapters import native_responses, retained_law_responses
     # Controlled parsed capture replaces only file/provenance admission. The
     # actual catalog and exact-selector reader retain the native half-step clock.
     raw = {'rows': [{'time_s': .125, 'velocity_time_s': .0625, 'z_m': 10., 'velocity_m_s': 2.},
-                    {'time_s': .25, 'velocity_time_s': .1875, 'z_m': 20., 'velocity_m_s': 4.}]}
+                    {'time_s': .25, 'velocity_time_s': .1875, 'z_m': 20., 'velocity_m_s': 4.}],
+           'groups': [], 'clock_policy': 'TEST_ONLY retained current and half-step clocks',
+           'force_policy': 'TEST_ONLY no force channel', 'spring_energy_policy': 'TEST_ONLY no spring channel',
+           'external_work_policy': 'TEST_ONLY no external-work channel'}
     monkeypatch.setattr(native_responses, '_explicit_context',
                         lambda outcome, output: (deepcopy(raw), 'a' * 64, {}))
+    def admitted_files(output, names):
+        assert output is None
+        assert names == {'analysis_raw.json', 'input.json', 'parsed_history.json',
+                         'dropT01', 'drop_0000.out', 'drop_0001.out'}
+        return [{'path': 'simulation/' + name, 'sha256': 'b' * 64, 'size_bytes': 1}
+                for name in sorted(names)]
+    monkeypatch.setattr(retained_law_responses, '_manifest', admitted_files)
     catalog = native_responses.catalog_native_responses('explicit.openradioss', {}, None)
     client = NativeRead(lambda selector: native_responses.read_native_response(
         'explicit.openradioss', {}, None, selector))

@@ -1,6 +1,8 @@
 """Small append-only filesystem store for versioned experiments and evidence."""
 
 from datetime import datetime, timezone
+from contextlib import contextmanager
+from contextvars import ContextVar
 import hashlib
 import json
 import mimetypes
@@ -15,6 +17,24 @@ from typing import Any
 
 SAFE_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,79}$")
 IO_RETRY_SECONDS = 2.0
+_READ_REVISIONS = ContextVar('caelab_read_verified_revisions', default=None)
+
+
+@contextmanager
+def revision_read_scope():
+    """Share immutable revision validation within one read, never across requests."""
+    if _READ_REVISIONS.get() is not None:
+        yield
+        return
+    token = _READ_REVISIONS.set({})
+    try:
+        yield
+    finally:
+        _READ_REVISIONS.reset(token)
+
+
+def revision_read_cache():
+    return _READ_REVISIONS.get()
 
 
 def _retry_io(operation):

@@ -1,4 +1,19 @@
-## 2026-10-11 — Paused for a current-state review
+## 2026-10-11 — CI and unresolved-defect repair authorized
+
+The owner resumed correction of CI and recorded defects. Existing requirements
+remain, while new feature development remains paused. The stabilization repairs
+existing save/reopen, retained responses, request contracts, method drafts and
+result-reading performance, plus their CI/test environment. It does not add a
+new material engine or silently change any numerical or release requirement.
+The [current repair record](docs/WORKBENCH_PROGRESS.md) distinguishes baseline
+failures, corrections and verification. S1 passes bounded Pre/Post/UI and
+retained SVK/J2/OpenRadioss checks. S2 passes genuine Maxwell rereading,
+deterministic mapped-file release, narrow Windows test portability and fresh
+default-deadline result reads. Their reviewed 51-file union is integrated into
+MAIN. Publication and exact-source CI remain pending.
+These software checks do not close native FreeCAD or physical release gates.
+
+## Earlier 2026-10-11 — Paused for a current-state review
 
 The owner requested that current work be preserved and organized, then
 development stop for assessment. The substantive scope remains; this pause is

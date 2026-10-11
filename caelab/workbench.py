@@ -172,7 +172,13 @@ class Workbench:
 
     def document_result_metadata(self, identifier, job_id):
         from .research_operations import result_metadata
-        return result_metadata(self.document_result(identifier,job_id))
+        return result_metadata(self.document_result(identifier,job_id,selection={'metadata_only': True}))
+
+    def document_response_locations(self, identifier, job_id, channel, *, start=0, count=128, search=''):
+        from .research_operations import response_locations
+        result = self.document_result(identifier, job_id, selection={'metadata_only': True})
+        return response_locations(result, channel, start=start, count=count, search=search) | {
+            'document_id': identifier, 'job_id': job_id}
 
     def evaluation_inspect(self, identifier):
         return self.evaluation_documents.inspect_definition(identifier)
@@ -601,9 +607,10 @@ class Workbench:
     def _numerical_submit(self, operation, request):
         return self.submit(operation,self._numerical_arguments(operation,request))
 
-    def _request_plan_arguments(self, request):
+    def _request_plan_arguments(self, request, *, submission=False):
         from .assist.experts import validate_plan_request
-        validated=validate_plan_request(request,describe_inputs=self.describe_inputs)['plan']
+        validated=validate_plan_request(request,describe_inputs=self.describe_inputs,
+                                        submission=submission)['plan']
         operation=validated['operation']
         args=deepcopy(validated['inputs'])
         from .research_operations import validate_result_refs
@@ -632,7 +639,7 @@ class Workbench:
         if operation not in {'evaluate','run','doe','fit','optimize','uq','epsilon','analyze',
                              'surrogate','sensitivity','sample_sensitivity','batch_export','batch_import'}:
             raise ValueError('Operation is not supported by expert calculation submission')
-        inputs=self._request_plan_arguments(request)
+        inputs=self._request_plan_arguments(request,submission=True)
         return self.submit(operation,inputs,resources=request.get('resources'))
 
     def assistance_call(self, operation, arguments):

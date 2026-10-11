@@ -22,6 +22,7 @@ def test_default_model_registry_constructs_without_native_commands_and_preserves
         raise AssertionError("Constructing the Lab must not execute a native solver")
 
     monkeypatch.setattr(subprocess, "run", unexpected)
+    monkeypatch.setattr(subprocess, "Popen", unexpected)
     lab = Lab(tmp_path / "default")
     assert set(lab.adapters) == {"fixture.cadquery", "fixture.freecad", "fixture.assembly"}
     assert Lab(tmp_path / "empty-cad", adapters={}).adapters == {}
@@ -35,6 +36,42 @@ def test_default_model_registry_constructs_without_native_commands_and_preserves
     assert Lab(tmp_path / "empty-pde", pde_adapters={}).pde_adapters == {}
     custom_pde = {"test.pde": object()}
     assert Lab(tmp_path / "custom-pde", pde_adapters=custom_pde).pde_adapters is custom_pde
+
+
+def test_frozen_input_factory_is_evaluation_only_and_declared_lab_rejection_is_explicit(tmp_path, monkeypatch):
+    from caelab.backends import get_backend, list_backends
+    from caelab.contracts import CapabilityUnavailable
+    from caelab.evaluation import run, read_result
+    from caelab.adapters.frozen_fem import FrozenFemCalculixAdapter
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Registry admission must not start a native process")
+    monkeypatch.setattr(subprocess, "run", forbidden)
+    monkeypatch.setattr(subprocess, "Popen", forbidden)
+    backend = "structure.calculix.frozen"
+    lab = Lab(tmp_path / "lab")
+    lab.create_study("S-frozen", "Frozen input boundary", "Does declared-model routing reject frozen input?",
+                     "Frozen inputs use the existing evaluation.run contract", "TEST ONLY routing")
+    assert backend not in lab.model_analysis_adapters
+    with pytest.raises(CapabilityUnavailable, match="No executable model analysis adapter"):
+        lab.run_model_analysis(study_id="S-frozen", experiment_id="E-frozen", backend=backend, settings={})
+    assert not (lab.store / "experiments/E-frozen").exists()
+    entry = next(row for row in list_backends() if row["id"] == backend)
+    assert entry["roles"] == ["evaluation"] and entry["readiness"] == "NOT_PROBED"
+    assert isinstance(get_backend(backend), FrozenFemCalculixAdapter)
+    calls = []
+    def controlled_run(self, settings, *, output, runtime=None):
+        calls.append((settings, output, runtime))
+        return {"execution_status": "REJECTED", "responses": {}, "checks": [],
+                "diagnostics": {"test_only": True, "decision": "NOT_RELEASED"}}
+    monkeypatch.setattr(FrozenFemCalculixAdapter, "run", controlled_run)
+    # This is the same evaluation.run used by Workbench's frozen 'run' path;
+    # no invented declared-model/domain/solve methods are added to the adapter.
+    output = tmp_path / "evaluation"
+    result = run(backend, {"data_id": "Dcontrolled"}, output=output)
+    assert calls == [({"data_id": "Dcontrolled"}, output, None)]
+    assert result["execution_status"] == "REJECTED"
+    assert read_result(output)["diagnostics"] == {"test_only": True, "decision": "NOT_RELEASED"}
 
 
 @pytest.mark.parametrize('declaration', [True, False, None, 1])

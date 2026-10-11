@@ -125,7 +125,8 @@ def test_exact_node_or_gauss_channel_reads_actual_bounded_candidate_curve_withou
         plotted = list(window.curve_axes.lines[0].get_ydata())
         assert math.isnan(plotted[0]) and plotted[1] == 30.
         assert '[s]' in window.curve_axes.get_xlabel()
-        assert 'retained/native.csv' in window.curve_detail.text()
+        assert 'retained/native.csv' in window.curve_metadata.toPlainText()
+        assert not window.curve_metadata.isVisible()
         assert 'No evaluation or adoption was executed' in window.message.text()
         assert window.stages.rowCount() == 0
     finally:

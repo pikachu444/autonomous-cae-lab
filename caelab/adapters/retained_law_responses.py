@@ -8,8 +8,10 @@ from __future__ import annotations
 from copy import deepcopy
 import hashlib
 import json
+import math
 from pathlib import Path, PurePosixPath
 import re
+import struct
 
 from ..storage import canonical_hash
 
@@ -76,8 +78,277 @@ def _manifest(output, names):
     return result
 
 
-def _channel_descriptor(channel, backend, digest):
+def verify_saved_assessment(computed, outcome):
+    """Validate an immutable verdict without requiring cross-platform last bits.
+
+    Saved duplicated metrics/checks must still agree exactly. Reassessment must
+    have identical structure, flags, statuses, units and thresholds. Only finite
+    floating observations/reference calculations may differ by eight binary64
+    representable steps; this is not an engineering acceptance tolerance. The
+    original saved assessment is validated, never rewritten or used as a solve.
+    """
+    saved = outcome.get('assessment')
+    if not isinstance(saved, dict) or saved.get('metrics') != outcome.get('metrics') or saved.get('checks') != outcome.get('checks'):
+        return False
+
+    def equal(left, right, path=()):
+        if type(left) is dict and type(right) is dict:
+            return left.keys() == right.keys() and all(equal(left[key], right[key], (*path, key)) for key in left)
+        if type(left) in (list, tuple) and type(right) in (list, tuple):
+            return len(left) == len(right) and all(equal(a, b, path) for a, b in zip(left, right))
+        if type(left) is float and type(right) is float:
+            if not math.isfinite(left) or not math.isfinite(right):
+                return False
+            # Frozen limits and comparison thresholds retain exact values.
+            if any('limit' in str(key).lower() or 'tolerance' in str(key).lower() or
+                   'threshold' in str(key).lower() or key == 'expected' for key in path):
+                return left == right
+            def ordered(value):
+                bits = struct.unpack('>Q', struct.pack('>d', value))[0]
+                return (~bits & ((1 << 64) - 1)) if bits >> 63 else bits | (1 << 63)
+            return left == right or abs(ordered(left) - ordered(right)) <= 8
+        return type(left) is type(right) and left == right
+
+    if not equal(computed, saved):
+        return False
+    # Do not admit a rounding difference across a frozen numeric gate, even
+    # when a producer's separately recorded flag happens to be unchanged.
+    for current, original in zip(computed.get('checks', []), saved.get('checks', [])):
+        observed, recorded = current.get('observed'), original.get('observed')
+        limit = current.get('limit')
+        if (type(observed) in (int, float) and type(recorded) in (int, float) and
+                type(limit) in (int, float) and (observed <= limit) != (recorded <= limit)):
+            return False
+    return True
+
+
+
+def verify_maxwell_assessment(settings, computed, outcome):
+    """Read-time consistency for this retained closed-form Maxwell assessment.
+
+    This is deliberately separate from the generic retained-material check:
+    residuals are differences of finite operands, not numbers whose own ULP is
+    a useful scale near zero. Only the enumerated analytical fields receive a
+    binary64 representation allowance. Native samples, frozen input/limits,
+    flags/verdicts, and duplicated records remain exact. Neither assessment is
+    edited, and the original engineering tolerances are never enlarged.
+
+    The local allowance follows the six-component tensor/18-term coefficient
+    calculation and the accumulated prefix, using operand magnitudes (including
+    cancelling terms). It is a bounded compatibility policy for this reader,
+    not a certified libm error bound or a substitute numerical acceptance test.
+    A platform outside it is refused; the original saved verdict remains intact.
+    """
+    from plugins.material_point import viscoelastic_reference as domain
+
+    saved = outcome.get('assessment')
+    if (not isinstance(saved, dict) or settings.get('limits') != domain.FIXED_LIMITS or
+            saved.get('metrics') != outcome.get('metrics') or saved.get('checks') != outcome.get('checks')):
+        return False
+    budgets = {}
+    energy_errors = {'stored_energy', 'dissipated_energy', 'prefix_work_closure',
+                     'probe_stored_energy', 'probe_dissipated_energy'}
+    stress_fields = ('stress_physical_mpa', 'stress_kelvin_mpa',
+                     'branch_stress_physical_mpa', 'branch_stress_kelvin_mpa')
+    energy_fields = ('stored_energy_mpa', 'dissipated_energy_mpa', 'work_mpa')
+    exact_metrics = ('stress_history', 'branch_stress_history', 'native_energy_history',
+                     'max_cross_driver_stress_error', 'max_cross_driver_branch_error')
+
+    def allowance(operands, operations):
+        # Two executions of the explicit arithmetic chain; no floor of 1 in
+        # physical units. A structurally zero component gets no allowance.
+        scale = math.fsum(abs(x) for x in operands)
+        u = math.ulp(1.) / 2
+        nu = operations * u
+        return 2 * nu / (1 - nu) * scale
+
+    def put(path, value, budget):
+        if isinstance(value, list):
+            for i, item in enumerate(value):
+                put((*path, i), item, budget)
+        elif type(value) is float:
+            budgets[path] = budget
+
+    def internally_consistent(value):
+        states = value['reference']['states']
+        limits = settings['limits']
+        stress = max(1., *(abs(x) for row in states for key in stress_fields for x in row[key]))
+        energy = max(1e-3, *(abs(row[key]) for row in states for key in energy_fields))
+        stress_limit = limits['stress_absolute_mpa'] + limits['stress_relative'] * stress
+        energy_limit = limits['energy_absolute_mpa'] + limits['energy_relative'] * energy
+        if (value['stress_scale_mpa'] != stress or value['energy_scale_mpa'] != energy or
+                value['stress_limit_mpa'] != stress_limit or value['energy_limit_mpa'] != energy_limit or
+                value['metrics']['reference_work_history']['value'] != [row['work_mpa'] for row in states]):
+            return False
+        for check in value['checks']:
+            code = check['code']
+            if code.startswith('max_'):
+                limit = energy_limit if code[4:-6] in energy_errors else stress_limit
+            elif code.startswith(('analytical_tangent_', 'fd_tangent_')):
+                limit = limits['tangent_relative']
+            elif code in ('native_stored_energy_nonnegative', 'native_dissipation_nondecreasing'):
+                limit = energy_limit
+            else:
+                if check.get('expected') is not True or check['observed'] is not (check['status'] == 'PASS'):
+                    return False
+                continue
+            if check['limit'] != limit:
+                return False
+            observed = check['observed']
+            passed = observed if type(observed) is bool else observed <= limit
+            if check['status'] != ('PASS' if passed else 'FAIL'):
+                return False
+            if code in value['metrics'] and value['metrics'][code]['value'] != observed:
+                return False
+            if code == 'analytical_tangent_relative_error' and observed != max(check['every_step_relative_error']):
+                return False
+            if code.startswith('fd_tangent_') and observed != max(*check['every_step_vs_reported'], *check['every_step_vs_reference']):
+                return False
+        valid = all(check['status'] != 'FAIL' for check in value['checks'])
+        return all(metric['valid'] is valid for metric in value['metrics'].values())
+
+    try:
+        if not internally_consistent(computed) or not internally_consistent(saved):
+            return False
+        passed = all(check['status'] == 'PASS' for check in saved['checks'])
+        reliable = all(check['status'] == 'PASS' for check in saved['checks'][:6])
+        if (outcome.get('status') != ('COMPLETED' if passed else 'REJECTED') or
+                outcome.get('converged') is not (True if reliable else None)):
+            return False
+        for name in exact_metrics:
+            if computed['metrics'][name] != saved['metrics'][name]:
+                return False
+        current_states, old_states = computed['reference']['states'], saved['reference']['states']
+        if len(current_states) != len(old_states) or len(old_states) != len(settings['history']):
+            return False
+        k0, g0, k1, g1, _ = (settings['material'][key] for key in domain.MATERIAL_KEYS)
+        stress_budget = energy_budget = 0.
+        tangent_budgets = []
+        prefix_energy = []
+        prefix_q = [[] for _ in range(6)]
+
+        def stiffness_operands(strain, bulk, shear, component):
+            if component >= 3:
+                return [2 * shear * strain[component]]
+            i = component
+            return [bulk * item for item in strain[:3]] + [
+                2 * shear * (strain[i] - strain[(i + j) % 3]) / 3 for j in (1, 2)]
+
+        for index, (left, right, entry) in enumerate(zip(current_states, old_states, settings['history'])):
+            # Exact input, initial zero state, and elapsed increments are not
+            # analytical tolerances. Recursive comparison below enforces them.
+            if index == 0:
+                continue
+            old_strain = settings['history'][index - 1]['strain']
+            strain = entry['strain']
+            delta = [b - a for a, b in zip(old_strain, strain)]
+            local_stress = []
+            for component in range(6):
+                prefix_q[component].extend(stiffness_operands(delta, k1, g1, component))
+                operands = [*stiffness_operands(strain, k0, g0, component), *prefix_q[component]]
+                # 18-term Horner has 34 multiply/add operations; two tensor
+                # decompositions use four six-component arithmetic chains.
+                budget = allowance(operands, index * (2 * (18 - 1) + 4 * 6))
+                local_stress.append(budget)
+                for key in stress_fields:
+                    factor = domain.SQRT2 if 'kelvin' in key and component >= 3 else 1.
+                    put(('reference', 'states', index, key, component), left[key][component], factor * budget)
+                put(('reference', 'states', index, 'gradients_kelvin', component),
+                    left['gradients_kelvin'][component], allowance([strain[component]], 2) if component >= 3 else 0.)
+            stress_budget = max(stress_budget, *(domain.SQRT2 * x for x in local_stress))
+            # Stored/dissipated energy is nonnegative in the analytical model;
+            # work can cancel. Keep the absolute prefix, not the small residual.
+            for row in (left, right):
+                prefix_energy.extend(row[key] for key in energy_fields)
+            local_energy = allowance(prefix_energy, index * (2 * (18 - 1) + 4 * 6 * 6))
+            energy_budget = max(energy_budget, local_energy)
+            for key in energy_fields:
+                put(('reference', 'states', index, key), left[key], local_energy)
+            put(('metrics', 'reference_work_history', 'value', index),
+                computed['metrics']['reference_work_history']['value'][index], local_energy)
+            tangent = left['tangent_kelvin_mpa']
+            denominator = min(max(abs(x) for row in side['tangent_kelvin_mpa'] for x in row) for side in (left, right))
+            if denominator <= 0:
+                return False
+            largest = 0.
+            for i, row in enumerate(tangent):
+                for j, x in enumerate(row):
+                    terms = ([k0, k1, 2 * g0 / 3, 2 * g1 / 3] if i < 3 and j < 3 else [])
+                    if i == j:
+                        terms.extend((2 * g0, 2 * g1))
+                    budget = allowance(terms, 2 * (18 - 1) + 6)
+                    put(('reference', 'states', index, 'tangent_kelvin_mpa', i, j), x, budget)
+                    largest = max(largest, budget)
+            # Both the analytical tangent numerator and normalization can move.
+            tangent_budgets.append(largest / denominator)
+
+        # A zero nominal history still has nonzero signed finite-difference
+        # probes. Account for the declared h in probe residuals only; it must
+        # not widen an exact zero nominal component or native sample comparison.
+        h = max(settings['limits']['finite_difference_steps'])
+        probe_stiffness = k0 + k1 + 2 * (g0 + g1)
+        probe_stress_budget = stress_budget + allowance([probe_stiffness * h], 2 * (18 - 1) + 4 * 6)
+        nominal_stress = max(abs(x) for side in (current_states, old_states) for row in side
+                             for key in stress_fields for x in row[key])
+        probe_energy_budget = energy_budget + allowance(
+            [probe_stiffness * h * h, 6 * nominal_stress * h], 2 * (18 - 1) + 4 * 6 * 6)
+
+        for key, bound in (('stress_scale_mpa', stress_budget), ('energy_scale_mpa', energy_budget),
+                           ('stress_limit_mpa', settings['limits']['stress_relative'] * stress_budget),
+                           ('energy_limit_mpa', settings['limits']['energy_relative'] * energy_budget)):
+            # Each limit was already checked exactly against its own reference
+            # and the frozen coefficients; permit only that derived difference.
+            put((key,), computed[key], bound + allowance([computed[key], saved[key]], 2))
+        for index, (left, right) in enumerate(zip(computed['checks'], saved['checks'])):
+            code = left['code']
+            if code.startswith('max_'):
+                if code in exact_metrics:
+                    bound = 0.
+                elif code.startswith('max_probe_'):
+                    bound = probe_energy_budget if code[4:-6] in energy_errors else probe_stress_budget
+                else:
+                    bound = energy_budget if code[4:-6] in energy_errors else stress_budget
+            elif code.startswith(('analytical_tangent_', 'fd_tangent_')):
+                bound = 0.
+                lists = ('every_step_relative_error',) if code.startswith('analytical_') else (
+                    'every_step_vs_reported', 'every_step_vs_reference')
+                for key in lists:
+                    if len(left[key]) != len(tangent_budgets) or len(right[key]) != len(tangent_budgets):
+                        return False
+                    for step, (a, b, relative) in enumerate(zip(left[key], right[key], tangent_budgets)):
+                        # ||N-C||/||C|| is cancellation-sensitive, but Lipschitz
+                        # in the finite tangent operands. The native-only FD
+                        # numerator also retains its analytical normalization.
+                        step_bound = (1 + max(abs(a), abs(b))) * relative + allowance([a, b], 2)
+                        put(('checks', index, key, step), a, step_bound)
+                        bound = max(bound, step_bound)
+            else:
+                bound = None
+            if bound is not None:
+                put(('checks', index, 'observed'), left['observed'], bound)
+                put(('metrics', code, 'value'), computed['metrics'][code]['value'], bound)
+            if 'limit' in left and not code.startswith(('analytical_tangent_', 'fd_tangent_')):
+                kind = 'energy_limit_mpa' if (code[4:-6] in energy_errors or code.startswith('native_')) else 'stress_limit_mpa'
+                put(('checks', index, 'limit'), left['limit'], budgets[(kind,)])
+
+        def equal(left, right, path=()):
+            if type(left) is dict and type(right) is dict:
+                return left.keys() == right.keys() and all(equal(left[key], right[key], (*path, key)) for key in left)
+            if type(left) is list and type(right) is list:
+                return len(left) == len(right) and all(equal(a, b, (*path, i)) for i, (a, b) in enumerate(zip(left, right)))
+            if type(left) is float and type(right) is float:
+                return math.isfinite(left) and math.isfinite(right) and abs(left - right) <= budgets.get(path, 0.)
+            return type(left) is type(right) and left == right
+
+        return equal(computed, saved)
+    except (KeyError, IndexError, TypeError, ValueError, OverflowError, ZeroDivisionError):
+        return False
+
+
+def _channel_descriptor(channel, backend, digest, output):
     origin = deepcopy(channel['origin'])
+    artifact = 'native_raw.json' if backend in MATERIALS else 'analysis_raw.json'
+    artifact_hash = _file_pin(output, artifact)['sha256']
     return {'kind': 'series', 'unit': channel['unit'], 'label': channel['label'],
             'quantity': channel['quantity'], 'component': channel['component'],
             'measure': channel['measure'], 'location': channel['location'],
@@ -86,8 +357,9 @@ def _channel_descriptor(channel, backend, digest):
             'axes': [{'name': 'time', 'unit': channel['axis']['unit'],
                       'semantics': channel['axis'].get('semantics', 'NATIVE_MATERIAL_HISTORY_TIME')}],
             'initial_state': deepcopy(channel['initial_state']),
-            'source': {'backend': backend, 'artifact': 'native_raw.json' if backend in MATERIALS else 'analysis_raw.json',
-                       'sha256': digest, 'selector': channel['id'], 'value_origin': origin['kind'],
+            'source': {'backend': backend, 'artifact': artifact,
+                       'sha256': artifact_hash, 'sha256_kind': 'ARTIFACT_SHA256', 'manifest_sha256': digest,
+                       'selector': channel['id'], 'value_origin': origin['kind'],
                        'native_origin': origin},
             'qualification': {'physical': 'UNKNOWN', 'decision': 'NOT_RELEASED'}}
 
@@ -131,9 +403,7 @@ def _maxwell_context(outcome, output):
           build == p.get('build') and raw.get('runtime') == p.get('versions') == _load(output, 'runtime.json') and
           raw.get('behaviour_description') == p.get('behaviour_description') and 'native_rejection' not in raw,
           'Maxwell original native build/runtime/field record differs')
-    _need(domain.assess(settings, raw) == outcome.get('assessment') and
-          outcome['assessment'].get('metrics') == outcome.get('metrics') and
-          outcome['assessment'].get('checks') == outcome.get('checks'), 'Maxwell retained domain verdict differs')
+    _need(verify_maxwell_assessment(settings, domain.assess(settings, raw), outcome), 'Maxwell retained domain verdict differs')
     mtest = raw.get('mtest', {})
     states = deepcopy(mtest.get('states'))
     _need(isinstance(states, list) and worker.parse_mtest_table(_path(output, 'mtest.res'), states) ==
@@ -152,7 +422,14 @@ def _elastic_context(backend, outcome, output):
         from plugins.hyperelastic import reference as domain
     _need(_load(output, 'analysis_raw.json') == outcome and outcome.get('solver_status') == 'COMPLETED' and
           outcome.get('status') in ('COMPLETED', 'REJECTED'), 'Material retained solve/outcome is incomplete')
-    settings = _load(output, 'input.json', 1024 * 1024)
+    captured_input = _load(output, 'input.json', 1024 * 1024)
+    if backend == SVK:
+        _need(isinstance(captured_input, dict) and
+              set(captured_input) == {'settings', 'captured_source_sha256', 'process_policy'},
+              'SVK retained input envelope differs from its producer')
+        settings = captured_input['settings']
+    else:
+        settings = captured_input
     _need(domain.validate_settings(settings) == settings, 'Material retained settings are not normalized')
     raw = _load(output, 'native_raw.json')
     p = outcome.get('provenance', {})
@@ -177,11 +454,17 @@ def _elastic_context(backend, outcome, output):
         names.add('mfront_material_worker.py')
     else:
         sources = p.get('captured_source_sha256')
-        # Hyperelastic captures use source_snapshot_sha256 in the producer.
+        # Keep previously declared inventory naming, but bind it to the exact
+        # captured producer input rather than the currently installed sources.
         if sources is None:
             sources = p.get('source_snapshot_sha256')
         _need(isinstance(sources, dict) and sources == raw.get('captured_source_sha256') and 1 <= len(sources) <= 32,
               'SVK retained source inventory is incomplete')
+        from .mfront_hyperelastic_worker import validated_policy
+        _need(captured_input['captured_source_sha256'] == sources and
+              captured_input['process_policy'] == raw.get('process_policy') == p.get('process_policy') and
+              validated_policy(captured_input['process_policy']) == captured_input['process_policy'],
+              'SVK retained input/source/process identity differs')
         for name, digest in sources.items():
             _need(_file_pin(output, name)['sha256'] == digest, 'SVK captured original source changed')
             names.add(name)
@@ -193,9 +476,8 @@ def _elastic_context(backend, outcome, output):
               raw.get('conventions') == {'general_order': list(domain.F_COMPONENTS), 'stress_measure': 'PK1',
                   'tangent': 'rows_P_columns_F', 'stored_energy': 'native_per_reference_volume_MPa', 'MTest': 'Cauchy_Kelvin6'},
               'SVK retained measure/source contract differs')
-    assessment = domain.assess(settings, raw)
-    _need(assessment == outcome.get('assessment') and assessment.get('metrics') == outcome.get('metrics') and
-          assessment.get('checks') == outcome.get('checks'), 'Material retained domain verdict differs')
+    _need(verify_saved_assessment(domain.assess(settings, raw), outcome), 'Material retained domain verdict differs')
+    assessment = outcome['assessment']  # Preserve original saved derived values.
     pins = _manifest(output, names)
     digest = canonical_hash(pins)
     raw_hash = next(item['sha256'] for item in pins if item['path'] == 'simulation/native_raw.json')
@@ -312,10 +594,10 @@ def catalog(backend, outcome, output):
             return {}
     if backend in MATERIALS:
         channels, digest = _maxwell_context(outcome, output) if backend == MAXWELL else _elastic_context(backend, outcome, output)
-        return {channel['id']: _channel_descriptor(channel, backend, digest) for channel in channels}
+        return {channel['id']: _channel_descriptor(channel, backend, digest, output) for channel in channels}
     adapter, result, fields, resources, headers, digest = _j2_context(outcome, output)
     channels = adapter.response_history_channels(result, None, resources(adapter.history_response_resources(result)))
-    catalog = {channel['id']: _channel_descriptor(channel, J2, digest) for channel in channels}
+    catalog = {channel['id']: _channel_descriptor(channel, J2, digest, output) for channel in channels}
     for mesh in fields['meshes']:
         for component in mesh['components']:
             key = f"j2.mesh{mesh['mesh_index']}.{component}"
@@ -330,9 +612,17 @@ def catalog(backend, outcome, output):
                             'initial_state': mesh['initial_state'], 'mesh_index': mesh['mesh_index'],
                             'selector_template': key + ('@<node_id>' if nodal else '@<element_id>:<point>:<subpoint>'),
                             'node_ids': mesh['node_ids'] if nodal else [], 'gauss_ids': [] if nodal else mesh['gauss_ids'],
-                            'source': {'backend': J2, 'artifact': mesh['artifact'], 'sha256': digest,
+                            'source': {'backend': J2, 'artifact': mesh['artifact'],
+                                       'sha256': _file_pin(output, mesh['artifact'].removeprefix('simulation/'))['sha256'],
+                                       'sha256_kind': 'ARTIFACT_SHA256', 'manifest_sha256': digest,
                                        'parsed_sha256': mesh['sha256'], 'model_revision': fields['model_revision'],
-                                       'value_origin': 'NATIVE_COMPONENT'},
+                                       'value_origin': 'NATIVE_COMPONENT',
+                                       'native_origin': {'kind': 'NATIVE_COMPONENT',
+                                            'artifact': f"simulation/level_{mesh['mesh_index']}/results.med",
+                                            'sha256': _file_pin(output, f"level_{mesh['mesh_index']}/results.med")['sha256'],
+                                            'native_field': component,
+                                            'parsed_artifact': mesh['artifact'], 'parsed_sha256': mesh['sha256'],
+                                            'mapping': 'exact native node or element:point:subpoint; no projection'}},
                             'limitations': fields['limitations'],
                             'qualification': {'physical': 'UNKNOWN', 'decision': 'NOT_RELEASED'}}
             if not nodal:
@@ -351,13 +641,13 @@ def read(backend, outcome, output, selector, descriptors):
     if backend in MATERIALS:
         _need(selector in descriptors, 'Unknown retained material channel')
         channels, digest = _maxwell_context(outcome, output) if backend == MAXWELL else _elastic_context(backend, outcome, output)
-        _need(digest == descriptors[selector]['source']['sha256'], 'Retained material artifacts changed during selection')
+        _need(digest == descriptors[selector]['source']['manifest_sha256'], 'Retained material artifacts changed during selection')
         channel = next(channel for channel in channels if channel['id'] == selector)
         return deepcopy(descriptors[selector]), channel['values'], channel['axis']['values']
     adapter, result, fields, resources, headers, digest = _j2_context(outcome, output)
     name, separator, identity = selector.partition('@')
     _need(name in descriptors, 'Unknown retained J2 channel')
-    _need(digest == descriptors[name]['source']['sha256'], 'Retained J2 artifacts changed during selection')
+    _need(digest == descriptors[name]['source']['manifest_sha256'], 'Retained J2 artifacts changed during selection')
     if not separator:
         channels = adapter.response_history_channels(result, None, resources(adapter.history_response_resources(result)))
         _need(any(channel['id'] == name for channel in channels), 'J2 field channel requires exact native identity')

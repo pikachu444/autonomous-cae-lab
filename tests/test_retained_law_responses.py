@@ -73,9 +73,16 @@ def test_j2_native_binary_hash_is_bound_to_saved_catalog_and_symlink_rejected(tm
     med = tmp_path / 'level_0/results.med'
     med.write_bytes(b'CHANGED_TEST_ONLY_UNSOLVED_MED')
     new = catalog_native_responses(retained.J2, outcome, tmp_path)
-    assert new['j2.mesh0.DEPL.DX']['source']['sha256'] != old['j2.mesh0.DEPL.DX']['source']['sha256']
+    assert new['j2.mesh0.DEPL.DX']['source']['sha256'] == old['j2.mesh0.DEPL.DX']['source']['sha256']
+    assert new['j2.mesh0.DEPL.DX']['source']['manifest_sha256'] != old['j2.mesh0.DEPL.DX']['source']['manifest_sha256']
+    assert new['j2.mesh0.DEPL.DX']['source']['native_origin']['sha256'] != old['j2.mesh0.DEPL.DX']['source']['native_origin']['sha256']
     med.unlink()
-    med.symlink_to(tmp_path / 'level_1/results.med')
+    try:
+        med.symlink_to(tmp_path / 'level_1/results.med')
+    except OSError as exc:
+        if getattr(exc, 'winerror', None) == 1314:
+            pytest.skip('Windows account cannot create a symlink (WinError 1314); native-source hash assertions already ran')
+        raise
     with pytest.raises(ValueError, match='symbolic link'):
         catalog_native_responses(retained.J2, outcome, tmp_path)
 
@@ -150,6 +157,13 @@ def saved_material(tmp_path, backend):
                                 'stored_energy': 'native_per_reference_volume_MPa', 'MTest': 'Cauchy_Kelvin6'})
         p.update(captured_source_sha256=raw['captured_source_sha256'], finite_strain_options=raw['finite_strain_options'],
                  behaviour_source_sha256=raw['source_sha256'])
+        process_policy = {'solver_memory_mb': 1024, 'solver_time_seconds': 86400,
+            'subprocess_timeout_seconds': None, 'solver_time_source': 'PINNED_RUN_ASTER_DEFAULT',
+            'wall_time_source': 'NO_WALL_TIME_LIMIT', 'qualification': 'UNKNOWN'}
+        write_json(tmp_path / 'input.json', {'settings': settings,
+            'captured_source_sha256': raw['captured_source_sha256'], 'process_policy': process_policy})
+        raw.update(input_sha256=pin(tmp_path / 'input.json'), process_policy=deepcopy(process_policy))
+        p.update(input_sha256=raw['input_sha256'], process_policy=deepcopy(process_policy))
     else:
         from caelab.adapters import mfront_viscoelastic_worker as worker
         from caelab.storage import canonical_hash

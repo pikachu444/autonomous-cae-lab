@@ -92,6 +92,38 @@ def opened(app, workbench):
 
 
 @pytest.fixture
+def edit_windows(app, monkeypatch):
+    """Close only this test's editors; editing must not start native/provider work."""
+    import subprocess
+    from PySide6.QtCore import QThreadPool
+    from caelab.adapters.felupe_material import FelupeMaterialAdapter
+    previous = set(app.topLevelWidgets())
+    def forbidden(*args, **kwargs):
+        pytest.fail('This focused editor check must not execute FELUPE, native processes or a provider')
+    monkeypatch.setattr(FelupeMaterialAdapter, 'prepare', forbidden)
+    monkeypatch.setattr(subprocess, 'run', forbidden)
+    class ForbiddenProcess(subprocess.Popen):
+        def __init__(self, *args, **kwargs):
+            forbidden(*args, **kwargs)
+    monkeypatch.setattr(subprocess, 'Popen', ForbiddenProcess)
+    monkeypatch.setattr(Workbench, 'assistance_call', forbidden)
+    yield
+    windows = [window for window in app.topLevelWidgets() if window not in previous
+               and isinstance(window, RequestPlanWindow)]
+    for window in windows:
+        release = getattr(window.client, 'release', None)
+        if release is not None:
+            release.set()
+    wait(app, lambda: all(not window._busy for window in windows))
+    for window in windows:
+        window._allow_close = True
+        window.close()
+        window.deleteLater()
+    app.processEvents()
+    assert QThreadPool.globalInstance().waitForDone(2000)
+
+
+@pytest.fixture
 def retained_studies(app, workbench, monkeypatch):
     """Actual owner, JobManager and numerical engine; cheap algebraic evaluator."""
     from caelab.backends import Backend, _registry
@@ -132,7 +164,7 @@ def choose_source(monkeypatch, document):
     monkeypatch.setattr(QInputDialog, 'getItem', select)
 
 
-def test_pinned_analysis_picker_saved_reopen_and_actual_engine(app, workbench, retained_studies, monkeypatch):
+def test_pinned_analysis_picker_saved_reopen_and_actual_engine(app, workbench, retained_studies, monkeypatch, edit_windows):
     window = opened(app,workbench)
     original = deepcopy(window.edited_draft())
     window.operation.setCurrentIndex(window.operation.findData('analyze'))
@@ -148,9 +180,12 @@ def test_pinned_analysis_picker_saved_reopen_and_actual_engine(app, workbench, r
     assert edited['request']['inputs']['responses'] == [{'response':'cost','unit':'MPa','component':'scalar','location':'model','reduction':'none'}]
     assert 'candidates' not in edited['request']['inputs'] and 'table' not in edited['request']['inputs']
     window.operation.setCurrentIndex(window.operation.findData('evaluate'))
-    assert window.edited_draft() == original
+    restored = window.edited_draft()
+    assert restored['request'] == original['request'] and restored['source'] == original['source']
+    assert restored['method_inputs'] == {'analyze': edited['request']['inputs']}
     window.operation.setCurrentIndex(window.operation.findData('analyze'))
-    assert window.edited_draft() == edited
+    assert window.edited_draft()['request'] == edited['request']
+    assert window.edited_draft()['method_inputs'] == {'evaluate': original['request']['inputs']}
     before = len(workbench.manager.list())
     window.save_document()
     wait(app,lambda:not window._busy and not window.local_dirty and window.document.get('saved_revision'))
@@ -158,8 +193,21 @@ def test_pinned_analysis_picker_saved_reopen_and_actual_engine(app, workbench, r
     other = RequestPlanWindow(InProcessClient(workbench),auto_open=False,poll_interval=0)
     other.open_document(document_id=window.document['id'])
     wait(app,lambda:other.document is not None and not other._busy)
-    assert other.edited_draft() == edited
+    assert other.edited_draft()['request'] == edited['request']
+    assert other.edited_draft()['method_inputs'] == {'evaluate': original['request']['inputs']}
+    assert other.edited_draft()['source'] == edited['source']
     assert other.pinned_sources.rowCount() == other.declarations.rowCount() == 1
+    other.operation.setCurrentIndex(other.operation.findData('evaluate'))
+    assert other.edited_draft()['request'] == original['request']
+    assert other.edited_draft()['method_inputs'] == {'analyze': edited['request']['inputs']}
+    other.operation.setCurrentIndex(other.operation.findData('analyze'))
+    assert other.edited_draft()['request'] == edited['request']
+    assert other.edited_draft()['method_inputs'] == {'evaluate': original['request']['inputs']}
+    # The return to an edited method follows the normal explicit Apply boundary.
+    assert not other.run_button.isEnabled()
+    other.apply_inputs()
+    wait(app, lambda:not other._busy and not other.local_dirty)
+    assert not other.document['diagnostics'] and len(workbench.manager.list()) == before
     other.run_button.click()
     wait(app,lambda:len(workbench.manager.list()) == before+1 and not other._busy)
     analysis_job = other.selected_job()
@@ -306,7 +354,7 @@ def test_sobol_sampling_request_is_editable_and_reports_optional_dependency(app,
         assert result['sampling']['method'] == 'SALib.sobol' and len(result['candidates']) == 6
 
 
-def test_typed_leaf_structure_source_and_invalid_values_are_preserved(app, workbench, monkeypatch):
+def test_typed_leaf_structure_source_and_invalid_values_are_preserved(app, workbench, monkeypatch, edit_windows):
     window = opened(app, workbench)
     original = deepcopy(window.document['draft'])
     assert window.edited_draft() == original
@@ -363,7 +411,7 @@ def test_explicit_actual_evaluation_save_reopen_and_selected_result(app, workben
     assert len(workbench.manager.list()) == 1
 
 
-def test_background_read_preserves_typed_edit_then_stale_conflict(app, workbench):
+def test_background_read_preserves_typed_edit_then_stale_conflict(app, workbench, edit_windows):
     window = opened(app, workbench)
     release = threading.Event()
     window.client.release = release

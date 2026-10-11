@@ -362,19 +362,22 @@ class Connection:
                 visible = [kind for kind, dock in self.panels.get(name, {}).items() if dock.isVisible()]
                 retained.append((owner.doc, owner.document_id, owner.generation, owner.saved_generation,
                     owner.project.path, deepcopy(owner.project.last_save), owner.project.last_failure,
-                    owner.recovery_error, visible))
+                    owner.recovery_error, (owner.project.connection_state()
+                        if hasattr(owner.project, 'connection_state') else None), visible))
                 dispatch.close()
                 for dock in self.panels.pop(name, {}).values():
                     dock.close(); dock.deleteLater()
             self.owners.clear()
             self.config.update(export_root=context['export_root'], python=context['python'])
             live = self.App.listDocuments()
-            for doc, identifier, generation, saved, path, last_save, failure, recovery, _ in retained:
+            for doc, identifier, generation, saved, path, last_save, failure, recovery, graph_state, _ in retained:
                 if live.get(doc.Name) is not doc:
                     continue
                 owner, dispatch, broker = bridge.start(doc, self.config, self.QtCore, log=self.log, document_id=identifier)
                 owner.generation, owner.saved_generation = generation, saved
                 owner.project.path, owner.project.last_save, owner.project.last_failure = path, last_save, failure
+                if graph_state is not None:
+                    owner.project.restore_connection_state(graph_state)
                 owner.recovery_error = recovery
                 owner.find_owner = lambda linked: next((row[0] for row in self.owners.values() if row[0].doc is linked), None)
                 self.owners[doc.Name] = owner, dispatch, broker

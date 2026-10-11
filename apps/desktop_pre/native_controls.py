@@ -7,6 +7,16 @@ we substitute managed Save actions, not their geometry/solver implementation.
 from pathlib import Path
 
 
+def _saved(owner):
+    check = getattr(owner.project, 'is_saved', None)
+    return check() if check is not None else owner.saved_generation == owner.generation
+
+
+def _close_version(owner):
+    graph = getattr(owner.project, 'graph_version', None)
+    return owner.generation, graph() if graph is not None else None
+
+
 def install(connection, open_model):
     QtCore, QtWidgets = connection.QtCore, connection.QtWidgets
     Gui, App = connection.Gui, connection.App
@@ -41,8 +51,8 @@ def install(connection, open_model):
             except Exception as error: connection.message.setText(str(error))
 
         def refresh(self):
-            self.approved_close = {owner.document_id: generation for owner, _, _ in connection.owners.values()
-                                   if (generation := self.approved_close.get(owner.document_id)) == owner.generation}
+            self.approved_close = {owner.document_id: version for owner, _, _ in connection.owners.values()
+                                   if (version := self.approved_close.get(owner.document_id)) == _close_version(owner)}
             # A native workbench may rebuild menus/toolbars. Replace only the
             # exact known QAction occurrences, preserving shortcuts/menu order.
             for action in main.findChildren(QAction):
@@ -96,7 +106,7 @@ def install(connection, open_model):
                 # Native FCStd file paths did not change. The editable state is
                 # safely published in .caepre, so the native close prompt must
                 # not offer a second unbundled save of the same state.
-                if owner.closed or owner.session_id != submitted_session or owner.saved_generation != owner.generation:
+                if owner.closed or owner.session_id != submitted_session or not _saved(owner):
                     self.closing = False
                     connection.message.setText('The requested project was saved, but this native document changed before '
                         'the response arrived. Newer edits remain open; save them or choose close explicitly again.')
@@ -141,8 +151,8 @@ def install(connection, open_model):
             pending = list(owners)
             accepted = []
             def unchanged(choice):
-                owner, session, generation = choice
-                return not owner.closed and owner.session_id == session and owner.generation == generation
+                owner, session, version = choice
+                return not owner.closed and owner.session_id == session and _close_version(owner) == version
             def advance():
                 if not pending:
                     if not all(unchanged(choice) for choice in accepted):
@@ -150,8 +160,8 @@ def install(connection, open_model):
                         connection.message.setText('A native document changed after its close choice. '
                             'All documents remain open; review the newer edits before closing again.')
                         return
-                    for owner, _, generation in accepted:
-                        self.approved_close[owner.document_id] = generation
+                    for owner, _, version in accepted:
+                        self.approved_close[owner.document_id] = version
                         Gui.getDocument(owner.doc.Name).Modified = False
                     self.closing = False
                     after(); return
@@ -160,8 +170,8 @@ def install(connection, open_model):
                 try: owner.before_design_action('close')
                 except Exception as error:
                     self.closing = False; connection.message.setText(str(error)); return
-                decision = (owner, owner.session_id, owner.generation)
-                if owner.saved_generation == owner.generation:
+                decision = (owner, owner.session_id, _close_version(owner))
+                if _saved(owner):
                     accepted.append(decision)
                     advance(); return
                 choice = QtWidgets.QMessageBox.question(main, 'Save editable Lab project?',
@@ -182,7 +192,7 @@ def install(connection, open_model):
                     advance(); return
                 try:
                     def saved_choice():
-                        accepted.append((owner, owner.session_id, owner.generation))
+                        accepted.append((owner, owner.session_id, _close_version(owner)))
                         advance()
                     if not self.save(owner=owner, after=saved_choice): self.closing = False
                 except Exception as error:
@@ -202,7 +212,7 @@ def install(connection, open_model):
                         try: owners = [connection.active_owner()]
                         except ValueError: return False
                     else: owners = [item[0] for item in connection.owners.values()]
-                    if all(self.approved_close.get(owner.document_id) == owner.generation for owner in owners):
+                    if all(self.approved_close.get(owner.document_id) == _close_version(owner) for owner in owners):
                         return False
                     event.ignore()
                     def proceed():
@@ -238,7 +248,7 @@ def project_panel(connection, owner):
         if owner.closed: panel.setEnabled(False); return
         info = owner.project.descriptor()
         state.setText((info['project_file'] or 'Not saved as a Lab project') +
-            '\nNative design g' + str(owner.generation) + (' · modified' if owner.saved_generation != owner.generation else ' · saved') +
+            '\nNative design g' + str(owner.generation) + (' · modified' if not _saved(owner) else ' · saved') +
             ('\n' + info['save_error'] if info['save_error'] else '') + '\nEngineering release: UNKNOWN')
         links = info['links']; selected = table.currentRow()
         table.setRowCount(len(links))

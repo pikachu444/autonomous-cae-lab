@@ -118,6 +118,11 @@ class Client:
     def document_result_metadata(self,identifier,job_id):
         from .storage import check_id
         return self.request('/api/workbench/documents/'+check_id(identifier)+'/result-metadata/'+check_id(job_id))
+    def document_response_locations(self,identifier,job_id,channel,*,start=0,count=128,search=''):
+        from .storage import check_id
+        from urllib.parse import urlencode
+        query = urlencode(dict(channel=channel, start=start, count=count, search=search))
+        return self.request('/api/workbench/documents/'+check_id(identifier)+'/response-locations/'+check_id(job_id)+'?'+query)
     def result_followup(self,source_ref,kind='expert',*,session_id,command_id,request=None):
         return self.request('/api/workbench/result-followup',dict(source_ref=source_ref,kind=kind,
             session_id=session_id,command_id=command_id,request=request))

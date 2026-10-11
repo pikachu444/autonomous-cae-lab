@@ -126,7 +126,7 @@ def test_human_changes_observer_lifecycle_and_saved_state(native):
     assert owner.generation==old+5
     owner.slotFinishSaveDocument(native.doc,native.doc.FileName)
     assert owner.descriptor()['dirty']  # Native saveCopy/FinishSave is not Lab publication.
-    foreign=NS(Document=NS())
+    foreign=NS(Document=NS(Name='Unrelated', Objects=[]))
     owner.slotChangedObject(foreign,'Length')
     assert owner.generation==old+5
     owner.slotDeletedDocument(native.doc)

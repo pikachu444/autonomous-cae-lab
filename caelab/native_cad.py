@@ -168,7 +168,11 @@ def publish_project(path, manifest, files):
         for row in manifest['documents']:
             archive.write(files[row['file']], row['file'])
     inspect_project(temporary)
-    with temporary.open('rb') as stream:
+    # Windows _commit (used by os.fsync) requires a writable descriptor. The
+    # archive is already complete; flush these same prepared bytes, not a new
+    # native save or a rewrite of the user's previous destination.
+    with temporary.open('r+b') as stream:
+        stream.flush()
         os.fsync(stream.fileno())
     # Same exact prepared bytes are retried on Windows. Never rerun saveCopy,
     # change geometry or submit a solver after a publication conflict.

@@ -1,5 +1,6 @@
 """Synchronous, independent evaluation using the same native adapter boundary as Lab."""
 from __future__ import annotations
+from contextlib import ExitStack
 from copy import deepcopy
 from pathlib import Path
 import hashlib
@@ -255,12 +256,60 @@ def run(backend, settings, *, output, runtime=None, parent=None, selection=None)
 
 def read_result(path, *, verify='selected', selection=None):
     """Read saved bytes without importing an adapter or inspecting current solver versions."""
+    arrays = {}
+    read_error = None
+    try:
+        return _read_result(path, verify=verify, selection=selection, arrays=arrays)
+    except BaseException as error:
+        read_error = error
+        raise
+    finally:
+        # Recursive unpacking forms a closure cycle. Waiting for that cycle's
+        # collection keeps Windows result files mapped after this call returns.
+        # No mapped array is part of the returned document: hydrated values are
+        # detached lists. Close every owned mapping even on an early return or
+        # exception, then empty the cache retained by those closures/tracebacks.
+        try:
+            with ExitStack() as cleanup:
+                cleanup.callback(arrays.clear)
+                for array in arrays.values():
+                    mapping = getattr(array, '_mmap', None)
+                    if mapping is not None:
+                        cleanup.callback(mapping.close)
+        except BaseException as cleanup_error:
+            if read_error is None:
+                raise
+            read_error.add_note(
+                f'Saved result mapping cleanup also failed: '
+                f'{type(cleanup_error).__name__}: {cleanup_error}')
+
+
+def _read_result(path, *, verify, selection, arrays):
     if verify not in {'selected', 'all', 'none'}:
         raise ValueError('verify must be selected, all or none')
     path = Path(path).resolve()
     path = path / 'result.json' if path.is_dir() else path
     root = path.parent
     result = load_json(path)
+    # A shared axis can be referenced hundreds of times in a saved result.
+    # Resolve containment once per distinct path during this read only. Every
+    # independent read starts again, so moved links/changed files are rejected.
+    targets, hashes = {}, {}
+    def target_path(relative):
+        if relative not in targets:
+            target = (root / relative).resolve()
+            if not target.is_relative_to(root) or not target.is_file():
+                raise ValueError('Result asset is missing or outside its result directory')
+            targets[relative] = target
+        return targets[relative]
+    def verified_target(ref):
+        target = target_path(ref['path'])
+        if verify != 'none':
+            if target not in hashes:
+                hashes[target] = file_hash(target)
+            if hashes[target] != ref['sha256']:
+                raise ValueError('Saved response array or native artifact hash differs')
+        return target
     receipt = root / 'result.sha256.json'
     if verify != 'none' and receipt.exists() and file_hash(path) != load_json(receipt)['sha256']:
         raise ValueError('Saved result metadata hash differs')
@@ -268,9 +317,7 @@ def read_result(path, *, verify='selected', selection=None):
         if isinstance(value, dict):
             if set(value) == {'data_ref'}:
                 ref = value['data_ref']
-                target = (root / ref['path']).resolve()
-                if not target.is_relative_to(root) or not target.is_file() or file_hash(target) != ref['sha256']:
-                    raise ValueError('Saved response array hash differs or escapes result directory')
+                verified_target(ref)
             else:
                 for item in value.values():
                     verify_refs(item)
@@ -282,13 +329,11 @@ def read_result(path, *, verify='selected', selection=None):
     def array_value(value):
         if isinstance(value, dict) and set(value) == {'data_ref'}:
             ref = value['data_ref']
-            target = (root / ref['path']).resolve()
-            if not target.is_relative_to(root) or not target.is_file():
-                raise ValueError('Result array is missing or outside its result directory')
-            if verify != 'none' and file_hash(target) != ref['sha256']:
-                raise ValueError('Saved response array hash differs')
+            target = verified_target(ref)
             import numpy as np
-            return np.load(target, allow_pickle=False, mmap_mode='r')
+            if target not in arrays:
+                arrays[target] = np.load(target, allow_pickle=False, mmap_mode='r')
+            return arrays[target]
         return value
     def unpack(value):
         if isinstance(value, dict) and set(value) == {'data_ref'}:
@@ -333,9 +378,7 @@ def read_result(path, *, verify='selected', selection=None):
             result['responses'] = {name: result['responses'][name] for name in names}
     if verify == 'all':
         for record in result.get('artifacts', []):
-            artifact = (root / record['path']).resolve()
-            if not artifact.is_relative_to(root) or file_hash(artifact) != record['sha256']:
-                raise ValueError('Saved native artifact hash differs')
+            verified_target(record)
     if isinstance(selection,dict) and 'native_channels' in result:
         # Node IDs/coordinates form the selector catalog, not response fields.
         # Clients need these descriptors to select a retained native location.
@@ -424,12 +467,12 @@ def _select_native(result, root, names, outcome):
     output=(root/directory).resolve()
     if not output.is_relative_to(root) or not output.is_dir():
         raise ValueError('Native result directory is unavailable or outside this result')
-    from .adapters.native_responses import read_native_response
+    from .adapters.native_responses import read_native_response, verify_retained_response_source
     for name in names:
         group=name.split('@',1)[0]
         if group not in catalog:
             raise ValueError(f'Unknown native channel {name!r}; available: {list(catalog)}')
         response=read_native_response(native['backend'],outcome,output,name)
-        if response['source']['sha256']!=catalog[group]['source']['sha256']:
+        if not verify_retained_response_source(catalog[group]['source'], response['source']):
             raise ValueError('Native channel source hash differs from the saved result')
         result['responses'][name]=response

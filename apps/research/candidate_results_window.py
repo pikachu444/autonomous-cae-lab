@@ -43,6 +43,8 @@ class CandidateResultsWindow(QMainWindow):
         self.parameters = readonly_table(['Actual parameter', 'Submitted value', 'Declared unit'])
         self.parameters.setMaximumHeight(140)
         self._rows(self.parameters, [(name, value, (units or {}).get(name, 'undeclared')) for name, value in (values or {}).items()])
+        self.parameters.setMaximumHeight(min(140, self.parameters.horizontalHeader().height() +
+            sum(self.parameters.rowHeight(row) for row in range(self.parameters.rowCount())) + 4))
         layout.addWidget(self.parameters)
         row = QHBoxLayout(); self.evaluations = QComboBox()
         self.evaluations.setObjectName('candidateEvaluations')
@@ -87,15 +89,29 @@ class CandidateResultsWindow(QMainWindow):
         self.curve_figure = Figure(constrained_layout=True)
         self.curve_canvas = FigureCanvasQTAgg(self.curve_figure)
         self.curve_axes = self.curve_figure.add_subplot(111)
-        curve_layout.addWidget(self.curve_canvas, 1)
         self.curve_values = readonly_table(['Retained sample index', 'Actual axis value', 'Actual response value', 'Validity'])
         self.curve_values.setObjectName('candidateNativeCurveValues'); self.curve_values.setMaximumHeight(180)
-        curve_layout.addWidget(self.curve_values)
+        self.curve_split = QSplitter(Qt.Orientation.Vertical)
+        self.curve_split.addWidget(self.curve_canvas); self.curve_split.addWidget(self.curve_values)
+        self.curve_split.setStretchFactor(0, 3); self.curve_split.setStretchFactor(1, 1)
+        self.curve_split.setSizes([420, 100])
+        curve_layout.addWidget(self.curve_split, 1)
         self.curve_detail = QLabel('Select an advertised native channel and exact location, then Read. No evaluation is executed.')
         self.curve_detail.setWordWrap(True); curve_layout.addWidget(self.curve_detail)
+        self.curve_metadata_toggle = QPushButton('Show source and physical metadata')
+        self.curve_metadata_toggle.setCheckable(True)
+        self.curve_metadata = QPlainTextEdit()
+        self.curve_metadata.setReadOnly(True)
+        self.curve_metadata.setMaximumHeight(170)
+        self.curve_metadata.hide()
+        self.curve_metadata_toggle.toggled.connect(self.curve_metadata.setVisible)
+        curve_layout.addWidget(self.curve_metadata_toggle)
+        curve_layout.addWidget(self.curve_metadata)
         self.result_tabs = tabs
         tabs.addTab(curve, 'Native curve / bounded samples')
         split.addWidget(tabs); split.setStretchFactor(0, 1); split.setStretchFactor(1, 3)
+        self.stages.setMaximumHeight(180)
+        split.setSizes([135, 550])
         layout.addWidget(split, 1)
         row = QHBoxLayout(); self.fields = QComboBox()
         self.fields.setObjectName('candidateRetainedFields')
@@ -201,6 +217,9 @@ class CandidateResultsWindow(QMainWindow):
             self._composite = deepcopy(result)
             self._populating = True
             self._rows(self.stages, [(r.get('iteration'), r.get('stage_id'), r.get('attempt_id'), r.get('state'), r.get('backend'), r.get('reused_from')) for r in result.get('stages', [])])
+            self.stages.setVisible(bool(result.get('stages')))
+            self.stages.setMaximumHeight(min(180, self.stages.horizontalHeader().height() +
+                sum(self.stages.rowHeight(row) for row in range(self.stages.rowCount())) + 4))
             self._populating = False
             self._rows(self.residuals, [(i.get('iteration'), r.get('stage'), r.get('response'), r.get('unit'), r.get('observed'), r.get('limit'), r.get('passed')) for i in result.get('iterations', []) for r in i.get('checks', [])])
             self._display_result(result)
@@ -255,6 +274,7 @@ class CandidateResultsWindow(QMainWindow):
 
     def _clear_curve_data(self):
         self._curve_result = None
+        self.curve_metadata.clear()
         self.curve_values.setRowCount(0)
         self.curve_axes.clear()
         self.curve_axes.text(.5, .5, 'Read the selected exact retained history.\nNo curve is inferred from scalar or field metadata.',
@@ -274,7 +294,19 @@ class CandidateResultsWindow(QMainWindow):
         name = self.native_channel.currentData()
         descriptor = self._native_catalog.get(name, {})
         selectors = descriptor.get('selectors', [])
-        if selectors:
+        if descriptor.get('gauss_ids'):
+            template = descriptor.get('selector_template')
+            fields = ('element_id', 'point', 'subpoint')
+            if isinstance(template, str) and all(template.count('<' + key + '>') == 1 for key in fields):
+                for point in descriptor['gauss_ids']:
+                    if not isinstance(point, dict) or not all(key in point for key in fields):
+                        continue
+                    selector = template
+                    for key in fields:
+                        selector = selector.replace('<' + key + '>', str(point[key]))
+                    label = 'Element {} / point {} / subpoint {}'.format(*(point[key] for key in fields))
+                    self.native_location.addItem(label, selector)
+        elif selectors and not descriptor.get('selectors_truncated'):
             for row in selectors:
                 if isinstance(row, dict) and isinstance(row.get('selector'), str) and row['selector']:
                     self.native_location.addItem(str(row.get('label', row['selector'])), row['selector'])
@@ -338,9 +370,13 @@ class CandidateResultsWindow(QMainWindow):
             self.curve_axes.set_xlabel(str(axis.get('name', 'axis')) + ' [' + str(axis.get('unit', 'undeclared')) + ']')
             self.curve_axes.set_ylabel(selector + ' [' + str(response.get('unit', 'undeclared')) + ']')
             self.curve_axes.legend(); self.curve_canvas.draw_idle()
-            self.curve_detail.setText(display({'selector': selector, 'component': response.get('component'),
+            self.curve_detail.setText(selector + ' · ' + str(response.get('unit', 'undeclared')) +
+                ' · samples ' + str(start) + '–' + str(start + len(values)) + ' · exact retained values')
+            self.curve_metadata.setPlainText(display({'selector': selector, 'component': response.get('component'),
                 'quantity': response.get('quantity'), 'location': response.get('location'),
                 'frame': response.get('frame', response.get('coordinate_frame')), 'measure': response.get('measure'),
+                'axes': [{key: deepcopy(axis[key]) for key in ('name', 'unit', 'semantics') if key in axis}
+                         for axis in response.get('axes', [])],
                 'source': response.get('source'), 'sample_page': [start, start + len(values)]}))
             self.result_tabs.setCurrentIndex(self.result_tabs.count() - 1)
             self.message.setText('Read ' + str(len(values)) + ' actual retained native samples. No evaluation or adoption was executed.')

@@ -1,0 +1,278 @@
+{
+  "schema_version": 1,
+  "record_id": "20261011-stabilization-s1-review",
+  "created_utc": "2026-10-11T14:02:24.077610+00:00",
+  "status": "REVIEW_REQUIRED_BEFORE_MAIN_INTEGRATION",
+  "scope": "CI and recorded defects only; new feature development remains paused",
+  "baseline": {
+    "published_product_commit": "1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3",
+    "documentation_head": "837df13bf1703ac30438ea5206a077f4f98063f9",
+    "pr": 7,
+    "ci_run_id": 38138994614,
+    "ci_conclusion": "failure",
+    "actual_ci_merge": "a938901e315f2892693ed9ca4f39dcb78c962867",
+    "base_main": "a10f2023a2084512839b5e0af8ab0adc0aeb9293"
+  },
+  "delivery": {
+    "base_tree": "9efb9363de8569ce269976fddcce8594fa403cbf",
+    "reported_result_tree": "f443818a5e2eafa0efd41678ca1eb1d36a6de41c",
+    "zip_sha256": "be41beeecec24cbdb5dd3e7d6a60a05e1d768f4581a6c52bb047c06c77358ebc",
+    "patch_sha256": "3abe2d4f9ddea32983587abbfc699ff7bab4baed4a57697a69d899881c436121",
+    "changed_files": 48,
+    "modified": 42,
+    "new": 6,
+    "archive_path": "runs/pro-code-received-20261011-r01/stabilization-s1/autonomous-cae-pro-r5-stabilization-s1.zip",
+    "review_path": "runs/pro-code-review-20261011",
+    "review_applied_once": true,
+    "main_applied": false,
+    "source_hash_check": "all delivered after hashes match REVIEW after LF normalization; root docs protected",
+    "syntax_and_patch_check": "PASS",
+    "retention": "LOCAL_ONLY"
+  },
+  "environment": {
+    "windows_python": "3.12.14",
+    "pytest": "8.4.2",
+    "pyside6": "6.9.1",
+    "numpy": "2.3.5",
+    "paraview": "6.2.0 offscreen",
+    "cold_read": "existing WSL Ubuntu Python 3.12 owner with native imports blocked"
+  },
+  "local_pytest": [
+    {
+      "suite": "original CI regressions plus read/storage/frozen",
+      "passed": 310,
+      "failed": 4,
+      "skipped": 8,
+      "errors": 2,
+      "elapsed_seconds": 213.94
+    },
+    {
+      "suite": "ten additional changed UI/reader/Pre files",
+      "passed": 110,
+      "failed": 2,
+      "skipped": 2,
+      "errors": 0,
+      "elapsed_seconds": 126.84
+    },
+    {
+      "suite": "Windows Pre",
+      "passed": 51,
+      "failed": 0,
+      "elapsed_seconds": 6.07,
+      "warnings": [
+        "pytest cache permission warning; product assertions passed"
+      ]
+    }
+  ],
+  "passed_checks": {
+    "original_ci_failures": "all original 19 failures and five desktop setup errors passed locally, including Expert schema/budget paths",
+    "pre": "actual Windows fsync; owner metadata callback, late dependency close guard, publication-failure previous bytes/baseline, dirty/clean reconnect; no native FreeCAD execution",
+    "post": "actual original general Save with missing B, cold reopen, same-source repair, Save, final cold reopen; exact values/IDs/masks/history/pins; four native processes and service exited",
+    "ui": "real HTTP/Qt method draft/current edits/invalid input/Save/refresh/cold reopen; retained observation refs; candidate curves readable at both requested sizes; controlled location stale/search checks",
+    "cold_read": {
+      "first_heat_seconds": 16.7359,
+      "structure_seconds": 4.8462,
+      "restored_heat_seconds": 6.0301,
+      "client_default_timeout_seconds": 30,
+      "warmup": false,
+      "next_request_mutation": "same bytes length and mtime rejected HTTP400",
+      "missing": "HTTP400",
+      "outside_identical_bytes_symlink": "HTTP400",
+      "original_files_unchanged": 230,
+      "new_native_execution": false
+    },
+    "retained": {
+      "svk": {
+        "channels": 22,
+        "samples": 11
+      },
+      "j2": {
+        "channels": 24,
+        "field_families": 13,
+        "nodes": 506,
+        "gauss_points": 1105,
+        "selectors": 10771,
+        "pages": 87,
+        "selected_field_histories": 39,
+        "samples_per_history": 4
+      },
+      "openradioss_flight": {
+        "channels": 8,
+        "samples": 201
+      },
+      "openradioss_compliant": {
+        "channels": 12,
+        "samples": 5001,
+        "signed_work_preserved": true
+      },
+      "source_hash_roles": "artifact, complete dependency manifest and original native source checked separately",
+      "original_files_unchanged": 224,
+      "additional_original_files_unchanged": 755
+    }
+  },
+  "open_findings": [
+    {
+      "id": "S1-MAXWELL",
+      "kind": "product",
+      "priority": "P1",
+      "error": "Maxwell retained domain verdict differs",
+      "genuine_positive_still_rejected": true,
+      "float_differences": 198,
+      "analytical_reference_differences": 154,
+      "maximum_reference_ulp": 10,
+      "derived_metric_differences": 20,
+      "derived_limit_differences": 15,
+      "derived_residual_differences": 9,
+      "status_valid_expected_differences": 0,
+      "frozen_input_policy_limits_equal": true,
+      "near_zero_residual": {
+        "saved": 0.0,
+        "computed": 9.700612972008478e-17
+      },
+      "negative_control_limitation": "raw one-ULP/material mutations fail at the same gate as the positive, so do not yet prove sensitivity"
+    },
+    {
+      "id": "S1-MAPPED-FILES",
+      "kind": "product",
+      "error": "completed read_result retains cached memmaps until cyclic GC",
+      "maps_alive_after_return_with_gc_disabled": 2,
+      "windows_write_errno": 22,
+      "maps_alive_after_gc": 0,
+      "same_write_after_gc": "PASS",
+      "required_correction": "deterministic release on full/selected/metadata/exception exits; no gc workaround; preserve per-read reuse and tamper checks"
+    },
+    {
+      "id": "S1-LIVE-LOCK-SNAPSHOTS",
+      "kind": "test_portability",
+      "confirmed_tests": 4,
+      "error": "PermissionError errno13 reading exact active JobManager controller.lock",
+      "required_correction": "exclude only authoritative active operational lock from these before/after hashes; all other files and failures remain checked"
+    },
+    {
+      "id": "S1-PARAMETER-ID",
+      "kind": "test_portability",
+      "error": "oversized payload becomes >32767 character PYTEST_CURRENT_TEST during Windows setup/teardown",
+      "required_correction": "short explicit IDs, unchanged payload size/rejection/no-job assertions"
+    }
+  ],
+  "evidence": {
+    "receipt": {
+      "path": "runs/pro-code-received-20261011-r01/stabilization-s1/root-receipt.json",
+      "sha256": "e471deddd6a47e6fbfc6bb1a124fe1187f19709bffafb63b298e77103619f1b1",
+      "bytes": 10297,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    },
+    "pre": {
+      "path": "runs/reviewer-pre-stabilization-s1-20261011/REVIEW.md",
+      "sha256": "0df8cc53714414ce4a1a1d2f11847b5d3bbe6e8bc7a14d5760145f0526bc2cf2",
+      "bytes": 5065,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    },
+    "post": {
+      "path": "runs/post-human-save-20261011-s1-r01/review-summary.json",
+      "sha256": "562767d9fec2684e78e49f160f844a77875567256423aab01f69e2da19a08854",
+      "bytes": 8885,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    },
+    "ui": {
+      "path": "runs/reviewer-ui-stabilization-20261011-b615e/review-summary.json",
+      "sha256": "b5d629c5c8f33d4a8184ad68894015048736d9a1448862ff5f5f84c3d2cca3d4",
+      "bytes": 3843,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    },
+    "cold_read": {
+      "path": "runs/stabilization-cold-read-acceptance-20261011-runner01/report.json",
+      "sha256": "391594bbbc83f3891c124d06957c584cba314b8b7741ec1165501239125ed31a",
+      "bytes": 7267,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    },
+    "retained_summary": {
+      "path": "runs/reviewer-retained-s1-20261011-73b2a/summary.json",
+      "sha256": "c7be70fdd9a5ef9b4bd7f8334769d8b7383a0dbac37a94e5e1d2a79a427f8dad",
+      "bytes": 7445,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    },
+    "retained_full": {
+      "path": "runs/reviewer-retained-s1-20261011-73b2a/report.json",
+      "sha256": "9e71b34a19ad7b5cf9333974ca0d58be7a894c620cf5d0a61d33626e238c17ce",
+      "bytes": 183980,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    },
+    "maxwell_literals": {
+      "path": "runs/reviewer-retained-s1-20261011-73b2a/maxwell-minimal.json",
+      "sha256": "12255f158886c4366af1e05c47956f6348c1c40bb96c0d0efc93bac7eef07e85",
+      "bytes": 2090,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    },
+    "maxwell_all_differences": {
+      "path": "runs/reviewer-retained-s1-20261011-73b2a/maxwell-differences.json",
+      "sha256": "232e334a4a9187da558ab29a12def3acc6c04dde391ce96484f8bcfbcf8e6f08",
+      "bytes": 58156,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    },
+    "registry_expert_static": {
+      "path": "runs/reviewer-ci-stabilization-s1-92c21a6ddb0d48edaffd4fb8c45ad774/audit.md",
+      "sha256": "ec1e44c8e7373b9de99f38f859e6387b6e87ee87fb0377500d15d83f00f56508",
+      "bytes": 4543,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    },
+    "focused_tests": {
+      "path": "runs/stabilization-qa-20261011-a1/ci-focused-s1-r01/junit.xml",
+      "sha256": "d16e09e2ae329d3d88bff67905a428c3a514c7224e0587cb828c00df13db51b6",
+      "bytes": 193116,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    },
+    "additional_tests": {
+      "path": "runs/stabilization-qa-20261011-a1/additional-s1-ui-readers-r01/junit.xml",
+      "sha256": "7e595378356ad09b1257a0eef4b5847346fec4772be595c58cbeb5c7ce096db8",
+      "bytes": 19670,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    },
+    "memmap_probe": {
+      "path": "runs/stabilization-qa-20261011-a1/mapped-array-diagnostic-b2cfbaf724d242bb9e0a8729d9aa572d/report.json",
+      "sha256": "3b2dd61c52f9d30ec83d05892fbe8d4414747693a5ba9e736dbb7938fb089340",
+      "bytes": 951,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    },
+    "lab_locks": {
+      "path": "runs/reviewer-ci-lock-c238e6d7e0fa402aa5fcbb362c65c9b7/report.json",
+      "sha256": "b7b326e49bba6fd3712f0877c2a69e91cfa2ae237eb2482e73e5c88230704975",
+      "bytes": 2097,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    },
+    "location_locks": {
+      "path": "runs/reviewer-ci-lock-locations-e54966585a5547e4ac52f7ccfe6eacd4/report.json",
+      "sha256": "d5fee4317929ce60be31bf77e051adee89d69f790216c53ceea408bf6bc24a76",
+      "bytes": 2200,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    },
+    "runtime": {
+      "path": "runs/stabilization-qa-20261011-a1/runtime-receipt.json",
+      "sha256": "a1f83ecd65215039db1a5c68321648fed0cc8cab487301eaa1d7329c203a5b48",
+      "bytes": 4244,
+      "retention": "LOCAL_ONLY; ignored runs directory, no remote artifact claim"
+    }
+  },
+  "correction_request": {
+    "destination": "same actual Pro browser conversation",
+    "url": "https://chatgpt.com/c/6aca5116-b90c-83ee-82fb-1b0299a87fd3",
+    "status": "S1-based correction packet sent and visible in conversation",
+    "attachments": "none; extension file upload blocked, actual literal diagnostic values provided in message",
+    "prepared_local_evidence_zip_sha256": "b1436a6d7cb24acc51e831035324c18d543e616dba79d8b560cb1e552e3abec2"
+  },
+  "next_gates": [
+    "Receive and validate S1-based correction delta",
+    "Check genuine Maxwell positive then corruption/verdict/frozen-limit negatives",
+    "Check Windows mapped-file lifetime and precise test portability corrections",
+    "Integrate explicit files preserving user edits/upstream/paused WIP",
+    "Commit/push corrected source and inspect every exact-source CI job"
+  ],
+  "limits": [
+    "No native FreeCAD execution or visible ParaView GUI claim",
+    "No new provider inference or native numerical calculation in this review",
+    "Symlink skips identify Windows permission1314; WSL actual guard evidence is separate",
+    "No general performance guarantee, concurrent in-flight mutation qualification or new engineering approval",
+    "All original numerical limits and UNKNOWN/NOT_RELEASED remain",
+    "Raw reports and ZIPs are local only; source/document publication has not occurred for S1"
+  ]
+}

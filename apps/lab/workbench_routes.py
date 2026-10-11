@@ -178,6 +178,15 @@ def handle(handler,method,path,query):
             raise ServiceError(400,'Unknown document result selection')
         selection=json.loads(query['selection'][0]) if 'selection' in query else None
         return handler._json(200,workbench.document_result(match.group(1),match.group(2),selection=selection))
+    match=re.fullmatch(r'/api/workbench/documents/([^/]+)/response-locations/([^/]+)',path)
+    if match:
+        if set(query)-{'channel','start','count','search'} or any(len(value)!=1 for value in query.values()) or 'channel' not in query:
+            raise ServiceError(400,'Location lookup requires one exact channel and page')
+        start, count = query.get('start',['0'])[0], query.get('count',['128'])[0]
+        if not start.isascii() or not start.isdigit() or not count.isascii() or not count.isdigit():
+            raise ServiceError(400,'Location page requires nonnegative integer indexes')
+        return handler._json(200,workbench.document_response_locations(*match.groups(),query['channel'][0],
+            start=int(start),count=int(count),search=query.get('search',[''])[0]))
     match=re.fullmatch(r'/api/workbench/documents/([^/]+)/(result-reference|result-metadata)/([^/]+)',path)
     if match:
         if query:

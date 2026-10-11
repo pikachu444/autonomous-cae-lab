@@ -24,6 +24,11 @@ def windows_error(code):
 @pytest.fixture
 def short_retry(monkeypatch):
     monkeypatch.setattr(storage, 'IO_RETRY_SECONDS', 0.02)
+    # Measure retry policy with a controlled clock, not a Windows scheduler's
+    # elapsed time while the injected callback reads diagnostic JSON files.
+    clock = [0.]
+    monkeypatch.setattr(storage, 'time', SimpleNamespace(monotonic=lambda: clock[0],
+        sleep=lambda duration: clock.__setitem__(0, clock[0] + duration)))
 
 
 @pytest.mark.parametrize('code', [5, 32, 33])
@@ -153,7 +158,7 @@ def test_normal_json_reader_observes_complete_publications(tmp_path):
     def reader():
         while not stop.is_set():
             try:
-                value = json.loads(target.read_text(encoding='utf-8'))
+                value = storage.load_json(target)
                 assert value['values'] == [value['generation']] * 300
                 reads.append(value['generation'])
                 ready.set()

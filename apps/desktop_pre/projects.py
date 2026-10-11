@@ -31,6 +31,9 @@ class Project:
         self.last_save = None
         self.last_failure = None
         self.in_save = False
+        self._dependency_events = {}
+        self._dependency_documents = {}
+        self._saved_graph_version = None
 
     def attach_opened(self):
         opened = OPENED.pop(self.owner.doc.Name, None)
@@ -40,14 +43,78 @@ class Project:
                 self.last_save = {'revision': manifest['revision'], 'opened_source': source,
                                   'unavailable_dependencies': manifest.get('unavailable_dependencies', [])}
                 self.owner.saved_generation = self.owner.generation
+                self._saved_graph_version = self.graph_version()
             # Save targets a new managed copy until the human chooses Save As.
             # Opening a retained input never changes its original .caepre.
 
     def descriptor(self):
         return {'project_file': str(self.path) if self.path else None,
                 'saved': deepcopy(self.last_save), 'save_error': self.last_failure,
+                'dirty': not self.is_saved(), 'graph_version': self.graph_version(),
                 'links': deepcopy(self.owner.read_metadata().get('links', [])),
                 'restore_error': getattr(self.owner, 'recovery_error', None)}
+
+    def graph_version(self):
+        """The live input includes every loaded external native document.
+
+        Object identity is deliberately session-local: replacing an open child
+        with a new document is not the old saved graph. Reconnecting transport
+        to these same objects preserves this token and their generations.
+        """
+        rows = []
+        try:
+            docs = self._documents()
+        except (ValueError, RuntimeError, ReferenceError, AttributeError) as error:
+            # A closed/broken child must make the project dirty without making
+            # the status/close UI itself unusable. Save still checks the graph.
+            return canonical_hash({'unavailable': str(error), 'generation': self.owner.generation,
+                                   'events': self._dependency_events})
+        # Keep only the current graph. A component unlinked from this assembly
+        # must not keep dirtying it when that unrelated document is edited.
+        self._dependency_documents = {doc.Name: id(doc) for doc in docs if doc is not self.owner.doc}
+        for doc in docs:
+            other = self.owner if doc is self.owner.doc else getattr(self.owner, 'find_owner', lambda _: None)(doc)
+            rows.append({'name': doc.Name, 'object': id(doc),
+                'generation': other.generation if other is not None else 0,
+                'closed': bool(getattr(other, 'closed', False)),
+                'events': self._dependency_events.get(doc.Name, 0)})
+        return canonical_hash(sorted(rows, key=lambda row: row['name']))
+
+    def is_saved(self):
+        if self.owner.saved_generation != self.owner.generation or self._saved_graph_version is None:
+            return False
+        try:
+            return self._saved_graph_version == self.graph_version()
+        except (ValueError, RuntimeError, ReferenceError, AttributeError):
+            return False
+
+    def connection_state(self):
+        return {'dependency_events': dict(self._dependency_events),
+                'dependency_documents': dict(self._dependency_documents),
+                'saved_graph_version': self._saved_graph_version}
+
+    def restore_connection_state(self, state):
+        self._dependency_events = dict(state.get('dependency_events', {}))
+        self._dependency_documents = dict(state.get('dependency_documents', {}))
+        self._saved_graph_version = state.get('saved_graph_version')
+
+    def note_dependency_change(self, doc, *, removed=False):
+        if doc is self.owner.doc:
+            return
+        known = self._dependency_documents.get(doc.Name) == id(doc)
+        try:
+            docs = self._documents()
+            linked = any(doc is item for item in docs)
+            self._dependency_documents = {item.Name: id(item) for item in docs if item is not self.owner.doc}
+        except (ValueError, RuntimeError, ReferenceError, AttributeError):
+            linked = known
+        if not linked and not (removed and known):
+            return
+        other = getattr(self.owner, 'find_owner', lambda _: None)(doc)
+        if getattr(other, '_preview_depth', 0):
+            return  # Actual motion preview is restored, not a design edit.
+        self._dependency_events[doc.Name] = self._dependency_events.get(doc.Name, 0) + 1
+        self.owner.generation += 1
 
     def _documents(self):
         root = self.owner.doc
@@ -89,6 +156,7 @@ class Project:
                     other.before_design_action('linked project save')
                     linked_owners.append((other, other.generation))
             generations = owner.generation
+            graph_version = self.graph_version()
             revision = 'R' + uuid.uuid4().hex
             stage = owner.export_root / owner.document_id / 'project_staging' / revision
             stage.mkdir(parents=True, exist_ok=False)
@@ -138,13 +206,17 @@ class Project:
                 records.append({'file': names[doc.Name], 'native_name': doc.Name, 'label': doc.Label,
                     'original_file': doc.FileName or None, 'native_copy_sha256': native_cad.sha(native),
                     'sha256': native_cad.sha(destination), 'bytes': destination.stat().st_size})
-            if owner.generation != generations or any(other.closed or other.generation != generation
+            if owner.generation != generations or self.graph_version() != graph_version or any(other.closed or other.generation != generation
                                                       for other, generation in linked_owners):
                 raise ValueError('INPUT_CHANGED: native document or linked document changed while preparing its save')
             manifest = {'kind': native_cad.KIND, 'schema_version': 1, 'document_id': owner.document_id,
                 'revision': revision, 'parent_revision': (self.last_save or {}).get('revision'),
                 'entry': names[owner.doc.Name], 'documents': records, 'unavailable_dependencies': missing,
                 'metadata': owner.read_metadata(), 'saved_generation': generations, 'saved_utc': utc_now(),
+                'saved_dependencies': [{'native_name': doc.Name,
+                    'generation': (getattr(owner, 'find_owner', lambda _: None)(doc).generation
+                                   if getattr(owner, 'find_owner', lambda _: None)(doc) is not None else None)}
+                    for doc in docs if doc is not owner.doc],
                 'engineering_release': 'UNKNOWN', 'design_pose_restored': True}
             save_json(stage / 'project.json', manifest)
             # Publish an immutable revision first. Failure to publish the user's
@@ -154,7 +226,8 @@ class Project:
             saved = native_cad.publish_project(path, manifest, files)
             saved['retained_project'] = str(retained)
             self.path, self.last_save, self.last_failure = path, saved, None
-            owner.saved_generation = owner.generation
+            owner.saved_generation = generations
+            self._saved_graph_version = graph_version
             return {**saved, 'document_id': owner.document_id, 'unavailable_dependencies': missing}
         except Exception as error:
             self.last_failure = str(error)

@@ -58,30 +58,81 @@ def result_metadata(result):
     sampling={key:deepcopy(sampling[key]) for key in ('method','adaptive','seed','base_count','second_order') if key in sampling}
     native = {}
     for name, descriptor in result.get('native_channels', {}).items():
-        if len(native) >= 512:
-            diagnostics.append('Native channel catalog is limited to 512 definitions; use the exact result reader for further selections')
-            break
         if not isinstance(descriptor, dict):
             continue
         item = {key: deepcopy(descriptor[key]) for key in (*keys, 'quantity', 'kind', 'location',
             'selector_template', 'selector_count', 'selectors_truncated') if key in descriptor}
         item['axes'] = [{key: deepcopy(axis[key]) for key in ('name', 'unit', 'semantics') if key in axis}
                         for axis in descriptor.get('axes', [])]
-        item['source'] = {key: deepcopy(descriptor.get('source', {})[key]) for key in
-                          ('backend', 'artifact', 'sha256', 'selector') if key in descriptor.get('source', {})}
-        for key in ('node_ids', 'selectors'):
+        item['source'] = deepcopy(descriptor.get('source', {}))
+        if 'initial_state' in descriptor:
+            item['initial_state'] = deepcopy(descriptor['initial_state'])
+        if 'qualification' in descriptor:
+            item['qualification'] = deepcopy(descriptor['qualification'])
+        # Channels and locations are two different selectors. A node count
+        # must not consume a global choice budget and hide later reaction or
+        # Gauss-point channels. Location pages use this exact retained catalog.
+        item['requires_location'] = False
+        for key in ('gauss_ids', 'node_ids', 'selectors'):
             choices = descriptor.get(key)
-            if isinstance(choices, list):
-                item[key] = deepcopy(choices[:256])
-                if len(choices) > 256:
-                    item['selector_count'] = len(choices)
-                    item['selectors_truncated'] = True
+            if isinstance(choices, list) and choices:
+                item['selector_count'] = len(choices)
+                item['requires_location'] = True
+                item['locations'] = 'document_response_locations'
+                break
+        item.pop('selectors_truncated', None)
         native[name] = item
     return {'kind':result.get('kind'), 'variables':deepcopy(result.get('variables',[])),
             'responses':list(catalog.values()), 'candidate_count':len(candidates),
             'native_channels': native,
             'execution_counts':counts,'sampling':sampling,'diagnostics':diagnostics,
             'manifest_kind':result.get('manifest',{}).get('kind')}
+
+
+def response_locations(result, channel, *, start=0, count=128, search=''):
+    """Page only advertised exact node/Gauss/name selectors, never field values."""
+    if (not isinstance(channel, str) or type(start) is not int or start < 0
+            or type(count) is not int or not 1 <= count <= 1024
+            or not isinstance(search, str) or len(search) > 240):
+        raise ValueError('Select a channel and a bounded location page, optionally filtered by exact label/ID text')
+    descriptor = result.get('native_channels', {}).get(channel)
+    if not isinstance(descriptor, dict):
+        raise ValueError('Choose a native channel from this exact retained result')
+    if descriptor.get('gauss_ids'):
+        template = descriptor.get('selector_template')
+        fields = ('element_id', 'point', 'subpoint')
+        if not isinstance(template, str) or any(template.count('<' + key + '>') != 1 for key in fields):
+            raise ValueError('The channel has no supported exact Gauss selector template')
+        entries = []
+        for point in descriptor['gauss_ids']:
+            if not isinstance(point, dict) or not all(key in point for key in fields):
+                raise ValueError('The retained Gauss identity is incomplete')
+            selector = template
+            for key in fields:
+                selector = selector.replace('<' + key + '>', str(point[key]))
+            entries.append({'selector': selector, 'label': 'Element ' + str(point['element_id']) +
+                ' / point ' + str(point['point']) + ' / subpoint ' + str(point['subpoint'])})
+    elif descriptor.get('node_ids'):
+        template = descriptor.get('selector_template')
+        if not isinstance(template, str) or template.count('<node_id>') != 1:
+            raise ValueError('The channel has no supported exact node selector template')
+        entries = [{'selector': template.replace('<node_id>', str(node)), 'label': 'Native node ' + str(node)}
+                   for node in descriptor['node_ids']]
+    elif descriptor.get('selectors'):
+        if descriptor.get('selectors_truncated'):
+            raise ValueError('The retained selector preview has no complete native identity catalog')
+        entries = [{'selector': row['selector'], 'label': str(row.get('label', row['selector']))}
+                   for row in descriptor['selectors']]
+    else:
+        selector = descriptor.get('source', {}).get('selector')
+        entries = [{'selector': selector, 'label': channel}] if isinstance(selector, str) else []
+    total = len(entries)
+    needle = search.casefold()
+    if needle:
+        entries = [row for row in entries if needle in row['selector'].casefold() or needle in row['label'].casefold()]
+    return {'channel': channel, 'start': start, 'count': count, 'total_count': total,
+            'matched_count': len(entries), 'next_start': start + count if start + count < len(entries) else None,
+            'locations': deepcopy(entries[start:start + count]), 'source': deepcopy(descriptor.get('source', {}))}
 
 
 def _hash(value, label):

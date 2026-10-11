@@ -21,8 +21,14 @@ def request_draft(request=None, *, source=None):
 
 def request_diagnostics(draft):
     try:
-        if set(draft) != {'mode', 'request', 'source'}:
+        if set(draft) - {'method_inputs'} != {'mode', 'request', 'source'}:
             raise ValueError('Request Plan requires mode, editable request and source reference')
+        if 'method_inputs' in draft:
+            from .assist.experts import _PLAN_INPUTS
+            methods = draft['method_inputs']
+            if (not isinstance(methods, dict) or set(methods) - set(_PLAN_INPUTS)
+                    or any(not isinstance(value, dict) for value in methods.values())):
+                raise ValueError('Saved alternative methods require named editable input objects')
         from .assist.experts import validate_plan_request
         request = draft['request']
         if not isinstance(request, dict) or set(request) != {'purpose', 'operation', 'inputs', 'budget'}:

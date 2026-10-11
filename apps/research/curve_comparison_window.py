@@ -14,7 +14,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
 from .pde_window import _Read
-from .response_selection import response_choices
+from .response_selection import response_choices, choose_location
 
 KINDS = {'data', 'material', 'pde', 'simulation'}
 
@@ -63,6 +63,9 @@ class CurveComparisonWindow(QMainWindow):
         self.responses = QComboBox(); self.responses.setObjectName('comparison_response_b')
         for label, widget in [('B document', self.documents), ('Retained job', self.jobs), ('Response', self.responses)]:
             row.addWidget(QLabel(label)); row.addWidget(widget, 1)
+        self.location_button = QPushButton('Select exact location…')
+        self.location_button.clicked.connect(self.choose_response_location)
+        row.addWidget(self.location_button)
         layout.addLayout(row)
         row = QHBoxLayout()
         self.refresh_button = QPushButton('Refresh retained sources')
@@ -120,6 +123,8 @@ class CurveComparisonWindow(QMainWindow):
         for widget in (self.documents, self.jobs, self.responses, self.saved, self.start, self.count, self.refresh_button):
             widget.setEnabled(available)
         self.compare_button.setEnabled(available and self.document is not None and self.responses.currentData() is not None and self._save_request is None)
+        choice = self.responses.currentData(Qt.ItemDataRole.UserRole + 1)
+        self.location_button.setEnabled(available and isinstance(choice, dict) and choice.get('requires_location', False))
         self.save_button.setEnabled(available and self.document is not None and self._save_request is None)
         self.retry_save.setVisible(self._save_request is not None)
         self.retry_save.setEnabled(available and self._save_request is not None)
@@ -226,11 +231,25 @@ class CurveComparisonWindow(QMainWindow):
             for choice in response_choices(metadata):
                 if choice['definition'].get('kind', 'series') == 'series':
                     self.responses.addItem(choice['label'], choice['selector'])
+                    self.responses.setItemData(self.responses.count()-1, choice, Qt.ItemDataRole.UserRole + 1)
             index = self.responses.findData(prefer_response)
             if index >= 0: self.responses.setCurrentIndex(index)
             self.responses.blockSignals(False); self._selection_changed()
             if not self.responses.count(): self.message.setText('This retained result advertises no selectable curve.')
         self._call(lambda: self.client.document_result_metadata(document, job), accepted, relevant=lambda: self._key() == key)
+
+    def choose_response_location(self):
+        choice = self.responses.currentData(Qt.ItemDataRole.UserRole + 1)
+        if not isinstance(choice, dict) or not choice.get('requires_location') or self._busy: return
+        key = self._key()
+        try:
+            selected = choose_location(self, self.client, self.documents.currentData(), self.jobs.currentData(),
+                                       choice, relevant=lambda: self._valid() and self._key() == key)
+            if selected is not None and self._key() == key:
+                self.responses.addItem(selected['selector'] + ' [' + selected['definition'].get('unit', '?') + ']', selected['selector'])
+                self.responses.setCurrentIndex(self.responses.count()-1)
+        except (ValueError, TypeError, KeyError) as error:
+            self.message.setText(str(error))
 
     def compare(self):
         if self._save_request is not None: return

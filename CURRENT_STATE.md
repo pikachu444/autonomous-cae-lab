@@ -1,4 +1,26 @@
-## 2026-10-11 — Paused for product and reuse assessment
+## 2026-10-11 — Stabilization integrated; exact-source CI pending
+
+Pro S1 plus S2 is integrated into MAIN after source/hash checks and bounded
+independent verification. The delivered final tree is
+`8057ace8ecb672246f92b343be3d4970841f2750`; its 51 changed files are preserved
+except one recorded EOF-whitespace cleanup. No new engine/protocol/upstream
+feature is included. All earlier failed runs and the stopped r6 archive remain.
+
+Windows Pre, actual offscreen ParaView general Save/repair/reopen, HTTP/Qt method
+drafts and plot layout, and retained SVK/J2/OpenRadioss passed S1 review. S2 adds
+genuine Maxwell tau1 rereading, deterministic mapping release on Windows, 111
+passing focused tests and a fresh default-deadline Heat read of 10.1710 seconds.
+Eight Windows symlink-permission skips remain explicit; WSL exercises the actual
+outside-symlink refusal. The [integration record](benchmarks/records/20261011-stabilization-s2-integration.json)
+pins reports and read-time provenance boundaries. Native/physical release is
+not implied; fixed limits and saved verdicts are preserved.
+
+Publication and every job of the exact new source CI are the next gate. Until
+that source is pushed, remote product `1de8a69` plus docs `837df13` and failed
+run `38138994614` remain the baseline. General feature work remains paused;
+Draft PR7 is not merged. See [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md).
+
+## Earlier 2026-10-11 — Paused for product and reuse assessment
 
 The owner requested a stop after current work is preserved and organized.
 Implementation and new verification are paused, not complete. Existing source

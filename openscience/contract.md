@@ -1,4 +1,28 @@
-## Native research connections — 2026-10-11 r5
+## Existing-workflow corrections — 2026-10-11
+
+`calculations.plan`, `calculations.submit` and the Plan editor share the same
+required `purpose`, `operation`, operation-specific `inputs` and `budget`
+contract. Submission can additionally request the existing bounded `resources`.
+Workbench retains execution, backend authorization and resource/budget gates;
+the correction grants no new provider or execution authority.
+
+`document_response_locations` reads one retained document/job/channel through
+the same owner over GUI, HTTP and MCP. Its page starts at a nonnegative index,
+contains 1–1024 locations (128 by default), and accepts at most 240 search
+characters. The complete location catalog remains available beyond its preview;
+stale or foreign identities are refused. Reading a location or saved response
+does not submit a calculation. Named artifact hashes, dependency-manifest hashes
+and native-source hashes retain their separate meanings.
+
+Result verification reuses work only inside the current request/read. A later
+request rechecks bytes and containment; mappings are released on return or
+error. Maxwell compatibility preserves frozen input/threshold coefficients,
+native records and saved verdicts while checking narrowly identified analytical
+representations. It does not rewrite old evidence or change a physical limit.
+The [repair evidence](../docs/WORKBENCH_PROGRESS.md) records the exact reviewed
+source and remaining acceptance boundaries. Engineering release remains separate.
+
+## Earlier native research connections — 2026-10-11 r5
 
 This source is published at `1de8a69` in Draft PR7. Subsequent CI triage found an
 open Expert tool/Plan mismatch: `calculations.submit` forbids a `purpose` key

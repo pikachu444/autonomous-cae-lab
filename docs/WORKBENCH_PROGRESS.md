@@ -1,6 +1,138 @@
 # Current workbench implementation
 
-## 2026-10-11 development paused for assessment
+## 2026-10-11 stabilization integrated; exact-source CI pending
+
+The owner requested fixing CI and unresolved defects after the pause. Pro owns
+product/test/CI corrections; Root owns integration and independent verification.
+New J2/DP/protocol/upstream feature work remains paused. The 39-file stopped
+archive below remains preserved, not an integration target.
+
+The repair scope is Windows Pre publication/dependency dirty tracking, human
+Post partial Save, Maxwell/SVK retained readers, exact response/location/source
+metadata, RequestPlan method drafts, candidate plot layout, cold-result reads
+and the Expert submit contract. CI also needs its preset expectations, native
+graph doubles and desktop dependency environment reconciled with the current
+supported contracts. Existing validation, artifact identity, numerical limits
+and engineering UNKNOWN/NOT_RELEASED remain. The published baseline is product
+source `1de8a69` plus documentation head `837df13`; its failed CI is unchanged.
+Fresh verification outputs never overwrite the failed evidence. S1 and S2 are
+now integrated into MAIN; the source has not yet been published or checked by CI.
+
+### S2 closes the reproduced local failures
+
+The 8-file S2 delta over S1 supplies final tree
+`8057ace8ecb672246f92b343be3d4970841f2750`, ZIP SHA256
+`25986405a16ca50caae85bb7fb85067948661863ab5b9affb0300b56a7d7c30c`.
+Root verified every archive/source hash, the complete S1 base, patch applicability
+and Python syntax, then applied once to the immutable review checkout. The union
+of 51 changed files is now copied to MAIN; one extra EOF blank line in the new
+location test was removed and recorded. No product logic was rewritten by Root.
+
+- Genuine Maxwell tau1 rereads 16 channels x 9 samples with exact original
+  values, times, assessment, frozen limits and physical metadata. SVK remains
+  readable. The final report records mutation refusal and the distinction
+  between an unpinned helper catalog and original saved-file/source pins.
+- Windows Python 3.12.14 / pytest 8.4.2 passes **111 tests**, with eight explicit
+  symlink-permission skips, in 118.91 seconds. The original GC-disabled Windows
+  probe now has **zero** live mappings on return, can overwrite the disposable
+  array immediately, and rejects its changed hash on the next read. Full,
+  selected, metadata and live-traceback error paths pass the lifetime tests.
+- The four live-owner snapshot tests now omit only their exact operational
+  controller lock. Other lock files and unrelated read errors remain checked.
+  Short pytest IDs preserve the original 2MiB request and 413/no-job assertions.
+- A fresh WSL owner, without warmup, reads retained Heat in **10.1710 seconds**
+  and Structure in **8.3936 seconds** at the unchanged Client 30-second deadline.
+  Old fields, saved references and three Post artifacts remain exact. The same
+  owner rejects next-request same-size/mtime mutation, missing files and an
+  identical-byte outside symlink; restoration passes. Original 230 files,
+  copied 217 immutable files and the two native receipts remain unchanged.
+- Independent resource/test-contract review found no additional defect. Owned
+  services/processes stopped. S1 Pre/Post/UI/J2/OpenRadioss source is unchanged;
+  its actual evidence below is retained without repeating those native runs.
+
+The Maxwell audit distinguishes original-byte identity from an unpinned helper.
+Nine of ten disposable mutations are refused directly. A one-ULP change to a
+redundant physical finite-difference probe sample passes the old domain mapping
+rule and produces an exactly identical assessment; it does not use S2's new
+rounding allowance. Its old saved-source pin is still refused. Legacy history
+checks original artifact size/SHA before cataloging; document owners verify
+saved revision assets, and selected native reads compare saved source pins
+before returning. Direct helper cataloging alone is not original-byte identity
+verification. This existing boundary is preserved explicitly in the record.
+
+The [S2 integration record](../benchmarks/records/20261011-stabilization-s2-integration.json)
+contains source/report hashes and local retention. The next gate is publishing
+the source and checking all jobs of that exact commit. Until then run
+`38138994614` remains the failed historical baseline. No new source CI pass,
+whole-product completion, native FreeCAD acceptance or engineering release is
+claimed. General feature work and stopped r6 remain paused.
+
+### Earlier S1 review, before its residual corrections and MAIN integration
+
+S1 supplies 48 changed files over r5, result tree
+`f443818a5e2eafa0efd41678ca1eb1d36a6de41c`, ZIP SHA256
+`be41beeecec24cbdb5dd3e7d6a60a05e1d768f4581a6c52bb047c06c77358ebc`.
+Root checked safe archive paths, every member and normalized source hash, Python
+syntax and patch application, then applied once to the review checkout. MAIN,
+upstream and stopped r6 are unchanged. The
+[review record](../benchmarks/records/20261011-stabilization-s1-review.json)
+pins local reports and their retention limits.
+
+- **Pre:** 51 Windows tests pass with actual writable fsync. Real Owner/Qt
+  checks include external metadata, failed-publication previous bytes/baseline,
+  late dependency changes during close, and dirty/clean reconnect. Native
+  FreeCAD remains unexecuted.
+- **Post:** actual ParaView 6.2 offscreen performs original general
+  `commands.save_project()` with B missing, cold reopening, identical-B repair,
+  another Save and final reopening. Values, IDs, masks, history and source pins
+  survive. All four owned processes and the service exit. Visible GUI acceptance
+  is not claimed.
+- **Research UI:** actual HTTP/Qt preserves method drafts, invalid input and
+  execution blocking, subsequent edits and saved observation references through
+  a cold restart. Candidate curves are readable at 1180x820 and 1440x940.
+  Controlled Qt paging rejects obsolete replies and stale sources.
+- **Retained results:** genuine SVK 22 channels x 11 samples, J2 24 channels
+  with all 10,771 selectors over 87 pages and exact selected field histories,
+  OpenRadioss flight 8 x 201 and compliant 12 x 5001 pass. Native/derived measures,
+  half-step clocks, signed work and artifact/dependency/native hashes are retained.
+  Original 224 plus 755 additional files remain byte-identical; no native solve
+  or registration was repeated.
+- **Cold reads:** the first Heat GET of a fresh WSL owner takes 16.7359 seconds
+  with the unchanged 30-second Client deadline and no warmup. Structure and
+  saved/Post results preserve original values. Each subsequent request rejects
+  same-size/same-mtime mutation, missing bytes and an identical-byte outside
+  symlink; restoration succeeds. This is a bounded recorded-case check, not a
+  general performance guarantee.
+- **CI regressions:** the original 19 failing tests and five UI setup errors
+  pass in the isolated Windows Python 3.12.14/pytest 8.4.2 environment. The first
+  focused run totals 310 passed, four failed, eight skipped and two errors;
+  ten further changed test files total 110 passed, two failed and two skipped.
+  Skips are explicit Windows symlink permission limits; WSL supplies the actual
+  outside-symlink check. These are local runs, not a new GitHub CI verdict.
+
+The remaining failures are diagnosed and sent to Pro as one S1-based correction:
+
+1. Genuine Maxwell tau1 still fails the assessment comparison. Its 198 finite
+   float differences include analytical values up to 10 ULP, derived limits at
+   1-2 ULP, and a cancellation-sensitive residual of 0 versus
+   `9.700612972008478e-17`. Frozen input/policy coefficients, statuses, valid flags
+   and expected values are identical. A generic 8-ULP comparison is insufficient;
+   original native values, fixed limits and saved verdicts must remain strict.
+2. S1 `read_result` leaves two memmaps alive after a completed read when cyclic
+   GC is disabled. A real Windows write fails with errno 22 until GC releases
+   them. This is a product resource-lifetime defect, not merely a test adjustment.
+3. Four HTTP/MCP tests hash the exact active JobManager `controller.lock` and
+   hit its intentional Windows byte lock. Only that operational file may be
+   excluded from their retained-content inventories; other files remain checked.
+4. The oversized JSON body becomes an oversized pytest parameter ID, exceeding
+   Windows' environment-variable limit in setup/teardown. Short explicit IDs
+   must preserve the original body size and rejection assertions.
+
+All S1 evidence and earlier failed runs are retained. Pro is the sole source
+writer for the follow-up; Root will recheck affected paths and genuine Maxwell
+positive/negative cases before integration, publication and exact-source CI.
+
+## Earlier 2026-10-11 development paused for assessment
 
 The owner asked to preserve and organize the current work, then stop. New
 implementation, experiments and verification campaigns are paused. Whole-product

@@ -77,16 +77,22 @@ class Owner:
             self.generation += 1
             if not hasattr(obj, 'FemMesh') or getattr(obj, 'Shape', None) is not None:
                 self.mesh_bindings.slotChangedObject(obj, prop)
+        elif obj.Document is not self.doc:
+            self.project.note_dependency_change(obj.Document)
 
     def slotCreatedObject(self, obj):
         if obj.Document is self.doc and not self._preview_depth:
             self.generation += 1
+        elif obj.Document is not self.doc:
+            self.project.note_dependency_change(obj.Document)
 
     slotDeletedObject = slotCreatedObject
 
     def slotUndoDocument(self, doc):
         if doc is self.doc and not self._preview_depth:
             self.generation += 1
+        elif doc is not self.doc:
+            self.project.note_dependency_change(doc)
 
     slotRedoDocument = slotUndoDocument
 
@@ -147,6 +153,8 @@ class Owner:
     def slotDeletedDocument(self, doc):
         if doc is self.doc:
             self.closed = True
+        else:
+            self.project.note_dependency_change(doc, removed=True)
 
     def refresh(self):
         self.assert_thread()
@@ -172,7 +180,7 @@ class Owner:
         return {'id': self.document_id, 'kind': 'pre', 'title': self.doc.Label,
                 'native_document': self.doc.Name, 'working_file': self.doc.FileName,
                 'generation': self.generation, 'view_generation': self.view_generation,
-                'saved_generation': self.saved_generation, 'dirty': self.saved_generation != self.generation,
+                'saved_generation': self.saved_generation, 'dirty': not self.project.is_saved(),
                 'capabilities': list(OPERATIONS), 'objects': objects,
                 'object_count': len(self.doc.Objects), 'selection': self._selection,
                 'mesh_binding_diagnostics': dict(self.binding_diagnostics),

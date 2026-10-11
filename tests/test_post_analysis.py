@@ -15,11 +15,31 @@ vtk = pytest.importorskip("vtk")
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 
 
+class Property:
+    """ParaView-shaped typed property; it is not a source/subproxy."""
+    def __init__(self, data):
+        self.data = data
+        self.SMProperty = self
+
+    def GetData(self):
+        return self.data
+
+    def GetInformationOnly(self):
+        return False
+
+    def GetIsInternal(self):
+        return False
+
+    def GetXMLName(self):
+        # vtkSMProperty has this method too, without proxy ListProperties.
+        return "TestTypedProperty"
+
+
 class Proxy:
     def __init__(self, native, kind, label, **properties):
         self.native, self.kind, self.label = native, kind, label
-        self.props = dict(properties)
         self.data = properties.pop("data", None)
+        self.props = dict(properties)
         self.TimestepValues = []
         native.sources[(label, len(native.sources))] = self
         native.active = self
@@ -44,7 +64,7 @@ class Proxy:
         return list(self.props)
 
     def GetProperty(self, key):
-        return SimpleNamespace(GetInformationOnly=lambda: False, GetIsInternal=lambda: False)
+        return Property(self.props[key])
 
     def UpdatePipelineInformation(self):
         pass
@@ -136,7 +156,7 @@ class Plane:
     def ListProperties(self):
         return ["Origin", "Normal"]
     def GetProperty(self, key):
-        return SimpleNamespace(GetInformationOnly=lambda: False, GetIsInternal=lambda: False)
+        return Property(getattr(self, key))
 
 
 class Native:

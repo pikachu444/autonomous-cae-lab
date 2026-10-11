@@ -1,4 +1,19 @@
-## Connected research owners — 2026-10-11
+## Existing-workflow stabilization — 2026-10-11
+
+S1/S2 correct publication, dependency dirty tracking, managed Post Save,
+retained-result reading, request contracts and UI state within the accepted
+owner/adapter boundaries. The shared request schema aligns editor, Plan and
+authorized submit. Request-local read reuse retains later-request byte/path
+validation; owned mappings close before return or error. Native artifact,
+dependency-manifest and original native-source pins remain distinct.
+
+No solver, constitutive protocol, execution authority or physical acceptance
+threshold is added. This is a bounded correction of existing contracts, not a
+replacement architecture; ADR0060–0062 remain applicable. Source and verification
+identities, including limitations, are in
+[WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md).
+
+## Earlier connected research owners — 2026-10-11
 
 The r2/r3/r4/r5 source, published at `1de8a69`, implements independent PDE, Discussion,
 Simulation, EvaluationDefinition and Study editing through the existing document

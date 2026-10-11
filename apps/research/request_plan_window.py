@@ -261,8 +261,11 @@ class RequestPlanWindow(NumericalWindow):
 
     @staticmethod
     def _shape_error(draft):
-        if not isinstance(draft, dict) or set(draft) != {'mode', 'request', 'source'} or draft.get('mode') != 'request':
+        if not isinstance(draft, dict) or set(draft) - {'method_inputs'} != {'mode', 'request', 'source'} or draft.get('mode') != 'request':
             return 'This document is not a request Plan. Its original draft is retained; use its own editor or Undo.'
+        if 'method_inputs' in draft and (not isinstance(draft['method_inputs'], dict)
+                or any(not isinstance(value, dict) for value in draft['method_inputs'].values())):
+            return 'Saved method inputs must be named editable objects. The invalid draft is preserved.'
         request = draft['request']
         if (not isinstance(request, dict) or set(request) != {'purpose', 'operation', 'inputs', 'budget'} or
             not isinstance(request['inputs'], dict) or not isinstance(request['budget'], dict) or
@@ -283,7 +286,8 @@ class RequestPlanWindow(NumericalWindow):
             self.evaluations.setText(value_text(request['budget']['evaluations']))
             self._operation_initial = self.operation.currentData()
             self._shown_operation = self.operation.currentData()
-            self._operation_inputs = {self._shown_operation: deepcopy(request['inputs'])}
+            self._operation_inputs = {**deepcopy(document['draft'].get('method_inputs', {})),
+                                      self._shown_operation: deepcopy(request['inputs'])}
             self._populate_inputs(request['inputs'])
             self._operation_controls()
         else:
@@ -593,7 +597,7 @@ class RequestPlanWindow(NumericalWindow):
                 return (self.client.document_result_reference(document['id'], job),
                         self.client.document_result_metadata(document['id'], job))
             def described(payload):
-                from .response_selection import response_choices
+                from .response_selection import response_choices, choose_location
                 reference, metadata = payload
                 choices = response_choices(metadata)
                 if not choices:
@@ -602,7 +606,9 @@ class RequestPlanWindow(NumericalWindow):
                 labels = [str(i + 1) + ': ' + item['label'] for i, item in enumerate(choices)]
                 label, ok = QInputDialog.getItem(self, 'Select actual response', 'Component / exact native location', labels, editable=False)
                 if not ok or not relevant(): return
-                selector = choices[labels.index(label)]['selector']
+                choice = choose_location(self, self.client, document['id'], job, choices[labels.index(label)], relevant=relevant)
+                if choice is None or not relevant(): return
+                selector = choice['selector']
                 def checked(result):
                     if result.get('execution_status') != 'SUCCEEDED' or result.get('prediction_status'):
                         self.message.setText('A failed, unevaluated or surrogate-predicted response cannot be used as an actual observation.')
@@ -950,6 +956,10 @@ class RequestPlanWindow(NumericalWindow):
         if self.operation.currentData() is not None:
             request['operation'] = self.operation.currentData()
         request['inputs'] = self._input_value(self.inputs.topLevelItem(0))
+        alternatives = {key: deepcopy(value) for key, value in self._operation_inputs.items()
+                        if key != request['operation']}
+        if alternatives or 'method_inputs' in draft:
+            draft['method_inputs'] = alternatives
         original_budget = draft['request']['budget']['evaluations']
         request['budget']['evaluations'] = deepcopy(original_budget) if self.evaluations.text() == value_text(original_budget) else leaf_value(self.evaluations.text(), 0)
         return draft
