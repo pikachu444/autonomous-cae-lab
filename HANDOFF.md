@@ -1,4 +1,31 @@
-## 2026-10-12 — S4 full CI completed; bounded F05 correction is with Pro
+## 2026-10-12 — S5 local AMD trial failed; CI continuation correction is with Pro
+
+Source remains `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8`. Docs-only checkpoint
+`9c321f5522fccbdd37aefb87502af87641a09b0d` is pushed and remote/PR7-confirmed.
+Pro's S5 bundle contains diagnosis only; never apply its scratch worker diff to
+MAIN. Root ran its reviewed preparation helper and one actual pinned native
+trial at `runs/s5-f05-amd-local-20261012-r01/`.
+
+The local trial passes initialization and reaches MUMPS, but `RENUM=AMD` still
+fails `FACTOR_57`: `3.45549e-6 > 1e-6`, return 1 after 22.66 seconds. No complete
+worker result exists. Preserve the original 91 files, failed scratch and all
+logs. The owned PID/process group 418 is gone; no native process needs polling.
+Do not rerun AMD or sweep ordering options. This is distinct from Pro's earlier
+host initialization failure, which never reached MUMPS. Exact pins, measured
+diagnostics and limits are in
+[the S5 record](benchmarks/records/20261012-stabilization-s5-f05-diagnostic.json).
+
+Pro has the actual local result and one bounded follow-up over unchanged S4a
+tree `e0f35bbb64554b3842806e5f7f4d5fbd36bcfc26`. It must check whether a supported
+F05 correction is justified and minimally repair CI so later independent native
+acceptance steps can run after family failure, while setup failure/cancellation
+still blocks them and the job remains failed. Await and review its exact patch,
+validate conditions, publish verified source and inspect its exact CI. A new
+native trial needs a concrete reviewed proposal, not repeated blind options.
+Pro remains the sole source/test/CI writer; Root owns review, integration and
+evidence. General features and the local FreeCAD desktop remain paused.
+
+## Earlier 2026-10-12 — S4 full CI completed; bounded F05 correction is with Pro
 
 Source `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8` is published in Draft PR7.
 Exact CI `38153395166` finished FAILURE: nine jobs pass and only `codeaster`

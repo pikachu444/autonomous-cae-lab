@@ -1,6 +1,33 @@
 # Current workbench implementation
 
-## 2026-10-12 Full S4 CI completed; original F05 native failure isolated
+## 2026-10-12 S5 diagnostic completed without a qualified F05 fix
+
+Pro delivered a 284,251-byte diagnosis ZIP, SHA256
+`018ec12a576441c42b061bf4e589246e23b9ccb6739bddbf3a5cba0a0a8eb07d`.
+Root verified all 40 manifest entries and unchanged product/workflow/spec pins;
+independent review approved the bounded preparation and launch. No product patch
+exists. Pro's own host attempt failed at DEBUT before MUMPS; its seven passing
+pure/controlled test cases do not qualify a native correction.
+
+Root then executed Pro's exact helper and one fine trial in the existing WSL
+Singularity 4.1.1 environment. The local SIF `f4d9a7...` is independently pinned
+and recorded separately from CI's SIF `61e93d...`. Actual Code_Aster 17.4.0 /
+MUMPS 5.6.2 completes initialization and factorization, but `RENUM=AMD` produces
+`FACTOR_57`, `3.45549e-6 > 1e-6`, after 22.66 seconds. The raw log's tiny scaled
+residual and large condition/error estimates remain distinct; no reaction or
+response is substituted. Original 91-file evidence and prepared inputs retain
+their hashes; failed scratch remains and owned process group 418 has exited.
+
+[The exact S5 record](../benchmarks/records/20261012-stabilization-s5-f05-diagnostic.json)
+contains both attempts, pins, diagnostics, limitations and local retention.
+Product source remains `3fd8bc4`, with the S4 nine-pass/one-fail CI unchanged.
+Pro has the new numerical evidence and a bounded CI correction request to run
+independent later native acceptance stages despite earlier family failure,
+without masking that failure or running after failed setup/cancellation. The
+proposal still needs review, new source publication and exact-source CI.
+No features, local FreeCAD desktop or unrelated provider work has resumed.
+
+## Earlier 2026-10-12 Full S4 CI completed; original F05 native failure isolated
 
 Exact source `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8`, PR merge
 `2852fc3d4a78a93ff1e24a282b7f3ac3b82cb22a`, completes

@@ -1,4 +1,18 @@
-## 2026-10-12 — CI repair reaches nine passing jobs; native F05 still fails
+## 2026-10-12 — Native F05 diagnostic fails; preserve the original acceptance scope
+
+One reviewed AMD fine-mesh diagnostic reaches actual pinned MUMPS but still
+fails the unchanged native accuracy gate: `3.45549e-6 > 1e-6`. No product solver
+change is adopted, no failed metric is replaced and no engineering gate closes.
+[S5 evidence](benchmarks/records/20261012-stabilization-s5-f05-diagnostic.json)
+preserves the original inputs, local runtime identity and complete failure.
+
+The existing CI/unresolved-defect repair continues through Pro. The follow-up
+also addresses four independent native acceptance stages skipped by the earlier
+family failure; their execution must preserve setup/cancellation guards and the
+overall CI failure. This is a CI verification repair, not a relaxation of F05.
+The full ledger remains in scope; new features and local FreeCAD remain paused.
+
+## Earlier 2026-10-12 — CI repair reaches nine passing jobs; native F05 still fails
 
 Corrected source `3fd8bc4` completes exact CI `38153395166`: nine jobs pass and
 `codeaster` fails. Core passes 7,540 tests with 12 skips; Windows, native CAD,

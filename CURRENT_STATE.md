@@ -1,4 +1,28 @@
-## 2026-10-12 — Full S4 CI: nine jobs pass; original Code_Aster F05 remains open
+## 2026-10-12 — S5 AMD diagnostic reaches MUMPS but fails the original gate
+
+Pro delivered diagnosis and a preparation script, with no product/test/CI patch.
+Root and an independent reviewer checked the archive, source pins and exact
+single-call change before executing one fresh fine F05 trial in the existing
+pinned WSL/Singularity environment. Actual Code_Aster 17.4.0/MUMPS 5.6.2 reaches
+the solve, then fails `FACTOR_57`: `3.45549e-6 > 1e-6`. The AMD candidate is not
+a qualified fix. Native fields and Domain acceptance remain unavailable.
+
+The native log records scaled residual `1.27e-16` but estimated solution-error
+bound `3.46e-6` and condition estimate `9.20e9`. These are different quantities;
+the small residual does not clear the failed native gate. Original simulation
+files (91) and prepared inputs remain hash-identical, scratch is preserved and
+the owned native process group has exited. The local SIF pin differs from the
+CI-generated SIF and is recorded separately in
+[the S5 evidence](benchmarks/records/20261012-stabilization-s5-f05-diagnostic.json).
+
+Product source remains `3fd8bc4`; documentation checkpoint `9c321f5` is published.
+Exact CI `38153395166` remains nine passed/one failed. Pro has the actual AMD
+failure and a bounded follow-up: review justified F05 recovery and repair the
+CI conditions that skipped four independent native stages after family failure,
+without changing the overall failure or numerical gates. No follow-up patch is
+accepted yet. Features, local FreeCAD desktop and unrelated providers stay paused.
+
+## Earlier 2026-10-12 — Full S4 CI: nine jobs pass; original Code_Aster F05 remains open
 
 Exact source `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8` completed CI
 `38153395166` with **nine successful jobs and one failure**. Actual checkout is

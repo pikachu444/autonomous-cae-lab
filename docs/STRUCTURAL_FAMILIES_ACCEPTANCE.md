@@ -1,6 +1,27 @@
 # Connected structural family acceptance
 
-## 2026-10-12 — Exact CI reproduces original regular-Fz/F05 native failure
+## 2026-10-12 — Reviewed AMD trial fails the same native solution-error gate
+
+Pro supplied a diagnostic preparation script with no production patch. After
+hash and independent scope review, Root ran the exact original fine F05 input
+with scratch-only `RENUM=AMD` and `INFO=2`. Local admitted Code_Aster 17.4.0 /
+MUMPS 5.6.2 reaches the solve and fails `FACTOR_57`: `3.45549e-6 > 1e-6`.
+Native `RESI_RELA`, `NPREC`, preprocessing, postprocessing, singularity checks,
+mesh, material, loads, supports and response definitions remain unchanged.
+
+The log reports condition estimate `9.20e9`, scaled residual `1.27e-16` and
+solution-error upper bound `3.46e-6`. The native failure tests the error bound;
+the small scaled residual does not establish a pass. No complete DEPL/stress/
+reaction result is admitted and no Domain reference/mesh/cross-solver assessment
+is reached. Do not adopt AMD or repeat an ordering sweep from this evidence.
+
+[The S5 record](../benchmarks/records/20261012-stabilization-s5-f05-diagnostic.json)
+pins the actual local SIF separately from CI, original-input preservation,
+diagnostic source hash, native logs, bounded execution and process cleanup.
+This local failure is distinct from Pro's host `/proc` initialization failure.
+The original F05 acceptance, reaction and engineering requirements stay open.
+
+## Earlier 2026-10-12 — Exact CI reproduces original regular-Fz/F05 native failure
 
 Source `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8` runs as PR merge
 `2852fc3d4a78a93ff1e24a282b7f3ac3b82cb22a` in CI `38153395166`.
