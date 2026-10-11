@@ -1,0 +1,322 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-12",
+  "purpose": "Repair S3 full-suite Qt failures and preserve exact retained native selection after refresh",
+  "source_base_commit": "52d36b5ab743b2cb0302d6f23cd9f83baa9b183d",
+  "prior_failed_ci": {
+    "run_id": 38149573568,
+    "record": "benchmarks/records/20261012-stabilization-s3-ci-failure.json"
+  },
+  "status": "FOCUSED_WINDOWS_GATE_PASS_READY_FOR_PUBLICATION",
+  "publication": "This record precedes the source commit; follow-up checkpoint will record exact published commit/run",
+  "new_source_ci": "NOT_RUN",
+  "supplied_tree_s4": "63ca2ae1e6b8739510e8d4a775023781126c4ec3",
+  "supplied_tree_final": "e0f35bbb64554b3842806e5f7f4d5fbd36bcfc26",
+  "supplied_tree_scope": "Pro source tree; Root checkpoint documents produce a distinct repository tree",
+  "final_changed_files": [
+    {
+      "path": "apps/research/curve_comparison_window.py",
+      "change": "modified",
+      "mode_before": "100644",
+      "mode_after": "100644",
+      "sha256_before": "f9ff97c8731fe8b1e6c9b5f8bb4100d64e3e0801c57f310e907de61790461a0d",
+      "sha256_after": "5d6508feca423f7bda8b2c8ca7f8ed4e374554fa5798b4f31108efb411267e35",
+      "bytes_before": 23632,
+      "bytes_after": 27938
+    },
+    {
+      "path": "tests/test_connected_research_http_ui.py",
+      "change": "modified",
+      "mode_before": "100644",
+      "mode_after": "100644",
+      "sha256_before": "1f441a92d961069bc6ff5ec9e430ee2e83305c0b75ac0b7d494550543ec4170b",
+      "sha256_after": "440544858233ccc41b1abc61047846d13c7f62f6bc8f11d876600fe33eb40ec8",
+      "bytes_before": 5248,
+      "bytes_after": 8645
+    },
+    {
+      "path": "tests/test_curve_comparison_ui.py",
+      "change": "modified",
+      "mode_before": "100644",
+      "mode_after": "100644",
+      "sha256_before": "7648502d9aa2fad1b4942a70903f3a19fbce3dda04a6027ea965fb01fc2ebb56",
+      "sha256_after": "4498723e998469ee90397b2d6ac61e739f64c0f7e2068df6abf419dd9c7be478",
+      "bytes_before": 15435,
+      "bytes_after": 22860
+    }
+  ],
+  "root_review": {
+    "safe_archive_paths": true,
+    "all_manifest_hashes_match": true,
+    "all_before_and_after_source_hashes_match": true,
+    "python_ast": "PASS",
+    "git_apply_check": "PASS",
+    "git_diff_check": "PASS",
+    "applied_exact_deltas_once_to": "MAIN",
+    "old_s2_review_tree": "UNCHANGED",
+    "product_source_written_by": "Pro",
+    "integration_and_records_by": "Root"
+  },
+  "product_correction": {
+    "file": "apps/research/curve_comparison_window.py",
+    "behavior": "Keep a previously verified exact native location after refresh only when document/session/job/input and response-definition/source identities still match and exact selector is found in bounded retained pages. Refuse missing/changed identities without choosing another curve or replacing the prior comparison.",
+    "numerical_or_execution_contract_changes": false
+  },
+  "test_corrections": [
+    "Use real paged Qt location selection before existing reply/session/late-response/foreground guards.",
+    "Wait for actual Data result delivery and enabled editor/Save, type invalid text with Qt keyboard events, verify saved revision/reopen and refusal of invalid execution while old response remains.",
+    "Distinguish an initial unstarted modal page request from a completed empty/error reply; original 6-second dialog and 8-second Data deadlines remain."
+  ],
+  "workflow_unchanged_sha256_lf": "aa2007110269dca9181d7e167160b1e41a313fdd252bae252405026964737570",
+  "pro_reported_verification": {
+    "environment": "Ubuntu 24.04; Python 3.12.14; PySide6 6.9.1; pytest 8.4.2; offscreen/Agg",
+    "s4_two_files": {
+      "passed": 19,
+      "seconds": 5.78,
+      "warnings": 1
+    },
+    "adjacent_saved_comparison_locations": {
+      "passed": 16,
+      "seconds": 6.97,
+      "earlier_attempt": "11 passed/1 failed because SciPy was missing in its verification environment; installed repository dependency SciPy 1.17.0; no product workaround"
+    },
+    "s4a_forced_initial_event_order": {
+      "passed": 3,
+      "seconds": 1.58,
+      "harness": "Temporary external harness; actual modal serial=0/busy=False/empty, driver invoked before first load then real callback; not included in delivered source"
+    },
+    "root_reexecution_of_pro_harness": false
+  },
+  "independent_windows_s4": {
+    "status": "S4_WINDOWS_GATE_FAILED_ONE_TEST_READINESS_RACE",
+    "source_base_commit": "52d36b5ab743b2cb0302d6f23cd9f83baa9b183d",
+    "supplied_tree": "63ca2ae1e6b8739510e8d4a775023781126c4ec3",
+    "scope": "Exact three-file S4 correction in MAIN; read-only review plus one bounded Windows run of four requested files",
+    "result": {
+      "tests": 35,
+      "passed": 34,
+      "failed": 1,
+      "skipped": 0,
+      "warnings": 1,
+      "pytest_seconds": 20.01,
+      "exit_code": 1
+    },
+    "failed_test": {
+      "node_id": "tests/test_curve_comparison_ui.py::test_actual_catalog_and_selected_comparison_gap_table",
+      "traceback": [
+        "tests/test_curve_comparison_ui.py:188: client = RetainedClient(); window = opened(app, client)",
+        "tests/test_curve_comparison_ui.py:183: choose_exact_location(app, window, 'native-u', 'native-u@7')",
+        "tests/test_curve_comparison_ui.py:170: if errors: raise errors[0]",
+        "tests/test_curve_comparison_ui.py:164: raise AssertionError('Exact native location is absent: ' + dialog.message.text())",
+        "AssertionError: Exact native location is absent: "
+      ],
+      "classification": "Initial modal-page readiness race in the new test helper; no evidence that the native location is absent",
+      "source_diagnosis": "The test starts its 5 ms drive timer before clicking the location button (line 167). Production Locations starts with _busy=False and _serial=0 (response_selection.py:45), then schedules its first load with QTimer.singleShot(0) (line 68). The timer can inspect a shown but not-yet-loaded dialog. The helper guards only _busy and _pending, then treats no rows/disabled Next as a terminal absence. The empty diagnostic in the actual failure is consistent with the pre-load state, before a success or error page receipt sets a message.",
+      "bounded_correction": "Wait for the initial page request/receipt before evaluating absence. Preserve the existing deadline and real empty-page failure behavior; do not inject selectors or bypass the dialog.",
+      "coverage_limit": "This case stops in opened(), before its exact compare and gap-table assertions. It is not counted as verified merely because other cases pass. No second run or modified harness was performed."
+    },
+    "verified_passes": [
+      {
+        "area": "Data real HTTP result delivery and invalid draft Save",
+        "evidence": "The test obtains the real HTTP metadata result before holding its delivery; no fake success response is substituted. While held, editor and Save are disabled and no Save command is submitted. After releasing the result it waits for actual rows and editable controls, types invalid column text into the real QLineEdit using Qt keyboard events, then verifies exactly data.update followed by document.save. Reopening the document preserves invalid text, diagnostics and saved revision; import stays blocked, no extra execution is created, and the original response values, row identities, units and frame remain. The eight-second wait limit is unchanged.",
+        "boundary": "This Data case reopens its window/document through the same service. Separate CSV comparison cases below perform a service restart."
+      },
+      {
+        "area": "Former foreign/session/late-response/foreground guards",
+        "evidence": "The shared setup now opens the real paged Qt picker with a faithful result_metadata/response_locations double and asserts the exact native selector. Foreign reply preserves the old view and emits identity refusal. Delayed comparison tests wait for the entered event before changing selection or parent relevance; disabled Compare/response/location controls are asserted during the pending request. Changed owner session reaches and fails the session check with a valid B selection. Exact Save receipt retry and fresh generation/session behavior pass."
+      },
+      {
+        "area": "Exact selection survives refresh",
+        "evidence": "The actual picker reaches Gauss page start 256 and selects stress@302:2:1 for explicit Jsecond. Refresh retains document, job and the complete stored selected descriptor, including retained input and source metadata, after an unrelated draft-generation change. A second case follows substring search pages 0, 128 and 256 before matching exact node 7. Neither refresh creates a comparison, Save or calculation."
+      },
+      {
+        "area": "Changed or missing identity rejection",
+        "evidence": "All seven parameterized cases pass: B session, retained input hash, source hash, removed exact location, foreign location page, missing job and missing document. They leave selection unresolved and Compare disabled, preserve the existing comparison, perform no comparison request, and retain an explicit refusal message."
+      },
+      {
+        "area": "Adjacent retained workflows",
+        "evidence": "All 16 cases in test_data_saved_comparison_ui.py and test_retained_location_pages.py pass, including actual CSV comparison/save/service restart, bounded original-row selection, unexecuted follow-up drafts, delayed owner/channel guards, modal callback locking, full retained location paging, exact HTTP native-shaped fixture reads, MCP same-owner reads and cancel/foreign/late-location rejection. The original actual CSV CurveComparison save/service-restart case also passes."
+      }
+    ],
+    "product_review": {
+      "former_refresh_defect": "Correction verified by source and passing exact-location refresh tests",
+      "reason": "The selected location now stores its descriptor and B document/session/job/input revision/hash. Refresh refuses missing sources/jobs, compares that retained binding and the full response definition, then searches bounded location pages for exact selector equality while checking page document/job/channel/start/source identity and increasing page indices. It does not silently replace an unresolved exact native selection with a direct curve. The existing comparison remains intact.",
+      "new_confirmed_product_regressions": []
+    },
+    "artifacts": {
+      "run-report.json": "db2705b642bed070c74734b57b78ae69618f3da16c591673652b287b31ee57cc",
+      "pytest.log": "e6522fb97ee9086d744dccb4717b793c97dc9f3437da563578e8724e7a664120",
+      "junit.xml": "0e79bb4bd2112f736be14289f81a526de644958c0e3dfc229883071e5768407a",
+      "run.py": "e12b95d004907a531aeccbcbe65218a47f8e980c7217e949cd64f0f025db997b"
+    },
+    "cleanup": {
+      "qt_pool_joined": true,
+      "qt_workers": 0,
+      "visible_windows": [],
+      "remaining_threads": [],
+      "owned_python_processes_after_exit": 0,
+      "all_eight_inspected_source_test_workflow_files_unchanged": true,
+      "limit": "No per-service port inventory was collected; the tests perform their own finally cleanup and the independent wrapper records process-local Qt/thread state."
+    },
+    "limits": [
+      "One existing Matplotlib constrained_layout warning is retained, not suppressed. No screenshot or readability claim is made.",
+      "Retained native catalogs are controlled fixtures; this run creates no new native solver or provider evidence.",
+      "Product/tests/CI/docs and other agents' work were not edited. Only this fresh ignored QA directory was written.",
+      "No unchanged-source repeat, broad suite, native campaign or CI pass is claimed. Root will send the remaining helper race to Pro."
+    ]
+  },
+  "independent_windows_s4a": {
+    "status": "PASS_WITHIN_AFFECTED_WINDOWS_UI_SCOPE",
+    "source_base_commit": "52d36b5ab743b2cb0302d6f23cd9f83baa9b183d",
+    "supplied_tree": "e0f35bbb64554b3842806e5f7f4d5fbd36bcfc26",
+    "source_state": "MAIN with reviewed S4 plus S4a, uncommitted at verification",
+    "affected_file_lf_sha256": "4498723e998469ee90397b2d6ac61e739f64c0f7e2068df6abf419dd9c7be478",
+    "execution": {
+      "test_file": "tests/test_curve_comparison_ui.py",
+      "runs": 1,
+      "cold_python_process": true,
+      "tests": 18,
+      "passed": 18,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "warnings_reported": 0,
+      "pytest_seconds": 7.87,
+      "exit_code": 0,
+      "python": "3.12.14",
+      "pyside6": "6.9.1",
+      "pytest": "8.4.2",
+      "matplotlib": "3.10.8",
+      "environment": {
+        "QT_QPA_PLATFORM": "offscreen",
+        "MPLBACKEND": "Agg",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "command": "C:/SourceCodes/autonomous-cae-lab/runs/stabilization-qa-20261011-a1/venv/Scripts/python.exe -B C:/SourceCodes/autonomous-cae-lab/runs/reviewer-s4a-ui-20261012-a260e/run.py",
+      "pytest_arguments": [
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "tests/test_curve_comparison_ui.py",
+        "--basetemp",
+        "C:/SourceCodes/autonomous-cae-lab/runs/reviewer-s4a-ui-20261012-a260e/pytest-temp",
+        "--junitxml",
+        "C:/SourceCodes/autonomous-cae-lab/runs/reviewer-s4a-ui-20261012-a260e/junit.xml"
+      ]
+    },
+    "review": {
+      "helper_readiness": "The driver now returns while initial serial is zero, a read is busy, or a pending search/page exists. The original six-second deadline is still checked before this return. Once an empty or error page completes, serial is positive, busy is false and pending is None, so the original absence assertion still executes. No selector injection, fake success, timeout increase or product change was introduced by S4a.",
+      "former_first_failure": "The first actual catalog/gap-table test passes in this cold run. It now reaches the real paged picker, exact compare call, four original sample rows, source-row identity 8, gap em dash, actual B-minus-A value 0.5, four independently segmented plot lines, NaN gap, alignment policy and response SHA assertions.",
+      "guards": "Foreign comparison identity, delayed selected-response and parent-relevance replies, foreground Compare/response/location locking, owner-session refusal, exact Save receipt retry and fresh generation/session checks all pass after actual exact native-location selection.",
+      "refresh": "Explicit B job and exact Gauss location beyond the preview remain selected with matching retained input/source descriptor. Substring search traverses all required pages to exact node identity. Seven changed/missing document, job, session, input, source, location and page-identity cases refuse replacement while preserving the existing comparison.",
+      "retention": "Saved comparison paging/original segments, invalid mask refusal and actual CSV compare/Save/full service restart/reopen pass without extra execution on reopen.",
+      "confirmed_findings": []
+    },
+    "preserved_evidence": {
+      "previous_s4_report": "../reviewer-s4-ui-20261012-f691c/review.json",
+      "previous_s4_report_sha256": "139b6a5fac0db10456c0872dad9f7593b32e58d80e2e3f4c13f37f54790c63b1",
+      "unchanged_passes_not_rerun": "Data actual HTTP held-delivery/keyboard invalid Save/reopen case and the 16 adjacent saved-comparison/location cases",
+      "hash_comparison": "Across eight inspected source/test/workflow paths, only tests/test_curve_comparison_ui.py changed since S4. All eight remained unchanged during this run."
+    },
+    "artifacts": {
+      "pytest.log": "ef8276f4e9147cf2661595cd8677200d09047192585fbdc9f60a5451cf5b52f9",
+      "junit.xml": "ce9f26052ea37636ab21f86d3af25942d39aa2648df5b5df5068bc0e08a4f7c3",
+      "run-report.json": "b1950013dc1e6f0519c15281fb4db520ddde683bdea2fd58d3340f766ef0c11f",
+      "run.py": "e5c23acf835aec01409887bb50819fb27b0296beedce78626be441c95782c771"
+    },
+    "cleanup": {
+      "qt_pool_joined": true,
+      "qt_workers": 0,
+      "visible_windows": [],
+      "remaining_threads": [],
+      "owned_python_processes_after_exit": 0
+    },
+    "limitations": [
+      "No screenshot, new native solver/provider run, broad regression or new CI result is claimed.",
+      "The native catalog is a controlled retained-data fixture; actual CSV owner work is software integration evidence, not physics acceptance.",
+      "No deterministic event-order injection was added by this reviewer; source inspection and the one cold affected-file run establish the bounded result.",
+      "Product/tests/workflow/docs and other agents' work were preserved. Only this new ignored QA folder was written."
+    ]
+  },
+  "evidence_files": [
+    {
+      "path": "runs/pro-code-received-20261011-r01/stabilization-s4/autonomous-cae-pro-s4-ui-ci-corrections.zip",
+      "bytes": 29108,
+      "sha256": "825ee6535eeafb499256b040e7bd0bba5c728d7f5eb52fc0e11def6b480efcc9",
+      "retention": "LOCAL_ONLY; no remote artifact retention implied"
+    },
+    {
+      "path": "runs/pro-code-received-20261011-r01/stabilization-s4/root-receipt.json",
+      "bytes": 2849,
+      "sha256": "adef2a20932c408a6b2b41b6cae0a0e59dfb956b359d872509ab3f485f782a52",
+      "retention": "LOCAL_ONLY; no remote artifact retention implied"
+    },
+    {
+      "path": "runs/pro-code-received-20261011-r01/stabilization-s4a/autonomous-cae-pro-s4-modal-race-correction.zip",
+      "bytes": 9795,
+      "sha256": "1e0bd09d3efe0c3acbe30a16b3a4e5d9884b74aa3d05592967030133f870b874",
+      "retention": "LOCAL_ONLY; no remote artifact retention implied"
+    },
+    {
+      "path": "runs/pro-code-received-20261011-r01/stabilization-s4a/root-receipt.json",
+      "bytes": 2011,
+      "sha256": "09bcc5f1dec878e3216b910fc888a41b9068b1b35adc1b2a2828a3a2ff6b6810",
+      "retention": "LOCAL_ONLY; no remote artifact retention implied"
+    },
+    {
+      "path": "runs/reviewer-s4-ui-20261012-f691c/review.json",
+      "bytes": 7213,
+      "sha256": "139b6a5fac0db10456c0872dad9f7593b32e58d80e2e3f4c13f37f54790c63b1",
+      "retention": "LOCAL_ONLY; no remote artifact retention implied"
+    },
+    {
+      "path": "runs/reviewer-s4-ui-20261012-f691c/pytest.log",
+      "bytes": 3197,
+      "sha256": "e6522fb97ee9086d744dccb4717b793c97dc9f3437da563578e8724e7a664120",
+      "retention": "LOCAL_ONLY; no remote artifact retention implied"
+    },
+    {
+      "path": "runs/reviewer-s4-ui-20261012-f691c/junit.xml",
+      "bytes": 7100,
+      "sha256": "0e79bb4bd2112f736be14289f81a526de644958c0e3dfc229883071e5768407a",
+      "retention": "LOCAL_ONLY; no remote artifact retention implied"
+    },
+    {
+      "path": "runs/reviewer-s4-ui-20261012-f691c/run-report.json",
+      "bytes": 5293,
+      "sha256": "db2705b642bed070c74734b57b78ae69618f3da16c591673652b287b31ee57cc",
+      "retention": "LOCAL_ONLY; no remote artifact retention implied"
+    },
+    {
+      "path": "runs/reviewer-s4a-ui-20261012-a260e/review.json",
+      "bytes": 4590,
+      "sha256": "16ae53d6680552cf1a51cc5a1afc247d575a5efc8f648955cb635745dc33dd33",
+      "retention": "LOCAL_ONLY; no remote artifact retention implied"
+    },
+    {
+      "path": "runs/reviewer-s4a-ui-20261012-a260e/pytest.log",
+      "bytes": 372,
+      "sha256": "ef8276f4e9147cf2661595cd8677200d09047192585fbdc9f60a5451cf5b52f9",
+      "retention": "LOCAL_ONLY; no remote artifact retention implied"
+    },
+    {
+      "path": "runs/reviewer-s4a-ui-20261012-a260e/junit.xml",
+      "bytes": 2582,
+      "sha256": "ce9f26052ea37636ab21f86d3af25942d39aa2648df5b5df5068bc0e08a4f7c3",
+      "retention": "LOCAL_ONLY; no remote artifact retention implied"
+    },
+    {
+      "path": "runs/reviewer-s4a-ui-20261012-a260e/run-report.json",
+      "bytes": 5183,
+      "sha256": "b1950013dc1e6f0519c15281fb4db520ddde683bdea2fd58d3340f766ef0c11f",
+      "retention": "LOCAL_ONLY; no remote artifact retention implied"
+    }
+  ],
+  "limits": [
+    "The first S4 Windows case did not reach its gap-table assertions; its failure is retained.",
+    "Native catalog tests use controlled retained fixtures. Actual HTTP CSV/reader/save/reopen checks are software evidence, not new native solver evidence.",
+    "No local FreeCAD, ParaView, native solver or provider was launched for S4/S4a.",
+    "No numerical threshold, saved verdict or old experiment was changed. Engineering release remains UNKNOWN/NOT_RELEASED.",
+    "New exact-source full CI is required; a later documentation commit is not new solver verification."
+  ]
+}

@@ -1,4 +1,53 @@
-## 2026-10-12 — Linux CI environment correction integrated; publication next
+## 2026-10-12 — S4/S4a verified; publish and finish new exact-source CI
+
+The Pro S4 three-file correction and S4a single-test delta are each applied once
+to MAIN over `52d36b5`. Final supplied tree is
+`e0f35bbb64554b3842806e5f7f4d5fbd36bcfc26`. Do not reapply either patch or modify
+the immutable S2 REVIEW checkout. [The integration record](benchmarks/records/20261012-stabilization-ui-ci-corrections.json)
+contains source/archive/report hashes, retained failures and exact local scope.
+Root checked all manifests, before/after source hashes, syntax, patch application,
+unchanged workflow and preserved documents. No product logic was rewritten by Root.
+
+Refresh now preserves only a verified exact native location for the same retained
+input/source and rejects changed or missing identities. Actual Qt paged selection
+reaches the existing comparison guards. The real HTTP Data test checks locked
+result delivery, enabled keyboard edit/invalid Save/reopen, blocked execution and
+old result preservation. Data production code and original deadlines are unchanged.
+
+Independent Windows S4 passes 34 checks but exposes an initial modal-load race in
+the test driver. S4a fixes that readiness condition only. A single cold Windows
+run of the affected comparison file passes all 18 tests in 7.87 seconds, including
+the previously unreached exact values/gaps. Data and adjacent 16 passing tests
+are unchanged and were not repeated. Owned Qt/workers/threads/processes are closed.
+Pro and the independent reviewer are stopped. No further local/native campaign
+is needed before publication.
+
+Next: commit this verified unit and records, push, verify the exact remote/PR head,
+and inspect every job of the new source CI. Historical failure `38149573568`
+remains tied to source `52d36b5`; a later documentation commit is not a solver run.
+General features, local FreeCAD, the exhausted cloud trial and new provider calls
+remain paused. Preserve UNKNOWN/NOT_RELEASED and original numerical limits.
+
+## Earlier 2026-10-12 — Qt environment fixed; seven full-suite assertions under correction
+
+Source `52d36b5` exact CI `38149573568` completed FAILURE after exercising the
+full Linux suite: 7 failed, 7,525 passed, 12 skipped in 1222.35 seconds. The fresh
+runner Qt package install and offscreen preflight both pass; Windows also passes
+124 Python tests, 19 Node tests and real private-Python HTTP startup/calculation/
+owned shutdown. Eight downstream jobs were skipped. Full logs and the exact
+seven node IDs are retained in
+[the failed-run record](benchmarks/records/20261012-stabilization-s3-ci-failure.json).
+
+Pro has one complete correction packet for the Data Qt/HTTP Save test and six
+curve comparison UI failures. Distinguish real async/save defects from obsolete
+flat-selector test doubles after the paged location UI change. Preserve invalid
+draft saving, exact selections, saved values, identity/session checks, late-reply
+refusal, foreground locking and refresh retention. Do not skip these checks or
+merely increase timeouts. Root's independent Windows reviewer is reproducing
+only the two failed files. No unchanged whole-suite or old native rerun is needed.
+Next receive/review this correction, publish new source and inspect its full CI.
+
+## Earlier 2026-10-12 — Linux CI environment correction published
 
 The bounded Pro correction is received, hash-checked and applied to MAIN. Only
 `.github/workflows/caelab-ci.yml` changes: seven Ubuntu Qt runtime packages and
@@ -8,7 +57,9 @@ before/after source hashes, YAML, shell syntax and patch application. Pro's
 Ubuntu 24.04.3/Python 3.12.14/PySide6 6.9.1 preflight passes, but its host already
 had the system libraries; fresh GitHub installation and all jobs remain the gate.
 See [the correction record](benchmarks/records/20261012-stabilization-linux-qt-ci.json).
-Next commit/push this correction and inspect its exact-source CI. Pro is stopped;
+Published source `52d36b5ab743b2cb0302d6f23cd9f83baa9b183d` is confirmed on the
+remote branch and Draft PR7. Exact-source CI `38149573568` later failed as above.
+Pro stopped after the environment delivery and resumed only the seven failures;
 general features remain paused. The immutable S2 review tree stays unchanged.
 
 ## Earlier 2026-10-11 — Stabilization published; Linux environment failure

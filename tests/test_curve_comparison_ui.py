@@ -9,8 +9,11 @@ import time
 import pytest
 pytest.importorskip('PySide6')
 pytest.importorskip('matplotlib')
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QThreadPool, QTimer, Qt
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox
 from apps.research.curve_comparison_window import CurveComparisonWindow
+from caelab.research_operations import response_locations, result_metadata
 
 A = {'document_id': 'Mactual', 'job_id': 'Jactual', 'response': 'stress'}
 B = {'document_id': 'Pactual', 'job_id': 'Jpde', 'response': 'native-u@7'}
@@ -18,7 +21,10 @@ B = {'document_id': 'Pactual', 'job_id': 'Jpde', 'response': 'native-u@7'}
 
 @pytest.fixture
 def app():
-    return QApplication.instance() or QApplication([])
+    application = QApplication.instance() or QApplication([])
+    yield application
+    assert QThreadPool.globalInstance().waitForDone(6000), 'Retained-data worker was not closed'
+    application.processEvents()
 
 
 def wait(app, predicate):
@@ -44,11 +50,31 @@ def record():
         'prediction_metadata': {'component': 'xx', 'measure': 'Cauchy', 'frame': 'declared frame'}}}
 
 
+def native_catalog():
+    source = {'artifact': 'captured-native.json', 'sha256': 'f'*64,
+              'native_origin': {'artifact': 'native.rmed', 'sha256': '1'*64}}
+    meaning = {'kind': 'series', 'unit': 'Pa', 'component': 'xx', 'measure': 'Cauchy',
+               'frame': 'global', 'axes': [{'name': 'time', 'unit': 's', 'semantics': 'physical_elapsed_time'}],
+               'source': source}
+    return {'execution_status': 'SUCCEEDED',
+        'responses': {'stress': {'kind': 'series', 'unit': 'Pa'}, 'maximum': {'kind': 'scalar', 'unit': 'Pa'}},
+        'native_channels': {
+            'native-u': {**deepcopy(meaning), 'node_ids': [7, 31, *range(1000, 1504)],
+                         'selector_template': 'native-u@<node_id>'},
+            'force': {'kind': 'series', 'unit': 'N', 'measure': 'native reaction',
+                      'source': {**deepcopy(source), 'selector': 'exact-force'}},
+            'gauss': {**deepcopy(meaning), 'gauss_ids': [
+                {'element_id': element, 'point': 2, 'subpoint': 1} for element in range(3, 303)],
+                'selector_template': 'stress@<element_id>:<point>:<subpoint>'}}}
+
+
 class RetainedClient:
     def __init__(self, saved=False):
         self.calls = []; self.fail_save = False; self.foreign = False
         self.entered, self.release = threading.Event(), threading.Event()
         self.delay = False
+        self.catalog = native_catalog()
+        self.foreign_location = False
         self.docs = {
             'Mactual': {'id': 'Mactual', 'kind': 'material', 'title': 'Original Material', 'session_id': 'Sowner', 'generation': 2,
                 'runs': [{'job_id': 'Jactual', 'input_revision': 'Iactual', 'input_sha256': 'a'*64}], 'comparisons': []},
@@ -66,11 +92,14 @@ class RetainedClient:
     def document_read(self, identifier): return deepcopy(self.docs[identifier])
     def document_result_metadata(self, identifier, job):
         self.calls.append(('metadata', identifier, job))
-        return {'execution_counts': {'SUCCEEDED': 1}, 'responses': [{'response': 'stress', 'kind': 'series', 'unit': 'Pa'},
-            {'response': 'maximum', 'kind': 'scalar', 'unit': 'Pa'}],
-            'native_channels': {'native-u': {'kind': 'series', 'unit': 'Pa', 'node_ids': [7, 31], 'selector_template': 'native-u@<node_id>'},
-                'force': {'unit': 'N', 'source': {'selector': 'exact-force'}},
-                'gauss': {'unit': 'Pa', 'selectors': [{'label': 'Element 3 / Gauss 2', 'selector': 'stress@3:gp2'}]}}}
+        assert any(run['job_id'] == job for run in self.docs[identifier]['runs'])
+        return result_metadata(self.catalog)
+
+    def document_response_locations(self, identifier, job, channel, *, start=0, count=128, search=''):
+        self.calls.append(('locations', identifier, job, channel, start, count, search))
+        assert any(run['job_id'] == job for run in self.docs[identifier]['runs'])
+        page = response_locations(self.catalog, channel, start=start, count=count, search=search)
+        return {**page, 'document_id': identifier, 'job_id': 'Jforeign' if self.foreign_location else job}
 
     def document_compare(self, source, prediction_source):
         self.calls.append(('compare', deepcopy(source), deepcopy(prediction_source)))
@@ -101,12 +130,58 @@ class RetainedClient:
         return {'command_id': request['command_id'], 'document': self.document_read(request['identifier'])}
 
 
+def choose_exact_location(app, window, channel, selector, *, search=False):
+    """Use the production modal page/search/selection path, not combo injection."""
+    index = next(i for i in range(window.responses.count())
+                 if window.responses.itemData(i, Qt.ItemDataRole.UserRole + 1).get('channel') == channel
+                 and window.responses.itemData(i, Qt.ItemDataRole.UserRole + 1).get('requires_location'))
+    window.responses.setCurrentIndex(index)
+    assert window.location_button.isEnabled() and not window.compare_button.isEnabled()
+    timer = QTimer(window); timer.setInterval(5)
+    deadline = time.monotonic() + 6
+    searched, errors = [False], []
+    def drive():
+        dialog = app.activeModalWidget()
+        if not isinstance(dialog, QDialog): return
+        try:
+            assert time.monotonic() < deadline, 'Exact retained location dialog did not settle'
+            # The modal starts idle before its queued first load has run.
+            # Wait for a completed request, including pending search/page work.
+            if dialog._serial == 0 or dialog._busy or dialog._pending is not None: return
+            if search and not searched[0]:
+                searched[0] = True
+                QTest.keyClicks(dialog.search, selector)
+                return
+            row = next((i for i in range(dialog.items.count())
+                        if dialog.items.item(i).data(Qt.ItemDataRole.UserRole) == selector), None)
+            if row is not None:
+                dialog.items.setCurrentRow(row)
+                button = dialog.buttons.button(QDialogButtonBox.StandardButton.Ok)
+                assert button.isEnabled()
+                button.click()
+            elif not search and dialog.next.isEnabled():
+                dialog.next.click()
+            else:
+                raise AssertionError('Exact native location is absent: ' + dialog.message.text())
+        except BaseException as error:
+            errors.append(error); dialog.reject()
+    timer.timeout.connect(drive); timer.start()
+    try: window.location_button.click()
+    finally: timer.stop(); timer.deleteLater()
+    if errors: raise errors[0]
+    assert window.responses.currentData() == selector
+    selected = window.responses.currentData(Qt.ItemDataRole.UserRole + 1)
+    assert selected['channel'] == channel and not selected['requires_location']
+    assert selected['definition']['source']['sha256'] == 'f'*64
+    assert selected['definition']['axes'][0]['semantics'] == 'physical_elapsed_time'
+
+
 def opened(app, client, **options):
     window = CurveComparisonWindow(client, source=A, **options)
     wait(app, lambda: not window._busy and not window._queue and window.responses.count() > 0)
     window.documents.setCurrentIndex(window.documents.findData('Pactual'))
     wait(app, lambda: not window._busy and not window._queue and window.responses.count() > 0)
-    window.responses.setCurrentIndex(window.responses.findData('native-u@7'))
+    choose_exact_location(app, window, 'native-u', 'native-u@7')
     return window
 
 
@@ -114,7 +189,11 @@ def test_actual_catalog_and_selected_comparison_gap_table(app):
     client = RetainedClient(); window = opened(app, client)
     try:
         choices = [window.responses.itemData(i) for i in range(window.responses.count())]
-        assert choices == ['stress', 'native-u@7', 'native-u@31', 'exact-force', 'stress@3:gp2']
+        assert choices == ['stress', None, 'exact-force', None, 'native-u@7']
+        definitions = [window.responses.itemData(i, Qt.ItemDataRole.UserRole + 1) for i in range(window.responses.count())]
+        assert [(item['channel'], item['definition']['selector_count']) for item in definitions
+                if item.get('requires_location')] == [('native-u', 506), ('gauss', 300)]
+        assert ('locations', 'Pactual', 'Jpde', 'native-u', 0, 128, '') in client.calls
         window.compare(); wait(app, lambda: not window._busy and not window._queue)
         assert ('compare', A, B) in client.calls
         assert window.values.rowCount() == 4
@@ -168,8 +247,10 @@ def test_unpaged_original_mask_rejected_without_replacing_view(app):
 def test_late_selected_response_reply_ignored_and_foreground_locked(app):
     client = RetainedClient(); window = opened(app, client)
     try:
+        choose_exact_location(app, window, 'native-u', 'native-u@31', search=True)
+        window.responses.setCurrentIndex(window.responses.findData('native-u@7'))
         client.delay = True; window.compare(); wait(app, client.entered.is_set)
-        assert not window.compare_button.isEnabled() and not window.responses.isEnabled()
+        assert not window.compare_button.isEnabled() and not window.responses.isEnabled() and not window.location_button.isEnabled()
         window.responses.setCurrentIndex(window.responses.findData('native-u@31'))
         client.release.set(); wait(app, lambda: not window._busy)
         assert window._comparison is None
@@ -225,11 +306,53 @@ def test_refresh_preserves_explicit_b_job_and_response(app):
     try:
         window.jobs.setCurrentIndex(window.jobs.findData('Jsecond'))
         wait(app, lambda: not window._busy and not window._queue)
-        window.responses.setCurrentIndex(window.responses.findData('stress@3:gp2'))
+        choose_exact_location(app, window, 'gauss', 'stress@302:2:1')
+        selected = deepcopy(window.responses.currentData(Qt.ItemDataRole.UserRole + 1))
+        assert ('locations', 'Pactual', 'Jsecond', 'gauss', 256, 128, '') in client.calls
+        client.docs['Pactual']['generation'] += 1  # Draft edits do not change a retained run.
         window.refresh(); wait(app, lambda: not window._busy and not window._queue)
         assert window.documents.currentData() == 'Pactual'
         assert window.jobs.currentData() == 'Jsecond'
-        assert window.responses.currentData() == 'stress@3:gp2'
+        assert window.responses.currentData() == 'stress@302:2:1'
+        assert window.responses.currentData(Qt.ItemDataRole.UserRole + 1) == selected
+        assert ('locations', 'Pactual', 'Jsecond', 'gauss', 0, 128, 'stress@302:2:1') in client.calls
+        assert window.compare_button.isEnabled()
+        assert not any(call[0] in ('compare', 'save') for call in client.calls)
+    finally: window.close()
+
+
+def test_refresh_search_follows_pages_to_exact_location(app):
+    client = RetainedClient()
+    # Substring search returns 257 different identities before exact node 7.
+    client.catalog['native_channels']['native-u']['node_ids'] = [*range(7000, 7257), 7]
+    window = opened(app, client)
+    try:
+        window.refresh(); wait(app, lambda: not window._busy and not window._queue)
+        assert window.responses.currentData() == 'native-u@7'
+        assert [row[4] for row in client.calls if row[0] == 'locations' and row[-1] == 'native-u@7'] == [0, 128, 256]
+        assert all(row[5] == 128 for row in client.calls if row[0] == 'locations')
+        assert not any(row[0] in ('compare', 'save') for row in client.calls)
+    finally: window.close()
+
+
+@pytest.mark.parametrize('change', ['session', 'input', 'source', 'location', 'foreign_page', 'missing_job', 'missing_document'])
+def test_refresh_refuses_changed_exact_b_identity(app, change):
+    client = RetainedClient(saved=True); window = opened(app, client)
+    try:
+        previous = deepcopy(window._comparison)
+        if change == 'session': client.docs['Pactual']['session_id'] = 'Srestart'
+        elif change == 'input': client.docs['Pactual']['runs'][0]['input_sha256'] = '9'*64
+        elif change == 'source': client.catalog['native_channels']['native-u']['source']['sha256'] = '8'*64
+        elif change == 'location': client.catalog['native_channels']['native-u']['node_ids'][0] = 700
+        elif change == 'missing_job': client.docs['Pactual']['runs'].clear()
+        elif change == 'missing_document': del client.docs['Pactual']
+        else: client.foreign_location = True
+        window.refresh(); wait(app, lambda: not window._busy and not window._queue)
+        assert window.responses.currentData() is None
+        assert not window.compare_button.isEnabled()
+        assert window._comparison == previous
+        assert not any(call[0] == 'compare' for call in client.calls)
+        assert any(text in window.message.text() for text in ('identity', 'no longer available')), window.message.text()
     finally: window.close()
 
 

@@ -1,4 +1,45 @@
-## 2026-10-12 — Linux Qt CI correction integrated
+## 2026-10-12 — Exact retained location and Qt regression corrections verified
+
+Pro S4 plus its single-test S4a correction is integrated in MAIN over published
+`52d36b5`. Only the comparison window and the two failed UI test files change.
+Final supplied tree is `e0f35bbb64554b3842806e5f7f4d5fbd36bcfc26`. Root verified
+archive manifests, every before/after source hash, Python syntax, patch application
+and unchanged workflow bytes. [The integration record](benchmarks/records/20261012-stabilization-ui-ci-corrections.json)
+retains both archives, the original failure and independent reports.
+
+The comparison window revalidates an explicitly selected native location against
+its retained document/session/job/input and source before restoring it after
+refresh. Missing or changed identities require reselection and preserve the prior
+comparison. The Data regression now waits for real HTTP result delivery and
+editable controls, then types, saves and reopens invalid text while old results
+remain intact. Existing deadlines and numerical/owner guards remain unchanged.
+
+Independent Windows S4 review found 34 passing tests and one initial modal-load
+race in the new test driver. After its bounded readiness correction, the affected
+file passes all 18 tests in one cold process (7.87 seconds), including the former
+failure's actual compare/value/gap checks. Unchanged Data and adjacent 16 checks
+retain their earlier pass evidence. Qt workers/windows/threads and owned Python
+processes are closed. New source publication and exact-source full CI are the
+next gate; no full CI or engineering approval is claimed. Features remain paused.
+
+## Earlier 2026-10-12 — Qt environment fixed; seven assertions remain
+
+Exact-source CI `38149573568` at `52d36b5` completed FAILURE. Qt runtime install
+and the actual offscreen preflight pass on GitHub; Windows passes 124 Python and
+19 Node tests plus the private-Python real HTTP calculation. Linux full pytest
+now runs: 7 failed, 7,525 passed, 12 skipped, 2 warnings in 1222.35 seconds. Eight
+downstream jobs were skipped and no acceptance artifact was uploaded.
+
+The remaining failures are one real HTTP/Qt Data Save completion check and six
+curve comparison UI selection/guard checks. Pro is correcting this bounded
+set; Root independently reproduces the two files on Windows. Old flat-selector
+fixtures and async-idle assumptions must be assessed without weakening actual
+saved-draft/identity/session/late-response/location checks. The
+[failure record](benchmarks/records/20261012-stabilization-s3-ci-failure.json)
+retains all test names, exact source/merge/job IDs and local full-log hashes.
+General features remain paused. New corrected source CI remains required.
+
+## Earlier 2026-10-12 — Linux Qt CI correction published
 
 Pro's one-file Linux Qt runtime/preflight correction is integrated in MAIN.
 Its full file matches SHA256
@@ -6,8 +47,10 @@ Its full file matches SHA256
 Root verifies all archive hashes, YAML/shell syntax and preservation of every
 original Core step and the other nine jobs. Pro's Ubuntu offscreen preflight
 passed; its installed-library environment is not a fresh GitHub runner check.
-Publication and exact-source CI remain next. Product/test code is unchanged;
-Pro is stopped and new features remain paused. See
+Source `52d36b5ab743b2cb0302d6f23cd9f83baa9b183d` is published and confirmed on
+the remote branch and Draft PR7. Exact-source CI `38149573568` later failed as
+recorded above. This environment correction leaves product/test code unchanged;
+new features remain paused. See
 [the correction record](benchmarks/records/20261012-stabilization-linux-qt-ci.json).
 
 ## Earlier 2026-10-11 — Stabilization published; Linux environment failure

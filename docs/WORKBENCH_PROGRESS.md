@@ -1,6 +1,90 @@
 # Current workbench implementation
 
-## 2026-10-12 Linux Qt CI correction integrated
+## 2026-10-12 Exact-location refresh and Qt regression corrections verified
+
+Pro S4 changes one product file, `apps/research/curve_comparison_window.py`, and
+the two failed UI test files. S4a subsequently corrects only the new modal test
+helper's initial-readiness condition. The final supplied source tree is
+`e0f35bbb64554b3842806e5f7f4d5fbd36bcfc26`; Root checkpoint documents make the
+local repository tree distinct. Root verified safe archive paths, internal hashes,
+all before/after source files, Python syntax and patch applicability, and applied
+each delta once to MAIN. S3 workflow bytes, old review trees and results remain.
+[The integration record](../benchmarks/records/20261012-stabilization-ui-ci-corrections.json)
+retains both archives, source identities, original failures and report/log hashes.
+
+Refresh keeps an explicitly selected native location only after rechecking its
+original document/session/job/input revision/hash, response definition/source and
+exact location through bounded catalog pages. Changed or missing identities require
+reselection while preserving the previous comparison. Real Qt page/search/location
+selection now reaches the foreign/session/late-reply/foreground guards. The Data
+regression holds delivery of an actual HTTP metadata result, confirms disabled
+controls submit no Save, then types invalid text into the enabled editor and
+checks Save/reopen, blocked execution and original values. Product Data code,
+storage format, numerical limits and the original eight-second wait are unchanged.
+
+Independent Windows Python 3.12.14/PySide6 6.9.1/pytest 8.4.2 review ran four files
+once: 34 passed, one failed, one existing layout warning in 20.01 seconds. The
+first comparison test's 5ms driver could inspect an empty modal before its queued
+first load. This failed case and its unreached gap assertions are retained. S4a
+waits while no initial request has started or page/search work remains; completed
+empty/error replies still fail, and the six-second dialog deadline remains.
+
+A new cold Windows process then ran only the changed comparison file: **18 passed,
+zero failures/skips/warnings in 7.87 seconds**. The former first failure now checks
+actual comparison, original rows, B-minus-A, segmented curves, gaps and metadata.
+Exact refresh beyond the preview, substring search across three pages, seven
+changed/missing identity refusals, Save retry and actual CSV service-restart/reopen
+also pass. The unchanged Data case and adjacent 16 tests retain their earlier pass
+evidence. Both review processes confirm closed Qt pools/workers/windows/threads;
+no matching owned Python remains. Per-service port inventories were not collected.
+
+Pro reports Ubuntu 19 passing tests for S4, adjacent 16 passing checks after
+installing the missing existing SciPy dependency, and three actual Qt checks with
+initial driver-before-load ordering forced for S4a. Those Pro checks and their
+limitations are recorded separately from independent Windows evidence. Native
+catalogs are controlled fixtures; real CSV/HTTP/reader/Save checks do not qualify
+physics. New publication and exact-source full CI remain required. General feature
+work, stopped r6, local FreeCAD/cloud trial/provider calls and engineering release
+remain outside this correction.
+
+## Earlier 2026-10-12 Qt environment passes; full-suite assertions under correction
+
+Exact-source CI `38149573568` at `52d36b5` completed FAILURE. Fresh GitHub Qt
+runtime installation and the actual offscreen preflight pass. Windows passes
+124 Python tests, 19 Node tests and private-Python real HTTP calculation/owned
+shutdown. Linux pytest completes with **7 failed, 7,525 passed, 12 skipped and
+2 warnings in 1222.35 seconds**. Eight downstream jobs were skipped; the run
+uploaded no acceptance artifacts. [The full failure record](../benchmarks/records/20261012-stabilization-s3-ci-failure.json)
+pins every test name, job/source/merge ID and local full-log hash.
+
+One failure is Data invalid-draft Save after a successful real HTTP import:
+the save completion wait expires, with no Save POST in the captured log. Six
+comparison UI failures still use flat exact-location choices while the S1 UI
+uses paged explicit location selection. Several intended guard tests never
+reach a comparison request. Pro is checking actual product behavior and fixture/
+idle-wait assumptions as one bounded correction. Identity/session rejection,
+late-reply refusal, foreground locking, refresh retention, exact values and
+invalid-draft saving remain required; deleting/skipping those checks or merely
+raising waits is not an accepted repair. Root reproduces only the two failed
+files on Windows. This extends defect repair, without restarting feature work.
+
+The independent single Windows run reproduces all six comparison failures and
+passes five tests, including the real HTTP Data case (1.212 seconds) and actual
+CSV comparison/save/restart (3.221 seconds). Total time is 19.36 seconds. Source
+review confirms that the old selector setup leaves B's response unset, so several
+tests never enter the guards they intend to exercise. It also identifies a
+separate product defect: a native selector added by the real location chooser
+is lost when refresh rebuilds the combo from family placeholders. Preserve a
+verified same-document/job exact choice while retaining stale/invalid refusal.
+The Data timing explanation remains an inference from disabled controls and
+the missing Save POST, not a reproduced Windows product failure. The local
+report `runs/reviewer-ci-ui-20261012-c082f/review.json`, SHA256
+`401c057d6be735c524b9d1f0c0e9190745d11c1314e84110e3a14e2e2d84e9a0`,
+records commands, case coverage and unchanged inspected source/test files.
+Pytest exited and no matching owned Python process remains; per-service join/
+port telemetry was not emitted. No native calculation or provider was invoked.
+
+## Earlier 2026-10-12 Linux Qt CI correction published
 
 Pro returned a one-file correction over S2: final supplied tree
 `be12656db8eb98b306804f9d3a48e472d54fabd5`, ZIP SHA256
@@ -17,8 +101,11 @@ No product/test source, numerical threshold or retained artifact was changed.
 Pro reports the exact preflight passed on Ubuntu 24.04.3/Python 3.12.14/PySide6
 6.9.1, where system libraries were already installed. This is not a fresh-runner
 installation test. [The correction record](../benchmarks/records/20261012-stabilization-linux-qt-ci.json)
-preserves hashes, checks and that limitation. Publish this source and check its
-complete GitHub CI next. Pro stopped after delivery; general features stay paused.
+preserves hashes, checks and that limitation. Source
+`52d36b5ab743b2cb0302d6f23cd9f83baa9b183d` is published and confirmed on the remote
+branch and Draft PR7. [Exact-source CI 38149573568](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38149573568)
+completed with the seven assertions above. Pro stopped after this delivery and
+resumed only those failures; general features stay paused.
 
 ## Earlier 2026-10-11 stabilization published; Linux environment failure
 

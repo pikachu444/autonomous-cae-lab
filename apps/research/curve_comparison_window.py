@@ -180,6 +180,7 @@ class CurveComparisonWindow(QMainWindow):
     def refresh(self):
         key = self._key()
         selected_b = (self.documents.currentData(), self.jobs.currentData(), self.responses.currentData())
+        selected_choice = deepcopy(self.responses.currentData(Qt.ItemDataRole.UserRole + 1))
         def accepted(payload):
             document, listing = payload
             if not self._accept_owner(document): return
@@ -190,17 +191,25 @@ class CurveComparisonWindow(QMainWindow):
                     self.documents.addItem(row.get('title', row['id']) + ' · ' + row['id'], row['id'])
             index = self.documents.findData(selected)
             if index >= 0: self.documents.setCurrentIndex(index)
+            elif selected is not None: self.documents.setCurrentIndex(-1)
             self.documents.blockSignals(False)
+            if selected is not None and index < 0:
+                self._document_selected()
+                self.message.setText('The explicitly selected B document is no longer available. Select a retained source again.')
+                return
             self.message.setText('Choose an exact B curve, or reopen a retained comparison. No calculation is submitted.')
-            self._document_selected(prefer_job=selected_b[1] if self.documents.currentData() == selected_b[0] else None,
-                                    prefer_response=selected_b[2] if self.documents.currentData() == selected_b[0] else None)
+            # Reopen A's retained view before checking B so an old comparison
+            # cannot overwrite a later refusal of a changed B identity.
             if self.saved.currentData() is not None: self.read_page()
+            self._document_selected(prefer_job=selected_b[1] if self.documents.currentData() == selected_b[0] else None,
+                                    prefer_response=selected_b[2] if self.documents.currentData() == selected_b[0] else None,
+                                    prefer_choice=selected_choice if self.documents.currentData() == selected_b[0] else None)
         return self._call(lambda: (self.client.document_read(self.source['document_id']), self.client.documents()), accepted, relevant=lambda: self._key() == key)
 
     def _selection_changed(self, *_):
         self._serial += 1; self._actions()
 
-    def _document_selected(self, *_, prefer_job=None, prefer_response=None):
+    def _document_selected(self, *_, prefer_job=None, prefer_response=None, prefer_choice=None):
         self._selection_changed(); identifier = self.documents.currentData()
         self.jobs.blockSignals(True); self.jobs.clear(); self.jobs.blockSignals(False)
         self.responses.blockSignals(True); self.responses.clear(); self.responses.blockSignals(False)
@@ -213,12 +222,19 @@ class CurveComparisonWindow(QMainWindow):
             for run in document.get('runs', []):
                 # The result metadata performs the final actual-status check.
                 self.jobs.addItem(run['job_id'] + ' · ' + run.get('input_revision', ''), run['job_id'])
+                self.jobs.setItemData(self.jobs.count()-1, {'document_id': identifier,
+                    'session_id': document['session_id'], 'job_id': run['job_id'],
+                    **{name: run.get(name) for name in ('input_revision', 'input_sha256')}}, Qt.ItemDataRole.UserRole + 1)
             index = self.jobs.findData(prefer_job)
             if index >= 0: self.jobs.setCurrentIndex(index)
-            self.jobs.blockSignals(False); self._job_selected(prefer_response=prefer_response)
+            elif prefer_job is not None:
+                self.jobs.setCurrentIndex(-1)
+                self.message.setText('The explicitly selected B job is no longer available. Select a retained result again.')
+            self.jobs.blockSignals(False)
+            self._job_selected(prefer_response=prefer_response, prefer_choice=prefer_choice)
         self._call(lambda: self.client.document_read(identifier), accepted, relevant=lambda: self._key() == key)
 
-    def _job_selected(self, *_, prefer_response=None):
+    def _job_selected(self, *_, prefer_response=None, prefer_choice=None):
         self._selection_changed()
         self.responses.blockSignals(True); self.responses.clear(); self.responses.blockSignals(False)
         document, job = self.documents.currentData(), self.jobs.currentData()
@@ -234,9 +250,58 @@ class CurveComparisonWindow(QMainWindow):
                     self.responses.setItemData(self.responses.count()-1, choice, Qt.ItemDataRole.UserRole + 1)
             index = self.responses.findData(prefer_response)
             if index >= 0: self.responses.setCurrentIndex(index)
+            elif prefer_response is not None:
+                # Exact native locations are not flattened into the channel
+                # catalog. Revalidate the previous location before selecting it.
+                self.responses.setCurrentIndex(-1)
             self.responses.blockSignals(False); self._selection_changed()
+            if prefer_response is not None and index < 0:
+                self._restore_location(prefer_response, prefer_choice)
             if not self.responses.count(): self.message.setText('This retained result advertises no selectable curve.')
         self._call(lambda: self.client.document_result_metadata(document, job), accepted, relevant=lambda: self._key() == key)
+
+    def _add_location(self, selected):
+        selected = deepcopy(selected)
+        selected['_retained_input'] = deepcopy(self.jobs.currentData(Qt.ItemDataRole.UserRole + 1))
+        self.responses.addItem(selected['selector'] + ' [' + selected['definition'].get('unit', '?') + ']', selected['selector'])
+        self.responses.setItemData(self.responses.count()-1, selected, Qt.ItemDataRole.UserRole + 1)
+        self.responses.setCurrentIndex(self.responses.count()-1)
+
+    def _restore_location(self, selector, previous):
+        if not isinstance(previous, dict) or not previous.get('channel'):
+            self.message.setText('The selected B response is no longer advertised. Select a retained response again.'); return
+        choice = None
+        for index in range(self.responses.count()):
+            item = self.responses.itemData(index, Qt.ItemDataRole.UserRole + 1)
+            if isinstance(item, dict) and item.get('channel') == previous['channel']:
+                choice = item
+                break
+        binding = self.jobs.currentData(Qt.ItemDataRole.UserRole + 1)
+        if (choice is None or previous.get('_retained_input') != binding
+                or choice['definition'] != previous.get('definition')):
+            self.message.setText('B input or response identity changed. Select the exact retained location again.'); return
+        key = self._key(); document, job = self.documents.currentData(), self.jobs.currentData()
+        def locate():
+            start = 0
+            while True:
+                page = self.client.document_response_locations(document, job, choice['channel'], start=start, count=128, search=selector)
+                if ((page.get('document_id'), page.get('job_id'), page.get('channel'), page.get('start'))
+                        != (document, job, choice['channel'], start)
+                        or page.get('source') != choice['definition'].get('source', {})):
+                    raise ValueError('Location reply identity differs from the selected retained result')
+                if any(row.get('selector') == selector for row in page['locations']):
+                    return {**choice, 'selector': selector, 'requires_location': False}
+                following = page.get('next_start')
+                if following is None: return None
+                if type(following) is not int or following <= start:
+                    raise ValueError('Invalid retained location page sequence')
+                start = following
+        def accepted(selected):
+            if selected is None:
+                self.message.setText('The exact B location is no longer available. Select a retained location again.')
+            else:
+                self._add_location(selected)
+        self._call(locate, accepted, relevant=lambda: self._key() == key)
 
     def choose_response_location(self):
         choice = self.responses.currentData(Qt.ItemDataRole.UserRole + 1)
@@ -246,8 +311,7 @@ class CurveComparisonWindow(QMainWindow):
             selected = choose_location(self, self.client, self.documents.currentData(), self.jobs.currentData(),
                                        choice, relevant=lambda: self._valid() and self._key() == key)
             if selected is not None and self._key() == key:
-                self.responses.addItem(selected['selector'] + ' [' + selected['definition'].get('unit', '?') + ']', selected['selector'])
-                self.responses.setCurrentIndex(self.responses.count()-1)
+                self._add_location(selected)
         except (ValueError, TypeError, KeyError) as error:
             self.message.setText(str(error))
 
