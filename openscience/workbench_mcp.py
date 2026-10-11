@@ -47,6 +47,48 @@ def native_input_resolve(input_id: str) -> dict:
     return client().native_input(input_id)
 
 @mcp.tool()
+def documents_list() -> dict:
+    """List service-owned Material drafts and actual registered native documents."""
+    return client().documents()
+
+@mcp.tool()
+def document_open(kind: str='material', title: str='Material research', draft: dict | None=None, document_id: str | None=None) -> dict:
+    """Create or reopen a Material draft without evaluation; Post opens in its native host."""
+    return client().document_open(kind=kind,title=title,draft=draft,document_id=document_id)
+
+@mcp.tool()
+def document_read(document_id: str) -> dict:
+    """Read the owner draft; native state is the last report, use post.inspect for a fresh command."""
+    return client().document_read(document_id)
+
+@mcp.tool()
+def document_command(document_id: str, operation: str, arguments: dict, session_id: str,
+                     expected_generation: int, command_id: str | None=None) -> dict:
+    """Apply a typed owner command to the exact session/generation; reuse its ID only for identical retries."""
+    return client().document_command(document_id,operation,arguments,session_id=session_id,
+                                    expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def document_result_read(document_id: str, job_id: str, selection: dict | None=None) -> dict:
+    """Read the Material document's original retained curve and diagnostics, without recomputation."""
+    return client().document_result(document_id,job_id,selection=selection)
+
+@mcp.tool()
+def hosts_list() -> dict:
+    """Inspect native host identity, GUI/headless mode and live connection; never exposes owner tokens."""
+    return client().hosts()
+
+@mcp.tool()
+def command_status(command_id: str) -> dict:
+    """Read a native command outcome; this is separate from calculation job status."""
+    return client().command_status(command_id)
+
+@mcp.tool()
+def command_cancel(command_id: str) -> dict:
+    """Cancel a queued native command; dispatched commands explicitly refuse unsupported cancellation."""
+    return client().command_cancel(command_id)
+
+@mcp.tool()
 def calculation_submit(operation: str, arguments: dict, request_id: str | None=None, resources: dict | None=None) -> dict:
     """Submit a registered calculation/DOE/fit/import/analysis to the shared controller."""
     return client().submit(operation,arguments,request_id=request_id,resources=resources)

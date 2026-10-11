@@ -3,7 +3,7 @@ import argparse
 import json
 from pathlib import Path
 
-COMMANDS = {'backends', 'doctor', 'evaluate', 'run', 'read', 'fit', 'doe', 'search', 'serve', 'submit', 'job', 'files'}
+COMMANDS = {'backends', 'doctor', 'evaluate', 'run', 'read', 'fit', 'doe', 'search', 'serve', 'submit', 'job', 'files', 'documents', 'command'}
 
 
 def json_value(value):
@@ -65,6 +65,29 @@ def main(argv=None):
             action.add_argument('--cursor', type=int, default=0)
         if name in {'inspect', 'native'}:
             action.add_argument('id')
+    command = sub.add_parser('documents', help='Open and edit the same document as GUI/MCP')
+    actions = command.add_subparsers(dest='action', required=True)
+    for name in ('list','open','read','apply','result'):
+        action = actions.add_parser(name)
+        action.add_argument('--url',default='http://127.0.0.1:8766')
+        if name=='open':
+            action.add_argument('--id')
+            action.add_argument('--title',default='Material research')
+            action.add_argument('--draft')
+        if name in {'read','apply','result'}:
+            action.add_argument('id')
+        if name=='apply':
+            action.add_argument('--operation',required=True)
+            action.add_argument('--arguments',default='{}')
+            action.add_argument('--session',required=True)
+            action.add_argument('--generation',type=int,required=True)
+            action.add_argument('--command-id')
+        if name=='result':
+            action.add_argument('job_id')
+    command=sub.add_parser('command',help='Inspect or cancel a native owner command')
+    command.add_argument('id')
+    command.add_argument('--url',default='http://127.0.0.1:8766')
+    command.add_argument('--cancel',action='store_true')
     args = parser.parse_args(argv)
     if args.command in {'backends', 'doctor'}:
         from .backends import list_backends
@@ -78,6 +101,22 @@ def main(argv=None):
                 result[0]['native_diagnostic'] = doctor_native_backend(args.backend, execute=args.execute, output=args.output)
         elif args.command == 'doctor' and args.execute:
             parser.error('--execute requires one --backend; doctor never starts every native solver')
+    elif args.command in {'documents','command'}:
+        from .workbench_client import Client
+        client=Client(args.url)
+        if args.command=='command':
+            result=client.command_cancel(args.id) if args.cancel else client.command_status(args.id)
+        elif args.action=='list':
+            result=client.documents()
+        elif args.action=='open':
+            result=client.document_open(title=args.title,draft=json_value(args.draft) if args.draft else None,document_id=args.id)
+        elif args.action=='read':
+            result=client.document_read(args.id)
+        elif args.action=='result':
+            result=client.document_result(args.id,args.job_id)
+        else:
+            result=client.document_command(args.id,args.operation,json_value(args.arguments),session_id=args.session,
+                                          expected_generation=args.generation,command_id=args.command_id)
     elif args.command == 'read':
         from .evaluation import read_result
         result = read_result(args.path, verify=args.verify, selection=args.response)

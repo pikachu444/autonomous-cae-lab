@@ -1705,3 +1705,30 @@ confirmation remains failure. Budget `model_calls` reserves CLI agent steps,
 not exact billed API calls; host auxiliary requests are explicitly uncounted.
 Parent/consultation/one optional no-tool repair share that reservation. The
 original result/document citation markers must match actually read evidence.
+## Implemented Material owner and native command transport — ADR0061
+
+`documents_list`, `document_open`, `document_read`, `document_command` and
+`document_result_read` delegate to the same Workbench owner used by the Qt
+Material editor and CLI. Material commands are `material.update`,
+`material.evaluate`, `document.undo`, `document.redo` and `document.save`.
+Every mutation requires the exact session and input generation. Reusing a command
+ID is an identical-request retry, not a new edit. Invalid drafts remain visible
+and saveable but cannot evaluate. Evaluation uses the existing numerical job
+controller; old results keep their original input identity through later edits.
+Saved original results and terminal failures can be reopened without calculation.
+
+`hosts_list`, `command_status` and `command_cancel` expose native host identity
+and durable native command outcomes. ParaView owns actual proxies and accepts
+typed `post.inspect`, `post.select_array` and `document.save` commands. A document
+read is its last reported state; use `post.inspect` for a fresh owner response.
+GUI execution requires a live native QVTK timer, and HTTP polling cannot act as
+its heartbeat. Private registration credentials are never returned by public
+reads. Cancellation is supported only before native dispatch; an interrupted
+dispatched command is application-unconfirmed and is not automatically replayed.
+These commands do not permit arbitrary Python or native shell execution.
+
+HTTP/CLI/MCP parity and real Material evaluation/reopen are locally verified.
+Native typed commands/save/reopen have headless evidence; visible GUI dispatch
+remains unverified. Data/PDE/Numerical editors and wider native operations remain
+open. The design-only statements in earlier dated sections below are historical;
+this section supersedes them only for the operations explicitly listed here.

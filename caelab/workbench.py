@@ -45,6 +45,35 @@ class Workbench:
             raise ValueError('Workspace external backend IDs must not replace global registered backends')
         self.manager=JobManager(self.root,self._execute,workers=self.config.get('workers',2),cpu_budget=self.config.get('cpu_budget'))
         self._assistance=None
+        from .material_document import MaterialDocuments
+        from .native_commands import NativeCommands
+        self.session_id='S'+uuid.uuid4().hex
+        self.material_documents=MaterialDocuments(self.root,self.session_id,self.submit,self.manager)
+        self.native_commands=NativeCommands(self.root,self.session_id)
+
+    def documents(self):
+        return {'service_session_id':self.session_id,
+                'documents':self.material_documents.list()+self.native_commands.documents()}
+
+    def document_open(self, *, kind='material', title='Material research', draft=None, document_id=None):
+        if kind!='material':
+            raise ValueError('Open Post in its native host; this service opens Material documents')
+        return self.material_documents.open(title=title,draft=draft,document_id=document_id)
+
+    def document_read(self, identifier):
+        if identifier.startswith('M'):
+            return self.material_documents.read(identifier)
+        return self.native_commands.read(check_id(identifier))
+
+    def document_command(self, identifier, operation, arguments, *, session_id, expected_generation, command_id=None):
+        check_id(identifier)
+        owner=self.material_documents if identifier.startswith('M') else self.native_commands
+        method=owner.command if owner is self.material_documents else owner.submit
+        return method(identifier,operation,arguments,session_id=session_id,
+                      expected_generation=expected_generation,command_id=command_id)
+
+    def document_result(self, identifier, job_id, *, selection=None):
+        return self.material_documents.result(identifier,job_id,selection=selection)
 
     def upload(self, name, payload):
         if not isinstance(payload,bytes) or not payload or len(payload)>16*1024*1024:
@@ -458,4 +487,5 @@ class Workbench:
         raise ValueError('Unknown operation')
 
     def shutdown(self, timeout=5):
+        self.native_commands.shutdown()
         return self.manager.shutdown(timeout)

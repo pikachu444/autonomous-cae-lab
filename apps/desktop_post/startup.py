@@ -22,6 +22,15 @@ try:
     restore_workspace()
     from paraview import simple as p, servermanager
     log("loaded", sources=[key[0] for key in p.GetSources()], views=[view.GetXMLName() for view in p.GetViews()], connection=str(servermanager.ActiveConnection))
+    if os.environ.get("CAE_POST_SERVICE_URL"):
+        try:
+            from bridge import start
+            # Keep the native timer/owner alive for this actual application session.
+            cae_post_bridge = start(os.environ["CAE_POST_SERVICE_URL"], log=log)
+            log("bridge_timer_installed", document_id=cae_post_bridge[0].document_id,
+                session_id=cae_post_bridge[0].session_id, gui_dispatch_verified=False)
+        except Exception:
+            log("bridge_unavailable", traceback=traceback.format_exc())
 except BaseException:
     log("failed", traceback=traceback.format_exc())
     raise

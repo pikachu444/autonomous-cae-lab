@@ -3,6 +3,7 @@ param(
     [string]$InputPath,
     [string]$InputId,
     [string]$ServiceUrl = 'http://127.0.0.1:8766',
+    [switch]$ConnectService,
     [string]$ParaViewHome,
     [string]$OutputDirectory,
     [string]$Python = 'python',
@@ -66,6 +67,9 @@ $childEnvironment = @{
     PV_MACRO_PATH = Join-Path $postHome $macroDirectory
     CAE_POST_HOME = $postHome
     CAE_POST_PROJECT = $Project
+}
+if ($ConnectService -or $InputId -or $PSBoundParameters.ContainsKey('ServiceUrl')) {
+    $childEnvironment.CAE_POST_SERVICE_URL = $ServiceUrl
 }
 $process = Start-Process -FilePath $nativeGui -ArgumentList $nativeArgs -WorkingDirectory $projectFolder -Environment $childEnvironment -PassThru -WindowStyle Normal
 Write-Output ([pscustomobject]@{ProcessId=$process.Id;Project=$Project;State=$state})

@@ -2,7 +2,8 @@
 # All tools and Python packages stay under the current user's local profile.
 [CmdletBinding()]
 param(
-    [string]$RuntimeRoot = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\windows-runtime')
+    [string]$RuntimeRoot = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\windows-runtime'),
+    [switch]$ResearchUI
 )
 $ErrorActionPreference = 'Stop'
 if (-not [Environment]::Is64BitOperatingSystem -or -not [Environment]::Is64BitProcess) {
@@ -90,19 +91,23 @@ $pyVersion = (& $python -c 'import sys; print(sys.version.split()[0])').Trim()
 if ($LASTEXITCODE -ne 0 -or -not $pyVersion.StartsWith('3.12.')) { throw "Expected private CPython 3.12 at $python; found $pyVersion" }
 $projectSha = (Get-FileHash -LiteralPath $project -Algorithm SHA256).Hash.ToLowerInvariant()
 $installed = $false
+$extras = @('numerical','material')
+if ($ResearchUI) { $extras += 'research-ui' }
 if (Test-Path -LiteralPath $receiptPath -PathType Leaf) {
     try {
         $old = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
         $installed = $old.source_root -eq $sourceRoot -and $old.project_sha256 -eq $projectSha -and
-                     $old.uv_version -eq $uvVersion -and $old.python_version -eq $pyVersion
+                     $old.uv_version -eq $uvVersion -and $old.python_version -eq $pyVersion -and
+                     @($extras | Where-Object { $_ -notin $old.installed_extras }).Count -eq 0
     } catch { $installed = $false }
 }
 if (-not $installed) {
     Write-Host 'Installing the project with numerical and material dependencies...'
-    $editable = $sourceRoot + '[numerical,material]'
+    $editable = $sourceRoot + '[' + ($extras -join ',') + ']'
     Invoke-Checked $uv @('pip','install','--python',$python,'--editable',$editable)
 }
 Invoke-Checked $python @('-c','import apps.lab.server, caelab, scipy, felupe')
+if ($ResearchUI) { Invoke-Checked $python @('-c','import PySide6, matplotlib, apps.research.material_window') }
 Write-Host 'Base, numerical and material imports OK'
 $receipt = [ordered]@{
     source_root = $sourceRoot
@@ -115,7 +120,7 @@ $receipt = [ordered]@{
     uv_source = $uvUrl
     uv_archive_sha256 = $uvZipSha256
     uv_executable_sha256 = (Get-FileHash -LiteralPath $uv -Algorithm SHA256).Hash.ToLowerInvariant()
-    installed_extras = @('numerical','material')
+    installed_extras = $extras
 }
 $receipt | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $receiptPath -Encoding UTF8
 Write-Host "Ready: $python"

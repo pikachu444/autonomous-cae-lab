@@ -1,0 +1,311 @@
+"""Service-owned Material drafts, shared Undo and append-only saved revisions."""
+from copy import deepcopy
+from pathlib import Path
+import json
+import shutil
+import threading
+import uuid
+
+from .adapters.felupe_material import validate_settings
+from .evaluation import file_hash, read_result
+from .jobs import TERMINAL
+from .storage import canonical_hash, check_id, load_json, save_json, utc_now
+
+
+OPERATIONS = {'material.update', 'material.evaluate', 'document.undo', 'document.redo', 'document.save'}
+
+
+def default_draft():
+    return {'backend': 'material.felupe', 'settings': {
+        'model': 'linear_elastic', 'stress_unit': 'MPa', 'time_unit': 's',
+        'parameters': {'E': 1000, 'nu': .25}, 'time': [0, 1, 2],
+        'deformation_gradient': [[[1 + strain, 0, 0], [0, 1, 0], [0, 0, 1]] for strain in [0, .001, .002]]}}
+
+
+def diagnostics(draft):
+    try:
+        if set(draft) != {'backend', 'settings'}:
+            raise ValueError('Material draft requires only backend and settings; hidden execution overrides are not allowed')
+        if draft.get('backend') != 'material.felupe':
+            raise ValueError('This editor supports the registered FELUPE material-point adapter')
+        if not isinstance(draft.get('settings'), dict):
+            raise ValueError('Material settings must be an object')
+        if set(draft['settings']) != {'model', 'stress_unit', 'time_unit', 'parameters', 'time', 'deformation_gradient'}:
+            raise ValueError('Material settings require model, parameters, time, deformation_gradient and both units')
+        validate_settings(draft['settings'])
+    except (ValueError, TypeError, KeyError, OverflowError) as error:
+        return [{'severity': 'error', 'path': 'settings', 'message': str(error), 'blocks_evaluation': True}]
+    return []
+
+
+class MaterialDocuments:
+    def __init__(self, root, session_id, submit, manager):
+        self.root = Path(root) / 'documents'
+        self.root.mkdir(parents=True, exist_ok=True)
+        self.session_id, self.submit, self.manager = session_id, submit, manager
+        self._documents, self._locks = {}, {}
+        self._catalog_lock = threading.RLock()
+
+    def _folder(self, identifier):
+        return self.root / check_id(identifier)
+
+    @staticmethod
+    def _draft(value):
+        if not isinstance(value, dict) or len(json.dumps(value, allow_nan=False).encode()) > 96 * 1024:
+            raise ValueError('A Material draft must be a JSON object of at most 96 KiB')
+        return deepcopy(value)
+
+    def _lock(self, identifier):
+        with self._catalog_lock:
+            return self._locks.setdefault(check_id(identifier), threading.RLock())
+
+    def _persist_draft(self, document):
+        save_json(self._folder(document['id']) / 'working.json', document)
+
+    def _manifest(self, identifier):
+        path = self._folder(identifier) / 'document.json'
+        return load_json(path) if path.exists() else None
+
+    def _verify_revision(self, identifier, revision):
+        folder = self._folder(identifier) / 'revisions' / check_id(revision)
+        manifest = load_json(folder / 'revision.json')
+        for item in manifest['files']:
+            path = (folder / item['path']).resolve()
+            if not path.is_relative_to(folder.resolve()) or not path.is_file() or file_hash(path) != item['sha256']:
+                raise ValueError('A retained Material revision asset changed or is missing')
+        return load_json(folder / 'document.json')
+
+    def open(self, *, title='Material research', draft=None, document_id=None):
+        identifier = check_id(document_id or 'M' + uuid.uuid4().hex)
+        if not identifier.startswith('M'):
+            raise ValueError('Material document identities must start with M')
+        if not isinstance(title, str) or not title.strip() or len(title) > 160:
+            raise ValueError('Document title must contain 1 to 160 characters')
+        with self._lock(identifier):
+            if identifier in self._documents:
+                if draft is not None:
+                    raise ValueError('Use a generation-checked command to edit an open document')
+                return self.read(identifier)
+            manifest = self._manifest(identifier)
+            working = self._folder(identifier) / 'working.json'
+            if manifest:
+                if draft is not None:
+                    raise ValueError('Opening a saved document does not replace its draft')
+                saved = self._verify_revision(identifier, manifest['revision'])
+                if file_hash(self._folder(identifier) / 'revisions' / manifest['revision'] / 'revision.json') != manifest['revision_sha256']:
+                    raise ValueError('Material revision manifest changed')
+                document = load_json(working) if working.exists() else saved
+                if document.get('saved_revision') != manifest['revision']:
+                    document = saved
+                document['_saved_fingerprint'] = manifest['fingerprint']
+                document['_disk_revision'] = manifest['revision']
+                document['saved_revision'] = manifest['revision']
+            elif working.exists():
+                if draft is not None:
+                    raise ValueError('A recoverable draft already exists')
+                document = load_json(working)
+            elif document_id:
+                raise FileNotFoundError('Material document does not exist')
+            else:
+                document = {'id': identifier, 'kind': 'material', 'title': title, 'generation': 0,
+                            'input_revision': 'I' + uuid.uuid4().hex, 'saved_revision': None,
+                            'draft': self._draft(default_draft() if draft is None else draft), 'runs': [],
+                            '_undo': [], '_redo': [], '_saved_fingerprint': None, '_disk_revision': None}
+            document['session_id'] = self.session_id
+            self._documents[identifier] = document
+            self._persist_draft(document)
+            return self.read(identifier)
+
+    @staticmethod
+    def _fingerprint(document):
+        return canonical_hash({key: document[key] for key in ('title', 'draft', 'runs')})
+
+    def _public(self, document):
+        result = {key: deepcopy(value) for key, value in document.items() if not key.startswith('_')}
+        result.update(diagnostics=diagnostics(document['draft']), can_undo=bool(document['_undo']),
+                      can_redo=bool(document['_redo']), dirty=self._fingerprint(document) != document['_saved_fingerprint'],
+                      capabilities=sorted(OPERATIONS))
+        for run in result['runs']:
+            run['is_current_input'] = run['input_sha256'] == canonical_hash(document['draft'])
+        return result
+
+    def read(self, identifier):
+        with self._lock(identifier):
+            if identifier not in self._documents:
+                return self.open(document_id=identifier)
+            self._recover_evaluations(self._documents[identifier])
+            return self._public(self._documents[identifier])
+
+    @staticmethod
+    def _run_record(job, draft, generation, revision, session_id):
+        return {'job_id': job['id'], 'input_generation': generation, 'input_revision': revision,
+                'input_sha256': canonical_hash(draft), 'backend': draft['backend'], 'settings': deepcopy(draft['settings']),
+                'service_session_id': session_id, 'created_utc': job['created_utc']}
+
+    def _recover_evaluations(self, document):
+        """A submitted job survives a lost document write; attach it without resubmitting."""
+        for path in (self._folder(document['id']) / 'commands').glob('*.json'):
+            prior = load_json(path)
+            if 'response' in prior or prior.get('operation') != 'material.evaluate':
+                continue
+            request_id = 'material:' + document['id'] + ':' + path.stem
+            job = next((job for job in self.manager.list() if job.get('request_id') == request_id), None)
+            if job is None:
+                continue
+            if job['operation'] != 'evaluate' or canonical_hash(job['arguments']) != canonical_hash(prior['input']):
+                raise ValueError('Interrupted Material command and retained job input disagree')
+            if not any(run['job_id'] == job['id'] for run in document['runs']):
+                run = self._run_record(job, prior['input'], prior['input_generation'], prior.get('input_revision'), prior.get('session_id'))
+                run['recovered_after_response_loss'] = True
+                document['runs'].append(run)
+            self._persist_draft(document)
+            prior['response'] = {'document': self._public(document), 'command_id': path.stem, 'job': job,
+                                 'recovered_after_response_loss': True}
+            save_json(path, prior)
+
+    def list(self):
+        identifiers = {path.parent.name for path in self.root.glob('*/working.json')}
+        identifiers.update(path.parent.name for path in self.root.glob('*/document.json'))
+        identifiers.update(self._documents)
+        return [self.read(identifier) for identifier in sorted(identifiers)]
+
+    def command(self, identifier, operation, arguments, *, session_id, expected_generation, command_id=None):
+        if operation not in OPERATIONS or not isinstance(arguments, dict):
+            raise ValueError('Unsupported Material command')
+        if session_id != self.session_id:
+            raise ValueError('Document session is stale; reopen after service restart')
+        if type(expected_generation) is not int or expected_generation < 0:
+            raise ValueError('An exact input generation is required')
+        command_id = check_id(command_id or 'C' + uuid.uuid4().hex)
+        signature = canonical_hash(dict(document_id=identifier, operation=operation, arguments=arguments,
+                                        session_id=session_id, expected_generation=expected_generation))
+        with self._lock(identifier):
+            self.read(identifier)
+            document = deepcopy(self._documents[identifier])
+            receipt = self._folder(identifier) / 'commands' / (command_id + '.json')
+            if receipt.exists():
+                prior = load_json(receipt)
+                if prior['request_hash'] != signature:
+                    raise ValueError('command_id conflicts with an earlier request')
+                if 'response' not in prior:
+                    raise ValueError('Previous command outcome is unconfirmed; reread the document before a new command')
+                return prior['response']
+            if document['generation'] != expected_generation:
+                raise ValueError('Document generation changed; reread before applying')
+            save_json(receipt, {'request_hash': signature, 'state': 'APPLYING', 'operation': operation,
+                               'input_generation': expected_generation, 'input': document['draft'],
+                               'input_revision': document['input_revision'], 'session_id': self.session_id})
+            if operation == 'material.update':
+                if set(arguments) != {'draft'}:
+                    raise ValueError('Material update requires only draft')
+                draft = self._draft(arguments['draft'])
+                if canonical_hash(draft) != canonical_hash(document['draft']):
+                    document['_undo'].append(deepcopy(document['draft']))
+                    document['_redo'] = []
+                    document['draft'] = draft
+                    self._changed(document)
+            elif operation in {'document.undo', 'document.redo'}:
+                if arguments:
+                    raise ValueError('Undo/Redo requires empty arguments')
+                source, destination = ('_undo', '_redo') if operation == 'document.undo' else ('_redo', '_undo')
+                if not document[source]:
+                    raise ValueError('No edit is available to ' + operation.split('.')[1])
+                document[destination].append(deepcopy(document['draft']))
+                document['draft'] = document[source].pop()
+                self._changed(document)
+            elif arguments:
+                raise ValueError('Save/evaluate requires empty arguments')
+            job = None
+            if operation == 'material.evaluate':
+                errors = diagnostics(document['draft'])
+                if errors:
+                    raise ValueError('Invalid draft blocks evaluation: ' + errors[0]['message'])
+                snapshot = deepcopy(document['draft'])
+                job = self.submit('evaluate', snapshot, request_id='material:' + identifier + ':' + command_id)
+                document['runs'].append(self._run_record(job, snapshot, document['generation'],
+                                                        document['input_revision'], self.session_id))
+            if operation == 'document.save':
+                self._save(document)
+            else:
+                self._persist_draft(document)
+            self._documents[identifier] = document
+            response = {'document': self._public(document), 'command_id': command_id}
+            if job is not None:
+                response['job'] = job
+            save_json(receipt, {'request_hash': signature, 'response': response})
+            return response
+
+    @staticmethod
+    def _changed(document):
+        document['generation'] += 1
+        document['input_revision'] = 'I' + uuid.uuid4().hex
+
+    def _save(self, document):
+        identifier = document['id']
+        previous = self._manifest(identifier)
+        if (previous or {}).get('revision') != document['_disk_revision']:
+            raise ValueError('Saved document changed outside this owner; reopen before saving')
+        revision = 'R' + uuid.uuid4().hex
+        folder = self._folder(identifier) / 'revisions' / revision
+        folder.mkdir(parents=True)
+        saved = deepcopy(document)
+        for run in saved['runs']:
+            retained = run.get('retained_record') or run.get('retained_result')
+            if retained and run.get('retention_complete'):
+                self._verify_revision(identifier, retained['revision'])
+                previous_folder = self._folder(identifier) / 'revisions' / retained['revision']
+                job = load_json(previous_folder / 'jobs' / (check_id(run['job_id']) + '.json'))
+                source = previous_folder / 'results' / run['job_id']
+            else:
+                job = self.manager.status(run['job_id'])
+                source = self.manager.root / 'results' / check_id(run['job_id'])
+            if job['arguments'] != {'backend': run['backend'], 'settings': run['settings']}:
+                raise ValueError('Retained job inputs differ from the Material run')
+            save_json(folder / 'inputs' / (run['job_id'] + '.json'), run)
+            save_json(folder / 'jobs' / (run['job_id'] + '.json'), job)
+            if job['result_refs']:
+                read_result(source, verify='all', selection={'metadata_only': True})
+                before = {path.relative_to(source).as_posix(): file_hash(path) for path in source.rglob('*') if path.is_file()}
+                destination = folder / 'results' / run['job_id']
+                shutil.copytree(source, destination)
+                if {path.relative_to(destination).as_posix() for path in destination.rglob('*') if path.is_file()} != set(before):
+                    raise ValueError('Result file set changed during Material save')
+                for relative, digest in before.items():
+                    if file_hash(source / relative) != digest or file_hash(destination / relative) != digest:
+                        raise ValueError('Result changed during Material save; previous revision preserved')
+                read_result(destination, verify='all', selection={'metadata_only': True})
+                run['retained_result'] = {'revision': revision, 'job_id': run['job_id']}
+            run['retained_state'] = job['state']
+            run['retained_error'] = deepcopy(job.get('error'))
+            run['retention_complete'] = job['state'] in TERMINAL
+            run['retained_record'] = {'revision': revision, 'job_id': run['job_id']}
+        saved.update(saved_revision=revision, _disk_revision=revision)
+        saved['_saved_fingerprint'] = self._fingerprint(saved)
+        save_json(folder / 'document.json', saved)
+        files = [{'path': path.relative_to(folder).as_posix(), 'sha256': file_hash(path)}
+                 for path in sorted(folder.rglob('*')) if path.is_file()]
+        save_json(folder / 'revision.json', {'id': identifier, 'revision': revision, 'files': files})
+        self._verify_revision(identifier, revision)
+        if self._manifest(identifier) != previous:
+            raise ValueError('Saved document changed during save; previous revision preserved')
+        # Publication is the only mutable pointer; every required asset precedes it.
+        save_json(self._folder(identifier) / 'document.json', {'id': identifier, 'revision': revision,
+                  'revision_sha256': file_hash(folder / 'revision.json'), 'fingerprint': saved['_saved_fingerprint']})
+        document.clear()
+        document.update(saved)
+
+    def result(self, identifier, job_id, *, selection=None):
+        with self._lock(identifier):
+            document = self.read(identifier)
+            run = next((run for run in document['runs'] if run['job_id'] == job_id), None)
+            if run is None:
+                raise ValueError('Job does not belong to this Material document')
+            if run.get('retained_result'):
+                revision = run['retained_result']['revision']
+                self._verify_revision(identifier, revision)
+                return read_result(self._folder(identifier) / 'revisions' / revision / 'results' / check_id(job_id),
+                                   verify='all', selection=selection)
+            if run.get('retention_complete'):
+                error = run.get('retained_error') or {}
+                raise ValueError('Retained run has no response: ' + run['retained_state'] + '; ' + error.get('message', ''))
+            return self.manager.result(job_id, selection=selection)

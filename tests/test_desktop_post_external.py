@@ -344,3 +344,34 @@ def test_cli_has_exclusive_direct_and_registered_modes(native, monkeypatch):
                  ["output", "--registered-input", "Iregistered"]):
         with pytest.raises(SystemExit):
             external.main(args)
+
+
+@pytest.mark.parametrize("selection", [
+    {"association": "POINTS", "array": "missing", "time": 0},
+    {"association": "FIELD", "array": "response", "time": 0},
+    {"association": "POINTS", "array": "velocity", "component": "missing", "time": 0},
+    {"association": "POINTS", "array": "response", "time": .5},
+])
+def test_rejected_selection_does_not_change_time_view_or_active_source(native, selection):
+    fake, _, external = native
+    source = fake.PVDReader(registrationName="source", FileName="not-read.pvd")
+    original = fake.CreateView("RenderView")
+    requested = fake.CreateView("RenderView")
+    fake.SetActiveView(original)
+    fake.SetActiveSource(source)
+    fake.scene.AnimationTime = original.ViewTime = 1
+    with pytest.raises(ValueError):
+        external.select_array(source, view=requested, **selection)
+    assert fake.scene.AnimationTime == original.ViewTime == 1
+    assert fake.view is original and fake.active is source
+    assert requested.ViewTime == 0
+
+
+def test_selection_applies_time_to_exact_requested_view(native):
+    fake, _, external = native
+    source = fake.PVDReader(registrationName="source", FileName="not-read.pvd")
+    original = fake.CreateView("RenderView")
+    requested = fake.CreateView("RenderView")
+    fake.SetActiveView(original)
+    external.select_array(source, "POINTS", "response", time=1, view=requested)
+    assert fake.view is requested and requested.ViewTime == 1 and original.ViewTime == 0

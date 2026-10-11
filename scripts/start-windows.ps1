@@ -3,6 +3,7 @@
 param(
     [switch]$NoBrowser,
     [switch]$InstallOnly,
+    [switch]$ResearchUI,
     [string]$RuntimeRoot = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\windows-runtime'),
     [ValidateRange(1024,65535)][int]$Port = 8766,
     [string]$Store = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\research-store')
@@ -16,7 +17,7 @@ function Normalize-Directory([string]$Path) {
 }
 $runtime = Normalize-Directory $RuntimeRoot
 $storePath = Normalize-Directory $Store
-& (Join-Path $PSScriptRoot 'install-windows.ps1') -RuntimeRoot $runtime
+& (Join-Path $PSScriptRoot 'install-windows.ps1') -RuntimeRoot $runtime -ResearchUI:$ResearchUI
 if (-not $?) { throw 'Private Python installation failed.' }
 if ($InstallOnly) { return }
 New-Item -ItemType Directory -Force -Path $storePath | Out-Null

@@ -145,17 +145,27 @@ def inspect_result(source, time=None):
             "coordinate_units": None, "arrays": arrays, "qualification": "UNKNOWN"}
 
 
-def select_array(source, association, array, component=None, time=None):
-    metadata = inspect_result(source, time)
-    matches = [item for item in metadata["arrays"] if item["association"] == association and item["name"] == array]
-    if association not in ("POINTS", "CELLS") or not matches:
-        raise ValueError("Select an existing POINTS or CELLS array; association conversion is explicit")
-    item = matches[0]
-    if component is not None and component != "Magnitude" and component not in item["component_names"]:
-        raise ValueError("Unknown native array component: " + str(component))
-    view = p.GetActiveView()
+def select_array(source, association, array, component=None, time=None, view=None):
+    view = p.GetActiveView() if view is None else view
     if view is None or view.GetXMLName() != "RenderView":
         raise RuntimeError("Select a native Render view")
+    available = times(source)
+    if time is not None:
+        if isinstance(time, bool) or not math.isfinite(float(time)) or float(time) not in available:
+            raise ValueError("Choose an exact native timestep from " + str(available))
+    elif available and float(p.GetAnimationScene().AnimationTime) not in available:
+        raise ValueError("Choose an exact native timestep from " + str(available))
+    if association not in ("POINTS", "CELLS"):
+        raise ValueError("Select an existing POINTS or CELLS array; association conversion is explicit")
+    data = source.PointData if association == "POINTS" else source.CellData
+    if array not in data.keys():
+        raise ValueError("Select an existing POINTS or CELLS array; association conversion is explicit")
+    component_names = [data[array].GetComponentName(i) for i in range(data[array].GetNumberOfComponents())]
+    if component is not None and component != "Magnitude" and component not in component_names:
+        raise ValueError("Unknown native array component: " + str(component))
+    # Validate the complete selection before changing the native time or active view.
+    p.SetActiveView(view)
+    metadata = inspect_result(source, time)
     display = p.Show(source, view)
     selection = (association, array) if component is None else (association, array, component)
     p.ColorBy(display, selection)
@@ -258,7 +268,8 @@ def open_result(input_path, project_directory, input_id=None, source_pins=None):
     p.ResetCamera(view)
     record = {"entry_path": str(entry), "input_id": input_id, "reader_name": name,
               "reader_type": reader_type, "source_pins": pinned, "metadata": metadata}
-    doc = {"kind": KIND, "version": 1, "project_root": str(folder), "sources": {"result": record}}
+    doc = {"kind": KIND, "version": 1, "document_id": "D" + uuid.uuid4().hex,
+           "project_root": str(folder), "sources": {"result": record}}
     # Publish the first manifest only after the native state and dependency checks succeed.
     saved = save_project(folder / "project.json", doc)
     initial = json.loads(saved.read_text(encoding="utf-8"))

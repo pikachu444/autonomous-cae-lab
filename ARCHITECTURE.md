@@ -363,3 +363,18 @@ Independent agents may research candidate backends or verify tests. One owner ch
 ## ADR0048 — exact recorded field observations
 
 Core verifies and stores additive comparison1.2; a pure structural adapter selects retained node/component values and native source contracts. UI transports original identity only. Signed native values and derived magnitudes remain separate; static load parameter is not time. Quantity/component/frame mismatches remain null, sensor alignment unverified. General research purpose is solver independent; current field admission supports only the two declared structural producer families. Other native families need typed readers, not a generic XYZ/array inference.
+## Service-owned research drafts and native commands — ADR0061
+
+The existing Workbench service now owns Material documents for the independent
+Qt editor, CLI and MCP. Generation-checked commands share Undo/Redo and preserve
+invalid drafts; evaluation freezes the input into the existing JobManager.
+Append-only saved revisions retain original inputs, job outcomes and available
+results before publishing the document pointer. Reopen does not run a solver.
+
+ParaView owns its native document and proxy identities. The service brokers
+typed inspect, array/time selection and save commands; a native QVTK timer
+dispatches GUI work on the owner thread. Command status and queued cancellation
+are distinct from numerical job lifecycle. Dispatched work is never silently
+replayed after a disconnect. Actual native command acceptance is currently
+headless; visible GUI timer dispatch remains unverified. See ADR0061 and the
+current WORKBENCH_PROGRESS entry for the precise acceptance boundary.

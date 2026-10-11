@@ -17,6 +17,26 @@ def handle(handler,method,path,query):
                 name=unquote(name,encoding='utf-8',errors='strict')
             return handler._json(201,workbench.upload(name,payload))
         body=handler._json_body()
+        if path=='/api/workbench/documents/open':
+            if set(body)-{'kind','title','draft','document_id'}:
+                raise ServiceError(400,'Unknown document field')
+            return handler._json(200,workbench.document_open(**body))
+        match=re.fullmatch(r'/api/workbench/documents/([^/]+)/commands',path)
+        if match:
+            if set(body)-{'operation','arguments','session_id','expected_generation','command_id'}:
+                raise ServiceError(400,'Unknown document command field')
+            return handler._json(200,workbench.document_command(match.group(1),**body))
+        if path=='/api/workbench/hosts/register':
+            return handler._json(200,workbench.native_commands.register(**body))
+        match=re.fullmatch(r'/api/workbench/hosts/([^/]+)/(commands/next|events)',path)
+        if match:
+            operation=workbench.native_commands.next if match.group(2)=='commands/next' else workbench.native_commands.event
+            return handler._json(200,operation(match.group(1),**body))
+        match=re.fullmatch(r'/api/workbench/commands/([^/]+)/cancel',path)
+        if match:
+            if body:
+                raise ServiceError(400,'Command cancellation requires empty JSON')
+            return handler._json(200,workbench.native_commands.cancel(match.group(1)))
         if path=='/api/workbench/jobs':
             if set(body)-{'operation','arguments','request_id','resources'}:
                 raise ServiceError(400,'Unknown job field')
@@ -41,6 +61,22 @@ def handle(handler,method,path,query):
         raise ServiceError(404,'Unknown workbench route')
     if path=='/api/workbench':
         return handler._json(200,workbench.overview())
+    if path in {'/api/workbench/documents','/api/workbench/hosts'}:
+        if query:
+            raise ServiceError(400,'Listing does not accept query arguments')
+        return handler._json(200,workbench.documents() if path.endswith('/documents') else workbench.native_commands.hosts())
+    match=re.fullmatch(r'/api/workbench/documents/([^/]+)/results/([^/]+)',path)
+    if match:
+        if set(query)-{'selection'} or any(len(value)!=1 for value in query.values()):
+            raise ServiceError(400,'Unknown document result selection')
+        selection=json.loads(query['selection'][0]) if 'selection' in query else None
+        return handler._json(200,workbench.document_result(match.group(1),match.group(2),selection=selection))
+    match=re.fullmatch(r'/api/workbench/(documents|commands)/([^/]+)',path)
+    if match:
+        if query:
+            raise ServiceError(400,'Document/command read does not accept query arguments')
+        operation=workbench.document_read if match.group(1)=='documents' else workbench.native_commands.status
+        return handler._json(200,operation(match.group(2)))
     if path=='/api/workbench/local-roots':
         if query:
             raise ServiceError(400,'Root listing does not accept query arguments')

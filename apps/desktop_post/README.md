@@ -182,3 +182,34 @@ the absence of original identity/classification arrays after spatial sampling.
 Implementation sources: ParaView's official command-line `--script` and PVSM APIs,
 and `Qt/Python/pqPythonMacroSupervisor.cxx` in v6.2.0 (`PV_MACRO_PATH`). No external
 Qt binding is loaded into the bundled ParaView process.
+
+## Shared native commands
+
+Start an external-result project with the service URL to attach its actual native
+session to the running Workbench:
+
+```powershell
+./scripts/start_cae_post.ps1 -Project 'C:/analysis/project.json' -ServiceUrl http://127.0.0.1:8766 -ConnectService
+```
+
+Registered `-InputId` opening also connects
+to that same service. Without these options the native application remains
+independent. The launcher does not start a second service or use a headless copy
+to edit the open window.
+
+`documents_list` / `hosts_list` expose the actual document/session/proxy IDs.
+Submit `post.inspect`, `post.select_array` or `document.save` through
+`document_command` with the read session/generation and a fresh command ID.
+Selection requires `arguments.target.source_id` and `arguments.target.view_id`,
+plus `association`, `array`, optional `component` and exact `time`. Read the
+returned ID with `command_status`; only queued commands support `command_cancel`.
+The document listing is the last owner report; `post.inspect` returns a fresh
+owner-thread snapshot. Save appends a native analysis revision.
+
+The bridge uses the existing GUI QVTK timer and starts only after its first
+callback. A stopped timer, lost service or invalid session stops dispatch;
+commands are never automatically replayed. Pending native property edits block
+mutations. GUI main-thread integration still needs actual visible/native
+acceptance; headless protocol tests explicitly advertise `execution_mode=headless`
+and cannot control an unrelated GUI. Filters, native Undo/Redo and general source
+repair are not advertised by this bounded bridge.
