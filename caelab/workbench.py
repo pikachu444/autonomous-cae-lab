@@ -11,8 +11,8 @@ import unicodedata
 from .backends import list_backends, get_backend
 from .evaluation import evaluate, run, read_result, file_hash
 from .jobs import JobManager
-from .storage import save_json, load_json, check_id, utc_now
-from .native_inputs import NATIVE_EXTENSIONS, register_native_input
+from .storage import save_json, load_json, check_id, utc_now, canonical_hash
+from .native_inputs import NATIVE_EXTENSIONS, register_native_input, register_frozen_input
 
 INPUT_EXTENSIONS = {'.csv','.txt','.dat','.asc','.npz','.json','.md','.pdf'}
 
@@ -46,34 +46,53 @@ class Workbench:
         self.manager=JobManager(self.root,self._execute,workers=self.config.get('workers',2),cpu_budget=self.config.get('cpu_budget'))
         self._assistance=None
         from .material_document import MaterialDocuments
+        from .data_document import DataDocuments
+        from .numerical_document import NumericalDocuments
+        from .desktop_links import DesktopLinks
         from .native_commands import NativeCommands
         self.session_id='S'+uuid.uuid4().hex
         self.material_documents=MaterialDocuments(self.root,self.session_id,self.submit,self.manager)
+        self.data_documents=DataDocuments(self.root,self.session_id,self.submit,self.manager,
+            resolve_input=lambda identifier:(self.input_path(identifier),load_json(self.root/'inputs'/check_id(identifier)/'input.json')))
         self.native_commands=NativeCommands(self.root,self.session_id)
+        self.numerical_documents=NumericalDocuments(self.root,self.session_id,self.submit,self.manager,
+            resolve_document=self.document_read, resolve_result=self.document_result)
+        self.desktop=DesktopLinks(self)
 
     def documents(self):
         return {'service_session_id':self.session_id,
-                'documents':self.material_documents.list()+self.native_commands.documents()}
+                'documents':self.material_documents.list()+self.data_documents.list()+self.numerical_documents.list()+self.native_commands.documents()}
 
     def document_open(self, *, kind='material', title='Material research', draft=None, document_id=None):
-        if kind!='material':
-            raise ValueError('Open Post in its native host; this service opens Material documents')
-        return self.material_documents.open(title=title,draft=draft,document_id=document_id)
+        owners={'material':self.material_documents,'data':self.data_documents,'numerical':self.numerical_documents}
+        if kind not in owners:
+            raise ValueError('Open native documents in their host; this service opens Material/Data/Numerical documents')
+        return owners[kind].open(title=title,draft=draft,document_id=document_id)
+
+    def _document_owner(self, identifier):
+        check_id(identifier)
+        return {'M':self.material_documents,'T':self.data_documents,'N':self.numerical_documents}.get(identifier[0],self.native_commands)
 
     def document_read(self, identifier):
-        if identifier.startswith('M'):
-            return self.material_documents.read(identifier)
-        return self.native_commands.read(check_id(identifier))
+        return self._document_owner(identifier).read(identifier)
 
     def document_command(self, identifier, operation, arguments, *, session_id, expected_generation, command_id=None):
         check_id(identifier)
-        owner=self.material_documents if identifier.startswith('M') else self.native_commands
-        method=owner.command if owner is self.material_documents else owner.submit
+        owner=self._document_owner(identifier)
+        method=owner.submit if owner is self.native_commands else owner.command
         return method(identifier,operation,arguments,session_id=session_id,
                       expected_generation=expected_generation,command_id=command_id)
 
     def document_result(self, identifier, job_id, *, selection=None):
-        return self.material_documents.result(identifier,job_id,selection=selection)
+        owner=self._document_owner(identifier)
+        if owner is self.native_commands:
+            raise ValueError('Native documents expose their results in the native host')
+        return owner.result(identifier,job_id,selection=selection)
+
+    def document_source_preview(self, identifier):
+        if self._document_owner(identifier) is not self.data_documents:
+            raise ValueError('Source preview belongs to a Data document')
+        return self.data_documents.source_preview(identifier)
 
     def upload(self, name, payload):
         if not isinstance(payload,bytes) or not payload or len(payload)>16*1024*1024:
@@ -153,6 +172,9 @@ class Workbench:
         if source.suffix.lower() in NATIVE_EXTENSIONS:
             return register_native_input(self.root, roots[root_id], source, 'D'+uuid.uuid4().hex,
                 root_id=root_id, relative=relative, limit=limit)
+        if source.name == 'snapshot.json':
+            return register_frozen_input(self.root, roots[root_id], source, 'D'+uuid.uuid4().hex,
+                root_id=root_id, relative=relative, limit=limit)
         with source.open('rb') as stream:
             import os
             before=os.fstat(stream.fileno())
@@ -179,7 +201,7 @@ class Workbench:
         path=contained(self.root,receipt['file'])
         if file_hash(path)!=receipt['sha256']:
             raise ValueError('Uploaded source changed')
-        if receipt.get('kind') == 'native_result':
+        if receipt.get('kind') in {'native_result', 'frozen_fem'}:
             folder=(self.root/'inputs'/identifier).resolve()
             files=receipt.get('files',[])
             if not files or not any(item.get('file')==receipt['file'] and item.get('sha256')==receipt['sha256'] for item in files):
@@ -194,15 +216,28 @@ class Workbench:
         """Resolve a registered native set for a local reader after verification."""
         path = self.input_path(identifier)
         receipt = load_json(self.root/'inputs'/identifier/'input.json')
-        if receipt.get('kind') != 'native_result':
-            raise ValueError('Select a registered VTU/PVD native input')
-        return {'id': identifier, 'path': str(path), 'format': receipt['format'],
+        if receipt.get('kind') not in {'native_result', 'frozen_fem'}:
+            raise ValueError('Select a registered native result or FEM snapshot')
+        result = {'id': identifier, 'path': str(path), 'format': receipt['format'], 'kind': receipt['kind'],
                 'source_pins': [{'path': str(contained(self.root, item['file'])),
                                  'bytes': item['bytes'], 'sha256': item['sha256']}
                                 for item in receipt['files']]}
+        if receipt['kind'] == 'frozen_fem':
+            result['editable_path'] = str(path.parent / 'editable.FCStd')
+        if receipt.get('native_metadata') is not None:
+            if canonical_hash(receipt['native_metadata']) != receipt.get('native_metadata_sha256'):
+                raise ValueError('Registered native field metadata changed')
+            result['native_metadata'] = deepcopy(receipt['native_metadata'])
+        return result
 
     def input_preview(self,identifier):
         path=self.input_path(identifier)
+        receipt=load_json(self.root/'inputs'/identifier/'input.json')
+        if receipt.get('kind') == 'frozen_fem':
+            return {'id':identifier,'kind':'frozen_fem','format':receipt['format'],
+                    'name':receipt['name'],'file_count':len(receipt['files']),
+                    'bytes':receipt['total_bytes'],'sha256':receipt['sha256'],
+                    'preview':'Frozen editable CAD, existing FEM mesh and native solver input'}
         if path.suffix.lower() in NATIVE_EXTENSIONS:
             receipt=load_json(self.root/'inputs'/identifier/'input.json')
             return {'id':identifier,'kind':'native_result','format':receipt['format'],
@@ -367,6 +402,15 @@ class Workbench:
 
     def _settings(self, backend, settings):
         settings=deepcopy(settings)
+        if backend=='structure.calculix.frozen':
+            if set(settings) != {'data_id'}:
+                raise ValueError('Frozen FEM execution requires only a registered data_id')
+            identifier=settings['data_id']
+            path=self.input_path(identifier)
+            receipt=load_json(self.root/'inputs'/identifier/'input.json')
+            if receipt.get('kind')!='frozen_fem':
+                raise ValueError('Select a registered frozen FEM snapshot')
+            return {'data_id':identifier,'snapshot_path':str(path)}
         if backend=='files.table':
             identifier=settings.pop('data_id',None)
             if not identifier or 'path' in settings:
@@ -377,7 +421,7 @@ class Workbench:
         def reject_paths(value):
             if isinstance(value,dict):
                 for key,item in value.items():
-                    if key in {'command','argv','module','factory','script','executable','output','output_root','runtime'}:
+                    if key in {'command','argv','module','factory','script','executable','output','output_root','runtime','snapshot_path'}:
                         raise ValueError('Remote execution configuration is not a model input')
                     if key=='path' and backend!='files.table':
                         raise ValueError('Use an uploaded input reference, not a server path')
@@ -408,10 +452,41 @@ class Workbench:
             if backend in self.config.get('external_backends',{}):
                 from .adapters.external_files import ExternalFilesAdapter
                 backend=ExternalFilesAdapter(backend,self.config['external_backends'][backend])
-            return run(backend,args.get('settings',{}),output=self.root/'native'/identifier,selection=args.get('selection'))
+            output=self.root/'native'/identifier
+            result=run(backend,args.get('settings',{}),output=output,selection=args.get('selection'))
+            if backend=='structure.calculix.frozen' and result.get('execution_status')=='SUCCEEDED':
+                result['origin_input']={'id':arguments['settings']['data_id'],'kind':'frozen_fem'}
+                try:
+                    artifact=result['post_artifact']
+                    source=contained(output,artifact['relative'])
+                    if source.stat().st_size!=artifact['bytes'] or file_hash(source)!=artifact['sha256']:
+                        raise ValueError('Native Post artifact changed before registration')
+                    receipt=register_native_input(self.root,output,source,'D'+uuid.uuid4().hex,
+                        root_id='job:'+identifier,relative=artifact['relative'],limit=self.config.get('local_input_max_bytes',2*1024**3),
+                        native_metadata=artifact.get('native_metadata'))
+                    result['post_input']={'id':receipt['id'],'format':receipt['format'],'sha256':receipt['sha256']}
+                except (OSError, ValueError, KeyError, TypeError) as error:
+                    # Preserve the already-computed responses and owned files if
+                    # downstream publication fails. Never claim Post is ready or
+                    # silently resubmit a costly native calculation to recover it.
+                    result.update(execution_status='FAILED', native_execution_status='SUCCEEDED',
+                                  post_registration={'status':'FAILED','type':type(error).__name__,'message':str(error)})
+                    result.setdefault('diagnostics', {})['post_registration'] = str(error)
+            return result
         if operation=='import_table':
             mapping=args.get('mapping',{})
-            return evaluate('files.table',{**mapping,'path':str(self.input_path(args['data_id']))})
+            reference=args.get('source_ref')
+            if reference is None:
+                # Existing result-only API calls retain their registered-input contract.
+                return evaluate('files.table',{**mapping,'path':str(self.input_path(args['data_id']))})
+            source, _ = self.data_documents.resolve_job_source(args['data_id'], reference)
+            result=evaluate('files.table',{**mapping,'path':str(source)})
+            # A queued import may start after the editor/source has changed.
+            # Verify the same pinned bytes and receipt after the actual reader,
+            # without consulting the current draft or repairing the registry.
+            self.data_documents.resolve_job_source(args['data_id'], reference)
+            result.setdefault('diagnostics',{})['source_ref']=deepcopy(reference)
+            return result
         if operation.startswith(('knowledge.','literature.','experts.')) or operation=='calculations.plan':
             if operation=='knowledge.ingest':
                 data_id=args.pop('data_id')

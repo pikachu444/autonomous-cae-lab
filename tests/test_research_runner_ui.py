@@ -52,6 +52,10 @@ class RecordsClient:
         if blocker:
             assert blocker.wait(4), "Test did not release the queued service response"
 
+    def job_navigation(self, identifier):
+        self._read("navigation", identifier)
+        return {"origin_document": {"id":"Dmaterial", "kind":"material", "connected":True}, "post_input":None}
+
     def request(self, path):
         assert path == "/api/workbench"
         self._read("catalog")
@@ -228,6 +232,7 @@ def test_refresh_and_close_reopen_preserve_selection_and_origin_without_submit(r
     assert viewer.selected_job_id == "JB"
     assert viewer.job_table.item(viewer.job_table.currentRow(), 1).text() == "JB"
     viewer.origin_button.click()
+    until(app, lambda: not viewer._pending)
     assert origins == ["JB"]
     viewer.close()
     client.jobs["JB"]["state"] = "INTERRUPTED"

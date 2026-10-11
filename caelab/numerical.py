@@ -410,7 +410,7 @@ def _scalar(evaluation, definition):
         raise EvaluationFailed(f'{name} is not an available scalar response')
     if response.get('unit') != definition.get('unit'):
         raise ValueError(f'{name} response unit differs from the declared unit')
-    for key in ('component', 'location'):
+    for key in ('component', 'location', 'measure', 'frame', 'coordinate_system', 'coordinate_frame'):
         if key in definition and response.get(key) != definition[key]:
             raise ValueError(f'{name} response {key} differs from declaration')
     if response.get('kind') == 'scalar':
@@ -509,7 +509,7 @@ def optimize(evaluator_or_factory, variables, objective, *, settings=None, const
                             except EvaluationFailed:
                                 continue
                             row['response_reductions'].append({
-                                **{key:deepcopy(original[key]) for key in ('unit','component','location','source','coordinate_system') if key in original},
+                                **{key:deepcopy(original[key]) for key in ('unit','component','location','source','measure','frame','coordinate_system','coordinate_frame') if key in original},
                                 'response':name,'kind':'scalar','value':reduced,'reduction':declaration['reduction'],
                                 'original_kind':original['kind']})
                 row['responses'] = {name: response for name, response in row['responses'].items()
@@ -676,7 +676,10 @@ def _aligned(evaluation, experiment):
         if pred.get(key) != obs[key]:
             raise ValueError(f"Experiment {experiment['id']} response {key} mismatch")
     for key in ('measure', 'frame', 'coordinate_system', 'coordinate_frame'):
-        if key in obs and pred.get(key) != obs[key]:
+        if key in obs and not (key == 'coordinate_system' and obs[key] == 'UNSPECIFIED'
+                               and obs.get('frame') == pred.get('frame')
+                               and obs.get('measure') == pred.get('measure')
+                               and bool(obs.get('frame')) and bool(obs.get('measure'))) and pred.get(key) != obs[key]:
             raise ValueError(f"Experiment {experiment['id']} response {key} mismatch")
     values = np.asarray(pred['value'], dtype=float)
     if obs['kind'] == 'scalar':

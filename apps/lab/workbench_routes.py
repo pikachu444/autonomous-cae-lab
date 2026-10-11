@@ -17,6 +17,14 @@ def handle(handler,method,path,query):
                 name=unquote(name,encoding='utf-8',errors='strict')
             return handler._json(201,workbench.upload(name,payload))
         body=handler._json_body()
+        if path=='/api/workbench/native-submit':
+            if set(body)!={'command_id'}:
+                raise ServiceError(400,'Native submit requires the exact completed export command_id')
+            return handler._json(202,workbench.desktop.submit_frozen(body['command_id']))
+        if path=='/api/workbench/numerical-adopt':
+            if set(body)!={'plan_id','job_id','candidate_id','material_document_id','session_id','expected_generation','command_id'}:
+                raise ServiceError(400,'Adoption requires the selected candidate and exact target generation')
+            return handler._json(200,workbench.desktop.adopt(**body))
         if path=='/api/workbench/documents/open':
             if set(body)-{'kind','title','draft','document_id'}:
                 raise ServiceError(400,'Unknown document field')
@@ -61,10 +69,24 @@ def handle(handler,method,path,query):
         raise ServiceError(404,'Unknown workbench route')
     if path=='/api/workbench':
         return handler._json(200,workbench.overview())
+    if path=='/api/workbench/desktop':
+        if query:
+            raise ServiceError(400,'Desktop context does not accept query arguments')
+        return handler._json(200,workbench.desktop.context())
+    match=re.fullmatch(r'/api/workbench/jobs/([^/]+)/navigation',path)
+    if match:
+        if query:
+            raise ServiceError(400,'Job navigation does not accept query arguments')
+        return handler._json(200,workbench.desktop.navigation(match.group(1)))
     if path in {'/api/workbench/documents','/api/workbench/hosts'}:
         if query:
             raise ServiceError(400,'Listing does not accept query arguments')
         return handler._json(200,workbench.documents() if path.endswith('/documents') else workbench.native_commands.hosts())
+    match=re.fullmatch(r'/api/workbench/documents/([^/]+)/source-preview',path)
+    if match:
+        if query:
+            raise ServiceError(400,'Source preview does not accept query arguments')
+        return handler._json(200,workbench.document_source_preview(match.group(1)))
     match=re.fullmatch(r'/api/workbench/documents/([^/]+)/results/([^/]+)',path)
     if match:
         if set(query)-{'selection'} or any(len(value)!=1 for value in query.values()):

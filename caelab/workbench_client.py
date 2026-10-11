@@ -46,6 +46,9 @@ class Client:
     def document_read(self,identifier):
         from .storage import check_id
         return self.request('/api/workbench/documents/'+check_id(identifier))
+    def document_source_preview(self,identifier):
+        from .storage import check_id
+        return self.request('/api/workbench/documents/'+check_id(identifier)+'/source-preview')
     def document_command(self,identifier,operation,arguments,*,session_id,expected_generation,command_id=None):
         from .storage import check_id
         return self.request('/api/workbench/documents/'+check_id(identifier)+'/commands',{
@@ -80,6 +83,18 @@ class Client:
     def status(self,identifier):
         from .storage import check_id
         return self.request('/api/workbench/jobs/'+check_id(identifier))
+    def desktop_context(self):
+        return self.request('/api/workbench/desktop')
+    def native_submit(self, command_id):
+        return self.request('/api/workbench/native-submit', {'command_id':command_id})
+    def job_navigation(self, identifier):
+        from .storage import check_id
+        return self.request('/api/workbench/jobs/'+check_id(identifier)+'/navigation')
+    def numerical_adopt(self, document_id, job_id, candidate_id, *, material_document_id,
+                        session_id, expected_generation, command_id):
+        return self.request('/api/workbench/numerical-adopt', dict(plan_id=document_id,job_id=job_id,
+            candidate_id=candidate_id,material_document_id=material_document_id,session_id=session_id,
+            expected_generation=expected_generation,command_id=command_id))
     def cancel(self,identifier):
         from .storage import check_id
         return self.request('/api/workbench/jobs/'+check_id(identifier)+'/cancel',{})

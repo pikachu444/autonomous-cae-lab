@@ -69,6 +69,7 @@ def preview_table(text, *, truncated=False):
             'column_keys': list(range(len(first))), 'has_header': has_header,
             'skip_rows': first_index + int(has_header),
             'rows': [values for _, values in data[:8]],
+            'row_numbers': [index for index, _ in data[:8]],
             'truncated': bool(truncated or len(data) > 8)}
 
 
@@ -90,12 +91,22 @@ def read_table(path, mapping):
         with np.load(source, allow_pickle=False) as archive:
             data = {key: archive[key] for key in archive.files}
         named = True
+        source_rows = None
     else:
         # Explicitly support Fortran scientific exponents in numeric text.
         import re
+        source_rows = []
         with source.open(encoding='utf-8-sig') as stream:
-            lines=(re.sub(r'(?<=\d)[dD](?=[+-]?\d)', 'E', line) for line in stream)
-            data = np.genfromtxt(lines, delimiter=delimiter, names=True if named else None,
+            def lines():
+                header_seen = not named
+                for index, line in enumerate(stream):
+                    if index >= int(mapping.get('skip_header', 0)):
+                        if not header_seen and line.strip():
+                            header_seen = True  # NumPy also accepts a commented name row.
+                        elif line.split('#', 1)[0].strip():
+                            source_rows.append(index)
+                    yield re.sub(r'(?<=\d)[dD](?=[+-]?\d)', 'E', line)
+            data = np.genfromtxt(lines(), delimiter=delimiter, names=True if named else None,
                              dtype=float, encoding='utf-8', skip_header=int(mapping.get('skip_header', 0)),
                              invalid_raise=True, ndmin=1 if named else 2,
                              converters={})
@@ -121,10 +132,15 @@ def read_table(path, mapping):
             if len(axis) != len(values) or not axis_spec.get('unit') or not axis_spec.get('name') or np.any(np.diff(axis) <= 0):
                 raise ValueError('Axes need explicit meaning/units and strictly increasing values; select restart segments explicitly')
             axes = [{'name': axis_spec['name'], 'unit': axis_spec['unit'], 'values': axis}]
+        if source_rows is not None and len(source_rows) != len(values):
+            raise ValueError('Cannot associate parsed records with original physical lines; use an explicit extractor')
         responses[name] = {'kind': 'series' if axes else 'field', 'value': values,
                            'unit': spec['unit'], 'component': spec['component'], 'location': spec['location'],
                            'reduction': spec.get('reduction', 'none'), 'axes': axes,
+                           **{key: deepcopy(spec[key]) for key in ('frame', 'measure') if key in spec},
                            'mapping': deepcopy(spec),
+                           'source_rows': np.asarray(source_rows if source_rows is not None else range(len(values)), dtype=int),
+                           'source_row_kind': 'physical_line' if source_rows is not None else 'array_index',
                            'coordinate_system':spec.get('coordinate_system','UNSPECIFIED'),
                            'source_selector':{'file':source.name,'column':spec['column'],
                                               'axis':deepcopy(axis_spec)}}

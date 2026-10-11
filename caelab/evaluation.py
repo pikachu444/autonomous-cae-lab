@@ -367,6 +367,8 @@ def read_result(path, *, verify='selected', selection=None):
                 axis['values'] = np.asarray(array_value(axis['values']))[selected].tolist()
             if response.get('mask') is not None:
                 response['mask'] = np.asarray(array_value(response['mask']))[selected].tolist()
+            if response.get('source_rows') is not None:
+                response['source_rows'] = np.asarray(array_value(response['source_rows']))[selected].tolist()
     if isinstance(selection, dict):
         # A response selection must not hydrate unrelated, potentially huge
         # diagnostics or saved native fields into an interactive response.

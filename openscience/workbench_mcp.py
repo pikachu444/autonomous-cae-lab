@@ -48,12 +48,12 @@ def native_input_resolve(input_id: str) -> dict:
 
 @mcp.tool()
 def documents_list() -> dict:
-    """List service-owned Material drafts and actual registered native documents."""
+    """List independent Data/Material/Numerical drafts and actual native Pre/Post documents."""
     return client().documents()
 
 @mcp.tool()
 def document_open(kind: str='material', title: str='Material research', draft: dict | None=None, document_id: str | None=None) -> dict:
-    """Create or reopen a Material draft without evaluation; Post opens in its native host."""
+    """Create/reopen kind material, data or numerical without execution; native docs open in their host."""
     return client().document_open(kind=kind,title=title,draft=draft,document_id=document_id)
 
 @mcp.tool()
@@ -70,7 +70,7 @@ def document_command(document_id: str, operation: str, arguments: dict, session_
 
 @mcp.tool()
 def document_result_read(document_id: str, job_id: str, selection: dict | None=None) -> dict:
-    """Read the Material document's original retained curve and diagnostics, without recomputation."""
+    """Read this document's retained import/evaluation/search result without recomputation."""
     return client().document_result(document_id,job_id,selection=selection)
 
 @mcp.tool()
@@ -87,6 +87,28 @@ def command_status(command_id: str) -> dict:
 def command_cancel(command_id: str) -> dict:
     """Cancel a queued native command; dispatched commands explicitly refuse unsupported cancellation."""
     return client().command_cancel(command_id)
+
+@mcp.tool()
+def native_analysis_submit(command_id: str) -> dict:
+    """Submit the exact completed pre.freeze command's retained FEM input; identical retries reuse its job."""
+    return client().native_submit(command_id)
+
+@mcp.tool()
+def job_navigation(job_id: str) -> dict:
+    """Get this job's original document, retained editable design and verified Post input references."""
+    return client().job_navigation(job_id)
+
+@mcp.tool()
+def data_source_preview(document_id: str) -> dict:
+    """Read a bounded source preview through the Data owner, including its retained source copy."""
+    return client().document_source_preview(document_id)
+
+@mcp.tool()
+def numerical_candidate_adopt(document_id: str, job_id: str, candidate_id: str, material_document_id: str,
+                              session_id: str, expected_generation: int, command_id: str) -> dict:
+    """Adopt one actual candidate through the original Material owner; reject changed input or stale generation."""
+    return client().numerical_adopt(document_id,job_id,candidate_id,material_document_id=material_document_id,
+        session_id=session_id,expected_generation=expected_generation,command_id=command_id)
 
 @mcp.tool()
 def calculation_submit(operation: str, arguments: dict, request_id: str | None=None, resources: dict | None=None) -> dict:

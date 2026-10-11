@@ -177,8 +177,8 @@ class RunnerWindow(QMainWindow):
         self.result_metadata = None
         self._ledger = []
         self._ledger_kind = None
+        self._on_open_origin = on_open_origin
         self._build_ui()
-        self.origin_button.setVisible(on_open_origin is not None)
         if on_open_origin is not None:
             self.open_origin.connect(on_open_origin)
         self.timer = QTimer(self)
@@ -192,6 +192,12 @@ class RunnerWindow(QMainWindow):
         self.setWindowTitle("Runner — existing executions")
         self.resize(1420, 940)
         self.setMinimumSize(900, 650)
+        tools = self.menuBar().addMenu("&Tools")
+        for kind, label in (("pre", "CAD/FE — FreeCAD…"), ("post", "Post — external result…"),
+                            ("data", "Data…"), ("material", "Material…"), ("numerical", "Numerical Plan…")):
+            action = QAction(label, self)
+            action.triggered.connect(lambda checked=False, tool=kind: self.open_tool(tool))
+            tools.addAction(action)
         toolbar = QToolBar("Execution records")
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
@@ -205,8 +211,11 @@ class RunnerWindow(QMainWindow):
         self.cancel_button.clicked.connect(self.cancel_selected)
         toolbar.addWidget(self.cancel_button)
         self.origin_button = QPushButton("Open source document")
-        self.origin_button.clicked.connect(lambda: self.open_origin.emit(self.selected_job_id) if self.selected_job_id else None)
+        self.origin_button.clicked.connect(self.open_selected_origin)
         toolbar.addWidget(self.origin_button)
+        self.post_button = QPushButton("Open retained field in Post")
+        self.post_button.clicked.connect(self.open_selected_post)
+        toolbar.addWidget(self.post_button)
 
         root = QWidget()
         layout = QVBoxLayout(root)
@@ -467,12 +476,55 @@ class RunnerWindow(QMainWindow):
             self.message.setText(identifier + " · " + state_description(job))
         self._request("cancel:" + identifier, lambda: self.client.cancel(identifier), received)
 
+    def open_selected_origin(self):
+        identifier, epoch = self.selected_job_id, self._selection_epoch
+        if not identifier:
+            return
+        self.message.setText("Finding the exact source document…")
+        def received(navigation, _ticket):
+            origin = navigation.get("origin_document") or {}
+            if origin.get("kind") == "material" and self._on_open_origin is not None:
+                # Material's existing callback owns its unapplied local edits.
+                self.open_origin.emit(identifier)
+                return
+            from .desktop import open_origin
+            def opened(receipt, _ticket):
+                self.message.setText("Source document: " + text_value(receipt.get("status")))
+            self._request("open-origin:" + identifier,
+                          lambda: open_origin(self.client, identifier), opened)
+        self._request("navigation-origin:" + identifier, lambda: self.client.job_navigation(identifier), received,
+                      relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
+
+    def open_tool(self, tool):
+        from .desktop import launch_tool
+        self._request("launch-tool:" + tool, lambda: launch_tool(self.client, tool),
+                      lambda receipt, _ticket: self.message.setText(tool.title() + ": " + text_value(receipt.get("status"))))
+
+    def open_selected_post(self):
+        identifier, epoch = self.selected_job_id, self._selection_epoch
+        if not identifier:
+            return
+        self.message.setText("Finding this job's retained native field…")
+        def received(navigation, _ticket):
+            post = navigation.get("post_input")
+            if not post:
+                self.message.setText("This job has no retained VTU/PVD field for Post. Its original responses remain available here.")
+                return
+            from .desktop import launch_post
+            def launched(receipt, _ticket):
+                self.message.setText("Post preparation started in a separate helper; any native preparation error will be shown.")
+            self._request("open-post:" + identifier,
+                          lambda: launch_post(self.client, post["id"], job_id=identifier), launched)
+        self._request("navigation-post:" + identifier, lambda: self.client.job_navigation(identifier), received,
+                      relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
+
     def _update_actions(self):
         job = self.jobs.get(self.selected_job_id, {})
         state = job.get("state")
         self.refresh_action.setEnabled("catalog" not in self._pending)
         self.result_button.setEnabled(bool(job.get("result_refs")) and not any(key.startswith(f"result:{self.selected_job_id}:") for key in self._pending))
-        self.origin_button.setEnabled(bool(job))
+        self.origin_button.setEnabled(bool(job) and not any(key.endswith(":" + str(self.selected_job_id)) and "origin" in key for key in self._pending))
+        self.post_button.setEnabled(bool(job.get("result_refs")) and not any(key.endswith(":" + str(self.selected_job_id)) and "post" in key for key in self._pending))
         self.cancel_button.setEnabled(state in {"QUEUED", "RUNNING", "CLEANUP_PENDING"} and "cancel:" + str(self.selected_job_id) not in self._pending)
         operation = job.get("operation")
         self.cancel_button.setText("Cancellation requested" if state == "CANCEL_REQUESTED" else
@@ -693,14 +745,7 @@ def main(argv=None):
         parser.error("--service or CAELAB_SERVICE_URL must identify the existing local service")
     app = QApplication.instance() or QApplication(sys.argv[:1])
     client = Client(args.service)
-    material_window = None
-    def open_origin(identifier):
-        nonlocal material_window
-        from .material_window import MaterialWindow
-        if material_window is None:
-            material_window = MaterialWindow(client, auto_open=False)
-        material_window.open_run_origin(identifier)
-    window = RunnerWindow(client, job_id=args.job_id, on_open_origin=open_origin)
+    window = RunnerWindow(client, job_id=args.job_id)
     window.show()
     return app.exec()
 

@@ -72,6 +72,7 @@ def main(argv=None):
         action.add_argument('--url',default='http://127.0.0.1:8766')
         if name=='open':
             action.add_argument('--id')
+            action.add_argument('--kind',choices=['material','data','numerical'],default='material')
             action.add_argument('--title',default='Material research')
             action.add_argument('--draft')
         if name in {'read','apply','result'}:
@@ -87,7 +88,9 @@ def main(argv=None):
     command=sub.add_parser('command',help='Inspect or cancel a native owner command')
     command.add_argument('id')
     command.add_argument('--url',default='http://127.0.0.1:8766')
-    command.add_argument('--cancel',action='store_true')
+    action=command.add_mutually_exclusive_group()
+    action.add_argument('--cancel',action='store_true')
+    action.add_argument('--submit-frozen',action='store_true',help='Submit the exact completed native export through the shared JobManager')
     args = parser.parse_args(argv)
     if args.command in {'backends', 'doctor'}:
         from .backends import list_backends
@@ -105,11 +108,12 @@ def main(argv=None):
         from .workbench_client import Client
         client=Client(args.url)
         if args.command=='command':
-            result=client.command_cancel(args.id) if args.cancel else client.command_status(args.id)
+            result=(client.native_submit(args.id) if args.submit_frozen else
+                    client.command_cancel(args.id) if args.cancel else client.command_status(args.id))
         elif args.action=='list':
             result=client.documents()
         elif args.action=='open':
-            result=client.document_open(title=args.title,draft=json_value(args.draft) if args.draft else None,document_id=args.id)
+            result=client.document_open(kind=args.kind,title=args.title,draft=json_value(args.draft) if args.draft else None,document_id=args.id)
         elif args.action=='read':
             result=client.document_read(args.id)
         elif args.action=='result':

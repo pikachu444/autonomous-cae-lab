@@ -7,12 +7,19 @@ from pathlib import Path
 import hashlib
 import json
 import shutil
+import sys
 import time
 import traceback
 
 import FreeCAD as App
 import FreeCADGui as Gui
 from PySide import QtCore, QtGui
+
+# FreeCAD loads this module from a macro, with its own Python installation.
+# Only the thin stdlib bridge/client is imported from the repository here.
+repository = str(Path(__file__).resolve().parents[2])
+if repository not in sys.path:
+    sys.path.insert(0, repository)
 try:
     from PySide import QtWidgets
 except ImportError:
@@ -100,7 +107,7 @@ def save_as():
 
 def update_caption():
     name = App.ActiveDocument.Label if App.ActiveDocument else '새 작업'
-    Gui.getMainWindow().setWindowTitle('CAE Lab · 전처리 — ' + name + ' | FreeCAD 기반 시안')
+    Gui.getMainWindow().setWindowTitle('CAE Lab · 전처리 — ' + name + ' | FreeCAD')
 
 
 def switch(name):
@@ -290,7 +297,8 @@ def start(config_path):
     output.mkdir(parents=True, exist_ok=True)
     def setup():
         try:
-            App.ParamGet('User parameter:BaseApp/Preferences/Mod/Fem/Gmsh').SetString('gmshBinaryPath', CONFIG['gmsh'])
+            if CONFIG.get('gmsh'):
+                App.ParamGet('User parameter:BaseApp/Preferences/Mod/Fem/Gmsh').SetString('gmshBinaryPath', CONFIG['gmsh'])
             App.ParamGet('User parameter:BaseApp/Preferences/View').SetBool('UseNewSelection', True)
             Gui.activateWorkbench('FemWorkbench')
             add_toolbar()
@@ -302,19 +310,25 @@ def start(config_path):
                     dock.hide()
             Gui.getMainWindow().showMaximized()
             if CONFIG.get('source'):
-                load(CONFIG['source'])
+                doc = load(CONFIG['source'])
+                if CONFIG.get('source_label'):
+                    doc.Label = CONFIG['source_label']
             if CONFIG.get('assembly'):
                 doc = load(CONFIG['assembly'])
                 doc.Label = '굽힘 시험 지그 조립 — STEP 원본 복사'
-            Gui.activeDocument().activeView().viewAxonometric()
-            Gui.activeDocument().activeView().fitAll()
+            if Gui.activeDocument():
+                Gui.activeDocument().activeView().viewAxonometric()
+                Gui.activeDocument().activeView().fitAll()
+            if CONFIG.get('service_url'):
+                from apps.desktop_pre.connection import Connection
+                KEEP.append(Connection(CONFIG, App, Gui, QtCore, QtWidgets, log=record))
             def final_view():
                 if Gui.activeDocument():
                     Gui.activeDocument().activeView().viewAxonometric()
                     Gui.activeDocument().activeView().fitAll()
             QtCore.QTimer.singleShot(1500, final_view)
             update_caption()
-            Gui.getMainWindow().statusBar().showMessage('실제 CAD 편집 · 원본 보존 / 해석·제조 승인 미검증')
+            Gui.getMainWindow().statusBar().showMessage('CAD·FEM 편집 · 계산 입력 동결 · 원본/이전 결과 보존')
             record('ready', freecad='.'.join(App.Version()[:3]), commands=list(Gui.listCommands()))
         except Exception:
             record('startup_error', error=traceback.format_exc())

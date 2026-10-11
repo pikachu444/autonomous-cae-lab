@@ -39,6 +39,15 @@ def project():
     return path, json.loads(path.read_text(encoding="utf-8"))
 
 
+def return_to_design():
+    """Keep this Post document open; activate its recorded editable CAD owner."""
+    from apps.desktop_post.navigation import return_to_design as navigate
+    _, document = project()
+    result = navigate(document)
+    print('DESIGN NAVIGATION REQUESTED ' + result['job_id'])
+    return result
+
+
 def verify_sources():
     path, doc = project()
     if doc.get("kind") == "external-result":

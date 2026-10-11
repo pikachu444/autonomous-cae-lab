@@ -125,6 +125,7 @@ class MaterialWindow(QMainWindow):
         self._job_status = {}
         self._result_errors = {}
         self._runner = None
+        self._numerical_windows = []
         self._build_ui()
         self.timer = QTimer(self)
         self.timer.setInterval(poll_interval)
@@ -159,6 +160,9 @@ class MaterialWindow(QMainWindow):
         self.runner_action = QAction("Runner…", self)
         self.runner_action.triggered.connect(self.open_runner)
         windows.addAction(self.runner_action)
+        self.numerical_action = QAction("Numerical Plan…", self)
+        self.numerical_action.triggered.connect(self.open_numerical)
+        windows.addAction(self.numerical_action)
         toolbar = QToolBar("Material commands", self)
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
@@ -511,6 +515,18 @@ class MaterialWindow(QMainWindow):
     def _selected_jobs(self):
         return [self.runs.item(row, 0).data(Qt.ItemDataRole.UserRole)
                 for row in sorted({index.row() for index in self.runs.selectedIndexes()})]
+
+    def open_numerical(self):
+        self._commit_cell_editor()
+        if self.local_dirty or self.conflict:
+            self.message.setText("Apply Material edits and resolve conflicts before capturing a Numerical Plan reference.")
+            return
+        if self.document:
+            from .numerical_window import NumericalWindow
+            window = NumericalWindow(self.client, material_document=deepcopy(self.document))
+            self._numerical_windows.append(window)
+            window.show()
+            window.raise_()
 
     def open_runner(self):
         from .runner_window import RunnerWindow
