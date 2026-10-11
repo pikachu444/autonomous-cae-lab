@@ -1,4 +1,12 @@
-## 2026-10-12 — CI coverage repair verified; numerical and release gates retained
+## 2026-10-12 — Development integration accepted and PR #7 merged
+
+The owner accepted the known F05 numerical failure for this integration and
+PR #7 merged as `92a51fd7967ba1127b5a56755ebef6a46f41f04e`. See the
+[current handoff](HANDOFF.md) for the controlling decision. The requirement
+ledger is preserved; merging does not rewrite failed measurements or qualify
+unknown engineering requirements. Earlier draft-only instructions are historical.
+
+## Earlier 2026-10-12 — CI coverage repair verified; numerical and release gates retained
 
 Source `385818b` completes exact CI `38159523618`: nine jobs pass and the original
 F05 failure keeps the Code_Aster job failed. The four formerly skipped independent

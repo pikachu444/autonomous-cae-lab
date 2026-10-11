@@ -1,4 +1,11 @@
-## 2026-10-12 — Exact CI proves independent native continuation without masking F05
+## 2026-10-12 — PR #7 merged into main
+
+Merge `92a51fd7967ba1127b5a56755ebef6a46f41f04e` integrates the reviewed PR head.
+The owner accepted the known F05 failure for integration; earlier draft-only
+directions are superseded. [Current handoff](HANDOFF.md) records the decision,
+exact source/CI identities and next step. No new numerical pass is claimed.
+
+## Earlier 2026-10-12 — Exact CI proves independent native continuation without masking F05
 
 Source `385818bab785bfbf2c1e5880371970e475c90d68` is published in Draft PR7.
 Exact CI `38159523618`, clean PR merge

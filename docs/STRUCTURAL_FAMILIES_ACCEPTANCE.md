@@ -1,5 +1,13 @@
 # Connected structural family acceptance
 
+## 2026-10-12 — Owner accepts F05 for PR #7 integration
+
+PR #7 merged as `92a51fd7967ba1127b5a56755ebef6a46f41f04e` after the owner
+explicitly accepted the known F05 error estimate for integration. This closes
+the merge blocker by owner decision; the retained native run below still failed
+and no new solve or engineering acceptance is asserted. The controlling decision
+and next work are in [HANDOFF.md](../HANDOFF.md).
+
 ## 2026-10-12 — Exact CI preserves F05 failure and completes independent native stages
 
 Published source `385818bab785bfbf2c1e5880371970e475c90d68`, actual clean checkout
