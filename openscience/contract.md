@@ -31,6 +31,21 @@ commit and report failure. Reopen acceptance terminates the owner and reads the
 saved draft/results in a new process without evaluation. ADR0060 records this
 implementation decision; no new public MCP operation or authority is added.
 
+The whole-product UI/MCP plan extends the design to the actual native owners:
+FreeCAD document and ParaView session bridges dispatch typed commands on their
+GUI threads through the existing local service. Native command status/cancel is
+distinct from calculation job status/cancel; file listing/registration, native
+dependency manifests, source repair and explicit backend probing are proposed
+extensions. Current backends_list may return NOT_PROBED and does not certify an
+installed executable. Same-document targeting, generation/session checks,
+response-loss recovery, native Undo and cold reopen require actual acceptance.
+The reusable composite evaluation owns transfer/alignment/convergence; Numerical
+Plan owns search. These names and routes are design only: existing MCP tool
+universes, qualified profiles, source pins and execution authority remain intact.
+See ADR0060 and the detailed product UI/MCP plan for the proposed implementation
+and acceptance scenes. No newly registered tool or successful solver run follows
+from this documentation change.
+
 ## Qualified production startup / handoff contract evidence
 
 Actual e10bb028 startup admits existing approved5.6Sol/OAuth and the seven

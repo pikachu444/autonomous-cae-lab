@@ -1,3 +1,23 @@
+## 2026-10-11 — Whole-product plan and validity of the historical requirement list
+
+The user rejected the earlier first-Material planning closure as an inadequate
+response to requested product progress. The complete whole-product/UI/MCP v2 plan
+and 22-page PDF are received and preserved in [PRODUCT_UI_MCP_PLAN](docs/PRODUCT_UI_MCP_PLAN.md)
+and [the UI reference files](docs/design/20261011-product-ui-mcp/Autonomous_CAE_Lab_UI_Plan_v2.pdf).
+Ten historical progress reviews are not product implementation or acceptance.
+CAD/FE, Post and the independent research workspaces remain implementation and
+acceptance work; no numerical threshold, release verdict or retained result changes.
+
+The user's latest direction explicitly challenges whether the old numbered list
+is valid. Its 52 numbers record sections of the original request, not 52 independent
+equally weighted product features. The list mixes user outcomes, design principles,
+technology investigations, historical sequencing and development operating rules.
+Do not use its count, all-open status, or old phase order as the product goal or as
+a prerequisite for useful work. Actual Pro has the full descriptions and current
+directions for a focused validity review; concrete changes are pending that result.
+Retain the original ledger as traceable history, while applying later user decisions
+and judging completion by real research/design/edit/compare/save/resume workflows.
+
 ## 2026-10-11 — Product flow and bounded native reuse evidence
 
 [PRODUCT_PLAN](docs/PRODUCT_PLAN.md) adds the concrete reference screens,

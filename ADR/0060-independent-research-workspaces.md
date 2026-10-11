@@ -161,3 +161,52 @@ This bounded decision follows scheduled Pro review2/10 based on the supplied
 report, not an independent code or runtime test. It refines the implementation
 handoff and GUI/MCP/save gates; no new tool/schema, product code, numerical
 threshold, native acceptance or engineering verdict is introduced.
+
+## Whole-product native GUI and MCP plan
+
+The later full-product review supersedes the Material-first global sequence.
+Keep the Material packet above as that lane's bounded work, while native Pre,
+Post, independent Research and Runner start against the minimum shared contract
+they actually need. The first integrated delivery is CAD edit, supported mesh and
+conditions, real execution, Post measurement/comparison and a new design revision.
+Detailed screen and command design belongs to PRODUCT_UI_MCP_PLAN; a planning
+document or a completed review count does not satisfy runtime acceptance.
+
+The existing Workbench service remains the router and research-document owner.
+An open FreeCAD document is owned by its actual FreeCAD process, and an open
+ParaView pipeline/view by its actual ParaView session. Thin native bridges queue
+typed commands onto the native GUI thread and use native transactions, selection
+and Undo. The service must not edit another file copy and report success against
+the open window. A separate headless copy, a replacement native editor, and a
+durable numerical job for every view/filter change are rejected alternatives.
+
+Proposed common contracts distinguish native command status/cancellation from
+existing calculation job status/cancellation. They preserve command identity,
+actual cancellation support, requested versus terminal state, final application
+generation and response-loss recovery without duplicate mutation. Approved-root
+file listing/registration includes native multi-file dependencies and location
+repair; a path string alone is not an accessible registered artifact. Existing
+backends_list reports registered capabilities/readiness and can be NOT_PROBED;
+installation probing is a separate proposed operation.
+
+The detailed acceptance preserves P19/V12's design-pose restoration on motion
+stop/cancel, ordinary save and analysis-mode transition. Only explicit pose
+adoption creates a new design revision. Q09b/V15 also retain a successful bounded
+different-mesh mapping flow, including explicit direction, validity mask, an
+independent affine reference, Apply/Undo and cold reopen. Blocking unsupported
+mapping is necessary but not sufficient for that requirement.
+
+A reusable composite evaluation definition owns stages, field transfer, mapping,
+units/basis/time alignment and iterative convergence/stop rules. Its editor can
+share the Numerical UI, while a Plan owns search over a fixed definition. This
+does not add a second Workbench graph scheduler. Acceptance includes actual
+thermal-to-structural transfer, unconverged and cancelled iterations, explicit
+failed-stage rerun scope, and saved-definition/results reopen.
+
+Requirement impact extends the existing R01–R52 and P/Q/V/D mapping rather than
+removing any requirement. Verify two native hosts/documents, GUI/MCP edits in
+both directions, stale/pending edits, native Undo, file/source repair, saved
+results and new-process reopening. No new routes, tools, runtime admission,
+provider permissions or numerical acceptance are implemented by this decision.
+The prior cloud workflow FAIL/internal PARTIAL and Windows/native integration
+gates remain open; local FreeCAD operation remains stopped at the user's request.

@@ -1,4 +1,35 @@
-## 2026-10-11 — Product plan and bounded cloud reuse handoff
+## 2026-10-11 — Latest full-product plan and requirement-validity correction
+
+The previous first-Material planning closure does not satisfy the user's requested
+product progress. The root agent incorrectly spent the progress-review period on
+questions and planning. Preserve those historical reviews, but do not repeat the
+ten-question cycle or treat its completion as completion of development.
+
+Actual Pro's whole-product/UI/MCP v2 deliverables are received and reviewed:
+[full plan](docs/PRODUCT_UI_MCP_PLAN.md) and
+[22-page UI PDF](docs/design/20261011-product-ui-mcp/Autonomous_CAE_Lab_UI_Plan_v2.pdf).
+The six identified gaps are closed in the design, not in product execution.
+[PRODUCT_PLAN](docs/PRODUCT_PLAN.md) now starts the CAD/FE→Runner→Post round trip
+and independent research work in parallel. The original project's development
+authorization remains; the Material packet is only that lane's bounded task.
+
+Latest user steering: inspect whether the historical requirement list is actually
+useful instead of obsessing over its count. Its section numbers are not a set of
+equal product features or universal prerequisites. The complete descriptions and
+latest directions are with actual Pro for a focused validity review. Receive that
+review and apply concrete corrections; do not restart general interviews, another
+ten-review cycle, or a count-based completion audit. Preserve substantive user
+outcomes, retained experiments and numerical thresholds while retiring obsolete
+sequence/UI wording explicitly.
+
+The main/UI Pages are at sequences 17/22 after full-plan attachment and targeted
+corrections; affected hashes and unrelated content/media were read back. Existing
+native bridges and general independent editors remain implementation work.
+
+The local FreeCAD stop, historical cloud-check limits, unknown engineering
+requirements and unpushed local branch status below still apply.
+
+## Earlier 2026-10-11 — Product plan and bounded cloud reuse handoff
 
 Read [PRODUCT_PLAN](docs/PRODUCT_PLAN.md) first for the agreed product flow,
 reference applications, A/B/C research cases and concrete first implementation.

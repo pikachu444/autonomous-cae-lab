@@ -1,4 +1,32 @@
-## 2026-10-11 — Concrete product plan and cloud reuse boundary
+## 2026-10-11 — Whole-product UI and MCP plan received; scope validity review active
+
+The user rejected treating ten progress questions and a first-Material handoff as
+completion of the requested product work. The root agent's planning-only framing
+was wrong; the original request called for progress during development. The ten
+actual reviews below remain historical facts, not evidence of product completion.
+The combined whole-product/UI/MCP request was sent to the existing actual Pro
+conversation at approximately 2026-10-11 01:54 UTC. The complete v2 plan is now
+preserved as [PRODUCT_UI_MCP_PLAN](docs/PRODUCT_UI_MCP_PLAN.md), with the
+[22-page UI PDF](docs/design/20261011-product-ui-mcp/Autonomous_CAE_Lab_UI_Plan_v2.pdf).
+Six missing connections were repaired in one follow-up and independently checked
+in the document. Root inspected every v1 PDF page and all seven changed v2 pages;
+the other fifteen rendered images match v1 exactly. Original v1 files are retained.
+Main/UI Pages are saved and read back at sequences 17/22, including attachment
+hashes and preservation of unrelated blocks/media.
+
+The user then challenged the validity of the numbered requirement ledger itself.
+Its numbers track original request sections; they are not equally weighted product
+features, a completion denominator or a reason to repeat obsolete work. The full
+descriptions and later user instructions were sent to actual Pro for a usefulness,
+duplication, outdated-constraint and missing-work review. That review is pending.
+Existing implementation and numerical acceptance are retained.
+Local FreeCAD operation remains stopped at the user's request. Product source is
+still `af2f084dea20562b9036976a9945ee09a3994236`; an exact-full-SHA GitHub run query
+on 2026-10-11 returned no runs. No new product or solver execution is implied by
+the replanning or source inspection. The global Material-first sequence is replaced
+by the first CAD/FE→Runner→Post round trip and parallel independent research work.
+
+## Earlier 2026-10-11 — Concrete product plan and cloud reuse boundary
 
 [PRODUCT_PLAN](docs/PRODUCT_PLAN.md) now fixes the reference work screens,
 independent tool entry and shared Numerical Plan, Windows without WSL, the defect

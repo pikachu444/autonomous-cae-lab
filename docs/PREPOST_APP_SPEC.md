@@ -1,15 +1,20 @@
 # CAD/FE 전처리·후처리와 독립 연구 작업공간 설계
 
-2026-10-11 제품 기획 합의: [PRODUCT_PLAN](PRODUCT_PLAN.md)은 실제 Pro와 두 차례
-기획을 주고받아 확정한 제품 구성·화면 원형·개발 순서와 첫 세 연구 사례의 기준이다.
+2026-10-11 제품 기획: [PRODUCT_PLAN](PRODUCT_PLAN.md)은 제품 구성·화면 원형과
+첫 세 연구 사례를 유지하며 CAD/FE·Post·독립 연구의 병행 개발 순서로 교정한다.
 불량 연구와 제작 전 지그 검토를 모두 포함한다. 아래 기능/명령 계약과 ADR0060을
 보존하며 실제 공식 화면과 조작을 구현 기준으로 쓴다. 기존 합성 웹 시안은 보존 자료다.
+
+구체적 화면·입력·명령·MCP 대응과 구현 작업은 [전체 상세기획 v2](PRODUCT_UI_MCP_PLAN.md),
+배치와 공식 원형은 [22쪽 UI PDF](design/20261011-product-ui-mcp/Autonomous_CAE_Lab_UI_Plan_v2.pdf)를
+따른다. 설계 배치 복원, 다른 메시 비교의 검증된 성공 경로, 독립 연성 평가와 실제 열린
+문서 연결을 포함하며 이 문서의 P/Q/V/D 항목은 과거 요구를 찾는 참조로 유지한다.
 
 2026-10-10 경계 교정: **Data, Material Research, PDE Research는 CAD/FE 전처리의 모드가 아니다.** 각 작업공간은 자기 입력 문서·편집·Undo·저장 수명을 소유한다. 공통 프로젝트와 정확한 revision 참조로 연결하며 실행파일 수는 별도 배포 결정이다. 이전의 “비CAD Pre ↔ FreeCAD Pre host 왕복” 제안은 철회한다. 아래 P/V/D 식별자는 추적을 위해 보존하고 소유자를 재배치한다. [ADR0060](../ADR/0060-independent-research-workspaces.md)에 이유·대안·계약 영향을 기록한다. 기존 시안은 이 경계의 구현·수용 증거가 아니다.
 
 2026-10-08 · 상태: **요구·설계 진행 중 · 이전 HTML GUI안 철회 · FreeCAD/ParaView 기반 실제 조작 시안 추가**. 사용자는 실제 FreeCAD 화면의 방향을 수용했지만 제품 전체 완료나 이 문서 전체를 승인하지 않았다. 아래의 요구, 기술 제안, 검증된 좁은 구현을 구별한다. `prepost-workspaces.html`은 구현 지시서로 사용하지 않는다. 실제 관찰과 미실행 항목은 [검증 기록](PREPOST_VERIFICATION.md), 후보·공식 근거는 [재사용 조사](PREPOST_REUSE.md)에 유지한다.
 
-**전체 구현 기준으로 아직 부족한 부분:** 일부 native 선택·메시·결과 명령은 실제 모델로 검증했지만 다중 선택·일괄 편집·메시 진단·곡선/재료점/PDE·통합 문서 관리·조립 운동의 연결 흐름을 모두 검증하지 않았다. 아래 기능/데이터/보존 요구는 유지하고 최종 배치와 제품 계약은 미확정이다. Ouroboros의 질문 종료나 시각화 버튼 동작은 GUI 설계 완료를 뜻하지 않는다.
+**제품 구현과 수용 상태:** 일부 native 선택·메시·결과 명령은 실제 모델로 검증했지만 다중 선택·일괄 편집·메시 진단·곡선/재료점/PDE·통합 문서 관리·조립 운동의 연결 흐름은 미완성이다. 아래 기능/데이터/보존 요구는 계속 적용하며 전체 상세기획의 화면·명령·수용 장면을 구현에 연결한다. 기획 문서와 도면은 실제 GUI/MCP 연결이나 공학 수용 증거가 아니다.
 
 ## 0. 후속 사용자 지시와 이번 시안의 구현 경계
 
@@ -46,7 +51,7 @@
 
 현재 저장소의 `openscience/mcp_server.py`에는 native FCStd import/inspect/final 선택, 연구 변수 등록, CAD 실험·해석 실행, 결과 inspect/summary/compare, DOE·최적화가 있다. 기존 Core/registry/immutable experiment 계약을 재사용한다. 이것을 현재 열린 FreeCAD/ParaView 문서의 직접 제어 완료로 해석하지 않는다. 이번 native 시안에는 MCP transport나 live document bridge가 아직 없다.
 
-공유 명령은 명시적 문서 ID·예상 revision·대상 ID·단위·입력을 받고 결과 revision·진단·산출물 참조를 반환해야 한다. 앱 내부 native adapter가 해당 문서에 명령을 적용하고 GUI thread/transaction 규칙을 지킨다. 사용자가 native 편집 중이거나 revision이 달라지면 충돌을 반환하며 미저장 변경을 조용히 덮어쓰지 않는다. 긴 메시·해석은 기존 job 계약의 진행·취소·실패·재접속을 사용한다. 임의 Python 실행을 기본 연구 명령으로 노출하지 않는다.
+공유 명령은 명시적 문서·host·session ID, 예상 generation·revision, 대상 ID·단위·입력을 받고 실제 적용 상태·새 generation·진단·산출물 참조를 반환해야 한다. 앱 내부 native adapter가 해당 문서에 명령을 적용하고 GUI thread/transaction 규칙을 지킨다. 사용자가 native 편집 중이거나 generation이 달라지면 충돌을 반환하며 미저장 변경을 조용히 덮어쓰지 않는다. native motion/mesh/filter의 command 상태·취소와 영구 계산 job의 상태·취소를 구별하며 기존 JobManager를 다른 scheduler로 대체하지 않는다. 임의 Python 실행을 기본 연구 명령으로 노출하지 않는다.
 
 두 경로를 따로 검증한다. (1) 열린 문서에서 MCP 조회·수정→동일 객체/값의 GUI 반영→Undo 또는 새 revision 저장. (2) 고정 입력으로 무인 전처리→실행→후처리·비교→앱에서 같은 ID/revision과 수치를 다시 열기. 원본 절점과 보간 점, 원본값과 파생량, UNKNOWN 판정을 동일하게 보존한다. 큰 배열은 산출물 참조와 필요한 구간 조회로 전달한다. 전문가 에이전트는 가설·계획·해석을 맡고 수치 후보는 기존 결정적 DOE/최적화 엔진이 만든다.
 
@@ -96,9 +101,13 @@ failure penalty 정책은 유지하고 검색용 penalty를 유효한 관측 기
 
 기존 혼합 PrepDocument가 있으면 과거 문서/Run을 그대로 읽을 수 있게 유지하고 분리 문서의 원 객체 대응과 이전 근거를 남긴다. 미지원 payload나 부분 실패를 삭제·기본값 치환하지 않으며 과거 Run의 입력 참조를 새 구조로 다시 쓰지 않는다.
 
-## 3. 작업 대상과 선택 규칙 — 화면 배치 미확정
+## 3. 작업 대상과 선택 규칙
 
-이 절의 좌측/우측 등 위치 표현은 철회한 초안의 기록이다. 작업 대상과 필요한 정보의 관계만 검토 대상으로 유지하며, 위치 표현을 구현 제약으로 사용하지 않는다.
+기존 합성 시안의 보편적인 세 칸 배치와 오른쪽 Property/Tasks 배치는 철회한다.
+CAD/FE는 native FreeCAD의 Model/Property/Tasks와 큰 3D 작업 영역을 유지하고,
+Post는 왼쪽 Pipeline/Properties와 기본 단일 Render View를 쓴다. A/B 분할은 비교를
+시작할 때 연다. 각 도구의 상세 메뉴·선택·값 편집·Undo·저장·복구는 전체 UI 기획의
+작업별 배치를 따르며 아래 P/Q/V 명령·수용 식별자는 유지한다.
 
 ### 전처리
 
@@ -343,4 +352,8 @@ Ouroboros interview/seed 스킬을 적용한다. 실제 session/질문/답과 Se
 | D06 comparison/exports | existing observation/history comparison·units·원source/association계약 | Q09/a/b/Q10, exactdefault·명시mapping/interpolation·차이/변화율규약·거부조건, V14/V15/재개, 원결과불변·ID정밀도 |
 | D07 app contracts | Root-owned proposal review with Runner/optimization/Workbench owners | frozen Case/Result refs, no global redesign, version mismatch/stale/old-result preservation |
 
-본 구현으로 넘어가기 전에 미관찰 gate와 남은 사용자 판단을 명시한다. 기술 검증·화면 검증·사용자 수용을 따로 보고한다.
+위 D01–D07은 책임 추적용이다. 전체 상세기획의 T 작업표에 연결하여 native Pre/Post,
+Data/Material/PDE/Numerical, Runner/Expert를 필요한 공통 계약부터 병행한다.
+이미 답한 제품 목적·CAD 깊이·독립 사용·GUI 기술을 다시 사용자에게 결정하게 하지
+않는다. 실제 자료에 필요한 미정 물리 조건과 구현으로 확인할 기술 문제를 구별하며,
+기술 검증·화면 조작·사용자 수용은 실제 근거에 따라 각각 기록한다.
