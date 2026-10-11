@@ -1,4 +1,35 @@
-## 2026-10-12 — Exact retained location and Qt regression corrections verified
+## 2026-10-12 — Full S4 CI: nine jobs pass; original Code_Aster F05 remains open
+
+Exact source `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8` completed CI
+`38153395166` with **nine successful jobs and one failure**. Actual checkout is
+PR merge `2852fc3d4a78a93ff1e24a282b7f3ac3b82cb22a`, against main `a10f202`.
+Core passes 7,540 tests with 12 skips and two warnings, followed by all Node,
+MCP and HTTP stages. Windows passes 124 Python/19 Node checks and private-Python
+HTTP calculation/shutdown. Native, native-registration, structural, DOE,
+optimization, PDE and explicit jobs also pass. The overall run is FAILURE.
+
+Code_Aster's original regular-Fz/F05 finest mesh reproduces native `FACTOR_57`:
+MUMPS estimates `3.32295e-6`, exceeding unchanged `RESI_RELA=1e-6`. The original
+ZIP confirms level 0/1 native success and level 2 execution failure, before
+Domain assessment. Core correctly retains `FAILED_EXECUTION`, null convergence,
+empty metrics and `NOT_RELEASED`; no failed response is replaced or approved.
+The later J2, material-point, model-optimization and material-inverse steps did
+not run in this job. All original failures remain available.
+
+The headless native CAD/STEP/edit/recovery and affine-field CI evidence is
+separate from the paused local FreeCAD desktop workflow. The explicit benchmark
+still records PARTIAL/ideal-wall REJECTED; its reduced compliant case passes.
+Optimization's one generation passes workflow checks but remains unconverged.
+No GUI, global optimum or engineering release is inferred from these CI passes.
+
+[The exact-run record](benchmarks/records/20261012-stabilization-s4-ci-native-failure.json)
+pins job/log/artifact identities, retention, measured results and limitations.
+Pro has one bounded S5 correction request including the actual native failure
+and previous unsuccessful recovery approaches. No S5 patch is accepted yet.
+Root owns review/integration and the next exact-source acceptance. Features,
+local FreeCAD, the exhausted cloud trial and unrelated provider calls stay paused.
+
+## Earlier 2026-10-12 — Exact retained location and Qt regression corrections verified
 
 Pro S4 plus its single-test S4a correction is integrated in MAIN over published
 `52d36b5`. Only the comparison window and the two failed UI test files change.
@@ -19,8 +50,12 @@ race in the new test driver. After its bounded readiness correction, the affecte
 file passes all 18 tests in one cold process (7.87 seconds), including the former
 failure's actual compare/value/gap checks. Unchanged Data and adjacent 16 checks
 retain their earlier pass evidence. Qt workers/windows/threads and owned Python
-processes are closed. New source publication and exact-source full CI are the
-next gate; no full CI or engineering approval is claimed. Features remain paused.
+processes are closed. The verified correction is ready for full CI. Source `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8` is now published
+and confirmed on the remote branch and Draft PR7. Exact-source CI `38153395166`
+passes Core and Windows. Core passes 7,540 tests with 12 skips and two retained
+warnings, followed by 651 + 19 + 8 Node checks and actual MCP/HTTP integration.
+The eight downstream jobs now run; their complete result remains required.
+No full CI or engineering approval is claimed. Features remain paused.
 
 ## Earlier 2026-10-12 — Qt environment fixed; seven assertions remain
 

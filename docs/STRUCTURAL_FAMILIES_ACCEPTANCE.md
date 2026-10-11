@@ -1,6 +1,33 @@
 # Connected structural family acceptance
 
-## Current source-control checkpoint: cancellation is not numerical acceptance
+## 2026-10-12 — Exact CI reproduces original regular-Fz/F05 native failure
+
+Source `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8` runs as PR merge
+`2852fc3d4a78a93ff1e24a282b7f3ac3b82cb22a` in CI `38153395166`.
+Nine workflow jobs pass; `codeaster` fails at
+`E-ansys_vmd1_regular-Fz-aster` after the earlier declared elasticity, Fx/Fy
+and Fz/CalculiX cases. The original downloaded artifact confirms the same
+finest-mesh `FACTOR_57` found in prior records: estimated error
+`3.32295e-6 > RESI_RELA 1e-6`. Native Code_Aster 17.4.0/MUMPS 5.6.2 exits 1
+at `MECA_STATIQUE`; the `[24,4,4]` mesh contains 384 HEXA20/2,225 nodes.
+The two coarser levels exit 0.
+
+Failure occurs before finest-field admission and the Domain response/reference/
+mesh assessment. Core therefore correctly retains `FAILED_EXECUTION`, empty
+metrics, null convergence and `NOT_RELEASED`. The partial family acceptance
+stays `FAILED_OR_PARTIAL`; four later material/model CI stages are skipped.
+This is not a numerical pass or a new roof-case result. Exact identities,
+original ZIP/log hashes and retention are in
+[the run record](../benchmarks/records/20261012-stabilization-s4-ci-native-failure.json).
+
+Pro is investigating a bounded correction over the verified S4a source.
+Previous FORCE and equivalent CINE trials failed the same accuracy gate;
+ELIM_LAGR lacked a required runtime capability. GCPC/native-reaction and
+augmented-system diagnostics have separate recorded limitations. None is a
+qualified F05 repair. Original benchmark definitions, meshes, measured responses,
+accuracy and engineering limits remain unchanged; new native evidence is required.
+
+## Historical source-control checkpoint: cancellation is not numerical acceptance
 
 Code_Aster/structural-family CCX use common observed cancellation and owned-group
 cleanup. Failed cleanup retains ownership/CLEANUP_PENDING and blocks subsequent

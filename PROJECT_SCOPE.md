@@ -1,4 +1,20 @@
-## 2026-10-11 — CI and unresolved-defect repair authorized
+## 2026-10-12 — CI repair reaches nine passing jobs; native F05 still fails
+
+Corrected source `3fd8bc4` completes exact CI `38153395166`: nine jobs pass and
+`codeaster` fails. Core passes 7,540 tests with 12 skips; Windows, native CAD,
+registration recovery, structural, DOE, optimization, PDE and explicit job gates
+pass. The original regular-Fz/F05 finest-mesh MUMPS failure is confirmed from
+the downloaded native artifact: `3.32295e-6 > 1e-6`, with execution failure
+before Domain assessment. Four later material/model stages remain unrun.
+
+The remaining bounded correction is with Pro. Preserve every original model,
+measurement, numerical limit and failed result; features remain paused.
+[Exact-run evidence and retention](benchmarks/records/20261012-stabilization-s4-ci-native-failure.json)
+separate CI workflow passes from explicit ideal-wall rejection, unconverged
+optimization and engineering `UNKNOWN/NOT_RELEASED`. The complete requirement
+ledger remains in scope; this checkpoint does not mark the whole product done.
+
+## Earlier 2026-10-11 — CI and unresolved-defect repair authorized
 
 The owner resumed correction of CI and recorded defects. Existing requirements
 remain, while new feature development remains paused. The stabilization repairs
@@ -22,8 +38,10 @@ now corrects exact-location refresh and real UI readiness/selection checks in
 three files. Independent Windows review passes 34 checks and exposes one initial
 modal-load race in the new test driver. After its one-file correction, all 18
 affected comparison tests pass in a cold Windows process; the unchanged Data and
-adjacent checks retain their earlier passes. New corrected source publication
-and exact-source CI remain required.
+adjacent checks retain their earlier passes. Corrected source `3fd8bc4` is now
+published and remote/PR-confirmed. Exact-source CI `38153395166` passes Core
+(7,540 tests, 12 skips) and Windows; its eight downstream jobs now run. Their
+complete result remains required.
 These software checks do not close native FreeCAD or physical release gates.
 
 ## Earlier 2026-10-11 — Paused for a current-state review

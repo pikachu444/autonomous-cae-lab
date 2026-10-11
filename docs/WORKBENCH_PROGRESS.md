@@ -1,6 +1,48 @@
 # Current workbench implementation
 
-## 2026-10-12 Exact-location refresh and Qt regression corrections verified
+## 2026-10-12 Full S4 CI completed; original F05 native failure isolated
+
+Exact source `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8`, PR merge
+`2852fc3d4a78a93ff1e24a282b7f3ac3b82cb22a`, completes
+[CI 38153395166](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38153395166)
+with **nine passing jobs and one failure**. Core passes 7,540 tests, 12 skips and
+two retained warnings in 1114.90 seconds; 651/19/8 Node checks and actual MCP/
+HTTP stages pass. Windows passes 124 Python/19 Node tests and private-Python
+HTTP calculation/owned shutdown. The exact skip reasons were not emitted by
+the Core `-q` log and are not inferred.
+
+Native CAD/STEP and named Sketcher edits pass 24 checks; registration/publication/
+process recovery passes eight cases. The native affine field has maximum
+normalized component error `3.4422187502995433e-7 < 1e-5`. Structural finer-mesh
+response change is `0.008817093498804473 < 0.05`; signed reaction checks pass.
+DOE executes three native children and refuses invalid CAD before solving.
+Optimization records nine evaluations/eight solver children and replays two
+evaluations without rerunning; its one-generation termination is unconverged.
+All eight PDE stages pass their bounded mathematical/HTTP gates. Explicit
+freeflight/sensitivity and reduced compliant contact pass, while the original
+ideal-wall model remains REJECTED and its acceptance remains PARTIAL.
+
+Only `codeaster` fails, at original regular-Fz/F05. Original GitHub artifact
+`11708616490` is actually downloaded and matches API SHA256
+`2eae12b899b980b25ad67de8ef80bdf41c26e35cf42c9a0d70662088e051daf2`.
+The finest `[24,4,4]` mesh reaches `MECA_STATIQUE` but native MUMPS emits
+`FACTOR_57`: estimated error `3.32295e-6` exceeds unchanged `RESI_RELA=1e-6`.
+Level 0/1 exit successfully. The finest level exits 1 before native fields are
+admitted or Domain assessment runs; Core retains `FAILED_EXECUTION`, null
+convergence, empty metrics and `NOT_RELEASED`. Its earlier declared elasticity
+and Fx/Fy cross-solver cases pass. Four following J2/material-point/model-search/
+inverse stages are skipped and have no fresh acceptance from this run.
+
+[The full run record](../benchmarks/records/20261012-stabilization-s4-ci-native-failure.json)
+pins every job/log, artifact digest/expiry, raw failure and measured limitation.
+Pro has one S5 packet over S4a, with the previous failed FORCE/CINE/ELIM_LAGR
+trials and separate GCPC reaction-postprocessing evidence. It must preserve the
+original equations, meshes, measurements and limits. No S5 patch or F05 fix is
+accepted yet. Root continues independent review and integration; no unchanged
+local campaign, local FreeCAD desktop, general feature or provider work resumes.
+Headless CI evidence and software success do not qualify physical release.
+
+## Earlier 2026-10-12 Exact-location refresh and Qt regression corrections verified
 
 Pro S4 changes one product file, `apps/research/curve_comparison_window.py`, and
 the two failed UI test files. S4a subsequently corrects only the new modal test
@@ -43,7 +85,15 @@ installing the missing existing SciPy dependency, and three actual Qt checks wit
 initial driver-before-load ordering forced for S4a. Those Pro checks and their
 limitations are recorded separately from independent Windows evidence. Native
 catalogs are controlled fixtures; real CSV/HTTP/reader/Save checks do not qualify
-physics. New publication and exact-source full CI remain required. General feature
+physics. Source `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8` is committed, pushed
+and confirmed on the remote branch and Draft PR7.
+[Exact-source CI 38153395166](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38153395166)
+passes Core and Windows. Core has 7,540 passing tests, 12 skips and two retained
+warnings in 1114.90 seconds, plus 651/19/8 Node checks and real MCP/HTTP integration.
+Core runs Python 3.12.15 and PySide6/Qt 6.9.1; Windows passes 124 tests/19 Node checks
+and private-Python HTTP calculation/owned shutdown. Actual CI checkout is PR merge
+`2852fc3d4a78a93ff1e24a282b7f3ac3b82cb22a` against main `a10f202`. All eight
+downstream jobs now run; their complete result remains required. General feature
 work, stopped r6, local FreeCAD/cloud trial/provider calls and engineering release
 remain outside this correction.
 

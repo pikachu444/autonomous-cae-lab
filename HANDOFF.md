@@ -1,4 +1,36 @@
-## 2026-10-12 — S4/S4a verified; publish and finish new exact-source CI
+## 2026-10-12 — S4 full CI completed; bounded F05 correction is with Pro
+
+Source `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8` is published in Draft PR7.
+Exact CI `38153395166` finished FAILURE: nine jobs pass and only `codeaster`
+fails. The checkout was PR merge `2852fc3d4a78a93ff1e24a282b7f3ac3b82cb22a`
+against `a10f2023a2084512839b5e0af8ab0adc0aeb9293`; a documentation checkpoint
+after `3fd8bc4` does not constitute another solver verification. The watcher is
+finished. Full logs, actual downloaded artifact receipts and final job metadata
+are under `runs/pr7-ci-38153395166/`; the
+[run record](benchmarks/records/20261012-stabilization-s4-ci-native-failure.json)
+lists exact hashes, local availability and GitHub expiry times.
+
+The remaining failure is original regular-Fz/F05, not a passed benchmark:
+`E-ansys_vmd1_regular-Fz-aster`, level 2 `[24,4,4]`, native `FACTOR_57`,
+MUMPS `3.32295e-6 > 1e-6`. Level 0/1 pass; level 2 exits 1 before field admission
+and Domain assessment. Preserve `FAILED_EXECUTION`, empty metrics, null
+convergence and `NOT_RELEASED`. Four following material/model acceptance stages
+were skipped. The original artifact is safely extracted in `codeaster-evidence/`.
+
+Pro has a complete bounded S5 request over its S4a tree
+`e0f35bbb64554b3842806e5f7f4d5fbd36bcfc26`. It includes exact native inputs,
+runtime, raw log/hash identities and the earlier FORCE/CINE/ELIM_LAGR/GCPC
+limitations. Do not repeat the failed options without new evidence or weaken
+the accuracy, reaction, reference or mesh gates. Pro remains the sole source/
+test/CI writer; Root reviews, integrates and verifies. No S5 patch is accepted.
+Next review the proposed correction, perform necessary bounded native checks
+with fresh stores, and obtain new exact-source CI including the skipped stages.
+
+The nine passing jobs already have their own bounded evidence. Avoid unchanged
+local reruns. Native CI does not reopen the local FreeCAD desktop task. General
+features, exhausted cloud trial and unrelated providers remain paused.
+
+## Earlier 2026-10-12 — S4/S4a published; finish exact-source CI
 
 The Pro S4 three-file correction and S4a single-test delta are each applied once
 to MAIN over `52d36b5`. Final supplied tree is
@@ -22,8 +54,12 @@ are unchanged and were not repeated. Owned Qt/workers/threads/processes are clos
 Pro and the independent reviewer are stopped. No further local/native campaign
 is needed before publication.
 
-Next: commit this verified unit and records, push, verify the exact remote/PR head,
-and inspect every job of the new source CI. Historical failure `38149573568`
+Source `3fd8bc4c8db36c501501a97b6bdbd59f5d9108e8` is committed, pushed and
+confirmed on both the remote branch and Draft PR7. Exact-source CI `38153395166`
+passes Core and Windows. Core records 7,540 passed, 12 skipped and two warnings;
+all Node/MCP/HTTP stages pass. The eight downstream jobs now run. Next finish
+checking every job, retain logs/artifact metadata and record the final conclusion
+in a follow-up checkpoint. Historical failure `38149573568`
 remains tied to source `52d36b5`; a later documentation commit is not a solver run.
 General features, local FreeCAD, the exhausted cloud trial and new provider calls
 remain paused. Preserve UNKNOWN/NOT_RELEASED and original numerical limits.
