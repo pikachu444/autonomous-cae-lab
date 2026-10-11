@@ -10,7 +10,11 @@ failures, corrections and verification. S1 passes bounded Pre/Post/UI and
 retained SVK/J2/OpenRadioss checks. S2 passes genuine Maxwell rereading,
 deterministic mapped-file release, narrow Windows test portability and fresh
 default-deadline result reads. Their reviewed 51-file union is integrated into
-MAIN. Publication and exact-source CI remain pending.
+MAIN and published as `04104f5dad133239cd00b504080684a1b971c354` in Draft PR7.
+Exact-source CI `38148178940` failed at Linux test collection because the Qt EGL
+runtime is missing. Windows passed; eight downstream jobs were skipped. The
+2026-10-12 bounded CI dependency/preflight correction is reviewed and integrated,
+with every existing test retained; publication and fresh exact-source CI are next.
 These software checks do not close native FreeCAD or physical release gates.
 
 ## Earlier 2026-10-11 — Paused for a current-state review

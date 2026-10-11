@@ -1,6 +1,44 @@
 # Current workbench implementation
 
-## 2026-10-11 stabilization integrated; exact-source CI pending
+## 2026-10-12 Linux Qt CI correction integrated
+
+Pro returned a one-file correction over S2: final supplied tree
+`be12656db8eb98b306804f9d3a48e472d54fabd5`, ZIP SHA256
+`8860e30cda7da82d8600c7a34d1a9271b7784e7ab079366c3b47840017b40e66`.
+Root checked archive paths and all manifest hashes, the unchanged workflow base,
+YAML/shell/Python syntax, patch applicability and the final full-file hash, then
+applied it once to MAIN. The immutable S2 review checkout remains unchanged.
+
+Core installs seven Ubuntu runtime packages covering Qt's EGL/GL/XKB/font/DBus/
+GLib/X11 dependencies and checks actual offscreen Qt imports, a widget capture,
+fonts and timer-driven event-loop shutdown before the full pytest command.
+Every original Core step, environment and the other nine jobs are unchanged.
+No product/test source, numerical threshold or retained artifact was changed.
+Pro reports the exact preflight passed on Ubuntu 24.04.3/Python 3.12.14/PySide6
+6.9.1, where system libraries were already installed. This is not a fresh-runner
+installation test. [The correction record](../benchmarks/records/20261012-stabilization-linux-qt-ci.json)
+preserves hashes, checks and that limitation. Publish this source and check its
+complete GitHub CI next. Pro stopped after delivery; general features stay paused.
+
+## Earlier 2026-10-11 stabilization published; Linux environment failure
+
+Corrected source `04104f5dad133239cd00b504080684a1b971c354` is committed and
+confirmed on the remote development branch and Draft PR7. CI
+[38148178940](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38148178940)
+completed FAILURE for that exact source. The actual PR checkout is synthetic
+merge `4e8c5e3e4ece145bd1976f8e834e7f77cd51413b` against main
+`a10f2023a2084512839b5e0af8ab0adc0aeb9293`.
+
+Windows research-driver-source passed 124 tests, Node form checks and the real
+private-Python HTTP installation check. Linux core on Ubuntu 24.04 failed before
+test execution: all 25 collection errors are missing `libEGL.so.1` while loading
+PySide6 6.9.1. Eight downstream native jobs were skipped. Full logs and completed
+job metadata remain in `runs/pr7-ci-38148178940/`; their hashes and exact jobs are
+in the [CI failure record](../benchmarks/records/20261011-stabilization-s2-ci-failure.json).
+This failure is not a product
+assertion or new solver verification. Pro supplied the correction for Linux Qt runtime
+dependencies and an early offscreen Qt preflight. Desktop tests, research-ui,
+numerical limits and prior accepted source behavior remain required.
 
 The owner requested fixing CI and unresolved defects after the pause. Pro owns
 product/test/CI corrections; Root owns integration and independent verification.
@@ -16,7 +54,7 @@ supported contracts. Existing validation, artifact identity, numerical limits
 and engineering UNKNOWN/NOT_RELEASED remain. The published baseline is product
 source `1de8a69` plus documentation head `837df13`; its failed CI is unchanged.
 Fresh verification outputs never overwrite the failed evidence. S1 and S2 are
-now integrated into MAIN; the source has not yet been published or checked by CI.
+integrated into MAIN and published at the source commit above.
 
 ### S2 closes the reproduced local failures
 
@@ -61,9 +99,10 @@ before returning. Direct helper cataloging alone is not original-byte identity
 verification. This existing boundary is preserved explicitly in the record.
 
 The [S2 integration record](../benchmarks/records/20261011-stabilization-s2-integration.json)
-contains source/report hashes and local retention. The next gate is publishing
-the source and checking all jobs of that exact commit. Until then run
-`38138994614` remains the failed historical baseline. No new source CI pass,
+contains source/report hashes and local retention. The next gate is reviewing
+and publishing the bounded CI correction, then checking every job of its new
+exact-source run. Run `38138994614` remains the failed
+historical baseline. No new source CI pass,
 whole-product completion, native FreeCAD acceptance or engineering release is
 claimed. General feature work and stopped r6 remain paused.
 

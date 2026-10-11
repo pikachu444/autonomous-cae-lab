@@ -1,4 +1,26 @@
-## 2026-10-11 — Stabilization integrated; exact-source CI pending
+## 2026-10-12 — Linux CI environment correction integrated; publication next
+
+The bounded Pro correction is received, hash-checked and applied to MAIN. Only
+`.github/workflows/caelab-ci.yml` changes: seven Ubuntu Qt runtime packages and
+a 30-second offscreen import/widget/event-loop preflight. All original Core
+steps and the other nine jobs are unchanged. Root checked archive manifests,
+before/after source hashes, YAML, shell syntax and patch application. Pro's
+Ubuntu 24.04.3/Python 3.12.14/PySide6 6.9.1 preflight passes, but its host already
+had the system libraries; fresh GitHub installation and all jobs remain the gate.
+See [the correction record](benchmarks/records/20261012-stabilization-linux-qt-ci.json).
+Next commit/push this correction and inspect its exact-source CI. Pro is stopped;
+general features remain paused. The immutable S2 review tree stays unchanged.
+
+## Earlier 2026-10-11 — Stabilization published; Linux environment failure
+
+Corrected source `04104f5dad133239cd00b504080684a1b971c354` is committed and
+confirmed on the remote branch and Draft PR7. Exact-source CI
+[38148178940](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38148178940)
+completed FAILURE: Windows research-driver-source passed, but Linux core stopped
+with 25 collection errors because `libEGL.so.1` is missing. Its eight downstream
+jobs were skipped. Pro supplied a correction for Linux Qt runtime dependencies and an
+early offscreen Qt preflight, without dropping desktop tests. The documentation changes
+after that source commit are checkpoint updates, not new solver verification.
 
 The owner's scope is CI and existing defect correction. General feature work,
 new J2/DP/protocol development and upstream material integration remain paused.
@@ -19,10 +41,10 @@ skips. WSL separately passes the outside-symlink guard. A fresh Heat GET takes
 mutation/missing/path refusals and restoration pass. All original evidence is
 preserved. The direct retained-reader pin boundary is recorded explicitly.
 
-Next: commit/push the reviewed integration and inspect every job of the exact
-new source CI. Until then the remote baseline remains product `1de8a69`, docs
-head `837df13`, failed CI `38138994614`; it is not a new-source verdict. Draft
-PR7 remains open, not merged. Record the published source and CI identities in
+Next: review the bounded CI correction, publish it and inspect every job of its
+new exact-source run. Do not rerun unchanged failed source `04104f5`. Product `1de8a69`,
+docs head `837df13` and failed CI `38138994614` are retained historical evidence.
+Draft PR7 remains open, not merged. Record the final CI conclusion in
 the follow-up checkpoint rather than treating a documentation commit as new
 solver verification. Local FreeCAD, the exhausted cloud trial and new provider
 calls remain stopped. UNKNOWN/NOT_RELEASED and the stopped r6 archive remain.

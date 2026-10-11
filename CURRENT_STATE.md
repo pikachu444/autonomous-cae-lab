@@ -1,4 +1,23 @@
-## 2026-10-11 — Stabilization integrated; exact-source CI pending
+## 2026-10-12 — Linux Qt CI correction integrated
+
+Pro's one-file Linux Qt runtime/preflight correction is integrated in MAIN.
+Its full file matches SHA256
+`aa2007110269dca9181d7e167160b1e41a313fdd252bae252405026964737570`.
+Root verifies all archive hashes, YAML/shell syntax and preservation of every
+original Core step and the other nine jobs. Pro's Ubuntu offscreen preflight
+passed; its installed-library environment is not a fresh GitHub runner check.
+Publication and exact-source CI remain next. Product/test code is unchanged;
+Pro is stopped and new features remain paused. See
+[the correction record](benchmarks/records/20261012-stabilization-linux-qt-ci.json).
+
+## Earlier 2026-10-11 — Stabilization published; Linux environment failure
+
+Corrected source `04104f5dad133239cd00b504080684a1b971c354` is remotely durable
+on the development branch and Draft PR7. Exact-source CI `38148178940` completed
+FAILURE. Windows research-driver-source passed 124 tests, Node form checks and
+the private-Python HTTP bootstrap. Linux core stopped at collection with 25
+missing-`libEGL.so.1` errors; eight downstream jobs were skipped. Pro supplied
+the bounded Linux Qt dependency/preflight correction. No CI pass is claimed.
 
 Pro S1 plus S2 is integrated into MAIN after source/hash checks and bounded
 independent verification. The delivered final tree is
@@ -15,9 +34,10 @@ outside-symlink refusal. The [integration record](benchmarks/records/20261011-st
 pins reports and read-time provenance boundaries. Native/physical release is
 not implied; fixed limits and saved verdicts are preserved.
 
-Publication and every job of the exact new source CI are the next gate. Until
-that source is pushed, remote product `1de8a69` plus docs `837df13` and failed
-run `38138994614` remain the baseline. General feature work remains paused;
+Reviewing and publishing that CI correction, then checking every job of its
+new exact-source run, is the next gate. Earlier product
+`1de8a69`, docs `837df13` and failed run `38138994614` remain historical evidence.
+General feature work remains paused;
 Draft PR7 is not merged. See [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md).
 
 ## Earlier 2026-10-11 — Paused for product and reuse assessment
