@@ -13,7 +13,7 @@ Actions lookup returned no run; its actual bounded evidence is in
 
 `unfinished-source.patch` contains all 13 in-progress source/test files relative
 to that base, including new files. SHA256:
-`0fe31cbb98e8056053544a88586819a983960dfefbc58edafae548a2874269ea`.
+`bc1dc05070ae1832cb8917ab04040815ca605ab49a72e8169891bf0b6852c084`.
 It can be applied to the published tree; the source itself remains unfinished.
 No credentials, user attachments, local runs or company CAD are included.
 
@@ -68,3 +68,5 @@ The user's local FreeCAD execution stop remains in force. Available source or
 portable checks can be performed; unavailable native/visible/physical execution
 must be reported accurately. Do not restart the earlier exhausted cloud test
 cycle or repeat broad regressions merely to accumulate pass counts.
+
+Known unfinished Data UI issues at the stop: failed/stale result callbacks can retain pending markers; running-import callbacks can poll repeatedly without a delay; failed source preview can suppress retry; row labels assume no skipped comments/blank lines. Pro should fix these in the source, not report them as accepted behavior.
