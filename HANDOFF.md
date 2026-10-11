@@ -3520,3 +3520,13 @@ new numerical benchmark; the code proof remains the checkpoint above.
 After each meaningful unit, commit/push authorized changes and refresh this
 handoff/state/evidence. Repository instructions plus this explicit startup
 prompt make recovery checkable; they do not create an absolute memory guarantee.
+## 2026-10-11 — Current code published for product-direction review
+
+Source `97f1a45136d9ac456a9d74344b52ea2edd439d6e` adds the shared Material
+editor and typed native Post bridge. The user authorized pushing the current
+branch and explicitly requested actual Pro review of development direction,
+not approval based on regression counts. See [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md)
+for implemented user actions, real runs and missing connections. Do not repeat
+the prior test suite/cold-reopen scene or finish at another review checkpoint.
+Continue the intended connected product work after applying the review. Local
+FreeCAD operation remains stopped; no service from this verification is running.

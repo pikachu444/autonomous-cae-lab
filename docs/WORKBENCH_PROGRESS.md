@@ -551,3 +551,52 @@ adds `api.github.com` and `api.crossref.org`, plus updated tested install/start
 instructions. Draft persistence is confirmed; application/publication and
 fresh-task restoration are not. Review/save and publication are user actions in
 environment settings. No branch protection is bypassed or force push used.
+## 2026-10-11 — Material editing implemented; connected product workflow still open
+
+Product source [`97f1a45`](https://github.com/pikachu444/autonomous-cae-lab/commit/97f1a45136d9ac456a9d74344b52ea2edd439d6e)
+is published on `codex/ui-interaction-design-20261010`. The user explicitly
+authorized publication so Pro can inspect the actual implementation and whether
+development serves the intended work. This is not a main-branch merge.
+
+The independent Qt Material window now edits coefficients and all prescribed
+deformation-gradient components, evaluates with the existing FELUPE adapter,
+compares retained original curves, and shares Undo/Redo/save with HTTP/CLI/MCP.
+The service owns the draft and freezes each calculation input. Invalid drafts
+remain editable/saveable; available curves and terminal failure records are
+retained before a saved revision is published. See [ADR0061](../ADR/0061-shared-material-owner-and-native-commands.md)
+and [the editor entry point](../apps/research/README.md).
+
+Actual Qt table edits, FELUPE calculations and stdio MCP Undo ran at this exact
+source in `runs/product-documents-final-20261011-942f`. E=1000 and 1500 MPa with
+nu=0.25 produced stress_xx [0,1.2,2.4] and [0,1.8,3.6] MPa for the declared
+constrained-lateral prescribed-strain history (absolute error below 1e-12).
+This is an elastic connection check, not calibration or free-tension qualification.
+The [actual window](design/20261011-implemented-material/material-two-actual-curves.png)
+was rendered offscreen against the real service; human Windows interaction is
+unverified. A separate-process cold reopen ran on the earlier working source in
+`runs/product-documents-20261011-5b42`; an identical-source repeat was not completed.
+Both services were cooperatively stopped. No automatic recomputation was observed
+in the earlier reopen.
+
+The ParaView bridge now brokers actual native inspect, array/time selection and
+save commands, with owner identity, stale-edit protection and durable outcomes.
+Real headless commands and separate-process reopening ran in
+`runs/product-documents-post-20261011-6e51`; invalid array selection preserved the
+prior time, and reopened point values [1.25,2.25,3.25,4.25] matched the independent
+tetrahedral field formula. The earlier harness wrongly expected a cube maximum;
+that failed attempt remains in the original run. Visible QVTK GUI dispatch,
+filter mutation/Undo and general Post analysis remain unverified/unimplemented.
+
+The user cannot yet finish Data→Material→Plan→fit/DOE→candidate adoption→saved
+research through these desktop windows. Pre→Runner→Post is also still disconnected;
+the local FreeCAD stop remains binding. Independent PDE and discussion-style Expert
+UI remain open. Existing numerical/Runner/assistance APIs are to be connected,
+not replaced. New launcher source/parser checks do not establish first-install
+acceptance. Exact-source CI lookup returned no runs after publication.
+
+User steering: stop treating regression counts, documentation volume and repeated
+source-pinned scenes as product progress. Completed relevant regression checks and
+real defect corrections are retained in the run folders; no additional broad suite
+or duplicate native run is a prerequisite for the next useful connection. Pro is
+being asked to inspect this published source and judge priorities against actual
+user workflows. A review or bounded unit is not completion of the development task.

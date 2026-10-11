@@ -328,3 +328,11 @@ V01–V15는 새 GUI/manifest로 아직 통과를 주장하지 않는다. FreeCA
 HyperMesh Model Browser/Entity Editor 및 ANSYS Mechanical의 공식 인터페이스 자료를 읽고 개체 조작·표시·속성 편집·선택·맥락 명령 측면의 결손을 초안에 기록했다. 상용 앱의 실제 실행 또는 새로운 CAD/mesh/result GUI 검증을 수행한 것은 아니다. 새 Seed 생성, 기획 수용, 전체 V01–V15 통과도 여전히 없다. 다음 설계는 실제 엔지니어링 작업과 native 도구 재사용 근거로 보완해야 하며, 방금 시안에 외형만 추가해 완료 처리하지 않는다.
 
 impeccable의 bounded 검토를 적용했고 detect는 task 구분선의 좌측 padding warning 2건을 반환했다. 실제 캡처에서 해당 영역은 위쪽 구분선과 충분한 상단 간격을 가지므로 화면 결함으로 승격하지 않았다. 전체 app·native host 통합 성공이나 접근성 전체 합격은 주장하지 않는다.
+## 2026-10-11 — Typed Post bridge and independent Material editing
+
+Source `97f1a45136d9ac456a9d74344b52ea2edd439d6e` adds actual Material GUI/MCP
+editing/evaluation/save and native Post command transport. The current bounded
+acceptance and its run paths are recorded once in [WORKBENCH_PROGRESS](WORKBENCH_PROGRESS.md).
+Headless Post commands/reopen do not verify visible GUI dispatch. The complete
+Pre→Runner→Post and independent Data/Plan research workflows remain open. Prior
+failed attempts and physical UNKNOWN/NOT_RELEASED are preserved.

@@ -3379,3 +3379,13 @@ The full original scope is retained in `PROJECT_SCOPE.md` (all 52 section IDs), 
 1. The CadQuery vertical slice is executed here: discover actual source variables, register selected variables and bounds, regenerate 32→38 mm, reject invalid inputs before export, record hashes/evidence/validation, return a research summary.
 2. The sample Part/Sketcher Core bridge passed locally and in CI. Verify imported, arbitrary FCStd models and edit/reorder Sketcher constraints in a GUI, then refresh registry without ambiguous discovery.
 3. Finer 1.5 mm, actual numerical optimization and canonical weak-form PDE now passed locally and in exact-source CI; see the continuation record above. Continue Code_Aster reference benchmarks, GUI-edited native refresh/transactions, live OpenScience acceptance and durable evidence retention, then contact/bolt/material and broader phases. Keep every unverified release requirement `UNKNOWN`.
+## 2026-10-11 — Shared Material editor/native commands; product connections open
+
+Published source `97f1a45136d9ac456a9d74344b52ea2edd439d6e` implements the
+Material coefficient/history editor, real evaluation, shared GUI/MCP editing
+and retained save, plus typed native Post inspect/select/save. Exact observations
+and limitations are in [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md).
+Data/Plan/Runner research and native Pre→Runner→Post are not completed by this
+unit. User-requested Pro review must judge this actual source against intended
+workflows and correct unproductive validation/review repetition. The current
+branch is pushed with user authorization; main is unchanged.

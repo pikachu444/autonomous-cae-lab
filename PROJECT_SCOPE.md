@@ -2643,3 +2643,11 @@ numerical engine and replay, with 224 frozen-source regressions, actual MCP
 metadata checks and a clean-source native nine-candidate/eighteen-mesh campaign
 at `9330055`. Four adaptive trials did not improve the best initial-population
 member. This does not establish convergence or complete Phase3.
+## 2026-10-11 — Implemented editing is a step toward connected research
+
+The shared Material editor and typed Post commands are implemented at
+`97f1a45136d9ac456a9d74344b52ea2edd439d6e`; [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md)
+states exactly what a user can do and where the research/design flow still breaks.
+The latest user instruction requires judging development by those intended
+workflows, not regression counts or repeated verification. Original requirements
+and numerical meaning remain; this bounded unit does not close the product scope.
