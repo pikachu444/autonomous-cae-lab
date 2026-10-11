@@ -1,0 +1,831 @@
+"""Native Expert discussion view over the shared document owner and JobManager.
+
+Run with python -m apps.research.expert_window --service http://127.0.0.1:PORT.
+Opening and editing a discussion do not require a provider. Only an explicit
+bounded round or Continue requests additional registered-role responses.
+"""
+from __future__ import annotations
+import argparse
+from copy import deepcopy
+import json
+import os
+import sys
+import uuid
+
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal
+from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
+    QFormLayout, QHBoxLayout, QInputDialog, QLabel, QListWidget, QListWidgetItem, QMainWindow,
+    QMessageBox, QPlainTextEdit, QPushButton, QSpinBox, QSplitter, QTabWidget,
+    QToolBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
+
+from caelab.discussion_document import diagnostics as discussion_diagnostics
+from caelab.storage import canonical_hash
+from caelab.workbench_client import Client
+
+
+class _Signals(QObject):
+    finished = Signal(object, object)
+
+
+class _Call(QRunnable):
+    def __init__(self, function):
+        super().__init__()
+        self.function, self.signals = function, _Signals()
+
+    def run(self):
+        try:
+            result = self.function()
+        except Exception as error:
+            if hasattr(error, 'read'):
+                try:
+                    error = error.read().decode('utf-8')
+                except (OSError, UnicodeError):
+                    pass
+            self.signals.finished.emit(None, str(error))
+        else:
+            self.signals.finished.emit(result, None)
+
+
+class ExpertWindow(QMainWindow):
+    """A service view and local question buffer, never a provider/controller."""
+    def __init__(self, client, *, document_id=None, title='Expert discussion', poll_interval=1500,
+                 auto_open=True, open_reference=None, open_plan=None):
+        super().__init__()
+        self.client, self.open_reference, self.open_plan = client, open_reference, open_plan
+        self.document = None
+        self.local_dirty = self.conflict = self._busy = self._populating = self._allow_close = False
+        self._round_started_here = False
+        self._auto_round_id = None
+        self._foreground_busy = False
+        self._registry, self._workers, self._references, self._plans = [], [], [], []
+        self._buffer = None
+        self._draft_problem = None
+        self._control_initial = {}
+        self._build_ui()
+        self.timer = QTimer(self)
+        self.timer.setInterval(poll_interval)
+        self.timer.timeout.connect(self.refresh_document)
+        if poll_interval > 0:
+            self.timer.start()
+        if auto_open:
+            self.open_document(document_id=document_id, title=title)
+
+    def _build_ui(self):
+        self.setWindowTitle('Expert discussion')
+        self.resize(1440, 900)
+        self.setMinimumSize(850, 650)
+        files = self.menuBar().addMenu('&File')
+        self.new_action = QAction('New discussion…', self, shortcut=QKeySequence.New)
+        self.open_action = QAction('Open discussion…', self, shortcut=QKeySequence.Open)
+        self.save_action = QAction('Save discussion', self, shortcut=QKeySequence.Save)
+        files.addActions([self.new_action, self.open_action, self.save_action])
+        self.new_action.triggered.connect(self.new_document)
+        self.open_action.triggered.connect(self.choose_document)
+        self.save_action.triggered.connect(self.save_document)
+        edit = self.menuBar().addMenu('&Edit')
+        self.undo_action = QAction('Undo question/topic edit', self, shortcut=QKeySequence.Undo)
+        self.redo_action = QAction('Redo question/topic edit', self, shortcut=QKeySequence.Redo)
+        edit.addActions([self.undo_action, self.redo_action])
+        self.undo_action.triggered.connect(lambda: self.command('document.undo'))
+        self.redo_action.triggered.connect(lambda: self.command('document.redo'))
+        bar = QToolBar('Discussion', self)
+        bar.setMovable(False)
+        self.addToolBar(bar)
+        bar.addActions([self.new_action, self.open_action, self.save_action, self.undo_action, self.redo_action])
+        self.pause_button = QPushButton('Pause discussion')
+        self.resume_button = QPushButton('Continue round')
+        self.pause_button.clicked.connect(self.pause_discussion)
+        self.resume_button.clicked.connect(self.resume_discussion)
+        bar.addWidget(self.pause_button)
+        bar.addWidget(self.resume_button)
+        self.identity = QLabel()
+        bar.addWidget(self.identity)
+        root = QWidget()
+        outer = QVBoxLayout(root)
+        self.message = QLabel('Open a discussion, edit the question, and select registered roles.')
+        self.message.setWordWrap(True)
+        outer.addWidget(self.message)
+        conflict = QHBoxLayout()
+        self.reload_button, self.copy_button = QPushButton('Reload service version'), QPushButton('Keep edits as new discussion')
+        self.reload_button.clicked.connect(self.reload_remote)
+        self.copy_button.clicked.connect(self.copy_edits)
+        conflict.addWidget(self.reload_button)
+        conflict.addWidget(self.copy_button)
+        conflict.addStretch()
+        outer.addLayout(conflict)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        outer.addWidget(splitter, 1)
+        left = QWidget()
+        nav = QVBoxLayout(left)
+        nav.addWidget(QLabel('Topics · click to move to related turns'))
+        self.topics = QTreeWidget()
+        self.topics.setHeaderHidden(True)
+        self.topics.setObjectName('discussionTopics')
+        self.topics.itemClicked.connect(self._topic_clicked)
+        nav.addWidget(self.topics, 3)
+        topic_row = QHBoxLayout()
+        add_topic, rename_topic = QPushButton('Add topic…'), QPushButton('Rename…')
+        add_topic.clicked.connect(self.add_topic)
+        rename_topic.clicked.connect(self.rename_topic)
+        topic_row.addWidget(add_topic)
+        topic_row.addWidget(rename_topic)
+        nav.addLayout(topic_row)
+        nav.addWidget(QLabel('Participants · existing registered roles'))
+        self.registry_status = QLabel()
+        self.registry_status.setWordWrap(True)
+        self.registry_status.hide()
+        nav.addWidget(self.registry_status)
+        self.roles = QListWidget()
+        self.roles.setObjectName('discussionRoles')
+        self.roles.itemChanged.connect(self._edited)
+        nav.addWidget(self.roles, 2)
+        registry = QPushButton('Refresh registered roles')
+        registry.clicked.connect(self.refresh_registry)
+        nav.addWidget(registry)
+        splitter.addWidget(left)
+        center = QWidget()
+        conversation = QVBoxLayout(center)
+        conversation.addWidget(QLabel('Actual authored turns · click for reply linkage and evidence'))
+        self.turns = QListWidget()
+        self.turns.setWordWrap(True)
+        self.turns.setObjectName('discussionTurns')
+        self.turns.currentItemChanged.connect(self._turn_selected)
+        conversation.addWidget(self.turns, 1)
+        self.editor = QWidget()
+        composer = QVBoxLayout(self.editor)
+        selector = QHBoxLayout()
+        self.reply = QComboBox()
+        self.reply.setObjectName('discussionReplyTarget')
+        self.reply.currentIndexChanged.connect(self._edited)
+        self.classification = QComboBox()
+        for label in ('question', 'observation', 'assumption', 'challenge', 'unknown'):
+            self.classification.addItem(label, label)
+        self.classification.currentIndexChanged.connect(self._edited)
+        selector.addWidget(QLabel('Reply to'))
+        selector.addWidget(self.reply, 1)
+        selector.addWidget(self.classification)
+        composer.addLayout(selector)
+        self.question = QPlainTextEdit()
+        self.question.setObjectName('discussionQuestion')
+        self.question.setPlaceholderText('Question, counterargument or new observation. Apply preserves the draft; request a round invokes the selected roles.')
+        self.question.setMaximumHeight(155)
+        self.question.textChanged.connect(self._edited)
+        composer.addWidget(self.question)
+        self.evidence_label = QLabel('No attached result evidence')
+        self.evidence_label.setWordWrap(True)
+        composer.addWidget(self.evidence_label)
+        self.composer_evidence = QListWidget()
+        self.composer_evidence.setObjectName('discussionAttachments')
+        self.composer_evidence.setMaximumHeight(75)
+        composer.addWidget(self.composer_evidence)
+        remove_evidence = QPushButton('Remove selected attachment')
+        remove_evidence.clicked.connect(self.remove_evidence)
+        composer.addWidget(remove_evidence)
+        actions = QHBoxLayout()
+        self.attach_button = QPushButton('Attach result…')
+        self.attach_button.clicked.connect(self.attach_result)
+        self.apply_button = QPushButton('Apply edits')
+        self.apply_button.clicked.connect(self.apply_inputs)
+        self.intervene_button = QPushButton('Add intervention')
+        self.intervene_button.clicked.connect(self.intervene)
+        self.ask_button = QPushButton('Request round')
+        self.ask_button.clicked.connect(self.ask)
+        self.attach_button.setToolTip('Attach an exact retained document job and selected response channels.')
+        self.apply_button.setToolTip('Apply the edited question, topic, participants and request settings to the shared owner.')
+        self.intervene_button.setToolTip('Add this user-authored question, observation or counterargument without requesting a provider reply.')
+        self.ask_button.setToolTip('Request one bounded round using the selected actual registered roles.')
+        for button in (self.attach_button, self.apply_button, self.intervene_button, self.ask_button):
+            actions.addWidget(button)
+        composer.addLayout(actions)
+        conversation.addWidget(self.editor)
+        splitter.addWidget(center)
+        self.side = QTabWidget()
+        evidence_tab = QWidget()
+        evidence_layout = QVBoxLayout(evidence_tab)
+        self.sources = QListWidget()
+        self.sources.currentRowChanged.connect(self._update_actions)
+        evidence_layout.addWidget(self.sources)
+        self.reference_button = QPushButton('Open exact source / result')
+        self.reference_button.clicked.connect(self.open_selected_reference)
+        evidence_layout.addWidget(self.reference_button)
+        self.details = QPlainTextEdit()
+        self.details.setReadOnly(True)
+        evidence_layout.addWidget(self.details, 2)
+        self.side.addTab(evidence_tab, 'Evidence / status')
+        plan_tab = QWidget()
+        plan_layout = QVBoxLayout(plan_tab)
+        self.plans = QListWidget()
+        self.plans.currentRowChanged.connect(self._update_actions)
+        plan_layout.addWidget(self.plans)
+        self.plan_button = QPushButton('Open editable Numerical Plan')
+        self.plan_button.clicked.connect(self.open_selected_plan)
+        plan_layout.addWidget(self.plan_button)
+        proposal_explanation = QLabel('A proposal is an editable draft. This action does not execute calculations.')
+        proposal_explanation.setWordWrap(True)
+        plan_layout.addWidget(proposal_explanation)
+        self.side.addTab(plan_tab, 'Plan proposals')
+        settings = QWidget()
+        form = QFormLayout(settings)
+        self.allow_question = QCheckBox('Transmit question')
+        self.allow_question.setToolTip('Permit question transmission for this request within the existing workspace/provider authorization.')
+        self.allow_public = QCheckBox('Public literature searches')
+        self.allow_public.setToolTip('Permit public literature searches within the existing workspace search authorization.')
+        self.allow_results = QCheckBox('Transmit attached results')
+        self.allow_results.setToolTip('Permit transmission of explicitly attached result identities within the existing workspace/provider authorization.')
+        for field in (self.allow_question, self.allow_public, self.allow_results):
+            field.toggled.connect(self._edited)
+            form.addRow(field)
+        self.model_calls, self.tool_calls, self.seconds = QSpinBox(), QSpinBox(), QSpinBox()
+        for field, maximum in ((self.model_calls, 100), (self.tool_calls, 100), (self.seconds, 3600)):
+            field.setRange(1 if field != self.tool_calls else 0, maximum)
+            field.valueChanged.connect(self._edited)
+        form.addRow('Model calls per role', self.model_calls)
+        form.addRow('Tool calls per role', self.tool_calls)
+        form.addRow('Seconds per role', self.seconds)
+        runtime_explanation = QLabel('Runtime credentials and workspace permissions remain configured in the existing service.')
+        runtime_explanation.setWordWrap(True)
+        form.addRow(runtime_explanation)
+        self.side.addTab(settings, 'Request scope')
+        splitter.addWidget(self.side)
+        splitter.setSizes([260, 870, 310])
+        splitter.setStretchFactor(1, 1)
+        self.setCentralWidget(root)
+        self._update_actions()
+
+    def _call(self, function, success, *, background=False):
+        if self._busy:
+            return False
+        self._busy = True
+        self._foreground_busy = not background
+        self._update_actions()
+        worker = _Call(function)
+        self._workers.append(worker)
+        def finished(payload, error):
+            self._workers.remove(worker)
+            self._busy = False
+            self._foreground_busy = False
+            if error:
+                self.message.setText('Service request failed; question and evidence retained. ' + error)
+                if not background:
+                    self._round_started_here = False
+                    self._auto_round_id = None
+                    QTimer.singleShot(0, self.refresh_document)
+            else:
+                success(payload)
+            self._update_actions()
+        worker.signals.finished.connect(finished, Qt.ConnectionType.QueuedConnection)
+        QThreadPool.globalInstance().start(worker)
+        return True
+
+    def open_document(self, *, document_id=None, title='Expert discussion', draft=None):
+        return self._call(lambda: self.client.document_open(kind='expert', title=title, draft=draft,
+                         document_id=document_id), self._opened)
+
+    def _opened(self, document):
+        self.local_dirty = self.conflict = self._round_started_here = False
+        self._auto_round_id = None
+        self._show_document(document)
+        self.message.setText('Discussion opened. Saved turns and question drafts do not invoke a model. Continue explicitly to request further replies.')
+        QTimer.singleShot(0, self.refresh_registry)
+
+    def refresh_registry(self):
+        def received(payload):
+            self._registry = payload.get('experts', [])
+            self._populate_roles(self.edited_draft()['participants'] if self.document else [])
+            packages=payload.get('packages',{})
+            missing=[row for row in packages.get('missing_dependencies',[]) if row.get('extra')=='assist-core']
+            runtime=payload.get('runtime',{})
+            if missing:
+                self.message.setText('Expert 실행 패키지가 없습니다. scripts/start-windows.ps1 -InstallOnly -ResearchUI 로 준비할 수 있습니다. 초안과 저장한 대화는 계속 편집할 수 있습니다.')
+            elif runtime.get('status')=='NOT_CONFIGURED':
+                self.message.setText('Expert 모델은 NOT_CONFIGURED입니다. 초안·논점·저장한 대화는 사용할 수 있으며, Ask 실패는 계산이나 다음 발언을 시작하지 않습니다.')
+        return self._call(lambda: self.client.request('/api/workbench/assist',
+            {'operation': 'experts.list', 'arguments': {}}), received, background=True)
+
+    def _populate_roles(self, selected):
+        self._populating = True
+        self.roles.clear()
+        by_id = {entry['id']: entry for entry in self._registry}
+        for identifier in list(by_id) + [role for role in selected if role not in by_id]:
+            definition = by_id.get(identifier, {})
+            item = QListWidgetItem(definition.get('name', definition.get('title', identifier)) +
+                (' · unavailable in registry' if identifier not in by_id else ''))
+            item.setData(Qt.ItemDataRole.UserRole, identifier)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Checked if identifier in selected else Qt.CheckState.Unchecked)
+            self.roles.addItem(item)
+        self.registry_status.setText('No registered roles' if not by_id else '')
+        self.registry_status.setToolTip('Configure expert definitions in the existing workbench service. No role or provider response is inferred from an empty registry.')
+        self.registry_status.setVisible(not by_id)
+        self._populating = False
+
+    def _show_document(self, document, *, preserve_buffer=False):
+        self.document = deepcopy(document)
+        if not preserve_buffer:
+            self._buffer = deepcopy(document['draft'])
+            self._populating = True
+            draft = self._buffer
+            self._draft_problem = discussion_diagnostics(draft)
+            if self._draft_problem:
+                self.topics.clear()
+                self.roles.clear()
+                self.question.clear()
+                self._populating = False
+                self._populate_turns()
+                self.details.setPlainText(json.dumps({'diagnostics': self._draft_problem, 'preserved_draft': draft}, ensure_ascii=False, indent=2))
+                self._update_actions()
+                return
+            composer = draft.get('composer', {})
+            self.question.setPlainText(composer.get('text', ''))
+            self.classification.setCurrentIndex(self.classification.findData(composer.get('classification')))
+            scope = draft.get('context', {}).get('transmission_scope', {})
+            self.allow_question.setChecked(scope.get('allow_question', False))
+            self.allow_public.setChecked(scope.get('allow_public_search', False))
+            self.allow_results.setChecked(bool(scope.get('result_ids')))
+            budget = draft.get('budget', {})
+            self.model_calls.setValue(budget.get('model_calls', 4))
+            self.tool_calls.setValue(budget.get('tool_calls', 8))
+            self.seconds.setValue(int(budget.get('seconds', 120)))
+            self._control_initial = {
+                'allow_question': self.allow_question.isChecked(), 'allow_public_search': self.allow_public.isChecked(),
+                'allow_results': self.allow_results.isChecked(), 'model_calls': self.model_calls.value(),
+                'tool_calls': self.tool_calls.value(), 'seconds': self.seconds.value(),
+                'classification': self.classification.currentData()}
+            self._populating = False
+            self._populate_roles(draft.get('participants', []))
+            self._populate_topics()
+        self._populate_turns()
+        self._populate_reply()
+        self._update_evidence_label()
+        self._update_actions()
+
+    def _populate_topics(self):
+        self._populating = True
+        self.topics.clear()
+        topics = deepcopy(self._buffer.get('topics', []))
+        for turn in self.document.get('turns', []):
+            topic = turn.get('topic')
+            if topic and not any(item['id'] == topic['id'] for item in topics):
+                topics.append({**deepcopy(topic), 'title': topic['title'] + ' · retained topic'})
+        nodes = {topic['id']: QTreeWidgetItem([topic['title']]) for topic in topics}
+        for topic in topics:
+            node = nodes[topic['id']]
+            node.setData(0, Qt.ItemDataRole.UserRole, topic['id'])
+            parent = nodes.get(topic.get('parent_id'))
+            if parent:
+                parent.addChild(node)
+            else:
+                self.topics.addTopLevelItem(node)
+        self.topics.expandAll()
+        current = nodes.get(self._buffer.get('composer', {}).get('topic_id'))
+        if current:
+            self.topics.setCurrentItem(current)
+        self._populating = False
+
+    def _populate_turns(self):
+        selected = self.turns.currentItem()
+        identifier = selected.data(Qt.ItemDataRole.UserRole) if selected else None
+        self.turns.clear()
+        for turn in self.document.get('turns', self.document.get('discussion', {}).get('turns', [])):
+            text = turn.get('text')
+            response = turn.get('response', {})
+            if text is None:
+                text = response.get('reason', response.get('error', 'No authored answer was returned.'))
+            item = QListWidgetItem(f"{turn['author']} · {turn.get('classification', '')} · {turn['status']}\n"
+                f"Topic {turn.get('topic_id')} · reply {turn.get('reply_to') or 'none'}\n{text}")
+            item.setData(Qt.ItemDataRole.UserRole, turn['id'])
+            self.turns.addItem(item)
+            if turn['id'] == identifier:
+                self.turns.setCurrentItem(item)
+        if not self.turns.currentItem() and self.turns.count():
+            self.turns.setCurrentRow(self.turns.count() - 1)
+
+    def _populate_reply(self):
+        target = self.reply.currentData() if self.local_dirty else self._buffer.get('composer', {}).get('reply_to')
+        self._populating = True
+        self.reply.clear()
+        self.reply.addItem('New question / no reply target', None)
+        for turn in self.document.get('turns', []):
+            self.reply.addItem(f"{turn['author']} · {str(turn.get('text') or turn['status'])[:65]}", turn['id'])
+        index = self.reply.findData(target)
+        self.reply.setCurrentIndex(max(0, index))
+        self._populating = False
+
+    def _edited(self, *_):
+        if not self._populating and self.document:
+            self.local_dirty = True
+            self._update_actions()
+
+    def edited_draft(self):
+        if self._buffer is None:
+            return {}
+        draft = deepcopy(self._buffer)
+        # Malformed saved drafts are retained rather than overwritten by controls.
+        if self._draft_problem or not isinstance(draft.get('composer'), dict):
+            return draft
+        draft['composer'].update(text=self.question.toPlainText(), reply_to=self.reply.currentData())
+        if self.classification.currentData() != self._control_initial.get('classification'):
+            draft['composer']['classification'] = self.classification.currentData()
+        draft['participants'] = [self.roles.item(row).data(Qt.ItemDataRole.UserRole) for row in range(self.roles.count())
+                                if self.roles.item(row).checkState() == Qt.CheckState.Checked]
+        current = {'allow_question': self.allow_question.isChecked(),
+                   'allow_public_search': self.allow_public.isChecked()}
+        for key, value in current.items():
+            if value != self._control_initial.get(key):
+                draft['context'].setdefault('transmission_scope', {})[key] = value
+        result_ids = [item['job_id'] for item in draft['composer'].get('evidence', []) if 'job_id' in item]
+        if self.allow_results.isChecked() != self._control_initial.get('allow_results') or (
+                self.allow_results.isChecked() and draft['composer']['evidence'] != self.document['draft']['composer']['evidence']):
+            scope = draft['context'].setdefault('transmission_scope', {})
+            scope['result_ids'] = list(dict.fromkeys(scope.get('result_ids', []) + result_ids)) if self.allow_results.isChecked() else []
+        for key, field in (('model_calls', self.model_calls), ('tool_calls', self.tool_calls), ('seconds', self.seconds)):
+            if field.value() != self._control_initial.get(key):
+                draft['budget'][key] = field.value()
+        return draft
+
+    def command(self, operation, arguments=None, *, after=None):
+        if not self.document or self.conflict:
+            return False
+        document = deepcopy(self.document)
+        owner_key = (document['id'], document['session_id'])
+        submitted_buffer = self.edited_draft()
+        arguments = deepcopy(arguments or {})
+        command_id = 'C' + uuid.uuid4().hex
+        def received(payload):
+            if not self.document or (self.document['id'], self.document['session_id']) != owner_key:
+                return
+            late_edit = self.edited_draft() != submitted_buffer
+            self.local_dirty = late_edit
+            self._show_document(payload['document'], preserve_buffer=late_edit)
+            if operation == 'expert.ask':
+                active = next((row for row in self.document.get('discussion', {}).get('rounds', [])
+                               if row.get('command_id') == command_id), None)
+                self._auto_round_id = active['id'] if active else None
+                self._round_started_here = self._auto_round_id is not None
+            if late_edit:
+                self.message.setText('Earlier question inputs were applied; newer composer edits remain unapplied. Apply them before Save or Ask.')
+            if after and (not late_edit or operation == 'expert.ask'):
+                QTimer.singleShot(0, after)
+        return self._call(lambda: self.client.document_command(document['id'], operation, arguments,
+            session_id=document['session_id'], expected_generation=document['generation'],
+            command_id=command_id), received)
+
+    def apply_inputs(self, *, after=None):
+        return self.command('expert.update', {'draft': self.edited_draft()}, after=after)
+
+    def save_document(self, *, after=None):
+        if self.local_dirty:
+            return self.apply_inputs(after=lambda: self.save_document(after=after))
+        return self.command('document.save', after=after)
+
+    def ask(self):
+        def request():
+            self.command('expert.ask', after=self.refresh_document)
+        if self.local_dirty:
+            return self.apply_inputs(after=request)
+        request()
+
+    def intervene(self):
+        if self.local_dirty:
+            return self.apply_inputs(after=lambda: self.command('expert.intervene'))
+        return self.command('expert.intervene')
+
+    def pause_discussion(self):
+        self._round_started_here = False
+        self._auto_round_id = None
+        return self._progress_command('expert.pause')
+
+    def resume_discussion(self):
+        return self._progress_command('expert.resume', after=self.refresh_document)
+
+    def _progress_command(self, operation, *, after=None):
+        # Pausing must not discard an unapplied counterargument in the composer.
+        if not self.document:
+            return False
+        document = deepcopy(self.document)
+        owner_key = (document['id'], document['session_id'])
+        submitted_buffer = self.edited_draft()
+        def received(payload):
+            if not self.document or (self.document['id'], self.document['session_id']) != owner_key:
+                return
+            preserve = self.local_dirty or self.edited_draft() != submitted_buffer
+            self.local_dirty = preserve
+            self._show_document(payload['document'], preserve_buffer=preserve)
+            if operation == 'expert.resume':
+                active = next((row for row in self.document.get('discussion', {}).get('rounds', [])
+                               if row.get('status') in {'READY', 'RUNNING'}), None)
+                self._auto_round_id = active['id'] if active else None
+                self._round_started_here = self._auto_round_id is not None
+            if after:
+                QTimer.singleShot(0, after)
+        return self._call(lambda: self.client.document_command(document['id'], operation, {},
+            session_id=document['session_id'], expected_generation=document['generation'],
+            command_id='C' + uuid.uuid4().hex), received)
+
+    def refresh_document(self):
+        if not self.document or self._busy:
+            return
+        identifier, session = self.document['id'], self.document['session_id']
+        def received(remote):
+            if not self.document or (self.document['id'], self.document['session_id']) != (identifier, session):
+                return
+            changed_input = (remote['session_id'] != self.document['session_id'] or
+                             canonical_hash(remote['draft']) != canonical_hash(self.document['draft']))
+            if self.local_dirty and changed_input:
+                self.conflict = True
+                self.message.setText('Another client or owner session changed this draft. Local edits are retained; reload or keep them as a new discussion.')
+                return
+            self._show_document(remote, preserve_buffer=self.local_dirty)
+            active = next((row for row in remote.get('discussion', {}).get('rounds', []) if row.get('id') == self._auto_round_id), None)
+            dispatch_ready = active and (active['status'] == 'READY' or active.get('dispatch_pending'))
+            if self._round_started_here and dispatch_ready and not remote.get('discussion', {}).get('paused') and not self.conflict:
+                round_id = self._auto_round_id
+                def advance():
+                    if (self.document and (self.document['id'], self.document['session_id']) == (identifier, session)
+                            and self._auto_round_id == round_id and self._round_started_here and not self.conflict
+                            and not self.document.get('discussion', {}).get('paused')):
+                        self._progress_command('expert.advance')
+                QTimer.singleShot(0, advance)
+        return self._call(lambda: self.client.document_read(identifier), received, background=True)
+
+    def _topic_clicked(self, item, *_):
+        if self._populating or not self._buffer:
+            return
+        topic = item.data(0, Qt.ItemDataRole.UserRole)
+        if any(row['id'] == topic for row in self._buffer['topics']):
+            self._buffer['composer']['topic_id'] = topic
+            self._edited()
+        related = next((turn for turn in self.document.get('turns', []) if turn.get('topic_id') == topic), None)
+        if related:
+            for row in range(self.turns.count()):
+                if self.turns.item(row).data(Qt.ItemDataRole.UserRole) == related['id']:
+                    self.turns.setCurrentRow(row)
+                    self.turns.scrollToItem(self.turns.item(row))
+                    break
+
+    def _turn_selected(self, current, *_):
+        self.sources.clear()
+        self.plans.clear()
+        self._references, self._plans = [], []
+        if not current or not self.document:
+            return
+        turn = next(row for row in self.document.get('turns', []) if row['id'] == current.data(Qt.ItemDataRole.UserRole))
+        iterator = self.topics.findItems('', Qt.MatchFlag.MatchContains | Qt.MatchFlag.MatchRecursive)
+        for node in iterator:
+            if node.data(0, Qt.ItemDataRole.UserRole) == turn.get('topic_id'):
+                self.topics.setCurrentItem(node)
+        self.details.setPlainText(json.dumps(turn, ensure_ascii=False, indent=2))
+        self._references = deepcopy(turn.get('evidence', [])) + deepcopy(turn.get('response', {}).get('sources', []))
+        if turn.get('job_id'):
+            self._references.append({'document_id': self.document['id'], 'job_id': turn['job_id'],
+                                     'input_revision': turn.get('input_revision'),
+                                     'input_sha256': turn.get('input_sha256'), 'selection': []})
+        for reference in self._references:
+            self.sources.addItem(json.dumps(reference, ensure_ascii=False))
+        self._plans = turn.get('response', {}).get('proposed_actions', [])
+        for index, proposal in enumerate(self._plans):
+            plan = proposal.get('plan', {}) if isinstance(proposal, dict) else {}
+            self.plans.addItem(f"{index + 1}. {proposal.get('status', 'PROPOSED') if isinstance(proposal, dict) else 'PROPOSED'} · {plan.get('purpose', str(proposal))}")
+        self._update_actions()
+
+    def add_topic(self):
+        if not self._buffer:
+            return
+        title, accepted = QInputDialog.getText(self, 'Add topic', 'Topic title')
+        if accepted and title.strip():
+            parent = self.topics.currentItem()
+            identifier = 'Q' + uuid.uuid4().hex
+            parent_id = parent.data(0, Qt.ItemDataRole.UserRole) if parent else None
+            if not any(topic['id'] == parent_id for topic in self._buffer['topics']):
+                parent_id = None
+            self._buffer['topics'].append({'id': identifier, 'title': title.strip(), 'parent_id': parent_id})
+            self._buffer['composer']['topic_id'] = identifier
+            self._populate_topics()
+            self._edited()
+
+    def rename_topic(self):
+        current = self.topics.currentItem()
+        if not current:
+            return
+        topic = next((row for row in self._buffer['topics'] if row['id'] == current.data(0, Qt.ItemDataRole.UserRole)), None)
+        if topic is None:
+            self.message.setText('This topic belongs to a retained authored turn. Add a new current topic to continue it.')
+            return
+        title, accepted = QInputDialog.getText(self, 'Rename topic', 'Title', text=topic['title'])
+        if accepted and title.strip():
+            topic['title'] = title.strip()
+            self._populate_topics()
+            self._edited()
+
+    def _update_evidence_label(self):
+        refs = self._buffer.get('composer', {}).get('evidence', []) if self._buffer else []
+        self.evidence_label.setText(f'{len(refs)} attached references · select one to remove it' if refs else 'No attached result evidence')
+        self.composer_evidence.clear()
+        for ref in refs:
+            self.composer_evidence.addItem(f"{ref.get('document_id', ref.get('paper_id'))} / {ref.get('job_id', 'source')} / {ref.get('selection', [])}")
+
+    def remove_evidence(self):
+        row = self.composer_evidence.currentRow()
+        if self._buffer and row >= 0:
+            del self._buffer['composer']['evidence'][row]
+            self._update_evidence_label()
+            self._edited()
+
+    def attach_result(self):
+        def listed(payload):
+            candidates = [(doc, run) for doc in payload['documents'] if doc.get('kind') != 'expert' for run in doc.get('runs', [])]
+            if not candidates:
+                self.message.setText('No retained domain result jobs are available.')
+                return
+            labels = [f"{doc['title']} · {run['job_id']} · input {run.get('input_revision')}" for doc, run in candidates]
+            selected, accepted = QInputDialog.getItem(self, 'Attach exact result', 'Document / submitted job', labels, editable=False)
+            if not accepted:
+                return
+            doc, run = candidates[labels.index(selected)]
+            def read(result):
+                channels = list(result.get('responses', {}))
+                dialog = QDialog(self)
+                dialog.setWindowTitle('Select actual response channels')
+                layout = QVBoxLayout(dialog)
+                rows = QListWidget()
+                for channel in channels:
+                    item = QListWidgetItem(channel)
+                    item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                    item.setCheckState(Qt.CheckState.Unchecked)
+                    rows.addItem(item)
+                layout.addWidget(QLabel('Unchecked channels remain outside this attachment; no selection attaches the whole returned result metadata.'))
+                layout.addWidget(rows)
+                buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+                buttons.accepted.connect(dialog.accept)
+                buttons.rejected.connect(dialog.reject)
+                layout.addWidget(buttons)
+                if dialog.exec() == QDialog.DialogCode.Accepted:
+                    reference = {key: deepcopy(run[key]) for key in ('job_id', 'input_revision', 'input_sha256')}
+                    reference.update(document_id=doc['id'], selection=[rows.item(row).text() for row in range(rows.count())
+                        if rows.item(row).checkState() == Qt.CheckState.Checked])
+                    self._buffer['composer']['evidence'].append(reference)
+                    self._update_evidence_label()
+                    self._edited()
+            QTimer.singleShot(0, lambda: self._call(lambda: self.client.document_result(doc['id'], run['job_id'],
+                selection={'metadata_only': True}), read))
+        return self._call(self.client.documents, listed)
+
+    def open_selected_reference(self):
+        row = self.sources.currentRow()
+        if self.open_reference and 0 <= row < len(self._references):
+            self.open_reference(deepcopy(self._references[row]))
+
+    def open_selected_plan(self):
+        row = self.plans.currentRow()
+        if self.open_plan and 0 <= row < len(self._plans) and self.turns.currentItem():
+            self.open_plan(self.document['id'], self.turns.currentItem().data(Qt.ItemDataRole.UserRole), row)
+
+    def _update_actions(self, *_):
+        present = self.document is not None
+        enabled = present and not self._busy and not self.conflict
+        self.editor.setEnabled(present and not self._draft_problem and not self._foreground_busy)
+        self.roles.setEnabled(present and not self._draft_problem and not self._foreground_busy)
+        self.topics.setEnabled(present and not self._draft_problem and not self._foreground_busy)
+        for button in (self.ask_button, self.intervene_button, self.apply_button, self.attach_button):
+            button.setEnabled(enabled and not self._draft_problem)
+        self.apply_button.setEnabled(enabled and self.local_dirty and not self._draft_problem)
+        self.save_action.setEnabled(enabled)
+        self.undo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_undo', False))
+        self.redo_action.setEnabled(enabled and not self.local_dirty and self.document.get('can_redo', False))
+        self.pause_button.setEnabled(enabled)
+        self.resume_button.setEnabled(enabled)
+        self.reload_button.setVisible(self.conflict)
+        self.copy_button.setVisible(self.conflict)
+        self.reload_button.setEnabled(not self._busy)
+        self.copy_button.setEnabled(not self._busy)
+        self.reference_button.setEnabled(not self._busy and self.open_reference is not None and self.sources.currentRow() >= 0)
+        proposal = self._plans[self.plans.currentRow()] if 0 <= self.plans.currentRow() < len(self._plans) else None
+        self.plan_button.setEnabled(not self._busy and not self.conflict and self.open_plan is not None and isinstance(proposal, dict) and
+                                    proposal.get('status') == 'PLANNED' and proposal.get('executed') is False)
+        if present:
+            paused = self.document.get('discussion', {}).get('paused', False)
+            state = 'Paused; active calculations are independent' if paused else 'Discussion ready'
+            self.identity.setText(f"{state} · g{self.document['generation']}")
+            self.setWindowTitle(f"Expert — {self.document['title']}" + (' *' if self.local_dirty or self.document.get('dirty') else ''))
+
+    def reload_remote(self):
+        return self._call(lambda: self.client.document_read(self.document['id']), self._opened)
+
+    def copy_edits(self):
+        return self.open_document(title=self.document['title'] + ' (question copy)', draft=self.edited_draft())
+
+    def _leave(self, continuation):
+        if self._busy:
+            self.message.setText('Wait for the current service request before leaving.')
+            return
+        if not self.document or not (self.local_dirty or self.document.get('dirty')):
+            continuation()
+            return
+        question = QMessageBox(self)
+        question.setWindowTitle('Unsaved discussion')
+        question.setText('Save this discussion before leaving?')
+        save = question.addButton('Save', QMessageBox.ButtonRole.AcceptRole)
+        keep = question.addButton('Keep service draft', QMessageBox.ButtonRole.DestructiveRole)
+        question.addButton(QMessageBox.StandardButton.Cancel)
+        question.exec()
+        if question.clickedButton() == save:
+            self.save_document(after=continuation)
+        elif question.clickedButton() == keep:
+            if self.conflict:
+                self.message.setText('Resolve the conflict or keep edits as a new discussion first.')
+            elif self.local_dirty:
+                self.apply_inputs(after=continuation)
+            else:
+                continuation()
+
+    def new_document(self):
+        def create():
+            title, accepted = QInputDialog.getText(self, 'New discussion', 'Title', text='Expert discussion')
+            if accepted and title.strip():
+                self.open_document(title=title.strip())
+        self._leave(create)
+
+    def choose_document(self):
+        def choose():
+            def listed(payload):
+                documents = [doc for doc in payload['documents'] if doc.get('kind') == 'expert']
+                labels = [f"{doc['title']} · {doc['id']}" for doc in documents]
+                if not labels:
+                    self.message.setText('No saved or working discussions are available.')
+                    return
+                label, accepted = QInputDialog.getItem(self, 'Open discussion', 'Discussion', labels, editable=False)
+                if accepted:
+                    self.open_document(document_id=documents[labels.index(label)]['id'])
+            self._call(self.client.documents, listed)
+        self._leave(choose)
+
+    def closeEvent(self, event):
+        if self._allow_close:
+            self.timer.stop()
+            event.accept()
+            return
+        event.ignore()
+        def leave():
+            self._allow_close = True
+            self.close()
+        self._leave(leave)
+
+
+def connect_desktop_actions(window, client, *, evidence_opener=None, plan_opener=None):
+    """Bind direct-entry actions to shared desktop helpers on the Qt worker boundary."""
+    if evidence_opener is None or plan_opener is None:
+        from apps.research.desktop import open_evidence_reference, open_discussion_plan
+        evidence_opener = evidence_opener or open_evidence_reference
+        plan_opener = plan_opener or open_discussion_plan
+    window._plan_transfer_commands = {}
+
+    def received(payload):
+        if isinstance(payload, dict) and payload.get('status') == 'SOURCE_READ':
+            window.message.setText('Read the exact indexed source returned by the existing source service.')
+            window.details.setPlainText(json.dumps(payload.get('source'), ensure_ascii=False, indent=2))
+            window.side.setCurrentIndex(0)
+            return
+        if isinstance(payload, dict) and payload.get('status') == 'LAUNCH_REQUESTED':
+            window.message.setText('Requested the existing document/editor launch. Review its inputs before executing calculations.')
+        else:
+            status = payload.get('status', 'RETURNED') if isinstance(payload, dict) else 'RETURNED'
+            window.message.setText('Source / Numerical Plan action returned: ' + status)
+        window.details.appendPlainText(json.dumps(payload, ensure_ascii=False, indent=2))
+
+    def reference(reference):
+        frozen = deepcopy(reference)
+        return window._call(lambda: evidence_opener(client, frozen), received)
+
+    def plan(discussion_id, turn_id, proposal_index):
+        selection = (discussion_id, turn_id, proposal_index)
+        # The exact append-only turn/proposal identity survives response loss,
+        # repeated clicks and reopening this view. A retry creates one Plan.
+        command_id = window._plan_transfer_commands.setdefault(selection, 'C' + canonical_hash({
+            'operation': 'expert.plan-transfer', 'discussion_id': discussion_id,
+            'turn_id': turn_id, 'proposal_index': proposal_index}))
+        return window._call(lambda: plan_opener(client, discussion_id, turn_id, proposal_index,
+                                              command_id=command_id), received)
+
+    window.open_reference, window.open_plan = reference, plan
+    window._update_actions()
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--service', default=os.environ.get('CAELAB_SERVICE_URL'))
+    parser.add_argument('--document-id')
+    parser.add_argument('--title', default='Expert discussion')
+    args = parser.parse_args(argv)
+    if not args.service:
+        parser.error('--service or CAELAB_SERVICE_URL must identify an existing local service')
+    app = QApplication.instance() or QApplication(sys.argv[:1])
+    client = Client(args.service)
+    window = ExpertWindow(client, document_id=args.document_id, title=args.title)
+    connect_desktop_actions(window, client)
+    window.show()
+    return app.exec()
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

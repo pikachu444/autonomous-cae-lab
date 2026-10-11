@@ -1,4 +1,34 @@
-## 2026-10-11 — Connected Data/Numerical implementation received and integrated
+## 2026-10-11 — Native Pre and existing material research source integrated
+
+Pro r5 adds native CAD/Assembly/FEM editing and managed-save paths, existing
+MFront Material owners, declared native input bindings, retained native response
+selection and candidate/comparison retention to the locally integrated product.
+Actual ParaView analysis/history/partial Owner Save/repair and the HTTP
+Heat-to-Structure field-publication path have bounded evidence. Windows managed
+Pre Save, external-dependency dirty tracking, general Post partial Save, retained
+reader/picker compatibility, Plan method drafts and cold-result latency still
+need correction. See [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md).
+
+Case A's actual J2/explicit-Drucker-Prager protocol, comparison, calibration and
+holdout research flow continues with Pro writing and Root reviewing/integrating.
+Existing constitutive results do not establish missing DP or mixed-control
+support. Source remains uncommitted; original requirements, numerical limits,
+retained failures and `UNKNOWN/NOT_RELEASED` remain. Counts and procedures are
+not completion criteria for the continuing product.
+
+## Earlier 2026-10-11 — Independent and connected research implementation continues
+
+Locally integrated Pro r2/r3/r4 extends independent PDE/Expert/Data/Numerical
+editing, native Post analysis, saved Simulation/Evaluation/Study workflows and
+explicit candidate adoption. Actual Windows/Qt/ParaView and bounded thermal/
+structural comparisons are recorded in [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md).
+Known save/metadata/field-publication/UI defects remain open with Pro, alongside
+the live CAD/Assembly/mesh/condition/save implementation now in progress.
+This working tree is uncommitted; no new CI, whole-product or engineering verdict
+is claimed. The existing ledger remains history and substantive scope, not a
+feature-count target. No requirement or numerical threshold is removed.
+
+## Earlier 2026-10-11 — Connected Data/Numerical implementation received and integrated
 
 Source `584971df8ae64de08beaf1120febe4a9c994aa56` is published on the current
 development branch. Independent Data mapping/transform editing, retained-source

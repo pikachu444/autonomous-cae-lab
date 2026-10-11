@@ -1,4 +1,23 @@
-## Current implementation of independent owners — 2026-10-11
+## Connected research owners — 2026-10-11
+
+The locally integrated r2/r3/r4/r5 source implements independent PDE, Discussion,
+Simulation, EvaluationDefinition and Study editing through the existing document
+lifecycle. EvaluationDefinition composes saved domain inputs and declared field
+ports under the existing JobManager; deterministic numerical engines still own
+search. Study records questions/evidence/judgments separately from execution plans
+and does not replace historical experiment records. Native Post owns analysis
+recipes and retained results. [ADR0062](ADR/0062-connected-research-owners-and-fields.md)
+records the decision, alternatives, contract impact and remaining verification.
+
+R5 extends Material through existing MFront evaluators and explicitly advertised
+native input bindings; retained native responses feed the existing numerical
+engines and comparison owners. It adds no implicit constitutive state transfer.
+Native Pre keeps the same FreeCAD document, native Assembly/FEM APIs and pinned
+parameter worker. Managed `.caepre` revisions retain editable `.FCStd` dependency
+graphs and research/result references. Windows publication and dependency dirty
+tracking defects remain open; source support is not native FreeCAD acceptance.
+
+## Earlier implementation of independent owners — 2026-10-11
 
 Source `584971d` extends the existing Material document lifecycle to independent
 Data and Numerical owners. Native Pre exports through the existing FreeCAD FEM

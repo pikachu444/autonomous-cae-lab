@@ -340,6 +340,10 @@ def read_result(path, *, verify='selected', selection=None):
         # Node IDs/coordinates form the selector catalog, not response fields.
         # Clients need these descriptors to select a retained native location.
         result['native_channels'] = unpack(result['native_channels'])
+    if isinstance(selection, dict) and selection.get('include_settings'):
+        # Candidate receipts compare the actual bound input, not its packed
+        # array references. Keep unrelated native fields/diagnostics packed.
+        result['settings'] = unpack(result.get('settings', {}))
     if isinstance(selection,dict) and selection.get('metadata_only'):
         return result
     if isinstance(selection, dict):
@@ -369,6 +373,37 @@ def read_result(path, *, verify='selected', selection=None):
                 response['mask'] = np.asarray(array_value(response['mask']))[selected].tolist()
             if response.get('source_rows') is not None:
                 response['source_rows'] = np.asarray(array_value(response['source_rows']))[selected].tolist()
+            raw=response.get('raw_samples')
+            if isinstance(raw,dict) and 'source_rows' in raw:
+                raw_total=len(array_value(raw['source_rows']))
+                first,last=selection.get('rows',[0,raw_total])
+                raw_selected=np.arange(raw_total)[slice(first,last)]
+                if 'time_range' in selection and 'transformed_axis' in raw:
+                    # Raw invalid tokens remain visible in row pages. A time
+                    # query retains only explicitly finite raw coordinates.
+                    coordinates=[]
+                    for item in array_value(raw['transformed_axis']):
+                        try: coordinates.append(float(item))
+                        except (ValueError,TypeError): coordinates.append(float('nan'))
+                    coordinates=np.asarray(coordinates)
+                    lower,upper=selection['time_range']
+                    raw_selected=raw_selected[(coordinates[raw_selected]>=lower)&(coordinates[raw_selected]<=upper)]
+                for key,value in list(raw.items()):
+                    if isinstance(value,(list,dict)):
+                        expanded=array_value(value)
+                        if isinstance(expanded,(list,np.ndarray)) and len(expanded)==raw_total:
+                            raw[key]=np.asarray(expanded,dtype=object)[raw_selected].tolist()
+                raw['page_start']=first
+                raw['total_count']=raw_total
+            if response.get('segments') is not None and response.get('source_rows') is not None:
+                shown={row:index for index,row in enumerate(response['source_rows'])}
+                segments=[]
+                for segment in response['segments']:
+                    source_rows=[row for row in array_value(segment.get('source_rows',[])) if row in shown]
+                    if source_rows:
+                        segments.append({**segment,'source_rows':source_rows,
+                            'rows':[shown[source_rows[0]],shown[source_rows[-1]]+1]})
+                response['segments']=segments
     if isinstance(selection, dict):
         # A response selection must not hydrate unrelated, potentially huge
         # diagnostics or saved native fields into an interactive response.

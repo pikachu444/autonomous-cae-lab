@@ -4,6 +4,7 @@ param(
     [string]$FreeCADRoot,
     [string]$FreeCADExe,
     [string]$Source,
+    [string]$InputId,
     [string]$Assembly,
     [string]$Output,
     [string]$Gmsh,
@@ -36,6 +37,7 @@ if (-not $Python) {
 $arguments = @('-m','apps.research.desktop','--service',$ServiceUrl,'pre')
 if ($FreeCADExe) { $arguments += @('--executable',[IO.Path]::GetFullPath($FreeCADExe)) }
 if ($Source) { $arguments += @('--source',(Resolve-Path -LiteralPath $Source).Path) }
+if ($InputId) { $arguments += @('--input-id',$InputId) }
 if ($Assembly) { $arguments += @('--assembly',(Resolve-Path -LiteralPath $Assembly).Path) }
 if ($Output) { $arguments += @('--output',[IO.Path]::GetFullPath($Output)) }
 if ($Gmsh) { $arguments += @('--gmsh',(Resolve-Path -LiteralPath $Gmsh).Path) }

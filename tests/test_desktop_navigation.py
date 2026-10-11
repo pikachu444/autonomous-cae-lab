@@ -168,6 +168,38 @@ def test_post_existing_project_requires_no_solver_or_native_preparation(client, 
     assert 'CAELAB_ORIGIN_JOB_ID' not in processes[0][1]['env']
 
 
+def test_prepare_only_keeps_exact_candidate_stage_origin_for_later_open(client, processes, tmp_path, monkeypatch):
+    post_install(client, tmp_path)
+    source = {'document_id': 'Nplan', 'candidate_id': 'Cchosen', 'evaluation_index': 1, 'attempt_id': 'Astress'}
+    requests = []
+    def candidate(document_id, job_id, candidate_id, **kwargs):
+        requests.append((document_id, job_id, candidate_id, kwargs))
+        return {'post_input': {'id': 'Dfield', 'sha256': 'retained-field'}}
+    client.numerical_evaluation_result = candidate
+    def prepare(command, **kwargs):
+        folder = Path(command[3]); folder.mkdir()
+        (folder / 'state.pvsm').write_text('TEST_ONLY native state', encoding='utf-8')
+        (folder / 'project.json').write_text(json.dumps({'kind': 'external-result', 'workspace_file': 'state.pvsm',
+            'sources': {'result': {'input_id': 'Dfield'}}}), encoding='utf-8')
+        return NS(returncode=0)
+    monkeypatch.setattr(desktop.subprocess, 'run', prepare)
+    args = desktop._arguments(['--service', client.url, 'post', '--input-id', 'Dfield', '--job-id', 'Jrun',
+        '--research-source', json.dumps(source), '--prepare-only'])
+    result = desktop._post(client, args)
+    assert result['status'] == 'PREPARED' and not processes
+    project = Path(result['project'])
+    retained = project.read_bytes()
+    document = json.loads(retained)
+    assert document['origin_job_id'] == 'Jrun' and document['origin_research_source'] == source
+    assert document['desktop_python'] == sys.executable and document['service_url'] == client.url
+    assert all(row[:3] == ('Nplan', 'Jrun', 'Cchosen') and row[3]['attempt_id'] == 'Astress'
+               and row[3]['evaluation_index'] == 1 for row in requests)
+    monkeypatch.setattr(desktop.subprocess, 'run', lambda *a, **k: pytest.fail('Opening must not prepare again'))
+    desktop._post(client, desktop._arguments(['--service', client.url, 'post', '--project', str(project)]))
+    assert project.read_bytes() == retained
+    assert processes[-1][1]['env']['CAELAB_ORIGIN_JOB_ID'] == 'Jrun'
+
+
 def test_post_wrong_job_input_refused_before_any_native_preparation(client, processes, tmp_path):
     post_install(client, tmp_path)
     client.navigation['post_input'] = {'id':'Dactual'}

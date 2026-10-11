@@ -1,5 +1,7 @@
 """Bounded material.mfront adapter over common CAD-independent execution."""
 
+from . import declared_native_inputs as native_inputs
+
 from pathlib import Path
 import hashlib
 import json
@@ -132,6 +134,8 @@ def checked_native(output, input_sha):
 
 
 class MFrontMaterialAdapter:
+    input_source_files = (_DOMAIN_PATH, WORKER, Path(__file__).resolve(), native_inputs.SOURCE)
+
     backend = "material.mfront"
     version = "1"
     domain = "material_point"
@@ -140,6 +144,15 @@ class MFrontMaterialAdapter:
     default_metrics = ["max_physical_stress_error", "max_kelvin_stress_error", "analytical_tangent_relative_error",
                        "cross_driver_stress_error", "max_energy_density_error", "stress_history", "energy_density_history",
                        "fd_tangent_relative_error_1e-07", "fd_tangent_relative_error_1e-08", "fd_tangent_relative_error_1e-09"]
+
+    def describe_inputs(self, settings):
+        return native_inputs.describe(self.backend, settings)
+
+    def bind_inputs(self, settings, values):
+        return native_inputs.bind(self.backend, settings, values)
+
+    def input_runtime_identity(self):
+        return native_inputs.material_runtime_identity()
 
     def describe_model(self, settings):
         return domain.model_declaration(settings)

@@ -55,6 +55,7 @@ class BrokerIO:
         self.session_id = dispatcher.owner.session_id
         self.application, self.version = application, str(version)
         self.active_command_id = None
+        self.completion_only = False
         self.worker = threading.Thread(target=self.run, name="CAE native broker I/O", daemon=True)
 
     def start(self):
@@ -127,6 +128,8 @@ class BrokerIO:
             while not self.stop.is_set():
                 while not self.dispatcher.outgoing.empty():
                     event = self.dispatcher.outgoing.get_nowait()
+                    if self.completion_only and event['event'] == 'heartbeat':
+                        continue  # Lost polling is not repaired by a fabricated GUI lease.
                     if not self.deliver_event(client, identity, event):
                         return
                     if event['event'] == 'started':
@@ -134,13 +137,33 @@ class BrokerIO:
                         self.dispatcher.command_gate.acknowledge_started(event['command_id'])
                     elif event['event'] == 'finished':
                         self.active_command_id = None
+                        if self.completion_only:
+                            # The exact outstanding result was delivered. Do not
+                            # take another mutation through an uncertain bridge.
+                            self.deliver_event(client, identity, {'event': 'closed'})
+                            self.log('native_completion_delivered_bridge_closed', command_id=event['command_id'])
+                            return
                     if event["event"] == "closed":
                         return
                 self.require_tick()
+                if self.completion_only:
+                    self.stop.wait(.2)
+                    continue
                 # While APPLYING this authenticated poll renews only transport
                 # presence. The service returns no next command and does not
                 # treat the poll as a GUI tick or native progress.
-                response = client.request("/api/workbench/hosts/" + self.host_id + "/commands/next", identity)
+                try:
+                    response = client.request("/api/workbench/hosts/" + self.host_id + "/commands/next", identity)
+                except HTTPError:
+                    raise  # Authentication/owner-service rejection stays terminal.
+                except (URLError, TimeoutError, ConnectionError):
+                    if self.active_command_id is None:
+                        raise
+                    # Keep the sender for the already-acknowledged native call.
+                    # Neither re-poll for work nor re-dispatch its mutation.
+                    self.completion_only = True
+                    self.log('native_poll_lost_waiting_for_completion', command_id=self.active_command_id)
+                    continue
                 request = response.get("command")
                 if request is not None:
                     if request.get("host_id") != self.host_id or request.get("session_id") != self.session_id:

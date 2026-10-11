@@ -1,4 +1,82 @@
-## 2026-10-11 — Continue from integrated Pro code
+## 2026-10-11 — Owner direction for continuing development
+
+Finish the agreed usable product in large, coherent implementation units. The
+owner explicitly rejected substituting procedures, document formats, check
+counts, arbitrary targets or small handoff cycles for that outcome. Treat this
+as a continuing instruction, not an optional preference. Use verification and
+records only as needed to support working user flows and preserve actual
+numerical/engineering requirements. Pro owns product implementation and its
+common interfaces; Root integrates and reviews concurrently. Keep the accepted
+whole-product scope active and do not wait for Root review between small features.
+
+Received PDE/Expert r2, Post/Data/Numerical r3, Evaluation/Study r4 and native
+Pre/material-research r5 are integrated in this working tree, still uncommitted.
+R5's supplied tree is `9efb9363de8569ce269976fddcce8594fa403cbf`; the integration
+receipt is `runs/pro-code-received-20261011-r01/main-r5-integration.json`.
+MAIN and REVIEW match the delivery apart from line endings and the inherited
+PDE-editor trailing-space cleanup. Root documents and user attachments were
+preserved. Do not apply r2/r3/r4/r5 again. The published source checkpoint below
+remains the last committed implementation; no new exact-commit CI evidence exists.
+
+R5 implements live Pre variables, Assembly motion, mesh/condition controls,
+managed native save, existing MFront Material documents, input bindings and
+retained-response selection. Actual ParaView comparison/history/partial Owner
+Save/repair/reopen now pass without product overrides. Actual HTTP Heat-to-
+Structure execution publishes exact temperature, displacement and cell-stress
+values; cold stage reads still exceed the default 30-second Client timeout.
+Actual Qt/MCP checks close Evaluation pending-edit/error and HTTP diagnostic
+defects. A Windows archive-fsync failure blocks managed Pre Save, dependency
+edits are absent from its parent dirty/close test, and general Post Save still
+globally checks a missing source before reaching the corrected Owner. Native
+reader compatibility and RequestPlan method-draft preservation findings remain
+open. The current evidence and remaining defects are in
+[WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md). Continue from these findings;
+do not repeat accepted fit/DOE/UQ or old native runs.
+
+Pro is continuing the original case-A J2/explicit-Drucker-Prager material
+protocol, comparison, calibration/holdout and saved research flow on r5, with
+these corrections in the same implementation. Root reviews/integrates in
+parallel. Do not turn that work into another plan or small patch cycle. Review
+the returned source and close the actual blockers before merge. The owner
+requested a current status and asked about push/PR/merge; Root confirmed this
+integration was still only local and is preserving it now as a reviewed
+development checkpoint on the authorized branch with a Draft PR. Confirm the
+remote ref and PR, then keep subsequent coherent updates durable without
+waiting for whole-product completion. Exact-source CI and open defects remain
+merge gates, not permission questions.
+Local FreeCAD and the exhausted old cloud trial remain stopped. No new provider
+credentials or inference are authorized by this checkpoint.
+
+Existing native results are present locally for reviewing the next response/UI
+connections without rerunning the original calculations: Maxwell
+`runs/viscoelastic-r-20261003-01/experiments/E-viscoelastic-r-01-tau1`, J2
+`runs/cae-common-material-fe-research-20261007-01/experiments/E-material-selected-yield250-r01`,
+and OpenRadioss
+`runs/cae-common-explicit-research-20261007-01/experiments/E-explicit-selected-vminus-r01`.
+Their old result/manifests and response catalogs are retained. A read-only
+baseline now confirms that the existing public history readers match the saved
+Maxwell/J2/OpenRadioss catalogs, including units and distinct explicit clocks;
+all 224 protected original files are unchanged. The report and strict gate are
+in `runs/reviewer-retained-physics-baseline-20261011-9b36c`. Maxwell/J2 had no
+direct common-catalog channels at that r4 baseline; r5's new reader is being
+checked against the exact originals. No calculation or registration was repeated. Reuse
+reader/assertion logic in a fresh output directory, not old audit scripts with
+fixed output/store paths. Pro also has the specific remaining native response,
+input-binding, candidate and Material-owner connection findings; existing
+Simulation catalogs and single-run paths must be reused rather than rebuilt.
+
+Strict actual ParaView corrections are now exercised in fresh stores
+`runs/post-product-workflow-20261011-r06-r5` and
+`runs/post-history-repair-20261011-r02-r5`. Both owned services and their native
+processes stopped; original affine files remain unchanged. The actual HTTP
+Heat-to-Structure result is in `runs/r5-thermo-http-acceptance-20261011-runner01`.
+Its two native stages passed the new connection/field checks; the default cold
+Client failure and separate longer-deadline read are both retained. Do not
+rerun the native stages merely to fix or measure result-reading performance.
+Installed FreeCAD API review notes are in
+`runs/reviewer-pre-api-20261011-prep/REVIEW_BASIS.md`; no FreeCAD was launched.
+
+## Earlier 2026-10-11 — Continue from integrated Pro code
 
 Source `584971df8ae64de08beaf1120febe4a9c994aa56` is committed and confirmed on
 `origin/codex/ui-interaction-design-20261010`; exact-source CI lookup returned no

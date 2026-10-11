@@ -93,6 +93,9 @@ class Native:
     def SetActiveSource(self, source):
         self.active = source
 
+    def GetActiveSource(self):
+        return self.active
+
     def GetAnimationScene(self):
         return self.scene
 
@@ -129,7 +132,11 @@ class Native:
 def native(monkeypatch):
     monkeypatch.setenv("CAE_POST_PROJECT", "test-not-opened")
     fake = Native()
-    manager = SimpleNamespace(vtkSMCoreUtilities=SimpleNamespace(GetFileNameProperty=lambda source: "FileName"))
+    manager = SimpleNamespace(
+        vtkSMCoreUtilities=SimpleNamespace(GetFileNameProperty=lambda source: "FileName"),
+        ProxyManager=lambda: SimpleNamespace(GetProxiesInGroup=lambda group:
+            {(f"View{i}", i): view for i, view in enumerate(fake.views)} if group == "views" else fake.sources),
+    )
     monkeypatch.setitem(sys.modules, "paraview", SimpleNamespace(simple=fake, servermanager=manager))
     for name in ("apps.desktop_post.commands", "apps.desktop_post.external"):
         monkeypatch.delitem(sys.modules, name, raising=False)

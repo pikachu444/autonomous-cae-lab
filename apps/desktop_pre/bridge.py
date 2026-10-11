@@ -4,6 +4,7 @@ Uses FreeCAD's installed Qt binding. No second/headless CAD is edited behind it.
 The observer callback names follow FreeCAD 1.1.4 DocumentObserverPython.cpp.
 """
 from copy import deepcopy
+from contextlib import contextmanager
 import math
 from pathlib import Path
 import queue
@@ -14,10 +15,16 @@ import uuid
 from caelab.storage import canonical_hash, save_json
 from caelab.native_transport import BrokerIO, DispatchGate
 from apps.desktop_pre.mesh_binding import MeshBindingObserver
+from apps.desktop_pre import metadata
+from apps.desktop_pre.parameters import Parameters, OPERATIONS as PARAMETER_OPERATIONS
+from apps.desktop_pre.projects import Project, OPERATIONS as PROJECT_OPERATIONS
+from apps.desktop_pre.motion import Motion, OPERATIONS as MOTION_OPERATIONS
+from apps.desktop_pre.fem_edit import FEMEditor, OPERATIONS as FEM_OPERATIONS
 
 
 OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze',
-              'document.save', 'document.undo', 'document.redo', 'document.activate')
+              'document.save', 'document.undo', 'document.redo', 'document.activate',
+              'pre.workbench', 'pre.export_native_copy', 'pre.validate') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS
 EDITABLE = {'Length', 'Length2', 'Width', 'Height', 'Radius', 'Radius1', 'Radius2',
             'Angle', 'Angle2', 'Force', 'CharacteristicLengthMax', 'CharacteristicLengthMin'}
 QUANTITIES = {'App::PropertyLength', 'App::PropertyDistance', 'App::PropertyAngle', 'App::PropertyForce'}
@@ -30,7 +37,8 @@ class Owner:
         if Gui is None:
             import FreeCADGui as Gui
         self.App, self.Gui, self.doc = App, Gui, doc
-        self.document_id = document_id or 'P' + uuid.uuid4().hex
+        stored = metadata.read(doc)
+        self.document_id = document_id or stored.get('document_id') or 'P' + uuid.uuid4().hex
         self.session_id = 'S' + uuid.uuid4().hex
         self.export_root = Path(export_root).resolve()
         self.generation = self.view_generation = 0
@@ -38,9 +46,16 @@ class Owner:
         self.completed = {}
         self.closed = False
         self._selection = None
+        self._preview_depth = 0
+        self.recovery_error = None
+        self._fem_cache = None
         self.thread_id = threading.get_ident()
         self.mesh_bindings = MeshBindingObserver(doc)
         self.binding_diagnostics = {}
+        self.parameters = Parameters(self)
+        self.project = Project(self)
+        self.motion = Motion(self)
+        self.fem = FEMEditor(self)
         App.addDocumentObserver(self)
         for obj in doc.Objects:
             if hasattr(obj, 'FemMesh') and getattr(obj, 'Shape', None) is not None:
@@ -51,31 +66,83 @@ class Owner:
                     # Export validates the selected mesh again and blocks it.
                     self.binding_diagnostics[obj.Name] = str(error)
         self.refresh()
+        self.project.attach_opened()
 
     def assert_thread(self):
         if threading.get_ident() != self.thread_id:
             raise RuntimeError('Native document access requires its main thread')
 
     def slotChangedObject(self, obj, prop):
-        if obj.Document is self.doc:
+        if obj.Document is self.doc and not self._preview_depth:
             self.generation += 1
-            self.mesh_bindings.slotChangedObject(obj, prop)
+            if not hasattr(obj, 'FemMesh') or getattr(obj, 'Shape', None) is not None:
+                self.mesh_bindings.slotChangedObject(obj, prop)
 
     def slotCreatedObject(self, obj):
-        if obj.Document is self.doc:
+        if obj.Document is self.doc and not self._preview_depth:
             self.generation += 1
 
     slotDeletedObject = slotCreatedObject
 
     def slotUndoDocument(self, doc):
-        if doc is self.doc:
+        if doc is self.doc and not self._preview_depth:
             self.generation += 1
 
     slotRedoDocument = slotUndoDocument
 
     def slotFinishSaveDocument(self, doc, *unused):
-        if doc is self.doc:
-            self.saved_generation = self.generation
+        # Native saveCopy is only a prepared member. A project is saved only
+        # after all dependencies and the committed .caepre file are published.
+        pass
+
+    def slotStartSaveDocument(self, doc, *unused):
+        if doc is self.doc and not self.project.in_save:
+            # Backup for native auto-recovery/save paths. UI Save/SaveAs/close
+            # use the checked project guard, since observer exceptions alone
+            # cannot veto FreeCAD's C++ save operation.
+            try:
+                self.motion.before_design_action('native save')
+            except Exception as error:
+                self.recovery_error = str(error)
+
+    @contextmanager
+    def preview_changes(self):
+        self.assert_thread()
+        self._preview_depth += 1
+        try:
+            yield
+        finally:
+            self._preview_depth -= 1
+            self.view_generation += 1
+
+    def read_metadata(self):
+        self.assert_thread()
+        return metadata.read(self.doc)
+
+    def write_metadata(self, value):
+        self.assert_thread()
+        metadata.write(self.doc, dict(value, document_id=self.document_id))
+
+    def before_design_action(self, reason):
+        self.assert_thread()
+        if self.fem._pending:
+            raise ValueError('MESH_BUSY: finish/cancel the native mesh generation before ' + reason)
+        if self.recovery_error:
+            raise ValueError(self.recovery_error)
+        self.motion.before_design_action(reason)
+        self._idle()
+
+    def fem_descriptor(self):
+        key = (self.generation, tuple((name, value.get('cancelled')) for name, value in self.fem._pending.items()))
+        if self._fem_cache is None or self._fem_cache[0] != key:
+            try:
+                state = self.fem.descriptor()
+                state = {name: state.get(name) for name in ('regions', 'conditions', 'meshes', 'mesh_history',
+                         'mesh_local_sizes', 'mesh_busy', 'active_mesh_generations', 'execution_scope')}
+            except Exception as error:
+                state = {'inspection_error': str(error), 'mesh_busy': bool(self.fem._pending)}
+            self._fem_cache = key, state
+        return deepcopy(self._fem_cache[1])
 
     def slotDeletedDocument(self, doc):
         if doc is self.doc:
@@ -98,6 +165,10 @@ class Owner:
                 'generation': self.generation, 'view_generation': self.view_generation, 'capabilities': []}
         objects = [{'id': obj.Name, 'label': obj.Label, 'type': obj.TypeId,
                     'state': list(obj.State)} for obj in self.doc.Objects[:200]]
+        try:
+            motion = self.motion.descriptor()
+        except Exception as error:
+            motion = {'inspection_error': str(error)}
         return {'id': self.document_id, 'kind': 'pre', 'title': self.doc.Label,
                 'native_document': self.doc.Name, 'working_file': self.doc.FileName,
                 'generation': self.generation, 'view_generation': self.view_generation,
@@ -105,6 +176,8 @@ class Owner:
                 'capabilities': list(OPERATIONS), 'objects': objects,
                 'object_count': len(self.doc.Objects), 'selection': self._selection,
                 'mesh_binding_diagnostics': dict(self.binding_diagnostics),
+                'motion': motion, 'fem': self.fem_descriptor(), 'project': self.project.descriptor(),
+                'recovery_error': self.recovery_error,
                 'pending_edit': bool(self.Gui.Control.activeDialog() or
                     (self.Gui.activeDocument() and self.Gui.activeDocument().getInEdit()))}
 
@@ -163,14 +236,18 @@ class Owner:
             else:
                 if operation != 'document.activate':
                     self._idle()
+                readonly = {'pre.project.inspect', 'pre.parameters.discover', 'pre.parameters.preflight',
+                            'pre.motion.inspect', 'pre.motion.path', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight', 'pre.select'}
+                if self.fem._pending and operation not in readonly | {'pre.fem.mesh_cancel', 'document.activate'}:
+                    raise ValueError('MESH_BUSY: finish/cancel this native mesh generation before another design command')
+                if (operation not in readonly and operation not in MOTION_OPERATIONS
+                        and operation not in {'document.activate', 'pre.fem.mesh_cancel', 'pre.links.record'}):
+                    self.before_design_action(operation)
                 if operation in {'document.save', 'document.undo', 'document.redo', 'document.activate'}:
                     if args or target:
                         raise ValueError('This document command takes no arguments or target')
                     if operation == 'document.save':
-                        if not self.doc.FileName:
-                            raise ValueError('Use native Save As once to choose the editable file location')
-                        self.doc.save()
-                        self.saved_generation = self.generation
+                        payload = self.project.save()
                     elif operation in {'document.undo', 'document.redo'}:
                         count = self.doc.UndoCount if operation.endswith('undo') else self.doc.RedoCount
                         if not count:
@@ -186,14 +263,58 @@ class Owner:
                             window.showNormal()
                         window.raise_()
                         window.activateWindow()
-                    payload = self.descriptor()
+                    payload = {**self.descriptor(), **({'save': payload} if operation == 'document.save' else {})}
+                elif operation in PARAMETER_OPERATIONS:
+                    payload = self.parameters.dispatch(operation, args, target)
+                elif operation in PROJECT_OPERATIONS:
+                    payload = self.project.dispatch(operation, args, target)
+                elif operation in MOTION_OPERATIONS:
+                    payload = self.motion.dispatch(operation, args, target)
+                elif operation in FEM_OPERATIONS:
+                    payload = self.fem.dispatch(operation, args, target)
+                elif operation == 'pre.workbench':
+                    if set(args) != {'name'} or target or args['name'] not in {'PartWorkbench', 'PartDesignWorkbench', 'SketcherWorkbench', 'AssemblyWorkbench', 'FemWorkbench'}:
+                        raise ValueError('Select a supported installed native CAD/Assembly/FEM workbench')
+                    if args['name'] not in self.Gui.listWorkbenches():
+                        raise ValueError('The requested native workbench is not installed')
+                    self.Gui.activateWorkbench(args['name'])
+                    payload = {'workbench': args['name']}
+                elif operation == 'pre.export_native_copy':
+                    if args or target:
+                        raise ValueError('Native copy export takes no path; it creates a new private retained FCStd copy')
+                    path = self.export_root / self.document_id / 'native_copies' / ('N' + uuid.uuid4().hex + '.FCStd')
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    self.doc.saveCopy(str(path))
+                    payload = {'file': str(path), 'lab_project_saved': False,
+                               'external_links_packaged': False}
+                elif operation == 'pre.validate':
+                    if set(args) != {'analysis_id'} or target:
+                        raise ValueError('Choose an exact native Analysis')
+                    diagnostics = self.fem.validate_for_run(self._object(args['analysis_id']))
+                    payload = {'diagnostics': diagnostics, 'can_freeze': not diagnostics, 'engineering_release': 'UNKNOWN'}
                 elif operation == 'pre.freeze':
                     if set(args) != {'analysis_id', 'solver_id'} or target:
                         raise ValueError('Freeze requires exact analysis_id and solver_id')
                     from apps.desktop_pre.freeze_analysis import freeze_analysis
+                    diagnostics = self.fem.validate_for_run(self._object(args['analysis_id']))
+                    if diagnostics:
+                        raise ValueError('FEM_INPUT_INVALID: ' + '; '.join(item['path'] + ': ' + item['message'] for item in diagnostics))
+                    saved = self.project.save()
+                    frozen_generation = self.generation
                     manifest = freeze_analysis(self._object(args['analysis_id']), self._object(args['solver_id']),
                                                self.export_root / self.document_id,
                                                binding_validator=self.mesh_bindings.validate)
+                    if self.generation != frozen_generation:
+                        raise ValueError('INPUT_CHANGED: design changed during native export; the prepared files remain and no run was submitted')
+                    from caelab.storage import load_json
+                    from caelab.native_cad import sha
+                    import shutil
+                    editable = manifest.parent / 'editable.caepre'
+                    shutil.copyfile(saved['retained_project'], editable)
+                    data = load_json(manifest)
+                    data['editable_project'] = editable.name
+                    data['files'].append({'relative': editable.name, 'sha256': sha(editable), 'bytes': editable.stat().st_size})
+                    save_json(manifest, data)
                     payload = {'snapshot_relative': manifest.relative_to(self.export_root).as_posix(),
                                'label': self.doc.Label + ' — ' + args['analysis_id']}
                 elif operation == 'pre.select':
@@ -245,6 +366,11 @@ class Owner:
                     kind = obj.Constraints[index].Type
                     if kind not in kinds or not isinstance(args['unit'], str):
                         raise ValueError('Only native dimensional constraints can be assigned')
+                    if not obj.getDriving(index):
+                        raise ValueError('Reference-only sketch constraints cannot be assigned as driving dimensions')
+                    paths = {'Constraints[' + str(index) + ']', 'Constraints.' + obj.Constraints[index].Name}
+                    if any(path in paths for path, _ in getattr(obj, 'ExpressionEngine', [])):
+                        raise ValueError('This datum is expression-driven; edit the native expression explicitly')
                     value = self.App.Units.Quantity(str(args['value']) + ' ' + args['unit'])
                     expected = self.App.Units.Quantity('1 deg' if kind.startswith('Angle') else '1 mm')
                     if value.Unit != expected.Unit:
@@ -261,6 +387,9 @@ class Owner:
 
     def close(self):
         self.assert_thread()
+        self.fem.close()
+        if not self.closed:
+            self.motion.close()
         self.App.removeDocumentObserver(self)
         self.closed = True
 
@@ -327,6 +456,7 @@ class GuiDispatch:
 
 def start(doc, config, QtCore, *, log=None, document_id=None):
     owner = Owner(doc, config['export_root'], document_id=document_id)
+    owner.QtCore = QtCore
     dispatcher = GuiDispatch(owner, QtCore)
     broker = BrokerIO(dispatcher, config['service_url'], application='freecad',
                       version='.'.join(owner.App.Version()[:3]), log=log).start()

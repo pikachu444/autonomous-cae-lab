@@ -1,4 +1,53 @@
-## 2026-10-11 — Pro implementation and Root integration
+## 2026-10-11 — R5 native Pre and material research integrated locally
+
+Pro r5 is integrated once in MAIN and REVIEW on uncommitted `9e7b5a5`, supplied
+tree `9efb9363de8569ce269976fddcce8594fa403cbf`. Root documents/user attachments
+are preserved. Actual ParaView comparison/history/partial Owner Save/repair and
+cold reopen now preserve the correct IDs and original values. Actual HTTP
+Heat-to-Structure execution publishes exact native temperature, displacement
+and cell stress. Its saved result is intact, but cold stage reads exceed the
+default Client deadline. Actual Qt/MCP verifies pending-edit protection,
+fieldless-result guidance and specific HTTP refusal messages.
+
+Managed Pre Save has an actual Windows fsync failure and does not track later
+external-document revisions in its parent dirty/close decision. General Post
+Save still blocks before Owner during partial recovery. Native reader/picker
+compatibility and other-method draft loss after Plan Save remain open. Source,
+original failures and bounded evidence are in
+[WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md) and the
+[r5 record](benchmarks/records/20261011-connected-research-r5.json).
+
+Pro continues the original case-A constitutive comparison/calibration/holdout
+and saved research flow on r5, including these corrections. Root integrates
+and reviews concurrently; no small-checkpoint final or planning restart is
+authorized by this state. Native FreeCAD and the old cloud trial stay stopped;
+unknown physical requirements still prevent release. Published source remains
+`584971df8ae64de08beaf1120febe4a9c994aa56`, with no exact-source CI run found.
+
+## Earlier 2026-10-11 — Independent research and connected evaluation integrated locally
+
+Pro deliveries r2/r3/r4 are integrated on `9e7b5a5`, currently uncommitted.
+PDE and Expert editors, multichannel Data, retained-result numerical operations,
+Post analysis recipes, Simulation/Evaluation/Study documents and candidate
+adoption use the existing service owners and execution machinery. Root's actual
+Windows/Qt/native checks and remaining defects are recorded in
+[WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md) and the
+[connected-research record](benchmarks/records/20261011-connected-research-r4.json).
+
+The real 2D thermal/free-expansion calculation matches independent references;
+temperature Post delivery works, but displacement/stress delivery still fails.
+Native Post history/repair retains original results, with identity metadata and
+partial Save/pin defects still open. The actual Windows storage overlap repair
+works; the original intermittent handle owners remain unknown. These are bounded
+results, not full product, visible native GUI or engineering acceptance.
+
+Pro continues Pre editing/motion/mesh/save connections and the reported fixes.
+Root reviews and integrates concurrently. Existing native FreeCAD/cloud stops,
+UNKNOWN/NOT_RELEASED states and all original artifacts remain. Published source
+is still `584971df8ae64de08beaf1120febe4a9c994aa56`; its exact CI query returned no
+runs. A future documentation/source commit is not another solver verification.
+
+## Earlier 2026-10-11 — Pro implementation and Root integration
 
 Published source `584971df8ae64de08beaf1120febe4a9c994aa56` integrates independent
 Data/Numerical owners and Qt editors, native FEM snapshot execution/return, and

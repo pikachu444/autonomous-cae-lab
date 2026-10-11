@@ -1,5 +1,217 @@
 # Current workbench implementation
 
+## 2026-10-11 native Pre and existing material research connections
+
+Pro r5 is received and integrated into MAIN and REVIEW, still uncommitted on
+`9e7b5a5`. Its supplied result tree is
+`9efb9363de8569ce269976fddcce8594fa403cbf`, based on the r4 tree below. ZIP SHA256
+is `d78c2bcc4635ece101189c52db1acb120de248c99d0e06dd0c9b6bbf2dd8f8b4`.
+`runs/pro-code-received-20261011-r01/main-r5-integration.json` records the
+one-time application, source comparison, AST/diff checks and unchanged Root
+documents. The delivery adds live native dimensions/research bounds, Assembly
+preview/design-pose restoration, FEM conditions/mesh controls, managed editable
+Pre bundles, existing MFront Material owners and bindings, native response
+selection, retained comparisons and candidate-output retention. Existing engines,
+runtime admission and the narrow frozen-FEM solve scope remain in place.
+
+Actual review results:
+
+- **Post:** original ParaView 6.2.0 comparison/filter/measurement/Apply/Undo/Save
+  and separate-process reopen now pass with no diagnostic product override.
+  Only `NativeNodeID` is treated as the original identity; the original affine
+  values and `1e-10 mm` criterion remain. A separate strict history run performs
+  repeated Undo/Redo, a new branch, partial recovery without B, Owner Save,
+  repair from that partial saved project and cold reopen. Historical values,
+  IDs and reference-file hashes survive. All owned services/processes stopped.
+  Runs: `post-product-workflow-20261011-r06-r5` and
+  `post-history-repair-20261011-r02-r5`. General human Save still checks all
+  sources before invoking Owner and therefore fails when B is missing.
+- **Retained Post integrity:** actual VTK files with controlled cold owners
+  reject changed retained-reader bytes. Same-unit conflicting clock semantics
+  are rejected; healthy-source inspection is independent of missing B. These
+  portable checks are separate from the native run above and do not claim a
+  visible ParaView GUI acceptance.
+- **Heat-to-Structure:** actual HTTP JobManager job
+  `J31f2d068fc3347398e301d29626a2afe` runs the two existing FEniCSx stages once,
+  validates the exact Kelvin transfer and publishes temperature/POINTS
+  displacement/CELLS stress. Raw XDMF/HDF5, captured JSON and registered VTK
+  values have zero difference, retaining native IDs/connectivity and `0.125 s`.
+  The independent free-expansion error is `2.0535e-17 m` against the unchanged
+  `1e-10 m` bound. The old five-stage mathematical campaign is not repeated.
+  Saved cold result reads with native imports blocked are exact, but stage GETs
+  take `34.5653/36.5481 s` on this WSL `/mnt/c` store and fail the default
+  30-second Client. A longer-deadline diagnostic does not change that failure.
+  Linux-owner/VTK evidence is not Windows ParaView or cross-OS path acceptance.
+  One read-only profile on a fresh copied store identifies repeated path
+  resolution as the main cost: `Path.resolve` consumes `20.52 s` in a `25.54 s`
+  GET, including three full checks of the same saved revision. This diagnostic
+  preserves the original timeout; it does not qualify the default path.
+- **Evaluation/MCP:** actual HTTP, SDK 1.30.0 stdio and Qt confirm pending
+  structure edits are protected, saved Plans include the submitted bindings,
+  fieldless result-open errors preserve the draft, and specific owner refusals
+  reach MCP. Only the exact token 403 guard retries identical bytes once.
+  No calculation/provider was started; original result/job files are unchanged.
+- **Pre:** installed FreeCAD 1.1.4 Python APIs and pinned upstream parameter
+  primitives were compared to the new source without launching FreeCAD.
+  Portable/Qt checks exercise pose restoration, placement-aware mesh binding,
+  condition repair, reconnect and close handling. Windows archive publication
+  fails because `fsync` uses a read-only handle. Separately, external dependency
+  edits do not participate in the parent's saved/dirty/close decision. Both are
+  open product defects; native FreeCAD execution remains stopped.
+- **Original native histories:** the direct J2 reader matches the saved native
+  history and selected node/Gauss samples; the picker truncates away reaction
+  and Gauss choices. Maxwell's new reader rejects the preserved tau1 result
+  because rederived floating-point assessment dictionaries differ by last bits
+  across platforms, despite identical Domain source and unchanged verdicts.
+  SVK expects bare settings where its producer saved a settings envelope.
+  Catalog source-artifact/hash meaning and OpenRadioss response metadata also
+  need correction. Old public readers and original result bytes remain intact;
+  no old calculation or import registration was repeated.
+- **Material and method drafts:** actual HTTP/Qt with a labelled TEST_ONLY
+  native-shaped evaluator confirms law selection, response/fit/holdout selection,
+  candidate curves, explicit Material adoption/Undo/Redo/Save and saved comparison
+  reopening. A new owner reads observations/candidates/comparisons after only
+  this review's temporary global result folders are moved, without another
+  evaluation. The two controlled calls are not native constitutive evidence.
+  The UI retains selected response/candidate edits
+  when switching DOE to fit and back, but saving fit discards the other method's
+  draft. Long provenance text also leaves the default candidate curve plot too
+  shallow to inspect comfortably; the stored curve values remain intact.
+
+The remaining Windows portable-test failures are recorded separately: symlink
+creation lacks OS privilege; a synthetic 20 ms retry budget expires before its
+next callback; and one overlap test bypasses the product share-delete reader
+with `Path.read_text`. They do not erase the earlier actual Windows storage
+evidence, and no privilege or product retry limit was changed to pass them.
+
+Pro is continuing the original case-A J2/explicit-Drucker-Prager protocol,
+comparison, calibration/holdout and saved research flow with these corrections.
+The read-only case-A investigation identifies existing signed J2 execution and
+MFront state machinery; it does not supply missing mixed-control/DP support or
+turn tension/partial unloading evidence into confinement/reverse-yield proof.
+No actual material/physical release criteria have been supplied.
+
+The [r5 record](../benchmarks/records/20261011-connected-research-r5.json) pins
+local receipts, source identities and limits. This reviewed integration is a
+development checkpoint for branch publication and a Draft PR, with defects
+explicitly open. Correct those blockers and inspect exact-source CI before
+merge; continue the agreed whole product alongside that correction.
+Local FreeCAD, the exhausted old cloud trial and unconfigured provider inference
+remain stopped. `UNKNOWN/NOT_RELEASED` and earlier failed experiments remain.
+
+## Earlier 2026-10-11 locally integrated PDE, Post and connected research
+
+Pro's r2/r3/r4 deliveries are integrated on `9e7b5a5`, still uncommitted. The
+93 files touched by r3/r4 match the independently reviewed source after line-ending
+and inherited trailing-space normalization. Their received result trees are
+`1003cfb37a25197d374a2135d90f7208ae199386`,
+`d6d252705cdfd149405b52efff005cf2b716fcb3` and
+`efaaf395705b6a09cab4c156e1a6350d36bd9b15`. These identify supplied source trees,
+not published commits or CI runs. The last published implementation remains
+`584971df8ae64de08beaf1120febe4a9c994aa56`, with no exact-source CI run found.
+
+The product now has independent PDE and discussion Expert editors; multichannel
+Data mapping, masks and retained comparisons; saved-result numerical influence,
+UQ, surrogate/multiobjective/batch operations; native Post filter/extraction/
+comparison recipes; and Simulation, reusable EvaluationDefinition and Study
+owners/screens. Candidate adoption and navigation connect saved domain inputs,
+stage results and research evidence. The existing numerical engines and native
+adapters still calculate. [ADR0062](../ADR/0062-connected-research-owners-and-fields.md)
+records the ownership and limits.
+
+Root's verification distinguishes actual user flows from source-only support:
+
+- **PDE/Expert:** actual HTTP-backed Qt edits, Undo/Redo, separate Plan inputs,
+  Save and a new service reopen preserve the same drafts and references. Expert
+  without a configured provider retains the real failure and no fabricated
+  answer. The four r2 UI defects (late edit loss, stale history callback, rejected
+  Ask advancing an old round and removed backend reappearing) were corrected in
+  r3 and independently rechecked. No configured-provider inference was run.
+- **Data/Numerical:** actual channel rename/switch/import/save/reopen and hidden
+  original-row identity now work. Retained DOE influence/export follow-ups reopen
+  without recalculation. A new synthetic five-sample FELUPE UQ matched the original
+  Neo-Hooke formula within `5.684e-14 MPa`; normalized influence matched within
+  `2.665e-15`. Imported prediction markers remain excluded from actual analysis.
+  Separate max/final objectives retain distinct identities. The saved UQ view is
+  readable and resizing/collapsing inputs preserves its draft and selected result.
+- **Native Post:** actual ParaView 6.2.0 now executes the filter/history path,
+  repeated Undo/Redo, new branches after Undo, old downstream result retention,
+  Save, partial reopen with one missing source, same-content source repair and
+  separate-process reopen. The original affine source values and old results are
+  retained. The harness records the remaining incorrect identity-array metadata
+  and partial-workspace Save failure; it does not turn these into a pass.
+  Reading historical real PDE fields through current VTU/ParaView/save/reopen
+  also preserves original DOF values, native IDs and connectivity without solving.
+- **Evaluation/Study:** actual service/Qt owners retain a failed stage, reuse an
+  explicitly selected successful prefix, preserve completed stages on cancel,
+  navigate exact candidate attempts, adopt new domain branches idempotently and
+  Undo, and create a Study-based Expert draft without inference. These checks
+  used a labelled controlled stage boundary. Actual MCP SDK 1.30.0 stdio reads
+  of those retained failed/succeeded/cancelled attempts match HTTP. Study editing,
+  HTTP Undo, command retries and stale session/generation refusal share the same
+  owner, with no new calculation/provider call and unchanged original result files.
+- **Windows:** a fresh standard ResearchUI installation with Python 3.12.14 and
+  the new assistance dependencies completed, and `-PrepareOnly` returned READY.
+  Its exact owned service stopped. Real Python 3.12/3.13 overlapped JSON reads and
+  writes now succeed; delayed publication retries the same prepared bytes without
+  repeating the document edit. A persistent reader reports failure and preserves
+  the old file and prepared temporary. The original incident handle owners remain
+  unknown; the two initial failures are preserved.
+
+For the next native response/UI connections, read-only public history queries
+now match the original retained Maxwell, J2 and OpenRadioss catalogs exactly.
+Selected original parser/table values independently confirm the curves, units
+and distinct explicit position/velocity clocks. All 224 protected original
+files remain unchanged. Maxwell/J2 still expose no channels through the direct
+common catalog; their existing Lab readers work. The report and strict gate in
+`runs/reviewer-retained-physics-baseline-20261011-9b36c` provide the reference for
+the returned connections, without a new calculation or import registration.
+
+**Actual thermal/structural reference.** Existing Ubuntu WSL Python 3.12.3,
+DOLFINx 0.11.0.post0, UFL 2026.1.0 and PETSc 3.19.6 real64 executed the new adapter.
+For a `0.8 x 0.3 m` P1 rectangle, `Tb=363.15 K`, `Tref=293.15 K`,
+`alpha=17e-6/K`, `E=135e9 Pa`, `nu=.22`, zero heat source and a traction-free
+mechanical exterior with rigid-mode anchors, the exact displacement is
+`u=alpha*(Tb-Tref)*(x,y)` and stress is zero. Native maximum displacement is
+`0.0010167364456928002 m`; independent vector error is `2.0535e-17 m`, below the
+unchanged `1e-10 m` bound. An independent P1 assembly differs by `2.3758e-17 m`;
+the unmodified equilibrium residual is `1.1478e-14` relative. Native zero-stress
+residual is `1.2249e-5 Pa`, reported as roundoff rather than an exact zero.
+
+For `q=10000 W/m^3`, `k=175 W/(m*K)` and uniform boundary temperature, an
+independent odd-mode Fourier solution gives nodal errors `0.00669540 K` on
+12x6 cells and `0.00172694 K` on 24x12 cells. Independent P1 temperature differs
+by at most `1.71e-12 K`; heat input is `2400 W/m` and computed boundary outflow
+is `2399.9999999959246 W/m`. Thickness is not specified, so heat and force
+integrals are per unit thickness. Reaction is not an exposed adapter response.
+Raw HDF5 fields match captured values exactly, and a fresh process with native
+imports disabled reads all five retained results unchanged. This verifies the
+stated mathematical model, not measured material, nonuniform-temperature
+structural accuracy, contact or engineering release. No threshold was relaxed.
+
+**Open r4 defects, already with Pro:** displacement lacks its capture seal and
+uses an incompatible component declaration; cell stress is skipped in Post
+publication. Temperature publication works. VTK array equality misclassifies a
+response as an identity array. Global source checks still block Save/healthy
+declaration reads in partial recovery. Saved retained-reader paths can diverge
+from the files whose pins are verified. Clock semantics are not consistently
+autofilled/checked. Pending Evaluation structure edits can be lost, and opening
+a fieldless stage fails without a visible UI error. Actual stdio MCP also exposes
+only generic HTTP 400 text where the owner supplied specific recovery guidance.
+Source review found that the Simulation curve UI assumes a node selector even
+for the existing OpenRadioss name-only catalog. Two Windows test-only defects
+also remain: default cp949 reading of a UTF-8 fixture and patching the unused
+`Path.read_text` seam instead of the new Windows reader. These failures are
+preserved, not hidden by later passing subsets.
+
+The [machine-readable record](../benchmarks/records/20261011-connected-research-r4.json)
+pins received source, retained local receipts, original failures and limitations.
+Artifacts under ignored `runs/` are local and are not uploaded by this document.
+Pro continues live Pre variables, Assembly motion, mesh/condition editing and
+managed native save with the corrections above. Local FreeCAD and the exhausted
+old cloud trial remain stopped. Whole-product and engineering acceptance remain
+open; continue implementation and targeted verification from this checkpoint.
+
 ## 2026-10-11 integrated source and actual research flow
 
 Source `584971df8ae64de08beaf1120febe4a9c994aa56` integrates Pro's original ZIP

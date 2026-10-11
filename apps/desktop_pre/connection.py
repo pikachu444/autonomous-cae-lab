@@ -4,6 +4,7 @@ HTTP is performed on background threads. Only the main-thread timer and typed
 owner touch native objects; retrying a lost response reuses the original ID.
 """
 from pathlib import Path
+from copy import deepcopy
 import os
 import queue
 import subprocess
@@ -22,6 +23,7 @@ class Connection:
         self.log = log or (lambda *a, **kw: None)
         self.client = Client(config['service_url'])
         self.owners, self.pending, self.working = {}, None, set()
+        self.native_requests, self.panels = {}, {}
         self.replies = queue.Queue()
         self.closed = False
         self.project_path = Path(config['output']) / 'native_documents.json'
@@ -63,6 +65,57 @@ class Connection:
         QtWidgets.QApplication.instance().aboutToQuit.connect(self.close)
         self.tick()
 
+    def active_owner(self):
+        doc = self.App.ActiveDocument
+        if doc is None or doc.Name not in self.owners:
+            raise ValueError('Create/open the native document and wait for its connection')
+        return self.owners[doc.Name][0]
+
+    def submit_native(self, operation, arguments, target=None, on_done=None, *, owner=None):
+        owner = owner or self.active_owner()
+        owner.refresh()
+        broker = self.owners[owner.doc.Name][2]
+        if broker.stop.is_set() or not broker.registered.is_set():
+            raise ValueError('Native owner is disconnected; reconnect before submitting an edit')
+        if any(row['document_id'] == owner.document_id for row in self.native_requests.values()):
+            raise ValueError('An explicit command for this document is already pending')
+        identifier = 'C' + uuid.uuid4().hex
+        self.native_requests[identifier] = {'command_id': identifier, 'document_id': owner.document_id,
+            'session_id': owner.session_id, 'generation': owner.generation, 'operation': operation,
+            'arguments': dict(arguments, **({'target': target} if target else {})), 'on_done': on_done, 'retry': False}
+        self._send_native(identifier)
+        return {'queued': True, 'command_id': identifier}
+
+    def _send_native(self, identifier):
+        row = self.native_requests[identifier]
+        row['retry'] = False
+        self.request(identifier, lambda: self.client.document_command(row['document_id'], row['operation'], row['arguments'],
+            session_id=row['session_id'], expected_generation=row['generation'], command_id=identifier), self._native_status)
+
+    def _native_status(self, command):
+        identifier = command['command_id']
+        row = self.native_requests.get(identifier)
+        if row is None: return
+        state = command['state']
+        if state not in {'SUCCEEDED', 'FAILED', 'CANCELLED', 'INTERRUPTED'}:
+            self.message.setText(row['operation'] + ' · ' + command.get('phase', state))
+            return
+        if state == 'INTERRUPTED' and command.get('completion_recoverable'):
+            row['retry'] = True
+            self.message.setText('Native completion is recoverable. Retry queries the same command; it does not repeat the edit.')
+            return
+        self.native_requests.pop(identifier)
+        outcome = command.get('outcome', {})
+        envelope = outcome.get('result', {})
+        value = envelope.get('result') if state == 'SUCCEEDED' else None
+        if value is None:
+            error = envelope.get('error') or outcome.get('error') or command.get('error') or {'message': state}
+            value = {'status': 'FAILED', 'error': error, 'command_id': identifier}
+        if row['on_done']:
+            row['on_done'](value)
+        self.message.setText(row['operation'] + ' · ' + state +
+            (': ' + value.get('error', {}).get('message', '') if value.get('status') == 'FAILED' else ''))
+
     def request(self, key, call, success):
         if key in self.working or self.closed:
             return
@@ -90,6 +143,8 @@ class Connection:
                 self.message.setText(error + '\nThe same request can be retried; no new calculation was silently submitted.')
                 if self.pending and key != 'cancel':
                     self.pending['retry'] = True
+                if key in self.native_requests:
+                    self.native_requests[key]['retry'] = True
                 self.log('request_failed', request=key, error=error)
             else:
                 try:
@@ -102,12 +157,18 @@ class Connection:
             if name not in self.owners and 'reconnect' not in self.working:
                 previous = self.records.get(name, {})
                 identifier = previous.get('id') if doc.FileName and previous.get('working_file') == doc.FileName else None
+                from apps.desktop_pre.metadata import read
+                stored_id = read(doc).get('document_id')
+                if any(record[0].document_id == (identifier or stored_id) for record in self.owners.values()):
+                    identifier = 'P' + uuid.uuid4().hex  # Explicit separate live branch, never two owners for one ID.
                 self.owners[name] = bridge.start(doc, self.config, self.QtCore, log=self.log, document_id=identifier)
+                self.owners[name][0].find_owner = lambda linked: next((row[0] for row in self.owners.values() if row[0].doc is linked), None)
         for name in list(self.owners):
             owner, dispatch, broker = self.owners[name]
             if name not in documents or owner.closed:
                 dispatch.close()
                 del self.owners[name]
+                for dock in self.panels.pop(name, {}).values(): dock.close(); dock.deleteLater()
             else:
                 self.records[name] = {'id': owner.document_id, 'working_file': owner.doc.FileName}
         if self.records:
@@ -131,10 +192,15 @@ class Connection:
         waiting = self.pending is not None
         self.run_button.setEnabled(connected and not waiting)
         self.cancel_button.setEnabled(waiting and self.pending['stage'] == 'command' and not self.pending.get('retry'))
-        self.retry_button.setEnabled(waiting and self.pending.get('retry', False) and not self.working)
+        self.retry_button.setEnabled(not self.working and
+            ((waiting and self.pending.get('retry', False)) or any(row['retry'] for row in self.native_requests.values())))
         if waiting and self.pending['stage'] == 'command' and not self.pending.get('retry') and 'command' not in self.working:
             identifier = self.pending['command_id']
             self.request('status', lambda: self.client.command_status(identifier), self.command_status)
+        for identifier, row in list(self.native_requests.items()):
+            if identifier not in self.working and not row['retry']:
+                self.request(identifier, lambda identifier=identifier: self.client.command_status(identifier), self._native_status)
+        if hasattr(self, 'guards'): self.guards.refresh()
 
     def run(self):
         if self.pending:
@@ -177,8 +243,16 @@ class Connection:
         if state == 'SUCCEEDED':
             self.pending.update(stage='submit', retry=False)
             self.submit()
+        elif state == 'INTERRUPTED' and command.get('completion_recoverable'):
+            # Export may finish after its HTTP completion channel timed out.
+            # Preserve the acknowledged identity: retry can recover that
+            # receipt, but must never freeze the edited document a second time.
+            self.pending.update(stage='command', retry=True)
+            self.message.setText('Native export completion is unconfirmed. Retry checks this same export; '
+                                 'it does not repeat it or submit a new calculation.')
         elif state in {'FAILED', 'CANCELLED', 'INTERRUPTED'}:
-            error = command.get('outcome', {}).get('error') or command.get('error', {})
+            outcome = command.get('outcome', {})
+            error = outcome.get('result', {}).get('error') or outcome.get('error') or command.get('error', {})
             self.message.setText(state + ': ' + error.get('message', 'No calculation submitted. Input and previous results remain.'))
             self.pending = None
         else:
@@ -191,6 +265,11 @@ class Connection:
         def submitted(value):
             self.pending = None
             self.message.setText('Submitted ' + value['job']['id'] + '. Further editing belongs to a new input; this job keeps its snapshot.')
+            try:
+                owner = next(item[0] for item in self.owners.values() if item[0].document_id == value['origin']['document_id'])
+                self.submit_native('pre.links.record', {'job_id': value['job']['id']}, owner=owner)
+            except Exception as error:
+                self.message.setText('Job submitted; design link needs explicit retry: ' + str(error))
             self.open_runner(value['job']['id'])
         self.request('submit', lambda: self.client.native_submit(identifier), submitted)
 
@@ -200,8 +279,14 @@ class Connection:
             self.request('cancel', lambda: self.client.command_cancel(identifier), self.command_status)
 
     def retry(self):
-        if not self.pending or self.working:
+        if self.working:
             return
+        for identifier, row in list(self.native_requests.items()):
+            if row['retry']:
+                row['retry'] = False
+                self._send_native(identifier)  # Exact identity: unknown submission is sent once; an existing one is only queried.
+                return
+        if not self.pending: return
         self.pending['retry'] = False
         if self.pending['stage'] == 'submit':
             self.submit()
@@ -217,15 +302,87 @@ class Connection:
             environment.pop(key, None)
         subprocess.Popen(command, cwd=str(Path(__file__).resolve().parents[2]), env=environment)
 
+    def open_post(self, identifier):
+        def resolved(value):
+            post = value.get('post_input')
+            if not post:
+                raise ValueError('This job has no completed registered Post field. Open its Runner diagnostics.')
+            command = [self.config['python'], '-m', 'apps.research.desktop', '--service', self.config['service_url'],
+                       'post', '--input-id', post['id'], '--job-id', identifier]
+            environment = os.environ.copy()
+            for key in ('PYTHONHOME', 'PYTHONPATH', 'QT_PLUGIN_PATH', 'QML2_IMPORT_PATH', 'LD_LIBRARY_PATH'):
+                environment.pop(key, None)
+            subprocess.Popen(command, cwd=str(Path(__file__).resolve().parents[2]), env=environment)
+        self.request('post-navigation', lambda: self.client.job_navigation(identifier), resolved)
+
+    def show_panel(self, kind, *, owner=None):
+        owner = owner or self.active_owner()
+        panels = self.panels.setdefault(owner.doc.Name, {})
+        if kind not in panels:
+            from importlib import import_module
+            modules = {'parameters': ('parameter_panel', owner.parameters, 'Research variables'),
+                       'motion': ('motion_panel', owner.motion, 'Assembly motion'),
+                       'fem': ('fem_panel', owner.fem, 'Mesh, regions and conditions')}
+            if kind == 'project':
+                from .native_controls import project_panel
+                widget = project_panel(self, owner)
+                title = 'Project and calculations'
+            else:
+                module, editor, title = modules[kind]
+                factory = import_module('apps.desktop_pre.' + module).make_panel
+                submit = lambda operation, args, target=None, on_done=None: self.submit_native(operation, args, target, on_done, owner=owner)
+                if kind == 'motion':
+                    widget = factory(self.QtCore, self.QtWidgets, submit,
+                                     read=lambda: dict(owner.descriptor(), session_id=owner.session_id))
+                else:
+                    widget = factory(self.QtWidgets, self.QtCore, editor, submit)
+            dock = self.QtWidgets.QDockWidget(title + ' · ' + owner.doc.Label, self.Gui.getMainWindow())
+            dock.setObjectName('CAELab-' + kind + '-' + owner.document_id)
+            dock.setWidget(widget); dock.resize(720, 520)
+            self.Gui.getMainWindow().addDockWidget(self.QtCore.Qt.RightDockWidgetArea, dock)
+            panels[kind] = dock
+        panels[kind].show(); panels[kind].raise_()
+
     def reconnect(self):
-        if self.pending:
+        if self.pending or self.native_requests:
             self.message.setText('Resolve the pending command first. A disconnected applying command is not automatically replayed.')
             return
-        for owner, dispatch, broker in self.owners.values():
-            dispatch.close()
-        self.owners.clear()
         def connected(context):
+            # Keep observing the live CAD while the context request is in
+            # flight. A network failure must not discard its save destination
+            # or leave dock controls pointing to a closed owner.
+            if self.pending or self.native_requests:
+                self.message.setText('A command started while reconnecting. Resolve it before changing the owner session.')
+                return
+            previous = list(self.owners.items())
+            for _, (owner, _, _) in previous:
+                owner.before_design_action('reconnect')
+            retained = []
+            for name, (owner, dispatch, _) in previous:
+                visible = [kind for kind, dock in self.panels.get(name, {}).items() if dock.isVisible()]
+                retained.append((owner.doc, owner.document_id, owner.generation, owner.saved_generation,
+                    owner.project.path, deepcopy(owner.project.last_save), owner.project.last_failure,
+                    owner.recovery_error, visible))
+                dispatch.close()
+                for dock in self.panels.pop(name, {}).values():
+                    dock.close(); dock.deleteLater()
+            self.owners.clear()
             self.config.update(export_root=context['export_root'], python=context['python'])
+            live = self.App.listDocuments()
+            for doc, identifier, generation, saved, path, last_save, failure, recovery, _ in retained:
+                if live.get(doc.Name) is not doc:
+                    continue
+                owner, dispatch, broker = bridge.start(doc, self.config, self.QtCore, log=self.log, document_id=identifier)
+                owner.generation, owner.saved_generation = generation, saved
+                owner.project.path, owner.project.last_save, owner.project.last_failure = path, last_save, failure
+                owner.recovery_error = recovery
+                owner.find_owner = lambda linked: next((row[0] for row in self.owners.values() if row[0].doc is linked), None)
+                self.owners[doc.Name] = owner, dispatch, broker
+            for doc, *_, visible in retained:
+                binding = self.owners.get(doc.Name)
+                if binding and binding[0].doc is doc:
+                    for kind in visible:
+                        self.show_panel(kind, owner=binding[0])
             self.message.setText('New native owner session; previous session commands remain separate.')
         self.request('reconnect', self.client.desktop_context, connected)
 

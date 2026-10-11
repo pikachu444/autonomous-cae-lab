@@ -208,7 +208,12 @@ def validate_snapshot(path):
         if len(data) != row["bytes"] or hashlib.sha256(data).hexdigest() != row["sha256"]:
             raise ValueError("Frozen input hash/size mismatch: " + relative)
         pins[relative] = {"bytes": row["bytes"], "sha256": row["sha256"]}
-    if set(pins) != {"snapshot.json", "editable.FCStd", "mesh.json", entry} or path.name != "snapshot.json":
+    expected = {"snapshot.json", "editable.FCStd", "mesh.json", entry}
+    if manifest.get('editable_project') == 'editable.caepre':
+        expected.add('editable.caepre')
+    elif manifest.get('editable_project') is not None:
+        raise ValueError('Unsupported retained editable project member')
+    if set(pins) != expected or path.name != "snapshot.json":
         raise ValueError("Frozen snapshot requires exactly manifest, editable copy, mesh and unsplit deck")
     mesh = json.loads(_read(path.parent / "mesh.json").decode("utf-8"))
     nodes, elements, fixed, loads = _mesh(mesh)

@@ -5,6 +5,8 @@ syntax, isolated execution and actual output admission. It reuses only existing
 runtime/compiler helpers; neither elasticity nor inverse feedback is executed.
 """
 
+from . import declared_native_inputs as native_inputs
+
 from copy import deepcopy
 import hashlib
 import math
@@ -322,7 +324,7 @@ class MFrontViscoelasticAdapter:
         "analytical_tangent_relative_error",
         *["fd_tangent_relative_error_" + format(h, ".0e") for h in material.FIXED_LIMITS["finite_difference_steps"]],
         "stress_history", "branch_stress_history", "native_energy_history", "reference_work_history"]
-    input_source_files = SOURCE_FILES
+    input_source_files = (*SOURCE_FILES, native_inputs.SOURCE)
 
     def __init__(self):
         self._configuration = _configuration()
@@ -334,6 +336,12 @@ class MFrontViscoelasticAdapter:
         _assert_sources(output)
         if self._configuration != _configuration() or self._budgets != process_policy.process_budgets():
             raise RuntimeError("Frozen deployment environment changed; create a new source/run checkpoint")
+
+    def describe_inputs(self, settings):
+        return native_inputs.describe(self.backend, settings)
+
+    def bind_inputs(self, settings, values):
+        return native_inputs.bind(self.backend, settings, values)
 
     def describe_model(self, settings):
         settings = worker.native_preflight(material.validate_settings(settings))

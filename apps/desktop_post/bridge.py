@@ -12,6 +12,7 @@ import secrets
 import threading
 import time
 import uuid
+from copy import deepcopy
 
 from caelab.native_transport import DispatchGate
 
@@ -75,6 +76,11 @@ class Owner:
             raise ValueError("The current Post bridge supports independent external-result documents")
         self.document_id = document_id or doc.get("document_id") or "D" + uuid.uuid4().hex
         self.project_root = Path(doc.get("project_root", path.parent)).resolve()
+        self.project_path = Path(path)
+        self.project_document = deepcopy(doc)
+        if hasattr(external, 'recovery_records') and external.recovery_records():
+            self.project_document['repair'] = external.recovery_records()
+            self.project_document['partial_workspace'] = True
         self.title = path.parent.name
         self.saved_revision = doc.get("workspace_sha256")
         self.saved_generation = 0
@@ -88,7 +94,31 @@ class Owner:
         self._observers = {}
         self.completed = {}
         self.modified_events = 0
+        self.workspace = None
+        if 'sources' in doc:
+            try:
+                from .workspace import Workspace
+            except ImportError:
+                from workspace import Workspace
+            self.workspace = Workspace(self, self.project_document)
+            self.workspace.restore_selection()
         self.refresh()
+
+    native_properties = staticmethod(properties)
+    proxy_id = staticmethod(proxy_id)
+
+    def current_project(self):
+        self.assert_thread()
+        return self.project_path, deepcopy(self.project_document)
+
+    def operations(self):
+        if self.workspace is None:
+            return OPERATIONS
+        try:
+            from .workspace import OPERATIONS as extra
+        except ImportError:
+            from workspace import OPERATIONS as extra
+        return OPERATIONS + extra
 
     def assert_thread(self):
         if threading.get_ident() != self.thread:
@@ -137,7 +167,9 @@ class Owner:
                          "pid": os.getpid(), "sources": list(sources.values()), "views": list(views.values()),
                          "representations": representations, "time": view_state["time"],
                          "active_source_id": view_state["active_source_id"], "active_view_id": view_state["active_view_id"],
-                         "fresh": True, "supports": list(OPERATIONS), "supports_cancel": "queued_only"}
+                         "fresh": True, "supports": list(self.operations()), "supports_cancel": "queued_only"}
+        if self.workspace is not None:
+            self.snapshot['analysis'] = self.workspace.describe()
         return self.snapshot
 
     def _modified(self, source):
@@ -156,21 +188,33 @@ class Owner:
         return {"id": self.document_id, "kind": "post", "title": self.title,
                 "generation": self.generation, "view_generation": self.view_generation,
                 "dirty": (self.generation != self.saved_generation or self.view_generation != self.saved_view_generation),
-                "saved_revision": self.saved_revision, "capabilities": list(OPERATIONS), "state": self.snapshot}
+                "saved_revision": self.saved_revision, "capabilities": list(self.operations()), "state": self.snapshot}
 
     def save_project(self):
         """Complete the same managed save for human macros and typed commands."""
         self.refresh()
         if any(item["pending_properties"] for item in self.snapshot["sources"] + self.snapshot["views"] + list(self.snapshot["representations"].values())):
             raise ValueError("BUSY_EDIT: native properties contain unapplied changes")
-        path, doc = commands.verify_sources()
+        # External save verifies the healthy sources and retained analysis, and
+        # preserves unavailable branches with explicit repair records. A global
+        # source check here would make a partially recovered document unsavable.
+        path, doc = commands.project()
         if (doc.get("kind") != external.KIND or doc.get("document_id", self.document_id) != self.document_id
                 or Path(doc.get("project_root", path.parent)).resolve() != self.project_root):
             raise ValueError("STALE_DOCUMENT: managed save belongs to a different document")
+        if self.workspace is not None:
+            self.workspace.prepare_for_save()
+            self.refresh()
         generation, view_generation = self.generation, self.view_generation
-        saved = external.save_project(path, dict(doc, document_id=self.document_id,
-                                                generation=generation, view_generation=view_generation))
-        revision = json.loads(saved.read_text(encoding="utf-8"))["workspace_sha256"]
+        source_doc = self.project_document if self.workspace is not None else doc
+        options = {'prepare': self.workspace.prepare_save} if self.workspace is not None else {}
+        saved = external.save_project(path, dict(source_doc, document_id=self.document_id,
+                                                generation=generation, view_generation=view_generation), **options)
+        saved_doc = json.loads(saved.read_text(encoding="utf-8"))
+        revision = saved_doc["workspace_sha256"]
+        self.project_path = Path(saved)
+        self.project_document.clear()
+        self.project_document.update(saved_doc)
         self.refresh()
         # Publish save completion only after the native save and manifest succeed.
         self.saved_revision = revision
@@ -198,7 +242,7 @@ class Owner:
             if type(expected) is not int or expected != self.generation:
                 raise ValueError("STALE_DOCUMENT: generation changed")
             operation = request.get("operation")
-            if operation not in OPERATIONS:
+            if operation not in self.operations():
                 raise ValueError("UNSUPPORTED_COMMAND: " + str(operation))
             arguments = request.get("arguments", {})
             if not isinstance(arguments, dict):
@@ -220,6 +264,11 @@ class Owner:
                     if available and float(p.GetAnimationScene().AnimationTime) not in available:
                         raise ValueError("TIME_SELECTION_UNSUPPORTED: select an exact native frame before inspecting its values")
                     payload["data"] = external.inspect_result(source)
+            elif operation not in OPERATIONS:
+                if target:
+                    raise ValueError('Analysis commands use stable source_ref/object_ref arguments')
+                payload = self.workspace.dispatch(operation, arguments)
+                self.refresh()
             else:
                 if any(item["pending_properties"] for item in self.snapshot["sources"] + self.snapshot["views"] + list(self.snapshot["representations"].values())):
                     raise ValueError("BUSY_EDIT: native properties contain unapplied changes")

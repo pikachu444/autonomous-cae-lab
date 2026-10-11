@@ -5,6 +5,8 @@ MED asset, pinned native syntax/execution, source identity and original tables.
 """
 from __future__ import annotations
 
+from . import declared_native_inputs as native_inputs
+
 from copy import deepcopy
 import hashlib
 import json
@@ -136,6 +138,8 @@ def _numerical_observation(observation: dict) -> dict:
 
 
 class CodeAsterContactPatchAdapter:
+    input_source_files = (*_SOURCES.values(), native_inputs.SOURCE)
+
     backend = "structural.code_aster.contact_patch"
     version = "1.1"
     domain = "contact_patch"
@@ -149,6 +153,18 @@ class CodeAsterContactPatchAdapter:
         "slave_normal_traction_min", "slave_normal_traction_max",
         "derived_projected_gap_min", "derived_projected_gap_max", "derived_projected_gap_max_absolute",
     ]
+
+    def describe_inputs(self, settings):
+        return native_inputs.describe(self.backend, settings)
+
+    def bind_inputs(self, settings, values):
+        return native_inputs.bind(self.backend, settings, values)
+
+    def input_runtime_identity(self):
+        return native_inputs.aster_runtime_identity()
+
+    def expected_input_declaration(self, settings):
+        return native_inputs.expected_declaration(self.backend, settings)
 
     def describe_model(self, settings: dict) -> dict:
         declaration = deepcopy(domain.model_declaration(settings))

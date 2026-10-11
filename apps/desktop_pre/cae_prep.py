@@ -28,6 +28,7 @@ except ImportError:
 CONFIG = {}
 KEEP = []
 ISOLATION = {}
+CONNECTION = None
 
 
 def record(event, **values):
@@ -47,8 +48,13 @@ def guarded(fn):
     return invoke
 
 
-def working_copy(path):
+def working_copy(path, approved_root=None):
     source = Path(path).resolve(strict=True)
+    if source.suffix.lower() in {'.fcstd', '.caepre'}:
+        from caelab import native_cad
+        folder = Path(CONFIG['output']) / 'imports' / str(time.time_ns())
+        manifest, copy = native_cad.working_copy(source, folder, approved_root=approved_root)
+        return copy, manifest
     with source.open('rb') as stream:
         digest = hashlib.file_digest(stream, 'sha256').hexdigest()
     folder = Path(CONFIG['output']) / 'imports' / (str(time.time_ns()) + '_' + digest[:10])
@@ -60,12 +66,12 @@ def working_copy(path):
     if copied_digest != digest:
         raise RuntimeError('복사 중 입력 파일이 변경되었습니다. 새 작업으로 다시 여세요.')
     record('source_copy', source=str(source), copy=str(copy), sha256=digest)
-    return copy
+    return copy, {}
 
 
-def load(path):
+def load(path, approved_root=None):
     started = time.perf_counter()
-    copy = working_copy(path)
+    copy, manifest = working_copy(path, approved_root)
     if copy.suffix.lower() == '.fcstd':
         doc = App.openDocument(str(copy))
     else:
@@ -75,6 +81,8 @@ def load(path):
         doc.recompute()
         doc.saveAs(str(copy.with_suffix('.FCStd')))
     doc.UndoMode = 1
+    from apps.desktop_pre.projects import remember_open
+    remember_open(doc, manifest, path)
     Gui.activeDocument().activeView().viewAxonometric()
     Gui.activeDocument().activeView().fitAll()
     record('open', document=doc.Name, objects=len(doc.Objects), seconds=time.perf_counter()-started,
@@ -85,12 +93,22 @@ def load(path):
 
 def open_model():
     path, _ = QtWidgets.QFileDialog.getOpenFileName(Gui.getMainWindow(), '모델 열기 — 원본은 보존됩니다', '',
-                                                  'CAD (*.FCStd *.step *.stp *.iges *.igs);;All files (*)')
+                                                  'CAD/project (*.caepre *.FCStd *.step *.stp *.iges *.igs);;All files (*)')
     if path:
-        load(path)
+        try:
+            load(path)
+        except ValueError as error:
+            if 'outside the approved CAD root' not in str(error):
+                raise
+            folder = QtWidgets.QFileDialog.getExistingDirectory(Gui.getMainWindow(),
+                '선택한 CAD와 외부 Link 문서를 포함하는 폴더', str(Path(path).parent))
+            if folder: load(path, approved_root=folder)
 
 
 def save_as():
+    if CONNECTION is not None:
+        CONNECTION.guards.save(as_new=True)
+        return
     doc = App.ActiveDocument
     if not doc:
         return
@@ -111,6 +129,8 @@ def update_caption():
 
 
 def switch(name):
+    if CONNECTION is not None and App.ActiveDocument is not None:
+        CONNECTION.active_owner().before_design_action('workbench switch')
     if Gui.activeDocument() and Gui.activeDocument().getInEdit():
         raise ValueError('현재 편집을 완료하거나 취소한 후 작업대를 전환하세요.')
     Gui.activateWorkbench(name)
@@ -296,6 +316,7 @@ def start(config_path):
     output = Path(CONFIG['output'])
     output.mkdir(parents=True, exist_ok=True)
     def setup():
+        global CONNECTION
         try:
             if CONFIG.get('gmsh'):
                 App.ParamGet('User parameter:BaseApp/Preferences/Mod/Fem/Gmsh').SetString('gmshBinaryPath', CONFIG['gmsh'])
@@ -315,13 +336,22 @@ def start(config_path):
                     doc.Label = CONFIG['source_label']
             if CONFIG.get('assembly'):
                 doc = load(CONFIG['assembly'])
-                doc.Label = '굽힘 시험 지그 조립 — STEP 원본 복사'
+            if not App.ActiveDocument:
+                doc = App.newDocument('ResearchDesign')
+                doc.UndoMode = 1
             if Gui.activeDocument():
                 Gui.activeDocument().activeView().viewAxonometric()
                 Gui.activeDocument().activeView().fitAll()
             if CONFIG.get('service_url'):
                 from apps.desktop_pre.connection import Connection
-                KEEP.append(Connection(CONFIG, App, Gui, QtCore, QtWidgets, log=record))
+                from apps.desktop_pre.native_controls import install
+                CONNECTION = Connection(CONFIG, App, Gui, QtCore, QtWidgets, log=record)
+                CONNECTION.guards = install(CONNECTION, guarded(open_model))
+                KEEP.append(CONNECTION)
+                if CONFIG.get('input_receipt'):
+                    owner = CONNECTION.active_owner()
+                    owner.project.open(CONFIG['input_receipt'])
+                    CONNECTION.tick()
             def final_view():
                 if Gui.activeDocument():
                     Gui.activeDocument().activeView().viewAxonometric()

@@ -14,11 +14,11 @@ import sys
 import time
 import uuid
 
-from caelab.storage import check_id
+from caelab.storage import check_id, save_json
 from caelab.workbench_client import Client
 
 
-TOOLS = {'material', 'data', 'numerical', 'runner'}
+TOOLS = {'material', 'data', 'numerical', 'pde', 'expert', 'runner', 'simulation', 'evaluation', 'study'}
 
 
 def _spawn(client, arguments):
@@ -32,12 +32,137 @@ def _spawn(client, arguments):
     return {'status': 'LAUNCH_REQUESTED', 'pid': process.pid, 'service_url': client.url}
 
 
-def launch_post(client, input_id, job_id=None, parent=None):
+def launch_post(client, input_id, job_id=None, parent=None, *, research_source=None):
     """Open one registered result asynchronously; job_id enables return to design."""
     arguments = ['post', '--input-id', check_id(input_id)]
     if job_id:
         arguments += ['--job-id', check_id(job_id)]
+    if research_source is not None:
+        if not job_id:
+            raise ValueError('A retained stage source requires its exact parent job')
+        arguments += ['--research-source', json.dumps(research_source, ensure_ascii=False)]
     return _spawn(client, arguments)
+
+
+def _post_result_sources(client, job_id, research_source=None):
+    if research_source is None:
+        result = client.job_navigation(check_id(job_id))
+    else:
+        if not isinstance(research_source, dict):
+            raise ValueError('Select an exact retained stage source')
+        keys = set(research_source)
+        if keys == {'document_id', 'attempt_id'}:
+            result = client.evaluation_stage_result(research_source['document_id'], job_id,
+                research_source['attempt_id'], selection={'metadata_only': True})
+        elif keys == {'document_id', 'candidate_id', 'evaluation_index', 'attempt_id'}:
+            result = client.numerical_evaluation_result(research_source['document_id'], job_id,
+                research_source['candidate_id'], evaluation_index=research_source['evaluation_index'],
+                attempt_id=research_source['attempt_id'], selection={'metadata_only': True})
+        else:
+            raise ValueError('Choose the exact evaluation/stage or numerical candidate/stage')
+    return [result.get('post_input') or {}, *result.get('post_inputs', [])]
+
+
+def open_document_result(client, document_id, job_id, *, study_index=None):
+    """Open an exact retained field set; mesh studies are separate results."""
+    document = client.document_read(check_id(document_id))
+    if not any(run['job_id'] == job_id for run in document.get('runs', [])):
+        raise ValueError('Selected result does not belong to this document')
+    result = client.document_result(document_id, check_id(job_id), selection={'metadata_only': True})
+    choices = result.get('post_inputs', [])
+    if study_index is not None:
+        if type(study_index) is not int or study_index < 0:
+            raise ValueError('Choose an exact retained mesh study index')
+        post = next((item for item in choices if item.get('study_index') == study_index), None)
+    else:
+        post = result.get('post_input')
+    if not post or not post.get('id'):
+        raise ValueError('This selected result has no registered Post field set; inspect its actual diagnostics')
+    native = client.native_input(check_id(post['id']))
+    if native.get('sha256') != post.get('sha256'):
+        raise ValueError('Registered Post input differs from the retained result')
+    return launch_post(client,post['id'],job_id=job_id)
+
+
+def open_discussion_plan(client, discussion_id, turn_id, proposal_index, *, command_id=None):
+    document = client.document_read(check_id(discussion_id))
+    receipt = client.discussion_plan(discussion_id,turn_id,proposal_index,
+        session_id=document['session_id'],command_id=command_id or 'C'+uuid.uuid4().hex)
+    target = receipt['document']
+    if target.get('kind') != 'numerical' or receipt.get('executed') is not False:
+        raise ValueError('The selected proposal did not produce an unexecuted Numerical document')
+    result = launch_tool(client,'numerical',document_id=target['id'])
+    return {**result,'document_id':target['id'],'executed':False}
+
+
+def open_pde_plan(client, document_id, *, session_id, expected_generation, command_id=None):
+    receipt = client.pde_plan(document_id,session_id=session_id,expected_generation=expected_generation,
+        command_id=command_id or 'C'+uuid.uuid4().hex)
+    target = receipt['document']
+    if target.get('kind') != 'numerical' or receipt.get('executed') is not False:
+        raise ValueError('The PDE input did not produce an unexecuted Numerical document')
+    return {**launch_tool(client,'numerical',document_id=target['id']),'document_id':target['id'],'executed':False}
+
+
+def open_domain_plan(client, document_id, *, session_id, expected_generation, command_id=None):
+    receipt = client.domain_plan(document_id,session_id=session_id,expected_generation=expected_generation,
+        command_id=command_id or 'C'+uuid.uuid4().hex)
+    target=receipt['document']
+    if target.get('kind')!='numerical' or receipt.get('executed') is not False:
+        raise ValueError('The source did not produce an unexecuted Numerical Plan')
+    return {**launch_tool(client,'numerical',document_id=target['id']),'document_id':target['id'],'executed':False}
+
+
+def open_stage_result(client, document_id, job_id, attempt_id):
+    result=client.evaluation_stage_result(document_id,job_id,attempt_id,selection={'metadata_only':True})
+    post=result.get('post_input')
+    if not post:
+        raise ValueError('This actual stage has no registered field set; its retained response/diagnostics remain in Evaluation')
+    native=client.native_input(post['id'])
+    if native.get('sha256')!=post['sha256']:
+        raise ValueError('Stage field registration differs from the retained result')
+    return launch_post(client,post['id'],job_id=job_id,
+        research_source={'document_id':document_id,'attempt_id':attempt_id})
+
+
+def open_saved_reference(client, reference):
+    if reference.get('kind') in {'material','pde','simulation','evaluation'}:
+        reference={**reference,'document_kind':reference['kind'],'kind':'document'}
+    # Read exact ownership before launching a read-only reference view. Its
+    # original owner draft remains editable and is never replaced by old input.
+    client.research_reference(reference)
+    context=client.desktop_context()
+    process=subprocess.Popen([context['python'],'-m','apps.research.reference_window',
+        '--service',client.url,'--reference',json.dumps(reference,ensure_ascii=False)],cwd=context['repo_root'],
+        env=dict(os.environ,CAELAB_SERVICE_URL=client.url))
+    return {'status':'LAUNCH_REQUESTED','pid':process.pid,'reference':reference}
+
+
+def open_study_followup(client, context, kind):
+    document=client.document_read(context['study_id'])
+    receipt=client.study_followup(context,kind,session_id=document['session_id'],command_id='C'+uuid.uuid4().hex)
+    if receipt.get('executed') is not False:
+        raise ValueError('The Study handoff did not confirm an unexecuted editor')
+    return {**launch_tool(client,kind,document_id=receipt['document']['id']),'executed':False}
+
+
+def open_evidence_reference(client, reference):
+    """Resolve the selected source identity without widening its access scope."""
+    if not isinstance(reference,dict):
+        raise ValueError('Choose an explicit retained reference')
+    job_id = reference.get('job_id')
+    if job_id:
+        document = client.document_read(check_id(reference['document_id']))
+        run = next((row for row in document.get('runs', []) if row['job_id'] == job_id),None)
+        if run is None or any(run.get(key) != reference.get(key) for key in ('input_revision','input_sha256')):
+            raise ValueError('Source job and exact submitted input do not match this reference')
+        client.document_result(document['id'],job_id,selection=reference.get('selection', []))
+        return launch_tool(client,'runner',job_id=job_id)
+    if reference.get('document_id'):
+        source = {key:reference[key] for key in ('document_id','revision','locator') if key in reference}
+        return {'status':'SOURCE_READ','source':client.request('/api/workbench/assist',
+            {'operation':'knowledge.source','arguments':source})}
+    raise ValueError('This reference has no supported saved document/result locator; its citation remains visible')
 
 
 def launch_pre(client, source=None, parent=None):
@@ -73,7 +198,7 @@ def launch_tool(client, tool, job_id=None, document_id=None, parent=None):
             return launch_post(client, post['id'], job_id=job_id, parent=parent)
         return _spawn(client, ['post'])
     if tool not in TOOLS:
-        raise ValueError('Choose Material, Data, Numerical or Runner')
+        raise ValueError('Choose an independently supported research editor or Runner')
     if (tool == 'runner' and document_id) or (tool != 'runner' and job_id):
         raise ValueError('Runner selects a job; research editors select a document')
     arguments = [tool]
@@ -161,6 +286,13 @@ def _pre(client, args):
     folder = _folder(context, 'pre', args.output)
     config = {'output':str(folder), 'service_url':client.url,
               'export_root':context['export_root'], 'python':context['python']}
+    if getattr(args, 'input_id', None):
+        if args.source or args.assembly:
+            raise ValueError('Choose a registered design input or a direct native source')
+        receipt = client.native_input(args.input_id)
+        if receipt.get('kind') != 'native_design':
+            raise ValueError('Choose a registered editable FCStd/CAEPRE input')
+        config['input_receipt'] = receipt
     for name in ('source', 'assembly'):
         value = getattr(args, name)
         if value:
@@ -190,13 +322,17 @@ def _post(client, args):
     context = client.desktop_context()
     executable = _executable(context, 'paraview_executable', args.executable, not args.prepare_only)
     home = Path(context['repo_root']) / 'apps/desktop_post'
+    source_text = getattr(args, 'research_source', None)
+    research_source = json.loads(source_text) if source_text is not None else None
+    if research_source is not None and not args.job_id:
+        raise ValueError('A stage source requires the exact parent job')
     if args.project:
         project = Path(args.project).resolve(strict=True)
         folder = _folder(context, 'post', args.output)
     else:
         if args.job_id:
-            selected = client.job_navigation(check_id(args.job_id)).get('post_input') or {}
-            if not args.input_id or selected.get('id') != args.input_id:
+            selected = _post_result_sources(client, check_id(args.job_id), research_source)
+            if not args.input_id or args.input_id not in {item.get('id') for item in selected}:
                 raise ValueError('Open the selected job using its exact registered Post input')
         folder = _folder(context, 'post', args.output)
         pvpython = executable.with_name('pvpython.exe' if executable.suffix.lower() == '.exe' else 'pvpython')
@@ -218,6 +354,24 @@ def _post(client, args):
     state = (project.parent / document['workspace_file']).resolve(strict=True)
     if not state.is_file():
         raise ValueError('The selected Post project has no native workspace state')
+    origin_job_id = args.job_id or document.get('origin_job_id')
+    if args.job_id:
+        if args.project and research_source is None:
+            research_source = document.get('origin_research_source')
+        selected = _post_result_sources(client, check_id(args.job_id), research_source)
+        expected = {item.get('id') for item in selected} - {None}
+        actual = {record.get('input_id') for record in document.get('sources', {}).values()}
+        if not expected.intersection(actual) or (args.input_id and (args.input_id not in expected or args.input_id not in actual)):
+            raise ValueError('The requested Post project does not belong to the selected job')
+    if origin_job_id:
+        document['origin_job_id'] = check_id(origin_job_id)
+        if research_source is not None:
+            document['origin_research_source'] = research_source
+    # Native save_project preserves these top-level fields, allowing an explicit
+    # saved/reopened analysis to return to its design through the same helper.
+    if not args.project:
+        document.update(desktop_python=context['python'], repo_root=context['repo_root'], service_url=client.url)
+        save_json(project, document)
     if args.prepare_only:
         return {'status':'PREPARED', 'project':str(project), 'state':str(state)}
     environment = dict(os.environ, PV_MACRO_PATH=str(home / ('macros_external' if document.get('kind') == 'external-result' else 'macros')),
@@ -226,26 +380,8 @@ def _post(client, args):
         CAELAB_DESKTOP_PYTHON=context['python'], CAELAB_REPO_ROOT=context['repo_root'])
     # Prevent an inherited Post origin from attaching itself to an unrelated input.
     environment.pop('CAELAB_ORIGIN_JOB_ID', None)
-    origin_job_id = args.job_id or document.get('origin_job_id')
-    if args.job_id:
-        navigation = client.job_navigation(check_id(args.job_id))
-        expected = (navigation.get('post_input') or {}).get('id')
-        actual = {record.get('input_id') for record in document.get('sources', {}).values()}
-        if not expected or expected not in actual or (args.input_id and expected != args.input_id):
-            raise ValueError('The requested Post project does not belong to the selected job')
     if origin_job_id:
-        environment['CAELAB_ORIGIN_JOB_ID'] = check_id(origin_job_id)
-        document['origin_job_id'] = origin_job_id
-    # Native save_project preserves these top-level fields, allowing an explicit
-    # saved/reopened analysis to return to its design through the same helper.
-    if not args.project:
-        document.update(desktop_python=context['python'], repo_root=context['repo_root'], service_url=client.url)
-        temporary = project.with_name('launch-' + uuid.uuid4().hex + '.json')
-        try:
-            temporary.write_text(json.dumps(document, ensure_ascii=False, indent=2, allow_nan=False) + '\n', encoding='utf-8')
-            temporary.replace(project)
-        finally:
-            if temporary.exists(): temporary.unlink()
+        environment['CAELAB_ORIGIN_JOB_ID'] = origin_job_id
     # Reopening a retained revision updates only the launch environment. Neither
     # runtime metadata nor startup logs are written into that saved revision.
     process = subprocess.Popen([str(executable), '--disable-registry', '--script=' + str(home / 'startup.py'),
@@ -259,6 +395,7 @@ def _arguments(argv=None):
     sub = parser.add_subparsers(dest='tool', required=True)
     pre = sub.add_parser('pre')
     pre.add_argument('--source'); pre.add_argument('--assembly'); pre.add_argument('--source-label'); pre.add_argument('--gmsh')
+    pre.add_argument('--input-id')
     post = sub.add_parser('post')
     choice = post.add_mutually_exclusive_group()
     choice.add_argument('--project'); choice.add_argument('--input-path'); choice.add_argument('--input-id')
@@ -269,6 +406,7 @@ def _arguments(argv=None):
     for tool in (pre, post):
         tool.add_argument('--executable'); tool.add_argument('--output'); tool.add_argument('--prepare-only', action='store_true')
     post.add_argument('--job-id')
+    post.add_argument('--research-source')
     return parser.parse_args(argv)
 
 

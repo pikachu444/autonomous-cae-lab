@@ -1,5 +1,7 @@
 """Bounded SVK declared material point over the existing owned native transport."""
 
+from . import declared_native_inputs as native_inputs
+
 from copy import deepcopy
 import hashlib
 import json
@@ -180,6 +182,8 @@ def _native_rejection(raw, settings):
 
 
 class MFrontHyperelasticAdapter:
+    input_source_files = (*_SOURCES.values(), native_inputs.SOURCE)
+
     backend = "material.mfront.hyperelastic"
     version = "1"
     domain = "hyperelastic"
@@ -189,6 +193,15 @@ class MFrontHyperelasticAdapter:
         "tangent_major_symmetry_relative_error", "native_energy_density_error", "probe_pk1_stress_error", "probe_native_energy_density_error",
         "cross_driver_stress_error", *[prefix + str(h) for h in (1e-7, 1e-8, 1e-9) for prefix in
             ("fd_tangent_vs_native_", "fd_tangent_vs_reference_", "fd_energy_gradient_vs_native_", "fd_energy_gradient_vs_reference_")]]
+
+    def describe_inputs(self, settings):
+        return native_inputs.describe(self.backend, settings)
+
+    def bind_inputs(self, settings, values):
+        return native_inputs.bind(self.backend, settings, values)
+
+    def input_runtime_identity(self):
+        return native_inputs.material_runtime_identity()
 
     def describe_model(self, settings):
         return domain.model_declaration(settings)

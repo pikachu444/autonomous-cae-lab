@@ -4,8 +4,8 @@ import math
 from pathlib import Path
 import shutil
 
-from .adapters.file_table import preview_table
-from .evaluation import file_hash
+from .adapters.file_table import preview_table, validate_row_selection
+from .evaluation import file_hash, save_evaluation, read_result
 from .material_document import MaterialDocuments
 from .storage import canonical_hash, check_id, load_json, save_json
 
@@ -18,13 +18,16 @@ def default_draft():
 
 
 def diagnostics(draft):
-    """Preserve all JSON drafts; only explicit supported mappings can be imported."""
+    """Preserve invalid drafts; import requires explicit meaning for every channel."""
     try:
-        if not isinstance(draft, dict) or set(draft) != {'data_id', 'mapping'}:
-            raise ValueError('Data draft requires only data_id and mapping; hidden execution overrides are unsupported')
+        if not isinstance(draft, dict) or not {'data_id', 'mapping'} <= set(draft) or set(draft) - {'data_id', 'mapping', 'test_metadata'}:
+            raise ValueError('Data draft requires data_id and mapping; only explicit test_metadata may be added')
         check_id(draft['data_id'])
         if not draft['data_id'].startswith('D'):
             raise ValueError('Choose a registered data input')
+        metadata = draft.get('test_metadata', {})
+        if not isinstance(metadata, dict) or set(metadata) - {'test_id', 'specimen', 'protocol', 'temperature'} or any(not isinstance(value, str) for value in metadata.values()):
+            raise ValueError('Test metadata uses explicitly supplied test_id, specimen, protocol and temperature text')
         mapping = draft['mapping']
         allowed = {'delimiter', 'skip_header', 'columns', 'candidate_id', 'case_id'}
         if not isinstance(mapping, dict) or set(mapping) - allowed or 'columns' not in mapping:
@@ -37,31 +40,32 @@ def diagnostics(draft):
         if type(mapping.get('skip_header', 0)) is not int or mapping.get('skip_header', 0) < 0:
             raise ValueError('Skipped header rows must be a nonnegative integer')
         columns = mapping['columns']
-        if not isinstance(columns, dict) or len(columns) != 1:
-            raise ValueError('This Data editor imports one scalar response and one explicit axis')
-        name, response = next(iter(columns.items()))
-        if not isinstance(name, str) or not name.strip():
-            raise ValueError('The response needs a channel name')
-        required = {'column', 'unit', 'component', 'location', 'measure', 'frame', 'axis'}
-        optional = {'scale', 'offset', 'reduction', 'coordinate_system'}
-        if not isinstance(response, dict) or not required <= set(response) or set(response) - required - optional:
-            raise ValueError('Response mapping requires column, unit, component, location, measure, frame and axis')
-        axis = response['axis']
-        if not isinstance(axis, dict) or not {'column', 'name', 'unit'} <= set(axis) or set(axis) - {'column', 'name', 'unit', 'scale', 'offset'}:
-            raise ValueError('Axis requires its source column, name and unit')
-        for label, spec, labels in (('Response', response, ('unit', 'component', 'location', 'measure', 'frame')),
-                                    ('Axis', axis, ('name', 'unit'))):
-            for key in labels:
-                if not isinstance(spec[key], str) or not spec[key].strip():
-                    raise ValueError(f'{label} {key} must be explicitly declared; labels do not convert units or frames')
-            column = spec['column']
-            if not (type(column) is int and column >= 0 or isinstance(column, str) and column.strip()):
-                raise ValueError(f'{label} column must be a zero-based index or an exact named column')
-            for key in ('scale', 'offset'):
-                if key in spec and (type(spec[key]) not in (int, float) or not math.isfinite(spec[key])):
-                    raise ValueError(f'{label} {key} must be a finite number')
-        if isinstance(response['column'], str) != isinstance(axis['column'], str):
-            raise ValueError('Use either numeric indexes for both columns or named columns for both')
+        if not isinstance(columns, dict) or not columns:
+            raise ValueError('Declare at least one scalar channel and its explicit axis')
+        for name, response in columns.items():
+            if not isinstance(name, str) or not name.strip():
+                raise ValueError('Every response needs a channel name')
+            required = {'column', 'unit', 'component', 'location', 'measure', 'frame', 'axis'}
+            optional = {'scale', 'offset', 'reduction', 'coordinate_system', 'row_selection'}
+            if not isinstance(response, dict) or not required <= set(response) or set(response) - required - optional:
+                raise ValueError(f'{name}: response requires column, unit, component, location, measure, frame and axis')
+            axis = response['axis']
+            if not isinstance(axis, dict) or not {'column', 'name', 'unit'} <= set(axis) or set(axis) - {'column', 'name', 'unit', 'scale', 'offset'}:
+                raise ValueError(f'{name}: axis requires its source column, name and unit')
+            for label, spec, labels in (('Response', response, ('unit', 'component', 'location', 'measure', 'frame')),
+                                        ('Axis', axis, ('name', 'unit'))):
+                for key in labels:
+                    if not isinstance(spec[key], str) or not spec[key].strip():
+                        raise ValueError(f'{name}: {label} {key} must be explicitly declared; labels do not convert units or frames')
+                column = spec['column']
+                if not (type(column) is int and column >= 0 or isinstance(column, str) and column.strip()):
+                    raise ValueError(f'{name}: {label} column must be a zero-based index or an exact named column')
+                for key in ('scale', 'offset'):
+                    if key in spec and (type(spec[key]) not in (int, float) or not math.isfinite(spec[key])):
+                        raise ValueError(f'{name}: {label} {key} must be a finite number')
+            if isinstance(response['column'], str) != isinstance(axis['column'], str):
+                raise ValueError(f'{name}: use either numeric indexes for both columns or named columns for both')
+            validate_row_selection(response.get('row_selection', {}))
     except (ValueError, TypeError, KeyError) as error:
         return [{'severity': 'error', 'path': 'mapping', 'message': str(error), 'blocks_evaluation': True}]
     return []
@@ -79,6 +83,11 @@ class DataDocuments(MaterialDocuments):
     def __init__(self, root, session_id, submit, manager, *, resolve_input):
         super().__init__(root, session_id, submit, manager)
         self.resolve_input = resolve_input
+
+    @staticmethod
+    def _fingerprint(document):
+        return canonical_hash({'input': MaterialDocuments._fingerprint(document),
+                               'comparisons': document.get('comparisons', [])})
 
     @staticmethod
     def job_arguments(draft):
@@ -200,6 +209,7 @@ class DataDocuments(MaterialDocuments):
                 'metadata': metadata.relative_to(folder).as_posix(), 'sha256': receipt['sha256'], 'bytes': receipt['bytes']}
         saved['retained_inputs'] = retained
         saved['unresolved_inputs'] = unresolved
+        self._retain_comparisons(saved, folder)
 
     def source_preview(self, identifier):
         """Read bounded original bytes, including after the registration is unavailable."""

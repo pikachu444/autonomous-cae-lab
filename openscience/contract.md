@@ -1,4 +1,56 @@
-## Connected document and native-result tools — 2026-10-11
+## Native research connections — 2026-10-11 r5
+
+R5 keeps GUI, HTTP and MCP on the same document/session/generation owners.
+Typed Pre commands expose actual native parameter, Assembly, FEM and managed
+save actions; they do not authorize arbitrary native Python or native paths.
+An export timeout retains the exact command ID for completion recovery rather
+than resubmitting an export or solve. Material-native requests use the existing
+MFront adapters, their admitted settings, advertised bindings and retained
+response selectors. Unsupported constitutive state transfer remains unsupported.
+Candidate/observation/comparison reads resolve retained saved references and do
+not execute the original jobs. Readiness discovery is not installation or a
+claim that a backend has been exercised.
+
+Actual HTTP/SDK stdio refusal messages now preserve the owner's specific reason.
+Only the exact pre-effect authentication-token 403 guard retries identical bytes
+once; stale sessions/generations and other refusals do not become implicit
+retries. Actual Qt/HTTP/MCP review and remaining Pre, retained-reader, Plan-save
+and cold-result latency defects are in
+[WORKBENCH_PROGRESS](../docs/WORKBENCH_PROGRESS.md). No new provider credentials,
+inference authority, default LLM optimizer or release authority is introduced.
+
+## Earlier connected research documents and results — 2026-10-11
+
+Locally integrated r2/r3/r4 adds optional wrappers over the same service owners:
+PDE editing/evaluation and Plan creation; discussion editing/Ask/Pause/Continue
+and explicit proposal-to-Plan creation; Data comparison/follow-up; typed native
+Post source/analysis/sample/repair commands; Simulation and EvaluationDefinition
+editing/execution; retained stage/candidate result reads; and Study editing,
+exact-reference inspection and follow-up drafts. `document_open`, `document_read`
+and `document_command` retain per-owner document/session/generation identities.
+Creating or reading a draft does not execute a calculation or provider request.
+
+`evaluation_definition_run` uses the existing JobManager and evaluator. Its
+ordered stages pin saved domain revisions, supported ports and explicit transfer/
+iteration declarations. `evaluation_progress`, `evaluation_stage_result` and
+`numerical_evaluation_result` read the selected retained attempts rather than
+submitting them again. Domain candidate adoption stages changed domain branches
+before changing the Evaluation reference set. The previous saved inputs/results
+remain intact; no LLM becomes a numerical optimizer or engineering validator.
+
+Post commands retain native owner targeting and registered-input boundaries;
+these tools do not grant arbitrary Python, filesystem access or native syntax.
+Configured Expert inference remains optional and was not exercised in the r4
+review. Actual SDK stdio MCP reads matched HTTP Evaluation/Study records and
+shared the same edit/Undo/idempotence and stale-target guards without executing
+new jobs. Error bodies are lost behind generic HTTP 400 messages in the client;
+this remaining recovery-guidance defect is with Pro. Known r4 native-field, Post and UI
+defects are listed in [WORKBENCH_PROGRESS](../docs/WORKBENCH_PROGRESS.md).
+See [ADR0062](../ADR/0062-connected-research-owners-and-fields.md). This working
+source is not yet committed and does not expand provider credentials or release
+authority.
+
+## Earlier connected document and native-result tools — 2026-10-11
 
 Source `584971df8ae64de08beaf1120febe4a9c994aa56` adds optional
 `data_source_preview`, `job_navigation`, `native_analysis_submit` and

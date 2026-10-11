@@ -10,7 +10,7 @@ from .evaluation import file_hash
 from .storage import save_json, utc_now, canonical_hash
 
 
-NATIVE_EXTENSIONS = {'.vtu', '.pvd'}
+NATIVE_EXTENSIONS = {'.vtu', '.pvd', '.fcstd', '.caepre'}
 
 
 def _identity(stat):
@@ -92,8 +92,13 @@ def _frozen_files(source, root):
     entries = manifest.get('files', [])
     names = [entry.get('relative') for entry in entries]
     inp = manifest.get('input_file', '')
-    if (len(entries) != 3 or not isinstance(inp, str) or Path(inp).suffix.lower() != '.inp'
-            or set(names) != {'editable.FCStd', 'mesh.json', inp}):
+    expected = {'editable.FCStd', 'mesh.json', inp}
+    if manifest.get('editable_project') == 'editable.caepre':
+        expected.add('editable.caepre')
+    elif manifest.get('editable_project') is not None:
+        raise ValueError('Unsupported editable native project member')
+    if (len(entries) != len(expected) or not isinstance(inp, str) or Path(inp).suffix.lower() != '.inp'
+            or set(names) != expected):
         raise ValueError('FEM snapshot must retain its native CAD, mesh and unsplit input')
     paths = [source]
     for entry in entries:
@@ -164,6 +169,19 @@ def register_native_input(workbench_root, approved_root, source, identifier, *, 
     """Publish a receipt only after the entire referenced file set is copied."""
     root = Path(approved_root).resolve(strict=True)
     source = _within_root(source, root)
+    if source.suffix.lower() in {'.fcstd', '.caepre'}:
+        from .native_cad import dependency_files, inspect_project
+        if native_metadata is not None:
+            raise ValueError('Native design metadata is extracted from its registered file set')
+        if source.suffix.lower() == '.caepre':
+            inspect_project(source, limit=limit)
+            paths = [source]
+        else:
+            paths = dependency_files(source, root)
+        return _register_set(workbench_root, root, source, paths, None, identifier,
+            root_id=root_id, relative=relative, limit=limit, kind='native_design', format=source.suffix.lower()[1:],
+            native_metadata={'kind': 'native_design_dependencies',
+                'original_locations': {path.relative_to(root).as_posix(): str(path) for path in paths}})
     paths, parsed_sha = _files(source, root)
     return _register_set(workbench_root, root, source, paths, parsed_sha, identifier,
                          root_id=root_id, relative=relative, limit=limit,

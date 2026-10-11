@@ -18,8 +18,9 @@ INPUT_EXTENSIONS = {'.csv','.txt','.dat','.asc','.npz','.json','.md','.pdf'}
 
 OPERATIONS = {'evaluate','run','import_table','fit','doe','optimize','uq','analyze','compare','event',
               'batch_export','batch_import','surrogate','epsilon','sensitivity',
+              'sample_sensitivity',
               'knowledge.ingest','knowledge.rebuild','knowledge.revoke','literature.search','literature.read',
-              'literature.import','experts.ask','calculations.plan'}
+              'literature.import','experts.ask','calculations.plan','pde.evaluate','simulation.run','evaluation.coupled'}
 
 
 def contained(root, relative):
@@ -48,6 +49,11 @@ class Workbench:
         from .material_document import MaterialDocuments
         from .data_document import DataDocuments
         from .numerical_document import NumericalDocuments
+        from .pde_document import PDEDocuments
+        from .discussion_document import DiscussionDocuments
+        from .simulation_document import SimulationDocuments
+        from .evaluation_definition import EvaluationDocuments
+        from .study_document import StudyDocuments
         from .desktop_links import DesktopLinks
         from .native_commands import NativeCommands
         self.session_id='S'+uuid.uuid4().hex
@@ -56,29 +62,100 @@ class Workbench:
             resolve_input=lambda identifier:(self.input_path(identifier),load_json(self.root/'inputs'/check_id(identifier)/'input.json')))
         self.native_commands=NativeCommands(self.root,self.session_id)
         self.numerical_documents=NumericalDocuments(self.root,self.session_id,self.submit,self.manager,
-            resolve_document=self.document_read, resolve_result=self.document_result)
+            resolve_document=self.document_read, resolve_result=self.document_result,
+            prepare_request=self._request_plan_arguments,
+            resolve_source_revision=lambda identifier,revision:self._document_owner(identifier)._verify_revision(identifier,revision),
+            resolve_pde_revision=lambda identifier,revision:self.pde_documents._verify_revision(identifier,revision))
+        self.pde_documents=PDEDocuments(self.root,self.session_id,self.submit,self.manager)
+        self.discussion_documents=DiscussionDocuments(self.root,self.session_id,self.submit,self.manager,
+            list_experts=lambda:self.assistance_call('experts.list',{}),
+            resolve_document=self.document_read,resolve_result=self.document_result)
+        self.simulation_documents=SimulationDocuments(self.root,self.session_id,self.submit,self.manager)
+        self.evaluation_documents=EvaluationDocuments(self.root,self.session_id,self.submit,self.manager,
+            resolve_revision=lambda identifier,revision:self._document_owner(identifier)._verify_revision(identifier,revision))
+        from .research_workflows import reference_metadata
+        self.study_documents=StudyDocuments(self.root,self.session_id,self.submit,self.manager,
+            resolve_reference=lambda reference:reference_metadata(self,reference))
         self.desktop=DesktopLinks(self)
+
+    def research_owners(self):
+        return (self.material_documents,self.data_documents,self.numerical_documents,
+                self.pde_documents,self.discussion_documents,self.simulation_documents,
+                self.evaluation_documents,self.study_documents)
 
     def documents(self):
         return {'service_session_id':self.session_id,
-                'documents':self.material_documents.list()+self.data_documents.list()+self.numerical_documents.list()+self.native_commands.documents()}
+                'documents':[doc for owner in self.research_owners() for doc in owner.list()]+self.native_commands.documents()}
 
-    def document_open(self, *, kind='material', title='Material research', draft=None, document_id=None):
-        owners={'material':self.material_documents,'data':self.data_documents,'numerical':self.numerical_documents}
+    def document_open(self, *, kind='material', title=None, draft=None, document_id=None):
+        owners={owner.kind:owner for owner in self.research_owners()}
         if kind not in owners:
-            raise ValueError('Open native documents in their host; this service opens Material/Data/Numerical documents')
+            raise ValueError('Choose a research document kind; native documents open in their host')
+        if title is None:
+            title={'material':'Material research','data':'Data research','pde':'PDE research',
+                   'numerical':'Numerical Plan','expert':'Expert discussion','simulation':'Simulation research',
+                   'evaluation':'Evaluation definition','study':'Study'}[kind]
         return owners[kind].open(title=title,draft=draft,document_id=document_id)
 
     def _document_owner(self, identifier):
         check_id(identifier)
-        return {'M':self.material_documents,'T':self.data_documents,'N':self.numerical_documents}.get(identifier[0],self.native_commands)
+        return next((owner for owner in self.research_owners() if identifier.startswith(owner.prefix)),self.native_commands)
 
     def document_read(self, identifier):
         return self._document_owner(identifier).read(identifier)
 
+    def backend_readiness(self, backend):
+        """Explicit dependency discovery only; never a solver/inference call."""
+        from .backends import list_backends
+        if not isinstance(backend, str) or backend not in {row['id'] for row in list_backends()}:
+            raise ValueError('Choose a registered backend to inspect')
+        from .adapters.native_doctor import doctor_native_backend
+        inspected = ('pde.fenicsx' if backend in {'thermal.fenicsx.rectangle', 'structural.fenicsx.thermoelastic_rectangle'} else backend)
+        result = doctor_native_backend(inspected, execute=False)
+        result.update(backend=backend, inspected_runtime=inspected, solver_executed=False,
+                      engineering_release='NOT_RELEASED')
+        return result
+
     def document_command(self, identifier, operation, arguments, *, session_id, expected_generation, command_id=None):
         check_id(identifier)
         owner=self._document_owner(identifier)
+        if owner is self.native_commands and operation == 'pre.project.open':
+            if not isinstance(arguments, dict) or set(arguments) != {'input_id'}:
+                raise ValueError('Open native CAD through a registered input ID, not a caller path or receipt')
+            receipt = self.native_input(arguments['input_id'])
+            if receipt.get('kind') != 'native_design':
+                raise ValueError('Select a registered FCStd/CAEPRE editable design')
+            arguments = {**arguments, 'receipt': receipt}
+        if owner is self.native_commands and operation == 'pre.links.record':
+            if not isinstance(arguments, dict) or set(arguments) != {'job_id'}:
+                raise ValueError('Retain the exact job ID, not caller-supplied result metadata')
+            if command_id:
+                # A job may finish between POST and its exact retry. Reuse the
+                # already admitted immutable link, not a newer mutable status.
+                try:
+                    previous = owner.status(command_id)
+                except KeyError:
+                    previous = None
+                if previous is not None:
+                    if ((previous['document_id'], previous['operation'], previous['session_id'], previous['expected_generation'])
+                            != (identifier, operation, session_id, expected_generation)
+                            or previous['arguments'].get('job_id') != arguments['job_id']):
+                        raise ValueError('command_id conflicts with an earlier request')
+                    return previous
+            job = self.desktop.job_record(arguments['job_id'])
+            origin = job['arguments'].get('origin', {})
+            if origin.get('document_id') != identifier or origin.get('kind') != 'pre':
+                raise ValueError('This job belongs to a different native design')
+            arguments = {**arguments, 'link': {'job_id': job['id'], 'origin': deepcopy(origin),
+                'operation': job['operation'], 'state_when_recorded': job['state'],
+                'result_refs': deepcopy(job.get('result_refs', []))}}
+        if owner is self.native_commands and operation in {'post.source_add','post.source_repair'}:
+            allowed={'input_id','label_text'} if operation=='post.source_add' else {'input_id','source_ref'}
+            if not isinstance(arguments,dict) or set(arguments)-allowed or 'input_id' not in arguments:
+                raise ValueError('Post source commands require a registered input ID, never a caller-supplied path or receipt')
+            arguments={**arguments,'receipt':self.native_input(arguments['input_id'])}
+            if arguments['receipt'].get('format') not in {'vtu','pvd'}:
+                raise ValueError('Post readers currently admit registered VTU/PVD result sets')
         method=owner.submit if owner is self.native_commands else owner.command
         return method(identifier,operation,arguments,session_id=session_id,
                       expected_generation=expected_generation,command_id=command_id)
@@ -89,10 +166,81 @@ class Workbench:
             raise ValueError('Native documents expose their results in the native host')
         return owner.result(identifier,job_id,selection=selection)
 
+    def document_result_reference(self, identifier, job_id):
+        from .research_operations import result_reference
+        return result_reference(self.document_read(identifier),job_id,self.document_result(identifier,job_id))
+
+    def document_result_metadata(self, identifier, job_id):
+        from .research_operations import result_metadata
+        return result_metadata(self.document_result(identifier,job_id))
+
+    def evaluation_inspect(self, identifier):
+        return self.evaluation_documents.inspect_definition(identifier)
+
+    def evaluation_progress(self, identifier, job_id):
+        from .research_workflows import evaluation_progress
+        return evaluation_progress(self,identifier,job_id)
+
+    def evaluation_stage_result(self, identifier, job_id, attempt_id, *, selection=None):
+        from .research_workflows import evaluation_stage_result
+        return evaluation_stage_result(self,identifier,job_id,attempt_id,selection)
+
+    def numerical_evaluation_result(self, identifier, job_id, candidate_id, *, evaluation_index=None, attempt_id=None, selection=None):
+        from .research_workflows import numerical_evaluation_result
+        return numerical_evaluation_result(self,identifier,job_id,candidate_id,
+            evaluation_index=evaluation_index,attempt_id=attempt_id,selection=selection)
+
+    def domain_candidate_preview(self, plan_id, job_id, candidate_id):
+        from .domain_candidate import preview
+        return preview(self,plan_id,job_id,candidate_id)
+
+    def domain_candidate_adopt(self, plan_id, job_id, candidate_id, *, target_document_id,
+                               session_id, expected_generation, command_id):
+        from .domain_candidate import adopt
+        return adopt(self,plan_id,job_id,candidate_id,target_document_id=target_document_id,
+            session_id=session_id,expected_generation=expected_generation,command_id=command_id)
+
+    def study_references(self, identifier):
+        return self.study_documents.resolve_references(identifier)
+
+    def research_reference(self, reference):
+        from .research_workflows import resolve_reference
+        return resolve_reference(self,reference)
+
     def document_source_preview(self, identifier):
         if self._document_owner(identifier) is not self.data_documents:
             raise ValueError('Source preview belongs to a Data document')
         return self.data_documents.source_preview(identifier)
+
+    def _curve_reference(self, reference):
+        if (not isinstance(reference,dict) or not {'document_id','job_id','response'} <= set(reference)
+                or set(reference)-{'document_id','job_id','response','input_revision','input_sha256'}):
+            raise ValueError('Choose an exact document, job and response channel')
+        document=self.document_read(check_id(reference['document_id']))
+        run=next((row for row in document.get('runs',[]) if row['job_id']==reference['job_id']),None)
+        if run is None or any(key in reference and reference[key]!=run[key] for key in ('input_revision','input_sha256')):
+            raise ValueError('Selected curve differs from its submitted document input')
+        name=reference['response']
+        if not isinstance(name,str) or not name:
+            raise ValueError('Select an explicitly named response')
+        result=self.document_result(document['id'],reference['job_id'],selection=[name])
+        if result.get('execution_status')!='SUCCEEDED':
+            raise ValueError('A failed or missing evaluation cannot supply a comparison curve')
+        response=result['responses'][name]
+        binding={**reference,'input_revision':run['input_revision'],'input_sha256':run['input_sha256'],
+                 'response_sha256':canonical_hash(response)}
+        return document,run,response,binding
+
+    def document_compare(self, source, prediction_source):
+        from .data_comparison import compare_data_curves
+        document,_,observation,observed=self._curve_reference(source)
+        if document.get('kind') not in {'data', 'material', 'pde', 'simulation'}:
+            raise ValueError('Retained curve comparison belongs to a Data, Material, PDE or Simulation document')
+        _,_,prediction,predicted=self._curve_reference(prediction_source)
+        comparison=compare_data_curves(prediction,observation)
+        return self._document_owner(document['id']).retain_comparison(document['id'],{
+            'binding':{'source':observed,'prediction_source':predicted},
+            'comparison':comparison,'input_curves':{'observation':observation,'prediction':prediction}})
 
     def upload(self, name, payload):
         if not isinstance(payload,bytes) or not payload or len(payload)>16*1024*1024:
@@ -201,7 +349,7 @@ class Workbench:
         path=contained(self.root,receipt['file'])
         if file_hash(path)!=receipt['sha256']:
             raise ValueError('Uploaded source changed')
-        if receipt.get('kind') in {'native_result', 'frozen_fem'}:
+        if receipt.get('kind') in {'native_result', 'native_design', 'frozen_fem'}:
             folder=(self.root/'inputs'/identifier).resolve()
             files=receipt.get('files',[])
             if not files or not any(item.get('file')==receipt['file'] and item.get('sha256')==receipt['sha256'] for item in files):
@@ -216,14 +364,19 @@ class Workbench:
         """Resolve a registered native set for a local reader after verification."""
         path = self.input_path(identifier)
         receipt = load_json(self.root/'inputs'/identifier/'input.json')
-        if receipt.get('kind') not in {'native_result', 'frozen_fem'}:
+        if receipt.get('kind') not in {'native_result', 'native_design', 'frozen_fem'}:
             raise ValueError('Select a registered native result or FEM snapshot')
-        result = {'id': identifier, 'path': str(path), 'format': receipt['format'], 'kind': receipt['kind'],
+        result = {'id': identifier, 'path': str(path), 'format': receipt['format'], 'kind': receipt['kind'], 'sha256': receipt['sha256'],
                 'source_pins': [{'path': str(contained(self.root, item['file'])),
                                  'bytes': item['bytes'], 'sha256': item['sha256']}
                                 for item in receipt['files']]}
         if receipt['kind'] == 'frozen_fem':
-            result['editable_path'] = str(path.parent / 'editable.FCStd')
+            manifest = load_json(path)
+            result['editable_path'] = str(path.parent / manifest.get('editable_project', 'editable.FCStd'))
+        if receipt['kind'] == 'native_design':
+            result['files'] = [{'path': str(contained(self.root, item['file'])),
+                               'relative': item['relative'], 'sha256': item['sha256'], 'bytes': item['bytes']}
+                              for item in receipt['files']]
         if receipt.get('native_metadata') is not None:
             if canonical_hash(receipt['native_metadata']) != receipt.get('native_metadata_sha256'):
                 raise ValueError('Registered native field metadata changed')
@@ -240,10 +393,11 @@ class Workbench:
                     'preview':'Frozen editable CAD, existing FEM mesh and native solver input'}
         if path.suffix.lower() in NATIVE_EXTENSIONS:
             receipt=load_json(self.root/'inputs'/identifier/'input.json')
-            return {'id':identifier,'kind':'native_result','format':receipt['format'],
+            return {'id':identifier,'kind':receipt['kind'],'format':receipt['format'],
                     'name':receipt['name'],'file_count':len(receipt['files']),
                     'bytes':receipt['total_bytes'],'sha256':receipt['sha256'],
-                    'preview':'Native result snapshot; open in Post to inspect fields and time steps'}
+                    'preview':('Editable CAD snapshot with registered dependencies; open in Pre' if receipt['kind'] == 'native_design'
+                               else 'Native result snapshot; open in Post to inspect fields and time steps')}
         if path.suffix in {'.pdf','.npz'}:
             return {'id':identifier,'kind':path.suffix,'preview':'Binary input; select a document or numeric reader'}
         with path.open(encoding='utf-8-sig') as stream:
@@ -259,7 +413,8 @@ class Workbench:
         return result
 
     def backends(self):
-        return list_backends()+[{'id':identifier,'roles':['external'],'native_runtime':config.get('label','Operator-registered program'),
+        return list_backends()+[{'id':'evaluation.definition','roles':['prepared'], 'source':'service',
+            'native_runtime':None,'threads':1,'readiness':'NOT_PROBED'}]+[{'id':identifier,'roles':['external'],'native_runtime':config.get('label','Operator-registered program'),
             'threads':config.get('threads',1),'source':'workspace','readiness':'EXECUTION_NOT_TESTED'}
             for identifier,config in self.config.get('external_backends',{}).items()]
 
@@ -271,10 +426,15 @@ class Workbench:
                 'operations':sorted(OPERATIONS)}
 
     def result(self, identifier, *, selection=None):
+        identifier=check_id(identifier)
+        if not (self.root/'results'/identifier/'result.json').is_file():
+            match=self.desktop.research_job(identifier)
+            if match and match[2].get('retained_result'):
+                return match[0].result(match[1]['id'],identifier,selection=selection)
         # The job owns its native path. A browser/LLM never supplies a solver
         # output directory or a replacement outcome to the native reader.
         summary=self.manager.result(identifier,selection={'responses':[]})
-        if summary.get('native_result'):
+        if summary.get('native_result') and not (summary.get('pde_document_result') or summary.get('research_document_result')):
             path=self.root/'native'/check_id(identifier)
             if not path.is_dir():
                 raise ValueError('Saved native result is unavailable')
@@ -285,6 +445,13 @@ class Workbench:
         backend=request.get('backend') or request.get('inputs',{}).get('backend')
         if not backend:
             return {'backends':self.backends()}
+        if backend=='evaluation.definition':
+            settings=request.get('settings',request.get('inputs',{}).get('settings',{}))
+            if set(settings)!={'definition_ref'}:
+                return {'backend':backend,'inputs':[], 'required':['definition_ref'], 'readiness':'NOT_PROBED'}
+            compiled=self.evaluation_documents.from_reference(settings['definition_ref'])
+            return {'backend':backend, 'inputs':compiled['inputs'], 'responses':compiled['definition']['responses'],
+                    'readiness':'NOT_PROBED', 'execution':'serial existing stage adapters'}
         if backend=='material.felupe':
             return {'backend':backend,'models':['linear_elastic','neo_hooke'],
                     'parameters':{'linear_elastic':['E','nu'],'neo_hooke':['mu','lmbda']},
@@ -317,6 +484,17 @@ class Workbench:
             raise ValueError('Output, runtime and execution registrations are operator-owned')
         if isinstance(arguments.get('backend'),str) and arguments['backend'] not in {row['id'] for row in self.backends()}:
             raise ValueError('Backend is not registered')
+        if operation=='evaluation.coupled':
+            source=arguments.get('definition_source',{})
+            owner=self.evaluation_documents
+            identifier=check_id(source.get('document_id'))
+            with owner._lock(identifier):
+                document=owner.read(identifier)
+                expected=owner.prepare_job_arguments(document['draft'],owner._documents[identifier])
+                if canonical_hash(arguments)!=canonical_hash(expected):
+                    raise ValueError('Evaluation arguments differ from the selected owner input/session/generation')
+                requested=self.resource_request(arguments,resources)
+                return self.manager.submit(operation,arguments,workspace_id=self.workspace_id,request_id=request_id,resources=requested)
         requested=self.resource_request(arguments,resources)
         return self.manager.submit(operation,arguments,workspace_id=self.workspace_id,request_id=request_id,resources=requested)
 
@@ -337,6 +515,19 @@ class Workbench:
                 except ValueError:
                     raise ValueError(f'{key} must declare a positive integer for managed native execution')
         actual_threads=max(actual_threads,execution.get('workers',1)*native_threads)
+        models=[]
+        if 'definition_source' in arguments:
+            models=[row['draft'] for row in arguments.get('snapshots',{}).values()]
+        elif arguments.get('backend')=='evaluation.definition':
+            settings=arguments.get('settings') or (arguments.get('experiments') or [{}])[0].get('settings',{})
+            if set(settings)!={'definition_ref'}:
+                raise ValueError('Select a saved definition before execution')
+            if execution.get('mode','serial')!='serial' or execution.get('workers',1)!=1:
+                raise ValueError('Reusable stage evaluations require serial execution with one worker')
+            compiled=self.evaluation_documents.from_reference(settings['definition_ref'])
+            models=[row['model'] for row in compiled['stages'].values()]
+        for model in models:
+            actual_threads=max(actual_threads,self.resource_request(model)['threads'])
         requested['threads']=max(requested.get('threads',1),actual_threads)
         if execution.get('memory_mb') is not None:
             requested['memory_mb']=max(requested.get('memory_mb',0),execution['memory_mb']*execution.get('workers',1))
@@ -360,7 +551,9 @@ class Workbench:
                                        callbacks=callbacks,source_roots=[self.root])
         return self._assistance
 
-    def _numerical_submit(self, operation, request):
+    @staticmethod
+    def _numerical_arguments(operation, request):
+        """Apply the existing execution budget before a managed submission."""
         args=deepcopy(request)
         budget=args.pop('budget',{})
         maximum=budget.get('evaluations')
@@ -369,27 +562,77 @@ class Workbench:
                 raise ValueError('Evaluation budget must be a positive integer')
             execution=args.setdefault('execution',{})
             execution['max_evaluations']=min(execution.get('max_evaluations',maximum),maximum)
-            if operation in {'doe','uq'} and (args.get('count',128 if operation=='uq' else 16)>maximum or len(args.get('candidates',[]))>maximum):
-                raise ValueError('Sampling exceeds the allowed evaluation budget')
-            if operation in {'fit','optimize'}:
+            if operation in {'doe','uq'}:
+                if operation=='doe' and 'candidates' in args:
+                    samples=len(args['candidates'])
+                elif operation=='doe' and 'result_refs' in args:
+                    samples=0  # Exact retained rows are checked again before execution below.
+                else:
+                    samples=args.get('count',128 if operation=='uq' else 16)
+                if samples>maximum:
+                    raise ValueError('Sampling exceeds the allowed evaluation budget')
+            if operation in {'fit','optimize','epsilon'}:
                 options=args.setdefault('options',{})
                 if operation=='fit':
                     options['max_nfev']=min(options.get('max_nfev',maximum),maximum)
+                elif operation=='epsilon':
+                    import math
+                    grid=args.get('threshold_grid',[])
+                    if not grid or any(not isinstance(row,list) or not row for row in grid):
+                        raise ValueError('Each secondary objective requires an explicit nonempty threshold grid')
+                    children=math.prod(len(row) for row in grid)
+                    total=args.get('total_evaluation_budget',maximum)
+                    if type(total) is not int or total < 1 or total > maximum:
+                        raise ValueError('Epsilon total evaluation budget exceeds the Plan budget')
+                    population=options.get('population_size',12)
+                    generations=options.get('max_generations',min(40,max(1,total//children//population-1)))
+                    if children*population*(generations+1)>total:
+                        raise ValueError('Epsilon threshold searches exceed the total evaluation budget')
+                    options['max_generations']=generations
+                    args['total_evaluation_budget']=total
+                    execution['max_evaluations']=min(execution['max_evaluations'],total)
                 else:
                     options['max_generations']=min(options.get('max_generations',40),
                         max(1,maximum//options.get('population_size',12)-1))
                     if (options['max_generations']+1)*options.get('population_size',12)>maximum:
                         raise ValueError('Optimization population exceeds allowed evaluations')
-        return self.submit(operation,args)
+        return args
+
+    def _numerical_submit(self, operation, request):
+        return self.submit(operation,self._numerical_arguments(operation,request))
+
+    def _request_plan_arguments(self, request):
+        from .assist.experts import validate_plan_request
+        validated=validate_plan_request(request,describe_inputs=self.describe_inputs)['plan']
+        operation=validated['operation']
+        args=deepcopy(validated['inputs'])
+        from .research_operations import validate_result_refs
+        validate_result_refs(operation,args)
+        if operation in {'doe','fit','optimize','uq','epsilon'}:
+            return self._numerical_arguments(operation,{**args,'budget':validated['budget']})
+        if operation=='evaluate' and str(args.get('backend','')).startswith('pde.'):
+            if args.get('values'):
+                raise ValueError('Direct PDE requests edit declared coefficients in settings; use a Numerical search for mapped free variables')
+            args.pop('values',None)
+        elif operation == 'evaluate' and 'values' in args:
+            from .simulation_document import CATALOG
+            if args.get('backend') in CATALOG:
+                # NumericalDocuments submits this as the existing simulation
+                # operation. Freeze explicit scalar assignments before that
+                # strict backend/settings-only boundary, leaving its owner
+                # document untouched.
+                from .model_parameters import bind
+                values = args.pop('values')
+                if values:
+                    args['settings'] = bind(get_backend(args['backend']), args['settings'], values)
+        return args
 
     def _proposed_submit(self, request):
         operation=request['operation']
-        if operation not in {'evaluate','run','doe','fit','optimize','uq','analyze'}:
+        if operation not in {'evaluate','run','doe','fit','optimize','uq','epsilon','analyze',
+                             'surrogate','sensitivity','sample_sensitivity','batch_export','batch_import'}:
             raise ValueError('Operation is not supported by expert calculation submission')
-        inputs=deepcopy(request['inputs'])
-        if operation in {'doe','fit','optimize','uq'}:
-            inputs['budget']=request.get('budget',{})
-            return self._numerical_submit(operation,inputs)
+        inputs=self._request_plan_arguments(request)
         return self.submit(operation,inputs,resources=request.get('resources'))
 
     def assistance_call(self, operation, arguments):
@@ -435,14 +678,49 @@ class Workbench:
     def _execute(self, operation, arguments, identifier):
         args=deepcopy(arguments)
         args.pop('label',None)  # Retained job metadata, never a solver parameter.
+        if 'result_refs' in args:
+            from .research_operations import resolve_request_inputs
+            args=resolve_request_inputs(operation,args,resolve_document=self.document_read,
+                                        resolve_result=self.document_result)
         backend=args.get('backend')
         if backend is not None:
             args['settings']=self._settings(backend,args.get('settings',{}))
+        if operation=='evaluation.coupled':
+            from .research_workflows import execute_definition
+            return execute_definition(self,args,identifier)
+        if operation=='simulation.run':
+            if set(args)!={'backend','settings'}:
+                raise ValueError('Simulation requires only its declared backend and frozen settings')
+            from .research_execution import run_domain
+            return run_domain(self,args,self.root/'results'/identifier)
+        if operation=='evaluate' and backend=='evaluation.definition':
+            from .evaluation_definition import execute
+            from .research_execution import run_domain
+            if set(args.get('settings',{}))!={'definition_ref'} or set(args)-{'backend','settings','values'}:
+                raise ValueError('Reusable evaluation requires its exact saved definition reference')
+            compiled=self.evaluation_documents.from_reference(args['settings']['definition_ref'])
+            if compiled['definition'].get('reuse'):
+                raise ValueError('Numerical evaluations start independent stages; clear direct-run reuse in the definition')
+            return execute(compiled,self.root/'results'/identifier,
+                lambda model,output:run_domain(self,model,output),values=args.get('values'))
+        if operation=='pde.evaluate':
+            if set(args)!={'backend','settings'}:
+                raise ValueError('PDE evaluation requires only its declared backend and frozen settings')
+            from .pde import evaluate_document
+            return evaluate_document(self,identifier,backend,args['settings'])
         if operation=='evaluate':
             if backend=='material.mfront.prepared':
                 from .adapters.native_evaluation import NativeEvaluationFactory
                 return evaluate(NativeEvaluationFactory(backend,self.root/'native'/identifier),
                                 args.get('settings',{}),values=args.get('values'))
+            adapter = get_backend(backend)
+            if not callable(adapter) and not callable(getattr(adapter, 'prepare', None)):
+                from .model_parameters import bind
+                from .research_execution import run_domain
+                settings = args.get('settings', {})
+                if args.get('values'):
+                    settings = bind(adapter, settings, args['values'])
+                return run_domain(self, {'backend': backend, 'settings': settings}, self.root/'results'/identifier)
             return evaluate(backend,args.get('settings',{}),values=args.get('values'))
         if operation=='run':
             if backend=='material.mfront.prepared':
@@ -498,6 +776,10 @@ class Workbench:
                 result['execution_status']='FAILED'
             return result
         from . import numerical
+        if operation=='sample_sensitivity':
+            plan=numerical.sample_sensitivity(**args)
+            return {**plan,'kind':'sensitivity_plan','execution_status':'SUCCEEDED',
+                    'solver_execution':'NOT_PERFORMED','next_step':'Evaluate the exact retained candidate rows; then select this plan and its matched result for sensitivity.'}
         if operation in {'fit','doe','optimize','uq','epsilon'}:
             backend=args.pop('backend')
             if operation=='fit':
@@ -506,7 +788,24 @@ class Workbench:
                     experiment['settings']=self._settings(backend,experiment.get('settings',{}))
                     if isinstance(experiment.get('observations'),dict) and 'path' in experiment['observations']:
                         raise ValueError('Remote observations require an uploaded result ID or explicit numeric values')
-                    if 'observation_job' in experiment:
+                    sources = set(experiment) & {'observations', 'observation_job', 'observation_ref'}
+                    if len(sources) != 1:
+                        raise ValueError('Every fit/holdout experiment selects exactly one observation source')
+                    if 'observation_ref' in experiment:
+                        from .research_operations import _resolve
+                        reference = experiment.pop('observation_ref')
+                        if not isinstance(reference, dict) or set(reference) != {'result', 'response'}:
+                            raise ValueError('Select an exact saved observation result and response')
+                        retained = _resolve(reference['result'], self.document_read, self.document_result)
+                        if retained.get('execution_status') != 'SUCCEEDED' or retained.get('prediction_status'):
+                            raise ValueError('Fit observations require an actual successful retained result')
+                        source = reference['result']
+                        response = reference['response']
+                        selected = self.document_result(source['document_id'], source['job_id'], selection=[response])
+                        experiment['observations'] = selected['responses'][response]
+                        experiment['observation_source'] = deepcopy(reference)
+                        _resolve(source, self.document_read, self.document_result)
+                    elif 'observation_job' in experiment:
                         observation_response=experiment.pop('observation_response',experiment['response'])
                         observation=self.result(experiment.pop('observation_job'),selection=[observation_response])
                         experiment['observations']=observation['responses'][observation_response]
@@ -517,8 +816,30 @@ class Workbench:
                 raise ValueError('Unknown execution option')
             if execution.get('workers',1)*execution.get('threads',1)>self.manager.cpu_budget:
                 raise ValueError('Numerical worker/thread product exceeds CPU budget')
+            if operation=='doe' and 'candidates' in args and len(args['candidates'])>execution.get('max_evaluations',float('inf')):
+                raise ValueError('Exact retained candidate count exceeds this Plan evaluation budget')
             evaluator=backend
-            if backend in self.config.get('external_backends',{}):
+            owns_candidate_files = backend == 'evaluation.definition'
+            if 'responses' in args:
+                selections = args['responses']
+                if not isinstance(selections, list) or any(not isinstance(name, str) or not name for name in selections):
+                    raise ValueError('Response selection requires exact registered response names')
+            if backend=='evaluation.definition':
+                from .evaluation_definition import DefinitionFactory
+                from .research_execution import run_domain
+                if execution.get('mode','serial')!='serial' or execution.get('workers',1)!=1:
+                    raise ValueError('Reusable evaluation currently runs serial stage sequences; select one worker')
+                settings=(args.get('experiments',[{}])[0].get('settings',{}) if operation=='fit' else args.get('settings',{}))
+                if set(settings)!={'definition_ref'}:
+                    raise ValueError('Select an exact saved EvaluationDefinition')
+                if operation=='fit' and any(item.get('settings')!=settings for item in args.get('experiments',[])):
+                    raise ValueError('Fit experiments must reference the same evaluation definition')
+                compiled=self.evaluation_documents.from_reference(settings['definition_ref'])
+                if compiled['definition'].get('reuse'):
+                    raise ValueError('Numerical candidates cannot reuse another candidate state; clear direct-run reuse')
+                evaluator=DefinitionFactory(compiled,self.root/'results'/identifier/'evaluations',
+                    lambda model,output:run_domain(self,model,output))
+            elif backend in self.config.get('external_backends',{}):
                 from .adapters.external_files import FileEvaluationFactory
                 evaluator=FileEvaluationFactory(backend,self.config['external_backends'][backend],self.root/'native'/identifier)
             else:
@@ -532,12 +853,39 @@ class Workbench:
                         elif operation in {'optimize','epsilon'}:
                             definitions=([args['objective']] if operation=='optimize' else args.get('objectives',[]))+args.get('constraints',[])
                             selectors=[definition.get('response',definition.get('metric')) for definition in definitions]
-                    evaluator=NativeEvaluationFactory(backend,self.root/'native'/identifier,response_selection=selectors)
-            return methods[operation](evaluator,**args)
+                    owns_candidate_files = backend != 'material.mfront.prepared'
+                    folder = self.root/'results'/identifier
+                    evaluator=NativeEvaluationFactory(backend,
+                        folder/'evaluations' if owns_candidate_files else self.root/'native'/identifier,
+                        response_selection=selectors, retained_root=folder if owns_candidate_files else None)
+            if 'responses' in args:
+                raise ValueError('Explicit DOE/UQ response selection is available for file-based native evaluations; this evaluator returns its own named responses')
+            try:
+                result=methods[operation](evaluator,**args)
+            except Exception as error:
+                from .execution_control import ExecutionCleanupFailed, ExecutionCancelled
+                if not owns_candidate_files or isinstance(error,ExecutionCleanupFailed):
+                    raise
+                # A later objective/response error must not orphan completed
+                # native stages. Retain those actual attempts without claiming
+                # that the numerical algorithm accepted or ranked them.
+                result={'kind':operation,'execution_status':'CANCELLED' if isinstance(error,ExecutionCancelled) else 'FAILED',
+                    'responses':{},'candidates':[],
+                    'failure_reason':str(error),'diagnostics':{'error_type':type(error).__name__,
+                        'decision':'NOT_RELEASED','candidate_association':'UNASSIGNED_AFTER_ENGINE_ERROR'},
+                    'evaluation_attempts':(evaluator.retained_attempts() if callable(getattr(evaluator,'retained_attempts',None))
+                                           else deepcopy(evaluator.completed))}
+            if owns_candidate_files:
+                from .evaluation import save_evaluation
+                folder=self.root/'results'/identifier
+                result['artifacts']=[{'path':path.relative_to(folder).as_posix(),'sha256':file_hash(path)}
+                    for path in sorted(folder.rglob('*')) if path.is_file()]
+                save_evaluation(result,folder,existing=folder.exists())
+            return result
         if operation=='analyze':
             table=args.pop('table',None)
             if table is None:
-                table=self.manager.result(args.pop('job_id'))
+                table=self.result(args.pop('job_id'))
             return numerical.analyze_candidates(table,**args)
         if operation=='compare':
             prediction=self.result(args['prediction_job'],selection=[args['prediction_response']])['responses'][args['prediction_response']]
@@ -552,13 +900,22 @@ class Workbench:
             plan=numerical.export_batch(args['variables'],args['candidates'],path,case_id=args['case_id'],settings=args.get('settings'))
             return {'batch_id':identifier,'manifest':plan,'mode':'FILE_EXCHANGE','solver_execution':'NOT_PERFORMED'}
         if operation=='batch_import':
-            plan=self.manager.result(args['batch_job'])['manifest']
+            plan=args.get('manifest')
+            if plan is None:
+                plan=self.result(args['batch_job'])['manifest']
             return numerical.import_batch(plan,args['results'])
         if operation=='surrogate':
-            model=numerical.fit_surrogate(self.manager.result(args['training_job']),self.manager.result(args['holdout_job']),args['response'])
-            return {'predictions':model.predict(args['points']), 'validation':model.validation}
+            from .research_operations import surrogate_result
+            training=args.get('training')
+            holdout=args.get('holdout')
+            if training is None: training=self.result(args['training_job'])
+            if holdout is None: holdout=self.result(args['holdout_job'])
+            return surrogate_result(training,holdout,args['response'],args['points'],
+                                    variables=args.get('variables'),options=args.get('options'))
         if operation=='sensitivity':
-            return numerical.analyze_sensitivity(args['plan'],self.manager.result(args['job_id']),args['response'])
+            table=args.get('table')
+            if table is None: table=self.result(args['job_id'])
+            return numerical.analyze_sensitivity(args['plan'],table,args['response'])
         raise ValueError('Unknown operation')
 
     def shutdown(self, timeout=5):

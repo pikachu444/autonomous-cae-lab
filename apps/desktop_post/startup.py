@@ -20,7 +20,7 @@ try:
     sys.path.insert(0, str(Path(os.environ["CAE_POST_HOME"]).resolve().parents[1]))
     from commands import restore_workspace
     log("module_loaded", module=restore_workspace.__module__)
-    restore_workspace()
+    restore_workspace(allow_repair=True)
     from paraview import simple as p, servermanager
     log("loaded", sources=[key[0] for key in p.GetSources()], views=[view.GetXMLName() for view in p.GetViews()], connection=str(servermanager.ActiveConnection))
     if os.environ.get("CAE_POST_SERVICE_URL"):

@@ -13,6 +13,7 @@ from .storage import canonical_hash, check_id, load_json, save_json, utc_now
 
 
 OPERATIONS = {'material.update', 'material.evaluate', 'document.undo', 'document.redo', 'document.save'}
+NATIVE_LAWS = ('material.mfront', 'material.mfront.hyperelastic', 'material.mfront.viscoelastic')
 
 
 def default_draft():
@@ -26,6 +27,10 @@ def diagnostics(draft):
     try:
         if set(draft) != {'backend', 'settings'}:
             raise ValueError('Material draft requires only backend and settings; hidden execution overrides are not allowed')
+        if draft.get('backend') in NATIVE_LAWS:
+            from .simulation_document import validate_draft
+            validate_draft(draft)
+            return []
         if draft.get('backend') != 'material.felupe':
             raise ValueError('This editor supports the registered FELUPE material-point adapter')
         if not isinstance(draft.get('settings'), dict):
@@ -38,7 +43,10 @@ def diagnostics(draft):
     return []
 
 
-class MaterialDocuments:
+from .retained_comparisons import RetainedComparisons
+
+
+class MaterialDocuments(RetainedComparisons):
     kind = 'material'
     prefix = 'M'
     update_operation = 'material.update'
@@ -66,10 +74,13 @@ class MaterialDocuments:
         return self.job_arguments(draft)
 
     def evaluation_for(self, draft):
+        if self.kind == 'material' and draft.get('backend') in NATIVE_LAWS:
+            return 'simulation.run'  # Existing file-backed run/domain retention, no new runner.
         return self.evaluation_operation
 
     def _retain_inputs(self, saved, folder):
         """Concrete document owners retain external inputs before publication."""
+        self._retain_comparisons(saved, folder)
 
     def __init__(self, root, session_id, submit, manager):
         self.root = Path(root) / 'documents'
@@ -107,8 +118,12 @@ class MaterialDocuments:
                 raise ValueError('A retained Material revision asset changed or is missing')
         return load_json(folder / 'document.json')
 
-    def open(self, *, title='Material research', draft=None, document_id=None):
-        identifier = check_id(document_id or self.prefix + uuid.uuid4().hex)
+    def open(self, *, title='Material research', draft=None, document_id=None, _new_id=None):
+        # Internal, deterministic creation identity supports cross-owner handoff
+        # recovery. Public HTTP/MCP open still accepts only document_id for reopen.
+        if _new_id is not None and document_id is not None:
+            raise ValueError('Choose new creation or reopen, not both')
+        identifier = check_id(document_id or _new_id or self.prefix + uuid.uuid4().hex)
         if not identifier.startswith(self.prefix):
             raise ValueError(f'{self.kind} document identities must start with {self.prefix}')
         if not isinstance(title, str) or not title.strip() or len(title) > 160:
@@ -153,15 +168,19 @@ class MaterialDocuments:
         values = {key: document[key] for key in ('title', 'draft', 'runs')}
         if document.get('adoptions'):
             values['adoptions'] = document['adoptions']
+        if document.get('kind') != 'data' and document.get('comparisons'):
+            # Data retains its existing outer comparison fingerprint. Older
+            # documents without comparisons keep their original fingerprint.
+            values['comparisons'] = document['comparisons']
         return canonical_hash(values)
 
     def adopt(self, identifier, draft, source, *, expected_input_revision, expected_input_hash,
               session_id, expected_generation, command_id):
         """Atomic target-owner edit after the Workbench validates a retained candidate."""
-        if self.kind != 'material' or session_id != self.session_id:
-            raise ValueError('Adoption requires the current Material owner session')
+        if self.kind not in {'material', 'pde', 'simulation', 'evaluation'} or session_id != self.session_id:
+            raise ValueError('Adoption requires the current target domain owner session')
         if type(expected_generation) is not int or expected_generation < 0:
-            raise ValueError('Adoption requires an exact Material generation')
+            raise ValueError('Adoption requires an exact ' + self.kind + ' generation')
         command_id = check_id(command_id)
         # A Plan save may copy the same immutable run to another retained folder.
         # That storage location is not a different adoption request.
@@ -182,10 +201,10 @@ class MaterialDocuments:
                     return {'document': self._public(current), 'command_id': command_id}
             if (current['generation'] != expected_generation or current['input_revision'] != expected_input_revision
                     or canonical_hash(current['draft']) != expected_input_hash):
-                raise ValueError('Material changed after this Plan was bound; rebind explicitly before adoption')
+                raise ValueError(self.kind.title() + ' changed after this Plan was bound; rebind explicitly before adoption')
             draft = self._draft(draft)
             if self.diagnostics(draft):
-                raise ValueError('Candidate is not a valid Material input')
+                raise ValueError('Candidate is not a valid ' + self.kind.title() + ' input')
             updated = deepcopy(current)
             updated['_undo'].append(deepcopy(current['draft']))
             updated['_redo'] = []
@@ -193,7 +212,7 @@ class MaterialDocuments:
             self._changed(updated)
             updated.setdefault('adoptions', []).append({**deepcopy(source), 'command_id': command_id,
                 'input_revision': updated['input_revision'], 'created_utc': utc_now()})
-            save_json(receipt, {'request_hash': signature, 'operation': 'material.adopt', 'state': 'APPLYING'})
+            save_json(receipt, {'request_hash': signature, 'operation': self.kind + '.adopt', 'state': 'APPLYING'})
             self._persist_draft(updated)
             self._documents[identifier] = updated
             response = {'document': self._public(updated), 'command_id': command_id}
@@ -207,6 +226,9 @@ class MaterialDocuments:
                       capabilities=sorted(self.operations))
         for run in result['runs']:
             run['is_current_input'] = run['input_sha256'] == canonical_hash(document['draft'])
+        if self.kind == 'material' and document['draft'].get('backend') in NATIVE_LAWS:
+            from .simulation_document import support_details
+            result['material_support'] = support_details(document['draft'])
         return result
 
     def read(self, identifier):

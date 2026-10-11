@@ -1,5 +1,51 @@
 # 전처리와 후처리 검증 기록
 
+## 2026-10-11 r5 실제 Post 수정과 Pre 저장 결함
+
+r5 소스는 MAIN/REVIEW에 한 번씩 통합됐으며 아직 미커밋이다. 실제 ParaView
+6.2.0에서 제품 우회 없이 비교·필터·측정·Apply/Undo·저장·새 프로세스 재열기를
+통과했다. 원본 ID에는 NativeNodeID만 남으며 Response가 섞이지 않는다.
+독립 affine 기준과 기존 `1e-10 mm` 허용값을 유지했다.
+`runs/post-product-workflow-20261011-r06-r5`에 보존한다.
+
+별도 엄격 검사 `runs/post-history-repair-20261011-r02-r5`에서는 이력·Undo/Redo·
+새 분기 뒤 B를 이 검사의 저장소 안에서만 이동해 부분 복구했다. 정상 A와 과거
+결과를 읽고 Owner 경로로 저장했으며, 그 부분 저장본에서 B를 수리하고 다시 새
+프로세스로 열었다. ID·이전 값·원본 해시가 모두 유지됐고 소유 프로세스와 서비스는
+종료했다. 일반 수동 Save의 `commands.save_project`는 아직 모든 원본을 먼저
+검사하므로 B 누락 시 Owner에 도달하기 전에 실패한다. 이 경로는 미해결이다.
+
+독립 VTK/controlled-owner 검사에서 실제 reader 파일 변조 차단, 시간 의미 불일치
+거부와 정상 입력별 metadata 조회도 확인했다. 실제 HTTP 열→구조 실행의 원
+HDF5/캡처/VTK 온도·변위·요소 응력 값은 일치한다. 저장한 결과 재조회는 기본
+Client의 30초를 넘으며, 별도의 긴 제한 진단이 원 실패를 대체하지 않는다.
+Linux-owner 필드 전달을 Windows ParaView·운영체제 간 경로 수용으로 확대하지 않는다.
+
+Pre는 설치된 FreeCAD 1.1.4 API와 pinned worker를 읽고 portable/Qt 검사를 했다.
+Windows에서 archive의 read-only handle에 fsync하여 관리형 Save가 실패한다.
+외부 의존 문서의 후속 변경이 부모의 미저장/닫기 판단에서 빠지는 문제도 재현했다.
+FreeCAD 자체는 실행하지 않았으며 native 저장·Assembly·FEM 수용으로 기록하지 않는다.
+상세 결과와 미해결 항목은 [현재 진행 기록](WORKBENCH_PROGRESS.md) 및
+[r5 검증 기록](../benchmarks/records/20261011-connected-research-r5.json)에 있다.
+
+## 2026-10-11 r4 실제 Post 이력·부분 복구와 남은 결함
+
+현재 로컬에 통합된 Pro r2/r3/r4는 아직 미커밋이다. 실제 ParaView 6.2.0에서
+필터 수정, 여러 번 Undo/Redo, Undo 후 새 분기, 과거 downstream 결과 보존,
+저장, 입력 하나가 없는 상태의 정상 분기 열기, 동일 내용의 입력 위치 수리,
+별도 프로세스 재열기를 실행했다. 원본 affine 값과 결과는 유지했다.
+`runs/post-history-repair-20261011-r01-r4`에 각 단계와 원 실패를 보존한다.
+
+검사는 남은 ID 배열 오분류를 기록하며 통과로 바꾸지 않았다. 부분 복구 상태의
+공통 Save는 아직 누락 입력 때문에 실패한다. 저장 후 retained reader 경로와
+검사 대상 파일 pin 불일치, 시간 선언 연결도 수정 중이다. 원 r4 전체 흐름의
+실패는 `runs/post-product-workflow-20261011-r05-r4`에 별도로 남아 있다.
+UI·서비스·실제 열해석/구조해석 및 field 전달 결과는
+[현재 진행 기록](WORKBENCH_PROGRESS.md)과
+[연결 연구 검증 기록](../benchmarks/records/20261011-connected-research-r4.json)에
+모았다. native headless 실행을 사람이 조작한 GUI 수용으로 확대하지 않는다.
+FreeCAD 로컬 실행과 소진된 기존 cloud 시험은 계속 중지 상태다.
+
 ## 2026-10-11 Runner 연결과 Post 저장 owner 수정
 
 소스 `327b7b3`의 실제 HTTP/Qt retained-job 열기·원래 응답 확인·미적용 Material

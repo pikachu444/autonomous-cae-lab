@@ -1,0 +1,397 @@
+{
+  "schema_version": 1,
+  "record_id": "20261011-connected-research-r4",
+  "date_utc": "2026-10-11",
+  "status": "INTEGRATED_LOCALLY_WITH_OPEN_CORRECTIONS",
+  "engineering_release": "NOT_RELEASED",
+  "source": {
+    "integration_base_commit": "9e7b5a5e08c37dfcc01cf6fb27490ec1db1bdd18",
+    "last_published_source": "584971df8ae64de08beaf1120febe4a9c994aa56",
+    "current_commit": null,
+    "working_tree_uncommitted": true,
+    "exact_last_published_source_ci_runs": [],
+    "pinned_upstream": "3e48bf6138f495299f45b1af254bfb4aaff307b8",
+    "deliveries": [
+      {
+        "name": "pde-expert-r2",
+        "zip_sha256": "cd9b0df5cb83e1ee1a9df70f45868ec78e4ff7d4e01dcb4f79b31cc0f5cba987",
+        "result_tree": "1003cfb37a25197d374a2135d90f7208ae199386"
+      },
+      {
+        "name": "post-research-r3",
+        "zip_sha256": "eda285348ed508b66aa9db06959b691617728b253d9efb24712bf192f0df8671",
+        "result_tree": "d6d252705cdfd149405b52efff005cf2b716fcb3"
+      },
+      {
+        "name": "connected-research-r4",
+        "zip_sha256": "ee690b723830ab061cf6ca85f343e21db1c07036a99f9fa2938748fd0bb05ae0",
+        "result_tree": "efaaf395705b6a09cab4c156e1a6350d36bd9b15"
+      }
+    ],
+    "normalization": "CRLF/LF and one inherited trailing-space cleanup only; reviewed product contents match MAIN",
+    "native_thermal_producer_files": {
+      "caelab/adapters/thermoelastic_fenicsx.py": "d7336d9cf92b2d234d73ee7ff8c7736d1cc8cc53d97516b9802f1328c4728a17",
+      "caelab/adapters/thermoelastic_fenicsx_worker.py": "0536792c1df3719024961259009664af0a84710b74b2d6d03a97f87e632af1bb",
+      "plugins/thermoelastic/reference.py": "501b419417406ea7f363578329b80be91c86884dc7818f13b6f60d75d29c11c8",
+      "caelab/physical_fields.py": "373435e6d175d7f2413c795544372aa03a7bd15df00f3487516ba79692022e7f",
+      "caelab/evaluation.py": "5c415076c7979b5cba4b702c9055cbdcdd4c85ab6a4600bb54e68ccef80688f0",
+      "caelab/research_execution.py": "3923efdcf76e8d9f996e11a8955bd88a442f8da40ed5ced23adfb35cdbceb73d",
+      "caelab/adapters/fenicsx_rectangle.py": "1eea035b6d6d6f4bab4ba94e03ecc7813f666424fb13f53e0ab86b62c2e78264",
+      "caelab/adapters/fenicsx_rectangle_worker.py": "c28cdbbfeb51bf2557a8717d953c2fb68ecc230b8cc0c38722651e4087e1e0bd",
+      "caelab/execution_control.py": "c33cca1e19cbde36d79dedbe1376dc6263e877850591dbed18433dff94532580"
+    }
+  },
+  "verified_flows": {
+    "pde_expert": "Actual HTTP/Qt independent editing, Undo, Plan separation and new-owner reopen; unconfigured Expert failure retained; no provider inference.",
+    "data_numerical": "Actual HTTP/Qt multichannel import/edit/reopen, original-row display identity, retained influence/export; five-sample synthetic FELUPE UQ and declared normalized influence independently checked.",
+    "post": "Actual ParaView 6.2.0 headless owner/history/Undo/Redo/new-branch/save/partial-reopen/same-content-repair/cold-reopen; ID metadata and partial Save failures explicitly retained.",
+    "evaluation_study": "Actual service and Qt owners with controlled stage evaluator: failed-prefix reuse, cancellation retention, exact candidate-stage navigation, staged adoption/idempotence/Undo, Study evidence and inference-free follow-up.",
+    "windows": "Fresh ResearchUI install/READY/stopped owner; real Python3.12/3.13 load-save overlap, same-prepared-file publication retry and persistent-block failure retention.",
+    "stdio_mcp": "Actual SDK1.30.0 stdio and MAIN HTTP: retained FAILED/SUCCEEDED/CANCELLED stage results match, Study references/followup/edit/HTTP Undo/stale targets/idempotence share one owner. New jobs/solver/provider0; original 102 result files unchanged. Created owner and MCP child terminated."
+  },
+  "thermal_structural": {
+    "environment": {
+      "python": "/home/pikachu444/.local/share/autonomous-cae-lab/venv-py312/bin/python",
+      "python_version": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+      "numpy": "2.3.5"
+    },
+    "native_versions": {
+      "basix": "0.11.0",
+      "dolfinx": "0.11.0.post0",
+      "ffcx": "0.11.0",
+      "mpi4py": "3.1.5",
+      "numpy": "1.26.4",
+      "petsc": "3.19.6",
+      "petsc4py": "3.19.6",
+      "python": "3.12.3",
+      "ufl": "2026.1.0"
+    },
+    "uniform_case": {
+      "lengths_m": [
+        0.8,
+        0.3
+      ],
+      "p1_cells": [
+        12,
+        6
+      ],
+      "boundary_K": 363.15,
+      "reference_K": 293.15,
+      "alpha_per_K": 1.7e-05,
+      "E_Pa": 135000000000.0,
+      "nu": 0.22,
+      "exact_displacement": "alpha * (Tb - Tref) * (x,y)",
+      "exact_stress_Pa": 0,
+      "unchanged_displacement_bound_m": 1e-10,
+      "independent": {
+        "analytical_displacement_error_m": 2.0535111087250035e-17,
+        "analytical_linf_m": 0.0010167364456927861,
+        "native_displacement_linf_m": 0.0010167364456928002,
+        "independent_p1_displacement_error_m": 2.375794732653086e-17,
+        "independent_stress_component_difference_Pa": 5.36838319813575e-07,
+        "native_zero_stress_linf_Pa": 1.2248754501342773e-05,
+        "anchor_reactions_from_independent_weak_form_N_per_m": [
+          -5.150213837623596e-07,
+          -4.2188912630081177e-07,
+          -3.473833203315735e-07
+        ],
+        "unmodified_equilibrium_residual_relative": 1.14775774377617e-14
+      }
+    },
+    "positive_heat_source": {
+      "q_W_per_m3": 10000,
+      "k_W_per_m_K": 175,
+      "reference": "Independent odd-mode Fourier series and independent triangular P1 assembly",
+      "coarse_nodal_error_K": 0.0066954,
+      "fine_nodal_error_K": 0.00172694,
+      "P1_native_max_difference_K": 1.71e-12,
+      "heat_input_W_per_m": 2400,
+      "heat_outflow_W_per_m": 2399.9999999959246
+    },
+    "raw_hdf5_matches_capture": true,
+    "cold_native_imports_blocked": true,
+    "temperature_post": "Actual VTU/PVD values/native IDs/cells/snapshot time match",
+    "structural_post": "FAILED: capture seal missing/component declaration differs; cell stress not published",
+    "limits": [
+      "2D steady isotropic conduction and small-strain plane stress only",
+      "Structural numerical check used uniform temperature; nonuniform-temperature structural benchmark not claimed",
+      "Thickness unspecified: forces N/m and heat W/m; reactions are independent checks, not adapter responses",
+      "No physical material/fixture qualification or engineering release"
+    ]
+  },
+  "open_findings": [
+    {
+      "area": "Post",
+      "issue": "VTK overloaded equality misclassifies response arrays as identity arrays",
+      "evidence": "actual native r4 failure"
+    },
+    {
+      "area": "Post",
+      "issue": "Global source guard blocks managed Save and healthy declaration inspection with missing source",
+      "evidence": "actual native partial Save and source review"
+    },
+    {
+      "area": "Post",
+      "issue": "Saved history pins and retained-reader FileName can diverge",
+      "evidence": "controlled changed-file consumption 11 to 22"
+    },
+    {
+      "area": "Post",
+      "issue": "Declared clock semantics not consistently filled or validated",
+      "evidence": "source/controlled declarations review"
+    },
+    {
+      "area": "Evaluation UI",
+      "issue": "Late Apply clears structural edits made while request is pending",
+      "evidence": "actual owner/Qt reproduction"
+    },
+    {
+      "area": "Evaluation UI",
+      "issue": "Opening fieldless result raises without visible error",
+      "evidence": "actual Qt callback reproduction"
+    },
+    {
+      "area": "Physical fields",
+      "issue": "Displacement capture/component contract and missing cell-stress publication",
+      "evidence": "actual unchanged native response rejected by writer"
+    },
+    {
+      "area": "Windows tests",
+      "issue": "UTF-8 JSON read defaults to cp949; storage retry test patches unused Path.read_text seam",
+      "evidence": "focused test failures, production storage overlap passed"
+    },
+    {
+      "area": "HTTP/MCP client",
+      "issue": "Generic HTTPError string hides owner JSON recovery reason",
+      "evidence": "actual SDK stdio stale generation/session and invalid attempt refusals"
+    },
+    {
+      "area": "Simulation curve UI",
+      "issue": "Node-only selection cannot consume existing OpenRadioss name-only catalog",
+      "evidence": "source-only review of PDEWindow and native_responses; no new native run"
+    }
+  ],
+  "focused_checks": {
+    "r4_connected": "173 passed, 2 skipped, 1 cp949 fixture-read failure",
+    "r4_thermal": "26 passed, 2 skipped",
+    "r3_post_readiness": "80 passed",
+    "earlier_r2": "60 passed, 1 transient WinError5 preserved; one bounded rerun passed without explaining original handle owner",
+    "meaning": "Portable/widget/native checks have separate scopes; no global acceptance inferred from totals."
+  },
+  "execution_constraints": {
+    "local_FreeCAD": "STOPPED; not resumed",
+    "old_cloud_trial": "STOPPED; not resumed",
+    "new_provider_inference": 0,
+    "new_credentials_or_runtime_install_for_thermal": false,
+    "thermal_workers_after_review": 0
+  },
+  "continuation": "Pro implements live Pre variables, Assembly motion, mesh/condition controls and managed native save while correcting findings; Root reviews and integrates. Actual new-wrapper stdio MCP passed with recovery-message finding.",
+  "artifacts": [
+    {
+      "path": "runs/pro-code-received-20261011-r01/main-r3-r4-integration.json",
+      "bytes": 23255,
+      "sha256": "dc746605ef674f7b05efbad58a297121dd8613383dc0d9a1a95209cf47f1114d",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/pro-code-received-20261011-r01/connected-research-r4/root-receipt.json",
+      "bytes": 15783,
+      "sha256": "ac25a6d85f9e19ab7ef9a23dfca95743e33065d265f616a28f231930514149b4",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/pro-code-review-20261011/runs/reviewer-pde-expert-workflow-20261011-b9027/report.json",
+      "bytes": 6681,
+      "sha256": "3d81688306ad44de306349252974dfe4aa01e9e04695482750f8fa879cae0432",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/pde-post-reader-20261011-r01/native-created.json",
+      "bytes": 972,
+      "sha256": "ed078f35bbe702a739b2ebed701c17a1ab343dc4455d264a9eaf69d477549479",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/pde-post-reader-20261011-r01/native-reopened.json",
+      "bytes": 972,
+      "sha256": "926dbfe04e0cc8c803122800f826c8c5b38fdc938bd10640763f107f7ec48cc8",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/pro-code-review-20261011/runs/reviewer-r3-retained-flow-20261011-b872e/attempt-e09e9dd2/report.json",
+      "bytes": 21057,
+      "sha256": "3d1e8f32a8e28b24a237cec2435cebe07e03d426c3fed3a401c82fb5c8f79012",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/pro-code-review-20261011/runs/reviewer-r3-retained-flow-20261011-b872e/attempt-f3cd0e08/uq-report.json",
+      "bytes": 28538,
+      "sha256": "82606ee15b0b44adf475bc62abcbc6664e685e22113d21107695dab2e5c6a616",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/pro-code-review-20261011/runs/reviewer-r4-data-20261011-d93e/attempt-ac851a8c/report.json",
+      "bytes": 4702,
+      "sha256": "5060addd970dc88cfd75da6dc2652612ac62b995ebc5967fa7f845af0ed6aee3",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/pro-code-review-20261011/runs/reviewer-r4-uq-layout-20261011-e7139/review-summary.json",
+      "bytes": 4111,
+      "sha256": "4631f50c9823cbe0d272065895c2215c6faaba90967137ae236d119519b226f6",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/post-product-workflow-20261011-r05-r4/create-failure.json",
+      "bytes": 1374,
+      "sha256": "72b8620f6c4acd53e48a7e8cad44cd57bc0271037fc7d8ae0820f84c982eca17",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/post-history-repair-20261011-r01-r4/supervisor.json",
+      "bytes": 721,
+      "sha256": "b6deb1c42acfeb37a5bb733741bb478776d1092cb01478465ea652f4ba5e9710",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/post-history-repair-20261011-r01-r4/create.json",
+      "bytes": 18520,
+      "sha256": "da0c290d536b557a72403e44e63415a892daf4224754db0f2b4fa10a7f52c160",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/post-history-repair-20261011-r01-r4/partial.json",
+      "bytes": 7856,
+      "sha256": "ebb86b1acc9164f3ea8d3349fb19143b05b3fb0f38d28f0a49bd91f9a43240a2",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/post-history-repair-20261011-r01-r4/repair.json",
+      "bytes": 7828,
+      "sha256": "05e1ce3f7e5d31eb887c25a251857026b3ba7c6fb438b2e39b4e1f1828f132b2",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/post-history-repair-20261011-r01-r4/reopen.json",
+      "bytes": 5595,
+      "sha256": "34b41c4187937067f00e360f71ecfe6cbe05b4da7130ee6de1e7181b069f6db2",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/post-r4-readonly-review-20261011/repro.py",
+      "bytes": 2214,
+      "sha256": "936a7f2ed2bd4361795461e3a4d7c98f376b23006a6134f6a484c92d2ff79207",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/reviewer-storage-r4-a2c6359f45db4432afd8fdae7fdb10ae/python312/report.json",
+      "bytes": 7079,
+      "sha256": "071a556574c476046fcc82d6406505902778df9cc72a668b6236d95ec3c99bd7",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/reviewer-storage-r4-a2c6359f45db4432afd8fdae7fdb10ae/python313/report.json",
+      "bytes": 7087,
+      "sha256": "a9bd73375bae585d5e2530a4d7305133987480c8c7a75f8caeda75049cb90b07",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/pro-code-review-20261011/runs/r4-thermoacceptance-20261011-runner01/acceptance.json",
+      "bytes": 26890,
+      "sha256": "c877e2bf6562799f5c9f7902da97db7013f1be5a5d832b9682600fdcccb991fa",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/pro-code-review-20261011/runs/r4-thermoacceptance-20261011-runner01/cold-reopen.json",
+      "bytes": 1393,
+      "sha256": "b141f846cd628e27de70419a6ecaa003a12ca5c4cfe7c55f5962286e2c6f6f19",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/windows-research-20261011-r02/runtime/install-receipt.json",
+      "bytes": 928,
+      "sha256": "f20ebcb3d2ea3d703fac5c9aef57788e793dd6fd3ba870b64c2735a22add3fb5",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/windows-research-20261011-r02/prepare-review.json",
+      "bytes": 176,
+      "sha256": "0bf3ed5d815d27f7658f464434626df79e8f812ed57566077258ff9983c547a6",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/pro-code-received-20261011-r01/r4-connected-tests.log",
+      "bytes": 5131,
+      "sha256": "8403f02c7bd0da1cc7294a256346d1ea2bfcd08b5285846b99baa8ee8c4e4f1a",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/reviewer-r4-stdio-20261011-9c14/acceptance.json",
+      "bytes": 7136,
+      "sha256": "599f77c21fc73c1287f04d6dddf80b53ef3c1d74d2d35cc921a55fda38e1c771",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/reviewer-r4-stdio-20261011-9c14/findings.json",
+      "bytes": 2826,
+      "sha256": "95ba63b779711b0dc0718dcf0c4ad39520324683d593f0f68df6f8d1485de887",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/reviewer-r4-stdio-20261011-9c14/verify.py",
+      "bytes": 18251,
+      "sha256": "b5d592b654c59efb8cf8c4eec155e48bf9105054217537e8d181a3a1cc52f258",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/reviewer-retained-physics-baseline-20261011-9b36c/report.json",
+      "bytes": 31594,
+      "sha256": "800e0aed50607a5bf26b3e317b09548cc2cc9e31ab7d9b1130e3d79fca4085e7",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/reviewer-retained-physics-baseline-20261011-9b36c/gate-report.json",
+      "bytes": 971,
+      "sha256": "d88b30d384e45a8fc19ac9c8408844bab1f5592a8ee9c388cac9a6db71291566",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/reviewer-retained-physics-baseline-20261011-9b36c/review.py",
+      "bytes": 22236,
+      "sha256": "c7268d0299663d7b15423c247ebeaa9ab9401d4fa96c84038426d89b5273d7fc",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/reviewer-retained-physics-baseline-20261011-9b36c/validate_report.py",
+      "bytes": 6001,
+      "sha256": "6d1d9ecd42215d19c66e030f108d8f31bb190ab74ed81fb27ef26819d174a3b2",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/reviewer-retained-physics-baseline-20261011-9b36c/originals-before.json",
+      "bytes": 51325,
+      "sha256": "ff9512510e8d1d012554a9f9ef66b6fd87de3b8a3066268fa5e1b9e52eb0bebe",
+      "retention": "local ignored runs; not hosted by this record"
+    },
+    {
+      "path": "runs/reviewer-retained-physics-baseline-20261011-9b36c/originals-after.json",
+      "bytes": 51325,
+      "sha256": "ff9512510e8d1d012554a9f9ef66b6fd87de3b8a3066268fa5e1b9e52eb0bebe",
+      "retention": "local ignored runs; not hosted by this record"
+    }
+  ],
+  "retained_response_baseline": {
+    "purpose": "Reference for forthcoming common native response and UI connections; no new solver qualification",
+    "public_readers": "Lab.response_histories matches original saved Maxwell/J2/OpenRadioss physical channel projections",
+    "direct_common_catalog": "OpenRadioss name selectors preserve exact values and distinct clocks; Maxwell/J2 currently expose no channels",
+    "protected_original_files": 224,
+    "protected_original_bytes": 26224159,
+    "original_files_unchanged": true,
+    "new_solver_runs": 0,
+    "new_provider_calls": 0,
+    "old_store_mutations": 0,
+    "receipt": "runs/reviewer-retained-physics-baseline-20261011-9b36c/report.json",
+    "completion_gate": "runs/reviewer-retained-physics-baseline-20261011-9b36c/gate-report.json",
+    "limits": "Original READY report alone does not reject every reader exception. The separate strict gate verifies actual PASS values and negative failure controls without replaying readers."
+  }
+}

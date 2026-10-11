@@ -41,6 +41,18 @@ def _identifier(value):
     return value
 
 
+def global_placement(obj):
+    """Gmsh uses getGlobalPlacement, including all ancestor App::Parts."""
+    if not hasattr(obj, 'getGlobalPlacement'):
+        raise ValueError('Native source global placement is unavailable; its mesh/region cannot be confirmed')
+    pose = obj.getGlobalPlacement()
+    value = [float(pose.Base.x), float(pose.Base.y), float(pose.Base.z),
+             *[float(v) for v in pose.Rotation.Q]]
+    if len(value) != 7 or not all(math.isfinite(v) for v in value):
+        raise ValueError('Native source global placement is invalid')
+    return value
+
+
 def _current(mesh):
     source = mesh.Shape
     if source is None or source.Document is not mesh.Document:
@@ -74,7 +86,7 @@ def _current(mesh):
         elements[family] = rows
     return {
         "source": {"name": source.Name, "type": source.TypeId,
-                   "brep_sha256": _digest(brep)},
+                   "brep_sha256": _digest(brep), "global_placement": global_placement(source)},
         "mesh": {"name": mesh.Name,
                  "ordered_mesh_sha256": _digest(_json({"nodes": nodes, "elements": elements}))},
     }
@@ -99,10 +111,15 @@ def _record(mesh):
             return value
         value = json.loads(getattr(mesh, PROPERTY_NAME), object_pairs_hook=unique_pairs)
         require(set(value) == {"schema_version", "status", "qualification", "source", "mesh"})
-        require(value["schema_version"] == 1 and type(value["schema_version"]) is int)
+        require(value["schema_version"] in (1, 2) and type(value["schema_version"]) is int)
         require(value["status"] in (INITIAL, REPLACED))
         require(value["qualification"] == "UNKNOWN")
-        require(set(value["source"]) == {"name", "type", "brep_sha256"})
+        fields = {"name", "type", "brep_sha256"} | ({"global_placement"} if value['schema_version'] == 2 else set())
+        require(set(value["source"]) == fields)
+        if value['schema_version'] == 2:
+            pose = value['source']['global_placement']
+            require(isinstance(pose, list) and len(pose) == 7
+                    and all(type(v) in (int, float) and math.isfinite(v) for v in pose))
         require(set(value["mesh"]) == {"name", "ordered_mesh_sha256"})
         require(value["mesh"]["name"] == mesh.Name)
         for name in ("name", "type"):
@@ -142,7 +159,7 @@ class MeshBindingObserver:
         mesh.addProperty("App::PropertyString", PROPERTY_NAME, "CAELab",
                          "Recorded mesh/source association; initial provenance remains unknown",
                          attr=PROPERTY_ATTRIBUTES, locked=True)
-        value = dict(current, schema_version=1, status=INITIAL, qualification="UNKNOWN")
+        value = dict(current, schema_version=2, status=INITIAL, qualification="UNKNOWN")
         setattr(mesh, PROPERTY_NAME, _json(value))
         return self.validate(mesh)
 
@@ -150,6 +167,8 @@ class MeshBindingObserver:
         self._check_document(mesh)
         value = _record(mesh)
         current = _current(mesh)
+        if value['schema_version'] == 1:
+            raise ValueError('Source placement was not recorded in this older mesh binding; regenerate the native mesh before export')
         if value["source"] != current["source"]:
             raise ValueError("Source geometry changed after the recorded mesh association; regenerate the native mesh before export")
         if value["mesh"] != current["mesh"]:
@@ -172,7 +191,7 @@ class MeshBindingObserver:
                 value = _record(obj)  # Malformed metadata is never overwritten.
                 if value["mesh"] != current["mesh"]:
                     setattr(obj, PROPERTY_NAME,
-                            _json(dict(current, schema_version=1, status=REPLACED,
+                            _json(dict(current, schema_version=2, status=REPLACED,
                                        qualification="UNKNOWN")))
                 # Touching/reassigning identical mesh content cannot rebind it
                 # to changed CAD. Such an association still fails validation.

@@ -19,6 +19,8 @@ class NativeMeshObject:
         self.Shape = NS(Name="Solid", TypeId="Part::Feature", Document=document)
         self.Shape.Shape = NS(brep="native BRep initial")
         self.Shape.Shape.exportBrepToString = lambda: self.Shape.Shape.brep
+        self.Shape.placement = NS(Base=NS(x=0, y=0, z=0), Rotation=NS(Q=[0, 0, 0, 1]))
+        self.Shape.getGlobalPlacement = lambda: self.Shape.placement
         self.replace_mesh()
 
     def replace_mesh(self, x=1):

@@ -72,7 +72,7 @@ def main(argv=None):
         action.add_argument('--url',default='http://127.0.0.1:8766')
         if name=='open':
             action.add_argument('--id')
-            action.add_argument('--kind',choices=['material','data','numerical'],default='material')
+            action.add_argument('--kind',choices=['material','data','numerical','pde','expert','simulation','evaluation','study'],default='material')
             action.add_argument('--title',default='Material research')
             action.add_argument('--draft')
         if name in {'read','apply','result'}:

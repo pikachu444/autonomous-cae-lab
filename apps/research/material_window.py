@@ -126,6 +126,7 @@ class MaterialWindow(QMainWindow):
         self._result_errors = {}
         self._runner = None
         self._numerical_windows = []
+        self._native_material_windows = []
         self._build_ui()
         self.timer = QTimer(self)
         self.timer.setInterval(poll_interval)
@@ -147,6 +148,9 @@ class MaterialWindow(QMainWindow):
         for action in (self.new_action, self.open_action, self.save_action, close_action):
             files.addAction(action)
         self.new_action.triggered.connect(self.new_document)
+        native_law = QAction('New native constitutive law…', self)
+        native_law.triggered.connect(self.new_native_law)
+        files.insertAction(self.open_action, native_law)
         self.open_action.triggered.connect(self.choose_document)
         self.save_action.triggered.connect(self.save_document)
         close_action.triggered.connect(self.close)
@@ -333,6 +337,14 @@ class MaterialWindow(QMainWindow):
                          draft=draft, document_id=document_id), self._opened)
 
     def _opened(self, document):
+        from caelab.material_document import NATIVE_LAWS
+        if document['draft'].get('backend') in NATIVE_LAWS:
+            from .native_material_window import NativeMaterialWindow
+            window = NativeMaterialWindow(self.client, auto_open=False)
+            self._native_material_windows.append(window)
+            window._opened(document); window.show()
+            self.message.setText('Opened the same Material owner in its native law/protocol editor.')
+            return
         self.document = deepcopy(document)
         self.local_dirty = self.conflict = False
         self._result_cache.clear()
@@ -772,6 +784,15 @@ class MaterialWindow(QMainWindow):
                 self.open_document(title=title.strip())
         self._leave(create)
 
+    def new_native_law(self):
+        from caelab.material_document import NATIVE_LAWS
+        from caelab.simulation_document import default_draft
+        backend, accepted = QInputDialog.getItem(self, 'Native Material document',
+            'Existing constitutive adapter', list(NATIVE_LAWS), 0, False)
+        if accepted:
+            self._call(lambda: self.client.document_open(kind='material', title='Material — ' + backend,
+                       draft=default_draft(backend)), self._opened)
+
     def choose_document(self):
         def choose():
             def listed(payload):
@@ -814,7 +835,14 @@ def main(argv=None):
         parser.error("--service or CAELAB_SERVICE_URL must identify an existing local service")
     client = Client(args.service)
     app = QApplication.instance() or QApplication(sys.argv[:1])
-    window = MaterialWindow(client, document_id=args.document_id, title=args.title)
+    document = client.document_read(args.document_id) if args.document_id else None
+    from caelab.material_document import NATIVE_LAWS
+    if document and document.get('kind') == 'material' and document['draft'].get('backend') in NATIVE_LAWS:
+        from .native_material_window import NativeMaterialWindow
+        window = NativeMaterialWindow(client, auto_open=False)
+        window._opened(document)
+    else:
+        window = MaterialWindow(client, document_id=args.document_id, title=args.title)
     window.show()
     return app.exec()
 

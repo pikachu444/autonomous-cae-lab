@@ -35,6 +35,8 @@ def sha(path):
 
 
 def project():
+    if _save_owner is not None and hasattr(_save_owner, 'current_project'):
+        return _save_owner.current_project()
     path = Path(os.environ["CAE_POST_PROJECT"]).resolve(strict=True)
     return path, json.loads(path.read_text(encoding="utf-8"))
 
@@ -46,6 +48,15 @@ def return_to_design():
     result = navigate(document)
     print('DESIGN NAVIGATION REQUESTED ' + result['job_id'])
     return result
+
+
+def open_analysis_editor():
+    """Open editing controls for this exact owner; the native canvas stays here."""
+    if _save_owner is None:
+        raise RuntimeError('The native document bridge must be connected before opening analysis controls')
+    from apps.desktop_post.navigation import open_analysis_editor as navigate
+    _, document = project()
+    return navigate(document, _save_owner.document_id, _save_owner.session_id)
 
 
 def verify_sources():
@@ -242,10 +253,10 @@ def save_project():
     return output / "project.json"
 
 
-def restore_workspace():
+def restore_workspace(*, allow_repair=False):
     path, doc = verify_sources()
     if doc.get("kind") == "external-result":
-        return external_module().restore_workspace(path, doc)
+        return external_module().restore_workspace(path, doc, allow_repair=allow_repair)
     if "workspace_sha256" in doc and sha(path.parent / doc["workspace_file"]) != doc["workspace_sha256"]:
         raise RuntimeError("Saved analysis state hash mismatch")
     for file, expected in doc.get("native_reader_files", {}).items():

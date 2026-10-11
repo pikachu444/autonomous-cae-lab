@@ -6,6 +6,8 @@ Gmsh geometry and native import checks reuse the exercised elasticity adapter.
 
 from __future__ import annotations
 
+from . import declared_native_inputs as native_inputs
+
 import csv
 import hashlib
 import json
@@ -237,6 +239,8 @@ def _checked_worker(level: Path, mesh: dict, size: float, input_sha: str, settin
 
 
 class CodeAsterPlasticityAdapter:
+    input_source_files = (*_SOURCES.values(), native_inputs.SOURCE)
+
     backend = "structural.code_aster.plasticity"
     domain = "elasticity"
     physics_domain = "structural"
@@ -246,6 +250,18 @@ class CodeAsterPlasticityAdapter:
                        "plastic_work_density", "hardening_energy_density", "plastic_dissipation_density",
                        "max_component_displacement_error", "max_component_stress_error",
                        "max_eq_plastic_strain_error", "reaction_relative_error", "mesh_agreement_relative"]
+
+    def describe_inputs(self, settings):
+        return native_inputs.describe(self.backend, settings)
+
+    def bind_inputs(self, settings, values):
+        return native_inputs.bind(self.backend, settings, values)
+
+    def expected_input_declaration(self, settings):
+        return native_inputs.expected_declaration(self.backend, settings)
+
+    def input_runtime_identity(self):
+        return native_inputs.aster_runtime_identity()
 
     def describe_model(self, settings: dict) -> dict:
         declaration = domain.model_declaration(settings)

@@ -78,7 +78,8 @@ def native(tmp_path):
     dimension=Object(doc,'Pad',Length=Quantity('10 mm'))
     force=Object(doc,'Load','Fem::ConstraintForce',Force=Quantity('20 N'))
     sketch=Object(doc,'Sketch','Sketcher::SketchObject')
-    sketch.Constraints=[NS(Type='Distance',Value=5),NS(Type='Coincident',Value=0),NS(Type='Angle',Value=.2)]
+    sketch.Constraints=[NS(Type='Distance',Value=5,Name=''),NS(Type='Coincident',Value=0,Name=''),NS(Type='Angle',Value=.2,Name='')]
+    sketch.getDriving=lambda index:True
     sketch.datums={0:Quantity('5 mm'),2:Quantity('10 deg')}
     def set_datum(index,value):
         sketch.datums[index]=value
@@ -124,7 +125,7 @@ def test_human_changes_observer_lifecycle_and_saved_state(native):
     owner.slotRedoDocument(native.doc)
     assert owner.generation==old+5
     owner.slotFinishSaveDocument(native.doc,native.doc.FileName)
-    assert not owner.descriptor()['dirty']
+    assert owner.descriptor()['dirty']  # Native saveCopy/FinishSave is not Lab publication.
     foreign=NS(Document=NS())
     owner.slotChangedObject(foreign,'Length')
     assert owner.generation==old+5
@@ -196,11 +197,18 @@ def test_transaction_aborts_on_native_exception(native):
 
 
 def test_freeze_receipt_keeps_export_path_and_does_not_resubmit(native,monkeypatch):
+    saved = native.owner.export_root / 'retained.caepre'
+    saved.parent.mkdir(parents=True)
+    saved.write_bytes(b'native-project-double')
+    monkeypatch.setattr(native.owner.project, 'save', lambda: {'retained_project': str(saved)})
+    monkeypatch.setattr(native.owner.fem, 'validate_for_run', lambda analysis: [])
     calls=[]
     def freeze(analysis,solver,root,*,binding_validator=None):
         assert binding_validator == native.owner.mesh_bindings.validate
         assert analysis is native.analysis and solver is native.solver
         path=root/'Fretained'/'snapshot.json'
+        from caelab.storage import save_json
+        save_json(path, {'files': []})
         calls.append((analysis,solver,root))
         return path
     monkeypatch.setattr('apps.desktop_pre.freeze_analysis.freeze_analysis',freeze)
@@ -323,7 +331,7 @@ def test_stopped_broker_does_not_accumulate_undeliverable_heartbeats(native,monk
 
 def test_connection_does_not_reuse_identity_for_a_different_unsaved_document(tmp_path,monkeypatch):
     from apps.desktop_pre.connection import Connection
-    document=NS(Name='Unnamed',Label='New unsaved model',FileName='')
+    document=NS(Name='Unnamed',Label='New unsaved model',FileName='',getObject=lambda name:None)
     captured=[]
     def start(doc,config,QtCore,**options):
         captured.append(options.get('document_id'))
@@ -337,6 +345,8 @@ def test_connection_does_not_reuse_identity_for_a_different_unsaved_document(tmp
     connection.pending=None
     connection.records={'Unnamed':{'id':'Pold','working_file':''}}
     connection.owners={}
+    connection.native_requests={}
+    connection.panels={}
     connection.project_path=tmp_path/'native_documents.json'
     connection.App=NS(listDocuments=lambda:{'Unnamed':document},ActiveDocument=document)
     connection.config={}
@@ -355,6 +365,11 @@ def test_long_freeze_waits_for_start_receipt_then_reports_once(native, tmp_path,
     from caelab.native_commands import NativeCommands
     from caelab.native_transport import BrokerIO
     from caelab.workbench_client import Client
+    from caelab.storage import save_json
+    saved = tmp_path / 'retained.caepre'
+    saved.write_bytes(b'native-project-double')
+    monkeypatch.setattr(native.owner.project, 'save', lambda: {'retained_project': str(saved)})
+    monkeypatch.setattr(native.owner.fem, 'validate_for_run', lambda analysis: [])
     clock = [100.0]
     monkeypatch.setattr('caelab.native_commands.time.monotonic', lambda: clock[0])
     service = NativeCommands(tmp_path / 'service', 'Sservice')
@@ -391,7 +406,9 @@ def test_long_freeze_waits_for_start_receipt_then_reports_once(native, tmp_path,
         transport.require_tick()
         dispatch._tick()  # A native nested loop must not publish fake progress/reenter.
         assert dispatch.last_tick == 100 and not any(kind == 'heartbeat' for _, kind in events)
-        return root / 'Flong' / 'snapshot.json'
+        manifest = root / 'Flong' / 'snapshot.json'
+        save_json(manifest, {'files': []})
+        return manifest
     monkeypatch.setattr('apps.desktop_pre.freeze_analysis.freeze_analysis', writer)
     try:
         dispatch._tick()

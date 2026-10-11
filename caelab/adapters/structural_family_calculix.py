@@ -9,6 +9,8 @@ identities: positions use checked input coordinates and the documented rule.
 
 from __future__ import annotations
 
+from . import declared_native_inputs as native_inputs
+
 from copy import deepcopy
 import hashlib
 import json
@@ -837,7 +839,16 @@ class StructuralFamilyCalculiXAdapter:
     analysis_type = "linear_static"
     version = "1"
     default_metrics = ["primary_response"]
-    input_source_files = _SOURCE_FILES
+    input_source_files = (*_SOURCE_FILES, native_inputs.SOURCE)
+
+    def describe_inputs(self, settings):
+        return native_inputs.describe(self.backend, settings)
+
+    def bind_inputs(self, settings, values):
+        return native_inputs.bind(self.backend, settings, values)
+
+    def expected_input_declaration(self, settings):
+        return native_inputs.expected_declaration(self.backend, settings)
 
     def describe_model(self, settings: dict) -> dict:
         return _domain.model_declaration(settings)

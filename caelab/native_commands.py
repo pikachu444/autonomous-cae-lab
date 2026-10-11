@@ -11,9 +11,24 @@ from .storage import canonical_hash, check_id, load_json, save_json, utc_now
 
 TERMINAL = {'SUCCEEDED', 'FAILED', 'CANCELLED', 'INTERRUPTED'}
 CAPABILITIES = {
-    'post': {'post.inspect', 'post.select_array', 'document.save'},
+    'post': {'post.inspect', 'post.select_array', 'document.save', 'document.activate',
+             'post.source_add', 'post.source_select', 'post.source_repair',
+             'post.comparison_edit', 'post.mapping_validate', 'post.sample',
+             'post.filter_edit', 'post.measurement_edit', 'post.measurement_capture',
+             'post.apply', 'post.show_analysis', 'post.reset', 'post.undo', 'post.redo', 'post.export'},
     'pre': {'pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze',
-            'document.save', 'document.undo', 'document.redo', 'document.activate'},
+            'document.save', 'document.undo', 'document.redo', 'document.activate',
+            'pre.workbench', 'pre.export_native_copy', 'pre.validate',
+            'pre.parameters.discover', 'pre.parameters.probe', 'pre.parameters.register',
+            'pre.parameters.update', 'pre.parameters.remove', 'pre.parameters.preflight',
+            'pre.project.inspect', 'pre.project.save', 'pre.project.open', 'pre.links.record',
+            'pre.assembly.create', 'pre.assembly.link', 'pre.joint.create', 'pre.joint.update', 'pre.joint.remove',
+            'pre.motion.inspect', 'pre.motion.configure', 'pre.motion.calculate', 'pre.motion.frame',
+            'pre.motion.play', 'pre.motion.pause', 'pre.motion.stop', 'pre.motion.cancel', 'pre.motion.path', 'pre.motion.adopt_pose',
+            'pre.fem.mesh_settings', 'pre.fem.mesh_local_size', 'pre.fem.mesh_generate',
+            'pre.fem.mesh_cancel', 'pre.fem.mesh_quality', 'pre.fem.mesh_highlight',
+            'pre.fem.region_set', 'pre.fem.region_remove', 'pre.fem.condition_set',
+            'pre.fem.condition_repair', 'pre.fem.material_set', 'pre.fem.task_edit'},
 }
 
 

@@ -2,7 +2,7 @@
 
 The input is the native adapter's own outcome and output directory, not a Lab
 Study.  The old Study readers remain responsible for their existing contracts.
-Only the two native history families admitted here are advertised.
+Only native history/field families with an admitted retained reader are advertised.
 """
 from __future__ import annotations
 
@@ -175,6 +175,9 @@ def catalog_native_responses(backend, outcome, output):
         return _pde_catalog(outcome, output)
     if backend == _EXPLICIT:
         return _explicit_catalog(outcome, output)
+    if backend in {'material.mfront', 'material.mfront.hyperelastic', 'material.mfront.viscoelastic', 'structural.code_aster.plasticity'}:
+        from .retained_law_responses import catalog
+        return catalog(backend, outcome, output)
     return {}
 
 
@@ -221,6 +224,9 @@ def read_native_response(backend, outcome, output, selector, *, start=None, stop
         times = [row[clock] for row in raw["rows"]]
         _need(_finite(values) and _finite(times) and all(right > left for left, right in zip(times, times[1:])),
               "OpenRadioss selected native values/clock are invalid")
+    elif backend in {'material.mfront', 'material.mfront.hyperelastic', 'material.mfront.viscoelastic', 'structural.code_aster.plasticity'}:
+        from .retained_law_responses import read
+        descriptor, values, times = read(backend, outcome, output, selector, catalog)
     else:
         raise ValueError(f"No native response reader for {backend}")
     _need(start is None or type(start) is int and start >= 0, "start must be a nonnegative sample index")
