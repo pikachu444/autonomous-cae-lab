@@ -72,6 +72,7 @@ class Owner:
         if doc.get("kind") != external.KIND:
             raise ValueError("The current Post bridge supports independent external-result documents")
         self.document_id = document_id or doc.get("document_id") or "D" + uuid.uuid4().hex
+        self.project_root = Path(doc.get("project_root", path.parent)).resolve()
         self.title = path.parent.name
         self.saved_revision = doc.get("workspace_sha256")
         self.saved_generation = 0
@@ -155,6 +156,25 @@ class Owner:
                 "dirty": (self.generation != self.saved_generation or self.view_generation != self.saved_view_generation),
                 "saved_revision": self.saved_revision, "capabilities": list(OPERATIONS), "state": self.snapshot}
 
+    def save_project(self):
+        """Complete the same managed save for human macros and typed commands."""
+        self.refresh()
+        if any(item["pending_properties"] for item in self.snapshot["sources"] + self.snapshot["views"] + list(self.snapshot["representations"].values())):
+            raise ValueError("BUSY_EDIT: native properties contain unapplied changes")
+        path, doc = commands.verify_sources()
+        if (doc.get("kind") != external.KIND or doc.get("document_id", self.document_id) != self.document_id
+                or Path(doc.get("project_root", path.parent)).resolve() != self.project_root):
+            raise ValueError("STALE_DOCUMENT: managed save belongs to a different document")
+        generation, view_generation = self.generation, self.view_generation
+        saved = external.save_project(path, dict(doc, document_id=self.document_id,
+                                                generation=generation, view_generation=view_generation))
+        revision = json.loads(saved.read_text(encoding="utf-8"))["workspace_sha256"]
+        self.refresh()
+        # Publish save completion only after the native save and manifest succeed.
+        self.saved_revision = revision
+        self.saved_generation, self.saved_view_generation = generation, view_generation
+        return saved
+
     def dispatch(self, request):
         self.assert_thread()
         stamp = json.dumps(request, sort_keys=True, allow_nan=False)
@@ -204,11 +224,7 @@ class Owner:
                 if operation == "document.save":
                     if arguments or target:
                         raise ValueError("document.save uses the managed document save location")
-                    path, doc = commands.verify_sources()
-                    saved = external.save_project(path, dict(doc, document_id=self.document_id,
-                                                            generation=self.generation, view_generation=self.view_generation))
-                    self.saved_revision = json.loads(saved.read_text(encoding="utf-8"))["workspace_sha256"]
-                    self.saved_generation, self.saved_view_generation = self.generation, self.view_generation
+                    saved = self.save_project()
                     payload = {"project": str(saved), "document_id": self.document_id}
                 else:
                     if source is None:
@@ -295,6 +311,7 @@ class GuiDispatch:
 
     def close(self):
         self.owner.assert_thread()
+        commands.clear_save_owner(self.owner)
         if self.interactor is not None:
             self.interactor.DestroyTimer(self.timer)
             self.interactor.RemoveObserver(self.observer)
@@ -377,6 +394,7 @@ def start(service_url, *, log=None):
     owner = Owner()
     dispatcher = GuiDispatch(owner).install()
     broker = BrokerIO(dispatcher, service_url, log=log).start()
+    commands.set_save_owner(owner)
     return owner, dispatcher, broker
 
 

@@ -157,6 +157,33 @@ def test_direct_new_document_has_complete_editable_history_and_no_fake_plot(wind
     assert all(identifier != threading.get_ident() for identifier in client.call_threads)
 
 
+def test_return_from_runner_keeps_unapplied_material_edits_and_original_job(window, app):
+    editor, client = window
+    editor.evaluate()
+    until(app, lambda: len(editor.document["runs"]) == 1 and not editor._busy)
+    editor.coefficients.item(0, 1).setText("1777")
+    sent = deepcopy(client.commands)
+    editor.open_run_origin("J1")
+    until(app, lambda: not editor._busy)
+    assert editor.coefficients.item(0, 1).text() == "1777"
+    assert editor.local_dirty
+    assert editor._selected_jobs() == ["J1"]
+    assert client.commands == sent
+
+
+def test_reopened_material_window_restores_close_guard_and_polling(window, app):
+    editor, _ = window
+    editor.timer.setInterval(100000)
+    editor.show()
+    app.processEvents()
+    editor._allow_close = True
+    editor.close()
+    assert not editor.timer.isActive()
+    editor.show()
+    app.processEvents()
+    assert not editor._allow_close and editor.timer.isActive()
+
+
 def test_apply_preserves_invalid_coefficient_and_tensor_text(window, app):
     editor, client = window
     editor.coefficients.item(0, 1).setText("not a modulus")

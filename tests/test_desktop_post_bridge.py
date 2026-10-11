@@ -124,7 +124,8 @@ def bridge(monkeypatch, tmp_path):
         return arguments
 
     commands = SimpleNamespace(project=lambda: (tmp_path / "project.json", doc),
-                               verify_sources=lambda: (tmp_path / "project.json", doc))
+                               verify_sources=lambda: (tmp_path / "project.json", doc),
+                               set_save_owner=lambda owner: None, clear_save_owner=lambda owner: None)
     external = SimpleNamespace(KIND="external-result", save_project=save_project,
                                select_array=select_array, times=lambda selected: [0, 1],
                                inspect_result=lambda selected: {"time": scene.AnimationTime, "points": 4})
@@ -137,13 +138,90 @@ def bridge(monkeypatch, tmp_path):
     monkeypatch.delitem(sys.modules, "apps.desktop_post.bridge", raising=False)
     module = importlib.import_module("apps.desktop_post.bridge")
     yield SimpleNamespace(module=module, source=source, view=view, representation=representation,
-                          scene=scene, sources=sources, saved=saved, renders=renders, doc=doc)
+                          scene=scene, sources=sources, saved=saved, renders=renders, doc=doc,
+                          external=external)
     sys.modules.pop("apps.desktop_post.bridge", None)
 
 
 def command(owner, operation="post.inspect", **overrides):
     return dict({"command_id": "Cone", "document_id": owner.document_id, "session_id": owner.session_id,
                  "expected_generation": owner.generation, "operation": operation, "target": {}, "arguments": {}}, **overrides)
+
+
+@pytest.fixture
+def save_commands(bridge, monkeypatch):
+    # Exercise the real macro entry, with only native I/O replaced by the fixture.
+    monkeypatch.setattr(sys.modules["paraview"], "servermanager", SimpleNamespace(), raising=False)
+    spec = importlib.util.spec_from_file_location("post_save_commands", Path(bridge.module.__file__).with_name("commands.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.project = bridge.module.commands.project
+    module.verify_sources = bridge.module.commands.verify_sources
+    module.external_module = lambda: bridge.external
+    monkeypatch.setattr(bridge.module, "commands", module)
+    return module
+
+
+def test_macro_and_mcp_share_owner_save_completion(bridge, save_commands, monkeypatch):
+    monkeypatch.setattr(bridge.module, "BrokerIO", lambda *_args, **_kwargs: SimpleNamespace(start=lambda: None))
+    owner, dispatcher, _ = bridge.module.start("http://127.0.0.1:8000")
+    bridge.source.edit("PointArrays", ["response", "other"])
+    bridge.view.edit("CameraPosition", [3, 2, 1])
+    owner.refresh()
+    assert owner.descriptor()["dirty"]
+    path = save_commands.save_project()
+    assert path.is_file() and owner.descriptor()["dirty"] is False
+    assert owner.saved_revision == "saved"
+    assert bridge.saved[-1]["generation"] == owner.generation == 1
+    assert bridge.saved[-1]["view_generation"] == owner.view_generation == 1
+    assert bridge.saved[-1]["document_id"] == owner.document_id
+    dispatcher._tick()
+    report = dispatcher.outgoing.get_nowait()["documents"][0]
+    assert report["dirty"] is False and report["saved_revision"] == "saved"
+    bridge.source.edit("PointArrays", ["response"])
+    result = owner.dispatch(command(owner, "document.save"))
+    assert result["status"] == "COMPLETED" and owner.generation == 2
+    assert owner.descriptor()["dirty"] is False and len(bridge.saved) == 2
+    assert bridge.doc["workspace_sha256"] == "original"
+    dispatcher.close()
+    assert save_commands._save_owner is None
+
+
+@pytest.mark.parametrize("failure", ["native", "manifest"])
+def test_macro_and_mcp_failed_save_leave_owner_dirty(bridge, save_commands, monkeypatch, tmp_path, failure):
+    owner = bridge.module.Owner()
+    save_commands.set_save_owner(owner)
+    bridge.source.edit("PointArrays", ["other"])
+
+    def fail_save(*_args):
+        if failure == "native":
+            raise RuntimeError("native SaveState failed")
+        path = tmp_path / "broken-manifest.json"
+        path.write_text("{}", encoding="utf-8")
+        return path
+
+    monkeypatch.setattr(bridge.external, "save_project", fail_save)
+    with pytest.raises((RuntimeError, KeyError)):
+        save_commands.save_project()
+    assert owner.descriptor()["dirty"] and owner.saved_revision == "original"
+    assert owner.saved_generation == 0 and owner.generation == 1
+    result = owner.dispatch(command(owner, "document.save"))
+    assert result["status"] == "FAILED"
+    assert owner.descriptor()["dirty"] and owner.saved_revision == "original"
+
+
+def test_macro_save_rejects_pending_edit_or_different_document(bridge, save_commands):
+    owner = bridge.module.Owner()
+    save_commands.set_save_owner(owner)
+    bridge.source.edit("PointArrays", ["other"])
+    bridge.source.props["FileName"].unchecked = ["pending.pvd"]
+    with pytest.raises(ValueError, match="BUSY_EDIT"):
+        save_commands.save_project()
+    bridge.source.props["FileName"].unchecked = []
+    bridge.doc["document_id"] = "Dother"
+    with pytest.raises(ValueError, match="STALE_DOCUMENT"):
+        save_commands.save_project()
+    assert bridge.saved == [] and owner.descriptor()["dirty"]
 
 
 def test_fresh_native_human_edit_and_stale_generation(bridge):

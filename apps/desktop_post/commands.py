@@ -12,6 +12,22 @@ import uuid
 
 from paraview import simple as p, servermanager
 
+_save_owner = None
+
+
+def set_save_owner(owner):
+    """Connect the explicit CAE save macro to this native session's owner."""
+    owner.assert_thread()
+    global _save_owner
+    _save_owner = owner
+
+
+def clear_save_owner(owner):
+    owner.assert_thread()
+    global _save_owner
+    if _save_owner is owner:
+        _save_owner = None
+
 
 def sha(path):
     with Path(path).open("rb") as stream:
@@ -187,6 +203,8 @@ def exact_peak_probe():
 def save_project():
     path, doc = verify_sources()
     if doc.get("kind") == "external-result":
+        if _save_owner is not None:
+            return _save_owner.save_project()
         return external_module().save_project(path, doc)
     verify_retained_readers(path, doc)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6]

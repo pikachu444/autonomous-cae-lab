@@ -10,6 +10,7 @@ With PySide6 and matplotlib installed in the UI environment, run from the repo:
 ```powershell
 python -m apps.research.material_window --service http://127.0.0.1:PORT
 python -m apps.research.material_window --service http://127.0.0.1:PORT --document-id DOCUMENT_ID
+python -m apps.research.runner_window --service http://127.0.0.1:PORT --job-id JOB_ID
 ```
 
 On Windows, `scripts/start_cae_research.ps1` uses the existing private installer
@@ -18,6 +19,15 @@ only a server whose store, source and operator configuration match the existing
 launch receipt. `-DocumentId M...` opens a saved/recoverable document; `-PrepareOnly`
 prepares the service without opening a window. `-RuntimeRoot`, `-Store` and `-Port`
 keep separate research stores and environments explicit. No AI login is needed.
+`-Tool runner -JobId J...` opens Runner directly against that same service.
+Material's **Open in Runner** follows the selected evaluation's exact job.
+Runner shows submitted inputs, resources, actual status, retained results and
+whole-job cancellation. Opening a result never reruns it. **Open source document**
+returns to its Material owner and selected run while preserving unapplied edits.
+Fit/DOE cancellation targets the parent execution; candidate cancellation is not
+advertised. Partial failures and configured penalties remain distinct from valid
+objectives. Fields expose their retained references; this window plots only real
+scalar/series data returned by the service, in bounded original row ranges.
 
 `CAELAB_SERVICE_URL` may replace `--service`. The service environment needs the
 selected backend; the GUI environment does not import FELUPE. Do not mix this

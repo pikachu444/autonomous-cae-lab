@@ -124,6 +124,7 @@ class MaterialWindow(QMainWindow):
         self._result_cache = {}
         self._job_status = {}
         self._result_errors = {}
+        self._runner = None
         self._build_ui()
         self.timer = QTimer(self)
         self.timer.setInterval(poll_interval)
@@ -154,6 +155,10 @@ class MaterialWindow(QMainWindow):
         self.undo_action.triggered.connect(lambda: self.command("document.undo"))
         self.redo_action.triggered.connect(lambda: self.command("document.redo"))
         edit.addActions([self.undo_action, self.redo_action])
+        windows = self.menuBar().addMenu("&Window")
+        self.runner_action = QAction("Runner…", self)
+        self.runner_action.triggered.connect(self.open_runner)
+        windows.addAction(self.runner_action)
         toolbar = QToolBar("Material commands", self)
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
@@ -253,7 +258,13 @@ class MaterialWindow(QMainWindow):
         output = QWidget()
         output_layout = QVBoxLayout(output)
         output_layout.setContentsMargins(0, 0, 0, 0)
-        output_layout.addWidget(QLabel("Retained runs · Ctrl/Shift-select to compare actual results"))
+        run_controls = QHBoxLayout()
+        run_controls.addWidget(QLabel("Retained runs · Ctrl/Shift-select to compare actual results"))
+        run_controls.addStretch()
+        self.runner_button = QPushButton("Open in Runner")
+        self.runner_button.clicked.connect(self.open_runner)
+        run_controls.addWidget(self.runner_button)
+        output_layout.addLayout(run_controls)
         self.runs = QTableWidget(0, 4)
         self.runs.setObjectName("materialRuns")
         self.runs.setHorizontalHeaderLabels(["Job", "State", "Input", "Compared with current inputs"])
@@ -501,6 +512,46 @@ class MaterialWindow(QMainWindow):
         return [self.runs.item(row, 0).data(Qt.ItemDataRole.UserRole)
                 for row in sorted({index.row() for index in self.runs.selectedIndexes()})]
 
+    def open_runner(self):
+        from .runner_window import RunnerWindow
+        selected = self._selected_jobs()
+        identifier = selected[0] if len(selected) == 1 else None
+        if self._runner is None:
+            self._runner = RunnerWindow(self.client, job_id=identifier, on_open_origin=self.open_run_origin)
+        elif identifier:
+            self._runner.select_job(identifier)
+        self._runner.show()
+        self._runner.raise_()
+
+    def open_run_origin(self, job_id):
+        """Navigate to retained input ownership without adopting or resubmitting it."""
+        if self.document and any(run["job_id"] == job_id for run in self.document.get("runs", [])):
+            self._populate_runs(prefer_job=job_id)
+            self._selection_changed()
+            self.show()
+            self.raise_()
+            return
+        def open_origin():
+            def found(payload):
+                document = next((item for item in payload["documents"] if item.get("kind") == "material"
+                                 and any(run["job_id"] == job_id for run in item.get("runs", []))), None)
+                if document is None:
+                    self.message.setText("This job has no linked Material document in this service.")
+                    self.show()
+                    self.raise_()
+                    return
+                self.local_dirty = self.conflict = False
+                self._result_cache.clear()
+                self._job_status.clear()
+                self._result_errors.clear()
+                self._show_document(document, prefer_job=job_id)
+                self.message.setText("Opened the origin document; the selected run retains its submitted inputs.")
+                self.show()
+                self.raise_()
+                QTimer.singleShot(0, self.refresh_results)
+            self._call(self.client.documents, found)
+        self._leave(open_origin)
+
     def _populate_runs(self, *, prefer_job=None):
         selected = [prefer_job] if prefer_job else self._selected_jobs()
         self.runs.blockSignals(True)
@@ -527,6 +578,7 @@ class MaterialWindow(QMainWindow):
         self.runs.blockSignals(False)
 
     def _selection_changed(self):
+        self.runner_button.setEnabled(len(self._selected_jobs()) == 1)
         self._draw_results()
         self._show_diagnostics()
         self.refresh_results()
@@ -655,6 +707,7 @@ class MaterialWindow(QMainWindow):
         self.redo_action.setEnabled(enabled and not self.local_dirty and self.document.get("can_redo", False))
         self.new_action.setEnabled(not self._busy)
         self.open_action.setEnabled(not self._busy)
+        self.runner_button.setEnabled(len(self._selected_jobs()) == 1)
         self.reload_button.setVisible(self.conflict)
         self.copy_button.setVisible(self.conflict)
         self.reload_button.setEnabled(not self._busy)
@@ -727,6 +780,12 @@ class MaterialWindow(QMainWindow):
             self._allow_close = True
             self.close()
         self._leave(leave)
+
+    def showEvent(self, event):
+        self._allow_close = False
+        if self.timer.interval() > 0:
+            self.timer.start()
+        super().showEvent(event)
 
 
 def main(argv=None):
