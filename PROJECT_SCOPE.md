@@ -13,8 +13,12 @@ is valid. Its 52 numbers record sections of the original request, not 52 indepen
 equally weighted product features. The list mixes user outcomes, design principles,
 technology investigations, historical sequencing and development operating rules.
 Do not use its count, all-open status, or old phase order as the product goal or as
-a prerequisite for useful work. Actual Pro has the full descriptions and current
-directions for a focused validity review; concrete changes are pending that result.
+a prerequisite for useful work. Actual Pro reviewed the full descriptions and
+current directions. Its [validity review](docs/REQUIREMENTS_VALIDITY_REVIEW.md)
+retains substantive research and trust/edit/save principles while separating
+conditional support, backend investigation, developer rules and historical
+sequencing. The appendix gives each original number's current effect and reason.
+Its designated changes are applied in [the detailed plan](docs/PRODUCT_UI_MCP_PLAN.md).
 Retain the original ledger as traceable history, while applying later user decisions
 and judging completion by real research/design/edit/compare/save/resume workflows.
 
@@ -1968,22 +1972,32 @@ P2.2/beam accuracy/full52 stay OPEN and all NOT_RELEASED; earlier records retain
 
 ## Authority and use
 
-This is a normalized, numbered record of **all 52 sections of the user's
-original project request** in this conversation. It preserves the intended
-scope; it is not a verbatim archive of Project chats. Prior OpenScience and
-fixture chats not retrievable in this environment remain a disclosed recovery
-gap. Recovered sources and executed code take precedence over an invented
-history; see `CURRENT_STATE.md`.
+The R numbers below summarize sections of the original project request. They
+preserve request history, not a verbatim chat archive or equally weighted product
+features. Unavailable prior OpenScience/fixture conversations remain a disclosed
+recovery gap. Recovered code and evidence take precedence over invented history.
+Original descriptions and executed results remain unchanged.
 
-Read this together with `AGENTS.md`, `HANDOFF.md`, `ARCHITECTURE.md`, ADRs and
-the actual tests. Future agents must update status/evidence as work progresses,
-not redefine the project as only the most recently implemented solver slice.
-The user's later explicit instructions can change scope and should be recorded.
+Current effect follows later user directions and [PRODUCT_PLAN](docs/PRODUCT_PLAN.md),
+[the detailed plan](docs/PRODUCT_UI_MCP_PLAN.md), and the
+[actual Pro validity review](docs/REQUIREMENTS_VALIDITY_REVIEW.md). Its appendix
+distinguishes user outcomes and accuracy/edit/save principles, conditional support,
+backend investigations, developer operating rules and historical one-time work.
+Historical execution status does not automatically certify current implementation.
 
-The goal is a general **Autonomous CAE Laboratory**, with OpenScience managing
-research reasoning and human engineers able to inspect/edit native models.
-The loop is research definition → stable Core operations → adapters/plugins →
-experiments → evidence/validation → research interpretation and next campaign.
+Judge progress by a user's input, edit, calculation/analysis, comparison, saved
+work, reopening and failure recovery. Do not manufacture one feature or test per
+R row, sum the rows into a completion percentage, or require every candidate
+backend before a useful workflow can run. Later needs remain valid without an old
+number. Retiring a sequence does not delete its research function or declare it
+implemented. Record replacement of outdated implementation choices explicitly.
+
+The goal remains a general **Autonomous CAE Laboratory** with direct engineer
+GUI/CLI/Python use and optional AI assistance through the same supported behavior.
+OpenScience can support questions, hypotheses, plans and interpretation; numerical
+engines generate and evaluate candidates. Document ownership follows the accepted
+domain/Plan/Study/Discussion boundaries. Old OpenScience-first wording is not a
+mandatory product entry or exclusive ownership of every research document.
 
 ## Current verified checkpoint
 
@@ -2381,6 +2395,13 @@ ADRs 0005/0006 preserve the original boundaries and all 52 requirements.
 Broader physics and engineering release gates remain open.
 
 ## Original section ledger
+
+**Historical trace, not the current completion checklist.** Read each original
+description with [its current effect and reason](docs/REQUIREMENTS_VALIDITY_REVIEW.md#부록-a-원-번호별-현재-효력).
+The status column retains dated observations and superseded work orders; whole52,
+OPEN and Phase wording in those records do not impose a new global gate. Product
+outcomes, operating rules, investigations and one-time historical tasks have
+different meanings. Current work follows the plans above.
 
 Current verified numerical baseline is `33ea11d` with all8 jobs successful in
 CI36722365195 and independently inspected native evidence. The current P1.1

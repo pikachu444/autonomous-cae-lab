@@ -14,16 +14,26 @@ and independent research work in parallel. The original project's development
 authorization remains; the Material packet is only that lane's bounded task.
 
 Latest user steering: inspect whether the historical requirement list is actually
-useful instead of obsessing over its count. Its section numbers are not a set of
-equal product features or universal prerequisites. The complete descriptions and
-latest directions are with actual Pro for a focused validity review. Receive that
-review and apply concrete corrections; do not restart general interviews, another
-ten-review cycle, or a count-based completion audit. Preserve substantive user
-outcomes, retained experiments and numerical thresholds while retiring obsolete
-sequence/UI wording explicitly.
+useful instead of obsessing over its count. Actual Pro's
+[validity review](docs/REQUIREMENTS_VALIDITY_REVIEW.md) is received and its designated
+changes are applied. Original section numbers are trace references, not equal
+product features or universal prerequisites. Old phase order/browser layout,
+one-time setup and developer rules have explicit current interpretations.
+Substantive research, trust/edit/save principles, retained experiments and numerical
+thresholds remain. Do not restart interviews, a ten-review cycle or count-based audit.
 
-The main/UI Pages are at sequences 17/22 after full-plan attachment and targeted
-corrections; affected hashes and unrelated content/media were read back. Existing
+Continue the actual connections in the detailed plan. Include minimal save/reopen
+with each first tool connection. PDE document editing needs its document contract;
+executing PDE additionally needs the selected adapter/runtime. Expert discussion
+does not wait for full fit/DOE. Each physics/method uses its real prerequisites.
+Keep candidate input/response/failure history and declared retained outputs; new
+physical-test data feeds comparison, model/hypothesis revision and saved work.
+Direct CLI/Python use shares the same handlers without an AI account.
+
+The full-plan unit is local commit `124d51e55cd45f9c1e0d434f31915c6d6978f281`.
+After applying the requirement review, main/UI Pages are at sequences 18/23.
+The current plan and review attachments match their local hashes; all affected
+blocks and 339/145 untouched blocks plus old media were read back. Existing
 native bridges and general independent editors remain implementation work.
 
 The local FreeCAD stop, historical cloud-check limits, unknown engineering

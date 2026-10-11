@@ -203,10 +203,23 @@ does not add a second Workbench graph scheduler. Acceptance includes actual
 thermal-to-structural transfer, unconverged and cancelled iterations, explicit
 failed-stage rerun scope, and saved-definition/results reopen.
 
-Requirement impact extends the existing R01–R52 and P/Q/V/D mapping rather than
-removing any requirement. Verify two native hosts/documents, GUI/MCP edits in
+Requirement impact preserves substantive research and trust/edit/save outcomes.
+Historical section numbers trace their source; developer rules and old sequencing
+are not equal product acceptance gates. The actual Pro validity review records
+each original section's current effect and reason. Verify two native hosts/documents, GUI/MCP edits in
 both directions, stale/pending edits, native Undo, file/source repair, saved
 results and new-process reopening. No new routes, tools, runtime admission,
 provider permissions or numerical acceptance are implemented by this decision.
 The prior cloud workflow FAIL/internal PARTIAL and Windows/native integration
 gates remain open; local FreeCAD operation remains stopped at the user's request.
+
+The follow-up validity review refines dependencies: minimal save/reopen accompanies
+each first tool connection. PDE editing does not wait for an installed solver and
+Expert discussion does not wait for full fit/DOE; execution still needs its actual
+adapter/runtime. CLI/Python shares handlers without an AI account. Domain model
+constraints and Plan search choices remain separate. Candidate history, declared
+outputs and decision evidence follow PRODUCT_UI_MCP_PLAN §9.5.3; temporary direct
+evaluation need not create a durable job. Physical-test files feed comparison,
+model/hypothesis changes and saved discussion without requiring device control.
+See REQUIREMENTS_VALIDITY_REVIEW for the independent rationale. No new runtime
+API or numerical acceptance is implemented by these clarifications.

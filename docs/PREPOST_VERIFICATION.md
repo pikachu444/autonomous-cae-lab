@@ -3,7 +3,7 @@
 ## 2026-10-11 전체 제품·UI·MCP 기획 보완본 검토
 
 실제 Pro 대화에서 전체 상세기획 v2와 22쪽 UI PDF를 받았다.
-[상세기획](PRODUCT_UI_MCP_PLAN.md)과 [도면](design/20261011-product-ui-mcp/Autonomous_CAE_Lab_UI_Plan_v2.pdf)은
+[Pro 상세기획 원문](design/20261011-product-ui-mcp/Autonomous_CAE_Lab_Detailed_Plan_v2.md)과 [도면](design/20261011-product-ui-mcp/Autonomous_CAE_Lab_UI_Plan_v2.pdf)은
 다운로드 원본과 SHA256이 같은 파일로 보존한다. v1 원본도 같은 design 폴더에 남긴다.
 
 문서 검토로 찾은 누락은 native 명령 조회/취소, 파일·의존 세트 등록/수리, 등록된 기능과
@@ -14,7 +14,14 @@
 v1의 22쪽을 모두 렌더링해 읽었다. v2는 변경된 2·3·4·5·9·10·13쪽을 다시 보았고
 나머지 15쪽의 렌더 PNG 해시가 v1과 일치한다. 한글, 표/문구 배치와 5쪽 B - A 표기를 확인했다.
 Pages17/22의 새 파일·그림 참조, 수정 블록 hash와 나머지 330/127개 블록·기존 media 보존을
-읽어 확인했다. 요구 목록 자체의 타당성은 사용자 후속 지시로 추가 Pro 검토 중이다.
+읽어 확인했다. 이후 실제 Pro의 [요구 타당성 검토](REQUIREMENTS_VALIDITY_REVIEW.md)를
+받아 본문·작업 선행을 수정했다. 원 번호별 현재 효력과 이유를 남겼으며 원 v2 MD/PDF는
+별도 보존한다. PDE/Expert 독립 착수, 첫 저장/재열기, CLI/Python 동일 명령,
+변수 의미/탐색 선택, 후보 기록과 시험 자료 환류를 현재 상세기획에 반영했다.
+Pages18/23에도 현재 기획과 검토 원문, 변경 이유를 저장했다. 첨부 파일과 로컬 파일의
+SHA256이 일치하며 수정 블록·나머지 339/145개 블록·기존 media 보존을 다시 확인했다.
+원본 보존과 수정된 현재 기획의 hash는
+[검토 기록](../benchmarks/records/20261011-full-product-ui-mcp-plan-review.json)에서 구별한다.
 
 이것은 기획·도면 검토다. 새 제품 코드·GUI·MCP·solver를 실행하지 않았다. 기존 cloud
 FAIL/PARTIAL, Windows/native 동일 문서 연결 및 전체 저장/재열기 미검증 상태는 유지한다.

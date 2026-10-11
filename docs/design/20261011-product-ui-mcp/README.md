@@ -7,11 +7,12 @@ These are planning artifacts, not screenshots proving a newly implemented produc
 
 Actual ChatGPT Pro produced the original and one bounded revision in the
 [existing design conversation](https://chatgpt.com/c/6aca5116-b90c-83ee-82fb-1b0299a87fd3).
-The files are preserved byte-for-byte; the v1 Markdown and PDF remain for change
-history. Current product decisions and later user corrections take precedence over
+Original v1/v2 files in this directory are preserved byte-for-byte. The current
+PRODUCT_UI_MCP_PLAN also applies Pro's [validity review](../../REQUIREMENTS_VALIDITY_REVIEW.md)
+to its wording and implementation dependencies. Current decisions take precedence over
 historical wording in either preserved version. In particular, the old requirement
 section count is not a product completion denominator or a mandatory phase order.
-The user has requested an additional validity review of that list.
+The separate validity review records each old section's current effect and reason.
 
 Root read the complete v1 text and all 22 rendered pages, then reviewed the v2
 changes. Two independent read-only reviews closed the six identified design gaps.

@@ -1,4 +1,4 @@
-## 2026-10-11 — Whole-product UI and MCP plan received; scope validity review active
+## 2026-10-11 — Whole-product plan and requirement-validity corrections applied
 
 The user rejected treating ten progress questions and a first-Material handoff as
 completion of the requested product work. The root agent's planning-only framing
@@ -17,9 +17,18 @@ hashes and preservation of unrelated blocks/media.
 The user then challenged the validity of the numbered requirement ledger itself.
 Its numbers track original request sections; they are not equally weighted product
 features, a completion denominator or a reason to repeat obsolete work. The full
-descriptions and later user instructions were sent to actual Pro for a usefulness,
-duplication, outdated-constraint and missing-work review. That review is pending.
-Existing implementation and numerical acceptance are retained.
+descriptions and later user instructions were reviewed by actual Pro. The
+[review](docs/REQUIREMENTS_VALIDITY_REVIEW.md) records each original section's
+current effect. Its concrete changes are applied to the detailed plan: independent
+PDE editing and Expert discussion, minimal save/reopen from the first connection,
+CLI/Python parity, domain versus Plan parameter ownership, candidate retention and
+real test-data feedback. Conditional support and developer rules are not global
+product gates. Original v2 text/PDF and all executed history are retained.
+After this correction, main/UI Pages are at sequences 18/23. Attached current
+plan and review hashes match local files; affected hashes and all 339/145 untouched
+blocks plus old media were confirmed. The preceding full-plan unit is local commit
+`124d51e55cd45f9c1e0d434f31915c6d6978f281`. Existing implementation and numerical
+acceptance are retained; neither unit is pushed by this work.
 Local FreeCAD operation remains stopped at the user's request. Product source is
 still `af2f084dea20562b9036976a9945ee09a3994236`; an exact-full-SHA GitHub run query
 on 2026-10-11 returned no runs. No new product or solver execution is implied by

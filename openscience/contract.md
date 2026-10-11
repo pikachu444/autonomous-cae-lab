@@ -46,6 +46,13 @@ See ADR0060 and the detailed product UI/MCP plan for the proposed implementation
 and acceptance scenes. No newly registered tool or successful solver run follows
 from this documentation change.
 
+The same planned handlers serve direct GUI/CLI/Python without an AI account.
+OpenScience is an optional research entry, not the exclusive owner of every
+domain/Plan/Study/Discussion document. Historical phase/provider records below
+are scoped evidence, not universal gates on current work. The detailed plan and
+REQUIREMENTS_VALIDITY_REVIEW clarify dependencies and retention without changing
+numerical criteria or certifying new runtime behavior.
+
 ## Qualified production startup / handoff contract evidence
 
 Actual e10bb028 startup admits existing approved5.6Sol/OAuth and the seven

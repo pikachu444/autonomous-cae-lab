@@ -1,9 +1,16 @@
-# Autonomous CAE Lab 전체 제품 상세기획 v2
+# Autonomous CAE Lab 전체 제품 상세기획 — v2 및 요구 타당성 검토 반영
 
 작성 기준일: 2026-10-11  
-개정: v2 — v1 보존, 여섯 연결 누락과 UI05 빼기 표기 보완  
+개정: Pro v2의 여섯 연결 보완과 후속 요구 타당성 검토를 현재 구현 계획에 반영  
 용도: 구현 작업 분담, UI 설계 대조, 기존 코드와의 차이 검토  
 상태: 제품 설계 제안. 제품 구현·배포·수치 검증·사용자 업무 수용·공학 승인을 뜻하지 않는다.
+
+2026-10-11 적용 안내: 이 파일은 실제 Pro의 [v2 원문](design/20261011-product-ui-mcp/Autonomous_CAE_Lab_Detailed_Plan_v2.md)에
+[요구 타당성 검토](REQUIREMENTS_VALIDITY_REVIEW.md)의 지정 수정 문구를 Codex가 반영한 현재 계획이다.
+원 v1/v2 파일과 [22쪽 PDF](design/20261011-product-ui-mcp/Autonomous_CAE_Lab_UI_Plan_v2.pdf)는 그대로 보존한다.
+초기 요청의 절 번호를 동등한 제품 기능이나 완료율로 취급하지 않는다. 실제 연구 결과와
+정확성·편집·저장 원칙, 조건부 지원, 후보 조사, 개발 운영, 역사적 순서를 구분한다.
+아래 새 명령과 화면은 구현할 대상이며 이 문서 수정으로 실행 수용이 추가되지는 않는다.
 
 ### v2 변경 안내
 
@@ -65,7 +72,7 @@ EvaluationDefinition은 단계·입출력 전달·연성 반복을 재사용하�
 
 선형/비선형 implicit 구조, explicit 충격·낙하, 접촉·파괴·계면, 재료점·구성 적분·접선, ODE/PDE·연성, 외부 시험/해석 자료, inverse/DOE/최적화/UQ/대리모델/다목적, 원격 계산과 실험 교정의 연결을 보존한다. 세 사례 A/B/C로 이 범위를 대체하지 않는다.
 
-Code_Aster/SALOME-MECA의 nonlinear implicit 주력 후보, CalculiX의 보조 경로, OpenRadioss explicit 방향, 기존 PDE·MFront 후보 검토도 유지한다. 최초 연결에 실제 지원되는 CalculiX 경로를 쓰는 것과 solver 전략을 그것으로 축소하는 것은 별개다. 현재 지원 여부는 설치·adapter·입출력·검증을 각각 확인해 표시한다.
+Code_Aster/SALOME-MECA의 nonlinear implicit 주력 후보, CalculiX의 보조 경로, OpenRadioss explicit 방향, 기존 PDE·MFront 후보 검토도 유지한다. 이름은 역할별 우선 검토 방향이며 후보 전체의 설치·통합을 다른 기능의 착수 조건으로 삼지 않는다. 실제 연구의 물리·입출력·자동화·배포 조건에 맞는 경로를 선택하고 등록 정보·설치·adapter 지원·수치 검증을 구별한다. 최초 연결에 지원되는 CalculiX를 사용해도 다른 연구 방향을 삭제하지 않는다. 미설치 후보 때문에 독립 문서 편집, 과거 결과 분석, 이미 지원하는 평가를 막지 않는다.
 
 ---
 
@@ -158,8 +165,8 @@ ParaView6.2 안내서의 GUIOverview 이미지 창 제목은 5.12.0-RC3이다. �
 3. 구속 목록 선택↔해당 기하/치수 강조를 유지한다. 치수 더블클릭, 점/선 복수 선택, 상자 선택, native 입력 취소를 사용한다.
 4. Pad/Pocket/Revolve/Groove 등 지원 피처를 native Tasks에서 만든다. 이력의 피처를 다시 열어 치수·방향·범위 등을 수정하고 재계산한다.
 5. 트리의 부품 이름 변경과 내부 객체 식별자를 구별한다. 활성 Body가 다른 상태에서 피처를 만들면 대상 Body를 보여주고 잘못된 객체에 넣지 않는다.
-6. Lab “연구 변수로 등록”은 선택한 실제 치수/속성의 정확한 객체·경로·단위·타입·유효 범위·의존식을 등록한다. 수치 탐색 범위는 Numerical Plan이 소유한다.
-7. 후보 값을 시험 적용할 때 변경 전후 형상·치수·검사 결과로 실제 효과를 확인한다. 변수를 바꿨는데 형상/응답에 영향을 주지 않으면 그 상태를 남긴다.
+6. Lab “연구 변수로 등록”은 선택한 실제 치수/속성의 정확한 객체·경로·단위·타입·모델 허용 범위·의존식을 등록한다. 모델의 읽기 전용/종속 상태와 출처는 원 domain이, 이번 탐색 범위·고정/자유·공유/시험별 선택은 Numerical Plan이 소유한다. 한 Plan이 다른 Plan이나 모델 제약을 바꾸지 않으며 해당하지 않는 metadata를 필수 입력으로 만들지 않는다.
+7. 후보 값을 시험 적용할 때 변경 전후 형상·치수·검사 결과로 실제 효과를 확인한다. 무반응은 시험한 입력·변경량·관측 응답 범위와 함께 남긴다. 그 한 관찰만으로 변수를 전역 무효/고정으로 처리하거나 다른 연구의 등록·실행을 막지 않는다. 지원되지 않는 독립 치수 변경이나 실제 invalid 형상은 해당 명령에서 계속 거절한다.
 
 **오류·취소:** 과구속/미구속은 native 의미대로 표시하고, invalid shape나 실패 피처는 해당 이력에서 수정한다. 마지막 정상 형상이 화면에 남아 있으면 “이전 정상 형상”으로 표시한다. invalid draft 저장은 허용하되 이를 최신 정상 모델로 export/실행하지 않는다. native Task가 열린 동안 충돌하는 AI 편집은 BUSY_EDIT를 반환한다.
 
@@ -246,6 +253,8 @@ ParaView6.2 안내서의 GUIOverview 이미지 창 제목은 5.12.0-RC3이다. �
 Lab 신규 메뉴 “계산 검사 / 실행 / 결과 열기 / 변경 영향”을 native Analysis와 연결한다. 동일 계산을 native solver 버튼과 Runner 양쪽에서 중복 제출하지 않는다. Lab에서 관리하는 실행은 기존 adapter의 입력 생성/solver 경로를 공통 Runner로 연결한다. native에서 독립 수행한 결과를 가져올 때는 외부 결과라는 실행 근거를 유지한다.
 
 검사 표는 잘못된 형상, 미할당 영역, 충돌 조건, 미지원 카드, mesh 문제, 필요한 파일을 객체별로 보여준다. 행 더블클릭은 해당 Task/셀/3D 대상으로 이동한다. invalid 입력은 그 실행/내보내기만 차단한다. 제조/장착 기준 미확인 등 engineering UNKNOWN은 연구 계산의 유효성과 구별하고 제작/사용 승인에 반영한다.
+
+각 검사에는 대상의 정확한 개정, 기준/validator 버전, 근거 참조, 확인 시각과 현재 개정에 대한 적용 여부를 둔다. 과거 PASS를 새 모델의 현재 PASS로 옮기지 않는다. 영향이 없는 결과의 재사용도 대상·기준·입력의 동일성 근거를 남긴다. 이는 모든 편집에 전체 검사를 반복하거나 상시 패널을 추가하라는 뜻이 아니다.
 
 제출은 현재 유효 입력을 고정한다. 계산 중 편집한 draft와 늦게 도착한 결과를 섞지 않는다. Runner dock와 독립 Runner 창은 같은 job이다. 결과 열기는 정확한 result ID와 출발 입력을 Post로 전달한다.
 
@@ -396,7 +405,7 @@ B 파일이 없어도 정상 A와 이전 저장된 근거를 연다. B 의존 �
 
 “직접 평가”는 유효 snapshot으로 기존 evaluator를 호출한다. 원 입력·응력/변형률 척도·내부상태·곡선·진단을 결과와 연결한다. 편집 중 도착한 결과는 출발 입력에 남고 현재 결과로 자동 채택하지 않는다.
 
-“이전 결과 비교”는 보존 결과의 곡선/잔차/원값을 연다. 상세 곡선이 없으면 새 evaluation임을 명시해 평가한다. 결과 선택만으로 숨은 재계산을 하지 않는다.
+“이전 결과 비교”는 보존 결과의 곡선/잔차/원값을 연다. 실제 Plan 후보의 최소 입력·응답·실패 이력과 사전에 정한 보존 출력, 판단에 사용한 근거는 §9.5.3에 따라 남긴다. 과거에 없는 상세 곡선은 부족함을 표시하고 명시적 새 evaluation으로만 얻는다. 결과 선택만으로 숨은 재계산을 하지 않는다.
 
 구성 연구 상세는 상태변수·증분·적분 오차·consistent/continuum tangent·독립 기준 비교를 다루는 별도 보기다. FE card 목록으로 축소하지 않는다. 현재 FELUPE linear_elastic/neo_hooke와 J2/DP/MFront 지원 과제를 구별한다.
 
@@ -435,6 +444,8 @@ mesh의 geometry/좌표·차원·order·connectivity·영역 태그 의미·단�
 | 최적화/영향도 | 방법·예산·중지 기준·대상 변수/응답 | 실제 반복·제약·국부 영향/분석 범위, 선택 반복의 원 입력 |
 
 후보표는 실제 후보 ID·입력·응답·유효 여부·실패·검색 penalty·유효 목적값·원 결과를 별도 열로 둔다. Ctrl/Shift 선택은 해당 곡선/원 입력을 함께 강조한다. 결과가 없는 후보는 값이 없는 상태로 남긴다.
+
+변수표의 탐색 범위·고정/자유·공유/시험별 선택은 선택한 Plan에 속한다. 원 domain의 허용 범위·종속성·읽기 전용을 해제하지 않으며 다른 Plan도 바꾸지 않는다. 모델 등록에는 해당하는 metadata만 요구한다. 최종 후보뿐 아니라 중간 후보와 실패 후보의 기록을 다시 연다. 상세 출력과 임시 직접 평가의 보존 책임은 §9.5.3을 따른다.
 
 채택은 owner별 변경 목록과 현재 입력과의 차이를 보인 뒤 해당 owner의 새 revision/분기로 전달한다. 다중 owner 변경은 모두 준비한 후 묶음 참조를 게시한다. 선택/정렬만으로 채택하지 않는다.
 
@@ -614,6 +625,10 @@ Data에서 다른 열 순서·단위의 두 시험을 연다. 열/구간을 선�
 
 PDE 단독 또는 기존 결과→Numerical 분석→Expert로도 시작한다. 외부 batch는 기존 입력/출력 manifest를 이용해 파일·후보·단위·성공/실패를 대응하며 원 solver가 설치됐다고 전제하지 않는다.
 
+**새 시험 자료로 연구를 갱신한다.** 실제 시험 자료를 시편·제작/장착 조건·측정 위치/방향·장비/교정·시험 이력과 연결하고 미제공 정보는 모르는 상태로 둔다. 기존 예측과 관측량·단위·시각/위치를 맞춰 비교해 가설과 계수를 구별할 수 있는지 확인한다. 동정에 쓰면 학습/holdout 사용을 명시하고 새 모델 개정으로 채택하거나 판단을 보류한다. 이전 예측·원 시험자료·모델·판단은 유지하고 Expert는 다음 구별 시험을 제안한다. 저장 후 같은 자료와 판단을 다시 연다.
+
+Data는 시험 자료/metadata, Post는 관측·예측 비교, Numerical은 동정/holdout과 채택 제안, 원 domain은 새 모델 개정, Expert/Study는 논의와 판단을 맡는다. 선택 Workbench나 장비 직접 제어는 이 파일 기반 연구의 선행이 아니다. 실제 장비 연동은 별도 지원 경로로 남긴다.
+
 ### 8.4 세 사례의 역할과 물리 수용
 
 | 사례 | 제품에서 실제 해야 할 비교 | 기술 검증과 실제 업무 판단의 경계 |
@@ -688,6 +703,8 @@ FreeCAD/ParaView Python 모듈을 Research 환경에 억지로 import하지 않�
 
 GUI 버튼/셀과 MCP wrapper는 **같은 owner의 같은 typed domain handler**를 호출한다. native GUI에서는 기존 QAction/Task/Property의 실제 편집 기능을 사용하고, MCP는 그 기능의 프로그램 입력 경로를 호출한다. native 기능을 MCP 안에서 또 구현하지 않는다.
 
+CLI·Python API도 동일한 domain 명령과 조회에 얇은 진입 wrapper로 연결한다. 문서·대상·단위·실행 상태를 전달하며 편집/검사/계산 로직을 복제하지 않는다. 열린 native 문서는 동일 host/session/generation 계약을 사용하고, headless 실행은 자기 명시적 문서·snapshot을 대상으로 하며 열린 GUI를 제어한 것으로 표시하지 않는다. 비AI 사용에는 OpenScience·LLM 계정·MCP 클라이언트가 필요 없다. 제공하는 명령별로 연결하되 모든 wrapper 완성을 첫 UI의 선행 관문으로 만들지 않는다.
+
 각 변경 명령은 다음을 가진다.
 
 ~~~json
@@ -714,6 +731,8 @@ GUI 버튼/셀과 MCP wrapper는 **같은 owner의 같은 typed domain handler**
 - 재시작 전 session의 변경은 거절한다. host가 다시 등록한 뒤 실제 열린 문서를 대조하여 새 session으로 읽는다. 과거 command/job의 보존 상태 조회는 계속 가능하며, 과거 ID를 새 owner의 명령으로 바꾸지 않는다.
 
 ### 9.4 GUI ↔ MCP 기능 대응표
+
+아래 명령의 실제 기능은 §9.3의 같은 CLI/Python 진입으로도 제공한다. 표는 MCP 연결 이름과 기존/신규 구분을 설명하며 비AI 경로를 제외하는 목록이 아니다.
 
 아래에서 **기존**은 실제 읽은 MCP tool 이름이다. **신규**는 제안한 tool 이름이며 각 도메인 handler를 호출하는 얇은 wrapper다. 이름을 확정할 때 기존 등록 명령과 중복을 제거한다.
 
@@ -843,6 +862,10 @@ cad_sketch_edit 같은 명령은 임의 Python/eval 문자열이 아니다. 지�
 
 사람과 AI는 input ID/hash·result ID·recipe revision·field/time/selection을 대조한다. 연성은 여기에 정의 revision·단계·반복·전달 ref를 붙인다. 같은 화면 모양만으로 동일 결과라고 판단하지 않는다.
 
+**실행 이력과 출력 보존:** 실제 Plan의 탐색·동정·DOE 후보와 기록 평가에는 상세 출력 선택과 무관하게 정확한 입력, evaluation/attempt, 순서·방법/설정·상태, 실제 응답·진단·존재하는 결과 참조를 남긴다. 실패한 후보의 실패 위치와 실제 로그·부분 결과를 연다. 상세 출력 정책은 실행 전에 정하고, 지정한 raw/native·곡선·field·표 및 비교·채택·holdout·보고에 사용한 입력·원값·진단·버전·처리 정의를 재실행 없이 다시 열 수 있어야 한다. 보존 실패나 상세 출력 부재를 완전한 기록으로 표시하지 않는다.
+
+임시 직접 평가·미리보기·엔진 내부 작업을 전부 영구 곡선이나 개별 job으로 강제하지 않는다. retain_result 또는 판단에 사용하는 동작은 필요한 근거 보존까지 완료해야 성공한다. 방법·seed·예산·후보 순서·반복/세대·중단 상태와 엔진의 재개 상태 지원 범위를 기록하고, 이력 열람을 정확한 탐색 재개로 표시하지 않는다. 원자료와 이미 보존된 과거 결과는 출력 정책으로 덮어쓸 수 없다. 과거에 없던 상세 출력을 얻는 추가 계산은 새 evaluation이며 원 실행의 근거를 소급 대체하지 않는다.
+
 ### 9.6 Windows 설치·시작과 MCP 등록 예
 
 **현재 소스로 확인한 실행 형태**
@@ -959,6 +982,8 @@ Research의 추가 수용은 같은 EvaluationDefinition을 GUI/MCP로 열어 �
 
 **첫 통합 묶음의 주 흐름은 Pre–Runner–Post다.** 같은 시점에 독립 Post와 독립 Research를 진행한다. 공통 문서 연결은 필요한 명령부터 붙이며 모든 domain을 위한 새 대형 framework 완성 뒤에 UI를 시작하지 않는다.
 
+원 ledger의 Phase 0–7과 초기 CAD 착수 순서는 당시 구축 순서로 보존한다. 현재 선행은 해당 업무에 실제 필요한 문서 명령·파일·입력·adapter·결과 연결이다. T번호의 앞뒤를 전체 완료 순서로 사용하지 않는다. 각 도구의 최소 편집·저장 계약이 준비되면 native 작업, 외부 결과 분석, 자료/재료/PDE 연구와 전문가 논의를 병행한다.
+
 - 공통 담당: 기존 서비스·파일 등록·문서/host 식별·명령/저장·상태 계약.
 - CAD/FE 담당: native 편집·조립·mesh/조건·복구·실제 제출/결과 연결.
 - Post 담당: 독립 reader·필터/측정·일반 비교·저장·native bridge.
@@ -970,10 +995,10 @@ Research의 추가 수용은 같은 EvaluationDefinition을 GUI/MCP로 열어 �
 | ID | 기능/작업 대상 | 선행 | 사용자가 보는 결과 | 실제 완료 시험 |
 |---|---|---|---|---|
 | T01 | 파일별 변경 없음 보고 반영, launcher/adapter의 등록 capability·NOT_PROBED·probe 계약 분리 | 없음 | 기존 선언과 신규 환경 확인이 구별된 지원표·메뉴 상태 정의 | §13.4 범위와 기존 반환/지원 선언 대조. backends_list만으로 미확인이 실행 가능으로 바뀌지 않음; 신규 probe 입력·검사 범위·결과 구분 확정. 실제 probe 시험은 T04 |
-| T02 | 기존 server/routes/client의 문서·host·typed dispatch와 command_status/command_cancel·접수/완료 기록 | T01 | 열린 창·문서와 native 진행/취소가 정확히 연결 | 두 host/doc·stale/BUSY/옛 session 거절. 접수/완료 응답 유실 후 같은 ID 조회·중복 적용 없음·ID 내용 충돌·취소 미지원/완료 경합·적용 결과 미확인 |
+| T02 | 기존 server/routes/client의 문서·host·typed dispatch와 command_status/command_cancel·접수/완료 기록, 동일 CLI/Python 진입 | T01의 해당 도구에 필요한 최소 계약 | 열린 창·문서와 native 진행/취소가 정확히 연결, AI 없이 같은 기능 사용 | 두 host/doc·stale/BUSY/옛 session 거절. 응답 유실 뒤 같은 ID 조회·중복/내용 충돌·취소 경합·적용 미확인 구별. 제공한 명령의 GUI/MCP/CLI/Python 동일성; 전체 wrapper 완성을 UI 착수 조건으로 삼지 않음 |
 | T02b | 승인 root 목록/파일 목록/등록 MCP wrapper, native 종류별 의존 검사·세트 등록. 기존 local-inputs 재사용 | T01, T02 최소 명령 계약 | GUI/MCP에서 등록 파일/세트로 실제 열기·위치 수리 시작 | FCStd 외부 Link, PVD 여러 VTU, PVSM reader 세트; root 밖·누락·등록 중 변경·미지원 구별. 대형 JSON/임의 경로 우회 없음 |
-| T03 | 공통 저장/참조 게시·native 의존 세트·path repair·migration | T02/T02b 최소 계약 | Save/Close/Open, 실패 시 draft·이전본 유지 | 필수 파일 중간 실패. 원본 이동→새 등록→파일별 동일 내용 위치 수리→새 owner 재열기; 변경 내용은 새 입력·영향 branch |
-| T04 | Windows launcher/서비스 수명·패키지 시작·backend_probe API/UI 연결 | T01, T02/T02b의 해당 경로 | WSL 없이 직접 열기·등록 파일 선택·환경 확인 | 깨끗한 Windows·한글/공백 경로·여러 창. NOT_PROBED→명시 probe→실제 항목별 성공/실패·환경/시각; 환경 변경은 옛 확인과 구별. 미설치 backend로 과거 결과 열람 차단 금지 |
+| T03 | 첫 도구 연결의 최소 저장/새 프로세스 재열기, 참조 게시·native 의존 세트·path repair·migration | T02/T02b의 해당 도구 최소 계약 | 처음부터 Save/Close/Open, 실패 시 draft·이전본 유지 | 필수 파일 중간 실패. 이동→새 등록→동일 내용 위치 수리→새 owner 재열기; 변경 내용은 새 입력. 추가 기능의 상태 저장도 그 기능과 함께 확장 |
+| T04 | Windows launcher/서비스 수명·패키지 시작·backend_probe API/UI 연결 | T01, T02/T02b의 해당 도구 최소 시작 경로 | WSL 없이 직접 열기·등록 파일 선택·사용 backend의 환경 확인 | 깨끗한 Windows·한글/공백 경로·여러 창. NOT_PROBED→명시 probe→항목별 결과·환경/시각. 모든 backend probe 완성을 UI 시작 조건으로 삼지 않으며 과거 결과 열람 유지 |
 | T05 | cae_prep.py native bridge/관리 저장·등록 파일 열기·command 상태 | T02/T02b, T04 최소 시작 | GUI 치수와 MCP 값·native 명령 진행/최종 적용 일치 | 실제 양방향 변경/Undo/Save, command의 applied/final generation을 native 값과 대조; 편집 중 완료는 원 입력 보존·자동 채택 금지, 취소/실패 복구 결과 재조회 |
 | T06 | Sketcher/PartDesign·일반 변수 등록·효과 검사 | T05 | 자신의 부품 직접 편집·이력 재편집 | fixture 외 모델, invalid feature·재계산·저장 |
 | T07 | Assembly/Link/joint/Simulation·trace와 설계 pose 보존/복원·명시 적용 | T05, 기존 native 명령 | 조립/관절/경로와 설계·미리보기 자세 구별 | P0→P1 재생→취소→저장→새 FreeCAD에서 P0; FEM 입력에 P1 미혼입. 일시정지는 P1 유지, 종료·취소·오류·저장·해석 전환은 P0 복원. 현재 자세 적용 때만 새 개정·Undo·지원 불가 거절; frame 실패·다른 모델 |
@@ -985,18 +1010,18 @@ Research의 추가 수용은 같은 EvaluationDefinition을 GUI/MCP로 열어 �
 | T13 | Post filter/selection/measurement/curve | T12 | 절단·원ID·probe·시간/경로곡선 | native 선택↔표, pending/Apply/Undo·gap |
 | T14 | Post comparison 일반화·같은 mesh 및 응답 비교 | T12–T13, 기존 prepare 비교 | A/B·차이·변화율·원값/식 | A=0/단위/기저/실제 time 검사, 미검증 다른 mesh 차단 유지 |
 | T14b | Post 소유 B→A point scalar/선형 tet mapping·설정/미리보기/검사·Apply/Undo | T12–T14, 저장 검증은 T15와 함께 | 다른 mesh의 명시 대응·유효영역·실제 차이/변화율·원값/보간값 구별 | §5.4.1 독립 affine 기준·비공유 절점/밖 점·mask, Apply→Undo→재적용→저장→새 ParaView 재열기. 임의 mesh 지원으로 확대 금지 |
-| T15 | Post 관리 저장/의존 파일·경로 복구·mapping 복원 | T03, T12–T14; T14b 저장 경로 공동 | 분석/비교 저장·누락 branch 수리·재열기 | 새 ParaView owner에서 측정/원값/recipe/mask 복원. PVD frame/PVSM B 위치 이동→등록→같은 내용 수리; 다른 내용은 새 개정. T14b 성공 결과 재열기 |
-| T16 | Pre↔Runner↔Post 왕복 UI | T11–T15 핵심 | 실제 설계 변경과 두 결과 비교 | §8.1 전체, 같은 mesh 장 차이 + 변경 지그 응답 차이 |
-| T17 | Data owner·표/곡선/recipe 컴포넌트 | T02–T03 | 독립 workbook·처리·관측 | 다른 열/단위 두 파일, 원값/mask·저장 |
+| T15 | Post 최초 연결부터 관리 저장/의존 파일·경로 복구, 분석 추가와 함께 측정/비교/mapping 복원 확장 | 초기 저장은 T03/T12 최소 경로, 추가 상태는 해당 T13/T14/T14b와 공동 | 처음 구현된 분석부터 저장·누락 branch 수리·재열기 | 새 ParaView에서 원 결과와 구현된 분석 상태 복원. PVD/PVSM 파일 이동→등록→같은 내용 수리; 다른 내용은 새 개정. 측정/recipe/mask와 T14b 성공 결과 저장도 해당 구현 때 검증 |
+| T16 | Pre↔Runner↔Post 왕복 UI와 허용 AI 클라이언트의 같은 연구 요청/명령/근거 | T11–T15의 해당 업무 핵심, AI 경로는 해당 MCP 명령 | 직접 GUI의 실제 설계 변경·두 결과 비교, AI 변경도 같은 문서에서 확인 | §8.1 전체, 같은 mesh 장 차이 + 변경 지그 응답 차이. AI 요청→변경/검사→실제 계산→같은 근거로 후속 판단; 전체 Expert UI는 선행 아님 |
+| T17 | Data owner·표/곡선/recipe·시험 metadata | T02–T03의 최소 계약 | 독립 workbook·처리·관측과 새 시험 자료 등록 | 다른 열/단위 두 파일, 원값/mask·저장. §8.3의 시험 자료→예측 비교→연구 갱신을 해당 Post/Numerical/Expert와 공동 확인 |
 | T18 | Material owner·계수/protocol/직접 평가 UI | T02–T03, 기존 evaluation | MCalibration형 실제 계수·이력·응답 | 직접/이전 비교·invalid draft·cold reopen |
-| T19 | 동일 Numerical Plan·fit/DOE/후보/채택 | T17/18 또는 지원 외부 evaluator | 실제 다중 시험 fit·복수 변수 DOE | holdout·실패·순위 규칙·전체 취소·owner 채택 |
+| T19 | 동일 Numerical Plan·fit/DOE/후보/채택·최소 후보 기록과 출력 정책 | 준비된 입력/문서와 지원 평가기; 재료 동정은 T17/18 관련 부분 | 실제 다중 시험 fit·복수 변수 DOE와 중간/실패 후보 다시 열기 | holdout·순위·취소·owner 채택, §9.5.3 보존과 재개 범위. §8.3 새 시험 사용/채택을 해당 domain·Data/Post/Expert와 공동 확인 |
 | T20 | Runner desktop·로그/진단/result 연결 | 기존 JobManager, T02 | 독립 job 표/monitor와 같은 job | 취소/실제 종료·INTERRUPTED·명시 attempt |
-| T21 | PDE owner·식/space/BC·지원 평가 | T02–T03, 실제 PDE adapter | CAD 없는 PDE 직접 연구 | 식 수정→실제 해→기준/mesh 비교→재편집 |
-| T22 | Expert 근거/Plan/result 연결·Co-STORM 전체 UI | 기존 ExpertRuntime, T19/20 핵심 | 논점/다자 발언/반론/일시정지 | 실제 provider 발언·reply·계산 후속·저장 |
+| T21 | PDE owner·식/space/BC·독립 편집과 지원 평가 | 편집/저장은 T02/T03 최소 계약·지원 문서 규약. 실제 평가는 선택 PDE adapter·환경·결과 경로 | runtime 없이도 문서 편집/저장, 준비된 경로의 CAD 없는 PDE 계산 | draft 편집·저장/재열기와 실제 식 수정→해→기준/mesh 비교→재편집을 구별해 확인 |
+| T22 | Expert 독립 토론·근거와 준비된 Plan/result 연결·Co-STORM 전체 UI | 독립 토론은 기존 Runtime·자료/결과 참조·토론 문서/저장. 계산 연결은 사용하는 Plan/Runner 경로 | 실제 논점·다자 발언·반론·사용자 참여·중단/재개 | 실제 provider·reply·저장/재개, 준비된 계산 결과의 후속 해석. fit/DOE 전체를 독립 토론의 선행으로 삼지 않음. §8.3의 새 시험으로 판단 갱신 |
 | T23 | Study/Workbench 목록·연결도 | T02–T03·각 owner open | 선택적 연결 탐색/정확한 문서 열기 | drag/menu 같은 참조, stale·부분 실패 보존 |
-| T24 | A/B/C용 law·contact·열/계면·수치 검증 | 해당 domain/adapter, T16/19/21 | 실제 경쟁 가설과 설계 판단 | §8.4 각 독립 기준·수치 오차·실제 자료 별도 |
-| T25 | implicit/explicit·외부 batch·UQ/대리/MOO·원격/규모의 기존 범위 유지; 연성은 아래 C1–C4 분리 | 해당 기존 엔진·T19/20/21 | 지원 방법별 실제 화면/결과 | 각 방법/solver 지원 입력·실패·결과·재개. 연성 완료를 이 포괄 행의 이름만으로 판단하지 않음 |
-| T25-C1 | EvaluationDefinition owner/동일 표 editor·신규 evaluation.coupled와 실제 열→구조 단방향 전달 | T02/T03, T19의 평가기 편집 최소 부분, T21/구조 adapter 해당 경로 | 정의 직접 열기→단계/전달 편집→계산된 온도장을 구조 입력으로 사용 | GUI/MCP 같은 정의. 실제 열 결과와 수신 온도·단위/무응력 기준·실제 시각/위치 일치; 독립 열팽창 기준·잘못된 전달 차단, Plan 없이 직접 평가. 같은 정의의 두 후보가 서로 다른 실제 단계 입력/응답을 만들고 원 정의·다른 후보는 유지 |
+| T24 | A/B/C용 law·contact·열/계면·수치 검증 | 해당 사례의 domain/adapter·결과 비교: A 재료점, B CAD/구조, C 열/구조/계면별 필요한 연결 | 실제 경쟁 가설과 설계 판단 | §8.4 각 독립 기준·수치 오차·실제 자료 별도. 미지원 물리를 성공 처리하지 않고 무관한 사례 완료를 기다리지 않음 |
+| T25 | implicit/explicit·외부 batch·UQ/대리/MOO·원격/규모를 방법별 업무로 연결; 연성은 C1–C4 | 구조/explicit: 해당 입력·Runner·reader. batch: 파일/후보/응답. UQ/대리/MOO: 해당 방법·평가기. 원격: 전송/자원·remote backend | 지원 방법별 실제 화면/결과 | 각 경로의 입력·실제 결과·실패·저장/재개. 관계없는 PDE나 모든 방법 완료를 공통 선행으로 삼지 않음. 연성은 C1–C4의 실제 수용으로 판단 |
+| T25-C1 | EvaluationDefinition owner/동일 표 editor·신규 evaluation.coupled와 실제 열→구조 단방향 전달 | 공통 평가절차 표·T02/T03 최소 계약·기존 evaluation/JobManager·선택 열/PDE 결과와 구조 온도장/열팽창 입력 | Plan 없이 정의 편집→계산된 온도장 전달→구조 응답→저장 | GUI/MCP 같은 정의, 열 결과·수신 온도·단위/무응력 기준·시각/위치 일치, 독립 열팽창 기준·잘못된 전달 차단. 후보별 단계 입력 격리 시험은 T19와 공동 확인하며 단독 평가가 T19 전체를 기다리지 않음 |
 | T25-C2 | 지원 피드백 adapter의 반복·상태 복원/확정·수렴 판정 | C1, 실제 지원 반복 adapter | 단계별 상태·연성 잔차·최대 반복·NOT_CONVERGED | 독립 기준이 있는 수렴 사례와 의도적 최대 반복 도달. 단계 성공만으로 전체 성공 금지, 반복마다 이력 중복 누적 없음; 단방향 실행을 반복 검증으로 대체 금지 |
 | T25-C3 | 실패 단계·재사용 범위 검사·상위 취소와 실제 종료 추적 | C1, 반복 경로는 C2, 기존 JobManager | 실패 위치/부분 결과·명시 새 attempt·재사용 표 | 후속 제출 중지·늦은 결과 보존. 동일 앞 단계만 재사용, 바뀐 입력 거절. 반복은 일관된 checkpoint만 사용; 취소 미지원/종료 미확인 구별 |
 | T25-C4 | 평가 정의/전달/반복·실행/실패·결과 저장 및 cold reopen | C1–C3, T03 | 새 owner에서도 동일 정의·결과·잔차·실패 단계·재실행 범위 | 저장→프로세스 종료→GUI/MCP 같은 파일 열기, 자동 계산 없음. 원 파일 이동/변경은 등록·수리/새 개정; 미수렴을 유효 결과로 바꾸지 않음 |
@@ -1013,7 +1038,7 @@ T05/T12/T17/T18/T20은 공통 계약의 최소 부분이 준비되는 대로 병
 | G2. 전문 작업 깊이 | 조립/관절/경로·설계 pose 복원, 국부 mesh 품질/복구, 검증된 다른 mesh 비교, Data/Material/Plan 실fit·DOE, CAD-free PDE와 지원 열→구조 정의, Expert 실제 근거 | 단계별 화면만 있고 Save/Close/Open·연결/수치 검사가 끊긴 상태 |
 | G3. 전체 연구 수용 | A/B/C, 주요 implicit/explicit·외부 batch·UQ/대리/MOO·다자 토론·선택 그래프·규모/원격 | 세 사례나 52행 체크만 채우고 일반 도구를 생략 |
 
-G0·G1은 작업 착수 순서이며 제품 범위 축소가 아니다. 이후 기능을 막연한 “향후”로 두지 않고 T07–T26의 실제 대상·선행·통과 장면으로 관리한다. 개발 기간이나 인력일은 현재 근거 없이 고정하지 않는다.
+G0–G3는 함께 보여줄 인도물의 묶음이며 선행 묶음 전체가 끝나야 다음 도구를 시작하는 직렬 단계가 아니다. 첫 통합 검증의 주 흐름은 Pre–Runner–Post 왕복이다. 독립 Post·Data·Material·PDE·Numerical·Expert는 필요한 최소 연결이 준비되는 대로 병행한다. 완료는 해당 실제 작업과 저장·재개·실패 복구로 판단한다. 개발 기간·인력일을 현재 근거 없이 고정하지 않는다.
 
 ### 11.3 검증을 끝내는 기준과 진행 보고
 
@@ -1041,7 +1066,11 @@ native 기능 자체를 재입증하는 시범은 기존 기록을 활용한다.
 | Optimization 후보를 항상 새 PrepDocument로 보냄 | 원 domain owner별 새 revision/분기·다중 owner 채택 |
 | R17 재료점 연구를 Pre 기능으로 쓰는 대응 | Material 연구·공통 Plan·지원 FE adapter로 수정 |
 | R19 공통 experiment를 모든 물리의 새 schema로 해석 | 공통 식별·입출력/참조만 공유하고 native/도메인 형식 유지 |
-| 52개 요구·17UC를 범위 상한/완료 개수로 사용 | 누락 점검과 실제 독립/연결 업무 수용의 대응표 |
+| R02/R45 OpenScience를 필수 입구로 해석 | GUI/CLI/Python 독립 사용과 같은 기능의 선택 AI 경로 |
+| R06 모델의 허용 범위/종속성과 탐색 선택을 혼합 | 모델 의미는 domain, 탐색 범위·고정/자유는 Plan; 해당 metadata만 입력 |
+| R23/R25–R31/R33/R50의 옛 Phase·browser 배치·CAD-only 우선 | 역사 기록으로 보존하고 현재 실제 의존성과 native/전문 UI 기준 적용 |
+| R36–R49의 초기 설정·개발 운영을 제품 기능으로 계산 | 일회성 역사는 이력, 소스 검토·담당·기록은 개발 규칙으로 관리 |
+| 원 요구·UC·T·G의 개수를 제품 완료로 사용 | 실제 사용자 결과만 작업/수용에 연결하고 후보 조사·개발 운영·역사는 분리 |
 | 합성 HTML/native 제한 시안을 최종 화면처럼 사용 | 보존 근거로 별도 표시, 실제 원형/기획도/구현 화면 구별 |
 
 이 변경은 이름 바꾸기나 면책 문구 추가가 아니다. owner, 실제 화면 배치, 저장 동작, MCP 경로, 구현 선행관계와 완료 장면을 교체한다.
@@ -1086,7 +1115,7 @@ native 기능 자체를 재입증하는 시범은 기존 기록을 활용한다.
 | 16 미세구조/연성/원격 | PDE/Material/FE/Numerical 평가 정의/Runner | 재사용 단계/전달/mapping·시간·반복 수렴·실패/재사용 범위와 원격 기록, T25-C1–C4 |
 | 17 ASCII+LLM+실제DOE | Data/Expert/Plan/Runner | 편집 Plan·실제 영향도·후속 연구 |
 
-52개 원 요구는 기존 번호를 유지해 owner/작업/수용에 연결한다. 본문에서 그 번호를 재정의하거나 새 52행만을 완료 기준으로 만들지 않는다.
+원 번호는 요청 경과를 찾는 참조로 보존한다. 실제 제품 결과와 정확성·편집·저장 원칙은 관련 owner·작업·실제 수용 장면에 연결한다. backend 후보 조사는 선택 근거와 지원 범위로, 개발 운영 규칙은 개발 절차로, 과거 Phase·일회성 초기 작업은 역사로 관리한다. 성격이 다른 항목에 제품 기능이나 통과 시험을 하나씩 만들지 않는다. 후속 사용자 요구와 실제 업무의 필요는 기존 번호 유무와 관계없이 반영한다. 원 번호나 UC/T/G의 합산 개수는 제품 완료 척도가 아니다. [원 번호별 현재 효력](REQUIREMENTS_VALIDITY_REVIEW.md#부록-a-원-번호별-현재-효력)에 변경 이유를 보존한다.
 
 ---
 
@@ -1156,8 +1185,8 @@ Codex는 다음 파일 범위가 공개 `a10f2023a2084512839b5e0af8ab0adc0aeb929
 
 이번 사용자 검수에서 확인한 구체 사실도 반영했다: local-inputs HTTP는 있지만 MCP wrapper가 없고 native FCStd/VTU/PVD/PVSM 등록 지원이 추가로 필요하다. backends_list는 probe 없이 등록 목록을 읽으며 기본 readiness는 NOT_PROBED다. 신규 도구·editor·연성 operation은 현재 구현 사실과 구별해 T작업으로 남겼다. 위 대조를 다시 사용자에게 수행하거나 같은 범위를 선택하도록 요구하지 않는다.
 
-### 13.5 v2 산출물의 최종 상태
+### 13.5 Pro v2 원문 제공 시점의 상태와 후속 적용
 
-이 문서와 22쪽 v2 PDF는 여섯 연결 누락 및 UI05의 ASCII `B - A` 머리글을 반영한 **기획 산출물 개정본**이다. v1 MD/PDF는 보존한다. 도면은 실제 기능의 배치·입력·상태 설계이며 새 GUI 구현 화면이 아니다.
+Pro의 v2 원문과 22쪽 PDF는 여섯 연결 누락 및 UI05의 ASCII `B - A` 머리글을 반영한 기획 산출물이다. v1/v2 원문과 PDF를 보존한다. 도면은 기능의 배치·입력·상태 설계이며 새 GUI 구현 화면이 아니다. 현재 파일에는 이후 실제 Pro의 요구 타당성 검토에서 지정한 문구·선행·공동 작업 장면을 반영했다.
 
-제품 코드·사용자의 원본 Pages·저장소 문서는 이번 개정에서 수정하지 않았다. 기존 FreeCAD 클라우드 두 workflow의 FAIL/내부 PARTIAL, 조립/FEM 통합 저장 미검증, Windows 실제 조작성·동일 native GUI/MCP 미검증을 변경하지 않는다. T02/T02b/T05/T07/T12/T14b/T25-C1–C4를 포함한 실제 구현·수치·저장/재열기 수용은 이후 개발 작업이다.
+Pro 원문 작성 자체는 제품 코드·사용자의 Pages·저장소를 수정하지 않았다. Codex가 원문을 보존하고 현재 기획·요구 효력·관련 Pages에 검토 결과를 적용했다. 새 제품 코드는 없으며 기존 FreeCAD 클라우드 FAIL/내부 PARTIAL, 조립/FEM 통합 저장, Windows 실제 조작성·동일 native GUI/MCP 미검증 상태는 유지한다. 실제 구현·수치·저장/재열기 수용은 해당 기능의 개발 작업이다.
