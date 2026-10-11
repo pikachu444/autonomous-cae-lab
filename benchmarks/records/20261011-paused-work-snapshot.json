@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "record_id": "20261011-paused-work-snapshot",
+  "recorded_utc": "2026-10-11T12:47:14.063996+00:00",
+  "work_status": "PAUSED_BY_OWNER",
+  "source_commit": "1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3",
+  "pr_url": "https://github.com/pikachu444/autonomous-cae-lab/pull/7",
+  "archive": {
+    "path": "runs/pro-code-received-20261011-r01/paused-r6-20261011/autonomous-cae-pro-r6-stopped-wip-snapshot.zip",
+    "bytes": 311659,
+    "sha256": "684335c4ac30388bea1711484d5eb0f06b93e6b14f6de345222a5a1e63dc1cd4",
+    "retention": "LOCAL_ONLY",
+    "zip_members": 45,
+    "changed_source_files": 39,
+    "change_counts": {
+      "A": 9,
+      "M": 30,
+      "D": 0
+    }
+  },
+  "root_checks": [
+    "ZIP SHA256 matches completed Pro response",
+    "All ZIP paths and member types validated without executing contents",
+    "44 checksummed members match SHA256SUMS.txt",
+    "All 39 source contents match files.json hashes and sizes",
+    "Patch SHA256 matches snapshot.json"
+  ],
+  "metadata": [
+    {
+      "path": "runs/pro-code-received-20261011-r01/paused-r6-20261011/README.md",
+      "bytes": 4143,
+      "sha256": "6331325525bbe42c960bbb2cb3b00ad28f6273b4c8fb188df692c33200cbbac9"
+    },
+    {
+      "path": "runs/pro-code-received-20261011-r01/paused-r6-20261011/snapshot.json",
+      "bytes": 2400,
+      "sha256": "a2bfdbc3ca032435e1ae4e11e6641978cdc161df48ec11051d3cba9fc431124d"
+    },
+    {
+      "path": "runs/pro-code-received-20261011-r01/paused-r6-20261011/files.json",
+      "bytes": 15917,
+      "sha256": "f60999acaf380e53562b0b537218289f2f0fad37a96494d97866eb1f37c86172"
+    },
+    {
+      "path": "runs/pro-code-received-20261011-r01/paused-r6-20261011/CHANGES.txt",
+      "bytes": 1320,
+      "sha256": "f77bb346877b3cb3edee78146b8a65806efc4fb48b8567a3d3e9856693f9ef04"
+    },
+    {
+      "path": "runs/pro-code-received-20261011-r01/paused-r6-20261011/SHA256SUMS.txt",
+      "bytes": 4489,
+      "sha256": "ad385ff316d9add37b1a192d872aef1c3b786031eaa73d69312db66ab2cf5c0e"
+    }
+  ],
+  "pro_reported": {
+    "status": "STOPPED_UNREVIEWED_WORK_IN_PROGRESS_ARCHIVE_ONLY",
+    "created_utc": "2026-10-11T12:42:28.364727+00:00",
+    "base_kind": "delivered_r5_git_tree",
+    "base_revision": "9efb9363de8569ce269976fddcce8594fa403cbf",
+    "base_delivery": "autonomous-cae-pro-connected-research-r5.zip",
+    "base_delivery_sha256": "d78c2bcc4635ece101189c52db1acb120de248c99d0e06dd0c9b6bbf2dd8f8b4",
+    "snapshot_tree": "fbe5f8b99350240bee29ca7c9460903559edc6a0",
+    "patch": "r5-to-stopped-r6.patch",
+    "patch_sha256": "ec100b424e0e7a85e79d0c3180aa52d22c06bb5846dfadf6125453fd6ac4c2d2",
+    "changed_files": 39,
+    "change_counts": {
+      "A": 9,
+      "M": 30,
+      "D": 0
+    },
+    "source_scope": "All tracked/untracked nonignored differences from the delivered r5 tree. Unchanged r5 files are supplied by the r5 base.",
+    "excluded": [
+      ".git",
+      "ignored run outputs/caches/environments",
+      "unchanged r5 files"
+    ],
+    "raw_source_bytes_preserved": true,
+    "patch_reconstructs_snapshot_tree": true,
+    "repository_index_unchanged": true,
+    "root_status_documents_modified": false,
+    "prototype": {
+      "source_and_ui_preserved": true,
+      "ordinary_backend_registration": "WITHDRAWN",
+      "new_material_menu_entry": "WITHDRAWN",
+      "upstream_replacement_implementation": "NOT_STARTED",
+      "existing_prototype_document_routes": "PRESERVED_AS_UNFINISHED_SOURCE_NOT_PRODUCT_SUPPORT"
+    },
+    "checks_this_stop_request": [
+      "file inventory",
+      "raw file hashes",
+      "patch reconstruction in a temporary index",
+      "ZIP member/byte checks"
+    ],
+    "not_run_this_stop_request": [
+      "product compilation",
+      "product tests",
+      "solver",
+      "native application",
+      "provider",
+      "CI",
+      "upstream implementation"
+    ],
+    "acceptance": "NOT_REVIEWED_NOT_INTEGRATED_NOT_RELEASED",
+    "restart_policy": "Do not resume without a new user instruction",
+    "agents": {
+      "post_native_algorithms": "COMPLETED",
+      "research_data_channels": "COMPLETED"
+    },
+    "root_report_recorded_only": {
+      "r5_pr_ci": {
+        "core": "FAILED",
+        "Windows research-driver-source": "FAILED",
+        "other_native_jobs": "SKIPPED"
+      },
+      "purpose_contract": "calculations.submit schema forbids purpose; shared Workbench Plan validator requires purpose. Reported by Root; not fixed or re-run here.",
+      "other_ci_failures": "Old native-log path and expected error wording, reported by Root; not investigated here."
+    }
+  },
+  "root_limits": [
+    "No source files or patch applied to MAIN or REVIEW",
+    "No product tests, compilation, solver, native app or provider run for preservation",
+    "Patch reconstruction and snapshot tree identity are Pro reports, not independently executed here",
+    "Only local raw archive retention is confirmed; this record does not publish the unreviewed source",
+    "No accepted r6 release or upstream plasticity replacement"
+  ],
+  "next_action": "Await new user direction; do not automatically resume development"
+}

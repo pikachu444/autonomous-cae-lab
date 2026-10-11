@@ -1,4 +1,18 @@
-## 2026-10-11 — Native Pre and existing material research source integrated
+## 2026-10-11 — Paused for a current-state review
+
+The owner requested that current work be preserved and organized, then
+development stop for assessment. The substantive scope remains; this pause is
+not completion or cancellation of requirements. No new feature, upstream
+integration or verification campaign is authorized by older continuation text.
+Published r5 source is `1de8a69` in Draft PR7; CI has failed and it is not merged.
+Received r6 work is archived locally without application or acceptance. The
+[pause receipt](benchmarks/records/20261011-paused-work-snapshot.json) records
+its exact ZIP and source-manifest hashes. Existing J2/DP implementations must
+be assessed before any unnecessary new constitutive engine is adopted.
+See the current inventory and pause record in
+[WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md).
+
+## Earlier 2026-10-11 — Native Pre and existing material research source integrated
 
 Pro r5 adds native CAD/Assembly/FEM editing and managed-save paths, existing
 MFront Material owners, declared native input bindings, retained native response
@@ -9,10 +23,14 @@ Pre Save, external-dependency dirty tracking, general Post partial Save, retaine
 reader/picker compatibility, Plan method drafts and cold-result latency still
 need correction. See [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md).
 
-Case A's actual J2/explicit-Drucker-Prager protocol, comparison, calibration and
-holdout research flow continues with Pro writing and Root reviewing/integrating.
+The research protocol, comparison, calibration and holdout flow continues with
+Pro writing and Root reviewing/integrating. The owner's latest question requires
+checking established J2/DP implementation reuse before adopting any new
+constitutive engine, and an honest account of delivered versus ongoing work.
 Existing constitutive results do not establish missing DP or mixed-control
-support. Source remains uncommitted; original requirements, numerical limits,
+support. Source is published as `1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3` in
+[Draft PR7](https://github.com/pikachu444/autonomous-cae-lab/pull/7); CI has a
+Windows failure and merge remains open. Original requirements, numerical limits,
 retained failures and `UNKNOWN/NOT_RELEASED` remain. Counts and procedures are
 not completion criteria for the continuing product.
 

@@ -1,5 +1,10 @@
 ## Native research connections — 2026-10-11 r5
 
+This source is published at `1de8a69` in Draft PR7. Subsequent CI triage found an
+open Expert tool/Plan mismatch: `calculations.submit` forbids a `purpose` key
+which Workbench now requires. Do not infer successful provider-driven numerical
+submission from the independently verified HTTP/MCP document operations below.
+
 R5 keeps GUI, HTTP and MCP on the same document/session/generation owners.
 Typed Pre commands expose actual native parameter, Assembly, FEM and managed
 save actions; they do not authorize arbitrary native Python or native paths.

@@ -1,9 +1,96 @@
 # Current workbench implementation
 
-## 2026-10-11 native Pre and existing material research connections
+## 2026-10-11 development paused for assessment
 
-Pro r5 is received and integrated into MAIN and REVIEW, still uncommitted on
-`9e7b5a5`. Its supplied result tree is
+The owner asked to preserve and organize the current work, then stop. New
+implementation, experiments and verification campaigns are paused. Whole-product
+requirements remain, but all earlier automatic-continuation directions are
+superseded. Root's local reviewers are complete; Pro confirmed that its two
+agents and development/calculation/inspection work are stopped. The existing
+work snapshot is received and archived without application to MAIN or REVIEW.
+
+The [pause receipt](../benchmarks/records/20261011-paused-work-snapshot.json)
+records 39 changed source files (30 modified, 9 new), the r5-based patch and all
+metadata. The ZIP is retained only locally under
+`runs/pro-code-received-20261011-r01/paused-r6-20261011/`, SHA256
+`684335c4ac30388bea1711484d5eb0f06b93e6b14f6de345222a5a1e63dc1cd4`.
+Root checked member paths and hashes, without importing/executing source or
+reconstructing the patch. Pro's snapshot tree is reported as
+`fbe5f8b99350240bee29ca7c9460903559edc6a0`; its base is the delivered r5 tree.
+This is a stopped, unreviewed work archive, not a completed r6 delivery.
+
+### What is actually in the published product
+
+Source `1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3` is confirmed on the remote
+development branch in [Draft PR7](https://github.com/pikachu444/autonomous-cae-lab/pull/7).
+It contains the cumulative independent research/native connection work through
+Pro r5. It is not merged or a finished product.
+
+| User work | Implemented and exercised | Still open |
+| --- | --- | --- |
+| CAD/FE design | Native dimensions, Assembly/motion, mesh/conditions, editable save and existing frozen-model Runner/Post connection code | Windows managed Save, external-document dirty tracking, and actual new FreeCAD interaction acceptance; frozen solve remains one solid/C3D10/static linear |
+| Native Post | Actual ParaView filter/compare/measure, Undo/Redo/history, Owner partial Save/repair and new-process reopening with original values | Human Save during partial recovery; unrestricted mesh/vector/tensor comparison is not supplied |
+| Data/Material/Numerical | Independent editing, actual FELUPE fit/DOE/UQ and candidate adoption, retained comparisons and saved work; existing MFront law connections | Original Maxwell/SVK reader defects, response/location choices, method draft loss and curve layout; new MFront UI review partly used explicit controlled evaluators |
+| PDE/Simulation/Evaluation | Independent documents and supported native models; actual same-mesh heat-to-structure temperature/displacement/stress publication | Cold-result latency and broader physical/adaptor/editor coverage |
+| Study/Expert | Questions, evidence, judgments, discussion editing, saved references and shared HTTP/MCP owner operations | Actual configured-provider research flow; Expert calculation submission currently has a tool-schema/validator mismatch |
+| New J2/DP research flow | Existing Code_Aster J2 and MFront infrastructure are reused by older bounded paths | No accepted general J2/DP mixed-protocol/calibration/holdout/FE comparison flow; r6 is archived, unreviewed and unapplied |
+
+### Pro's actual reuse and delegation review
+
+The [actual Pro conversation](https://chatgpt.com/c/6aca5116-b90c-83ee-82fb-1b0299a87fd3)
+returned a completed review. It identifies new r6
+`plugins/material_point/plasticity.py` and an elastoplastic adapter containing
+new J2/DP state updates, return mapping, tangent and mixed-control formulation.
+NumPy/SciPy supplied array/solver primitives, not a reused material algorithm.
+Pro states that making this an ordinary product backend was insufficiently
+justified, and removed registry/menu exposure while retaining source/editor/
+comparison work. These changes are preserved in the unapplied archive above.
+Upstream replacement was not started. Prototype document routes remain
+unfinished source, not accepted product support.
+
+Code_Aster already supplies the named J2/DP laws and `SIMU_POINT_MAT`; MTest
+provides material-point component control. Their exact variants, parameter
+conventions and runtime compatibility must be connected and verified. A gap in
+our adapter does not establish an absent upstream algorithm. See
+[Code_Aster DP](https://code-aster.org/doc/v17/manuals/man_u/u4/u4.43.01/Comportements_thermo-hydro-m_caniques_et_des_sols.html#mot-cle-facteur-druck-prager),
+[material-point command](https://code-aster.org/doc/v17/manuals/man_u/u4/u4.51.12/index.html),
+and [MFront behaviours](https://thelfer.github.io/tfel/web/behaviours.html).
+This is a reuse direction for assessment, not a newly implemented backend.
+
+Pro's critique specifically identifies the early repeated planning questions,
+small Material-first closure and per-connection handoff/wait pattern as limiting
+useful product work. It also distinguishes the later broad instructions, which
+explicitly required existing solver reuse, and accepts its own new-integrator
+decision as an error. Root remains responsible for the missed direction check.
+The proposed delegation unit is a complete editable/research/save/resume user
+workflow, with Pro free to select established implementations within the agreed
+boundaries. This proposal is recorded for assessment, not started during pause.
+
+### Publication and failure state
+
+Exact-head CI [38138994614](https://github.com/pikachu444/autonomous-cae-lab/actions/runs/38138994614)
+finished FAILURE. Windows research-driver-source and Linux core failed; the
+eight downstream native jobs were skipped. The executed checkout was synthetic
+PR merge `a938901e315f2892693ed9ca4f39dcb78c962867`, with source head `1de8a69`
+and main base `a10f2023a2084512839b5e0af8ab0adc0aeb9293`.
+`runs/pr7-ci-38138994614/{completed.json,core.log,research-driver-source.log}`
+preserves the final metadata and logs. No new native result follows from CI.
+
+Independent Windows triage reproduces the actual `calculations.submit` purpose
+contract mismatch. Its other path/message failures do not lose candidate
+artifacts or bypass numerical admission. The broader core run additionally
+reports backend/preset expectation mismatches, SimpleNamespace Post doubles and
+missing PySide6 during desktop test setup. These core failures have not been
+fully triaged; do not call them all obsolete tests or all product defects.
+No failed threshold, original artifact or UNKNOWN/NOT_RELEASED state is changed.
+
+## Earlier 2026-10-11 native Pre and existing material research connections
+
+Pro r5 is received and integrated into MAIN and REVIEW. Cumulative r2/r3/r4/r5
+source is committed and remote-confirmed as
+`1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3` in
+[Draft PR7](https://github.com/pikachu444/autonomous-cae-lab/pull/7).
+Its supplied result tree is
 `9efb9363de8569ce269976fddcce8594fa403cbf`, based on the r4 tree below. ZIP SHA256
 is `d78c2bcc4635ece101189c52db1acb120de248c99d0e06dd0c9b6bbf2dd8f8b4`.
 `runs/pro-code-received-20261011-r01/main-r5-integration.json` records the
@@ -92,10 +179,40 @@ turn tension/partial unloading evidence into confinement/reverse-yield proof.
 No actual material/physical release criteria have been supplied.
 
 The [r5 record](../benchmarks/records/20261011-connected-research-r5.json) pins
-local receipts, source identities and limits. This reviewed integration is a
-development checkpoint for branch publication and a Draft PR, with defects
-explicitly open. Correct those blockers and inspect exact-source CI before
-merge; continue the agreed whole product alongside that correction.
+local receipts, source identities and limits. This is a published development
+checkpoint with defects explicitly open. CI run `38138994614` has this source
+head and executes PR merge `a938901e315f2892693ed9ca4f39dcb78c962867` against
+main `a10f2023a2084512839b5e0af8ab0adc0aeb9293`. Windows research-driver-source
+failed (log: `runs/pr7-ci-38138994614/research-driver-source.log`) while core
+was still running at initial inspection. Independent triage found an actual
+Expert contract regression: `calculations.submit` disallows `purpose`, but
+Workbench's shared Plan validator now requires it. Native artifact-path and
+error-message assertions also need reconciliation with their intended contracts.
+Correct these blockers and inspect exact-source CI before merge; continue the
+agreed whole product alongside that correction.
+
+The owner then questioned whether J2/DP algorithms need to be written again and
+requested Pro's critique of Root's delegation. The question was actually sent
+to Pro, including an explicit upstream-first check of Code_Aster material-point
+execution and MFront/MGIS/MTest. Pro's interim source inspection confirms it
+had written a NumPy constitutive update/tangent and a SciPy mixed-control solve,
+then exposed this in the ordinary backend registry and Material menu. It did
+not call the existing Code_Aster or MFront plasticity implementation. Pro now
+reports removing that ordinary registration/menu while preserving its source
+and editor for review. This is an external work-in-progress report: r6 has not
+been received or integrated here, and no J2/DP support is accepted by it.
+A new kernel requires a demonstrated gap in applicable upstream functionality;
+local native packaging inconvenience is insufficient. Existing Code_Aster
+`VMIS_ISOT_LINE`, `DRUCK_PRAGER`/`DRUCK_PRAG_N_A`, `SIMU_POINT_MAT` and MTest
+component control are reuse options already identified in the prior research.
+
+Pro's interim delegation assessment distinguishes the early small-task/repeated
+review problem from the recent explicit solver-reuse instructions. It attributes
+the new integrator choice to its own implementation decision. Root still owns
+integration and should have checked the backend choice before treating case-A
+implementation progress as useful product progress. The whole-product scope
+and native execution stops remain; a study example must not become the product's
+fixed architecture or a reason to rebuild an existing numerical engine.
 Local FreeCAD, the exhausted old cloud trial and unconfigured provider inference
 remain stopped. `UNKNOWN/NOT_RELEASED` and earlier failed experiments remain.
 

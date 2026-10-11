@@ -1,7 +1,35 @@
-## 2026-10-11 — R5 native Pre and material research integrated locally
+## 2026-10-11 — Paused for product and reuse assessment
 
-Pro r5 is integrated once in MAIN and REVIEW on uncommitted `9e7b5a5`, supplied
-tree `9efb9363de8569ce269976fddcce8594fa403cbf`. Root documents/user attachments
+The owner requested a stop after current work is preserved and organized.
+Implementation and new verification are paused, not complete. Existing source
+`1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3` is remotely durable in Draft PR7.
+CI `38138994614` completed FAILURE (core/research-driver-source; downstream
+native jobs skipped). Its failed logs and exact merge/source identities are
+retained. The known Expert submit schema/callback mismatch remains unfixed.
+
+Pro's actual answer confirms that its r6 work had a new NumPy/SciPy J2/DP
+integrator rather than a call to upstream plasticity. It withdrew ordinary
+backend/menu exposure while preserving its prototype. Its final critique
+identifies early small-task/repeated-planning instructions as a real problem,
+but notes recent explicit reuse instructions and accepts responsibility for
+the integrator choice. Root owns the missed integration-direction check.
+
+All local reviewers are idle/completed. Pro confirmed the stop and returned
+only a current-work snapshot: 39 changed files, archived without application in
+`runs/pro-code-received-20261011-r01/paused-r6-20261011/`. Root verified archive
+and source-manifest hashes; the exact local-retention receipt is
+`benchmarks/records/20261011-paused-work-snapshot.json`.
+There is no accepted r6 or upstream J2/DP comparison flow. See the current
+workbench inventory. Do not follow the historical continuation directions
+below until the user resumes work.
+
+## Earlier 2026-10-11 — R5 research workspaces published; backend reuse review continues
+
+Pro r2/r3/r4/r5 is committed and remote-confirmed at
+`1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3`, with open
+[Draft PR7](https://github.com/pikachu444/autonomous-cae-lab/pull/7).
+R5 was integrated once in MAIN and REVIEW from supplied tree
+`9efb9363de8569ce269976fddcce8594fa403cbf`. Root documents/user attachments
 are preserved. Actual ParaView comparison/history/partial Owner Save/repair and
 cold reopen now preserve the correct IDs and original values. Actual HTTP
 Heat-to-Structure execution publishes exact native temperature, displacement
@@ -17,12 +45,24 @@ original failures and bounded evidence are in
 [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md) and the
 [r5 record](benchmarks/records/20261011-connected-research-r5.json).
 
-Pro continues the original case-A constitutive comparison/calibration/holdout
-and saved research flow on r5, including these corrections. Root integrates
-and reviews concurrently; no small-checkpoint final or planning restart is
-authorized by this state. Native FreeCAD and the old cloud trial stay stopped;
-unknown physical requirements still prevent release. Published source remains
-`584971df8ae64de08beaf1120febe4a9c994aa56`, with no exact-source CI run found.
+Pro continues the constitutive comparison/calibration/holdout and saved research
+flow on r5, including these corrections. The owner questioned unnecessary
+J2/DP reimplementation and Root's delegation; the actual Pro conversation now
+has the direct request to assess upstream reuse, identify any new numerical
+kernel, and separate delivered r5 from unreceived r6. Pro has confirmed a new
+NumPy/SciPy integrator and reports removing its ordinary backend/menu exposure
+while retaining the prototype; this correction has not been received. Root integrates/reviews
+concurrently. No r6 source or new plasticity result is accepted by this state.
+Native FreeCAD and the old cloud trial stay stopped; unknown physical
+requirements still prevent release.
+
+CI run `38138994614` refers to source head `1de8a69`; its actual PR checkout is
+merge `a938901e315f2892693ed9ca4f39dcb78c962867`. Windows research-driver-source
+failed and core was still running at the first inspection. The first two
+failures concern retained-path and error-message expectations. Read-only
+triage also found an actual Expert submission contract mismatch: the tool
+schema forbids `purpose` while Workbench now requires it. This remains open;
+no CI pass or merge is claimed. See the current workbench record.
 
 ## Earlier 2026-10-11 — Independent research and connected evaluation integrated locally
 

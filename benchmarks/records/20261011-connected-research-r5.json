@@ -7,7 +7,7 @@
   "source": {
     "integration_base_commit": "9e7b5a5e08c37dfcc01cf6fb27490ec1db1bdd18",
     "at_review_uncommitted": true,
-    "current_commit": null,
+    "current_commit": "1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3",
     "delivery_base_tree": "efaaf395705b6a09cab4c156e1a6350d36bd9b15",
     "delivery_result_tree": "9efb9363de8569ce269976fddcce8594fa403cbf",
     "zip_sha256": "d78c2bcc4635ece101189c52db1acb120de248c99d0e06dd0c9b6bbf2dd8f8b4",
@@ -127,6 +127,11 @@
       "priority": 3,
       "code": "CANDIDATE_CURVE_LAYOUT",
       "detail": "Default1180x820 window shows roughly40px axes because long provenance takes layout space."
+    },
+    {
+      "priority": 1,
+      "code": "EXPERT_SUBMIT_PURPOSE_CONTRACT",
+      "detail": "CI diagnosis reproduced the actual tool-schema/callback conflict: calculations.submit forbids purpose, but shared Workbench Plan validator requires it. Valid numerical budgets and retained native candidate artifacts are separately confirmed."
     }
   ],
   "portable_tests": {
@@ -148,8 +153,50 @@
     "source_files_unchanged": true,
     "tests_are_not_native_engineering_approval": true
   },
-  "next_work": "Pro continues original caseA J2/explicitDP protocol/comparison/calibration/holdout and saved research on r5 while correcting findings; Root integrates/reviews. Preserve existing stops and old results.",
-  "publication_at_review": "Not committed/pushed at review time; source checkpoint and PR publication will be recorded separately. Artifacts in runs remain local.",
+  "next_work": "Paused at owner request. Pro r6 WIP is preserved locally without application. Await a new user direction; do not resume implementation or verification automatically.",
+  "publication_at_review": "Not committed/pushed at review time. Subsequently committed and remote-confirmed as 1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3. Artifacts in runs remain local.",
+  "publication": {
+    "branch": "codex/ui-interaction-design-20261010",
+    "remote_confirmed_commit": "1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3",
+    "pull_request": "https://github.com/pikachu444/autonomous-cae-lab/pull/7",
+    "draft": true,
+    "merged": false,
+    "ci_run_id": 38138994614,
+    "ci_source_head": "1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3",
+    "ci_executed_merge": "a938901e315f2892693ed9ca4f39dcb78c962867",
+    "ci_merge_base": "a10f2023a2084512839b5e0af8ab0adc0aeb9293",
+    "ci_initial_status": "Windows research-driver-source FAILED; core still running at initial inspection",
+    "ci_driver_log": "runs/pr7-ci-38138994614/research-driver-source.log",
+    "ci_additional_finding": "Expert calculations.submit schema forbids purpose while Workbench shared Plan validation requires it; correction open",
+    "ci_driver_diagnosis": {
+      "report": "runs/reviewer-ci-contract-d6b149e2ab9640618ed8c5b4e07ec573/report.json",
+      "artifact_retention": "Actual result references and all 12 synthetic candidate artifact hashes match; old native directory glob obsolete",
+      "input_validation": "Extra operation keys, backend settings and complete-input budget violations rejected; message-only mismatch",
+      "expert_submission": "P1 tool schema/callback mismatch reproduced without provider",
+      "native_solver_executed": false
+    },
+    "ci_final_status": "COMPLETED_FAILURE",
+    "ci_final_jobs": {
+      "core": "FAILURE",
+      "research-driver-source": "FAILURE",
+      "structural": "SKIPPED",
+      "native-registration": "SKIPPED",
+      "explicit": "SKIPPED",
+      "native": "SKIPPED",
+      "codeaster": "SKIPPED",
+      "doe": "SKIPPED",
+      "pde": "SKIPPED",
+      "optimization": "SKIPPED"
+    },
+    "ci_core_reported": {
+      "passed": 7201,
+      "failed": 19,
+      "errors": 5,
+      "skipped": 52,
+      "seconds": 825.55,
+      "triage": "Not fully triaged; preset expectations, Post SimpleNamespace doubles, missing PySide6 setup and three known workbench failures"
+    }
+  },
   "receipts": [
     {
       "path": "runs/pro-code-received-20261011-r01/connected-research-r5/root-receipt.json",
@@ -354,6 +401,44 @@
       "bytes": 15102,
       "sha256": "d309a875990ba246431fbfe7803d1c1a406f74154d5c2bf60613e56bb0c73736",
       "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/pr7-ci-38138994614/research-driver-source.log",
+      "bytes": 77999,
+      "sha256": "fd0bf50be65052dbbd4d4b4aecfb08d4b4e06d0010ab80ce4acec1d9e9525977",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-ci-contract-d6b149e2ab9640618ed8c5b4e07ec573/report.json",
+      "bytes": 10347,
+      "sha256": "bcda149717cc24f430a98135a657153e80ba40d9161f020190122bf7df797dda",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/reviewer-ci-contract-d6b149e2ab9640618ed8c5b4e07ec573/reproduce.py",
+      "bytes": 6705,
+      "sha256": "e01c5397ba07ede0af07db6156fe40c08da5bed8c7a4b1d0242d46941daee26e",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/pr7-ci-38138994614/core.log",
+      "bytes": 205995,
+      "sha256": "36715bb77e62aaefb55be70107a906d0f416c871a2887e4bf53c9f21bb1cf1a1",
+      "retention": "LOCAL_ONLY"
+    },
+    {
+      "path": "runs/pr7-ci-38138994614/completed.json",
+      "bytes": 7694,
+      "sha256": "eeb042f9bb9eebb1d826bece9ba5f4096b4eb4e525958f581abb44d01fe60757",
+      "retention": "LOCAL_ONLY"
     }
-  ]
+  ],
+  "work_status": "PAUSED_BY_OWNER_AFTER_PRESERVATION",
+  "preserved_external_work": {
+    "status": "UNREVIEWED_UNAPPLIED_LOCAL_ARCHIVE",
+    "record": "benchmarks/records/20261011-paused-work-snapshot.json",
+    "record_sha256": "876b5006641e9c400f9fe42753468174e2b4e53b6caeaada2461ad89cf71dc01",
+    "accepted_r6": false,
+    "upstream_plasticity_replacement_started": false
+  }
 }

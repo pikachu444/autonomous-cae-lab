@@ -2,7 +2,10 @@
 
 ## 2026-10-11 r5 실제 Post 수정과 Pre 저장 결함
 
-r5 소스는 MAIN/REVIEW에 한 번씩 통합됐으며 아직 미커밋이다. 실제 ParaView
+r5 소스는 MAIN/REVIEW에 한 번씩 통합됐으며 누적 구현은
+`1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3`으로 푸시하고
+[Draft PR7](https://github.com/pikachu444/autonomous-cae-lab/pull/7)을 열었다.
+아래 실행 당시에는 미커밋 소스였으며 게시 자체는 새 native 실행이 아니다. 실제 ParaView
 6.2.0에서 제품 우회 없이 비교·필터·측정·Apply/Undo·저장·새 프로세스 재열기를
 통과했다. 원본 ID에는 NativeNodeID만 남으며 Response가 섞이지 않는다.
 독립 affine 기준과 기존 `1e-10 mm` 허용값을 유지했다.

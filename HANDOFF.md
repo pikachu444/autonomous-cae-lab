@@ -1,4 +1,31 @@
-## 2026-10-11 — Owner direction for continuing development
+## 2026-10-11 — Development paused at the owner's request
+
+The owner explicitly requested preserving and organizing the current work,
+then stopping to assess the state. This supersedes every older instruction
+below to keep implementing, continue automatically or avoid ending at a
+checkpoint. Do not resume implementation, experiments, provider calls or new
+verification campaigns without a new user direction.
+
+Published product source is `1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3` on
+`codex/ui-interaction-design-20261010`, in open Draft PR7, not merged. Exact-head
+CI run `38138994614` has completed FAILURE: core and research-driver-source
+failed; all downstream native jobs were skipped. Logs and final metadata are
+retained under `runs/pr7-ci-38138994614`. This is no new native verification.
+
+All local review agents are complete and their owned services/processes were
+closed. No matching local Codex automation was found. Pro confirmed that its
+two agents and all development/calculation/inspection work are stopped. Its
+unreviewed r6 snapshot is downloaded and archived locally at
+`runs/pro-code-received-20261011-r01/paused-r6-20261011/`.
+ZIP SHA256 is `684335c4ac30388bea1711484d5eb0f06b93e6b14f6de345222a5a1e63dc1cd4`.
+Root checked the archive paths and all member/source hashes; none of its 39
+changed source files or patch were applied to MAIN or REVIEW. The exact receipt
+is `benchmarks/records/20261011-paused-work-snapshot.json`. The raw ZIP is
+LOCAL_ONLY, not published or an accepted r6 release. Preservation is complete.
+The current inventory, actual Pro critique and remaining defects are recorded
+at the top of `docs/WORKBENCH_PROGRESS.md`.
+
+## Earlier 2026-10-11 — Owner direction for continuing development
 
 Finish the agreed usable product in large, coherent implementation units. The
 owner explicitly rejected substituting procedures, document formats, check
@@ -10,13 +37,19 @@ common interfaces; Root integrates and reviews concurrently. Keep the accepted
 whole-product scope active and do not wait for Root review between small features.
 
 Received PDE/Expert r2, Post/Data/Numerical r3, Evaluation/Study r4 and native
-Pre/material-research r5 are integrated in this working tree, still uncommitted.
+Pre/material-research r5 are committed and confirmed on the remote branch as
+`1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3`.
 R5's supplied tree is `9efb9363de8569ce269976fddcce8594fa403cbf`; the integration
 receipt is `runs/pro-code-received-20261011-r01/main-r5-integration.json`.
 MAIN and REVIEW match the delivery apart from line endings and the inherited
 PDE-editor trailing-space cleanup. Root documents and user attachments were
-preserved. Do not apply r2/r3/r4/r5 again. The published source checkpoint below
-remains the last committed implementation; no new exact-commit CI evidence exists.
+preserved. Do not apply r2/r3/r4/r5 again. [Draft PR7](https://github.com/pikachu444/autonomous-cae-lab/pull/7)
+is open against main and has not been merged. Its run `38138994614` is tied to
+this exact source head; Actions checks out synthetic merge
+`a938901e315f2892693ed9ca4f39dcb78c962867` against main
+`a10f2023a2084512839b5e0af8ab0adc0aeb9293`. Windows `research-driver-source`
+failed while core was still running at the first inspection. Preserve the
+actual log in `runs/pr7-ci-38138994614`; no CI pass is claimed.
 
 R5 implements live Pre variables, Assembly motion, mesh/condition controls,
 managed native save, existing MFront Material documents, input bindings and
@@ -33,17 +66,24 @@ open. The current evidence and remaining defects are in
 [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md). Continue from these findings;
 do not repeat accepted fit/DOE/UQ or old native runs.
 
-Pro is continuing the original case-A J2/explicit-Drucker-Prager material
-protocol, comparison, calibration/holdout and saved research flow on r5, with
-these corrections in the same implementation. Root reviews/integrates in
-parallel. Do not turn that work into another plan or small patch cycle. Review
-the returned source and close the actual blockers before merge. The owner
-requested a current status and asked about push/PR/merge; Root confirmed this
-integration was still only local and is preserving it now as a reviewed
-development checkpoint on the authorized branch with a Draft PR. Confirm the
-remote ref and PR, then keep subsequent coherent updates durable without
-waiting for whole-product completion. Exact-source CI and open defects remain
-merge gates, not permission questions.
+Pro continues the material protocol/comparison/calibration/holdout and saved
+research flow on r5 alongside these corrections. The owner then challenged
+writing J2/DP algorithms ourselves and asked for an honest implementation
+inventory and Pro's critique of Root's delegation. That question was sent to
+the same actual Pro conversation. Existing Code_Aster/MFront/MGIS/MTest reuse
+must be considered before making a new constitutive integrator the product
+backend. Pro's statement that it has written a mixed-control implementation is
+not a received, integrated or independently verified r6 delivery. Preserve
+its work while checking that choice; a runtime packaging gap alone does not
+justify replacing established constitutive code. Pro subsequently confirmed
+NumPy update/tangent plus SciPy mixed control and reports removing its ordinary
+backend/menu registration while preserving the prototype. This is unreceived
+external source, not a local correction or completed upstream integration.
+Whole-product work continues.
+Root reviews/integrates in parallel. Do not turn this into another plan or
+small patch cycle. Correct the actual blockers and inspect exact-source CI
+before merge, and keep coherent source updates durable on the authorized
+branch. These are merge gates, not new permission questions.
 Local FreeCAD and the exhausted old cloud trial remain stopped. No new provider
 credentials or inference are authorized by this checkpoint.
 

@@ -1,7 +1,8 @@
 # ADR0062 — Connected research owners and retained physical fields
 
-Date: 2026-10-11. Status: implemented in the locally integrated Pro r2/r3/r4/r5
-working source; bounded acceptance and known correction work remain open.
+Date: 2026-10-11. Status: implemented in Pro r2/r3/r4/r5, published at
+`1de8a69462eaf6c0c32d8f7bfcf19a85ff6183d3`; bounded acceptance and known
+correction work remain open. PR7 is draft and not merged.
 
 ## Reason and decision
 

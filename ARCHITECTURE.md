@@ -1,6 +1,6 @@
 ## Connected research owners — 2026-10-11
 
-The locally integrated r2/r3/r4/r5 source implements independent PDE, Discussion,
+The r2/r3/r4/r5 source, published at `1de8a69`, implements independent PDE, Discussion,
 Simulation, EvaluationDefinition and Study editing through the existing document
 lifecycle. EvaluationDefinition composes saved domain inputs and declared field
 ports under the existing JobManager; deterministic numerical engines still own
