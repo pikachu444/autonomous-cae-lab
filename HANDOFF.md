@@ -1,4 +1,14 @@
-## 2026-10-11 — Resume from implemented native input/Post connection
+## 2026-10-11 — Current continuation
+
+Resume the connected native Pre/Runner/Post and independent Data/Numerical work
+from [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md). Actual Pro's repository
+review is received, and source `327b7b3` adds the retained-job Runner/Material
+return and shared manual/MCP Post save owner. The actual Qt navigation check used
+existing results without a new solver. Native FEM snapshot export is in progress;
+the local FreeCAD execution stop remains. Continue development, not another
+planning cycle or a final response after this bounded checkpoint.
+
+## Earlier 2026-10-11 — Native input/Post connection
 
 Source `1f0338466d04fea8312aa943b5545b61fc858b50` is a verified local code commit,
 not a new plan. VTU/PVD dependency registration, HTTP/CLI/stdio MCP identity,

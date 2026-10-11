@@ -1,4 +1,12 @@
-## 2026-10-11 — Implemented subset: external native result/Post workflow
+## 2026-10-11 — Current connection priority
+
+Runner/Material navigation and shared manual/MCP Post save advance at `327b7b3`.
+The [current progress record](docs/WORKBENCH_PROGRESS.md) and actual Pro repository
+review prioritize native Pre → Runner → Post → design return and independent
+Data → Numerical → Material adoption. Both remain active, incomplete workflows;
+original requirements, UNKNOWN states and numerical thresholds remain intact.
+
+## Earlier 2026-10-11 — Implemented subset: external native result/Post workflow
 
 Approved local VTU/PVD dependency registration, shared HTTP/CLI/MCP input identity,
 registered-input ParaView opening, and native save/cold reopen are now implemented

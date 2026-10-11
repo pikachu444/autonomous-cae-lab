@@ -1,4 +1,12 @@
-## 2026-10-11 — Native input registration and independent Post implemented
+## 2026-10-11 — Current connected-workflow implementation
+
+Source `327b7b3` connects retained-job Runner navigation and the manual Post save
+macro to the shared owner. The actual Pro source review and bounded Qt evidence
+are in [WORKBENCH_PROGRESS](docs/WORKBENCH_PROGRESS.md). Native Pre/Runner/Post
+and Data/Numerical/adoption remain active implementation work. No new solver,
+visible GUI, physical or release acceptance follows from this checkpoint.
+
+## Earlier 2026-10-11 — Native input registration and independent Post implemented
 
 Implementation source `1f0338466d04fea8312aa943b5545b61fc858b50` now registers a
 VTU or a PVD plus its relative VTU dependencies through the existing service.

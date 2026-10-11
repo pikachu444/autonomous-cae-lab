@@ -1,5 +1,12 @@
 # 전처리와 후처리 검증 기록
 
+## 2026-10-11 Runner 연결과 Post 저장 owner 수정
+
+소스 `327b7b3`의 실제 HTTP/Qt retained-job 열기·원래 응답 확인·미적용 Material
+값 보존과 Post 수동 저장 상태 수정은 [현재 진행 기록](WORKBENCH_PROGRESS.md)에
+보존한다. 새 solver 실행은 0이며 visible GUI와 native Pre 전체 연결은 미검증이다.
+기존 수치·물리 검증 상태와 FreeCAD 로컬 실행 중지는 바뀌지 않는다.
+
 ## 2026-10-11 외부 결과 등록 → native Post → 저장·새 프로세스 재열기
 
 구현 소스는 `1f0338466d04fea8312aa943b5545b61fc858b50`이다. 기존 서비스의 허용

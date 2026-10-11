@@ -1,5 +1,39 @@
 # Current workbench implementation
 
+## 2026-10-11 current direction after repository review; Runner connection
+
+Actual Pro read the published `8934416` tree and `97f1a45` implementation.
+[Its received review](PRO_IMPLEMENTATION_REVIEW.md) confirms real Material/Post
+progress but calls out the missing native Pre → Runner → Post → design return
+and Data → Numerical → Material adoption flows. These connected user outcomes
+are the next implementation priority. More planning reviews, elastic reruns or
+regression counts do not close them. Local FreeCAD execution remains stopped.
+
+Source `327b7b3` connects the independent Runner to actual retained jobs, frozen
+inputs, cancellation, bounded original responses and Material-origin navigation.
+Returning to the current Material preserves unapplied editor values. The same
+Runner serves native and independent research jobs. The manual Post save macro
+now calls the same native owner as MCP, so successful saves update the owner's
+saved generation while failures retain its dirty state.
+
+In `runs/research-runner-20261011-668c-r02`, an actual HTTP-backed Qt window opened
+job `Je1dee81a0cfa4622a10d05596291d768`, read its original E=1500 MPa and three
+stress values `[0, 1.7999999999998018, 3.600000000000003]` MPa, then returned to
+unapplied E=1777 without altering either original job. No solver was resubmitted.
+[Screenshot](design/20261011-implemented-material/runner-retained-response.png)
+and [receipt](../benchmarks/records/20261011-runner-retained-response.json) record
+this offscreen Qt check; visible human GUI remains unverified. An earlier harness
+attempt used a nonexistent endpoint and is retained separately. Both temporary
+service owners have confirmed shutdown. Focused navigation and save-state checks
+passed; no broad regression or native rerun was added for this checkpoint.
+
+Current implementation continues from an existing FreeCAD FEM Analysis snapshot:
+preserve the actual editable model, mesh, material and native writer deck, then
+execute through the existing JobManager and return the exact result to Post.
+That export/receiver path is in development, not native acceptance. Data mapping
+and Numerical document work proceeds in parallel. Engineering UNKNOWN and
+NOT_RELEASED, original input/result records and numerical thresholds remain.
+
 ## 2026-10-11 native result registration and Post connection
 
 The existing workbench now snapshots VTU/PVD result sets, including contained
