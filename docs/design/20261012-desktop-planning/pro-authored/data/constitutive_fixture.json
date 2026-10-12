@@ -1,0 +1,48 @@
+{
+  "label": "PRESCRIBED_F_ANALYTIC_AUTHORING_FIXTURE_NOT_EVALUATOR_EXECUTION",
+  "mu_MPa": 0.85,
+  "lmbda_MPa": 12,
+  "strain_stress_pair": "P,F",
+  "states": [
+    {
+      "increment": 0,
+      "F11": 1.0,
+      "F22": 1,
+      "F33": 1,
+      "J": 1.0,
+      "P11_MPa": 0.0,
+      "dP11_dF11_MPa": 13.7,
+      "reference": "analytic authoring fixture; not runtime output"
+    },
+    {
+      "increment": 1,
+      "F11": 1.01,
+      "F22": 1,
+      "F33": 1,
+      "J": 1.01,
+      "P11_MPa": 0.13513759429506644,
+      "dP11_dF11_MPa": 13.329752994571102,
+      "reference": "analytic authoring fixture; not runtime output"
+    },
+    {
+      "increment": 2,
+      "F11": 1.02,
+      "F22": 1,
+      "F33": 1,
+      "J": 1.02,
+      "P11_MPa": 0.2666387525040753,
+      "dP11_dF11_MPa": 12.972614833185162,
+      "reference": "analytic authoring fixture; not runtime output"
+    },
+    {
+      "increment": 3,
+      "F11": 1.03,
+      "F22": 1,
+      "F33": 1,
+      "J": 1.03,
+      "P11_MPa": 0.3946316766005176,
+      "dP11_dF11_MPa": 12.628013359507463,
+      "reference": "analytic authoring fixture; not runtime output"
+    }
+  ]
+}

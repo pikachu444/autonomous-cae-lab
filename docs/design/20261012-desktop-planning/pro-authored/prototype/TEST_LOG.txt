@@ -1,0 +1,19 @@
+test_acknowledged_adoption_recovery_then_stale_save_never_publishes_receipt (test_state_model.LifecycleTests.test_acknowledged_adoption_recovery_then_stale_save_never_publishes_receipt) ... ok
+test_adoption_branch_cancel_and_freshness_no_overwrite (test_state_model.LifecycleTests.test_adoption_branch_cancel_and_freshness_no_overwrite) ... ok
+test_adoption_conflict_apply_draft_then_explicit_save_revision19 (test_state_model.LifecycleTests.test_adoption_conflict_apply_draft_then_explicit_save_revision19) ... ok
+test_buffer_cancel_invalid_owner_draft_save_and_run_gate (test_state_model.LifecycleTests.test_buffer_cancel_invalid_owner_draft_save_and_run_gate) ... ok
+test_focused_owner_mask_undo_preserves_other_masks_and_view_history (test_state_model.LifecycleTests.test_focused_owner_mask_undo_preserves_other_masks_and_view_history) ... ok
+test_focused_owner_undo_interleaved_coefficients_never_pops_other_owner (test_state_model.LifecycleTests.test_focused_owner_undo_interleaved_coefficients_never_pops_other_owner) ... ok
+test_initial_story_and_owner_generation_start_current_separation (test_state_model.LifecycleTests.test_initial_story_and_owner_generation_start_current_separation) ... ok
+test_mask_intersection_display_independence_undo_and_reimport_identity_guard (test_state_model.LifecycleTests.test_mask_intersection_display_independence_undo_and_reimport_identity_guard) ... ok
+test_partial_save_recovery_restores_buffer_drafts_and_bases_without_revision_publish (test_state_model.LifecycleTests.test_partial_save_recovery_restores_buffer_drafts_and_bases_without_revision_publish) ... ok
+test_refresh_preview_rejects_changed_source_or_changed_local_plan (test_state_model.LifecycleTests.test_refresh_preview_rejects_changed_source_or_changed_local_plan) ... ok
+test_selection_reopen_no_evaluation_and_explicit_sidecar_retains_original_status (test_state_model.LifecycleTests.test_selection_reopen_no_evaluation_and_explicit_sidecar_retains_original_status) ... ok
+test_source_refresh_cancel_then_explicit_apply_save_and_frozen_run (test_state_model.LifecycleTests.test_source_refresh_cancel_then_explicit_apply_save_and_frozen_run) ... ok
+test_stale_revision_rejects_save_and_retains_local_mu (test_state_model.LifecycleTests.test_stale_revision_rejects_save_and_retains_local_mu) ... ok
+test_unit_geometry_mapping_retains_time_raw_values_and_source_hash (test_state_model.LifecycleTests.test_unit_geometry_mapping_retains_time_raw_values_and_source_hash) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.053s
+
+OK

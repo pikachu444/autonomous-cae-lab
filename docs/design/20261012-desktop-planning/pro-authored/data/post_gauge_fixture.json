@@ -1,0 +1,41 @@
+{
+  "label": "SYNTHETIC_NOT_NATIVE_POST_RESULT",
+  "source": "external-A/r3",
+  "measurement": "Gauge01/r2",
+  "point_id_namespace": "original_node_id",
+  "point_id": 145,
+  "field": "displacement_magnitude",
+  "unit": "mm",
+  "samples": [
+    {
+      "time_s": 0,
+      "value": 0,
+      "valid": true
+    },
+    {
+      "time_s": 0.01,
+      "value": 0.045,
+      "valid": true
+    },
+    {
+      "time_s": 0.02,
+      "value": 0.114,
+      "valid": true
+    },
+    {
+      "time_s": 0.03,
+      "value": 0.187,
+      "valid": true
+    },
+    {
+      "time_s": 0.04,
+      "value": 0.224,
+      "valid": true
+    },
+    {
+      "time_s": 0.05,
+      "value": null,
+      "valid": false
+    }
+  ]
+}

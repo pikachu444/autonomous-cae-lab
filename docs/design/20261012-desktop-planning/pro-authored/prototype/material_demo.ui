@@ -1,0 +1,447 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ui version="4.0">
+ <class>MaterialPlanningForm</class>
+ <widget class="QWidget" name="MaterialPlanningForm">
+  <property name="windowTitle">
+   <string>SIMULATED UI • Material planning</string>
+  </property>
+  <property name="styleSheet">
+   <string>QWidget {font-family: Segoe UI; font-size: 12px;} QGroupBox {font-weight: bold; margin-top: 9px;} QGroupBox::title {subcontrol-origin: margin; left: 9px;} QPushButton {padding: 6px;} QTableWidget {font-weight: normal;} QLabel#simulationLabel {background: #fff0cc; color: #713e00; padding: 10px; font-weight: bold;} QLabel#messageLabel {background: #eef5fa; padding: 8px;} QLabel#stateLabel {padding: 6px; color: #263b50;}</string>
+  </property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <item>
+    <widget class="QLabel" name="simulationLabel">
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="text">
+      <string>SIMULATED UI • compressible neo-Hooke μ / externally fixed λ_L. Synthetic inputs, fixed candidate summaries and pure state transitions. Traction-free solver NOT IMPLEMENTED / NOT RUN. No fit, provider or production service.</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="stateLabel">
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="text">
+      <string>Data / Material / Plan revisions and independent dirty state</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="mappingLabel">
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="text">
+      <string>Raw CSV mapping</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="sourceRefsLabel">
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="text">
+      <string>Plan refs / starts / Material current values</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="sourceControls">
+     <item>
+      <widget class="QPushButton" name="refreshSourceButton">
+       <property name="text">
+        <string>Refresh Plan sources… preview / apply / cancel</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="simulateRunButton">
+       <property name="text">
+        <string>Simulate PROPOSED FUTURE Fit state (current execution BLOCKED)</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QSplitter" name="mainSplitter">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <widget class="QWidget" name="inputPanel">
+      <layout class="QVBoxLayout" name="inputLayout">
+       <item>
+        <widget class="QTabWidget" name="rawTabs">
+         <widget class="QWidget" name="rawATab">
+          <attribute name="title">
+           <string>Raw tensile_A.csv</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="rawALayout">
+           <item>
+            <widget class="QTableWidget" name="rawA">
+             <property name="minimumHeight">
+              <number>110</number>
+             </property>
+             <property name="maximumHeight">
+              <number>200</number>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="rawBTab">
+          <attribute name="title">
+           <string>Raw tensile_B.csv</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="rawBLayout">
+           <item>
+            <widget class="QTableWidget" name="rawB">
+             <property name="minimumHeight">
+              <number>110</number>
+             </property>
+             <property name="maximumHeight">
+              <number>200</number>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="normalizedLabel">
+         <property name="text">
+          <string>Mapped first-Piola P11–e11 samples • time retained independently • exact row identity</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="normalizedTable">
+         <property name="minimumHeight">
+          <number>110</number>
+         </property>
+         <property name="maximumHeight">
+          <number>200</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="selectionLabel">
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+         <property name="text">
+          <string>Selection and mask</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="maskActions">
+         <item>
+          <widget class="QPushButton" name="toggleMaskButton">
+           <property name="text">
+            <string>Toggle Data quality exclusion</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="undoMaskButton">
+           <property name="text">
+            <string>Undo focused owner (Ctrl+Z); Redo NOT IMPLEMENTED</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="saveDataButton">
+           <property name="text">
+            <string>Save Data</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="planMaskButton">
+           <property name="text">
+            <string>Toggle Plan inclusion</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="hideButton">
+           <property name="text">
+            <string>Hide/show (display only)</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="materialPanel">
+      <layout class="QVBoxLayout" name="materialLayout">
+       <item>
+        <widget class="QWidget" name="plotContainer">
+         <property name="minimumSize">
+          <size>
+           <width>550</width>
+           <height>250</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="valueGroups">
+         <item>
+          <widget class="QGroupBox" name="materialGroup">
+           <layout class="QVBoxLayout" name="materialGroupLayout">
+            <item>
+             <widget class="QTableWidget" name="coefficientTable">
+              <property name="minimumHeight">
+               <number>110</number>
+              </property>
+              <property name="maximumHeight">
+               <number>140</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="saveMaterialButton">
+              <property name="text">
+               <string>Save Material</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+           <property name="title">
+            <string>Material • current μ / external fixed λ_L [MPa]</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="planGroup">
+           <layout class="QVBoxLayout" name="planGroupLayout">
+            <item>
+             <widget class="QTableWidget" name="boundsTable">
+              <property name="minimumHeight">
+               <number>110</number>
+              </property>
+              <property name="maximumHeight">
+               <number>140</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="savePlanButton">
+              <property name="text">
+               <string>Save Plan</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+           <property name="title">
+            <string>Plan • starting μ / lower / upper / fixed λ_L [MPa]</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="bufferActions">
+         <item>
+          <widget class="QLabel" name="bufferHelp">
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+           <property name="text">
+            <string>Double-click editable owner draft. Enter submits raw text with diagnostics; Esc cancels buffer only. Fixed λ_L is read-only. Buffer/draft/saved revisions remain distinct.</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="commitBufferButton">
+           <property name="text">
+            <string>Submit text to owner draft</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="discardBufferButton">
+           <property name="text">
+            <string>Discard buffer</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QLabel" name="candidatesLabel">
+         <property name="text">
+          <string>SIMULATED c017/c014/c009/c021 • original retention/holdout remains unchanged</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="candidateTable">
+         <property name="minimumHeight">
+          <number>110</number>
+         </property>
+         <property name="maximumHeight">
+          <number>140</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="adoptButton">
+         <property name="text">
+          <string>Preview adoption: base / current / candidate (no mutation)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="candidateDetailLabel">
+         <property name="text">
+          <string>Selected candidate availability; selection never evaluates</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="evaluateDetailsButton">
+         <property name="text">
+          <string>Explicit SIMULATED selected detail + holdout (new eval ID, budget 3)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="adoptionLabel">
+         <property name="text">
+          <string>No adoption proposal prepared</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="adoptionDiffTable">
+         <property name="minimumHeight">
+          <number>100</number>
+         </property>
+         <property name="maximumHeight">
+          <number>130</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="adoptionChoices">
+         <item>
+          <widget class="QPushButton" name="newProposalButton">
+           <property name="text">
+            <string>New proposal on current revision</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="applyProposalButton">
+           <property name="text">
+            <string>Apply reviewed proposal to owner draft (NOT Save)</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="branchButton">
+           <property name="text">
+            <string>Save new Material branch</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="cancelAdoptionButton">
+           <property name="text">
+            <string>Cancel adoption</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="saveActions">
+     <item>
+      <widget class="QPushButton" name="saveAllButton">
+       <property name="text">
+        <string>Save workspace drafts independently</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="partialSaveButton">
+       <property name="text">
+        <string>Simulate Plan write failure</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="injectConflictButton">
+       <property name="text">
+        <string>Other client: r18 μ=.90 + protocol change</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="reloadMaterialButton">
+       <property name="text">
+        <string>Reload saved Material</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="reopenButton">
+       <property name="text">
+        <string>Cold reopen saved revisions only</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="messageLabel">
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="text">
+      <string>Simulated workflow outcome</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="recoveryActions">
+     <item>
+      <widget class="QPushButton" name="preserveRecoveryButton">
+       <property name="text">
+        <string>Save separate recovery capsule</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="restoreRecoveryButton">
+       <property name="text">
+        <string>Restore recovery (raw buffer / owner drafts / bases)</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources />
+ <connections />
+</ui>
