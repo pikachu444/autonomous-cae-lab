@@ -57,6 +57,7 @@ class CurveView(QWidget):
         self.drag_start = None
         self.drag_end = None
         self.caption = "Synthetic illustration"
+        self.cursor_x = None
         self._limits = (0, 1, 0, 1)
         self._plot = QRectF()
 
@@ -132,6 +133,10 @@ class CurveView(QWidget):
             p.drawPath(path)
             p.drawLine(legend_x, 15+n*17, legend_x+20, 15+n*17)
             p.drawText(legend_x+26, 19+n*17, s.get("name", "Curve"))
+        if self.cursor_x is not None and x0 <= self.cursor_x <= x1:
+            cx=self._point(self.cursor_x,y0).x()
+            p.setPen(QPen(QColor(ORANGE),1.5,Qt.PenStyle.DashLine))
+            p.drawLine(QPointF(cx,rect.top()),QPointF(cx,rect.bottom()))
         if self.drag_start is not None and self.drag_end is not None:
             p.fillRect(QRectF(min(self.drag_start,self.drag_end), rect.top(),
                              abs(self.drag_end-self.drag_start), rect.height()), QColor(40,105,152,35))
@@ -203,6 +208,14 @@ class EngineeringView(QWidget):
         self.mesh = False
         self.field = "Displacement [mm]"
         self.thickness = 14
+        self.model_width, self.model_height = 72, 28
+        self.geometry_type, self.instances = "Clamp", 2
+        self.through_hole = False
+        self.sketch = False
+        self.conditions = []
+        self.field_max, self.field_available = .31, True
+        self.filter_mode, self.deformation_scale = "Surface", 10
+        self.annotation = ""
         self.label = "Native host illustration" if mode in ("cad","post") else "Domain illustration"
 
     def set_selected(self, name):
@@ -231,6 +244,28 @@ class EngineeringView(QWidget):
                  ((-38,-16,34),(38,16,34+self.thickness),"Clamp/Pad/Face6","#c3cdd5")]
         if self.mode in ("pde","thermal","thermoelastic"):
             boxes = [((-50,-32,0),(50,32,3),"Left edge","#abc3d4")]
+        if self.mode=="cad":
+            w=max(.1,self.model_width);h=max(.1,self.model_height);t=max(.1,self.thickness)
+            if self.geometry_type in ("Plate","Block"):
+                boxes=[((-w/2,-h/2,0),(w/2,h/2,t),"Plate/Pad/Face6","#b9c8d4")]
+            else:
+                boxes=[((-w*.65,-h,0),(w*.65,h,8),"Base/Face2","#a7b4c0"),
+                       ((-w*.49,-h*.4,8),(-w*.28,h*.4,h+6),"Clamp/Leg/Face1","#95a6b5"),
+                       ((w*.28,-h*.4,8),(w*.49,h*.4,h+6),"Clamp/Leg/Face2","#95a6b5"),
+                       ((-w*.53,-h*.57,h+6),(w*.53,h*.57,h+6+t),"Clamp/Pad/Face6","#c3cdd5")]
+            if self.sketch:
+                p.fillRect(self.rect(),QColor("#f4f6f8"));r=QRectF(self.width()*.2,self.height()*.25,self.width()*.55,self.height()*.4)
+                p.setPen(QPen(QColor(TEAL),2));p.setBrush(QColor("#dcebe7"));p.drawRect(r)
+                p.setFont(QFont("Segoe UI",11));p.drawText(QRectF(r.left(),r.bottom()+10,r.width(),30),Qt.AlignmentFlag.AlignCenter,f"Width {w:g} mm")
+                p.drawText(20,int(r.center().y()),f"Height {h:g} mm")
+                p.drawText(20,30,"Rectangle sketch · dimension illustration")
+                p.end();return
+        if self.mode=="post" and self.filter_mode=="Clip":
+            boxes=[(lo,(min(hi[0],0),hi[1],hi[2]),name,color) for lo,hi,name,color in boxes if lo[0]<0]
+        elif self.mode=="post" and self.filter_mode=="Slice":
+            boxes=[((-.4,-28,0),(.4,28,48),"Slice plane","#89b9b1")]
+        elif self.mode=="post" and self.filter_mode=="Warp by vector":
+            boxes=[(lo,(hi[0],hi[1],hi[2]+self.field_max*self.deformation_scale*(hi[2]/48)),name,color) for lo,hi,name,color in boxes]
         self.faces=[]
         for lo,hi,name,color in boxes:
             x0,y0,z0=lo; x1,y1,z1=hi
@@ -242,8 +277,8 @@ class EngineeringView(QWidget):
                 self.faces.append((poly,name))
                 fill=QColor(color)
                 if self.mode=="post":
-                    fill=QColor([TEAL,"#81c7b4","#e6c56b"][n])
-                if name==self.selected:
+                    fill=QColor(([TEAL,"#81c7b4","#e6c56b"][n] if self.field_max else "#91b9ce") if self.field_available else "#c5cbd0")
+                if name==self.selected and self.mode!="post":
                     fill=QColor("#9fc5e0")
                 p.setBrush(fill.darker(110) if n==0 else fill)
                 p.setPen(QPen(QColor(BLUE if name==self.selected else "#6f818e"),2 if name==self.selected else 1))
@@ -257,16 +292,24 @@ class EngineeringView(QWidget):
                         p.drawLine(QPointF(i,bounds.top()),QPointF(i+100,bounds.bottom()))
                         p.drawLine(QPointF(i,bounds.top()),QPointF(i-100,bounds.bottom()))
                     p.restore()
+        if self.through_hole and self.mode=="cad":
+            centre=self._project((0,0,self.model_height+6+self.thickness))
+            p.setBrush(QColor("#637986"));p.setPen(QPen(QColor("#34556b"),2));p.drawEllipse(centre,22*self.zoom,11*self.zoom)
+        if self.conditions and self.mode=="cad":
+            point=self._project((0,0,self.model_height+6+self.thickness))
+            p.setPen(QPen(QColor(ORANGE),3));p.drawLine(point+QPointF(0,-65),point+QPointF(0,-10))
+            p.drawLine(point+QPointF(0,-10),point+QPointF(-6,-20));p.drawLine(point+QPointF(0,-10),point+QPointF(6,-20))
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.setPen(QColor(INK))
         p.setFont(QFont("Segoe UI",10))
         p.drawText(18,28,self.field if self.mode=="post" else self.selected)
         p.setPen(QColor("#74818c"))
         p.drawText(QRectF(12,self.height()-28,self.width()-24,20),Qt.AlignmentFlag.AlignLeft,self.label+" · synthetic")
-        if self.mode=="post":
+        if self.annotation:p.drawText(18,52,self.annotation)
+        if self.mode=="post" and self.field_available:
             for i in range(7):
                 p.fillRect(self.width()-68,65+i*25,15,25,QColor.fromHsv(170-i*24,145,205))
-                p.drawText(self.width()-48,78+i*25,f"{.31*(6-i)/6:.2f}")
+                p.drawText(self.width()-48,78+i*25,f"{self.field_max*(6-i)/6:.3g}")
         p.setPen(QPen(QColor("#aa4850"),2)); p.drawLine(45,self.height()-65,85,self.height()-65)
         p.drawText(90,self.height()-61,"X")
         p.setPen(QPen(QColor(TEAL),2)); p.drawLine(45,self.height()-65,45,self.height()-105)
@@ -303,21 +346,26 @@ class EngineeringView(QWidget):
 
 
 class GraphNode(QGraphicsRectItem):
+    """Paint the label in the node itself; no transient child text wrapper."""
     def __init__(self,key,label,x,y,callback):
         super().__init__(0,0,170,58)
-        self.key, self.callback = key, callback
-        self.setPos(x,y)
-        self.setBrush(QColor("#ffffff")); self.setPen(QPen(QColor("#9cb0c0"),1))
+        self.key, self.label, self.callback = key, str(label), callback
+        self.setPos(x,y);self.setBrush(QColor("#ffffff"));self.setPen(QPen(QColor("#9cb0c0"),1))
         self.setFlags(QGraphicsItem.GraphicsItemFlag.ItemIsMovable |
                       QGraphicsItem.GraphicsItemFlag.ItemIsSelectable |
                       QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges)
-        text=QGraphicsTextItem(label,self); text.setDefaultTextColor(QColor(INK)); text.setPos(9,8)
-        text.setFont(QFont("Segoe UI",10)); text.setTextWidth(151)
         self.setToolTip(label)
 
+    def paint(self,painter,option,widget=None):
+        super().paint(painter,option,widget)
+        painter.save();font=QFont();font.setFamilies(["Segoe UI","Malgun Gothic","DejaVu Sans"]);font.setPointSize(10)
+        painter.setFont(font);painter.setPen(QColor(INK))
+        painter.drawText(QRectF(10,5,150,48),Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter,self.label)
+        painter.setPen(QPen(QColor(BLUE),1));painter.setBrush(QColor("#f4f8fc"))
+        painter.drawEllipse(QPointF(0,29),4,4);painter.drawEllipse(QPointF(170,29),4,4);painter.restore()
+
     def itemChange(self,change,value):
-        if change==QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged and self.scene():
-            self.callback()
+        if change==QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged and self.scene():self.callback()
         return super().itemChange(change,value)
 
 
@@ -325,6 +373,8 @@ class NodeView(QGraphicsView):
     chosen = Signal(str)
     opened = Signal(str)
     moved = Signal(dict)
+    edgeChosen = Signal(str,str)
+    portChosen = Signal(str,str)
     def __init__(self,nodes,links,parent=None):
         super().__init__(parent)
         scene=QGraphicsScene(self); self.setScene(scene)
@@ -353,10 +403,30 @@ class NodeView(QGraphicsView):
             path.cubicTo(start+QPointF(distance,0),end-QPointF(distance,0),end)
             edge.setPath(path)
 
+    def set_positions(self,positions):
+        for key,xy in positions.items():
+            if key in self.nodes:self.nodes[key].setPos(float(xy[0]),float(xy[1]))
+        self.redraw()
+
+    def select_node(self,key):
+        self.scene().clearSelection()
+        if key in self.nodes:self.nodes[key].setSelected(True)
+
+    def set_links(self,links):
+        for edge in self.edges:self.scene().removeItem(edge)
+        self.links=list(links);self.edges=[]
+        for a,b in links:
+            edge=QGraphicsPathItem();edge.setPen(QPen(QColor("#91a6b5"),1.7));edge.setZValue(-1)
+            edge.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable,True);edge.setData(0,(a,b))
+            self.scene().addItem(edge);self.edges.append(edge)
+        self.redraw()
+
     def _selection(self):
         for item in self.scene().selectedItems():
             if isinstance(item,GraphNode):
                 self.chosen.emit(item.key); break
+            if isinstance(item,QGraphicsPathItem) and item.data(0):
+                a,b=item.data(0);self.edgeChosen.emit(a,b);break
 
     def mouseDoubleClickEvent(self,event):
         item=self.itemAt(event.position().toPoint())

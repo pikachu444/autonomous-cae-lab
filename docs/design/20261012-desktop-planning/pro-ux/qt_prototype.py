@@ -22,12 +22,13 @@ try:
         QLabel, QComboBox, QPushButton, QToolBar, QFileDialog, QDialog,
         QDialogButtonBox, QMessageBox, QLineEdit, QPlainTextEdit, QFormLayout,
         QDoubleSpinBox, QSpinBox, QCheckBox, QSlider, QListWidget, QListWidgetItem,
-        QAbstractItemView, QMenu, QHeaderView,
+        QAbstractItemView, QMenu, QHeaderView, QStackedWidget,
     )
 except ImportError:
     raise SystemExit("PySide6 is not available in this interpreter. Use the existing Windows Python 3.13 / PySide6 6.9.1 environment. Nothing was installed.")
 
-from prototype_state import ReviewSession, ReviewError, TOOL_NAMES, METHODS, HERE, clone, digest
+from prototype_state import (ReviewSession, ReviewError, TOOL_NAMES, METHODS, HERE, clone, digest,
+                             RESPONSE_ROLES, EVALUATORS, VARIABLE_BINDINGS)
 from qt_widgets import make_table, CurveView, EngineeringView, NodeView, BLUE, TEAL, ORANGE, RED
 
 STYLE = """
@@ -85,6 +86,27 @@ def number(text):
     if not math.isfinite(result):
         raise ValueError("A finite number is required.")
     return result
+
+
+def fill_table(table, rows, editable=()):
+    """Replace rows without treating a refresh as user input."""
+    blocked = table.blockSignals(True)
+    table.setRowCount(len(rows))
+    for r, row in enumerate(rows):
+        for c, value in enumerate(row):
+            item = QTableWidgetItem()
+            item.setData(Qt.ItemDataRole.DisplayRole, "" if value is None else value)
+            if c not in editable:
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            table.setItem(r, c, item)
+    table.blockSignals(blocked)
+
+
+def mark_invalid(item, invalid):
+    table = item.tableWidget()
+    blocked = table.blockSignals(True)
+    item.setBackground(QColor("#fce8e6" if invalid else "white"))
+    table.blockSignals(blocked)
 
 
 class ToolWindow(QMainWindow):
@@ -199,6 +221,7 @@ class ToolWindow(QMainWindow):
         self.redo_action.setText("Redo " + (doc["redo"][-1]["label"] if doc["redo"] else ""))
 
     def save(self, force_path=False):
+        self.flush_editor()
         path = self.document["file"]
         if force_path or not path:
             chosen, _ = QFileDialog.getSaveFileName(self, "Save " + self.document["name"],
@@ -210,6 +233,14 @@ class ToolWindow(QMainWindow):
         self.session.save_document(self.key, path)
         self.update_title("Saved")
         return True
+
+    def flush_editor(self):
+        focus = QApplication.focusWidget()
+        if focus and focus.window() is self:
+            focus.clearFocus()
+
+    def raw(self, locator, value):
+        return self.document["buffers"].get(locator, value)
 
     def open_file(self):
         path,_ = QFileDialog.getOpenFileName(self,"Open review document or session",
@@ -278,7 +309,7 @@ class ToolWindow(QMainWindow):
         except ValueError:
             doc["buffers"][locator]=text
             doc["dirty"]=True
-            item.setBackground(QColor("#fce8e6"))
+            mark_invalid(item, True)
             self.update_title("Invalid input retained: "+locator)
             return
         doc["buffers"].pop(locator,None)
@@ -288,10 +319,14 @@ class ToolWindow(QMainWindow):
         else:
             payload[field]=value
         self.session.change(self.key,payload,"Edit "+locator)
-        item.setBackground(QColor("white"))
+        mark_invalid(item, False)
         self.update_title()
 
     def submit_review(self):
+        self.flush_editor()
+        if self.session.diagnostics(self.key):
+            self.input_diagnostics()
+            return
         frozen=self.session.freeze(self.key)
         dialog=QDialog(self); dialog.setWindowTitle("Review frozen input"); dialog.resize(700,470)
         layout=QVBoxLayout(dialog)
@@ -310,6 +345,43 @@ class ToolWindow(QMainWindow):
             job=self.session.create_attempt(frozen["id"])
             self.session.selected["job"]=job["id"]
             self.hub.open("runner").refresh()
+
+    def input_diagnostics(self):
+        errors=self.session.diagnostics(self.key)
+        if not errors:
+            self.update_title("Required inputs checked")
+            return True
+        dialog=QDialog(self);dialog.setWindowTitle("Check input");dialog.resize(800,370)
+        layout=QVBoxLayout(dialog);table=make_table(["Location","Correction"],errors)
+        layout.addWidget(table)
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        edit=buttons.addButton("Edit selected",QDialogButtonBox.ButtonRole.AcceptRole)
+        edit.clicked.connect(dialog.accept);buttons.rejected.connect(dialog.reject);layout.addWidget(buttons)
+        table.selectRow(0)
+        if dialog.exec()==QDialog.DialogCode.Accepted:
+            row=max(0,table.currentRow());field=errors[row][0]
+            self.focus_problem(field)
+        self.update_title("Correct required inputs before freeze")
+        return False
+
+    def focus_problem(self,field):
+        if self.document["owner"]=="native_pre":
+            mode="Contact" if "contact" in field else "Mesh" if "mesh" in field else "Features"
+            self.mode.setCurrentText(mode)
+            if field in ("thickness","width","height"):
+                self.props.setCurrentCell(("thickness","width","height").index(field),1);self.props.setFocus()
+        elif self.document["owner"]=="Numerical":
+            if field=="evaluator":self.evaluator.setFocus()
+            else:
+                index=1 if field=="responses" or any(r["name"]==field for r in self.data["responses"]) else 0
+                self.top_tabs.setCurrentIndex(index)
+                table=self.responses if index else self.variables
+                table.setFocus()
+        elif self.document["owner"]=="Simulation" and field in self.numeric_fields:
+            self.table.setCurrentCell(self.numeric_fields.index(field),1);self.table.setFocus()
+        elif self.document["owner"]=="PDE":
+            self.equation.setFocus()
+        elif self.document["owner"]=="Material":self.coeff.setFocus()
 
     def closeEvent(self,event):
         if self.document["dirty"]:
@@ -337,73 +409,159 @@ class ToolWindow(QMainWindow):
 
 class CADWindow(ToolWindow):
     def build(self):
-        self.mode=QComboBox()
-        self.mode.addItems(["Sketch","Features","Assembly","Motion","Mesh","Conditions","Contact"])
-        self.mode.setCurrentText("Contact")
-        self.toolbar.addWidget(self.mode)
+        self.action(self.toolbar,"Create…",self.create_geometry)
+        self.action(self.toolbar,"Import…",self.import_geometry)
+        self.mode=QComboBox();self.mode.addItems(["Sketch","Features","Assembly","Motion","Mesh","Conditions","Contact"])
+        self.mode.setCurrentText("Contact");self.toolbar.addWidget(self.mode)
         self.action(self.toolbar,"Check",self.check)
         self.action(self.toolbar,"Freeze input…",self.submit_review)
-        self.action(self.toolbar,"Simulation",lambda:self.hub.open("simulation"))
-        self.viewer=EngineeringView("cad")
-        self.setCentralWidget(self.viewer)
-        self.tree=QTreeWidget(); self.tree.setHeaderHidden(True)
-        root=QTreeWidgetItem(self.tree,["Clamp fixture"])
-        for name in ["Base","Clamp","Sketch","Pad","Assembly","Revolute joint","Mesh","Analysis","Contact pair"]:
-            QTreeWidgetItem(root,[name])
-        self.tree.expandAll()
-        self.props=make_table(["Property","Value","Unit"],[
-            ["Thickness",self.data["thickness"],"mm"],["Width",self.data["width"],"mm"],
-            ["Height",self.data["height"],"mm"]],editable=(1,),select_rows=False)
-        self.props.itemChanged.connect(self.property_changed)
-        combo=QTabWidget()
-        combo.addTab(self.tree,"Model"); combo.addTab(self.tasks(),"Tasks")
-        split=QSplitter(Qt.Orientation.Vertical); split.addWidget(combo); split.addWidget(self.props)
-        split.setSizes([450,250])
-        dock=self.add_dock("Combo View",split,minimum=290)
-        self.resizeDocks([dock],[330],Qt.Orientation.Horizontal)
+        self.action(self.toolbar,"Use in Simulation",self.to_simulation)
+        self.viewer=EngineeringView("cad");self.setCentralWidget(self.viewer)
+        self.tree=QTreeWidget();self.tree.setHeaderHidden(True)
+        self.tree.itemSelectionChanged.connect(self.tree_selected)
+        self.props=make_table(["Property","Value","Unit"],[],editable=(1,),select_rows=False)
+        self.props.setObjectName("cadDimensions");self.props.itemChanged.connect(self.property_changed)
+        self.task_pages=QStackedWidget()
+        self.face_name=QLineEdit("Clamp/Pad/Face6");self.face_name.setReadOnly(True)
+        self.constraints=make_table(["Constraint","Value","Unit"],[],editable=(1,),select_rows=False)
+        self.constraints.itemChanged.connect(self.constraint_changed)
+        self.task_pages.addWidget(box(QLabel("Rectangle sketch"),self.constraints,
+            button("Constrain rectangle",self.constrain_sketch),margins=7))
+        self.hole=QCheckBox("Through hole");self.hole.toggled.connect(self.hole_changed)
+        self.task_pages.addWidget(box(QLabel("Pad / pocket"),self.props,self.hole,
+            button("Edit sketch",lambda:self.mode.setCurrentText("Sketch")),margins=7))
+        self.instances=QSpinBox();self.instances.setRange(1,4);self.instances.valueChanged.connect(self.assembly_changed)
+        self.joint=QComboBox();self.joint.addItems(["Fixed","Revolute","Slider"]);self.joint.currentTextChanged.connect(self.assembly_changed)
+        form=QFormLayout();form.addRow("Instances",self.instances);form.addRow("Joint",self.joint)
+        fw=QWidget();fw.setLayout(form);self.task_pages.addWidget(box(fw,margins=7))
+        self.angle=QDoubleSpinBox();self.angle.setRange(-180,180);self.angle.setSuffix(" deg");self.angle.valueChanged.connect(self.preview_pose)
+        self.task_pages.addWidget(box(QLabel("Joint motion"),self.angle,button("Use pose",self.use_pose),margins=7))
+        self.mesh_size=QDoubleSpinBox();self.mesh_size.setRange(.05,50);self.mesh_size.setSuffix(" mm");self.mesh_size.valueChanged.connect(self.mesh_changed)
+        self.task_pages.addWidget(box(QLabel("Element size"),self.mesh_size,
+            button("Preview mesh",self.rebuild_mesh),button("Inspect poor elements",lambda:self.quality_dock.show()),margins=7))
+        self.conditions=make_table(["Condition","Face","Value","Unit"],[])
+        self.conditions.itemSelectionChanged.connect(self.condition_selected)
+        self.task_pages.addWidget(box(QLabel("Loads and constraints"),self.conditions,
+            box(button("Add…",self.condition_dialog),button("Edit…",lambda:self.condition_dialog(True)),
+                button("Remove",self.remove_condition),horizontal=True),margins=7))
+        self.face_set=QComboBox();self.face_set.addItems(["Set A","Set B"])
+        self.contact_table=make_table(["Set","Face"],[])
+        self.law=QComboBox();self.law.addItems(["Frictionless","Coulomb","Tie","Cohesive"])
+        self.law.currentTextChanged.connect(lambda v:self.change_contact("law",v))
+        self.mu=QDoubleSpinBox();self.mu.setRange(0,10);self.mu.setDecimals(3);self.mu.valueChanged.connect(lambda v:self.change_contact("mu",v))
+        self.gap=QDoubleSpinBox();self.gap.setRange(-10,10);self.gap.setDecimals(3);self.gap.setSuffix(" mm");self.gap.valueChanged.connect(lambda v:self.change_contact("gap",v))
+        form=QFormLayout();form.addRow("Law",self.law);form.addRow("Friction",self.mu);form.addRow("Initial gap",self.gap)
+        fw=QWidget();fw.setLayout(form)
+        self.task_pages.addWidget(box(self.contact_table,
+            box(self.face_set,button("Add face",self.add_face),button("Remove",self.remove_face),horizontal=True),fw,
+            button("Rebind…",lambda:self.guard(self.rebind)),margins=7))
+        self.combo=QTabWidget();self.combo.addTab(self.tree,"Model")
+        self.combo.addTab(box(self.face_name,self.task_pages),"Tasks");self.combo.setCurrentIndex(1)
+        dock=self.add_dock("Combo View",self.combo,minimum=320);self.resizeDocks([dock],[370],Qt.Orientation.Horizontal)
         self.quality=make_table(["Element","Quality","Limit","State"],
             [[314,.19,.25,"Review"],[829,.22,.25,"Review"],[1204,.72,.25,"Within fixture limit"]])
-        self.quality_dock=self.add_dock("Mesh quality",self.quality,Qt.DockWidgetArea.BottomDockWidgetArea)
-        self.quality_dock.hide()
-        self.mode.currentTextChanged.connect(lambda mode:self.quality_dock.setVisible(mode=="Mesh"))
-        self.viewer.faceSelected.connect(lambda name:self.face_name.setText(name))
-        self.tree.itemSelectionChanged.connect(self.tree_selected)
+        self.quality.itemSelectionChanged.connect(self.quality_selected)
+        self.quality_dock=self.add_dock("Mesh quality",self.quality,Qt.DockWidgetArea.BottomDockWidgetArea);self.quality_dock.hide()
+        self.mode.currentTextChanged.connect(self.mode_changed)
+        self.viewer.faceSelected.connect(self.face_name.setText)
         self.action(self.review_menu,"Geometry change / unresolved contact",self.break_contact)
         self.action(self.review_menu,"Review contact rebind…",self.rebind)
         self.action(self.review_menu,"Review rebuilt mesh",self.rebuild_mesh)
-        self.viewer.thickness=self.data["thickness"]
+        self.refresh();self.mode_changed("Contact")
 
-    def tasks(self):
-        self.face_name=QLineEdit("Clamp/Pad/Face6"); self.face_name.setReadOnly(True)
-        self.face_set=QComboBox(); self.face_set.addItems(["Set A","Set B"])
-        self.contact_table=make_table(["Contact set","Native face"],[
-            ["A",v] for v in self.data["contact"]["set_a"]]+[["B",v] for v in self.data["contact"]["set_b"]])
-        self.contact_table.setMinimumHeight(150)
-        law=QComboBox(); law.addItems(["Frictionless","Coulomb","Tie","Cohesive"])
-        law.setCurrentText(self.data["contact"]["law"])
-        law.currentTextChanged.connect(lambda value:self.change_contact("law",value))
-        mu=QDoubleSpinBox(); mu.setRange(0,10); mu.setDecimals(3); mu.setValue(self.data["contact"]["mu"])
-        mu.valueChanged.connect(lambda value:self.change_contact("mu",value))
-        gap=QDoubleSpinBox(); gap.setRange(-10,10); gap.setDecimals(3); gap.setSuffix(" mm"); gap.setValue(.2)
-        gap.valueChanged.connect(lambda value:self.change_contact("gap",value))
-        angle=QDoubleSpinBox(); angle.setRange(-180,180); angle.setSuffix(" deg"); angle.setValue(15)
-        angle.valueChanged.connect(lambda value:self.preview_pose(value))
-        form=QFormLayout()
-        form.addRow("Law",law); form.addRow("Friction",mu); form.addRow("Initial gap",gap)
-        form.addRow("Motion preview",angle)
-        form_w=QWidget(); form_w.setLayout(form)
-        return box(QLabel("Selected face"),self.face_name,
-                   box(self.face_set,button("Add",self.add_face),button("Remove",self.remove_face),horizontal=True),
-                   self.contact_table,form_w,
-                   box(button("Use pose",self.use_pose),button("Rebind…",lambda:self.guard(self.rebind)),horizontal=True),
-                   margins=7)
+    def mode_changed(self,mode):
+        self.task_pages.setCurrentIndex(self.mode.findText(mode));self.combo.setCurrentIndex(1)
+        self.quality_dock.setVisible(mode=="Mesh");self.viewer.sketch=mode=="Sketch"
+        self.viewer.mesh=mode=="Mesh";self.viewer.update()
+
+    def create_geometry(self):
+        dialog=QDialog(self);dialog.setWindowTitle("Create geometry");form=QFormLayout(dialog)
+        shape=QComboBox();shape.addItems(["Clamp","Plate","Block"])
+        fields={}
+        for key,value in (("Width",72),("Height",28),("Thickness",14)):
+            spin=QDoubleSpinBox();spin.setRange(.1,1000);spin.setValue(value);spin.setSuffix(" mm");fields[key]=spin
+        form.addRow("Shape",shape)
+        for key,widget in fields.items():form.addRow(key,widget)
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);form.addRow(buttons)
+        if dialog.exec()==QDialog.DialogCode.Accepted:
+            payload=clone(self.data);payload["geometry_type"]=shape.currentText()
+            for key,widget in fields.items():payload[key.lower()]=widget.value()
+            payload["geometry_origin"]="Created in review";payload["sketch"]["fully_constrained"]=False
+            payload["contact"]["resolved"]=False;payload["mesh"]["stale"]=True
+            self.session.change(self.key,payload,"Create geometry");self.refresh();self.mode.setCurrentText("Sketch")
+
+    def import_geometry(self):
+        path,_=QFileDialog.getOpenFileName(self,"Select native geometry","","Geometry (*.FCStd *.step *.stp *.iges *.igs);;All files (*)")
+        if path:
+            self.session.edit(self.key,"import_proposal",{"path":path,"reader":"FreeCAD","status":"NOT_LOADED"})
+            self.update_title(Path(path).name+" selected; native import is not connected")
 
     def property_changed(self,item):
         if self._building or item.column()!=1:return
-        self.edit_number(["thickness","width","height"][item.row()],item)
-        if isinstance(self.data["thickness"],(int,float)):
-            self.viewer.thickness=self.data["thickness"];self.viewer.update()
-        self.data["mesh"]["stale"]=True
+        self.edit_number(["thickness","width","height"][item.row()],item);self.update_view()
+
+    def constraint_changed(self,item):
+        if self._building or item.column()!=1:return
+        self.edit_number(["width","height"][item.row()],item)
+        self.session.edit(self.key,"sketch",{"length_constraint":str(self.data["width"]),"fully_constrained":False});self.update_view()
+
+    def constrain_sketch(self):
+        if any(self.data[k]<=0 for k in ("width","height")):raise ReviewError("Use positive rectangle dimensions.")
+        self.session.edit(self.key,"sketch",{"length_constraint":str(self.data["width"]),"fully_constrained":True})
+        self.update_title("Rectangle dimensions assigned in illustration; native constraint solve pending")
+
+    def hole_changed(self,value):
+        if not self._building:
+            payload=clone(self.data);payload["through_hole"]=value;payload["mesh"]["stale"]=True
+            self.session.change(self.key,payload,"Edit through hole");self.update_view();self.update_title()
+
+    def assembly_changed(self,*args):
+        if self._building:return
+        payload=clone(self.data);payload["instances"]=self.instances.value();payload["joint"]["type"]=self.joint.currentText()
+        self.session.change(self.key,payload,"Edit assembly");self.update_view();self.update_title()
+
+    def mesh_changed(self,value):
+        if self._building:return
+        payload=clone(self.data);payload["mesh"].update(size=value,stale=True)
+        self.session.change(self.key,payload,"Edit mesh size");self.update_title()
+
+    def condition_dialog(self,editing=False):
+        row=self.conditions.currentRow();old=self.data.get("conditions",[])
+        if editing and row<0:return
+        source=old[row] if editing else {"type":"Force","face":self.face_name.text(),"axis":"Z","value":-250,"unit":"N"}
+        dialog=QDialog(self);dialog.setWindowTitle("Condition");form=QFormLayout(dialog)
+        kind=QComboBox();kind.addItems(["Fixed support","Force","Displacement","Pressure","Temperature"]);kind.setCurrentText(source["type"])
+        face=QLineEdit(source["face"]);axis=QComboBox();axis.addItems(["All","X","Y","Z","Normal"]);axis.setCurrentText(source["axis"])
+        value=QLineEdit(str(source["value"]));unit=QLabel(source["unit"])
+        units={"Fixed support":"mm","Force":"N","Displacement":"mm","Pressure":"MPa","Temperature":"K"}
+        kind.currentTextChanged.connect(lambda k:unit.setText(units[k]))
+        for label,w in (("Type",kind),("Selected face",face),("Direction",axis),("Value",value),("Unit",unit)):form.addRow(label,w)
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);form.addRow(buttons)
+        if dialog.exec()==QDialog.DialogCode.Accepted:
+            if not face.text().strip():raise ReviewError("Select a face for the condition.")
+            item={"type":kind.currentText(),"face":face.text(),"axis":axis.currentText(),"value":number(value.text()),"unit":unit.text()}
+            payload=clone(self.data);items=payload.setdefault("conditions",[])
+            if editing:items[row]=item
+            else:items.append(item)
+            self.session.change(self.key,payload,"Edit boundary condition");self.refresh()
+
+    def remove_condition(self):
+        row=self.conditions.currentRow()
+        if row>=0:
+            payload=clone(self.data);payload["conditions"].pop(row)
+            self.session.change(self.key,payload,"Remove boundary condition");self.refresh()
+
+    def condition_selected(self):
+        row=self.conditions.currentRow()
+        if row>=0:
+            self.viewer.set_selected(self.data["conditions"][row]["face"])
+            self.viewer.annotation=self.data["conditions"][row]["type"];self.viewer.update()
+
+    def quality_selected(self):
+        row=self.quality.currentRow()
+        if row>=0:self.viewer.annotation="Element "+self.quality.item(row,0).text();self.viewer.update()
 
     def change_contact(self,field,value):
         if self._building:return
@@ -417,21 +575,21 @@ class CADWindow(ToolWindow):
             self.session.change(self.key,payload,"Add contact face");self.refresh()
 
     def remove_face(self):
-        r=self.contact_table.currentRow()
-        if r<0:return
-        side=self.contact_table.item(r,0).text();name=self.contact_table.item(r,1).text()
+        row=self.contact_table.currentRow()
+        if row<0:return
+        side=self.contact_table.item(row,0).text();name=self.contact_table.item(row,1).text()
         payload=clone(self.data);payload["contact"]["set_a" if side=="A" else "set_b"].remove(name)
         self.session.change(self.key,payload,"Remove contact face");self.refresh()
 
     def tree_selected(self):
         item=self.tree.currentItem()
-        if item:
-            name="Base/Face2" if item.text(0)=="Base" else "Clamp/Pad/Face6"
-            self.viewer.set_selected(name);self.face_name.setText(name)
+        if not item:return
+        if item.text(0) in [self.mode.itemText(i) for i in range(self.mode.count())]:self.mode.setCurrentText(item.text(0))
+        name="Base/Face2" if item.text(0)=="Base" else "Clamp/Pad/Face6"
+        self.viewer.set_selected(name);self.face_name.setText(name)
 
     def preview_pose(self,value):
-        self.pose_preview=value
-        self.viewer.yaw=-.52+math.radians(value-15);self.viewer.update()
+        self.pose_preview=value;self.viewer.yaw=-.52+math.radians(value-15);self.viewer.update()
 
     def use_pose(self):
         payload=clone(self.data);payload["joint"]["angle"]=getattr(self,"pose_preview",15)
@@ -445,41 +603,49 @@ class CADWindow(ToolWindow):
         dialog=QDialog(self);dialog.setWindowTitle("Rebind contact faces");dialog.resize(820,360)
         layout=QVBoxLayout(dialog)
         layout.addWidget(make_table(["Old face","Proposed face","Area [mm²]","Normal dot"],[
-            ["Clamp/Pad/Face6","Clamp/Pad/Face8 + Face9","320 → 319.8",1],
-            ["Base/Face2","Base/Face2","336 → 336",-1]]))
-        confirm=QCheckBox("I reviewed both new faces and the reversed normal")
-        layout.addWidget(confirm)
+            ["Clamp/Pad/Face6","Clamp/Pad/Face8 + Face9","320 → 319.8",1],["Base/Face2","Base/Face2","336 → 336",-1]]))
+        confirm=QCheckBox("I reviewed both new faces and the reversed normal");layout.addWidget(confirm)
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel)
         apply=buttons.addButton("Apply selected",QDialogButtonBox.ButtonRole.AcceptRole);apply.setEnabled(False)
-        confirm.toggled.connect(apply.setEnabled);apply.clicked.connect(dialog.accept);buttons.rejected.connect(dialog.reject)
-        layout.addWidget(buttons)
+        confirm.toggled.connect(apply.setEnabled);apply.clicked.connect(dialog.accept);buttons.rejected.connect(dialog.reject);layout.addWidget(buttons)
         if dialog.exec()==QDialog.DialogCode.Accepted:
             payload=clone(self.data);payload["contact"].update(set_a=["Clamp/Pad/Face8","Clamp/Pad/Face9"],resolved=True)
-            payload["mesh"]["stale"]=True
-            self.session.change(self.key,payload,"Rebind selected contact faces");self.refresh()
-            self.update_title("Contact rebound. Review rebuilt mesh before freeze.")
+            payload["mesh"]["stale"]=True;self.session.change(self.key,payload,"Rebind selected contact faces");self.refresh()
+            self.update_title("Contact rebound. Preview the rebuilt mesh before freeze.")
 
     def rebuild_mesh(self):
-        payload=clone(self.data);payload["mesh"]["stale"]=False
-        payload["mesh"]["reviewed"]=True
+        payload=clone(self.data);payload["mesh"].update(stale=False,reviewed=True)
         self.session.change(self.key,payload,"Review rebuilt mesh fixture")
-        self.viewer.mesh=True;self.viewer.update();self.update_title("Synthetic mesh state reviewed")
+        self.viewer.mesh=True;self.viewer.update();self.update_title("Synthetic mesh preview; native mesher not executed")
 
     def check(self):
         errors=self.session.diagnostics(self.key)
-        if errors: raise ReviewError("\n".join(field+": "+msg for field,msg in errors))
-        self.update_title("Input syntax checked in prototype; native validation remains unverified")
+        if errors:raise ReviewError("\n".join(field+": "+msg for field,msg in errors))
+        self.update_title("Required input checked; native validation remains pending")
+
+    def to_simulation(self):
+        self.flush_editor();self.check()
+        if self.document["dirty"]:raise ReviewError("Save the edited geometry before using it in Simulation.")
+        self.session.edit("simulation","model_ref",{"id":self.document["id"],"revision":self.document["revision"]})
+        self.hub.open("simulation").refresh()
+
+    def update_view(self):
+        for key in ("thickness","width","height","geometry_type","instances","through_hole"):
+            setattr(self.viewer,{"width":"model_width","height":"model_height"}.get(key,key),self.data.get(key,{"geometry_type":"Clamp","instances":2,"through_hole":False}.get(key)))
+        self.viewer.conditions=self.data.get("conditions",[]);self.viewer.update()
 
     def refresh(self):
-        self._building=True
-        for i,field in enumerate(("thickness","width","height")):
-            self.props.item(i,1).setText(str(self.data[field]))
-        rows=[["A",v] for v in self.data["contact"]["set_a"]]+[["B",v] for v in self.data["contact"]["set_b"]]
-        self.contact_table.setRowCount(len(rows))
-        for i,row in enumerate(rows):
-            for j,value in enumerate(row):self.contact_table.setItem(i,j,QTableWidgetItem(value))
-        self.viewer.thickness=self.data["thickness"];self.viewer.update()
-        self._building=False;self.update_title()
+        was=self._building;self._building=True
+        fill_table(self.props,[[key.title(),self.raw(key,self.data[key]),"mm"] for key in ("thickness","width","height")],(1,))
+        fill_table(self.constraints,[[key.title(),self.raw(key,self.data[key]),"mm"] for key in ("width","height")],(1,))
+        fill_table(self.contact_table,[["A",v] for v in self.data["contact"]["set_a"]]+[["B",v] for v in self.data["contact"]["set_b"]])
+        fill_table(self.conditions,[[c["type"],c["face"],c["value"],c["unit"]] for c in self.data.get("conditions",[])])
+        self.law.setCurrentText(self.data["contact"]["law"]);self.mu.setValue(self.data["contact"]["mu"]);self.gap.setValue(self.data["contact"]["gap"])
+        self.instances.setValue(self.data.get("instances",2));self.joint.setCurrentText(self.data["joint"]["type"])
+        self.angle.setValue(self.data["joint"]["angle"]);self.mesh_size.setValue(self.data["mesh"]["size"]);self.hole.setChecked(self.data.get("through_hole",False))
+        self.tree.clear();root=QTreeWidgetItem(self.tree,[self.document["name"]])
+        for name in ("Base",self.data.get("geometry_type","Clamp"),"Sketch","Features","Assembly","Motion","Mesh","Conditions","Contact"):QTreeWidgetItem(root,[name])
+        self.tree.expandAll();self.update_view();self._building=was;self.update_title()
 
 
 class SimulationWindow(ToolWindow):
@@ -550,7 +716,7 @@ class SimulationWindow(ToolWindow):
 
     def refresh(self):
         self._building=True
-        for i,key in enumerate(self.numeric_fields):self.table.item(i,1).setText(str(self.data[key]))
+        for i,key in enumerate(self.numeric_fields):self.table.item(i,1).setText(str(self.raw(key,self.data[key])))
         if hasattr(self,"family"):self.family.setCurrentText(self.data["family"])
         self._building=False;self.update_title()
 
@@ -851,133 +1017,197 @@ class PDEWindow(ToolWindow):
         self._building=False;self.update_title()
 
 
+METHOD_INPUTS = {
+    "DOE": [("Sampling","Latin hypercube"),("Design points",20),("Replicates",1)],
+    "Inverse": [("Algorithm","Least squares"),("Loss","Huber"),("Residual scale",1.0),("Observation weight",1.0),("Holdout","Tension B")],
+    "Optimization": [("Algorithm","Differential evolution"),("Population",15),("Relative tolerance",1e-6)],
+    "Sobol sensitivity": [("Design","Saltelli A/B/crossed"),("Base samples",128),("Bootstrap replicates",200),("Input dependence","Independent")],
+    "UQ": [("Sampling","Monte Carlo"),("Samples",1000),("Quantiles","0.05, 0.50, 0.95"),("Failure threshold",.35)],
+    "RBF surrogate": [("Kernel","Thin plate spline"),("Smoothing",0.0),("Holdout fraction",.2),("Extrapolation","Block outside support")],
+    "MOO": [("Method","Epsilon constraint"),("Primary objective","Mass"),("Error thresholds [%]","2.0, 2.5, 3.0, 4.0"),("Feasibility tolerance",1e-6)],
+    "MDO": [("Architecture","Existing Evaluation"),("Coupling","Lagged Picard"),("Iteration limit",25),("Coupling tolerance",1e-6)],
+}
+
+
 class NumericalWindow(ToolWindow):
     def build(self):
-        self.method=QComboBox();self.method.addItems(list(METHODS));self.method.setCurrentText(self.data["method"])
-        self.toolbar.addWidget(self.method);self.method.currentTextChanged.connect(self.method_changed)
-        self.action(self.toolbar,"Refresh observations…",self.refresh_observations)
+        self.method=QComboBox();self.method.addItems(list(METHODS));self.toolbar.addWidget(self.method)
+        self.method.currentTextChanged.connect(self.method_changed)
+        self.action(self.toolbar,"Check",self.input_diagnostics)
         self.action(self.toolbar,"Freeze input…",self.submit_review)
         self.action(self.toolbar,"Review candidate…",self.inspect_candidate)
-        self.action(self.toolbar,"Apply to owners…",self.adopt)
+        self.adopt_action=self.action(self.toolbar,"Apply to owners…",self.adopt)
+        self.action(self.review_menu,"Refresh saved observations…",self.refresh_observations)
         self.tree=QTreeWidget();self.tree.setHeaderHidden(True)
         root=QTreeWidgetItem(self.tree,[self.document["name"]])
-        for name in ("Definition","Variables","Responses","Methods","Candidates","Comparisons","Adoption receipts"):
-            QTreeWidgetItem(root,[name])
-        self.tree.expandAll();self.add_dock("Study",self.tree,minimum=210)
-        self.variables=make_table(["Owner","Variable","Start","Lower","Upper","Unit","Free"],[
-            [v["owner"],v["field"],v["start"],v["lower"],v["upper"],v["unit"],"Yes" if v["free"] else "No"]
-            for v in self.data["variables"]],editable=(2,3,4,6),select_rows=False)
-        self.variables.setObjectName("numericalVariables")
-        self.variables.itemChanged.connect(self.variable_changed)
-        self.responses=make_table(["Response","Role","Limit","Unit"],
-            [[r["name"],r["role"],r["limit"],r["unit"]] for r in self.data["responses"]],
-            editable=(0,1,2,3),select_rows=False)
-        self.responses.itemChanged.connect(self.response_changed)
-        self.method_table=make_table(["Setting","Value"],[
-            ["Budget",self.data["budget"]],["Seed",self.data["seed"]],["Failure policy",self.data["failure_policy"]]],
-            editable=(1,),select_rows=False)
+        for name in ("Definition","Variables","Responses","Method","Candidates","Comparisons","Saved selections"):QTreeWidgetItem(root,[name])
+        self.tree.expandAll();self.add_dock("Study",self.tree,minimum=190)
+        self.evaluator=QComboBox();self.evaluator.addItems(EVALUATORS)
+        self.evaluator.currentTextChanged.connect(self.evaluator_changed)
+        self.variables=make_table(["Owner","Variable","Start","Lower","Upper","Unit","Free"],[],editable=(2,3,4,6),select_rows=False)
+        self.variables.setObjectName("numericalVariables");self.variables.itemChanged.connect(self.variable_changed)
+        self.responses=make_table(["Quantity","Role","Limit","Unit","Location","Time [s]","Reduction"],[],editable=(0,1,2,3,4,5,6),select_rows=False)
+        self.responses.setObjectName("numericalResponses");self.responses.itemChanged.connect(self.response_changed)
+        self.method_table=make_table(["Setting","Value"],[],editable=(1,),select_rows=False)
         self.method_table.itemChanged.connect(self.method_setting_changed)
-        self.top_tabs=QTabWidget();self.top_tabs.addTab(self.variables,"Variables")
-        self.top_tabs.addTab(self.responses,"Responses");self.top_tabs.addTab(self.method_table,"Method")
-        self.top_tabs.setMinimumHeight(210)
-        self.cases=make_table(["Candidate","Mass [kg]","Gauge error [%]","Disp. [mm]","Clearance [mm]","Status"],[])
+        self.method_detail=make_table(["Input","Definition","Use"],[],editable=(1,2),select_rows=False)
+        self.method_detail.itemChanged.connect(self.detail_changed)
+        self.top_tabs=QTabWidget()
+        self.top_tabs.addTab(box(self.variables,box(button("Add variable…",self.add_variable),button("Remove",lambda:self.remove_definition("variables")),horizontal=True)),"Variables")
+        self.top_tabs.addTab(box(self.responses,box(button("Add response…",self.add_response),button("Remove",lambda:self.remove_definition("responses")),horizontal=True)),"Responses")
+        self.top_tabs.addTab(self.method_table,"Method")
+        self.top_tabs.addTab(self.method_detail,"Method inputs")
+        self.cases=make_table(["Candidate","Mass [kg]","Error [%]","Disp. [mm]","Clearance [mm]","Status"],[])
         self.cases.setObjectName("candidateTable");self.cases.itemSelectionChanged.connect(self.candidate_changed)
         self.cases.itemDoubleClicked.connect(lambda item:self.guard(self.inspect_candidate))
-        left=QSplitter(Qt.Orientation.Vertical);left.addWidget(self.top_tabs);left.addWidget(self.cases);left.setSizes([280,420])
-        self.plot=CurveView(xlabel="Mass [kg]",ylabel="Gauge error [%]")
-        self.plot.samplesSelected.connect(self.plot_selected)
-        self.plot_tabs=QTabWidget();self.plot_tabs.addTab(self.plot,"Pareto front")
-        self.curve=CurveView(xlabel="Time [s]",ylabel="Gauge displacement [mm]");self.plot_tabs.addTab(self.curve,"Selected candidate")
-        self.method_view=make_table(["Analysis","Evidence","Status"],[])
-        self.plot_tabs.addTab(self.method_view,"Method evidence")
-        self.summary=make_table(["Selected response","Value","Limit"],
-            [["Candidate","p19",""],["Displacement",.31,"≤ 0.35 mm"],["Clearance",.12,"≥ 0.10 mm"]])
-        self.summary.setMaximumHeight(150)
+        self.case_title=QLabel("Retained MOO example")
+        self.case_panel=box(self.case_title,self.cases)
+        left=QSplitter(Qt.Orientation.Vertical);left.addWidget(self.top_tabs);left.addWidget(self.case_panel);left.setSizes([360,350])
+        self.plot=CurveView(xlabel="Mass [kg]",ylabel="Gauge error [%]");self.plot.samplesSelected.connect(self.plot_selected)
+        self.curve=CurveView(xlabel="Time [s]",ylabel="Gauge displacement [mm]")
+        self.plot_tabs=QTabWidget();self.plot_tabs.addTab(self.plot,"Pareto front");self.plot_tabs.addTab(self.curve,"Selected candidate")
+        self.method_view=make_table(["Output","Value","State"],[]);self.plot_tabs.addTab(self.method_view,"Analysis")
+        self.summary=make_table(["Response","Selected","Limit"],[["Candidate","p19",""],["Displacement",.31,"≤ 0.35 mm"],["Clearance",.12,"≥ 0.10 mm"]])
+        self.summary.setMaximumHeight(145)
         right=box(self.plot_tabs,self.summary)
-        split=QSplitter();split.addWidget(left);split.addWidget(right);split.setSizes([750,475])
-        self.setCentralWidget(split)
-        self.tree.itemSelectionChanged.connect(self.tree_changed)
-        self.refresh()
+        split=QSplitter();split.addWidget(left);split.addWidget(right);split.setSizes([720,470])
+        self.setCentralWidget(box(box(QLabel("Evaluator"),self.evaluator,button("Open definition",self.open_evaluator),horizontal=True),split,margins=6))
+        self.tree.itemSelectionChanged.connect(self.tree_changed);self.refresh();QTimer.singleShot(0,self.candidate_changed)
+
+    def evaluator_changed(self,value):
+        if self._building:return
+        self.session.edit(self.key,"evaluator",value);self.update_title()
+
+    def open_evaluator(self):
+        target={"Clamp / material response":"simulation","Structural Simulation":"simulation","Material response":"material","PDE response":"pde","Thermal expansion Evaluation":"evaluation"}.get(self.evaluator.currentText())
+        if not target:raise ReviewError("Select an evaluator first.")
+        self.hub.open(target)
+
+    def add_variable(self):
+        dialog=QDialog(self);dialog.setWindowTitle("Bind variable");form=QFormLayout(dialog)
+        owner=QComboBox();owner.addItems(list(VARIABLE_BINDINGS));field=QComboBox();unit=QLabel()
+        start=QLineEdit();lower=QLineEdit();upper=QLineEdit()
+        def update_field(*args):
+            key=owner.currentText();fields=VARIABLE_BINDINGS[key];field.blockSignals(True);field.clear();field.addItems(fields);field.blockSignals(False);update_value()
+        def update_value(*args):
+            key=owner.currentText();name=field.currentText()
+            if not name:return
+            value=self.session.doc(key)["draft"][name];unit.setText(VARIABLE_BINDINGS[key][name]);start.setText(str(value))
+            values=sorted((value*.8,value*1.2));lower.setText(str(values[0] if value else -1));upper.setText(str(values[1] if value else 1))
+        owner.currentTextChanged.connect(update_field);field.currentTextChanged.connect(update_value);update_field()
+        for label,w in (("Owner",owner),("Field",field),("Unit",unit),("Start",start),("Search lower",lower),("Search upper",upper)):form.addRow(label,w)
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);form.addRow(buttons)
+        if dialog.exec()==QDialog.DialogCode.Accepted:
+            payload=clone(self.data)
+            if any(v["owner"]==owner.currentText() and v["field"]==field.currentText() for v in payload["variables"]):raise ReviewError("This owner field is already a variable.")
+            payload["variables"].append({"owner":owner.currentText(),"field":field.currentText(),"unit":unit.text(),
+                "start":number(start.text()),"lower":number(lower.text()),"upper":number(upper.text()),"free":True,"type":"float"})
+            doc=self.session.doc(owner.currentText());payload["sources"][owner.currentText()]={"id":doc["id"],"revision":doc["revision"]}
+            self.session.change(self.key,payload,"Bind research variable");self.refresh();self.top_tabs.setCurrentIndex(0)
+
+    def add_response(self):
+        dialog=QDialog(self);dialog.setWindowTitle("Define response");form=QFormLayout(dialog)
+        units={"Mass":"kg","Gauge error":"%","Displacement":"mm","Clearance":"mm","Normal force":"N","Stress residual":"MPa","Temperature":"K","Compliance":"N mm","Damage":"1"}
+        quantity=QComboBox();quantity.addItems(units);role=QComboBox();role.addItems(RESPONSE_ROLES)
+        limit=QLineEdit();unit=QLabel(units[quantity.currentText()]);location=QLineEdit("Global")
+        time=QLineEdit("0.04");reduction=QComboBox();reduction.addItems(["Value at time","Maximum","Minimum","Mean","RMS","Integral"])
+        quantity.currentTextChanged.connect(lambda v:unit.setText(units[v]))
+        for label,w in (("Quantity",quantity),("Role",role),("Limit / target",limit),("Unit",unit),("Location",location),("Time [s]",time),("Reduction",reduction)):form.addRow(label,w)
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);form.addRow(buttons)
+        if dialog.exec()==QDialog.DialogCode.Accepted:
+            payload=clone(self.data);payload["responses"].append({"name":quantity.currentText(),"role":role.currentText(),"unit":unit.text(),
+                "limit":number(limit.text()) if limit.text().strip() else "","location":location.text(),"time":number(time.text()),"reduction":reduction.currentText()})
+            self.session.change(self.key,payload,"Define response");self.refresh();self.top_tabs.setCurrentIndex(1)
+
+    def remove_definition(self,kind):
+        table=self.variables if kind=="variables" else self.responses;row=table.currentRow()
+        if row<0:return
+        payload=clone(self.data);payload[kind].pop(row)
+        prefix=kind+".";self.document["buffers"]={k:v for k,v in self.document["buffers"].items() if not k.startswith(prefix)}
+        self.session.change(self.key,payload,"Remove "+kind[:-1]);self.refresh()
 
     def method_changed(self,method):
         if self._building:return
-        self.session.edit(self.key,"method",method)
-        self.show_method()
-        self.update_title("Method changed; retained MOO candidates keep their original method")
-
-    def show_method(self):
-        method=self.data["method"];labels=METHODS[method]
-        rows={
-            "DOE":[["Sampling","LHS / factorial / imported design","Draft"],["Effects","Response-based effect estimates","NOT_EVALUATED"]],
-            "Inverse":[["Observation","Fixed training mask / weights / scale","Draft"],["Residual","Train only; holdout separate","NOT_EVALUATED"]],
-            "Optimization":[["Objectives","Minimize / maximize / constraints","Draft"],["Candidates","Failure is not a physical objective","Retained separately"]],
-            "Sobol sensitivity":[["Sampling","A / B / crossed design","Not a generic DOE"],["Indices","First and total order / convergence","NOT_EVALUATED"]],
-            "UQ":[["Inputs","Distributions / correlations","Draft"],["Outputs","Intervals / quantiles / failure probability","NOT_EVALUATED"]],
-            "RBF surrogate":[["Training","Retained input-response cases","Draft"],["Validation","Independent split / support domain","NOT_EVALUATED"]],
-            "MOO":[["Objectives","Mass and gauge error","Retained fixture"],["Front","Feasible candidates only","Synthetic"]],
-            "MDO":[["Disciplines","Thermal / structural / material","Draft"],["Coupling","Existing Evaluation owner","Actual field pending"]]
-        }[method]
-        self.method_view.setRowCount(len(rows))
-        for i,row in enumerate(rows):
-            for j,value in enumerate(row):self.method_view.setItem(i,j,QTableWidgetItem(str(value)))
-        self.plot_tabs.setTabText(2,labels[-1])
-        if method!="MOO":self.plot_tabs.setCurrentIndex(2)
-        else:self.plot_tabs.setCurrentIndex(0)
+        self.session.edit(self.key,"method",method);self.refresh();self.top_tabs.setCurrentIndex(2)
 
     def variable_changed(self,item):
         if self._building:return
-        fields={2:"start",3:"lower",4:"upper",6:"free"}
-        if item.column() not in fields:return
-        payload=clone(self.data);field=fields[item.column()]
-        try:value=item.text().lower() in ("yes","true","1") if field=="free" else number(item.text())
+        field={2:"start",3:"lower",4:"upper",6:"free"}.get(item.column())
+        if field is None:return
+        locator=f"variables.{item.row()}.{field}";payload=clone(self.data)
+        try:
+            if field=="free":
+                if item.text().lower() not in ("yes","no","true","false","1","0"):raise ValueError()
+                value=item.text().lower() in ("yes","true","1")
+            else:value=number(item.text())
         except ValueError:
-            self.document["buffers"][f"variables.{item.row()}.{field}"]=item.text()
-            self.document["dirty"]=True;item.setBackground(QColor("#fce8e6"));self.update_title("Invalid variable input retained");return
-        self.document["buffers"].pop(f"variables.{item.row()}.{field}",None)
-        payload["variables"][item.row()][field]=value
-        self.session.change(self.key,payload,"Edit variable "+field);item.setBackground(QColor("white"));self.update_title()
+            self.document["buffers"][locator]=item.text();self.document["dirty"]=True;mark_invalid(item,True);self.update_title("Correct variable value before freeze");return
+        self.document["buffers"].pop(locator,None);payload["variables"][item.row()][field]=value
+        self.session.change(self.key,payload,"Edit variable "+field);mark_invalid(item,False);self.update_title()
 
     def response_changed(self,item):
         if self._building:return
-        field=["name","role","limit","unit"][item.column()]
-        payload=clone(self.data);text=item.text()
-        if field=="limit" and text:
-            try:value=number(text)
-            except ValueError:value=text
-        else:value=text
+        field=["name","role","limit","unit","location","time","reduction"][item.column()];text=item.text()
+        payload=clone(self.data);locator=f"responses.{item.row()}.{field}"
+        try:value=number(text) if field in ("limit","time") and text.strip() else text
+        except ValueError:value=text
         payload["responses"][item.row()][field]=value
-        self.session.change(self.key,payload,"Edit response "+field);self.update_title()
+        self.session.change(self.key,payload,"Edit response "+field)
+        invalid=(field=="role" and value not in RESPONSE_ROLES) or (field in ("limit","time") and bool(text) and not isinstance(value,(int,float)))
+        mark_invalid(item,invalid);self.update_title()
 
     def method_setting_changed(self,item):
         if self._building or item.column()!=1:return
-        field=["budget","seed","failure_policy"][item.row()]
-        if field in ("budget","seed"):self.edit_number(field,item)
-        else:self.session.edit(self.key,field,item.text());self.update_title()
+        if item.row()<2:self.edit_number(["budget","seed"][item.row()],item);return
+        name,default=METHOD_INPUTS[self.data["method"]][item.row()-2]
+        payload=clone(self.data);locator="method."+self.data["method"]+"."+name
+        try:value=number(item.text()) if isinstance(default,(int,float)) else item.text()
+        except ValueError:
+            self.document["buffers"][locator]=item.text();self.document["dirty"]=True;mark_invalid(item,True);self.update_title();return
+        self.document["buffers"].pop(locator,None)
+        payload.setdefault("method_settings",{}).setdefault(self.data["method"],{})[name]=value
+        self.session.change(self.key,payload,"Edit method input");mark_invalid(item,False);self.update_title()
+
+    def method_rows(self):
+        variables=self.data["variables"];method=self.data["method"]
+        if method in ("UQ","Sobol sensitivity"):
+            return [[v["owner"]+"."+v["field"],f"Uniform({v['lower']}, {v['upper']})","Independent"] for v in variables]
+        if method=="Inverse":return [["Training observations",self.data.get("holdout","Tension B"),"Separate holdout"],["Residual", "prediction − observation","Train samples only"]]
+        if method=="RBF surrogate":return [["Training cases","Select retained input / response table","Training"],["Validation cases","Independent holdout","Validation"]]
+        if method=="MDO":return [["Heat","V-02 / temperature [K]","Evaluation stage"],["Expand","V-03 / displacement [m]","Receiver"]]
+        if method=="MOO":return [[r["name"],str(r["limit"]),r["role"]] for r in self.data["responses"]]
+        return [[v["owner"]+"."+v["field"],f"{v['lower']} … {v['upper']}","Free" if v["free"] else "Fixed"] for v in variables]
+
+    def detail_changed(self,item):
+        if self._building:return
+        rows=[[self.method_detail.item(r,c).text() for c in range(3)] for r in range(self.method_detail.rowCount())]
+        payload=clone(self.data);payload.setdefault("method_inputs",{})[self.data["method"]]=rows
+        self.session.change(self.key,payload,"Edit "+self.data["method"]+" definition");self.update_title()
 
     def refresh_observations(self):
-        data=self.session.doc("data");source=self.data["sources"]["data"]
-        used=len(data["saved"]["samples"])-len(data["saved"]["quality_excluded"])
-        message=f"Use saved {data['name']} revision {data['revision']} with {used} included samples?\n\nCurrent source revision: {source['revision']}.\nExisting frozen inputs and results stay unchanged."
-        if QMessageBox.question(self,"Refresh saved observations",message)==QMessageBox.StandardButton.Yes:
-            self.session.refresh_data_source();self.update_title("Saved observation source refreshed explicitly")
+        data=self.session.doc("data");used=len(data["saved"]["samples"])-len(data["saved"]["quality_excluded"])
+        if QMessageBox.question(self,"Refresh observations",f"Use saved {data['name']} with {used} included samples?")==QMessageBox.StandardButton.Yes:
+            self.session.refresh_data_source(self.key);self.refresh()
+
+    def has_fixture(self):
+        return self.document["id"]=="N-MOO" and self.data["method"]=="MOO"
 
     def candidate_changed(self):
+        if self._building or not self.has_fixture():return
         row=self.cases.currentRow()
         if row<0:return
         cid=self.cases.item(row,0).text();self.session.selected["candidate"]=cid
-        candidate=next(c for c in self.session.candidates if c["id"]==cid)
-        self.plot.select_ids([cid])
-        for r,(key,limit) in enumerate((("id",""),("displacement","≤ 0.35 mm"),("clearance","≥ 0.10 mm"))):
-            self.summary.item(r,1).setText(str(candidate[key]) if candidate[key] is not None else "Unavailable")
-        if candidate["status"]=="Failed fixture":
-            self.curve.set_series([])
-            self.curve.caption="Failed candidate. No invented response curve."
+        c=next(c for c in self.session.candidates if c["id"]==cid);self.plot.select_ids([cid])
+        fill_table(self.summary,[["Candidate",cid,""],["Displacement",c["displacement"],"≤ 0.35 mm"],["Clearance",c["clearance"],"≥ 0.10 mm"]])
+        if not c.get("result_ref"):
+            self.curve.set_series([]);self.curve.caption=c["diagnostic"]
         else:
-            t=[i*.002 for i in range(21)]
-            self.curve.set_series([{"name":cid+" fixture","x":t,
-                "y":[candidate["displacement"]*(1-math.exp(-x/.012)) for x in t],"color":BLUE}])
+            result=self.session.results[c["result_ref"]]
+            self.curve.set_series([{"name":cid+" fixture","x":result["times"],"y":result["fields"]["Displacement"]["values"],"color":BLUE}])
             self.curve.caption="Retained synthetic response"
-        self.update_title(cid+"   |   "+candidate["status"])
+        self.update_title(cid+"   |   "+c["status"])
 
     def plot_selected(self,ids):
         if not ids:return
@@ -985,43 +1215,48 @@ class NumericalWindow(ToolWindow):
             if self.cases.item(row,0).text()==ids[0]:self.cases.selectRow(row);return
 
     def inspect_candidate(self):
-        cid=self.session.selected.get("candidate","p19")
-        c=next(c for c in self.session.candidates if c["id"]==cid)
-        text_dialog(self,"Candidate "+cid,json.dumps({
-            "candidate":c,"result":"fixture-result-clamp","plan":{"id":"N-MOO","revision":4},
-            "state":"Synthetic retained evidence; selecting does not evaluate.",
-            "additional_detail":"A new evaluation/attempt is required for unretained details."},indent=2))
+        if not self.has_fixture():raise ReviewError("No evaluated candidate is retained for this method. Complete the definition and review its input first.")
+        cid=self.session.selected.get("candidate","p19");c=next(c for c in self.session.candidates if c["id"]==cid)
+        dialog=QDialog(self);dialog.setWindowTitle("Candidate "+cid);dialog.resize(780,490);layout=QVBoxLayout(dialog)
+        layout.addWidget(make_table(["Input / response","Value"],[[k,v] for k,v in c.items() if k not in ("plan_ref",)]))
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        opened=buttons.addButton("Open retained result",QDialogButtonBox.ButtonRole.ActionRole);opened.setEnabled(bool(c["result_ref"]))
+        opened.clicked.connect(lambda:self.hub.open_result(c["result_ref"]));buttons.rejected.connect(dialog.reject);layout.addWidget(buttons);dialog.exec()
 
     def adopt(self):
-        if self.data["method"]!="MOO":
-            raise ReviewError("This retained p19 result belongs to MOO. Select its original method before applying it.")
-        cid=self.session.selected.get("candidate","p19")
-        group=self.session.prepare_adoption(cid)
-        self.hub.adoption_dialog(self,group["id"])
+        if not self.has_fixture():raise ReviewError("Select a retained candidate from its original MOO plan.")
+        group=self.session.prepare_adoption(self.session.selected.get("candidate","p19"));self.hub.adoption_dialog(self,group["id"])
 
     def tree_changed(self):
         item=self.tree.currentItem()
         if not item:return
         name=item.text(0)
-        if name=="Variables":self.top_tabs.setCurrentIndex(0)
-        if name=="Responses":self.top_tabs.setCurrentIndex(1)
-        if name=="Methods":self.top_tabs.setCurrentIndex(2)
-        if name=="Adoption receipts":self.hub.receipts(self)
+        if name in ("Variables","Responses","Method"):self.top_tabs.setCurrentIndex(("Variables","Responses","Method").index(name))
+        if name=="Saved selections":self.hub.receipts(self)
 
     def refresh(self):
-        self._building=True
-        self.method.setCurrentText(self.data["method"])
-        self.cases.blockSignals(True);self.cases.setRowCount(len(self.session.candidates))
-        for row,c in enumerate(self.session.candidates):
-            for col,key in enumerate(("id","mass","error","displacement","clearance","status")):
-                self.cases.setItem(row,col,QTableWidgetItem(str(c[key]) if c[key] is not None else "—"))
-        self.cases.blockSignals(False)
+        was=self._building;self._building=True
+        self.method.setCurrentText(self.data["method"]);self.evaluator.setCurrentText(self.data["evaluator"])
+        rows=[]
+        for i,v in enumerate(self.data["variables"]):
+            rows.append([v["owner"],v["field"]]+[self.raw(f"variables.{i}.{k}",v[k]) for k in ("start","lower","upper")]+[v["unit"],self.raw(f"variables.{i}.free","Yes" if v["free"] else "No")])
+        fill_table(self.variables,rows,(2,3,4,6))
+        fill_table(self.responses,[[r["name"],r["role"],r["limit"],r["unit"],r.get("location","Global"),r.get("time",.04),r.get("reduction","Value at time")] for r in self.data["responses"]],(0,1,2,3,4,5,6))
+        method=self.data["method"];settings=self.data.get("method_settings",{}).get(method,{})
+        rows=[["Total evaluation budget",self.raw("budget",self.data["budget"])],["Seed",self.raw("seed",self.data["seed"])]]
+        rows += [[name,self.raw("method."+method+"."+name,settings.get(name,value))] for name,value in METHOD_INPUTS[method]]
+        fill_table(self.method_table,rows,(1,))
+        fill_table(self.method_detail,self.data.get("method_inputs",{}).get(method,self.method_rows()),(1,2))
+        self.top_tabs.setTabText(3,METHODS[method][0])
+        fill_table(self.method_view,[[name,None,"NOT_EVALUATED"] for name in METHODS[method][1:]])
+        fixture=self.has_fixture();self.case_panel.setVisible(fixture);self.summary.setVisible(fixture);self.adopt_action.setEnabled(fixture)
+        self.plot_tabs.setTabEnabled(0,fixture);self.plot_tabs.setTabEnabled(1,fixture);self.plot_tabs.setCurrentIndex(0 if fixture else 2)
+        fill_table(self.cases,[[c[k] if c[k] is not None else "—" for k in ("id","mass","error","displacement","clearance","status")] for c in self.session.candidates] if fixture else [])
         valid=[c for c in self.session.candidates if c["status"]=="Retained fixture"]
-        self.plot.set_series([{"name":"Feasible fixture candidates","x":[c["mass"] for c in valid],
-            "y":[c["error"] for c in valid],"ids":[c["id"] for c in valid],"color":TEAL}])
-        self._building=False;self.show_method()
-        cid=self.session.selected.get("candidate","p19")
-        self.plot_selected([cid]);self.update_title()
+        self.plot.set_series([{"name":"Feasible fixture candidates","x":[c["mass"] for c in valid],"y":[c["error"] for c in valid],"ids":[c["id"] for c in valid],"color":TEAL}] if fixture else [])
+        self._building=was
+        if fixture:self.plot_selected([self.session.selected.get("candidate","p19")]);self.candidate_changed()
+        self.update_title()
 
 
 class RunnerWindow(ToolWindow):
@@ -1132,122 +1367,141 @@ class RunnerWindow(ToolWindow):
 class PostWindow(ToolWindow):
     def build(self):
         self.array=QComboBox();self.array.addItems(["Displacement","Contact pressure","Normal force","Slip (unavailable)"])
-        self.array.setCurrentText(self.data["array"]);self.toolbar.addWidget(self.array)
         self.association=QComboBox();self.association.addItems(["POINTS","CELLS","FIELD"])
-        self.association.setCurrentText(self.data["association"]);self.toolbar.addWidget(self.association)
         self.time=QComboBox()
-        for t in self.data["available_times"]:self.time.addItem(f"{t:.3f} s",t)
-        self.time.setCurrentIndex(len(self.data["available_times"])-1);self.toolbar.addWidget(self.time)
-        self.action(self.toolbar,"Compare…",self.compare)
-        self.action(self.toolbar,"Use in Numerical…",self.to_numerical)
-        self.action(self.toolbar,"Source…",self.source)
-        self.viewer=EngineeringView("post")
-        self.curve=CurveView(xlabel="Time [s]",ylabel="Normal force [N]")
-        times=self.data["available_times"]
-        self.curve.set_series([{"name":"Contact pair (fixture)","x":times,"y":[0,95,180,250],"color":BLUE}])
-        self.measure=make_table(["Measurement","Value","Unit","Location"],[
-            ["Gauge extension",.31,"mm","Two endpoints"],["Normal force",250,"N","Contact resultant"],
-            ["Slip",None,"mm","NOT_AVAILABLE"]])
+        for t in self.result().get("times",[]):self.time.addItem(f"{t:.3f} s",t)
+        self.toolbar.addWidget(self.array);self.toolbar.addWidget(self.association);self.toolbar.addWidget(self.time)
+        self.action(self.toolbar,"Compare…",self.compare);self.action(self.toolbar,"Measure…",self.measure_dialog)
+        self.action(self.toolbar,"Use in Numerical…",self.to_numerical);self.action(self.toolbar,"Source…",self.source)
+        self.viewer=EngineeringView("post");self.curve=CurveView(xlabel="Time [s]",ylabel="Displacement [mm]")
+        self.measure=make_table(["Measurement","Value","Unit","Location"],[]);self.measure.setObjectName("postMeasurements")
         self.bottom=QTabWidget();self.bottom.addTab(self.curve,"Curve");self.bottom.addTab(self.measure,"Measurements")
-        split=QSplitter(Qt.Orientation.Vertical);split.addWidget(self.viewer);split.addWidget(self.bottom);split.setSizes([500,250])
-        self.setCentralWidget(split)
+        split=QSplitter(Qt.Orientation.Vertical);split.addWidget(self.viewer);split.addWidget(self.bottom);split.setSizes([500,250]);self.setCentralWidget(split)
         self.pipeline=QTreeWidget();self.pipeline.setHeaderHidden(True)
-        source=QTreeWidgetItem(self.pipeline,["Clamp result"])
+        source=QTreeWidgetItem(self.pipeline,[self.document["name"]])
         for name in ("Surface","Contact pair","Gauge endpoints"):QTreeWidgetItem(source,[name])
-        self.pipeline.expandAll()
-        self.filter=QComboBox();self.filter.addItems(["Surface","Clip","Slice","Warp by vector","Plot over line"])
-        self.filter.setCurrentText(self.data["pending_filter"])
+        self.pipeline.expandAll();self.filter=QComboBox();self.filter.addItems(["Surface","Clip","Slice","Warp by vector","Plot over line"])
         self.filter.currentTextChanged.connect(self.pending_filter)
-        props=make_table(["Property","Value"],[["Representation","Surface"],["Deformation scale",10],
-                         ["Coordinate system","Global Cartesian"],["Unit","mm"]],editable=(1,),select_rows=False)
-        props.itemChanged.connect(self.property_changed)
-        self.props=props
-        pane=box(self.pipeline,QLabel("Properties"),self.filter,props,
-             box(button("Apply",self.apply_filter),button("Reset",self.reset_filter),horizontal=True),margins=6)
-        dock=self.add_dock("Pipeline Browser",pane,minimum=290);self.resizeDocks([dock],[320],Qt.Orientation.Horizontal)
-        self.array.currentTextChanged.connect(self.field_changed)
-        self.association.currentTextChanged.connect(self.association_changed)
-        self.time.currentIndexChanged.connect(self.time_changed)
-        self.pipeline.itemSelectionChanged.connect(self.pipeline_selected)
-        self.viewer.faceSelected.connect(lambda name:self.update_title("Selected "+name+" in retained synthetic field"))
+        self.props=make_table(["Property","Value"],[["Deformation scale",10],["Coordinate system","Global Cartesian"],["Unit","mm"]],editable=(1,),select_rows=False)
+        self.props.itemChanged.connect(self.property_changed)
+        pane=box(self.pipeline,QLabel("Properties"),self.filter,self.props,box(button("Apply",self.apply_filter),button("Reset",self.reset_filter),horizontal=True),margins=6)
+        dock=self.add_dock("Pipeline Browser",pane,minimum=285);self.resizeDocks([dock],[320],Qt.Orientation.Horizontal)
+        self.array.currentTextChanged.connect(self.field_changed);self.association.currentTextChanged.connect(self.association_changed)
+        self.time.currentIndexChanged.connect(self.time_changed);self.pipeline.itemSelectionChanged.connect(self.pipeline_selected)
+        self.viewer.faceSelected.connect(self.face_selected);self.refresh()
+
+    def result(self):
+        return self.session.results.get(self.data["result"],{})
 
     def field_changed(self,value):
         if self._building:return
-        if value=="Slip (unavailable)":
-            self.viewer.field="Slip — NOT_AVAILABLE";self.viewer.update()
-            self.update_title("No slip array is retained. Existing results remain available.");return
-        self.session.edit(self.key,"array",value)
-        unit="MPa" if value=="Contact pressure" else ("N" if value=="Normal force" else "mm")
-        self.session.edit(self.key,"unit",unit)
-        self.viewer.field=value+" ["+unit+"]";self.viewer.update();self.update_title()
+        payload=clone(self.data);field=self.result().get("fields",{}).get(value)
+        payload.update(array=value,unit=field["unit"] if field else "mm",association=field["association"] if field else "POINTS")
+        self.session.change(self.key,payload,"Select result field");self.refresh()
 
     def association_changed(self,value):
-        if not self._building:self.session.edit(self.key,"association",value);self.update_title("Association selection is a review draft; reader mapping needs verification")
+        if not self._building:self.session.edit(self.key,"association",value);self.render_frame();self.update_title()
 
     def time_changed(self,index):
-        if not self._building:
-            self.session.edit(self.key,"time",self.time.itemData(index));self.update_title("Actual fixture time "+self.time.currentText())
+        if not self._building and index>=0:
+            self.session.edit(self.key,"time",self.time.itemData(index));self.render_frame();self.update_title("Time "+self.time.currentText())
 
     def pending_filter(self,value):
-        if not self._building:self.session.edit(self.key,"pending_filter",value);self.update_title("Unapplied filter properties")
+        if not self._building:self.session.edit(self.key,"pending_filter",value);self.update_title("Filter properties changed; Apply to preview")
 
     def property_changed(self,item):
         if self._building or item.column()!=1:return
-        if item.row()==1:self.edit_number("deformation_scale",item)
-        else:
-            self.document["buffers"]["post-property-"+str(item.row())]=item.text()
-            self.document["dirty"]=True;self.update_title("Property draft retained for native review")
+        if item.row()==0:self.edit_number("deformation_scale",item)
+        else:self.refresh();self.update_title("Field unit and coordinate basis come from the selected result")
 
     def apply_filter(self):
-        self.session.edit(self.key,"filter",self.data["pending_filter"])
-        self.viewer.mesh=self.data["filter"]!="Surface";self.viewer.update()
-        self.update_title("Filter state applied in illustration; no ParaView pipeline was executed")
+        if self.data["pending_filter"]=="Warp by vector" and self.data["array"]!="Displacement":raise ReviewError("Choose the displacement vector for warp.")
+        self.session.edit(self.key,"filter",self.data["pending_filter"]);self.render_frame();self.update_title(self.data["filter"]+" illustration applied")
 
     def reset_filter(self):
-        self.session.edit(self.key,"pending_filter",self.data["filter"])
-        self.filter.setCurrentText(self.data["filter"]);self.update_title()
+        self.session.edit(self.key,"pending_filter",self.data["filter"]);self.refresh()
 
     def pipeline_selected(self):
+        if self._building:return
         item=self.pipeline.currentItem()
         if item:
             self.session.edit(self.key,"selection",item.text(0));self.viewer.set_selected(item.text(0));self.update_title()
+            if item.text(0)=="Gauge endpoints":self.bottom.setCurrentIndex(1)
+
+    def face_selected(self,name):
+        self.session.edit(self.key,"selection",name);self.update_title("Selected "+name)
 
     def source(self):
-        result=self.session.results[self.data["result"]]
-        text_dialog(self,"Exact result source",json.dumps(result,ensure_ascii=False,indent=2))
+        text_dialog(self,"Exact result source",json.dumps(self.result(),ensure_ascii=False,indent=2))
 
     def to_numerical(self):
-        if QMessageBox.question(self,"Use result in Numerical",
-            "Use this exact retained result as the comparison baseline?\nThis does not adopt a candidate or change CAD.")==QMessageBox.StandardButton.Yes:
-            self.session.edit("numerical","baseline_result",self.data["result"])
-            self.hub.open("numerical")
+        if QMessageBox.question(self,"Use result in Numerical","Use the selected retained result as the comparison baseline?")==QMessageBox.StandardButton.Yes:
+            self.session.edit("numerical","baseline_result",self.data["result"]);self.hub.open("numerical").refresh()
+
+    def measure_dialog(self):
+        dialog=QDialog(self);dialog.setWindowTitle("Gauge measurement");form=QFormLayout(dialog)
+        source=self.data.get("gauge",{"a":"Gauge left","b":"Gauge right","direction":"X"});endpoints=["Gauge left","Gauge right","Clamp centre"]
+        a=QComboBox();a.addItems(endpoints);a.setCurrentText(source["a"]);b=QComboBox();b.addItems(endpoints);b.setCurrentText(source["b"])
+        direction=QComboBox();direction.addItems(["X","Y","Z","Magnitude"]);direction.setCurrentText(source["direction"])
+        for label,w in (("Point A",a),("Point B",b),("Direction",direction)):form.addRow(label,w)
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);form.addRow(buttons)
+        if dialog.exec()==QDialog.DialogCode.Accepted:
+            self.session.edit(self.key,"gauge",{"a":a.currentText(),"b":b.currentText(),"direction":direction.currentText()})
+            self.render_frame();self.bottom.setCurrentIndex(1);self.update_title()
+
+    def render_frame(self):
+        frame=self.session.post_frame(self.key)
+        self.viewer.field=self.data["array"]+" ["+frame["unit"]+"]   t = "+str(frame["time"])+" s"
+        self.viewer.field_available=frame["available"];self.viewer.field_max=frame["value"] or 0
+        self.viewer.filter_mode=self.data["filter"];self.viewer.deformation_scale=self.data["deformation_scale"]
+        self.viewer.thickness=self.result().get("input_values",{}).get("thickness",14)
+        self.viewer.annotation="" if frame["available"] else "Selected field / association / frame unavailable"
+        self.viewer.update();self.curve.ylabel=self.data["array"]+" ["+frame["unit"]+"]";self.curve.cursor_x=self.data["time"]
+        if frame["available"]:
+            if self.data["filter"]=="Plot over line":
+                self.curve.xlabel="Gauge position [mm]";self.curve.cursor_x=None
+                self.curve.set_series([{"name":"Synthetic line sample","x":[0,25,50],"y":[0,frame["value"]*.5,frame["value"]],"color":BLUE}])
+            else:
+                self.curve.xlabel="Time [s]";self.curve.set_series([{"name":"Retained fixture","x":frame["times"],"y":frame["curve"],"color":BLUE}])
+        else:self.curve.set_series([])
+        rows=[];gauge=self.data.get("gauge",{"a":"Gauge left","b":"Gauge right","direction":"X"})
+        gauge_valid=gauge=={"a":"Gauge left","b":"Gauge right","direction":"X"}
+        for name,loc in (("Displacement","Gauge endpoints"),("Contact pressure","Contact surface"),("Normal force","Contact resultant")):
+            m=frame["measurements"].get(name,{"value":None,"unit":""});value=m["value"] if frame["available"] else None
+            if name=="Displacement" and not gauge_valid:value=None;loc="Selected gauge is not retained"
+            rows.append(["Gauge extension" if name=="Displacement" else name,value if value is not None else "Unavailable",m["unit"],loc])
+        fill_table(self.measure,rows)
+        self.curve.caption="Synthetic frame "+str(frame["time"])+" s" if frame["available"] else "Unavailable; no interpolation"
 
     def compare(self):
-        dialog=QDialog(self);dialog.setWindowTitle("Compare retained fields");dialog.resize(810,480)
-        layout=QVBoxLayout(dialog)
-        layout.addWidget(make_table(["Comparison rule","A","B"],[
-            ["Result","Selected exact result","Synthetic comparison fixture"],
-            ["Quantity / unit",self.data["array"]+" / "+self.data["unit"],"Same meaning required"],
-            ["Association",self.data["association"],"Same association required"],
-            ["Time",self.data["time"],"No extrapolation"],
-            ["Spatial mapping","Unverified","Side-by-side available"],
-            ["Difference","Blocked until verified","Do not infer tensor basis"]]))
-        layout.addWidget(QLabel("Δ = mapped B − A. Missing locations remain undefined. A = 0 blocks only percent difference."))
+        dialog=QDialog(self);dialog.setWindowTitle("Compare results");dialog.resize(1240,700);layout=QVBoxLayout(dialog);picker=QComboBox()
+        for rid,result in self.session.results.items():
+            if result.get("kind")=="structural" and rid!=self.data["result"]:picker.addItem(result.get("candidate",rid),rid)
+        layout.addWidget(box(QLabel("Compare with"),picker,horizontal=True))
+        a=EngineeringView("post");b=EngineeringView("post");views=QSplitter();views.addWidget(a);views.addWidget(b);layout.addWidget(views)
+        values=make_table(["Quantity","A","B","Unit"],[]);values.setMaximumHeight(135);layout.addWidget(values)
+        layout.addWidget(QLabel("Side by side. Spatial mapping is unverified; difference is unavailable."))
+        def redraw(*args):
+            frames=[self.session.post_frame(self.key),self.session.post_frame(self.key,picker.currentData())]
+            for view,frame in zip((a,b),frames):
+                view.field=self.data["array"]+" ["+frame["unit"]+"]";view.field_max=frame["value"] or 0
+                view.field_available=frame["available"];view.annotation="t = "+str(frame["time"])+" s";view.update()
+            fill_table(values,[[self.data["array"],frames[0]["value"],frames[1]["value"],frames[0]["unit"]]])
+        picker.currentIndexChanged.connect(redraw);redraw()
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        compare=buttons.addButton("Keep side-by-side proposal",QDialogButtonBox.ButtonRole.AcceptRole)
-        compare.clicked.connect(dialog.accept);buttons.rejected.connect(dialog.reject);layout.addWidget(buttons)
+        keep=buttons.addButton("Keep comparison",QDialogButtonBox.ButtonRole.AcceptRole);keep.setEnabled(picker.count()>0)
+        keep.clicked.connect(dialog.accept);buttons.rejected.connect(dialog.reject);layout.addWidget(buttons)
         if dialog.exec()==QDialog.DialogCode.Accepted:
-            self.session.edit(self.key,"comparison",{"mode":"side_by_side","source":self.data["result"],"mapping":"UNVERIFIED"})
-            self.update_title("Side-by-side proposal saved in draft; difference remains blocked")
+            self.session.edit(self.key,"comparison",{"mode":"side_by_side","a":self.data["result"],"b":picker.currentData(),"mapping":"UNVERIFIED"});self.update_title()
 
     def refresh(self):
-        self._building=True
-        self.array.setCurrentText(self.data["array"]);self.association.setCurrentText(self.data["association"])
-        self.filter.setCurrentText(self.data["pending_filter"])
-        for i in range(self.time.count()):
-            if self.time.itemData(i)==self.data["time"]:self.time.setCurrentIndex(i)
-        self.viewer.field=self.data["array"]+" ["+self.data["unit"]+"]";self.viewer.update()
-        self._building=False;self.update_title()
+        was=self._building;self._building=True
+        self.array.setCurrentText(self.data["array"]);self.association.setCurrentText(self.data["association"]);self.filter.setCurrentText(self.data["pending_filter"])
+        self.time.setCurrentIndex(next((i for i in range(self.time.count()) if self.time.itemData(i)==self.data["time"]),-1))
+        fill_table(self.props,[["Deformation scale",self.raw("deformation_scale",self.data["deformation_scale"])],["Coordinate system",self.data["basis"]],["Unit",self.data["unit"]]],(1,))
+        for row in (1,2):self.props.item(row,1).setFlags(self.props.item(row,1).flags()&~Qt.ItemFlag.ItemIsEditable)
+        self.render_frame();self._building=was;self.update_title()
 
 
 class ExpertWindow(ToolWindow):

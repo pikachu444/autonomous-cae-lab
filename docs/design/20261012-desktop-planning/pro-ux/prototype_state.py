@@ -34,6 +34,16 @@ METHODS = {
     "MOO": ("Candidates", "Pareto front", "Constraints"),
     "MDO": ("Disciplines", "Coupling", "Objectives"),
 }
+RESPONSE_ROLES = ("Minimize", "Maximize", "Upper bound", "Lower bound", "Target", "Observe")
+EVALUATORS = ("Unassigned", "Clamp / material response", "Structural Simulation",
+              "Material response", "PDE response", "Thermal expansion Evaluation")
+VARIABLE_BINDINGS = {
+    "cad": {"thickness":"mm", "width":"mm", "height":"mm"},
+    "material": {"mu":"MPa", "bulk":"MPa"},
+    "simulation": {"force":"N", "duration":"s", "time_step":"s", "initial_velocity":"m/s"},
+    "pde": {"k":"declared", "f":"declared", "mesh":"m"},
+    "thermal": {"temperature":"K"}, "thermoelastic": {"alpha":"1/K", "Tref":"K"},
+}
 
 
 class ReviewError(Exception):
@@ -79,6 +89,14 @@ def make_document(key, name, owner, doc_id, revision, payload):
             "dirty": False, "buffers": {}}
 
 
+def structural_fields(displacement=.31):
+    return {
+        "Displacement":{"unit":"mm","association":"POINTS","values":[0,displacement*.38,displacement*.74,displacement]},
+        "Contact pressure":{"unit":"MPa","association":"CELLS","values":[0,.8,1.5,2.4]},
+        "Normal force":{"unit":"N","association":"FIELD","values":[0,95,180,250]},
+    }
+
+
 def initial_documents():
     docs = {}
     def add(*args):
@@ -86,6 +104,9 @@ def initial_documents():
         docs[doc["key"]] = doc
     add("cad", "Clamp fixture", "native_pre", "CAD-01", 13, {
         "thickness": 14.0, "width": 72.0, "height": 28.0, "unit": "mm",
+        "geometry_type": "Clamp", "instances": 2,
+        "conditions": [{"type":"Fixed support","face":"Base/Face2","axis":"All","value":0,"unit":"mm"},
+                       {"type":"Force","face":"Clamp/Pad/Face6","axis":"Z","value":-250,"unit":"N"}],
         "material": {"id": "MAT-01", "revision": 18},
         "sketch": {"length_constraint": "72", "fully_constrained": True},
         "joint": {"type": "Revolute", "angle": 15.0, "preview_angle": 15.0},
@@ -127,23 +148,35 @@ def initial_documents():
                    "stress_measure": "first_Piola", "displacement": "gauge extension"},
         "calibration": {"id": "CAL-018", "revision": 2, "file": "Calibration.txt",
                         "locator": "Force channel / calibration row 18",
-                        "range": "0–2000 N", "status": "SYNTHETIC / not a certificate"}})
+                        "range": "0–2000 N", "status": "SYNTHETIC / not a certificate",
+                        "sha256": hashlib.sha256((HERE/"fixtures"/"Calibration.txt").read_bytes()).hexdigest()
+                            if (HERE/"fixtures"/"Calibration.txt").exists() else None}})
     add("material", "Rubber", "Material", "MAT-01", 18, {
         "law": "Neo-Hookean", "mu": .90, "bulk": 100.0, "unit": "MPa",
+        "parameters": {"E":210000.0,"nu":.3,"yield":250.0,"hardening":1000.0,
+                       "cohesion":12.0,"friction_angle":30.0,"dilation_angle":5.0,
+                       "g1":.35,"tau1":1.0,"g2":.15,"tau2":10.0},
+        "history": [[0,"Stretch F11",1,""],[1,"Stretch F11",1.2,""],[60,"Hold",1.2,""]],
+        "initial_state": [["Plastic strain",0],["Damage",0],["Lateral traction",0]],
         "protocol": "Uniaxial traction-free", "train": "Tension A",
         "holdout": "Tension B", "L0": 50.0, "A0": 20.0,
         "observations": {"id": "DATA-01", "revision": 4},
         "dependencies": [{"id": "TENSION-A", "name": "Tension.csv",
-                          "sha256": "", "missing": False}],
+                          "sha256": hashlib.sha256((HERE/"fixtures"/"Tension.csv").read_bytes()).hexdigest()
+                              if (HERE/"fixtures"/"Tension.csv").exists() else "",
+                          "missing": not (HERE/"fixtures"/"Tension.csv").exists()}],
         "capability": "UNCONNECTED"})
     add("pde", "Diffusion", "PDE", "PDE-01", 3, {
         "field": "u", "space": "P1", "domain": "Rectangle",
         "equation": "-div(k*grad(u)) = f", "k": 1.0, "f": 1.0,
         "bc": "u = 0", "selection": "Left edge", "mesh": .05,
+        "width":1.0,"height":.6,"initial":"0","study_type":"Stationary",
+        "time_range":"0:0.1:1","field_unit":"1","bc_type":"Dirichlet",
+        "boundaries":{"Left edge":"u = 0","Right edge":"n·k·grad(u) = 0","Top edge":"n·k·grad(u) = 0","Bottom edge":"n·k·grad(u) = 0"},
         "form": "Registered PDE", "capability": "UNCONNECTED"})
     add("numerical", "Clamp trade-off", "Numerical", "N-MOO", 4, {
         "method": "MOO", "evaluator": "Clamp / material response",
-        "budget": 40, "seed": 17,
+        "budget": 40, "seed": 17, "method_settings": {},
         "sources": {"cad": {"id": "CAD-01", "revision": 12},
                     "material": {"id": "MAT-01", "revision": 17},
                     "data": {"id": "DATA-01", "revision": 4}},
@@ -227,6 +260,21 @@ class ReviewSession:
              "displacement": .41, "clearance": .08, "status": "Constraint violation"},
             {"id": "p31", "thickness": 12.1, "mu": .72, "mass": None, "error": None,
              "displacement": None, "clearance": None, "status": "Failed fixture"}]
+        for candidate in self.candidates:
+            cid = candidate["id"]
+            candidate["result_ref"] = ("fixture-result-clamp" if cid == "p19" else "fixture-result-"+cid) if candidate["mass"] is not None else None
+            candidate["plan_ref"] = {"id": "N-MOO", "revision": 4}
+            candidate["diagnostic"] = "Synthetic evaluator failure; no response curve." if cid == "p31" else ""
+            if candidate["result_ref"]:
+                self.results[candidate["result_ref"]] = {
+                    "id": candidate["result_ref"], "synthetic": True, "kind": "structural",
+                    "source": {"id": "CAD-01", "revision": 12}, "plan": clone(candidate["plan_ref"]),
+                    "candidate": cid, "attempt": "fixture-attempt-"+cid, "time": .04,
+                    "input_values": {"thickness": candidate["thickness"], "mu": candidate["mu"]},
+                    "status": "RETAINED_FIXTURE",
+                    "metrics": {k:candidate[k] for k in ("mass","displacement","clearance")},
+                    "times": [0,.01,.02,.04],
+                    "fields": structural_fields(candidate["displacement"])}
         self.groups = {}
         self.relocations = {}
         self.events = []
@@ -251,7 +299,11 @@ class ReviewSession:
 
     def change(self, key, payload, label):
         doc = self.doc(key)
+        if doc["owner"] == "native_pre" and any(payload.get(k) != doc["draft"].get(k) for k in ("thickness","width","height","geometry_type")):
+            payload = clone(payload)
+            payload["mesh"]["stale"] = True
         if payload == doc["draft"]:
+            doc["dirty"] = doc["draft"] != doc["saved"] or bool(doc["buffers"])
             return
         doc["undo"].append({"payload": clone(doc["draft"]), "label": label})
         doc["redo"].clear()
@@ -304,32 +356,95 @@ class ReviewSession:
             if not isinstance(value, (int, float)) or not math.isfinite(value) or (
                     value < 0 if allow_zero else value <= 0):
                 errors.append((field, "Enter a finite " + ("nonnegative" if allow_zero else "positive") + " value."))
-        if key == "cad":
+        if doc["owner"] == "native_pre":
             for field in ("thickness", "width", "height"):
                 positive(field)
             if not data["contact"]["resolved"]:
                 errors.append(("contact", "Required contact faces are unresolved."))
-        elif key == "material":
+            if not data["contact"]["set_a"] or not data["contact"]["set_b"]:
+                errors.append(("contact", "Both contact face sets are required."))
+            if data["mesh"].get("stale"):
+                errors.append(("mesh", "Geometry changed. Review the rebuilt mesh before freezing."))
+            mu=data["contact"]["mu"]
+            if not isinstance(mu,(int,float)) or not math.isfinite(mu) or mu<0:
+                errors.append(("contact.mu","Friction must be finite and nonnegative."))
+        elif doc["owner"] == "Material":
             for field in ("mu", "bulk", "L0", "A0"):
                 positive(field)
             for dep in data["dependencies"]:
                 if dep["missing"] and dep["id"] not in self.relocations:
                     errors.append(("dependencies", "Locate the missing original: " + dep["name"]))
-        elif key == "pde":
+        elif doc["owner"] == "PDE":
             for field in ("k", "mesh"):
                 positive(field)
             if not data["equation"].strip():
                 errors.append(("equation", "An equation is required."))
-        elif key == "numerical":
+        elif doc["owner"] == "Simulation":
+            if data["family"] not in ("Thermal","Thermoelastic"):
+                for field in ("duration","increments","time_step"):
+                    positive(field)
+                increments=data.get("increments")
+                if isinstance(increments,(float,int)) and not float(increments).is_integer():
+                    errors.append(("increments","Use an integer increment limit."))
+            elif data["family"]=="Thermal":
+                positive("temperature")
+            else:
+                positive("Tref")
+        elif doc["owner"] == "Numerical":
+            if data.get("evaluator") in ("",None,"Unassigned"):
+                errors.append(("evaluator","Select an evaluator."))
+            if not data["variables"] or not data["responses"]:
+                errors.append(("definition","Add at least one variable and required response."))
+            positive("budget")
+            if isinstance(data.get("budget"),(int,float)) and not float(data["budget"]).is_integer():
+                errors.append(("budget","Use an integer evaluation budget."))
             for var in data["variables"]:
+                owner=self.documents.get(var.get("owner"))
+                binding=VARIABLE_BINDINGS.get(var.get("owner"),{})
+                if not owner or var.get("field") not in binding or var.get("unit") != binding.get(var.get("field")):
+                    errors.append(("variables", "Choose a valid owner, field and unit binding."))
                 try:
                     vals = [float(var[f]) for f in ("lower", "start", "upper")]
                     if not all(math.isfinite(x) for x in vals) or not vals[0] <= vals[1] <= vals[2]:
                         raise ValueError()
                 except (ValueError, TypeError):
                     errors.append((var["field"], "Required bounds must contain the start value."))
+            for response in data["responses"]:
+                if response.get("role") not in RESPONSE_ROLES:
+                    errors.append(("responses", "Choose a response role from Minimize, Maximize, Upper bound, Lower bound, Target or Observe."))
+                if not response.get("name", "").strip():
+                    errors.append(("responses", "A response quantity is required."))
+                if response["role"] in ("Upper bound","Lower bound","Target"):
+                    try:
+                        if not math.isfinite(float(response["limit"])):raise ValueError()
+                    except (ValueError,TypeError):
+                        errors.append((response["name"],"A finite numeric response limit is required."))
+        elif doc["owner"] == "Evaluation":
+            refs=[s["ref"]["id"] for s in data["stages"]]
+            if refs != ["V-02","V-03"]:
+                errors.append(("stages","This thermal fixture requires Heat before Expand."))
+            if data.get("transfer_draft"):
+                errors.append(("transfer","Review and apply edited transfer fields."))
+            positive("tolerance")
         errors.extend((field, "Unfinished input: " + str(value)) for field, value in doc["buffers"].items())
         return errors
+
+    def post_frame(self, key, result_id=None):
+        """Read one exact retained synthetic frame; never interpolate or compute."""
+        view=self.doc(key)["draft"]
+        result=self.results.get(result_id or view["result"], {})
+        times=result.get("times", [])
+        field=result.get("fields", {}).get(view["array"])
+        available=(view["time"] in times and field is not None and
+                   view["association"]==field["association"])
+        index=times.index(view["time"]) if view["time"] in times else None
+        return {"available":available,"time":view["time"],"array":view["array"],
+                "unit":field["unit"] if field else view.get("unit", ""),
+                "association":field["association"] if field else "UNAVAILABLE",
+                "value":field["values"][index] if available else None,
+                "measurements":{name:{"value":f["values"][index] if index is not None else None,
+                                       "unit":f["unit"]} for name,f in result.get("fields",{}).items()},
+                "times":times,"curve":field["values"] if field else []}
 
     def save_document(self, key, path=None, fail=False):
         doc = self.doc(key)
@@ -361,15 +476,15 @@ class ReviewSession:
         return {"id": saved["id"], "revision": saved["revision"],
                 "payload_hash": digest(saved["saved"]), "path": str(path)}
 
-    def refresh_data_source(self):
+    def refresh_data_source(self, key="numerical"):
         data = self.doc("data")
         if data["dirty"]:
             raise ReviewError("Save Data before using its new observations.")
-        plan = clone(self.doc("numerical")["draft"])
+        plan = clone(self.doc(key)["draft"])
         plan["sources"]["data"] = {"id": data["id"], "revision": data["revision"]}
         plan["observation_snapshot"] = clone(data["saved"])
         plan["data_source_stale"] = False
-        self.change("numerical", plan, "Refresh saved observations")
+        self.change(key, plan, "Refresh saved observations")
 
     def freeze(self, key):
         doc = self.doc(key)
@@ -383,7 +498,7 @@ class ReviewSession:
         item = {"id": frozen_id, "mode": "UI_REPLAY_ONLY",
                 "source": {"id": doc["id"], "revision": doc["revision"]},
                 "payload": payload, "hash": digest(payload)}
-        if key == "numerical":
+        if doc["owner"] == "Numerical":
             obs = payload["observation_snapshot"]
             mask = set(obs["quality_excluded"])
             keep = set(payload["train_samples"])
@@ -426,10 +541,16 @@ class ReviewSession:
             if job["result"]:
                 return job
             result_id = token("review-result")
-            self.results[result_id] = {"id": result_id, "synthetic": True,
+            owner=self.doc(job["source"]["id"])["owner"]
+            input_payload=self.frozen[job["input"]]["payload"]
+            family=input_payload.get("family","")
+            if not (owner=="native_pre" or (owner=="Simulation" and family not in ("Thermal","Thermoelastic"))):
+                raise ReviewError("No retained result fixture is provided for this input type. The attempt remains unevaluated.")
+            self.results[result_id] = {"id": result_id, "synthetic": True, "kind":"structural",
                 "source": clone(job["source"]), "input": job["input"],
                 "attempt": job["attempt"], "time": .04, "status": "RETAINED_FIXTURE",
-                "metrics": {"displacement": .31, "mass": .42, "clearance": .12}}
+                "metrics": {"displacement": .31, "mass": .42, "clearance": .12},
+                "times":[0,.01,.02,.04],"fields":structural_fields(.31)}
             job["result"] = result_id
             # A late retained fixture belongs to the original cancelled attempt.
             if job["status"] not in ("CANCELLED", "CANCEL_REQUESTED"):
@@ -445,7 +566,7 @@ class ReviewSession:
             raise ReviewError("Only a retained feasible review candidate can be proposed.")
         group_id = token("review-adoption")
         group = {"id": group_id, "candidate": candidate_id, "status": "PROPOSAL",
-                 "result": "fixture-result-clamp", "source_plan": {"id": "N-MOO", "revision": 4},
+                 "result": candidate["result_ref"], "source_plan": clone(candidate["plan_ref"]),
                  "receipt": None, "owners": {}}
         for key, field in (("cad", "thickness"), ("material", "mu")):
             doc = self.doc(key)
@@ -459,6 +580,8 @@ class ReviewSession:
 
     def apply_owner(self, group_id, key):
         group, doc = self.groups[group_id], self.doc(key)
+        if group["status"]=="CANCELLED":
+            raise ReviewError("This proposal was cancelled. Prepare a new proposal explicitly.")
         row = group["owners"][key]
         if row["status"] in ("APPLIED", "SAVED"):
             return row
@@ -469,13 +592,15 @@ class ReviewSession:
         payload = clone(doc["draft"])
         payload[row["field"]] = row["candidate"]
         self.change(key, payload, "Apply " + group["candidate"])
-        row["applied_hash"] = digest(payload)
+        row["applied_hash"] = digest(self.doc(key)["draft"])
         row["status"] = "APPLIED"
         group["status"] = "PARTIAL"
         return row
 
     def save_adoption_owner(self, group_id, key, path=None, fail=False):
         group, doc = self.groups[group_id], self.doc(key)
+        if group["status"]=="CANCELLED":
+            raise ReviewError("This proposal was cancelled. Saved owners are retained.")
         row = group["owners"][key]
         if row["status"] == "SAVED":
             return clone(row["saved_receipt"])
@@ -490,6 +615,8 @@ class ReviewSession:
 
     def publish_group(self, group_id):
         group = self.groups[group_id]
+        if group["status"]=="CANCELLED":
+            raise ReviewError("A cancelled proposal cannot be published.")
         if group["receipt"]:
             return clone(group["receipt"])
         if not all(r["status"] == "SAVED" for r in group["owners"].values()):
@@ -498,6 +625,12 @@ class ReviewSession:
             doc, receipt = self.doc(key), row["saved_receipt"]
             if doc["dirty"] or doc["revision"] != receipt["revision"] or digest(doc["saved"]) != receipt["payload_hash"]:
                 raise ReviewError("A target changed after its save. Re-inspect the group.")
+            try:
+                disk=json.loads(Path(receipt["path"]).read_text(encoding="utf-8"))["document"]
+                if disk["id"]!=receipt["id"] or disk["revision"]!=receipt["revision"] or digest(disk["saved"])!=receipt["payload_hash"]:
+                    raise ReviewError("A saved target changed outside this window. Re-inspect the group.")
+            except (OSError,ValueError,KeyError) as error:
+                raise ReviewError("A saved target cannot be verified. Re-open its file before publication.") from error
         receipt = {"group": group_id, "candidate": group["candidate"],
                    "source_plan": clone(group["source_plan"]), "result": group["result"],
                    "owners": {k: clone(v["saved_receipt"]) for k, v in group["owners"].items()},
@@ -560,7 +693,9 @@ class ReviewSession:
     def material_repair_scenario(self):
         doc = self.doc("material")
         doc["revision"] = 19
-        doc["saved"]["mu"] = 1.12
+        doc["saved"]["mu"] = .862
+        doc["saved"]["adoption"]={"candidate":"c017","fit_source":{"id":"MAT-01","revision":17},
+                                  "plan":{"id":"N-FIT","revision":8},"result":"fixture-result-c017"}
         doc["draft"] = clone(doc["saved"])
         doc["history"].append({"revision": 19, "payload": clone(doc["saved"]), "source": "FIXTURE"})
         self.mark_dependency_missing()
