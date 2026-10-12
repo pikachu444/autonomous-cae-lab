@@ -49,8 +49,8 @@ RESPONSE_ROLES = ("Minimize", "Maximize", "Upper bound", "Lower bound", "Target"
 EVALUATORS = ("Unassigned", "Clamp / material response", "Structural Simulation",
               "Material response", "PDE response", "Thermal expansion Evaluation")
 VARIABLE_BINDINGS = {
-    "cad": {"thickness":"mm", "width":"mm", "height":"mm"},
-    "material": {"mu":"MPa", "bulk":"MPa"},
+    "cad": {"thickness":"mm", "width":"mm", "height":"mm", "contact.mu":"1", "contact.gap":"mm", "mesh.size":"mm"},
+    "material": {"mu":"MPa", "bulk":"MPa", "parameters.E":"MPa", "parameters.nu":"1", "parameters.yield":"MPa", "parameters.hardening":"MPa", "parameters.cohesion":"MPa", "parameters.friction_angle":"deg", "parameters.dilation_angle":"deg", "parameters.g1":"1", "parameters.tau1":"s", "parameters.g2":"1", "parameters.tau2":"s"},
     "simulation": {"force":"N", "duration":"s", "time_step":"s", "initial_velocity":"m/s"},
     "pde": {"k":"declared", "f":"declared", "mesh":"m"},
     "thermal": {"temperature":"K"}, "thermoelastic": {"alpha":"1/K", "Tref":"K"},
@@ -393,7 +393,9 @@ def initial_documents():
         "width":1.0,"height":.6,"initial":"0","study_type":"Stationary",
         "time_range":"0:0.1:1","field_unit":"1","bc_type":"Dirichlet",
         "boundaries":{"Left edge":"u = 0","Right edge":"n·k·grad(u) = 0","Top edge":"n·k·grad(u) = 0","Bottom edge":"n·k·grad(u) = 0"},
-        "form": "Registered PDE", "capability": "UNCONNECTED"})
+        "form": "Registered PDE", "capability": "UNCONNECTED",
+        "weak_form":{"test":"v","trial":"u","domain":"Rectangle","integral":"k*dot(grad(u),grad(v))*dx - f*v*dx","quadrature":"Auto"},
+        "ode":{"state":"x","rhs":"-a*x + f","initial":1.0,"start":0.0,"stop":5.0,"step":.1,"a":1.0,"unit":"1"}})
     add("numerical", "Clamp trade-off", "Numerical", "N-MOO", 4, {
         "method": "MOO", "evaluator": "Clamp / material response",
         "budget": 40, "seed": 17, "method_settings": {},
@@ -608,13 +610,26 @@ class ReviewSession:
             for dep in data["dependencies"]:
                 if dep["missing"] and dep["id"] not in self.relocations:
                     errors.append(("dependencies", "Locate the missing original: " + dep["name"]))
+            pars=data.get("parameters",{})
+            if data["law"] in ("J2 plasticity","Drucker–Prager","User constitutive law"):
+                if pars.get("E",0)<=0 or not -1<float(pars.get("nu",.3))<.5:errors.append(("parameters","Use E > 0 and -1 < nu < 0.5."))
+            if data["law"]=="J2 plasticity" and (pars.get("yield",0)<=0 or pars.get("hardening",0)<0):errors.append(("parameters","Yield stress must be positive; hardening may be zero."))
+            if data["law"]=="Prony viscoelastic" and (not 0<=pars.get("g1",0)+pars.get("g2",0)<1 or min(pars.get("g1",0),pars.get("g2",0))<0 or min(pars.get("tau1",0),pars.get("tau2",0))<=0):errors.append(("parameters","Prony fractions are nonnegative with sum below one; relaxation times are positive."))
         elif doc["owner"] == "PDE":
             for field in ("k", "mesh", "width", "height"):
                 positive(field)
             if data.get("pending_boundaries"):errors.append(("boundary","Apply or reset the edited boundary condition."))
             if not data.get("field", "").isidentifier():errors.append(("field","Use a valid unknown field name."))
-            if not data["equation"].strip():
-                errors.append(("equation", "An equation is required."))
+            if not data["equation"].strip():errors.append(("equation", "An equation is required."))
+            if data.get("form")=="General weak form":
+                weak=data["weak_form"]
+                if not weak["test"].isidentifier() or not weak["trial"].isidentifier() or weak["test"]==weak["trial"]:errors.append(("equation","Use distinct valid trial and test field names."))
+                if not weak["integral"].strip() or not weak["domain"].strip():errors.append(("equation","A weak integral and domain are required."))
+            if data.get("form")=="ODE":
+                ode=data["ode"]
+                try:
+                    if not ode["state"].isidentifier() or not ode["rhs"].strip() or not all(math.isfinite(float(ode[k])) for k in ("initial","start","stop","step","a")) or float(ode["step"])<=0 or float(ode["stop"])<=float(ode["start"]):raise ValueError()
+                except (ValueError,TypeError):errors.append(("equation","Correct ODE state, RHS, initial value and increasing time range with positive step."))
         elif doc["owner"] == "Simulation":
             if data["family"] not in ("Thermal","Thermoelastic"):
                 for field in ("duration","increments","time_step"):
@@ -746,6 +761,9 @@ class ReviewSession:
         saved["dirty"] = bool(saved["buffers"])
         saved["file"] = str(path)
         attachments = {}
+        evidence_ids=[e.get("id",e.get("ref")) for e in saved["draft"].get("evidence",[]) if isinstance(e,dict)]
+        if saved["draft"].get("method_result"):evidence_ids.append(saved["draft"]["method_result"])
+        attachments["evidence_results"]={rid:clone(self.results[rid]) for rid in evidence_ids if rid in self.results}
         if doc["owner"] == "native_post":
             result_id = saved["draft"].get("result")
             if result_id in self.results:
@@ -834,6 +852,18 @@ class ReviewSession:
             owner=self.doc(job["source"]["id"])["owner"]
             input_payload=self.frozen[job["input"]]["payload"]
             family=input_payload.get("family","")
+            if owner=="Numerical":
+                examples=json.loads((HERE/"fixtures"/"methods.json").read_text(encoding="utf-8"))
+                method=input_payload["method"]
+                if method not in examples:raise ReviewError("Choose a retained MOO candidate for its exact result, or load a method example with a supported method.")
+                self.results[result_id]={"id":result_id,"synthetic":True,"kind":"numerical","source":clone(job["source"]),
+                    "input":job["input"],"attempt":job["attempt"],"method":method,"status":"AUTHORED_EXAMPLE",
+                    "computed_from_input":False,"fixture":clone(examples[method]),"metrics":{},
+                    "parent_key":input_payload.get("parent_key")}
+                job["result"]=result_id
+                if job["status"] not in ("CANCELLED","CANCEL_REQUESTED"):job["status"]="RETAINED_FIXTURE"
+                job["log"].append("Authored "+method+" result example loaded; not evaluated from the edited input.")
+                return job
             if not (owner=="native_pre" or (owner=="Simulation" and family not in ("Thermal","Thermoelastic"))):
                 raise ReviewError("No retained result fixture is provided for this input type. The attempt remains unevaluated.")
             geometry=clone(input_payload) if owner=="native_pre" else self.resolve(input_payload["model_ref"])[1]
@@ -1028,6 +1058,10 @@ class ReviewSession:
             raise ReviewError("An unsaved document is open. Save or undo it before reopening.")
         doc["file"] = str(Path(path))
         attachments = raw.get("attachments", {})
+        for rid,record in attachments.get("evidence_results",{}).items():
+            if record.get("id")!=rid or not record.get("synthetic"):raise ReviewError("Invalid attached review evidence.")
+            if rid in self.results and self.results[rid]!=record:raise ReviewError("Different evidence already has this identity.")
+            self.results[rid]=clone(record)
         result = attachments.get("result")
         if result:
             if result["id"] != doc["draft"].get("result") or not result.get("synthetic"):

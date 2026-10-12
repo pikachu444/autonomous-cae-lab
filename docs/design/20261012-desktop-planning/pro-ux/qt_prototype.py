@@ -96,6 +96,11 @@ def number(text):
     return result
 
 
+def numeric_draft(text):
+    try:return number(text)
+    except ValueError:return text
+
+
 def fill_table(table, rows, editable=()):
     """Replace rows without treating a refresh as user input."""
     blocked = table.blockSignals(True)
@@ -403,6 +408,7 @@ class ToolWindow(QMainWindow):
             if field in ("thickness","width","height"):
                 self.props.setCurrentCell(("thickness","width","height").index(field),1);self.props.setFocus()
         elif self.document["owner"]=="Numerical":
+            if field=="method_inputs":self.top_tabs.setCurrentIndex(3);self.method_detail.setFocus();return
             if field in ("method","budget","seed") or field.startswith("method."):self.top_tabs.setCurrentIndex(2);self.method_table.setFocus();return
             if field=="evaluator":self.evaluator.setFocus()
             else:
@@ -413,6 +419,11 @@ class ToolWindow(QMainWindow):
         elif self.document["owner"]=="Simulation" and field in self.numeric_fields:
             self.pages.setCurrentIndex(1)
             self.table.setCurrentCell(self.numeric_fields.index(field),1);self.table.setFocus()
+        elif self.document["owner"]=="Simulation":
+            page=1 if field.startswith("steps") else 2 if "condition" in field else 5 if "failure" in field else 1
+            self.pages.setCurrentIndex(page)
+            if field.startswith("steps."):
+                index=int(field.split(".")[1]);self.steps.selectRow(index);self.table.setFocus()
         elif self.document["owner"]=="PDE":
             if field=="boundary":self.pages.setCurrentIndex(4)
             elif field=="field":self.pages.setCurrentIndex(2);self.field_name.setFocus()
@@ -1291,7 +1302,10 @@ class PDEWindow(ToolWindow):
         self.equation=QPlainTextEdit();self.equation.setMaximumHeight(190);self.equation.textChanged.connect(self.equation_changed)
         self.coefficients=make_table(["Coefficient","Value","Unit"],[],editable=(1,),select_rows=False)
         self.coefficients.itemChanged.connect(lambda item:self.numeric_changed(item,["k","f"]))
-        self.pages.addWidget(box(QLabel("Equation form"),self.form,self.equation,self.coefficients,margins=8))
+        self.extension=make_table(["Definition","Value","Unit"],[],editable=(1,),select_rows=False)
+        self.extension.itemChanged.connect(self.extension_changed)
+        self.extension.setColumnWidth(0,130);self.extension.setColumnWidth(1,180)
+        self.pages.addWidget(box(QLabel("Equation form"),self.form,self.equation,self.coefficients,self.extension,margins=8))
         self.boundary_pages=[]
         for name in self.node_names[4:8]:
             kind=QComboBox();kind.addItems(["Dirichlet","Flux / Neumann","Robin"])
@@ -1305,7 +1319,11 @@ class PDEWindow(ToolWindow):
         self.time_range=QLineEdit();self.time_range.textEdited.connect(lambda v:self.edit_field("time_range",v))
         self.pages.addWidget(box(QLabel("Study"),self.study_type,QLabel("Output times [s]"),self.time_range,button("Solve…",self.evaluate),margins=8))
         self.graphics=EngineeringView("pde");self.graphics.faceSelected.connect(self.graphic_selected)
-        split=QSplitter();split.addWidget(self.pages);split.addWidget(self.graphics);split.setSizes([370,840]);self.setCentralWidget(split)
+        self.graphics_tabs=QTabWidget();self.graphics_tabs.addTab(self.graphics,"Graphics")
+        self.ode_curve=CurveView(xlabel="Time [s]",ylabel="x [1]")
+        self.graphics_tabs.addTab(self.ode_curve,"ODE curve")
+        self.action(self.review_menu,"Show authored ODE curve",self.ode_example)
+        split=QSplitter();split.addWidget(self.pages);split.addWidget(self.graphics_tabs);split.setSizes([430,780]);self.setCentralWidget(split)
         self.messages=make_table(["Location","Message"],[["Result","No PDE evaluator has run"]])
         self.messages_dock=self.add_dock("Messages",self.messages,Qt.DockWidgetArea.BottomDockWidgetArea);self.resizeDocks([self.messages_dock],[110],Qt.Orientation.Vertical)
         self.tree.itemSelectionChanged.connect(self.node_selected);self.refresh();self.pages.setCurrentIndex(3)
@@ -1315,10 +1333,30 @@ class PDEWindow(ToolWindow):
 
     def form_changed(self,value):
         self.edit_field("form",value)
-        if not self._building:fill_table(self.messages,[["Adapter","Extension unavailable; editable draft retained" if value!="Registered PDE" else "Not connected"]])
+        if not self._building:
+            self.refresh()
+            fill_table(self.messages,[["Adapter","Extension unavailable; editable draft retained" if value!="Registered PDE" else "Not connected"]])
+
+    def extension_changed(self,item):
+        if self._building or item.column()!=1:return
+        group="weak_form" if self.data["form"]=="General weak form" else "ode"
+        field=self.extension_fields[item.row()];value=item.text()
+        if group=="ode" and field in ("initial","start","stop","step","a"):self.edit_number(field,item,group);return
+        payload=clone(self.data);payload[group][field]=value
+        if field=="trial":payload["field"]=value
+        self.session.change(self.key,payload,"Edit "+group+" definition");self.update_title()
+
+    def ode_example(self):
+        self.ode_curve.set_series([{"name":"Authored x(t) example","x":[0,1,2,3,4,5],"y":[1,.367879,.135335,.049787,.018316,.006738],"color":BLUE}])
+        self.ode_curve.caption="Authored x(0)=1, a=1, f=0 example; current equation was not solved"
+        self.graphics_tabs.setCurrentIndex(1)
 
     def equation_changed(self):
-        self.edit_field("equation",self.equation.toPlainText())
+        if self._building:return
+        if self.data["form"]=="Registered PDE":self.edit_field("equation",self.equation.toPlainText());return
+        payload=clone(self.data);group="weak_form" if self.data["form"]=="General weak form" else "ode"
+        payload[group]["integral" if group=="weak_form" else "rhs"]=self.equation.toPlainText()
+        self.session.change(self.key,payload,"Edit "+group+" expression");self.update_title()
 
     def numeric_changed(self,item,fields):
         if not self._building and item.column()==1:self.edit_number(fields[item.row()],item);self.update_graphics()
@@ -1369,7 +1407,14 @@ class PDEWindow(ToolWindow):
     def refresh(self):
         was=self._building;self._building=True
         self.domain.setCurrentText(self.data["domain"]);self.field_name.setText(self.data["field"]);self.field_unit.setText(self.data.get("field_unit","1"));self.space.setCurrentText(self.data["space"])
-        self.form.setCurrentText(self.data["form"]);self.equation.setPlainText(self.data["equation"])
+        self.form.setCurrentText(self.data["form"])
+        mode=self.data["form"]
+        self.equation.setPlainText(self.data["equation"] if mode=="Registered PDE" else self.data["weak_form"]["integral"] if mode=="General weak form" else self.data["ode"]["rhs"])
+        self.extension_fields=["test","trial","domain","quadrature"] if mode=="General weak form" else ["state","initial","start","stop","step","a","unit"]
+        group="weak_form" if mode=="General weak form" else "ode"
+        self.extension.setVisible(mode!="Registered PDE");self.coefficients.setVisible(mode!="ODE")
+        if mode!="Registered PDE":fill_table(self.extension,[[key.replace("_"," ").title(),self.raw(group+"."+key,self.data[group][key]),"s" if key in ("start","stop","step") else "1/s" if key=="a" else ""] for key in self.extension_fields],(1,))
+        self.graphics_tabs.setTabEnabled(1,mode=="ODE")
         fill_table(self.domain_size,[[k.title(),self.raw(k,self.data.get(k,d)),"m"] for k,d in (("width",1),("height",.6))],(1,))
         fill_table(self.mesh_table,[["Element size",self.raw("mesh",self.data["mesh"]),"m"]],(1,))
         fill_table(self.coefficients,[[k,self.raw(k,self.data[k]),"declared"] for k in ("k","f")],(1,))
@@ -1390,6 +1435,7 @@ class NumericalWindow(ToolWindow):
         self.action(self.toolbar,"Check",self.input_diagnostics)
         self.action(self.toolbar,"Run study…",self.submit_review)
         self.action(self.toolbar,"Review candidate…",self.inspect_candidate)
+        self.action(self.toolbar,"Open study result",self.open_method_result)
         self.adopt_action=self.action(self.toolbar,"Apply to owners…",self.adopt)
         self.action(self.review_menu,"Refresh saved observations…",self.refresh_observations)
         self.action(self.review_menu,"Show synthetic method results",self.show_method_example)
@@ -1454,7 +1500,9 @@ class NumericalWindow(ToolWindow):
         def update_value(*args):
             key=owner.currentText();name=field.currentText()
             if not name:return
-            value=self.session.doc(key)["draft"][name];unit.setText(VARIABLE_BINDINGS[key][name]);start.setText(str(value))
+            value=self.session.doc(key)["draft"]
+            for part in name.split("."):value=value[part]
+            unit.setText(VARIABLE_BINDINGS[key][name]);start.setText(str(value))
             values=sorted((value*.8,value*1.2));lower.setText(str(values[0] if value else -1));upper.setText(str(values[1] if value else 1))
         owner.currentTextChanged.connect(update_field);field.currentTextChanged.connect(update_value);update_field()
         for label,w in (("Owner",owner),("Field",field),("Unit",unit),("Start",start),("Search lower",lower),("Search upper",upper)):form.addRow(label,w)
@@ -1464,7 +1512,7 @@ class NumericalWindow(ToolWindow):
             payload=clone(self.data)
             if any(v["owner"]==owner.currentText() and v["field"]==field.currentText() for v in payload["variables"]):raise ReviewError("This owner field is already a variable.")
             payload["variables"].append({"owner":owner.currentText(),"field":field.currentText(),"unit":unit.text(),
-                "start":number(start.text()),"lower":number(lower.text()),"upper":number(upper.text()),"free":True,"type":"float"})
+                "start":numeric_draft(start.text()),"lower":numeric_draft(lower.text()),"upper":numeric_draft(upper.text()),"free":True,"type":"float"})
             doc=self.session.doc(owner.currentText());payload["sources"][owner.currentText()]={"id":doc["id"],"revision":doc["revision"]}
             self.session.change(self.key,payload,"Bind research variable");self.refresh();self.top_tabs.setCurrentIndex(0)
 
@@ -1480,7 +1528,7 @@ class NumericalWindow(ToolWindow):
         buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);form.addRow(buttons)
         if dialog.exec()==QDialog.DialogCode.Accepted:
             payload=clone(self.data);payload["responses"].append({"name":quantity.currentText(),"role":role.currentText(),"unit":unit.text(),
-                "limit":number(limit.text()) if limit.text().strip() else "","location":location.text(),"time":number(time.text()),"reduction":reduction.currentText()})
+                "limit":numeric_draft(limit.text()) if limit.text().strip() else "","location":location.text(),"time":numeric_draft(time.text()),"reduction":reduction.currentText()})
             self.session.change(self.key,payload,"Define response");self.refresh();self.top_tabs.setCurrentIndex(1)
 
     def remove_definition(self,kind):
@@ -1605,6 +1653,14 @@ class NumericalWindow(ToolWindow):
         self.plot.set_series(fixture["series"]);self.plot_tabs.setTabText(0,fixture["view"]);self.plot_tabs.setTabEnabled(0,True);self.plot_tabs.setCurrentIndex(0)
         self.update_title("Synthetic "+method+" results example")
 
+    def open_method_result(self):
+        result_id=self.data.get("method_result")
+        if not result_id:
+            found=[r for r in self.session.results.values() if r.get("kind")=="numerical" and r["source"]["id"]==self.document["id"]]
+            if found:result_id=found[-1]["id"]
+        if not result_id:raise ReviewError("Create a review attempt, then use Runner / Review / Load retained result fixture.")
+        return self.hub.open_result(result_id)
+
     def refresh_observations(self):
         data=self.session.doc("data");used=len(data["saved"]["samples"])-len(data["saved"]["quality_excluded"])
         if QMessageBox.question(self,"Refresh observations",f"Use saved {data['name']} with {used} included samples?")==QMessageBox.StandardButton.Yes:
@@ -1668,6 +1724,8 @@ class NumericalWindow(ToolWindow):
         headers,defaults,secondary_headers,secondary_defaults=self.worksheet();sheet=self.data.get("method_sheets",{}).get(method,{})
         self.method_detail.setColumnCount(len(headers));self.method_detail.setHorizontalHeaderLabels(headers)
         fill_table(self.method_detail,defaults if method=="MOO" else sheet.get("primary",defaults),tuple(range(len(headers))))
+        if getattr(self,"_sheet_layout_method",None)!=method:
+            self.method_detail.resizeColumnsToContents();self._sheet_layout_method=method
         self.secondary.setColumnCount(len(secondary_headers));self.secondary.setHorizontalHeaderLabels(secondary_headers)
         fill_table(self.secondary,sheet.get("secondary",secondary_defaults),tuple(range(1,len(secondary_headers))) if method in ("UQ","MDO","RBF surrogate") else ())
         self.sheet_tabs.setTabText(1,{"UQ":"Correlations","Sobol sensitivity":"Pairing","RBF surrogate":"Validation / support","MDO":"Transfer"}.get(method,"Definition checks"))
@@ -1774,7 +1832,9 @@ class RunnerWindow(ToolWindow):
         self.result.setRowCount(0)
         if job["result"]:
             result=self.session.results[job["result"]]
-            for i,(key,value) in enumerate(result["metrics"].items()):
+            if result.get("kind")=="numerical":
+                fill_table(self.result,[[name,value,""] for name,value in result["fixture"]["summary"]])
+            for i,(key,value) in enumerate(result.get("metrics",{}).items()):
                 self.result.insertRow(i)
                 for j,text in enumerate([key,str(value),"kg" if key=="mass" else "mm"]):
                     self.result.setItem(i,j,QTableWidgetItem(text))
@@ -2178,7 +2238,7 @@ class ExpertWindow(ToolWindow):
         dialog=QDialog(self);dialog.setWindowTitle("Add discussion evidence");form=QFormLayout(dialog)
         choice=QComboBox()
         for rid,result in self.session.results.items():
-            if result.get("fields"):choice.addItem(result.get("candidate",rid),rid)
+            if result.get("fields") or result.get("kind")=="numerical":choice.addItem(result.get("method",result.get("candidate",rid)),rid)
         choice.addItem("Calibration original","CAL-018");locator=QLineEdit("Gauge / t = 0.04 s");label=QLineEdit("Gauge measurement")
         form.addRow("Result / source",choice);form.addRow("Location",locator);form.addRow("Label",label)
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel);buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);form.addRow(buttons)
@@ -2236,7 +2296,7 @@ class ExpertWindow(ToolWindow):
 
 class StudyWindow(ToolWindow):
     def build(self):
-        self.action(self.toolbar,"Discuss",lambda:self.hub.open("expert"))
+        self.action(self.toolbar,"Discuss",lambda:self.hub.open(self.hub.discussion_for(self.key)))
         self.action(self.toolbar,"Next research…",self.next_plan)
         self.action(self.toolbar,"Add hypothesis…",self.add_hypothesis)
         self.action(self.toolbar,"Add evidence…",self.add_evidence)
@@ -2293,7 +2353,7 @@ class StudyWindow(ToolWindow):
         dialog=QDialog(self);dialog.setWindowTitle("Relate evidence");form=QFormLayout(dialog)
         result=QComboBox()
         for rid,value in self.session.results.items():
-            if value.get("fields"):result.addItem(value.get("candidate",rid),rid)
+            if value.get("fields") or value.get("kind")=="numerical":result.addItem(value.get("method",value.get("candidate",rid)),rid)
         hypothesis=QComboBox();hypothesis.addItems([h["id"] for h in self.data["hypotheses"]]);relation=QComboBox();relation.addItems(["Support","Refute","Neutral"])
         locator=QLineEdit("Gauge / t = 0.04 s")
         for label,w in (("Result",result),("Hypothesis",hypothesis),("Relation",relation),("Location",locator)):form.addRow(label,w)
@@ -2412,6 +2472,7 @@ class WorkbenchWindow(ToolWindow):
         self.graph.chosen.connect(self.selected_node);self.graph.opened.connect(self.hub.open)
         self.graph.moved.connect(self.positions_changed)
         self.graph.edgeChosen.connect(self.selected_edge)
+        self.graph.portChosen.connect(lambda key,port:self.port_selected(key,port))
         self.setCentralWidget(self.graph)
         self.items=make_table(["Document","Tool"],[[self.session.doc(k)["name"],TOOL_NAMES[k]] for k in coords])
         self.node_keys=list(coords)
@@ -2421,6 +2482,10 @@ class WorkbenchWindow(ToolWindow):
 
     def selected_node(self,key):
         self.current=key;self.update_title(self.session.doc(key)["name"])
+
+    def port_selected(self,key,port):
+        self.current=key;self.session.selected["port"]={"owner":key,"direction":port}
+        self.update_title(TOOL_NAMES[key]+" / "+port+" / Enter opens the owner")
 
     def selected_edge(self,a,b):
         self.current=b;self.update_title(TOOL_NAMES[a]+" → "+TOOL_NAMES[b]+" / open receiving tool")
@@ -2457,7 +2522,7 @@ class WorkbenchWindow(ToolWindow):
 
 class DesktopHub:
     def __init__(self,session):
-        self.session=session;self.windows={};self.other_hubs=[]
+        self.session=session;self.windows={};self.other_hubs=[];self.result_dialogs={}
 
     def open(self,key):
         if key in self.windows:
@@ -2487,6 +2552,7 @@ class DesktopHub:
 
     def open_result(self,result_id):
         if result_id not in self.session.results:raise ReviewError("The exact result is unavailable.")
+        if self.session.results[result_id].get("kind")=="numerical":return self.inspect_research_result(result_id)
         if not self.session.results[result_id].get("fields"):
             raise ReviewError("This retained result has no 3D field arrays. Inspect its owning tool result table.")
         key="post:"+result_id
@@ -2499,6 +2565,91 @@ class DesktopHub:
             self.session.documents[key]=make_document(key,name,"native_post","POST-"+result_id,1,payload)
         return self.open(key)
 
+    def discussion_for(self,source_key):
+        if not source_key or source_key not in self.session.documents:return "expert"
+        source=self.session.doc(source_key)
+        if source["owner"]=="Discussion":return source_key
+        key="discussion:"+source["id"]
+        if key not in self.session.documents:
+            from prototype_state import make_document,token
+            data=clone(self.session.doc("expert")["saved"])
+            data.update(question=source["draft"].get("question",source["name"]),turns=[],evidence=[],pending_text="",reply_to=None)
+            self.session.documents[key]=make_document(key,source["name"],"Discussion",token("DISC"),0,data)
+        return key
+
+    def discuss_result(self,result_id,locator):
+        result=self.session.results[result_id];key=self.discussion_for(result.get("parent_key"))
+        payload=clone(self.session.doc(key)["draft"]);label=result.get("method",result.get("candidate","Result"))+" example"
+        if not any(e["id"]==result_id and e["locator"]==locator for e in payload["evidence"]):
+            payload["evidence"].append({"id":result_id,"locator":locator,"label":label,"synthetic":True})
+        payload["pending_evidence"]=[result_id]
+        self.session.change(key,payload,"Discuss selected result")
+        window=self.open(key);window.composer.setFocus();return window
+
+    def result_to_study(self,result_id,locator,parent=None):
+        dialog=QDialog(parent);dialog.setWindowTitle("Use result as research evidence");form=QFormLayout(dialog)
+        studies=QComboBox()
+        for key,doc in self.session.documents.items():
+            if doc["owner"]=="Study":studies.addItem(doc["name"],key)
+        hypothesis=QComboBox();relation=QComboBox();relation.addItems(["Neutral","Support","Refute"])
+        def fill(*args):hypothesis.clear();hypothesis.addItems([h["id"]+" / "+h["text"] for h in self.session.doc(studies.currentData())["draft"]["hypotheses"]])
+        studies.currentIndexChanged.connect(fill);fill()
+        for label,widget in (("Study",studies),("Hypothesis",hypothesis),("Relation",relation)):form.addRow(label,widget)
+        form.addRow("Selected result",QLabel(locator))
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel);buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);form.addRow(buttons)
+        if dialog.exec()==QDialog.DialogCode.Accepted:
+            key=studies.currentData();payload=clone(self.session.doc(key)["draft"])
+            payload["evidence"].append({"ref":result_id,"locator":locator,"hypothesis":payload["hypotheses"][hypothesis.currentIndex()]["id"],"relation":relation.currentText(),"synthetic":True})
+            self.session.change(key,payload,"Relate selected result evidence");return self.open(key)
+
+    def inspect_research_result(self,result_id):
+        if result_id in self.result_dialogs:
+            window=self.result_dialogs[result_id];window.show();window.raise_();return window
+        record=self.session.results[result_id];fixture=record["fixture"]
+        dialog=QDialog();dialog.setWindowTitle(record["method"]+" result");dialog.resize(1440,900)
+        layout=QVBoxLayout(dialog);label=QLabel(record["method"]+" / authored synthetic result / no evaluation")
+        label.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Fixed);label.setMaximumHeight(30)
+        layout.addWidget(label);tabs=QTabWidget();tables=[]
+        for definition in fixture["tables"]:
+            table=make_table(definition["headers"],definition["rows"]);tables.append(table);tabs.addTab(table,definition["name"])
+            table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        plot=CurveView(xlabel=fixture["xlabel"],ylabel=fixture["ylabel"]);plot.set_series(fixture["series"])
+        plot.caption="Authored example / not evaluated from this plan"
+        split=QSplitter();split.addWidget(tabs);split.addWidget(plot);split.setSizes([760,640]);layout.addWidget(split,1)
+        summary=make_table(["Finding","Value"],fixture["summary"]);summary.setMaximumHeight(135);layout.addWidget(summary)
+        def locator():
+            index=tabs.currentIndex();table=tables[index];row=table.currentRow()
+            return record["method"]+" / "+fixture["tables"][index]["name"]+(" / "+table.item(row,0).text() if row>=0 else "")
+        def selection_changed():
+            self.session.selected["result_evidence"]={"id":result_id,"locator":locator()}
+            table=tables[tabs.currentIndex()];row=table.currentRow()
+            if row>=0:plot.select_ids([table.item(row,0).text()]);plot.update()
+        for table in tables:table.itemSelectionChanged.connect(selection_changed)
+        def view_changed(index):
+            definition=fixture["tables"][index];rows=definition["rows"];name=definition["name"]
+            if name in ("Train residuals","Holdout"):
+                plot.xlabel="Engineering strain";plot.ylabel="Stress [MPa]"
+                plot.set_series([{"name":label,"x":[r[1] for r in rows],"y":[r[c] for r in rows],"ids":[r[0] for r in rows],"color":color} for label,c,color in (("Observed",2,BLUE),("Prediction example",3,ORANGE))])
+            elif name=="Prediction support":
+                plot.set_series([]);plot.caption="Outside support is unavailable; no extrapolated value is shown"
+            else:
+                plot.xlabel=fixture["xlabel"];plot.ylabel=fixture["ylabel"];plot.set_series(fixture["series"]);plot.caption="Authored example / no evaluation"
+            selection_changed()
+        tabs.currentChanged.connect(view_changed)
+        controls=box(button("Discuss selection",lambda:self.discuss_result(result_id,locator())),button("Use as Study evidence…",lambda:self.result_to_study(result_id,locator(),dialog)),horizontal=True)
+        if record["method"]=="MDO":
+            controls.layout().addWidget(button("Open Heat",lambda:self.open_reference({"id":"V-02","revision":4},dialog)))
+            controls.layout().addWidget(button("Open Expand",lambda:self.open_reference({"id":"V-03","revision":6},dialog)))
+            controls.layout().addWidget(button("Open Evaluation",lambda:self.open("evaluation")))
+        controls.layout().addWidget(button("Save review session…",lambda:self.save_result_session(dialog)))
+        controls.layout().addWidget(button("Close",dialog.close));layout.addWidget(controls)
+        dialog.result_tabs=tabs;dialog.result_plot=plot;dialog.result_tables=tables;dialog.result_id=result_id
+        self.result_dialogs[result_id]=dialog;dialog.show();tables[0].selectRow(0);return dialog
+
+    def save_result_session(self,parent):
+        path,_=QFileDialog.getSaveFileName(parent,"Save review session",str(self.session.workspace/"Research.json"),"Review session (*.json)")
+        if path:self.session.save_session(path)
+
     def open_fit(self,material_key):
         from prototype_state import make_document
         key="fit:"+material_key
@@ -2509,7 +2660,14 @@ class DesktopHub:
             if material["draft"].get("observation_snapshot"):
                 payload["observation_snapshot"]=clone(material["draft"]["observation_snapshot"]);payload["sources"]["data"]=clone(material["draft"]["observations"])
             payload["sources"]["material"]={"id":material["id"],"revision":material["revision"]}
-            payload["variables"]=[{"owner":material_key,"field":"mu","unit":"MPa","start":material["saved"]["mu"],"lower":.6,"upper":1.4,"free":True}]
+            fields={"Neo-Hookean":[("mu","MPa")],"J2 plasticity":[("parameters.yield","MPa"),("parameters.hardening","MPa")],
+                    "Drucker–Prager":[("parameters.cohesion","MPa"),("parameters.friction_angle","deg")],
+                    "Prony viscoelastic":[("parameters.g1","1"),("parameters.tau1","s")],"User constitutive law":[("parameters.E","MPa")]}
+            payload["variables"]=[]
+            for field,unit in fields[material["saved"]["law"]]:
+                value=material["saved"]
+                for part in field.split("."):value=value[part]
+                payload["variables"].append({"owner":material_key,"field":field,"unit":unit,"start":value,"lower":value*.7,"upper":value*1.3,"free":True})
             self.session.documents[key]=make_document(key,"Rubber identification","Numerical","N-FIT",1,payload)
         return self.open(key)
 
@@ -2534,7 +2692,7 @@ class DesktopHub:
             from prototype_state import make_document,token
             proposal=record();key="plan:"+parent.key
             if key not in self.session.documents:
-                payload=clone(self.session.doc("numerical")["saved"]);payload.update(method="DOE",budget=budget.value(),proposal=proposal)
+                payload=clone(self.session.doc("numerical")["saved"]);payload.update(method="DOE",budget=budget.value(),proposal=proposal,parent_key=parent.key)
                 payload["evaluator"]="Unassigned";payload["variables"]=[];payload["responses"]=[]
                 self.session.documents[key]=make_document(key,"Next experiment","Numerical",token("N"),0,payload)
                 self.session.documents[key]["dirty"]=True
@@ -2546,7 +2704,9 @@ class DesktopHub:
         dialog=QDialog(parent);dialog.setWindowTitle("Apply candidate "+group["candidate"]);dialog.resize(850,410)
         layout=QVBoxLayout(dialog)
         table=make_table(["Target","Current","Proposed","Unit","State"],[])
-        table.setRowCount(2);layout.addWidget(table)
+        table.setRowCount(2)
+        for column,width in enumerate((175,120,120,70)):table.setColumnWidth(column,width)
+        layout.addWidget(table)
         controls=QHBoxLayout()
         failure_message=QLabel("")
         def redraw():

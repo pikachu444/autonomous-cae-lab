@@ -102,7 +102,7 @@ class CurveView(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor("#ffffff"))
-        rect = QRectF(70, 38, max(10, self.width()-100), max(10, self.height()-100))
+        rect = QRectF(70, 38, max(10, self.width()-100), max(10, self.height()-122))
         self._plot = rect
         values = [(x, y) for s in self.series for x, y in zip(s["x"], s["y"])
                   if isinstance(y, (float, int)) and math.isfinite(y)]
@@ -527,6 +527,15 @@ class NodeView(QGraphicsView):
                 self.chosen.emit(item.key); break
             if isinstance(item,QGraphicsPathItem) and item.data(0):
                 a,b=item.data(0);self.edgeChosen.emit(a,b);break
+
+    def mousePressEvent(self,event):
+        point=self.mapToScene(event.position().toPoint())
+        for key,node in self.nodes.items():
+            local=node.mapFromScene(point)
+            for port,x in (("input",0),("output",170)):
+                if (local-QPointF(x,29)).manhattanLength()<12:
+                    self.select_node(key);self.portChosen.emit(key,port);return
+        super().mousePressEvent(event)
 
     def mouseDoubleClickEvent(self,event):
         item=self.itemAt(event.position().toPoint())
