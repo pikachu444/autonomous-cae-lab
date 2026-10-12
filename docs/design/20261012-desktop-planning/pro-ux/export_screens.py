@@ -88,6 +88,14 @@ def main():
                         payload=clone(window.data);payload['evidence'].append({'ref':rid,'locator':'DOE / Design responses / d2','hypothesis':'H1','relation':'Support','synthetic':True})
                         payload['judgment']='Insufficient evidence';payload['reason']='The authored DOE suggests a discriminating test. A measured gauge result is still required.'
                         payload['next_research']='Measure fixture and specimen displacement at the same force.';session.change('study',payload,'Apply review judgment');window.refresh()
+                elif setup=='report-source':
+                    window.load_study()
+                    if state.get('section'):
+                        for row in range(window.section_list.count()):
+                            if window.section_list.item(row).data(Qt.ItemDataRole.UserRole)==state['section']:
+                                window.section_list.setCurrentRow(row);break
+                elif setup=='acquisition-loss':
+                    window.show_connection_loss()
                 elif setup=='adoption-partial':
                     group=session.prepare_adoption('p19');group_id=group['id'];session.apply_owner(group_id,'cad');session.save_adoption_owner(group_id,'cad');session.apply_owner(group_id,'material')
                     try:session.save_adoption_owner(group_id,'material',fail=True)

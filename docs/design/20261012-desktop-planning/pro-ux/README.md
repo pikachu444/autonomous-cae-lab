@@ -2,7 +2,7 @@
 
 **검토 가능한 독립 Qt 기획 시제품입니다. 본제품 개발 착수나 공학 계산 완료를 뜻하지 않습니다.**
 
-요청 `PRO-DESKTOP-DESIGN-20261012-06`, UX-STEER-01 및 UX-FIX-01…04를 반영했습니다. 주 설계와 Qt·SVG 상태 작성은 ChatGPT Pro, 독립 검토는 Astra/xhigh, 제한 코드·Qt 검사는 Sol/high, 원본 조사는 Luna/high입니다. 다른 모델의 작업을 Pro 작성으로 표시하지 않습니다.
+요청 `PRO-DESKTOP-DESIGN-20261012-06`, UX-STEER-01 및 UX-FIX-01…06, UX-MAP-01/02, UX-VISUAL-01 및 UX-COMPLETE-01를 반영했습니다. 주 설계와 Qt·SVG 상태 작성은 ChatGPT Pro, 독립 검토는 Astra/xhigh, 제한 코드·Qt 검사는 Sol/high, 원본 조사는 Luna/high입니다. 다른 모델의 작업을 Pro 작성으로 표시하지 않습니다.
 
 ## Windows에서 실행
 
@@ -13,7 +13,7 @@ Set-Location C:\SourceCodes\autonomous-cae-lab\docs\design\20261012-desktop-plan
 py -3.13 qt_prototype.py --tool cad
 ```
 
-`--tool` 값은 `cad`, `simulation`, `thermal`, `thermoelastic`, `post`, `numerical`, `runner`, `expert`, `study`, `data`, `material`, `pde`, `evaluation`, `workbench`입니다. **Window 메뉴에서 다른 독립 도구를 같은 검토 세션으로 엽니다.** 각각 별도 명령으로 실행하면 별도 세션이므로, 도구 전달을 볼 때는 Window 메뉴를 사용하세요.
+`--tool` 값은 `cad`, `simulation`, `thermal`, `thermoelastic`, `post`, `numerical`, `runner`, `expert`, `study`, `data`, `material`, `pde`, `evaluation`, `workbench`, `report`, `acquisition`입니다. **Window 메뉴에서 다른 독립 도구를 같은 검토 세션으로 엽니다.** 각각 별도 명령으로 실행하면 별도 세션이므로, 도구 전달을 볼 때는 Window 메뉴를 사용하세요.
 
 ```powershell
 py -3.13 qt_prototype.py --tool expert --workspace "$env:TEMP\caelab-ux-review"
@@ -24,6 +24,20 @@ py -3.13 qt_prototype.py --scenario material-repair --tool material
 `--workspace`는 검토 JSON을 저장할 위치입니다. 생략하면 임시 폴더를 씁니다. File → Save/Save as에서 원하는 자연스러운 파일명을 고를 수 있습니다. 여러 도구·작업·후보 채택을 통째로 이어서 보려면 **File → Save review session…**을 사용합니다. 일반 Post Save에도 선택한 합성 결과와 해당 attempt/input이 들어가며, Expert/Study Save에는 연결된 합성 결과 근거가 들어갑니다.
 
 필수 실행 소스는 `qt_prototype.py`, `qt_widgets.py`, `prototype_state.py`, `fixtures/`입니다. PySide6 Core/Gui/Widgets를 사용하며 SVG 내보내기만 QtSvg가 필요합니다. 브라우저, localhost 서버, Matplotlib, 유료 API나 추가 UI kit가 필요하지 않습니다.
+
+## 추가 전용 창 — Report / Acquisition
+
+Study의 **Report…** 또는 `--tool report`로 엽니다. Use Study로 저장한 Study를 선택해 질문·판단·정확 결과를 가져옵니다. 왼쪽 Sections에서 포함 체크, drag 또는 Move up/down, Add/Remove를 조작합니다. 중앙에서 절 제목·본문·caption을 편집하고 표/curve의 Open source로 원 근거를 엽니다. Page preview는 절 순서대로 페이지를 보여 주며 Output에서 검토 PDF/Markdown과 누락 근거 처리 방식을 고릅니다. Export preview는 기존 Qt의 로컬 검토 출력이며 본제품 report engine이 아닙니다. 일반 Save는 편집 보고서와 선택 Study/결과를 함께 저장합니다.
+
+Data의 **Acquisition…** 또는 `--tool acquisition`로 엽니다. 채널 Add/Edit/Remove와 Cancel, force/extension/temperature의 호환 단위·역할·교정 연결을 편집합니다. sample rate/duration/time offset은 기존 정밀 숫자 text delegate를 씁니다. 기존 저장 Data의 sample/curve를 연결 선택하며 시간 offset·표시 단위만 적용합니다. **계획 rate/duration을 기존 trace에 적용하거나 새 측정으로 표시하지 않습니다.** Review → Connection loss example은 연결 오류·종료 미확인 상황을 검토합니다. 실제 Connect/Start/Stop은 UNAVAILABLE, 명령 NOT_SENT, ACK NOT_RECEIVED, 물리 종료 UNKNOWN입니다.
+
+```powershell
+py -3.13 qt_prototype.py --tool report
+py -3.13 qt_prototype.py --tool acquisition
+py -3.13 export_screens.py --offscreen --state report-sections --state report-preview --state acquisition-channels --state acquisition-connection --output "$env:TEMP\caelab-completion-svg" --png-output "$env:TEMP\caelab-completion-png"
+```
+
+**추가 4상태의 첫 소스 checkpoint:** 원격 Linux 실행 환경이 작성 중 연결을 잃어 새 창의 실행·SVG 렌더·PDF 출력은 아직 확인하지 못했습니다. 기존 049bbbc와 portablefont/Post 표의 Windows 확인은 Codex가 별도로 보고했습니다. 새 Report/Acquisition을 그 PASS에 포함하지 않습니다. 상태 원본과 같은 Qt view를 사용하는 exporter를 먼저 제공합니다.
 
 ## 먼저 조작할 경로
 

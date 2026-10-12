@@ -219,7 +219,7 @@
       "patch": {
         "family": "Explicit impact",
         "backend": "OpenCourant / OpenRadioss",
-        "time_step": 1e-06
+        "time_step": 0.000001
       },
       "node": "Initial conditions",
       "next": [
@@ -880,9 +880,9 @@
             "owner": "thermoelastic",
             "field": "alpha",
             "unit": "1/K",
-            "start": 1.2e-05,
-            "lower": 8e-06,
-            "upper": 1.5e-05,
+            "start": 0.000012,
+            "lower": 0.000008,
+            "upper": 0.000015,
             "free": true
           }
         ],
@@ -950,9 +950,9 @@
             "owner": "thermoelastic",
             "field": "alpha",
             "unit": "1/K",
-            "start": 1.2e-05,
-            "lower": 8e-06,
-            "upper": 1.5e-05,
+            "start": 0.000012,
+            "lower": 0.000008,
+            "upper": 0.000015,
             "free": true
           }
         ],
@@ -1323,6 +1323,101 @@
       "functions": [
         "FN-31"
       ]
+    },
+    {
+      "id": "report-sections",
+      "tool": "report",
+      "title": "Assemble research report",
+      "task": "선택 Study의 질문·판단과 정확 결과 표를 가져와 절 포함·정렬·내용·caption을 편집",
+      "viewport": [
+        1440,
+        900
+      ],
+      "setup": "report-source",
+      "section": "evidence-0",
+      "tabs": {
+        "tabs": 0
+      },
+      "next": [
+        "report-preview",
+        "study-judgment"
+      ],
+      "functions": [
+        "FN-32",
+        "FN-29",
+        "FN-01"
+      ]
+    },
+    {
+      "id": "report-preview",
+      "tool": "report",
+      "title": "Report page preview and output",
+      "task": "같은 Qt 페이지의 curve·단위·caption을 확인하고 PDF/Markdown 검토 출력·저장·cold reopen",
+      "viewport": [
+        1440,
+        900
+      ],
+      "setup": "report-source",
+      "section": "curve-0",
+      "tabs": {
+        "tabs": 1
+      },
+      "next": [
+        "report-sections",
+        "post-field"
+      ],
+      "functions": [
+        "FN-32",
+        "FN-01"
+      ]
+    },
+    {
+      "id": "acquisition-channels",
+      "tool": "acquisition",
+      "title": "Acquisition channels and retained trace",
+      "task": "채널·단위·교정·시간·rate/duration을 편집하고 기존 파일의 sample/curve를 연결 선택; live UNAVAILABLE",
+      "viewport": [
+        1440,
+        900
+      ],
+      "tabs": {
+        "tabs": 0
+      },
+      "next": [
+        "acquisition-connection",
+        "data-calibration",
+        "data-workbook"
+      ],
+      "functions": [
+        "FN-35",
+        "FN-03",
+        "FN-05",
+        "FN-01"
+      ]
+    },
+    {
+      "id": "acquisition-connection",
+      "tool": "acquisition",
+      "title": "Acquisition connection and end review",
+      "task": "연결 손실 예시에서 계획/기존 Data로 이동; 실제 명령 NOT_SENT·종료 ACK NOT_RECEIVED·물리 상태 UNKNOWN",
+      "viewport": [
+        1440,
+        900
+      ],
+      "setup": "acquisition-loss",
+      "patch": {
+        "notes": "Review the selected driver and channel calibration. Continue with the existing file while live access is unavailable."
+      },
+      "tabs": {
+        "tabs": 1
+      },
+      "next": [
+        "acquisition-channels",
+        "data-workbook"
+      ],
+      "functions": [
+        "FN-35"
+      ]
     }
   ],
   "prior_references": {
@@ -1335,12 +1430,16 @@
         "REOPEN-REPORT"
       ],
       "function_spec": "pro-authored/FUNCTION_SPEC.md::FN-32",
-      "prototype_status": "UNCONNECTED_REPORT_GUI_AND_EXPORT",
+      "prototype_status": "DEDICATED_PLANNING_GUI_AUTHORED; PRODUCT_REPORT_ENGINE_UNCONNECTED",
       "related_input_states": [
         "post-field",
         "study-judgment"
       ],
-      "relationship": "Existing result/Study evidence only; neither state depicts report section/output/preview/export."
+      "relationship": "Dedicated native Qt section/page/output review view; Qt preview PDF/Markdown is local prototype export. Original production artifact/report integration remains D1 work. New Qt execution pending after remote environment disconnect.",
+      "prototype_states": [
+        "report-sections",
+        "report-preview"
+      ]
     },
     "FN-34": {
       "source_commit": "95a2389ca534b807420a4e7dbe2397f5e60953c9",
@@ -1370,12 +1469,16 @@
       ],
       "workflow_contract": "pro-authored/spec_sections/WORKFLOW_CONTRACTS.md::C09",
       "function_spec": "pro-authored/FUNCTION_SPEC.md::FN-35",
-      "prototype_status": "UNCONNECTED_ACQUISITION_SETTINGS_DRIVER_AND_CONTROL",
+      "prototype_status": "DEDICATED_PLANNING_GUI_AUTHORED; LIVE_ADAPTER_AND_CONTROL_UNAVAILABLE",
       "related_input_states": [
         "data-workbook",
         "data-calibration"
       ],
-      "relationship": "File-based observation/calibration review only; these states are not device acquisition or physical stop acceptance."
+      "relationship": "Dedicated Data-owned channel/time/calibration/trace and connection/end planning views. Retained file trace is not acquired live; no device/physical stop command or acknowledgment is fabricated. New Qt execution pending after remote environment disconnect.",
+      "prototype_states": [
+        "acquisition-channels",
+        "acquisition-connection"
+      ]
     }
   }
 }

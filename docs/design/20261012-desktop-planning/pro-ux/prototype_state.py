@@ -23,6 +23,7 @@ TOOL_NAMES = {
     "material": "Material", "pde": "PDE", "numerical": "Numerical",
     "runner": "Runner", "expert": "Expert", "study": "Study",
     "evaluation": "Evaluation", "workbench": "Workbench",
+    "report": "Report", "acquisition": "Acquisition",
 }
 METHODS = {
     "DOE": ("Design matrix", "Responses", "Effects"),
@@ -317,6 +318,69 @@ def structural_fields(displacement=.31):
     }
 
 
+def report_sections(study_document, results):
+    """Editable review pages from an explicit saved Study; no report engine."""
+    study=study_document["saved"]
+    sections=[{"id":"question","title":"Research question","kind":"text","text":study["question"],
+               "enabled":True,"source":{"kind":"study"}}]
+    for index,evidence in enumerate(study.get("evidence",[])):
+        rid=evidence.get("ref",evidence.get("id"));result=results.get(rid)
+        source={"kind":"result","id":rid,"locator":evidence.get("locator","")}
+        section={"id":"evidence-"+str(index),"title":"Measured response","kind":"table","enabled":True,
+                 "source":source,"caption":"Authored synthetic result; no calculation."}
+        if not result:
+            section.update(headers=["Evidence","Status"],rows=[[rid,"Unavailable"]],unavailable=True)
+        elif result.get("kind")=="numerical":
+            tables=result["fixture"]["tables"];locator=source["locator"]
+            table=next((t for t in tables if locator==result["method"]+" / "+t["name"] or locator.startswith(result["method"]+" / "+t["name"]+" / ")),None)
+            rows=clone(table["rows"]) if table else []
+            if table:
+                prefix=result["method"]+" / "+table["name"]
+                if locator!=prefix:rows=[r for r in rows if r and str(r[0])==locator[len(prefix)+3:]]
+            section.update(title=table["name"] if table else result["method"],
+                           headers=clone(table["headers"]) if table else ["Evidence","Status"],rows=rows)
+            if not rows:section["unavailable"]=True
+        else:
+            section.update(headers=["Quantity","Value","Unit"],rows=[
+                ["Displacement",result.get("metrics",{}).get("displacement"),"mm"],
+                ["Mass",result.get("metrics",{}).get("mass"),"kg"],
+                ["Clearance",result.get("metrics",{}).get("clearance"),"mm"]])
+        sections.append(section)
+        if result and result.get("kind")=="numerical" and result["fixture"].get("series"):
+            fixture=result["fixture"]
+            sections.append({"id":"curve-"+str(index),"title":result["method"]+" response view",
+                "kind":"curve","enabled":True,"source":clone(source),"series":clone(fixture["series"]),
+                "xlabel":fixture["xlabel"],"ylabel":fixture["ylabel"],
+                "caption":"Authored method overview; all retained points. Selected row remains in the preceding table."})
+        elif result and result.get("fields",{}).get("Displacement"):
+            sections.append({"id":"curve-"+str(index),"title":"Displacement through the load step",
+                "kind":"curve","enabled":True,"source":clone(source),"series":[{"name":"Displacement",
+                "x":clone(result["times"]),"y":clone(result["fields"]["Displacement"]["values"]),"color":"#286998"}],
+                "xlabel":"Time [s]","ylabel":"Displacement [mm]",
+                "caption":"Authored synthetic frames; POINTS, global basis; all retained times, no downsampling."})
+    sections.append({"id":"judgment","title":"Research judgment","kind":"text","enabled":True,
+        "text":study.get("judgment","Undecided")+"\n"+(study.get("reason") or "No judgment has been applied.")+
+        "\n\nNext research: "+study.get("next_research",""),"source":{"kind":"study"}})
+    sections.append({"id":"checks","title":"Checks and limitations","kind":"table","enabled":True,
+        "headers":["Check","State"],"rows":[["Process completion","Not executed in this prototype"],
+        ["Numerical validity","Not evaluated"],["Engineering checks","UNKNOWN"],["Release","NOT_RELEASED"],
+        ["F05","FAIL: 3.32295e-6 > 1e-6"]],"source":{"kind":"local"},
+        "caption":"Process termination, numerical validity and engineering judgment remain separate."})
+    return sections
+
+
+def acquisition_payload(data_document):
+    return {"view_kind":"acquisition","device":"Unassigned instrument","driver":"Unassigned",
+        "driver_name":"","sample_rate":1000.0,"duration":10.0,"time_offset":0.0,
+        "clock":"Device timestamps (unverified)","requested_mode":"Measurements only","allowed_control":"NONE",
+        "source_document":clone(data_document),"selected_channel":"ch1",
+        "channels":[{"id":"ch1","name":"Force","field":"force","unit":"N","role":"Measurement","calibration":"CAL-018","enabled":True},
+                    {"id":"ch2","name":"Gauge extension","field":"extension","unit":"mm","role":"Measurement","calibration":"Unassigned","enabled":True},
+                    {"id":"ch3","name":"Temperature","field":"temperature","unit":"degC","role":"Monitor","calibration":"Unassigned","enabled":True}],
+        "connection_scenario":"Unconfigured","connection":"UNAVAILABLE","stop_request":"NOT_SENT",
+        "stop_ack":"NOT_RECEIVED","terminal":"UNKNOWN","notes":"","capability":"UNAVAILABLE"}
+
+
 def initial_documents():
     docs = {}
     def add(*args):
@@ -455,6 +519,12 @@ def initial_documents():
                   ["post", "numerical"], ["data", "material"], ["expert", "study"]],
         "positions": {}})
     add("runner", "Jobs", "JobManager view", "JOBS-VIEW", 1, {"filter": "All"})
+    # Review documents reuse Study and Data ownership, not new product owners.
+    add("report", "Clamp report", "Study", "REPORT-REVIEW-01", 1, {
+        "view_kind":"report", "title":"Clamp compliance", "sections":[], "evidence":[],
+        "study_document":clone(docs["study"]), "output_format":"Review PDF",
+        "missing_policy":"Block export", "last_export":""})
+    add("acquisition", "Tension acquisition", "Data", "ACQ-REVIEW-01", 1, acquisition_payload(docs["data"]))
     return docs
 
 
@@ -503,6 +573,11 @@ class ReviewSession:
         self.events = []
         self.selected = {"tool": "cad", "candidate": "p19", "samples": [], "topic": "지그 강성"}
         self.paths = {}
+        report=self.documents["report"]
+        for payload in (report["saved"],report["draft"]):
+            payload["sections"]=report_sections(self.documents["study"],self.results)
+            payload["evidence"]=clone(self.documents["study"]["saved"]["evidence"])
+        report["history"][0]["payload"]=clone(report["saved"])
 
     def doc(self, key):
         if key in self.documents:
@@ -584,6 +659,36 @@ class ReviewSession:
             if not isinstance(value, (int, float)) or not math.isfinite(value) or (
                     value < 0 if allow_zero else value <= 0):
                 errors.append((field, "Enter a finite " + ("nonnegative" if allow_zero else "positive") + " value."))
+        if data.get("view_kind")=="report":
+            if not data.get("title","").strip():errors.append(("title","Enter the report title."))
+            enabled=[s for s in data.get("sections",[]) if s.get("enabled")]
+            if not enabled:errors.append(("sections","Include at least one section."))
+            for section in enabled:
+                if not section.get("title","").strip():errors.append(("sections","Enter a section heading."))
+                text=section.get("text","")
+                if section.get("kind")=="text" and (len(text)>1800 or len(text.splitlines())>34):
+                    errors.append(("sections","Split long text into shorter review sections (1800 characters / 34 lines per page)."))
+                source=section.get("source",{})
+                missing=section.get("unavailable") or (source.get("kind")=="result" and source.get("id") not in self.results)
+                if missing and data.get("missing_policy")=="Block export":
+                    errors.append(("sections","An included evidence section is unavailable. Locate it or choose an unavailable placeholder."))
+            return errors
+        if data.get("view_kind")=="acquisition":
+            for field in ("sample_rate","duration"):positive(field)
+            offset=data.get("time_offset")
+            if not isinstance(offset,(int,float)) or not math.isfinite(offset):
+                errors.append(("time_offset","Enter a finite time offset; signed values and zero are valid."))
+            channels=[c for c in data.get("channels",[]) if c.get("enabled")]
+            if not channels:errors.append(("channels","Enable at least one channel."))
+            units={"force":("N","kN"),"extension":("mm","m"),"temperature":("degC","K")}
+            for channel in channels:
+                if not channel.get("name","").strip() or channel.get("unit") not in units.get(channel.get("field"),()):
+                    errors.append(("channels","Choose a named channel with a compatible field and unit."))
+                if channel.get("role") not in ("Measurement","Monitor"):
+                    errors.append(("channels","Choose Measurement or Monitor; actuation is unavailable."))
+                if channel.get("calibration")=="CAL-018" and channel.get("field")!="force":
+                    errors.append(("channels","CAL-018 applies only to force."))
+            return errors
         if doc["owner"] == "native_pre":
             for field in ("thickness", "width", "height"):
                 positive(field)
@@ -1055,7 +1160,20 @@ class ReviewSession:
         session = cls(path.parent)
         for field in ("documents", "jobs", "frozen", "results", "candidates", "groups",
                       "relocations", "selected", "paths", "events"):
-            setattr(session, field, clone(raw[field]))
+            if field=="documents":session.documents.update(clone(raw[field]))
+            else:setattr(session, field, clone(raw[field]))
+        if "report" not in raw["documents"]:
+            report=session.doc("report")
+            for payload in (report["saved"],report["draft"]):
+                payload.update(study_document=clone(session.doc("study")),
+                    sections=report_sections(session.doc("study"),session.results),
+                    evidence=clone(session.doc("study")["saved"].get("evidence",[])))
+            report["history"][0]["payload"]=clone(report["saved"])
+        if "acquisition" not in raw["documents"]:
+            acquisition=session.doc("acquisition")
+            acquisition["saved"]=acquisition_payload(session.doc("data"))
+            acquisition["draft"]=clone(acquisition["saved"])
+            acquisition["history"][0]["payload"]=clone(acquisition["saved"])
         return session
 
     def open_document(self, path):

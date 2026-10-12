@@ -215,6 +215,98 @@ class CurveView(QWidget):
             super().keyPressEvent(event)
 
 
+class ReportPage(QWidget):
+    """Vector-painted native review page, shared by preview and Qt PDF."""
+    def __init__(self,parent=None):
+        super().__init__(parent)
+        self.setMinimumSize(420,440)
+        self.title="Research report";self.section={};self.page_number=1;self.page_count=1
+
+    def set_page(self,title,section,number,count):
+        self.title=title;self.section=section;self.page_number=number;self.page_count=count;self.update()
+
+    def paint_page(self,p,target):
+        p.save();p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        scale=min(target.width()/720,target.height()/1018)
+        p.translate(target.center().x()-360*scale,target.center().y()-509*scale);p.scale(scale,scale)
+        p.fillRect(QRectF(0,0,720,1018),QColor("white"))
+        def font(size,bold=False):
+            f=QFont(self.font());f.setPixelSize(size);f.setBold(bold);p.setFont(f)
+        font(12);p.setPen(QColor("#62717d"))
+        p.drawText(QRectF(48,30,624,24),Qt.AlignmentFlag.AlignLeft,"AUTONOMOUS CAE LAB   /   REVIEW DRAFT")
+        font(25,True);p.setPen(QColor(INK))
+        p.drawText(QRectF(48,69,624,70),Qt.TextFlag.TextWordWrap,self.title)
+        p.setPen(QPen(QColor("#b8c9d6"),1));p.drawLine(48,148,672,148)
+        section=self.section;font(20,True);p.setPen(QColor(INK))
+        p.drawText(QRectF(48,168,624,66),Qt.TextFlag.TextWordWrap,section.get("title","No included section"))
+        font(14)
+        if section.get("unavailable"):
+            p.setPen(QColor(RED))
+            p.drawText(QRectF(48,256,624,200),Qt.TextFlag.TextWordWrap,
+                       "Evidence unavailable\n\nThis section has no available source. Other sections remain editable.")
+        elif section.get("kind")=="text":
+            p.drawText(QRectF(48,252,624,634),Qt.TextFlag.TextWordWrap,section.get("text",""))
+        elif section.get("kind")=="table":
+            headers=section.get("headers",[]);rows=section.get("rows",[])
+            widths=[max(6,len(str(h))) for h in headers]
+            for row in rows:
+                for i,value in enumerate(row[:len(widths)]):widths[i]=max(widths[i],min(28,len(str(value))))
+            total=sum(widths) or 1;widths=[624*w/total for w in widths]
+            x=48;y=252;p.fillRect(QRectF(48,y,624,52),QColor("#eaf0f5"));font(12,True)
+            for width,header in zip(widths,headers):
+                p.setPen(QColor(INK));p.drawText(QRectF(x+7,y+5,width-14,42),
+                    Qt.TextFlag.TextWordWrap|Qt.AlignmentFlag.AlignVCenter,str(header));x+=width
+            y+=52;font(13)
+            for n,row in enumerate(rows):
+                if n%2==0:p.fillRect(QRectF(48,y,624,28),QColor("#f7f9fb"))
+                x=48
+                for width,value in zip(widths,row):
+                    p.setPen(QColor(INK));p.drawText(QRectF(x+7,y,width-14,28),
+                        Qt.AlignmentFlag.AlignVCenter,str(value) if value is not None else "Unavailable");x+=width
+                y+=28
+            font(12);p.setPen(QColor("#62717d"))
+            p.drawText(QRectF(48,y+20,624,82),Qt.TextFlag.TextWordWrap,section.get("caption",""))
+        elif section.get("kind")=="curve":
+            series=section.get("series",[])
+            points=[(x,y) for s in series for x,y in zip(s["x"],s["y"])
+                    if isinstance(x,(int,float)) and isinstance(y,(int,float)) and math.isfinite(x) and math.isfinite(y)]
+            if points:
+                xs,ys=zip(*points);x0,x1=min(xs),max(xs);y0,y1=min(0,min(ys)),max(ys)
+                if x0==x1:x1=x0+1
+                if y0==y1:y1=y0+1
+                area=QRectF(104,294,544,410);font(12)
+                def point(x,y):
+                    return QPointF(area.left()+(x-x0)/(x1-x0)*area.width(),area.bottom()-(y-y0)/(y1-y0)*area.height())
+                for i in range(6):
+                    x=area.left()+area.width()*i/5;y=area.bottom()-area.height()*i/5
+                    p.setPen(QPen(QColor("#e3e9ee"),1))
+                    p.drawLine(QPointF(x,area.top()),QPointF(x,area.bottom()))
+                    p.drawLine(QPointF(area.left(),y),QPointF(area.right(),y))
+                    p.setPen(QColor(INK))
+                    p.drawText(QRectF(x-28,area.bottom()+8,56,24),Qt.AlignmentFlag.AlignCenter,f"{x0+(x1-x0)*i/5:.3g}")
+                    p.drawText(QRectF(46,y-12,50,24),Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignVCenter,f"{y0+(y1-y0)*i/5:.3g}")
+                for n,s in enumerate(series):
+                    p.setPen(QPen(QColor(s.get("color",BLUE)),2));path=QPainterPath();started=False
+                    for x,y in zip(s["x"],s["y"]):
+                        if not isinstance(y,(int,float)) or not math.isfinite(y):started=False;continue
+                        if started:path.lineTo(point(x,y))
+                        else:path.moveTo(point(x,y));started=True
+                    p.drawPath(path);p.drawText(104,782+20*n,s.get("name","Curve"))
+                p.setPen(QColor(INK));font(14)
+                p.drawText(QRectF(104,738,544,26),Qt.AlignmentFlag.AlignCenter,section.get("xlabel",""))
+                p.drawText(48,268,section.get("ylabel",""))
+            font(12);p.setPen(QColor("#62717d"))
+            p.drawText(QRectF(48,866,624,60),Qt.TextFlag.TextWordWrap,section.get("caption",""))
+        font(11);p.setPen(QColor("#62717d"));p.drawLine(48,942,672,942)
+        p.drawText(QRectF(48,954,560,22),Qt.AlignmentFlag.AlignLeft,"Synthetic review content / UNKNOWN / NOT_RELEASED")
+        p.drawText(QRectF(609,954,63,22),Qt.AlignmentFlag.AlignRight,f"{self.page_number} / {self.page_count}")
+        p.restore()
+
+    def paintEvent(self,event):
+        painter=QPainter(self);painter.fillRect(self.rect(),QColor("#dce3e9"))
+        self.paint_page(painter,QRectF(self.rect()).adjusted(20,14,-20,-14));painter.end()
+
+
 class EngineeringView(QWidget):
     """Selectable, rotatable QPainter illustration, explicitly not a native host."""
     faceSelected = Signal(str)
