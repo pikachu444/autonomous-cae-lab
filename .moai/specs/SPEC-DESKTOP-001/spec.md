@@ -4,7 +4,7 @@ title: "Windows engineering research desktop workflows and design acceptance"
 version: "0.1.0"
 status: draft
 created: 2026-10-12
-updated: 2026-10-12
+updated: 2026-10-13
 author: "Codex integration; actual Pro product design author"
 priority: "P1 High"
 phase: "design-before-implementation"

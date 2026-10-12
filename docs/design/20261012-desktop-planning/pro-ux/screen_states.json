@@ -1,0 +1,1503 @@
+{
+  "format": "caelab-ux-screens/1",
+  "authorship": "ChatGPT Pro primary; independent Astra/Sol/Luna roles documented separately",
+  "purpose": "Editable states rendered from native Qt planning source. Not a solver or provider record.",
+  "source_pins": {
+    "requirements": "313679843813b63dee44409de5c5abc43c8a373b",
+    "d1": "95a2389ca534b807420a4e7dbe2397f5e60953c9",
+    "product": "9a6e3083037630b45694b812b135dc1cd63cf95a"
+  },
+  "language": "English synthetic specimen labels in exported views; original Qt Unicode draft remains editable.",
+  "states": [
+    {
+      "id": "cad-sketch",
+      "tool": "cad",
+      "title": "Sketch dimensions",
+      "task": "선 생성 → 선 좌표/직사각형 치수 수정 → 구속 → Pad",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "width": 90,
+        "sketch": {
+          "lines": [
+            [
+              15,
+              17.5,
+              50,
+              27.5
+            ],
+            [
+              50,
+              27.5,
+              72,
+              17.5
+            ]
+          ],
+          "fully_constrained": false
+        }
+      },
+      "mode": "Sketch",
+      "next": [
+        "cad-features"
+      ],
+      "functions": [
+        "FN-10",
+        "FN-11",
+        "FN-01"
+      ],
+      "function_context": {
+        "FN-01": "Existing tool File Open/Save as dialogs and saved review file/session cold reopen; this workspace state is not a Home screen or a separate file-dialog screenshot. Product recents/portable-store/native admission remain D1 integration work."
+      }
+    },
+    {
+      "id": "cad-features",
+      "tool": "cad",
+      "title": "Pad and pocket",
+      "task": "폭·높이·두께와 관통 구멍을 편집하여 형상을 확인",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "width": 90,
+        "height": 32,
+        "thickness": 16,
+        "through_hole": true
+      },
+      "mode": "Features",
+      "next": [
+        "cad-assembly",
+        "cad-mesh"
+      ],
+      "functions": [
+        "FN-11",
+        "FN-01"
+      ],
+      "function_context": {
+        "FN-01": "Existing tool File Open/Save as dialogs and saved review file/session cold reopen; this workspace state is not a Home screen or a separate file-dialog screenshot. Product recents/portable-store/native admission remain D1 integration work."
+      }
+    },
+    {
+      "id": "cad-assembly",
+      "tool": "cad",
+      "title": "Assembly instances",
+      "task": "인스턴스와 joint를 선택하고 해당 부품을 이동",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "instances": 4,
+        "selected_part": "Clamp 2",
+        "joint": {
+          "angle": 30,
+          "type": "Revolute"
+        }
+      },
+      "mode": "Assembly",
+      "next": [
+        "cad-motion"
+      ],
+      "functions": [
+        "FN-12"
+      ]
+    },
+    {
+      "id": "cad-motion",
+      "tool": "cad",
+      "title": "Joint pose",
+      "task": "선택 부품의 상대 자세 미리보기 → Use pose 또는 Restore",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "joint": {
+          "angle": 45
+        }
+      },
+      "mode": "Motion",
+      "next": [
+        "cad-mesh"
+      ],
+      "functions": [
+        "FN-12"
+      ]
+    },
+    {
+      "id": "cad-mesh",
+      "tool": "cad",
+      "title": "Mesh quality",
+      "task": "요소 유형/크기 → 합성 메시 → 불량 요소 선택 → 재생성",
+      "viewport": [
+        1440,
+        900
+      ],
+      "mode": "Mesh",
+      "select": {
+        "quality": [
+          0,
+          0
+        ]
+      },
+      "next": [
+        "cad-conditions"
+      ],
+      "functions": [
+        "FN-13"
+      ]
+    },
+    {
+      "id": "cad-conditions",
+      "tool": "cad",
+      "title": "Support and load",
+      "task": "선택 면에 고정·변위·힘·압력을 지정하고 Apply/Cancel",
+      "viewport": [
+        1440,
+        900
+      ],
+      "mode": "Conditions",
+      "select": {
+        "conditions": [
+          1,
+          0
+        ]
+      },
+      "next": [
+        "cad-contact",
+        "simulation-implicit"
+      ],
+      "functions": [
+        "FN-14"
+      ]
+    },
+    {
+      "id": "cad-contact",
+      "tool": "cad",
+      "title": "Contact surfaces",
+      "task": "Set A/B와 접촉법칙·마찰·간극을 편집",
+      "viewport": [
+        1440,
+        900
+      ],
+      "mode": "Contact",
+      "next": [
+        "simulation-implicit"
+      ],
+      "functions": [
+        "FN-14"
+      ]
+    },
+    {
+      "id": "simulation-implicit",
+      "tool": "simulation",
+      "title": "Implicit analysis",
+      "task": "저장 형상 업데이트 → 솔버/단계/조건 → Run analysis",
+      "viewport": [
+        1440,
+        900
+      ],
+      "node": "Steps",
+      "next": [
+        "runner-convergence"
+      ],
+      "functions": [
+        "FN-15"
+      ]
+    },
+    {
+      "id": "simulation-explicit",
+      "tool": "simulation",
+      "title": "Impact initial conditions",
+      "task": "충돌 시간 증분·초기 속도·에너지 출력을 편집",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "family": "Explicit impact",
+        "backend": "OpenCourant / OpenRadioss",
+        "time_step": 0.000001
+      },
+      "node": "Initial conditions",
+      "next": [
+        "runner-cancel"
+      ],
+      "functions": [
+        "FN-16"
+      ]
+    },
+    {
+      "id": "simulation-failure",
+      "tool": "simulation",
+      "title": "Failure output",
+      "task": "계면 강도·파괴에너지·damage를 지정하고 출력 선택",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "family": "Failure / interface"
+      },
+      "node": "Failure",
+      "next": [
+        "runner-convergence"
+      ],
+      "functions": [
+        "FN-17"
+      ]
+    },
+    {
+      "id": "simulation-invalid-step",
+      "tool": "simulation",
+      "title": "Correct time increment",
+      "task": "잘못된 입력의 정확한 셀을 고친 다음 재검토",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "time_step": -1
+      },
+      "node": "Steps",
+      "dialog": "diagnostics",
+      "next": [
+        "simulation-implicit"
+      ],
+      "functions": [
+        "FN-15"
+      ]
+    },
+    {
+      "id": "thermal-domain",
+      "tool": "thermal",
+      "title": "Thermal plate",
+      "task": "CAD 없이 독립 판 영역·온도 경계·열 출력을 편집",
+      "viewport": [
+        1440,
+        900
+      ],
+      "node": "Model",
+      "dialog": "domain",
+      "next": [
+        "evaluation-transfer"
+      ],
+      "functions": [
+        "FN-19"
+      ]
+    },
+    {
+      "id": "thermoelastic-field",
+      "tool": "thermoelastic",
+      "title": "Thermal expansion",
+      "task": "정확한 thermoelastic 모델의 기준 온도·열팽창계수",
+      "viewport": [
+        1440,
+        900
+      ],
+      "node": "Steps",
+      "next": [
+        "evaluation-transfer"
+      ],
+      "functions": [
+        "FN-19"
+      ]
+    },
+    {
+      "id": "runner-convergence",
+      "tool": "runner",
+      "title": "Job convergence",
+      "task": "선택 작업의 진행·잔차·입력·로그를 확인",
+      "viewport": [
+        1440,
+        900
+      ],
+      "setup": "running",
+      "tabs": {
+        "tabs": 4
+      },
+      "next": [
+        "post-field"
+      ],
+      "functions": [
+        "FN-25"
+      ]
+    },
+    {
+      "id": "runner-cancel",
+      "tool": "runner",
+      "title": "Cancel and reconnect",
+      "task": "취소 요청과 종료 수신을 구분하고 같은 작업으로 재연결",
+      "viewport": [
+        1440,
+        900
+      ],
+      "setup": "cancel",
+      "tabs": {
+        "tabs": 1
+      },
+      "next": [
+        "runner-convergence"
+      ],
+      "functions": [
+        "FN-25",
+        "FN-26"
+      ]
+    },
+    {
+      "id": "post-field",
+      "tool": "post",
+      "title": "Result field and frame",
+      "task": "배열·association·실제 프레임·범례·곡선·측정값 연결",
+      "viewport": [
+        1440,
+        900
+      ],
+      "next": [
+        "post-clip",
+        "post-gauge"
+      ],
+      "functions": [
+        "FN-27",
+        "FN-01"
+      ],
+      "function_context": {
+        "FN-01": "Existing tool File Open/Save as dialogs and saved review file/session cold reopen; this workspace state is not a Home screen or a separate file-dialog screenshot. Product recents/portable-store/native admission remain D1 integration work."
+      }
+    },
+    {
+      "id": "post-clip",
+      "tool": "post",
+      "title": "Clip plane",
+      "task": "Clip의 축과 위치를 지정하고 Apply/Reset",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "filter": "Clip",
+        "pending_filter": "Clip",
+        "filter_parameters": {
+          "axis": "X",
+          "offset": 15
+        }
+      },
+      "next": [
+        "post-gauge"
+      ],
+      "functions": [
+        "FN-27"
+      ]
+    },
+    {
+      "id": "post-line",
+      "tool": "post",
+      "title": "Plot along gauge",
+      "task": "선의 시작/끝과 표본 수를 지정해 곡선 대상 변경",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "filter": "Plot over line",
+        "pending_filter": "Plot over line",
+        "filter_parameters": {
+          "start": 10,
+          "end": 30,
+          "samples": 5
+        }
+      },
+      "next": [
+        "post-gauge"
+      ],
+      "functions": [
+        "FN-28"
+      ]
+    },
+    {
+      "id": "post-gauge",
+      "tool": "post",
+      "title": "Two-point measurement",
+      "task": "두 점·방향 선택 → 측정표 → Numerical 응답 등록",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "gauge": {
+          "a": "Gauge left",
+          "b": "Clamp centre",
+          "direction": "X"
+        }
+      },
+      "tabs": {
+        "bottom": 1
+      },
+      "next": [
+        "numerical-moo"
+      ],
+      "functions": [
+        "FN-28",
+        "FN-34"
+      ],
+      "function_context": {
+        "FN-34": "Operation example for the prior D1 same-command contract; GUI/CLI/Python/MCP parity is not executed by this Qt prototype. See prior_references.FN-34."
+      }
+    },
+    {
+      "id": "post-compare",
+      "tool": "post",
+      "title": "Compare exact results",
+      "task": "A/B 결과의 원 형상과 동일 프레임을 나란히 비교",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": "compare",
+      "next": [
+        "numerical-moo"
+      ],
+      "functions": [
+        "FN-28"
+      ]
+    },
+    {
+      "id": "post-unavailable",
+      "tool": "post",
+      "title": "Unavailable frame",
+      "task": "존재하지 않는 프레임의 값·곡선을 제공하지 않고 선택 수정",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "time": 0.03
+      },
+      "next": [
+        "post-field"
+      ],
+      "functions": [
+        "FN-27"
+      ]
+    },
+    {
+      "id": "numerical-moo",
+      "tool": "numerical",
+      "title": "Objectives and constraints",
+      "task": "변수·목표·제약과 후보를 비교하고 비지배 feasible 점 확인",
+      "viewport": [
+        1440,
+        900
+      ],
+      "tabs": {
+        "top_tabs": 1
+      },
+      "next": [
+        "candidate-partial-save"
+      ],
+      "functions": [
+        "FN-24"
+      ]
+    },
+    {
+      "id": "numerical-doe",
+      "tool": "numerical",
+      "title": "DOE inputs",
+      "task": "설계행렬과 응답·효과 판단",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "method": "DOE",
+        "budget": 40
+      },
+      "actions": [
+        "example_matrix",
+        "show_method_example"
+      ],
+      "tabs": {
+        "top_tabs": 3
+      },
+      "next": [
+        "result-doe"
+      ],
+      "functions": [
+        "FN-20",
+        "FN-34"
+      ],
+      "function_context": {
+        "FN-34": "Operation example for the prior D1 same-command contract; GUI/CLI/Python/MCP parity is not executed by this Qt prototype. See prior_references.FN-34."
+      }
+    },
+    {
+      "id": "result-doe",
+      "tool": "numerical",
+      "title": "DOE result",
+      "task": "설계행렬과 응답·효과 판단 → 선택 근거를 Expert/Study로 전달",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "method": "DOE",
+        "budget": 40
+      },
+      "setup": "method-result",
+      "next": [
+        "expert-followup",
+        "study-judgment"
+      ],
+      "functions": [
+        "FN-20",
+        "FN-29",
+        "FN-30"
+      ]
+    },
+    {
+      "id": "numerical-inverse",
+      "tool": "numerical",
+      "title": "Inverse inputs",
+      "task": "관측 source/mask/weight/잔차와 독립 holdout",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "method": "Inverse",
+        "budget": 40,
+        "evaluator": "Material response",
+        "variables": [
+          {
+            "owner": "material",
+            "field": "mu",
+            "unit": "MPa",
+            "start": 0.9,
+            "lower": 0.6,
+            "upper": 1.4,
+            "free": true
+          }
+        ],
+        "responses": [
+          {
+            "name": "Stress residual",
+            "role": "Minimize",
+            "unit": "MPa",
+            "limit": "",
+            "reduction": "RMS"
+          }
+        ]
+      },
+      "actions": [
+        "example_matrix",
+        "show_method_example"
+      ],
+      "tabs": {
+        "top_tabs": 3
+      },
+      "next": [
+        "result-inverse"
+      ],
+      "functions": [
+        "FN-21"
+      ]
+    },
+    {
+      "id": "result-inverse",
+      "tool": "numerical",
+      "title": "Inverse result",
+      "task": "관측 source/mask/weight/잔차와 독립 holdout → 선택 근거를 Expert/Study로 전달",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "method": "Inverse",
+        "budget": 40,
+        "evaluator": "Material response",
+        "variables": [
+          {
+            "owner": "material",
+            "field": "mu",
+            "unit": "MPa",
+            "start": 0.9,
+            "lower": 0.6,
+            "upper": 1.4,
+            "free": true
+          }
+        ],
+        "responses": [
+          {
+            "name": "Stress residual",
+            "role": "Minimize",
+            "unit": "MPa",
+            "limit": "",
+            "reduction": "RMS"
+          }
+        ]
+      },
+      "setup": "method-result",
+      "next": [
+        "expert-followup",
+        "study-judgment"
+      ],
+      "functions": [
+        "FN-21",
+        "FN-29",
+        "FN-30"
+      ]
+    },
+    {
+      "id": "numerical-optimization",
+      "tool": "numerical",
+      "title": "Optimization inputs",
+      "task": "후보 이력·목적함수·제약과 실패를 비교",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "method": "Optimization",
+        "budget": 40
+      },
+      "actions": [
+        "example_matrix",
+        "show_method_example"
+      ],
+      "tabs": {
+        "top_tabs": 3
+      },
+      "next": [
+        "result-optimization"
+      ],
+      "functions": [
+        "FN-21"
+      ]
+    },
+    {
+      "id": "result-optimization",
+      "tool": "numerical",
+      "title": "Optimization result",
+      "task": "후보 이력·목적함수·제약과 실패를 비교 → 선택 근거를 Expert/Study로 전달",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "method": "Optimization",
+        "budget": 40
+      },
+      "setup": "method-result",
+      "next": [
+        "expert-followup",
+        "study-judgment"
+      ],
+      "functions": [
+        "FN-21",
+        "FN-29",
+        "FN-30"
+      ]
+    },
+    {
+      "id": "numerical-sobol",
+      "tool": "numerical",
+      "title": "Sobol sensitivity inputs",
+      "task": "A/B/교차 행렬·first/total·불확실성과 수렴",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "method": "Sobol sensitivity",
+        "budget": 40
+      },
+      "actions": [
+        "example_matrix",
+        "show_method_example"
+      ],
+      "tabs": {
+        "top_tabs": 3
+      },
+      "next": [
+        "result-sobol"
+      ],
+      "functions": [
+        "FN-20"
+      ]
+    },
+    {
+      "id": "result-sobol",
+      "tool": "numerical",
+      "title": "Sobol sensitivity result",
+      "task": "A/B/교차 행렬·first/total·불확실성과 수렴 → 선택 근거를 Expert/Study로 전달",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "method": "Sobol sensitivity",
+        "budget": 40
+      },
+      "setup": "method-result",
+      "next": [
+        "expert-followup",
+        "study-judgment"
+      ],
+      "functions": [
+        "FN-20",
+        "FN-29",
+        "FN-30"
+      ]
+    },
+    {
+      "id": "numerical-uq",
+      "tool": "numerical",
+      "title": "UQ inputs",
+      "task": "분포·단위·상관과 분위수·실패 사건",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "method": "UQ",
+        "budget": 1000
+      },
+      "actions": [
+        "example_matrix",
+        "show_method_example"
+      ],
+      "tabs": {
+        "top_tabs": 3
+      },
+      "next": [
+        "result-uq"
+      ],
+      "functions": [
+        "FN-22"
+      ]
+    },
+    {
+      "id": "result-uq",
+      "tool": "numerical",
+      "title": "UQ result",
+      "task": "분포·단위·상관과 분위수·실패 사건 → 선택 근거를 Expert/Study로 전달",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "method": "UQ",
+        "budget": 1000
+      },
+      "setup": "method-result",
+      "next": [
+        "expert-followup",
+        "study-judgment"
+      ],
+      "functions": [
+        "FN-22",
+        "FN-29",
+        "FN-30"
+      ]
+    },
+    {
+      "id": "numerical-surrogate",
+      "tool": "numerical",
+      "title": "RBF surrogate inputs",
+      "task": "학습/검증 분리·예측 support·외삽 불가",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "method": "RBF surrogate",
+        "budget": 40
+      },
+      "actions": [
+        "example_matrix",
+        "show_method_example"
+      ],
+      "tabs": {
+        "top_tabs": 3
+      },
+      "next": [
+        "result-surrogate"
+      ],
+      "functions": [
+        "FN-23"
+      ]
+    },
+    {
+      "id": "result-surrogate",
+      "tool": "numerical",
+      "title": "RBF surrogate result",
+      "task": "학습/검증 분리·예측 support·외삽 불가 → 선택 근거를 Expert/Study로 전달",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "method": "RBF surrogate",
+        "budget": 40
+      },
+      "setup": "method-result",
+      "next": [
+        "expert-followup",
+        "study-judgment"
+      ],
+      "functions": [
+        "FN-23",
+        "FN-29",
+        "FN-30"
+      ]
+    },
+    {
+      "id": "numerical-mdo",
+      "tool": "numerical",
+      "title": "MDO inputs",
+      "task": "기존 Evaluation의 discipline/transfer/반복",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "method": "MDO",
+        "budget": 40,
+        "evaluator": "Thermal expansion Evaluation",
+        "variables": [
+          {
+            "owner": "thermal",
+            "field": "temperature",
+            "unit": "K",
+            "start": 350,
+            "lower": 310,
+            "upper": 380,
+            "free": true
+          },
+          {
+            "owner": "thermoelastic",
+            "field": "alpha",
+            "unit": "1/K",
+            "start": 0.000012,
+            "lower": 0.000008,
+            "upper": 0.000015,
+            "free": true
+          }
+        ],
+        "responses": [
+          {
+            "name": "Plate displacement",
+            "role": "Upper bound",
+            "unit": "m",
+            "limit": 0.00035
+          }
+        ],
+        "sources": {
+          "thermal": {
+            "id": "V-02",
+            "revision": 4
+          },
+          "thermoelastic": {
+            "id": "V-03",
+            "revision": 6
+          },
+          "data": {
+            "id": "DATA-01",
+            "revision": 4
+          }
+        }
+      },
+      "actions": [
+        "example_matrix",
+        "show_method_example"
+      ],
+      "tabs": {
+        "top_tabs": 3
+      },
+      "next": [
+        "result-mdo"
+      ],
+      "functions": [
+        "FN-24"
+      ]
+    },
+    {
+      "id": "result-mdo",
+      "tool": "numerical",
+      "title": "MDO result",
+      "task": "기존 Evaluation의 discipline/transfer/반복 → 선택 근거를 Expert/Study로 전달",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "method": "MDO",
+        "budget": 40,
+        "evaluator": "Thermal expansion Evaluation",
+        "variables": [
+          {
+            "owner": "thermal",
+            "field": "temperature",
+            "unit": "K",
+            "start": 350,
+            "lower": 310,
+            "upper": 380,
+            "free": true
+          },
+          {
+            "owner": "thermoelastic",
+            "field": "alpha",
+            "unit": "1/K",
+            "start": 0.000012,
+            "lower": 0.000008,
+            "upper": 0.000015,
+            "free": true
+          }
+        ],
+        "responses": [
+          {
+            "name": "Plate displacement",
+            "role": "Upper bound",
+            "unit": "m",
+            "limit": 0.00035
+          }
+        ],
+        "sources": {
+          "thermal": {
+            "id": "V-02",
+            "revision": 4
+          },
+          "thermoelastic": {
+            "id": "V-03",
+            "revision": 6
+          },
+          "data": {
+            "id": "DATA-01",
+            "revision": 4
+          }
+        }
+      },
+      "setup": "method-result",
+      "next": [
+        "expert-followup",
+        "study-judgment"
+      ],
+      "functions": [
+        "FN-24",
+        "FN-29",
+        "FN-30"
+      ]
+    },
+    {
+      "id": "candidate-partial-save",
+      "tool": "numerical",
+      "title": "Apply candidate",
+      "task": "CAD와 Material에 명시 Apply/각 Save·실패한 쪽 Retry",
+      "viewport": [
+        1440,
+        900
+      ],
+      "setup": "adoption-partial",
+      "dialog": "adoption",
+      "next": [
+        "cad-features",
+        "material-fit"
+      ],
+      "functions": [
+        "FN-24",
+        "FN-02"
+      ]
+    },
+    {
+      "id": "data-workbook",
+      "tool": "data",
+      "title": "Measurement workbook",
+      "task": "열명·단위·역할·수식과 8개 ID 선택/curve/mask",
+      "viewport": [
+        1440,
+        900
+      ],
+      "setup": "data-selection",
+      "next": [
+        "material-fit",
+        "data-calibration"
+      ],
+      "functions": [
+        "FN-03",
+        "FN-04",
+        "FN-01"
+      ],
+      "function_context": {
+        "FN-01": "Existing tool File Open/Save as dialogs and saved review file/session cold reopen; this workspace state is not a Home screen or a separate file-dialog screenshot. Product recents/portable-store/native admission remain D1 integration work."
+      }
+    },
+    {
+      "id": "data-calibration",
+      "tool": "data",
+      "title": "Calibration original",
+      "task": "정확 Calibration 원문·locator·유효 범위를 열기",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": "calibration",
+      "next": [
+        "data-workbook"
+      ],
+      "functions": [
+        "FN-05"
+      ]
+    },
+    {
+      "id": "material-fit",
+      "tool": "material",
+      "title": "Calibrate material",
+      "task": "왼쪽 시험/계수와 오른쪽 관측·예측 curve, 하단 output",
+      "viewport": [
+        1440,
+        900
+      ],
+      "next": [
+        "numerical-inverse"
+      ],
+      "functions": [
+        "FN-06",
+        "FN-07",
+        "FN-08"
+      ]
+    },
+    {
+      "id": "material-history",
+      "tool": "material",
+      "title": "Constitutive history",
+      "task": "J2 계수·하중 이력·초기 state를 독립 편집",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "law": "J2 plasticity"
+      },
+      "dialog": "protocol",
+      "next": [
+        "numerical-inverse"
+      ],
+      "functions": [
+        "FN-09"
+      ]
+    },
+    {
+      "id": "material-repair",
+      "tool": "material",
+      "title": "Locate original test",
+      "task": "저장된 r19의 missing test를 locate; 동일/변경/취소 구분",
+      "viewport": [
+        1440,
+        900
+      ],
+      "setup": "material-repair",
+      "next": [
+        "material-fit"
+      ],
+      "functions": [
+        "FN-02",
+        "FN-08"
+      ]
+    },
+    {
+      "id": "pde-equation",
+      "tool": "pde",
+      "title": "Field and boundary",
+      "task": "같은 field/domain/mesh에서 각 경계 type/value 독립 Apply",
+      "viewport": [
+        1440,
+        900
+      ],
+      "node": "Right edge",
+      "patch": {
+        "boundaries": {
+          "Left edge": "u = 0",
+          "Right edge": "u = 2"
+        },
+        "boundary_types": {
+          "Right edge": "Dirichlet"
+        },
+        "selection": "Right edge"
+      },
+      "next": [
+        "pde-weak-form"
+      ],
+      "functions": [
+        "FN-18",
+        "FN-01"
+      ],
+      "function_context": {
+        "FN-01": "Existing tool File Open/Save as dialogs and saved review file/session cold reopen; this workspace state is not a Home screen or a separate file-dialog screenshot. Product recents/portable-store/native admission remain D1 integration work."
+      }
+    },
+    {
+      "id": "pde-weak-form",
+      "tool": "pde",
+      "title": "Weak form",
+      "task": "test/trial/domain/적분식을 편집하는 확장 정의",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "form": "General weak form"
+      },
+      "node": "Equation",
+      "next": [
+        "pde-ode"
+      ],
+      "functions": [
+        "FN-18"
+      ]
+    },
+    {
+      "id": "pde-ode",
+      "tool": "pde",
+      "title": "ODE state and time",
+      "task": "state/RHS/IC/time 정의와 별도 합성 응답 curve",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "form": "ODE"
+      },
+      "node": "Equation",
+      "actions": [
+        "ode_example"
+      ],
+      "next": [
+        "numerical-doe"
+      ],
+      "functions": [
+        "FN-18"
+      ]
+    },
+    {
+      "id": "evaluation-transfer",
+      "tool": "evaluation",
+      "title": "Thermal field transfer",
+      "task": "Heat → Expand 단계·K/POINTS/동일mesh 전달 확인",
+      "viewport": [
+        1440,
+        900
+      ],
+      "tabs": {
+        "tabs": 0
+      },
+      "next": [
+        "evaluation-coupling"
+      ],
+      "functions": [
+        "FN-19"
+      ]
+    },
+    {
+      "id": "evaluation-coupling",
+      "tool": "evaluation",
+      "title": "Coupling definition",
+      "task": "반복법·원래 허용치·반복 상한과 각 stage 열기",
+      "viewport": [
+        1440,
+        900
+      ],
+      "tabs": {
+        "tabs": 1
+      },
+      "next": [
+        "numerical-mdo"
+      ],
+      "functions": [
+        "FN-19"
+      ]
+    },
+    {
+      "id": "expert-discussion",
+      "tool": "expert",
+      "title": "Co-STORM discussion",
+      "task": "논점 선택·다자 발언 예시·reply/evidence·하단 개입",
+      "viewport": [
+        1440,
+        900
+      ],
+      "setup": "discussion-layout",
+      "next": [
+        "expert-models",
+        "numerical-doe"
+      ],
+      "functions": [
+        "FN-30",
+        "FN-01"
+      ],
+      "function_context": {
+        "FN-01": "Existing tool File Open/Save as dialogs and saved review file/session cold reopen; this workspace state is not a Home screen or a separate file-dialog screenshot. Product recents/portable-store/native admission remain D1 integration work."
+      }
+    },
+    {
+      "id": "expert-models",
+      "tool": "expert",
+      "title": "Role models",
+      "task": "미설정 / 기존 OAuth / 기존 local endpoint와 역할 모델 연결",
+      "viewport": [
+        1440,
+        900
+      ],
+      "patch": {
+        "runtime_proposal": {
+          "route": "Existing subscription OAuth",
+          "provider": "openscience",
+          "model": "openai-codex/<existing-model>",
+          "openscience_profile": "existing-profile",
+          "expert_models": {
+            "Structures": {
+              "model": "openai-codex/<existing-model>"
+            }
+          },
+          "entitlement": "UNVERIFIED"
+        }
+      },
+      "dialog": "models",
+      "next": [
+        "expert-discussion"
+      ],
+      "functions": [
+        "FN-30",
+        "FN-33"
+      ]
+    },
+    {
+      "id": "expert-followup",
+      "tool": "expert",
+      "title": "Discuss selected result",
+      "task": "동일 DOE 결과의 선택 행을 근거로 사용자 후속 질문",
+      "viewport": [
+        1440,
+        900
+      ],
+      "setup": "followup",
+      "next": [
+        "study-judgment"
+      ],
+      "functions": [
+        "FN-30"
+      ]
+    },
+    {
+      "id": "study-judgment",
+      "tool": "study",
+      "title": "Competing hypotheses",
+      "task": "가설·지지/반박 근거와 명시 judgment·다음 연구",
+      "viewport": [
+        1440,
+        900
+      ],
+      "setup": "judgment",
+      "next": [
+        "numerical-doe",
+        "expert-discussion"
+      ],
+      "functions": [
+        "FN-29"
+      ]
+    },
+    {
+      "id": "workbench-links",
+      "tool": "workbench",
+      "title": "Research connections",
+      "task": "노드/port/연결을 선택하면 정확한 기존 owner로 이동",
+      "viewport": [
+        1440,
+        900
+      ],
+      "next": [
+        "cad-sketch",
+        "expert-discussion"
+      ],
+      "functions": [
+        "FN-31"
+      ]
+    },
+    {
+      "id": "report-sections",
+      "tool": "report",
+      "title": "Assemble research report",
+      "task": "선택 Study의 질문·판단과 정확 결과 표를 가져와 절 포함·정렬·내용·caption을 편집",
+      "viewport": [
+        1440,
+        900
+      ],
+      "setup": "report-source",
+      "section": "evidence-0",
+      "tabs": {
+        "tabs": 0
+      },
+      "next": [
+        "report-preview",
+        "study-judgment"
+      ],
+      "functions": [
+        "FN-32",
+        "FN-29",
+        "FN-01"
+      ],
+      "evidence_locator": "Gauge / t = 0.02 s",
+      "acceptance": [
+        "Selected frame 0.02 s = 0.2294 mm / POINTS; 0 and 0.04 s remain selectable; missing 0.03 s is unavailable.",
+        "Open source follows the visible page and restores exact field, association, time and supported gauge location.",
+        "Edited Use Study replacement requires explicit Replace; Cancel keeps all sections.",
+        "Current checks NOT_EVALUATED / UNKNOWN / NOT_RELEASED; historical F05 only when explicitly added."
+      ]
+    },
+    {
+      "id": "report-preview",
+      "tool": "report",
+      "title": "Report page preview and output",
+      "task": "같은 Qt 페이지의 curve·단위·caption을 확인하고 PDF/Markdown 검토 출력·저장·cold reopen",
+      "viewport": [
+        1440,
+        900
+      ],
+      "setup": "report-source",
+      "section": "curve-0",
+      "tabs": {
+        "tabs": 1
+      },
+      "next": [
+        "report-sections",
+        "post-field"
+      ],
+      "functions": [
+        "FN-32",
+        "FN-01"
+      ],
+      "evidence_locator": "Gauge / t = 0.02 s",
+      "acceptance": [
+        "Selected frame 0.02 s = 0.2294 mm / POINTS; 0 and 0.04 s remain selectable; missing 0.03 s is unavailable.",
+        "Open source follows the visible page and restores exact field, association, time and supported gauge location.",
+        "Edited Use Study replacement requires explicit Replace; Cancel keeps all sections.",
+        "Current checks NOT_EVALUATED / UNKNOWN / NOT_RELEASED; historical F05 only when explicitly added.",
+        "PDF/Markdown carry exact Study/result/locator; active-font page overflow blocks PDF and focuses the affected page."
+      ]
+    },
+    {
+      "id": "acquisition-channels",
+      "tool": "acquisition",
+      "title": "Acquisition channels and retained trace",
+      "task": "채널·단위·교정·시간·rate/duration을 편집하고 기존 파일의 sample/curve를 연결 선택; live UNAVAILABLE",
+      "viewport": [
+        1440,
+        900
+      ],
+      "tabs": {
+        "tabs": 0
+      },
+      "next": [
+        "acquisition-connection",
+        "data-calibration",
+        "data-workbook"
+      ],
+      "functions": [
+        "FN-35",
+        "FN-03",
+        "FN-05",
+        "FN-01"
+      ]
+    },
+    {
+      "id": "acquisition-connection",
+      "tool": "acquisition",
+      "title": "Acquisition connection and end review",
+      "task": "연결 손실 예시에서 계획/기존 Data로 이동; 실제 명령 NOT_SENT·종료 ACK NOT_RECEIVED·물리 상태 UNKNOWN",
+      "viewport": [
+        1440,
+        900
+      ],
+      "setup": "acquisition-loss",
+      "patch": {
+        "notes": "Review the selected driver and channel calibration. Continue with the existing file while live access is unavailable."
+      },
+      "tabs": {
+        "tabs": 1
+      },
+      "next": [
+        "acquisition-channels",
+        "data-workbook"
+      ],
+      "functions": [
+        "FN-35"
+      ],
+      "acceptance": [
+        "At 1440x900 the six connection/end rows, including physical terminal UNKNOWN and ACK NOT_RECEIVED, are visible together.",
+        "Stored trace remains available; Connect/Start/Stop remain UNAVAILABLE."
+      ]
+    }
+  ],
+  "prior_references": {
+    "FN-32": {
+      "source_commit": "95a2389ca534b807420a4e7dbe2397f5e60953c9",
+      "source_kind": "D1 text specification; D1 SVG availability is not assumed",
+      "screen_spec": "pro-authored/SCREEN_SPEC.md",
+      "sections": [
+        "REPORT-REVIEW",
+        "REOPEN-REPORT"
+      ],
+      "function_spec": "pro-authored/FUNCTION_SPEC.md::FN-32",
+      "prototype_status": "DEDICATED_PLANNING_GUI_AUTHORED; PRODUCT_REPORT_ENGINE_UNCONNECTED",
+      "related_input_states": [
+        "post-field",
+        "study-judgment"
+      ],
+      "relationship": "Dedicated Study-owned native Qt section/page/output review view with exact retained frame/locator, guarded section replacement, opt-in historical checks and local PDF/Markdown export. Windows 600f9f8 startup/render and bounded interactions reported by the user; the later report correction remains pending target execution. Product artifact/report integration remains D1 work.",
+      "prototype_states": [
+        "report-sections",
+        "report-preview"
+      ]
+    },
+    "FN-34": {
+      "source_commit": "95a2389ca534b807420a4e7dbe2397f5e60953c9",
+      "screen_spec": "pro-authored/SCREEN_SPEC.md",
+      "sections": [
+        "CLIENT-CONFLICT",
+        "PRE-DESIGN",
+        "RUN-CANCEL",
+        "POST-MEASURE"
+      ],
+      "workflow_contract": "pro-authored/spec_sections/WORKFLOW_CONTRACTS.md::C01",
+      "prototype_status": "PRODUCT_SAME_COMMAND_INTEGRATION_UNCONNECTED",
+      "related_input_states": [
+        "numerical-doe",
+        "post-gauge"
+      ],
+      "relationship": "Per-operation GUI/CLI/Python/MCP command and selected-result parity; current_source_command is the original D1 command inventory, not an executed prototype path."
+    },
+    "FN-35": {
+      "source_commit": "95a2389ca534b807420a4e7dbe2397f5e60953c9",
+      "source_kind": "D1 text specification; D1 SVG availability is not assumed",
+      "screen_spec": "pro-authored/SCREEN_SPEC.md",
+      "sections": [
+        "DEVICE-PLAN",
+        "DATA-CALIBRATION",
+        "RUN-ACTIVE"
+      ],
+      "workflow_contract": "pro-authored/spec_sections/WORKFLOW_CONTRACTS.md::C09",
+      "function_spec": "pro-authored/FUNCTION_SPEC.md::FN-35",
+      "prototype_status": "DEDICATED_PLANNING_GUI_AUTHORED; LIVE_ADAPTER_AND_CONTROL_UNAVAILABLE",
+      "related_input_states": [
+        "data-workbook",
+        "data-calibration"
+      ],
+      "relationship": "Dedicated Data-owned channel/time/calibration/trace and connection/end planning views. Windows 600f9f8 startup/render and bounded unit/selection/numeric/live-guard checks reported by the user; the later six-row layout correction remains pending target execution. Retained file trace is not live acquisition; no physical acknowledgment is fabricated.",
+      "prototype_states": [
+        "acquisition-channels",
+        "acquisition-connection"
+      ]
+    }
+  }
+}

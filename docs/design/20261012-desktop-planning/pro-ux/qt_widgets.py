@@ -3,9 +3,9 @@ from __future__ import annotations
 import math
 
 from PySide6.QtCore import Qt, QRectF, QPointF, Signal
-from PySide6.QtGui import QColor, QPen, QPainter, QPainterPath, QPolygonF, QFont
+from PySide6.QtGui import QColor, QPen, QPainter, QPainterPath, QPolygonF, QFont, QFontMetricsF
 from PySide6.QtWidgets import (
-    QWidget, QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
+    QApplication, QWidget, QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QGraphicsView, QGraphicsScene, QGraphicsRectItem, QGraphicsTextItem,
     QGraphicsItem, QGraphicsPathItem, QStyledItemDelegate, QLineEdit,
 )
@@ -102,7 +102,7 @@ class CurveView(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor("#ffffff"))
-        rect = QRectF(70, 38, max(10, self.width()-100), max(10, self.height()-100))
+        rect = QRectF(70, 38, max(10, self.width()-100), max(10, self.height()-122))
         self._plot = rect
         values = [(x, y) for s in self.series for x, y in zip(s["x"], s["y"])
                   if isinstance(y, (float, int)) and math.isfinite(y)]
@@ -111,7 +111,7 @@ class CurveView(QWidget):
             x0, x1, y0, y1 = min(xs), max(xs), min(0, min(ys)), max(ys)
             self._limits = (x0, x1 if x1>x0 else x0+1, y0, y1*1.08 if y1>y0 else y0+1)
         x0, x1, y0, y1 = self._limits
-        p.setFont(QFont("Segoe UI", 9))
+        font = QFont(self.font());font.setPointSize(9);p.setFont(font)
         for i in range(6):
             x = rect.left() + rect.width()*i/5
             y = rect.bottom() - rect.height()*i/5
@@ -215,6 +215,162 @@ class CurveView(QWidget):
             super().keyPressEvent(event)
 
 
+class ReportPage(QWidget):
+    """Vector-painted native review page, shared by preview and Qt PDF."""
+    def __init__(self,parent=None):
+        super().__init__(parent)
+        self.setMinimumSize(420,440)
+        self.title="Research report";self.section={};self.page_number=1;self.page_count=1
+
+    def set_page(self,title,section,number,count):
+        self.title=title;self.section=section;self.page_number=number;self.page_count=count;self.update()
+
+    def page_font(self,size,bold=False):
+        font=QFont(self.font());font.setPixelSize(size);font.setBold(bold);return font
+
+    def table_widths(self,section):
+        headers=section.get("headers",[]);rows=section.get("rows",[])
+        body=QFontMetricsF(self.page_font(13));head=QFontMetricsF(self.page_font(12,True));widths=[]
+        for index,header in enumerate(headers):
+            words=str(header).split() or [""]
+            width=max([54]+[head.horizontalAdvance(word)+14 for word in words])
+            for row in rows:
+                if index<len(row):
+                    value="Unavailable" if row[index] is None else str(row[index])
+                    width=max(width,body.horizontalAdvance(value)+14)
+            widths.append(width)
+        total=sum(widths) or 1
+        return [624*width/total for width in widths]
+
+    def layout_issues(self,title,section):
+        """Measure the same fonts, widths and wrapping that paint_page uses."""
+        issues=[]
+        def check(label,text,width,height,size,bold=False,wrap=True):
+            if not text:return
+            metrics=QFontMetricsF(self.page_font(size,bold))
+            flags=Qt.TextFlag.TextWordWrap if wrap else Qt.TextFlag.TextSingleLine
+            bounds=metrics.boundingRect(QRectF(0,0,max(1,width),100000),flags,str(text))
+            if bounds.width()>width+.5 or bounds.height()>height+.5:
+                issues.append(label+" does not fit the PDF page; shorten or split this section, or choose Markdown.")
+        check("Report title",title,624,70,25,True)
+        check("Section heading",section.get("title",""),624,66,20,True)
+        if not section.get("unavailable"):
+            if section.get("kind")=="text":
+                check("Section text",section.get("text",""),624,578,14)
+            elif section.get("kind")=="table":
+                widths=self.table_widths(section)
+                for width,header in zip(widths,section.get("headers",[])):
+                    check("Table heading "+str(header),header,width-14,42,12,True)
+                for row in section.get("rows",[]):
+                    for width,value in zip(widths,row):
+                        check("Table value",str(value) if value is not None else "Unavailable",width-14,28,13,wrap=False)
+                check("Table caption",section.get("caption",""),624,76,12)
+                if len(section.get("rows",[]))>16:issues.append("Split the table into pages of at most 16 rows.")
+            elif section.get("kind")=="curve":
+                series=section.get("series",[])
+                if len(series)>5:issues.append("This PDF curve page supports five series; split the section or choose Markdown.")
+                check("Horizontal axis",section.get("xlabel",""),544,26,14,wrap=False)
+                check("Vertical quantity",section.get("ylabel",""),624,26,14,wrap=False)
+                for item in series:check("Curve legend",item.get("name","Curve"),564,20,12,wrap=False)
+                check("Curve caption",section.get("caption",""),624,40,12)
+        check("Source reference",section.get("source_note",""),624,80,10)
+        return issues
+
+    def paint_page(self,p,target):
+        p.save();p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        scale=min(target.width()/720,target.height()/1018)
+        p.translate(target.center().x()-360*scale,target.center().y()-509*scale);p.scale(scale,scale)
+        p.fillRect(QRectF(0,0,720,1018),QColor("white"))
+        def font(size,bold=False):p.setFont(self.page_font(size,bold))
+        font(12);p.setPen(QColor("#62717d"))
+        p.drawText(QRectF(48,30,624,24),Qt.AlignmentFlag.AlignLeft,"AUTONOMOUS CAE LAB   /   REVIEW DRAFT")
+        font(25,True);p.setPen(QColor(INK))
+        p.drawText(QRectF(48,69,624,70),Qt.TextFlag.TextWordWrap,self.title)
+        p.setPen(QPen(QColor("#b8c9d6"),1));p.drawLine(48,148,672,148)
+        section=self.section;font(20,True);p.setPen(QColor(INK))
+        p.drawText(QRectF(48,168,624,66),Qt.TextFlag.TextWordWrap,section.get("title","No included section"))
+        font(14)
+        if section.get("unavailable"):
+            p.setPen(QColor(RED))
+            p.drawText(QRectF(48,256,624,200),Qt.TextFlag.TextWordWrap,
+                       "Evidence unavailable\n\nThis section has no available source. Other sections remain editable.")
+        elif section.get("kind")=="text":
+            p.drawText(QRectF(48,252,624,578),Qt.TextFlag.TextWordWrap,section.get("text",""))
+        elif section.get("kind")=="table":
+            headers=section.get("headers",[]);rows=section.get("rows",[]);widths=self.table_widths(section)
+            x=48;y=252;p.fillRect(QRectF(48,y,624,52),QColor("#eaf0f5"));font(12,True)
+            for width,header in zip(widths,headers):
+                p.setPen(QColor(INK));p.drawText(QRectF(x+7,y+5,width-14,42),
+                    Qt.TextFlag.TextWordWrap|Qt.AlignmentFlag.AlignVCenter,str(header));x+=width
+            y+=52;font(13)
+            for n,row in enumerate(rows):
+                if n%2==0:p.fillRect(QRectF(48,y,624,28),QColor("#f7f9fb"))
+                x=48
+                for width,value in zip(widths,row):
+                    p.setPen(QColor(INK));p.drawText(QRectF(x+7,y,width-14,28),
+                        Qt.AlignmentFlag.AlignVCenter|Qt.TextFlag.TextSingleLine,str(value) if value is not None else "Unavailable");x+=width
+                y+=28
+            font(12);p.setPen(QColor("#62717d"))
+            p.drawText(QRectF(48,y+12,624,76),Qt.TextFlag.TextWordWrap,section.get("caption",""))
+        elif section.get("kind")=="curve":
+            series=section.get("series",[])
+            points=[(x,y) for s in series for x,y in zip(s["x"],s["y"])
+                    if isinstance(x,(int,float)) and isinstance(y,(int,float)) and math.isfinite(x) and math.isfinite(y)]
+            if points:
+                xs,ys=zip(*points);x0,x1=min(xs),max(xs);y0,y1=min(0,min(ys)),max(ys)
+                if x0==x1:x1=x0+1
+                if y0==y1:y1=y0+1
+                area=QRectF(104,294,544,350);font(12)
+                def point(x,y):
+                    return QPointF(area.left()+(x-x0)/(x1-x0)*area.width(),area.bottom()-(y-y0)/(y1-y0)*area.height())
+                for i in range(6):
+                    x=area.left()+area.width()*i/5;y=area.bottom()-area.height()*i/5
+                    p.setPen(QPen(QColor("#e3e9ee"),1))
+                    p.drawLine(QPointF(x,area.top()),QPointF(x,area.bottom()))
+                    p.drawLine(QPointF(area.left(),y),QPointF(area.right(),y))
+                    p.setPen(QColor(INK))
+                    p.drawText(QRectF(x-28,area.bottom()+8,56,24),Qt.AlignmentFlag.AlignCenter,f"{x0+(x1-x0)*i/5:.3g}")
+                    p.drawText(QRectF(46,y-12,50,24),Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignVCenter,f"{y0+(y1-y0)*i/5:.3g}")
+                for n,s in enumerate(series):
+                    color=QColor(s.get("color",BLUE));p.setPen(QPen(color,2))
+                    path=QPainterPath();started=False
+                    for x,y in zip(s["x"],s["y"]):
+                        if not isinstance(x,(int,float)) or not isinstance(y,(int,float)) or not math.isfinite(x) or not math.isfinite(y):
+                            started=False;continue
+                        position=point(x,y)
+                        if s.get("scatter"):
+                            p.setBrush(color);p.drawEllipse(position,4,4)
+                        elif started:path.lineTo(position)
+                        else:path.moveTo(position);started=True
+                    p.setBrush(Qt.BrushStyle.NoBrush)
+                    if not s.get("scatter"):p.drawPath(path)
+                    if s.get("scatter"):
+                        p.setBrush(color);p.drawEllipse(QPointF(94,728+20*n),3,3);p.setBrush(Qt.BrushStyle.NoBrush)
+                    else:p.drawLine(84,728+20*n,100,728+20*n)
+                    p.drawText(QRectF(108,718+20*n,564,20),Qt.AlignmentFlag.AlignVCenter,s.get("name","Curve"))
+                cursor=section.get("cursor_x")
+                if isinstance(cursor,(int,float)) and math.isfinite(cursor) and x0<=cursor<=x1:
+                    p.setPen(QPen(QColor(ORANGE),1.5,Qt.PenStyle.DashLine))
+                    x=point(cursor,y0).x();p.drawLine(QPointF(x,area.top()),QPointF(x,area.bottom()))
+                p.setPen(QColor(INK));font(14)
+                p.drawText(QRectF(104,680,544,26),Qt.AlignmentFlag.AlignCenter,section.get("xlabel",""))
+                p.drawText(QRectF(48,252,624,26),Qt.AlignmentFlag.AlignLeft,section.get("ylabel",""))
+            font(12);p.setPen(QColor("#62717d"))
+            p.drawText(QRectF(48,834,624,40),Qt.TextFlag.TextWordWrap,section.get("caption",""))
+        font(10);p.setPen(QColor("#62717d"))
+        p.drawText(QRectF(48,886,624,80),Qt.TextFlag.TextWordWrap,section.get("source_note",""))
+        issues=self.layout_issues(self.title,section)
+        font(11);p.setPen(QColor(RED if issues else "#62717d"));p.drawLine(48,974,672,974)
+        footer="Page content needs correction before PDF export" if issues else "Synthetic review content / UNKNOWN / NOT_RELEASED"
+        p.drawText(QRectF(48,983,560,22),Qt.AlignmentFlag.AlignLeft,footer)
+        p.drawText(QRectF(609,983,63,22),Qt.AlignmentFlag.AlignRight,f"{self.page_number} / {self.page_count}")
+        p.restore()
+
+    def paintEvent(self,event):
+        painter=QPainter(self);painter.fillRect(self.rect(),QColor("#dce3e9"))
+        self.paint_page(painter,QRectF(self.rect()).adjusted(20,14,-20,-14));painter.end()
+
+
 class EngineeringView(QWidget):
     """Selectable, rotatable QPainter illustration, explicitly not a native host."""
     faceSelected = Signal(str)
@@ -315,7 +471,7 @@ class EngineeringView(QWidget):
             if self.sketch:
                 p.fillRect(self.rect(),QColor("#f4f6f8"));r=QRectF(self.width()*.2,self.height()*.25,min(self.width()*.7,w*self.width()/140),min(self.height()*.5,h*self.height()/100))
                 p.setPen(QPen(QColor(TEAL),2));p.setBrush(QColor("#dcebe7"));p.drawRect(r)
-                p.setFont(QFont("Segoe UI",11));p.drawText(QRectF(r.left(),r.bottom()+10,r.width(),30),Qt.AlignmentFlag.AlignCenter,f"Width {w:g} mm")
+                font=QFont(self.font());font.setPointSize(11);p.setFont(font);p.drawText(QRectF(r.left(),r.bottom()+10,r.width(),30),Qt.AlignmentFlag.AlignCenter,f"Width {w:g} mm")
                 p.drawText(20,int(r.center().y()),f"Height {h:g} mm")
                 p.drawText(20,30,"Rectangle sketch · dimension illustration")
                 p.setPen(QPen(QColor(BLUE),2))
@@ -380,7 +536,7 @@ class EngineeringView(QWidget):
                 p.setPen(QPen(QColor(ORANGE),4));a,b=edges[self.selected];p.drawLine(self._project(a),self._project(b))
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.setPen(QColor(INK))
-        p.setFont(QFont("Segoe UI",10))
+        font=QFont(self.font());font.setPointSize(10);p.setFont(font)
         p.drawText(18,28,self.field if self.mode=="post" else self.selected)
         p.setPen(QColor("#74818c"))
         p.drawText(QRectF(12,self.height()-28,self.width()-24,20),Qt.AlignmentFlag.AlignLeft,self.label+" · synthetic")
@@ -458,7 +614,7 @@ class GraphNode(QGraphicsRectItem):
 
     def paint(self,painter,option,widget=None):
         super().paint(painter,option,widget)
-        painter.save();font=QFont();font.setFamilies(["Segoe UI","Malgun Gothic","DejaVu Sans"]);font.setPointSize(10)
+        painter.save();font=QFont(QApplication.font());font.setPointSize(10)
         painter.setFont(font);painter.setPen(QColor(INK))
         painter.drawText(QRectF(10,5,150,48),Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter,self.label)
         painter.setPen(QPen(QColor(BLUE),1));painter.setBrush(QColor("#f4f8fc"))
@@ -527,6 +683,15 @@ class NodeView(QGraphicsView):
                 self.chosen.emit(item.key); break
             if isinstance(item,QGraphicsPathItem) and item.data(0):
                 a,b=item.data(0);self.edgeChosen.emit(a,b);break
+
+    def mousePressEvent(self,event):
+        point=self.mapToScene(event.position().toPoint())
+        for key,node in self.nodes.items():
+            local=node.mapFromScene(point)
+            for port,x in (("input",0),("output",170)):
+                if (local-QPointF(x,29)).manhattanLength()<12:
+                    self.select_node(key);self.portChosen.emit(key,port);return
+        super().mousePressEvent(event)
 
     def mouseDoubleClickEvent(self,event):
         item=self.itemAt(event.position().toPoint())

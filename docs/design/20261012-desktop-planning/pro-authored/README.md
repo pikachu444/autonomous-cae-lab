@@ -1,5 +1,11 @@
 # Autonomous CAE Lab — 전체 데스크톱 상세 설계 D1
 
+> 현재 화면과 실행은 [새 검토 안내](../REVIEW_GUIDE.md)를 따른다. 이 폴더에서는
+> 기능 명세·상태 계약·작업표·검증 계획을 재사용한다. 아래는 Pro의 D1 작성 당시 안내로,
+> 언급한 옛 SVG·PNG·생성 스크립트 전체가 로컬에 회수된 것은 아니다. 새 GUI는
+> [편집 가능한 Qt 상태 화면](../pro-ux/screens/README.md)과 [Qt 원본](../pro-ux/README.md)에 있다.
+> Penpot은 사용자 지시로 제외했으므로 아래 무료 계정 연결 요청은 현행 작업이 아니다.
+
 요청 ID **PRO-DESKTOP-DESIGN-20261012-01** · 2026-10-12 · **연결된 whole-product draft / 별도 planning prototype**.
 
 이 폴더는 실제 전달된 최신 요구를 기준으로 작성한 편집 원본이다. 본구현, 사용자 업무 수용 또는 공학적 출시 승인 기록이 아니다. 사용자가 화면과 시제품을 검토한 뒤 개발 시작을 지시하면 Codex가 아래 backlog를 실제 저장소에 통합한다.

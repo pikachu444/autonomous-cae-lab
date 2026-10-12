@@ -1,0 +1,435 @@
+{
+  "core_commit": "827ee9e71c0315d3b76f9ed8197e971c2d944e7c",
+  "scope": "PLANNING_SYNTHETIC_QT_AND_STATE_ONLY",
+  "runtime": {
+    "os": "Linux",
+    "python": "3.12.14",
+    "PySide6": "6.9.1",
+    "Qt": "offscreen"
+  },
+  "not_run": [
+    "Windows OS input",
+    "FreeCAD native host",
+    "ParaView native host",
+    "solver",
+    "optimizer",
+    "PDE solve",
+    "provider",
+    "remote scheduler",
+    "device acquisition"
+  ],
+  "core_source_hashes": {
+    "prototype_state.py": "a13bf19203db1a2468ae813ad31f574291afa39c914a25549f290bef366be4d2",
+    "qt_prototype.py": "c168fed9ca2a7abe5e512cfa533414bdcb0abc3dd7a9d97f83f598e90cd42733",
+    "qt_widgets.py": "a4d4de78a65cf213b23c22662e11cf6af6c7473e9c933d6864227d7179c267fe"
+  },
+  "suites": [
+    {
+      "script": "qt_acceptance.py",
+      "execution": "root final rerun of bounded checks",
+      "platform": "Qt offscreen",
+      "status": "PASS",
+      "checks": [
+        {
+          "check": "simulation_dt_repair_signed_force_zero",
+          "status": "PASS",
+          "detail": {
+            "negative_dt_block": "Enter a finite positive value.",
+            "repaired_input": {
+              "id": "V-01",
+              "revision": 9
+            }
+          }
+        },
+        {
+          "check": "cad_geometry_stale_and_empty_contact_sets",
+          "status": "PASS",
+          "detail": {
+            "stale_geometry_blocked": true,
+            "empty_set_a_b_blocked": true
+          }
+        },
+        {
+          "check": "numerical_unknown_role_and_visible_undo",
+          "status": "PASS",
+          "detail": {
+            "invalid_role_block": "Choose a response role from Minimize, Maximize, Upper bound, Lower bound, Target or Observe.",
+            "visible_start_sequence": [
+              14,
+              15,
+              14
+            ]
+          }
+        },
+        {
+          "check": "scientific_f2_exact_values_save_reopen",
+          "status": "PASS",
+          "detail": {
+            "exact_f2_save_reopen": [
+              {
+                "tool": "simulation",
+                "field": "time_step",
+                "typed": "0.001",
+                "exact_value": 0.001,
+                "saved_revision": 8,
+                "reopened_visible_text": "0.001"
+              },
+              {
+                "tool": "simulation",
+                "field": "time_step",
+                "typed": "1e-6",
+                "exact_value": 1e-06,
+                "saved_revision": 9,
+                "reopened_visible_text": "1e-06"
+              },
+              {
+                "tool": "thermoelastic",
+                "field": "alpha",
+                "typed": "1.2e-5",
+                "exact_value": 1.2e-05,
+                "saved_revision": 6,
+                "reopened_visible_text": "1.2e-05"
+              }
+            ]
+          }
+        },
+        {
+          "check": "numerical_evaluator_compact_row_height",
+          "status": "PASS",
+          "detail": {
+            "evaluator_row_height_px": 31,
+            "combo_height_px": 30,
+            "variables_viewport_height_px": 288
+          }
+        },
+        {
+          "check": "new_plan_typed_variable_response_authoring",
+          "status": "PASS",
+          "detail": {
+            "typed_variable_response": true,
+            "frozen_source": {
+              "id": "N-ACCEPTANCE",
+              "revision": 1
+            }
+          }
+        },
+        {
+          "check": "post_atomic_field_undo_zero_and_unavailable_frame",
+          "status": "PASS",
+          "detail": {
+            "atomic_field_undo": true,
+            "time_zero_synchronized": true,
+            "unretained_time": 0.03,
+            "interpolation": false
+          }
+        },
+        {
+          "check": "material_qtest_tab_backtab",
+          "status": "PASS",
+          "detail": {
+            "Tab_next_widget": "QComboBox",
+            "Backtab_previous_widget": "QPlainTextEdit"
+          }
+        },
+        {
+          "check": "graph_node_painted_label_pixels",
+          "status": "PASS",
+          "detail": {
+            "interior_pixel_difference": 548,
+            "claim": "GraphNode painted text only; no OS/native integration claim"
+          }
+        }
+      ],
+      "qt_callback_errors": []
+    },
+    {
+      "script": "qt_followup_acceptance.py",
+      "execution": "root final rerun of bounded checks",
+      "platform": "Qt offscreen",
+      "status": "PASS",
+      "checks": [
+        {
+          "check": "matrix_binding_remap",
+          "status": "PASS",
+          "detail": {
+            "case_and_use_preserved": true,
+            "material_values_preserved": true,
+            "new_width_cells_empty": true,
+            "admission_error": "Every matrix value must be finite and within its variable bounds."
+          }
+        },
+        {
+          "check": "moo_canonical_response_binding",
+          "status": "PASS",
+          "detail": {
+            "canonical_and_frozen_displacement_limit": ".25"
+          }
+        },
+        {
+          "check": "method_count_budget_admission",
+          "status": "PASS",
+          "detail": {
+            "default_settings_budget_error": "Requested evaluations exceed the total budget. Edit Method or reduce the design.",
+            "example_matrix_budget_four_valid": true,
+            "budget_three_error": "Requested evaluations exceed the total budget. Edit Method or reduce the design.; Active matrix evaluations exceed the budget."
+          }
+        },
+        {
+          "check": "inverse_train_observation_binding",
+          "status": "PASS",
+          "detail": {
+            "all_holdout_error": "Choose at least one observation with Train and a positive weight.",
+            "negative_train_weight_error": "Use a positive training weight and residual scale; Holdout/Exclude may use zero weight.; Choose at least one observation with Train and a positive weight.",
+            "masked_train_included_count": 300
+          }
+        },
+        {
+          "check": "invalid_buffer_history_undo_redo",
+          "status": "PASS",
+          "detail": {
+            "invalid_text_undo_redo_visible": true,
+            "session_reopen_undo": true
+          }
+        },
+        {
+          "check": "post_ordinary_save_cold_result",
+          "status": "PASS",
+          "detail": {
+            "ordinary_file_fresh_process_result": "review-result-5b6511933bb1",
+            "exact_source": {
+              "id": "V-01",
+              "revision": 7
+            },
+            "cold_process_stdout": "{\"key\": \"post:review-result-5b6511933bb1\", \"result\": \"review-result-5b6511933bb1\", \"frame\": {\"available\": true, \"time\": 0, \"array\": \"Contact pressure\", \"unit\": \"MPa\", \"association\": \"CELLS\", \"value\": 0, \"measurements\": {\"Displacement\": {\"value\": 0, \"unit\": \"mm\"}, \"Contact pressure\": {\"value\": 0, \"unit\": \"MPa\"}, \"Normal force\": {\"value\": 0, \"unit\": \"N\"}}, \"times\": [0, 0.01, 0.02, 0.04], \"curve\": [0, 0.8, 1.5, 2.4]}}"
+          }
+        }
+      ],
+      "qt_callback_errors": []
+    },
+    {
+      "script": "qt_ux04_acceptance.py",
+      "execution": "root final rerun of bounded checks",
+      "platform": "Qt offscreen",
+      "status": "PASS",
+      "checks": [
+        {
+          "check": "cad_draw_width_constrain_save_reopen",
+          "status": "PASS",
+          "detail": {
+            "mouse_drawn_lines": [
+              [
+                10.0,
+                5.0,
+                30.0,
+                25.0
+              ]
+            ],
+            "saved_reopened_width": 90,
+            "table_view_consistent": true
+          }
+        },
+        {
+          "check": "saved_geometry_selected_step_thermal_pages",
+          "status": "PASS",
+          "detail": {
+            "saved_geometry": {
+              "pose": 45,
+              "instances": 4,
+              "hole": true,
+              "mesh": 1
+            },
+            "hold_selected_duration": 2,
+            "hold_edited_duration": 3,
+            "load_unchanged": {
+              "name": "Load",
+              "duration": 1.0,
+              "control": "Automatic"
+            },
+            "thermal_hidden_nodes": {
+              "Model": false,
+              "Steps": false,
+              "Boundary conditions": false,
+              "Contact": true,
+              "Initial conditions": true,
+              "Failure": true,
+              "Output": false
+            }
+          }
+        },
+        {
+          "check": "post_comparison_exact_result_geometry",
+          "status": "PASS",
+          "detail": {
+            "current_cad_draft_thickness": 99,
+            "result_view_thicknesses": [
+              13.7,
+              14.6
+            ]
+          }
+        },
+        {
+          "check": "expert_plan_result_reply_save_cold_study_judgment",
+          "status": "PASS",
+          "detail": {
+            "result_id": "review-result-731200db3e48",
+            "kind": "numerical",
+            "computed_from_input": false,
+            "ordinary_expert_cold_evidence": true,
+            "session_study_judgment": "Insufficient evidence"
+          }
+        }
+      ],
+      "qt_callback_errors": []
+    },
+    {
+      "script": "state_acceptance.py",
+      "execution": "root final rerun of bounded checks",
+      "platform": "stdlib",
+      "status": "PASS",
+      "checks": [
+        {
+          "check": "adoption_nominal_cold_reopen",
+          "status": "PASS",
+          "detail": "CAD14/Material19 exact owner receipts; failed Material18 dirty retained; repeat and cold reopen stable"
+        },
+        {
+          "check": "cancelled_apply_must_block",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "check": "cancelled_publish_must_block",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "check": "memory_stale_publish_must_block",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "check": "disk_stale_publish_must_block",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "check": "data_observation_identity_selection_undo",
+          "status": "PASS",
+          "detail": "A301 retained; explicit saved refresh A300; inclusive A78..A85 excludes 8 total yielding293; undo exact"
+        },
+        {
+          "check": "thermal_exact_reopen_routing",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "check": "material_dependency_repair",
+          "status": "PASS",
+          "detail": "Actual fixture SHA used; c017 .862 MAT17/NFIT8 provenance; exact r19 intact after identical repair, declined changedcontent and branch; CAL-018 points to Calibration.txt"
+        },
+        {
+          "check": "invalid_save_freeze_boundary",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "check": "runner_exact_input_cancel_late_reconnect",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "check": "unsupported_owner_no_structural_result",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "check": "dynamic_numerical_refresh_freeze_validation",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "check": "invalid_parameter_gates",
+          "status": "PASS",
+          "detail": "12 zero/negative/noninteger parameter cases; empty/text/infinite constraint diagnostic gates"
+        },
+        {
+          "check": "provider_and_release_boundary",
+          "status": "PASS",
+          "detail": null
+        }
+      ],
+      "qt_callback_errors": []
+    }
+  ],
+  "followup_checks": [
+    {
+      "scope": "TWO_UX06_SYNTHETIC_QT_PATHS",
+      "platform": "offscreen",
+      "versions": {
+        "PySide6": "6.9.1",
+        "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]"
+      },
+      "native_solver_provider_windows": "NOT_RUN",
+      "source_hashes": {
+        "prototype_state.py": "8262f3f1133c9bd0452a12da5e2a83d8fff6ffd2509466ef1ce7c4d0f97c64ff",
+        "qt_prototype.py": "2a899f3778d760933bd9872ae561c502d1f4ed44094603e885095eb28e24b9a9",
+        "qt_widgets.py": "3a05da02243ce65ca1d988078cf2883b9304c3f765eba097a268869476c04128"
+      },
+      "checks": [
+        {
+          "check": "hold_step_name_only_preserves_fields",
+          "status": "PASS",
+          "detail": {
+            "second_step": {
+              "name": "Hold renamed",
+              "duration": 2.0,
+              "control": "Automatic",
+              "time_step": 2e-05,
+              "force": -125.0
+            },
+            "load_unchanged": {
+              "name": "Load",
+              "duration": 1.0,
+              "control": "Automatic"
+            },
+            "ordinary_save_fresh_process_and_cold_qt": true
+          }
+        },
+        {
+          "check": "same_doe_result_distinct_row_replies",
+          "status": "PASS",
+          "detail": {
+            "same_result_id": "review-result-cac1ca5e4843",
+            "distinct_reply_turns": [
+              "user-turn-fe3dd4796516",
+              "user-turn-d36fdbd3f5b2"
+            ],
+            "locators": [
+              "DOE / Design responses / d1",
+              "DOE / Design responses / d2"
+            ],
+            "selected_turn_visible_refs": [
+              [
+                [
+                  "review-result-cac1ca5e4843",
+                  "DOE / Design responses / d1"
+                ]
+              ],
+              [
+                [
+                  "review-result-cac1ca5e4843",
+                  "DOE / Design responses / d2"
+                ]
+              ]
+            ],
+            "ordinary_save_fresh_process_and_cold_qt": true
+          }
+        }
+      ],
+      "qt_callback_errors": [],
+      "status": "PASS",
+      "execution_actor": "Sol/high independent Qt check on an immutable source snapshot",
+      "script": "qt_ux06_acceptance.py"
+    }
+  ]
+}

@@ -18,7 +18,11 @@ ParaView와 추가 지출0원을 유지한다. 과거 문서의 기획 완료·�
 않으며 그 교정이 다른 도구를 기다리게 하지 않는다. Data/Material/PDE/Numerical/Runner/
 Expert/Study·선택 Workbench와 넓은 물리·수치 범위는 그대로 유지한다.
 
-현재 설명문·보조 기능이 많은 Qt 폼은 **사용성 미수용 초안**이다. 사용자는 긴 제목·파일명에
+이전 설명문·보조 기능이 많은 Qt 폼은 **사용성 미수용 초안**으로 보존했다. 새 Qt 시안은
+모델·표·곡선과 선택한 작업을 중심으로 교정해 **사용자 검토본**으로 통합했다.
+[화면과 시제품 검토](docs/design/20261012-desktop-planning/REVIEW_GUIDE.md)에서 시작한다.
+설계 작성·통합과 사용자 수용은 구별하며 본제품 개발 시작 지시는 아직 받지 않았다.
+사용자는 긴 제목·파일명에
 `• r2` 등 내부 접미사를 이어 붙이는 표시를 싫어한다. 주 화면은 짧은 작업명·값·단위·선택·
 상태·다음 조작을 보여주고, 정확한 원본/개정/실패는 이력·근거·진단에서 조회한다.
 이미 지정한 FreeCAD/ParaView/HyperStudy/Co-STORM/Origin/MCalibration/COMSOL 원형은
@@ -39,7 +43,10 @@ Expert/Study·선택 Workbench와 넓은 물리·수치 범위는 그대로 유�
 [새 실제 Pro 대화](https://chatgpt.com/c/6accef3a-e650-83ee-89e2-3f48a60dd17a)의 요청06이다.
 소유권은 `pro-ux/`, 작성 브랜치는 `design/product-ux-20261012`다.
 
-최신 회수 source는 `b46b8ba`다. CAD/FE·Simulation·Runner·Post·Numerical·Expert·Study와
+최종 Qt view와 상태/도면 연결은 Pro `dd43015`다. Report/Acquisition 추가 `600f9f8`,
+문서/작업 대응 `a2e20b8`, scatter 교정 `0b9da54`, 정확 선택/출력 교정 `9e313e5`를 포함한다.
+최종 검사 helper 두 줄과 Pro의 Windows 인계 기록은 `20291b3`으로 회수했다.
+CAD/FE·Simulation·Runner·Post·Numerical·Expert·Study와
 Data/Material/PDE/Evaluation/선택 Workbench의 Qt 창을 실제로 렌더링했다.
 [GUI 실제 검토](docs/design/20261012-desktop-planning/GUI_REVIEW.md)에 source별
 Pro 작성, Astra/xhigh 독립 검토, Sol/high의 실제 입력 검사와 Codex 통합 확인을 구별한다.
@@ -49,15 +56,42 @@ Post의 시간/필드 연동과 CAD→Simulation→Runner의 합성 결과→Pos
 
 Astra의 `48cbac3` 재검토는 스케치 선 삭제, saved 자세/instance·비교 형상,
 selected step, inverse train/holdout 및 방법별 결과→후속 논의의 잔여를 찾았다.
-같은 Pro에 UX-FIX-04로 전달했고 최신 source에서 바뀐 경로만 다시 확인한다.
-현재 큰 마무리는 해당 조작 교정, 방법별 합성 결과/토론 연결, 상태별 편집 원본,
-명세·대응표·검토 자료 통합이다. 사용자에게 제시할 검토본 목표를 2026-10-13
-한국시간 오전3시 전후로 알렸으며, 예상과 실제 완료를 구별한다.
+같은 Pro에 UX-FIX-04로 전달했고 최신 core의 집중 Qt 검사에서 sketch 보존·saved 형상/
+selected step·Post ordinary file 재열기·방법별 결과→Expert→Study 경로를 확인했다.
+상태 SVG/JSON과 작업 흐름 drawio, 기존74task의 새 화면 연결을 회수했다.
+Astra의 최종 changed-path 검토는 step 이름 변경 시 입력 유실, 같은 결과의 발언별
+locator 혼합, Numerical 기능/화면 대응 오류를 찾았다. UX-FIX-06/UX-MAP-01로 같은 Pro에
+교정을 맡겼다. Luna의 독립 대응 검토는 FN-01/32/34/35의 전용 경로·기존 상세 계약 참조가
+불명확한 것을 찾아 UX-MAP-02로 전달했다. 원74task/기존열·52요구 상태는 유지됐다.
+Windows 글꼴과 Post 비교값 잘림은 UX-FIX-05/UX-VISUAL-01로 교정됐고 정상 글자와
+0.31/0.29mm 첫 표시를 실제 렌더에서 확인했다. 무료 기존 폰트를 읽으며 배포하지 않는다.
+`049bbbc`의 입력/발언 근거 두 문제는 root 실제 Qt 검사와 Astra 독립 재현에서 해소됐다.
+`60a4fab`의 task/state 대응 교정은 Luna의 제한된 재검토로 확인됐다.
+Pro의 원격 Linux 실행 환경이 끊겼으나 GitHub 연결로 Report/Acquisition 소스를 계속
+주작성·게시했다. root Windows에서 새 4상태의 실제 Qt 렌더를 확인했다. Sol/high는
+PDF/Markdown·보고서 일반 저장/cold reopen, 채널 Cancel/단위변환/표곡선/부분입력 차단/
+저장/cold reopen과 unavailable live guards를 실제로 확인했다. Astra는 구조·시각을 검토했다.
+선택 .02s 보고서가 끝 .04s 값 .31을 쓰는 오류, 미리보기 페이지와 source 열기 불일치,
+출력 근거 참조·F05 역사 적용범위·Use Study 교체·Acquisition 종료 표시를 같은 Pro에
+UX-REPORT-FIX-01/02로 전달했다. `9e313e5` 교정은 독립 Sol/high의 정확 시각/출력/
+Cancel/Undo/cold reopen과 Astra/xhigh의 페이지/출처/역사 적용범위/6행 표시 검사에서
+닫혔다. `dd43015`의 supported gauge·Surface 복원/overflow 이동은 Sol 제한 소스 검토와
+root Windows의 변경 경로 Qt 검사에서 확인했다. 숫자 delegate로 보였던 검사 실패는
+offscreen 모달 종료 뒤 검사 창 활성화 누락이었다. 기존 delegate는 생성됐고 올바른
+창 활성화 뒤 부분 입력·수정·저장/재열기가 작동했다. root는 ignored 검사 사본의
+포커스만 보완했으며 제품 작성자로 대체하지 않았다.
+
+최종 56상태 SVG와 화면 미리보기는 같은 Pro 소스를 root가 Windows Qt에서 재생성했다.
+같은 원본의 네 작업 흐름 페이지를 draw.io Desktop에서 export했고 PDF의 정확 .02s/
+.2294mm 표·곡선·글자·출처를 Poppler로 렌더해 확인했다. 실행 안내, 전체 명세/작업표,
+MoAI 인계와 연결해 검토본으로 저장했다. 숫자는 합성 예시이며 실제 계산 통과가 아니다.
+최종 전달의 Git 게시 결과와 사용자 수용을 구별한다.
 
 Edge 연결 소실 후 공식 task 조회로 요청06과 원 UI의 같은 turn을 대조해 후속 연결을
 복구했다. 작성 task는 `01a13087-154b-7343-ad70-1f882d9fc0af`/durable,
 turn은 `01a13087-26c6-7536-b617-db0dbef22557`다.
-공식 전송 뒤 수신 userMessage의 UX-FIX-04 본문·끝 경계를 확인했다.
+공식 전송 뒤 수신 userMessage의 UX-FIX-04/05/06, UX-MAP-01/02,
+UX-VISUAL-01/UX-COMPLETE-01 본문·끝 경계를 확인했다.
 새 모델·유료 API 또는 다른 작성자로 대체하지 않는다. 최신 사용자 요구와 실제 원고의
 전달 요약은 [PRO_UX_REQUEST](docs/design/20261012-desktop-planning/PRO_UX_REQUEST.md)다.
 Space 제품 입구에도 GUI/우선순위 결정과 같은 Pro/Qt 링크를 반영·재조회했다.
@@ -95,12 +129,17 @@ Penpot은 계정이 없어 제외하라는 사용자 결정으로 닫고 무시�
 
 ### 이어서 할 작업
 
-Pro의 전체 도구 화면·Qt 소스와 원 D1 편집 원본을 회수하고 실제로 열어, 위 결함과 사용자
-피드백의 교정을 확인한다. Astra에 최신 원문·같은 실제 산출물을 전달해 시각·hotspot·
-전체 경로를 독립 검토하고 필요한 Pro 교정을 반영한다. 사용자가 시작·선택·입력·결과·
-오류/취소·저장/재개를 직접 따라갈 수 있는 검토본으로 제출한 뒤 개발 시작 지시를 기다린다.
-CURRENT_STATE/HANDOFF·요구 상태와 관련 Space 입구는 실제 진행에 맞게 갱신한다.
-현재 전체 상세 기획·사용성 수용은 미완료이며 과거 수치 실패·UNKNOWN은 그대로 유지한다.
+사용자가 [검토 안내](docs/design/20261012-desktop-planning/REVIEW_GUIDE.md)의 실제 화면과
+Qt 조작을 검토한다. 피드백은 현재 Pro 원고에 교정하며 별도의 반복 인터뷰나 과거 solver
+전수 검증으로 바꾸지 않는다. **사용자의 개발 시작 지시 후** 아래 독립 도구군의 구현을
+기존 MoAI SPEC/작업표로 이어간다. 첫 통합 경로는 CAD/FE→Simulation→Runner→native
+Post→최적화와 Expert→Numerical→결과→Study이며 Data/Material/PDE는 독립 병행한다.
+남은 사용자 결정은 화면 수용과 개발 착수다. 지원 backend/장비/Expert 무료 연결은
+해당 제품 구현에 연결된 기술·검증 대상으로 남는다.
+현재 시제품은 정밀 입력·저장·재열기·선택·도킹 등 Qt 조작을 확인한 planning source다.
+native OS/DPI·실제 FreeCAD/ParaView 연결·solver/provider/device는 미확인으로 남는다.
+원요구52개 ID는 TRACED_NOT_IMPLEMENTED_BY_THIS_REQUEST이며 설계 작성으로 완료 처리하지 않았다.
+과거 수치 실패·UNKNOWN과 원 허용치는 그대로 유지한다.
 
 ### 앞선 통합 기록
 

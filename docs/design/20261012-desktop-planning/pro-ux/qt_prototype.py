@@ -10,12 +10,14 @@ import csv
 import hashlib
 import json
 import math
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 try:
-    from PySide6.QtCore import Qt, QTimer, QSize, QItemSelection, QItemSelectionModel
-    from PySide6.QtGui import QAction, QKeySequence, QFont, QColor, QTextCursor
+    from PySide6.QtCore import Qt, QTimer, QSize, QRectF, QItemSelection, QItemSelectionModel
+    from PySide6.QtGui import QAction, QKeySequence, QFont, QFontDatabase, QFontInfo, QColor, QTextCursor, QPainter, QPdfWriter, QPageSize
     from PySide6.QtWidgets import (
         QApplication, QMainWindow, QWidget, QDockWidget, QVBoxLayout, QHBoxLayout,
         QSplitter, QTabWidget, QTreeWidget, QTreeWidgetItem, QTableWidgetItem,
@@ -28,11 +30,11 @@ except ImportError:
     raise SystemExit("PySide6 is not available in this interpreter. Use the existing Windows Python 3.13 / PySide6 6.9.1 environment. Nothing was installed.")
 
 from prototype_state import (ReviewSession, ReviewError, TOOL_NAMES, METHODS, HERE, clone, digest,
-                             RESPONSE_ROLES, EVALUATORS, VARIABLE_BINDINGS, METHOD_INPUTS, method_sheet, binding_ids)
-from qt_widgets import make_table, CurveView, EngineeringView, NodeView, BLUE, TEAL, ORANGE, RED
+                             RESPONSE_ROLES, EVALUATORS, VARIABLE_BINDINGS, METHOD_INPUTS, method_sheet, binding_ids, report_sections, structural_location)
+from qt_widgets import make_table, CurveView, EngineeringView, NodeView, ReportPage, BLUE, TEAL, ORANGE, RED
 
 STYLE = """
-QWidget { color: #263442; font-family: 'Segoe UI'; font-size: 10pt; }
+QWidget { color: #263442; font-size: 10pt; }
 QMainWindow, QDialog { background: #f3f5f7; }
 QToolBar { background: #f7f8fa; border: 0; border-bottom: 1px solid #cad3dc; spacing: 5px; padding: 3px; }
 QToolButton { padding: 4px 8px; }
@@ -48,6 +50,47 @@ QSplitter::handle { background: #d7dfe6; }
 QStatusBar { background: #eaf0f5; border-top: 1px solid #cbd5dd; }
 QPlainTextEdit { background: white; }
 """
+
+
+def configure_application_fonts(app):
+    """Use installed fonts in both native and offscreen entry points.
+
+    Windows offscreen may not discover its installed fonts automatically. Read
+    those existing files into this process only; never install or copy fonts.
+    """
+    cached = app.property("caelabFontPolicy")
+    if cached is not None:
+        return cached
+    loaded = []
+    if sys.platform == "win32":
+        system_root = os.environ.get("WINDIR") or os.environ.get("SystemRoot") or "C:/Windows"
+        for filename in ("segoeui.ttf", "malgun.ttf"):
+            path = Path(system_root) / "Fonts" / filename
+            if path.is_file() and QFontDatabase.addApplicationFont(str(path)) >= 0:
+                loaded.append(filename)
+    available = set(QFontDatabase.families())
+    system = QFontInfo(QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont)).family()
+    preferred = (["Segoe UI", "Malgun Gothic", system] if sys.platform == "win32"
+                 else [system, "Noto Sans", "DejaVu Sans", "Liberation Sans"])
+    korean = QFontDatabase.families(QFontDatabase.WritingSystem.Korean)
+    if korean:
+        preferred.append("Malgun Gothic" if "Malgun Gothic" in korean else korean[0])
+    families = list(dict.fromkeys(name for name in preferred if name in available))
+    font = QFont(app.font())
+    if families:
+        font.setFamilies(families)
+        # Also resolve legacy explicit family requests without assuming that a
+        # font from another OS is installed (including older review wrappers).
+        for alias in ("DejaVu Sans", "Segoe UI", "Malgun Gothic"):
+            if alias not in available:
+                QFont.insertSubstitutions(alias, families)
+    font.setPointSize(10)
+    app.setFont(font)
+    policy = {"platform": sys.platform, "ui_families": font.families(),
+              "resolved_family": QFontInfo(font).family(), "point_size": 10,
+              "hangul_family_available": bool(korean), "loaded_existing_files": loaded}
+    app.setProperty("caelabFontPolicy", policy)
+    return policy
 
 
 def box(*widgets, horizontal=False, margins=0):
@@ -80,7 +123,9 @@ def text_dialog(parent, title, text, width=820):
     dialog.resize(width, 580)
     view = QPlainTextEdit(text)
     view.setReadOnly(True)
-    view.setFont(QFont("Consolas", 10))
+    font = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
+    font.setPointSize(10)
+    view.setFont(font)
     close = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
     close.rejected.connect(dialog.reject)
     layout = QVBoxLayout(dialog)
@@ -94,6 +139,11 @@ def number(text):
     if not math.isfinite(result):
         raise ValueError("A finite number is required.")
     return result
+
+
+def numeric_draft(text):
+    try:return number(text)
+    except ValueError:return text
 
 
 def fill_table(table, rows, editable=()):
@@ -170,7 +220,7 @@ class ToolWindow(QMainWindow):
         self.action(self.view_menu, "Restore layout", self.restore_layout)
         self.action(self.view_menu, "History and sources…", self.history, "Ctrl+H")
         tools = self.menuBar().addMenu("&Window")
-        for key in ("cad","simulation","runner","post","numerical","expert","study","data","material","pde","evaluation","workbench"):
+        for key in ("cad","simulation","runner","post","numerical","expert","study","data","material","pde","evaluation","workbench","report","acquisition"):
             self.action(tools, TOOL_NAMES[key], lambda k=key:self.hub.open(k))
         self.review_menu = self.menuBar().addMenu("&Review")
         self.action(self.review_menu, "Runtime and capability…", self.capabilities)
@@ -403,6 +453,7 @@ class ToolWindow(QMainWindow):
             if field in ("thickness","width","height"):
                 self.props.setCurrentCell(("thickness","width","height").index(field),1);self.props.setFocus()
         elif self.document["owner"]=="Numerical":
+            if field=="method_inputs":self.top_tabs.setCurrentIndex(3);self.method_detail.setFocus();return
             if field in ("method","budget","seed") or field.startswith("method."):self.top_tabs.setCurrentIndex(2);self.method_table.setFocus();return
             if field=="evaluator":self.evaluator.setFocus()
             else:
@@ -413,6 +464,11 @@ class ToolWindow(QMainWindow):
         elif self.document["owner"]=="Simulation" and field in self.numeric_fields:
             self.pages.setCurrentIndex(1)
             self.table.setCurrentCell(self.numeric_fields.index(field),1);self.table.setFocus()
+        elif self.document["owner"]=="Simulation":
+            page=1 if field.startswith("steps") else 2 if "condition" in field else 5 if "failure" in field else 1
+            self.pages.setCurrentIndex(page)
+            if field.startswith("steps."):
+                index=int(field.split(".")[1]);self.steps.selectRow(index);self.table.setFocus()
         elif self.document["owner"]=="PDE":
             if field=="boundary":self.pages.setCurrentIndex(4)
             elif field=="field":self.pages.setCurrentIndex(2);self.field_name.setFocus()
@@ -898,7 +954,8 @@ class SimulationWindow(ToolWindow):
         for label,w in (("Name",name),("Duration [s]",duration),("Control",control)):form.addRow(label,w)
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel);buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);form.addRow(buttons)
         if dialog.exec()==QDialog.DialogCode.Accepted:
-            payload=clone(self.data);items=clone(steps);item={"name":name.text(),"duration":number(duration.text()),"control":control.currentText()}
+            payload=clone(self.data);items=clone(steps);item=clone(src)
+            item.update(name=name.text(),duration=number(duration.text()),control=control.currentText())
             if editing:items[row]=item
             else:items.append(item)
             payload["steps"]=items;payload["duration"]=items[0]["duration"];self.step_index=row if editing else len(items)-1
@@ -1002,6 +1059,7 @@ class DataWindow(ToolWindow):
         self.action(self.toolbar,"Restore",lambda:self.exclude(False))
         self.action(self.toolbar,"Calibration…",self.calibration)
         self.action(self.toolbar,"Use in Material…",self.to_material)
+        self.action(self.toolbar,"Acquisition…",lambda:self.hub.open("acquisition"))
         self.meta=make_table(["A","B","C","D"],[
             [c["name"] for c in self.data["columns"]],[c["unit"] for c in self.data["columns"]],
             [c["role"] for c in self.data["columns"]],[c["formula"] for c in self.data["columns"]]],
@@ -1291,7 +1349,10 @@ class PDEWindow(ToolWindow):
         self.equation=QPlainTextEdit();self.equation.setMaximumHeight(190);self.equation.textChanged.connect(self.equation_changed)
         self.coefficients=make_table(["Coefficient","Value","Unit"],[],editable=(1,),select_rows=False)
         self.coefficients.itemChanged.connect(lambda item:self.numeric_changed(item,["k","f"]))
-        self.pages.addWidget(box(QLabel("Equation form"),self.form,self.equation,self.coefficients,margins=8))
+        self.extension=make_table(["Definition","Value","Unit"],[],editable=(1,),select_rows=False)
+        self.extension.itemChanged.connect(self.extension_changed)
+        self.extension.setColumnWidth(0,130);self.extension.setColumnWidth(1,180)
+        self.pages.addWidget(box(QLabel("Equation form"),self.form,self.equation,self.coefficients,self.extension,margins=8))
         self.boundary_pages=[]
         for name in self.node_names[4:8]:
             kind=QComboBox();kind.addItems(["Dirichlet","Flux / Neumann","Robin"])
@@ -1305,7 +1366,11 @@ class PDEWindow(ToolWindow):
         self.time_range=QLineEdit();self.time_range.textEdited.connect(lambda v:self.edit_field("time_range",v))
         self.pages.addWidget(box(QLabel("Study"),self.study_type,QLabel("Output times [s]"),self.time_range,button("Solve…",self.evaluate),margins=8))
         self.graphics=EngineeringView("pde");self.graphics.faceSelected.connect(self.graphic_selected)
-        split=QSplitter();split.addWidget(self.pages);split.addWidget(self.graphics);split.setSizes([370,840]);self.setCentralWidget(split)
+        self.graphics_tabs=QTabWidget();self.graphics_tabs.addTab(self.graphics,"Graphics")
+        self.ode_curve=CurveView(xlabel="Time [s]",ylabel="x [1]")
+        self.graphics_tabs.addTab(self.ode_curve,"ODE curve")
+        self.action(self.review_menu,"Show authored ODE curve",self.ode_example)
+        split=QSplitter();split.addWidget(self.pages);split.addWidget(self.graphics_tabs);split.setSizes([430,780]);self.setCentralWidget(split)
         self.messages=make_table(["Location","Message"],[["Result","No PDE evaluator has run"]])
         self.messages_dock=self.add_dock("Messages",self.messages,Qt.DockWidgetArea.BottomDockWidgetArea);self.resizeDocks([self.messages_dock],[110],Qt.Orientation.Vertical)
         self.tree.itemSelectionChanged.connect(self.node_selected);self.refresh();self.pages.setCurrentIndex(3)
@@ -1315,10 +1380,30 @@ class PDEWindow(ToolWindow):
 
     def form_changed(self,value):
         self.edit_field("form",value)
-        if not self._building:fill_table(self.messages,[["Adapter","Extension unavailable; editable draft retained" if value!="Registered PDE" else "Not connected"]])
+        if not self._building:
+            self.refresh()
+            fill_table(self.messages,[["Adapter","Extension unavailable; editable draft retained" if value!="Registered PDE" else "Not connected"]])
+
+    def extension_changed(self,item):
+        if self._building or item.column()!=1:return
+        group="weak_form" if self.data["form"]=="General weak form" else "ode"
+        field=self.extension_fields[item.row()];value=item.text()
+        if group=="ode" and field in ("initial","start","stop","step","a"):self.edit_number(field,item,group);return
+        payload=clone(self.data);payload[group][field]=value
+        if field=="trial":payload["field"]=value
+        self.session.change(self.key,payload,"Edit "+group+" definition");self.update_title()
+
+    def ode_example(self):
+        self.ode_curve.set_series([{"name":"Authored x(t) example","x":[0,1,2,3,4,5],"y":[1,.367879,.135335,.049787,.018316,.006738],"color":BLUE}])
+        self.ode_curve.caption="Authored x(0)=1, a=1, f=0 example; current equation was not solved"
+        self.graphics_tabs.setCurrentIndex(1)
 
     def equation_changed(self):
-        self.edit_field("equation",self.equation.toPlainText())
+        if self._building:return
+        if self.data["form"]=="Registered PDE":self.edit_field("equation",self.equation.toPlainText());return
+        payload=clone(self.data);group="weak_form" if self.data["form"]=="General weak form" else "ode"
+        payload[group]["integral" if group=="weak_form" else "rhs"]=self.equation.toPlainText()
+        self.session.change(self.key,payload,"Edit "+group+" expression");self.update_title()
 
     def numeric_changed(self,item,fields):
         if not self._building and item.column()==1:self.edit_number(fields[item.row()],item);self.update_graphics()
@@ -1369,7 +1454,14 @@ class PDEWindow(ToolWindow):
     def refresh(self):
         was=self._building;self._building=True
         self.domain.setCurrentText(self.data["domain"]);self.field_name.setText(self.data["field"]);self.field_unit.setText(self.data.get("field_unit","1"));self.space.setCurrentText(self.data["space"])
-        self.form.setCurrentText(self.data["form"]);self.equation.setPlainText(self.data["equation"])
+        self.form.setCurrentText(self.data["form"])
+        mode=self.data["form"]
+        self.equation.setPlainText(self.data["equation"] if mode=="Registered PDE" else self.data["weak_form"]["integral"] if mode=="General weak form" else self.data["ode"]["rhs"])
+        self.extension_fields=["test","trial","domain","quadrature"] if mode=="General weak form" else ["state","initial","start","stop","step","a","unit"]
+        group="weak_form" if mode=="General weak form" else "ode"
+        self.extension.setVisible(mode!="Registered PDE");self.coefficients.setVisible(mode!="ODE")
+        if mode!="Registered PDE":fill_table(self.extension,[[key.replace("_"," ").title(),self.raw(group+"."+key,self.data[group][key]),"s" if key in ("start","stop","step") else "1/s" if key=="a" else ""] for key in self.extension_fields],(1,))
+        self.graphics_tabs.setTabEnabled(1,mode=="ODE")
         fill_table(self.domain_size,[[k.title(),self.raw(k,self.data.get(k,d)),"m"] for k,d in (("width",1),("height",.6))],(1,))
         fill_table(self.mesh_table,[["Element size",self.raw("mesh",self.data["mesh"]),"m"]],(1,))
         fill_table(self.coefficients,[[k,self.raw(k,self.data[k]),"declared"] for k in ("k","f")],(1,))
@@ -1390,6 +1482,7 @@ class NumericalWindow(ToolWindow):
         self.action(self.toolbar,"Check",self.input_diagnostics)
         self.action(self.toolbar,"Run study…",self.submit_review)
         self.action(self.toolbar,"Review candidate…",self.inspect_candidate)
+        self.action(self.toolbar,"Open study result",self.open_method_result)
         self.adopt_action=self.action(self.toolbar,"Apply to owners…",self.adopt)
         self.action(self.review_menu,"Refresh saved observations…",self.refresh_observations)
         self.action(self.review_menu,"Show synthetic method results",self.show_method_example)
@@ -1454,7 +1547,9 @@ class NumericalWindow(ToolWindow):
         def update_value(*args):
             key=owner.currentText();name=field.currentText()
             if not name:return
-            value=self.session.doc(key)["draft"][name];unit.setText(VARIABLE_BINDINGS[key][name]);start.setText(str(value))
+            value=self.session.doc(key)["draft"]
+            for part in name.split("."):value=value[part]
+            unit.setText(VARIABLE_BINDINGS[key][name]);start.setText(str(value))
             values=sorted((value*.8,value*1.2));lower.setText(str(values[0] if value else -1));upper.setText(str(values[1] if value else 1))
         owner.currentTextChanged.connect(update_field);field.currentTextChanged.connect(update_value);update_field()
         for label,w in (("Owner",owner),("Field",field),("Unit",unit),("Start",start),("Search lower",lower),("Search upper",upper)):form.addRow(label,w)
@@ -1464,7 +1559,7 @@ class NumericalWindow(ToolWindow):
             payload=clone(self.data)
             if any(v["owner"]==owner.currentText() and v["field"]==field.currentText() for v in payload["variables"]):raise ReviewError("This owner field is already a variable.")
             payload["variables"].append({"owner":owner.currentText(),"field":field.currentText(),"unit":unit.text(),
-                "start":number(start.text()),"lower":number(lower.text()),"upper":number(upper.text()),"free":True,"type":"float"})
+                "start":numeric_draft(start.text()),"lower":numeric_draft(lower.text()),"upper":numeric_draft(upper.text()),"free":True,"type":"float"})
             doc=self.session.doc(owner.currentText());payload["sources"][owner.currentText()]={"id":doc["id"],"revision":doc["revision"]}
             self.session.change(self.key,payload,"Bind research variable");self.refresh();self.top_tabs.setCurrentIndex(0)
 
@@ -1480,7 +1575,7 @@ class NumericalWindow(ToolWindow):
         buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);form.addRow(buttons)
         if dialog.exec()==QDialog.DialogCode.Accepted:
             payload=clone(self.data);payload["responses"].append({"name":quantity.currentText(),"role":role.currentText(),"unit":unit.text(),
-                "limit":number(limit.text()) if limit.text().strip() else "","location":location.text(),"time":number(time.text()),"reduction":reduction.currentText()})
+                "limit":numeric_draft(limit.text()) if limit.text().strip() else "","location":location.text(),"time":numeric_draft(time.text()),"reduction":reduction.currentText()})
             self.session.change(self.key,payload,"Define response");self.refresh();self.top_tabs.setCurrentIndex(1)
 
     def remove_definition(self,kind):
@@ -1605,6 +1700,14 @@ class NumericalWindow(ToolWindow):
         self.plot.set_series(fixture["series"]);self.plot_tabs.setTabText(0,fixture["view"]);self.plot_tabs.setTabEnabled(0,True);self.plot_tabs.setCurrentIndex(0)
         self.update_title("Synthetic "+method+" results example")
 
+    def open_method_result(self):
+        result_id=self.data.get("method_result")
+        if not result_id:
+            found=[r for r in self.session.results.values() if r.get("kind")=="numerical" and r["source"]["id"]==self.document["id"]]
+            if found:result_id=found[-1]["id"]
+        if not result_id:raise ReviewError("Create a review attempt, then use Runner / Review / Load retained result fixture.")
+        return self.hub.open_result(result_id)
+
     def refresh_observations(self):
         data=self.session.doc("data");used=len(data["saved"]["samples"])-len(data["saved"]["quality_excluded"])
         if QMessageBox.question(self,"Refresh observations",f"Use saved {data['name']} with {used} included samples?")==QMessageBox.StandardButton.Yes:
@@ -1668,6 +1771,10 @@ class NumericalWindow(ToolWindow):
         headers,defaults,secondary_headers,secondary_defaults=self.worksheet();sheet=self.data.get("method_sheets",{}).get(method,{})
         self.method_detail.setColumnCount(len(headers));self.method_detail.setHorizontalHeaderLabels(headers)
         fill_table(self.method_detail,defaults if method=="MOO" else sheet.get("primary",defaults),tuple(range(len(headers))))
+        if getattr(self,"_sheet_layout_method",None)!=method:
+            for table in (self.variables,self.responses,self.method_table,self.method_detail):
+                table.resizeColumnsToContents()
+            self._sheet_layout_method=method
         self.secondary.setColumnCount(len(secondary_headers));self.secondary.setHorizontalHeaderLabels(secondary_headers)
         fill_table(self.secondary,sheet.get("secondary",secondary_defaults),tuple(range(1,len(secondary_headers))) if method in ("UQ","MDO","RBF surrogate") else ())
         self.sheet_tabs.setTabText(1,{"UQ":"Correlations","Sobol sensitivity":"Pairing","RBF surrogate":"Validation / support","MDO":"Transfer"}.get(method,"Definition checks"))
@@ -1705,7 +1812,8 @@ class RunnerWindow(ToolWindow):
         self.jobs.itemDoubleClicked.connect(lambda item:self.guard(self.open_input))
         self.tabs=QTabWidget()
         self.input=make_table(["Frozen input","Value"],[])
-        self.log=QPlainTextEdit();self.log.setReadOnly(True);self.log.setFont(QFont("Consolas",10))
+        self.log=QPlainTextEdit();self.log.setReadOnly(True)
+        log_font=QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont);log_font.setPointSize(10);self.log.setFont(log_font)
         self.diagnostics=make_table(["Scope","Message"],[])
         self.result=make_table(["Result quantity","Value","Unit"],[])
         for view,name in [(self.input,"Input"),(self.log,"Log"),(self.diagnostics,"Diagnostics"),(self.result,"Results")]:
@@ -1774,7 +1882,9 @@ class RunnerWindow(ToolWindow):
         self.result.setRowCount(0)
         if job["result"]:
             result=self.session.results[job["result"]]
-            for i,(key,value) in enumerate(result["metrics"].items()):
+            if result.get("kind")=="numerical":
+                fill_table(self.result,[[name,value,""] for name,value in result["fixture"]["summary"]])
+            for i,(key,value) in enumerate(result.get("metrics",{}).items()):
                 self.result.insertRow(i)
                 for j,text in enumerate([key,str(value),"kg" if key=="mass" else "mm"]):
                     self.result.setItem(i,j,QTableWidgetItem(text))
@@ -1995,6 +2105,8 @@ class PostWindow(ToolWindow):
                 else:value=None;loc="Selected gauge is not retained"
             rows.append(["Gauge extension" if name=="Displacement" else name,value if value is not None else "Unavailable",m["unit"],loc])
         fill_table(self.measure,rows)
+        if not getattr(self,"_measurement_columns_sized",False):
+            self.measure.resizeColumnsToContents();self._measurement_columns_sized=True
         self.curve.caption="Synthetic frame "+str(frame["time"])+" s" if frame["available"] else "Unavailable; no interpolation"
 
     def compare(self):
@@ -2003,7 +2115,10 @@ class PostWindow(ToolWindow):
             if result.get("kind")=="structural" and rid!=self.data["result"]:picker.addItem(result.get("candidate",rid),rid)
         layout.addWidget(box(QLabel("Compare with"),picker,horizontal=True))
         a=EngineeringView("post");b=EngineeringView("post");views=QSplitter();views.addWidget(a);views.addWidget(b);layout.addWidget(views)
-        values=make_table(["Quantity","A","B","Unit"],[]);values.setMaximumHeight(135);layout.addWidget(values)
+        values=make_table(["Quantity","A","B","Unit"],[]);values.setObjectName("postComparisonValues")
+        values.horizontalHeader().setStretchLastSection(False)
+        values.horizontalHeader().setSectionResizeMode(0,QHeaderView.ResizeMode.Stretch)
+        values.setMaximumHeight(135);layout.addWidget(values)
         layout.addWidget(QLabel("Side by side. Spatial mapping is unverified; difference is unavailable."))
         def redraw(*args):
             frames=[self.session.post_frame(self.key),self.session.post_frame(self.key,picker.currentData())]
@@ -2013,6 +2128,9 @@ class PostWindow(ToolWindow):
                 view.field=self.data["array"]+" ["+frame["unit"]+"]";view.field_max=frame["value"] or 0
                 view.field_available=frame["available"];view.annotation="t = "+str(frame["time"])+" s";view.update()
             fill_table(values,[[self.data["array"],frames[0]["value"],frames[1]["value"],frames[0]["unit"]]])
+            values.resizeColumnsToContents()
+            for column,minimum in ((1,120),(2,120),(3,80)):
+                values.setColumnWidth(column,max(minimum,values.columnWidth(column)))
         picker.currentIndexChanged.connect(redraw);redraw()
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         keep=buttons.addButton("Keep comparison",QDialogButtonBox.ButtonRole.AcceptRole);keep.setEnabled(picker.count()>0)
@@ -2068,8 +2186,10 @@ class ExpertWindow(ToolWindow):
         map_dock=self.add_dock("Discussion map",box(self.map,roles),minimum=330)
         self.evidence=make_table(["Evidence","Location"],[[e["label"],e["locator"]] for e in self.data["evidence"]])
         self.visible_evidence=list(self.data["evidence"])
+        self.evidence_scope=QComboBox();self.evidence_scope.addItems(["Document evidence","Selected turn attachments"])
+        self.evidence_scope.currentIndexChanged.connect(self.refresh_evidence)
         self.evidence.itemDoubleClicked.connect(lambda item:self.guard(self.open_evidence))
-        evidence_dock=self.add_dock("Evidence",box(self.evidence,button("Open selected",lambda:self.guard(self.open_evidence))),
+        evidence_dock=self.add_dock("Evidence",box(self.evidence_scope,self.evidence,button("Open selected",lambda:self.guard(self.open_evidence))),
                                     Qt.DockWidgetArea.RightDockWidgetArea,minimum=270)
         self.resizeDocks([map_dock,evidence_dock],[365,295],Qt.Orientation.Horizontal)
         self.action(self.review_menu,"Show labelled discussion layout example",self.layout_example)
@@ -2095,12 +2215,30 @@ class ExpertWindow(ToolWindow):
         if not self._building:self.session.edit(self.key,"map_positions",positions);self.update_title()
 
     def turn_selected(self,row):
+        if self._building:return
         if row<0 or row>=len(self.data["turns"]):return
         turn=self.data["turns"][row]
         self.topic.setCurrentText(turn["topic"]);self.map.select_node(turn["topic"])
-        refs=set(turn.get("evidence",[]));self.visible_evidence=[e for e in self.data["evidence"] if e["id"] in refs] if refs else list(self.data["evidence"])
-        fill_table(self.evidence,[[e["label"],e["locator"]] for e in self.visible_evidence])
+        self.evidence_scope.setCurrentIndex(1);self.refresh_evidence()
         self.update_title("선택 발언: "+turn["role"])
+
+    def refresh_evidence(self,*args):
+        self.visible_evidence=list(self.data["evidence"])
+        if self.evidence_scope.currentIndex()==1:
+            self.visible_evidence=[];row=self.turns.currentRow()
+            attachments=self.data["turns"][row].get("evidence",[]) if 0<=row<len(self.data["turns"]) else []
+            for attachment in attachments:
+                if isinstance(attachment,dict):
+                    ref=attachment["id"];locator=attachment.get("locator","")
+                    matches=[e for e in self.data["evidence"] if e["id"]==ref and e["locator"]==locator]
+                else:
+                    # Older files stored a result ID only. Resolve a unique
+                    # location, never attach every location from that result.
+                    ref=attachment;matches=[e for e in self.data["evidence"] if e["id"]==ref]
+                    locator=matches[0]["locator"] if len(matches)==1 else ""
+                entry=matches[0] if len(matches)==1 else {"id":ref,"locator":locator,"label":"Result / location not recorded"}
+                self.visible_evidence.append(entry)
+        fill_table(self.evidence,[[e["label"],e["locator"] or "Location not recorded"] for e in self.visible_evidence])
 
     def reply_to(self):
         row=self.turns.currentRow()
@@ -2113,6 +2251,7 @@ class ExpertWindow(ToolWindow):
         self.session.append_reply(self.composer.toPlainText(),self.topic.currentText(),self.reply_target,self.key,self.data.get("pending_evidence",[]))
         self.reply_target=None;self.reply_label.setText("Reply")
         self.refresh()
+        self.turns.setCurrentRow(len(self.data["turns"])-1)
         self.update_title("사용자 발언 저장 초안. Provider는 미연결입니다.")
 
     def pause_resume(self):
@@ -2165,12 +2304,12 @@ class ExpertWindow(ToolWindow):
         if row<0:raise ReviewError("Select evidence first.")
         ref=self.visible_evidence[row]
         if ref["id"]=="CAL-018":self.hub.calibration(self)
-        else:self.hub.open_result(ref["id"])
+        else:self.hub.open_result(ref["id"],ref.get("locator"))
 
     def attach_evidence(self):
         row=self.evidence.currentRow()
         if row<0:raise ReviewError("Select a retained result or source in Evidence.")
-        ref=self.visible_evidence[row]["id"];refs=list(self.data.get("pending_evidence",[]))
+        entry=self.visible_evidence[row];ref={"id":entry["id"],"locator":entry["locator"]};refs=list(self.data.get("pending_evidence",[]))
         if ref not in refs:refs.append(ref)
         self.session.edit(self.key,"pending_evidence",refs);self.reply_label.setText("Reply / "+str(len(refs))+" evidence attached");self.update_title()
 
@@ -2178,7 +2317,7 @@ class ExpertWindow(ToolWindow):
         dialog=QDialog(self);dialog.setWindowTitle("Add discussion evidence");form=QFormLayout(dialog)
         choice=QComboBox()
         for rid,result in self.session.results.items():
-            if result.get("fields"):choice.addItem(result.get("candidate",rid),rid)
+            if result.get("fields") or result.get("kind")=="numerical":choice.addItem(result.get("method",result.get("candidate",rid)),rid)
         choice.addItem("Calibration original","CAL-018");locator=QLineEdit("Gauge / t = 0.04 s");label=QLineEdit("Gauge measurement")
         form.addRow("Result / source",choice);form.addRow("Location",locator);form.addRow("Label",label)
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel);buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);form.addRow(buttons)
@@ -2225,7 +2364,7 @@ class ExpertWindow(ToolWindow):
         self.question.setText(self.data["question"]);self.composer.setPlainText(self.data["pending_text"])
         self.topic.clear();self.topic.addItems(self.data["topics"]);self.topic.setCurrentText(self.data.get("selected_topic",self.session.selected.get("topic",self.data["topics"][0])))
         self.reply_target=self.data.get("reply_to");self.reply_label.setText("Reply to selected turn" if self.reply_target else "Reply")
-        self.visible_evidence=list(self.data["evidence"]);fill_table(self.evidence,[[e["label"],e["locator"]] for e in self.visible_evidence])
+        self.refresh_evidence()
         self.map.set_positions(self.data.get("map_positions",{}));self.map.nodes["question"].label=self.data["question"][:16];self.map.viewport().update()
         self.pause_action.setText("Resume" if self.data["paused"] else "Pause")
         config=self.data.get("runtime_proposal",{});route=config.get("route","Not configured")
@@ -2236,10 +2375,11 @@ class ExpertWindow(ToolWindow):
 
 class StudyWindow(ToolWindow):
     def build(self):
-        self.action(self.toolbar,"Discuss",lambda:self.hub.open("expert"))
+        self.action(self.toolbar,"Discuss",lambda:self.hub.open(self.hub.discussion_for(self.key)))
         self.action(self.toolbar,"Next research…",self.next_plan)
         self.action(self.toolbar,"Add hypothesis…",self.add_hypothesis)
         self.action(self.toolbar,"Add evidence…",self.add_evidence)
+        self.action(self.toolbar,"Report…",self.open_report)
         self.question=QLineEdit(self.data["question"]);self.question.editingFinished.connect(self.question_changed)
         self.hypotheses=make_table(["Hypothesis","Explanation","Judgment"],[
             [h["id"],h["text"],h["judgment"]] for h in self.data["hypotheses"]],editable=(1,),select_rows=False)
@@ -2293,7 +2433,7 @@ class StudyWindow(ToolWindow):
         dialog=QDialog(self);dialog.setWindowTitle("Relate evidence");form=QFormLayout(dialog)
         result=QComboBox()
         for rid,value in self.session.results.items():
-            if value.get("fields"):result.addItem(value.get("candidate",rid),rid)
+            if value.get("fields") or value.get("kind")=="numerical":result.addItem(value.get("method",value.get("candidate",rid)),rid)
         hypothesis=QComboBox();hypothesis.addItems([h["id"] for h in self.data["hypotheses"]]);relation=QComboBox();relation.addItems(["Support","Refute","Neutral"])
         locator=QLineEdit("Gauge / t = 0.04 s")
         for label,w in (("Result",result),("Hypothesis",hypothesis),("Relation",relation),("Location",locator)):form.addRow(label,w)
@@ -2319,6 +2459,12 @@ class StudyWindow(ToolWindow):
 
     def next_plan(self):
         self.hub.plan_dialog(self)
+
+    def open_report(self):
+        window=self.hub.open("report")
+        index=window.study_choice.findData(self.key)
+        if index>=0:window.study_choice.setCurrentIndex(index)
+        return window
 
     def refresh(self):
         self._building=True;self.question.setText(self.data["question"])
@@ -2399,6 +2545,576 @@ class EvaluationWindow(ToolWindow):
         self._building=was;self.update_title()
 
 
+class ReportWindow(ToolWindow):
+    """Study-owned, editable report assembly and native review pages."""
+    def build(self):
+        for title,callback in (("Add section…",self.add_section),("Remove section",self.remove_section),
+                ("Open source",self.open_source),("Preview",lambda:self.tabs.setCurrentIndex(1)),("Export preview…",self.export_dialog)):
+            self.action(self.toolbar,title,callback)
+        self.section_list=QListWidget();self.section_list.setObjectName("reportSections")
+        self.section_list.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.section_list.currentRowChanged.connect(self.select_section);self.section_list.itemChanged.connect(self.toggle_section)
+        self.section_list.model().rowsMoved.connect(self.reorder_sections)
+        self.add_dock("Sections",box(self.section_list,box(button("Move up",lambda:self.move_section(-1)),
+            button("Move down",lambda:self.move_section(1)),horizontal=True)),minimum=235)
+        self.action(self.view_menu,"Move section up",lambda:self.move_section(-1),"Alt+Up")
+        self.action(self.view_menu,"Move section down",lambda:self.move_section(1),"Alt+Down")
+        self.study_choice=QComboBox();self.study_choice.setObjectName("reportStudy")
+        for key,doc in self.session.documents.items():
+            if doc["owner"]=="Study" and not doc["draft"].get("view_kind"):self.study_choice.addItem(doc["name"],key)
+        self.title_editor=QLineEdit();self.title_editor.setObjectName("reportTitle")
+        self.title_editor.editingFinished.connect(lambda:self.edit_field("title",self.title_editor.text()))
+        self.heading=QLineEdit();self.heading.setObjectName("sectionHeading");self.heading.editingFinished.connect(self.edit_heading)
+        self.caption=QPlainTextEdit();self.caption.setObjectName("sectionCaption");self.caption.setMaximumHeight(66)
+        self.caption.textChanged.connect(lambda:self.edit_section("caption",self.caption.toPlainText()))
+        self.text_editor=QPlainTextEdit();self.text_editor.setObjectName("sectionText")
+        self.text_editor.textChanged.connect(lambda:self.edit_section("text",self.text_editor.toPlainText()))
+        self.source_table=make_table([],[]);self.source_table.setObjectName("reportSourceTable")
+        self.source_curve=CurveView();self.source_curve.setObjectName("reportSourceCurve")
+        self.section_stack=QStackedWidget()
+        for widget in (self.text_editor,self.source_table,self.source_curve):self.section_stack.addWidget(widget)
+        self.source_label=QLabel();self.source_label.setWordWrap(True);self.source_label.setMaximumHeight(48)
+        content=box(self.heading,self.section_stack,self.caption,self.source_label,margins=7)
+        self.preview=ReportPage();self.preview.setObjectName("reportNativePreview")
+        self.page_label=QLabel();self.page_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        preview=box(box(button("Previous page",lambda:self.page_move(-1)),self.page_label,
+            button("Next page",lambda:self.page_move(1)),horizontal=True),self.preview)
+        self.tabs=QTabWidget();self.tabs.setObjectName("reportTabs")
+        self.tabs.addTab(content,"Section content");self.tabs.addTab(preview,"Page preview")
+        self.tabs.currentChanged.connect(self.preview_tab)
+        self.setCentralWidget(box(box(QLabel("Study"),self.study_choice,button("Use Study",self.load_study),horizontal=True),
+            box(QLabel("Report title"),self.title_editor,horizontal=True),self.tabs,margins=6))
+        self.output_format=QComboBox();self.output_format.addItems(["Review PDF","Markdown"]);self.output_format.setObjectName("reportOutputFormat")
+        self.output_format.currentTextChanged.connect(lambda value:self.edit_field("output_format",value))
+        self.missing_policy=QComboBox();self.missing_policy.addItems(["Block export","Include unavailable placeholder"])
+        self.missing_policy.currentTextChanged.connect(lambda value:self.edit_field("missing_policy",value))
+        self.output_checks=make_table(["Output","Value"],[]);self.output_checks.setMaximumHeight(210)
+        self.export_note=QLabel();self.export_note.setWordWrap(True)
+        output=QWidget();layout=QVBoxLayout(output)
+        for widget in (QLabel("Format"),self.output_format,QLabel("Missing evidence"),self.missing_policy,
+                       self.output_checks,button("Export preview…",self.export_dialog),self.export_note):layout.addWidget(widget)
+        layout.addStretch(1);self.output_dock=self.add_dock("Output",output,Qt.DockWidgetArea.RightDockWidgetArea,250)
+        self.output_dock.hide();self._page_index=0;self.refresh()
+
+    def selected_section(self):
+        item=self.section_list.currentItem();sid=item.data(Qt.ItemDataRole.UserRole) if item else None
+        return next((s for s in self.data["sections"] if s["id"]==sid),None)
+
+    def edit_field(self,key,value):
+        if self._building:return
+        self.session.edit(self.key,key,value);self.update_preview();self.update_title()
+
+    def edit_section(self,field,value):
+        section=self.selected_section()
+        if self._building or not section:return
+        payload=clone(self.data);next(s for s in payload["sections"] if s["id"]==section["id"])[field]=value
+        self.session.change(self.key,payload,"Edit report "+field);self.update_preview();self.update_title()
+
+    def edit_heading(self):
+        self.edit_section("title",self.heading.text());item=self.section_list.currentItem()
+        if item:
+            self.section_list.blockSignals(True);item.setText(self.heading.text());self.section_list.blockSignals(False)
+
+    def load_study(self):
+        key=self.study_choice.currentData()
+        if not key:raise ReviewError("Select a Study.")
+        source=self.session.doc(key)
+        if source["dirty"]:raise ReviewError("Save the selected Study before bringing its judgment and evidence into the report.")
+        proposed=report_sections(source,self.session.results)
+        original=report_sections(self.data["study_document"],self.session.results)
+        if self.data["sections"] and self.data["sections"]!=original:
+            message=QMessageBox(self);message.setWindowTitle("Replace report sections")
+            message.setText("Replace "+str(len(self.data["sections"]))+" edited sections with "+str(len(proposed))+" sections from "+source["name"]+"?")
+            message.setInformativeText("Local notes, exclusions and edited content will be replaced. Cancel keeps the report unchanged.")
+            message.setDetailedText("Current sections:\n"+"\n".join(s["title"] for s in self.data["sections"])+
+                "\n\nFrom the selected Study:\n"+"\n".join(s["title"] for s in proposed))
+            replace=message.addButton("Replace sections",QMessageBox.ButtonRole.AcceptRole)
+            cancel=message.addButton(QMessageBox.StandardButton.Cancel);message.setDefaultButton(cancel)
+            message.exec()
+            if message.clickedButton() is not replace:return False
+        payload=clone(self.data);payload.update(study_document=clone(source),
+            sections=proposed,evidence=clone(source["saved"].get("evidence",[])))
+        self.session.change(self.key,payload,"Use selected Study in report");self.refresh();return True
+
+    def add_section(self):
+        dialog=QDialog(self);dialog.setWindowTitle("Add report section");form=QFormLayout(dialog)
+        kind=QComboBox();kind.addItems(["Text","Evidence table","Evidence curve","Historical F05 check"]);title=QLineEdit("Notes")
+        result=QComboBox()
+        for rid,record in self.session.results.items():
+            if record.get("fields") or record.get("kind")=="numerical":result.addItem(record.get("method",record.get("candidate","Clamp result")),rid)
+        locator=QComboBox()
+        def locations(*args):
+            locator.clear();record=self.session.results.get(result.currentData(),{})
+            if record.get("kind")=="numerical":
+                for table in record["fixture"]["tables"]:
+                    for row in table["rows"]:locator.addItem(record["method"]+" / "+table["name"]+" / "+str(row[0]))
+            else:
+                for array,field in record.get("fields",{}).items():
+                    label="Gauge" if array=="Displacement" else array
+                    for time in record.get("times",[]):locator.addItem(label+" / t = "+str(time)+" s")
+        result.currentIndexChanged.connect(locations);locations()
+        for label,widget in (("Content",kind),("Heading",title),("Result",result),("Selection",locator)):form.addRow(label,widget)
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);form.addRow(buttons)
+        if dialog.exec()!=QDialog.DialogCode.Accepted:return
+        payload=clone(self.data)
+        if kind.currentText()=="Text":section={"kind":"text","text":"","source":{"kind":"local"},"enabled":True}
+        elif kind.currentText()=="Historical F05 check":
+            f05=self.session.dump()["F05"]
+            section={"kind":"table","enabled":True,"headers":["Historical check","Value","Tolerance","Outcome"],
+                "rows":[["F05",f05["value"],f05["tolerance"],f05["verdict"]]],
+                "caption":"Historical Task1 evidence only; it does not validate this Study. Original raw Task1 report is not linked in this prototype.",
+                "source":{"kind":"history","id":"Task1 / F05","locator":"prototype_state.py / ReviewSession.dump / F05",
+                          "scope":"Historical Task1 check; current Study remains NOT_EVALUATED"}}
+        else:
+            rid=result.currentData();temporary=clone(payload["study_document"])
+            temporary["saved"]["evidence"]=[{"ref":rid,"locator":locator.currentText()}]
+            wanted="table" if kind.currentText()=="Evidence table" else "curve"
+            section=next((s for s in report_sections(temporary,self.session.results) if s["kind"]==wanted and s["source"].get("kind")=="result"),None)
+            if not section:raise ReviewError("This result has no retained "+wanted+" at the selected location.")
+            payload["evidence"].append({"ref":rid,"locator":locator.currentText()})
+        used={s["id"] for s in payload["sections"]};n=1
+        while "section-"+str(n) in used:n+=1
+        section.update(id="section-"+str(n),title=("Historical F05 check" if kind.currentText()=="Historical F05 check" and title.text()=="Notes" else title.text()));payload["sections"].append(section)
+        self.session.change(self.key,payload,"Add report section");self._selected_id=section["id"];self.refresh()
+
+    def remove_section(self):
+        section=self.selected_section()
+        if not section:return
+        payload=clone(self.data);payload["sections"]=[s for s in payload["sections"] if s["id"]!=section["id"]]
+        self.session.change(self.key,payload,"Remove report section");self.refresh()
+
+    def toggle_section(self,item):
+        if self._building:return
+        payload=clone(self.data)
+        next(s for s in payload["sections"] if s["id"]==item.data(Qt.ItemDataRole.UserRole))["enabled"]=item.checkState()==Qt.CheckState.Checked
+        self.session.change(self.key,payload,"Include report section");self.update_preview();self.update_title()
+
+    def reorder_sections(self,*args):
+        if self._building:return
+        payload=clone(self.data);by_id={s["id"]:s for s in payload["sections"]}
+        payload["sections"]=[by_id[self.section_list.item(i).data(Qt.ItemDataRole.UserRole)] for i in range(self.section_list.count())]
+        self.session.change(self.key,payload,"Reorder report sections");self.update_preview();self.update_title()
+
+    def move_section(self,offset):
+        row=self.section_list.currentRow();destination=row+offset
+        if row<0 or destination<0 or destination>=len(self.data["sections"]):return
+        payload=clone(self.data);section=payload["sections"].pop(row);payload["sections"].insert(destination,section)
+        self.session.change(self.key,payload,"Move report section");self._selected_id=section["id"];self.refresh()
+
+    def select_section(self,row):
+        if self._building:return
+        section=self.selected_section()
+        if not section:return
+        self._selected_id=section["id"];self._building=True
+        self.heading.setText(section["title"]);self.caption.setPlainText(section.get("caption",""))
+        kind=section["kind"];self.caption.setVisible(kind!="text")
+        if kind=="text":self.section_stack.setCurrentIndex(0);self.text_editor.setPlainText(section.get("text",""))
+        elif kind=="table":
+            self.section_stack.setCurrentIndex(1);self.source_table.setColumnCount(len(section.get("headers",[])))
+            self.source_table.setHorizontalHeaderLabels(section.get("headers",[]));fill_table(self.source_table,section.get("rows",[]))
+            self.source_table.resizeColumnsToContents();self.source_table.horizontalHeader().setStretchLastSection(False)
+            if self.source_table.columnCount():self.source_table.horizontalHeader().setSectionResizeMode(0,QHeaderView.ResizeMode.Stretch)
+        else:
+            self.section_stack.setCurrentIndex(2);self.source_curve.xlabel=section.get("xlabel","");self.source_curve.ylabel=section.get("ylabel","")
+            self.source_curve.set_series(section.get("series",[]));self.source_curve.cursor_x=section.get("cursor_x");self.source_curve.caption="Retained synthetic source / no new calculation"
+        source=section.get("source",{})
+        self.source_label.setText(source.get("locator") or ("Selected Study: "+self.data["study_document"]["name"] if source.get("kind")=="study" else "Report text"))
+        self._building=False
+        self._page_index=next((i for i,p in enumerate(self.pages()) if p["id"]==section["id"]),0);self.update_preview()
+
+    def source_note(self,section):
+        source=section.get("source",{});study=self.data["study_document"]
+        if source.get("kind")=="history":
+            lines=["Historical source: "+source.get("id",""),source.get("locator",""),source.get("scope","")]
+        else:
+            lines=["Study: "+study["id"]+" / saved revision "+str(study["revision"])]
+            if source.get("kind")=="result":
+                lines.extend(["Result: "+str(source.get("id","")),"Selection: "+source.get("locator","")])
+            elif source.get("kind")=="local":lines.append("Content: local report text / current Study checks")
+        lines.append("Review: "+self.document["id"]+(" / "+Path(self.document["file"]).name if self.document["file"] else " / not yet saved"))
+        return "\n".join(lines)
+
+    def pages(self):
+        pages=[]
+        for value in self.data["sections"]:
+            if not value.get("enabled"):continue
+            section=clone(value);source=section.get("source",{});section["source_note"]=self.source_note(section)
+            if source.get("kind")=="result" and source.get("id") not in self.session.results:section["unavailable"]=True
+            if section["kind"]=="table" and len(section.get("rows",[]))>16:
+                for start in range(0,len(section["rows"]),16):
+                    page=clone(section);page["rows"]=section["rows"][start:start+16]
+                    page["caption"]=section.get("caption","")+f" Rows {start+1}–{min(start+16,len(section['rows']))}."
+                    pages.append(page)
+            else:pages.append(section)
+        return pages
+
+    def page_layout_errors(self,pages=None):
+        if self.data["output_format"]!="Review PDF":return []
+        errors=[]
+        for index,page in enumerate(self.pages() if pages is None else pages):
+            errors.extend("Page "+str(index+1)+" ("+page.get("title","Section")+"): "+message
+                for message in self.preview.layout_issues(self.data["title"],page))
+        return errors
+
+    def update_preview(self):
+        if not hasattr(self,"preview"):return
+        pages=self.pages();self._page_index=max(0,min(getattr(self,"_page_index",0),len(pages)-1))
+        self.preview.set_page(self.data["title"],pages[self._page_index] if pages else {},
+                              self._page_index+1 if pages else 0,len(pages))
+        self.page_label.setText(f"Page {self._page_index+1 if pages else 0} of {len(pages)}")
+        if hasattr(self,"output_checks"):
+            fill_table(self.output_checks,[["Pages",len(pages)],["Missing evidence",sum(bool(p.get("unavailable")) for p in pages)],
+                ["Judgment",self.data["study_document"]["saved"].get("judgment","Undecided")],
+                ["Export","Needs correction" if self.session.diagnostics(self.key) or self.page_layout_errors(pages) else "Review draft ready"]])
+            self.output_checks.resizeColumnsToContents()
+            self.export_note.setText("Last preview: "+Path(self.data["last_export"]).name if self.data.get("last_export") else "Choose the output file when exporting.")
+
+    def page_move(self,offset):
+        pages=self.pages()
+        if not pages:return
+        index=max(0,min(self._page_index+offset,len(pages)-1));sid=pages[index]["id"]
+        for row in range(self.section_list.count()):
+            if self.section_list.item(row).data(Qt.ItemDataRole.UserRole)==sid:
+                self.section_list.setCurrentRow(row);break
+        self._page_index=index;self.update_preview()
+    def preview_tab(self,index):
+        if hasattr(self,"output_dock"):self.output_dock.setVisible(index==1)
+        self.update_preview()
+
+    def open_source(self):
+        pages=self.pages()
+        section=pages[self._page_index] if self.tabs.currentIndex()==1 and pages else self.selected_section()
+        if not section:return
+        source=section.get("source",{})
+        if source.get("kind")=="result":return self.hub.open_result(source["id"],source.get("locator"))
+        if source.get("kind")=="study":
+            session=ReviewSession();document=clone(self.data["study_document"])
+            session.documents[document["key"]]=document;session.results=clone(self.session.results)
+            return self.hub.open_other(session,document["key"])
+        if source.get("kind")=="history":
+            return text_dialog(self,"Historical F05 evidence",source["scope"]+"\n\nSource: "+source["locator"]+
+                "\n\n"+json.dumps(self.session.dump()["F05"],indent=2)+"\n\nOriginal raw Task1 report: unlinked in this planning prototype.")
+        self.update_title("This section is local report text.")
+
+    def export_to(self,path):
+        self.flush_editor();errors=self.session.diagnostics(self.key)
+        if errors:
+            self.tabs.setCurrentIndex(1)
+            raise ReviewError(" ".join(message for field,message in errors))
+        pages=self.pages();layout_errors=self.page_layout_errors(pages)
+        if layout_errors:
+            self._page_index=next(i for i,page in enumerate(pages) if self.preview.layout_issues(self.data["title"],page))
+            self.page_move(0);self.tabs.setCurrentIndex(1)
+            raise ReviewError("\n".join(layout_errors))
+        path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
+        descriptor,temporary=tempfile.mkstemp(prefix="report-preview-",suffix=path.suffix,dir=path.parent);os.close(descriptor)
+        try:
+            if self.data["output_format"]=="Review PDF":
+                writer=QPdfWriter(temporary);writer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
+                writer.setResolution(144);writer.setTitle(self.data["title"]);painter=QPainter(writer)
+                if not painter.isActive():raise ReviewError("The PDF preview output could not be opened.")
+                page_view=ReportPage()
+                try:
+                    for index,section in enumerate(pages):
+                        if index and not writer.newPage():raise ReviewError("A PDF page could not be written.")
+                        page_view.set_page(self.data["title"],section,index+1,len(pages))
+                        page_view.paint_page(painter,QRectF(0,0,writer.width(),writer.height()))
+                finally:painter.end()
+                del painter;del writer;page_view.deleteLater()
+            else:
+                lines=["# "+self.data["title"],"","Review draft / synthetic content / UNKNOWN / NOT_RELEASED",""]
+                for section in pages:
+                    lines.extend(["## "+section["title"],""])
+                    if section.get("unavailable"):lines.append("Evidence unavailable.")
+                    elif section["kind"]=="text":lines.append(section.get("text",""))
+                    elif section["kind"]=="table":
+                        headers=section.get("headers",[])
+                        lines.extend(["| "+" | ".join(str(v).replace("|","/") for v in headers)+" |",
+                                      "| "+" | ".join("---" for _ in headers)+" |"])
+                        for row in section.get("rows",[]):lines.append("| "+" | ".join(str(v).replace("|","/") for v in row)+" |")
+                    else:
+                        for series in section.get("series",[]):
+                            lines.extend([series.get("name","Curve"),"",
+                                "| "+section.get("xlabel","x")+" | "+section.get("ylabel","y")+" |","| --- | --- |"])
+                            lines.extend(f"| {x} | {y} |" for x,y in zip(series["x"],series["y"]))
+                    lines.extend(["",section.get("caption",""),"",section.get("source_note",""),""])
+                Path(temporary).write_text("\n".join(lines),encoding="utf-8")
+            os.replace(temporary,path)
+        finally:
+            if Path(temporary).exists():Path(temporary).unlink()
+        self.session.edit(self.key,"last_export",str(path));self.update_preview()
+        self.update_title("Review preview exported: "+path.name);return str(path)
+
+    def export_dialog(self):
+        self.tabs.setCurrentIndex(1);suffix="pdf" if self.output_format.currentText()=="Review PDF" else "md"
+        path,_=QFileDialog.getSaveFileName(self,"Export report preview",
+            str(self.session.workspace/(self.data["title"]+"."+suffix)),"Review preview (*."+suffix+")")
+        if path:return self.export_to(path)
+
+    def capture_view(self):
+        super().capture_view()
+        self.document["view"].update(report_section=getattr(self,"_selected_id","question"),report_page=self._page_index)
+
+    def refresh(self):
+        self._building=True;self.title_editor.setText(self.data["title"])
+        self.output_format.setCurrentText(self.data["output_format"]);self.missing_policy.setCurrentText(self.data["missing_policy"])
+        selected=getattr(self,"_selected_id",self.document.get("view",{}).get("report_section","question"))
+        self.section_list.clear();row=0
+        for index,section in enumerate(self.data["sections"]):
+            item=QListWidgetItem(section["title"]);item.setData(Qt.ItemDataRole.UserRole,section["id"])
+            item.setFlags(item.flags()|Qt.ItemFlag.ItemIsUserCheckable|Qt.ItemFlag.ItemIsDragEnabled)
+            item.setCheckState(Qt.CheckState.Checked if section.get("enabled") else Qt.CheckState.Unchecked)
+            self.section_list.addItem(item)
+            if section["id"]==selected:row=index
+        self.section_list.setCurrentRow(row);self._building=False;self.select_section(row)
+        if not hasattr(self,"_restored_page"):
+            self._page_index=self.document.get("view",{}).get("report_page",self._page_index);self._restored_page=True
+        self.update_preview();self.update_title()
+
+
+class AcquisitionWindow(ToolWindow):
+    """Data-owned acquisition plan with retained file trace; no live adapter."""
+    def build(self):
+        for title,callback in (("Check plan",self.check_plan),("Use saved Data",self.use_saved_data),
+                ("Open workbook",self.open_workbook),("Calibration…",self.open_calibration)):
+            self.action(self.toolbar,title,callback)
+        for title in ("Connect","Start acquisition","Stop acquisition"):
+            action=self.action(self.toolbar,title,self.live_unavailable);action.setEnabled(False)
+            action.setToolTip("UNAVAILABLE — no connected authorized adapter. No device command is sent.")
+        self.toolbar.addWidget(QLabel("Live: UNAVAILABLE"))
+        self.action(self.review_menu,"Connection loss example",self.show_connection_loss)
+        self.action(self.review_menu,"Unconfigured device",self.clear_connection_example)
+        self.device=QLineEdit();self.device.setObjectName("acquisitionDevice")
+        self.device.editingFinished.connect(lambda:self.set_field("device",self.device.text()))
+        self.driver=QComboBox();self.driver.addItems(["Unassigned","Existing adapter (unverified)"])
+        self.driver.currentTextChanged.connect(lambda value:self.set_field("driver",value))
+        self.driver_name=QLineEdit();self.driver_name.setPlaceholderText("Configured driver name, if known")
+        self.driver_name.editingFinished.connect(lambda:self.set_field("driver_name",self.driver_name.text()))
+        identity=QWidget();form=QFormLayout(identity);form.setContentsMargins(5,5,5,5)
+        for label,widget in (("Instrument",self.device),("Driver",self.driver),("Driver name",self.driver_name)):form.addRow(label,widget)
+        identity.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Fixed)
+        self.channels=make_table(["Use","Channel","Field","Unit","Role","Calibration"],[])
+        self.channels.setObjectName("acquisitionChannels")
+        self.channels.itemChanged.connect(self.channel_enabled);self.channels.itemSelectionChanged.connect(self.select_channel)
+        self.channels.itemDoubleClicked.connect(lambda item:self.channel_dialog(False))
+        self.settings=make_table(["Acquisition plan","Value","Unit"],[],editable=(1,),select_rows=False)
+        self.settings.setMaximumHeight(143);self.settings.setObjectName("acquisitionTiming");self.settings.itemChanged.connect(self.timing_changed)
+        self.clock=QComboBox();self.clock.addItems(["Device timestamps (unverified)","Host monotonic clock (proposal)","External trigger (unverified)"])
+        self.clock.currentTextChanged.connect(lambda value:self.set_field("clock",value))
+        self.requested=QComboBox();self.requested.addItems(["Measurements only","Read existing files"])
+        self.requested.currentTextChanged.connect(lambda value:self.set_field("requested_mode",value))
+        control=QWidget();form=QFormLayout(control);form.setContentsMargins(5,5,5,5)
+        for label,widget in (("Timebase",self.clock),("Requested mode",self.requested),
+                            ("Allowed control",QLabel("NONE — no actuator capability"))):form.addRow(label,widget)
+        control.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Fixed)
+        self.plan_check=QLabel();self.plan_check.setWordWrap(True);self.plan_check.setMaximumHeight(54)
+        left=box(identity,self.channels,box(button("Add channel…",lambda:self.channel_dialog(True)),
+            button("Edit…",lambda:self.channel_dialog(False)),button("Remove",self.remove_channel),horizontal=True),
+            self.settings,control,self.plan_check,margins=5)
+        self.curve=CurveView(xlabel="Time [s]",ylabel="Force [N]");self.curve.setObjectName("acquisitionTrace")
+        self.curve.samplesSelected.connect(self.curve_selection)
+        self.samples=make_table(["Sample","Time [s]","Value","Unit"],[]);self.samples.setObjectName("acquisitionSamples")
+        self.samples.itemSelectionChanged.connect(self.sample_selection)
+        self.source_label=QLabel();self.source_label.setMaximumHeight(26)
+        self.connection_label=QLabel();self.connection_label.setWordWrap(True)
+        self.connection_table=make_table(["Acquisition","Observed state"],[]);self.connection_table.setObjectName("acquisitionConnection")
+        self.notes=QPlainTextEdit();self.notes.setPlaceholderText("Connection checks or next step");self.notes.setMaximumHeight(80)
+        self.notes.textChanged.connect(lambda:self.set_field("notes",self.notes.toPlainText()))
+        connection=box(self.connection_label,self.connection_table,self.notes,
+            box(button("Return to setup",lambda:self.tabs.setCurrentIndex(0)),button("Open existing Data",self.open_workbook),horizontal=True),margins=5)
+        self.tabs=QTabWidget();self.tabs.setObjectName("acquisitionReviewTabs")
+        self.tabs.addTab(self.samples,"Existing samples");self.tabs.addTab(connection,"Connection and end")
+        right_split=QSplitter(Qt.Orientation.Vertical);right_split.addWidget(self.curve);right_split.addWidget(self.tabs)
+        right_split.setSizes([455,300]);self.right_split=right_split
+        self.tabs.currentChanged.connect(self.connection_tab_changed)
+        right=box(self.source_label,right_split,margins=5)
+        split=QSplitter();split.addWidget(left);split.addWidget(right);split.setSizes([610,810])
+        split.setStretchFactor(0,0);split.setStretchFactor(1,1);self.setCentralWidget(split)
+        self._selected_channel=self.data.get("selected_channel","ch1");self.refresh()
+
+    def set_field(self,key,value):
+        if self._building:return
+        self.session.edit(self.key,key,value);self.update_title()
+
+    def live_unavailable(self):
+        raise ReviewError("UNAVAILABLE: no live adapter. No connect, acquisition or physical stop command was sent.")
+
+    def source_payload(self):return canonical_observations(self.data["source_document"]["saved"])
+
+    def use_saved_data(self):
+        source=self.session.doc("data")
+        if source["dirty"]:raise ReviewError("Save the workbook before selecting its source trace.")
+        self.session.edit(self.key,"source_document",clone(source));self.refresh()
+
+    def open_workbook(self):
+        source=clone(self.data["source_document"]);session=ReviewSession();session.documents[source["key"]]=source
+        return self.hub.open_other(session,source["key"])
+
+    def open_calibration(self):
+        channel=self.current_channel()
+        if not channel or channel.get("calibration")!="CAL-018":
+            raise ReviewError("Select a force channel linked to CAL-018, or edit its calibration assignment.")
+        session=ReviewSession();session.documents["data"]=clone(self.data["source_document"])
+        session.relocations=clone(self.session.relocations);hub=DesktopHub(session);self.hub.other_hubs.append(hub)
+        return hub.calibration(self)
+
+    def current_channel(self):
+        row=self.channels.currentRow()
+        return self.data["channels"][row] if 0<=row<len(self.data["channels"]) else None
+
+    def channel_dialog(self,adding=False):
+        current=self.current_channel()
+        if not adding and not current:return
+        src=clone(current) if current and not adding else {"name":"New channel","field":"force","unit":"N",
+            "role":"Measurement","calibration":"Unassigned","enabled":True}
+        dialog=QDialog(self);dialog.setWindowTitle("Acquisition channel");form=QFormLayout(dialog)
+        name=QLineEdit(src["name"]);name.setObjectName("channelName")
+        field=QComboBox();field.addItems(["force","extension","temperature"])
+        field.setCurrentText(src["field"]);field.setObjectName("channelField")
+        unit=QComboBox();unit.setObjectName("channelUnit");cal=QComboBox();cal.setObjectName("channelCalibration")
+        def choices(*args):
+            oldunit=unit.currentText();oldcal=cal.currentText()
+            unit.clear();unit.addItems(DATA_UNITS[field.currentText()]);cal.clear();cal.addItem("Unassigned")
+            if field.currentText()=="force":cal.addItem("CAL-018")
+            if unit.findText(oldunit)>=0:unit.setCurrentText(oldunit)
+            if cal.findText(oldcal)>=0:cal.setCurrentText(oldcal)
+        field.currentTextChanged.connect(choices);choices();unit.setCurrentText(src["unit"]);cal.setCurrentText(src["calibration"])
+        role=QComboBox();role.addItems(["Measurement","Monitor"]);role.setCurrentText(src["role"])
+        enabled=QCheckBox("Include channel");enabled.setChecked(src["enabled"])
+        for label,widget in (("Name",name),("Source field",field),("Unit",unit),("Role",role),("Calibration",cal),("",enabled)):form.addRow(label,widget)
+        scope=QLabel("CAL-018: force, 0–2000 N. Reference link only; source samples are not recalibrated.")
+        scope.setWordWrap(True);form.addRow(scope)
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);form.addRow(buttons)
+        if dialog.exec()!=QDialog.DialogCode.Accepted:return
+        payload=clone(self.data)
+        src.update(name=name.text(),field=field.currentText(),unit=unit.currentText(),role=role.currentText(),
+                   calibration=cal.currentText(),enabled=enabled.isChecked())
+        if adding:
+            n=1;used={c["id"] for c in payload["channels"]}
+            while "ch"+str(n) in used:n+=1
+            src["id"]="ch"+str(n);payload["channels"].append(src)
+        else:payload["channels"][self.channels.currentRow()]=src
+        self.session.change(self.key,payload,"Edit acquisition channel");self._selected_channel=src["id"];self.refresh()
+
+    def remove_channel(self):
+        channel=self.current_channel()
+        if not channel:return
+        payload=clone(self.data);payload["channels"]=[c for c in payload["channels"] if c["id"]!=channel["id"]]
+        self.session.change(self.key,payload,"Remove acquisition channel");self.refresh()
+
+    def channel_enabled(self,item):
+        if self._building or item.column()!=0:return
+        payload=clone(self.data);payload["channels"][item.row()]["enabled"]=item.checkState()==Qt.CheckState.Checked
+        self.session.change(self.key,payload,"Include acquisition channel");self.update_title()
+
+    def select_channel(self):
+        if self._building:return
+        channel=self.current_channel()
+        if channel:self._selected_channel=channel["id"]
+        self.update_trace()
+
+    def timing_changed(self,item):
+        if self._building or item.column()!=1:return
+        key=("sample_rate","duration","time_offset")[item.row()]
+        self.session.edit(self.key,key,numeric_draft(item.text()))
+        mark_invalid(item,any(field==key for field,message in self.session.diagnostics(self.key)))
+        self.update_trace();self.update_title()
+
+    def update_trace(self):
+        channel=self.current_channel();source=self.source_payload();samples=source["samples"]
+        self.source_label.setText(self.data["source_document"]["name"]+f" / existing file trace / {len(samples)} samples")
+        if not channel:self.curve.set_series([]);fill_table(self.samples,[]);return
+        try:
+            offset=number(self.data["time_offset"]);factor,unit_offset=DATA_UNITS[channel["field"]][channel["unit"]]
+        except (ValueError,TypeError,KeyError):
+            self.curve.set_series([]);fill_table(self.samples,[])
+            self.curve.caption="Trace unavailable: correct time offset and channel unit.";return
+        times=[s["time"]+offset for s in samples];values=[(s[channel["field"]]-unit_offset)/factor for s in samples]
+        self.curve.xlabel="Aligned time [s]";self.curve.ylabel=channel["name"]+" ["+channel["unit"]+"]"
+        self.curve.set_series([{"name":channel["name"],"x":times,"y":values,"ids":[s["id"] for s in samples],"color":BLUE}])
+        self.curve.caption="Existing synthetic trace / planned rate and duration are not applied"
+        self.samples.blockSignals(True)
+        fill_table(self.samples,[[s["id"],t,v,channel["unit"]] for s,t,v in zip(samples,times,values)])
+        self.samples.blockSignals(False);self.samples.resizeColumnsToContents()
+        self.samples.horizontalHeader().setStretchLastSection(False)
+        self.samples.horizontalHeader().setSectionResizeMode(2,QHeaderView.ResizeMode.Stretch)
+        self.curve_selection(getattr(self,"_sample_ids",[]))
+
+    def curve_selection(self,ids):
+        self._sample_ids=list(ids);wanted=set(ids);self.samples.blockSignals(True);self.samples.clearSelection()
+        selection=QItemSelection()
+        for row in range(self.samples.rowCount()):
+            if self.samples.item(row,0).text() in wanted:
+                selection.select(self.samples.model().index(row,0),self.samples.model().index(row,3))
+        self.samples.selectionModel().select(selection,QItemSelectionModel.SelectionFlag.ClearAndSelect|QItemSelectionModel.SelectionFlag.Rows)
+        self.samples.blockSignals(False);self.curve.select_ids(ids)
+        rows=self.samples.selectionModel().selectedRows()
+        self.curve.cursor_x=float(self.samples.item(rows[0].row(),1).text()) if len(rows)==1 else None
+        if rows:self.samples.scrollTo(rows[0])
+
+    def sample_selection(self):
+        if self._building:return
+        rows=self.samples.selectionModel().selectedRows()
+        ids=[self.samples.item(index.row(),0).text() for index in rows]
+        self._sample_ids=ids;self.curve.select_ids(ids)
+        self.curve.cursor_x=float(self.samples.item(rows[0].row(),1).text()) if len(rows)==1 else None
+
+    def check_plan(self):
+        self.flush_editor();errors=self.session.diagnostics(self.key)
+        if errors:
+            self.plan_check.setText(errors[0][1]);field=errors[0][0]
+            if field in ("sample_rate","duration","time_offset"):
+                self.settings.setCurrentCell(("sample_rate","duration","time_offset").index(field),1);self.settings.setFocus()
+            else:self.channels.setFocus()
+            self.update_title("Correct the acquisition plan");return False
+        missing=[c["name"] for c in self.data["channels"] if c["enabled"] and c["role"]=="Measurement" and c["calibration"]=="Unassigned"]
+        self.plan_check.setText("Plan values checked. Calibration still needed: "+", ".join(missing) if missing
+            else "Plan values checked. Driver, calibration validity and live permission remain unverified.")
+        self.update_title("Plan values checked; live acquisition remains UNAVAILABLE");return True
+
+    def connection_tab_changed(self,index):
+        total=max(700,self.right_split.height())
+        self.right_split.setSizes([max(200,total-470),470] if index==1 else [455,300])
+
+    def show_connection_loss(self):
+        self.session.edit(self.key,"connection_scenario","Connection loss example");self.refresh();self.tabs.setCurrentIndex(1)
+
+    def clear_connection_example(self):
+        self.session.edit(self.key,"connection_scenario","Unconfigured");self.refresh();self.tabs.setCurrentIndex(1)
+
+    def capture_view(self):
+        super().capture_view()
+        self.document["view"].update(acquisition_channel=self._selected_channel,acquisition_samples=getattr(self,"_sample_ids",[]))
+
+    def refresh(self):
+        self._building=True;self.device.setText(self.data["device"])
+        self.driver.setCurrentText(self.data["driver"]);self.driver_name.setText(self.data["driver_name"])
+        self.clock.setCurrentText(self.data["clock"]);self.requested.setCurrentText(self.data["requested_mode"])
+        self.notes.setPlainText(self.data.get("notes",""))
+        fill_table(self.settings,[["Sample rate",self.data["sample_rate"],"Hz"],["Duration",self.data["duration"],"s"],
+            ["Time offset",self.data["time_offset"],"s"]],(1,));self.settings.resizeColumnsToContents()
+        fill_table(self.channels,[["",c["name"],c["field"],c["unit"],c["role"],c["calibration"]] for c in self.data["channels"]])
+        selected=self.document.get("view",{}).get("acquisition_channel",self._selected_channel) if not hasattr(self,"_refreshed") else self._selected_channel
+        selected_row=0
+        for row,channel in enumerate(self.data["channels"]):
+            item=self.channels.item(row,0);item.setFlags(item.flags()|Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Checked if channel["enabled"] else Qt.CheckState.Unchecked)
+            if channel["id"]==selected:selected_row=row
+        self.channels.resizeColumnsToContents();self.channels.horizontalHeader().setStretchLastSection(False)
+        self.channels.horizontalHeader().setSectionResizeMode(1,QHeaderView.ResizeMode.Stretch);self.channels.setCurrentCell(selected_row,1)
+        scenario=self.data["connection_scenario"]
+        self.connection_label.setText("Connection loss — authored review example; no device command occurred." if scenario!="Unconfigured"
+            else "No instrument/driver is connected. Existing file review remains available.")
+        fill_table(self.connection_table,[["Live connection","UNAVAILABLE"],["Acquisition phase","Not observed"],
+            ["Requested stop","NOT_SENT"],["Device stop acknowledgment","NOT_RECEIVED"],["Physical terminal state","UNKNOWN"],["Allowed control","NONE"]])
+        self.connection_table.resizeColumnsToContents();self.connection_table.horizontalHeader().setStretchLastSection(True)
+        self.connection_table.setMinimumHeight(self.connection_table.horizontalHeader().height()+sum(self.connection_table.rowHeight(i) for i in range(self.connection_table.rowCount()))+6)
+        self._sample_ids=getattr(self,"_sample_ids",self.document.get("view",{}).get("acquisition_samples",[]))
+        self._building=False;self._refreshed=True;self.select_channel();self.update_title()
+
+
 class WorkbenchWindow(ToolWindow):
     def build(self):
         self.action(self.toolbar,"Open selected",self.open_selected)
@@ -2412,6 +3128,7 @@ class WorkbenchWindow(ToolWindow):
         self.graph.chosen.connect(self.selected_node);self.graph.opened.connect(self.hub.open)
         self.graph.moved.connect(self.positions_changed)
         self.graph.edgeChosen.connect(self.selected_edge)
+        self.graph.portChosen.connect(lambda key,port:self.port_selected(key,port))
         self.setCentralWidget(self.graph)
         self.items=make_table(["Document","Tool"],[[self.session.doc(k)["name"],TOOL_NAMES[k]] for k in coords])
         self.node_keys=list(coords)
@@ -2421,6 +3138,10 @@ class WorkbenchWindow(ToolWindow):
 
     def selected_node(self,key):
         self.current=key;self.update_title(self.session.doc(key)["name"])
+
+    def port_selected(self,key,port):
+        self.current=key;self.session.selected["port"]={"owner":key,"direction":port}
+        self.update_title(TOOL_NAMES[key]+" / "+port+" / Enter opens the owner")
 
     def selected_edge(self,a,b):
         self.current=b;self.update_title(TOOL_NAMES[a]+" → "+TOOL_NAMES[b]+" / open receiving tool")
@@ -2457,7 +3178,7 @@ class WorkbenchWindow(ToolWindow):
 
 class DesktopHub:
     def __init__(self,session):
-        self.session=session;self.windows={};self.other_hubs=[]
+        self.session=session;self.windows={};self.other_hubs=[];self.result_dialogs={}
 
     def open(self,key):
         if key in self.windows:
@@ -2468,7 +3189,9 @@ class DesktopHub:
                  "Data":DataWindow,"Material":MaterialWindow,"PDE":PDEWindow,"Numerical":NumericalWindow,
                  "JobManager view":RunnerWindow,"Discussion":ExpertWindow,"Study":StudyWindow,
                  "Evaluation":EvaluationWindow,"Study links":WorkbenchWindow}
-        window=classes[doc["owner"]](self,key);self.windows[key]=window;window.show();return window
+        view=doc["draft"].get("view_kind")
+        window_class={"report":ReportWindow,"acquisition":AcquisitionWindow}.get(view,classes[doc["owner"]])
+        window=window_class(self,key);self.windows[key]=window;window.show();return window
 
     def open_other(self,session,key):
         hub=DesktopHub(session);self.other_hubs.append(hub);return hub.open(key)
@@ -2485,10 +3208,28 @@ class DesktopHub:
         text_dialog(parent,"Saved "+doc["name"],
                     json.dumps({"reference":ref,"saved_input":payload},ensure_ascii=False,indent=2))
 
-    def open_result(self,result_id):
+    def open_result(self,result_id,locator=None):
         if result_id not in self.session.results:raise ReviewError("The exact result is unavailable.")
+        if self.session.results[result_id].get("kind")=="numerical":
+            record=self.session.results[result_id];selection=None
+            if locator:
+                for index,definition in enumerate(record["fixture"]["tables"]):
+                    prefix=record["method"]+" / "+definition["name"]
+                    if locator==prefix:selection=(index,None);break
+                    if locator.startswith(prefix+" / "):
+                        row_key=locator[len(prefix)+3:]
+                        row=next((i for i,values in enumerate(definition["rows"]) if str(values[0])==row_key),None)
+                        if row is not None:selection=(index,row);break
+                if selection is None:raise ReviewError("The selected result location is unavailable: "+locator)
+            dialog=self.inspect_research_result(result_id)
+            if selection is not None:
+                index,row=selection;dialog.result_tabs.setCurrentIndex(index);table=dialog.result_tables[index]
+                if row is None:table.clearSelection();table.setCurrentCell(-1,-1)
+                else:table.setCurrentCell(row,0);table.selectRow(row);table.scrollToItem(table.item(row,0))
+            return dialog
         if not self.session.results[result_id].get("fields"):
             raise ReviewError("This retained result has no 3D field arrays. Inspect its owning tool result table.")
+        context=structural_location(self.session.results[result_id],locator) if locator else None
         key="post:"+result_id
         if key not in self.session.documents:
             from prototype_state import make_document
@@ -2497,7 +3238,108 @@ class DesktopHub:
             payload["time"]=result.get("time",.04)
             name=self.session.doc(result["source"]["id"])["name"]+" result" if result["source"]["id"] in [d["id"] for d in self.session.documents.values()] else "Retained result"
             self.session.documents[key]=make_document(key,name,"native_post","POST-"+result_id,1,payload)
-        return self.open(key)
+        if context:
+            payload=clone(self.session.doc(key)["draft"])
+            payload.update(array=context["array"],time=context["time"],unit=context["unit"],association=context["association"],
+                basis=context["basis"],selection=context["selection"],gauge=clone(context["gauge"]),
+                filter="Surface",pending_filter="Surface")
+            self.session.change(key,payload,"Open selected evidence frame")
+        window=self.open(key)
+        if context:
+            window.pipeline.blockSignals(True)
+            root=window.pipeline.topLevelItem(0)
+            for index in range(root.childCount()):
+                if root.child(index).text(0)==context["selection"]:window.pipeline.setCurrentItem(root.child(index));break
+            window.pipeline.blockSignals(False);window.viewer.set_selected(context["selection"])
+            window.bottom.setCurrentIndex(1)
+            row={"Displacement":0,"Contact pressure":1,"Normal force":2}[context["array"]]
+            window.measure.setCurrentCell(row,0);window.measure.selectRow(row)
+        return window
+
+    def discussion_for(self,source_key):
+        if not source_key or source_key not in self.session.documents:return "expert"
+        source=self.session.doc(source_key)
+        if source["owner"]=="Discussion":return source_key
+        key="discussion:"+source["id"]
+        if key not in self.session.documents:
+            from prototype_state import make_document,token
+            data=clone(self.session.doc("expert")["saved"])
+            data.update(question=source["draft"].get("question",source["name"]),turns=[],evidence=[],pending_text="",reply_to=None)
+            self.session.documents[key]=make_document(key,source["name"],"Discussion",token("DISC"),0,data)
+        return key
+
+    def discuss_result(self,result_id,locator):
+        result=self.session.results[result_id];key=self.discussion_for(result.get("parent_key"))
+        payload=clone(self.session.doc(key)["draft"]);label=result.get("method",result.get("candidate","Result"))+" example"
+        if not any(e["id"]==result_id and e["locator"]==locator for e in payload["evidence"]):
+            payload["evidence"].append({"id":result_id,"locator":locator,"label":label,"synthetic":True})
+        payload["pending_evidence"]=[{"id":result_id,"locator":locator}]
+        self.session.change(key,payload,"Discuss selected result")
+        window=self.open(key);window.composer.setFocus();return window
+
+    def result_to_study(self,result_id,locator,parent=None):
+        dialog=QDialog(parent);dialog.setWindowTitle("Use result as research evidence");form=QFormLayout(dialog)
+        studies=QComboBox()
+        for key,doc in self.session.documents.items():
+            if doc["owner"]=="Study" and not doc["draft"].get("view_kind"):studies.addItem(doc["name"],key)
+        hypothesis=QComboBox();relation=QComboBox();relation.addItems(["Neutral","Support","Refute"])
+        def fill(*args):hypothesis.clear();hypothesis.addItems([h["id"]+" / "+h["text"] for h in self.session.doc(studies.currentData())["draft"]["hypotheses"]])
+        studies.currentIndexChanged.connect(fill);fill()
+        for label,widget in (("Study",studies),("Hypothesis",hypothesis),("Relation",relation)):form.addRow(label,widget)
+        form.addRow("Selected result",QLabel(locator))
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel);buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);form.addRow(buttons)
+        if dialog.exec()==QDialog.DialogCode.Accepted:
+            key=studies.currentData();payload=clone(self.session.doc(key)["draft"])
+            payload["evidence"].append({"ref":result_id,"locator":locator,"hypothesis":payload["hypotheses"][hypothesis.currentIndex()]["id"],"relation":relation.currentText(),"synthetic":True})
+            self.session.change(key,payload,"Relate selected result evidence");return self.open(key)
+
+    def inspect_research_result(self,result_id):
+        if result_id in self.result_dialogs:
+            window=self.result_dialogs[result_id];window.show();window.raise_();return window
+        record=self.session.results[result_id];fixture=record["fixture"]
+        dialog=QDialog();dialog.setWindowTitle(record["method"]+" result");dialog.resize(1440,900)
+        layout=QVBoxLayout(dialog);label=QLabel(record["method"]+" / authored synthetic result / no evaluation")
+        label.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Fixed);label.setMaximumHeight(30)
+        layout.addWidget(label);tabs=QTabWidget();tables=[]
+        for definition in fixture["tables"]:
+            table=make_table(definition["headers"],definition["rows"]);tables.append(table);tabs.addTab(table,definition["name"])
+            table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        plot=CurveView(xlabel=fixture["xlabel"],ylabel=fixture["ylabel"]);plot.set_series(fixture["series"])
+        plot.caption="Authored example / not evaluated from this plan"
+        split=QSplitter();split.addWidget(tabs);split.addWidget(plot);split.setSizes([760,640]);layout.addWidget(split,1)
+        summary=make_table(["Finding","Value"],fixture["summary"]);summary.setMaximumHeight(135);layout.addWidget(summary)
+        def locator():
+            index=tabs.currentIndex();table=tables[index];row=table.currentRow()
+            return record["method"]+" / "+fixture["tables"][index]["name"]+(" / "+table.item(row,0).text() if row>=0 else "")
+        def selection_changed():
+            self.session.selected["result_evidence"]={"id":result_id,"locator":locator()}
+            table=tables[tabs.currentIndex()];row=table.currentRow()
+            if row>=0:plot.select_ids([table.item(row,0).text()]);plot.update()
+        for table in tables:table.itemSelectionChanged.connect(selection_changed)
+        def view_changed(index):
+            definition=fixture["tables"][index];rows=definition["rows"];name=definition["name"]
+            if name in ("Train residuals","Holdout"):
+                plot.xlabel="Engineering strain";plot.ylabel="Stress [MPa]"
+                plot.set_series([{"name":label,"x":[r[1] for r in rows],"y":[r[c] for r in rows],"ids":[r[0] for r in rows],"color":color} for label,c,color in (("Observed",2,BLUE),("Prediction example",3,ORANGE))])
+            elif name=="Prediction support":
+                plot.set_series([]);plot.caption="Outside support is unavailable; no extrapolated value is shown"
+            else:
+                plot.xlabel=fixture["xlabel"];plot.ylabel=fixture["ylabel"];plot.set_series(fixture["series"]);plot.caption="Authored example / no evaluation"
+            selection_changed()
+        tabs.currentChanged.connect(view_changed)
+        controls=box(button("Discuss selection",lambda:self.discuss_result(result_id,locator())),button("Use as Study evidence…",lambda:self.result_to_study(result_id,locator(),dialog)),horizontal=True)
+        if record["method"]=="MDO":
+            controls.layout().addWidget(button("Open Heat",lambda:self.open_reference({"id":"V-02","revision":4},dialog)))
+            controls.layout().addWidget(button("Open Expand",lambda:self.open_reference({"id":"V-03","revision":6},dialog)))
+            controls.layout().addWidget(button("Open Evaluation",lambda:self.open("evaluation")))
+        controls.layout().addWidget(button("Save review session…",lambda:self.save_result_session(dialog)))
+        controls.layout().addWidget(button("Close",dialog.close));layout.addWidget(controls)
+        dialog.result_tabs=tabs;dialog.result_plot=plot;dialog.result_tables=tables;dialog.result_id=result_id
+        self.result_dialogs[result_id]=dialog;dialog.show();tables[0].selectRow(0);return dialog
+
+    def save_result_session(self,parent):
+        path,_=QFileDialog.getSaveFileName(parent,"Save review session",str(self.session.workspace/"Research.json"),"Review session (*.json)")
+        if path:self.session.save_session(path)
 
     def open_fit(self,material_key):
         from prototype_state import make_document
@@ -2509,7 +3351,14 @@ class DesktopHub:
             if material["draft"].get("observation_snapshot"):
                 payload["observation_snapshot"]=clone(material["draft"]["observation_snapshot"]);payload["sources"]["data"]=clone(material["draft"]["observations"])
             payload["sources"]["material"]={"id":material["id"],"revision":material["revision"]}
-            payload["variables"]=[{"owner":material_key,"field":"mu","unit":"MPa","start":material["saved"]["mu"],"lower":.6,"upper":1.4,"free":True}]
+            fields={"Neo-Hookean":[("mu","MPa")],"J2 plasticity":[("parameters.yield","MPa"),("parameters.hardening","MPa")],
+                    "Drucker–Prager":[("parameters.cohesion","MPa"),("parameters.friction_angle","deg")],
+                    "Prony viscoelastic":[("parameters.g1","1"),("parameters.tau1","s")],"User constitutive law":[("parameters.E","MPa")]}
+            payload["variables"]=[]
+            for field,unit in fields[material["saved"]["law"]]:
+                value=material["saved"]
+                for part in field.split("."):value=value[part]
+                payload["variables"].append({"owner":material_key,"field":field,"unit":unit,"start":value,"lower":value*.7,"upper":value*1.3,"free":True})
             self.session.documents[key]=make_document(key,"Rubber identification","Numerical","N-FIT",1,payload)
         return self.open(key)
 
@@ -2534,7 +3383,7 @@ class DesktopHub:
             from prototype_state import make_document,token
             proposal=record();key="plan:"+parent.key
             if key not in self.session.documents:
-                payload=clone(self.session.doc("numerical")["saved"]);payload.update(method="DOE",budget=budget.value(),proposal=proposal)
+                payload=clone(self.session.doc("numerical")["saved"]);payload.update(method="DOE",budget=budget.value(),proposal=proposal,parent_key=parent.key)
                 payload["evaluator"]="Unassigned";payload["variables"]=[];payload["responses"]=[]
                 self.session.documents[key]=make_document(key,"Next experiment","Numerical",token("N"),0,payload)
                 self.session.documents[key]["dirty"]=True
@@ -2546,7 +3395,9 @@ class DesktopHub:
         dialog=QDialog(parent);dialog.setWindowTitle("Apply candidate "+group["candidate"]);dialog.resize(850,410)
         layout=QVBoxLayout(dialog)
         table=make_table(["Target","Current","Proposed","Unit","State"],[])
-        table.setRowCount(2);layout.addWidget(table)
+        table.setRowCount(2)
+        for column,width in enumerate((175,120,120,70)):table.setColumnWidth(column,width)
+        layout.addWidget(table)
         controls=QHBoxLayout()
         failure_message=QLabel("")
         def redraw():
@@ -2659,7 +3510,8 @@ def main(argv=None):
     parser.add_argument("--scenario",choices=["default","material-repair"],default="default")
     args=parser.parse_args(argv)
     app=QApplication(sys.argv[:1]);app.setApplicationName("Autonomous CAE Lab UX review")
-    app.setStyle("Fusion");app.setStyleSheet(STYLE);app.setFont(QFont("Segoe UI",10))
+    configure_application_fonts(app)
+    app.setStyle("Fusion");app.setStyleSheet(STYLE)
     session=ReviewSession.open_session(args.session) if args.session else ReviewSession(args.workspace)
     if args.scenario=="material-repair":session.material_repair_scenario()
     hub=DesktopHub(session)

@@ -18,10 +18,11 @@ Expert의 실제 연구 흐름이다. 특정 C3D10 메시나 F05 진단은 전�
 완성 판정 기준이 아니다. 사용자의 실제 연구를 끝내는 데 필요한 기능은 목록 밖이어도
 추가한다. 이 계획은 다음 구현의 기준이며 제품 구현 완료 기록이 아니다.
 
-전체 메뉴·입력·선택·오류·저장·MCP 연결과 실제 구현 작업은 Pro의
-[전체 상세기획 v2](PRODUCT_UI_MCP_PLAN.md)와
-[22쪽 화면 도면](design/20261011-product-ui-mcp/Autonomous_CAE_Lab_UI_Plan_v2.pdf)을
-함께 읽는다. 실제 Pro의 [요구 타당성 검토](REQUIREMENTS_VALIDITY_REVIEW.md)에 따라
+전체 기능·상태 계약과 구현 작업은 [새 전체 개발 명세](design/20261012-desktop-planning/pro-authored/FUNCTION_SPEC.md),
+[현재 화면·Qt 시제품](design/20261012-desktop-planning/REVIEW_GUIDE.md),
+[화면과 구현 연결](design/20261012-desktop-planning/pro-ux/implementation_map.csv)을 함께 읽는다.
+[상세기획 v2](PRODUCT_UI_MCP_PLAN.md)와 [옛 화면 도면](design/20261011-product-ui-mcp/Autonomous_CAE_Lab_UI_Plan_v2.pdf)은 재사용 자료다.
+실제 Pro의 [요구 타당성 검토](REQUIREMENTS_VALIDITY_REVIEW.md)에 따라
 상세기획 본문과 작업표를 수정했으며 원 v1/v2·검토 원문은 보존한다. 구현 완료 기록은 아니다.
 초기 요청의 절 번호를 기능 개수나 완료 기준으로 사용하지 않는다. 실제 사용자 결과와
 정확성·편집·저장 원칙은 제품 기준, backend 후보는 선택/지원 과제, 담당·검토·기록은

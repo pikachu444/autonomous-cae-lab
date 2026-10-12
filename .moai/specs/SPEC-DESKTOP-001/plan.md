@@ -1,4 +1,4 @@
-# Design and approved implementation handoff
+# Design and implementation handoff
 
 Use [the actual Pro request](../../../docs/design/20261012-desktop-planning/PRO_REQUEST.md)
 and existing detail plan as the authoring packet. Keep source reuse concrete and
@@ -8,6 +8,12 @@ The later [whole-product GUI request](../../../docs/design/20261012-desktop-plan
 contains the user's current CAD/FE–Runner–Post–Numerical and Co-STORM focus.
 The isolated [Qt source](../../../docs/design/20261012-desktop-planning/pro-ux/README.md)
 is a working review draft; author publication does not establish workflow acceptance.
+The [screen/task map](../../../docs/design/20261012-desktop-planning/pro-ux/implementation_map.csv)
+extends the existing backlog rather than replacing its feature IDs, runtime prerequisites
+or numerical acceptance. The [MoAI handoff](../../../docs/design/20261012-desktop-planning/pro-ux/MOAI_HANDOFF.md)
+links concrete artifacts to the current SPEC. CAD/FE → Simulation → Runner → Post →
+Numerical and Expert → research result → Study are the first integrated user paths;
+Material remains a parallel domain tool.
 
 The authorized sequence is context recovery → actual Pro whole-product authorship
 → editable tool artifacts and limited Qt interaction checks → independent Astra

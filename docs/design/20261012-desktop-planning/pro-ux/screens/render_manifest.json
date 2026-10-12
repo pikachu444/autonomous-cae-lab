@@ -1,0 +1,613 @@
+{
+  "format": "caelab-ux-svg-render/1",
+  "mode": "QT_OFFSCREEN",
+  "font_policy": {
+    "platform": "win32",
+    "ui_families": [
+      "Segoe UI",
+      "Malgun Gothic"
+    ],
+    "resolved_family": "Segoe UI",
+    "point_size": 10,
+    "hangul_family_available": true,
+    "loaded_existing_files": [
+      "segoeui.ttf",
+      "malgun.ttf"
+    ]
+  },
+  "source_sha256": {
+    "qt_prototype.py": "54058df4a62a957e534558e767a2a6b30b0e5d15e87bc23a958c53374c853616",
+    "qt_widgets.py": "3db4800e079fbaa09c704bf5fc176ae6cc8e0400cd565633548d13694559706d",
+    "prototype_state.py": "4315e87727b3f2c1de6bfcb03a401342fa6ade4d7b961b95bcdb02b3f4c48c7b",
+    "export_screens.py": "5ddf253d4b962934e959f2e02526b567cf0a7bf80d03db8d8b42488d5107aded",
+    "fixtures/methods.json": "1c0b3ec63b060bf8171918f9d49f05d202da3f5976a15ef6e2395e1332b8f18e",
+    "screen_states.json": "493fec75878e9ec0fddaf9ed9e48447be94b95a3a5c03cf99a3f3f78f7840678"
+  },
+  "states": [
+    {
+      "id": "cad-sketch",
+      "svg": "cad-sketch.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "cad-features",
+      "svg": "cad-features.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "cad-assembly",
+      "svg": "cad-assembly.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "cad-motion",
+      "svg": "cad-motion.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "cad-mesh",
+      "svg": "cad-mesh.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "cad-conditions",
+      "svg": "cad-conditions.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "cad-contact",
+      "svg": "cad-contact.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "simulation-implicit",
+      "svg": "simulation-implicit.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "simulation-explicit",
+      "svg": "simulation-explicit.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "simulation-failure",
+      "svg": "simulation-failure.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "simulation-invalid-step",
+      "svg": "simulation-invalid-step.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": [
+        800,
+        370
+      ],
+      "errors": []
+    },
+    {
+      "id": "thermal-domain",
+      "svg": "thermal-domain.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": [
+        231,
+        161
+      ],
+      "errors": []
+    },
+    {
+      "id": "thermoelastic-field",
+      "svg": "thermoelastic-field.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "runner-convergence",
+      "svg": "runner-convergence.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "runner-cancel",
+      "svg": "runner-cancel.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "post-field",
+      "svg": "post-field.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "post-clip",
+      "svg": "post-clip.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "post-line",
+      "svg": "post-line.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "post-gauge",
+      "svg": "post-gauge.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "post-compare",
+      "svg": "post-compare.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": [
+        1240,
+        700
+      ],
+      "errors": []
+    },
+    {
+      "id": "post-unavailable",
+      "svg": "post-unavailable.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "numerical-moo",
+      "svg": "numerical-moo.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "numerical-doe",
+      "svg": "numerical-doe.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "result-doe",
+      "svg": "result-doe.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "numerical-inverse",
+      "svg": "numerical-inverse.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "result-inverse",
+      "svg": "result-inverse.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "numerical-optimization",
+      "svg": "numerical-optimization.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "result-optimization",
+      "svg": "result-optimization.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "numerical-sobol",
+      "svg": "numerical-sobol.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "result-sobol",
+      "svg": "result-sobol.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "numerical-uq",
+      "svg": "numerical-uq.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "result-uq",
+      "svg": "result-uq.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "numerical-surrogate",
+      "svg": "numerical-surrogate.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "result-surrogate",
+      "svg": "result-surrogate.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "numerical-mdo",
+      "svg": "numerical-mdo.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "result-mdo",
+      "svg": "result-mdo.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "candidate-partial-save",
+      "svg": "candidate-partial-save.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": [
+        850,
+        410
+      ],
+      "errors": []
+    },
+    {
+      "id": "data-workbook",
+      "svg": "data-workbook.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "data-calibration",
+      "svg": "data-calibration.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": [
+        850,
+        620
+      ],
+      "errors": []
+    },
+    {
+      "id": "material-fit",
+      "svg": "material-fit.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "material-history",
+      "svg": "material-history.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": [
+        880,
+        580
+      ],
+      "errors": []
+    },
+    {
+      "id": "material-repair",
+      "svg": "material-repair.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "pde-equation",
+      "svg": "pde-equation.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "pde-weak-form",
+      "svg": "pde-weak-form.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "pde-ode",
+      "svg": "pde-ode.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "evaluation-transfer",
+      "svg": "evaluation-transfer.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "evaluation-coupling",
+      "svg": "evaluation-coupling.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "expert-discussion",
+      "svg": "expert-discussion.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "expert-models",
+      "svg": "expert-models.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": [
+        800,
+        610
+      ],
+      "errors": []
+    },
+    {
+      "id": "expert-followup",
+      "svg": "expert-followup.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "study-judgment",
+      "svg": "study-judgment.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "workbench-links",
+      "svg": "workbench-links.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "report-sections",
+      "svg": "report-sections.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "report-preview",
+      "svg": "report-preview.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "acquisition-channels",
+      "svg": "acquisition-channels.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    },
+    {
+      "id": "acquisition-connection",
+      "svg": "acquisition-connection.svg",
+      "viewport": [
+        1440,
+        900
+      ],
+      "dialog": null,
+      "errors": []
+    }
+  ],
+  "callback_errors": [],
+  "native_host_executed": false,
+  "solver_executed": false,
+  "provider_executed": false
+}

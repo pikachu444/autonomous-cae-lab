@@ -17,6 +17,8 @@ Pro와 Codex 모두 같은 기준 버전·최신 사용자 결정·미반영 산
 
 ## 사용법과 과거 근거
 
+- [데스크톱 설계·Qt 시제품 검토](docs/design/20261012-desktop-planning/REVIEW_GUIDE.md),
+  [전체 명세와 편집 원본](docs/design/20261012-desktop-planning/README.md).
 - [Windows 시작 안내](docs/WINDOWS_QUICKSTART.md), [독립 Research 실행](apps/research/README.md),
   [로컬 실행과 backend](docs/LOCAL_EXECUTION.md).
 - [제품 상세기획](docs/PRODUCT_UI_MCP_PLAN.md), [사용 사례](docs/WORKBENCH_USE_CASES.md),

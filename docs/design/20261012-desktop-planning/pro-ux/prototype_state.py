@@ -10,6 +10,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import tempfile
 import uuid
 from pathlib import Path
@@ -23,6 +24,7 @@ TOOL_NAMES = {
     "material": "Material", "pde": "PDE", "numerical": "Numerical",
     "runner": "Runner", "expert": "Expert", "study": "Study",
     "evaluation": "Evaluation", "workbench": "Workbench",
+    "report": "Report", "acquisition": "Acquisition",
 }
 METHODS = {
     "DOE": ("Design matrix", "Responses", "Effects"),
@@ -49,8 +51,8 @@ RESPONSE_ROLES = ("Minimize", "Maximize", "Upper bound", "Lower bound", "Target"
 EVALUATORS = ("Unassigned", "Clamp / material response", "Structural Simulation",
               "Material response", "PDE response", "Thermal expansion Evaluation")
 VARIABLE_BINDINGS = {
-    "cad": {"thickness":"mm", "width":"mm", "height":"mm"},
-    "material": {"mu":"MPa", "bulk":"MPa"},
+    "cad": {"thickness":"mm", "width":"mm", "height":"mm", "contact.mu":"1", "contact.gap":"mm", "mesh.size":"mm"},
+    "material": {"mu":"MPa", "bulk":"MPa", "parameters.E":"MPa", "parameters.nu":"1", "parameters.yield":"MPa", "parameters.hardening":"MPa", "parameters.cohesion":"MPa", "parameters.friction_angle":"deg", "parameters.dilation_angle":"deg", "parameters.g1":"1", "parameters.tau1":"s", "parameters.g2":"1", "parameters.tau2":"s"},
     "simulation": {"force":"N", "duration":"s", "time_step":"s", "initial_velocity":"m/s"},
     "pde": {"k":"declared", "f":"declared", "mesh":"m"},
     "thermal": {"temperature":"K"}, "thermoelastic": {"alpha":"1/K", "Tref":"K"},
@@ -317,6 +319,94 @@ def structural_fields(displacement=.31):
     }
 
 
+def structural_location(record,locator):
+    """Resolve a supported structural evidence locator to one retained frame."""
+    match=re.fullmatch(r"([^/]+)\s*/\s*t\s*=\s*([-+0-9.eE]+)\s*s",str(locator).strip())
+    if not match:raise ReviewError("This structural evidence location is unavailable: "+str(locator))
+    label=match.group(1).strip();array="Displacement" if label=="Gauge" else label
+    if array not in ("Displacement","Contact pressure","Normal force"):
+        raise ReviewError("This structural field/location is not supported by the review fixture.")
+    field=record.get("fields",{}).get(array)
+    try:time=float(match.group(2))
+    except ValueError:raise ReviewError("The evidence time is invalid.")
+    times=record.get("times",[])
+    if not field or not math.isfinite(time) or time not in times:
+        raise ReviewError("The exact evidence field/frame is unavailable; no nearest or final frame was substituted.")
+    index=times.index(time);values=field.get("values",[])
+    if index>=len(values) or not isinstance(values[index],(int,float)) or not math.isfinite(values[index]):
+        raise ReviewError("The selected evidence frame has no finite value.")
+    return {"array":array,"time":time,"unit":field["unit"],"association":field["association"],
+            "value":values[index],"index":index,"selection":"Gauge endpoints" if array=="Displacement" else "Contact pair",
+            "basis":"Global Cartesian","gauge":{"a":"Gauge left","b":"Gauge right","direction":"X"}}
+
+
+def report_sections(study_document, results):
+    """Editable review pages from an explicit saved Study; no report engine."""
+    study=study_document["saved"]
+    sections=[{"id":"question","title":"Research question","kind":"text","text":study["question"],
+               "enabled":True,"source":{"kind":"study"}}]
+    for index,evidence in enumerate(study.get("evidence",[])):
+        rid=evidence.get("ref",evidence.get("id"));result=results.get(rid)
+        source={"kind":"result","id":rid,"locator":evidence.get("locator","")}
+        section={"id":"evidence-"+str(index),"title":"Measured response","kind":"table","enabled":True,
+                 "source":source,"caption":"Authored synthetic result; no calculation."}
+        if not result:
+            section.update(headers=["Evidence","Status"],rows=[[rid,"Unavailable"]],unavailable=True)
+        elif result.get("kind")=="numerical":
+            tables=result["fixture"]["tables"];locator=source["locator"]
+            table=next((t for t in tables if locator==result["method"]+" / "+t["name"] or locator.startswith(result["method"]+" / "+t["name"]+" / ")),None)
+            rows=clone(table["rows"]) if table else []
+            if table:
+                prefix=result["method"]+" / "+table["name"]
+                if locator!=prefix:rows=[r for r in rows if r and str(r[0])==locator[len(prefix)+3:]]
+            section.update(title=table["name"] if table else result["method"],
+                           headers=clone(table["headers"]) if table else ["Evidence","Status"],rows=rows)
+            if not rows:section["unavailable"]=True
+        else:
+            try:
+                frame=structural_location(result,source["locator"])
+                section.update(headers=["Quantity","Value","Unit"],rows=[
+                    [frame["array"],frame["value"],frame["unit"]],["Selected time",frame["time"],"s"]],
+                    caption="Authored synthetic frame; "+frame["association"]+", global basis. Exact selected time.")
+            except ReviewError as error:
+                section.update(headers=["Evidence","Status"],rows=[[source["locator"],"Unavailable"]],
+                               unavailable=True,caption=str(error))
+        sections.append(section)
+        if result and not section.get("unavailable") and result.get("kind")=="numerical" and result["fixture"].get("series"):
+            fixture=result["fixture"]
+            sections.append({"id":"curve-"+str(index),"title":result["method"]+" response view",
+                "kind":"curve","enabled":True,"source":clone(source),"series":clone(fixture["series"]),
+                "xlabel":fixture["xlabel"],"ylabel":fixture["ylabel"],
+                "caption":"Authored method overview; all retained points. Selected row remains in the preceding table."})
+        elif result and not section.get("unavailable") and result.get("fields"):
+            frame=structural_location(result,source["locator"]);field=result["fields"][frame["array"]]
+            sections.append({"id":"curve-"+str(index),"title":frame["array"]+" through the load step",
+                "kind":"curve","enabled":True,"source":clone(source),"series":[{"name":frame["array"],
+                "x":clone(result["times"]),"y":clone(field["values"]),"color":"#286998"}],
+                "xlabel":"Time [s]","ylabel":frame["array"]+" ["+frame["unit"]+"]","cursor_x":frame["time"],
+                "caption":"Authored synthetic frames; "+frame["association"]+", global basis; all retained times, no downsampling. Dashed line: selected frame."})
+    sections.append({"id":"judgment","title":"Research judgment","kind":"text","enabled":True,
+        "text":study.get("judgment","Undecided")+"\n"+(study.get("reason") or "No judgment has been applied.")+
+        "\n\nNext research: "+study.get("next_research",""),"source":{"kind":"study"}})
+    sections.append({"id":"checks","title":"Checks and limitations","kind":"table","enabled":True,
+        "headers":["Check","State"],"rows":[["Process completion","Not executed in this prototype"],
+        ["Numerical validity","NOT_EVALUATED"],["Engineering checks","UNKNOWN"],["Release","NOT_RELEASED"]],"source":{"kind":"local"},
+        "caption":"Process termination, numerical validity and engineering judgment remain separate."})
+    return sections
+
+
+def acquisition_payload(data_document):
+    return {"view_kind":"acquisition","device":"Unassigned instrument","driver":"Unassigned",
+        "driver_name":"","sample_rate":1000.0,"duration":10.0,"time_offset":0.0,
+        "clock":"Device timestamps (unverified)","requested_mode":"Measurements only","allowed_control":"NONE",
+        "source_document":clone(data_document),"selected_channel":"ch1",
+        "channels":[{"id":"ch1","name":"Force","field":"force","unit":"N","role":"Measurement","calibration":"CAL-018","enabled":True},
+                    {"id":"ch2","name":"Gauge extension","field":"extension","unit":"mm","role":"Measurement","calibration":"Unassigned","enabled":True},
+                    {"id":"ch3","name":"Temperature","field":"temperature","unit":"degC","role":"Monitor","calibration":"Unassigned","enabled":True}],
+        "connection_scenario":"Unconfigured","connection":"UNAVAILABLE","stop_request":"NOT_SENT",
+        "stop_ack":"NOT_RECEIVED","terminal":"UNKNOWN","notes":"","capability":"UNAVAILABLE"}
+
+
 def initial_documents():
     docs = {}
     def add(*args):
@@ -393,7 +483,9 @@ def initial_documents():
         "width":1.0,"height":.6,"initial":"0","study_type":"Stationary",
         "time_range":"0:0.1:1","field_unit":"1","bc_type":"Dirichlet",
         "boundaries":{"Left edge":"u = 0","Right edge":"n·k·grad(u) = 0","Top edge":"n·k·grad(u) = 0","Bottom edge":"n·k·grad(u) = 0"},
-        "form": "Registered PDE", "capability": "UNCONNECTED"})
+        "form": "Registered PDE", "capability": "UNCONNECTED",
+        "weak_form":{"test":"v","trial":"u","domain":"Rectangle","integral":"k*dot(grad(u),grad(v))*dx - f*v*dx","quadrature":"Auto"},
+        "ode":{"state":"x","rhs":"-a*x + f","initial":1.0,"start":0.0,"stop":5.0,"step":.1,"a":1.0,"unit":"1"}})
     add("numerical", "Clamp trade-off", "Numerical", "N-MOO", 4, {
         "method": "MOO", "evaluator": "Clamp / material response",
         "budget": 40, "seed": 17, "method_settings": {},
@@ -453,6 +545,12 @@ def initial_documents():
                   ["post", "numerical"], ["data", "material"], ["expert", "study"]],
         "positions": {}})
     add("runner", "Jobs", "JobManager view", "JOBS-VIEW", 1, {"filter": "All"})
+    # Review documents reuse Study and Data ownership, not new product owners.
+    add("report", "Clamp report", "Study", "REPORT-REVIEW-01", 1, {
+        "view_kind":"report", "title":"Clamp compliance", "sections":[], "evidence":[],
+        "study_document":clone(docs["study"]), "output_format":"Review PDF",
+        "missing_policy":"Block export", "last_export":""})
+    add("acquisition", "Tension acquisition", "Data", "ACQ-REVIEW-01", 1, acquisition_payload(docs["data"]))
     return docs
 
 
@@ -501,6 +599,11 @@ class ReviewSession:
         self.events = []
         self.selected = {"tool": "cad", "candidate": "p19", "samples": [], "topic": "지그 강성"}
         self.paths = {}
+        report=self.documents["report"]
+        for payload in (report["saved"],report["draft"]):
+            payload["sections"]=report_sections(self.documents["study"],self.results)
+            payload["evidence"]=clone(self.documents["study"]["saved"]["evidence"])
+        report["history"][0]["payload"]=clone(report["saved"])
 
     def doc(self, key):
         if key in self.documents:
@@ -582,6 +685,36 @@ class ReviewSession:
             if not isinstance(value, (int, float)) or not math.isfinite(value) or (
                     value < 0 if allow_zero else value <= 0):
                 errors.append((field, "Enter a finite " + ("nonnegative" if allow_zero else "positive") + " value."))
+        if data.get("view_kind")=="report":
+            if not data.get("title","").strip():errors.append(("title","Enter the report title."))
+            enabled=[s for s in data.get("sections",[]) if s.get("enabled")]
+            if not enabled:errors.append(("sections","Include at least one section."))
+            for section in enabled:
+                if not section.get("title","").strip():errors.append(("sections","Enter a section heading."))
+                text=section.get("text","")
+                if section.get("kind")=="text" and (len(text)>1800 or len(text.splitlines())>34):
+                    errors.append(("sections","Split long text into shorter review sections (1800 characters / 34 lines per page)."))
+                source=section.get("source",{})
+                missing=section.get("unavailable") or (source.get("kind")=="result" and source.get("id") not in self.results)
+                if missing and data.get("missing_policy")=="Block export":
+                    errors.append(("sections","An included evidence section is unavailable. Locate it or choose an unavailable placeholder."))
+            return errors
+        if data.get("view_kind")=="acquisition":
+            for field in ("sample_rate","duration"):positive(field)
+            offset=data.get("time_offset")
+            if not isinstance(offset,(int,float)) or not math.isfinite(offset):
+                errors.append(("time_offset","Enter a finite time offset; signed values and zero are valid."))
+            channels=[c for c in data.get("channels",[]) if c.get("enabled")]
+            if not channels:errors.append(("channels","Enable at least one channel."))
+            units={"force":("N","kN"),"extension":("mm","m"),"temperature":("degC","K")}
+            for channel in channels:
+                if not channel.get("name","").strip() or channel.get("unit") not in units.get(channel.get("field"),()):
+                    errors.append(("channels","Choose a named channel with a compatible field and unit."))
+                if channel.get("role") not in ("Measurement","Monitor"):
+                    errors.append(("channels","Choose Measurement or Monitor; actuation is unavailable."))
+                if channel.get("calibration")=="CAL-018" and channel.get("field")!="force":
+                    errors.append(("channels","CAL-018 applies only to force."))
+            return errors
         if doc["owner"] == "native_pre":
             for field in ("thickness", "width", "height"):
                 positive(field)
@@ -608,13 +741,26 @@ class ReviewSession:
             for dep in data["dependencies"]:
                 if dep["missing"] and dep["id"] not in self.relocations:
                     errors.append(("dependencies", "Locate the missing original: " + dep["name"]))
+            pars=data.get("parameters",{})
+            if data["law"] in ("J2 plasticity","Drucker–Prager","User constitutive law"):
+                if pars.get("E",0)<=0 or not -1<float(pars.get("nu",.3))<.5:errors.append(("parameters","Use E > 0 and -1 < nu < 0.5."))
+            if data["law"]=="J2 plasticity" and (pars.get("yield",0)<=0 or pars.get("hardening",0)<0):errors.append(("parameters","Yield stress must be positive; hardening may be zero."))
+            if data["law"]=="Prony viscoelastic" and (not 0<=pars.get("g1",0)+pars.get("g2",0)<1 or min(pars.get("g1",0),pars.get("g2",0))<0 or min(pars.get("tau1",0),pars.get("tau2",0))<=0):errors.append(("parameters","Prony fractions are nonnegative with sum below one; relaxation times are positive."))
         elif doc["owner"] == "PDE":
             for field in ("k", "mesh", "width", "height"):
                 positive(field)
             if data.get("pending_boundaries"):errors.append(("boundary","Apply or reset the edited boundary condition."))
             if not data.get("field", "").isidentifier():errors.append(("field","Use a valid unknown field name."))
-            if not data["equation"].strip():
-                errors.append(("equation", "An equation is required."))
+            if not data["equation"].strip():errors.append(("equation", "An equation is required."))
+            if data.get("form")=="General weak form":
+                weak=data["weak_form"]
+                if not weak["test"].isidentifier() or not weak["trial"].isidentifier() or weak["test"]==weak["trial"]:errors.append(("equation","Use distinct valid trial and test field names."))
+                if not weak["integral"].strip() or not weak["domain"].strip():errors.append(("equation","A weak integral and domain are required."))
+            if data.get("form")=="ODE":
+                ode=data["ode"]
+                try:
+                    if not ode["state"].isidentifier() or not ode["rhs"].strip() or not all(math.isfinite(float(ode[k])) for k in ("initial","start","stop","step","a")) or float(ode["step"])<=0 or float(ode["stop"])<=float(ode["start"]):raise ValueError()
+                except (ValueError,TypeError):errors.append(("equation","Correct ODE state, RHS, initial value and increasing time range with positive step."))
         elif doc["owner"] == "Simulation":
             if data["family"] not in ("Thermal","Thermoelastic"):
                 for field in ("duration","increments","time_step"):
@@ -746,6 +892,11 @@ class ReviewSession:
         saved["dirty"] = bool(saved["buffers"])
         saved["file"] = str(path)
         attachments = {}
+        evidence_refs=list(saved["draft"].get("evidence",[]))+list(saved["draft"].get("pending_evidence",[]))
+        for turn in saved["draft"].get("turns",[]):evidence_refs.extend(turn.get("evidence",[]))
+        evidence_ids=[e.get("id",e.get("ref")) if isinstance(e,dict) else e for e in evidence_refs]
+        if saved["draft"].get("method_result"):evidence_ids.append(saved["draft"]["method_result"])
+        attachments["evidence_results"]={rid:clone(self.results[rid]) for rid in evidence_ids if rid in self.results}
         if doc["owner"] == "native_post":
             result_id = saved["draft"].get("result")
             if result_id in self.results:
@@ -834,6 +985,18 @@ class ReviewSession:
             owner=self.doc(job["source"]["id"])["owner"]
             input_payload=self.frozen[job["input"]]["payload"]
             family=input_payload.get("family","")
+            if owner=="Numerical":
+                examples=json.loads((HERE/"fixtures"/"methods.json").read_text(encoding="utf-8"))
+                method=input_payload["method"]
+                if method not in examples:raise ReviewError("Choose a retained MOO candidate for its exact result, or load a method example with a supported method.")
+                self.results[result_id]={"id":result_id,"synthetic":True,"kind":"numerical","source":clone(job["source"]),
+                    "input":job["input"],"attempt":job["attempt"],"method":method,"status":"AUTHORED_EXAMPLE",
+                    "computed_from_input":False,"fixture":clone(examples[method]),"metrics":{},
+                    "parent_key":input_payload.get("parent_key")}
+                job["result"]=result_id
+                if job["status"] not in ("CANCELLED","CANCEL_REQUESTED"):job["status"]="RETAINED_FIXTURE"
+                job["log"].append("Authored "+method+" result example loaded; not evaluated from the edited input.")
+                return job
             if not (owner=="native_pre" or (owner=="Simulation" and family not in ("Thermal","Thermoelastic"))):
                 raise ReviewError("No retained result fixture is provided for this input type. The attempt remains unevaluated.")
             geometry=clone(input_payload) if owner=="native_pre" else self.resolve(input_payload["model_ref"])[1]
@@ -975,8 +1138,16 @@ class ReviewSession:
         if not text.strip():
             raise ReviewError("Write a reply first.")
         payload = clone(self.doc(key)["draft"])
+        attachments=[]
+        for entry in evidence or []:
+            if isinstance(entry,dict):
+                attachment={"id":entry["id"],"locator":entry.get("locator","")}
+            else:
+                matches=[e for e in payload.get("evidence",[]) if e["id"]==entry]
+                attachment={"id":entry,"locator":matches[0]["locator"] if len(matches)==1 else ""}
+            if attachment not in attachments:attachments.append(attachment)
         turn = {"id": token("user-turn"), "role": "사용자", "actual": True,
-                "text": text.strip(), "topic": topic, "reply_to": reply_to, "evidence": clone(evidence or [])}
+                "text": text.strip(), "topic": topic, "reply_to": reply_to, "evidence": attachments}
         payload["turns"].append(turn)
         payload["pending_text"] = ""
         payload["reply_to"] = None
@@ -1015,7 +1186,20 @@ class ReviewSession:
         session = cls(path.parent)
         for field in ("documents", "jobs", "frozen", "results", "candidates", "groups",
                       "relocations", "selected", "paths", "events"):
-            setattr(session, field, clone(raw[field]))
+            if field=="documents":session.documents.update(clone(raw[field]))
+            else:setattr(session, field, clone(raw[field]))
+        if "report" not in raw["documents"]:
+            report=session.doc("report")
+            for payload in (report["saved"],report["draft"]):
+                payload.update(study_document=clone(session.doc("study")),
+                    sections=report_sections(session.doc("study"),session.results),
+                    evidence=clone(session.doc("study")["saved"].get("evidence",[])))
+            report["history"][0]["payload"]=clone(report["saved"])
+        if "acquisition" not in raw["documents"]:
+            acquisition=session.doc("acquisition")
+            acquisition["saved"]=acquisition_payload(session.doc("data"))
+            acquisition["draft"]=clone(acquisition["saved"])
+            acquisition["history"][0]["payload"]=clone(acquisition["saved"])
         return session
 
     def open_document(self, path):
@@ -1028,6 +1212,10 @@ class ReviewSession:
             raise ReviewError("An unsaved document is open. Save or undo it before reopening.")
         doc["file"] = str(Path(path))
         attachments = raw.get("attachments", {})
+        for rid,record in attachments.get("evidence_results",{}).items():
+            if record.get("id")!=rid or not record.get("synthetic"):raise ReviewError("Invalid attached review evidence.")
+            if rid in self.results and self.results[rid]!=record:raise ReviewError("Different evidence already has this identity.")
+            self.results[rid]=clone(record)
         result = attachments.get("result")
         if result:
             if result["id"] != doc["draft"].get("result") or not result.get("synthetic"):
