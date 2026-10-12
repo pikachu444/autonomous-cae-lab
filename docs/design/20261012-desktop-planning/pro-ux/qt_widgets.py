@@ -5,7 +5,7 @@ import math
 from PySide6.QtCore import Qt, QRectF, QPointF, Signal
 from PySide6.QtGui import QColor, QPen, QPainter, QPainterPath, QPolygonF, QFont
 from PySide6.QtWidgets import (
-    QWidget, QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
+    QApplication, QWidget, QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QGraphicsView, QGraphicsScene, QGraphicsRectItem, QGraphicsTextItem,
     QGraphicsItem, QGraphicsPathItem, QStyledItemDelegate, QLineEdit,
 )
@@ -111,7 +111,7 @@ class CurveView(QWidget):
             x0, x1, y0, y1 = min(xs), max(xs), min(0, min(ys)), max(ys)
             self._limits = (x0, x1 if x1>x0 else x0+1, y0, y1*1.08 if y1>y0 else y0+1)
         x0, x1, y0, y1 = self._limits
-        p.setFont(QFont("Segoe UI", 9))
+        font = QFont(self.font());font.setPointSize(9);p.setFont(font)
         for i in range(6):
             x = rect.left() + rect.width()*i/5
             y = rect.bottom() - rect.height()*i/5
@@ -315,7 +315,7 @@ class EngineeringView(QWidget):
             if self.sketch:
                 p.fillRect(self.rect(),QColor("#f4f6f8"));r=QRectF(self.width()*.2,self.height()*.25,min(self.width()*.7,w*self.width()/140),min(self.height()*.5,h*self.height()/100))
                 p.setPen(QPen(QColor(TEAL),2));p.setBrush(QColor("#dcebe7"));p.drawRect(r)
-                p.setFont(QFont("Segoe UI",11));p.drawText(QRectF(r.left(),r.bottom()+10,r.width(),30),Qt.AlignmentFlag.AlignCenter,f"Width {w:g} mm")
+                font=QFont(self.font());font.setPointSize(11);p.setFont(font);p.drawText(QRectF(r.left(),r.bottom()+10,r.width(),30),Qt.AlignmentFlag.AlignCenter,f"Width {w:g} mm")
                 p.drawText(20,int(r.center().y()),f"Height {h:g} mm")
                 p.drawText(20,30,"Rectangle sketch · dimension illustration")
                 p.setPen(QPen(QColor(BLUE),2))
@@ -380,7 +380,7 @@ class EngineeringView(QWidget):
                 p.setPen(QPen(QColor(ORANGE),4));a,b=edges[self.selected];p.drawLine(self._project(a),self._project(b))
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.setPen(QColor(INK))
-        p.setFont(QFont("Segoe UI",10))
+        font=QFont(self.font());font.setPointSize(10);p.setFont(font)
         p.drawText(18,28,self.field if self.mode=="post" else self.selected)
         p.setPen(QColor("#74818c"))
         p.drawText(QRectF(12,self.height()-28,self.width()-24,20),Qt.AlignmentFlag.AlignLeft,self.label+" · synthetic")
@@ -458,7 +458,7 @@ class GraphNode(QGraphicsRectItem):
 
     def paint(self,painter,option,widget=None):
         super().paint(painter,option,widget)
-        painter.save();font=QFont();font.setFamilies(["Segoe UI","Malgun Gothic","DejaVu Sans"]);font.setPointSize(10)
+        painter.save();font=QFont(QApplication.font());font.setPointSize(10)
         painter.setFont(font);painter.setPen(QColor(INK))
         painter.drawText(QRectF(10,5,150,48),Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter,self.label)
         painter.setPen(QPen(QColor(BLUE),1));painter.setBrush(QColor("#f4f8fc"))

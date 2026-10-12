@@ -74,6 +74,18 @@ py -3.13 export_screens.py --offscreen --state cad-sketch --output "$env:TEMP\ca
 
 SVG는 **1440×900 Qt client 영역**입니다. OS 창틀은 포함하지 않습니다. 영문 합성 문구는 원격 Linux에 한국어 글꼴이 없어서 내보내기에 사용한 검토 데이터입니다. 실제 Qt 문서는 Unicode를 유지하며, Windows의 원래 한국어 입력을 바꾸거나 사용자 파일명을 자동 변경하지 않습니다.
 
+### 기존 설치 글꼴 사용 — UX-FIX-05
+
+실행 창과 exporter는 같은 글꼴 정책을 사용합니다. Windows는 기존 `%WINDIR%\Fonts\segoeui.ttf`와 `malgun.ttf`가 있으면 현재 Qt 프로세스에 등록하고 Segoe UI/Malgun Gothic을 우선 사용합니다. 파일이 없거나 로드에 실패하면 Qt가 확인한 설치 글꼴과 시스템 기본 글꼴로 이어집니다. Linux는 Qt가 실제로 찾은 시스템 글꼴을 우선하며, 설치되어 있지 않은 Segoe UI나 DejaVu Sans를 강제하지 않습니다. stylesheet와 도형·그래프 글자도 이 선택을 따릅니다. 글꼴 설치·다운로드·저장소 복사는 없습니다.
+
+기존 wrapper 없이 같은 export 명령을 실행하면 됩니다. 이번 교정만 먼저 볼 때는 다음과 같이 별도 검토 폴더로 내보낼 수 있습니다.
+
+```powershell
+py -3.13 export_screens.py --offscreen --state post-compare --state expert-discussion --output "$env:TEMP\caelab-font-svg" --png-output "$env:TEMP\caelab-font-png"
+```
+
+생성한 `render_manifest.json`의 `font_policy`에는 선택·실제 해석된 family와 기존 파일 로드 결과가 기록됩니다. 이 기록은 화면에 설명 띠를 추가하지 않습니다. 원격 Linux의 글꼴·렌더 확인과 Codex의 실제 Windows 확인은 별도입니다. 이 원격 Linux에는 Hangul 글꼴이 없으며, 한국어 glyph의 Windows 렌더 성공을 대신 검증하지 않습니다. 기존 `screens/`의 전체 SVG/manifest는 해당 파일에 기록된 이전 소스의 렌더이며, 최신 플랫폼별 결과는 위 명령으로 다시 생성합니다.
+
 ## 제한 기술 검사
 
 아래 스크립트는 실제 Qt offscreen 입력 또는 stdlib 상태 검사만 수행합니다. Windows OS 입력·native host·solver/provider 수용 검사로 확대하지 않습니다.

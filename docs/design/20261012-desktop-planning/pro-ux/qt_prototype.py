@@ -10,12 +10,13 @@ import csv
 import hashlib
 import json
 import math
+import os
 import sys
 from pathlib import Path
 
 try:
     from PySide6.QtCore import Qt, QTimer, QSize, QItemSelection, QItemSelectionModel
-    from PySide6.QtGui import QAction, QKeySequence, QFont, QColor, QTextCursor
+    from PySide6.QtGui import QAction, QKeySequence, QFont, QFontDatabase, QFontInfo, QColor, QTextCursor
     from PySide6.QtWidgets import (
         QApplication, QMainWindow, QWidget, QDockWidget, QVBoxLayout, QHBoxLayout,
         QSplitter, QTabWidget, QTreeWidget, QTreeWidgetItem, QTableWidgetItem,
@@ -32,7 +33,7 @@ from prototype_state import (ReviewSession, ReviewError, TOOL_NAMES, METHODS, HE
 from qt_widgets import make_table, CurveView, EngineeringView, NodeView, BLUE, TEAL, ORANGE, RED
 
 STYLE = """
-QWidget { color: #263442; font-family: 'Segoe UI'; font-size: 10pt; }
+QWidget { color: #263442; font-size: 10pt; }
 QMainWindow, QDialog { background: #f3f5f7; }
 QToolBar { background: #f7f8fa; border: 0; border-bottom: 1px solid #cad3dc; spacing: 5px; padding: 3px; }
 QToolButton { padding: 4px 8px; }
@@ -48,6 +49,47 @@ QSplitter::handle { background: #d7dfe6; }
 QStatusBar { background: #eaf0f5; border-top: 1px solid #cbd5dd; }
 QPlainTextEdit { background: white; }
 """
+
+
+def configure_application_fonts(app):
+    """Use installed fonts in both native and offscreen entry points.
+
+    Windows offscreen may not discover its installed fonts automatically. Read
+    those existing files into this process only; never install or copy fonts.
+    """
+    cached = app.property("caelabFontPolicy")
+    if cached is not None:
+        return cached
+    loaded = []
+    if sys.platform == "win32":
+        system_root = os.environ.get("WINDIR") or os.environ.get("SystemRoot") or "C:/Windows"
+        for filename in ("segoeui.ttf", "malgun.ttf"):
+            path = Path(system_root) / "Fonts" / filename
+            if path.is_file() and QFontDatabase.addApplicationFont(str(path)) >= 0:
+                loaded.append(filename)
+    available = set(QFontDatabase.families())
+    system = QFontInfo(QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont)).family()
+    preferred = (["Segoe UI", "Malgun Gothic", system] if sys.platform == "win32"
+                 else [system, "Noto Sans", "DejaVu Sans", "Liberation Sans"])
+    korean = QFontDatabase.families(QFontDatabase.WritingSystem.Korean)
+    if korean:
+        preferred.append("Malgun Gothic" if "Malgun Gothic" in korean else korean[0])
+    families = list(dict.fromkeys(name for name in preferred if name in available))
+    font = QFont(app.font())
+    if families:
+        font.setFamilies(families)
+        # Also resolve legacy explicit family requests without assuming that a
+        # font from another OS is installed (including older review wrappers).
+        for alias in ("DejaVu Sans", "Segoe UI", "Malgun Gothic"):
+            if alias not in available:
+                QFont.insertSubstitutions(alias, families)
+    font.setPointSize(10)
+    app.setFont(font)
+    policy = {"platform": sys.platform, "ui_families": font.families(),
+              "resolved_family": QFontInfo(font).family(), "point_size": 10,
+              "hangul_family_available": bool(korean), "loaded_existing_files": loaded}
+    app.setProperty("caelabFontPolicy", policy)
+    return policy
 
 
 def box(*widgets, horizontal=False, margins=0):
@@ -80,7 +122,9 @@ def text_dialog(parent, title, text, width=820):
     dialog.resize(width, 580)
     view = QPlainTextEdit(text)
     view.setReadOnly(True)
-    view.setFont(QFont("Consolas", 10))
+    font = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
+    font.setPointSize(10)
+    view.setFont(font)
     close = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
     close.rejected.connect(dialog.reject)
     layout = QVBoxLayout(dialog)
@@ -1725,7 +1769,9 @@ class NumericalWindow(ToolWindow):
         self.method_detail.setColumnCount(len(headers));self.method_detail.setHorizontalHeaderLabels(headers)
         fill_table(self.method_detail,defaults if method=="MOO" else sheet.get("primary",defaults),tuple(range(len(headers))))
         if getattr(self,"_sheet_layout_method",None)!=method:
-            self.method_detail.resizeColumnsToContents();self._sheet_layout_method=method
+            for table in (self.variables,self.responses,self.method_table,self.method_detail):
+                table.resizeColumnsToContents()
+            self._sheet_layout_method=method
         self.secondary.setColumnCount(len(secondary_headers));self.secondary.setHorizontalHeaderLabels(secondary_headers)
         fill_table(self.secondary,sheet.get("secondary",secondary_defaults),tuple(range(1,len(secondary_headers))) if method in ("UQ","MDO","RBF surrogate") else ())
         self.sheet_tabs.setTabText(1,{"UQ":"Correlations","Sobol sensitivity":"Pairing","RBF surrogate":"Validation / support","MDO":"Transfer"}.get(method,"Definition checks"))
@@ -1763,7 +1809,8 @@ class RunnerWindow(ToolWindow):
         self.jobs.itemDoubleClicked.connect(lambda item:self.guard(self.open_input))
         self.tabs=QTabWidget()
         self.input=make_table(["Frozen input","Value"],[])
-        self.log=QPlainTextEdit();self.log.setReadOnly(True);self.log.setFont(QFont("Consolas",10))
+        self.log=QPlainTextEdit();self.log.setReadOnly(True)
+        log_font=QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont);log_font.setPointSize(10);self.log.setFont(log_font)
         self.diagnostics=make_table(["Scope","Message"],[])
         self.result=make_table(["Result quantity","Value","Unit"],[])
         for view,name in [(self.input,"Input"),(self.log,"Log"),(self.diagnostics,"Diagnostics"),(self.result,"Results")]:
@@ -2055,6 +2102,8 @@ class PostWindow(ToolWindow):
                 else:value=None;loc="Selected gauge is not retained"
             rows.append(["Gauge extension" if name=="Displacement" else name,value if value is not None else "Unavailable",m["unit"],loc])
         fill_table(self.measure,rows)
+        if not getattr(self,"_measurement_columns_sized",False):
+            self.measure.resizeColumnsToContents();self._measurement_columns_sized=True
         self.curve.caption="Synthetic frame "+str(frame["time"])+" s" if frame["available"] else "Unavailable; no interpolation"
 
     def compare(self):
@@ -2063,7 +2112,10 @@ class PostWindow(ToolWindow):
             if result.get("kind")=="structural" and rid!=self.data["result"]:picker.addItem(result.get("candidate",rid),rid)
         layout.addWidget(box(QLabel("Compare with"),picker,horizontal=True))
         a=EngineeringView("post");b=EngineeringView("post");views=QSplitter();views.addWidget(a);views.addWidget(b);layout.addWidget(views)
-        values=make_table(["Quantity","A","B","Unit"],[]);values.setMaximumHeight(135);layout.addWidget(values)
+        values=make_table(["Quantity","A","B","Unit"],[]);values.setObjectName("postComparisonValues")
+        values.horizontalHeader().setStretchLastSection(False)
+        values.horizontalHeader().setSectionResizeMode(0,QHeaderView.ResizeMode.Stretch)
+        values.setMaximumHeight(135);layout.addWidget(values)
         layout.addWidget(QLabel("Side by side. Spatial mapping is unverified; difference is unavailable."))
         def redraw(*args):
             frames=[self.session.post_frame(self.key),self.session.post_frame(self.key,picker.currentData())]
@@ -2073,6 +2125,9 @@ class PostWindow(ToolWindow):
                 view.field=self.data["array"]+" ["+frame["unit"]+"]";view.field_max=frame["value"] or 0
                 view.field_available=frame["available"];view.annotation="t = "+str(frame["time"])+" s";view.update()
             fill_table(values,[[self.data["array"],frames[0]["value"],frames[1]["value"],frames[0]["unit"]]])
+            values.resizeColumnsToContents()
+            for column,minimum in ((1,120),(2,120),(3,80)):
+                values.setColumnWidth(column,max(minimum,values.columnWidth(column)))
         picker.currentIndexChanged.connect(redraw);redraw()
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         keep=buttons.addButton("Keep comparison",QDialogButtonBox.ButtonRole.AcceptRole);keep.setEnabled(picker.count()>0)
@@ -2819,7 +2874,8 @@ def main(argv=None):
     parser.add_argument("--scenario",choices=["default","material-repair"],default="default")
     args=parser.parse_args(argv)
     app=QApplication(sys.argv[:1]);app.setApplicationName("Autonomous CAE Lab UX review")
-    app.setStyle("Fusion");app.setStyleSheet(STYLE);app.setFont(QFont("Segoe UI",10))
+    configure_application_fonts(app)
+    app.setStyle("Fusion");app.setStyleSheet(STYLE)
     session=ReviewSession.open_session(args.session) if args.session else ReviewSession(args.workspace)
     if args.scenario=="material-repair":session.material_repair_scenario()
     hub=DesktopHub(session)

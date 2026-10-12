@@ -2,7 +2,15 @@
 
 **상태: 사용자 검토용 planning draft. 실제 Qt 조작을 확인했으며 본제품 개발은 시작하지 않았다.**
 
-요청 `PRO-DESKTOP-DESIGN-20261012-06`, UX-STEER-01, UX-SOURCE-01, UX-FIX-01…04를 함께 적용했다. 현재 Qt core는 [827ee9e](https://github.com/pikachu444/autonomous-cae-lab/commit/827ee9e71c0315d3b76f9ed8197e971c2d944e7c)에 먼저 게시했다. 이후 편집 화면·설계·인계 파일을 추가하며, 아래 core 파일을 다시 변경하지 않았다.
+요청 `PRO-DESKTOP-DESIGN-20261012-06`, UX-STEER-01, UX-SOURCE-01, UX-FIX-01…04의 Qt core는 [827ee9e](https://github.com/pikachu444/autonomous-cae-lab/commit/827ee9e71c0315d3b76f9ed8197e971c2d944e7c)에 먼저 게시했다. `fef3016`의 전체 편집 원본은 같은 core로 렌더했다. 아래 전체 검사와 SHA-256은 그 시점의 기록이다. 이후 제한 교정은 바로 아래에 별도로 기록한다.
+
+## 이후 제한 교정 — UX-FIX-05 / UX-VISUAL-01
+
+실행 main과 exporter가 `configure_application_fonts`를 함께 사용한다. Windows 기존 Segoe UI/Malgun Gothic 파일을 프로세스에만 등록하고 실제 설치 family를 선택한다. Linux는 Qt의 실제 시스템 family를 우선한다. stylesheet와 QPainter/GraphNode의 고정 family를 제거했다. 글꼴 복사·설치·다운로드는 없다. 사용법은 README의 기존 설치 글꼴 절에 있다.
+
+Sol/high는 기존 Linux PySide6 6.9.1/offscreen에서 선택·resolved·widget family와 10pt, 반복 호출, QLabel/GraphNode의 in-memory SVG text를 확인했다. 실제 설치 DejaVu Sans를 사용했고 없는 Windows family를 강제하지 않았다. root는 Post compare/gauge, Numerical MOO, Inverse result, Expert discussion 상태를 실제 export했다. Compare의 Quantity/A/B/Unit을 채운 뒤 폭을 정해 0.31/0.29 mm를 읽을 수 있게 했다. 같은 빈 표 초기 폭 문제가 보인 Post measurement 이름과 Numerical response 이름/role도 실제 데이터 기준으로 초기 폭을 정했다.
+
+이 확인은 원격 Linux의 제한 글꼴·레이아웃 확인이다. 최신 Windows glyph/OS 창 확인은 Codex 담당이며 이 기록을 Windows PASS로 확대하지 않는다. 사용자가 보고한 `fef3016`의 Windows Python3.13.5/PySide6 6.9.1 followup 6그룹·UX04 4경로 PASS와 52state export는 사용자 측 실행이고, 당시 Segoe/Malgun wrapper를 사용한 시각 확인과 이번 source 교정을 구별한다. 기존 전체 SVG/manifest와 `checks.json`은 이전 source의 기록을 유지한다.
 
 ## 실제로 교정한 사용자 작업
 

@@ -22,16 +22,18 @@ def main():
     args=parser.parse_args()
     if args.offscreen:os.environ['QT_QPA_PLATFORM']='offscreen'
     from PySide6.QtCore import Qt,QPoint,QSize,QRect,QTimer
-    from PySide6.QtGui import QPainter,QFont
+    from PySide6.QtGui import QPainter
     from PySide6.QtSvg import QSvgGenerator
     from PySide6.QtWidgets import QApplication,QDialog,QStatusBar,QLabel
     from prototype_state import ReviewSession,clone,HERE,atomic_json
-    from qt_prototype import DesktopHub,STYLE
-    app=QApplication.instance() or QApplication([]);app.setStyle('Fusion');app.setStyleSheet(STYLE);app.setFont(QFont('DejaVu Sans',10))
+    from qt_prototype import DesktopHub,STYLE,configure_application_fonts
+    app=QApplication.instance() or QApplication([])
+    font_policy=configure_application_fonts(app)
+    app.setStyle('Fusion');app.setStyleSheet(STYLE)
     args.output.mkdir(parents=True,exist_ok=True)
     if args.png_output:args.png_output.mkdir(parents=True,exist_ok=True)
     catalog=json.loads((HERE/'screen_states.json').read_text(encoding='utf-8'))
-    hashes={name:hashlib.sha256((HERE/name).read_bytes()).hexdigest() for name in ('qt_prototype.py','qt_widgets.py','prototype_state.py','fixtures/methods.json','screen_states.json')}
+    hashes={name:hashlib.sha256((HERE/name).read_bytes()).hexdigest() for name in ('qt_prototype.py','qt_widgets.py','prototype_state.py','export_screens.py','fixtures/methods.json','screen_states.json')}
     reports=[];errors=[]
     previous_hook=sys.excepthook
     sys.excepthook=lambda kind,value,trace:errors.append(str(value))
@@ -152,7 +154,7 @@ def main():
             app.processEvents()
         print(state['id'],'rendered' if reports[-1].get('svg') else 'FAILED')
     sys.excepthook=previous_hook
-    atomic_json(args.output/'render_manifest.json',{'format':'caelab-ux-svg-render/1','mode':'QT_OFFSCREEN' if args.offscreen else 'QT_RENDER','source_sha256':hashes,'states':reports,'callback_errors':errors,'native_host_executed':False,'solver_executed':False,'provider_executed':False})
+    atomic_json(args.output/'render_manifest.json',{'format':'caelab-ux-svg-render/1','mode':'QT_OFFSCREEN' if args.offscreen else 'QT_RENDER','font_policy':font_policy,'source_sha256':hashes,'states':reports,'callback_errors':errors,'native_host_executed':False,'solver_executed':False,'provider_executed':False})
     if errors or any(r.get('errors') for r in reports):return 1
     return 0
 
