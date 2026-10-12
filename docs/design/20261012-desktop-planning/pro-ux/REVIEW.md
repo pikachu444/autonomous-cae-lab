@@ -14,6 +14,14 @@ Sol/high는 기존 Linux PySide6 6.9.1/offscreen에서 선택·resolved·widget 
 
 ## 실제로 교정한 사용자 작업
 
+### UX-MAP-01 / UX-MAP-02 — 정확한 개발 연결
+
+FN-20의 DOE/Sobol, FN-21의 Optimization/Inverse, FN-22의 UQ, FN-23의 RBF, FN-24의 MOO/MDO를 task별로 다시 연결했다. 추가 `ux_source`, `ux_screen_states`, `ux_actions`, `ux_acceptance_focus`와 시제품 상태를 교정하고 JSON의 functions, 화면 색인, DESIGN의 대응표를 같은 기준으로 맞췄다. mixed-domain/gradient/trained-artifact 확장은 현재 숫자 표나 합성 결과만으로 구현되었다고 표시하지 않는다.
+
+FN-01은 실제 기존 File Open/Save as dialog와 review-file cold reopen을 연결한다. FN-34는 기존 제품 명령의 GUI/CLI/Python/MCP 동등성 계약 참조다. FN-32/FN-35의 현재 시제품 state 연결은 비워 두고 D1의 정확한 REPORT-REVIEW/REOPEN-REPORT 및 DEVICE-PLAN/DATA-CALIBRATION/RUN-ACTIVE/C09 prior reference와 미연결 상태를 명시했다. 기본 Post/Study/Data 화면을 전용 report/acquisition 작업 완료로 간주하지 않는다.
+
+Luna/high의 독립 읽기 재확인과 root의 비교에서 기존 74행의 순서·18개 원 열·모든 원 값은 동일했고, 변경은 추가 UX 정보와 링크뿐이었다. 방법별 연결과 prior-only 분류에서 남은 구체적 불일치는 없었다. 새 화면·engine·owner는 추가하지 않았다.
+
 ### UX-FIX-06 — step 이름과 발언별 근거
 
 Step dialog는 선택 step을 복사한 뒤 name/duration/control만 갱신한다. Hold의 `time_step=2e-5`, `force=-125`를 입력한 뒤 이름만 바꾸어도 다른 필드를 유지한다. Expert의 pending/turn 첨부는 `{id, locator}` 쌍이다. Evidence dock의 Document evidence와 Selected turn attachments를 구별하고, 발언 선택은 그 발언에 붙인 쌍만 보여 준다. Open selected는 해당 method tab/row로 이동하며 잘못된 locator는 unavailable로 처리한다. 과거 result ID만 있는 첨부는 유일한 위치일 때만 해석하며 여러 위치를 모두 그 발언에 붙이지 않는다.

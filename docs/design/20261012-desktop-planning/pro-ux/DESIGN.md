@@ -103,6 +103,22 @@ DOE active cases×replicates와 declared count/budget, Sobol paired IDs와 cross
 
 기본 MOO의 Mass/Gauge error는 둘 다 Minimize이다. p19(.42 kg,2.1%)는 p04(.49 kg,2.9%)를 지배한다. p19만 front marker이며 p27은 제약 위반, p31은 실패/metric 없음이다. 후보 선택만으로 CAD나 Material 값을 바꾸지 않는다. Apply/Save는 각 owner별 명시 작업이고 실패한 쪽만 retry한다. 부분 저장 시험 스위치는 Review 메뉴에 있다.
 
+### D1 방법별 작업 연결
+
+| 원 task | 소유 방법과 현재 화면 | 구현 구분 |
+|---|---|---|
+| FN-20-01 | DOE — numerical-doe / result-doe | 설계행렬·응답·효과 예시 |
+| FN-20-02 | Sobol — numerical-sobol / result-sobol | A/B/crossed·S1/ST·불확실성·수렴; optional engine은 미실행 |
+| FN-20-03 | DOE mixed-domain 확장 | 현재 숫자 표의 배치 참조. integer/discrete/categorical 조작과 engine 지원은 D1 구현 범위 |
+| FN-21-01 | Optimization / Inverse — 각 numerical/result 상태 | 일반 목적·제약·후보와 관측·가중치·holdout을 각각 연결 |
+| FN-21-02 | Optimization의 gradient/adjoint 확장 | 일반 최적화 화면 참조. 실제 capability 선택·gradient adapter는 미연결 |
+| FN-22-01 / 02 | UQ — numerical-uq / result-uq | 분포/단위와 상관 정의·검사. 실제 sampler는 미실행 |
+| FN-23-01 / 02 | RBF — numerical-surrogate / result-surrogate | 학습/검증/support와 저장된 합성 결과. 실제 trained artifact·confirmation은 미연결 |
+| FN-24-01 | MOO — numerical-moo / candidate-partial-save | 비지배 feasible 후보와 owner별 명시 채택 |
+| FN-24-02 | MDO — numerical-mdo / result-mdo / Evaluation transfer·coupling | 기존 분야·전달·정확 stage. 실제 MDO/설계 동기화 검증은 D1 구현 범위 |
+
+각 task의 원래 18개 열과 순서는 유지한다. 추가 UX 열은 현재 Qt 조작과 향후 수치/adapter 수용 기준을 구별한다. 방법명이 같은 기능군에 있다는 이유로 다른 방법의 화면·결과를 대신 연결하지 않는다.
+
 방법별 결과는 `fixtures/methods.json`에 작성된 데이터다. Runner에서 명시적으로 불러오면 별도 numerical result로 보관하며 `computed_from_input=false`다. 현재 연구에 대한 최적화/피팅/통계 계산을 수행했다고 주장하지 않는다. 한 종류의 MOO 결과를 DOE/Sobol/UQ 등의 결과로 재사용하지 않는다.
 
 ## 7. Expert·Study — 독립 질문에서 같은 결과의 후속 논의로
@@ -145,6 +161,18 @@ GUI/CLI/Python/MCP는 본구현에서 같은 owner command/문서 revision/resul
 | `discussion_document.py`의 update/ask/intervene/pause/resume/advance, managed experts.ask, `workbench_mcp` discussion edit/control/plan open | 역할 설정과 논의·Plan을 기존 command로 연결 |
 
 전체 nonlinear implicit/explicit/contact/failure/constitutive/coupling/inverse/DOE/UQ/sensitivity/surrogate/MOO/MDO/remote/측정·교정 범위와 device/report/setup/cross-surface 기능은 기존 FN-01…35에 유지한다. 모든 backend를 이 시제품이 실행하거나 검증했다는 의미가 아니다. 장비 연결, native 소유권/스레드, adapter capability, 수치해/차원 검증은 해당 기능 구현 후 원래 reference/tolerance로 검사한다.
+
+### 공통 파일 작업과 미연결 전용 작업의 근거
+
+FN-01은 각 독립 도구의 실제 File → Open/Save as `QFileDialog`, Save review session과 새 프로세스 재열기에 연결한다. `ToolWindow.open_file/save/save_session`, `DesktopHub.open/open_session`과 `ReviewSession`의 review-file 저장/열기를 사용한다. 최근 문서·제품 portable-store branch·native host/다중 process 동일 owner 수용은 원 D1 구현 대상으로 구별한다.
+
+FN-34는 원 `current_source_command`의 `document_command`, `local_input_register`, `command_status`, 기존 workbench client와 native bridges를 사용하는 **작업별 GUI/CLI/Python/MCP 동등성 계약**이다. Numerical/Post 화면은 연결할 조작의 예시다. 이 시제품에서 그 제품 command나 native transport를 실행했다고 표시하지 않는다. 상세 참조는 D1 `CLIENT-CONFLICT`, `PRE-DESIGN`, `RUN-CANCEL`, `POST-MEASURE` 및 WORKFLOW_CONTRACTS C01이다.
+
+FN-32 보고서의 정확한 prior reference는 D1 SCREEN_SPEC의 **REPORT-REVIEW**와 **REOPEN-REPORT**다. 선택 근거·표/곡선·판단, section/output/preview/export, report와 source Study 재열기를 정의한다. 현재 Post/Study는 입력 근거를 제공하는 화면이며 전용 report 편집/preview/export는 미연결이다. 따라서 이 기본 화면을 report 작업 완료로 매핑하지 않는다.
+
+FN-35 실측 수집의 정확한 prior reference는 **DEVICE-PLAN**, **DATA-CALIBRATION**, **RUN-ACTIVE**와 WORKFLOW_CONTRACTS **C09**다. device/driver, channel/unit/time sync, specimen/calibration, sample rate/duration, 허용 동작과 종료 acknowledgment를 다룬다. 현재 Data는 파일 기반 관측·교정 검토이며 수집 설정/driver/실물 제어는 미연결이다. Simulation cancel, acquisition cancel, physical emergency stop은 별개의 동작이다.
+
+위 참조는 `95a2389ca534b807420a4e7dbe2397f5e60953c9`의 읽은 **텍스트 명세**이며, 본 branch에 D1의 해당 SVG가 있다고 가정하지 않는다. `screen_states.json`의 `prior_references`와 화면 색인에서 연결 범위를 확인할 수 있다.
 
 ## 10. 검토 후 개발 순서
 

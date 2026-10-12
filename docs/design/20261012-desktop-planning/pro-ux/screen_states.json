@@ -44,8 +44,12 @@
       ],
       "functions": [
         "FN-10",
-        "FN-11"
-      ]
+        "FN-11",
+        "FN-01"
+      ],
+      "function_context": {
+        "FN-01": "Existing tool File Open/Save as dialogs and saved review file/session cold reopen; this workspace state is not a Home screen or a separate file-dialog screenshot. Product recents/portable-store/native admission remain D1 integration work."
+      }
     },
     {
       "id": "cad-features",
@@ -68,8 +72,12 @@
         "cad-mesh"
       ],
       "functions": [
-        "FN-11"
-      ]
+        "FN-11",
+        "FN-01"
+      ],
+      "function_context": {
+        "FN-01": "Existing tool File Open/Save as dialogs and saved review file/session cold reopen; this workspace state is not a Home screen or a separate file-dialog screenshot. Product recents/portable-store/native admission remain D1 integration work."
+      }
     },
     {
       "id": "cad-assembly",
@@ -352,8 +360,12 @@
         "post-gauge"
       ],
       "functions": [
-        "FN-27"
-      ]
+        "FN-27",
+        "FN-01"
+      ],
+      "function_context": {
+        "FN-01": "Existing tool File Open/Save as dialogs and saved review file/session cold reopen; this workspace state is not a Home screen or a separate file-dialog screenshot. Product recents/portable-store/native admission remain D1 integration work."
+      }
     },
     {
       "id": "post-clip",
@@ -427,8 +439,12 @@
         "numerical-moo"
       ],
       "functions": [
-        "FN-28"
-      ]
+        "FN-28",
+        "FN-34"
+      ],
+      "function_context": {
+        "FN-34": "Operation example for the prior D1 same-command contract; GUI/CLI/Python/MCP parity is not executed by this Qt prototype. See prior_references.FN-34."
+      }
     },
     {
       "id": "post-compare",
@@ -482,7 +498,6 @@
         "candidate-partial-save"
       ],
       "functions": [
-        "FN-20",
         "FN-24"
       ]
     },
@@ -510,8 +525,12 @@
         "result-doe"
       ],
       "functions": [
-        "FN-20"
-      ]
+        "FN-20",
+        "FN-34"
+      ],
+      "function_context": {
+        "FN-34": "Operation example for the prior D1 same-command contract; GUI/CLI/Python/MCP parity is not executed by this Qt prototype. See prior_references.FN-34."
+      }
     },
     {
       "id": "result-doe",
@@ -654,7 +673,7 @@
         "result-optimization"
       ],
       "functions": [
-        "FN-22"
+        "FN-21"
       ]
     },
     {
@@ -676,7 +695,7 @@
         "study-judgment"
       ],
       "functions": [
-        "FN-22",
+        "FN-21",
         "FN-29",
         "FN-30"
       ]
@@ -705,7 +724,7 @@
         "result-sobol"
       ],
       "functions": [
-        "FN-23"
+        "FN-20"
       ]
     },
     {
@@ -727,7 +746,7 @@
         "study-judgment"
       ],
       "functions": [
-        "FN-23",
+        "FN-20",
         "FN-29",
         "FN-30"
       ]
@@ -756,7 +775,7 @@
         "result-uq"
       ],
       "functions": [
-        "FN-23"
+        "FN-22"
       ]
     },
     {
@@ -778,7 +797,7 @@
         "study-judgment"
       ],
       "functions": [
-        "FN-23",
+        "FN-22",
         "FN-29",
         "FN-30"
       ]
@@ -1007,8 +1026,12 @@
       ],
       "functions": [
         "FN-03",
-        "FN-04"
-      ]
+        "FN-04",
+        "FN-01"
+      ],
+      "function_context": {
+        "FN-01": "Existing tool File Open/Save as dialogs and saved review file/session cold reopen; this workspace state is not a Home screen or a separate file-dialog screenshot. Product recents/portable-store/native admission remain D1 integration work."
+      }
     },
     {
       "id": "data-calibration",
@@ -1107,8 +1130,12 @@
         "pde-weak-form"
       ],
       "functions": [
-        "FN-18"
-      ]
+        "FN-18",
+        "FN-01"
+      ],
+      "function_context": {
+        "FN-01": "Existing tool File Open/Save as dialogs and saved review file/session cold reopen; this workspace state is not a Home screen or a separate file-dialog screenshot. Product recents/portable-store/native admission remain D1 integration work."
+      }
     },
     {
       "id": "pde-weak-form",
@@ -1206,8 +1233,12 @@
         "numerical-doe"
       ],
       "functions": [
-        "FN-30"
-      ]
+        "FN-30",
+        "FN-01"
+      ],
+      "function_context": {
+        "FN-01": "Existing tool File Open/Save as dialogs and saved review file/session cold reopen; this workspace state is not a Home screen or a separate file-dialog screenshot. Product recents/portable-store/native admission remain D1 integration work."
+      }
     },
     {
       "id": "expert-models",
@@ -1293,5 +1324,58 @@
         "FN-31"
       ]
     }
-  ]
+  ],
+  "prior_references": {
+    "FN-32": {
+      "source_commit": "95a2389ca534b807420a4e7dbe2397f5e60953c9",
+      "source_kind": "D1 text specification; D1 SVG availability is not assumed",
+      "screen_spec": "pro-authored/SCREEN_SPEC.md",
+      "sections": [
+        "REPORT-REVIEW",
+        "REOPEN-REPORT"
+      ],
+      "function_spec": "pro-authored/FUNCTION_SPEC.md::FN-32",
+      "prototype_status": "UNCONNECTED_REPORT_GUI_AND_EXPORT",
+      "related_input_states": [
+        "post-field",
+        "study-judgment"
+      ],
+      "relationship": "Existing result/Study evidence only; neither state depicts report section/output/preview/export."
+    },
+    "FN-34": {
+      "source_commit": "95a2389ca534b807420a4e7dbe2397f5e60953c9",
+      "screen_spec": "pro-authored/SCREEN_SPEC.md",
+      "sections": [
+        "CLIENT-CONFLICT",
+        "PRE-DESIGN",
+        "RUN-CANCEL",
+        "POST-MEASURE"
+      ],
+      "workflow_contract": "pro-authored/spec_sections/WORKFLOW_CONTRACTS.md::C01",
+      "prototype_status": "PRODUCT_SAME_COMMAND_INTEGRATION_UNCONNECTED",
+      "related_input_states": [
+        "numerical-doe",
+        "post-gauge"
+      ],
+      "relationship": "Per-operation GUI/CLI/Python/MCP command and selected-result parity; current_source_command is the original D1 command inventory, not an executed prototype path."
+    },
+    "FN-35": {
+      "source_commit": "95a2389ca534b807420a4e7dbe2397f5e60953c9",
+      "source_kind": "D1 text specification; D1 SVG availability is not assumed",
+      "screen_spec": "pro-authored/SCREEN_SPEC.md",
+      "sections": [
+        "DEVICE-PLAN",
+        "DATA-CALIBRATION",
+        "RUN-ACTIVE"
+      ],
+      "workflow_contract": "pro-authored/spec_sections/WORKFLOW_CONTRACTS.md::C09",
+      "function_spec": "pro-authored/FUNCTION_SPEC.md::FN-35",
+      "prototype_status": "UNCONNECTED_ACQUISITION_SETTINGS_DRIVER_AND_CONTROL",
+      "related_input_states": [
+        "data-workbook",
+        "data-calibration"
+      ],
+      "relationship": "File-based observation/calibration review only; these states are not device acquisition or physical stop acceptance."
+    }
+  }
 }
