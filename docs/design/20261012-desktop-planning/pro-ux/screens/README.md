@@ -75,14 +75,30 @@ D1 function links below identify the relevant task scope. FN-01 links the existi
 
 The exact per-task source/actions/acceptance and original D1 implementation gates are in [implementation_map.csv](../implementation_map.csv). There is no separate result-moo state; the MOO view contains its candidate/front comparison.
 
-## Prior D1 references that are not connected prototype screens
+## D1 references and dedicated planning views
 
 [D1 SCREEN_SPEC.md](https://github.com/pikachu444/autonomous-cae-lab/blob/95a2389ca534b807420a4e7dbe2397f5e60953c9/docs/design/20261012-desktop-planning/pro-authored/SCREEN_SPEC.md) is the read-only text reference. Its referenced SVG files are not assumed to be present in this branch.
 
 | Function | Exact prior screen / contract | Current Qt boundary |
 |---|---|---|
-| FN-32 report | REPORT-REVIEW — Evidence report / release status; REOPEN-REPORT — Reopen Research report / exported draft | Post/Study supply evidence only. Report section/output/preview/export is unconnected. There is no dedicated report screen among these SVGs. |
-| FN-35 acquisition | DEVICE-PLAN — Physical acquisition / hardware plan; DATA-CALIBRATION; RUN-ACTIVE; WORKFLOW_CONTRACTS C09 | Data supports file-based observation/calibration review. Device/channel acquisition settings, driver/control and physical stop acceptance are unconnected. |
+| FN-32 report | REPORT-REVIEW — Evidence report / release status; REOPEN-REPORT — Reopen Research report / exported draft | Dedicated report-sections/report-preview Qt views assemble selected Study/evidence, editable sections, native pages and local PDF/Markdown previews. Production report/artifact integration is unconnected. |
+| FN-35 acquisition | DEVICE-PLAN — Physical acquisition / hardware plan; DATA-CALIBRATION; RUN-ACTIVE; WORKFLOW_CONTRACTS C09 | Dedicated acquisition-channels/acquisition-connection Qt views edit the plan and review retained file samples, calibration and unobserved end status. Live driver/control and physical stop acceptance remain unavailable. |
 | FN-34 same command | CLIENT-CONFLICT / PRE-DESIGN / RUN-CANCEL / POST-MEASURE; WORKFLOW_CONTRACTS C01; original current_source_command | GUI/CLI/Python/MCP per-operation parity is future product integration. Numerical/Post states show the operations to connect. |
 
 [WORKFLOW_CONTRACTS.md](https://github.com/pikachu444/autonomous-cae-lab/blob/95a2389ca534b807420a4e7dbe2397f5e60953c9/docs/design/20261012-desktop-planning/pro-authored/spec_sections/WORKFLOW_CONTRACTS.md) C09 distinguishes simulation cancellation, acquisition cancellation and physical emergency stop. Report behavior is defined by the two SCREEN_SPEC sections, not an invented report-specific C09 contract.
+
+
+## Added state sources — UX-COMPLETE-01
+
+The following four state recipes and native views were published in source checkpoint `600f9f8`. The remote Linux execution environment disconnected during authoring. New SVG rendering is delegated to Codex's existing Windows PySide6/QtSvg environment under UX-RECOVERY-01; a generated SVG is not claimed here until its actual render is available. The original 52 SVG files retain their recorded render provenance.
+
+| State in screen_states.json | Native view | D1 function | Editing / navigation |
+|---|---|---|---|
+| report-sections | ReportWindow / selected evidence table | FN-32, FN-29, FN-01 | Include, reorder, add/remove, heading/body/caption, exact source |
+| report-preview | ReportPage + contextual Output dock | FN-32, FN-01 | Previous/next, missing-evidence policy, Qt review PDF/Markdown, Save/reopen |
+| acquisition-channels | AcquisitionWindow / channel table + trace | FN-35, FN-03, FN-05, FN-01 | Add/edit/cancel/remove, field/unit/calibration, timing, linked samples |
+| acquisition-connection | Existing trace + Connection and end | FN-35 | Unavailable driver, NOT_SENT/NOT_RECEIVED, UNKNOWN terminal, return to Data/setup |
+
+```powershell
+py -3.13 export_screens.py --offscreen --state report-sections --state report-preview --state acquisition-channels --state acquisition-connection --output "$env:TEMP\\caelab-completion-svg" --png-output "$env:TEMP\\caelab-completion-png"
+```

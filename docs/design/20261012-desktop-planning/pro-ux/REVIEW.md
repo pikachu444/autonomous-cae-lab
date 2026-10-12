@@ -1,3 +1,17 @@
+## UX-COMPLETE-01 / UX-RECOVERY-01 — 전용 Report·수집 소스
+
+`600f9f8`에 ReportWindow/ReportPage와 AcquisitionWindow, 기존 Study/Data 소유 검토 파일, 4개 상태 recipe와 exporter를 먼저 게시했다. 새 화면을 다른 도구나 backend 완료의 선행조건으로 만들지 않았다. 원래 52개 상태와 별도로 새 4개 상태를 추가하여 catalog는 56개다.
+
+Report는 저장 Study 선택, 절 포함/순서/추가/삭제/본문/caption, exact result locator, native page, 검토 PDF/Markdown과 missing-evidence 출력 조건, 일반 Save/cold reopen을 작성했다. Acquisition은 채널/단위/교정·수치/시간 정렬, 기존 file sample/curve 선택과 connection/end review를 작성했다. 기존 trace를 live 측정으로 바꾸지 않는다. 실제 Connect/Start/Stop은 UNAVAILABLE, requested command NOT_SENT, stop ACK NOT_RECEIVED, physical terminal UNKNOWN을 유지한다.
+
+원격 Linux exec-server가 `environment_offline (409)`로 끊겼다. 이후 새 소스는 게시된 GitHub 원본을 읽어 연결된 Git 도구로 작성·게시했다. 따라서 **새 Report/Acquisition에 대해 compile·Qt 동작·PDF·SVG의 원격 PASS를 주장하지 않는다.** 로컬에서 중단된 큰 patch의 성공 여부도 가정하지 않았고, 게시본 `600f9f8`이 Windows 검토 대상이다. 기존 049bbbc Qt06/Astra closure 및 portablefont/Post 표의 Windows 확인은 UX-COMPLETE-01/RECOVERY-01에 적힌 Codex의 사용자 측 확인이다.
+
+UX-RECOVERY-01에 따라 Codex가 Windows Python3.13.5/PySide6 6.9.1/QtSvg로 새 경로를 실행·렌더한다. 원격 패키지 재설치, 새 실행 환경, 유료 API는 시도하지 않았다. `qt_complete_acceptance.py`는 같은 소스에서 Report 순서/내용/원 근거·출력/일반 Save/별도 프로세스 reopen 및 Acquisition Cancel/단위/미완성 숫자/정렬/8-ID selection/live unavailable/일반 Save/reopen을 검사하도록 작성한 제한 검사다. 아직 실행 결과 파일이 없으며 이전 `checks.json` PASS에 포함하지 않는다.
+
+FN-32-01/FN-35-01은 새 전용 상태와 해당 D1 prior contract를 추가 UX 열에 연결했다. 직접 읽은 D1 CSV와 원 74행·18열·순서를 비교하여 동일함을 확인했다. 이전 60a4fab의 정직한 prior-only 표시는 새 전용 UI 소스로 갱신하되 production report/device adapter의 미연결 상태는 유지한다.
+
+---
+
 # Desktop UX review record
 
 **상태: 사용자 검토용 planning draft. 실제 Qt 조작을 확인했으며 본제품 개발은 시작하지 않았다.**

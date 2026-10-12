@@ -162,15 +162,15 @@ GUI/CLI/Python/MCP는 본구현에서 같은 owner command/문서 revision/resul
 
 전체 nonlinear implicit/explicit/contact/failure/constitutive/coupling/inverse/DOE/UQ/sensitivity/surrogate/MOO/MDO/remote/측정·교정 범위와 device/report/setup/cross-surface 기능은 기존 FN-01…35에 유지한다. 모든 backend를 이 시제품이 실행하거나 검증했다는 의미가 아니다. 장비 연결, native 소유권/스레드, adapter capability, 수치해/차원 검증은 해당 기능 구현 후 원래 reference/tolerance로 검사한다.
 
-### 공통 파일 작업과 미연결 전용 작업의 근거
+### 공통 파일 작업과 전용 Report/수집 작업의 근거
 
 FN-01은 각 독립 도구의 실제 File → Open/Save as `QFileDialog`, Save review session과 새 프로세스 재열기에 연결한다. `ToolWindow.open_file/save/save_session`, `DesktopHub.open/open_session`과 `ReviewSession`의 review-file 저장/열기를 사용한다. 최근 문서·제품 portable-store branch·native host/다중 process 동일 owner 수용은 원 D1 구현 대상으로 구별한다.
 
 FN-34는 원 `current_source_command`의 `document_command`, `local_input_register`, `command_status`, 기존 workbench client와 native bridges를 사용하는 **작업별 GUI/CLI/Python/MCP 동등성 계약**이다. Numerical/Post 화면은 연결할 조작의 예시다. 이 시제품에서 그 제품 command나 native transport를 실행했다고 표시하지 않는다. 상세 참조는 D1 `CLIENT-CONFLICT`, `PRE-DESIGN`, `RUN-CANCEL`, `POST-MEASURE` 및 WORKFLOW_CONTRACTS C01이다.
 
-FN-32 보고서의 정확한 prior reference는 D1 SCREEN_SPEC의 **REPORT-REVIEW**와 **REOPEN-REPORT**다. 선택 근거·표/곡선·판단, section/output/preview/export, report와 source Study 재열기를 정의한다. 현재 Post/Study는 입력 근거를 제공하는 화면이며 전용 report 편집/preview/export는 미연결이다. 따라서 이 기본 화면을 report 작업 완료로 매핑하지 않는다.
+FN-32 보고서의 정확한 prior reference는 D1 SCREEN_SPEC의 **REPORT-REVIEW**와 **REOPEN-REPORT**다. 선택 근거·표/곡선·판단, section/output/preview/export, report와 source Study 재열기를 정의한다. 현재는 `report-sections`/`report-preview`의 전용 Qt 시안이 이 흐름을 맡는다. Post/Study는 입력 근거를 제공하며, 본제품 report engine·artifact integration은 별도 개발 작업으로 남는다.
 
-FN-35 실측 수집의 정확한 prior reference는 **DEVICE-PLAN**, **DATA-CALIBRATION**, **RUN-ACTIVE**와 WORKFLOW_CONTRACTS **C09**다. device/driver, channel/unit/time sync, specimen/calibration, sample rate/duration, 허용 동작과 종료 acknowledgment를 다룬다. 현재 Data는 파일 기반 관측·교정 검토이며 수집 설정/driver/실물 제어는 미연결이다. Simulation cancel, acquisition cancel, physical emergency stop은 별개의 동작이다.
+FN-35 실측 수집의 정확한 prior reference는 **DEVICE-PLAN**, **DATA-CALIBRATION**, **RUN-ACTIVE**와 WORKFLOW_CONTRACTS **C09**다. device/driver, channel/unit/time sync, specimen/calibration, sample rate/duration, 허용 동작과 종료 acknowledgment를 다룬다. 현재 `acquisition-channels`/`acquisition-connection`의 전용 Qt 시안에서 수집 설정·기존 trace 검토와 연결/종료 미확인을 다룬다. 실제 driver·실물 제어는 UNAVAILABLE이다. Simulation cancel, acquisition cancel, physical emergency stop은 별개의 동작이다.
 
 위 참조는 `95a2389ca534b807420a4e7dbe2397f5e60953c9`의 읽은 **텍스트 명세**이며, 본 branch에 D1의 해당 SVG가 있다고 가정하지 않는다. `screen_states.json`의 `prior_references`와 화면 색인에서 연결 범위를 확인할 수 있다.
 
@@ -179,3 +179,37 @@ FN-35 실측 수집의 정확한 prior reference는 **DEVICE-PLAN**, **DATA-CALI
 `implementation_map.csv`의 기존 task ID와 dependencies가 기본이다. 공유 편집·정밀 수치·owner 연결과 각 도구 UI를 병렬로 진행하고, CAD→Simulation→Runner→Post 및 Expert→Numerical→결과→Study 두 경로를 통합한다. Data/Material/PDE를 전체 제품의 첫 번째 필수 마일스톤으로 강제하지 않는다. 기존 solver campaign을 UI 변경의 gate로 재실행하지 않는다.
 
 현재 완료물은 검토 가능한 planning source와 실제 offscreen 확인이다. 사용자가 산출물을 검토하고 **개발 시작을 지시한 뒤** 본제품 변경을 시작한다. MoAI 연결과 해당 acceptance 매핑은 `MOAI_HANDOFF.md`, 구체적 실제 검사와 한계는 `REVIEW.md`에 있다.
+
+
+## Report / Acquisition 전용 시안 — UX-COMPLETE-01
+
+### Report: 절과 내용에서 출력까지
+
+기존 Study 소유를 재사용하는 별도 검토 문서다. Study의 Report… 또는 Window → Report로 열며, 강제 Home이나 추가 실행 owner를 만들지 않는다. 왼쪽 Sections는 checkbox 포함 여부와 drag/Move up/down 순서를 갖는다. 중앙 Section content에는 선택 절의 본문 또는 근거 표·큰 curve가 나온다. 상단의 짧은 제목과 하단 caption을 편집한다. Source 데이터는 직접 덮어쓰지 않고 Open source로 해당 결과/locator 또는 저장한 Study 창을 연다.
+
+Use Study는 명시적으로 선택한 **저장 Study**의 질문·판단·근거를 보고서에 가져온다. 편집 중인 Study는 먼저 그 창에서 저장해야 한다. 현재 draft를 과거 보고서의 원 근거 대신 열지 않는다. 표의 numerical locator는 method/table/row를 정확히 유지하며, 방법 전체 curve를 함께 넣으면 caption에서 선택 행의 표와 구별한다. Add section은 로컬 본문, 정확 결과 표, 보유 curve를 고른다. Include/Remove/Reorder/Edit 모두 기존 Undo/Redo와 일반 Save를 따른다.
+
+Page preview는 기본 1440×900 desktop 가운데의 세로 용지와 Previous/Next를 쓴다. 오른쪽 Output dock은 해당 탭에서만 나타난다. Review PDF와 Markdown을 고르고 Export preview…의 파일 chooser에서 경로를 정한다. PDF는 preview와 **같은 ReportPage QPainter**를 사용한다. 표는 18행 단위 페이지로 나누며, 지나치게 긴 본문은 절 분할을 요구한다. Markdown curve는 원 좌표 표로 내보내므로 그림을 내보냈다고 주장하지 않는다. 원 입력·결과를 계산하는 보고서 엔진이나 승인 엔진은 없다.
+
+근거가 없는 절은 그 절만 unavailable이다. 기본은 export 차단이고, 사용자가 unavailable placeholder를 선택하면 누락을 표시한 페이지를 출력한다. 임시 출력 완료 후 파일을 교체하여 일반 write error에서 이전 출력이 유지되게 한다. 저장한 보고서는 Study snapshot·결과 첨부·정확 locator·절 순서/내용을 갖고 단독 cold reopen할 수 있게 작성했다. Checks 절은 process completion, numerical validity, engineering checks, release를 구별하며 기존 F05 실패 수치/허용치를 유지한다.
+
+### Acquisition: 채널과 기존 신호에서 수집 계획까지
+
+기존 Data 소유의 검토 문서이며 장비 driver를 새로 구현하지 않는다. 왼쪽에는 instrument/driver 선택, 채널 표, sample rate/duration/time offset과 timebase/요청 모드가 있다. 오른쪽의 큰 curve와 표는 **이미 보유한 Data 파일**을 보여 준다. 계획한 1000 Hz·10 s를 기존 trace에 적용해 샘플을 만들지 않는다. 표와 curve의 선택 sample ID가 같으며 표시 단위와 명시한 시간 offset만 함께 바뀐다.
+
+Add/Edit channel의 native dialog는 name, force/extension/temperature field, 호환 unit, Measurement/Monitor role, calibration link와 include를 편집한다. Cancel은 원 채널을 유지한다. CAL-018은 force 전용이며 원 Calibration.txt row18과 0–2000 N 범위를 연다. 교정 연결만으로 원 trace를 재교정한 것처럼 표시하지 않는다. Extension 등 미지정 calibration은 Check plan의 미완료 조건으로 보이며 live 연결 성공으로 바뀌지 않는다.
+
+수집 수치는 기존 EngineeringTextDelegate로 지수 표기·음수 offset·의미 있는 zero·미완성 draft를 유지한다. rate와 duration은 양수여야 하며 time offset은 유한한 signed 값/0을 허용한다. invalid draft의 Save는 가능하고 Check plan이 해당 셀/채널로 이동한다. 값 점검 성공은 장비 실행 가능 판정이 아니다.
+
+Review → Connection loss example은 오류 상황을 보는 작성된 시안이다. 같은 기존 trace와 함께 **Connection and end** 탭에서 live UNAVAILABLE, acquisition phase 미관측, requested stop NOT_SENT, device ACK NOT_RECEIVED, physical terminal UNKNOWN, allowed control NONE을 구별한다. 실제 명령을 보내는 Connect/Start/Stop은 비활성화된다. 메시지 확인을 physical ACK로 바꾸는 checkbox나 버튼은 없다. Return to setup / Open existing Data / Save를 통해 독립 파일 작업을 계속한다. Simulation cancel·acquisition cancel·physical emergency stop의 기존 C09 구별을 유지한다.
+
+### 새 상태와 확인 범위
+
+| 상태 | 주요 검토 대상 | D1 연결 |
+|---|---|---|
+| report-sections | 절 순서·선택·본문/표·정확 source | FN-32, REPORT-REVIEW |
+| report-preview | 동일 Qt page·curve·output 조건 | FN-32, REOPEN-REPORT |
+| acquisition-channels | 채널·단위·교정·수치·trace 선택 | FN-35, DEVICE-PLAN / DATA-CALIBRATION |
+| acquisition-connection | 연결 오류·미확인 종료·기존 Data로 복귀 | FN-35, RUN-ACTIVE / C09 |
+
+이 추가 소스의 원격 Linux Qt 실행은 환경 disconnect로 미확인이다. UX-RECOVERY-01에 따라 Codex가 기존 Windows Python3.13.5/PySide6 6.9.1에서 실행·렌더를 맡는다. 원격 재설치/유료 환경은 사용하지 않는다. 원래 52상태와 새 4상태는 같은 exporter/font policy를 사용한다. 기존 source에 대한 PASS를 새 화면으로 확대하지 않는다.

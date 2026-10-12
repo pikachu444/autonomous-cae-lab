@@ -102,13 +102,14 @@ py -3.13 export_screens.py --offscreen --state post-compare --state expert-discu
 
 ## 제한 기술 검사
 
-아래 스크립트는 실제 Qt offscreen 입력 또는 stdlib 상태 검사만 수행합니다. Windows OS 입력·native host·solver/provider 수용 검사로 확대하지 않습니다.
+아래 스크립트는 Qt offscreen 입력 또는 stdlib 상태 검사만 수행합니다. `qt_complete_acceptance.py`는 Report/Acquisition용 신규 2경로이며 현재 원격에서는 미실행입니다. Windows OS 입력·native host·solver/provider 수용 검사로 확대하지 않습니다.
 
 ```powershell
 py -3.13 qt_acceptance.py --source . --offscreen --output "$env:TEMP\caelab-check-base"
 py -3.13 qt_followup_acceptance.py --source . --output "$env:TEMP\caelab-check-methods"
 py -3.13 qt_ux04_acceptance.py --source . --output "$env:TEMP\caelab-check-ux04"
 py -3.13 qt_ux06_acceptance.py --source . --output "$env:TEMP\caelab-check-ux06"
+py -3.13 qt_complete_acceptance.py --source . --output "$env:TEMP\caelab-check-complete"
 py -3.13 state_acceptance.py --source . --output "$env:TEMP\caelab-check-state"
 ```
 
