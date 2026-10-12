@@ -1,6 +1,6 @@
 # 현재 작업과 제품 상태
 
-갱신: 2026-10-12. 이 파일이 현재 사실·맡긴 작업·다음 행동의 유일한 원본이다.
+갱신: 2026-10-13. 이 파일이 현재 사실·맡긴 작업·다음 행동의 유일한 원본이다.
 제품 목표는 [PRODUCT_PLAN](docs/PRODUCT_PLAN.md), 상세 기능은
 [PRODUCT_UI_MCP_PLAN](docs/PRODUCT_UI_MCP_PLAN.md), 역할·갱신 규칙은
 [CODEX_WORKFLOW](docs/CODEX_WORKFLOW.md)를 따른다.
@@ -31,33 +31,37 @@ Expert/Study·선택 Workbench와 넓은 물리·수치 범위는 그대로 유�
 
 ### 실제 Pro 원고와 검토
 
-초기 실제 Edge UI에서 Pro power5/5를 확인하고 요청01의 원문7개를 inline으로 전달했다.
-ZIP 첨부는 실패했으므로 첨부 성공으로 표시하지 않는다.
-[원 D1 대화](https://chatgpt.com/c/6acca3ab-15b0-83ee-8ca3-25ff00e335c5)의 완료 응답을
-회수했고, 사용자 지시에 따라 같은 작성 task에 공식 도구로 요청03을 전달해
-별도 `design/pro-desktop-d1-20261012` 브랜치에서 D1 핵심 파일을 회수했다.
-로컬 원고는 [pro-authored](docs/design/20261012-desktop-planning/pro-authored/README.md),
-개발 명세·작업표·화면/원요구 대응·검증 계획은 [검토 입구](docs/design/20261012-desktop-planning/README.md)에 있다.
-전체 SVG/JSON/.drawio·ZIP의 추가 회수와 교정 수용은 미완료다. 원고의 제출·검사 주장과 실제 수용을 구별한다.
+실제 Pro/GPT-6·power5/5를 UI에서 확인하고 원문 요구·기준 source를 전달했다.
+[원 D1 대화](https://chatgpt.com/c/6acca3ab-15b0-83ee-8ca3-25ff00e335c5)의
+[기능·구현 명세](docs/design/20261012-desktop-planning/pro-authored/README.md)를 회수했다.
+이 원고는 전체 제품 설계의 자료이며 새 GUI 수용을 대신하지 않는다.
+현재 주 작성은 최신 사용자 지시를 전달한
+[새 실제 Pro 대화](https://chatgpt.com/c/6accef3a-e650-83ee-89e2-3f48a60dd17a)의 요청06이다.
+소유권은 `pro-ux/`, 작성 브랜치는 `design/product-ux-20261012`다.
 
-[D1 실제 검토](docs/design/20261012-desktop-planning/D1_REVIEW.md): Astra/xhigh는
-MOO 채택 완료, SI stage 재열기, Material 참조 복구, 교정 원문 이동의4개 경로 결함을
-확인했다. Sol/high는 dirty Data의 실행 입력 누락, 구간 선택/곡선·mask 불일치,
-Tab 편집기 갇힘을 QTest로 재현했다. 원14개 상태 검사는 통과했으나 위 경로가 실패하므로
-전체 시제품 수용으로 처리하지 않는다. 기능·화면·Qt 교정을 원 Pro task에 전달했다.
-재현 자료는 `runs/pro-relay/20261012-desktop-design/pro-qt-review/`에 있다.
+최신 회수 source는 `b46b8ba`다. CAD/FE·Simulation·Runner·Post·Numerical·Expert·Study와
+Data/Material/PDE/Evaluation/선택 Workbench의 Qt 창을 실제로 렌더링했다.
+[GUI 실제 검토](docs/design/20261012-desktop-planning/GUI_REVIEW.md)에 source별
+Pro 작성, Astra/xhigh 독립 검토, Sol/high의 실제 입력 검사와 Codex 통합 확인을 구별한다.
+지수 입력·Undo/Redo·잘못된 입력의 보존/실행 차단·수정, 새 연구 계획의 변수/응답 정의,
+Post의 시간/필드 연동과 CAD→Simulation→Runner의 합성 결과→Post→MOO 명시 적용/
+개별 저장→저장 실패 재시도→새 창 재열기를 확인했다. 실제 계산이나 engineering 승인이 아니다.
 
-최신 사용자 GUI/우선순위 지시를 반영한 요청06을
-[새 실제 Pro 대화](https://chatgpt.com/c/6accef3a-e650-83ee-89e2-3f48a60dd17a)에 전송했다.
-실제 UI의 Pro/GPT-6·power5/5, 요청ID·최신 문구·전체 도구 범위·끝 경계를 확인했고
-Pro가 공개 원본 조회와 전체 Qt 시안 작성을 시작한 응답을 읽었다.
-[위임 요약](docs/design/20261012-desktop-planning/PRO_UX_REQUEST.md)과 실제 보낸 본문을 구별한다.
-작성 소유권은 `pro-ux/`, 별도 `design/product-ux-20261012` 브랜치로 원 D1 작업과 분리했다.
-이 브랜치 생성은 확인했으나 아직 새 화면/코드를 받은 것은 아니다.
-이후 초기 상태 소스 커밋이 게시된 것은 확인했다. 전체 Qt 화면은 아직 회수 전이다.
-사용자의 ‘metadata와 유지 절차가 중심이 아니다’라는 최신 지시를 같은 Pro UI에
-`UX-STEER-01`로 보내 실제 사용자 메시지에 나타난 것을 확인했다. 형상·해석 조건·계산·
-결과 분석·최적화·Co-STORM의 실제 기능을 화면과 조작의 중심으로 한다.
+Astra의 `48cbac3` 재검토는 스케치 선 삭제, saved 자세/instance·비교 형상,
+selected step, inverse train/holdout 및 방법별 결과→후속 논의의 잔여를 찾았다.
+같은 Pro에 UX-FIX-04로 전달했고 최신 source에서 바뀐 경로만 다시 확인한다.
+현재 큰 마무리는 해당 조작 교정, 방법별 합성 결과/토론 연결, 상태별 편집 원본,
+명세·대응표·검토 자료 통합이다. 사용자에게 제시할 검토본 목표를 2026-10-13
+한국시간 오전3시 전후로 알렸으며, 예상과 실제 완료를 구별한다.
+
+Edge 연결 소실 후 공식 task 조회로 요청06과 원 UI의 같은 turn을 대조해 후속 연결을
+복구했다. 작성 task는 `01a13087-154b-7343-ad70-1f882d9fc0af`/durable,
+turn은 `01a13087-26c6-7536-b617-db0dbef22557`다.
+공식 전송 뒤 수신 userMessage의 UX-FIX-04 본문·끝 경계를 확인했다.
+새 모델·유료 API 또는 다른 작성자로 대체하지 않는다. 최신 사용자 요구와 실제 원고의
+전달 요약은 [PRO_UX_REQUEST](docs/design/20261012-desktop-planning/PRO_UX_REQUEST.md)다.
+Space 제품 입구에도 GUI/우선순위 결정과 같은 Pro/Qt 링크를 반영·재조회했다.
+기존 과거 원문·ZIP 참조를 보존하며 현행 상태의 원본은 이 파일이다.
 
 ### 도구와 실제 확인 범위
 

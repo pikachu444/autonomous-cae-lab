@@ -29,3 +29,19 @@ Codex 대조다. source가 있는 것과 실제 사용자 작업이 수용된 �
 이 조사는 owner를 다시 작성하는 구현 과제로 옮기지 않는다. 데이터/단위·지원 law·port·
 session/generation 의미는 현재 코드를 Pro에게 전달해 상세 UI와 일치시켜야 한다.
 이전 계획 §10/§11의 신규 분류는 작성 시점의 계획이고 위 기준 코드에서는 재사용/확장으로 읽는다.
+
+## Expert의 비용 없는 연결과 추가 설계
+
+Luna/high의 제한된 재조사(2026-10-13)에서 관련 Expert 소스는 위 제품 기준과 같았다.
+`caelab/assist/experts.py`의 RuntimeConfig와 `openscience_host.ps1`은 명시한
+`openscience` / `openai-codex/<model>`을 기존 로그인 프로필의 구독 인증 경로로 전달한다.
+실제 계정·모델 사용권은 따로 확인해야 하며 구독을 API 사용권으로 설명하지 않는다.
+기본 `OPENAI_API_KEY`를 요구하는 원격 OpenAI-compatible 경로는 이번 비용0 범위에서 제외한다.
+명시한 local endpoint와 빈 credential_env를 쓰는 일반 adapter는 있으나 특정 로컬 모델의
+도구 호출·설치·서버 수명·사용성 검증은 없다. 검증된 로컬 제품 기능으로 표시하지 않는다.
+
+새 Expert 화면은 역할과 모델을 분리하고, 설정된 구독 인증/기존 무료 local endpoint와
+미설정을 구별해 선택하도록 설계한다. 선택 가능한 모델의 실제 사용권 확인과
+연결 상태를 보여주되 질문·사용자 발언·계획 편집을 막지 않는다. 실제 실행은 기존
+Discussion 명령과 managed ask JobManager로 이어진다. 새 provider 호출·인증 변경은
+이번 읽기 전용 조사에서 수행하지 않았다. 유료 API fallback을 추가하지 않는다.

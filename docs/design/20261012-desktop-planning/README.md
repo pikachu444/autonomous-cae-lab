@@ -12,6 +12,7 @@
 | 검토 자료 | 성격과 현재 확인 범위 |
 |---|---|
 | [사용자 검토 경로](REVIEW_GUIDE.md) | 각 도구에서 시작·판단·조작·결과·복구·저장/재개를 따라가는 입구 |
+| [새 전체 도구 Qt 원본](pro-ux/README.md), [실제 GUI 검토](GUI_REVIEW.md) | CAD/FE·Simulation·Runner·Post·최적화·Co-STORM 중심의 실제 Pro 작성 초안. 실제 창 렌더와 조작 교정을 확인하며 최종 수용 전 |
 | [전체 연결 도면](research.drawio) | CAD/FE 준비, 실행/Post, 최적화/원 설계 채택, Co-STORM/Study의 연결·오류·취소·저장. Pro D1 계약에서 Codex가 작성한 편집 원본 |
 | [실제 Pro 기능 명세](pro-authored/FUNCTION_SPEC.md), [구현 작업표](pro-authored/IMPLEMENTATION_BACKLOG.csv), [화면 명세](pro-authored/SCREEN_SPEC.md) | 현재 코드를 재사용하는 전체 개발 설계. 구현 완료와 구별 |
 | [Pro 작업 시나리오](pro-authored/PROTOTYPE_SCENARIOS.md), [원요구 대응표](pro-authored/REQUIREMENT_COVERAGE.csv), [기능별 검증](pro-authored/VERIFICATION_PLAN.md) | 요구→작업→화면→구현/검증의 연결 |

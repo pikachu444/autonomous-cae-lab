@@ -4,6 +4,11 @@ Use [the actual Pro request](../../../docs/design/20261012-desktop-planning/PRO_
 and existing detail plan as the authoring packet. Keep source reuse concrete and
 replace outdated 'new owner' work with the relevant UI/support extensions.
 
+The later [whole-product GUI request](../../../docs/design/20261012-desktop-planning/PRO_UX_REQUEST.md)
+contains the user's current CAD/FE–Runner–Post–Numerical and Co-STORM focus.
+The isolated [Qt source](../../../docs/design/20261012-desktop-planning/pro-ux/README.md)
+is a working review draft; author publication does not establish workflow acceptance.
+
 The authorized sequence is context recovery → actual Pro whole-product authorship
 → editable tool artifacts and limited Qt interaction checks → independent Astra
 review plus Codex actual artifact inspection → necessary Pro correction → user

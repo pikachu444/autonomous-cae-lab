@@ -1,0 +1,326 @@
+{
+  "DOE": {
+    "view": "Main effects",
+    "xlabel": "Normalized variable",
+    "ylabel": "Response [illustrative]",
+    "summary": [
+      [
+        "Design rows",
+        4
+      ],
+      [
+        "Evaluated",
+        0
+      ],
+      [
+        "Interpretation",
+        "Illustration only"
+      ]
+    ],
+    "series": [
+      {
+        "name": "Thickness effect example",
+        "x": [
+          0,
+          0.33,
+          0.67,
+          1
+        ],
+        "y": [
+          0.43,
+          0.45,
+          0.47,
+          0.5
+        ],
+        "color": "#286998"
+      }
+    ]
+  },
+  "Inverse": {
+    "view": "Train / holdout",
+    "xlabel": "Engineering strain",
+    "ylabel": "Stress [MPa]",
+    "summary": [
+      [
+        "Train RMS example [MPa]",
+        0.00894427
+      ],
+      [
+        "Holdout",
+        "Separate / not evaluated"
+      ],
+      [
+        "Fit status",
+        "NOT_EVALUATED"
+      ]
+    ],
+    "series": [
+      {
+        "name": "Observed example",
+        "x": [
+          0,
+          0.08,
+          0.16,
+          0.24,
+          0.32
+        ],
+        "y": [
+          0,
+          0.18,
+          0.34,
+          0.49,
+          0.63
+        ],
+        "color": "#286998"
+      },
+      {
+        "name": "Prediction example",
+        "x": [
+          0,
+          0.08,
+          0.16,
+          0.24,
+          0.32
+        ],
+        "y": [
+          0,
+          0.17,
+          0.33,
+          0.5,
+          0.64
+        ],
+        "color": "#bd702b"
+      }
+    ]
+  },
+  "Optimization": {
+    "view": "Objective history",
+    "xlabel": "Illustrative evaluation",
+    "ylabel": "Objective",
+    "summary": [
+      [
+        "Feasible examples",
+        3
+      ],
+      [
+        "Failed examples",
+        1
+      ],
+      [
+        "Optimizer",
+        "NOT_EXECUTED"
+      ]
+    ],
+    "series": [
+      {
+        "name": "Retained objective example",
+        "x": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "y": [
+          0.64,
+          0.52,
+          0.47,
+          0.42
+        ],
+        "color": "#286998"
+      }
+    ]
+  },
+  "Sobol sensitivity": {
+    "view": "Index convergence",
+    "xlabel": "Base samples",
+    "ylabel": "Sobol index",
+    "summary": [
+      [
+        "Thickness S1 / ST",
+        "0.42 / 0.71"
+      ],
+      [
+        "mu S1 / ST",
+        "0.29 / 0.58"
+      ],
+      [
+        "95% interval example",
+        "0.35 … 0.49"
+      ],
+      [
+        "Index calculation",
+        "NOT_EVALUATED"
+      ]
+    ],
+    "series": [
+      {
+        "name": "S1 example",
+        "x": [
+          32,
+          64,
+          128,
+          256
+        ],
+        "y": [
+          0.49,
+          0.45,
+          0.43,
+          0.42
+        ],
+        "color": "#286998"
+      },
+      {
+        "name": "ST example",
+        "x": [
+          32,
+          64,
+          128,
+          256
+        ],
+        "y": [
+          0.76,
+          0.74,
+          0.72,
+          0.71
+        ],
+        "color": "#218b81"
+      }
+    ]
+  },
+  "UQ": {
+    "view": "Response CDF",
+    "xlabel": "Displacement [mm]",
+    "ylabel": "Cumulative probability",
+    "summary": [
+      [
+        "q05 / q50 / q95 [mm]",
+        "0.24 / 0.30 / 0.38"
+      ],
+      [
+        "P(U > 0.35) example",
+        "0.15"
+      ],
+      [
+        "Propagation",
+        "NOT_EXECUTED"
+      ]
+    ],
+    "series": [
+      {
+        "name": "Synthetic CDF",
+        "x": [
+          0.2,
+          0.24,
+          0.27,
+          0.3,
+          0.33,
+          0.35,
+          0.38,
+          0.43
+        ],
+        "y": [
+          0,
+          0.05,
+          0.25,
+          0.5,
+          0.72,
+          0.85,
+          0.95,
+          1
+        ],
+        "color": "#218b81"
+      }
+    ]
+  },
+  "RBF surrogate": {
+    "view": "Validation",
+    "xlabel": "Observed response",
+    "ylabel": "Predicted response",
+    "summary": [
+      [
+        "Training / holdout examples",
+        "3 / 1"
+      ],
+      [
+        "Outside support",
+        "Unavailable"
+      ],
+      [
+        "Model fit",
+        "NOT_EXECUTED"
+      ]
+    ],
+    "series": [
+      {
+        "name": "Identity",
+        "x": [
+          0.4,
+          0.48
+        ],
+        "y": [
+          0.4,
+          0.48
+        ],
+        "color": "#98a5af"
+      },
+      {
+        "name": "Prediction examples",
+        "x": [
+          0.4,
+          0.425,
+          0.45,
+          0.475
+        ],
+        "y": [
+          0.405,
+          0.42,
+          0.455,
+          0.466
+        ],
+        "color": "#286998",
+        "scatter": true
+      }
+    ]
+  },
+  "MDO": {
+    "view": "Coupling residual",
+    "xlabel": "Illustrative iteration",
+    "ylabel": "Relative field residual",
+    "summary": [
+      [
+        "Heat / Expand",
+        "NOT_EXECUTED"
+      ],
+      [
+        "Source field",
+        "PENDING"
+      ],
+      [
+        "Convergence",
+        "NOT_EVALUATED"
+      ]
+    ],
+    "series": [
+      {
+        "name": "Residual example",
+        "x": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "y": [
+          0.18,
+          0.09,
+          0.04,
+          0.014,
+          0.004,
+          0.0012
+        ],
+        "color": "#bd702b"
+      }
+    ]
+  }
+}
