@@ -1,0 +1,40 @@
+{
+  "label": "SIMULATED_UI_VALUES_NOT_FIT_OUTPUT",
+  "candidates": [
+    {
+      "id": "c017",
+      "mu_MPa": 0.862,
+      "lmbda_MPa": 12,
+      "objective": 0.00184,
+      "curve": "RETAINED",
+      "holdout": "EVALUATED",
+      "holdout_rmse_MPa": 0.014
+    },
+    {
+      "id": "c014",
+      "mu_MPa": 0.901,
+      "objective": 0.07908,
+      "curve": "NOT_RETAINED",
+      "holdout": "NOT_EVALUATED"
+    },
+    {
+      "id": "c009",
+      "mu_MPa": 0.401,
+      "lmbda_MPa": 12,
+      "objective": null,
+      "status": "FAILED",
+      "reason": "lateral solve did not converge",
+      "curve": "PARTIAL",
+      "holdout": "NOT_EVALUATED"
+    },
+    {
+      "id": "c021",
+      "mu_MPa": 0.878,
+      "lmbda_MPa": 12,
+      "objective": null,
+      "status": "CANCELLED",
+      "curve": "PARTIAL",
+      "holdout": "NOT_EVALUATED"
+    }
+  ]
+}

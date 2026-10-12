@@ -3,12 +3,20 @@
 최신 사용자 요청(2026-10-12)에 따른 작업 자료다. **전체 상세 기획은 진행 중이고
 제품 본구현은 승인 대기다.** 이전 Pro v2와 현재 코드를 재사용한다. 최신 원요구와
 7개 설계/조사 본문을 실제 Pro 새 대화에 전송했고 D1 작성 완료 응답을 회수했다.
-ZIP은 브라우저 연결 문제로 아직 받지 못했다. 여기의 Codex 정리와
-기술 spike를 새 Pro 설계로 표시하지 않는다. 현재 배정·연결 상태·다음 행동은
+핵심 명세·구현 작업표·계약·Qt 소스·합성 자료를 실제 Pro의 design 브랜치에서 회수했다.
+전체 화면/도면 원본은 추가 회수 중이며, 현재 Qt 폼은 사용자 사용성 피드백과 독립 검토에서
+교정 대상으로 판정했다. 여기의 Codex 정리와 기술 spike를 새 Pro 설계로 표시하지 않는다.
+현재 배정·연결 상태·다음 행동은
 [CURRENT_STATE](../../../CURRENT_STATE.md)에 있다.
 
 | 검토 자료 | 성격과 현재 확인 범위 |
 |---|---|
+| [사용자 검토 경로](REVIEW_GUIDE.md) | 각 도구에서 시작·판단·조작·결과·복구·저장/재개를 따라가는 입구 |
+| [전체 연결 도면](research.drawio) | CAD/FE 준비, 실행/Post, 최적화/원 설계 채택, Co-STORM/Study의 연결·오류·취소·저장. Pro D1 계약에서 Codex가 작성한 편집 원본 |
+| [실제 Pro 기능 명세](pro-authored/FUNCTION_SPEC.md), [구현 작업표](pro-authored/IMPLEMENTATION_BACKLOG.csv), [화면 명세](pro-authored/SCREEN_SPEC.md) | 현재 코드를 재사용하는 전체 개발 설계. 구현 완료와 구별 |
+| [Pro 작업 시나리오](pro-authored/PROTOTYPE_SCENARIOS.md), [원요구 대응표](pro-authored/REQUIREMENT_COVERAGE.csv), [기능별 검증](pro-authored/VERIFICATION_PLAN.md) | 요구→작업→화면→구현/검증의 연결 |
+| [D1 실제 검토와 교정 요청](D1_REVIEW.md) | dirty Data 실행, 선택 구간, 키보드 이동과 MOO/SI/참조·교정 원문의 전이 결함. 현재 GUI 사용성 미수용 |
+| [Pro Qt 시제품 소스](pro-authored/prototype/README.md) | 입력·저장 상태 시안. 실제 계산 없음. 원 D1의 결함과 레이아웃 교정 전 상태로 최종 제품 화면에 사용하지 않음 |
 | [현행 ADR 적용 기준](../../ADR_APPLICABILITY.md) | 유효한 경계·역사 근거·기능별 검증 분리. 원 threshold/실패 보존 |
 | [코드 재사용 조사](SOURCE_REUSE.md) | `9a6e308`의 owner/창/명령과 화면 개선 지점. source와 이전 실행 증거 구별 |
 | [Astra 기준 설계 검토](ASTRA_BASELINE_REVIEW.md) | 실제 `gpt-6-astra/xhigh` 배정의 독립 검토. 기존 v2의 누락과 수정 기준. 새 설계 통과가 아님 |
@@ -25,6 +33,7 @@ ZIP은 브라우저 연결 문제로 아직 받지 못했다. 여기의 Codex �
 offscreen assertion 통과로 전체 GUI·DPI·물리·공학적 release를 완료 처리하지 않는다.
 
 Penpot은 계정이 없다는 사용자의 최신 지시로 제외하고 탭을 닫았다. 모든 화면과 기능의
-상세 대응, editable SVG/.drawio와 새 실제 Pro 설계·교정은 아직 회수/제출 전 단계다.
+상세 대응과 실제 Pro 명세/Qt 소스는 회수했다. editable SVG/.drawio와 교정본은 아직
+회수/실제 열람을 마치지 않았다.
 Qt의 제한된 실제 조작은 전체 제품 화면의 수용을 뜻하지 않는다. 기존 PDF나 웹 시안을 이 결과의
 대체물로 인정하지 않는다. 브라우저는 기획/협업 도구이고 제품의 주 화면이 아니다.

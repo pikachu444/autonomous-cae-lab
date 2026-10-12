@@ -1,0 +1,42 @@
+{
+  "label": "DELIBERATELY_NONCONVERGED_UI_FIXTURE_NOT_PHYSICS_RESULT",
+  "definition": "E-02/r5",
+  "job": "eval-019",
+  "attempt": "02",
+  "transfers": [
+    {
+      "source": "heat.temperature",
+      "target": "solid.temperature",
+      "lag": 0
+    },
+    {
+      "source": "heat.temperature",
+      "target": "heat.linearization_temperature",
+      "lag": 1
+    }
+  ],
+  "check": {
+    "stage": "heat",
+    "response": "temperature",
+    "unit": "K",
+    "norm": "L_INFINITY",
+    "absolute": 1e-06,
+    "relative": 0,
+    "scale": 1
+  },
+  "feedback_seed_K": 293.15,
+  "residual_K": [
+    null,
+    0.01,
+    0.004,
+    0.0019,
+    0.0008,
+    0.00035,
+    0.00017,
+    8e-05,
+    4.5e-05,
+    3e-05,
+    2.2e-05,
+    1.4e-05
+  ]
+}

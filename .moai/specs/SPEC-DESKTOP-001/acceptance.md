@@ -13,6 +13,7 @@
 | AC-D09 | Given the selected planning/product tools, when usage and distribution are reviewed, then additional spending is zero and unavailable free/backend paths remain identified. | REQ-DESKTOP-001-011 |
 | AC-D10 | Given actual Pro-authored artifacts and independent review, when design is presented, then authorship, applied corrections, actual checks and unresolved decisions are explicit; production implementation awaits the user's start instruction. | REQ-DESKTOP-001-012 |
 | AC-D11 | Given the backlog/trace table, when a feature is selected, then its requirement and screens lead to existing/new code targets, user acceptance, verification purpose/timing/prerequisites and exact reused evidence. | REQ-DESKTOP-001-014 |
+| AC-D12 | Given the review prototype at actual desktop size, when a user follows the representative task, then selection, values/units, state, errors and next action remain apparent without developer guidance or long explanatory text; resize, keyboard and contextual panels preserve the task. | REQ-DESKTOP-001-015, REQ-DESKTOP-001-005 |
 
 Planning interactions and DEMO values are not actual solver/provider acceptance.
 Windows GUI completion needs actual native interaction; offscreen widget captures

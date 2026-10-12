@@ -7,84 +7,96 @@
 
 ## 현재 결정과 맡긴 작업
 
-**최신 사용자 지시(2026-10-12): 상세 기획·GUI 설계와 별도 Qt 시제품을 먼저 완성해
-검토에 제출한다. 제품 본구현은 사용자가 개발 시작을 지시한 뒤에 진행한다.**
-아래의 앞선 문서 통합 완료와 다음 구현 방향은 재사용 근거이며 이번 설계의 완료 근거가
-아니다. 이번 배정은 MoAI의 Codex 연결, 운영 지침의 충돌 정리, 전체 기능/구현 명세,
-편집 가능한 작업/화면/상태 설계, 상호작용 시안, Qt 조작 확인, 실제 Pro 작성과 Astra
-독립 검토다. Windows 로컬 Qt/PySide6·FreeCAD·ParaView를 유지하고 추가 지출은 0원이다.
+**상세 기획·GUI 설계와 별도 Qt 시제품을 먼저 완성해 사용자 검토에 제출한다.
+제품 본구현은 이후 사용자가 개발 시작을 지시한 뒤 진행한다.** 전체 배정은 운영 지침의
+충돌 정리, 전체 개발 명세·작업 목록, 편집 가능한 작업/화면/상태 설계와 상호작용 시안,
+Qt 조작 확인, 실제 Pro 작성과 Astra 독립 검토다. Windows 로컬 Qt/PySide6·FreeCAD·
+ParaView와 추가 지출0원을 유지한다. 과거 문서의 기획 완료·다음 구현은 이번 수용 근거가 아니다.
 
-현재 기준은 `9a6e3083037630b45694b812b135dc1cd63cf95a`, upstream은 아래 핀과 같다.
-사용자 `.codex-remote-attachments/`는 보존한다. 제품 코드 변경과 solver/provider 계산은
-시작하지 않았다. 기존 문서·시안은 설계 재료이고 새 상세 기획 수용은 **미완료**다.
+최근 사용자 지시는 CAD/전처리→solver/Runner→native Post→최적화와 Co-STORM 연구의
+독립 작업·도구 연결을 중심으로 완성하는 것이다. Material 예시를 전체 우선순위로 확대하지
+않으며 그 교정이 다른 도구를 기다리게 하지 않는다. Data/Material/PDE/Numerical/Runner/
+Expert/Study·선택 Workbench와 넓은 물리·수치 범위는 그대로 유지한다.
 
-연결 확인: MoAI `3.2.0-dev.2aab5f7`과 ChatGPT 인증 Codex CLI `0.146.1`을 확인했다.
-초기 partial wiring에서 기존 설정을 보호한 selective Codex 연결을 추가했다.
-MoAI CLI status의 wired와 실제 local stdio initialize/tools/list/`spec_progress`를 확인했다.
-SPEC strict lint도 통과했다. 이후 current host에 MCP 도구 4개가 실제 노출됐고
-`mcp__moai__spec_progress`를 호출해 draft SPEC을 읽었다. hook trust는 별도 미확인이다.
-SPEC/read 도구 4개만 config에서 허용한다. 실제 skill catalog에는 MoAI 스킬5개가 나타났다.
-기존 CLI0.146.1은 global `features.context_management` map을 boolean으로 읽다 실패한다.
-global bytes를 보존했고 read-only `mcp get`에만 임시 false override를 써 등록을 확인했다.
-사용자 Python 3.13에는 PySide6 `6.9.1`, Matplotlib, Qt Designer가 있다. 별도 설치된
-Research runtime에는 PySide6가 없으므로 둘을 같은 환경으로 보고하지 않는다.
+현재 설명문·보조 기능이 많은 Qt 폼은 **사용성 미수용 초안**이다. 사용자는 긴 제목·파일명에
+`• r2` 등 내부 접미사를 이어 붙이는 표시를 싫어한다. 주 화면은 짧은 작업명·값·단위·선택·
+상태·다음 조작을 보여주고, 정확한 원본/개정/실패는 이력·근거·진단에서 조회한다.
+이미 지정한 FreeCAD/ParaView/HyperStudy/Co-STORM/Origin/MCalibration/COMSOL 원형은
+[PRODUCT_PLAN §3](docs/PRODUCT_PLAN.md#3-화면마다-주-기준을-고정한다)을 따른다.
+참고 이미지를 사용자에게 요청하지 않는다. 세부 화면 시안은 검토용 제안이며 사용자 결정과 구별한다.
 
-실제 Pro 상태: **D1 작성 완료 응답 회수 / ZIP 파일 미회수**. 이전 실제 세션의 Edge 확장 경로를 확인했고
-사용자가 Edge를 연 뒤 연결됐다. 실제 Pro power5/5 UI 확인 후 새 요청
-`PRO-DESKTOP-DESIGN-20261012-01`을 한 번 보내고 7개 원문 구간과 마지막 본문을 대조했다.
-[실제 대화](https://chatgpt.com/c/6acca3ab-15b0-83ee-8ca3-25ff00e335c5), local 전달/응답 기록은
-`runs/pro-relay/20261012-desktop-design/`이다. ZIP upload는 file-URL permission으로 실패해
-**inline 실제 본문**(최신 사용자 원문·Pro 요청·source reuse·Astra·PROJECT_SCOPE·v2·ADR 기준)을
-전달했다. Pro는 공개 pinned source 조회·전체 명세/화면/도면/별도 Qt 시제품을 작성해 D1 ZIP을
-제출했다고 보고했다. 같은 요청의 실제 cloud 작업 완료와 final 응답을 공식 read_thread에서
-회수해 local relay 폴더에 보존했다. 파일을 받거나 실행한 것으로 처리하지 않는다.
-다른 모델/API로 대체하지 않았다.
+기준 제품 source는 `9a6e3083037630b45694b812b135dc1cd63cf95a`, upstream은 아래 핀이다.
+제품 코드·solver/provider 실행은 이번 배정에서 시작하지 않았다. 사용자
+`.codex-remote-attachments/`와 기존 설정·AGENTS를 보존한다.
 
-Penpot은 로그인 화면까지 확인했으나 **계정이 없으니 탭을 닫고 무시하라는 최신 사용자
-지시로 제외**했다. 계정 생성/유료 trial 없이 editable SVG/.drawio/.ui와 native Qt interaction을
-사용한다. 새 Pro 원문 회수 뒤 이 변경을 명세에 반영하고 독립 Astra와 실제 산출물을 검토한다.
-내장 브라우저 attach/Windows browser URL-policy 실패는 초기 연결 근거로만 보존한다.
-현재 브라우저 연결은 복구됐으며 그 실패를 전체 작업 금지로 확대하지 않는다.
+### 실제 Pro 원고와 검토
 
-별도 [Qt 시제품](docs/design/20261012-desktop-planning/qt_prototype/README.md)의 Material
-import/단위/구간/DEMO 비교/채택/save/cold-reopen에서 Astra가 재현한 P1/P2 8개를
-bounded Sol/high가 교정했고 Astra가 관련 QTest·코드·캡처를 독립 재검토했다.
-최종 표시 gate 교정도 읽기 전용으로 확인했다. Codex는 actual Windows CSV/저장 chooser,
-표 선택/Shift 방향키·채택/Undo/Redo·dock Float/기본 배치 복구·종료 뒤 새 프로세스 재열기를
-확인했다. [검토/실제 조작 기록](docs/design/20261012-desktop-planning/QT_REVIEW.md)에
-최종 소스 해시와 최초 표시 불일치·교정 범위를 보존한다. native drag/Shift-click·여러 DPI·
-접근성·제품서비스/physics·새 전체 Pro 설계 수용은 아직 미확인이다.
-검토 자료 입구는 [새 설계 자료](docs/design/20261012-desktop-planning/README.md)다.
+초기 실제 Edge UI에서 Pro power5/5를 확인하고 요청01의 원문7개를 inline으로 전달했다.
+ZIP 첨부는 실패했으므로 첨부 성공으로 표시하지 않는다.
+[원 D1 대화](https://chatgpt.com/c/6acca3ab-15b0-83ee-8ca3-25ff00e335c5)의 완료 응답을
+회수했고, 사용자 지시에 따라 같은 작성 task에 공식 도구로 요청03을 전달해
+별도 `design/pro-desktop-d1-20261012` 브랜치에서 D1 핵심 파일을 회수했다.
+로컬 원고는 [pro-authored](docs/design/20261012-desktop-planning/pro-authored/README.md),
+개발 명세·작업표·화면/원요구 대응·검증 계획은 [검토 입구](docs/design/20261012-desktop-planning/README.md)에 있다.
+전체 SVG/JSON/.drawio·ZIP의 추가 회수와 교정 수용은 미완료다. 원고의 제출·검사 주장과 실제 수용을 구별한다.
 
-추가 환경 확인: 처음 Qt Designer 캡처는 Windows PIN 잠금 화면이라 입력을 중단했다.
-사용자가 직접 잠금을 해제한 뒤 새 창 상태에서 Designer 원본·Qt 실제 조작을 확인했다.
-보호된 인증 화면은 조작하지 않았다. draw.io Desktop32.4.1은 공식 portable
-ZIP을 ignored `runs/tools`에 내려받아 path containment 확인 후 추출했다(추가 비용0).
-실제 `.drawio` 열기/export는 Pro 원본 회수 뒤 확인한다.
+[D1 실제 검토](docs/design/20261012-desktop-planning/D1_REVIEW.md): Astra/xhigh는
+MOO 채택 완료, SI stage 재열기, Material 참조 복구, 교정 원문 이동의4개 경로 결함을
+확인했다. Sol/high는 dirty Data의 실행 입력 누락, 구간 선택/곡선·mask 불일치,
+Tab 편집기 갇힘을 QTest로 재현했다. 원14개 상태 검사는 통과했으나 위 경로가 실패하므로
+전체 시제품 수용으로 처리하지 않는다. 기능·화면·Qt 교정을 원 Pro task에 전달했다.
+재현 자료는 `runs/pro-relay/20261012-desktop-design/pro-qt-review/`에 있다.
 
-모델 실행 기록: Astra `gpt-6-astra/xhigh`, 조사 `gpt-6-luna/high`, Qt spike `gpt-6.1-sol/high`를
-확인했다. 주 Codex의 앞선 실행 기록은 project/global Sol/xhigh 설정과 달리 **Sol/high**였다.
-사용자가 활성 추론 수준을 바꿨다고 답했다. 변경 전 기록을 xhigh로 소급 표시하지 않는다.
-init/merge 단계에서 global 보호 해시는 유지됐고 이후 외부 변경으로 global hash가 달라졌다.
-사용자/host 변경을 되돌리지 않는다.
+최신 사용자 GUI/우선순위 지시를 반영한 요청06을
+[새 실제 Pro 대화](https://chatgpt.com/c/6accef3a-e650-83ee-89e2-3f48a60dd17a)에 전송했다.
+실제 UI의 Pro/GPT-6·power5/5, 요청ID·최신 문구·전체 도구 범위·끝 경계를 확인했고
+Pro가 공개 원본 조회와 전체 Qt 시안 작성을 시작한 응답을 읽었다.
+[위임 요약](docs/design/20261012-desktop-planning/PRO_UX_REQUEST.md)과 실제 보낸 본문을 구별한다.
+작성 소유권은 `pro-ux/`, 별도 `design/product-ux-20261012` 브랜치로 원 D1 작업과 분리했다.
+이 브랜치 생성은 확인했으나 아직 새 화면/코드를 받은 것은 아니다.
+이후 초기 상태 소스 커밋이 게시된 것은 확인했다. 전체 Qt 화면은 아직 회수 전이다.
+사용자의 ‘metadata와 유지 절차가 중심이 아니다’라는 최신 지시를 같은 Pro UI에
+`UX-STEER-01`로 보내 실제 사용자 메시지에 나타난 것을 확인했다. 형상·해석 조건·계산·
+결과 분석·최적화·Co-STORM의 실제 기능을 화면과 조작의 중심으로 한다.
 
-관련 Space의 [제품 입구](https://chatgpt.com/space/page_6ac6e5e8d7688191a58c5760fda2d2d9)에
-최신 기획 우선·개발 시작 지시 관문·Penpot 제외와 Git/Pro 링크를 반영했고 본문 재조회에서
-나머지 블록/첨부 보존을 확인했다. Git–Space 자동 동기화가 아니다.
-기존 PRODUCT_PLAN의 없는 owner/창 분류와 상세 v2의 작성 당시 T표를 현재 소스 재사용
-기준에 맞춰 정리했다. Qt 교정·native 조작 기록은 `963ccf75474b3589f8fde804743171e9a9c444c1`로
-게시했고 원격 main의 같은 SHA를 확인했다. 별도 Codex [소유권·상태 도면](docs/design/20261012-desktop-planning/ownership-and-gates.drawio)은
-draw.io Desktop32.4.1에서 열기·페이지 전환·SVG 두 페이지 export를 확인했다. 이는 Pro의
-전체 작업 도면을 대신하지 않는다.
+### 도구와 실제 확인 범위
 
-현재 회수 장애: Pro 작업은 completed지만 새 브라우저 탭은 '이 대화를 불러올 수 없습니다',
-원 탭은 debugger unattached다. 공식 followup 도구는 active compatible turn이 필요하다며
-후속 전달을 거절했다. 준비한 `PRO-DESKTOP-DESIGN-20261012-02`는 **미전송**이다.
-documented browser API 복구 시도 뒤 native Browser 접근성 경로에서도 Windows URL을
-정책 판정에 충분히 확인하지 못해 Computer Use가 **현재 턴의 입력을 중단**했다.
-정책을 우회하거나 새 paid/provider 호출로 대체하지 않는다. 아직 ZIP을 회수하지 않았고
-새 전체 명세·상호작용 시안의 완료를 선언하지 않는다. 다음은 실제 Pro 산출물 회수→
-최신 Penpot 제외 반영→전체 Astra 독립 검토→도면/Qt 실제 열람·교정→사용자 검토 제출이다.
+MoAI `3.2.0-dev.2aab5f7`의 공식 Codex 초기화를 분리해 확인한 뒤 필요한 설정만 병합했다.
+실제 skill catalog의 MoAI5개, local stdio initialize/tools와 현재 host MCP4개를 확인했고
+이번 재개에서도 `spec_progress`로 draft SPEC을 조회했다. [MoAI SPEC](.moai/specs/SPEC-DESKTOP-001/spec.md)은
+기능·화면·작업표·수용 조건에 연결하며 현재 큐를 중복하지 않는다. strict lint는 구조 검사이며
+사용성 통과가 아니다. hook trust는 미확인이다. CLI0.146.1의 기존 global context_management
+map 호환 오류는 read-only 검사에만 임시 override를 사용했고 사용자 설정을 덮어쓰지 않았다.
+
+기존 사용자 Python3.13에는 PySide6 6.9.1·Matplotlib3.10.1·Designer와 Qt SVG가 있다.
+별도 Research runtime에는 PySide6가 없다. 새 D1 Qt 프로세스/접근성 구조는 확인했지만
+창 활성화 실패와 검은 캡처 때문에 native 입력을 중단했다. Segoe UI offscreen 렌더링·
+QTest의 범위만 기록한다. 이전 [Qt spike 검토](docs/design/20261012-desktop-planning/QT_REVIEW.md)의
+CSV/저장 chooser·선택·채택·Undo/Redo·dock Float·새 프로세스 재열기 근거가 새 D1을 대신하지 않는다.
+FreeCAD/ParaView exe는 Program Files·사용자 AutonomousCAELab·현재 runs/tools에서 찾지 못했다.
+이 검색 범위의 미발견을 설치 부재로 확대하지 않는다. 이전 버전/실행 기록을 새 실행으로 표시하지 않는다.
+
+draw.io Desktop32.4.1의 기존 portable 무료 도구로 Codex의 소유권·상태 도면을 열기/export했다.
+Pro 계약에서 작성한 [전체 연결 원본](docs/design/20261012-desktop-planning/research.drawio)은
+CAD/FE 준비·실행/Post·최적화/채택·Co-STORM/Study 경로를 연결하며 CLI export/렌더링을 확인했다.
+프로그램 화면 또는 solver 실행의 대체물이 아니다. Desktop 해당 버전 라이선스는 GPLv3로 교정했다.
+Penpot은 계정이 없어 제외하라는 사용자 결정으로 닫고 무시하며 계정·편집·export를 완료 gate로 두지 않는다.
+[무료 도구 기록](docs/design/20261012-desktop-planning/TOOLS_AND_LICENSES.md)을 따른다.
+
+주 Codex는 사용자 변경 이후 실제 실행 기록에서 Sol/xhigh를 확인했다. 변경 전 Sol/high
+기록을 소급 변경하지 않는다. 핵심 독립 검토 Astra/xhigh, bounded 코드 Sol/high,
+코드 조사 Luna/high를 사용했다. 실제 Pro UI 설정과 Codex의 추론 수준은 별개다.
+브라우저의 기존 대화 회수 장애를 공식 파일/저장소 작업 전체의 금지로 확대하지 않는다.
+수동 다운로드 요청은 공식 회수 경로가 동작한 뒤 철회했고 추가 사용자 조작을 기다리지 않는다.
+
+### 이어서 할 작업
+
+Pro의 전체 도구 화면·Qt 소스와 원 D1 편집 원본을 회수하고 실제로 열어, 위 결함과 사용자
+피드백의 교정을 확인한다. Astra에 최신 원문·같은 실제 산출물을 전달해 시각·hotspot·
+전체 경로를 독립 검토하고 필요한 Pro 교정을 반영한다. 사용자가 시작·선택·입력·결과·
+오류/취소·저장/재개를 직접 따라갈 수 있는 검토본으로 제출한 뒤 개발 시작 지시를 기다린다.
+CURRENT_STATE/HANDOFF·요구 상태와 관련 Space 입구는 실제 진행에 맞게 갱신한다.
+현재 전체 상세 기획·사용성 수용은 미완료이며 과거 수치 실패·UNKNOWN은 그대로 유지한다.
 
 ### 앞선 통합 기록
 

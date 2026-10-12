@@ -59,6 +59,7 @@ Separate editable planning prototypes and necessary limited technical checks are
 - REQ-DESKTOP-001-012: The project SHALL use actual ChatGPT Pro as the main design author and independent Astra review, and SHALL wait for the user's later development-start instruction before production implementation.
 - REQ-DESKTOP-001-013: The project SHALL reuse existing Core/Domain/Adapter, upstream, readers, numerical engines, JobManager and document/native owners.
 - REQ-DESKTOP-001-014: The design SHALL connect requirement, feature, screen/state, implementation target, acceptance and feature-specific verification timing/reference evidence.
+- REQ-DESKTOP-001-015: The desktop design SHALL make the selected engineering object, its values/units, current edit/run/save state and next action apparent through tables, curves, model views and contextual controls; internal diagnostics SHALL NOT displace the main task or require reading long explanatory text to complete it.
 
 ## 4. Acceptance mapping
 
