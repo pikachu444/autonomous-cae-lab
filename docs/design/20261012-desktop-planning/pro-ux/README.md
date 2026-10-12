@@ -35,3 +35,24 @@ Check / Freeze and offer an editor jump. Signed loads and a zero load remain val
 has Python compilation and stdlib state checks here; the corrected Qt must be checked again in
 the existing Windows PySide6 environment. The user's report verified offscreen Qt behavior of
 3ab34b0 only, not OS input acceptance or this newer source.
+
+## Engineering controls and precision checkpoint
+
+`make_table` now uses a retained `EngineeringTextDelegate` (QLineEdit), avoiding Qt's
+2-decimal floating-point delegate. Scientific notation and partial input remain editable.
+Simulation has separate model/step/condition/contact/initial/failure/output settings;
+CAD has sketch lines, geometry dimensions, mesh refinement, conditions and relative joint pose.
+Post supports filter settings, two-point picking, measurements and response registration.
+Expert Models provides draft role bindings for existing subscription OAuth, an existing local
+endpoint, or no configuration. All provider/model entitlement states remain UNVERIFIED.
+
+User-authorized temporary remote PySide6 6.9.1 offscreen checks passed nine bounded
+interaction checks and 14 window startups/renders at 1440×900 on the recorded source snapshot.
+No Windows OS/native-host/solver/provider acceptance is implied. The Models dialog was added
+subsequently and is pending its next targeted Qt check.
+
+Portable checks (existing interpreter, no installer in this script):
+
+```powershell
+py -3.13 docs/design/20261012-desktop-planning/pro-ux/qt_acceptance.py --source docs/design/20261012-desktop-planning/pro-ux --offscreen
+```

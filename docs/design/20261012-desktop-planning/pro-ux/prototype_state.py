@@ -359,12 +359,20 @@ class ReviewSession:
         if doc["owner"] == "native_pre":
             for field in ("thickness", "width", "height"):
                 positive(field)
-            if not data["contact"]["resolved"]:
+            if data["contact"].get("active",True) and not data["contact"]["resolved"]:
                 errors.append(("contact", "Required contact faces are unresolved."))
-            if not data["contact"]["set_a"] or not data["contact"]["set_b"]:
+            if data["contact"].get("active",True) and (not data["contact"]["set_a"] or not data["contact"]["set_b"]):
                 errors.append(("contact", "Both contact face sets are required."))
             if data["mesh"].get("stale"):
                 errors.append(("mesh", "Geometry changed. Review the rebuilt mesh before freezing."))
+            valid_faces=({"Base/Face2","Clamp/Pad/Face6","Clamp/Pad/Face7","Clamp/Pad/Face8","Clamp/Pad/Face9","Clamp/Leg/Face1","Clamp/Leg/Face2"}
+                         if data.get("geometry_type","Clamp")=="Clamp" else {"Plate/Pad/Face6"})
+            if data["contact"].get("active",True) and any(f not in valid_faces for f in data["contact"]["set_a"]+data["contact"]["set_b"]):
+                errors.append(("contact","Select contact faces that exist on the current geometry."))
+            for condition in data.get("conditions",[]):
+                if condition.get("face") not in valid_faces:errors.append(("conditions","Rebind the condition target to the current geometry."))
+                if not isinstance(condition.get("value"),(int,float)) or not math.isfinite(condition["value"]):errors.append(("conditions","Use a finite condition value."))
+            if not isinstance(data["mesh"].get("size"),(int,float)) or data["mesh"]["size"]<=0:errors.append(("mesh","Use a positive element size."))
             mu=data["contact"]["mu"]
             if not isinstance(mu,(int,float)) or not math.isfinite(mu) or mu<0:
                 errors.append(("contact.mu","Friction must be finite and nonnegative."))
@@ -384,6 +392,14 @@ class ReviewSession:
                 for field in ("duration","increments","time_step"):
                     positive(field)
                 increments=data.get("increments")
+                for name in ("residual_tolerance","max_iterations","cfl","gravity"):
+                    if name in data:positive(name)
+                for name in ("mass_scaling","drop_height"):
+                    if name in data:positive(name,True)
+                if "steps" in data and not data["steps"]:errors.append(("steps","At least one analysis step is required."))
+                for step in data.get("steps",[]):
+                    if not step.get("name") or not isinstance(step.get("duration"),(int,float)) or not math.isfinite(step["duration"]) or step["duration"]<=0:
+                        errors.append(("steps","Each analysis step needs a name and positive duration."))
                 if isinstance(increments,(float,int)) and not float(increments).is_integer():
                     errors.append(("increments","Use an integer increment limit."))
             elif data["family"]=="Thermal":
@@ -391,7 +407,7 @@ class ReviewSession:
             else:
                 positive("Tref")
         elif doc["owner"] == "Numerical":
-            if data.get("evaluator") in ("",None,"Unassigned"):
+            if data.get("evaluator") not in EVALUATORS or data.get("evaluator")=="Unassigned":
                 errors.append(("evaluator","Select an evaluator."))
             if not data["variables"] or not data["responses"]:
                 errors.append(("definition","Add at least one variable and required response."))
@@ -409,7 +425,27 @@ class ReviewSession:
                         raise ValueError()
                 except (ValueError, TypeError):
                     errors.append((var["field"], "Required bounds must contain the start value."))
+            numeric_rules={
+                "Design points":(1,None,True),"Replicates":(1,None,True),"Population":(1,None,True),
+                "Base samples":(2,None,True),"Bootstrap replicates":(1,None,True),"Samples":(1,None,True),
+                "Iteration limit":(1,None,True),"Relative tolerance":(1e-15,None,False),"Coupling tolerance":(1e-15,None,False),
+                "Feasibility tolerance":(1e-15,None,False),"Residual scale":(1e-15,None,False),"Observation weight":(0,None,False),
+                "Smoothing":(0,None,False),"Holdout fraction":(1e-12,1-1e-12,False),"Failure threshold":(None,None,False)}
+            for name,value in data.get("method_settings",{}).get(data["method"],{}).items():
+                if name in numeric_rules:
+                    lo,hi,integer=numeric_rules[name]
+                    try:
+                        v=float(value)
+                        if not math.isfinite(v) or (lo is not None and v<lo) or (hi is not None and v>hi) or (integer and not v.is_integer()):raise ValueError()
+                    except (ValueError,TypeError):errors.append(("method", "Correct "+name+" for "+data["method"]+"."))
+            response_units={"Mass":"kg","Gauge error":"%","Displacement":"mm","Clearance":"mm","Normal force":"N", "Stress residual":"MPa","Temperature":"K","Compliance":"N mm","Damage":"1"}
             for response in data["responses"]:
+                if response.get("name") in response_units and response.get("unit")!=response_units[response["name"]]:
+                    errors.append(("responses","Unit does not match "+response["name"]+"."))
+                if "time" in response:
+                    try:
+                        if not math.isfinite(float(response["time"])) or float(response["time"])<0:raise ValueError()
+                    except (ValueError,TypeError):errors.append(("responses","Response time must be finite and nonnegative."))
                 if response.get("role") not in RESPONSE_ROLES:
                     errors.append(("responses", "Choose a response role from Minimize, Maximize, Upper bound, Lower bound, Target or Observe."))
                 if not response.get("name", "").strip():
@@ -428,6 +464,14 @@ class ReviewSession:
             positive("tolerance")
         errors.extend((field, "Unfinished input: " + str(value)) for field, value in doc["buffers"].items())
         return errors
+
+    def pareto_ids(self):
+        """Classify retained synthetic minimization examples; no optimizer is run."""
+        feasible=[c for c in self.candidates if c["mass"] is not None and c["error"] is not None
+                  and c["displacement"]<=.35 and c["clearance"]>=.10]
+        return [c["id"] for c in feasible if not any(
+            d["mass"]<=c["mass"] and d["error"]<=c["error"] and
+            (d["mass"]<c["mass"] or d["error"]<c["error"]) for d in feasible if d is not c)]
 
     def post_frame(self, key, result_id=None):
         """Read one exact retained synthetic frame; never interpolate or compute."""
@@ -679,15 +723,17 @@ class ReviewSession:
         self.relocations[new_doc["id"] + "/" + dep_id] = {"path": str(candidate_path), "sha256": checksum}
         return {"kind": "CHANGED_CONTENT_BRANCH", "key": new_doc["key"], "id": new_doc["id"]}
 
-    def append_reply(self, text, topic, reply_to=None):
+    def append_reply(self, text, topic, reply_to=None, key="expert", evidence=None):
         if not text.strip():
             raise ReviewError("Write a reply first.")
-        payload = clone(self.doc("expert")["draft"])
+        payload = clone(self.doc(key)["draft"])
         turn = {"id": token("user-turn"), "role": "사용자", "actual": True,
-                "text": text.strip(), "topic": topic, "reply_to": reply_to, "evidence": []}
+                "text": text.strip(), "topic": topic, "reply_to": reply_to, "evidence": clone(evidence or [])}
         payload["turns"].append(turn)
         payload["pending_text"] = ""
-        self.change("expert", payload, "Save user reply")
+        payload["reply_to"] = None
+        payload["pending_evidence"] = []
+        self.change(key, payload, "Save user reply")
         return turn
 
     def material_repair_scenario(self):

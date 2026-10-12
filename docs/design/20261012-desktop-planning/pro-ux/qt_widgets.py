@@ -7,7 +7,7 @@ from PySide6.QtGui import QColor, QPen, QPainter, QPainterPath, QPolygonF, QFont
 from PySide6.QtWidgets import (
     QWidget, QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
     QGraphicsView, QGraphicsScene, QGraphicsRectItem, QGraphicsTextItem,
-    QGraphicsItem, QGraphicsPathItem,
+    QGraphicsItem, QGraphicsPathItem, QStyledItemDelegate, QLineEdit,
 )
 
 INK = "#263442"
@@ -18,8 +18,30 @@ RED = "#b5433b"
 PALE = "#e7f0f7"
 
 
+class EngineeringTextDelegate(QStyledItemDelegate):
+    """Keep exponent notation, signed numbers and incomplete drafts as text.
+
+    The default float delegate is a two-decimal spin box. It must never edit an
+    engineering coefficient, step size or tolerance in this prototype.
+    """
+    def createEditor(self,parent,option,index):
+        editor=QLineEdit(parent);editor.setFrame(False);return editor
+
+    def setEditorData(self,editor,index):
+        value=index.data(Qt.ItemDataRole.EditRole)
+        editor.setText("" if value is None else str(value));editor.selectAll()
+
+    def setModelData(self,editor,model,index):
+        model.setData(index,editor.text(),Qt.ItemDataRole.EditRole)
+
+    def updateEditorGeometry(self,editor,option,index):
+        editor.setGeometry(option.rect)
+
+
 def make_table(headers, rows, editable=(), select_rows=True):
     table = QTableWidget(len(rows), len(headers))
+    table.value_delegate=EngineeringTextDelegate(table)
+    table.setItemDelegate(table.value_delegate)
     table.setHorizontalHeaderLabels(headers)
     table.setAlternatingRowColors(True)
     table.setShowGrid(True)
@@ -116,6 +138,8 @@ class CurveView(QWidget):
                     active = False
                     continue
                 point = self._point(x, y)
+                if s.get("scatter"):
+                    p.setBrush(color);p.drawEllipse(point,4,4)
                 if not active:
                     path.moveTo(point)
                     active = True
@@ -130,7 +154,7 @@ class CurveView(QWidget):
                     p.drawLine(point+QPointF(-3,3), point+QPointF(3,-3))
                     p.setPen(QPen(color, 2))
             p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawPath(path)
+            if not s.get("scatter"):p.drawPath(path)
             p.drawLine(legend_x, 15+n*17, legend_x+20, 15+n*17)
             p.drawText(legend_x+26, 19+n*17, s.get("name", "Curve"))
         if self.cursor_x is not None and x0 <= self.cursor_x <= x1:
@@ -194,6 +218,8 @@ class CurveView(QWidget):
 class EngineeringView(QWidget):
     """Selectable, rotatable QPainter illustration, explicitly not a native host."""
     faceSelected = Signal(str)
+    sketchLineAdded = Signal(list)
+    pointSelected = Signal(str)
     def __init__(self, mode="cad", parent=None):
         super().__init__(parent)
         self.mode = mode
@@ -216,6 +242,11 @@ class EngineeringView(QWidget):
         self.field_max, self.field_available = .31, True
         self.filter_mode, self.deformation_scale = "Surface", 10
         self.annotation = ""
+        self.warp_magnitude = .31
+        self.joint_angle, self.joint_type, self.moving_part = 15, "Revolute", "Clamp"
+        self.mesh_size, self.mesh_type, self.selected_element = 2.0, "Tet4", None
+        self.draw_line, self.sketch_line_start, self.sketch_segments = False, None, []
+        self.point_pick=False;self.plane_axis="X";self.plane_offset=0.0
         self.label = "Native host illustration" if mode in ("cad","post") else "Domain illustration"
 
     def set_selected(self, name):
@@ -229,6 +260,13 @@ class EngineeringView(QWidget):
         scale = min(self.width()/150, self.height()/115)*self.zoom
         return QPointF(self.width()/2+xx*scale,
                        self.height()*.58+(yy*math.sin(self.pitch)-z*math.cos(self.pitch))*scale)
+
+    def _part_point(self,v,name):
+        if self.mode!="cad" or not name.startswith(self.moving_part+"/"):return v
+        x,y,z=v;a=math.radians(self.joint_angle)
+        if self.joint_type=="Slider":return (x+self.joint_angle/4,y,z)
+        if self.joint_type=="Fixed":return v
+        return (x*math.cos(a)+(z-8)*math.sin(a),y,8-x*math.sin(a)+(z-8)*math.cos(a))
 
     def paintEvent(self, event):
         p=QPainter(self)
@@ -254,18 +292,26 @@ class EngineeringView(QWidget):
                        ((w*.28,-h*.4,8),(w*.49,h*.4,h+6),"Clamp/Leg/Face2","#95a6b5"),
                        ((-w*.53,-h*.57,h+6),(w*.53,h*.57,h+6+t),"Clamp/Pad/Face6","#c3cdd5")]
             if self.sketch:
-                p.fillRect(self.rect(),QColor("#f4f6f8"));r=QRectF(self.width()*.2,self.height()*.25,self.width()*.55,self.height()*.4)
+                p.fillRect(self.rect(),QColor("#f4f6f8"));r=QRectF(self.width()*.2,self.height()*.25,min(self.width()*.7,w*self.width()/140),min(self.height()*.5,h*self.height()/100))
                 p.setPen(QPen(QColor(TEAL),2));p.setBrush(QColor("#dcebe7"));p.drawRect(r)
                 p.setFont(QFont("Segoe UI",11));p.drawText(QRectF(r.left(),r.bottom()+10,r.width(),30),Qt.AlignmentFlag.AlignCenter,f"Width {w:g} mm")
                 p.drawText(20,int(r.center().y()),f"Height {h:g} mm")
                 p.drawText(20,30,"Rectangle sketch · dimension illustration")
+                p.setPen(QPen(QColor(BLUE),2))
+                for x1,y1,x2,y2 in self.sketch_segments:
+                    p.drawLine(QPointF(60+x1*4,80+y1*4),QPointF(60+x2*4,80+y2*4))
                 p.end();return
         if self.mode=="post" and self.filter_mode=="Clip":
-            boxes=[(lo,(min(hi[0],0),hi[1],hi[2]),name,color) for lo,hi,name,color in boxes if lo[0]<0]
+            axis={"X":0,"Y":1,"Z":2}[self.plane_axis];clipped=[]
+            for lo,hi,name,color in boxes:
+                if lo[axis]>=self.plane_offset:continue
+                upper=list(hi);upper[axis]=min(hi[axis],self.plane_offset);clipped.append((lo,tuple(upper),name,color))
+            boxes=clipped
         elif self.mode=="post" and self.filter_mode=="Slice":
-            boxes=[((-.4,-28,0),(.4,28,48),"Slice plane","#89b9b1")]
+            axis={"X":0,"Y":1,"Z":2}[self.plane_axis];lo=[-48,-28,0];hi=[48,28,48]
+            lo[axis]=self.plane_offset-.4;hi[axis]=self.plane_offset+.4;boxes=[(tuple(lo),tuple(hi),"Slice plane","#89b9b1")]
         elif self.mode=="post" and self.filter_mode=="Warp by vector":
-            boxes=[(lo,(hi[0],hi[1],hi[2]+self.field_max*self.deformation_scale*(hi[2]/48)),name,color) for lo,hi,name,color in boxes]
+            boxes=[(lo,(hi[0],hi[1],hi[2]+self.warp_magnitude*self.deformation_scale*(hi[2]/48)),name,color) for lo,hi,name,color in boxes]
         self.faces=[]
         for lo,hi,name,color in boxes:
             x0,y0,z0=lo; x1,y1,z1=hi
@@ -273,7 +319,7 @@ class EngineeringView(QWidget):
                       [(x1,y0,z0),(x1,y1,z0),(x1,y1,z1),(x1,y0,z1)],
                       [(x0,y0,z1),(x1,y0,z1),(x1,y1,z1),(x0,y1,z1)]]
             for n, vs in enumerate(polygons):
-                poly=QPolygonF([self._project(v) for v in vs])
+                poly=QPolygonF([self._project(self._part_point(v,name)) for v in vs])
                 self.faces.append((poly,name))
                 fill=QColor(color)
                 if self.mode=="post":
@@ -288,10 +334,17 @@ class EngineeringView(QWidget):
                     clip=QPainterPath(); clip.addPolygon(poly); p.setClipPath(clip)
                     bounds=poly.boundingRect()
                     p.setPen(QPen(QColor("#638697"),.7))
-                    for i in range(int(bounds.left())-100,int(bounds.right())+100,24):
+                    for i in range(int(bounds.left())-100,int(bounds.right())+100,max(8,int(self.mesh_size*12))):
                         p.drawLine(QPointF(i,bounds.top()),QPointF(i+100,bounds.bottom()))
-                        p.drawLine(QPointF(i,bounds.top()),QPointF(i-100,bounds.bottom()))
+                        if self.mesh_type!="Hex illustration":p.drawLine(QPointF(i,bounds.top()),QPointF(i-100,bounds.bottom()))
                     p.restore()
+        if self.mesh and self.selected_element is not None:
+            point=self._project((15 if self.selected_element==314 else -15,0,self.model_height+6+self.thickness))
+            p.setPen(QPen(QColor(ORANGE),3));p.setBrush(QColor(245,180,80,110));p.drawEllipse(point,15,15)
+        if self.point_pick:
+            p.setPen(QPen(QColor(ORANGE),2));p.setBrush(QColor("white"))
+            for name,x in (("Gauge left",-25),("Gauge right",25),("Clamp centre",0)):
+                point=self._project((x,0,50));p.drawEllipse(point,5,5);p.drawText(point+QPointF(8,-8),name)
         if self.through_hole and self.mode=="cad":
             centre=self._project((0,0,self.model_height+6+self.thickness))
             p.setBrush(QColor("#637986"));p.setPen(QPen(QColor("#34556b"),2));p.drawEllipse(centre,22*self.zoom,11*self.zoom)
@@ -319,6 +372,12 @@ class EngineeringView(QWidget):
     def mousePressEvent(self,event):
         self.setFocus()
         self.drag=event.position()
+        if event.button()==Qt.MouseButton.LeftButton and self.sketch and self.draw_line:
+            self.sketch_line_start=event.position();return
+        if event.button()==Qt.MouseButton.LeftButton and self.point_pick:
+            choices=[(name,self._project((x,0,50))) for name,x in (("Gauge left",-25),("Gauge right",25),("Clamp centre",0))]
+            chosen=min(choices,key=lambda pair:(pair[1]-event.position()).manhattanLength())[0]
+            self.pointSelected.emit(chosen);return
         if event.button()==Qt.MouseButton.LeftButton:
             for poly,name in reversed(self.faces):
                 if poly.containsPoint(event.position(),Qt.FillRule.OddEvenFill):
@@ -332,6 +391,10 @@ class EngineeringView(QWidget):
             self.drag=event.position(); self.update()
 
     def mouseReleaseEvent(self,event):
+        if self.sketch_line_start is not None:
+            a=self.sketch_line_start;b=event.position()
+            self.sketch_line_start=None;self.draw_line=False
+            self.sketchLineAdded.emit([round((a.x()-60)/4,2),round((a.y()-80)/4,2),round((b.x()-60)/4,2),round((b.y()-80)/4,2)])
         self.drag=None
 
     def wheelEvent(self,event):
