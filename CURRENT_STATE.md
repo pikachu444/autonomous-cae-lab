@@ -29,13 +29,16 @@ global bytes를 보존했고 read-only `mcp get`에만 임시 false override를 
 사용자 Python 3.13에는 PySide6 `6.9.1`, Matplotlib, Qt Designer가 있다. 별도 설치된
 Research runtime에는 PySide6가 없으므로 둘을 같은 환경으로 보고하지 않는다.
 
-실제 Pro 상태: **전송 확인·산출물 작성 중**. 이전 실제 세션의 Edge 확장 경로를 확인했고
+실제 Pro 상태: **D1 작성 완료 응답 회수 / ZIP 파일 미회수**. 이전 실제 세션의 Edge 확장 경로를 확인했고
 사용자가 Edge를 연 뒤 연결됐다. 실제 Pro power5/5 UI 확인 후 새 요청
 `PRO-DESKTOP-DESIGN-20261012-01`을 한 번 보내고 7개 원문 구간과 마지막 본문을 대조했다.
 [실제 대화](https://chatgpt.com/c/6acca3ab-15b0-83ee-8ca3-25ff00e335c5), local 전달/응답 기록은
 `runs/pro-relay/20261012-desktop-design/`이다. ZIP upload는 file-URL permission으로 실패해
 **inline 실제 본문**(최신 사용자 원문·Pro 요청·source reuse·Astra·PROJECT_SCOPE·v2·ADR 기준)을
-전달했다. 공개 pinned source도 Pro가 실제 조회하는 중이다. 다른 모델/API로 대체하지 않았다.
+전달했다. Pro는 공개 pinned source 조회·전체 명세/화면/도면/별도 Qt 시제품을 작성해 D1 ZIP을
+제출했다고 보고했다. 같은 요청의 실제 cloud 작업 완료와 final 응답을 공식 read_thread에서
+회수해 local relay 폴더에 보존했다. 파일을 받거나 실행한 것으로 처리하지 않는다.
+다른 모델/API로 대체하지 않았다.
 
 Penpot은 로그인 화면까지 확인했으나 **계정이 없으니 탭을 닫고 무시하라는 최신 사용자
 지시로 제외**했다. 계정 생성/유료 trial 없이 editable SVG/.drawio/.ui와 native Qt interaction을
@@ -69,8 +72,17 @@ init/merge 단계에서 global 보호 해시는 유지됐고 이후 외부 변�
 최신 기획 우선·개발 시작 지시 관문·Penpot 제외와 Git/Pro 링크를 반영했고 본문 재조회에서
 나머지 블록/첨부 보존을 확인했다. Git–Space 자동 동기화가 아니다.
 기존 PRODUCT_PLAN의 없는 owner/창 분류와 상세 v2의 작성 당시 T표를 현재 소스 재사용
-기준에 맞춰 정리했다. Pro UI는 연결 해제/답변 대기지만 동일 요청의 실제 cloud 작업은
-inProgress이며 문서·화면·도면의 연결 검사를 진행하고 있다. 아직 ZIP을 회수하지 않았고
+기준에 맞춰 정리했다. Qt 교정·native 조작 기록은 `963ccf75474b3589f8fde804743171e9a9c444c1`로
+게시했고 원격 main의 같은 SHA를 확인했다. 별도 Codex [소유권·상태 도면](docs/design/20261012-desktop-planning/ownership-and-gates.drawio)은
+draw.io Desktop32.4.1에서 열기·페이지 전환·SVG 두 페이지 export를 확인했다. 이는 Pro의
+전체 작업 도면을 대신하지 않는다.
+
+현재 회수 장애: Pro 작업은 completed지만 새 브라우저 탭은 '이 대화를 불러올 수 없습니다',
+원 탭은 debugger unattached다. 공식 followup 도구는 active compatible turn이 필요하다며
+후속 전달을 거절했다. 준비한 `PRO-DESKTOP-DESIGN-20261012-02`는 **미전송**이다.
+documented browser API 복구 시도 뒤 native Browser 접근성 경로에서도 Windows URL을
+정책 판정에 충분히 확인하지 못해 Computer Use가 **현재 턴의 입력을 중단**했다.
+정책을 우회하거나 새 paid/provider 호출로 대체하지 않는다. 아직 ZIP을 회수하지 않았고
 새 전체 명세·상호작용 시안의 완료를 선언하지 않는다. 다음은 실제 Pro 산출물 회수→
 최신 Penpot 제외 반영→전체 Astra 독립 검토→도면/Qt 실제 열람·교정→사용자 검토 제출이다.
 

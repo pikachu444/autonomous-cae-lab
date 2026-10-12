@@ -2,7 +2,8 @@
 
 최신 사용자 요청(2026-10-12)에 따른 작업 자료다. **전체 상세 기획은 진행 중이고
 제품 본구현은 승인 대기다.** 이전 Pro v2와 현재 코드를 재사용한다. 최신 원요구와
-7개 설계/조사 본문을 실제 Pro 새 대화에 전송했고 작성 중이다. 여기의 Codex 정리와
+7개 설계/조사 본문을 실제 Pro 새 대화에 전송했고 D1 작성 완료 응답을 회수했다.
+ZIP은 브라우저 연결 문제로 아직 받지 못했다. 여기의 Codex 정리와
 기술 spike를 새 Pro 설계로 표시하지 않는다. 현재 배정·연결 상태·다음 행동은
 [CURRENT_STATE](../../../CURRENT_STATE.md)에 있다.
 
@@ -12,7 +13,7 @@
 | [코드 재사용 조사](SOURCE_REUSE.md) | `9a6e308`의 owner/창/명령과 화면 개선 지점. source와 이전 실행 증거 구별 |
 | [Astra 기준 설계 검토](ASTRA_BASELINE_REVIEW.md) | 실제 `gpt-6-astra/xhigh` 배정의 독립 검토. 기존 v2의 누락과 수정 기준. 새 설계 통과가 아님 |
 | [Pro 전달 본문](PRO_REQUEST.md) | 새 요구·원본·기준 버전·책임·완료 조건. initial ZIP 첨부 실패, 실제 inline 원문 전달. latest Penpot 제외 결정은 후속 교정에서 반영 |
-| 편집 가능한 흐름 원본 | actual Pro가 `.drawio` 산출물 작성 중. 회수 뒤 실제 파일과 앱/export 확인을 연결 |
+| [소유권·상태 원본](ownership-and-gates.drawio), [소유권 SVG](ownership-and-gates.svg), [상태 SVG](state-gates.svg), [Desktop 열람](native-drawio-states.png) | Codex가 현행 ADR·재사용 경계를 2페이지로 정리하고 actual draw.io 열람/export 확인. Pro의 전체 작업 도면은 ZIP 회수 후 별도 검토 |
 | [Qt 시제품](qt_prototype/README.md), [실제 창 재열기](native-material-reopen.png) | 별도 PySide6/Designer 시제품. offscreen 교정과 제한된 실제 Windows 파일/선택/채택/Undo/도킹/저장·새 프로세스 재열기 확인. 계산은 DEMO/SIMULATED UI |
 | [Qt 독립 검토와 실제 조작 기록](QT_REVIEW.md) | 원 P1/P2 교정·최종 해시, Astra 판정 범위와 Codex의 native 경로·남은 확인 |
 | [무료 도구와 라이선스](TOOLS_AND_LICENSES.md) | 공식 자료/설치 사실/접속 확인을 구별. 제품 배포 승인은 별도 |
