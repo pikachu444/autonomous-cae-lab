@@ -2804,7 +2804,8 @@ class ReportWindow(ToolWindow):
             raise ReviewError(" ".join(message for field,message in errors))
         pages=self.pages();layout_errors=self.page_layout_errors(pages)
         if layout_errors:
-            self.tabs.setCurrentIndex(1)
+            self._page_index=next(i for i,page in enumerate(pages) if self.preview.layout_issues(self.data["title"],page))
+            self.page_move(0);self.tabs.setCurrentIndex(1)
             raise ReviewError("\n".join(layout_errors))
         path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
         descriptor,temporary=tempfile.mkstemp(prefix="report-preview-",suffix=path.suffix,dir=path.parent);os.close(descriptor)
@@ -3239,9 +3240,21 @@ class DesktopHub:
             self.session.documents[key]=make_document(key,name,"native_post","POST-"+result_id,1,payload)
         if context:
             payload=clone(self.session.doc(key)["draft"])
-            payload.update(array=context["array"],time=context["time"],unit=context["unit"],association=context["association"])
+            payload.update(array=context["array"],time=context["time"],unit=context["unit"],association=context["association"],
+                basis=context["basis"],selection=context["selection"],gauge=clone(context["gauge"]),
+                filter="Surface",pending_filter="Surface")
             self.session.change(key,payload,"Open selected evidence frame")
-        return self.open(key)
+        window=self.open(key)
+        if context:
+            window.pipeline.blockSignals(True)
+            root=window.pipeline.topLevelItem(0)
+            for index in range(root.childCount()):
+                if root.child(index).text(0)==context["selection"]:window.pipeline.setCurrentItem(root.child(index));break
+            window.pipeline.blockSignals(False);window.viewer.set_selected(context["selection"])
+            window.bottom.setCurrentIndex(1)
+            row={"Displacement":0,"Contact pressure":1,"Normal force":2}[context["array"]]
+            window.measure.setCurrentCell(row,0);window.measure.selectRow(row)
+        return window
 
     def discussion_for(self,source_key):
         if not source_key or source_key not in self.session.documents:return "expert"

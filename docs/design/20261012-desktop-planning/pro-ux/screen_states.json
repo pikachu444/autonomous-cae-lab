@@ -1346,6 +1346,13 @@
         "FN-32",
         "FN-29",
         "FN-01"
+      ],
+      "evidence_locator": "Gauge / t = 0.02 s",
+      "acceptance": [
+        "Selected frame 0.02 s = 0.2294 mm / POINTS; 0 and 0.04 s remain selectable; missing 0.03 s is unavailable.",
+        "Open source follows the visible page and restores exact field, association, time and supported gauge location.",
+        "Edited Use Study replacement requires explicit Replace; Cancel keeps all sections.",
+        "Current checks NOT_EVALUATED / UNKNOWN / NOT_RELEASED; historical F05 only when explicitly added."
       ]
     },
     {
@@ -1369,6 +1376,14 @@
       "functions": [
         "FN-32",
         "FN-01"
+      ],
+      "evidence_locator": "Gauge / t = 0.02 s",
+      "acceptance": [
+        "Selected frame 0.02 s = 0.2294 mm / POINTS; 0 and 0.04 s remain selectable; missing 0.03 s is unavailable.",
+        "Open source follows the visible page and restores exact field, association, time and supported gauge location.",
+        "Edited Use Study replacement requires explicit Replace; Cancel keeps all sections.",
+        "Current checks NOT_EVALUATED / UNKNOWN / NOT_RELEASED; historical F05 only when explicitly added.",
+        "PDF/Markdown carry exact Study/result/locator; active-font page overflow blocks PDF and focuses the affected page."
       ]
     },
     {
@@ -1417,6 +1432,10 @@
       ],
       "functions": [
         "FN-35"
+      ],
+      "acceptance": [
+        "At 1440x900 the six connection/end rows, including physical terminal UNKNOWN and ACK NOT_RECEIVED, are visible together.",
+        "Stored trace remains available; Connect/Start/Stop remain UNAVAILABLE."
       ]
     }
   ],
@@ -1435,7 +1454,7 @@
         "post-field",
         "study-judgment"
       ],
-      "relationship": "Dedicated native Qt section/page/output review view; Qt preview PDF/Markdown is local prototype export. Original production artifact/report integration remains D1 work. New Qt execution pending after remote environment disconnect.",
+      "relationship": "Dedicated Study-owned native Qt section/page/output review view with exact retained frame/locator, guarded section replacement, opt-in historical checks and local PDF/Markdown export. Windows 600f9f8 startup/render and bounded interactions reported by the user; the later report correction remains pending target execution. Product artifact/report integration remains D1 work.",
       "prototype_states": [
         "report-sections",
         "report-preview"
@@ -1474,7 +1493,7 @@
         "data-workbook",
         "data-calibration"
       ],
-      "relationship": "Dedicated Data-owned channel/time/calibration/trace and connection/end planning views. Retained file trace is not acquired live; no device/physical stop command or acknowledgment is fabricated. New Qt execution pending after remote environment disconnect.",
+      "relationship": "Dedicated Data-owned channel/time/calibration/trace and connection/end planning views. Windows 600f9f8 startup/render and bounded unit/selection/numeric/live-guard checks reported by the user; the later six-row layout correction remains pending target execution. Retained file trace is not live acquisition; no physical acknowledgment is fabricated.",
       "prototype_states": [
         "acquisition-channels",
         "acquisition-connection"

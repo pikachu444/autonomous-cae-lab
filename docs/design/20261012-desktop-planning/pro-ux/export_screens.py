@@ -89,6 +89,9 @@ def main():
                         payload['judgment']='Insufficient evidence';payload['reason']='The authored DOE suggests a discriminating test. A measured gauge result is still required.'
                         payload['next_research']='Measure fixture and specimen displacement at the same force.';session.change('study',payload,'Apply review judgment');window.refresh()
                 elif setup=='report-source':
+                    if state.get('evidence_locator'):
+                        for side in ('saved','draft'):
+                            session.doc('study')[side]['evidence'][0]['locator']=state['evidence_locator']
                     window.load_study()
                     if state.get('section'):
                         for row in range(window.section_list.count()):

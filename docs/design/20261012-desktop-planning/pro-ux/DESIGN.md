@@ -187,11 +187,11 @@ FN-35 실측 수집의 정확한 prior reference는 **DEVICE-PLAN**, **DATA-CALI
 
 기존 Study 소유를 재사용하는 별도 검토 문서다. Study의 Report… 또는 Window → Report로 열며, 강제 Home이나 추가 실행 owner를 만들지 않는다. 왼쪽 Sections는 checkbox 포함 여부와 drag/Move up/down 순서를 갖는다. 중앙 Section content에는 선택 절의 본문 또는 근거 표·큰 curve가 나온다. 상단의 짧은 제목과 하단 caption을 편집한다. Source 데이터는 직접 덮어쓰지 않고 Open source로 해당 결과/locator 또는 저장한 Study 창을 연다.
 
-Use Study는 명시적으로 선택한 **저장 Study**의 질문·판단·근거를 보고서에 가져온다. 편집 중인 Study는 먼저 그 창에서 저장해야 한다. 현재 draft를 과거 보고서의 원 근거 대신 열지 않는다. 표의 numerical locator는 method/table/row를 정확히 유지하며, 방법 전체 curve를 함께 넣으면 caption에서 선택 행의 표와 구별한다. Add section은 로컬 본문, 정확 결과 표, 보유 curve를 고른다. Include/Remove/Reorder/Edit 모두 기존 Undo/Redo와 일반 Save를 따른다.
+Use Study는 명시적으로 선택한 **저장 Study**의 질문·판단·근거를 보고서에 가져온다. 편집 중인 Study는 먼저 그 창에서 저장해야 한다. 현재 draft를 과거 보고서의 원 근거 대신 열지 않는다. 보고서 절의 내용·제목·순서·포함 여부를 고쳤다면 Use Study는 교체할 절을 보여 주고 Replace sections 또는 기본 Cancel을 받는다. Cancel은 원 draft를 유지한다. 구조 결과는 지원 quantity/association/location과 정확한 retained time을 함께 사용한다. Gauge의 0/0.02/0.04 s는 각각 0/0.2294/0.31 mm이며 0.03 s는 unavailable이다. Open source는 같은 field·time·gauge endpoints를 복원하고 이전 Post의 임의 필터나 gauge 설정을 대신 쓰지 않는다. 곡선은 all retained times 범위와 선택 프레임 cursor를 표시한다. 표의 numerical locator는 method/table/row를 정확히 유지하며, 방법 전체 curve를 함께 넣으면 caption에서 선택 행의 표와 구별한다. Add section은 로컬 본문, 정확 결과 표, 보유 curve를 고른다. Include/Remove/Reorder/Edit 모두 기존 Undo/Redo와 일반 Save를 따른다.
 
-Page preview는 기본 1440×900 desktop 가운데의 세로 용지와 Previous/Next를 쓴다. 오른쪽 Output dock은 해당 탭에서만 나타난다. Review PDF와 Markdown을 고르고 Export preview…의 파일 chooser에서 경로를 정한다. PDF는 preview와 **같은 ReportPage QPainter**를 사용한다. 표는 18행 단위 페이지로 나누며, 지나치게 긴 본문은 절 분할을 요구한다. Markdown curve는 원 좌표 표로 내보내므로 그림을 내보냈다고 주장하지 않는다. 원 입력·결과를 계산하는 보고서 엔진이나 승인 엔진은 없다.
+Page preview는 기본 1440×900 desktop 가운데의 세로 용지와 Previous/Next를 쓴다. 오른쪽 Output dock은 해당 탭에서만 나타난다. Review PDF와 Markdown을 고르고 Export preview…의 파일 chooser에서 경로를 정한다. PDF는 preview와 **같은 ReportPage QPainter**를 사용한다. Previous/Next는 왼쪽 절과 보이는 원 근거를 함께 바꾸며 Open source는 현재 보이는 페이지를 따른다. PDF/Markdown에는 작은 Study·result·locator·저장 review 참조를 남긴다. 표는 16행 단위 페이지로 나눈다. 실제 설치 글꼴의 크기·굵기·줄바꿈·열 폭으로 제목/본문/표/caption/출처의 배치를 측정하며, 넘치는 PDF는 해당 페이지로 이동해 수정을 요구한다. 글자 수만으로 통과시키지 않는다. Markdown curve는 원 좌표 표로 내보내므로 그림을 내보냈다고 주장하지 않는다. 원 입력·결과를 계산하는 보고서 엔진이나 승인 엔진은 없다.
 
-근거가 없는 절은 그 절만 unavailable이다. 기본은 export 차단이고, 사용자가 unavailable placeholder를 선택하면 누락을 표시한 페이지를 출력한다. 임시 출력 완료 후 파일을 교체하여 일반 write error에서 이전 출력이 유지되게 한다. 저장한 보고서는 Study snapshot·결과 첨부·정확 locator·절 순서/내용을 갖고 단독 cold reopen할 수 있게 작성했다. Checks 절은 process completion, numerical validity, engineering checks, release를 구별하며 기존 F05 실패 수치/허용치를 유지한다.
+근거가 없는 절은 그 절만 unavailable이다. 기본은 export 차단이고, 사용자가 unavailable placeholder를 선택하면 누락을 표시한 페이지를 출력한다. 임시 출력 완료 후 파일을 교체하여 일반 write error에서 이전 출력이 유지되게 한다. 저장한 보고서는 Study snapshot·결과 첨부·정확 locator·절 순서/내용을 갖고 단독 cold reopen할 수 있게 작성했다. Checks 절은 현재 Study의 process completion, numerical validity NOT_EVALUATED, engineering UNKNOWN, release NOT_RELEASED를 구별한다. 역사 F05는 기본 Checks에 삽입하지 않는다. Add section → Historical F05 check를 명시적으로 고르면 원래 3.32295e-6, 1e-6, FAIL과 Task1 역사 범위가 별도 절에 들어간다. 원 Task1 raw report는 이 시제품에서 미연결이며 현재 Study 검증을 대신하지 않는다.
 
 ### Acquisition: 채널과 기존 신호에서 수집 계획까지
 
@@ -201,7 +201,7 @@ Add/Edit channel의 native dialog는 name, force/extension/temperature field, �
 
 수집 수치는 기존 EngineeringTextDelegate로 지수 표기·음수 offset·의미 있는 zero·미완성 draft를 유지한다. rate와 duration은 양수여야 하며 time offset은 유한한 signed 값/0을 허용한다. invalid draft의 Save는 가능하고 Check plan이 해당 셀/채널로 이동한다. 값 점검 성공은 장비 실행 가능 판정이 아니다.
 
-Review → Connection loss example은 오류 상황을 보는 작성된 시안이다. 같은 기존 trace와 함께 **Connection and end** 탭에서 live UNAVAILABLE, acquisition phase 미관측, requested stop NOT_SENT, device ACK NOT_RECEIVED, physical terminal UNKNOWN, allowed control NONE을 구별한다. 실제 명령을 보내는 Connect/Start/Stop은 비활성화된다. 메시지 확인을 physical ACK로 바꾸는 checkbox나 버튼은 없다. Return to setup / Open existing Data / Save를 통해 독립 파일 작업을 계속한다. Simulation cancel·acquisition cancel·physical emergency stop의 기존 C09 구별을 유지한다.
+Review → Connection loss example은 오류 상황을 보는 작성된 시안이다. 같은 기존 trace와 함께 **Connection and end** 탭에서 live UNAVAILABLE, acquisition phase 미관측, requested stop NOT_SENT, device ACK NOT_RECEIVED, physical terminal UNKNOWN, allowed control NONE을 구별한다. Connection and end 탭은 curve 높이를 줄여 1440×900에서 여섯 상태 행과 UNKNOWN/ACK를 함께 보이게 한다. 실제 명령을 보내는 Connect/Start/Stop은 비활성화된다. 메시지 확인을 physical ACK로 바꾸는 checkbox나 버튼은 없다. Return to setup / Open existing Data / Save를 통해 독립 파일 작업을 계속한다. Simulation cancel·acquisition cancel·physical emergency stop의 기존 C09 구별을 유지한다.
 
 ### 새 상태와 확인 범위
 

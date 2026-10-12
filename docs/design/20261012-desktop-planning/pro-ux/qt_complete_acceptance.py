@@ -25,7 +25,7 @@ os.environ["QT_QPA_PLATFORM"]="offscreen"
 sys.path.insert(0,str(args.source.resolve()))
 from PySide6.QtCore import Qt,QTimer
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication,QLineEdit,QComboBox,QDialog,QDialogButtonBox,QFileDialog
+from PySide6.QtWidgets import QApplication,QLineEdit,QComboBox,QDialog,QDialogButtonBox,QFileDialog,QMessageBox
 import PySide6
 import prototype_state as state
 import qt_prototype as prototype
@@ -159,6 +159,88 @@ def report_check():
     reopened=cold("report",path)
     return {"pdf_bytes":len(content),"sections":moved,"cold":reopened,"source_unchanged":True}
 
+def report_selection_check():
+    session=state.ReviewSession(workspace/"report-selection");hub=prototype.DesktopHub(session);hubs.append(hub)
+    window=hub.open("report");window.resize(1440,900);study=hub.open("study");pump()
+    rid="fixture-result-clamp";records=[]
+    def saved_time(time):
+        payload=state.clone(study.data);payload["evidence"][0]["locator"]="Gauge / t ="+str(time)+" s"
+        session.change("study",payload,"Select exact retained evidence");study.refresh()
+        ordinary_save(study,workspace/"Selected Study.json")
+        assert window.load_study() is True
+        window.section_list.setCurrentRow(0);window.tabs.setCurrentIndex(1);pump()
+    for time,expected in ((0,0),(.02,.2294),(.04,.31)):
+        saved_time(time)
+        section=next(s for s in window.data["sections"] if s["id"]=="evidence-0")
+        assert abs(section["rows"][0][1]-expected)<1e-12
+        window.page_move(1);window.page_move(1);pump()
+        assert window.preview.section["id"]=="curve-0"
+        assert window.selected_section()["id"]=="curve-0"
+        assert window.preview.section["cursor_x"]==time
+        post=window.open_source();pump()
+        assert post.data["time"]==time and post.data["array"]=="Displacement" and post.data["association"]=="POINTS"
+        assert abs(session.post_frame(post.key)["value"]-expected)<1e-12
+        assert post.data["gauge"]=={"a":"Gauge left","b":"Gauge right","direction":"X"}
+        assert abs(float(post.measure.item(0,1).text())-expected)<1e-6
+        window.output_format.setCurrentText("Review PDF")
+        assert not window.page_layout_errors()
+        pdf=workspace/("Frame "+str(time)+".pdf");window.export_to(pdf)
+        assert pdf.read_bytes().startswith(b"%PDF-")
+        window.output_format.setCurrentText("Markdown")
+        markdown=workspace/("Frame "+str(time)+".md");window.export_to(markdown)
+        content=markdown.read_text(encoding="utf-8")
+        assert "| Displacement | "+str(section["rows"][0][1])+" | mm |" in content
+        assert "Selection: Gauge / t ="+str(time)+" s" in content
+        assert "Study: "+study.document["id"] in content and "Result: "+rid in content
+        assert "F05" not in content
+        records.append({"time":time,"value":section["rows"][0][1],"pdf_bytes":pdf.stat().st_size})
+    saved_time(.03)
+    section=next(s for s in window.data["sections"] if s["id"]=="evidence-0")
+    assert section["unavailable"] and not any(s["id"]=="curve-0" for s in window.data["sections"])
+    window.section_list.setCurrentRow(1);pump()
+    try:window.open_source()
+    except state.ReviewError:pass
+    else:raise AssertionError("Missing .03 frame was replaced with another frame")
+    try:window.export_to(workspace/"Absent frame.md")
+    except state.ReviewError:pass
+    else:raise AssertionError("Unavailable frame passed Block export")
+    saved_time(.02)
+    window.section_list.setCurrentRow(0);window.tabs.setCurrentIndex(0);pump()
+    window.text_editor.setPlainText("Retain this edited question and local notes.");pump()
+    before=state.clone(window.data);seen=[]
+    def cancel_replace():
+        message=app.activeModalWidget()
+        if isinstance(message,QMessageBox):
+            seen.append(message.windowTitle());QTest.mouseClick(message.button(QMessageBox.StandardButton.Cancel),Qt.MouseButton.LeftButton)
+        elif message:message.reject()
+    QTimer.singleShot(0,cancel_replace)
+    assert window.load_study() is False and seen and window.data==before
+    path=workspace/"Selected frame report.json";ordinary_save(window,path)
+    reopened=cold("report",path)
+    restored=state.ReviewSession();key=restored.open_document(path);other=prototype.DesktopHub(restored);hubs.append(other)
+    review=other.open(key);review.section_list.setCurrentRow(1);pump()
+    opened=review.open_source();assert opened.data["time"]==.02
+    assert abs(restored.post_frame(opened.key)["value"]-.2294)<1e-12
+    def history(dialog):
+        choice=next(c for c in dialog.findChildren(QComboBox) if c.findText("Historical F05 check")>=0)
+        choice.setCurrentText("Historical F05 check")
+    modal(window.add_section,history)
+    historical=window.selected_section()
+    assert historical["source"]["kind"]=="history"
+    assert historical["rows"]==[["F05",3.32295e-6,1e-6,"FAIL"]]
+    window.output_format.setCurrentText("Markdown");window.export_to(workspace/"History.md")
+    text=(workspace/"History.md").read_text(encoding="utf-8")
+    assert "F05" in text and "Historical Task1" in text and "NOT_EVALUATED" in text
+    normal=next(s for s in window.pages() if s["id"]=="question")
+    assert not window.preview.layout_issues("Short title",normal)
+    oversized=state.clone(normal);oversized["text"]="W"*500
+    assert window.preview.layout_issues("Short title",oversized)
+    oversized=state.clone(normal);oversized["source_note"]="locator "*1000
+    assert window.preview.layout_issues("Short title",oversized)
+    assert not session.jobs
+    return {"frames":records,"absent_frame":"UNAVAILABLE","edited_replace_cancel":"PRESERVED",
+            "historical_f05":"EXPLICIT_ONLY","cold":reopened}
+
 def acquisition_check():
     session=state.ReviewSession(workspace/"acquisition");hub=prototype.DesktopHub(session);hubs.append(hub)
     window=hub.open("acquisition");window.resize(1440,900);pump()
@@ -197,6 +279,7 @@ def acquisition_check():
             "selected_ids":selected,"stop_ack":"NOT_RECEIVED","cold":reopened}
 
 run("Report sections, native preview, output and cold reopen",report_check)
+run("Report exact frame, page source, guarded replacement and explicit history",report_selection_check)
 run("Acquisition channel, numeric draft, trace, unavailable live and cold reopen",acquisition_check)
 record={"scope":"QT_OFFSCREEN_ONLY","python":sys.version.split()[0],"pyside":PySide6.__version__,
         "platform":sys.platform,"checks":results,"callback_errors":errors,"solver_executed":False,

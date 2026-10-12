@@ -102,3 +102,7 @@ The following four state recipes and native views were published in source check
 ```powershell
 py -3.13 export_screens.py --offscreen --state report-sections --state report-preview --state acquisition-channels --state acquisition-connection --output "$env:TEMP\caelab-completion-svg" --png-output "$env:TEMP\caelab-completion-png"
 ```
+
+### Report selection correction
+
+The report recipes now select `Gauge / t = 0.02 s`: the table shows 0.2294 mm and the native page marks the selected time while showing the full retained curve. Open source restores the same field/frame/gauge. The connection recipe reserves room for all six connection/end rows. The latest recipes and Qt source must be regenerated together; the existing 52 SVGs retain their own older manifest and are not relabeled. New Windows SVG generation/integration is performed by the user’s Codex reviewer, with source hashes and installed-font policy in the export manifest.

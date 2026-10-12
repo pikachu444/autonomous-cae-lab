@@ -1,3 +1,17 @@
+## UX-REPORT-FIX-01/02 — 정확한 선택 근거와 출력
+
+`9e313e5`에 원 근거/프레임·preview paging·출처 footnote·편집 절 교체 확인·historical F05·connection 행 배치를 먼저 게시했다. 후속 source에서는 이전 Post의 임의 filter/gauge를 원 근거로 가져오지 않도록 supported gauge endpoints와 Surface selection까지 명시적으로 복원한다. 사용자 재현의 0/0.02/0.04초는 각각 0/0.2294/0.31 mm를 읽고, 없는 0.03초는 unavailable이다. 곡선은 all retained times와 선택 cursor를 표시한다. 같은 native page painter에서 PDF/preview를 그리고 Markdown에는 같은 값과 정확 source를 남긴다.
+
+현재 Study의 Checks는 NOT_EVALUATED / UNKNOWN / NOT_RELEASED이다. 원 F05 value 3.32295e-6 / tolerance 1e-6 / FAIL은 바꾸지 않았으며, 명시적으로 추가한 Historical F05 check 절에서만 Task1 역사 범위를 표시한다. 변경한 Notes/순서/포함 여부를 Use Study가 조용히 지우지 않는다. 기본 Cancel의 교체 확인을 거친다. PDF 내용이 실제 설치 글꼴의 페이지 영역을 넘으면 해당 절을 선택하고 출력을 막는다. invalid draft Save와 Markdown 출력 범위는 별도다.
+
+**사용자 측 Windows 실행 보고:** UX-REPORT-FIX-01/02에서 `600f9f8`의 두 창 시작/렌더와 Report PDF 5페이지, Markdown 포함/제외·본문·삭제 Undo·export, Acquisition Cancel, 195 N→0.195 kN, A82 선택, offset 0.15, 잘못된 rate/미완성 입력 차단, live unavailable guards가 PASS로 전달됐다. 이 사실은 Codex/Sol의 Windows Python3.13.5/PySide6 6.9.1 실행 보고이며 본 원격 Linux 실행이 아니다. 동시에 발견된 선택 시간/페이지 source/편집 손실/6행 배치 문제를 위 source에서 교정했다. 그 보고를 교정본 PASS로 확대하지 않는다.
+
+독립 Sol/high와 Astra/xhigh는 공개 `9e313e5`의 변경 source를 각각 읽고 해당 범위에서 추가 확정 P1/P2를 찾지 못했다. 두 검토 모두 STATIC_ONLY이며 compile/Qt/PDF/Windows 렌더 실행은 하지 않았다. `qt_complete_acceptance.py`에 3개 집중 그룹과 ordinary Save/별도 프로세스 reopen, 정확 프레임/미지원 프레임, 교체 Cancel, 명시적 F05 및 긴 글자 배치 검사 경로를 작성했다. **원격 disconnect 이후 추가 source의 실행 결과는 미확인**이며 Windows reviewer가 source와 함께 실행한다.
+
+새 Report 상태 recipe는 0.02초 선택을 사용한다. FN-32/FN-35의 추가 UX 열과 4개 상태, `Workflows.drawio`의 Report and acquisition 페이지를 연결했다. D1 원 74행·18열과 원 requirements/threshold는 변경하지 않는다. 56개 상태 전체 SVG 재생성은 같은 native-font exporter를 쓰는 Codex Windows 실행/통합 작업이다. 이전 52개 SVG를 새 source의 렌더로 표시하지 않는다.
+
+---
+
 ## UX-COMPLETE-01 / UX-RECOVERY-01 — 전용 Report·수집 소스
 
 `600f9f8`에 ReportWindow/ReportPage와 AcquisitionWindow, 기존 Study/Data 소유 검토 파일, 4개 상태 recipe와 exporter를 먼저 게시했다. 새 화면을 다른 도구나 backend 완료의 선행조건으로 만들지 않았다. 원래 52개 상태와 별도로 새 4개 상태를 추가하여 catalog는 56개다.
@@ -34,7 +48,7 @@ Sol/high는 기존 Linux PySide6 6.9.1/offscreen에서 선택·resolved·widget 
 
 FN-20의 DOE/Sobol, FN-21의 Optimization/Inverse, FN-22의 UQ, FN-23의 RBF, FN-24의 MOO/MDO를 task별로 다시 연결했다. 추가 `ux_source`, `ux_screen_states`, `ux_actions`, `ux_acceptance_focus`와 시제품 상태를 교정하고 JSON의 functions, 화면 색인, DESIGN의 대응표를 같은 기준으로 맞췄다. mixed-domain/gradient/trained-artifact 확장은 현재 숫자 표나 합성 결과만으로 구현되었다고 표시하지 않는다.
 
-FN-01은 실제 기존 File Open/Save as dialog와 review-file cold reopen을 연결한다. FN-34는 기존 제품 명령의 GUI/CLI/Python/MCP 동등성 계약 참조다. FN-32/FN-35의 현재 시제품 state 연결은 비워 두고 D1의 정확한 REPORT-REVIEW/REOPEN-REPORT 및 DEVICE-PLAN/DATA-CALIBRATION/RUN-ACTIVE/C09 prior reference와 미연결 상태를 명시했다. 기본 Post/Study/Data 화면을 전용 report/acquisition 작업 완료로 간주하지 않는다.
+FN-01은 실제 기존 File Open/Save as dialog와 review-file cold reopen을 연결한다. FN-34는 기존 제품 명령의 GUI/CLI/Python/MCP 동등성 계약 참조다. 당시 FN-32/FN-35의 시제품 state 연결은 비워 두고 D1의 정확한 REPORT-REVIEW/REOPEN-REPORT 및 DEVICE-PLAN/DATA-CALIBRATION/RUN-ACTIVE/C09 prior reference와 미연결 상태를 명시했다. 기본 Post/Study/Data 화면을 전용 report/acquisition 작업 완료로 간주하지 않는다.
 
 Luna/high의 독립 읽기 재확인과 root의 비교에서 기존 74행의 순서·18개 원 열·모든 원 값은 동일했고, 변경은 추가 UX 정보와 링크뿐이었다. 방법별 연결과 prior-only 분류에서 남은 구체적 불일치는 없었다. 새 화면·engine·owner는 추가하지 않았다.
 
@@ -108,6 +122,6 @@ qt_widgets.py       a4d4de78a65cf213b23c22662e11cf6af6c7473e9c933d6864227d7179c2
 
 FreeCAD/ParaView native host 실행·도킹·실제 3D 조작, solver/optimizer/PDE 계산, provider/OAuth 권한 확인·호출, local model/tool call, remote scheduler, 실제 장비·측정 acquisition은 **NOT_RUN**이다. 합성 수치·mesh·3D·method result는 authored illustration이다. Numerical result에는 `computed_from_input=false`가 있으며, 편집한 입력을 계산한 결과라고 표시하지 않는다.
 
-모든 FN-01…35를 제품 구현 완료라고 주장하지 않는다. 특히 report/device/setup/cross-surface 확장은 D1 상세 scope와 작업표에 남겨 두었으며 별도 실제 장비/report GUI를 새로 구현하지 않았다. Formula는 editable recipe이고 general expression engine이 아니다. 구성모델·weak form/ODE는 정의 편집 범위이며 backend solve는 이후 구현 대상이다. 기존 threshold, `UNKNOWN`, `NOT_RELEASED`, F05 `3.32295e-6 > 1e-6`은 바꾸지 않았다.
+모든 FN-01…35를 제품 구현 완료라고 주장하지 않는다. 특히 report/device/setup/cross-surface 확장은 D1 상세 scope와 작업표에 남겨 두었으며 해당 시점에는 전용 장비/report GUI가 없었다. 이후 전용 planning UI 추가와 제한은 문서 맨 위 UX-COMPLETE/REPORT-FIX 기록을 따른다. Formula는 editable recipe이고 general expression engine이 아니다. 구성모델·weak form/ODE는 정의 편집 범위이며 backend solve는 이후 구현 대상이다. 기존 threshold, `UNKNOWN`, `NOT_RELEASED`, F05 `3.32295e-6 > 1e-6`은 바꾸지 않았다.
 
 이번 변경의 소유권은 `pro-ux/`뿐이다. 제품·pro-authored·main·settings·CURRENT_STATE·회사 파일은 수정 대상이 아니다. 사용자 검토 뒤 개발 시작 지시가 있을 때 [implementation_map.csv](implementation_map.csv)와 [MOAI_HANDOFF.md](MOAI_HANDOFF.md)를 따라 기존 owner에 연결한다.

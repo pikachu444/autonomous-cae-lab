@@ -324,6 +324,8 @@ def structural_location(record,locator):
     match=re.fullmatch(r"([^/]+)\s*/\s*t\s*=\s*([-+0-9.eE]+)\s*s",str(locator).strip())
     if not match:raise ReviewError("This structural evidence location is unavailable: "+str(locator))
     label=match.group(1).strip();array="Displacement" if label=="Gauge" else label
+    if array not in ("Displacement","Contact pressure","Normal force"):
+        raise ReviewError("This structural field/location is not supported by the review fixture.")
     field=record.get("fields",{}).get(array)
     try:time=float(match.group(2))
     except ValueError:raise ReviewError("The evidence time is invalid.")
@@ -334,7 +336,8 @@ def structural_location(record,locator):
     if index>=len(values) or not isinstance(values[index],(int,float)) or not math.isfinite(values[index]):
         raise ReviewError("The selected evidence frame has no finite value.")
     return {"array":array,"time":time,"unit":field["unit"],"association":field["association"],
-            "value":values[index],"index":index}
+            "value":values[index],"index":index,"selection":"Gauge endpoints" if array=="Displacement" else "Contact pair",
+            "basis":"Global Cartesian","gauge":{"a":"Gauge left","b":"Gauge right","direction":"X"}}
 
 
 def report_sections(study_document, results):
