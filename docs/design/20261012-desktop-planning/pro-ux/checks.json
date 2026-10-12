@@ -360,5 +360,76 @@
       ],
       "qt_callback_errors": []
     }
+  ],
+  "followup_checks": [
+    {
+      "scope": "TWO_UX06_SYNTHETIC_QT_PATHS",
+      "platform": "offscreen",
+      "versions": {
+        "PySide6": "6.9.1",
+        "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]"
+      },
+      "native_solver_provider_windows": "NOT_RUN",
+      "source_hashes": {
+        "prototype_state.py": "8262f3f1133c9bd0452a12da5e2a83d8fff6ffd2509466ef1ce7c4d0f97c64ff",
+        "qt_prototype.py": "2a899f3778d760933bd9872ae561c502d1f4ed44094603e885095eb28e24b9a9",
+        "qt_widgets.py": "3a05da02243ce65ca1d988078cf2883b9304c3f765eba097a268869476c04128"
+      },
+      "checks": [
+        {
+          "check": "hold_step_name_only_preserves_fields",
+          "status": "PASS",
+          "detail": {
+            "second_step": {
+              "name": "Hold renamed",
+              "duration": 2.0,
+              "control": "Automatic",
+              "time_step": 2e-05,
+              "force": -125.0
+            },
+            "load_unchanged": {
+              "name": "Load",
+              "duration": 1.0,
+              "control": "Automatic"
+            },
+            "ordinary_save_fresh_process_and_cold_qt": true
+          }
+        },
+        {
+          "check": "same_doe_result_distinct_row_replies",
+          "status": "PASS",
+          "detail": {
+            "same_result_id": "review-result-cac1ca5e4843",
+            "distinct_reply_turns": [
+              "user-turn-fe3dd4796516",
+              "user-turn-d36fdbd3f5b2"
+            ],
+            "locators": [
+              "DOE / Design responses / d1",
+              "DOE / Design responses / d2"
+            ],
+            "selected_turn_visible_refs": [
+              [
+                [
+                  "review-result-cac1ca5e4843",
+                  "DOE / Design responses / d1"
+                ]
+              ],
+              [
+                [
+                  "review-result-cac1ca5e4843",
+                  "DOE / Design responses / d2"
+                ]
+              ]
+            ],
+            "ordinary_save_fresh_process_and_cold_qt": true
+          }
+        }
+      ],
+      "qt_callback_errors": [],
+      "status": "PASS",
+      "execution_actor": "Sol/high independent Qt check on an immutable source snapshot",
+      "script": "qt_ux06_acceptance.py"
+    }
   ]
 }

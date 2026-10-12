@@ -14,6 +14,12 @@ Sol/high는 기존 Linux PySide6 6.9.1/offscreen에서 선택·resolved·widget 
 
 ## 실제로 교정한 사용자 작업
 
+### UX-FIX-06 — step 이름과 발언별 근거
+
+Step dialog는 선택 step을 복사한 뒤 name/duration/control만 갱신한다. Hold의 `time_step=2e-5`, `force=-125`를 입력한 뒤 이름만 바꾸어도 다른 필드를 유지한다. Expert의 pending/turn 첨부는 `{id, locator}` 쌍이다. Evidence dock의 Document evidence와 Selected turn attachments를 구별하고, 발언 선택은 그 발언에 붙인 쌍만 보여 준다. Open selected는 해당 method tab/row로 이동하며 잘못된 locator는 unavailable로 처리한다. 과거 result ID만 있는 첨부는 유일한 위치일 때만 해석하며 여러 위치를 모두 그 발언에 붙이지 않는다.
+
+Sol/high가 별도 immutable snapshot에서 위 두 경로를 실제 Linux Qt offscreen으로 확인했다. Hold 이름 변경·다른 step 왕복·ordinary Save/별도 프로세스·cold Qt, 같은 DOE result의 d1/d2 개별 reply·선택 근거·정확 row 열기·ordinary Save/별도 프로세스·cold Qt 모두 PASS였다. Qt callback error는 없었다. `qt_ux06_acceptance.py`와 `checks.json`의 followup 기록에 확인 범위와 source hash를 남겼다. 기존 UX04 검사의 첨부 기대값도 result ID 단독에서 정확한 쌍으로 고쳤다. 전체 이전 검사를 새로 실행한 것으로 표시하지 않는다.
+
 | 문제 | 현재 동작 | 확인 근거 |
 |---|---|---|
 | 작은 time step이 기본 float delegate에서 0으로 반올림 | 숫자를 text editor에서 편집한다. `.001`, `1e-6`, `1.2e-5`, 음수와 미완성 draft를 표현하고 저장한다. 필수 입력 검사는 별도로 수행한다. | F2/Enter, Save/reopen 실제 Qt 검사. 미완성 입력 repair는 이전 Windows 검사에서도 사용자 보고 PASS. |

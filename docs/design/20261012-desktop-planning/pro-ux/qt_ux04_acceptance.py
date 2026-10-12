@@ -234,14 +234,14 @@ def expert_plan_result_reply_cold():
     result_dialog = hub.open_result(rid)
     pump()
     assert result_dialog.result_id == rid and result_dialog.result_tables
-    locator = 'DOE / Design matrix / d1'
+    locator = 'DOE / '+s.results[rid]['fixture']['tables'][0]['name']+' / d1'
     expert = hub.discuss_result(rid, locator)
     assert expert.key == 'expert'
     expert.composer.setPlainText('Review the selected synthetic DOE row before a real evaluation.')
     expert.save_reply()
     pump()
     turn = s.doc('expert')['draft']['turns'][-1]
-    assert turn['actual'] and turn['evidence'] == [rid]
+    assert turn['actual'] and turn['evidence'] == [{'id':rid,'locator':locator}]
     path = workspace / 'Expert-ordinary-save.json'
     s.save_document('expert', path)
     expert.question.setText('Compare the selected DOE row')
@@ -257,7 +257,9 @@ from prototype_state import ReviewSession
 s=ReviewSession(sys.argv[4]);key=s.open_document(sys.argv[2]);expected=json.loads(Path(sys.argv[3]).read_text())
 assert s.doc(key)['saved']==expected['view']
 rid=expected['result']['id'];assert s.results[rid]==expected['result'];assert s.results[rid]['kind']=='numerical'
-assert s.doc(key)['saved']['turns'][-1]['evidence']==[rid]
+assert s.doc(key)['saved']['turns'][-1]['evidence']==expected['view']['turns'][-1]['evidence']
+assert s.doc(key)['saved']['turns'][-1]['evidence'][0]['id']==rid
+assert s.doc(key)['saved']['turns'][-1]['evidence'][0]['locator'].endswith(' / d1')
 print('ordinary Expert cold process exact numerical evidence PASS')
 """
     process = subprocess.run([sys.executable, '-c', code, str(args.source.resolve()), str(path),

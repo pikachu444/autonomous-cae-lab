@@ -761,7 +761,9 @@ class ReviewSession:
         saved["dirty"] = bool(saved["buffers"])
         saved["file"] = str(path)
         attachments = {}
-        evidence_ids=[e.get("id",e.get("ref")) for e in saved["draft"].get("evidence",[]) if isinstance(e,dict)]
+        evidence_refs=list(saved["draft"].get("evidence",[]))+list(saved["draft"].get("pending_evidence",[]))
+        for turn in saved["draft"].get("turns",[]):evidence_refs.extend(turn.get("evidence",[]))
+        evidence_ids=[e.get("id",e.get("ref")) if isinstance(e,dict) else e for e in evidence_refs]
         if saved["draft"].get("method_result"):evidence_ids.append(saved["draft"]["method_result"])
         attachments["evidence_results"]={rid:clone(self.results[rid]) for rid in evidence_ids if rid in self.results}
         if doc["owner"] == "native_post":
@@ -1005,8 +1007,16 @@ class ReviewSession:
         if not text.strip():
             raise ReviewError("Write a reply first.")
         payload = clone(self.doc(key)["draft"])
+        attachments=[]
+        for entry in evidence or []:
+            if isinstance(entry,dict):
+                attachment={"id":entry["id"],"locator":entry.get("locator","")}
+            else:
+                matches=[e for e in payload.get("evidence",[]) if e["id"]==entry]
+                attachment={"id":entry,"locator":matches[0]["locator"] if len(matches)==1 else ""}
+            if attachment not in attachments:attachments.append(attachment)
         turn = {"id": token("user-turn"), "role": "사용자", "actual": True,
-                "text": text.strip(), "topic": topic, "reply_to": reply_to, "evidence": clone(evidence or [])}
+                "text": text.strip(), "topic": topic, "reply_to": reply_to, "evidence": attachments}
         payload["turns"].append(turn)
         payload["pending_text"] = ""
         payload["reply_to"] = None

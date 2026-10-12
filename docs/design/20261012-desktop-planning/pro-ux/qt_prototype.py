@@ -953,7 +953,8 @@ class SimulationWindow(ToolWindow):
         for label,w in (("Name",name),("Duration [s]",duration),("Control",control)):form.addRow(label,w)
         buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel);buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);form.addRow(buttons)
         if dialog.exec()==QDialog.DialogCode.Accepted:
-            payload=clone(self.data);items=clone(steps);item={"name":name.text(),"duration":number(duration.text()),"control":control.currentText()}
+            payload=clone(self.data);items=clone(steps);item=clone(src)
+            item.update(name=name.text(),duration=number(duration.text()),control=control.currentText())
             if editing:items[row]=item
             else:items.append(item)
             payload["steps"]=items;payload["duration"]=items[0]["duration"];self.step_index=row if editing else len(items)-1
@@ -2183,8 +2184,10 @@ class ExpertWindow(ToolWindow):
         map_dock=self.add_dock("Discussion map",box(self.map,roles),minimum=330)
         self.evidence=make_table(["Evidence","Location"],[[e["label"],e["locator"]] for e in self.data["evidence"]])
         self.visible_evidence=list(self.data["evidence"])
+        self.evidence_scope=QComboBox();self.evidence_scope.addItems(["Document evidence","Selected turn attachments"])
+        self.evidence_scope.currentIndexChanged.connect(self.refresh_evidence)
         self.evidence.itemDoubleClicked.connect(lambda item:self.guard(self.open_evidence))
-        evidence_dock=self.add_dock("Evidence",box(self.evidence,button("Open selected",lambda:self.guard(self.open_evidence))),
+        evidence_dock=self.add_dock("Evidence",box(self.evidence_scope,self.evidence,button("Open selected",lambda:self.guard(self.open_evidence))),
                                     Qt.DockWidgetArea.RightDockWidgetArea,minimum=270)
         self.resizeDocks([map_dock,evidence_dock],[365,295],Qt.Orientation.Horizontal)
         self.action(self.review_menu,"Show labelled discussion layout example",self.layout_example)
@@ -2210,12 +2213,30 @@ class ExpertWindow(ToolWindow):
         if not self._building:self.session.edit(self.key,"map_positions",positions);self.update_title()
 
     def turn_selected(self,row):
+        if self._building:return
         if row<0 or row>=len(self.data["turns"]):return
         turn=self.data["turns"][row]
         self.topic.setCurrentText(turn["topic"]);self.map.select_node(turn["topic"])
-        refs=set(turn.get("evidence",[]));self.visible_evidence=[e for e in self.data["evidence"] if e["id"] in refs] if refs else list(self.data["evidence"])
-        fill_table(self.evidence,[[e["label"],e["locator"]] for e in self.visible_evidence])
+        self.evidence_scope.setCurrentIndex(1);self.refresh_evidence()
         self.update_title("선택 발언: "+turn["role"])
+
+    def refresh_evidence(self,*args):
+        self.visible_evidence=list(self.data["evidence"])
+        if self.evidence_scope.currentIndex()==1:
+            self.visible_evidence=[];row=self.turns.currentRow()
+            attachments=self.data["turns"][row].get("evidence",[]) if 0<=row<len(self.data["turns"]) else []
+            for attachment in attachments:
+                if isinstance(attachment,dict):
+                    ref=attachment["id"];locator=attachment.get("locator","")
+                    matches=[e for e in self.data["evidence"] if e["id"]==ref and e["locator"]==locator]
+                else:
+                    # Older files stored a result ID only. Resolve a unique
+                    # location, never attach every location from that result.
+                    ref=attachment;matches=[e for e in self.data["evidence"] if e["id"]==ref]
+                    locator=matches[0]["locator"] if len(matches)==1 else ""
+                entry=matches[0] if len(matches)==1 else {"id":ref,"locator":locator,"label":"Result / location not recorded"}
+                self.visible_evidence.append(entry)
+        fill_table(self.evidence,[[e["label"],e["locator"] or "Location not recorded"] for e in self.visible_evidence])
 
     def reply_to(self):
         row=self.turns.currentRow()
@@ -2228,6 +2249,7 @@ class ExpertWindow(ToolWindow):
         self.session.append_reply(self.composer.toPlainText(),self.topic.currentText(),self.reply_target,self.key,self.data.get("pending_evidence",[]))
         self.reply_target=None;self.reply_label.setText("Reply")
         self.refresh()
+        self.turns.setCurrentRow(len(self.data["turns"])-1)
         self.update_title("사용자 발언 저장 초안. Provider는 미연결입니다.")
 
     def pause_resume(self):
@@ -2280,12 +2302,12 @@ class ExpertWindow(ToolWindow):
         if row<0:raise ReviewError("Select evidence first.")
         ref=self.visible_evidence[row]
         if ref["id"]=="CAL-018":self.hub.calibration(self)
-        else:self.hub.open_result(ref["id"])
+        else:self.hub.open_result(ref["id"],ref.get("locator"))
 
     def attach_evidence(self):
         row=self.evidence.currentRow()
         if row<0:raise ReviewError("Select a retained result or source in Evidence.")
-        ref=self.visible_evidence[row]["id"];refs=list(self.data.get("pending_evidence",[]))
+        entry=self.visible_evidence[row];ref={"id":entry["id"],"locator":entry["locator"]};refs=list(self.data.get("pending_evidence",[]))
         if ref not in refs:refs.append(ref)
         self.session.edit(self.key,"pending_evidence",refs);self.reply_label.setText("Reply / "+str(len(refs))+" evidence attached");self.update_title()
 
@@ -2340,7 +2362,7 @@ class ExpertWindow(ToolWindow):
         self.question.setText(self.data["question"]);self.composer.setPlainText(self.data["pending_text"])
         self.topic.clear();self.topic.addItems(self.data["topics"]);self.topic.setCurrentText(self.data.get("selected_topic",self.session.selected.get("topic",self.data["topics"][0])))
         self.reply_target=self.data.get("reply_to");self.reply_label.setText("Reply to selected turn" if self.reply_target else "Reply")
-        self.visible_evidence=list(self.data["evidence"]);fill_table(self.evidence,[[e["label"],e["locator"]] for e in self.visible_evidence])
+        self.refresh_evidence()
         self.map.set_positions(self.data.get("map_positions",{}));self.map.nodes["question"].label=self.data["question"][:16];self.map.viewport().update()
         self.pause_action.setText("Resume" if self.data["paused"] else "Pause")
         config=self.data.get("runtime_proposal",{});route=config.get("route","Not configured")
@@ -2605,9 +2627,25 @@ class DesktopHub:
         text_dialog(parent,"Saved "+doc["name"],
                     json.dumps({"reference":ref,"saved_input":payload},ensure_ascii=False,indent=2))
 
-    def open_result(self,result_id):
+    def open_result(self,result_id,locator=None):
         if result_id not in self.session.results:raise ReviewError("The exact result is unavailable.")
-        if self.session.results[result_id].get("kind")=="numerical":return self.inspect_research_result(result_id)
+        if self.session.results[result_id].get("kind")=="numerical":
+            record=self.session.results[result_id];selection=None
+            if locator:
+                for index,definition in enumerate(record["fixture"]["tables"]):
+                    prefix=record["method"]+" / "+definition["name"]
+                    if locator==prefix:selection=(index,None);break
+                    if locator.startswith(prefix+" / "):
+                        row_key=locator[len(prefix)+3:]
+                        row=next((i for i,values in enumerate(definition["rows"]) if str(values[0])==row_key),None)
+                        if row is not None:selection=(index,row);break
+                if selection is None:raise ReviewError("The selected result location is unavailable: "+locator)
+            dialog=self.inspect_research_result(result_id)
+            if selection is not None:
+                index,row=selection;dialog.result_tabs.setCurrentIndex(index);table=dialog.result_tables[index]
+                if row is None:table.clearSelection();table.setCurrentCell(-1,-1)
+                else:table.setCurrentCell(row,0);table.selectRow(row);table.scrollToItem(table.item(row,0))
+            return dialog
         if not self.session.results[result_id].get("fields"):
             raise ReviewError("This retained result has no 3D field arrays. Inspect its owning tool result table.")
         key="post:"+result_id
@@ -2637,7 +2675,7 @@ class DesktopHub:
         payload=clone(self.session.doc(key)["draft"]);label=result.get("method",result.get("candidate","Result"))+" example"
         if not any(e["id"]==result_id and e["locator"]==locator for e in payload["evidence"]):
             payload["evidence"].append({"id":result_id,"locator":locator,"label":label,"synthetic":True})
-        payload["pending_evidence"]=[result_id]
+        payload["pending_evidence"]=[{"id":result_id,"locator":locator}]
         self.session.change(key,payload,"Discuss selected result")
         window=self.open(key);window.composer.setFocus();return window
 

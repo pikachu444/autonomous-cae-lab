@@ -94,6 +94,7 @@ py -3.13 export_screens.py --offscreen --state post-compare --state expert-discu
 py -3.13 qt_acceptance.py --source . --offscreen --output "$env:TEMP\caelab-check-base"
 py -3.13 qt_followup_acceptance.py --source . --output "$env:TEMP\caelab-check-methods"
 py -3.13 qt_ux04_acceptance.py --source . --output "$env:TEMP\caelab-check-ux04"
+py -3.13 qt_ux06_acceptance.py --source . --output "$env:TEMP\caelab-check-ux06"
 py -3.13 state_acceptance.py --source . --output "$env:TEMP\caelab-check-state"
 ```
 
